@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use core::net::IpAddr;
 
 /// A simple packet builder for the FrameAssembly prototype.
-/// Hardcodes MAC addresses and uses dummy values where acceptable for a zero-dependency prototype.
+/// Hardcodes MAC addresses and uses dummy values where acceptable for a prototype.
 
 const DUMMY_MAC_SRC: [u8; 6] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF];
 const DUMMY_MAC_DST: [u8; 6] = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66];

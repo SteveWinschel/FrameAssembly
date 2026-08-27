@@ -1,12 +1,18 @@
-let example_client = 10.0.0.1:1234
-let google_dns = 8.8.8.8
+// IPs can be defined like/as variables
+let example_client = 10.0.0.1 
+let google_dns = 8.8.8.8 
 
-let template tcp_handshake(src, dst) {
-    src -> dst tcp syn seq=1 win=100 payload="hello" wait=10ms
-    src <- dst tcp ack seq=2 win=200 payload="world" wait=1s
-    src -> dst tcp syn ack seq=3 wait=1m
+// Templates are like functions, they can be called with arguments and are/should be reusable.
+let template tcp_handshake(src, dst) { 
+    // The frame definitions are meant to look like they do in Wireshark
+    src -> dst tcp syn seq=1 win=100 payload="hello" wait=10ms 
+    src <- dst tcp ack seq=2 win=200 payload="world" wait=3m 
+    src -> dst tcp syn ack seq=3 wait=100s 
 }
 
-compile {
-    tcp_handshake(example_client, google_dns:80)
+// Alternatively you could define a "compile" block to generate a PCAP but you couldn't/shouldn't use an infinite loop for obvious reasons
+run { 
+    loop { 
+        tcp_handshake(example_client:1234, google_dns:53) 
+    }
 }

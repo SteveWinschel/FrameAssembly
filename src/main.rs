@@ -1,14 +1,16 @@
-use std::fs;
-use frameassembly::backend::generate_pcap;
+use clap::Parser;
+use frameassembly::cli::Cli;
 use frameassembly::parser::parse_program;
+use frameassembly::runner::run_program;
+use std::fs;
 
 fn main() {
-    let filename = std::env::args().nth(1).unwrap_or_else(|| "CODE.txt".to_string());
+    let cli = Cli::parse();
 
-    let code = match fs::read_to_string(&filename) {
+    let code = match fs::read_to_string(&cli.file) {
         Ok(content) => content,
         Err(error) => {
-            eprintln!("Error reading file '{}': {}", filename, error);
+            eprintln!("Error reading file '{}': {}", cli.file, error);
             std::process::exit(1);
         }
     };
@@ -22,18 +24,13 @@ fn main() {
     };
 
     println!(
-        "Successfully parsed {} assignments, {} templates, and {} compile invocations",
+        "Successfully parsed {} assignments, {} templates",
         program.assignments.len(),
         program.templates.len(),
-        program.compile_block.len()
     );
 
-    let output_pcap = "output.pcap";
-    match generate_pcap(&program, output_pcap) {
-        Ok(_) => println!("Successfully generated {}", output_pcap),
-        Err(e) => {
-            eprintln!("Backend error: {}", e);
-            std::process::exit(1);
-        }
+    if let Err(e) = run_program(&program, cli.interface) {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
     }
 }

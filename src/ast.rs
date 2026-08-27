@@ -3,7 +3,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 /// A simple, flat AST for the FrameAssembly DSL.
-/// We avoid spans and lossless syntax trees (LSTs) to keep it minimal and zero-dependency.
+/// We avoid spans and lossless syntax trees (LSTs) to keep it minimal.
 
 /// An assigned value can be just an IP, or an IP with a port.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -54,7 +54,7 @@ pub struct TemplateDef {
     pub statements: Vec<FrameStatement>,
 }
 
-/// An argument passed to a template invocation in the `compile` block.
+/// An argument passed to a template invocation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Argument {
     /// A simple variable reference, e.g., `my_client`
@@ -63,17 +63,33 @@ pub enum Argument {
     VarWithPort(String, u16),
 }
 
-/// A template invocation inside the `compile` block, e.g., `tcp_handshake(my_client, google_dns:80)`
+/// A template invocation, e.g., `tcp_handshake(my_client, google_dns:80)`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TemplateInvocation {
     pub name: String,
     pub args: Vec<Argument>,
 }
 
-/// The root of the AST containing all assignments, templates, and the compile block invocations.
+/// A statement in the run/compile block, can be a loop or a single invocation
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RunStatement {
+    /// A single template invocation directly in the block
+    Invocation(TemplateInvocation),
+    /// A loop block containing an optional count (None = infinite) and inner invocations
+    Loop(Option<u32>, Vec<TemplateInvocation>), 
+}
+
+/// The execution mode of the program. A file can only have one block.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExecutionBlock {
+    Compile(Vec<RunStatement>),
+    Run(Vec<RunStatement>),
+}
+
+/// The root of the AST containing all assignments, templates, and the execution block.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program {
     pub assignments: Vec<GlobalAssignment>,
     pub templates: Vec<TemplateDef>,
-    pub compile_block: Vec<TemplateInvocation>,
+    pub execution: ExecutionBlock,
 }

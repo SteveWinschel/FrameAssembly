@@ -6,9 +6,21 @@ use core::str::FromStr;
 
 pub type ParseResult<'a, T> = Result<(&'a str, T), String>;
 
-/// Helper to skip whitespace and newlines
-pub fn skip_whitespace(input: &str) -> &str {
-    input.trim_start()
+/// Helper to skip whitespace and comments
+pub fn skip_whitespace(mut input: &str) -> &str {
+    loop {
+        input = input.trim_start();
+        if input.starts_with("//") {
+            if let Some(pos) = input.find('\n') {
+                input = &input[pos + 1..];
+            } else {
+                return "";
+            }
+        } else {
+            break;
+        }
+    }
+    input
 }
 
 /// Helper to parse a specific string literal (tag)
@@ -35,7 +47,7 @@ pub fn parse_ident(input: &str) -> ParseResult<'_, String> {
     if len > 0 {
         let ident = &input[..len];
         match ident {
-            "let" | "template" | "compile" | "tcp" | "syn" | "ack" => {
+            "let" | "template" | "run" | "compile" | "loop" | "tcp" | "syn" | "ack" => {
                 Err(alloc::format!("'{}' is a reserved keyword", ident))
             }
             _ => Ok((&input[len..], ident.to_string())),
@@ -274,7 +286,7 @@ fn parse_argument(input: &str) -> ParseResult<'_, Argument> {
     }
 }
 
-/// Parse a template invocation inside the compile block
+/// Parse a template invocation inside the run/compile block
 fn parse_template_invocation(input: &str) -> ParseResult<'_, TemplateInvocation> {
     let (rest, name) = parse_ident(input)?;
     let (mut rest, _) = tag(rest, "(")?;
@@ -293,26 +305,62 @@ fn parse_template_invocation(input: &str) -> ParseResult<'_, TemplateInvocation>
     Ok((rest, TemplateInvocation { name, args }))
 }
 
-/// Parse the compile block: `compile { ... }`
-fn parse_compile_block(input: &str) -> ParseResult<'_, Vec<TemplateInvocation>> {
-    let (rest, _) = tag(input, "compile")?;
-    let (mut rest, _) = tag(rest, "{")?;
-    
-    let mut invocations = Vec::new();
-    while let Ok((new_rest, inv)) = parse_template_invocation(rest) {
-        invocations.push(inv);
-        rest = new_rest;
+/// Parse a statement in the block, which can be an invocation or a loop
+fn parse_run_statement(input: &str) -> ParseResult<'_, RunStatement> {
+    if let Ok((rest, _)) = tag(input, "loop") {
+        let (rest_after_loop, count) = match parse_u32(rest) {
+            Ok((r, c)) => (r, Some(c)),
+            Err(_) => (rest, None),
+        };
+        let (mut rest_block, _) = tag(rest_after_loop, "{")?;
+        
+        let mut invocations = Vec::new();
+        while let Ok((new_rest, inv)) = parse_template_invocation(rest_block) {
+            invocations.push(inv);
+            rest_block = new_rest;
+        }
+        
+        let (final_rest, _) = tag(rest_block, "}")?;
+        Ok((final_rest, RunStatement::Loop(count, invocations)))
+    } else {
+        let (rest, inv) = parse_template_invocation(input)?;
+        Ok((rest, RunStatement::Invocation(inv)))
     }
-    
-    let (rest, _) = tag(rest, "}")?;
-    Ok((rest, invocations))
+}
+
+/// Parse the execution block: `run { ... }` or `compile { ... }`
+fn parse_execution_block(input: &str) -> ParseResult<'_, ExecutionBlock> {
+    if let Ok((rest, _)) = tag(input, "run") {
+        let (mut rest, _) = tag(rest, "{")?;
+        let mut statements = Vec::new();
+        while let Ok((new_rest, stmt)) = parse_run_statement(rest) {
+            statements.push(stmt);
+            rest = new_rest;
+        }
+        let (rest, _) = tag(rest, "}")?;
+        Ok((rest, ExecutionBlock::Run(statements)))
+    } else if let Ok((rest, _)) = tag(input, "compile") {
+        let (mut rest, _) = tag(rest, "{")?;
+        let mut statements = Vec::new();
+        while let Ok((new_rest, stmt)) = parse_run_statement(rest) {
+            if let RunStatement::Loop(None, _) = &stmt {
+                return Err("Infinite loops are not allowed in compile blocks (compiling infinite iterations inside a PCAP is not supported)".to_string());
+            }
+            statements.push(stmt);
+            rest = new_rest;
+        }
+        let (rest, _) = tag(rest, "}")?;
+        Ok((rest, ExecutionBlock::Compile(statements)))
+    } else {
+        Err("Expected 'run' or 'compile'".to_string())
+    }
 }
 
 /// Top-level parser for the entire DSL file
 pub fn parse_program(mut input: &str) -> Result<Program, String> {
     let mut assignments = Vec::new();
     let mut templates = Vec::new();
-    let mut compile_block = Vec::new();
+    let mut execution = None;
 
     loop {
         input = skip_whitespace(input);
@@ -330,9 +378,12 @@ pub fn parse_program(mut input: &str) -> Result<Program, String> {
             assignments.push(a);
             input = rest;
         } 
-        // Finally, try the compile block
-        else if let Ok((rest, c)) = parse_compile_block(input) {
-            compile_block.extend(c);
+        // Finally, try the execution block
+        else if let Ok((rest, exec)) = parse_execution_block(input) {
+            if execution.is_some() {
+                return Err("A file cannot contain multiple execution blocks (run/compile)".to_string());
+            }
+            execution = Some(exec);
             input = rest;
         } 
         else {
@@ -340,7 +391,9 @@ pub fn parse_program(mut input: &str) -> Result<Program, String> {
         }
     }
 
-    Ok(Program { assignments, templates, compile_block })
+    let execution = execution.ok_or_else(|| "No 'run' or 'compile' block found in program".to_string())?;
+
+    Ok(Program { assignments, templates, execution })
 }
 
 #[cfg(test)]
@@ -358,13 +411,20 @@ mod tests {
                 src -> dst tcp syn ack
             }
 
-            compile {
+            run {
+                loop 100 {
+                    tcp_handshake(my_client, google_dns:80)
+                }
                 tcp_handshake(my_client, google_dns:80)
             }
         "#;
         let prog = parse_program(code).unwrap();
         assert_eq!(prog.assignments.len(), 2);
         assert_eq!(prog.templates.len(), 1);
-        assert_eq!(prog.compile_block.len(), 1);
+        if let ExecutionBlock::Run(stmts) = &prog.execution {
+            assert_eq!(stmts.len(), 2);
+        } else {
+            panic!("Expected run block");
+        }
     }
 }

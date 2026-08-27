@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::{self, Write};
 
-/// A simple zero-dependency PCAP writer.
+/// A simple PCAP writer.
 pub struct PcapWriter {
     file: File,
 }

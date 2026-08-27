@@ -5,7 +5,7 @@ use alloc::string::String;
 use core::net::IpAddr;
 use std::collections::HashMap;
 
-/// Resolves an IP and port for a given argument in a macro invocation.
+/// Resolves an IP and port for a given argument in a template invocation.
 fn resolve_endpoint(
     arg: &Argument,
     env: &HashMap<String, AssignValue>,
@@ -44,10 +44,10 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
         env.insert(assign.name.clone(), assign.value.clone());
     }
 
-    // 2. Build a macro lookup table
-    let mut macros = HashMap::new();
-    for mac in &program.macros {
-        macros.insert(mac.name.clone(), mac);
+    // 2. Build a template lookup table
+    let mut templates = HashMap::new();
+    for mac in &program.templates {
+        templates.insert(mac.name.clone(), mac);
     }
 
     // 3. Prepare the PCAP writer
@@ -59,13 +59,13 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
 
     // 4. Evaluate the compile block
     for invocation in &program.compile_block {
-        let mac = macros
+        let mac = templates
             .get(&invocation.name)
-            .ok_or_else(|| alloc::format!("Undefined macro: '{}'", invocation.name))?;
+            .ok_or_else(|| alloc::format!("Undefined template: '{}'", invocation.name))?;
 
         if mac.params.len() != invocation.args.len() {
             return Err(alloc::format!(
-                "Macro '{}' expects {} arguments, got {}",
+                "Template '{}' expects {} arguments, got {}",
                 mac.name,
                 mac.params.len(),
                 invocation.args.len()
@@ -83,10 +83,10 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
         for stmt in &mac.statements {
             let caller_ep = param_map
                 .get(&stmt.caller)
-                .ok_or_else(|| alloc::format!("Unknown caller '{}' in macro", stmt.caller))?;
+                .ok_or_else(|| alloc::format!("Unknown caller '{}' in template", stmt.caller))?;
             let callee_ep = param_map
                 .get(&stmt.callee)
-                .ok_or_else(|| alloc::format!("Unknown callee '{}' in macro", stmt.callee))?;
+                .ok_or_else(|| alloc::format!("Unknown callee '{}' in template", stmt.callee))?;
 
             // Determine actual source and destination based on the direction arrow
             let (src_ip, src_port, dst_ip, dst_port) = match stmt.dir {

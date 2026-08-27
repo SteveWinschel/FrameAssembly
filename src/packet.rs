@@ -57,6 +57,10 @@ pub fn build_tcp_packet(
     packet.extend_from_slice(&src_v4); // Source IP
     packet.extend_from_slice(&dst_v4); // Destination IP
 
+    // Calculate and update IP checksum
+    let ip_checksum = calculate_checksum(&packet[14..34]);
+    packet[24..26].copy_from_slice(&ip_checksum.to_be_bytes());
+
     // --- TCP Header (20 bytes) ---
     packet.extend_from_slice(&src_port.to_be_bytes()); // Source Port
     packet.extend_from_slice(&dst_port.to_be_bytes()); // Destination Port
@@ -82,5 +86,42 @@ pub fn build_tcp_packet(
     // --- Payload ---
     packet.extend_from_slice(payload_bytes);
 
+    // Calculate and update TCP Checksum
+    let mut tcp_checksum_data = Vec::new();
+    tcp_checksum_data.extend_from_slice(&src_v4);
+    tcp_checksum_data.extend_from_slice(&dst_v4);
+    tcp_checksum_data.push(0); // Reserved
+    tcp_checksum_data.push(6); // Protocol TCP
+    let tcp_len = tcp_header_len + payload_len;
+    tcp_checksum_data.extend_from_slice(&tcp_len.to_be_bytes());
+    tcp_checksum_data.extend_from_slice(&packet[34..]); // TCP Header + Payload
+    
+    let tcp_checksum = calculate_checksum(&tcp_checksum_data);
+    packet[50..52].copy_from_slice(&tcp_checksum.to_be_bytes());
+
     packet
+}
+
+/// Calculates the RFC-1071 Internet Checksum
+fn calculate_checksum(data: &[u8]) -> u16 {
+    let mut sum = 0u32;
+    let mut chunks = data.chunks_exact(2);
+    
+    // Sum all 16-bit words
+    for chunk in chunks.by_ref() {
+        sum += u16::from_be_bytes([chunk[0], chunk[1]]) as u32;
+    }
+    
+    // If there is an odd byte left over, pad it with a zero
+    if let Some(&b) = chunks.remainder().first() {
+        sum += u16::from_be_bytes([b, 0]) as u32;
+    }
+    
+    // Fold 32-bit sum into 16 bits
+    while (sum >> 16) > 0 {
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+    
+    // One's complement (bitwise NOT)
+    !(sum as u16)
 }

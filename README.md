@@ -39,10 +39,10 @@ cd frameassembly
 Define your networking scenario in a text file (e.g., `CODE.txt`):
 
 ```text
-let example_client = 10.0.0.1:1234
+let example_client = 10.0.0.1
 let google_dns = 8.8.8.8
 
-let macro tcp_handshake(src, dst) {
+let template tcp_handshake(src, dst) {
     src -> dst tcp syn seq=1 win=100 payload="hello" wait=10ms
     src <- dst tcp ack seq=2 win=200 payload="world" wait=1s
     src -> dst tcp syn ack seq=3 wait=1m

@@ -35,7 +35,7 @@ pub fn parse_ident(input: &str) -> ParseResult<'_, String> {
     if len > 0 {
         let ident = &input[..len];
         match ident {
-            "let" | "macro" | "compile" | "tcp" | "syn" | "ack" => {
+            "let" | "template" | "compile" | "tcp" | "syn" | "ack" => {
                 Err(alloc::format!("'{}' is a reserved keyword", ident))
             }
             _ => Ok((&input[len..], ident.to_string())),
@@ -170,7 +170,7 @@ fn parse_tcp_flag(input: &str) -> ParseResult<'_, TcpFlag> {
     }
 }
 
-/// Parse a frame statement inside a macro: `src -> dst tcp syn ack seq=1 len=64240 payload="test"`
+/// Parse a frame statement inside a template: `src -> dst tcp syn ack seq=1 len=64240 payload="test"`
 fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
     let (rest, caller) = parse_ident(input)?;
     let (rest, dir) = parse_direction(rest)?;
@@ -233,10 +233,10 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
     Ok((rest, FrameStatement { caller, dir, callee, flags, seq, win, payload, wait }))
 }
 
-/// Parse a macro definition: `let macro name(arg1, arg2) { ... }`
-fn parse_macro_def(input: &str) -> ParseResult<'_, MacroDef> {
+/// Parse a template definition: `let template name(arg1, arg2) { ... }`
+fn parse_template_def(input: &str) -> ParseResult<'_, TemplateDef> {
     let (rest, _) = tag(input, "let")?;
-    let (rest, _) = tag(rest, "macro")?;
+    let (rest, _) = tag(rest, "template")?;
     let (rest, name) = parse_ident(rest)?;
     let (mut rest, _) = tag(rest, "(")?;
     
@@ -260,10 +260,10 @@ fn parse_macro_def(input: &str) -> ParseResult<'_, MacroDef> {
     }
     
     let (rest, _) = tag(rest, "}")?;
-    Ok((rest, MacroDef { name, params, statements }))
+    Ok((rest, TemplateDef { name, params, statements }))
 }
 
-/// Parse a macro argument (variable, or variable with port override)
+/// Parse a template argument (variable, or variable with port override)
 fn parse_argument(input: &str) -> ParseResult<'_, Argument> {
     let (rest, var) = parse_ident(input)?;
     if let Ok((rest_after_colon, _)) = tag(rest, ":") {
@@ -274,8 +274,8 @@ fn parse_argument(input: &str) -> ParseResult<'_, Argument> {
     }
 }
 
-/// Parse a macro invocation inside the compile block
-fn parse_macro_invocation(input: &str) -> ParseResult<'_, MacroInvocation> {
+/// Parse a template invocation inside the compile block
+fn parse_template_invocation(input: &str) -> ParseResult<'_, TemplateInvocation> {
     let (rest, name) = parse_ident(input)?;
     let (mut rest, _) = tag(rest, "(")?;
     
@@ -290,16 +290,16 @@ fn parse_macro_invocation(input: &str) -> ParseResult<'_, MacroInvocation> {
         }
     }
     let (rest, _) = tag(rest, ")")?;
-    Ok((rest, MacroInvocation { name, args }))
+    Ok((rest, TemplateInvocation { name, args }))
 }
 
 /// Parse the compile block: `compile { ... }`
-fn parse_compile_block(input: &str) -> ParseResult<'_, Vec<MacroInvocation>> {
+fn parse_compile_block(input: &str) -> ParseResult<'_, Vec<TemplateInvocation>> {
     let (rest, _) = tag(input, "compile")?;
     let (mut rest, _) = tag(rest, "{")?;
     
     let mut invocations = Vec::new();
-    while let Ok((new_rest, inv)) = parse_macro_invocation(rest) {
+    while let Ok((new_rest, inv)) = parse_template_invocation(rest) {
         invocations.push(inv);
         rest = new_rest;
     }
@@ -311,7 +311,7 @@ fn parse_compile_block(input: &str) -> ParseResult<'_, Vec<MacroInvocation>> {
 /// Top-level parser for the entire DSL file
 pub fn parse_program(mut input: &str) -> Result<Program, String> {
     let mut assignments = Vec::new();
-    let mut macros = Vec::new();
+    let mut templates = Vec::new();
     let mut compile_block = Vec::new();
 
     loop {
@@ -320,9 +320,9 @@ pub fn parse_program(mut input: &str) -> Result<Program, String> {
             break;
         }
         
-        // Try parsing macro def first, as it starts with "let macro"
-        if let Ok((rest, m)) = parse_macro_def(input) {
-            macros.push(m);
+        // Try parsing template def first, as it starts with "let template"
+        if let Ok((rest, m)) = parse_template_def(input) {
+            templates.push(m);
             input = rest;
         } 
         // Then try a regular assignment "let x = ..."
@@ -340,7 +340,7 @@ pub fn parse_program(mut input: &str) -> Result<Program, String> {
         }
     }
 
-    Ok(Program { assignments, macros, compile_block })
+    Ok(Program { assignments, templates, compile_block })
 }
 
 #[cfg(test)]
@@ -352,7 +352,7 @@ mod tests {
             let my_client = 10.0.0.1:1234
             let google_dns = 8.8.8.8
 
-            let macro tcp_handshake(src, dst) {
+            let template tcp_handshake(src, dst) {
                 src -> dst tcp syn
                 src <- dst tcp ack
                 src -> dst tcp syn ack
@@ -364,7 +364,7 @@ mod tests {
         "#;
         let prog = parse_program(code).unwrap();
         assert_eq!(prog.assignments.len(), 2);
-        assert_eq!(prog.macros.len(), 1);
+        assert_eq!(prog.templates.len(), 1);
         assert_eq!(prog.compile_block.len(), 1);
     }
 }

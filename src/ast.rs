@@ -19,7 +19,7 @@ pub struct GlobalAssignment {
     pub value: AssignValue,
 }
 
-/// The direction of the packet in a macro statement.
+/// The direction of the packet in a template statement.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Direction {
     Src, // ->
@@ -33,7 +33,7 @@ pub enum TcpFlag {
     Ack,
 }
 
-/// A single frame statement inside a macro, e.g., `src -> dst tcp syn ack seq=1 len=64240 payload="test"`
+/// A single frame statement inside a template, e.g., `src -> dst tcp syn ack seq=1 len=64240 payload="test"`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrameStatement {
     pub caller: String,
@@ -46,15 +46,15 @@ pub struct FrameStatement {
     pub wait: Option<u64>,
 }
 
-/// A macro definition in the form `let macro name(arg1, arg2) { statements }`
+/// A template definition in the form `let template name(arg1, arg2) { statements }`
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MacroDef {
+pub struct TemplateDef {
     pub name: String,
     pub params: Vec<String>,
     pub statements: Vec<FrameStatement>,
 }
 
-/// An argument passed to a macro invocation in the `compile` block.
+/// An argument passed to a template invocation in the `compile` block.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Argument {
     /// A simple variable reference, e.g., `my_client`
@@ -63,17 +63,17 @@ pub enum Argument {
     VarWithPort(String, u16),
 }
 
-/// A macro invocation inside the `compile` block, e.g., `tcp_handshake(my_client, google_dns:80)`
+/// A template invocation inside the `compile` block, e.g., `tcp_handshake(my_client, google_dns:80)`
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MacroInvocation {
+pub struct TemplateInvocation {
     pub name: String,
     pub args: Vec<Argument>,
 }
 
-/// The root of the AST containing all assignments, macros, and the compile block invocations.
+/// The root of the AST containing all assignments, templates, and the compile block invocations.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program {
     pub assignments: Vec<GlobalAssignment>,
-    pub macros: Vec<MacroDef>,
-    pub compile_block: Vec<MacroInvocation>,
+    pub templates: Vec<TemplateDef>,
+    pub compile_block: Vec<TemplateInvocation>,
 }

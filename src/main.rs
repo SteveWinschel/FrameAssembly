@@ -22,9 +22,9 @@ fn main() {
     };
 
     println!(
-        "Successfully parsed {} assignments, {} macros, and {} compile invocations",
+        "Successfully parsed {} assignments, {} templates, and {} compile invocations",
         program.assignments.len(),
-        program.macros.len(),
+        program.templates.len(),
         program.compile_block.len()
     );
 

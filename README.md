@@ -91,7 +91,7 @@ run {
 Run the injection with your target interface (e.g., `wlp6s0`):
 
 ```bash
-cargo run -- CODE.txt wlp6s0
+cargo run CODE.txt wlp6s0
 ```
 ## License
 

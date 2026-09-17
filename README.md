@@ -4,15 +4,12 @@
 > **Experimental Prototype**
 > This project is currently in the prototype stage. Many features are missing, APIs are unstable, and there will likely be breaking changes. Please do not use this in front of customers or middle management
 
-**FrameAssembly** is a Domain-Specific Language (DSL) for writing Frames. 
-
-It handles the low-level math required for packet crafting so you can define network traffic conversations in a straightforward format. It is meant to be used for network security research, education, and testing.
-
----
+**FrameAssembly** is a Domain-Specific Language (DSL) for writing network traffic. 
+It is meant to be used for network security research, education, and testing.
 
 ## Features
 *   **Prototype AST:** Uses a flat Abstract Syntax Tree (AST).
-*   **Packet Field Abstraction:** You can set TCP/IP packet fields like `seq`, `win`, `payload`, and `wait` directly using keyword assignments. 
+*   **Packet Field Abstraction:** You can currently only set TCP/IP and UDP packet fields like `seq`, `win`, `payload`, and `wait` directly using keyword assignments. 
 *   **Prototype Parsing:** The compiler front-end is a handcrafted recursive descent parser using `&str` slicing.
 *   **Deterministic Output:** Generates reproducible `.pcap` files based on the defined flow and mock epoch timestamps.
 *   **Live Traffic Generation:** Bypasses the OS IP stack to inject crafted L2 frames directly onto the wire using raw sockets (`pnet`).
@@ -21,13 +18,10 @@ It handles the low-level math required for packet crafting so you can define net
 ## Getting Started
 
 ### Prerequisites
-
 You need [Rust and Cargo](https://rustup.rs/) installed.
 
 ### Installation
-
 Clone the repository and enter the directory:
-
 ```bash
 git clone https://github.com/stevewinschel/frameassembly.git
 cd frameassembly
@@ -37,20 +31,27 @@ cd frameassembly
 
 #### PCAP Compilation
 
-Define your networking scenario in a text file (`CODE.txt`) using the `compile` keyword:
+Define your networking scenario in a text file (`CODE.txt`) using the `compile` keyword (the runner is an experimental feature and subordinated to the compiler). You can generate TCP flows as well as UDP packets (e.g. for SNMP Traps):
 
 ```text
-let example_client = 10.0.0.1
-let google_dns = 8.8.8.8
+let example_client = 10.0.0.1 
+let google_dns = 8.8.8.8 
+let switch_agent = 10.0.10.5
+let example_nms = 10.0.10.100
 
-let template tcp_handshake(src, dst) {
-    src -> dst tcp syn seq=1 win=100 payload="hello" wait=10ms
-    src <- dst tcp ack seq=2 win=200 payload="world" wait=1s
-    src -> dst tcp syn ack seq=3 wait=1m
+let template tcp_handshake(src, dst) { 
+    src -> dst tcp syn seq=1 win=100 payload="hello" wait=10ms 
+    src <- dst tcp ack seq=2 win=200 payload="world" wait=1s 
+    src -> dst tcp syn ack seq=3 wait=1m 
 }
 
-compile {
-    tcp_handshake(example_client:1234, google_dns:80)
+let template snmp_trap(agent, nms) {
+    agent -> nms udp payload="RAW_SNMP_PAYLOAD_STRING" wait=10ms
+}
+
+compile { 
+    snmp_trap(switch_agent:161, example_nms:162)
+    tcp_handshake(example_client:1234, google_dns:53) 
 }
 ```
 
@@ -71,20 +72,17 @@ This generates an `output.pcap` file in the root directory.
 Define your scenario using a `run` block instead of `compile`:
 
 ```text
-let example_client = 10.0.0.1
-let google_dns = 8.8.8.8
+let switch_agent = 10.0.10.5
+let example_nms = 10.0.10.100
 
-let template tcp_handshake(src, dst) {
-    src -> dst tcp syn seq=1 win=100 payload="hello" wait=10ms
-    src <- dst tcp ack seq=2 win=200 payload="world" wait=10ms
-    src -> dst tcp syn ack seq=3 wait=10ms
+let template snmp_trap(agent, nms) {
+    agent -> nms udp payload="RAW_SNMP_PAYLOAD_STRING" wait=10ms
 }
 
-run {
-    loop {
-        tcp_handshake(example_client:1234, google_dns:53)
+run { 
+    loop { 
+        snmp_trap(switch_agent:161, example_nms:162)
     }
-}
 }
 ```
 
@@ -93,6 +91,7 @@ Run the injection with your target interface (e.g., `wlp6s0`):
 ```bash
 cargo run CODE.txt wlp6s0
 ```
+
 ## License
 
 MIT License. See the `LICENSE` file.

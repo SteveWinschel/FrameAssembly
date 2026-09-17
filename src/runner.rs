@@ -1,8 +1,13 @@
+// EXPERIMENTAL FEATURE - subordinated to the compiler
+
 use crate::ast::{ExecutionBlock, Program};
 use crate::backend::{execute_traffic, generate_pcap};
 use std::error::Error;
 
-pub fn run_program(program: &Program, interface_name_opt: Option<String>) -> Result<(), Box<dyn Error>> {
+pub fn run_program(
+    program: &Program,
+    interface_name_opt: Option<String>,
+) -> Result<(), Box<dyn Error>> {
     match &program.execution {
         ExecutionBlock::Compile(_) => {
             let output_pcap = "output.pcap";
@@ -11,7 +16,7 @@ pub fn run_program(program: &Program, interface_name_opt: Option<String>) -> Res
                 Ok(_) => {
                     println!("Successfully generated {}", output_pcap);
                     Ok(())
-                },
+                }
                 Err(e) => Err(format!("Backend error: {}", e).into()),
             }
         }
@@ -28,7 +33,7 @@ pub fn run_program(program: &Program, interface_name_opt: Option<String>) -> Res
                 Ok(_) => {
                     println!("Successfully completed live traffic generation");
                     Ok(())
-                },
+                }
                 Err(e) => Err(format!("Backend error: {}", e).into()),
             }
         }

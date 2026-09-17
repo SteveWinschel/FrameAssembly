@@ -33,12 +33,20 @@ pub enum TcpFlag {
     Ack,
 }
 
+/// The transport layer protocol for the frame.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Protocol {
+    Tcp,
+    Udp,
+}
+
 /// A single frame statement inside a template, e.g., `src -> dst tcp syn ack seq=1 len=64240 payload="test"`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrameStatement {
     pub caller: String,
     pub dir: Direction,
     pub callee: String,
+    pub protocol: Protocol,
     pub flags: Vec<TcpFlag>,
     pub seq: Option<u32>,
     pub win: Option<u16>,

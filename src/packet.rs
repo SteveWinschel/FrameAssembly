@@ -125,3 +125,66 @@ fn calculate_checksum(data: &[u8]) -> u16 {
     // One's complement (bitwise NOT)
     !(sum as u16)
 }
+
+/// Build a raw UDP/IPv4/Ethernet frame.
+pub fn build_udp_packet(
+    src_ip: IpAddr,
+    src_port: u16,
+    dst_ip: IpAddr,
+    dst_port: u16,
+    payload: Option<&[u8]>,
+    reverse_macs: bool,
+) -> Vec<u8> {
+    let mut packet = Vec::new();
+
+    // --- Ethernet Header (14 bytes) ---
+    if reverse_macs {
+        packet.extend_from_slice(&DUMMY_MAC_SRC); // Destination MAC
+        packet.extend_from_slice(&DUMMY_MAC_DST); // Source MAC
+    } else {
+        packet.extend_from_slice(&DUMMY_MAC_DST); // Destination MAC
+        packet.extend_from_slice(&DUMMY_MAC_SRC); // Source MAC
+    }
+    packet.extend_from_slice(&[0x08, 0x00]);  // EtherType (IPv4)
+
+    // Ensure we only handle IPv4 for this prototype
+    let (src_v4, dst_v4) = match (src_ip, dst_ip) {
+        (IpAddr::V4(s), IpAddr::V4(d)) => (s.octets(), d.octets()),
+        _ => panic!("Only IPv4 is supported in this prototype"),
+    };
+
+    let payload_bytes = payload.unwrap_or(&[]);
+    let payload_len = payload_bytes.len() as u16;
+
+    // --- IPv4 Header (20 bytes) ---
+    let ip_header_len = 20;
+    let udp_header_len = 8;
+    let total_len = ip_header_len + udp_header_len + payload_len;
+
+    packet.push(0x45); // Version (4) + IHL (5 words)
+    packet.push(0x00); // DSCP + ECN
+    packet.extend_from_slice(&total_len.to_be_bytes()); // Total Length
+    packet.extend_from_slice(&[0x00, 0x00]); // Identification
+    packet.extend_from_slice(&[0x40, 0x00]); // Flags + Fragment Offset (Don't fragment)
+    packet.push(64); // TTL
+    packet.push(17); // Protocol (UDP)
+    packet.extend_from_slice(&[0x00, 0x00]); // Header Checksum (dummy)
+    packet.extend_from_slice(&src_v4); // Source IP
+    packet.extend_from_slice(&dst_v4); // Destination IP
+
+    // Calculate and update IP checksum
+    let ip_checksum = calculate_checksum(&packet[14..34]);
+    packet[24..26].copy_from_slice(&ip_checksum.to_be_bytes());
+
+    // --- UDP Header (8 bytes) ---
+    packet.extend_from_slice(&src_port.to_be_bytes()); // Source Port
+    packet.extend_from_slice(&dst_port.to_be_bytes()); // Destination Port
+    let udp_len = udp_header_len + payload_len;
+    packet.extend_from_slice(&udp_len.to_be_bytes()); // Length
+    packet.extend_from_slice(&[0x00, 0x00]); // Checksum (0x0000 = ignored)
+
+    // --- Payload ---
+    packet.extend_from_slice(payload_bytes);
+
+    packet
+}

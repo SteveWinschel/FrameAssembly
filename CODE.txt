@@ -2,17 +2,24 @@
 let example_client = 10.0.0.1 
 let google_dns = 8.8.8.8 
 
+let switch_agent = 10.0.10.5
+let example_nms = 10.0.10.100
+
 // Templates are like functions, they can be called with arguments and are/should be reusable.
-let template tcp_handshake(src, dst) { 
+let tcp_handshake(src, dst) { 
     // The frame definitions are meant to look like they do in Wireshark
     src -> dst tcp syn seq=1 win=100 payload="hello" wait=10ms 
     src <- dst tcp ack seq=2 win=200 payload="world" wait=3m 
     src -> dst tcp syn ack seq=3 wait=100s 
 }
 
+// Simple UDP template for sending simulated SNMP Traps
+let snmp_trap(agent, nms) {
+    agent -> nms udp payload="RAW_SNMP_PAYLOAD_STRING" wait=10ms
+}
+
 // Alternatively you could define a "compile" block to generate a PCAP but you couldn't/shouldn't use an infinite loop for obvious reasons
-run { 
-    loop { 
-        tcp_handshake(example_client:1234, google_dns:53) 
-    }
+compile { 
+    snmp_trap(switch_agent:161, example_nms:162)
+    tcp_handshake(example_client:1234, google_dns:53) 
 }

@@ -47,7 +47,7 @@ pub fn parse_ident(input: &str) -> ParseResult<'_, String> {
     if len > 0 {
         let ident = &input[..len];
         match ident {
-            "let" | "template" | "run" | "compile" | "loop" | "tcp" | "syn" | "ack" => {
+            "let" | "run" | "compile" | "loop" | "tcp" | "udp" | "syn" | "ack" => {
                 Err(alloc::format!("'{}' is a reserved keyword", ident))
             }
             _ => Ok((&input[len..], ident.to_string())),
@@ -187,16 +187,25 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
     let (rest, caller) = parse_ident(input)?;
     let (rest, dir) = parse_direction(rest)?;
     let (rest, callee) = parse_ident(rest)?;
-    let (mut rest, _) = tag(rest, "tcp")?;
+    
+    let (mut rest, protocol) = if let Ok((new_rest, _)) = tag(rest, "udp") {
+        (new_rest, Protocol::Udp)
+    } else if let Ok((new_rest, _)) = tag(rest, "tcp") {
+        (new_rest, Protocol::Tcp)
+    } else {
+        return Err("Expected 'tcp' or 'udp'".to_string());
+    };
     
     let mut flags = Vec::new();
-    while let Ok((new_rest, flag)) = parse_tcp_flag(rest) {
-        flags.push(flag);
-        rest = new_rest;
-    }
-    
-    if flags.is_empty() {
-        return Err("Expected at least one TCP flag (syn, ack)".to_string());
+    if protocol == Protocol::Tcp {
+        while let Ok((new_rest, flag)) = parse_tcp_flag(rest) {
+            flags.push(flag);
+            rest = new_rest;
+        }
+        
+        if flags.is_empty() {
+            return Err("Expected at least one TCP flag (syn, ack)".to_string());
+        }
     }
 
     let mut seq = None;
@@ -242,13 +251,12 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
         }
     }
     
-    Ok((rest, FrameStatement { caller, dir, callee, flags, seq, win, payload, wait }))
+    Ok((rest, FrameStatement { caller, dir, callee, protocol, flags, seq, win, payload, wait }))
 }
 
-/// Parse a template definition: `let template name(arg1, arg2) { ... }`
+/// Parse a template definition: `let name(arg1, arg2) { ... }`
 fn parse_template_def(input: &str) -> ParseResult<'_, TemplateDef> {
     let (rest, _) = tag(input, "let")?;
-    let (rest, _) = tag(rest, "template")?;
     let (rest, name) = parse_ident(rest)?;
     let (mut rest, _) = tag(rest, "(")?;
     
@@ -405,7 +413,7 @@ mod tests {
             let my_client = 10.0.0.1:1234
             let google_dns = 8.8.8.8
 
-            let template tcp_handshake(src, dst) {
+            let tcp_handshake(src, dst) {
                 src -> dst tcp syn
                 src <- dst tcp ack
                 src -> dst tcp syn ack

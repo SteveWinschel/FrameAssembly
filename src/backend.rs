@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::packet::build_tcp_packet;
+use crate::packet::{build_tcp_packet, build_udp_packet};
 use crate::pcap::PcapWriter;
 use alloc::string::String;
 use core::net::IpAddr;
@@ -100,15 +100,23 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
             let payload_bytes = stmt.payload.as_deref().map(|s| s.as_bytes());
             let reverse_macs = stmt.dir == Direction::Dst;
 
-            let packet_data = build_tcp_packet(
-                src_ip, src_port, 
-                dst_ip, dst_port, 
-                syn, ack,
-                stmt.seq,
-                stmt.win,
-                payload_bytes,
-                reverse_macs,
-            );
+            let packet_data = match stmt.protocol {
+                Protocol::Tcp => build_tcp_packet(
+                    src_ip, src_port, 
+                    dst_ip, dst_port, 
+                    syn, ack,
+                    stmt.seq,
+                    stmt.win,
+                    payload_bytes,
+                    reverse_macs,
+                ),
+                Protocol::Udp => build_udp_packet(
+                    src_ip, src_port,
+                    dst_ip, dst_port,
+                    payload_bytes,
+                    reverse_macs,
+                ),
+            };
             
             pcap.write_packet(&packet_data, current_time_us)
                 .map_err(|e| alloc::format!("Failed to write packet: {}", e))?;
@@ -205,15 +213,23 @@ pub fn execute_traffic(program: &Program, interface_name: &str) -> Result<(), St
             let payload_bytes = stmt.payload.as_deref().map(|s| s.as_bytes());
             let reverse_macs = stmt.dir == Direction::Dst;
 
-            let packet_data = build_tcp_packet(
-                src_ip, src_port, 
-                dst_ip, dst_port, 
-                syn, ack,
-                stmt.seq,
-                stmt.win,
-                payload_bytes,
-                reverse_macs,
-            );
+            let packet_data = match stmt.protocol {
+                Protocol::Tcp => build_tcp_packet(
+                    src_ip, src_port, 
+                    dst_ip, dst_port, 
+                    syn, ack,
+                    stmt.seq,
+                    stmt.win,
+                    payload_bytes,
+                    reverse_macs,
+                ),
+                Protocol::Udp => build_udp_packet(
+                    src_ip, src_port,
+                    dst_ip, dst_port,
+                    payload_bytes,
+                    reverse_macs,
+                ),
+            };
             
             tx.send_to(&packet_data, None)
                 .ok_or_else(|| "Failed to send packet to channel".to_string())?

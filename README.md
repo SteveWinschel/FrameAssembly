@@ -39,7 +39,7 @@ let google_dns = 8.8.8.8
 let switch_agent = 10.0.10.5
 let example_nms = 10.0.10.100
 
-let template tcp_handshake(src, dst) { 
+let tcp_handshake(src, dst) { 
     src -> dst tcp syn seq=1 win=100 payload="hello" wait=10ms 
     src <- dst tcp ack seq=2 win=200 payload="world" wait=1s 
     src -> dst tcp syn ack seq=3 wait=1m 
@@ -75,7 +75,7 @@ Define your scenario using a `run` block instead of `compile`:
 let switch_agent = 10.0.10.5
 let example_nms = 10.0.10.100
 
-let template snmp_trap(agent, nms) {
+let snmp_trap(agent, nms) {
     agent -> nms udp payload="RAW_SNMP_PAYLOAD_STRING" wait=10ms
 }
 

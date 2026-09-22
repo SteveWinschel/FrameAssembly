@@ -26,8 +26,8 @@ pub fn skip_whitespace(mut input: &str) -> &str {
 /// Helper to parse a specific string literal (tag)
 pub fn tag<'a>(input: &'a str, target: &str) -> ParseResult<'a, ()> {
     let input = skip_whitespace(input);
-    if input.starts_with(target) {
-        Ok((&input[target.len()..], ()))
+    if let Some(stripped) = input.strip_prefix(target) {
+        Ok((stripped, ()))
     } else {
         Err(alloc::format!("Expected '{}'", target))
     }
@@ -47,7 +47,7 @@ pub fn parse_ident(input: &str) -> ParseResult<'_, String> {
     if len > 0 {
         let ident = &input[..len];
         match ident {
-            "let" | "run" | "compile" | "loop" | "tcp" | "udp" | "syn" | "ack" => {
+            "LET" | "RUN" | "COMPILE" | "LOOP" | "TCP" | "UDP" | "SYN" | "ACK" => {
                 Err(alloc::format!("'{}' is a reserved keyword", ident))
             }
             _ => Ok((&input[len..], ident.to_string())),
@@ -153,7 +153,7 @@ fn parse_assign_value(input: &str) -> ParseResult<'_, AssignValue> {
 
 /// Parse a let assignment: `let name = value`
 fn parse_global_assignment(input: &str) -> ParseResult<'_, GlobalAssignment> {
-    let (rest, _) = tag(input, "let")?;
+    let (rest, _) = tag(input, "LET")?;
     let (rest, name) = parse_ident(rest)?;
     let (rest, _) = tag(rest, "=")?;
     let (rest, value) = parse_assign_value(rest)?;
@@ -173,12 +173,12 @@ fn parse_direction(input: &str) -> ParseResult<'_, Direction> {
 
 /// Parse a single TCP flag
 fn parse_tcp_flag(input: &str) -> ParseResult<'_, TcpFlag> {
-    if let Ok((rest, _)) = tag(input, "syn") {
+    if let Ok((rest, _)) = tag(input, "SYN") {
         Ok((rest, TcpFlag::Syn))
-    } else if let Ok((rest, _)) = tag(input, "ack") {
+    } else if let Ok((rest, _)) = tag(input, "ACK") {
         Ok((rest, TcpFlag::Ack))
     } else {
-        Err("Expected 'syn' or 'ack'".to_string())
+        Err("Expected 'SYN' or 'ACK'".to_string())
     }
 }
 
@@ -188,12 +188,12 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
     let (rest, dir) = parse_direction(rest)?;
     let (rest, callee) = parse_ident(rest)?;
     
-    let (mut rest, protocol) = if let Ok((new_rest, _)) = tag(rest, "udp") {
+    let (mut rest, protocol) = if let Ok((new_rest, _)) = tag(rest, "UDP") {
         (new_rest, Protocol::Udp)
-    } else if let Ok((new_rest, _)) = tag(rest, "tcp") {
+    } else if let Ok((new_rest, _)) = tag(rest, "TCP") {
         (new_rest, Protocol::Tcp)
     } else {
-        return Err("Expected 'tcp' or 'udp'".to_string());
+        return Err("Expected 'TCP' or 'UDP'".to_string());
     };
     
     let mut flags = Vec::new();
@@ -204,7 +204,7 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
         }
         
         if flags.is_empty() {
-            return Err("Expected at least one TCP flag (syn, ack)".to_string());
+            return Err("Expected at least one TCP flag (SYN, ACK)".to_string());
         }
     }
 
@@ -214,22 +214,22 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
     let mut wait = None;
 
     loop {
-        if let Ok((new_rest, _)) = tag(rest, "seq") {
+        if let Ok((new_rest, _)) = tag(rest, "SEQ") {
             let (new_rest, _) = tag(new_rest, "=")?;
             let (new_rest, val) = parse_u32(new_rest)?;
             seq = Some(val);
             rest = new_rest;
-        } else if let Ok((new_rest, _)) = tag(rest, "win") {
+        } else if let Ok((new_rest, _)) = tag(rest, "WIN") {
             let (new_rest, _) = tag(new_rest, "=")?;
             let (new_rest, val) = parse_u16(new_rest)?;
             win = Some(val);
             rest = new_rest;
-        } else if let Ok((new_rest, _)) = tag(rest, "payload") {
+        } else if let Ok((new_rest, _)) = tag(rest, "PAYLOAD") {
             let (new_rest, _) = tag(new_rest, "=")?;
             let (new_rest, val) = parse_string_lit(new_rest)?;
             payload = Some(val);
             rest = new_rest;
-        } else if let Ok((new_rest, _)) = tag(rest, "wait") {
+        } else if let Ok((new_rest, _)) = tag(rest, "WAIT") {
             let (new_rest, _) = tag(new_rest, "=")?;
             let (new_rest, val) = parse_u32(new_rest)?;
             
@@ -256,7 +256,7 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
 
 /// Parse a template definition: `let name(arg1, arg2) { ... }`
 fn parse_template_def(input: &str) -> ParseResult<'_, TemplateDef> {
-    let (rest, _) = tag(input, "let")?;
+    let (rest, _) = tag(input, "LET")?;
     let (rest, name) = parse_ident(rest)?;
     let (mut rest, _) = tag(rest, "(")?;
     
@@ -315,7 +315,7 @@ fn parse_template_invocation(input: &str) -> ParseResult<'_, TemplateInvocation>
 
 /// Parse a statement in the block, which can be an invocation or a loop
 fn parse_run_statement(input: &str) -> ParseResult<'_, RunStatement> {
-    if let Ok((rest, _)) = tag(input, "loop") {
+    if let Ok((rest, _)) = tag(input, "LOOP") {
         let (rest_after_loop, count) = match parse_u32(rest) {
             Ok((r, c)) => (r, Some(c)),
             Err(_) => (rest, None),
@@ -338,7 +338,7 @@ fn parse_run_statement(input: &str) -> ParseResult<'_, RunStatement> {
 
 /// Parse the execution block: `run { ... }` or `compile { ... }`
 fn parse_execution_block(input: &str) -> ParseResult<'_, ExecutionBlock> {
-    if let Ok((rest, _)) = tag(input, "run") {
+    if let Ok((rest, _)) = tag(input, "RUN") {
         let (mut rest, _) = tag(rest, "{")?;
         let mut statements = Vec::new();
         while let Ok((new_rest, stmt)) = parse_run_statement(rest) {
@@ -347,7 +347,7 @@ fn parse_execution_block(input: &str) -> ParseResult<'_, ExecutionBlock> {
         }
         let (rest, _) = tag(rest, "}")?;
         Ok((rest, ExecutionBlock::Run(statements)))
-    } else if let Ok((rest, _)) = tag(input, "compile") {
+    } else if let Ok((rest, _)) = tag(input, "COMPILE") {
         let (mut rest, _) = tag(rest, "{")?;
         let mut statements = Vec::new();
         while let Ok((new_rest, stmt)) = parse_run_statement(rest) {
@@ -360,7 +360,7 @@ fn parse_execution_block(input: &str) -> ParseResult<'_, ExecutionBlock> {
         let (rest, _) = tag(rest, "}")?;
         Ok((rest, ExecutionBlock::Compile(statements)))
     } else {
-        Err("Expected 'run' or 'compile'".to_string())
+        Err("Expected 'RUN' or 'COMPILE'".to_string())
     }
 }
 
@@ -399,7 +399,7 @@ pub fn parse_program(mut input: &str) -> Result<Program, String> {
         }
     }
 
-    let execution = execution.ok_or_else(|| "No 'run' or 'compile' block found in program".to_string())?;
+    let execution = execution.ok_or_else(|| "No 'RUN' or 'COMPILE' block found in program".to_string())?;
 
     Ok(Program { assignments, templates, execution })
 }
@@ -410,17 +410,17 @@ mod tests {
     #[test]
     fn test_parse_target_syntax() {
         let code = r#"
-            let my_client = 10.0.0.1:1234
-            let google_dns = 8.8.8.8
+            LET my_client = 10.0.0.1:1234
+            LET google_dns = 8.8.8.8
 
-            let tcp_handshake(src, dst) {
-                src -> dst tcp syn
-                src <- dst tcp ack
-                src -> dst tcp syn ack
+            LET tcp_handshake(src, dst) {
+                src -> dst TCP SYN
+                src <- dst TCP ACK
+                src -> dst TCP SYN ACK
             }
 
-            run {
-                loop 100 {
+            RUN {
+                LOOP 100 {
                     tcp_handshake(my_client, google_dns:80)
                 }
                 tcp_handshake(my_client, google_dns:80)

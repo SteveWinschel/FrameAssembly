@@ -2,8 +2,8 @@ use core::net::IpAddr;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-/// A simple, flat AST for the FrameAssembly DSL.
-/// We avoid spans and lossless syntax trees (LSTs) to keep it minimal.
+// A simple, flat AST for the FrameAssembly DSL.
+// We avoid spans and lossless syntax trees (LSTs) to keep it minimal.
 
 /// An assigned value can be just an IP, or an IP with a port.
 #[derive(Debug, Clone, PartialEq, Eq)]

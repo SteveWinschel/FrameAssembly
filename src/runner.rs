@@ -21,9 +21,9 @@ pub fn run_program(
             }
         }
         ExecutionBlock::Run(_) => {
-            let interface_name = interface_name_opt.ok_or_else(|| {
+            let interface_name = interface_name_opt.ok_or(
                 "Error: Interface name is required for live generation\nUsage: frameassembly <file> <interface>"
-            })?;
+            )?;
 
             #[cfg(unix)]
             auto_elevate()?;
@@ -42,16 +42,16 @@ pub fn run_program(
 
 #[cfg(unix)]
 fn auto_elevate() -> Result<(), Box<dyn Error>> {
-    if let Ok(output) = std::process::Command::new("id").arg("-u").output() {
-        if String::from_utf8_lossy(&output.stdout).trim() != "0" {
-            println!("Live generation requires raw sockets. Elevating privileges via sudo...");
-            use std::os::unix::process::CommandExt;
-            let err = std::process::Command::new("sudo")
-                .arg(std::env::current_exe().expect("Failed to get current executable path"))
-                .args(std::env::args().skip(1))
-                .exec();
-            return Err(format!("Failed to elevate privileges: {}", err).into());
-        }
+    if let Ok(output) = std::process::Command::new("id").arg("-u").output()
+        && String::from_utf8_lossy(&output.stdout).trim() != "0"
+    {
+        println!("Live generation requires raw sockets. Elevating privileges via sudo...");
+        use std::os::unix::process::CommandExt;
+        let err = std::process::Command::new("sudo")
+            .arg(std::env::current_exe().expect("Failed to get current executable path"))
+            .args(std::env::args().skip(1))
+            .exec();
+        return Err(format!("Failed to elevate privileges: {}", err).into());
     }
     Ok(())
 }

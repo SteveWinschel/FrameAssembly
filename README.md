@@ -9,7 +9,7 @@ It is meant to be used for network security research, education, and testing.
 
 ## Features
 *   **Prototype AST:** Uses a flat Abstract Syntax Tree (AST).
-*   **Packet Field Abstraction:** You can currently only set TCP/IP and UDP packet fields like `seq`, `win`, `payload`, and `wait` directly using keyword assignments. 
+*   **Packet Field Abstraction:** You can currently only set TCP/IP and UDP packet fields like `SEQ`, `WIN`, `PAYLOAD`, and `WAIT` directly using keyword assignments. 
 *   **Prototype Parsing:** The compiler front-end is a handcrafted recursive descent parser using `&str` slicing.
 *   **Deterministic Output:** Generates reproducible `.pcap` files based on the defined flow and mock epoch timestamps.
 *   **Live Traffic Generation:** Bypasses the OS IP stack to inject crafted L2 frames directly onto the wire using raw sockets (`pnet`).
@@ -31,25 +31,25 @@ cd frameassembly
 
 #### PCAP Compilation
 
-Define your networking scenario in a text file (`CODE.txt`) using the `compile` keyword (the runner is an experimental feature and subordinated to the compiler). You can generate TCP flows as well as UDP packets (e.g. for SNMP Traps):
+Define your networking scenario in a text file (`CODE.txt`) using the `COMPILE` keyword (the runner is an experimental feature and subordinated to the compiler). You can generate TCP flows as well as UDP packets (e.g. for SNMP Traps):
 
 ```text
-let example_client = 10.0.0.1 
-let google_dns = 8.8.8.8 
-let switch_agent = 10.0.10.5
-let example_nms = 10.0.10.100
+LET example_client = 10.0.0.1 
+LET google_dns = 8.8.8.8 
+LET switch_agent = 10.0.10.5
+LET example_nms = 10.0.10.100
 
-let tcp_handshake(src, dst) { 
-    src -> dst tcp syn seq=1 win=100 payload="hello" wait=10ms 
-    src <- dst tcp ack seq=2 win=200 payload="world" wait=1s 
-    src -> dst tcp syn ack seq=3 wait=1m 
+LET tcp_handshake(src, dst) { 
+    src -> dst TCP SYN SEQ=1 WIN=100 PAYLOAD="hello" WAIT=10ms 
+    src <- dst TCP ACK SEQ=2 WIN=200 PAYLOAD="world" WAIT=1s 
+    src -> dst TCP SYN ACK SEQ=3 WAIT=1m 
 }
 
-let template snmp_trap(agent, nms) {
-    agent -> nms udp payload="RAW_SNMP_PAYLOAD_STRING" wait=10ms
+LET snmp_trap(agent, nms) {
+    agent -> nms UDP PAYLOAD="RAW_SNMP_PAYLOAD_STRING" WAIT=10ms
 }
 
-compile { 
+COMPILE { 
     snmp_trap(switch_agent:161, example_nms:162)
     tcp_handshake(example_client:1234, google_dns:53) 
 }
@@ -69,18 +69,18 @@ This generates an `output.pcap` file in the root directory.
 > **Sudo Privileges Required**
 > Live packet generation uses raw L2 sockets, which require root/sudo rights. You must also explicitly pass the script file and the network interface name as arguments.
 
-Define your scenario using a `run` block instead of `compile`:
+Define your scenario using a `RUN` block instead of `COMPILE`:
 
 ```text
-let switch_agent = 10.0.10.5
-let example_nms = 10.0.10.100
+LET switch_agent = 10.0.10.5
+LET example_nms = 10.0.10.100
 
-let snmp_trap(agent, nms) {
-    agent -> nms udp payload="RAW_SNMP_PAYLOAD_STRING" wait=10ms
+LET snmp_trap(agent, nms) {
+    agent -> nms UDP PAYLOAD="RAW_SNMP_PAYLOAD_STRING" WAIT=10ms
 }
 
-run { 
-    loop { 
+RUN { 
+    LOOP { 
         snmp_trap(switch_agent:161, example_nms:162)
     }
 }

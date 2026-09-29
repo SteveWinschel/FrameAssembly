@@ -20,6 +20,9 @@ LET snmp_trap(agent, nms) {
 
 // Alternatively you could define a "compile" block to generate a PCAP but you couldn't/shouldn't use an infinite loop for obvious reasons
 COMPILE { 
-    snmp_trap(switch_agent:161, example_nms:162)
-    tcp_handshake(example_client:1234, google_dns:53) 
+    LOOP 100000 {
+        snmp_trap(switch_agent:161, example_nms:162)
+        tcp_handshake(example_client:1234, google_dns:53) 
+    }
 }
+

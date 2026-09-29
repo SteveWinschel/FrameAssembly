@@ -1,4 +1,4 @@
-// EXPERIMENTAL FEATURE - subordinated to the compiler
+// EXPERIMENTAL FEATURE - subordinated to the compiler and might get removed in the future.
 
 use crate::ast::{ExecutionBlock, Program};
 use crate::backend::{execute_traffic, generate_pcap};

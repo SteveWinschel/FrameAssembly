@@ -58,7 +58,7 @@ COMPILE {
 To compile your script into a PCAP file, run:
 
 ```bash
-cargo run CODE.txt
+cargo run --release CODE.txt
 ```
 
 This generates an `output.pcap` file in the root directory.
@@ -89,7 +89,7 @@ RUN {
 Run the injection with your target interface (e.g., `wlp6s0`):
 
 ```bash
-cargo run CODE.txt wlp6s0
+cargo run --release CODE.txt wlp6s0
 ```
 
 ## License

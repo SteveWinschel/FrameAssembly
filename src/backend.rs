@@ -87,8 +87,8 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                 .ok_or_else(|| alloc::format!("Unknown callee '{}' in template", stmt.callee))?;
 
             let (src_ip, src_port, dst_ip, dst_port) = match stmt.dir {
-                Direction::Src => (caller_ep.0, caller_ep.1, callee_ep.0, callee_ep.1),
-                Direction::Dst => (callee_ep.0, callee_ep.1, caller_ep.0, caller_ep.1),
+                Direction::FromLeftToRight => (caller_ep.0, caller_ep.1, callee_ep.0, callee_ep.1),
+                Direction::FromRightToLeft => (callee_ep.0, callee_ep.1, caller_ep.0, caller_ep.1),
             };
 
             let wait_time = stmt.wait.unwrap_or(10);
@@ -96,28 +96,33 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
 
             let syn = stmt.flags.contains(&TcpFlag::Syn);
             let ack = stmt.flags.contains(&TcpFlag::Ack);
-            
+
             let payload_bytes = stmt.payload.as_deref().map(|s| s.as_bytes());
-            let reverse_macs = stmt.dir == Direction::Dst;
+            let reverse_macs = stmt.dir == Direction::FromRightToLeft;
 
             let packet_data = match stmt.protocol {
                 Protocol::Tcp => build_tcp_packet(
-                    src_ip, src_port, 
-                    dst_ip, dst_port, 
-                    syn, ack,
+                    src_ip,
+                    src_port,
+                    dst_ip,
+                    dst_port,
+                    syn,
+                    ack,
                     stmt.seq,
                     stmt.win,
                     payload_bytes,
                     reverse_macs,
                 ),
                 Protocol::Udp => build_udp_packet(
-                    src_ip, src_port,
-                    dst_ip, dst_port,
+                    src_ip,
+                    src_port,
+                    dst_ip,
+                    dst_port,
                     payload_bytes,
                     reverse_macs,
                 ),
             };
-            
+
             pcap.write_packet(&packet_data, current_time_us)
                 .map_err(|e| alloc::format!("Failed to write packet: {}", e))?;
         }
@@ -164,8 +169,15 @@ pub fn execute_traffic(program: &Program, interface_name: &str) -> Result<(), St
         .into_iter()
         .find(|iface| iface.name == interface_name)
         .ok_or_else(|| {
-            let available: Vec<_> = pnet::datalink::interfaces().into_iter().map(|i| i.name.clone()).collect();
-            alloc::format!("Interface '{}' not found. Available interfaces: {:?}", interface_name, available)
+            let available: Vec<_> = pnet::datalink::interfaces()
+                .into_iter()
+                .map(|i| i.name.clone())
+                .collect();
+            alloc::format!(
+                "Interface '{}' not found. Available interfaces: {:?}",
+                interface_name,
+                available
+            )
         })?;
 
     let (mut tx, _rx) = match pnet::datalink::channel(&interface, Default::default()) {
@@ -203,34 +215,39 @@ pub fn execute_traffic(program: &Program, interface_name: &str) -> Result<(), St
                 .ok_or_else(|| alloc::format!("Unknown callee '{}' in template", stmt.callee))?;
 
             let (src_ip, src_port, dst_ip, dst_port) = match stmt.dir {
-                Direction::Src => (caller_ep.0, caller_ep.1, callee_ep.0, callee_ep.1),
-                Direction::Dst => (callee_ep.0, callee_ep.1, caller_ep.0, caller_ep.1),
+                Direction::FromLeftToRight => (caller_ep.0, caller_ep.1, callee_ep.0, callee_ep.1),
+                Direction::FromRightToLeft => (callee_ep.0, callee_ep.1, caller_ep.0, caller_ep.1),
             };
 
             let syn = stmt.flags.contains(&TcpFlag::Syn);
             let ack = stmt.flags.contains(&TcpFlag::Ack);
-            
+
             let payload_bytes = stmt.payload.as_deref().map(|s| s.as_bytes());
-            let reverse_macs = stmt.dir == Direction::Dst;
+            let reverse_macs = stmt.dir == Direction::FromRightToLeft;
 
             let packet_data = match stmt.protocol {
                 Protocol::Tcp => build_tcp_packet(
-                    src_ip, src_port, 
-                    dst_ip, dst_port, 
-                    syn, ack,
+                    src_ip,
+                    src_port,
+                    dst_ip,
+                    dst_port,
+                    syn,
+                    ack,
                     stmt.seq,
                     stmt.win,
                     payload_bytes,
                     reverse_macs,
                 ),
                 Protocol::Udp => build_udp_packet(
-                    src_ip, src_port,
-                    dst_ip, dst_port,
+                    src_ip,
+                    src_port,
+                    dst_ip,
+                    dst_port,
                     payload_bytes,
                     reverse_macs,
                 ),
             };
-            
+
             tx.send_to(&packet_data, None)
                 .ok_or_else(|| "Failed to send packet to channel".to_string())?
                 .map_err(|e| alloc::format!("Error sending packet: {}", e))?;

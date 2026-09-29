@@ -1,6 +1,6 @@
-use core::net::IpAddr;
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::net::IpAddr;
 
 // A simple, flat AST for the FrameAssembly DSL.
 // We avoid spans and lossless syntax trees (LSTs) to keep it minimal.
@@ -22,18 +22,18 @@ pub struct GlobalAssignment {
 /// The direction of the packet in a template statement.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Direction {
-    Src, // ->
-    Dst, // <-
+    FromLeftToRight, // ->
+    FromRightToLeft, // <-
 }
 
-/// Supported TCP flags for this minimal scope.
+/// TOOO: Add the other flags
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TcpFlag {
     Syn,
     Ack,
 }
 
-/// The transport layer protocol for the frame.
+/// TODO: add more protocols
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Protocol {
     Tcp,
@@ -84,7 +84,7 @@ pub enum RunStatement {
     /// A single template invocation directly in the block
     Invocation(TemplateInvocation),
     /// A loop block containing an optional count (None = infinite) and inner invocations
-    Loop(Option<u32>, Vec<TemplateInvocation>), 
+    Loop(Option<u32>, Vec<TemplateInvocation>),
 }
 
 /// The execution mode of the program. A file can only have one block.

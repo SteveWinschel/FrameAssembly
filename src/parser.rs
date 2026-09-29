@@ -163,9 +163,9 @@ fn parse_global_assignment(input: &str) -> ParseResult<'_, GlobalAssignment> {
 /// Parse a direction indicator
 fn parse_direction(input: &str) -> ParseResult<'_, Direction> {
     if let Ok((rest, _)) = tag(input, "->") {
-        Ok((rest, Direction::Src))
+        Ok((rest, Direction::FromLeftToRight))
     } else if let Ok((rest, _)) = tag(input, "<-") {
-        Ok((rest, Direction::Dst))
+        Ok((rest, Direction::FromRightToLeft))
     } else {
         Err("Expected '->' or '<-'".to_string())
     }
@@ -187,7 +187,7 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
     let (rest, caller) = parse_ident(input)?;
     let (rest, dir) = parse_direction(rest)?;
     let (rest, callee) = parse_ident(rest)?;
-    
+
     let (mut rest, protocol) = if let Ok((new_rest, _)) = tag(rest, "UDP") {
         (new_rest, Protocol::Udp)
     } else if let Ok((new_rest, _)) = tag(rest, "TCP") {
@@ -195,14 +195,14 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
     } else {
         return Err("Expected 'TCP' or 'UDP'".to_string());
     };
-    
+
     let mut flags = Vec::new();
     if protocol == Protocol::Tcp {
         while let Ok((new_rest, flag)) = parse_tcp_flag(rest) {
             flags.push(flag);
             rest = new_rest;
         }
-        
+
         if flags.is_empty() {
             return Err("Expected at least one TCP flag (SYN, ACK)".to_string());
         }
@@ -232,7 +232,7 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
         } else if let Ok((new_rest, _)) = tag(rest, "WAIT") {
             let (new_rest, _) = tag(new_rest, "=")?;
             let (new_rest, val) = parse_u32(new_rest)?;
-            
+
             // Parse suffix
             let (new_rest, final_val) = if let Ok((after_suffix, _)) = tag(new_rest, "ms") {
                 (after_suffix, val as u64 * 1_000)
@@ -243,15 +243,28 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
             } else {
                 return Err("Expected time suffix (ms, s, m)".to_string());
             };
-            
+
             wait = Some(final_val);
             rest = new_rest;
         } else {
             break;
         }
     }
-    
-    Ok((rest, FrameStatement { caller, dir, callee, protocol, flags, seq, win, payload, wait }))
+
+    Ok((
+        rest,
+        FrameStatement {
+            caller,
+            dir,
+            callee,
+            protocol,
+            flags,
+            seq,
+            win,
+            payload,
+            wait,
+        },
+    ))
 }
 
 /// Parse a template definition: `let name(arg1, arg2) { ... }`
@@ -259,7 +272,7 @@ fn parse_template_def(input: &str) -> ParseResult<'_, TemplateDef> {
     let (rest, _) = tag(input, "LET")?;
     let (rest, name) = parse_ident(rest)?;
     let (mut rest, _) = tag(rest, "(")?;
-    
+
     let mut params = Vec::new();
     if let Ok((new_rest, param)) = parse_ident(rest) {
         params.push(param);
@@ -272,15 +285,22 @@ fn parse_template_def(input: &str) -> ParseResult<'_, TemplateDef> {
     }
     let (rest, _) = tag(rest, ")")?;
     let (mut rest, _) = tag(rest, "{")?;
-    
+
     let mut statements = Vec::new();
     while let Ok((new_rest, stmt)) = parse_frame_statement(rest) {
         statements.push(stmt);
         rest = new_rest;
     }
-    
+
     let (rest, _) = tag(rest, "}")?;
-    Ok((rest, TemplateDef { name, params, statements }))
+    Ok((
+        rest,
+        TemplateDef {
+            name,
+            params,
+            statements,
+        },
+    ))
 }
 
 /// Parse a template argument (variable, or variable with port override)
@@ -298,7 +318,7 @@ fn parse_argument(input: &str) -> ParseResult<'_, Argument> {
 fn parse_template_invocation(input: &str) -> ParseResult<'_, TemplateInvocation> {
     let (rest, name) = parse_ident(input)?;
     let (mut rest, _) = tag(rest, "(")?;
-    
+
     let mut args = Vec::new();
     if let Ok((new_rest, arg)) = parse_argument(rest) {
         args.push(arg);
@@ -321,13 +341,13 @@ fn parse_run_statement(input: &str) -> ParseResult<'_, RunStatement> {
             Err(_) => (rest, None),
         };
         let (mut rest_block, _) = tag(rest_after_loop, "{")?;
-        
+
         let mut invocations = Vec::new();
         while let Ok((new_rest, inv)) = parse_template_invocation(rest_block) {
             invocations.push(inv);
             rest_block = new_rest;
         }
-        
+
         let (final_rest, _) = tag(rest_block, "}")?;
         Ok((final_rest, RunStatement::Loop(count, invocations)))
     } else {
@@ -375,33 +395,42 @@ pub fn parse_program(mut input: &str) -> Result<Program, String> {
         if input.is_empty() {
             break;
         }
-        
+
         // Try parsing template def first, as it starts with "let template"
         if let Ok((rest, m)) = parse_template_def(input) {
             templates.push(m);
             input = rest;
-        } 
+        }
         // Then try a regular assignment "let x = ..."
         else if let Ok((rest, a)) = parse_global_assignment(input) {
             assignments.push(a);
             input = rest;
-        } 
+        }
         // Finally, try the execution block
         else if let Ok((rest, exec)) = parse_execution_block(input) {
             if execution.is_some() {
-                return Err("A file cannot contain multiple execution blocks (run/compile)".to_string());
+                return Err(
+                    "A file cannot contain multiple execution blocks (run/compile)".to_string(),
+                );
             }
             execution = Some(exec);
             input = rest;
-        } 
-        else {
-            return Err(alloc::format!("Syntax error near: '{}'", &input[..core::cmp::min(input.len(), 20)]));
+        } else {
+            return Err(alloc::format!(
+                "Syntax error near: '{}'",
+                &input[..core::cmp::min(input.len(), 20)]
+            ));
         }
     }
 
-    let execution = execution.ok_or_else(|| "No 'RUN' or 'COMPILE' block found in program".to_string())?;
+    let execution =
+        execution.ok_or_else(|| "No 'RUN' or 'COMPILE' block found in program".to_string())?;
 
-    Ok(Program { assignments, templates, execution })
+    Ok(Program {
+        assignments,
+        templates,
+        execution,
+    })
 }
 
 #[cfg(test)]

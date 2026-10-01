@@ -20,7 +20,7 @@ pub enum Direction {
     RightToLeft, // <-
 }
 
-/// TOOO: Add the other flags
+/// TODO: Add the other flags
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TcpFlag {
     Syn,

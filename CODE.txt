@@ -9,8 +9,8 @@ HOST example_nms { IP 10.0.10.100 }
 FLOW tcp_handshake (client, server) { 
     // The frame definitions are meant to look like they do in Wireshark
     client -> server TCP SRCPORT 1234 DSTPORT 53 SYN SEQ 1 WIN 100 PAYLOAD "hello" WAIT 10ms 
-    client <- server TCP SRCPORT 53 DSTPORT 1234 ACK SEQ 2 WIN 200 PAYLOAD "world" WAIT 3m 
-    client -> server TCP SRCPORT 1234 DSTPORT 53 SYN ACK SEQ 3 WAIT 100s 
+    client <- server TCP SRCPORT 53 DSTPORT 1234 SYN ACK SEQ 2 WIN 200 PAYLOAD "world" WAIT 3m 
+    client -> server TCP SRCPORT 1234 DSTPORT 53 ACK SEQ 3 WAIT 100s 
 }
 
 // Simple UDP template for sending simulated SNMP Traps

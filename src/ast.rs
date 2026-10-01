@@ -5,25 +5,19 @@ use core::net::IpAddr;
 // A simple, flat AST for the FrameAssembly DSL.
 // We avoid spans and lossless syntax trees (LSTs) to keep it minimal.
 
-/// An assigned value can be just an IP, or an IP with a port.
+/// A host definition with an IP and optional MAC address.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AssignValue {
-    Ip(IpAddr),
-    Endpoint(IpAddr, u16),
-}
-
-/// A global assignment in the form `let name = value`
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GlobalAssignment {
+pub struct HostDef {
     pub name: String,
-    pub value: AssignValue,
+    pub ip: IpAddr,
+    pub mac: Option<[u8; 6]>,
 }
 
 /// The direction of the packet in a template statement.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Direction {
-    FromLeftToRight, // ->
-    FromRightToLeft, // <-
+    LeftToRight, // ->
+    RightToLeft, // <-
 }
 
 /// TOOO: Add the other flags
@@ -40,13 +34,15 @@ pub enum Protocol {
     Udp,
 }
 
-/// A single frame statement inside a template, e.g., `src -> dst tcp syn ack seq=1 len=64240 payload="test"`
+/// A single frame statement inside a flow, e.g., `src -> dst tcp srcport 12345 dstport 80 syn ack seq=1 len=64240 payload="test"`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrameStatement {
     pub caller: String,
     pub dir: Direction,
     pub callee: String,
     pub protocol: Protocol,
+    pub src_port: Option<u16>,
+    pub dst_port: Option<u16>,
     pub flags: Vec<TcpFlag>,
     pub seq: Option<u32>,
     pub win: Option<u16>,
@@ -54,24 +50,22 @@ pub struct FrameStatement {
     pub wait: Option<u64>,
 }
 
-/// A template definition in the form `let template name(arg1, arg2) { statements }`
+/// A flow definition in the form `FLOW name(arg1, arg2) { statements }`
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TemplateDef {
+pub struct FlowDef {
     pub name: String,
     pub params: Vec<String>,
     pub statements: Vec<FrameStatement>,
 }
 
-/// An argument passed to a template invocation.
+/// An argument passed to a flow invocation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Argument {
     /// A simple variable reference, e.g., `my_client`
     Variable(String),
-    /// A variable reference with a port override, e.g., `google_dns:80`
-    VarWithPort(String, u16),
 }
 
-/// A template invocation, e.g., `tcp_handshake(my_client, google_dns:80)`
+/// A flow invocation, e.g., `tcp_handshake(my_client, google_dns)`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TemplateInvocation {
     pub name: String,
@@ -87,17 +81,10 @@ pub enum RunStatement {
     Loop(Option<u32>, Vec<TemplateInvocation>),
 }
 
-/// The execution mode of the program. A file can only have one block.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ExecutionBlock {
-    Compile(Vec<RunStatement>),
-    Run(Vec<RunStatement>),
-}
-
-/// The root of the AST containing all assignments, templates, and the execution block.
+/// The root of the AST containing all assignments, flows, and the compile block.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program {
-    pub assignments: Vec<GlobalAssignment>,
-    pub templates: Vec<TemplateDef>,
-    pub execution: ExecutionBlock,
+    pub hosts: Vec<HostDef>,
+    pub flows: Vec<FlowDef>,
+    pub compile_block: Vec<RunStatement>,
 }

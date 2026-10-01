@@ -47,7 +47,8 @@ pub fn parse_ident(input: &str) -> ParseResult<'_, String> {
     if len > 0 {
         let ident = &input[..len];
         match ident {
-            "LET" | "RUN" | "COMPILE" | "LOOP" | "TCP" | "UDP" | "SYN" | "ACK" => {
+            "HOST" | "FLOW" | "IP" | "MAC" | "COMPILE" | "LOOP" | "TCP" | "UDP" | "SYN" | "ACK"
+            | "SRCPORT" | "DSTPORT" | "PORT" => {
                 Err(alloc::format!("'{}' is a reserved keyword", ident))
             }
             _ => Ok((&input[len..], ident.to_string())),
@@ -140,32 +141,73 @@ pub fn parse_string_lit(input: &str) -> ParseResult<'_, String> {
     Ok((rest, content.to_string()))
 }
 
-/// Parse an assigned value: either just an IP, or IP:Port
-fn parse_assign_value(input: &str) -> ParseResult<'_, AssignValue> {
-    let (rest, ip) = parse_ip(input)?;
-    if let Ok((rest_after_colon, _)) = tag(rest, ":") {
-        let (final_rest, port) = parse_u16(rest_after_colon)?;
-        Ok((final_rest, AssignValue::Endpoint(ip, port)))
-    } else {
-        Ok((rest, AssignValue::Ip(ip)))
+/// Parse a MAC address (e.g. 02:00:00:00:00:01)
+fn parse_mac(input: &str) -> ParseResult<'_, [u8; 6]> {
+    let input = skip_whitespace(input);
+    let mut len = 0;
+    for c in input.chars() {
+        if c.is_ascii_hexdigit() || c == ':' {
+            len += c.len_utf8();
+        } else {
+            break;
+        }
     }
+    if len > 0 {
+        let mac_str = &input[..len];
+        let parts: Vec<&str> = mac_str.split(':').collect();
+        if parts.len() == 6 {
+            let mut mac = [0u8; 6];
+            for i in 0..6 {
+                if let Ok(byte) = u8::from_str_radix(parts[i], 16) {
+                    mac[i] = byte;
+                } else {
+                    return Err("Invalid MAC address byte".to_string());
+                }
+            }
+            return Ok((&input[len..], mac));
+        } else {
+            return Err("Invalid MAC address format".to_string());
+        }
+    }
+    Err("Expected MAC address".to_string())
 }
 
-/// Parse a let assignment: `let name = value`
-fn parse_global_assignment(input: &str) -> ParseResult<'_, GlobalAssignment> {
-    let (rest, _) = tag(input, "LET")?;
+/// Parse a HOST block: `HOST name { IP x.x.x.x MAC xx:xx... }`
+fn parse_host_def(input: &str) -> ParseResult<'_, HostDef> {
+    let (rest, _) = tag(input, "HOST")?;
     let (rest, name) = parse_ident(rest)?;
-    let (rest, _) = tag(rest, "=")?;
-    let (rest, value) = parse_assign_value(rest)?;
-    Ok((rest, GlobalAssignment { name, value }))
+    let (mut rest, _) = tag(rest, "{")?;
+
+    let mut ip = None;
+    let mut mac = None;
+
+    loop {
+        if let Ok((new_rest, _)) = tag(rest, "IP") {
+            let (new_rest, val) = parse_ip(new_rest)?;
+            ip = Some(val);
+            rest = new_rest;
+        } else if let Ok((new_rest, _)) = tag(rest, "MAC") {
+            let (new_rest, val) = parse_mac(new_rest)?;
+            mac = Some(val);
+            rest = new_rest;
+        } else {
+            break;
+        }
+    }
+
+    let (rest, _) = tag(rest, "}")?;
+
+    let ip = ip.ok_or_else(|| "HOST block must contain an IP".to_string())?;
+
+    Ok((rest, HostDef { name, ip, mac }))
 }
 
 /// Parse a direction indicator
 fn parse_direction(input: &str) -> ParseResult<'_, Direction> {
     if let Ok((rest, _)) = tag(input, "->") {
-        Ok((rest, Direction::FromLeftToRight))
+        Ok((rest, Direction::LeftToRight))
     } else if let Ok((rest, _)) = tag(input, "<-") {
-        Ok((rest, Direction::FromRightToLeft))
+        Ok((rest, Direction::RightToLeft))
     } else {
         Err("Expected '->' or '<-'".to_string())
     }
@@ -197,40 +239,43 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
     };
 
     let mut flags = Vec::new();
-    if protocol == Protocol::Tcp {
-        while let Ok((new_rest, flag)) = parse_tcp_flag(rest) {
-            flags.push(flag);
-            rest = new_rest;
-        }
-
-        if flags.is_empty() {
-            return Err("Expected at least one TCP flag (SYN, ACK)".to_string());
-        }
-    }
 
     let mut seq = None;
     let mut win = None;
     let mut payload = None;
     let mut wait = None;
+    let mut src_port = None;
+    let mut dst_port = None;
 
     loop {
-        if let Ok((new_rest, _)) = tag(rest, "SEQ") {
-            let (new_rest, _) = tag(new_rest, "=")?;
+        if let Ok((new_rest, _)) = tag(rest, "SRCPORT") {
+            let new_rest = tag(new_rest, "=").map(|(r, _)| r).unwrap_or(new_rest);
+            let (new_rest, val) = parse_u16(new_rest)?;
+            src_port = Some(val);
+            rest = new_rest;
+        } else if let Ok((new_rest, _)) = tag(rest, "DSTPORT") {
+            let new_rest = tag(new_rest, "=").map(|(r, _)| r).unwrap_or(new_rest);
+            let (new_rest, val) = parse_u16(new_rest)?;
+            dst_port = Some(val);
+            rest = new_rest;
+
+        } else if let Ok((new_rest, _)) = tag(rest, "SEQ") {
+            let new_rest = tag(new_rest, "=").map(|(r, _)| r).unwrap_or(new_rest);
             let (new_rest, val) = parse_u32(new_rest)?;
             seq = Some(val);
             rest = new_rest;
         } else if let Ok((new_rest, _)) = tag(rest, "WIN") {
-            let (new_rest, _) = tag(new_rest, "=")?;
+            let new_rest = tag(new_rest, "=").map(|(r, _)| r).unwrap_or(new_rest);
             let (new_rest, val) = parse_u16(new_rest)?;
             win = Some(val);
             rest = new_rest;
         } else if let Ok((new_rest, _)) = tag(rest, "PAYLOAD") {
-            let (new_rest, _) = tag(new_rest, "=")?;
+            let new_rest = tag(new_rest, "=").map(|(r, _)| r).unwrap_or(new_rest);
             let (new_rest, val) = parse_string_lit(new_rest)?;
             payload = Some(val);
             rest = new_rest;
         } else if let Ok((new_rest, _)) = tag(rest, "WAIT") {
-            let (new_rest, _) = tag(new_rest, "=")?;
+            let new_rest = tag(new_rest, "=").map(|(r, _)| r).unwrap_or(new_rest);
             let (new_rest, val) = parse_u32(new_rest)?;
 
             // Parse suffix
@@ -246,9 +291,16 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
 
             wait = Some(final_val);
             rest = new_rest;
+        } else if let Ok((new_rest, flag)) = parse_tcp_flag(rest) {
+            flags.push(flag);
+            rest = new_rest;
         } else {
             break;
         }
+    }
+
+    if protocol == Protocol::Tcp && flags.is_empty() {
+        return Err("Expected at least one TCP flag (SYN, ACK)".to_string());
     }
 
     Ok((
@@ -258,6 +310,8 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
             dir,
             callee,
             protocol,
+            src_port,
+            dst_port,
             flags,
             seq,
             win,
@@ -267,9 +321,9 @@ fn parse_frame_statement(input: &str) -> ParseResult<'_, FrameStatement> {
     ))
 }
 
-/// Parse a template definition: `let name(arg1, arg2) { ... }`
-fn parse_template_def(input: &str) -> ParseResult<'_, TemplateDef> {
-    let (rest, _) = tag(input, "LET")?;
+/// Parse a flow definition: `FLOW name(arg1, arg2) { ... }`
+fn parse_flow_def(input: &str) -> ParseResult<'_, FlowDef> {
+    let (rest, _) = tag(input, "FLOW")?;
     let (rest, name) = parse_ident(rest)?;
     let (mut rest, _) = tag(rest, "(")?;
 
@@ -295,7 +349,7 @@ fn parse_template_def(input: &str) -> ParseResult<'_, TemplateDef> {
     let (rest, _) = tag(rest, "}")?;
     Ok((
         rest,
-        TemplateDef {
+        FlowDef {
             name,
             params,
             statements,
@@ -303,15 +357,10 @@ fn parse_template_def(input: &str) -> ParseResult<'_, TemplateDef> {
     ))
 }
 
-/// Parse a template argument (variable, or variable with port override)
+/// Parse a flow argument (just a variable)
 fn parse_argument(input: &str) -> ParseResult<'_, Argument> {
     let (rest, var) = parse_ident(input)?;
-    if let Ok((rest_after_colon, _)) = tag(rest, ":") {
-        let (final_rest, port) = parse_u16(rest_after_colon)?;
-        Ok((final_rest, Argument::VarWithPort(var, port)))
-    } else {
-        Ok((rest, Argument::Variable(var)))
-    }
+    Ok((rest, Argument::Variable(var)))
 }
 
 /// Parse a template invocation inside the run/compile block
@@ -356,18 +405,9 @@ fn parse_run_statement(input: &str) -> ParseResult<'_, RunStatement> {
     }
 }
 
-/// Parse the execution block: `run { ... }` or `compile { ... }`
-fn parse_execution_block(input: &str) -> ParseResult<'_, ExecutionBlock> {
-    if let Ok((rest, _)) = tag(input, "RUN") {
-        let (mut rest, _) = tag(rest, "{")?;
-        let mut statements = Vec::new();
-        while let Ok((new_rest, stmt)) = parse_run_statement(rest) {
-            statements.push(stmt);
-            rest = new_rest;
-        }
-        let (rest, _) = tag(rest, "}")?;
-        Ok((rest, ExecutionBlock::Run(statements)))
-    } else if let Ok((rest, _)) = tag(input, "COMPILE") {
+/// Parse the compile block: `compile { ... }`
+fn parse_compile_block(input: &str) -> ParseResult<'_, Vec<RunStatement>> {
+    if let Ok((rest, _)) = tag(input, "COMPILE") {
         let (mut rest, _) = tag(rest, "{")?;
         let mut statements = Vec::new();
         while let Ok((new_rest, stmt)) = parse_run_statement(rest) {
@@ -378,17 +418,17 @@ fn parse_execution_block(input: &str) -> ParseResult<'_, ExecutionBlock> {
             rest = new_rest;
         }
         let (rest, _) = tag(rest, "}")?;
-        Ok((rest, ExecutionBlock::Compile(statements)))
+        Ok((rest, statements))
     } else {
-        Err("Expected 'RUN' or 'COMPILE'".to_string())
+        Err("Expected 'COMPILE'".to_string())
     }
 }
 
 /// Top-level parser for the entire DSL file
 pub fn parse_program(mut input: &str) -> Result<Program, String> {
-    let mut assignments = Vec::new();
-    let mut templates = Vec::new();
-    let mut execution = None;
+    let mut hosts = Vec::new();
+    let mut flows = Vec::new();
+    let mut compile_block = None;
 
     loop {
         input = skip_whitespace(input);
@@ -396,24 +436,17 @@ pub fn parse_program(mut input: &str) -> Result<Program, String> {
             break;
         }
 
-        // Try parsing template def first, as it starts with "let template"
-        if let Ok((rest, m)) = parse_template_def(input) {
-            templates.push(m);
+        if let Ok((rest, f)) = parse_flow_def(input) {
+            flows.push(f);
             input = rest;
-        }
-        // Then try a regular assignment "let x = ..."
-        else if let Ok((rest, a)) = parse_global_assignment(input) {
-            assignments.push(a);
+        } else if let Ok((rest, h)) = parse_host_def(input) {
+            hosts.push(h);
             input = rest;
-        }
-        // Finally, try the execution block
-        else if let Ok((rest, exec)) = parse_execution_block(input) {
-            if execution.is_some() {
-                return Err(
-                    "A file cannot contain multiple execution blocks (run/compile)".to_string(),
-                );
+        } else if let Ok((rest, exec)) = parse_compile_block(input) {
+            if compile_block.is_some() {
+                return Err("A file cannot contain multiple compile blocks".to_string());
             }
-            execution = Some(exec);
+            compile_block = Some(exec);
             input = rest;
         } else {
             return Err(alloc::format!(
@@ -423,13 +456,13 @@ pub fn parse_program(mut input: &str) -> Result<Program, String> {
         }
     }
 
-    let execution =
-        execution.ok_or_else(|| "No 'RUN' or 'COMPILE' block found in program".to_string())?;
+    let compile_block =
+        compile_block.ok_or_else(|| "No 'COMPILE' block found in program".to_string())?;
 
     Ok(Program {
-        assignments,
-        templates,
-        execution,
+        hosts,
+        flows,
+        compile_block,
     })
 }
 
@@ -439,29 +472,25 @@ mod tests {
     #[test]
     fn test_parse_target_syntax() {
         let code = r#"
-            LET my_client = 10.0.0.1:1234
-            LET google_dns = 8.8.8.8
+            HOST my_client { IP 10.0.0.1 MAC 00:11:22:33:44:55 }
+            HOST google_dns { IP 8.8.8.8 }
 
-            LET tcp_handshake(src, dst) {
-                src -> dst TCP SYN
-                src <- dst TCP ACK
-                src -> dst TCP SYN ACK
+            FLOW tcp_handshake(src, dst) {
+                src -> dst TCP SRCPORT 12345 DSTPORT 80 SYN
+                src <- dst TCP SRCPORT 80 DSTPORT 12345 SYN ACK
+                src -> dst TCP SRCPORT 12345 DSTPORT 80 ACK
             }
 
-            RUN {
+            COMPILE {
                 LOOP 100 {
-                    tcp_handshake(my_client, google_dns:80)
+                    tcp_handshake(my_client, google_dns)
                 }
-                tcp_handshake(my_client, google_dns:80)
+                tcp_handshake(my_client, google_dns)
             }
         "#;
         let prog = parse_program(code).unwrap();
-        assert_eq!(prog.assignments.len(), 2);
-        assert_eq!(prog.templates.len(), 1);
-        if let ExecutionBlock::Run(stmts) = &prog.execution {
-            assert_eq!(stmts.len(), 2);
-        } else {
-            panic!("Expected run block");
-        }
+        assert_eq!(prog.hosts.len(), 2);
+        assert_eq!(prog.flows.len(), 1);
+        assert_eq!(prog.compile_block.len(), 2);
     }
 }

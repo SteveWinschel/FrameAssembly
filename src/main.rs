@@ -1,16 +1,20 @@
-use clap::Parser;
-use frameassembly::cli::Cli;
+use frameassembly::backend::generate_pcap;
 use frameassembly::parser::parse_program;
-use frameassembly::runner::run_program;
+use std::env;
 use std::fs;
 
 fn main() {
-    let cli = Cli::parse();
+    let mut args = env::args();
+    if args.len() != 2 {
+        eprintln!("Usage: frameassembly <file>");
+        std::process::exit(1);
+    }
+    let file = args.nth(1).unwrap();
 
-    let code = match fs::read_to_string(&cli.file) {
+    let code = match fs::read_to_string(&file) {
         Ok(content) => content,
         Err(error) => {
-            eprintln!("Error reading file '{}': {}", cli.file, error);
+            eprintln!("Error reading file '{}': {}", file, error);
             std::process::exit(1);
         }
     };
@@ -24,13 +28,17 @@ fn main() {
     };
 
     println!(
-        "Successfully parsed {} assignments, {} templates",
-        program.assignments.len(),
-        program.templates.len(),
+        "Successfully parsed {} hosts, {} flows",
+        program.hosts.len(),
+        program.flows.len(),
     );
 
-    if let Err(e) = run_program(&program, cli.interface) {
-        eprintln!("Error: {}", e);
+    let output_pcap = "output.pcap";
+    println!("Starting PCAP compilation...");
+    if let Err(e) = generate_pcap(&program, output_pcap) {
+        eprintln!("Backend error: {}", e);
         std::process::exit(1);
+    } else {
+        println!("Successfully generated {}", output_pcap);
     }
 }

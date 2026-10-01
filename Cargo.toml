@@ -1,13 +1,14 @@
 [package]
 name = "frameassembly"
-version = "0.5.1"
+version = "0.6.0"
 edition = "2024"
+description = "A Domain-Specific Language (DSL) for writing deterministic network traffic to .pcap files."
+authors = ["Steve Winschel"]
+license = "MIT"
 
 [dependencies]
-clap = { version = "4.5", features = ["derive"] }
-pnet = "0.34.0"
 
 [profile.release]
-codegen_units = 1
+codegen-units = 1
 lto = "fat"
 panic = "abort"

@@ -8,10 +8,11 @@
 It is meant to be used for network security research, education, and testing.
 
 ## Features
-*   **Prototype AST:** Uses a flat Abstract Syntax Tree (AST).
-*   **Packet Field Abstraction:** You can set TCP/IP and UDP packet fields like `SEQ`, `WIN`, `PAYLOAD`, and `WAIT` using space-separated keyword values (e.g., `SEQ 1`).
-*   **Prototype Parsing:** The compiler front-end is a handcrafted recursive descent parser using `&str` slicing.
-*   **Deterministic Output:** Generates reproducible `.pcap` files based on the defined flow and mock epoch timestamps.
+*   **Production-Grade Pipeline:** Uses `logos` for zero-copy lexing and `winnow` for robust combinator parsing into a flat Abstract Syntax Tree (AST).
+*   **Rich Diagnostics:** Employs `miette` to provide beautiful, `rustc`-style terminal error reporting pointing exactly to syntax errors.
+*   **Packet Field Abstraction:** You can set TCP/IP, UDP, and SNMP packet fields like `SEQ`, `WIN`, `PAYLOAD`, `OID`, and `WAIT` using space-separated keyword values.
+*   **Reliable Packet Crafting:** Uses `etherparse` for correct zero-allocation L2-L4 encapsulation and checksumming.
+*   **Deterministic Output:** Generates reproducible `.pcap` files with nanosecond precision using `pcap-file` (`PcapNgWriter`) based on the defined flow and mock epoch timestamps.
 *   **Comments:** Supports inline comments using `//`.
 
 ## Getting Started
@@ -57,6 +58,7 @@ The arrow dictates the packet's source and destination:
 #### Supported Protocols
 *   `TCP`
 *   `UDP`
+*   `SNMP1`, `SNMP2`, `SNMP3` (First-class support for SNMP Traps)
 
 #### Port Definitions
 *   `SRCPORT <port>`: Defines the source port.
@@ -72,6 +74,9 @@ These properties follow the protocol and flag definitions. They are defined usin
 *   `SEQ <number>`: Sets the TCP sequence number.
 *   `WIN <number>`: Sets the TCP window size.
 *   `PAYLOAD "<string>"`: Appends a string payload to the packet.
+*   `COMMUNITY "<string>"`: Sets the community string for `SNMP1` and `SNMP2` traps.
+*   `USER "<string>"`: Sets the USM authentication user name for `SNMP3` traps.
+*   `OID "<string>"`: Sets the primary Object Identifier for the SNMP trap.
 *   `WAIT <number><suffix>`: Introduces an artificial delay before sending the next packet. 
     *   Supported suffixes: `ms` (milliseconds), `s` (seconds), `m` (minutes).
 
@@ -108,15 +113,20 @@ FLOW tcp_handshake (client, server) {
     client -> server TCP SRCPORT 1234 DSTPORT 53 SYN ACK SEQ 3 WAIT 100s 
 }
 
-// Simple UDP template for sending simulated SNMP Traps
-FLOW snmp_trap(agent, nms) {
-    agent -> nms UDP SRCPORT 161 DSTPORT 162 PAYLOAD "RAW_SNMP_PAYLOAD_STRING" WAIT 10ms
+// Simple SNMP Traps with fully encoded ASN.1 payloads
+FLOW snmp_linkdown_trap(agent, nms) {
+    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" WAIT 10ms
+}
+
+FLOW snmp_v3_trap(agent, nms) {
+    agent -> nms SNMP3 TRAP USER "admin" OID "1.3.6.1.6.3.1.1.5.3" WAIT 10ms
 }
 
 // You can compile a "Main" entry point like this
 COMPILE { 
     LOOP 100 {
-        snmp_trap(switch_agent, example_nms)
+        snmp_linkdown_trap(switch_agent, example_nms)
+        snmp_v3_trap(switch_agent, example_nms)
         tcp_handshake(example_client, google_dns) 
     }
 }

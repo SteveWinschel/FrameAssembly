@@ -1,6 +1,6 @@
 [package]
 name = "frameassembly"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2024"
 description = "A Domain-Specific Language (DSL) for writing deterministic network traffic to .pcap files."
 authors = ["Steve Winschel"]
@@ -12,6 +12,7 @@ logos = "0.14.3"
 miette = { version = "7.6.0", features = ["fancy"] }
 pcap-file = "2.0.0"
 rasn = "0.28.15"
+rasn-smi = "0.28.15"
 rasn-snmp = "0.28.15"
 winnow = "1.0.4"
 

@@ -73,11 +73,11 @@ pub enum Token<'a> {
     Equals,
 
     // Time suffixes
-    #[token("ms")]
+    #[token("ms", priority = 2)]
     Ms,
-    #[token("s")]
+    #[token("s", priority = 2)]
     Sec,
-    #[token("m")]
+    #[token("m", priority = 2)]
     Min,
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", priority = 1)]
@@ -87,7 +87,7 @@ pub enum Token<'a> {
     StringLit(&'a str),
 
     // Match IPv4 and IPv6-like strings loosely, parser will validate
-    #[regex(r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")]
+    #[regex(r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+", priority = 2)]
     IpAddress(&'a str),
 
     // Match MAC addresses loosely
@@ -95,7 +95,7 @@ pub enum Token<'a> {
     MacAddress(&'a str),
 
     // Match OIDs loosely
-    #[regex(r"([0-9]+\.)+[0-9]+")]
+    #[regex(r"([0-9]+\.)+[0-9]+", priority = 3)]
     OidStr(&'a str),
 
     #[regex("[0-9]+")]

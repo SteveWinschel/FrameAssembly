@@ -1,7 +1,7 @@
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::net::IpAddr;
-use etherparse::{PacketBuilder, TcpHeader};
+use etherparse::{Ethernet2Header, Ipv4Header, TcpHeader, UdpHeader, EtherType, IpNumber};
 
 use crate::error::CompilerError;
 
@@ -34,14 +34,37 @@ pub fn build_tcp_packet(
     tcp_header.syn = syn;
     tcp_header.ack = ack;
 
-    let builder = PacketBuilder::ethernet2(src_mac, dst_mac)
-        .ipv4(src_v4, dst_v4, 64)
-        .tcp_header(tcp_header);
+    let ip_header = Ipv4Header::new(
+        tcp_header.header_len() as u16 + payload_bytes.len() as u16,
+        64,
+        IpNumber::TCP,
+        src_v4,
+        dst_v4,
+    ).map_err(|e| CompilerError::BackendError(alloc::format!("Failed to create IP header: {}", e)))?;
 
-    let mut result = Vec::with_capacity(builder.size(payload_bytes.len()));
-    builder.write(&mut result, payload_bytes).map_err(|e| {
-        CompilerError::BackendError(alloc::format!("Failed to write TCP packet: {}", e))
+    tcp_header.checksum = tcp_header.calc_checksum_ipv4(&ip_header, payload_bytes)
+        .map_err(|e| CompilerError::BackendError(alloc::format!("Failed to calculate TCP checksum: {}", e)))?;
+
+    let eth_header = Ethernet2Header {
+        source: src_mac,
+        destination: dst_mac,
+        ether_type: EtherType::IPV4,
+    };
+
+    let mut result = Vec::with_capacity(
+        eth_header.header_len() + ip_header.header_len() + tcp_header.header_len() as usize + payload_bytes.len()
+    );
+
+    eth_header.write(&mut result).map_err(|e| {
+        CompilerError::BackendError(alloc::format!("Failed to write ETH header: {}", e))
     })?;
+    ip_header.write(&mut result).map_err(|e| {
+        CompilerError::BackendError(alloc::format!("Failed to write IP header: {}", e))
+    })?;
+    tcp_header.write(&mut result).map_err(|e| {
+        CompilerError::BackendError(alloc::format!("Failed to write TCP header: {}", e))
+    })?;
+    result.extend_from_slice(payload_bytes);
 
     Ok(result)
 }
@@ -66,14 +89,40 @@ pub fn build_udp_packet(
         }
     };
 
-    let builder = PacketBuilder::ethernet2(src_mac, dst_mac)
-        .ipv4(src_v4, dst_v4, 64)
-        .udp(src_port, dst_port);
+    let mut udp_header = UdpHeader::without_ipv4_checksum(src_port, dst_port, payload_bytes.len())
+        .map_err(|e| CompilerError::BackendError(alloc::format!("Failed to create UDP header: {}", e)))?;
 
-    let mut result = Vec::with_capacity(builder.size(payload_bytes.len()));
-    builder.write(&mut result, payload_bytes).map_err(|e| {
-        CompilerError::BackendError(alloc::format!("Failed to write UDP packet: {}", e))
+    let ip_header = Ipv4Header::new(
+        udp_header.header_len() as u16 + payload_bytes.len() as u16,
+        64,
+        IpNumber::UDP,
+        src_v4,
+        dst_v4,
+    ).map_err(|e| CompilerError::BackendError(alloc::format!("Failed to create IP header: {}", e)))?;
+
+    udp_header.checksum = udp_header.calc_checksum_ipv4(&ip_header, payload_bytes)
+        .map_err(|e| CompilerError::BackendError(alloc::format!("Failed to calculate UDP checksum: {}", e)))?;
+
+    let eth_header = Ethernet2Header {
+        source: src_mac,
+        destination: dst_mac,
+        ether_type: EtherType::IPV4,
+    };
+
+    let mut result = Vec::with_capacity(
+        eth_header.header_len() + ip_header.header_len() + udp_header.header_len() + payload_bytes.len()
+    );
+
+    eth_header.write(&mut result).map_err(|e| {
+        CompilerError::BackendError(alloc::format!("Failed to write ETH header: {}", e))
     })?;
+    ip_header.write(&mut result).map_err(|e| {
+        CompilerError::BackendError(alloc::format!("Failed to write IP header: {}", e))
+    })?;
+    udp_header.write(&mut result).map_err(|e| {
+        CompilerError::BackendError(alloc::format!("Failed to write UDP header: {}", e))
+    })?;
+    result.extend_from_slice(payload_bytes);
 
     Ok(result)
 }

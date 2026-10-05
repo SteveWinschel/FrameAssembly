@@ -48,75 +48,52 @@ fn parse_string_lit<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<&'a str> {
     }
 }
 
-/// Parse IP
 fn parse_ip<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<IpAddr> {
-    let mut backup = *input;
-    let (t, _) = any
-        .verify(|(t, _)| matches!(t, Token::IpAddress(_)))
-        .parse_next(&mut backup)?;
-    if let Token::IpAddress(s) = t {
-        if let Ok(ip) = IpAddr::from_str(s) {
-            *input = backup;
-            return Ok(ip);
+    any.verify_map(|(t, _)| {
+        match t {
+            Token::IpAddress(s) | Token::OidStr(s) => IpAddr::from_str(s).ok(),
+            _ => None,
         }
-    }
-    winnow::combinator::fail.parse_next(input)
+    }).parse_next(input)
 }
 
-/// Parse MAC
 fn parse_mac<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<[u8; 6]> {
-    let mut backup = *input;
-    let (t, _) = any
-        .verify(|(t, _)| matches!(t, Token::MacAddress(_)))
-        .parse_next(&mut backup)?;
-    if let Token::MacAddress(s) = t {
-        let parts: Vec<&str> = s.split(':').collect();
-        let mut mac = [0u8; 6];
-        let mut ok = true;
-        for i in 0..6 {
-            if let Ok(val) = u8::from_str_radix(parts[i], 16) {
-                mac[i] = val;
+    any.verify_map(|(t, _)| {
+        if let Token::MacAddress(s) = t {
+            let parts: Vec<&str> = s.split(':').collect();
+            if parts.len() == 6 {
+                let mut mac = [0u8; 6];
+                for i in 0..6 {
+                    mac[i] = u8::from_str_radix(parts[i], 16).ok()?;
+                }
+                Some(mac)
             } else {
-                ok = false;
-                break;
+                None
             }
+        } else {
+            None
         }
-        if ok {
-            *input = backup;
-            return Ok(mac);
-        }
-    }
-    winnow::combinator::fail.parse_next(input)
+    }).parse_next(input)
 }
 
-/// Parse u16
 fn parse_u16<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u16> {
-    let mut backup = *input;
-    let (t, _) = any
-        .verify(|(t, _)| matches!(t, Token::Number(_)))
-        .parse_next(&mut backup)?;
-    if let Token::Number(s) = t {
-        if let Ok(val) = u16::from_str(s) {
-            *input = backup;
-            return Ok(val);
+    any.verify_map(|(t, _)| {
+        if let Token::Number(s) = t {
+            u16::from_str(s).ok()
+        } else {
+            None
         }
-    }
-    winnow::combinator::fail.parse_next(input)
+    }).parse_next(input)
 }
 
-/// Parse u32
 fn parse_u32<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u32> {
-    let mut backup = *input;
-    let (t, _) = any
-        .verify(|(t, _)| matches!(t, Token::Number(_)))
-        .parse_next(&mut backup)?;
-    if let Token::Number(s) = t {
-        if let Ok(val) = u32::from_str(s) {
-            *input = backup;
-            return Ok(val);
+    any.verify_map(|(t, _)| {
+        if let Token::Number(s) = t {
+            u32::from_str(s).ok()
+        } else {
+            None
         }
-    }
-    winnow::combinator::fail.parse_next(input)
+    }).parse_next(input)
 }
 
 fn parse_host_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<HostDef<'a>> {
@@ -210,18 +187,15 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
     let parse_oid = |input: &mut Stream<'i, 'a>| -> PResult<ParsedField<'a>> {
         let _ = tag(Token::Oid).parse_next(input)?;
         let _ = opt(tag(Token::Equals)).parse_next(input)?;
-        let (t, _) = any
-            .verify(|(t, _)| matches!(t, Token::OidStr(_) | Token::StringLit(_)))
-            .parse_next(input)?;
-        let val = match t {
-            Token::OidStr(s) => s,
-            Token::StringLit(s) => s
-                .strip_prefix('"')
-                .and_then(|x| x.strip_suffix('"'))
-                .unwrap_or(s),
-            _ => unreachable!(),
-        };
-        Ok(ParsedField::Oid(val))
+        any.verify_map(|(t, _)| {
+            match t {
+                Token::OidStr(s) | Token::IpAddress(s) => Some(ParsedField::Oid(s)),
+                Token::StringLit(s) => Some(ParsedField::Oid(
+                    s.strip_prefix('"').and_then(|x| x.strip_suffix('"')).unwrap_or(s)
+                )),
+                _ => None,
+            }
+        }).parse_next(input)
     };
 
     let parsed_fields: Vec<ParsedField<'a>> = repeat(
@@ -345,7 +319,7 @@ fn parse_template_invocation<'i, 'a>(
 }
 
 fn parse_run_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<RunStatement<'a>> {
-    if tag(Token::Loop).parse_next(input).is_ok() {
+    if opt(tag(Token::Loop)).parse_next(input)?.is_some() {
         let count = parse_u32(input)?;
         let _ = tag(Token::LBrace).parse_next(input)?;
         let invocations: Vec<TemplateInvocation<'a>> =

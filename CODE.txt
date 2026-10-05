@@ -1,8 +1,11 @@
 HOST switch_agent { IP 10.0.10.5 MAC aa:bb:cc:dd:ee:ff }
 HOST example_nms { IP 10.0.10.100 }
+HOST dns_server { IP 8.8.8.8 }
 
 FLOW tcp_handshake(client, server) {
-    client -> server TCP SRCPORT 1234 DSTPORT 53 SYN SEQ 1 WIN 100 PAYLOAD "hello" WAIT 10ms
+    client -> server TCP SRCPORT 1234 DSTPORT 53 SYN SEQ 1 WIN 100 PAYLOAD "Hello" WAIT 10ms
+    client <- server TCP SRCPORT 53 DSTPORT 1234 SYN ACK SEQ 1 WIN 100 PAYLOAD "World" WAIT 20ms
+    client -> server TCP SRCPORT 1234 DSTPORT 53 ACK SEQ 2 WIN 100 PAYLOAD "!" WAIT 5ms
 }
 
 FLOW snmp_v1_trap(agent, nms) {
@@ -18,6 +21,7 @@ FLOW snmp_v3_trap(agent, nms) {
 }
 
 COMPILE {
+        tcp_handshake(switch_agent, example_nms)
         snmp_v1_trap(switch_agent, example_nms)
         snmp_v2_trap(switch_agent, example_nms)
         snmp_v3_trap(switch_agent, example_nms)

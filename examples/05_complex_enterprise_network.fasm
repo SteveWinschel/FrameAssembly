@@ -1,0 +1,29 @@
+// INSTRUCTION: Define the core router with IP 10.0.0.1.
+HOST core_router { IP 10.0.0.1 }
+
+// INSTRUCTION: Define a web server with IP 172.16.0.80.
+HOST web_server { IP 172.16.0.80 }
+
+// INSTRUCTION: Define a monitoring server with IP 192.168.100.100.
+HOST monitoring_server { IP 192.168.100.100 }
+
+// INSTRUCTION: Define a flow for standard web traffic containing a GET request and a response.
+FLOW web_traffic(client, server) {
+    client -> server TCP SYN DSTPORT 80
+    client <- server TCP SYN ACK SRCPORT 80
+    client -> server TCP ACK DSTPORT 80 PAYLOAD "GET / HTTP/1.1"
+    client <- server TCP ACK SRCPORT 80 PAYLOAD "HTTP/1.1 200 OK"
+}
+
+// INSTRUCTION: Define a flow for SNMPv3 monitoring with authentication.
+FLOW secure_monitoring(agent, nms) {
+    agent -> nms SNMP3 TRAP USER "admin_user" OID 1.3.6.1.4.1 SYSUPTIME 50000
+}
+
+// INSTRUCTION: Compile block to simulate traffic between the router, web server, and monitoring server.
+COMPILE {
+    LOOP 5 {
+        web_traffic(core_router, web_server)
+    }
+    secure_monitoring(web_server, monitoring_server)
+}

@@ -33,7 +33,7 @@ FrameAssembly uses a strict, keyword-oriented syntax. Property assignments do no
 
 ### 1. Hosts
 Hosts are defined using the `HOST` keyword. They act as network endpoints.
-```text
+```frameassembly
 HOST name { IP 1.2.3.4 MAC 00:11:22:33:44:55 }
 ```
 *   `IP` is **mandatory**.
@@ -42,7 +42,7 @@ HOST name { IP 1.2.3.4 MAC 00:11:22:33:44:55 }
 ### 2. Flows
 Flows (similar to functions) encapsulate sequences of packet transmissions between endpoints. They are defined using the `FLOW` keyword and take arguments for the source and destination endpoints.
 
-```text
+```frameassembly
 FLOW tcp_handshake(client, server) {
     client -> server TCP SYN PAYLOAD "Hello" 
     client <- server TCP SYN ACK PAYLOAD "World"
@@ -89,7 +89,7 @@ These properties follow the protocol and flag definitions. They are defined usin
 ### 3. Compile Block
 The `COMPILE` block serves as the main entry point to execute flows. You can invoke previously defined `FLOW`s, passing `HOST`s as arguments. You can also use `LOOP` to repeat a sequence of flows.
 
-```text
+```frameassembly
 COMPILE { 
     LOOP 100 {
         snmp_trap(switch_agent, example_nms)
@@ -101,9 +101,9 @@ COMPILE {
 
 ## Usage
 
-Define your networking scenario in a text file (e.g., `CODE.txt`):
+Define your networking scenario in a text file (e.g., `demo.fasm`):
 
-```text
+```frameassembly
 // Written vertically -> Intuitive for programmers
 HOST example_server { 
     IP 10.0.10.5
@@ -142,7 +142,7 @@ COMPILE {
 To compile your script into a PCAP file, run:
 
 ```bash
-cargo run --release CODE.txt
+cargo run --release demo.fasm
 ```
 
 This generates an `output.pcap` file in the root directory via the help of tcpreplay or similar you can simulate written traffic.

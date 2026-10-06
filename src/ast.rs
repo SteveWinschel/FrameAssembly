@@ -2,6 +2,11 @@ use alloc::vec::Vec;
 use core::net::IpAddr;
 
 /// A host definition with an IP and optional MAC address.
+///
+/// Syntax mapping:
+/// ```frameassembly
+/// HOST name { IP 1.2.3.4 MAC 00:11:22:33:44:55 }
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostDef<'a> {
     pub name: &'a str,
@@ -32,6 +37,11 @@ pub enum Protocol {
 }
 
 /// A single frame statement inside a flow.
+///
+/// Syntax mapping:
+/// ```frameassembly
+/// client -> server TCP SYN ACK PAYLOAD "World" WAIT 10ms
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrameStatement<'a> {
     pub caller: &'a str,
@@ -58,6 +68,13 @@ pub struct FrameStatement<'a> {
 }
 
 /// A flow definition in the form `FLOW name(arg1, arg2) { statements }`
+///
+/// Syntax mapping:
+/// ```frameassembly
+/// FLOW name(arg1, arg2) { 
+///     arg1 -> arg2 TCP SYN
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FlowDef<'a> {
     pub name: &'a str,

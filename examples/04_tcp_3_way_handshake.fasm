@@ -1,0 +1,17 @@
+// INSTRUCTION: Define an enterprise client with IP 10.10.10.10.
+HOST enterprise_client { IP 10.10.10.10 }
+
+// INSTRUCTION: Define an enterprise server with IP 10.20.20.20.
+HOST enterprise_server { IP 10.20.20.20 }
+
+// INSTRUCTION: Define a flow representing a standard TCP 3-way handshake (SYN, SYN-ACK, ACK).
+FLOW three_way_handshake(client, server) {
+    client -> server TCP SYN SEQ 100 DSTPORT 443
+    client <- server TCP SYN ACK SEQ 500 ACKNUM 101 SRCPORT 443
+    client -> server TCP ACK SEQ 101 ACKNUM 501 DSTPORT 443
+}
+
+// INSTRUCTION: Compile block to execute the TCP handshake flow.
+COMPILE {
+    three_way_handshake(enterprise_client, enterprise_server)
+}

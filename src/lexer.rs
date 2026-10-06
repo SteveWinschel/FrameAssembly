@@ -1,5 +1,16 @@
 use logos::Logos;
 
+/// Represents all lexical tokens recognized by the FrameAssembly DSL.
+/// 
+/// The lexer ignores whitespace and single-line comments.
+/// 
+/// # Examples
+/// ```
+/// use frameassembly::lexer::Token;
+/// 
+/// let token = Token::Host;
+/// assert_eq!(token, Token::Host);
+/// ```
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"[ \t\n\f]+")]
 #[logos(skip r"//.*")]
@@ -104,6 +115,19 @@ pub enum Token<'a> {
     Number(&'a str),
 }
 
+/// Lexes an input string into a sequence of tokens and their source spans.
+///
+/// # Examples
+/// ```
+/// use frameassembly::lexer::lex;
+///
+/// let input = "HOST example { IP 10.0.0.1 }";
+/// let tokens = lex(input).unwrap();
+/// assert_eq!(tokens.len(), 6);
+/// ```
+///
+/// # Errors
+/// Returns a `CompilerError::LexError` if an unrecognized sequence of characters is encountered.
 pub fn lex<'a>(
     input: &'a str,
 ) -> Result<alloc::vec::Vec<(Token<'a>, std::ops::Range<usize>)>, crate::error::CompilerError> {

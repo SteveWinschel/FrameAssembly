@@ -1,10 +1,35 @@
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::net::IpAddr;
-use etherparse::{Ethernet2Header, Ipv4Header, TcpHeader, UdpHeader, EtherType, IpNumber};
+use etherparse::{EtherType, Ethernet2Header, IpNumber, Ipv4Header, TcpHeader, UdpHeader};
 
 use crate::error::CompilerError;
 
+/// Builds a complete Ethernet, IPv4, and TCP packet.
+///
+/// This function encapsulates the provided payload inside a TCP segment, IPv4 packet,
+/// and Ethernet frame, calculating all necessary lengths and checksums.
+///
+/// # Examples
+/// ```
+/// use std::net::Ipv4Addr;
+/// use frameassembly::packet::build_tcp_packet;
+///
+/// let src_ip = Ipv4Addr::new(10, 0, 0, 1).into();
+/// let dst_ip = Ipv4Addr::new(10, 0, 0, 2).into();
+/// let mac = [0; 6];
+///
+/// let packet = build_tcp_packet(
+///     src_ip, 12345, dst_ip, 80, true, false, None, None, None, Some(b"Hello"), mac, mac
+/// ).unwrap();
+/// assert!(!packet.is_empty());
+/// ```
+///
+/// # Errors
+/// Returns `CompilerError::BackendError` if:
+/// * The provided IPs are not IPv4.
+/// * Checksum calculation fails.
+/// * Header writing fails.
 #[allow(clippy::too_many_arguments)]
 pub fn build_tcp_packet(
     src_ip: IpAddr,
@@ -42,10 +67,16 @@ pub fn build_tcp_packet(
         IpNumber::TCP,
         src_v4,
         dst_v4,
-    ).map_err(|e| CompilerError::BackendError(alloc::format!("Failed to create IP header: {}", e)))?;
+    )
+    .map_err(|e| {
+        CompilerError::BackendError(alloc::format!("Failed to create IP header: {}", e))
+    })?;
 
-    tcp_header.checksum = tcp_header.calc_checksum_ipv4(&ip_header, payload_bytes)
-        .map_err(|e| CompilerError::BackendError(alloc::format!("Failed to calculate TCP checksum: {}", e)))?;
+    tcp_header.checksum = tcp_header
+        .calc_checksum_ipv4(&ip_header, payload_bytes)
+        .map_err(|e| {
+            CompilerError::BackendError(alloc::format!("Failed to calculate TCP checksum: {}", e))
+        })?;
 
     let eth_header = Ethernet2Header {
         source: src_mac,
@@ -54,7 +85,10 @@ pub fn build_tcp_packet(
     };
 
     let mut result = Vec::with_capacity(
-        eth_header.header_len() + ip_header.header_len() + tcp_header.header_len() + payload_bytes.len()
+        eth_header.header_len()
+            + ip_header.header_len()
+            + tcp_header.header_len()
+            + payload_bytes.len(),
     );
 
     eth_header.write(&mut result).map_err(|e| {
@@ -71,6 +105,31 @@ pub fn build_tcp_packet(
     Ok(result)
 }
 
+/// Builds a complete Ethernet, IPv4, and UDP packet.
+///
+/// This function encapsulates the provided payload inside a UDP datagram, IPv4 packet,
+/// and Ethernet frame, calculating all necessary lengths and checksums.
+///
+/// # Examples
+/// ```
+/// use std::net::Ipv4Addr;
+/// use frameassembly::packet::build_udp_packet;
+///
+/// let src_ip = Ipv4Addr::new(10, 0, 0, 1).into();
+/// let dst_ip = Ipv4Addr::new(10, 0, 0, 2).into();
+/// let mac = [0; 6];
+///
+/// let packet = build_udp_packet(
+///     src_ip, 12345, dst_ip, 53, Some(b"DNS Query"), mac, mac
+/// ).unwrap();
+/// assert!(!packet.is_empty());
+/// ```
+///
+/// # Errors
+/// Returns `CompilerError::BackendError` if:
+/// * The provided IPs are not IPv4.
+/// * Checksum calculation fails.
+/// * Header writing fails.
 pub fn build_udp_packet(
     src_ip: IpAddr,
     src_port: u16,
@@ -92,7 +151,9 @@ pub fn build_udp_packet(
     };
 
     let mut udp_header = UdpHeader::without_ipv4_checksum(src_port, dst_port, payload_bytes.len())
-        .map_err(|e| CompilerError::BackendError(alloc::format!("Failed to create UDP header: {}", e)))?;
+        .map_err(|e| {
+            CompilerError::BackendError(alloc::format!("Failed to create UDP header: {}", e))
+        })?;
 
     let ip_header = Ipv4Header::new(
         udp_header.header_len() as u16 + payload_bytes.len() as u16,
@@ -100,10 +161,16 @@ pub fn build_udp_packet(
         IpNumber::UDP,
         src_v4,
         dst_v4,
-    ).map_err(|e| CompilerError::BackendError(alloc::format!("Failed to create IP header: {}", e)))?;
+    )
+    .map_err(|e| {
+        CompilerError::BackendError(alloc::format!("Failed to create IP header: {}", e))
+    })?;
 
-    udp_header.checksum = udp_header.calc_checksum_ipv4(&ip_header, payload_bytes)
-        .map_err(|e| CompilerError::BackendError(alloc::format!("Failed to calculate UDP checksum: {}", e)))?;
+    udp_header.checksum = udp_header
+        .calc_checksum_ipv4(&ip_header, payload_bytes)
+        .map_err(|e| {
+            CompilerError::BackendError(alloc::format!("Failed to calculate UDP checksum: {}", e))
+        })?;
 
     let eth_header = Ethernet2Header {
         source: src_mac,
@@ -112,7 +179,10 @@ pub fn build_udp_packet(
     };
 
     let mut result = Vec::with_capacity(
-        eth_header.header_len() + ip_header.header_len() + udp_header.header_len() + payload_bytes.len()
+        eth_header.header_len()
+            + ip_header.header_len()
+            + udp_header.header_len()
+            + payload_bytes.len(),
     );
 
     eth_header.write(&mut result).map_err(|e| {

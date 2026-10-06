@@ -15,18 +15,38 @@ pub struct HostDef<'a> {
 }
 
 /// The direction of the packet in a template statement.
+///
+/// # Examples
+/// ```
+/// use frameassembly::ast::Direction;
+/// let dir = Direction::LeftToRight;
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Direction {
     LeftToRight, // ->
     RightToLeft, // <-
 }
 
+/// Represents a TCP flag.
+///
+/// # Examples
+/// ```
+/// use frameassembly::ast::TcpFlag;
+/// let flag = TcpFlag::Syn;
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TcpFlag {
     Syn,
     Ack,
 }
 
+/// Represents the supported network protocols.
+///
+/// # Examples
+/// ```
+/// use frameassembly::ast::Protocol;
+/// let proto = Protocol::Tcp;
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Protocol {
     Tcp,
@@ -90,6 +110,12 @@ pub enum Argument<'a> {
 }
 
 /// A flow invocation, e.g., `tcp_handshake(my_client, google_dns)`
+///
+/// # Examples
+/// ```
+/// use frameassembly::ast::{TemplateInvocation, Argument};
+/// let inv = TemplateInvocation { name: "handshake", args: vec![] };
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TemplateInvocation<'a> {
     pub name: &'a str,
@@ -106,6 +132,12 @@ pub enum RunStatement<'a> {
 }
 
 /// The root of the AST containing all assignments, flows, and the compile block.
+///
+/// # Examples
+/// ```
+/// use frameassembly::ast::Program;
+/// let prog = Program { hosts: vec![], flows: vec![], compile_block: vec![] };
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program<'a> {
     pub hosts: Vec<HostDef<'a>>,

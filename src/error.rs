@@ -1,8 +1,12 @@
 use alloc::string::String;
 use miette::Diagnostic;
 
+/// Represents all possible errors that can occur during the compilation process.
+///
+/// This enum uses `miette` for rich terminal diagnostics.
 #[derive(Diagnostic, Debug)]
 pub enum CompilerError {
+    /// Occurs when the lexer encounters an invalid sequence of characters that cannot be tokenized.
     #[diagnostic(
         code(frameassembly::lex_error),
         help("Check the token for typos or invalid characters.")
@@ -14,6 +18,7 @@ pub enum CompilerError {
         span: (usize, usize),
     },
 
+    /// Occurs when the parser encounters a syntax error or unexpected token.
     #[diagnostic(
         code(frameassembly::parse_error),
         help("Ensure the syntax matches the expected grammar.")
@@ -26,6 +31,7 @@ pub enum CompilerError {
         span: (usize, usize),
     },
 
+    /// Occurs when the AST is syntactically valid but semantically invalid (e.g. undefined variable).
     #[diagnostic(code(frameassembly::semantic_error))]
     SemanticError {
         message: String,
@@ -35,6 +41,7 @@ pub enum CompilerError {
         span: (usize, usize),
     },
 
+    /// Occurs during the backend PCAP generation (e.g. invalid IP address formatting, missing file access).
     #[diagnostic(code(frameassembly::backend_error))]
     BackendError(String),
 }

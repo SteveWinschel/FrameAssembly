@@ -14,16 +14,29 @@ use crate::ast::*;
 use crate::error::CompilerError;
 use crate::lexer::Token;
 
+/// A stream of lexical tokens mapped to their source spans.
+/// 
+/// Used extensively throughout the parser combinators.
 pub type Stream<'i, 'a> = &'i [(Token<'a>, core::ops::Range<usize>)];
 
-/// Helper to match a specific token
+/// Helper to match a specific token exactly.
+///
+/// # Examples
+/// ```no_run
+/// // Internal tag combinator
+/// ```
 fn tag<'i, 'a: 'i>(
     expected: Token<'a>,
 ) -> impl Parser<Stream<'i, 'a>, (Token<'a>, core::ops::Range<usize>), ContextError> {
     any.verify(move |(t, _): &(Token<'a>, core::ops::Range<usize>)| *t == expected)
 }
 
-/// Helper to parse an identifier
+/// Helper to parse an identifier token and extract its string value.
+///
+/// # Examples
+/// ```no_run
+/// // Internal parse_ident combinator
+/// ```
 fn parse_ident<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<&'a str> {
     let (t, _) = any
         .verify(|(t, _)| matches!(t, Token::Ident(_)))
@@ -34,7 +47,12 @@ fn parse_ident<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<&'a str> {
     }
 }
 
-/// Helper to parse a string literal
+/// Helper to parse a string literal token and extract its inner value without quotes.
+///
+/// # Examples
+/// ```no_run
+/// // Internal parse_string_lit combinator
+/// ```
 fn parse_string_lit<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<&'a str> {
     let (t, _) = any
         .verify(|(t, _)| matches!(t, Token::StringLit(_)))
@@ -346,6 +364,7 @@ fn parse_compile_block<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Vec<RunSta
     Ok(statements)
 }
 
+/// Represents a top-level construct parsed from the file.
 enum TopLevel<'a> {
     Host(HostDef<'a>),
     Flow(FlowDef<'a>),
@@ -392,6 +411,22 @@ fn parse_all<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Program<'a>> {
     }
 }
 
+/// Parses a complete FrameAssembly program from a source string.
+///
+/// # Examples
+/// ```
+/// use frameassembly::parser::parse_program;
+///
+/// let input = "HOST client { IP 10.0.0.1 }\nCOMPILE {}";
+/// let program = parse_program(input).unwrap();
+/// assert_eq!(program.hosts.len(), 1);
+/// ```
+///
+/// # Errors
+/// Returns `CompilerError::ParseError` if:
+/// * The input contains syntax errors.
+/// * The tokens do not match the expected grammar.
+/// * There are unexpected trailing tokens after the program block.
 pub fn parse_program<'a>(input_str: &'a str) -> Result<Program<'a>, CompilerError> {
     let tokens = crate::lexer::lex(input_str)?;
     let mut stream: Stream<'_, 'a> = &tokens;

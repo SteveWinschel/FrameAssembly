@@ -5,6 +5,14 @@ use alloc::string::String;
 use std::collections::HashMap;
 
 /// Resolves a host definition for a given argument in a flow invocation.
+///
+/// # Examples
+/// ```no_run
+/// // Internal backend resolution of an endpoint reference from the environment.
+/// ```
+///
+/// # Errors
+/// Returns a `String` error if the variable name is not defined in the environment.
 fn resolve_endpoint<'a>(
     arg: &Argument<'a>,
     env: &HashMap<&'a str, HostDef<'a>>,
@@ -21,6 +29,26 @@ fn resolve_endpoint<'a>(
 }
 
 /// Evaluates the AST and generates the PCAP file.
+///
+/// This walks the `Program` AST, builds each packet, and writes it to the specified PCAP file path.
+///
+/// # Examples
+/// ```no_run
+/// use frameassembly::ast::Program;
+/// use frameassembly::backend::generate_pcap;
+/// 
+/// let program = Program { hosts: vec![], flows: vec![], compile_block: vec![] };
+/// generate_pcap(&program, "output.pcap").unwrap();
+/// ```
+///
+/// # Errors
+/// Returns a `String` containing the error message if:
+/// * Network endpoints cannot be resolved.
+/// * PCAP writing fails.
+/// * Unrecognized protocol combinations occur.
+///
+/// # Panics
+/// Panics if a flow definition requested in the compile block is not found.
 pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String> {
     let statements = &program.compile_block;
 

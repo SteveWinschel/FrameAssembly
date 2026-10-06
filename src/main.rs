@@ -4,6 +4,23 @@ use miette::{IntoDiagnostic, Result};
 use std::env;
 use std::fs;
 
+/// The main entry point for the `frameassembly` CLI.
+///
+/// This reads a `.fasm` file provided via command-line arguments, parses the syntax,
+/// and generates the corresponding `output.pcap` file.
+///
+/// # Examples
+/// ```no_run
+/// // Run from the command line:
+/// // $ frameassembly demo.fasm
+/// ```
+///
+/// # Errors
+/// Returns a `miette::Result` error if:
+/// * Incorrect CLI arguments are provided.
+/// * The input file cannot be read.
+/// * Parsing the source file fails.
+/// * PCAP generation fails.
 fn main() -> Result<()> {
     let mut args = env::args();
     if args.len() != 2 {

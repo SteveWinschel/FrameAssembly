@@ -11,8 +11,5 @@
 .DS_Store
 Thumbs.db
 
-# Generated PCAP files
-output.pcap
-
 # Agent files
 .agents/

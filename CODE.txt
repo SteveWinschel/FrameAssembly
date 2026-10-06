@@ -7,6 +7,9 @@ HOST example_server {
 // Written horizontally -> Intuitive for network engineers
 HOST example_nms { IP 10.0.10.100  }
 
+// A broadcast can be declard like an ordinary host
+HOST broadcast { IP 255.255.255.255  }
+
 FLOW tcp_handshake(client, server) {
     client -> server TCP SYN PAYLOAD "Hello" SRCPORT 67 DSTPORT 100
     client <- server TCP SYN ACK PAYLOAD "World"

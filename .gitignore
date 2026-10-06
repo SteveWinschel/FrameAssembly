@@ -12,7 +12,6 @@
 Thumbs.db
 
 # Generated PCAP files
-*.pcap
 output.pcap
 
 # Agent files

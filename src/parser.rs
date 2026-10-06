@@ -146,6 +146,7 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
 
     let mut flags = Vec::new();
     let mut seq = None;
+    let mut ack_num = None;
     let mut win = None;
     let mut payload = None;
     let mut wait = None;
@@ -160,6 +161,7 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
         SrcPort(u16),
         DstPort(u16),
         Seq(u32),
+        AckNum(u32),
         Win(u16),
         Payload(&'a str),
         Community(&'a str),
@@ -208,6 +210,8 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
                     .map(|(_, _, v)| ParsedField::DstPort(v)),
                 (tag(Token::Seq), opt(tag(Token::Equals)), parse_u32)
                     .map(|(_, _, v)| ParsedField::Seq(v)),
+                (tag(Token::AckNum), opt(tag(Token::Equals)), parse_u32)
+                    .map(|(_, _, v)| ParsedField::AckNum(v)),
                 (tag(Token::Win), opt(tag(Token::Equals)), parse_u16)
                     .map(|(_, _, v)| ParsedField::Win(v)),
                 (
@@ -243,6 +247,7 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
             ParsedField::SrcPort(v) => src_port = Some(v),
             ParsedField::DstPort(v) => dst_port = Some(v),
             ParsedField::Seq(v) => seq = Some(v),
+            ParsedField::AckNum(v) => ack_num = Some(v),
             ParsedField::Win(v) => win = Some(v),
             ParsedField::Payload(v) => payload = Some(v),
             ParsedField::Community(v) => community = Some(v),
@@ -268,6 +273,7 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
         dst_port,
         flags,
         seq,
+        ack_num,
         win,
         payload,
         community,

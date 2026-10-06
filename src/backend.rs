@@ -2,11 +2,7 @@ use crate::ast::*;
 use crate::packet::{build_tcp_packet, build_udp_packet};
 use crate::pcap::PcapWriter;
 use alloc::string::String;
-use rasn::prelude::*;
-use rasn_snmp::v2::VarBind;
 use std::collections::HashMap;
-
-
 
 /// Resolves a host definition for a given argument in a flow invocation.
 fn resolve_endpoint<'a>(
@@ -42,6 +38,18 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
         .map_err(|e| alloc::format!("Failed to create PCAP file: {}", e))?;
 
     let mut current_time_ns: u64 = 1_700_000_000_000_000_000;
+
+    #[allow(dead_code)]
+    #[derive(Clone)]
+    struct TcpConnectionState {
+        pub ip1: std::net::IpAddr,
+        pub port1: u16,
+        pub seq1: u32,
+        pub ip2: std::net::IpAddr,
+        pub port2: u16,
+        pub seq2: u32,
+    }
+    let mut tcp_connections: HashMap<(std::net::IpAddr, std::net::IpAddr), TcpConnectionState> = HashMap::new();
 
     let mut execute_invocation = |invocation: &TemplateInvocation| -> Result<(), String> {
         let flow = flows
@@ -82,8 +90,53 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
             let src_mac = src_host.mac.unwrap_or([0, 0, 0, 0, 0, 0]);
             let dst_mac = dst_host.mac.unwrap_or([0, 0, 0, 0, 0, 0]);
 
-            let src_port = stmt.src_port.unwrap_or(12345);
-            let dst_port = stmt.dst_port.unwrap_or(match stmt.protocol {
+            let mut src_port = stmt.src_port;
+            let mut dst_port = stmt.dst_port;
+            let mut final_seq = stmt.seq;
+            let mut final_ack_num = stmt.ack_num;
+
+            if stmt.protocol == Protocol::Tcp {
+                let key = if src_ip < dst_ip { (src_ip, dst_ip) } else { (dst_ip, src_ip) };
+                
+                let state = tcp_connections.entry(key).or_insert_with(|| {
+                    TcpConnectionState {
+                        ip1: key.0,
+                        port1: if src_ip == key.0 { src_port.unwrap_or(12345) } else { dst_port.unwrap_or(80) },
+                        seq1: 1000,
+                        ip2: key.1,
+                        port2: if src_ip == key.1 { src_port.unwrap_or(12345) } else { dst_port.unwrap_or(80) },
+                        seq2: 1000,
+                    }
+                });
+
+                if src_port.is_none() {
+                    src_port = Some(if src_ip == state.ip1 { state.port1 } else { state.port2 });
+                }
+                if dst_port.is_none() {
+                    dst_port = Some(if dst_ip == state.ip1 { state.port1 } else { state.port2 });
+                }
+
+                let (sender_seq, receiver_seq) = if src_ip == state.ip1 {
+                    (&mut state.seq1, &mut state.seq2)
+                } else {
+                    (&mut state.seq2, &mut state.seq1)
+                };
+
+                if final_seq.is_none() {
+                    final_seq = Some(*sender_seq);
+                }
+                if final_ack_num.is_none() && stmt.flags.contains(&TcpFlag::Ack) {
+                    final_ack_num = Some(*receiver_seq);
+                }
+
+                let payload_len = stmt.payload.map(|s| s.len() as u32).unwrap_or(0);
+                let advance = (if stmt.flags.contains(&TcpFlag::Syn) { 1 } else { 0 }) + payload_len;
+                
+                *sender_seq = final_seq.unwrap_or(*sender_seq) + advance;
+            }
+
+            let src_port = src_port.unwrap_or(12345);
+            let dst_port = dst_port.unwrap_or(match stmt.protocol {
                 Protocol::Snmp1 | Protocol::Snmp2 | Protocol::Snmp3 => 162,
                 _ => 80,
             });
@@ -102,7 +155,8 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     dst_port,
                     syn,
                     ack,
-                    stmt.seq,
+                    final_seq,
+                    final_ack_num,
                     stmt.win,
                     stmt.payload.map(|s| s.as_bytes()),
                     src_mac,
@@ -120,8 +174,8 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                 )
                 .map_err(|e| alloc::format!("{:?}", e))?,
                 Protocol::Snmp1 => {
-                    use rasn_snmp::v1::{Message, Trap, Pdus};
                     use rasn::types::{Integer, ObjectIdentifier, OctetString};
+                    use rasn_snmp::v1::{Message, Pdus, Trap};
                     let community_str = stmt.community.unwrap_or("public");
                     let community = OctetString::from(community_str.as_bytes().to_vec());
                     let oid_str = stmt.oid.unwrap_or("1.3.6.1.4.1");
@@ -144,15 +198,17 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     let agent_ip = match src_ip {
                         core::net::IpAddr::V4(addr) => addr.octets(),
                         _ => {
-                            return Err(alloc::format!(
-                                "SNMPv1 Trap requires IPv4 address, got IPv6"
-                            ));
+                            return Err(
+                                "SNMPv1 Trap requires IPv4 address, got IPv6".to_string()
+                            );
                         }
                     };
 
                     let trap = Trap {
                         enterprise: trap_oid,
-                        agent_addr: rasn_smi::v1::NetworkAddress::Internet(rasn_smi::v1::IpAddress(agent_ip.into())),
+                        agent_addr: rasn_smi::v1::NetworkAddress::Internet(
+                            rasn_smi::v1::IpAddress(agent_ip.into()),
+                        ),
                         generic_trap: Integer::from(6), // EnterpriseSpecific
                         specific_trap: Integer::from(1),
                         time_stamp: rasn_smi::v1::TimeTicks(stmt.sys_up_time.unwrap_or(0)),

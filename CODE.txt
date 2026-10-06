@@ -1,28 +1,33 @@
-HOST switch_agent { IP 10.0.10.5 MAC aa:bb:cc:dd:ee:ff }
-HOST example_nms { IP 10.0.10.100 }
-HOST dns_server { IP 8.8.8.8 }
+// Written vertically -> Intuitive for programmers
+HOST example_server { 
+    IP 10.0.10.5
+    MAC aa:bb:cc:dd:ee:ff 
+}
+
+// Written horizontally -> Intuitive for network engineers
+HOST example_nms { IP 10.0.10.100  }
 
 FLOW tcp_handshake(client, server) {
-    client -> server TCP SRCPORT 1234 DSTPORT 53 SYN SEQ 1 WIN 100 PAYLOAD "Hello" WAIT 10ms
-    client <- server TCP SRCPORT 53 DSTPORT 1234 SYN ACK SEQ 1 WIN 100 PAYLOAD "World" WAIT 20ms
-    client -> server TCP SRCPORT 1234 DSTPORT 53 ACK SEQ 2 WIN 100 PAYLOAD "!" WAIT 5ms
+    client -> server TCP SYN PAYLOAD "Hello" SRCPORT 67 DSTPORT 100
+    client <- server TCP SYN ACK PAYLOAD "World"
+    client -> server TCP ACK PAYLOAD "!" 
 }
 
 FLOW snmp_v1_trap(agent, nms) {
-    agent -> nms SNMP1 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" WAIT 10ms
+    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.6.3.1.1.5.2
 }
 
 FLOW snmp_v2_trap(agent, nms) {
-    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" WAIT 10ms
+    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3"
 }
 
 FLOW snmp_v3_trap(agent, nms) {
-    agent -> nms SNMP3 TRAP USER "admin" OID "1.3.6.1.6.3.1.1.5.3" WAIT 10ms
+    agent -> nms SNMP3 TRAP USER "admin" OID "1.3.6.1.6.3.1.1.5.3"
 }
 
 COMPILE {
-        tcp_handshake(switch_agent, example_nms)
-        snmp_v1_trap(switch_agent, example_nms)
-        snmp_v2_trap(switch_agent, example_nms)
-        snmp_v3_trap(switch_agent, example_nms)
+        tcp_handshake(example_server, example_nms)
+        snmp_v1_trap(example_server, example_nms)
+        snmp_v2_trap(example_server, example_nms)
+        snmp_v3_trap(example_server, example_nms)
 }

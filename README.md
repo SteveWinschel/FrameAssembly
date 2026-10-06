@@ -44,9 +44,9 @@ Flows (similar to functions) encapsulate sequences of packet transmissions betwe
 
 ```text
 FLOW tcp_handshake(client, server) {
-    client -> server TCP SRCPORT 1234 DSTPORT 53 SYN SEQ 1 WIN 100 PAYLOAD "hello" WAIT 10ms
-    client <- server TCP SRCPORT 53 DSTPORT 1234 ACK SEQ 2 WIN 200 PAYLOAD "world" WAIT 3m 
-    client -> server TCP SRCPORT 1234 DSTPORT 53 SYN ACK SEQ 3 WAIT 100s 
+    client -> server TCP SYN PAYLOAD "Hello" 
+    client <- server TCP SYN ACK PAYLOAD "World"
+    client -> server TCP ACK PAYLOAD "!" 
 }
 ```
 
@@ -61,23 +61,29 @@ The arrow dictates the packet's source and destination:
 *   `SNMP1`, `SNMP2`, `SNMP3` (First-class support for SNMP Traps)
 
 #### Port Definitions
-*   `SRCPORT <port>`: Defines the source port.
-*   `DSTPORT <port>`: Defines the destination port.
+*   `SRCPORT <port>`: Defines the source port. (Optional: auto-calculated)
+*   `DSTPORT <port>`: Defines the destination port. (Optional: auto-calculated)
 
 #### TCP Flags
 Only available when the protocol is `TCP`. You can chain flags separated by spaces.
 *   `SYN`
 *   `ACK`
 
+#### SNMP Flags
+Only available when the protocol is `SNMP1`, `SNMP2`, or `SNMP3`.
+*   `TRAP`: Identifies the packet as an SNMP trap.
+
 #### Packet Properties
 These properties follow the protocol and flag definitions. They are defined using space-separated key-value pairs.
-*   `SEQ <number>`: Sets the TCP sequence number.
-*   `WIN <number>`: Sets the TCP window size.
+*   `SEQ <number>`: Sets the TCP sequence number. (Optional: auto-calculated)
+*   `ACKNUM <number>`: Sets the TCP acknowledgment number. (Optional: auto-calculated)
+*   `WIN <number>`: Sets the TCP window size. (Optional)
 *   `PAYLOAD "<string>"`: Appends a string payload to the packet.
 *   `COMMUNITY "<string>"`: Sets the community string for `SNMP1` and `SNMP2` traps.
 *   `USER "<string>"`: Sets the USM authentication user name for `SNMP3` traps.
-*   `OID "<string>"`: Sets the primary Object Identifier for the SNMP trap.
-*   `WAIT <number><suffix>`: Introduces an artificial delay before sending the next packet. 
+*   `SYSUPTIME <number>`: Sets the time stamp (SysUpTime) for SNMP traps.
+*   `OID <string> | "<string>"`: Sets the primary Object Identifier for the SNMP trap. Quotes are optional; raw OIDs (e.g., `1.3.6.1.4.1`) and IPv4-formatted strings are natively supported.
+*   `WAIT <number><suffix>`: Introduces an artificial delay before sending the next packet. (Optional: defaults to 10ms)
     *   Supported suffixes: `ms` (milliseconds), `s` (seconds), `m` (minutes).
 
 ### 3. Compile Block
@@ -98,37 +104,38 @@ COMPILE {
 Define your networking scenario in a text file (e.g., `CODE.txt`):
 
 ```text
-// IPs can be defined like/as variables
-HOST example_client { IP 10.0.0.1 }
-HOST google_dns { IP 8.8.8.8 }
-
-HOST switch_agent { IP 10.0.10.5 }
-HOST example_nms { IP 10.0.10.100 }
-
-// Templates are like functions, they can be called with arguments and are/should be reusable.
-FLOW tcp_handshake (client, server) { 
-    // The frame definitions are meant to look like they do in Wireshark
-    client -> server TCP SRCPORT 1234 DSTPORT 53 SYN SEQ 1 WIN 100 PAYLOAD "hello" WAIT 10ms 
-    client <- server TCP SRCPORT 53 DSTPORT 1234 ACK SEQ 2 WIN 200 PAYLOAD "world" WAIT 3m 
-    client -> server TCP SRCPORT 1234 DSTPORT 53 SYN ACK SEQ 3 WAIT 100s 
+// Written vertically -> Intuitive for programmers
+HOST example_server { 
+    IP 10.0.10.5
+    MAC aa:bb:cc:dd:ee:ff 
 }
 
-// Simple SNMP Traps with fully encoded ASN.1 payloads
-FLOW snmp_linkdown_trap(agent, nms) {
-    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" WAIT 10ms
+// Written horizontally -> Intuitive for network engineers
+HOST example_nms { IP 10.0.10.100  }
+
+FLOW tcp_handshake(client, server) {
+    client -> server TCP SYN PAYLOAD "Hello" 
+    client <- server TCP SYN ACK PAYLOAD "World"
+    client -> server TCP ACK PAYLOAD "!" 
+}
+
+FLOW snmp_v1_trap(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" 
+}
+
+FLOW snmp_v2_trap(agent, nms) {
+    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" 
 }
 
 FLOW snmp_v3_trap(agent, nms) {
-    agent -> nms SNMP3 TRAP USER "admin" OID "1.3.6.1.6.3.1.1.5.3" WAIT 10ms
+    agent -> nms SNMP3 TRAP USER "admin" OID "1.3.6.1.6.3.1.1.5.3" 
 }
 
-// You can compile a "Main" entry point like this
-COMPILE { 
-    LOOP 100 {
-        snmp_linkdown_trap(switch_agent, example_nms)
-        snmp_v3_trap(switch_agent, example_nms)
-        tcp_handshake(example_client, google_dns) 
-    }
+COMPILE {
+        tcp_handshake(example_server, example_nms)
+        snmp_v1_trap(example_server, example_nms)
+        snmp_v2_trap(example_server, example_nms)
+        snmp_v3_trap(example_server, example_nms)
 }
 ```
 

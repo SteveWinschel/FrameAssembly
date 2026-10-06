@@ -14,6 +14,7 @@ pub fn build_tcp_packet(
     syn: bool,
     ack: bool,
     seq: Option<u32>,
+    ack_num: Option<u32>,
     win: Option<u16>,
     payload: Option<&[u8]>,
     src_mac: [u8; 6],
@@ -33,6 +34,7 @@ pub fn build_tcp_packet(
     let mut tcp_header = TcpHeader::new(src_port, dst_port, seq.unwrap_or(0), win.unwrap_or(64240));
     tcp_header.syn = syn;
     tcp_header.ack = ack;
+    tcp_header.acknowledgment_number = ack_num.unwrap_or(0);
 
     let ip_header = Ipv4Header::new(
         tcp_header.header_len() as u16 + payload_bytes.len() as u16,
@@ -52,7 +54,7 @@ pub fn build_tcp_packet(
     };
 
     let mut result = Vec::with_capacity(
-        eth_header.header_len() + ip_header.header_len() + tcp_header.header_len() as usize + payload_bytes.len()
+        eth_header.header_len() + ip_header.header_len() + tcp_header.header_len() + payload_bytes.len()
     );
 
     eth_header.write(&mut result).map_err(|e| {

@@ -44,6 +44,7 @@ pub struct FrameStatement<'a> {
     // TCP specific
     pub flags: Vec<TcpFlag>,
     pub seq: Option<u32>,
+    pub ack_num: Option<u32>,
     pub win: Option<u16>,
     pub payload: Option<&'a str>,
 

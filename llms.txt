@@ -1,0 +1,44 @@
+# FrameAssembly
+
+> A Domain-Specific Language (DSL) for writing deterministic network traffic to `.pcap` files.
+
+## Overview
+FrameAssembly compiles a custom networking DSL (with the `.fasm` extension) into reproducible PCAP files. It uses a strict, keyword-oriented syntax designed for both network engineers and security researchers.
+
+## Architecture & Folder Structure
+- `src/main.rs`: Entry point handling CLI execution and parsing arguments.
+- `src/lexer.rs`: Zero-copy tokenizer built using `logos`.
+- `src/parser.rs`: Combinator-based AST parser built using `winnow`.
+- `src/ast.rs`: Abstract Syntax Tree definitions for `HostDef`, `FlowDef`, and `FrameStatement`.
+- `src/pcap.rs`: Handles writing packets to PCAP format using `pcap-file`.
+- `src/packet.rs` & `src/backend.rs`: Handles packet encapsulation (L2-L4) via `etherparse` and AST evaluation.
+- `examples/`: Contains `.fasm` training data and reference scripts.
+
+## Syntax Guide & Examples
+The DSL defines `HOST`s, `FLOW`s, and `COMPILE` blocks. 
+
+```frameassembly
+// Define network endpoints
+HOST example_server { IP 10.0.10.5 MAC aa:bb:cc:dd:ee:ff }
+HOST example_nms { IP 10.0.10.100 }
+
+// Define sequence of packet transmissions
+FLOW tcp_handshake(client, server) {
+    client -> server TCP SYN PAYLOAD "Hello" 
+    client <- server TCP SYN ACK PAYLOAD "World"
+    client -> server TCP ACK PAYLOAD "!" 
+}
+
+// Compile block to execute flows
+COMPILE {
+    LOOP 10 {
+        tcp_handshake(example_server, example_nms)
+    }
+}
+```
+
+## Relevant Files
+- [README.md](README.md) - Full documentation and syntax guide
+- [src/lib.rs](src/lib.rs) - Crate root and module exports
+- [src/ast.rs](src/ast.rs) - Core structural types of the DSL
+- [demo.fasm](demo.fasm) - Primary demonstration script

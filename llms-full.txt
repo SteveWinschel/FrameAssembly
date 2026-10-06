@@ -1,5 +1,9 @@
+# FrameAssembly (Full Context)
+
+> A Domain-Specific Language (DSL) for writing deterministic network traffic to `.pcap` files.
+
+## Documentation and Usage
 # FrameAssembly
-[![Crates.io](https://img.shields.io/crates/v/frameassembly.svg)](https://crates.io/crates/frameassembly)
 
 > [!WARNING]
 > **Experimental Prototype**
@@ -22,13 +26,6 @@ It is meant to be used for network security research, education, and testing.
 You need [Rust and Cargo](https://rustup.rs/) installed.
 
 ### Installation
-
-**Primary Method (via Cargo):**
-```bash
-cargo install frameassembly
-```
-
-**Alternative Method (from source):**
 Clone the repository and enter the directory:
 ```bash
 git clone https://github.com/stevewinschel/frameassembly.git
@@ -147,13 +144,7 @@ COMPILE {
 }
 ```
 
-To compile your script into a PCAP file, run the globally installed binary:
-
-```bash
-frameassembly demo.fasm
-```
-
-Or, if you are running from the source repository:
+To compile your script into a PCAP file, run:
 
 ```bash
 cargo run --release demo.fasm
@@ -164,3 +155,160 @@ This generates an `output.pcap` file in the root directory via the help of tcpre
 ## License
 
 MIT License. See the `LICENSE` file.
+
+## Abstract Syntax Tree
+```rust
+use alloc::vec::Vec;
+use core::net::IpAddr;
+
+/// A host definition with an IP and optional MAC address.
+///
+/// Syntax mapping:
+/// ```frameassembly
+/// HOST name { IP 1.2.3.4 MAC 00:11:22:33:44:55 }
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HostDef<'a> {
+    pub name: &'a str,
+    pub ip: IpAddr,
+    pub mac: Option<[u8; 6]>,
+}
+
+/// The direction of the packet in a template statement.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Direction {
+    LeftToRight, // ->
+    RightToLeft, // <-
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TcpFlag {
+    Syn,
+    Ack,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Protocol {
+    Tcp,
+    Udp,
+    Snmp1,
+    Snmp2,
+    Snmp3,
+}
+
+/// A single frame statement inside a flow.
+///
+/// Syntax mapping:
+/// ```frameassembly
+/// client -> server TCP SYN ACK PAYLOAD "World" WAIT 10ms
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FrameStatement<'a> {
+    pub caller: &'a str,
+    pub dir: Direction,
+    pub callee: &'a str,
+    pub protocol: Protocol,
+    pub src_port: Option<u16>,
+    pub dst_port: Option<u16>,
+
+    // TCP specific
+    pub flags: Vec<TcpFlag>,
+    pub seq: Option<u32>,
+    pub ack_num: Option<u32>,
+    pub win: Option<u16>,
+    pub payload: Option<&'a str>,
+
+    // SNMP specific
+    pub community: Option<&'a str>,
+    pub user: Option<&'a str>,
+    pub oid: Option<&'a str>,
+    pub sys_up_time: Option<u32>,
+
+    pub wait: Option<u64>,
+}
+
+/// A flow definition in the form `FLOW name(arg1, arg2) { statements }`
+///
+/// Syntax mapping:
+/// ```frameassembly
+/// FLOW name(arg1, arg2) { 
+///     arg1 -> arg2 TCP SYN
+/// }
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FlowDef<'a> {
+    pub name: &'a str,
+    pub params: Vec<&'a str>,
+    pub statements: Vec<FrameStatement<'a>>,
+}
+
+/// An argument passed to a flow invocation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Argument<'a> {
+    /// A simple variable reference, e.g., `my_client`
+    Variable(&'a str),
+}
+
+/// A flow invocation, e.g., `tcp_handshake(my_client, google_dns)`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TemplateInvocation<'a> {
+    pub name: &'a str,
+    pub args: Vec<Argument<'a>>,
+}
+
+/// A statement in the run/compile block, can be a loop or a single invocation
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RunStatement<'a> {
+    /// A single template invocation directly in the block
+    Invocation(TemplateInvocation<'a>),
+    /// A loop block containing a count and inner invocations
+    Loop(u32, Vec<TemplateInvocation<'a>>),
+}
+
+/// The root of the AST containing all assignments, flows, and the compile block.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Program<'a> {
+    pub hosts: Vec<HostDef<'a>>,
+    pub flows: Vec<FlowDef<'a>>,
+    pub compile_block: Vec<RunStatement<'a>>,
+}
+```
+
+## Demo Example
+```frameassembly
+// Written vertically -> Intuitive for programmers
+HOST example_server { 
+    IP 10.0.10.5
+    MAC aa:bb:cc:dd:ee:ff 
+}
+
+// Written horizontally -> Intuitive for network engineers
+HOST example_nms { IP 10.0.10.100  }
+
+// A broadcast can be declard like an ordinary host
+HOST broadcast { IP 255.255.255.255  }
+
+FLOW tcp_handshake(client, server) {
+    client -> server TCP SYN PAYLOAD "Hello" SRCPORT 67 DSTPORT 100
+    client <- server TCP SYN ACK PAYLOAD "World"
+    client -> server TCP ACK PAYLOAD "!" 
+}
+
+FLOW snmp_v1_trap(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.6.3.1.1.5.2
+}
+
+FLOW snmp_v2_trap(agent, nms) {
+    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3"
+}
+
+FLOW snmp_v3_trap(agent, nms) {
+    agent -> nms SNMP3 TRAP USER "admin" OID "1.3.6.1.6.3.1.1.5.3"
+}
+
+COMPILE {
+        tcp_handshake(example_server, example_nms)
+        snmp_v1_trap(example_server, example_nms)
+        snmp_v2_trap(example_server, example_nms)
+        snmp_v3_trap(example_server, example_nms)
+}```

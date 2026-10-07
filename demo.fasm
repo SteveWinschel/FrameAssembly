@@ -5,7 +5,7 @@ HOST example_server {
 }
 
 // Written horizontally -> Intuitive for network engineers
-HOST example_nms { IP 10.0.10.100  }
+HOST example_nms { IP 10.0.10.100  MAC ff:ee:dd:cc:bb:aa }
 
 // A broadcast can be declard like an ordinary host
 HOST broadcast { IP 255.255.255.255  }

@@ -35,6 +35,16 @@ git clone https://github.com/stevewinschel/frameassembly.git
 cd frameassembly
 ```
 
+### Editor Support (VS Code)
+
+A VS Code extension providing syntax highlighting for `.fasm` files is included in the repository. 
+
+To install it manually, you can use the command line:
+```bash
+code --install-extension frameassembly-vscode/frameassembly-vscode-0.0.1.vsix
+```
+Alternatively, in VS Code, open the Extensions view, click the `...` menu, and select **Install from VSIX...** to install the file from the `frameassembly-vscode` directory.
+
 ## Syntax Guide
 
 FrameAssembly uses a strict, keyword-oriented syntax. Property assignments do not require an `=` sign (though optionally supported for backward compatibility).

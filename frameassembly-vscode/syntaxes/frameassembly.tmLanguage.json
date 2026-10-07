@@ -1,0 +1,77 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "FrameAssembly",
+	"scopeName": "source.fasm",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#properties"
+		},
+		{
+			"include": "#constants"
+		},
+		{
+			"include": "#operators"
+		},
+		{
+			"include": "#numbers"
+		}
+	],
+	"repository": {
+		"comments": {
+			"match": "//.*$",
+			"name": "comment.line.double-slash.frameassembly"
+		},
+		"strings": {
+			"begin": "\"",
+			"end": "\"",
+			"name": "string.quoted.double.frameassembly",
+			"patterns": [
+				{
+					"match": "\\\\.",
+					"name": "constant.character.escape.frameassembly"
+				}
+			]
+		},
+		"keywords": {
+			"match": "\\b(HOST|FLOW|COMPILE|LOOP)\\b",
+			"name": "keyword.control.frameassembly"
+		},
+		"properties": {
+			"match": "\\b(IP|MAC|SRCPORT|DSTPORT|PORT|SEQ|ACKNUM|WIN|PAYLOAD|WAIT|COMMUNITY|USER|OID|SYSUPTIME)\\b",
+			"name": "support.type.property-name.frameassembly"
+		},
+		"constants": {
+			"match": "\\b(TCP|UDP|SNMP1|SNMP2|SNMP3|SYN|ACK|TRAP)\\b",
+			"name": "constant.language.frameassembly"
+		},
+		"operators": {
+			"match": "(->|<-|=)",
+			"name": "keyword.operator.frameassembly"
+		},
+		"numbers": {
+			"patterns": [
+				{
+					"match": "\\b([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\\b",
+					"name": "constant.numeric.mac.frameassembly"
+				},
+				{
+					"match": "\\b[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\b",
+					"name": "constant.numeric.ip.frameassembly"
+				},
+				{
+					"match": "\\b[0-9]+(ms|s|m)?\\b",
+					"name": "constant.numeric.integer.frameassembly"
+				}
+			]
+		}
+	}
+}

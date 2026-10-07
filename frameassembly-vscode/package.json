@@ -1,0 +1,35 @@
+{
+  "name": "frameassembly-vscode",
+  "displayName": "frameassembly-vscode",
+  "description": "FrameAssembly (DSL for text->PCAP compilation) support",
+  "version": "0.0.1",
+  "publisher": "stevewinschel",
+  "engines": {
+    "vscode": "^1.107.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "frameassembly",
+        "aliases": [
+          "FrameAssembly",
+          "frameassembly"
+        ],
+        "extensions": [
+          ".fasm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "frameassembly",
+        "scopeName": "source.fasm",
+        "path": "./syntaxes/frameassembly.tmLanguage.json"
+      }
+    ]
+  }
+}

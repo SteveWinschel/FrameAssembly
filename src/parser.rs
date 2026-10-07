@@ -66,6 +66,7 @@ fn parse_string_lit<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<&'a str> {
     }
 }
 
+/// Parses an IP address from a token stream.
 fn parse_ip<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<IpAddr> {
     any.verify_map(|(t, _)| {
         match t {
@@ -75,6 +76,7 @@ fn parse_ip<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<IpAddr> {
     }).parse_next(input)
 }
 
+/// Parses a MAC address from a token stream.
 fn parse_mac<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<[u8; 6]> {
     any.verify_map(|(t, _)| {
         if let Token::MacAddress(s) = t {
@@ -94,6 +96,7 @@ fn parse_mac<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<[u8; 6]> {
     }).parse_next(input)
 }
 
+/// Parses a `u16` integer.
 fn parse_u16<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u16> {
     any.verify_map(|(t, _)| {
         if let Token::Number(s) = t {
@@ -104,6 +107,7 @@ fn parse_u16<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u16> {
     }).parse_next(input)
 }
 
+/// Parses a `u32` integer.
 fn parse_u32<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u32> {
     any.verify_map(|(t, _)| {
         if let Token::Number(s) = t {
@@ -114,6 +118,7 @@ fn parse_u32<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u32> {
     }).parse_next(input)
 }
 
+/// Parses a `HOST` block definition.
 fn parse_host_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<HostDef<'a>> {
     let _ = tag(Token::Host).parse_next(input)?;
     let name = parse_ident(input)?;
@@ -140,6 +145,7 @@ fn parse_host_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<HostDef<'a>> {
     }
 }
 
+/// Parses a packet direction arrow (`->` or `<-`).
 fn parse_direction<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Direction> {
     alt((
         tag(Token::RightArrow).value(Direction::LeftToRight),
@@ -148,6 +154,7 @@ fn parse_direction<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Direction> {
     .parse_next(input)
 }
 
+/// Parses a single frame statement within a flow.
 fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameStatement<'a>> {
     let caller = parse_ident(input)?;
     let dir = parse_direction(input)?;
@@ -308,6 +315,7 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
     })
 }
 
+/// Parses a `FLOW` block definition.
 fn parse_flow_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FlowDef<'a>> {
     let _ = tag(Token::Flow).parse_next(input)?;
     let name = parse_ident(input)?;
@@ -330,11 +338,13 @@ fn parse_flow_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FlowDef<'a>> {
     })
 }
 
+/// Parses a single argument passed to a flow invocation.
 fn parse_argument<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Argument<'a>> {
     let var = parse_ident(input)?;
     Ok(Argument::Variable(var))
 }
 
+/// Parses a flow invocation (e.g. `tcp_handshake(client, server)`).
 fn parse_template_invocation<'i, 'a>(
     input: &mut Stream<'i, 'a>,
 ) -> PResult<TemplateInvocation<'a>> {
@@ -348,6 +358,7 @@ fn parse_template_invocation<'i, 'a>(
     Ok(TemplateInvocation { name, args })
 }
 
+/// Parses a statement inside the `COMPILE` block (loop or single invocation).
 fn parse_run_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<RunStatement<'a>> {
     if opt(tag(Token::Loop)).parse_next(input)?.is_some() {
         let count = parse_u32(input)?;
@@ -362,6 +373,7 @@ fn parse_run_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<RunStateme
     }
 }
 
+/// Parses the entire `COMPILE` block.
 fn parse_compile_block<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Vec<RunStatement<'a>>> {
     let _ = tag(Token::Compile).parse_next(input)?;
     let _ = tag(Token::LBrace).parse_next(input)?;
@@ -372,11 +384,15 @@ fn parse_compile_block<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Vec<RunSta
 
 /// Represents a top-level construct parsed from the file.
 enum TopLevel<'a> {
+    /// A host definition.
     Host(HostDef<'a>),
+    /// A flow definition.
     Flow(FlowDef<'a>),
+    /// The compile block.
     Compile(Vec<RunStatement<'a>>),
 }
 
+/// Parses a single top-level construct (`HOST`, `FLOW`, or `COMPILE`).
 fn parse_top_level<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<TopLevel<'a>> {
     alt((
         parse_host_def.map(TopLevel::Host),
@@ -386,6 +402,7 @@ fn parse_top_level<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<TopLevel<'a>> 
     .parse_next(input)
 }
 
+/// Parses all top level constructs and constructs the `Program`.
 fn parse_all<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Program<'a>> {
     let mut hosts = Vec::new();
     let mut flows = Vec::new();

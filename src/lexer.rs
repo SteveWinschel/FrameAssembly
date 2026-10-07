@@ -15,112 +15,160 @@ use logos::Logos;
 #[logos(skip r"[ \t\n\f]+")]
 #[logos(skip r"//.*")]
 pub enum Token<'a> {
+    /// `HOST` keyword
     #[token("HOST")]
     Host,
+    /// `FLOW` keyword
     #[token("FLOW")]
     Flow,
+    /// `IP` keyword
     #[token("IP")]
     Ip,
+    /// `MAC` keyword
     #[token("MAC")]
     Mac,
+    /// `COMPILE` keyword
     #[token("COMPILE")]
     Compile,
+    /// `LOOP` keyword
     #[token("LOOP")]
     Loop,
+    /// `TCP` keyword
     #[token("TCP")]
     Tcp,
+    /// `UDP` keyword
     #[token("UDP")]
     Udp,
+    /// `SYN` flag
     #[token("SYN")]
     Syn,
+    /// `ACK` flag
     #[token("ACK")]
     Ack,
+    /// `FIN` flag
     #[token("FIN")]
     Fin,
+    /// `RST` flag
     #[token("RST")]
     Rst,
+    /// `PSH` flag
     #[token("PSH")]
     Psh,
+    /// `URG` flag
     #[token("URG")]
     Urg,
+    /// `ECE` flag
     #[token("ECE")]
     Ece,
+    /// `CWR` flag
     #[token("CWR")]
     Cwr,
+    /// `SRCPORT` keyword
     #[token("SRCPORT")]
     SrcPort,
+    /// `DSTPORT` keyword
     #[token("DSTPORT")]
     DstPort,
+    /// `PORT` keyword
     #[token("PORT")]
     Port,
+    /// `SEQ` keyword
     #[token("SEQ")]
     Seq,
+    /// `ACKNUM` keyword
     #[token("ACKNUM")]
     AckNum,
+    /// `WIN` keyword
     #[token("WIN")]
     Win,
+    /// `PAYLOAD` keyword
     #[token("PAYLOAD")]
     Payload,
+    /// `WAIT` keyword
     #[token("WAIT")]
     Wait,
+    /// `SNMP1` keyword
     #[token("SNMP1")]
     Snmp1,
+    /// `SNMP2` keyword
     #[token("SNMP2")]
     Snmp2,
+    /// `SNMP3` keyword
     #[token("SNMP3")]
     Snmp3,
+    /// `TRAP` keyword
     #[token("TRAP")]
     Trap,
+    /// `COMMUNITY` keyword
     #[token("COMMUNITY")]
     Community,
+    /// `USER` keyword
     #[token("USER")]
     User,
+    /// `OID` keyword
     #[token("OID")]
     Oid,
+    /// `SYSUPTIME` keyword
     #[token("SYSUPTIME")]
     SysUpTime,
 
+    /// `->` operator
     #[token("->")]
     RightArrow,
+    /// `<-` operator
     #[token("<-")]
     LeftArrow,
+    /// `{` token
     #[token("{")]
     LBrace,
+    /// `}` token
     #[token("}")]
     RBrace,
+    /// `(` token
     #[token("(")]
     LParen,
+    /// `)` token
     #[token(")")]
     RParen,
+    /// `,` token
     #[token(",")]
     Comma,
 
     // Time suffixes
+    /// `ms` suffix
     #[token("ms", priority = 2)]
     Ms,
+    /// `s` suffix
     #[token("s", priority = 2)]
     Sec,
+    /// `m` suffix
     #[token("m", priority = 2)]
     Min,
 
+    /// Identifier
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", priority = 1)]
     Ident(&'a str),
 
+    /// String literal
     #[regex(r#""([^"\\]|\\["\\bnfrt]|u[a-fA-F0-9]{4})*""#)]
     StringLit(&'a str),
 
     // Match IPv4 and IPv6-like strings loosely, parser will validate
+    /// IPv4/IPv6 address
     #[regex(r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+", priority = 4)]
     IpAddress(&'a str),
 
     // Match MAC addresses loosely
+    /// MAC address
     #[regex(r"([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}")]
     MacAddress(&'a str),
 
     // Match OIDs loosely
+    /// SNMP OID
     #[regex(r"[0-9]+(\.[0-9]+)+", priority = 5)]
     OidStr(&'a str),
 
+    /// Numeric literal
     #[regex("[0-9]+")]
     Number(&'a str),
 }

@@ -12,8 +12,10 @@ pub enum CompilerError {
         help("Check the token for typos or invalid characters.")
     )]
     LexError {
+        /// The source code snippet.
         #[source_code]
         src: String,
+        /// The span of the error.
         #[label("Invalid token")]
         span: (usize, usize),
     },
@@ -24,9 +26,12 @@ pub enum CompilerError {
         help("Ensure the syntax matches the expected grammar.")
     )]
     ParseError {
+        /// The parser error message.
         message: String,
+        /// The source code snippet.
         #[source_code]
         src: String,
+        /// The span of the error.
         #[label("Here")]
         span: (usize, usize),
     },
@@ -34,9 +39,12 @@ pub enum CompilerError {
     /// Occurs when the AST is syntactically valid but semantically invalid (e.g. undefined variable).
     #[diagnostic(code(frameassembly::semantic_error))]
     SemanticError {
+        /// The semantic error message.
         message: String,
+        /// The source code snippet.
         #[source_code]
         src: String,
+        /// The span of the error.
         #[label("Error occurred here")]
         span: (usize, usize),
     },

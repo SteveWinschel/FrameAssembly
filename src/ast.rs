@@ -9,8 +9,11 @@ use core::net::IpAddr;
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostDef<'a> {
+    /// The name of the host.
     pub name: &'a str,
+    /// The IP address of the host.
     pub ip: IpAddr,
+    /// The optional MAC address of the host.
     pub mac: Option<[u8; 6]>,
 }
 
@@ -23,7 +26,9 @@ pub struct HostDef<'a> {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Direction {
+    /// -> operator
     LeftToRight, // ->
+    /// <- operator
     RightToLeft, // <-
 }
 
@@ -36,13 +41,21 @@ pub enum Direction {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TcpFlag {
+    /// SYN flag
     Syn,
+    /// ACK flag
     Ack,
+    /// FIN flag
     Fin,
+    /// RST flag
     Rst,
+    /// PSH flag
     Psh,
+    /// URG flag
     Urg,
+    /// ECE flag
     Ece,
+    /// CWR flag
     Cwr,
 }
 
@@ -55,10 +68,15 @@ pub enum TcpFlag {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Protocol {
+    /// Transmission Control Protocol
     Tcp,
+    /// User Datagram Protocol
     Udp,
+    /// Simple Network Management Protocol v1
     Snmp1,
+    /// Simple Network Management Protocol v2c
     Snmp2,
+    /// Simple Network Management Protocol v3
     Snmp3,
 }
 
@@ -70,26 +88,42 @@ pub enum Protocol {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrameStatement<'a> {
+    /// The caller (source).
     pub caller: &'a str,
+    /// The direction of the packet.
     pub dir: Direction,
+    /// The callee (destination).
     pub callee: &'a str,
+    /// The protocol used.
     pub protocol: Protocol,
+    /// Optional source port.
     pub src_port: Option<u16>,
+    /// Optional destination port.
     pub dst_port: Option<u16>,
 
     // TCP specific
+    /// TCP flags.
     pub flags: Vec<TcpFlag>,
+    /// Optional TCP sequence number.
     pub seq: Option<u32>,
+    /// Optional TCP acknowledgment number.
     pub ack_num: Option<u32>,
+    /// Optional TCP window size.
     pub win: Option<u16>,
+    /// Optional payload data.
     pub payload: Option<&'a str>,
 
     // SNMP specific
+    /// Optional SNMP community string.
     pub community: Option<&'a str>,
+    /// Optional SNMP user.
     pub user: Option<&'a str>,
+    /// Optional SNMP OID.
     pub oid: Option<&'a str>,
+    /// Optional SNMP system uptime.
     pub sys_up_time: Option<u32>,
 
+    /// Optional wait time before sending the packet (in nanoseconds).
     pub wait: Option<u64>,
 }
 
@@ -103,8 +137,11 @@ pub struct FrameStatement<'a> {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FlowDef<'a> {
+    /// The name of the flow.
     pub name: &'a str,
+    /// The parameters of the flow.
     pub params: Vec<&'a str>,
+    /// The statements inside the flow.
     pub statements: Vec<FrameStatement<'a>>,
 }
 
@@ -124,7 +161,9 @@ pub enum Argument<'a> {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TemplateInvocation<'a> {
+    /// The name of the flow being invoked.
     pub name: &'a str,
+    /// The arguments passed to the flow.
     pub args: Vec<Argument<'a>>,
 }
 
@@ -146,7 +185,10 @@ pub enum RunStatement<'a> {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program<'a> {
+    /// The list of host definitions.
     pub hosts: Vec<HostDef<'a>>,
+    /// The list of flow definitions.
     pub flows: Vec<FlowDef<'a>>,
+    /// The list of statements in the compile block.
     pub compile_block: Vec<RunStatement<'a>>,
 }

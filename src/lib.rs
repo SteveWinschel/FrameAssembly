@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+#![warn(clippy::missing_docs_in_private_items)]
 //! # FrameAssembly
 //!
 //! A Domain-Specific Language (DSL) for writing deterministic network traffic to `.pcap` files.
@@ -34,10 +36,17 @@
 
 extern crate alloc;
 
+/// AST definitions.
 pub mod ast;
+/// Backend PCAP generation.
 pub mod backend;
+/// Compiler error types.
 pub mod error;
+/// Lexical analysis.
 pub mod lexer;
+/// Packet building utilities.
 pub mod packet;
+/// Parsing utilities.
 pub mod parser;
+/// PCAP file writing.
 pub mod pcap;

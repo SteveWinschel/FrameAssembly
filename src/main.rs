@@ -1,3 +1,6 @@
+//! The FrameAssembly compiler CLI.
+#![warn(missing_docs)]
+#![warn(clippy::missing_docs_in_private_items)]
 use frameassembly::backend::generate_pcap;
 use frameassembly::parser::parse_program;
 use miette::{IntoDiagnostic, Result};

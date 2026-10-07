@@ -20,6 +20,7 @@ use std::io::{self, Error};
 /// let writer = PcapWriter::create("test.pcap").unwrap();
 /// ```
 pub struct PcapWriter {
+    /// The underlying pcap-file writer.
     writer: PcapNgWriter<File>,
 }
 

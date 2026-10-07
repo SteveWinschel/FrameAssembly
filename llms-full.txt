@@ -73,6 +73,12 @@ The arrow dictates the packet's source and destination:
 Only available when the protocol is `TCP`. You can chain flags separated by spaces.
 *   `SYN`
 *   `ACK`
+*   `FIN`
+*   `RST`
+*   `PSH`
+*   `URG`
+*   `ECE`
+*   `CWR`
 
 #### SNMP Flags
 Only available when the protocol is `SNMP1`, `SNMP2`, or `SNMP3`.

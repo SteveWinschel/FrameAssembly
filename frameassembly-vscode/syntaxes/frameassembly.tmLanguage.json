@@ -50,11 +50,11 @@
 			"name": "support.type.property-name.frameassembly"
 		},
 		"constants": {
-			"match": "\\b(TCP|UDP|SNMP1|SNMP2|SNMP3|SYN|ACK|TRAP)\\b",
+			"match": "\\b(TCP|UDP|SNMP1|SNMP2|SNMP3|SYN|ACK|FIN|RST|PSH|URG|ECE|CWR|TRAP)\\b",
 			"name": "constant.language.frameassembly"
 		},
 		"operators": {
-			"match": "(->|<-|=)",
+			"match": "(->|<-)",
 			"name": "keyword.operator.frameassembly"
 		},
 		"numbers": {

@@ -20,7 +20,7 @@ use crate::error::CompilerError;
 /// let mac = [0; 6];
 ///
 /// let packet = build_tcp_packet(
-///     src_ip, 12345, dst_ip, 80, true, false, None, None, None, Some(b"Hello"), mac, mac
+///     src_ip, 12345, dst_ip, 80, &[frameassembly::ast::TcpFlag::Syn], None, None, None, Some(b"Hello"), mac, mac
 /// ).unwrap();
 /// assert!(!packet.is_empty());
 /// ```
@@ -36,8 +36,7 @@ pub fn build_tcp_packet(
     src_port: u16,
     dst_ip: IpAddr,
     dst_port: u16,
-    syn: bool,
-    ack: bool,
+    flags: &[crate::ast::TcpFlag],
     seq: Option<u32>,
     ack_num: Option<u32>,
     win: Option<u16>,
@@ -57,8 +56,14 @@ pub fn build_tcp_packet(
     };
 
     let mut tcp_header = TcpHeader::new(src_port, dst_port, seq.unwrap_or(0), win.unwrap_or(64240));
-    tcp_header.syn = syn;
-    tcp_header.ack = ack;
+    tcp_header.syn = flags.contains(&crate::ast::TcpFlag::Syn);
+    tcp_header.ack = flags.contains(&crate::ast::TcpFlag::Ack);
+    tcp_header.fin = flags.contains(&crate::ast::TcpFlag::Fin);
+    tcp_header.rst = flags.contains(&crate::ast::TcpFlag::Rst);
+    tcp_header.psh = flags.contains(&crate::ast::TcpFlag::Psh);
+    tcp_header.urg = flags.contains(&crate::ast::TcpFlag::Urg);
+    tcp_header.ece = flags.contains(&crate::ast::TcpFlag::Ece);
+    tcp_header.cwr = flags.contains(&crate::ast::TcpFlag::Cwr);
     tcp_header.acknowledgment_number = ack_num.unwrap_or(0);
 
     let ip_header = Ipv4Header::new(

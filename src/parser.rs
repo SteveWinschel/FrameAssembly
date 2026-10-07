@@ -193,7 +193,7 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
 
     let parse_wait = |input: &mut Stream<'i, 'a>| -> PResult<ParsedField<'a>> {
         let _ = tag(Token::Wait).parse_next(input)?;
-        let _ = opt(tag(Token::Equals)).parse_next(input)?;
+
         let val = parse_u32(input)?;
         let suffix = alt((
             tag(Token::Ms).value(1_000_000_u64),
@@ -206,7 +206,7 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
 
     let parse_oid = |input: &mut Stream<'i, 'a>| -> PResult<ParsedField<'a>> {
         let _ = tag(Token::Oid).parse_next(input)?;
-        let _ = opt(tag(Token::Equals)).parse_next(input)?;
+
         any.verify_map(|(t, _)| {
             match t {
                 Token::OidStr(s) | Token::IpAddress(s) => Some(ParsedField::Oid(s)),
@@ -222,39 +222,45 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
         0..,
         alt((
             alt((
-                (tag(Token::SrcPort), opt(tag(Token::Equals)), parse_u16)
-                    .map(|(_, _, v)| ParsedField::SrcPort(v)),
-                (tag(Token::DstPort), opt(tag(Token::Equals)), parse_u16)
-                    .map(|(_, _, v)| ParsedField::DstPort(v)),
-                (tag(Token::Seq), opt(tag(Token::Equals)), parse_u32)
-                    .map(|(_, _, v)| ParsedField::Seq(v)),
-                (tag(Token::AckNum), opt(tag(Token::Equals)), parse_u32)
-                    .map(|(_, _, v)| ParsedField::AckNum(v)),
-                (tag(Token::Win), opt(tag(Token::Equals)), parse_u16)
-                    .map(|(_, _, v)| ParsedField::Win(v)),
+                (tag(Token::SrcPort), parse_u16)
+                    .map(|(_, v)| ParsedField::SrcPort(v)),
+                (tag(Token::DstPort), parse_u16)
+                    .map(|(_, v)| ParsedField::DstPort(v)),
+                (tag(Token::Seq), parse_u32)
+                    .map(|(_, v)| ParsedField::Seq(v)),
+                (tag(Token::AckNum), parse_u32)
+                    .map(|(_, v)| ParsedField::AckNum(v)),
+                (tag(Token::Win), parse_u16)
+                    .map(|(_, v)| ParsedField::Win(v)),
                 (
                     tag(Token::Payload),
-                    opt(tag(Token::Equals)),
                     parse_string_lit,
                 )
-                    .map(|(_, _, v)| ParsedField::Payload(v)),
+                    .map(|(_, v)| ParsedField::Payload(v)),
                 (
                     tag(Token::Community),
-                    opt(tag(Token::Equals)),
                     parse_string_lit,
                 )
-                    .map(|(_, _, v)| ParsedField::Community(v)),
-                (tag(Token::User), opt(tag(Token::Equals)), parse_string_lit)
-                    .map(|(_, _, v)| ParsedField::User(v)),
-                (tag(Token::SysUpTime), opt(tag(Token::Equals)), parse_u32)
-                    .map(|(_, _, v)| ParsedField::SysUpTime(v)),
+                    .map(|(_, v)| ParsedField::Community(v)),
+                (tag(Token::User), parse_string_lit)
+                    .map(|(_, v)| ParsedField::User(v)),
+                (tag(Token::SysUpTime), parse_u32)
+                    .map(|(_, v)| ParsedField::SysUpTime(v)),
             )),
             alt((
                 tag(Token::Trap).map(|_| ParsedField::Trap),
                 parse_wait,
                 parse_oid,
-                tag(Token::Syn).map(|_| ParsedField::Flag(TcpFlag::Syn)),
-                tag(Token::Ack).map(|_| ParsedField::Flag(TcpFlag::Ack)),
+                alt((
+                    tag(Token::Syn).map(|_| ParsedField::Flag(TcpFlag::Syn)),
+                    tag(Token::Ack).map(|_| ParsedField::Flag(TcpFlag::Ack)),
+                    tag(Token::Fin).map(|_| ParsedField::Flag(TcpFlag::Fin)),
+                    tag(Token::Rst).map(|_| ParsedField::Flag(TcpFlag::Rst)),
+                    tag(Token::Psh).map(|_| ParsedField::Flag(TcpFlag::Psh)),
+                    tag(Token::Urg).map(|_| ParsedField::Flag(TcpFlag::Urg)),
+                    tag(Token::Ece).map(|_| ParsedField::Flag(TcpFlag::Ece)),
+                    tag(Token::Cwr).map(|_| ParsedField::Flag(TcpFlag::Cwr)),
+                )),
             )),
         )),
     )

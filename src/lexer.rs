@@ -35,6 +35,18 @@ pub enum Token<'a> {
     Syn,
     #[token("ACK")]
     Ack,
+    #[token("FIN")]
+    Fin,
+    #[token("RST")]
+    Rst,
+    #[token("PSH")]
+    Psh,
+    #[token("URG")]
+    Urg,
+    #[token("ECE")]
+    Ece,
+    #[token("CWR")]
+    Cwr,
     #[token("SRCPORT")]
     SrcPort,
     #[token("DSTPORT")]
@@ -82,8 +94,6 @@ pub enum Token<'a> {
     RParen,
     #[token(",")]
     Comma,
-    #[token("=")]
-    Equals,
 
     // Time suffixes
     #[token("ms", priority = 2)]

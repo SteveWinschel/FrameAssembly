@@ -47,8 +47,6 @@ Alternatively, in VS Code, open the Extensions view, click the `...` menu, and s
 
 ## Syntax Guide
 
-FrameAssembly uses a strict, keyword-oriented syntax. Property assignments do not require an `=` sign (though optionally supported for backward compatibility).
-
 ### 1. Hosts
 Hosts are defined using the `HOST` keyword. They act as network endpoints.
 ```frameassembly
@@ -86,6 +84,12 @@ The arrow dictates the packet's source and destination:
 Only available when the protocol is `TCP`. You can chain flags separated by spaces.
 *   `SYN`
 *   `ACK`
+*   `FIN`
+*   `RST`
+*   `PSH`
+*   `URG`
+*   `ECE`
+*   `CWR`
 
 #### SNMP Flags
 Only available when the protocol is `SNMP1`, `SNMP2`, or `SNMP3`.

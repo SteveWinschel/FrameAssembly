@@ -158,7 +158,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                 }
 
                 let payload_len = stmt.payload.map(|s| s.len() as u32).unwrap_or(0);
-                let advance = (if stmt.flags.contains(&TcpFlag::Syn) { 1 } else { 0 }) + payload_len;
+                let advance = (if stmt.flags.contains(&TcpFlag::Syn) || stmt.flags.contains(&TcpFlag::Fin) { 1 } else { 0 }) + payload_len;
                 
                 *sender_seq = final_seq.unwrap_or(*sender_seq) + advance;
             }
@@ -172,17 +172,13 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
             let wait_time = stmt.wait.unwrap_or(10_000_000); // 10ms default
             current_time_ns += wait_time;
 
-            let syn = stmt.flags.contains(&TcpFlag::Syn);
-            let ack = stmt.flags.contains(&TcpFlag::Ack);
-
             let packet_data = match stmt.protocol {
                 Protocol::Tcp => build_tcp_packet(
                     src_ip,
                     src_port,
                     dst_ip,
                     dst_port,
-                    syn,
-                    ack,
+                    &stmt.flags,
                     final_seq,
                     final_ack_num,
                     stmt.win,

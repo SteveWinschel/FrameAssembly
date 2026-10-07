@@ -38,6 +38,12 @@ pub enum Direction {
 pub enum TcpFlag {
     Syn,
     Ack,
+    Fin,
+    Rst,
+    Psh,
+    Urg,
+    Ece,
+    Cwr,
 }
 
 /// Represents the supported network protocols.

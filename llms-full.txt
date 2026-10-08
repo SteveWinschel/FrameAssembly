@@ -92,6 +92,12 @@ These properties follow the protocol and flag definitions. They are defined usin
 *   `PAYLOAD "<string>"`: Appends a string payload to the packet.
 *   `COMMUNITY "<string>"`: Sets the community string for `SNMP1` and `SNMP2` traps.
 *   `USER "<string>"`: Sets the USM authentication user name for `SNMP3` traps.
+*   `ENGINEID "<string>"`: Sets the engine ID for `SNMP3` traps.
+*   `ENGINEBOOTS <number>`: Sets the authoritative engine boots for `SNMP3`.
+*   `ENGINETIME <number>`: Sets the authoritative engine time for `SNMP3`.
+*   `CONTEXTNAME "<string>"`: Sets the context name for `SNMP3`.
+*   `AUTH <MD5|SHA|SHA256|SHA384|SHA512> "<password>"`: Sets the authentication type and password for `SNMP3`.
+*   `PRIV <DES|AES> "<password>"`: Sets the privacy type and password for `SNMP3`.
 *   `SYSUPTIME <number>`: Sets the time stamp (SysUpTime) for SNMP traps.
 *   `OID <string> | "<string>"`: Sets the primary Object Identifier for the SNMP trap. Quotes are optional; raw OIDs (e.g., `1.3.6.1.4.1`) and IPv4-formatted strings are natively supported.
 *   `WAIT <number><suffix>`: Introduces an artificial delay before sending the next packet. (Optional: defaults to 10ms)

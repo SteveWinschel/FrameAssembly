@@ -99,6 +99,24 @@ pub enum Token<'a> {
     /// `TRAP` keyword
     #[token("TRAP")]
     Trap,
+    /// `GET` keyword
+    #[token("GET")]
+    Get,
+    /// `SET` keyword
+    #[token("SET")]
+    Set,
+    /// `RESPONSE` keyword
+    #[token("RESPONSE")]
+    Response,
+    /// `INFORM` keyword
+    #[token("INFORM")]
+    Inform,
+    /// `GETNEXT` keyword
+    #[token("GETNEXT")]
+    GetNext,
+    /// `GETBULK` keyword
+    #[token("GETBULK")]
+    GetBulk,
     /// `COMMUNITY` keyword
     #[token("COMMUNITY")]
     Community,
@@ -111,6 +129,88 @@ pub enum Token<'a> {
     /// `SYSUPTIME` keyword
     #[token("SYSUPTIME")]
     SysUpTime,
+
+    /// `VARBIND` keyword
+    #[token("VARBIND")]
+    VarBind,
+    /// `NULLVAL` keyword
+    #[token("NULLVAL")]
+    NullVal,
+    /// `STRING` keyword
+    #[token("STRING")]
+    StringVal,
+    /// `INT` keyword
+    #[token("INT")]
+    IntVal,
+    /// `TIMETICKS` keyword
+    #[token("TIMETICKS")]
+    TimeTicksVal,
+    /// `IPVAL` keyword
+    #[token("IPVAL")]
+    IpVal,
+
+    /// `ENTERPRISE` keyword
+    #[token("ENTERPRISE")]
+    Enterprise,
+    /// `AGENTIP` keyword
+    #[token("AGENTIP")]
+    AgentIp,
+    /// `GENTRAP` keyword
+    #[token("GENTRAP")]
+    GenTrap,
+    /// `SPECTRAP` keyword
+    #[token("SPECTRAP")]
+    SpecTrap,
+
+    /// `ENGINEID` keyword
+    #[token("ENGINEID")]
+    EngineId,
+    /// `ENGINEBOOTS` keyword
+    #[token("ENGINEBOOTS")]
+    EngineBoots,
+    /// `ENGINETIME` keyword
+    #[token("ENGINETIME")]
+    EngineTime,
+    /// `CONTEXTNAME` keyword
+    #[token("CONTEXTNAME")]
+    ContextName,
+    /// `AUTH` keyword
+    #[token("AUTH")]
+    Auth,
+    /// `PRIV` keyword
+    #[token("PRIV")]
+    Priv,
+    /// `MD5` keyword
+    #[token("MD5")]
+    Md5,
+    /// `SHA` keyword
+    #[token("SHA")]
+    Sha,
+    /// `SHA256` keyword
+    #[token("SHA256")]
+    Sha256,
+    /// `SHA384` keyword
+    #[token("SHA384")]
+    Sha384,
+    /// `SHA512` keyword
+    #[token("SHA512")]
+    Sha512,
+    /// `DES` keyword
+    #[token("DES")]
+    Des,
+    /// `AES` keyword
+    #[token("AES")]
+    Aes,
+
+    /// `NONREPEATERS` keyword
+    #[token("NONREPEATERS")]
+    NonRepeaters,
+    /// `MAXREPETITIONS` keyword
+    #[token("MAXREPETITIONS")]
+    MaxRepetitions,
+    /// `REQID` keyword
+    #[token("REQID")]
+    ReqId,
 
     /// `->` operator
     #[token("->")]

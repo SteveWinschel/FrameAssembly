@@ -198,55 +198,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                 )
                 .map_err(|e| alloc::format!("{:?}", e))?,
                 Protocol::Snmp1 => {
-                    use rasn::types::{Integer, ObjectIdentifier, OctetString};
-                    use rasn_snmp::v1::{Message, Pdus, Trap};
-                    let community_str = stmt.community.unwrap_or("public");
-                    let community = OctetString::from(community_str.as_bytes().to_vec());
-                    let oid_str = stmt.oid.unwrap_or("1.3.6.1.4.1");
-                    let mut oid_vec = alloc::vec::Vec::new();
-                    for s in oid_str.trim_start_matches('.').split('.') {
-                        match s.parse::<u32>() {
-                            Ok(val) => oid_vec.push(val),
-                            Err(_) => {
-                                return Err(alloc::format!(
-                                    "Invalid OID segment: '{}' in '{}'",
-                                    s,
-                                    oid_str
-                                ));
-                            }
-                        }
-                    }
-                    let trap_oid = ObjectIdentifier::new(oid_vec)
-                        .unwrap_or_else(|| ObjectIdentifier::new(vec![1, 3, 6, 1, 4, 1]).unwrap());
-
-                    let agent_ip = match src_ip {
-                        core::net::IpAddr::V4(addr) => addr.octets(),
-                        _ => {
-                            return Err(
-                                "SNMPv1 Trap requires IPv4 address, got IPv6".to_string()
-                            );
-                        }
-                    };
-
-                    let trap = Trap {
-                        enterprise: trap_oid,
-                        agent_addr: rasn_smi::v1::NetworkAddress::Internet(
-                            rasn_smi::v1::IpAddress(agent_ip.into()),
-                        ),
-                        generic_trap: Integer::from(6), // EnterpriseSpecific
-                        specific_trap: Integer::from(1),
-                        time_stamp: rasn_smi::v1::TimeTicks(stmt.sys_up_time.unwrap_or(0)),
-                        variable_bindings: vec![],
-                    };
-
-                    let message = Message {
-                        version: Integer::from(0),
-                        community,
-                        data: Pdus::Trap(trap),
-                    };
-
-                    let snmp_payload = rasn::ber::encode(&message)
-                        .map_err(|e| alloc::format!("SNMP1 encode error: {:?}", e))?;
+                    let snmp_payload = crate::snmp_builder::build_snmp1_payload(stmt, src_ip)?;
                     build_udp_packet(
                         src_ip,
                         src_port,
@@ -255,77 +207,10 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         Some(snmp_payload.as_slice()),
                         src_mac,
                         dst_mac,
-                    )
-                    .map_err(|e| alloc::format!("{:?}", e))?
+                    ).map_err(|e| alloc::format!("{:?}", e))?
                 }
                 Protocol::Snmp2 => {
-                    use rasn::types::{Integer, ObjectIdentifier, OctetString};
-                    use rasn_snmp::v2::Pdus;
-                    use rasn_snmp::v2::{Pdu, VarBind, VarBindValue};
-                    use rasn_snmp::v2c::Message;
-
-                    let community_str = stmt.community.unwrap_or("public");
-                    let community = OctetString::from(community_str.as_bytes().to_vec());
-
-                    let sys_up_time_oid =
-                        ObjectIdentifier::new(vec![1, 3, 6, 1, 2, 1, 1, 3, 0]).unwrap();
-                    let snmp_trap_oid_name =
-                        ObjectIdentifier::new(vec![1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0]).unwrap();
-
-                    let oid_str = stmt.oid.unwrap_or("1.3.6.1.6.3.1.1.5.3");
-                    let mut oid_vec = alloc::vec::Vec::new();
-                    for s in oid_str.trim_start_matches('.').split('.') {
-                        match s.parse::<u32>() {
-                            Ok(val) => oid_vec.push(val),
-                            Err(_) => {
-                                return Err(alloc::format!(
-                                    "Invalid OID segment: '{}' in '{}'",
-                                    s,
-                                    oid_str
-                                ));
-                            }
-                        }
-                    }
-                    let requested_trap_oid = ObjectIdentifier::new(oid_vec).unwrap_or_else(|| {
-                        ObjectIdentifier::new(vec![1, 3, 6, 1, 6, 3, 1, 1, 5, 3]).unwrap()
-                    });
-
-                    // Use rasn_smi types that rasn_snmp depends on. If rasn_smi is not explicitly in dependencies,
-                    // we'll need to add it or use re-exports. We will try rasn_smi first.
-                    let varbinds = vec![
-                        VarBind {
-                            name: sys_up_time_oid,
-                            value: VarBindValue::Value(
-                                rasn_smi::v2::ObjectSyntax::ApplicationWide(
-                                    rasn_smi::v2::ApplicationSyntax::Ticks(
-                                        rasn_smi::v1::TimeTicks(stmt.sys_up_time.unwrap_or(0)),
-                                    ),
-                                ),
-                            ),
-                        },
-                        VarBind {
-                            name: snmp_trap_oid_name,
-                            value: VarBindValue::Value(rasn_smi::v2::ObjectSyntax::Simple(
-                                rasn_smi::v2::SimpleSyntax::ObjectId(requested_trap_oid),
-                            )),
-                        },
-                    ];
-
-                    let pdu = Pdu {
-                        request_id: 1,
-                        error_status: 0,
-                        error_index: 0,
-                        variable_bindings: varbinds,
-                    };
-
-                    let message = Message {
-                        version: Integer::from(1),
-                        community,
-                        data: Pdus::Trap(rasn_snmp::v2::Trap(pdu)),
-                    };
-
-                    let snmp_payload = rasn::ber::encode(&message)
-                        .map_err(|e| alloc::format!("SNMP2 encode error: {:?}", e))?;
+                    let snmp_payload = crate::snmp_builder::build_snmp2_payload(stmt)?;
                     build_udp_packet(
                         src_ip,
                         src_port,
@@ -334,102 +219,10 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         Some(snmp_payload.as_slice()),
                         src_mac,
                         dst_mac,
-                    )
-                    .map_err(|e| alloc::format!("{:?}", e))?
+                    ).map_err(|e| alloc::format!("{:?}", e))?
                 }
                 Protocol::Snmp3 => {
-                    use rasn::types::{Integer, ObjectIdentifier, OctetString};
-                    use rasn_snmp::v2::{Pdu, Pdus, VarBind, VarBindValue};
-                    use rasn_snmp::v3::{
-                        HeaderData, Message, ScopedPdu, ScopedPduData, USMSecurityParameters,
-                    };
-
-                    let user_str = stmt.user.unwrap_or("admin");
-                    let user = OctetString::from(user_str.as_bytes().to_vec());
-
-                    let sys_up_time_oid =
-                        ObjectIdentifier::new(vec![1, 3, 6, 1, 2, 1, 1, 3, 0]).unwrap();
-                    let snmp_trap_oid_name =
-                        ObjectIdentifier::new(vec![1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0]).unwrap();
-
-                    let oid_str = stmt.oid.unwrap_or("1.3.6.1.6.3.1.1.5.3");
-                    let mut oid_vec = alloc::vec::Vec::new();
-                    for s in oid_str.trim_start_matches('.').split('.') {
-                        match s.parse::<u32>() {
-                            Ok(val) => oid_vec.push(val),
-                            Err(_) => {
-                                return Err(alloc::format!(
-                                    "Invalid OID segment: '{}' in '{}'",
-                                    s,
-                                    oid_str
-                                ));
-                            }
-                        }
-                    }
-                    let requested_trap_oid = ObjectIdentifier::new(oid_vec).unwrap_or_else(|| {
-                        ObjectIdentifier::new(vec![1, 3, 6, 1, 6, 3, 1, 1, 5, 3]).unwrap()
-                    });
-
-                    let varbinds = vec![
-                        VarBind {
-                            name: sys_up_time_oid,
-                            value: VarBindValue::Value(
-                                rasn_smi::v2::ObjectSyntax::ApplicationWide(
-                                    rasn_smi::v2::ApplicationSyntax::Ticks(
-                                        rasn_smi::v1::TimeTicks(stmt.sys_up_time.unwrap_or(0)),
-                                    ),
-                                ),
-                            ),
-                        },
-                        VarBind {
-                            name: snmp_trap_oid_name,
-                            value: VarBindValue::Value(rasn_smi::v2::ObjectSyntax::Simple(
-                                rasn_smi::v2::SimpleSyntax::ObjectId(requested_trap_oid),
-                            )),
-                        },
-                    ];
-
-                    let pdu = Pdu {
-                        request_id: 1,
-                        error_status: 0,
-                        error_index: 0,
-                        variable_bindings: varbinds,
-                    };
-
-                    let scoped_pdu = ScopedPdu {
-                        engine_id: OctetString::from(vec![0x80, 0x00, 0x00, 0x00, 0x01]),
-                        name: OctetString::from(vec![]),
-                        data: Pdus::Trap(rasn_snmp::v2::Trap(pdu)),
-                    };
-
-                    let usm_params = USMSecurityParameters {
-                        authoritative_engine_id: OctetString::from(vec![
-                            0x80, 0x00, 0x00, 0x00, 0x01,
-                        ]),
-                        authoritative_engine_boots: Integer::from(0),
-                        authoritative_engine_time: Integer::from(0),
-                        user_name: user,
-                        authentication_parameters: OctetString::from(vec![]),
-                        privacy_parameters: OctetString::from(vec![]),
-                    };
-
-                    let usm_bytes = rasn::ber::encode(&usm_params)
-                        .map_err(|e| alloc::format!("USM encode error: {:?}", e))?;
-
-                    let message = Message {
-                        version: Integer::from(3), // SNMPv3
-                        global_data: HeaderData {
-                            message_id: Integer::from(1),
-                            max_size: Integer::from(65507),
-                            flags: OctetString::from(vec![0]), // NoAuthNoPriv
-                            security_model: Integer::from(3),  // USM is 3
-                        },
-                        security_parameters: OctetString::from(usm_bytes),
-                        scoped_data: ScopedPduData::CleartextPdu(scoped_pdu),
-                    };
-
-                    let snmp_payload = rasn::ber::encode(&message)
-                        .map_err(|e| alloc::format!("SNMP3 encode error: {:?}", e))?;
+                    let snmp_payload = crate::snmp_builder::build_snmp3_payload(stmt)?;
                     build_udp_packet(
                         src_ip,
                         src_port,
@@ -438,8 +231,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         Some(snmp_payload.as_slice()),
                         src_mac,
                         dst_mac,
-                    )
-                    .map_err(|e| alloc::format!("{:?}", e))?
+                    ).map_err(|e| alloc::format!("{:?}", e))?
                 }
             };
 

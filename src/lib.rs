@@ -50,3 +50,7 @@ pub mod packet;
 pub mod parser;
 /// PCAP file writing.
 pub mod pcap;
+/// SNMPv3 Cryptography.
+pub mod snmp_crypto;
+/// SNMP packet builder.
+pub mod snmp_builder;

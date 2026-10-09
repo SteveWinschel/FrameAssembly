@@ -9,8 +9,6 @@
 It is meant to be used for network security research, education, and testing.
 
 ## Features
-*   **Production-Grade Pipeline:** Uses `logos` for zero-copy lexing and `winnow` for robust combinator parsing into a flat Abstract Syntax Tree (AST).
-*   **Rich Diagnostics:** Employs `miette` to provide beautiful, `rustc`-style terminal error reporting pointing exactly to syntax errors.
 *   **Packet Field Abstraction:** You can set TCP/IP, UDP, and SNMP packet fields like `SEQ`, `WIN`, `PAYLOAD`, `OID`, and `WAIT` using space-separated keyword values.
 *   **Reliable Packet Crafting:** Uses `etherparse` for correct zero-allocation L2-L4 encapsulation and checksumming.
 *   **Deterministic Output:** Generates reproducible `.pcap` files with nanosecond precision using `pcap-file` (`PcapNgWriter`) based on the defined flow and mock epoch timestamps.

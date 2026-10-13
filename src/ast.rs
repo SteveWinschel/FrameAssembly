@@ -130,12 +130,20 @@ pub enum VarBindType<'a> {
     Null,
     /// OctetString value
     String(&'a str),
-    /// Integer value
-    Int(u32),
+    /// Signed 32-bit integer value
+    Int(i32),
     /// TimeTicks value
     TimeTicks(u32),
     /// IpAddress value
     Ip(IpAddr),
+    /// Object Identifier value
+    OidVal(&'a str),
+    /// 32-bit Counter value
+    Counter32(u32),
+    /// 32-bit Gauge value
+    Gauge32(u32),
+    /// 64-bit Counter value
+    Counter64(u64),
 }
 
 /// Represents a single VarBind.
@@ -228,7 +236,7 @@ pub struct FrameStatement<'a> {
 ///
 /// Syntax mapping:
 /// ```frameassembly
-/// FLOW name(arg1, arg2) { 
+/// FLOW name(arg1, arg2) {
 ///     arg1 -> arg2 TCP SYN
 /// }
 /// ```

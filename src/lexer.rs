@@ -1,13 +1,13 @@
 use logos::Logos;
 
 /// Represents all lexical tokens recognized by the FrameAssembly DSL.
-/// 
+///
 /// The lexer ignores whitespace and single-line comments.
-/// 
+///
 /// # Examples
 /// ```
 /// use frameassembly::lexer::Token;
-/// 
+///
 /// let token = Token::Host;
 /// assert_eq!(token, Token::Host);
 /// ```
@@ -148,6 +148,18 @@ pub enum Token<'a> {
     /// `IPVAL` keyword
     #[token("IPVAL")]
     IpVal,
+    /// `OIDVAL` keyword
+    #[token("OIDVAL")]
+    OidVal,
+    /// `COUNTER32` keyword
+    #[token("COUNTER32")]
+    Counter32Val,
+    /// `GAUGE32` keyword
+    #[token("GAUGE32")]
+    Gauge32Val,
+    /// `COUNTER64` keyword
+    #[token("COUNTER64")]
+    Counter64Val,
 
     /// `ENTERPRISE` keyword
     #[token("ENTERPRISE")]
@@ -268,8 +280,8 @@ pub enum Token<'a> {
     #[regex(r"[0-9]+(\.[0-9]+)+", priority = 5)]
     OidStr(&'a str),
 
-    /// Numeric literal
-    #[regex("[0-9]+")]
+    /// Numeric literal (supports negative integers)
+    #[regex(r"-?[0-9]+")]
     Number(&'a str),
 }
 

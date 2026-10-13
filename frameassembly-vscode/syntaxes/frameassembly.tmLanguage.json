@@ -46,11 +46,11 @@
 			"name": "keyword.control.frameassembly"
 		},
 		"properties": {
-			"match": "\\b(IP|MAC|SRCPORT|DSTPORT|PORT|SEQ|ACKNUM|WIN|PAYLOAD|WAIT|COMMUNITY|USER|OID|SYSUPTIME)\\b",
+			"match": "\\b(IP|MAC|SRCPORT|DSTPORT|PORT|SEQ|ACKNUM|WIN|PAYLOAD|WAIT|COMMUNITY|USER|OID|SYSUPTIME|NONREPEATERS|MAXREPETITIONS|REQID|ENTERPRISE|AGENTIP|GENTRAP|SPECTRAP|ENGINEID|ENGINEBOOTS|ENGINETIME|CONTEXTNAME|AUTH|PRIV|VARBIND|NULLVAL|STRING|INT|TIMETICKS|IPVAL|OIDVAL|COUNTER32|GAUGE32|COUNTER64)\\b",
 			"name": "support.type.property-name.frameassembly"
 		},
 		"constants": {
-			"match": "\\b(TCP|UDP|SNMP1|SNMP2|SNMP3|SYN|ACK|FIN|RST|PSH|URG|ECE|CWR|TRAP)\\b",
+			"match": "\\b(TCP|UDP|SNMP1|SNMP2|SNMP3|SYN|ACK|FIN|RST|PSH|URG|ECE|CWR|TRAP|INFORM|GET|GETNEXT|GETBULK|SET|RESPONSE|MD5|SHA|SHA256|SHA384|SHA512|DES|AES)\\b",
 			"name": "constant.language.frameassembly"
 		},
 		"operators": {
@@ -68,7 +68,7 @@
 					"name": "constant.numeric.ip.frameassembly"
 				},
 				{
-					"match": "\\b[0-9]+(ms|s|m)?\\b",
+					"match": "-?\\b[0-9]+(ms|s|m)?\\b",
 					"name": "constant.numeric.integer.frameassembly"
 				}
 			]

@@ -16,7 +16,7 @@ use std::io::{self, Error};
 /// # Examples
 /// ```no_run
 /// use frameassembly::pcap::PcapWriter;
-/// 
+///
 /// let writer = PcapWriter::create("test.pcap").unwrap();
 /// ```
 pub struct PcapWriter {
@@ -33,7 +33,7 @@ impl PcapWriter {
     /// # Examples
     /// ```no_run
     /// use frameassembly::pcap::PcapWriter;
-    /// 
+    ///
     /// let writer = PcapWriter::create("output.pcap").unwrap();
     /// ```
     ///
@@ -43,9 +43,8 @@ impl PcapWriter {
     /// * The initial `PCAPNG` interface block cannot be written.
     pub fn create(path: &str) -> io::Result<Self> {
         let file = File::create(path)?;
-        let mut writer = PcapNgWriter::new(file).map_err(|e| {
-            Error::other(alloc::format!("Failed to create PCAP writer: {}", e))
-        })?;
+        let mut writer = PcapNgWriter::new(file)
+            .map_err(|e| Error::other(alloc::format!("Failed to create PCAP writer: {}", e)))?;
 
         let interface = InterfaceDescriptionBlock {
             linktype: pcap_file::DataLink::ETHERNET,
@@ -53,7 +52,10 @@ impl PcapWriter {
             options: vec![InterfaceDescriptionOption::IfTsResol(9)],
         };
         writer.write_block(&interface.into_block()).map_err(|e| {
-            Error::other(alloc::format!("Failed to write PCAP interface block: {}", e))
+            Error::other(alloc::format!(
+                "Failed to write PCAP interface block: {}",
+                e
+            ))
         })?;
 
         Ok(Self { writer })
@@ -64,7 +66,7 @@ impl PcapWriter {
     /// # Examples
     /// ```no_run
     /// use frameassembly::pcap::PcapWriter;
-    /// 
+    ///
     /// let mut writer = PcapWriter::create("output.pcap").unwrap();
     /// writer.write_packet(&[0u8; 64], 1_000_000_000).unwrap();
     /// ```

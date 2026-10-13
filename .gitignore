@@ -13,3 +13,7 @@ Thumbs.db
 
 # Agent files
 .agents/
+
+# Build artifacts & temporary dumps
+lints.json
+*.pcap

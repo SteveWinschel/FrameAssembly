@@ -4,9 +4,9 @@ use alloc::vec::Vec;
 use core::net::IpAddr;
 use core::str::FromStr;
 
-use winnow::Result as PResult;
-use winnow::combinator::{alt, opt, repeat, separated};
-use winnow::error::ContextError;
+use winnow::ModalResult as PResult;
+use winnow::combinator::{alt, cut_err, opt, repeat, separated};
+use winnow::error::{ContextError, ErrMode};
 use winnow::prelude::*;
 use winnow::token::any;
 
@@ -27,7 +27,7 @@ pub type Stream<'i, 'a> = &'i [(Token<'a>, core::ops::Range<usize>)];
 /// ```
 fn tag<'i, 'a: 'i>(
     expected: Token<'a>,
-) -> impl Parser<Stream<'i, 'a>, (Token<'a>, core::ops::Range<usize>), ContextError> {
+) -> impl Parser<Stream<'i, 'a>, (Token<'a>, core::ops::Range<usize>), ErrMode<ContextError>> {
     any.verify(move |(t, _): &(Token<'a>, core::ops::Range<usize>)| *t == expected)
 }
 
@@ -120,6 +120,30 @@ fn parse_u32<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u32> {
     .parse_next(input)
 }
 
+/// Parses an `i32` signed integer.
+fn parse_i32<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<i32> {
+    any.verify_map(|(t, _)| {
+        if let Token::Number(s) = t {
+            i32::from_str(s).ok()
+        } else {
+            None
+        }
+    })
+    .parse_next(input)
+}
+
+/// Parses a `u64` unsigned integer.
+fn parse_u64<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u64> {
+    any.verify_map(|(t, _)| {
+        if let Token::Number(s) = t {
+            u64::from_str(s).ok()
+        } else {
+            None
+        }
+    })
+    .parse_next(input)
+}
+
 /// Parses a `HOST` block definition.
 fn parse_host_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<HostDef<'a>> {
     let _ = tag(Token::Host).parse_next(input)?;
@@ -154,6 +178,65 @@ fn parse_direction<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Direction> {
         tag(Token::LeftArrow).value(Direction::RightToLeft),
     ))
     .parse_next(input)
+}
+
+/// An internal field parsed from a frame statement.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ParsedField<'a> {
+    /// Source port specification.
+    SrcPort(u16),
+    /// Destination port specification.
+    DstPort(u16),
+    /// TCP sequence number.
+    Seq(u32),
+    /// TCP acknowledgment number.
+    AckNum(u32),
+    /// TCP window size.
+    Win(u16),
+    /// Packet payload data.
+    Payload(&'a str),
+    /// SNMP community string.
+    Community(&'a str),
+    /// SNMPv3 user name.
+    User(&'a str),
+    /// SNMP system uptime in hundredths of a second.
+    SysUpTime(u32),
+    /// SNMP PDU type.
+    PduType(SnmpPduType),
+    /// Packet delay in nanoseconds.
+    Wait(u64),
+    /// Object Identifier.
+    Oid(&'a str),
+    /// TCP flag.
+    Flag(TcpFlag),
+    /// SNMPv1 enterprise OID.
+    Enterprise(&'a str),
+    /// SNMPv1 agent IP address.
+    AgentIp(IpAddr),
+    /// SNMPv1 generic trap code.
+    GenTrap(u32),
+    /// SNMPv1 specific trap code.
+    SpecTrap(u32),
+    /// SNMPv3 authoritative engine ID.
+    EngineId(&'a str),
+    /// SNMPv3 authoritative engine boot count.
+    EngineBoots(u32),
+    /// SNMPv3 authoritative engine time.
+    EngineTime(u32),
+    /// SNMPv3 context name.
+    ContextName(&'a str),
+    /// SNMPv3 authentication parameters (protocol and password).
+    Auth(SnmpAuthType, &'a str),
+    /// SNMPv3 privacy parameters (cipher and password).
+    Priv(SnmpPrivType, &'a str),
+    /// Variable binding.
+    VarBind(VarBindAst<'a>),
+    /// SNMP GETBULK non-repeaters count.
+    NonRepeaters(u32),
+    /// SNMP GETBULK max-repetitions count.
+    MaxRepetitions(u32),
+    /// SNMP request ID.
+    ReqId(u32),
 }
 
 /// Parses a single frame statement within a flow.
@@ -199,45 +282,15 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
     let mut max_repetitions = None;
     let mut req_id = None;
 
-    enum ParsedField<'a> {
-        SrcPort(u16),
-        DstPort(u16),
-        Seq(u32),
-        AckNum(u32),
-        Win(u16),
-        Payload(&'a str),
-        Community(&'a str),
-        User(&'a str),
-        SysUpTime(u32),
-        PduType(SnmpPduType),
-        Wait(u64),
-        Oid(&'a str),
-        Flag(TcpFlag),
-        Enterprise(&'a str),
-        AgentIp(IpAddr),
-        GenTrap(u32),
-        SpecTrap(u32),
-        EngineId(&'a str),
-        EngineBoots(u32),
-        EngineTime(u32),
-        ContextName(&'a str),
-        Auth(SnmpAuthType, &'a str),
-        Priv(SnmpPrivType, &'a str),
-        VarBind(VarBindAst<'a>),
-        NonRepeaters(u32),
-        MaxRepetitions(u32),
-        ReqId(u32),
-    }
-
     let parse_wait = |input: &mut Stream<'i, 'a>| -> PResult<ParsedField<'a>> {
         let _ = tag(Token::Wait).parse_next(input)?;
 
-        let val = parse_u32(input)?;
-        let suffix = alt((
+        let val = cut_err(parse_u32).parse_next(input)?;
+        let suffix = cut_err(alt((
             tag(Token::Ms).value(1_000_000_u64),
             tag(Token::Sec).value(1_000_000_000_u64),
             tag(Token::Min).value(60_000_000_000_u64),
-        ))
+        )))
         .parse_next(input)?;
         Ok(ParsedField::Wait(val as u64 * suffix))
     };
@@ -257,50 +310,58 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
 
     let parse_oid = |input: &mut Stream<'i, 'a>| -> PResult<ParsedField<'a>> {
         let _ = tag(Token::Oid).parse_next(input)?;
-        parse_oid_val(input).map(ParsedField::Oid)
+        cut_err(parse_oid_val)
+            .parse_next(input)
+            .map(ParsedField::Oid)
     };
 
     let parse_enterprise = |input: &mut Stream<'i, 'a>| -> PResult<ParsedField<'a>> {
         let _ = tag(Token::Enterprise).parse_next(input)?;
-        parse_oid_val(input).map(ParsedField::Enterprise)
+        cut_err(parse_oid_val)
+            .parse_next(input)
+            .map(ParsedField::Enterprise)
     };
 
     let parse_varbind = |input: &mut Stream<'i, 'a>| -> PResult<ParsedField<'a>> {
         let _ = tag(Token::VarBind).parse_next(input)?;
-        let oid = parse_oid_val(input)?;
-        let val = alt((
+        let oid = cut_err(parse_oid_val).parse_next(input)?;
+        let val = cut_err(alt((
             tag(Token::NullVal).value(VarBindType::Null),
-            (tag(Token::StringVal), parse_string_lit).map(|(_, s)| VarBindType::String(s)),
-            (tag(Token::IntVal), parse_u32).map(|(_, v)| VarBindType::Int(v)),
-            (tag(Token::TimeTicksVal), parse_u32).map(|(_, v)| VarBindType::TimeTicks(v)),
-            (tag(Token::IpVal), parse_ip).map(|(_, i)| VarBindType::Ip(i)),
-        ))
+            (tag(Token::StringVal), cut_err(parse_string_lit)).map(|(_, s)| VarBindType::String(s)),
+            (tag(Token::IntVal), cut_err(parse_i32)).map(|(_, v)| VarBindType::Int(v)),
+            (tag(Token::TimeTicksVal), cut_err(parse_u32)).map(|(_, v)| VarBindType::TimeTicks(v)),
+            (tag(Token::IpVal), cut_err(parse_ip)).map(|(_, i)| VarBindType::Ip(i)),
+            (tag(Token::OidVal), cut_err(parse_oid_val)).map(|(_, s)| VarBindType::OidVal(s)),
+            (tag(Token::Counter32Val), cut_err(parse_u32)).map(|(_, v)| VarBindType::Counter32(v)),
+            (tag(Token::Gauge32Val), cut_err(parse_u32)).map(|(_, v)| VarBindType::Gauge32(v)),
+            (tag(Token::Counter64Val), cut_err(parse_u64)).map(|(_, v)| VarBindType::Counter64(v)),
+        )))
         .parse_next(input)?;
         Ok(ParsedField::VarBind(VarBindAst { oid, val }))
     };
 
     let parse_auth = |input: &mut Stream<'i, 'a>| -> PResult<ParsedField<'a>> {
         let _ = tag(Token::Auth).parse_next(input)?;
-        let auth_type = alt((
+        let auth_type = cut_err(alt((
             tag(Token::Md5).value(SnmpAuthType::Md5),
             tag(Token::Sha).value(SnmpAuthType::Sha),
             tag(Token::Sha256).value(SnmpAuthType::Sha256),
             tag(Token::Sha384).value(SnmpAuthType::Sha384),
             tag(Token::Sha512).value(SnmpAuthType::Sha512),
-        ))
+        )))
         .parse_next(input)?;
-        let pass = parse_string_lit(input)?;
+        let pass = cut_err(parse_string_lit).parse_next(input)?;
         Ok(ParsedField::Auth(auth_type, pass))
     };
 
     let parse_priv = |input: &mut Stream<'i, 'a>| -> PResult<ParsedField<'a>> {
         let _ = tag(Token::Priv).parse_next(input)?;
-        let priv_type = alt((
+        let priv_type = cut_err(alt((
             tag(Token::Des).value(SnmpPrivType::Des),
             tag(Token::Aes).value(SnmpPrivType::Aes),
-        ))
+        )))
         .parse_next(input)?;
-        let pass = parse_string_lit(input)?;
+        let pass = cut_err(parse_string_lit).parse_next(input)?;
         Ok(ParsedField::Priv(priv_type, pass))
     };
 
@@ -308,31 +369,37 @@ fn parse_frame_statement<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FrameSta
         0..,
         alt((
             alt((
-                (tag(Token::SrcPort), parse_u16).map(|(_, v)| ParsedField::SrcPort(v)),
-                (tag(Token::DstPort), parse_u16).map(|(_, v)| ParsedField::DstPort(v)),
-                (tag(Token::Seq), parse_u32).map(|(_, v)| ParsedField::Seq(v)),
-                (tag(Token::AckNum), parse_u32).map(|(_, v)| ParsedField::AckNum(v)),
-                (tag(Token::Win), parse_u16).map(|(_, v)| ParsedField::Win(v)),
-                (tag(Token::Payload), parse_string_lit).map(|(_, v)| ParsedField::Payload(v)),
-                (tag(Token::Community), parse_string_lit).map(|(_, v)| ParsedField::Community(v)),
-                (tag(Token::User), parse_string_lit).map(|(_, v)| ParsedField::User(v)),
+                (tag(Token::SrcPort), cut_err(parse_u16)).map(|(_, v)| ParsedField::SrcPort(v)),
+                (tag(Token::DstPort), cut_err(parse_u16)).map(|(_, v)| ParsedField::DstPort(v)),
+                (tag(Token::Seq), cut_err(parse_u32)).map(|(_, v)| ParsedField::Seq(v)),
+                (tag(Token::AckNum), cut_err(parse_u32)).map(|(_, v)| ParsedField::AckNum(v)),
+                (tag(Token::Win), cut_err(parse_u16)).map(|(_, v)| ParsedField::Win(v)),
+                (tag(Token::Payload), cut_err(parse_string_lit))
+                    .map(|(_, v)| ParsedField::Payload(v)),
+                (tag(Token::Community), cut_err(parse_string_lit))
+                    .map(|(_, v)| ParsedField::Community(v)),
+                (tag(Token::User), cut_err(parse_string_lit)).map(|(_, v)| ParsedField::User(v)),
             )),
             alt((
-                (tag(Token::SysUpTime), parse_u32).map(|(_, v)| ParsedField::SysUpTime(v)),
-                (tag(Token::AgentIp), parse_ip).map(|(_, v)| ParsedField::AgentIp(v)),
-                (tag(Token::GenTrap), parse_u32).map(|(_, v)| ParsedField::GenTrap(v)),
-                (tag(Token::SpecTrap), parse_u32).map(|(_, v)| ParsedField::SpecTrap(v)),
-                (tag(Token::EngineId), parse_string_lit).map(|(_, v)| ParsedField::EngineId(v)),
-                (tag(Token::EngineBoots), parse_u32).map(|(_, v)| ParsedField::EngineBoots(v)),
-                (tag(Token::EngineTime), parse_u32).map(|(_, v)| ParsedField::EngineTime(v)),
-                (tag(Token::ContextName), parse_string_lit)
+                (tag(Token::SysUpTime), cut_err(parse_u32)).map(|(_, v)| ParsedField::SysUpTime(v)),
+                (tag(Token::AgentIp), cut_err(parse_ip)).map(|(_, v)| ParsedField::AgentIp(v)),
+                (tag(Token::GenTrap), cut_err(parse_u32)).map(|(_, v)| ParsedField::GenTrap(v)),
+                (tag(Token::SpecTrap), cut_err(parse_u32)).map(|(_, v)| ParsedField::SpecTrap(v)),
+                (tag(Token::EngineId), cut_err(parse_string_lit))
+                    .map(|(_, v)| ParsedField::EngineId(v)),
+                (tag(Token::EngineBoots), cut_err(parse_u32))
+                    .map(|(_, v)| ParsedField::EngineBoots(v)),
+                (tag(Token::EngineTime), cut_err(parse_u32))
+                    .map(|(_, v)| ParsedField::EngineTime(v)),
+                (tag(Token::ContextName), cut_err(parse_string_lit))
                     .map(|(_, v)| ParsedField::ContextName(v)),
             )),
             alt((
-                (tag(Token::NonRepeaters), parse_u32).map(|(_, v)| ParsedField::NonRepeaters(v)),
-                (tag(Token::MaxRepetitions), parse_u32)
+                (tag(Token::NonRepeaters), cut_err(parse_u32))
+                    .map(|(_, v)| ParsedField::NonRepeaters(v)),
+                (tag(Token::MaxRepetitions), cut_err(parse_u32))
                     .map(|(_, v)| ParsedField::MaxRepetitions(v)),
-                (tag(Token::ReqId), parse_u32).map(|(_, v)| ParsedField::ReqId(v)),
+                (tag(Token::ReqId), cut_err(parse_u32)).map(|(_, v)| ParsedField::ReqId(v)),
             )),
             alt((
                 parse_wait,

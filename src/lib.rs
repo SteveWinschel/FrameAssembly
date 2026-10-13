@@ -1,5 +1,3 @@
-#![warn(missing_docs)]
-#![warn(clippy::missing_docs_in_private_items)]
 //! # FrameAssembly
 //!
 //! A Domain-Specific Language (DSL) for writing deterministic network traffic to `.pcap` files.
@@ -18,21 +16,24 @@
 //! Flows encapsulate sequences of packet transmissions between endpoints.
 //! ```frameassembly
 //! FLOW tcp_handshake(client, server) {
-//!     client -> server TCP SYN PAYLOAD "Hello" 
+//!     client -> server TCP SYN PAYLOAD "Hello"
 //!     client <- server TCP SYN ACK PAYLOAD "World"
-//!     client -> server TCP ACK PAYLOAD "!" 
+//!     client -> server TCP ACK PAYLOAD "!"
 //! }
 //! ```
 //!
 //! ### 3. Compile Block
 //! The `COMPILE` block executes flows.
 //! ```frameassembly
-//! COMPILE { 
+//! COMPILE {
 //!     LOOP 100 {
-//!         tcp_handshake(example_client, google_dns) 
+//!         tcp_handshake(example_client, google_dns)
 //!     }
 //! }
 //! ```
+
+#![warn(missing_docs)]
+#![warn(clippy::missing_docs_in_private_items)]
 
 extern crate alloc;
 
@@ -50,7 +51,7 @@ pub mod packet;
 pub mod parser;
 /// PCAP file writing.
 pub mod pcap;
-/// SNMPv3 Cryptography.
-pub mod snmp_crypto;
 /// SNMP packet builder.
 pub mod snmp_builder;
+/// SNMPv3 Cryptography.
+pub mod snmp_crypto;

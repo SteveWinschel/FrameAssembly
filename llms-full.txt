@@ -4,6 +4,7 @@
 
 ## Documentation and Usage
 # FrameAssembly
+[![Crates.io](https://img.shields.io/crates/v/frameassembly.svg)](https://crates.io/crates/frameassembly)
 
 > [!WARNING]
 > **Experimental Prototype**
@@ -26,15 +27,30 @@ It is meant to be used for network security research, education, and testing.
 You need [Rust and Cargo](https://rustup.rs/) installed.
 
 ### Installation
+
+**Primary Method (via Cargo):**
+```bash
+cargo install frameassembly
+```
+
+**Alternative Method (from source):**
 Clone the repository and enter the directory:
 ```bash
 git clone https://github.com/stevewinschel/frameassembly.git
 cd frameassembly
 ```
 
-## Syntax Guide
+### Editor Support (VS Code)
 
-FrameAssembly uses a strict, keyword-oriented syntax. Property assignments do not require an `=` sign (though optionally supported for backward compatibility).
+A VS Code extension providing syntax highlighting for `.fasm` files is included in the repository. 
+
+To install it manually, you can use the command line:
+```bash
+code --install-extension frameassembly-vscode/frameassembly-vscode-0.12.0.vsix
+```
+Alternatively, in VS Code, open the Extensions view, click the `...` menu, and select **Install from VSIX...** to install the file from the `frameassembly-vscode` directory.
+
+## Syntax Guide
 
 ### 1. Hosts
 Hosts are defined using the `HOST` keyword. They act as network endpoints.
@@ -66,8 +82,8 @@ The arrow dictates the packet's source and destination:
 *   `SNMP1`, `SNMP2`, `SNMP3` (First-class support for SNMP Traps)
 
 #### Port Definitions
-*   `SRCPORT <port>`: Defines the source port. (Optional: auto-calculated)
-*   `DSTPORT <port>`: Defines the destination port. (Optional: auto-calculated)
+*   `SRCPORT <port>`: Defines the source port. (Optional: defaults to `12345`)
+*   `DSTPORT <port>`: Defines the destination port. (Optional: defaults to `162` for SNMP `TRAP`/`INFORM`, `161` for SNMP `GET`/`SET`/`GETNEXT`/`GETBULK`/`RESPONSE`, and `80` for other protocols)
 
 #### TCP Flags
 Only available when the protocol is `TCP`. You can chain flags separated by spaces.
@@ -80,9 +96,15 @@ Only available when the protocol is `TCP`. You can chain flags separated by spac
 *   `ECE`
 *   `CWR`
 
-#### SNMP Flags
-Only available when the protocol is `SNMP1`, `SNMP2`, or `SNMP3`.
-*   `TRAP`: Identifies the packet as an SNMP trap.
+#### SNMP PDU Types
+Available when the protocol is `SNMP1`, `SNMP2`, or `SNMP3`:
+*   `TRAP` (default): Identifies the packet as an SNMP Trap.
+*   `INFORM`: Identifies the packet as an SNMP InformRequest (SNMPv2c/v3).
+*   `GET`: SNMP GetRequest.
+*   `GETNEXT`: SNMP GetNextRequest.
+*   `GETBULK`: SNMP GetBulkRequest (SNMPv2c/v3).
+*   `SET`: SNMP SetRequest.
+*   `RESPONSE`: SNMP Response PDU.
 
 #### Packet Properties
 These properties follow the protocol and flag definitions. They are defined using space-separated key-value pairs.
@@ -91,17 +113,43 @@ These properties follow the protocol and flag definitions. They are defined usin
 *   `WIN <number>`: Sets the TCP window size. (Optional)
 *   `PAYLOAD "<string>"`: Appends a string payload to the packet.
 *   `COMMUNITY "<string>"`: Sets the community string for `SNMP1` and `SNMP2` traps.
-*   `USER "<string>"`: Sets the USM authentication user name for `SNMP3` traps.
-*   `ENGINEID "<string>"`: Sets the engine ID for `SNMP3` traps.
-*   `ENGINEBOOTS <number>`: Sets the authoritative engine boots for `SNMP3`.
-*   `ENGINETIME <number>`: Sets the authoritative engine time for `SNMP3`.
-*   `CONTEXTNAME "<string>"`: Sets the context name for `SNMP3`.
-*   `AUTH <MD5|SHA|SHA256|SHA384|SHA512> "<password>"`: Sets the authentication type and password for `SNMP3`.
-*   `PRIV <DES|AES> "<password>"`: Sets the privacy type and password for `SNMP3`.
 *   `SYSUPTIME <number>`: Sets the time stamp (SysUpTime) for SNMP traps.
 *   `OID <string> | "<string>"`: Sets the primary Object Identifier for the SNMP trap. Quotes are optional; raw OIDs (e.g., `1.3.6.1.4.1`) and IPv4-formatted strings are natively supported.
+*   `NONREPEATERS <number>`: Sets non-repeaters for `GETBULK` requests (default: 0).
+*   `MAXREPETITIONS <number>`: Sets max-repetitions for `GETBULK` requests (default: 10).
+*   `REQID <number>`: Sets the request ID for SNMP messages (default: 1).
 *   `WAIT <number><suffix>`: Introduces an artificial delay before sending the next packet. (Optional: defaults to 10ms)
     *   Supported suffixes: `ms` (milliseconds), `s` (seconds), `m` (minutes).
+
+#### SNMPv1 Trap Specifics
+*   `ENTERPRISE <oid>`: Sets the enterprise OID (falls back to `OID` if omitted, default: `1.3.6.1.4.1`).
+*   `AGENTIP <ip>`: Sets the IPv4 address of the agent sending the trap.
+*   `GENTRAP <0..6>`: Sets the Generic Trap code (0: coldStart, 1: warmStart, 2: linkDown, 3: linkUp, 4: authenticationFailure, 5: egpNeighborLoss, 6: enterpriseSpecific). Standard RFC 1157 generic trap OIDs (`1.3.6.1.6.3.1.1.5.1`..=`6`) automatically map to 0..=5 when omitted.
+*   `SPECTRAP <number>`: Sets the Specific Trap code (default: 0 for generic traps, 1 for enterpriseSpecific traps).
+
+#### SNMPv3 USM Cryptography
+*   `USER "<string>"`: Sets the USM authentication user name for `SNMP3` traps.
+*   `ENGINEID "<hex>"`: Authoritative engine ID in hex string format (e.g. `"8000000001"`).
+*   `ENGINEBOOTS <number>`: Authoritative engine boot count (default: 0).
+*   `ENGINETIME <number>`: Authoritative engine time in seconds (default: 0).
+*   `CONTEXTNAME "<string>"`: SNMPv3 context name.
+*   `AUTH <MD5|SHA|SHA256|SHA384|SHA512> "<password>"`: Configures USM authentication.
+*   `PRIV <DES|AES> "<password>"`: Configures USM privacy encryption (RFC 3414 DES-CBC with pre-IV XOR salt and RFC 3826 AES-128-CFB).
+
+#### Variable Bindings (VARBIND)
+You can append multiple `VARBIND` statements to any SNMP packet:
+*   `VARBIND <oid> NULLVAL`: Encodes an ASN.1 NULL value.
+*   `VARBIND <oid> STRING "<text>"`: Encodes an OctetString.
+*   `VARBIND <oid> INT <signed_i32>`: Encodes a 32-bit signed integer (supports negative values like `-12` for optical dBm levels).
+*   `VARBIND <oid> TIMETICKS <u32>`: Encodes TimeTicks (in hundredths of a second).
+*   `VARBIND <oid> IPVAL <ipv4>`: Encodes an IPv4 NetworkAddress / IpAddress.
+*   `VARBIND <oid> OIDVAL <oid>`: Encodes an Object Identifier value.
+*   `VARBIND <oid> COUNTER32 <u32>`: Encodes an SMIv1/SMIv2 32-bit Counter.
+*   `VARBIND <oid> GAUGE32 <u32>`: Encodes an SMIv1/SMIv2 32-bit Gauge.
+*   `VARBIND <oid> COUNTER64 <u64>`: Encodes an SMIv2 64-bit Counter (SNMPv2c/SNMPv3 only).
+
+> [!NOTE]
+> Per RFC 3416, SNMPv2c/v3 `TRAP` and `INFORM` PDUs automatically prepend `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) and `snmpTrapOID.0` (`1.3.6.1.6.3.1.1.4.1.0`) as the first two variable bindings before appending user-defined `VARBIND` items.
 
 ### 3. Compile Block
 The `COMPILE` block serves as the main entry point to execute flows. You can invoke previously defined `FLOW`s, passing `HOST`s as arguments. You can also use `LOOP` to repeat a sequence of flows.
@@ -156,7 +204,13 @@ COMPILE {
 }
 ```
 
-To compile your script into a PCAP file, run:
+To compile your script into a PCAP file, run the globally installed binary:
+
+```bash
+frameassembly demo.fasm
+```
+
+Or, if you are running from the source repository:
 
 ```bash
 cargo run --release demo.fasm
@@ -181,31 +235,150 @@ use core::net::IpAddr;
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostDef<'a> {
+    /// The name of the host.
     pub name: &'a str,
+    /// The IP address of the host.
     pub ip: IpAddr,
+    /// The optional MAC address of the host.
     pub mac: Option<[u8; 6]>,
 }
 
 /// The direction of the packet in a template statement.
+///
+/// # Examples
+/// ```
+/// use frameassembly::ast::Direction;
+/// let dir = Direction::LeftToRight;
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Direction {
+    /// -> operator
     LeftToRight, // ->
+    /// <- operator
     RightToLeft, // <-
 }
 
+/// Represents a TCP flag.
+///
+/// # Examples
+/// ```
+/// use frameassembly::ast::TcpFlag;
+/// let flag = TcpFlag::Syn;
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TcpFlag {
+    /// SYN flag
     Syn,
+    /// ACK flag
     Ack,
+    /// FIN flag
+    Fin,
+    /// RST flag
+    Rst,
+    /// PSH flag
+    Psh,
+    /// URG flag
+    Urg,
+    /// ECE flag
+    Ece,
+    /// CWR flag
+    Cwr,
 }
 
+/// Represents the supported network protocols.
+///
+/// # Examples
+/// ```
+/// use frameassembly::ast::Protocol;
+/// let proto = Protocol::Tcp;
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Protocol {
+    /// Transmission Control Protocol
     Tcp,
+    /// User Datagram Protocol
     Udp,
+    /// Simple Network Management Protocol v1
     Snmp1,
+    /// Simple Network Management Protocol v2c
     Snmp2,
+    /// Simple Network Management Protocol v3
     Snmp3,
+}
+
+/// Represents the type of SNMP PDU.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SnmpPduType {
+    /// Trap PDU
+    Trap,
+    /// GetRequest PDU
+    Get,
+    /// SetRequest PDU
+    Set,
+    /// Response PDU
+    Response,
+    /// InformRequest PDU
+    Inform,
+    /// GetNextRequest PDU
+    GetNext,
+    /// GetBulkRequest PDU
+    GetBulk,
+}
+
+/// Represents the SNMP Auth type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SnmpAuthType {
+    /// HMAC-MD5-96
+    Md5,
+    /// HMAC-SHA-96
+    Sha,
+    /// HMAC-SHA-256
+    Sha256,
+    /// HMAC-SHA-384
+    Sha384,
+    /// HMAC-SHA-512
+    Sha512,
+}
+
+/// Represents the SNMP Priv type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SnmpPrivType {
+    /// DES privacy
+    Des,
+    /// AES privacy
+    Aes,
+}
+
+/// Represents the value of a VarBind.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VarBindType<'a> {
+    /// Null value
+    Null,
+    /// OctetString value
+    String(&'a str),
+    /// Signed 32-bit integer value
+    Int(i32),
+    /// TimeTicks value
+    TimeTicks(u32),
+    /// IpAddress value
+    Ip(IpAddr),
+    /// Object Identifier value
+    OidVal(&'a str),
+    /// 32-bit Counter value
+    Counter32(u32),
+    /// 32-bit Gauge value
+    Gauge32(u32),
+    /// 64-bit Counter value
+    Counter64(u64),
+}
+
+/// Represents a single VarBind.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VarBindAst<'a> {
+    /// The Object Identifier
+    pub oid: &'a str,
+    /// The value associated with the OID
+    pub val: VarBindType<'a>,
 }
 
 /// A single frame statement inside a flow.
@@ -216,26 +389,72 @@ pub enum Protocol {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrameStatement<'a> {
+    /// The caller (source).
     pub caller: &'a str,
+    /// The direction of the packet.
     pub dir: Direction,
+    /// The callee (destination).
     pub callee: &'a str,
+    /// The protocol used.
     pub protocol: Protocol,
+    /// Optional source port.
     pub src_port: Option<u16>,
+    /// Optional destination port.
     pub dst_port: Option<u16>,
 
     // TCP specific
+    /// TCP flags.
     pub flags: Vec<TcpFlag>,
+    /// Optional TCP sequence number.
     pub seq: Option<u32>,
+    /// Optional TCP acknowledgment number.
     pub ack_num: Option<u32>,
+    /// Optional TCP window size.
     pub win: Option<u16>,
+    /// Optional payload data.
     pub payload: Option<&'a str>,
 
     // SNMP specific
+    /// Optional SNMP community string.
     pub community: Option<&'a str>,
+    /// Optional SNMP user.
     pub user: Option<&'a str>,
+    /// Optional SNMP OID.
     pub oid: Option<&'a str>,
+    /// Optional SNMP system uptime.
     pub sys_up_time: Option<u32>,
+    /// PDU Type.
+    pub pdu_type: Option<SnmpPduType>,
+    /// Optional enterprise OID for v1 traps.
+    pub enterprise: Option<&'a str>,
+    /// Optional agent IP for v1 traps.
+    pub agent_ip: Option<IpAddr>,
+    /// Optional generic trap for v1 traps.
+    pub gen_trap: Option<u32>,
+    /// Optional specific trap for v1 traps.
+    pub spec_trap: Option<u32>,
+    /// Optional engine ID for v3.
+    pub engine_id: Option<&'a str>,
+    /// Optional engine boots for v3.
+    pub engine_boots: Option<u32>,
+    /// Optional engine time for v3.
+    pub engine_time: Option<u32>,
+    /// Optional context name for v3.
+    pub context_name: Option<&'a str>,
+    /// Optional auth params for v3.
+    pub auth: Option<(SnmpAuthType, &'a str)>,
+    /// Optional priv params for v3.
+    pub priv_param: Option<(SnmpPrivType, &'a str)>,
+    /// List of variable bindings.
+    pub varbinds: Vec<VarBindAst<'a>>,
+    /// Optional Non-Repeaters for GETBULK.
+    pub non_repeaters: Option<u32>,
+    /// Optional Max-Repetitions for GETBULK.
+    pub max_repetitions: Option<u32>,
+    /// Optional Request ID.
+    pub req_id: Option<u32>,
 
+    /// Optional wait time before sending the packet (in nanoseconds).
     pub wait: Option<u64>,
 }
 
@@ -249,8 +468,11 @@ pub struct FrameStatement<'a> {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FlowDef<'a> {
+    /// The name of the flow.
     pub name: &'a str,
+    /// The parameters of the flow.
     pub params: Vec<&'a str>,
+    /// The statements inside the flow.
     pub statements: Vec<FrameStatement<'a>>,
 }
 
@@ -262,9 +484,17 @@ pub enum Argument<'a> {
 }
 
 /// A flow invocation, e.g., `tcp_handshake(my_client, google_dns)`
+///
+/// # Examples
+/// ```
+/// use frameassembly::ast::{TemplateInvocation, Argument};
+/// let inv = TemplateInvocation { name: "handshake", args: vec![] };
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TemplateInvocation<'a> {
+    /// The name of the flow being invoked.
     pub name: &'a str,
+    /// The arguments passed to the flow.
     pub args: Vec<Argument<'a>>,
 }
 
@@ -278,10 +508,19 @@ pub enum RunStatement<'a> {
 }
 
 /// The root of the AST containing all assignments, flows, and the compile block.
+///
+/// # Examples
+/// ```
+/// use frameassembly::ast::Program;
+/// let prog = Program { hosts: vec![], flows: vec![], compile_block: vec![] };
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program<'a> {
+    /// The list of host definitions.
     pub hosts: Vec<HostDef<'a>>,
+    /// The list of flow definitions.
     pub flows: Vec<FlowDef<'a>>,
+    /// The list of statements in the compile block.
     pub compile_block: Vec<RunStatement<'a>>,
 }
 ```
@@ -297,7 +536,7 @@ HOST example_server {
 // Written horizontally -> Intuitive for network engineers
 HOST example_nms { IP 10.0.10.100  }
 
-// A broadcast can be declard like an ordinary host
+// A broadcast can be declared like an ordinary host
 HOST broadcast { IP 255.255.255.255  }
 
 FLOW tcp_handshake(client, server) {
@@ -307,20 +546,23 @@ FLOW tcp_handshake(client, server) {
 }
 
 FLOW snmp_v1_trap(agent, nms) {
-    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.6.3.1.1.5.2
+    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.6.3.1.1.5.2 AGENTIP 10.0.10.5 GENTRAP 2
 }
 
 FLOW snmp_v2_trap(agent, nms) {
-    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3"
+    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" SYSUPTIME 4200 VARBIND 1.3.6.1.2.1.2.2.1.1.1 INT -15 VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "eth0"
 }
 
 FLOW snmp_v3_trap(agent, nms) {
-    agent -> nms SNMP3 TRAP USER "admin" OID "1.3.6.1.6.3.1.1.5.3"
+    agent -> nms SNMP3 TRAP USER "admin" ENGINEID "8000000001" ENGINEBOOTS 1 ENGINETIME 100 AUTH SHA "authpass123" PRIV AES "privpass123" OID "1.3.6.1.6.3.1.1.5.3" VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER64 123456789
 }
 
 COMPILE {
+    LOOP 5 {
         tcp_handshake(example_server, example_nms)
         snmp_v1_trap(example_server, example_nms)
         snmp_v2_trap(example_server, example_nms)
         snmp_v3_trap(example_server, example_nms)
-}```
+    }
+}
+```

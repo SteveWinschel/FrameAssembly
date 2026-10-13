@@ -36,7 +36,7 @@ fn resolve_endpoint<'a>(
 /// ```no_run
 /// use frameassembly::ast::Program;
 /// use frameassembly::backend::generate_pcap;
-/// 
+///
 /// let program = Program { hosts: vec![], flows: vec![], compile_block: vec![] };
 /// generate_pcap(&program, "output.pcap").unwrap();
 /// ```
@@ -67,17 +67,25 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
 
     let mut current_time_ns: u64 = 1_700_000_000_000_000_000;
 
+    /// State of a bidirectional TCP connection tracked during flow evaluation.
     #[allow(dead_code)]
     #[derive(Clone)]
     struct TcpConnectionState {
+        /// IP address of the first endpoint.
         pub ip1: std::net::IpAddr,
+        /// Port of the first endpoint.
         pub port1: u16,
+        /// Current sequence number for the first endpoint.
         pub seq1: u32,
+        /// IP address of the second endpoint.
         pub ip2: std::net::IpAddr,
+        /// Port of the second endpoint.
         pub port2: u16,
+        /// Current sequence number for the second endpoint.
         pub seq2: u32,
     }
-    let mut tcp_connections: HashMap<(std::net::IpAddr, std::net::IpAddr), TcpConnectionState> = HashMap::new();
+    let mut tcp_connections: HashMap<(std::net::IpAddr, std::net::IpAddr), TcpConnectionState> =
+        HashMap::new();
 
     let mut execute_invocation = |invocation: &TemplateInvocation| -> Result<(), String> {
         let flow = flows
@@ -124,24 +132,44 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
             let mut final_ack_num = stmt.ack_num;
 
             if stmt.protocol == Protocol::Tcp {
-                let key = if src_ip < dst_ip { (src_ip, dst_ip) } else { (dst_ip, src_ip) };
-                
-                let state = tcp_connections.entry(key).or_insert_with(|| {
-                    TcpConnectionState {
+                let key = if src_ip < dst_ip {
+                    (src_ip, dst_ip)
+                } else {
+                    (dst_ip, src_ip)
+                };
+
+                let state = tcp_connections
+                    .entry(key)
+                    .or_insert_with(|| TcpConnectionState {
                         ip1: key.0,
-                        port1: if src_ip == key.0 { src_port.unwrap_or(12345) } else { dst_port.unwrap_or(80) },
+                        port1: if src_ip == key.0 {
+                            src_port.unwrap_or(12345)
+                        } else {
+                            dst_port.unwrap_or(80)
+                        },
                         seq1: 1000,
                         ip2: key.1,
-                        port2: if src_ip == key.1 { src_port.unwrap_or(12345) } else { dst_port.unwrap_or(80) },
+                        port2: if src_ip == key.1 {
+                            src_port.unwrap_or(12345)
+                        } else {
+                            dst_port.unwrap_or(80)
+                        },
                         seq2: 1000,
-                    }
-                });
+                    });
 
                 if src_port.is_none() {
-                    src_port = Some(if src_ip == state.ip1 { state.port1 } else { state.port2 });
+                    src_port = Some(if src_ip == state.ip1 {
+                        state.port1
+                    } else {
+                        state.port2
+                    });
                 }
                 if dst_port.is_none() {
-                    dst_port = Some(if dst_ip == state.ip1 { state.port1 } else { state.port2 });
+                    dst_port = Some(if dst_ip == state.ip1 {
+                        state.port1
+                    } else {
+                        state.port2
+                    });
                 }
 
                 let (sender_seq, receiver_seq) = if src_ip == state.ip1 {
@@ -158,14 +186,28 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                 }
 
                 let payload_len = stmt.payload.map(|s| s.len() as u32).unwrap_or(0);
-                let advance = (if stmt.flags.contains(&TcpFlag::Syn) || stmt.flags.contains(&TcpFlag::Fin) { 1 } else { 0 }) + payload_len;
-                
+                let advance =
+                    (if stmt.flags.contains(&TcpFlag::Syn) || stmt.flags.contains(&TcpFlag::Fin) {
+                        1
+                    } else {
+                        0
+                    }) + payload_len;
+
                 *sender_seq = final_seq.unwrap_or(*sender_seq) + advance;
             }
 
             let src_port = src_port.unwrap_or(12345);
             let dst_port = dst_port.unwrap_or(match stmt.protocol {
-                Protocol::Snmp1 | Protocol::Snmp2 | Protocol::Snmp3 => 162,
+                Protocol::Snmp1 | Protocol::Snmp2 | Protocol::Snmp3 => {
+                    match stmt.pdu_type.as_ref().unwrap_or(&SnmpPduType::Trap) {
+                        SnmpPduType::Trap | SnmpPduType::Inform => 162,
+                        SnmpPduType::Get
+                        | SnmpPduType::GetNext
+                        | SnmpPduType::GetBulk
+                        | SnmpPduType::Set
+                        | SnmpPduType::Response => 161,
+                    }
+                }
                 _ => 80,
             });
 
@@ -207,7 +249,8 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         Some(snmp_payload.as_slice()),
                         src_mac,
                         dst_mac,
-                    ).map_err(|e| alloc::format!("{:?}", e))?
+                    )
+                    .map_err(|e| alloc::format!("{:?}", e))?
                 }
                 Protocol::Snmp2 => {
                     let snmp_payload = crate::snmp_builder::build_snmp2_payload(stmt)?;
@@ -219,7 +262,8 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         Some(snmp_payload.as_slice()),
                         src_mac,
                         dst_mac,
-                    ).map_err(|e| alloc::format!("{:?}", e))?
+                    )
+                    .map_err(|e| alloc::format!("{:?}", e))?
                 }
                 Protocol::Snmp3 => {
                     let snmp_payload = crate::snmp_builder::build_snmp3_payload(stmt)?;
@@ -231,7 +275,8 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         Some(snmp_payload.as_slice()),
                         src_mac,
                         dst_mac,
-                    ).map_err(|e| alloc::format!("{:?}", e))?
+                    )
+                    .map_err(|e| alloc::format!("{:?}", e))?
                 }
             };
 

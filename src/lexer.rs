@@ -69,9 +69,6 @@ pub enum Token<'a> {
     /// `DSTPORT` keyword
     #[token("DSTPORT")]
     DstPort,
-    /// `PORT` keyword
-    #[token("PORT")]
-    Port,
     /// `SEQ` keyword
     #[token("SEQ")]
     Seq,

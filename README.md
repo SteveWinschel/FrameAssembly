@@ -41,7 +41,7 @@ A VS Code extension providing syntax highlighting for `.fasm` files is included 
 
 To install it manually, you can use the command line:
 ```bash
-code --install-extension frameassembly-vscode/frameassembly-vscode-0.12.0.vsix
+code --install-extension frameassembly-vscode/frameassembly-vscode-0.12.1.vsix
 ```
 Alternatively, in VS Code, open the Extensions view, click the `...` menu, and select **Install from VSIX...** to install the file from the `frameassembly-vscode` directory.
 

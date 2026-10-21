@@ -1,0 +1,25 @@
+// PROMPT: Simulate TCP receiver buffer exhaustion advertising a zero window (WIN 0), a zero-window probe, and subsequent window recovery (WIN 65535).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define a bulk storage sender with IP 10.20.0.10.
+HOST storage_sender { IP 10.20.0.10 MAC 00:1b:21:aa:00:01 }
+
+// INSTRUCTION: Define a slow ingestion receiver with IP 10.20.0.20.
+HOST slow_receiver { IP 10.20.0.20 MAC 00:1b:21:aa:00:02 }
+
+// INSTRUCTION: Define a flow showing window shrinkage to 0, a 1-byte zero-window probe after 1s, and a window update back to 65535.
+FLOW zero_window_recovery(sender, receiver) {
+    sender -> receiver TCP SYN SRCPORT 42000 DSTPORT 9100 SEQ 1000 WIN 64240 WAIT 5ms
+    sender <- receiver TCP SYN ACK SRCPORT 9100 DSTPORT 42000 SEQ 5000 ACKNUM 1001 WIN 4096 WAIT 5ms
+    sender -> receiver TCP PSH ACK SRCPORT 42000 DSTPORT 9100 SEQ 1001 ACKNUM 5001 WIN 64240 PAYLOAD "CHUNK_FILLING_BUFFER" WAIT 10ms
+    sender <- receiver TCP ACK SRCPORT 9100 DSTPORT 42000 SEQ 5001 ACKNUM 1021 WIN 0 WAIT 1s
+    sender -> receiver TCP ACK SRCPORT 42000 DSTPORT 9100 SEQ 1020 ACKNUM 5001 WIN 64240 PAYLOAD "Z" WAIT 10ms
+    sender <- receiver TCP ACK SRCPORT 9100 DSTPORT 42000 SEQ 5001 ACKNUM 1021 WIN 0 WAIT 500ms
+    sender <- receiver TCP ACK SRCPORT 9100 DSTPORT 42000 SEQ 5001 ACKNUM 1021 WIN 65535 WAIT 5ms
+    sender -> receiver TCP PSH ACK SRCPORT 42000 DSTPORT 9100 SEQ 1021 ACKNUM 5001 WIN 64240 PAYLOAD "RESUMED_STREAM_DATA" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the TCP zero-window probe and recovery scenario.
+COMPILE {
+    zero_window_recovery(storage_sender, slow_receiver)
+}

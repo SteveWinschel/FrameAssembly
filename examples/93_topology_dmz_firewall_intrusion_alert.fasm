@@ -1,0 +1,27 @@
+// PROMPT: Simulate an external attacker scanning a DMZ firewall (SYN, FIN+PSH+URG), the firewall blocking with RST ACK, and alerting a SOC SIEM via Syslog UDP and SNMPv3 INFORM.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, FIN, PSH, URG, RST, ACK, UDP, SNMP3, INFORM, RESPONSE, SRCPORT, DSTPORT, WIN, PAYLOAD, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, PRIV, AES, REQID, OID, SYSUPTIME, VARBIND, IPVAL, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an external threat actor host with IP 203.0.113.66.
+HOST threat_actor { IP 203.0.113.66 MAC de:ad:00:93:00:66 }
+
+// INSTRUCTION: Define the DMZ perimeter firewall with IP 198.51.100.1.
+HOST dmz_firewall { IP 198.51.100.1 MAC 00:1b:17:93:00:01 }
+
+// INSTRUCTION: Define the internal SOC SIEM platform with IP 10.93.0.200.
+HOST soc_siem { IP 10.93.0.200 MAC 00:1b:17:93:00:c8 }
+
+// INSTRUCTION: Define a 3-host flow capturing the port scan, RST rejection, UDP syslog alert, and acknowledged SNMPv3 INFORM.
+FLOW intrusion_detection_workflow(attacker, fw, siem) {
+    attacker -> fw TCP SYN SRCPORT 61001 DSTPORT 22 WIN 1024 WAIT 2ms
+    attacker <- fw TCP RST ACK SRCPORT 22 DSTPORT 61001 WIN 0 WAIT 1ms
+    attacker -> fw TCP FIN PSH URG SRCPORT 61002 DSTPORT 3389 WIN 1024 WAIT 2ms
+    attacker <- fw TCP RST ACK SRCPORT 3389 DSTPORT 61002 WIN 0 WAIT 1ms
+    fw -> siem UDP SRCPORT 51514 DSTPORT 514 PAYLOAD "<33>1 2026-10-21T15:00:00Z dmz-fw01 IPS - - Blocked Xmas scan from 203.0.113.66" WAIT 5ms
+    fw -> siem SNMP3 INFORM USER "soc_alert" ENGINEID "80001f8880930001" ENGINEBOOTS 12 ENGINETIME 44000 AUTH SHA256 "soc_sha256_pass" PRIV AES "soc_aes128_pass" REQID 10401 OID 1.3.6.1.4.1.25461.2.1.3.2.0.1 SYSUPTIME 4400000 VARBIND 1.3.6.1.4.1.25461.2.1.3.1.2.0 IPVAL 203.0.113.66 VARBIND 1.3.6.1.4.1.25461.2.1.3.1.3.0 STRING "SCAN: TCP Xmas Tree Detected" WAIT 10ms
+    fw <- siem SNMP3 RESPONSE USER "soc_alert" ENGINEID "80001f8880930001" ENGINEBOOTS 12 ENGINETIME 44000 AUTH SHA256 "soc_sha256_pass" PRIV AES "soc_aes128_pass" REQID 10401 VARBIND 1.3.6.1.4.1.25461.2.1.3.1.2.0 IPVAL 203.0.113.66 VARBIND 1.3.6.1.4.1.25461.2.1.3.1.3.0 STRING "SCAN: TCP Xmas Tree Detected" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the DMZ firewall intrusion detection scenario.
+COMPILE {
+    intrusion_detection_workflow(threat_actor, dmz_firewall, soc_siem)
+}

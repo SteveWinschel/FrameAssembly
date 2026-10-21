@@ -1,0 +1,21 @@
+// PROMPT: Simulate VXLAN overlay tunnel encapsulation traffic between two VTEP leaf switches on UDP port 4789.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define VTEP Leaf Switch 1 with underlay IP 10.250.0.11 and MAC 00:02:c9:aa:00:11.
+HOST vtep_leaf_1 { IP 10.250.0.11 MAC 00:02:c9:aa:00:11 }
+
+// INSTRUCTION: Define VTEP Leaf Switch 2 with underlay IP 10.250.0.12 and MAC 00:02:c9:aa:00:12.
+HOST vtep_leaf_2 { IP 10.250.0.12 MAC 00:02:c9:aa:00:12 }
+
+// INSTRUCTION: Define a flow exchanging VXLAN VNI 10500 encapsulated frames over UDP destination port 4789.
+FLOW vxlan_tunnel_traffic(vtep_a, vtep_b) {
+    vtep_a -> vtep_b UDP SRCPORT 55100 DSTPORT 4789 PAYLOAD "VXLAN_VNI_10500_INNER_FRAME_REQ" WAIT 2ms
+    vtep_a <- vtep_b UDP SRCPORT 55200 DSTPORT 4789 PAYLOAD "VXLAN_VNI_10500_INNER_FRAME_REP" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to repeat the VXLAN overlay exchange 15 times.
+COMPILE {
+    LOOP 15 {
+        vxlan_tunnel_traffic(vtep_leaf_1, vtep_leaf_2)
+    }
+}

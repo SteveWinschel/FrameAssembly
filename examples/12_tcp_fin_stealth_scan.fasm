@@ -1,0 +1,22 @@
+// PROMPT: Simulate a stealth TCP FIN scan probing closed and open ports on a target host.
+// TOKENS: HOST, IP, FLOW, ->, <-, TCP, FIN, RST, ACK, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a security scanner host with IP 10.0.50.9.
+HOST recon_scanner { IP 10.0.50.9 }
+
+// INSTRUCTION: Define a DMZ host being scanned with IP 10.0.50.25.
+HOST dmz_host { IP 10.0.50.25 }
+
+// INSTRUCTION: Define a flow sending bare TCP FIN packets to ports 25, 80, and 3306 and receiving RST ACK from closed ports.
+FLOW fin_stealth_scan(scanner, target) {
+    scanner -> target TCP FIN SRCPORT 51111 DSTPORT 25 SEQ 0 WIN 2048 WAIT 10ms
+    scanner <- target TCP RST ACK SRCPORT 25 DSTPORT 51111 WIN 0 WAIT 5ms
+    scanner -> target TCP FIN SRCPORT 51112 DSTPORT 80 SEQ 0 WIN 2048 WAIT 10ms
+    scanner -> target TCP FIN SRCPORT 51113 DSTPORT 3306 SEQ 0 WIN 2048 WAIT 10ms
+    scanner <- target TCP RST ACK SRCPORT 3306 DSTPORT 51113 WIN 0 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the FIN stealth scan.
+COMPILE {
+    fin_stealth_scan(recon_scanner, dmz_host)
+}

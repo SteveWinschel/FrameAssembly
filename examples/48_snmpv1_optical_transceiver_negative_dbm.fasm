@@ -1,0 +1,18 @@
+// PROMPT: Generate an SNMPv1 optical transceiver DOM alert trap carrying negative signed 32-bit integers (INT -18 and INT -24) representing RX/TX optical power in dBm.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, INT, STRING, COMPILE
+
+// INSTRUCTION: Define a DWDM optical transport shelf with IP 10.107.0.5.
+HOST dwdm_shelf { IP 10.107.0.5 MAC 00:21:5a:00:07:05 }
+
+// INSTRUCTION: Define an optical network controller with IP 10.107.0.200.
+HOST optical_nms { IP 10.107.0.200 MAC 00:21:5a:00:07:c8 }
+
+// INSTRUCTION: Define a flow sending an SNMPv1 trap with negative INT varbinds for low optical RX dBm thresholds.
+FLOW snmpv1_optical_low_power(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "optical_mon" ENTERPRISE 1.3.6.1.4.1.2011.2.25 AGENTIP 10.107.0.5 GENTRAP 6 SPECTRAP 105 SYSUPTIME 777000 VARBIND 1.3.6.1.4.1.2011.2.25.1.1 STRING "SFP+-10G-ZR-Port-1/0/1" VARBIND 1.3.6.1.4.1.2011.2.25.1.2 INT -18 VARBIND 1.3.6.1.4.1.2011.2.25.1.3 INT -24
+}
+
+// INSTRUCTION: Compile block to execute the optical low-power SNMPv1 trap flow.
+COMPILE {
+    snmpv1_optical_low_power(dwdm_shelf, optical_nms)
+}

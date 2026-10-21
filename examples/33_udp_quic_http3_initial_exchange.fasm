@@ -1,0 +1,21 @@
+// PROMPT: Simulate an HTTP/3 over QUIC initial connection establishment and 0-RTT stream exchange on UDP port 443.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a browser client supporting HTTP/3 with IP 192.168.1.77.
+HOST h3_browser { IP 192.168.1.77 MAC f0:18:98:aa:bb:cc }
+
+// INSTRUCTION: Define an edge CDN server listening on UDP 443 with IP 198.51.100.88.
+HOST cdn_edge { IP 198.51.100.88 MAC f0:18:98:dd:ee:ff }
+
+// INSTRUCTION: Define a flow sending QUIC Initial, Handshake, and 1-RTT HTTP/3 GET frames over UDP port 443.
+FLOW quic_http3_exchange(browser, cdn) {
+    browser -> cdn UDP SRCPORT 55443 DSTPORT 443 PAYLOAD "QUIC_INITIAL_TLS13_CLIENT_HELLO" WAIT 5ms
+    browser <- cdn UDP SRCPORT 443 DSTPORT 55443 PAYLOAD "QUIC_INITIAL_SERVER_HELLO_HANDSHAKE" WAIT 5ms
+    browser -> cdn UDP SRCPORT 55443 DSTPORT 443 PAYLOAD "QUIC_1RTT_H3_HEADERS_GET_INDEX" WAIT 5ms
+    browser <- cdn UDP SRCPORT 443 DSTPORT 55443 PAYLOAD "QUIC_1RTT_H3_DATA_200_OK" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the QUIC HTTP/3 connection flow.
+COMPILE {
+    quic_http3_exchange(h3_browser, cdn_edge)
+}

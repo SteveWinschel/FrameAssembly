@@ -1,0 +1,27 @@
+// PROMPT: Simulate an Industrial Control System (ICS/SCADA) HMI polling a Programmable Logic Controller (PLC) over Modbus/TCP port 502 alongside SNMPv1 and SNMPv2c thermal alerts.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SNMP1, SNMP2, TRAP, SRCPORT, DSTPORT, PAYLOAD, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, OID, SYSUPTIME, VARBIND, INT, GAUGE32, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define the SCADA HMI master station with IP 192.168.200.10.
+HOST scada_hmi { IP 192.168.200.10 MAC 00:0e:8c:95:00:10 }
+
+// INSTRUCTION: Define an industrial Modbus/TCP PLC controller with IP 192.168.200.50.
+HOST modbus_plc { IP 192.168.200.50 MAC 00:0e:8c:95:00:50 }
+
+// INSTRUCTION: Define an industrial Ethernet switch monitoring cabinet temperature with IP 192.168.200.2.
+HOST din_rail_switch { IP 192.168.200.2 MAC 00:0e:8c:95:00:02 }
+
+// INSTRUCTION: Define a 3-host flow combining Modbus/TCP Function Code 03 holding register reads with industrial SNMPv1 and SNMPv2c traps.
+FLOW scada_plc_and_snmp(hmi, plc, ind_sw) {
+    hmi -> plc TCP SYN SRCPORT 50502 DSTPORT 502 WAIT 5ms
+    hmi <- plc TCP SYN ACK SRCPORT 502 DSTPORT 50502 WAIT 5ms
+    hmi -> plc TCP ACK SRCPORT 50502 DSTPORT 502 WAIT 2ms
+    hmi -> plc TCP PSH ACK SRCPORT 50502 DSTPORT 502 PAYLOAD "MODBUS_TCP_TID01_FC03_READ_REG_40001" WAIT 10ms
+    hmi <- plc TCP PSH ACK SRCPORT 502 DSTPORT 50502 PAYLOAD "MODBUS_TCP_TID01_FC03_RESP_VAL_1450RPM" WAIT 10ms
+    ind_sw -> hmi SNMP1 TRAP COMMUNITY "scada_public" ENTERPRISE 1.3.6.1.4.1.4329 AGENTIP 192.168.200.2 GENTRAP 6 SPECTRAP 12 SYSUPTIME 880000 VARBIND 1.3.6.1.4.1.4329.1.1.0 STRING "DIN-Rail Cabinet High Temp" VARBIND 1.3.6.1.4.1.4329.1.2.0 INT 72 WAIT 10ms
+    plc -> hmi SNMP2 TRAP COMMUNITY "scada_public" OID 1.3.6.1.4.1.4329.2.0.1 SYSUPTIME 880050 VARBIND 1.3.6.1.4.1.4329.2.1.0 GAUGE32 1450 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the ICS SCADA Modbus and SNMP monitoring flow.
+COMPILE {
+    scada_plc_and_snmp(scada_hmi, modbus_plc, din_rail_switch)
+}

@@ -1,0 +1,33 @@
+// PROMPT: Simulate a 4-host three-tier web application architecture (External Client -> Reverse Proxy Load Balancer -> App Server -> Database Server) in a single multi-parameter flow.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an external browser client with IP 198.51.100.12.
+HOST ext_client { IP 198.51.100.12 MAC 00:11:22:91:00:01 }
+
+// INSTRUCTION: Define an Nginx reverse proxy load balancer with IP 10.91.1.10.
+HOST nginx_lb { IP 10.91.1.10 MAC 00:11:22:91:00:02 }
+
+// INSTRUCTION: Define a backend Rust application server with IP 10.91.2.20.
+HOST app_server { IP 10.91.2.20 MAC 00:11:22:91:00:03 }
+
+// INSTRUCTION: Define a backend PostgreSQL database server with IP 10.91.3.30.
+HOST db_server { IP 10.91.3.30 MAC 00:11:22:91:00:04 }
+
+// INSTRUCTION: Define a 4-parameter flow tracing a user HTTPS request from client through load balancer and app tier to the database and back.
+FLOW three_tier_request(client, lb, app, db) {
+    client -> lb TCP SYN SRCPORT 54000 DSTPORT 443 WIN 65535 WAIT 2ms
+    client <- lb TCP SYN ACK SRCPORT 443 DSTPORT 54000 WIN 65535 WAIT 2ms
+    client -> lb TCP PSH ACK SRCPORT 54000 DSTPORT 443 PAYLOAD "GET /orders/42 HTTP/1.1" WAIT 2ms
+    lb -> app TCP SYN SRCPORT 48000 DSTPORT 8080 WIN 65535 WAIT 1ms
+    lb <- app TCP SYN ACK SRCPORT 8080 DSTPORT 48000 WIN 65535 WAIT 1ms
+    lb -> app TCP PSH ACK SRCPORT 48000 DSTPORT 8080 PAYLOAD "GET /internal/orders/42" WAIT 1ms
+    app -> db TCP PSH ACK SRCPORT 49000 DSTPORT 5432 PAYLOAD "SELECT * FROM orders WHERE id=42;" WAIT 1ms
+    app <- db TCP PSH ACK SRCPORT 5432 DSTPORT 49000 PAYLOAD "ORDER_ROW_42_SHIPPED" WAIT 2ms
+    lb <- app TCP PSH ACK SRCPORT 8080 DSTPORT 48000 PAYLOAD "200_JSON_ORDER_42" WAIT 1ms
+    client <- lb TCP PSH ACK SRCPORT 443 DSTPORT 54000 PAYLOAD "HTTP/1.1 200 OK {id:42,status:shipped}" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to execute the 4-host three-tier web application flow.
+COMPILE {
+    three_tier_request(ext_client, nginx_lb, app_server, db_server)
+}

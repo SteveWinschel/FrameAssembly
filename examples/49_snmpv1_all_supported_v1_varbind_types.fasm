@@ -1,0 +1,18 @@
+// PROMPT: Generate an SNMPv1 trap containing all 7 SMIv1-compatible VARBIND types (STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32) in a single packet.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32, COMPILE
+
+// INSTRUCTION: Define a multi-service edge router with IP 10.108.0.1.
+HOST edge_agent { IP 10.108.0.1 MAC 00:1a:a1:08:00:01 }
+
+// INSTRUCTION: Define an SMIv1 trap receiver with IP 10.108.0.100.
+HOST smiv1_nms { IP 10.108.0.100 MAC 00:1a:a1:08:00:64 }
+
+// INSTRUCTION: Define a flow sending a single SNMPv1 trap carrying STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, and GAUGE32 varbinds.
+FLOW snmpv1_all_smiv1_varbinds(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.8072 AGENTIP 10.108.0.1 GENTRAP 6 SPECTRAP 99 SYSUPTIME 50000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "edge-rtr-01" VARBIND 1.3.6.1.2.1.2.1.0 INT 24 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 50000 VARBIND 1.3.6.1.2.1.4.20.1.1.10.108.0.1 IPVAL 10.108.0.1 VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.8072.3.2.10 VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 9876543 VARBIND 1.3.6.1.2.1.2.2.1.5.1 GAUGE32 1000000000
+}
+
+// INSTRUCTION: Compile block to emit the multi-varbind SNMPv1 trap.
+COMPILE {
+    snmpv1_all_smiv1_varbinds(edge_agent, smiv1_nms)
+}

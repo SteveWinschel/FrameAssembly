@@ -1,0 +1,21 @@
+// PROMPT: Simulate a WireGuard VPN Noise_IKpsk2 handshake initiation, response, and encrypted transport data exchange over UDP port 51820.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a roaming laptop VPN peer with IP 198.51.100.42.
+HOST wg_roaming_peer { IP 198.51.100.42 MAC a4:83:e7:11:22:33 }
+
+// INSTRUCTION: Define a corporate WireGuard concentrator with IP 203.0.113.1.
+HOST wg_concentrator { IP 203.0.113.1 MAC a4:83:e7:99:88:77 }
+
+// INSTRUCTION: Define a flow exchanging WireGuard Type 1 Initiation, Type 2 Response, and Type 4 Transport Data packets on UDP port 51820.
+FLOW wireguard_tunnel_setup(initiator, responder) {
+    initiator -> responder UDP SRCPORT 51820 DSTPORT 51820 PAYLOAD "WG_TYPE1_HANDSHAKE_INITIATION" WAIT 10ms
+    initiator <- responder UDP SRCPORT 51820 DSTPORT 51820 PAYLOAD "WG_TYPE2_HANDSHAKE_RESPONSE" WAIT 10ms
+    initiator -> responder UDP SRCPORT 51820 DSTPORT 51820 PAYLOAD "WG_TYPE4_AEAD_CHACHA20_DATA_01" WAIT 5ms
+    initiator <- responder UDP SRCPORT 51820 DSTPORT 51820 PAYLOAD "WG_TYPE4_AEAD_CHACHA20_DATA_02" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the WireGuard VPN handshake flow.
+COMPILE {
+    wireguard_tunnel_setup(wg_roaming_peer, wg_concentrator)
+}

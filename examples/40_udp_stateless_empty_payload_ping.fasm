@@ -1,0 +1,21 @@
+// PROMPT: Send minimal zero-length UDP datagrams without PAYLOAD using both default ports and explicit high-numbered ports for traceroute probing.
+// TOKENS: HOST, IP, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a traceroute source host with IP 10.0.1.10.
+HOST trace_source { IP 10.0.1.10 }
+
+// INSTRUCTION: Define a traceroute destination host with IP 10.0.9.99.
+HOST trace_dest { IP 10.0.9.99 }
+
+// INSTRUCTION: Define a flow sending empty UDP probe packets to high ports 33434, 33435, and default port.
+FLOW empty_udp_probes(src, dst) {
+    src -> dst UDP WAIT 5ms
+    src -> dst UDP SRCPORT 45000 DSTPORT 33434 WAIT 5ms
+    src -> dst UDP SRCPORT 45001 DSTPORT 33435 WAIT 5ms
+    src <- dst UDP SRCPORT 33435 DSTPORT 45001 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the minimal UDP probe flow.
+COMPILE {
+    empty_udp_probes(trace_source, trace_dest)
+}

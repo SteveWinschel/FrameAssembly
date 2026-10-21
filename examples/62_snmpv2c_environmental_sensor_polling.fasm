@@ -1,0 +1,19 @@
+// PROMPT: Poll cold-storage environmental sensors via SNMPv2c GET and RESPONSE using negative signed INT (-15 Celsius) and GAUGE32 humidity percentages.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GET, RESPONSE, COMMUNITY, REQID, VARBIND, NULLVAL, INT, GAUGE32, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a facilities BMS polling host with IP 10.129.0.10.
+HOST bms_poller { IP 10.129.0.10 MAC 00:40:9d:29:00:10 }
+
+// INSTRUCTION: Define a cold-aisle environmental probe with IP 10.129.0.55.
+HOST cryo_probe { IP 10.129.0.55 MAC 00:40:9d:29:00:55 }
+
+// INSTRUCTION: Define a flow polling temperature and humidity OIDs and receiving negative INT and GAUGE32 readings.
+FLOW poll_cold_storage_sensor(poller, probe) {
+    poller -> probe SNMP2 GET COMMUNITY "env_read" REQID 8201 VARBIND 1.3.6.1.4.1.3854.1.2.2.1.16.1.3.0 NULLVAL VARBIND 1.3.6.1.4.1.3854.1.2.2.1.17.1.3.0 NULLVAL WAIT 10ms
+    poller <- probe SNMP2 RESPONSE COMMUNITY "env_read" REQID 8201 VARBIND 1.3.6.1.4.1.3854.1.2.2.1.16.1.1.0 STRING "Freezer Vault B2" VARBIND 1.3.6.1.4.1.3854.1.2.2.1.16.1.3.0 INT -15 VARBIND 1.3.6.1.4.1.3854.1.2.2.1.17.1.3.0 GAUGE32 45 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the environmental sensor SNMPv2c polling flow.
+COMPILE {
+    poll_cold_storage_sensor(bms_poller, cryo_probe)
+}

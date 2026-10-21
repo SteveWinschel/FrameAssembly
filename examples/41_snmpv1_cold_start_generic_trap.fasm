@@ -1,0 +1,18 @@
+// PROMPT: Generate an RFC 1157 SNMPv1 coldStart generic trap (GENTRAP 0, SPECTRAP 0) with explicit ENTERPRISE OID, AGENTIP, and SYSUPTIME.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, STRING, COMPILE
+
+// INSTRUCTION: Define a freshly rebooted router agent with IP 10.100.0.1 and MAC 00:00:0c:07:ac:01.
+HOST rebooted_router { IP 10.100.0.1 MAC 00:00:0c:07:ac:01 }
+
+// INSTRUCTION: Define the central SNMPv1 trap receiver with IP 10.100.0.250 and MAC 00:00:0c:07:ac:fa.
+HOST trap_receiver { IP 10.100.0.250 MAC 00:00:0c:07:ac:fa }
+
+// INSTRUCTION: Define a flow sending an SNMPv1 coldStart trap (GENTRAP 0) with sysDescr varbind.
+FLOW snmpv1_cold_start(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.9.1.1 AGENTIP 10.100.0.1 GENTRAP 0 SPECTRAP 0 SYSUPTIME 120 VARBIND 1.3.6.1.2.1.1.1.0 STRING "Cisco IOS Software, Version 15.2"
+}
+
+// INSTRUCTION: Compile block to emit the SNMPv1 coldStart trap.
+COMPILE {
+    snmpv1_cold_start(rebooted_router, trap_receiver)
+}

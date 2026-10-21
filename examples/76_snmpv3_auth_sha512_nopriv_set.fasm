@@ -1,0 +1,19 @@
+// PROMPT: Simulate an RFC 7860 SNMPv3 authNoPriv SET request and RESPONSE authenticated with HMAC-SHA-512 (AUTH SHA512).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, SET, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, CONTEXTNAME, AUTH, SHA512, REQID, VARBIND, STRING, INT, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a network orchestrator host with IP 10.145.0.100.
+HOST v3_sha512_orchestrator { IP 10.145.0.100 MAC 00:50:56:45:00:64 }
+
+// INSTRUCTION: Define a core router accepting SHA-512 signed SET operations with IP 10.145.0.1.
+HOST v3_sha512_router { IP 10.145.0.1 MAC 00:50:56:45:00:01 }
+
+// INSTRUCTION: Define a flow sending an SNMPv3 SET signed with AUTH SHA512 and receiving the matching RESPONSE.
+FLOW snmpv3_sha512_set(orch, router) {
+    orch -> router SNMP3 SET USER "sha512_netadmin" ENGINEID "800000090300005056450001" ENGINEBOOTS 9 ENGINETIME 54000 CONTEXTNAME "global" REQID 9301 AUTH SHA512 "sha512_master_auth_password" VARBIND 1.3.6.1.2.1.1.5.0 STRING "core-rtr-sha512" VARBIND 1.3.6.1.2.1.2.2.1.7.1 INT 1 WAIT 10ms
+    orch <- router SNMP3 RESPONSE USER "sha512_netadmin" ENGINEID "800000090300005056450001" ENGINEBOOTS 9 ENGINETIME 54000 CONTEXTNAME "global" REQID 9301 AUTH SHA512 "sha512_master_auth_password" VARBIND 1.3.6.1.2.1.1.5.0 STRING "core-rtr-sha512" VARBIND 1.3.6.1.2.1.2.2.1.7.1 INT 1 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SHA-512 authenticated SNMPv3 SET flow.
+COMPILE {
+    snmpv3_sha512_set(v3_sha512_orchestrator, v3_sha512_router)
+}

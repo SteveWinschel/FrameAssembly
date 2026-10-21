@@ -1,0 +1,25 @@
+// PROMPT: Simulate a BGP-4 eBGP peering session establishment (OPEN, KEEP-ALIVE, UPDATE) between two autonomous system border routers on TCP port 179.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define AS65001 border router with IP 192.0.2.1 and MAC 00:00:5e:00:53:01.
+HOST as65001_router { IP 192.0.2.1 MAC 00:00:5e:00:53:01 }
+
+// INSTRUCTION: Define AS65002 border router with IP 192.0.2.2 and MAC 00:00:5e:00:53:02.
+HOST as65002_router { IP 192.0.2.2 MAC 00:00:5e:00:53:02 }
+
+// INSTRUCTION: Define a flow establishing TCP port 179 connectivity and exchanging BGP OPEN, KEEPALIVE, and NLRI UPDATE messages.
+FLOW bgp_peering_session(peer_a, peer_b) {
+    peer_a -> peer_b TCP SYN SRCPORT 49179 DSTPORT 179 SEQ 10000 WIN 16384 WAIT 5ms
+    peer_a <- peer_b TCP SYN ACK SRCPORT 179 DSTPORT 49179 SEQ 20000 ACKNUM 10001 WIN 16384 WAIT 5ms
+    peer_a -> peer_b TCP ACK SRCPORT 49179 DSTPORT 179 SEQ 10001 ACKNUM 20001 WIN 16384 WAIT 5ms
+    peer_a -> peer_b TCP PSH ACK SRCPORT 49179 DSTPORT 179 PAYLOAD "BGP4_OPEN_AS65001_HOLD180" WAIT 10ms
+    peer_a <- peer_b TCP PSH ACK SRCPORT 179 DSTPORT 49179 PAYLOAD "BGP4_OPEN_AS65002_HOLD180" WAIT 10ms
+    peer_a -> peer_b TCP PSH ACK SRCPORT 49179 DSTPORT 179 PAYLOAD "BGP4_KEEPALIVE" WAIT 1s
+    peer_a <- peer_b TCP PSH ACK SRCPORT 179 DSTPORT 49179 PAYLOAD "BGP4_KEEPALIVE" WAIT 1s
+    peer_a -> peer_b TCP PSH ACK SRCPORT 49179 DSTPORT 179 PAYLOAD "BGP4_UPDATE_NLRI_10.0.0.0/8" WAIT 50ms
+}
+
+// INSTRUCTION: Compile block to run the BGP peering session flow.
+COMPILE {
+    bgp_peering_session(as65001_router, as65002_router)
+}

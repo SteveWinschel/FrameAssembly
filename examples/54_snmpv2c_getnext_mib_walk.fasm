@@ -1,0 +1,23 @@
+// PROMPT: Simulate an snmpwalk MIB tree traversal using sequential SNMPv2c GETNEXT requests and RESPONSE PDUs across the MIB-II system group.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GETNEXT, RESPONSE, SRCPORT, DSTPORT, COMMUNITY, REQID, VARBIND, NULLVAL, STRING, OIDVAL, TIMETICKS, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a management workstation running snmpwalk with IP 10.121.0.50.
+HOST walk_client { IP 10.121.0.50 MAC 00:25:b5:00:21:50 }
+
+// INSTRUCTION: Define a switch SNMP agent with IP 10.121.0.1.
+HOST walk_target { IP 10.121.0.1 MAC 00:25:b5:00:21:01 }
+
+// INSTRUCTION: Define a flow walking 1.3.6.1.2.1.1 via three sequential GETNEXT/RESPONSE pairs with incrementing REQIDs.
+FLOW snmpv2c_mib_walk(client, agent) {
+    client -> agent SNMP2 GETNEXT SRCPORT 53100 DSTPORT 161 COMMUNITY "public" REQID 201 VARBIND 1.3.6.1.2.1.1 NULLVAL WAIT 5ms
+    client <- agent SNMP2 RESPONSE SRCPORT 161 DSTPORT 53100 COMMUNITY "public" REQID 201 VARBIND 1.3.6.1.2.1.1.1.0 STRING "Juniper Networks, Inc. ex4300-48t" WAIT 5ms
+    client -> agent SNMP2 GETNEXT SRCPORT 53100 DSTPORT 161 COMMUNITY "public" REQID 202 VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL WAIT 5ms
+    client <- agent SNMP2 RESPONSE SRCPORT 161 DSTPORT 53100 COMMUNITY "public" REQID 202 VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.2636.1.1.1.2.63 WAIT 5ms
+    client -> agent SNMP2 GETNEXT SRCPORT 53100 DSTPORT 161 COMMUNITY "public" REQID 203 VARBIND 1.3.6.1.2.1.1.2.0 NULLVAL WAIT 5ms
+    client <- agent SNMP2 RESPONSE SRCPORT 161 DSTPORT 53100 COMMUNITY "public" REQID 203 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 4829100 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the SNMPv2c GETNEXT MIB walk.
+COMPILE {
+    snmpv2c_mib_walk(walk_client, walk_target)
+}

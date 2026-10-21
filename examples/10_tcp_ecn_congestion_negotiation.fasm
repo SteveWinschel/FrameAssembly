@@ -1,0 +1,23 @@
+// PROMPT: Simulate Explicit Congestion Notification (ECN) negotiation and congestion window reduction using TCP SYN, ECE, CWR, and ACK flags.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, ECE, CWR, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a data center sender host with IP 10.100.1.10 and MAC 00:25:90:aa:bb:01.
+HOST dc_sender { IP 10.100.1.10 MAC 00:25:90:aa:bb:01 }
+
+// INSTRUCTION: Define a data center receiver host with IP 10.100.1.20 and MAC 00:25:90:aa:bb:02.
+HOST dc_receiver { IP 10.100.1.20 MAC 00:25:90:aa:bb:02 }
+
+// INSTRUCTION: Define a flow negotiating ECN capability (SYN+ECE+CWR, SYN+ACK+ECE) followed by an ECN-Echo and CWR response.
+FLOW ecn_congestion_control(sender, receiver) {
+    sender -> receiver TCP SYN ECE CWR SRCPORT 55000 DSTPORT 9000 WIN 65535 WAIT 1ms
+    sender <- receiver TCP SYN ACK ECE SRCPORT 9000 DSTPORT 55000 WIN 65535 WAIT 1ms
+    sender -> receiver TCP ACK SRCPORT 55000 DSTPORT 9000 WIN 65535 WAIT 1ms
+    sender -> receiver TCP PSH ACK SRCPORT 55000 DSTPORT 9000 PAYLOAD "RDMA_BULK_BLOCK_01" WAIT 2ms
+    sender <- receiver TCP ACK ECE SRCPORT 9000 DSTPORT 55000 WIN 32768 WAIT 1ms
+    sender -> receiver TCP PSH ACK CWR SRCPORT 55000 DSTPORT 9000 WIN 32768 PAYLOAD "RDMA_BULK_BLOCK_02_THROTTLED" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to execute the ECN congestion control flow.
+COMPILE {
+    ecn_congestion_control(dc_sender, dc_receiver)
+}

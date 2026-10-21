@@ -1,0 +1,21 @@
+// PROMPT: Simulate periodic 1-second SNMPv2c CPU and memory utilization polling using a LOOP block and WAIT 1s interval.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GET, RESPONSE, COMMUNITY, REQID, VARBIND, NULLVAL, GAUGE32, WAIT, ms, s, COMPILE, LOOP
+
+// INSTRUCTION: Define a Prometheus snmp_exporter host with IP 10.133.0.10.
+HOST snmp_exporter { IP 10.133.0.10 MAC 02:42:0a:85:00:0a }
+
+// INSTRUCTION: Define a monitored Linux appliance with IP 10.133.0.50.
+HOST linux_appliance { IP 10.133.0.50 MAC 02:42:0a:85:00:32 }
+
+// INSTRUCTION: Define a flow querying CPU load and available memory gauges with a 1s polling delay.
+FLOW poll_cpu_mem_loop(exporter, target) {
+    exporter -> target SNMP2 GET COMMUNITY "metrics_ro" REQID 8600 VARBIND 1.3.6.1.4.1.2021.11.9.0 NULLVAL VARBIND 1.3.6.1.4.1.2021.4.6.0 NULLVAL WAIT 10ms
+    exporter <- target SNMP2 RESPONSE COMMUNITY "metrics_ro" REQID 8600 VARBIND 1.3.6.1.4.1.2021.11.9.0 GAUGE32 14 VARBIND 1.3.6.1.4.1.2021.4.6.0 GAUGE32 8388608 WAIT 1s
+}
+
+// INSTRUCTION: Compile block to loop the SNMPv2c metrics poll 10 times.
+COMPILE {
+    LOOP 10 {
+        poll_cpu_mem_loop(snmp_exporter, linux_appliance)
+    }
+}

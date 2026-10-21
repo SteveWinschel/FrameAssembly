@@ -1,0 +1,19 @@
+// PROMPT: Demonstrate all 9 supported FrameAssembly VARBIND value types (NULLVAL, STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32, COUNTER64) within a single SNMPv2c RESPONSE packet.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GET, RESPONSE, COMMUNITY, REQID, VARBIND, NULLVAL, STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32, COUNTER64, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a comprehensive MIB test client with IP 10.127.0.10.
+HOST mib_tester { IP 10.127.0.10 MAC 00:16:3e:27:00:10 }
+
+// INSTRUCTION: Define a reference SNMPv2c agent with IP 10.127.0.20.
+HOST ref_snmp_agent { IP 10.127.0.20 MAC 00:16:3e:27:00:20 }
+
+// INSTRUCTION: Define a flow that sends an SNMPv2c GET and receives a RESPONSE containing all 9 VarBind data types.
+FLOW snmpv2c_all_nine_varbinds(tester, agent) {
+    tester -> agent SNMP2 GET COMMUNITY "all_types" REQID 9999 VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL WAIT 10ms
+    tester <- agent SNMP2 RESPONSE COMMUNITY "all_types" REQID 9999 VARBIND 1.3.6.1.2.1.1.4.0 NULLVAL VARBIND 1.3.6.1.2.1.1.5.0 STRING "ref-agent-01" VARBIND 1.3.6.1.4.1.9999.1.1.0 INT -42 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 360000 VARBIND 1.3.6.1.2.1.4.20.1.1.10.127.0.20 IPVAL 10.127.0.20 VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.8072.3.2.10 VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 500000 VARBIND 1.3.6.1.2.1.2.2.1.5.1 GAUGE32 100000000 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 9876543210123 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the 9-varbind SNMPv2c showcase flow.
+COMPILE {
+    snmpv2c_all_nine_varbinds(mib_tester, ref_snmp_agent)
+}

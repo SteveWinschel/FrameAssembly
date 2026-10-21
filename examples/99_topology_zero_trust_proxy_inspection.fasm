@@ -1,0 +1,33 @@
+// PROMPT: Simulate a Zero Trust Network Access (ZTNA) policy enforcement flow combining TLS TCP client access, RADIUS UDP MFA verification, and backend TCP proxy forwarding.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, UDP, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a remote employee endpoint with IP 198.51.100.75.
+HOST remote_laptop { IP 198.51.100.75 MAC a4:83:e7:99:00:75 }
+
+// INSTRUCTION: Define the Zero Trust Identity-Aware Proxy with IP 10.99.0.10.
+HOST ztna_proxy { IP 10.99.0.10 MAC 00:50:56:99:00:10 }
+
+// INSTRUCTION: Define the MFA RADIUS policy server with IP 10.99.0.200.
+HOST mfa_radius { IP 10.99.0.200 MAC 00:50:56:99:00:c8 }
+
+// INSTRUCTION: Define the protected internal Git server with IP 10.99.10.50.
+HOST internal_git { IP 10.99.10.50 MAC 00:50:56:99:0a:32 }
+
+// INSTRUCTION: Define a 4-parameter flow performing TLS connection to ZTNA proxy, RADIUS MFA check, and proxied TCP session to the internal Git server.
+FLOW ztna_access_broker(laptop, proxy, radius, git_srv) {
+    laptop -> proxy TCP SYN SRCPORT 59443 DSTPORT 443 WIN 65535 WAIT 5ms
+    laptop <- proxy TCP SYN ACK SRCPORT 443 DSTPORT 59443 WIN 65535 WAIT 5ms
+    laptop -> proxy TCP PSH ACK SRCPORT 59443 DSTPORT 443 PAYLOAD "MTLS_CLIENT_CERT_USER_sdev" WAIT 5ms
+    proxy -> radius UDP SRCPORT 41812 DSTPORT 1812 PAYLOAD "RADIUS_MFA_PUSH_VERIFY_sdev" WAIT 10ms
+    proxy <- radius UDP SRCPORT 1812 DSTPORT 41812 PAYLOAD "RADIUS_ACCESS_ACCEPT_TRUST_HIGH" WAIT 50ms
+    proxy -> git_srv TCP SYN SRCPORT 45022 DSTPORT 22 WIN 65535 WAIT 2ms
+    proxy <- git_srv TCP SYN ACK SRCPORT 22 DSTPORT 45022 WIN 65535 WAIT 2ms
+    proxy -> git_srv TCP PSH ACK SRCPORT 45022 DSTPORT 22 PAYLOAD "SSH_GIT_UPLOAD_PACK_repo.git" WAIT 5ms
+    proxy <- git_srv TCP PSH ACK SRCPORT 22 DSTPORT 45022 PAYLOAD "SSH_GIT_PACKFILE_DATA" WAIT 5ms
+    laptop <- proxy TCP PSH ACK SRCPORT 443 DSTPORT 59443 PAYLOAD "TLS_TUNNELED_GIT_PACKFILE" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the Zero Trust proxy inspection flow.
+COMPILE {
+    ztna_access_broker(remote_laptop, ztna_proxy, mfa_radius, internal_git)
+}

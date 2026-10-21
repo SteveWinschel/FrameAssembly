@@ -462,7 +462,7 @@ pub struct FrameStatement<'a> {
 ///
 /// Syntax mapping:
 /// ```frameassembly
-/// FLOW name(arg1, arg2) { 
+/// FLOW name(arg1, arg2) {
 ///     arg1 -> arg2 TCP SYN
 /// }
 /// ```
@@ -534,9 +534,9 @@ HOST example_server {
 }
 
 // Written horizontally -> Intuitive for network engineers
-HOST example_nms { IP 10.0.10.100  }
+HOST example_nms { IP 10.0.10.100  MAC ff:ee:dd:cc:bb:aa }
 
-// A broadcast can be declared like an ordinary host
+// A broadcast can be declard like an ordinary host
 HOST broadcast { IP 255.255.255.255  }
 
 FLOW tcp_handshake(client, server) {
@@ -546,23 +546,2777 @@ FLOW tcp_handshake(client, server) {
 }
 
 FLOW snmp_v1_trap(agent, nms) {
-    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.6.3.1.1.5.2 AGENTIP 10.0.10.5 GENTRAP 2
+    agent -> nms SNMP1 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.2"
 }
 
 FLOW snmp_v2_trap(agent, nms) {
-    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" SYSUPTIME 4200 VARBIND 1.3.6.1.2.1.2.2.1.1.1 INT -15 VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "eth0"
+    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3"
 }
 
 FLOW snmp_v3_trap(agent, nms) {
-    agent -> nms SNMP3 TRAP USER "admin" ENGINEID "8000000001" ENGINEBOOTS 1 ENGINETIME 100 AUTH SHA "authpass123" PRIV AES "privpass123" OID "1.3.6.1.6.3.1.1.5.3" VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER64 123456789
+    agent -> nms SNMP3 TRAP USER "admin" OID "1.3.6.1.6.3.1.1.5.3"
 }
 
 COMPILE {
-    LOOP 5 {
         tcp_handshake(example_server, example_nms)
         snmp_v1_trap(example_server, example_nms)
         snmp_v2_trap(example_server, example_nms)
         snmp_v3_trap(example_server, example_nms)
+}
+```
+
+## Examples Corpus (`examples/*.fasm`)
+
+The following 105 annotated `.fasm` scripts provide exhaustive training examples and permutations across all FrameAssembly features.
+
+### `examples/01_tcp_syn_flood.fasm`
+```frameassembly
+// PROMPT: Simulate a TCP SYN flood attack from an attacker to a victim web server on port 80 using a 1000-iteration loop with 1ms delay.
+// TOKENS: HOST, IP, MAC, FLOW, ->, TCP, SYN, DSTPORT, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define a target server with IP 192.168.1.100 and a dummy MAC.
+HOST victim_server { IP 192.168.1.100 MAC 00:11:22:33:44:55 }
+
+// INSTRUCTION: Define a malicious attacker with IP 10.0.0.50.
+HOST attacker { IP 10.0.0.50 }
+
+// INSTRUCTION: Define a flow that sends a TCP SYN packet from the attacker to the target server on port 80, with a fast wait time.
+FLOW syn_flood(src, dst) {
+    src -> dst TCP SYN DSTPORT 80 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block to loop the syn_flood flow 1000 times, simulating an attack.
+COMPILE {
+    LOOP 1000 {
+        syn_flood(attacker, victim_server)
     }
+}
+```
+
+### `examples/02_udp_dns_simulation.fasm`
+```frameassembly
+// PROMPT: Simulate a UDP DNS query from a client to a public DNS resolver on port 53 followed by a UDP DNS response.
+// TOKENS: HOST, IP, FLOW, ->, <-, UDP, DSTPORT, SRCPORT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define a DNS client with IP 192.168.1.5.
+HOST dns_client { IP 192.168.1.5 }
+
+// INSTRUCTION: Define a DNS server with IP 8.8.8.8.
+HOST dns_server { IP 8.8.8.8 }
+
+// INSTRUCTION: Define a flow that sends a UDP packet mimicking a DNS query to port 53, and receives a UDP response.
+FLOW dns_query(client, server) {
+    client -> server UDP DSTPORT 53 PAYLOAD "query"
+    client <- server UDP SRCPORT 53 PAYLOAD "response"
+}
+
+// INSTRUCTION: Compile block to execute the DNS query flow.
+COMPILE {
+    dns_query(dns_client, dns_server)
+}
+```
+
+### `examples/03_snmp_trap_storm.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv2c linkDown trap storm from a network switch to an NMS server repeated 50 times with 10ms intervals.
+// TOKENS: HOST, IP, FLOW, ->, SNMP2, TRAP, COMMUNITY, OID, SYSUPTIME, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define a network switch agent with IP 10.1.1.254.
+HOST switch_agent { IP 10.1.1.254 }
+
+// INSTRUCTION: Define a Network Management System (NMS) server with IP 10.0.0.10.
+HOST nms_server { IP 10.0.0.10 }
+
+// INSTRUCTION: Define a flow that sends SNMPv2 traps from the agent to the NMS indicating a link down event.
+FLOW snmp_storm(agent, nms) {
+    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" SYSUPTIME 1000 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to repeat the SNMP trap storm 50 times.
+COMPILE {
+    LOOP 50 {
+        snmp_storm(switch_agent, nms_server)
+    }
+}
+```
+
+### `examples/04_tcp_3_way_handshake.fasm`
+```frameassembly
+// PROMPT: Establish a standard TCP 3-way handshake (SYN, SYN-ACK, ACK) on HTTPS port 443 with explicit sequence and acknowledgment numbers.
+// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, SEQ, ACKNUM, DSTPORT, SRCPORT, COMPILE
+
+// INSTRUCTION: Define an enterprise client with IP 10.10.10.10.
+HOST enterprise_client { IP 10.10.10.10 }
+
+// INSTRUCTION: Define an enterprise server with IP 10.20.20.20.
+HOST enterprise_server { IP 10.20.20.20 }
+
+// INSTRUCTION: Define a flow representing a standard TCP 3-way handshake (SYN, SYN-ACK, ACK).
+FLOW three_way_handshake(client, server) {
+    client -> server TCP SYN SEQ 100 DSTPORT 443
+    client <- server TCP SYN ACK SEQ 500 ACKNUM 101 SRCPORT 443
+    client -> server TCP ACK SEQ 101 ACKNUM 501 DSTPORT 443
+}
+
+// INSTRUCTION: Compile block to execute the TCP handshake flow.
+COMPILE {
+    three_way_handshake(enterprise_client, enterprise_server)
+}
+```
+
+### `examples/05_complex_enterprise_network.fasm`
+```frameassembly
+// PROMPT: Simulate an enterprise network combining looped HTTP TCP sessions between a router and web server with an SNMPv3 trap to a monitoring server.
+// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, DSTPORT, SRCPORT, PAYLOAD, SNMP3, TRAP, USER, OID, SYSUPTIME, COMPILE, LOOP
+
+// INSTRUCTION: Define the core router with IP 10.0.0.1.
+HOST core_router { IP 10.0.0.1 }
+
+// INSTRUCTION: Define a web server with IP 172.16.0.80.
+HOST web_server { IP 172.16.0.80 }
+
+// INSTRUCTION: Define a monitoring server with IP 192.168.100.100.
+HOST monitoring_server { IP 192.168.100.100 }
+
+// INSTRUCTION: Define a flow for standard web traffic containing a GET request and a response.
+FLOW web_traffic(client, server) {
+    client -> server TCP SYN DSTPORT 80
+    client <- server TCP SYN ACK SRCPORT 80
+    client -> server TCP ACK DSTPORT 80 PAYLOAD "GET / HTTP/1.1"
+    client <- server TCP ACK SRCPORT 80 PAYLOAD "HTTP/1.1 200 OK"
+}
+
+// INSTRUCTION: Define a flow for SNMPv3 monitoring with authentication.
+FLOW secure_monitoring(agent, nms) {
+    agent -> nms SNMP3 TRAP USER "admin_user" OID 1.3.6.1.4.1 SYSUPTIME 50000
+}
+
+// INSTRUCTION: Compile block to simulate traffic between the router, web server, and monitoring server.
+COMPILE {
+    LOOP 5 {
+        web_traffic(core_router, web_server)
+    }
+    secure_monitoring(web_server, monitoring_server)
+}
+```
+
+### `examples/06_tcp_graceful_fin_teardown.fasm`
+```frameassembly
+// PROMPT: Simulate a complete 4-way TCP graceful connection teardown using FIN and ACK flags with explicit sequence and acknowledgment numbers.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, FIN, SEQ, ACKNUM, SRCPORT, DSTPORT, WIN, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a web client endpoint with IP 192.168.10.25 and MAC 00:1a:2b:3c:4d:5e.
+HOST web_client { IP 192.168.10.25 MAC 00:1a:2b:3c:4d:5e }
+
+// INSTRUCTION: Define an origin server endpoint with IP 192.168.10.80 and MAC 00:1a:2b:3c:4d:80.
+HOST origin_server { IP 192.168.10.80 MAC 00:1a:2b:3c:4d:80 }
+
+// INSTRUCTION: Define a flow that performs a 3-way handshake followed by a 4-way FIN-ACK connection teardown on port 8080.
+FLOW graceful_teardown(client, server) {
+    client -> server TCP SYN SRCPORT 50100 DSTPORT 8080 SEQ 1000 WIN 64240 WAIT 5ms
+    client <- server TCP SYN ACK SRCPORT 8080 DSTPORT 50100 SEQ 2000 ACKNUM 1001 WIN 65535 WAIT 5ms
+    client -> server TCP ACK SRCPORT 50100 DSTPORT 8080 SEQ 1001 ACKNUM 2001 WIN 64240 WAIT 10ms
+    client -> server TCP FIN ACK SRCPORT 50100 DSTPORT 8080 SEQ 1001 ACKNUM 2001 WIN 64240 WAIT 5ms
+    client <- server TCP ACK SRCPORT 8080 DSTPORT 50100 SEQ 2001 ACKNUM 1002 WIN 65535 WAIT 5ms
+    client <- server TCP FIN ACK SRCPORT 8080 DSTPORT 50100 SEQ 2001 ACKNUM 1002 WIN 65535 WAIT 5ms
+    client -> server TCP ACK SRCPORT 50100 DSTPORT 8080 SEQ 1002 ACKNUM 2002 WIN 64240 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the graceful TCP teardown flow.
+COMPILE {
+    graceful_teardown(web_client, origin_server)
+}
+```
+
+### `examples/07_tcp_rst_connection_abort.fasm`
+```frameassembly
+// PROMPT: Simulate an abrupt TCP connection abort where a server rejects a client request mid-session using a TCP RST flag and zero window.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, RST, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an API client host with IP 10.1.20.11.
+HOST api_client { IP 10.1.20.11 MAC 02:00:00:00:01:01 }
+
+// INSTRUCTION: Define a hardened gateway host with IP 10.1.20.1.
+HOST hardened_gateway { IP 10.1.20.1 MAC 02:00:00:00:01:fe }
+
+// INSTRUCTION: Define a flow that opens a TCP session, sends an unauthorized payload, and receives an immediate RST ACK abort.
+FLOW rst_connection_abort(client, gateway) {
+    client -> gateway TCP SYN SRCPORT 49152 DSTPORT 8443 SEQ 500 WIN 32768 WAIT 2ms
+    client <- gateway TCP SYN ACK SRCPORT 8443 DSTPORT 49152 SEQ 9000 ACKNUM 501 WIN 32768 WAIT 2ms
+    client -> gateway TCP PSH ACK SRCPORT 49152 DSTPORT 8443 SEQ 501 ACKNUM 9001 PAYLOAD "ADMIN EXEC /bin/sh" WAIT 2ms
+    client <- gateway TCP RST ACK SRCPORT 8443 DSTPORT 49152 SEQ 9001 ACKNUM 519 WIN 0 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block to run the TCP RST connection abort scenario.
+COMPILE {
+    rst_connection_abort(api_client, hardened_gateway)
+}
+```
+
+### `examples/08_tcp_psh_ack_interactive_ssh.fasm`
+```frameassembly
+// PROMPT: Simulate an interactive SSH session on TCP port 22 exchanging banner strings and keystroke packets with PSH and ACK flags.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define a bastion jump host with IP 172.16.10.5 and MAC aa:bb:cc:10:00:05.
+HOST bastion_client { IP 172.16.10.5 MAC aa:bb:cc:10:00:05 }
+
+// INSTRUCTION: Define a production Linux server with IP 172.16.10.50 and MAC aa:bb:cc:10:00:50.
+HOST ssh_server { IP 172.16.10.50 MAC aa:bb:cc:10:00:50 }
+
+// INSTRUCTION: Define a flow for an SSH handshake and interactive PSH-ACK banner and command exchange on port 22.
+FLOW ssh_interactive_session(client, server) {
+    client -> server TCP SYN SRCPORT 54321 DSTPORT 22 WIN 64240 WAIT 10ms
+    client <- server TCP SYN ACK SRCPORT 22 DSTPORT 54321 WIN 65160 WAIT 10ms
+    client -> server TCP ACK SRCPORT 54321 DSTPORT 22 WIN 64240 WAIT 5ms
+    client <- server TCP PSH ACK SRCPORT 22 DSTPORT 54321 PAYLOAD "SSH-2.0-OpenSSH_9.6" WAIT 20ms
+    client -> server TCP PSH ACK SRCPORT 54321 DSTPORT 22 PAYLOAD "SSH-2.0-OpenSSH_9.6p1" WAIT 20ms
+    client -> server TCP PSH ACK SRCPORT 54321 DSTPORT 22 PAYLOAD "ENC_KEY_INIT" WAIT 1s
+    client <- server TCP PSH ACK SRCPORT 22 DSTPORT 54321 PAYLOAD "ENC_KEY_REPLY" WAIT 50ms
+}
+
+// INSTRUCTION: Compile block to run the interactive SSH session flow.
+COMPILE {
+    ssh_interactive_session(bastion_client, ssh_server)
+}
+```
+
+### `examples/09_tcp_urg_out_of_band_data.fasm`
+```frameassembly
+// PROMPT: Simulate TCP out-of-band urgent data transmission using the URG, PSH, and ACK flags on Telnet port 23.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, URG, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a terminal client with IP 10.50.0.10.
+HOST terminal_client { IP 10.50.0.10 MAC 00:0c:29:11:22:33 }
+
+// INSTRUCTION: Define a legacy mainframe host with IP 10.50.0.200.
+HOST mainframe_host { IP 10.50.0.200 MAC 00:0c:29:44:55:66 }
+
+// INSTRUCTION: Define a flow that sends an urgent interrupt signal using TCP URG PSH ACK during an active Telnet connection.
+FLOW telnet_urgent_interrupt(client, server) {
+    client -> server TCP SYN SRCPORT 41000 DSTPORT 23 SEQ 100 WIN 16384 WAIT 10ms
+    client <- server TCP SYN ACK SRCPORT 23 DSTPORT 41000 SEQ 800 ACKNUM 101 WIN 16384 WAIT 10ms
+    client -> server TCP ACK SRCPORT 41000 DSTPORT 23 SEQ 101 ACKNUM 801 WIN 16384 WAIT 10ms
+    client -> server TCP URG PSH ACK SRCPORT 41000 DSTPORT 23 SEQ 101 ACKNUM 801 PAYLOAD "IAC_IP_SYNC" WAIT 5ms
+    client <- server TCP ACK SRCPORT 23 DSTPORT 41000 SEQ 801 ACKNUM 112 WIN 16384 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the urgent data flow.
+COMPILE {
+    telnet_urgent_interrupt(terminal_client, mainframe_host)
+}
+```
+
+### `examples/100_complete_dsl_omnibus_reference.fasm`
+```frameassembly
+// PROMPT: Omnibus reference script exercising 100% of all FrameAssembly DSL lexical tokens, protocols, TCP flags, SNMP versions, PDU types, USM auth/priv algorithms, VarBind types, and wait units in a single file.
+// TOKENS: HOST, IP, MAC, FLOW, COMPILE, LOOP, ->, <-, TCP, UDP, SNMP1, SNMP2, SNMP3, SYN, ACK, FIN, RST, PSH, URG, ECE, CWR, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, s, m, TRAP, GET, SET, RESPONSE, INFORM, GETNEXT, GETBULK, COMMUNITY, USER, OID, SYSUPTIME, VARBIND, NULLVAL, STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32, COUNTER64, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, ENGINEID, ENGINEBOOTS, ENGINETIME, CONTEXTNAME, AUTH, PRIV, MD5, SHA, SHA256, SHA384, SHA512, DES, AES, NONREPEATERS, MAXREPETITIONS, REQID
+
+// INSTRUCTION: Define omnibus host alpha with IP 10.254.0.1 and MAC 00:11:22:33:44:01.
+HOST omni_alpha { IP 10.254.0.1 MAC 00:11:22:33:44:01 }
+
+// INSTRUCTION: Define omnibus host beta with IP 10.254.0.2 and default MAC.
+HOST omni_beta { IP 10.254.0.2 }
+
+// INSTRUCTION: Define a flow exercising TCP with all 8 flags, explicit SEQ/ACKNUM/WIN/PORTS, PAYLOAD, and WAIT suffixes ms, s, and m.
+FLOW omnibus_tcp_udp(a, b) {
+    a -> b TCP SYN ECE CWR SRCPORT 50000 DSTPORT 443 SEQ 1000 ACKNUM 0 WIN 65535 PAYLOAD "SYN_INIT" WAIT 5ms
+    a <- b TCP SYN ACK ECE SRCPORT 443 DSTPORT 50000 SEQ 2000 ACKNUM 1009 WIN 32768 PAYLOAD "SYN_ACK" WAIT 1s
+    a -> b TCP PSH URG ACK FIN RST SRCPORT 50000 DSTPORT 443 SEQ 1009 ACKNUM 2008 WIN 16384 PAYLOAD "OMNI_TCP" WAIT 1m
+    a -> b UDP SRCPORT 53000 DSTPORT 53 PAYLOAD "OMNI_UDP_QUERY" WAIT 10ms
+    a <- b UDP SRCPORT 53 DSTPORT 53000 PAYLOAD "OMNI_UDP_REPLY" WAIT 10ms
+}
+
+// INSTRUCTION: Define a flow exercising SNMP1, SNMP2, and SNMP3 across all 7 PDU types, all 9 VarBind types, and all 5 AUTH and 2 PRIV algorithms.
+FLOW omnibus_snmp(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.4.1.8072 ENTERPRISE 1.3.6.1.4.1.8072 AGENTIP 10.254.0.1 GENTRAP 6 SPECTRAP 1 SYSUPTIME 100 VARBIND 1.3.6.1.2.1.1.5.0 STRING "omni" VARBIND 1.3.6.1.2.1.2.1.0 INT -5
+    agent -> nms SNMP2 GET COMMUNITY "public" REQID 101 VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL
+    agent <- nms SNMP2 RESPONSE COMMUNITY "public" REQID 101 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 500 VARBIND 1.3.6.1.2.1.4.20.1.1.10.254.0.1 IPVAL 10.254.0.1 VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.8072
+    agent -> nms SNMP2 GETNEXT COMMUNITY "public" REQID 102 VARBIND 1.3.6.1.2.1.1 NULLVAL
+    agent -> nms SNMP2 GETBULK COMMUNITY "public" REQID 103 NONREPEATERS 1 MAXREPETITIONS 5 VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 100 VARBIND 1.3.6.1.2.1.2.2.1.5.1 GAUGE32 1000 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 999999999
+    agent -> nms SNMP2 SET COMMUNITY "private" REQID 104 VARBIND 1.3.6.1.2.1.1.5.0 STRING "set-omni"
+    agent -> nms SNMP2 INFORM COMMUNITY "public" REQID 105 OID "1.3.6.1.6.3.1.1.5.3" SYSUPTIME 200
+    agent -> nms SNMP3 TRAP USER "u1" ENGINEID "8000000001" ENGINEBOOTS 1 ENGINETIME 10 CONTEXTNAME "ctx" AUTH MD5 "pass_md5_123" PRIV DES "priv_des_123" OID 1.3.6.1.6.3.1.1.5.1
+    agent -> nms SNMP3 TRAP USER "u2" ENGINEID "8000000002" ENGINEBOOTS 1 ENGINETIME 20 AUTH SHA "pass_sha_123" PRIV AES "priv_aes_123" OID 1.3.6.1.6.3.1.1.5.2
+    agent -> nms SNMP3 TRAP USER "u3" ENGINEID "8000000003" ENGINEBOOTS 1 ENGINETIME 30 AUTH SHA256 "pass_256_123" PRIV AES "priv_aes_123" OID 1.3.6.1.6.3.1.1.5.3
+    agent -> nms SNMP3 TRAP USER "u4" ENGINEID "8000000004" ENGINEBOOTS 1 ENGINETIME 40 AUTH SHA384 "pass_384_123" PRIV DES "priv_des_123" OID 1.3.6.1.6.3.1.1.5.4
+    agent -> nms SNMP3 TRAP USER "u5" ENGINEID "8000000005" ENGINEBOOTS 1 ENGINETIME 50 AUTH SHA512 "pass_512_123" PRIV AES "priv_aes_123" OID 1.3.6.1.6.3.1.1.5.5
+}
+
+// INSTRUCTION: Compile block executing both omnibus flows directly and inside a loop.
+COMPILE {
+    omnibus_tcp_udp(omni_alpha, omni_beta)
+    LOOP 2 {
+        omnibus_snmp(omni_alpha, omni_beta)
+    }
+}
+```
+
+### `examples/101_multi_loop_staged_load_test.fasm`
+```frameassembly
+// PROMPT: Simulate a multi-stage load test using sequential LOOP blocks in the COMPILE section representing warm-up, peak burst, and cool-down traffic phases.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define a load generator client host with IP 10.201.0.10.
+HOST load_generator { IP 10.201.0.10 MAC 00:16:3e:c9:00:0a }
+
+// INSTRUCTION: Define the system under test (SUT) API gateway with IP 10.201.0.80.
+HOST sut_gateway { IP 10.201.0.80 MAC 00:16:3e:c9:00:50 }
+
+// INSTRUCTION: Define a warm-up health check flow over UDP port 8125.
+FLOW warmup_probe(gen, sut) {
+    gen -> sut UDP SRCPORT 58125 DSTPORT 8125 PAYLOAD "STATSD_WARMUP_STAGE:1|c" WAIT 20ms
+}
+
+// INSTRUCTION: Define a high-rate HTTP load test flow over TCP port 80.
+FLOW peak_http_burst(gen, sut) {
+    gen -> sut TCP SYN DSTPORT 80 WAIT 1ms
+    gen <- sut TCP SYN ACK SRCPORT 80 WAIT 1ms
+    gen -> sut TCP PSH ACK DSTPORT 80 PAYLOAD "GET /benchmark HTTP/1.1" WAIT 1ms
+    gen <- sut TCP PSH ACK SRCPORT 80 PAYLOAD "HTTP/1.1 200 OK" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing 3 warm-up loops, 15 peak load loops, and a final single probe.
+COMPILE {
+    LOOP 3 {
+        warmup_probe(load_generator, sut_gateway)
+    }
+    LOOP 15 {
+        peak_http_burst(load_generator, sut_gateway)
+    }
+    warmup_probe(load_generator, sut_gateway)
+}
+```
+
+### `examples/102_multi_arg_flow_mesh_orchestration.fasm`
+```frameassembly
+// PROMPT: Demonstrate a 5-parameter FLOW orchestrating full-mesh east-west microservice heartbeats across five distinct hosts.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define mesh service node A with IP 10.202.0.1.
+HOST mesh_svc_a { IP 10.202.0.1 MAC 02:ca:00:00:00:01 }
+
+// INSTRUCTION: Define mesh service node B with IP 10.202.0.2.
+HOST mesh_svc_b { IP 10.202.0.2 MAC 02:ca:00:00:00:02 }
+
+// INSTRUCTION: Define mesh service node C with IP 10.202.0.3.
+HOST mesh_svc_c { IP 10.202.0.3 MAC 02:ca:00:00:00:03 }
+
+// INSTRUCTION: Define mesh service node D with IP 10.202.0.4.
+HOST mesh_svc_d { IP 10.202.0.4 MAC 02:ca:00:00:00:04 }
+
+// INSTRUCTION: Define mesh service node E with IP 10.202.0.5.
+HOST mesh_svc_e { IP 10.202.0.5 MAC 02:ca:00:00:00:05 }
+
+// INSTRUCTION: Define a 5-argument flow coordinating RPC calls across all five mesh service endpoints.
+FLOW five_node_mesh(n1, n2, n3, n4, n5) {
+    n1 -> n2 TCP SYN DSTPORT 7000 WAIT 2ms
+    n1 <- n2 TCP SYN ACK SRCPORT 7000 WAIT 2ms
+    n2 -> n3 TCP PSH ACK DSTPORT 7000 PAYLOAD "RPC_HOP_2_TO_3" WAIT 2ms
+    n3 -> n4 UDP SRCPORT 7001 DSTPORT 7001 PAYLOAD "UDP_EVENT_3_TO_4" WAIT 2ms
+    n4 -> n5 TCP PSH ACK DSTPORT 7000 PAYLOAD "RPC_COMMIT_4_TO_5" WAIT 2ms
+    n5 -> n1 UDP SRCPORT 7001 DSTPORT 7001 PAYLOAD "MESH_RING_COMPLETE_5_TO_1" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to invoke the 5-node mesh orchestration flow.
+COMPILE {
+    five_node_mesh(mesh_svc_a, mesh_svc_b, mesh_svc_c, mesh_svc_d, mesh_svc_e)
+}
+```
+
+### `examples/103_bidirectional_asymmetric_port_routing.fasm`
+```frameassembly
+// PROMPT: Demonstrate automatic vs explicit TCP sequence and acknowledgment tracking across bidirectional arrows (-> and <-) when payload sizes vary.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, FIN, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a client endpoint relying on auto-calculated TCP sequence numbers with IP 10.203.0.10.
+HOST auto_seq_client { IP 10.203.0.10 MAC 00:1a:2b:cb:00:0a }
+
+// INSTRUCTION: Define a server endpoint relying on auto-calculated TCP sequence numbers with IP 10.203.0.20.
+HOST auto_seq_server { IP 10.203.0.20 MAC 00:1a:2b:cb:00:14 }
+
+// INSTRUCTION: Define a flow exchanging variable-length payloads without manual SEQ/ACKNUM so the backend state machine computes exact byte advancements.
+FLOW auto_sequence_tracking(client, server) {
+    client -> server TCP SYN SRCPORT 40100 DSTPORT 8080 WIN 64240 WAIT 5ms
+    client <- server TCP SYN ACK SRCPORT 8080 DSTPORT 40100 WIN 64240 WAIT 5ms
+    client -> server TCP ACK SRCPORT 40100 DSTPORT 8080 WIN 64240 WAIT 2ms
+    client -> server TCP PSH ACK SRCPORT 40100 DSTPORT 8080 PAYLOAD "PING_12345" WAIT 5ms
+    client <- server TCP PSH ACK SRCPORT 8080 DSTPORT 40100 PAYLOAD "PONG_ABCDEFGHIJ" WAIT 5ms
+    client -> server TCP PSH ACK SRCPORT 40100 DSTPORT 8080 PAYLOAD "FINAL_BLOCK" WAIT 5ms
+    client <- server TCP FIN ACK SRCPORT 8080 DSTPORT 40100 WAIT 5ms
+    client -> server TCP FIN ACK SRCPORT 40100 DSTPORT 8080 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the automatic TCP sequence tracking flow.
+COMPILE {
+    auto_sequence_tracking(auto_seq_client, auto_seq_server)
+}
+```
+
+### `examples/104_snmp_tri_version_coexistence_audit.fasm`
+```frameassembly
+// PROMPT: Simulate a brownfield network management audit where legacy SNMPv1, standard SNMPv2c, and encrypted SNMPv3 coexist and report to a single compliance collector.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP1, SNMP2, SNMP3, TRAP, GET, RESPONSE, INFORM, COMMUNITY, USER, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, PRIV, AES, REQID, OID, SYSUPTIME, VARBIND, NULLVAL, STRING, INT, COUNTER64, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a legacy SNMPv1 print server with IP 10.204.0.11.
+HOST legacy_v1_dev { IP 10.204.0.11 MAC 00:11:22:cc:00:11 }
+
+// INSTRUCTION: Define a distribution SNMPv2c switch with IP 10.204.0.22.
+HOST standard_v2_dev { IP 10.204.0.22 MAC 00:11:22:cc:00:22 }
+
+// INSTRUCTION: Define a core SNMPv3 router with IP 10.204.0.33.
+HOST secure_v3_dev { IP 10.204.0.33 MAC 00:11:22:cc:00:33 }
+
+// INSTRUCTION: Define the unified compliance NMS server with IP 10.204.0.250.
+HOST compliance_nms { IP 10.204.0.250 MAC 00:11:22:cc:00:fa }
+
+// INSTRUCTION: Define a 4-host flow auditing SNMP1 trap, SNMP2 GET/RESPONSE, and SNMP3 encrypted INFORM/RESPONSE.
+FLOW tri_version_snmp_audit(dev1, dev2, dev3, nms) {
+    dev1 -> nms SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.11 AGENTIP 10.204.0.11 GENTRAP 6 SPECTRAP 3 SYSUPTIME 50000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "hp-jetdirect-v1" WAIT 10ms
+    nms -> dev2 SNMP2 GET COMMUNITY "audit_ro" REQID 10601 VARBIND 1.3.6.1.2.1.1.5.0 NULLVAL WAIT 10ms
+    nms <- dev2 SNMP2 RESPONSE COMMUNITY "audit_ro" REQID 10601 VARBIND 1.3.6.1.2.1.1.5.0 STRING "dist-sw-v2c" VARBIND 1.3.6.1.2.1.2.1.0 INT 48 WAIT 10ms
+    dev3 -> nms SNMP3 INFORM USER "compliance_v3" ENGINEID "80001f8880cc0033" ENGINEBOOTS 18 ENGINETIME 99000 AUTH SHA256 "audit_sha256_pass" PRIV AES "audit_aes128_pass" REQID 10602 OID 1.3.6.1.6.3.1.1.5.4 SYSUPTIME 9900000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "core-rtr-v3" VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 776655443322 WAIT 10ms
+    dev3 <- nms SNMP3 RESPONSE USER "compliance_v3" ENGINEID "80001f8880cc0033" ENGINEBOOTS 18 ENGINETIME 99000 AUTH SHA256 "audit_sha256_pass" PRIV AES "audit_aes128_pass" REQID 10602 VARBIND 1.3.6.1.2.1.1.5.0 STRING "core-rtr-v3" VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 776655443322 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the tri-version SNMP coexistence audit.
+COMPILE {
+    tri_version_snmp_audit(legacy_v1_dev, standard_v2_dev, secure_v3_dev, compliance_nms)
+}
+```
+
+### `examples/105_minimal_single_frame_baseline.fasm`
+```frameassembly
+// PROMPT: Minimalist baseline FrameAssembly program defining two hosts, a single-statement TCP SYN flow using all default field values, and a single compile invocation.
+// TOKENS: HOST, IP, FLOW, ->, TCP, SYN, COMPILE
+
+// INSTRUCTION: Define minimal host A with IP 10.0.0.1.
+HOST host_a { IP 10.0.0.1 }
+
+// INSTRUCTION: Define minimal host B with IP 10.0.0.2.
+HOST host_b { IP 10.0.0.2 }
+
+// INSTRUCTION: Define the smallest valid TCP flow sending a single SYN frame with default ports and timing.
+FLOW minimal_syn(src, dst) {
+    src -> dst TCP SYN
+}
+
+// INSTRUCTION: Compile block to invoke the minimal flow once.
+COMPILE {
+    minimal_syn(host_a, host_b)
+}
+```
+
+### `examples/10_tcp_ecn_congestion_negotiation.fasm`
+```frameassembly
+// PROMPT: Simulate Explicit Congestion Notification (ECN) negotiation and congestion window reduction using TCP SYN, ECE, CWR, and ACK flags.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, ECE, CWR, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a data center sender host with IP 10.100.1.10 and MAC 00:25:90:aa:bb:01.
+HOST dc_sender { IP 10.100.1.10 MAC 00:25:90:aa:bb:01 }
+
+// INSTRUCTION: Define a data center receiver host with IP 10.100.1.20 and MAC 00:25:90:aa:bb:02.
+HOST dc_receiver { IP 10.100.1.20 MAC 00:25:90:aa:bb:02 }
+
+// INSTRUCTION: Define a flow negotiating ECN capability (SYN+ECE+CWR, SYN+ACK+ECE) followed by an ECN-Echo and CWR response.
+FLOW ecn_congestion_control(sender, receiver) {
+    sender -> receiver TCP SYN ECE CWR SRCPORT 55000 DSTPORT 9000 WIN 65535 WAIT 1ms
+    sender <- receiver TCP SYN ACK ECE SRCPORT 9000 DSTPORT 55000 WIN 65535 WAIT 1ms
+    sender -> receiver TCP ACK SRCPORT 55000 DSTPORT 9000 WIN 65535 WAIT 1ms
+    sender -> receiver TCP PSH ACK SRCPORT 55000 DSTPORT 9000 PAYLOAD "RDMA_BULK_BLOCK_01" WAIT 2ms
+    sender <- receiver TCP ACK ECE SRCPORT 9000 DSTPORT 55000 WIN 32768 WAIT 1ms
+    sender -> receiver TCP PSH ACK CWR SRCPORT 55000 DSTPORT 9000 WIN 32768 PAYLOAD "RDMA_BULK_BLOCK_02_THROTTLED" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to execute the ECN congestion control flow.
+COMPILE {
+    ecn_congestion_control(dc_sender, dc_receiver)
+}
+```
+
+### `examples/11_tcp_xmas_tree_stealth_scan.fasm`
+```frameassembly
+// PROMPT: Simulate an Nmap Xmas tree stealth port scan setting FIN, PSH, and URG flags across common service ports with RST ACK responses.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, FIN, PSH, URG, RST, ACK, SRCPORT, DSTPORT, WIN, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a penetration testing scanner host with IP 192.168.99.5.
+HOST pentest_scanner { IP 192.168.99.5 MAC de:ad:be:ef:00:01 }
+
+// INSTRUCTION: Define an audited target server with IP 192.168.99.100.
+HOST audited_target { IP 192.168.99.100 MAC de:ad:be:ef:00:99 }
+
+// INSTRUCTION: Define a flow that sends FIN PSH URG Xmas scan probes to ports 21, 22, 80, and 443.
+FLOW xmas_port_scan(scanner, target) {
+    scanner -> target TCP FIN PSH URG SRCPORT 60001 DSTPORT 21 WIN 1024 WAIT 5ms
+    scanner <- target TCP RST ACK SRCPORT 21 DSTPORT 60001 WIN 0 WAIT 2ms
+    scanner -> target TCP FIN PSH URG SRCPORT 60002 DSTPORT 22 WIN 1024 WAIT 5ms
+    scanner -> target TCP FIN PSH URG SRCPORT 60003 DSTPORT 80 WIN 1024 WAIT 5ms
+    scanner -> target TCP FIN PSH URG SRCPORT 60004 DSTPORT 443 WIN 1024 WAIT 5ms
+    scanner <- target TCP RST ACK SRCPORT 443 DSTPORT 60004 WIN 0 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to run the Xmas stealth scan flow.
+COMPILE {
+    xmas_port_scan(pentest_scanner, audited_target)
+}
+```
+
+### `examples/12_tcp_fin_stealth_scan.fasm`
+```frameassembly
+// PROMPT: Simulate a stealth TCP FIN scan probing closed and open ports on a target host.
+// TOKENS: HOST, IP, FLOW, ->, <-, TCP, FIN, RST, ACK, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a security scanner host with IP 10.0.50.9.
+HOST recon_scanner { IP 10.0.50.9 }
+
+// INSTRUCTION: Define a DMZ host being scanned with IP 10.0.50.25.
+HOST dmz_host { IP 10.0.50.25 }
+
+// INSTRUCTION: Define a flow sending bare TCP FIN packets to ports 25, 80, and 3306 and receiving RST ACK from closed ports.
+FLOW fin_stealth_scan(scanner, target) {
+    scanner -> target TCP FIN SRCPORT 51111 DSTPORT 25 SEQ 0 WIN 2048 WAIT 10ms
+    scanner <- target TCP RST ACK SRCPORT 25 DSTPORT 51111 WIN 0 WAIT 5ms
+    scanner -> target TCP FIN SRCPORT 51112 DSTPORT 80 SEQ 0 WIN 2048 WAIT 10ms
+    scanner -> target TCP FIN SRCPORT 51113 DSTPORT 3306 SEQ 0 WIN 2048 WAIT 10ms
+    scanner <- target TCP RST ACK SRCPORT 3306 DSTPORT 51113 WIN 0 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the FIN stealth scan.
+COMPILE {
+    fin_stealth_scan(recon_scanner, dmz_host)
+}
+```
+
+### `examples/13_tcp_ack_firewall_rule_probe.fasm`
+```frameassembly
+// PROMPT: Simulate a TCP ACK firewall rule mapping probe to distinguish stateful vs unfiltered ports via unsolicited ACK packets and RST responses.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, ACK, RST, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an external auditor host with IP 203.0.113.15.
+HOST auditor_box { IP 203.0.113.15 MAC 00:16:3e:10:20:30 }
+
+// INSTRUCTION: Define a perimeter firewall interface with IP 198.51.100.1.
+HOST perimeter_fw { IP 198.51.100.1 MAC 00:16:3e:40:50:60 }
+
+// INSTRUCTION: Define a flow sending unsolicited TCP ACK segments to map firewall filtering rules on ports 22, 80, and 443.
+FLOW ack_firewall_probe(auditor, firewall) {
+    auditor -> firewall TCP ACK SRCPORT 44100 DSTPORT 22 SEQ 7777 ACKNUM 1 WIN 4096 WAIT 10ms
+    auditor -> firewall TCP ACK SRCPORT 44101 DSTPORT 80 SEQ 7778 ACKNUM 1 WIN 4096 WAIT 10ms
+    auditor <- firewall TCP RST SRCPORT 80 DSTPORT 44101 SEQ 1 WIN 0 WAIT 5ms
+    auditor -> firewall TCP ACK SRCPORT 44102 DSTPORT 443 SEQ 7779 ACKNUM 1 WIN 4096 WAIT 10ms
+    auditor <- firewall TCP RST SRCPORT 443 DSTPORT 44102 SEQ 1 WIN 0 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the firewall ACK rule probe.
+COMPILE {
+    ack_firewall_probe(auditor_box, perimeter_fw)
+}
+```
+
+### `examples/14_tcp_syn_ack_reflection_amplification.fasm`
+```frameassembly
+// PROMPT: Simulate a TCP SYN-ACK reflection attack where a reflector server sends unsolicited SYN-ACK packets to a spoofed victim IP in a loop.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, RST, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define the spoofed victim host with IP 192.0.2.50.
+HOST spoofed_victim { IP 192.0.2.50 MAC 00:50:56:c0:00:08 }
+
+// INSTRUCTION: Define a public reflector server with IP 198.51.100.200.
+HOST reflector_server { IP 198.51.100.200 MAC 00:50:56:c0:00:09 }
+
+// INSTRUCTION: Define a flow where the victim receives reflected SYN-ACK packets from port 80 and replies with RST.
+FLOW syn_ack_reflection(victim, reflector) {
+    victim <- reflector TCP SYN ACK SRCPORT 80 DSTPORT 53000 SEQ 40000 ACKNUM 1001 WIN 65535 WAIT 2ms
+    victim -> reflector TCP RST SRCPORT 53000 DSTPORT 80 SEQ 1001 WIN 0 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to repeat the SYN-ACK reflection 20 times.
+COMPILE {
+    LOOP 20 {
+        syn_ack_reflection(spoofed_victim, reflector_server)
+    }
+}
+```
+
+### `examples/15_tcp_zero_window_probe_and_recovery.fasm`
+```frameassembly
+// PROMPT: Simulate TCP receiver buffer exhaustion advertising a zero window (WIN 0), a zero-window probe, and subsequent window recovery (WIN 65535).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define a bulk storage sender with IP 10.20.0.10.
+HOST storage_sender { IP 10.20.0.10 MAC 00:1b:21:aa:00:01 }
+
+// INSTRUCTION: Define a slow ingestion receiver with IP 10.20.0.20.
+HOST slow_receiver { IP 10.20.0.20 MAC 00:1b:21:aa:00:02 }
+
+// INSTRUCTION: Define a flow showing window shrinkage to 0, a 1-byte zero-window probe after 1s, and a window update back to 65535.
+FLOW zero_window_recovery(sender, receiver) {
+    sender -> receiver TCP SYN SRCPORT 42000 DSTPORT 9100 SEQ 1000 WIN 64240 WAIT 5ms
+    sender <- receiver TCP SYN ACK SRCPORT 9100 DSTPORT 42000 SEQ 5000 ACKNUM 1001 WIN 4096 WAIT 5ms
+    sender -> receiver TCP PSH ACK SRCPORT 42000 DSTPORT 9100 SEQ 1001 ACKNUM 5001 WIN 64240 PAYLOAD "CHUNK_FILLING_BUFFER" WAIT 10ms
+    sender <- receiver TCP ACK SRCPORT 9100 DSTPORT 42000 SEQ 5001 ACKNUM 1021 WIN 0 WAIT 1s
+    sender -> receiver TCP ACK SRCPORT 42000 DSTPORT 9100 SEQ 1020 ACKNUM 5001 WIN 64240 PAYLOAD "Z" WAIT 10ms
+    sender <- receiver TCP ACK SRCPORT 9100 DSTPORT 42000 SEQ 5001 ACKNUM 1021 WIN 0 WAIT 500ms
+    sender <- receiver TCP ACK SRCPORT 9100 DSTPORT 42000 SEQ 5001 ACKNUM 1021 WIN 65535 WAIT 5ms
+    sender -> receiver TCP PSH ACK SRCPORT 42000 DSTPORT 9100 SEQ 1021 ACKNUM 5001 WIN 64240 PAYLOAD "RESUMED_STREAM_DATA" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the TCP zero-window probe and recovery scenario.
+COMPILE {
+    zero_window_recovery(storage_sender, slow_receiver)
+}
+```
+
+### `examples/16_tcp_all_eight_flags_kamikaze.fasm`
+```frameassembly
+// PROMPT: Craft a Christmas/Kamikaze TCP test packet with all 8 TCP header flags enabled simultaneously (SYN, ACK, FIN, RST, PSH, URG, ECE, CWR).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, FIN, RST, PSH, URG, ECE, CWR, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a packet-crafting fuzzing host with IP 10.99.99.1.
+HOST fuzzer_node { IP 10.99.99.1 MAC 00:ff:ff:00:00:01 }
+
+// INSTRUCTION: Define an IDS sensor target with IP 10.99.99.2.
+HOST ids_sensor_target { IP 10.99.99.2 MAC 00:ff:ff:00:00:02 }
+
+// INSTRUCTION: Define a flow transmitting a packet with all 8 TCP flags set to test IDS signature detection.
+FLOW all_flags_kamikaze(fuzzer, sensor) {
+    fuzzer -> sensor TCP SYN ACK FIN RST PSH URG ECE CWR SRCPORT 65535 DSTPORT 80 SEQ 424242 ACKNUM 424242 WIN 8192 PAYLOAD "ALL_FLAGS_TEST_VECTOR" WAIT 10ms
+    fuzzer <- sensor TCP RST ACK SRCPORT 80 DSTPORT 65535 SEQ 0 ACKNUM 424264 WIN 0 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the all-flags TCP fuzzing flow.
+COMPILE {
+    all_flags_kamikaze(fuzzer_node, ids_sensor_target)
+}
+```
+
+### `examples/17_tcp_simultaneous_open_handshake.fasm`
+```frameassembly
+// PROMPT: Simulate an RFC 793 TCP simultaneous open handshake where two peer hosts send SYN packets concurrently and complete the connection with SYN-ACKs.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define peer alpha with IP 10.40.0.1 and MAC 02:40:00:00:00:01.
+HOST peer_alpha { IP 10.40.0.1 MAC 02:40:00:00:00:01 }
+
+// INSTRUCTION: Define peer beta with IP 10.40.0.2 and MAC 02:40:00:00:00:02.
+HOST peer_beta { IP 10.40.0.2 MAC 02:40:00:00:00:02 }
+
+// INSTRUCTION: Define a flow for a 4-packet TCP simultaneous open exchange on port 17900.
+FLOW simultaneous_open(alpha, beta) {
+    alpha -> beta TCP SYN SRCPORT 17900 DSTPORT 17900 SEQ 3000 WIN 65535 WAIT 1ms
+    alpha <- beta TCP SYN SRCPORT 17900 DSTPORT 17900 SEQ 7000 WIN 65535 WAIT 1ms
+    alpha -> beta TCP SYN ACK SRCPORT 17900 DSTPORT 17900 SEQ 3000 ACKNUM 7001 WIN 65535 WAIT 2ms
+    alpha <- beta TCP SYN ACK SRCPORT 17900 DSTPORT 17900 SEQ 7000 ACKNUM 3001 WIN 65535 WAIT 2ms
+    alpha -> beta TCP PSH ACK SRCPORT 17900 DSTPORT 17900 SEQ 3001 ACKNUM 7001 PAYLOAD "P2P_ESTABLISHED" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the simultaneous open TCP flow.
+COMPILE {
+    simultaneous_open(peer_alpha, peer_beta)
+}
+```
+
+### `examples/18_tcp_keepalive_long_idle_session.fasm`
+```frameassembly
+// PROMPT: Simulate a long-lived idle TCP database connection using WAIT intervals in milliseconds (ms), seconds (s), and minutes (m) for TCP keepalives.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, s, m, COMPILE
+
+// INSTRUCTION: Define a backend worker host with IP 10.30.1.15.
+HOST worker_node { IP 10.30.1.15 MAC 00:22:44:66:88:aa }
+
+// INSTRUCTION: Define a PostgreSQL database server with IP 10.30.1.54.
+HOST postgres_db { IP 10.30.1.54 MAC 00:22:44:66:88:bb }
+
+// INSTRUCTION: Define a flow that connects on port 5432, idles for 1 minute, sends a TCP keepalive ACK, and runs a query after 5 seconds.
+FLOW tcp_keepalive_idle(worker, db) {
+    worker -> db TCP SYN SRCPORT 52400 DSTPORT 5432 SEQ 100 WIN 64240 WAIT 10ms
+    worker <- db TCP SYN ACK SRCPORT 5432 DSTPORT 52400 SEQ 500 ACKNUM 101 WIN 64240 WAIT 10ms
+    worker -> db TCP ACK SRCPORT 52400 DSTPORT 5432 SEQ 101 ACKNUM 501 WIN 64240 WAIT 1m
+    worker -> db TCP ACK SRCPORT 52400 DSTPORT 5432 SEQ 100 ACKNUM 501 WIN 64240 WAIT 5ms
+    worker <- db TCP ACK SRCPORT 5432 DSTPORT 52400 SEQ 501 ACKNUM 101 WIN 64240 WAIT 5s
+    worker -> db TCP PSH ACK SRCPORT 52400 DSTPORT 5432 SEQ 101 ACKNUM 501 PAYLOAD "SELECT 1;" WAIT 20ms
+    worker <- db TCP PSH ACK SRCPORT 5432 DSTPORT 52400 SEQ 501 ACKNUM 110 PAYLOAD "ROW 1" WAIT 20ms
+}
+
+// INSTRUCTION: Compile block to run the long-lived TCP keepalive session.
+COMPILE {
+    tcp_keepalive_idle(worker_node, postgres_db)
+}
+```
+
+### `examples/19_tcp_retransmission_and_duplicate_ack.fasm`
+```frameassembly
+// PROMPT: Simulate TCP fast retransmission triggered by three duplicate ACKs when an intermediate segment is lost in transit.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a video streaming server with IP 172.20.0.10.
+HOST media_server { IP 172.20.0.10 MAC 00:aa:00:20:00:10 }
+
+// INSTRUCTION: Define a subscriber client with IP 172.20.0.99.
+HOST subscriber_client { IP 172.20.0.99 MAC 00:aa:00:20:00:99 }
+
+// INSTRUCTION: Define a flow showing out-of-order segment arrival, 3 duplicate ACKs for SEQ 1011, and fast retransmission of the missing segment.
+FLOW fast_retransmit_flow(server, client) {
+    client -> server TCP SYN SRCPORT 58000 DSTPORT 8000 SEQ 200 WIN 65535 WAIT 5ms
+    client <- server TCP SYN ACK SRCPORT 8000 DSTPORT 58000 SEQ 1000 ACKNUM 201 WIN 65535 WAIT 5ms
+    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1001 WIN 65535 WAIT 5ms
+    client <- server TCP PSH ACK SRCPORT 8000 DSTPORT 58000 SEQ 1001 ACKNUM 201 PAYLOAD "SEG_000001" WAIT 5ms
+    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1011 WIN 65535 WAIT 2ms
+    client <- server TCP PSH ACK SRCPORT 8000 DSTPORT 58000 SEQ 1021 ACKNUM 201 PAYLOAD "SEG_000003" WAIT 5ms
+    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1011 WIN 65535 WAIT 2ms
+    client <- server TCP PSH ACK SRCPORT 8000 DSTPORT 58000 SEQ 1031 ACKNUM 201 PAYLOAD "SEG_000004" WAIT 5ms
+    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1011 WIN 65535 WAIT 2ms
+    client <- server TCP PSH ACK SRCPORT 8000 DSTPORT 58000 SEQ 1041 ACKNUM 201 PAYLOAD "SEG_000005" WAIT 5ms
+    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1011 WIN 65535 WAIT 2ms
+    client <- server TCP PSH ACK SRCPORT 8000 DSTPORT 58000 SEQ 1011 ACKNUM 201 PAYLOAD "SEG_000002" WAIT 5ms
+    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1051 WIN 65535 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the TCP fast retransmission simulation.
+COMPILE {
+    fast_retransmit_flow(media_server, subscriber_client)
+}
+```
+
+### `examples/20_tcp_http_post_json_api.fasm`
+```frameassembly
+// PROMPT: Simulate a complete HTTP/1.1 POST JSON authentication transaction over TCP port 8080 from handshake to FIN closure.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, FIN, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a mobile app client with IP 192.168.50.12.
+HOST mobile_app { IP 192.168.50.12 MAC 3c:22:fb:11:22:33 }
+
+// INSTRUCTION: Define an authentication microservice with IP 192.168.50.100.
+HOST auth_service { IP 192.168.50.100 MAC 3c:22:fb:44:55:66 }
+
+// INSTRUCTION: Define a flow executing an HTTP POST login request and JSON token response over TCP port 8080.
+FLOW http_post_login(client, server) {
+    client -> server TCP SYN SRCPORT 51234 DSTPORT 8080 WIN 65535 WAIT 5ms
+    client <- server TCP SYN ACK SRCPORT 8080 DSTPORT 51234 WIN 65535 WAIT 5ms
+    client -> server TCP ACK SRCPORT 51234 DSTPORT 8080 WIN 65535 WAIT 2ms
+    client -> server TCP PSH ACK SRCPORT 51234 DSTPORT 8080 PAYLOAD "POST /api/v1/login HTTP/1.1" WAIT 5ms
+    client <- server TCP ACK SRCPORT 8080 DSTPORT 51234 WIN 65535 WAIT 2ms
+    client <- server TCP PSH ACK SRCPORT 8080 DSTPORT 51234 PAYLOAD "HTTP/1.1 200 OK {token:jwt_xyz}" WAIT 10ms
+    client -> server TCP FIN ACK SRCPORT 51234 DSTPORT 8080 WIN 65535 WAIT 5ms
+    client <- server TCP FIN ACK SRCPORT 8080 DSTPORT 51234 WIN 65535 WAIT 5ms
+    client -> server TCP ACK SRCPORT 51234 DSTPORT 8080 WIN 65535 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to run the HTTP POST JSON transaction.
+COMPILE {
+    http_post_login(mobile_app, auth_service)
+}
+```
+
+### `examples/21_tcp_smtp_email_submission.fasm`
+```frameassembly
+// PROMPT: Simulate an SMTP email submission conversation over TCP port 587 including EHLO, MAIL FROM, RCPT TO, DATA, and QUIT commands.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, FIN, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a mail user agent host with IP 10.15.0.25.
+HOST mail_client { IP 10.15.0.25 MAC 00:11:32:aa:bb:01 }
+
+// INSTRUCTION: Define an SMTP mail relay server with IP 10.15.0.10.
+HOST smtp_relay { IP 10.15.0.10 MAC 00:11:32:aa:bb:02 }
+
+// INSTRUCTION: Define a flow simulating an SMTP mail submission dialog on port 587.
+FLOW smtp_mail_submission(mua, mta) {
+    mua -> mta TCP SYN SRCPORT 49800 DSTPORT 587 WAIT 5ms
+    mua <- mta TCP SYN ACK SRCPORT 587 DSTPORT 49800 WAIT 5ms
+    mua -> mta TCP ACK SRCPORT 49800 DSTPORT 587 WAIT 2ms
+    mua <- mta TCP PSH ACK SRCPORT 587 DSTPORT 49800 PAYLOAD "220 smtp.example.com ESMTP" WAIT 10ms
+    mua -> mta TCP PSH ACK SRCPORT 49800 DSTPORT 587 PAYLOAD "EHLO client.example.com" WAIT 10ms
+    mua <- mta TCP PSH ACK SRCPORT 587 DSTPORT 49800 PAYLOAD "250-smtp.example.com" WAIT 10ms
+    mua -> mta TCP PSH ACK SRCPORT 49800 DSTPORT 587 PAYLOAD "MAIL FROM:<alice@example.com>" WAIT 10ms
+    mua <- mta TCP PSH ACK SRCPORT 587 DSTPORT 49800 PAYLOAD "250 2.1.0 Ok" WAIT 10ms
+    mua -> mta TCP PSH ACK SRCPORT 49800 DSTPORT 587 PAYLOAD "RCPT TO:<bob@example.com>" WAIT 10ms
+    mua <- mta TCP PSH ACK SRCPORT 587 DSTPORT 49800 PAYLOAD "250 2.1.5 Ok" WAIT 10ms
+    mua -> mta TCP PSH ACK SRCPORT 49800 DSTPORT 587 PAYLOAD "QUIT" WAIT 5ms
+    mua <- mta TCP FIN ACK SRCPORT 587 DSTPORT 49800 PAYLOAD "221 2.0.0 Bye" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the SMTP email submission flow.
+COMPILE {
+    smtp_mail_submission(mail_client, smtp_relay)
+}
+```
+
+### `examples/22_tcp_ftp_control_and_passive_mode.fasm`
+```frameassembly
+// PROMPT: Simulate an FTP control session on TCP port 21 authenticating a user and entering passive mode (PASV) for directory listing.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an FTP client workstation with IP 192.168.20.45.
+HOST ftp_workstation { IP 192.168.20.45 MAC 08:00:27:12:34:56 }
+
+// INSTRUCTION: Define an FTP archive server with IP 192.168.20.21.
+HOST ftp_server { IP 192.168.20.21 MAC 08:00:27:65:43:21 }
+
+// INSTRUCTION: Define a flow performing FTP USER/PASS login and PASV mode negotiation on port 21.
+FLOW ftp_control_session(client, server) {
+    client -> server TCP SYN SRCPORT 50210 DSTPORT 21 WAIT 5ms
+    client <- server TCP SYN ACK SRCPORT 21 DSTPORT 50210 WAIT 5ms
+    client -> server TCP ACK SRCPORT 50210 DSTPORT 21 WAIT 2ms
+    client <- server TCP PSH ACK SRCPORT 21 DSTPORT 50210 PAYLOAD "220 vsFTPd 3.0.5" WAIT 10ms
+    client -> server TCP PSH ACK SRCPORT 50210 DSTPORT 21 PAYLOAD "USER anonymous" WAIT 10ms
+    client <- server TCP PSH ACK SRCPORT 21 DSTPORT 50210 PAYLOAD "331 Please specify the password." WAIT 10ms
+    client -> server TCP PSH ACK SRCPORT 50210 DSTPORT 21 PAYLOAD "PASS guest@example.com" WAIT 10ms
+    client <- server TCP PSH ACK SRCPORT 21 DSTPORT 50210 PAYLOAD "230 Login successful." WAIT 10ms
+    client -> server TCP PSH ACK SRCPORT 50210 DSTPORT 21 PAYLOAD "PASV" WAIT 10ms
+    client <- server TCP PSH ACK SRCPORT 21 DSTPORT 50210 PAYLOAD "227 Entering Passive Mode (192,168,20,21,195,80)." WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the FTP control channel flow.
+COMPILE {
+    ftp_control_session(ftp_workstation, ftp_server)
+}
+```
+
+### `examples/23_tcp_redis_resp_cache_lookup.fasm`
+```frameassembly
+// PROMPT: Simulate a low-latency Redis RESP cache SET and GET pipeline over TCP port 6379.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define a web backend worker with IP 10.8.0.12.
+HOST backend_worker { IP 10.8.0.12 MAC 02:42:0a:08:00:0c }
+
+// INSTRUCTION: Define a Redis in-memory cache node with IP 10.8.0.63.
+HOST redis_cache { IP 10.8.0.63 MAC 02:42:0a:08:00:3f }
+
+// INSTRUCTION: Define a flow that connects to Redis port 6379 and executes RESP SET and GET commands.
+FLOW redis_cache_pipeline(app, cache) {
+    app -> cache TCP SYN SRCPORT 56379 DSTPORT 6379 WIN 65535 WAIT 1ms
+    app <- cache TCP SYN ACK SRCPORT 6379 DSTPORT 56379 WIN 65535 WAIT 1ms
+    app -> cache TCP ACK SRCPORT 56379 DSTPORT 6379 WIN 65535 WAIT 1ms
+    app -> cache TCP PSH ACK SRCPORT 56379 DSTPORT 6379 PAYLOAD "SET session:1001 active" WAIT 1ms
+    app <- cache TCP PSH ACK SRCPORT 6379 DSTPORT 56379 PAYLOAD "+OK" WAIT 1ms
+    app -> cache TCP PSH ACK SRCPORT 56379 DSTPORT 6379 PAYLOAD "GET session:1001" WAIT 1ms
+    app <- cache TCP PSH ACK SRCPORT 6379 DSTPORT 56379 PAYLOAD "$6 active" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block to execute the Redis cache lookup flow 5 times.
+COMPILE {
+    LOOP 5 {
+        redis_cache_pipeline(backend_worker, redis_cache)
+    }
+}
+```
+
+### `examples/24_tcp_bgp_peer_open_and_keepalive.fasm`
+```frameassembly
+// PROMPT: Simulate a BGP-4 eBGP peering session establishment (OPEN, KEEP-ALIVE, UPDATE) between two autonomous system border routers on TCP port 179.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define AS65001 border router with IP 192.0.2.1 and MAC 00:00:5e:00:53:01.
+HOST as65001_router { IP 192.0.2.1 MAC 00:00:5e:00:53:01 }
+
+// INSTRUCTION: Define AS65002 border router with IP 192.0.2.2 and MAC 00:00:5e:00:53:02.
+HOST as65002_router { IP 192.0.2.2 MAC 00:00:5e:00:53:02 }
+
+// INSTRUCTION: Define a flow establishing TCP port 179 connectivity and exchanging BGP OPEN, KEEPALIVE, and NLRI UPDATE messages.
+FLOW bgp_peering_session(peer_a, peer_b) {
+    peer_a -> peer_b TCP SYN SRCPORT 49179 DSTPORT 179 SEQ 10000 WIN 16384 WAIT 5ms
+    peer_a <- peer_b TCP SYN ACK SRCPORT 179 DSTPORT 49179 SEQ 20000 ACKNUM 10001 WIN 16384 WAIT 5ms
+    peer_a -> peer_b TCP ACK SRCPORT 49179 DSTPORT 179 SEQ 10001 ACKNUM 20001 WIN 16384 WAIT 5ms
+    peer_a -> peer_b TCP PSH ACK SRCPORT 49179 DSTPORT 179 PAYLOAD "BGP4_OPEN_AS65001_HOLD180" WAIT 10ms
+    peer_a <- peer_b TCP PSH ACK SRCPORT 179 DSTPORT 49179 PAYLOAD "BGP4_OPEN_AS65002_HOLD180" WAIT 10ms
+    peer_a -> peer_b TCP PSH ACK SRCPORT 49179 DSTPORT 179 PAYLOAD "BGP4_KEEPALIVE" WAIT 1s
+    peer_a <- peer_b TCP PSH ACK SRCPORT 179 DSTPORT 49179 PAYLOAD "BGP4_KEEPALIVE" WAIT 1s
+    peer_a -> peer_b TCP PSH ACK SRCPORT 49179 DSTPORT 179 PAYLOAD "BGP4_UPDATE_NLRI_10.0.0.0/8" WAIT 50ms
+}
+
+// INSTRUCTION: Compile block to run the BGP peering session flow.
+COMPILE {
+    bgp_peering_session(as65001_router, as65002_router)
+}
+```
+
+### `examples/25_tcp_mqtt_iot_telemetry_publish.fasm`
+```frameassembly
+// PROMPT: Simulate an IoT sensor publishing telemetry topics to an MQTT broker over TCP port 1883 with QoS 1 PUBACK acknowledgments.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define an IoT environmental sensor with IP 192.168.40.101.
+HOST iot_sensor { IP 192.168.40.101 MAC b8:27:eb:10:20:30 }
+
+// INSTRUCTION: Define an MQTT message broker with IP 192.168.40.10.
+HOST mqtt_broker { IP 192.168.40.10 MAC b8:27:eb:00:00:01 }
+
+// INSTRUCTION: Define a flow for the initial MQTT TCP handshake and CONNECT/CONNACK exchange on port 1883.
+FLOW mqtt_connect(sensor, broker) {
+    sensor -> broker TCP SYN SRCPORT 41883 DSTPORT 1883 WIN 8192 WAIT 10ms
+    sensor <- broker TCP SYN ACK SRCPORT 1883 DSTPORT 41883 WIN 32768 WAIT 10ms
+    sensor -> broker TCP ACK SRCPORT 41883 DSTPORT 1883 WIN 8192 WAIT 5ms
+    sensor -> broker TCP PSH ACK SRCPORT 41883 DSTPORT 1883 PAYLOAD "MQTT_CONNECT_sensor_101" WAIT 10ms
+    sensor <- broker TCP PSH ACK SRCPORT 1883 DSTPORT 41883 PAYLOAD "MQTT_CONNACK_0" WAIT 10ms
+}
+
+// INSTRUCTION: Define a flow for publishing QoS 1 sensor telemetry and receiving PUBACK.
+FLOW mqtt_publish_telemetry(sensor, broker) {
+    sensor -> broker TCP PSH ACK SRCPORT 41883 DSTPORT 1883 PAYLOAD "MQTT_PUBLISH_factory/temp_23.4C" WAIT 50ms
+    sensor <- broker TCP PSH ACK SRCPORT 1883 DSTPORT 41883 PAYLOAD "MQTT_PUBACK_MSGID_1" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to connect once and publish telemetry 10 times in a loop.
+COMPILE {
+    mqtt_connect(iot_sensor, mqtt_broker)
+    LOOP 10 {
+        mqtt_publish_telemetry(iot_sensor, mqtt_broker)
+    }
+}
+```
+
+### `examples/26_udp_dhcp_discover_offer_request_ack.fasm`
+```frameassembly
+// PROMPT: Simulate a complete DHCPv4 DORA (Discover, Offer, Request, Acknowledge) lease allocation exchange over UDP ports 67 and 68 using broadcast and server endpoints.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an unconfigured DHCP client with IP 0.0.0.0 and client MAC 00:0a:95:9d:68:16.
+HOST dhcp_client { IP 0.0.0.0 MAC 00:0a:95:9d:68:16 }
+
+// INSTRUCTION: Define the local subnet broadcast endpoint with IP 255.255.255.255 and broadcast MAC ff:ff:ff:ff:ff:ff.
+HOST lan_broadcast { IP 255.255.255.255 MAC ff:ff:ff:ff:ff:ff }
+
+// INSTRUCTION: Define the enterprise DHCP server with IP 192.168.1.1 and MAC 00:0a:95:00:00:01.
+HOST dhcp_server { IP 192.168.1.1 MAC 00:0a:95:00:00:01 }
+
+// INSTRUCTION: Define a 3-argument flow modeling DHCPDISCOVER, DHCPOFFER, DHCPREQUEST, and DHCPACK on UDP ports 68 and 67.
+FLOW dhcp_dora_handshake(client, bcast, server) {
+    client -> bcast UDP SRCPORT 68 DSTPORT 67 PAYLOAD "DHCPDISCOVER_XID_0x3903F326" WAIT 10ms
+    client <- server UDP SRCPORT 67 DSTPORT 68 PAYLOAD "DHCPOFFER_YIADDR_192.168.1.150" WAIT 10ms
+    client -> bcast UDP SRCPORT 68 DSTPORT 67 PAYLOAD "DHCPREQUEST_192.168.1.150" WAIT 10ms
+    client <- server UDP SRCPORT 67 DSTPORT 68 PAYLOAD "DHCPACK_LEASE_86400" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the DHCP DORA flow across the client, broadcast, and server hosts.
+COMPILE {
+    dhcp_dora_handshake(dhcp_client, lan_broadcast, dhcp_server)
+}
+```
+
+### `examples/27_udp_ntp_clock_synchronization.fasm`
+```frameassembly
+// PROMPT: Simulate Network Time Protocol (NTP) clock synchronization polling between a Linux host and a Stratum-1 NTP server on UDP port 123 with 1s wait intervals.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, s, COMPILE, LOOP
+
+// INSTRUCTION: Define an internal application server requiring clock sync with IP 10.10.5.20.
+HOST ntp_client { IP 10.10.5.20 MAC 00:15:5d:01:05:14 }
+
+// INSTRUCTION: Define a GPS-backed Stratum-1 NTP server with IP 10.10.5.1.
+HOST stratum1_ntp { IP 10.10.5.1 MAC 00:15:5d:01:05:01 }
+
+// INSTRUCTION: Define a flow that sends an NTPv4 client request on UDP port 123 and receives a server timestamp reply.
+FLOW ntp_time_sync(client, server) {
+    client -> server UDP SRCPORT 123 DSTPORT 123 PAYLOAD "NTPv4_MODE3_CLIENT_REQ" WAIT 1s
+    client <- server UDP SRCPORT 123 DSTPORT 123 PAYLOAD "NTPv4_MODE4_STRATUM1_GPS" WAIT 1s
+}
+
+// INSTRUCTION: Compile block to run 4 NTP polling cycles.
+COMPILE {
+    LOOP 4 {
+        ntp_time_sync(ntp_client, stratum1_ntp)
+    }
+}
+```
+
+### `examples/28_udp_syslog_rfc5424_forwarding.fasm`
+```frameassembly
+// PROMPT: Simulate RFC 5424 Syslog security audit messages forwarded over UDP port 514 from an edge router to a SIEM log collector.
+// TOKENS: HOST, IP, MAC, FLOW, ->, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an edge router generating syslog events with IP 172.16.1.1.
+HOST edge_router { IP 172.16.1.1 MAC 00:1e:67:01:01:01 }
+
+// INSTRUCTION: Define a central SIEM syslog collector with IP 172.16.1.250.
+HOST siem_collector { IP 172.16.1.250 MAC 00:1e:67:01:01:fa }
+
+// INSTRUCTION: Define a flow sending structured RFC 5424 syslog datagrams to UDP port 514.
+FLOW forward_syslog_events(router, collector) {
+    router -> collector UDP SRCPORT 51514 DSTPORT 514 PAYLOAD "<34>1 2026-10-21T12:00:01Z router01 sshd - - Failed password for root" WAIT 15ms
+    router -> collector UDP SRCPORT 51514 DSTPORT 514 PAYLOAD "<38>1 2026-10-21T12:00:02Z router01 bgpd - - Neighbor 192.0.2.2 Up" WAIT 15ms
+    router -> collector UDP SRCPORT 51514 DSTPORT 514 PAYLOAD "<27>1 2026-10-21T12:00:03Z router01 kernel - -LINK-3-UPDOWN: Interface Gi0/1" WAIT 15ms
+}
+
+// INSTRUCTION: Compile block to emit the syslog event batch.
+COMPILE {
+    forward_syslog_events(edge_router, siem_collector)
+}
+```
+
+### `examples/29_udp_tftp_firmware_block_transfer.fasm`
+```frameassembly
+// PROMPT: Simulate a PXE network boot TFTP firmware read request (RRQ) on UDP port 69 followed by numbered data blocks and acknowledgments on ephemeral ports.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a diskless PXE boot client with IP 192.168.100.55.
+HOST pxe_client { IP 192.168.100.55 MAC 52:54:00:12:34:55 }
+
+// INSTRUCTION: Define a TFTP provisioning server with IP 192.168.100.10.
+HOST tftp_server { IP 192.168.100.10 MAC 52:54:00:12:34:10 }
+
+// INSTRUCTION: Define a flow that requests boot.bin on UDP port 69 and transfers two 512-byte TFTP data blocks with ACKs.
+FLOW tftp_firmware_transfer(client, server) {
+    client -> server UDP SRCPORT 50069 DSTPORT 69 PAYLOAD "TFTP_RRQ_boot.bin_octet" WAIT 5ms
+    client <- server UDP SRCPORT 61000 DSTPORT 50069 PAYLOAD "TFTP_DATA_BLK1_512B" WAIT 5ms
+    client -> server UDP SRCPORT 50069 DSTPORT 61000 PAYLOAD "TFTP_ACK_BLK1" WAIT 2ms
+    client <- server UDP SRCPORT 61000 DSTPORT 50069 PAYLOAD "TFTP_DATA_BLK2_EOF" WAIT 5ms
+    client -> server UDP SRCPORT 50069 DSTPORT 61000 PAYLOAD "TFTP_ACK_BLK2" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to run the TFTP firmware download simulation.
+COMPILE {
+    tftp_firmware_transfer(pxe_client, tftp_server)
+}
+```
+
+### `examples/30_udp_radius_authentication_accounting.fasm`
+```frameassembly
+// PROMPT: Simulate 802.1X RADIUS authentication on UDP port 1812 and RADIUS accounting start/response on UDP port 1813 between a wireless controller and AAA server.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a wireless LAN controller (NAS) with IP 10.5.10.2.
+HOST wlan_controller { IP 10.5.10.2 MAC 00:24:97:10:20:02 }
+
+// INSTRUCTION: Define a FreeRADIUS AAA server with IP 10.5.10.100.
+HOST radius_aaa_server { IP 10.5.10.100 MAC 00:24:97:10:20:64 }
+
+// INSTRUCTION: Define a flow performing RADIUS Access-Request/Access-Accept on port 1812 and Accounting-Request/Accounting-Response on port 1813.
+FLOW radius_auth_and_acct(nas, aaa) {
+    nas -> aaa UDP SRCPORT 41812 DSTPORT 1812 PAYLOAD "RADIUS_ACCESS_REQUEST_user=jdoe" WAIT 10ms
+    nas <- aaa UDP SRCPORT 1812 DSTPORT 41812 PAYLOAD "RADIUS_ACCESS_ACCEPT_vlan=20" WAIT 10ms
+    nas -> aaa UDP SRCPORT 41813 DSTPORT 1813 PAYLOAD "RADIUS_ACCT_START_sess=9981" WAIT 10ms
+    nas <- aaa UDP SRCPORT 1813 DSTPORT 41813 PAYLOAD "RADIUS_ACCT_RESPONSE_ok" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the RADIUS authentication and accounting flow.
+COMPILE {
+    radius_auth_and_acct(wlan_controller, radius_aaa_server)
+}
+```
+
+### `examples/31_udp_vxlan_overlay_heartbeat.fasm`
+```frameassembly
+// PROMPT: Simulate VXLAN overlay tunnel encapsulation traffic between two VTEP leaf switches on UDP port 4789.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define VTEP Leaf Switch 1 with underlay IP 10.250.0.11 and MAC 00:02:c9:aa:00:11.
+HOST vtep_leaf_1 { IP 10.250.0.11 MAC 00:02:c9:aa:00:11 }
+
+// INSTRUCTION: Define VTEP Leaf Switch 2 with underlay IP 10.250.0.12 and MAC 00:02:c9:aa:00:12.
+HOST vtep_leaf_2 { IP 10.250.0.12 MAC 00:02:c9:aa:00:12 }
+
+// INSTRUCTION: Define a flow exchanging VXLAN VNI 10500 encapsulated frames over UDP destination port 4789.
+FLOW vxlan_tunnel_traffic(vtep_a, vtep_b) {
+    vtep_a -> vtep_b UDP SRCPORT 55100 DSTPORT 4789 PAYLOAD "VXLAN_VNI_10500_INNER_FRAME_REQ" WAIT 2ms
+    vtep_a <- vtep_b UDP SRCPORT 55200 DSTPORT 4789 PAYLOAD "VXLAN_VNI_10500_INNER_FRAME_REP" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to repeat the VXLAN overlay exchange 15 times.
+COMPILE {
+    LOOP 15 {
+        vxlan_tunnel_traffic(vtep_leaf_1, vtep_leaf_2)
+    }
+}
+```
+
+### `examples/32_udp_wireguard_vpn_handshake.fasm`
+```frameassembly
+// PROMPT: Simulate a WireGuard VPN Noise_IKpsk2 handshake initiation, response, and encrypted transport data exchange over UDP port 51820.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a roaming laptop VPN peer with IP 198.51.100.42.
+HOST wg_roaming_peer { IP 198.51.100.42 MAC a4:83:e7:11:22:33 }
+
+// INSTRUCTION: Define a corporate WireGuard concentrator with IP 203.0.113.1.
+HOST wg_concentrator { IP 203.0.113.1 MAC a4:83:e7:99:88:77 }
+
+// INSTRUCTION: Define a flow exchanging WireGuard Type 1 Initiation, Type 2 Response, and Type 4 Transport Data packets on UDP port 51820.
+FLOW wireguard_tunnel_setup(initiator, responder) {
+    initiator -> responder UDP SRCPORT 51820 DSTPORT 51820 PAYLOAD "WG_TYPE1_HANDSHAKE_INITIATION" WAIT 10ms
+    initiator <- responder UDP SRCPORT 51820 DSTPORT 51820 PAYLOAD "WG_TYPE2_HANDSHAKE_RESPONSE" WAIT 10ms
+    initiator -> responder UDP SRCPORT 51820 DSTPORT 51820 PAYLOAD "WG_TYPE4_AEAD_CHACHA20_DATA_01" WAIT 5ms
+    initiator <- responder UDP SRCPORT 51820 DSTPORT 51820 PAYLOAD "WG_TYPE4_AEAD_CHACHA20_DATA_02" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the WireGuard VPN handshake flow.
+COMPILE {
+    wireguard_tunnel_setup(wg_roaming_peer, wg_concentrator)
+}
+```
+
+### `examples/33_udp_quic_http3_initial_exchange.fasm`
+```frameassembly
+// PROMPT: Simulate an HTTP/3 over QUIC initial connection establishment and 0-RTT stream exchange on UDP port 443.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a browser client supporting HTTP/3 with IP 192.168.1.77.
+HOST h3_browser { IP 192.168.1.77 MAC f0:18:98:aa:bb:cc }
+
+// INSTRUCTION: Define an edge CDN server listening on UDP 443 with IP 198.51.100.88.
+HOST cdn_edge { IP 198.51.100.88 MAC f0:18:98:dd:ee:ff }
+
+// INSTRUCTION: Define a flow sending QUIC Initial, Handshake, and 1-RTT HTTP/3 GET frames over UDP port 443.
+FLOW quic_http3_exchange(browser, cdn) {
+    browser -> cdn UDP SRCPORT 55443 DSTPORT 443 PAYLOAD "QUIC_INITIAL_TLS13_CLIENT_HELLO" WAIT 5ms
+    browser <- cdn UDP SRCPORT 443 DSTPORT 55443 PAYLOAD "QUIC_INITIAL_SERVER_HELLO_HANDSHAKE" WAIT 5ms
+    browser -> cdn UDP SRCPORT 55443 DSTPORT 443 PAYLOAD "QUIC_1RTT_H3_HEADERS_GET_INDEX" WAIT 5ms
+    browser <- cdn UDP SRCPORT 443 DSTPORT 55443 PAYLOAD "QUIC_1RTT_H3_DATA_200_OK" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the QUIC HTTP/3 connection flow.
+COMPILE {
+    quic_http3_exchange(h3_browser, cdn_edge)
+}
+```
+
+### `examples/34_udp_sip_voip_call_setup.fasm`
+```frameassembly
+// PROMPT: Simulate a VoIP SIP call setup and teardown signaling sequence (INVITE, 100 Trying, 180 Ringing, 200 OK, ACK, BYE) over UDP port 5060.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define Caller IP Phone A with IP 10.60.1.101.
+HOST sip_phone_a { IP 10.60.1.101 MAC 00:04:f2:11:11:01 }
+
+// INSTRUCTION: Define IP PBX SIP Proxy with IP 10.60.1.10.
+HOST sip_pbx_proxy { IP 10.60.1.10 MAC 00:04:f2:00:00:10 }
+
+// INSTRUCTION: Define a flow modeling SIP call signaling over UDP port 5060.
+FLOW sip_call_signaling(phone, pbx) {
+    phone -> pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "INVITE sip:2002@pbx.local SIP/2.0" WAIT 10ms
+    phone <- pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "SIP/2.0 100 Trying" WAIT 20ms
+    phone <- pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "SIP/2.0 180 Ringing" WAIT 1s
+    phone <- pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "SIP/2.0 200 OK SDP_G711U" WAIT 10ms
+    phone -> pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "ACK sip:2002@pbx.local SIP/2.0" WAIT 2s
+    phone -> pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "BYE sip:2002@pbx.local SIP/2.0" WAIT 10ms
+    phone <- pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "SIP/2.0 200 OK" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the SIP VoIP signaling flow.
+COMPILE {
+    sip_call_signaling(sip_phone_a, sip_pbx_proxy)
+}
+```
+
+### `examples/35_udp_rtp_voice_media_stream.fasm`
+```frameassembly
+// PROMPT: Simulate a bidirectional G.711 RTP voice media stream exchanging 20ms audio frames on UDP port 16384 in a loop.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define VoIP endpoint A with IP 10.60.2.11.
+HOST rtp_endpoint_a { IP 10.60.2.11 MAC 00:04:f2:aa:00:01 }
+
+// INSTRUCTION: Define VoIP endpoint B with IP 10.60.2.12.
+HOST rtp_endpoint_b { IP 10.60.2.12 MAC 00:04:f2:aa:00:02 }
+
+// INSTRUCTION: Define a flow exchanging bidirectional RTP G.711 PCMU audio payloads with 20ms pacing.
+FLOW rtp_audio_frame(ep_a, ep_b) {
+    ep_a -> ep_b UDP SRCPORT 16384 DSTPORT 16384 PAYLOAD "RTP_PT0_PCMU_160B_A2B" WAIT 20ms
+    ep_a <- ep_b UDP SRCPORT 16384 DSTPORT 16384 PAYLOAD "RTP_PT0_PCMU_160B_B2A" WAIT 20ms
+}
+
+// INSTRUCTION: Compile block to stream 25 bidirectional RTP frames.
+COMPILE {
+    LOOP 25 {
+        rtp_audio_frame(rtp_endpoint_a, rtp_endpoint_b)
+    }
+}
+```
+
+### `examples/36_udp_netflow_v9_collector_export.fasm`
+```frameassembly
+// PROMPT: Simulate a core router exporting NetFlow v9 template and flow-set telemetry records to a traffic analyzer on UDP port 2055.
+// TOKENS: HOST, IP, MAC, FLOW, ->, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define a core aggregation router with IP 10.0.255.1.
+HOST netflow_exporter { IP 10.0.255.1 MAC 00:1b:54:00:ff:01 }
+
+// INSTRUCTION: Define a NetFlow traffic collector with IP 10.0.255.100.
+HOST netflow_collector { IP 10.0.255.100 MAC 00:1b:54:00:ff:64 }
+
+// INSTRUCTION: Define a flow exporting a NetFlow v9 template record followed by data flowsets on UDP port 2055.
+FLOW export_netflow_v9(exporter, collector) {
+    exporter -> collector UDP SRCPORT 42055 DSTPORT 2055 PAYLOAD "NETFLOW_V9_TEMPLATE_ID_256" WAIT 50ms
+    exporter -> collector UDP SRCPORT 42055 DSTPORT 2055 PAYLOAD "NETFLOW_V9_DATA_FLOWSET_256" WAIT 50ms
+}
+
+// INSTRUCTION: Compile block to repeat the NetFlow export 5 times.
+COMPILE {
+    LOOP 5 {
+        export_netflow_v9(netflow_exporter, netflow_collector)
+    }
+}
+```
+
+### `examples/37_udp_ssdp_upnp_multicast_discovery.fasm`
+```frameassembly
+// PROMPT: Simulate UPnP Simple Service Discovery Protocol (SSDP) M-SEARCH multicast discovery on UDP port 1900 and unicast device response.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a smart home controller host with IP 192.168.1.20.
+HOST smart_controller { IP 192.168.1.20 MAC dc:a6:32:00:01:20 }
+
+// INSTRUCTION: Define the SSDP IPv4 multicast group endpoint 239.255.255.250 with Ethernet multicast MAC 01:00:5e:7f:ff:fa.
+HOST ssdp_multicast { IP 239.255.255.250 MAC 01:00:5e:7f:ff:fa }
+
+// INSTRUCTION: Define a UPnP smart TV responder with IP 192.168.1.85.
+HOST smart_tv_device { IP 192.168.1.85 MAC dc:a6:32:00:01:85 }
+
+// INSTRUCTION: Define a 3-host flow sending an SSDP multicast M-SEARCH and receiving a unicast HTTP/1.1 200 OK UDP response.
+FLOW ssdp_discovery(controller, mcast, device) {
+    controller -> mcast UDP SRCPORT 51900 DSTPORT 1900 PAYLOAD "M-SEARCH * HTTP/1.1 ST:ssdp:all" WAIT 10ms
+    controller <- device UDP SRCPORT 1900 DSTPORT 51900 PAYLOAD "HTTP/1.1 200 OK LOCATION:http://192.168.1.85/desc.xml" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SSDP discovery flow.
+COMPILE {
+    ssdp_discovery(smart_controller, ssdp_multicast, smart_tv_device)
+}
+```
+
+### `examples/38_udp_mdns_local_service_resolution.fasm`
+```frameassembly
+// PROMPT: Simulate Apple Bonjour / Avahi Multicast DNS (mDNS) service discovery on 224.0.0.251 UDP port 5353.
+// TOKENS: HOST, IP, MAC, FLOW, ->, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a workstation querying for local printers with IP 192.168.1.30.
+HOST mdns_querier { IP 192.168.1.30 MAC ac:de:48:00:11:22 }
+
+// INSTRUCTION: Define a network printer advertising _ipp._tcp.local with IP 192.168.1.210.
+HOST network_printer { IP 192.168.1.210 MAC ac:de:48:00:33:44 }
+
+// INSTRUCTION: Define the mDNS IPv4 multicast address 224.0.0.251 with multicast MAC 01:00:5e:00:00:fb.
+HOST mdns_group { IP 224.0.0.251 MAC 01:00:5e:00:00:fb }
+
+// INSTRUCTION: Define a flow where the querier and printer exchange mDNS PTR/SRV records via the multicast group on port 5353.
+FLOW mdns_printer_lookup(querier, printer, group) {
+    querier -> group UDP SRCPORT 5353 DSTPORT 5353 PAYLOAD "MDNS_QUERY_PTR_ipp_tcp_local" WAIT 15ms
+    printer -> group UDP SRCPORT 5353 DSTPORT 5353 PAYLOAD "MDNS_ANSWER_SRV_office_printer_local_631" WAIT 15ms
+}
+
+// INSTRUCTION: Compile block to execute the mDNS local service lookup.
+COMPILE {
+    mdns_printer_lookup(mdns_querier, network_printer, mdns_group)
+}
+```
+
+### `examples/39_udp_gossip_cluster_membership.fasm`
+```frameassembly
+// PROMPT: Simulate a 3-node HashiCorp Serf / Consul SWIM gossip protocol ring exchanging UDP ping, ping-req, and ack membership heartbeats.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define cluster node 1 with IP 10.70.0.1.
+HOST cluster_node_1 { IP 10.70.0.1 MAC 02:70:00:00:00:01 }
+
+// INSTRUCTION: Define cluster node 2 with IP 10.70.0.2.
+HOST cluster_node_2 { IP 10.70.0.2 MAC 02:70:00:00:00:02 }
+
+// INSTRUCTION: Define cluster node 3 with IP 10.70.0.3.
+HOST cluster_node_3 { IP 10.70.0.3 MAC 02:70:00:00:00:03 }
+
+// INSTRUCTION: Define a 3-parameter flow orchestrating SWIM UDP gossip probes across all three cluster nodes on port 7946.
+FLOW swim_gossip_round(n1, n2, n3) {
+    n1 -> n2 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_PING_SEQ_101" WAIT 5ms
+    n1 <- n2 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_ACK_SEQ_101" WAIT 5ms
+    n2 -> n3 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_PING_SEQ_102" WAIT 5ms
+    n2 <- n3 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_ACK_SEQ_102" WAIT 5ms
+    n3 -> n1 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_PING_SEQ_103" WAIT 5ms
+    n3 <- n1 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_ACK_SEQ_103" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run 3 full rounds of cluster gossip.
+COMPILE {
+    LOOP 3 {
+        swim_gossip_round(cluster_node_1, cluster_node_2, cluster_node_3)
+    }
+}
+```
+
+### `examples/40_udp_stateless_empty_payload_ping.fasm`
+```frameassembly
+// PROMPT: Send minimal zero-length UDP datagrams without PAYLOAD using both default ports and explicit high-numbered ports for traceroute probing.
+// TOKENS: HOST, IP, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a traceroute source host with IP 10.0.1.10.
+HOST trace_source { IP 10.0.1.10 }
+
+// INSTRUCTION: Define a traceroute destination host with IP 10.0.9.99.
+HOST trace_dest { IP 10.0.9.99 }
+
+// INSTRUCTION: Define a flow sending empty UDP probe packets to high ports 33434, 33435, and default port.
+FLOW empty_udp_probes(src, dst) {
+    src -> dst UDP WAIT 5ms
+    src -> dst UDP SRCPORT 45000 DSTPORT 33434 WAIT 5ms
+    src -> dst UDP SRCPORT 45001 DSTPORT 33435 WAIT 5ms
+    src <- dst UDP SRCPORT 33435 DSTPORT 45001 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the minimal UDP probe flow.
+COMPILE {
+    empty_udp_probes(trace_source, trace_dest)
+}
+```
+
+### `examples/41_snmpv1_cold_start_generic_trap.fasm`
+```frameassembly
+// PROMPT: Generate an RFC 1157 SNMPv1 coldStart generic trap (GENTRAP 0, SPECTRAP 0) with explicit ENTERPRISE OID, AGENTIP, and SYSUPTIME.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, STRING, COMPILE
+
+// INSTRUCTION: Define a freshly rebooted router agent with IP 10.100.0.1 and MAC 00:00:0c:07:ac:01.
+HOST rebooted_router { IP 10.100.0.1 MAC 00:00:0c:07:ac:01 }
+
+// INSTRUCTION: Define the central SNMPv1 trap receiver with IP 10.100.0.250 and MAC 00:00:0c:07:ac:fa.
+HOST trap_receiver { IP 10.100.0.250 MAC 00:00:0c:07:ac:fa }
+
+// INSTRUCTION: Define a flow sending an SNMPv1 coldStart trap (GENTRAP 0) with sysDescr varbind.
+FLOW snmpv1_cold_start(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.9.1.1 AGENTIP 10.100.0.1 GENTRAP 0 SPECTRAP 0 SYSUPTIME 120 VARBIND 1.3.6.1.2.1.1.1.0 STRING "Cisco IOS Software, Version 15.2"
+}
+
+// INSTRUCTION: Compile block to emit the SNMPv1 coldStart trap.
+COMPILE {
+    snmpv1_cold_start(rebooted_router, trap_receiver)
+}
+```
+
+### `examples/42_snmpv1_warm_start_generic_trap.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv1 warmStart generic trap (GENTRAP 1) demonstrating both automatic RFC 1157 OID mapping (1.3.6.1.6.3.1.1.5.2) and explicit GENTRAP configuration.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, OID, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a managed distribution switch with IP 10.101.0.2.
+HOST dist_switch { IP 10.101.0.2 MAC 00:1c:73:00:01:02 }
+
+// INSTRUCTION: Define an NMS server with IP 10.101.0.100.
+HOST nms_collector { IP 10.101.0.100 MAC 00:1c:73:00:01:64 }
+
+// INSTRUCTION: Define a flow sending SNMPv1 warmStart traps via auto-mapped OID 1.3.6.1.6.3.1.1.5.2 and explicit GENTRAP 1.
+FLOW snmpv1_warm_start(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.6.3.1.1.5.2 SYSUPTIME 4500 WAIT 20ms
+    agent -> nms SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.30065 AGENTIP 10.101.0.2 GENTRAP 1 SPECTRAP 0 SYSUPTIME 4505 WAIT 20ms
+}
+
+// INSTRUCTION: Compile block to execute the SNMPv1 warmStart trap flow.
+COMPILE {
+    snmpv1_warm_start(dist_switch, nms_collector)
+}
+```
+
+### `examples/43_snmpv1_link_down_generic_trap.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv1 linkDown generic trap (GENTRAP 2) reporting interface index and interface description via INT and STRING variable bindings.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, INT, STRING, COMPILE
+
+// INSTRUCTION: Define a top-of-rack switch agent with IP 10.102.1.10.
+HOST tor_switch { IP 10.102.1.10 MAC 00:05:9a:3c:78:00 }
+
+// INSTRUCTION: Define an operations monitoring host with IP 10.102.1.200.
+HOST noc_monitor { IP 10.102.1.200 MAC 00:05:9a:3c:78:c8 }
+
+// INSTRUCTION: Define a flow emitting an SNMPv1 linkDown trap (GENTRAP 2) with ifIndex, ifDescr, and ifOperStatus varbinds.
+FLOW snmpv1_link_down(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "trap_ro" ENTERPRISE 1.3.6.1.4.1.9.1.516 AGENTIP 10.102.1.10 GENTRAP 2 SPECTRAP 0 SYSUPTIME 98400 VARBIND 1.3.6.1.2.1.2.2.1.1.4 INT 4 VARBIND 1.3.6.1.2.1.2.2.1.2.4 STRING "TenGigabitEthernet1/0/4" VARBIND 1.3.6.1.2.1.2.2.1.8.4 INT 2
+}
+
+// INSTRUCTION: Compile block to trigger the SNMPv1 linkDown trap.
+COMPILE {
+    snmpv1_link_down(tor_switch, noc_monitor)
+}
+```
+
+### `examples/44_snmpv1_link_up_generic_trap.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv1 linkUp generic trap (GENTRAP 3) carrying TIMETICKS and OIDVAL variable bindings when an uplink recovers.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, INT, TIMETICKS, OIDVAL, COMPILE
+
+// INSTRUCTION: Define a fiber aggregation switch with IP 10.103.0.5.
+HOST fiber_switch { IP 10.103.0.5 MAC 2c:60:0c:10:20:30 }
+
+// INSTRUCTION: Define a fault management server with IP 10.103.0.50.
+HOST fault_manager { IP 10.103.0.50 MAC 2c:60:0c:40:50:60 }
+
+// INSTRUCTION: Define a flow sending an SNMPv1 linkUp trap (GENTRAP 3) with ifLastChange TIMETICKS and ifType OIDVAL varbinds.
+FLOW snmpv1_link_up(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.2636 AGENTIP 10.103.0.5 GENTRAP 3 SPECTRAP 0 SYSUPTIME 125000 VARBIND 1.3.6.1.2.1.2.2.1.1.1 INT 1 VARBIND 1.3.6.1.2.1.2.2.1.9.1 TIMETICKS 124950 VARBIND 1.3.6.1.2.1.2.2.1.22.1 OIDVAL 1.3.6.1.4.1.2636.1.1
+}
+
+// INSTRUCTION: Compile block to execute the SNMPv1 linkUp notification flow.
+COMPILE {
+    snmpv1_link_up(fiber_switch, fault_manager)
+}
+```
+
+### `examples/45_snmpv1_auth_failure_generic_trap.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv1 authenticationFailure generic trap (GENTRAP 4) reporting the unauthorized source IP address via an IPVAL varbind.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, OID, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, IPVAL, STRING, COMPILE
+
+// INSTRUCTION: Define a guarded core switch with IP 10.104.0.1.
+HOST guarded_switch { IP 10.104.0.1 MAC 00:19:56:00:01:01 }
+
+// INSTRUCTION: Define a security operations NMS with IP 10.104.0.99.
+HOST secops_nms { IP 10.104.0.99 MAC 00:19:56:00:01:99 }
+
+// INSTRUCTION: Define a flow sending an SNMPv1 authenticationFailure trap (GENTRAP 4) with the offending host IP in an IPVAL varbind.
+FLOW snmpv1_auth_failure(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "sec_trap" OID 1.3.6.1.6.3.1.1.5.5 ENTERPRISE 1.3.6.1.4.1.9.1 AGENTIP 10.104.0.1 GENTRAP 4 SPECTRAP 0 SYSUPTIME 543210 VARBIND 1.3.6.1.4.1.9.2.1.5.0 IPVAL 192.168.66.13 VARBIND 1.3.6.1.4.1.9.2.1.6.0 STRING "bad_community_attempt"
+}
+
+// INSTRUCTION: Compile block to emit the SNMPv1 authenticationFailure trap.
+COMPILE {
+    snmpv1_auth_failure(guarded_switch, secops_nms)
+}
+```
+
+### `examples/46_snmpv1_egp_neighbor_loss_trap.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv1 egpNeighborLoss generic trap (GENTRAP 5) with EGP peer IPVAL and packet loss COUNTER32 variable bindings.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, OID, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, IPVAL, COUNTER32, COMPILE
+
+// INSTRUCTION: Define a legacy exterior gateway router with IP 10.105.0.1.
+HOST egp_router { IP 10.105.0.1 MAC 00:00:0c:aa:05:01 }
+
+// INSTRUCTION: Define a core routing NMS with IP 10.105.0.250.
+HOST routing_nms { IP 10.105.0.250 MAC 00:00:0c:aa:05:fa }
+
+// INSTRUCTION: Define a flow sending an SNMPv1 egpNeighborLoss trap (GENTRAP 5) with egpNeighAddr IPVAL and error COUNTER32 varbinds.
+FLOW snmpv1_egp_neighbor_loss(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.6.3.1.1.5.6 ENTERPRISE 1.3.6.1.2.1.8 AGENTIP 10.105.0.1 GENTRAP 5 SPECTRAP 0 SYSUPTIME 890000 VARBIND 1.3.6.1.2.1.8.5.1.2.192.0.2.9 IPVAL 192.0.2.9 VARBIND 1.3.6.1.2.1.8.5.1.5.192.0.2.9 COUNTER32 42
+}
+
+// INSTRUCTION: Compile block to trigger the SNMPv1 egpNeighborLoss trap.
+COMPILE {
+    snmpv1_egp_neighbor_loss(egp_router, routing_nms)
+}
+```
+
+### `examples/47_snmpv1_enterprise_specific_chassis_alert.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv1 enterpriseSpecific trap (GENTRAP 6, SPECTRAP 42) alerting on power supply voltage and chassis fan speed using GAUGE32 and STRING varbinds.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, GAUGE32, STRING, COMPILE
+
+// INSTRUCTION: Define a modular chassis switch with IP 10.106.0.10.
+HOST chassis_switch { IP 10.106.0.10 MAC 00:14:f1:10:60:10 }
+
+// INSTRUCTION: Define a hardware health monitoring server with IP 10.106.0.100.
+HOST hw_monitor { IP 10.106.0.100 MAC 00:14:f1:10:60:64 }
+
+// INSTRUCTION: Define a flow sending an SNMPv1 enterprise-specific chassis alarm (GENTRAP 6, SPECTRAP 42) with GAUGE32 RPM and STRING status.
+FLOW snmpv1_chassis_alert(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "chassis_ro" ENTERPRISE 1.3.6.1.4.1.9.9.13 AGENTIP 10.106.0.10 GENTRAP 6 SPECTRAP 42 SYSUPTIME 360000 VARBIND 1.3.6.1.4.1.9.9.13.1.4.1.2.1 STRING "Fan Tray 1 Degraded" VARBIND 1.3.6.1.4.1.9.9.13.1.4.1.3.1 GAUGE32 1850
+}
+
+// INSTRUCTION: Compile block to emit the SNMPv1 enterprise-specific chassis alert.
+COMPILE {
+    snmpv1_chassis_alert(chassis_switch, hw_monitor)
+}
+```
+
+### `examples/48_snmpv1_optical_transceiver_negative_dbm.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv1 optical transceiver DOM alert trap carrying negative signed 32-bit integers (INT -18 and INT -24) representing RX/TX optical power in dBm.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, INT, STRING, COMPILE
+
+// INSTRUCTION: Define a DWDM optical transport shelf with IP 10.107.0.5.
+HOST dwdm_shelf { IP 10.107.0.5 MAC 00:21:5a:00:07:05 }
+
+// INSTRUCTION: Define an optical network controller with IP 10.107.0.200.
+HOST optical_nms { IP 10.107.0.200 MAC 00:21:5a:00:07:c8 }
+
+// INSTRUCTION: Define a flow sending an SNMPv1 trap with negative INT varbinds for low optical RX dBm thresholds.
+FLOW snmpv1_optical_low_power(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "optical_mon" ENTERPRISE 1.3.6.1.4.1.2011.2.25 AGENTIP 10.107.0.5 GENTRAP 6 SPECTRAP 105 SYSUPTIME 777000 VARBIND 1.3.6.1.4.1.2011.2.25.1.1 STRING "SFP+-10G-ZR-Port-1/0/1" VARBIND 1.3.6.1.4.1.2011.2.25.1.2 INT -18 VARBIND 1.3.6.1.4.1.2011.2.25.1.3 INT -24
+}
+
+// INSTRUCTION: Compile block to execute the optical low-power SNMPv1 trap flow.
+COMPILE {
+    snmpv1_optical_low_power(dwdm_shelf, optical_nms)
+}
+```
+
+### `examples/49_snmpv1_all_supported_v1_varbind_types.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv1 trap containing all 7 SMIv1-compatible VARBIND types (STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32) in a single packet.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32, COMPILE
+
+// INSTRUCTION: Define a multi-service edge router with IP 10.108.0.1.
+HOST edge_agent { IP 10.108.0.1 MAC 00:1a:a1:08:00:01 }
+
+// INSTRUCTION: Define an SMIv1 trap receiver with IP 10.108.0.100.
+HOST smiv1_nms { IP 10.108.0.100 MAC 00:1a:a1:08:00:64 }
+
+// INSTRUCTION: Define a flow sending a single SNMPv1 trap carrying STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, and GAUGE32 varbinds.
+FLOW snmpv1_all_smiv1_varbinds(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.8072 AGENTIP 10.108.0.1 GENTRAP 6 SPECTRAP 99 SYSUPTIME 50000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "edge-rtr-01" VARBIND 1.3.6.1.2.1.2.1.0 INT 24 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 50000 VARBIND 1.3.6.1.2.1.4.20.1.1.10.108.0.1 IPVAL 10.108.0.1 VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.8072.3.2.10 VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 9876543 VARBIND 1.3.6.1.2.1.2.2.1.5.1 GAUGE32 1000000000
+}
+
+// INSTRUCTION: Compile block to emit the multi-varbind SNMPv1 trap.
+COMPILE {
+    snmpv1_all_smiv1_varbinds(edge_agent, smiv1_nms)
+}
+```
+
+### `examples/50_snmpv1_proxy_agent_ip_override.fasm`
+```frameassembly
+// PROMPT: Simulate an SNMPv1 trap concentrator forwarding a trap where the outer IPv4 header source IP belongs to the proxy while AGENTIP preserves the downstream device IP.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, STRING, IPVAL, COMPILE
+
+// INSTRUCTION: Define an SNMP trap proxy gateway with IP 172.18.0.10.
+HOST snmp_proxy_gw { IP 172.18.0.10 MAC 00:0d:b9:18:00:10 }
+
+// INSTRUCTION: Define the central headquarters NMS with IP 172.18.0.250.
+HOST hq_nms { IP 172.18.0.250 MAC 00:0d:b9:18:00:fa }
+
+// INSTRUCTION: Define a flow where the proxy forwards an SNMPv1 trap preserving AGENTIP 192.168.250.14 of the remote RTU.
+FLOW proxied_snmpv1_trap(proxy, nms) {
+    proxy -> nms SNMP1 TRAP COMMUNITY "branch_proxy" ENTERPRISE 1.3.6.1.4.1.318 AGENTIP 192.168.250.14 GENTRAP 6 SPECTRAP 7 SYSUPTIME 14400 VARBIND 1.3.6.1.4.1.318.1.1.1.2.1.1.0 STRING "APC Smart-UPS On Battery" VARBIND 1.3.6.1.4.1.318.1.1.1.2.1.2.0 IPVAL 192.168.250.14
+}
+
+// INSTRUCTION: Compile block to run the proxied SNMPv1 trap scenario.
+COMPILE {
+    proxied_snmpv1_trap(snmp_proxy_gw, hq_nms)
+}
+```
+
+### `examples/51_snmpv1_custom_ports_and_community.fasm`
+```frameassembly
+// PROMPT: Send SNMPv1 traps to a non-standard high UDP port (10162) with a custom SRCPORT, custom COMMUNITY string, and 500ms WAIT delay.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, SRCPORT, DSTPORT, COMMUNITY, OID, ENTERPRISE, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, INT, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an unprivileged container SNMP agent with IP 10.200.1.50.
+HOST container_agent { IP 10.200.1.50 MAC 02:42:0a:c8:01:32 }
+
+// INSTRUCTION: Define a non-root trap daemon host listening on UDP port 10162 with IP 10.200.1.10.
+HOST custom_trapd { IP 10.200.1.10 MAC 02:42:0a:c8:01:0a }
+
+// INSTRUCTION: Define a flow sending SNMPv1 traps from SRCPORT 55161 to DSTPORT 10162 with a 500ms interval.
+FLOW custom_port_snmpv1(agent, trapd) {
+    agent -> trapd SNMP1 TRAP SRCPORT 55161 DSTPORT 10162 COMMUNITY "custom_sec_v1" OID "1.3.6.1.4.1.8072.2.3.0.1" ENTERPRISE 1.3.6.1.4.1.8072.2.3 GENTRAP 6 SPECTRAP 1 SYSUPTIME 6000 VARBIND 1.3.6.1.4.1.8072.2.1.1.0 INT 100 WAIT 500ms
+    agent -> trapd SNMP1 TRAP SRCPORT 55161 DSTPORT 10162 COMMUNITY "custom_sec_v1" OID "1.3.6.1.4.1.8072.2.3.0.2" ENTERPRISE 1.3.6.1.4.1.8072.2.3 GENTRAP 6 SPECTRAP 2 SYSUPTIME 6050 VARBIND 1.3.6.1.4.1.8072.2.1.1.0 INT 200 WAIT 500ms
+}
+
+// INSTRUCTION: Compile block to run the custom-port SNMPv1 trap flow.
+COMPILE {
+    custom_port_snmpv1(container_agent, custom_trapd)
+}
+```
+
+### `examples/52_snmpv1_multi_switch_trap_aggregation.fasm`
+```frameassembly
+// PROMPT: Simulate three access-layer switches concurrently reporting SNMPv1 linkStatus and spanning-tree topology traps to a central NMS.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, INT, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define access switch 1 with IP 10.110.0.11.
+HOST access_sw1 { IP 10.110.0.11 MAC 00:1b:0d:11:00:01 }
+
+// INSTRUCTION: Define access switch 2 with IP 10.110.0.12.
+HOST access_sw2 { IP 10.110.0.12 MAC 00:1b:0d:11:00:02 }
+
+// INSTRUCTION: Define access switch 3 with IP 10.110.0.13.
+HOST access_sw3 { IP 10.110.0.13 MAC 00:1b:0d:11:00:03 }
+
+// INSTRUCTION: Define the campus NMS server with IP 10.110.0.254.
+HOST campus_nms { IP 10.110.0.254 MAC 00:1b:0d:11:00:fe }
+
+// INSTRUCTION: Define a 4-parameter flow collecting SNMPv1 traps from all three access switches.
+FLOW campus_switch_traps(sw1, sw2, sw3, nms) {
+    sw1 -> nms SNMP1 TRAP COMMUNITY "campus_ro" ENTERPRISE 1.3.6.1.2.1.17 AGENTIP 10.110.0.11 GENTRAP 6 SPECTRAP 1 SYSUPTIME 10000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "access-sw1-newRoot" WAIT 10ms
+    sw2 -> nms SNMP1 TRAP COMMUNITY "campus_ro" ENTERPRISE 1.3.6.1.2.1.17 AGENTIP 10.110.0.12 GENTRAP 6 SPECTRAP 2 SYSUPTIME 10020 VARBIND 1.3.6.1.2.1.1.5.0 STRING "access-sw2-topologyChange" WAIT 10ms
+    sw3 -> nms SNMP1 TRAP COMMUNITY "campus_ro" ENTERPRISE 1.3.6.1.2.1.17 AGENTIP 10.110.0.13 GENTRAP 2 SPECTRAP 0 SYSUPTIME 10040 VARBIND 1.3.6.1.2.1.2.2.1.1.24 INT 24 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the multi-switch SNMPv1 trap aggregation flow.
+COMPILE {
+    campus_switch_traps(access_sw1, access_sw2, access_sw3, campus_nms)
+}
+```
+
+### `examples/53_snmpv2c_get_request_and_response.fasm`
+```frameassembly
+// PROMPT: Simulate an SNMPv2c GET request on UDP port 161 with a NULLVAL varbind and a matching RESPONSE returning sysDescr and sysObjectID with matching REQID.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GET, RESPONSE, SRCPORT, DSTPORT, COMMUNITY, REQID, VARBIND, NULLVAL, STRING, OIDVAL, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an NMS polling station with IP 10.120.0.10.
+HOST nms_poller { IP 10.120.0.10 MAC 00:10:db:20:00:10 }
+
+// INSTRUCTION: Define a managed router agent with IP 10.120.0.1.
+HOST router_agent { IP 10.120.0.1 MAC 00:10:db:20:00:01 }
+
+// INSTRUCTION: Define a flow sending an SNMPv2c GET request with NULLVAL varbinds and receiving a RESPONSE on port 161.
+FLOW snmpv2c_get_sysinfo(poller, agent) {
+    poller -> agent SNMP2 GET SRCPORT 52161 DSTPORT 161 COMMUNITY "public" REQID 1001 VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL VARBIND 1.3.6.1.2.1.1.2.0 NULLVAL WAIT 10ms
+    poller <- agent SNMP2 RESPONSE SRCPORT 161 DSTPORT 52161 COMMUNITY "public" REQID 1001 VARBIND 1.3.6.1.2.1.1.1.0 STRING "Arista Networks EOS version 4.31.2F" VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.30065.1.3011.7280 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the SNMPv2c GET and RESPONSE flow.
+COMPILE {
+    snmpv2c_get_sysinfo(nms_poller, router_agent)
+}
+```
+
+### `examples/54_snmpv2c_getnext_mib_walk.fasm`
+```frameassembly
+// PROMPT: Simulate an snmpwalk MIB tree traversal using sequential SNMPv2c GETNEXT requests and RESPONSE PDUs across the MIB-II system group.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GETNEXT, RESPONSE, SRCPORT, DSTPORT, COMMUNITY, REQID, VARBIND, NULLVAL, STRING, OIDVAL, TIMETICKS, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a management workstation running snmpwalk with IP 10.121.0.50.
+HOST walk_client { IP 10.121.0.50 MAC 00:25:b5:00:21:50 }
+
+// INSTRUCTION: Define a switch SNMP agent with IP 10.121.0.1.
+HOST walk_target { IP 10.121.0.1 MAC 00:25:b5:00:21:01 }
+
+// INSTRUCTION: Define a flow walking 1.3.6.1.2.1.1 via three sequential GETNEXT/RESPONSE pairs with incrementing REQIDs.
+FLOW snmpv2c_mib_walk(client, agent) {
+    client -> agent SNMP2 GETNEXT SRCPORT 53100 DSTPORT 161 COMMUNITY "public" REQID 201 VARBIND 1.3.6.1.2.1.1 NULLVAL WAIT 5ms
+    client <- agent SNMP2 RESPONSE SRCPORT 161 DSTPORT 53100 COMMUNITY "public" REQID 201 VARBIND 1.3.6.1.2.1.1.1.0 STRING "Juniper Networks, Inc. ex4300-48t" WAIT 5ms
+    client -> agent SNMP2 GETNEXT SRCPORT 53100 DSTPORT 161 COMMUNITY "public" REQID 202 VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL WAIT 5ms
+    client <- agent SNMP2 RESPONSE SRCPORT 161 DSTPORT 53100 COMMUNITY "public" REQID 202 VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.2636.1.1.1.2.63 WAIT 5ms
+    client -> agent SNMP2 GETNEXT SRCPORT 53100 DSTPORT 161 COMMUNITY "public" REQID 203 VARBIND 1.3.6.1.2.1.1.2.0 NULLVAL WAIT 5ms
+    client <- agent SNMP2 RESPONSE SRCPORT 161 DSTPORT 53100 COMMUNITY "public" REQID 203 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 4829100 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the SNMPv2c GETNEXT MIB walk.
+COMPILE {
+    snmpv2c_mib_walk(walk_client, walk_target)
+}
+```
+
+### `examples/55_snmpv2c_getbulk_interface_table.fasm`
+```frameassembly
+// PROMPT: Simulate an SNMPv2c GETBULK request using NONREPEATERS 1 and MAXREPETITIONS 25 to retrieve sysUpTime and multiple rows of the ifTable in a single round-trip.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GETBULK, RESPONSE, SRCPORT, DSTPORT, COMMUNITY, REQID, NONREPEATERS, MAXREPETITIONS, VARBIND, NULLVAL, TIMETICKS, STRING, COUNTER32, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a high-throughput telemetry poller with IP 10.122.0.10.
+HOST bulk_poller { IP 10.122.0.10 MAC 00:16:3e:22:00:10 }
+
+// INSTRUCTION: Define a core switch agent with IP 10.122.0.1.
+HOST core_sw_agent { IP 10.122.0.1 MAC 00:16:3e:22:00:01 }
+
+// INSTRUCTION: Define a flow sending an SNMPv2c GETBULK request with NONREPEATERS 1 and MAXREPETITIONS 25 and receiving a bulk RESPONSE.
+FLOW snmpv2c_getbulk_iftable(poller, agent) {
+    poller -> agent SNMP2 GETBULK SRCPORT 54161 DSTPORT 161 COMMUNITY "bulk_ro" REQID 3050 NONREPEATERS 1 MAXREPETITIONS 25 VARBIND 1.3.6.1.2.1.1.3.0 NULLVAL VARBIND 1.3.6.1.2.1.2.2.1.2 NULLVAL VARBIND 1.3.6.1.2.1.2.2.1.10 NULLVAL WAIT 10ms
+    poller <- agent SNMP2 RESPONSE SRCPORT 161 DSTPORT 54161 COMMUNITY "bulk_ro" REQID 3050 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 912345 VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "eth0" VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 10485760 VARBIND 1.3.6.1.2.1.2.2.1.2.2 STRING "eth1" VARBIND 1.3.6.1.2.1.2.2.1.10.2 COUNTER32 20971520 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the SNMPv2c GETBULK interface table query.
+COMPILE {
+    snmpv2c_getbulk_iftable(bulk_poller, core_sw_agent)
+}
+```
+
+### `examples/56_snmpv2c_set_request_admin_status.fasm`
+```frameassembly
+// PROMPT: Simulate an SNMPv2c SET request using a read-write community string to administratively disable and re-enable a switch port (ifAdminStatus) with confirmation responses.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, SET, RESPONSE, SRCPORT, DSTPORT, COMMUNITY, REQID, VARBIND, INT, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define an automation controller host with IP 10.123.0.100.
+HOST net_automation { IP 10.123.0.100 MAC 00:50:56:23:00:64 }
+
+// INSTRUCTION: Define a managed PoE switch with IP 10.123.0.15.
+HOST poe_switch { IP 10.123.0.15 MAC 00:50:56:23:00:0f }
+
+// INSTRUCTION: Define a flow that sends an SNMPv2c SET to set ifAdminStatus.5 to down (2), waits 1s, and sets it back to up (1).
+FLOW snmpv2c_bounce_port(controller, switch_node) {
+    controller -> switch_node SNMP2 SET SRCPORT 55161 DSTPORT 161 COMMUNITY "private_rw" REQID 4001 VARBIND 1.3.6.1.2.1.2.2.1.7.5 INT 2 WAIT 10ms
+    controller <- switch_node SNMP2 RESPONSE SRCPORT 161 DSTPORT 55161 COMMUNITY "private_rw" REQID 4001 VARBIND 1.3.6.1.2.1.2.2.1.7.5 INT 2 WAIT 1s
+    controller -> switch_node SNMP2 SET SRCPORT 55161 DSTPORT 161 COMMUNITY "private_rw" REQID 4002 VARBIND 1.3.6.1.2.1.2.2.1.7.5 INT 1 WAIT 10ms
+    controller <- switch_node SNMP2 RESPONSE SRCPORT 161 DSTPORT 55161 COMMUNITY "private_rw" REQID 4002 VARBIND 1.3.6.1.2.1.2.2.1.7.5 INT 1 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the SNMPv2c port bounce SET flow.
+COMPILE {
+    snmpv2c_bounce_port(net_automation, poe_switch)
+}
+```
+
+### `examples/57_snmpv2c_inform_request_acknowledged.fasm`
+```frameassembly
+// PROMPT: Simulate an acknowledged SNMPv2c INFORM notification sent to UDP port 162 followed by an NMS RESPONSE PDU confirming receipt.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, INFORM, RESPONSE, SRCPORT, DSTPORT, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, STRING, INT, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a branch router sending reliable notifications with IP 10.124.0.1.
+HOST branch_router { IP 10.124.0.1 MAC 00:1e:13:24:00:01 }
+
+// INSTRUCTION: Define the central NMS notification receiver with IP 10.124.0.200.
+HOST central_nms { IP 10.124.0.200 MAC 00:1e:13:24:00:c8 }
+
+// INSTRUCTION: Define a flow sending an SNMPv2c INFORM on port 162 and receiving an acknowledging RESPONSE PDU with matching REQID 5010.
+FLOW snmpv2c_inform_exchange(agent, nms) {
+    agent -> nms SNMP2 INFORM SRCPORT 56162 DSTPORT 162 COMMUNITY "inform_comm" REQID 5010 OID 1.3.6.1.6.3.1.1.5.4 SYSUPTIME 720000 VARBIND 1.3.6.1.2.1.2.2.1.1.2 INT 2 VARBIND 1.3.6.1.2.1.2.2.1.2.2 STRING "GigabitEthernet0/0/1" WAIT 15ms
+    agent <- nms SNMP2 RESPONSE SRCPORT 162 DSTPORT 56162 COMMUNITY "inform_comm" REQID 5010 VARBIND 1.3.6.1.2.1.2.2.1.1.2 INT 2 VARBIND 1.3.6.1.2.1.2.2.1.2.2 STRING "GigabitEthernet0/0/1" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SNMPv2c INFORM and RESPONSE flow.
+COMPILE {
+    snmpv2c_inform_exchange(branch_router, central_nms)
+}
+```
+
+### `examples/58_snmpv2c_trap_link_flap_varbinds.fasm`
+```frameassembly
+// PROMPT: Simulate an SNMPv2c linkDown and linkUp flap sequence carrying interface counters (COUNTER32) and link speed gauges (GAUGE32).
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP2, TRAP, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, INT, STRING, COUNTER32, GAUGE32, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a distribution switch experiencing link flapping with IP 10.125.0.10.
+HOST flapping_switch { IP 10.125.0.10 MAC 00:1c:73:25:00:10 }
+
+// INSTRUCTION: Define the trap collector server with IP 10.125.0.250.
+HOST trap_collector { IP 10.125.0.250 MAC 00:1c:73:25:00:fa }
+
+// INSTRUCTION: Define a flow sending linkDown (1.3.6.1.6.3.1.1.5.3) followed by linkUp (1.3.6.1.6.3.1.1.5.4) SNMPv2c traps.
+FLOW snmpv2c_link_flap(agent, collector) {
+    agent -> collector SNMP2 TRAP COMMUNITY "public" REQID 6001 OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 300100 VARBIND 1.3.6.1.2.1.2.2.1.1.10 INT 10 VARBIND 1.3.6.1.2.1.2.2.1.2.10 STRING "Ethernet10" VARBIND 1.3.6.1.2.1.2.2.1.14.10 COUNTER32 152 VARBIND 1.3.6.1.2.1.2.2.1.5.10 GAUGE32 0 WAIT 200ms
+    agent -> collector SNMP2 TRAP COMMUNITY "public" REQID 6002 OID 1.3.6.1.6.3.1.1.5.4 SYSUPTIME 300120 VARBIND 1.3.6.1.2.1.2.2.1.1.10 INT 10 VARBIND 1.3.6.1.2.1.2.2.1.2.10 STRING "Ethernet10" VARBIND 1.3.6.1.2.1.2.2.1.14.10 COUNTER32 152 VARBIND 1.3.6.1.2.1.2.2.1.5.10 GAUGE32 1000000000 WAIT 50ms
+}
+
+// INSTRUCTION: Compile block to execute the SNMPv2c link flap trap sequence.
+COMPILE {
+    snmpv2c_link_flap(flapping_switch, trap_collector)
+}
+```
+
+### `examples/59_snmpv2c_counter64_high_speed_interface.fasm`
+```frameassembly
+// PROMPT: Poll and report 64-bit high-capacity interface counters (ifHCInOctets and ifHCOutOctets) using SMIv2 COUNTER64 varbinds in SNMPv2c GET, RESPONSE, and TRAP PDUs.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GET, RESPONSE, TRAP, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, NULLVAL, COUNTER64, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a 400GbE spine switch agent with IP 10.126.0.1.
+HOST spine_400g { IP 10.126.0.1 MAC 00:02:c9:26:00:01 }
+
+// INSTRUCTION: Define a telemetry collector host with IP 10.126.0.100.
+HOST telemetry_nms { IP 10.126.0.100 MAC 00:02:c9:26:00:64 }
+
+// INSTRUCTION: Define a flow querying and receiving 64-bit COUNTER64 octet counters exceeding 32-bit limits.
+FLOW snmpv2c_hc_counters(nms, spine) {
+    nms -> spine SNMP2 GET COMMUNITY "hc_poll" REQID 7001 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 NULLVAL VARBIND 1.3.6.1.2.1.31.1.1.1.10.1 NULLVAL WAIT 10ms
+    nms <- spine SNMP2 RESPONSE COMMUNITY "hc_poll" REQID 7001 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 1099511627776 VARBIND 1.3.6.1.2.1.31.1.1.1.10.1 COUNTER64 2199023255552 WAIT 10ms
+    nms <- spine SNMP2 TRAP COMMUNITY "hc_poll" REQID 7002 OID 1.3.6.1.4.1.30065.3.1 SYSUPTIME 500000 VARBIND 1.3.6.1.2.1.31.1.1.1.1.1 STRING "Ethernet1/1" VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 1099511627776 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the high-capacity COUNTER64 SNMPv2c flow.
+COMPILE {
+    snmpv2c_hc_counters(telemetry_nms, spine_400g)
+}
+```
+
+### `examples/60_snmpv2c_all_nine_varbind_types.fasm`
+```frameassembly
+// PROMPT: Demonstrate all 9 supported FrameAssembly VARBIND value types (NULLVAL, STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32, COUNTER64) within a single SNMPv2c RESPONSE packet.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GET, RESPONSE, COMMUNITY, REQID, VARBIND, NULLVAL, STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32, COUNTER64, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a comprehensive MIB test client with IP 10.127.0.10.
+HOST mib_tester { IP 10.127.0.10 MAC 00:16:3e:27:00:10 }
+
+// INSTRUCTION: Define a reference SNMPv2c agent with IP 10.127.0.20.
+HOST ref_snmp_agent { IP 10.127.0.20 MAC 00:16:3e:27:00:20 }
+
+// INSTRUCTION: Define a flow that sends an SNMPv2c GET and receives a RESPONSE containing all 9 VarBind data types.
+FLOW snmpv2c_all_nine_varbinds(tester, agent) {
+    tester -> agent SNMP2 GET COMMUNITY "all_types" REQID 9999 VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL WAIT 10ms
+    tester <- agent SNMP2 RESPONSE COMMUNITY "all_types" REQID 9999 VARBIND 1.3.6.1.2.1.1.4.0 NULLVAL VARBIND 1.3.6.1.2.1.1.5.0 STRING "ref-agent-01" VARBIND 1.3.6.1.4.1.9999.1.1.0 INT -42 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 360000 VARBIND 1.3.6.1.2.1.4.20.1.1.10.127.0.20 IPVAL 10.127.0.20 VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.8072.3.2.10 VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 500000 VARBIND 1.3.6.1.2.1.2.2.1.5.1 GAUGE32 100000000 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 9876543210123 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the 9-varbind SNMPv2c showcase flow.
+COMPILE {
+    snmpv2c_all_nine_varbinds(mib_tester, ref_snmp_agent)
+}
+```
+
+### `examples/61_snmpv2c_bgp_peer_state_trap.fasm`
+```frameassembly
+// PROMPT: Simulate an RFC 4273 BGP4-MIB bgpBackwardTransNotification SNMPv2c trap reporting a BGP peer dropping from Established to Idle with IPVAL and INT varbinds.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP2, TRAP, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, IPVAL, INT, OIDVAL, COMPILE
+
+// INSTRUCTION: Define a core BGP speaker router with IP 10.128.0.1.
+HOST bgp_speaker { IP 10.128.0.1 MAC 00:00:5e:28:00:01 }
+
+// INSTRUCTION: Define a WAN operations center trap receiver with IP 10.128.0.250.
+HOST wan_noc_nms { IP 10.128.0.250 MAC 00:00:5e:28:00:fa }
+
+// INSTRUCTION: Define a flow sending a bgpBackwardTransNotification SNMPv2c trap with bgpPeerRemoteAddr IPVAL and bgpPeerState INT.
+FLOW bgp_backward_transition_trap(router, nms) {
+    router -> nms SNMP2 TRAP COMMUNITY "wan_traps" REQID 8100 OID 1.3.6.1.2.1.15.0.2 SYSUPTIME 1840000 VARBIND 1.3.6.1.2.1.15.3.1.7.198.51.100.2 IPVAL 198.51.100.2 VARBIND 1.3.6.1.2.1.15.3.1.2.198.51.100.2 INT 1 VARBIND 1.3.6.1.2.1.15.3.1.14.198.51.100.2 OIDVAL 1.3.6.1.2.1.15.3.1
+}
+
+// INSTRUCTION: Compile block to trigger the BGP state transition SNMPv2c trap.
+COMPILE {
+    bgp_backward_transition_trap(bgp_speaker, wan_noc_nms)
+}
+```
+
+### `examples/62_snmpv2c_environmental_sensor_polling.fasm`
+```frameassembly
+// PROMPT: Poll cold-storage environmental sensors via SNMPv2c GET and RESPONSE using negative signed INT (-15 Celsius) and GAUGE32 humidity percentages.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GET, RESPONSE, COMMUNITY, REQID, VARBIND, NULLVAL, INT, GAUGE32, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a facilities BMS polling host with IP 10.129.0.10.
+HOST bms_poller { IP 10.129.0.10 MAC 00:40:9d:29:00:10 }
+
+// INSTRUCTION: Define a cold-aisle environmental probe with IP 10.129.0.55.
+HOST cryo_probe { IP 10.129.0.55 MAC 00:40:9d:29:00:55 }
+
+// INSTRUCTION: Define a flow polling temperature and humidity OIDs and receiving negative INT and GAUGE32 readings.
+FLOW poll_cold_storage_sensor(poller, probe) {
+    poller -> probe SNMP2 GET COMMUNITY "env_read" REQID 8201 VARBIND 1.3.6.1.4.1.3854.1.2.2.1.16.1.3.0 NULLVAL VARBIND 1.3.6.1.4.1.3854.1.2.2.1.17.1.3.0 NULLVAL WAIT 10ms
+    poller <- probe SNMP2 RESPONSE COMMUNITY "env_read" REQID 8201 VARBIND 1.3.6.1.4.1.3854.1.2.2.1.16.1.1.0 STRING "Freezer Vault B2" VARBIND 1.3.6.1.4.1.3854.1.2.2.1.16.1.3.0 INT -15 VARBIND 1.3.6.1.4.1.3854.1.2.2.1.17.1.3.0 GAUGE32 45 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the environmental sensor SNMPv2c polling flow.
+COMPILE {
+    poll_cold_storage_sensor(bms_poller, cryo_probe)
+}
+```
+
+### `examples/63_snmpv2c_ups_battery_runtime_ticks.fasm`
+```frameassembly
+// PROMPT: Simulate an uninterruptible power supply (UPS) sending an SNMPv2c trap and responding to a GET query with TIMETICKS remaining battery runtime and GAUGE32 battery capacity.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, TRAP, GET, RESPONSE, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, NULLVAL, TIMETICKS, GAUGE32, INT, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a data center UPS management card with IP 10.130.0.20.
+HOST ups_agent { IP 10.130.0.20 MAC 00:c0:b7:30:00:20 }
+
+// INSTRUCTION: Define a power monitoring server with IP 10.130.0.100.
+HOST power_nms { IP 10.130.0.100 MAC 00:c0:b7:30:00:64 }
+
+// INSTRUCTION: Define a flow where the UPS sends an on-battery trap and answers a follow-up GET for remaining runtime in TIMETICKS.
+FLOW ups_battery_monitoring(ups, nms) {
+    ups -> nms SNMP2 TRAP COMMUNITY "power_ro" REQID 8301 OID 1.3.6.1.2.1.33.2.0.1 SYSUPTIME 950000 VARBIND 1.3.6.1.2.1.33.1.2.1.0 INT 3 VARBIND 1.3.6.1.2.1.33.1.2.3.0 TIMETICKS 180000 WAIT 20ms
+    ups <- nms SNMP2 GET COMMUNITY "power_ro" REQID 8302 VARBIND 1.3.6.1.2.1.33.1.2.3.0 NULLVAL VARBIND 1.3.6.1.2.1.33.1.2.4.0 NULLVAL WAIT 10ms
+    ups -> nms SNMP2 RESPONSE COMMUNITY "power_ro" REQID 8302 VARBIND 1.3.6.1.2.1.33.1.2.3.0 TIMETICKS 178500 VARBIND 1.3.6.1.2.1.33.1.2.4.0 GAUGE32 88 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the UPS battery SNMPv2c monitoring flow.
+COMPILE {
+    ups_battery_monitoring(ups_agent, power_nms)
+}
+```
+
+### `examples/64_snmpv2c_bulk_walk_routing_table.fasm`
+```frameassembly
+// PROMPT: Simulate an SNMPv2c GETBULK request (NONREPEATERS 0, MAXREPETITIONS 50) retrieving IPv4 routing table next-hop addresses using IPVAL varbinds.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GETBULK, RESPONSE, COMMUNITY, REQID, NONREPEATERS, MAXREPETITIONS, VARBIND, NULLVAL, IPVAL, INT, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a network topology discovery host with IP 10.131.0.10.
+HOST topo_mapper { IP 10.131.0.10 MAC 00:22:19:31:00:10 }
+
+// INSTRUCTION: Define a core L3 router with IP 10.131.0.1.
+HOST core_l3_router { IP 10.131.0.1 MAC 00:22:19:31:00:01 }
+
+// INSTRUCTION: Define a flow querying ipRouteNextHop via GETBULK with NONREPEATERS 0 and MAXREPETITIONS 50.
+FLOW bulk_walk_routing_table(mapper, router) {
+    mapper -> router SNMP2 GETBULK COMMUNITY "route_ro" REQID 8400 NONREPEATERS 0 MAXREPETITIONS 50 VARBIND 1.3.6.1.2.1.4.21.1.1 NULLVAL VARBIND 1.3.6.1.2.1.4.21.1.7 NULLVAL WAIT 10ms
+    mapper <- router SNMP2 RESPONSE COMMUNITY "route_ro" REQID 8400 VARBIND 1.3.6.1.2.1.4.21.1.1.10.1.0.0 IPVAL 10.1.0.0 VARBIND 1.3.6.1.2.1.4.21.1.7.10.1.0.0 IPVAL 10.131.0.254 VARBIND 1.3.6.1.2.1.4.21.1.1.10.2.0.0 IPVAL 10.2.0.0 VARBIND 1.3.6.1.2.1.4.21.1.7.10.2.0.0 IPVAL 10.131.0.253 VARBIND 1.3.6.1.2.1.4.21.1.8.10.2.0.0 INT 4 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the routing table GETBULK flow.
+COMPILE {
+    bulk_walk_routing_table(topo_mapper, core_l3_router)
+}
+```
+
+### `examples/65_snmpv2c_quoted_and_unquoted_oids.fasm`
+```frameassembly
+// PROMPT: Demonstrate FrameAssembly OID syntax flexibility using quoted OIDs, unquoted multi-segment OIDs, and 4-segment IPv4-shaped OIDs (1.3.6.1) in OID and OIDVAL fields.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, TRAP, GET, RESPONSE, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, OIDVAL, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an OID syntax test agent with IP 10.132.0.5.
+HOST oid_agent { IP 10.132.0.5 MAC 00:11:22:32:00:05 }
+
+// INSTRUCTION: Define an OID syntax test manager with IP 10.132.0.100.
+HOST oid_manager { IP 10.132.0.100 MAC 00:11:22:32:00:64 }
+
+// INSTRUCTION: Define a flow mixing quoted OIDs ("1.3.6.1.6.3.1.1.5.1"), unquoted OIDs (1.3.6.1.4.1.8072), and 4-arc OIDs (1.3.6.1).
+FLOW oid_format_permutations(agent, manager) {
+    agent -> manager SNMP2 TRAP COMMUNITY "public" REQID 8501 OID "1.3.6.1.6.3.1.1.5.1" SYSUPTIME 100 VARBIND "1.3.6.1.2.1.1.2.0" OIDVAL "1.3.6.1.4.1.8072.3.2.10" VARBIND 1.3.6.1.2.1.1.5.0 STRING "quoted-and-unquoted" WAIT 10ms
+    agent <- manager SNMP2 GET COMMUNITY "public" REQID 8502 OID 1.3.6.1 WAIT 10ms
+    agent -> manager SNMP2 RESPONSE COMMUNITY "public" REQID 8502 VARBIND 1.3.6.1 OIDVAL 1.3.6.1.4.1 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the OID format permutation flow.
+COMPILE {
+    oid_format_permutations(oid_agent, oid_manager)
+}
+```
+
+### `examples/66_snmpv2c_polling_loop_interval_1s.fasm`
+```frameassembly
+// PROMPT: Simulate periodic 1-second SNMPv2c CPU and memory utilization polling using a LOOP block and WAIT 1s interval.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GET, RESPONSE, COMMUNITY, REQID, VARBIND, NULLVAL, GAUGE32, WAIT, ms, s, COMPILE, LOOP
+
+// INSTRUCTION: Define a Prometheus snmp_exporter host with IP 10.133.0.10.
+HOST snmp_exporter { IP 10.133.0.10 MAC 02:42:0a:85:00:0a }
+
+// INSTRUCTION: Define a monitored Linux appliance with IP 10.133.0.50.
+HOST linux_appliance { IP 10.133.0.50 MAC 02:42:0a:85:00:32 }
+
+// INSTRUCTION: Define a flow querying CPU load and available memory gauges with a 1s polling delay.
+FLOW poll_cpu_mem_loop(exporter, target) {
+    exporter -> target SNMP2 GET COMMUNITY "metrics_ro" REQID 8600 VARBIND 1.3.6.1.4.1.2021.11.9.0 NULLVAL VARBIND 1.3.6.1.4.1.2021.4.6.0 NULLVAL WAIT 10ms
+    exporter <- target SNMP2 RESPONSE COMMUNITY "metrics_ro" REQID 8600 VARBIND 1.3.6.1.4.1.2021.11.9.0 GAUGE32 14 VARBIND 1.3.6.1.4.1.2021.4.6.0 GAUGE32 8388608 WAIT 1s
+}
+
+// INSTRUCTION: Compile block to loop the SNMPv2c metrics poll 10 times.
+COMPILE {
+    LOOP 10 {
+        poll_cpu_mem_loop(snmp_exporter, linux_appliance)
+    }
+}
+```
+
+### `examples/67_snmpv2c_set_hostname_and_contact.fasm`
+```frameassembly
+// PROMPT: Simulate an SNMPv2c multi-varbind SET request updating sysContact.0, sysName.0, and sysLocation.0 MIB-II scalars simultaneously.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, SET, RESPONSE, COMMUNITY, REQID, VARBIND, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a configuration management server with IP 10.134.0.100.
+HOST config_mgr { IP 10.134.0.100 MAC 00:1b:21:34:00:64 }
+
+// INSTRUCTION: Define a newly provisioned branch switch with IP 10.134.0.25.
+HOST new_branch_sw { IP 10.134.0.25 MAC 00:1b:21:34:00:19 }
+
+// INSTRUCTION: Define a flow sending an SNMPv2c SET with three STRING varbinds and receiving the confirmation RESPONSE.
+FLOW snmpv2c_set_system_scalars(mgr, sw) {
+    mgr -> sw SNMP2 SET COMMUNITY "prov_rw" REQID 8701 VARBIND 1.3.6.1.2.1.1.4.0 STRING "netops@example.org" VARBIND 1.3.6.1.2.1.1.5.0 STRING "br-sw-austin-01" VARBIND 1.3.6.1.2.1.1.6.0 STRING "Closet 3B Rack 2" WAIT 15ms
+    mgr <- sw SNMP2 RESPONSE COMMUNITY "prov_rw" REQID 8701 VARBIND 1.3.6.1.2.1.1.4.0 STRING "netops@example.org" VARBIND 1.3.6.1.2.1.1.5.0 STRING "br-sw-austin-01" VARBIND 1.3.6.1.2.1.1.6.0 STRING "Closet 3B Rack 2" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the multi-varbind SNMPv2c SET flow.
+COMPILE {
+    snmpv2c_set_system_scalars(config_mgr, new_branch_sw)
+}
+```
+
+### `examples/68_snmpv2c_firewall_connection_table_gauge.fasm`
+```frameassembly
+// PROMPT: Monitor stateful firewall active session count (GAUGE32) and policy drop counters (COUNTER32, COUNTER64) via SNMPv2c GET and RESPONSE.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GET, RESPONSE, COMMUNITY, REQID, VARBIND, NULLVAL, GAUGE32, COUNTER32, COUNTER64, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a SOC monitoring server with IP 10.135.0.10.
+HOST soc_poller { IP 10.135.0.10 MAC 00:1b:17:35:00:10 }
+
+// INSTRUCTION: Define a next-generation firewall appliance with IP 10.135.0.1.
+HOST ngfw_appliance { IP 10.135.0.1 MAC 00:1b:17:35:00:01 }
+
+// INSTRUCTION: Define a flow querying firewall concurrent sessions and drop counters on port 161.
+FLOW poll_firewall_sessions(soc, fw) {
+    soc -> fw SNMP2 GET COMMUNITY "fw_soc_ro" REQID 8801 VARBIND 1.3.6.1.4.1.25461.2.1.2.3.3.0 NULLVAL VARBIND 1.3.6.1.4.1.25461.2.1.2.1.14.0 NULLVAL VARBIND 1.3.6.1.4.1.25461.2.1.2.1.15.0 NULLVAL WAIT 10ms
+    soc <- fw SNMP2 RESPONSE COMMUNITY "fw_soc_ro" REQID 8801 VARBIND 1.3.6.1.4.1.25461.2.1.2.3.3.0 GAUGE32 142850 VARBIND 1.3.6.1.4.1.25461.2.1.2.1.14.0 COUNTER32 48920 VARBIND 1.3.6.1.4.1.25461.2.1.2.1.15.0 COUNTER64 89234109283 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the firewall session table SNMPv2c poll.
+COMPILE {
+    poll_firewall_sessions(soc_poller, ngfw_appliance)
+}
+```
+
+### `examples/69_snmpv2c_inform_retry_and_confirm.fasm`
+```frameassembly
+// PROMPT: Simulate an SNMPv2c INFORM notification timeout and retransmission with the same REQID before the NMS returns a RESPONSE acknowledgment.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, INFORM, RESPONSE, SRCPORT, DSTPORT, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, STRING, INT, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define a remote WAN router sending INFORM alerts with IP 10.136.0.1.
+HOST wan_edge_rtr { IP 10.136.0.1 MAC 00:0c:86:36:00:01 }
+
+// INSTRUCTION: Define the primary NMS trap/inform receiver with IP 10.136.0.200.
+HOST primary_nms { IP 10.136.0.200 MAC 00:0c:86:36:00:c8 }
+
+// INSTRUCTION: Define a flow where an INFORM is sent, retried after 2s with identical REQID 8905, and then acknowledged via RESPONSE.
+FLOW snmpv2c_inform_retry(router, nms) {
+    router -> nms SNMP2 INFORM SRCPORT 58162 DSTPORT 162 COMMUNITY "wan_inform" REQID 8905 OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 410000 VARBIND 1.3.6.1.2.1.2.2.1.1.8 INT 8 VARBIND 1.3.6.1.2.1.2.2.1.2.8 STRING "Serial0/1/0" WAIT 2s
+    router -> nms SNMP2 INFORM SRCPORT 58162 DSTPORT 162 COMMUNITY "wan_inform" REQID 8905 OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 410200 VARBIND 1.3.6.1.2.1.2.2.1.1.8 INT 8 VARBIND 1.3.6.1.2.1.2.2.1.2.8 STRING "Serial0/1/0" WAIT 20ms
+    router <- nms SNMP2 RESPONSE SRCPORT 162 DSTPORT 58162 COMMUNITY "wan_inform" REQID 8905 VARBIND 1.3.6.1.2.1.2.2.1.1.8 INT 8 VARBIND 1.3.6.1.2.1.2.2.1.2.8 STRING "Serial0/1/0" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SNMPv2c INFORM retry and confirmation flow.
+COMPILE {
+    snmpv2c_inform_retry(wan_edge_rtr, primary_nms)
+}
+```
+
+### `examples/70_snmpv2c_default_trap_implicit_pdu.fasm`
+```frameassembly
+// PROMPT: Demonstrate implicit default TRAP PDU encoding in SNMP1, SNMP2, and SNMP3 statements when the PDU type keyword is omitted.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, SNMP2, SNMP3, COMMUNITY, USER, OID, SYSUPTIME, VARBIND, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a multi-version SNMP agent host with IP 10.137.0.5.
+HOST default_pdu_agent { IP 10.137.0.5 MAC 00:1a:2b:37:00:05 }
+
+// INSTRUCTION: Define a unified trap receiver host with IP 10.137.0.100.
+HOST unified_trapd { IP 10.137.0.100 MAC 00:1a:2b:37:00:64 }
+
+// INSTRUCTION: Define a flow omitting the explicit TRAP keyword to verify default Trap PDU generation on port 162 across SNMP1, SNMP2, and SNMP3.
+FLOW implicit_trap_pdu_flow(agent, trapd) {
+    agent -> trapd SNMP1 COMMUNITY "public" OID 1.3.6.1.6.3.1.1.5.1 SYSUPTIME 1000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "v1-default-trap" WAIT 10ms
+    agent -> trapd SNMP2 COMMUNITY "public" OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 2000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "v2c-default-trap" WAIT 10ms
+    agent -> trapd SNMP3 USER "trap_user" OID 1.3.6.1.6.3.1.1.5.4 SYSUPTIME 3000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "v3-default-trap" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the implicit default trap PDU flow.
+COMPILE {
+    implicit_trap_pdu_flow(default_pdu_agent, unified_trapd)
+}
+```
+
+### `examples/71_snmpv3_noauth_nopriv_get_response.fasm`
+```frameassembly
+// PROMPT: Simulate an SNMPv3 noAuthNoPriv GET request and RESPONSE exchange configuring USER, ENGINEID, ENGINEBOOTS, ENGINETIME, CONTEXTNAME, and REQID without AUTH or PRIV.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, GET, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, CONTEXTNAME, REQID, VARBIND, NULLVAL, STRING, TIMETICKS, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an SNMPv3 management client with IP 10.140.0.10.
+HOST v3_poller { IP 10.140.0.10 MAC 00:15:5d:40:00:10 }
+
+// INSTRUCTION: Define an SNMPv3 agent configured for noAuthNoPriv lab access with IP 10.140.0.1.
+HOST v3_lab_agent { IP 10.140.0.1 MAC 00:15:5d:40:00:01 }
+
+// INSTRUCTION: Define a flow sending an unauthenticated SNMPv3 GET request and receiving a cleartext ScopedPDU RESPONSE.
+FLOW snmpv3_noauth_nopriv_poll(poller, agent) {
+    poller -> agent SNMP3 GET USER "lab_readonly" ENGINEID "80001f888001020304" ENGINEBOOTS 3 ENGINETIME 4200 CONTEXTNAME "default" REQID 9001 VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL VARBIND 1.3.6.1.2.1.1.3.0 NULLVAL WAIT 10ms
+    poller <- agent SNMP3 RESPONSE USER "lab_readonly" ENGINEID "80001f888001020304" ENGINEBOOTS 3 ENGINETIME 4200 CONTEXTNAME "default" REQID 9001 VARBIND 1.3.6.1.2.1.1.1.0 STRING "Net-SNMP 5.9.4 Agent" VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 420000 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SNMPv3 noAuthNoPriv GET/RESPONSE flow.
+COMPILE {
+    snmpv3_noauth_nopriv_poll(v3_poller, v3_lab_agent)
+}
+```
+
+### `examples/72_snmpv3_auth_md5_nopriv_trap.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv3 authNoPriv TRAP authenticated with USM HMAC-MD5-96 (AUTH MD5) without encryption.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP3, TRAP, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, MD5, OID, SYSUPTIME, VARBIND, STRING, INT, COMPILE
+
+// INSTRUCTION: Define an SNMPv3 agent using HMAC-MD5 authentication with IP 10.141.0.5.
+HOST v3_md5_agent { IP 10.141.0.5 MAC 00:1b:63:41:00:05 }
+
+// INSTRUCTION: Define an SNMPv3 trap receiver with IP 10.141.0.100.
+HOST v3_trap_sink { IP 10.141.0.100 MAC 00:1b:63:41:00:64 }
+
+// INSTRUCTION: Define a flow sending an SNMPv3 authNoPriv trap signed with AUTH MD5.
+FLOW snmpv3_auth_md5_trap(agent, sink) {
+    agent -> sink SNMP3 TRAP USER "md5_operator" ENGINEID "8000000001020304" ENGINEBOOTS 5 ENGINETIME 18200 AUTH MD5 "md5_secret_key_99" OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 1820000 VARBIND 1.3.6.1.2.1.2.2.1.1.1 INT 1 VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "eth0_down_md5"
+}
+
+// INSTRUCTION: Compile block to emit the HMAC-MD5 signed SNMPv3 trap.
+COMPILE {
+    snmpv3_auth_md5_trap(v3_md5_agent, v3_trap_sink)
+}
+```
+
+### `examples/73_snmpv3_auth_sha1_nopriv_trap.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv3 authNoPriv TRAP authenticated with USM HMAC-SHA-96 (AUTH SHA) and carrying COUNTER32 and GAUGE32 varbinds.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP3, TRAP, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA, OID, SYSUPTIME, VARBIND, COUNTER32, GAUGE32, COMPILE
+
+// INSTRUCTION: Define an SNMPv3 agent using HMAC-SHA1 authentication with IP 10.142.0.5.
+HOST v3_sha1_agent { IP 10.142.0.5 MAC 00:1b:63:42:00:05 }
+
+// INSTRUCTION: Define an SNMPv3 NMS server with IP 10.142.0.100.
+HOST v3_sha1_nms { IP 10.142.0.100 MAC 00:1b:63:42:00:64 }
+
+// INSTRUCTION: Define a flow sending an SNMPv3 authNoPriv trap signed with AUTH SHA.
+FLOW snmpv3_auth_sha1_trap(agent, nms) {
+    agent -> nms SNMP3 TRAP USER "sha1_watcher" ENGINEID "800000090300001b63420005" ENGINEBOOTS 12 ENGINETIME 95400 AUTH SHA "sha1_auth_passphrase" OID 1.3.6.1.6.3.1.1.5.4 SYSUPTIME 9540000 VARBIND 1.3.6.1.2.1.2.2.1.10.2 COUNTER32 4590123 VARBIND 1.3.6.1.2.1.2.2.1.5.2 GAUGE32 1000000000
+}
+
+// INSTRUCTION: Compile block to emit the HMAC-SHA-96 signed SNMPv3 trap.
+COMPILE {
+    snmpv3_auth_sha1_trap(v3_sha1_agent, v3_sha1_nms)
+}
+```
+
+### `examples/74_snmpv3_auth_sha256_nopriv_inform.fasm`
+```frameassembly
+// PROMPT: Simulate an RFC 7860 SNMPv3 authNoPriv INFORM notification and RESPONSE acknowledgment signed with HMAC-SHA-256 (AUTH SHA256).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, INFORM, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, REQID, OID, SYSUPTIME, VARBIND, STRING, IPVAL, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a branch router using SHA-256 USM authentication with IP 10.143.0.1.
+HOST v3_sha256_router { IP 10.143.0.1 MAC 00:1c:73:43:00:01 }
+
+// INSTRUCTION: Define a central NMS inform receiver with IP 10.143.0.200.
+HOST v3_sha256_nms { IP 10.143.0.200 MAC 00:1c:73:43:00:c8 }
+
+// INSTRUCTION: Define a flow sending an SNMPv3 INFORM signed with AUTH SHA256 and receiving an authenticated RESPONSE.
+FLOW snmpv3_sha256_inform(router, nms) {
+    router -> nms SNMP3 INFORM USER "sha256_admin" ENGINEID "80007571010a8f0001" ENGINEBOOTS 7 ENGINETIME 36000 AUTH SHA256 "sha256_strong_auth_key" REQID 9101 OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 3600000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "br-rtr-sha256" VARBIND 1.3.6.1.2.1.4.20.1.1.10.143.0.1 IPVAL 10.143.0.1 WAIT 15ms
+    router <- nms SNMP3 RESPONSE USER "sha256_admin" ENGINEID "80007571010a8f0001" ENGINEBOOTS 7 ENGINETIME 36000 AUTH SHA256 "sha256_strong_auth_key" REQID 9101 VARBIND 1.3.6.1.2.1.1.5.0 STRING "br-rtr-sha256" VARBIND 1.3.6.1.2.1.4.20.1.1.10.143.0.1 IPVAL 10.143.0.1 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SHA-256 authenticated SNMPv3 INFORM flow.
+COMPILE {
+    snmpv3_sha256_inform(v3_sha256_router, v3_sha256_nms)
+}
+```
+
+### `examples/75_snmpv3_auth_sha384_nopriv_getbulk.fasm`
+```frameassembly
+// PROMPT: Simulate an RFC 7860 SNMPv3 authNoPriv GETBULK request and RESPONSE authenticated with HMAC-SHA-384 (AUTH SHA384).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, GETBULK, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA384, REQID, NONREPEATERS, MAXREPETITIONS, VARBIND, NULLVAL, COUNTER64, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a core telemetry poller with IP 10.144.0.10.
+HOST v3_sha384_poller { IP 10.144.0.10 MAC 00:25:90:44:00:10 }
+
+// INSTRUCTION: Define a spine switch agent supporting SHA-384 USM with IP 10.144.0.1.
+HOST v3_sha384_spine { IP 10.144.0.1 MAC 00:25:90:44:00:01 }
+
+// INSTRUCTION: Define a flow executing an SNMPv3 GETBULK request with AUTH SHA384 and receiving a 64-bit counter RESPONSE.
+FLOW snmpv3_sha384_getbulk(poller, spine) {
+    poller -> spine SNMP3 GETBULK USER "sha384_poller" ENGINEID "80001f880430313233" ENGINEBOOTS 2 ENGINETIME 7200 AUTH SHA384 "sha384_integrity_secret" REQID 9201 NONREPEATERS 0 MAXREPETITIONS 10 VARBIND 1.3.6.1.2.1.31.1.1.1.1 NULLVAL VARBIND 1.3.6.1.2.1.31.1.1.1.6 NULLVAL WAIT 10ms
+    poller <- spine SNMP3 RESPONSE USER "sha384_poller" ENGINEID "80001f880430313233" ENGINEBOOTS 2 ENGINETIME 7200 AUTH SHA384 "sha384_integrity_secret" REQID 9201 VARBIND 1.3.6.1.2.1.31.1.1.1.1.1 STRING "Ethernet1/1" VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 554433221100 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the SHA-384 authenticated SNMPv3 GETBULK flow.
+COMPILE {
+    snmpv3_sha384_getbulk(v3_sha384_poller, v3_sha384_spine)
+}
+```
+
+### `examples/76_snmpv3_auth_sha512_nopriv_set.fasm`
+```frameassembly
+// PROMPT: Simulate an RFC 7860 SNMPv3 authNoPriv SET request and RESPONSE authenticated with HMAC-SHA-512 (AUTH SHA512).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, SET, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, CONTEXTNAME, AUTH, SHA512, REQID, VARBIND, STRING, INT, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a network orchestrator host with IP 10.145.0.100.
+HOST v3_sha512_orchestrator { IP 10.145.0.100 MAC 00:50:56:45:00:64 }
+
+// INSTRUCTION: Define a core router accepting SHA-512 signed SET operations with IP 10.145.0.1.
+HOST v3_sha512_router { IP 10.145.0.1 MAC 00:50:56:45:00:01 }
+
+// INSTRUCTION: Define a flow sending an SNMPv3 SET signed with AUTH SHA512 and receiving the matching RESPONSE.
+FLOW snmpv3_sha512_set(orch, router) {
+    orch -> router SNMP3 SET USER "sha512_netadmin" ENGINEID "800000090300005056450001" ENGINEBOOTS 9 ENGINETIME 54000 CONTEXTNAME "global" REQID 9301 AUTH SHA512 "sha512_master_auth_password" VARBIND 1.3.6.1.2.1.1.5.0 STRING "core-rtr-sha512" VARBIND 1.3.6.1.2.1.2.2.1.7.1 INT 1 WAIT 10ms
+    orch <- router SNMP3 RESPONSE USER "sha512_netadmin" ENGINEID "800000090300005056450001" ENGINEBOOTS 9 ENGINETIME 54000 CONTEXTNAME "global" REQID 9301 AUTH SHA512 "sha512_master_auth_password" VARBIND 1.3.6.1.2.1.1.5.0 STRING "core-rtr-sha512" VARBIND 1.3.6.1.2.1.2.2.1.7.1 INT 1 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SHA-512 authenticated SNMPv3 SET flow.
+COMPILE {
+    snmpv3_sha512_set(v3_sha512_orchestrator, v3_sha512_router)
+}
+```
+
+### `examples/77_snmpv3_auth_md5_priv_des_trap.fasm`
+```frameassembly
+// PROMPT: Generate an RFC 3414 SNMPv3 authPriv TRAP using HMAC-MD5-96 authentication (AUTH MD5) and DES-CBC privacy encryption (PRIV DES).
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP3, TRAP, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, MD5, PRIV, DES, OID, SYSUPTIME, VARBIND, STRING, INT, COMPILE
+
+// INSTRUCTION: Define a legacy SNMPv3 router agent configured with MD5 and DES with IP 10.146.0.5.
+HOST v3_md5_des_agent { IP 10.146.0.5 MAC 00:0c:29:46:00:05 }
+
+// INSTRUCTION: Define an SNMPv3 trap collector with IP 10.146.0.100.
+HOST v3_md5_des_nms { IP 10.146.0.100 MAC 00:0c:29:46:00:64 }
+
+// INSTRUCTION: Define a flow sending an encrypted SNMPv3 trap using AUTH MD5 and PRIV DES.
+FLOW snmpv3_md5_des_trap(agent, nms) {
+    agent -> nms SNMP3 TRAP USER "usm_md5_des" ENGINEID "80001f8880aa11bb22" ENGINEBOOTS 4 ENGINETIME 12000 AUTH MD5 "md5_auth_key_123" PRIV DES "des_priv_key_456" OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 1200000 VARBIND 1.3.6.1.2.1.2.2.1.1.3 INT 3 VARBIND 1.3.6.1.2.1.2.2.1.2.3 STRING "FastEthernet0/3"
+}
+
+// INSTRUCTION: Compile block to emit the MD5 + DES encrypted SNMPv3 trap.
+COMPILE {
+    snmpv3_md5_des_trap(v3_md5_des_agent, v3_md5_des_nms)
+}
+```
+
+### `examples/78_snmpv3_auth_md5_priv_aes_trap.fasm`
+```frameassembly
+// PROMPT: Generate an SNMPv3 authPriv TRAP combining HMAC-MD5-96 authentication (AUTH MD5) with AES-128-CFB encryption (PRIV AES).
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP3, TRAP, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, MD5, PRIV, AES, OID, SYSUPTIME, VARBIND, STRING, GAUGE32, COMPILE
+
+// INSTRUCTION: Define an SNMPv3 switch agent using MD5 auth and AES-128 priv with IP 10.147.0.5.
+HOST v3_md5_aes_agent { IP 10.147.0.5 MAC 00:0c:29:47:00:05 }
+
+// INSTRUCTION: Define an SNMPv3 NMS collector with IP 10.147.0.100.
+HOST v3_md5_aes_nms { IP 10.147.0.100 MAC 00:0c:29:47:00:64 }
+
+// INSTRUCTION: Define a flow sending an SNMPv3 trap encrypted with AES-128-CFB and signed with HMAC-MD5.
+FLOW snmpv3_md5_aes_trap(agent, nms) {
+    agent -> nms SNMP3 TRAP USER "usm_md5_aes" ENGINEID "80001f8880cc33dd44" ENGINEBOOTS 8 ENGINETIME 24000 AUTH MD5 "md5_auth_secret" PRIV AES "aes128_priv_secret" OID 1.3.6.1.6.3.1.1.5.4 SYSUPTIME 2400000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "sw-md5-aes" VARBIND 1.3.6.1.2.1.2.2.1.5.1 GAUGE32 1000000000
+}
+
+// INSTRUCTION: Compile block to emit the MD5 + AES encrypted SNMPv3 trap.
+COMPILE {
+    snmpv3_md5_aes_trap(v3_md5_aes_agent, v3_md5_aes_nms)
+}
+```
+
+### `examples/79_snmpv3_auth_sha_priv_des_get_response.fasm`
+```frameassembly
+// PROMPT: Simulate an encrypted SNMPv3 GET and RESPONSE exchange using HMAC-SHA-96 authentication (AUTH SHA) and DES-CBC privacy (PRIV DES).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, GET, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA, PRIV, DES, REQID, VARBIND, NULLVAL, STRING, INT, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an SNMPv3 polling station with IP 10.148.0.10.
+HOST v3_sha_des_poller { IP 10.148.0.10 MAC 00:1a:a0:48:00:10 }
+
+// INSTRUCTION: Define an SNMPv3 managed firewall with IP 10.148.0.1.
+HOST v3_sha_des_fw { IP 10.148.0.1 MAC 00:1a:a0:48:00:01 }
+
+// INSTRUCTION: Define a flow polling sysName and ifNumber over SNMPv3 with AUTH SHA and PRIV DES.
+FLOW snmpv3_sha_des_poll(poller, fw) {
+    poller -> fw SNMP3 GET USER "usm_sha_des" ENGINEID "800000090300001aa0480001" ENGINEBOOTS 15 ENGINETIME 86400 AUTH SHA "sha1_pass_phrase" PRIV DES "des_cbc_pass_key" REQID 9401 VARBIND 1.3.6.1.2.1.1.5.0 NULLVAL VARBIND 1.3.6.1.2.1.2.1.0 NULLVAL WAIT 10ms
+    poller <- fw SNMP3 RESPONSE USER "usm_sha_des" ENGINEID "800000090300001aa0480001" ENGINEBOOTS 15 ENGINETIME 86400 AUTH SHA "sha1_pass_phrase" PRIV DES "des_cbc_pass_key" REQID 9401 VARBIND 1.3.6.1.2.1.1.5.0 STRING "fw-sha-des-01" VARBIND 1.3.6.1.2.1.2.1.0 INT 16 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SHA + DES encrypted SNMPv3 GET/RESPONSE flow.
+COMPILE {
+    snmpv3_sha_des_poll(v3_sha_des_poller, v3_sha_des_fw)
+}
+```
+
+### `examples/80_snmpv3_auth_sha_priv_aes_inform.fasm`
+```frameassembly
+// PROMPT: Simulate an RFC 3826 SNMPv3 authPriv INFORM and RESPONSE exchange using HMAC-SHA-96 authentication (AUTH SHA) and AES-128-CFB privacy (PRIV AES).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, INFORM, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA, PRIV, AES, REQID, OID, SYSUPTIME, VARBIND, STRING, COUNTER32, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an enterprise core switch sending encrypted INFORMs with IP 10.149.0.1.
+HOST v3_sha_aes_switch { IP 10.149.0.1 MAC 00:1c:73:49:00:01 }
+
+// INSTRUCTION: Define the enterprise NMS server with IP 10.149.0.200.
+HOST v3_sha_aes_nms { IP 10.149.0.200 MAC 00:1c:73:49:00:c8 }
+
+// INSTRUCTION: Define a flow sending an SNMPv3 INFORM with AUTH SHA and PRIV AES and receiving an encrypted RESPONSE.
+FLOW snmpv3_sha_aes_inform(sw, nms) {
+    sw -> nms SNMP3 INFORM USER "usm_sha_aes" ENGINEID "80007571010a950001" ENGINEBOOTS 21 ENGINETIME 105000 AUTH SHA "sha_enterprise_auth" PRIV AES "aes_enterprise_priv" REQID 9501 OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 10500000 VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "FortyGigE1/0/1" VARBIND 1.3.6.1.2.1.2.2.1.14.1 COUNTER32 29 WAIT 15ms
+    sw <- nms SNMP3 RESPONSE USER "usm_sha_aes" ENGINEID "80007571010a950001" ENGINEBOOTS 21 ENGINETIME 105000 AUTH SHA "sha_enterprise_auth" PRIV AES "aes_enterprise_priv" REQID 9501 VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "FortyGigE1/0/1" VARBIND 1.3.6.1.2.1.2.2.1.14.1 COUNTER32 29 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the SHA + AES SNMPv3 INFORM exchange.
+COMPILE {
+    snmpv3_sha_aes_inform(v3_sha_aes_switch, v3_sha_aes_nms)
+}
+```
+
+### `examples/81_snmpv3_auth_sha256_priv_des_getnext.fasm`
+```frameassembly
+// PROMPT: Simulate an encrypted SNMPv3 GETNEXT and RESPONSE MIB walk step using HMAC-SHA-256 authentication (AUTH SHA256) and DES-CBC encryption (PRIV DES).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, GETNEXT, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, PRIV, DES, REQID, VARBIND, NULLVAL, OIDVAL, IPVAL, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an SNMPv3 security scanner polling a router with IP 10.150.0.10.
+HOST v3_sha256_des_mgr { IP 10.150.0.10 MAC 00:21:5a:50:00:10 }
+
+// INSTRUCTION: Define an SNMPv3 router agent with IP 10.150.0.1.
+HOST v3_sha256_des_rtr { IP 10.150.0.1 MAC 00:21:5a:50:00:01 }
+
+// INSTRUCTION: Define a flow performing an SNMPv3 GETNEXT request and RESPONSE using AUTH SHA256 and PRIV DES.
+FLOW snmpv3_sha256_des_getnext(mgr, rtr) {
+    mgr -> rtr SNMP3 GETNEXT USER "usm_sha256_des" ENGINEID "80001f8880500001" ENGINEBOOTS 6 ENGINETIME 50000 AUTH SHA256 "sha256_auth_secret_key" PRIV DES "des_priv_secret_key" REQID 9601 VARBIND 1.3.6.1.2.1.1.2 NULLVAL VARBIND 1.3.6.1.2.1.4.20.1.1 NULLVAL WAIT 10ms
+    mgr <- rtr SNMP3 RESPONSE USER "usm_sha256_des" ENGINEID "80001f8880500001" ENGINEBOOTS 6 ENGINETIME 50000 AUTH SHA256 "sha256_auth_secret_key" PRIV DES "des_priv_secret_key" REQID 9601 VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.9.1.2494 VARBIND 1.3.6.1.2.1.4.20.1.1.10.150.0.1 IPVAL 10.150.0.1 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SHA256 + DES SNMPv3 GETNEXT flow.
+COMPILE {
+    snmpv3_sha256_des_getnext(v3_sha256_des_mgr, v3_sha256_des_rtr)
+}
+```
+
+### `examples/82_snmpv3_auth_sha256_priv_aes_trap.fasm`
+```frameassembly
+// PROMPT: Generate a production-grade SNMPv3 authPriv TRAP using HMAC-SHA-256 authentication (AUTH SHA256) and AES-128-CFB encryption (PRIV AES).
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP3, TRAP, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, CONTEXTNAME, AUTH, SHA256, PRIV, AES, REQID, OID, SYSUPTIME, VARBIND, STRING, INT, COUNTER64, COMPILE
+
+// INSTRUCTION: Define a core data center router with IP 10.151.0.1.
+HOST v3_sha256_aes_rtr { IP 10.151.0.1 MAC 00:25:90:51:00:01 }
+
+// INSTRUCTION: Define a hardened SOC trap receiver with IP 10.151.0.250.
+HOST v3_sha256_aes_soc { IP 10.151.0.250 MAC 00:25:90:51:00:fa }
+
+// INSTRUCTION: Define a flow sending an SNMPv3 trap secured with AUTH SHA256 and PRIV AES.
+FLOW snmpv3_sha256_aes_trap(router, soc) {
+    router -> soc SNMP3 TRAP USER "usm_sha256_aes" ENGINEID "80001f8880510001" ENGINEBOOTS 30 ENGINETIME 400000 CONTEXTNAME "core-fabric" REQID 9701 AUTH SHA256 "sha256_prod_auth_pass" PRIV AES "aes128_prod_priv_pass" OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 40000000 VARBIND 1.3.6.1.2.1.31.1.1.1.1.10 STRING "HundredGigE0/0/0/10" VARBIND 1.3.6.1.2.1.2.2.1.8.10 INT 2 VARBIND 1.3.6.1.2.1.31.1.1.1.6.10 COUNTER64 88776655443322
+}
+
+// INSTRUCTION: Compile block to emit the SHA256 + AES encrypted SNMPv3 trap.
+COMPILE {
+    snmpv3_sha256_aes_trap(v3_sha256_aes_rtr, v3_sha256_aes_soc)
+}
+```
+
+### `examples/83_snmpv3_auth_sha384_priv_des_set.fasm`
+```frameassembly
+// PROMPT: Simulate an encrypted SNMPv3 SET request and RESPONSE using HMAC-SHA-384 authentication (AUTH SHA384) and DES-CBC encryption (PRIV DES).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, SET, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA384, PRIV, DES, REQID, VARBIND, STRING, INT, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a network provisioning server with IP 10.152.0.100.
+HOST v3_sha384_des_prov { IP 10.152.0.100 MAC 00:16:3e:52:00:64 }
+
+// INSTRUCTION: Define an edge switch agent with IP 10.152.0.10.
+HOST v3_sha384_des_sw { IP 10.152.0.10 MAC 00:16:3e:52:00:0a }
+
+// INSTRUCTION: Define a flow executing an SNMPv3 SET and RESPONSE secured with AUTH SHA384 and PRIV DES.
+FLOW snmpv3_sha384_des_set(prov, sw) {
+    prov -> sw SNMP3 SET USER "usm_sha384_des" ENGINEID "80001f888052000a" ENGINEBOOTS 11 ENGINETIME 65000 AUTH SHA384 "sha384_prov_auth_key" PRIV DES "des_prov_priv_key" REQID 9801 VARBIND 1.3.6.1.2.1.1.6.0 STRING "DC2 Row 4 Rack 12" VARBIND 1.3.6.1.2.1.2.2.1.7.12 INT 1 WAIT 10ms
+    prov <- sw SNMP3 RESPONSE USER "usm_sha384_des" ENGINEID "80001f888052000a" ENGINEBOOTS 11 ENGINETIME 65000 AUTH SHA384 "sha384_prov_auth_key" PRIV DES "des_prov_priv_key" REQID 9801 VARBIND 1.3.6.1.2.1.1.6.0 STRING "DC2 Row 4 Rack 12" VARBIND 1.3.6.1.2.1.2.2.1.7.12 INT 1 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SHA384 + DES SNMPv3 SET flow.
+COMPILE {
+    snmpv3_sha384_des_set(v3_sha384_des_prov, v3_sha384_des_sw)
+}
+```
+
+### `examples/84_snmpv3_auth_sha384_priv_aes_getbulk.fasm`
+```frameassembly
+// PROMPT: Simulate an encrypted SNMPv3 GETBULK request and RESPONSE using HMAC-SHA-384 authentication (AUTH SHA384) and AES-128-CFB encryption (PRIV AES).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, GETBULK, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA384, PRIV, AES, REQID, NONREPEATERS, MAXREPETITIONS, VARBIND, NULLVAL, TIMETICKS, COUNTER64, GAUGE32, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a high-security telemetry collector with IP 10.153.0.10.
+HOST v3_sha384_aes_col { IP 10.153.0.10 MAC 00:16:3e:53:00:10 }
+
+// INSTRUCTION: Define a core router agent with IP 10.153.0.1.
+HOST v3_sha384_aes_rtr { IP 10.153.0.1 MAC 00:16:3e:53:00:01 }
+
+// INSTRUCTION: Define a flow performing an SNMPv3 GETBULK operation secured with AUTH SHA384 and PRIV AES.
+FLOW snmpv3_sha384_aes_getbulk(col, rtr) {
+    col -> rtr SNMP3 GETBULK USER "usm_sha384_aes" ENGINEID "80001f8880530001" ENGINEBOOTS 19 ENGINETIME 128000 AUTH SHA384 "sha384_bulk_auth_pass" PRIV AES "aes128_bulk_priv_pass" REQID 9901 NONREPEATERS 1 MAXREPETITIONS 15 VARBIND 1.3.6.1.2.1.1.3.0 NULLVAL VARBIND 1.3.6.1.2.1.31.1.1.1.6 NULLVAL VARBIND 1.3.6.1.2.1.31.1.1.1.15 NULLVAL WAIT 10ms
+    col <- rtr SNMP3 RESPONSE USER "usm_sha384_aes" ENGINEID "80001f8880530001" ENGINEBOOTS 19 ENGINETIME 128000 AUTH SHA384 "sha384_bulk_auth_pass" PRIV AES "aes128_bulk_priv_pass" REQID 9901 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 12800000 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 900010002000 VARBIND 1.3.6.1.2.1.31.1.1.1.15.1 GAUGE32 100000 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the SHA384 + AES SNMPv3 GETBULK flow.
+COMPILE {
+    snmpv3_sha384_aes_getbulk(v3_sha384_aes_col, v3_sha384_aes_rtr)
+}
+```
+
+### `examples/85_snmpv3_auth_sha512_priv_des_inform.fasm`
+```frameassembly
+// PROMPT: Simulate an encrypted SNMPv3 INFORM notification and RESPONSE using HMAC-SHA-512 authentication (AUTH SHA512) and DES-CBC encryption (PRIV DES).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, INFORM, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA512, PRIV, DES, REQID, OID, SYSUPTIME, VARBIND, STRING, IPVAL, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a border gateway agent with IP 10.154.0.1.
+HOST v3_sha512_des_gw { IP 10.154.0.1 MAC 00:25:90:54:00:01 }
+
+// INSTRUCTION: Define an NMS inform collector with IP 10.154.0.200.
+HOST v3_sha512_des_nms { IP 10.154.0.200 MAC 00:25:90:54:00:c8 }
+
+// INSTRUCTION: Define a flow sending an SNMPv3 INFORM and receiving a RESPONSE using AUTH SHA512 and PRIV DES.
+FLOW snmpv3_sha512_des_inform(gw, nms) {
+    gw -> nms SNMP3 INFORM USER "usm_sha512_des" ENGINEID "80001f8880540001" ENGINEBOOTS 14 ENGINETIME 77000 AUTH SHA512 "sha512_inform_auth_key" PRIV DES "des_inform_priv_key" REQID 9950 OID 1.3.6.1.6.3.1.1.5.5 SYSUPTIME 7700000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "border-gw-01" VARBIND 1.3.6.1.2.1.4.20.1.1.10.154.0.1 IPVAL 10.154.0.1 WAIT 15ms
+    gw <- nms SNMP3 RESPONSE USER "usm_sha512_des" ENGINEID "80001f8880540001" ENGINEBOOTS 14 ENGINETIME 77000 AUTH SHA512 "sha512_inform_auth_key" PRIV DES "des_inform_priv_key" REQID 9950 VARBIND 1.3.6.1.2.1.1.5.0 STRING "border-gw-01" VARBIND 1.3.6.1.2.1.4.20.1.1.10.154.0.1 IPVAL 10.154.0.1 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SHA512 + DES SNMPv3 INFORM flow.
+COMPILE {
+    snmpv3_sha512_des_inform(v3_sha512_des_gw, v3_sha512_des_nms)
+}
+```
+
+### `examples/86_snmpv3_auth_sha512_priv_aes_high_security.fasm`
+```frameassembly
+// PROMPT: Generate a maximum-security SNMPv3 authPriv packet using HMAC-SHA-512 (AUTH SHA512), AES-128-CFB (PRIV AES), CONTEXTNAME, and all 9 VARBIND types.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, GET, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, CONTEXTNAME, AUTH, SHA512, PRIV, AES, REQID, VARBIND, NULLVAL, STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32, COUNTER64, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a classified enclave monitoring station with IP 10.155.0.10.
+HOST enclave_nms { IP 10.155.0.10 MAC 00:25:90:55:00:10 }
+
+// INSTRUCTION: Define a cryptographic gateway agent with IP 10.155.0.1.
+HOST crypto_gw_agent { IP 10.155.0.1 MAC 00:25:90:55:00:01 }
+
+// INSTRUCTION: Define a flow exchanging SHA512 + AES encrypted SNMPv3 GET and RESPONSE packets containing all 9 VarBind data types.
+FLOW snmpv3_sha512_aes_all_varbinds(nms, gw) {
+    nms -> gw SNMP3 GET USER "secops_sha512_aes" ENGINEID "80001f8880550001" ENGINEBOOTS 42 ENGINETIME 500000 CONTEXTNAME "enclave-alpha" REQID 9990 AUTH SHA512 "sha512_top_secret_auth_key" PRIV AES "aes128_top_secret_priv_key" VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL WAIT 10ms
+    nms <- gw SNMP3 RESPONSE USER "secops_sha512_aes" ENGINEID "80001f8880550001" ENGINEBOOTS 42 ENGINETIME 500000 CONTEXTNAME "enclave-alpha" REQID 9990 AUTH SHA512 "sha512_top_secret_auth_key" PRIV AES "aes128_top_secret_priv_key" VARBIND 1.3.6.1.2.1.1.4.0 NULLVAL VARBIND 1.3.6.1.2.1.1.5.0 STRING "crypto-gw-alpha" VARBIND 1.3.6.1.4.1.9999.1.2.0 INT -9 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 50000000 VARBIND 1.3.6.1.2.1.4.20.1.1.10.155.0.1 IPVAL 10.155.0.1 VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.8072.3.2.10 VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 12345678 VARBIND 1.3.6.1.2.1.2.2.1.5.1 GAUGE32 1000000000 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 18446744073709551 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the SHA512 + AES 9-varbind SNMPv3 flow.
+COMPILE {
+    snmpv3_sha512_aes_all_varbinds(enclave_nms, crypto_gw_agent)
+}
+```
+
+### `examples/87_snmpv3_multi_vrf_context_names.fasm`
+```frameassembly
+// PROMPT: Poll isolated VRF routing tables on a multi-tenant PE router using SNMPv3 CONTEXTNAME strings ("vrf-prod", "vrf-pci", "vrf-guest").
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, GET, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, CONTEXTNAME, AUTH, SHA256, PRIV, AES, REQID, VARBIND, NULLVAL, IPVAL, INT, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a multi-tenant MPLS NMS poller with IP 10.156.0.10.
+HOST mpls_poller { IP 10.156.0.10 MAC 00:1b:54:56:00:10 }
+
+// INSTRUCTION: Define a Provider Edge (PE) router hosting multiple VRFs with IP 10.156.0.1.
+HOST pe_router { IP 10.156.0.1 MAC 00:1b:54:56:00:01 }
+
+// INSTRUCTION: Define a flow querying each VRF's routing table by varying the SNMPv3 ScopedPDU CONTEXTNAME.
+FLOW poll_multi_vrf_contexts(poller, pe) {
+    poller -> pe SNMP3 GET USER "vrf_auditor" ENGINEID "800000090300001b54560001" ENGINEBOOTS 10 ENGINETIME 80000 CONTEXTNAME "vrf-prod" REQID 10101 AUTH SHA256 "vrf_auth_secret" PRIV AES "vrf_priv_secret" VARBIND 1.3.6.1.2.1.4.21.1.7.0.0.0.0 NULLVAL WAIT 10ms
+    poller <- pe SNMP3 RESPONSE USER "vrf_auditor" ENGINEID "800000090300001b54560001" ENGINEBOOTS 10 ENGINETIME 80000 CONTEXTNAME "vrf-prod" REQID 10101 AUTH SHA256 "vrf_auth_secret" PRIV AES "vrf_priv_secret" VARBIND 1.3.6.1.2.1.4.21.1.7.0.0.0.0 IPVAL 10.1.254.1 WAIT 10ms
+    poller -> pe SNMP3 GET USER "vrf_auditor" ENGINEID "800000090300001b54560001" ENGINEBOOTS 10 ENGINETIME 80001 CONTEXTNAME "vrf-pci" REQID 10102 AUTH SHA256 "vrf_auth_secret" PRIV AES "vrf_priv_secret" VARBIND 1.3.6.1.2.1.4.21.1.7.0.0.0.0 NULLVAL WAIT 10ms
+    poller <- pe SNMP3 RESPONSE USER "vrf_auditor" ENGINEID "800000090300001b54560001" ENGINEBOOTS 10 ENGINETIME 80001 CONTEXTNAME "vrf-pci" REQID 10102 AUTH SHA256 "vrf_auth_secret" PRIV AES "vrf_priv_secret" VARBIND 1.3.6.1.2.1.4.21.1.7.0.0.0.0 IPVAL 172.31.254.1 WAIT 10ms
+    poller -> pe SNMP3 GET USER "vrf_auditor" ENGINEID "800000090300001b54560001" ENGINEBOOTS 10 ENGINETIME 80002 CONTEXTNAME "vrf-guest" REQID 10103 AUTH SHA256 "vrf_auth_secret" PRIV AES "vrf_priv_secret" VARBIND 1.3.6.1.2.1.4.21.1.8.0.0.0.0 NULLVAL WAIT 10ms
+    poller <- pe SNMP3 RESPONSE USER "vrf_auditor" ENGINEID "800000090300001b54560001" ENGINEBOOTS 10 ENGINETIME 80002 CONTEXTNAME "vrf-guest" REQID 10103 AUTH SHA256 "vrf_auth_secret" PRIV AES "vrf_priv_secret" VARBIND 1.3.6.1.2.1.4.21.1.8.0.0.0.0 INT 4 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the multi-VRF SNMPv3 context polling flow.
+COMPILE {
+    poll_multi_vrf_contexts(mpls_poller, pe_router)
+}
+```
+
+### `examples/88_snmpv3_engine_discovery_and_time_sync.fasm`
+```frameassembly
+// PROMPT: Simulate RFC 3414 SNMPv3 authoritative EngineID discovery and EngineBoots/EngineTime synchronization followed by an authenticated GET/RESPONSE.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP3, GET, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, PRIV, AES, REQID, VARBIND, NULLVAL, COUNTER32, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an NMS discovering a new SNMPv3 agent with IP 10.157.0.10.
+HOST discovery_mgr { IP 10.157.0.10 MAC 00:16:3e:57:00:10 }
+
+// INSTRUCTION: Define a newly onboarded SNMPv3 router with IP 10.157.0.1.
+HOST onboarded_rtr { IP 10.157.0.1 MAC 00:16:3e:57:00:01 }
+
+// INSTRUCTION: Define a flow showing unauthenticated EngineID probe (ENGINEBOOTS 0, ENGINETIME 0), Report response, and synchronized authPriv poll.
+FLOW snmpv3_engine_discovery(mgr, rtr) {
+    mgr -> rtr SNMP3 GET USER "" ENGINEID "0000000000" ENGINEBOOTS 0 ENGINETIME 0 REQID 10200 WAIT 10ms
+    mgr <- rtr SNMP3 RESPONSE USER "" ENGINEID "80001f8880570001" ENGINEBOOTS 0 ENGINETIME 0 REQID 10200 VARBIND 1.3.6.1.6.3.15.1.1.4.0 COUNTER32 1 WAIT 10ms
+    mgr -> rtr SNMP3 GET USER "onboard_admin" ENGINEID "80001f8880570001" ENGINEBOOTS 4 ENGINETIME 9200 REQID 10201 AUTH SHA256 "onboard_auth_pass" PRIV AES "onboard_priv_pass" VARBIND 1.3.6.1.2.1.1.5.0 NULLVAL WAIT 10ms
+    mgr <- rtr SNMP3 RESPONSE USER "onboard_admin" ENGINEID "80001f8880570001" ENGINEBOOTS 4 ENGINETIME 9200 REQID 10201 AUTH SHA256 "onboard_auth_pass" PRIV AES "onboard_priv_pass" VARBIND 1.3.6.1.2.1.1.5.0 STRING "rtr-onboarded-01" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SNMPv3 engine discovery and synchronization flow.
+COMPILE {
+    snmpv3_engine_discovery(discovery_mgr, onboarded_rtr)
+}
+```
+
+### `examples/89_snmpv3_des_padding_boundary_varbinds.fasm`
+```frameassembly
+// PROMPT: Exercise RFC 3414 DES-CBC zero-padding across different ScopedPDU lengths by sending SNMPv3 PRIV DES packets with varying STRING varbind lengths.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP3, TRAP, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA, PRIV, DES, REQID, OID, SYSUPTIME, VARBIND, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an SNMPv3 crypto test agent with IP 10.158.0.5.
+HOST des_pad_agent { IP 10.158.0.5 MAC 00:1a:2b:58:00:05 }
+
+// INSTRUCTION: Define an SNMPv3 crypto test receiver with IP 10.158.0.100.
+HOST des_pad_receiver { IP 10.158.0.100 MAC 00:1a:2b:58:00:64 }
+
+// INSTRUCTION: Define a flow sending 4 DES-CBC encrypted traps with string varbinds of lengths 1, 4, 8, and 13 bytes to test block alignment.
+FLOW des_cbc_padding_vectors(agent, receiver) {
+    agent -> receiver SNMP3 TRAP USER "des_tester" ENGINEID "80001f8880580005" ENGINEBOOTS 1 ENGINETIME 100 REQID 10301 AUTH SHA "des_test_auth_123" PRIV DES "des_test_priv_123" OID 1.3.6.1.6.3.1.1.5.1 SYSUPTIME 100 VARBIND 1.3.6.1.2.1.1.5.0 STRING "A" WAIT 5ms
+    agent -> receiver SNMP3 TRAP USER "des_tester" ENGINEID "80001f8880580005" ENGINEBOOTS 1 ENGINETIME 101 REQID 10302 AUTH SHA "des_test_auth_123" PRIV DES "des_test_priv_123" OID 1.3.6.1.6.3.1.1.5.1 SYSUPTIME 101 VARBIND 1.3.6.1.2.1.1.5.0 STRING "ABCD" WAIT 5ms
+    agent -> receiver SNMP3 TRAP USER "des_tester" ENGINEID "80001f8880580005" ENGINEBOOTS 1 ENGINETIME 102 REQID 10303 AUTH SHA "des_test_auth_123" PRIV DES "des_test_priv_123" OID 1.3.6.1.6.3.1.1.5.1 SYSUPTIME 102 VARBIND 1.3.6.1.2.1.1.5.0 STRING "ABCDEFGH" WAIT 5ms
+    agent -> receiver SNMP3 TRAP USER "des_tester" ENGINEID "80001f8880580005" ENGINEBOOTS 1 ENGINETIME 103 REQID 10304 AUTH SHA "des_test_auth_123" PRIV DES "des_test_priv_123" OID 1.3.6.1.6.3.1.1.5.1 SYSUPTIME 103 VARBIND 1.3.6.1.2.1.1.5.0 STRING "ABCDEFGHIJKLM" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the DES-CBC block padding test flow.
+COMPILE {
+    des_cbc_padding_vectors(des_pad_agent, des_pad_receiver)
+}
+```
+
+### `examples/90_snmpv3_high_frequency_encrypted_telemetry.fasm`
+```frameassembly
+// PROMPT: Stream high-frequency encrypted SNMPv3 telemetry traps (AUTH SHA256, PRIV AES) with 64-bit counters and optical gauges inside a LOOP block.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP3, TRAP, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, PRIV, AES, OID, SYSUPTIME, VARBIND, COUNTER64, GAUGE32, INT, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define a core optical router agent with IP 10.159.0.1.
+HOST core_telemetry_agent { IP 10.159.0.1 MAC 00:25:90:59:00:01 }
+
+// INSTRUCTION: Define a streaming telemetry collector with IP 10.159.0.250.
+HOST telemetry_sink { IP 10.159.0.250 MAC 00:25:90:59:00:fa }
+
+// INSTRUCTION: Define a flow sending encrypted SNMPv3 traps with COUNTER64 byte counts, GAUGE32 queue depth, and negative INT optical power.
+FLOW encrypted_telemetry_burst(agent, sink) {
+    agent -> sink SNMP3 TRAP USER "stream_sec" ENGINEID "80001f8880590001" ENGINEBOOTS 50 ENGINETIME 900000 AUTH SHA256 "stream_sha256_key" PRIV AES "stream_aes128_key" OID 1.3.6.1.4.1.9.9.719 SYSUPTIME 90000000 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 44556677889900 VARBIND 1.3.6.1.2.1.2.2.1.21.1 GAUGE32 128 VARBIND 1.3.6.1.4.1.9.9.91.1.1.1.1.4.1 INT -7 WAIT 25ms
+}
+
+// INSTRUCTION: Compile block to repeat the encrypted SNMPv3 telemetry burst 8 times.
+COMPILE {
+    LOOP 8 {
+        encrypted_telemetry_burst(core_telemetry_agent, telemetry_sink)
+    }
+}
+```
+
+### `examples/91_topology_three_tier_web_app.fasm`
+```frameassembly
+// PROMPT: Simulate a 4-host three-tier web application architecture (External Client -> Reverse Proxy Load Balancer -> App Server -> Database Server) in a single multi-parameter flow.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an external browser client with IP 198.51.100.12.
+HOST ext_client { IP 198.51.100.12 MAC 00:11:22:91:00:01 }
+
+// INSTRUCTION: Define an Nginx reverse proxy load balancer with IP 10.91.1.10.
+HOST nginx_lb { IP 10.91.1.10 MAC 00:11:22:91:00:02 }
+
+// INSTRUCTION: Define a backend Rust application server with IP 10.91.2.20.
+HOST app_server { IP 10.91.2.20 MAC 00:11:22:91:00:03 }
+
+// INSTRUCTION: Define a backend PostgreSQL database server with IP 10.91.3.30.
+HOST db_server { IP 10.91.3.30 MAC 00:11:22:91:00:04 }
+
+// INSTRUCTION: Define a 4-parameter flow tracing a user HTTPS request from client through load balancer and app tier to the database and back.
+FLOW three_tier_request(client, lb, app, db) {
+    client -> lb TCP SYN SRCPORT 54000 DSTPORT 443 WIN 65535 WAIT 2ms
+    client <- lb TCP SYN ACK SRCPORT 443 DSTPORT 54000 WIN 65535 WAIT 2ms
+    client -> lb TCP PSH ACK SRCPORT 54000 DSTPORT 443 PAYLOAD "GET /orders/42 HTTP/1.1" WAIT 2ms
+    lb -> app TCP SYN SRCPORT 48000 DSTPORT 8080 WIN 65535 WAIT 1ms
+    lb <- app TCP SYN ACK SRCPORT 8080 DSTPORT 48000 WIN 65535 WAIT 1ms
+    lb -> app TCP PSH ACK SRCPORT 48000 DSTPORT 8080 PAYLOAD "GET /internal/orders/42" WAIT 1ms
+    app -> db TCP PSH ACK SRCPORT 49000 DSTPORT 5432 PAYLOAD "SELECT * FROM orders WHERE id=42;" WAIT 1ms
+    app <- db TCP PSH ACK SRCPORT 5432 DSTPORT 49000 PAYLOAD "ORDER_ROW_42_SHIPPED" WAIT 2ms
+    lb <- app TCP PSH ACK SRCPORT 8080 DSTPORT 48000 PAYLOAD "200_JSON_ORDER_42" WAIT 1ms
+    client <- lb TCP PSH ACK SRCPORT 443 DSTPORT 54000 PAYLOAD "HTTP/1.1 200 OK {id:42,status:shipped}" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to execute the 4-host three-tier web application flow.
+COMPILE {
+    three_tier_request(ext_client, nginx_lb, app_server, db_server)
+}
+```
+
+### `examples/92_topology_spine_leaf_datacenter.fasm`
+```frameassembly
+// PROMPT: Simulate a data center Clos spine-leaf fabric combining eBGP TCP peering on port 179, VXLAN UDP overlay frames on port 4789, and SNMPv3 fabric health traps.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, ACK, PSH, UDP, SNMP3, TRAP, SRCPORT, DSTPORT, PAYLOAD, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, PRIV, AES, OID, SYSUPTIME, VARBIND, STRING, COUNTER64, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define Spine Switch 1 with IP 10.92.0.1.
+HOST clos_spine_1 { IP 10.92.0.1 MAC 00:02:c9:92:00:01 }
+
+// INSTRUCTION: Define Leaf Switch 1 with IP 10.92.1.11.
+HOST clos_leaf_1 { IP 10.92.1.11 MAC 00:02:c9:92:01:11 }
+
+// INSTRUCTION: Define Leaf Switch 2 with IP 10.92.1.12.
+HOST clos_leaf_2 { IP 10.92.1.12 MAC 00:02:c9:92:01:12 }
+
+// INSTRUCTION: Define Fabric Controller NMS with IP 10.92.254.100.
+HOST fabric_controller { IP 10.92.254.100 MAC 00:02:c9:92:fe:64 }
+
+// INSTRUCTION: Define a flow combining BGP EVPN route updates, VXLAN leaf-to-leaf data, and SNMPv3 spine telemetry.
+FLOW clos_fabric_operations(spine, leaf1, leaf2, controller) {
+    leaf1 -> spine TCP PSH ACK SRCPORT 51179 DSTPORT 179 PAYLOAD "BGP_EVPN_TYPE2_MAC_IP_ADV" WAIT 2ms
+    spine -> leaf2 TCP PSH ACK SRCPORT 179 DSTPORT 52179 PAYLOAD "BGP_EVPN_TYPE2_MAC_IP_REFLECT" WAIT 2ms
+    leaf1 -> leaf2 UDP SRCPORT 59001 DSTPORT 4789 PAYLOAD "VXLAN_VNI_20000_EAST_WEST_PACKET" WAIT 2ms
+    leaf1 <- leaf2 UDP SRCPORT 59002 DSTPORT 4789 PAYLOAD "VXLAN_VNI_20000_EAST_WEST_REPLY" WAIT 2ms
+    spine -> controller SNMP3 TRAP USER "fabric_admin" ENGINEID "80001f8880920001" ENGINEBOOTS 9 ENGINETIME 55000 AUTH SHA256 "fabric_sha256_key" PRIV AES "fabric_aes128_key" OID 1.3.6.1.6.3.1.1.5.4 SYSUPTIME 5500000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "clos-spine-1" VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 998877665544 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the Clos spine-leaf fabric simulation.
+COMPILE {
+    clos_fabric_operations(clos_spine_1, clos_leaf_1, clos_leaf_2, fabric_controller)
+}
+```
+
+### `examples/93_topology_dmz_firewall_intrusion_alert.fasm`
+```frameassembly
+// PROMPT: Simulate an external attacker scanning a DMZ firewall (SYN, FIN+PSH+URG), the firewall blocking with RST ACK, and alerting a SOC SIEM via Syslog UDP and SNMPv3 INFORM.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, FIN, PSH, URG, RST, ACK, UDP, SNMP3, INFORM, RESPONSE, SRCPORT, DSTPORT, WIN, PAYLOAD, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, PRIV, AES, REQID, OID, SYSUPTIME, VARBIND, IPVAL, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an external threat actor host with IP 203.0.113.66.
+HOST threat_actor { IP 203.0.113.66 MAC de:ad:00:93:00:66 }
+
+// INSTRUCTION: Define the DMZ perimeter firewall with IP 198.51.100.1.
+HOST dmz_firewall { IP 198.51.100.1 MAC 00:1b:17:93:00:01 }
+
+// INSTRUCTION: Define the internal SOC SIEM platform with IP 10.93.0.200.
+HOST soc_siem { IP 10.93.0.200 MAC 00:1b:17:93:00:c8 }
+
+// INSTRUCTION: Define a 3-host flow capturing the port scan, RST rejection, UDP syslog alert, and acknowledged SNMPv3 INFORM.
+FLOW intrusion_detection_workflow(attacker, fw, siem) {
+    attacker -> fw TCP SYN SRCPORT 61001 DSTPORT 22 WIN 1024 WAIT 2ms
+    attacker <- fw TCP RST ACK SRCPORT 22 DSTPORT 61001 WIN 0 WAIT 1ms
+    attacker -> fw TCP FIN PSH URG SRCPORT 61002 DSTPORT 3389 WIN 1024 WAIT 2ms
+    attacker <- fw TCP RST ACK SRCPORT 3389 DSTPORT 61002 WIN 0 WAIT 1ms
+    fw -> siem UDP SRCPORT 51514 DSTPORT 514 PAYLOAD "<33>1 2026-10-21T15:00:00Z dmz-fw01 IPS - - Blocked Xmas scan from 203.0.113.66" WAIT 5ms
+    fw -> siem SNMP3 INFORM USER "soc_alert" ENGINEID "80001f8880930001" ENGINEBOOTS 12 ENGINETIME 44000 AUTH SHA256 "soc_sha256_pass" PRIV AES "soc_aes128_pass" REQID 10401 OID 1.3.6.1.4.1.25461.2.1.3.2.0.1 SYSUPTIME 4400000 VARBIND 1.3.6.1.4.1.25461.2.1.3.1.2.0 IPVAL 203.0.113.66 VARBIND 1.3.6.1.4.1.25461.2.1.3.1.3.0 STRING "SCAN: TCP Xmas Tree Detected" WAIT 10ms
+    fw <- siem SNMP3 RESPONSE USER "soc_alert" ENGINEID "80001f8880930001" ENGINEBOOTS 12 ENGINETIME 44000 AUTH SHA256 "soc_sha256_pass" PRIV AES "soc_aes128_pass" REQID 10401 VARBIND 1.3.6.1.4.1.25461.2.1.3.1.2.0 IPVAL 203.0.113.66 VARBIND 1.3.6.1.4.1.25461.2.1.3.1.3.0 STRING "SCAN: TCP Xmas Tree Detected" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the DMZ firewall intrusion detection scenario.
+COMPILE {
+    intrusion_detection_workflow(threat_actor, dmz_firewall, soc_siem)
+}
+```
+
+### `examples/94_topology_dns_amplification_and_mitigation.fasm`
+```frameassembly
+// PROMPT: Simulate a UDP DNS ANY amplification attack against a victim server followed by an automated DDoS scrubbing center BGP FlowSpec mitigation rule and SNMPv2c trap.
+// TOKENS: HOST, IP, MAC, FLOW, ->, UDP, TCP, PSH, ACK, SNMP2, TRAP, SRCPORT, DSTPORT, PAYLOAD, COMMUNITY, OID, SYSUPTIME, VARBIND, IPVAL, GAUGE32, STRING, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define an open DNS resolver reflector with IP 198.51.100.53.
+HOST open_dns_resolver { IP 198.51.100.53 MAC 00:11:22:94:00:53 }
+
+// INSTRUCTION: Define the DDoS target victim host with IP 192.0.2.100.
+HOST ddos_victim { IP 192.0.2.100 MAC 00:11:22:94:01:00 }
+
+// INSTRUCTION: Define the DDoS mitigation controller with IP 10.94.0.10.
+HOST mitigation_ctrl { IP 10.94.0.10 MAC 00:11:22:94:00:10 }
+
+// INSTRUCTION: Define the upstream border router receiving FlowSpec rules with IP 10.94.0.1.
+HOST border_scrubber { IP 10.94.0.1 MAC 00:11:22:94:00:01 }
+
+// INSTRUCTION: Define a flow for amplified UDP port 53 responses hitting the victim.
+FLOW dns_amplification_wave(resolver, victim) {
+    resolver -> victim UDP SRCPORT 53 DSTPORT 44123 PAYLOAD "DNS_RRSIG_DNSKEY_ANY_AMPLIFIED_4096B" WAIT 1ms
+}
+
+// INSTRUCTION: Define a flow for the controller pushing a BGP FlowSpec drop rule and emitting an SNMPv2c mitigation trap.
+FLOW trigger_flowspec_mitigation(ctrl, router) {
+    ctrl -> router TCP PSH ACK SRCPORT 50179 DSTPORT 179 PAYLOAD "BGP_FLOWSPEC_DROP_UDP_SRC53_DST_192.0.2.100" WAIT 5ms
+    ctrl -> router SNMP2 TRAP COMMUNITY "ddos_soc" OID 1.3.6.1.4.1.9999.94.1 SYSUPTIME 650000 VARBIND 1.3.6.1.4.1.9999.94.1.1 IPVAL 192.0.2.100 VARBIND 1.3.6.1.4.1.9999.94.1.2 GAUGE32 10000000 VARBIND 1.3.6.1.4.1.9999.94.1.3 STRING "MITIGATED_UDP_53_AMP" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to loop the amplification burst 10 times and trigger FlowSpec mitigation.
+COMPILE {
+    LOOP 10 {
+        dns_amplification_wave(open_dns_resolver, ddos_victim)
+    }
+    trigger_flowspec_mitigation(mitigation_ctrl, border_scrubber)
+}
+```
+
+### `examples/95_topology_industrial_scada_modbus_monitoring.fasm`
+```frameassembly
+// PROMPT: Simulate an Industrial Control System (ICS/SCADA) HMI polling a Programmable Logic Controller (PLC) over Modbus/TCP port 502 alongside SNMPv1 and SNMPv2c thermal alerts.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SNMP1, SNMP2, TRAP, SRCPORT, DSTPORT, PAYLOAD, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, OID, SYSUPTIME, VARBIND, INT, GAUGE32, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define the SCADA HMI master station with IP 192.168.200.10.
+HOST scada_hmi { IP 192.168.200.10 MAC 00:0e:8c:95:00:10 }
+
+// INSTRUCTION: Define an industrial Modbus/TCP PLC controller with IP 192.168.200.50.
+HOST modbus_plc { IP 192.168.200.50 MAC 00:0e:8c:95:00:50 }
+
+// INSTRUCTION: Define an industrial Ethernet switch monitoring cabinet temperature with IP 192.168.200.2.
+HOST din_rail_switch { IP 192.168.200.2 MAC 00:0e:8c:95:00:02 }
+
+// INSTRUCTION: Define a 3-host flow combining Modbus/TCP Function Code 03 holding register reads with industrial SNMPv1 and SNMPv2c traps.
+FLOW scada_plc_and_snmp(hmi, plc, ind_sw) {
+    hmi -> plc TCP SYN SRCPORT 50502 DSTPORT 502 WAIT 5ms
+    hmi <- plc TCP SYN ACK SRCPORT 502 DSTPORT 50502 WAIT 5ms
+    hmi -> plc TCP ACK SRCPORT 50502 DSTPORT 502 WAIT 2ms
+    hmi -> plc TCP PSH ACK SRCPORT 50502 DSTPORT 502 PAYLOAD "MODBUS_TCP_TID01_FC03_READ_REG_40001" WAIT 10ms
+    hmi <- plc TCP PSH ACK SRCPORT 502 DSTPORT 50502 PAYLOAD "MODBUS_TCP_TID01_FC03_RESP_VAL_1450RPM" WAIT 10ms
+    ind_sw -> hmi SNMP1 TRAP COMMUNITY "scada_public" ENTERPRISE 1.3.6.1.4.1.4329 AGENTIP 192.168.200.2 GENTRAP 6 SPECTRAP 12 SYSUPTIME 880000 VARBIND 1.3.6.1.4.1.4329.1.1.0 STRING "DIN-Rail Cabinet High Temp" VARBIND 1.3.6.1.4.1.4329.1.2.0 INT 72 WAIT 10ms
+    plc -> hmi SNMP2 TRAP COMMUNITY "scada_public" OID 1.3.6.1.4.1.4329.2.0.1 SYSUPTIME 880050 VARBIND 1.3.6.1.4.1.4329.2.1.0 GAUGE32 1450 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the ICS SCADA Modbus and SNMP monitoring flow.
+COMPILE {
+    scada_plc_and_snmp(scada_hmi, modbus_plc, din_rail_switch)
+}
+```
+
+### `examples/96_topology_kubernetes_pod_service_mesh.fasm`
+```frameassembly
+// PROMPT: Simulate a Kubernetes cluster pod-to-pod service mesh workflow combining CoreDNS UDP service discovery, Envoy mTLS TCP gRPC calls, and node SNMPv2c scraping.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, TCP, SYN, ACK, PSH, SNMP2, GET, RESPONSE, SRCPORT, DSTPORT, PAYLOAD, COMMUNITY, REQID, VARBIND, NULLVAL, COUNTER64, GAUGE32, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a frontend checkout pod with IP 10.244.1.15.
+HOST checkout_pod { IP 10.244.1.15 MAC 0a:58:0a:f4:01:0f }
+
+// INSTRUCTION: Define the cluster CoreDNS service pod with IP 10.96.0.10.
+HOST coredns_pod { IP 10.96.0.10 MAC 0a:58:0a:60:00:0a }
+
+// INSTRUCTION: Define the payment gRPC service pod with IP 10.244.2.40.
+HOST payment_pod { IP 10.244.2.40 MAC 0a:58:0a:f4:02:28 }
+
+// INSTRUCTION: Define the Kubernetes worker node host agent with IP 192.168.10.101.
+HOST k8s_node_agent { IP 192.168.10.101 MAC 00:16:3e:0a:00:65 }
+
+// INSTRUCTION: Define a 4-parameter flow tracing DNS lookup, mTLS gRPC call on port 9090, and node SNMP metric collection.
+FLOW k8s_service_mesh_trace(frontend, dns, backend, node) {
+    frontend -> dns UDP SRCPORT 54053 DSTPORT 53 PAYLOAD "DNS_Q_A_payment.prod.svc.cluster.local" WAIT 1ms
+    frontend <- dns UDP SRCPORT 53 DSTPORT 54053 PAYLOAD "DNS_ANS_10.244.2.40" WAIT 1ms
+    frontend -> backend TCP SYN SRCPORT 44900 DSTPORT 9090 WAIT 1ms
+    frontend <- backend TCP SYN ACK SRCPORT 9090 DSTPORT 44900 WAIT 1ms
+    frontend -> backend TCP PSH ACK SRCPORT 44900 DSTPORT 9090 PAYLOAD "ENVOY_MTLS_GRPC_ChargeCard" WAIT 2ms
+    frontend <- backend TCP PSH ACK SRCPORT 9090 DSTPORT 44900 PAYLOAD "ENVOY_MTLS_GRPC_STATUS_0_OK" WAIT 2ms
+    frontend -> node SNMP2 GET COMMUNITY "k8s_node_ro" REQID 10501 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 NULLVAL VARBIND 1.3.6.1.4.1.2021.4.6.0 NULLVAL WAIT 5ms
+    frontend <- node SNMP2 RESPONSE COMMUNITY "k8s_node_ro" REQID 10501 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 3344556677 VARBIND 1.3.6.1.4.1.2021.4.6.0 GAUGE32 16777216 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the Kubernetes pod service mesh trace.
+COMPILE {
+    k8s_service_mesh_trace(checkout_pod, coredns_pod, payment_pod, k8s_node_agent)
+}
+```
+
+### `examples/97_topology_wan_sdwan_failover_simulation.fasm`
+```frameassembly
+// PROMPT: Simulate an SD-WAN primary circuit failure detected via Bidirectional Forwarding Detection (BFD) on UDP port 3784, triggering an SNMPv2c linkDown trap and TCP tunnel failover.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, TCP, SYN, ACK, PSH, SNMP2, TRAP, SRCPORT, DSTPORT, PAYLOAD, COMMUNITY, OID, SYSUPTIME, VARBIND, INT, STRING, IPVAL, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define Branch SD-WAN Edge Router with IP 172.25.1.1.
+HOST sdwan_branch { IP 172.25.1.1 MAC 00:1e:13:97:01:01 }
+
+// INSTRUCTION: Define Primary MPLS Hub Gateway with IP 172.25.100.1.
+HOST mpls_hub_primary { IP 172.25.100.1 MAC 00:1e:13:97:64:01 }
+
+// INSTRUCTION: Define Backup LTE/Broadband Hub Gateway with IP 172.25.200.1.
+HOST lte_hub_backup { IP 172.25.200.1 MAC 00:1e:13:97:c8:01 }
+
+// INSTRUCTION: Define the SD-WAN Orchestrator NMS with IP 172.25.250.100.
+HOST sdwan_orchestrator { IP 172.25.250.100 MAC 00:1e:13:97:fa:64 }
+
+// INSTRUCTION: Define a 4-host flow showing BFD control down on UDP 3784, SNMPv2c linkDown alert, and backup control connection on TCP 23456.
+FLOW sdwan_circuit_failover(branch, primary_hub, backup_hub, orchestrator) {
+    branch -> primary_hub UDP SRCPORT 49152 DSTPORT 3784 PAYLOAD "BFD_CTRL_STATE_DOWN_DIAG_ECHO_FAILED" WAIT 5ms
+    branch -> orchestrator SNMP2 TRAP COMMUNITY "sdwan_ops" OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 712000 VARBIND 1.3.6.1.2.1.2.2.1.1.1 INT 1 VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "WAN-MPLS-Transport-0" VARBIND 1.3.6.1.2.1.4.20.1.1.172.25.100.1 IPVAL 172.25.100.1 WAIT 10ms
+    branch -> backup_hub TCP SYN SRCPORT 52345 DSTPORT 23456 WAIT 5ms
+    branch <- backup_hub TCP SYN ACK SRCPORT 23456 DSTPORT 52345 WAIT 5ms
+    branch -> backup_hub TCP PSH ACK SRCPORT 52345 DSTPORT 23456 PAYLOAD "OMP_TUNNEL_FAILOVER_ACTIVE_LTE" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the SD-WAN BFD failover simulation.
+COMPILE {
+    sdwan_circuit_failover(sdwan_branch, mpls_hub_primary, lte_hub_backup, sdwan_orchestrator)
+}
+```
+
+### `examples/98_topology_voip_call_with_qos_telemetry.fasm`
+```frameassembly
+// PROMPT: Simulate an enterprise VoIP call combining SIP UDP signaling (port 5060), RTP UDP voice packets (port 16384), and voice gateway SNMPv3 QoS jitter and MOS score monitoring.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SNMP3, TRAP, SRCPORT, DSTPORT, PAYLOAD, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, PRIV, AES, OID, SYSUPTIME, VARBIND, GAUGE32, COUNTER32, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define Executive IP Phone with IP 10.98.1.50.
+HOST exec_ip_phone { IP 10.98.1.50 MAC 00:04:f2:98:01:50 }
+
+// INSTRUCTION: Define Branch Voice Gateway router with IP 10.98.1.1.
+HOST voice_gateway { IP 10.98.1.1 MAC 00:04:f2:98:01:01 }
+
+// INSTRUCTION: Define UC Voice Quality Manager with IP 10.98.100.10.
+HOST uc_qos_manager { IP 10.98.100.10 MAC 00:04:f2:98:64:0a }
+
+// INSTRUCTION: Define a 3-host flow interleaving SIP/RTP voice packets with an SNMPv3 voice quality telemetry report.
+FLOW voip_call_with_qos_report(phone, vgw, qos_mgr) {
+    phone -> vgw UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "INVITE sip:918005550199@vgw.local SIP/2.0" WAIT 10ms
+    phone <- vgw UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "SIP/2.0 200 OK SDP_G722_HD" WAIT 10ms
+    phone -> vgw UDP SRCPORT 16384 DSTPORT 16384 PAYLOAD "RTP_G722_SEQ_1_AUDIO" WAIT 20ms
+    phone <- vgw UDP SRCPORT 16384 DSTPORT 16384 PAYLOAD "RTP_G722_SEQ_1_RETURN" WAIT 20ms
+    vgw -> qos_mgr SNMP3 TRAP USER "uc_monitor" ENGINEID "8000000903000004f2980101" ENGINEBOOTS 8 ENGINETIME 64000 AUTH SHA256 "uc_qos_sha256" PRIV AES "uc_qos_aes128" OID 1.3.6.1.4.1.9.9.63.2.0.1 SYSUPTIME 6400000 VARBIND 1.3.6.1.4.1.9.9.63.1.3.1.1.1 STRING "Codec-G722-Call-99" VARBIND 1.3.6.1.4.1.9.9.63.1.3.1.1.2 GAUGE32 4 VARBIND 1.3.6.1.4.1.9.9.63.1.3.1.1.3 COUNTER32 0 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the VoIP call and QoS telemetry flow.
+COMPILE {
+    voip_call_with_qos_report(exec_ip_phone, voice_gateway, uc_qos_manager)
+}
+```
+
+### `examples/99_topology_zero_trust_proxy_inspection.fasm`
+```frameassembly
+// PROMPT: Simulate a Zero Trust Network Access (ZTNA) policy enforcement flow combining TLS TCP client access, RADIUS UDP MFA verification, and backend TCP proxy forwarding.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, UDP, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a remote employee endpoint with IP 198.51.100.75.
+HOST remote_laptop { IP 198.51.100.75 MAC a4:83:e7:99:00:75 }
+
+// INSTRUCTION: Define the Zero Trust Identity-Aware Proxy with IP 10.99.0.10.
+HOST ztna_proxy { IP 10.99.0.10 MAC 00:50:56:99:00:10 }
+
+// INSTRUCTION: Define the MFA RADIUS policy server with IP 10.99.0.200.
+HOST mfa_radius { IP 10.99.0.200 MAC 00:50:56:99:00:c8 }
+
+// INSTRUCTION: Define the protected internal Git server with IP 10.99.10.50.
+HOST internal_git { IP 10.99.10.50 MAC 00:50:56:99:0a:32 }
+
+// INSTRUCTION: Define a 4-parameter flow performing TLS connection to ZTNA proxy, RADIUS MFA check, and proxied TCP session to the internal Git server.
+FLOW ztna_access_broker(laptop, proxy, radius, git_srv) {
+    laptop -> proxy TCP SYN SRCPORT 59443 DSTPORT 443 WIN 65535 WAIT 5ms
+    laptop <- proxy TCP SYN ACK SRCPORT 443 DSTPORT 59443 WIN 65535 WAIT 5ms
+    laptop -> proxy TCP PSH ACK SRCPORT 59443 DSTPORT 443 PAYLOAD "MTLS_CLIENT_CERT_USER_sdev" WAIT 5ms
+    proxy -> radius UDP SRCPORT 41812 DSTPORT 1812 PAYLOAD "RADIUS_MFA_PUSH_VERIFY_sdev" WAIT 10ms
+    proxy <- radius UDP SRCPORT 1812 DSTPORT 41812 PAYLOAD "RADIUS_ACCESS_ACCEPT_TRUST_HIGH" WAIT 50ms
+    proxy -> git_srv TCP SYN SRCPORT 45022 DSTPORT 22 WIN 65535 WAIT 2ms
+    proxy <- git_srv TCP SYN ACK SRCPORT 22 DSTPORT 45022 WIN 65535 WAIT 2ms
+    proxy -> git_srv TCP PSH ACK SRCPORT 45022 DSTPORT 22 PAYLOAD "SSH_GIT_UPLOAD_PACK_repo.git" WAIT 5ms
+    proxy <- git_srv TCP PSH ACK SRCPORT 22 DSTPORT 45022 PAYLOAD "SSH_GIT_PACKFILE_DATA" WAIT 5ms
+    laptop <- proxy TCP PSH ACK SRCPORT 443 DSTPORT 59443 PAYLOAD "TLS_TUNNELED_GIT_PACKFILE" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the Zero Trust proxy inspection flow.
+COMPILE {
+    ztna_access_broker(remote_laptop, ztna_proxy, mfa_radius, internal_git)
 }
 ```

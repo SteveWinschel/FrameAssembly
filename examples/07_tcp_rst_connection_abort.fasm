@@ -1,0 +1,21 @@
+// PROMPT: Simulate an abrupt TCP connection abort where a server rejects a client request mid-session using a TCP RST flag and zero window.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, RST, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an API client host with IP 10.1.20.11.
+HOST api_client { IP 10.1.20.11 MAC 02:00:00:00:01:01 }
+
+// INSTRUCTION: Define a hardened gateway host with IP 10.1.20.1.
+HOST hardened_gateway { IP 10.1.20.1 MAC 02:00:00:00:01:fe }
+
+// INSTRUCTION: Define a flow that opens a TCP session, sends an unauthorized payload, and receives an immediate RST ACK abort.
+FLOW rst_connection_abort(client, gateway) {
+    client -> gateway TCP SYN SRCPORT 49152 DSTPORT 8443 SEQ 500 WIN 32768 WAIT 2ms
+    client <- gateway TCP SYN ACK SRCPORT 8443 DSTPORT 49152 SEQ 9000 ACKNUM 501 WIN 32768 WAIT 2ms
+    client -> gateway TCP PSH ACK SRCPORT 49152 DSTPORT 8443 SEQ 501 ACKNUM 9001 PAYLOAD "ADMIN EXEC /bin/sh" WAIT 2ms
+    client <- gateway TCP RST ACK SRCPORT 8443 DSTPORT 49152 SEQ 9001 ACKNUM 519 WIN 0 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block to run the TCP RST connection abort scenario.
+COMPILE {
+    rst_connection_abort(api_client, hardened_gateway)
+}

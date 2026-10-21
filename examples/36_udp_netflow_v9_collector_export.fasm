@@ -1,0 +1,21 @@
+// PROMPT: Simulate a core router exporting NetFlow v9 template and flow-set telemetry records to a traffic analyzer on UDP port 2055.
+// TOKENS: HOST, IP, MAC, FLOW, ->, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define a core aggregation router with IP 10.0.255.1.
+HOST netflow_exporter { IP 10.0.255.1 MAC 00:1b:54:00:ff:01 }
+
+// INSTRUCTION: Define a NetFlow traffic collector with IP 10.0.255.100.
+HOST netflow_collector { IP 10.0.255.100 MAC 00:1b:54:00:ff:64 }
+
+// INSTRUCTION: Define a flow exporting a NetFlow v9 template record followed by data flowsets on UDP port 2055.
+FLOW export_netflow_v9(exporter, collector) {
+    exporter -> collector UDP SRCPORT 42055 DSTPORT 2055 PAYLOAD "NETFLOW_V9_TEMPLATE_ID_256" WAIT 50ms
+    exporter -> collector UDP SRCPORT 42055 DSTPORT 2055 PAYLOAD "NETFLOW_V9_DATA_FLOWSET_256" WAIT 50ms
+}
+
+// INSTRUCTION: Compile block to repeat the NetFlow export 5 times.
+COMPILE {
+    LOOP 5 {
+        export_netflow_v9(netflow_exporter, netflow_collector)
+    }
+}

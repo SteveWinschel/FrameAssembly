@@ -1,0 +1,18 @@
+// PROMPT: Generate an SNMPv3 authNoPriv TRAP authenticated with USM HMAC-SHA-96 (AUTH SHA) and carrying COUNTER32 and GAUGE32 varbinds.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP3, TRAP, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA, OID, SYSUPTIME, VARBIND, COUNTER32, GAUGE32, COMPILE
+
+// INSTRUCTION: Define an SNMPv3 agent using HMAC-SHA1 authentication with IP 10.142.0.5.
+HOST v3_sha1_agent { IP 10.142.0.5 MAC 00:1b:63:42:00:05 }
+
+// INSTRUCTION: Define an SNMPv3 NMS server with IP 10.142.0.100.
+HOST v3_sha1_nms { IP 10.142.0.100 MAC 00:1b:63:42:00:64 }
+
+// INSTRUCTION: Define a flow sending an SNMPv3 authNoPriv trap signed with AUTH SHA.
+FLOW snmpv3_auth_sha1_trap(agent, nms) {
+    agent -> nms SNMP3 TRAP USER "sha1_watcher" ENGINEID "800000090300001b63420005" ENGINEBOOTS 12 ENGINETIME 95400 AUTH SHA "sha1_auth_passphrase" OID 1.3.6.1.6.3.1.1.5.4 SYSUPTIME 9540000 VARBIND 1.3.6.1.2.1.2.2.1.10.2 COUNTER32 4590123 VARBIND 1.3.6.1.2.1.2.2.1.5.2 GAUGE32 1000000000
+}
+
+// INSTRUCTION: Compile block to emit the HMAC-SHA-96 signed SNMPv3 trap.
+COMPILE {
+    snmpv3_auth_sha1_trap(v3_sha1_agent, v3_sha1_nms)
+}

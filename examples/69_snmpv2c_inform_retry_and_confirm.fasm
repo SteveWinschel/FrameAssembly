@@ -1,0 +1,20 @@
+// PROMPT: Simulate an SNMPv2c INFORM notification timeout and retransmission with the same REQID before the NMS returns a RESPONSE acknowledgment.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, INFORM, RESPONSE, SRCPORT, DSTPORT, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, STRING, INT, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define a remote WAN router sending INFORM alerts with IP 10.136.0.1.
+HOST wan_edge_rtr { IP 10.136.0.1 MAC 00:0c:86:36:00:01 }
+
+// INSTRUCTION: Define the primary NMS trap/inform receiver with IP 10.136.0.200.
+HOST primary_nms { IP 10.136.0.200 MAC 00:0c:86:36:00:c8 }
+
+// INSTRUCTION: Define a flow where an INFORM is sent, retried after 2s with identical REQID 8905, and then acknowledged via RESPONSE.
+FLOW snmpv2c_inform_retry(router, nms) {
+    router -> nms SNMP2 INFORM SRCPORT 58162 DSTPORT 162 COMMUNITY "wan_inform" REQID 8905 OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 410000 VARBIND 1.3.6.1.2.1.2.2.1.1.8 INT 8 VARBIND 1.3.6.1.2.1.2.2.1.2.8 STRING "Serial0/1/0" WAIT 2s
+    router -> nms SNMP2 INFORM SRCPORT 58162 DSTPORT 162 COMMUNITY "wan_inform" REQID 8905 OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 410200 VARBIND 1.3.6.1.2.1.2.2.1.1.8 INT 8 VARBIND 1.3.6.1.2.1.2.2.1.2.8 STRING "Serial0/1/0" WAIT 20ms
+    router <- nms SNMP2 RESPONSE SRCPORT 162 DSTPORT 58162 COMMUNITY "wan_inform" REQID 8905 VARBIND 1.3.6.1.2.1.2.2.1.1.8 INT 8 VARBIND 1.3.6.1.2.1.2.2.1.2.8 STRING "Serial0/1/0" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the SNMPv2c INFORM retry and confirmation flow.
+COMPILE {
+    snmpv2c_inform_retry(wan_edge_rtr, primary_nms)
+}

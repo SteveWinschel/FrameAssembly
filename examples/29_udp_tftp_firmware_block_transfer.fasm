@@ -1,0 +1,22 @@
+// PROMPT: Simulate a PXE network boot TFTP firmware read request (RRQ) on UDP port 69 followed by numbered data blocks and acknowledgments on ephemeral ports.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a diskless PXE boot client with IP 192.168.100.55.
+HOST pxe_client { IP 192.168.100.55 MAC 52:54:00:12:34:55 }
+
+// INSTRUCTION: Define a TFTP provisioning server with IP 192.168.100.10.
+HOST tftp_server { IP 192.168.100.10 MAC 52:54:00:12:34:10 }
+
+// INSTRUCTION: Define a flow that requests boot.bin on UDP port 69 and transfers two 512-byte TFTP data blocks with ACKs.
+FLOW tftp_firmware_transfer(client, server) {
+    client -> server UDP SRCPORT 50069 DSTPORT 69 PAYLOAD "TFTP_RRQ_boot.bin_octet" WAIT 5ms
+    client <- server UDP SRCPORT 61000 DSTPORT 50069 PAYLOAD "TFTP_DATA_BLK1_512B" WAIT 5ms
+    client -> server UDP SRCPORT 50069 DSTPORT 61000 PAYLOAD "TFTP_ACK_BLK1" WAIT 2ms
+    client <- server UDP SRCPORT 61000 DSTPORT 50069 PAYLOAD "TFTP_DATA_BLK2_EOF" WAIT 5ms
+    client -> server UDP SRCPORT 50069 DSTPORT 61000 PAYLOAD "TFTP_ACK_BLK2" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to run the TFTP firmware download simulation.
+COMPILE {
+    tftp_firmware_transfer(pxe_client, tftp_server)
+}

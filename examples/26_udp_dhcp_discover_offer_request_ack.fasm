@@ -1,0 +1,24 @@
+// PROMPT: Simulate a complete DHCPv4 DORA (Discover, Offer, Request, Acknowledge) lease allocation exchange over UDP ports 67 and 68 using broadcast and server endpoints.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an unconfigured DHCP client with IP 0.0.0.0 and client MAC 00:0a:95:9d:68:16.
+HOST dhcp_client { IP 0.0.0.0 MAC 00:0a:95:9d:68:16 }
+
+// INSTRUCTION: Define the local subnet broadcast endpoint with IP 255.255.255.255 and broadcast MAC ff:ff:ff:ff:ff:ff.
+HOST lan_broadcast { IP 255.255.255.255 MAC ff:ff:ff:ff:ff:ff }
+
+// INSTRUCTION: Define the enterprise DHCP server with IP 192.168.1.1 and MAC 00:0a:95:00:00:01.
+HOST dhcp_server { IP 192.168.1.1 MAC 00:0a:95:00:00:01 }
+
+// INSTRUCTION: Define a 3-argument flow modeling DHCPDISCOVER, DHCPOFFER, DHCPREQUEST, and DHCPACK on UDP ports 68 and 67.
+FLOW dhcp_dora_handshake(client, bcast, server) {
+    client -> bcast UDP SRCPORT 68 DSTPORT 67 PAYLOAD "DHCPDISCOVER_XID_0x3903F326" WAIT 10ms
+    client <- server UDP SRCPORT 67 DSTPORT 68 PAYLOAD "DHCPOFFER_YIADDR_192.168.1.150" WAIT 10ms
+    client -> bcast UDP SRCPORT 68 DSTPORT 67 PAYLOAD "DHCPREQUEST_192.168.1.150" WAIT 10ms
+    client <- server UDP SRCPORT 67 DSTPORT 68 PAYLOAD "DHCPACK_LEASE_86400" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the DHCP DORA flow across the client, broadcast, and server hosts.
+COMPILE {
+    dhcp_dora_handshake(dhcp_client, lan_broadcast, dhcp_server)
+}

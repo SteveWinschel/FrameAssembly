@@ -1,0 +1,22 @@
+// PROMPT: Simulate TCP out-of-band urgent data transmission using the URG, PSH, and ACK flags on Telnet port 23.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, URG, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a terminal client with IP 10.50.0.10.
+HOST terminal_client { IP 10.50.0.10 MAC 00:0c:29:11:22:33 }
+
+// INSTRUCTION: Define a legacy mainframe host with IP 10.50.0.200.
+HOST mainframe_host { IP 10.50.0.200 MAC 00:0c:29:44:55:66 }
+
+// INSTRUCTION: Define a flow that sends an urgent interrupt signal using TCP URG PSH ACK during an active Telnet connection.
+FLOW telnet_urgent_interrupt(client, server) {
+    client -> server TCP SYN SRCPORT 41000 DSTPORT 23 SEQ 100 WIN 16384 WAIT 10ms
+    client <- server TCP SYN ACK SRCPORT 23 DSTPORT 41000 SEQ 800 ACKNUM 101 WIN 16384 WAIT 10ms
+    client -> server TCP ACK SRCPORT 41000 DSTPORT 23 SEQ 101 ACKNUM 801 WIN 16384 WAIT 10ms
+    client -> server TCP URG PSH ACK SRCPORT 41000 DSTPORT 23 SEQ 101 ACKNUM 801 PAYLOAD "IAC_IP_SYNC" WAIT 5ms
+    client <- server TCP ACK SRCPORT 23 DSTPORT 41000 SEQ 801 ACKNUM 112 WIN 16384 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the urgent data flow.
+COMPILE {
+    telnet_urgent_interrupt(terminal_client, mainframe_host)
+}

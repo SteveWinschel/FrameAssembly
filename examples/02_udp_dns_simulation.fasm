@@ -1,3 +1,6 @@
+// PROMPT: Simulate a UDP DNS query from a client to a public DNS resolver on port 53 followed by a UDP DNS response.
+// TOKENS: HOST, IP, FLOW, ->, <-, UDP, DSTPORT, SRCPORT, PAYLOAD, COMPILE
+
 // INSTRUCTION: Define a DNS client with IP 192.168.1.5.
 HOST dns_client { IP 192.168.1.5 }
 

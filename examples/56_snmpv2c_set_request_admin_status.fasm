@@ -1,0 +1,21 @@
+// PROMPT: Simulate an SNMPv2c SET request using a read-write community string to administratively disable and re-enable a switch port (ifAdminStatus) with confirmation responses.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, SET, RESPONSE, SRCPORT, DSTPORT, COMMUNITY, REQID, VARBIND, INT, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define an automation controller host with IP 10.123.0.100.
+HOST net_automation { IP 10.123.0.100 MAC 00:50:56:23:00:64 }
+
+// INSTRUCTION: Define a managed PoE switch with IP 10.123.0.15.
+HOST poe_switch { IP 10.123.0.15 MAC 00:50:56:23:00:0f }
+
+// INSTRUCTION: Define a flow that sends an SNMPv2c SET to set ifAdminStatus.5 to down (2), waits 1s, and sets it back to up (1).
+FLOW snmpv2c_bounce_port(controller, switch_node) {
+    controller -> switch_node SNMP2 SET SRCPORT 55161 DSTPORT 161 COMMUNITY "private_rw" REQID 4001 VARBIND 1.3.6.1.2.1.2.2.1.7.5 INT 2 WAIT 10ms
+    controller <- switch_node SNMP2 RESPONSE SRCPORT 161 DSTPORT 55161 COMMUNITY "private_rw" REQID 4001 VARBIND 1.3.6.1.2.1.2.2.1.7.5 INT 2 WAIT 1s
+    controller -> switch_node SNMP2 SET SRCPORT 55161 DSTPORT 161 COMMUNITY "private_rw" REQID 4002 VARBIND 1.3.6.1.2.1.2.2.1.7.5 INT 1 WAIT 10ms
+    controller <- switch_node SNMP2 RESPONSE SRCPORT 161 DSTPORT 55161 COMMUNITY "private_rw" REQID 4002 VARBIND 1.3.6.1.2.1.2.2.1.7.5 INT 1 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the SNMPv2c port bounce SET flow.
+COMPILE {
+    snmpv2c_bounce_port(net_automation, poe_switch)
+}

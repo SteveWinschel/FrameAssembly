@@ -1,3 +1,6 @@
+// PROMPT: Simulate an enterprise network combining looped HTTP TCP sessions between a router and web server with an SNMPv3 trap to a monitoring server.
+// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, DSTPORT, SRCPORT, PAYLOAD, SNMP3, TRAP, USER, OID, SYSUPTIME, COMPILE, LOOP
+
 // INSTRUCTION: Define the core router with IP 10.0.0.1.
 HOST core_router { IP 10.0.0.1 }
 

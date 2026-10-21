@@ -1,0 +1,32 @@
+// PROMPT: Demonstrate a 5-parameter FLOW orchestrating full-mesh east-west microservice heartbeats across five distinct hosts.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define mesh service node A with IP 10.202.0.1.
+HOST mesh_svc_a { IP 10.202.0.1 MAC 02:ca:00:00:00:01 }
+
+// INSTRUCTION: Define mesh service node B with IP 10.202.0.2.
+HOST mesh_svc_b { IP 10.202.0.2 MAC 02:ca:00:00:00:02 }
+
+// INSTRUCTION: Define mesh service node C with IP 10.202.0.3.
+HOST mesh_svc_c { IP 10.202.0.3 MAC 02:ca:00:00:00:03 }
+
+// INSTRUCTION: Define mesh service node D with IP 10.202.0.4.
+HOST mesh_svc_d { IP 10.202.0.4 MAC 02:ca:00:00:00:04 }
+
+// INSTRUCTION: Define mesh service node E with IP 10.202.0.5.
+HOST mesh_svc_e { IP 10.202.0.5 MAC 02:ca:00:00:00:05 }
+
+// INSTRUCTION: Define a 5-argument flow coordinating RPC calls across all five mesh service endpoints.
+FLOW five_node_mesh(n1, n2, n3, n4, n5) {
+    n1 -> n2 TCP SYN DSTPORT 7000 WAIT 2ms
+    n1 <- n2 TCP SYN ACK SRCPORT 7000 WAIT 2ms
+    n2 -> n3 TCP PSH ACK DSTPORT 7000 PAYLOAD "RPC_HOP_2_TO_3" WAIT 2ms
+    n3 -> n4 UDP SRCPORT 7001 DSTPORT 7001 PAYLOAD "UDP_EVENT_3_TO_4" WAIT 2ms
+    n4 -> n5 TCP PSH ACK DSTPORT 7000 PAYLOAD "RPC_COMMIT_4_TO_5" WAIT 2ms
+    n5 -> n1 UDP SRCPORT 7001 DSTPORT 7001 PAYLOAD "MESH_RING_COMPLETE_5_TO_1" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to invoke the 5-node mesh orchestration flow.
+COMPILE {
+    five_node_mesh(mesh_svc_a, mesh_svc_b, mesh_svc_c, mesh_svc_d, mesh_svc_e)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Simulate an RFC 4273 BGP4-MIB bgpBackwardTransNotification SNMPv2c trap reporting a BGP peer dropping from Established to Idle with IPVAL and INT varbinds.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP2, TRAP, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, IPVAL, INT, OIDVAL, COMPILE
+
+// INSTRUCTION: Define a core BGP speaker router with IP 10.128.0.1.
+HOST bgp_speaker { IP 10.128.0.1 MAC 00:00:5e:28:00:01 }
+
+// INSTRUCTION: Define a WAN operations center trap receiver with IP 10.128.0.250.
+HOST wan_noc_nms { IP 10.128.0.250 MAC 00:00:5e:28:00:fa }
+
+// INSTRUCTION: Define a flow sending a bgpBackwardTransNotification SNMPv2c trap with bgpPeerRemoteAddr IPVAL and bgpPeerState INT.
+FLOW bgp_backward_transition_trap(router, nms) {
+    router -> nms SNMP2 TRAP COMMUNITY "wan_traps" REQID 8100 OID 1.3.6.1.2.1.15.0.2 SYSUPTIME 1840000 VARBIND 1.3.6.1.2.1.15.3.1.7.198.51.100.2 IPVAL 198.51.100.2 VARBIND 1.3.6.1.2.1.15.3.1.2.198.51.100.2 INT 1 VARBIND 1.3.6.1.2.1.15.3.1.14.198.51.100.2 OIDVAL 1.3.6.1.2.1.15.3.1
+}
+
+// INSTRUCTION: Compile block to trigger the BGP state transition SNMPv2c trap.
+COMPILE {
+    bgp_backward_transition_trap(bgp_speaker, wan_noc_nms)
+}

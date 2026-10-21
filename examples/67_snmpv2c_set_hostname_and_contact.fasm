@@ -1,0 +1,19 @@
+// PROMPT: Simulate an SNMPv2c multi-varbind SET request updating sysContact.0, sysName.0, and sysLocation.0 MIB-II scalars simultaneously.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, SET, RESPONSE, COMMUNITY, REQID, VARBIND, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a configuration management server with IP 10.134.0.100.
+HOST config_mgr { IP 10.134.0.100 MAC 00:1b:21:34:00:64 }
+
+// INSTRUCTION: Define a newly provisioned branch switch with IP 10.134.0.25.
+HOST new_branch_sw { IP 10.134.0.25 MAC 00:1b:21:34:00:19 }
+
+// INSTRUCTION: Define a flow sending an SNMPv2c SET with three STRING varbinds and receiving the confirmation RESPONSE.
+FLOW snmpv2c_set_system_scalars(mgr, sw) {
+    mgr -> sw SNMP2 SET COMMUNITY "prov_rw" REQID 8701 VARBIND 1.3.6.1.2.1.1.4.0 STRING "netops@example.org" VARBIND 1.3.6.1.2.1.1.5.0 STRING "br-sw-austin-01" VARBIND 1.3.6.1.2.1.1.6.0 STRING "Closet 3B Rack 2" WAIT 15ms
+    mgr <- sw SNMP2 RESPONSE COMMUNITY "prov_rw" REQID 8701 VARBIND 1.3.6.1.2.1.1.4.0 STRING "netops@example.org" VARBIND 1.3.6.1.2.1.1.5.0 STRING "br-sw-austin-01" VARBIND 1.3.6.1.2.1.1.6.0 STRING "Closet 3B Rack 2" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to run the multi-varbind SNMPv2c SET flow.
+COMPILE {
+    snmpv2c_set_system_scalars(config_mgr, new_branch_sw)
+}

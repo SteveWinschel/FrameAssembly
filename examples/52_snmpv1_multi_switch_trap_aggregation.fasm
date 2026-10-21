@@ -1,0 +1,26 @@
+// PROMPT: Simulate three access-layer switches concurrently reporting SNMPv1 linkStatus and spanning-tree topology traps to a central NMS.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, INT, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define access switch 1 with IP 10.110.0.11.
+HOST access_sw1 { IP 10.110.0.11 MAC 00:1b:0d:11:00:01 }
+
+// INSTRUCTION: Define access switch 2 with IP 10.110.0.12.
+HOST access_sw2 { IP 10.110.0.12 MAC 00:1b:0d:11:00:02 }
+
+// INSTRUCTION: Define access switch 3 with IP 10.110.0.13.
+HOST access_sw3 { IP 10.110.0.13 MAC 00:1b:0d:11:00:03 }
+
+// INSTRUCTION: Define the campus NMS server with IP 10.110.0.254.
+HOST campus_nms { IP 10.110.0.254 MAC 00:1b:0d:11:00:fe }
+
+// INSTRUCTION: Define a 4-parameter flow collecting SNMPv1 traps from all three access switches.
+FLOW campus_switch_traps(sw1, sw2, sw3, nms) {
+    sw1 -> nms SNMP1 TRAP COMMUNITY "campus_ro" ENTERPRISE 1.3.6.1.2.1.17 AGENTIP 10.110.0.11 GENTRAP 6 SPECTRAP 1 SYSUPTIME 10000 VARBIND 1.3.6.1.2.1.1.5.0 STRING "access-sw1-newRoot" WAIT 10ms
+    sw2 -> nms SNMP1 TRAP COMMUNITY "campus_ro" ENTERPRISE 1.3.6.1.2.1.17 AGENTIP 10.110.0.12 GENTRAP 6 SPECTRAP 2 SYSUPTIME 10020 VARBIND 1.3.6.1.2.1.1.5.0 STRING "access-sw2-topologyChange" WAIT 10ms
+    sw3 -> nms SNMP1 TRAP COMMUNITY "campus_ro" ENTERPRISE 1.3.6.1.2.1.17 AGENTIP 10.110.0.13 GENTRAP 2 SPECTRAP 0 SYSUPTIME 10040 VARBIND 1.3.6.1.2.1.2.2.1.1.24 INT 24 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the multi-switch SNMPv1 trap aggregation flow.
+COMPILE {
+    campus_switch_traps(access_sw1, access_sw2, access_sw3, campus_nms)
+}

@@ -1,0 +1,20 @@
+// PROMPT: Simulate RFC 5424 Syslog security audit messages forwarded over UDP port 514 from an edge router to a SIEM log collector.
+// TOKENS: HOST, IP, MAC, FLOW, ->, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an edge router generating syslog events with IP 172.16.1.1.
+HOST edge_router { IP 172.16.1.1 MAC 00:1e:67:01:01:01 }
+
+// INSTRUCTION: Define a central SIEM syslog collector with IP 172.16.1.250.
+HOST siem_collector { IP 172.16.1.250 MAC 00:1e:67:01:01:fa }
+
+// INSTRUCTION: Define a flow sending structured RFC 5424 syslog datagrams to UDP port 514.
+FLOW forward_syslog_events(router, collector) {
+    router -> collector UDP SRCPORT 51514 DSTPORT 514 PAYLOAD "<34>1 2026-10-21T12:00:01Z router01 sshd - - Failed password for root" WAIT 15ms
+    router -> collector UDP SRCPORT 51514 DSTPORT 514 PAYLOAD "<38>1 2026-10-21T12:00:02Z router01 bgpd - - Neighbor 192.0.2.2 Up" WAIT 15ms
+    router -> collector UDP SRCPORT 51514 DSTPORT 514 PAYLOAD "<27>1 2026-10-21T12:00:03Z router01 kernel - -LINK-3-UPDOWN: Interface Gi0/1" WAIT 15ms
+}
+
+// INSTRUCTION: Compile block to emit the syslog event batch.
+COMPILE {
+    forward_syslog_events(edge_router, siem_collector)
+}

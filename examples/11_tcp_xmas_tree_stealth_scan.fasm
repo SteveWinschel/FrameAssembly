@@ -1,0 +1,23 @@
+// PROMPT: Simulate an Nmap Xmas tree stealth port scan setting FIN, PSH, and URG flags across common service ports with RST ACK responses.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, FIN, PSH, URG, RST, ACK, SRCPORT, DSTPORT, WIN, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a penetration testing scanner host with IP 192.168.99.5.
+HOST pentest_scanner { IP 192.168.99.5 MAC de:ad:be:ef:00:01 }
+
+// INSTRUCTION: Define an audited target server with IP 192.168.99.100.
+HOST audited_target { IP 192.168.99.100 MAC de:ad:be:ef:00:99 }
+
+// INSTRUCTION: Define a flow that sends FIN PSH URG Xmas scan probes to ports 21, 22, 80, and 443.
+FLOW xmas_port_scan(scanner, target) {
+    scanner -> target TCP FIN PSH URG SRCPORT 60001 DSTPORT 21 WIN 1024 WAIT 5ms
+    scanner <- target TCP RST ACK SRCPORT 21 DSTPORT 60001 WIN 0 WAIT 2ms
+    scanner -> target TCP FIN PSH URG SRCPORT 60002 DSTPORT 22 WIN 1024 WAIT 5ms
+    scanner -> target TCP FIN PSH URG SRCPORT 60003 DSTPORT 80 WIN 1024 WAIT 5ms
+    scanner -> target TCP FIN PSH URG SRCPORT 60004 DSTPORT 443 WIN 1024 WAIT 5ms
+    scanner <- target TCP RST ACK SRCPORT 443 DSTPORT 60004 WIN 0 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to run the Xmas stealth scan flow.
+COMPILE {
+    xmas_port_scan(pentest_scanner, audited_target)
+}

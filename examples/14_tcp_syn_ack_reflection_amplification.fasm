@@ -1,0 +1,21 @@
+// PROMPT: Simulate a TCP SYN-ACK reflection attack where a reflector server sends unsolicited SYN-ACK packets to a spoofed victim IP in a loop.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, RST, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define the spoofed victim host with IP 192.0.2.50.
+HOST spoofed_victim { IP 192.0.2.50 MAC 00:50:56:c0:00:08 }
+
+// INSTRUCTION: Define a public reflector server with IP 198.51.100.200.
+HOST reflector_server { IP 198.51.100.200 MAC 00:50:56:c0:00:09 }
+
+// INSTRUCTION: Define a flow where the victim receives reflected SYN-ACK packets from port 80 and replies with RST.
+FLOW syn_ack_reflection(victim, reflector) {
+    victim <- reflector TCP SYN ACK SRCPORT 80 DSTPORT 53000 SEQ 40000 ACKNUM 1001 WIN 65535 WAIT 2ms
+    victim -> reflector TCP RST SRCPORT 53000 DSTPORT 80 SEQ 1001 WIN 0 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to repeat the SYN-ACK reflection 20 times.
+COMPILE {
+    LOOP 20 {
+        syn_ack_reflection(spoofed_victim, reflector_server)
+    }
+}

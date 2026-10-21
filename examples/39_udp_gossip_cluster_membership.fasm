@@ -1,0 +1,28 @@
+// PROMPT: Simulate a 3-node HashiCorp Serf / Consul SWIM gossip protocol ring exchanging UDP ping, ping-req, and ack membership heartbeats.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+
+// INSTRUCTION: Define cluster node 1 with IP 10.70.0.1.
+HOST cluster_node_1 { IP 10.70.0.1 MAC 02:70:00:00:00:01 }
+
+// INSTRUCTION: Define cluster node 2 with IP 10.70.0.2.
+HOST cluster_node_2 { IP 10.70.0.2 MAC 02:70:00:00:00:02 }
+
+// INSTRUCTION: Define cluster node 3 with IP 10.70.0.3.
+HOST cluster_node_3 { IP 10.70.0.3 MAC 02:70:00:00:00:03 }
+
+// INSTRUCTION: Define a 3-parameter flow orchestrating SWIM UDP gossip probes across all three cluster nodes on port 7946.
+FLOW swim_gossip_round(n1, n2, n3) {
+    n1 -> n2 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_PING_SEQ_101" WAIT 5ms
+    n1 <- n2 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_ACK_SEQ_101" WAIT 5ms
+    n2 -> n3 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_PING_SEQ_102" WAIT 5ms
+    n2 <- n3 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_ACK_SEQ_102" WAIT 5ms
+    n3 -> n1 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_PING_SEQ_103" WAIT 5ms
+    n3 <- n1 UDP SRCPORT 7946 DSTPORT 7946 PAYLOAD "SWIM_ACK_SEQ_103" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run 3 full rounds of cluster gossip.
+COMPILE {
+    LOOP 3 {
+        swim_gossip_round(cluster_node_1, cluster_node_2, cluster_node_3)
+    }
+}

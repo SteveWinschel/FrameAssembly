@@ -1,0 +1,19 @@
+// PROMPT: Craft a Christmas/Kamikaze TCP test packet with all 8 TCP header flags enabled simultaneously (SYN, ACK, FIN, RST, PSH, URG, ECE, CWR).
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, FIN, RST, PSH, URG, ECE, CWR, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a packet-crafting fuzzing host with IP 10.99.99.1.
+HOST fuzzer_node { IP 10.99.99.1 MAC 00:ff:ff:00:00:01 }
+
+// INSTRUCTION: Define an IDS sensor target with IP 10.99.99.2.
+HOST ids_sensor_target { IP 10.99.99.2 MAC 00:ff:ff:00:00:02 }
+
+// INSTRUCTION: Define a flow transmitting a packet with all 8 TCP flags set to test IDS signature detection.
+FLOW all_flags_kamikaze(fuzzer, sensor) {
+    fuzzer -> sensor TCP SYN ACK FIN RST PSH URG ECE CWR SRCPORT 65535 DSTPORT 80 SEQ 424242 ACKNUM 424242 WIN 8192 PAYLOAD "ALL_FLAGS_TEST_VECTOR" WAIT 10ms
+    fuzzer <- sensor TCP RST ACK SRCPORT 80 DSTPORT 65535 SEQ 0 ACKNUM 424264 WIN 0 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the all-flags TCP fuzzing flow.
+COMPILE {
+    all_flags_kamikaze(fuzzer_node, ids_sensor_target)
+}

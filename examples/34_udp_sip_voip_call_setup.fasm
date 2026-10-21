@@ -1,0 +1,24 @@
+// PROMPT: Simulate a VoIP SIP call setup and teardown signaling sequence (INVITE, 100 Trying, 180 Ringing, 200 OK, ACK, BYE) over UDP port 5060.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define Caller IP Phone A with IP 10.60.1.101.
+HOST sip_phone_a { IP 10.60.1.101 MAC 00:04:f2:11:11:01 }
+
+// INSTRUCTION: Define IP PBX SIP Proxy with IP 10.60.1.10.
+HOST sip_pbx_proxy { IP 10.60.1.10 MAC 00:04:f2:00:00:10 }
+
+// INSTRUCTION: Define a flow modeling SIP call signaling over UDP port 5060.
+FLOW sip_call_signaling(phone, pbx) {
+    phone -> pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "INVITE sip:2002@pbx.local SIP/2.0" WAIT 10ms
+    phone <- pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "SIP/2.0 100 Trying" WAIT 20ms
+    phone <- pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "SIP/2.0 180 Ringing" WAIT 1s
+    phone <- pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "SIP/2.0 200 OK SDP_G711U" WAIT 10ms
+    phone -> pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "ACK sip:2002@pbx.local SIP/2.0" WAIT 2s
+    phone -> pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "BYE sip:2002@pbx.local SIP/2.0" WAIT 10ms
+    phone <- pbx UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "SIP/2.0 200 OK" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the SIP VoIP signaling flow.
+COMPILE {
+    sip_call_signaling(sip_phone_a, sip_pbx_proxy)
+}

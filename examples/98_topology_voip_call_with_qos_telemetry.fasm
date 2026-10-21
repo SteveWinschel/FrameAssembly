@@ -1,0 +1,25 @@
+// PROMPT: Simulate an enterprise VoIP call combining SIP UDP signaling (port 5060), RTP UDP voice packets (port 16384), and voice gateway SNMPv3 QoS jitter and MOS score monitoring.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SNMP3, TRAP, SRCPORT, DSTPORT, PAYLOAD, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, PRIV, AES, OID, SYSUPTIME, VARBIND, GAUGE32, COUNTER32, STRING, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define Executive IP Phone with IP 10.98.1.50.
+HOST exec_ip_phone { IP 10.98.1.50 MAC 00:04:f2:98:01:50 }
+
+// INSTRUCTION: Define Branch Voice Gateway router with IP 10.98.1.1.
+HOST voice_gateway { IP 10.98.1.1 MAC 00:04:f2:98:01:01 }
+
+// INSTRUCTION: Define UC Voice Quality Manager with IP 10.98.100.10.
+HOST uc_qos_manager { IP 10.98.100.10 MAC 00:04:f2:98:64:0a }
+
+// INSTRUCTION: Define a 3-host flow interleaving SIP/RTP voice packets with an SNMPv3 voice quality telemetry report.
+FLOW voip_call_with_qos_report(phone, vgw, qos_mgr) {
+    phone -> vgw UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "INVITE sip:918005550199@vgw.local SIP/2.0" WAIT 10ms
+    phone <- vgw UDP SRCPORT 5060 DSTPORT 5060 PAYLOAD "SIP/2.0 200 OK SDP_G722_HD" WAIT 10ms
+    phone -> vgw UDP SRCPORT 16384 DSTPORT 16384 PAYLOAD "RTP_G722_SEQ_1_AUDIO" WAIT 20ms
+    phone <- vgw UDP SRCPORT 16384 DSTPORT 16384 PAYLOAD "RTP_G722_SEQ_1_RETURN" WAIT 20ms
+    vgw -> qos_mgr SNMP3 TRAP USER "uc_monitor" ENGINEID "8000000903000004f2980101" ENGINEBOOTS 8 ENGINETIME 64000 AUTH SHA256 "uc_qos_sha256" PRIV AES "uc_qos_aes128" OID 1.3.6.1.4.1.9.9.63.2.0.1 SYSUPTIME 6400000 VARBIND 1.3.6.1.4.1.9.9.63.1.3.1.1.1 STRING "Codec-G722-Call-99" VARBIND 1.3.6.1.4.1.9.9.63.1.3.1.1.2 GAUGE32 4 VARBIND 1.3.6.1.4.1.9.9.63.1.3.1.1.3 COUNTER32 0 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block to execute the VoIP call and QoS telemetry flow.
+COMPILE {
+    voip_call_with_qos_report(exec_ip_phone, voice_gateway, uc_qos_manager)
+}

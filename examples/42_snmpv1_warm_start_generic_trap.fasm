@@ -1,0 +1,19 @@
+// PROMPT: Generate an SNMPv1 warmStart generic trap (GENTRAP 1) demonstrating both automatic RFC 1157 OID mapping (1.3.6.1.6.3.1.1.5.2) and explicit GENTRAP configuration.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, OID, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a managed distribution switch with IP 10.101.0.2.
+HOST dist_switch { IP 10.101.0.2 MAC 00:1c:73:00:01:02 }
+
+// INSTRUCTION: Define an NMS server with IP 10.101.0.100.
+HOST nms_collector { IP 10.101.0.100 MAC 00:1c:73:00:01:64 }
+
+// INSTRUCTION: Define a flow sending SNMPv1 warmStart traps via auto-mapped OID 1.3.6.1.6.3.1.1.5.2 and explicit GENTRAP 1.
+FLOW snmpv1_warm_start(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.6.3.1.1.5.2 SYSUPTIME 4500 WAIT 20ms
+    agent -> nms SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.30065 AGENTIP 10.101.0.2 GENTRAP 1 SPECTRAP 0 SYSUPTIME 4505 WAIT 20ms
+}
+
+// INSTRUCTION: Compile block to execute the SNMPv1 warmStart trap flow.
+COMPILE {
+    snmpv1_warm_start(dist_switch, nms_collector)
+}

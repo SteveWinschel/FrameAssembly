@@ -1,0 +1,31 @@
+// PROMPT: Simulate a Kubernetes cluster pod-to-pod service mesh workflow combining CoreDNS UDP service discovery, Envoy mTLS TCP gRPC calls, and node SNMPv2c scraping.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, TCP, SYN, ACK, PSH, SNMP2, GET, RESPONSE, SRCPORT, DSTPORT, PAYLOAD, COMMUNITY, REQID, VARBIND, NULLVAL, COUNTER64, GAUGE32, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a frontend checkout pod with IP 10.244.1.15.
+HOST checkout_pod { IP 10.244.1.15 MAC 0a:58:0a:f4:01:0f }
+
+// INSTRUCTION: Define the cluster CoreDNS service pod with IP 10.96.0.10.
+HOST coredns_pod { IP 10.96.0.10 MAC 0a:58:0a:60:00:0a }
+
+// INSTRUCTION: Define the payment gRPC service pod with IP 10.244.2.40.
+HOST payment_pod { IP 10.244.2.40 MAC 0a:58:0a:f4:02:28 }
+
+// INSTRUCTION: Define the Kubernetes worker node host agent with IP 192.168.10.101.
+HOST k8s_node_agent { IP 192.168.10.101 MAC 00:16:3e:0a:00:65 }
+
+// INSTRUCTION: Define a 4-parameter flow tracing DNS lookup, mTLS gRPC call on port 9090, and node SNMP metric collection.
+FLOW k8s_service_mesh_trace(frontend, dns, backend, node) {
+    frontend -> dns UDP SRCPORT 54053 DSTPORT 53 PAYLOAD "DNS_Q_A_payment.prod.svc.cluster.local" WAIT 1ms
+    frontend <- dns UDP SRCPORT 53 DSTPORT 54053 PAYLOAD "DNS_ANS_10.244.2.40" WAIT 1ms
+    frontend -> backend TCP SYN SRCPORT 44900 DSTPORT 9090 WAIT 1ms
+    frontend <- backend TCP SYN ACK SRCPORT 9090 DSTPORT 44900 WAIT 1ms
+    frontend -> backend TCP PSH ACK SRCPORT 44900 DSTPORT 9090 PAYLOAD "ENVOY_MTLS_GRPC_ChargeCard" WAIT 2ms
+    frontend <- backend TCP PSH ACK SRCPORT 9090 DSTPORT 44900 PAYLOAD "ENVOY_MTLS_GRPC_STATUS_0_OK" WAIT 2ms
+    frontend -> node SNMP2 GET COMMUNITY "k8s_node_ro" REQID 10501 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 NULLVAL VARBIND 1.3.6.1.4.1.2021.4.6.0 NULLVAL WAIT 5ms
+    frontend <- node SNMP2 RESPONSE COMMUNITY "k8s_node_ro" REQID 10501 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 3344556677 VARBIND 1.3.6.1.4.1.2021.4.6.0 GAUGE32 16777216 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the Kubernetes pod service mesh trace.
+COMPILE {
+    k8s_service_mesh_trace(checkout_pod, coredns_pod, payment_pod, k8s_node_agent)
+}

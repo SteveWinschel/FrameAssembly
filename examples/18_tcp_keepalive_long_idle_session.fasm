@@ -1,0 +1,24 @@
+// PROMPT: Simulate a long-lived idle TCP database connection using WAIT intervals in milliseconds (ms), seconds (s), and minutes (m) for TCP keepalives.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, s, m, COMPILE
+
+// INSTRUCTION: Define a backend worker host with IP 10.30.1.15.
+HOST worker_node { IP 10.30.1.15 MAC 00:22:44:66:88:aa }
+
+// INSTRUCTION: Define a PostgreSQL database server with IP 10.30.1.54.
+HOST postgres_db { IP 10.30.1.54 MAC 00:22:44:66:88:bb }
+
+// INSTRUCTION: Define a flow that connects on port 5432, idles for 1 minute, sends a TCP keepalive ACK, and runs a query after 5 seconds.
+FLOW tcp_keepalive_idle(worker, db) {
+    worker -> db TCP SYN SRCPORT 52400 DSTPORT 5432 SEQ 100 WIN 64240 WAIT 10ms
+    worker <- db TCP SYN ACK SRCPORT 5432 DSTPORT 52400 SEQ 500 ACKNUM 101 WIN 64240 WAIT 10ms
+    worker -> db TCP ACK SRCPORT 52400 DSTPORT 5432 SEQ 101 ACKNUM 501 WIN 64240 WAIT 1m
+    worker -> db TCP ACK SRCPORT 52400 DSTPORT 5432 SEQ 100 ACKNUM 501 WIN 64240 WAIT 5ms
+    worker <- db TCP ACK SRCPORT 5432 DSTPORT 52400 SEQ 501 ACKNUM 101 WIN 64240 WAIT 5s
+    worker -> db TCP PSH ACK SRCPORT 52400 DSTPORT 5432 SEQ 101 ACKNUM 501 PAYLOAD "SELECT 1;" WAIT 20ms
+    worker <- db TCP PSH ACK SRCPORT 5432 DSTPORT 52400 SEQ 501 ACKNUM 110 PAYLOAD "ROW 1" WAIT 20ms
+}
+
+// INSTRUCTION: Compile block to run the long-lived TCP keepalive session.
+COMPILE {
+    tcp_keepalive_idle(worker_node, postgres_db)
+}

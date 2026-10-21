@@ -1,0 +1,22 @@
+// PROMPT: Simulate a TCP ACK firewall rule mapping probe to distinguish stateful vs unfiltered ports via unsolicited ACK packets and RST responses.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, ACK, RST, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define an external auditor host with IP 203.0.113.15.
+HOST auditor_box { IP 203.0.113.15 MAC 00:16:3e:10:20:30 }
+
+// INSTRUCTION: Define a perimeter firewall interface with IP 198.51.100.1.
+HOST perimeter_fw { IP 198.51.100.1 MAC 00:16:3e:40:50:60 }
+
+// INSTRUCTION: Define a flow sending unsolicited TCP ACK segments to map firewall filtering rules on ports 22, 80, and 443.
+FLOW ack_firewall_probe(auditor, firewall) {
+    auditor -> firewall TCP ACK SRCPORT 44100 DSTPORT 22 SEQ 7777 ACKNUM 1 WIN 4096 WAIT 10ms
+    auditor -> firewall TCP ACK SRCPORT 44101 DSTPORT 80 SEQ 7778 ACKNUM 1 WIN 4096 WAIT 10ms
+    auditor <- firewall TCP RST SRCPORT 80 DSTPORT 44101 SEQ 1 WIN 0 WAIT 5ms
+    auditor -> firewall TCP ACK SRCPORT 44102 DSTPORT 443 SEQ 7779 ACKNUM 1 WIN 4096 WAIT 10ms
+    auditor <- firewall TCP RST SRCPORT 443 DSTPORT 44102 SEQ 1 WIN 0 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to execute the firewall ACK rule probe.
+COMPILE {
+    ack_firewall_probe(auditor_box, perimeter_fw)
+}

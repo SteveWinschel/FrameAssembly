@@ -1,0 +1,18 @@
+// PROMPT: Simulate an SNMPv1 trap concentrator forwarding a trap where the outer IPv4 header source IP belongs to the proxy while AGENTIP preserves the downstream device IP.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, STRING, IPVAL, COMPILE
+
+// INSTRUCTION: Define an SNMP trap proxy gateway with IP 172.18.0.10.
+HOST snmp_proxy_gw { IP 172.18.0.10 MAC 00:0d:b9:18:00:10 }
+
+// INSTRUCTION: Define the central headquarters NMS with IP 172.18.0.250.
+HOST hq_nms { IP 172.18.0.250 MAC 00:0d:b9:18:00:fa }
+
+// INSTRUCTION: Define a flow where the proxy forwards an SNMPv1 trap preserving AGENTIP 192.168.250.14 of the remote RTU.
+FLOW proxied_snmpv1_trap(proxy, nms) {
+    proxy -> nms SNMP1 TRAP COMMUNITY "branch_proxy" ENTERPRISE 1.3.6.1.4.1.318 AGENTIP 192.168.250.14 GENTRAP 6 SPECTRAP 7 SYSUPTIME 14400 VARBIND 1.3.6.1.4.1.318.1.1.1.2.1.1.0 STRING "APC Smart-UPS On Battery" VARBIND 1.3.6.1.4.1.318.1.1.1.2.1.2.0 IPVAL 192.168.250.14
+}
+
+// INSTRUCTION: Compile block to run the proxied SNMPv1 trap scenario.
+COMPILE {
+    proxied_snmpv1_trap(snmp_proxy_gw, hq_nms)
+}

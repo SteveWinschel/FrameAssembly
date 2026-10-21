@@ -1,0 +1,26 @@
+// PROMPT: Simulate a complete HTTP/1.1 POST JSON authentication transaction over TCP port 8080 from handshake to FIN closure.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, FIN, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a mobile app client with IP 192.168.50.12.
+HOST mobile_app { IP 192.168.50.12 MAC 3c:22:fb:11:22:33 }
+
+// INSTRUCTION: Define an authentication microservice with IP 192.168.50.100.
+HOST auth_service { IP 192.168.50.100 MAC 3c:22:fb:44:55:66 }
+
+// INSTRUCTION: Define a flow executing an HTTP POST login request and JSON token response over TCP port 8080.
+FLOW http_post_login(client, server) {
+    client -> server TCP SYN SRCPORT 51234 DSTPORT 8080 WIN 65535 WAIT 5ms
+    client <- server TCP SYN ACK SRCPORT 8080 DSTPORT 51234 WIN 65535 WAIT 5ms
+    client -> server TCP ACK SRCPORT 51234 DSTPORT 8080 WIN 65535 WAIT 2ms
+    client -> server TCP PSH ACK SRCPORT 51234 DSTPORT 8080 PAYLOAD "POST /api/v1/login HTTP/1.1" WAIT 5ms
+    client <- server TCP ACK SRCPORT 8080 DSTPORT 51234 WIN 65535 WAIT 2ms
+    client <- server TCP PSH ACK SRCPORT 8080 DSTPORT 51234 PAYLOAD "HTTP/1.1 200 OK {token:jwt_xyz}" WAIT 10ms
+    client -> server TCP FIN ACK SRCPORT 51234 DSTPORT 8080 WIN 65535 WAIT 5ms
+    client <- server TCP FIN ACK SRCPORT 8080 DSTPORT 51234 WIN 65535 WAIT 5ms
+    client -> server TCP ACK SRCPORT 51234 DSTPORT 8080 WIN 65535 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block to run the HTTP POST JSON transaction.
+COMPILE {
+    http_post_login(mobile_app, auth_service)
+}

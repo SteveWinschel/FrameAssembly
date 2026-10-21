@@ -1,3 +1,6 @@
+// PROMPT: Simulate a TCP SYN flood attack from an attacker to a victim web server on port 80 using a 1000-iteration loop with 1ms delay.
+// TOKENS: HOST, IP, MAC, FLOW, ->, TCP, SYN, DSTPORT, WAIT, ms, COMPILE, LOOP
+
 // INSTRUCTION: Define a target server with IP 192.168.1.100 and a dummy MAC.
 HOST victim_server { IP 192.168.1.100 MAC 00:11:22:33:44:55 }
 

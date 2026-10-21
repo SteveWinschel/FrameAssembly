@@ -1,0 +1,25 @@
+// PROMPT: Demonstrate automatic vs explicit TCP sequence and acknowledgment tracking across bidirectional arrows (-> and <-) when payload sizes vary.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, FIN, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+
+// INSTRUCTION: Define a client endpoint relying on auto-calculated TCP sequence numbers with IP 10.203.0.10.
+HOST auto_seq_client { IP 10.203.0.10 MAC 00:1a:2b:cb:00:0a }
+
+// INSTRUCTION: Define a server endpoint relying on auto-calculated TCP sequence numbers with IP 10.203.0.20.
+HOST auto_seq_server { IP 10.203.0.20 MAC 00:1a:2b:cb:00:14 }
+
+// INSTRUCTION: Define a flow exchanging variable-length payloads without manual SEQ/ACKNUM so the backend state machine computes exact byte advancements.
+FLOW auto_sequence_tracking(client, server) {
+    client -> server TCP SYN SRCPORT 40100 DSTPORT 8080 WIN 64240 WAIT 5ms
+    client <- server TCP SYN ACK SRCPORT 8080 DSTPORT 40100 WIN 64240 WAIT 5ms
+    client -> server TCP ACK SRCPORT 40100 DSTPORT 8080 WIN 64240 WAIT 2ms
+    client -> server TCP PSH ACK SRCPORT 40100 DSTPORT 8080 PAYLOAD "PING_12345" WAIT 5ms
+    client <- server TCP PSH ACK SRCPORT 8080 DSTPORT 40100 PAYLOAD "PONG_ABCDEFGHIJ" WAIT 5ms
+    client -> server TCP PSH ACK SRCPORT 40100 DSTPORT 8080 PAYLOAD "FINAL_BLOCK" WAIT 5ms
+    client <- server TCP FIN ACK SRCPORT 8080 DSTPORT 40100 WAIT 5ms
+    client -> server TCP FIN ACK SRCPORT 40100 DSTPORT 8080 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block to run the automatic TCP sequence tracking flow.
+COMPILE {
+    auto_sequence_tracking(auto_seq_client, auto_seq_server)
+}

@@ -1,0 +1,24 @@
+// PROMPT: Simulate an interactive SSH session on TCP port 22 exchanging banner strings and keystroke packets with PSH and ACK flags.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, s, COMPILE
+
+// INSTRUCTION: Define a bastion jump host with IP 172.16.10.5 and MAC aa:bb:cc:10:00:05.
+HOST bastion_client { IP 172.16.10.5 MAC aa:bb:cc:10:00:05 }
+
+// INSTRUCTION: Define a production Linux server with IP 172.16.10.50 and MAC aa:bb:cc:10:00:50.
+HOST ssh_server { IP 172.16.10.50 MAC aa:bb:cc:10:00:50 }
+
+// INSTRUCTION: Define a flow for an SSH handshake and interactive PSH-ACK banner and command exchange on port 22.
+FLOW ssh_interactive_session(client, server) {
+    client -> server TCP SYN SRCPORT 54321 DSTPORT 22 WIN 64240 WAIT 10ms
+    client <- server TCP SYN ACK SRCPORT 22 DSTPORT 54321 WIN 65160 WAIT 10ms
+    client -> server TCP ACK SRCPORT 54321 DSTPORT 22 WIN 64240 WAIT 5ms
+    client <- server TCP PSH ACK SRCPORT 22 DSTPORT 54321 PAYLOAD "SSH-2.0-OpenSSH_9.6" WAIT 20ms
+    client -> server TCP PSH ACK SRCPORT 54321 DSTPORT 22 PAYLOAD "SSH-2.0-OpenSSH_9.6p1" WAIT 20ms
+    client -> server TCP PSH ACK SRCPORT 54321 DSTPORT 22 PAYLOAD "ENC_KEY_INIT" WAIT 1s
+    client <- server TCP PSH ACK SRCPORT 22 DSTPORT 54321 PAYLOAD "ENC_KEY_REPLY" WAIT 50ms
+}
+
+// INSTRUCTION: Compile block to run the interactive SSH session flow.
+COMPILE {
+    ssh_interactive_session(bastion_client, ssh_server)
+}

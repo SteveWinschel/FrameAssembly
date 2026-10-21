@@ -1,0 +1,21 @@
+// PROMPT: Simulate Network Time Protocol (NTP) clock synchronization polling between a Linux host and a Stratum-1 NTP server on UDP port 123 with 1s wait intervals.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, s, COMPILE, LOOP
+
+// INSTRUCTION: Define an internal application server requiring clock sync with IP 10.10.5.20.
+HOST ntp_client { IP 10.10.5.20 MAC 00:15:5d:01:05:14 }
+
+// INSTRUCTION: Define a GPS-backed Stratum-1 NTP server with IP 10.10.5.1.
+HOST stratum1_ntp { IP 10.10.5.1 MAC 00:15:5d:01:05:01 }
+
+// INSTRUCTION: Define a flow that sends an NTPv4 client request on UDP port 123 and receives a server timestamp reply.
+FLOW ntp_time_sync(client, server) {
+    client -> server UDP SRCPORT 123 DSTPORT 123 PAYLOAD "NTPv4_MODE3_CLIENT_REQ" WAIT 1s
+    client <- server UDP SRCPORT 123 DSTPORT 123 PAYLOAD "NTPv4_MODE4_STRATUM1_GPS" WAIT 1s
+}
+
+// INSTRUCTION: Compile block to run 4 NTP polling cycles.
+COMPILE {
+    LOOP 4 {
+        ntp_time_sync(ntp_client, stratum1_ntp)
+    }
+}

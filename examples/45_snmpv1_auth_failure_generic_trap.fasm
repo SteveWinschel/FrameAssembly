@@ -1,0 +1,18 @@
+// PROMPT: Generate an SNMPv1 authenticationFailure generic trap (GENTRAP 4) reporting the unauthorized source IP address via an IPVAL varbind.
+// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, OID, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, IPVAL, STRING, COMPILE
+
+// INSTRUCTION: Define a guarded core switch with IP 10.104.0.1.
+HOST guarded_switch { IP 10.104.0.1 MAC 00:19:56:00:01:01 }
+
+// INSTRUCTION: Define a security operations NMS with IP 10.104.0.99.
+HOST secops_nms { IP 10.104.0.99 MAC 00:19:56:00:01:99 }
+
+// INSTRUCTION: Define a flow sending an SNMPv1 authenticationFailure trap (GENTRAP 4) with the offending host IP in an IPVAL varbind.
+FLOW snmpv1_auth_failure(agent, nms) {
+    agent -> nms SNMP1 TRAP COMMUNITY "sec_trap" OID 1.3.6.1.6.3.1.1.5.5 ENTERPRISE 1.3.6.1.4.1.9.1 AGENTIP 10.104.0.1 GENTRAP 4 SPECTRAP 0 SYSUPTIME 543210 VARBIND 1.3.6.1.4.1.9.2.1.5.0 IPVAL 192.168.66.13 VARBIND 1.3.6.1.4.1.9.2.1.6.0 STRING "bad_community_attempt"
+}
+
+// INSTRUCTION: Compile block to emit the SNMPv1 authenticationFailure trap.
+COMPILE {
+    snmpv1_auth_failure(guarded_switch, secops_nms)
+}

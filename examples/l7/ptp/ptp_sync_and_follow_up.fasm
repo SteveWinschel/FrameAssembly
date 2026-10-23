@@ -1,0 +1,19 @@
+// PROMPT: IEEE 1588 Precision Time Protocol master clock Sync and Follow_Up messages.
+// TOKENS: HOST, IP, FLOW, <-, PTP, SYNC, FOLLOW_UP, SEQ_ID, DOMAIN, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.2 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW ptp_master(c, s) {
+    c <- s PTP SYNC SEQ_ID 100 DOMAIN 0
+    c <- s PTP FOLLOW_UP SEQ_ID 100 DOMAIN 0
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    ptp_master(client, server)
+}

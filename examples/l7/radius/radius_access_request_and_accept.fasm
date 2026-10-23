@@ -1,0 +1,19 @@
+// PROMPT: RADIUS network access authentication exchange with Access-Request and Access-Accept.
+// TOKENS: HOST, IP, FLOW, ->, <-, RADIUS, ACCESS_REQUEST, ACCESS_ACCEPT, USER, NAS_IP, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW radius_auth(c, s) {
+    c -> s RADIUS ACCESS_REQUEST USER "alice" NAS_IP 10.0.0.10
+    c <- s RADIUS ACCESS_ACCEPT
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    radius_auth(client, server)
+}

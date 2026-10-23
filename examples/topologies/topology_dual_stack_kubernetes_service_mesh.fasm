@@ -1,0 +1,26 @@
+// PROMPT: Kubernetes dual-stack service mesh traffic routing between microservices via HTTP/2 and gRPC.
+// TOKENS: HOST, IP, FLOW, ->, HTTP2, SETTINGS, GRPC, SERVICE, METHOD, COMPILE
+
+// INSTRUCTION: Define frontend pod on IPv4.
+HOST pod_frontend { IP 10.244.0.15 }
+
+// INSTRUCTION: Define auth service virtual IP on IPv4.
+HOST svc_auth_v4 { IP 10.96.0.100 }
+
+// INSTRUCTION: Define frontend pod on IPv6.
+HOST pod_v6 { IP fd00:10:244::15 }
+
+// INSTRUCTION: Define auth service virtual IP on IPv6.
+HOST svc_auth_v6 { IP fd00:10:96::100 }
+
+// INSTRUCTION: Define service mesh gRPC call flow.
+FLOW mesh_rpc(c, s) {
+    c -> s HTTP2 SETTINGS
+    c -> s GRPC SERVICE "AuthService" METHOD "VerifyToken"
+}
+
+// INSTRUCTION: Compile block executing service mesh traffic across dual-stack clusters.
+COMPILE {
+    mesh_rpc(pod_frontend, svc_auth_v4)
+    mesh_rpc(pod_v6, svc_auth_v6)
+}

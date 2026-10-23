@@ -1,0 +1,18 @@
+// PROMPT: MPLS L3VPN provider edge transport with high-priority experimental class bits.
+// TOKENS: HOST, IP, FLOW, ->, MPLS, EXP, BOS, MPLS_TTL, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define ingress provider edge router.
+HOST pe_ingress { IP 172.16.0.1 }
+
+// INSTRUCTION: Define core provider P router.
+HOST p_core { IP 172.16.0.2 }
+
+// INSTRUCTION: Define L3VPN transport flow asserting expedited forwarding class.
+FLOW mpls_l3vpn_flow(pe, p) {
+    pe -> p MPLS 10001 EXP 5 BOS 1 MPLS_TTL 128 UDP PAYLOAD "l3vpn_inner_packet"
+}
+
+// INSTRUCTION: Compile block executing MPLS L3VPN forwarding.
+COMPILE {
+    mpls_l3vpn_flow(pe_ingress, p_core)
+}

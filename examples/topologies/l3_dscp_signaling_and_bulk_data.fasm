@@ -1,0 +1,20 @@
+// PROMPT: Quality of Service DSCP classification across signaling AF31, low-latency AF21, and bulk AF11.
+// TOKENS: HOST, IP, FLOW, ->, DSCP, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define enterprise application client.
+HOST app_client { IP 172.20.1.1 }
+
+// INSTRUCTION: Define enterprise application server.
+HOST app_server { IP 172.20.1.2 }
+
+// INSTRUCTION: Define multi-class DSCP data flow.
+FLOW dscp_classes_flow(c, s) {
+    c -> s DSCP 26 UDP PAYLOAD "af31_call_signaling"
+    c -> s DSCP 18 UDP PAYLOAD "af21_transactional_data"
+    c -> s DSCP 10 UDP PAYLOAD "af11_bulk_transfer"
+}
+
+// INSTRUCTION: Compile block executing differentiated traffic classes.
+COMPILE {
+    dscp_classes_flow(app_client, app_server)
+}

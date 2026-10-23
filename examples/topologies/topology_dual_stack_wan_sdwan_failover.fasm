@@ -1,0 +1,26 @@
+// PROMPT: SD-WAN multi-tenant IPsec tunnel health monitoring using BFD heartbeat probes across IPv4 and IPv6 links.
+// TOKENS: HOST, IP, FLOW, ->, ESP, SPI, SEQ, BFD, STATE, MY_DISC, YOUR_DISC, COMPILE
+
+// INSTRUCTION: Define IPv4 SD-WAN branch gateway.
+HOST sdwan_edge1_v4 { IP 198.51.100.1 }
+
+// INSTRUCTION: Define IPv4 SD-WAN hub gateway.
+HOST sdwan_edge2_v4 { IP 198.51.100.2 }
+
+// INSTRUCTION: Define IPv6 SD-WAN branch gateway.
+HOST sdwan_edge1_v6 { IP 2001:db8:dead::1 }
+
+// INSTRUCTION: Define IPv6 SD-WAN hub gateway.
+HOST sdwan_edge2_v6 { IP 2001:db8:dead::2 }
+
+// INSTRUCTION: Define secure tunnel and BFD liveliness probe flow.
+FLOW sdwan_link(e1, e2) {
+    e1 -> e2 ESP SPI 1001 SEQ 1
+    e1 -> e2 BFD STATE 3 MY_DISC 501 YOUR_DISC 502
+}
+
+// INSTRUCTION: Compile block executing SD-WAN tunnel health monitoring.
+COMPILE {
+    sdwan_link(sdwan_edge1_v4, sdwan_edge2_v4)
+    sdwan_link(sdwan_edge1_v6, sdwan_edge2_v6)
+}

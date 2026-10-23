@@ -1,0 +1,18 @@
+// PROMPT: IEEE 802.1w Rapid Spanning Tree Protocol BPDU with rapid transition flags and forward delay.
+// TOKENS: HOST, IP, FLOW, ->, STP, RSTP, FORWARD_DELAY, FLAGS, COMPILE
+
+// INSTRUCTION: Define RSTP active bridge port A.
+HOST rstp_bridge_a { IP 10.100.1.1 }
+
+// INSTRUCTION: Define RSTP active bridge port B.
+HOST rstp_bridge_b { IP 10.100.1.2 }
+
+// INSTRUCTION: Define Rapid Spanning Tree Protocol BPDU negotiation flow.
+FLOW rstp_rapid_flow(a, b) {
+    a -> b STP RSTP FORWARD_DELAY 4 FLAGS 60
+}
+
+// INSTRUCTION: Compile block executing RSTP rapid convergence frame.
+COMPILE {
+    rstp_rapid_flow(rstp_bridge_a, rstp_bridge_b)
+}

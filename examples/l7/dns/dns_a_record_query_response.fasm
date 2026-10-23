@@ -1,0 +1,19 @@
+// PROMPT: DNS A record forward resolution query and response over UDP port 53.
+// TOKENS: HOST, IP, FLOW, ->, <-, DNS, QUERY, TXID, QNAME, QTYPE, RESPONSE, RDATA, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.100 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 8.8.8.8 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW dns_resolve(c, s) {
+    c -> s DNS QUERY TXID 0x1a2b QNAME "example.com" QTYPE "A"
+    c <- s DNS RESPONSE TXID 0x1a2b QNAME "example.com" QTYPE "A" RDATA "93.184.216.34"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    dns_resolve(client, server)
+}

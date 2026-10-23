@@ -1,0 +1,18 @@
+// PROMPT: IPFIX datagram exported across an IPv6 transport underlay.
+// TOKENS: HOST, IP, FLOW, ->, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PACKETS, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::200 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW ipfix_v6(c, s) {
+    c -> s IPFIX DOMAIN_ID 200 SRCIP 192.0.2.1 DSTIP 192.0.2.2 PACKETS 500
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    ipfix_v6(client, server)
+}

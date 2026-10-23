@@ -1,0 +1,19 @@
+// PROMPT: Standard IPv4 ICMP Echo Request and Echo Reply ping exchange.
+// TOKENS: HOST, IP, FLOW, ->, <-, ICMP, ECHO_REQUEST, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define IPv4 ping client host.
+HOST ping_client { IP 192.168.1.100 }
+
+// INSTRUCTION: Define IPv4 ping target host.
+HOST ping_target { IP 192.168.1.1 }
+
+// INSTRUCTION: Define ICMP ping request and reply flow.
+FLOW icmp_ping_flow(client, target) {
+    client -> target ICMP ECHO_REQUEST
+    client <- target ICMP ECHO_REPLY
+}
+
+// INSTRUCTION: Compile block executing standard ICMP ping.
+COMPILE {
+    icmp_ping_flow(ping_client, ping_target)
+}

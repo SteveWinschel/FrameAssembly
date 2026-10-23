@@ -1,0 +1,18 @@
+// PROMPT: Kerberos AS_REQ initial authentication requesting Ticket Granting Ticket (TGT).
+// TOKENS: HOST, IP, FLOW, ->, KERBEROS, AS_REQ, REALM, CNAME, ETYPE, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.100 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW krb_as_req(c, s) {
+    c -> s KERBEROS AS_REQ REALM "CORP.NET" CNAME "alice" ETYPE 18
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    krb_as_req(client, server)
+}

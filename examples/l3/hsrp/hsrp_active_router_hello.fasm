@@ -1,0 +1,18 @@
+// PROMPT: Hot Standby Router Protocol Hello packet advertising group and priority.
+// TOKENS: HOST, IP, FLOW, ->, HSRP, GROUP, PRIORITY, COMPILE
+
+// INSTRUCTION: Define primary gateway router.
+HOST hsrp_primary_gw { IP 192.168.1.254 }
+
+// INSTRUCTION: Define backup gateway router.
+HOST hsrp_backup_gw { IP 192.168.1.253 }
+
+// INSTRUCTION: Define HSRP standby group 1 hello heartbeat flow.
+FLOW hsrp_hello_flow(p, b) {
+    p -> b HSRP GROUP 1 PRIORITY 110
+}
+
+// INSTRUCTION: Compile block executing HSRP hello advertisement.
+COMPILE {
+    hsrp_hello_flow(hsrp_primary_gw, hsrp_backup_gw)
+}

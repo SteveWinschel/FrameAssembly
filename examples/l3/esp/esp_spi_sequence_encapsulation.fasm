@@ -1,0 +1,18 @@
+// PROMPT: IPsec Encapsulating Security Payload packet transmission with SPI and sequence number.
+// TOKENS: HOST, IP, FLOW, ->, ESP, SPI, SEQ, COMPILE
+
+// INSTRUCTION: Define IPsec security gateway 1.
+HOST ipsec_gw1 { IP 198.51.100.1 }
+
+// INSTRUCTION: Define IPsec security gateway 2.
+HOST ipsec_gw2 { IP 198.51.100.2 }
+
+// INSTRUCTION: Define ESP security encapsulation flow.
+FLOW esp_vpn_flow(gw1, gw2) {
+    gw1 -> gw2 ESP SPI 5001 SEQ 1
+}
+
+// INSTRUCTION: Compile block executing ESP security transmission.
+COMPILE {
+    esp_vpn_flow(ipsec_gw1, ipsec_gw2)
+}

@@ -1,0 +1,20 @@
+// PROMPT: QUIC and HTTP/3 connection establishment on UDP 443 with Initial and Short header framing.
+// TOKENS: HOST, IP, FLOW, ->, <-, QUIC, INITIAL, SHORT, DCID, SCID, COMPILE
+
+// INSTRUCTION: Define QUIC client node.
+HOST quic_client { IP 2001:db8:8888::1 }
+
+// INSTRUCTION: Define QUIC server node.
+HOST quic_server { IP 2001:db8:8888::2 }
+
+// INSTRUCTION: Define QUIC connection setup and data transfer flow.
+FLOW quic_flow(c, s) {
+    c -> s QUIC INITIAL DCID 0x01020304 SCID 0x05060708
+    c <- s QUIC INITIAL DCID 0x05060708 SCID 0x01020304
+    c -> s QUIC SHORT DCID 0x05060708
+}
+
+// INSTRUCTION: Compile block executing QUIC handshake.
+COMPILE {
+    quic_flow(quic_client, quic_server)
+}

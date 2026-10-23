@@ -1,0 +1,18 @@
+// PROMPT: LACPDU negotiation asserting actor state flags, port numbers, and partner system parameters.
+// TOKENS: HOST, IP, FLOW, ->, LACP, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, COMPILE
+
+// INSTRUCTION: Define active trunk interface A.
+HOST trunk_intf_a { IP 10.10.10.1 }
+
+// INSTRUCTION: Define active trunk interface B.
+HOST trunk_intf_b { IP 10.10.10.2 }
+
+// INSTRUCTION: Define LACP state negotiation asserting sync and aggregation flags.
+FLOW lacp_state_flow(a, b) {
+    a -> b LACP ACTOR_KEY 100 ACTOR_PORT 1 ACTOR_STATE 61
+}
+
+// INSTRUCTION: Compile block executing LACP state assertion.
+COMPILE {
+    lacp_state_flow(trunk_intf_a, trunk_intf_b)
+}

@@ -1,0 +1,18 @@
+// PROMPT: SCTP data chunk transmission with verification tag and stream parameters.
+// TOKENS: HOST, IP, FLOW, ->, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define SCTP telephony endpoint A.
+HOST sctp_tel_a { IP 172.20.0.1 }
+
+// INSTRUCTION: Define SCTP telephony endpoint B.
+HOST sctp_tel_b { IP 172.20.0.2 }
+
+// INSTRUCTION: Define SCTP DATA chunk delivery flow with stream and payload protocol identifiers.
+FLOW sctp_data_flow(src, dst) {
+    src -> dst SCTP CHUNK DATA VTAG 99999 STREAM 1 SSN 0 PPID 3 SRCPORT 3868 DSTPORT 3868 PAYLOAD "diameter_base_accounting"
+}
+
+// INSTRUCTION: Compile block executing SCTP data transmission.
+COMPILE {
+    sctp_data_flow(sctp_tel_a, sctp_tel_b)
+}

@@ -1,0 +1,18 @@
+// PROMPT: MySQL relational database connection handshake, authentication login, and SQL query on TCP 3306.
+// TOKENS: HOST, IP, FLOW, ->, MYSQL, QUERY, SQL, COMPILE
+
+// INSTRUCTION: Define MySQL database client.
+HOST db_client { IP 10.0.2.10 }
+
+// INSTRUCTION: Define MySQL database server.
+HOST mysql_server { IP 10.0.2.1 }
+
+// INSTRUCTION: Define MySQL database query flow.
+FLOW mysql_flow(c, s) {
+    c -> s MYSQL QUERY SQL "SELECT 1"
+}
+
+// INSTRUCTION: Compile block executing MySQL database query.
+COMPILE {
+    mysql_flow(db_client, mysql_server)
+}

@@ -1,0 +1,19 @@
+// PROMPT: IMAP graceful session logout closing connection over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, IMAP, TAG, CMD, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::25 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW imap_logout(c, s) {
+    c -> s IMAP TAG "A04" CMD "NOOP"
+    c -> s IMAP TAG "A05" CMD "LOGOUT"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    imap_logout(client, server)
+}

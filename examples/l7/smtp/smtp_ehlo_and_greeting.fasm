@@ -1,0 +1,20 @@
+// PROMPT: SMTP session greeting and EHLO capability negotiation on TCP port 25.
+// TOKENS: HOST, IP, FLOW, ->, <-, SMTP, EHLO, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW smtp_ehlo(c, s) {
+    c <- s SMTP CODE 220 REPLY "mail.dest.org ESMTP Postfix"
+    c -> s SMTP EHLO "mail.source.org"
+    c <- s SMTP CODE 250 REPLY "250-mail.dest.org"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    smtp_ehlo(client, server)
+}

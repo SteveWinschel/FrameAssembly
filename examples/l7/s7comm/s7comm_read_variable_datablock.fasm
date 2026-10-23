@@ -1,0 +1,18 @@
+// PROMPT: Siemens S7comm Read Variable command querying data block 1 memory offset 0.
+// TOKENS: HOST, IP, FLOW, ->, S7COMM, ROSCTR, FUNC, DB_NUM, OFFSET, COUNT, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.0.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW s7_read(c, s) {
+    c -> s S7COMM ROSCTR "JOB" FUNC "READ_VAR" DB_NUM 1 OFFSET 0 COUNT 10
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    s7_read(client, server)
+}

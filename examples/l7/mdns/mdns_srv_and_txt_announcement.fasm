@@ -1,0 +1,18 @@
+// PROMPT: mDNS local service announcement response with SRV record over IPv6 link-local multicast.
+// TOKENS: HOST, IP, FLOW, ->, MDNS, RESPONSE, TXID, QNAME, QTYPE, RDATA, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP fe80::1 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP ff02::fb }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW mdns_announce(c, s) {
+    c -> s MDNS RESPONSE TXID 0 QNAME "printer._ipp._tcp.local" QTYPE "SRV" RDATA "printer.local:631"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    mdns_announce(client, server)
+}

@@ -1,0 +1,18 @@
+// PROMPT: IPFIX export datagram specifying observation domain ID for flow tracking.
+// TOKENS: HOST, IP, FLOW, ->, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.1.1.1 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.1.1.200 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW ipfix_domain(c, s) {
+    c -> s IPFIX DOMAIN_ID 100 SRCIP 10.10.1.5 DSTIP 10.10.2.5 PROTO 17
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    ipfix_domain(client, server)
+}

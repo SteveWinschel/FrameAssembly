@@ -1,0 +1,18 @@
+// PROMPT: Syslog critical emergency alert delivered over TCP transport.
+// TOKENS: HOST, IP, FLOW, ->, SYSLOG, TRANSPORT, TCP, FACILITY, SEVERITY, MSG, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.5 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW syslog_emerg(c, s) {
+    c -> s SYSLOG TRANSPORT TCP FACILITY 0 SEVERITY 0 MSG "Kernel panic - not syncing: Fatal hardware fault"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    syslog_emerg(client, server)
+}

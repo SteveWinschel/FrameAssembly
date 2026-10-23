@@ -1,0 +1,19 @@
+// PROMPT: DNS query over TCP transport requesting zone authority records.
+// TOKENS: HOST, IP, FLOW, ->, <-, DNS, TRANSPORT, TCP, QUERY, TXID, QNAME, QTYPE, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW dns_tcp(c, s) {
+    c -> s DNS TRANSPORT TCP QUERY TXID 0x4321 QNAME "corp.local" QTYPE "SOA"
+    c <- s DNS TRANSPORT TCP RESPONSE TXID 0x4321 QNAME "corp.local" QTYPE "SOA" RDATA "ns1.corp.local"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    dns_tcp(client, server)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Siemens S7 PLC industrial communication over ISO-on-TCP COTP and S7 protocol on port 102.
+// TOKENS: HOST, IP, FLOW, ->, S7COMM, FUNC, READ_VAR, WRITE_VAR, COMPILE
+
+// INSTRUCTION: Define Siemens engineering workstation.
+HOST engineering_pg { IP 192.168.0.50 }
+
+// INSTRUCTION: Define Siemens S7-1500 PLC controller.
+HOST s7_1500_plc { IP 192.168.0.1 }
+
+// INSTRUCTION: Define S7comm variable read and write flow.
+FLOW s7_flow(pg, plc) {
+    pg -> plc S7COMM FUNC READ_VAR
+    pg -> plc S7COMM FUNC WRITE_VAR
+}
+
+// INSTRUCTION: Compile block executing S7comm PLC communication.
+COMPILE {
+    s7_flow(engineering_pg, s7_1500_plc)
+}

@@ -1,0 +1,27 @@
+// PROMPT: Basic polymorphic FLOW execution reusing the same flow template across both IPv4 and IPv6 endpoint pairs.
+// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, SRCPORT, DSTPORT, COMPILE
+
+// INSTRUCTION: Define IPv4 endpoint A.
+HOST node_v4_a { IP 192.168.1.1 }
+
+// INSTRUCTION: Define IPv4 endpoint B.
+HOST node_v4_b { IP 192.168.1.2 }
+
+// INSTRUCTION: Define IPv6 endpoint A.
+HOST node_v6_a { IP 2001:db8:1::1 }
+
+// INSTRUCTION: Define IPv6 endpoint B.
+HOST node_v6_b { IP 2001:db8:1::2 }
+
+// INSTRUCTION: Define polymorphic TCP 3-way handshake flow.
+FLOW generic_handshake(src, dst) {
+    src -> dst TCP SYN SRCPORT 40000 DSTPORT 8080
+    src <- dst TCP SYN ACK
+    src -> dst TCP ACK
+}
+
+// INSTRUCTION: Compile block executing polymorphic flow on both IPv4 and IPv6 pairs.
+COMPILE {
+    generic_handshake(node_v4_a, node_v4_b)
+    generic_handshake(node_v6_a, node_v6_b)
+}

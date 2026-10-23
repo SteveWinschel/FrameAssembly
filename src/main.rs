@@ -1,21 +1,22 @@
 //! The FrameAssembly compiler CLI.
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
+
+use clap::{Arg, Command};
 use frameassembly::backend::generate_pcap;
 use frameassembly::parser::parse_program;
 use miette::{IntoDiagnostic, Result};
-use std::env;
 use std::fs;
 
 /// The main entry point for the `frameassembly` CLI.
 ///
 /// This reads a `.fasm` file provided via command-line arguments, parses the syntax,
-/// and generates the corresponding `output.pcap` file.
+/// and generates the corresponding `.pcap` file.
 ///
 /// # Examples
 /// ```no_run
 /// // Run from the command line:
-/// // $ frameassembly demo.fasm
+/// // $ frameassembly demo.fasm -o output.pcap
 /// ```
 ///
 /// # Errors
@@ -25,16 +26,33 @@ use std::fs;
 /// * Parsing the source file fails.
 /// * PCAP generation fails.
 fn main() -> Result<()> {
-    let mut args = env::args();
-    if args.len() != 2 {
-        eprintln!("Usage: frameassembly <file.fasm>");
-        std::process::exit(1);
-    }
-    let file = args
-        .nth(1)
-        .ok_or_else(|| miette::miette!("Usage: frameassembly <file.fasm>"))?;
+    let matches = Command::new("frameassembly")
+        .version(env!("CARGO_PKG_VERSION"))
+        .about("A Domain-Specific Language (DSL) compiler for writing deterministic network traffic to .pcap files")
+        .arg(
+            Arg::new("input")
+                .help("Path to the .fasm source file")
+                .required(true)
+                .index(1),
+        )
+        .arg(
+            Arg::new("output")
+                .short('o')
+                .long("output")
+                .help("Path to the output PCAP file")
+                .default_value("output.pcap"),
+        )
+        .get_matches();
 
-    let code = fs::read_to_string(&file).into_diagnostic()?;
+    let file = matches
+        .get_one::<String>("input")
+        .ok_or_else(|| miette::miette!("Missing input file"))?;
+    let output_pcap = matches
+        .get_one::<String>("output")
+        .map(|s| s.as_str())
+        .unwrap_or("output.pcap");
+
+    let code = fs::read_to_string(file).into_diagnostic()?;
 
     let program =
         parse_program(&code).map_err(|e| miette::Report::new(e).with_source_code(code.clone()))?;
@@ -45,7 +63,6 @@ fn main() -> Result<()> {
         program.flows.len(),
     );
 
-    let output_pcap = "output.pcap";
     println!("Starting PCAP compilation...");
     generate_pcap(&program, output_pcap).map_err(|e| miette::miette!("Backend error: {}", e))?;
 

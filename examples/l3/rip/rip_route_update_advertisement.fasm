@@ -1,0 +1,18 @@
+// PROMPT: RIPv2 routing update advertising network prefixes, hop metric, and next hop.
+// TOKENS: HOST, IP, FLOW, ->, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, COMPILE
+
+// INSTRUCTION: Define core routing gateway advertising routes.
+HOST core_rip_gw { IP 10.0.0.1 }
+
+// INSTRUCTION: Define RIPv2 multicast destination 224.0.0.9.
+HOST rip_mcast_dst { IP 224.0.0.9 }
+
+// INSTRUCTION: Define RIP routing update flow advertising prefix 10.10.0.0 with metric 2 and next hop.
+FLOW rip_update_flow(gw, dst) {
+    gw -> dst RIP RESPONSE PREFIX 10.10.0.0 METRIC 2 NEXTHOP 10.0.0.1
+}
+
+// INSTRUCTION: Compile block executing RIP route advertisement.
+COMPILE {
+    rip_update_flow(core_rip_gw, rip_mcast_dst)
+}

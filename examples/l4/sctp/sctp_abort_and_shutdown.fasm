@@ -1,0 +1,19 @@
+// PROMPT: SCTP graceful shutdown association termination sequence with verification tag.
+// TOKENS: HOST, IP, FLOW, ->, <-, SCTP, CHUNK, SHUTDOWN, SHUTDOWN_ACK, VTAG, COMPILE
+
+// INSTRUCTION: Define client closing SCTP association.
+HOST sctp_close_cli { IP 10.0.1.10 }
+
+// INSTRUCTION: Define server acknowledging SCTP teardown.
+HOST sctp_close_srv { IP 10.0.1.20 }
+
+// INSTRUCTION: Define SCTP association teardown flow exchanging SHUTDOWN and SHUTDOWN_ACK chunks.
+FLOW sctp_teardown_flow(cli, srv) {
+    cli -> srv SCTP CHUNK SHUTDOWN VTAG 54321
+    cli <- srv SCTP CHUNK SHUTDOWN_ACK VTAG 54321
+}
+
+// INSTRUCTION: Compile block executing SCTP association shutdown.
+COMPILE {
+    sctp_teardown_flow(sctp_close_cli, sctp_close_srv)
+}

@@ -1,0 +1,18 @@
+// PROMPT: IEEE 802.1Q tagged Ethernet frame with priority code point and drop eligible indicator.
+// TOKENS: HOST, IP, FLOW, ->, VLAN, PCP, DEI, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define trunk port endpoint A.
+HOST trunk_port_a { IP 10.10.1.1 }
+
+// INSTRUCTION: Define trunk port endpoint B.
+HOST trunk_port_b { IP 10.10.1.2 }
+
+// INSTRUCTION: Define tagged voice VLAN flow with PCP 5 and DEI 1.
+FLOW vlan_tagged_flow(src, dst) {
+    src -> dst VLAN 100 PCP 5 DEI 1 UDP PAYLOAD "voice_high_priority"
+}
+
+// INSTRUCTION: Compile block executing VLAN tagged transmission.
+COMPILE {
+    vlan_tagged_flow(trunk_port_a, trunk_port_b)
+}

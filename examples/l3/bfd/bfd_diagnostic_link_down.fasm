@@ -1,0 +1,18 @@
+// PROMPT: BFD Control packet asserting NeighborDown diagnostic and Down state code.
+// TOKENS: HOST, IP, FLOW, ->, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, COMPILE
+
+// INSTRUCTION: Define local router reporting peer failure.
+HOST local_bfd_peer { IP 192.168.10.1 }
+
+// INSTRUCTION: Define remote peer endpoint.
+HOST remote_bfd_peer { IP 192.168.10.2 }
+
+// INSTRUCTION: Define BFD diagnostic flow transitioning to State 1 (Down) with diagnostic code 3.
+FLOW bfd_down_flow(local, remote) {
+    local -> remote BFD STATE 1 DIAG 3 MY_DISC 1050 YOUR_DISC 2050
+}
+
+// INSTRUCTION: Compile block executing BFD link down notification.
+COMPILE {
+    bfd_down_flow(local_bfd_peer, remote_bfd_peer)
+}

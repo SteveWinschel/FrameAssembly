@@ -1,0 +1,18 @@
+// PROMPT: Memcached binary protocol command execution over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, MEMCACHED, CMD, KEY, OPAQUE, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW memcached_bin(c, s) {
+    c -> s MEMCACHED CMD "Get" KEY "cached_data" OPAQUE 1234
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    memcached_bin(client, server)
+}

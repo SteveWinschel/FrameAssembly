@@ -1,0 +1,18 @@
+// PROMPT: SIP BYE message gracefully terminating active call dialog over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, SIP, BYE, FROM, TO, CALL_ID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW sip_bye(c, s) {
+    c -> s SIP BYE FROM "sip:alice@pbx.corp" TO "sip:bob@pbx.corp" CALL_ID "call-994827"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    sip_bye(client, server)
+}

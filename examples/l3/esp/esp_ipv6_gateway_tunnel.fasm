@@ -1,0 +1,18 @@
+// PROMPT: IPsec ESP encrypted tunnel packet transmission between two IPv6 endpoints.
+// TOKENS: HOST, IP, FLOW, ->, ESP, SPI, SEQ, COMPILE
+
+// INSTRUCTION: Define IPv6 IPsec gateway A.
+HOST esp_v6_gw_a { IP 2001:db8:e50::1 }
+
+// INSTRUCTION: Define IPv6 IPsec gateway B.
+HOST esp_v6_gw_b { IP 2001:db8:e50::2 }
+
+// INSTRUCTION: Define ESP tunnel flow protecting IPv6 site-to-site communication.
+FLOW esp_v6_tunnel_flow(gw_a, gw_b) {
+    gw_a -> gw_b ESP SPI 90001 SEQ 1
+}
+
+// INSTRUCTION: Compile block executing IPv6 ESP encapsulation.
+COMPILE {
+    esp_v6_tunnel_flow(esp_v6_gw_a, esp_v6_gw_b)
+}

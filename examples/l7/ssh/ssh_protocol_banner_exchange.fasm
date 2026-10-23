@@ -1,0 +1,19 @@
+// PROMPT: SSH protocol version exchange with client and server identification banners.
+// TOKENS: HOST, IP, FLOW, ->, <-, SSH, BANNER, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.100 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW ssh_banner(c, s) {
+    c -> s SSH BANNER "SSH-2.0-OpenSSH_9.3"
+    c <- s SSH BANNER "SSH-2.0-OpenSSH_8.9p1 Ubuntu"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    ssh_banner(client, server)
+}

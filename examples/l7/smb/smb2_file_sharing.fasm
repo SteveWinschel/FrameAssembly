@@ -1,0 +1,19 @@
+// PROMPT: Server Message Block 2/3 file sharing dialect negotiation and session setup on TCP 445.
+// TOKENS: HOST, IP, FLOW, ->, SMB, COMMAND, NEGOTIATE, SESSION_SETUP, COMPILE
+
+// INSTRUCTION: Define SMB workstation client.
+HOST smb_workstation { IP 192.168.20.10 }
+
+// INSTRUCTION: Define enterprise file storage server.
+HOST file_server { IP 192.168.20.2 }
+
+// INSTRUCTION: Define SMB file sharing connection setup flow.
+FLOW smb_flow(w, s) {
+    w -> s SMB COMMAND NEGOTIATE
+    w -> s SMB COMMAND SESSION_SETUP
+}
+
+// INSTRUCTION: Compile block executing SMB file sharing session.
+COMPILE {
+    smb_flow(smb_workstation, file_server)
+}

@@ -1,0 +1,19 @@
+// PROMPT: SNMPv3 USM authentication over IPv6 using MD5 and HMAC-SHA-96 authentication protocols.
+// TOKENS: HOST, IP, FLOW, ->, SNMP3, TRAP, USER, AUTH, MD5, SHA, OID, COMPILE
+
+// INSTRUCTION: Define SNMPv3 IPv6 secure agent.
+HOST usm_agent_v6 { IP 2001:db8:3::1 }
+
+// INSTRUCTION: Define SNMPv3 IPv6 NMS collector.
+HOST usm_nms_v6 { IP 2001:db8:3::2 }
+
+// INSTRUCTION: Define MD5 and SHA USM authentication trap flow.
+FLOW usm_auth_flow(a, n) {
+    a -> n SNMP3 TRAP USER "md5user" AUTH MD5 "md5password123" OID 1.3.6.1.6.3.1.1.5.1
+    a -> n SNMP3 TRAP USER "shauser" AUTH SHA "shatestpassword" OID 1.3.6.1.6.3.1.1.5.2
+}
+
+// INSTRUCTION: Compile block executing SNMPv3 MD5 and SHA authentication.
+COMPILE {
+    usm_auth_flow(usm_agent_v6, usm_nms_v6)
+}

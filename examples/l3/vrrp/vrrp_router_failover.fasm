@@ -1,0 +1,18 @@
+// PROMPT: VRRP failover advertisement with virtual IP and preemption priority.
+// TOKENS: HOST, IP, FLOW, ->, VRRP, VRID, PRIORITY, VIP, COMPILE
+
+// INSTRUCTION: Define backup gateway assuming master state upon failover.
+HOST backup_assuming_master { IP 10.0.0.253 }
+
+// INSTRUCTION: Define VRRP multicast group destination 224.0.0.18.
+HOST vrrp_mcast_group { IP 224.0.0.18 }
+
+// INSTRUCTION: Define VRRP advertisement flow asserting high priority ownership of VIP 10.0.0.1.
+FLOW vrrp_failover_flow(new_master, mcast) {
+    new_master -> mcast VRRP VRID 10 PRIORITY 250 VIP 10.0.0.1
+}
+
+// INSTRUCTION: Compile block executing VRRP preemption failover.
+COMPILE {
+    vrrp_failover_flow(backup_assuming_master, vrrp_mcast_group)
+}

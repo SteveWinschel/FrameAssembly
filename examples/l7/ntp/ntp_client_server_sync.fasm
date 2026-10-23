@@ -1,0 +1,19 @@
+// PROMPT: NTP client time synchronization request and server timestamp response.
+// TOKENS: HOST, IP, FLOW, ->, <-, NTP, MODE, VN, STRATUM, POLL, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW ntp_sync(c, s) {
+    c -> s NTP MODE 3 VN 4 STRATUM 0 POLL 6
+    c <- s NTP MODE 4 VN 4 STRATUM 2 POLL 6
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    ntp_sync(client, server)
+}

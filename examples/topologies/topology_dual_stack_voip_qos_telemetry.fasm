@@ -1,0 +1,21 @@
+// PROMPT: Enterprise VoIP deployment combining SIP signaling (DSCP 26), RTP audio streams (DSCP 46), and SNMP telemetry.
+// TOKENS: HOST, IP, FLOW, ->, <-, DSCP, SIP, INVITE, RTP, PT, SNMP3, TRAP, USER, OID, COMPILE
+
+// INSTRUCTION: Define enterprise IP phone.
+HOST ip_phone { IP 10.20.1.100 }
+
+// INSTRUCTION: Define central PBX call manager.
+HOST pbx_server { IP 10.20.1.1 }
+
+// INSTRUCTION: Define VoIP call signaling, voice media, and telemetry flow.
+FLOW voip_call(p, s) {
+    p -> s DSCP 26 SIP INVITE
+    p <- s DSCP 26 SIP INVITE
+    p -> s DSCP 46 RTP PT 0
+    p -> s SNMP3 TRAP USER "voip_admin" OID 1.3.6.1.6.3.1.1.5.1
+}
+
+// INSTRUCTION: Compile block executing VoIP session.
+COMPILE {
+    voip_call(ip_phone, pbx_server)
+}

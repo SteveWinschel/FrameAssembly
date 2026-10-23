@@ -1,0 +1,22 @@
+// PROMPT: Network service discovery via SSDP M-SEARCH and domain registry query via WHOIS on TCP 43.
+// TOKENS: HOST, IP, FLOW, ->, SSDP, MSEARCH, ST, WHOIS, QUERY, DOMAIN, COMPILE
+
+// INSTRUCTION: Define network workstation scanner.
+HOST scanner_host { IP 192.168.1.99 }
+
+// INSTRUCTION: Define SSDP standard multicast group.
+HOST ssdp_multicast { IP 239.255.255.250 }
+
+// INSTRUCTION: Define public WHOIS registry server.
+HOST whois_server { IP 192.0.2.43 }
+
+// INSTRUCTION: Define multi-protocol discovery flow.
+FLOW discovery_flow(s, m, w) {
+    s -> m SSDP MSEARCH ST "upnp:rootdevice"
+    s -> w WHOIS QUERY DOMAIN "example.com"
+}
+
+// INSTRUCTION: Compile block executing discovery queries.
+COMPILE {
+    discovery_flow(scanner_host, ssdp_multicast, whois_server)
+}

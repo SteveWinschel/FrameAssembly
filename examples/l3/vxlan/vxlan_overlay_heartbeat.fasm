@@ -1,0 +1,18 @@
+// PROMPT: Simulate VXLAN overlay data-plane keepalive packet on UDP 4789 with explicit VNI.
+// TOKENS: HOST, IP, FLOW, ->, VXLAN, VNI, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define VTEP hypervisor A.
+HOST vtep_hv1 { IP 10.10.10.1 }
+
+// INSTRUCTION: Define VTEP hypervisor B.
+HOST vtep_hv2 { IP 10.10.10.2 }
+
+// INSTRUCTION: Define VXLAN heartbeat transmission flow.
+FLOW vxlan_hb_flow(src, dst) {
+    src -> dst VXLAN VNI 5001 PAYLOAD "vxlan_heartbeat_ping"
+}
+
+// INSTRUCTION: Compile block executing VXLAN keepalive transmission.
+COMPILE {
+    vxlan_hb_flow(vtep_hv1, vtep_hv2)
+}

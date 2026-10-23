@@ -1,0 +1,21 @@
+// PROMPT: Telnet terminal session option negotiation over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, <-, TELNET, DO, WILL, DONT, WONT, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW telnet_login(c, s) {
+    c <- s TELNET DO 1
+    c -> s TELNET WILL 1
+    c <- s TELNET DONT 3
+    c -> s TELNET WONT 3
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    telnet_login(client, server)
+}

@@ -1,0 +1,18 @@
+// PROMPT: IEEE 802.1D Configuration BPDU advertising root bridge identifier, cost, and bridge identifier.
+// TOKENS: HOST, IP, FLOW, ->, STP, ROOT_ID, BRIDGE_ID, COST, COMPILE
+
+// INSTRUCTION: Define root switch bridge port.
+HOST root_switch { IP 192.168.0.1 }
+
+// INSTRUCTION: Define downstream bridge port.
+HOST downstream_switch { IP 192.168.0.2 }
+
+// INSTRUCTION: Define Configuration BPDU flow with root identifier and zero path cost.
+FLOW stp_config_flow(root, child) {
+    root -> child STP ROOT_ID "32768:00:11:22:33:44:00" BRIDGE_ID "32768:00:11:22:33:44:00" COST 0
+}
+
+// INSTRUCTION: Compile block executing Configuration BPDU transmission.
+COMPILE {
+    stp_config_flow(root_switch, downstream_switch)
+}

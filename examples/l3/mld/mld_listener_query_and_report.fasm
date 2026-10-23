@@ -1,0 +1,19 @@
+// PROMPT: Multicast Listener Discovery query and membership report on IPv6 network.
+// TOKENS: HOST, IP, FLOW, ->, MLD, QUERY, REPORT, MULTICAST_ADDR, COMPILE
+
+// INSTRUCTION: Define IPv6 querier router.
+HOST mld_router { IP fe80::1 }
+
+// INSTRUCTION: Define IPv6 all-nodes destination.
+HOST mld_host { IP ff02::1 }
+
+// INSTRUCTION: Define MLD query and report flow.
+FLOW mld_mgmt(r, h) {
+    r -> h MLD QUERY
+    r -> h MLD REPORT MULTICAST_ADDR ff02::1:2
+}
+
+// INSTRUCTION: Compile block executing MLD signaling.
+COMPILE {
+    mld_mgmt(mld_router, mld_host)
+}

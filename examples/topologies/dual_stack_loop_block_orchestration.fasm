@@ -1,0 +1,27 @@
+// PROMPT: High-volume traffic generation repeating dual-stack polymorphic flows inside LOOP blocks.
+// TOKENS: HOST, IP, FLOW, ->, UDP, PAYLOAD, COMPILE, LOOP
+
+// INSTRUCTION: Define load generator host on IPv4.
+HOST gen_v4_a { IP 172.16.0.1 }
+
+// INSTRUCTION: Define load target host on IPv4.
+HOST gen_v4_b { IP 172.16.0.2 }
+
+// INSTRUCTION: Define load generator host on IPv6.
+HOST gen_v6_a { IP 2001:db8:1001::1 }
+
+// INSTRUCTION: Define load target host on IPv6.
+HOST gen_v6_b { IP 2001:db8:1001::2 }
+
+// INSTRUCTION: Define polymorphic synthetic load pulse flow.
+FLOW load_pulse(a, b) {
+    a -> b UDP PAYLOAD "synthetic_load_pulse"
+}
+
+// INSTRUCTION: Compile block executing repeated dual-stack load pulses.
+COMPILE {
+    LOOP 25 {
+        load_pulse(gen_v4_a, gen_v4_b)
+        load_pulse(gen_v6_a, gen_v6_b)
+    }
+}

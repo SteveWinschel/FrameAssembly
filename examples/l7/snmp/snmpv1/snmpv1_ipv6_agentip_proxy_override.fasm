@@ -1,0 +1,18 @@
+// PROMPT: SNMPv1 Traps over IPv6 with explicit AGENTIP proxy address override per RFC 3584.
+// TOKENS: HOST, IP, FLOW, ->, SNMP1, TRAP, AGENTIP, COMMUNITY, OID, SYSUPTIME, COMPILE
+
+// INSTRUCTION: Define SNMPv1 IPv6 proxy agent.
+HOST agent_v6 { IP 2001:db8:1::1 }
+
+// INSTRUCTION: Define SNMPv1 IPv6 NMS collector.
+HOST nms_v6 { IP 2001:db8:1::2 }
+
+// INSTRUCTION: Define SNMPv1 trap flow with explicit AGENTIP proxy address.
+FLOW snmp1_proxy_flow(a, n) {
+    a -> n SNMP1 TRAP AGENTIP 192.0.2.1 COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.1" SYSUPTIME 200
+}
+
+// INSTRUCTION: Compile block executing RFC 3584 AGENTIP proxy override.
+COMPILE {
+    snmp1_proxy_flow(agent_v6, nms_v6)
+}

@@ -1,0 +1,31 @@
+// PROMPT: Dual-stack data center Clos leaf-spine fabric with BGP peering and VXLAN overlay encapsulation.
+// TOKENS: HOST, IP, FLOW, ->, BGP, OPEN, ASN, HOLDTIME, BGPID, VXLAN, VNI, COMPILE
+
+// INSTRUCTION: Define IPv4 leaf switch.
+HOST leaf1_v4 { IP 10.0.1.1 }
+
+// INSTRUCTION: Define IPv4 spine switch.
+HOST spine1_v4 { IP 10.0.1.2 }
+
+// INSTRUCTION: Define IPv6 leaf switch.
+HOST leaf1_v6 { IP 2001:db8:dc::1 }
+
+// INSTRUCTION: Define IPv6 spine switch.
+HOST spine1_v6 { IP 2001:db8:dc::2 }
+
+// INSTRUCTION: Define underlay BGP routing flow.
+FLOW underlay_bgp(l, s) {
+    l -> s BGP OPEN ASN 65001 HOLDTIME 90 BGPID 10.0.1.1
+}
+
+// INSTRUCTION: Define overlay VXLAN encapsulation flow.
+FLOW overlay_vxlan(l, s) {
+    l -> s VXLAN VNI 10001
+}
+
+// INSTRUCTION: Compile block executing leaf-spine underlay and overlay traffic.
+COMPILE {
+    underlay_bgp(leaf1_v4, spine1_v4)
+    underlay_bgp(leaf1_v6, spine1_v6)
+    overlay_vxlan(leaf1_v4, spine1_v4)
+}

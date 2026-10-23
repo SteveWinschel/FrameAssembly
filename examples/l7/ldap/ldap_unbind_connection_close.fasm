@@ -1,0 +1,18 @@
+// PROMPT: LDAP unbind request gracefully terminating directory session over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, LDAP, UNBIND_REQ, MSGID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::50 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW ldap_unbind(c, s) {
+    c -> s LDAP UNBIND_REQ MSGID 3
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    ldap_unbind(client, server)
+}

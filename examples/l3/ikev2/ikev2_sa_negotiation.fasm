@@ -1,0 +1,21 @@
+// PROMPT: Internet Key Exchange version 2 security association initiation and authentication on UDP 500.
+// TOKENS: HOST, IP, FLOW, ->, <-, IKEV2, EXCHANGE, SA_INIT, AUTH, COMPILE
+
+// INSTRUCTION: Define IKEv2 negotiation initiator.
+HOST ike_initiator { IP 203.0.113.1 }
+
+// INSTRUCTION: Define IKEv2 negotiation responder.
+HOST ike_responder { IP 203.0.113.2 }
+
+// INSTRUCTION: Define IKEv2 security association negotiation flow.
+FLOW ikev2_negotiation(init, resp) {
+    init -> resp IKEV2 EXCHANGE SA_INIT
+    init <- resp IKEV2 EXCHANGE SA_INIT
+    init -> resp IKEV2 EXCHANGE AUTH
+    init <- resp IKEV2 EXCHANGE AUTH
+}
+
+// INSTRUCTION: Compile block executing IKEv2 negotiation exchange.
+COMPILE {
+    ikev2_negotiation(ike_initiator, ike_responder)
+}

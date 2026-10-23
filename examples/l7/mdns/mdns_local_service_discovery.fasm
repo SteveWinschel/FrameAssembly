@@ -1,0 +1,18 @@
+// PROMPT: Multicast DNS local zero-configuration service discovery over UDP 5353.
+// TOKENS: HOST, IP, FLOW, ->, MDNS, QUERY, QNAME, QTYPE, A, COMPILE
+
+// INSTRUCTION: Define discovery client workstation.
+HOST workstation { IP 192.168.1.15 }
+
+// INSTRUCTION: Define standard mDNS IPv4 multicast group.
+HOST mdns_group { IP 224.0.0.251 }
+
+// INSTRUCTION: Define local service discovery flow.
+FLOW mdns_query_flow(w, g) {
+    w -> g MDNS QUERY QNAME "printer.local" QTYPE A
+}
+
+// INSTRUCTION: Compile block executing mDNS service query.
+COMPILE {
+    mdns_query_flow(workstation, mdns_group)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Kerberos TGS_REQ requesting service ticket for LDAP server access over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, KERBEROS, TGS_REQ, REALM, SNAME, ETYPE, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::100 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW krb_tgs_req(c, s) {
+    c -> s KERBEROS TGS_REQ REALM "CORP.NET" SNAME "ldap/dc.corp.net" ETYPE 18
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    krb_tgs_req(client, server)
+}

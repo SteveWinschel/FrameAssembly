@@ -1,0 +1,18 @@
+// PROMPT: IPv4 all-hosts multicast transmission to 224.0.0.1 deriving RFC 1112 MAC 01:00:5e:00:00:01.
+// TOKENS: HOST, IP, FLOW, ->, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IPv4 subnet sender.
+HOST sender_v4 { IP 192.168.1.10 }
+
+// INSTRUCTION: Define IPv4 all-hosts multicast destination.
+HOST all_hosts_v4 { IP 224.0.0.1 }
+
+// INSTRUCTION: Define multicast ping announcement flow.
+FLOW all_hosts_flow(src, dst) {
+    src -> dst UDP PAYLOAD "igmp_membership_ping"
+}
+
+// INSTRUCTION: Compile block executing all-hosts transmission.
+COMPILE {
+    all_hosts_flow(sender_v4, all_hosts_v4)
+}

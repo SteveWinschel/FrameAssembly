@@ -1,0 +1,20 @@
+// PROMPT: End-to-end traffic exchange using RFC 3849 global unicast documentation prefix 2001:db8::/32.
+// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, SRCPORT, DSTPORT, COMPILE
+
+// INSTRUCTION: Define client endpoint in subnet acad:1.
+HOST client_gua { IP 2001:db8:acad:1::10 }
+
+// INSTRUCTION: Define server endpoint in subnet acad:2.
+HOST server_gua { IP 2001:db8:acad:2::20 }
+
+// INSTRUCTION: Define TCP 3-way handshake over global unicast IPv6.
+FLOW gua_tcp_handshake(c, s) {
+    c -> s TCP SYN SRCPORT 45000 DSTPORT 80
+    c <- s TCP SYN ACK
+    c -> s TCP ACK
+}
+
+// INSTRUCTION: Compile block executing the global unicast handshake.
+COMPILE {
+    gua_tcp_handshake(client_gua, server_gua)
+}

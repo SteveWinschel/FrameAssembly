@@ -1,0 +1,19 @@
+// PROMPT: IPv6 NDP Neighbor Solicitation and Advertisement resolving link-layer address with explicit target.
+// TOKENS: HOST, IP, FLOW, ->, <-, NDP, NEIGHBOR_SOLICIT, NEIGHBOR_ADVERT, TARGET, COMPILE
+
+// INSTRUCTION: Define IPv6 client node.
+HOST ipv6_node_a { IP 2001:db8::10 }
+
+// INSTRUCTION: Define IPv6 server node.
+HOST ipv6_node_b { IP 2001:db8::20 }
+
+// INSTRUCTION: Define Neighbor Discovery resolution flow with explicit target address.
+FLOW ndp_target_flow(src, dst) {
+    src -> dst NDP NEIGHBOR_SOLICIT TARGET 2001:db8::20
+    src <- dst NDP NEIGHBOR_ADVERT TARGET 2001:db8::20
+}
+
+// INSTRUCTION: Compile block executing NDP resolution.
+COMPILE {
+    ndp_target_flow(ipv6_node_a, ipv6_node_b)
+}

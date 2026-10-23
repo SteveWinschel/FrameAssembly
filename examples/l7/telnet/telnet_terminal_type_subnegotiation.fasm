@@ -1,0 +1,21 @@
+// PROMPT: Telnet IAC terminal option negotiation offering DO and WILL requests.
+// TOKENS: HOST, IP, FLOW, ->, <-, TELNET, DO, WILL, WONT, DONT, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.100 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW telnet_subneg(c, s) {
+    c -> s TELNET DO 24
+    c <- s TELNET WILL 24
+    c -> s TELNET DONT 32
+    c <- s TELNET WONT 32
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    telnet_subneg(client, server)
+}

@@ -1,0 +1,19 @@
+// PROMPT: OPC UA Binary protocol HEL message negotiating buffer limits and ACK response.
+// TOKENS: HOST, IP, FLOW, ->, <-, OPCUA, MSG_TYPE, CHUNK_TYPE, ENDPOINT_URL, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.50 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW opcua_hel(c, s) {
+    c -> s OPCUA MSG_TYPE "HEL" CHUNK_TYPE "F" ENDPOINT_URL "opc.tcp://192.168.1.1:4840"
+    c <- s OPCUA MSG_TYPE "ACK" CHUNK_TYPE "F"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    opcua_hel(client, server)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Network WAN transport over single MPLS label stack with experimental bits and TTL.
+// TOKENS: HOST, IP, FLOW, ->, MPLS, EXP, BOS, MPLS_TTL, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define customer edge router CE1.
+HOST ce_router_1 { IP 10.10.0.1 }
+
+// INSTRUCTION: Define provider edge router PE1.
+HOST pe_router_1 { IP 10.10.0.2 }
+
+// INSTRUCTION: Define MPLS single label transport flow.
+FLOW mpls_single_label_flow(ce, pe) {
+    ce -> pe MPLS 100 EXP 3 BOS 1 MPLS_TTL 64 UDP PAYLOAD "mpls_single_label_data"
+}
+
+// INSTRUCTION: Compile block executing MPLS transport.
+COMPILE {
+    mpls_single_label_flow(ce_router_1, pe_router_1)
+}

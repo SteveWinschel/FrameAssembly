@@ -1,0 +1,18 @@
+// PROMPT: MySQL initial server handshake greeting announcing version capabilities.
+// TOKENS: HOST, IP, FLOW, <-, MYSQL, GREETING, SERVER_VERSION, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.100 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW mysql_greet(c, s) {
+    c <- s MYSQL GREETING SERVER_VERSION "8.0.35"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    mysql_greet(client, server)
+}

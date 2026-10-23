@@ -1,0 +1,20 @@
+// PROMPT: HTTP/2 binary framing connection preface and gRPC unary remote procedure call over TCP 443 / 50051.
+// TOKENS: HOST, IP, FLOW, ->, <-, HTTP2, SETTINGS, GRPC, SERVICE, METHOD, COMPILE
+
+// INSTRUCTION: Define gRPC microservice client.
+HOST grpc_client { IP 10.100.1.10 }
+
+// INSTRUCTION: Define gRPC backend server.
+HOST grpc_server { IP 10.100.1.20 }
+
+// INSTRUCTION: Define HTTP/2 negotiation and gRPC procedure call flow.
+FLOW grpc_flow(c, s) {
+    c -> s HTTP2 SETTINGS
+    c <- s HTTP2 SETTINGS
+    c -> s GRPC SERVICE "EchoService" METHOD "Echo"
+}
+
+// INSTRUCTION: Compile block executing gRPC over HTTP/2.
+COMPILE {
+    grpc_flow(grpc_client, grpc_server)
+}

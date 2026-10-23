@@ -1,0 +1,20 @@
+// PROMPT: Network flow export and telemetry combining Cisco NetFlow, IPFIX, and InMon sFlow v5.
+// TOKENS: HOST, IP, FLOW, ->, NETFLOW, IPFIX, SFLOW, AGENT_IP, COMPILE
+
+// INSTRUCTION: Define network flow exporter router.
+HOST flow_exporter { IP 10.0.50.1 }
+
+// INSTRUCTION: Define network monitoring collector.
+HOST flow_collector { IP 10.0.50.2 }
+
+// INSTRUCTION: Define network telemetry export flow.
+FLOW telemetry_export_flow(e, c) {
+    e -> c NETFLOW
+    e -> c IPFIX
+    e -> c SFLOW AGENT_IP 10.0.50.1
+}
+
+// INSTRUCTION: Compile block executing telemetry export streams.
+COMPILE {
+    telemetry_export_flow(flow_exporter, flow_collector)
+}

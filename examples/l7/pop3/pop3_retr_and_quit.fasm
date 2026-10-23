@@ -1,0 +1,21 @@
+// PROMPT: POP3 message retrieval and session termination over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, <-, POP3, CMD, ARG, OK, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::12 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW pop3_retr(c, s) {
+    c -> s POP3 CMD "RETR" ARG "1"
+    c <- s POP3 OK
+    c -> s POP3 CMD "QUIT"
+    c <- s POP3 OK
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    pop3_retr(client, server)
+}

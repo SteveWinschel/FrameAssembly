@@ -1,0 +1,18 @@
+// PROMPT: Network File System ONC RPC procedure calls for NULL and LOOKUP operations on TCP 2049.
+// TOKENS: HOST, IP, FLOW, ->, NFS, PROC, LOOKUP, PATH, COMPILE
+
+// INSTRUCTION: Define NFS client mount node.
+HOST nfs_client { IP 10.0.10.1 }
+
+// INSTRUCTION: Define NFS network storage server.
+HOST nfs_server { IP 10.0.10.2 }
+
+// INSTRUCTION: Define NFS RPC lookup and directory navigation flow.
+FLOW nfs_flow(c, s) {
+    c -> s NFS PROC LOOKUP PATH "/exports/data"
+}
+
+// INSTRUCTION: Compile block executing NFS RPC calls.
+COMPILE {
+    nfs_flow(nfs_client, nfs_server)
+}

@@ -1,0 +1,18 @@
+// PROMPT: MLD Listener Done message terminating membership in IPv6 multicast stream.
+// TOKENS: HOST, IP, FLOW, ->, MLD, DONE, MULTICAST_ADDR, COMPILE
+
+// INSTRUCTION: Define IPv6 host leaving multicast reception.
+HOST leaving_node { IP fe80::500 }
+
+// INSTRUCTION: Define all-routers IPv6 multicast destination ff02::2.
+HOST all_ipv6_routers { IP ff02::2 }
+
+// INSTRUCTION: Define MLD done flow releasing multicast group ff02::1:2.
+FLOW mld_done_flow(node, rtr) {
+    node -> rtr MLD DONE MULTICAST_ADDR ff02::1:2
+}
+
+// INSTRUCTION: Compile block executing MLD Listener Done transmission.
+COMPILE {
+    mld_done_flow(leaving_node, all_ipv6_routers)
+}

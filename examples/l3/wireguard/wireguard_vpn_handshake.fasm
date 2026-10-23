@@ -1,0 +1,19 @@
+// PROMPT: WireGuard VPN Noise handshake initiation and response with sender and receiver indices on UDP 51820.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, WIREGUARD, TYPE, INITIATION, RESPONSE, SENDER, RECEIVER, COMPILE
+
+// INSTRUCTION: Define a roaming laptop VPN peer with IP 198.51.100.42.
+HOST wg_roaming_peer { IP 198.51.100.42 MAC a4:83:e7:11:22:33 }
+
+// INSTRUCTION: Define a corporate WireGuard concentrator with IP 203.0.113.1.
+HOST wg_concentrator { IP 203.0.113.1 MAC a4:83:e7:99:88:77 }
+
+// INSTRUCTION: Define a flow exchanging WireGuard Initiation and Response packets with sender and receiver index mapping.
+FLOW wireguard_tunnel_setup(initiator, responder) {
+    initiator -> responder WIREGUARD TYPE INITIATION SENDER 287454020
+    initiator <- responder WIREGUARD TYPE RESPONSE SENDER 57005 RECEIVER 287454020
+}
+
+// INSTRUCTION: Compile block to execute the WireGuard VPN handshake flow.
+COMPILE {
+    wireguard_tunnel_setup(wg_roaming_peer, wg_concentrator)
+}

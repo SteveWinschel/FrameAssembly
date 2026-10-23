@@ -1,0 +1,21 @@
+// PROMPT: Border Gateway Protocol 4+ peering over IPv6 using TCP 179 with OPEN and KEEPALIVE messages.
+// TOKENS: HOST, IP, FLOW, ->, <-, BGP, OPEN, ASN, HOLDTIME, BGPID, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define Autonomous System 65001 BGP router.
+HOST bgp_peer_a { IP 2001:db8:ffff::1 }
+
+// INSTRUCTION: Define Autonomous System 65002 BGP router.
+HOST bgp_peer_b { IP 2001:db8:ffff::2 }
+
+// INSTRUCTION: Define BGP-4+ session establishment and keepalive flow.
+FLOW bgp_peer_flow(a, b) {
+    a -> b BGP OPEN ASN 65001 HOLDTIME 180 BGPID 10.0.0.1
+    a <- b BGP OPEN ASN 65002 HOLDTIME 180 BGPID 10.0.0.2
+    a -> b BGP KEEPALIVE
+    a <- b BGP KEEPALIVE
+}
+
+// INSTRUCTION: Compile block executing BGP IPv6 session.
+COMPILE {
+    bgp_peer_flow(bgp_peer_a, bgp_peer_b)
+}

@@ -1,0 +1,18 @@
+// PROMPT: LLDP neighbor discovery frame advertising explicit TTL timer, system name, and system description.
+// TOKENS: HOST, IP, FLOW, ->, LLDP, SYSNAME, SYSDESC, TTL, COMPILE
+
+// INSTRUCTION: Define aggregation switch port A.
+HOST agg_sw_a { IP 172.16.200.1 }
+
+// INSTRUCTION: Define aggregation switch port B.
+HOST agg_sw_b { IP 172.16.200.2 }
+
+// INSTRUCTION: Define LLDP advertisement flow with full system metadata and 120s TTL.
+FLOW lldp_full_spec(src, dst) {
+    src -> dst LLDP SYSNAME "agg-switch-01" SYSDESC "FrameAssembly NOS Enterprise 1.0" TTL 120
+}
+
+// INSTRUCTION: Compile block executing detailed LLDP advertisement.
+COMPILE {
+    lldp_full_spec(agg_sw_a, agg_sw_b)
+}

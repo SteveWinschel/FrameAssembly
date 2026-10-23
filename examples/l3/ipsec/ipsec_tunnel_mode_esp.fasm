@@ -1,0 +1,18 @@
+// PROMPT: IPsec tunnel mode security encapsulation using SPI and sequence number.
+// TOKENS: HOST, IP, FLOW, ->, IPSEC, SPI, SEQ, COMPILE
+
+// INSTRUCTION: Define primary VPN gateway.
+HOST vpn_gw_primary { IP 198.51.100.1 }
+
+// INSTRUCTION: Define secondary VPN gateway.
+HOST vpn_gw_secondary { IP 198.51.100.2 }
+
+// INSTRUCTION: Define IPsec security encapsulation flow.
+FLOW ipsec_tunnel_flow(gw1, gw2) {
+    gw1 -> gw2 IPSEC SPI 4096 SEQ 1
+}
+
+// INSTRUCTION: Compile block executing IPsec encapsulation.
+COMPILE {
+    ipsec_tunnel_flow(vpn_gw_primary, vpn_gw_secondary)
+}

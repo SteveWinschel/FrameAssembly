@@ -1,0 +1,20 @@
+// PROMPT: Open Shortest Path First routing adjacency establishment using OSPF Hello and Database Description packets.
+// TOKENS: HOST, IP, FLOW, ->, <-, OSPF, HELLO, ROUTER_ID, AREA_ID, DBD, COMPILE
+
+// INSTRUCTION: Define OSPF router 1.
+HOST ospf_r1 { IP 10.0.0.1 }
+
+// INSTRUCTION: Define OSPF router 2.
+HOST ospf_r2 { IP 10.0.0.2 }
+
+// INSTRUCTION: Define OSPF neighbor discovery and database exchange flow.
+FLOW ospf_adj_flow(r1, r2) {
+    r1 -> r2 OSPF HELLO ROUTER_ID 10.0.0.1 AREA_ID 0
+    r1 <- r2 OSPF HELLO ROUTER_ID 10.0.0.2 AREA_ID 0
+    r1 -> r2 OSPF DBD ROUTER_ID 10.0.0.1
+}
+
+// INSTRUCTION: Compile block executing OSPF adjacency process.
+COMPILE {
+    ospf_adj_flow(ospf_r1, ospf_r2)
+}

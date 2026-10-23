@@ -1,0 +1,18 @@
+// PROMPT: STUN Binding Request probing NAT mapping and public endpoint discovery.
+// TOKENS: HOST, IP, FLOW, ->, STUN, BINDING_REQUEST, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.100 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 34.200.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW stun_req(c, s) {
+    c -> s STUN BINDING_REQUEST
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    stun_req(client, server)
+}

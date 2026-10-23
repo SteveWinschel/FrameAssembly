@@ -1,0 +1,18 @@
+// PROMPT: CoAP acknowledgment (ACK) response with content payload over IPv6.
+// TOKENS: HOST, IP, FLOW, <-, COAP, ACK, CODE, MSGID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::25 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW coap_ack(c, s) {
+    c <- s COAP ACK CODE "2.05" MSGID 101
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    coap_ack(client, server)
+}

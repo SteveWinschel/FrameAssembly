@@ -1,0 +1,18 @@
+// PROMPT: Network access control via IEEE 802.1X EAPOL start frame initiating authentication.
+// TOKENS: HOST, IP, FLOW, ->, EAPOL, TYPE, START, COMPILE
+
+// INSTRUCTION: Define network supplicant device.
+HOST access_supplicant { IP 192.168.100.1 }
+
+// INSTRUCTION: Define network authenticator switch.
+HOST access_authenticator { IP 192.168.100.2 }
+
+// INSTRUCTION: Define access authentication start flow.
+FLOW eapol_start_flow(src, dst) {
+    src -> dst EAPOL TYPE START
+}
+
+// INSTRUCTION: Compile block executing EAPOL-Start transmission.
+COMPILE {
+    eapol_start_flow(access_supplicant, access_authenticator)
+}

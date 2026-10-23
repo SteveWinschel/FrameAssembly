@@ -1,0 +1,18 @@
+// PROMPT: OSPFv2 Hello packet multicasting to 224.0.0.5 with explicit hello and dead intervals.
+// TOKENS: HOST, IP, FLOW, ->, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, COMPILE
+
+// INSTRUCTION: Define active OSPF area 0 router.
+HOST ospf_area0_rtr { IP 192.168.1.1 }
+
+// INSTRUCTION: Define AllSPFRouters multicast address 224.0.0.5.
+HOST all_spf_routers { IP 224.0.0.5 }
+
+// INSTRUCTION: Define OSPF Hello broadcast flow configuring intervals and DR priority.
+FLOW ospf_broadcast_flow(rtr, mcast) {
+    rtr -> mcast OSPF HELLO ROUTER_ID 192.168.1.1 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 1
+}
+
+// INSTRUCTION: Compile block executing OSPF Hello multicast.
+COMPILE {
+    ospf_broadcast_flow(ospf_area0_rtr, all_spf_routers)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Building automation and HVAC control using BACnet/IP broadcast WHO-IS and I-AM on UDP 47808 (0xBAC0).
+// TOKENS: HOST, IP, FLOW, ->, <-, BACNET, WHO_IS, I_AM, COMPILE
+
+// INSTRUCTION: Define building management system controller.
+HOST bms_controller { IP 192.168.10.10 }
+
+// INSTRUCTION: Define smart HVAC controller unit.
+HOST hvac_unit { IP 192.168.10.20 }
+
+// INSTRUCTION: Define BACnet device discovery exchange flow.
+FLOW bacnet_flow(b, h) {
+    b -> h BACNET WHO_IS
+    b <- h BACNET I_AM
+}
+
+// INSTRUCTION: Compile block executing BACnet discovery.
+COMPILE {
+    bacnet_flow(bms_controller, hvac_unit)
+}

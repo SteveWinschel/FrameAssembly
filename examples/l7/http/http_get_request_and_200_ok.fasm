@@ -1,0 +1,19 @@
+// PROMPT: HTTP/1.1 GET request for web resource and server 200 OK response with body.
+// TOKENS: HOST, IP, FLOW, ->, <-, HTTP, METHOD, URI, HOST_HDR, STATUS, REASON, BODY, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.50 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 93.184.216.34 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW http_get(c, s) {
+    c -> s HTTP METHOD "GET" URI "/index.html" HOST_HDR "example.com"
+    c <- s HTTP STATUS 200 REASON "OK" BODY "<html><body>Hello World</body></html>"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    http_get(client, server)
+}

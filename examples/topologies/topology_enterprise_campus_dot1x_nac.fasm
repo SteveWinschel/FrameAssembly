@@ -1,0 +1,23 @@
+// PROMPT: Enterprise campus zero-trust port onboarding with 802.1X EAPOL, RADIUS authentication, and DHCP IP assignment.
+// TOKENS: HOST, IP, FLOW, ->, EAPOL, TYPE, START, RADIUS, ACCESS_REQUEST, USER, DHCP, DISCOVER, COMPILE
+
+// INSTRUCTION: Define unauthenticated client workstation.
+HOST laptop_endpoint { IP 0.0.0.0 }
+
+// INSTRUCTION: Define campus edge access switch.
+HOST campus_switch { IP 10.1.0.1 }
+
+// INSTRUCTION: Define enterprise RADIUS authentication server.
+HOST nac_radius_server { IP 10.1.0.2 }
+
+// INSTRUCTION: Define campus onboarding security flow.
+FLOW onboarding_flow(l, sw, nac) {
+    l -> sw EAPOL TYPE START
+    sw -> nac RADIUS ACCESS_REQUEST USER "alice@corp.local"
+    l -> sw DHCP DISCOVER
+}
+
+// INSTRUCTION: Compile block executing campus access onboarding.
+COMPILE {
+    onboarding_flow(laptop_endpoint, campus_switch, nac_radius_server)
+}

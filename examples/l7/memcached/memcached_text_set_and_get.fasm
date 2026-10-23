@@ -1,0 +1,19 @@
+// PROMPT: Memcached text protocol key storage and retrieval.
+// TOKENS: HOST, IP, FLOW, ->, MEMCACHED, CMD, KEY, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW memcached_text(c, s) {
+    c -> s MEMCACHED CMD "set" KEY "user_100"
+    c -> s MEMCACHED CMD "get" KEY "user_100"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    memcached_text(client, server)
+}

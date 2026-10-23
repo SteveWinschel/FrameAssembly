@@ -1,0 +1,18 @@
+// PROMPT: STUN Binding Response returning public XOR mapped IPv4 address.
+// TOKENS: HOST, IP, FLOW, <-, STUN, BINDING_RESPONSE, XOR_MAPPED_ADDR, SOFTWARE, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.100 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 34.200.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW stun_resp(c, s) {
+    c <- s STUN BINDING_RESPONSE XOR_MAPPED_ADDR 198.51.100.55 SOFTWARE "FrameAssembly-STUN"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    stun_resp(client, server)
+}

@@ -1,0 +1,18 @@
+// PROMPT: MySQL authentication error packet indicating access denied over IPv6.
+// TOKENS: HOST, IP, FLOW, <-, MYSQL, ERR, ERRCODE, SQL, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::100 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW mysql_err(c, s) {
+    c <- s MYSQL ERR ERRCODE 1045 SQL "Access denied for user"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    mysql_err(client, server)
+}

@@ -1,0 +1,18 @@
+// PROMPT: IPv6 all-routers multicast transmission automatically deriving RFC 2464 MAC 33:33:00:00:00:02.
+// TOKENS: HOST, IP, FLOW, ->, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host node querying local routers.
+HOST host_node { IP fe80::200 }
+
+// INSTRUCTION: Define all-routers link-local multicast destination.
+HOST all_routers_mcast { IP ff02::2 }
+
+// INSTRUCTION: Define router query flow.
+FLOW all_routers_flow(src, dst) {
+    src -> dst UDP PAYLOAD "router_solicitation_query"
+}
+
+// INSTRUCTION: Compile block executing all-routers multicast.
+COMPILE {
+    all_routers_flow(host_node, all_routers_mcast)
+}

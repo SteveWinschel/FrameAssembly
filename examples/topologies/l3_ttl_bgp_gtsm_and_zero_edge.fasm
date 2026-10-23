@@ -1,0 +1,19 @@
+// PROMPT: Generalized TTL Security Mechanism with maximum TTL 255 and boundary edge case TTL 0.
+// TOKENS: HOST, IP, FLOW, ->, TTL, TCP, SYN, SRCPORT, DSTPORT, COMPILE
+
+// INSTRUCTION: Define BGP speaker A.
+HOST bgp_speaker_a { IP 192.0.2.1 }
+
+// INSTRUCTION: Define BGP speaker B.
+HOST bgp_speaker_b { IP 192.0.2.2 }
+
+// INSTRUCTION: Define GTSM security probe flow.
+FLOW gtsm_flow(a, b) {
+    a -> b TTL 255 TCP SYN SRCPORT 179 DSTPORT 179
+    a -> b TTL 0 TCP SYN SRCPORT 179 DSTPORT 179
+}
+
+// INSTRUCTION: Compile block executing GTSM verification.
+COMPILE {
+    gtsm_flow(bgp_speaker_a, bgp_speaker_b)
+}

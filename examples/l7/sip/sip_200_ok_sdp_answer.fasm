@@ -1,0 +1,18 @@
+// PROMPT: SIP 200 OK response accepting call setup with media session description body.
+// TOKENS: HOST, IP, FLOW, <-, SIP, STATUS, REASON, CONTENT_TYPE, BODY, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW sip_ok(c, s) {
+    c <- s SIP STATUS 200 REASON "OK" CONTENT_TYPE "application/sdp" BODY "v=0\r\no=bob 2890844526 2890844526 IN IP4 192.168.1.1"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    sip_ok(client, server)
+}

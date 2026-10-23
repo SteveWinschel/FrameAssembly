@@ -1,0 +1,18 @@
+// PROMPT: Memcached distributed memory caching protocol interaction on TCP 11211.
+// TOKENS: HOST, IP, FLOW, ->, MEMCACHED, CMD, COMPILE
+
+// INSTRUCTION: Define web application worker.
+HOST cache_client { IP 172.16.50.1 }
+
+// INSTRUCTION: Define Memcached memory node.
+HOST cache_node { IP 172.16.50.2 }
+
+// INSTRUCTION: Define Memcached server stats lookup flow.
+FLOW memcached_flow(c, n) {
+    c -> n MEMCACHED CMD "stats"
+}
+
+// INSTRUCTION: Compile block executing Memcached lookup.
+COMPILE {
+    memcached_flow(cache_client, cache_node)
+}

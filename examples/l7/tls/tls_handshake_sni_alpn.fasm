@@ -1,0 +1,19 @@
+// PROMPT: Transport Layer Security 1.3 handshake exchange with SNI server name and ALPN protocol negotiation.
+// TOKENS: HOST, IP, FLOW, ->, <-, TLS, CLIENT_HELLO, SNI, ALPN, SERVER_HELLO, COMPILE
+
+// INSTRUCTION: Define TLS client establishing secure session.
+HOST tls_client { IP 192.168.1.10 }
+
+// INSTRUCTION: Define TLS web server hosting HTTPS services.
+HOST tls_server { IP 192.168.1.20 }
+
+// INSTRUCTION: Define TLS 1.3 handshake negotiation flow.
+FLOW tls_handshake_flow(c, s) {
+    c -> s TLS CLIENT_HELLO SNI "secure.example.com" ALPN "h2"
+    c <- s TLS SERVER_HELLO
+}
+
+// INSTRUCTION: Compile block executing TLS security handshake.
+COMPILE {
+    tls_handshake_flow(tls_client, tls_server)
+}

@@ -1,0 +1,18 @@
+// PROMPT: IEEE 1588 PTP Announce message with custom clock ID and non-default domain over IPv6.
+// TOKENS: HOST, IP, FLOW, <-, PTP, ANNOUNCE, DOMAIN, CLOCK_ID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP fe80::2 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP fe80::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW ptp_announce(c, s) {
+    c <- s PTP ANNOUNCE DOMAIN 1 CLOCK_ID "00:11:22:ff:fe:33:44:55"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    ptp_announce(client, server)
+}

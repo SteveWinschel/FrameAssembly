@@ -1,0 +1,19 @@
+// PROMPT: SCTP 4-way association initiation and acknowledgment with verification tag.
+// TOKENS: HOST, IP, FLOW, ->, <-, SCTP, CHUNK, INIT, INIT_ACK, VTAG, SRCPORT, DSTPORT, COMPILE
+
+// INSTRUCTION: Define SCTP signaling client.
+HOST sctp_client { IP 10.10.10.1 }
+
+// INSTRUCTION: Define SCTP signaling gateway server.
+HOST sctp_server { IP 10.10.10.2 }
+
+// INSTRUCTION: Define SCTP association initiation exchange flow.
+FLOW sctp_init_flow(client, server) {
+    client -> server SCTP CHUNK INIT VTAG 0 SRCPORT 2905 DSTPORT 2905
+    client <- server SCTP CHUNK INIT_ACK VTAG 123456 SRCPORT 2905 DSTPORT 2905
+}
+
+// INSTRUCTION: Compile block executing SCTP association initiation.
+COMPILE {
+    sctp_init_flow(sctp_client, sctp_server)
+}

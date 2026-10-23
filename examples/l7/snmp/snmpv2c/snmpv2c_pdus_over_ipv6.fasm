@@ -1,0 +1,21 @@
+// PROMPT: SNMPv2c operations over IPv6 covering GET, GETBULK with nonrepeaters, INFORM, and RESPONSE.
+// TOKENS: HOST, IP, FLOW, ->, <-, SNMP2, GET, GETBULK, NONREPEATERS, MAXREPETITIONS, INFORM, RESPONSE, COMMUNITY, OID, SYSUPTIME, VARBIND, NULLVAL, COMPILE
+
+// INSTRUCTION: Define IPv6 SNMPv2c NMS client.
+HOST v6_nms { IP 2001:db8:100::1 }
+
+// INSTRUCTION: Define IPv6 SNMPv2c managed agent.
+HOST v6_agent { IP 2001:db8:100::2 }
+
+// INSTRUCTION: Define SNMPv2c PDU operations flow.
+FLOW snmp2_v6_flow(n, a) {
+    n -> a SNMP2 GET COMMUNITY "public" VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL
+    n -> a SNMP2 GETBULK COMMUNITY "public" NONREPEATERS 1 MAXREPETITIONS 10
+    n -> a SNMP2 INFORM COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" SYSUPTIME 500
+    n <- a SNMP2 RESPONSE COMMUNITY "public"
+}
+
+// INSTRUCTION: Compile block executing SNMPv2c operations over IPv6.
+COMPILE {
+    snmp2_v6_flow(v6_nms, v6_agent)
+}

@@ -1,0 +1,18 @@
+// PROMPT: IPv6 solicited-node multicast transmission deriving RFC 2464 MAC 33:33:ff:00:12:34.
+// TOKENS: HOST, IP, FLOW, ->, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define soliciting host node.
+HOST solicit_sender { IP fe80::1 }
+
+// INSTRUCTION: Define solicited-node multicast target group.
+HOST solicit_target { IP ff02::1:ff00:1234 }
+
+// INSTRUCTION: Define neighbor solicitation probe flow.
+FLOW solicited_node_flow(src, dst) {
+    src -> dst UDP PAYLOAD "solicited_node_ns"
+}
+
+// INSTRUCTION: Compile block executing solicited-node multicast.
+COMPILE {
+    solicited_node_flow(solicit_sender, solicit_target)
+}

@@ -1,0 +1,18 @@
+// PROMPT: RFC 3261 SIP VoIP call setup with INVITE method, From, To, and Call-ID headers.
+// TOKENS: HOST, IP, FLOW, ->, SIP, INVITE, FROM, TO, CALL_ID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW sip_invite(c, s) {
+    c -> s SIP INVITE FROM "sip:alice@pbx.corp" TO "sip:bob@pbx.corp" CALL_ID "call-994827"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    sip_invite(client, server)
+}

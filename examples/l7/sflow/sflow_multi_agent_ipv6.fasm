@@ -1,0 +1,18 @@
+// PROMPT: sFlow v5 collector datagram sent across an IPv6 management underlay.
+// TOKENS: HOST, IP, FLOW, ->, SFLOW, AGENT_IP, SAMPLES, UPTIME, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8:1::1 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8:1::254 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW sflow_v6(c, s) {
+    c -> s SFLOW AGENT_IP 10.200.1.1 SAMPLES 5 UPTIME 120000
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    sflow_v6(client, server)
+}

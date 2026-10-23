@@ -1,0 +1,18 @@
+// PROMPT: Siemens S7comm Write Variable command updating PLC output memory over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, S7COMM, ROSCTR, FUNC, AREA, OFFSET, COUNT, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW s7_write(c, s) {
+    c -> s S7COMM ROSCTR "JOB" FUNC "WRITE_VAR" AREA 130 OFFSET 4 COUNT 2
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    s7_write(client, server)
+}

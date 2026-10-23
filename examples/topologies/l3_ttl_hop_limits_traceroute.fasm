@@ -1,0 +1,20 @@
+// PROMPT: Traceroute simulation with incremental TTL hop limit values 1, 2, and 3.
+// TOKENS: HOST, IP, FLOW, ->, TTL, UDP, DSTPORT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define traceroute client endpoint.
+HOST trace_client { IP 10.1.1.10 }
+
+// INSTRUCTION: Define traceroute target server.
+HOST trace_target { IP 10.2.2.20 }
+
+// INSTRUCTION: Define sequential traceroute probe steps.
+FLOW traceroute_flow(c, t) {
+    c -> t TTL 1 UDP DSTPORT 33434 PAYLOAD "probe1"
+    c -> t TTL 2 UDP DSTPORT 33435 PAYLOAD "probe2"
+    c -> t TTL 3 UDP DSTPORT 33436 PAYLOAD "probe3"
+}
+
+// INSTRUCTION: Compile block executing traceroute probe sequence.
+COMPILE {
+    traceroute_flow(trace_client, trace_target)
+}

@@ -1,0 +1,31 @@
+// PROMPT: Address resolution with ARP request/reply on IPv4 and NDP Neighbor Solicitation on IPv6.
+// TOKENS: HOST, IP, FLOW, ->, <-, ARP, REPLY, NDP, NEIGHBOR_SOLICIT, COMPILE
+
+// INSTRUCTION: Define IPv4 endpoint A.
+HOST ipv4_host_a { IP 192.168.10.1 }
+
+// INSTRUCTION: Define IPv4 endpoint B.
+HOST ipv4_host_b { IP 192.168.10.2 }
+
+// INSTRUCTION: Define IPv6 endpoint A.
+HOST ipv6_host_a { IP 2001:db8::1 }
+
+// INSTRUCTION: Define IPv6 endpoint B.
+HOST ipv6_host_b { IP 2001:db8::2 }
+
+// INSTRUCTION: Define IPv4 ARP resolution flow.
+FLOW arp_resolution(a, b) {
+    a -> b ARP
+    a <- b ARP REPLY
+}
+
+// INSTRUCTION: Define IPv6 NDP neighbor discovery flow.
+FLOW ndp_resolution(a, b) {
+    a -> b NDP NEIGHBOR_SOLICIT
+}
+
+// INSTRUCTION: Compile block executing both address resolution flows.
+COMPILE {
+    arp_resolution(ipv4_host_a, ipv4_host_b)
+    ndp_resolution(ipv6_host_a, ipv6_host_b)
+}

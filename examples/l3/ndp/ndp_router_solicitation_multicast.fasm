@@ -1,0 +1,19 @@
+// PROMPT: IPv6 NDP Router Solicitation sent to all-routers multicast address and Router Advertisement reply.
+// TOKENS: HOST, IP, FLOW, ->, <-, NDP, ROUTER_SOLICIT, ROUTER_ADVERT, ROUTER_LIFETIME, COMPILE
+
+// INSTRUCTION: Define newly booted IPv6 host.
+HOST new_host { IP fe80::50 }
+
+// INSTRUCTION: Define local IPv6 gateway router.
+HOST gateway_router { IP fe80::1 }
+
+// INSTRUCTION: Define router discovery flow requesting network configuration parameters.
+FLOW ndp_router_discovery(h, r) {
+    h -> r NDP ROUTER_SOLICIT
+    h <- r NDP ROUTER_ADVERT ROUTER_LIFETIME 1800
+}
+
+// INSTRUCTION: Compile block executing router advertisement discovery.
+COMPILE {
+    ndp_router_discovery(new_host, gateway_router)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Dual-stack dynamic host configuration with DHCPv4 Discover (68->67) and DHCPv6 Solicit (546->547).
+// TOKENS: HOST, IP, FLOW, ->, DHCP, DISCOVER, SOLICIT, COMPILE
+
+// INSTRUCTION: Define unconfigured IPv4 client.
+HOST dhcp_v4_client { IP 0.0.0.0 }
+
+// INSTRUCTION: Define IPv4 broadcast DHCP server.
+HOST dhcp_v4_server { IP 255.255.255.255 }
+
+// INSTRUCTION: Define link-local IPv6 client.
+HOST dhcp_v6_client { IP fe80::10 }
+
+// INSTRUCTION: Define all-DHCP-relay-and-servers IPv6 multicast group.
+HOST dhcp_v6_server { IP ff02::1:2 }
+
+// INSTRUCTION: Define dual-stack DHCP configuration flow.
+FLOW dhcp_dual_flow(c4, s4, c6, s6) {
+    c4 -> s4 DHCP DISCOVER
+    c6 -> s6 DHCP SOLICIT
+}
+
+// INSTRUCTION: Compile block executing dual-stack host discovery.
+COMPILE {
+    dhcp_dual_flow(dhcp_v4_client, dhcp_v4_server, dhcp_v6_client, dhcp_v6_server)
+}

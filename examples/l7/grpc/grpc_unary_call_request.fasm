@@ -1,0 +1,18 @@
+// PROMPT: gRPC unary Remote Procedure Call requesting user profile information.
+// TOKENS: HOST, IP, FLOW, ->, GRPC, SERVICE, METHOD, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW grpc_call(c, s) {
+    c -> s GRPC SERVICE "UserService" METHOD "GetUserProfile"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    grpc_call(client, server)
+}

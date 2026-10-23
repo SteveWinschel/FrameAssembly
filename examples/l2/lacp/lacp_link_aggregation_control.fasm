@@ -1,0 +1,18 @@
+// PROMPT: IEEE 802.3ad Link Aggregation Control Protocol PDU exchanging default link state.
+// TOKENS: HOST, IP, FLOW, ->, LACP, COMPILE
+
+// INSTRUCTION: Define LAG member interface 1 on switch A.
+HOST lag_member_a { IP 10.0.0.1 }
+
+// INSTRUCTION: Define LAG member interface 1 on switch B.
+HOST lag_member_b { IP 10.0.0.2 }
+
+// INSTRUCTION: Define LACP link aggregation control heartbeat flow.
+FLOW lacp_control_flow(a, b) {
+    a -> b LACP
+}
+
+// INSTRUCTION: Compile block executing standard LACPDU transmission.
+COMPILE {
+    lacp_control_flow(lag_member_a, lag_member_b)
+}

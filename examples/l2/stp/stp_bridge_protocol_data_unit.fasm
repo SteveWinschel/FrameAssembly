@@ -1,0 +1,18 @@
+// PROMPT: Spanning Tree Protocol standard BPDU transmission for loop prevention.
+// TOKENS: HOST, IP, FLOW, ->, STP, COMPILE
+
+// INSTRUCTION: Define root bridge switch interface.
+HOST bridge_root { IP 10.0.0.1 }
+
+// INSTRUCTION: Define designated switch interface.
+HOST bridge_designated { IP 10.0.0.2 }
+
+// INSTRUCTION: Define Spanning Tree Protocol BPDU broadcast flow.
+FLOW stp_bpdu_flow(root, desig) {
+    root -> desig STP
+}
+
+// INSTRUCTION: Compile block executing standard STP BPDU transmission.
+COMPILE {
+    stp_bpdu_flow(bridge_root, bridge_designated)
+}

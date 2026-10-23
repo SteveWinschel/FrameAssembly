@@ -1,0 +1,18 @@
+// PROMPT: HSRP first hop redundancy hello message with explicit hellotime and holdtime timers.
+// TOKENS: HOST, IP, FLOW, ->, HSRP, GROUP, PRIORITY, HELLOTIME, HOLDTIME, VIP, COMPILE
+
+// INSTRUCTION: Define HSRP group router with customized timers.
+HOST hsrp_timer_rtr { IP 172.20.1.254 }
+
+// INSTRUCTION: Define all-hosts multicast destination.
+HOST hsrp_mcast_dst { IP 224.0.0.2 }
+
+// INSTRUCTION: Define HSRP hello flow with 3s hellotime and 10s holdtime timers.
+FLOW hsrp_timer_flow(src, dst) {
+    src -> dst HSRP GROUP 5 PRIORITY 105 HELLOTIME 3 HOLDTIME 10 VIP 172.20.1.1
+}
+
+// INSTRUCTION: Compile block executing timed HSRP heartbeats.
+COMPILE {
+    hsrp_timer_flow(hsrp_timer_rtr, hsrp_mcast_dst)
+}

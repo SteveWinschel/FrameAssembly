@@ -1,0 +1,18 @@
+// PROMPT: IPv6 all-nodes multicast transmission automatically deriving RFC 2464 MAC 33:33:00:00:00:01.
+// TOKENS: HOST, IP, FLOW, ->, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define sender node on link-local IPv6.
+HOST sender_node { IP fe80::100 }
+
+// INSTRUCTION: Define all-nodes link-local multicast destination.
+HOST all_nodes_mcast { IP ff02::1 }
+
+// INSTRUCTION: Define multicast transmission flow.
+FLOW all_nodes_flow(src, dst) {
+    src -> dst UDP PAYLOAD "all_nodes_ping"
+}
+
+// INSTRUCTION: Compile block executing all-nodes multicast.
+COMPILE {
+    all_nodes_flow(sender_node, all_nodes_mcast)
+}

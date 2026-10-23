@@ -1,0 +1,18 @@
+// PROMPT: Virtual Router Redundancy Protocol master router advertisement with VRID and priority.
+// TOKENS: HOST, IP, FLOW, ->, VRRP, VRID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define primary master gateway router.
+HOST vrrp_master_gw { IP 192.168.1.254 }
+
+// INSTRUCTION: Define secondary backup gateway router.
+HOST vrrp_backup_gw { IP 192.168.1.253 }
+
+// INSTRUCTION: Define VRRP master router advertisement flow.
+FLOW vrrp_master_flow(p, b) {
+    p -> b VRRP VRID 1 PRIORITY 120
+}
+
+// INSTRUCTION: Compile block executing VRRP master advertisement.
+COMPILE {
+    vrrp_master_flow(vrrp_master_gw, vrrp_backup_gw)
+}

@@ -1,202 +1,1769 @@
 # FrameAssembly
 
-> A Domain-Specific Language (DSL) for writing deterministic network traffic to `.pcap` files.
+> A Domain-Specific Language (DSL) compiler for writing deterministic network traffic to `.pcap` files.
 
 ## Overview
-FrameAssembly compiles a custom networking DSL (with the `.fasm` extension) into reproducible PCAPNG (`.pcap`) files. It uses a strict, keyword-oriented syntax designed for network engineers, security researchers, and LLM-driven traffic generation.
+FrameAssembly compiles a custom networking DSL (.fasm) into reproducible
+PCAP/PCAPNG (.pcap) files. It supports 81 native Layer 2 through Layer 7
+protocols, full dual-stack IPv4/IPv6 polymorphism, zero-keyword RFC
+defaults, fine-grained L2–L4 frame modifiers, and stateful TCP 4-tuple
+sequence tracking and port inheritance. It is designed for network
+technicians, security researchers, firewall/IDS validation, and LLM-driven
+synthetic traffic generation.
 
-## Architecture & Folder Structure
-- `src/lib.rs`: Library crate root and module exports.
-- `src/main.rs`: Entry point handling CLI execution (`frameassembly <file.fasm>`).
-- `src/lexer.rs`: Zero-copy tokenizer built using `logos`.
-- `src/parser.rs`: Combinator-based AST parser built using `winnow`.
-- `src/ast.rs`: Abstract Syntax Tree definitions for `HostDef`, `FlowDef`, `FrameStatement`, and `Program`.
-- `src/pcap.rs`: Handles writing packets to PCAPNG format using `pcap-file`.
-- `src/packet.rs` & `src/backend.rs`: Handles packet encapsulation (L2-L4) via `etherparse` and AST evaluation.
-- `src/snmp_builder.rs` & `src/snmp_crypto.rs`: Full RFC 1157 (SNMPv1), RFC 3416 (SNMPv2c), RFC 3414 (SNMPv3 USM + DES-CBC), RFC 3826 (AES-128-CFB), and RFC 7860 (HMAC-SHA-2) packet construction.
-- `examples/`: Contains 105 annotated `.fasm` training examples (`01_...` through `105_...`) with `// PROMPT:`, `// TOKENS:`, and `// INSTRUCTION:` metadata.
+## Unified Architecture Map
+- `src/lib.rs`: Library crate root with backwards-compatible module re-exports.
+- `src/main.rs`: CLI binary interface (`frameassembly <file.fasm> [-o out.pcap]`).
+- `src/lexer/`: Zero-copy tokenizer built with Logos (`mod.rs`, `tests.rs`).
+- `src/ast/`: Abstract Syntax Tree definitions:
+  - `src/ast/mod.rs`: Root AST types (`Program`, `HostDef`, `FlowDef`, `ProtocolSpec`).
+  - `src/ast/l2/`: Layer 2 protocol AST specs (`arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`).
+  - `src/ast/l3/`: Layer 3 protocol AST specs (20 protocols: `icmp`, `ndp`, `gre`, `ipsec`, `ospf`, `bgp`, etc.).
+  - `src/ast/l4/`: Layer 4 transport AST specs (`tcp`, `udp`, `sctp`).
+  - `src/ast/l7/`: Layer 7 application AST specs (47 protocols + `snmp`).
+- `src/parser/`: Combinator-based AST parser built with Winnow:
+  - `src/parser/mod.rs`: Core parser combinators, validation, and `parse_program`.
+  - `src/parser/tests.rs`: Comprehensive parser unit tests.
+  - `src/parser/l2/`: Layer 2 protocol parsers (`arp.rs`, `vlan.rs`, `qinq.rs`, etc.).
+  - `src/parser/l3/`: Layer 3 protocol parsers (`icmp.rs`, `ndp.rs`, `gre.rs`, etc.).
+  - `src/parser/l4/`: Layer 4 transport parsers (`tcp.rs`, `udp.rs`, `sctp.rs`).
+  - `src/parser/l7/`: Layer 7 application parsers (`snmp.rs`, `dns.rs`, `http.rs`, etc.).
+- `src/builders/`: Zero-heap packet builders and payload encoders:
+  - `src/builders/mod.rs`: Module re-exports and backwards-compatible layer aliases.
+  - `src/builders/l2/`: Layer 2 wire builders.
+  - `src/builders/l3/`: Layer 3 tunnel and routing builders.
+  - `src/builders/l4/`: Layer 4 transport builders.
+  - `src/builders/l7/`: Layer 7 application builders and `snmp/` (builder & crypto).
+- `src/backend/`: Frame IR lowering, 4-tuple TCP state tracking, timing (`mod.rs`, `tests.rs`).
+- `src/packet.rs`: Etherparse network packet encapsulation.
+- `src/pcap.rs`: Nanosecond-precision PCAPNG writer via `pcap-file 2.0`.
+- `examples/`: Exhaustive 385-example verified corpus in dedicated `<layer>/<protocol>/` directories:
+  - `examples/l2/`: 25 Layer 2 examples across 8 protocols.
+  - `examples/l3/`: 60 Layer 3 examples across 20 protocols.
+  - `examples/l4/`: 46 Layer 4 examples across 3 transports.
+  - `examples/l7/`: 201 Layer 7 examples (141 across 47 protocols + 60 SNMP).
+  - `examples/topologies/`: 53 multi-tier and cross-cutting network topologies.
 
-## Complete DSL Keyword Reference
-- **Top-Level Blocks:** `HOST`, `FLOW`, `COMPILE`, `LOOP`
-- **Host Properties:** `IP <ipv4>`, `MAC <xx:xx:xx:xx:xx:xx>` (optional, defaults to `00:00:00:00:00:00`)
-- **Direction Operators:** `->` (left-to-right), `<-` (right-to-left)
-- **Protocols:** `TCP`, `UDP`, `SNMP1`, `SNMP2`, `SNMP3`
-- **Ports:** `SRCPORT <u16>`, `DSTPORT <u16>`
-- **TCP Flags (at least 1 required for `TCP`):** `SYN`, `ACK`, `FIN`, `RST`, `PSH`, `URG`, `ECE`, `CWR`
-- **TCP Fields:** `SEQ <u32>`, `ACKNUM <u32>`, `WIN <u16>`, `PAYLOAD "<string>"`
-- **Timing:** `WAIT <u32><ms|s|m>`
-- **SNMP PDU Types:** `TRAP` (default), `INFORM`, `GET`, `GETNEXT`, `GETBULK`, `SET`, `RESPONSE`
-- **SNMP Common Fields:** `COMMUNITY "<string>"`, `OID <oid|"<oid>">`, `SYSUPTIME <u32>`, `REQID <u32>`, `NONREPEATERS <u32>`, `MAXREPETITIONS <u32>`
-- **SNMPv1 Trap Fields:** `ENTERPRISE <oid|"<oid>">`, `AGENTIP <ipv4>`, `GENTRAP <0..6>`, `SPECTRAP <u32>`
-- **SNMPv3 USM Fields:** `USER "<string>"`, `ENGINEID "<hex>"`, `ENGINEBOOTS <u32>`, `ENGINETIME <u32>`, `CONTEXTNAME "<string>"`, `AUTH <MD5|SHA|SHA256|SHA384|SHA512> "<password>"`, `PRIV <DES|AES> "<password>"`
-- **SNMP Variable Bindings (`VARBIND <oid> <TYPE> <value>`):**
-  - `NULLVAL` (SNMPv2c/v3)
-  - `STRING "<text>"`
-  - `INT <i32>` (supports positive and negative integers, e.g. `-18`)
-  - `TIMETICKS <u32>`
-  - `IPVAL <ipv4>`
-  - `OIDVAL <oid|"<oid>">`
-  - `COUNTER32 <u32>`
-  - `GAUGE32 <u32>`
-  - `COUNTER64 <u64>` (SNMPv2c/v3)
+## DSL Syntax & Core Keywords
+- **Top-Level Declarations:**
+  - `HOST <name> { IP <ipv4|ipv6> [MAC <mac>] }`: Defines endpoint host.
+    Unspecified MAC is auto-derived (unicast, or RFC 2464 / RFC 1112 multicast).
+  - `FLOW <name>(<param1>, <param2>) { <statements> }`: Defines flow template.
+  - `COMPILE { <invocations> }`: Test execution block executing declared flows.
+  - `LOOP <count> { <invocations> }`: High-volume packet generation loop.
+- **Direction Operators:**
+  - `A -> B`: Left-to-right transmission (A is source, B is destination).
+  - `A <- B`: Right-to-left transmission (B is source, A is destination).
+    Ports and TCP sequence numbers are automatically tracked and swapped.
+- **Universal Modifiers:**
+  - `WAIT <duration>`: Inter-frame delay (`ns`, `us`, `ms`, `s`, `m`).
+  - `PAYLOAD "<string>"`: ASCII/UTF-8 payload with escape sequences.
+  - `HEXPAYLOAD "<hex>"`: Raw binary hexadecimal byte payload.
+- **Layer 2 Modifiers:**
+  - `SRCMAC <mac>`, `DSTMAC <mac>`, `ETHERTYPE <u16>`
+  - `VLAN <1..4094> [PCP <0..7>] [DEI <0..1>]`
+  - `QINQ <1..4094> [INNER_VLAN <1..4094>]`
+  - `MPLS <label> [EXP <0..7>] [BOS <0..1>] [MPLS_TTL <u8>]`
+- **Layer 3 Modifiers:**
+  - `TTL <0..255>`: IPv4 Time-To-Live or IPv6 Hop Limit.
+  - `DSCP <0..63>`: Differentiated Services Code Point (QoS).
+  - `ECN <0..3>`: Explicit Congestion Notification bits.
+  - `FLOWLABEL <0..1048575>`: 20-bit IPv6 Flow Label (ignored on IPv4).
+  - `IPID <u16>`, `DF`, `MF`, `FRAGOFFSET <u16>`: IPv4 fragmentation flags.
+- **Layer 4 Modifiers:**
+  - `SRCPORT <u16>`, `DSTPORT <u16>`: Transport layer port overrides.
+  - `TRANSPORT TCP|UDP`: Explicit transport protocol selector.
+  - `SEQ <u32>`, `ACKNUM <u32>`, `WIN <u16>`: Sequence, ack, window.
+  - `MSS <u16>`, `WSCALE <u8>`, `SACK_PERM`: TCP options negotiation.
+  - `TSVAL <u32>`, `TSECR <u32>`, `URGENT <u16>`: Timestamps and urgent.
+  - TCP Flags: `SYN`, `ACK`, `FIN`, `RST`, `PSH`, `URG`, `ECE`, `CWR`.
+- **SNMP Protocols & USM:**
+  - PDU Types: `TRAP`, `INFORM`, `GET`, `GETNEXT`, `GETBULK`, `SET`, `RESPONSE`, `REPORT`.
+  - Common Fields: `COMMUNITY "<str>"`, `OID <oid>`, `SYSUPTIME <u32>`, `REQID <u32>`.
+  - SNMPv1 Fields: `ENTERPRISE <oid>`, `AGENTIP <ipv4>`, `GENTRAP <0..6>`, `SPECTRAP <u32>`.
+  - SNMPv3 Fields: `USER "<str>"`, `ENGINEID "<hex>"`, `ENGINEBOOTS <u32>`, `ENGINETIME <u32>`.
+  - SNMPv3 Security: `AUTH <MD5|SHA|SHA256|SHA384|SHA512> "<pass>"`, `PRIV <DES|AES> "<pass>"`.
+  - Variable Bindings: `VARBIND <oid> <TYPE> <value>`:
+    - `NULLVAL`: ASN.1 Null.
+    - `STRING "<text>"`: OctetString.
+    - `INT <signed_i32>`: Signed 32-bit Integer (supports negative numbers).
+    - `TIMETICKS <u32>`: Hundredths of a second.
+    - `IPVAL <ip>`: 4-byte IPv4 or 16-byte IPv6 address (RFC 4001).
+    - `OIDVAL <oid>`: ASN.1 Object Identifier.
+    - `COUNTER32 <u32>`, `GAUGE32 <u32>`, `COUNTER64 <u64>`.
 
-## Syntax Guide & Quick Example
-```frameassembly
-// PROMPT: Establish a TCP handshake and send SNMPv2c/v3 traps in a loop.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PAYLOAD, SNMP2, SNMP3, TRAP, COMMUNITY, USER, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, PRIV, AES, OID, SYSUPTIME, VARBIND, INT, COUNTER64, COMPILE, LOOP
+## Comprehensive Protocol Keyword & Sub-Keyword Reference (All 81 Protocols)
 
-// INSTRUCTION: Define network endpoints.
-HOST example_server { IP 10.0.10.5 MAC aa:bb:cc:dd:ee:ff }
+### 1. Layer 2 Data Link Protocols (8 Protocols)
 
-// INSTRUCTION: Define the NMS receiver.
-HOST example_nms { IP 10.0.10.100 }
+#### `ARP` (Address Resolution Protocol - RFC 826)
+- Directory: [`examples/l2/arp/`](examples/l2/arp/)
+- Sub-keywords: `REQUEST`, `REPLY`, `GRATUITOUS` / `GARP`, `SPA <ip>`, `THA
+  <mac>`, `TPA <ip>`, `SENDERMAC <mac>`, `TARGETMAC <mac>`, `SENDERIP <ip>`,
+  `TARGETIP <ip>`.
+- Wire behavior: EtherType 0x0806, Hardware Type 1 (Ethernet), Protocol Type
+  0x0800 (IPv4). Defaults to `REQUEST` asking for target IP.
 
-// INSTRUCTION: Define sequence of TCP packet transmissions.
-FLOW tcp_handshake(client, server) {
-    client -> server TCP SYN PAYLOAD "Hello"
-    client <- server TCP SYN ACK PAYLOAD "World"
-    client -> server TCP ACK PAYLOAD "!"
-}
+#### `VLAN` (IEEE 802.1Q Virtual Bridged LANs)
+- Directory: [`examples/l2/vlan/`](examples/l2/vlan/)
+- Sub-keywords: `VLAN <1..4094>`, `PCP <0..7>`, `DEI <0..1>`.
+- Wire behavior: Inserts 4-byte 802.1Q tag (EtherType 0x8100) before inner
+  payload. Defaults to VLAN 100, PCP 0, DEI 0.
 
-// INSTRUCTION: Define SNMPv2c/v3 traps with custom VarBinds and USM cryptography.
-FLOW snmp_alert(agent, nms) {
-    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" SYSUPTIME 1000 VARBIND 1.3.6.1.2.1.2.2.1.1.1 INT -12
-    agent -> nms SNMP3 TRAP USER "admin" ENGINEBOOTS 1 ENGINETIME 100 AUTH SHA256 "authpass" PRIV AES "privpass" VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER64 123456789
-}
+#### `QINQ` (IEEE 802.1ad Provider Bridging)
+- Directory: [`examples/l2/qinq/`](examples/l2/qinq/)
+- Sub-keywords: `QINQ <1..4094>`, `INNER_VLAN <1..4094>`, `PCP <0..7>`, `DEI
+  <0..1>`.
+- Wire behavior: Dual-tagged stack with 0x88A8 outer service tag and 0x8100
+  inner customer tag.
 
-// INSTRUCTION: Compile block to execute flows.
-COMPILE {
-    LOOP 10 {
-        tcp_handshake(example_server, example_nms)
-        snmp_alert(example_server, example_nms)
-    }
-}
-```
+#### `LLDP` (IEEE 802.1AB Link Layer Discovery Protocol)
+- Directory: [`examples/l2/lldp/`](examples/l2/lldp/)
+- Sub-keywords: `CHASSIS_ID "<str>"`, `PORT_ID "<str>"`, `TTL <u16>`,
+  `SYSNAME "<str>"`, `SYSDESC "<str>"`.
+- Wire behavior: EtherType 0x88CC to multicast `01:80:c2:00:00:0e`. Emits
+  Chassis ID, Port ID, TTL (default 120s), and End TLVs.
 
-## Examples Corpus (`examples/*.fasm`)
+#### `STP` (IEEE 802.1D Spanning Tree / 802.1w RSTP)
+- Directory: [`examples/l2/stp/`](examples/l2/stp/)
+- Sub-keywords: `ROOT_ID "<str>"`, `BRIDGE_ID "<str>"`, `COST <u32>`,
+  `PORT_ID <u16>`, `MAX_AGE <u16>`, `HELLO_TIME <u16>`, `FORWARD_DELAY
+  <u16>`, `RSTP`, `FLAGS <u8>`.
+- Wire behavior: Emitted over LLC/SNAP to `01:80:c2:00:00:00`. Emits
+  Configuration or RSTP BPDU.
 
-### Core & Foundational (`01`–`05`)
-- [examples/01_tcp_syn_flood.fasm](examples/01_tcp_syn_flood.fasm) - TCP SYN flood attack in a 1000-iteration loop with 1ms intervals
-- [examples/02_udp_dns_simulation.fasm](examples/02_udp_dns_simulation.fasm) - UDP DNS query and response on port 53
-- [examples/03_snmp_trap_storm.fasm](examples/03_snmp_trap_storm.fasm) - SNMPv2c linkDown trap storm in a 50-iteration loop
-- [examples/04_tcp_3_way_handshake.fasm](examples/04_tcp_3_way_handshake.fasm) - Standard TCP 3-way handshake with explicit SEQ and ACKNUM on port 443
-- [examples/05_complex_enterprise_network.fasm](examples/05_complex_enterprise_network.fasm) - Multi-host HTTP and SNMPv3 enterprise scenario
+#### `LACP` (IEEE 802.3ad Link Aggregation Control)
+- Directory: [`examples/l2/lacp/`](examples/l2/lacp/)
+- Sub-keywords: `ACTOR_SYS "<mac>"`, `ACTOR_KEY <u16>`, `ACTOR_PORT <u16>`,
+  `PARTNER_SYS "<mac>"`, `PARTNER_KEY <u16>`, `PARTNER_PORT <u16>`,
+  `ACTOR_STATE <u8>`, `PARTNER_STATE <u8>`.
+- Wire behavior: Slow Protocols (EtherType 0x8809, Subtype 1) to
+  `01:80:c2:00:00:02`.
 
-### TCP Flags, Handshakes, Scans & Application Protocols (`06`–`25`)
-- [examples/06_tcp_graceful_fin_teardown.fasm](examples/06_tcp_graceful_fin_teardown.fasm) - 4-way TCP FIN-ACK connection teardown
-- [examples/07_tcp_rst_connection_abort.fasm](examples/07_tcp_rst_connection_abort.fasm) - Abrupt TCP RST ACK connection abort with zero window
-- [examples/08_tcp_psh_ack_interactive_ssh.fasm](examples/08_tcp_psh_ack_interactive_ssh.fasm) - Interactive SSH session on port 22 with PSH ACK payloads
-- [examples/09_tcp_urg_out_of_band_data.fasm](examples/09_tcp_urg_out_of_band_data.fasm) - Out-of-band Telnet interrupt using URG PSH ACK flags
-- [examples/10_tcp_ecn_congestion_negotiation.fasm](examples/10_tcp_ecn_congestion_negotiation.fasm) - Explicit Congestion Notification (SYN, ECE, CWR, ACK)
-- [examples/11_tcp_xmas_tree_stealth_scan.fasm](examples/11_tcp_xmas_tree_stealth_scan.fasm) - Nmap Xmas tree stealth scan (FIN PSH URG)
-- [examples/12_tcp_fin_stealth_scan.fasm](examples/12_tcp_fin_stealth_scan.fasm) - Bare TCP FIN stealth port scan
-- [examples/13_tcp_ack_firewall_rule_probe.fasm](examples/13_tcp_ack_firewall_rule_probe.fasm) - Unsolicited TCP ACK firewall rule probe
-- [examples/14_tcp_syn_ack_reflection_amplification.fasm](examples/14_tcp_syn_ack_reflection_amplification.fasm) - Reflected SYN-ACK flood and RST responses
-- [examples/15_tcp_zero_window_probe_and_recovery.fasm](examples/15_tcp_zero_window_probe_and_recovery.fasm) - Zero window (WIN 0) advertisement, probe, and WIN 65535 recovery
-- [examples/16_tcp_all_eight_flags_kamikaze.fasm](examples/16_tcp_all_eight_flags_kamikaze.fasm) - All 8 TCP flags enabled simultaneously (SYN ACK FIN RST PSH URG ECE CWR)
-- [examples/17_tcp_simultaneous_open_handshake.fasm](examples/17_tcp_simultaneous_open_handshake.fasm) - RFC 793 simultaneous TCP open handshake
-- [examples/18_tcp_keepalive_long_idle_session.fasm](examples/18_tcp_keepalive_long_idle_session.fasm) - Long idle TCP connection using `ms`, `s`, and `m` WAIT units
-- [examples/19_tcp_retransmission_and_duplicate_ack.fasm](examples/19_tcp_retransmission_and_duplicate_ack.fasm) - Triple duplicate ACK and TCP fast retransmission
-- [examples/20_tcp_http_post_json_api.fasm](examples/20_tcp_http_post_json_api.fasm) - Complete HTTP/1.1 POST JSON authentication flow
-- [examples/21_tcp_smtp_email_submission.fasm](examples/21_tcp_smtp_email_submission.fasm) - SMTP email submission dialog on port 587
-- [examples/22_tcp_ftp_control_and_passive_mode.fasm](examples/22_tcp_ftp_control_and_passive_mode.fasm) - FTP login and PASV negotiation on port 21
-- [examples/23_tcp_redis_resp_cache_lookup.fasm](examples/23_tcp_redis_resp_cache_lookup.fasm) - Redis RESP cache SET/GET pipeline on port 6379
-- [examples/24_tcp_bgp_peer_open_and_keepalive.fasm](examples/24_tcp_bgp_peer_open_and_keepalive.fasm) - BGP-4 eBGP peering on TCP port 179
-- [examples/25_tcp_mqtt_iot_telemetry_publish.fasm](examples/25_tcp_mqtt_iot_telemetry_publish.fasm) - IoT MQTT broker CONNECT and QoS 1 PUBLISH loop on port 1883
+#### `EAPOL` (IEEE 802.1X Port-Based Network Access Control)
+- Directory: [`examples/l2/eapol/`](examples/l2/eapol/)
+- Sub-keywords: `VERSION <u8>`, `TYPE <u8>`, `START`, `LOGOFF`, `KEY`,
+  `EAP_PACKET`, `EAP_CODE <u8>`, `EAP_ID <u8>`, `EAP_METHOD <u8>`, `IDENTITY
+  "<str>"`.
+- Wire behavior: EtherType 0x888E. Defaults to EAP-Packet with EAP-
+  Request/Response Identity.
 
-### UDP Services, Overlays & Multicast (`26`–`40`)
-- [examples/26_udp_dhcp_discover_offer_request_ack.fasm](examples/26_udp_dhcp_discover_offer_request_ack.fasm) - Full DHCPv4 DORA broadcast flow on UDP ports 67/68
-- [examples/27_udp_ntp_clock_synchronization.fasm](examples/27_udp_ntp_clock_synchronization.fasm) - Stratum-1 NTP clock synchronization on UDP port 123
-- [examples/28_udp_syslog_rfc5424_forwarding.fasm](examples/28_udp_syslog_rfc5424_forwarding.fasm) - RFC 5424 Syslog event forwarding on UDP port 514
-- [examples/29_udp_tftp_firmware_block_transfer.fasm](examples/29_udp_tftp_firmware_block_transfer.fasm) - PXE TFTP firmware read request and block transfer on UDP port 69
-- [examples/30_udp_radius_authentication_accounting.fasm](examples/30_udp_radius_authentication_accounting.fasm) - RADIUS authentication (1812) and accounting (1813)
-- [examples/31_udp_vxlan_overlay_heartbeat.fasm](examples/31_udp_vxlan_overlay_heartbeat.fasm) - Data center VXLAN VTEP overlay traffic on UDP port 4789
-- [examples/32_udp_wireguard_vpn_handshake.fasm](examples/32_udp_wireguard_vpn_handshake.fasm) - WireGuard VPN handshake and transport data on UDP port 51820
-- [examples/33_udp_quic_http3_initial_exchange.fasm](examples/33_udp_quic_http3_initial_exchange.fasm) - QUIC / HTTP/3 initial handshake on UDP port 443
-- [examples/34_udp_sip_voip_call_setup.fasm](examples/34_udp_sip_voip_call_setup.fasm) - VoIP SIP INVITE/200 OK/ACK/BYE call setup on UDP port 5060
-- [examples/35_udp_rtp_voice_media_stream.fasm](examples/35_udp_rtp_voice_media_stream.fasm) - Bidirectional RTP voice media stream on UDP port 16384
-- [examples/36_udp_netflow_v9_collector_export.fasm](examples/36_udp_netflow_v9_collector_export.fasm) - NetFlow v9 template and data export on UDP port 2055
-- [examples/37_udp_ssdp_upnp_multicast_discovery.fasm](examples/37_udp_ssdp_upnp_multicast_discovery.fasm) - UPnP SSDP multicast M-SEARCH discovery on UDP port 1900
-- [examples/38_udp_mdns_local_service_resolution.fasm](examples/38_udp_mdns_local_service_resolution.fasm) - Multicast DNS (mDNS) discovery on 224.0.0.251 port 5353
-- [examples/39_udp_gossip_cluster_membership.fasm](examples/39_udp_gossip_cluster_membership.fasm) - 3-node SWIM UDP gossip membership ring on port 7946
-- [examples/40_udp_stateless_empty_payload_ping.fasm](examples/40_udp_stateless_empty_payload_ping.fasm) - Minimal empty-payload UDP traceroute probes
+#### `MPLS` (RFC 3031 / 3032 Multi-Protocol Label Switching)
+- Directory: [`examples/l2/mpls/`](examples/l2/mpls/)
+- Sub-keywords: `LABEL <u32>`, `EXP <0..7>`, `TC <0..7>`, `BOS <0..1>`,
+  `MPLS_TTL <u8>`.
+- Wire behavior: EtherType 0x8847. Emits 32-bit label stack entry (default
+  Label 16, BOS 1, TTL 64).
 
-### SNMPv1 Traps & SMIv1 VarBinds (`41`–`52`)
-- [examples/41_snmpv1_cold_start_generic_trap.fasm](examples/41_snmpv1_cold_start_generic_trap.fasm) - SNMPv1 coldStart trap (`GENTRAP 0`)
-- [examples/42_snmpv1_warm_start_generic_trap.fasm](examples/42_snmpv1_warm_start_generic_trap.fasm) - SNMPv1 warmStart trap (`GENTRAP 1` and OID auto-mapping)
-- [examples/43_snmpv1_link_down_generic_trap.fasm](examples/43_snmpv1_link_down_generic_trap.fasm) - SNMPv1 linkDown trap (`GENTRAP 2`) with INT and STRING varbinds
-- [examples/44_snmpv1_link_up_generic_trap.fasm](examples/44_snmpv1_link_up_generic_trap.fasm) - SNMPv1 linkUp trap (`GENTRAP 3`) with TIMETICKS and OIDVAL varbinds
-- [examples/45_snmpv1_auth_failure_generic_trap.fasm](examples/45_snmpv1_auth_failure_generic_trap.fasm) - SNMPv1 authenticationFailure trap (`GENTRAP 4`) with IPVAL varbind
-- [examples/46_snmpv1_egp_neighbor_loss_trap.fasm](examples/46_snmpv1_egp_neighbor_loss_trap.fasm) - SNMPv1 egpNeighborLoss trap (`GENTRAP 5`) with IPVAL and COUNTER32
-- [examples/47_snmpv1_enterprise_specific_chassis_alert.fasm](examples/47_snmpv1_enterprise_specific_chassis_alert.fasm) - SNMPv1 enterpriseSpecific trap (`GENTRAP 6`, `SPECTRAP 42`)
-- [examples/48_snmpv1_optical_transceiver_negative_dbm.fasm](examples/48_snmpv1_optical_transceiver_negative_dbm.fasm) - SNMPv1 optical DOM trap with negative `INT` dBm values
-- [examples/49_snmpv1_all_supported_v1_varbind_types.fasm](examples/49_snmpv1_all_supported_v1_varbind_types.fasm) - SNMPv1 trap combining all 7 SMIv1 varbind types
-- [examples/50_snmpv1_proxy_agent_ip_override.fasm](examples/50_snmpv1_proxy_agent_ip_override.fasm) - SNMPv1 proxy forwarding with overridden `AGENTIP`
-- [examples/51_snmpv1_custom_ports_and_community.fasm](examples/51_snmpv1_custom_ports_and_community.fasm) - SNMPv1 trap on custom UDP port 10162
-- [examples/52_snmpv1_multi_switch_trap_aggregation.fasm](examples/52_snmpv1_multi_switch_trap_aggregation.fasm) - Three switches aggregating SNMPv1 traps to a campus NMS
+### 2. Layer 3 Routing, Tunneling & Security Protocols (20 Protocols)
 
-### SNMPv2c Operations & SMIv2 VarBinds (`53`–`70`)
-- [examples/53_snmpv2c_get_request_and_response.fasm](examples/53_snmpv2c_get_request_and_response.fasm) - SNMPv2c `GET` (with `NULLVAL`) and `RESPONSE`
-- [examples/54_snmpv2c_getnext_mib_walk.fasm](examples/54_snmpv2c_getnext_mib_walk.fasm) - Sequential SNMPv2c `GETNEXT` MIB walk
-- [examples/55_snmpv2c_getbulk_interface_table.fasm](examples/55_snmpv2c_getbulk_interface_table.fasm) - SNMPv2c `GETBULK` with `NONREPEATERS` and `MAXREPETITIONS`
-- [examples/56_snmpv2c_set_request_admin_status.fasm](examples/56_snmpv2c_set_request_admin_status.fasm) - SNMPv2c `SET` toggling interface `ifAdminStatus`
-- [examples/57_snmpv2c_inform_request_acknowledged.fasm](examples/57_snmpv2c_inform_request_acknowledged.fasm) - SNMPv2c `INFORM` and acknowledging `RESPONSE`
-- [examples/58_snmpv2c_trap_link_flap_varbinds.fasm](examples/58_snmpv2c_trap_link_flap_varbinds.fasm) - SNMPv2c linkDown/linkUp flap sequence
-- [examples/59_snmpv2c_counter64_high_speed_interface.fasm](examples/59_snmpv2c_counter64_high_speed_interface.fasm) - SNMPv2c 64-bit `COUNTER64` high-capacity counters
-- [examples/60_snmpv2c_all_nine_varbind_types.fasm](examples/60_snmpv2c_all_nine_varbind_types.fasm) - SNMPv2c packet containing all 9 VarBind types
-- [examples/61_snmpv2c_bgp_peer_state_trap.fasm](examples/61_snmpv2c_bgp_peer_state_trap.fasm) - BGP4-MIB `bgpBackwardTransNotification` SNMPv2c trap
-- [examples/62_snmpv2c_environmental_sensor_polling.fasm](examples/62_snmpv2c_environmental_sensor_polling.fasm) - Cryo sensor polling with negative `INT` and `GAUGE32`
-- [examples/63_snmpv2c_ups_battery_runtime_ticks.fasm](examples/63_snmpv2c_ups_battery_runtime_ticks.fasm) - UPS battery monitoring with `TIMETICKS` and `GAUGE32`
-- [examples/64_snmpv2c_bulk_walk_routing_table.fasm](examples/64_snmpv2c_bulk_walk_routing_table.fasm) - Routing table `GETBULK` walk returning `IPVAL` next-hops
-- [examples/65_snmpv2c_quoted_and_unquoted_oids.fasm](examples/65_snmpv2c_quoted_and_unquoted_oids.fasm) - Quoted, unquoted, and 4-arc OID syntax variations
-- [examples/66_snmpv2c_polling_loop_interval_1s.fasm](examples/66_snmpv2c_polling_loop_interval_1s.fasm) - Looped 1s SNMPv2c CPU/memory gauge polling
-- [examples/67_snmpv2c_set_hostname_and_contact.fasm](examples/67_snmpv2c_set_hostname_and_contact.fasm) - Multi-varbind SNMPv2c `SET` for system scalars
-- [examples/68_snmpv2c_firewall_connection_table_gauge.fasm](examples/68_snmpv2c_firewall_connection_table_gauge.fasm) - Firewall session gauge and drop counter polling
-- [examples/69_snmpv2c_inform_retry_and_confirm.fasm](examples/69_snmpv2c_inform_retry_and_confirm.fasm) - SNMPv2c `INFORM` retry with preserved `REQID`
-- [examples/70_snmpv2c_default_trap_implicit_pdu.fasm](examples/70_snmpv2c_default_trap_implicit_pdu.fasm) - Implicit default Trap PDU behavior across SNMP1/2/3
+#### `ICMP` (Internet Control Message Protocol - RFC 792 / RFC 4443)
+- Directory: [`examples/l3/icmp/`](examples/l3/icmp/)
+- Sub-keywords: `ECHO_REQUEST`, `ECHO_REPLY`, `DEST_UNREACH`,
+  `TIME_EXCEEDED`, `REDIRECT`, `CODE <u8>`, `ID <u16>`, `SEQ <u16>`,
+  `GATEWAY <ip>`.
+- Wire behavior: Polymorphic dual-stack (IPv4 protocol 1 or IPv6 protocol
+  58). Defaults to Echo Request (ID 1, Seq 1).
 
-### SNMPv3 USM Authentication & Privacy Permutations (`71`–`90`)
-- [examples/71_snmpv3_noauth_nopriv_get_response.fasm](examples/71_snmpv3_noauth_nopriv_get_response.fasm) - SNMPv3 `noAuthNoPriv` GET and RESPONSE
-- [examples/72_snmpv3_auth_md5_nopriv_trap.fasm](examples/72_snmpv3_auth_md5_nopriv_trap.fasm) - SNMPv3 `authNoPriv` with `AUTH MD5` TRAP
-- [examples/73_snmpv3_auth_sha1_nopriv_trap.fasm](examples/73_snmpv3_auth_sha1_nopriv_trap.fasm) - SNMPv3 `authNoPriv` with `AUTH SHA` TRAP
-- [examples/74_snmpv3_auth_sha256_nopriv_inform.fasm](examples/74_snmpv3_auth_sha256_nopriv_inform.fasm) - SNMPv3 `authNoPriv` with `AUTH SHA256` INFORM/RESPONSE
-- [examples/75_snmpv3_auth_sha384_nopriv_getbulk.fasm](examples/75_snmpv3_auth_sha384_nopriv_getbulk.fasm) - SNMPv3 `authNoPriv` with `AUTH SHA384` GETBULK/RESPONSE
-- [examples/76_snmpv3_auth_sha512_nopriv_set.fasm](examples/76_snmpv3_auth_sha512_nopriv_set.fasm) - SNMPv3 `authNoPriv` with `AUTH SHA512` SET/RESPONSE
-- [examples/77_snmpv3_auth_md5_priv_des_trap.fasm](examples/77_snmpv3_auth_md5_priv_des_trap.fasm) - SNMPv3 `authPriv` with `AUTH MD5` + `PRIV DES`
-- [examples/78_snmpv3_auth_md5_priv_aes_trap.fasm](examples/78_snmpv3_auth_md5_priv_aes_trap.fasm) - SNMPv3 `authPriv` with `AUTH MD5` + `PRIV AES`
-- [examples/79_snmpv3_auth_sha_priv_des_get_response.fasm](examples/79_snmpv3_auth_sha_priv_des_get_response.fasm) - SNMPv3 `authPriv` with `AUTH SHA` + `PRIV DES`
-- [examples/80_snmpv3_auth_sha_priv_aes_inform.fasm](examples/80_snmpv3_auth_sha_priv_aes_inform.fasm) - SNMPv3 `authPriv` with `AUTH SHA` + `PRIV AES`
-- [examples/81_snmpv3_auth_sha256_priv_des_getnext.fasm](examples/81_snmpv3_auth_sha256_priv_des_getnext.fasm) - SNMPv3 `authPriv` with `AUTH SHA256` + `PRIV DES`
-- [examples/82_snmpv3_auth_sha256_priv_aes_trap.fasm](examples/82_snmpv3_auth_sha256_priv_aes_trap.fasm) - SNMPv3 `authPriv` with `AUTH SHA256` + `PRIV AES`
-- [examples/83_snmpv3_auth_sha384_priv_des_set.fasm](examples/83_snmpv3_auth_sha384_priv_des_set.fasm) - SNMPv3 `authPriv` with `AUTH SHA384` + `PRIV DES`
-- [examples/84_snmpv3_auth_sha384_priv_aes_getbulk.fasm](examples/84_snmpv3_auth_sha384_priv_aes_getbulk.fasm) - SNMPv3 `authPriv` with `AUTH SHA384` + `PRIV AES`
-- [examples/85_snmpv3_auth_sha512_priv_des_inform.fasm](examples/85_snmpv3_auth_sha512_priv_des_inform.fasm) - SNMPv3 `authPriv` with `AUTH SHA512` + `PRIV DES`
-- [examples/86_snmpv3_auth_sha512_priv_aes_high_security.fasm](examples/86_snmpv3_auth_sha512_priv_aes_high_security.fasm) - SNMPv3 `authPriv` with `AUTH SHA512` + `PRIV AES` and all 9 VarBind types
-- [examples/87_snmpv3_multi_vrf_context_names.fasm](examples/87_snmpv3_multi_vrf_context_names.fasm) - Multi-VRF SNMPv3 polling with distinct `CONTEXTNAME`s
-- [examples/88_snmpv3_engine_discovery_and_time_sync.fasm](examples/88_snmpv3_engine_discovery_and_time_sync.fasm) - SNMPv3 EngineID discovery and EngineBoots/EngineTime sync
-- [examples/89_snmpv3_des_padding_boundary_varbinds.fasm](examples/89_snmpv3_des_padding_boundary_varbinds.fasm) - RFC 3414 DES-CBC block alignment and padding vectors
-- [examples/90_snmpv3_high_frequency_encrypted_telemetry.fasm](examples/90_snmpv3_high_frequency_encrypted_telemetry.fasm) - High-frequency encrypted SNMPv3 telemetry loop
+#### `NDP` (IPv6 Neighbor Discovery - RFC 4861)
+- Directory: [`examples/l3/ndp/`](examples/l3/ndp/)
+- Sub-keywords: `ROUTER_SOLICIT`, `ROUTER_ADVERT`, `NEIGHBOR_SOLICIT`,
+  `NEIGHBOR_ADVERT`, `TARGET <ipv6>`, `SLLA <mac>`, `TLLA <mac>`,
+  `ROUTER_LIFETIME <u16>`.
+- Wire behavior: ICMPv6 Type 135 Neighbor Solicitation to Solicited-Node
+  Multicast (`ff02::1:ffxx:xxxx`), Hop Limit 255.
 
-### Multi-Host Topologies, Hybrid Scenarios & Omnibus (`91`–`105`)
-- [examples/91_topology_three_tier_web_app.fasm](examples/91_topology_three_tier_web_app.fasm) - 4-host three-tier web architecture (Client -> LB -> App -> DB)
-- [examples/92_topology_spine_leaf_datacenter.fasm](examples/92_topology_spine_leaf_datacenter.fasm) - Clos spine-leaf fabric (BGP TCP + VXLAN UDP + SNMPv3)
-- [examples/93_topology_dmz_firewall_intrusion_alert.fasm](examples/93_topology_dmz_firewall_intrusion_alert.fasm) - DMZ scan blocked by firewall with Syslog UDP and SNMPv3 INFORM to SIEM
-- [examples/94_topology_dns_amplification_and_mitigation.fasm](examples/94_topology_dns_amplification_and_mitigation.fasm) - UDP DNS amplification followed by BGP FlowSpec and SNMPv2c trap
-- [examples/95_topology_industrial_scada_modbus_monitoring.fasm](examples/95_topology_industrial_scada_modbus_monitoring.fasm) - Industrial SCADA Modbus/TCP port 502 + SNMPv1/v2c thermal alerts
-- [examples/96_topology_kubernetes_pod_service_mesh.fasm](examples/96_topology_kubernetes_pod_service_mesh.fasm) - Kubernetes CoreDNS UDP + Envoy mTLS gRPC TCP + SNMPv2c node metrics
-- [examples/97_topology_wan_sdwan_failover_simulation.fasm](examples/97_topology_wan_sdwan_failover_simulation.fasm) - SD-WAN BFD UDP failure detection + SNMPv2c linkDown + TCP failover
-- [examples/98_topology_voip_call_with_qos_telemetry.fasm](examples/98_topology_voip_call_with_qos_telemetry.fasm) - SIP/RTP VoIP call with SNMPv3 QoS jitter telemetry
-- [examples/99_topology_zero_trust_proxy_inspection.fasm](examples/99_topology_zero_trust_proxy_inspection.fasm) - Zero Trust proxy mTLS + RADIUS MFA UDP + SSH Git backend
-- [examples/100_complete_dsl_omnibus_reference.fasm](examples/100_complete_dsl_omnibus_reference.fasm) - Complete DSL omnibus script containing 100% of all FrameAssembly tokens
-- [examples/101_multi_loop_staged_load_test.fasm](examples/101_multi_loop_staged_load_test.fasm) - Multi-stage warm-up, peak burst, and cool-down `LOOP` blocks
-- [examples/102_multi_arg_flow_mesh_orchestration.fasm](examples/102_multi_arg_flow_mesh_orchestration.fasm) - 5-host parameter east-west mesh orchestration flow
-- [examples/103_bidirectional_asymmetric_port_routing.fasm](examples/103_bidirectional_asymmetric_port_routing.fasm) - Automatic TCP sequence advancement across variable payloads
-- [examples/104_snmp_tri_version_coexistence_audit.fasm](examples/104_snmp_tri_version_coexistence_audit.fasm) - Coexisting SNMPv1, SNMPv2c, and SNMPv3 compliance audit
-- [examples/105_minimal_single_frame_baseline.fasm](examples/105_minimal_single_frame_baseline.fasm) - Minimal single-frame baseline example
+#### `IGMP` (Internet Group Management Protocol - RFC 2236 / RFC 3376)
+- Directory: [`examples/l3/igmp/`](examples/l3/igmp/)
+- Sub-keywords: `QUERY`, `REPORT`, `LEAVE`, `V1`, `V2`, `V3`, `GROUP
+  <ipv4>`, `MAX_RESP <u8>`.
+- Wire behavior: IPv4 protocol 2. Defaults to Membership Query to all-
+  systems multicast `224.0.0.1`.
+
+#### `MLD` (Multicast Listener Discovery for IPv6 - RFC 2710 / RFC 3810)
+- Directory: [`examples/l3/mld/`](examples/l3/mld/)
+- Sub-keywords: `QUERY`, `REPORT`, `DONE`, `V1`, `V2`, `MULTICAST_ADDR
+  <ipv6>`, `MAX_RESP_DELAY <u16>`.
+- Wire behavior: ICMPv6 Type 130 Listener Query to `ff02::1` with Router
+  Alert hop-by-hop option.
+
+#### `GRE` (Generic Routing Encapsulation - RFC 2784 / RFC 2890)
+- Directory: [`examples/l3/gre/`](examples/l3/gre/)
+- Sub-keywords: `CHECKSUM`, `GRE_KEY <u32>`, `GRE_SEQ <u32>`, `GRE_PROTO
+  <u16>`.
+- Wire behavior: IP protocol 47. Encapsulates inner protocol payload
+  (default EtherType 0x0800 or 0x86DD).
+
+#### `VXLAN` (Virtual eXtensible Local Area Network - RFC 7348)
+- Directory: [`examples/l3/vxlan/`](examples/l3/vxlan/)
+- Sub-keywords: `VNI <u32>` / `VNID <u32>`, `SRCPORT <u16>`, `DSTPORT
+  <u16>`.
+- Wire behavior: UDP port 4789. Emits 8-byte VXLAN header with 24-bit VNI
+  (default 1000) and inner Ethernet frame.
+
+#### `GENEVE` (Generic Network Virtualization Encapsulation - RFC 8926)
+- Directory: [`examples/l3/geneve/`](examples/l3/geneve/)
+- Sub-keywords: `VNI <u32>`, `PROTOCOL_TYPE <u16>`, `OPT_CLASS <u16>`,
+  `OPT_TYPE <u8>`.
+- Wire behavior: UDP port 6081. Emits GENEVE header with 24-bit VNI and
+  EtherType 0x6558.
+
+#### `IPSEC` (IP Security Architecture - RFC 4301)
+- Directory: [`examples/l3/ipsec/`](examples/l3/ipsec/)
+- Sub-keywords: `SPI <u32>`, `SEQ <u32>`, `IV "<hex>"`, `ICV "<hex>"`.
+- Wire behavior: IP protocol 50 (ESP wrapper). SPI default 0x1000, sequence
+  1.
+
+#### `ESP` (Encapsulating Security Payload - RFC 4303)
+- Directory: [`examples/l3/esp/`](examples/l3/esp/)
+- Sub-keywords: `SPI <u32>`, `SEQ <u32>`, `IV "<hex>"`, `ICV "<hex>"`,
+  `NEXT_HEADER <u8>`.
+- Wire behavior: IP protocol 50. Encapsulates encrypted payload with SPI and
+  sequence counter.
+
+#### `AH` (IP Authentication Header - RFC 4302)
+- Directory: [`examples/l3/ah/`](examples/l3/ah/)
+- Sub-keywords: `SPI <u32>`, `SEQ <u32>`, `ICV "<hex>"`, `NEXT_HEADER <u8>`.
+- Wire behavior: IP protocol 51. Emits SPI, sequence counter, and 96-bit ICV
+  authentication tag.
+
+#### `IKEV2` (Internet Key Exchange Protocol Version 2 - RFC 7296)
+- Directory: [`examples/l3/ikev2/`](examples/l3/ikev2/)
+- Sub-keywords: `INITIATOR_SPI "<hex>"`, `RESPONDER_SPI "<hex>"`, `EXCHANGE
+  <u8>`, `SA_INIT`, `CREATE_CHILD_SA`, `INFORMATIONAL`, `MSGID <u32>`,
+  `NEXT_PAYLOAD <u8>`.
+- Wire behavior: UDP port 500. Defaults to IKE_SA_INIT (Exchange Type 34).
+
+#### `WIREGUARD` (WireGuard VPN Protocol)
+- Directory: [`examples/l3/wireguard/`](examples/l3/wireguard/)
+- Sub-keywords: `INITIATION`, `COOKIE`, `DATA`, `SENDER <u32>`, `RECEIVER
+  <u32>`, `COUNTER <u64>`.
+- Wire behavior: UDP port 51820. Defaults to Type 1 Handshake Initiation
+  message.
+
+#### `OSPF` (Open Shortest Path First - RFC 2328 / RFC 5340)
+- Directory: [`examples/l3/ospf/`](examples/l3/ospf/)
+- Sub-keywords: `HELLO`, `DBD`, `LSR`, `LSU`, `LSACK`, `ROUTER_ID <ip>`,
+  `AREA_ID <ip>`, `HELLO_INTERVAL <u16>`, `DEAD_INTERVAL <u32>`, `PRIORITY
+  <u8>`.
+- Wire behavior: IP protocol 89. Emits OSPFv2 (IPv4) or OSPFv3 (IPv6) Hello
+  packet to `224.0.0.5` / `ff02::5`.
+
+#### `BGP` (Border Gateway Protocol 4 - RFC 4271 / RFC 2545)
+- Directory: [`examples/l3/bgp/`](examples/l3/bgp/)
+- Sub-keywords: `OPEN`, `UPDATE`, `NOTIFICATION`, `KEEPALIVE`, `ASN <u32>`,
+  `HOLDTIME <u16>`, `BGPID <ip>`, `PREFIX "<cidr>"`, `NLRI "<cidr>"`,
+  `NEXTHOP <ip>`.
+- Wire behavior: TCP port 179. Defaults to BGP OPEN message with ASN 65001
+  and Hold Time 180s.
+
+#### `RIP` (Routing Information Protocol - RFC 2453 / RFC 2080)
+- Directory: [`examples/l3/rip/`](examples/l3/rip/)
+- Sub-keywords: `REQUEST`, `REPLY`, `COMMAND <u8>`, `VERSION <u8>`, `METRIC
+  <u32>`, `TAG <u16>`, `PREFIX "<cidr>"`.
+- Wire behavior: UDP port 520 (RIPv2) or 521 (RIPng). Emits Route Table
+  Response.
+
+#### `VRRP` (Virtual Router Redundancy Protocol - RFC 5798)
+- Directory: [`examples/l3/vrrp/`](examples/l3/vrrp/)
+- Sub-keywords: `VRID <u8>`, `PRIORITY <u8>`, `ADV_INT <u8>`, `VIP <ip>`,
+  `VERSION <u8>`.
+- Wire behavior: IP protocol 112 to `224.0.0.18` / `ff02::12`. Defaults to
+  VRID 1, Priority 100.
+
+#### `HSRP` (Cisco Hot Standby Router Protocol - RFC 2281)
+- Directory: [`examples/l3/hsrp/`](examples/l3/hsrp/)
+- Sub-keywords: `GROUP <u8>`, `PRIORITY <u8>`, `HELLOTIME <u8>`, `STATE
+  <u8>`, `VIP <ip>`.
+- Wire behavior: UDP port 1985 to `224.0.0.2`. Defaults to Hello message,
+  State Active, Group 1.
+
+#### `PIM` (Protocol Independent Multicast - RFC 7761)
+- Directory: [`examples/l3/pim/`](examples/l3/pim/)
+- Sub-keywords: `HELLO`, `JOIN_PRUNE`, `REGISTER`, `DR_PRIORITY <u32>`,
+  `HOLDTIME <u16>`, `SOURCE <ip>`, `GROUP <ip>`, `RP <ip>`.
+- Wire behavior: IP protocol 103 to `224.0.0.13` / `ff02::d`. Defaults to
+  Hello message.
+
+#### `BFD` (Bidirectional Forwarding Detection - RFC 5880 / RFC 5881)
+- Directory: [`examples/l3/bfd/`](examples/l3/bfd/)
+- Sub-keywords: `STATE <u8>`, `DIAG <u8>`, `MY_DISC <u32>`, `YOUR_DISC
+  <u32>`, `MIN_TX <u32>`, `MIN_RX <u32>`, `MULT <u8>`.
+- Wire behavior: UDP port 3784. Single-hop control packet, State Up, Detect
+  Mult 3, Min TX/RX 1s.
+
+#### `OPENFLOW` (OpenFlow Switch Protocol 1.3)
+- Directory: [`examples/l3/openflow/`](examples/l3/openflow/)
+- Sub-keywords: `HELLO`, `FEATURES_REQ`, `FEATURES_REPLY`, `PACKET_IN`,
+  `PACKET_OUT`, `FLOW_MOD`, `ECHO_REQ`, `XID <u32>`, `DPID <u64>`, `TABLE_ID
+  <u8>`.
+- Wire behavior: TCP port 6653. OpenFlow Version 1.3 (0x04) OFPT_HELLO, XID
+  1.
+
+### 3. Layer 4 Transport Protocols (3 Protocols)
+
+#### `TCP` (Transmission Control Protocol - RFC 793 / RFC 7323)
+- Directory: [`examples/l4/tcp/`](examples/l4/tcp/)
+- Sub-keywords: `SYN`, `ACK`, `FIN`, `RST`, `PSH`, `URG`, `ECE`, `CWR`,
+  `SRCPORT <u16>`, `DSTPORT <u16>`, `SEQ <u32>`, `ACKNUM <u32>`, `WIN
+  <u16>`, `WINDOW <u16>`, `MSS <u16>`, `WSCALE <u8>`, `SACK_PERM`, `TSVAL
+  <u32>`, `TSECR <u32>`, `URGENT <u16>`.
+- Wire behavior: IP protocol 6, default destination port 80. Automatic
+  4-tuple tracking, port inheritance, and sequence number progression across
+  requests and replies.
+
+#### `UDP` (User Datagram Protocol - RFC 768)
+- Directory: [`examples/l4/udp/`](examples/l4/udp/)
+- Sub-keywords: `SRCPORT <u16>`, `DSTPORT <u16>`.
+- Wire behavior: IP protocol 17, default destination port 80. Stateless
+  transport header with automatic length and RFC 768 checksum calculation.
+
+#### `SCTP` (Stream Control Transmission Protocol - RFC 4960)
+- Directory: [`examples/l4/sctp/`](examples/l4/sctp/)
+- Sub-keywords: `VTAG <u32>`, `CHECKSUM <u32>`, `CHUNK <type>`, `INIT`,
+  `INIT_ACK`, `SACK`, `HEARTBEAT`, `HEARTBEAT_ACK`, `ABORT`, `SHUTDOWN`,
+  `COOKIE_ECHO`, `COOKIE_ACK`, `TSN <u32>`, `STREAM <u16>`, `SSN <u16>`,
+  `PPID <u32>`.
+- Wire behavior: IP protocol 132, default destination port 80. Common header
+  with Verification Tag and DATA chunk, verified with CRC32c checksum.
+
+### 4. Layer 7 Application, Telemetry, Storage & Industrial Protocols (50 Protocols)
+
+#### `SNMP1` (Simple Network Management Protocol v1 - RFC 1157)
+- Directory: [`examples/l7/snmp/snmpv1/`](examples/l7/snmp/snmpv1/)
+- Sub-keywords: `TRAP`, `GET`, `SET`, `RESPONSE`, `GETNEXT`, `COMMUNITY
+  "<str>"`, `OID <oid>`, `SYSUPTIME <u32>`, `ENTERPRISE <oid>`, `AGENTIP
+  <ipv4>`, `GENTRAP <0..6>`, `SPECTRAP <u32>`, `VARBIND`.
+- Wire behavior: UDP port 162 (Trap) / 161 (Get/Set). Emits RFC 1157 SMIv1
+  ASN.1 BER encoded messages.
+
+#### `SNMP2` (Simple Network Management Protocol v2c - RFC 3416)
+- Directory: [`examples/l7/snmp/snmpv2c/`](examples/l7/snmp/snmpv2c/)
+- Sub-keywords: `TRAP`, `INFORM`, `GET`, `GETNEXT`, `GETBULK`, `SET`,
+  `RESPONSE`, `COMMUNITY "<str>"`, `OID <oid>`, `SYSUPTIME <u32>`, `REQID
+  <u32>`, `NONREPEATERS <u32>`, `MAXREPETITIONS <u32>`, `VARBIND`.
+- Wire behavior: UDP port 162 / 161. Emits RFC 3416 SMIv2 BER encoded PDUs
+  with 64-bit counter support.
+
+#### `SNMP3` (Simple Network Management Protocol v3 - RFC 3414)
+- Directory: [`examples/l7/snmp/snmpv3/`](examples/l7/snmp/snmpv3/)
+- Sub-keywords: `TRAP`, `INFORM`, `GET`, `GETNEXT`, `GETBULK`, `SET`,
+  `RESPONSE`, `REPORT`, `USER "<str>"`, `ENGINEID "<hex>"`, `ENGINEBOOTS
+  <u32>`, `ENGINETIME <u32>`, `CONTEXTNAME "<str>"`, `AUTH
+  <MD5|SHA|SHA256|SHA384|SHA512> "<pass>"`, `PRIV <DES|AES> "<pass>"`,
+  `VARBIND`.
+- Wire behavior: UDP port 161/162. Complete User-Based Security Model (USM)
+  with authentication (MD5, SHA-1, SHA-256, SHA-384, SHA-512) and privacy
+  encryption (DES-CBC, AES-128-CFB).
+- Variable Bindings: `VARBIND <oid> <TYPE> <value>`:
+- `NULLVAL` / `NULL`: Null ASN.1 value
+- `STRING "<text>"`: OctetString value
+- `INT <signed_i32>`: Signed 32-bit Integer (supports negative numbers, e.g.
+  `-15`)
+- `TIMETICKS <u32>`: Hundredths of a second
+- `IPVAL <ip>`: 4-byte IPv4 or 16-byte IPv6 address per RFC 4001
+- `OIDVAL <oid>`: ASN.1 Object Identifier
+- `COUNTER32 <u32>`: Unsigned 32-bit counter
+- `GAUGE32 <u32>`: Unsigned 32-bit gauge
+- `COUNTER64 <u64>`: Unsigned 64-bit high-capacity counter
+
+#### `DNS` (Domain Name System - RFC 1035)
+- Directory: [`examples/l7/dns/`](examples/l7/dns/)
+- Sub-keywords: `TXID <u16>`, `QNAME "<name>"`, `QTYPE <u16>`, `RDATA
+  "<str>"`, `RCODE <u8>`, `ANS_TTL <u32>`.
+- Wire behavior: UDP port 53. Standard query or answer (Type 1 A, Type 28
+  AAAA, etc.).
+
+#### `MDNS` (Multicast DNS - RFC 6762)
+- Directory: [`examples/l7/mdns/`](examples/l7/mdns/)
+- Sub-keywords: Same as DNS, plus UDP port 5353 and multicast destination
+  `224.0.0.251` / `ff02::fb`.
+
+#### `DHCP` (Dynamic Host Configuration Protocol - RFC 2131 / RFC 8415)
+- Directory: [`examples/l7/dhcp/`](examples/l7/dhcp/)
+- Sub-keywords: `DISCOVER`, `OFFER`, `REQUEST`, `RELEASE`, `SOLICIT`,
+  `ADVERTISE`, `TXID <u32>`, `CIADDR <ip>`, `YIADDR <ip>`, `SIADDR <ip>`,
+  `CHADDR <mac>`, `HOSTNAME "<str>"`, `DNS_SERVER <ip>`, `ROUTER <ip>`,
+  `SUBNET_MASK <ip>`, `LEASE_TIME <u32>`.
+- Wire behavior: UDP port 67/68 (IPv4 BOOTP) or UDP port 546/547 (DHCPv6).
+
+#### `NTP` (Network Time Protocol - RFC 5905)
+- Directory: [`examples/l7/ntp/`](examples/l7/ntp/)
+- Sub-keywords: `LI <0..3>`, `VN <0..7>`, `MODE <0..7>`, `STRATUM <u8>`,
+  `POLL <u8>`, `PRECISION <i8>`, `REFID "<str>"`, `TX_TIMESTAMP <u64>`.
+- Wire behavior: UDP port 123. Defaults to Version 4, Mode 3 (Client),
+  Stratum 0, Poll 4.
+
+#### `PTP` (Precision Time Protocol - IEEE 1588-2008)
+- Directory: [`examples/l7/ptp/`](examples/l7/ptp/)
+- Sub-keywords: `MSG_TYPE <u8>`, `SYNC`, `DELAY_REQ`, `FOLLOW_UP`,
+  `DELAY_RESP`, `ANNOUNCE`, `VERSION <u8>`, `DOMAIN <u8>`, `SEQ_ID <u16>`,
+  `CLOCK_ID "<mac>"`.
+- Wire behavior: UDP port 319 (Event) / 320 (General). Defaults to Sync
+  message, Domain 0.
+
+#### `RADIUS` (Remote Authentication Dial-In User Service - RFC 2865)
+- Directory: [`examples/l7/radius/`](examples/l7/radius/)
+- Sub-keywords: `CODE <u8>`, `ACCESS_REQUEST`, `ACCESS_ACCEPT`,
+  `ACCESS_REJECT`, `ACCESS_CHALLENGE`, `ACCOUNTING_REQUEST`,
+  `ACCOUNTING_RESPONSE`, `ID <u8>`, `USER "<str>"`, `NAS_IP <ip>`,
+  `SERVICE_TYPE <u32>`, `FRAMED_IP <ip>`.
+- Wire behavior: UDP port 1812 (Auth) / 1813 (Acct). Defaults to Access-
+  Request.
+
+#### `TACACS` (TACACS+ Terminal Access Controller - RFC 8907)
+- Directory: [`examples/l7/tacacs/`](examples/l7/tacacs/)
+- Sub-keywords: `AUTHEN`, `AUTHOR`, `ACCT`, `SESSION_ID <u32>`, `USER
+  "<str>"`.
+- Wire behavior: TCP port 49. Defaults to Authentication Start, Session ID
+  0x12345678.
+
+#### `SYSLOG` (The Syslog Protocol - RFC 5424)
+- Directory: [`examples/l7/syslog/`](examples/l7/syslog/)
+- Sub-keywords: `PRI <u16>`, `FACILITY <u8>`, `SEVERITY <u8>`, `HOSTNAME
+  "<str>"`, `APP "<str>"`, `PROCID "<str>"`, `MSGID "<str>"`, `MSG
+  "<text>"`.
+- Wire behavior: UDP port 514. Defaults to PRI `<14>` (User.Info), App
+  `"frameassembly"`.
+
+#### `NETFLOW` (Cisco NetFlow Flow Export)
+- Directory: [`examples/l7/netflow/`](examples/l7/netflow/)
+- Sub-keywords: `VERSION <u16>`, `UPTIME <u32>`, `SRCIP <ip>`, `DSTIP <ip>`,
+  `NEXTHOP <ip>`, `SRCPORT <u16>`, `DSTPORT <u16>`, `PACKETS <u32>`, `OCTETS
+  <u32>`, `PROTO <u8>`, `TOS <u8>`.
+- Wire behavior: UDP port 2055. Defaults to NetFlow v5 export packet.
+
+#### `IPFIX` (IP Flow Information Export - RFC 7011)
+- Directory: [`examples/l7/ipfix/`](examples/l7/ipfix/)
+- Sub-keywords: `DOMAIN_ID <u32>`, `SRCIP <ip>`, `DSTIP <ip>`, `PACKETS
+  <u64>`, `OCTETS <u64>`, `PROTO <u8>`.
+- Wire behavior: UDP port 4739. Emits RFC 7011 Flow Data Record.
+
+#### `SFLOW` (sFlow Traffic Monitoring - RFC 3176)
+- Directory: [`examples/l7/sflow/`](examples/l7/sflow/)
+- Sub-keywords: `VERSION <u32>`, `AGENT_IP <ip>`, `SUB_AGENT_ID <u32>`,
+  `SEQ_NUM <u32>`, `UPTIME <u32>`, `SAMPLES <u32>`.
+- Wire behavior: UDP port 6343. Emits sFlow Version 5 Flow Sample datagram.
+
+#### `TFTP` (Trivial File Transfer Protocol - RFC 1350)
+- Directory: [`examples/l7/tftp/`](examples/l7/tftp/)
+- UDP port 69 (`RRQ`, `WRQ`, `FILENAME "<str>"`, `MODE "<str>"`, `BLOCK
+  <u16>`, `ERRCODE <u16>`, `ERRMSG "<str>"`).
+
+#### `FTP` (File Transfer Protocol - RFC 959)
+- Directory: [`examples/l7/ftp/`](examples/l7/ftp/)
+- TCP port 21 (`CMD "<str>"`, `ARG "<str>"`, `BANNER "<str>"`, `USER
+  "<str>"`).
+
+#### `SSH` (Secure Shell Protocol - RFC 4253)
+- Directory: [`examples/l7/ssh/`](examples/l7/ssh/)
+- TCP port 22 (`BANNER "<str>"`, `KEXINIT`, `NEWKEYS`, `MSG_CODE <u8>`).
+
+#### `TELNET` (Telnet Protocol - RFC 854)
+- Directory: [`examples/l7/telnet/`](examples/l7/telnet/)
+- TCP port 23 (`WILL`, `WONT`, `DO`, `DONT`, `OPTION <u8>`, `CMD <u8>`).
+
+#### `HTTP` (Hypertext Transfer Protocol 1.1 - RFC 7230)
+- Directory: [`examples/l7/http/`](examples/l7/http/)
+- TCP port 80 (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTIONS`, `PATCH`,
+  `URI "<str>"`, `HOST_HDR "<str>"`, `USER_AGENT "<str>"`, `CONTENT_TYPE
+  "<str>"`, `STATUS <u16>`, `REASON "<str>"`, `HEADER "<k>" "<v>"`, `BODY
+  "<str>"`).
+
+#### `HTTP2` (Hypertext Transfer Protocol Version 2 - RFC 7540)
+- Directory: [`examples/l7/http2/`](examples/l7/http2/)
+- TCP port 443 (`PREFACE`, `SETTINGS`, `HEADERS`, `DATA`, `WINDOW_UPDATE`,
+  `PING`, `GOAWAY`, `STREAM_ID <u32>`).
+
+#### `GRPC` (gRPC over HTTP/2)
+- Directory: [`examples/l7/grpc/`](examples/l7/grpc/)
+- TCP port 50051 (`SERVICE "<str>"`, `METHOD "<str>"`, `GRPC_STATUS <u32>`,
+  `PAYLOAD "<str>"`).
+
+#### `WEBSOCKET` (The WebSocket Protocol - RFC 6455)
+- Directory: [`examples/l7/websocket/`](examples/l7/websocket/)
+- TCP port 80 (`OPCODE <u8>`, `TEXT`, `BINARY`, `PING`, `PONG`, `CLOSE`,
+  `FIN_BIT <0..1>`, `MASK_KEY <u32>`, `PAYLOAD "<str>"`).
+
+#### `TLS` (Transport Layer Security 1.3 - RFC 8446)
+- Directory: [`examples/l7/tls/`](examples/l7/tls/)
+- TCP port 443 (`CLIENT_HELLO`, `SERVER_HELLO`, `CERTIFICATE`, `FINISHED`,
+  `APP_DATA`, `ALERT`, `RECORD_VERSION <u16>`, `HANDSHAKE_VERSION <u16>`,
+  `SNI "<str>"`, `CIPHERSUITE <u16>`, `ALPN "<str>"`).
+
+#### `QUIC` (QUIC Transport Protocol - RFC 9000)
+- Directory: [`examples/l7/quic/`](examples/l7/quic/)
+- UDP port 443 (`INITIAL`, `ZERO_RTT`, `HANDSHAKE`, `RETRY`, `SHORT`,
+  `VERSION <u32>`, `DCID "<hex>"`, `SCID "<hex>"`, `TOKEN "<hex>"`, `PKT_NUM
+  <u32>`, `PAYLOAD "<str>"`).
+
+#### `STUN` (Session Traversal Utilities for NAT - RFC 8489)
+- Directory: [`examples/l7/stun/`](examples/l7/stun/)
+- UDP port 3478 (`BINDING_REQUEST`, `BINDING_RESPONSE`, `BINDING_ERROR`,
+  `TXID "<hex>"`, `XOR_MAPPED_ADDR <ip> <port>`, `SOFTWARE "<str>"`).
+
+#### `SIP` (Session Initiation Protocol - RFC 3261)
+- Directory: [`examples/l7/sip/`](examples/l7/sip/)
+- UDP/TCP port 5060 (`INVITE`, `ACK`, `BYE`, `CANCEL`, `REGISTER`,
+  `OPTIONS`, `URI "<str>"`, `FROM "<str>"`, `TO "<str>"`, `CALL_ID "<str>"`,
+  `CSEQ <u32>`, `VIA "<str>"`, `CONTACT "<str>"`).
+
+#### `RTP` (Real-Time Transport Protocol - RFC 3550)
+- Directory: [`examples/l7/rtp/`](examples/l7/rtp/)
+- UDP port 5004 (`PT <u8>`, `SEQ <u16>`, `TIMESTAMP <u32>`, `SSRC <u32>`,
+  `MARKER <0..1>`, `PAYLOAD "<str>"`).
+
+#### `RTSP` (Real Time Streaming Protocol - RFC 2326)
+- Directory: [`examples/l7/rtsp/`](examples/l7/rtsp/)
+- TCP port 554 (`DESCRIBE`, `SETUP`, `PLAY`, `TEARDOWN`, `OPTIONS`, `URI
+  "<str>"`, `CSEQ <u32>`, `SESSION "<str>"`, `TRANSPORT_HDR "<str>"`).
+
+#### `SMTP` (Simple Mail Transfer Protocol - RFC 5321)
+- Directory: [`examples/l7/smtp/`](examples/l7/smtp/)
+- TCP port 25 (`EHLO "<domain>"`, `HELO "<domain>"`, `MAIL_FROM "<addr>"`,
+  `RCPT_TO "<addr>"`, `DATA`, `QUIT`, `STATUS <u16>`, `MSG "<str>"`).
+
+#### `IMAP` (Internet Message Access Protocol - RFC 3501)
+- Directory: [`examples/l7/imap/`](examples/l7/imap/)
+- TCP port 143 (`TAG "<str>"`, `CMD "<str>"`, `PARAM "<str>"`, `OK`, `ERR`).
+
+#### `POP3` (Post Office Protocol Version 3 - RFC 1939)
+- Directory: [`examples/l7/pop3/`](examples/l7/pop3/)
+- TCP port 110 (`CMD "<str>"`, `ARG "<str>"`, `OK`, `ERR`, `USER "<str>"`).
+
+#### `KERBEROS` (Kerberos Network Authentication - RFC 4120)
+- Directory: [`examples/l7/kerberos/`](examples/l7/kerberos/)
+- UDP/TCP port 88 (`AS_REQ`, `AS_REP`, `TGS_REQ`, `TGS_REP`, `KRB_ERROR`,
+  `REALM "<str>"`, `CNAME "<str>"`, `SNAME "<str>"`, `ETYPE <u32>`).
+
+#### `LDAP` (Lightweight Directory Access Protocol - RFC 4511)
+- Directory: [`examples/l7/ldap/`](examples/l7/ldap/)
+- TCP port 389 (`MSGID <u32>`, `BIND_REQ`, `BIND_RES`, `SEARCH_REQ`,
+  `SEARCH_ENTRY`, `SEARCH_DONE`, `UNBIND_REQ`, `VERSION <u8>`, `USER
+  "<str>"`, `BASE_DN "<str>"`, `FILTER "<str>"`, `RESULT_CODE <u32>`).
+
+#### `SMB` (Server Message Block 2/3 - MS-SMB2)
+- Directory: [`examples/l7/smb/`](examples/l7/smb/)
+- TCP port 445 (`NEGOTIATE`, `SESSION_SETUP`, `TREE_CONNECT`, `CREATE`,
+  `TREE_DISCONNECT`, `SESSION_ID <u64>`, `TREE_ID <u32>`, `SHARE "<str>"`,
+  `STATUS <u32>`).
+
+#### `NFS` (Network File System v3/v4 - RFC 1813 / RFC 7530)
+- Directory: [`examples/l7/nfs/`](examples/l7/nfs/)
+- TCP port 2049 (`VERS <u32>`, `PROC <u32>`, `PATH "<str>"`, `COMPOUND`,
+  `STATUS <u32>`).
+
+#### `REDIS` (Redis Serialization Protocol RESP)
+- Directory: [`examples/l7/redis/`](examples/l7/redis/)
+- TCP port 6379 (`CMD "<str>"`, `ARGS "<str>"`, `REPLY_TYPE "<str>"`, `VALUE
+  "<str>"`).
+
+#### `MEMCACHED` (Memcached Text/Binary Protocol)
+- Directory: [`examples/l7/memcached/`](examples/l7/memcached/)
+- TCP port 11211 (`CMD "<str>"`, `KEY "<str>"`, `VALUE "<str>"`, `FLAGS
+  <u32>`, `EXPTIME <u32>`, `OPAQUE <u32>`, `CAS <u64>`).
+
+#### `MYSQL` (MySQL Client/Server Protocol)
+- Directory: [`examples/l7/mysql/`](examples/l7/mysql/)
+- TCP port 3306 (`GREETING`, `LOGIN`, `SQL "<query>"`, `OK`, `ERR`, `EOF`,
+  `SERVER_VERSION "<str>"`, `USER "<str>"`, `DB "<str>"`).
+
+#### `POSTGRES` (PostgreSQL Frontend/Backend Protocol 3.0)
+- Directory: [`examples/l7/postgres/`](examples/l7/postgres/)
+- TCP port 5432 (`STARTUP`, `SQL "<query>"`, `READY_FOR_QUERY`,
+  `COMMAND_COMPLETE`, `ERROR_RESPONSE`, `AUTH_OK`, `USER "<str>"`, `DB
+  "<str>"`).
+
+#### `MQTT` (Message Queuing Telemetry Transport 3.1.1/5.0)
+- Directory: [`examples/l7/mqtt/`](examples/l7/mqtt/)
+- TCP port 1883 (`CONNECT`, `CONNACK`, `PUBLISH`, `PUBACK`, `SUBSCRIBE`,
+  `SUBACK`, `PINGREQ`, `PINGRESP`, `DISCONNECT`, `CLIENT_ID "<str>"`, `TOPIC
+  "<str>"`, `QOS <0..2>`, `RETAIN <0..1>`, `PKT_ID <u16>`, `PAYLOAD
+  "<str>"`).
+
+#### `COAP` (Constrained Application Protocol - RFC 7252)
+- Directory: [`examples/l7/coap/`](examples/l7/coap/)
+- UDP port 5683 (`CON`, `NON`, `ACK`, `RST`, `CODE <u8>`, `GET`, `POST`,
+  `PUT`, `DELETE`, `MSGID <u16>`, `TOKEN "<hex>"`, `URI_PATH "<str>"`,
+  `CONTENT_FORMAT <u16>`).
+
+#### `AMQP` (Advanced Message Queuing Protocol 0-9-1 / 1.0)
+- Directory: [`examples/l7/amqp/`](examples/l7/amqp/)
+- TCP port 5672 (`PROTOCOL_HEADER`, `CONNECTION_START`, `CHANNEL_OPEN`,
+  `BASIC_PUBLISH`, `BASIC_DELIVER`, `CHANNEL <u16>`, `ROUTING_KEY "<str>"`).
+
+#### `SSDP` (Simple Service Discovery Protocol - UPnP)
+- Directory: [`examples/l7/ssdp/`](examples/l7/ssdp/)
+- UDP port 1900 to `239.255.255.250` (`MSEARCH`, `NOTIFY`, `MAN "<str>"`,
+  `MX <u8>`, `ST "<str>"`, `NT "<str>"`, `NTS "<str>"`, `USN "<str>"`,
+  `LOCATION "<str>"`).
+
+#### `WHOIS` (WHOIS Protocol - RFC 3912)
+- Directory: [`examples/l7/whois/`](examples/l7/whois/)
+- TCP port 43 (`QUERY "<domain>"`, `REGISTRAR "<str>"`).
+
+#### `MODBUS` (Modbus TCP Industrial Automation Protocol)
+- Directory: [`examples/l7/modbus/`](examples/l7/modbus/)
+- Sub-keywords: `PROTO_ID <u16>`, `UNITID <u8>`, `FUNC <u8>`, `READ_COILS`,
+  `READ_DISCRETE_INPUTS`, `READ_HOLDING_REGISTERS`, `READ_INPUT_REGISTERS`,
+  `WRITE_SINGLE_COIL`, `WRITE_SINGLE_REGISTER`, `WRITE_MULTIPLE_REGISTERS`,
+  `ADDR <u16>`, `COUNT <u16>`, `DATA "<hex>"`, `IS_RESPONSE`.
+- Wire behavior: TCP port 502. Emits 7-byte MBAP header and Modbus PDU.
+  Defaults to Read Holding Registers (Func 3).
+
+#### `BACNET` (Building Automation and Control Networks - ANSI/ASHRAE 135)
+- Directory: [`examples/l7/bacnet/`](examples/l7/bacnet/)
+- Sub-keywords: `WHO_IS`, `I_AM`, `READ_PROPERTY`, `WRITE_PROPERTY`,
+  `INVOKE_ID <u8>`, `OBJECT_TYPE <u16>`, `OBJECT_INSTANCE <u32>`,
+  `PROPERTY_ID <u32>`.
+- Wire behavior: UDP port 47808 (BACnet/IP BVLC Type 0x81). Defaults to BVLC
+  Original-Broadcast with Unconfirmed Who-Is request.
+
+#### `DNP3` (Distributed Network Protocol for Utilities - IEEE 1815)
+- Directory: [`examples/l7/dnp3/`](examples/l7/dnp3/)
+- Sub-keywords: `FUNC <u8>`, `CONFIRM`, `READ`, `WRITE`, `SELECT`,
+  `OPERATE`, `DIRECT_OPERATE`, `UNSOLICITED_RESPONSE`, `VARIATION <u8>`,
+  `CRC <u16>`, `SRC <u16>`, `DST <u16>`.
+- Wire behavior: TCP/UDP port 20000. Emits DNP3 0x0564 sync byte frame, Data
+  Link header with CRC, and Transport/Application layers.
+
+#### `S7COMM` (Siemens S7 Industrial PLC Communication)
+- Directory: [`examples/l7/s7comm/`](examples/l7/s7comm/)
+- Sub-keywords: `ROSCTR <u8>`, `PDU_REF <u16>`, `SETUP_COMM`, `READ_VAR`,
+  `WRITE_VAR`, `PLC_CONTROL`, `AREA <u8>`, `DB_NUM <u16>`, `OFFSET <u32>`,
+  `COUNT <u16>`.
+- Wire behavior: TCP port 102. Encapsulates TPKT (RFC 1006) + ISO COTP
+  Connection Request + S7 Setup Communication PDU.
+
+#### `ETHERNETIP` (EtherNet/IP & Common Industrial Protocol CIP)
+- Directory: [`examples/l7/ethernetip/`](examples/l7/ethernetip/)
+- Sub-keywords: `LIST_SERVICES`, `LIST_IDENTITY`, `LIST_INTERFACES`,
+  `REGISTER_SESSION`, `UNREGISTER_SESSION`, `SEND_RR_DATA`,
+  `SEND_UNIT_DATA`, `SESSION_HANDLE <u32>`, `STATUS <u32>`, `CONTEXT
+  "<hex>"`, `CIP_SERVICE <u8>`, `CIP_CLASS <u16>`, `CIP_INSTANCE <u16>`,
+  `CIP_ATTR <u16>`, `DATA "<hex>"`.
+- Wire behavior: TCP/UDP port 44818. Emits 24-byte Encapsulation header with
+  Register Session (0x0065) or Send RR Data.
+
+#### `OPCUA` (OPC Unified Architecture - IEC 62541)
+- Directory: [`examples/l7/opcua/`](examples/l7/opcua/)
+- Sub-keywords: `CHUNK_TYPE "<c>"`, `SECURE_CHANNEL_ID <u32>`, `TOKEN_ID
+  <u32>`, `SEQ_NUM <u32>`, `ENDPOINT_URL "<str>"`, `NODE_ID "<str>"`,
+  `PAYLOAD "<str>"`.
+- Wire behavior: TCP port 4840. Emits Hello message (`HEL` chunk 'F') with
+  client buffer parameters and Endpoint URL.
+
+## Categorized Examples Corpus Index (All 385 Files)
+
+### Layer 2 Data Link Protocols (`examples/l2/`) — 25 files
+
+- [examples/l2/arp/arp_explicit_hardware_override.fasm](examples/l2/arp/arp_explicit_hardware_override.fasm):
+  ARP request and reply with explicit hardware and protocol address
+  overrides.
+- [examples/l2/arp/arp_gratuitous_announcement.fasm](examples/l2/arp/arp_gratuitous_announcement.fasm):
+  Gratuitous ARP announcement broadcast for IP takeover and MAC cache
+  updating.
+- [examples/l2/arp/arp_polymorphic_resolution.fasm](examples/l2/arp/arp_polymorphic_resolution.fasm):
+  Address resolution with ARP request/reply on IPv4 and NDP Neighbor
+  Solicitation on IPv6.
+- [examples/l2/arp/arp_request_and_reply.fasm](examples/l2/arp/arp_request_and_reply.fasm):
+  Standard ARP request broadcast and unicast reply on IPv4 subnet.
+- [examples/l2/eapol/eapol_eap_request_identity.fasm](examples/l2/eapol/eapol_eap_request_identity.fasm):
+  IEEE 802.1X EAP-Packet exchange requesting and supplying user identity
+  string.
+- [examples/l2/eapol/eapol_logoff_session_terminate.fasm](examples/l2/eapol/eapol_logoff_session_terminate.fasm):
+  IEEE 802.1X EAPOL logoff frame terminating an authenticated network port
+  session.
+- [examples/l2/eapol/eapol_start_handshake.fasm](examples/l2/eapol/eapol_start_handshake.fasm):
+  Network access control via IEEE 802.1X EAPOL start frame initiating
+  authentication.
+- [examples/l2/lacp/lacp_actor_partner_duplex.fasm](examples/l2/lacp/lacp_actor_partner_duplex.fasm):
+  Link Aggregation Control Protocol PDU exchange configuring actor and
+  partner keys.
+- [examples/l2/lacp/lacp_link_aggregation_control.fasm](examples/l2/lacp/lacp_link_aggregation_control.fasm):
+  IEEE 802.3ad Link Aggregation Control Protocol PDU exchanging default link
+  state.
+- [examples/l2/lacp/lacp_state_flag_negotiation.fasm](examples/l2/lacp/lacp_state_flag_negotiation.fasm):
+  LACPDU negotiation asserting actor state flags, port numbers, and partner
+  system parameters.
+- [examples/l2/lldp/lldp_chassis_port_defaults.fasm](examples/l2/lldp/lldp_chassis_port_defaults.fasm):
+  Basic IEEE 802.1AB LLDP neighbor discovery advertisement using chassis ID
+  and port ID.
+- [examples/l2/lldp/lldp_system_name_and_description.fasm](examples/l2/lldp/lldp_system_name_and_description.fasm):
+  Data center Link Layer Discovery Protocol frame advertising system name
+  and port parameters.
+- [examples/l2/lldp/lldp_ttl_timer_advertisement.fasm](examples/l2/lldp/lldp_ttl_timer_advertisement.fasm):
+  LLDP neighbor discovery frame advertising explicit TTL timer, system name,
+  and system description.
+- [examples/l2/mpls/mpls_ipv6_transit.fasm](examples/l2/mpls/mpls_ipv6_transit.fasm):
+  MPLS encapsulated 6PE IPv6 packet transit across service provider core.
+- [examples/l2/mpls/mpls_stacked_l3vpn_labels.fasm](examples/l2/mpls/mpls_stacked_l3vpn_labels.fasm):
+  MPLS L3VPN provider edge transport with high-priority experimental class
+  bits.
+- [examples/l2/mpls/mpls_unicast_single_label.fasm](examples/l2/mpls/mpls_unicast_single_label.fasm):
+  Network WAN transport over single MPLS label stack with experimental bits
+  and TTL.
+- [examples/l2/qinq/qinq_metro_ethernet_dual_stack.fasm](examples/l2/qinq/qinq_metro_ethernet_dual_stack.fasm):
+  Stacked QinQ double-tagged frames carrying IPv6 packets across a metro
+  Ethernet network boundary.
+- [examples/l2/qinq/qinq_multi_customer_tagging.fasm](examples/l2/qinq/qinq_multi_customer_tagging.fasm):
+  QinQ double tagging segregating multiple customer inner VLANs within
+  service provider outer VLAN.
+- [examples/l2/qinq/qinq_service_provider_delimited.fasm](examples/l2/qinq/qinq_service_provider_delimited.fasm):
+  IEEE 802.1ad QinQ double-tagged Ethernet framing with outer service and
+  inner customer VLAN tags.
+- [examples/l2/stp/stp_bridge_protocol_data_unit.fasm](examples/l2/stp/stp_bridge_protocol_data_unit.fasm):
+  Spanning Tree Protocol standard BPDU transmission for loop prevention.
+- [examples/l2/stp/stp_config_bpdu_root.fasm](examples/l2/stp/stp_config_bpdu_root.fasm):
+  IEEE 802.1D Configuration BPDU advertising root bridge identifier, cost,
+  and bridge identifier.
+- [examples/l2/stp/stp_rstp_rapid_transition.fasm](examples/l2/stp/stp_rstp_rapid_transition.fasm):
+  IEEE 802.1w Rapid Spanning Tree Protocol BPDU with rapid transition flags
+  and forward delay.
+- [examples/l2/vlan/vlan_basic_access_tag.fasm](examples/l2/vlan/vlan_basic_access_tag.fasm):
+  Standard IEEE 802.1Q tagged frame on access VLAN without priority
+  overrides.
+- [examples/l2/vlan/vlan_dual_stack_ipv6.fasm](examples/l2/vlan/vlan_dual_stack_ipv6.fasm):
+  IEEE 802.1Q tagged Ethernet frames carrying IPv6 payload traffic on trunk
+  link.
+- [examples/l2/vlan/vlan_voice_priority_pcp.fasm](examples/l2/vlan/vlan_voice_priority_pcp.fasm):
+  IEEE 802.1Q tagged Ethernet frame with priority code point and drop
+  eligible indicator.
+
+### Layer 3 Routing & Tunneling Protocols (`examples/l3/`) — 60 files
+
+- [examples/l3/ah/ah_authentication_header_default.fasm](examples/l3/ah/ah_authentication_header_default.fasm):
+  IPsec Authentication Header packet transmission with SPI and sequence
+  number.
+- [examples/l3/ah/ah_ipv6_hop_protection.fasm](examples/l3/ah/ah_ipv6_hop_protection.fasm):
+  IPsec AH authentication header protecting IPv6 traffic between endpoints.
+- [examples/l3/ah/ah_spi_sequence_digest.fasm](examples/l3/ah/ah_spi_sequence_digest.fasm):
+  IPsec AH authentication session advancing sequence numbers between hosts.
+- [examples/l3/bfd/bfd_diagnostic_link_down.fasm](examples/l3/bfd/bfd_diagnostic_link_down.fasm):
+  BFD Control packet asserting NeighborDown diagnostic and Down state code.
+- [examples/l3/bfd/bfd_single_hop_control.fasm](examples/l3/bfd/bfd_single_hop_control.fasm):
+  Bidirectional Forwarding Detection session monitoring in Up state with
+  discriminators.
+- [examples/l3/bfd/bfd_subsecond_liveliness_echo.fasm](examples/l3/bfd/bfd_subsecond_liveliness_echo.fasm):
+  BFD high-frequency session monitoring configuring minimum TX/RX intervals
+  and detection multiplier.
+- [examples/l3/bgp/bgp4_ipv6_peering.fasm](examples/l3/bgp/bgp4_ipv6_peering.fasm):
+  Border Gateway Protocol 4+ peering over IPv6 using TCP 179 with OPEN and
+  KEEPALIVE messages.
+- [examples/l3/bgp/bgp_peer_open_and_keepalive.fasm](examples/l3/bgp/bgp_peer_open_and_keepalive.fasm):
+  BGP peer session establishment and keepalive exchange on TCP port 179.
+- [examples/l3/bgp/bgp_update_nlri_prefix.fasm](examples/l3/bgp/bgp_update_nlri_prefix.fasm):
+  BGP UPDATE message announcing IPv4 Network Layer Reachability Information
+  prefix and next hop.
+- [examples/l3/esp/esp_ciphertext_transport_mode.fasm](examples/l3/esp/esp_ciphertext_transport_mode.fasm):
+  IPsec ESP transport session advancing sequence numbers between hosts.
+- [examples/l3/esp/esp_ipv6_gateway_tunnel.fasm](examples/l3/esp/esp_ipv6_gateway_tunnel.fasm):
+  IPsec ESP encrypted tunnel packet transmission between two IPv6 endpoints.
+- [examples/l3/esp/esp_spi_sequence_encapsulation.fasm](examples/l3/esp/esp_spi_sequence_encapsulation.fasm):
+  IPsec Encapsulating Security Payload packet transmission with SPI and
+  sequence number.
+- [examples/l3/geneve/geneve_control_metadata.fasm](examples/l3/geneve/geneve_control_metadata.fasm):
+  GENEVE tunnel packet specifying option class and option type metadata.
+- [examples/l3/geneve/geneve_dual_stack_underlay.fasm](examples/l3/geneve/geneve_dual_stack_underlay.fasm):
+  GENEVE network virtualization tunnel established over IPv6 transport
+  endpoints.
+- [examples/l3/geneve/geneve_tlv_option_vni.fasm](examples/l3/geneve/geneve_tlv_option_vni.fasm):
+  Network virtualization overlay utilizing GENEVE tunneling protocol with
+  VNI.
+- [examples/l3/gre/gre_checksum_and_routing.fasm](examples/l3/gre/gre_checksum_and_routing.fasm):
+  GRE tunnel header asserting checksum verification flag and payload
+  protocol.
+- [examples/l3/gre/gre_ipv6_transit_encapsulation.fasm](examples/l3/gre/gre_ipv6_transit_encapsulation.fasm):
+  GRE tunnel established across IPv6 transport endpoints carrying
+  encapsulated data.
+- [examples/l3/gre/gre_point_to_point_tunnel.fasm](examples/l3/gre/gre_point_to_point_tunnel.fasm):
+  Generic Routing Encapsulation tunnel packet transmission with GRE key and
+  sequence numbers.
+- [examples/l3/hsrp/hsrp_active_router_hello.fasm](examples/l3/hsrp/hsrp_active_router_hello.fasm):
+  Hot Standby Router Protocol Hello packet advertising group and priority.
+- [examples/l3/hsrp/hsrp_dual_stack_heartbeat.fasm](examples/l3/hsrp/hsrp_dual_stack_heartbeat.fasm):
+  HSRP first hop redundancy hello message with explicit hellotime and
+  holdtime timers.
+- [examples/l3/hsrp/hsrp_standby_state_change.fasm](examples/l3/hsrp/hsrp_standby_state_change.fasm):
+  Cisco HSRP state advertisement with active state code, virtual IP, and
+  priority.
+- [examples/l3/icmp/icmp_destination_unreachable.fasm](examples/l3/icmp/icmp_destination_unreachable.fasm):
+  ICMP Destination Unreachable message generation with explicit type, code,
+  and identifier.
+- [examples/l3/icmp/icmp_echo_request_reply.fasm](examples/l3/icmp/icmp_echo_request_reply.fasm):
+  Standard IPv4 ICMP Echo Request and Echo Reply ping exchange.
+- [examples/l3/icmp/icmp_polymorphic_v4_v6.fasm](examples/l3/icmp/icmp_polymorphic_v4_v6.fasm):
+  Polymorphic ICMP echo request and reply executed across IPv4 (ICMPv4 0x01)
+  and IPv6 (ICMPv6 0x3a).
+- [examples/l3/igmp/igmp_leave_group_multicast.fasm](examples/l3/igmp/igmp_leave_group_multicast.fasm):
+  IGMP leave group message sent to all-routers multicast address 224.0.0.2.
+- [examples/l3/igmp/igmp_membership_query_and_report.fasm](examples/l3/igmp/igmp_membership_query_and_report.fasm):
+  Multicast group membership management with IGMP query and report on IPv4.
+- [examples/l3/igmp/igmp_specific_group_report.fasm](examples/l3/igmp/igmp_specific_group_report.fasm):
+  IGMPv2 membership report joining a specific multicast group with maximum
+  response time.
+- [examples/l3/ikev2/ikev2_create_child_sa.fasm](examples/l3/ikev2/ikev2_create_child_sa.fasm):
+  IKEv2 CREATE_CHILD_SA exchange rekeying an existing Child Security
+  Association.
+- [examples/l3/ikev2/ikev2_informational_keepalive.fasm](examples/l3/ikev2/ikev2_informational_keepalive.fasm):
+  IKEv2 INFORMATIONAL keepalive and dead peer detection message exchange.
+- [examples/l3/ikev2/ikev2_sa_negotiation.fasm](examples/l3/ikev2/ikev2_sa_negotiation.fasm):
+  Internet Key Exchange version 2 security association initiation and
+  authentication on UDP 500.
+- [examples/l3/ipsec/ipsec_dual_stack_security_gateway.fasm](examples/l3/ipsec/ipsec_dual_stack_security_gateway.fasm):
+  IPsec security gateway exchanging protected traffic across IPv6 endpoints.
+- [examples/l3/ipsec/ipsec_transport_mode_ah.fasm](examples/l3/ipsec/ipsec_transport_mode_ah.fasm):
+  IPsec security association advancing sequence numbers across tunnel
+  endpoints.
+- [examples/l3/ipsec/ipsec_tunnel_mode_esp.fasm](examples/l3/ipsec/ipsec_tunnel_mode_esp.fasm):
+  IPsec tunnel mode security encapsulation using SPI and sequence number.
+- [examples/l3/mld/mld_listener_done_leave.fasm](examples/l3/mld/mld_listener_done_leave.fasm):
+  MLD Listener Done message terminating membership in IPv6 multicast stream.
+- [examples/l3/mld/mld_listener_query_and_report.fasm](examples/l3/mld/mld_listener_query_and_report.fasm):
+  Multicast Listener Discovery query and membership report on IPv6 network.
+- [examples/l3/mld/mld_source_specific_multicast.fasm](examples/l3/mld/mld_source_specific_multicast.fasm):
+  MLDv1 listener report subscribing to multicast address with maximum
+  response delay.
+- [examples/l3/ndp/ndp_neighbor_solicit_and_advert.fasm](examples/l3/ndp/ndp_neighbor_solicit_and_advert.fasm):
+  IPv6 NDP Neighbor Solicitation and Advertisement resolving link-layer
+  address with explicit target.
+- [examples/l3/ndp/ndp_router_neighbor_solicit.fasm](examples/l3/ndp/ndp_router_neighbor_solicit.fasm):
+  IPv6 Neighbor Discovery Protocol message exchange with Router and Neighbor
+  Solicitations and Advertisements.
+- [examples/l3/ndp/ndp_router_solicitation_multicast.fasm](examples/l3/ndp/ndp_router_solicitation_multicast.fasm):
+  IPv6 NDP Router Solicitation sent to all-routers multicast address and
+  Router Advertisement reply.
+- [examples/l3/openflow/openflow_echo_request_reply.fasm](examples/l3/openflow/openflow_echo_request_reply.fasm):
+  OpenFlow controller-to-switch liveliness verification with ECHO_REQUEST
+  and ECHO_REPLY.
+- [examples/l3/openflow/openflow_flow_mod_add_rule.fasm](examples/l3/openflow/openflow_flow_mod_add_rule.fasm):
+  OpenFlow SDN controller programming switch flow table via FLOW_MOD message
+  with table ID and priority.
+- [examples/l3/openflow/openflow_hello_negotiation.fasm](examples/l3/openflow/openflow_hello_negotiation.fasm):
+  OpenFlow SDN control plane channel negotiation using TYPE HELLO.
+- [examples/l3/ospf/ospf_database_description_exchange.fasm](examples/l3/ospf/ospf_database_description_exchange.fasm):
+  OSPF Database Description packet exchange synchronizing link-state
+  database headers between neighbors.
+- [examples/l3/ospf/ospf_hello_and_dbd.fasm](examples/l3/ospf/ospf_hello_and_dbd.fasm):
+  Open Shortest Path First routing adjacency establishment using OSPF Hello
+  and Database Description packets.
+- [examples/l3/ospf/ospf_hello_broadcast.fasm](examples/l3/ospf/ospf_hello_broadcast.fasm):
+  OSPFv2 Hello packet multicasting to 224.0.0.5 with explicit hello and dead
+  intervals.
+- [examples/l3/pim/pim_join_prune_signaling.fasm](examples/l3/pim/pim_join_prune_signaling.fasm):
+  PIM Join message signaling upstream multicast distribution tree for group
+  and source.
+- [examples/l3/pim/pim_register_rendezvous_point.fasm](examples/l3/pim/pim_register_rendezvous_point.fasm):
+  PIM Register message transmitting encapsulated multicast data to
+  Rendezvous Point.
+- [examples/l3/pim/pim_sparse_mode_hello.fasm](examples/l3/pim/pim_sparse_mode_hello.fasm):
+  Protocol Independent Multicast sparse-mode Hello packet for neighbor
+  discovery.
+- [examples/l3/rip/rip_dual_stack_routing.fasm](examples/l3/rip/rip_dual_stack_routing.fasm):
+  RIP route request query sent to broadcast and multicast routing
+  destinations.
+- [examples/l3/rip/rip_request_and_response.fasm](examples/l3/rip/rip_request_and_response.fasm):
+  Routing Information Protocol table request and routing response exchange.
+- [examples/l3/rip/rip_route_update_advertisement.fasm](examples/l3/rip/rip_route_update_advertisement.fasm):
+  RIPv2 routing update advertising network prefixes, hop metric, and next
+  hop.
+- [examples/l3/vrrp/vrrp_dual_stack_redundancy.fasm](examples/l3/vrrp/vrrp_dual_stack_redundancy.fasm):
+  VRRP router redundancy advertisement specifying advertisement interval.
+- [examples/l3/vrrp/vrrp_master_advertisement.fasm](examples/l3/vrrp/vrrp_master_advertisement.fasm):
+  Virtual Router Redundancy Protocol master router advertisement with VRID
+  and priority.
+- [examples/l3/vrrp/vrrp_router_failover.fasm](examples/l3/vrrp/vrrp_router_failover.fasm):
+  VRRP failover advertisement with virtual IP and preemption priority.
+- [examples/l3/vxlan/vxlan_ipv6_underlay_overlay.fasm](examples/l3/vxlan/vxlan_ipv6_underlay_overlay.fasm):
+  VXLAN overlay tunneling across an IPv6 transport underlay between VTEPs.
+- [examples/l3/vxlan/vxlan_overlay_heartbeat.fasm](examples/l3/vxlan/vxlan_overlay_heartbeat.fasm):
+  Simulate VXLAN overlay data-plane keepalive packet on UDP 4789 with
+  explicit VNI.
+- [examples/l3/vxlan/vxlan_standard_vni_encapsulation.fasm](examples/l3/vxlan/vxlan_standard_vni_encapsulation.fasm):
+  Data center network overlay virtualization using VXLAN tunneling protocol.
+- [examples/l3/wireguard/wireguard_handshake_and_data.fasm](examples/l3/wireguard/wireguard_handshake_and_data.fasm):
+  WireGuard VPN protocol handshake initiation, response, and encrypted data
+  packet transmission on UDP 51820.
+- [examples/l3/wireguard/wireguard_ipv6_dual_stack_transport.fasm](examples/l3/wireguard/wireguard_ipv6_dual_stack_transport.fasm):
+  WireGuard VPN session running over IPv6 transport exchanging Handshake
+  Initiation and Response packets.
+- [examples/l3/wireguard/wireguard_vpn_handshake.fasm](examples/l3/wireguard/wireguard_vpn_handshake.fasm):
+  WireGuard VPN Noise handshake initiation and response with sender and
+  receiver indices on UDP 51820.
+
+### Layer 4 Transport Protocols (`examples/l4/`) — 46 files
+
+- [examples/l4/sctp/sctp_abort_and_shutdown.fasm](examples/l4/sctp/sctp_abort_and_shutdown.fasm):
+  SCTP graceful shutdown association termination sequence with verification
+  tag.
+- [examples/l4/sctp/sctp_association_and_chunks.fasm](examples/l4/sctp/sctp_association_and_chunks.fasm):
+  Stream Control Transmission Protocol 4-way association handshake and data
+  chunk transmission with CRC32c.
+- [examples/l4/sctp/sctp_data_chunk_transmission.fasm](examples/l4/sctp/sctp_data_chunk_transmission.fasm):
+  SCTP data chunk transmission with verification tag and stream parameters.
+- [examples/l4/sctp/sctp_init_and_init_ack.fasm](examples/l4/sctp/sctp_init_and_init_ack.fasm):
+  SCTP 4-way association initiation and acknowledgment with verification
+  tag.
+- [examples/l4/tcp/tcp_3_way_handshake.fasm](examples/l4/tcp/tcp_3_way_handshake.fasm):
+  Establish a standard TCP 3-way handshake (SYN, SYN-ACK, ACK) on HTTPS port
+  443 with explicit sequence and acknowledgment numbers.
+- [examples/l4/tcp/tcp_3_way_handshake_ipv6.fasm](examples/l4/tcp/tcp_3_way_handshake_ipv6.fasm):
+  Complete TCP 3-way handshake over IPv6 with two-stage port inheritance
+  across forward and reversed arrows.
+- [examples/l4/tcp/tcp_ack_firewall_rule_probe.fasm](examples/l4/tcp/tcp_ack_firewall_rule_probe.fasm):
+  Simulate a TCP ACK firewall rule mapping probe to distinguish stateful vs
+  unfiltered ports via unsolicited ACK packets and RST responses.
+- [examples/l4/tcp/tcp_all_eight_flags_kamikaze.fasm](examples/l4/tcp/tcp_all_eight_flags_kamikaze.fasm):
+  Craft a Christmas/Kamikaze TCP test packet with all 8 TCP header flags
+  enabled simultaneously (SYN, ACK, FIN, RST, PSH, URG, ECE, CWR).
+- [examples/l4/tcp/tcp_bgp_peer_open_and_keepalive.fasm](examples/l4/tcp/tcp_bgp_peer_open_and_keepalive.fasm):
+  Simulate a BGP-4 eBGP peering session establishment (OPEN, KEEP-ALIVE,
+  UPDATE) between two autonomous system border routers on TCP port 179.
+- [examples/l4/tcp/tcp_bidirectional_asymmetric_port_routing.fasm](examples/l4/tcp/tcp_bidirectional_asymmetric_port_routing.fasm):
+  Demonstrate automatic vs explicit TCP sequence and acknowledgment tracking
+  across bidirectional arrows (-> and <-) when payload sizes vary.
+- [examples/l4/tcp/tcp_ecn_congestion_negotiation.fasm](examples/l4/tcp/tcp_ecn_congestion_negotiation.fasm):
+  Simulate Explicit Congestion Notification (ECN) negotiation and congestion
+  window reduction using TCP SYN, ECE, CWR, and ACK flags.
+- [examples/l4/tcp/tcp_fin_stealth_scan.fasm](examples/l4/tcp/tcp_fin_stealth_scan.fasm):
+  Simulate a stealth TCP FIN scan probing closed and open ports on a target
+  host.
+- [examples/l4/tcp/tcp_ftp_control_and_passive_mode.fasm](examples/l4/tcp/tcp_ftp_control_and_passive_mode.fasm):
+  Simulate an FTP control session on TCP port 21 authenticating a user and
+  entering passive mode (PASV) for directory listing.
+- [examples/l4/tcp/tcp_graceful_fin_teardown.fasm](examples/l4/tcp/tcp_graceful_fin_teardown.fasm):
+  Simulate a complete 4-way TCP graceful connection teardown using FIN and
+  ACK flags with explicit sequence and acknowledgment numbers.
+- [examples/l4/tcp/tcp_http_post_json_api.fasm](examples/l4/tcp/tcp_http_post_json_api.fasm):
+  Simulate a complete HTTP/1.1 POST JSON authentication transaction over TCP
+  port 8080 from handshake to FIN closure.
+- [examples/l4/tcp/tcp_keepalive_long_idle_session.fasm](examples/l4/tcp/tcp_keepalive_long_idle_session.fasm):
+  Simulate a long-lived idle TCP database connection using WAIT intervals in
+  milliseconds (ms), seconds (s), and minutes (m) for TCP keepalives.
+- [examples/l4/tcp/tcp_mqtt_iot_telemetry_publish.fasm](examples/l4/tcp/tcp_mqtt_iot_telemetry_publish.fasm):
+  Simulate an IoT sensor publishing telemetry topics to an MQTT broker over
+  TCP port 1883 with QoS 1 PUBACK acknowledgments.
+- [examples/l4/tcp/tcp_options_mss_wscale_sack_ts.fasm](examples/l4/tcp/tcp_options_mss_wscale_sack_ts.fasm):
+  TCP SYN negotiation with comprehensive TCP options including MSS, WSCALE,
+  SACK_PERM, TSVAL, and TSECR.
+- [examples/l4/tcp/tcp_psh_ack_interactive_ssh.fasm](examples/l4/tcp/tcp_psh_ack_interactive_ssh.fasm):
+  Simulate an interactive SSH session on TCP port 22 exchanging banner
+  strings and keystroke packets with PSH and ACK flags.
+- [examples/l4/tcp/tcp_redis_resp_cache_lookup.fasm](examples/l4/tcp/tcp_redis_resp_cache_lookup.fasm):
+  Simulate a low-latency Redis RESP cache SET and GET pipeline over TCP port
+  6379.
+- [examples/l4/tcp/tcp_retransmission_and_duplicate_ack.fasm](examples/l4/tcp/tcp_retransmission_and_duplicate_ack.fasm):
+  Simulate TCP fast retransmission triggered by three duplicate ACKs when an
+  intermediate segment is lost in transit.
+- [examples/l4/tcp/tcp_rst_connection_abort.fasm](examples/l4/tcp/tcp_rst_connection_abort.fasm):
+  Simulate an abrupt TCP connection abort where a server rejects a client
+  request mid-session using a TCP RST flag and zero window.
+- [examples/l4/tcp/tcp_simultaneous_open_handshake.fasm](examples/l4/tcp/tcp_simultaneous_open_handshake.fasm):
+  Simulate an RFC 793 TCP simultaneous open handshake where two peer hosts
+  send SYN packets concurrently and complete the connection with SYN-ACKs.
+- [examples/l4/tcp/tcp_smtp_email_submission.fasm](examples/l4/tcp/tcp_smtp_email_submission.fasm):
+  Simulate an SMTP email submission conversation over TCP port 587 including
+  EHLO, MAIL FROM, RCPT TO, DATA, and QUIT commands.
+- [examples/l4/tcp/tcp_syn_ack_reflection_amplification.fasm](examples/l4/tcp/tcp_syn_ack_reflection_amplification.fasm):
+  Simulate a TCP SYN-ACK reflection attack where a reflector server sends
+  unsolicited SYN-ACK packets to a spoofed victim IP in a loop.
+- [examples/l4/tcp/tcp_syn_flood.fasm](examples/l4/tcp/tcp_syn_flood.fasm):
+  Simulate a TCP SYN flood attack from an attacker to a victim web server on
+  port 80 using a 1000-iteration loop with 1ms delay.
+- [examples/l4/tcp/tcp_urg_out_of_band_data.fasm](examples/l4/tcp/tcp_urg_out_of_band_data.fasm):
+  Simulate TCP out-of-band urgent data transmission using the URG, PSH, and
+  ACK flags on Telnet port 23.
+- [examples/l4/tcp/tcp_xmas_tree_stealth_scan.fasm](examples/l4/tcp/tcp_xmas_tree_stealth_scan.fasm):
+  Simulate an Nmap Xmas tree stealth port scan setting FIN, PSH, and URG
+  flags across common service ports with RST ACK responses.
+- [examples/l4/tcp/tcp_zero_window_probe_and_recovery.fasm](examples/l4/tcp/tcp_zero_window_probe_and_recovery.fasm):
+  Simulate TCP receiver buffer exhaustion advertising a zero window (WIN 0),
+  a zero-window probe, and subsequent window recovery (WIN 65535).
+- [examples/l4/udp/udp_dhcp_discover_offer_request_ack.fasm](examples/l4/udp/udp_dhcp_discover_offer_request_ack.fasm):
+  Simulate a complete DHCPv4 DORA (Discover, Offer, Request, Acknowledge)
+  lease allocation exchange over UDP ports 67 and 68 using broadcast and
+  server endpoints.
+- [examples/l4/udp/udp_dns_simulation.fasm](examples/l4/udp/udp_dns_simulation.fasm):
+  Simulate a UDP DNS query from a client to a public DNS resolver on port 53
+  followed by a UDP DNS response.
+- [examples/l4/udp/udp_gossip_cluster_membership.fasm](examples/l4/udp/udp_gossip_cluster_membership.fasm):
+  Simulate a 3-node HashiCorp Serf / Consul SWIM gossip protocol ring
+  exchanging UDP ping, ping-req, and ack membership heartbeats.
+- [examples/l4/udp/udp_high_performance_streaming.fasm](examples/l4/udp/udp_high_performance_streaming.fasm):
+  High-throughput stateless UDP streaming over IPv6 with explicit ports and
+  payload data.
+- [examples/l4/udp/udp_mdns_local_service_resolution.fasm](examples/l4/udp/udp_mdns_local_service_resolution.fasm):
+  Simulate Apple Bonjour / Avahi Multicast DNS (mDNS) service discovery on
+  224.0.0.251 UDP port 5353.
+- [examples/l4/udp/udp_netflow_v9_collector_export.fasm](examples/l4/udp/udp_netflow_v9_collector_export.fasm):
+  Simulate a core router exporting NetFlow v9 template and flow-set
+  telemetry records to a traffic analyzer on UDP port 2055.
+- [examples/l4/udp/udp_ntp_clock_synchronization.fasm](examples/l4/udp/udp_ntp_clock_synchronization.fasm):
+  Simulate Network Time Protocol (NTP) clock synchronization polling between
+  a Linux host and a Stratum-1 NTP server on UDP port 123 with 1s wait
+  intervals.
+- [examples/l4/udp/udp_quic_http3_initial_exchange.fasm](examples/l4/udp/udp_quic_http3_initial_exchange.fasm):
+  Simulate an HTTP/3 over QUIC initial connection establishment and 0-RTT
+  stream exchange on UDP port 443.
+- [examples/l4/udp/udp_radius_authentication_accounting.fasm](examples/l4/udp/udp_radius_authentication_accounting.fasm):
+  Simulate 802.1X RADIUS authentication on UDP port 1812 and RADIUS
+  accounting start/response on UDP port 1813 between a wireless controller
+  and AAA server.
+- [examples/l4/udp/udp_rtp_voice_media_stream.fasm](examples/l4/udp/udp_rtp_voice_media_stream.fasm):
+  Simulate a bidirectional G.711 RTP voice media stream exchanging 20ms
+  audio frames on UDP port 16384 in a loop.
+- [examples/l4/udp/udp_sip_voip_call_setup.fasm](examples/l4/udp/udp_sip_voip_call_setup.fasm):
+  Simulate a VoIP SIP call setup and teardown signaling sequence (INVITE,
+  100 Trying, 180 Ringing, 200 OK, ACK, BYE) over UDP port 5060.
+- [examples/l4/udp/udp_ssdp_upnp_multicast_discovery.fasm](examples/l4/udp/udp_ssdp_upnp_multicast_discovery.fasm):
+  Simulate UPnP Simple Service Discovery Protocol (SSDP) M-SEARCH multicast
+  discovery on UDP port 1900 and unicast device response.
+- [examples/l4/udp/udp_stateless_empty_payload_ping.fasm](examples/l4/udp/udp_stateless_empty_payload_ping.fasm):
+  Send minimal zero-length UDP datagrams without PAYLOAD using both default
+  ports and explicit high-numbered ports for traceroute probing.
+- [examples/l4/udp/udp_syslog_rfc5424_forwarding.fasm](examples/l4/udp/udp_syslog_rfc5424_forwarding.fasm):
+  Simulate RFC 5424 Syslog security audit messages forwarded over UDP port
+  514 from an edge router to a SIEM log collector.
+- [examples/l4/udp/udp_tftp_firmware_block_transfer.fasm](examples/l4/udp/udp_tftp_firmware_block_transfer.fasm):
+  Simulate a PXE network boot TFTP firmware read request (RRQ) on UDP port
+  69 followed by numbered data blocks and acknowledgments on ephemeral
+  ports.
+- [examples/l4/udp/udp_vxlan_overlay_heartbeat.fasm](examples/l4/udp/udp_vxlan_overlay_heartbeat.fasm):
+  Simulate VXLAN overlay tunnel encapsulation traffic between two VTEP leaf
+  switches on UDP port 4789.
+- [examples/l4/udp/udp_wireguard_vpn_handshake.fasm](examples/l4/udp/udp_wireguard_vpn_handshake.fasm):
+  Simulate a WireGuard VPN Noise_IKpsk2 handshake initiation, response, and
+  encrypted transport data exchange over UDP port 51820.
+
+### Layer 7 SNMP Protocols (`examples/l7/snmp/`) — 60 files
+
+- [examples/l7/snmp/snmpv1/snmpv1_all_supported_v1_varbind_types.fasm](examples/l7/snmp/snmpv1/snmpv1_all_supported_v1_varbind_types.fasm):
+  Generate an SNMPv1 trap containing all 7 SMIv1-compatible VARBIND types
+  (STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32) in a single
+  packet.
+- [examples/l7/snmp/snmpv1/snmpv1_auth_failure_generic_trap.fasm](examples/l7/snmp/snmpv1/snmpv1_auth_failure_generic_trap.fasm):
+  Generate an SNMPv1 authenticationFailure generic trap (GENTRAP 4)
+  reporting the unauthorized source IP address via an IPVAL varbind.
+- [examples/l7/snmp/snmpv1/snmpv1_cold_start_generic_trap.fasm](examples/l7/snmp/snmpv1/snmpv1_cold_start_generic_trap.fasm):
+  Generate an RFC 1157 SNMPv1 coldStart generic trap (GENTRAP 0, SPECTRAP 0)
+  with explicit ENTERPRISE OID, AGENTIP, and SYSUPTIME.
+- [examples/l7/snmp/snmpv1/snmpv1_custom_ports_and_community.fasm](examples/l7/snmp/snmpv1/snmpv1_custom_ports_and_community.fasm):
+  Send SNMPv1 traps to a non-standard high UDP port (10162) with a custom
+  SRCPORT, custom COMMUNITY string, and 500ms WAIT delay.
+- [examples/l7/snmp/snmpv1/snmpv1_egp_neighbor_loss_trap.fasm](examples/l7/snmp/snmpv1/snmpv1_egp_neighbor_loss_trap.fasm):
+  Generate an SNMPv1 egpNeighborLoss generic trap (GENTRAP 5) with EGP peer
+  IPVAL and packet loss COUNTER32 variable bindings.
+- [examples/l7/snmp/snmpv1/snmpv1_enterprise_specific_chassis_alert.fasm](examples/l7/snmp/snmpv1/snmpv1_enterprise_specific_chassis_alert.fasm):
+  Generate an SNMPv1 enterpriseSpecific trap (GENTRAP 6, SPECTRAP 42)
+  alerting on power supply voltage and chassis fan speed using GAUGE32 and
+  STRING varbinds.
+- [examples/l7/snmp/snmpv1/snmpv1_ipv6_agent_addr_default.fasm](examples/l7/snmp/snmpv1/snmpv1_ipv6_agent_addr_default.fasm):
+  SNMPv1 Traps from IPv6 endpoints automatically defaulting agent-addr to
+  0.0.0.0 per RFC 3584 §3.2.
+- [examples/l7/snmp/snmpv1/snmpv1_ipv6_agentip_proxy_override.fasm](examples/l7/snmp/snmpv1/snmpv1_ipv6_agentip_proxy_override.fasm):
+  SNMPv1 Traps over IPv6 with explicit AGENTIP proxy address override per
+  RFC 3584.
+- [examples/l7/snmp/snmpv1/snmpv1_link_down_generic_trap.fasm](examples/l7/snmp/snmpv1/snmpv1_link_down_generic_trap.fasm):
+  Generate an SNMPv1 linkDown generic trap (GENTRAP 2) reporting interface
+  index and interface description via INT and STRING variable bindings.
+- [examples/l7/snmp/snmpv1/snmpv1_link_up_generic_trap.fasm](examples/l7/snmp/snmpv1/snmpv1_link_up_generic_trap.fasm):
+  Generate an SNMPv1 linkUp generic trap (GENTRAP 3) carrying TIMETICKS and
+  OIDVAL variable bindings when an uplink recovers.
+- [examples/l7/snmp/snmpv1/snmpv1_multi_switch_trap_aggregation.fasm](examples/l7/snmp/snmpv1/snmpv1_multi_switch_trap_aggregation.fasm):
+  Simulate three access-layer switches concurrently reporting SNMPv1
+  linkStatus and spanning-tree topology traps to a central NMS.
+- [examples/l7/snmp/snmpv1/snmpv1_non_trap_pdus_rfc1157.fasm](examples/l7/snmp/snmpv1/snmpv1_non_trap_pdus_rfc1157.fasm):
+  RFC 1157 SNMPv1 non-trap PDUs including GET, GETNEXT, SET, and RESPONSE
+  emitting BER tags.
+- [examples/l7/snmp/snmpv1/snmpv1_optical_transceiver_negative_dbm.fasm](examples/l7/snmp/snmpv1/snmpv1_optical_transceiver_negative_dbm.fasm):
+  Generate an SNMPv1 optical transceiver DOM alert trap carrying negative
+  signed 32-bit integers (INT -18 and INT -24) representing RX/TX optical
+  power in dBm.
+- [examples/l7/snmp/snmpv1/snmpv1_proxy_agent_ip_override.fasm](examples/l7/snmp/snmpv1/snmpv1_proxy_agent_ip_override.fasm):
+  Simulate an SNMPv1 trap concentrator forwarding a trap where the outer
+  IPv4 header source IP belongs to the proxy while AGENTIP preserves the
+  downstream device IP.
+- [examples/l7/snmp/snmpv1/snmpv1_warm_start_generic_trap.fasm](examples/l7/snmp/snmpv1/snmpv1_warm_start_generic_trap.fasm):
+  Generate an SNMPv1 warmStart generic trap (GENTRAP 1) demonstrating both
+  automatic RFC 1157 OID mapping (1.3.6.1.6.3.1.1.5.2) and explicit GENTRAP
+  configuration.
+- [examples/l7/snmp/snmpv2c/snmpv2c_all_nine_varbind_types.fasm](examples/l7/snmp/snmpv2c/snmpv2c_all_nine_varbind_types.fasm):
+  Demonstrate all 9 supported FrameAssembly VARBIND value types (NULLVAL,
+  STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32, COUNTER64)
+  within a single SNMPv2c RESPONSE packet.
+- [examples/l7/snmp/snmpv2c/snmpv2c_bgp_peer_state_trap.fasm](examples/l7/snmp/snmpv2c/snmpv2c_bgp_peer_state_trap.fasm):
+  Simulate an RFC 4273 BGP4-MIB bgpBackwardTransNotification SNMPv2c trap
+  reporting a BGP peer dropping from Established to Idle with IPVAL and INT
+  varbinds.
+- [examples/l7/snmp/snmpv2c/snmpv2c_bulk_walk_routing_table.fasm](examples/l7/snmp/snmpv2c/snmpv2c_bulk_walk_routing_table.fasm):
+  Simulate an SNMPv2c GETBULK request (NONREPEATERS 0, MAXREPETITIONS 50)
+  retrieving IPv4 routing table next-hop addresses using IPVAL varbinds.
+- [examples/l7/snmp/snmpv2c/snmpv2c_counter64_high_speed_interface.fasm](examples/l7/snmp/snmpv2c/snmpv2c_counter64_high_speed_interface.fasm):
+  Poll and report 64-bit high-capacity interface counters (ifHCInOctets and
+  ifHCOutOctets) using SMIv2 COUNTER64 varbinds in SNMPv2c GET, RESPONSE,
+  and TRAP PDUs.
+- [examples/l7/snmp/snmpv2c/snmpv2c_default_trap_implicit_pdu.fasm](examples/l7/snmp/snmpv2c/snmpv2c_default_trap_implicit_pdu.fasm):
+  Demonstrate implicit default TRAP PDU encoding in SNMP1, SNMP2, and SNMP3
+  statements when the PDU type keyword is omitted.
+- [examples/l7/snmp/snmpv2c/snmpv2c_environmental_sensor_polling.fasm](examples/l7/snmp/snmpv2c/snmpv2c_environmental_sensor_polling.fasm):
+  Poll cold-storage environmental sensors via SNMPv2c GET and RESPONSE using
+  negative signed INT (-15 Celsius) and GAUGE32 humidity percentages.
+- [examples/l7/snmp/snmpv2c/snmpv2c_firewall_connection_table_gauge.fasm](examples/l7/snmp/snmpv2c/snmpv2c_firewall_connection_table_gauge.fasm):
+  Monitor stateful firewall active session count (GAUGE32) and policy drop
+  counters (COUNTER32, COUNTER64) via SNMPv2c GET and RESPONSE.
+- [examples/l7/snmp/snmpv2c/snmpv2c_get_request_and_response.fasm](examples/l7/snmp/snmpv2c/snmpv2c_get_request_and_response.fasm):
+  Simulate an SNMPv2c GET request on UDP port 161 with a NULLVAL varbind and
+  a matching RESPONSE returning sysDescr and sysObjectID with matching
+  REQID.
+- [examples/l7/snmp/snmpv2c/snmpv2c_getbulk_interface_table.fasm](examples/l7/snmp/snmpv2c/snmpv2c_getbulk_interface_table.fasm):
+  Simulate an SNMPv2c GETBULK request using NONREPEATERS 1 and
+  MAXREPETITIONS 25 to retrieve sysUpTime and multiple rows of the ifTable
+  in a single round-trip.
+- [examples/l7/snmp/snmpv2c/snmpv2c_getnext_mib_walk.fasm](examples/l7/snmp/snmpv2c/snmpv2c_getnext_mib_walk.fasm):
+  Simulate an snmpwalk MIB tree traversal using sequential SNMPv2c GETNEXT
+  requests and RESPONSE PDUs across the MIB-II system group.
+- [examples/l7/snmp/snmpv2c/snmpv2c_inform_request_acknowledged.fasm](examples/l7/snmp/snmpv2c/snmpv2c_inform_request_acknowledged.fasm):
+  Simulate an acknowledged SNMPv2c INFORM notification sent to UDP port 162
+  followed by an NMS RESPONSE PDU confirming receipt.
+- [examples/l7/snmp/snmpv2c/snmpv2c_inform_retry_and_confirm.fasm](examples/l7/snmp/snmpv2c/snmpv2c_inform_retry_and_confirm.fasm):
+  Simulate an SNMPv2c INFORM notification timeout and retransmission with
+  the same REQID before the NMS returns a RESPONSE acknowledgment.
+- [examples/l7/snmp/snmpv2c/snmpv2c_pdus_over_ipv6.fasm](examples/l7/snmp/snmpv2c/snmpv2c_pdus_over_ipv6.fasm):
+  SNMPv2c operations over IPv6 covering GET, GETBULK with nonrepeaters,
+  INFORM, and RESPONSE.
+- [examples/l7/snmp/snmpv2c/snmpv2c_polling_loop_interval_1s.fasm](examples/l7/snmp/snmpv2c/snmpv2c_polling_loop_interval_1s.fasm):
+  Simulate periodic 1-second SNMPv2c CPU and memory utilization polling
+  using a LOOP block and WAIT 1s interval.
+- [examples/l7/snmp/snmpv2c/snmpv2c_quoted_and_unquoted_oids.fasm](examples/l7/snmp/snmpv2c/snmpv2c_quoted_and_unquoted_oids.fasm):
+  Demonstrate FrameAssembly OID syntax flexibility using quoted OIDs,
+  unquoted multi-segment OIDs, and 4-segment IPv4-shaped OIDs (1.3.6.1) in
+  OID and OIDVAL fields.
+- [examples/l7/snmp/snmpv2c/snmpv2c_set_hostname_and_contact.fasm](examples/l7/snmp/snmpv2c/snmpv2c_set_hostname_and_contact.fasm):
+  Simulate an SNMPv2c multi-varbind SET request updating sysContact.0,
+  sysName.0, and sysLocation.0 MIB-II scalars simultaneously.
+- [examples/l7/snmp/snmpv2c/snmpv2c_set_request_admin_status.fasm](examples/l7/snmp/snmpv2c/snmpv2c_set_request_admin_status.fasm):
+  Simulate an SNMPv2c SET request using a read-write community string to
+  administratively disable and re-enable a switch port (ifAdminStatus) with
+  confirmation responses.
+- [examples/l7/snmp/snmpv2c/snmpv2c_trap_link_flap_varbinds.fasm](examples/l7/snmp/snmpv2c/snmpv2c_trap_link_flap_varbinds.fasm):
+  Simulate an SNMPv2c linkDown and linkUp flap sequence carrying interface
+  counters (COUNTER32) and link speed gauges (GAUGE32).
+- [examples/l7/snmp/snmpv2c/snmpv2c_trap_storm.fasm](examples/l7/snmp/snmpv2c/snmpv2c_trap_storm.fasm):
+  Generate an SNMPv2c linkDown trap storm from a network switch to an NMS
+  server repeated 50 times with 10ms intervals.
+- [examples/l7/snmp/snmpv2c/snmpv2c_ups_battery_runtime_ticks.fasm](examples/l7/snmp/snmpv2c/snmpv2c_ups_battery_runtime_ticks.fasm):
+  Simulate an uninterruptible power supply (UPS) sending an SNMPv2c trap and
+  responding to a GET query with TIMETICKS remaining battery runtime and
+  GAUGE32 battery capacity.
+- [examples/l7/snmp/snmpv2c/snmpv2c_varbind_ipval_ipv6_rfc4001.fasm](examples/l7/snmp/snmpv2c/snmpv2c_varbind_ipval_ipv6_rfc4001.fasm):
+  RFC 4001 InetAddress encoding of 16-byte IPv6 and 4-byte IPv4 addresses in
+  the same SNMP VarBind list.
+- [examples/l7/snmp/snmpv3/snmpv3_auth_md5_nopriv_trap.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_md5_nopriv_trap.fasm):
+  Generate an SNMPv3 authNoPriv TRAP authenticated with USM HMAC-MD5-96
+  (AUTH MD5) without encryption.
+- [examples/l7/snmp/snmpv3/snmpv3_auth_md5_priv_aes_trap.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_md5_priv_aes_trap.fasm):
+  Generate an SNMPv3 authPriv TRAP combining HMAC-MD5-96 authentication
+  (AUTH MD5) with AES-128-CFB encryption (PRIV AES).
+- [examples/l7/snmp/snmpv3/snmpv3_auth_md5_priv_des_trap.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_md5_priv_des_trap.fasm):
+  Generate an RFC 3414 SNMPv3 authPriv TRAP using HMAC-MD5-96 authentication
+  (AUTH MD5) and DES-CBC privacy encryption (PRIV DES).
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha1_nopriv_trap.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha1_nopriv_trap.fasm):
+  Generate an SNMPv3 authNoPriv TRAP authenticated with USM HMAC-SHA-96
+  (AUTH SHA) and carrying COUNTER32 and GAUGE32 varbinds.
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha256_nopriv_inform.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha256_nopriv_inform.fasm):
+  Simulate an RFC 7860 SNMPv3 authNoPriv INFORM notification and RESPONSE
+  acknowledgment signed with HMAC-SHA-256 (AUTH SHA256).
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha256_priv_aes_trap.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha256_priv_aes_trap.fasm):
+  Generate a production-grade SNMPv3 authPriv TRAP using HMAC-SHA-256
+  authentication (AUTH SHA256) and AES-128-CFB encryption (PRIV AES).
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha256_priv_des_getnext.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha256_priv_des_getnext.fasm):
+  Simulate an encrypted SNMPv3 GETNEXT and RESPONSE MIB walk step using
+  HMAC-SHA-256 authentication (AUTH SHA256) and DES-CBC encryption (PRIV
+  DES).
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha384_nopriv_getbulk.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha384_nopriv_getbulk.fasm):
+  Simulate an RFC 7860 SNMPv3 authNoPriv GETBULK request and RESPONSE
+  authenticated with HMAC-SHA-384 (AUTH SHA384).
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha384_priv_aes_getbulk.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha384_priv_aes_getbulk.fasm):
+  Simulate an encrypted SNMPv3 GETBULK request and RESPONSE using HMAC-
+  SHA-384 authentication (AUTH SHA384) and AES-128-CFB encryption (PRIV
+  AES).
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha384_priv_des_set.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha384_priv_des_set.fasm):
+  Simulate an encrypted SNMPv3 SET request and RESPONSE using HMAC-SHA-384
+  authentication (AUTH SHA384) and DES-CBC encryption (PRIV DES).
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha512_nopriv_set.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha512_nopriv_set.fasm):
+  Simulate an RFC 7860 SNMPv3 authNoPriv SET request and RESPONSE
+  authenticated with HMAC-SHA-512 (AUTH SHA512).
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha512_priv_aes_high_security.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha512_priv_aes_high_security.fasm):
+  Generate a maximum-security SNMPv3 authPriv packet using HMAC-SHA-512
+  (AUTH SHA512), AES-128-CFB (PRIV AES), CONTEXTNAME, and all 9 VARBIND
+  types.
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha512_priv_des_inform.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha512_priv_des_inform.fasm):
+  Simulate an encrypted SNMPv3 INFORM notification and RESPONSE using HMAC-
+  SHA-512 authentication (AUTH SHA512) and DES-CBC encryption (PRIV DES).
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha_priv_aes_inform.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha_priv_aes_inform.fasm):
+  Simulate an RFC 3826 SNMPv3 authPriv INFORM and RESPONSE exchange using
+  HMAC-SHA-96 authentication (AUTH SHA) and AES-128-CFB privacy (PRIV AES).
+- [examples/l7/snmp/snmpv3/snmpv3_auth_sha_priv_des_get_response.fasm](examples/l7/snmp/snmpv3/snmpv3_auth_sha_priv_des_get_response.fasm):
+  Simulate an encrypted SNMPv3 GET and RESPONSE exchange using HMAC-SHA-96
+  authentication (AUTH SHA) and DES-CBC privacy (PRIV DES).
+- [examples/l7/snmp/snmpv3/snmpv3_des_padding_boundary_varbinds.fasm](examples/l7/snmp/snmpv3/snmpv3_des_padding_boundary_varbinds.fasm):
+  Exercise RFC 3414 DES-CBC zero-padding across different ScopedPDU lengths
+  by sending SNMPv3 PRIV DES packets with varying STRING varbind lengths.
+- [examples/l7/snmp/snmpv3/snmpv3_engine_discovery_and_time_sync.fasm](examples/l7/snmp/snmpv3/snmpv3_engine_discovery_and_time_sync.fasm):
+  Simulate RFC 3414 SNMPv3 authoritative EngineID discovery and
+  EngineBoots/EngineTime synchronization followed by an authenticated
+  GET/RESPONSE.
+- [examples/l7/snmp/snmpv3/snmpv3_engine_time_boots_context.fasm](examples/l7/snmp/snmpv3/snmpv3_engine_time_boots_context.fasm):
+  Advanced SNMPv3 security parameters configuring ENGINEID, ENGINEBOOTS,
+  ENGINETIME, and CONTEXTNAME.
+- [examples/l7/snmp/snmpv3/snmpv3_high_frequency_encrypted_telemetry.fasm](examples/l7/snmp/snmpv3/snmpv3_high_frequency_encrypted_telemetry.fasm):
+  Stream high-frequency encrypted SNMPv3 telemetry traps (AUTH SHA256, PRIV
+  AES) with 64-bit counters and optical gauges inside a LOOP block.
+- [examples/l7/snmp/snmpv3/snmpv3_multi_vrf_context_names.fasm](examples/l7/snmp/snmpv3/snmpv3_multi_vrf_context_names.fasm):
+  Poll isolated VRF routing tables on a multi-tenant PE router using SNMPv3
+  CONTEXTNAME strings ("vrf-prod", "vrf-pci", "vrf-guest").
+- [examples/l7/snmp/snmpv3/snmpv3_noauth_nopriv_get_response.fasm](examples/l7/snmp/snmpv3/snmpv3_noauth_nopriv_get_response.fasm):
+  Simulate an SNMPv3 noAuthNoPriv GET request and RESPONSE exchange
+  configuring USER, ENGINEID, ENGINEBOOTS, ENGINETIME, CONTEXTNAME, and
+  REQID without AUTH or PRIV.
+- [examples/l7/snmp/snmpv3/snmpv3_usm_des_aes_priv_ipv6.fasm](examples/l7/snmp/snmpv3/snmpv3_usm_des_aes_priv_ipv6.fasm):
+  SNMPv3 privacy encryption over IPv6 using DES-CBC and AES-128-CFB cipher
+  suites with localized keys.
+- [examples/l7/snmp/snmpv3/snmpv3_usm_md5_sha_auth_ipv6.fasm](examples/l7/snmp/snmpv3/snmpv3_usm_md5_sha_auth_ipv6.fasm):
+  SNMPv3 USM authentication over IPv6 using MD5 and HMAC-SHA-96
+  authentication protocols.
+- [examples/l7/snmp/snmpv3/snmpv3_usm_sha2_family_ipv6.fasm](examples/l7/snmp/snmpv3/snmpv3_usm_sha2_family_ipv6.fasm):
+  RFC 7860 SHA-2 HMAC family authentication (SHA256, SHA384, SHA512) for
+  SNMPv3 over IPv6.
+
+### Layer 7 Application & Infrastructure Protocols (`examples/l7/`) — 141 files
+
+- [examples/l7/amqp/amqp_channel_and_publish.fasm](examples/l7/amqp/amqp_channel_and_publish.fasm):
+  AMQP channel opening and basic message publish routing over IPv6.
+- [examples/l7/amqp/amqp_message_broker.fasm](examples/l7/amqp/amqp_message_broker.fasm):
+  Advanced Message Queuing Protocol 0-9-1 connection initialization and
+  message publishing on TCP 5672.
+- [examples/l7/amqp/amqp_protocol_header_handshake.fasm](examples/l7/amqp/amqp_protocol_header_handshake.fasm):
+  AMQP 0-9-1 connection initialization protocol header handshake.
+- [examples/l7/bacnet/bacnet_read_property_analog_input.fasm](examples/l7/bacnet/bacnet_read_property_analog_input.fasm):
+  BACnet/IP confirmed ReadProperty querying room temperature sensor over
+  IPv6.
+- [examples/l7/bacnet/bacnet_who_is_broadcast.fasm](examples/l7/bacnet/bacnet_who_is_broadcast.fasm):
+  BACnet/IP building automation unconfirmed Who-Is device discovery
+  broadcast.
+- [examples/l7/bacnet/industrial_bacnet_ip_building_automation.fasm](examples/l7/bacnet/industrial_bacnet_ip_building_automation.fasm):
+  Building automation and HVAC control using BACnet/IP broadcast WHO-IS and
+  I-AM on UDP 47808 (0xBAC0).
+- [examples/l7/coap/coap_confirmable_get_request.fasm](examples/l7/coap/coap_confirmable_get_request.fasm):
+  RFC 7252 CoAP Confirmable (CON) GET request targeting resource URI path.
+- [examples/l7/coap/coap_iot_rest_requests.fasm](examples/l7/coap/coap_iot_rest_requests.fasm):
+  Constrained Application Protocol RESTful request over UDP 5683 with
+  confirmable GET message.
+- [examples/l7/coap/coap_piggybacked_ack_response.fasm](examples/l7/coap/coap_piggybacked_ack_response.fasm):
+  CoAP acknowledgment (ACK) response with content payload over IPv6.
+- [examples/l7/dhcp/dhcp_discover_and_offer.fasm](examples/l7/dhcp/dhcp_discover_and_offer.fasm):
+  DHCPv4 address negotiation exchange with DISCOVER and OFFER.
+- [examples/l7/dhcp/dhcp_dual_stack_v4_v6.fasm](examples/l7/dhcp/dhcp_dual_stack_v4_v6.fasm):
+  Dual-stack dynamic host configuration with DHCPv4 Discover (68->67) and
+  DHCPv6 Solicit (546->547).
+- [examples/l7/dhcp/dhcp_option_overrides.fasm](examples/l7/dhcp/dhcp_option_overrides.fasm):
+  DHCPv4 ACK frame delivering configuration options including DNS server,
+  router gateway, and lease time.
+- [examples/l7/dnp3/dnp3_direct_operate_control_relay.fasm](examples/l7/dnp3/dnp3_direct_operate_control_relay.fasm):
+  DNP3 SCADA direct operate command pulsing substation breaker relay over
+  IPv6.
+- [examples/l7/dnp3/dnp3_read_binary_inputs.fasm](examples/l7/dnp3/dnp3_read_binary_inputs.fasm):
+  DNP3 SCADA application layer Read function querying binary input objects.
+- [examples/l7/dnp3/industrial_dnp3_scada_controls.fasm](examples/l7/dnp3/industrial_dnp3_scada_controls.fasm):
+  Electric utility substation telemetry using Distributed Network Protocol
+  DNP3 on TCP 20000.
+- [examples/l7/dns/dns_a_record_query_response.fasm](examples/l7/dns/dns_a_record_query_response.fasm):
+  DNS A record forward resolution query and response over UDP port 53.
+- [examples/l7/dns/dns_ipv6_query_response.fasm](examples/l7/dns/dns_ipv6_query_response.fasm):
+  Domain Name System query and response over IPv6 UDP 53 resolving AAAA
+  record.
+- [examples/l7/dns/dns_tcp_zone_transfer.fasm](examples/l7/dns/dns_tcp_zone_transfer.fasm):
+  DNS query over TCP transport requesting zone authority records.
+- [examples/l7/ethernetip/ethernetip_cip_identity_read.fasm](examples/l7/ethernetip/ethernetip_cip_identity_read.fasm):
+  EtherNet/IP CIP SendRRData service reading device identity object over
+  IPv6.
+- [examples/l7/ethernetip/ethernetip_register_session.fasm](examples/l7/ethernetip/ethernetip_register_session.fasm):
+  EtherNet/IP encapsulation command 0x0065 RegisterSession establishing
+  session.
+- [examples/l7/ethernetip/industrial_ethernetip_cip_sessions.fasm](examples/l7/ethernetip/industrial_ethernetip_cip_sessions.fasm):
+  Common Industrial Protocol CIP encapsulation over EtherNet/IP on TCP
+  44818.
+- [examples/l7/ftp/ftp_cwd_and_retr.fasm](examples/l7/ftp/ftp_cwd_and_retr.fasm):
+  FTP file retrieval sequence navigating directory and requesting file
+  download.
+- [examples/l7/ftp/ftp_passive_mode_ipv6.fasm](examples/l7/ftp/ftp_passive_mode_ipv6.fasm):
+  File Transfer Protocol command interaction over IPv6 on TCP 21 for user
+  login and passive transfer request.
+- [examples/l7/ftp/ftp_user_pass_authentication.fasm](examples/l7/ftp/ftp_user_pass_authentication.fasm):
+  FTP command session authenticating user credentials on TCP port 21.
+- [examples/l7/grpc/grpc_error_status_not_found.fasm](examples/l7/grpc/grpc_error_status_not_found.fasm):
+  gRPC procedure response returning error status code GRPC_STATUS 5
+  (NOT_FOUND) over IPv6.
+- [examples/l7/grpc/grpc_response_with_status_ok.fasm](examples/l7/grpc/grpc_response_with_status_ok.fasm):
+  gRPC procedure response returning successful status code GRPC_STATUS 0
+  (OK).
+- [examples/l7/grpc/grpc_unary_call_request.fasm](examples/l7/grpc/grpc_unary_call_request.fasm):
+  gRPC unary Remote Procedure Call requesting user profile information.
+- [examples/l7/http/http_get_request_and_200_ok.fasm](examples/l7/http/http_get_request_and_200_ok.fasm):
+  HTTP/1.1 GET request for web resource and server 200 OK response with
+  body.
+- [examples/l7/http/http_post_json_api.fasm](examples/l7/http/http_post_json_api.fasm):
+  HTTP/1.1 POST API request submitting JSON payload and receiving 201
+  Created.
+- [examples/l7/http/http_rest_api_ipv6.fasm](examples/l7/http/http_rest_api_ipv6.fasm):
+  HTTP/1.1 REST API interaction over IPv6 with GET request, headers, and 200
+  OK JSON response.
+- [examples/l7/http2/http2_connection_preface_settings.fasm](examples/l7/http2/http2_connection_preface_settings.fasm):
+  HTTP/2 client connection preface and initial SETTINGS frame exchange.
+- [examples/l7/http2/http2_multiplexing_and_grpc.fasm](examples/l7/http2/http2_multiplexing_and_grpc.fasm):
+  HTTP/2 binary framing connection preface and gRPC unary remote procedure
+  call over TCP 443 / 50051.
+- [examples/l7/http2/http2_window_update_and_ping.fasm](examples/l7/http2/http2_window_update_and_ping.fasm):
+  HTTP/2 flow control WINDOW_UPDATE and round-trip PING latency probe over
+  IPv6.
+- [examples/l7/imap/imap_login_and_capability.fasm](examples/l7/imap/imap_login_and_capability.fasm):
+  IMAP session authentication and mailbox capability discovery.
+- [examples/l7/imap/imap_logout_session_close.fasm](examples/l7/imap/imap_logout_session_close.fasm):
+  IMAP graceful session logout closing connection over IPv6.
+- [examples/l7/imap/imap_select_mailbox_and_fetch.fasm](examples/l7/imap/imap_select_mailbox_and_fetch.fasm):
+  IMAP mailbox selection and email header retrieval.
+- [examples/l7/ipfix/ipfix_domain_id_and_uptime.fasm](examples/l7/ipfix/ipfix_domain_id_and_uptime.fasm):
+  IPFIX export datagram specifying observation domain ID for flow tracking.
+- [examples/l7/ipfix/ipfix_dual_stack_export.fasm](examples/l7/ipfix/ipfix_dual_stack_export.fasm):
+  IPFIX datagram exported across an IPv6 transport underlay.
+- [examples/l7/ipfix/ipfix_flow_record_export.fasm](examples/l7/ipfix/ipfix_flow_record_export.fasm):
+  RFC 7011 IPFIX flow information export datagram reporting endpoint flow
+  metrics.
+- [examples/l7/kerberos/kerberos_and_ldap_directory.fasm](examples/l7/kerberos/kerberos_and_ldap_directory.fasm):
+  Enterprise directory authentication and queries with Kerberos AS-REQ and
+  LDAP BIND request.
+- [examples/l7/kerberos/kerberos_as_req_initial_auth.fasm](examples/l7/kerberos/kerberos_as_req_initial_auth.fasm):
+  Kerberos AS_REQ initial authentication requesting Ticket Granting Ticket
+  (TGT).
+- [examples/l7/kerberos/kerberos_tgs_req_service_ticket.fasm](examples/l7/kerberos/kerberos_tgs_req_service_ticket.fasm):
+  Kerberos TGS_REQ requesting service ticket for LDAP server access over
+  IPv6.
+- [examples/l7/ldap/ldap_search_request_and_entry.fasm](examples/l7/ldap/ldap_search_request_and_entry.fasm):
+  LDAP subtree search request filtering for user accounts.
+- [examples/l7/ldap/ldap_simple_bind_request.fasm](examples/l7/ldap/ldap_simple_bind_request.fasm):
+  LDAP simple directory bind authentication request.
+- [examples/l7/ldap/ldap_unbind_connection_close.fasm](examples/l7/ldap/ldap_unbind_connection_close.fasm):
+  LDAP unbind request gracefully terminating directory session over IPv6.
+- [examples/l7/mdns/mdns_local_service_discovery.fasm](examples/l7/mdns/mdns_local_service_discovery.fasm):
+  Multicast DNS local zero-configuration service discovery over UDP 5353.
+- [examples/l7/mdns/mdns_ptr_service_query.fasm](examples/l7/mdns/mdns_ptr_service_query.fasm):
+  mDNS local service discovery PTR query on multicast 224.0.0.251 port 5353.
+- [examples/l7/mdns/mdns_srv_and_txt_announcement.fasm](examples/l7/mdns/mdns_srv_and_txt_announcement.fasm):
+  mDNS local service announcement response with SRV record over IPv6 link-
+  local multicast.
+- [examples/l7/memcached/memcached_binary_get_request.fasm](examples/l7/memcached/memcached_binary_get_request.fasm):
+  Memcached binary protocol command execution over IPv6.
+- [examples/l7/memcached/memcached_binary_text.fasm](examples/l7/memcached/memcached_binary_text.fasm):
+  Memcached distributed memory caching protocol interaction on TCP 11211.
+- [examples/l7/memcached/memcached_text_set_and_get.fasm](examples/l7/memcached/memcached_text_set_and_get.fasm):
+  Memcached text protocol key storage and retrieval.
+- [examples/l7/modbus/industrial_modbus_tcp_udp.fasm](examples/l7/modbus/industrial_modbus_tcp_udp.fasm):
+  Industrial automation control using Modbus TCP holding register reading
+  and writing on port 502.
+- [examples/l7/modbus/modbus_read_holding_registers.fasm](examples/l7/modbus/modbus_read_holding_registers.fasm):
+  Modbus TCP function code 3 reading holding registers from PLC.
+- [examples/l7/modbus/modbus_write_single_coil.fasm](examples/l7/modbus/modbus_write_single_coil.fasm):
+  Modbus TCP function code 5 writing single coil state over IPv6.
+- [examples/l7/mqtt/mqtt_connect_and_connack.fasm](examples/l7/mqtt/mqtt_connect_and_connack.fasm):
+  MQTT broker session initiation with CONNECT and CONNACK response.
+- [examples/l7/mqtt/mqtt_subscribe_and_suback.fasm](examples/l7/mqtt/mqtt_subscribe_and_suback.fasm):
+  MQTT topic subscription request and broker acknowledgment over IPv6.
+- [examples/l7/mqtt/mqtt_v311_v5_iot_publish.fasm](examples/l7/mqtt/mqtt_v311_v5_iot_publish.fasm):
+  Lightweight IoT telemetry messaging using MQTT CONNECT and PUBLISH on TCP
+  1883.
+- [examples/l7/mysql/mysql_error_access_denied.fasm](examples/l7/mysql/mysql_error_access_denied.fasm):
+  MySQL authentication error packet indicating access denied over IPv6.
+- [examples/l7/mysql/mysql_handshake_query.fasm](examples/l7/mysql/mysql_handshake_query.fasm):
+  MySQL relational database connection handshake, authentication login, and
+  SQL query on TCP 3306.
+- [examples/l7/mysql/mysql_server_handshake_init.fasm](examples/l7/mysql/mysql_server_handshake_init.fasm):
+  MySQL initial server handshake greeting announcing version capabilities.
+- [examples/l7/netflow/netflow_dual_stack_collector.fasm](examples/l7/netflow/netflow_dual_stack_collector.fasm):
+  NetFlow telemetry export sent over an IPv6 network underlay.
+- [examples/l7/netflow/netflow_ipfix_sflow_telemetry.fasm](examples/l7/netflow/netflow_ipfix_sflow_telemetry.fasm):
+  Network flow export and telemetry combining Cisco NetFlow, IPFIX, and
+  InMon sFlow v5.
+- [examples/l7/netflow/netflow_v5_single_flow_record.fasm](examples/l7/netflow/netflow_v5_single_flow_record.fasm):
+  Cisco NetFlow v5 telemetry export datagram reporting IP traffic metrics.
+- [examples/l7/nfs/nfs_compound_getattr.fasm](examples/l7/nfs/nfs_compound_getattr.fasm):
+  NFSv4 compound RPC procedure inspecting file attributes over IPv6.
+- [examples/l7/nfs/nfs_null_procedure_ping.fasm](examples/l7/nfs/nfs_null_procedure_ping.fasm):
+  NFS RPC Procedure 0 (NULL) checking remote file server liveness.
+- [examples/l7/nfs/nfs_rpc_compound_mount.fasm](examples/l7/nfs/nfs_rpc_compound_mount.fasm):
+  Network File System ONC RPC procedure calls for NULL and LOOKUP operations
+  on TCP 2049.
+- [examples/l7/ntp/ntp_and_ptp_clock_sync.fasm](examples/l7/ntp/ntp_and_ptp_clock_sync.fasm):
+  Network Time Protocol client mode on UDP 123 and Precision Time Protocol
+  synchronization on UDP 319.
+- [examples/l7/ntp/ntp_client_server_sync.fasm](examples/l7/ntp/ntp_client_server_sync.fasm):
+  NTP client time synchronization request and server timestamp response.
+- [examples/l7/ntp/ntp_stratum1_atomic_reference.fasm](examples/l7/ntp/ntp_stratum1_atomic_reference.fasm):
+  NTP Stratum 1 server response referencing GPS synchronized reference clock
+  over IPv6.
+- [examples/l7/opcua/industrial_opcua_binary_protocol.fasm](examples/l7/opcua/industrial_opcua_binary_protocol.fasm):
+  OPC Unified Architecture binary secure connection hello and open secure
+  channel on TCP 4840.
+- [examples/l7/opcua/opcua_hello_and_acknowledge.fasm](examples/l7/opcua/opcua_hello_and_acknowledge.fasm):
+  OPC UA Binary protocol HEL message negotiating buffer limits and ACK
+  response.
+- [examples/l7/opcua/opcua_open_secure_channel.fasm](examples/l7/opcua/opcua_open_secure_channel.fasm):
+  OPC UA Binary protocol OPN message establishing secure channel over IPv6.
+- [examples/l7/pop3/pop3_retr_and_quit.fasm](examples/l7/pop3/pop3_retr_and_quit.fasm):
+  POP3 message retrieval and session termination over IPv6.
+- [examples/l7/pop3/pop3_stat_and_list_messages.fasm](examples/l7/pop3/pop3_stat_and_list_messages.fasm):
+  POP3 mailbox status inspection retrieving message count and sizes.
+- [examples/l7/pop3/pop3_user_pass_authentication.fasm](examples/l7/pop3/pop3_user_pass_authentication.fasm):
+  POP3 mailbox access authentication with USER and PASS commands.
+- [examples/l7/postgres/postgres_ready_for_query_backend.fasm](examples/l7/postgres/postgres_ready_for_query_backend.fasm):
+  PostgreSQL backend command completion and ReadyForQuery signal over IPv6.
+- [examples/l7/postgres/postgres_startup_and_query.fasm](examples/l7/postgres/postgres_startup_and_query.fasm):
+  PostgreSQL database protocol v3 frontend startup and simple query
+  execution on TCP 5432.
+- [examples/l7/postgres/postgres_startup_message.fasm](examples/l7/postgres/postgres_startup_message.fasm):
+  PostgreSQL frontend connection initialization StartupMessage.
+- [examples/l7/ptp/ptp_delay_request_and_response.fasm](examples/l7/ptp/ptp_delay_request_and_response.fasm):
+  IEEE 1588 PTP link propagation delay measurement with Delay_Req and
+  Delay_Resp.
+- [examples/l7/ptp/ptp_domain_and_clock_id.fasm](examples/l7/ptp/ptp_domain_and_clock_id.fasm):
+  IEEE 1588 PTP Announce message with custom clock ID and non-default domain
+  over IPv6.
+- [examples/l7/ptp/ptp_sync_and_follow_up.fasm](examples/l7/ptp/ptp_sync_and_follow_up.fasm):
+  IEEE 1588 Precision Time Protocol master clock Sync and Follow_Up
+  messages.
+- [examples/l7/quic/quic_handshake_crypto_keys.fasm](examples/l7/quic/quic_handshake_crypto_keys.fasm):
+  QUIC Handshake packet establishing 1-RTT cryptographic context over IPv6.
+- [examples/l7/quic/quic_http3_long_short_headers.fasm](examples/l7/quic/quic_http3_long_short_headers.fasm):
+  QUIC and HTTP/3 connection establishment on UDP 443 with Initial and Short
+  header framing.
+- [examples/l7/quic/quic_initial_connection_handshake.fasm](examples/l7/quic/quic_initial_connection_handshake.fasm):
+  RFC 9000 QUIC Initial packet establishing connection state with DCID and
+  SCID.
+- [examples/l7/radius/radius_access_request_and_accept.fasm](examples/l7/radius/radius_access_request_and_accept.fasm):
+  RADIUS network access authentication exchange with Access-Request and
+  Access-Accept.
+- [examples/l7/radius/radius_accounting_start_and_stop.fasm](examples/l7/radius/radius_accounting_start_and_stop.fasm):
+  RADIUS session accounting request with Service-Type attribute over IPv6.
+- [examples/l7/radius/radius_and_tacacs_aaa.fasm](examples/l7/radius/radius_and_tacacs_aaa.fasm):
+  Authentication, Authorization, and Accounting signaling with RADIUS
+  Access-Request and TACACS+ Authen.
+- [examples/l7/redis/redis_ping_pong_heartbeat.fasm](examples/l7/redis/redis_ping_pong_heartbeat.fasm):
+  Redis RESP simple PING heartbeat command.
+- [examples/l7/redis/redis_resp2_resp3_cache.fasm](examples/l7/redis/redis_resp2_resp3_cache.fasm):
+  In-memory key-value database caching commands using Redis RESP2/RESP3
+  protocol framing.
+- [examples/l7/redis/redis_set_and_get_keys.fasm](examples/l7/redis/redis_set_and_get_keys.fasm):
+  Redis RESP key-value cache operations executing SET and GET over IPv6.
+- [examples/l7/rtp/rtp_g711_voice_payload.fasm](examples/l7/rtp/rtp_g711_voice_payload.fasm):
+  RTP audio media packet with G.711 PCMU payload type (PT 0) and SSRC.
+- [examples/l7/rtp/rtp_timestamp_drift_simulation.fasm](examples/l7/rtp/rtp_timestamp_drift_simulation.fasm):
+  RTP consecutive media packets advancing timestamp by 160 samples over
+  IPv6.
+- [examples/l7/rtp/rtp_video_stream_marker.fasm](examples/l7/rtp/rtp_video_stream_marker.fasm):
+  RTP video stream frame asserting marker bit indicating end of video access
+  unit.
+- [examples/l7/rtsp/rtsp_describe_and_setup.fasm](examples/l7/rtsp/rtsp_describe_and_setup.fasm):
+  RTSP session setup negotiating media stream parameters and transport.
+- [examples/l7/rtsp/rtsp_options_query.fasm](examples/l7/rtsp/rtsp_options_query.fasm):
+  RTSP OPTIONS query discovering streaming methods supported by media
+  server.
+- [examples/l7/rtsp/rtsp_status_response.fasm](examples/l7/rtsp/rtsp_status_response.fasm):
+  RTSP 200 OK status response confirming media control over IPv6.
+- [examples/l7/s7comm/industrial_s7comm_plc_read_write.fasm](examples/l7/s7comm/industrial_s7comm_plc_read_write.fasm):
+  Siemens S7 PLC industrial communication over ISO-on-TCP COTP and S7
+  protocol on port 102.
+- [examples/l7/s7comm/s7comm_read_variable_datablock.fasm](examples/l7/s7comm/s7comm_read_variable_datablock.fasm):
+  Siemens S7comm Read Variable command querying data block 1 memory offset
+  0.
+- [examples/l7/s7comm/s7comm_write_variable_outputs.fasm](examples/l7/s7comm/s7comm_write_variable_outputs.fasm):
+  Siemens S7comm Write Variable command updating PLC output memory over
+  IPv6.
+- [examples/l7/sflow/sflow_agent_and_subagent.fasm](examples/l7/sflow/sflow_agent_and_subagent.fasm):
+  sFlow v5 sample datagram with explicit agent IP and sub-agent ID.
+- [examples/l7/sflow/sflow_multi_agent_ipv6.fasm](examples/l7/sflow/sflow_multi_agent_ipv6.fasm):
+  sFlow v5 collector datagram sent across an IPv6 management underlay.
+- [examples/l7/sflow/sflow_v5_packet_sample.fasm](examples/l7/sflow/sflow_v5_packet_sample.fasm):
+  sFlow v5 network sampling agent datagram exporting packet samples.
+- [examples/l7/sip/sip_200_ok_sdp_answer.fasm](examples/l7/sip/sip_200_ok_sdp_answer.fasm):
+  SIP 200 OK response accepting call setup with media session description
+  body.
+- [examples/l7/sip/sip_bye_call_termination.fasm](examples/l7/sip/sip_bye_call_termination.fasm):
+  SIP BYE message gracefully terminating active call dialog over IPv6.
+- [examples/l7/sip/sip_invite_session_setup.fasm](examples/l7/sip/sip_invite_session_setup.fasm):
+  RFC 3261 SIP VoIP call setup with INVITE method, From, To, and Call-ID
+  headers.
+- [examples/l7/smb/smb2_file_sharing.fasm](examples/l7/smb/smb2_file_sharing.fasm):
+  Server Message Block 2/3 file sharing dialect negotiation and session
+  setup on TCP 445.
+- [examples/l7/smb/smb_negotiate_dialect.fasm](examples/l7/smb/smb_negotiate_dialect.fasm):
+  SMB2 Negotiate Protocol request querying supported dialect revisions.
+- [examples/l7/smb/smb_session_setup_tree_connect.fasm](examples/l7/smb/smb_session_setup_tree_connect.fasm):
+  SMB2 Tree Connect request mounting network share over IPv6.
+- [examples/l7/smtp/smtp_ehlo_and_greeting.fasm](examples/l7/smtp/smtp_ehlo_and_greeting.fasm):
+  SMTP session greeting and EHLO capability negotiation on TCP port 25.
+- [examples/l7/smtp/smtp_mail_exchange_ipv6.fasm](examples/l7/smtp/smtp_mail_exchange_ipv6.fasm):
+  Simple Mail Transfer Protocol exchange over IPv6 with EHLO, MAIL FROM,
+  RCPT TO, and QUIT.
+- [examples/l7/smtp/smtp_mail_transaction_rfc5321.fasm](examples/l7/smtp/smtp_mail_transaction_rfc5321.fasm):
+  Complete RFC 5321 SMTP email delivery transaction from sender to
+  recipient.
+- [examples/l7/ssdp/ssdp_and_whois_discovery.fasm](examples/l7/ssdp/ssdp_and_whois_discovery.fasm):
+  Network service discovery via SSDP M-SEARCH and domain registry query via
+  WHOIS on TCP 43.
+- [examples/l7/ssdp/ssdp_msearch_discover_devices.fasm](examples/l7/ssdp/ssdp_msearch_discover_devices.fasm):
+  SSDP M-SEARCH multicast discovery searching for root devices.
+- [examples/l7/ssdp/ssdp_notify_alive_advertisement.fasm](examples/l7/ssdp/ssdp_notify_alive_advertisement.fasm):
+  SSDP NOTIFY announcement broadcasting device availability over IPv6
+  multicast.
+- [examples/l7/ssh/ssh_banner_kexinit.fasm](examples/l7/ssh/ssh_banner_kexinit.fasm):
+  Secure Shell version banner exchange and key exchange initialization on
+  TCP 22.
+- [examples/l7/ssh/ssh_newkeys_switch.fasm](examples/l7/ssh/ssh_newkeys_switch.fasm):
+  SSH key exchange completion switching to negotiated symmetric encryption
+  keys.
+- [examples/l7/ssh/ssh_protocol_banner_exchange.fasm](examples/l7/ssh/ssh_protocol_banner_exchange.fasm):
+  SSH protocol version exchange with client and server identification
+  banners.
+- [examples/l7/stun/stun_binding_error_response.fasm](examples/l7/stun/stun_binding_error_response.fasm):
+  STUN Binding Error Response indicating unauthenticated request over IPv6.
+- [examples/l7/stun/stun_binding_request_nat.fasm](examples/l7/stun/stun_binding_request_nat.fasm):
+  STUN Binding Request probing NAT mapping and public endpoint discovery.
+- [examples/l7/stun/stun_binding_response_xor_mapped.fasm](examples/l7/stun/stun_binding_response_xor_mapped.fasm):
+  STUN Binding Response returning public XOR mapped IPv4 address.
+- [examples/l7/syslog/syslog_emergency_alert.fasm](examples/l7/syslog/syslog_emergency_alert.fasm):
+  Syslog critical emergency alert delivered over TCP transport.
+- [examples/l7/syslog/syslog_rfc5424_ipv6.fasm](examples/l7/syslog/syslog_rfc5424_ipv6.fasm):
+  RFC 5424 structured event logging over IPv6 with custom facility,
+  severity, and application tags.
+- [examples/l7/syslog/syslog_rfc5424_structured_data.fasm](examples/l7/syslog/syslog_rfc5424_structured_data.fasm):
+  RFC 5424 syslog event notification with facility, severity, hostname, and
+  app identity.
+- [examples/l7/tacacs/tacacs_auth_session_data.fasm](examples/l7/tacacs/tacacs_auth_session_data.fasm):
+  TACACS+ authentication session passing user credentials.
+- [examples/l7/tacacs/tacacs_auth_start_login.fasm](examples/l7/tacacs/tacacs_auth_start_login.fasm):
+  TACACS+ administrative login authentication START message on TCP port 49.
+- [examples/l7/tacacs/tacacs_author_exec.fasm](examples/l7/tacacs/tacacs_author_exec.fasm):
+  TACACS+ command authorization request over IPv6.
+- [examples/l7/telnet/telnet_iac_negotiation.fasm](examples/l7/telnet/telnet_iac_negotiation.fasm):
+  Telnet protocol option negotiation using IAC commands on TCP 23.
+- [examples/l7/telnet/telnet_login_prompt_session.fasm](examples/l7/telnet/telnet_login_prompt_session.fasm):
+  Telnet terminal session option negotiation over IPv6.
+- [examples/l7/telnet/telnet_terminal_type_subnegotiation.fasm](examples/l7/telnet/telnet_terminal_type_subnegotiation.fasm):
+  Telnet IAC terminal option negotiation offering DO and WILL requests.
+- [examples/l7/tftp/tftp_error_packet.fasm](examples/l7/tftp/tftp_error_packet.fasm):
+  TFTP error notification packet indicating file not found over IPv6.
+- [examples/l7/tftp/tftp_rrq_read_request.fasm](examples/l7/tftp/tftp_rrq_read_request.fasm):
+  TFTP Read Request (RRQ) querying remote boot image file in octet mode.
+- [examples/l7/tftp/tftp_wrq_write_transfer.fasm](examples/l7/tftp/tftp_wrq_write_transfer.fasm):
+  TFTP Write Request (WRQ) uploading configuration backup file.
+- [examples/l7/tls/tls_alert_close_notify.fasm](examples/l7/tls/tls_alert_close_notify.fasm):
+  TLS session termination delivering encrypted close_notify alert over IPv6.
+- [examples/l7/tls/tls_client_hello_sni_alpn.fasm](examples/l7/tls/tls_client_hello_sni_alpn.fasm):
+  TLS 1.3 Client Hello initiating cryptographic handshake with SNI and ALPN.
+- [examples/l7/tls/tls_handshake_sni_alpn.fasm](examples/l7/tls/tls_handshake_sni_alpn.fasm):
+  Transport Layer Security 1.3 handshake exchange with SNI server name and
+  ALPN protocol negotiation.
+- [examples/l7/websocket/websocket_binary_masked_frame.fasm](examples/l7/websocket/websocket_binary_masked_frame.fasm):
+  WebSocket client-to-server masked binary frame with custom mask key over
+  IPv6.
+- [examples/l7/websocket/websocket_text_frame_ping_pong.fasm](examples/l7/websocket/websocket_text_frame_ping_pong.fasm):
+  WebSocket text message framing with opcode and final bit set.
+- [examples/l7/websocket/websocket_upgrade_handshake.fasm](examples/l7/websocket/websocket_upgrade_handshake.fasm):
+  WebSocket HTTP connection upgrade handshake establishing bi-directional
+  framing.
+- [examples/l7/whois/whois_domain_query.fasm](examples/l7/whois/whois_domain_query.fasm):
+  WHOIS directory domain registration query over TCP port 43.
+- [examples/l7/whois/whois_ipv6_arin_allocation.fasm](examples/l7/whois/whois_ipv6_arin_allocation.fasm):
+  WHOIS IP address allocation query over IPv6.
+- [examples/l7/whois/whois_response_record.fasm](examples/l7/whois/whois_response_record.fasm):
+  WHOIS server response returning registrar details.
+
+### Cross-Cutting Topologies & Workloads (`examples/topologies/`) — 53 files
+
+- [examples/topologies/complete_dsl_grand_finale_omnibus.fasm](examples/topologies/complete_dsl_grand_finale_omnibus.fasm):
+  Grand finale omnibus exercising dual-stack IPv4/IPv6, L2 tags, L3
+  controls, L4 transports, L7 apps, SNMP, and OT.
+- [examples/topologies/complete_dsl_omnibus_reference.fasm](examples/topologies/complete_dsl_omnibus_reference.fasm):
+  Omnibus reference script exercising 100% of all FrameAssembly DSL lexical
+  tokens, protocols, TCP flags, SNMP versions, PDU types, USM auth/priv
+  algorithms, VarBind types, and wait units in a single file.
+- [examples/topologies/complex_enterprise_network.fasm](examples/topologies/complex_enterprise_network.fasm):
+  Simulate an enterprise network combining looped HTTP TCP sessions between
+  a router and web server with an SNMPv3 trap to a monitoring server.
+- [examples/topologies/dual_stack_loop_block_orchestration.fasm](examples/topologies/dual_stack_loop_block_orchestration.fasm):
+  High-volume traffic generation repeating dual-stack polymorphic flows
+  inside LOOP blocks.
+- [examples/topologies/dual_stack_polymorphic_flow_basic.fasm](examples/topologies/dual_stack_polymorphic_flow_basic.fasm):
+  Basic polymorphic FLOW execution reusing the same flow template across
+  both IPv4 and IPv6 endpoint pairs.
+- [examples/topologies/dual_stack_polymorphic_flow_with_modifiers.fasm](examples/topologies/dual_stack_polymorphic_flow_with_modifiers.fasm):
+  Polymorphic flow with Layer 3 TTL, DSCP QoS markings, and inter-frame WAIT
+  timing over IPv4 and IPv6.
+- [examples/topologies/ipv4_multicast_mac_all_hosts.fasm](examples/topologies/ipv4_multicast_mac_all_hosts.fasm):
+  IPv4 all-hosts multicast transmission to 224.0.0.1 deriving RFC 1112 MAC
+  01:00:5e:00:00:01.
+- [examples/topologies/ipv4_multicast_mac_mdns.fasm](examples/topologies/ipv4_multicast_mac_mdns.fasm):
+  IPv4 mDNS link-local multicast transmission to 224.0.0.251 deriving RFC
+  1112 MAC 01:00:5e:00:00:fb.
+- [examples/topologies/ipv4_multicast_mac_ssdp.fasm](examples/topologies/ipv4_multicast_mac_ssdp.fasm):
+  IPv4 SSDP UPnP discovery multicast transmission to 239.255.255.250
+  deriving RFC 1112 MAC 01:00:5e:7f:ff:fa.
+- [examples/topologies/ipv4_multicast_mac_vrrp.fasm](examples/topologies/ipv4_multicast_mac_vrrp.fasm):
+  IPv4 VRRP router heartbeat multicast transmission to 224.0.0.18 deriving
+  RFC 1112 MAC 01:00:5e:00:00:12.
+- [examples/topologies/ipv6_compressed_zero_variations.fasm](examples/topologies/ipv6_compressed_zero_variations.fasm):
+  Verification of varied IPv6 zero compression positions including leading,
+  middle, and trailing zeros.
+- [examples/topologies/ipv6_global_unicast_2001_db8.fasm](examples/topologies/ipv6_global_unicast_2001_db8.fasm):
+  End-to-end traffic exchange using RFC 3849 global unicast documentation
+  prefix 2001:db8::/32.
+- [examples/topologies/ipv6_ipv4_mapped_address.fasm](examples/topologies/ipv6_ipv4_mapped_address.fasm):
+  IPv4-mapped IPv6 address communication using the ::ffff:a.b.c.d format per
+  RFC 4291.
+- [examples/topologies/ipv6_link_local_fe80.fasm](examples/topologies/ipv6_link_local_fe80.fasm):
+  Peer-to-peer communication using IPv6 link-local addressing in the
+  fe80::/10 prefix.
+- [examples/topologies/ipv6_loopback_and_unspecified.fasm](examples/topologies/ipv6_loopback_and_unspecified.fasm):
+  Communication between IPv6 loopback and unspecified addresses to test
+  zero-compression and host resolution.
+- [examples/topologies/ipv6_multicast_global_ff0e.fasm](examples/topologies/ipv6_multicast_global_ff0e.fasm):
+  IPv6 global scope multicast transmission to ff0e::101 deriving RFC 2464
+  Ethernet MAC.
+- [examples/topologies/ipv6_multicast_mac_all_nodes.fasm](examples/topologies/ipv6_multicast_mac_all_nodes.fasm):
+  IPv6 all-nodes multicast transmission automatically deriving RFC 2464 MAC
+  33:33:00:00:00:01.
+- [examples/topologies/ipv6_multicast_mac_all_routers.fasm](examples/topologies/ipv6_multicast_mac_all_routers.fasm):
+  IPv6 all-routers multicast transmission automatically deriving RFC 2464
+  MAC 33:33:00:00:00:02.
+- [examples/topologies/ipv6_multicast_site_local_dhcpv6.fasm](examples/topologies/ipv6_multicast_site_local_dhcpv6.fasm):
+  IPv6 site-local DHCPv6 server multicast transmission to ff05::1:3 deriving
+  RFC 2464 MAC.
+- [examples/topologies/ipv6_multicast_solicited_node.fasm](examples/topologies/ipv6_multicast_solicited_node.fasm):
+  IPv6 solicited-node multicast transmission deriving RFC 2464 MAC
+  33:33:ff:00:12:34.
+- [examples/topologies/l3_dscp_network_control_scavenger.fasm](examples/topologies/l3_dscp_network_control_scavenger.fasm):
+  Network control and scavenger traffic classes spanning CS6, CS7, CS1, and
+  boundary values 0 and 63.
+- [examples/topologies/l3_dscp_signaling_and_bulk_data.fasm](examples/topologies/l3_dscp_signaling_and_bulk_data.fasm):
+  Quality of Service DSCP classification across signaling AF31, low-latency
+  AF21, and bulk AF11.
+- [examples/topologies/l3_dscp_voice_video_ef_af41.fasm](examples/topologies/l3_dscp_voice_video_ef_af41.fasm):
+  Differentiated Services Code Point QoS marking for Expedited Forwarding
+  voice and AF41 video.
+- [examples/topologies/l3_ecn_and_ip_fragmentation.fasm](examples/topologies/l3_ecn_and_ip_fragmentation.fasm):
+  Explicit Congestion Notification and IPv4 fragmentation control flags
+  including DF, MF, and FRAGOFFSET.
+- [examples/topologies/l3_flowlabel_boundary_values.fasm](examples/topologies/l3_flowlabel_boundary_values.fasm):
+  IPv6 FLOWLABEL field boundary testing using minimum value 0 and maximum
+  20-bit value 1048575.
+- [examples/topologies/l3_flowlabel_ecmp_multipath_hashing.fasm](examples/topologies/l3_flowlabel_ecmp_multipath_hashing.fasm):
+  IPv6 20-bit FLOWLABEL generation across parallel traffic streams for ECMP
+  multipath distribution.
+- [examples/topologies/l3_flowlabel_ipv4_silent_ignore.fasm](examples/topologies/l3_flowlabel_ipv4_silent_ignore.fasm):
+  Polymorphic flow specifying FLOWLABEL executed over both IPv4 and IPv6
+  where IPv4 silently ignores the modifier.
+- [examples/topologies/l3_ttl_bgp_gtsm_and_zero_edge.fasm](examples/topologies/l3_ttl_bgp_gtsm_and_zero_edge.fasm):
+  Generalized TTL Security Mechanism with maximum TTL 255 and boundary edge
+  case TTL 0.
+- [examples/topologies/l3_ttl_hop_limits_traceroute.fasm](examples/topologies/l3_ttl_hop_limits_traceroute.fasm):
+  Traceroute simulation with incremental TTL hop limit values 1, 2, and 3.
+- [examples/topologies/minimal_single_frame_baseline.fasm](examples/topologies/minimal_single_frame_baseline.fasm):
+  Minimalist baseline FrameAssembly program defining two hosts, a single-
+  statement TCP SYN flow using all default field values, and a single
+  compile invocation.
+- [examples/topologies/multi_arg_flow_mesh_orchestration.fasm](examples/topologies/multi_arg_flow_mesh_orchestration.fasm):
+  Demonstrate a 5-parameter FLOW orchestrating full-mesh east-west
+  microservice heartbeats across five distinct hosts.
+- [examples/topologies/multi_loop_staged_load_test.fasm](examples/topologies/multi_loop_staged_load_test.fasm):
+  Simulate a multi-stage load test using sequential LOOP blocks in the
+  COMPILE section representing warm-up, peak burst, and cool-down traffic
+  phases.
+- [examples/topologies/multicast_explicit_mac_override.fasm](examples/topologies/multicast_explicit_mac_override.fasm):
+  Multicast endpoint declaration with explicit MAC override taking
+  precedence over auto-derivation.
+- [examples/topologies/snmp_tri_version_coexistence_audit.fasm](examples/topologies/snmp_tri_version_coexistence_audit.fasm):
+  Simulate a brownfield network management audit where legacy SNMPv1,
+  standard SNMPv2c, and encrypted SNMPv3 coexist and report to a single
+  compliance collector.
+- [examples/topologies/topology_carrier_mpls_vpn_pe_ce.fasm](examples/topologies/topology_carrier_mpls_vpn_pe_ce.fasm):
+  Service provider BGP/MPLS IP VPN routing between Customer Edge (CE) and
+  Provider Edge (PE) routers.
+- [examples/topologies/topology_datacenter_vxlan_evpn_underlay.fasm](examples/topologies/topology_datacenter_vxlan_evpn_underlay.fasm):
+  Data center network fabric running BGP-EVPN control plane with VXLAN
+  encapsulation over IPv6 underlay.
+- [examples/topologies/topology_dmz_firewall_intrusion_alert.fasm](examples/topologies/topology_dmz_firewall_intrusion_alert.fasm):
+  Simulate an external attacker scanning a DMZ firewall (SYN, FIN+PSH+URG),
+  the firewall blocking with RST ACK, and alerting a SOC SIEM via Syslog UDP
+  and SNMPv3 INFORM.
+- [examples/topologies/topology_dns_amplification_and_mitigation.fasm](examples/topologies/topology_dns_amplification_and_mitigation.fasm):
+  Simulate a UDP DNS ANY amplification attack against a victim server
+  followed by an automated DDoS scrubbing center BGP FlowSpec mitigation
+  rule and SNMPv2c trap.
+- [examples/topologies/topology_dual_stack_dns_web_tier.fasm](examples/topologies/topology_dual_stack_dns_web_tier.fasm):
+  Multi-tier web service deployment resolving DNS records followed by TLS
+  1.3 and HTTP/2 session establishment.
+- [examples/topologies/topology_dual_stack_kubernetes_service_mesh.fasm](examples/topologies/topology_dual_stack_kubernetes_service_mesh.fasm):
+  Kubernetes dual-stack service mesh traffic routing between microservices
+  via HTTP/2 and gRPC.
+- [examples/topologies/topology_dual_stack_leaf_spine_fabric.fasm](examples/topologies/topology_dual_stack_leaf_spine_fabric.fasm):
+  Dual-stack data center Clos leaf-spine fabric with BGP peering and VXLAN
+  overlay encapsulation.
+- [examples/topologies/topology_dual_stack_voip_qos_telemetry.fasm](examples/topologies/topology_dual_stack_voip_qos_telemetry.fasm):
+  Enterprise VoIP deployment combining SIP signaling (DSCP 26), RTP audio
+  streams (DSCP 46), and SNMP telemetry.
+- [examples/topologies/topology_dual_stack_wan_sdwan_failover.fasm](examples/topologies/topology_dual_stack_wan_sdwan_failover.fasm):
+  SD-WAN multi-tenant IPsec tunnel health monitoring using BFD heartbeat
+  probes across IPv4 and IPv6 links.
+- [examples/topologies/topology_enterprise_campus_dot1x_nac.fasm](examples/topologies/topology_enterprise_campus_dot1x_nac.fasm):
+  Enterprise campus zero-trust port onboarding with 802.1X EAPOL, RADIUS
+  authentication, and DHCP IP assignment.
+- [examples/topologies/topology_industrial_scada_modbus_monitoring.fasm](examples/topologies/topology_industrial_scada_modbus_monitoring.fasm):
+  Simulate an Industrial Control System (ICS/SCADA) HMI polling a
+  Programmable Logic Controller (PLC) over Modbus/TCP port 502 alongside
+  SNMPv1 and SNMPv2c thermal alerts.
+- [examples/topologies/topology_industrial_scada_substation.fasm](examples/topologies/topology_industrial_scada_substation.fasm):
+  Power grid electrical substation automation integrating Modbus, DNP3, and
+  S7comm telemetry.
+- [examples/topologies/topology_kubernetes_pod_service_mesh.fasm](examples/topologies/topology_kubernetes_pod_service_mesh.fasm):
+  Simulate a Kubernetes cluster pod-to-pod service mesh workflow combining
+  CoreDNS UDP service discovery, Envoy mTLS TCP gRPC calls, and node SNMPv2c
+  scraping.
+- [examples/topologies/topology_spine_leaf_datacenter.fasm](examples/topologies/topology_spine_leaf_datacenter.fasm):
+  Simulate a data center Clos spine-leaf fabric combining eBGP TCP peering
+  on port 179, VXLAN UDP overlay frames on port 4789, and SNMPv3 fabric
+  health traps.
+- [examples/topologies/topology_three_tier_web_app.fasm](examples/topologies/topology_three_tier_web_app.fasm):
+  Simulate a 4-host three-tier web application architecture (External Client
+  -> Reverse Proxy Load Balancer -> App Server -> Database Server) in a
+  single multi-parameter flow.
+- [examples/topologies/topology_voip_call_with_qos_telemetry.fasm](examples/topologies/topology_voip_call_with_qos_telemetry.fasm):
+  Simulate an enterprise VoIP call combining SIP UDP signaling (port 5060),
+  RTP UDP voice packets (port 16384), and voice gateway SNMPv3 QoS jitter
+  and MOS score monitoring.
+- [examples/topologies/topology_wan_sdwan_failover_simulation.fasm](examples/topologies/topology_wan_sdwan_failover_simulation.fasm):
+  Simulate an SD-WAN primary circuit failure detected via Bidirectional
+  Forwarding Detection (BFD) on UDP port 3784, triggering an SNMPv2c
+  linkDown trap and TCP tunnel failover.
+- [examples/topologies/topology_zero_trust_inspection_pipeline.fasm](examples/topologies/topology_zero_trust_inspection_pipeline.fasm):
+  Comprehensive perimeter security inspection chain traversing next-gen
+  firewall, TLS proxy, and SIEM Syslog.
+- [examples/topologies/topology_zero_trust_proxy_inspection.fasm](examples/topologies/topology_zero_trust_proxy_inspection.fasm):
+  Simulate a Zero Trust Network Access (ZTNA) policy enforcement flow
+  combining TLS TCP client access, RADIUS UDP MFA verification, and backend
+  TCP proxy forwarding.
 
 ## Relevant Files
-- [README.md](README.md) - Full documentation and syntax guide
-- [llms-full.txt](llms-full.txt) - Full context file embedding documentation, AST definitions, and all 105 `.fasm` examples
-- [src/lib.rs](src/lib.rs) - Crate root and module exports
-- [src/ast.rs](src/ast.rs) - Core structural types of the DSL
-- [demo.fasm](demo.fasm) - Primary demonstration script
+- [README.md](README.md) - Full documentation and language specification.
+- [llms-full.txt](llms-full.txt) - Full context bundle with formal EBNF grammar, AST definitions, and all 385 example scripts.
+- [demo.fasm](demo.fasm) - Primary demonstration script.
+- [src/lib.rs](src/lib.rs) - Library crate root and re-exports.
+- [src/ast/mod.rs](src/ast/mod.rs) - Core structural AST types.

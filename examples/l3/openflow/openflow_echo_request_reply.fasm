@@ -1,0 +1,19 @@
+// PROMPT: OpenFlow controller-to-switch liveliness verification with ECHO_REQUEST and ECHO_REPLY.
+// TOKENS: HOST, IP, FLOW, ->, <-, OPENFLOW, TYPE, ECHO_REQUEST, ECHO_REPLY, XID, COMPILE
+
+// INSTRUCTION: Define SDN controller.
+HOST sdn_ctrl { IP 192.168.100.1 }
+
+// INSTRUCTION: Define OpenFlow hardware switch.
+HOST sdn_switch { IP 192.168.100.2 }
+
+// INSTRUCTION: Define OpenFlow keepalive flow verifying channel liveliness.
+FLOW of_echo_flow(c, s) {
+    c -> s OPENFLOW TYPE ECHO_REQUEST XID 1001
+    c <- s OPENFLOW TYPE ECHO_REPLY XID 1001
+}
+
+// INSTRUCTION: Compile block executing OpenFlow echo transaction.
+COMPILE {
+    of_echo_flow(sdn_ctrl, sdn_switch)
+}

@@ -1,0 +1,18 @@
+// PROMPT: IPv4 VRRP router heartbeat multicast transmission to 224.0.0.18 deriving RFC 1112 MAC 01:00:5e:00:00:12.
+// TOKENS: HOST, IP, FLOW, ->, VRRP, VRID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define VRRP master router.
+HOST vrrp_master { IP 192.168.1.254 }
+
+// INSTRUCTION: Define VRRP multicast group.
+HOST vrrp_mcast { IP 224.0.0.18 }
+
+// INSTRUCTION: Define VRRP master advertisement heartbeat flow.
+FLOW vrrp_heartbeat_flow(src, dst) {
+    src -> dst VRRP VRID 10 PRIORITY 100
+}
+
+// INSTRUCTION: Compile block executing VRRP heartbeat.
+COMPILE {
+    vrrp_heartbeat_flow(vrrp_master, vrrp_mcast)
+}

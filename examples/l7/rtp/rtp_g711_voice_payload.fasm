@@ -1,0 +1,18 @@
+// PROMPT: RTP audio media packet with G.711 PCMU payload type (PT 0) and SSRC.
+// TOKENS: HOST, IP, FLOW, ->, RTP, PT, SSRC, TIMESTAMP, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.20 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW rtp_voice(c, s) {
+    c -> s RTP PT 0 SSRC 0x12345678 TIMESTAMP 160
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    rtp_voice(client, server)
+}

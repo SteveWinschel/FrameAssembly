@@ -1,77 +1,96 @@
 {
-	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-	"name": "FrameAssembly",
-	"scopeName": "source.fasm",
-	"patterns": [
-		{
-			"include": "#comments"
-		},
-		{
-			"include": "#strings"
-		},
-		{
-			"include": "#keywords"
-		},
-		{
-			"include": "#properties"
-		},
-		{
-			"include": "#constants"
-		},
-		{
-			"include": "#operators"
-		},
-		{
-			"include": "#numbers"
-		}
-	],
-	"repository": {
-		"comments": {
-			"match": "//.*$",
-			"name": "comment.line.double-slash.frameassembly"
-		},
-		"strings": {
-			"begin": "\"",
-			"end": "\"",
-			"name": "string.quoted.double.frameassembly",
-			"patterns": [
-				{
-					"match": "\\\\.",
-					"name": "constant.character.escape.frameassembly"
-				}
-			]
-		},
-		"keywords": {
-			"match": "\\b(HOST|FLOW|COMPILE|LOOP)\\b",
-			"name": "keyword.control.frameassembly"
-		},
-		"properties": {
-			"match": "\\b(IP|MAC|SRCPORT|DSTPORT|SEQ|ACKNUM|WIN|PAYLOAD|WAIT|COMMUNITY|USER|OID|SYSUPTIME|NONREPEATERS|MAXREPETITIONS|REQID|ENTERPRISE|AGENTIP|GENTRAP|SPECTRAP|ENGINEID|ENGINEBOOTS|ENGINETIME|CONTEXTNAME|AUTH|PRIV|VARBIND|NULLVAL|STRING|INT|TIMETICKS|IPVAL|OIDVAL|COUNTER32|GAUGE32|COUNTER64)\\b",
-			"name": "support.type.property-name.frameassembly"
-		},
-		"constants": {
-			"match": "\\b(TCP|UDP|SNMP1|SNMP2|SNMP3|SYN|ACK|FIN|RST|PSH|URG|ECE|CWR|TRAP|INFORM|GET|GETNEXT|GETBULK|SET|RESPONSE|MD5|SHA|SHA256|SHA384|SHA512|DES|AES)\\b",
-			"name": "constant.language.frameassembly"
-		},
-		"operators": {
-			"match": "(->|<-)",
-			"name": "keyword.operator.frameassembly"
-		},
-		"numbers": {
-			"patterns": [
-				{
-					"match": "\\b([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\\b",
-					"name": "constant.numeric.mac.frameassembly"
-				},
-				{
-					"match": "\\b[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\b",
-					"name": "constant.numeric.ip.frameassembly"
-				},
-				{
-					"match": "-?\\b[0-9]+(ms|s|m)?\\b",
-					"name": "constant.numeric.integer.frameassembly"
-				}
-			]
-		}
-	}
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "FrameAssembly",
+  "scopeName": "source.fasm",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#protocols"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#properties"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#numbers"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "match": "//.*$",
+      "name": "comment.line.double-slash.frameassembly"
+    },
+    "strings": {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.frameassembly",
+      "patterns": [
+        {
+          "match": "\\\\.",
+          "name": "constant.character.escape.frameassembly"
+        }
+      ]
+    },
+    "keywords": {
+      "match": "\\b(HOST|FLOW|COMPILE|LOOP)\\b",
+      "name": "keyword.control.frameassembly"
+    },
+    "protocols": {
+      "match": "\\b(TCP|UDP|SCTP|SNMP1|SNMP2|SNMP3|ARP|VLAN|QINQ|LLDP|STP|LACP|EAPOL|MPLS|ICMP|NDP|IGMP|MLD|GRE|VXLAN|GENEVE|IPSEC|ESP|AH|IKEV2|WIREGUARD|OSPF|BGP|RIP|VRRP|HSRP|PIM|BFD|OPENFLOW|DNS|MDNS|DHCP|NTP|PTP|RADIUS|TACACS|SYSLOG|NETFLOW|IPFIX|SFLOW|TFTP|FTP|SSH|TELNET|HTTP|HTTP2|GRPC|WEBSOCKET|TLS|QUIC|STUN|SIP|RTP|RTSP|SMTP|IMAP|POP3|KERBEROS|LDAP|SMB|NFS|REDIS|MEMCACHED|MYSQL|POSTGRES|MQTT|COAP|AMQP|SSDP|WHOIS|MODBUS|BACNET|DNP3|S7COMM|ETHERNETIP|OPCUA)\\b",
+      "name": "entity.name.type.protocol.frameassembly"
+    },
+    "constants": {
+      "match": "\\b(ABORT|ACCESS_ACCEPT|ACCESS_CHALLENGE|ACCESS_REJECT|ACCESS_REQUEST|ACCOUNTING_REQUEST|ACCOUNTING_RESPONSE|ACCT|ACK|ADVERTISE|AES|ALERT|ANNOUNCE|APP_DATA|AS_REP|AS_REQ|AUTHEN|AUTHOR|BASIC_DELIVER|BASIC_PUBLISH|BINDING_ERROR|BINDING_REQUEST|BINDING_RESPONSE|BIND_REQ|BIND_RES|BYE|CANCEL|CERTIFICATE|CHANGED|CHANNEL_OPEN|CLIENT_HELLO|CLOSE|CON|CONNACK|CONNECT|CONNECTION_START|COOKIE|COOKIE_ACK|COOKIE_ECHO|COUNTER32|COUNTER64|CREATED|CREATE_CHILD_SA|CWR|DATA|DBD|DELAY_REQ|DELAY_RESP|DELETE|DES|DESCRIBE|DEST_UNREACH|DIRECT_OPERATE|DISCONNECT|DISCOVER|DONE|ECE|ECHO_REPLY|ECHO_REQ|ECHO_REQUEST|EHLO|ERR|FEATURES_REPLY|FEATURES_REQ|FIN|FINISHED|FLOW_MOD|FOLLOW_UP|GARP|GAUGE32|GET|GETBULK|GETNEXT|GOAWAY|GRATUITOUS|HANDSHAKE|HEAD|HEADERS|HEARTBEAT|HEARTBEAT_ACK|HELLO|HELO|INFORM|INFORMATIONAL|INIT|INITIAL|INITIATION|INIT_ACK|INT|INVITE|IPVAL|I_AM|JOIN_PRUNE|KEEPALIVE|KRB_ERROR|LEAVE|LIST_IDENTITY|LIST_INTERFACES|LIST_SERVICES|LOGOFF|LSACK|LSR|LSU|MD5|MSEARCH|NEGOTIATE|NEIGHBOR_ADVERT|NEIGHBOR_SOLICIT|NON|NOTIFICATION|NOTIFY|NOT_FOUND|NULL|NULLVAL|OFFER|OIDVAL|OK|OPEN|OPERATE|OPTIONS|PACKET_IN|PACKET_OUT|PATCH|PING|PINGREQ|PINGRESP|PLAY|PONG|POST|PREFACE|PSH|PUBACK|PUBLISH|PUT|QUERY|QUIT|READ_COILS|READ_DISCRETE_INPUTS|READ_HOLDING_REGISTERS|READ_INPUT_REGISTERS|REDIRECT|REGISTER|REGISTER_SESSION|RELEASE|REPLY|REPORT|REQUEST|RESPONSE|RETRY|ROUTER_ADVERT|ROUTER_SOLICIT|RRQ|RST|RSTP|SACK|SA_INIT|SEARCH_DONE|SEARCH_ENTRY|SEARCH_REQ|SELECT|SEND_RR_DATA|SEND_UNIT_DATA|SERVER_HELLO|SESSION_SETUP|SET|SETTINGS|SETUP|SHA|SHA256|SHA384|SHA512|SHORT|SHUTDOWN|SOLICIT|START|STRING|SUBACK|SUBSCRIBE|SYN|SYNC|TEARDOWN|TGS_REP|TGS_REQ|TIMETICKS|TIME_EXCEEDED|TRAP|TREE_CONNECT|TREE_DISCONNECT|UNBIND_REQ|UNREGISTER_SESSION|UNSOLICITED_RESPONSE|UPDATE|URG|V1|V2|V3|WHO_IS|WINDOW_UPDATE|WRITE_MULTIPLE_REGISTERS|WRITE_SINGLE_COIL|WRITE_SINGLE_REGISTER|WRQ|ZERO_RTT)\\b",
+      "name": "constant.language.frameassembly"
+    },
+    "properties": {
+      "match": "\\b(ACKNUM|ACTOR_KEY|ACTOR_PORT|ACTOR_STATE|ACTOR_SYS|ADDR|ADV_INT|AGENTIP|AGENT_IP|ALPN|ANS_TTL|APP|AREA|AREA_ID|ARG|ARGS|ASN|AUTH|AUTH_OK|BANNER|BASE_DN|BGPID|BINARY|BLOCK|BODY|BOS|BRIDGE_ID|CALL_ID|CAS|CHADDR|CHANNEL|CHASSIS_ID|CHECKSUM|CHUNK|CHUNK_TYPE|CIADDR|CIPHERSUITE|CIP_ATTR|CIP_CLASS|CIP_INSTANCE|CIP_SERVICE|CLIENT_ID|CLOCK_ID|CMD|CNAME|CODE|COMMAND|COMMAND_COMPLETE|COMMUNITY|COMPOUND|CONFIRM|CONTACT|CONTENT_FORMAT|CONTENT_TYPE|CONTEXT|CONTEXTNAME|COST|COUNT|COUNTER|CRC|CREATE|CSEQ|DB|DB_NUM|DCID|DEAD_INTERVAL|DEI|DF|DIAG|DNS_SERVER|DO|DOMAIN|DOMAIN_ID|DONT|DPID|DR_PRIORITY|DSCP|DST|DSTIP|DSTMAC|DSTPORT|EAP_CODE|EAP_ID|EAP_METHOD|EAP_PACKET|ECN|ENDPOINT_URL|ENGINEBOOTS|ENGINEID|ENGINETIME|ENTERPRISE|EOF|ERRCODE|ERRMSG|ERROR_RESPONSE|ETHERTYPE|ETYPE|EXCHANGE|EXP|EXPTIME|FACILITY|FILENAME|FILTER|FIN_BIT|FLAGS|FLOWLABEL|FORWARD_DELAY|FRAGOFFSET|FRAMED_IP|FROM|FUNC|GATEWAY|GENTRAP|GREETING|GRE_KEY|GRE_PROTO|GRE_SEQ|GROUP|GRPC_STATUS|HANDSHAKE_VERSION|HEADER|HELLOTIME|HELLO_INTERVAL|HELLO_TIME|HEXPAYLOAD|HOLDTIME|HOSTNAME|HOST_HDR|ICV|ID|IDENTITY|INITIATOR_SPI|INNER_VLAN|INVOKE_ID|IP|IPID|IS_RESPONSE|IV|KEXINIT|KEY|LABEL|LEASE_TIME|LI|LOCATION|LOGIN|MAC|MAIL_FROM|MAN|MARKER|MASK_KEY|MAXREPETITIONS|MAX_AGE|MAX_RESP|MAX_RESP_DELAY|METHOD|METRIC|MF|MIN_RX|MIN_TX|MODE|MPLS_TTL|MSG|MSGID|MSG_CODE|MSG_TYPE|MSS|MULT|MULTICAST_ADDR|MX|MY_DISC|NAS_IP|NEWKEYS|NEXTHOP|NEXT_HEADER|NEXT_PAYLOAD|NLRI|NODE_ID|NONREPEATERS|NT|NTS|OBJECT_INSTANCE|OBJECT_TYPE|OCTETS|OFFSET|OID|OPAQUE|OPCODE|OPTION|OPT_CLASS|OPT_TYPE|PACKETS|PARAM|PARTNER_KEY|PARTNER_PORT|PARTNER_STATE|PARTNER_SYS|PATH|PAYLOAD|PCP|PDU_REF|PKT_ID|PKT_NUM|PLC_CONTROL|POLL|PORT_ID|PPID|PRECISION|PREFIX|PRI|PRIORITY|PRIV|PROC|PROCID|PROPERTY_ID|PROTO|PROTOCOL_HEADER|PROTOCOL_TYPE|PROTO_ID|PT|QNAME|QOS|QTYPE|RCODE|RCPT_TO|RDATA|READY_FOR_QUERY|READ_PROPERTY|READ_VAR|REALM|REASON|RECEIVER|RECORD_VERSION|REFID|REGISTRAR|REPLY_TYPE|REQID|RESPONDER_SPI|RESULT_CODE|RETAIN|RETURN_CODE|ROOT_ID|ROSCTR|ROUTER|ROUTER_ID|ROUTER_LIFETIME|ROUTING_KEY|RP|SACKPERM|SACK_PERM|SAMPLES|SCID|SECURE_CHANNEL_ID|SENDER|SENDERIP|SENDERMAC|SEQ|SEQ_ID|SEQ_NUM|SERVER_VERSION|SERVICE|SERVICE_TYPE|SESSION|SESSION_HANDLE|SESSION_ID|SETUP_COMM|SEVERITY|SHARE|SIADDR|SLLA|SNAME|SNI|SOFTWARE|SOURCE|SPA|SPECTRAP|SPI|SQL|SRC|SRCIP|SRCMAC|SRCPORT|SSN|SSRC|ST|STARTUP|STATE|STATUS|STRATUM|STREAM|STREAM_ID|SUBNET_MASK|SUB_AGENT_ID|SYSDESC|SYSNAME|SYSUPTIME|TABLE_ID|TAG|TARGET|TARGETIP|TARGETMAC|TC|TEXT|THA|TIMESTAMP|TLLA|TO|TOKEN|TOKEN_ID|TOPIC|TPA|TRANSPORT|TRANSPORT_HDR|TREE_ID|TSECR|TSN|TSVAL|TTL|TXID|TX_TIMESTAMP|TYPE|UNITID|UPTIME|URGENT|URI|URI_PATH|USER|USER_AGENT|USN|VALUE|VARBIND|VARIATION|VERS|VERSION|VIA|VIP|VN|VNI|VNID|VRID|VTAG|WAIT|WILL|WIN|WINDOW|WONT|WRITE_PROPERTY|WRITE_VAR|WSCALE|XID|XOR_MAPPED_ADDR|YIADDR|YOUR_DISC)\\b",
+      "name": "support.type.property-name.frameassembly"
+    },
+    "operators": {
+      "match": "(->|<-)",
+      "name": "keyword.operator.frameassembly"
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "match": "\\b([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\\b",
+          "name": "constant.numeric.mac.frameassembly"
+        },
+        {
+          "match": "(?:::|::[0-9a-fA-F:.]+|\\b[0-9a-fA-F]{1,4}(:[0-9a-fA-F:.]+)+)",
+          "name": "constant.numeric.ipv6.frameassembly"
+        },
+        {
+          "match": "\\b[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\b",
+          "name": "constant.numeric.ip.frameassembly"
+        },
+        {
+          "match": "\\b0[xX][0-9a-fA-F]+\\b",
+          "name": "constant.numeric.hex.frameassembly"
+        },
+        {
+          "match": "(?:\\B\\.|\\b)[0-9]+(?:\\.[0-9]+)+",
+          "name": "constant.numeric.oid.frameassembly"
+        },
+        {
+          "match": "-?\\b[0-9]+(ns|us|ms|s|m)?\\b",
+          "name": "constant.numeric.integer.frameassembly"
+        }
+      ]
+    }
+  }
 }

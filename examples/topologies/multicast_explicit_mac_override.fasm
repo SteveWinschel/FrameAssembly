@@ -1,0 +1,18 @@
+// PROMPT: Multicast endpoint declaration with explicit MAC override taking precedence over auto-derivation.
+// TOKENS: HOST, IP, MAC, FLOW, ->, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define unicast sender host.
+HOST custom_sender { IP 192.168.1.100 }
+
+// INSTRUCTION: Define multicast destination with explicit MAC override.
+HOST override_mcast { IP 224.0.0.9 MAC 00:aa:bb:cc:dd:ee }
+
+// INSTRUCTION: Define UDP flow utilizing explicit destination MAC.
+FLOW override_flow(src, dst) {
+    src -> dst UDP PAYLOAD "explicit_mac_delivery"
+}
+
+// INSTRUCTION: Compile block executing the flow.
+COMPILE {
+    override_flow(custom_sender, override_mcast)
+}

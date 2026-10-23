@@ -1,0 +1,18 @@
+// PROMPT: SMB2 Negotiate Protocol request querying supported dialect revisions.
+// TOKENS: HOST, IP, FLOW, ->, SMB, COMMAND, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.50 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW smb_neg(c, s) {
+    c -> s SMB COMMAND "NEGOTIATE"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    smb_neg(client, server)
+}

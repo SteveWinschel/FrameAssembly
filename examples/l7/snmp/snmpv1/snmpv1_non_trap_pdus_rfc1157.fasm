@@ -1,0 +1,21 @@
+// PROMPT: RFC 1157 SNMPv1 non-trap PDUs including GET, GETNEXT, SET, and RESPONSE emitting BER tags.
+// TOKENS: HOST, IP, FLOW, ->, <-, SNMP1, GET, GETNEXT, SET, RESPONSE, COMMUNITY, OID, VARBIND, STRING, COMPILE
+
+// INSTRUCTION: Define SNMP management station.
+HOST snmp1_client { IP 10.0.1.1 }
+
+// INSTRUCTION: Define SNMP managed agent.
+HOST snmp1_agent { IP 10.0.1.2 }
+
+// INSTRUCTION: Define full SNMPv1 CRUD request and response flow.
+FLOW snmp1_crud_flow(c, a) {
+    c -> a SNMP1 GET COMMUNITY "public" OID "1.3.6.1.2.1.1.1.0"
+    c -> a SNMP1 GETNEXT COMMUNITY "public" OID "1.3.6.1.2.1.1.1.0"
+    c -> a SNMP1 SET COMMUNITY "private" VARBIND 1.3.6.1.2.1.1.5.0 STRING "core-router"
+    c <- a SNMP1 RESPONSE COMMUNITY "public" VARBIND 1.3.6.1.2.1.1.1.0 STRING "Linux 6.0"
+}
+
+// INSTRUCTION: Compile block executing SNMPv1 non-trap PDUs.
+COMPILE {
+    snmp1_crud_flow(snmp1_client, snmp1_agent)
+}

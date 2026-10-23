@@ -1,0 +1,44 @@
+// PROMPT: Grand finale omnibus exercising dual-stack IPv4/IPv6, L2 tags, L3 controls, L4 transports, L7 apps, SNMP, and OT.
+// TOKENS: HOST, IP, FLOW, ->, <-, VLAN, QINQ, TTL, DSCP, FLOWLABEL, TCP, SYN, ACK, UDP, SCTP, CHUNK, INIT, VTAG, SNMP3, TRAP, USER, OID, MODBUS, FUNC, READ_HOLDING_REGISTERS, COMPILE, LOOP
+
+// INSTRUCTION: Define IPv4 endpoint alpha.
+HOST host4_a { IP 10.0.0.1 }
+
+// INSTRUCTION: Define IPv4 endpoint beta.
+HOST host4_b { IP 10.0.0.2 }
+
+// INSTRUCTION: Define IPv6 endpoint alpha.
+HOST host6_a { IP 2001:db8:f00d::1 }
+
+// INSTRUCTION: Define IPv6 endpoint beta.
+HOST host6_b { IP 2001:db8:f00d::2 }
+
+// INSTRUCTION: Define multi-layer L2 tagging and L3 controls flow.
+FLOW omni_l2_l3(a, b) {
+    a -> b VLAN 100 TTL 64 DSCP 46 UDP PAYLOAD "vlan_l3_payload"
+    a -> b QINQ 200 INNER_VLAN 50 TTL 128 DSCP 18 UDP PAYLOAD "qinq_payload"
+}
+
+// INSTRUCTION: Define Layer 4 transport protocol session flow.
+FLOW omni_transports(a, b) {
+    a -> b TCP SYN SRCPORT 50000 DSTPORT 443
+    a <- b TCP SYN ACK
+    a -> b TCP ACK
+    a -> b SCTP CHUNK INIT VTAG 0
+}
+
+// INSTRUCTION: Define Layer 7 applications, SNMP security, and industrial OT flow.
+FLOW omni_apps(a, b) {
+    a -> b FLOWLABEL 99999 SNMP3 TRAP USER "admin" OID 1.3.6.1.6.3.1.1.5.1
+    a -> b MODBUS FUNC READ_HOLDING_REGISTERS
+}
+
+// INSTRUCTION: Compile block executing grand finale omnibus across IPv4 and IPv6 hosts.
+COMPILE {
+    omni_l2_l3(host4_a, host4_b)
+    omni_l2_l3(host6_a, host6_b)
+    omni_transports(host4_a, host4_b)
+    LOOP 2 {
+        omni_apps(host6_a, host6_b)
+    }
+}

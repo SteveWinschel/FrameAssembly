@@ -1,0 +1,20 @@
+// PROMPT: In-memory key-value database caching commands using Redis RESP2/RESP3 protocol framing.
+// TOKENS: HOST, IP, FLOW, ->, REDIS, CMD, COMPILE
+
+// INSTRUCTION: Define application cache client.
+HOST redis_app { IP 10.5.0.1 }
+
+// INSTRUCTION: Define Redis key-value store server.
+HOST redis_db { IP 10.5.0.2 }
+
+// INSTRUCTION: Define Redis cache query operations flow.
+FLOW redis_ops_flow(a, db) {
+    a -> db REDIS CMD "PING"
+    a -> db REDIS CMD "SET"
+    a -> db REDIS CMD "GET"
+}
+
+// INSTRUCTION: Compile block executing Redis caching commands.
+COMPILE {
+    redis_ops_flow(redis_app, redis_db)
+}

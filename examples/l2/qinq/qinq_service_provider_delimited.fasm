@@ -1,0 +1,18 @@
+// PROMPT: IEEE 802.1ad QinQ double-tagged Ethernet framing with outer service and inner customer VLAN tags.
+// TOKENS: HOST, IP, FLOW, ->, QINQ, INNER_VLAN, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define metro Ethernet customer endpoint A.
+HOST metro_ce_a { IP 172.16.1.1 }
+
+// INSTRUCTION: Define metro Ethernet customer endpoint B.
+HOST metro_ce_b { IP 172.16.1.2 }
+
+// INSTRUCTION: Define QinQ double-tagged encapsulated flow.
+FLOW qinq_flow(src, dst) {
+    src -> dst QINQ 1000 INNER_VLAN 20 UDP PAYLOAD "metro_ethernet_customer"
+}
+
+// INSTRUCTION: Compile block executing QinQ double tagging.
+COMPILE {
+    qinq_flow(metro_ce_a, metro_ce_b)
+}

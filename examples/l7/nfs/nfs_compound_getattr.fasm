@@ -1,0 +1,18 @@
+// PROMPT: NFSv4 compound RPC procedure inspecting file attributes over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, NFS, VERS, PROC, PATH, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::80 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW nfs_getattr(c, s) {
+    c -> s NFS VERS 4 PROC "GETATTR" PATH "/exports/storage"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    nfs_getattr(client, server)
+}

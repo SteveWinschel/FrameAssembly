@@ -1,0 +1,21 @@
+// PROMPT: POP3 mailbox status inspection retrieving message count and sizes.
+// TOKENS: HOST, IP, FLOW, ->, <-, POP3, CMD, OK, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.12 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW pop3_stat(c, s) {
+    c -> s POP3 CMD "STAT"
+    c <- s POP3 OK
+    c -> s POP3 CMD "LIST"
+    c <- s POP3 OK
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    pop3_stat(client, server)
+}

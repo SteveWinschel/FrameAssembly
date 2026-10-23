@@ -1,0 +1,19 @@
+// PROMPT: Industrial automation control using Modbus TCP holding register reading and writing on port 502.
+// TOKENS: HOST, IP, FLOW, ->, MODBUS, FUNC, READ_HOLDING_REGISTERS, ADDR, COUNT, WRITE_SINGLE_REGISTER, VALUE, COMPILE
+
+// INSTRUCTION: Define SCADA master control station.
+HOST scada_master { IP 192.168.1.100 }
+
+// INSTRUCTION: Define PLC slave device.
+HOST plc_slave { IP 192.168.1.200 }
+
+// INSTRUCTION: Define Modbus register read and write operations flow.
+FLOW modbus_flow(m, s) {
+    m -> s MODBUS FUNC READ_HOLDING_REGISTERS ADDR 100 COUNT 10
+    m -> s MODBUS FUNC WRITE_SINGLE_REGISTER ADDR 105 VALUE 42
+}
+
+// INSTRUCTION: Compile block executing Modbus operations.
+COMPILE {
+    modbus_flow(scada_master, plc_slave)
+}

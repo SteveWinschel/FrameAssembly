@@ -1,0 +1,19 @@
+// PROMPT: MQTT broker session initiation with CONNECT and CONNACK response.
+// TOKENS: HOST, IP, FLOW, ->, <-, MQTT, CONNECT, CONNACK, CLIENT_ID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.2 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW mqtt_conn(c, s) {
+    c -> s MQTT CONNECT CLIENT_ID "iot_sensor_1"
+    c <- s MQTT CONNACK
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    mqtt_conn(client, server)
+}

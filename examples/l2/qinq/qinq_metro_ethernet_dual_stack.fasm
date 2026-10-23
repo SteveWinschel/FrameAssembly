@@ -1,0 +1,18 @@
+// PROMPT: Stacked QinQ double-tagged frames carrying IPv6 packets across a metro Ethernet network boundary.
+// TOKENS: HOST, IP, FLOW, ->, QINQ, INNER_VLAN, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define metro IPv6 customer site A.
+HOST metro_v6_a { IP 2001:db8:cafe:1::1 }
+
+// INSTRUCTION: Define metro IPv6 customer site B.
+HOST metro_v6_b { IP 2001:db8:cafe:1::2 }
+
+// INSTRUCTION: Define QinQ double-tagged IPv6 transit flow.
+FLOW qinq_v6_flow(site_a, site_b) {
+    site_a -> site_b QINQ 2000 INNER_VLAN 100 UDP PAYLOAD "qinq_ipv6_transit_payload"
+}
+
+// INSTRUCTION: Compile block executing QinQ IPv6 encapsulation.
+COMPILE {
+    qinq_v6_flow(metro_v6_a, metro_v6_b)
+}

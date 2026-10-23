@@ -1,0 +1,19 @@
+// PROMPT: SNMPv3 privacy encryption over IPv6 using DES-CBC and AES-128-CFB cipher suites with localized keys.
+// TOKENS: HOST, IP, FLOW, ->, SNMP3, TRAP, USER, AUTH, SHA, PRIV, DES, AES, OID, COMPILE
+
+// INSTRUCTION: Define encrypted SNMPv3 agent.
+HOST priv_agent { IP 2001:db8:443::1 }
+
+// INSTRUCTION: Define encrypted SNMPv3 NMS receiver.
+HOST priv_nms { IP 2001:db8:443::2 }
+
+// INSTRUCTION: Define DES and AES privacy encrypted trap flow.
+FLOW snmp3_priv_flow(a, n) {
+    a -> n SNMP3 TRAP USER "desuser" AUTH SHA "authpass12345" PRIV DES "privpass12345" OID 1.3.6.1.6.3.1.1.5.1
+    a -> n SNMP3 TRAP USER "aesuser" AUTH SHA "authpass12345" PRIV AES "privpass12345" OID 1.3.6.1.6.3.1.1.5.2
+}
+
+// INSTRUCTION: Compile block executing DES and AES privacy encryption.
+COMPILE {
+    snmp3_priv_flow(priv_agent, priv_nms)
+}

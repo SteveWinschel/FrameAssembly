@@ -1,0 +1,18 @@
+// PROMPT: ICMP Destination Unreachable message generation with explicit type, code, and identifier.
+// TOKENS: HOST, IP, FLOW, ->, ICMP, DEST_UNREACH, CODE, ID, SEQ, COMPILE
+
+// INSTRUCTION: Define router reporting unreachable destination.
+HOST reporting_router { IP 198.51.100.1 }
+
+// INSTRUCTION: Define originating sender receiving ICMP error.
+HOST original_sender { IP 198.51.100.50 }
+
+// INSTRUCTION: Define ICMP error notification flow with DestUnreach and Code 3 (Port Unreachable).
+FLOW icmp_error_flow(router, sender) {
+    router -> sender ICMP DEST_UNREACH CODE 3 ID 100 SEQ 1
+}
+
+// INSTRUCTION: Compile block executing ICMP Destination Unreachable generation.
+COMPILE {
+    icmp_error_flow(reporting_router, original_sender)
+}

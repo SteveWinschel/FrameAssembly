@@ -1,0 +1,23 @@
+// PROMPT: Multi-tier web service deployment resolving DNS records followed by TLS 1.3 and HTTP/2 session establishment.
+// TOKENS: HOST, IP, FLOW, ->, DNS, QUERY, QNAME, TLS, CLIENT_HELLO, SNI, HTTP2, SETTINGS, COMPILE
+
+// INSTRUCTION: Define user web client.
+HOST user_agent { IP 192.168.1.50 }
+
+// INSTRUCTION: Define local DNS resolver.
+HOST dns_server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define edge web application server.
+HOST web_server { IP 192.168.1.80 }
+
+// INSTRUCTION: Define multi-tier web service access flow.
+FLOW web_access_flow(u, d, w) {
+    u -> d DNS QUERY QNAME "www.example.com"
+    u -> w TLS CLIENT_HELLO SNI "www.example.com"
+    u -> w HTTP2 SETTINGS
+}
+
+// INSTRUCTION: Compile block executing multi-tier web flow.
+COMPILE {
+    web_access_flow(user_agent, dns_server, web_server)
+}

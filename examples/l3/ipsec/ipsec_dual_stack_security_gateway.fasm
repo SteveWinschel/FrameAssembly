@@ -1,0 +1,18 @@
+// PROMPT: IPsec security gateway exchanging protected traffic across IPv6 endpoints.
+// TOKENS: HOST, IP, FLOW, ->, IPSEC, SPI, SEQ, COMPILE
+
+// INSTRUCTION: Define IPv6 site A security gateway.
+HOST ipsec_v6_site_a { IP 2001:db8:8000::1 }
+
+// INSTRUCTION: Define IPv6 site B security gateway.
+HOST ipsec_v6_site_b { IP 2001:db8:8000::2 }
+
+// INSTRUCTION: Define IPsec protected transport flow over IPv6.
+FLOW ipsec_v6_flow(a, b) {
+    a -> b IPSEC SPI 16384 SEQ 1
+}
+
+// INSTRUCTION: Compile block executing IPv6 IPsec gateway transmission.
+COMPILE {
+    ipsec_v6_flow(ipsec_v6_site_a, ipsec_v6_site_b)
+}

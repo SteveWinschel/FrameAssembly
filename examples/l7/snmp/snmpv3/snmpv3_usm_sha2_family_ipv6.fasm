@@ -1,0 +1,20 @@
+// PROMPT: RFC 7860 SHA-2 HMAC family authentication (SHA256, SHA384, SHA512) for SNMPv3 over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, SNMP3, TRAP, USER, AUTH, SHA256, SHA384, SHA512, OID, COMPILE
+
+// INSTRUCTION: Define high-security SNMPv3 agent.
+HOST sha2_agent { IP 2001:db8:7860::1 }
+
+// INSTRUCTION: Define high-security SNMPv3 NMS collector.
+HOST sha2_nms { IP 2001:db8:7860::2 }
+
+// INSTRUCTION: Define SHA-2 HMAC family authentication trap flow.
+FLOW sha2_flow(a, n) {
+    a -> n SNMP3 TRAP USER "user256" AUTH SHA256 "sha256secretkey" OID 1.3.6.1.6.3.1.1.5.1
+    a -> n SNMP3 TRAP USER "user384" AUTH SHA384 "sha384secretkey" OID 1.3.6.1.6.3.1.1.5.2
+    a -> n SNMP3 TRAP USER "user512" AUTH SHA512 "sha512secretkey" OID 1.3.6.1.6.3.1.1.5.3
+}
+
+// INSTRUCTION: Compile block executing RFC 7860 SHA-2 family authentication.
+COMPILE {
+    sha2_flow(sha2_agent, sha2_nms)
+}

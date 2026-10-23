@@ -1,0 +1,24 @@
+// PROMPT: Complete RFC 5321 SMTP email delivery transaction from sender to recipient.
+// TOKENS: HOST, IP, FLOW, ->, <-, SMTP, MAIL_FROM, RCPT_TO, PARAM, CODE, REPLY, BODY, QUIT, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.5 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW smtp_txn(c, s) {
+    c -> s SMTP MAIL_FROM PARAM "alice@corp.net"
+    c <- s SMTP CODE 250 REPLY "250 Sender OK"
+    c -> s SMTP RCPT_TO PARAM "bob@corp.net"
+    c <- s SMTP CODE 250 REPLY "250 Recipient OK"
+    c -> s SMTP BODY "Subject: Test Alert\r\n\r\nSystem check completed successfully."
+    c <- s SMTP CODE 250 REPLY "250 Queued mail for delivery"
+    c -> s SMTP QUIT
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    smtp_txn(client, server)
+}

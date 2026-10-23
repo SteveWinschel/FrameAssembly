@@ -1,0 +1,19 @@
+// PROMPT: DHCPv4 address negotiation exchange with DISCOVER and OFFER.
+// TOKENS: HOST, IP, FLOW, ->, <-, DHCP, DISCOVER, OFFER, CHADDR, YIADDR, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 0.0.0.0 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 255.255.255.255 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW dhcp_lease(c, s) {
+    c -> s DHCP DISCOVER CHADDR 00:11:22:33:44:55
+    c <- s DHCP OFFER CHADDR 00:11:22:33:44:55 YIADDR 192.168.1.150
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    dhcp_lease(client, server)
+}

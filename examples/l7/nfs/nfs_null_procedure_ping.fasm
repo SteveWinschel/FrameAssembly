@@ -1,0 +1,18 @@
+// PROMPT: NFS RPC Procedure 0 (NULL) checking remote file server liveness.
+// TOKENS: HOST, IP, FLOW, ->, NFS, VERS, PROC, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.80 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW nfs_null(c, s) {
+    c -> s NFS VERS 4 PROC "NULL"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    nfs_null(client, server)
+}

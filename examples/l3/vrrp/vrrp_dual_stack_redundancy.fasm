@@ -1,0 +1,18 @@
+// PROMPT: VRRP router redundancy advertisement specifying advertisement interval.
+// TOKENS: HOST, IP, FLOW, ->, VRRP, VRID, PRIORITY, ADV_INT, VIP, COMPILE
+
+// INSTRUCTION: Define high-availability core router A.
+HOST ha_router_a { IP 172.16.1.254 }
+
+// INSTRUCTION: Define standard VRRP multicast listener address.
+HOST vrrp_listener { IP 224.0.0.18 }
+
+// INSTRUCTION: Define VRRP sub-second advertisement heartbeat flow with 100 centisecond interval.
+FLOW vrrp_fast_hb(rtr, mcast) {
+    rtr -> mcast VRRP VRID 5 PRIORITY 200 ADV_INT 100 VIP 172.16.1.1
+}
+
+// INSTRUCTION: Compile block executing fast VRRP redundancy heartbeat.
+COMPILE {
+    vrrp_fast_hb(ha_router_a, vrrp_listener)
+}

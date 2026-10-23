@@ -1,0 +1,18 @@
+// PROMPT: mDNS local service discovery PTR query on multicast 224.0.0.251 port 5353.
+// TOKENS: HOST, IP, FLOW, ->, MDNS, QUERY, TXID, QNAME, QTYPE, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.50 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 224.0.0.251 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW mdns_query(c, s) {
+    c -> s MDNS QUERY TXID 0 QNAME "_http._tcp.local" QTYPE "PTR"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    mdns_query(client, server)
+}

@@ -1,0 +1,18 @@
+// PROMPT: IPv4 SSDP UPnP discovery multicast transmission to 239.255.255.250 deriving RFC 1112 MAC 01:00:5e:7f:ff:fa.
+// TOKENS: HOST, IP, FLOW, ->, SSDP, MSEARCH, COMPILE
+
+// INSTRUCTION: Define SSDP client initiating discovery.
+HOST ssdp_device { IP 192.168.1.75 }
+
+// INSTRUCTION: Define SSDP administrative multicast target.
+HOST ssdp_mcast { IP 239.255.255.250 }
+
+// INSTRUCTION: Define SSDP M-SEARCH discovery flow.
+FLOW ssdp_search_flow(src, dst) {
+    src -> dst SSDP MSEARCH
+}
+
+// INSTRUCTION: Compile block executing SSDP search.
+COMPILE {
+    ssdp_search_flow(ssdp_device, ssdp_mcast)
+}

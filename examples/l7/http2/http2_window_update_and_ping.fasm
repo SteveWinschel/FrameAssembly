@@ -1,0 +1,20 @@
+// PROMPT: HTTP/2 flow control WINDOW_UPDATE and round-trip PING latency probe over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, <-, HTTP2, STREAM_ID, WINDOW_UPDATE, PING, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW http2_ping(c, s) {
+    c -> s HTTP2 STREAM_ID 1 WINDOW_UPDATE
+    c -> s HTTP2 PING
+    c <- s HTTP2 PING
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    http2_ping(client, server)
+}

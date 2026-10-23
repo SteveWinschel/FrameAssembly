@@ -1,0 +1,18 @@
+// PROMPT: IEEE 802.1Q tagged Ethernet frames carrying IPv6 payload traffic on trunk link.
+// TOKENS: HOST, IP, FLOW, ->, VLAN, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IPv6 trunk host A.
+HOST ipv6_trunk_a { IP 2001:db8:100::1 }
+
+// INSTRUCTION: Define IPv6 trunk host B.
+HOST ipv6_trunk_b { IP 2001:db8:100::2 }
+
+// INSTRUCTION: Define tagged IPv6 transmission flow on management VLAN 200.
+FLOW ipv6_vlan_flow(src, dst) {
+    src -> dst VLAN 200 UDP PAYLOAD "ipv6_tagged_mgmt"
+}
+
+// INSTRUCTION: Compile block executing tagged IPv6 frame transmission.
+COMPILE {
+    ipv6_vlan_flow(ipv6_trunk_a, ipv6_trunk_b)
+}

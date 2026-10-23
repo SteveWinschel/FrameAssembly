@@ -1,0 +1,19 @@
+// PROMPT: QUIC Handshake packet establishing 1-RTT cryptographic context over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, <-, QUIC, HANDSHAKE, DCID, SCID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW quic_hs(c, s) {
+    c -> s QUIC HANDSHAKE DCID 0x11223344 SCID 0x55667788
+    c <- s QUIC HANDSHAKE DCID 0x55667788 SCID 0x11223344
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    quic_hs(client, server)
+}

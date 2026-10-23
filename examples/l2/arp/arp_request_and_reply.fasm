@@ -1,0 +1,25 @@
+// PROMPT: Standard ARP request broadcast and unicast reply on IPv4 subnet.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, ARP, REPLY, COMPILE
+
+// INSTRUCTION: Define IPv4 workstation endpoint.
+HOST workstation {
+    IP 192.168.1.50
+    MAC 00:11:22:33:44:50
+}
+
+// INSTRUCTION: Define IPv4 default gateway endpoint.
+HOST gateway {
+    IP 192.168.1.1
+    MAC 00:11:22:33:44:01
+}
+
+// INSTRUCTION: Define standard ARP request and reply address resolution flow.
+FLOW arp_exchange(client, router) {
+    client -> router ARP
+    client <- router ARP REPLY
+}
+
+// INSTRUCTION: Compile block executing ARP resolution exchange.
+COMPILE {
+    arp_exchange(workstation, gateway)
+}

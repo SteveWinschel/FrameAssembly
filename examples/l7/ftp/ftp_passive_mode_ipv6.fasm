@@ -1,0 +1,19 @@
+// PROMPT: File Transfer Protocol command interaction over IPv6 on TCP 21 for user login and passive transfer request.
+// TOKENS: HOST, IP, FLOW, ->, FTP, CMD, ARG, COMPILE
+
+// INSTRUCTION: Define FTP client on IPv6 network.
+HOST ftp_client { IP 2001:db8:21::1 }
+
+// INSTRUCTION: Define FTP server on IPv6 network.
+HOST ftp_server { IP 2001:db8:21::2 }
+
+// INSTRUCTION: Define FTP login and status flow.
+FLOW ftp_session(c, s) {
+    c -> s FTP CMD "USER" ARG "anonymous"
+    c -> s FTP CMD "PASV"
+}
+
+// INSTRUCTION: Compile block executing FTP session.
+COMPILE {
+    ftp_session(ftp_client, ftp_server)
+}

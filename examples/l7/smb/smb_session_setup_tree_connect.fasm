@@ -1,0 +1,18 @@
+// PROMPT: SMB2 Tree Connect request mounting network share over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, SMB, COMMAND, SHARE, SESSION_ID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::50 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW smb_tree(c, s) {
+    c -> s SMB COMMAND "TREE_CONNECT" SHARE "\\\\server\\public" SESSION_ID 100020
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    smb_tree(client, server)
+}

@@ -1,0 +1,19 @@
+// PROMPT: GRE tunnel established across IPv6 transport endpoints carrying encapsulated data.
+// TOKENS: HOST, IP, FLOW, ->, GRE, GRE_KEY, GRE_SEQ, COMPILE
+
+// INSTRUCTION: Define IPv6 GRE tunnel router A.
+HOST gre_v6_rtr_a { IP 2001:db8:ee::1 }
+
+// INSTRUCTION: Define IPv6 GRE tunnel router B.
+HOST gre_v6_rtr_b { IP 2001:db8:ee::2 }
+
+// INSTRUCTION: Define GRE over IPv6 tunnel flow advancing sequence numbers.
+FLOW gre_v6_flow(r1, r2) {
+    r1 -> r2 GRE GRE_KEY 99001 GRE_SEQ 100
+    r1 -> r2 GRE GRE_KEY 99001 GRE_SEQ 101
+}
+
+// INSTRUCTION: Compile block executing GRE over IPv6 transmission.
+COMPILE {
+    gre_v6_flow(gre_v6_rtr_a, gre_v6_rtr_b)
+}

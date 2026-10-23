@@ -1,0 +1,18 @@
+// PROMPT: OPC UA Binary protocol OPN message establishing secure channel over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, SEQ_NUM, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::50 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW opcua_opn(c, s) {
+    c -> s OPCUA MSG_TYPE "OPN" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1001 SEQ_NUM 1
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    opcua_opn(client, server)
+}

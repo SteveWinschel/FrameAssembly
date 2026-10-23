@@ -1,0 +1,19 @@
+// PROMPT: SSH key exchange completion switching to negotiated symmetric encryption keys.
+// TOKENS: HOST, IP, FLOW, ->, <-, SSH, NEWKEYS, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.2 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW ssh_keys(c, s) {
+    c -> s SSH NEWKEYS
+    c <- s SSH NEWKEYS
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    ssh_keys(client, server)
+}

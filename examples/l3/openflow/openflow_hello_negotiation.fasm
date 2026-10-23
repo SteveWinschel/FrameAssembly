@@ -1,0 +1,18 @@
+// PROMPT: OpenFlow SDN control plane channel negotiation using TYPE HELLO.
+// TOKENS: HOST, IP, FLOW, ->, OPENFLOW, TYPE, HELLO, COMPILE
+
+// INSTRUCTION: Define network controller node.
+HOST of_controller { IP 10.200.1.1 }
+
+// INSTRUCTION: Define programmable switch node.
+HOST of_switch { IP 10.200.1.2 }
+
+// INSTRUCTION: Define OpenFlow handshake flow initiating control channel.
+FLOW of_hello_flow(c, s) {
+    c -> s OPENFLOW TYPE HELLO
+}
+
+// INSTRUCTION: Compile block executing OpenFlow Hello handshake.
+COMPILE {
+    of_hello_flow(of_controller, of_switch)
+}

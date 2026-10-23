@@ -1,0 +1,19 @@
+// PROMPT: High-throughput stateless UDP streaming over IPv6 with explicit ports and payload data.
+// TOKENS: HOST, IP, FLOW, ->, UDP, SRCPORT, DSTPORT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define high-speed telemetry client.
+HOST stream_client { IP 2001:db8:feed::1 }
+
+// INSTRUCTION: Define high-capacity telemetry collector.
+HOST stream_collector { IP 2001:db8:feed::2 }
+
+// INSTRUCTION: Define high-throughput UDP packet streaming flow.
+FLOW udp_stream_flow(c, s) {
+    c -> s UDP SRCPORT 55000 DSTPORT 9000 PAYLOAD "telemetry_packet_001"
+    c -> s UDP SRCPORT 55000 DSTPORT 9000 PAYLOAD "telemetry_packet_002"
+}
+
+// INSTRUCTION: Compile block executing UDP data stream.
+COMPILE {
+    udp_stream_flow(stream_client, stream_collector)
+}

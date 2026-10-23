@@ -1,0 +1,25 @@
+// PROMPT: Polymorphic flow specifying FLOWLABEL executed over both IPv4 and IPv6 where IPv4 silently ignores the modifier.
+// TOKENS: HOST, IP, FLOW, ->, FLOWLABEL, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IPv4 client node.
+HOST v4_src { IP 10.0.0.1 }
+
+// INSTRUCTION: Define IPv4 server node.
+HOST v4_dst { IP 10.0.0.2 }
+
+// INSTRUCTION: Define IPv6 client node.
+HOST v6_src { IP 2001:db8::1 }
+
+// INSTRUCTION: Define IPv6 server node.
+HOST v6_dst { IP 2001:db8::2 }
+
+// INSTRUCTION: Define dual-stack polymorphic flow with FLOWLABEL modifier.
+FLOW dual_stack_flowlabel(s, d) {
+    s -> d FLOWLABEL 54321 UDP PAYLOAD "flowlabel_polymorphic"
+}
+
+// INSTRUCTION: Compile block executing polymorphic flow across IPv4 and IPv6.
+COMPILE {
+    dual_stack_flowlabel(v4_src, v4_dst)
+    dual_stack_flowlabel(v6_src, v6_dst)
+}

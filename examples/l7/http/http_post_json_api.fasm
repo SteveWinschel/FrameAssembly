@@ -1,0 +1,19 @@
+// PROMPT: HTTP/1.1 POST API request submitting JSON payload and receiving 201 Created.
+// TOKENS: HOST, IP, FLOW, ->, <-, HTTP, METHOD, URI, CONTENT_TYPE, BODY, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.5 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW http_post(c, s) {
+    c -> s HTTP METHOD "POST" URI "/api/v1/telemetry" CONTENT_TYPE "application/json" BODY "{\"temp\":22.5}"
+    c <- s HTTP STATUS 201 REASON "Created" BODY "{\"status\":\"recorded\"}"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    http_post(client, server)
+}

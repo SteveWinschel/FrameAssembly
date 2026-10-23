@@ -1,0 +1,21 @@
+// PROMPT: FTP file retrieval sequence navigating directory and requesting file download.
+// TOKENS: HOST, IP, FLOW, ->, <-, FTP, CMD, ARG, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.50 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW ftp_get(c, s) {
+    c -> s FTP CMD "CWD" ARG "/pub"
+    c <- s FTP CODE 250 REPLY "Directory successfully changed"
+    c -> s FTP CMD "RETR" ARG "data.iso"
+    c <- s FTP CODE 150 REPLY "Opening BINARY mode data connection"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    ftp_get(client, server)
+}

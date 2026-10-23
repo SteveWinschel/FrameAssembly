@@ -1,0 +1,19 @@
+// PROMPT: PostgreSQL backend command completion and ReadyForQuery signal over IPv6.
+// TOKENS: HOST, IP, FLOW, <-, POSTGRES, COMMAND_COMPLETE, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::200 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW pg_ready(c, s) {
+    c <- s POSTGRES COMMAND_COMPLETE
+    c <- s POSTGRES READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    pg_ready(client, server)
+}

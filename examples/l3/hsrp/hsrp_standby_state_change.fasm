@@ -1,0 +1,18 @@
+// PROMPT: Cisco HSRP state advertisement with active state code, virtual IP, and priority.
+// TOKENS: HOST, IP, FLOW, ->, HSRP, GROUP, PRIORITY, STATE, VIP, COMPILE
+
+// INSTRUCTION: Define active Cisco router interface.
+HOST cisco_rtr_active { IP 10.1.1.253 }
+
+// INSTRUCTION: Define HSRP multicast destination 224.0.0.2.
+HOST hsrp_all_routers { IP 224.0.0.2 }
+
+// INSTRUCTION: Define HSRP state announcement flow declaring Active state 16 for VIP 10.1.1.1.
+FLOW hsrp_state_flow(rtr, mcast) {
+    rtr -> mcast HSRP GROUP 2 PRIORITY 120 STATE 16 VIP 10.1.1.1
+}
+
+// INSTRUCTION: Compile block executing HSRP active state transmission.
+COMPILE {
+    hsrp_state_flow(cisco_rtr_active, hsrp_all_routers)
+}

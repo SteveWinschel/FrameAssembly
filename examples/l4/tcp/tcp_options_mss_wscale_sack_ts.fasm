@@ -1,0 +1,19 @@
+// PROMPT: TCP SYN negotiation with comprehensive TCP options including MSS, WSCALE, SACK_PERM, TSVAL, and TSECR.
+// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, SRCPORT, DSTPORT, MSS, WSCALE, SACK_PERM, TSVAL, TSECR, COMPILE
+
+// INSTRUCTION: Define client endpoint advertising TCP options.
+HOST client_opt { IP 10.1.1.1 }
+
+// INSTRUCTION: Define server endpoint answering with TCP options.
+HOST server_opt { IP 10.1.1.2 }
+
+// INSTRUCTION: Define TCP options negotiation flow.
+FLOW tcp_opt_flow(c, s) {
+    c -> s TCP SYN SRCPORT 50000 DSTPORT 443 MSS 1460 WSCALE 7 SACK_PERM TSVAL 1000 TSECR 0
+    c <- s TCP SYN ACK MSS 1460 WSCALE 7 SACK_PERM TSVAL 2000 TSECR 1000
+}
+
+// INSTRUCTION: Compile block executing TCP options negotiation.
+COMPILE {
+    tcp_opt_flow(client_opt, server_opt)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Standard IEEE 802.1Q tagged frame on access VLAN without priority overrides.
+// TOKENS: HOST, IP, FLOW, ->, VLAN, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define workstation host on access port.
+HOST access_host_a { IP 10.20.1.10 }
+
+// INSTRUCTION: Define server host on access port.
+HOST access_host_b { IP 10.20.1.20 }
+
+// INSTRUCTION: Define standard VLAN tagged data flow with default priority.
+FLOW access_vlan_flow(src, dst) {
+    src -> dst VLAN 50 UDP PAYLOAD "vlan50_access_data"
+}
+
+// INSTRUCTION: Compile block executing access VLAN transmission.
+COMPILE {
+    access_vlan_flow(access_host_a, access_host_b)
+}

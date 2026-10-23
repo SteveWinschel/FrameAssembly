@@ -1,0 +1,21 @@
+// PROMPT: Simple Mail Transfer Protocol exchange over IPv6 with EHLO, MAIL FROM, RCPT TO, and QUIT.
+// TOKENS: HOST, IP, FLOW, ->, SMTP, EHLO, MAIL_FROM, RCPT_TO, QUIT, COMPILE
+
+// INSTRUCTION: Define sending mail transfer agent.
+HOST mail_client { IP 2001:db8:25::1 }
+
+// INSTRUCTION: Define receiving mail server.
+HOST mail_server { IP 2001:db8:25::2 }
+
+// INSTRUCTION: Define SMTP command sequence flow.
+FLOW smtp_session(c, s) {
+    c -> s SMTP EHLO
+    c -> s SMTP MAIL_FROM
+    c -> s SMTP RCPT_TO
+    c -> s SMTP QUIT
+}
+
+// INSTRUCTION: Compile block executing SMTP email exchange.
+COMPILE {
+    smtp_session(mail_client, mail_server)
+}

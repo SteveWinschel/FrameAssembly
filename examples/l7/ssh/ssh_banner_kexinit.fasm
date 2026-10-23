@@ -1,0 +1,21 @@
+// PROMPT: Secure Shell version banner exchange and key exchange initialization on TCP 22.
+// TOKENS: HOST, IP, FLOW, ->, <-, SSH, BANNER, KEXINIT, COMPILE
+
+// INSTRUCTION: Define SSH client endpoint.
+HOST ssh_client { IP 10.0.0.50 }
+
+// INSTRUCTION: Define SSH server endpoint.
+HOST ssh_server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define SSH banner and key exchange flow.
+FLOW ssh_session(c, s) {
+    c -> s SSH BANNER "SSH-2.0-OpenSSH_9.0"
+    c <- s SSH BANNER "SSH-2.0-OpenSSH_8.9"
+    c -> s SSH KEXINIT
+    c <- s SSH KEXINIT
+}
+
+// INSTRUCTION: Compile block executing SSH session.
+COMPILE {
+    ssh_session(ssh_client, ssh_server)
+}

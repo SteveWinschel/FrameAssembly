@@ -1,0 +1,18 @@
+// PROMPT: LDAP simple directory bind authentication request.
+// TOKENS: HOST, IP, FLOW, ->, LDAP, BIND_REQ, MSGID, BASE_DN, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW ldap_bind(c, s) {
+    c -> s LDAP BIND_REQ MSGID 1 BASE_DN "cn=admin,dc=corp,dc=net"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    ldap_bind(client, server)
+}

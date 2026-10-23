@@ -1,0 +1,19 @@
+// PROMPT: Domain Name System query and response over IPv6 UDP 53 resolving AAAA record.
+// TOKENS: HOST, IP, FLOW, ->, <-, DNS, QUERY, TXID, QNAME, QTYPE, AAAA, RESPONSE, RDATA, COMPILE
+
+// INSTRUCTION: Define recursive DNS resolver.
+HOST dns_resolver { IP 2001:db8:53::10 }
+
+// INSTRUCTION: Define authoritative DNS nameserver.
+HOST dns_nameserver { IP 2001:db8:53::1 }
+
+// INSTRUCTION: Define DNS AAAA record resolution flow.
+FLOW dns_lookup_flow(c, s) {
+    c -> s DNS QUERY TXID 0x1234 QNAME "example.com" QTYPE AAAA
+    c <- s DNS RESPONSE TXID 0x1234 QNAME "example.com" QTYPE AAAA RDATA "2001:db8::100"
+}
+
+// INSTRUCTION: Compile block executing DNS resolution.
+COMPILE {
+    dns_lookup_flow(dns_resolver, dns_nameserver)
+}

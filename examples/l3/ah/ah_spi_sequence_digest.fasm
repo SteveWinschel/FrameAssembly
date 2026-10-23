@@ -1,0 +1,20 @@
+// PROMPT: IPsec AH authentication session advancing sequence numbers between hosts.
+// TOKENS: HOST, IP, FLOW, ->, <-, AH, SPI, SEQ, COMPILE
+
+// INSTRUCTION: Define client node communicating with authenticated header.
+HOST ah_client { IP 10.0.5.10 }
+
+// INSTRUCTION: Define server node verifying integrity.
+HOST ah_server { IP 10.0.5.20 }
+
+// INSTRUCTION: Define bidirectional AH session flow with SPI 12000.
+FLOW ah_session_flow(c, s) {
+    c -> s AH SPI 12000 SEQ 1
+    c <- s AH SPI 12000 SEQ 1
+    c -> s AH SPI 12000 SEQ 2
+}
+
+// INSTRUCTION: Compile block executing AH authenticated exchange.
+COMPILE {
+    ah_session_flow(ah_client, ah_server)
+}

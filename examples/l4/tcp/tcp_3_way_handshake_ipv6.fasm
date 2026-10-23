@@ -1,0 +1,20 @@
+// PROMPT: Complete TCP 3-way handshake over IPv6 with two-stage port inheritance across forward and reversed arrows.
+// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, SRCPORT, DSTPORT, COMPILE
+
+// INSTRUCTION: Define IPv6 client host.
+HOST ipv6_client { IP 2001:db8:1::10 }
+
+// INSTRUCTION: Define IPv6 HTTP server host.
+HOST ipv6_server { IP 2001:db8:1::80 }
+
+// INSTRUCTION: Define TCP 3-way handshake flow inheriting ports.
+FLOW tcp_v6_handshake(c, s) {
+    c -> s TCP SYN SRCPORT 45000 DSTPORT 80
+    c <- s TCP SYN ACK
+    c -> s TCP ACK
+}
+
+// INSTRUCTION: Compile block executing IPv6 TCP handshake.
+COMPILE {
+    tcp_v6_handshake(ipv6_client, ipv6_server)
+}

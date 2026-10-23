@@ -1,0 +1,19 @@
+// PROMPT: RTP consecutive media packets advancing timestamp by 160 samples over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, RTP, PT, SSRC, TIMESTAMP, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::20 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW rtp_drift(c, s) {
+    c -> s RTP PT 0 SSRC 0xaabbccdd TIMESTAMP 160
+    c -> s RTP PT 0 SSRC 0xaabbccdd TIMESTAMP 320
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    rtp_drift(client, server)
+}

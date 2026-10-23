@@ -1,0 +1,18 @@
+// PROMPT: GENEVE tunnel packet specifying option class and option type metadata.
+// TOKENS: HOST, IP, FLOW, ->, GENEVE, VNI, OPT_CLASS, OPT_TYPE, COMPILE
+
+// INSTRUCTION: Define OVS tunnel controller node.
+HOST ovs_controller { IP 10.50.0.1 }
+
+// INSTRUCTION: Define OVS dataplane bridge node.
+HOST ovs_dataplane { IP 10.50.0.2 }
+
+// INSTRUCTION: Define GENEVE flow configuring option class 0x0108 and option type 1 metadata.
+FLOW geneve_opt_flow(src, dst) {
+    src -> dst GENEVE VNI 12345 OPT_CLASS 264 OPT_TYPE 1
+}
+
+// INSTRUCTION: Compile block executing GENEVE metadata delivery.
+COMPILE {
+    geneve_opt_flow(ovs_controller, ovs_dataplane)
+}

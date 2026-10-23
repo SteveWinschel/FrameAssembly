@@ -1,0 +1,26 @@
+// PROMPT: Polymorphic ICMP echo request and reply executed across IPv4 (ICMPv4 0x01) and IPv6 (ICMPv6 0x3a).
+// TOKENS: HOST, IP, FLOW, ->, <-, ICMP, ECHO_REQUEST, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define IPv4 ping initiator.
+HOST ping_v4_a { IP 10.1.1.1 }
+
+// INSTRUCTION: Define IPv4 ping responder.
+HOST ping_v4_b { IP 10.1.1.2 }
+
+// INSTRUCTION: Define IPv6 ping initiator.
+HOST ping_v6_a { IP 2001:db8::1 }
+
+// INSTRUCTION: Define IPv6 ping responder.
+HOST ping_v6_b { IP 2001:db8::2 }
+
+// INSTRUCTION: Define polymorphic ICMP echo transaction flow.
+FLOW ping_flow(a, b) {
+    a -> b ICMP ECHO_REQUEST
+    a <- b ICMP ECHO_REPLY
+}
+
+// INSTRUCTION: Compile block executing ICMP echo across IPv4 and IPv6 pairs.
+COMPILE {
+    ping_flow(ping_v4_a, ping_v4_b)
+    ping_flow(ping_v6_a, ping_v6_b)
+}

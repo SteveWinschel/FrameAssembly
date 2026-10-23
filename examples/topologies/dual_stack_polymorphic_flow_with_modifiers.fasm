@@ -1,0 +1,26 @@
+// PROMPT: Polymorphic flow with Layer 3 TTL, DSCP QoS markings, and inter-frame WAIT timing over IPv4 and IPv6.
+// TOKENS: HOST, IP, FLOW, ->, TTL, DSCP, WAIT, ms, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IPv4 source peer.
+HOST peer_v4_x { IP 10.1.1.1 }
+
+// INSTRUCTION: Define IPv4 destination peer.
+HOST peer_v4_y { IP 10.1.1.2 }
+
+// INSTRUCTION: Define IPv6 source peer.
+HOST peer_v6_x { IP 2001:db8:a::1 }
+
+// INSTRUCTION: Define IPv6 destination peer.
+HOST peer_v6_y { IP 2001:db8:a::2 }
+
+// INSTRUCTION: Define polymorphic flow with QoS and timing modifiers.
+FLOW qos_timed_flow(a, b) {
+    a -> b TTL 64 DSCP 46 UDP PAYLOAD "voice_high_prio" WAIT 5ms
+    a -> b TTL 32 DSCP 10 UDP PAYLOAD "bulk_background" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block executing polymorphic timed flow across stacks.
+COMPILE {
+    qos_timed_flow(peer_v4_x, peer_v4_y)
+    qos_timed_flow(peer_v6_x, peer_v6_y)
+}

@@ -1,0 +1,24 @@
+// PROMPT: Gratuitous ARP announcement broadcast for IP takeover and MAC cache updating.
+// TOKENS: HOST, IP, MAC, FLOW, ->, ARP, GRATUITOUS, SPA, TPA, COMPILE
+
+// INSTRUCTION: Define cluster primary node advertising virtual IP takeover.
+HOST cluster_node {
+    IP 10.0.0.10
+    MAC 52:54:00:12:34:56
+}
+
+// INSTRUCTION: Define broadcast destination for gratuitous ARP announcement.
+HOST broadcast_dest {
+    IP 255.255.255.255
+    MAC ff:ff:ff:ff:ff:ff
+}
+
+// INSTRUCTION: Define gratuitous ARP flow broadcasting ownership of VIP.
+FLOW garp_flow(sender, target) {
+    sender -> target ARP GRATUITOUS SPA 10.0.0.10 TPA 10.0.0.10
+}
+
+// INSTRUCTION: Compile block executing gratuitous ARP broadcast.
+COMPILE {
+    garp_flow(cluster_node, broadcast_dest)
+}

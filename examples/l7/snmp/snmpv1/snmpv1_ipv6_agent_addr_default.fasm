@@ -1,0 +1,18 @@
+// PROMPT: SNMPv1 Traps from IPv6 endpoints automatically defaulting agent-addr to 0.0.0.0 per RFC 3584 §3.2.
+// TOKENS: HOST, IP, FLOW, ->, SNMP1, TRAP, COMMUNITY, OID, SYSUPTIME, COMPILE
+
+// INSTRUCTION: Define SNMPv1 managed agent with IPv6 address.
+HOST agent_v6 { IP 2001:db8::1 }
+
+// INSTRUCTION: Define SNMP Network Management Station with IPv6 address.
+HOST nms_v6 { IP 2001:db8::2 }
+
+// INSTRUCTION: Define SNMPv1 trap flow over IPv6 with default agent-addr.
+FLOW snmp1_v6_flow(a, n) {
+    a -> n SNMP1 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.1" SYSUPTIME 100
+}
+
+// INSTRUCTION: Compile block executing RFC 3584 default agent-addr trap.
+COMPILE {
+    snmp1_v6_flow(agent_v6, nms_v6)
+}

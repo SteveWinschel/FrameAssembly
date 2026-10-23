@@ -1,0 +1,18 @@
+// PROMPT: MLDv1 listener report subscribing to multicast address with maximum response delay.
+// TOKENS: HOST, IP, FLOW, ->, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, COMPILE
+
+// INSTRUCTION: Define IPv6 multicast subscriber host.
+HOST ipv6_subscriber { IP fe80::a1 }
+
+// INSTRUCTION: Define IPv6 querier router multicast address.
+HOST ipv6_querier { IP ff02::16 }
+
+// INSTRUCTION: Define MLD report flow joining group ff05::1:3 with 1000ms response delay.
+FLOW mld_report_flow(sub, qry) {
+    sub -> qry MLD REPORT MULTICAST_ADDR ff05::1:3 MAX_RESP_DELAY 1000
+}
+
+// INSTRUCTION: Compile block executing MLD report.
+COMPILE {
+    mld_report_flow(ipv6_subscriber, ipv6_querier)
+}

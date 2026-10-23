@@ -1,0 +1,21 @@
+// PROMPT: FTP command session authenticating user credentials on TCP port 21.
+// TOKENS: HOST, IP, FLOW, ->, <-, FTP, CMD, ARG, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW ftp_auth(c, s) {
+    c -> s FTP CMD "USER" ARG "anonymous"
+    c <- s FTP CODE 331 REPLY "Password required for anonymous"
+    c -> s FTP CMD "PASS" ARG "guest@corp.net"
+    c <- s FTP CODE 230 REPLY "User logged in"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    ftp_auth(client, server)
+}

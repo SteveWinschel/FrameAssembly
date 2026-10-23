@@ -1,0 +1,18 @@
+// PROMPT: NetFlow telemetry export sent over an IPv6 network underlay.
+// TOKENS: HOST, IP, FLOW, ->, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8:1::1 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8:1::254 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW netflow_v6(c, s) {
+    c -> s NETFLOW SRCIP 10.1.1.50 DSTIP 10.2.2.50 PROTO 17 PACKETS 12 OCTETS 1500
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    netflow_v6(client, server)
+}

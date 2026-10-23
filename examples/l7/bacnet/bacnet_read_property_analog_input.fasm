@@ -1,0 +1,18 @@
+// PROMPT: BACnet/IP confirmed ReadProperty querying room temperature sensor over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, BACNET, READ_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::50 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::20 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW bacnet_read(c, s) {
+    c -> s BACNET READ_PROPERTY INVOKE_ID 1 OBJECT_TYPE 0 OBJECT_INSTANCE 101 PROPERTY_ID 85
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    bacnet_read(client, server)
+}

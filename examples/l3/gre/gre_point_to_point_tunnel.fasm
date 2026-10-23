@@ -1,0 +1,19 @@
+// PROMPT: Generic Routing Encapsulation tunnel packet transmission with GRE key and sequence numbers.
+// TOKENS: HOST, IP, FLOW, ->, GRE, GRE_KEY, GRE_SEQ, COMPILE
+
+// INSTRUCTION: Define GRE tunnel source gateway.
+HOST gre_endpoint_a { IP 192.0.2.1 }
+
+// INSTRUCTION: Define GRE tunnel destination gateway.
+HOST gre_endpoint_b { IP 192.0.2.2 }
+
+// INSTRUCTION: Define GRE encapsulation flow.
+FLOW gre_tunnel_flow(a, b) {
+    a -> b GRE GRE_KEY 12345 GRE_SEQ 1
+    a -> b GRE GRE_KEY 12345 GRE_SEQ 2
+}
+
+// INSTRUCTION: Compile block executing GRE tunnel transmission.
+COMPILE {
+    gre_tunnel_flow(gre_endpoint_a, gre_endpoint_b)
+}

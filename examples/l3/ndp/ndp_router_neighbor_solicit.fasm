@@ -1,0 +1,21 @@
+// PROMPT: IPv6 Neighbor Discovery Protocol message exchange with Router and Neighbor Solicitations and Advertisements.
+// TOKENS: HOST, IP, FLOW, ->, <-, NDP, ROUTER_SOLICIT, ROUTER_ADVERT, NEIGHBOR_SOLICIT, NEIGHBOR_ADVERT, COMPILE
+
+// INSTRUCTION: Define IPv6 host node.
+HOST ndp_node { IP fe80::10 }
+
+// INSTRUCTION: Define IPv6 default router.
+HOST ndp_router { IP fe80::1 }
+
+// INSTRUCTION: Define NDP router and neighbor solicitation exchange flow.
+FLOW ndp_solicit_flow(n, r) {
+    n -> r NDP ROUTER_SOLICIT
+    n <- r NDP ROUTER_ADVERT
+    n -> r NDP NEIGHBOR_SOLICIT
+    n <- r NDP NEIGHBOR_ADVERT
+}
+
+// INSTRUCTION: Compile block executing NDP discovery exchange.
+COMPILE {
+    ndp_solicit_flow(ndp_node, ndp_router)
+}

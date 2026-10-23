@@ -1,0 +1,18 @@
+// PROMPT: RTSP OPTIONS query discovering streaming methods supported by media server.
+// TOKENS: HOST, IP, FLOW, ->, RTSP, OPTIONS, URI, CSEQ, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.100 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.250 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW rtsp_opt(c, s) {
+    c -> s RTSP OPTIONS URI "rtsp://camera.local/live" CSEQ 1
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    rtsp_opt(client, server)
+}

@@ -1,0 +1,18 @@
+// PROMPT: PIM Join message signaling upstream multicast distribution tree for group and source.
+// TOKENS: HOST, IP, FLOW, ->, PIM, JOIN_PRUNE, GROUP, SOURCE, COMPILE
+
+// INSTRUCTION: Define downstream PIM router initiating tree join.
+HOST pim_downstream { IP 10.10.1.2 }
+
+// INSTRUCTION: Define upstream PIM reverse path forwarding neighbor.
+HOST pim_upstream_rpf { IP 10.10.1.1 }
+
+// INSTRUCTION: Define PIM Join signaling flow subscribing to source 10.20.30.40 on group 239.1.2.3.
+FLOW pim_join_flow(down, up) {
+    down -> up PIM JOIN_PRUNE GROUP 239.1.2.3 SOURCE 10.20.30.40
+}
+
+// INSTRUCTION: Compile block executing PIM Join propagation.
+COMPILE {
+    pim_join_flow(pim_downstream, pim_upstream_rpf)
+}

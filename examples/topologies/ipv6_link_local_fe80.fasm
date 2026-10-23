@@ -1,0 +1,19 @@
+// PROMPT: Peer-to-peer communication using IPv6 link-local addressing in the fe80::/10 prefix.
+// TOKENS: HOST, IP, FLOW, ->, <-, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define link-local node A.
+HOST link_node_a { IP fe80::1 }
+
+// INSTRUCTION: Define link-local node B.
+HOST link_node_b { IP fe80::2 }
+
+// INSTRUCTION: Define bidirectional link-local UDP flow.
+FLOW link_local_flow(a, b) {
+    a -> b UDP PAYLOAD "hello_fe80"
+    a <- b UDP PAYLOAD "ack_fe80"
+}
+
+// INSTRUCTION: Compile block executing link-local flow.
+COMPILE {
+    link_local_flow(link_node_a, link_node_b)
+}

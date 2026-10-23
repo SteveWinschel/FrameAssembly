@@ -1,0 +1,19 @@
+// PROMPT: BFD high-frequency session monitoring configuring minimum TX/RX intervals and detection multiplier.
+// TOKENS: HOST, IP, FLOW, ->, <-, BFD, STATE, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, COMPILE
+
+// INSTRUCTION: Define spine switch fast BFD peer.
+HOST bfd_spine { IP 10.0.100.1 }
+
+// INSTRUCTION: Define leaf switch fast BFD peer.
+HOST bfd_leaf { IP 10.0.100.2 }
+
+// INSTRUCTION: Define sub-second BFD negotiation flow with 50ms intervals and multiplier 3.
+FLOW bfd_fast_flow(s, l) {
+    s -> l BFD STATE 3 MY_DISC 5001 YOUR_DISC 5002 MIN_TX 50000 MIN_RX 50000 MULT 3
+    s <- l BFD STATE 3 MY_DISC 5002 YOUR_DISC 5001 MIN_TX 50000 MIN_RX 50000 MULT 3
+}
+
+// INSTRUCTION: Compile block executing fast BFD liveliness exchange.
+COMPILE {
+    bfd_fast_flow(bfd_spine, bfd_leaf)
+}

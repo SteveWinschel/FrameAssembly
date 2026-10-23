@@ -1,0 +1,19 @@
+// PROMPT: Data center network fabric running BGP-EVPN control plane with VXLAN encapsulation over IPv6 underlay.
+// TOKENS: HOST, IP, FLOW, ->, BGP, OPEN, ASN, HOLDTIME, BGPID, VXLAN, VNI, COMPILE
+
+// INSTRUCTION: Define data center VTEP switch 1 over IPv6.
+HOST v6_vtep1 { IP 2001:db8:dc::1 }
+
+// INSTRUCTION: Define data center VTEP switch 2 over IPv6.
+HOST v6_vtep2 { IP 2001:db8:dc::2 }
+
+// INSTRUCTION: Define BGP EVPN control plane and VXLAN overlay flow.
+FLOW evpn_underlay_flow(v1, v2) {
+    v1 -> v2 BGP OPEN ASN 65100 HOLDTIME 90 BGPID 10.0.0.1
+    v1 -> v2 VXLAN VNI 50001
+}
+
+// INSTRUCTION: Compile block executing EVPN and VXLAN data fabric.
+COMPILE {
+    evpn_underlay_flow(v6_vtep1, v6_vtep2)
+}

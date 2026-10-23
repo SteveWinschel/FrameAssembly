@@ -1,0 +1,25 @@
+// PROMPT: ARP request and reply with explicit hardware and protocol address overrides.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, ARP, SHA, SPA, THA, TPA, REPLY, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client_a {
+    IP 172.16.0.10
+    MAC 00:50:56:01:02:03
+}
+
+// INSTRUCTION: Define server endpoint.
+HOST server_b {
+    IP 172.16.0.20
+    MAC 00:50:56:04:05:06
+}
+
+// INSTRUCTION: Define ARP flow with explicit SHA, SPA, THA, and TPA overrides.
+FLOW arp_custom_hardware(src, dst) {
+    src -> dst ARP SHA 00:50:56:01:02:03 SPA 172.16.0.10 THA 00:00:00:00:00:00 TPA 172.16.0.20
+    src <- dst ARP REPLY SHA 00:50:56:04:05:06 SPA 172.16.0.20 THA 00:50:56:01:02:03 TPA 172.16.0.10
+}
+
+// INSTRUCTION: Compile block executing custom ARP hardware address exchange.
+COMPILE {
+    arp_custom_hardware(client_a, server_b)
+}

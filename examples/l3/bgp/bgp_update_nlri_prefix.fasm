@@ -1,0 +1,18 @@
+// PROMPT: BGP UPDATE message announcing IPv4 Network Layer Reachability Information prefix and next hop.
+// TOKENS: HOST, IP, FLOW, ->, BGP, UPDATE, PREFIX, NEXTHOP, COMPILE
+
+// INSTRUCTION: Define upstream ISP transit router.
+HOST isp_transit_router { IP 198.51.100.1 }
+
+// INSTRUCTION: Define customer border router receiving routing updates.
+HOST customer_bgp_edge { IP 198.51.100.2 }
+
+// INSTRUCTION: Define BGP UPDATE flow announcing enterprise prefix reachability.
+FLOW bgp_update_flow(isp, cust) {
+    isp -> cust BGP UPDATE PREFIX "203.0.113.0/24" NEXTHOP 198.51.100.1
+}
+
+// INSTRUCTION: Compile block executing BGP UPDATE announcement.
+COMPILE {
+    bgp_update_flow(isp_transit_router, customer_bgp_edge)
+}

@@ -1,0 +1,18 @@
+// PROMPT: MPLS encapsulated 6PE IPv6 packet transit across service provider core.
+// TOKENS: HOST, IP, FLOW, ->, MPLS, EXP, BOS, MPLS_TTL, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define dual-stack provider edge 6PE router A.
+HOST pe6_router_a { IP 2001:db8:6e::1 }
+
+// INSTRUCTION: Define dual-stack provider edge 6PE router B.
+HOST pe6_router_b { IP 2001:db8:6e::2 }
+
+// INSTRUCTION: Define 6PE transport flow carrying IPv6 over MPLS label stack.
+FLOW mpls_6pe_flow(a, b) {
+    a -> b MPLS 2048 EXP 0 BOS 1 MPLS_TTL 64 UDP PAYLOAD "6pe_ipv6_payload"
+}
+
+// INSTRUCTION: Compile block executing 6PE IPv6 MPLS transit.
+COMPILE {
+    mpls_6pe_flow(pe6_router_a, pe6_router_b)
+}

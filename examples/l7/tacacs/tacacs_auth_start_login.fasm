@@ -1,0 +1,18 @@
+// PROMPT: TACACS+ administrative login authentication START message on TCP port 49.
+// TOKENS: HOST, IP, FLOW, ->, TACACS, TYPE, AUTHEN, USER, SESSION_ID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.10.5 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.10.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW tacacs_login(c, s) {
+    c -> s TACACS TYPE AUTHEN USER "admin" SESSION_ID 1001
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    tacacs_login(client, server)
+}

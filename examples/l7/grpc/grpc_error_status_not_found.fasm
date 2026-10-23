@@ -1,0 +1,18 @@
+// PROMPT: gRPC procedure response returning error status code GRPC_STATUS 5 (NOT_FOUND) over IPv6.
+// TOKENS: HOST, IP, FLOW, <-, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::10 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW grpc_err(c, s) {
+    c <- s GRPC SERVICE "InventoryService" METHOD "GetItem" GRPC_STATUS 5
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    grpc_err(client, server)
+}

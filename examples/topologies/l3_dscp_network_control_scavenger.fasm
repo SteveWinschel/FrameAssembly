@@ -1,0 +1,22 @@
+// PROMPT: Network control and scavenger traffic classes spanning CS6, CS7, CS1, and boundary values 0 and 63.
+// TOKENS: HOST, IP, FLOW, ->, DSCP, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define router peer A.
+HOST router_peer_a { IP 198.51.100.1 }
+
+// INSTRUCTION: Define router peer B.
+HOST router_peer_b { IP 198.51.100.2 }
+
+// INSTRUCTION: Define network control and boundary DSCP flow.
+FLOW control_qos_flow(a, b) {
+    a -> b DSCP 48 UDP PAYLOAD "cs6_routing_control"
+    a -> b DSCP 56 UDP PAYLOAD "cs7_link_layer"
+    a -> b DSCP 8 UDP PAYLOAD "cs1_scavenger"
+    a -> b DSCP 0 UDP PAYLOAD "cs0_best_effort"
+    a -> b DSCP 63 UDP PAYLOAD "max_dscp_boundary"
+}
+
+// INSTRUCTION: Compile block executing control QoS traffic.
+COMPILE {
+    control_qos_flow(router_peer_a, router_peer_b)
+}

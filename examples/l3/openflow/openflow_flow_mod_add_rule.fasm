@@ -1,0 +1,18 @@
+// PROMPT: OpenFlow SDN controller programming switch flow table via FLOW_MOD message with table ID and priority.
+// TOKENS: HOST, IP, FLOW, ->, OPENFLOW, TYPE, FLOW_MOD, XID, TABLE_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define centralized network operating system controller.
+HOST nos_controller { IP 172.16.0.10 }
+
+// INSTRUCTION: Define OpenFlow forwarding element.
+HOST of_datapath { IP 172.16.0.20 }
+
+// INSTRUCTION: Define FlowMod programming flow installing high priority match in table 0.
+FLOW of_flowmod_flow(ctrl, dp) {
+    ctrl -> dp OPENFLOW TYPE FLOW_MOD XID 2005 TABLE_ID 0 PRIORITY 1000
+}
+
+// INSTRUCTION: Compile block executing OpenFlow FlowMod message.
+COMPILE {
+    of_flowmod_flow(nos_controller, of_datapath)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Modbus TCP function code 3 reading holding registers from PLC.
+// TOKENS: HOST, IP, FLOW, ->, MODBUS, FUNC, ADDR, COUNT, UNITID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.100 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.20 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW modbus_read(c, s) {
+    c -> s MODBUS FUNC "READ_HOLDING_REGISTERS" ADDR 100 COUNT 10 UNITID 1
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    modbus_read(client, server)
+}

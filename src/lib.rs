@@ -41,6 +41,8 @@ extern crate alloc;
 pub mod ast;
 /// Backend PCAP generation.
 pub mod backend;
+/// Protocol wire builders.
+pub mod builders;
 /// Compiler error types.
 pub mod error;
 /// Lexical analysis.
@@ -51,7 +53,7 @@ pub mod packet;
 pub mod parser;
 /// PCAP file writing.
 pub mod pcap;
-/// SNMP packet builder.
-pub mod snmp_builder;
-/// SNMPv3 Cryptography.
-pub mod snmp_crypto;
+/// SNMP packet builder (backwards compatibility alias).
+pub use builders::snmp::builder as snmp_builder;
+/// SNMPv3 Cryptography (backwards compatibility alias).
+pub use builders::snmp::crypto as snmp_crypto;

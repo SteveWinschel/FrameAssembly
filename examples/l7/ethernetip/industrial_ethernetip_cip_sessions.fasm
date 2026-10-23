@@ -1,0 +1,19 @@
+// PROMPT: Common Industrial Protocol CIP encapsulation over EtherNet/IP on TCP 44818.
+// TOKENS: HOST, IP, FLOW, ->, ETHERNETIP, CMD, LIST_IDENTITY, REGISTER_SESSION, COMPILE
+
+// INSTRUCTION: Define EtherNet/IP client scanner.
+HOST enip_scanner { IP 192.168.1.10 }
+
+// INSTRUCTION: Define EtherNet/IP adapter drive.
+HOST enip_adapter { IP 192.168.1.20 }
+
+// INSTRUCTION: Define EtherNet/IP session establishment flow.
+FLOW enip_flow(s, a) {
+    s -> a ETHERNETIP CMD LIST_IDENTITY
+    s -> a ETHERNETIP CMD REGISTER_SESSION
+}
+
+// INSTRUCTION: Compile block executing CIP encapsulation.
+COMPILE {
+    enip_flow(enip_scanner, enip_adapter)
+}

@@ -1,0 +1,19 @@
+// PROMPT: IPv4-mapped IPv6 address communication using the ::ffff:a.b.c.d format per RFC 4291.
+// TOKENS: HOST, IP, FLOW, ->, <-, UDP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define client with IPv4-mapped IPv6 address.
+HOST mapped_client { IP ::ffff:192.0.2.10 }
+
+// INSTRUCTION: Define server with IPv4-mapped IPv6 address.
+HOST mapped_server { IP ::ffff:192.0.2.20 }
+
+// INSTRUCTION: Define UDP request and response flow between mapped endpoints.
+FLOW mapped_flow(c, s) {
+    c -> s UDP PAYLOAD "v4_mapped_req"
+    c <- s UDP PAYLOAD "v4_mapped_resp"
+}
+
+// INSTRUCTION: Compile block executing the mapped flow.
+COMPILE {
+    mapped_flow(mapped_client, mapped_server)
+}

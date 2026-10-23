@@ -1,0 +1,21 @@
+// PROMPT: POP3 mailbox access authentication with USER and PASS commands.
+// TOKENS: HOST, IP, FLOW, ->, <-, POP3, CMD, ARG, OK, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 192.168.1.15 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW pop3_auth(c, s) {
+    c -> s POP3 CMD "USER" ARG "alice"
+    c <- s POP3 OK
+    c -> s POP3 CMD "PASS" ARG "secret"
+    c <- s POP3 OK
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    pop3_auth(client, server)
+}

@@ -1,0 +1,18 @@
+// PROMPT: TFTP Write Request (WRQ) uploading configuration backup file.
+// TOKENS: HOST, IP, FLOW, ->, TFTP, WRQ, FILENAME, MODE, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 10.0.0.20 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 10.0.0.1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW tftp_write(c, s) {
+    c -> s TFTP WRQ FILENAME "router-config.bak" MODE "octet"
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    tftp_write(client, server)
+}

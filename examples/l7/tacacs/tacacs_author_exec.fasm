@@ -1,0 +1,18 @@
+// PROMPT: TACACS+ command authorization request over IPv6.
+// TOKENS: HOST, IP, FLOW, ->, TACACS, TYPE, AUTHOR, USER, SESSION_ID, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST client { IP 2001:db8::5 }
+
+// INSTRUCTION: Define server endpoint.
+HOST server { IP 2001:db8::1 }
+
+// INSTRUCTION: Define application traffic flow.
+FLOW tacacs_author(c, s) {
+    c -> s TACACS TYPE AUTHOR USER "network_admin" SESSION_ID 2002
+}
+
+// INSTRUCTION: Compile block executing the flow scenario.
+COMPILE {
+    tacacs_author(client, server)
+}

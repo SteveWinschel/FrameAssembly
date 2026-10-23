@@ -4,7 +4,7 @@ All notable changes to the "frameassembly-vscode" extension will be documented i
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [1.0.1] - 2026-10-23
+## [1.0.1] - 2026-10-24
 - Synchronized with FrameAssembly v1.0.1 release.
 
 ## [1.0.0] - 2026-10-23

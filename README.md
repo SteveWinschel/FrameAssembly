@@ -10,7 +10,7 @@
 
 FrameAssembly v1.0.0 enforces a unified `<layer>/<protocol>` architecture across both compiler implementation modules (`src/`) and example captures (`examples/`):
 
-```
+```text
 frameassembly/
 ├── src/
 │   ├── lexer/                     # Zero-copy Logos tokenizer (mod.rs, tests.rs)
@@ -98,7 +98,7 @@ frameassembly scenario.fasm --output /path/to/traffic.pcap
 A dedicated VS Code extension providing full syntax highlighting for all 81 protocols, sub-keywords, modifiers, durations, IPv6, and OIDs is available in `frameassembly-vscode/`:
 
 ```bash
-code --install-extension frameassembly-vscode/frameassembly-vscode-1.0.0.vsix
+code --install-extension frameassembly-vscode/frameassembly-vscode-1.0.1.vsix
 ```
 
 ---
@@ -225,53 +225,35 @@ Every protocol in FrameAssembly can be instantiated with **zero mandatory sub-ke
 | `IPFIX` | L7 | UDP | 4739 | IPFIX Template & Data Record packet. |
 | `SFLOW` | L7 | UDP | 6343 | sFlow v5 Flow Sample Datagram. |
 | `TFTP` | L7 | UDP | 69 | Read Request (RRQ), Filename `"file.bin"`, Mode `"octet"`. |
-| `FTP` | L7 | TCP | 21 | Greeting banner `"220 FTP Server Ready
-"` or `USER anonymous`. |
-| `SSH` | L7 | TCP | 22 | Identification banner `"SSH-2.0-FrameAssembly_1.0
-"`. |
-| `TELNET` | L7 | TCP | 23 | IAC WILL/DO negotiation bytes (`ÿû...`). |
-| `HTTP` | L7 | TCP | 80 | `GET / HTTP/1.1
-Host: <host>
-
-`. |
+| `FTP` | L7 | TCP | 21 | Greeting banner `"220 FTP Server Ready\r\n"` or `USER anonymous`. |
+| `SSH` | L7 | TCP | 22 | Identification banner `"SSH-2.0-FrameAssembly_1.0\r\n"`. |
+| `TELNET` | L7 | TCP | 23 | IAC WILL/DO negotiation bytes (`\xff\xfb...`). |
+| `HTTP` | L7 | TCP | 80 | `GET / HTTP/1.1\r\nHost: <host>\r\n\r\n`. |
 | `HTTP2` | L7 | TCP | 443 | 24-byte client connection preface (`PRI * HTTP/2.0...`) + SETTINGS frame. |
 | `GRPC` | L7 | TCP | 50051 | HTTP/2 POST with `content-type: application/grpc`. |
 | `WEBSOCKET`| L7 | TCP | 80 | HTTP Upgrade handshake or masked client text/binary frame. |
 | `TLS` | L7 | TCP | 443 | TLS 1.3 ClientHello with SNI and Supported Versions extensions. |
 | `QUIC` | L7 | UDP | 443 | QUIC Initial packet with TLS 1.3 ClientHello payload. |
 | `STUN` | L7 | UDP | 3478 | Binding Request, RFC 8489 Magic Cookie `0x2112A442`. |
-| `SIP` | L7 | UDP / TCP | 5060 | `INVITE sip:bob@domain SIP/2.0
-...`. |
+| `SIP` | L7 | UDP / TCP | 5060 | `INVITE sip:bob@domain SIP/2.0\r\n...`. |
 | `RTP` | L7 | UDP | 5004 | RTP Version 2, Payload Type 0 (PCMU), Seq 1, Timestamp 0. |
-| `RTSP` | L7 | TCP | 554 | `DESCRIBE rtsp://server/media RTSP/1.0
-...`. |
-| `SMTP` | L7 | TCP | 25 | `EHLO mail.example.com
-`. |
-| `IMAP` | L7 | TCP | 143 | `A001 CAPABILITY
-`. |
-| `POP3` | L7 | TCP | 110 | `+OK POP3 server ready
-` or `USER user
-`. |
+| `RTSP` | L7 | TCP | 554 | `DESCRIBE rtsp://server/media RTSP/1.0\r\n...`. |
+| `SMTP` | L7 | TCP | 25 | `EHLO mail.example.com\r\n`. |
+| `IMAP` | L7 | TCP | 143 | `A001 CAPABILITY\r\n`. |
+| `POP3` | L7 | TCP | 110 | `+OK POP3 server ready\r\n` or `USER user\r\n`. |
 | `KERBEROS` | L7 | UDP / TCP | 88 | Kerberos AS-REQ for krbtgt ticket. |
 | `LDAP` | L7 | TCP | 389 | LDAP BindRequest (Simple) message. |
 | `SMB` | L7 | TCP | 445 | SMB2 Negotiate Protocol Request. |
 | `NFS` | L7 | TCP | 2049 | ONC RPC NULL / GETATTR compound call. |
-| `REDIS` | L7 | TCP | 6379 | RESP command `*1
-$4
-PING
-`. |
-| `MEMCACHED`| L7 | TCP | 11211 | Text command `version
-` or Binary GET packet. |
+| `REDIS` | L7 | TCP | 6379 | RESP command `*1\r\n$4\r\nPING\r\n`. |
+| `MEMCACHED`| L7 | TCP | 11211 | Text command `version\r\n` or Binary GET packet. |
 | `MYSQL` | L7 | TCP | 3306 | Initial Handshake Packet v10 or COM_QUERY. |
 | `POSTGRES` | L7 | TCP | 5432 | SSLRequest / StartupMessage v3.0. |
 | `MQTT` | L7 | TCP | 1883 | MQTT v3.1.1 CONNECT packet, Clean Session. |
 | `COAP` | L7 | UDP | 5683 | Confirmable (CON) GET, Code 0.01, Msg ID 1. |
-| `AMQP` | L7 | TCP | 5672 | 8-byte protocol header `'AMQP  	'`. |
-| `SSDP` | L7 | UDP | 1900 | Multicast `M-SEARCH * HTTP/1.1
-HOST: 239.255.255.250:1900
-...`. |
-| `WHOIS` | L7 | TCP | 43 | Query string `"example.com
-"`. |
+| `AMQP` | L7 | TCP | 5672 | 8-byte protocol header `'AMQP\x00\x00\x09\x01'`. |
+| `SSDP` | L7 | UDP | 1900 | Multicast `M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\n...`. |
+| `WHOIS` | L7 | TCP | 43 | Query string `"example.com\r\n"`. |
 | `MODBUS` | L7 | TCP | 502 | MBAP header + Function 3 (Read Holding Registers). |
 | `BACNET` | L7 | UDP | 47808 | BVLC 0x81 + APDU Unconfirmed WHO-IS. |
 | `DNP3` | L7 | TCP / UDP | 20000 | DNP3 0x0564 Data Link Header + Function 1 (Read). |

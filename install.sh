@@ -6,17 +6,18 @@
 #
 # Installs system prerequisites (curl, ca-certificates, and a C linker 'cc')
 # across major OS package managers if missing, ensures Rust >= 1.85 (Edition
-# 2024) is installed via rustup, and installs 'frameassembly' via Cargo.
+# 2024) is installed via rustup, installs 'frameassembly' via Cargo, optionally
+# installs the VS Code / Antigravity syntax extension directly from GitHub
+# without cloning the repository, and self-deletes if downloaded as a standalone
+# script file.
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
-#   ./install.sh [OPTIONS]
 #
-# Options:
-#   --local, --path   Install from the local repository (cargo install --path .)
+# Options (via `sh -s -- [OPTIONS]`):
 #   --locked          Pass --locked to cargo install
 #   --force           Pass --force to cargo install
-#   --vscode          Also install the bundled VS Code / Antigravity .vsix extension
+#   --no-vscode       Skip automatic VS Code / Antigravity .vsix extension install
 #   --dry-run         Print planned commands without executing system modifications
 #   -h, --help        Display this help message and exit
 # ==============================================================================
@@ -26,12 +27,13 @@ set -eu
 REQUIRED_RUST_MAJOR=1
 REQUIRED_RUST_MINOR=85
 CRATE_NAME="frameassembly"
+VSIX_VERSION="1.1.1"
+VSIX_RAW_URL="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-${VSIX_VERSION}.vsix"
 RUSTUP_INIT_URL="https://sh.rustup.rs"
 
-INSTALL_MODE="crates-io"
 CARGO_LOCKED=0
 CARGO_FORCE=0
-INSTALL_VSCODE=0
+INSTALL_VSCODE=1
 DRY_RUN=0
 
 log_info() {
@@ -52,17 +54,17 @@ log_err() {
 
 usage() {
     cat <<'EOF'
-FrameAssembly (frameassembly) Cross-Platform Installer
+FrameAssembly (frameassembly) Cross-Platform Bootstrap Installer
 
 Usage:
   curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
-  ./install.sh [OPTIONS]
+  curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh -s -- [OPTIONS]
 
 Options:
-  --local, --path   Build and install from the local repository (cargo install --path .)
   --locked          Use locked Cargo.lock dependencies (cargo install --locked)
   --force           Force overwrite an existing frameassembly binary (cargo install --force)
-  --vscode          Install the bundled VS Code / Antigravity syntax extension (.vsix)
+  --vscode          Install the VS Code / Antigravity syntax extension (.vsix) [default: auto]
+  --no-vscode       Skip installing the VS Code / Antigravity syntax extension
   --dry-run         Show detected platform and planned actions without modifying the system
   -h, --help        Show this help message and exit
 EOF
@@ -70,9 +72,6 @@ EOF
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        --local|--path)
-            INSTALL_MODE="local"
-            ;;
         --locked)
             CARGO_LOCKED=1
             ;;
@@ -81,6 +80,9 @@ while [ "$#" -gt 0 ]; do
             ;;
         --vscode)
             INSTALL_VSCODE=1
+            ;;
+        --no-vscode)
+            INSTALL_VSCODE=0
             ;;
         --dry-run)
             DRY_RUN=1
@@ -293,42 +295,44 @@ install_frameassembly() {
         set -- "$@" --force
     fi
 
-    if [ "$INSTALL_MODE" = "local" ]; then
-        if [ ! -f "Cargo.toml" ] && [ "$DRY_RUN" -eq 0 ]; then
-            log_err "--local specified, but no Cargo.toml was found in $(pwd)."
-            exit 1
-        fi
-        log_info "Building and installing ${CRATE_NAME} from local repository (cargo $* --path .)..."
-        run_cmd cargo "$@" --path .
-    else
-        log_info "Installing ${CRATE_NAME} from crates.io (cargo $* ${CRATE_NAME})..."
-        run_cmd cargo "$@" "$CRATE_NAME"
-    fi
+    log_info "Installing ${CRATE_NAME} from crates.io (cargo $* ${CRATE_NAME})..."
+    run_cmd cargo "$@" "$CRATE_NAME"
 }
 
 install_vscode_extension_if_requested() {
     if [ "$INSTALL_VSCODE" -eq 0 ]; then
         return 0
     fi
-    vsix_path=""
-    for candidate in frameassembly-vscode/*.vsix; do
-        if [ -f "$candidate" ]; then
-            vsix_path="$candidate"
-        fi
-    done
-    if [ -z "$vsix_path" ]; then
-        log_warn "No .vsix extension file found under frameassembly-vscode/; skipping editor extension install."
+    editor_cli=""
+    if command -v code >/dev/null 2>&1; then
+        editor_cli="code"
+    elif command -v agy >/dev/null 2>&1; then
+        editor_cli="agy"
+    else
         return 0
     fi
-    if command -v code >/dev/null 2>&1; then
-        log_info "Installing VS Code extension (${vsix_path})..."
-        run_cmd code --install-extension "$vsix_path"
-    elif command -v agy >/dev/null 2>&1; then
-        log_info "Installing Antigravity IDE extension (${vsix_path})..."
-        run_cmd agy --install-extension "$vsix_path"
+
+    tmp_vsix="${TMPDIR:-/tmp}/frameassembly-vscode-${VSIX_VERSION}-$$.vsix"
+    log_info "Downloading VS Code / Antigravity extension (v${VSIX_VERSION}) from GitHub..."
+    if run_cmd curl -fsSL "$VSIX_RAW_URL" -o "$tmp_vsix"; then
+        log_info "Installing syntax extension via ${editor_cli}..."
+        run_cmd "$editor_cli" --install-extension "$tmp_vsix" || log_warn "Editor extension install returned non-zero status."
+        run_cmd rm -f -- "$tmp_vsix"
     else
-        log_warn "Neither 'code' nor 'agy' CLI found on PATH; skipping editor extension install."
+        log_warn "Could not download ${VSIX_RAW_URL}; skipping editor extension install."
+        run_cmd rm -f -- "$tmp_vsix"
     fi
+}
+
+cleanup_self() {
+    case "$0" in
+        *install.sh)
+            if [ ! -d ".git" ] && [ -f "$0" ]; then
+                log_info "Cleaning up one-time installer script ($0)..."
+                run_cmd rm -f -- "$0"
+            fi
+            ;;
+    esac
 }
 
 main() {
@@ -337,6 +341,7 @@ main() {
     ensure_rust_toolchain
     install_frameassembly
     install_vscode_extension_if_requested
+    cleanup_self
 
     if [ "$DRY_RUN" -eq 1 ]; then
         log_ok "Dry run completed successfully."

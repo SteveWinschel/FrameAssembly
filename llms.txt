@@ -55,7 +55,7 @@ FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates
 
 ## AI Agent & Metadata Files
 
-- [Cross-Platform Bootstrap Installer (`install.sh`)](install.sh): One-line installer (`curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh` or `./install.sh --local`) handling OS package manager prerequisites (`curl`, `ca-certificates`, C linker), `rustup` (`>= 1.85`), and `cargo install frameassembly`.
+- [Cross-Platform Bootstrap Installer (`install.sh`)](install.sh): One-line zero-clone installer (`curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`) handling OS package manager prerequisites (`curl`, `ca-certificates`, C linker), `rustup` (`>= 1.85`), `cargo install frameassembly`, and automatic `.vsix` editor extension installation.
 - [AGENTS.md](AGENTS.md) & [CLAUDE.md](CLAUDE.md): AI coding agent onboarding, build commands, and canonical DSL invariants.
 - [GitHub Copilot Instructions](.github/copilot-instructions.md): IDE completion guardrails.
 - [Context7 Configuration](context7.json), [CodeMeta JSON-LD](codemeta.json) & [CITATION.cff](CITATION.cff): Structured indexing and academic citation metadata.

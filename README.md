@@ -8,7 +8,7 @@
 
 ## Unified `<layer>/<protocol>` Architecture
 
-FrameAssembly v1.1.0 enforces a unified `<layer>/<protocol>` architecture across both compiler implementation modules (`src/`) and example captures (`examples/`):
+FrameAssembly v1.1.1 enforces a unified `<layer>/<protocol>` architecture across both compiler implementation modules (`src/`) and example captures (`examples/`):
 
 ```text
 frameassembly/
@@ -48,9 +48,9 @@ frameassembly/
 
 ### Installation
 
-**One-Line Cross-Platform Bootstrap (`install.sh`):**
+**One-Line Cross-Platform Bootstrap (`install.sh` — Zero Repo Clone Required):**
 
-Automatically checks and installs missing system prerequisites (`curl`, `ca-certificates`, and a C linker) across OS package managers (`apt-get`, `dnf`, `yum`, `pacman`, `apk`, `zypper`, `brew`, `pkg`, `xbps-install`, `emerge`, `nix-env`, etc.), installs or updates Rust (`>= 1.85`) via [rustup.rs](https://rustup.rs/), and installs `frameassembly` via Cargo:
+Automatically checks and installs missing system prerequisites (`curl`, `ca-certificates`, and a C linker) across OS package managers (`apt-get`, `dnf`, `yum`, `pacman`, `apk`, `zypper`, `brew`, `pkg`, `xbps-install`, `emerge`, `nix-env`, etc.), installs or updates Rust (`>= 1.85`) via [rustup.rs](https://rustup.rs/), installs `frameassembly` from Crates.io, and automatically installs the VS Code / Antigravity syntax extension (if `code` or `agy` is on `PATH`):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
 ```
@@ -64,7 +64,7 @@ cargo install frameassembly
 ```bash
 git clone https://github.com/SteveWinschel/FrameAssembly.git
 cd FrameAssembly
-./install.sh --local   # or: cargo build --release
+cargo build --release
 ```
 
 ### Command-Line Usage
@@ -82,10 +82,10 @@ frameassembly scenario.fasm --output /path/to/traffic.pcap
 
 ### Editor Support (VS Code & Antigravity IDE)
 
-A dedicated VS Code extension providing full syntax highlighting for all 81 protocols, sub-keywords, modifiers, durations, IPv6, and OIDs is available in `frameassembly-vscode/`:
+The one-line `install.sh` bootstrap above installs the `.vsix` extension automatically when `code` or `agy` is detected. To install only the syntax highlighting extension without cloning the repository:
 
 ```bash
-code --install-extension frameassembly-vscode/frameassembly-vscode-1.1.0.vsix
+curl -fsSLo /tmp/frameassembly.vsix https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-1.1.1.vsix && code --install-extension /tmp/frameassembly.vsix && rm -f /tmp/frameassembly.vsix
 ```
 
 ---

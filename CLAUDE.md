@@ -1,6 +1,6 @@
 # CLAUDE.md — FrameAssembly Project Instructions for Claude Code & AI Agents
 
-**FrameAssembly** (`frameassembly` v1.1.0) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network packet specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
+**FrameAssembly** (`frameassembly` v1.1.1) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network packet specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
 
 ---
 
@@ -9,7 +9,6 @@
 ```bash
 # Cross-platform bootstrap install (curl + C linker + rustup >= 1.85 + cargo install)
 curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
-./install.sh --local
 
 # Build compiler and CLI binary
 cargo build --release

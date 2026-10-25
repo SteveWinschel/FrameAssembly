@@ -55,7 +55,7 @@ FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates
 
 ## AI Agent & Metadata Files
 
-- [Cross-Platform Bootstrap Installer (`install.sh`)](install.sh): One-line installer (`curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh` or `./install.sh --local`) handling OS package manager prerequisites (`curl`, `ca-certificates`, C linker), `rustup` (`>= 1.85`), and `cargo install frameassembly`.
+- [Cross-Platform Bootstrap Installer (`install.sh`)](install.sh): One-line installer (`curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`) handling OS package manager prerequisites (`curl`, `ca-certificates`, C linker), `rustup` (`>= 1.85`), and `cargo install frameassembly`.
 - [AGENTS.md](AGENTS.md) & [CLAUDE.md](CLAUDE.md): AI coding agent onboarding, build commands, and canonical DSL invariants.
 - [GitHub Copilot Instructions](.github/copilot-instructions.md): IDE completion guardrails.
 - [Context7 Configuration](context7.json), [CodeMeta JSON-LD](codemeta.json) & [CITATION.cff](CITATION.cff): Structured indexing and academic citation metadata.
@@ -74,7 +74,7 @@ FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates
 
 ## Unified `<layer>/<protocol>` Architecture
 
-FrameAssembly v1.1.0 enforces a unified `<layer>/<protocol>` architecture across both compiler implementation modules (`src/`) and example captures (`examples/`):
+FrameAssembly v1.1.1 enforces a unified `<layer>/<protocol>` architecture across both compiler implementation modules (`src/`) and example captures (`examples/`):
 
 ```text
 frameassembly/
@@ -130,7 +130,7 @@ cargo install frameassembly
 ```bash
 git clone https://github.com/SteveWinschel/FrameAssembly.git
 cd FrameAssembly
-./install.sh --local   # or: cargo build --release
+cargo build --release
 ```
 
 ### Command-Line Usage
@@ -151,7 +151,7 @@ frameassembly scenario.fasm --output /path/to/traffic.pcap
 A dedicated VS Code extension providing full syntax highlighting for all 81 protocols, sub-keywords, modifiers, durations, IPv6, and OIDs is available in `frameassembly-vscode/`:
 
 ```bash
-code --install-extension frameassembly-vscode/frameassembly-vscode-1.1.0.vsix
+code --install-extension frameassembly-vscode/frameassembly-vscode-1.1.1.vsix
 ```
 
 ---
@@ -625,7 +625,6 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ```bash
 # Cross-platform bootstrap install (curl + C linker + rustup >= 1.85 + cargo install)
 curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
-./install.sh --local
 
 # Build compiler and CLI binary
 cargo build --release
@@ -2631,7 +2630,7 @@ FLOW tri_version_snmp_audit(nms, dev) {
     nms -> dev VLAN 99 PCP 2 DSCP 16 SNMP2 GETBULK COMMUNITY "perf_ro" REQID 5001 NONREPEATERS 1 MAXREPETITIONS 5 VARBIND 1.3.6.1.2.1.1.3.0 NULL VARBIND 1.3.6.1.2.1.31.1.1.1.6 NULL WAIT 2ms
     nms <- dev VLAN 99 PCP 2 DSCP 16 SNMP2 RESPONSE COMMUNITY "perf_ro" REQID 5001 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 12500 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 45000123456 WAIT 2ms
     nms -> dev VLAN 99 PCP 2 DSCP 16 SNMP3 GET USER "sec_auditor" ENGINEID "80001f8880990064" ENGINEBOOTS 3 ENGINETIME 5400 AUTH SHA256 "SecAuditSha256!" PRIV AES "SecAuditAes128!" REQID 5002 VARBIND 1.3.6.1.2.1.1.1.0 NULL WAIT 2ms
-    nms <- dev VLAN 99 PCP 2 DSCP 16 SNMP3 RESPONSE USER "sec_auditor" ENGINEID "80001f8880990064" ENGINEBOOTS 3 ENGINETIME 5400 AUTH SHA256 "SecAuditSha256!" PRIV AES "SecAuditAes128!" REQID 5002 VARBIND 1.3.6.1.2.1.1.1.0 STRING "FrameAssembly Multi-Version SNMP Agent v1.1.0" WAIT 2ms
+    nms <- dev VLAN 99 PCP 2 DSCP 16 SNMP3 RESPONSE USER "sec_auditor" ENGINEID "80001f8880990064" ENGINEBOOTS 3 ENGINETIME 5400 AUTH SHA256 "SecAuditSha256!" PRIV AES "SecAuditAes128!" REQID 5002 VARBIND 1.3.6.1.2.1.1.1.0 STRING "FrameAssembly Multi-Version SNMP Agent v1.1.1" WAIT 2ms
 }
 
 // INSTRUCTION: Compile the tri-version SNMP coexistence audit flow.

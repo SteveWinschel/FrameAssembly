@@ -9,7 +9,6 @@
 ```bash
 # Cross-platform bootstrap install (curl + C linker + rustup >= 1.85 + cargo install)
 curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
-./install.sh --local
 
 # Build compiler and CLI binary
 cargo build --release

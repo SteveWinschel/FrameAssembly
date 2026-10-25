@@ -1,0 +1,18 @@
+// PROMPT: Apple AirPlay media streaming device announcement using mDNS TXT and SRV records.
+// TOKENS: HOST, IP, FLOW, MDNS, RESPONSE, TXID, QNAME, QTYPE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define media receiver device.
+HOST apple_tv_device { IP 192.168.2.40 }
+
+// INSTRUCTION: Define mDNS multicast group.
+HOST lan_multicast { IP 224.0.0.251 }
+
+// INSTRUCTION: Define AirPlay beacon announcement flow.
+FLOW airplay_beacon_flow(dev, grp) {
+    dev -> grp MDNS RESPONSE TXID 0 QNAME "LivingRoom._airplay._tcp.local" QTYPE "SRV" RDATA "LivingRoom.local:7000" ANS_TTL 4500
+}
+
+// INSTRUCTION: Compile AirPlay beacon scenario.
+COMPILE {
+    airplay_beacon_flow(apple_tv_device, lan_multicast)
+}

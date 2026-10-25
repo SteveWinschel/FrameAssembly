@@ -1,0 +1,24 @@
+// PROMPT: Default TFTP frame emission over UDP port 69 using automatic protocol defaults.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, COMPILE
+
+// INSTRUCTION: Define provisioning client host requesting TFTP service.
+HOST tftp_client_node {
+    IP 10.69.1.10
+    MAC 00:1a:2b:69:01:0a
+}
+
+// INSTRUCTION: Define network boot TFTP server host.
+HOST tftp_server_node {
+    IP 10.69.1.1
+    MAC 00:1a:2b:69:01:01
+}
+
+// INSTRUCTION: Emit a default TFTP protocol frame with automatic header defaults.
+FLOW tftp_default_flow(c, s) {
+    c -> s TFTP
+}
+
+// INSTRUCTION: Compile the default TFTP frame scenario.
+COMPILE {
+    tftp_default_flow(tftp_client_node, tftp_server_node)
+}

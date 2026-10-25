@@ -1,0 +1,19 @@
+// PROMPT: Single-hop BFD session over an 802.1Q VLAN subinterface with priority PCP 7.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define aggregation router 1 on VLAN 405.
+HOST agg_rtr_1 { IP 10.40.5.1 MAC 00:0c:29:40:05:01 }
+
+// INSTRUCTION: Define aggregation router 2 on VLAN 405.
+HOST agg_rtr_2 { IP 10.40.5.2 MAC 00:0c:29:40:05:02 }
+
+// INSTRUCTION: Define VLAN-tagged BFD heartbeat with 802.1p network control priority 7.
+FLOW bfd_vlan_subif_flow(r1, r2) {
+    r1 -> r2 BFD STATE 3 MY_DISC 701 YOUR_DISC 702 MIN_TX 10000 MIN_RX 10000 MULT 3 VLAN 405 PCP 7 DEI 0
+    r1 <- r2 BFD STATE 3 MY_DISC 702 YOUR_DISC 701 MIN_TX 10000 MIN_RX 10000 MULT 3 VLAN 405 PCP 7 DEI 0
+}
+
+// INSTRUCTION: Compile the VLAN subinterface BFD flow.
+COMPILE {
+    bfd_vlan_subif_flow(agg_rtr_1, agg_rtr_2)
+}

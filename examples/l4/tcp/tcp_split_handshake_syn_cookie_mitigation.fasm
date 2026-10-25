@@ -1,0 +1,26 @@
+// PROMPT: DDoS scrubbing appliance TCP SYN proxy split-handshake validating client ACK before opening backend server connection.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, MSS, ACK, ACKNUM, WAIT, PSH, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define external Internet client connecting to protected web service.
+HOST ext_web_client { IP 198.51.100.88 }
+
+// INSTRUCTION: Define inline DDoS SYN-Proxy scrubbing appliance.
+HOST syn_proxy_mitigator { IP 203.0.113.10 }
+
+// INSTRUCTION: Define protected backend origin web server.
+HOST backend_origin_srv { IP 10.200.80.10 }
+
+// INSTRUCTION: Define SYN-cookie challenge to client followed by delayed backend 3-way handshake and sequence splicing.
+FLOW tcp_syn_proxy_split_handshake(cli, proxy, srv) {
+    cli -> proxy TCP SYN SRCPORT 54888 DSTPORT 443 SEQ 1000 WIN 64240 MSS 1460
+    cli <- proxy TCP SYN ACK SRCPORT 443 DSTPORT 54888 SEQ 88442211 ACKNUM 1001 WIN 0 MSS 1460 WAIT 1ms
+    cli -> proxy TCP PSH ACK SRCPORT 54888 DSTPORT 443 SEQ 1001 ACKNUM 88442212 WIN 64240 PAYLOAD "TLS_CLIENT_HELLO" WAIT 2ms
+    proxy -> srv TCP SYN SRCPORT 54888 DSTPORT 443 SEQ 1000 WIN 64240 MSS 1460 WAIT 500us
+    proxy <- srv TCP SYN ACK SRCPORT 443 DSTPORT 54888 SEQ 500000 ACKNUM 1001 WIN 65535 MSS 1460 WAIT 1ms
+    proxy -> srv TCP PSH ACK SRCPORT 54888 DSTPORT 443 SEQ 1001 ACKNUM 500001 WIN 64240 PAYLOAD "TLS_CLIENT_HELLO" WAIT 500us
+}
+
+// INSTRUCTION: Compile block executing TCP SYN-proxy split handshake.
+COMPILE {
+    tcp_syn_proxy_split_handshake(ext_web_client, syn_proxy_mitigator, backend_origin_srv)
+}

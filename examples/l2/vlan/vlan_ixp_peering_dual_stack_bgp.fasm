@@ -1,0 +1,28 @@
+// PROMPT: Polymorphic dual-stack IPv4 and IPv6 BGP routing peering over 802.1Q tagged IXP peering VLAN 999.
+// TOKENS: HOST, IP, FLOW, VLAN, PCP, TTL, BGP, OPEN, ASN, HOLDTIME, BGPID, WAIT, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define IPv4 IXP member router A.
+HOST ixp_peer_a_v4 { IP 198.32.160.10 }
+
+// INSTRUCTION: Define IPv4 IXP member router B.
+HOST ixp_peer_b_v4 { IP 198.32.160.20 }
+
+// INSTRUCTION: Define IPv6 IXP member router A.
+HOST ixp_peer_a_v6 { IP 2001:504:16::a }
+
+// INSTRUCTION: Define IPv6 IXP member router B.
+HOST ixp_peer_b_v6 { IP 2001:504:16::14 }
+
+// INSTRUCTION: Define polymorphic BGP peering exchange over VLAN 999 with CS6 network control PCP 6.
+FLOW ixp_vlan_bgp_session(peer1, peer2) {
+    peer1 -> peer2 VLAN 999 PCP 6 TTL 1 BGP OPEN ASN 64512 HOLDTIME 90 BGPID 198.32.160.10
+    peer1 <- peer2 VLAN 999 PCP 6 TTL 1 BGP OPEN ASN 64513 HOLDTIME 90 BGPID 198.32.160.20 WAIT 2ms
+    peer1 -> peer2 VLAN 999 PCP 6 TTL 1 BGP KEEPALIVE WAIT 5ms
+    peer1 <- peer2 VLAN 999 PCP 6 TTL 1 BGP KEEPALIVE WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing dual-stack IXP VLAN 999 BGP peering.
+COMPILE {
+    ixp_vlan_bgp_session(ixp_peer_a_v4, ixp_peer_b_v4)
+    ixp_vlan_bgp_session(ixp_peer_a_v6, ixp_peer_b_v6)
+}

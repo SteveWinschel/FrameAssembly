@@ -1,0 +1,25 @@
+// PROMPT: Create a DNS NS delegation query and authoritative referral response for a regional subdomain zone.
+// TOKENS: HOST, IP, MAC, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RCODE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the DNS stub resolver client endpoint.
+HOST dns_client {
+    IP 10.10.53.44
+    MAC 00:1b:21:53:01:0a
+}
+
+// INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
+HOST dns_server {
+    IP 10.10.53.1
+    MAC 00:1b:21:53:01:35
+}
+
+// INSTRUCTION: Execute the DNS query and authoritative response transaction.
+FLOW dns_scenario_flow(c, s) {
+    c -> s DNS QUERY TXID 2106 QNAME "eu-west.cloud.example.com" QTYPE "NS" WAIT 4ms
+    c <- s DNS RESPONSE TXID 2106 RCODE 0 QNAME "eu-west.cloud.example.com" QTYPE "NS" RDATA "ns1.eu-west.cloud.example.com" ANS_TTL 172800
+}
+
+// INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
+COMPILE {
+    dns_scenario_flow(dns_client, dns_server)
+}

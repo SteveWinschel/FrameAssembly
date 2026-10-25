@@ -1,3 +1,11 @@
+//! Structured compiler error definitions and rich diagnostic reporting for FrameAssembly.
+//!
+//! This module defines the [`CompilerError`] enumeration covering all failure modes across the
+//! compilation pipeline: lexical tokenization errors (`LexError`), syntactic grammar violations
+//! (`ParseError`), semantic invariant violations (`SemanticError`), and wire-level PCAP emission
+//! failures (`BackendError`). Each source-level error integrates with [`miette`] to render
+//! byte-accurate source spans and helpful remediation hints.
+
 use alloc::string::String;
 use miette::Diagnostic;
 

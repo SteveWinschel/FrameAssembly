@@ -1,0 +1,26 @@
+// PROMPT: Dual-stack DNP3 Counter object freeze and read (Group 20 Variation 1) over IPv4 and IPv6.
+// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, COMPILE
+
+// INSTRUCTION: Define IPv4 SCADA master.
+HOST master_v4 { IP 10.210.1.1 }
+
+// INSTRUCTION: Define IPv4 substation meter RTU.
+HOST meter_rtu_v4 { IP 10.210.1.30 }
+
+// INSTRUCTION: Define IPv6 SCADA master.
+HOST master_v6 { IP 2001:db8:2000::1 }
+
+// INSTRUCTION: Define IPv6 substation meter RTU.
+HOST meter_rtu_v6 { IP 2001:db8:2000::30 }
+
+// INSTRUCTION: Read 32-bit binary counters (Group 20 Variation 1) and return response.
+FLOW dnp3_counter_poll(m, r) {
+    m -> r DNP3 FUNC "READ" SRC 1 DST 30 GROUP 20 VARIATION 1
+    m <- r DNP3 FUNC "RESPONSE" SRC 30 DST 1 GROUP 20 VARIATION 1
+}
+
+// INSTRUCTION: Execute the polymorphic DNP3 counter flow over IPv4 and IPv6.
+COMPILE {
+    dnp3_counter_poll(master_v4, meter_rtu_v4)
+    dnp3_counter_poll(master_v6, meter_rtu_v6)
+}

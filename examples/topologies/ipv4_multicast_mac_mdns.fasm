@@ -1,5 +1,5 @@
 // PROMPT: IPv4 mDNS link-local multicast transmission to 224.0.0.251 deriving RFC 1112 MAC 01:00:5e:00:00:fb.
-// TOKENS: HOST, IP, FLOW, ->, UDP, DSTPORT, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, UDP, DSTPORT, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define client advertising zero-conf service.
 HOST mdns_client { IP 192.168.1.50 }

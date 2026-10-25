@@ -1,5 +1,5 @@
 // PROMPT: RIP route request query sent to broadcast and multicast routing destinations.
-// TOKENS: HOST, IP, FLOW, ->, RIP, REQUEST, COMPILE
+// TOKENS: HOST, IP, FLOW, RIP, REQUEST, COMPILE
 
 // INSTRUCTION: Define edge router inquiring routing updates.
 HOST edge_router { IP 172.16.0.10 }

@@ -1,0 +1,25 @@
+// PROMPT: Customer Edge (CE) to Customer Edge (CE) RFC 4303 IPsec ESP encryption traversing an MPLS L3VPN provider core.
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, MPLS, EXP, BOS, MPLS_TTL, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Customer Edge router CE-West encrypting payload prior to MPLS PE handoff.
+HOST ce_west_esp {
+    IP 10.150.1.1
+    MAC 00:24:38:96:01:01
+}
+
+// INSTRUCTION: Define Customer Edge router CE-East decrypting ESP payload after MPLS label disposition.
+HOST ce_east_esp {
+    IP 10.150.2.1
+    MAC 00:24:38:96:02:01
+}
+
+// INSTRUCTION: Define MPLS-labeled ESP frames with VRF label 35001 and EXP 4.
+FLOW esp_ce_over_mpls_vpn(west, east) {
+    west -> east ESP SPI 350011 SEQ 10 IV "3500110035001100" ICV "aabbccddeeff001122334455" NEXT_HEADER 4 MPLS 35001 EXP 4 BOS 1 MPLS_TTL 62 DF DSCP 32 TTL 62 PAYLOAD "CE_FIN_REQ" WAIT 6ms
+    west <- east ESP SPI 350012 SEQ 10 IV "3500120035001200" ICV "554433221100ffeeddccbbaa" NEXT_HEADER 4 MPLS 35002 EXP 4 BOS 1 MPLS_TTL 62 DF DSCP 32 TTL 62 PAYLOAD "CE_FIN_ACK"
+}
+
+// INSTRUCTION: Compile the CE-to-CE IPsec ESP over MPLS L3VPN flow.
+COMPILE {
+    esp_ce_over_mpls_vpn(ce_west_esp, ce_east_esp)
+}

@@ -1,0 +1,24 @@
+// PROMPT: Dual-stack IPv4 and IPv6 SIP signaling using a single polymorphic flow.
+// TOKENS: HOST, IP, FLOW, SIP, INVITE, FROM, TO, CALL_ID, CSEQ, DSCP, TTL, FLOWLABEL, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define IPv4 SIP caller and callee hosts.
+HOST sip_v4_caller { IP 172.24.1.10 }
+// INSTRUCTION: Define IPv4 SIP server host.
+HOST sip_v4_callee { IP 172.24.1.1 }
+
+// INSTRUCTION: Define IPv6 SIP caller and callee hosts.
+HOST sip_v6_caller { IP 2001:db8:5060::10 }
+// INSTRUCTION: Define IPv6 SIP server host.
+HOST sip_v6_callee { IP 2001:db8:5060::1 }
+
+// INSTRUCTION: Define polymorphic SIP INVITE and 200 OK flow with DSCP, TTL, and FLOWLABEL.
+FLOW sip_polymorphic(c, s) {
+    c -> s SIP INVITE FROM "sip:caller@ngn.org" TO "sip:callee@ngn.org" CALL_ID "dual-stack-88" CSEQ 1 DSCP 46 TTL 64 FLOWLABEL 0x50600
+    c <- s SIP STATUS 200 REASON "OK" CALL_ID "dual-stack-88" CSEQ 1 DSCP 46 TTL 64 FLOWLABEL 0x50600
+}
+
+// INSTRUCTION: Compile polymorphic SIP flow across IPv4 and IPv6 endpoints.
+COMPILE {
+    sip_polymorphic(sip_v4_caller, sip_v4_callee)
+    sip_polymorphic(sip_v6_caller, sip_v6_callee)
+}

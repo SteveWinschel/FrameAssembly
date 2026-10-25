@@ -1,0 +1,38 @@
+// PROMPT: Polymorphic dual-stack PIM-SM neighbor discovery and tree join executed across both IPv4 and IPv6 campus cores.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, HELLO, DR_PRIORITY, HOLDTIME, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv4 campus distribution router.
+HOST pim_v4_dist {
+    IP 10.103.4.2
+    MAC 00:1e:be:67:04:02
+}
+
+// INSTRUCTION: Define IPv4 campus core RP router.
+HOST pim_v4_core {
+    IP 10.103.4.1
+    MAC 00:1e:be:67:04:01
+}
+
+// INSTRUCTION: Define IPv6 campus distribution router.
+HOST pim_v6_dist {
+    IP 2001:db8:103:6::2
+    MAC 00:1e:be:67:06:02
+}
+
+// INSTRUCTION: Define IPv6 campus core RP router.
+HOST pim_v6_core {
+    IP 2001:db8:103:6::1
+    MAC 00:1e:be:67:06:01
+}
+
+// INSTRUCTION: Define address-family-independent PIM Hello exchange.
+FLOW pim_dual_stack_hello_flow(dist, core) {
+    dist -> core PIM HELLO DR_PRIORITY 120 HOLDTIME 105 DSCP 48 TTL 1 WAIT 5ms
+    dist <- core PIM HELLO DR_PRIORITY 240 HOLDTIME 105 DSCP 48 TTL 1
+}
+
+// INSTRUCTION: Compile the polymorphic PIM flow for both IPv4 and IPv6 campus router pairs.
+COMPILE {
+    pim_dual_stack_hello_flow(pim_v4_dist, pim_v4_core)
+    pim_dual_stack_hello_flow(pim_v6_dist, pim_v6_core)
+}

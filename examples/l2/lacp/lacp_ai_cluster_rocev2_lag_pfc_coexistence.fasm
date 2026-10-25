@@ -1,0 +1,25 @@
+// PROMPT: AI storage fabric 400GbE LAG port-channel maintaining LACP short-timeout heartbeats on a lossless RoCEv2 link.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define AI storage server 400GbE bond interface.
+HOST ai_storage_bond {
+    IP 10.88.40.10
+    MAC 0c:42:a1:58:28:0a
+}
+
+// INSTRUCTION: Define AI storage leaf switch LAG interface.
+HOST ai_storage_leaf {
+    IP 10.88.40.1
+    MAC 00:1c:73:58:28:01
+}
+
+// INSTRUCTION: Exchange LACP fast-periodic LACPDUs with Actor/Partner Key 400 and State 63.
+FLOW lacp_rocev2_lag_sync(srv, sw) {
+    srv -> sw LACP ACTOR_SYS 0c:42:a1:58:28:0a ACTOR_KEY 400 ACTOR_PORT 1 ACTOR_STATE 63 PARTNER_SYS 00:1c:73:58:28:01 PARTNER_KEY 400 PARTNER_PORT 49 PARTNER_STATE 63 WAIT 5ms
+    srv <- sw LACP ACTOR_SYS 00:1c:73:58:28:01 ACTOR_KEY 400 ACTOR_PORT 49 ACTOR_STATE 63 PARTNER_SYS 0c:42:a1:58:28:0a PARTNER_KEY 400 PARTNER_PORT 1 PARTNER_STATE 63
+}
+
+// INSTRUCTION: Compile the AI storage 400GbE RoCEv2 LACP synchronization trace.
+COMPILE {
+    lacp_rocev2_lag_sync(ai_storage_bond, ai_storage_leaf)
+}

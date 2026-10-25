@@ -1,5 +1,5 @@
 // PROMPT: OPC UA Binary protocol HEL message negotiating buffer limits and ACK response.
-// TOKENS: HOST, IP, FLOW, ->, <-, OPCUA, MSG_TYPE, CHUNK_TYPE, ENDPOINT_URL, COMPILE
+// TOKENS: HOST, IP, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, ENDPOINT_URL, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.50 }

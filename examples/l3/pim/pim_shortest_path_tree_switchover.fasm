@@ -1,0 +1,18 @@
+// PROMPT: Last-hop router initiating source-specific (S,G) Join toward high-bitrate media server.
+// TOKENS: HOST, IP, FLOW, PIM, JOIN_PRUNE, GROUP, SOURCE, HOLDTIME, COMPILE
+
+// INSTRUCTION: Define last-hop receiver router.
+HOST last_hop_receiver_rtr { IP 192.168.150.2 }
+
+// INSTRUCTION: Define reverse path forwarding neighbor toward source.
+HOST rpf_neighbor_to_source { IP 192.168.150.1 }
+
+// INSTRUCTION: Define Source-Specific Multicast (S,G) Join flow.
+FLOW pim_spt_switchover(lhr, rpf) {
+    lhr -> rpf PIM JOIN_PRUNE GROUP 232.1.1.1 SOURCE 198.51.100.50 HOLDTIME 210
+}
+
+// INSTRUCTION: Compile block executing SPT switchover Join.
+COMPILE {
+    pim_spt_switchover(last_hop_receiver_rtr, rpf_neighbor_to_source)
+}

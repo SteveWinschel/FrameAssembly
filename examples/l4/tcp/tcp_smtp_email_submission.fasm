@@ -1,5 +1,5 @@
 // PROMPT: Simulate an SMTP email submission conversation over TCP port 587 including EHLO, MAIL FROM, RCPT TO, DATA, and QUIT commands.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, FIN, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WAIT, ACK, PSH, PAYLOAD, FIN, COMPILE
 
 // INSTRUCTION: Define a mail user agent host with IP 10.15.0.25.
 HOST mail_client { IP 10.15.0.25 MAC 00:11:32:aa:bb:01 }

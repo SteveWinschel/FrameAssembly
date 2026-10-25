@@ -1,0 +1,25 @@
+// PROMPT: Generate an IKEv2 remote-access VPN gateway authenticating a road-warrior user against RADIUS with Framed-IP.
+// TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, ID, USER, NAS_IP, SERVICE_TYPE, WAIT, ACCESS_ACCEPT, FRAMED_IP, COMPILE
+
+// INSTRUCTION: Define the Network Access Server (NAS) client initiating RADIUS requests.
+HOST radius_nas {
+    IP 192.168.181.1
+    MAC 00:1b:21:18:12:05
+}
+
+// INSTRUCTION: Define the central RADIUS authentication and accounting server.
+HOST radius_server {
+    IP 192.168.181.50
+    MAC 00:1b:21:18:12:64
+}
+
+// INSTRUCTION: Execute the RFC 2865 / RFC 2866 RADIUS transaction flow.
+FLOW radius_scenario_flow(nas, srv) {
+    nas -> srv RADIUS ACCESS_REQUEST ID 104 USER "corp\s_connor" NAS_IP 192.168.181.1 SERVICE_TYPE 2 WAIT 3ms
+    nas <- srv RADIUS ACCESS_ACCEPT ID 104 USER "corp\s_connor" NAS_IP 192.168.181.1 SERVICE_TYPE 2 FRAMED_IP 10.254.8.42
+}
+
+// INSTRUCTION: Compile the RADIUS AAA exchange into a PCAP trace.
+COMPILE {
+    radius_scenario_flow(radius_nas, radius_server)
+}

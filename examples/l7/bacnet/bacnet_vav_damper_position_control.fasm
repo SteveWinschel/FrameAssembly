@@ -1,0 +1,27 @@
+// PROMPT: BACnet/IP Variable Air Volume (VAV) box damper position WriteProperty and ReadProperty verification.
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, WRITE_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, WAIT, READ_PROPERTY, COMPILE
+
+// INSTRUCTION: Define the Building Management System (BMS) supervisory workstation.
+HOST bms_workstation {
+    IP 10.120.1.10
+    MAC 00:1a:2b:78:01:10
+}
+
+// INSTRUCTION: Define the floor 3 VAV terminal unit controller.
+HOST vav_box_304 {
+    IP 10.120.1.44
+    MAC 00:1a:2b:78:01:44
+}
+
+// INSTRUCTION: Command Analog Output (Object Type 1, Instance 2) Present_Value (Property 85) to 75% open and read back.
+FLOW bacnet_vav_damper(bms, vav) {
+    bms -> vav BACNET WRITE_PROPERTY INVOKE_ID 10 OBJECT_TYPE 1 OBJECT_INSTANCE 2 PROPERTY_ID 85 VALUE 75
+    bms <- vav BACNET WRITE_PROPERTY INVOKE_ID 10 OBJECT_TYPE 1 OBJECT_INSTANCE 2 PROPERTY_ID 85 VALUE 75 WAIT 2ms
+    bms -> vav BACNET READ_PROPERTY INVOKE_ID 11 OBJECT_TYPE 1 OBJECT_INSTANCE 2 PROPERTY_ID 85
+    bms <- vav BACNET READ_PROPERTY INVOKE_ID 11 OBJECT_TYPE 1 OBJECT_INSTANCE 2 PROPERTY_ID 85 VALUE 75
+}
+
+// INSTRUCTION: Compile the BACnet VAV damper control flow.
+COMPILE {
+    bacnet_vav_damper(bms_workstation, vav_box_304)
+}

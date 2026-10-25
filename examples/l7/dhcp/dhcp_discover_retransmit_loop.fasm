@@ -1,0 +1,20 @@
+// PROMPT: Unanswered DHCPv4 DISCOVER retransmission backoff loop when no DHCP server is reachable.
+// TOKENS: HOST, IP, FLOW, DHCP, DISCOVER, CHADDR, HOSTNAME, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define isolated client attempting to acquire an IPv4 lease.
+HOST isolated_node { IP 0.0.0.0 }
+
+// INSTRUCTION: Define local subnet broadcast address.
+HOST local_bcast { IP 255.255.255.255 }
+
+// INSTRUCTION: Broadcast DHCPDISCOVER with 2-second retry timeout.
+FLOW dhcp_retry_discover(c, b) {
+    c -> b DHCP DISCOVER CHADDR 00:16:3e:77:66:55 HOSTNAME "kiosk-01" WAIT 2s
+}
+
+// INSTRUCTION: Execute 4 DHCPDISCOVER retransmission attempts.
+COMPILE {
+    LOOP 4 {
+        dhcp_retry_discover(isolated_node, local_bcast)
+    }
+}

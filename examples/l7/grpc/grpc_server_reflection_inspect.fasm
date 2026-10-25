@@ -1,0 +1,19 @@
+// PROMPT: gRPC Server Reflection API query inspecting exposed protobuf service definitions.
+// TOKENS: HOST, IP, FLOW, GRPC, SERVICE, METHOD, DF, IPID, PAYLOAD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define grpcurl developer CLI host.
+HOST grpcurl_cli { IP 192.168.45.10 }
+
+// INSTRUCTION: Define staging gRPC server with reflection enabled.
+HOST staging_grpc { IP 192.168.45.20 }
+
+// INSTRUCTION: Call ServerReflectionInfo and receive service list with GRPC_STATUS 0.
+FLOW grpc_server_reflection(c, s) {
+    c -> s GRPC SERVICE "grpc.reflection.v1alpha.ServerReflection" METHOD "ServerReflectionInfo" DF IPID 0x3001 PAYLOAD "*"
+    c <- s GRPC SERVICE "grpc.reflection.v1alpha.ServerReflection" METHOD "ServerReflectionInfo" GRPC_STATUS 0 DF IPID 0x4001
+}
+
+// INSTRUCTION: Compile the gRPC server reflection inspection scenario.
+COMPILE {
+    grpc_server_reflection(grpcurl_cli, staging_grpc)
+}

@@ -1,0 +1,26 @@
+// PROMPT: RFC 5880 BFD session transitioning to Down with Diagnostic Code 2 (Echo Function Failed) over UDP 3784.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define access aggregation router running BFD Echo modeloopback checks.
+HOST bfd_echo_agg {
+    IP 172.16.37.1
+    MAC 00:1e:be:37:00:01
+}
+
+// INSTRUCTION: Define customer edge router whose forwarding path dropped BFD Echo frames.
+HOST bfd_echo_ce {
+    IP 172.16.37.2
+    MAC 00:1e:be:37:00:02
+}
+
+// INSTRUCTION: Define BFD session signaling STATE 1 (Down) and DIAG 2 (Echo Function Failed).
+FLOW bfd_echo_fail_diag(agg, ce) {
+    agg -> ce BFD STATE 3 DIAG 0 MY_DISC 37851 YOUR_DISC 37852 MIN_TX 100000 MIN_RX 100000 MULT 3 DSCP 48 TTL 255 WAIT 15ms
+    agg -> ce BFD STATE 1 DIAG 2 MY_DISC 37851 YOUR_DISC 0 MIN_TX 1000000 MIN_RX 1000000 MULT 3 DSCP 48 TTL 255 WAIT 5ms
+    agg <- ce BFD STATE 1 DIAG 3 MY_DISC 37852 YOUR_DISC 0 MIN_TX 1000000 MIN_RX 1000000 MULT 3 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the BFD Echo Function Failed diagnostic transition flow.
+COMPILE {
+    bfd_echo_fail_diag(bfd_echo_agg, bfd_echo_ce)
+}

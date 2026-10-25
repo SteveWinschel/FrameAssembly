@@ -1,0 +1,29 @@
+// PROMPT: Wireless audio receiver negotiating RTSP ANNOUNCE, SETUP, and RECORD for live room audio mirroring.
+// TOKENS: HOST, IP, FLOW, RTSP, OPTIONS, URI, CSEQ, WAIT, STATUS, METHOD, SETUP, TRANSPORT_HDR, SESSION, COMPILE
+
+// INSTRUCTION: Define tablet sender streaming lossless room audio.
+HOST tablet_sender {
+    IP 192.168.1.45
+}
+
+// INSTRUCTION: Define smart speaker RTSP receiver.
+HOST smart_speaker {
+    IP 192.168.1.90
+}
+
+// INSTRUCTION: Define OPTIONS, ANNOUNCE, SETUP, and RECORD sequence for wireless audio push.
+FLOW rtsp_audio_mirror(c, s) {
+    c -> s RTSP OPTIONS URI "*" CSEQ 1 WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 1 WAIT 3ms
+    c -> s RTSP METHOD "ANNOUNCE" URI "rtsp://192.168.1.45/stream" CSEQ 2 WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 2 WAIT 3ms
+    c -> s RTSP SETUP URI "rtsp://192.168.1.45/stream" CSEQ 3 TRANSPORT_HDR "RTP/AVP/UDP;unicast;mode=record;control_port=6001;timing_port=6002" WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 3 SESSION "air_sess_1" WAIT 3ms
+    c -> s RTSP METHOD "RECORD" URI "rtsp://192.168.1.45/stream" CSEQ 4 SESSION "air_sess_1" WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 4 SESSION "air_sess_1"
+}
+
+// INSTRUCTION: Compile the wireless audio mirroring RTSP flow.
+COMPILE {
+    rtsp_audio_mirror(tablet_sender, smart_speaker)
+}

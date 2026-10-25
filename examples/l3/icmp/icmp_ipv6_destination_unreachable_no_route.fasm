@@ -1,0 +1,18 @@
+// PROMPT: ICMPv6 Destination Unreachable (Type 1, Code 0) indicating no route to destination IPv6.
+// TOKENS: HOST, IP, FLOW, ICMP, DEST_UNREACH, CODE, COMPILE
+
+// INSTRUCTION: Define IPv6 border gateway without matching route.
+HOST v6_border_gw { IP 2001:db8:beef:1::1 }
+
+// INSTRUCTION: Define originating IPv6 sender.
+HOST v6_sender_node { IP 2001:db8:beef:1::42 }
+
+// INSTRUCTION: Define ICMPv6 No Route to Destination notification flow.
+FLOW icmp6_no_route_flow(gw, sender) {
+    gw -> sender ICMP DEST_UNREACH CODE 0
+}
+
+// INSTRUCTION: Compile block executing ICMPv6 Destination Unreachable error.
+COMPILE {
+    icmp6_no_route_flow(v6_border_gw, v6_sender_node)
+}

@@ -1,0 +1,27 @@
+// PROMPT: Simulate a periodic SSDP NOTIFY ssdp:alive heartbeat loop from an IoT smart hub using LOOP.
+// TOKENS: HOST, MAC, IP, FLOW, SSDP, NOTIFY, HOST_HDR, NT, NTS, USN, LOCATION, TTL, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define host endpoint smart_bridge.
+HOST smart_bridge {
+    MAC 00:17:88:22:33:44
+    IP 192.168.1.25
+}
+
+// INSTRUCTION: Define host endpoint ssdp_bcast.
+HOST ssdp_bcast {
+    MAC 01:00:5e:7f:ff:fa
+    IP 239.255.255.250
+}
+
+// INSTRUCTION: Broadcast 3 periodic SSDP NOTIFY ssdp:alive announcements with 50ms spacing.
+FLOW ssdp_periodic_alive_beacon(smart_bridge, ssdp_bcast) {
+    smart_bridge -> ssdp_bcast SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "upnp:rootdevice" NTS "ssdp:alive" USN "uuid:2f402f80-da50-11e1-9b23-001788223344::upnp:rootdevice"
+        LOCATION "http://192.168.1.25:80/description.xml" TTL 4 WAIT 50ms
+}
+
+// INSTRUCTION: Compile the periodic SSDP alive heartbeat flow.
+COMPILE {
+    LOOP 3 {
+        ssdp_periodic_alive_beacon(smart_bridge, ssdp_bcast)
+    }
+}

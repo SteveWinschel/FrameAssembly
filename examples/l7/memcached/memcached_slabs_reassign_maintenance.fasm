@@ -1,0 +1,29 @@
+// PROMPT: Simulate an administrative Memcached slabs reassign and lru_crawler maintenance session.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, CMD, KEY, OPAQUE, DSCP, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the cache SRE automation host.
+HOST sre_controller {
+    IP 10.66.11.5
+    MAC 00:25:90:66:0b:05
+}
+
+// INSTRUCTION: Define the production Memcached instance undergoing slab rebalancing.
+HOST prod_memcached {
+    IP 10.66.11.100
+    MAC 00:25:90:66:0b:64
+}
+
+// INSTRUCTION: Trigger slab page reassignment and asynchronous LRU metadata crawl.
+FLOW memcached_slab_maintenance(c, s) {
+    c -> s MEMCACHED CMD "SLABS" KEY "reassign 3 7" OPAQUE 301 DSCP 16 WAIT 3ms
+    c <- s MEMCACHED CMD "OK" KEY "reassign 3 7" OPAQUE 301 PAYLOAD "OK
+" DSCP 16 WAIT 5ms
+    c -> s MEMCACHED CMD "LRU_CRAWLER" KEY "crawl all" OPAQUE 302 DSCP 16 WAIT 2ms
+    c <- s MEMCACHED CMD "OK" KEY "crawl all" OPAQUE 302 PAYLOAD "OK
+" DSCP 16
+}
+
+// INSTRUCTION: Compile the Memcached slab maintenance flow.
+COMPILE {
+    memcached_slab_maintenance(sre_controller, prod_memcached)
+}

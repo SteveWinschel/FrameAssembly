@@ -1,0 +1,18 @@
+// PROMPT: NFS RPC request specifying unique transaction identifier for asynchronous tracking.
+// TOKENS: HOST, IP, FLOW, NFS, VERS, PROC, PATH, COMPILE
+
+// INSTRUCTION: Define async file processing worker.
+HOST async_worker { IP 172.22.4.15 }
+
+// INSTRUCTION: Define NFS backend server.
+HOST nfs_backend { IP 172.22.4.1 }
+
+// INSTRUCTION: Define tracked RPC procedure call flow.
+FLOW tracked_rpc_flow(wrk, srv) {
+    wrk -> srv NFS VERS 4 PROC "READ" PATH "/processing/queue/job_992"
+}
+
+// INSTRUCTION: Compile transaction tracking scenario.
+COMPILE {
+    tracked_rpc_flow(async_worker, nfs_backend)
+}

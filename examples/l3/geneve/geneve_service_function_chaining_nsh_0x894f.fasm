@@ -1,0 +1,25 @@
+// PROMPT: RFC 8300 Network Service Header (NSH, EtherType 0x894F = 35151) encapsulated inside RFC 8926 GENEVE for SFC.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Service Function Forwarder SFF-1 encapsulating NSH chain inside GENEVE.
+HOST sfc_sff_node_1 {
+    IP 10.83.60.1
+    MAC 00:21:59:83:60:01
+}
+
+// INSTRUCTION: Define Service Function Forwarder SFF-2 steering traffic through DPI and WAF service functions.
+HOST sfc_sff_node_2 {
+    IP 10.83.60.2
+    MAC 00:21:59:83:60:02
+}
+
+// INSTRUCTION: Define GENEVE flow with PROTOCOL_TYPE 35151 (0x894F NSH) and service chain TLV metadata.
+FLOW geneve_nsh_sfc_chain(sff1, sff2) {
+    sff1 -> sff2 GENEVE VNI 8300 OPT_CLASS 260 OPT_TYPE 10 PROTOCOL_TYPE 35151 SRCPORT 58300 DSTPORT 6081 DF DSCP 34 TTL 64 PAYLOAD "NSH_SPI_100_SI_255_DPI_INSPECTED" WAIT 3ms
+    sff1 <- sff2 GENEVE VNI 8300 OPT_CLASS 260 OPT_TYPE 10 PROTOCOL_TYPE 35151 SRCPORT 58301 DSTPORT 6081 DF DSCP 34 TTL 64 PAYLOAD "NSH_SPI_100_SI_254_WAF_CLEARED"
+}
+
+// INSTRUCTION: Compile the NSH-over-GENEVE Service Function Chaining flow.
+COMPILE {
+    geneve_nsh_sfc_chain(sfc_sff_node_1, sfc_sff_node_2)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Simulate a VoIP SIP call setup and teardown signaling sequence (INVITE, 100 Trying, 180 Ringing, 200 OK, ACK, BYE) over UDP port 5060.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, s, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define Caller IP Phone A with IP 10.60.1.101.
 HOST sip_phone_a { IP 10.60.1.101 MAC 00:04:f2:11:11:01 }

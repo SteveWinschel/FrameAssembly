@@ -1,0 +1,19 @@
+// PROMPT: IEEE 802.1ad QinQ double-tagged IPsec AH traffic across a metro Ethernet provider.
+// TOKENS: HOST, IP, FLOW, AH, SPI, SEQ, ICV, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define customer edge router at site 1.
+HOST metro_ce_one { IP 172.20.55.1 }
+
+// INSTRUCTION: Define customer edge router at site 2.
+HOST metro_ce_two { IP 172.20.55.2 }
+
+// INSTRUCTION: Define QinQ encapsulated AH flow with outer S-VLAN 2000 and inner C-VLAN 350.
+FLOW ah_qinq_metro_flow(ce1, ce2) {
+    ce1 -> ce2 AH SPI 55100 SEQ 42 ICV "0102030405060708090a0b0c" QINQ 2000 INNER_VLAN 350
+    ce1 <- ce2 AH SPI 55101 SEQ 42 ICV "0c0b0a090807060504030201" QINQ 2000 INNER_VLAN 350
+}
+
+// INSTRUCTION: Compile the QinQ provider backbone AH exchange.
+COMPILE {
+    ah_qinq_metro_flow(metro_ce_one, metro_ce_two)
+}

@@ -1,0 +1,24 @@
+// PROMPT: Default gRPC frame emission over TCP port 50051 using automatic protocol defaults.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, COMPILE
+
+// INSTRUCTION: Define gRPC microservice caller host.
+HOST grpc_caller {
+    IP 10.100.50.10
+    MAC 02:42:0a:64:32:0a
+}
+
+// INSTRUCTION: Define gRPC backend service pod.
+HOST grpc_callee {
+    IP 10.100.50.20
+    MAC 02:42:0a:64:32:14
+}
+
+// INSTRUCTION: Emit a default gRPC frame without explicit sub-keywords.
+FLOW grpc_default(c, s) {
+    c -> s GRPC
+}
+
+// INSTRUCTION: Compile the default gRPC scenario.
+COMPILE {
+    grpc_default(grpc_caller, grpc_callee)
+}

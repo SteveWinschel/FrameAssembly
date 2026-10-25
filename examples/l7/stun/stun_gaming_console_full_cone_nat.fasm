@@ -1,0 +1,21 @@
+// PROMPT: Online multiplayer gaming console detecting full-cone NAT mapping.
+// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define home gaming console.
+HOST game_console { IP 192.168.1.180 }
+
+// INSTRUCTION: Define multiplayer matchmaking STUN reflector.
+HOST match_stun { IP 203.0.113.4 }
+
+// INSTRUCTION: Define gaming NAT type detection flow.
+FLOW stun_gaming_flow(c, s) {
+    c -> s STUN BINDING_REQUEST SOFTWARE "Xbox-Net-Engine"
+    c <- s STUN BINDING_RESPONSE
+        XOR_MAPPED_ADDR 203.0.113.166
+        SOFTWARE "Multiplayer-Reflector-v4"
+}
+
+// INSTRUCTION: Compile block executing gaming NAT test.
+COMPILE {
+    stun_gaming_flow(game_console, match_stun)
+}

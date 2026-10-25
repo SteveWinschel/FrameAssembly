@@ -1,0 +1,25 @@
+// PROMPT: RIPv2 routing table exchange traversing a point-to-point overlay subnet between remote retail store gateways.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, TAG, DF, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define retail store 101 gateway advertising POS VLAN subnet via RIPv2.
+HOST store_101_gw {
+    IP 10.254.101.2
+    MAC 00:1e:be:fe:65:02
+}
+
+// INSTRUCTION: Define retail regional hub gateway aggregating store subnets.
+HOST retail_hub_gw {
+    IP 10.254.101.1
+    MAC 00:1e:be:fe:65:01
+}
+
+// INSTRUCTION: Define bidirectional RIPv2 RESPONSE exchange with store TAG 101 and DF bit.
+FLOW rip_retail_overlay_exchange(store, hub) {
+    store -> hub RIP RESPONSE PREFIX 192.168.101.0 METRIC 1 NEXTHOP 10.254.101.2 TAG 101 DF DSCP 48 TTL 2 WAIT 5ms
+    store <- hub RIP RESPONSE PREFIX 10.100.0.0 METRIC 1 NEXTHOP 10.254.101.1 TAG 1 DF DSCP 48 TTL 2
+}
+
+// INSTRUCTION: Compile the retail overlay RIPv2 route exchange flow.
+COMPILE {
+    rip_retail_overlay_exchange(store_101_gw, retail_hub_gw)
+}

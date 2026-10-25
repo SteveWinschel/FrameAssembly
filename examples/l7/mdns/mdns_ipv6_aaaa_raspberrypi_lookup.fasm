@@ -1,0 +1,31 @@
+// PROMPT: Create an mDNS IPv6 AAAA record resolution for a local Raspberry Pi node over the ff02::fb multicast address.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, TTL, WAIT, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the developer laptop querying for raspberrypi.local over IPv6.
+HOST dev_laptop {
+    IP fe80::1a2b:3cff:fe4d:5e6f
+    MAC 18:2b:3c:4d:5e:6f
+}
+
+// INSTRUCTION: Define the IPv6 mDNS link-local multicast group ff02::fb.
+HOST mdns_v6_group {
+    IP ff02::fb
+    MAC 33:33:00:00:00:fb
+}
+
+// INSTRUCTION: Define the Raspberry Pi responding with its link-local IPv6 AAAA record.
+HOST raspberry_pi {
+    IP fe80::b827:ebff:fe12:3456
+    MAC b8:27:eb:12:34:56
+}
+
+// INSTRUCTION: Multicast an mDNS AAAA query and receive the multicast mDNS response with TTL 255.
+FLOW ipv6_aaaa_lookup(c, m, rpi) {
+    c -> m MDNS QUERY TXID 0 QNAME "raspberrypi.local" QTYPE "AAAA" TTL 255 WAIT 4ms
+    rpi -> m MDNS RESPONSE TXID 0 QNAME "raspberrypi.local" QTYPE "AAAA" RDATA "fe80::b827:ebff:fe12:3456" ANS_TTL 120 TTL 255
+}
+
+// INSTRUCTION: Compile the IPv6 mDNS AAAA lookup and response into a PCAP file.
+COMPILE {
+    ipv6_aaaa_lookup(dev_laptop, mdns_v6_group, raspberry_pi)
+}

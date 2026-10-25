@@ -1,0 +1,26 @@
+// PROMPT: OPC UA Alarms & Conditions (A&C) event notification followed by Acknowledge method call (i=9111).
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the control room alarm operator console.
+HOST operator_console {
+    IP 10.140.60.10
+    MAC 00:1a:2b:8c:60:10
+}
+
+// INSTRUCTION: Define the boiler safety OPC UA server.
+HOST boiler_ua_srv {
+    IP 10.140.60.1
+    MAC 00:1a:2b:8c:60:01
+}
+
+// INSTRUCTION: Receive high drum level alarm event notification and send Acknowledge method call on i=9111.
+FLOW opcua_alarm_ack(c, s) {
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 601 TOKEN_ID 5 SEQ_NUM 310 REQID 310 NODE_ID "ns=1;s=DrumLevelHighAlarm" PAYLOAD "Severity=900;Message=High Drum Level" WAIT 2ms
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 601 TOKEN_ID 5 SEQ_NUM 311 REQID 311 NODE_ID "i=9111" PAYLOAD "AckComment=Operator verified drain valve open"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 601 TOKEN_ID 5 SEQ_NUM 311 REQID 311 NODE_ID "i=9111" PAYLOAD "StatusCode:Good"
+}
+
+// INSTRUCTION: Compile the OPC UA Alarms and Conditions acknowledgment flow.
+COMPILE {
+    opcua_alarm_ack(operator_console, boiler_ua_srv)
+}

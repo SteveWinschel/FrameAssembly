@@ -1,0 +1,22 @@
+// PROMPT: Periodic compliance logging loop transmitting SIEM heartbeat events.
+// TOKENS: HOST, IP, FLOW, SYSLOG, PRI, HOSTNAME, APP, MSG, COMPILE, LOOP
+
+// INSTRUCTION: Define security audit agent.
+HOST audit_agent { IP 10.5.15.20 }
+
+// INSTRUCTION: Define SOC receiver.
+HOST soc_receiver { IP 10.5.15.1 }
+
+// INSTRUCTION: Define periodic heartbeat event flow.
+FLOW syslog_heartbeat_flow(c, s) {
+    c -> s SYSLOG PRI 134
+        HOSTNAME "audit-probe-01" APP "watchdog"
+        MSG "HEARTBEAT: Service operational, all intrusion sensors active."
+}
+
+// INSTRUCTION: Compile block transmitting 3 periodic heartbeat events.
+COMPILE {
+    LOOP 3 {
+        syslog_heartbeat_flow(audit_agent, soc_receiver)
+    }
+}

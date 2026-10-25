@@ -1,0 +1,25 @@
+// PROMPT: Data center ToR pair running VRRPv3 over SVI VLAN 400 with ultra-fast 5-centisecond (50ms) advertisement intervals.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, VLAN, PCP, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define ToR Leaf Switch A acting as VRRPv3 Master on VLAN 400.
+HOST tor_svi400_leaf_a {
+    IP 10.40.0.252
+    MAC 00:00:5e:00:01:90
+}
+
+// INSTRUCTION: Define ToR Leaf Switch B acting as VRRPv3 Backup on VLAN 400.
+HOST tor_svi400_leaf_b {
+    IP 10.40.0.253
+    MAC 00:1c:73:40:00:fd
+}
+
+// INSTRUCTION: Define VLAN 400 VRRPv3 advertisements with ADV_INT 5 (50ms) and VRID 144.
+FLOW vrrp_tor_svi_5cs_flow(leaf_a, leaf_b) {
+    leaf_a -> leaf_b VRRP VRID 144 PRIORITY 210 ADV_INT 5 VIP 10.40.0.1 VERSION 3 VLAN 400 PCP 7 DSCP 56 TTL 255 WAIT 50ms
+    leaf_a -> leaf_b VRRP VRID 144 PRIORITY 210 ADV_INT 5 VIP 10.40.0.1 VERSION 3 VLAN 400 PCP 7 DSCP 56 TTL 255
+}
+
+// INSTRUCTION: Compile the ToR SVI 5-centisecond VRRPv3 flow.
+COMPILE {
+    vrrp_tor_svi_5cs_flow(tor_svi400_leaf_a, tor_svi400_leaf_b)
+}

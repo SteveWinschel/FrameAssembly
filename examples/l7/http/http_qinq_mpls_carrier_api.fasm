@@ -1,0 +1,26 @@
+// PROMPT: HTTP telemetry query encapsulated in QinQ 802.1ad double VLAN tags and carrier MPLS label stack.
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, QINQ, INNER_VLAN, MPLS, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define tenant application client in carrier network.
+HOST tenant_app {
+    IP 10.250.77.10
+}
+
+// INSTRUCTION: Define carrier health check proxy endpoint.
+HOST carrier_proxy {
+    IP 10.250.77.1
+}
+
+// INSTRUCTION: Perform health check with double VLAN and MPLS encapsulation.
+FLOW http_carrier_encap(c, s) {
+    c -> s HTTP METHOD "GET" URI "/healthz"
+           HOST_HDR "status.carrier.net"
+           QINQ 200 INNER_VLAN 100 MPLS 1048
+    c <- s HTTP STATUS 200 REASON "OK"
+           QINQ 200 INNER_VLAN 100 MPLS 1048
+}
+
+// INSTRUCTION: Compile QinQ and MPLS encapsulated HTTP scenario.
+COMPILE {
+    http_carrier_encap(tenant_app, carrier_proxy)
+}

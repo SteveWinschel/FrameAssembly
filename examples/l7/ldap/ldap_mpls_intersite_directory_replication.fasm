@@ -1,0 +1,19 @@
+// PROMPT: Inter-site LDAP replication across MPLS VPN backbone connecting enterprise datacenters.
+// TOKENS: HOST, IP, FLOW, LDAP, BIND_REQ, MSGID, BASE_DN, SEARCH_REQ, FILTER, COMPILE
+
+// INSTRUCTION: Define branch office directory replica.
+HOST branch_replica { IP 10.180.1.5 }
+
+// INSTRUCTION: Define headquarters primary directory server.
+HOST hq_master_ldap { IP 10.180.2.5 }
+
+// INSTRUCTION: Define inter-site directory replication flow.
+FLOW intersite_replication(br, hq) {
+    br -> hq LDAP BIND_REQ MSGID 1 BASE_DN "cn=repl_agent,dc=enterprise,dc=net"
+    br -> hq LDAP SEARCH_REQ MSGID 2 BASE_DN "ou=global,dc=enterprise,dc=net" FILTER "(modifyTimestamp>=20261024000000Z)"
+}
+
+// INSTRUCTION: Compile inter-site replication scenario.
+COMPILE {
+    intersite_replication(branch_replica, hq_master_ldap)
+}

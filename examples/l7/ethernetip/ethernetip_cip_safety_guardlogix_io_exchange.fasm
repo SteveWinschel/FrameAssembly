@@ -1,0 +1,25 @@
+// PROMPT: GuardLogix CIP Safety controller reading safety input assembly from a Guardmaster safety light curtain.
+// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, VLAN, PCP, STATUS, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define the GuardLogix 5580 safety PLC.
+HOST guardlogix_plc {
+    IP 10.135.90.1
+    MAC 00:1a:2b:87:90:01
+}
+
+// INSTRUCTION: Define the CIP Safety light curtain adapter.
+HOST light_curtain {
+    IP 10.135.90.18
+    MAC 00:1a:2b:87:90:18
+}
+
+// INSTRUCTION: Exchange connected CIP Safety payload packets over VLAN 135 with PCP 7.
+FLOW enip_cip_safety(g, l) {
+    g -> l ETHERNETIP CMD "SEND_UNIT_DATA" SESSION_HANDLE 9100 CONTEXT 1401 CIP_SERVICE 14 CIP_CLASS 4 CIP_INSTANCE 190 CIP_ATTR 3 VLAN 135 PCP 7
+    g <- l ETHERNETIP CMD "SEND_UNIT_DATA" STATUS 0 SESSION_HANDLE 9100 CONTEXT 1401 CIP_SERVICE 142 CIP_CLASS 4 CIP_INSTANCE 190 CIP_ATTR 3 VLAN 135 PCP 7 HEXPAYLOAD "ff0055aa9c31"
+}
+
+// INSTRUCTION: Compile the GuardLogix CIP Safety I/O exchange flow.
+COMPILE {
+    enip_cip_safety(guardlogix_plc, light_curtain)
+}

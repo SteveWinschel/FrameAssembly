@@ -1,0 +1,33 @@
+// PROMPT: Model a POP3 client checking the exact octet size of individual messages before deciding to download attachments.
+// TOKENS: HOST, IP, MAC, FLOW, POP3, CMD, ARG, WAIT, OK, RESPONSE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the metered cellular client inspecting message sizes.
+HOST lte_mail_client {
+    IP 10.110.55.12
+    MAC 00:50:56:6e:37:0c
+}
+
+// INSTRUCTION: Define the POP3 mail server.
+HOST mail_pop3_srv {
+    IP 10.110.55.1
+    MAC 00:50:56:6e:37:01
+}
+
+// INSTRUCTION: Issue LIST 1 and LIST 2, skip the 15 MB attachment in message 2, and download message 1.
+FLOW pop3_size_selective_retr(c, s) {
+    c -> s POP3 CMD "LIST" ARG "1" WAIT 2ms
+    c <- s POP3 OK RESPONSE "1 1420" WAIT 2ms
+    c -> s POP3 CMD "LIST" ARG "2" WAIT 2ms
+    c <- s POP3 OK RESPONSE "2 15728640" WAIT 2ms
+    c -> s POP3 CMD "RETR" ARG "1" WAIT 3ms
+    c <- s POP3 OK RESPONSE "1420 octets" PAYLOAD "Subject: Text Summary
+
+Short update.
+.
+"
+}
+
+// INSTRUCTION: Compile the size-selective POP3 message retrieval scenario.
+COMPILE {
+    pop3_size_selective_retr(lte_mail_client, mail_pop3_srv)
+}

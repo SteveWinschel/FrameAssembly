@@ -1,0 +1,19 @@
+// PROMPT: PIM neighbor Hello exchange over 802.1Q tagged video delivery VLAN 300.
+// TOKENS: HOST, IP, FLOW, PIM, HELLO, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define video headend switch router.
+HOST video_headend_rtr { IP 172.16.30.1 }
+
+// INSTRUCTION: Define video distribution core switch.
+HOST video_dist_switch { IP 172.16.30.2 }
+
+// INSTRUCTION: Define VLAN 300 tagged PIM Hello peering flow.
+FLOW pim_vlan_peering(v_src, v_dst) {
+    v_src -> v_dst PIM HELLO VLAN 300 PCP 5 DEI 0
+    v_src <- v_dst PIM HELLO VLAN 300 PCP 5 DEI 0
+}
+
+// INSTRUCTION: Compile block executing tagged PIM neighbor discovery.
+COMPILE {
+    pim_vlan_peering(video_headend_rtr, video_dist_switch)
+}

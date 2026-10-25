@@ -1,0 +1,27 @@
+// PROMPT: SNMPv2c SetRequest updating IF-MIB ifAlias (1.3.6.1.2.1.31.1.1.1.18) with a carrier dark-fiber circuit ID.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP2, SET, COMMUNITY, REQID, VARBIND, STRING, RESPONSE, WAIT, GET, NULLVAL, GAUGE32, COMPILE
+
+// INSTRUCTION: Define the network automation orchestrator (NetBox / Ansible).
+HOST netbox_sync {
+    IP 10.146.80.12
+    MAC 00:1a:2b:92:80:12
+}
+
+// INSTRUCTION: Define the metro DWDM muxponder router agent.
+HOST dwdm_router {
+    IP 10.146.80.1
+    MAC 00:1a:2b:92:80:01
+}
+
+// INSTRUCTION: Provision ifAlias.101 with the carrier circuit ID and read back ifHighSpeed.101 (100000 Mbps).
+FLOW snmpv2c_set_ifalias(n, r) {
+    n -> r SNMP2 SET COMMUNITY "netops_rw" REQID 5001 VARBIND 1.3.6.1.2.1.31.1.1.1.18.101 STRING "CID:DF-LON-FRA-100G-0492"
+    n <- r SNMP2 RESPONSE COMMUNITY "netops_rw" REQID 5001 VARBIND 1.3.6.1.2.1.31.1.1.1.18.101 STRING "CID:DF-LON-FRA-100G-0492" WAIT 2ms
+    n -> r SNMP2 GET COMMUNITY "netops_rw" REQID 5002 VARBIND 1.3.6.1.2.1.31.1.1.1.15.101 NULLVAL
+    n <- r SNMP2 RESPONSE COMMUNITY "netops_rw" REQID 5002 VARBIND 1.3.6.1.2.1.31.1.1.1.15.101 GAUGE32 100000
+}
+
+// INSTRUCTION: Compile the SNMPv2c ifAlias circuit provisioning flow.
+COMPILE {
+    snmpv2c_set_ifalias(netbox_sync, dwdm_router)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Simulate an IPv6 DHCPv6 Rapid Commit two-message SOLICIT and immediate REPLY exchange on link-local addresses.
+// TOKENS: HOST, IP, MAC, FLOW, DHCP, SOLICIT, XID, HOSTNAME, FLOWLABEL, TTL, WAIT, REPLY, YIADDR, DNS_SERVER, LEASE_TIME, COMPILE
+
+// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+HOST dhcp_client {
+    IP fe80::216:3eff:fe67:1001
+    MAC 00:25:90:67:01:0a
+}
+
+// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+HOST dhcp_server {
+    IP fe80::216:3eff:fe67:1
+    MAC 00:25:90:67:01:01
+}
+
+// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
+FLOW dhcp_scenario_flow(c, s) {
+    c -> s DHCP SOLICIT XID 0x00445501 HOSTNAME "k8s-node-v6-01" FLOWLABEL 0x54600 TTL 64 WAIT 4ms
+    c <- s DHCP REPLY XID 0x00445501 YIADDR 2001:db8:67:1::101 DNS_SERVER 2001:db8:67:1::53 LEASE_TIME 7200 FLOWLABEL 0x54600 TTL 64
+}
+
+// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
+COMPILE {
+    dhcp_scenario_flow(dhcp_client, dhcp_server)
+}

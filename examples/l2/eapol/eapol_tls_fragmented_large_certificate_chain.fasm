@@ -1,0 +1,28 @@
+// PROMPT: EAP-TLS (EAP_METHOD 13) handshake exchanging multi-fragment X.509 certificate chains across consecutive EAP_ID increments.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define workstation presenting a 4096-bit RSA client certificate chain over EAP-TLS.
+HOST pki_client_supp {
+    IP 10.92.1.33
+    MAC 00:21:70:5c:01:21
+}
+
+// INSTRUCTION: Define enterprise switch reassembling fragmented EAP-TLS records for RADIUS proxy.
+HOST pki_switch_auth {
+    IP 10.92.1.1
+    MAC 00:1c:73:5c:01:01
+}
+
+// INSTRUCTION: Exchange three sequential EAP-TLS fragments (EAP_ID 10, 11, 12) followed by EAP-Success.
+FLOW eapol_tls_cert_fragments(cli, sw) {
+    cli <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 10 EAP_METHOD 13 PAYLOAD "EAP_TLS_SRV_CERT_FRAG_1_MORE_BIT_SET" WAIT 2ms
+    cli -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 10 EAP_METHOD 13 PAYLOAD "EAP_TLS_FRAG_ACK" WAIT 2ms
+    cli <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 11 EAP_METHOD 13 PAYLOAD "EAP_TLS_SRV_CERT_FRAG_2_FINAL" WAIT 2ms
+    cli -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 11 EAP_METHOD 13 PAYLOAD "EAP_TLS_CLI_CERT_CHAIN_VERIFY" WAIT 5ms
+    cli <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 12 EAP_METHOD 13
+}
+
+// INSTRUCTION: Compile the fragmented EAP-TLS certificate chain authentication trace.
+COMPILE {
+    eapol_tls_cert_fragments(pki_client_supp, pki_switch_auth)
+}

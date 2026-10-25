@@ -1,0 +1,27 @@
+// PROMPT: Complete TLS handshake sequence exercising CLIENT_HELLO, SERVER_HELLO, CERTIFICATE, FINISHED, and APP_DATA.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, RECORD_VERSION, HANDSHAKE_VERSION, SNI, ALPN, WAIT, SERVER_HELLO, CIPHERSUITE, CERTIFICATE, FINISHED, APP_DATA, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define enterprise web browser client endpoint.
+HOST browser_ep {
+    IP 192.168.10.55
+}
+
+// INSTRUCTION: Define e-commerce TLS server endpoint.
+HOST shop_server {
+    IP 192.168.10.1
+}
+
+// INSTRUCTION: Define full TLS handshake with server certificate presentation and encrypted application data.
+FLOW tls_full_session(c, s) {
+    c -> s TLS CLIENT_HELLO RECORD_VERSION 0x0301 HANDSHAKE_VERSION 0x0303 SNI "shop.corp.example" ALPN "h2" WAIT 5ms
+    c <- s TLS SERVER_HELLO RECORD_VERSION 0x0303 HANDSHAKE_VERSION 0x0303 CIPHERSUITE 0x1301 ALPN "h2" WAIT 5ms
+    c <- s TLS CERTIFICATE RECORD_VERSION 0x0303 WAIT 5ms
+    c <- s TLS FINISHED RECORD_VERSION 0x0303 WAIT 5ms
+    c -> s TLS FINISHED RECORD_VERSION 0x0303 WAIT 5ms
+    c -> s TLS APP_DATA RECORD_VERSION 0x0303 PAYLOAD "ENCRYPTED_HTTP2_HEADERS"
+}
+
+// INSTRUCTION: Compile the complete TLS handshake and application data flow.
+COMPILE {
+    tls_full_session(browser_ep, shop_server)
+}

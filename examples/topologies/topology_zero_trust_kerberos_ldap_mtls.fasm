@@ -1,0 +1,29 @@
+// PROMPT: Zero-Trust Network Access (ZTNA) enterprise architecture with Kerberos ticket grant, LDAP group lookup, and mTLS 1.3 gateway access.
+// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REQ, REALM, CNAME, SNAME, AS_REP, WAIT, TGS_REQ, TGS_REP, LDAP, SEARCH_REQ, BASE_DN, FILTER, SEARCH_ENTRY, TLS, CLIENT_HELLO, SNI, SERVER_HELLO, COMPILE
+
+// INSTRUCTION: Define corporate developer workstation requesting zero-trust access.
+HOST ztna_workstation { IP 10.110.20.55 }
+
+// INSTRUCTION: Define Active Directory Kerberos KDC and LDAP identity provider.
+HOST ad_identity_idp { IP 10.110.1.10 }
+
+// INSTRUCTION: Define Zero-Trust Policy Enforcement Point (PEP) mTLS proxy gateway.
+HOST ztna_pep_proxy { IP 10.110.1.50 }
+
+// INSTRUCTION: Define Kerberos authentication, LDAP RBAC verification, and mTLS 1.3 tunnel setup to ZTNA PEP.
+FLOW ztna_identity_and_mtls(ws, idp, pep) {
+    ws -> idp KERBEROS AS_REQ REALM "CORP.EXAMPLE.COM" CNAME "dev_alice" SNAME "krbtgt/CORP.EXAMPLE.COM"
+    ws <- idp KERBEROS AS_REP REALM "CORP.EXAMPLE.COM" CNAME "dev_alice" WAIT 2ms
+    ws -> idp KERBEROS TGS_REQ REALM "CORP.EXAMPLE.COM" CNAME "dev_alice" SNAME "HTTP/ztna-pep.corp.example.com" WAIT 2ms
+    ws <- idp KERBEROS TGS_REP REALM "CORP.EXAMPLE.COM" CNAME "dev_alice" WAIT 2ms
+    pep -> idp LDAP SEARCH_REQ BASE_DN "dc=corp,dc=example,dc=com" FILTER "(sAMAccountName=dev_alice)" WAIT 1ms
+    pep <- idp LDAP SEARCH_ENTRY BASE_DN "cn=dev_alice,ou=eng,dc=corp,dc=example,dc=com" WAIT 1ms
+    ws -> pep TLS CLIENT_HELLO SNI "ztna-pep.corp.example.com" WAIT 2ms
+    ws <- pep TLS SERVER_HELLO WAIT 1ms
+    ws -> pep TLS FINISHED WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing Zero-Trust Kerberos, LDAP, and mTLS workflow.
+COMPILE {
+    ztna_identity_and_mtls(ztna_workstation, ad_identity_idp, ztna_pep_proxy)
+}

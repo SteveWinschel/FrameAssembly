@@ -1,0 +1,38 @@
+// PROMPT: Two GPU training workers concurrently reading sharded TFRecord files from a central NFSv4 storage cluster.
+// TOKENS: HOST, IP, MAC, FLOW, NFS, VERS, PROC, TAG, PATH, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the first GPU training node.
+HOST gpu_worker_1 {
+    IP 10.70.80.11
+    MAC 00:1a:2b:70:80:11
+}
+
+// INSTRUCTION: Define the second GPU training node.
+HOST gpu_worker_2 {
+    IP 10.70.80.12
+    MAC 00:1a:2b:70:80:12
+}
+
+// INSTRUCTION: Define the all-NVMe NFSv4 dataset server.
+HOST nvme_nfs {
+    IP 10.70.80.1
+    MAC 00:1a:2b:70:80:01
+}
+
+// INSTRUCTION: Read training shard 0001 from GPU worker 1.
+FLOW read_shard_1(w, s) {
+    w -> s NFS VERS 4 PROC "READ" TAG "shard_0001" PATH "/datasets/imagenet/train-00001-of-01024.tfrecord"
+    w <- s NFS VERS 4 PROC "READ" TAG "shard_0001" PAYLOAD "TFRECORD_BATCH_TENSOR_01"
+}
+
+// INSTRUCTION: Read training shard 0002 from GPU worker 2.
+FLOW read_shard_2(w, s) {
+    w -> s NFS VERS 4 PROC "READ" TAG "shard_0002" PATH "/datasets/imagenet/train-00002-of-01024.tfrecord"
+    w <- s NFS VERS 4 PROC "READ" TAG "shard_0002" PAYLOAD "TFRECORD_BATCH_TENSOR_02"
+}
+
+// INSTRUCTION: Compile both GPU worker NFSv4 dataset read flows.
+COMPILE {
+    read_shard_1(gpu_worker_1, nvme_nfs)
+    read_shard_2(gpu_worker_2, nvme_nfs)
+}

@@ -1,5 +1,5 @@
 // PROMPT: RTSP OPTIONS query discovering streaming methods supported by media server.
-// TOKENS: HOST, IP, FLOW, ->, RTSP, OPTIONS, URI, CSEQ, COMPILE
+// TOKENS: HOST, IP, FLOW, RTSP, OPTIONS, URI, CSEQ, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.100 }

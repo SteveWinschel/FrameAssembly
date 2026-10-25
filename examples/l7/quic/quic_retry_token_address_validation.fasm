@@ -1,0 +1,20 @@
+// PROMPT: QUIC stateless address validation using RETRY packet and subsequent INITIAL with TOKEN.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, DCID, SCID, PKT_NUM, WAIT, RETRY, COMPILE
+
+// INSTRUCTION: Define roaming mobile QUIC client.
+HOST mobile_client { IP 10.45.0.88 }
+
+// INSTRUCTION: Define QUIC server enforcing address validation.
+HOST quic_gateway { IP 10.45.0.1 }
+
+// INSTRUCTION: Define Initial, Server Retry with Token, and Client Initial echoing Token.
+FLOW quic_retry_validation(c, s) {
+    c -> s QUIC INITIAL DCID 0x11223344 SCID 0x55667788 PKT_NUM 1 WAIT 5ms
+    c <- s QUIC RETRY DCID 0x55667788 SCID 0x99aabbcc PKT_NUM 1 WAIT 5ms
+    c -> s QUIC INITIAL DCID 0x99aabbcc SCID 0x55667788 PKT_NUM 2
+}
+
+// INSTRUCTION: Compile QUIC Retry address validation flow.
+COMPILE {
+    quic_retry_validation(mobile_client, quic_gateway)
+}

@@ -1,0 +1,27 @@
+// PROMPT: Hot strip steel rolling mill reading X-ray thickness gauge inputs (Area 129) and adjusting hydraulic gap (Area 130).
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, AREA, DB_NUM, OFFSET, COUNT, VLAN, PCP, WAIT, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define the rolling mill automatic gauge control (AGC) computer.
+HOST mill_agc {
+    IP 10.130.120.5
+    MAC 00:1a:2b:82:c0:05
+}
+
+// INSTRUCTION: Define Stand 4 hydraulic gap S7-400 PLC.
+HOST stand4_plc {
+    IP 10.130.120.4
+    MAC 00:1a:2b:82:c0:04
+}
+
+// INSTRUCTION: Read strip thickness from Process Inputs (Area 129) and write roll force correction to Process Outputs (Area 130) on VLAN 102.
+FLOW s7_rolling_mill(c, p) {
+    c -> p S7COMM ROSCTR "JOB" PDU_REF 1200 FUNC "READ_VAR" AREA 129 DB_NUM 0 OFFSET 64 COUNT 4 VLAN 102 PCP 6
+    c <- p S7COMM ROSCTR "ACK_DATA" PDU_REF 1200 FUNC "READ_VAR" VLAN 102 PCP 6 WAIT 1ms
+    c -> p S7COMM ROSCTR "JOB" PDU_REF 1201 FUNC "WRITE_VAR" AREA 130 DB_NUM 0 OFFSET 64 COUNT 4 VLAN 102 PCP 6 HEXPAYLOAD "40100000"
+    c <- p S7COMM ROSCTR "ACK_DATA" PDU_REF 1201 FUNC "WRITE_VAR" VLAN 102 PCP 6
+}
+
+// INSTRUCTION: Compile the steel rolling mill S7comm control flow.
+COMPILE {
+    s7_rolling_mill(mill_agc, stand4_plc)
+}

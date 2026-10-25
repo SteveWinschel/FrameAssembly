@@ -1,4 +1,11 @@
-//! Distributed Network Protocol (DNP3) wire builder and CRC engine.
+//! Distributed Network Protocol v3 (DNP3, IEEE 1815-2012) wire payload builder and CRC-16 engine.
+//!
+//! This module implements [`calculate_dnp3_crc`] and [`build_dnp3_payload`], which serialize a
+//! [`Dnp3Spec`] AST node into an IEEE 1815-2012 DNP3 frame over
+//! TCP or UDP port 20000. It constructs the 10-byte Data Link Layer header (`0x0564` sync bytes,
+//! length, control `0xC4`, 16-bit little-endian destination and source addresses, and reflected
+//! polynomial `0xA653` CRC-16) and appends the Transport Header (`0xC0`), Application Layer header,
+//! Object Header (`group`, `variation`, qualifier `0x06`), and per-16-byte chunk CRCs.
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -46,7 +53,8 @@ pub fn build_dnp3_payload(
     app_layer.push(0xC0); // App Control: FIR=1, FIN=1, CON=0, UNS=0, SEQ=0
     app_layer.push(func_code);
 
-    if let Some(group) = spec.group {
+    if spec.group.is_some() || spec.variation.is_some() {
+        let group = spec.group.unwrap_or(60);
         let variation = spec.variation.unwrap_or(1);
         app_layer.push(group);
         app_layer.push(variation);
@@ -73,7 +81,7 @@ pub fn build_dnp3_payload(
     link_header[4..6].copy_from_slice(&spec.dst.unwrap_or(1).to_le_bytes());
     link_header[6..8].copy_from_slice(&spec.src.unwrap_or(100).to_le_bytes());
 
-    let header_crc = calculate_dnp3_crc(&link_header);
+    let header_crc = spec.crc.unwrap_or_else(|| calculate_dnp3_crc(&link_header));
 
     let mut pkt = Vec::new();
     pkt.extend_from_slice(&link_header);

@@ -1,5 +1,5 @@
 // PROMPT: Enterprise directory authentication and queries with Kerberos AS-REQ and LDAP BIND request.
-// TOKENS: HOST, IP, FLOW, ->, KERBEROS, AS_REQ, REALM, LDAP, BIND_REQ, MSGID, BASE_DN, COMPILE
+// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REQ, REALM, LDAP, BIND_REQ, MSGID, BASE_DN, COMPILE
 
 // INSTRUCTION: Define enterprise directory client.
 HOST directory_client { IP 10.10.1.50 }

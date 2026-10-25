@@ -1,0 +1,20 @@
+// PROMPT: SSDP M-SEARCH query discovering UPnP MediaRenderer devices.
+// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, ST, MX, MAN, COMPILE
+
+// INSTRUCTION: Define control point client endpoint.
+HOST cp_client { IP 192.168.1.105 }
+
+// INSTRUCTION: Define SSDP IPv4 multicast destination.
+HOST ssdp_mcast { IP 239.255.255.250 }
+
+// INSTRUCTION: Define MediaRenderer discovery search flow.
+FLOW ssdp_renderer_flow(c, s) {
+    c -> s SSDP MSEARCH
+        ST "urn:schemas-upnp-org:device:MediaRenderer:1"
+        MX 3 MAN "\"ssdp:discover\""
+}
+
+// INSTRUCTION: Compile block executing MediaRenderer search.
+COMPILE {
+    ssdp_renderer_flow(cp_client, ssdp_mcast)
+}

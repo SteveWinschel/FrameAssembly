@@ -1,0 +1,28 @@
+// PROMPT: Create an IMAP periodic NOOP polling loop checking for new mail arrivals on an active connection.
+// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, WAIT, STATUS, RESPONSE, COMPILE, LOOP
+
+// INSTRUCTION: Define the legacy IMAP mail notifier applet.
+HOST notifier_applet {
+    IP 10.143.30.55
+    MAC 00:15:5d:8f:1e:37
+}
+
+// INSTRUCTION: Define the corporate IMAP server.
+HOST corp_imap {
+    IP 10.143.30.1
+    MAC 00:15:5d:8f:1e:01
+}
+
+// INSTRUCTION: Send a tagged NOOP command and receive EXISTS/RECENT updates followed by OK.
+FLOW imap_noop_poll(c, s) {
+    c -> s IMAP TAG "N99" CMD "NOOP" WAIT 2ms
+    c <- s IMAP TAG "*" STATUS "42 EXISTS" RESPONSE "New mail count" WAIT 1ms
+    c <- s IMAP TAG "N99" STATUS "OK" RESPONSE "NOOP completed" WAIT 25ms
+}
+
+// INSTRUCTION: Execute 3 consecutive IMAP NOOP polls inside a COMPILE LOOP block.
+COMPILE {
+    LOOP 3 {
+        imap_noop_poll(notifier_applet, corp_imap)
+    }
+}

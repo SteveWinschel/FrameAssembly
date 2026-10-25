@@ -1,4 +1,9 @@
-//! sFlow Layer 7 network sampling protocol field parser.
+//! sFlow v5 Layer 7 switched network packet sampling protocol field parser.
+//!
+//! This module implements the `winnow` parser combinator for sFlow v5 (`SFLOW`) datagrams in
+//! FrameAssembly `.fasm` specifications. It recognizes the `SFLOW` protocol keyword, exporter
+//! agent IP addresses (`AGENT_IP` and `AGENTIP`), sub-agent identifiers (`SUB_AGENT_ID`), switch
+//! uptime values (`UPTIME`), sample counts (`SAMPLES`), and datagram sequence numbers (`SEQ`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
@@ -11,11 +16,19 @@ use crate::parser::{parse_ip, parse_u32, tag, ParsedField, Stream};
 /// Parses an sFlow protocol declaration or packet sample field.
 pub(crate) fn parse_sflow_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
     alt((
-        tag(Token::Sflow).map(|(_, s)| ParsedField::Protocol(Protocol::Sflow, (s.start, s.len()))),
-        (tag(Token::AgentIpSflow), cut_err(parse_ip)).map(|((_, s), v)| ParsedField::L7IpField("AGENT_IP", v, (s.start, s.end - s.start))),
-        (tag(Token::SubAgentId), cut_err(parse_u32)).map(|((_, s), v)| ParsedField::L7U32Field("SUB_AGENT_ID", v, (s.start, s.end - s.start))),
-        (tag(Token::Uptime), cut_err(parse_u32)).map(|((_, s), v)| ParsedField::L7U32Field("UPTIME", v, (s.start, s.end - s.start))),
-        (tag(Token::Samples), cut_err(parse_u32)).map(|((_, s), v)| ParsedField::L7U32Field("SAMPLES", v, (s.start, s.end - s.start))),
+        tag(Token::Sflow)
+            .map(|(_, s)| ParsedField::Protocol(Protocol::Sflow, (s.start, s.len()))),
+        (tag(Token::AgentIpSflow), cut_err(parse_ip))
+            .map(|((_, s), v)| ParsedField::L7IpField("AGENT_IP", v, (s.start, s.end - s.start))),
+        (tag(Token::AgentIp), cut_err(parse_ip))
+            .map(|((_, s), v)| ParsedField::L7IpField("AGENT_IP", v, (s.start, s.end - s.start))),
+        (tag(Token::SubAgentId), cut_err(parse_u32)).map(|((_, s), v)| {
+            ParsedField::L7U32Field("SUB_AGENT_ID", v, (s.start, s.end - s.start))
+        }),
+        (tag(Token::Uptime), cut_err(parse_u32))
+            .map(|((_, s), v)| ParsedField::L7U32Field("UPTIME", v, (s.start, s.end - s.start))),
+        (tag(Token::Samples), cut_err(parse_u32))
+            .map(|((_, s), v)| ParsedField::L7U32Field("SAMPLES", v, (s.start, s.end - s.start))),
     ))
     .parse_next(input)
 }

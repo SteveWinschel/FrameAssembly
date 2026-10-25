@@ -1,0 +1,19 @@
+// PROMPT: Command authorization verifying permission to run show running-config.
+// TOKENS: HOST, IP, FLOW, TACACS, TYPE, AUTHOR, USER, SESSION_ID, COMPILE
+
+// INSTRUCTION: Define datacenter switch NAS.
+HOST dc_switch { IP 10.150.1.20 }
+
+// INSTRUCTION: Define authorization engine.
+HOST author_engine { IP 10.150.1.1 }
+
+// INSTRUCTION: Define permitted command authorization flow.
+FLOW tacacs_permit_flow(c, s) {
+    c -> s TACACS TYPE AUTHOR USER "auditor" SESSION_ID 8040
+    c <- s TACACS TYPE AUTHOR USER "auditor" SESSION_ID 8040
+}
+
+// INSTRUCTION: Compile block executing command authorization.
+COMPILE {
+    tacacs_permit_flow(dc_switch, author_engine)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Periodic IGMP General Membership Query sent by designated router to all-hosts 224.0.0.1.
+// TOKENS: HOST, IP, FLOW, IGMP, QUERY, MAX_RESP, GROUP, TTL, COMPILE
+
+// INSTRUCTION: Define designated multicast querier router.
+HOST igmp_dr_rtr { IP 10.40.1.1 }
+
+// INSTRUCTION: Define all-systems multicast group 224.0.0.1.
+HOST all_systems_group { IP 224.0.0.1 }
+
+// INSTRUCTION: Define IGMP general query flow with 10s maximum response time.
+FLOW igmp_general_query(rtr, grp) {
+    rtr -> grp IGMP QUERY MAX_RESP 100 GROUP 224.0.0.1 TTL 1
+}
+
+// INSTRUCTION: Compile block executing periodic IGMP general query.
+COMPILE {
+    igmp_general_query(igmp_dr_rtr, all_systems_group)
+}

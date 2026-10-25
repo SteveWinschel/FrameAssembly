@@ -1,0 +1,18 @@
+// PROMPT: VXLAN overlay packet traversing MPLS-based DCI core with label 5000.
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, MPLS, COMPILE
+
+// INSTRUCTION: Define ingress DCI edge router VTEP.
+HOST dci_ingress_vtep { IP 10.210.0.1 }
+
+// INSTRUCTION: Define egress DCI edge router VTEP.
+HOST dci_egress_vtep { IP 10.210.0.2 }
+
+// INSTRUCTION: Define MPLS labeled VXLAN packet flow.
+FLOW vxlan_mpls_dci(ing, eg) {
+    ing -> eg VXLAN VNI 75000 MPLS 5000
+}
+
+// INSTRUCTION: Compile block executing MPLS encapsulated VXLAN transmission.
+COMPILE {
+    vxlan_mpls_dci(dci_ingress_vtep, dci_egress_vtep)
+}

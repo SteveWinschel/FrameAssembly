@@ -1,0 +1,25 @@
+// PROMPT: IEEE 802.1w RSTP Proposal and Agreement handshake on a point-to-point full-duplex inter-switch link.
+// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, MAX_AGE, HELLO_TIME, FORWARD_DELAY, FLAGS, WAIT, COMPILE
+
+// INSTRUCTION: Define upstream designated RSTP bridge proposing rapid transition.
+HOST rstp_designated_sw {
+    IP 172.16.12.1
+    MAC 00:21:d8:12:00:01
+}
+
+// INSTRUCTION: Define downstream RSTP bridge replying with Agreement flag set.
+HOST rstp_rootport_sw {
+    IP 172.16.12.2
+    MAC 00:21:d8:12:00:02
+}
+
+// INSTRUCTION: Define RSTP Proposal (Flags 0x0E) and Agreement (Flags 0x4E) sub-second convergence handshake.
+FLOW rstp_proposal_agreement(desig, down) {
+    desig -> down STP RSTP ROOT_ID "4096:00:21:d8:12:00:01" BRIDGE_ID "4096:00:21:d8:12:00:01" COST 0 PORT_ID 32769 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 14
+    desig <- down STP RSTP ROOT_ID "4096:00:21:d8:12:00:01" BRIDGE_ID "32768:00:21:d8:12:00:02" COST 2000 PORT_ID 32769 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 78 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing RSTP Proposal/Agreement convergence.
+COMPILE {
+    rstp_proposal_agreement(rstp_designated_sw, rstp_rootport_sw)
+}

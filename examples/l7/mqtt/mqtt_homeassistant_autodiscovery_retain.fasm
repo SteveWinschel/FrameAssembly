@@ -1,0 +1,29 @@
+// PROMPT: Generate an MQTT Home Assistant auto-discovery configuration publish followed by state telemetry.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, CONNECT, CLIENT_ID, WAIT, CONNACK, RETURN_CODE, PUBLISH, TOPIC, QOS, RETAIN, PKT_ID, PAYLOAD, PUBACK, COMPILE
+
+// INSTRUCTION: Define the ESPHome smart plug publishing its Home Assistant discovery JSON payload.
+HOST esphome_plug {
+    IP 192.168.1.145
+    MAC 24:6f:28:01:01:45
+}
+
+// INSTRUCTION: Define the Home Assistant Mosquitto broker add-on.
+HOST hass_mosquitto {
+    IP 192.168.1.10
+    MAC dc:a6:32:01:00:10
+}
+
+// INSTRUCTION: Connect, publish a retained auto-discovery config to homeassistant/sensor/.../config, and publish live watt readings.
+FLOW homeassistant_autodiscovery(c, s) {
+    c -> s MQTT CONNECT CLIENT_ID "esphome-desk-plug" WAIT 2ms
+    c <- s MQTT CONNACK RETURN_CODE 0 WAIT 3ms
+    c -> s MQTT PUBLISH TOPIC "homeassistant/sensor/desk_plug_power/config" QOS 1 RETAIN PKT_ID 1
+        PAYLOAD "{\"name\":\"Desk Power\",\"unit_of_meas\":\"W\",\"stat_t\":\"esphome/desk_plug/power\"}" WAIT 2ms
+    c <- s MQTT PUBACK PKT_ID 1 WAIT 10ms
+    c -> s MQTT PUBLISH TOPIC "esphome/desk_plug/power" QOS 0 PAYLOAD "124.6"
+}
+
+// INSTRUCTION: Compile the Home Assistant MQTT auto-discovery trace into a PCAP file.
+COMPILE {
+    homeassistant_autodiscovery(esphome_plug, hass_mosquitto)
+}

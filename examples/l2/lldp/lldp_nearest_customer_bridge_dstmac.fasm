@@ -1,0 +1,24 @@
+// PROMPT: IEEE 802.1AB LLDP over non-bridged customer access port using Nearest Customer Bridge multicast MAC 01:80:c2:00:00:00.
+// TOKENS: HOST, IP, MAC, FLOW, DSTMAC, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, COMPILE
+
+// INSTRUCTION: Define customer edge router A at Metro Ethernet demarcation.
+HOST ce_demarc_west {
+    IP 192.168.220.1
+    MAC 00:0f:f7:dc:00:01
+}
+
+// INSTRUCTION: Define customer edge router B at remote Metro Ethernet demarcation.
+HOST ce_demarc_east {
+    IP 192.168.220.2
+    MAC 00:0f:f7:dc:00:02
+}
+
+// INSTRUCTION: Define LLDP frame overriding destination MAC to Nearest Customer Bridge address 01:80:c2:00:00:00.
+FLOW customer_bridge_lldp(west, east) {
+    west -> east DSTMAC 01:80:c2:00:00:00 LLDP CHASSIS_ID "ce-west-chassis" PORT_ID "ge-0/0/0" SYSNAME "ce-west.corp.net" SYSDESC "Customer Edge WAN Router" TTL 180
+}
+
+// INSTRUCTION: Compile block executing Nearest Customer Bridge multicast LLDP advertisement.
+COMPILE {
+    customer_bridge_lldp(ce_demarc_west, ce_demarc_east)
+}

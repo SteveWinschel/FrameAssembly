@@ -1,0 +1,21 @@
+// PROMPT: Periodic HTTP/2 PING RTT measurement and keepalive loop on Stream 0.
+// TOKENS: HOST, IP, FLOW, HTTP2, PING, STREAM_ID, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define persistent HTTP/2 mobile client.
+HOST mobile_h2 { IP 10.15.43.90 }
+
+// INSTRUCTION: Define API gateway server.
+HOST gateway_h2 { IP 10.15.43.1 }
+
+// INSTRUCTION: Exchange HTTP/2 PING frames on stream 0 every 10 seconds.
+FLOW http2_ping_loop(c, s) {
+    c -> s HTTP2 PING STREAM_ID 0 WAIT 10s
+    c <- s HTTP2 PING STREAM_ID 0
+}
+
+// INSTRUCTION: Run 4 iterations of the HTTP/2 PING keepalive loop.
+COMPILE {
+    LOOP 4 {
+        http2_ping_loop(mobile_h2, gateway_h2)
+    }
+}

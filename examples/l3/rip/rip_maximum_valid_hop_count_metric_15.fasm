@@ -1,0 +1,25 @@
+// PROMPT: RFC 2453 boundary test advertising the maximum reachable RIPv2 hop count (METRIC 15) before reaching infinity (16).
+// TOKENS: HOST, IP, MAC, FLOW, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, TAG, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define 15th-hop daisy-chained industrial telemetry router advertising METRIC 15.
+HOST hop15_field_rtr {
+    IP 10.52.15.15
+    MAC 00:21:59:52:0f:0f
+}
+
+// INSTRUCTION: Define 16th-hop edge collector accepting METRIC 15 as the final reachable diameter hop.
+HOST hop16_edge_collector {
+    IP 10.52.15.16
+    MAC 00:21:59:52:0f:10
+}
+
+// INSTRUCTION: Define RIPv2 RESPONSE at maximum valid reachable METRIC 15 vs unreachable METRIC 16.
+FLOW rip_metric_15_boundary_flow(hop15, hop16) {
+    hop15 -> hop16 RIP RESPONSE PREFIX 10.1.0.0 METRIC 15 NEXTHOP 10.52.15.15 TAG 15 DSCP 48 TTL 1 PAYLOAD "MAX_REACHABLE_RIP_DIAMETER_15" WAIT 5ms
+    hop15 <- hop16 RIP RESPONSE PREFIX 10.1.0.0 METRIC 16 NEXTHOP 0.0.0.0 TAG 15 DSCP 48 TTL 1 PAYLOAD "POISON_REVERSE_AT_BOUNDARY_16"
+}
+
+// INSTRUCTION: Compile the RIPv2 maximum reachable hop-count metric 15 boundary flow.
+COMPILE {
+    rip_metric_15_boundary_flow(hop15_field_rtr, hop16_edge_collector)
+}

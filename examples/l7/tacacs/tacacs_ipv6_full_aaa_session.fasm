@@ -1,0 +1,32 @@
+// PROMPT: Simulate a complete AAA lifecycle (Authentication, Authorization, and Accounting) over IPv6 between a router and TACACS+ server.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TACACS, AUTHEN, SESSION_ID, USER, PAYLOAD, AUTHOR, ACCT, COMPILE
+
+// INSTRUCTION: Define host endpoint rtr_v6.
+HOST rtr_v6 {
+    MAC 00:50:56:b6:49:01
+    IP 2001:db8:49:1::10
+}
+
+// INSTRUCTION: Define host endpoint tacacs_v6.
+HOST tacacs_v6 {
+    MAC 00:50:56:b6:49:99
+    IP 2001:db8:49:1::99
+}
+
+// INSTRUCTION: Execute AUTHEN, AUTHOR, and ACCT sequentially over IPv6 TCP port 49.
+FLOW tacacs_ipv6_full_aaa_cycle(rtr_v6, tacacs_v6) {
+    rtr_v6 -> tacacs_v6 TCP SYN SRCPORT 55049 DSTPORT 49
+    tacacs_v6 -> rtr_v6 TCP SYN ACK
+    rtr_v6 -> tacacs_v6 TCP ACK
+    rtr_v6 -> tacacs_v6 TACACS AUTHEN SESSION_ID 6001 USER "neteng" PAYLOAD "LOGIN-V6"
+    tacacs_v6 -> rtr_v6 TACACS AUTHEN SESSION_ID 6001 PAYLOAD "AUTHEN_STATUS_PASS"
+    rtr_v6 -> tacacs_v6 TACACS AUTHOR SESSION_ID 6002 USER "neteng" PAYLOAD "service=shell:priv-lvl=15"
+    tacacs_v6 -> rtr_v6 TACACS AUTHOR SESSION_ID 6002 PAYLOAD "AUTHOR_STATUS_PASS_ADD:priv-lvl=15"
+    rtr_v6 -> tacacs_v6 TACACS ACCT SESSION_ID 6003 USER "neteng" PAYLOAD "flags=START:service=shell"
+    tacacs_v6 -> rtr_v6 TACACS ACCT SESSION_ID 6003 PAYLOAD "ACCT_STATUS_SUCCESS"
+}
+
+// INSTRUCTION: Compile the IPv6 full AAA TACACS+ flow.
+COMPILE {
+    tacacs_ipv6_full_aaa_cycle(rtr_v6, tacacs_v6)
+}

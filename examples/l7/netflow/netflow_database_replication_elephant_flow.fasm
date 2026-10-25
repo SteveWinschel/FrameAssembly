@@ -1,0 +1,24 @@
+// PROMPT: NetFlow v5 export reporting a long-lived PostgreSQL TCP port 5432 database replication elephant flow.
+// TOKENS: HOST, IP, MAC, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, DF, IPID, COMPILE
+
+// INSTRUCTION: Define data center leaf switch tracking east-west storage and database flows.
+HOST dc_leaf_sw {
+    IP 10.90.1.1
+    MAC 00:1c:73:90:01:01
+}
+
+// INSTRUCTION: Define data center fabric telemetry collector.
+HOST fabric_collector {
+    IP 10.90.1.100
+    MAC 00:1c:73:90:01:64
+}
+
+// INSTRUCTION: Export elephant flow metrics for PostgreSQL replication on TCP port 5432.
+FLOW netflow_db_elephant(leaf, col) {
+    leaf -> col NETFLOW SRCIP 10.90.10.11 DSTIP 10.90.20.12 SRCPORT 5432 DSTPORT 44120 PROTO 6 PACKETS 125000 OCTETS 180000000 DF IPID 1042
+}
+
+// INSTRUCTION: Compile the database replication elephant flow NetFlow scenario.
+COMPILE {
+    netflow_db_elephant(dc_leaf_sw, fabric_collector)
+}

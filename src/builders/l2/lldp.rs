@@ -1,4 +1,14 @@
-//! LLDP Layer 2 protocol wire builder.
+//! IEEE 802.1AB Link Layer Discovery Protocol (LLDP) wire frame builder.
+//!
+//! Synthesizes IEEE 802.1AB LLDP Data Units (LLDPDUs) over Ethernet II (`EtherType = 0x88CC`)
+//! addressed to the nearest-bridge multicast MAC `01:80:C2:00:00:0E`. Each TLV header packs a
+//! 7-bit TLV Type (`bits 15..9`) and a 9-bit TLV Information String Length (`bits 8..0`) in
+//! big-endian byte order, emitting mandatory Chassis ID (`Type = 1`), Port ID (`Type = 2`),
+//! and TTL (`Type = 3`) TLVs, optional System Name (`Type = 5`) and System Description (`Type = 6`)
+//! TLVs, and the mandatory End Of LLDPDU (`Type = 0, Length = 0`) marker.
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b LLDP [CHASSIS_ID "<str>"] [PORT_ID "<str>"] [TTL <u16>] [SYSNAME "<str>"] [SYSDESC "<str>"]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

@@ -1,0 +1,26 @@
+// PROMPT: S7comm ROSCTR ACK (0x02) header-only confirmation frame acknowledging a PLC job without data payload.
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, AREA, DB_NUM, OFFSET, COUNT, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the industrial OPC server polling the S7 PLC.
+HOST opc_gateway {
+    IP 10.130.50.10
+    MAC 00:1a:2b:82:50:10
+}
+
+// INSTRUCTION: Define the S7-400 process controller.
+HOST proc_plc {
+    IP 10.130.50.1
+    MAC 00:1a:2b:82:50:01
+}
+
+// INSTRUCTION: Send WRITE_VAR job to DB10 and receive an S7comm ROSCTR ACK (0x02) confirmation followed by ACK_DATA.
+FLOW s7_ack_frame(g, p) {
+    g -> p S7COMM ROSCTR "JOB" PDU_REF 500 FUNC "WRITE_VAR" AREA 132 DB_NUM 10 OFFSET 64 COUNT 4 HEXPAYLOAD "42c80000"
+    g <- p S7COMM ROSCTR "ACK" PDU_REF 500 FUNC "WRITE_VAR" WAIT 1ms
+    g <- p S7COMM ROSCTR "ACK_DATA" PDU_REF 500 FUNC "WRITE_VAR"
+}
+
+// INSTRUCTION: Compile the S7comm ROSCTR ACK confirmation flow.
+COMPILE {
+    s7_ack_frame(opc_gateway, proc_plc)
+}

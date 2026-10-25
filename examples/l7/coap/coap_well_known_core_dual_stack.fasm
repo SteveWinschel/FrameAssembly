@@ -1,0 +1,26 @@
+// PROMPT: RFC 6690 CoAP core link-format discovery querying .well-known/core over IPv4 and IPv6.
+// TOKENS: HOST, IP, FLOW, COAP, CON, CODE, MSGID, URI_PATH, ACK, CONTENT_FORMAT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IPv4 discovery client.
+HOST disc_v4 { IP 192.168.1.50 }
+
+// INSTRUCTION: Define IPv4 CoAP sensor node.
+HOST node_v4 { IP 192.168.1.120 }
+
+// INSTRUCTION: Define IPv6 discovery client.
+HOST disc_v6 { IP 2001:db8:1::50 }
+
+// INSTRUCTION: Define IPv6 CoAP sensor node.
+HOST node_v6 { IP 2001:db8:1::120 }
+
+// INSTRUCTION: Query .well-known/core and return link-format (Content-Format 40) resource list.
+FLOW coap_core_discovery(d, n) {
+    d -> n COAP CON CODE "0.01" MSGID 1000 URI_PATH ".well-known/core"
+    d <- n COAP ACK CODE "2.05" MSGID 1000 CONTENT_FORMAT 40 PAYLOAD "</temp>;rt=\"temperature-c\";if=\"sensor\""
+}
+
+// INSTRUCTION: Run CoAP resource discovery across IPv4 and IPv6 endpoints.
+COMPILE {
+    coap_core_discovery(disc_v4, node_v4)
+    coap_core_discovery(disc_v6, node_v6)
+}

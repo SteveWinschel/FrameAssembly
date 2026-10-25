@@ -1,0 +1,18 @@
+// PROMPT: OpenFlow controller configuring table 1 pipeline flow rule with high priority (65535).
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, FLOW_MOD, XID, TABLE_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define security enforcement SDN controller.
+HOST security_sdn_ctrl { IP 10.180.1.1 }
+
+// INSTRUCTION: Define core pipeline switch.
+HOST pipeline_core_sw { IP 10.180.1.2 }
+
+// INSTRUCTION: Define high priority flow table installation flow.
+FLOW of_pipeline_flow_mod(ctrl, sw) {
+    ctrl -> sw OPENFLOW TYPE FLOW_MOD XID 7007 TABLE_ID 1 PRIORITY 65535
+}
+
+// INSTRUCTION: Compile block executing pipeline flow table rule installation.
+COMPILE {
+    of_pipeline_flow_mod(security_sdn_ctrl, pipeline_core_sw)
+}

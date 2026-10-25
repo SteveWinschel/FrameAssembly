@@ -1,0 +1,21 @@
+// PROMPT: Periodic IKEv2 Dead Peer Detection (DPD) INFORMATIONAL probes inside a COMPILE LOOP block.
+// TOKENS: HOST, IP, FLOW, IKEV2, INFORMATIONAL, INITIATOR_SPI, RESPONDER_SPI, MSGID, FLAGS, NEXT_PAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define primary IPsec peer polling DPD liveliness.
+HOST dpd_peer_left { IP 10.190.1.1 }
+
+// INSTRUCTION: Define secondary IPsec peer acknowledging DPD probes.
+HOST dpd_peer_right { IP 10.190.1.2 }
+
+// INSTRUCTION: Define bidirectional IKEv2 DPD INFORMATIONAL exchange.
+FLOW ikev2_dpd_cycle(l, r) {
+    l -> r IKEV2 INFORMATIONAL INITIATOR_SPI 10102020 RESPONDER_SPI 30304040 MSGID 50 FLAGS 8 NEXT_PAYLOAD 46 WAIT 20ms
+    l <- r IKEV2 INFORMATIONAL INITIATOR_SPI 10102020 RESPONDER_SPI 30304040 MSGID 50 FLAGS 32 NEXT_PAYLOAD 46 WAIT 20ms
+}
+
+// INSTRUCTION: Compile 4 consecutive IKEv2 DPD liveliness cycles.
+COMPILE {
+    LOOP 4 {
+        ikev2_dpd_cycle(dpd_peer_left, dpd_peer_right)
+    }
+}

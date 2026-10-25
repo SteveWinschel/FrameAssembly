@@ -1,0 +1,25 @@
+// PROMPT: RFC 2453 Section 3.10.1 RIPv2 Triggered Update immediately advertising metric 16 (infinity) upon WAN link failure.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, TAG, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define branch router detecting local serial interface failure and sending triggered update.
+HOST rip_branch_trig {
+    IP 10.20.1.1
+    MAC 00:1b:21:20:01:01
+}
+
+// INSTRUCTION: Define RIPv2 multicast group 224.0.0.9 receiving immediate route invalidation.
+HOST rip_mcast_group {
+    IP 224.0.0.9
+    MAC 01:00:5e:00:00:09
+}
+
+// INSTRUCTION: Define triggered RIPv2 RESPONSE with METRIC 16 (unreachable) and TAG 500.
+FLOW rip_triggered_flush_flow(branch, mcast) {
+    branch -> mcast RIP RESPONSE PREFIX 10.20.99.0 METRIC 16 NEXTHOP 0.0.0.0 TAG 500 DSCP 48 TTL 1 PAYLOAD "TRIGGERED_UPDATE_LINK_DOWN_INFINITY" WAIT 5ms
+    branch -> mcast RIP RESPONSE PREFIX 10.20.100.0 METRIC 2 NEXTHOP 10.20.1.1 TAG 500 DSCP 48 TTL 1 PAYLOAD "BACKUP_PATH_CONVERGED"
+}
+
+// INSTRUCTION: Compile the RFC 2453 RIPv2 Triggered Update route flush flow.
+COMPILE {
+    rip_triggered_flush_flow(rip_branch_trig, rip_mcast_group)
+}

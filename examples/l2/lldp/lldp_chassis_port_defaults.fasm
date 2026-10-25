@@ -1,5 +1,5 @@
 // PROMPT: Basic IEEE 802.1AB LLDP neighbor discovery advertisement using chassis ID and port ID.
-// TOKENS: HOST, IP, FLOW, ->, LLDP, CHASSIS_ID, PORT_ID, COMPILE
+// TOKENS: HOST, IP, FLOW, LLDP, CHASSIS_ID, PORT_ID, COMPILE
 
 // INSTRUCTION: Define top-of-rack leaf switch.
 HOST leaf_switch { IP 192.168.10.1 }

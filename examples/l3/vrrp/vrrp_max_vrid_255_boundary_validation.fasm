@@ -1,0 +1,25 @@
+// PROMPT: RFC 5798 VRRPv3 boundary verification testing maximum 8-bit Virtual Router ID (VRID 255) with Virtual MAC 00:00:5e:00:01:ff.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, SRCMAC, DSTMAC, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define VRRP Master router configured at maximum VRID 255.
+HOST vrrp_vrid255_master {
+    IP 10.255.255.252
+    MAC 00:00:5e:00:01:ff
+}
+
+// INSTRUCTION: Define VRRP multicast group 224.0.0.18 validating VRID 255 frame.
+HOST vrrp_vrid255_mcast {
+    IP 224.0.0.18
+    MAC 01:00:5e:00:00:12
+}
+
+// INSTRUCTION: Define VRRPv3 advertisement with VRID 255, PRIORITY 254, and VIP 10.255.255.1.
+FLOW vrrp_vrid_255_boundary(master, mcast) {
+    master -> mcast VRRP VRID 255 PRIORITY 254 ADV_INT 100 VIP 10.255.255.1 VERSION 3 SRCMAC 00:00:5e:00:01:ff DSTMAC 01:00:5e:00:00:12 DSCP 48 TTL 255 WAIT 50ms
+    master -> mcast VRRP VRID 255 PRIORITY 254 ADV_INT 100 VIP 10.255.255.1 VERSION 3 SRCMAC 00:00:5e:00:01:ff DSTMAC 01:00:5e:00:00:12 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the VRID 255 upper-boundary VRRPv3 verification flow.
+COMPILE {
+    vrrp_vrid_255_boundary(vrrp_vrid255_master, vrrp_vrid255_mcast)
+}

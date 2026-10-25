@@ -1,0 +1,19 @@
+// PROMPT: IPv4 multicast IPTV MPEG-2 Transport Stream (PT 33) to 239.100.1.1 with RFC 1112 MAC derivation.
+// TOKENS: HOST, IP, MAC, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define IPTV headend encoder source.
+HOST iptv_headend { IP 10.100.1.1 MAC 00:1b:21:64:01:01 }
+
+// INSTRUCTION: Define IPv4 multicast channel group 239.100.1.1.
+HOST iptv_mcast_grp { IP 239.100.1.1 }
+
+// INSTRUCTION: Define MPEG-2 TS (PT 33) multicast RTP distribution.
+FLOW rtp_iptv_multicast(src, grp) {
+    src -> grp RTP PT 33 TIMESTAMP 3600 SSRC 0x33001100 MARKER 0 DSCP 34 TTL 32 WAIT 10ms
+    src -> grp RTP PT 33 TIMESTAMP 7200 SSRC 0x33001100 MARKER 1 DSCP 34 TTL 32
+}
+
+// INSTRUCTION: Compile IPv4 multicast IPTV RTP stream.
+COMPILE {
+    rtp_iptv_multicast(iptv_headend, iptv_mcast_grp)
+}

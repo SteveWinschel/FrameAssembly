@@ -1,0 +1,26 @@
+// PROMPT: Data center TOR switch HSRP priority decrement due to uplink object tracking on IEEE 802.1Q VLAN 250.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, HSRP, GROUP, PRIORITY, STATE, HELLOTIME, HOLDTIME, VIP, WAIT, COMPILE
+
+// INSTRUCTION: Define degraded primary TOR switch with decremented HSRP priority 90 after uplink loss.
+HOST tor_switch_degraded {
+    IP 172.18.250.2
+    MAC 00:00:0c:9f:f0:fa
+}
+
+// INSTRUCTION: Define healthy standby TOR switch preempting with default priority 110 on VLAN 250.
+HOST tor_switch_healthy {
+    IP 172.18.250.3
+    MAC 00:00:0c:9f:f0:fb
+}
+
+// INSTRUCTION: Advertise degraded priority 90 followed by standby takeover at priority 110 over VLAN 250.
+FLOW hsrp_tracked_object_failover(deg, hlth) {
+    deg -> hlth VLAN 250 PCP 6 HSRP GROUP 250 PRIORITY 90 STATE 16 HELLOTIME 3 HOLDTIME 10 VIP 172.18.250.1 WAIT 15ms
+    hlth -> deg VLAN 250 PCP 6 HSRP GROUP 250 PRIORITY 110 STATE 16 HELLOTIME 3 HOLDTIME 10 VIP 172.18.250.1 WAIT 15ms
+    deg -> hlth VLAN 250 PCP 6 HSRP GROUP 250 PRIORITY 90 STATE 8 HELLOTIME 3 HOLDTIME 10 VIP 172.18.250.1
+}
+
+// INSTRUCTION: Compile the VLAN 250 HSRP tracked uplink failover scenario.
+COMPILE {
+    hsrp_tracked_object_failover(tor_switch_degraded, tor_switch_healthy)
+}

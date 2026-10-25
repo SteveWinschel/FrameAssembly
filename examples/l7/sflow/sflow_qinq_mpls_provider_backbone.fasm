@@ -1,0 +1,18 @@
+// PROMPT: Service provider core router exporting sFlow over QinQ and MPLS transport tunnel.
+// TOKENS: HOST, IP, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, QINQ, INNER_VLAN, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define provider edge PE router exporter.
+HOST pe_exporter { IP 100.64.63.1 }
+
+// INSTRUCTION: Define central NOC sFlow collector.
+HOST noc_sflow { IP 100.64.63.250 }
+
+// INSTRUCTION: Define sFlow datagram encapsulated with QinQ and MPLS labels.
+FLOW sflow_wan_mpls(pe, noc) {
+    pe -> noc SFLOW AGENT_IP 100.64.63.1 SUB_AGENT_ID 100 UPTIME 999000 SAMPLES 10 QINQ 2500 INNER_VLAN 634 MPLS 63430 EXP 2 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile QinQ and MPLS sFlow export.
+COMPILE {
+    sflow_wan_mpls(pe_exporter, noc_sflow)
+}

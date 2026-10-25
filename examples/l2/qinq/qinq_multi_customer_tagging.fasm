@@ -1,5 +1,5 @@
 // PROMPT: QinQ double tagging segregating multiple customer inner VLANs within service provider outer VLAN.
-// TOKENS: HOST, IP, FLOW, ->, QINQ, INNER_VLAN, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, QINQ, INNER_VLAN, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define service provider ingress PE router.
 HOST provider_pe { IP 10.254.0.1 }

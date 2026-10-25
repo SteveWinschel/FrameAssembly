@@ -1,5 +1,5 @@
 // PROMPT: Simulate a WireGuard VPN Noise_IKpsk2 handshake initiation, response, and encrypted transport data exchange over UDP port 51820.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define a roaming laptop VPN peer with IP 198.51.100.42.
 HOST wg_roaming_peer { IP 198.51.100.42 MAC a4:83:e7:11:22:33 }

@@ -1,0 +1,29 @@
+// PROMPT: Generate a Modbus TCP-to-RTU serial gateway polling three daisy-chained RS-485 slaves (Unit IDs 10, 11, and 12) behind one IP address.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TXID, PROTO_ID, UNITID, FUNC, ADDR, COUNT, WAIT, IS_RESPONSE, VALUE, COMPILE
+
+// INSTRUCTION: Define the central energy management server polling power meters through a Modbus gateway.
+HOST ems_server {
+    IP 10.70.5.10
+    MAC 00:1a:2b:70:05:10
+}
+
+// INSTRUCTION: Define the Moxa Modbus TCP-to-RS485 serial gateway bridging Unit IDs 10, 11, and 12.
+HOST rs485_gateway {
+    IP 10.70.5.250
+    MAC 00:90:e8:70:05:fa
+}
+
+// INSTRUCTION: Sequentially poll holding registers on RS-485 Slave Unit IDs 10, 11, and 12 through the gateway IP.
+FLOW multidrop_rs485_gateway(c, s) {
+    c -> s MODBUS TXID 501 PROTO_ID 0 UNITID 10 FUNC "READ_HOLDING_REGISTERS" ADDR 0 COUNT 2 WAIT 18ms
+    c <- s MODBUS TXID 501 PROTO_ID 0 UNITID 10 FUNC "READ_HOLDING_REGISTERS" IS_RESPONSE VALUE 4802 WAIT 10ms
+    c -> s MODBUS TXID 502 PROTO_ID 0 UNITID 11 FUNC "READ_HOLDING_REGISTERS" ADDR 0 COUNT 2 WAIT 18ms
+    c <- s MODBUS TXID 502 PROTO_ID 0 UNITID 11 FUNC "READ_HOLDING_REGISTERS" IS_RESPONSE VALUE 4795 WAIT 10ms
+    c -> s MODBUS TXID 503 PROTO_ID 0 UNITID 12 FUNC "READ_HOLDING_REGISTERS" ADDR 0 COUNT 2 WAIT 18ms
+    c <- s MODBUS TXID 503 PROTO_ID 0 UNITID 12 FUNC "READ_HOLDING_REGISTERS" IS_RESPONSE VALUE 4810
+}
+
+// INSTRUCTION: Compile the Modbus TCP-to-RS485 multi-UnitID gateway trace into a PCAP file.
+COMPILE {
+    multidrop_rs485_gateway(ems_server, rs485_gateway)
+}

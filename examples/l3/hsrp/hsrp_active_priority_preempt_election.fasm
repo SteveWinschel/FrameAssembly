@@ -1,0 +1,18 @@
+// PROMPT: HSRP active router election where high-priority gateway preempts current active router.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, COMPILE
+
+// INSTRUCTION: Define high-priority preempting primary router.
+HOST hsrp_preempt_primary { IP 10.10.1.254 }
+
+// INSTRUCTION: Define HSRP all-routers multicast destination.
+HOST hsrp_mcast_v4 { IP 224.0.0.2 }
+
+// INSTRUCTION: Define HSRP active election flow asserting priority 150 and Active state 16.
+FLOW hsrp_preempt_flow(rtr, mcast) {
+    rtr -> mcast HSRP GROUP 10 PRIORITY 150 STATE 16 VIP 10.10.1.1
+}
+
+// INSTRUCTION: Compile block executing HSRP active priority preemption.
+COMPILE {
+    hsrp_preempt_flow(hsrp_preempt_primary, hsrp_mcast_v4)
+}

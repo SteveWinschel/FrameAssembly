@@ -1,0 +1,25 @@
+// PROMPT: RFC 7880 Seamless BFD (S-BFD) initiator probing a stateless S-BFD reflector over UDP port 7784.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, SRCPORT, DSTPORT, MPLS, EXP, BOS, MPLS_TTL, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define S-BFD Initiator headend node probing an SR-MPLS TE policy path.
+HOST sbfd_initiator_node {
+    IP 10.78.80.1
+    MAC 00:21:59:78:80:01
+}
+
+// INSTRUCTION: Define S-BFD Reflector tailend node with well-known discriminator 168430090.
+HOST sbfd_reflector_node {
+    IP 10.78.80.2
+    MAC 00:21:59:78:80:02
+}
+
+// INSTRUCTION: Define RFC 7880 S-BFD probe to UDP port 7784 and immediate STATE 3 reflection.
+FLOW sbfd_seamless_probe(init, refl) {
+    init -> refl BFD STATE 3 DIAG 0 MY_DISC 78801 YOUR_DISC 168430090 MIN_TX 20000 MIN_RX 0 MULT 3 SRCPORT 49500 DSTPORT 7784 MPLS 16002 EXP 6 BOS 1 MPLS_TTL 64 DSCP 48 TTL 64 WAIT 2ms
+    init <- refl BFD STATE 3 DIAG 0 MY_DISC 168430090 YOUR_DISC 78801 MIN_TX 1000000 MIN_RX 20000 MULT 3 SRCPORT 7784 DSTPORT 49500 DSCP 48 TTL 63
+}
+
+// INSTRUCTION: Compile the RFC 7880 Seamless BFD initiator-reflector exchange.
+COMPILE {
+    sbfd_seamless_probe(sbfd_initiator_node, sbfd_reflector_node)
+}

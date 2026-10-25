@@ -1,0 +1,19 @@
+// PROMPT: Server rejecting terminal speed subnegotiation with IAC DONT 32.
+// TOKENS: HOST, IP, FLOW, TELNET, WILL, DONT, COMPILE
+
+// INSTRUCTION: Define legacy terminal client.
+HOST legacy_client { IP 192.168.12.9 }
+
+// INSTRUCTION: Define terminal concentrator.
+HOST term_concentrator { IP 192.168.12.2 }
+
+// INSTRUCTION: Define terminal speed rejection flow.
+FLOW telnet_speed_reject_flow(c, s) {
+    c -> s TELNET WILL 32
+    c <- s TELNET DONT 32
+}
+
+// INSTRUCTION: Compile block executing speed option refusal.
+COMPILE {
+    telnet_speed_reject_flow(legacy_client, term_concentrator)
+}

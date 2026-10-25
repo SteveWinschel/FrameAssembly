@@ -1,0 +1,19 @@
+// PROMPT: Enterprise workstation synchronizing time with internal Stratum 1 server across IPv6.
+// TOKENS: HOST, IP, FLOW, NTP, MODE, VN, STRATUM, WAIT, REFID, COMPILE
+
+// INSTRUCTION: Define IPv6 enterprise workstation.
+HOST v6_client_node { IP 2001:db8:710e::88 }
+
+// INSTRUCTION: Define IPv6 Stratum 1 atomic time server.
+HOST v6_atomic_server { IP 2001:db8:710e::1 }
+
+// INSTRUCTION: Define IPv6 NTP exchange flow.
+FLOW v6_ntp_exchange(c, s) {
+    c -> s NTP MODE 3 VN 4 STRATUM 0 WAIT 8ms
+    c <- s NTP MODE 4 VN 4 STRATUM 1 REFID "GPS"
+}
+
+// INSTRUCTION: Compile IPv6 enterprise sync scenario.
+COMPILE {
+    v6_ntp_exchange(v6_client_node, v6_atomic_server)
+}

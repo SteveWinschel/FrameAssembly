@@ -1,0 +1,27 @@
+// PROMPT: Proof-of-Stake blockchain validator node topology combining NTP clock discipline, QUIC P2P block gossip, gRPC execution engine API, and HTTP JSON-RPC client queries.
+// TOKENS: HOST, IP, FLOW, NTP, VN, MODE, STRATUM, WAIT, QUIC, SHORT, DCID, PAYLOAD, GRPC, SERVICE, METHOD, GRPC_STATUS, HTTP, URI, BODY, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define consensus beacon validator node.
+HOST pos_beacon_validator { IP 172.30.10.10 }
+
+// INSTRUCTION: Define peer validator and stratum-2 NTP server on P2P mesh.
+HOST p2p_peer_validator { IP 172.30.10.20 }
+
+// INSTRUCTION: Define local execution layer engine and JSON-RPC gateway node.
+HOST execution_rpc_node { IP 172.30.10.30 }
+
+// INSTRUCTION: Define NTP slot clock check, QUIC P2P block propagation, gRPC Engine API forkchoice update, and HTTP JSON-RPC query.
+FLOW blockchain_validator_slot_flow(beacon, peer, exec) {
+    beacon -> peer NTP VN 4 MODE 3 STRATUM 3
+    beacon <- peer NTP VN 4 MODE 4 STRATUM 2 WAIT 1ms
+    peer -> beacon QUIC SHORT DCID 0xfeedfacecafebeef PAYLOAD "LIBP2P_GOSSIPSUB_SIGNED_BEACON_BLOCK_SLOT_9400120" WAIT 1ms
+    beacon -> exec GRPC SERVICE "engine.v1.ExecutionEngine" METHOD "NewPayloadV3" GRPC_STATUS 0 PAYLOAD "{\"blockHash\":\"0x88aa\"}" WAIT 1ms
+    beacon <- exec GRPC SERVICE "engine.v1.ExecutionEngine" METHOD "NewPayloadV3" GRPC_STATUS 0 PAYLOAD "{\"status\":\"VALID\"}" WAIT 1ms
+    beacon -> exec HTTP METHOD "POST" URI "/" BODY "{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"id\":1}" WAIT 1ms
+    beacon <- exec HTTP STATUS 200 REASON "OK" BODY "{\"jsonrpc\":\"2.0\",\"result\":\"0x8f6f38\",\"id\":1}" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing blockchain validator NTP, QUIC, gRPC, and HTTP JSON-RPC topology.
+COMPILE {
+    blockchain_validator_slot_flow(pos_beacon_validator, p2p_peer_validator, execution_rpc_node)
+}

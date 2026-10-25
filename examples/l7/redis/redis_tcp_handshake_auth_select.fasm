@@ -1,0 +1,24 @@
+// PROMPT: Full TCP 3-way handshake on port 6379 followed by Redis AUTH, SELECT, and SETEX.
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, DSTPORT, ACK, WAIT, REDIS, CMD, ARGS, COMPILE
+
+// INSTRUCTION: Define session service client.
+HOST sess_client { IP 192.168.63.20 MAC 00:50:56:63:00:14 }
+
+// INSTRUCTION: Define Redis cache server.
+HOST redis_node { IP 192.168.63.1 MAC 00:50:56:63:00:01 }
+
+// INSTRUCTION: Define TCP handshake and authenticated Redis session setup.
+FLOW redis_tcp_auth(c, s) {
+    c -> s TCP SYN DSTPORT 6379
+    c <- s TCP SYN ACK
+    c -> s TCP ACK WAIT 1ms
+    c -> s REDIS CMD "AUTH" ARGS "super_secret_redis_key" WAIT 2ms
+    c <- s REDIS CMD "OK" WAIT 2ms
+    c -> s REDIS CMD "SELECT" ARGS "2" WAIT 2ms
+    c -> s REDIS CMD "SETEX" ARGS "jwt:user42 3600 tok_abc123"
+}
+
+// INSTRUCTION: Compile Redis TCP handshake and AUTH flow.
+COMPILE {
+    redis_tcp_auth(sess_client, redis_node)
+}

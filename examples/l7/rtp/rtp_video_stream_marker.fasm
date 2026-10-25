@@ -1,5 +1,5 @@
 // PROMPT: RTP video stream frame asserting marker bit indicating end of video access unit.
-// TOKENS: HOST, IP, FLOW, ->, RTP, PT, SSRC, TIMESTAMP, MARKER, COMPILE
+// TOKENS: HOST, IP, FLOW, RTP, PT, SSRC, TIMESTAMP, MARKER, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.10 }

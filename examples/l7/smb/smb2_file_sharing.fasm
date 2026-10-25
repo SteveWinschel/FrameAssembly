@@ -1,5 +1,5 @@
 // PROMPT: Server Message Block 2/3 file sharing dialect negotiation and session setup on TCP 445.
-// TOKENS: HOST, IP, FLOW, ->, SMB, COMMAND, NEGOTIATE, SESSION_SETUP, COMPILE
+// TOKENS: HOST, IP, FLOW, SMB, COMMAND, NEGOTIATE, SESSION_SETUP, COMPILE
 
 // INSTRUCTION: Define SMB workstation client.
 HOST smb_workstation { IP 192.168.20.10 }

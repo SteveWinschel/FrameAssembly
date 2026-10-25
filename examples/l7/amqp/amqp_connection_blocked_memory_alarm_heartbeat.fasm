@@ -1,0 +1,28 @@
+// PROMPT: AMQP bidirectional heartbeat exchange maintaining connection liveness while publisher traffic is paused.
+// TOKENS: HOST, IP, MAC, FLOW, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, PAYLOAD, WAIT, HEARTBEAT, COMPILE
+
+// INSTRUCTION: Define the backpressured log producer host.
+HOST log_producer {
+    IP 10.115.100.33
+    MAC 00:1a:2b:73:a0:33
+}
+
+// INSTRUCTION: Define the memory-constrained RabbitMQ node.
+HOST busy_rmq {
+    IP 10.115.100.1
+    MAC 00:1a:2b:73:a0:01
+}
+
+// INSTRUCTION: Publish one batch, then exchange bidirectional HEARTBEAT frames on channel 0.
+FLOW amqp_paused_heartbeat(p, b) {
+    p -> b AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "logs.fanout" ROUTING_KEY "" PAYLOAD "LOG_BATCH_9912" WAIT 5ms
+    p <- b AMQP HEARTBEAT CHANNEL 0 WAIT 1ms
+    p -> b AMQP HEARTBEAT CHANNEL 0 WAIT 5ms
+    p <- b AMQP HEARTBEAT CHANNEL 0 WAIT 1ms
+    p -> b AMQP HEARTBEAT CHANNEL 0
+}
+
+// INSTRUCTION: Compile the AMQP backpressure heartbeat liveness flow.
+COMPILE {
+    amqp_paused_heartbeat(log_producer, busy_rmq)
+}

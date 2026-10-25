@@ -1,0 +1,27 @@
+// PROMPT: Corporate IPTV client negotiating multicast RTP delivery via RTSP SETUP TRANSPORT_HDR.
+// TOKENS: HOST, IP, FLOW, RTSP, DESCRIBE, URI, CSEQ, WAIT, STATUS, SETUP, TRANSPORT_HDR, SESSION, PLAY, COMPILE
+
+// INSTRUCTION: Define lobby digital signage IPTV receiver.
+HOST signage_tv {
+    IP 192.168.60.88
+}
+
+// INSTRUCTION: Define corporate IPTV RTSP server.
+HOST iptv_headend {
+    IP 192.168.60.1
+}
+
+// INSTRUCTION: Define RTSP DESCRIBE, multicast SETUP, and PLAY control sequence.
+FLOW rtsp_multicast_setup(c, s) {
+    c -> s RTSP DESCRIBE URI "rtsp://192.168.60.1/ch/keynote" CSEQ 1 WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 1 WAIT 4ms
+    c -> s RTSP SETUP URI "rtsp://192.168.60.1/ch/keynote/video" CSEQ 2 TRANSPORT_HDR "RTP/AVP;multicast;destination=239.10.10.1;port=5000-5001;ttl=16" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 2 SESSION "mcast_sess_01" WAIT 4ms
+    c -> s RTSP PLAY URI "rtsp://192.168.60.1/ch/keynote" CSEQ 3 SESSION "mcast_sess_01" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 3 SESSION "mcast_sess_01"
+}
+
+// INSTRUCTION: Compile the multicast RTSP IPTV setup flow.
+COMPILE {
+    rtsp_multicast_setup(signage_tv, iptv_headend)
+}

@@ -1,0 +1,25 @@
+// PROMPT: RFC 7637 NVGRE hypervisor virtual switch migrating a Virtual Machine across Tenant Network VSID 500100.
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_PROTO, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Hyper-V / SDN source host NVE transmitting NVGRE frames with 24-bit VSID in GRE_KEY.
+HOST nvgre_src_hypervisor {
+    IP 10.76.37.11
+    MAC 00:15:5d:76:37:0b
+}
+
+// INSTRUCTION: Define destination Hyper-V host NVE receiving live-migrated tenant frames on VSID 500100.
+HOST nvgre_dst_hypervisor {
+    IP 10.76.37.22
+    MAC 00:15:5d:76:37:16
+}
+
+// INSTRUCTION: Define RFC 7637 NVGRE flow with GRE_PROTO 25944 (0x6558 TEB) and GRE_KEY 500100.
+FLOW gre_nvgre_vm_migration(src_hv, dst_hv) {
+    src_hv -> dst_hv GRE GRE_KEY 500100 GRE_PROTO 25944 DF DSCP 26 TTL 64 PAYLOAD "NVGRE_VSID_500100_RARP_VM_MAC_MOVE" WAIT 3ms
+    src_hv <- dst_hv GRE GRE_KEY 500100 GRE_PROTO 25944 DF DSCP 26 TTL 64 PAYLOAD "NVGRE_VSID_500100_TENANT_FDB_UPDATED"
+}
+
+// INSTRUCTION: Compile the RFC 7637 NVGRE VM live migration flow.
+COMPILE {
+    gre_nvgre_vm_migration(nvgre_src_hypervisor, nvgre_dst_hypervisor)
+}

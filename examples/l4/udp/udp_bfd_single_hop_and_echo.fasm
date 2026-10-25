@@ -1,0 +1,21 @@
+// PROMPT: RFC 5881 BFD over IPv4/UDP using Control port 3784 and Echo port 3785 with TTL 255 GTSM validation.
+// TOKENS: HOST, IP, FLOW, TTL, DSCP, UDP, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define core router A running hardware-offloaded BFD Echo.
+HOST bfd_udp_rtr_a { IP 172.20.37.1 }
+
+// INSTRUCTION: Define core router B looping back BFD Echo frames in data plane.
+HOST bfd_udp_rtr_b { IP 172.20.37.2 }
+
+// INSTRUCTION: Define UDP port 3784 BFD Control exchange and UDP port 3785 BFD Echo loopback with TTL 255.
+FLOW udp_bfd_control_and_echo(a, b) {
+    a -> b TTL 255 DSCP 48 UDP SRCPORT 49152 DSTPORT 3784 HEXPAYLOAD "20c0031800000101000001020000c3500000c3500000c350"
+    a <- b TTL 255 DSCP 48 UDP SRCPORT 49153 DSTPORT 3784 HEXPAYLOAD "20c0031800000102000001010000c3500000c3500000c350" WAIT 1ms
+    a -> b TTL 255 DSCP 48 UDP SRCPORT 3785 DSTPORT 3785 PAYLOAD "bfd_echo_hw_loopback_seq_0001" WAIT 5ms
+    a <- b TTL 254 DSCP 48 UDP SRCPORT 3785 DSTPORT 3785 PAYLOAD "bfd_echo_hw_loopback_seq_0001" WAIT 200us
+}
+
+// INSTRUCTION: Compile block executing BFD Control and Echo over UDP ports 3784 and 3785.
+COMPILE {
+    udp_bfd_control_and_echo(bfd_udp_rtr_a, bfd_udp_rtr_b)
+}

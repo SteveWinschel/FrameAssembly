@@ -1,0 +1,19 @@
+// PROMPT: Core switch management session exchanging Cisco IOS SSH banner.
+// TOKENS: HOST, IP, FLOW, SSH, BANNER, COMPILE
+
+// INSTRUCTION: Define network operations console.
+HOST noc_console { IP 172.16.20.50 }
+
+// INSTRUCTION: Define Cisco catalyst core switch.
+HOST cisco_core { IP 172.16.20.1 }
+
+// INSTRUCTION: Define Cisco IOS SSH banner exchange flow.
+FLOW ssh_cisco_flow(c, s) {
+    c -> s SSH BANNER "SSH-2.0-PuTTY_Release_0.80"
+    c <- s SSH BANNER "SSH-2.0-Cisco-1.25"
+}
+
+// INSTRUCTION: Compile block executing Cisco SSH banner.
+COMPILE {
+    ssh_cisco_flow(noc_console, cisco_core)
+}

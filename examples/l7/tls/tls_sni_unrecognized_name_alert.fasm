@@ -1,0 +1,23 @@
+// PROMPT: Multi-tenant reverse proxy rejecting unknown SNI hostname with TLS unrecognized_name alert.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, ALPN, WAIT, ALERT, RECORD_VERSION, COMPILE
+
+// INSTRUCTION: Define external web client requesting unconfigured virtual host.
+HOST ext_client {
+    IP 172.16.200.88
+}
+
+// INSTRUCTION: Define SNI-routing ingress controller host.
+HOST sni_proxy {
+    IP 172.16.200.1
+}
+
+// INSTRUCTION: Define ClientHello with unknown SNI triggering fatal server Alert.
+FLOW tls_unknown_sni(c, s) {
+    c -> s TLS CLIENT_HELLO SNI "nonexistent-tenant.saas.example" ALPN "http/1.1" WAIT 3ms
+    c <- s TLS ALERT RECORD_VERSION 0x0303
+}
+
+// INSTRUCTION: Compile the unrecognized SNI alert flow.
+COMPILE {
+    tls_unknown_sni(ext_client, sni_proxy)
+}

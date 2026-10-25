@@ -1,0 +1,18 @@
+// PROMPT: VRRP master router asserting preemption with high priority 254 and VIP 10.1.1.1 on VRID 10.
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, VIP, COMPILE
+
+// INSTRUCTION: Define primary core gateway router with preemption priority 254.
+HOST vrrp_primary_master { IP 10.1.1.254 }
+
+// INSTRUCTION: Define standard VRRP multicast listener address 224.0.0.18.
+HOST vrrp_mcast_group { IP 224.0.0.18 }
+
+// INSTRUCTION: Define high priority VRRP master advertisement flow.
+FLOW vrrp_preempt_flow(master, dst) {
+    master -> dst VRRP VRID 10 PRIORITY 254 VIP 10.1.1.1
+}
+
+// INSTRUCTION: Compile block executing master preemption advertisement.
+COMPILE {
+    vrrp_preempt_flow(vrrp_primary_master, vrrp_mcast_group)
+}

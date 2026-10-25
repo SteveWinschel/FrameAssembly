@@ -1,5 +1,5 @@
 // PROMPT: Simulate a long-lived idle TCP database connection using WAIT intervals in milliseconds (ms), seconds (s), and minutes (m) for TCP keepalives.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, s, m, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ACK, ACKNUM, PSH, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define a backend worker host with IP 10.30.1.15.
 HOST worker_node { IP 10.30.1.15 MAC 00:22:44:66:88:aa }

@@ -1,0 +1,20 @@
+// PROMPT: Continuous PIM Hello heartbeats inside a COMPILE LOOP maintaining neighbor adjacency.
+// TOKENS: HOST, IP, FLOW, PIM, HELLO, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define campus multicast router keeping neighbor adjacency alive.
+HOST campus_pim_rtr { IP 10.77.1.1 }
+
+// INSTRUCTION: Define All-PIM-Routers multicast peer destination.
+HOST all_pim_peers_dst { IP 224.0.0.13 }
+
+// INSTRUCTION: Define periodic PIM Hello heartbeat flow.
+FLOW pim_liveness_heartbeat(rtr, dst) {
+    rtr -> dst PIM HELLO WAIT 30ms
+}
+
+// INSTRUCTION: Compile loop executing 4 periodic PIM Hello transmissions.
+COMPILE {
+    LOOP 4 {
+        pim_liveness_heartbeat(campus_pim_rtr, all_pim_peers_dst)
+    }
+}

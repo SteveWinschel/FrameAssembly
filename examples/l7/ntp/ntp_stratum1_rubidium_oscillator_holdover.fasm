@@ -1,0 +1,25 @@
+// PROMPT: Model a telecom Stratum 1 Rubidium atomic oscillator time server answering NTPv4 queries with REFID RB.
+// TOKENS: HOST, IP, MAC, FLOW, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, TX_TIMESTAMP, VLAN, PCP, WAIT, REFID, COMPILE
+
+// INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
+HOST ntp_client {
+    IP 172.16.123.22
+    MAC 00:1b:21:7b:01:0a
+}
+
+// INSTRUCTION: Define the NTP reference server or peer endpoint.
+HOST ntp_server {
+    IP 172.16.123.1
+    MAC 00:1b:21:7b:01:01
+}
+
+// INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
+FLOW ntp_scenario_flow(c, s) {
+    c -> s NTP LI 0 VN 4 MODE 3 STRATUM 2 POLL 4 PRECISION -18 TX_TIMESTAMP 0xe9b4c20000000000 VLAN 123 PCP 6 WAIT 2ms
+    c <- s NTP LI 0 VN 4 MODE 4 STRATUM 1 POLL 4 PRECISION -25 REFID "RB" TX_TIMESTAMP 0xe9b4c2000020c49b VLAN 123 PCP 6
+}
+
+// INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
+COMPILE {
+    ntp_scenario_flow(ntp_client, ntp_server)
+}

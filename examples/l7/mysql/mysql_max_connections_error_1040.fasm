@@ -1,0 +1,27 @@
+// PROMPT: MySQL server rejecting new client connections during a traffic spike with ER_CON_COUNT_ERROR (1040).
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SRCPORT, DSTPORT, SYN, SEQ, ACK, ACKNUM, MYSQL, ERR, ERRCODE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the autoscaled web worker attempting to open a new database connection.
+HOST web_worker_99 {
+    IP 10.90.110.99
+    MAC 00:1a:2b:90:b0:99
+}
+
+// INSTRUCTION: Define the saturated MySQL database server.
+HOST overloaded_mysql {
+    IP 10.90.110.1
+    MAC 00:1a:2b:90:b0:01
+}
+
+// INSTRUCTION: Establish TCP handshake and immediately receive MySQL ERR 1040 Too many connections.
+FLOW mysql_too_many_conns(c, s) {
+    c -> s TCP SRCPORT 55100 DSTPORT 3306 SYN SEQ 100
+    c <- s TCP SRCPORT 3306 DSTPORT 55100 SYN ACK SEQ 500 ACKNUM 101
+    c -> s TCP SRCPORT 55100 DSTPORT 3306 ACK SEQ 101 ACKNUM 501
+    c <- s MYSQL ERR ERRCODE 1040 PAYLOAD "Too many connections"
+}
+
+// INSTRUCTION: Compile the MySQL max_connections rejection flow.
+COMPILE {
+    mysql_too_many_conns(web_worker_99, overloaded_mysql)
+}

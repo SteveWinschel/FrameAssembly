@@ -1,0 +1,31 @@
+// PROMPT: Complete Video-on-Demand RTSP session using shorthand OPTIONS, DESCRIBE, SETUP, PLAY, and TEARDOWN tokens.
+// TOKENS: HOST, IP, FLOW, RTSP, OPTIONS, URI, CSEQ, WAIT, STATUS, DESCRIBE, SETUP, TRANSPORT_HDR, SESSION, PLAY, TEARDOWN, COMPILE
+
+// INSTRUCTION: Define set-top box VoD media player client.
+HOST stb_player {
+    IP 10.30.40.50
+}
+
+// INSTRUCTION: Define cable headend RTSP VoD server.
+HOST vod_server {
+    IP 10.30.40.1
+}
+
+// INSTRUCTION: Define full RTSP session using shorthand method keywords from OPTIONS to TEARDOWN.
+FLOW rtsp_shorthand_lifecycle(c, s) {
+    c -> s RTSP OPTIONS URI "rtsp://10.30.40.1/vod/movie1" CSEQ 1 WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 1 WAIT 3ms
+    c -> s RTSP DESCRIBE URI "rtsp://10.30.40.1/vod/movie1" CSEQ 2 WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 2 WAIT 3ms
+    c -> s RTSP SETUP URI "rtsp://10.30.40.1/vod/movie1/track1" CSEQ 3 TRANSPORT_HDR "RTP/AVP;unicast;client_port=5000-5001" WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 3 SESSION "vod_998877" WAIT 3ms
+    c -> s RTSP PLAY URI "rtsp://10.30.40.1/vod/movie1" CSEQ 4 SESSION "vod_998877" WAIT 10ms
+    c <- s RTSP STATUS 200 CSEQ 4 SESSION "vod_998877" WAIT 10ms
+    c -> s RTSP TEARDOWN URI "rtsp://10.30.40.1/vod/movie1" CSEQ 5 SESSION "vod_998877" WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 5 SESSION "vod_998877"
+}
+
+// INSTRUCTION: Compile the full shorthand RTSP VoD lifecycle scenario.
+COMPILE {
+    rtsp_shorthand_lifecycle(stb_player, vod_server)
+}

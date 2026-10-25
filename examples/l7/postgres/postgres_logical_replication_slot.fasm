@@ -1,0 +1,21 @@
+// PROMPT: PostgreSQL logical replication slot creation and WAL streaming status check.
+// TOKENS: HOST, IP, MAC, FLOW, POSTGRES, STARTUP, DB, WAIT, READY_FOR_QUERY, SQL, COMMAND_COMPLETE, COMPILE
+
+// INSTRUCTION: Define CDC connector consumer host.
+HOST cdc_consumer { IP 10.64.1.30 MAC 00:1c:42:64:01:1e }
+
+// INSTRUCTION: Define primary PostgreSQL WAL publisher host.
+HOST wal_publisher { IP 10.64.1.10 MAC 00:1c:42:64:01:0a }
+
+// INSTRUCTION: Define replication database startup and pg_stat_replication query.
+FLOW pg_logical_repl(c, s) {
+    c -> s POSTGRES STARTUP DB "replication" WAIT 5ms
+    c <- s POSTGRES READY_FOR_QUERY WAIT 5ms
+    c -> s POSTGRES SQL "SELECT slot_name, active FROM pg_replication_slots" WAIT 5ms
+    c <- s POSTGRES COMMAND_COMPLETE READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile PostgreSQL logical replication check.
+COMPILE {
+    pg_logical_repl(cdc_consumer, wal_publisher)
+}

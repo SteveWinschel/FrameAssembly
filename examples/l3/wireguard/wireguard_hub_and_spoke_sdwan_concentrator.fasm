@@ -1,0 +1,32 @@
+// PROMPT: Central WireGuard SD-WAN Hub Concentrator terminating concurrent encrypted tunnels from Branch Spoke 1 and Branch Spoke 2.
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Central WireGuard Hub Concentrator.
+HOST wg_sdwan_hub {
+    IP 198.51.100.1
+    MAC 00:25:90:51:82:01
+}
+
+// INSTRUCTION: Define Retail Branch Spoke 1.
+HOST wg_branch_spoke1 {
+    IP 203.0.113.11
+    MAC 00:25:90:51:82:0b
+}
+
+// INSTRUCTION: Define Retail Branch Spoke 2.
+HOST wg_branch_spoke2 {
+    IP 203.0.113.22
+    MAC 00:25:90:51:82:16
+}
+
+// INSTRUCTION: Define Hub routing encrypted Spoke-1 packet (RECEIVER 101) to Spoke-2 (RECEIVER 202).
+FLOW wg_hub_and_spoke_relay(hub, s1, s2) {
+    s1 -> hub WIREGUARD TYPE DATA RECEIVER 101 COUNTER 400 DF DSCP 26 TTL 62 PAYLOAD "SPOKE1_TO_SPOKE2_VOIP_CALL" WAIT 3ms
+    hub -> s2 WIREGUARD TYPE DATA RECEIVER 202 COUNTER 800 DF DSCP 26 TTL 62 PAYLOAD "HUB_FORWARDED_TO_SPOKE2" WAIT 3ms
+    hub <- s2 WIREGUARD TYPE DATA RECEIVER 102 COUNTER 801 DF DSCP 26 TTL 62 PAYLOAD "SPOKE2_TO_SPOKE1_VOIP_ACK"
+}
+
+// INSTRUCTION: Compile the WireGuard Hub-and-Spoke SD-WAN concentrator flow.
+COMPILE {
+    wg_hub_and_spoke_relay(wg_sdwan_hub, wg_branch_spoke1, wg_branch_spoke2)
+}

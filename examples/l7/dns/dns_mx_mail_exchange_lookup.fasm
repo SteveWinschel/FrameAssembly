@@ -1,0 +1,19 @@
+// PROMPT: DNS MX mail exchanger record lookup and response with explicit answer TTL.
+// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define outbound SMTP MTA server.
+HOST smtp_mta { IP 172.16.40.10 }
+
+// INSTRUCTION: Define upstream DNS resolver.
+HOST dns_resolver { IP 9.9.9.9 }
+
+// INSTRUCTION: Query MX record for example.org and receive mail server target with 3600s TTL.
+FLOW dns_mx_lookup(m, r) {
+    m -> r DNS QUERY TXID 0x8801 QNAME "example.org" QTYPE "MX"
+    m <- r DNS RESPONSE TXID 0x8801 QNAME "example.org" QTYPE "MX" RDATA "10 mail.example.org" ANS_TTL 3600
+}
+
+// INSTRUCTION: Compile the DNS MX record query and response.
+COMPILE {
+    dns_mx_lookup(smtp_mta, dns_resolver)
+}

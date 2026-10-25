@@ -1,0 +1,29 @@
+// PROMPT: PostgreSQL read replica verification querying pg_is_in_recovery() and pg_last_wal_replay_lsn().
+// TOKENS: HOST, IP, MAC, FLOW, POSTGRES, STARTUP, USER, DB, AUTH_OK, WAIT, READY_FOR_QUERY, SQL, COMMAND_COMPLETE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the Patroni HA cluster agent checking replica lag.
+HOST patroni_agent {
+    IP 10.95.110.10
+    MAC 00:1a:2b:95:b0:10
+}
+
+// INSTRUCTION: Define the PostgreSQL hot standby node.
+HOST pg_standby {
+    IP 10.95.110.2
+    MAC 00:1a:2b:95:b0:02
+}
+
+// INSTRUCTION: Verify standby recovery state and last replayed WAL LSN position.
+FLOW pg_standby_lag(c, s) {
+    c -> s POSTGRES STARTUP USER "patroni_mon" DB "postgres"
+    c <- s POSTGRES AUTH_OK WAIT 1ms
+    c <- s POSTGRES READY_FOR_QUERY WAIT 1ms
+    c -> s POSTGRES SQL "SELECT pg_is_in_recovery(), pg_last_wal_replay_lsn()"
+    c <- s POSTGRES COMMAND_COMPLETE PAYLOAD "t | 0/4A001F88" WAIT 1ms
+    c <- s POSTGRES READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile the PostgreSQL hot standby verification flow.
+COMPILE {
+    pg_standby_lag(patroni_agent, pg_standby)
+}

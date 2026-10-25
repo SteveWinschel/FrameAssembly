@@ -1,5 +1,5 @@
 // PROMPT: MLDv1 listener report subscribing to multicast address with maximum response delay.
-// TOKENS: HOST, IP, FLOW, ->, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, COMPILE
+// TOKENS: HOST, IP, FLOW, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, COMPILE
 
 // INSTRUCTION: Define IPv6 multicast subscriber host.
 HOST ipv6_subscriber { IP fe80::a1 }

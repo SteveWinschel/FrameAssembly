@@ -1,0 +1,25 @@
+// PROMPT: RFC 2080 RIPng over IPv6 performing Split Horizon with Poisoned Reverse (METRIC 16) between link-local routers.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, RESPONSE, PREFIX, METRIC, TAG, SRCPORT, DSTPORT, DSCP, TTL, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IPv6 branch router A advertising prefix 2001:db8:10:: with metric 1.
+HOST ripng_peer_a {
+    IP fe80::a:1
+    MAC 00:1a:a1:05:21:0a
+}
+
+// INSTRUCTION: Define IPv6 branch router B echoing the learned prefix back with poisoned metric 16.
+HOST ripng_peer_b {
+    IP fe80::b:2
+    MAC 00:1a:a1:05:21:0b
+}
+
+// INSTRUCTION: Define RIPng route advertisement followed by Poison Reverse METRIC 16 response.
+FLOW ripng_v6_poison_reverse(a, b) {
+    a -> b RIP RESPONSE PREFIX 2001:db8:10:: METRIC 1 TAG 10 SRCPORT 521 DSTPORT 521 DSCP 48 TTL 255 WAIT 5ms
+    a <- b RIP RESPONSE PREFIX 2001:db8:10:: METRIC 16 TAG 10 SRCPORT 521 DSTPORT 521 DSCP 48 TTL 255 PAYLOAD "RIPNG_POISON_REVERSE_INFINITY"
+}
+
+// INSTRUCTION: Compile the RFC 2080 RIPng IPv6 Poison Reverse flow.
+COMPILE {
+    ripng_v6_poison_reverse(ripng_peer_a, ripng_peer_b)
+}

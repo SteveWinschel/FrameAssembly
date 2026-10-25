@@ -1,5 +1,5 @@
 // PROMPT: Simulate a Zero Trust Network Access (ZTNA) policy enforcement flow combining TLS TCP client access, RADIUS UDP MFA verification, and backend TCP proxy forwarding.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, UDP, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, UDP, COMPILE
 
 // INSTRUCTION: Define a remote employee endpoint with IP 198.51.100.75.
 HOST remote_laptop { IP 198.51.100.75 MAC a4:83:e7:99:00:75 }

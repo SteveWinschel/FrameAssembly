@@ -1,0 +1,28 @@
+// PROMPT: Generate a classic multi-user dungeon (MUD) text server Telnet session on custom TCP port 4000 with Echo control.
+// TOKENS: HOST, IP, MAC, FLOW, TELNET, SRCPORT, DSTPORT, PAYLOAD, WAIT, WILL, DO, WONT, COMPILE
+
+// INSTRUCTION: Define the retro terminal player client connecting to TCP port 4000.
+HOST mud_player {
+    IP 192.168.40.88
+    MAC 00:26:b9:28:00:58
+}
+
+// INSTRUCTION: Define the MUD text server listening on port 4000.
+HOST mud_server {
+    IP 192.168.40.10
+    MAC 00:26:b9:28:00:0a
+}
+
+// INSTRUCTION: Connect to port 4000, toggle server WILL 1 (Echo) during password entry, and send WONT 1 after login.
+FLOW telnet_mud_port_4000(p, s) {
+    p <- s TELNET SRCPORT 4000 DSTPORT 54000 PAYLOAD "By what name do you wish to be known? " WAIT 10ms
+    p -> s TELNET SRCPORT 54000 DSTPORT 4000 PAYLOAD "merlin\r\n" WAIT 5ms
+    p <- s TELNET SRCPORT 4000 DSTPORT 54000 WILL 1 PAYLOAD "Password: " WAIT 10ms
+    p -> s TELNET SRCPORT 54000 DSTPORT 4000 DO 1 PAYLOAD "dragonfire\r\n" WAIT 5ms
+    p <- s TELNET SRCPORT 4000 DSTPORT 54000 WONT 1 PAYLOAD "\r\nYou are standing in the Grand Temple of Midgaard.\r\n> "
+}
+
+// INSTRUCTION: Compile the custom port 4000 Telnet MUD session flow.
+COMPILE {
+    telnet_mud_port_4000(mud_player, mud_server)
+}

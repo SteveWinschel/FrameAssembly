@@ -1,0 +1,27 @@
+// PROMPT: Enterprise 3G/4G small-cell Home NodeB Gateway (HNB-GW) exchanging Iuh HNBAP (PPID 20) and RUA (PPID 19) over SCTP port 29169.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define indoor enterprise femtocell access point.
+HOST enterprise_hnb {
+    IP 10.169.29.50
+    MAC 00:26:bb:a9:1d:32
+}
+
+// INSTRUCTION: Define mobile operator Home NodeB Gateway (HNB-GW) on SCTP port 29169.
+HOST core_hnb_gw {
+    IP 10.169.29.1
+    MAC 00:1c:73:a9:1d:01
+}
+
+// INSTRUCTION: Register femtocell on Stream 0 using HNBAP (PPID 20) and transport RANAP user signaling on Stream 1 using RUA (PPID 19).
+FLOW sctp_iuh_femtocell(hnb, gw) {
+    hnb -> gw DSCP 46 SCTP CHUNK DATA VTAG 291690 STREAM 0 SSN 0 PPID 20 SRCPORT 29169 DSTPORT 29169 PAYLOAD "hnbap_hnb_register_request_cell_id_401" WAIT 5ms
+    hnb <- gw DSCP 46 SCTP CHUNK DATA VTAG 291690 STREAM 0 SSN 0 PPID 20 SRCPORT 29169 DSTPORT 29169 PAYLOAD "hnbap_hnb_register_accept_rnc_id_12" WAIT 5ms
+    hnb -> gw DSCP 46 SCTP CHUNK DATA VTAG 291690 STREAM 1 SSN 0 PPID 19 SRCPORT 29169 DSTPORT 29169 PAYLOAD "rua_connect_ranap_initial_ue_msg" WAIT 2ms
+    hnb <- gw DSCP 46 SCTP CHUNK SACK VTAG 291690 SRCPORT 29169 DSTPORT 29169
+}
+
+// INSTRUCTION: Compile the Iuh HNBAP and RUA femtocell gateway SCTP trace.
+COMPILE {
+    sctp_iuh_femtocell(enterprise_hnb, core_hnb_gw)
+}

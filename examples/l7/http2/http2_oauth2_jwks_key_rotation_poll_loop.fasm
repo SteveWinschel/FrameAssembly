@@ -1,0 +1,28 @@
+// PROMPT: API gateway polling an OAuth2 JWKS endpoint over a persistent HTTP/2 connection using a COMPILE LOOP.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP2, HEADERS, STREAM_ID, DATA, PAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define edge API gateway verifying JWT tokens.
+HOST jwt_gateway {
+    IP 10.52.10.5
+    MAC 00:1c:73:34:0a:05
+}
+
+// INSTRUCTION: Define OAuth2 identity provider hosting /.well-known/jwks.json over HTTP/2.
+HOST idp_jwks_srv {
+    IP 10.52.10.100
+    MAC 00:1c:73:34:0a:64
+}
+
+// INSTRUCTION: Fetch JWKS key set on Stream 1 with 50ms interval between refreshes.
+FLOW http2_jwks_refresh(gw, idp) {
+    gw -> idp HTTP2 HEADERS STREAM_ID 1
+    gw <- idp HTTP2 HEADERS STREAM_ID 1
+    gw <- idp HTTP2 DATA STREAM_ID 1 PAYLOAD "{'keys':[{'kty':'RSA','kid':'2026-10'}]}" WAIT 50ms
+}
+
+// INSTRUCTION: Execute 3 JWKS key rotation polling intervals in a COMPILE LOOP.
+COMPILE {
+    LOOP 3 {
+        http2_jwks_refresh(jwt_gateway, idp_jwks_srv)
+    }
+}

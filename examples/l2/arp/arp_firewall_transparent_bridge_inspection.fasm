@@ -1,0 +1,25 @@
+// PROMPT: Transparent Layer 2 firewall inspecting ARP Request and Reply between DMZ web server and internal gateway.
+// TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, SHA, SPA, THA, TPA, WAIT, REPLY, COMPILE
+
+// INSTRUCTION: Define DMZ reverse proxy server resolving default gateway MAC address.
+HOST dmz_reverse_proxy {
+    IP 172.16.80.10
+    MAC 00:16:3e:50:00:0a
+}
+
+// INSTRUCTION: Define internal perimeter router behind transparent Layer 2 inspection bridge.
+HOST dmz_perimeter_rtr {
+    IP 172.16.80.1
+    MAC 00:16:3e:50:00:01
+}
+
+// INSTRUCTION: Exchange standard ARP Request and Reply with explicit SHA, SPA, THA, and TPA verification.
+FLOW arp_dmz_bridge_verify(proxy, rtr) {
+    proxy -> rtr ARP REQUEST SHA 00:16:3e:50:00:0a SPA 172.16.80.10 THA 00:00:00:00:00:00 TPA 172.16.80.1 WAIT 5ms
+    proxy <- rtr ARP REPLY SHA 00:16:3e:50:00:01 SPA 172.16.80.1 THA 00:16:3e:50:00:0a TPA 172.16.80.10
+}
+
+// INSTRUCTION: Compile the DMZ transparent bridge ARP inspection trace.
+COMPILE {
+    arp_dmz_bridge_verify(dmz_reverse_proxy, dmz_perimeter_rtr)
+}

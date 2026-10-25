@@ -1,0 +1,29 @@
+// PROMPT: RFC 7170 TEAP (Tunnel Extensible Authentication Protocol, EAP_METHOD 55) chaining machine and user certificates in a single tunnel.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, START, WAIT, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define corporate workstation running RFC 7170 TEAP (Method 55) dual-identity supplicant.
+HOST teap_dual_supp {
+    IP 10.85.10.22
+    MAC 00:21:70:55:0a:16
+}
+
+// INSTRUCTION: Define campus Zero-Trust access switch port supporting RFC 7170 TEAP.
+HOST ztna_switch_pae {
+    IP 10.85.10.1
+    MAC 00:1c:73:55:0a:01
+}
+
+// INSTRUCTION: Authenticate outer anonymous identity and inner chained machine/user TLVs over EAP_METHOD 55.
+FLOW eapol_teap_chained(ws, sw) {
+    ws -> sw EAPOL VERSION 3 TYPE START WAIT 2ms
+    ws <- sw EAPOL VERSION 3 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 30 EAP_METHOD 1 WAIT 2ms
+    ws -> sw EAPOL VERSION 3 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 30 EAP_METHOD 1 IDENTITY "anonymous@ztna.corp" WAIT 5ms
+    ws <- sw EAPOL VERSION 3 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 31 EAP_METHOD 55 PAYLOAD "TEAP_V1_OUTER_TLS_SERVER_HELLO" WAIT 5ms
+    ws -> sw EAPOL VERSION 3 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 31 EAP_METHOD 55 PAYLOAD "TEAP_V1_COMPOUND_MAC_MACHINE_AND_USER_OK" WAIT 5ms
+    ws <- sw EAPOL VERSION 3 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 31 EAP_METHOD 55
+}
+
+// INSTRUCTION: Compile the RFC 7170 TEAP chained machine and user authentication trace.
+COMPILE {
+    eapol_teap_chained(teap_dual_supp, ztna_switch_pae)
+}

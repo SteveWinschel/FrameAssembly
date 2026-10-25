@@ -1,0 +1,26 @@
+// PROMPT: Create a Kerberos KRB_ERROR KDC_ERR_C_PRINCIPAL_UNKNOWN response for a nonexistent user account on a custom KDC port 8888.
+// TOKENS: HOST, IP, MAC, FLOW, KERBEROS, SRCPORT, DSTPORT, AS_REQ, REALM, CNAME, SNAME, ETYPE, VLAN, WAIT, KRB_ERROR, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the test client attempting authentication against a containerized KDC on UDP port 8888.
+HOST dev_client {
+    IP 172.18.0.15
+    MAC 02:42:ac:12:00:0f
+}
+
+// INSTRUCTION: Define the containerized MIT Kerberos KDC listening on custom port 8888.
+HOST container_kdc {
+    IP 172.18.0.2
+    MAC 02:42:ac:12:00:02
+}
+
+// INSTRUCTION: Send an AS_REQ for an unknown principal and receive a KRB_ERROR response over VLAN 180.
+FLOW unknown_principal_error(c, s) {
+    c -> s KERBEROS SRCPORT 49800 DSTPORT 8888 AS_REQ REALM "DEV.DOCKER.LOCAL" CNAME "ghost_user" SNAME "krbtgt/DEV.DOCKER.LOCAL" ETYPE 23 VLAN 180 WAIT 2ms
+    c <- s KERBEROS SRCPORT 8888 DSTPORT 49800 KRB_ERROR REALM "DEV.DOCKER.LOCAL" CNAME "ghost_user" SNAME "krbtgt/DEV.DOCKER.LOCAL"
+        PAYLOAD "KDC_ERR_C_PRINCIPAL_UNKNOWN: Client not found in Kerberos database" VLAN 180
+}
+
+// INSTRUCTION: Compile the unknown principal Kerberos error trace into a PCAP file.
+COMPILE {
+    unknown_principal_error(dev_client, container_kdc)
+}

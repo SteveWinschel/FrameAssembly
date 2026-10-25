@@ -1,0 +1,25 @@
+// PROMPT: Build an IPv6 IPsec tunnel flow utilizing IPv6 Flow Labels, DSCP traffic classes, and ECN bits
+// TOKENS: HOST, IP, MAC, FLOW, IPSEC, SPI, SEQ, NEXT_HEADER, FLOWLABEL, DSCP, ECN, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the IPv6 regional gateway A
+HOST v6_gw_alpha {
+    IP 2001:db8:900:a::1
+    MAC 00:50:56:d1:0a:01
+}
+
+// INSTRUCTION: Define the IPv6 regional gateway B
+HOST v6_gw_beta {
+    IP 2001:db8:900:b::1
+    MAC 00:50:56:d1:0b:01
+}
+
+// INSTRUCTION: Send IPv6 IPsec packets with explicit Flow Labels for ECMP hashing
+FLOW ipsec_v6_flowlabel_sa(gw_a, gw_b) {
+    gw_a -> gw_b IPSEC SPI 500101 SEQ 1 NEXT_HEADER 41 FLOWLABEL 262144 DSCP 34 ECN 2 TTL 64 PAYLOAD "ipv6-in-ipv6-ipsec-stream" WAIT 15ms
+    gw_b -> gw_a IPSEC SPI 500102 SEQ 1 NEXT_HEADER 41 FLOWLABEL 524288 DSCP 34 ECN 2 TTL 64 PAYLOAD "ipv6-in-ipv6-ipsec-ack"
+}
+
+// INSTRUCTION: Compile the IPv6 Flow Label IPsec exchange
+COMPILE {
+    ipsec_v6_flowlabel_sa(v6_gw_alpha, v6_gw_beta)
+}

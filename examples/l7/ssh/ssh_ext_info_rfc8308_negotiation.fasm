@@ -1,0 +1,33 @@
+// PROMPT: Model an OpenSSH 8.3+ extension negotiation sending SSH_MSG_EXT_INFO (7) immediately after SSH_MSG_NEWKEYS (21).
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SSH, BANNER, KEXINIT, PAYLOAD, NEWKEYS, MSG_CODE, COMPILE
+
+// INSTRUCTION: Define host endpoint modern_client.
+HOST modern_client {
+    MAC 00:50:56:83:08:01
+    IP 10.99.22.10
+}
+
+// INSTRUCTION: Define host endpoint modern_server.
+HOST modern_server {
+    MAC 00:50:56:83:08:02
+    IP 10.99.22.20
+}
+
+// INSTRUCTION: Complete KEXINIT and NEWKEYS, followed by SSH_MSG_EXT_INFO (7) advertising server-sig-algs.
+FLOW ssh_ext_info_rfc8308(modern_client, modern_server) {
+    modern_client -> modern_server TCP SYN SRCPORT 60022 DSTPORT 22
+    modern_server -> modern_client TCP SYN ACK
+    modern_client -> modern_server TCP ACK
+    modern_client -> modern_server SSH BANNER "SSH-2.0-OpenSSH_9.7"
+    modern_server -> modern_client SSH BANNER "SSH-2.0-OpenSSH_9.7"
+    modern_client -> modern_server SSH KEXINIT PAYLOAD "123456789abcdef0123456789abcdef0"
+    modern_server -> modern_client SSH KEXINIT PAYLOAD "0fedcba9876543210fedcba987654321"
+    modern_client -> modern_server SSH NEWKEYS
+    modern_server -> modern_client SSH NEWKEYS
+    modern_server -> modern_client SSH MSG_CODE 7 PAYLOAD "server-sig-algs:rsa-sha2-512,rsa-sha2-256,ssh-ed25519"
+}
+
+// INSTRUCTION: Compile the SSH RFC 8308 EXT_INFO negotiation flow.
+COMPILE {
+    ssh_ext_info_rfc8308(modern_client, modern_server)
+}

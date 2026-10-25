@@ -1,0 +1,18 @@
+// PROMPT: Dual-tagged QinQ MLD Report originating from customer premise equipment (CPE).
+// TOKENS: HOST, IP, FLOW, MLD, REPORT, MULTICAST_ADDR, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define enterprise branch customer premise equipment.
+HOST enterprise_cpe { IP fe80::ca01:1 }
+
+// INSTRUCTION: Define metro provider edge aggregation router.
+HOST metro_pe_router { IP ff02::2 }
+
+// INSTRUCTION: Define double-tagged QinQ MLD report joining corporate webcast.
+FLOW mld_qinq_report_flow(cpe, pe) {
+    cpe -> pe MLD REPORT MULTICAST_ADDR ff08::8080 QINQ 100 INNER_VLAN 25
+}
+
+// INSTRUCTION: Compile block executing QinQ encapsulated MLD report.
+COMPILE {
+    mld_qinq_report_flow(enterprise_cpe, metro_pe_router)
+}

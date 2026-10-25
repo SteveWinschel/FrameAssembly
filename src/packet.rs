@@ -1,7 +1,10 @@
-//! Packet construction and wire serialization module.
+//! Low-level network packet construction, header framing, and wire serialization utilities.
 //!
-//! Provides functions to construct valid Ethernet, 802.1Q VLAN, 802.1ad QinQ,
-//! RFC 3032 MPLS, IPv4, IPv6, TCP, and UDP packets with complete checksum calculation.
+//! This module provides deterministic wire-format builders for Layer 2 (Ethernet II, IEEE 802.1Q
+//! VLAN, IEEE 802.1ad QinQ, and RFC 3032 MPLS shim headers), Layer 3 (RFC 791 IPv4 and RFC 8200
+//! IPv6 headers with DSCP, ECN, fragmentation, and Flow Label fields), and Layer 4 (RFC 9293 TCP
+//! with options and RFC 768 UDP datagrams), including complete RFC 1071 one's-complement Internet
+//! checksum and pseudo-header checksum computation.
 
 use alloc::string::ToString;
 use alloc::vec::Vec;

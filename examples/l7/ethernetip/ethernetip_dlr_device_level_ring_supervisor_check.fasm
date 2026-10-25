@@ -1,0 +1,27 @@
+// PROMPT: EtherNet/IP CIP Device Level Ring (DLR) Object (Class 0x47 = 71) ring topology status and active supervisor check.
+// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, STATUS, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the plant network diagnostic monitor.
+HOST dlr_monitor {
+    IP 10.135.80.100
+    MAC 00:1a:2b:87:80:64
+}
+
+// INSTRUCTION: Define the DLR ring supervisor 1783-ETAP tap module.
+HOST etap_supervisor {
+    IP 10.135.80.1
+    MAC 00:1a:2b:87:80:01
+}
+
+// INSTRUCTION: Query CIP DLR Class 71 Instance 1 Attribute 1 (Network Topology = Ring) and Attribute 2 (Network Status = Normal).
+FLOW enip_dlr_status(m, s) {
+    m -> s ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 8050 CONTEXT 1301 CIP_SERVICE 14 CIP_CLASS 71 CIP_INSTANCE 1 CIP_ATTR 1
+    m <- s ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 8050 CONTEXT 1301 CIP_SERVICE 142 CIP_CLASS 71 CIP_INSTANCE 1 CIP_ATTR 1 HEXPAYLOAD "01" WAIT 1ms
+    m -> s ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 8050 CONTEXT 1302 CIP_SERVICE 14 CIP_CLASS 71 CIP_INSTANCE 1 CIP_ATTR 2
+    m <- s ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 8050 CONTEXT 1302 CIP_SERVICE 142 CIP_CLASS 71 CIP_INSTANCE 1 CIP_ATTR 2 HEXPAYLOAD "00"
+}
+
+// INSTRUCTION: Compile the CIP Device Level Ring status inspection flow.
+COMPILE {
+    enip_dlr_status(dlr_monitor, etap_supervisor)
+}

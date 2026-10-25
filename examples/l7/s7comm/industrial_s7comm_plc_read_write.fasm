@@ -1,5 +1,5 @@
 // PROMPT: Siemens S7 PLC industrial communication over ISO-on-TCP COTP and S7 protocol on port 102.
-// TOKENS: HOST, IP, FLOW, ->, S7COMM, FUNC, READ_VAR, WRITE_VAR, COMPILE
+// TOKENS: HOST, IP, FLOW, S7COMM, FUNC, READ_VAR, WRITE_VAR, COMPILE
 
 // INSTRUCTION: Define Siemens engineering workstation.
 HOST engineering_pg { IP 192.168.0.50 }

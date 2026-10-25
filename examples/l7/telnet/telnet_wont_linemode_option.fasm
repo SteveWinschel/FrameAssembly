@@ -1,0 +1,19 @@
+// PROMPT: Client declining linemode operation using IAC WONT 34.
+// TOKENS: HOST, IP, FLOW, TELNET, DO, WONT, COMPILE
+
+// INSTRUCTION: Define dumb terminal display.
+HOST dumb_term { IP 10.30.0.14 }
+
+// INSTRUCTION: Define timesharing host.
+HOST timeshare_host { IP 10.30.0.1 }
+
+// INSTRUCTION: Define linemode decline flow.
+FLOW telnet_linemode_flow(c, s) {
+    c <- s TELNET DO 34
+    c -> s TELNET WONT 34
+}
+
+// INSTRUCTION: Compile block executing linemode refusal.
+COMPILE {
+    telnet_linemode_flow(dumb_term, timeshare_host)
+}

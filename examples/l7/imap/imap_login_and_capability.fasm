@@ -1,5 +1,5 @@
 // PROMPT: IMAP session authentication and mailbox capability discovery.
-// TOKENS: HOST, IP, FLOW, ->, <-, IMAP, TAG, CMD, ARG, COMPILE
+// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.20 }

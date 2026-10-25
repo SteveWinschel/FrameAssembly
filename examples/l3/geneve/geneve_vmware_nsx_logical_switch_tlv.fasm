@@ -1,0 +1,25 @@
+// PROMPT: VMware NSX-T Host Transport Node (TEP) encapsulating overlay frames in RFC 8926 GENEVE with Option Class 0x0104 (260).
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, VLAN, PCP, SRCPORT, DSTPORT, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define ESXi Host Transport Node TEP-1 in Compute Cluster A.
+HOST nsx_esxi_tep1 {
+    IP 172.16.60.11
+    MAC 00:50:56:60:81:0b
+}
+
+// INSTRUCTION: Define NSX Edge Transport Node TEP-2 providing Tier-0 North-South routing.
+HOST nsx_edge_tep2 {
+    IP 172.16.60.22
+    MAC 00:50:56:60:81:16
+}
+
+// INSTRUCTION: Define NSX GENEVE overlay with VNI 65540, OPT_CLASS 260 (VMware), and VLAN 160 underlay.
+FLOW geneve_nsx_tep_flow(tep1, tep2) {
+    tep1 -> tep2 GENEVE VNI 65540 OPT_CLASS 260 OPT_TYPE 129 PROTOCOL_TYPE 25944 VLAN 160 PCP 4 SRCPORT 55100 DSTPORT 6081 DF TTL 64 PAYLOAD "NSX_T_LOGICAL_SWITCH_EAST_WEST" WAIT 3ms
+    tep1 <- tep2 GENEVE VNI 65540 OPT_CLASS 260 OPT_TYPE 129 PROTOCOL_TYPE 25944 VLAN 160 PCP 4 SRCPORT 55101 DSTPORT 6081 DF TTL 64 PAYLOAD "NSX_T_TIER1_DISTRIBUTED_ROUTER_REPLY"
+}
+
+// INSTRUCTION: Compile the VMware NSX-T GENEVE TEP overlay flow.
+COMPILE {
+    geneve_nsx_tep_flow(nsx_esxi_tep1, nsx_edge_tep2)
+}

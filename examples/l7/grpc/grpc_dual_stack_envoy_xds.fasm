@@ -1,0 +1,26 @@
+// PROMPT: Dual-stack gRPC Envoy xDS ClusterDiscoveryService configuration fetch over IPv4 and IPv6.
+// TOKENS: HOST, IP, FLOW, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define IPv4 Envoy sidecar proxy.
+HOST envoy_v4 { IP 10.120.1.10 }
+
+// INSTRUCTION: Define IPv4 Istio control plane.
+HOST istiod_v4 { IP 10.120.0.1 }
+
+// INSTRUCTION: Define IPv6 Envoy sidecar proxy.
+HOST envoy_v6 { IP 2001:db8:5005::10 }
+
+// INSTRUCTION: Define IPv6 Istio control plane.
+HOST istiod_v6 { IP 2001:db8:5005::1 }
+
+// INSTRUCTION: Stream xDS StreamClusters request and response polymorphically.
+FLOW grpc_xds_sync(e, i) {
+    e -> i GRPC SERVICE "envoy.service.cluster.v3.ClusterDiscoveryService" METHOD "StreamClusters"
+    e <- i GRPC SERVICE "envoy.service.cluster.v3.ClusterDiscoveryService" METHOD "StreamClusters" GRPC_STATUS 0
+}
+
+// INSTRUCTION: Execute the Envoy xDS gRPC flow over IPv4 and IPv6 stacks.
+COMPILE {
+    grpc_xds_sync(envoy_v4, istiod_v4)
+    grpc_xds_sync(envoy_v6, istiod_v6)
+}

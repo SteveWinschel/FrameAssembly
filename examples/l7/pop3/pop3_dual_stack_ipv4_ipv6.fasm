@@ -1,0 +1,24 @@
+// PROMPT: Dual-stack IPv4 and IPv6 POP3 mailbox check using a single polymorphic flow.
+// TOKENS: HOST, IP, FLOW, POP3, CMD, DSCP, TTL, FLOWLABEL, OK, COMPILE
+
+// INSTRUCTION: Define IPv4 POP3 client and server.
+HOST pop_v4_c { IP 10.60.1.10 }
+// INSTRUCTION: Define IPv4 POP3 server endpoint.
+HOST pop_v4_s { IP 10.60.1.20 }
+
+// INSTRUCTION: Define IPv6 POP3 client and server.
+HOST pop_v6_c { IP 2001:db8:110::10 }
+// INSTRUCTION: Define IPv6 POP3 server endpoint.
+HOST pop_v6_s { IP 2001:db8:110::20 }
+
+// INSTRUCTION: Define polymorphic POP3 STAT check with DSCP, TTL, and FLOWLABEL.
+FLOW pop3_dual_stack_stat(c, s) {
+    c -> s POP3 CMD "STAT" DSCP 18 TTL 64 FLOWLABEL 0x11000
+    c <- s POP3 OK DSCP 18 TTL 64 FLOWLABEL 0x11000
+}
+
+// INSTRUCTION: Compile dual-stack POP3 flow over IPv4 and IPv6.
+COMPILE {
+    pop3_dual_stack_stat(pop_v4_c, pop_v4_s)
+    pop3_dual_stack_stat(pop_v6_c, pop_v6_s)
+}

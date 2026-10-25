@@ -1,0 +1,25 @@
+// PROMPT: CoAP application-layer ping using an Empty Confirmable (0.00) message eliciting a Reset (RST) reply.
+// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, RST, COMPILE
+
+// INSTRUCTION: Define the border router probing constrained node liveness.
+HOST border_router {
+    IP 2001:db8:110:40::1
+    MAC 00:1a:2b:6e:40:01
+}
+
+// INSTRUCTION: Define the 6LoWPAN sleepy end-device over IPv6.
+HOST sleepy_mote {
+    IP 2001:db8:110:40::99
+    MAC 00:1a:2b:6e:40:99
+}
+
+// INSTRUCTION: Send an empty CON (code 0.00, token 0) and receive an immediate CoAP RST liveness reply.
+FLOW coap_ping_rst(r, m) {
+    r -> m COAP CON CODE "0.00" MSGID 5500 TOKEN 0
+    r <- m COAP RST CODE "0.00" MSGID 5500 TOKEN 0
+}
+
+// INSTRUCTION: Compile the IPv6 CoAP empty CON ping flow.
+COMPILE {
+    coap_ping_rst(border_router, sleepy_mote)
+}

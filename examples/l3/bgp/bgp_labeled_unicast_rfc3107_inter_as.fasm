@@ -1,0 +1,25 @@
+// PROMPT: RFC 3107 / RFC 8277 BGP Labeled Unicast (BGP-LU) Inter-AS Option C session over MPLS transport.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, UPDATE, ASN, PREFIX, NEXTHOP, MPLS, EXP, BOS, MPLS_TTL, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define ASBR-1 in AS 65001 advertising MPLS-labeled loopbacks to peer ASBR.
+HOST asbr1_opt_c {
+    IP 10.31.7.1
+    MAC 00:19:e8:31:07:01
+}
+
+// INSTRUCTION: Define ASBR-2 in AS 65002 exchanging BGP-LU SAFI 4 routes.
+HOST asbr2_opt_c {
+    IP 10.31.7.2
+    MAC 00:19:e8:31:07:02
+}
+
+// INSTRUCTION: Define BGP-LU UPDATE exchange with MPLS label stack and DSCP CS6.
+FLOW bgp_labeled_unicast_opt_c(asbr1, asbr2) {
+    asbr1 -> asbr2 BGP UPDATE ASN 65001 PREFIX "10.255.1.1/32" NEXTHOP 10.31.7.1 MPLS 29901 EXP 6 BOS 1 MPLS_TTL 64 DSCP 48 TTL 1 PAYLOAD "BGPLU_SAFI4_LABEL_29901" WAIT 5ms
+    asbr1 <- asbr2 BGP UPDATE ASN 65002 PREFIX "10.255.2.1/32" NEXTHOP 10.31.7.2 MPLS 29902 EXP 6 BOS 1 MPLS_TTL 64 DSCP 48 TTL 1 PAYLOAD "BGPLU_SAFI4_LABEL_29902"
+}
+
+// INSTRUCTION: Compile the Inter-AS Option C BGP Labeled Unicast peering flow.
+COMPILE {
+    bgp_labeled_unicast_opt_c(asbr1_opt_c, asbr2_opt_c)
+}

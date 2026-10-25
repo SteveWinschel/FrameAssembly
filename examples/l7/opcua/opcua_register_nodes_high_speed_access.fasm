@@ -1,0 +1,29 @@
+// PROMPT: OPC UA RegisterNodes (i=560) and UnregisterNodes (i=566) optimizing repeated read access on complex string NodeIds.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the high-speed data logger client.
+HOST fast_logger {
+    IP 10.140.80.18
+    MAC 00:1a:2b:8c:80:18
+}
+
+// INSTRUCTION: Define the S7-1500 embedded OPC UA server.
+HOST s7_ua_server {
+    IP 10.140.80.1
+    MAC 00:1a:2b:8c:80:01
+}
+
+// INSTRUCTION: Register string NodeId ns=3;s="DB_Fast"."Torque", read using alias handle, and unregister on teardown.
+FLOW opcua_register_nodes(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 800 TOKEN_ID 2 SEQ_NUM 1 REQID 1 NODE_ID "i=560" PAYLOAD "ns=3;s=DB_Fast.Torque"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 800 TOKEN_ID 2 SEQ_NUM 1 REQID 1 NODE_ID "i=563" PAYLOAD "Alias=ns=3;i=99001" WAIT 1ms
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 800 TOKEN_ID 2 SEQ_NUM 2 REQID 2 NODE_ID "ns=3;i=99001"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 800 TOKEN_ID 2 SEQ_NUM 2 REQID 2 NODE_ID "ns=3;i=99001" PAYLOAD "Float:412.8" WAIT 1ms
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 800 TOKEN_ID 2 SEQ_NUM 3 REQID 3 NODE_ID "i=566"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 800 TOKEN_ID 2 SEQ_NUM 3 REQID 3 NODE_ID "i=569"
+}
+
+// INSTRUCTION: Compile the OPC UA RegisterNodes and UnregisterNodes flow.
+COMPILE {
+    opcua_register_nodes(fast_logger, s7_ua_server)
+}

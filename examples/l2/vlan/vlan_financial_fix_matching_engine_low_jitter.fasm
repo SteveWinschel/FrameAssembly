@@ -1,0 +1,25 @@
+// PROMPT: Ultra-low-jitter equities matching engine VLAN 777 carrying priority-tagged TCP FIX order flow with PCP 5.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, DSCP, TCP, PSH, ACK, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define direct market access (DMA) gateway submitting orders on trading VLAN 777.
+HOST dma_order_gw {
+    IP 10.77.7.10
+    MAC 00:0f:53:4d:07:0a
+}
+
+// INSTRUCTION: Define exchange limit order book matching engine on trading VLAN 777.
+HOST lob_match_srv {
+    IP 10.77.7.1
+    MAC 00:0f:53:4d:07:01
+}
+
+// INSTRUCTION: Submit TCP PSH-ACK order entry on VLAN 777 PCP 5 and receive immediate execution report.
+FLOW vlan_fix_low_jitter(dma, lob) {
+    dma -> lob VLAN 777 PCP 5 DEI 0 DSCP 46 TCP PSH ACK SRCPORT 52100 DSTPORT 9876 SEQ 5001 ACKNUM 9001 WIN 16384 PAYLOAD "35=D|55=NVDA|54=1|38=100|44=125.50" WAIT 1ms
+    dma <- lob VLAN 777 PCP 5 DEI 0 DSCP 46 TCP PSH ACK SRCPORT 9876 DSTPORT 52100 SEQ 9001 ACKNUM 5035 WIN 16384 PAYLOAD "35=8|39=2|150=F|31=125.50|32=100"
+}
+
+// INSTRUCTION: Compile the trading VLAN 777 low-jitter TCP order execution flow.
+COMPILE {
+    vlan_fix_low_jitter(dma_order_gw, lob_match_srv)
+}

@@ -1,0 +1,21 @@
+// PROMPT: SMB2 sequential block read query and server data response on TreeId 10.
+// TOKENS: HOST, IP, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, WAIT, STATUS, COMPILE
+
+// INSTRUCTION: Define CAD workstation reader client.
+HOST cad_workstation { IP 172.16.80.33 }
+
+// INSTRUCTION: Define engineering file server.
+HOST eng_filesrv { IP 172.16.80.1 }
+
+// INSTRUCTION: Define SMB2 sequential READ data retrieval.
+FLOW smb_read_stream(c, s) {
+    c -> s SMB COMMAND "READ" TREE_ID 10 SESSION_ID 0x2400 MSGID 101 WAIT 2ms
+    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 10 SESSION_ID 0x2400 MSGID 101 WAIT 2ms
+    c -> s SMB COMMAND "READ" TREE_ID 10 SESSION_ID 0x2400 MSGID 102 WAIT 2ms
+    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 10 SESSION_ID 0x2400 MSGID 102
+}
+
+// INSTRUCTION: Compile SMB2 READ block transfer flow.
+COMPILE {
+    smb_read_stream(cad_workstation, eng_filesrv)
+}

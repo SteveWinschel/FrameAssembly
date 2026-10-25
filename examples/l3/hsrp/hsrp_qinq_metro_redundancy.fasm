@@ -1,0 +1,18 @@
+// PROMPT: QinQ dual-tagged HSRP heartbeats for service provider metro Ethernet redundancy.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, VIP, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define metro carrier PE router interface.
+HOST metro_pe_rtr { IP 172.16.200.1 }
+
+// INSTRUCTION: Define multicast heartbeat destination.
+HOST hsrp_metro_mcast { IP 224.0.0.2 }
+
+// INSTRUCTION: Define QinQ encapsulated HSRP flow with outer S-VLAN 200 and inner C-VLAN 10.
+FLOW hsrp_qinq_flow(pe, dst) {
+    pe -> dst HSRP GROUP 25 PRIORITY 115 VIP 172.16.200.254 QINQ 200 INNER_VLAN 10
+}
+
+// INSTRUCTION: Compile block executing QinQ dual-tagged HSRP transmission.
+COMPILE {
+    hsrp_qinq_flow(metro_pe_rtr, hsrp_metro_mcast)
+}

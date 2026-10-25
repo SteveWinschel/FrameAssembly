@@ -1,0 +1,25 @@
+// PROMPT: Data center edge switch running RSTP inside an MPLS VPLS domain while isolating regional topology changes.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, FLAGS, WAIT, COMPILE
+
+// INSTRUCTION: Define data center site A RSTP root bridge connected to MPLS VPLS pseudowire.
+HOST dc_site_a_rstp {
+    IP 10.200.10.1
+    MAC 00:1c:73:c8:0a:01
+}
+
+// INSTRUCTION: Define data center site B RSTP bridge receiving BPDUs over MPLS label 55100.
+HOST dc_site_b_rstp {
+    IP 10.200.10.2
+    MAC 00:1c:73:c8:0a:02
+}
+
+// INSTRUCTION: Tunnel RSTP BPDUs with EXP 7 priority across MPLS VPLS pseudowire label 55100.
+FLOW stp_vpls_pseudowire(a, b) {
+    a -> b MPLS 55100 EXP 7 BOS 1 MPLS_TTL 64 STP RSTP ROOT_ID "4096:00:1c:73:c8:0a:01" BRIDGE_ID "4096:00:1c:73:c8:0a:01" COST 0 PORT_ID 32769 FLAGS 60 WAIT 10ms
+    a <- b MPLS 55100 EXP 7 BOS 1 MPLS_TTL 64 STP RSTP ROOT_ID "4096:00:1c:73:c8:0a:01" BRIDGE_ID "8192:00:1c:73:c8:0a:02" COST 2000 PORT_ID 32769 FLAGS 60
+}
+
+// INSTRUCTION: Compile the MPLS VPLS encapsulated RSTP BPDU exchange.
+COMPILE {
+    stp_vpls_pseudowire(dc_site_a_rstp, dc_site_b_rstp)
+}

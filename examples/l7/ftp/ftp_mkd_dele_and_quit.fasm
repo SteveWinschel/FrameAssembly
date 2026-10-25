@@ -1,0 +1,23 @@
+// PROMPT: FTP directory management creating a folder (MKD), deleting a stale file (DELE), and quitting (QUIT).
+// TOKENS: HOST, IP, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define release deployment runner.
+HOST deploy_runner { IP 192.168.55.30 }
+
+// INSTRUCTION: Define artifact staging FTP server.
+HOST staging_ftp { IP 192.168.55.5 }
+
+// INSTRUCTION: Create release directory, delete old archive, and close session with QUIT / 221 Goodbye.
+FLOW ftp_dir_housekeeping(c, s) {
+    c -> s FTP CMD "MKD" ARG "/releases/v2"
+    c <- s FTP CODE 257 REPLY "\"/releases/v2\" created"
+    c -> s FTP CMD "DELE" ARG "/releases/v1/old.zip"
+    c <- s FTP CODE 250 REPLY "Delete operation successful"
+    c -> s FTP CMD "QUIT"
+    c <- s FTP CODE 221 REPLY "Goodbye"
+}
+
+// INSTRUCTION: Compile the FTP housekeeping and logout flow.
+COMPILE {
+    ftp_dir_housekeeping(deploy_runner, staging_ftp)
+}

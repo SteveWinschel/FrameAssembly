@@ -1,0 +1,25 @@
+// PROMPT: SNMPv3 authNoPriv GetBulkRequest authenticated with HMAC-SHA-96 (AUTH SHA) without encryption.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP3, GETBULK, USER, REQID, NONREPEATERS, MAXREPETITIONS, ENGINEID, AUTH, SHA, VARBIND, NULLVAL, RESPONSE, COUNTER64, COMPILE
+
+// INSTRUCTION: Define the performance telemetry collector.
+HOST perf_collector {
+    IP 10.147.30.20
+    MAC 00:1a:2b:93:30:20
+}
+
+// INSTRUCTION: Define the WAN aggregation router SNMPv3 agent.
+HOST wan_router_v3 {
+    IP 10.147.30.1
+    MAC 00:1a:2b:93:30:01
+}
+
+// INSTRUCTION: Issue an authenticated (AUTH SHA, no PRIV) SNMPv3 GETBULK request on ifHCOutOctets.
+FLOW snmpv3_sha1_nopriv_bulk(c, r) {
+    c -> r SNMP3 GETBULK USER "sha1_poller" REQID 6400 NONREPEATERS 0 MAXREPETITIONS 5 ENGINEID "80001f88" AUTH SHA "Sha1Pass99" VARBIND 1.3.6.1.2.1.31.1.1.1.10 NULLVAL
+    c <- r SNMP3 RESPONSE USER "sha1_poller" REQID 6400 ENGINEID "80001f88" AUTH SHA "Sha1Pass99" VARBIND 1.3.6.1.2.1.31.1.1.1.10.1 COUNTER64 55102948102
+}
+
+// INSTRUCTION: Compile the SNMPv3 SHA-1 authNoPriv GetBulk flow.
+COMPILE {
+    snmpv3_sha1_nopriv_bulk(perf_collector, wan_router_v3)
+}

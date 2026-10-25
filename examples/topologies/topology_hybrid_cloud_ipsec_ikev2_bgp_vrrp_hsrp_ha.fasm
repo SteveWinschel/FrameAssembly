@@ -1,0 +1,27 @@
+// PROMPT: Hybrid cloud direct connect HA failover combining VRRP and HSRP LAN gateway redundancy, IKEv2/ESP IPsec backup tunnel, BGP route convergence, and BFD.
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, HSRP, GROUP, HELLOTIME, STATE, WAIT, BFD, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, IKEV2, SA_INIT, INITIATOR_SPI, COMPILE
+
+// INSTRUCTION: Define primary on-premises edge router running VRRP and HSRP active roles.
+HOST onprem_edge_pri { IP 192.0.2.10 }
+
+// INSTRUCTION: Define secondary on-premises backup edge router.
+HOST onprem_edge_sec { IP 192.0.2.11 }
+
+// INSTRUCTION: Define cloud transit VPN gateway terminating direct connect and IPsec backup.
+HOST cloud_transit_gw { IP 198.51.100.1 }
+
+// INSTRUCTION: Define VRRP/HSRP LAN redundancy, BFD link check, IKEv2/ESP backup activation, and BGP route failover.
+FLOW hybrid_cloud_ha_failover(pri, sec, cloud) {
+    pri -> sec VRRP VRID 10 PRIORITY 150 ADV_INT 1 VIP 192.0.2.1
+    pri -> sec HSRP GROUP 10 PRIORITY 150 HELLOTIME 3 STATE 16 VIP 192.0.2.254 WAIT 1ms
+    pri -> cloud BFD MY_DISC 501 YOUR_DISC 601 MIN_TX 100000 MIN_RX 100000 MULT 3 WAIT 1ms
+    sec -> cloud IKEV2 SA_INIT INITIATOR_SPI 0xa1b2c3d4e5f60718 RESPONDER_SPI 0x0000000000000000 MSGID 0 WAIT 2ms
+    sec <- cloud IKEV2 SA_INIT INITIATOR_SPI 0xa1b2c3d4e5f60718 RESPONDER_SPI 0x1122334455667788 MSGID 0 WAIT 2ms
+    sec -> cloud ESP SPI 0x9001 SEQ 1 WAIT 1ms
+    sec -> cloud BGP UPDATE PREFIX "10.100.0.0/16" NEXTHOP 192.0.2.11 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing hybrid cloud HA failover topology.
+COMPILE {
+    hybrid_cloud_ha_failover(onprem_edge_pri, onprem_edge_sec, cloud_transit_gw)
+}

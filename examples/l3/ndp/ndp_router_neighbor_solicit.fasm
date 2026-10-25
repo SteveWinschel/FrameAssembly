@@ -1,5 +1,5 @@
 // PROMPT: IPv6 Neighbor Discovery Protocol message exchange with Router and Neighbor Solicitations and Advertisements.
-// TOKENS: HOST, IP, FLOW, ->, <-, NDP, ROUTER_SOLICIT, ROUTER_ADVERT, NEIGHBOR_SOLICIT, NEIGHBOR_ADVERT, COMPILE
+// TOKENS: HOST, IP, FLOW, NDP, ROUTER_SOLICIT, ROUTER_ADVERT, NEIGHBOR_SOLICIT, NEIGHBOR_ADVERT, COMPILE
 
 // INSTRUCTION: Define IPv6 host node.
 HOST ndp_node { IP fe80::10 }

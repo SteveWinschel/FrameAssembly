@@ -1,0 +1,19 @@
+// PROMPT: HTTP/2 HPACK Huffman-compressed header block transmission using HEXPAYLOAD over QinQ.
+// TOKENS: HOST, IP, FLOW, HTTP2, HEADERS, STREAM_ID, QINQ, INNER_VLAN, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define carrier edge proxy.
+HOST edge_proxy { IP 100.64.43.10 }
+
+// INSTRUCTION: Define upstream HTTP/2 origin cluster.
+HOST origin_h2 { IP 100.64.43.1 }
+
+// INSTRUCTION: Transmit HTTP/2 HEADERS with custom HPACK indexed header bytes in HEXPAYLOAD.
+FLOW http2_hpack_qinq(e, o) {
+    e -> o HTTP2 HEADERS STREAM_ID 11 QINQ 1443 INNER_VLAN 43 HEXPAYLOAD "828684410f777777"
+    e <- o HTTP2 HEADERS STREAM_ID 11 QINQ 1443 INNER_VLAN 43 HEXPAYLOAD "88"
+}
+
+// INSTRUCTION: Compile the QinQ HTTP/2 HPACK binary header scenario.
+COMPILE {
+    http2_hpack_qinq(edge_proxy, origin_h2)
+}

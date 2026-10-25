@@ -1,5 +1,5 @@
 // PROMPT: RTP consecutive media packets advancing timestamp by 160 samples over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, RTP, PT, SSRC, TIMESTAMP, COMPILE
+// TOKENS: HOST, IP, FLOW, RTP, PT, SSRC, TIMESTAMP, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

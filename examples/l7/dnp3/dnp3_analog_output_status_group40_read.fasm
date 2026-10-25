@@ -1,0 +1,25 @@
+// PROMPT: DNP3 Group 40 Variation 2 (16-bit Analog Output Status) read verifying load tap changer position.
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define the substation voltage regulator master.
+HOST ltc_master {
+    IP 10.125.70.1
+    MAC 00:1a:2b:7d:70:01
+}
+
+// INSTRUCTION: Define the Load Tap Changer (LTC) controller outstation.
+HOST ltc_outstation {
+    IP 10.125.70.7
+    MAC 00:1a:2b:7d:70:07
+}
+
+// INSTRUCTION: Read Group 40 Variation 2 Analog Output Status to confirm tap position +4.
+FLOW dnp3_ltc_status(m, l) {
+    m -> l DNP3 FUNC "READ" SRC 1 DST 7 GROUP 40 VARIATION 2
+    m <- l DNP3 FUNC "RESPONSE" SRC 7 DST 1 GROUP 40 VARIATION 2 HEXPAYLOAD "010400"
+}
+
+// INSTRUCTION: Compile the DNP3 Group 40 Analog Output Status flow.
+COMPILE {
+    dnp3_ltc_status(ltc_master, ltc_outstation)
+}

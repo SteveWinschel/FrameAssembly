@@ -1,5 +1,5 @@
 // PROMPT: ICMP Destination Unreachable message generation with explicit type, code, and identifier.
-// TOKENS: HOST, IP, FLOW, ->, ICMP, DEST_UNREACH, CODE, ID, SEQ, COMPILE
+// TOKENS: HOST, IP, FLOW, ICMP, DEST_UNREACH, CODE, ID, SEQ, COMPILE
 
 // INSTRUCTION: Define router reporting unreachable destination.
 HOST reporting_router { IP 198.51.100.1 }

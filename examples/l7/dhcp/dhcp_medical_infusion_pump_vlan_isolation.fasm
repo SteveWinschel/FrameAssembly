@@ -1,0 +1,27 @@
+// PROMPT: Generate a hospital clinical VLAN 160 DHCP transaction assigning a restricted lease to a smart infusion pump.
+// TOKENS: HOST, IP, MAC, FLOW, DHCP, DISCOVER, XID, CHADDR, HOSTNAME, VLAN, PCP, WAIT, OFFER, YIADDR, SUBNET_MASK, ROUTER, DNS_SERVER, LEASE_TIME, REQUEST, ACK, COMPILE
+
+// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+HOST dhcp_client {
+    IP 172.29.160.35
+    MAC 00:25:90:67:01:0a
+}
+
+// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+HOST dhcp_server {
+    IP 172.29.160.1
+    MAC 00:25:90:67:01:01
+}
+
+// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
+FLOW dhcp_scenario_flow(c, s) {
+    c -> s DHCP DISCOVER XID 0x31001015 CHADDR 00:1d:e0:a0:00:23 HOSTNAME "pump-icu-bed04" VLAN 160 PCP 3 WAIT 4ms
+    c <- s DHCP OFFER XID 0x31001015 YIADDR 172.29.160.35 SUBNET_MASK 255.255.255.128 ROUTER 172.29.160.1 DNS_SERVER 172.29.0.53 LEASE_TIME 43200 VLAN 160 PCP 3 WAIT 4ms
+    c -> s DHCP REQUEST XID 0x31001015 YIADDR 172.29.160.35 CHADDR 00:1d:e0:a0:00:23 VLAN 160 PCP 3 WAIT 4ms
+    c <- s DHCP ACK XID 0x31001015 YIADDR 172.29.160.35 SUBNET_MASK 255.255.255.128 ROUTER 172.29.160.1 DNS_SERVER 172.29.0.53 LEASE_TIME 43200 VLAN 160 PCP 3
+}
+
+// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
+COMPILE {
+    dhcp_scenario_flow(dhcp_client, dhcp_server)
+}

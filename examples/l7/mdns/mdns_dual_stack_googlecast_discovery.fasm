@@ -1,0 +1,44 @@
+// PROMPT: Create a dual-stack mDNS Google Cast (_googlecast._tcp.local) discovery across IPv4 and IPv6 endpoints.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the IPv4 smartphone searching for Chromecast receivers on the home Wi-Fi.
+HOST mobile_phone_v4 {
+    IP 192.168.86.24
+    MAC 46:55:66:77:88:24
+}
+
+// INSTRUCTION: Define the IPv4 Smart TV running the Google Cast receiver daemon.
+HOST smart_tv_v4 {
+    IP 192.168.86.60
+    MAC 46:55:66:77:88:60
+}
+
+// INSTRUCTION: Define the IPv6 smartphone searching for Chromecast receivers on the home Wi-Fi.
+HOST mobile_phone_v6 {
+    IP fe80::4455:66ff:fe77:8824
+    MAC 46:55:66:77:88:24
+}
+
+// INSTRUCTION: Define the IPv6 Smart TV running the Google Cast receiver daemon.
+HOST smart_tv_v6 {
+    IP fe80::4455:66ff:fe77:8860
+    MAC 46:55:66:77:88:60
+}
+
+// INSTRUCTION: Query _googlecast._tcp.local PTR over IPv4 and receive the Chromecast instance name.
+FLOW cast_discovery_v4(c4, s4) {
+    c4 -> s4 MDNS QUERY TXID 0 QNAME "_googlecast._tcp.local" QTYPE "PTR" WAIT 6ms
+    c4 <- s4 MDNS RESPONSE TXID 0 QNAME "_googlecast._tcp.local" QTYPE "PTR" RDATA "Chromecast-Ultra._googlecast._tcp.local" ANS_TTL 120
+}
+
+// INSTRUCTION: Resolve the Chromecast-Ultra.local AAAA record over IPv6.
+FLOW cast_resolve_v6(c6, s6) {
+    c6 -> s6 MDNS QUERY TXID 0 QNAME "Chromecast-Ultra.local" QTYPE "AAAA" WAIT 4ms
+    c6 <- s6 MDNS RESPONSE TXID 0 QNAME "Chromecast-Ultra.local" QTYPE "AAAA" RDATA "fe80::4455:66ff:fe77:8860" ANS_TTL 120
+}
+
+// INSTRUCTION: Compile the dual-stack Google Cast mDNS discovery trace into a PCAP file.
+COMPILE {
+    cast_discovery_v4(mobile_phone_v4, smart_tv_v4)
+    cast_resolve_v6(mobile_phone_v6, smart_tv_v6)
+}

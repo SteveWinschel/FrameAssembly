@@ -1,0 +1,19 @@
+// PROMPT: IPsec encrypted tunnel packets transported across an MPLS label-switched core.
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define MPLS PE encryptor West.
+HOST pe_ipsec_west { IP 10.247.1.1 }
+
+// INSTRUCTION: Define MPLS PE encryptor East.
+HOST pe_ipsec_east { IP 10.247.1.2 }
+
+// INSTRUCTION: Define MPLS-labeled IPsec exchange with label 43030 and EXP 4.
+FLOW ipsec_mpls_core(w, e) {
+    w -> e IPSEC SPI 430301 SEQ 20 MPLS 43030 EXP 4 BOS 1 MPLS_TTL 64
+    w <- e IPSEC SPI 430302 SEQ 20 MPLS 43031 EXP 4 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the MPLS-labeled IPsec core flow.
+COMPILE {
+    ipsec_mpls_core(pe_ipsec_west, pe_ipsec_east)
+}

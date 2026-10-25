@@ -1,0 +1,26 @@
+// PROMPT: Leaf VTEP switches joining IPv6 underlay BUM multicast group ff0e::100:5000 via MLD Report and Query.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, TTL, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, WAIT, QUERY, COMPILE
+
+// INSTRUCTION: Define spine multicast router managing IPv6 VXLAN BUM replication tree.
+HOST spine_mcast_querier {
+    IP fe80::fab:1
+    MAC 00:1c:73:fa:b0:01
+}
+
+// INSTRUCTION: Define leaf VTEP switch subscribing to VNI 5000 underlay multicast group ff0e::100:5000.
+HOST leaf_vtep_node {
+    IP fe80::fab:11
+    MAC 00:1c:73:fa:b0:11
+}
+
+// INSTRUCTION: Join VNI 5000 IPv6 underlay multicast group and respond to periodic spine MLD query.
+FLOW mld_vxlan_underlay_tree(spine, leaf) {
+    leaf -> spine DSCP 48 TTL 1 MLD REPORT MULTICAST_ADDR ff0e::100:5000 MAX_RESP_DELAY 0 WAIT 10ms
+    spine -> leaf DSCP 48 TTL 1 MLD QUERY MULTICAST_ADDR ff0e::100:5000 MAX_RESP_DELAY 1000 WAIT 10ms
+    leaf -> spine DSCP 48 TTL 1 MLD REPORT MULTICAST_ADDR ff0e::100:5000 MAX_RESP_DELAY 0
+}
+
+// INSTRUCTION: Compile the IPv6 VXLAN underlay BUM multicast MLD join trace.
+COMPILE {
+    mld_vxlan_underlay_tree(spine_mcast_querier, leaf_vtep_node)
+}

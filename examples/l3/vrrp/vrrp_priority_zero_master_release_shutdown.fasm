@@ -1,0 +1,25 @@
+// PROMPT: RFC 5798 Section 5.4.3 VRRP Master sending a Priority 0 advertisement on graceful shutdown to trigger immediate Backup takeover.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define active VRRP Master router shutting down interface and releasing VRID 20 with Priority 0.
+HOST vrrp_shutting_master {
+    IP 192.168.20.2
+    MAC 00:00:5e:00:01:14
+}
+
+// INSTRUCTION: Define VRRP Backup router immediately transitioning to Master without waiting for Master_Down_Interval.
+HOST vrrp_standby_takeover {
+    IP 192.168.20.3
+    MAC 00:00:5e:00:01:14
+}
+
+// INSTRUCTION: Define VRRP PRIORITY 0 release followed within 5ms by Backup takeover at PRIORITY 150.
+FLOW vrrp_priority_zero_handover(old_m, new_m) {
+    old_m -> new_m VRRP VRID 20 PRIORITY 0 ADV_INT 100 VIP 192.168.20.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "MASTER_SHUTDOWN_PRIO_ZERO_RELEASE" WAIT 5ms
+    old_m <- new_m VRRP VRID 20 PRIORITY 150 ADV_INT 100 VIP 192.168.20.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "IMMEDIATE_BACKUP_TO_MASTER_TRANSITION"
+}
+
+// INSTRUCTION: Compile the RFC 5798 VRRP Priority 0 graceful master release flow.
+COMPILE {
+    vrrp_priority_zero_handover(vrrp_shutting_master, vrrp_standby_takeover)
+}

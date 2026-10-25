@@ -1,0 +1,28 @@
+// PROMPT: Construct an OSPF sham-link session between MPLS VPN Provider Edge routers preserving intra-area routes over the superbackbone
+// TOKENS: HOST, IP, MAC, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, MPLS, EXP, BOS, MPLS_TTL, TTL, WAIT, DBD, LSU, LSACK, COMPILE
+
+// INSTRUCTION: Define the primary MPLS VPN Provider Edge router
+HOST pe_sham_west {
+    IP 10.250.250.1
+    MAC 00:1b:21:f7:00:01
+}
+
+// INSTRUCTION: Define the secondary MPLS VPN Provider Edge router
+HOST pe_sham_east {
+    IP 10.250.250.2
+    MAC 00:1b:21:f7:00:02
+}
+
+// INSTRUCTION: Exchange MPLS-labeled OSPF sham-link packets with unicast TTL 64
+FLOW ospf_mpls_sham_link(west, east) {
+    west -> east OSPF HELLO ROUTER_ID 10.250.250.1 AREA_ID 100 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 0 MPLS 62000 EXP 6 BOS 1 MPLS_TTL 64 TTL 64 WAIT 10ms
+    east -> west OSPF HELLO ROUTER_ID 10.250.250.2 AREA_ID 100 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 0 MPLS 62001 EXP 6 BOS 1 MPLS_TTL 64 TTL 64 WAIT 10ms
+    west -> east OSPF DBD ROUTER_ID 10.250.250.1 AREA_ID 100 MPLS 62000 EXP 6 BOS 1 MPLS_TTL 64 TTL 64 WAIT 10ms
+    east -> west OSPF LSU ROUTER_ID 10.250.250.2 AREA_ID 100 MPLS 62001 EXP 6 BOS 1 MPLS_TTL 64 TTL 64 WAIT 10ms
+    west -> east OSPF LSACK ROUTER_ID 10.250.250.1 AREA_ID 100 MPLS 62000 EXP 6 BOS 1 MPLS_TTL 64 TTL 64
+}
+
+// INSTRUCTION: Compile the MPLS sham-link OSPF adjacency flow
+COMPILE {
+    ospf_mpls_sham_link(pe_sham_west, pe_sham_east)
+}

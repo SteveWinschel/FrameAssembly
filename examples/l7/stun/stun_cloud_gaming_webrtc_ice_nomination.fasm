@@ -1,0 +1,25 @@
+// PROMPT: Generate a low-latency cloud gaming WebRTC ICE aggressive nomination STUN exchange over IPv6.
+// TOKENS: HOST, IP, MAC, FLOW, STUN, BINDING_REQUEST, TXID, SOFTWARE, DSCP, FLOWLABEL, TTL, WAIT, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define the IPv6 cloud gaming client browser.
+HOST gamer_client_v6 {
+    IP 2001:db8:3478:10::55
+    MAC 00:25:90:34:78:55
+}
+
+// INSTRUCTION: Define the IPv6 edge GPU streaming node.
+HOST gpu_streamer_v6 {
+    IP 2001:db8:3478:10::1
+    MAC 00:25:90:34:78:01
+}
+
+// INSTRUCTION: Exchange IPv6 STUN Binding check and XOR-MAPPED-ADDRESS response with low-latency DSCP EF marking.
+FLOW stun_cloud_gaming_v6(client, streamer) {
+    client -> streamer STUN BINDING_REQUEST TXID 0x99aabbcc SOFTWARE "WebRTC-NVStream/2.1" DSCP 46 FLOWLABEL 0x34780 TTL 64 WAIT 3ms
+    client <- streamer STUN BINDING_RESPONSE TXID 0x99aabbcc XOR_MAPPED_ADDR 2001:db8:3478:10::55 SOFTWARE "WebRTC-NVStream/2.1" DSCP 46 FLOWLABEL 0x34780 TTL 64
+}
+
+// INSTRUCTION: Compile the IPv6 cloud gaming STUN ICE nomination trace.
+COMPILE {
+    stun_cloud_gaming_v6(gamer_client_v6, gpu_streamer_v6)
+}

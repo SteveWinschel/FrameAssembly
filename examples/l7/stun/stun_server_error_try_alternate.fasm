@@ -1,0 +1,19 @@
+// PROMPT: STUN server error response directing client to try alternate server.
+// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_ERROR, COMPILE
+
+// INSTRUCTION: Define client endpoint.
+HOST roving_client { IP 192.168.75.14 }
+
+// INSTRUCTION: Define overloaded primary STUN server.
+HOST primary_stun { IP 198.51.100.12 }
+
+// INSTRUCTION: Define server error alternate redirect flow.
+FLOW stun_try_alt_flow(c, s) {
+    c -> s STUN BINDING_REQUEST SOFTWARE "SIP-Agent-3.0"
+    c <- s STUN BINDING_ERROR SOFTWARE "Primary-Overloaded-TryAlternate"
+}
+
+// INSTRUCTION: Compile block executing try alternate flow.
+COMPILE {
+    stun_try_alt_flow(roving_client, primary_stun)
+}

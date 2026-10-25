@@ -1,0 +1,18 @@
+// PROMPT: LDAP directory synchronization with DSCP expedited forwarding priority marking.
+// TOKENS: HOST, IP, FLOW, LDAP, SEARCH_REQ, MSGID, BASE_DN, FILTER, DSCP, COMPILE
+
+// INSTRUCTION: Define high-priority identity sync service.
+HOST identity_sync_svc { IP 10.70.1.15 }
+
+// INSTRUCTION: Define identity master LDAP server.
+HOST identity_master { IP 10.70.1.2 }
+
+// INSTRUCTION: Define DSCP prioritized search flow.
+FLOW priority_ldap_search(sync, mstr) {
+    sync -> mstr LDAP SEARCH_REQ MSGID 501 BASE_DN "ou=executives,dc=identity,dc=net" FILTER "(status=active)" DSCP 46
+}
+
+// INSTRUCTION: Compile DSCP priority directory scenario.
+COMPILE {
+    priority_ldap_search(identity_sync_svc, identity_master)
+}

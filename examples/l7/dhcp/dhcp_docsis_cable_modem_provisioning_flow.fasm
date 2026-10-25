@@ -1,0 +1,27 @@
+// PROMPT: Simulate a DOCSIS cable modem obtaining management IP parameters and TFTP config server SIADDR from a CMTS.
+// TOKENS: HOST, IP, MAC, FLOW, DHCP, DISCOVER, XID, CHADDR, HOSTNAME, WAIT, OFFER, YIADDR, SIADDR, SUBNET_MASK, ROUTER, DNS_SERVER, LEASE_TIME, REQUEST, ACK, COMPILE
+
+// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+HOST dhcp_client {
+    IP 10.95.0.120
+    MAC 00:25:90:67:01:0a
+}
+
+// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+HOST dhcp_server {
+    IP 10.95.0.1
+    MAC 00:25:90:67:01:01
+}
+
+// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
+FLOW dhcp_scenario_flow(c, s) {
+    c -> s DHCP DISCOVER XID 0x31001014 CHADDR 00:1a:6b:5f:00:78 HOSTNAME "CM-DOCSIS31-0078" WAIT 5ms
+    c <- s DHCP OFFER XID 0x31001014 YIADDR 10.95.0.120 SIADDR 10.95.0.5 SUBNET_MASK 255.255.192.0 ROUTER 10.95.0.1 DNS_SERVER 10.95.0.2 LEASE_TIME 604800 WAIT 5ms
+    c -> s DHCP REQUEST XID 0x31001014 YIADDR 10.95.0.120 SIADDR 10.95.0.5 CHADDR 00:1a:6b:5f:00:78 WAIT 5ms
+    c <- s DHCP ACK XID 0x31001014 YIADDR 10.95.0.120 SIADDR 10.95.0.5 SUBNET_MASK 255.255.192.0 ROUTER 10.95.0.1 DNS_SERVER 10.95.0.2 LEASE_TIME 604800
+}
+
+// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
+COMPILE {
+    dhcp_scenario_flow(dhcp_client, dhcp_server)
+}

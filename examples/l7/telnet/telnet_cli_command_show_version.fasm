@@ -1,0 +1,19 @@
+// PROMPT: Management station sending show version command string to switch CLI.
+// TOKENS: HOST, IP, FLOW, TELNET, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define NOC administration host.
+HOST noc_admin { IP 172.22.4.18 }
+
+// INSTRUCTION: Define target router device.
+HOST target_router { IP 172.22.4.1 }
+
+// INSTRUCTION: Define CLI command and response flow.
+FLOW telnet_show_ver_flow(c, s) {
+    c -> s TELNET PAYLOAD "show version\r\n"
+    c <- s TELNET PAYLOAD "Cisco IOS Software, C2960 Software, Version 15.2(2)E\r\n"
+}
+
+// INSTRUCTION: Compile block executing show version interaction.
+COMPILE {
+    telnet_show_ver_flow(noc_admin, target_router)
+}

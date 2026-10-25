@@ -1,0 +1,27 @@
+// PROMPT: Model a Building Management System writing chiller water temperature setpoints via Modbus TCP on VLAN 302.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TXID, UNITID, FUNC, ADDR, COUNT, VLAN, PCP, WAIT, IS_RESPONSE, VALUE, COMPILE
+
+// INSTRUCTION: Define the central building management supervisory server.
+HOST bms_server {
+    IP 172.20.32.5
+    MAC 00:15:5d:14:20:05
+}
+
+// INSTRUCTION: Define the centrifugal chiller Modbus TCP gateway on VLAN 302.
+HOST chiller_gw {
+    IP 172.20.32.40
+    MAC 00:15:5d:14:20:28
+}
+
+// INSTRUCTION: Read current evaporator leaving water temperature and write a new setpoint (44.0 F = 440) on VLAN 302.
+FLOW modbus_chiller_setpoint(c, s) {
+    c -> s MODBUS TXID 310 UNITID 2 FUNC "READ_INPUT_REGISTERS" ADDR 100 COUNT 2 VLAN 302 PCP 4 WAIT 4ms
+    c <- s MODBUS TXID 310 UNITID 2 FUNC "READ_INPUT_REGISTERS" IS_RESPONSE VALUE 455 VLAN 302 PCP 4 WAIT 5ms
+    c -> s MODBUS TXID 311 UNITID 2 FUNC "WRITE_SINGLE_REGISTER" ADDR 200 VALUE 440 VLAN 302 PCP 4 WAIT 4ms
+    c <- s MODBUS TXID 311 UNITID 2 FUNC "WRITE_SINGLE_REGISTER" IS_RESPONSE ADDR 200 VALUE 440 VLAN 302 PCP 4
+}
+
+// INSTRUCTION: Compile the VLAN-tagged Modbus HVAC chiller setpoint flow.
+COMPILE {
+    modbus_chiller_setpoint(bms_server, chiller_gw)
+}

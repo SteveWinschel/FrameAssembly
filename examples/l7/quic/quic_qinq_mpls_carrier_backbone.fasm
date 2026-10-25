@@ -1,0 +1,19 @@
+// PROMPT: Carrier backbone QUIC transport encapsulated in QinQ VLANs and MPLS label stack.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, DCID, SCID, PKT_NUM, QINQ, INNER_VLAN, MPLS, EXP, BOS, MPLS_TTL, SHORT, COMPILE
+
+// INSTRUCTION: Define subscriber CPE router client.
+HOST sub_cpe { IP 100.64.10.50 }
+
+// INSTRUCTION: Define carrier edge CDN cache node.
+HOST carrier_cdn { IP 100.64.1.10 }
+
+// INSTRUCTION: Define QUIC packets encapsulated with QinQ and MPLS labels.
+FLOW quic_carrier_mpls(c, s) {
+    c -> s QUIC INITIAL DCID 0xabcdef01 SCID 0x12345678 PKT_NUM 1 QINQ 2000 INNER_VLAN 443 MPLS 44301 EXP 4 BOS 1 MPLS_TTL 64
+    c <- s QUIC SHORT DCID 0x12345678 PKT_NUM 2 QINQ 2000 INNER_VLAN 443 MPLS 44302 EXP 4 BOS 1 MPLS_TTL 63
+}
+
+// INSTRUCTION: Compile carrier QinQ + MPLS QUIC flow.
+COMPILE {
+    quic_carrier_mpls(sub_cpe, carrier_cdn)
+}

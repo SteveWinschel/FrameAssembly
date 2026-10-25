@@ -1,0 +1,25 @@
+// PROMPT: Network management station querying a router's RIPv2 table for specific subnet entries via Command 1 (REQUEST).
+// TOKENS: HOST, IP, MAC, FLOW, RIP, REQUEST, PREFIX, METRIC, SRCPORT, DSTPORT, DSCP, TTL, WAIT, RESPONSE, NEXTHOP, TAG, COMPILE
+
+// INSTRUCTION: Define network management diagnostic station sending non-standard source port RIP query.
+HOST nms_rip_poller {
+    IP 10.52.250.100
+    MAC 00:50:56:52:fa:64
+}
+
+// INSTRUCTION: Define managed branch router replying directly to the querying UDP port.
+HOST managed_rip_rtr {
+    IP 10.52.250.1
+    MAC 00:50:56:52:fa:01
+}
+
+// INSTRUCTION: Define diagnostic RIP REQUEST from ephemeral SRCPORT 55520 and router RESPONSE with current metric.
+FLOW rip_diagnostic_entry_poll(nms, rtr) {
+    nms -> rtr RIP REQUEST PREFIX 10.120.0.0 METRIC 16 SRCPORT 55520 DSTPORT 520 DSCP 16 TTL 64 WAIT 4ms
+    nms <- rtr RIP RESPONSE PREFIX 10.120.0.0 METRIC 4 NEXTHOP 10.52.250.254 TAG 400 SRCPORT 520 DSTPORT 55520 DSCP 48 TTL 64
+}
+
+// INSTRUCTION: Compile the NMS diagnostic RIPv2 specific route query flow.
+COMPILE {
+    rip_diagnostic_entry_poll(nms_rip_poller, managed_rip_rtr)
+}

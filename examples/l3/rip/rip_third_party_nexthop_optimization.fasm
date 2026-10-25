@@ -1,0 +1,25 @@
+// PROMPT: RFC 2453 Section 4 RIPv2 advertising a third-party NEXTHOP on a shared multi-access broadcast subnet to avoid extra hop.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, TAG, VLAN, PCP, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define RIPv2 route server on shared DMZ VLAN advertising optimal next-hop router.
+HOST dmz_rip_speaker {
+    IP 172.16.52.1
+    MAC 00:16:3e:52:00:01
+}
+
+// INSTRUCTION: Define DMZ firewall receiving RIPv2 update pointing directly to 172.16.52.254.
+HOST dmz_fw_listener {
+    IP 172.16.52.2
+    MAC 00:16:3e:52:00:02
+}
+
+// INSTRUCTION: Define RIPv2 RESPONSE specifying third-party NEXTHOP 172.16.52.254 on the same subnet.
+FLOW rip_third_party_nexthop(speaker, fw) {
+    speaker -> fw RIP RESPONSE PREFIX 10.100.50.0 METRIC 3 NEXTHOP 172.16.52.254 TAG 100 VLAN 52 PCP 6 DSCP 48 TTL 1 WAIT 5ms
+    speaker <- fw RIP RESPONSE PREFIX 192.168.0.0 METRIC 1 NEXTHOP 0.0.0.0 TAG 0 VLAN 52 PCP 6 DSCP 48 TTL 1
+}
+
+// INSTRUCTION: Compile the RFC 2453 RIPv2 third-party Next-Hop optimization flow.
+COMPILE {
+    rip_third_party_nexthop(dmz_rip_speaker, dmz_fw_listener)
+}

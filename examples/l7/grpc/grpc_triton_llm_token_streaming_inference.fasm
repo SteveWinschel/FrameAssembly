@@ -1,0 +1,27 @@
+// PROMPT: AI gateway invoking NVIDIA Triton Inference Server ModelStreamInfer gRPC method for LLM token generation.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, SRCPORT, DSTPORT, DF, IPID, GRPC_STATUS, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define AI orchestrator gateway requesting LLM completion.
+HOST llm_gateway {
+    IP 10.200.50.10
+    MAC 00:02:c9:c8:32:0a
+}
+
+// INSTRUCTION: Define GPU node running Triton Inference Server on gRPC port 8001.
+HOST triton_gpu_srv {
+    IP 10.200.50.100
+    MAC 00:02:c9:c8:32:64
+}
+
+// INSTRUCTION: Check ModelReady status then stream tokens via ModelStreamInfer on TCP port 8001.
+FLOW grpc_triton_infer(gw, gpu) {
+    gw -> gpu GRPC SERVICE "inference.GRPCInferenceService" METHOD "ModelReady" SRCPORT 58001 DSTPORT 8001 DF IPID 8001
+    gw <- gpu GRPC SERVICE "inference.GRPCInferenceService" METHOD "ModelReady" SRCPORT 8001 DSTPORT 58001 DF IPID 8002 GRPC_STATUS 0
+    gw -> gpu GRPC SERVICE "inference.GRPCInferenceService" METHOD "ModelStreamInfer" SRCPORT 58001 DSTPORT 8001 DF IPID 8003 PAYLOAD "model=llama3-70b"
+    gw <- gpu GRPC SERVICE "inference.GRPCInferenceService" METHOD "ModelStreamInfer" SRCPORT 8001 DSTPORT 58001 DF IPID 8004 GRPC_STATUS 0
+}
+
+// INSTRUCTION: Compile the Triton Inference Server LLM token streaming gRPC scenario.
+COMPILE {
+    grpc_triton_infer(llm_gateway, triton_gpu_srv)
+}

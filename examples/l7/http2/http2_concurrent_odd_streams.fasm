@@ -1,0 +1,29 @@
+// PROMPT: Full TCP 3-way handshake followed by HTTP/2 Preface, Settings, and concurrent streams 1, 3, and 5.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, HTTP2, PREFACE, SETTINGS, STREAM_ID, HEADERS, COMPILE
+
+// INSTRUCTION: Define modern web client multiplexing asset requests.
+HOST mux_browser { IP 172.16.43.50 }
+
+// INSTRUCTION: Define CDN HTTP/2 termination proxy.
+HOST cdn_h2 { IP 172.16.43.1 }
+
+// INSTRUCTION: Perform TCP handshake, HTTP/2 connection preface, and open odd-numbered client streams 1, 3, 5.
+FLOW http2_concurrent_streams(b, c) {
+    b -> c TCP SYN SRCPORT 54443 DSTPORT 443
+    b <- c TCP SYN ACK
+    b -> c TCP ACK
+    b -> c HTTP2 PREFACE
+    b -> c HTTP2 SETTINGS STREAM_ID 0
+    b <- c HTTP2 SETTINGS STREAM_ID 0
+    b -> c HTTP2 HEADERS STREAM_ID 1
+    b -> c HTTP2 HEADERS STREAM_ID 3
+    b -> c HTTP2 HEADERS STREAM_ID 5
+    b <- c HTTP2 HEADERS STREAM_ID 1
+    b <- c HTTP2 HEADERS STREAM_ID 3
+    b <- c HTTP2 HEADERS STREAM_ID 5
+}
+
+// INSTRUCTION: Compile the multiplexed HTTP/2 streams scenario.
+COMPILE {
+    http2_concurrent_streams(mux_browser, cdn_h2)
+}

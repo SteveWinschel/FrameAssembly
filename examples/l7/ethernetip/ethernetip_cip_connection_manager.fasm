@@ -1,0 +1,19 @@
+// PROMPT: EtherNet/IP CIP Connection Manager (Class 6) Forward_Open service request.
+// TOKENS: HOST, IP, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, STATUS, COMPILE
+
+// INSTRUCTION: Define supervisory PLC controller.
+HOST sup_plc { IP 172.21.10.1 }
+
+// INSTRUCTION: Define remote Flex I/O chassis.
+HOST flex_io { IP 172.21.10.40 }
+
+// INSTRUCTION: Invoke CIP Service 84 (Forward_Open) on Connection Manager Class 6 Instance 1.
+FLOW enip_forward_open(s, f) {
+    s -> f ETHERNETIP CMD "SendRRData" SESSION_HANDLE 0x2000 CIP_SERVICE 84 CIP_CLASS 6 CIP_INSTANCE 1 CIP_ATTR 1
+    s <- f ETHERNETIP CMD "SendRRData" SESSION_HANDLE 0x2000 STATUS 0
+}
+
+// INSTRUCTION: Compile the EtherNet/IP CIP Forward_Open scenario.
+COMPILE {
+    enip_forward_open(sup_plc, flex_io)
+}

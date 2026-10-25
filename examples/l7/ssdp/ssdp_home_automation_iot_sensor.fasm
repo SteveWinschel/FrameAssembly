@@ -1,0 +1,20 @@
+// PROMPT: Smart home IoT sensor discovery query targeting Basic device schema.
+// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, ST, MX, MAN, COMPILE
+
+// INSTRUCTION: Define IoT controller hub.
+HOST iot_hub { IP 192.168.50.2 }
+
+// INSTRUCTION: Define UPnP multicast target.
+HOST upnp_target { IP 239.255.255.250 }
+
+// INSTRUCTION: Define IoT basic device discovery flow.
+FLOW ssdp_iot_search(c, s) {
+    c -> s SSDP MSEARCH
+        ST "urn:schemas-upnp-org:device:Basic:1"
+        MX 1 MAN "\"ssdp:discover\""
+}
+
+// INSTRUCTION: Compile block executing IoT search.
+COMPILE {
+    ssdp_iot_search(iot_hub, upnp_target)
+}

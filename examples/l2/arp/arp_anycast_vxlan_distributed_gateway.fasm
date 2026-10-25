@@ -1,0 +1,25 @@
+// PROMPT: EVPN-VXLAN leaf switch responding to host ARP Request with distributed anycast gateway virtual MAC 00:00:5e:00:01:01.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, ARP, REQUEST, SENDERMAC, SENDERIP, TARGETMAC, TARGETIP, WAIT, REPLY, COMPILE
+
+// INSTRUCTION: Define tenant bare-metal server querying default gateway MAC on VLAN 100.
+HOST tenant_bm_srv {
+    IP 10.100.1.55
+    MAC 00:25:90:10:01:37
+}
+
+// INSTRUCTION: Define EVPN-VXLAN leaf switch serving distributed anycast gateway IP 10.100.1.1.
+HOST evpn_anycast_leaf {
+    IP 10.100.1.1
+    MAC 00:00:5e:00:01:01
+}
+
+// INSTRUCTION: Exchange broadcast ARP Request and unicast ARP Reply with virtual gateway hardware address on VLAN 100.
+FLOW arp_evpn_anycast_gw(srv, leaf) {
+    srv -> leaf VLAN 100 ARP REQUEST SENDERMAC 00:25:90:10:01:37 SENDERIP 10.100.1.55 TARGETMAC 00:00:00:00:00:00 TARGETIP 10.100.1.1 WAIT 2ms
+    srv <- leaf VLAN 100 ARP REPLY SENDERMAC 00:00:5e:00:01:01 SENDERIP 10.100.1.1 TARGETMAC 00:25:90:10:01:37 TARGETIP 10.100.1.55
+}
+
+// INSTRUCTION: Compile the EVPN-VXLAN distributed anycast gateway ARP resolution trace.
+COMPILE {
+    arp_evpn_anycast_gw(tenant_bm_srv, evpn_anycast_leaf)
+}

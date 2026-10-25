@@ -1,0 +1,18 @@
+// PROMPT: Metro Ethernet QinQ double-tagged underlay transporting NetFlow accounting packets.
+// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, VLAN, COMPILE
+
+// INSTRUCTION: Define service provider aggregation switch.
+HOST metro_agg_switch { IP 100.64.50.1 }
+
+// INSTRUCTION: Define carrier billing flow collector.
+HOST billing_collector { IP 100.64.50.250 }
+
+// INSTRUCTION: Define QinQ encapsulated NetFlow flow.
+FLOW qinq_netflow_export(sw, col) {
+    sw -> col NETFLOW SRCIP 100.64.10.1 DSTIP 100.64.20.2 PROTO 6 PACKETS 750 OCTETS 950000 VLAN 200
+}
+
+// INSTRUCTION: Compile QinQ service provider NetFlow scenario.
+COMPILE {
+    qinq_netflow_export(metro_agg_switch, billing_collector)
+}

@@ -1,0 +1,45 @@
+// PROMPT: Simulate a multi-responder mDNS star scenario where one workstation queries _ssh._tcp.local and three servers respond.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the sysadmin laptop browsing for local SSH hosts via mDNS.
+HOST admin_macbook {
+    IP 192.168.20.5
+    MAC a4:83:e7:20:00:05
+}
+
+// INSTRUCTION: Define the mDNS multicast destination group.
+HOST mdns_dest {
+    IP 224.0.0.251
+    MAC 01:00:5e:00:00:fb
+}
+
+// INSTRUCTION: Define the first Linux lab server advertising _ssh._tcp.local over mDNS.
+HOST lab_node1 {
+    IP 192.168.20.101
+    MAC 00:16:3e:20:01:01
+}
+
+// INSTRUCTION: Define the second Linux lab server advertising _ssh._tcp.local.
+HOST lab_node2 {
+    IP 192.168.20.102
+    MAC 00:16:3e:20:01:02
+}
+
+// INSTRUCTION: Define the third Linux lab server advertising _ssh._tcp.local.
+HOST lab_node3 {
+    IP 192.168.20.103
+    MAC 00:16:3e:20:01:03
+}
+
+// INSTRUCTION: Multicast the _ssh._tcp.local PTR query and receive responses from three cluster nodes.
+FLOW ssh_cluster_browse(c, m, n1, n2, n3) {
+    c -> m MDNS QUERY TXID 0 QNAME "_ssh._tcp.local" QTYPE "PTR" WAIT 3ms
+    n1 -> m MDNS RESPONSE TXID 0 QNAME "_ssh._tcp.local" QTYPE "PTR" RDATA "node1._ssh._tcp.local" ANS_TTL 4500 WAIT 2ms
+    n2 -> m MDNS RESPONSE TXID 0 QNAME "_ssh._tcp.local" QTYPE "PTR" RDATA "node2._ssh._tcp.local" ANS_TTL 4500 WAIT 2ms
+    n3 -> m MDNS RESPONSE TXID 0 QNAME "_ssh._tcp.local" QTYPE "PTR" RDATA "node3._ssh._tcp.local" ANS_TTL 4500
+}
+
+// INSTRUCTION: Compile the multi-responder mDNS SSH discovery trace into a PCAP file.
+COMPILE {
+    ssh_cluster_browse(admin_macbook, mdns_dest, lab_node1, lab_node2, lab_node3)
+}

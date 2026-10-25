@@ -1,0 +1,28 @@
+// PROMPT: Secure Access Service Edge (SASE) topology combining WireGuard encrypted branch mesh with QUIC/HTTP3 and DNS cloud security inspection.
+// TOKENS: HOST, IP, FLOW, WIREGUARD, INITIATION, SENDER, RECEIVER, DATA, COUNTER, WAIT, DNS, QNAME, RDATA, QUIC, INITIAL, DCID, SCID, HANDSHAKE, SHORT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define SD-WAN / SASE branch edge appliance.
+HOST sase_branch_cpe { IP 198.18.10.50 }
+
+// INSTRUCTION: Define cloud SASE Point-of-Presence (PoP) security gateway.
+HOST sase_cloud_pop { IP 198.18.10.1 }
+
+// INSTRUCTION: Define SaaS origin server accessed through SASE PoP over QUIC/HTTP3.
+HOST saas_quic_origin { IP 198.18.20.100 }
+
+// INSTRUCTION: Define WireGuard tunnel initiation and transport followed by DNS filtering and QUIC 1-RTT HTTP/3 access.
+FLOW sase_wireguard_quic_flow(cpe, pop, saas) {
+    cpe -> pop WIREGUARD INITIATION SENDER 0x1001 RECEIVER 0
+    cpe <- pop WIREGUARD DATA SENDER 0x2001 RECEIVER 0x1001 COUNTER 1 WAIT 2ms
+    cpe -> pop WIREGUARD DATA SENDER 0x1001 RECEIVER 0x2001 COUNTER 1 WAIT 1ms
+    cpe -> pop DNS QNAME "app.enterprise-saas.io" WAIT 1ms
+    cpe <- pop DNS QNAME "app.enterprise-saas.io" RDATA "198.18.20.100" WAIT 1ms
+    pop -> saas QUIC INITIAL DCID 0xaabbccddeeff0011 SCID 0x1122334455667788 WAIT 1ms
+    pop <- saas QUIC HANDSHAKE DCID 0x1122334455667788 SCID 0xaabbccddeeff0011 WAIT 2ms
+    pop -> saas QUIC SHORT DCID 0xaabbccddeeff0011 PAYLOAD "HTTP3_GET_API_DASHBOARD" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing SASE WireGuard, DNS, and QUIC/HTTP3 topology.
+COMPILE {
+    sase_wireguard_quic_flow(sase_branch_cpe, sase_cloud_pop, saas_quic_origin)
+}

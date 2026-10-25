@@ -1,5 +1,5 @@
 // PROMPT: Simulate an interactive SSH session on TCP port 22 exchanging banner strings and keystroke packets with PSH and ACK flags.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, s, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define a bastion jump host with IP 172.16.10.5 and MAC aa:bb:cc:10:00:05.
 HOST bastion_client { IP 172.16.10.5 MAC aa:bb:cc:10:00:05 }

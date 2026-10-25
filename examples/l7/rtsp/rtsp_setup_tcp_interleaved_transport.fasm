@@ -1,0 +1,20 @@
+// PROMPT: RTSP SETUP negotiating RTP/AVP/TCP interleaved transport on channels 0-1.
+// TOKENS: HOST, IP, FLOW, RTSP, METHOD, URI, CSEQ, TRANSPORT_HDR, WAIT, STATUS, SESSION, COMPILE
+
+// INSTRUCTION: Define firewall-traversal RTSP client.
+HOST fw_client { IP 172.17.10.22 }
+
+// INSTRUCTION: Define RTSP media gateway.
+HOST media_gw { IP 172.17.10.1 }
+
+// INSTRUCTION: Define SETUP with RTP/AVP/TCP;unicast;interleaved=0-1 header.
+FLOW rtsp_tcp_interleaved(c, s) {
+    c -> s RTSP METHOD "SETUP" URI "rtsp://172.17.10.1/live/ch1/trackID=0" CSEQ 3 TRANSPORT_HDR "RTP/AVP/TCP;unicast;interleaved=0-1" WAIT 5ms
+    c <- s RTSP STATUS 200 CSEQ 3
+    c -> s RTSP METHOD "PLAY" URI "rtsp://172.17.10.1/live/ch1" CSEQ 4 SESSION "interleaved_9001"
+}
+
+// INSTRUCTION: Compile RTSP interleaved TCP transport setup.
+COMPILE {
+    rtsp_tcp_interleaved(fw_client, media_gw)
+}

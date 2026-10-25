@@ -1,5 +1,5 @@
 // PROMPT: Simulate a bidirectional G.711 RTP voice media stream exchanging 20ms audio frames on UDP port 16384 in a loop.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE, LOOP
 
 // INSTRUCTION: Define VoIP endpoint A with IP 10.60.2.11.
 HOST rtp_endpoint_a { IP 10.60.2.11 MAC 00:04:f2:aa:00:01 }

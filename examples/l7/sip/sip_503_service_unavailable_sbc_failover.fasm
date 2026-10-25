@@ -1,0 +1,36 @@
+// PROMPT: Primary SIP Session Border Controller returning 503 Service Unavailable triggering failover to backup SBC.
+// TOKENS: HOST, IP, FLOW, SIP, INVITE, URI, FROM, TO, CALL_ID, CSEQ, WAIT, STATUS, REASON, ACK, COMPILE
+
+// INSTRUCTION: Define enterprise call router host.
+HOST call_router {
+    IP 10.75.0.10
+}
+
+// INSTRUCTION: Define overloaded primary SBC returning 503.
+HOST sbc_primary {
+    IP 10.75.0.1
+}
+
+// INSTRUCTION: Define standby secondary SBC accepting failover call.
+HOST sbc_backup {
+    IP 10.75.0.2
+}
+
+// INSTRUCTION: Define primary SBC rejection with 503 Service Unavailable.
+FLOW sip_try_primary(c, pri) {
+    c -> pri SIP INVITE URI "sip:out@10.75.0.1" FROM "sip:rtr@10.75.0.10" TO "sip:out@10.75.0.1" CALL_ID "sbc-pri-503" CSEQ 1 WAIT 3ms
+    c <- pri SIP STATUS 503 REASON "Service Unavailable" CALL_ID "sbc-pri-503" CSEQ 1 WAIT 3ms
+    c -> pri SIP ACK URI "sip:out@10.75.0.1" CALL_ID "sbc-pri-503" CSEQ 1
+}
+
+// INSTRUCTION: Define immediate failover INVITE to secondary SBC succeeding with 200 OK.
+FLOW sip_failover_backup(c, bak) {
+    c -> bak SIP INVITE URI "sip:out@10.75.0.2" FROM "sip:rtr@10.75.0.10" TO "sip:out@10.75.0.2" CALL_ID "sbc-bak-200" CSEQ 1 WAIT 3ms
+    c <- bak SIP STATUS 200 REASON "OK" CALL_ID "sbc-bak-200" CSEQ 1
+}
+
+// INSTRUCTION: Compile primary SBC 503 failure and secondary SBC failover.
+COMPILE {
+    sip_try_primary(call_router, sbc_primary)
+    sip_failover_backup(call_router, sbc_backup)
+}

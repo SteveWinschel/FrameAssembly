@@ -1,0 +1,26 @@
+// PROMPT: Enterprise VoIP IP deskphone downloading its XML SIP provisioning profile over voice VLAN 120.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, RRQ, FILENAME, MODE, VLAN, PCP, DSCP, DATA, BLOCK, PAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define enterprise IP deskphone on voice VLAN 120.
+HOST ip_deskphone {
+    IP 10.120.5.88
+    MAC 00:04:f2:78:05:58
+}
+
+// INSTRUCTION: Define unified communications TFTP provisioning server.
+HOST uc_tftp_srv {
+    IP 10.120.1.10
+    MAC 00:04:f2:78:01:0a
+}
+
+// INSTRUCTION: Request SEP MAC XML phone configuration and acknowledge DATA block 1 over VLAN 120.
+FLOW tftp_voip_provision(phone, srv) {
+    phone -> srv TFTP RRQ FILENAME "SEP0004F2780558.cnf.xml" MODE "octet" VLAN 120 PCP 5 DSCP 24
+    phone <- srv TFTP DATA BLOCK 1 VLAN 120 PCP 5 DSCP 24 PAYLOAD "<device><sipProfile/></device>"
+    phone -> srv TFTP ACK BLOCK 1 VLAN 120 PCP 5 DSCP 24
+}
+
+// INSTRUCTION: Compile the VoIP deskphone TFTP XML profile provisioning scenario.
+COMPILE {
+    tftp_voip_provision(ip_deskphone, uc_tftp_srv)
+}

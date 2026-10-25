@@ -1,0 +1,24 @@
+// PROMPT: sFlow v5 telemetry from an ultra-low-latency trading floor switch auditing market data bursts.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define electronic trading floor low-latency layer-1/layer-2 switch.
+HOST hft_switch {
+    IP 10.44.1.1
+    MAC 00:0f:53:2c:01:01
+}
+
+// INSTRUCTION: Define compliance and microburst sFlow recorder.
+HOST hft_recorder {
+    IP 10.44.1.100
+    MAC 00:0f:53:2c:01:64
+}
+
+// INSTRUCTION: Export microburst sFlow v5 sample datagrams with hex-encoded sampled header.
+FLOW sflow_hft_microburst(sw, rec) {
+    sw -> rec SFLOW AGENT_IP 10.44.1.1 SUB_AGENT_ID 0 UPTIME 105000 SAMPLES 40 HEXPAYLOAD "01005e000101000f532c01010800"
+}
+
+// INSTRUCTION: Compile the high-frequency trading microburst sFlow scenario.
+COMPILE {
+    sflow_hft_microburst(hft_switch, hft_recorder)
+}

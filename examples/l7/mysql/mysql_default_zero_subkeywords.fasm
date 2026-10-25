@@ -1,0 +1,25 @@
+// PROMPT: Minimal MySQL frame with zero optional sub-keywords exercising builder default COM_QUERY packet generation.
+// TOKENS: HOST, IP, MAC, FLOW, MYSQL, OK, COMPILE
+
+// INSTRUCTION: Define the default MySQL client host.
+HOST mysql_def_client {
+    IP 10.90.0.10
+    MAC 00:1a:2b:90:00:10
+}
+
+// INSTRUCTION: Define the default MySQL server host.
+HOST mysql_def_server {
+    IP 10.90.0.1
+    MAC 00:1a:2b:90:00:01
+}
+
+// INSTRUCTION: Emit a bare MYSQL packet and an OK response to test default builder behavior.
+FLOW mysql_defaults(c, s) {
+    c -> s MYSQL
+    c <- s MYSQL OK
+}
+
+// INSTRUCTION: Compile the default MySQL packet flow.
+COMPILE {
+    mysql_defaults(mysql_def_client, mysql_def_server)
+}

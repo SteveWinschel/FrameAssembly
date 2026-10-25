@@ -1,0 +1,28 @@
+// PROMPT: Redis QUIT command with +OK reply followed by clean TCP FIN/ACK connection termination.
+// TOKENS: HOST, IP, MAC, FLOW, SRCPORT, DSTPORT, REDIS, CMD, REPLY_TYPE, VALUE, WAIT, TCP, FIN, ACK, SEQ, ACKNUM, COMPILE
+
+// INSTRUCTION: Define the short-lived CLI worker disconnecting from Redis.
+HOST cli_worker {
+    IP 10.80.130.88
+    MAC 00:1a:2b:80:d0:88
+}
+
+// INSTRUCTION: Define the Redis cache server.
+HOST cache_srv {
+    IP 10.80.130.1
+    MAC 00:1a:2b:80:d0:01
+}
+
+// INSTRUCTION: Issue QUIT, receive +OK, and complete the TCP FIN handshake.
+FLOW redis_quit_fin(c, s) {
+    c -> s SRCPORT 49800 DSTPORT 6379 REDIS CMD "QUIT"
+    c <- s SRCPORT 6379 DSTPORT 49800 REDIS REPLY_TYPE "STATUS" VALUE "OK" WAIT 1ms
+    c -> s TCP SRCPORT 49800 DSTPORT 6379 FIN ACK SEQ 1200 ACKNUM 3400
+    c <- s TCP SRCPORT 6379 DSTPORT 49800 FIN ACK SEQ 3400 ACKNUM 1201
+    c -> s TCP SRCPORT 49800 DSTPORT 6379 ACK SEQ 1201 ACKNUM 3401
+}
+
+// INSTRUCTION: Compile the Redis QUIT and TCP teardown flow.
+COMPILE {
+    redis_quit_fin(cli_worker, cache_srv)
+}

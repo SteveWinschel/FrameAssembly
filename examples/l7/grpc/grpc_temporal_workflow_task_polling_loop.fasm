@@ -1,0 +1,29 @@
+// PROMPT: Temporal workflow worker long-polling PollWorkflowTaskQueue and completing workflow tasks in a COMPILE LOOP.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, SRCPORT, DSTPORT, GRPC_STATUS, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define Temporal workflow worker pod.
+HOST temporal_worker {
+    IP 10.115.72.33
+    MAC 02:42:0a:73:48:21
+}
+
+// INSTRUCTION: Define Temporal frontend service listening on TCP port 7233.
+HOST temporal_frontend {
+    IP 10.115.72.1
+    MAC 02:42:0a:73:48:01
+}
+
+// INSTRUCTION: Poll workflow task queue on port 7233 and respond with RespondWorkflowTaskCompleted.
+FLOW grpc_temporal_poll(w, fe) {
+    w -> fe GRPC SERVICE "temporal.api.workflowservice.v1.WorkflowService" METHOD "PollWorkflowTaskQueue" SRCPORT 57233 DSTPORT 7233
+    w <- fe GRPC SERVICE "temporal.api.workflowservice.v1.WorkflowService" METHOD "PollWorkflowTaskQueue" SRCPORT 7233 DSTPORT 57233 GRPC_STATUS 0
+    w -> fe GRPC SERVICE "temporal.api.workflowservice.v1.WorkflowService" METHOD "RespondWorkflowTaskCompleted" SRCPORT 57233 DSTPORT 7233
+    w <- fe GRPC SERVICE "temporal.api.workflowservice.v1.WorkflowService" METHOD "RespondWorkflowTaskCompleted" SRCPORT 7233 DSTPORT 57233 GRPC_STATUS 0 WAIT 25ms
+}
+
+// INSTRUCTION: Execute 3 workflow task poll and completion cycles in a COMPILE LOOP.
+COMPILE {
+    LOOP 3 {
+        grpc_temporal_poll(temporal_worker, temporal_frontend)
+    }
+}

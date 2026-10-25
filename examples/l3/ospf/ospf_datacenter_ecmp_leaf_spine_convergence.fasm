@@ -1,0 +1,28 @@
+// PROMPT: Data center leaf-spine OSPF point-to-point fast convergence using 1-second Hello and 4-second Dead intervals.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, TTL, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, WAIT, DBD, LSU, LSACK, COMPILE
+
+// INSTRUCTION: Define spine router 1 forming point-to-point OSPF Area 0 adjacency.
+HOST dc_spine_rtr1 {
+    IP 10.255.1.1
+    MAC 00:1c:73:ff:01:01
+}
+
+// INSTRUCTION: Define leaf switch 4 participating in 16-way ECMP OSPF fabric routing.
+HOST dc_leaf_sw4 {
+    IP 10.255.1.2
+    MAC 00:1c:73:ff:01:02
+}
+
+// INSTRUCTION: Exchange fast OSPF Hellos (1s/4s), Database Description, Link State Update, and Link State Ack.
+FLOW ospf_ecmp_fabric_sync(spine, leaf) {
+    spine -> leaf DSCP 48 TTL 1 OSPF HELLO ROUTER_ID 10.255.0.1 AREA_ID 0 HELLO_INTERVAL 1 DEAD_INTERVAL 4 PRIORITY 0 WAIT 5ms
+    leaf -> spine DSCP 48 TTL 1 OSPF HELLO ROUTER_ID 10.255.0.14 AREA_ID 0 HELLO_INTERVAL 1 DEAD_INTERVAL 4 PRIORITY 0 WAIT 5ms
+    spine -> leaf DSCP 48 TTL 1 OSPF DBD ROUTER_ID 10.255.0.1 AREA_ID 0 WAIT 5ms
+    leaf -> spine DSCP 48 TTL 1 OSPF LSU ROUTER_ID 10.255.0.14 AREA_ID 0 WAIT 5ms
+    spine -> leaf DSCP 48 TTL 1 OSPF LSACK ROUTER_ID 10.255.0.1 AREA_ID 0
+}
+
+// INSTRUCTION: Compile the data center ECMP leaf-spine OSPF fast convergence sequence.
+COMPILE {
+    ospf_ecmp_fabric_sync(dc_spine_rtr1, dc_leaf_sw4)
+}

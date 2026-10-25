@@ -1,0 +1,25 @@
+// PROMPT: Construct an MLD control-plane exchange enforcing DSCP CS6 traffic class and IPv6 Hop Limit 1
+// TOKENS: HOST, IP, MAC, FLOW, MLD, QUERY, MULTICAST_ADDR, MAX_RESP_DELAY, DSCP, ECN, TTL, WAIT, REPORT, COMPILE
+
+// INSTRUCTION: Define the enterprise core IPv6 multicast router
+HOST core_mrouter_v6 {
+    IP fe80::c0:1
+    MAC 00:26:99:c6:01:01
+}
+
+// INSTRUCTION: Define the enterprise distribution IPv6 multicast host
+HOST dist_host_v6 {
+    IP fe80::c0:25
+    MAC 00:26:99:c6:01:25
+}
+
+// INSTRUCTION: Send MLD query and report messages marked with DSCP 48 (CS6) and Hop Limit 1
+FLOW mld_dscp_cs6_exchange(router, host) {
+    router -> host MLD QUERY MULTICAST_ADDR ff05::100:200 MAX_RESP_DELAY 3000 DSCP 48 ECN 0 TTL 1 WAIT 15ms
+    host -> router MLD REPORT MULTICAST_ADDR ff05::100:200 MAX_RESP_DELAY 0 DSCP 48 ECN 0 TTL 1
+}
+
+// INSTRUCTION: Compile the DSCP CS6 MLD control exchange
+COMPILE {
+    mld_dscp_cs6_exchange(core_mrouter_v6, dist_host_v6)
+}

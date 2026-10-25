@@ -1,0 +1,18 @@
+// PROMPT: IGMP query framed with network control DSCP CS6 and TTL 1 link-local scoping.
+// TOKENS: HOST, IP, FLOW, IGMP, QUERY, MAX_RESP, GROUP, DSCP, TTL, COMPILE
+
+// INSTRUCTION: Define enterprise aggregation querier.
+HOST enterprise_querier { IP 10.60.0.1 }
+
+// INSTRUCTION: Define all-systems destination.
+HOST all_hosts_sub { IP 224.0.0.1 }
+
+// INSTRUCTION: Define QoS prioritized IGMP query flow with DSCP 48 (CS6) and TTL 1.
+FLOW igmp_control_query(q, dst) {
+    q -> dst IGMP QUERY MAX_RESP 60 GROUP 224.0.0.1 DSCP 48 TTL 1
+}
+
+// INSTRUCTION: Compile block executing prioritized IGMP query.
+COMPILE {
+    igmp_control_query(enterprise_querier, all_hosts_sub)
+}

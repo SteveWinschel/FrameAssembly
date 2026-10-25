@@ -1,0 +1,25 @@
+// PROMPT: Model an mDNS edge cluster service discovery resolving k3s-ingress.local across an IPv6 link-local segment.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, FLOWLABEL, TTL, WAIT, RESPONSE, RCODE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the edge worker node resolving local cluster ingress over IPv6.
+HOST k3s_worker_v6 {
+    IP fe80::216:3eff:fe44:1001
+    MAC 00:16:3e:44:10:01
+}
+
+// INSTRUCTION: Define the edge control-plane node answering for k3s-ingress.local.
+HOST k3s_master_v6 {
+    IP fe80::216:3eff:fe44:1000
+    MAC 00:16:3e:44:10:00
+}
+
+// INSTRUCTION: Query k3s-ingress.local AAAA record and return the authoritative link-local IPv6 address.
+FLOW k3s_mdns_resolve(worker, master) {
+    worker -> master MDNS QUERY TXID 0 QNAME "k3s-ingress.local" QTYPE "AAAA" FLOWLABEL 0x20400 TTL 255 WAIT 3ms
+    worker <- master MDNS RESPONSE TXID 0 RCODE 0 QNAME "k3s-ingress.local" QTYPE "AAAA" RDATA "fe80::216:3eff:fe44:1000" ANS_TTL 60 FLOWLABEL 0x20400 TTL 255
+}
+
+// INSTRUCTION: Compile the IPv6 edge cluster mDNS resolution flow.
+COMPILE {
+    k3s_mdns_resolve(k3s_worker_v6, k3s_master_v6)
+}

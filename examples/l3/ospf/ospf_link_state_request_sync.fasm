@@ -1,0 +1,18 @@
+// PROMPT: OSPF router synchronizing database via Link State Request (LSR) packet.
+// TOKENS: HOST, IP, FLOW, OSPF, LSR, ROUTER_ID, AREA_ID, COMPILE
+
+// INSTRUCTION: Define OSPF neighbor loading missing LSAs.
+HOST ospf_loading_neighbor { IP 192.168.200.2 }
+
+// INSTRUCTION: Define OSPF designated router peer.
+HOST ospf_dr_peer { IP 192.168.200.1 }
+
+// INSTRUCTION: Define Link State Request synchronization flow.
+FLOW ospf_lsr_sync_flow(nbr, dr) {
+    nbr -> dr OSPF LSR ROUTER_ID 192.168.200.2 AREA_ID 0
+}
+
+// INSTRUCTION: Compile block executing OSPF LSR packet transmission.
+COMPILE {
+    ospf_lsr_sync_flow(ospf_loading_neighbor, ospf_dr_peer)
+}

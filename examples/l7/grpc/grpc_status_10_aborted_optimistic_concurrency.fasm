@@ -1,0 +1,25 @@
+// PROMPT: Distributed database transaction coordinator returning GRPC_STATUS 10 (ABORTED) on optimistic lock conflict.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define inventory reservation service worker.
+HOST inv_worker {
+    IP 10.100.45.21
+    MAC 02:42:0a:64:2d:15
+}
+
+// INSTRUCTION: Define distributed Spanner/CockroachDB gRPC transaction node.
+HOST txn_coord_node {
+    IP 10.100.45.1
+    MAC 02:42:0a:64:2d:01
+}
+
+// INSTRUCTION: Attempt CommitTransaction with stale read timestamp and receive GRPC_STATUS 10 ABORTED.
+FLOW grpc_err_aborted_conflict(w, db) {
+    w -> db GRPC SERVICE "storage.v1.TransactionService" METHOD "CommitTransaction"
+    w <- db GRPC SERVICE "storage.v1.TransactionService" METHOD "CommitTransaction" GRPC_STATUS 10
+}
+
+// INSTRUCTION: Compile the gRPC status 10 ABORTED optimistic concurrency conflict scenario.
+COMPILE {
+    grpc_err_aborted_conflict(inv_worker, txn_coord_node)
+}

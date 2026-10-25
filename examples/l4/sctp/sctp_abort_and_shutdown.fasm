@@ -1,5 +1,5 @@
 // PROMPT: SCTP graceful shutdown association termination sequence with verification tag.
-// TOKENS: HOST, IP, FLOW, ->, <-, SCTP, CHUNK, SHUTDOWN, SHUTDOWN_ACK, VTAG, COMPILE
+// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, SHUTDOWN, VTAG, COMPILE
 
 // INSTRUCTION: Define client closing SCTP association.
 HOST sctp_close_cli { IP 10.0.1.10 }

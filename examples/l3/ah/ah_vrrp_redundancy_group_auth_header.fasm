@@ -1,0 +1,26 @@
+// PROMPT: RFC 4302 IPsec AH protecting VRRP (Next Header 112) master election advertisements against spoofing.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, DSCP, TTL, PAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define VRRP Master router transmitting AH-authenticated protocol 112 advertisements.
+HOST vrrp_ah_master {
+    IP 10.112.0.2
+    MAC 00:00:5e:00:01:0a
+}
+
+// INSTRUCTION: Define VRRP multicast group 224.0.0.18 receiving AH-protected heartbeats.
+HOST vrrp_ah_mcast {
+    IP 224.0.0.18
+    MAC 01:00:5e:00:00:12
+}
+
+// INSTRUCTION: Define AH flow with Next Header 112 (VRRP) and mandatory TTL 255 in a loop.
+FLOW ah_vrrp_heartbeat_flow(master, mcast) {
+    master -> mcast AH SPI 11200 SEQ 1 NEXT_HEADER 112 ICV "707070701122334455667788" DSCP 48 TTL 255 PAYLOAD "VRRP_VRID10_PRIO200_AUTH" WAIT 100ms
+}
+
+// INSTRUCTION: Compile 3 iterations of the AH-authenticated VRRP advertisement burst.
+COMPILE {
+    LOOP 3 {
+        ah_vrrp_heartbeat_flow(vrrp_ah_master, vrrp_ah_mcast)
+    }
+}

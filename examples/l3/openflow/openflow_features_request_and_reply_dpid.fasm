@@ -1,0 +1,25 @@
+// PROMPT: Simulate an OpenFlow 1.3 Features Request and Features Reply exchange advertising a 64-bit switch Datapath ID
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, FEATURES_REQ, VERSION, XID, WAIT, FEATURES_REPLY, DPID, COMPILE
+
+// INSTRUCTION: Define the centralized SDN controller
+HOST sdn_ctrl {
+    IP 10.100.0.10
+    MAC 00:1b:21:e0:00:10
+}
+
+// INSTRUCTION: Define the OpenFlow virtual switch datapath
+HOST ovs_switch {
+    IP 10.100.0.51
+    MAC 00:1b:21:e0:00:51
+}
+
+// INSTRUCTION: Query switch capabilities with FEATURES_REQ and return the DPID in FEATURES_REPLY
+FLOW openflow_features_discovery(ctrl, sw) {
+    ctrl -> sw OPENFLOW FEATURES_REQ VERSION 4 XID 1010 WAIT 10ms
+    sw -> ctrl OPENFLOW FEATURES_REPLY VERSION 4 XID 1010 DPID 72057594037927937
+}
+
+// INSTRUCTION: Compile the OpenFlow features negotiation sequence
+COMPILE {
+    openflow_features_discovery(sdn_ctrl, ovs_switch)
+}

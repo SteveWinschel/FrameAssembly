@@ -1,0 +1,21 @@
+// PROMPT: PgBouncer connection pooler health check loop over VLAN 540 with 802.1p priority.
+// TOKENS: HOST, IP, FLOW, POSTGRES, SQL, VLAN, PCP, DEI, SRCPORT, DSTPORT, WAIT, COMMAND_COMPLETE, READY_FOR_QUERY, COMPILE, LOOP
+
+// INSTRUCTION: Define PgBouncer connection pooler on VLAN 540.
+HOST pgbouncer { IP 192.168.54.5 }
+
+// INSTRUCTION: Define backend PostgreSQL node listening on port 6432.
+HOST pg_backend { IP 192.168.54.10 }
+
+// INSTRUCTION: Define lightweight SELECT 1 health check on VLAN 540.
+FLOW pg_pool_ping(pool, db) {
+    pool -> db POSTGRES SQL "SELECT 1" VLAN 540 PCP 3 DEI 0 SRCPORT 48000 DSTPORT 6432 WAIT 50ms
+    pool <- db POSTGRES COMMAND_COMPLETE READY_FOR_QUERY VLAN 540 PCP 3 DEI 0 SRCPORT 6432 DSTPORT 48000 WAIT 50ms
+}
+
+// INSTRUCTION: Execute 4 pool health checks in COMPILE LOOP.
+COMPILE {
+    LOOP 4 {
+        pg_pool_ping(pgbouncer, pg_backend)
+    }
+}

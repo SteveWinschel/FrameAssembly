@@ -1,0 +1,27 @@
+// PROMPT: OSPF Area Border Router injecting Type-3 Summary default route LSA into Stub Area 51 over VLAN 510.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, TTL, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, WAIT, LSU, PAYLOAD, LSACK, COMPILE
+
+// INSTRUCTION: Define Area Border Router interconnecting Backbone Area 0 and Stub Area 51.
+HOST stub_area_abr {
+    IP 10.51.0.1
+    MAC 00:1b:21:33:00:01
+}
+
+// INSTRUCTION: Define internal Stub Area 51 router receiving default summary route over VLAN 510.
+HOST stub_internal_rtr {
+    IP 10.51.0.2
+    MAC 00:1b:21:33:00:02
+}
+
+// INSTRUCTION: Form Area 51 adjacency on VLAN 510 and flood Type-3 Summary default route via LSU and LSACK.
+FLOW ospf_stub_area_flood(abr, internal) {
+    abr -> internal VLAN 510 PCP 6 TTL 1 OSPF HELLO ROUTER_ID 10.0.0.51 AREA_ID 51 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 120 WAIT 10ms
+    internal -> abr VLAN 510 PCP 6 TTL 1 OSPF HELLO ROUTER_ID 10.51.0.2 AREA_ID 51 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 100 WAIT 10ms
+    abr -> internal VLAN 510 PCP 6 TTL 1 OSPF LSU ROUTER_ID 10.0.0.51 AREA_ID 51 PAYLOAD "summary_lsa_0_0_0_0_metric_1" WAIT 10ms
+    internal -> abr VLAN 510 PCP 6 TTL 1 OSPF LSACK ROUTER_ID 10.51.0.2 AREA_ID 51
+}
+
+// INSTRUCTION: Compile the OSPF Stub Area 51 default summary LSA injection trace.
+COMPILE {
+    ospf_stub_area_flood(stub_area_abr, stub_internal_rtr)
+}

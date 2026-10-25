@@ -1,0 +1,19 @@
+// PROMPT: POP3 request for non-existent message index returning -ERR no such message.
+// TOKENS: HOST, IP, FLOW, POP3, CMD, ARG, WAIT, ERR, COMPILE
+
+// INSTRUCTION: Define POP3 mail client.
+HOST pop_client { IP 192.168.88.12 }
+
+// INSTRUCTION: Define POP3 mail server.
+HOST pop_server { IP 192.168.88.1 }
+
+// INSTRUCTION: Define RETR for missing message 999 and -ERR response.
+FLOW pop3_missing_msg(c, s) {
+    c -> s POP3 CMD "RETR" ARG "999" WAIT 5ms
+    c <- s POP3 ERR
+}
+
+// INSTRUCTION: Compile POP3 missing message error scenario.
+COMPILE {
+    pop3_missing_msg(pop_client, pop_server)
+}

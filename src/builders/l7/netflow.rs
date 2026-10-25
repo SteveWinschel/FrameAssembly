@@ -1,4 +1,11 @@
-//! NETFLOW protocol wire builder.
+//! Cisco NetFlow Version 5 Telemetry Export (Cisco NetFlow v5 / RFC 3954 (NetFlow v9)) Layer 7 wire packet builder.
+//!
+//! This module synthesizes deterministic on-the-wire Cisco NetFlow Version 5 Telemetry Export frames over UDP port 2055.
+//! The wire encoder constructs a 24-byte NetFlow v5 export header (16-bit version = 5, 16-bit flow count, 32-bit sys_uptime, 32-bit unix_secs, 32-bit unix_nsecs, 32-bit flow_sequence, 8-bit engine_type, 8-bit engine_id, 16-bit sampling_interval) followed by 48-byte fixed flow records containing srcaddr, dstaddr, nexthop, input/output SNMP ifIndex, dPkts, dOctets, first/last timestamps, srcport, dstport, tcp_flags, prot, tos, and src_as/dst_as. When optional fields in [`NetflowSpec`]
+//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b NETFLOW [SRCIP <ip>] [DSTIP <ip>] [SRCPORT <u16>] [DSTPORT <u16>] [PROTO <u8>] [PACKETS <u32>] [OCTETS <u32>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -6,6 +13,12 @@ use alloc::vec::Vec;
 use core::net::IpAddr;
 
 /// Builds a Cisco NetFlow v5 export packet payload.
+/// Syntax mapping: `NETFLOW [SRCIP <ip>] [DSTIP <ip>] [SRCPORT <u16>] [DSTPORT <u16>] [PROTO <u8>] [PACKETS <u32>] [OCTETS <u32>]`
+#[doc(alias = "NETFLOW")]
+#[doc(alias = "RFC3954")]
+#[doc(alias = "NETFLOWV5")]
+#[doc(alias = "PACKETS")]
+#[doc(alias = "OCTETS")]
 pub fn build_netflow_payload(
     ctx: &WireContext,
     spec: &NetflowSpec,

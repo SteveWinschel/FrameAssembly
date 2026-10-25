@@ -1,0 +1,25 @@
+// PROMPT: Build an 802.1Q VLAN-tagged IPv6 SLAAC Router Solicitation and Router Advertisement exchange
+// TOKENS: HOST, IP, MAC, FLOW, NDP, ROUTER_SOLICIT, SLLA, VLAN, PCP, TTL, WAIT, ROUTER_ADVERT, ROUTER_LIFETIME, COMPILE
+
+// INSTRUCTION: Define the VLAN 120 IPv6 client workstation
+HOST vlan_client_v6 {
+    IP fe80::120:45
+    MAC 00:1e:67:d4:12:45
+}
+
+// INSTRUCTION: Define the VLAN 120 IPv6 gateway router
+HOST vlan_router_v6 {
+    IP fe80::120:1
+    MAC 00:1e:67:d4:12:01
+}
+
+// INSTRUCTION: Exchange VLAN-tagged Router Solicitation and Router Advertisement messages
+FLOW ndp_vlan_slaac_exchange(client, router) {
+    client -> router NDP ROUTER_SOLICIT SLLA 00:1e:67:d4:12:45 VLAN 120 PCP 6 TTL 255 WAIT 15ms
+    router -> client NDP ROUTER_ADVERT ROUTER_LIFETIME 1800 SLLA 00:1e:67:d4:12:01 VLAN 120 PCP 6 TTL 255
+}
+
+// INSTRUCTION: Compile the VLAN 120 NDP SLAAC discovery flow
+COMPILE {
+    ndp_vlan_slaac_exchange(vlan_client_v6, vlan_router_v6)
+}

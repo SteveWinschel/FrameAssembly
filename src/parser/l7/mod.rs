@@ -1,4 +1,13 @@
 //! Layer 7 application, infrastructure, telemetry, and industrial OT protocol field parsers.
+//!
+//! This module organizes the syntactic combinator parsers for all 50 Layer 7 protocols supported by
+//! the FrameAssembly language, including core infrastructure services (`DNS`, `mDNS`, `DHCP`, `NTP`,
+//! `PTP`), network management and telemetry (`SNMPv1`/`v2c`/`v3`, `RADIUS`, `TACACS+`, `Syslog`,
+//! `NetFlow`, `IPFIX`, `sFlow`), web and RPC transport (`HTTP/1.1`, `HTTP/2`, `gRPC`, `WebSocket`,
+//! `TLS`, `QUIC`), real-time media (`STUN`, `SIP`, `RTP`, `RTSP`), enterprise directory and storage
+//! (`SMTP`, `IMAP`, `POP3`, `Kerberos`, `LDAP`, `SMB`, `NFS`, `SSH`, `Telnet`, `FTP`, `TFTP`),
+//! data/IoT messaging (`Redis`, `Memcached`, `MySQL`, `PostgreSQL`, `MQTT`, `CoAP`, `AMQP`, `SSDP`,
+//! `WHOIS`), and industrial SCADA/OT (`Modbus`, `BACnet`, `DNP3`, `S7comm`, `EtherNet/IP`, `OPC UA`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::alt;
@@ -7,101 +16,101 @@ use winnow::prelude::*;
 use crate::parser::{ParsedField, Stream};
 
 /// AMQP protocol parser.
-pub mod amqp;
+pub(crate) mod amqp;
 /// BACNET protocol parser.
-pub mod bacnet;
+pub(crate) mod bacnet;
 /// COAP protocol parser.
-pub mod coap;
+pub(crate) mod coap;
 /// DHCP protocol parser.
-pub mod dhcp;
+pub(crate) mod dhcp;
 /// DNP3 protocol parser.
-pub mod dnp3;
+pub(crate) mod dnp3;
 /// DNS protocol parser.
-pub mod dns;
+pub(crate) mod dns;
 /// ETHERNETIP protocol parser.
-pub mod ethernetip;
+pub(crate) mod ethernetip;
 /// FTP protocol parser.
-pub mod ftp;
+pub(crate) mod ftp;
 /// GRPC protocol parser.
-pub mod grpc;
+pub(crate) mod grpc;
 /// HTTP protocol parser.
-pub mod http;
+pub(crate) mod http;
 /// HTTP2 protocol parser.
-pub mod http2;
+pub(crate) mod http2;
 /// IMAP protocol parser.
-pub mod imap;
+pub(crate) mod imap;
 /// IPFIX protocol parser.
-pub mod ipfix;
+pub(crate) mod ipfix;
 /// KERBEROS protocol parser.
-pub mod kerberos;
+pub(crate) mod kerberos;
 /// LDAP protocol parser.
-pub mod ldap;
+pub(crate) mod ldap;
 /// MDNS protocol parser.
-pub mod mdns;
+pub(crate) mod mdns;
 /// MEMCACHED protocol parser.
-pub mod memcached;
+pub(crate) mod memcached;
 /// MODBUS protocol parser.
-pub mod modbus;
+pub(crate) mod modbus;
 /// MQTT protocol parser.
-pub mod mqtt;
+pub(crate) mod mqtt;
 /// MYSQL protocol parser.
-pub mod mysql;
+pub(crate) mod mysql;
 /// NETFLOW protocol parser.
-pub mod netflow;
+pub(crate) mod netflow;
 /// NFS protocol parser.
-pub mod nfs;
+pub(crate) mod nfs;
 /// NTP protocol parser.
-pub mod ntp;
+pub(crate) mod ntp;
 /// OPCUA protocol parser.
-pub mod opcua;
+pub(crate) mod opcua;
 /// POP3 protocol parser.
-pub mod pop3;
+pub(crate) mod pop3;
 /// POSTGRES protocol parser.
-pub mod postgres;
+pub(crate) mod postgres;
 /// PTP protocol parser.
-pub mod ptp;
+pub(crate) mod ptp;
 /// QUIC protocol parser.
-pub mod quic;
+pub(crate) mod quic;
 /// RADIUS protocol parser.
-pub mod radius;
+pub(crate) mod radius;
 /// REDIS protocol parser.
-pub mod redis;
+pub(crate) mod redis;
 /// RTP protocol parser.
-pub mod rtp;
+pub(crate) mod rtp;
 /// RTSP protocol parser.
-pub mod rtsp;
+pub(crate) mod rtsp;
 /// S7COMM protocol parser.
-pub mod s7comm;
+pub(crate) mod s7comm;
 /// SFLOW protocol parser.
-pub mod sflow;
+pub(crate) mod sflow;
 /// SIP protocol parser.
-pub mod sip;
+pub(crate) mod sip;
 /// SMB protocol parser.
-pub mod smb;
+pub(crate) mod smb;
 /// SMTP protocol parser.
-pub mod smtp;
+pub(crate) mod smtp;
 /// SNMP protocol parser.
-pub mod snmp;
+pub(crate) mod snmp;
 /// SSDP protocol parser.
-pub mod ssdp;
+pub(crate) mod ssdp;
 /// SSH protocol parser.
-pub mod ssh;
+pub(crate) mod ssh;
 /// STUN protocol parser.
-pub mod stun;
+pub(crate) mod stun;
 /// SYSLOG protocol parser.
-pub mod syslog;
+pub(crate) mod syslog;
 /// TACACS protocol parser.
-pub mod tacacs;
+pub(crate) mod tacacs;
 /// TELNET protocol parser.
-pub mod telnet;
+pub(crate) mod telnet;
 /// TFTP protocol parser.
-pub mod tftp;
+pub(crate) mod tftp;
 /// TLS protocol parser.
-pub mod tls;
+pub(crate) mod tls;
 /// WEBSOCKET protocol parser.
-pub mod websocket;
+pub(crate) mod websocket;
 /// WHOIS protocol parser.
-pub mod whois;
+pub(crate) mod whois;
 
 pub(crate) use amqp::*;
 pub(crate) use bacnet::*;

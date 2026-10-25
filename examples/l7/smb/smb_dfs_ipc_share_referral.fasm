@@ -1,0 +1,27 @@
+// PROMPT: SMB2 IPC$ hidden inter-process communication share connection for Distributed File System referral queries.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, SESSION_ID, MSGID, SHARE, STATUS, TREE_ID, WAIT, FILENAME, COMPILE
+
+// INSTRUCTION: Define the domain client requesting DFS namespace resolution.
+HOST dfs_client {
+    IP 172.18.10.44
+    MAC 00:1a:2b:18:10:44
+}
+
+// INSTRUCTION: Define the Active Directory DFS root server.
+HOST dfs_root {
+    IP 172.18.10.5
+    MAC 00:1a:2b:18:10:05
+}
+
+// INSTRUCTION: Connect to the IPC$ share and open the dfsreferral named pipe.
+FLOW smb_dfs_ipc(c, s) {
+    c -> s SMB COMMAND "TREE_CONNECT" SESSION_ID 1024 MSGID 1 SHARE "\\dfs.corp.local\IPC$"
+    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 1 SESSION_ID 1024 MSGID 1 WAIT 1ms
+    c -> s SMB COMMAND "CREATE" TREE_ID 1 SESSION_ID 1024 MSGID 2 FILENAME "wkssvc"
+    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 1 SESSION_ID 1024 MSGID 2
+}
+
+// INSTRUCTION: Compile the SMB2 IPC$ DFS referral flow.
+COMPILE {
+    smb_dfs_ipc(dfs_client, dfs_root)
+}

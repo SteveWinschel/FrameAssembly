@@ -1,0 +1,19 @@
+// PROMPT: TFTP error packet returning ERRCODE 3 Disk Full or Allocation Exceeded.
+// TOKENS: HOST, IP, FLOW, TFTP, WRQ, FILENAME, MODE, ERRCODE, ERRMSG, COMPILE
+
+// INSTRUCTION: Define client uploading large file.
+HOST large_uploader { IP 192.168.90.15 }
+
+// INSTRUCTION: Define storage exhausted TFTP server.
+HOST full_storage_svr { IP 192.168.90.1 }
+
+// INSTRUCTION: Define Disk Full error transaction flow.
+FLOW tftp_err_disk_full(c, s) {
+    c -> s TFTP WRQ FILENAME "large_backup_volume.img" MODE "octet"
+    c <- s TFTP ERRCODE 3 ERRMSG "Disk full or allocation exceeded"
+}
+
+// INSTRUCTION: Compile block executing disk full error.
+COMPILE {
+    tftp_err_disk_full(large_uploader, full_storage_svr)
+}

@@ -1,5 +1,5 @@
 // PROMPT: IPv6 NDP Neighbor Solicitation and Advertisement resolving link-layer address with explicit target.
-// TOKENS: HOST, IP, FLOW, ->, <-, NDP, NEIGHBOR_SOLICIT, NEIGHBOR_ADVERT, TARGET, COMPILE
+// TOKENS: HOST, IP, FLOW, NDP, NEIGHBOR_SOLICIT, TARGET, NEIGHBOR_ADVERT, COMPILE
 
 // INSTRUCTION: Define IPv6 client node.
 HOST ipv6_node_a { IP 2001:db8::10 }

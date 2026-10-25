@@ -1,0 +1,40 @@
+// PROMPT: Capture a bidirectional IPsec security association pair using distinct inbound and outbound SPIs over IPv4 and IPv6
+// TOKENS: HOST, IP, MAC, FLOW, IPSEC, SPI, SEQ, NEXT_HEADER, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the IPv4 hub VPN router
+HOST hub_v4 {
+    IP 172.22.10.1
+    MAC 00:25:90:b1:10:01
+}
+
+// INSTRUCTION: Define the IPv4 spoke VPN router
+HOST spoke_v4 {
+    IP 172.22.10.2
+    MAC 00:25:90:b1:10:02
+}
+
+// INSTRUCTION: Define the IPv6 hub VPN router
+HOST hub_v6 {
+    IP 2001:db8:2210::1
+    MAC 00:25:90:b1:10:11
+}
+
+// INSTRUCTION: Define the IPv6 spoke VPN router
+HOST spoke_v6 {
+    IP 2001:db8:2210::2
+    MAC 00:25:90:b1:10:12
+}
+
+// INSTRUCTION: Exchange bidirectional IPsec traffic across asymmetric SPIs
+FLOW ipsec_bidirectional_sa(hub, spoke) {
+    hub -> spoke IPSEC SPI 100500 SEQ 1 NEXT_HEADER 4 PAYLOAD "outbound-sa-data-1" WAIT 10ms
+    spoke -> hub IPSEC SPI 200500 SEQ 1 NEXT_HEADER 4 PAYLOAD "inbound-sa-data-1" WAIT 10ms
+    hub -> spoke IPSEC SPI 100500 SEQ 2 NEXT_HEADER 4 PAYLOAD "outbound-sa-data-2" WAIT 10ms
+    spoke -> hub IPSEC SPI 200500 SEQ 2 NEXT_HEADER 4 PAYLOAD "inbound-sa-data-2"
+}
+
+// INSTRUCTION: Compile the dual-stack bidirectional IPsec SA flows
+COMPILE {
+    ipsec_bidirectional_sa(hub_v4, spoke_v4)
+    ipsec_bidirectional_sa(hub_v6, spoke_v6)
+}

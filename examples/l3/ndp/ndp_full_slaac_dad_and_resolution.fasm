@@ -1,0 +1,28 @@
+// PROMPT: Capture a complete IPv6 host bootstrap lifecycle combining Router Solicitation, Router Advertisement, DAD, and gateway Neighbor Resolution
+// TOKENS: HOST, IP, MAC, FLOW, NDP, ROUTER_SOLICIT, SLLA, DSTMAC, TTL, WAIT, ROUTER_ADVERT, ROUTER_LIFETIME, NEIGHBOR_SOLICIT, TARGET, NEIGHBOR_ADVERT, TLLA, COMPILE
+
+// INSTRUCTION: Define the booting IPv6 host after SLAAC address assignment
+HOST slaac_host {
+    IP 2001:db8:c00::123
+    MAC 00:0f:53:dc:0c:23
+}
+
+// INSTRUCTION: Define the default IPv6 subnet router
+HOST subnet_gw_v6 {
+    IP 2001:db8:c00::1
+    MAC 00:0f:53:dc:0c:01
+}
+
+// INSTRUCTION: Execute RS, RA, DAD NS probe, and gateway NS/NA resolution
+FLOW ndp_full_bootstrap_lifecycle(host, gw) {
+    host -> gw NDP ROUTER_SOLICIT SLLA 00:0f:53:dc:0c:23 DSTMAC 33:33:00:00:00:02 TTL 255 WAIT 15ms
+    gw -> host NDP ROUTER_ADVERT ROUTER_LIFETIME 3600 SLLA 00:0f:53:dc:0c:01 DSTMAC 33:33:00:00:00:01 TTL 255 WAIT 20ms
+    host -> gw NDP NEIGHBOR_SOLICIT TARGET 2001:db8:c00::123 DSTMAC 33:33:ff:00:01:23 TTL 255 WAIT 50ms
+    host -> gw NDP NEIGHBOR_SOLICIT TARGET 2001:db8:c00::1 SLLA 00:0f:53:dc:0c:23 DSTMAC 33:33:ff:00:00:01 TTL 255 WAIT 10ms
+    gw -> host NDP NEIGHBOR_ADVERT TARGET 2001:db8:c00::1 TLLA 00:0f:53:dc:0c:01 TTL 255
+}
+
+// INSTRUCTION: Compile the complete IPv6 SLAAC and NDP bootstrap trace
+COMPILE {
+    ndp_full_bootstrap_lifecycle(slaac_host, subnet_gw_v6)
+}

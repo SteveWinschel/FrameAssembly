@@ -1,0 +1,21 @@
+// PROMPT: PROFINET industrial cell VLAN 102 S7comm cyclic Data Block polling in a COMPILE LOOP.
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, FUNC, PDU_REF, AREA, DB_NUM, OFFSET, COUNT, VLAN, PCP, DEI, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define cell controller HMI on VLAN 102.
+HOST cell_hmi { IP 192.168.102.10 MAC 00:0e:8c:aa:00:0a }
+
+// INSTRUCTION: Define welding robot S7 PLC on VLAN 102.
+HOST weld_plc { IP 192.168.102.1 MAC 00:0e:8c:aa:00:01 }
+
+// INSTRUCTION: Define single VLAN-prioritized S7comm DB100 read cycle.
+FLOW s7comm_vlan_poll(hmi, plc) {
+    hmi -> plc S7COMM ROSCTR "JOB" FUNC "READ_VAR" PDU_REF 77 AREA 0x84 DB_NUM 100 OFFSET 0 COUNT 8 VLAN 102 PCP 6 DEI 0 WAIT 20ms
+    hmi <- plc S7COMM ROSCTR "ACK_DATA" FUNC "READ_VAR" PDU_REF 77 AREA 0x84 DB_NUM 100 OFFSET 0 COUNT 8 VLAN 102 PCP 6 DEI 0 WAIT 20ms
+}
+
+// INSTRUCTION: Execute 5 cyclic polls in COMPILE LOOP.
+COMPILE {
+    LOOP 5 {
+        s7comm_vlan_poll(cell_hmi, weld_plc)
+    }
+}

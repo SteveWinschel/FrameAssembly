@@ -1,5 +1,5 @@
 // PROMPT: Siemens S7comm Write Variable command updating PLC output memory over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, S7COMM, ROSCTR, FUNC, AREA, OFFSET, COUNT, COMPILE
+// TOKENS: HOST, IP, FLOW, S7COMM, ROSCTR, FUNC, AREA, OFFSET, COUNT, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

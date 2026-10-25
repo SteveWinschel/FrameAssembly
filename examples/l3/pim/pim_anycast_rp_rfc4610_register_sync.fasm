@@ -1,0 +1,25 @@
+// PROMPT: RFC 4610 Anycast-RP PIM Register synchronization between two Rendezvous Points sharing 10.255.255.1.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, REGISTER, GROUP, SOURCE, RP, HOLDTIME, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Anycast-RP member router 1 receiving First-Hop DR Register.
+HOST anycast_rp_member1 {
+    IP 10.103.255.11
+    MAC 00:22:bd:67:ff:0b
+}
+
+// INSTRUCTION: Define Anycast-RP member router 2 synchronizing active (S,G) source state.
+HOST anycast_rp_member2 {
+    IP 10.103.255.12
+    MAC 00:22:bd:67:ff:0c
+}
+
+// INSTRUCTION: Define RFC 4610 Anycast-RP PIM REGISTER replication between RP peers.
+FLOW pim_anycast_rp_sync_flow(rp1, rp2) {
+    rp1 -> rp2 PIM REGISTER GROUP 239.100.1.1 SOURCE 10.50.1.10 RP 10.255.255.1 HOLDTIME 105 DSCP 48 TTL 62 PAYLOAD "ANYCAST_RP_RFC4610_SOURCE_SYNC" WAIT 5ms
+    rp1 <- rp2 PIM REGISTER GROUP 239.100.1.1 SOURCE 10.50.1.10 RP 10.255.255.1 HOLDTIME 105 DSCP 48 TTL 62 PAYLOAD "ANYCAST_RP_REGISTER_STOP_ACK"
+}
+
+// INSTRUCTION: Compile the RFC 4610 Anycast-RP PIM Register synchronization flow.
+COMPILE {
+    pim_anycast_rp_sync_flow(anycast_rp_member1, anycast_rp_member2)
+}

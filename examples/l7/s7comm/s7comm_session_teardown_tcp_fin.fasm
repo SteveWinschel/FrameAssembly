@@ -1,0 +1,22 @@
+// PROMPT: S7comm session termination with TCP FIN ACK teardown after reading PLC diagnostics.
+// TOKENS: HOST, IP, FLOW, S7COMM, ROSCTR, FUNC, PDU_REF, AREA, DB_NUM, OFFSET, COUNT, WAIT, TCP, FIN, ACK, COMPILE
+
+// INSTRUCTION: Define audit collector workstation.
+HOST audit_ws { IP 192.168.102.90 }
+
+// INSTRUCTION: Define safety PLC endpoint.
+HOST safety_plc { IP 192.168.102.5 }
+
+// INSTRUCTION: Define final S7comm read followed by clean TCP FIN handshake.
+FLOW s7comm_clean_close(c, plc) {
+    c -> plc S7COMM ROSCTR "JOB" FUNC "READ_VAR" PDU_REF 999 AREA 0x84 DB_NUM 1 OFFSET 0 COUNT 1 WAIT 5ms
+    c <- plc S7COMM ROSCTR "ACK_DATA" FUNC "READ_VAR" PDU_REF 999 WAIT 5ms
+    c -> plc TCP FIN ACK
+    c <- plc TCP FIN ACK
+    c -> plc TCP ACK
+}
+
+// INSTRUCTION: Compile S7comm read and TCP session close.
+COMPILE {
+    s7comm_clean_close(audit_ws, safety_plc)
+}

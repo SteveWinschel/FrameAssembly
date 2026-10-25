@@ -1,0 +1,19 @@
+// PROMPT: Network switch presenting Message of the Day security warning banner.
+// TOKENS: HOST, IP, FLOW, TELNET, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define operator terminal.
+HOST oper_term { IP 10.75.1.40 }
+
+// INSTRUCTION: Define edge switch device.
+HOST edge_sw_dev { IP 10.75.1.1 }
+
+// INSTRUCTION: Define MOTD banner presentation flow.
+FLOW telnet_motd_flow(c, s) {
+    c <- s TELNET PAYLOAD "Authorized Personnel Only. Violators will be prosecuted.\r\n"
+    c <- s TELNET PAYLOAD "Switch-01> "
+}
+
+// INSTRUCTION: Compile block executing MOTD banner display.
+COMPILE {
+    telnet_motd_flow(oper_term, edge_sw_dev)
+}

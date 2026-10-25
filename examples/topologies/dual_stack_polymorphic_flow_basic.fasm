@@ -1,5 +1,5 @@
 // PROMPT: Basic polymorphic FLOW execution reusing the same flow template across both IPv4 and IPv6 endpoint pairs.
-// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, SRCPORT, DSTPORT, COMPILE
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, COMPILE
 
 // INSTRUCTION: Define IPv4 endpoint A.
 HOST node_v4_a { IP 192.168.1.1 }

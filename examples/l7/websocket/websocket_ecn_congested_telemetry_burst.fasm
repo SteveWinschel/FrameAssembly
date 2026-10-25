@@ -1,0 +1,25 @@
+// PROMPT: High-rate WebSocket telemetry burst experiencing ECN Congestion Experienced marking with LOOP.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, BINARY, FIN_BIT, MASK_KEY, DSCP, ECN, HEXPAYLOAD, WAIT, OPCODE, COMPILE, LOOP
+
+// INSTRUCTION: Define autonomous vehicle telemetry sender host.
+HOST vehicle_gw {
+    IP 10.33.9.50
+}
+
+// INSTRUCTION: Define fleet management WebSocket collector host.
+HOST fleet_collector {
+    IP 10.33.9.1
+}
+
+// INSTRUCTION: Define ECN-marked WebSocket binary telemetry frame and server ACK.
+FLOW ws_ecn_burst(c, s) {
+    c -> s WEBSOCKET BINARY FIN_BIT 1 MASK_KEY 0xabcdef01 DSCP 34 ECN 3 HEXPAYLOAD "0102030405060708" WAIT 5ms
+    c <- s WEBSOCKET OPCODE "PONG" FIN_BIT 1 DSCP 34 ECN 2
+}
+
+// INSTRUCTION: Compile 4 iterations of ECN-marked WebSocket telemetry frames.
+COMPILE {
+    LOOP 4 {
+        ws_ecn_burst(vehicle_gw, fleet_collector)
+    }
+}

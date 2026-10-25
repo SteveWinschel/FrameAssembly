@@ -1,0 +1,25 @@
+// PROMPT: RFC 7761 / RFC 5880 BFD session between PIM-SM Designated Router candidates enabling sub-second DR election.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, VLAN, PCP, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define active PIM Designated Router monitoring standby DR via BFD.
+HOST pim_active_dr {
+    IP 10.103.50.1
+    MAC 00:1b:54:67:50:01
+}
+
+// INSTRUCTION: Define standby PIM router ready to preempt upon BFD session Down.
+HOST pim_standby_dr {
+    IP 10.103.50.2
+    MAC 00:1b:54:67:50:02
+}
+
+// INSTRUCTION: Define BFD 25ms control exchange on VLAN 50 multicast access subnet.
+FLOW bfd_pim_dr_liveness(active, standby) {
+    active -> standby BFD STATE 3 DIAG 0 MY_DISC 50101 YOUR_DISC 50102 MIN_TX 25000 MIN_RX 25000 MULT 3 VLAN 50 PCP 6 DSCP 48 TTL 255 WAIT 25ms
+    active <- standby BFD STATE 3 DIAG 0 MY_DISC 50102 YOUR_DISC 50101 MIN_TX 25000 MIN_RX 25000 MULT 3 VLAN 50 PCP 6 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the BFD-assisted PIM Designated Router failover monitoring flow.
+COMPILE {
+    bfd_pim_dr_liveness(pim_active_dr, pim_standby_dr)
+}

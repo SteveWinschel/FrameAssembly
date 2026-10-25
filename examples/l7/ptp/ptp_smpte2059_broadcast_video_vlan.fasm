@@ -1,0 +1,21 @@
+// PROMPT: SMPTE ST 2059-2 broadcast video studio PTP synchronization on Domain 127 with VLAN priority 7.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, CLOCK_ID, VLAN, PCP, DEI, DSCP, WAIT, FOLLOW_UP, DELAY_REQ, DELAY_RESP, COMPILE
+
+// INSTRUCTION: Define studio sync generator grandmaster on VLAN 127.
+HOST studio_gm { IP 192.168.127.1 MAC 00:1c:cb:7f:00:01 }
+
+// INSTRUCTION: Define 4K IP broadcast camera slave on VLAN 127.
+HOST ip_camera { IP 192.168.127.25 MAC 00:1c:cb:7f:00:19 }
+
+// INSTRUCTION: Define SMPTE 2059-2 PTP exchange on Domain 127 with 802.1p PCP 7.
+FLOW ptp_smpte2059_studio(gm, cam) {
+    gm -> cam PTP SYNC DOMAIN 127 SEQ_ID 1024 CLOCK_ID "SMPTEGM1" VLAN 127 PCP 7 DEI 0 DSCP 46 WAIT 1ms
+    gm -> cam PTP FOLLOW_UP DOMAIN 127 SEQ_ID 1024 CLOCK_ID "SMPTEGM1" VLAN 127 PCP 7 DEI 0 DSCP 46 WAIT 2ms
+    gm <- cam PTP DELAY_REQ DOMAIN 127 SEQ_ID 1024 CLOCK_ID "CAM4K025" VLAN 127 PCP 7 DEI 0 DSCP 46 WAIT 1ms
+    gm -> cam PTP DELAY_RESP DOMAIN 127 SEQ_ID 1024 CLOCK_ID "SMPTEGM1" VLAN 127 PCP 7 DEI 0 DSCP 46
+}
+
+// INSTRUCTION: Compile SMPTE ST 2059-2 studio PTP flow.
+COMPILE {
+    ptp_smpte2059_studio(studio_gm, ip_camera)
+}

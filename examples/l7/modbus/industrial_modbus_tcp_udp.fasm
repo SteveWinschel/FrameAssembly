@@ -1,5 +1,5 @@
 // PROMPT: Industrial automation control using Modbus TCP holding register reading and writing on port 502.
-// TOKENS: HOST, IP, FLOW, ->, MODBUS, FUNC, READ_HOLDING_REGISTERS, ADDR, COUNT, WRITE_SINGLE_REGISTER, VALUE, COMPILE
+// TOKENS: HOST, IP, FLOW, MODBUS, FUNC, READ_HOLDING_REGISTERS, ADDR, COUNT, WRITE_SINGLE_REGISTER, VALUE, COMPILE
 
 // INSTRUCTION: Define SCADA master control station.
 HOST scada_master { IP 192.168.1.100 }

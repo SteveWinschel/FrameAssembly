@@ -1,0 +1,24 @@
+// PROMPT: WebRTC VP9 video simulcast sending low-resolution and high-resolution SSRC streams on PT 98.
+// TOKENS: HOST, IP, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define WebRTC browser presenter publishing simulcast video.
+HOST presenter_peer {
+    IP 10.66.4.25
+}
+
+// INSTRUCTION: Define Selective Forwarding Unit (SFU) media router.
+HOST sfu_router {
+    IP 10.66.4.1
+}
+
+// INSTRUCTION: Define VP9 simulcast spatial layers with distinct SSRCs sharing 90kHz video timestamp.
+FLOW rtp_vp9_simulcast(c, sfu) {
+    c -> sfu RTP PT 98 SEQ 200 TIMESTAMP 90000 SSRC 0x11110001 MARKER 1 PAYLOAD "VP9_360P_KEYFRAME" WAIT 2ms
+    c -> sfu RTP PT 98 SEQ 900 TIMESTAMP 90000 SSRC 0x22220002 MARKER 0 PAYLOAD "VP9_1080P_SLICE_1" WAIT 2ms
+    c -> sfu RTP PT 98 SEQ 901 TIMESTAMP 90000 SSRC 0x22220002 MARKER 1 PAYLOAD "VP9_1080P_SLICE_2"
+}
+
+// INSTRUCTION: Compile the WebRTC VP9 simulcast RTP flow.
+COMPILE {
+    rtp_vp9_simulcast(presenter_peer, sfu_router)
+}

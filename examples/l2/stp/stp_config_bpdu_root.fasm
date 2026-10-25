@@ -1,5 +1,5 @@
 // PROMPT: IEEE 802.1D Configuration BPDU advertising root bridge identifier, cost, and bridge identifier.
-// TOKENS: HOST, IP, FLOW, ->, STP, ROOT_ID, BRIDGE_ID, COST, COMPILE
+// TOKENS: HOST, IP, FLOW, STP, ROOT_ID, BRIDGE_ID, COST, COMPILE
 
 // INSTRUCTION: Define root switch bridge port.
 HOST root_switch { IP 192.168.0.1 }

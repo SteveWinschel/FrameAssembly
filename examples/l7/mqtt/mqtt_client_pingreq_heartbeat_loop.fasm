@@ -1,0 +1,20 @@
+// PROMPT: MQTT keepalive heartbeat loop periodically transmitting PINGREQ to maintain session.
+// TOKENS: HOST, IP, FLOW, MQTT, PINGREQ, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define battery operated sensor client.
+HOST lowpower_client { IP 192.168.20.99 }
+
+// INSTRUCTION: Define cloud MQTT gateway.
+HOST cloud_gateway { IP 192.168.20.1 }
+
+// INSTRUCTION: Define heartbeat PINGREQ transmission flow.
+FLOW heartbeat_ping_flow(cli, gw) {
+    cli -> gw MQTT PINGREQ WAIT 50ms
+}
+
+// INSTRUCTION: Compile client heartbeat loop scenario.
+COMPILE {
+    LOOP 3 {
+        heartbeat_ping_flow(lowpower_client, cloud_gateway)
+    }
+}

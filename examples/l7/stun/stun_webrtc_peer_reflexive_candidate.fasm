@@ -1,0 +1,21 @@
+// PROMPT: WebRTC browser endpoint acquiring server reflexive candidate address.
+// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define WebRTC client browser.
+HOST browser_client { IP 10.0.8.44 }
+
+// INSTRUCTION: Define WebRTC STUN server.
+HOST webrtc_stun { IP 198.51.100.88 }
+
+// INSTRUCTION: Define peer reflexive candidate discovery flow.
+FLOW stun_webrtc_flow(c, s) {
+    c -> s STUN BINDING_REQUEST SOFTWARE "Chromium-WebRTC"
+    c <- s STUN BINDING_RESPONSE
+        XOR_MAPPED_ADDR 198.51.100.210
+        SOFTWARE "coturn-4.5.2"
+}
+
+// INSTRUCTION: Compile block executing WebRTC STUN query.
+COMPILE {
+    stun_webrtc_flow(browser_client, webrtc_stun)
+}

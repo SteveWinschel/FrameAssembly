@@ -1,12 +1,34 @@
-//! The FrameAssembly compiler CLI.
-#![warn(missing_docs)]
-#![warn(clippy::missing_docs_in_private_items)]
-
+//! Command-line interface (CLI) entry point for the FrameAssembly network packet compiler.
+//!
+//! This binary reads declarative `.fasm` source files specifying network hosts, protocol flows,
+//! and execution blocks, runs the two-phase lexical/syntactic parser and semantic validator,
+//! and invokes the deterministic backend engine to emit nanosecond-precision `.pcap` / `.pcapng`
+//! packet capture files with rich `miette` terminal diagnostics on any syntax or semantic error.
 use clap::{Arg, Command};
 use frameassembly::backend::generate_pcap;
 use frameassembly::parser::parse_program;
 use miette::{IntoDiagnostic, Result};
 use std::fs;
+
+/// Constructs the `clap::Command` definition for the `frameassembly` CLI.
+fn build_cli() -> Command {
+    Command::new("frameassembly")
+        .version(env!("CARGO_PKG_VERSION"))
+        .about("A Domain-Specific Language (DSL) compiler for writing deterministic network traffic to .pcap files")
+        .arg(
+            Arg::new("input")
+                .help("Path to the .fasm source file")
+                .required(true)
+                .index(1),
+        )
+        .arg(
+            Arg::new("output")
+                .short('o')
+                .long("output")
+                .help("Path to the output PCAP file")
+                .default_value("output.pcap"),
+        )
+}
 
 /// The main entry point for the `frameassembly` CLI.
 ///
@@ -26,23 +48,7 @@ use std::fs;
 /// * Parsing the source file fails.
 /// * PCAP generation fails.
 fn main() -> Result<()> {
-    let matches = Command::new("frameassembly")
-        .version(env!("CARGO_PKG_VERSION"))
-        .about("A Domain-Specific Language (DSL) compiler for writing deterministic network traffic to .pcap files")
-        .arg(
-            Arg::new("input")
-                .help("Path to the .fasm source file")
-                .required(true)
-                .index(1),
-        )
-        .arg(
-            Arg::new("output")
-                .short('o')
-                .long("output")
-                .help("Path to the output PCAP file")
-                .default_value("output.pcap"),
-        )
-        .get_matches();
+    let matches = build_cli().get_matches();
 
     let file = matches
         .get_one::<String>("input")
@@ -68,4 +74,16 @@ fn main() -> Result<()> {
 
     println!("Successfully generated {}", output_pcap);
     Ok(())
+}
+
+/// Unit tests for CLI configuration invariants.
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Validates that the `clap::Command` configuration has no conflicting flags, duplicate indices, or invalid defaults.
+    #[test]
+    fn verify_cli_invariants() {
+        build_cli().debug_assert();
+    }
 }

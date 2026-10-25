@@ -1,0 +1,18 @@
+// PROMPT: IGMP General Query specifying aggressive 1-second (MAX_RESP 10) response window for fast convergence.
+// TOKENS: HOST, IP, FLOW, IGMP, QUERY, MAX_RESP, GROUP, COMPILE
+
+// INSTRUCTION: Define fast-converging redundant router.
+HOST fast_igmp_rtr { IP 192.168.220.1 }
+
+// INSTRUCTION: Define all-hosts multicast target.
+HOST all_hosts_target { IP 224.0.0.1 }
+
+// INSTRUCTION: Define rapid query flow with 10 deciseconds (1.0 second) maximum response time.
+FLOW igmp_fast_query_flow(rtr, dst) {
+    rtr -> dst IGMP QUERY MAX_RESP 10 GROUP 224.0.0.1
+}
+
+// INSTRUCTION: Compile block executing fast convergence IGMP query.
+COMPILE {
+    igmp_fast_query_flow(fast_igmp_rtr, all_hosts_target)
+}

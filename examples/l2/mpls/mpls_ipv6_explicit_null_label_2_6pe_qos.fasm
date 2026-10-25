@@ -1,0 +1,25 @@
+// PROMPT: RFC 4182 IPv6 Explicit Null Label 2 preserving 3-bit EXP QoS marking on an IPv6 6PE penultimate hop link.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define 6PE penultimate hop router pushing IPv6 Explicit Null Label 2 to preserve EXP 5 QoS.
+HOST sixpe_php_rtr {
+    IP 2001:db8:2::1
+    MAC 00:1c:73:00:02:01
+}
+
+// INSTRUCTION: Define 6PE egress router popping Label 2 and reading EXP 5 traffic class before IPv6 lookup.
+HOST sixpe_egress_rtr {
+    IP 2001:db8:2::2
+    MAC 00:1c:73:00:02:02
+}
+
+// INSTRUCTION: Encapsulate IPv6 UDP voice traffic inside reserved MPLS Label 2 (IPv6 Explicit Null) with EXP 5.
+FLOW mpls_ipv6_explicit_null_2(php, egr) {
+    php -> egr MPLS 2 EXP 5 BOS 1 MPLS_TTL 63 DSCP 46 UDP SRCPORT 16384 DSTPORT 16384 PAYLOAD "ipv6_explicit_null_label2_voip_rtp" WAIT 5ms
+    php <- egr MPLS 2 EXP 5 BOS 1 MPLS_TTL 63 DSCP 46 UDP SRCPORT 16384 DSTPORT 16384 PAYLOAD "ipv6_explicit_null_label2_voip_rtcp"
+}
+
+// INSTRUCTION: Compile the RFC 4182 IPv6 Explicit Null Label 2 QoS preservation trace.
+COMPILE {
+    mpls_ipv6_explicit_null_2(sixpe_php_rtr, sixpe_egress_rtr)
+}

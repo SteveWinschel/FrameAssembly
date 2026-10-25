@@ -1,0 +1,35 @@
+// PROMPT: Simulate a branch office fetchmail daemon pulling POP3 messages over an MPLS WAN pseudowire (label 4110).
+// TOKENS: HOST, IP, MAC, FLOW, POP3, CMD, MPLS, EXP, BOS, MPLS_TTL, WAIT, OK, RESPONSE, ARG, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the branch office fetchmail relay host.
+HOST fetchmail_gw {
+    IP 172.21.110.15
+    MAC 00:1a:4a:6e:00:0f
+}
+
+// INSTRUCTION: Define the headquarters POP3 mailstore server.
+HOST hq_pop3_srv {
+    IP 172.21.1.110
+    MAC 00:1a:4a:01:00:6e
+}
+
+// INSTRUCTION: Check STAT, retrieve message 1, delete it, and QUIT over MPLS label 4110.
+FLOW pop3_fetchmail_mpls(c, s) {
+    c -> s POP3 CMD "STAT" MPLS 4110 EXP 3 BOS 1 MPLS_TTL 64 WAIT 3ms
+    c <- s POP3 OK RESPONSE "1 840" MPLS 4110 EXP 3 BOS 1 MPLS_TTL 64 WAIT 2ms
+    c -> s POP3 CMD "RETR" ARG "1" MPLS 4110 EXP 3 BOS 1 MPLS_TTL 64 WAIT 4ms
+    c <- s POP3 OK RESPONSE "840 octets" PAYLOAD "Subject: Branch Dispatch
+
+Order 9912 approved.
+.
+" MPLS 4110 EXP 3 BOS 1 MPLS_TTL 64 WAIT 2ms
+    c -> s POP3 CMD "DELE" ARG "1" MPLS 4110 EXP 3 BOS 1 MPLS_TTL 64 WAIT 2ms
+    c <- s POP3 OK RESPONSE "message 1 marked deleted" MPLS 4110 EXP 3 BOS 1 MPLS_TTL 64 WAIT 2ms
+    c -> s POP3 CMD "QUIT" MPLS 4110 EXP 3 BOS 1 MPLS_TTL 64 WAIT 2ms
+    c <- s POP3 OK RESPONSE "1 message purged" MPLS 4110 EXP 3 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the MPLS-encapsulated POP3 fetchmail flow.
+COMPILE {
+    pop3_fetchmail_mpls(fetchmail_gw, hq_pop3_srv)
+}

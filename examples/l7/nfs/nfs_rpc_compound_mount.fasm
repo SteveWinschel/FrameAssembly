@@ -1,5 +1,5 @@
 // PROMPT: Network File System ONC RPC procedure calls for NULL and LOOKUP operations on TCP 2049.
-// TOKENS: HOST, IP, FLOW, ->, NFS, PROC, LOOKUP, PATH, COMPILE
+// TOKENS: HOST, IP, FLOW, NFS, PROC, PATH, COMPILE
 
 // INSTRUCTION: Define NFS client mount node.
 HOST nfs_client { IP 10.0.10.1 }

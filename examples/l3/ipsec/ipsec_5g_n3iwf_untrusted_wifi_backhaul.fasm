@@ -1,0 +1,25 @@
+// PROMPT: 5G Non-3GPP InterWorking Function (N3IWF) IPsec tunnel protecting NAS and UPF user-plane traffic.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, IPSEC, SPI, SEQ, NEXT_HEADER, IV, ICV, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define 5G User Equipment (UE) connected over untrusted WLAN access.
+HOST ue_wlan_client {
+    IP 192.0.2.115
+    MAC 00:26:bb:02:00:73
+}
+
+// INSTRUCTION: Define 5G core N3IWF security gateway terminating untrusted non-3GPP IPsec tunnels.
+HOST core_n3iwf_gw {
+    IP 198.51.100.250
+    MAC 00:26:bb:64:00:fa
+}
+
+// INSTRUCTION: Exchange bidirectional IPsec ESP packets carrying encapsulated inner IPv4 user-plane payloads.
+FLOW ipsec_n3iwf_userplane(ue, n3iwf) {
+    ue -> n3iwf DSCP 46 IPSEC SPI 700101 SEQ 10 NEXT_HEADER 4 IV "a1a2a3a4a5a6a7a8" ICV "b1b2b3b4b5b6b7b8b9babbbc" PAYLOAD "5g_ul_pdu_session_gre_encap" WAIT 5ms
+    ue <- n3iwf DSCP 46 IPSEC SPI 700202 SEQ 10 NEXT_HEADER 4 IV "c1c2c3c4c5c6c7c8" ICV "d1d2d3d4d5d6d7d8d9dadbdc" PAYLOAD "5g_dl_pdu_session_gre_encap"
+}
+
+// INSTRUCTION: Compile the 5G N3IWF IPsec tunnel user-plane exchange.
+COMPILE {
+    ipsec_n3iwf_userplane(ue_wlan_client, core_n3iwf_gw)
+}

@@ -1,0 +1,25 @@
+// PROMPT: RFC 4302 IPsec AH over IPv6 authenticating ICMPv6 Next Header 58 control messages on a link-local subnet.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, TTL, DSCP, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6 access router advertising AH-authenticated ICMPv6 control frames.
+HOST v6_sec_router {
+    IP fe80::1
+    MAC 00:1e:67:fe:80:01
+}
+
+// INSTRUCTION: Define IPv6 enterprise host verifying AH ICV on link-local control traffic.
+HOST v6_sec_client {
+    IP fe80::250
+    MAC 00:1e:67:fe:80:fa
+}
+
+// INSTRUCTION: Define IPv6 AH flow with Next Header 58 (ICMPv6) and Hop Limit 255.
+FLOW ah_icmpv6_secure_flow(rtr, cli) {
+    rtr -> cli AH SPI 58001 SEQ 7 NEXT_HEADER 58 ICV "fe800001fe800250a1b2c3d4" TTL 255 DSCP 48 PAYLOAD "ICMPV6_RA_AUTHENTICATED" WAIT 3ms
+    rtr <- cli AH SPI 58002 SEQ 3 NEXT_HEADER 58 ICV "d4c3b2a1fe800250fe800001" TTL 255 DSCP 48 PAYLOAD "ICMPV6_NS_AUTHENTICATED"
+}
+
+// INSTRUCTION: Compile the IPv6 AH ICMPv6 protection flow.
+COMPILE {
+    ah_icmpv6_secure_flow(v6_sec_router, v6_sec_client)
+}

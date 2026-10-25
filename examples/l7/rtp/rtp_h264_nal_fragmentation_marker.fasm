@@ -1,0 +1,20 @@
+// PROMPT: H.264 NAL unit fragmentation (PT 96) across multiple RTP packets with final MARKER 1.
+// TOKENS: HOST, IP, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IP surveillance camera encoder.
+HOST ip_cam_enc { IP 192.168.96.50 }
+
+// INSTRUCTION: Define NVR video recording server.
+HOST nvr_recorder { IP 192.168.96.10 }
+
+// INSTRUCTION: Define three FU-A fragments sharing 90kHz video timestamp 90000.
+FLOW rtp_h264_fua(cam, nvr) {
+    cam -> nvr RTP PT 96 TIMESTAMP 90000 SSRC 0x96000001 MARKER 0 HEXPAYLOAD "7c85888421a0" WAIT 1ms
+    cam -> nvr RTP PT 96 TIMESTAMP 90000 SSRC 0x96000001 MARKER 0 HEXPAYLOAD "7c0599aabbcc" WAIT 1ms
+    cam -> nvr RTP PT 96 TIMESTAMP 90000 SSRC 0x96000001 MARKER 1 HEXPAYLOAD "7c45ddeeff00"
+}
+
+// INSTRUCTION: Compile H.264 fragmented NAL unit RTP stream.
+COMPILE {
+    rtp_h264_fua(ip_cam_enc, nvr_recorder)
+}

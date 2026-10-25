@@ -1,0 +1,36 @@
+// PROMPT: Simulate an SSH-2.0 Diffie-Hellman Group Exchange (RFC 4419) using MSG_CODE 34, 31, 32, and 33 before NEWKEYS.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SSH, BANNER, KEXINIT, PAYLOAD, MSG_CODE, NEWKEYS, COMPILE
+
+// INSTRUCTION: Define host endpoint ent_client.
+HOST ent_client {
+    MAC 00:1b:21:34:22:01
+    IP 172.20.22.11
+}
+
+// INSTRUCTION: Define host endpoint ent_gateway.
+HOST ent_gateway {
+    MAC 00:1b:21:34:22:02
+    IP 172.20.22.2
+}
+
+// INSTRUCTION: Execute DH Group Exchange: KEX_DH_GEX_REQUEST (34), GEX_GROUP (31), GEX_INIT (32), GEX_REPLY (33), and NEWKEYS.
+FLOW ssh_dh_group_exchange_rfc4419(ent_client, ent_gateway) {
+    ent_client -> ent_gateway TCP SYN SRCPORT 57022 DSTPORT 22
+    ent_gateway -> ent_client TCP SYN ACK
+    ent_client -> ent_gateway TCP ACK
+    ent_client -> ent_gateway SSH BANNER "SSH-2.0-PuTTY_Release_0.80"
+    ent_gateway -> ent_client SSH BANNER "SSH-2.0-OpenSSH_8.9"
+    ent_client -> ent_gateway SSH KEXINIT PAYLOAD "aaaa1111bbbb2222cccc3333dddd4444"
+    ent_gateway -> ent_client SSH KEXINIT PAYLOAD "4444dddd3333cccc2222bbbb1111aaaa"
+    ent_client -> ent_gateway SSH MSG_CODE 34
+    ent_gateway -> ent_client SSH MSG_CODE 31
+    ent_client -> ent_gateway SSH MSG_CODE 32
+    ent_gateway -> ent_client SSH MSG_CODE 33
+    ent_client -> ent_gateway SSH NEWKEYS
+    ent_gateway -> ent_client SSH NEWKEYS
+}
+
+// INSTRUCTION: Compile the SSH Diffie-Hellman Group Exchange flow.
+COMPILE {
+    ssh_dh_group_exchange_rfc4419(ent_client, ent_gateway)
+}

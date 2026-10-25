@@ -1,0 +1,18 @@
+// PROMPT: Graceful DHCPv4 RELEASE message relinquishing an assigned IPv4 lease upon shutdown.
+// TOKENS: HOST, IP, FLOW, DHCP, RELEASE, CIADDR, CHADDR, HOSTNAME, COMPILE
+
+// INSTRUCTION: Define departing laptop client.
+HOST laptop_client { IP 192.168.42.88 }
+
+// INSTRUCTION: Define wireless LAN DHCP server.
+HOST wlan_dhcp { IP 192.168.42.1 }
+
+// INSTRUCTION: Transmit DHCPRELEASE with client IP and hardware MAC address.
+FLOW dhcp_release_flow(c, s) {
+    c -> s DHCP RELEASE CIADDR 192.168.42.88 CHADDR a4:5e:60:c1:d2:e3 HOSTNAME "macbook-pro"
+}
+
+// INSTRUCTION: Compile the DHCPv4 lease release scenario.
+COMPILE {
+    dhcp_release_flow(laptop_client, wlan_dhcp)
+}

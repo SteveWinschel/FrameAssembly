@@ -1,5 +1,5 @@
 // PROMPT: GENEVE tunnel packet specifying option class and option type metadata.
-// TOKENS: HOST, IP, FLOW, ->, GENEVE, VNI, OPT_CLASS, OPT_TYPE, COMPILE
+// TOKENS: HOST, IP, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, COMPILE
 
 // INSTRUCTION: Define OVS tunnel controller node.
 HOST ovs_controller { IP 10.50.0.1 }

@@ -1,0 +1,29 @@
+// PROMPT: Model an IMAP folder lifecycle creating, renaming, and deleting an archive mailbox over VLAN 143.
+// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, ARG, VLAN, PCP, WAIT, STATUS, RESPONSE, COMPILE
+
+// INSTRUCTION: Define the executive workstation organizing IMAP folders on VLAN 143.
+HOST exec_client {
+    IP 172.18.143.22
+    MAC 00:25:90:8f:00:16
+}
+
+// INSTRUCTION: Define the internal IMAP mailbox server on VLAN 143.
+HOST mail_backend {
+    IP 172.18.143.10
+    MAC 00:25:90:8f:00:0a
+}
+
+// INSTRUCTION: Create Projects/2025, rename it to Archive/2025, and delete a temporary scratch folder.
+FLOW imap_folder_lifecycle(c, s) {
+    c -> s IMAP TAG "F01" CMD "CREATE" ARG "INBOX.Projects.2025" VLAN 143 PCP 2 WAIT 2ms
+    c <- s IMAP TAG "F01" STATUS "OK" RESPONSE "Create completed" VLAN 143 PCP 2 WAIT 2ms
+    c -> s IMAP TAG "F02" CMD "RENAME" ARG "INBOX.Projects.2025 INBOX.Archive.2025" VLAN 143 PCP 2 WAIT 2ms
+    c <- s IMAP TAG "F02" STATUS "OK" RESPONSE "Rename completed" VLAN 143 PCP 2 WAIT 2ms
+    c -> s IMAP TAG "F03" CMD "DELETE" ARG "INBOX.TempScratch" VLAN 143 PCP 2 WAIT 2ms
+    c <- s IMAP TAG "F03" STATUS "OK" RESPONSE "Delete completed" VLAN 143 PCP 2
+}
+
+// INSTRUCTION: Compile the VLAN-tagged IMAP folder management flow.
+COMPILE {
+    imap_folder_lifecycle(exec_client, mail_backend)
+}

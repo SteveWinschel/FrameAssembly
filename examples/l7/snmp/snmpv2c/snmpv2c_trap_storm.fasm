@@ -1,5 +1,5 @@
 // PROMPT: Generate an SNMPv2c linkDown trap storm from a network switch to an NMS server repeated 50 times with 10ms intervals.
-// TOKENS: HOST, IP, FLOW, ->, SNMP2, TRAP, COMMUNITY, OID, SYSUPTIME, WAIT, ms, COMPILE, LOOP
+// TOKENS: HOST, IP, FLOW, SNMP2, TRAP, COMMUNITY, OID, SYSUPTIME, WAIT, COMPILE, LOOP
 
 // INSTRUCTION: Define a network switch agent with IP 10.1.1.254.
 HOST switch_agent { IP 10.1.1.254 }

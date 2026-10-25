@@ -1,0 +1,19 @@
+// PROMPT: SIP trunking across carrier network with 802.1ad QinQ and MPLS label encapsulation.
+// TOKENS: HOST, IP, FLOW, SIP, INVITE, FROM, TO, CALL_ID, CSEQ, QINQ, INNER_VLAN, MPLS, EXP, BOS, MPLS_TTL, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define enterprise edge session border controller.
+HOST edge_sbc { IP 198.51.100.14 }
+
+// INSTRUCTION: Define telecom softswitch endpoint.
+HOST carrier_ss { IP 198.51.100.1 }
+
+// INSTRUCTION: Define SIP carrier trunking flow with double VLAN tags and MPLS labels.
+FLOW sip_carrier_mpls(c, s) {
+    c -> s SIP INVITE FROM "sip:trunk@enterprise.net" TO "sip:did@carrier.tel" CALL_ID "mpls-trunk-99" CSEQ 1 QINQ 200 INNER_VLAN 120 MPLS 50601 EXP 5 BOS 1 MPLS_TTL 64
+    c <- s SIP STATUS 200 REASON "OK" CALL_ID "mpls-trunk-99" CSEQ 1 QINQ 200 INNER_VLAN 120 MPLS 50602 EXP 5 BOS 1 MPLS_TTL 63
+}
+
+// INSTRUCTION: Compile carrier QinQ MPLS SIP trunk flow.
+COMPILE {
+    sip_carrier_mpls(edge_sbc, carrier_ss)
+}

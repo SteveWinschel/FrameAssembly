@@ -1,0 +1,22 @@
+// PROMPT: IPFIX bifurcated telemetry replication exporting identical flow records to primary and DR collectors.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define datacenter border router.
+HOST dc_border { IP 10.220.0.1 }
+
+// INSTRUCTION: Define primary IPFIX collector.
+HOST pri_collector { IP 10.220.1.10 }
+
+// INSTRUCTION: Define disaster-recovery IPFIX collector.
+HOST dr_collector { IP 10.220.2.10 }
+
+// INSTRUCTION: Replicate IPFIX flow export to both primary and DR collectors.
+FLOW ipfix_ha_replication(b, p, d) {
+    b -> p IPFIX DOMAIN_ID 220 SRCIP 10.10.1.1 DSTIP 10.20.2.2 PROTO 6 PACKETS 5000 OCTETS 7200000 PAYLOAD "DC1_EXPORT"
+    b -> d IPFIX DOMAIN_ID 220 SRCIP 10.10.1.1 DSTIP 10.20.2.2 PROTO 6 PACKETS 5000 OCTETS 7200000 PAYLOAD "DC1_EXPORT"
+}
+
+// INSTRUCTION: Compile the dual-collector HA IPFIX replication scenario.
+COMPILE {
+    ipfix_ha_replication(dc_border, pri_collector, dr_collector)
+}

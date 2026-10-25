@@ -1,0 +1,19 @@
+// PROMPT: IPv6 mutual TLS handshake exchange between gateway edge nodes.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, SERVER_HELLO, COMPILE
+
+// INSTRUCTION: Define IPv6 edge gateway client.
+HOST gw_client_v6 { IP 2001:db8:9999::55 }
+
+// INSTRUCTION: Define IPv6 cloud gateway server.
+HOST gw_server_v6 { IP 2001:db8:9999::1 }
+
+// INSTRUCTION: Define IPv6 TLS connection handshake flow.
+FLOW tls_v6_gateway_flow(c, s) {
+    c -> s TLS CLIENT_HELLO SNI "gateway.ipv6-cloud.org"
+    c <- s TLS SERVER_HELLO
+}
+
+// INSTRUCTION: Compile block executing IPv6 gateway handshake.
+COMPILE {
+    tls_v6_gateway_flow(gw_client_v6, gw_server_v6)
+}

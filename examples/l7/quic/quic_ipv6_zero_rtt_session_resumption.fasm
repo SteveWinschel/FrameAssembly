@@ -1,0 +1,25 @@
+// PROMPT: IPv6 QUIC 0-RTT early data resumption sending HTTP/3 GET immediately after Initial packet.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, VERSION, DCID, SCID, PKT_NUM, WAIT, ZERO_RTT, PAYLOAD, HANDSHAKE, SHORT, COMPILE
+
+// INSTRUCTION: Define returning IPv6 mobile browser client.
+HOST v6_client {
+    IP 2001:db8:9000::50
+}
+
+// INSTRUCTION: Define IPv6 HTTP/3 origin server accepting 0-RTT early data.
+HOST v6_origin {
+    IP 2001:db8:9000::1
+}
+
+// INSTRUCTION: Define IPv6 QUIC Initial + 0-RTT burst followed by server Handshake and 1-RTT response.
+FLOW quic_v6_0rtt(c, s) {
+    c -> s QUIC INITIAL VERSION 1 DCID 0x1000200030004000 SCID 0x5000600070008000 PKT_NUM 1 WAIT 1ms
+    c -> s QUIC ZERO_RTT VERSION 1 DCID 0x1000200030004000 SCID 0x5000600070008000 PKT_NUM 2 PAYLOAD "H3_EARLY_GET_INDEX" WAIT 5ms
+    c <- s QUIC HANDSHAKE VERSION 1 DCID 0x5000600070008000 SCID 0x9000a000b000c000 PKT_NUM 1 WAIT 5ms
+    c <- s QUIC SHORT DCID 0x5000600070008000 PKT_NUM 2 PAYLOAD "H3_200_OK_BODY"
+}
+
+// INSTRUCTION: Compile the IPv6 QUIC 0-RTT resumption flow.
+COMPILE {
+    quic_v6_0rtt(v6_client, v6_origin)
+}

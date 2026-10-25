@@ -1,10 +1,23 @@
-//! SYSLOG protocol wire builder.
+//! The Syslog Protocol (RFC 5424 / RFC 3164 / RFC 6587 (TCP Transport)) Layer 7 wire packet builder.
+//!
+//! This module synthesizes deterministic on-the-wire The Syslog Protocol frames over UDP port 514 (default) or TCP port 514 (via TRANSPORT TCP).
+//! The wire encoder constructs a ASCII UTF-8 structured log record beginning with `<PRI>VERSION` header where `PRI = (Facility * 8) + Severity` (Facility 0..23, Severity 0..7), space-delimited ISO-8601 `TIMESTAMP`, `HOSTNAME`, `APP-NAME`, `PROCID`, `MSGID`, `STRUCTURED-DATA` (`-` or `[sd-id param="val"]`), and free-form UTF-8 `MSG` payload. When optional fields in [`SyslogSpec`]
+//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b SYSLOG [FACILITY <u8>] [SEVERITY <u8>] [PRI <u8>] [HOSTNAME <str>] [APP <str>] [PROCID <str>] [MSG <str>] [TRANSPORT TCP]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 5424 Syslog packet payload.
+/// Syntax mapping: `SYSLOG [FACILITY <u8>] [SEVERITY <u8>] [PRI <u8>] [HOSTNAME <str>] [APP <str>] [PROCID <str>] [MSG <str>] [TRANSPORT TCP]`
+#[doc(alias = "SYSLOG")]
+#[doc(alias = "RFC5424")]
+#[doc(alias = "RFC3164")]
+#[doc(alias = "FACILITY")]
+#[doc(alias = "SEVERITY")]
 pub fn build_syslog_payload(
     ctx: &WireContext,
     spec: &SyslogSpec,

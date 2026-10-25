@@ -1,0 +1,28 @@
+// PROMPT: FTP client issuing an urgent ABOR command to cancel an in-flight large file RETR transfer.
+// TOKENS: HOST, IP, MAC, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define workstation client cancelling an accidental large ISO download.
+HOST cancel_client {
+    IP 192.168.21.77
+    MAC 00:24:e8:15:00:4d
+}
+
+// INSTRUCTION: Define department FTP file server.
+HOST dept_ftp_srv {
+    IP 192.168.21.1
+    MAC 00:24:e8:15:00:01
+}
+
+// INSTRUCTION: Start RETR download then abort with ABOR receiving 426 and 226 replies.
+FLOW ftp_abort_transfer(c, s) {
+    c -> s FTP CMD "RETR" ARG "dvd-archive-full.iso"
+    c <- s FTP CODE 150 REPLY "Opening BINARY data connection"
+    c -> s FTP CMD "ABOR"
+    c <- s FTP CODE 426 REPLY "Data connection closed; transfer aborted"
+    c <- s FTP CODE 226 REPLY "ABOR command successful"
+}
+
+// INSTRUCTION: Compile the FTP ABOR active transfer cancellation scenario.
+COMPILE {
+    ftp_abort_transfer(cancel_client, dept_ftp_srv)
+}

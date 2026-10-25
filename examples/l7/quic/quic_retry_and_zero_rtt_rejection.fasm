@@ -1,0 +1,27 @@
+// PROMPT: QUIC server rejecting unvalidated 0-RTT attempt with RETRY token before completing 1-RTT setup.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, VERSION, DCID, SCID, PKT_NUM, WAIT, ZERO_RTT, RETRY, TOKEN, HANDSHAKE, SHORT, COMPILE
+
+// INSTRUCTION: Define client attempting optimistic 0-RTT resumption.
+HOST opt_client {
+    IP 10.12.88.33
+}
+
+// INSTRUCTION: Define strict anti-amplification QUIC server enforcing Retry token validation.
+HOST strict_quic_srv {
+    IP 10.12.88.1
+}
+
+// INSTRUCTION: Define Initial + 0-RTT rejected by RETRY, followed by tokenized Initial and Handshake.
+FLOW quic_retry_0rtt(c, s) {
+    c -> s QUIC INITIAL VERSION 1 DCID 0x11110000 SCID 0x22220000 PKT_NUM 1 WAIT 1ms
+    c -> s QUIC ZERO_RTT VERSION 1 DCID 0x11110000 SCID 0x22220000 PKT_NUM 2 WAIT 4ms
+    c <- s QUIC RETRY VERSION 1 DCID 0x22220000 SCID 0x33330000 TOKEN "addr_valid_token_abc" WAIT 4ms
+    c -> s QUIC INITIAL VERSION 1 DCID 0x33330000 SCID 0x22220000 TOKEN "addr_valid_token_abc" PKT_NUM 3 WAIT 4ms
+    c <- s QUIC HANDSHAKE VERSION 1 DCID 0x22220000 SCID 0x33330000 PKT_NUM 1 WAIT 4ms
+    c -> s QUIC SHORT DCID 0x33330000 PKT_NUM 4
+}
+
+// INSTRUCTION: Compile the QUIC Retry and 0-RTT rejection scenario.
+COMPILE {
+    quic_retry_0rtt(opt_client, strict_quic_srv)
+}

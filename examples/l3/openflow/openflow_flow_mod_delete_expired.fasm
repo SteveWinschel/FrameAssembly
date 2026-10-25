@@ -1,0 +1,18 @@
+// PROMPT: OpenFlow controller modifying switch flow table via FLOW_MOD with custom table ID and priority.
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, FLOW_MOD, XID, TABLE_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define enterprise policy controller.
+HOST enterprise_policy_ctrl { IP 10.50.1.1 }
+
+// INSTRUCTION: Define campus distribution switch datapath.
+HOST campus_dist_sw { IP 10.50.1.254 }
+
+// INSTRUCTION: Define FLOW_MOD rule installation flow targeting table 2 with priority 500.
+FLOW of_flow_mod_rule(ctrl, sw) {
+    ctrl -> sw OPENFLOW TYPE FLOW_MOD XID 4004 TABLE_ID 2 PRIORITY 500
+}
+
+// INSTRUCTION: Compile block executing FLOW_MOD instruction.
+COMPILE {
+    of_flow_mod_rule(enterprise_policy_ctrl, campus_dist_sw)
+}

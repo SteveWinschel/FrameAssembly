@@ -1,0 +1,27 @@
+// PROMPT: Telecom Online Charging System (OCS) and PGW/SMF exchanging Diameter Gy Credit-Control-Request/Answer over SCTP port 3868 (PPID 46).
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define Packet Data Network Gateway (PGW/SMF) Diameter Gy client.
+HOST smf_gy_client {
+    IP 10.188.38.10
+    MAC 00:50:56:bc:26:0a
+}
+
+// INSTRUCTION: Define Online Charging System (OCS) real-time quota server on SCTP port 3868.
+HOST ocs_gy_server {
+    IP 10.188.38.1
+    MAC 00:50:56:bc:26:01
+}
+
+// INSTRUCTION: Exchange Diameter CCR-Initial and CCA-Initial quota grants over SCTP Stream 1 (PPID 46).
+FLOW sctp_diameter_gy_charging(smf, ocs) {
+    smf -> ocs DSCP 34 SCTP CHUNK DATA VTAG 386801 STREAM 1 SSN 1 PPID 46 SRCPORT 3868 DSTPORT 3868 PAYLOAD "DIAMETER_CCR_INITIAL_APP_4_USU_100MB" WAIT 2ms
+    smf <- ocs DSCP 34 SCTP CHUNK SACK VTAG 386801 SRCPORT 3868 DSTPORT 3868 WAIT 2ms
+    smf <- ocs DSCP 34 SCTP CHUNK DATA VTAG 386801 STREAM 1 SSN 1 PPID 46 SRCPORT 3868 DSTPORT 3868 PAYLOAD "DIAMETER_CCA_INITIAL_RESULT_2001_GSU_500MB" WAIT 2ms
+    smf -> ocs DSCP 34 SCTP CHUNK SACK VTAG 386801 SRCPORT 3868 DSTPORT 3868
+}
+
+// INSTRUCTION: Compile the Diameter Gy online charging SCTP trace.
+COMPILE {
+    sctp_diameter_gy_charging(smf_gy_client, ocs_gy_server)
+}

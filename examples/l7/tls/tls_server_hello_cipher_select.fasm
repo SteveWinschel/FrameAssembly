@@ -1,0 +1,19 @@
+// PROMPT: TLS server hello selecting AES-128-GCM cipher suite and handshake parameters.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, SERVER_HELLO, COMPILE
+
+// INSTRUCTION: Define web browser client.
+HOST browser_host { IP 10.10.1.20 }
+
+// INSTRUCTION: Define secure web server.
+HOST web_server { IP 10.10.1.1 }
+
+// INSTRUCTION: Define ServerHello selection flow.
+FLOW tls_server_hello_flow(c, s) {
+    c -> s TLS CLIENT_HELLO SNI "www.example.com"
+    c <- s TLS SERVER_HELLO
+}
+
+// INSTRUCTION: Compile block executing ServerHello selection.
+COMPILE {
+    tls_server_hello_flow(browser_host, web_server)
+}

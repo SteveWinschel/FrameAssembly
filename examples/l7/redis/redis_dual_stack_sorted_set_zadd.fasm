@@ -1,0 +1,25 @@
+// PROMPT: Dual-stack IPv4 and IPv6 Redis sorted set leaderboard ZADD and ZRANGE queries.
+// TOKENS: HOST, IP, FLOW, REDIS, CMD, ARGS, DSCP, TTL, FLOWLABEL, COMPILE
+
+// INSTRUCTION: Define IPv4 game backend and Redis leaderboard node.
+HOST redis_v4_c { IP 10.63.0.10 }
+// INSTRUCTION: Define IPv4 Redis leaderboard server.
+HOST redis_v4_s { IP 10.63.0.20 }
+
+// INSTRUCTION: Define IPv6 game backend and Redis leaderboard node.
+HOST redis_v6_c { IP 2001:db8:6379::10 }
+// INSTRUCTION: Define IPv6 Redis leaderboard server.
+HOST redis_v6_s { IP 2001:db8:6379::20 }
+
+// INSTRUCTION: Define polymorphic ZADD and ZRANGE leaderboard flow.
+FLOW redis_leaderboard_dual(c, s) {
+    c -> s REDIS CMD "ZADD" ARGS "leaderboard:season4 9850 player_alpha" DSCP 26 TTL 64 FLOWLABEL 0x63790
+    c -> s REDIS CMD "ZRANGE" ARGS "leaderboard:season4 0 9 WITHSCORES" DSCP 26 TTL 64 FLOWLABEL 0x63790
+    c <- s REDIS CMD "ARRAY" ARGS "player_alpha 9850" DSCP 26 TTL 64 FLOWLABEL 0x63790
+}
+
+// INSTRUCTION: Compile dual-stack Redis leaderboard flow.
+COMPILE {
+    redis_leaderboard_dual(redis_v4_c, redis_v4_s)
+    redis_leaderboard_dual(redis_v6_c, redis_v6_s)
+}

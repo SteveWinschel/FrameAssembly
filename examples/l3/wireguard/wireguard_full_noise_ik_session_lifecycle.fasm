@@ -1,0 +1,28 @@
+// PROMPT: Complete WireGuard Noise_IKpsk2 1-RTT handshake (INITIATION + RESPONSE) followed by bidirectional ChaCha20-Poly1305 DATA and keepalive.
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, TYPE, INITIATION, SENDER, SRCPORT, DSTPORT, DF, DSCP, TTL, WAIT, RESPONSE, RECEIVER, DATA, COUNTER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define WireGuard initiator peer with static Curve25519 identity.
+HOST wg_lifecycle_init {
+    IP 198.51.100.15
+    MAC 00:16:3e:51:82:0f
+}
+
+// INSTRUCTION: Define WireGuard responder VPN gateway listening on UDP 51820.
+HOST wg_lifecycle_resp {
+    IP 203.0.113.1
+    MAC 00:16:3e:51:82:01
+}
+
+// INSTRUCTION: Define Type 1 INITIATION, Type 2 RESPONSE, and Type 4 DATA exchange advancing COUNTER 0..1.
+FLOW wg_full_session_flow(init, resp) {
+    init -> resp WIREGUARD TYPE INITIATION SENDER 1001 SRCPORT 51820 DSTPORT 51820 DF DSCP 48 TTL 64 WAIT 5ms
+    init <- resp WIREGUARD TYPE RESPONSE SENDER 2002 RECEIVER 1001 SRCPORT 51820 DSTPORT 51820 DF DSCP 48 TTL 64 WAIT 5ms
+    init -> resp WIREGUARD TYPE DATA RECEIVER 2002 COUNTER 0 SRCPORT 51820 DSTPORT 51820 DF DSCP 26 TTL 64 PAYLOAD "AEAD_CHACHA20_FIRST_INNER_PACKET" WAIT 2ms
+    init <- resp WIREGUARD TYPE DATA RECEIVER 1001 COUNTER 0 SRCPORT 51820 DSTPORT 51820 DF DSCP 26 TTL 64 PAYLOAD "AEAD_CHACHA20_FIRST_INNER_REPLY" WAIT 2ms
+    init -> resp WIREGUARD TYPE DATA RECEIVER 2002 COUNTER 1 SRCPORT 51820 DSTPORT 51820 DF DSCP 0 TTL 64
+}
+
+// INSTRUCTION: Compile the complete WireGuard Noise_IK handshake and transport lifecycle flow.
+COMPILE {
+    wg_full_session_flow(wg_lifecycle_init, wg_lifecycle_resp)
+}

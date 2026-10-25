@@ -1,5 +1,5 @@
 // PROMPT: DHCPv4 ACK frame delivering configuration options including DNS server, router gateway, and lease time.
-// TOKENS: HOST, IP, FLOW, <-, DHCP, ACK, CHADDR, YIADDR, DNS_SERVER, ROUTER, LEASE_TIME, COMPILE
+// TOKENS: HOST, IP, FLOW, DHCP, ACK, CHADDR, YIADDR, DNS_SERVER, ROUTER, LEASE_TIME, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.150 }

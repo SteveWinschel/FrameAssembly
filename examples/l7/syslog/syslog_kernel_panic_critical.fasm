@@ -1,0 +1,20 @@
+// PROMPT: Kernel facility critical error reporting memory allocation exhaustion.
+// TOKENS: HOST, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, COMPILE
+
+// INSTRUCTION: Define compute node host.
+HOST compute_node { IP 172.18.5.21 }
+
+// INSTRUCTION: Define central logging host.
+HOST central_syslog { IP 172.18.0.10 }
+
+// INSTRUCTION: Define kernel critical alert flow.
+FLOW syslog_kernel_flow(c, s) {
+    c -> s SYSLOG FACILITY 0 SEVERITY 2
+        HOSTNAME "compute-node-21" APP "kernel" PROCID "0"
+        MSG "Out of memory: Kill process 1842 (java) score 950 or sacrifice child"
+}
+
+// INSTRUCTION: Compile block executing critical log.
+COMPILE {
+    syslog_kernel_flow(compute_node, central_syslog)
+}

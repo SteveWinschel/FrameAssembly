@@ -1,0 +1,29 @@
+// PROMPT: Administrative C$ hidden disk share connection and log file inspection by a security scanner.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, SESSION_ID, MSGID, SHARE, STATUS, TREE_ID, WAIT, FILENAME, COMPILE
+
+// INSTRUCTION: Define the privileged vulnerability management scanner host.
+HOST sec_scanner {
+    IP 10.60.90.250
+    MAC 00:1a:2b:60:90:fa
+}
+
+// INSTRUCTION: Define the managed Windows Server target host.
+HOST win_target {
+    IP 10.60.90.14
+    MAC 00:1a:2b:60:90:14
+}
+
+// INSTRUCTION: Mount the administrative C$ share and read the WindowsUpdate.log file.
+FLOW smb_admin_share(c, s) {
+    c -> s SMB COMMAND "TREE_CONNECT" SESSION_ID 4400 MSGID 1 SHARE "\\10.60.90.14\C$"
+    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 1 SESSION_ID 4400 MSGID 1 WAIT 1ms
+    c -> s SMB COMMAND "CREATE" TREE_ID 1 SESSION_ID 4400 MSGID 2 FILENAME "Windows\WindowsUpdate.log"
+    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 1 SESSION_ID 4400 MSGID 2 WAIT 1ms
+    c -> s SMB COMMAND "READ" TREE_ID 1 SESSION_ID 4400 MSGID 3
+    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 1 SESSION_ID 4400 MSGID 3
+}
+
+// INSTRUCTION: Compile the administrative C$ share inspection flow.
+COMPILE {
+    smb_admin_share(sec_scanner, win_target)
+}

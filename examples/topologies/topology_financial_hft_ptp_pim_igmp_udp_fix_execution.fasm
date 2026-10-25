@@ -1,0 +1,38 @@
+// PROMPT: Financial high-frequency trading venue combining IEEE 1588v2 PTP nanosecond synchronization, IGMPv3 and PIM-SM market data multicast, and TCP FIX execution.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, FOLLOW_UP, WAIT, DELAY_REQ, DELAY_RESP, IGMP, REPORT, VERSION, GROUP, PIM, JOIN_PRUNE, RP, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define colocation FPGA trading server.
+HOST hft_fpga_algo {
+    IP 10.77.1.100
+    MAC 00:0f:53:4d:01:64
+}
+
+// INSTRUCTION: Define exchange PTP Grandmaster clock and multicast Top-of-Rack switch.
+HOST exchange_ptp_tor {
+    IP 10.77.1.1
+    MAC 00:1c:73:4d:01:01
+}
+
+// INSTRUCTION: Define exchange matching engine and ITCH multicast publisher.
+HOST matching_engine_gw {
+    IP 10.77.2.10
+    MAC 00:1c:73:4d:02:0a
+}
+
+// INSTRUCTION: Define PTP clock lock, IGMP/PIM market feed subscription, UDP ITCH tick reception, and TCP FIX order entry.
+FLOW hft_market_data_and_execution(algo, tor, exch) {
+    tor -> algo PTP SYNC DOMAIN 0 SEQ_ID 9001
+    tor -> algo PTP FOLLOW_UP DOMAIN 0 SEQ_ID 9001 WAIT 50us
+    algo -> tor PTP DELAY_REQ DOMAIN 0 SEQ_ID 9001 WAIT 50us
+    tor -> algo PTP DELAY_RESP DOMAIN 0 SEQ_ID 9001 WAIT 50us
+    algo -> tor IGMP REPORT VERSION 3 GROUP 239.77.1.50 WAIT 100us
+    tor -> exch PIM JOIN_PRUNE GROUP 239.77.1.50 RP 10.77.2.10 WAIT 100us
+    exch -> algo DSCP 46 UDP SRCPORT 15000 DSTPORT 15000 PAYLOAD "ITCH50_ADD_ORDER_NVDA_1000_SHARES" WAIT 10us
+    algo -> exch DSCP 46 TCP PSH ACK SRCPORT 52100 DSTPORT 9800 WIN 65535 PAYLOAD "8=FIX.4.2|35=D|55=NVDA|54=1|38=1000|40=2|" WAIT 5us
+    algo <- exch DSCP 46 TCP PSH ACK SRCPORT 9800 DSTPORT 52100 WIN 65535 PAYLOAD "8=FIX.4.2|35=8|39=2|150=F|55=NVDA|" WAIT 20us
+}
+
+// INSTRUCTION: Compile block executing financial HFT PTP, IGMP, PIM, UDP, and TCP FIX topology.
+COMPILE {
+    hft_market_data_and_execution(hft_fpga_algo, exchange_ptp_tor, matching_engine_gw)
+}

@@ -1,0 +1,24 @@
+// PROMPT: Minimal SNMPv3 frame with zero optional sub-keywords exercising builder default USM trap generation.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP3, COMPILE
+
+// INSTRUCTION: Define the default SNMPv3 agent endpoint.
+HOST snmp3_def_agent {
+    IP 10.147.0.1
+    MAC 00:1a:2b:93:00:01
+}
+
+// INSTRUCTION: Define the default SNMPv3 trap receiver endpoint.
+HOST snmp3_def_mgr {
+    IP 10.147.0.10
+    MAC 00:1a:2b:93:00:10
+}
+
+// INSTRUCTION: Emit a bare SNMP3 statement to exercise default USM user, engine parameters, and trap OID.
+FLOW snmpv3_defaults(a, m) {
+    a -> m SNMP3
+}
+
+// INSTRUCTION: Compile the default SNMPv3 trap flow.
+COMPILE {
+    snmpv3_defaults(snmp3_def_agent, snmp3_def_mgr)
+}

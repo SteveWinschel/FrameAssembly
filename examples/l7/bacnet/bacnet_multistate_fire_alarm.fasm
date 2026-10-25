@@ -1,0 +1,18 @@
+// PROMPT: BACnet/IP Multi-state Value life-safety fire alarm mode override on UDP port 47809.
+// TOKENS: HOST, IP, FLOW, BACNET, WRITE_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, SRCPORT, DSTPORT, DSCP, COMPILE
+
+// INSTRUCTION: Define fire alarm control panel (FACP).
+HOST facp_master { IP 10.90.0.10 }
+
+// INSTRUCTION: Define smoke purge fan controller.
+HOST smoke_fan { IP 10.90.0.99 }
+
+// INSTRUCTION: Write Multi-state Value (ObjectType 19) Instance 1 to Emergency Purge state 3 on port 47809.
+FLOW bacnet_fire_override(f, s) {
+    f -> s BACNET WRITE_PROPERTY INVOKE_ID 99 OBJECT_TYPE 19 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 3 SRCPORT 47809 DSTPORT 47809 DSCP 46
+}
+
+// INSTRUCTION: Compile the life-safety BACnet override scenario.
+COMPILE {
+    bacnet_fire_override(facp_master, smoke_fan)
+}

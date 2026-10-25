@@ -1,5 +1,5 @@
 // PROMPT: BACnet/IP building automation unconfirmed Who-Is device discovery broadcast.
-// TOKENS: HOST, IP, FLOW, ->, BACNET, WHO_IS, COMPILE
+// TOKENS: HOST, IP, FLOW, BACNET, WHO_IS, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.10.50 }

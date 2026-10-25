@@ -1,0 +1,18 @@
+// PROMPT: OSPF neighbor acknowledging received LSAs via Link State Acknowledgment (LSACK).
+// TOKENS: HOST, IP, FLOW, OSPF, LSACK, ROUTER_ID, AREA_ID, COMPILE
+
+// INSTRUCTION: Define OSPF acknowledging peer node.
+HOST ospf_ack_peer { IP 172.22.1.2 }
+
+// INSTRUCTION: Define All-DR-Routers multicast destination 224.0.0.6.
+HOST ospf_all_dr_mcast { IP 224.0.0.6 }
+
+// INSTRUCTION: Define LSACK confirmation flow acknowledging update delivery.
+FLOW ospf_lsack_flow(peer, dr) {
+    peer -> dr OSPF LSACK ROUTER_ID 172.22.1.2 AREA_ID 0
+}
+
+// INSTRUCTION: Compile block executing OSPF Link State Acknowledgment.
+COMPILE {
+    ospf_lsack_flow(ospf_ack_peer, ospf_all_dr_mcast)
+}

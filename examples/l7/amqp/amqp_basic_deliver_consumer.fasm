@@ -1,0 +1,19 @@
+// PROMPT: AMQP Basic.Deliver push notification from broker to consumer with JSON payload.
+// TOKENS: HOST, IP, FLOW, AMQP, BASIC_DELIVER, CHANNEL, EXCHANGE, ROUTING_KEY, PAYLOAD, TCP, ACK, COMPILE
+
+// INSTRUCTION: Define the order processing microservice consumer.
+HOST order_consumer { IP 10.50.0.42 }
+
+// INSTRUCTION: Define the AMQP event broker endpoint.
+HOST event_broker { IP 10.50.0.10 }
+
+// INSTRUCTION: Deliver an asynchronous event message to the subscribed consumer channel.
+FLOW amqp_consumer_delivery(cons, brk) {
+    cons <- brk AMQP BASIC_DELIVER CHANNEL 2 EXCHANGE "orders.topic" ROUTING_KEY "order.created" PAYLOAD "{\"id\":9012}"
+    cons -> brk TCP ACK
+}
+
+// INSTRUCTION: Execute the AMQP consumer delivery flow.
+COMPILE {
+    amqp_consumer_delivery(order_consumer, event_broker)
+}

@@ -1,0 +1,18 @@
+// PROMPT: QinQ encapsulated IGMP Membership Report for hospitality guest network IPTV feed.
+// TOKENS: HOST, IP, FLOW, IGMP, REPORT, GROUP, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define hotel room media console.
+HOST hotel_media_unit { IP 172.22.10.50 }
+
+// INSTRUCTION: Define premium news multicast channel.
+HOST hotel_iptv_stream { IP 239.100.5.1 }
+
+// INSTRUCTION: Define QinQ encapsulated IGMP report with outer S-VLAN 300 and inner C-VLAN 25.
+FLOW igmp_qinq_report(dev, grp) {
+    dev -> grp IGMP REPORT GROUP 239.100.5.1 QINQ 300 INNER_VLAN 25
+}
+
+// INSTRUCTION: Compile block executing QinQ dual-tagged IGMP join.
+COMPILE {
+    igmp_qinq_report(hotel_media_unit, hotel_iptv_stream)
+}

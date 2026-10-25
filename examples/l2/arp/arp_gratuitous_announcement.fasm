@@ -1,5 +1,5 @@
 // PROMPT: Gratuitous ARP announcement broadcast for IP takeover and MAC cache updating.
-// TOKENS: HOST, IP, MAC, FLOW, ->, ARP, GRATUITOUS, SPA, TPA, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, ARP, GRATUITOUS, SPA, TPA, COMPILE
 
 // INSTRUCTION: Define cluster primary node advertising virtual IP takeover.
 HOST cluster_node {

@@ -1,0 +1,25 @@
+// PROMPT: Municipal fiber network isolating two government agencies under outer S-VLAN 3500 with distinct inner C-VLANs 11 and 12.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define municipal core VRF-Lite aggregation router terminating S-VLAN 3500.
+HOST muni_vrf_core {
+    IP 10.250.0.1
+    MAC 00:1c:73:fa:35:01
+}
+
+// INSTRUCTION: Define municipal agency branch router trunking C-VLAN 11 and C-VLAN 12 inside S-VLAN 3500.
+HOST agency_branch_rtr {
+    IP 10.250.0.2
+    MAC 00:1c:73:fa:35:02
+}
+
+// INSTRUCTION: Multiplex Agency A (C-VLAN 11) and Agency B (C-VLAN 12) traffic inside outer S-VLAN 3500.
+FLOW qinq_multi_agency_vrf(core, br) {
+    core -> br QINQ 3500 INNER_VLAN 11 UDP SRCPORT 514 DSTPORT 514 PAYLOAD "agency_a_public_safety_syslog_event" WAIT 5ms
+    core -> br QINQ 3500 INNER_VLAN 12 UDP SRCPORT 514 DSTPORT 514 PAYLOAD "agency_b_water_utility_syslog_event"
+}
+
+// INSTRUCTION: Compile the multi-agency VRF-Lite QinQ S-VLAN 3500 C-VLAN 11/12 multiplexing trace.
+COMPILE {
+    qinq_multi_agency_vrf(muni_vrf_core, agency_branch_rtr)
+}

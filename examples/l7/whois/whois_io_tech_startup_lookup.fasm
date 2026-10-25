@@ -1,0 +1,21 @@
+// PROMPT: Cloud computing startup domain availability query in ccTLD io registry.
+// TOKENS: HOST, IP, FLOW, WHOIS, QUERY, DOMAIN, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define entrepreneur browser client.
+HOST startup_cli { IP 10.40.1.18 }
+
+// INSTRUCTION: Define IO registry authority.
+HOST io_registry { IP 193.223.78.42 }
+
+// INSTRUCTION: Define IO ccTLD WHOIS lookup flow.
+FLOW whois_io_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "cloudnative.io"
+    c <- s WHOIS RESPONSE
+        DOMAIN "cloudnative.io"
+        REGISTRAR "NameCheap Inc"
+}
+
+// INSTRUCTION: Compile block executing IO domain query.
+COMPILE {
+    whois_io_flow(startup_cli, io_registry)
+}

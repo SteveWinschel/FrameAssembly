@@ -1,5 +1,5 @@
 // PROMPT: Simulate a complete 4-way TCP graceful connection teardown using FIN and ACK flags with explicit sequence and acknowledgment numbers.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, FIN, SEQ, ACKNUM, SRCPORT, DSTPORT, WIN, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ACK, ACKNUM, FIN, COMPILE
 
 // INSTRUCTION: Define a web client endpoint with IP 192.168.10.25 and MAC 00:1a:2b:3c:4d:5e.
 HOST web_client { IP 192.168.10.25 MAC 00:1a:2b:3c:4d:5e }

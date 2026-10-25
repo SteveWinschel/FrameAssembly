@@ -1,0 +1,19 @@
+// PROMPT: IKEv2 control plane key exchange marked with DSCP CS6 (48) and ECN ECT(0).
+// TOKENS: HOST, IP, FLOW, IKEV2, SA_INIT, INITIATOR_SPI, RESPONDER_SPI, MSGID, FLAGS, NEXT_PAYLOAD, DSCP, ECN, TTL, DF, COMPILE
+
+// INSTRUCTION: Define priority VPN concentrator A.
+HOST cs6_ike_gw_a { IP 203.0.113.51 }
+
+// INSTRUCTION: Define priority VPN concentrator B.
+HOST cs6_ike_gw_b { IP 203.0.113.52 }
+
+// INSTRUCTION: Define DSCP CS6 (48) marked IKEv2 SA_INIT exchange with DF set.
+FLOW ikev2_cs6_priority(a, b) {
+    a -> b IKEV2 SA_INIT INITIATOR_SPI 48001 RESPONDER_SPI 0 MSGID 0 FLAGS 8 NEXT_PAYLOAD 33 DSCP 48 ECN 2 TTL 64 DF
+    a <- b IKEV2 SA_INIT INITIATOR_SPI 48001 RESPONDER_SPI 48002 MSGID 0 FLAGS 32 NEXT_PAYLOAD 33 DSCP 48 ECN 2 TTL 64 DF
+}
+
+// INSTRUCTION: Compile the DSCP CS6 IKEv2 key exchange flow.
+COMPILE {
+    ikev2_cs6_priority(cs6_ike_gw_a, cs6_ike_gw_b)
+}

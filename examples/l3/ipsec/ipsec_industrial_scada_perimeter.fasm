@@ -1,0 +1,18 @@
+// PROMPT: Substation SCADA perimeter gateway protecting RTU telemetry via IPsec ESP.
+// TOKENS: HOST, IP, MAC, FLOW, IPSEC, SPI, SEQ, TTL, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define electric grid substation perimeter gateway.
+HOST scada_substation_gw { IP 10.99.4.1 MAC 00:1c:73:99:04:01 }
+
+// INSTRUCTION: Define central energy management operations center.
+HOST energy_ops_center { IP 10.99.100.10 MAC 00:1c:73:99:64:0a }
+
+// INSTRUCTION: Define SCADA telemetry IPsec encapsulation flow with single-hop TTL.
+FLOW scada_ipsec_telemetry(sub, ops) {
+    sub -> ops IPSEC SPI 123456 SEQ 42 TTL 32 PAYLOAD "DNP3_IEC61850_TELEMETRY_PAYLOAD"
+}
+
+// INSTRUCTION: Compile block executing SCADA telemetry protection.
+COMPILE {
+    scada_ipsec_telemetry(scada_substation_gw, energy_ops_center)
+}

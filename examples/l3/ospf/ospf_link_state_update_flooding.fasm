@@ -1,0 +1,18 @@
+// PROMPT: OSPF Designated Router flooding topology updates via Link State Update (LSU).
+// TOKENS: HOST, IP, FLOW, OSPF, LSU, ROUTER_ID, AREA_ID, COMPILE
+
+// INSTRUCTION: Define OSPF Designated Router flooding LSA updates.
+HOST ospf_designated_rtr { IP 10.10.0.1 }
+
+// INSTRUCTION: Define All-OSPF-Routers multicast address.
+HOST all_ospf_routers_dst { IP 224.0.0.5 }
+
+// INSTRUCTION: Define Link State Update flooding transmission flow.
+FLOW ospf_lsu_flood_flow(dr, dst) {
+    dr -> dst OSPF LSU ROUTER_ID 10.10.0.1 AREA_ID 0
+}
+
+// INSTRUCTION: Compile block executing LSU flooding.
+COMPILE {
+    ospf_lsu_flood_flow(ospf_designated_rtr, all_ospf_routers_dst)
+}

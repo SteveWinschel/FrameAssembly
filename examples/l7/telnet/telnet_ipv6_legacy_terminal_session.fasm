@@ -1,0 +1,19 @@
+// PROMPT: IPv6 terminal session negotiating character echo on port 23.
+// TOKENS: HOST, IP, FLOW, TELNET, DO, WILL, COMPILE
+
+// INSTRUCTION: Define IPv6 terminal workstation.
+HOST term_v6_client { IP 2001:db8:beef::20 }
+
+// INSTRUCTION: Define IPv6 access node.
+HOST term_v6_server { IP 2001:db8:beef::1 }
+
+// INSTRUCTION: Define IPv6 Telnet option negotiation flow.
+FLOW telnet_v6_echo_flow(c, s) {
+    c -> s TELNET DO 1
+    c <- s TELNET WILL 1
+}
+
+// INSTRUCTION: Compile block executing IPv6 negotiation.
+COMPILE {
+    telnet_v6_echo_flow(term_v6_client, term_v6_server)
+}

@@ -1,0 +1,30 @@
+// PROMPT: PostgreSQL subtransaction management using SAVEPOINT, ERROR_RESPONSE recovery, and ROLLBACK TO SAVEPOINT.
+// TOKENS: HOST, IP, MAC, FLOW, POSTGRES, SQL, COMMAND_COMPLETE, WAIT, ERROR_RESPONSE, PAYLOAD, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define the multi-tenant import worker host.
+HOST import_worker {
+    IP 10.95.50.14
+    MAC 00:1a:2b:95:50:14
+}
+
+// INSTRUCTION: Define the tenant PostgreSQL server.
+HOST tenant_pg {
+    IP 10.95.50.1
+    MAC 00:1a:2b:95:50:01
+}
+
+// INSTRUCTION: Establish a savepoint, recover from a check constraint ERROR_RESPONSE, and commit the outer transaction.
+FLOW pg_savepoint_recovery(c, s) {
+    c -> s POSTGRES SQL "BEGIN; SAVEPOINT row_import_1"
+    c <- s POSTGRES COMMAND_COMPLETE WAIT 1ms
+    c -> s POSTGRES SQL "INSERT INTO invoices (total_cents) VALUES (-500)"
+    c <- s POSTGRES ERROR_RESPONSE PAYLOAD "new row for relation 'invoices' violates check constraint 'chk_positive_total'" WAIT 1ms
+    c -> s POSTGRES SQL "ROLLBACK TO SAVEPOINT row_import_1; COMMIT"
+    c <- s POSTGRES COMMAND_COMPLETE WAIT 1ms
+    c <- s POSTGRES READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile the PostgreSQL savepoint error recovery flow.
+COMPILE {
+    pg_savepoint_recovery(import_worker, tenant_pg)
+}

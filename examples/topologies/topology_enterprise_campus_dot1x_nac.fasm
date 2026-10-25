@@ -1,5 +1,5 @@
 // PROMPT: Enterprise campus zero-trust port onboarding with 802.1X EAPOL, RADIUS authentication, and DHCP IP assignment.
-// TOKENS: HOST, IP, FLOW, ->, EAPOL, TYPE, START, RADIUS, ACCESS_REQUEST, USER, DHCP, DISCOVER, COMPILE
+// TOKENS: HOST, IP, FLOW, EAPOL, TYPE, START, RADIUS, ACCESS_REQUEST, USER, DHCP, DISCOVER, COMPILE
 
 // INSTRUCTION: Define unauthenticated client workstation.
 HOST laptop_endpoint { IP 0.0.0.0 }

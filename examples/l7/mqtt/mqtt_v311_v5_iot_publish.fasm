@@ -1,5 +1,5 @@
 // PROMPT: Lightweight IoT telemetry messaging using MQTT CONNECT and PUBLISH on TCP 1883.
-// TOKENS: HOST, IP, FLOW, ->, MQTT, CONNECT, CLIENT_ID, PUBLISH, TOPIC, COMPILE
+// TOKENS: HOST, IP, FLOW, MQTT, CONNECT, CLIENT_ID, PUBLISH, TOPIC, COMPILE
 
 // INSTRUCTION: Define edge IoT sensor node.
 HOST iot_sensor { IP 192.168.10.50 }

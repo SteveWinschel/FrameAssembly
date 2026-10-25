@@ -1,0 +1,25 @@
+// PROMPT: DNP3 Group 21 Variation 1 (32-bit Frozen Counter with Flag) read for substation revenue metering.
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the utility energy settlement SCADA master.
+HOST settlement_master {
+    IP 10.125.1.1
+    MAC 00:1a:2b:7d:01:01
+}
+
+// INSTRUCTION: Define the substation revenue meter RTU outstation.
+HOST meter_rtu {
+    IP 10.125.1.50
+    MAC 00:1a:2b:7d:01:50
+}
+
+// INSTRUCTION: Read Frozen Counters (Group 21 Variation 1) from outstation address 50 and receive RESPONSE.
+FLOW dnp3_frozen_counters(m, o) {
+    m -> o DNP3 FUNC "READ" SRC 1 DST 50 GROUP 21 VARIATION 1
+    m <- o DNP3 FUNC "RESPONSE" SRC 50 DST 1 GROUP 21 VARIATION 1 PAYLOAD "MWH_EXPORT_FROZEN_104920"
+}
+
+// INSTRUCTION: Compile the DNP3 Group 21 frozen counter read flow.
+COMPILE {
+    dnp3_frozen_counters(settlement_master, meter_rtu)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Routing Information Protocol table request and routing response exchange.
-// TOKENS: HOST, IP, FLOW, ->, <-, RIP, REQUEST, RESPONSE, COMPILE
+// TOKENS: HOST, IP, FLOW, RIP, REQUEST, RESPONSE, COMPILE
 
 // INSTRUCTION: Define local branch router.
 HOST branch_router { IP 192.168.1.1 }

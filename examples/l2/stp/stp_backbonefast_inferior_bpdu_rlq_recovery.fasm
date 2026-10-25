@@ -1,0 +1,25 @@
+// PROMPT: Distribution switch receiving an inferior BPDU after indirect root link failure and reasserting true Root Bridge identity.
+// TOKENS: HOST, IP, MAC, FLOW, STP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, MAX_AGE, HELLO_TIME, FORWARD_DELAY, FLAGS, WAIT, COMPILE
+
+// INSTRUCTION: Define distribution switch B losing its direct root link and mistakenly claiming root.
+HOST dist_sw_indirect_fail {
+    IP 10.15.0.2
+    MAC 00:25:90:0f:00:02
+}
+
+// INSTRUCTION: Define peer switch C retaining valid path to Root Bridge A and correcting switch B.
+HOST peer_sw_valid_path {
+    IP 10.15.0.3
+    MAC 00:25:90:0f:00:03
+}
+
+// INSTRUCTION: Send inferior self-rooted BPDU from switch B and immediately override with superior Root Bridge BPDU from switch C.
+FLOW stp_backbonefast_recovery(sw_b, sw_c) {
+    sw_b -> sw_c STP ROOT_ID "32768:00:25:90:0f:00:02" BRIDGE_ID "32768:00:25:90:0f:00:02" COST 0 PORT_ID 32769 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 0 WAIT 5ms
+    sw_b <- sw_c STP ROOT_ID "4096:00:25:90:0f:00:01" BRIDGE_ID "32768:00:25:90:0f:00:03" COST 2000 PORT_ID 32770 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 0
+}
+
+// INSTRUCTION: Compile the STP BackboneFast inferior BPDU recovery sequence.
+COMPILE {
+    stp_backbonefast_recovery(dist_sw_indirect_fail, peer_sw_valid_path)
+}

@@ -1,0 +1,33 @@
+// PROMPT: Simulate an SSDP M-SEARCH query looking specifically for WANIPConnection:1 service on a residential gateway.
+// TOKENS: HOST, MAC, IP, FLOW, SSDP, MSEARCH, HOST_HDR, MAN, MX, ST, NOTIFY, NT, NTS, USN, LOCATION, COMPILE
+
+// INSTRUCTION: Define host endpoint p2p_host.
+HOST p2p_host {
+    MAC 00:1a:92:33:44:55
+    IP 192.168.0.101
+}
+
+// INSTRUCTION: Define host endpoint home_router.
+HOST home_router {
+    MAC 00:1a:92:00:00:01
+    IP 192.168.0.1
+}
+
+// INSTRUCTION: Define host endpoint ssdp_dest.
+HOST ssdp_dest {
+    MAC 01:00:5e:7f:ff:fa
+    IP 239.255.255.250
+}
+
+// INSTRUCTION: Search for WANIPConnection:1 service and receive the router's service description URL.
+FLOW ssdp_wan_ip_connection_search(p2p_host, home_router, ssdp_dest) {
+    p2p_host -> ssdp_dest SSDP MSEARCH HOST_HDR "239.255.255.250:1900" MAN "\"ssdp:discover\"" MX 2 ST "urn:schemas-upnp-org:service:WANIPConnection:1"
+    home_router -> p2p_host SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "urn:schemas-upnp-org:service:WANIPConnection:1" NTS "ssdp:alive"
+        USN "uuid:router-wan-01::urn:schemas-upnp-org:service:WANIPConnection:1"
+        LOCATION "http://192.168.0.1:5000/wanipconn.xml"
+}
+
+// INSTRUCTION: Compile the SSDP WANIPConnection service discovery flow.
+COMPILE {
+    ssdp_wan_ip_connection_search(p2p_host, home_router, ssdp_dest)
+}

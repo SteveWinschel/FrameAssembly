@@ -1,0 +1,19 @@
+// PROMPT: Site-to-site branch routers establishing direct WireGuard mesh peering.
+// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, INITIATION, SENDER, RESPONSE, RECEIVER, COMPILE
+
+// INSTRUCTION: Define Branch Office Tokyo gateway.
+HOST wg_branch_tokyo { IP 10.210.1.1 }
+
+// INSTRUCTION: Define Branch Office Sydney gateway.
+HOST wg_branch_sydney { IP 10.210.2.1 }
+
+// INSTRUCTION: Define mutual branch mesh tunnel establishment flow.
+FLOW wg_mesh_peering_flow(tokyo, sydney) {
+    tokyo -> sydney WIREGUARD TYPE INITIATION SENDER 70701
+    tokyo <- sydney WIREGUARD TYPE RESPONSE SENDER 70702 RECEIVER 70701
+}
+
+// INSTRUCTION: Compile block executing direct branch mesh setup.
+COMPILE {
+    wg_mesh_peering_flow(wg_branch_tokyo, wg_branch_sydney)
+}

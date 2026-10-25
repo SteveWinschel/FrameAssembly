@@ -1,5 +1,5 @@
 // PROMPT: IPv4 SSDP UPnP discovery multicast transmission to 239.255.255.250 deriving RFC 1112 MAC 01:00:5e:7f:ff:fa.
-// TOKENS: HOST, IP, FLOW, ->, SSDP, MSEARCH, COMPILE
+// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, COMPILE
 
 // INSTRUCTION: Define SSDP client initiating discovery.
 HOST ssdp_device { IP 192.168.1.75 }

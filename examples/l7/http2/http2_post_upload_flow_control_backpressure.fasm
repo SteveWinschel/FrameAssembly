@@ -1,0 +1,29 @@
+// PROMPT: HTTP/2 client uploading large POST DATA frames on Stream 3 paused until server sends WINDOW_UPDATE.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP2, HEADERS, STREAM_ID, DATA, PAYLOAD, WINDOW_UPDATE, COMPILE
+
+// INSTRUCTION: Define mobile client uploading media payload over HTTP/2.
+HOST mobile_uploader {
+    IP 172.20.80.45
+    MAC 02:42:ac:14:50:2d
+}
+
+// INSTRUCTION: Define media ingestion HTTP/2 server enforcing flow-control windows.
+HOST media_ingest_srv {
+    IP 172.20.80.1
+    MAC 02:42:ac:14:50:01
+}
+
+// INSTRUCTION: Send POST HEADERS and initial DATA on Stream 3, wait for server WINDOW_UPDATE, then finish DATA.
+FLOW http2_post_backpressure(c, s) {
+    c -> s HTTP2 HEADERS STREAM_ID 3
+    c -> s HTTP2 DATA STREAM_ID 3 PAYLOAD "chunk-01-65535-bytes-window-exhausted"
+    c <- s HTTP2 WINDOW_UPDATE STREAM_ID 0
+    c <- s HTTP2 WINDOW_UPDATE STREAM_ID 3
+    c -> s HTTP2 DATA STREAM_ID 3 PAYLOAD "chunk-02-final-eof"
+    c <- s HTTP2 HEADERS STREAM_ID 3
+}
+
+// INSTRUCTION: Compile the HTTP/2 POST upload flow-control backpressure scenario.
+COMPILE {
+    http2_post_backpressure(mobile_uploader, media_ingest_srv)
+}

@@ -1,0 +1,44 @@
+// PROMPT: Create a dual-stack IPv4 and IPv6 Memcached deployment comparing ADD and REPLACE conditional storage commands.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, CMD, KEY, EXPTIME, OPAQUE, VALUE, DSCP, WAIT, FLOWLABEL, TTL, COMPILE
+
+// INSTRUCTION: Define the dual-stack distributed lock client using Memcached ADD and REPLACE primitives (IPv4).
+HOST lock_client_v4 {
+    IP 10.65.1.25
+    MAC 00:1a:4a:65:01:25
+}
+
+// INSTRUCTION: Define the dual-stack distributed lock client using Memcached ADD and REPLACE primitives (IPv6).
+HOST lock_client_v6 {
+    IP 2001:db8:65:1::25
+    MAC 00:1a:4a:65:01:25
+}
+
+// INSTRUCTION: Define the dual-stack Memcached lock server (IPv4).
+HOST lock_memcache_v4 {
+    IP 10.65.1.10
+    MAC 00:1a:4a:65:01:10
+}
+
+// INSTRUCTION: Define the dual-stack Memcached lock server (IPv6).
+HOST lock_memcache_v6 {
+    IP 2001:db8:65:1::10
+    MAC 00:1a:4a:65:01:10
+}
+
+// INSTRUCTION: Acquire a distributed lock over IPv4 using ADD (succeeds only if key does not exist).
+FLOW ipv4_add_lock(c, s) {
+    c -> s MEMCACHED CMD "ADD" KEY "lock:cron:daily_billing" EXPTIME 120 OPAQUE 401 VALUE 1 DSCP 24 WAIT 2ms
+    c <- s MEMCACHED CMD "STORED" KEY "lock:cron:daily_billing" OPAQUE 401 VALUE 1 DSCP 24
+}
+
+// INSTRUCTION: Renew the existing lock lease over IPv6 using REPLACE with flow label 0x55300.
+FLOW ipv6_replace_lock(c, s) {
+    c -> s MEMCACHED CMD "REPLACE" KEY "lock:cron:daily_billing" EXPTIME 240 OPAQUE 402 VALUE 2 FLOWLABEL 0x55300 TTL 64 WAIT 2ms
+    c <- s MEMCACHED CMD "STORED" KEY "lock:cron:daily_billing" OPAQUE 402 VALUE 2 FLOWLABEL 0x55300 TTL 64
+}
+
+// INSTRUCTION: Compile the dual-stack Memcached ADD and REPLACE trace into a PCAP file.
+COMPILE {
+    ipv4_add_lock(lock_client_v4, lock_memcache_v4)
+    ipv6_replace_lock(lock_client_v6, lock_memcache_v6)
+}

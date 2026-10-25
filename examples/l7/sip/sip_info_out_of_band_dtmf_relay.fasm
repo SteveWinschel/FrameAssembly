@@ -1,0 +1,24 @@
+// PROMPT: SIP INFO method (RFC 6086) carrying out-of-band DTMF digit press during active IVR call.
+// TOKENS: HOST, IP, FLOW, SIP, METHOD, URI, FROM, TO, CALL_ID, CSEQ, CONTENT_TYPE, BODY, WAIT, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define customer softphone sending menu selection digit.
+HOST softphone_ep {
+    IP 10.90.4.33
+}
+
+// INSTRUCTION: Define interactive voice response (IVR) SIP server.
+HOST ivr_server {
+    IP 10.90.4.1
+}
+
+// INSTRUCTION: Define SIP INFO request carrying application/dtmf-relay body and 200 OK response.
+FLOW sip_dtmf_info(c, s) {
+    c -> s SIP METHOD "INFO" URI "sip:ivr@10.90.4.1" FROM "sip:cust@10.90.4.33" TO "sip:ivr@10.90.4.1" CALL_ID "ivr-call-42" CSEQ 5 CONTENT_TYPE "application/dtmf-relay" BODY "Signal=5
+Duration=160" WAIT 4ms
+    c <- s SIP STATUS 200 REASON "OK" CALL_ID "ivr-call-42" CSEQ 5
+}
+
+// INSTRUCTION: Compile the SIP INFO out-of-band DTMF relay scenario.
+COMPILE {
+    sip_dtmf_info(softphone_ep, ivr_server)
+}

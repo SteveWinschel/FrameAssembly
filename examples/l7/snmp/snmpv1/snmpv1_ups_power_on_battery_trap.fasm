@@ -1,0 +1,24 @@
+// PROMPT: SNMPv1 RFC 1628 UPS-MIB trap notifying the NOC that utility AC input failed and the UPS is on battery.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, INT, COMPILE
+
+// INSTRUCTION: Define the datacenter UPS network management card.
+HOST ups_agent {
+    IP 10.145.40.5
+    MAC 00:1a:2b:91:40:05
+}
+
+// INSTRUCTION: Define the NOC SNMP trap collector.
+HOST noc_collector {
+    IP 10.145.40.100
+    MAC 00:1a:2b:91:40:64
+}
+
+// INSTRUCTION: Emit an SNMPv1 GENTRAP 6 SPECTRAP 1 (upsTrapOnBattery) with estimated minutes remaining and battery voltage.
+FLOW snmpv1_ups_on_battery(u, n) {
+    u -> n SNMP1 TRAP COMMUNITY "ups_traps" ENTERPRISE 1.3.6.1.2.1.33.2 AGENTIP 10.145.40.5 GENTRAP 6 SPECTRAP 1 SYSUPTIME 9912400 VARBIND 1.3.6.1.2.1.33.1.2.3.0 INT 28
+}
+
+// INSTRUCTION: Compile the SNMPv1 UPS on-battery trap flow.
+COMPILE {
+    snmpv1_ups_on_battery(ups_agent, noc_collector)
+}

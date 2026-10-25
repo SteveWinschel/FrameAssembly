@@ -1,0 +1,27 @@
+// PROMPT: Simulate a 5G eCPRI fronthaul O-DU to O-RU PTPv2 phase distribution on Domain 24 over QinQ 800/24.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, CLOCK_ID, QINQ, INNER_VLAN, DSCP, WAIT, FOLLOW_UP, DELAY_REQ, DELAY_RESP, COMPILE
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
+HOST ptp_grandmaster {
+    IP 10.24.0.1
+    MAC 00:1b:21:31:90:01
+}
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
+HOST ptp_slave_clock {
+    IP 10.24.0.10
+    MAC 00:1b:21:31:90:25
+}
+
+// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
+FLOW ptp_scenario_flow(gm, slv) {
+    gm -> slv PTP SYNC DOMAIN 24 SEQ_ID 7701 CLOCK_ID "0024e8fffe240001" QINQ 800 INNER_VLAN 24 DSCP 46 WAIT 1ms
+    gm -> slv PTP FOLLOW_UP DOMAIN 24 SEQ_ID 7701 CLOCK_ID "0024e8fffe240001" QINQ 800 INNER_VLAN 24 DSCP 46 WAIT 1ms
+    gm <- slv PTP DELAY_REQ DOMAIN 24 SEQ_ID 7701 CLOCK_ID "0024e8fffe24000a" QINQ 800 INNER_VLAN 24 DSCP 46 WAIT 1ms
+    gm -> slv PTP DELAY_RESP DOMAIN 24 SEQ_ID 7701 CLOCK_ID "0024e8fffe240001" QINQ 800 INNER_VLAN 24 DSCP 46
+}
+
+// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
+COMPILE {
+    ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
+}

@@ -1,0 +1,25 @@
+// PROMPT: RFC 7999 Remotely Triggered Black Hole (RTBH) BGP UPDATE tagging an attacked /32 host with BLACKHOLE community 65535:666.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, UPDATE, ASN, PREFIX, NEXTHOP, DSCP, TTL, PAYLOAD, WAIT, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define Customer SOC router triggering RFC 7999 RTBH blackhole announcement.
+HOST soc_rtbh_trigger {
+    IP 203.0.113.50
+    MAC 00:1b:63:79:99:32
+}
+
+// INSTRUCTION: Define upstream Tier-1 ISP edge router null-routing blackholed prefixes.
+HOST isp_rtbh_upstream {
+    IP 203.0.113.49
+    MAC 00:1b:63:79:99:31
+}
+
+// INSTRUCTION: Define BGP UPDATE advertising /32 victim IP directed to discard next-hop 192.0.2.1.
+FLOW bgp_rtbh_blackhole_flow(soc, isp) {
+    soc -> isp BGP UPDATE ASN 65300 PREFIX "203.0.113.200/32" NEXTHOP 192.0.2.1 DSCP 48 TTL 1 PAYLOAD "COMMUNITY_65535_666_BLACKHOLE" WAIT 5ms
+    soc <- isp BGP KEEPALIVE DSCP 48 TTL 1
+}
+
+// INSTRUCTION: Compile the RFC 7999 BGP Remotely Triggered Black Hole announcement flow.
+COMPILE {
+    bgp_rtbh_blackhole_flow(soc_rtbh_trigger, isp_rtbh_upstream)
+}

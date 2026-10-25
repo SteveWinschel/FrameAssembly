@@ -1,0 +1,28 @@
+// PROMPT: Protected EAP (PEAPv0 / EAP-MSCHAPv2, Method 25) outer anonymous identity and inner tunnel negotiation.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define corporate Windows domain workstation supplicant.
+HOST peap_domain_pc {
+    IP 172.17.25.44
+    MAC 00:21:70:19:00:2c
+}
+
+// INSTRUCTION: Define enterprise access switch forwarding EAP-PEAP to RADIUS.
+HOST peap_access_sw {
+    IP 172.17.25.1
+    MAC 00:1b:54:19:00:01
+}
+
+// INSTRUCTION: Define PEAP (EAP_METHOD 25) anonymous outer identity and inner MSCHAPv2 tunnel setup.
+FLOW eapol_peap_mschapv2(pc, sw) {
+    pc <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 20 EAP_METHOD 1
+    pc -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 20 EAP_METHOD 1 IDENTITY "anonymous@corp.internal" WAIT 2ms
+    pc <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 21 EAP_METHOD 25 PAYLOAD "peap_v0_tls_outer_tunnel_start" WAIT 4ms
+    pc -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 21 EAP_METHOD 25 PAYLOAD "peap_v0_inner_eap_mschapv2_response" WAIT 4ms
+    pc <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 22 EAP_METHOD 25 WAIT 4ms
+}
+
+// INSTRUCTION: Compile block executing PEAPv0 authentication exchange.
+COMPILE {
+    eapol_peap_mschapv2(peap_domain_pc, peap_access_sw)
+}

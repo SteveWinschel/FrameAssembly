@@ -1,0 +1,25 @@
+// PROMPT: SNMPv2c acknowledged INFORM notification from a Wireless LAN Controller (WLC) reporting an Access Point join event.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP2, INFORM, COMMUNITY, REQID, SYSUPTIME, OID, VARBIND, STRING, RESPONSE, COMPILE
+
+// INSTRUCTION: Define the enterprise Wireless LAN Controller agent.
+HOST enterprise_wlc {
+    IP 10.146.70.5
+    MAC 00:1a:2b:92:70:05
+}
+
+// INSTRUCTION: Define the central Wi-Fi assurance manager.
+HOST wifi_assurance {
+    IP 10.146.70.100
+    MAC 00:1a:2b:92:70:64
+}
+
+// INSTRUCTION: Send an SNMP2 INFORM reporting AP-Floor3-East association and receive SNMP2 RESPONSE acknowledgment.
+FLOW snmpv2c_wlc_inform(w, m) {
+    w -> m SNMP2 INFORM COMMUNITY "wlan_inform" REQID 4900 SYSUPTIME 1920400 OID 1.3.6.1.4.1.9.9.513.0.4 VARBIND 1.3.6.1.4.1.9.9.513.1.1.1.1.5.1 STRING "AP-Floor3-East"
+    w <- m SNMP2 RESPONSE COMMUNITY "wlan_inform" REQID 4900 VARBIND 1.3.6.1.4.1.9.9.513.1.1.1.1.5.1 STRING "AP-Floor3-East"
+}
+
+// INSTRUCTION: Compile the SNMPv2c WLC AP join INFORM flow.
+COMPILE {
+    snmpv2c_wlc_inform(enterprise_wlc, wifi_assurance)
+}

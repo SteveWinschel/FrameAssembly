@@ -1,0 +1,26 @@
+// PROMPT: PostgreSQL Full-Text Search query using to_tsvector, websearch_to_tsquery, and ts_rank_cd.
+// TOKENS: HOST, IP, MAC, FLOW, POSTGRES, SQL, COMMAND_COMPLETE, PAYLOAD, WAIT, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define the documentation search API service.
+HOST docs_search_api {
+    IP 10.95.90.30
+    MAC 00:1a:2b:95:90:30
+}
+
+// INSTRUCTION: Define the documentation PostgreSQL server.
+HOST docs_pg {
+    IP 10.95.90.5
+    MAC 00:1a:2b:95:90:05
+}
+
+// INSTRUCTION: Execute a GIN-indexed full-text search ranking matching technical articles.
+FLOW pg_fts_query(c, s) {
+    c -> s POSTGRES SQL "SELECT doc_id FROM docs WHERE search_tsv @@ websearch_to_tsquery('english', 'ebpf xdp packet') LIMIT 5"
+    c <- s POSTGRES COMMAND_COMPLETE PAYLOAD "SELECT 5" WAIT 2ms
+    c <- s POSTGRES READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile the PostgreSQL full-text search query flow.
+COMPILE {
+    pg_fts_query(docs_search_api, docs_pg)
+}

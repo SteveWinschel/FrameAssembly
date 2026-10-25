@@ -1,0 +1,27 @@
+// PROMPT: HSS and MME maintaining an idle Diameter S6a SCTP association via periodic HEARTBEAT and Diameter Watchdog (DWR/DWA) frames.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, HEARTBEAT, VTAG, SRCPORT, DSTPORT, PAYLOAD, WAIT, HEARTBEAT_ACK, DATA, STREAM, SSN, PPID, COMPILE
+
+// INSTRUCTION: Define Home Subscriber Server (HSS) Diameter S6a endpoint.
+HOST hss_s6a_node {
+    IP 10.66.38.1
+    MAC 00:1c:73:42:26:01
+}
+
+// INSTRUCTION: Define Mobility Management Entity (MME) Diameter S6a peer.
+HOST mme_s6a_node {
+    IP 10.66.38.2
+    MAC 00:1c:73:42:26:02
+}
+
+// INSTRUCTION: Exchange SCTP HEARTBEAT/HEARTBEAT_ACK followed by Diameter Device-Watchdog-Request/Answer on Stream 0.
+FLOW sctp_s6a_watchdog(hss, mme) {
+    hss -> mme DSCP 46 SCTP CHUNK HEARTBEAT VTAG 663800 SRCPORT 3868 DSTPORT 3868 PAYLOAD "hb_path_primary_10_66_38_2" WAIT 5ms
+    hss <- mme DSCP 46 SCTP CHUNK HEARTBEAT_ACK VTAG 663800 SRCPORT 3868 DSTPORT 3868 PAYLOAD "hb_path_primary_10_66_38_2" WAIT 5ms
+    hss -> mme DSCP 46 SCTP CHUNK DATA VTAG 663800 STREAM 0 SSN 50 PPID 46 SRCPORT 3868 DSTPORT 3868 PAYLOAD "DIAMETER_DWR_ORIGIN_HSS01_REALM_EPC" WAIT 2ms
+    hss <- mme DSCP 46 SCTP CHUNK DATA VTAG 663800 STREAM 0 SSN 50 PPID 46 SRCPORT 3868 DSTPORT 3868 PAYLOAD "DIAMETER_DWA_RESULT_2001_SUCCESS"
+}
+
+// INSTRUCTION: Compile the Diameter S6a SCTP Heartbeat and Watchdog trace.
+COMPILE {
+    sctp_s6a_watchdog(hss_s6a_node, mme_s6a_node)
+}

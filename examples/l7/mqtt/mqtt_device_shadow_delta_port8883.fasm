@@ -1,0 +1,29 @@
+// PROMPT: Create an AWS IoT Core Device Shadow delta synchronization flow using $aws/things shadow topics on port 8883.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, SRCPORT, DSTPORT, SUBSCRIBE, TOPIC, QOS, PKT_ID, WAIT, SUBACK, PUBLISH, PAYLOAD, PUBACK, COMPILE
+
+// INSTRUCTION: Define the smart HVAC heat pump synchronizing its desired state with AWS IoT Device Shadow.
+HOST heat_pump {
+    IP 192.168.12.64
+    MAC 00:24:e8:0c:00:40
+}
+
+// INSTRUCTION: Define the cloud IoT broker endpoint on port 8883.
+HOST iot_core_endpoint {
+    IP 198.51.100.88
+    MAC 00:24:e8:0c:00:01
+}
+
+// INSTRUCTION: Subscribe to the shadow update/delta topic, receive a desired temperature change, and report the updated state.
+FLOW device_shadow_sync(c, s) {
+    c -> s MQTT SRCPORT 51883 DSTPORT 8883 SUBSCRIBE TOPIC "$aws/things/heatpump-04/shadow/update/delta" QOS 1 PKT_ID 10 WAIT 12ms
+    c <- s MQTT SRCPORT 8883 DSTPORT 51883 SUBACK PKT_ID 10 QOS 1 WAIT 20ms
+    c <- s MQTT SRCPORT 8883 DSTPORT 51883 PUBLISH TOPIC "$aws/things/heatpump-04/shadow/update/delta" QOS 1 PKT_ID 11 PAYLOAD "{\"state\":{\"target_c\":21.5}}" WAIT 2ms
+    c -> s MQTT SRCPORT 51883 DSTPORT 8883 PUBACK PKT_ID 11 WAIT 5ms
+    c -> s MQTT SRCPORT 51883 DSTPORT 8883 PUBLISH TOPIC "$aws/things/heatpump-04/shadow/update" QOS 1 PKT_ID 12 PAYLOAD "{\"state\":{\"reported\":{\"target_c\":21.5}}}" WAIT 12ms
+    c <- s MQTT SRCPORT 8883 DSTPORT 51883 PUBACK PKT_ID 12
+}
+
+// INSTRUCTION: Compile the IoT Device Shadow MQTT synchronization trace into a PCAP file.
+COMPILE {
+    device_shadow_sync(heat_pump, iot_core_endpoint)
+}

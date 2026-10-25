@@ -1,0 +1,19 @@
+// PROMPT: Browser CORS preflight HTTP OPTIONS request and 204 response with Access-Control-Allow headers.
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, HEADER, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define web browser executing cross-origin preflight check.
+HOST cors_browser { IP 192.168.30.15 }
+
+// INSTRUCTION: Define cross-origin API server.
+HOST cors_api { IP 192.168.30.1 }
+
+// INSTRUCTION: Send OPTIONS preflight with Origin and Access-Control-Request-Method headers.
+FLOW http_cors_options(b, a) {
+    b -> a HTTP METHOD "OPTIONS" URI "/graphql" HOST_HDR "api.partner.com" HEADER "Origin" "https://app.example.com" HEADER "Access-Control-Request-Method" "POST"
+    b <- a HTTP STATUS 204 REASON "No Content" HEADER "Access-Control-Allow-Origin" "https://app.example.com" HEADER "Access-Control-Allow-Methods" "POST, GET, OPTIONS"
+}
+
+// INSTRUCTION: Compile the HTTP CORS OPTIONS preflight scenario.
+COMPILE {
+    http_cors_options(cors_browser, cors_api)
+}

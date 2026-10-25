@@ -1,0 +1,44 @@
+// PROMPT: Simulate a multi-client Kerberos star topology where a workstation and a database server authenticate to primary and backup KDCs.
+// TOKENS: HOST, IP, MAC, FLOW, KERBEROS, SRCPORT, DSTPORT, AS_REQ, REALM, CNAME, SNAME, ETYPE, WAIT, AS_REP, TGS_REQ, TGS_REP, COMPILE
+
+// INSTRUCTION: Define the primary KDC in the data center.
+HOST kdc_primary {
+    IP 10.80.1.10
+    MAC 00:0c:29:80:01:10
+}
+
+// INSTRUCTION: Define the secondary replica KDC in the data center.
+HOST kdc_replica {
+    IP 10.80.1.11
+    MAC 00:0c:29:80:01:11
+}
+
+// INSTRUCTION: Define an analyst workstation and an application server requesting tickets.
+HOST analyst_ws {
+    IP 10.80.20.15
+    MAC 00:0c:29:80:20:15
+}
+
+// INSTRUCTION: Define the backend reporting server requesting a service ticket from the replica KDC.
+HOST report_srv {
+    IP 10.80.30.22
+    MAC 00:0c:29:80:30:22
+}
+
+// INSTRUCTION: Obtain an initial TGT for the analyst workstation from the primary KDC.
+FLOW primary_as_flow(c, s) {
+    c -> s KERBEROS SRCPORT 51200 DSTPORT 88 AS_REQ REALM "FINANCE.CORP" CNAME "jdoe" SNAME "krbtgt/FINANCE.CORP" ETYPE 18 WAIT 4ms
+    c <- s KERBEROS SRCPORT 88 DSTPORT 51200 AS_REP REALM "FINANCE.CORP" CNAME "jdoe" SNAME "krbtgt/FINANCE.CORP" ETYPE 18
+}
+
+// INSTRUCTION: Obtain a service ticket for the reporting server from the secondary replica KDC.
+FLOW replica_tgs_flow(c, s) {
+    c -> s KERBEROS SRCPORT 53400 DSTPORT 88 TGS_REQ REALM "FINANCE.CORP" CNAME "svc_report" SNAME "postgres/db-prod.finance.corp" ETYPE 18 WAIT 4ms
+    c <- s KERBEROS SRCPORT 88 DSTPORT 53400 TGS_REP REALM "FINANCE.CORP" CNAME "svc_report" SNAME "postgres/db-prod.finance.corp" ETYPE 18
+}
+
+// INSTRUCTION: Compile the multi-KDC Kerberos topology trace into a PCAP file.
+COMPILE {
+    primary_as_flow(analyst_ws, kdc_primary)
+    replica_tgs_flow(report_srv, kdc_replica)
+}

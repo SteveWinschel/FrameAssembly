@@ -1,0 +1,27 @@
+// PROMPT: RFC 3331 SIGTRAN M2UA (MTP2-User Adaptation Layer, PPID 2) backhauling narrowband SS7 links from a media gateway on port 2904.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define TDM-to-IP Signaling Gateway (SGW) terminating E1/T1 SS7 links.
+HOST tdm_sgw_edge {
+    IP 10.29.4.10
+    MAC 00:25:90:1d:04:0a
+}
+
+// INSTRUCTION: Define IP Softswitch Media Gateway Controller on SCTP port 2904.
+HOST softswitch_mgc {
+    IP 10.29.4.1
+    MAC 00:25:90:1d:04:01
+}
+
+// INSTRUCTION: Exchange M2UA ASP Up/Ack and MTP2 data payload over SCTP port 2904 with PPID 2.
+FLOW sctp_m2ua_backhaul(sgw, mgc) {
+    sgw -> mgc DSCP 46 SCTP CHUNK DATA VTAG 290400 STREAM 0 SSN 0 PPID 2 SRCPORT 2904 DSTPORT 2904 PAYLOAD "M2UA_MSG_CLASS3_ASP_UP" WAIT 2ms
+    sgw <- mgc DSCP 46 SCTP CHUNK DATA VTAG 290400 STREAM 0 SSN 0 PPID 2 SRCPORT 2904 DSTPORT 2904 PAYLOAD "M2UA_MSG_CLASS3_ASP_UP_ACK" WAIT 2ms
+    sgw -> mgc DSCP 46 SCTP CHUNK DATA VTAG 290400 STREAM 1 SSN 0 PPID 2 SRCPORT 2904 DSTPORT 2904 PAYLOAD "M2UA_MAUP_DATA_E1_LINK_0_SIO_83" WAIT 2ms
+    sgw <- mgc DSCP 46 SCTP CHUNK SACK VTAG 290400 SRCPORT 2904 DSTPORT 2904
+}
+
+// INSTRUCTION: Compile the RFC 3331 SIGTRAN M2UA SS7 backhaul SCTP trace.
+COMPILE {
+    sctp_m2ua_backhaul(tdm_sgw_edge, softswitch_mgc)
+}

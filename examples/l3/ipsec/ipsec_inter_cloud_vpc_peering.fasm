@@ -1,0 +1,19 @@
+// PROMPT: Cloud VPC interconnect over IPv6 IPsec transport with custom SPI parameters.
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, COMPILE
+
+// INSTRUCTION: Define AWS cloud virtual gateway endpoint.
+HOST aws_transit_gw { IP 2001:db8:a001::1 }
+
+// INSTRUCTION: Define Google Cloud VPN router endpoint.
+HOST gcp_cloud_router { IP 2001:db8:b002::2 }
+
+// INSTRUCTION: Define cross-cloud IPsec tunnel synchronization flow.
+FLOW cloud_peering_ipsec(aws, gcp) {
+    aws -> gcp IPSEC SPI 90123 SEQ 1
+    aws <- gcp IPSEC SPI 90124 SEQ 1
+}
+
+// INSTRUCTION: Compile block executing cloud VPC interconnect tunnel.
+COMPILE {
+    cloud_peering_ipsec(aws_transit_gw, gcp_cloud_router)
+}

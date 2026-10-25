@@ -1,0 +1,32 @@
+// PROMPT: Generate an IPv6 MLD General Query from a link-local multicast router followed by listener reports
+// TOKENS: HOST, IP, MAC, FLOW, MLD, QUERY, MULTICAST_ADDR, MAX_RESP_DELAY, TTL, WAIT, REPORT, COMPILE
+
+// INSTRUCTION: Define the IPv6 multicast querier router with a link-local address
+HOST mld_querier {
+    IP fe80::1
+    MAC 00:1b:21:c0:01:01
+}
+
+// INSTRUCTION: Define the first IPv6 multicast listener host
+HOST listener_alpha {
+    IP fe80::101
+    MAC 00:1b:21:c0:01:11
+}
+
+// INSTRUCTION: Define the second IPv6 multicast listener host
+HOST listener_beta {
+    IP fe80::102
+    MAC 00:1b:21:c0:01:12
+}
+
+// INSTRUCTION: Broadcast an MLD General Query and collect listener reports from active hosts
+FLOW mld_general_query_cycle(querier, host_a, host_b) {
+    querier -> host_a MLD QUERY MULTICAST_ADDR :: MAX_RESP_DELAY 10000 TTL 1 WAIT 40ms
+    host_a -> querier MLD REPORT MULTICAST_ADDR ff38:20:2001:db8::100 MAX_RESP_DELAY 0 TTL 1 WAIT 25ms
+    host_b -> querier MLD REPORT MULTICAST_ADDR ff38:20:2001:db8::200 MAX_RESP_DELAY 0 TTL 1
+}
+
+// INSTRUCTION: Compile the link-local MLD general query and report sequence
+COMPILE {
+    mld_general_query_cycle(mld_querier, listener_alpha, listener_beta)
+}

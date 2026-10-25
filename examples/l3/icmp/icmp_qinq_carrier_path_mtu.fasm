@@ -1,0 +1,18 @@
+// PROMPT: QinQ dual-tagged ICMP Fragmentation Needed notification across service provider bridge.
+// TOKENS: HOST, IP, FLOW, ICMP, DEST_UNREACH, CODE, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define carrier Ethernet PE router.
+HOST carrier_pe_rtr { IP 10.77.0.1 }
+
+// INSTRUCTION: Define customer edge router receiving PMTU alert.
+HOST customer_ce_rtr { IP 10.77.0.2 }
+
+// INSTRUCTION: Define QinQ encapsulated ICMP Fragmentation Needed notification flow.
+FLOW icmp_qinq_pmtu_flow(pe, ce) {
+    pe -> ce ICMP DEST_UNREACH CODE 4 QINQ 1000 INNER_VLAN 50
+}
+
+// INSTRUCTION: Compile block executing QinQ encapsulated ICMP error.
+COMPILE {
+    icmp_qinq_pmtu_flow(carrier_pe_rtr, customer_ce_rtr)
+}

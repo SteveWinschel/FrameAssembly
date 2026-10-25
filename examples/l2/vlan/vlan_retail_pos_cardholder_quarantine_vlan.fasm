@@ -1,0 +1,25 @@
+// PROMPT: Retail branch point-of-sale terminal on PCI-DSS VLAN 650 communicating with store payment gateway.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, TCP, PSH, ACK, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define retail point-of-sale PIN pad terminal on restricted VLAN 650.
+HOST pos_pinpad_term {
+    IP 10.65.10.21
+    MAC 00:0b:4f:41:0a:15
+}
+
+// INSTRUCTION: Define store payment encryption controller on VLAN 650.
+HOST store_pay_ctrl {
+    IP 10.65.10.1
+    MAC 00:0b:4f:41:0a:01
+}
+
+// INSTRUCTION: Exchange ISO 8583 authorization frames over TCP port 8443 on PCI-DSS VLAN 650 PCP 4.
+FLOW vlan_retail_pos_auth(pos, ctrl) {
+    pos -> ctrl VLAN 650 PCP 4 DEI 0 TCP PSH ACK SRCPORT 49100 DSTPORT 8443 SEQ 100 ACKNUM 200 WIN 16384 PAYLOAD "ISO8583_0200_AUTH_REQ_DUKPT_PIN_BLOCK" WAIT 10ms
+    pos <- ctrl VLAN 650 PCP 4 DEI 0 TCP PSH ACK SRCPORT 8443 DSTPORT 49100 SEQ 200 ACKNUM 137 WIN 16384 PAYLOAD "ISO8583_0210_AUTH_RSP_00_APPROVED"
+}
+
+// INSTRUCTION: Compile the retail PCI-DSS VLAN 650 point-of-sale authorization trace.
+COMPILE {
+    vlan_retail_pos_auth(pos_pinpad_term, store_pay_ctrl)
+}

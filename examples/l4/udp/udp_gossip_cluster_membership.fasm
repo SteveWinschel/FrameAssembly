@@ -1,5 +1,5 @@
 // PROMPT: Simulate a 3-node HashiCorp Serf / Consul SWIM gossip protocol ring exchanging UDP ping, ping-req, and ack membership heartbeats.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE, LOOP
 
 // INSTRUCTION: Define cluster node 1 with IP 10.70.0.1.
 HOST cluster_node_1 { IP 10.70.0.1 MAC 02:70:00:00:00:01 }

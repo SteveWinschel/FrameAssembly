@@ -1,0 +1,19 @@
+// PROMPT: WireGuard peer endpoint migration confirming updated external client address.
+// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, INITIATION, SENDER, RESPONSE, RECEIVER, COMPILE
+
+// INSTRUCTION: Define mobile smartphone roaming to cellular network.
+HOST mobile_smartphone { IP 198.51.100.99 }
+
+// INSTRUCTION: Define corporate WireGuard access hub.
+HOST corp_wg_access_hub { IP 203.0.113.1 }
+
+// INSTRUCTION: Define roaming re-association handshake flow.
+FLOW wg_roaming_migration(phone, hub) {
+    phone -> hub WIREGUARD TYPE INITIATION SENDER 991122
+    phone <- hub WIREGUARD TYPE RESPONSE SENDER 554433 RECEIVER 991122
+}
+
+// INSTRUCTION: Compile block executing mobile roaming re-association.
+COMPILE {
+    wg_roaming_migration(mobile_smartphone, corp_wg_access_hub)
+}

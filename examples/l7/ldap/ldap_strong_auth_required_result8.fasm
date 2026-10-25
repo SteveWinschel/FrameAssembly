@@ -1,0 +1,26 @@
+// PROMPT: Simulate an LDAP server rejecting an unencrypted simple bind with resultCode 8 (strongAuthRequired).
+// TOKENS: HOST, IP, MAC, FLOW, LDAP, MSGID, BIND_REQ, BASE_DN, VLAN, PCP, WAIT, BIND_RES, RESULT_CODE, PAYLOAD, UNBIND_REQ, COMPILE
+
+// INSTRUCTION: Define the legacy client attempting a cleartext simple bind on port 389.
+HOST legacy_app {
+    IP 192.168.120.44
+    MAC 00:50:56:78:00:2c
+}
+
+// INSTRUCTION: Define the security-hardened directory server enforcing StartTLS or SASL GSSAPI.
+HOST hardened_ldap {
+    IP 192.168.120.10
+    MAC 00:50:56:78:00:0a
+}
+
+// INSTRUCTION: Send BIND_REQ without TLS and receive BIND_RES with RESULT_CODE 8 (strongAuthRequired).
+FLOW ldap_reject_cleartext_bind(c, s) {
+    c -> s LDAP MSGID 1 BIND_REQ BASE_DN "uid=legacy_svc,ou=apps,dc=corp,dc=local" VLAN 120 PCP 3 WAIT 2ms
+    c <- s LDAP MSGID 1 BIND_RES RESULT_CODE 8 PAYLOAD "Confidentiality required: use StartTLS" VLAN 120 PCP 3 WAIT 1ms
+    c -> s LDAP MSGID 2 UNBIND_REQ VLAN 120 PCP 3
+}
+
+// INSTRUCTION: Compile the LDAP resultCode 8 strongAuthRequired rejection flow.
+COMPILE {
+    ldap_reject_cleartext_bind(legacy_app, hardened_ldap)
+}

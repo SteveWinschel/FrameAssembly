@@ -1,5 +1,5 @@
 // PROMPT: Border Gateway Protocol 4+ peering over IPv6 using TCP 179 with OPEN and KEEPALIVE messages.
-// TOKENS: HOST, IP, FLOW, ->, <-, BGP, OPEN, ASN, HOLDTIME, BGPID, KEEPALIVE, COMPILE
+// TOKENS: HOST, IP, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, KEEPALIVE, COMPILE
 
 // INSTRUCTION: Define Autonomous System 65001 BGP router.
 HOST bgp_peer_a { IP 2001:db8:ffff::1 }

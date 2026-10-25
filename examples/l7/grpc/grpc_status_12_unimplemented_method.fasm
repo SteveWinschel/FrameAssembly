@@ -1,0 +1,25 @@
+// PROMPT: gRPC client invoking a deprecated RPC method and receiving GRPC_STATUS 12 (UNIMPLEMENTED) from server.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define canary client testing v2 beta RPC endpoint.
+HOST canary_client {
+    IP 10.100.22.15
+    MAC 02:42:0a:64:16:0f
+}
+
+// INSTRUCTION: Define legacy v1 production gRPC server.
+HOST legacy_grpc_srv {
+    IP 10.100.22.1
+    MAC 02:42:0a:64:16:01
+}
+
+// INSTRUCTION: Invoke BatchPredictV2 and receive GRPC_STATUS 12 UNIMPLEMENTED.
+FLOW grpc_err_unimplemented(c, s) {
+    c -> s GRPC SERVICE "ml.inference.v2.Predictor" METHOD "BatchPredictV2"
+    c <- s GRPC SERVICE "ml.inference.v2.Predictor" METHOD "BatchPredictV2" GRPC_STATUS 12
+}
+
+// INSTRUCTION: Compile the gRPC status 12 UNIMPLEMENTED method scenario.
+COMPILE {
+    grpc_err_unimplemented(canary_client, legacy_grpc_srv)
+}

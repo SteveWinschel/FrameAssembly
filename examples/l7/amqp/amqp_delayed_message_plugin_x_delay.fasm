@@ -1,0 +1,25 @@
+// PROMPT: RabbitMQ delayed message exchange (x-delayed-message) scheduling an order payment reminder.
+// TOKENS: HOST, IP, MAC, FLOW, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, PAYLOAD, BASIC_DELIVER, WAIT, COMPILE
+
+// INSTRUCTION: Define the checkout scheduler service.
+HOST checkout_sched {
+    IP 10.115.30.40
+    MAC 00:1a:2b:73:30:40
+}
+
+// INSTRUCTION: Define the RabbitMQ broker running rabbitmq_delayed_message_exchange.
+HOST delayed_broker {
+    IP 10.115.30.5
+    MAC 00:1a:2b:73:30:05
+}
+
+// INSTRUCTION: Publish a delayed reminder message to orders.delayed exchange and receive later delivery.
+FLOW amqp_delayed_msg(c, b) {
+    c -> b AMQP BASIC_PUBLISH CHANNEL 3 EXCHANGE "orders.delayed" ROUTING_KEY "reminder.15m" PAYLOAD "{'order_id':90412,'delay_ms':900000}"
+    c <- b AMQP BASIC_DELIVER CHANNEL 3 EXCHANGE "orders.delayed" ROUTING_KEY "reminder.15m" WAIT 10ms PAYLOAD "{'order_id':90412,'delay_ms':900000}"
+}
+
+// INSTRUCTION: Compile the AMQP delayed exchange message flow.
+COMPILE {
+    amqp_delayed_msg(checkout_sched, delayed_broker)
+}

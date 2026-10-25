@@ -1,0 +1,27 @@
+// PROMPT: AMQP 0-9-1 RPC pattern publishing a request on a direct exchange and receiving Basic.Deliver on amq.rabbitmq.reply-to.
+// TOKENS: HOST, IP, MAC, FLOW, AMQP, CHANNEL_OPEN, CHANNEL, WAIT, BASIC_PUBLISH, EXCHANGE, ROUTING_KEY, PAYLOAD, BASIC_DELIVER, COMPILE
+
+// INSTRUCTION: Define the API gateway microservice invoking a synchronous RPC over AMQP.
+HOST rpc_caller {
+    IP 10.115.1.20
+    MAC 00:1a:2b:73:01:20
+}
+
+// INSTRUCTION: Define the RabbitMQ cluster node.
+HOST rmq_broker {
+    IP 10.115.1.10
+    MAC 00:1a:2b:73:01:10
+}
+
+// INSTRUCTION: Open channel 1, publish RPC payload to rpc.direct, and receive reply via Basic.Deliver.
+FLOW amqp_rpc_call(c, b) {
+    c -> b AMQP CHANNEL_OPEN CHANNEL 1
+    c <- b AMQP CHANNEL_OPEN CHANNEL 1 WAIT 1ms
+    c -> b AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "rpc.direct" ROUTING_KEY "tax.calculate" PAYLOAD "{'subtotal':120.00,'state':'CA'}"
+    c <- b AMQP BASIC_DELIVER CHANNEL 1 EXCHANGE "" ROUTING_KEY "amq.rabbitmq.reply-to.g1h2" PAYLOAD "{'tax':9.90,'total':129.90}"
+}
+
+// INSTRUCTION: Compile the AMQP RPC request-reply flow.
+COMPILE {
+    amqp_rpc_call(rpc_caller, rmq_broker)
+}

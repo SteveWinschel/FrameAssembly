@@ -1,0 +1,27 @@
+// PROMPT: Redis Bitmap SETBIT, GETBIT, and BITCOUNT tracking daily active user login streaks.
+// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the user engagement tracker service.
+HOST streak_worker {
+    IP 10.80.40.44
+    MAC 00:1a:2b:80:40:44
+}
+
+// INSTRUCTION: Define the engagement Redis cluster node.
+HOST bitmap_redis {
+    IP 10.80.40.2
+    MAC 00:1a:2b:80:40:02
+}
+
+// INSTRUCTION: Set day-of-year bit 298 for user login and count active days with BITCOUNT.
+FLOW redis_bitmap_streak(c, s) {
+    c -> s REDIS CMD "SETBIT" ARGS "login:2026:uid:5091 298 1"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "0" WAIT 1ms
+    c -> s REDIS CMD "BITCOUNT" ARGS "login:2026:uid:5091"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "241"
+}
+
+// INSTRUCTION: Compile the Redis Bitmap activity tracking flow.
+COMPILE {
+    redis_bitmap_streak(streak_worker, bitmap_redis)
+}

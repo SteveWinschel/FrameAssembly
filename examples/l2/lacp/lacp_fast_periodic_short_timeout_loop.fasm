@@ -1,0 +1,26 @@
+// PROMPT: Fast-periodic 1-second LACP heartbeat loop with Short Timeout flag (0x3F) between low-latency trading switches.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define ultra-low-latency trading switch A.
+HOST hft_switch_a {
+    IP 10.8.8.1
+    MAC 00:0f:53:08:08:01
+}
+
+// INSTRUCTION: Define ultra-low-latency trading switch B.
+HOST hft_switch_b {
+    IP 10.8.8.2
+    MAC 00:0f:53:08:08:02
+}
+
+// INSTRUCTION: Define LACPDU with Short Timeout bit set (ACTOR_STATE 63 = 0x3F) and 1-second interval.
+FLOW lacp_fast_rate_heartbeat(a, b) {
+    a -> b LACP ACTOR_SYS 00:0f:53:08:08:01 ACTOR_KEY 88 ACTOR_PORT 1 ACTOR_STATE 63 PARTNER_SYS 00:0f:53:08:08:02 PARTNER_KEY 88 PARTNER_PORT 1 PARTNER_STATE 63 WAIT 1s
+}
+
+// INSTRUCTION: Compile block executing 5 consecutive 1-second LACP fast-rate heartbeats.
+COMPILE {
+    LOOP 5 {
+        lacp_fast_rate_heartbeat(hft_switch_a, hft_switch_b)
+    }
+}

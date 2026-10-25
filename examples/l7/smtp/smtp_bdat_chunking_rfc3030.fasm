@@ -1,0 +1,37 @@
+// PROMPT: Model an SMTP BDAT CHUNKING (RFC 3030) transaction transmitting message data without dot-stuffing.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SMTP, CODE, REPLY, EHLO, MAIL_FROM, PARAM, RCPT_TO, CMD, QUIT, COMPILE
+
+// INSTRUCTION: Define the Exchange connector client and receiving ESMTP server.
+HOST exch_client {
+    MAC 00:15:5d:25:30:01
+    IP 10.65.1.15
+}
+
+// INSTRUCTION: Define the esmtp_srv mail endpoint.
+HOST esmtp_srv {
+    MAC 00:15:5d:25:30:02
+    IP 10.65.1.2
+}
+
+// INSTRUCTION: Negotiate CHUNKING via EHLO and transmit a message chunk using BDAT 64 LAST.
+FLOW smtp_bdat_chunking_flow(exch_client, esmtp_srv) {
+    exch_client -> esmtp_srv TCP SYN SRCPORT 61025 DSTPORT 25
+    esmtp_srv -> exch_client TCP SYN ACK
+    exch_client -> esmtp_srv TCP ACK
+    esmtp_srv -> exch_client SMTP CODE 220 REPLY "esmtp.corp.local Microsoft ESMTP MAIL Service"
+    exch_client -> esmtp_srv SMTP EHLO "exch01.corp.local"
+    esmtp_srv -> exch_client SMTP CODE 250 REPLY "CHUNKING"
+    exch_client -> esmtp_srv SMTP MAIL_FROM PARAM "<admin@corp.local>"
+    esmtp_srv -> exch_client SMTP CODE 250 REPLY "2.1.0 Sender OK"
+    exch_client -> esmtp_srv SMTP RCPT_TO PARAM "<auditor@corp.local>"
+    esmtp_srv -> exch_client SMTP CODE 250 REPLY "2.1.5 Recipient OK"
+    exch_client -> esmtp_srv SMTP CMD "BDAT" PARAM "64 LAST"
+    esmtp_srv -> exch_client SMTP CODE 250 REPLY "2.6.0 <msg-01@corp.local> Queued mail for delivery"
+    exch_client -> esmtp_srv SMTP QUIT
+    esmtp_srv -> exch_client SMTP CODE 221 REPLY "2.0.0 Service closing transmission channel"
+}
+
+// INSTRUCTION: Compile the SMTP BDAT CHUNKING flow.
+COMPILE {
+    smtp_bdat_chunking_flow(exch_client, esmtp_srv)
+}

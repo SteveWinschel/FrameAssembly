@@ -1,0 +1,27 @@
+// PROMPT: RFC 2428 FTP Extended Port (EPRT) active mode negotiation followed by directory listing request.
+// TOKENS: HOST, IP, MAC, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define active-mode FTP client behind NAT proxy.
+HOST active_ftp_cli {
+    IP 10.21.40.15
+    MAC 00:1e:67:21:28:0f
+}
+
+// INSTRUCTION: Define enterprise FTP server accepting EPRT descriptors.
+HOST active_ftp_srv {
+    IP 10.21.40.1
+    MAC 00:1e:67:21:28:01
+}
+
+// INSTRUCTION: Register client active data endpoint via EPRT and issue NLST command.
+FLOW ftp_eprt_active(c, s) {
+    c -> s FTP CMD "EPRT" ARG "|1|10.21.40.15|52100|"
+    c <- s FTP CODE 200 REPLY "EPRT command successful"
+    c -> s FTP CMD "NLST" ARG "/incoming"
+    c <- s FTP CODE 150 REPLY "Opening ASCII mode data connection for file list"
+}
+
+// INSTRUCTION: Compile the RFC 2428 FTP EPRT active mode scenario.
+COMPILE {
+    ftp_eprt_active(active_ftp_cli, active_ftp_srv)
+}

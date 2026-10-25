@@ -1,0 +1,24 @@
+// PROMPT: NetFlow v5 export auditing IP protocol 89 OSPF control-plane packet volume between core routers.
+// TOKENS: HOST, IP, MAC, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, DSCP, COMPILE
+
+// INSTRUCTION: Define backbone OSPF area 0 router.
+HOST ospf_backbone_rtr {
+    IP 10.0.255.1
+    MAC 00:11:22:ff:00:01
+}
+
+// INSTRUCTION: Define network operations control-plane NetFlow collector.
+HOST noc_collector {
+    IP 10.0.255.100
+    MAC 00:11:22:ff:00:64
+}
+
+// INSTRUCTION: Export NetFlow record for IP protocol 89 OSPF hello and LSA exchange.
+FLOW netflow_ospf_audit(rtr, noc) {
+    rtr -> noc NETFLOW SRCIP 10.0.12.1 DSTIP 10.0.12.2 SRCPORT 0 DSTPORT 0 PROTO 89 PACKETS 360 OCTETS 46080 DSCP 48
+}
+
+// INSTRUCTION: Compile the OSPF control-plane NetFlow audit scenario.
+COMPILE {
+    netflow_ospf_audit(ospf_backbone_rtr, noc_collector)
+}

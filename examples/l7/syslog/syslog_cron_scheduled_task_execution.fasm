@@ -1,0 +1,20 @@
+// PROMPT: Cron daemon informational log reporting hourly backup task completion.
+// TOKENS: HOST, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, COMPILE
+
+// INSTRUCTION: Define backup utility node.
+HOST backup_util { IP 10.60.12.8 }
+
+// INSTRUCTION: Define operational syslog sink.
+HOST ops_sink { IP 10.60.0.1 }
+
+// INSTRUCTION: Define cron task completion flow.
+FLOW syslog_cron_flow(c, s) {
+    c -> s SYSLOG FACILITY 9 SEVERITY 6
+        HOSTNAME "backup-srv" APP "crond" PROCID "10552"
+        MSG "(root) CMD (/usr/local/bin/backup_hourly.sh >/dev/null 2>&1)"
+}
+
+// INSTRUCTION: Compile block executing cron log event.
+COMPILE {
+    syslog_cron_flow(backup_util, ops_sink)
+}

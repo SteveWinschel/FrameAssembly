@@ -1,0 +1,25 @@
+// PROMPT: RFC 2784 6-in-4 GRE tunnel transporting inner IPv6 packets (GRE_PROTO 0x86DD = 34525) across an IPv4 underlay.
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, CHECKSUM, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define dual-stack border router A encapsulating IPv6 islands over IPv4 GRE.
+HOST gre_6in4_rtr_a {
+    IP 172.16.47.10
+    MAC 00:1b:21:47:10:01
+}
+
+// INSTRUCTION: Define dual-stack border router B decapsulating GRE Protocol Type 0x86DD (34525).
+HOST gre_6in4_rtr_b {
+    IP 172.16.47.20
+    MAC 00:1b:21:47:20:02
+}
+
+// INSTRUCTION: Define GRE tunnel with GRE_PROTO 34525 (0x86DD IPv6) and sequence numbers.
+FLOW gre_ipv6_over_ipv4_flow(a, b) {
+    a -> b GRE GRE_KEY 8600 GRE_SEQ 1 GRE_PROTO 34525 CHECKSUM DF DSCP 26 TTL 64 PAYLOAD "INNER_IPV6_2001_DB8_1_TO_2001_DB8_2" WAIT 5ms
+    a <- b GRE GRE_KEY 8600 GRE_SEQ 2 GRE_PROTO 34525 CHECKSUM DF DSCP 26 TTL 64 PAYLOAD "INNER_IPV6_2001_DB8_2_TO_2001_DB8_1"
+}
+
+// INSTRUCTION: Compile the IPv6-over-IPv4 GRE tunnel (GRE_PROTO 0x86DD) flow.
+COMPILE {
+    gre_ipv6_over_ipv4_flow(gre_6in4_rtr_a, gre_6in4_rtr_b)
+}

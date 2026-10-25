@@ -1,4 +1,9 @@
-//! Unit tests for FrameAssembly lexer.
+//! Unit tests for the FrameAssembly `logos` lexical analyzer (`src/lexer/mod.rs`).
+//!
+//! Verifies regex priority disambiguation between 4-octet IPv4 addresses (`Token::IpAddress`),
+//! dotted ASN.1 Object Identifiers (`Token::OidStr`), signed/unsigned integer and hexadecimal
+//! numeric literals (`Token::Number`), IEEE 802.3 MAC addresses (`Token::MacAddress`), IPv6
+//! colons, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and all 640 uppercase protocol keywords.
 
 use super::*;
 

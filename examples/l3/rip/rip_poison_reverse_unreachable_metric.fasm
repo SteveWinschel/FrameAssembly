@@ -1,0 +1,18 @@
+// PROMPT: RIPv2 routing update advertising unreachable network route with infinity metric 16.
+// TOKENS: HOST, IP, FLOW, RIP, RESPONSE, PREFIX, METRIC, COMPILE
+
+// INSTRUCTION: Define border gateway router detecting link failure.
+HOST failed_link_gw { IP 10.15.1.1 }
+
+// INSTRUCTION: Define standard RIPv2 multicast group 224.0.0.9.
+HOST rip_all_rtrs_mcast { IP 224.0.0.9 }
+
+// INSTRUCTION: Define poison reverse update advertising failed subnet 10.15.99.0 with metric 16.
+FLOW rip_poison_reverse(gw, dst) {
+    gw -> dst RIP RESPONSE PREFIX 10.15.99.0 METRIC 16
+}
+
+// INSTRUCTION: Compile block executing poison reverse route invalidation.
+COMPILE {
+    rip_poison_reverse(failed_link_gw, rip_all_rtrs_mcast)
+}

@@ -1,0 +1,20 @@
+// PROMPT: Cisco ERSPAN Type II remote port mirroring using GRE_PROTO 0x88BE and GRE_SEQ sequence numbers.
+// TOKENS: HOST, IP, FLOW, GRE, GRE_SEQ, GRE_PROTO, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define core switch exporting mirrored SPAN traffic.
+HOST erspan_source_sw { IP 172.20.99.1 }
+
+// INSTRUCTION: Define network packet broker receiving ERSPAN stream.
+HOST erspan_collector_npb { IP 172.20.99.100 }
+
+// INSTRUCTION: Define unidirectional ERSPAN GRE stream with protocol 0x88BE (35006).
+FLOW erspan_mirror_stream(sw, npb) {
+    sw -> npb GRE GRE_SEQ 1001 GRE_PROTO 0x88BE PAYLOAD "MIRRORED_FRAME_SPAN_SESSION_1"
+    sw -> npb GRE GRE_SEQ 1002 GRE_PROTO 0x88BE PAYLOAD "MIRRORED_FRAME_SPAN_SESSION_2" WAIT 5ms
+    sw -> npb GRE GRE_SEQ 1003 GRE_PROTO 0x88BE PAYLOAD "MIRRORED_FRAME_SPAN_SESSION_3" WAIT 5ms
+}
+
+// INSTRUCTION: Compile the ERSPAN remote port mirroring GRE flow.
+COMPILE {
+    erspan_mirror_stream(erspan_source_sw, erspan_collector_npb)
+}

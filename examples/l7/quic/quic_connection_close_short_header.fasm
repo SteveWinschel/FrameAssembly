@@ -1,0 +1,19 @@
+// PROMPT: QUIC CONNECTION_CLOSE frame encoded in 1-RTT Short header terminating session.
+// TOKENS: HOST, IP, FLOW, QUIC, SHORT, DCID, PKT_NUM, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define web client closing HTTP/3 tab.
+HOST web_client { IP 192.168.144.20 }
+
+// INSTRUCTION: Define HTTP/3 web server.
+HOST web_server { IP 192.168.144.1 }
+
+// INSTRUCTION: Define Short header packets carrying CONNECTION_CLOSE frame (0x1c).
+FLOW quic_conn_close(c, s) {
+    c -> s QUIC SHORT DCID 0x55443322 PKT_NUM 50 HEXPAYLOAD "1c000000" WAIT 2ms
+    c <- s QUIC SHORT DCID 0x22334455 PKT_NUM 60 HEXPAYLOAD "1c000000"
+}
+
+// INSTRUCTION: Compile QUIC connection close exchange.
+COMPILE {
+    quic_conn_close(web_client, web_server)
+}

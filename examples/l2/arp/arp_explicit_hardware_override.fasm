@@ -1,5 +1,5 @@
 // PROMPT: ARP request and reply with explicit hardware and protocol address overrides.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, ARP, SHA, SPA, THA, TPA, REPLY, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, ARP, SHA, SPA, THA, TPA, REPLY, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client_a {

@@ -1,0 +1,27 @@
+// PROMPT: NFSv4 synchronous WRITE procedure persisting database WAL segments to shared NAS storage.
+// TOKENS: HOST, IP, MAC, FLOW, NFS, VERS, PROC, TAG, PATH, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the primary database engine host writing archive logs.
+HOST db_writer {
+    IP 10.70.20.14
+    MAC 00:1a:2b:70:20:14
+}
+
+// INSTRUCTION: Define the flash-backed NFSv4 storage array.
+HOST flash_nas {
+    IP 10.70.20.1
+    MAC 00:1a:2b:70:20:01
+}
+
+// INSTRUCTION: Verify directory attributes and write a WAL archive block.
+FLOW nfs4_wal_write(c, s) {
+    c -> s NFS VERS 4 PROC "GETATTR" TAG "chk_wal_dir" PATH "/pg_archive/000000010000004A"
+    c <- s NFS VERS 4 PROC "GETATTR" TAG "chk_wal_dir" WAIT 1ms
+    c -> s NFS VERS 4 PROC "WRITE" TAG "sync_wal_seg" PATH "/pg_archive/000000010000004A" PAYLOAD "PG_XLOG_SEGMENT_8192_BLOCK"
+    c <- s NFS VERS 4 PROC "WRITE" TAG "sync_wal_seg"
+}
+
+// INSTRUCTION: Compile the NFSv4 WAL archive write flow.
+COMPILE {
+    nfs4_wal_write(db_writer, flash_nas)
+}

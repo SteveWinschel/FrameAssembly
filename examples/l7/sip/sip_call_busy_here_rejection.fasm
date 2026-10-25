@@ -1,0 +1,20 @@
+// PROMPT: SIP call rejection returning 486 Busy Here when callee user agent is engaged.
+// TOKENS: HOST, IP, FLOW, SIP, INVITE, FROM, TO, CALL_ID, CSEQ, WAIT, STATUS, REASON, METHOD, URI, COMPILE
+
+// INSTRUCTION: Define executive softphone client.
+HOST softphone_c { IP 10.15.2.80 }
+
+// INSTRUCTION: Define office PBX switchboard.
+HOST switchboard { IP 10.15.2.1 }
+
+// INSTRUCTION: Define INVITE, 486 Busy Here, and terminating ACK flow.
+FLOW sip_busy_rejection(c, s) {
+    c -> s SIP INVITE FROM "sip:exec@corp.com" TO "sip:reception@corp.com" CALL_ID "call-busy-991" CSEQ 1 WAIT 5ms
+    c <- s SIP STATUS 486 REASON "Busy Here" CALL_ID "call-busy-991" CSEQ 1 WAIT 5ms
+    c -> s SIP METHOD "ACK" URI "sip:reception@corp.com" FROM "sip:exec@corp.com" TO "sip:reception@corp.com" CALL_ID "call-busy-991" CSEQ 1
+}
+
+// INSTRUCTION: Compile SIP 486 Busy Here rejection flow.
+COMPILE {
+    sip_busy_rejection(softphone_c, switchboard)
+}

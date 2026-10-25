@@ -1,0 +1,18 @@
+// PROMPT: WireGuard encrypted transport data packet advancing 64-bit transmission counter.
+// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define enterprise VPN client station.
+HOST wg_client_station { IP 10.70.1.15 }
+
+// INSTRUCTION: Define central VPN gateway endpoint.
+HOST wg_central_gw { IP 10.70.1.1 }
+
+// INSTRUCTION: Define sequenced WireGuard data transport flow with counter increment.
+FLOW wg_data_counter_flow(cli, gw) {
+    cli -> gw WIREGUARD TYPE DATA RECEIVER 409600 COUNTER 1050 PAYLOAD "ENCRYPTED_DATABASE_RECORD"
+}
+
+// INSTRUCTION: Compile block executing counter advanced data transmission.
+COMPILE {
+    wg_data_counter_flow(wg_client_station, wg_central_gw)
+}

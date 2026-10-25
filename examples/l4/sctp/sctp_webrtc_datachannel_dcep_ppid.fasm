@@ -1,0 +1,21 @@
+// PROMPT: WebRTC DataChannel establishment (DCEP PPID 50) and UTF-8 text message exchange (PPID 51) over SCTP.
+// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define WebRTC browser peer A.
+HOST webrtc_peer_a { IP 192.168.55.101 }
+
+// INSTRUCTION: Define WebRTC browser peer B.
+HOST webrtc_peer_b { IP 192.168.55.102 }
+
+// INSTRUCTION: Define WebRTC DataChannel Open (PPID 50), Ack (PPID 50), and UTF-8 message (PPID 51).
+FLOW webrtc_datachannel_sctp(a, b) {
+    a -> b SCTP CHUNK DATA VTAG 500051 STREAM 1 SSN 0 PPID 50 SRCPORT 5000 DSTPORT 5000 PAYLOAD "dcep_channel_open_chat_stream"
+    a <- b SCTP CHUNK DATA VTAG 500051 STREAM 1 SSN 0 PPID 50 SRCPORT 5000 DSTPORT 5000 PAYLOAD "dcep_channel_ack" WAIT 2ms
+    a -> b SCTP CHUNK DATA VTAG 500051 STREAM 1 SSN 1 PPID 51 SRCPORT 5000 DSTPORT 5000 PAYLOAD "{\"type\":\"chat\",\"text\":\"Hello WebRTC SCTP\"}" WAIT 2ms
+    a <- b SCTP CHUNK SACK VTAG 500051 SRCPORT 5000 DSTPORT 5000 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing WebRTC DataChannel SCTP flow.
+COMPILE {
+    webrtc_datachannel_sctp(webrtc_peer_a, webrtc_peer_b)
+}

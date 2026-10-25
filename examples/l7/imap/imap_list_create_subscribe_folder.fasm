@@ -1,0 +1,23 @@
+// PROMPT: IMAP folder management with LIST hierarchy discovery, CREATE new folder, and SUBSCRIBE.
+// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, COMPILE
+
+// INSTRUCTION: Define corporate email client.
+HOST corp_mail { IP 192.168.143.25 }
+
+// INSTRUCTION: Define Exchange IMAP4 service.
+HOST exchange_imap { IP 192.168.143.5 }
+
+// INSTRUCTION: List mailbox hierarchy, create Archive/2026 folder, and subscribe to it.
+FLOW imap_folder_management(c, s) {
+    c -> s IMAP TAG "D01" CMD "LIST" ARG "\"\" \"*\""
+    c <- s IMAP TAG "D01" CMD "OK" ARG "LIST completed"
+    c -> s IMAP TAG "D02" CMD "CREATE" ARG "Archive/2026"
+    c <- s IMAP TAG "D02" CMD "OK" ARG "CREATE completed"
+    c -> s IMAP TAG "D03" CMD "SUBSCRIBE" ARG "Archive/2026"
+    c <- s IMAP TAG "D03" CMD "OK" ARG "SUBSCRIBE completed"
+}
+
+// INSTRUCTION: Compile the IMAP folder LIST, CREATE, and SUBSCRIBE scenario.
+COMPILE {
+    imap_folder_management(corp_mail, exchange_imap)
+}

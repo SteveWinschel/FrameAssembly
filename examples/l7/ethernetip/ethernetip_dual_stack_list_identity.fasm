@@ -1,0 +1,26 @@
+// PROMPT: Dual-stack EtherNet/IP ListIdentity broadcast and response across IPv4 and IPv6 plant networks.
+// TOKENS: HOST, IP, FLOW, ETHERNETIP, TRANSPORT, UDP, CMD, CONTEXT, STATUS, COMPILE
+
+// INSTRUCTION: Define IPv4 plant asset manager.
+HOST asset_mgr_v4 { IP 10.88.44.10 }
+
+// INSTRUCTION: Define IPv4 smart motor starter.
+HOST starter_v4 { IP 10.88.44.50 }
+
+// INSTRUCTION: Define IPv6 plant asset manager.
+HOST asset_mgr_v6 { IP 2001:db8:4481::10 }
+
+// INSTRUCTION: Define IPv6 smart motor starter.
+HOST starter_v6 { IP 2001:db8:4481::50 }
+
+// INSTRUCTION: Query device identity via ListIdentity over UDP.
+FLOW enip_dual_identity(m, s) {
+    m -> s ETHERNETIP TRANSPORT UDP CMD "ListIdentity" CONTEXT 0x55aa55aa
+    m <- s ETHERNETIP TRANSPORT UDP CMD "ListIdentity" STATUS 0 CONTEXT 0x55aa55aa
+}
+
+// INSTRUCTION: Execute the polymorphic ListIdentity flow over IPv4 and IPv6.
+COMPILE {
+    enip_dual_identity(asset_mgr_v4, starter_v4)
+    enip_dual_identity(asset_mgr_v6, starter_v6)
+}

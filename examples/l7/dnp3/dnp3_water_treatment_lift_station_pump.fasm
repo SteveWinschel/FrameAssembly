@@ -1,0 +1,27 @@
+// PROMPT: Municipal water SCADA DNP3 wet-well level read (Group 30 Var 2) and lift pump start (Group 12 Var 1).
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, WAIT, COMPILE
+
+// INSTRUCTION: Define the municipal water operations center SCADA master.
+HOST water_scada {
+    IP 10.125.80.1
+    MAC 00:1a:2b:7d:80:01
+}
+
+// INSTRUCTION: Define Lift Station 12 cellular RTU outstation.
+HOST lift_station_12 {
+    IP 10.125.80.12
+    MAC 00:1a:2b:7d:80:12
+}
+
+// INSTRUCTION: Read wet-well level (Group 30 Var 2) and issue Direct Operate to start lead pump (Group 12 Var 1).
+FLOW dnp3_lift_station(m, s) {
+    m -> s DNP3 FUNC "READ" SRC 1 DST 12 GROUP 30 VARIATION 2
+    m <- s DNP3 FUNC "RESPONSE" SRC 12 DST 1 GROUP 30 VARIATION 2 WAIT 5ms
+    m -> s DNP3 FUNC "DIRECT_OPERATE" SRC 1 DST 12 GROUP 12 VARIATION 1
+    m <- s DNP3 FUNC "RESPONSE" SRC 12 DST 1 GROUP 12 VARIATION 1
+}
+
+// INSTRUCTION: Compile the municipal water lift station DNP3 flow.
+COMPILE {
+    dnp3_lift_station(water_scada, lift_station_12)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Backend application querying MySQL cluster on 802.1Q tagged database storage VLAN.
+// TOKENS: HOST, IP, FLOW, MYSQL, SQL, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define application cluster pod node.
+HOST app_pod_node { IP 10.50.4.15 }
+
+// INSTRUCTION: Define clustered database service on VLAN 405.
+HOST db_cluster_service { IP 10.50.4.2 }
+
+// INSTRUCTION: Define tagged VLAN database query flow.
+FLOW vlan_db_query(pod, srv) {
+    pod -> srv MYSQL SQL "SELECT status FROM cluster_nodes WHERE healthy = 1" VLAN 405 PCP 5 DEI 0
+}
+
+// INSTRUCTION: Compile VLAN tagged database cluster scenario.
+COMPILE {
+    vlan_db_query(app_pod_node, db_cluster_service)
+}

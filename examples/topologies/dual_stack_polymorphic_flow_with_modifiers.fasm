@@ -1,5 +1,5 @@
 // PROMPT: Polymorphic flow with Layer 3 TTL, DSCP QoS markings, and inter-frame WAIT timing over IPv4 and IPv6.
-// TOKENS: HOST, IP, FLOW, ->, TTL, DSCP, WAIT, ms, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, TTL, DSCP, UDP, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define IPv4 source peer.
 HOST peer_v4_x { IP 10.1.1.1 }

@@ -1,0 +1,19 @@
+// PROMPT: WebSocket connection termination frame with CLOSE opcode and FIN bit 1.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+
+// INSTRUCTION: Define client closing connection.
+HOST closing_client { IP 10.30.5.8 }
+
+// INSTRUCTION: Define connected server instance.
+HOST connected_svr { IP 10.30.5.1 }
+
+// INSTRUCTION: Define graceful connection closure flow.
+FLOW ws_close_flow(c, s) {
+    c -> s WEBSOCKET OPCODE "CLOSE" FIN_BIT 1 MASK_KEY 2588014022
+    c <- s WEBSOCKET OPCODE "CLOSE" FIN_BIT 1 MASK_KEY 0
+}
+
+// INSTRUCTION: Compile block executing clean close handshake.
+COMPILE {
+    ws_close_flow(closing_client, connected_svr)
+}

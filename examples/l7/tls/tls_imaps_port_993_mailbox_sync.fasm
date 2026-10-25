@@ -1,0 +1,27 @@
+// PROMPT: IMAPS mailbox synchronization over TLS port 993 with application data record exchange.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, ALPN, SRCPORT, DSTPORT, WAIT, SERVER_HELLO, CIPHERSUITE, FINISHED, APP_DATA, PAYLOAD, ALERT, COMPILE
+
+// INSTRUCTION: Define mobile email client host.
+HOST imap_client {
+    IP 10.45.80.19
+}
+
+// INSTRUCTION: Define IMAPS mail store server host.
+HOST imaps_server {
+    IP 10.45.80.1
+}
+
+// INSTRUCTION: Define TLS session on TCP port 993 with encrypted IMAP sync and clean alert shutdown.
+FLOW tls_imaps_993(c, s) {
+    c -> s TLS CLIENT_HELLO SNI "imap.mail.example" ALPN "imap" SRCPORT 55993 DSTPORT 993 WAIT 4ms
+    c <- s TLS SERVER_HELLO CIPHERSUITE 0x1302 ALPN "imap" SRCPORT 993 DSTPORT 55993 WAIT 4ms
+    c -> s TLS FINISHED SRCPORT 55993 DSTPORT 993 WAIT 4ms
+    c -> s TLS APP_DATA SRCPORT 55993 DSTPORT 993 PAYLOAD "A001 SELECT INBOX" WAIT 4ms
+    c <- s TLS APP_DATA SRCPORT 993 DSTPORT 55993 PAYLOAD "* 42 EXISTS" WAIT 4ms
+    c -> s TLS ALERT SRCPORT 55993 DSTPORT 993
+}
+
+// INSTRUCTION: Compile the IMAPS port 993 TLS session.
+COMPILE {
+    tls_imaps_993(imap_client, imaps_server)
+}

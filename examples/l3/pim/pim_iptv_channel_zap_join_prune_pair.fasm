@@ -1,0 +1,25 @@
+// PROMPT: Broadband Aggregation Router (BNG) processing IPTV subscriber fast channel zap by pruning old channel and joining new channel.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, JOIN_PRUNE, GROUP, SOURCE, HOLDTIME, VLAN, PCP, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define residential DSLAM / OLT aggregation router handling IPTV channel change.
+HOST olt_iptv_agg {
+    IP 10.103.150.10
+    MAC 00:25:b5:67:96:0a
+}
+
+// INSTRUCTION: Define regional video headend multicast distribution router.
+HOST video_headend_rtr {
+    IP 10.103.150.1
+    MAC 00:25:b5:67:96:01
+}
+
+// INSTRUCTION: Define rapid PIM Prune of Channel 101 (232.1.1.101) and PIM Join of Channel 102 (232.1.1.102).
+FLOW pim_iptv_channel_zap(olt, headend) {
+    olt -> headend PIM JOIN_PRUNE GROUP 232.1.1.101 SOURCE 10.150.0.10 HOLDTIME 210 VLAN 150 PCP 5 DSCP 48 TTL 1 PAYLOAD "PRUNE_TV_CH_101_HD" WAIT 2ms
+    olt -> headend PIM JOIN_PRUNE GROUP 232.1.1.102 SOURCE 10.150.0.10 HOLDTIME 210 VLAN 150 PCP 5 DSCP 48 TTL 1 PAYLOAD "JOIN_TV_CH_102_UHD"
+}
+
+// INSTRUCTION: Compile the IPTV fast channel zap PIM Join/Prune pair flow.
+COMPILE {
+    pim_iptv_channel_zap(olt_iptv_agg, video_headend_rtr)
+}

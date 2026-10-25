@@ -1,0 +1,25 @@
+// PROMPT: 5G O-RAN M-Plane startup LLDP discovery between an outdoor O-RU radio unit and indoor O-DU baseband controller.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define 5G O-RAN Radio Unit (O-RU) 25GbE eCPRI optical port.
+HOST oran_ru_sector1 {
+    IP 10.50.1.11
+    MAC 00:11:22:50:01:0b
+}
+
+// INSTRUCTION: Define 5G O-RAN Distributed Unit (O-DU) fronthaul switch port.
+HOST oran_du_baseband {
+    IP 10.50.1.1
+    MAC 00:11:22:50:01:01
+}
+
+// INSTRUCTION: Exchange LLDP neighbor discovery TLVs prior to DHCP and NETCONF M-Plane bootstrap.
+FLOW lldp_oran_mplane_init(ru, du) {
+    ru -> du LLDP CHASSIS_ID "00:11:22:50:01:0b" PORT_ID "sfi0" SYSNAME "oru-cell42-sec1" SYSDESC "O-RAN-RU Cat-B 64T64R n78" TTL 120 WAIT 5ms
+    ru <- du LLDP CHASSIS_ID "00:11:22:50:01:01" PORT_ID "TwentyFiveGigE1/0/1" SYSNAME "odu-site42-bbu1" SYSDESC "O-RAN-DU vRAN Baseband v4.2" TTL 120
+}
+
+// INSTRUCTION: Compile the 5G O-RAN fronthaul LLDP neighbor discovery trace.
+COMPILE {
+    lldp_oran_mplane_init(oran_ru_sector1, oran_du_baseband)
+}

@@ -1,5 +1,5 @@
 // PROMPT: MySQL initial server handshake greeting announcing version capabilities.
-// TOKENS: HOST, IP, FLOW, <-, MYSQL, GREETING, SERVER_VERSION, COMPILE
+// TOKENS: HOST, IP, FLOW, MYSQL, GREETING, SERVER_VERSION, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.100 }

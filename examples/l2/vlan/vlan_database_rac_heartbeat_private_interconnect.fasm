@@ -1,0 +1,25 @@
+// PROMPT: Clustered database cache-fusion private interconnect on isolated VLAN 3999 with low-latency UDP heartbeats.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, DSCP, DF, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define primary database cluster node 1 on private interconnect VLAN 3999.
+HOST db_rac_node1 {
+    IP 192.168.254.1
+    MAC 00:25:90:fe:39:01
+}
+
+// INSTRUCTION: Define secondary database cluster node 2 on private interconnect VLAN 3999.
+HOST db_rac_node2 {
+    IP 192.168.254.2
+    MAC 00:25:90:fe:39:02
+}
+
+// INSTRUCTION: Exchange bidirectional cache-fusion lock and heartbeat datagrams on VLAN 3999 PCP 6.
+FLOW vlan_rac_heartbeat(n1, n2) {
+    n1 -> n2 VLAN 3999 PCP 6 DEI 0 DSCP 48 DF UDP SRCPORT 49152 DSTPORT 49152 PAYLOAD "rac_dlm_master_lock_grant_seq_801" WAIT 1ms
+    n1 <- n2 VLAN 3999 PCP 6 DEI 0 DSCP 48 DF UDP SRCPORT 49152 DSTPORT 49152 PAYLOAD "rac_dlm_master_lock_ack_seq_801"
+}
+
+// INSTRUCTION: Compile the database cluster VLAN 3999 private interconnect heartbeat flow.
+COMPILE {
+    vlan_rac_heartbeat(db_rac_node1, db_rac_node2)
+}

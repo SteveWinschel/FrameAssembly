@@ -1,5 +1,5 @@
 // PROMPT: SNMPv3 USM authentication over IPv6 using MD5 and HMAC-SHA-96 authentication protocols.
-// TOKENS: HOST, IP, FLOW, ->, SNMP3, TRAP, USER, AUTH, MD5, SHA, OID, COMPILE
+// TOKENS: HOST, IP, FLOW, SNMP3, TRAP, USER, AUTH, MD5, OID, SHA, COMPILE
 
 // INSTRUCTION: Define SNMPv3 IPv6 secure agent.
 HOST usm_agent_v6 { IP 2001:db8:3::1 }

@@ -1,0 +1,20 @@
+// PROMPT: Write request uploading archived network switch configuration backup.
+// TOKENS: HOST, IP, FLOW, TFTP, WRQ, FILENAME, MODE, COMPILE
+
+// INSTRUCTION: Define core switch initiating backup.
+HOST core_sw_backup { IP 192.168.10.1 }
+
+// INSTRUCTION: Define backup archive TFTP server.
+HOST archive_tftp { IP 192.168.10.250 }
+
+// INSTRUCTION: Define backup archive upload flow.
+FLOW tftp_backup_upload(c, s) {
+    c -> s TFTP WRQ
+        FILENAME "core_switch_config_oct2026.tar.gz"
+        MODE "octet"
+}
+
+// INSTRUCTION: Compile block executing backup WRQ.
+COMPILE {
+    tftp_backup_upload(core_sw_backup, archive_tftp)
+}

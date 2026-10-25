@@ -1,0 +1,51 @@
+// PROMPT: Simulate a multi-PLC water treatment plant topology where a central SCADA master polls filtration, dosing, and pump PLCs.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TXID, UNITID, FUNC, ADDR, COUNT, WAIT, IS_RESPONSE, VALUE, COMPILE
+
+// INSTRUCTION: Define the water treatment plant SCADA master server.
+HOST wtp_scada {
+    IP 10.115.1.10
+    MAC 00:1b:21:73:01:0a
+}
+
+// INSTRUCTION: Define the ultrafiltration skid PLC.
+HOST filtration_plc {
+    IP 10.115.1.21
+    MAC 00:1b:21:73:01:15
+}
+
+// INSTRUCTION: Define the chlorine dosing skid PLC.
+HOST dosing_plc {
+    IP 10.115.1.22
+    MAC 00:1b:21:73:01:16
+}
+
+// INSTRUCTION: Define the high-service distribution pump PLC.
+HOST pump_plc {
+    IP 10.115.1.23
+    MAC 00:1b:21:73:01:17
+}
+
+// INSTRUCTION: Poll transmembrane pressure from the filtration PLC.
+FLOW poll_filtration(c, s) {
+    c -> s MODBUS TXID 1 UNITID 1 FUNC "READ_INPUT_REGISTERS" ADDR 10 COUNT 2 WAIT 3ms
+    c <- s MODBUS TXID 1 UNITID 1 FUNC "READ_INPUT_REGISTERS" IS_RESPONSE VALUE 142
+}
+
+// INSTRUCTION: Poll residual chlorine ppm from the dosing PLC.
+FLOW poll_dosing(c, s) {
+    c -> s MODBUS TXID 2 UNITID 1 FUNC "READ_INPUT_REGISTERS" ADDR 20 COUNT 2 WAIT 3ms
+    c <- s MODBUS TXID 2 UNITID 1 FUNC "READ_INPUT_REGISTERS" IS_RESPONSE VALUE 18
+}
+
+// INSTRUCTION: Command pump discharge valve open coil on the distribution pump PLC.
+FLOW control_pump(c, s) {
+    c -> s MODBUS TXID 3 UNITID 1 FUNC "WRITE_SINGLE_COIL" ADDR 5 VALUE 0xff00 WAIT 3ms
+    c <- s MODBUS TXID 3 UNITID 1 FUNC "WRITE_SINGLE_COIL" ADDR 5 VALUE 0xff00 IS_RESPONSE
+}
+
+// INSTRUCTION: Compile the 3-PLC water treatment plant Modbus topology into a PCAP file.
+COMPILE {
+    poll_filtration(wtp_scada, filtration_plc)
+    poll_dosing(wtp_scada, dosing_plc)
+    control_pump(wtp_scada, pump_plc)
+}

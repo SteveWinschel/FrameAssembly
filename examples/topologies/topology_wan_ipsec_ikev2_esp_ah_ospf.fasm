@@ -1,0 +1,25 @@
+// PROMPT: Site-to-site IPsec VPN topology negotiating IKEv2 Security Associations, AH and ESP headers, and GRE-over-IPsec OSPF routing.
+// TOKENS: HOST, IP, FLOW, IKEV2, SA_INIT, INITIATOR_SPI, RESPONDER_SPI, MSGID, WAIT, CREATE_CHILD_SA, AH, SPI, SEQ, ESP, GRE, GRE_KEY, OSPF, HELLO, ROUTER_ID, AREA_ID, COMPILE
+
+// INSTRUCTION: Define headquarters VPN border gateway router.
+HOST hq_ipsec_gw { IP 198.51.100.10 }
+
+// INSTRUCTION: Define remote branch VPN border gateway router.
+HOST branch_ipsec_gw { IP 203.0.113.20 }
+
+// INSTRUCTION: Define IKEv2 SA_INIT and Child SA setup followed by AH, ESP, GRE keepalive, and OSPF routing adjacency.
+FLOW site_to_site_ipsec_ospf(hq, br) {
+    hq -> br IKEV2 SA_INIT INITIATOR_SPI 0x1122334455667788 RESPONDER_SPI 0x0000000000000000 MSGID 0
+    hq <- br IKEV2 SA_INIT INITIATOR_SPI 0x1122334455667788 RESPONDER_SPI 0x99aabbccddeeff00 MSGID 0 WAIT 2ms
+    hq -> br IKEV2 CREATE_CHILD_SA INITIATOR_SPI 0x1122334455667788 RESPONDER_SPI 0x99aabbccddeeff00 MSGID 1 WAIT 2ms
+    hq -> br AH SPI 0x1001 SEQ 1 WAIT 1ms
+    hq -> br ESP SPI 0x2001 SEQ 1 WAIT 1ms
+    hq <- br ESP SPI 0x2002 SEQ 1 WAIT 1ms
+    hq -> br GRE GRE_KEY 500 WAIT 1ms
+    hq -> br OSPF HELLO ROUTER_ID 10.0.0.1 AREA_ID 0 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing site-to-site IKEv2, AH, ESP, GRE, and OSPF VPN topology.
+COMPILE {
+    site_to_site_ipsec_ospf(hq_ipsec_gw, branch_ipsec_gw)
+}

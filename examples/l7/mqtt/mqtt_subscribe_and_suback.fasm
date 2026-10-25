@@ -1,5 +1,5 @@
 // PROMPT: MQTT topic subscription request and broker acknowledgment over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, <-, MQTT, SUBSCRIBE, SUBACK, TOPIC, QOS, PKT_ID, COMPILE
+// TOKENS: HOST, IP, FLOW, MQTT, SUBSCRIBE, TOPIC, QOS, PKT_ID, SUBACK, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

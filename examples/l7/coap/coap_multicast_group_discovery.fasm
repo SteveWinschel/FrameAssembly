@@ -1,0 +1,25 @@
+// PROMPT: CoAP multicast group discovery to all-CoAP-nodes IPv4 (224.0.1.187) and IPv6 (ff02::fd).
+// TOKENS: HOST, IP, FLOW, COAP, NON, CODE, MSGID, URI_PATH, TTL, COMPILE
+
+// INSTRUCTION: Define IPv4 CoAP commissioning tool.
+HOST comm_v4 { IP 192.168.10.5 }
+
+// INSTRUCTION: Define RFC 7252 IPv4 all-CoAP-nodes multicast group.
+HOST mcast_coap_v4 { IP 224.0.1.187 }
+
+// INSTRUCTION: Define IPv6 CoAP commissioning tool.
+HOST comm_v6 { IP fe80::5 }
+
+// INSTRUCTION: Define RFC 7252 IPv6 link-local all-CoAP-nodes multicast address.
+HOST mcast_coap_v6 { IP ff02::fd }
+
+// INSTRUCTION: Multicast a Non-confirmable GET to .well-known/core with TTL 1.
+FLOW coap_multicast_probe(c, m) {
+    c -> m COAP NON CODE "0.01" MSGID 2020 URI_PATH ".well-known/core" TTL 1
+}
+
+// INSTRUCTION: Execute CoAP multicast discovery on IPv4 and IPv6.
+COMPILE {
+    coap_multicast_probe(comm_v4, mcast_coap_v4)
+    coap_multicast_probe(comm_v6, mcast_coap_v6)
+}

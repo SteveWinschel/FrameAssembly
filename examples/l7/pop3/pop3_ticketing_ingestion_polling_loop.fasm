@@ -1,0 +1,27 @@
+// PROMPT: Create a helpdesk ticket ingestion worker polling a POP3 support@ mailbox in a periodic loop.
+// TOKENS: HOST, IP, MAC, FLOW, POP3, CMD, DSCP, TTL, WAIT, OK, RESPONSE, COMPILE, LOOP
+
+// INSTRUCTION: Define the helpdesk ticketing ingestion service.
+HOST helpdesk_worker {
+    IP 10.110.60.20
+    MAC 00:1b:21:6e:3c:14
+}
+
+// INSTRUCTION: Define the support mailbox POP3 server.
+HOST support_pop3 {
+    IP 10.110.60.1
+    MAC 00:1b:21:6e:3c:01
+}
+
+// INSTRUCTION: Check STAT for new customer support emails and receive 0 messages on idle poll.
+FLOW pop3_helpdesk_poll(c, s) {
+    c -> s POP3 CMD "STAT" DSCP 18 TTL 64 WAIT 2ms
+    c <- s POP3 OK RESPONSE "0 0" DSCP 18 TTL 64 WAIT 25ms
+}
+
+// INSTRUCTION: Execute 4 periodic POP3 STAT polls inside a COMPILE LOOP block.
+COMPILE {
+    LOOP 4 {
+        pop3_helpdesk_poll(helpdesk_worker, support_pop3)
+    }
+}

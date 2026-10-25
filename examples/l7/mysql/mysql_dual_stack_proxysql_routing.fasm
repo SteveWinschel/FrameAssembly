@@ -1,0 +1,44 @@
+// PROMPT: ProxySQL router accepting IPv4 application queries and forwarding read queries to an IPv6 MySQL replica.
+// TOKENS: HOST, IP, MAC, FLOW, SRCPORT, DSTPORT, MYSQL, SQL, EOF, COMPILE
+
+// INSTRUCTION: Define the IPv4 PHP-FPM application worker.
+HOST php_app_v4 {
+    IP 10.90.50.25
+    MAC 00:1a:2b:90:50:25
+}
+
+// INSTRUCTION: Define the IPv4 ProxySQL listener.
+HOST proxysql_v4 {
+    IP 10.90.50.2
+    MAC 00:1a:2b:90:50:02
+}
+
+// INSTRUCTION: Define the IPv6 ProxySQL backend interface.
+HOST proxysql_v6 {
+    IP 2001:db8:90:50::2
+    MAC 00:1a:2b:90:56:02
+}
+
+// INSTRUCTION: Define the IPv6 MySQL read replica server.
+HOST replica_v6 {
+    IP 2001:db8:90:50::10
+    MAC 00:1a:2b:90:56:10
+}
+
+// INSTRUCTION: Send SELECT query from IPv4 app to ProxySQL on port 6033.
+FLOW app_to_proxysql(c, p) {
+    c -> p SRCPORT 52100 DSTPORT 6033 MYSQL SQL "SELECT id, title FROM articles WHERE published = 1 LIMIT 10"
+    c <- p SRCPORT 6033 DSTPORT 52100 MYSQL EOF
+}
+
+// INSTRUCTION: Forward SELECT query from ProxySQL over IPv6 to MySQL replica on port 3306.
+FLOW proxysql_to_replica(p, r) {
+    p -> r MYSQL SQL "SELECT id, title FROM articles WHERE published = 1 LIMIT 10"
+    p <- r MYSQL EOF
+}
+
+// INSTRUCTION: Compile the dual-stack ProxySQL routing flows.
+COMPILE {
+    app_to_proxysql(php_app_v4, proxysql_v4)
+    proxysql_to_replica(proxysql_v6, replica_v6)
+}

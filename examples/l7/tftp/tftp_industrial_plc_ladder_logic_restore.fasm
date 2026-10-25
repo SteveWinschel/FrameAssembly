@@ -1,0 +1,27 @@
+// PROMPT: Industrial OT workstation restoring a PLC ladder logic program over TFTP on isolated VLAN 300.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, WRQ, FILENAME, MODE, VLAN, PCP, ACK, BLOCK, DATA, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define engineering workstation on OT maintenance VLAN 300.
+HOST eng_workstation {
+    IP 10.30.100.5
+    MAC 00:0e:8c:1e:64:05
+}
+
+// INSTRUCTION: Define programmable logic controller TFTP responder.
+HOST plc_controller {
+    IP 10.30.100.50
+    MAC 00:0e:8c:1e:64:32
+}
+
+// INSTRUCTION: Push ladder logic bytecode via TFTP WRQ over VLAN 300.
+FLOW tftp_plc_restore(eng, plc) {
+    eng -> plc TFTP WRQ FILENAME "conveyor_line_v4.bin" MODE "octet" VLAN 300 PCP 6
+    eng <- plc TFTP ACK BLOCK 0 VLAN 300 PCP 6
+    eng -> plc TFTP DATA BLOCK 1 VLAN 300 PCP 6 HEXPAYLOAD "504c435f4c41444445525f5634"
+    eng <- plc TFTP ACK BLOCK 1 VLAN 300 PCP 6
+}
+
+// INSTRUCTION: Compile the industrial PLC ladder logic TFTP restore scenario.
+COMPILE {
+    tftp_plc_restore(eng_workstation, plc_controller)
+}

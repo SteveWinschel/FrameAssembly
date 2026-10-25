@@ -1,0 +1,26 @@
+// PROMPT: Cloud DDoS Scrubbing Center injecting sanitized customer traffic back to origin router over an RFC 2784 GRE clean-pipe tunnel.
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, CHECKSUM, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Cloud DDoS Scrubbing Center egress router injecting clean traffic into GRE.
+HOST scrubbing_center_gre {
+    IP 198.51.100.250
+    MAC 00:25:90:47:fa:01
+}
+
+// INSTRUCTION: Define enterprise origin border router receiving scrubbed packets from GRE clean-pipe.
+HOST origin_cleanpipe_rtr {
+    IP 203.0.113.100
+    MAC 00:25:90:47:64:02
+}
+
+// INSTRUCTION: Define GRE clean-pipe return stream with GRE_KEY 91100 and GRE_PROTO 2048.
+FLOW gre_ddos_clean_pipe_flow(scrubber, origin) {
+    scrubber -> origin GRE GRE_KEY 91100 GRE_SEQ 101 GRE_PROTO 2048 CHECKSUM DF DSCP 0 TTL 59 PAYLOAD "SCRUBBED_HTTPS_CLIENT_SYN_CLEAN" WAIT 2ms
+    scrubber -> origin GRE GRE_KEY 91100 GRE_SEQ 102 GRE_PROTO 2048 CHECKSUM DF DSCP 0 TTL 59 PAYLOAD "SCRUBBED_HTTPS_CLIENT_ACK_CLEAN" WAIT 2ms
+    scrubber <- origin GRE GRE_KEY 91100 GRE_SEQ 1 GRE_PROTO 2048 CHECKSUM DF DSCP 48 TTL 64 PAYLOAD "GRE_KEEPALIVE_ORIGIN_HEALTH_OK"
+}
+
+// INSTRUCTION: Compile the Cloud DDoS Scrubbing Center GRE clean-pipe return flow.
+COMPILE {
+    gre_ddos_clean_pipe_flow(scrubbing_center_gre, origin_cleanpipe_rtr)
+}

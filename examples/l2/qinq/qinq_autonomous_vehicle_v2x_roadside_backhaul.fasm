@@ -1,0 +1,25 @@
+// PROMPT: Connected vehicle roadside unit (RSU) backhauling C-V2X safety telemetry over municipal fiber QinQ S-VLAN 2800 C-VLAN 80.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSCP, FLOWLABEL, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define intersection 5G-V2X Roadside Unit (RSU) IPv6 telemetry node.
+HOST v2x_intersection_rsu {
+    IP 2001:db8:2800:80::10
+    MAC 00:16:3e:28:50:0a
+}
+
+// INSTRUCTION: Define municipal traffic management center (TMC) IPv6 ingestion server.
+HOST municipal_tmc_srv {
+    IP 2001:db8:2800:80::1
+    MAC 00:16:3e:28:50:01
+}
+
+// INSTRUCTION: Transmit Basic Safety Message (BSM) hazard alerts over IPv6 with QinQ S-VLAN 2800 C-VLAN 80.
+FLOW qinq_v2x_safety_backhaul(rsu, tmc) {
+    rsu -> tmc QINQ 2800 INNER_VLAN 80 DSCP 46 FLOWLABEL 28080 UDP SRCPORT 30800 DSTPORT 30800 PAYLOAD "J2735_BSM_HARD_BRAKING_ALERT_LAT_407128" WAIT 2ms
+    rsu <- tmc QINQ 2800 INNER_VLAN 80 DSCP 46 FLOWLABEL 28080 UDP SRCPORT 30800 DSTPORT 30800 PAYLOAD "TMC_SIGNAL_PHASE_TIMING_SPAT_UPDATE"
+}
+
+// INSTRUCTION: Compile the connected vehicle V2X roadside backhaul QinQ trace.
+COMPILE {
+    qinq_v2x_safety_backhaul(v2x_intersection_rsu, municipal_tmc_srv)
+}

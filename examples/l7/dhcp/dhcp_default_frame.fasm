@@ -1,0 +1,24 @@
+// PROMPT: Default zero-argument DHCP frame emission using RFC 2131 BOOTP defaults.
+// TOKENS: HOST, IP, MAC, FLOW, DHCP, COMPILE
+
+// INSTRUCTION: Define PXE boot client host.
+HOST pxe_client {
+    IP 0.0.0.0
+    MAC 00:0c:29:4f:8e:11
+}
+
+// INSTRUCTION: Define broadcast target host.
+HOST bcast_target {
+    IP 255.255.255.255
+    MAC ff:ff:ff:ff:ff:ff
+}
+
+// INSTRUCTION: Emit a default DHCP frame without optional modifiers.
+FLOW dhcp_default_boot(c, b) {
+    c -> b DHCP
+}
+
+// INSTRUCTION: Compile the default DHCP frame.
+COMPILE {
+    dhcp_default_boot(pxe_client, bcast_target)
+}

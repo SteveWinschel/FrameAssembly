@@ -1,0 +1,18 @@
+// PROMPT: Default RFC 7826 RTSP OPTIONS request with zero sub-keywords on TCP port 554.
+// TOKENS: HOST, IP, MAC, FLOW, RTSP, COMPILE
+
+// INSTRUCTION: Define video player client host.
+HOST player_client { IP 192.168.55.10 MAC 00:1a:2b:55:00:0a }
+
+// INSTRUCTION: Define RTSP IP camera server host.
+HOST rtsp_camera { IP 192.168.55.1 MAC 00:1a:2b:55:00:01 }
+
+// INSTRUCTION: Define flow sending default RTSP frame.
+FLOW rtsp_default(c, s) {
+    c -> s RTSP
+}
+
+// INSTRUCTION: Compile default RTSP scenario.
+COMPILE {
+    rtsp_default(player_client, rtsp_camera)
+}

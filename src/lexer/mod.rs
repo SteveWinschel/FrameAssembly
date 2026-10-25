@@ -1,7 +1,10 @@
-//! Lexical analysis module for the FrameAssembly domain-specific language.
+//! Zero-copy lexical analyzer and token specification for the FrameAssembly DSL.
 //!
-//! Provides token definitions using `logos` for the FrameAssembly grammar, covering
-//! all 81 protocols, L2-L7 keywords, frame modifiers, units, and literal values.
+//! Built on the [`logos`] finite-automaton generator, this module defines the [`Token`] enumeration
+//! and [`lex`] entry point for scanning `.fasm` source files into byte-spanned token streams.
+//! It recognizes structural keywords (`HOST`, `FLOW`, `COMPILE`, `LOOP`), directional arrows,
+//! all 81 L2–L7 protocol identifiers, header and payload modifiers, time units (`ns`, `us`, `ms`,
+//! `s`, `m`), IPv4/IPv6/MAC address literals, ASN.1 OIDs, and quoted strings.
 
 use logos::Logos;
 
@@ -18,7 +21,7 @@ use logos::Logos;
 /// assert_eq!(token, Token::Host);
 /// ```
 #[derive(Logos, Debug, PartialEq, Clone)]
-#[logos(skip r"[ \t\n\f]+")]
+#[logos(skip r"[ \t\r\n\f]+")]
 #[logos(skip r"//.*")]
 pub enum Token<'a> {
     /// `HOST` keyword

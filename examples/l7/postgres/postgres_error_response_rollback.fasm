@@ -1,0 +1,21 @@
+// PROMPT: PostgreSQL query triggering a unique constraint violation ERROR_RESPONSE and ROLLBACK.
+// TOKENS: HOST, IP, FLOW, POSTGRES, SQL, WAIT, ERROR_RESPONSE, PAYLOAD, COMMAND_COMPLETE, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define user registration API node.
+HOST reg_api { IP 172.18.0.15 }
+
+// INSTRUCTION: Define accounts PostgreSQL database.
+HOST accounts_db { IP 172.18.0.5 }
+
+// INSTRUCTION: Define duplicate key INSERT returning ERROR_RESPONSE followed by ROLLBACK.
+FLOW pg_error_rollback(c, s) {
+    c -> s POSTGRES SQL "INSERT INTO users (email) VALUES ('admin@corp.net')" WAIT 5ms
+    c <- s POSTGRES ERROR_RESPONSE PAYLOAD "ERROR: 23505 duplicate key value violates unique constraint" WAIT 5ms
+    c -> s POSTGRES SQL "ROLLBACK" WAIT 2ms
+    c <- s POSTGRES COMMAND_COMPLETE READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile PostgreSQL error and rollback scenario.
+COMPILE {
+    pg_error_rollback(reg_api, accounts_db)
+}

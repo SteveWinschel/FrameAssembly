@@ -1,5 +1,5 @@
 // PROMPT: IPv6 NDP Router Solicitation sent to all-routers multicast address and Router Advertisement reply.
-// TOKENS: HOST, IP, FLOW, ->, <-, NDP, ROUTER_SOLICIT, ROUTER_ADVERT, ROUTER_LIFETIME, COMPILE
+// TOKENS: HOST, IP, FLOW, NDP, ROUTER_SOLICIT, ROUTER_ADVERT, ROUTER_LIFETIME, COMPILE
 
 // INSTRUCTION: Define newly booted IPv6 host.
 HOST new_host { IP fe80::50 }

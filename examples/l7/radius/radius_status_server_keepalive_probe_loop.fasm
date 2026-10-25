@@ -1,0 +1,25 @@
+// PROMPT: Model a load balancer probing RADIUS server health in a 2-iteration loop using Access-Request health checks.
+// TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, ID, USER, NAS_IP, SERVICE_TYPE, WAIT, ACCESS_ACCEPT, COMPILE
+
+// INSTRUCTION: Define the Network Access Server (NAS) client initiating RADIUS requests.
+HOST radius_nas {
+    IP 10.181.0.5
+    MAC 00:1b:21:18:12:05
+}
+
+// INSTRUCTION: Define the central RADIUS authentication and accounting server.
+HOST radius_server {
+    IP 10.181.0.10
+    MAC 00:1b:21:18:12:64
+}
+
+// INSTRUCTION: Execute the RFC 2865 / RFC 2866 RADIUS transaction flow.
+FLOW radius_scenario_flow(nas, srv) {
+    nas -> srv RADIUS ACCESS_REQUEST ID 115 USER "healthcheck_probe" NAS_IP 10.181.0.5 SERVICE_TYPE 8 WAIT 2ms
+    nas <- srv RADIUS ACCESS_ACCEPT ID 115 USER "healthcheck_probe" NAS_IP 10.181.0.5 SERVICE_TYPE 8 WAIT 20ms
+}
+
+// INSTRUCTION: Compile the RADIUS AAA exchange into a PCAP trace.
+COMPILE {
+    radius_scenario_flow(radius_nas, radius_server)
+}

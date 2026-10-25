@@ -1,0 +1,26 @@
+// PROMPT: Dual-stack IPv4 and IPv6 RTSP OPTIONS and DESCRIBE negotiation using a polymorphic flow.
+// TOKENS: HOST, IP, FLOW, RTSP, OPTIONS, URI, CSEQ, DSCP, TTL, FLOWLABEL, STATUS, METHOD, COMPILE
+
+// INSTRUCTION: Define IPv4 RTSP client and camera server.
+HOST rtsp_v4_c { IP 10.55.0.10 }
+// INSTRUCTION: Define IPv4 RTSP camera endpoint.
+HOST rtsp_v4_s { IP 10.55.0.20 }
+
+// INSTRUCTION: Define IPv6 RTSP client and camera server.
+HOST rtsp_v6_c { IP 2001:db8:554::10 }
+// INSTRUCTION: Define IPv6 RTSP camera endpoint.
+HOST rtsp_v6_s { IP 2001:db8:554::20 }
+
+// INSTRUCTION: Define polymorphic RTSP OPTIONS and DESCRIBE exchange.
+FLOW rtsp_dual_stack(c, s) {
+    c -> s RTSP OPTIONS URI "rtsp://camera.local/main" CSEQ 1 DSCP 34 TTL 64 FLOWLABEL 0x55400
+    c <- s RTSP STATUS 200 CSEQ 1 DSCP 34 TTL 64 FLOWLABEL 0x55400
+    c -> s RTSP METHOD "DESCRIBE" URI "rtsp://camera.local/main" CSEQ 2 DSCP 34 TTL 64 FLOWLABEL 0x55400
+    c <- s RTSP STATUS 200 CSEQ 2 DSCP 34 TTL 64 FLOWLABEL 0x55400
+}
+
+// INSTRUCTION: Compile dual-stack RTSP flow over IPv4 and IPv6.
+COMPILE {
+    rtsp_dual_stack(rtsp_v4_c, rtsp_v4_s)
+    rtsp_dual_stack(rtsp_v6_c, rtsp_v6_s)
+}

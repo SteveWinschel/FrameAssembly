@@ -1,5 +1,5 @@
 // PROMPT: BFD Control packet asserting NeighborDown diagnostic and Down state code.
-// TOKENS: HOST, IP, FLOW, ->, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, COMPILE
+// TOKENS: HOST, IP, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, COMPILE
 
 // INSTRUCTION: Define local router reporting peer failure.
 HOST local_bfd_peer { IP 192.168.10.1 }

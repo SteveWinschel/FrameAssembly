@@ -1,0 +1,27 @@
+// PROMPT: Simulate an administrative Memcached FLUSH_ALL cache invalidation and VERSION check during a blue-green deployment.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, CMD, KEY, OPAQUE, WAIT, PAYLOAD, EXPTIME, COMPILE
+
+// INSTRUCTION: Define the deployment automation runner flushing stale schema caches during cutover.
+HOST deploy_runner {
+    IP 10.12.99.5
+    MAC 00:16:3e:0c:63:05
+}
+
+// INSTRUCTION: Define the staging Memcached instance being reset.
+HOST staging_cache {
+    IP 10.12.99.20
+    MAC 00:16:3e:0c:63:14
+}
+
+// INSTRUCTION: Query server VERSION and then execute FLUSH_ALL with a 10-second grace delay.
+FLOW admin_flush_and_version(c, s) {
+    c -> s MEMCACHED CMD "VERSION" KEY "server" OPAQUE 1 WAIT 1ms
+    c <- s MEMCACHED CMD "VERSION" KEY "server" OPAQUE 1 PAYLOAD "VERSION 1.6.22\r\n" WAIT 5ms
+    c -> s MEMCACHED CMD "FLUSH_ALL" KEY "all" EXPTIME 10 OPAQUE 2 WAIT 2ms
+    c <- s MEMCACHED CMD "OK" KEY "all" OPAQUE 2 PAYLOAD "OK\r\n"
+}
+
+// INSTRUCTION: Compile the administrative Memcached VERSION and FLUSH_ALL trace into a PCAP file.
+COMPILE {
+    admin_flush_and_version(deploy_runner, staging_cache)
+}

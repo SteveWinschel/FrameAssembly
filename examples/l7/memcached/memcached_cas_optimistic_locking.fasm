@@ -1,0 +1,27 @@
+// PROMPT: Generate a Memcached optimistic locking CAS (Check-And-Set) exchange with 64-bit CAS token updates.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, GET, KEY, OPAQUE, WAIT, CAS, VALUE, CMD, EXPTIME, COMPILE
+
+// INSTRUCTION: Define the checkout worker updating an inventory stock counter using CAS optimistic concurrency.
+HOST checkout_worker {
+    IP 10.35.10.42
+    MAC 00:16:3e:35:10:42
+}
+
+// INSTRUCTION: Define the central Memcached inventory cache server.
+HOST inventory_cache {
+    IP 10.35.10.10
+    MAC 00:16:3e:35:10:10
+}
+
+// INSTRUCTION: Fetch the current CAS token with GET, then submit a CAS update with the matching 64-bit CAS version.
+FLOW optimistic_cas_update(c, s) {
+    c -> s MEMCACHED GET KEY "sku:88412:stock" OPAQUE 501 WAIT 2ms
+    c <- s MEMCACHED GET KEY "sku:88412:stock" OPAQUE 501 CAS 9876543210 VALUE 45 WAIT 3ms
+    c -> s MEMCACHED CMD "CAS" KEY "sku:88412:stock" EXPTIME 600 OPAQUE 502 CAS 9876543210 VALUE 44 WAIT 2ms
+    c <- s MEMCACHED CMD "STORED" KEY "sku:88412:stock" OPAQUE 502 CAS 9876543211 VALUE 44
+}
+
+// INSTRUCTION: Compile the Memcached CAS optimistic locking flow into a PCAP file.
+COMPILE {
+    optimistic_cas_update(checkout_worker, inventory_cache)
+}

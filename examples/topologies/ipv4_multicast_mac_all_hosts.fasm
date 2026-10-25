@@ -1,5 +1,5 @@
 // PROMPT: IPv4 all-hosts multicast transmission to 224.0.0.1 deriving RFC 1112 MAC 01:00:5e:00:00:01.
-// TOKENS: HOST, IP, FLOW, ->, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define IPv4 subnet sender.
 HOST sender_v4 { IP 192.168.1.10 }

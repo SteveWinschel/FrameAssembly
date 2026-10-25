@@ -1,0 +1,24 @@
+// PROMPT: Generate a minimal default MQTT frame with default protocol parameters between an IoT sensor and an MQTT broker.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, COMPILE
+
+// INSTRUCTION: Define the IoT edge sensor publishing telemetry.
+HOST iot_sensor {
+    IP 192.168.10.50
+    MAC 00:1a:2b:10:00:50
+}
+
+// INSTRUCTION: Define the Mosquitto MQTT message broker on port 1883.
+HOST mqtt_broker {
+    IP 192.168.10.10
+    MAC 00:1a:2b:10:00:10
+}
+
+// INSTRUCTION: Emit a default MQTT protocol frame using built-in defaults.
+FLOW default_mqtt_flow(c, s) {
+    c -> s MQTT
+}
+
+// INSTRUCTION: Compile the default MQTT packet into a PCAP file.
+COMPILE {
+    default_mqtt_flow(iot_sensor, mqtt_broker)
+}

@@ -1,5 +1,5 @@
 // PROMPT: DHCPv4 address negotiation exchange with DISCOVER and OFFER.
-// TOKENS: HOST, IP, FLOW, ->, <-, DHCP, DISCOVER, OFFER, CHADDR, YIADDR, COMPILE
+// TOKENS: HOST, IP, FLOW, DHCP, DISCOVER, CHADDR, OFFER, YIADDR, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 0.0.0.0 }

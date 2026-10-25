@@ -1,0 +1,21 @@
+// PROMPT: Clean session termination using QUIT and 221 Service closing channel reply.
+// TOKENS: HOST, IP, FLOW, SMTP, EHLO, CODE, REPLY, QUIT, COMPILE
+
+// INSTRUCTION: Define monitoring poller agent.
+HOST poller_agent { IP 192.168.80.70 }
+
+// INSTRUCTION: Define production SMTP daemon.
+HOST smtp_daemon { IP 192.168.80.25 }
+
+// INSTRUCTION: Define clean QUIT termination flow.
+FLOW smtp_quit_flow(c, s) {
+    c -> s SMTP EHLO "poller.healthcheck.local"
+    c <- s SMTP CODE 250 REPLY "smtp.daemon.local Hello"
+    c -> s SMTP QUIT
+    c <- s SMTP CODE 221 REPLY "2.0.0 smtp.daemon.local closing transmission channel"
+}
+
+// INSTRUCTION: Compile block executing clean QUIT flow.
+COMPILE {
+    smtp_quit_flow(poller_agent, smtp_daemon)
+}

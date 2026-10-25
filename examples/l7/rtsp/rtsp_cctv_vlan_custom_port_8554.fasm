@@ -1,0 +1,20 @@
+// PROMPT: Physical security CCTV VLAN 554 RTSP stream control on alternate port 8554.
+// TOKENS: HOST, IP, MAC, FLOW, RTSP, METHOD, URI, CSEQ, TRANSPORT_HDR, VLAN, PCP, DEI, SRCPORT, DSTPORT, WAIT, STATUS, SESSION, COMPILE
+
+// INSTRUCTION: Define CCTV NVR appliance on VLAN 554.
+HOST cctv_nvr { IP 192.168.254.10 MAC 00:1e:c9:fe:00:0a }
+
+// INSTRUCTION: Define ONVIF camera listening on TCP port 8554.
+HOST onvif_cam { IP 192.168.254.101 MAC 00:1e:c9:fe:00:65 }
+
+// INSTRUCTION: Define VLAN-tagged RTSP SETUP and PLAY on port 8554.
+FLOW rtsp_cctv_vlan(nvr, cam) {
+    nvr -> cam RTSP METHOD "SETUP" URI "rtsp://192.168.254.101:8554/profile1" CSEQ 1 TRANSPORT_HDR "RTP/AVP;unicast;client_port=5200-5201" VLAN 554 PCP 4 DEI 0 SRCPORT 49554 DSTPORT 8554 WAIT 5ms
+    nvr <- cam RTSP STATUS 200 CSEQ 1 VLAN 554 PCP 4 DEI 0 SRCPORT 8554 DSTPORT 49554 WAIT 5ms
+    nvr -> cam RTSP METHOD "PLAY" URI "rtsp://192.168.254.101:8554/profile1" CSEQ 2 SESSION "onvif_8554" VLAN 554 PCP 4 DEI 0 SRCPORT 49554 DSTPORT 8554
+}
+
+// INSTRUCTION: Compile CCTV VLAN 554 RTSP flow.
+COMPILE {
+    rtsp_cctv_vlan(cctv_nvr, onvif_cam)
+}

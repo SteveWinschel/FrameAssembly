@@ -1,0 +1,21 @@
+// PROMPT: Periodic RADIUS interim accounting updates emitted in a COMPILE LOOP.
+// TOKENS: HOST, IP, FLOW, RADIUS, ACCOUNTING_REQUEST, USER, NAS_IP, FRAMED_IP, SERVICE_TYPE, WAIT, ACCOUNTING_RESPONSE, COMPILE, LOOP
+
+// INSTRUCTION: Define Wi-Fi 6E access point NAS.
+HOST wifi_ap { IP 10.120.5.50 }
+
+// INSTRUCTION: Define RADIUS accounting collector.
+HOST rad_acct { IP 10.120.5.1 }
+
+// INSTRUCTION: Define single interim accounting request/response cycle.
+FLOW radius_interim_acct(ap, acct) {
+    ap -> acct RADIUS ACCOUNTING_REQUEST USER "corp_laptop_44" NAS_IP 10.120.5.50 FRAMED_IP 10.120.99.44 SERVICE_TYPE 2 WAIT 1s
+    ap <- acct RADIUS ACCOUNTING_RESPONSE USER "corp_laptop_44" WAIT 1s
+}
+
+// INSTRUCTION: Execute 4 interim accounting intervals in COMPILE LOOP.
+COMPILE {
+    LOOP 4 {
+        radius_interim_acct(wifi_ap, rad_acct)
+    }
+}

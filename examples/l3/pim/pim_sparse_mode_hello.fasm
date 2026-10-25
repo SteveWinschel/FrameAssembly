@@ -1,5 +1,5 @@
 // PROMPT: Protocol Independent Multicast sparse-mode Hello packet for neighbor discovery.
-// TOKENS: HOST, IP, FLOW, ->, PIM, HELLO, COMPILE
+// TOKENS: HOST, IP, FLOW, PIM, HELLO, COMPILE
 
 // INSTRUCTION: Define PIM first-hop router.
 HOST pim_router_a { IP 10.200.1.1 }

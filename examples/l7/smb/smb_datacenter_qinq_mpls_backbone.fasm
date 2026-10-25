@@ -1,0 +1,18 @@
+// PROMPT: SMB2 replication traffic traversing datacenter QinQ tags and MPLS transport labels.
+// TOKENS: HOST, IP, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, QINQ, INNER_VLAN, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define primary datacenter storage node.
+HOST dc1_storage { IP 10.200.1.10 }
+
+// INSTRUCTION: Define disaster recovery replica storage node.
+HOST dc2_storage { IP 10.200.2.10 }
+
+// INSTRUCTION: Define SMB2 replication WRITE with QinQ and MPLS carrier encapsulation.
+FLOW smb_wan_replication(c, s) {
+    c -> s SMB COMMAND "WRITE" TREE_ID 5 SESSION_ID 0x8000 MSGID 900 QINQ 600 INNER_VLAN 445 MPLS 44501 EXP 3 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile datacenter WAN MPLS SMB2 flow.
+COMPILE {
+    smb_wan_replication(dc1_storage, dc2_storage)
+}

@@ -1,0 +1,18 @@
+// PROMPT: IPv6 Router Advertisement publishing default router lifetime and reachability parameters.
+// TOKENS: HOST, IP, MAC, FLOW, NDP, ROUTER_ADVERT, ROUTER_LIFETIME, SLLA, COMPILE
+
+// INSTRUCTION: Define default gateway advertising network presence.
+HOST edge_ra_router { IP fe80::1 MAC 00:1c:73:00:00:01 }
+
+// INSTRUCTION: Define all-nodes multicast address.
+HOST all_ipv6_nodes { IP ff02::1 MAC 33:33:00:00:00:01 }
+
+// INSTRUCTION: Define Router Advertisement flow with 1800 second lifetime and SLLA option.
+FLOW router_advert_flow(gw, nodes) {
+    gw -> nodes NDP ROUTER_ADVERT ROUTER_LIFETIME 1800 SLLA 00:1c:73:00:00:01
+}
+
+// INSTRUCTION: Compile block executing periodic Router Advertisement.
+COMPILE {
+    router_advert_flow(edge_ra_router, all_ipv6_nodes)
+}

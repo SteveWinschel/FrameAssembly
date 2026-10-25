@@ -1,0 +1,25 @@
+// PROMPT: Siemens S7comm direct Peripheral Input (Area 0x80 = 128) read bypassing the process image input table.
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, AREA, DB_NUM, OFFSET, COUNT, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define the high-speed diagnostic logger host.
+HOST diag_logger {
+    IP 10.130.10.20
+    MAC 00:1a:2b:82:10:20
+}
+
+// INSTRUCTION: Define the S7-400 high-availability PLC rack.
+HOST s7_400_plc {
+    IP 10.130.10.1
+    MAC 00:1a:2b:82:10:01
+}
+
+// INSTRUCTION: Read 8 bytes directly from Peripheral Input area 128 (0x80) at byte offset 256.
+FLOW s7_peripheral_read(c, p) {
+    c -> p S7COMM ROSCTR "JOB" PDU_REF 201 FUNC "READ_VAR" AREA 128 DB_NUM 0 OFFSET 2048 COUNT 8
+    c <- p S7COMM ROSCTR "ACK_DATA" PDU_REF 201 FUNC "READ_VAR" HEXPAYLOAD "ff0400400a1200000000"
+}
+
+// INSTRUCTION: Compile the S7comm direct peripheral I/O read flow.
+COMPILE {
+    s7_peripheral_read(diag_logger, s7_400_plc)
+}

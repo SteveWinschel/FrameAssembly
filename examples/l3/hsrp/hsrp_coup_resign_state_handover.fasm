@@ -1,0 +1,22 @@
+// PROMPT: Graceful HSRP gateway handover with primary resigning and secondary assuming active state.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, WAIT, COMPILE
+
+// INSTRUCTION: Define resigning primary gateway.
+HOST hsrp_old_active { IP 192.168.10.1 }
+
+// INSTRUCTION: Define incoming secondary gateway.
+HOST hsrp_new_active { IP 192.168.10.2 }
+
+// INSTRUCTION: Define multicast exchange address.
+HOST hsrp_handover_mcast { IP 224.0.0.2 }
+
+// INSTRUCTION: Define handover sequence where primary resigns (8) and secondary takes active (16).
+FLOW hsrp_handover_flow(r1, r2, mcast) {
+    r1 -> mcast HSRP GROUP 1 PRIORITY 80 STATE 8 VIP 192.168.10.254 WAIT 25ms
+    r2 -> mcast HSRP GROUP 1 PRIORITY 120 STATE 16 VIP 192.168.10.254
+}
+
+// INSTRUCTION: Compile block executing planned HSRP role transition.
+COMPILE {
+    hsrp_handover_flow(hsrp_old_active, hsrp_new_active, hsrp_handover_mcast)
+}

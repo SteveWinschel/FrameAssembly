@@ -1,0 +1,27 @@
+// PROMPT: EtherNet/IP CIP Motion Object (Class 0x42 = 66) homing command and axis status read on a Kinetix 5700 servo drive.
+// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, DSCP, HEXPAYLOAD, STATUS, WAIT, COMPILE
+
+// INSTRUCTION: Define the high-speed pick-and-place motion controller.
+HOST motion_plc {
+    IP 10.135.70.1
+    MAC 00:1a:2b:87:70:01
+}
+
+// INSTRUCTION: Define the Kinetix 5700 dual-axis servo drive.
+HOST kinetix_drive {
+    IP 10.135.70.5
+    MAC 00:1a:2b:87:70:05
+}
+
+// INSTRUCTION: Set homing command on CIP Motion Axis Class 66 Instance 1 and read actual position Attribute 12.
+FLOW enip_kinetix_home(m, k) {
+    m -> k ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 7200 CONTEXT 1201 CIP_SERVICE 16 CIP_CLASS 66 CIP_INSTANCE 1 CIP_ATTR 5 DSCP 46 HEXPAYLOAD "01"
+    m <- k ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 7200 CONTEXT 1201 CIP_SERVICE 144 CIP_CLASS 66 CIP_INSTANCE 1 CIP_ATTR 5 DSCP 46 WAIT 2ms
+    m -> k ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 7200 CONTEXT 1202 CIP_SERVICE 14 CIP_CLASS 66 CIP_INSTANCE 1 CIP_ATTR 12 DSCP 46
+    m <- k ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 7200 CONTEXT 1202 CIP_SERVICE 142 CIP_CLASS 66 CIP_INSTANCE 1 CIP_ATTR 12 DSCP 46 HEXPAYLOAD "00000000"
+}
+
+// INSTRUCTION: Compile the Kinetix servo motion axis homing flow.
+COMPILE {
+    enip_kinetix_home(motion_plc, kinetix_drive)
+}

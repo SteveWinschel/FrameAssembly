@@ -1,0 +1,26 @@
+// PROMPT: Create an mDNS Time Machine backup discovery flow querying _adisk._tcp.local and receiving TXT and SRV records.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, TTL, WAIT, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the macOS laptop searching for network Time Machine backup volumes.
+HOST macbook_pro {
+    IP 192.168.15.42
+    MAC f0:18:98:15:00:42
+}
+
+// INSTRUCTION: Define the network-attached storage appliance advertising _adisk._tcp.local.
+HOST timemachine_nas {
+    IP 192.168.15.200
+    MAC 00:11:32:15:02:00
+}
+
+// INSTRUCTION: Query _adisk._tcp.local PTR and receive the SRV and TXT volume metadata responses.
+FLOW adisk_timemachine_lookup(client, nas) {
+    client -> nas MDNS QUERY TXID 0 QNAME "_adisk._tcp.local" QTYPE "PTR" TTL 255 WAIT 4ms
+    client <- nas MDNS RESPONSE TXID 0 QNAME "_adisk._tcp.local" QTYPE "PTR" RDATA "Vault-NAS._adisk._tcp.local" ANS_TTL 4500 TTL 255 WAIT 2ms
+    client <- nas MDNS RESPONSE TXID 0 QNAME "Vault-NAS._adisk._tcp.local" QTYPE "TXT" RDATA "dk0=adVN=TimeMachine,adVF=0x82" ANS_TTL 4500 TTL 255
+}
+
+// INSTRUCTION: Compile the Time Machine _adisk._tcp.local mDNS discovery sequence.
+COMPILE {
+    adisk_timemachine_lookup(macbook_pro, timemachine_nas)
+}

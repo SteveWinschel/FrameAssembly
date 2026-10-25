@@ -1,0 +1,34 @@
+// PROMPT: Simulate an in-flight SSH session key re-exchange (rekeying) triggered after transferring bulk channel data over QinQ.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, QINQ, INNER_VLAN, ACK, SSH, MSG_CODE, PAYLOAD, KEXINIT, NEWKEYS, COMPILE
+
+// INSTRUCTION: Define host endpoint repl_client.
+HOST repl_client {
+    MAC 00:26:b9:22:01:01
+    IP 10.77.22.1
+}
+
+// INSTRUCTION: Define host endpoint repl_target.
+HOST repl_target {
+    MAC 00:26:b9:22:01:02
+    IP 10.77.22.2
+}
+
+// INSTRUCTION: Exchange channel data (94), initiate mid-session KEXINIT rekeying, exchange DH 30/31 and NEWKEYS, and resume data.
+FLOW ssh_mid_session_rekeying_qinq(repl_client, repl_target) {
+    repl_client -> repl_target TCP SYN SRCPORT 63022 DSTPORT 22 QINQ 400 INNER_VLAN 22
+    repl_target -> repl_client TCP SYN ACK QINQ 400 INNER_VLAN 22
+    repl_client -> repl_target TCP ACK QINQ 400 INNER_VLAN 22
+    repl_client -> repl_target SSH MSG_CODE 94 PAYLOAD "BULK-STREAM-PRE-REKEY" QINQ 400 INNER_VLAN 22
+    repl_client -> repl_target SSH KEXINIT PAYLOAD "99887766554433221100ffeeddccbbaa" QINQ 400 INNER_VLAN 22
+    repl_target -> repl_client SSH KEXINIT PAYLOAD "aabbccddeeff00112233445566778899" QINQ 400 INNER_VLAN 22
+    repl_client -> repl_target SSH MSG_CODE 30 QINQ 400 INNER_VLAN 22
+    repl_target -> repl_client SSH MSG_CODE 31 QINQ 400 INNER_VLAN 22
+    repl_client -> repl_target SSH NEWKEYS QINQ 400 INNER_VLAN 22
+    repl_target -> repl_client SSH NEWKEYS QINQ 400 INNER_VLAN 22
+    repl_client -> repl_target SSH MSG_CODE 94 PAYLOAD "BULK-STREAM-POST-REKEY" QINQ 400 INNER_VLAN 22
+}
+
+// INSTRUCTION: Compile the SSH mid-session rekeying flow over QinQ.
+COMPILE {
+    ssh_mid_session_rekeying_qinq(repl_client, repl_target)
+}

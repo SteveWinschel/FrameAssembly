@@ -1,0 +1,26 @@
+// PROMPT: Model an IPv6 unicast PTPv2 Ordinary Clock performing end-to-end delay measurement on Domain 2.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, CLOCK_ID, FLOWLABEL, TTL, WAIT, DELAY_REQ, DELAY_RESP, COMPILE
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
+HOST ptp_grandmaster {
+    IP 2001:db8:319:2::1
+    MAC 00:1b:21:31:90:01
+}
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
+HOST ptp_slave_clock {
+    IP 2001:db8:319:2::50
+    MAC 00:1b:21:31:90:25
+}
+
+// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
+FLOW ptp_scenario_flow(gm, slv) {
+    gm -> slv PTP SYNC DOMAIN 2 SEQ_ID 610 CLOCK_ID "005056fffe020001" FLOWLABEL 0x31902 TTL 64 WAIT 1ms
+    gm <- slv PTP DELAY_REQ DOMAIN 2 SEQ_ID 610 CLOCK_ID "005056fffe020050" FLOWLABEL 0x31902 TTL 64 WAIT 1ms
+    gm -> slv PTP DELAY_RESP DOMAIN 2 SEQ_ID 610 CLOCK_ID "005056fffe020001" FLOWLABEL 0x31902 TTL 64
+}
+
+// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
+COMPILE {
+    ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
+}

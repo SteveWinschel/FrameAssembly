@@ -1,0 +1,23 @@
+// PROMPT: FTP REST byte-offset checkpoint and RETR resumed download after link interruption.
+// TOKENS: HOST, IP, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define download manager client.
+HOST dl_client { IP 10.21.10.40 }
+
+// INSTRUCTION: Define mirror FTP server.
+HOST mirror_ftp { IP 10.21.10.1 }
+
+// INSTRUCTION: Check file size with SIZE, set byte offset with REST, and resume RETR.
+FLOW ftp_resume_download(c, s) {
+    c -> s FTP CMD "SIZE" ARG "ubuntu.iso"
+    c <- s FTP CODE 213 REPLY "4718592000"
+    c -> s FTP CMD "REST" ARG "104857600"
+    c <- s FTP CODE 350 REPLY "Restarting at 104857600"
+    c -> s FTP CMD "RETR" ARG "ubuntu.iso"
+    c <- s FTP CODE 150 REPLY "Opening BINARY mode data connection"
+}
+
+// INSTRUCTION: Compile the FTP resumed download sequence.
+COMPILE {
+    ftp_resume_download(dl_client, mirror_ftp)
+}

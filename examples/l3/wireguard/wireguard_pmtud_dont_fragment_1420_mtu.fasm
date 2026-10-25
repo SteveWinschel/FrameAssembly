@@ -1,0 +1,25 @@
+// PROMPT: WireGuard outer UDP datagram Path MTU Discovery (1420-byte inner MTU + 60-byte IPv4/UDP/WG overhead) with DF bit enforced.
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, IPID, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define WireGuard tunnel ingress enforcing 1420-byte inner MTU and outer DF flag.
+HOST wg_mtu_ingress {
+    IP 172.24.51.1
+    MAC 00:1a:a1:51:82:01
+}
+
+// INSTRUCTION: Define WireGuard tunnel egress confirming 1480-byte outer frame delivery.
+HOST wg_mtu_egress {
+    IP 172.24.51.2
+    MAC 00:1a:a1:51:82:02
+}
+
+// INSTRUCTION: Define DF-marked WireGuard DATA packets with explicit IPID 5181 and 5182.
+FLOW wg_pmtud_df_probe_flow(ing, egr) {
+    ing -> egr WIREGUARD TYPE DATA RECEIVER 14201 COUNTER 1 IPID 5181 DF DSCP 26 TTL 64 PAYLOAD "WG_1420_MTU_PROBE_FRAME_FORWARD" WAIT 3ms
+    ing <- egr WIREGUARD TYPE DATA RECEIVER 14202 COUNTER 1 IPID 5182 DF DSCP 26 TTL 64 PAYLOAD "WG_1420_MTU_PROBE_FRAME_RETURN"
+}
+
+// INSTRUCTION: Compile the WireGuard 1420-byte MTU DF probe flow.
+COMPILE {
+    wg_pmtud_df_probe_flow(wg_mtu_ingress, wg_mtu_egress)
+}

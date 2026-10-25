@@ -1,0 +1,19 @@
+// PROMPT: 802.1ad QinQ double-tagged site-to-site IPsec tunnel over a metro Ethernet provider.
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, IV, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define metro site 1 IPsec router.
+HOST qinq_ipsec_s1 { IP 172.23.10.1 }
+
+// INSTRUCTION: Define metro site 2 IPsec router.
+HOST qinq_ipsec_s2 { IP 172.23.10.2 }
+
+// INSTRUCTION: Define QinQ double-tagged IPsec exchange on S-VLAN 2300 and C-VLAN 100.
+FLOW ipsec_qinq_site(s1, s2) {
+    s1 -> s2 IPSEC SPI 23100 SEQ 5 IV "1122334455667788" QINQ 2300 INNER_VLAN 100
+    s1 <- s2 IPSEC SPI 23200 SEQ 5 IV "8877665544332211" QINQ 2300 INNER_VLAN 100
+}
+
+// INSTRUCTION: Compile the QinQ provider site-to-site IPsec flow.
+COMPILE {
+    ipsec_qinq_site(qinq_ipsec_s1, qinq_ipsec_s2)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Create an IPv6 WHOIS query to APNIC verifying a /32 IPv6 service provider address allocation.
+// TOKENS: HOST, IP, MAC, FLOW, WHOIS, QUERY, DOMAIN, FLOWLABEL, TTL, WAIT, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define the WHOIS client workstation or security enrichment node.
+HOST whois_client {
+    IP 2001:db8:43:10::5
+    MAC 00:1b:21:00:43:0a
+}
+
+// INSTRUCTION: Define the authoritative RIR or TLD WHOIS directory server on TCP port 43.
+HOST whois_server {
+    IP 2001:dd8:9:2::101
+    MAC 00:1b:21:00:43:01
+}
+
+// INSTRUCTION: Execute the RFC 3912 WHOIS domain or prefix lookup transaction.
+FLOW whois_scenario_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "2400:cb00::/32" FLOWLABEL 0x04300 TTL 64 WAIT 6ms
+    c <- s WHOIS RESPONSE DOMAIN "2400:cb00::/32" REGISTRAR "APNIC - Asia Pacific Network Information Centre" FLOWLABEL 0x04300 TTL 64
+}
+
+// INSTRUCTION: Compile the WHOIS registry query flow into a PCAP trace.
+COMPILE {
+    whois_scenario_flow(whois_client, whois_server)
+}

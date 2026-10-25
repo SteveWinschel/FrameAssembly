@@ -1,5 +1,5 @@
 // PROMPT: Network access control via IEEE 802.1X EAPOL start frame initiating authentication.
-// TOKENS: HOST, IP, FLOW, ->, EAPOL, TYPE, START, COMPILE
+// TOKENS: HOST, IP, FLOW, EAPOL, TYPE, START, COMPILE
 
 // INSTRUCTION: Define network supplicant device.
 HOST access_supplicant { IP 192.168.100.1 }

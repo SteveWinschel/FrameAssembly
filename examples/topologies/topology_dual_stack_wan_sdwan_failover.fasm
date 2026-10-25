@@ -1,5 +1,5 @@
 // PROMPT: SD-WAN multi-tenant IPsec tunnel health monitoring using BFD heartbeat probes across IPv4 and IPv6 links.
-// TOKENS: HOST, IP, FLOW, ->, ESP, SPI, SEQ, BFD, STATE, MY_DISC, YOUR_DISC, COMPILE
+// TOKENS: HOST, IP, FLOW, ESP, SPI, SEQ, BFD, STATE, MY_DISC, YOUR_DISC, COMPILE
 
 // INSTRUCTION: Define IPv4 SD-WAN branch gateway.
 HOST sdwan_edge1_v4 { IP 198.51.100.1 }

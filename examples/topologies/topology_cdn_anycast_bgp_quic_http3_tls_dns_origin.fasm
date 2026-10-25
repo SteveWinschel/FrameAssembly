@@ -1,0 +1,29 @@
+// PROMPT: Global Anycast CDN edge PoP combining BGP Anycast prefix announcement, DNS GeoIP resolution, QUIC/HTTP3 client delivery, and TLS 1.3 origin shield cache fill.
+// TOKENS: HOST, IP, FLOW, BGP, UPDATE, PREFIX, NEXTHOP, DNS, QUERY, QNAME, QTYPE, WAIT, RESPONSE, RDATA, QUIC, INITIAL, DCID, SCID, SHORT, PAYLOAD, TLS, CLIENT_HELLO, SNI, SERVER_HELLO, COMPILE
+
+// INSTRUCTION: Define end-user browser client requesting media asset.
+HOST eyeball_client { IP 198.51.100.88 }
+
+// INSTRUCTION: Define Anycast CDN edge PoP server and authoritative DNS responder.
+HOST anycast_cdn_edge { IP 203.0.113.1 }
+
+// INSTRUCTION: Define upstream origin shield storage server.
+HOST origin_shield_srv { IP 192.0.2.200 }
+
+// INSTRUCTION: Define BGP Anycast route update, DNS lookup, QUIC HTTP/3 request, and TLS 1.3 / HTTP/2 origin fetch.
+FLOW anycast_cdn_cache_miss_flow(client, edge, origin) {
+    edge -> origin BGP UPDATE PREFIX "203.0.113.0/24" NEXTHOP 203.0.113.1
+    client -> edge DNS QUERY QNAME "cdn.video-stream.io" QTYPE "A" WAIT 1ms
+    client <- edge DNS RESPONSE QNAME "cdn.video-stream.io" QTYPE "A" RDATA "203.0.113.1" WAIT 1ms
+    client -> edge QUIC INITIAL DCID 0x9988776655443322 SCID 0x1122334455667788 WAIT 1ms
+    client -> edge QUIC SHORT DCID 0x9988776655443322 PAYLOAD "HTTP3_GET_SEGMENT_1080P_0042.M4S" WAIT 1ms
+    edge -> origin TLS CLIENT_HELLO SNI "origin.video-stream.io" WAIT 1ms
+    edge <- origin TLS SERVER_HELLO WAIT 1ms
+    edge -> origin HTTP2 HEADERS STREAM_ID 1 PAYLOAD "GET /segments/1080p_0042.m4s" WAIT 1ms
+    client <- edge QUIC SHORT DCID 0x1122334455667788 PAYLOAD "HTTP3_200_OK_CACHE_MISS_VIDEO_BYTES" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing Anycast CDN BGP, DNS, QUIC, TLS, and HTTP/2 topology.
+COMPILE {
+    anycast_cdn_cache_miss_flow(eyeball_client, anycast_cdn_edge, origin_shield_srv)
+}

@@ -1,5 +1,5 @@
 // PROMPT: RFC 9000 QUIC Initial packet establishing connection state with DCID and SCID.
-// TOKENS: HOST, IP, FLOW, ->, QUIC, INITIAL, DCID, SCID, COMPILE
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, DCID, SCID, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.100 }

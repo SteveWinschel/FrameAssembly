@@ -1,0 +1,18 @@
+// PROMPT: IGMP Membership Report on VLAN 30 triggering switch IGMP snooping multicast table entry.
+// TOKENS: HOST, IP, FLOW, IGMP, REPORT, GROUP, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define IPTV set-top box client on VLAN 30.
+HOST stb_client_node { IP 10.30.0.15 }
+
+// INSTRUCTION: Define high-definition broadcast multicast channel.
+HOST iptv_channel_hd { IP 239.1.2.3 }
+
+// INSTRUCTION: Define 802.1Q tagged IGMP report flow.
+FLOW igmp_snooping_join(client, grp) {
+    client -> grp IGMP REPORT GROUP 239.1.2.3 VLAN 30 PCP 5 DEI 0
+}
+
+// INSTRUCTION: Compile block executing VLAN tagged IGMP join report.
+COMPILE {
+    igmp_snooping_join(stb_client_node, iptv_channel_hd)
+}

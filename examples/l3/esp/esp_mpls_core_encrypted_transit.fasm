@@ -1,0 +1,19 @@
+// PROMPT: IPsec ESP packets transported across an MPLS label-switched core network.
+// TOKENS: HOST, IP, FLOW, ESP, SPI, SEQ, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define west PE crypto router.
+HOST mpls_pe_west { IP 10.251.1.1 }
+
+// INSTRUCTION: Define east PE crypto router.
+HOST mpls_pe_east { IP 10.251.1.2 }
+
+// INSTRUCTION: Define MPLS-labeled ESP exchange with label 32100 and EXP 4.
+FLOW esp_mpls_transit(w, e) {
+    w -> e ESP SPI 77880 SEQ 15 MPLS 32100 EXP 4 BOS 1 MPLS_TTL 60
+    w <- e ESP SPI 77881 SEQ 15 MPLS 32200 EXP 4 BOS 1 MPLS_TTL 60
+}
+
+// INSTRUCTION: Compile the MPLS-labeled ESP transit flow.
+COMPILE {
+    esp_mpls_transit(mpls_pe_west, mpls_pe_east)
+}

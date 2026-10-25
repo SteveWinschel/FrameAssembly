@@ -1,0 +1,27 @@
+// PROMPT: Model an SSH authentication failure and sudo escalation audit trail using Syslog Facility 10 (authpriv).
+// TOKENS: HOST, MAC, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, WAIT, COMPILE
+
+// INSTRUCTION: Define host endpoint bastion_srv.
+HOST bastion_srv {
+    MAC 00:50:56:51:40:10
+    IP 172.16.10.22
+}
+
+// INSTRUCTION: Define host endpoint audit_log_srv.
+HOST audit_log_srv {
+    MAC 00:50:56:51:40:01
+    IP 172.16.10.5
+}
+
+// INSTRUCTION: Send an sshd warning (Severity 4) followed by a sudo notice (Severity 5) under Facility 10 (authpriv).
+FLOW syslog_authpriv_ssh_and_sudo(bastion_srv, audit_log_srv) {
+    bastion_srv -> audit_log_srv SYSLOG FACILITY 10 SEVERITY 4 HOSTNAME "bastion01" APP "sshd" PROCID "4412"
+        MSG "Failed password for invalid user admin from 198.51.100.44 port 51200 ssh2" WAIT 20ms
+    bastion_srv -> audit_log_srv SYSLOG FACILITY 10 SEVERITY 5 HOSTNAME "bastion01" APP "sudo" PROCID "4489"
+        MSG "ops : TTY=pts/0 ; PWD=/home/ops ; USER=root ; COMMAND=/usr/bin/systemctl restart nginx"
+}
+
+// INSTRUCTION: Compile the authpriv SSH and sudo syslog flow.
+COMPILE {
+    syslog_authpriv_ssh_and_sudo(bastion_srv, audit_log_srv)
+}

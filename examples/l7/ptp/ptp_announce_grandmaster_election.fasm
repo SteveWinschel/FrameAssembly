@@ -1,0 +1,19 @@
+// PROMPT: PTP Grandmaster ANNOUNCE broadcast advertising clock quality in telecom domain 24.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, ANNOUNCE, DOMAIN, SEQ_ID, CLOCK_ID, WAIT, COMPILE
+
+// INSTRUCTION: Define primary GNSS grandmaster clock.
+HOST gnss_gm { IP 192.168.158.1 MAC 00:80:ea:15:80:01 }
+
+// INSTRUCTION: Define 5G gNodeB radio unit slave clock.
+HOST gnodeb_ru { IP 192.168.158.10 MAC 00:80:ea:15:80:0a }
+
+// INSTRUCTION: Define sequential PTP ANNOUNCE messages on UDP port 320.
+FLOW ptp_announce_telecom(gm, ru) {
+    gm -> ru PTP ANNOUNCE DOMAIN 24 SEQ_ID 501 CLOCK_ID "GNSSGM01" WAIT 125ms
+    gm -> ru PTP ANNOUNCE DOMAIN 24 SEQ_ID 502 CLOCK_ID "GNSSGM01"
+}
+
+// INSTRUCTION: Compile telecom PTP ANNOUNCE flow.
+COMPILE {
+    ptp_announce_telecom(gnss_gm, gnodeb_ru)
+}

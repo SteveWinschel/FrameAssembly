@@ -1,0 +1,32 @@
+// PROMPT: IPv6 WireGuard client seamlessly roaming from a primary ISP IPv6 prefix to a backup 5G IPv6 prefix without re-handshaking.
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, FLOWLABEL, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6 WireGuard client primary fiber endpoint.
+HOST wg_v6_fiber_ep {
+    IP 2001:db8:1111::50
+    MAC 00:25:90:11:11:50
+}
+
+// INSTRUCTION: Define IPv6 WireGuard client backup 5G cellular endpoint.
+HOST wg_v6_5g_ep {
+    IP 2001:db8:2222::99
+    MAC 00:25:90:22:22:99
+}
+
+// INSTRUCTION: Define IPv6 WireGuard server automatically updating peer endpoint upon authenticated DATA receipt.
+HOST wg_v6_core_server {
+    IP 2001:db8:5182::1
+    MAC 00:25:90:51:82:01
+}
+
+// INSTRUCTION: Define seamless IPv6 endpoint migration continuing monotonic COUNTER 500 -> 501.
+FLOW wg_v6_roaming_migration(fiber, cell5g, srv) {
+    fiber -> srv WIREGUARD TYPE DATA RECEIVER 60001 COUNTER 500 FLOWLABEL 51820 DSCP 26 TTL 64 PAYLOAD "V6_FIBER_PATH_ACTIVE_500" WAIT 5ms
+    cell5g -> srv WIREGUARD TYPE DATA RECEIVER 60001 COUNTER 501 FLOWLABEL 51821 DSCP 26 TTL 64 PAYLOAD "V6_5G_ROAMED_PATH_501" WAIT 5ms
+    cell5g <- srv WIREGUARD TYPE DATA RECEIVER 60002 COUNTER 300 FLOWLABEL 51821 DSCP 26 TTL 64 PAYLOAD "SERVER_UPDATED_PEER_ENDPOINT_TO_5G"
+}
+
+// INSTRUCTION: Compile the IPv6 WireGuard roaming endpoint failover flow.
+COMPILE {
+    wg_v6_roaming_migration(wg_v6_fiber_ep, wg_v6_5g_ep, wg_v6_core_server)
+}

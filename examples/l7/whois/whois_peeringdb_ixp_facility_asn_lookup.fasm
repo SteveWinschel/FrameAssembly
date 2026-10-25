@@ -1,0 +1,25 @@
+// PROMPT: Model a network capacity planner querying WHOIS for an Internet Exchange Point ASN peering record.
+// TOKENS: HOST, IP, MAC, FLOW, WHOIS, QUERY, DOMAIN, MPLS, EXP, BOS, MPLS_TTL, WAIT, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define the WHOIS client workstation or security enrichment node.
+HOST whois_client {
+    IP 10.43.20.9
+    MAC 00:1b:21:00:43:0a
+}
+
+// INSTRUCTION: Define the authoritative RIR or TLD WHOIS directory server on TCP port 43.
+HOST whois_server {
+    IP 198.51.100.43
+    MAC 00:1b:21:00:43:01
+}
+
+// INSTRUCTION: Execute the RFC 3912 WHOIS domain or prefix lookup transaction.
+FLOW whois_scenario_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "AS65001" MPLS 4300 EXP 2 BOS 1 MPLS_TTL 64 WAIT 4ms
+    c <- s WHOIS RESPONSE DOMAIN "AS65001" REGISTRAR "PeeringDB IXP Registry Service" MPLS 4300 EXP 2 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the WHOIS registry query flow into a PCAP trace.
+COMPILE {
+    whois_scenario_flow(whois_client, whois_server)
+}

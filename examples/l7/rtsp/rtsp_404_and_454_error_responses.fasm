@@ -1,0 +1,21 @@
+// PROMPT: RTSP 404 Stream Not Found and 454 Session Not Found error responses.
+// TOKENS: HOST, IP, FLOW, RTSP, METHOD, URI, CSEQ, WAIT, STATUS, SESSION, COMPILE
+
+// INSTRUCTION: Define media player client.
+HOST err_client { IP 10.45.4.10 }
+
+// INSTRUCTION: Define RTSP streaming server.
+HOST err_server { IP 10.45.4.1 }
+
+// INSTRUCTION: Define request for unknown URI (404) and expired session (454).
+FLOW rtsp_error_codes(c, s) {
+    c -> s RTSP METHOD "DESCRIBE" URI "rtsp://10.45.4.1/nonexistent" CSEQ 1 WAIT 5ms
+    c <- s RTSP STATUS 404 CSEQ 1 WAIT 5ms
+    c -> s RTSP METHOD "PLAY" URI "rtsp://10.45.4.1/live" CSEQ 2 SESSION "expired_000" WAIT 5ms
+    c <- s RTSP STATUS 454 CSEQ 2
+}
+
+// INSTRUCTION: Compile RTSP 404 and 454 error flow.
+COMPILE {
+    rtsp_error_codes(err_client, err_server)
+}

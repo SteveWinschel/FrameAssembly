@@ -1,0 +1,18 @@
+// PROMPT: sFlow export to a secondary collector listening on non-standard UDP port 16343.
+// TOKENS: HOST, IP, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, SRCPORT, DSTPORT, DF, IPID, COMPILE
+
+// INSTRUCTION: Define hypervisor Open vSwitch sFlow agent.
+HOST ovs_agent { IP 172.28.10.15 }
+
+// INSTRUCTION: Define secondary sFlow collector on UDP port 16343.
+HOST sec_collector { IP 172.28.10.200 }
+
+// INSTRUCTION: Define sFlow datagram with custom UDP ports and DF flag.
+FLOW sflow_custom_port(ovs, coll) {
+    ovs -> coll SFLOW AGENT_IP 172.28.10.15 SUB_AGENT_ID 500 UPTIME 72000 SAMPLES 3 SRCPORT 56343 DSTPORT 16343 DF IPID 6343
+}
+
+// INSTRUCTION: Compile custom-port Open vSwitch sFlow export.
+COMPILE {
+    sflow_custom_port(ovs_agent, sec_collector)
+}

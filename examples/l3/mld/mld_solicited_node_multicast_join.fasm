@@ -1,0 +1,25 @@
+// PROMPT: Simulate an IPv6 host joining its Solicited-Node Multicast Address via MLD Report during interface initialization
+// TOKENS: HOST, IP, MAC, FLOW, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, DSTMAC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define the newly booting IPv6 server interface
+HOST booting_srv_v6 {
+    IP fe80::a8bb:ccff:fedd:ee01
+    MAC aa:bb:cc:dd:ee:01
+}
+
+// INSTRUCTION: Define the local link IPv6 switch querier
+HOST link_querier_v6 {
+    IP fe80::1
+    MAC 00:25:90:c8:00:01
+}
+
+// INSTRUCTION: Transmit unsolicited MLD Reports for the solicited-node multicast group prior to DAD
+FLOW mld_solicited_node_join(srv, querier) {
+    srv -> querier MLD REPORT MULTICAST_ADDR ff02::1:ffdd:ee01 MAX_RESP_DELAY 0 DSTMAC 33:33:ff:dd:ee:01 TTL 1 WAIT 100ms
+    srv -> querier MLD REPORT MULTICAST_ADDR ff02::1:ffdd:ee01 MAX_RESP_DELAY 0 DSTMAC 33:33:ff:dd:ee:01 TTL 1
+}
+
+// INSTRUCTION: Compile the solicited-node multicast MLD join sequence
+COMPILE {
+    mld_solicited_node_join(booting_srv_v6, link_querier_v6)
+}

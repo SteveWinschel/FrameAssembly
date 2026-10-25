@@ -1,5 +1,5 @@
 // PROMPT: IPv6 global scope multicast transmission to ff0e::101 deriving RFC 2464 Ethernet MAC.
-// TOKENS: HOST, IP, FLOW, ->, UDP, DSTPORT, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, UDP, DSTPORT, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define global stream media source.
 HOST stream_source { IP 2001:db8:100::1 }

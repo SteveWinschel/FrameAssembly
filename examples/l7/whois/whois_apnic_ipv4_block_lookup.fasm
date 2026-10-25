@@ -1,0 +1,21 @@
+// PROMPT: APNIC regional internet registry lookup for IPv4 allocation subnets.
+// TOKENS: HOST, IP, FLOW, WHOIS, QUERY, DOMAIN, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define Asia-Pacific regional network planner.
+HOST apnic_cli { IP 10.120.5.8 }
+
+// INSTRUCTION: Define APNIC WHOIS server.
+HOST apnic_whois { IP 202.12.29.13 }
+
+// INSTRUCTION: Define IPv4 allocation block lookup flow.
+FLOW whois_apnic_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "203.0.113.0/24"
+    c <- s WHOIS RESPONSE
+        DOMAIN "203.0.113.0/24"
+        REGISTRAR "APNIC"
+}
+
+// INSTRUCTION: Compile block executing APNIC subnet lookup.
+COMPILE {
+    whois_apnic_flow(apnic_cli, apnic_whois)
+}

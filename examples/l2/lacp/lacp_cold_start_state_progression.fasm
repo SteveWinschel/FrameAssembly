@@ -1,0 +1,27 @@
+// PROMPT: IEEE 802.1AX LACP cold-start state machine progression from Defaulted (0x45) to Collecting/Distributing (0x3D).
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define server bond0 primary interface starting LACP cold boot.
+HOST srv_bond_cold {
+    IP 10.50.10.11
+    MAC 00:25:90:50:10:0b
+}
+
+// INSTRUCTION: Define Top-of-Rack port-channel member interface.
+HOST tor_po1_member {
+    IP 10.50.10.1
+    MAC 00:1c:73:50:10:01
+}
+
+// INSTRUCTION: Define LACP state progression from Defaulted (69) to InSync (13) to Collecting/Distributing (61).
+FLOW lacp_cold_start_convergence(srv, tor) {
+    srv -> tor LACP ACTOR_SYS 00:25:90:50:10:0b ACTOR_KEY 10 ACTOR_PORT 1 ACTOR_STATE 69 PARTNER_SYS 00:00:00:00:00:00 PARTNER_KEY 0 PARTNER_PORT 0 PARTNER_STATE 64
+    srv <- tor LACP ACTOR_SYS 00:1c:73:50:10:01 ACTOR_KEY 10 ACTOR_PORT 17 ACTOR_STATE 13 PARTNER_SYS 00:25:90:50:10:0b PARTNER_KEY 10 PARTNER_PORT 1 PARTNER_STATE 5 WAIT 10ms
+    srv -> tor LACP ACTOR_SYS 00:25:90:50:10:0b ACTOR_KEY 10 ACTOR_PORT 1 ACTOR_STATE 61 PARTNER_SYS 00:1c:73:50:10:01 PARTNER_KEY 10 PARTNER_PORT 17 PARTNER_STATE 61 WAIT 10ms
+    srv <- tor LACP ACTOR_SYS 00:1c:73:50:10:01 ACTOR_KEY 10 ACTOR_PORT 17 ACTOR_STATE 61 PARTNER_SYS 00:25:90:50:10:0b PARTNER_KEY 10 PARTNER_PORT 1 PARTNER_STATE 61 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block executing LACP cold-start state progression.
+COMPILE {
+    lacp_cold_start_convergence(srv_bond_cold, tor_po1_member)
+}

@@ -1,0 +1,19 @@
+// PROMPT: GENEVE Transparent Ethernet Bridging (0x6558) between Kubernetes CNI nodes.
+// TOKENS: HOST, IP, FLOW, GENEVE, VNI, PROTOCOL_TYPE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define Kubernetes worker node 1 running Antrea/Cilium CNI.
+HOST k8s_cni_worker1 { IP 172.18.40.10 }
+
+// INSTRUCTION: Define Kubernetes worker node 2 running Antrea/Cilium CNI.
+HOST k8s_cni_worker2 { IP 172.18.40.20 }
+
+// INSTRUCTION: Define GENEVE L2 bridging flow with Protocol Type 0x6558 (25944).
+FLOW geneve_teb_cni_flow(w1, w2) {
+    w1 -> w2 GENEVE VNI 5001 PROTOCOL_TYPE 0x6558 PAYLOAD "POD_TO_POD_ETH_FRAME_REQ"
+    w1 <- w2 GENEVE VNI 5001 PROTOCOL_TYPE 0x6558 PAYLOAD "POD_TO_POD_ETH_FRAME_RSP"
+}
+
+// INSTRUCTION: Compile the GENEVE Transparent Ethernet Bridging flow.
+COMPILE {
+    geneve_teb_cni_flow(k8s_cni_worker1, k8s_cni_worker2)
+}

@@ -1,0 +1,18 @@
+// PROMPT: IGMP system query directed to 224.0.0.1 on management VLAN 99.
+// TOKENS: HOST, IP, FLOW, IGMP, QUERY, MAX_RESP, GROUP, VLAN, PCP, COMPILE
+
+// INSTRUCTION: Define datacenter top-of-rack multicast querier.
+HOST tor_multicast_rtr { IP 10.99.0.1 }
+
+// INSTRUCTION: Define all-hosts multicast destination address.
+HOST all_hosts_sys { IP 224.0.0.1 }
+
+// INSTRUCTION: Define management VLAN query flow with 5s max response timer.
+FLOW igmp_mgmt_query(tor, dst) {
+    tor -> dst IGMP QUERY MAX_RESP 50 GROUP 224.0.0.1 VLAN 99 PCP 6
+}
+
+// INSTRUCTION: Compile block executing management VLAN IGMP query.
+COMPILE {
+    igmp_mgmt_query(tor_multicast_rtr, all_hosts_sys)
+}

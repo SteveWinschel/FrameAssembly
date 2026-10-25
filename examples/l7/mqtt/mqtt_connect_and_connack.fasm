@@ -1,5 +1,5 @@
 // PROMPT: MQTT broker session initiation with CONNECT and CONNACK response.
-// TOKENS: HOST, IP, FLOW, ->, <-, MQTT, CONNECT, CONNACK, CLIENT_ID, COMPILE
+// TOKENS: HOST, IP, FLOW, MQTT, CONNECT, CLIENT_ID, CONNACK, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.10 }

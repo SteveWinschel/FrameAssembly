@@ -1,0 +1,25 @@
+// PROMPT: MEF E-Line Ethernet Virtual Connection (EVC) SLA latency verification using ICMP over QinQ.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSCP, ICMP, ECHO_REQUEST, ID, SEQ, PAYLOAD, ECHO_REPLY, WAIT, COMPILE
+
+// INSTRUCTION: Define customer NID demarcation device at headquarters.
+HOST nid_hq_demarc {
+    IP 172.29.10.1
+    MAC 00:15:ad:29:10:01
+}
+
+// INSTRUCTION: Define customer NID demarcation device at disaster recovery site.
+HOST nid_dr_demarc {
+    IP 172.29.10.2
+    MAC 00:15:ad:29:10:02
+}
+
+// INSTRUCTION: Define MEF E-Line S-VLAN 2500 C-VLAN 55 SLA synthetic jitter and latency probe.
+FLOW mef_eline_sla_probe(hq, dr) {
+    hq -> dr QINQ 2500 INNER_VLAN 55 DSCP 46 ICMP ECHO_REQUEST ID 2500 SEQ 1 PAYLOAD "mef_y1731_synthetic_sla_probe_01"
+    hq <- dr QINQ 2500 INNER_VLAN 55 DSCP 46 ICMP ECHO_REPLY ID 2500 SEQ 1 PAYLOAD "mef_y1731_synthetic_sla_probe_01" WAIT 3ms
+}
+
+// INSTRUCTION: Compile block executing MEF E-Line QinQ SLA verification.
+COMPILE {
+    mef_eline_sla_probe(nid_hq_demarc, nid_dr_demarc)
+}

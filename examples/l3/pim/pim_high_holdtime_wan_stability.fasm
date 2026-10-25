@@ -1,0 +1,18 @@
+// PROMPT: WAN edge router negotiating extended Holdtime 210s for high-latency satellite link.
+// TOKENS: HOST, IP, FLOW, PIM, HELLO, HOLDTIME, DR_PRIORITY, COMPILE
+
+// INSTRUCTION: Define satellite earth station router.
+HOST satellite_wan_rtr { IP 172.31.200.1 }
+
+// INSTRUCTION: Define All-PIM-Routers satellite multicast address.
+HOST sat_multicast_dst { IP 224.0.0.13 }
+
+// INSTRUCTION: Define extended holdtime Hello flow configured with 210 seconds.
+FLOW pim_sat_hello_flow(sat, dst) {
+    sat -> dst PIM HELLO HOLDTIME 210 DR_PRIORITY 10
+}
+
+// INSTRUCTION: Compile block executing satellite WAN PIM Hello.
+COMPILE {
+    pim_sat_hello_flow(satellite_wan_rtr, sat_multicast_dst)
+}

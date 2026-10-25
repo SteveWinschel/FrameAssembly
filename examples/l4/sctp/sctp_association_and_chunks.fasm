@@ -1,5 +1,5 @@
 // PROMPT: Stream Control Transmission Protocol 4-way association handshake and data chunk transmission with CRC32c.
-// TOKENS: HOST, IP, FLOW, ->, <-, SCTP, CHUNK, INIT, INIT_ACK, COOKIE_ECHO, COOKIE_ACK, VTAG, COMPILE
+// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, INIT, VTAG, INIT_ACK, COOKIE_ECHO, COOKIE_ACK, COMPILE
 
 // INSTRUCTION: Define SCTP client endpoint.
 HOST sctp_ep_a { IP 192.168.10.1 }

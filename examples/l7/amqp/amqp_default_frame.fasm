@@ -1,0 +1,24 @@
+// PROMPT: AMQP 0-9-1 zero-argument default frame emission between producer and broker.
+// TOKENS: HOST, IP, MAC, FLOW, AMQP, COMPILE
+
+// INSTRUCTION: Define the AMQP producer host with IPv4 and MAC addresses.
+HOST amqp_producer {
+    IP 10.20.1.10
+    MAC 00:1a:2b:3c:4d:01
+}
+
+// INSTRUCTION: Define the AMQP message broker host.
+HOST amqp_broker {
+    IP 10.20.1.100
+    MAC 00:1a:2b:3c:4d:02
+}
+
+// INSTRUCTION: Define a minimal AMQP flow using smart RFC defaults.
+FLOW amqp_default_flow(prod, brk) {
+    prod -> brk AMQP
+}
+
+// INSTRUCTION: Compile the default AMQP packet scenario.
+COMPILE {
+    amqp_default_flow(amqp_producer, amqp_broker)
+}

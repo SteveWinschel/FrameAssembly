@@ -1,0 +1,26 @@
+// PROMPT: OPC UA HistoryReadRequest retrieving archived time-series pressure samples from a process historian.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the batch quality reporting client.
+HOST quality_reporter {
+    IP 10.140.40.44
+    MAC 00:1a:2b:8c:40:44
+}
+
+// INSTRUCTION: Define the OPC UA Historical Access (HA) server.
+HOST ua_historian {
+    IP 10.140.40.1
+    MAC 00:1a:2b:8c:40:01
+}
+
+// INSTRUCTION: Request historical values for Vessel_04_Pressure across multi-chunk response frames.
+FLOW opcua_history_read(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 410 TOKEN_ID 8 SEQ_NUM 120 REQID 120 NODE_ID "ns=4;s=Vessel_04_Pressure"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "C" SECURE_CHANNEL_ID 410 TOKEN_ID 8 SEQ_NUM 120 REQID 120 NODE_ID "ns=4;s=Vessel_04_Pressure" PAYLOAD "HIST_SAMPLES_001_500" WAIT 1ms
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 410 TOKEN_ID 8 SEQ_NUM 121 REQID 120 NODE_ID "ns=4;s=Vessel_04_Pressure" PAYLOAD "HIST_SAMPLES_501_1000"
+}
+
+// INSTRUCTION: Compile the OPC UA HistoryRead service flow.
+COMPILE {
+    opcua_history_read(quality_reporter, ua_historian)
+}

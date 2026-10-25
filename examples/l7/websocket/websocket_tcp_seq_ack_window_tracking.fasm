@@ -1,0 +1,23 @@
+// PROMPT: WebSocket text exchange with explicit TCP sequence numbers, acknowledgments, and window sizes.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, TEXT, FIN_BIT, MASK_KEY, SEQ, ACKNUM, WINDOW, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define desktop trading terminal endpoint.
+HOST terminal_ep {
+    IP 10.5.50.22
+}
+
+// INSTRUCTION: Define order routing WebSocket gateway endpoint.
+HOST order_gw {
+    IP 10.5.50.1
+}
+
+// INSTRUCTION: Define WebSocket frames with explicit L4 TCP SEQ, ACKNUM, and WINDOW values.
+FLOW ws_tcp_tracked(c, s) {
+    c -> s WEBSOCKET TEXT FIN_BIT 1 MASK_KEY 0x33445566 SEQ 10000 ACKNUM 20000 WINDOW 64240 PAYLOAD "BUY 100 AAPL" WAIT 5ms
+    c <- s WEBSOCKET TEXT FIN_BIT 1 SEQ 20000 ACKNUM 10020 WINDOW 65535 PAYLOAD "FILLED 100 AAPL"
+}
+
+// INSTRUCTION: Compile the TCP-tracked WebSocket order flow.
+COMPILE {
+    ws_tcp_tracked(terminal_ep, order_gw)
+}

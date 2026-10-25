@@ -1,0 +1,26 @@
+// PROMPT: DNS-over-TLS (DoT) RFC 7858 privacy-preserving stub resolver handshake on TCP port 853.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, ALPN, SRCPORT, DSTPORT, WAIT, SERVER_HELLO, CIPHERSUITE, FINISHED, APP_DATA, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define local DNS-over-TLS stub resolver host.
+HOST dot_stub {
+    IP 192.168.1.250
+}
+
+// INSTRUCTION: Define recursive DoT DNS resolver server.
+HOST dot_resolver {
+    IP 192.168.1.1
+}
+
+// INSTRUCTION: Define DoT TLS handshake with ALPN dot on port 853 and encrypted query/response.
+FLOW tls_dot_853(c, s) {
+    c -> s TLS CLIENT_HELLO SNI "dns.quad9.net" ALPN "dot" SRCPORT 58853 DSTPORT 853 WAIT 5ms
+    c <- s TLS SERVER_HELLO CIPHERSUITE 0x1301 ALPN "dot" SRCPORT 853 DSTPORT 58853 WAIT 5ms
+    c -> s TLS FINISHED SRCPORT 58853 DSTPORT 853 WAIT 5ms
+    c -> s TLS APP_DATA SRCPORT 58853 DSTPORT 853 HEXPAYLOAD "001c123401000001" WAIT 5ms
+    c <- s TLS APP_DATA SRCPORT 853 DSTPORT 58853 HEXPAYLOAD "002c123481800001"
+}
+
+// INSTRUCTION: Compile the DNS-over-TLS port 853 flow.
+COMPILE {
+    tls_dot_853(dot_stub, dot_resolver)
+}

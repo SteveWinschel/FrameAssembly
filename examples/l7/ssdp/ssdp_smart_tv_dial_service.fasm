@@ -1,0 +1,20 @@
+// PROMPT: Second-screen DIAL multiscreen protocol discovery query on multicast port 1900.
+// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, ST, MX, MAN, COMPILE
+
+// INSTRUCTION: Define mobile phone control client.
+HOST mobile_client { IP 192.168.3.18 }
+
+// INSTRUCTION: Define SSDP multicast destination address.
+HOST dial_mcast { IP 239.255.255.250 }
+
+// INSTRUCTION: Define DIAL multi-screen service discovery flow.
+FLOW ssdp_dial_flow(c, s) {
+    c -> s SSDP MSEARCH
+        ST "urn:dial-multiscreen-org:service:dial:1"
+        MX 3 MAN "\"ssdp:discover\""
+}
+
+// INSTRUCTION: Compile block executing DIAL search.
+COMPILE {
+    ssdp_dial_flow(mobile_client, dial_mcast)
+}

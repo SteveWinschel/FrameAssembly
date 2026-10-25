@@ -1,4 +1,14 @@
-//! ICMP Layer 3 protocol wire builder.
+//! Internet Control Message Protocol (ICMPv4 RFC 792 / ICMPv6 RFC 4443) Layer 3 wire builder.
+//!
+//! Serializes an [`IcmpSpec`] into either an RFC 792 ICMPv4 packet (IP protocol `1`) when both
+//! endpoints are IPv4 or an RFC 4443 ICMPv6 packet (Next Header `58`) when both endpoints are IPv6.
+//! The builder automatically maps symbolic types (`ECHO_REQUEST`, `ECHO_REPLY`, `DEST_UNREACH`,
+//! `TIME_EXCEEDED`, `REDIRECT`) to their address-family-specific wire codes (`8`/`0`/`3`/`11`/`5` for
+//! IPv4; `128`/`129`/`1`/`3`/`137` for IPv6), populates `ID`, `SEQ`, or `GATEWAY`, and computes the
+//! ones'-complement Internet checksum (including the 40-byte IPv6 pseudo-header for ICMPv6).
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b ICMP [ECHO_REQUEST | ECHO_REPLY | DEST_UNREACH | TIME_EXCEEDED | REDIRECT] [TYPE <u8>] [CODE <u8>] [ID <u16>] [SEQ <u16>] [GATEWAY <ipv4>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -10,10 +20,10 @@ use core::net::IpAddr;
 
 /// Builds an ICMP payload (RFC 792 for IPv4, RFC 4443 for IPv6).
 ///
-/// Returns the serialized ICMP packet bytes and the IP protocol number (1 for v4, 58 for v6).
+/// Returns the serialized ICMP packet bytes and the IP protocol number (`1` for v4, `58` for v6).
 ///
 /// # Errors
-/// Returns `CompilerError::BackendError` if IP endpoints fail resolution.
+/// Returns `CompilerError::BackendError` if IP endpoints have mismatched address families.
 pub fn build_icmp_payload(
     ctx: &WireContext,
     spec: &IcmpSpec,

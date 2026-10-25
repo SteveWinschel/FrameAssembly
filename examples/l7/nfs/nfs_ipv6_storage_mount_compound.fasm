@@ -1,0 +1,18 @@
+// PROMPT: NFSv4 compound RPC procedure mounting remote export root over IPv6 network fabric.
+// TOKENS: HOST, IP, FLOW, NFS, VERS, PROC, PATH, COMPILE
+
+// INSTRUCTION: Define IPv6 database backup server.
+HOST v6_backup_server { IP 2001:db8:ba5e::90 }
+
+// INSTRUCTION: Define IPv6 storage vault server.
+HOST v6_storage_vault { IP 2001:db8:ba5e::1 }
+
+// INSTRUCTION: Define IPv6 NFS compound mount flow.
+FLOW v6_nfs_mount_flow(bck, srv) {
+    bck -> srv NFS VERS 4 PROC "COMPOUND" PATH "/exports/backup/weekly"
+}
+
+// INSTRUCTION: Compile IPv6 storage mount scenario.
+COMPILE {
+    v6_nfs_mount_flow(v6_backup_server, v6_storage_vault)
+}

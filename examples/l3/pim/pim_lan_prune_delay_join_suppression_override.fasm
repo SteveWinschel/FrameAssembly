@@ -1,0 +1,25 @@
+// PROMPT: RFC 7761 Section 4.3.3 LAN Prune Delay where a downstream router overrides a peer's Prune before the Override-Interval expires.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, JOIN_PRUNE, GROUP, RP, HOLDTIME, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define downstream router 1 sending a (*,G) Prune on a multi-access broadcast segment.
+HOST lan_pim_down_1 {
+    IP 10.103.30.11
+    MAC 00:16:3e:67:1e:0b
+}
+
+// INSTRUCTION: Define downstream router 2 (and upstream router) overriding the Prune to keep the group active.
+HOST lan_pim_up_rtr {
+    IP 10.103.30.1
+    MAC 00:16:3e:67:1e:01
+}
+
+// INSTRUCTION: Define PIM Prune followed within 2ms by a Join override for group 239.30.1.1.
+FLOW pim_prune_override_flow(down, up) {
+    down -> up PIM JOIN_PRUNE GROUP 239.30.1.1 RP 10.103.0.1 HOLDTIME 210 DSCP 48 TTL 1 PAYLOAD "LAN_PRUNE_PENDING_TIMER_3000MS" WAIT 2ms
+    down -> up PIM JOIN_PRUNE GROUP 239.30.1.1 RP 10.103.0.1 HOLDTIME 210 DSCP 48 TTL 1 PAYLOAD "LAN_JOIN_OVERRIDE_KEEP_FORWARDING"
+}
+
+// INSTRUCTION: Compile the RFC 7761 LAN Prune Delay Join-Override flow.
+COMPILE {
+    pim_prune_override_flow(lan_pim_down_1, lan_pim_up_rtr)
+}

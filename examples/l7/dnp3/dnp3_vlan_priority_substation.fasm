@@ -1,0 +1,19 @@
+// PROMPT: Substation LAN DNP3 traffic on IEEE 802.1Q VLAN 100 with highest 802.1p priority (PCP 7).
+// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, VLAN, PCP, DSCP, COMPILE
+
+// INSTRUCTION: Define substation HMI server.
+HOST sub_hmi { IP 192.168.110.5 }
+
+// INSTRUCTION: Define transformer tap changer IED.
+HOST tap_changer { IP 192.168.110.65 }
+
+// INSTRUCTION: Command tap raise via Direct Operate over high-priority VLAN 100 and DSCP CS6.
+FLOW dnp3_vlan_tap_change(h, t) {
+    h -> t DNP3 FUNC "DIRECT_OPERATE" SRC 5 DST 65 GROUP 12 VARIATION 1 VLAN 100 PCP 7 DSCP 48
+    h <- t DNP3 FUNC "RESPONSE" SRC 65 DST 5 GROUP 12 VARIATION 1 VLAN 100 PCP 7 DSCP 48
+}
+
+// INSTRUCTION: Compile the VLAN-prioritized DNP3 tap changer flow.
+COMPILE {
+    dnp3_vlan_tap_change(sub_hmi, tap_changer)
+}

@@ -1,0 +1,26 @@
+// PROMPT: Data center Spine-Leaf underlay using PIM-SM ASM multicast group 239.1.1.100 for VXLAN BUM replication.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, HELLO, DR_PRIORITY, HOLDTIME, DSCP, TTL, WAIT, JOIN_PRUNE, GROUP, RP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define Leaf-4 VTEP joining underlay multicast group 239.1.1.100 for VNI 10100 BUM traffic.
+HOST vtep_leaf4_pim {
+    IP 10.250.0.14
+    MAC 00:1c:73:fa:00:0e
+}
+
+// INSTRUCTION: Define Spine-1 Anycast-RP / underlay multicast router.
+HOST spine1_anycast_rp {
+    IP 10.250.0.1
+    MAC 00:1c:73:fa:00:01
+}
+
+// INSTRUCTION: Define Leaf-to-Spine PIM Hello and (*,G) Join for VXLAN underlay group 239.1.1.100.
+FLOW pim_vxlan_underlay_bum_tree(leaf, spine) {
+    leaf -> spine PIM HELLO DR_PRIORITY 100 HOLDTIME 90 DSCP 48 TTL 1 WAIT 3ms
+    leaf <- spine PIM HELLO DR_PRIORITY 200 HOLDTIME 90 DSCP 48 TTL 1 WAIT 3ms
+    leaf -> spine PIM JOIN_PRUNE GROUP 239.1.1.100 RP 10.250.255.1 HOLDTIME 180 DSCP 48 TTL 1 PAYLOAD "VXLAN_BUM_UNDERLAY_MCAST_GROUP_JOIN"
+}
+
+// INSTRUCTION: Compile the VXLAN underlay BUM multicast tree PIM flow.
+COMPILE {
+    pim_vxlan_underlay_bum_tree(vtep_leaf4_pim, spine1_anycast_rp)
+}

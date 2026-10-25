@@ -1,0 +1,25 @@
+// PROMPT: SNMPv3 authPriv GET and RESPONSE using HMAC-SHA-256 authentication and AES-128 CFB encryption.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP3, GET, USER, REQID, ENGINEID, AUTH, SHA256, PRIV, AES, VARBIND, NULLVAL, RESPONSE, COUNTER64, COMPILE
+
+// INSTRUCTION: Define the hardened NOC monitoring station.
+HOST v3_poller {
+    IP 10.147.1.10
+    MAC 00:1a:2b:93:01:10
+}
+
+// INSTRUCTION: Define the core firewall SNMPv3 agent.
+HOST core_fw_v3 {
+    IP 10.147.1.1
+    MAC 00:1a:2b:93:01:01
+}
+
+// INSTRUCTION: Poll sysName.0 and ifHCInOctets.1 using SNMPv3 USM SHA256 + AES128.
+FLOW snmpv3_sha256_aes_get(m, a) {
+    m -> a SNMP3 GET USER "sec_poller" REQID 6100 ENGINEID "80001f88" AUTH SHA256 "Sha256Key99!" PRIV AES "Aes128Key99!" VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 NULLVAL
+    m <- a SNMP3 RESPONSE USER "sec_poller" REQID 6100 ENGINEID "80001f88" AUTH SHA256 "Sha256Key99!" PRIV AES "Aes128Key99!" VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 184920194820
+}
+
+// INSTRUCTION: Compile the SNMPv3 SHA256 + AES GET/RESPONSE flow.
+COMPILE {
+    snmpv3_sha256_aes_get(v3_poller, core_fw_v3)
+}

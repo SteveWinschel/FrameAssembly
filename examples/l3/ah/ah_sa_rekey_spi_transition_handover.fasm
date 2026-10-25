@@ -1,0 +1,26 @@
+// PROMPT: RFC 4302 IPsec AH graceful Security Association rekeying transitioning from old SPI to new SPI.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, DSCP, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define financial trading gateway initiating Child SA SPI rollover.
+HOST fin_gw_alpha {
+    IP 10.88.1.1
+    MAC 00:1b:63:88:01:01
+}
+
+// INSTRUCTION: Define clearinghouse gateway accepting both outgoing and newly rekeyed SPIs.
+HOST fin_gw_omega {
+    IP 10.88.1.2
+    MAC 00:1b:63:88:01:02
+}
+
+// INSTRUCTION: Define AH SPI transition sequence moving traffic from SPI 30010 to SPI 30020.
+FLOW ah_rekey_rollover_flow(alpha, omega) {
+    alpha -> omega AH SPI 30010 SEQ 9999 NEXT_HEADER 6 ICV "111122223333444455556666" DSCP 34 PAYLOAD "LAST_PKT_OLD_SA_30010" WAIT 5ms
+    alpha -> omega AH SPI 30020 SEQ 1 NEXT_HEADER 6 ICV "777788889999aaaabbbbcccc" DSCP 34 PAYLOAD "FIRST_PKT_NEW_SA_30020" WAIT 5ms
+    alpha <- omega AH SPI 30021 SEQ 1 NEXT_HEADER 6 ICV "ccccbbbbaaaa999988887777" DSCP 34 PAYLOAD "ACK_NEW_SA_30021_ACTIVE"
+}
+
+// INSTRUCTION: Compile the IPsec AH SA rekeying SPI handover scenario.
+COMPILE {
+    ah_rekey_rollover_flow(fin_gw_alpha, fin_gw_omega)
+}

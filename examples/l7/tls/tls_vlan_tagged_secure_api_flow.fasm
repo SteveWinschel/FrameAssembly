@@ -1,0 +1,22 @@
+// PROMPT: VLAN 400 tagged secure API transaction with AF41 differentiated service.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, VLAN, PCP, DEI, DSCP, SERVER_HELLO, COMPILE
+
+// INSTRUCTION: Define secure banking application host.
+HOST secure_app_host { IP 10.40.100.8 }
+
+// INSTRUCTION: Define financial transaction core.
+HOST fin_core { IP 10.40.100.1 }
+
+// INSTRUCTION: Define prioritized VLAN TLS session flow.
+FLOW tls_vlan_tagged_flow(c, s) {
+    c -> s TLS CLIENT_HELLO
+        SNI "fin-api.banking.net"
+        VLAN 400 PCP 4 DEI 0 DSCP 34
+    c <- s TLS SERVER_HELLO
+        VLAN 400 PCP 4 DEI 0 DSCP 34
+}
+
+// INSTRUCTION: Compile block executing prioritized VLAN TLS session.
+COMPILE {
+    tls_vlan_tagged_flow(secure_app_host, fin_core)
+}

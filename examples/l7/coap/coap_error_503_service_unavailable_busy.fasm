@@ -1,0 +1,27 @@
+// PROMPT: CoAP Confirmable GET during flash calibration returning 5.03 Service Unavailable before succeeding on retry.
+// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, ACK, PAYLOAD, WAIT, CONTENT_FORMAT, COMPILE
+
+// INSTRUCTION: Define the edge gateway polling an optical air quality sensor.
+HOST edge_poller {
+    IP 10.110.30.10
+    MAC 00:1a:2b:6e:30:10
+}
+
+// INSTRUCTION: Define the particulate matter CoAP sensor node.
+HOST pm25_sensor {
+    IP 10.110.30.42
+    MAC 00:1a:2b:6e:30:42
+}
+
+// INSTRUCTION: Receive 5.03 Service Unavailable during sensor warmup, wait 10ms, and retry GET successfully.
+FLOW coap_503_retry(c, s) {
+    c -> s COAP CON CODE "0.01" MSGID 4100 TOKEN 301 URI_PATH "air/pm25"
+    c <- s COAP ACK CODE "5.03" MSGID 4100 TOKEN 301 PAYLOAD "Warmup in progress" WAIT 10ms
+    c -> s COAP CON CODE "0.01" MSGID 4101 TOKEN 302 URI_PATH "air/pm25"
+    c <- s COAP ACK CODE "2.05" MSGID 4101 TOKEN 302 CONTENT_FORMAT 50 PAYLOAD "{'pm25':11.4}"
+}
+
+// INSTRUCTION: Compile the CoAP 5.03 retry flow.
+COMPILE {
+    coap_503_retry(edge_poller, pm25_sensor)
+}

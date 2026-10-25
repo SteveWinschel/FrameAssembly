@@ -1,0 +1,18 @@
+// PROMPT: Low-latency DSCP marked Memcached lookup from application microservice.
+// TOKENS: HOST, IP, FLOW, MEMCACHED, CMD, KEY, DSCP, COMPILE
+
+// INSTRUCTION: Define latency-sensitive trading client.
+HOST trading_engine { IP 10.200.1.5 }
+
+// INSTRUCTION: Define in-memory cache replica.
+HOST memory_replica { IP 10.200.1.2 }
+
+// INSTRUCTION: Define DSCP expedited forwarding lookup flow.
+FLOW low_latency_lookup(trd, rep) {
+    trd -> rep MEMCACHED CMD "get" KEY "ticker:quote:GOOG" DSCP 46
+}
+
+// INSTRUCTION: Compile DSCP marked read replica scenario.
+COMPILE {
+    low_latency_lookup(trading_engine, memory_replica)
+}

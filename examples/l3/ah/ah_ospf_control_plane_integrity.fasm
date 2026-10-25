@@ -1,0 +1,25 @@
+// PROMPT: RFC 4302 IPsec Authentication Header securing OSPF protocol 89 routing updates across a backbone link.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define core OSPF area 0 router 1 transmitting AH-authenticated LSAs.
+HOST ospf_core_rtr1 {
+    IP 10.0.89.1
+    MAC 00:0c:29:89:01:01
+}
+
+// INSTRUCTION: Define core OSPF area 0 router 2 verifying AH HMAC-SHA256 truncated ICV.
+HOST ospf_core_rtr2 {
+    IP 10.0.89.2
+    MAC 00:0c:29:89:01:02
+}
+
+// INSTRUCTION: Define AH flow with Next Header 89 (OSPF) and Network Control DSCP CS6.
+FLOW ah_ospf_lsa_integrity(r1, r2) {
+    r1 -> r2 AH SPI 89001 SEQ 44 NEXT_HEADER 89 ICV "0102030405060708090a0b0c" DSCP 48 TTL 1 PAYLOAD "OSPF_LSU_AREA0_RTR_LSA" WAIT 10ms
+    r1 <- r2 AH SPI 89002 SEQ 19 NEXT_HEADER 89 ICV "0c0b0a090807060504030201" DSCP 48 TTL 1 PAYLOAD "OSPF_LSACK_CONFIRMED"
+}
+
+// INSTRUCTION: Compile the OSPF over IPsec AH control plane protection scenario.
+COMPILE {
+    ah_ospf_lsa_integrity(ospf_core_rtr1, ospf_core_rtr2)
+}

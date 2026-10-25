@@ -1,0 +1,26 @@
+// PROMPT: Multi-homed SCTP failover switching active Diameter Gy charging traffic from primary subnet to secondary subnet after Heartbeat timeout.
+// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, HEARTBEAT, VTAG, SRCPORT, DSTPORT, PAYLOAD, DATA, STREAM, SSN, PPID, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define Online Charging System (OCS) primary IP interface.
+HOST ocs_primary_ip { IP 10.71.1.10 }
+
+// INSTRUCTION: Define Online Charging System (OCS) secondary IP interface.
+HOST ocs_secondary_ip { IP 10.71.2.10 }
+
+// INSTRUCTION: Define Packet Gateway (PGW) primary IP interface.
+HOST pgw_primary_ip { IP 10.71.1.1 }
+
+// INSTRUCTION: Define Packet Gateway (PGW) secondary IP interface.
+HOST pgw_secondary_ip { IP 10.71.2.1 }
+
+// INSTRUCTION: Define unanswered SCTP Heartbeat on primary path followed by DATA failover to secondary path.
+FLOW sctp_multihomed_failover(pgw1, ocs1, pgw2, ocs2) {
+    pgw1 -> ocs1 SCTP CHUNK HEARTBEAT VTAG 710001 SRCPORT 3868 DSTPORT 3868 PAYLOAD "hb_primary_path_probe"
+    pgw2 -> ocs2 SCTP CHUNK DATA VTAG 710001 STREAM 1 SSN 10 PPID 46 SRCPORT 3868 DSTPORT 3868 PAYLOAD "diameter_ccr_failover_secondary_path" WAIT 1s
+    pgw2 <- ocs2 SCTP CHUNK SACK VTAG 710001 SRCPORT 3868 DSTPORT 3868 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing multi-homed SCTP path failover.
+COMPILE {
+    sctp_multihomed_failover(pgw_primary_ip, ocs_primary_ip, pgw_secondary_ip, ocs_secondary_ip)
+}

@@ -1,0 +1,22 @@
+// PROMPT: HSRP election progression through Listen (2), Speak (4), Standby (8), and Active (16) states.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, HELLOTIME, HOLDTIME, WAIT, COMPILE
+
+// INSTRUCTION: Define candidate router 1 in Group 25.
+HOST hsrp_cand_r1 { IP 172.16.25.2 }
+
+// INSTRUCTION: Define candidate router 2 in Group 25.
+HOST hsrp_cand_r2 { IP 172.16.25.3 }
+
+// INSTRUCTION: Define HSRP election state progression from Listen (2) and Speak (4) to Active/Standby.
+FLOW hsrp_election_states(r1, r2) {
+    r1 -> r2 HSRP GROUP 25 PRIORITY 110 STATE 2 VIP 172.16.25.1 HELLOTIME 3 HOLDTIME 10
+    r1 -> r2 HSRP GROUP 25 PRIORITY 110 STATE 4 VIP 172.16.25.1 HELLOTIME 3 HOLDTIME 10 WAIT 15ms
+    r1 <- r2 HSRP GROUP 25 PRIORITY 90 STATE 4 VIP 172.16.25.1 HELLOTIME 3 HOLDTIME 10 WAIT 15ms
+    r1 -> r2 HSRP GROUP 25 PRIORITY 110 STATE 16 VIP 172.16.25.1 HELLOTIME 3 HOLDTIME 10 WAIT 15ms
+    r1 <- r2 HSRP GROUP 25 PRIORITY 90 STATE 8 VIP 172.16.25.1 HELLOTIME 3 HOLDTIME 10 WAIT 15ms
+}
+
+// INSTRUCTION: Compile the HSRP Speak/Listen election flow.
+COMPILE {
+    hsrp_election_states(hsrp_cand_r1, hsrp_cand_r2)
+}

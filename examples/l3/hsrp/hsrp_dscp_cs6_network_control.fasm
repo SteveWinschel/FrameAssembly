@@ -1,0 +1,18 @@
+// PROMPT: HSRP control-plane packets with DSCP CS6 (48) marking and max TTL 255.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, VIP, DSCP, TTL, COMPILE
+
+// INSTRUCTION: Define edge aggregation router.
+HOST edge_agg_rtr { IP 10.55.0.254 }
+
+// INSTRUCTION: Define multicast destination.
+HOST edge_hsrp_dst { IP 224.0.0.2 }
+
+// INSTRUCTION: Define QoS prioritized HSRP flow with DSCP 48 (CS6) and TTL 255.
+FLOW hsrp_qos_flow(src, dst) {
+    src -> dst HSRP GROUP 40 PRIORITY 105 VIP 10.55.0.1 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile block executing QoS marked HSRP frame.
+COMPILE {
+    hsrp_qos_flow(edge_agg_rtr, edge_hsrp_dst)
+}

@@ -1,5 +1,5 @@
 // PROMPT: RTSP 200 OK status response confirming media control over IPv6.
-// TOKENS: HOST, IP, FLOW, <-, RTSP, CSEQ, STATUS, SESSION, COMPILE
+// TOKENS: HOST, IP, FLOW, RTSP, CSEQ, STATUS, SESSION, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::15 }

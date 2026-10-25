@@ -1,0 +1,31 @@
+// PROMPT: 5G Standalone N2, N3, and N4 core network PDU session establishment combining SCTP NGAP signaling, UDP PFCP session control, and VXLAN/GTP-U user plane forwarding.
+// TOKENS: HOST, IP, FLOW, DSCP, SCTP, CHUNK, INIT, VTAG, DSTPORT, INIT_ACK, WAIT, DATA, STREAM, PPID, PAYLOAD, UDP, SRCPORT, VXLAN, VNI, COMPILE
+
+// INSTRUCTION: Define 5G gNodeB radio access network base station.
+HOST gnb_ran_node { IP 10.150.1.10 }
+
+// INSTRUCTION: Define 5G Access and Mobility Management Function (AMF).
+HOST amf_control_node { IP 10.150.2.10 }
+
+// INSTRUCTION: Define 5G Session Management Function (SMF) controlling N4 interface.
+HOST smf_session_node { IP 10.150.2.20 }
+
+// INSTRUCTION: Define 5G User Plane Function (UPF) anchoring N3/N6 data path.
+HOST upf_data_plane { IP 10.150.3.10 }
+
+// INSTRUCTION: Define N2 SCTP NGAP session request, N4 UDP PFCP rule provisioning, and N3 encapsulated user plane traffic.
+FLOW fiveg_n2_n3_n4_pdu_session(gnb, amf, smf, upf) {
+    gnb -> amf DSCP 48 SCTP CHUNK INIT VTAG 1001 DSTPORT 38412
+    gnb <- amf DSCP 48 SCTP CHUNK INIT_ACK VTAG 2002 WAIT 1ms
+    gnb -> amf DSCP 48 SCTP CHUNK DATA VTAG 2002 STREAM 0 PPID 60 PAYLOAD "NGAP_PDUSessionResourceSetupRequest" WAIT 1ms
+    smf -> upf DSCP 48 UDP SRCPORT 8805 DSTPORT 8805 PAYLOAD "PFCP_SessionEstablishmentRequest_FAR_QER" WAIT 1ms
+    smf <- upf DSCP 48 UDP SRCPORT 8805 DSTPORT 8805 PAYLOAD "PFCP_SessionEstablishmentResponse_CauseAccepted" WAIT 1ms
+    gnb <- amf DSCP 48 SCTP CHUNK DATA VTAG 1001 STREAM 0 PPID 60 PAYLOAD "NGAP_PDUSessionResourceSetupResponse" WAIT 1ms
+    gnb -> upf DSCP 46 VXLAN VNI 5001 PAYLOAD "GTPU_TEID_0x1000_5G_UE_Uplink_Packet" WAIT 2ms
+    gnb <- upf DSCP 46 VXLAN VNI 5001 PAYLOAD "GTPU_TEID_0x2000_5G_UE_Downlink_Packet" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing 5G N2/N3/N4 PDU session topology.
+COMPILE {
+    fiveg_n2_n3_n4_pdu_session(gnb_ran_node, amf_control_node, smf_session_node, upf_data_plane)
+}

@@ -1,0 +1,24 @@
+// PROMPT: Server reboot triggering QUIC stateless reset token response to stale Short header packet.
+// TOKENS: HOST, IP, FLOW, QUIC, SHORT, DCID, PKT_NUM, HEXPAYLOAD, WAIT, INITIAL, VERSION, SCID, COMPILE
+
+// INSTRUCTION: Define client sending 1-RTT packet on stale connection ID.
+HOST stale_client {
+    IP 192.168.122.45
+}
+
+// INSTRUCTION: Define rebooted QUIC server issuing stateless reset and accepting fresh Initial.
+HOST rebooted_srv {
+    IP 192.168.122.1
+}
+
+// INSTRUCTION: Define stale Short header, server stateless reset, and fresh QUIC Initial reconnect.
+FLOW quic_stateless_reset(c, s) {
+    c -> s QUIC SHORT DCID 0x0102030405060708 PKT_NUM 99 HEXPAYLOAD "080010" WAIT 4ms
+    c <- s QUIC SHORT DCID 0x0102030405060708 PKT_NUM 0 HEXPAYLOAD "ffffffffffffffffffffffffffffffff" WAIT 4ms
+    c -> s QUIC INITIAL VERSION 1 DCID 0x9988776655443322 SCID 0x2233445566778899 PKT_NUM 1
+}
+
+// INSTRUCTION: Compile the QUIC stateless reset recovery flow.
+COMPILE {
+    quic_stateless_reset(stale_client, rebooted_srv)
+}

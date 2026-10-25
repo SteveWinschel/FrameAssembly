@@ -1,0 +1,27 @@
+// PROMPT: Container registry backend storing OCI image layer blobs on an IPv6 NFSv4 storage volume.
+// TOKENS: HOST, IP, MAC, FLOW, NFS, VERS, PROC, TAG, PATH, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the OCI container registry service over IPv6.
+HOST oci_registry {
+    IP 2001:db8:70:110::50
+    MAC 00:1a:2b:70:b0:50
+}
+
+// INSTRUCTION: Define the IPv6 enterprise NAS backend.
+HOST ipv6_nas {
+    IP 2001:db8:70:110::1
+    MAC 00:1a:2b:70:b0:01
+}
+
+// INSTRUCTION: Write a compressed OCI layer digest blob and verify its attributes over IPv6.
+FLOW nfs6_oci_blob(c, s) {
+    c -> s NFS VERS 4 PROC "WRITE" TAG "put_blob_sha256" PATH "/registry/blobs/sha256/4f/4f8a9b1c2d" PAYLOAD "GZIP_OCI_LAYER_TARBALL_STREAM"
+    c <- s NFS VERS 4 PROC "WRITE" TAG "put_blob_sha256" WAIT 2ms
+    c -> s NFS VERS 4 PROC "GETATTR" TAG "stat_blob_sha256" PATH "/registry/blobs/sha256/4f/4f8a9b1c2d"
+    c <- s NFS VERS 4 PROC "GETATTR" TAG "stat_blob_sha256"
+}
+
+// INSTRUCTION: Compile the IPv6 OCI registry NFSv4 blob write flow.
+COMPILE {
+    nfs6_oci_blob(oci_registry, ipv6_nas)
+}

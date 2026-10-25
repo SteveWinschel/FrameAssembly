@@ -1,0 +1,25 @@
+// PROMPT: Simulate a Memcached UDP transport datagram GET and response exchange for low-latency feature flag lookups.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, TRANSPORT, UDP, SRCPORT, DSTPORT, GET, KEY, OPAQUE, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the low-latency ad-bidding engine querying feature flags over Memcached UDP port 11211.
+HOST bidder_engine {
+    IP 10.88.1.120
+    MAC 00:0c:29:88:01:78
+}
+
+// INSTRUCTION: Define the Memcached server with UDP listener enabled on port 11211.
+HOST udp_memcache {
+    IP 10.88.1.10
+    MAC 00:0c:29:88:01:0a
+}
+
+// INSTRUCTION: Send a Memcached GET over TRANSPORT UDP and receive the cached feature flag value.
+FLOW udp_feature_flag_lookup(c, s) {
+    c -> s MEMCACHED TRANSPORT UDP SRCPORT 53110 DSTPORT 11211 GET KEY "ff:dark_mode_v2" OPAQUE 801 WAIT 1ms
+    c <- s MEMCACHED TRANSPORT UDP SRCPORT 11211 DSTPORT 53110 GET KEY "ff:dark_mode_v2" OPAQUE 801 PAYLOAD "enabled=true"
+}
+
+// INSTRUCTION: Compile the UDP Memcached feature flag lookup into a PCAP file.
+COMPILE {
+    udp_feature_flag_lookup(bidder_engine, udp_memcache)
+}

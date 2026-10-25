@@ -1,0 +1,18 @@
+// PROMPT: Web frontend retrieving user session data from Memcached cluster over IPv6.
+// TOKENS: HOST, IP, FLOW, MEMCACHED, CMD, KEY, COMPILE
+
+// INSTRUCTION: Define IPv6 edge web gateway.
+HOST v6_web_gateway { IP 2001:db8:ca5e::20 }
+
+// INSTRUCTION: Define IPv6 Memcached server.
+HOST v6_memcached_srv { IP 2001:db8:ca5e::1 }
+
+// INSTRUCTION: Define IPv6 session lookup flow.
+FLOW v6_session_get(gw, srv) {
+    gw -> srv MEMCACHED CMD "get" KEY "sess:v6:982341"
+}
+
+// INSTRUCTION: Compile IPv6 session store scenario.
+COMPILE {
+    v6_session_get(v6_web_gateway, v6_memcached_srv)
+}

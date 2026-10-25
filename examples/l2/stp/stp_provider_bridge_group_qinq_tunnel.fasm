@@ -1,0 +1,24 @@
+// PROMPT: IEEE 802.1ad Provider Bridge Group Address (01:80:c2:00:00:08) STP BPDU tunneling across a Metro Ethernet QinQ core.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSTMAC, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, FLAGS, COMPILE
+
+// INSTRUCTION: Define provider edge bridge A encapsulating customer STP into S-VLAN 2000.
+HOST pe_bridge_west {
+    IP 10.188.0.1
+    MAC 00:15:17:bc:00:01
+}
+
+// INSTRUCTION: Define provider edge bridge B receiving Provider Bridge STP BPDU.
+HOST pe_bridge_east {
+    IP 10.188.0.2
+    MAC 00:15:17:bc:00:02
+}
+
+// INSTRUCTION: Define QinQ tagged STP BPDU using Provider Bridge Group MAC 01:80:c2:00:00:08.
+FLOW provider_bridge_stp_tunnel(west, east) {
+    west -> east QINQ 2000 INNER_VLAN 10 DSTMAC 01:80:c2:00:00:08 STP RSTP ROOT_ID "4096:00:15:17:bc:00:01" BRIDGE_ID "4096:00:15:17:bc:00:01" COST 0 PORT_ID 32769 FLAGS 60
+}
+
+// INSTRUCTION: Compile block executing Provider Bridge Group STP BPDU transmission.
+COMPILE {
+    provider_bridge_stp_tunnel(pe_bridge_west, pe_bridge_east)
+}

@@ -1,0 +1,35 @@
+// PROMPT: Simulate an ISP carrier SMTP MX relay session over IEEE 802.1ad QinQ double VLAN tags (S-VLAN 1200, C-VLAN 25).
+// TOKENS: HOST, IP, MAC, FLOW, SMTP, CODE, REPLY, QINQ, INNER_VLAN, WAIT, EHLO, MAIL_FROM, PARAM, RCPT_TO, BODY, COMPILE
+
+// INSTRUCTION: Define the customer edge mail gateway sending outbound mail over QinQ.
+HOST ce_mail_gw {
+    IP 10.120.25.10
+    MAC 00:1b:21:78:19:0a
+}
+
+// INSTRUCTION: Define the provider core MX relay receiving double-tagged SMTP traffic.
+HOST pe_mx_relay {
+    IP 10.120.25.1
+    MAC 00:1b:21:78:19:01
+}
+
+// INSTRUCTION: Exchange SMTP banner, EHLO, envelope sender/recipient, and body over QinQ 1200/25.
+FLOW smtp_qinq_relay_flow(c, s) {
+    c <- s SMTP CODE 220 REPLY "mx-core.isp.net ESMTP" QINQ 1200 INNER_VLAN 25 WAIT 2ms
+    c -> s SMTP EHLO "ce-gw.customer.org" QINQ 1200 INNER_VLAN 25 WAIT 2ms
+    c <- s SMTP CODE 250 REPLY "mx-core.isp.net PIPELINING" QINQ 1200 INNER_VLAN 25 WAIT 2ms
+    c -> s SMTP MAIL_FROM PARAM "<billing@customer.org>" QINQ 1200 INNER_VLAN 25 WAIT 2ms
+    c <- s SMTP CODE 250 REPLY "2.1.0 Originator OK" QINQ 1200 INNER_VLAN 25 WAIT 2ms
+    c -> s SMTP RCPT_TO PARAM "<archive@isp.net>" QINQ 1200 INNER_VLAN 25 WAIT 2ms
+    c <- s SMTP CODE 250 REPLY "2.1.5 Recipient OK" QINQ 1200 INNER_VLAN 25 WAIT 2ms
+    c -> s SMTP BODY "Subject: Monthly Invoice
+
+Invoice attached.
+." QINQ 1200 INNER_VLAN 25 WAIT 4ms
+    c <- s SMTP CODE 250 REPLY "2.0.0 Queued as QINQ25" QINQ 1200 INNER_VLAN 25
+}
+
+// INSTRUCTION: Compile the QinQ-encapsulated SMTP carrier relay flow.
+COMPILE {
+    smtp_qinq_relay_flow(ce_mail_gw, pe_mx_relay)
+}

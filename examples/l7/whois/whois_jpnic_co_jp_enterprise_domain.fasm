@@ -1,0 +1,25 @@
+// PROMPT: Generate a JPRS/JPNIC WHOIS query inspecting registration records for a Japanese commercial .co.jp domain.
+// TOKENS: HOST, IP, MAC, FLOW, WHOIS, QUERY, DOMAIN, WAIT, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define the WHOIS client workstation or security enrichment node.
+HOST whois_client {
+    IP 172.16.43.30
+    MAC 00:1b:21:00:43:0a
+}
+
+// INSTRUCTION: Define the authoritative RIR or TLD WHOIS directory server on TCP port 43.
+HOST whois_server {
+    IP 192.41.192.40
+    MAC 00:1b:21:00:43:01
+}
+
+// INSTRUCTION: Execute the RFC 3912 WHOIS domain or prefix lookup transaction.
+FLOW whois_scenario_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "ntt.co.jp" WAIT 4ms
+    c <- s WHOIS RESPONSE DOMAIN "ntt.co.jp" REGISTRAR "Japan Registry Services Co., Ltd. (JPRS)"
+}
+
+// INSTRUCTION: Compile the WHOIS registry query flow into a PCAP trace.
+COMPILE {
+    whois_scenario_flow(whois_client, whois_server)
+}

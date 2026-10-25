@@ -1,0 +1,25 @@
+// PROMPT: SNMPv1 GetRequest and GetResponse querying RFC 1213 MIB-II sysDescr.0 and sysUpTime.0.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, GET, COMMUNITY, REQID, VARBIND, NULLVAL, RESPONSE, STRING, TIMETICKS, COMPILE
+
+// INSTRUCTION: Define the network management station (NMS) poller.
+HOST nms_poller {
+    IP 10.145.1.10
+    MAC 00:1a:2b:91:01:10
+}
+
+// INSTRUCTION: Define the managed core router agent.
+HOST core_router {
+    IP 10.145.1.1
+    MAC 00:1a:2b:91:01:01
+}
+
+// INSTRUCTION: Query sysDescr.0 and sysUpTime.0 with SNMP1 GET and receive SNMP1 RESPONSE.
+FLOW snmpv1_mib2_system(n, r) {
+    n -> r SNMP1 GET COMMUNITY "public" REQID 1001 VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL VARBIND 1.3.6.1.2.1.1.3.0 NULLVAL
+    n <- r SNMP1 RESPONSE COMMUNITY "public" REQID 1001 VARBIND 1.3.6.1.2.1.1.1.0 STRING "Cisco IOS XE Software, Version 17.09.04a" VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 8640000
+}
+
+// INSTRUCTION: Compile the SNMPv1 MIB-II system group query flow.
+COMPILE {
+    snmpv1_mib2_system(nms_poller, core_router)
+}

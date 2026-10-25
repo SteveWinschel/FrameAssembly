@@ -1,5 +1,5 @@
 // PROMPT: SMB2 Negotiate Protocol request querying supported dialect revisions.
-// TOKENS: HOST, IP, FLOW, ->, SMB, COMMAND, COMPILE
+// TOKENS: HOST, IP, FLOW, SMB, COMMAND, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.50 }

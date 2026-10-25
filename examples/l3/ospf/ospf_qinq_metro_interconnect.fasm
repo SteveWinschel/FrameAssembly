@@ -1,0 +1,18 @@
+// PROMPT: OSPF Area 0 backbone link traversing metro provider QinQ dual-VLAN infrastructure.
+// TOKENS: HOST, IP, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define core data center OSPF gateway.
+HOST dc_ospf_gw { IP 172.16.100.1 }
+
+// INSTRUCTION: Define disaster recovery OSPF gateway.
+HOST dr_ospf_gw { IP 172.16.100.2 }
+
+// INSTRUCTION: Define QinQ encapsulated OSPF backbone Hello flow.
+FLOW ospf_qinq_hello(dc, dr) {
+    dc -> dr OSPF HELLO ROUTER_ID 172.16.100.1 AREA_ID 0 QINQ 1000 INNER_VLAN 40
+}
+
+// INSTRUCTION: Compile block executing QinQ metro interconnect Hello.
+COMPILE {
+    ospf_qinq_hello(dc_ospf_gw, dr_ospf_gw)
+}

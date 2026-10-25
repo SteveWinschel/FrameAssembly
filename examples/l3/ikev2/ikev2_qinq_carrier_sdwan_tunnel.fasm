@@ -1,0 +1,18 @@
+// PROMPT: QinQ dual-tagged IKEv2 exchange establishing SD-WAN tunnel over provider Ethernet.
+// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, SA_INIT, MSGID, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define edge SD-WAN CPE appliance.
+HOST sdwan_cpe_edge { IP 172.29.10.1 }
+
+// INSTRUCTION: Define cloud SD-WAN gateway.
+HOST sdwan_cloud_gw { IP 172.29.10.254 }
+
+// INSTRUCTION: Define QinQ encapsulated IKEv2 negotiation with outer 400 and inner 15.
+FLOW ikev2_qinq_sdwan(cpe, gw) {
+    cpe -> gw IKEV2 INITIATOR_SPI 5544332211009988 RESPONDER_SPI 0 SA_INIT MSGID 0 QINQ 400 INNER_VLAN 15
+}
+
+// INSTRUCTION: Compile block executing QinQ encapsulated IKEv2 handshake.
+COMPILE {
+    ikev2_qinq_sdwan(sdwan_cpe_edge, sdwan_cloud_gw)
+}

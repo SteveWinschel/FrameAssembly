@@ -1,0 +1,25 @@
+// PROMPT: 5G O-RAN midhaul F1-U GTP-U user-plane bearer traffic carried over IEEE 802.1Q VLAN 505 with PCP 5.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define 5G Centralized Unit User Plane (O-CU-UP) midhaul interface.
+HOST oran_cu_up {
+    IP 10.55.5.1
+    MAC 00:1c:73:37:05:01
+}
+
+// INSTRUCTION: Define 5G Distributed Unit (O-DU) cell site aggregation interface.
+HOST oran_du_agg {
+    IP 10.55.5.2
+    MAC 00:1c:73:37:05:02
+}
+
+// INSTRUCTION: Transport UDP port 2152 GTP-U bearer frames on VLAN 505 PCP 5 DEI 0 with DSCP EF.
+FLOW vlan_midhaul_f1u(cu, du) {
+    cu -> du VLAN 505 PCP 5 DEI 0 DSCP 46 UDP SRCPORT 2152 DSTPORT 2152 PAYLOAD "f1u_dl_pdcp_nr_pdu_teid_1001" WAIT 2ms
+    cu <- du VLAN 505 PCP 5 DEI 0 DSCP 46 UDP SRCPORT 2152 DSTPORT 2152 PAYLOAD "f1u_ul_pdcp_nr_pdu_teid_2002"
+}
+
+// INSTRUCTION: Compile the 5G midhaul VLAN 505 F1-U user-plane exchange.
+COMPILE {
+    vlan_midhaul_f1u(oran_cu_up, oran_du_agg)
+}

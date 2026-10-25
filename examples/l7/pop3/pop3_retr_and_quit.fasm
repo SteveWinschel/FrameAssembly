@@ -1,5 +1,5 @@
 // PROMPT: POP3 message retrieval and session termination over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, <-, POP3, CMD, ARG, OK, COMPILE
+// TOKENS: HOST, IP, FLOW, POP3, CMD, ARG, OK, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::12 }

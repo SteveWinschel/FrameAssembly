@@ -1,0 +1,21 @@
+// PROMPT: TCP 3-way handshake on port 11211 followed by Memcached session key lookup.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, DSTPORT, ACK, WAIT, MEMCACHED, CMD, KEY, COMPILE
+
+// INSTRUCTION: Define web backend application client.
+HOST web_app_client { IP 172.16.55.80 }
+
+// INSTRUCTION: Define Memcached port 11211 daemon.
+HOST memcached_daemon { IP 172.16.55.10 }
+
+// INSTRUCTION: Define TCP handshake and get query flow.
+FLOW tcp_memcached_session(c, s) {
+    c -> s TCP SYN DSTPORT 11211
+    c <- s TCP SYN ACK
+    c -> s TCP ACK WAIT 1ms
+    c -> s MEMCACHED CMD "get" KEY "app:session:55"
+}
+
+// INSTRUCTION: Compile TCP handshake session get scenario.
+COMPILE {
+    tcp_memcached_session(web_app_client, memcached_daemon)
+}

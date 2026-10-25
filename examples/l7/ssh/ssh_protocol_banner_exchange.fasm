@@ -1,5 +1,5 @@
 // PROMPT: SSH protocol version exchange with client and server identification banners.
-// TOKENS: HOST, IP, FLOW, ->, <-, SSH, BANNER, COMPILE
+// TOKENS: HOST, IP, FLOW, SSH, BANNER, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.100 }

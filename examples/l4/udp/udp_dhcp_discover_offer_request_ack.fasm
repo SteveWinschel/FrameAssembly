@@ -1,5 +1,5 @@
 // PROMPT: Simulate a complete DHCPv4 DORA (Discover, Offer, Request, Acknowledge) lease allocation exchange over UDP ports 67 and 68 using broadcast and server endpoints.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define an unconfigured DHCP client with IP 0.0.0.0 and client MAC 00:0a:95:9d:68:16.
 HOST dhcp_client { IP 0.0.0.0 MAC 00:0a:95:9d:68:16 }

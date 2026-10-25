@@ -1,0 +1,31 @@
+// PROMPT: Central Network Video Recorder (NVR) establishing RTSP sessions with two warehouse IP cameras.
+// TOKENS: HOST, IP, FLOW, RTSP, SETUP, URI, CSEQ, TRANSPORT_HDR, WAIT, STATUS, SESSION, PLAY, COMPILE
+
+// INSTRUCTION: Define central warehouse NVR server host.
+HOST warehouse_nvr {
+    IP 10.88.100.1
+}
+
+// INSTRUCTION: Define Loading Dock Camera 1 host.
+HOST dock_cam_1 {
+    IP 10.88.100.101
+}
+
+// INSTRUCTION: Define Loading Dock Camera 2 host.
+HOST dock_cam_2 {
+    IP 10.88.100.102
+}
+
+// INSTRUCTION: Define reusable RTSP SETUP and PLAY flow from NVR to an IP camera.
+FLOW rtsp_nvr_pull(nvr, cam) {
+    nvr -> cam RTSP SETUP URI "rtsp://10.88.100.101/main/track1" CSEQ 1 TRANSPORT_HDR "RTP/AVP/TCP;unicast;interleaved=0-1" WAIT 4ms
+    nvr <- cam RTSP STATUS 200 CSEQ 1 SESSION "dock_cam_sess" WAIT 4ms
+    nvr -> cam RTSP PLAY URI "rtsp://10.88.100.101/main" CSEQ 2 SESSION "dock_cam_sess" WAIT 4ms
+    nvr <- cam RTSP STATUS 200 CSEQ 2 SESSION "dock_cam_sess"
+}
+
+// INSTRUCTION: Compile RTSP stream pull flows for both warehouse cameras.
+COMPILE {
+    rtsp_nvr_pull(warehouse_nvr, dock_cam_1)
+    rtsp_nvr_pull(warehouse_nvr, dock_cam_2)
+}

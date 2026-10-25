@@ -1,0 +1,25 @@
+// PROMPT: RFC 8926 Section 3.5 GENEVE TLV with Critical Option bit set (OPT_TYPE >= 128) mandating drop if unrecognized.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define zero-trust NVE ingress switch attaching mandatory Critical Security TLV.
+HOST zt_nve_ingress {
+    IP 10.60.128.1
+    MAC 00:1c:73:60:80:01
+}
+
+// INSTRUCTION: Define zero-trust NVE egress switch parsing critical OPT_TYPE 128 (0x80).
+HOST zt_nve_egress {
+    IP 10.60.128.2
+    MAC 00:1c:73:60:80:02
+}
+
+// INSTRUCTION: Define GENEVE exchange with OPT_CLASS 258 (OVN) and critical OPT_TYPE 128.
+FLOW geneve_critical_tlv_flow(ing, egr) {
+    ing -> egr GENEVE VNI 80128 OPT_CLASS 258 OPT_TYPE 128 PROTOCOL_TYPE 25944 SRCPORT 54001 DSTPORT 6081 DF DSCP 32 TTL 64 PAYLOAD "CRITICAL_OPT_SGT_TAG_MANDATORY" WAIT 3ms
+    ing <- egr GENEVE VNI 80128 OPT_CLASS 258 OPT_TYPE 128 PROTOCOL_TYPE 25944 SRCPORT 54002 DSTPORT 6081 DF DSCP 32 TTL 64 PAYLOAD "CRITICAL_OPT_VERIFIED_ACK"
+}
+
+// INSTRUCTION: Compile the RFC 8926 GENEVE Critical Option bit verification flow.
+COMPILE {
+    geneve_critical_tlv_flow(zt_nve_ingress, zt_nve_egress)
+}

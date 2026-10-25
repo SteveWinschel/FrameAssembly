@@ -1,5 +1,5 @@
 // PROMPT: TFTP error notification packet indicating file not found over IPv6.
-// TOKENS: HOST, IP, FLOW, <-, TFTP, ERRCODE, ERRMSG, COMPILE
+// TOKENS: HOST, IP, FLOW, TFTP, ERRCODE, ERRMSG, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::15 }

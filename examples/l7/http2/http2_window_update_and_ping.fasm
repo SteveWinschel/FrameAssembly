@@ -1,5 +1,5 @@
 // PROMPT: HTTP/2 flow control WINDOW_UPDATE and round-trip PING latency probe over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, <-, HTTP2, STREAM_ID, WINDOW_UPDATE, PING, COMPILE
+// TOKENS: HOST, IP, FLOW, HTTP2, STREAM_ID, WINDOW_UPDATE, PING, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

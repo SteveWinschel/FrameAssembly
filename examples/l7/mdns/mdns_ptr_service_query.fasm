@@ -1,5 +1,5 @@
 // PROMPT: mDNS local service discovery PTR query on multicast 224.0.0.251 port 5353.
-// TOKENS: HOST, IP, FLOW, ->, MDNS, QUERY, TXID, QNAME, QTYPE, COMPILE
+// TOKENS: HOST, IP, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.50 }

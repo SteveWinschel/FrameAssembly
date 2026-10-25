@@ -1,0 +1,25 @@
+// PROMPT: TFTP server rejecting a WRQ overwrite attempt with RFC 1350 ERRCODE 6 File already exists.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, WRQ, FILENAME, MODE, ERR, ERRCODE, ERRMSG, COMPILE
+
+// INSTRUCTION: Define network administrator workstation attempting to overwrite an immutable image.
+HOST admin_wkst {
+    IP 192.168.69.40
+    MAC 00:21:70:69:00:28
+}
+
+// INSTRUCTION: Define write-once TFTP golden image server.
+HOST golden_tftp_srv {
+    IP 192.168.69.10
+    MAC 00:21:70:69:00:0a
+}
+
+// INSTRUCTION: Reject WRQ for existing golden firmware with ERRCODE 6.
+FLOW tftp_err_code6(c, s) {
+    c -> s TFTP WRQ FILENAME "golden-release-v1.bin" MODE "octet"
+    c <- s TFTP ERR ERRCODE 6 ERRMSG "File already exists"
+}
+
+// INSTRUCTION: Compile the TFTP ERRCODE 6 file already exists scenario.
+COMPILE {
+    tftp_err_code6(admin_wkst, golden_tftp_srv)
+}

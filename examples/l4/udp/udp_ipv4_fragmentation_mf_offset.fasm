@@ -1,0 +1,19 @@
+// PROMPT: IPv4 UDP datagram fragmentation across two fragments using IPID, MF (More Fragments), and FRAGOFFSET modifiers.
+// TOKENS: HOST, IP, FLOW, IPID, MF, FRAGOFFSET, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define source host transmitting oversized UDP datagram across constrained MTU link.
+HOST frag_udp_sender { IP 172.16.77.10 }
+
+// INSTRUCTION: Define destination host reassembling fragmented IPv4 UDP datagram.
+HOST frag_udp_receiver { IP 172.16.77.20 }
+
+// INSTRUCTION: Define first UDP fragment (MF set, FRAGOFFSET 0) and trailing fragment (FRAGOFFSET 185) with shared IPID 4242.
+FLOW udp_ipv4_fragmentation(tx, rx) {
+    tx -> rx IPID 4242 MF FRAGOFFSET 0 UDP SRCPORT 51000 DSTPORT 8125 PAYLOAD "udp_fragment_1_statsd_metrics_batch_part_a"
+    tx -> rx IPID 4242 FRAGOFFSET 185 UDP SRCPORT 51000 DSTPORT 8125 PAYLOAD "udp_fragment_2_statsd_metrics_batch_part_b" WAIT 500us
+}
+
+// INSTRUCTION: Compile block executing fragmented IPv4 UDP transmission.
+COMPILE {
+    udp_ipv4_fragmentation(frag_udp_sender, frag_udp_receiver)
+}

@@ -1,0 +1,25 @@
+// PROMPT: VMware vMotion / KVM Live Migration transmitting a Gratuitous ARP over VXLAN VNI 15000 to update remote VTEP MAC tables.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define target hypervisor VTEP where migrated VM has just resumed execution.
+HOST vmotion_target_vtep {
+    IP 10.255.15.20
+    MAC 00:50:56:15:00:14
+}
+
+// INSTRUCTION: Define remote Leaf VTEP updating its EVPN MAC table with EVPN seq mobility attribute.
+HOST vmotion_remote_vtep {
+    IP 10.255.15.10
+    MAC 00:50:56:15:00:0a
+}
+
+// INSTRUCTION: Define VXLAN Gratuitous ARP broadcast announcing VM MAC move to vmotion_target_vtep.
+FLOW vxlan_vmotion_garp_announce(target, remote) {
+    target -> remote VXLAN VNI 15000 SRCPORT 55000 DSTPORT 4789 DF DSCP 48 TTL 64 PAYLOAD "GARP_VM_10_15_0_99_MOVED_SEQ_2" WAIT 2ms
+    target <- remote VXLAN VNI 15000 SRCPORT 55001 DSTPORT 4789 DF DSCP 26 TTL 64 PAYLOAD "RESUMED_TCP_STREAM_TO_NEW_VTEP"
+}
+
+// INSTRUCTION: Compile the VM live migration Gratuitous ARP over VXLAN flow.
+COMPILE {
+    vxlan_vmotion_garp_announce(vmotion_target_vtep, vmotion_remote_vtep)
+}

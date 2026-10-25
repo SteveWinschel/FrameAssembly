@@ -1,5 +1,5 @@
 // PROMPT: RADIUS network access authentication exchange with Access-Request and Access-Accept.
-// TOKENS: HOST, IP, FLOW, ->, <-, RADIUS, ACCESS_REQUEST, ACCESS_ACCEPT, USER, NAS_IP, COMPILE
+// TOKENS: HOST, IP, FLOW, RADIUS, ACCESS_REQUEST, USER, NAS_IP, ACCESS_ACCEPT, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.10 }

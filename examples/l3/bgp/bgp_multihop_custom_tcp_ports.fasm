@@ -1,0 +1,20 @@
+// PROMPT: Multihop eBGP session using explicit ephemeral TCP source port and TTL 64.
+// TOKENS: HOST, IP, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, SRCPORT, DSTPORT, TTL, UPDATE, PREFIX, NEXTHOP, COMPILE
+
+// INSTRUCTION: Define multihop eBGP speaker A.
+HOST ebgp_mh_speaker_a { IP 10.254.10.1 }
+
+// INSTRUCTION: Define multihop eBGP speaker B.
+HOST ebgp_mh_speaker_b { IP 10.254.20.1 }
+
+// INSTRUCTION: Define multihop eBGP session on TCP port 179 with ephemeral source port 52179.
+FLOW bgp_multihop_tcp(a, b) {
+    a -> b BGP OPEN ASN 65051 HOLDTIME 120 BGPID 10.254.10.1 SRCPORT 52179 DSTPORT 179 TTL 64
+    a <- b BGP OPEN ASN 65052 HOLDTIME 120 BGPID 10.254.20.1 SRCPORT 179 DSTPORT 52179 TTL 64
+    a -> b BGP UPDATE ASN 65051 PREFIX "192.168.100.0/24" NEXTHOP 10.254.10.1 SRCPORT 52179 DSTPORT 179 TTL 64
+}
+
+// INSTRUCTION: Compile the multihop eBGP custom TCP port flow.
+COMPILE {
+    bgp_multihop_tcp(ebgp_mh_speaker_a, ebgp_mh_speaker_b)
+}

@@ -1,0 +1,19 @@
+// PROMPT: TFTP error packet returning ERRCODE 2 Access Violation.
+// TOKENS: HOST, IP, FLOW, TFTP, WRQ, FILENAME, MODE, ERRCODE, ERRMSG, COMPILE
+
+// INSTRUCTION: Define unauthorized client requesting restricted file.
+HOST unauth_tftp_cli { IP 172.20.0.50 }
+
+// INSTRUCTION: Define secure TFTP server.
+HOST secure_tftp_svr { IP 172.20.0.1 }
+
+// INSTRUCTION: Define Access Violation error flow.
+FLOW tftp_err_access_viol(c, s) {
+    c -> s TFTP WRQ FILENAME "system_root.key" MODE "octet"
+    c <- s TFTP ERRCODE 2 ERRMSG "Access violation"
+}
+
+// INSTRUCTION: Compile block executing access violation error.
+COMPILE {
+    tftp_err_access_viol(unauth_tftp_cli, secure_tftp_svr)
+}

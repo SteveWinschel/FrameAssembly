@@ -1,0 +1,27 @@
+// PROMPT: High-availability IPv6 load balancer broadcasting unsolicited Neighbor Advertisement to update upstream neighbor caches.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, TTL, NDP, NEIGHBOR_ADVERT, TARGET, TLLA, DSTMAC, WAIT, NEIGHBOR_SOLICIT, SLLA, COMPILE
+
+// INSTRUCTION: Define newly promoted active IPv6 load balancer node claiming virtual IP 2001:db8:80::100.
+HOST lb_active_v6 {
+    IP 2001:db8:80::100
+    MAC 00:16:3e:80:01:00
+}
+
+// INSTRUCTION: Define upstream core router updating its IPv6 Neighbor Cache entry upon VIP takeover.
+HOST core_router_v6 {
+    IP 2001:db8:80::1
+    MAC 00:16:3e:80:00:01
+}
+
+// INSTRUCTION: Emit rapid unsolicited Neighbor Advertisements followed by upstream NUD verification.
+FLOW ndp_vip_takeover(lb, rtr) {
+    lb -> rtr DSCP 48 TTL 255 NDP NEIGHBOR_ADVERT TARGET 2001:db8:80::100 TLLA 00:16:3e:80:01:00 DSTMAC 33:33:00:00:00:01 WAIT 5ms
+    lb -> rtr DSCP 48 TTL 255 NDP NEIGHBOR_ADVERT TARGET 2001:db8:80::100 TLLA 00:16:3e:80:01:00 DSTMAC 33:33:00:00:00:01 WAIT 10ms
+    rtr -> lb DSCP 48 TTL 255 NDP NEIGHBOR_SOLICIT TARGET 2001:db8:80::100 SLLA 00:16:3e:80:00:01 WAIT 5ms
+    lb -> rtr DSCP 48 TTL 255 NDP NEIGHBOR_ADVERT TARGET 2001:db8:80::100 TLLA 00:16:3e:80:01:00
+}
+
+// INSTRUCTION: Compile the IPv6 load balancer VIP takeover NDP advertisement sequence.
+COMPILE {
+    ndp_vip_takeover(lb_active_v6, core_router_v6)
+}

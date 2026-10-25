@@ -1,0 +1,28 @@
+// PROMPT: Deception honeypot threat intelligence sensor capturing Telnet, FTP, and SMB lateral movement probes followed by WHOIS attribution lookup, Syslog SIEM alert, and SNMPv3 inform.
+// TOKENS: HOST, IP, FLOW, TELNET, WILL, DO, WAIT, FTP, CMD, ARG, CODE, REPLY, SMB, COMMAND, SHARE, WHOIS, QUERY, DOMAIN, REGISTRAR, SYSLOG, PRI, APP, MSG, SNMP3, INFORM, USER, COMPILE
+
+// INSTRUCTION: Define lateral movement intruder host probing internal decoy segment.
+HOST intruder_probe_host { IP 10.99.66.13 }
+
+// INSTRUCTION: Define high-interaction deception honeypot sensor.
+HOST deception_honeypot { IP 10.99.66.100 }
+
+// INSTRUCTION: Define SecOps SIEM, WHOIS proxy, and SNMPv3 threat intelligence manager.
+HOST secops_siem_mgr { IP 10.99.1.50 }
+
+// INSTRUCTION: Define Telnet/FTP/SMB probe capture on honeypot followed by WHOIS lookup, Syslog alert, and SNMPv3 inform.
+FLOW secops_honeypot_incident_flow(attacker, pot, siem) {
+    attacker -> pot TELNET WILL 1
+    attacker <- pot TELNET DO 1 WAIT 1ms
+    attacker -> pot FTP CMD "USER" ARG "root" WAIT 1ms
+    attacker <- pot FTP CODE 331 REPLY "Password required for root" WAIT 1ms
+    attacker -> pot SMB COMMAND "TREE_CONNECT" SHARE "\\\\10.99.66.100\\ADMIN$" WAIT 1ms
+    pot -> siem WHOIS QUERY DOMAIN "198.51.100.13" REGISTRAR "whois.arin.net" WAIT 1ms
+    pot -> siem SYSLOG PRI 130 APP "opencanary" MSG "ALERT_HONEYPOT_SMB_ADMIN_SHARE_TOUCHED" WAIT 1ms
+    pot -> siem SNMP3 INFORM USER "secops_bot" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing SecOps honeypot Telnet, FTP, SMB, WHOIS, Syslog, and SNMPv3 topology.
+COMPILE {
+    secops_honeypot_incident_flow(intruder_probe_host, deception_honeypot, secops_siem_mgr)
+}

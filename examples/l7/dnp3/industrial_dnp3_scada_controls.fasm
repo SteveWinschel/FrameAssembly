@@ -1,5 +1,5 @@
 // PROMPT: Electric utility substation telemetry using Distributed Network Protocol DNP3 on TCP 20000.
-// TOKENS: HOST, IP, FLOW, ->, DNP3, FUNC, READ, OPERATE, COMPILE
+// TOKENS: HOST, IP, FLOW, DNP3, FUNC, OPERATE, COMPILE
 
 // INSTRUCTION: Define substation control center master.
 HOST substation_master { IP 10.10.100.1 }

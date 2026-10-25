@@ -1,0 +1,21 @@
+// PROMPT: Periodic IMAP NOOP mailbox polling loop checking for new messages every 30 seconds.
+// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, WAIT, ARG, COMPILE, LOOP
+
+// INSTRUCTION: Define legacy desktop mail client.
+HOST legacy_mua { IP 10.14.99.10 }
+
+// INSTRUCTION: Define internal IMAP server.
+HOST internal_imap { IP 10.14.99.1 }
+
+// INSTRUCTION: Send tagged NOOP command and receive OK completion every 30 seconds.
+FLOW imap_noop_poll(c, s) {
+    c -> s IMAP TAG "N01" CMD "NOOP" WAIT 30s
+    c <- s IMAP TAG "N01" CMD "OK" ARG "NOOP completed"
+}
+
+// INSTRUCTION: Run 3 iterations of the IMAP NOOP polling loop.
+COMPILE {
+    LOOP 3 {
+        imap_noop_poll(legacy_mua, internal_imap)
+    }
+}

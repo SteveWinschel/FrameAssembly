@@ -1,0 +1,18 @@
+// PROMPT: VXLAN tunnel encapsulating maximum 24-bit VNI boundary identifier (16777215).
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, COMPILE
+
+// INSTRUCTION: Define boundary test VTEP generator.
+HOST vtep_boundary_gen { IP 10.99.99.1 }
+
+// INSTRUCTION: Define boundary test VTEP receiver.
+HOST vtep_boundary_rec { IP 10.99.99.2 }
+
+// INSTRUCTION: Define maximum 24-bit VNI boundary transmission flow.
+FLOW vxlan_max_vni_flow(gen, rec) {
+    gen -> rec VXLAN VNI 16777215
+}
+
+// INSTRUCTION: Compile block executing 24-bit VNI boundary test.
+COMPILE {
+    vxlan_max_vni_flow(vtep_boundary_gen, vtep_boundary_rec)
+}

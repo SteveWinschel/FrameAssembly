@@ -1,0 +1,25 @@
+// PROMPT: Build a Kerberos authentication flow over an MPLS and QinQ carrier backbone for a branch office domain join.
+// TOKENS: HOST, IP, MAC, FLOW, KERBEROS, AS_REQ, REALM, CNAME, SNAME, ETYPE, QINQ, INNER_VLAN, MPLS, DSCP, TTL, WAIT, AS_REP, COMPILE
+
+// INSTRUCTION: Define the branch office workstation joining the corporate domain.
+HOST branch_pc {
+    IP 10.120.8.55
+    MAC 00:50:56:78:08:55
+}
+
+// INSTRUCTION: Define the central headquarters Active Directory KDC reachable over MPLS.
+HOST hq_kdc {
+    IP 10.1.1.10
+    MAC 00:50:56:01:01:10
+}
+
+// INSTRUCTION: Exchange Kerberos AS_REQ and AS_REP frames encapsulated in QinQ tags 300/45 and MPLS label 42000.
+FLOW branch_domain_auth(c, s) {
+    c -> s KERBEROS AS_REQ REALM "HQ.GLOBAL.CORP" CNAME "BRANCH-PC01$" SNAME "krbtgt/HQ.GLOBAL.CORP" ETYPE 18 QINQ 300 INNER_VLAN 45 MPLS 42000 DSCP 32 TTL 59 WAIT 18ms
+    c <- s KERBEROS AS_REP REALM "HQ.GLOBAL.CORP" CNAME "BRANCH-PC01$" SNAME "krbtgt/HQ.GLOBAL.CORP" ETYPE 18 QINQ 300 INNER_VLAN 45 MPLS 42000 DSCP 32 TTL 59
+}
+
+// INSTRUCTION: Compile the QinQ and MPLS Kerberos authentication trace into a PCAP file.
+COMPILE {
+    branch_domain_auth(branch_pc, hq_kdc)
+}

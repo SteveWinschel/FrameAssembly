@@ -1,0 +1,20 @@
+// PROMPT: TLS alert record signaling rejected certificate validation failure.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, SERVER_HELLO, ALERT, COMPILE
+
+// INSTRUCTION: Define validating client endpoint.
+HOST val_client { IP 10.90.14.8 }
+
+// INSTRUCTION: Define untrusted certificate server.
+HOST untrusted_server { IP 10.90.14.1 }
+
+// INSTRUCTION: Define bad certificate alert rejection flow.
+FLOW tls_bad_cert_flow(c, s) {
+    c -> s TLS CLIENT_HELLO SNI "untrusted.domain.net"
+    c <- s TLS SERVER_HELLO
+    c -> s TLS ALERT
+}
+
+// INSTRUCTION: Compile block executing bad certificate alert.
+COMPILE {
+    tls_bad_cert_flow(val_client, untrusted_server)
+}

@@ -1,0 +1,25 @@
+// PROMPT: IPv6-only data center Spine-Leaf fabric transporting VXLAN over IPv6 with 20-bit Flow Label ECMP distribution.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, FLOWLABEL, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6 Leaf-1 VTEP encapsulating dual-stack tenant frames in VXLAN-over-IPv6.
+HOST v6_fabric_vtep1 {
+    IP 2001:db8:4789:1::11
+    MAC 00:1c:73:66:47:0b
+}
+
+// INSTRUCTION: Define IPv6 Leaf-2 VTEP terminating UDP 4789 over IPv6.
+HOST v6_fabric_vtep2 {
+    IP 2001:db8:4789:2::22
+    MAC 00:1c:73:66:47:16
+}
+
+// INSTRUCTION: Define IPv6 VXLAN exchange with FLOWLABEL 478900 and VNI 604789.
+FLOW vxlan_v6_fabric_ecmp_flow(v1, v2) {
+    v1 -> v2 VXLAN VNI 604789 SRCPORT 54789 DSTPORT 4789 FLOWLABEL 478900 DSCP 26 TTL 64 PAYLOAD "IPV6_UNDERLAY_VXLAN_TENANT_FRAME_1" WAIT 3ms
+    v1 <- v2 VXLAN VNI 604789 SRCPORT 54790 DSTPORT 4789 FLOWLABEL 478900 DSCP 26 TTL 64 PAYLOAD "IPV6_UNDERLAY_VXLAN_TENANT_FRAME_2"
+}
+
+// INSTRUCTION: Compile the IPv6 underlay VXLAN Flow Label ECMP scenario.
+COMPILE {
+    vxlan_v6_fabric_ecmp_flow(v6_fabric_vtep1, v6_fabric_vtep2)
+}

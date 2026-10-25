@@ -1,59 +1,64 @@
-//! FrameAssembly Protocol Builders.
+//! Multi-Layer Wire Packet Builders for the FrameAssembly Compiler.
 //!
-//! Dedicated builders per OSI layer and protocol.
+//! This module hierarchy implements deterministic wire-format packet synthesis across OSI Layer 2
+//! ([`l2`]: Ethernet II, IEEE 802.1Q VLAN, IEEE 802.1ad QinQ, MPLS, ARP, STP/RSTP, LLDP, LACP,
+//! PPPoE, EAPOL, MACsec, Profinet RT), Layer 3 ([`l3`]: IPv4, IPv6, ICMPv4/v6, IPsec ESP/AH, GRE,
+//! BGP, OSPF, RIP, EIGRP, IS-IS, PIM, IGMP, VRRP, HSRP, BFD, LDP, RSVP), Layer 4 ([`l4`]: TCP,
+//! UDP, SCTP, VXLAN, Geneve, L2TP, GTP-U), and Layer 7 ([`l7`]: 45 application, database, broker,
+//! industrial OT, and SNMPv1/v2c/v3 protocols).
 
 use crate::ast::{L2Modifiers, L3Modifiers, L4Modifiers, TransportProto};
 use core::net::IpAddr;
 
-/// Wire synthesis context holding endpoints, transport ports, and layer modifiers.
+/// Wire synthesis context holding resolved endpoint addresses, transport ports, and layer modifiers.
 #[derive(Debug, Clone)]
 pub struct WireContext<'a> {
-    /// Source IP address.
+    /// Resolved source IPv4 or IPv6 address.
     pub src_ip: IpAddr,
-    /// Destination IP address.
+    /// Resolved destination IPv4 or IPv6 address.
     pub dst_ip: IpAddr,
-    /// Source MAC address.
+    /// Resolved 6-byte source IEEE 802.3 MAC address.
     pub src_mac: [u8; 6],
-    /// Destination MAC address.
+    /// Resolved 6-byte destination IEEE 802.3 MAC address.
     pub dst_mac: [u8; 6],
-    /// Transport protocol override.
+    /// Optional explicit transport protocol override (`TCP` or `UDP`).
     pub transport: Option<TransportProto>,
-    /// Resolved source port.
+    /// Resolved 16-bit source transport port (`SRCPORT`).
     pub src_port: u16,
-    /// Resolved destination port.
+    /// Resolved 16-bit destination transport port (`DSTPORT`).
     pub dst_port: u16,
-    /// TCP sequence number.
+    /// Optional explicit 32-bit TCP sequence number (`SEQ`).
     pub seq: Option<u32>,
-    /// TCP acknowledgment number.
+    /// Optional explicit 32-bit TCP acknowledgment number (`ACKNUM`).
     pub ack: Option<u32>,
-    /// Layer 2 modifiers.
+    /// Borrowed Layer 2 VLAN, QinQ, and MPLS modifiers.
     pub l2: &'a L2Modifiers,
-    /// Layer 3 modifiers.
+    /// Borrowed Layer 3 TTL, DSCP, ECN, IPv4 fragment, and IPv6 flow-label modifiers.
     pub l3: &'a L3Modifiers,
-    /// Layer 4 modifiers.
+    /// Borrowed Layer 4 TCP/UDP port, flag, window, and option modifiers.
     pub l4: &'a L4Modifiers,
 }
 
-/// Layer 2 data link protocol builders.
 pub mod l2;
-/// Layer 3 network and tunneling protocol builders.
 pub mod l3;
-/// Layer 4 transport protocol builders.
 pub mod l4;
-/// Layer 7 application protocol builders.
 pub mod l7;
 
-// Backwards-compatible aliases
-/// Backwards-compatible alias for Layer 3 builders.
+/// Backwards-compatible alias for Layer 3 network and tunneling builders ([`l3`]).
+#[doc(inline)]
 pub use l3 as l3_tunnel;
-/// Backwards-compatible alias for Layer 4 transport builders.
+/// Backwards-compatible alias for Layer 4 transport builders ([`l4`]).
+#[doc(inline)]
 pub use l4 as transport;
-/// Backwards-compatible alias for Layer 7 infrastructure builders.
+/// Backwards-compatible alias for Layer 7 infrastructure builders ([`l7`]).
+#[doc(inline)]
 pub use l7 as l7_infra;
-/// Backwards-compatible alias for Layer 7 application builders.
+/// Backwards-compatible alias for Layer 7 application builders ([`l7`]).
+#[doc(inline)]
 pub use l7 as l7_app;
-/// Backwards-compatible alias for Layer 7 OT/ICS builders.
+/// Backwards-compatible alias for Layer 7 industrial OT/ICS builders ([`l7`]).
+#[doc(inline)]
 pub use l7 as l7_ot;
-/// Backwards-compatible alias for SNMP builders.
+/// Backwards-compatible re-export of SNMPv1/v2c/v3 builders ([`l7::snmp`]).
+#[doc(inline)]
 pub use l7::snmp;
-

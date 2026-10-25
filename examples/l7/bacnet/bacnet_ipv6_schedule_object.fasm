@@ -1,0 +1,18 @@
+// PROMPT: BACnet/IP Schedule object property inspection and vendor proprietary payload over IPv6.
+// TOKENS: HOST, IP, FLOW, BACNET, READ_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, FLOWLABEL, TTL, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define IPv6 smart grid scheduler.
+HOST grid_sched { IP 2001:db8:4780::1 }
+
+// INSTRUCTION: Define IPv6 thermal storage controller.
+HOST thermal_ctrl { IP 2001:db8:4780::50 }
+
+// INSTRUCTION: Query Schedule Object (ObjectType 17) Effective_Period (Property 32) with trailing hex tag.
+FLOW bacnet_schedule_v6(g, t) {
+    g -> t BACNET READ_PROPERTY INVOKE_ID 88 OBJECT_TYPE 17 OBJECT_INSTANCE 1 PROPERTY_ID 32 FLOWLABEL 0xabcde TTL 128 HEXPAYLOAD "2e00"
+}
+
+// INSTRUCTION: Compile the IPv6 BACnet schedule inspection flow.
+COMPILE {
+    bacnet_schedule_v6(grid_sched, thermal_ctrl)
+}

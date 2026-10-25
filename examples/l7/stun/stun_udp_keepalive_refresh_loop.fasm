@@ -1,0 +1,21 @@
+// PROMPT: Periodic STUN binding refresh loop preserving firewall translation state.
+// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE, LOOP
+
+// INSTRUCTION: Define mobile VoIP softphone.
+HOST softphone { IP 192.168.10.14 }
+
+// INSTRUCTION: Define public STUN keepalive node.
+HOST stun_keepalive { IP 203.0.113.1 }
+
+// INSTRUCTION: Define recurring NAT keepalive flow.
+FLOW stun_keepalive_flow(c, s) {
+    c -> s STUN BINDING_REQUEST
+    c <- s STUN BINDING_RESPONSE XOR_MAPPED_ADDR 203.0.113.89
+}
+
+// INSTRUCTION: Compile block executing 4 periodic refresh cycles.
+COMPILE {
+    LOOP 4 {
+        stun_keepalive_flow(softphone, stun_keepalive)
+    }
+}

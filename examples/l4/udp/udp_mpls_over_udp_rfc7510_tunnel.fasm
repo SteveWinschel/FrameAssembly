@@ -1,0 +1,19 @@
+// PROMPT: RFC 7510 MPLS-in-UDP encapsulation on UDP port 6635 tunneling labeled VPN packets across an IP-only underlay core.
+// TOKENS: HOST, IP, FLOW, DSCP, DF, UDP, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define ingress PE router encapsulating MPLS label stack inside UDP port 6635.
+HOST mpls_udp_pe_west { IP 198.18.66.1 }
+
+// INSTRUCTION: Define egress PE router decapsulating MPLS-in-UDP on port 6635.
+HOST mpls_udp_pe_east { IP 198.18.66.2 }
+
+// INSTRUCTION: Define RFC 7510 UDP port 6635 datagrams with entropy source ports and 32-bit MPLS label header payload.
+FLOW udp_rfc7510_mpls_tunnel(west, east) {
+    west -> east DSCP 34 DF UDP SRCPORT 54110 DSTPORT 6635 HEXPAYLOAD "00100b404500001c0001000040117c9f"
+    west <- east DSCP 34 DF UDP SRCPORT 60220 DSTPORT 6635 HEXPAYLOAD "00200b404500001c0002000040117c9e" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing RFC 7510 MPLS-in-UDP encapsulation.
+COMPILE {
+    udp_rfc7510_mpls_tunnel(mpls_udp_pe_west, mpls_udp_pe_east)
+}

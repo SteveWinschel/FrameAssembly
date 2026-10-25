@@ -1,0 +1,19 @@
+// PROMPT: Pure IPv6 PIM-SM Hello packets exchanged on link-local multicast destination ff02::d.
+// TOKENS: HOST, IP, FLOW, PIM, HELLO, COMPILE
+
+// INSTRUCTION: Define IPv6 multicast edge router 1.
+HOST pim_v6_edge_1 { IP fe80::101:1 }
+
+// INSTRUCTION: Define IPv6 multicast edge router 2.
+HOST pim_v6_edge_2 { IP fe80::102:2 }
+
+// INSTRUCTION: Define IPv6 link-local PIM Hello exchange flow.
+FLOW pim_v6_hello_flow(r1, r2) {
+    r1 -> r2 PIM HELLO
+    r1 <- r2 PIM HELLO
+}
+
+// INSTRUCTION: Compile block executing IPv6 PIM-SM neighbor discovery.
+COMPILE {
+    pim_v6_hello_flow(pim_v6_edge_1, pim_v6_edge_2)
+}

@@ -1,0 +1,33 @@
+// PROMPT: Create a full TCP-connected Memcached session establishing a connection, setting a session key, fetching it, and closing.
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SRCPORT, DSTPORT, SYN, SEQ, WIN, WAIT, ACK, ACKNUM, MEMCACHED, SET, KEY, EXPTIME, OPAQUE, CAS, PAYLOAD, GET, FIN, COMPILE
+
+// INSTRUCTION: Define the backend microservice caching user profile objects.
+HOST profile_svc {
+    IP 10.20.15.30
+    MAC 00:50:56:20:15:30
+}
+
+// INSTRUCTION: Define the Memcached server listening on TCP port 11211.
+HOST memcached_srv {
+    IP 10.20.15.10
+    MAC 00:50:56:20:15:10
+}
+
+// INSTRUCTION: Perform a TCP handshake on port 11211, execute SET and GET operations, and close cleanly with FIN.
+FLOW tcp_memcached_lifecycle(c, s) {
+    c -> s TCP SRCPORT 51400 DSTPORT 11211 SYN SEQ 300000 WIN 64240 WAIT 1ms
+    c <- s TCP SRCPORT 11211 DSTPORT 51400 SYN ACK SEQ 400000 ACKNUM 300001 WIN 65535 WAIT 1ms
+    c -> s TCP SRCPORT 51400 DSTPORT 11211 ACK SEQ 300001 ACKNUM 400001 WIN 64240 WAIT 2ms
+    c -> s MEMCACHED SRCPORT 51400 DSTPORT 11211 SEQ 300001 ACKNUM 400001 SET KEY "user:profile:9001" EXPTIME 3600 OPAQUE 101 CAS 1 PAYLOAD "{\"tier\":\"platinum\"}" WAIT 2ms
+    c <- s MEMCACHED SRCPORT 11211 DSTPORT 51400 SEQ 400001 ACKNUM 300065 SET KEY "user:profile:9001" OPAQUE 101 CAS 1 WAIT 5ms
+    c -> s MEMCACHED SRCPORT 51400 DSTPORT 11211 SEQ 300065 ACKNUM 400045 GET KEY "user:profile:9001" OPAQUE 102 WAIT 2ms
+    c <- s MEMCACHED SRCPORT 11211 DSTPORT 51400 SEQ 400045 ACKNUM 300106 GET KEY "user:profile:9001" OPAQUE 102 CAS 1 PAYLOAD "{\"tier\":\"platinum\"}" WAIT 2ms
+    c -> s TCP SRCPORT 51400 DSTPORT 11211 FIN ACK SEQ 300106 ACKNUM 400110 WIN 64240 WAIT 1ms
+    c <- s TCP SRCPORT 11211 DSTPORT 51400 FIN ACK SEQ 400110 ACKNUM 300107 WIN 65535 WAIT 1ms
+    c -> s TCP SRCPORT 51400 DSTPORT 11211 ACK SEQ 300107 ACKNUM 400111 WIN 64240
+}
+
+// INSTRUCTION: Compile the full TCP Memcached session lifecycle into a PCAP file.
+COMPILE {
+    tcp_memcached_lifecycle(profile_svc, memcached_srv)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Service mesh RBAC policy enforcement rejecting an unauthorized gRPC call with GRPC_STATUS 7 (PERMISSION_DENIED).
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define untrusted workload pod attempting administrative RPC call.
+HOST untrusted_pod {
+    IP 10.100.18.44
+    MAC 02:42:0a:64:12:2c
+}
+
+// INSTRUCTION: Define Vault secrets manager gRPC server enforcing mTLS RBAC.
+HOST vault_grpc_srv {
+    IP 10.100.18.1
+    MAC 02:42:0a:64:12:01
+}
+
+// INSTRUCTION: Call RotateMasterKey and receive GRPC_STATUS 7 PERMISSION_DENIED.
+FLOW grpc_err_permission_denied(c, s) {
+    c -> s GRPC SERVICE "security.v1.KmsService" METHOD "RotateMasterKey"
+    c <- s GRPC SERVICE "security.v1.KmsService" METHOD "RotateMasterKey" GRPC_STATUS 7
+}
+
+// INSTRUCTION: Compile the gRPC status 7 PERMISSION_DENIED RBAC enforcement scenario.
+COMPILE {
+    grpc_err_permission_denied(untrusted_pod, vault_grpc_srv)
+}

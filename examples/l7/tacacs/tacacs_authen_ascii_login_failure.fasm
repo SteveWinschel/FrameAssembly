@@ -1,0 +1,30 @@
+// PROMPT: Model a TACACS+ ASCII authentication failure where an invalid password yields TAC_PLUS_AUTHEN_STATUS_FAIL.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TACACS, AUTHEN, SESSION_ID, USER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint edge_rtr.
+HOST edge_rtr {
+    MAC 00:50:56:00:49:11
+    IP 172.16.49.11
+}
+
+// INSTRUCTION: Define host endpoint tacacs_aaa.
+HOST tacacs_aaa {
+    MAC 00:50:56:00:49:01
+    IP 172.16.49.1
+}
+
+// INSTRUCTION: Perform multi-packet ASCII login exchange ending in AUTHEN_STATUS_FAIL.
+FLOW tacacs_authen_failed_login(edge_rtr, tacacs_aaa) {
+    edge_rtr -> tacacs_aaa TCP SYN SRCPORT 52049 DSTPORT 49
+    tacacs_aaa -> edge_rtr TCP SYN ACK
+    edge_rtr -> tacacs_aaa TCP ACK
+    edge_rtr -> tacacs_aaa TACACS AUTHEN SESSION_ID 100202 USER "contractor" PAYLOAD "ASCII-LOGIN-START"
+    tacacs_aaa -> edge_rtr TACACS AUTHEN SESSION_ID 100202 PAYLOAD "GETPASS:Password: "
+    edge_rtr -> tacacs_aaa TACACS AUTHEN SESSION_ID 100202 USER "contractor" PAYLOAD "wrongpass123"
+    tacacs_aaa -> edge_rtr TACACS AUTHEN SESSION_ID 100202 PAYLOAD "AUTHEN_STATUS_FAIL"
+}
+
+// INSTRUCTION: Compile the TACACS+ authentication failure flow.
+COMPILE {
+    tacacs_authen_failed_login(edge_rtr, tacacs_aaa)
+}

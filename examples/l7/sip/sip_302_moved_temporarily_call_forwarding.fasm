@@ -1,0 +1,36 @@
+// PROMPT: SIP 302 Moved Temporarily call forwarding redirecting incoming INVITE to mobile voicemail URI.
+// TOKENS: HOST, IP, FLOW, SIP, INVITE, URI, FROM, TO, CALL_ID, CSEQ, WAIT, STATUS, REASON, CONTACT, ACK, COMPILE
+
+// INSTRUCTION: Define originating SIP trunk proxy.
+HOST orig_proxy {
+    IP 10.22.15.10
+}
+
+// INSTRUCTION: Define user agent returning 302 redirect to voicemail server.
+HOST redirect_uas {
+    IP 10.22.15.50
+}
+
+// INSTRUCTION: Define voicemail media server receiving redirected INVITE.
+HOST voicemail_srv {
+    IP 10.22.15.99
+}
+
+// INSTRUCTION: Define initial INVITE redirected via 302 Moved Temporarily and ACK.
+FLOW sip_302_redirect(p, uas) {
+    p -> uas SIP INVITE URI "sip:bob@10.22.15.50" FROM "sip:alice@10.22.15.10" TO "sip:bob@10.22.15.50" CALL_ID "fwd-302" CSEQ 1 WAIT 4ms
+    p <- uas SIP STATUS 302 REASON "Moved Temporarily" CALL_ID "fwd-302" CSEQ 1 CONTACT "sip:bob-vm@10.22.15.99" WAIT 4ms
+    p -> uas SIP ACK URI "sip:bob@10.22.15.50" CALL_ID "fwd-302" CSEQ 1
+}
+
+// INSTRUCTION: Define follow-up INVITE sent to the Contact URI on the voicemail server.
+FLOW sip_vm_connect(p, vm) {
+    p -> vm SIP INVITE URI "sip:bob-vm@10.22.15.99" FROM "sip:alice@10.22.15.10" TO "sip:bob-vm@10.22.15.99" CALL_ID "fwd-302-vm" CSEQ 1 WAIT 4ms
+    p <- vm SIP STATUS 200 REASON "OK" CALL_ID "fwd-302-vm" CSEQ 1
+}
+
+// INSTRUCTION: Compile the SIP 302 call forwarding scenario.
+COMPILE {
+    sip_302_redirect(orig_proxy, redirect_uas)
+    sip_vm_connect(orig_proxy, voicemail_srv)
+}

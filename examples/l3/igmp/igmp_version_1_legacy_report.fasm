@@ -1,0 +1,19 @@
+// PROMPT: RFC 1112 IGMP VERSION 1 Membership Report with Max Response Time 0 and TTL 1.
+// TOKENS: HOST, IP, FLOW, IGMP, QUERY, GROUP, MAX_RESP, VERSION, TTL, REPORT, COMPILE
+
+// INSTRUCTION: Define legacy multicast router polling on 224.0.0.1.
+HOST igmpv1_router { IP 192.168.12.1 }
+
+// INSTRUCTION: Define legacy industrial PLC reporting multicast group membership.
+HOST igmpv1_plc { IP 192.168.12.50 }
+
+// INSTRUCTION: Define IGMP VERSION 1 query and report exchange.
+FLOW igmp_v1_compat_flow(rtr, plc) {
+    rtr -> plc IGMP QUERY GROUP 0.0.0.0 MAX_RESP 0 VERSION 1 TTL 1
+    rtr <- plc IGMP REPORT GROUP 224.0.1.60 VERSION 1 TTL 1
+}
+
+// INSTRUCTION: Compile the IGMPv1 backward-compatibility flow.
+COMPILE {
+    igmp_v1_compat_flow(igmpv1_router, igmpv1_plc)
+}

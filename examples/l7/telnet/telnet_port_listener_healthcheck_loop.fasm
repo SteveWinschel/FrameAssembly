@@ -1,0 +1,21 @@
+// PROMPT: Periodic telnet listener availability probe in a COMPILE LOOP.
+// TOKENS: HOST, IP, FLOW, TELNET, DO, WILL, COMPILE, LOOP
+
+// INSTRUCTION: Define automated health monitor.
+HOST health_mon { IP 172.30.9.15 }
+
+// INSTRUCTION: Define monitored network switch.
+HOST mon_switch { IP 172.30.9.1 }
+
+// INSTRUCTION: Define availability ping flow.
+FLOW telnet_health_flow(c, s) {
+    c -> s TELNET DO 1
+    c <- s TELNET WILL 1
+}
+
+// INSTRUCTION: Compile block executing 3 health probe cycles.
+COMPILE {
+    LOOP 3 {
+        telnet_health_flow(health_mon, mon_switch)
+    }
+}

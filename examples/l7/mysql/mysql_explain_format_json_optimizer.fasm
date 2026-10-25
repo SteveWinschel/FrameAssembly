@@ -1,0 +1,26 @@
+// PROMPT: MySQL query optimizer inspection using EXPLAIN FORMAT=JSON on a multi-table join query.
+// TOKENS: HOST, IP, MAC, FLOW, MYSQL, SQL, PAYLOAD, WAIT, EOF, COMPILE
+
+// INSTRUCTION: Define the DBA performance tuning workstation.
+HOST dba_laptop {
+    IP 172.20.90.88
+    MAC 00:1a:2b:20:90:88
+}
+
+// INSTRUCTION: Define the staging MySQL 8.0 server.
+HOST staging_mysql {
+    IP 172.20.90.10
+    MAC 00:1a:2b:20:90:10
+}
+
+// INSTRUCTION: Execute EXPLAIN FORMAT=JSON and receive the query execution cost plan before EOF.
+FLOW mysql_explain_json(c, s) {
+    c -> s MYSQL SQL "EXPLAIN FORMAT=JSON SELECT o.id, c.name FROM orders o JOIN customers c ON o.cid = c.id"
+    c <- s MYSQL PAYLOAD "{'query_block':{'select_id':1,'cost_info':{'query_cost':'14.25'}}}" WAIT 2ms
+    c <- s MYSQL EOF
+}
+
+// INSTRUCTION: Compile the MySQL EXPLAIN FORMAT=JSON flow.
+COMPILE {
+    mysql_explain_json(dba_laptop, staging_mysql)
+}

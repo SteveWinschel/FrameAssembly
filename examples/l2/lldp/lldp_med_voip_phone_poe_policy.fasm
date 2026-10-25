@@ -1,0 +1,25 @@
+// PROMPT: LLDP-MED VoIP desk phone onboarding exchange advertising voice VLAN and PoE power requirements via organization TLVs.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define PoE campus access switch port.
+HOST poe_switch_port {
+    IP 10.35.1.1
+    MAC 00:1e:be:35:01:01
+}
+
+// INSTRUCTION: Define enterprise VoIP desk phone with integrated 3-port switch.
+HOST voip_desk_phone {
+    IP 10.35.1.105
+    MAC 00:04:f2:aa:bb:69
+}
+
+// INSTRUCTION: Define LLDP-MED switch policy advertisement and IP phone inventory response with custom TLV bytes.
+FLOW lldp_med_voip_onboarding(sw, phone) {
+    sw -> phone LLDP CHASSIS_ID "00:1e:be:35:01:01" PORT_ID "Gi1/0/12" SYSNAME "bldg3-fl2-sw01" SYSDESC "Campus PoE+ Access Switch" TTL 180 HEXPAYLOAD "fe090012bb020144006eb0"
+    sw <- phone LLDP CHASSIS_ID "00:04:f2:aa:bb:69" PORT_ID "LAN-Port" SYSNAME "SEP0004F2AABB69" SYSDESC "Enterprise IP Phone 8845" TTL 180 HEXPAYLOAD "fe070012bb04110264" WAIT 10ms
+}
+
+// INSTRUCTION: Compile block executing LLDP-MED VoIP desk phone discovery.
+COMPILE {
+    lldp_med_voip_onboarding(poe_switch_port, voip_desk_phone)
+}

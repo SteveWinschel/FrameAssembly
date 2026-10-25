@@ -1,0 +1,18 @@
+// PROMPT: AMQP topic exchange telemetry publishing over IEEE 802.1Q VLAN 200 with DSCP QoS marking.
+// TOKENS: HOST, IP, FLOW, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, VLAN, PCP, DSCP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the telemetry publisher gateway.
+HOST telem_pub { IP 10.100.20.11 }
+
+// INSTRUCTION: Define the VLAN-segmented AMQP broker.
+HOST vlan_broker { IP 10.100.20.2 }
+
+// INSTRUCTION: Publish sensor metrics over VLAN 200 with Assured Forwarding DSCP 26.
+FLOW amqp_vlan_publish(p, b) {
+    p -> b AMQP BASIC_PUBLISH CHANNEL 3 EXCHANGE "amq.topic" ROUTING_KEY "telemetry.cpu.load" VLAN 200 PCP 4 DSCP 26 PAYLOAD "0.74"
+}
+
+// INSTRUCTION: Compile the VLAN-tagged AMQP publish flow.
+COMPILE {
+    amqp_vlan_publish(telem_pub, vlan_broker)
+}

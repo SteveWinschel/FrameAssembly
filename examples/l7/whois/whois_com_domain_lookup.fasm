@@ -1,0 +1,21 @@
+// PROMPT: Commercial registry domain lookup query for enterprise organization domain.
+// TOKENS: HOST, IP, FLOW, WHOIS, QUERY, DOMAIN, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define security analyst workstation.
+HOST analyst_ws { IP 10.10.20.15 }
+
+// INSTRUCTION: Define Verisign COM registry server.
+HOST verisign_svr { IP 192.52.178.30 }
+
+// INSTRUCTION: Define commercial domain WHOIS lookup flow.
+FLOW whois_com_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "enterprise-tech.com"
+    c <- s WHOIS RESPONSE
+        DOMAIN "enterprise-tech.com"
+        REGISTRAR "MarkMonitor Inc"
+}
+
+// INSTRUCTION: Compile block executing COM domain query.
+COMPILE {
+    whois_com_flow(analyst_ws, verisign_svr)
+}

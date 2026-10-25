@@ -1,0 +1,25 @@
+// PROMPT: Cisco DMVPN / mGRE over IPsec ESP (Next Header 47 GRE) spoke-to-hub encrypted routing exchange.
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define DMVPN Spoke router encapsulating mGRE inside IPsec ESP transport mode.
+HOST dmvpn_spoke_12 {
+    IP 198.51.100.112
+    MAC 00:1d:71:50:00:70
+}
+
+// INSTRUCTION: Define DMVPN Hub NHS router terminating ESP (Next Header 47 GRE).
+HOST dmvpn_hub_nhs {
+    IP 198.51.100.1
+    MAC 00:1d:71:50:00:01
+}
+
+// INSTRUCTION: Define GRE-over-ESP packets with NEXT_HEADER 47 and explicit IV/ICV digests.
+FLOW esp_gre_dmvpn_flow(spoke, hub) {
+    spoke -> hub ESP SPI 475001 SEQ 12 IV "4700000147000002" ICV "deadc0dedeadc0de12345678" NEXT_HEADER 47 DF DSCP 48 TTL 60 PAYLOAD "ENCRYPTED_MGRE_NHRP_REGISTRATION" WAIT 5ms
+    spoke <- hub ESP SPI 475002 SEQ 12 IV "4700000247000001" ICV "87654321ed0cdaeded0cdaed" NEXT_HEADER 47 DF DSCP 48 TTL 60 PAYLOAD "ENCRYPTED_MGRE_NHRP_REG_REPLY"
+}
+
+// INSTRUCTION: Compile the GRE-over-IPsec ESP DMVPN spoke-to-hub flow.
+COMPILE {
+    esp_gre_dmvpn_flow(dmvpn_spoke_12, dmvpn_hub_nhs)
+}

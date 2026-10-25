@@ -1,0 +1,24 @@
+// PROMPT: sFlow v5 telemetry from a Metro Ethernet G.8032 ring node encapsulated in QinQ service provider tags.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define Metro Ethernet ring aggregation switch.
+HOST metro_ring_sw {
+    IP 172.18.50.1
+    MAC 00:15:17:12:32:01
+}
+
+// INSTRUCTION: Define carrier operations center sFlow collector.
+HOST carrier_col {
+    IP 172.18.50.250
+    MAC 00:15:17:12:32:fa
+}
+
+// INSTRUCTION: Export sFlow datagram with outer S-VLAN 400 and inner C-VLAN 50.
+FLOW sflow_metro_ring(sw, col) {
+    sw -> col SFLOW AGENT_IP 172.18.50.1 SUB_AGENT_ID 7 UPTIME 25920000 SAMPLES 14 QINQ 400 INNER_VLAN 50
+}
+
+// INSTRUCTION: Compile the Metro Ethernet QinQ sFlow telemetry scenario.
+COMPILE {
+    sflow_metro_ring(metro_ring_sw, carrier_col)
+}

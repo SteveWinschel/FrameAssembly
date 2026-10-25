@@ -1,0 +1,25 @@
+// PROMPT: 5G mobile backhaul Cell Site Gateway (CSG) transporting SCTP NGAP signaling over MPLS L3VPN to AMF core.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, SACK, WAIT, COMPILE
+
+// INSTRUCTION: Define 5G gNodeB Cell Site Gateway MPLS PE router.
+HOST csg_gnodeb_pe {
+    IP 10.155.10.1
+    MAC 00:1c:73:9b:0a:01
+}
+
+// INSTRUCTION: Define 5G Core AMF data center MPLS PE router.
+HOST amf_core_pe {
+    IP 10.155.10.2
+    MAC 00:1c:73:9b:0a:02
+}
+
+// INSTRUCTION: Define MPLS L3VPN Label 88400 transporting SCTP NGAP (PPID 60, Port 38412) signaling.
+FLOW mpls_5g_ngap_backhaul(csg, amf) {
+    csg -> amf MPLS 88400 EXP 5 BOS 1 MPLS_TTL 64 SCTP CHUNK DATA VTAG 55001 STREAM 0 SSN 1 PPID 60 SRCPORT 38412 DSTPORT 38412 PAYLOAD "ngap_initial_ue_message_pdu"
+    csg <- amf MPLS 88401 EXP 5 BOS 1 MPLS_TTL 64 SCTP CHUNK SACK VTAG 55001 SRCPORT 38412 DSTPORT 38412 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing 5G mobile backhaul MPLS SCTP NGAP flow.
+COMPILE {
+    mpls_5g_ngap_backhaul(csg_gnodeb_pe, amf_core_pe)
+}

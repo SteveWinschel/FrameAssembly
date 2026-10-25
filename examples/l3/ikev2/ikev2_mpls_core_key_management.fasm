@@ -1,0 +1,20 @@
+// PROMPT: MPLS-labeled IKEv2 key management exchange traversing a provider core backbone.
+// TOKENS: HOST, IP, FLOW, IKEV2, SA_INIT, INITIATOR_SPI, RESPONDER_SPI, MSGID, MPLS, EXP, BOS, MPLS_TTL, INFORMATIONAL, COMPILE
+
+// INSTRUCTION: Define MPLS PE crypto initiator.
+HOST mpls_ike_init { IP 10.248.0.1 }
+
+// INSTRUCTION: Define MPLS PE crypto responder.
+HOST mpls_ike_resp { IP 10.248.0.2 }
+
+// INSTRUCTION: Define MPLS-encapsulated IKEv2 SA_INIT and INFORMATIONAL exchange.
+FLOW ikev2_mpls_core(init, resp) {
+    init -> resp IKEV2 SA_INIT INITIATOR_SPI 888111 RESPONDER_SPI 0 MSGID 0 MPLS 50010 EXP 6 BOS 1 MPLS_TTL 64
+    init <- resp IKEV2 SA_INIT INITIATOR_SPI 888111 RESPONDER_SPI 888222 MSGID 0 MPLS 50020 EXP 6 BOS 1 MPLS_TTL 64
+    init -> resp IKEV2 INFORMATIONAL INITIATOR_SPI 888111 RESPONDER_SPI 888222 MSGID 2 MPLS 50010 EXP 6 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the MPLS-labeled IKEv2 key management flow.
+COMPILE {
+    ikev2_mpls_core(mpls_ike_init, mpls_ike_resp)
+}

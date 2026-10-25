@@ -1,0 +1,19 @@
+// PROMPT: S7comm PLC_CONTROL hot restart command and ACK confirmation between engineering station and PLC.
+// TOKENS: HOST, IP, FLOW, S7COMM, ROSCTR, FUNC, PDU_REF, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define field engineering laptop.
+HOST eng_laptop { IP 192.168.102.50 }
+
+// INSTRUCTION: Define S7-400 process controller PLC.
+HOST s7_400_plc { IP 192.168.102.2 }
+
+// INSTRUCTION: Define PLC_CONTROL JOB command and ACK response.
+FLOW s7comm_plc_control(c, plc) {
+    c -> plc S7COMM ROSCTR "JOB" FUNC "PLC_CONTROL" PDU_REF 10 PAYLOAD "P_PROGRAM" WAIT 8ms
+    c <- plc S7COMM ROSCTR "ACK" FUNC "PLC_CONTROL" PDU_REF 10
+}
+
+// INSTRUCTION: Compile S7comm PLC_CONTROL scenario.
+COMPILE {
+    s7comm_plc_control(eng_laptop, s7_400_plc)
+}

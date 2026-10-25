@@ -1,0 +1,32 @@
+// PROMPT: Active Directory SYSVOL Group Policy Object (GPO) gpt.ini read synchronization over SMB2.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, SESSION_ID, MSGID, SHARE, STATUS, TREE_ID, WAIT, FILENAME, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the domain-joined Windows endpoint refreshing Group Policy.
+HOST domain_member {
+    IP 10.60.40.115
+    MAC 00:1a:2b:60:40:15
+}
+
+// INSTRUCTION: Define the Primary Domain Controller hosting SYSVOL.
+HOST pdc_server {
+    IP 10.60.40.1
+    MAC 00:1a:2b:60:40:01
+}
+
+// INSTRUCTION: Connect to SYSVOL, read gpt.ini policy version, and close the file handle.
+FLOW smb_gpo_sync(c, s) {
+    c -> s SMB COMMAND "TREE_CONNECT" SESSION_ID 7700 MSGID 1 SHARE "\\corp.local\SYSVOL"
+    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 9 SESSION_ID 7700 MSGID 1 WAIT 1ms
+    c -> s SMB COMMAND "CREATE" TREE_ID 9 SESSION_ID 7700 MSGID 2 FILENAME "Policies\GPT.INI"
+    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 9 SESSION_ID 7700 MSGID 2 WAIT 1ms
+    c -> s SMB COMMAND "READ" TREE_ID 9 SESSION_ID 7700 MSGID 3
+    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 9 SESSION_ID 7700 MSGID 3 PAYLOAD "[General]
+Version=65543
+"
+    c -> s SMB COMMAND "CLOSE" TREE_ID 9 SESSION_ID 7700 MSGID 4
+}
+
+// INSTRUCTION: Compile the SYSVOL Group Policy SMB2 flow.
+COMPILE {
+    smb_gpo_sync(domain_member, pdc_server)
+}

@@ -1,5 +1,5 @@
 // PROMPT: WebSocket text message framing with opcode and final bit set.
-// TOKENS: HOST, IP, FLOW, ->, <-, WEBSOCKET, OPCODE, FIN_BIT, COMPILE
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.5 }

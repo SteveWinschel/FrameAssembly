@@ -1,0 +1,34 @@
+// PROMPT: Dual-stack WebSocket pub/sub broker serving both IPv4 and IPv6 subscriber clients.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, TEXT, FIN_BIT, MASK_KEY, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv4 WebSocket subscriber client.
+HOST sub_v4 {
+    IP 192.168.110.25
+}
+
+// INSTRUCTION: Define IPv4 WebSocket broker address.
+HOST broker_v4 {
+    IP 192.168.110.1
+}
+
+// INSTRUCTION: Define IPv6 WebSocket subscriber client.
+HOST sub_v6 {
+    IP 2001:db8:110::25
+}
+
+// INSTRUCTION: Define IPv6 WebSocket broker address.
+HOST broker_v6 {
+    IP 2001:db8:110::1
+}
+
+// INSTRUCTION: Define reusable WebSocket subscription and broadcast flow.
+FLOW ws_pubsub(c, s) {
+    c -> s WEBSOCKET TEXT FIN_BIT 1 MASK_KEY 0x12345678 PAYLOAD "SUBSCRIBE topic/news" WAIT 5ms
+    c <- s WEBSOCKET TEXT FIN_BIT 1 PAYLOAD "MESSAGE topic/news Breaking"
+}
+
+// INSTRUCTION: Compile dual-stack IPv4 and IPv6 WebSocket pub/sub flows.
+COMPILE {
+    ws_pubsub(sub_v4, broker_v4)
+    ws_pubsub(sub_v6, broker_v6)
+}

@@ -1,0 +1,25 @@
+// PROMPT: RFC 5798 Section 6.1 VRRPv3 Master_Down_Timer expiry and Skew_Time preemption convergence across three routers.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Backup Router B1 (Priority 180, shorter Skew_Time) winning election first.
+HOST vrrp_backup_b1 {
+    IP 10.112.90.3
+    MAC 00:00:5e:00:01:5a
+}
+
+// INSTRUCTION: Define Backup Router B2 (Priority 120, longer Skew_Time) hearing B1 and remaining Backup.
+HOST vrrp_backup_b2 {
+    IP 10.112.90.4
+    MAC 00:1e:be:70:90:04
+}
+
+// INSTRUCTION: Define B1 Master transition advertisement suppressing lower-priority B2.
+FLOW vrrp_skew_time_convergence(b1, b2) {
+    b1 -> b2 VRRP VRID 90 PRIORITY 180 ADV_INT 100 VIP 10.112.90.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "B1_SKEW_TIME_EXPIRED_FIRST_MASTER" WAIT 50ms
+    b1 -> b2 VRRP VRID 90 PRIORITY 180 ADV_INT 100 VIP 10.112.90.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "B2_CANCELS_MASTER_DOWN_TIMER"
+}
+
+// INSTRUCTION: Compile the RFC 5798 VRRPv3 Skew_Time election convergence flow.
+COMPILE {
+    vrrp_skew_time_convergence(vrrp_backup_b1, vrrp_backup_b2)
+}

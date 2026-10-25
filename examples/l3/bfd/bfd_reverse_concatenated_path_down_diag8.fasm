@@ -1,0 +1,25 @@
+// PROMPT: RFC 5880 BFD signaling Diagnostic Code 8 (Reverse Concatenated Path Down) on a bidirectional transport LSP.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, MPLS, EXP, BOS, MPLS_TTL, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define MPLS-TP egress LSR detecting reverse path defect.
+HOST mpls_tp_egress {
+    IP 10.58.80.10
+    MAC 00:19:aa:58:80:0a
+}
+
+// INSTRUCTION: Define MPLS-TP ingress LSR receiving DIAG 8 reverse path alarm.
+HOST mpls_tp_ingress {
+    IP 10.58.80.20
+    MAC 00:19:aa:58:80:14
+}
+
+// INSTRUCTION: Define BFD transition to DIAG 8 (Reverse Concatenated Path Down) over MPLS label 18080.
+FLOW bfd_reverse_concat_diag8(egr, ing) {
+    egr -> ing BFD STATE 3 DIAG 8 MY_DISC 58801 YOUR_DISC 58802 MIN_TX 10000 MIN_RX 10000 MULT 3 MPLS 18080 EXP 6 BOS 1 MPLS_TTL 255 DSCP 48 TTL 255 WAIT 10ms
+    egr <- ing BFD STATE 3 DIAG 0 MY_DISC 58802 YOUR_DISC 58801 MIN_TX 10000 MIN_RX 10000 MULT 3 MPLS 18081 EXP 6 BOS 1 MPLS_TTL 255 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the BFD Reverse Concatenated Path Down (DIAG 8) flow.
+COMPILE {
+    bfd_reverse_concat_diag8(mpls_tp_egress, mpls_tp_ingress)
+}

@@ -1,0 +1,21 @@
+// PROMPT: HTTP 401 Unauthorized challenge with WWW-Authenticate header and authenticated retry.
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, STATUS, REASON, HEADER, BODY, COMPILE
+
+// INSTRUCTION: Define API consumer service.
+HOST api_consumer { IP 172.19.0.25 }
+
+// INSTRUCTION: Define protected OAuth2 resource server.
+HOST resource_srv { IP 172.19.0.1 }
+
+// INSTRUCTION: Request resource without credentials, receive 401 WWW-Authenticate, and retry with Bearer token.
+FLOW http_auth_401_challenge(c, s) {
+    c -> s HTTP METHOD "GET" URI "/api/secrets" HOST_HDR "vault.internal"
+    c <- s HTTP STATUS 401 REASON "Unauthorized" HEADER "WWW-Authenticate" "Bearer realm=\"vault\""
+    c -> s HTTP METHOD "GET" URI "/api/secrets" HOST_HDR "vault.internal" HEADER "Authorization" "Bearer tok_998877"
+    c <- s HTTP STATUS 200 REASON "OK" BODY "{\"key\":\"ok\"}"
+}
+
+// INSTRUCTION: Compile the HTTP 401 authentication challenge flow.
+COMPILE {
+    http_auth_401_challenge(api_consumer, resource_srv)
+}

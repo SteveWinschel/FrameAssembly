@@ -1,0 +1,18 @@
+// PROMPT: VXLAN underlay transport preserving DSCP AF41 QoS markings for interactive video overlay.
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, DSCP, TTL, COMPILE
+
+// INSTRUCTION: Define media streaming VTEP node.
+HOST media_vtep_src { IP 172.16.80.1 }
+
+// INSTRUCTION: Define remote media cache VTEP node.
+HOST media_vtep_dst { IP 172.16.80.2 }
+
+// INSTRUCTION: Define QoS marked VXLAN tunnel transmission with DSCP AF41 (DSCP 34).
+FLOW vxlan_qos_flow(src, dst) {
+    src -> dst VXLAN VNI 40001 DSCP 34 TTL 64
+}
+
+// INSTRUCTION: Compile block executing DSCP prioritized VXLAN packet.
+COMPILE {
+    vxlan_qos_flow(media_vtep_src, media_vtep_dst)
+}

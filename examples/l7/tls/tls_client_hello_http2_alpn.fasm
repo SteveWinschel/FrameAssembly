@@ -1,0 +1,20 @@
+// PROMPT: Client hello offering ALPN h2 application negotiation and SNI domain.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, ALPN, COMPILE
+
+// INSTRUCTION: Define microservice API consumer.
+HOST api_consumer { IP 172.16.50.15 }
+
+// INSTRUCTION: Define cloud API gateway.
+HOST api_gateway { IP 172.16.50.1 }
+
+// INSTRUCTION: Define ClientHello with h2 ALPN flow.
+FLOW tls_alpn_h2_flow(c, s) {
+    c -> s TLS CLIENT_HELLO
+        SNI "api.service.internal"
+        ALPN "h2"
+}
+
+// INSTRUCTION: Compile block executing h2 ALPN request.
+COMPILE {
+    tls_alpn_h2_flow(api_consumer, api_gateway)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Simulate an uninterruptible power supply (UPS) sending an SNMPv2c trap and responding to a GET query with TIMETICKS remaining battery runtime and GAUGE32 battery capacity.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, TRAP, GET, RESPONSE, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, NULLVAL, TIMETICKS, GAUGE32, INT, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, SNMP2, TRAP, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, INT, TIMETICKS, WAIT, GET, NULLVAL, RESPONSE, GAUGE32, COMPILE
 
 // INSTRUCTION: Define a data center UPS management card with IP 10.130.0.20.
 HOST ups_agent { IP 10.130.0.20 MAC 00:c0:b7:30:00:20 }

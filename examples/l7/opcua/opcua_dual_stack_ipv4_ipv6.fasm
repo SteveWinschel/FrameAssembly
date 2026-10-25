@@ -1,0 +1,24 @@
+// PROMPT: Dual-stack IPv4 and IPv6 OPC UA telemetry polling using a shared polymorphic flow.
+// TOKENS: HOST, IP, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, DSCP, TTL, FLOWLABEL, COMPILE
+
+// INSTRUCTION: Define IPv4 OPC UA client and server.
+HOST opc_v4_client { IP 10.105.0.10 }
+// INSTRUCTION: Define IPv4 OPC UA PLC endpoint.
+HOST opc_v4_server { IP 10.105.0.20 }
+
+// INSTRUCTION: Define IPv6 OPC UA client and server.
+HOST opc_v6_client { IP 2001:db8:4840::10 }
+// INSTRUCTION: Define IPv6 OPC UA PLC endpoint.
+HOST opc_v6_server { IP 2001:db8:4840::20 }
+
+// INSTRUCTION: Define dual-stack flow reading turbine RPM node over IPv4 and IPv6.
+FLOW opcua_dual_stack_poll(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 9 TOKEN_ID 1 SEQ_NUM 1 REQID 1 NODE_ID "ns=3;i=1001" DSCP 46 TTL 64 FLOWLABEL 0x48400
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 9 TOKEN_ID 1 SEQ_NUM 2 REQID 1 NODE_ID "ns=3;i=1001" DSCP 46 TTL 64 FLOWLABEL 0x48400
+}
+
+// INSTRUCTION: Compile polymorphic flow across IPv4 and IPv6 endpoint pairs.
+COMPILE {
+    opcua_dual_stack_poll(opc_v4_client, opc_v4_server)
+    opcua_dual_stack_poll(opc_v6_client, opc_v6_server)
+}

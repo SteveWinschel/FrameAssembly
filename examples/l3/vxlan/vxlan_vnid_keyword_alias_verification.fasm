@@ -1,0 +1,25 @@
+// PROMPT: RFC 7348 VXLAN tunnel configured using the VNID keyword alias alongside standard VNI syntax.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNID, SRCPORT, DSTPORT, DF, TTL, PAYLOAD, WAIT, VNI, COMPILE
+
+// INSTRUCTION: Define VTEP-Alpha using VNID keyword syntax.
+HOST vnid_vtep_alpha {
+    IP 10.47.89.10
+    MAC 00:16:3e:47:89:0a
+}
+
+// INSTRUCTION: Define VTEP-Beta using VNI keyword syntax.
+HOST vnid_vtep_beta {
+    IP 10.47.89.20
+    MAC 00:16:3e:47:89:14
+}
+
+// INSTRUCTION: Define bidirectional VXLAN exchange verifying VNID and VNI keyword parity.
+FLOW vxlan_vnid_alias_flow(alpha, beta) {
+    alpha -> beta VXLAN VNID 77777 SRCPORT 57777 DSTPORT 4789 DF TTL 64 PAYLOAD "VXLAN_SPECIFIED_WITH_VNID_KEYWORD" WAIT 3ms
+    alpha <- beta VXLAN VNI 77777 SRCPORT 57778 DSTPORT 4789 DF TTL 64 PAYLOAD "VXLAN_SPECIFIED_WITH_VNI_KEYWORD"
+}
+
+// INSTRUCTION: Compile the VXLAN VNID keyword alias verification flow.
+COMPILE {
+    vxlan_vnid_alias_flow(vnid_vtep_alpha, vnid_vtep_beta)
+}

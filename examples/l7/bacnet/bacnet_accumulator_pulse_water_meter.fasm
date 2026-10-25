@@ -1,0 +1,27 @@
+// PROMPT: BACnet/IP ReadProperty on an Accumulator object (Object Type 23) reading chilled water pulse meter totals.
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, READ_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the campus energy management server.
+HOST ems_collector {
+    IP 10.120.10.5
+    MAC 00:1a:2b:78:10:05
+}
+
+// INSTRUCTION: Define the mechanical room BACnet pulse counter gateway.
+HOST water_meter_gw {
+    IP 10.120.10.80
+    MAC 00:1a:2b:78:10:80
+}
+
+// INSTRUCTION: Read Present_Value (Property 85) and Status_Flags (Property 111) from Accumulator Object Type 23 Instance 1.
+FLOW bacnet_accumulator_read(c, g) {
+    c -> g BACNET READ_PROPERTY INVOKE_ID 21 OBJECT_TYPE 23 OBJECT_INSTANCE 1 PROPERTY_ID 85
+    c <- g BACNET READ_PROPERTY INVOKE_ID 21 OBJECT_TYPE 23 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 482910 WAIT 2ms
+    c -> g BACNET READ_PROPERTY INVOKE_ID 22 OBJECT_TYPE 23 OBJECT_INSTANCE 1 PROPERTY_ID 111
+    c <- g BACNET READ_PROPERTY INVOKE_ID 22 OBJECT_TYPE 23 OBJECT_INSTANCE 1 PROPERTY_ID 111 VALUE 0
+}
+
+// INSTRUCTION: Compile the BACnet accumulator water meter flow.
+COMPILE {
+    bacnet_accumulator_read(ems_collector, water_meter_gw)
+}

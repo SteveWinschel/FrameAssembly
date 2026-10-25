@@ -1,0 +1,26 @@
+// PROMPT: PostGIS spatial query using ST_DWithin and ST_MakePoint over IPv6 for geofence alerting.
+// TOKENS: HOST, IP, MAC, FLOW, POSTGRES, SQL, COMMAND_COMPLETE, PAYLOAD, WAIT, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define the geofence microservice over IPv6.
+HOST geofence_svc {
+    IP 2001:db8:95:30::22
+    MAC 00:1a:2b:95:30:22
+}
+
+// INSTRUCTION: Define the PostGIS-enabled PostgreSQL server over IPv6.
+HOST postgis_db {
+    IP 2001:db8:95:30::1
+    MAC 00:1a:2b:95:30:01
+}
+
+// INSTRUCTION: Query restricted zones within 500 meters of a GPS coordinate using PostGIS.
+FLOW pg_postgis_query(c, s) {
+    c -> s POSTGRES SQL "SELECT zone_id, name FROM restricted_zones WHERE ST_DWithin(geom, ST_MakePoint(-73.9857, 40.7484)::geography, 500)"
+    c <- s POSTGRES COMMAND_COMPLETE PAYLOAD "SELECT 2" WAIT 2ms
+    c <- s POSTGRES READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile the IPv6 PostGIS spatial query flow.
+COMPILE {
+    pg_postgis_query(geofence_svc, postgis_db)
+}

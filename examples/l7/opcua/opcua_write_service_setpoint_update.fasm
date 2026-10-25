@@ -1,0 +1,27 @@
+// PROMPT: OPC UA WriteRequest updating a pasteurization temperature setpoint node (ns=3;s=Pasteurizer.TempSetpoint).
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the dairy plant recipe manager client.
+HOST recipe_client {
+    IP 10.140.30.12
+    MAC 00:1a:2b:8c:30:12
+}
+
+// INSTRUCTION: Define the pasteurization skid OPC UA server.
+HOST skid_ua_server {
+    IP 10.140.30.1
+    MAC 00:1a:2b:8c:30:01
+}
+
+// INSTRUCTION: Write 72.5 C to ns=3;s=Pasteurizer.TempSetpoint and read back ns=3;s=Pasteurizer.TempActual.
+FLOW opcua_write_setpoint(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 305 TOKEN_ID 2 SEQ_NUM 80 REQID 80 NODE_ID "ns=3;s=Pasteurizer.TempSetpoint" PAYLOAD "Double:72.5"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 305 TOKEN_ID 2 SEQ_NUM 80 REQID 80 NODE_ID "ns=3;s=Pasteurizer.TempSetpoint" PAYLOAD "StatusCode:Good(0x00000000)" WAIT 2ms
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 305 TOKEN_ID 2 SEQ_NUM 81 REQID 81 NODE_ID "ns=3;s=Pasteurizer.TempActual"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 305 TOKEN_ID 2 SEQ_NUM 81 REQID 81 NODE_ID "ns=3;s=Pasteurizer.TempActual" PAYLOAD "Double:72.4"
+}
+
+// INSTRUCTION: Compile the OPC UA WriteRequest setpoint update flow.
+COMPILE {
+    opcua_write_setpoint(recipe_client, skid_ua_server)
+}

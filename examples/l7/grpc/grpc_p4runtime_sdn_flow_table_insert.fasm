@@ -1,0 +1,27 @@
+// PROMPT: SDN controller programming a P4 programmable switch pipeline via P4Runtime Write RPC on TCP port 9559.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, SRCPORT, DSTPORT, GRPC_STATUS, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define ONOS/Stratum SDN control plane host.
+HOST sdn_controller {
+    IP 10.95.59.10
+    MAC 00:1c:73:5f:3b:0a
+}
+
+// INSTRUCTION: Define Tofino P4 programmable switch running P4Runtime server on port 9559.
+HOST p4_tofino_sw {
+    IP 10.95.59.1
+    MAC 00:1c:73:5f:3b:01
+}
+
+// INSTRUCTION: Establish master arbitration via StreamChannel and push flow table entry via Write RPC.
+FLOW grpc_p4runtime_write(ctrl, sw) {
+    ctrl -> sw GRPC SERVICE "p4.v1.P4Runtime" METHOD "SetForwardingPipelineConfig" SRCPORT 49559 DSTPORT 9559
+    ctrl <- sw GRPC SERVICE "p4.v1.P4Runtime" METHOD "SetForwardingPipelineConfig" SRCPORT 9559 DSTPORT 49559 GRPC_STATUS 0
+    ctrl -> sw GRPC SERVICE "p4.v1.P4Runtime" METHOD "Write" SRCPORT 49559 DSTPORT 9559 HEXPAYLOAD "000000120801120e"
+    ctrl <- sw GRPC SERVICE "p4.v1.P4Runtime" METHOD "Write" SRCPORT 9559 DSTPORT 49559 GRPC_STATUS 0
+}
+
+// INSTRUCTION: Compile the P4Runtime SDN flow table programming gRPC scenario.
+COMPILE {
+    grpc_p4runtime_write(sdn_controller, p4_tofino_sw)
+}

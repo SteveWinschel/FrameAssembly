@@ -1,0 +1,27 @@
+// PROMPT: Core router resolving multiple downstream host next-hops in a rate-limited ARP Request loop.
+// TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, SENDERMAC, SENDERIP, TARGETMAC, TARGETIP, DSTMAC, WAIT, REPLY, COMPILE, LOOP
+
+// INSTRUCTION: Define campus aggregation router performing controlled ARP cache refresh.
+HOST campus_agg_rtr {
+    IP 10.120.0.1
+    MAC 00:1c:73:78:00:01
+}
+
+// INSTRUCTION: Define campus workstation responding to periodic router ARP refresh probes.
+HOST campus_desk_pc {
+    IP 10.120.0.88
+    MAC 00:21:70:78:00:58
+}
+
+// INSTRUCTION: Exchange single unicast ARP poll and reply inside a 3-iteration rate-limited compile loop.
+FLOW arp_periodic_refresh(rtr, pc) {
+    rtr -> pc ARP REQUEST SENDERMAC 00:1c:73:78:00:01 SENDERIP 10.120.0.1 TARGETMAC 00:21:70:78:00:58 TARGETIP 10.120.0.88 DSTMAC 00:21:70:78:00:58 WAIT 10ms
+    rtr <- pc ARP REPLY SENDERMAC 00:21:70:78:00:58 SENDERIP 10.120.0.88 TARGETMAC 00:1c:73:78:00:01 TARGETIP 10.120.0.1
+}
+
+// INSTRUCTION: Compile 3 iterations of the unicast ARP cache refresh poll.
+COMPILE {
+    LOOP 3 {
+        arp_periodic_refresh(campus_agg_rtr, campus_desk_pc)
+    }
+}

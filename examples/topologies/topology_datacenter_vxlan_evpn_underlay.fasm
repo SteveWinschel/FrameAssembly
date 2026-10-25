@@ -1,5 +1,5 @@
 // PROMPT: Data center network fabric running BGP-EVPN control plane with VXLAN encapsulation over IPv6 underlay.
-// TOKENS: HOST, IP, FLOW, ->, BGP, OPEN, ASN, HOLDTIME, BGPID, VXLAN, VNI, COMPILE
+// TOKENS: HOST, IP, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, VXLAN, VNI, COMPILE
 
 // INSTRUCTION: Define data center VTEP switch 1 over IPv6.
 HOST v6_vtep1 { IP 2001:db8:dc::1 }

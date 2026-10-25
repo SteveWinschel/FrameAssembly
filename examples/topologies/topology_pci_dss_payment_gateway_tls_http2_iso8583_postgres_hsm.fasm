@@ -1,0 +1,28 @@
+// PROMPT: PCI-DSS card payment authorization pipeline combining TLS 1.3 ingress, HTTP/2 API gateway, TCP ISO-8583 Hardware Security Module (HSM) PIN verification, and PostgreSQL ledger commit.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, SERVER_HELLO, FINISHED, WAIT, HTTP2, HEADERS, STREAM_ID, PAYLOAD, TCP, PSH, ACK, SRCPORT, DSTPORT, WIN, POSTGRES, SQL, COMMAND_COMPLETE, COMPILE
+
+// INSTRUCTION: Define merchant point-of-sale payment gateway client.
+HOST merchant_pos_gw { IP 10.180.1.15 }
+
+// INSTRUCTION: Define PCI-DSS payment switch and HTTP/2 authorizer pod.
+HOST pci_payment_switch { IP 10.180.10.50 }
+
+// INSTRUCTION: Define network Hardware Security Module (HSM) and PostgreSQL settlement ledger.
+HOST hsm_and_ledger_srv { IP 10.180.20.100 }
+
+// INSTRUCTION: Define TLS 1.3 setup, HTTP/2 auth request, TCP ISO-8583 HSM ARQC check, and PostgreSQL settlement insert.
+FLOW pci_dss_payment_auth_pipeline(pos, sw, hsm_db) {
+    pos -> sw TLS CLIENT_HELLO SNI "auth.pci-payments.net"
+    pos <- sw TLS SERVER_HELLO FINISHED WAIT 1ms
+    pos -> sw HTTP2 HEADERS STREAM_ID 1 PAYLOAD "POST /v2/authorize amount=49999&currency=USD" WAIT 1ms
+    sw -> hsm_db TCP PSH ACK SRCPORT 44100 DSTPORT 1500 WIN 65535 PAYLOAD "ISO8583_0100_HSM_VERIFY_EMV_ARQC_CRYPTOGRAM" WAIT 1ms
+    sw <- hsm_db TCP PSH ACK SRCPORT 1500 DSTPORT 44100 WIN 65535 PAYLOAD "ISO8583_0110_RC_00_ARPC_VERIFIED" WAIT 1ms
+    sw -> hsm_db POSTGRES SQL "INSERT INTO card_authorizations (stan, amount_cents, resp_code) VALUES (774102, 49999, '00');" WAIT 1ms
+    sw <- hsm_db POSTGRES COMMAND_COMPLETE WAIT 1ms
+    pos <- sw HTTP2 HEADERS STREAM_ID 1 PAYLOAD "200 OK {\"auth_code\":\"A88412\",\"status\":\"APPROVED\"}" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing PCI-DSS payment TLS, HTTP/2, TCP ISO-8583, and PostgreSQL topology.
+COMPILE {
+    pci_dss_payment_auth_pipeline(merchant_pos_gw, pci_payment_switch, hsm_and_ledger_srv)
+}

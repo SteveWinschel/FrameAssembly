@@ -1,0 +1,25 @@
+// PROMPT: Generate a DANE RFC 6698 TLSA DNS query verifying the SHA-256 certificate association for TCP port 25.
+// TOKENS: HOST, IP, MAC, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RCODE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the DNS stub resolver client endpoint.
+HOST dns_client {
+    IP 10.25.53.19
+    MAC 00:1b:21:53:01:0a
+}
+
+// INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
+HOST dns_server {
+    IP 10.25.53.53
+    MAC 00:1b:21:53:01:35
+}
+
+// INSTRUCTION: Execute the DNS query and authoritative response transaction.
+FLOW dns_scenario_flow(c, s) {
+    c -> s DNS QUERY TXID 2108 QNAME "_25._tcp.mx1.example.org" QTYPE "TLSA" WAIT 4ms
+    c <- s DNS RESPONSE TXID 2108 RCODE 0 QNAME "_25._tcp.mx1.example.org" QTYPE "TLSA" RDATA "3 1 1 d2abde240d7cd3ee6b4b28c54df034b9" ANS_TTL 3600
+}
+
+// INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
+COMPILE {
+    dns_scenario_flow(dns_client, dns_server)
+}

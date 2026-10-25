@@ -1,148 +1,153 @@
-//! Layer 7 application, infrastructure, OT, and management protocol builders.
+//! Layer 7 (Application, Infrastructure, Industrial OT, and Network Management) wire builders.
+//!
+//! This module aggregates the wire packet synthesis functions for all 45 Layer 7 protocols
+//! supported by FrameAssembly. Each submodule translates a protocol-specific zero-copy AST
+//! specification from [`crate::ast::l7`] and a [`crate::builders::WireContext`] into a
+//! deterministic, standards-compliant Layer 7 byte vector ready for encapsulation inside TCP, UDP,
+//! or SCTP transport segments by the top-level frame compiler.
 
-/// SNMP protocol builders (RFC 1157, RFC 3414, RFC 3826).
-pub mod snmp;
-
-/// AMQP protocol builder.
 pub mod amqp;
-/// BACNET protocol builder.
 pub mod bacnet;
-/// COAP protocol builder.
 pub mod coap;
-/// DHCP protocol builder.
 pub mod dhcp;
-/// DNP3 protocol builder.
 pub mod dnp3;
-/// DNS protocol builder.
 pub mod dns;
-/// ETHERNETIP protocol builder.
 pub mod ethernetip;
-/// FTP protocol builder.
 pub mod ftp;
-/// GRPC protocol builder.
 pub mod grpc;
-/// HTTP protocol builder.
 pub mod http;
-/// HTTP2 protocol builder.
 pub mod http2;
-/// IMAP protocol builder.
 pub mod imap;
-/// IPFIX protocol builder.
 pub mod ipfix;
-/// KERBEROS protocol builder.
 pub mod kerberos;
-/// LDAP protocol builder.
 pub mod ldap;
-/// MDNS protocol builder.
 pub mod mdns;
-/// MEMCACHED protocol builder.
 pub mod memcached;
-/// MODBUS protocol builder.
 pub mod modbus;
-/// MQTT protocol builder.
 pub mod mqtt;
-/// MYSQL protocol builder.
 pub mod mysql;
-/// NETFLOW protocol builder.
 pub mod netflow;
-/// NFS protocol builder.
 pub mod nfs;
-/// NTP protocol builder.
 pub mod ntp;
-/// OPCUA protocol builder.
 pub mod opcua;
-/// POP3 protocol builder.
 pub mod pop3;
-/// POSTGRES protocol builder.
 pub mod postgres;
-/// PTP protocol builder.
 pub mod ptp;
-/// QUIC protocol builder.
 pub mod quic;
-/// RADIUS protocol builder.
 pub mod radius;
-/// REDIS protocol builder.
 pub mod redis;
-/// RTP protocol builder.
 pub mod rtp;
-/// RTSP protocol builder.
 pub mod rtsp;
-/// S7COMM protocol builder.
 pub mod s7comm;
-/// SFLOW protocol builder.
 pub mod sflow;
-/// SIP protocol builder.
 pub mod sip;
-/// SMB protocol builder.
 pub mod smb;
-/// SMTP protocol builder.
 pub mod smtp;
-/// SSDP protocol builder.
+pub mod snmp;
 pub mod ssdp;
-/// SSH protocol builder.
 pub mod ssh;
-/// STUN protocol builder.
 pub mod stun;
-/// SYSLOG protocol builder.
 pub mod syslog;
-/// TACACS protocol builder.
 pub mod tacacs;
-/// TELNET protocol builder.
 pub mod telnet;
-/// TFTP protocol builder.
 pub mod tftp;
-/// TLS protocol builder.
 pub mod tls;
-/// WEBSOCKET protocol builder.
 pub mod websocket;
-/// WHOIS protocol builder.
 pub mod whois;
 
-pub use snmp::*;
+#[doc(inline)]
 pub use amqp::*;
+#[doc(inline)]
 pub use bacnet::*;
+#[doc(inline)]
 pub use coap::*;
+#[doc(inline)]
 pub use dhcp::*;
+#[doc(inline)]
 pub use dnp3::*;
+#[doc(inline)]
 pub use dns::*;
+#[doc(inline)]
 pub use ethernetip::*;
+#[doc(inline)]
 pub use ftp::*;
+#[doc(inline)]
 pub use grpc::*;
+#[doc(inline)]
 pub use http::*;
+#[doc(inline)]
 pub use http2::*;
+#[doc(inline)]
 pub use imap::*;
+#[doc(inline)]
 pub use ipfix::*;
+#[doc(inline)]
 pub use kerberos::*;
+#[doc(inline)]
 pub use ldap::*;
+#[doc(inline)]
 pub use mdns::*;
+#[doc(inline)]
 pub use memcached::*;
+#[doc(inline)]
 pub use modbus::*;
+#[doc(inline)]
 pub use mqtt::*;
+#[doc(inline)]
 pub use mysql::*;
+#[doc(inline)]
 pub use netflow::*;
+#[doc(inline)]
 pub use nfs::*;
+#[doc(inline)]
 pub use ntp::*;
+#[doc(inline)]
 pub use opcua::*;
+#[doc(inline)]
 pub use pop3::*;
+#[doc(inline)]
 pub use postgres::*;
+#[doc(inline)]
 pub use ptp::*;
+#[doc(inline)]
 pub use quic::*;
+#[doc(inline)]
 pub use radius::*;
+#[doc(inline)]
 pub use redis::*;
+#[doc(inline)]
 pub use rtp::*;
+#[doc(inline)]
 pub use rtsp::*;
+#[doc(inline)]
 pub use s7comm::*;
+#[doc(inline)]
 pub use sflow::*;
+#[doc(inline)]
 pub use sip::*;
+#[doc(inline)]
 pub use smb::*;
+#[doc(inline)]
 pub use smtp::*;
+#[doc(inline)]
+pub use snmp::*;
+#[doc(inline)]
 pub use ssdp::*;
+#[doc(inline)]
 pub use ssh::*;
+#[doc(inline)]
 pub use stun::*;
+#[doc(inline)]
 pub use syslog::*;
+#[doc(inline)]
 pub use tacacs::*;
+#[doc(inline)]
 pub use telnet::*;
+#[doc(inline)]
 pub use tftp::*;
+#[doc(inline)]
 pub use tls::*;
+#[doc(inline)]
 pub use websocket::*;
+#[doc(inline)]
 pub use whois::*;

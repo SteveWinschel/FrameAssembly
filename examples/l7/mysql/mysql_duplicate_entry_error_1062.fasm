@@ -1,0 +1,28 @@
+// PROMPT: MySQL INSERT violating a UNIQUE index constraint and returning ER_DUP_ENTRY (ERRCODE 1062).
+// TOKENS: HOST, IP, MAC, FLOW, MYSQL, GREETING, SERVER_VERSION, WAIT, LOGIN, USER, DB, OK, SQL, ERR, ERRCODE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the user registration API service.
+HOST signup_api {
+    IP 10.90.10.40
+    MAC 00:1a:2b:90:10:40
+}
+
+// INSTRUCTION: Define the customer identity MySQL server.
+HOST identity_mysql {
+    IP 10.90.10.5
+    MAC 00:1a:2b:90:10:05
+}
+
+// INSTRUCTION: Authenticate to the users_db schema and receive ERRCODE 1062 on duplicate email insert.
+FLOW mysql_dup_key(c, s) {
+    c <- s MYSQL GREETING SERVER_VERSION "8.0.36-debug" WAIT 1ms
+    c -> s MYSQL LOGIN USER "signup_svc" DB "users_db"
+    c <- s MYSQL OK WAIT 1ms
+    c -> s MYSQL SQL "INSERT INTO accounts (email, created_at) VALUES ('alice@example.com', NOW())"
+    c <- s MYSQL ERR ERRCODE 1062 PAYLOAD "Duplicate entry 'alice@example.com' for key 'accounts.idx_email_uniq'"
+}
+
+// INSTRUCTION: Compile the MySQL duplicate key error scenario.
+COMPILE {
+    mysql_dup_key(signup_api, identity_mysql)
+}

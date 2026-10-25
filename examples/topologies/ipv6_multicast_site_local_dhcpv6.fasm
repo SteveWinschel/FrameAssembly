@@ -1,5 +1,5 @@
 // PROMPT: IPv6 site-local DHCPv6 server multicast transmission to ff05::1:3 deriving RFC 2464 MAC.
-// TOKENS: HOST, IP, FLOW, ->, UDP, SRCPORT, DSTPORT, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define DHCPv6 relay agent.
 HOST relay_agent { IP 2001:db8:1::1 }

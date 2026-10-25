@@ -1,5 +1,5 @@
 // PROMPT: RFC 5424 structured event logging over IPv6 with custom facility, severity, and application tags.
-// TOKENS: HOST, IP, FLOW, ->, SYSLOG, FACILITY, SEVERITY, APP, MSG, COMPILE
+// TOKENS: HOST, IP, FLOW, SYSLOG, FACILITY, SEVERITY, APP, MSG, COMPILE
 
 // INSTRUCTION: Define logging agent on IPv6.
 HOST syslog_sender { IP 2001:db8:514::1 }

@@ -1,5 +1,5 @@
 // PROMPT: Demonstrate automatic vs explicit TCP sequence and acknowledgment tracking across bidirectional arrows (-> and <-) when payload sizes vary.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, FIN, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, FIN, COMPILE
 
 // INSTRUCTION: Define a client endpoint relying on auto-calculated TCP sequence numbers with IP 10.203.0.10.
 HOST auto_seq_client { IP 10.203.0.10 MAC 00:1a:2b:cb:00:0a }

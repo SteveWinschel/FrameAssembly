@@ -1,0 +1,35 @@
+// PROMPT: Generate an SMTP 554 5.7.1 Relay access denied rejection when an unauthorized host attempts to relay mail.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SMTP, CODE, REPLY, EHLO, MAIL_FROM, PARAM, RCPT_TO, QUIT, COMPILE
+
+// INSTRUCTION: Define the untrusted external host and corporate mail gateway.
+HOST untrusted_host {
+    MAC 00:0f:ea:11:22:33
+    IP 198.51.100.200
+}
+
+// INSTRUCTION: Define the corp_gateway mail endpoint.
+HOST corp_gateway {
+    MAC 00:0f:ea:99:88:77
+    IP 192.0.2.10
+}
+
+// INSTRUCTION: Attempt third-party mail relay and receive 554 5.7.1 Relay access denied.
+FLOW smtp_554_relay_denied(untrusted_host, corp_gateway) {
+    untrusted_host -> corp_gateway TCP SYN SRCPORT 57025 DSTPORT 25
+    corp_gateway -> untrusted_host TCP SYN ACK
+    untrusted_host -> corp_gateway TCP ACK
+    corp_gateway -> untrusted_host SMTP CODE 220 REPLY "gw.corp.example ESMTP"
+    untrusted_host -> corp_gateway SMTP EHLO "unknown.host.net"
+    corp_gateway -> untrusted_host SMTP CODE 250 REPLY "gw.corp.example"
+    untrusted_host -> corp_gateway SMTP MAIL_FROM PARAM "<spammer@external.org>"
+    corp_gateway -> untrusted_host SMTP CODE 250 REPLY "2.1.0 Ok"
+    untrusted_host -> corp_gateway SMTP RCPT_TO PARAM "<victim@otherdomain.org>"
+    corp_gateway -> untrusted_host SMTP CODE 554 REPLY "5.7.1 <victim@otherdomain.org>: Relay access denied"
+    untrusted_host -> corp_gateway SMTP QUIT
+    corp_gateway -> untrusted_host SMTP CODE 221 REPLY "2.0.0 Bye"
+}
+
+// INSTRUCTION: Compile the SMTP 554 relay access denied flow.
+COMPILE {
+    smtp_554_relay_denied(untrusted_host, corp_gateway)
+}

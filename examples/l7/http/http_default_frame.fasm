@@ -1,0 +1,24 @@
+// PROMPT: Default HTTP/1.1 frame emission on TCP port 80 using automatic RFC 9110 defaults.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP, COMPILE
+
+// INSTRUCTION: Define web client host.
+HOST web_client {
+    IP 192.168.80.100
+    MAC 00:16:3e:80:00:01
+}
+
+// INSTRUCTION: Define Nginx origin server host.
+HOST nginx_srv {
+    IP 192.168.80.1
+    MAC 00:16:3e:80:00:02
+}
+
+// INSTRUCTION: Emit a default HTTP frame without explicit sub-keywords.
+FLOW http_default(c, s) {
+    c -> s HTTP
+}
+
+// INSTRUCTION: Compile the default HTTP scenario.
+COMPILE {
+    http_default(web_client, nginx_srv)
+}

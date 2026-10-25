@@ -1,0 +1,25 @@
+// PROMPT: Create an IPv6 Kerberos NFSv4 RPCSEC_GSS service ticket request with IPv6 flow label and ECN bits.
+// TOKENS: HOST, IP, MAC, FLOW, KERBEROS, TGS_REQ, REALM, CNAME, SNAME, ETYPE, FLOWLABEL, ECN, DSCP, TTL, WAIT, TGS_REP, COMPILE
+
+// INSTRUCTION: Define the IPv6 compute cluster node mounting a Kerberized NFSv4 export.
+HOST compute_node {
+    IP 2001:db8:700:1::50
+    MAC 00:25:90:70:01:50
+}
+
+// INSTRUCTION: Define the IPv6 Kerberos KDC serving the HPC cluster realm.
+HOST hpc_kdc {
+    IP 2001:db8:700:1::10
+    MAC 00:25:90:70:01:10
+}
+
+// INSTRUCTION: Request an nfs/storage01 service ticket using AES128-CTS-HMAC-SHA1-96 (etype 17) over IPv6.
+FLOW ipv6_nfs_ticket(c, s) {
+    c -> s KERBEROS TGS_REQ REALM "HPC.RESEARCH.EDU" CNAME "host/node50.hpc.research.edu" SNAME "nfs/storage01.hpc.research.edu" ETYPE 17 FLOWLABEL 0x4a200 ECN 2 DSCP 16 TTL 64 WAIT 4ms
+    c <- s KERBEROS TGS_REP REALM "HPC.RESEARCH.EDU" CNAME "host/node50.hpc.research.edu" SNAME "nfs/storage01.hpc.research.edu" ETYPE 17 FLOWLABEL 0x4a200 ECN 2 DSCP 16 TTL 64
+}
+
+// INSTRUCTION: Compile the IPv6 Kerberos NFSv4 service ticket exchange into a PCAP file.
+COMPILE {
+    ipv6_nfs_ticket(compute_node, hpc_kdc)
+}

@@ -1,0 +1,20 @@
+// PROMPT: Multi-VLAN 802.1Q trunk carrying voice (VLAN 110 PCP 5), video (VLAN 120 PCP 4), and data (VLAN 130 PCP 0).
+// TOKENS: HOST, IP, FLOW, VLAN, PCP, DEI, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define converged campus access switch uplink.
+HOST campus_uplink { IP 10.30.0.10 }
+
+// INSTRUCTION: Define campus distribution router trunk interface.
+HOST campus_dist_gw { IP 10.30.0.1 }
+
+// INSTRUCTION: Define triple-play QoS trunk flow across voice, video, and data VLANs.
+FLOW multi_vlan_qos_trunk(access, dist) {
+    access -> dist VLAN 110 PCP 5 DEI 0 DSCP 46 UDP SRCPORT 16384 DSTPORT 16384 PAYLOAD "rtp_g711_voice_sample"
+    access -> dist VLAN 120 PCP 4 DEI 0 DSCP 34 UDP SRCPORT 5004 DSTPORT 5004 PAYLOAD "h264_video_nal_unit" WAIT 2ms
+    access -> dist VLAN 130 PCP 0 DEI 1 DSCP 0 UDP SRCPORT 54123 DSTPORT 443 PAYLOAD "bulk_file_sync_chunk" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing multi-VLAN QoS trunk multiplexing.
+COMPILE {
+    multi_vlan_qos_trunk(campus_uplink, campus_dist_gw)
+}

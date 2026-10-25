@@ -1,0 +1,18 @@
+// PROMPT: Kerberos TGS-REQ cross-realm trust referral requesting ticket from foreign partner realm.
+// TOKENS: HOST, IP, FLOW, KERBEROS, TGS_REQ, REALM, SNAME, ETYPE, COMPILE
+
+// INSTRUCTION: Define local domain member server.
+HOST member_server { IP 172.24.1.10 }
+
+// INSTRUCTION: Define local Kerberos KDC proxy.
+HOST local_kdc { IP 172.24.1.1 }
+
+// INSTRUCTION: Define cross-realm trust ticket request flow.
+FLOW cross_realm_flow(srv, kdc) {
+    srv -> kdc KERBEROS TGS_REQ REALM "PARTNER.EXT" SNAME "krbtgt/PARTNER.EXT" ETYPE 18
+}
+
+// INSTRUCTION: Compile cross-realm trust scenario.
+COMPILE {
+    cross_realm_flow(member_server, local_kdc)
+}

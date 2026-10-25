@@ -1,0 +1,21 @@
+// PROMPT: Multi-linecard modular switch exporting sFlow with distinct SUB_AGENT_ID per linecard.
+// TOKENS: HOST, IP, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, WAIT, COMPILE
+
+// INSTRUCTION: Define 4-slot modular core switch.
+HOST mod_switch { IP 10.163.0.1 }
+
+// INSTRUCTION: Define sFlow collector appliance.
+HOST sflow_appliance { IP 10.163.0.50 }
+
+// INSTRUCTION: Define sequential exports from linecards 1, 2, 3, and 4 sharing loopback AGENT_IP.
+FLOW sflow_linecards(sw, coll) {
+    sw -> coll SFLOW AGENT_IP 10.255.255.1 SUB_AGENT_ID 101 UPTIME 450000 SAMPLES 2 WAIT 5ms
+    sw -> coll SFLOW AGENT_IP 10.255.255.1 SUB_AGENT_ID 102 UPTIME 450005 SAMPLES 4 WAIT 5ms
+    sw -> coll SFLOW AGENT_IP 10.255.255.1 SUB_AGENT_ID 103 UPTIME 450010 SAMPLES 1 WAIT 5ms
+    sw -> coll SFLOW AGENT_IP 10.255.255.1 SUB_AGENT_ID 104 UPTIME 450015 SAMPLES 6
+}
+
+// INSTRUCTION: Compile multi-linecard sFlow export.
+COMPILE {
+    sflow_linecards(mod_switch, sflow_appliance)
+}

@@ -1,0 +1,23 @@
+// PROMPT: POP3 DELE message deletion followed by RSET rollback before session QUIT.
+// TOKENS: HOST, IP, FLOW, POP3, CMD, ARG, WAIT, OK, COMPILE
+
+// INSTRUCTION: Define mobile mail client.
+HOST mobile_mua { IP 10.24.8.99 }
+
+// INSTRUCTION: Define enterprise POP3 gateway.
+HOST pop_gw { IP 10.24.8.1 }
+
+// INSTRUCTION: Define DELE command marking message 2 and RSET undoing deletion.
+FLOW pop3_dele_rset(c, s) {
+    c -> s POP3 CMD "DELE" ARG "2" WAIT 5ms
+    c <- s POP3 OK WAIT 5ms
+    c -> s POP3 CMD "RSET" WAIT 5ms
+    c <- s POP3 OK WAIT 5ms
+    c -> s POP3 CMD "QUIT" WAIT 5ms
+    c <- s POP3 OK
+}
+
+// INSTRUCTION: Compile POP3 DELE and RSET transaction flow.
+COMPILE {
+    pop3_dele_rset(mobile_mua, pop_gw)
+}

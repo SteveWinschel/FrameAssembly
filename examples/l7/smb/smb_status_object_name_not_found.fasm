@@ -1,0 +1,27 @@
+// PROMPT: SMB2 CREATE request returning NT_STATUS_OBJECT_NAME_NOT_FOUND (0xC0000034 = 3221225524) for a missing file.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, SESSION_ID, MSGID, SHARE, STATUS, TREE_ID, WAIT, FILENAME, COMPILE
+
+// INSTRUCTION: Define the desktop client attempting to open a deleted report document.
+HOST desktop_client {
+    IP 192.168.45.102
+    MAC 00:1a:2b:45:01:02
+}
+
+// INSTRUCTION: Define the department NAS server.
+HOST dept_nas {
+    IP 192.168.45.10
+    MAC 00:1a:2b:45:00:10
+}
+
+// INSTRUCTION: Connect to the finance share and receive status 3221225524 on missing file CREATE.
+FLOW smb_missing_file(c, s) {
+    c -> s SMB COMMAND "TREE_CONNECT" SESSION_ID 300 MSGID 5 SHARE "\\nas\finance"
+    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 2 SESSION_ID 300 MSGID 5 WAIT 2ms
+    c -> s SMB COMMAND "CREATE" TREE_ID 2 SESSION_ID 300 MSGID 6 FILENAME "q4_audit_missing.xlsx"
+    c <- s SMB COMMAND "CREATE" STATUS 3221225524 TREE_ID 2 SESSION_ID 300 MSGID 6
+}
+
+// INSTRUCTION: Compile the SMB2 missing file error scenario.
+COMPILE {
+    smb_missing_file(desktop_client, dept_nas)
+}

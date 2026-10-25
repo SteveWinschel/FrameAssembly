@@ -1,10 +1,20 @@
-//! GRE Layer 3 protocol wire builder.
+//! Generic Routing Encapsulation (GRE, RFC 2784 / RFC 2890) Layer 3 wire builder.
+//!
+//! Serializes a [`GreSpec`] into an RFC 2784 and RFC 2890 compliant GRE tunnel header encapsulated
+//! directly over IPv4 or IPv6 using IP protocol number `47` (`0x2F`). The builder dynamically sets
+//! the 16-bit GRE Flags word (`0x8000` Checksum Present `C` bit when `CHECKSUM` is specified,
+//! `0x2000` Key Present `K` bit when `GRE_KEY` is present, and `0x1000` Sequence Number Present `S`
+//! bit when `GRE_SEQ` is present), appends the 16-bit EtherType `Protocol Type` (`GRE_PROTO`,
+//! default `0x0800`), optional 32-bit Checksum/Reserved, Key, and Sequence words, and the inner packet.
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b GRE [GRE_KEY <u32>] [GRE_SEQ <u32>] [GRE_PROTO <u16>] [CHECKSUM] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
-/// Builds an RFC 2784 / RFC 2890 GRE payload.
+/// Builds an RFC 2784 / RFC 2890 GRE tunnel payload and returns `(bytes, 47)` for IP encapsulation.
 pub fn build_gre_payload(
     _ctx: &WireContext,
     spec: &GreSpec,
@@ -43,5 +53,11 @@ pub fn build_gre_payload(
         gre.extend_from_slice(payload);
     }
 
+    if spec.checksum {
+        let cksum = crate::packet::internet_checksum(&[&gre]);
+        gre[4..6].copy_from_slice(&cksum.to_be_bytes());
+    }
+
     (gre, 47)
 }
+

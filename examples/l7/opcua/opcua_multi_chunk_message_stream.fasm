@@ -1,0 +1,20 @@
+// PROMPT: Multi-chunk OPC UA message transfer using intermediate (C) and final (F) chunks.
+// TOKENS: HOST, IP, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define OPC UA client requesting large address space browse result.
+HOST browse_client { IP 10.88.2.10 }
+
+// INSTRUCTION: Define OPC UA server streaming multi-chunk response.
+HOST browse_server { IP 10.88.2.20 }
+
+// INSTRUCTION: Define flow with intermediate chunk C and final chunk F.
+FLOW opcua_chunked_transfer(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 77 TOKEN_ID 3 SEQ_NUM 50 REQID 200 WAIT 5ms
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "C" SECURE_CHANNEL_ID 77 TOKEN_ID 3 SEQ_NUM 51 REQID 200 PAYLOAD "BrowseChunk1_Nodes_001_to_500" WAIT 2ms
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 77 TOKEN_ID 3 SEQ_NUM 52 REQID 200 PAYLOAD "BrowseChunk2_Nodes_501_to_900"
+}
+
+// INSTRUCTION: Compile the multi-chunk OPC UA flow.
+COMPILE {
+    opcua_chunked_transfer(browse_client, browse_server)
+}

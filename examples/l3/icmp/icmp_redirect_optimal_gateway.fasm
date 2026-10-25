@@ -1,0 +1,19 @@
+// PROMPT: Default gateway sending ICMP REDIRECT (Code 1 for Host) pointing to optimal next-hop router.
+// TOKENS: HOST, IP, MAC, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, REDIRECT, CODE, GATEWAY, COMPILE
+
+// INSTRUCTION: Define LAN workstation sending traffic to suboptimal default gateway.
+HOST lan_workstation { IP 192.168.10.55 MAC 00:1a:a0:10:00:55 }
+
+// INSTRUCTION: Define default gateway router issuing ICMP Redirect toward 192.168.10.2.
+HOST default_gw_r1 { IP 192.168.10.1 MAC 00:1a:a0:10:00:01 }
+
+// INSTRUCTION: Define ICMP Echo followed by ICMP REDIRECT with GATEWAY 192.168.10.2.
+FLOW icmp_redirect_flow(host, gw) {
+    host -> gw ICMP ECHO_REQUEST ID 1010 SEQ 1
+    host <- gw ICMP REDIRECT CODE 1 GATEWAY 192.168.10.2
+}
+
+// INSTRUCTION: Compile the ICMP Redirect optimal gateway flow.
+COMPILE {
+    icmp_redirect_flow(lan_workstation, default_gw_r1)
+}

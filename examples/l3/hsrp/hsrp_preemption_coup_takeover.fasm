@@ -1,0 +1,20 @@
+// PROMPT: Higher-priority HSRP router preempting lower-priority active router for virtual gateway IP.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, HELLOTIME, HOLDTIME, WAIT, COMPILE
+
+// INSTRUCTION: Define lower-priority incumbent active router (Priority 100).
+HOST hsrp_incumbent_rtr { IP 192.168.50.2 }
+
+// INSTRUCTION: Define higher-priority preempting primary router (Priority 150).
+HOST hsrp_preempt_rtr { IP 192.168.50.3 }
+
+// INSTRUCTION: Define HSRP preemption takeover sequence on Group 50.
+FLOW hsrp_preemption_takeover(inc, pre) {
+    inc -> pre HSRP GROUP 50 PRIORITY 100 STATE 16 VIP 192.168.50.1 HELLOTIME 3 HOLDTIME 10
+    inc <- pre HSRP GROUP 50 PRIORITY 150 STATE 16 VIP 192.168.50.1 HELLOTIME 3 HOLDTIME 10 WAIT 20ms
+    inc -> pre HSRP GROUP 50 PRIORITY 100 STATE 8 VIP 192.168.50.1 HELLOTIME 3 HOLDTIME 10 WAIT 20ms
+}
+
+// INSTRUCTION: Compile the HSRP preemption takeover flow.
+COMPILE {
+    hsrp_preemption_takeover(hsrp_incumbent_rtr, hsrp_preempt_rtr)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Secondary WAN backup router applying an outbound RIPv2 offset-list (+5 metric penalty) to prefer the primary MPLS path.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, TAG, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define backup LTE/4G branch router advertising routes with +5 offset metric (METRIC 6).
+HOST lte_backup_rip_rtr {
+    IP 10.52.40.2
+    MAC 00:1d:71:52:28:02
+}
+
+// INSTRUCTION: Define branch core switch comparing primary metric 1 vs backup metric 6.
+HOST branch_core_sw {
+    IP 10.52.40.10
+    MAC 00:1d:71:52:28:0a
+}
+
+// INSTRUCTION: Define RIPv2 RESPONSE with offset-penalized METRIC 6 and backup TAG 444.
+FLOW rip_offset_list_backup_flow(lte, core) {
+    lte -> core RIP RESPONSE PREFIX 10.0.0.0 METRIC 6 NEXTHOP 10.52.40.2 TAG 444 DSCP 48 TTL 1 WAIT 5ms
+    lte <- core RIP RESPONSE PREFIX 10.52.40.0 METRIC 1 NEXTHOP 10.52.40.10 TAG 100 DSCP 48 TTL 1
+}
+
+// INSTRUCTION: Compile the RIPv2 offset-list metric manipulation backup flow.
+COMPILE {
+    rip_offset_list_backup_flow(lte_backup_rip_rtr, branch_core_sw)
+}

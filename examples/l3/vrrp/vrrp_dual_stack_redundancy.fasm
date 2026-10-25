@@ -1,5 +1,5 @@
 // PROMPT: VRRP router redundancy advertisement specifying advertisement interval.
-// TOKENS: HOST, IP, FLOW, ->, VRRP, VRID, PRIORITY, ADV_INT, VIP, COMPILE
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, COMPILE
 
 // INSTRUCTION: Define high-availability core router A.
 HOST ha_router_a { IP 172.16.1.254 }

@@ -1,0 +1,25 @@
+// PROMPT: Dual-stack IPv6 management fabric switch ports exchanging IEEE 802.1w RSTP BPDUs with port priority overrides.
+// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, HELLO_TIME, MAX_AGE, FORWARD_DELAY, FLAGS, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6 fabric aggregation switch A with high port priority (PORT_ID 16385 = prio 64, port 1).
+HOST agg_v6_sw_a {
+    IP 2001:db8:802:1d::1
+    MAC 00:1c:73:1d:00:01
+}
+
+// INSTRUCTION: Define IPv6 fabric aggregation switch B receiving preferred port priority BPDU.
+HOST agg_v6_sw_b {
+    IP 2001:db8:802:1d::2
+    MAC 00:1c:73:1d:00:02
+}
+
+// INSTRUCTION: Define RSTP BPDU tie-breaker using custom PORT_ID priority on parallel links.
+FLOW rstp_port_priority_tiebreak(a, b) {
+    a -> b STP RSTP ROOT_ID "4096:00:1c:73:1d:00:01" BRIDGE_ID "4096:00:1c:73:1d:00:01" COST 0 PORT_ID 16385 HELLO_TIME 2 MAX_AGE 20 FORWARD_DELAY 15 FLAGS 60
+    a <- b STP RSTP ROOT_ID "4096:00:1c:73:1d:00:01" BRIDGE_ID "32768:00:1c:73:1d:00:02" COST 2000 PORT_ID 32769 HELLO_TIME 2 MAX_AGE 20 FORWARD_DELAY 15 FLAGS 60 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing RSTP port priority tie-breaker over IPv6 hosts.
+COMPILE {
+    rstp_port_priority_tiebreak(agg_v6_sw_a, agg_v6_sw_b)
+}

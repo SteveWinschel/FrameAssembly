@@ -1,0 +1,18 @@
+// PROMPT: HSRP gateway heartbeats encapsulated across MPLS provider edge customer handoff.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, VIP, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define MPLS customer edge router.
+HOST mpls_ce_gw { IP 10.200.5.1 }
+
+// INSTRUCTION: Define HSRP multicast target.
+HOST mpls_mcast_dst { IP 224.0.0.2 }
+
+// INSTRUCTION: Define MPLS labeled HSRP hello frame with label 100200 and EXP 5.
+FLOW hsrp_mpls_flow(ce, dst) {
+    ce -> dst HSRP GROUP 70 PRIORITY 125 VIP 10.200.5.254 MPLS 100200 EXP 5 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile block executing MPLS encapsulated HSRP heartbeat.
+COMPILE {
+    hsrp_mpls_flow(mpls_ce_gw, mpls_mcast_dst)
+}

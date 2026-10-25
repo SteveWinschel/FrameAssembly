@@ -1,0 +1,25 @@
+// PROMPT: RFC 5798 VRRP Preempt_Mode=False scenario where a lower-priority current Master (100) retains ownership despite higher-priority peer.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define active VRRP Master (Priority 100) continuing to advertise while Preempt_Mode is disabled on peer.
+HOST non_preempt_master {
+    IP 10.112.88.3
+    MAC 00:00:5e:00:01:58
+}
+
+// INSTRUCTION: Define recovered router (Priority 150) listening in Backup state with Preempt_Mode=False.
+HOST non_preempt_backup {
+    IP 10.112.88.2
+    MAC 00:1c:73:70:88:02
+}
+
+// INSTRUCTION: Define steady VRRP Master advertisements at PRIORITY 100 preventing unnecessary flapping.
+FLOW vrrp_non_preempt_stability(master, backup) {
+    master -> backup VRRP VRID 88 PRIORITY 100 ADV_INT 100 VIP 10.112.88.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "NON_PREEMPT_ACTIVE_MASTER_100" WAIT 100ms
+    master -> backup VRRP VRID 88 PRIORITY 100 ADV_INT 100 VIP 10.112.88.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "NON_PREEMPT_STABLE_HEARTBEAT"
+}
+
+// INSTRUCTION: Compile the VRRP non-preempt stability verification flow.
+COMPILE {
+    vrrp_non_preempt_stability(non_preempt_master, non_preempt_backup)
+}

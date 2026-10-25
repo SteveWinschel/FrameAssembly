@@ -1,0 +1,25 @@
+// PROMPT: RFC 5798 Section 5.2.4 VRRPv3 IPv4 Address Owner advertising mandatory Priority 255 for Virtual IP 10.112.1.1.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define VRRP IPv4 Address Owner router whose physical interface owns 10.112.1.1.
+HOST vrrp_vip_owner {
+    IP 10.112.1.1
+    MAC 00:00:5e:00:01:01
+}
+
+// INSTRUCTION: Define VRRP multicast group 224.0.0.18 receiving Priority 255 advertisements.
+HOST vrrp_mcast_grp {
+    IP 224.0.0.18
+    MAC 01:00:5e:00:00:12
+}
+
+// INSTRUCTION: Define RFC 5798 VRRPv3 advertisement with VRID 1, PRIORITY 255, and ADV_INT 100.
+FLOW vrrp_owner_priority_255(owner, mcast) {
+    owner -> mcast VRRP VRID 1 PRIORITY 255 ADV_INT 100 VIP 10.112.1.1 VERSION 3 DSCP 48 TTL 255 WAIT 100ms
+    owner -> mcast VRRP VRID 1 PRIORITY 255 ADV_INT 100 VIP 10.112.1.1 VERSION 3 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the RFC 5798 VRRP Priority 255 IP Address Owner flow.
+COMPILE {
+    vrrp_owner_priority_255(vrrp_vip_owner, vrrp_mcast_grp)
+}

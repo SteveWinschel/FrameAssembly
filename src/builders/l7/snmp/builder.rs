@@ -1,7 +1,13 @@
-//! SNMP wire payload builder implementation.
+//! SNMPv1, SNMPv2c, and SNMPv3 ASN.1 BER wire payload builder implementation.
 //!
-//! Implements RFC 1157 (SNMPv1), RFC 3416 (SNMPv2c), and RFC 3414 (SNMPv3 USM)
-//! packet serialization routines using `rasn`, `rasn_smi`, and `rasn_snmp`.
+//! This module implements [`build_snmp1_payload`], [`build_snmp2_payload`], and
+//! [`build_snmp3_payload`] using `rasn`, `rasn_smi`, and `rasn_snmp` ASN.1 BER encoders over UDP
+//! ports 161 (queries) and 162 (traps/informs). It translates FrameAssembly
+//! [`Snmp1Spec`], [`Snmp2Spec`],
+//! and [`Snmp3Spec`] AST specifications into deterministic wire
+//! bytes, supporting all 7 SNMP PDU types (`Trap`, `GetRequest`, `GetNextRequest`, `Response`,
+//! `SetRequest`, `InformRequest`, `GetBulkRequest`) and all 9 SMIv1/SMIv2 VarBind value types
+//! (`NULLVAL`, `STRING`, `INT`, `TIMETICKS`, `IPVAL`, `OIDVAL`, `COUNTER32`, `GAUGE32`, `COUNTER64`).
 
 use super::crypto::*;
 use crate::ast::*;
@@ -13,12 +19,12 @@ use rasn_smi::v1::{IpAddress, NetworkAddress, TimeTicks};
 use rasn_smi::v2::{ApplicationSyntax, ObjectSyntax, SimpleSyntax};
 use rasn_snmp::v2::{BulkPdu, Pdu, Pdus as PdusV2, VarBind, VarBindValue};
 
-/// Builds an SNMPv1 payload from a FrameStatement.
+/// Builds an SNMPv1 payload from a [`FrameStatement`].
 ///
-/// Implements RFC 1157 PDU construction for Trap, Get, GetNext, Response, and Set PDUs,
-/// mapping generic trap OIDs (1.3.6.1.6.3.1.1.5.1 through .6) to generic_trap 0..=5,
-/// falling back IPv6 agent-addr to 0.0.0.0 per RFC 3584 §3.2 unless overridden by AGENTIP,
-/// and rejecting SNMPv2-only PDUs (GETBULK and INFORM).
+/// Implements RFC 1157 PDU construction for `Trap`, `Get`, `GetNext`, `Response`, and `Set` PDUs,
+/// mapping generic trap OIDs (`1.3.6.1.6.3.1.1.5.1` through `.6`) to `generic_trap` `0..=5`,
+/// falling back IPv6 `agent-addr` to `0.0.0.0` per RFC 3584 §3.2 unless overridden by `AGENTIP`,
+/// and rejecting SNMPv2-only PDUs (`GETBULK` and `INFORM`).
 pub fn build_snmp1_payload(stmt: &FrameStatement, src_ip: IpAddr) -> Result<Vec<u8>, String> {
     use rasn_snmp::v1::{Message, Pdus, Trap};
 
@@ -138,7 +144,7 @@ pub fn build_snmp1_payload(stmt: &FrameStatement, src_ip: IpAddr) -> Result<Vec<
     rasn::ber::encode(&message).map_err(|e| alloc::format!("SNMP1 encode error: {:?}", e))
 }
 
-/// Builds an SNMPv2c Trap/Inform/Get payload from a FrameStatement
+/// Builds an SNMPv2c Trap/Inform/Get payload from a [`FrameStatement`].
 pub fn build_snmp2_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
     use rasn_snmp::v2c::Message;
 
@@ -156,7 +162,7 @@ pub fn build_snmp2_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
     rasn::ber::encode(&message).map_err(|e| alloc::format!("SNMP2 encode error: {:?}", e))
 }
 
-/// Builds an SNMPv3 payload from a FrameStatement
+/// Builds an SNMPv3 payload from a [`FrameStatement`].
 ///
 /// Implements RFC 3414 (USM & DES-CBC) and RFC 3826 (AES-128-CFB) cryptography.
 pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
@@ -357,7 +363,7 @@ fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-/// Parses an OID dot-notation string into a rasn `ObjectIdentifier`.
+/// Parses an OID dot-notation string into a `rasn` `ObjectIdentifier`.
 fn parse_oid(oid_str: &str) -> Result<ObjectIdentifier, String> {
     let mut oid_vec = Vec::new();
     for s in oid_str.trim_start_matches('.').split('.') {
@@ -366,10 +372,22 @@ fn parse_oid(oid_str: &str) -> Result<ObjectIdentifier, String> {
             Err(_) => return Err(alloc::format!("Invalid OID segment: '{}'", s)),
         }
     }
+    if oid_vec.len() < 2 {
+        return Err(alloc::format!(
+            "Invalid OID '{}': must contain at least 2 arcs",
+            oid_str
+        ));
+    }
+    if oid_vec[0] > 2 || (oid_vec[0] < 2 && oid_vec[1] >= 40) {
+        return Err(alloc::format!(
+            "Invalid OID '{}': invalid root/second arc combination",
+            oid_str
+        ));
+    }
     ObjectIdentifier::new(oid_vec).ok_or_else(|| "Invalid OID structure".to_string())
 }
 
-/// Converts AST VarBinds into rasn SNMPv2/v3 Variable Bindings.
+/// Converts AST [`VarBindAst`] nodes into `rasn` SNMPv2/v3 Variable Bindings.
 fn convert_varbinds(vbs: &[VarBindAst]) -> Result<Vec<VarBind>, String> {
     let mut out = Vec::new();
     for vb in vbs {
@@ -418,7 +436,7 @@ fn convert_varbinds(vbs: &[VarBindAst]) -> Result<Vec<VarBind>, String> {
     Ok(out)
 }
 
-/// Converts AST VarBinds into rasn SNMPv1 Variable Bindings.
+/// Converts AST [`VarBindAst`] nodes into `rasn` SNMPv1 Variable Bindings.
 fn convert_v1_varbinds(vbs: &[VarBindAst]) -> Result<Vec<rasn_snmp::v1::VarBind>, String> {
     use rasn_snmp::v1::VarBind;
     let mut out = Vec::new();
@@ -475,11 +493,11 @@ fn convert_v1_varbinds(vbs: &[VarBindAst]) -> Result<Vec<rasn_snmp::v1::VarBind>
     Ok(out)
 }
 
-/// Builds SNMPv2 PDUs respecting RFC 3416 VarBind ordering.
+/// Builds SNMPv2 PDUs respecting RFC 3416 `VarBind` ordering.
 ///
-/// For Trap and Inform PDUs, sysUpTime.0 and snmpTrapOID.0 are always prepended
-/// as the first two VarBinds, followed by user VarBinds.
-/// For request PDUs, only requested VarBinds are encoded.
+/// For `Trap` and `Inform` PDUs, `sysUpTime.0` and `snmpTrapOID.0` are always prepended
+/// as the first two `VarBind` entries, followed by user `VarBind` entries.
+/// For request PDUs, only requested `VarBind` entries are encoded.
 fn build_v2_pdus(stmt: &FrameStatement) -> Result<PdusV2, String> {
     let pdu_type = stmt.pdu_type.as_ref().unwrap_or(&SnmpPduType::Trap);
     let is_notification = matches!(pdu_type, SnmpPduType::Trap | SnmpPduType::Inform);

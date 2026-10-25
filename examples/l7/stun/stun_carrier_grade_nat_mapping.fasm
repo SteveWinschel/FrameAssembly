@@ -1,0 +1,19 @@
+// PROMPT: Carrier-Grade NAT traversal query with XOR-MAPPED-ADDRESS mapping.
+// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define cellular subscriber endpoint on CGNAT subnet.
+HOST cgnat_subscriber { IP 100.64.12.90 }
+
+// INSTRUCTION: Define carrier public STUN reflector.
+HOST carrier_reflector { IP 203.0.113.5 }
+
+// INSTRUCTION: Define CGNAT address binding flow.
+FLOW stun_cgnat_flow(c, s) {
+    c -> s STUN BINDING_REQUEST
+    c <- s STUN BINDING_RESPONSE XOR_MAPPED_ADDR 203.0.113.150
+}
+
+// INSTRUCTION: Compile block executing CGNAT binding flow.
+COMPILE {
+    stun_cgnat_flow(cgnat_subscriber, carrier_reflector)
+}

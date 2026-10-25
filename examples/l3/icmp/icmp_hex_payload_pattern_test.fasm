@@ -1,0 +1,19 @@
+// PROMPT: Bit-error rate diagnostic ICMP ping carrying a walking-ones binary HEXPAYLOAD pattern.
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, SRCMAC, DSTMAC, HEXPAYLOAD, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define hardware BERT tester node.
+HOST bert_tester { IP 192.168.99.10 }
+
+// INSTRUCTION: Define loopback diagnostic target node.
+HOST bert_target { IP 192.168.99.20 }
+
+// INSTRUCTION: Define ICMP Echo exchange with binary pattern HEXPAYLOAD and explicit MACs.
+FLOW icmp_hex_pattern_ping(tester, target) {
+    tester -> target ICMP ECHO_REQUEST ID 5555 SEQ 10 SRCMAC 00:11:22:33:44:01 DSTMAC 00:11:22:33:44:02 HEXPAYLOAD "0102040810204080aa55ff00deadbeef"
+    tester <- target ICMP ECHO_REPLY ID 5555 SEQ 10 SRCMAC 00:11:22:33:44:02 DSTMAC 00:11:22:33:44:01 HEXPAYLOAD "0102040810204080aa55ff00deadbeef"
+}
+
+// INSTRUCTION: Compile the binary pattern HEXPAYLOAD ICMP flow.
+COMPILE {
+    icmp_hex_pattern_ping(bert_tester, bert_target)
+}

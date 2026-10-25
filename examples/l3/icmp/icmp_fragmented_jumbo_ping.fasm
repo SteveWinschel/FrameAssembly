@@ -1,0 +1,20 @@
+// PROMPT: Fragmented IPv4 ICMP Echo Request and Echo Reply using MF and FRAGOFFSET fields.
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, IPID, MF, FRAGOFFSET, PAYLOAD, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define host transmitting fragmented jumbo ICMP Echo Request.
+HOST frag_ping_sender { IP 10.44.0.10 }
+
+// INSTRUCTION: Define host reassembling and replying to fragmented ICMP ping.
+HOST frag_ping_target { IP 10.44.0.20 }
+
+// INSTRUCTION: Define two-fragment ICMP Echo Request and Echo Reply.
+FLOW icmp_fragmented_ping(s, t) {
+    s -> t ICMP ECHO_REQUEST ID 4400 SEQ 1 IPID 7777 MF FRAGOFFSET 0 PAYLOAD "JUMBO_PING_FRAGMENT_ONE_DATA"
+    s -> t ICMP ECHO_REQUEST ID 4400 SEQ 1 IPID 7777 FRAGOFFSET 185 PAYLOAD "JUMBO_PING_FRAGMENT_TWO_TAIL"
+    s <- t ICMP ECHO_REPLY ID 4400 SEQ 1 IPID 8888 PAYLOAD "JUMBO_PING_REASSEMBLED_REPLY"
+}
+
+// INSTRUCTION: Compile the fragmented IPv4 ICMP ping flow.
+COMPILE {
+    icmp_fragmented_ping(frag_ping_sender, frag_ping_target)
+}

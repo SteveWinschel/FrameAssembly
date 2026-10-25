@@ -1,0 +1,18 @@
+// PROMPT: IPFIX flow records exported over IPv6 transport reporting streaming multicast metrics.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define IPv6 streaming video distribution router.
+HOST video_headend { IP 2001:db8:feed::1 }
+
+// INSTRUCTION: Define IPv6 telemetry collector node.
+HOST v6_collector { IP 2001:db8:feed::250 }
+
+// INSTRUCTION: Define IPv6 IPFIX export flow.
+FLOW ipfix_multicast_metrics(vhead, col) {
+    vhead -> col IPFIX DOMAIN_ID 601 SRCIP 198.51.100.10 DSTIP 233.252.0.1 PROTO 17 PACKETS 98500 OCTETS 128400000
+}
+
+// INSTRUCTION: Compile IPv6 multicast telemetry scenario.
+COMPILE {
+    ipfix_multicast_metrics(video_headend, v6_collector)
+}

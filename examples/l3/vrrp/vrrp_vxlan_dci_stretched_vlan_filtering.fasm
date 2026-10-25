@@ -1,0 +1,25 @@
+// PROMPT: VRRPv3 site-local active gateway advertisements across a stretched DCI VLAN 500 with custom Virtual MAC addressing.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, VLAN, PCP, SRCMAC, DSTMAC, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define Data Center Site 1 gateway advertising VRRP VRID 55 on stretched VLAN 500.
+HOST dci_site1_vrrp {
+    IP 10.155.0.2
+    MAC 00:00:5e:00:01:37
+}
+
+// INSTRUCTION: Define VRRP multicast listener group 224.0.0.18 on VLAN 500.
+HOST dci_vrrp_mcast {
+    IP 224.0.0.18
+    MAC 01:00:5e:00:00:12
+}
+
+// INSTRUCTION: Define VRRPv3 advertisement with explicit SRCMAC 00:00:5e:00:01:37 and VLAN 500 tag.
+FLOW vrrp_dci_stretched_vlan_flow(site1, mcast) {
+    site1 -> mcast VRRP VRID 55 PRIORITY 175 ADV_INT 100 VIP 10.155.0.1 VERSION 3 VLAN 500 PCP 6 SRCMAC 00:00:5e:00:01:37 DSTMAC 01:00:5e:00:00:12 DSCP 48 TTL 255 WAIT 50ms
+    site1 -> mcast VRRP VRID 55 PRIORITY 175 ADV_INT 100 VIP 10.155.0.1 VERSION 3 VLAN 500 PCP 6 SRCMAC 00:00:5e:00:01:37 DSTMAC 01:00:5e:00:00:12 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the DCI stretched VLAN VRRPv3 gateway flow.
+COMPILE {
+    vrrp_dci_stretched_vlan_flow(dci_site1_vrrp, dci_vrrp_mcast)
+}

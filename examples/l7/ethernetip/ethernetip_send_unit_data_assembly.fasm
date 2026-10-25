@@ -1,0 +1,19 @@
+// PROMPT: EtherNet/IP SendUnitData connected explicit messaging reading CIP Assembly Object (Class 4).
+// TOKENS: HOST, IP, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, STATUS, COMPILE
+
+// INSTRUCTION: Define robotics cell controller.
+HOST robot_ctrl { IP 172.16.44.10 }
+
+// INSTRUCTION: Define weld controller EtherNet/IP target.
+HOST weld_unit { IP 172.16.44.20 }
+
+// INSTRUCTION: Exchange connected SendUnitData frames targeting CIP Assembly Class 4 Instance 100 Attribute 3.
+FLOW enip_send_unit_data(r, w) {
+    r -> w ETHERNETIP CMD "SendUnitData" SESSION_HANDLE 0x10203040 CONTEXT 0x99887766 CIP_SERVICE 14 CIP_CLASS 4 CIP_INSTANCE 100 CIP_ATTR 3
+    r <- w ETHERNETIP CMD "SendUnitData" SESSION_HANDLE 0x10203040 CONTEXT 0x99887766 STATUS 0
+}
+
+// INSTRUCTION: Compile the EtherNet/IP SendUnitData connected messaging flow.
+COMPILE {
+    enip_send_unit_data(robot_ctrl, weld_unit)
+}

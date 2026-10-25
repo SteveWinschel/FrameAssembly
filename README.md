@@ -8,42 +8,25 @@
 
 ## Unified `<layer>/<protocol>` Architecture
 
-FrameAssembly v1.0.0 enforces a unified `<layer>/<protocol>` architecture across both compiler implementation modules (`src/`) and example captures (`examples/`):
+FrameAssembly v1.1.0 enforces a unified `<layer>/<protocol>` architecture across both compiler implementation modules (`src/`) and example captures (`examples/`):
 
 ```text
 frameassembly/
 ├── src/
-│   ├── lexer/                     # Zero-copy Logos tokenizer (mod.rs, tests.rs)
-│   ├── ast/                       # Abstract Syntax Tree definitions
-│   │   ├── mod.rs                 # Re-exports, Program, HostDef, FlowDef, ProtocolSpec
-│   │   ├── l2/                    # Layer 2 protocol AST specs (arp, vlan, qinq, mpls, etc.)
-│   │   ├── l3/                    # Layer 3 protocol AST specs (icmp, ndp, gre, ospf, bgp, etc.)
-│   │   ├── l4/                    # Layer 4 transport AST specs (tcp, udp, sctp)
-│   │   └── l7/                    # Layer 7 protocol AST specs (snmp, dns, http, modbus, etc.)
-│   ├── parser/                    # Winnow parser combinators
-│   │   ├── mod.rs                 # Combinators, validation, and parse_program
-│   │   ├── tests.rs               # Parser unit tests
-│   │   ├── l2/                    # Layer 2 protocol parsers
-│   │   ├── l3/                    # Layer 3 protocol parsers
-│   │   ├── l4/                    # Layer 4 transport parsers
-│   │   └── l7/                    # Layer 7 application parsers
-│   ├── builders/                  # Zero-heap packet builders and payload encoders
-│   │   ├── mod.rs                 # Layer re-exports and backwards-compatible aliases
-│   │   ├── l2/                    # Layer 2 wire builders
-│   │   ├── l3/                    # Layer 3 tunnel and routing builders
-│   │   ├── l4/                    # Layer 4 transport builders
-│   │   └── l7/                    # Layer 7 infra, app, OT, and snmp/ builders
-│   ├── backend/                   # 4-tuple state tracking, timing, and PCAP emission
-│   ├── packet.rs                  # Etherparse network packet encapsulation
-│   ├── pcap.rs                    # Nanosecond-precision PCAPNG writer (pcap-file)
-│   └── main.rs                    # Command-line binary interface
+│   ├── lexer/          # Zero-copy Logos tokenizer (mod.rs, tests.rs)
+│   ├── ast/            # Abstract Syntax Tree definitions (mod.rs, l2/, l3/, l4/, l7/)
+│   ├── parser/         # Winnow token-slice parser combinators & semantic validator
+│   ├── builders/       # Zero-heap RFC wire builders (l2/, l3/, l4/, l7/, l7/snmp/)
+│   ├── backend/        # Stateful 4-tuple tracking, timing, and PCAP emission
+│   ├── packet.rs       # Native Ethernet/VLAN/QinQ/MPLS/IPv4/IPv6/L4 framing
+│   ├── pcap.rs         # Nanosecond-precision PCAPNG writer (pcap-file)
+│   └── main.rs         # Command-line binary interface
 └── examples/
-    ├── l2/                        # Layer 2 scenarios (<proto>/<proto>_<scenario>.fasm)
-    ├── l3/                        # Layer 3 scenarios (icmp, ndp, gre, ipsec, ospf, bgp, etc.)
-    ├── l4/                        # Layer 4 scenarios (tcp, udp, sctp)
-    ├── l7/                        # Layer 7 scenarios (dns, http, tls, modbus, etc.)
-    │   └── snmp/                  # SNMP scenarios (snmpv1/, snmpv2c/, snmpv3/)
-    └── topologies/                # Cross-cutting dual-stack, QoS, and multi-tier topologies
+    ├── l2/             # Layer 2 scenarios (<proto>/<proto>_<scenario>.fasm)
+    ├── l3/             # Layer 3 scenarios (icmp, ndp, gre, ipsec, ospf, bgp, etc.)
+    ├── l4/             # Layer 4 scenarios (tcp, udp, sctp)
+    ├── l7/             # Layer 7 scenarios (dns, http, tls, modbus, snmp/, etc.)
+    └── topologies/     # Cross-cutting dual-stack, QoS, and multi-tier topologies
 ```
 
 ---
@@ -63,21 +46,25 @@ frameassembly/
 
 ## Getting Started
 
-### Prerequisites
-Install Rust and Cargo using [rustup.rs](https://rustup.rs/).
-
 ### Installation
 
-**From Cargo:**
+**One-Line Cross-Platform Bootstrap (`install.sh`):**
+
+Automatically checks and installs missing system prerequisites (`curl`, `ca-certificates`, and a C linker) across OS package managers (`apt-get`, `dnf`, `yum`, `pacman`, `apk`, `zypper`, `brew`, `pkg`, `xbps-install`, `emerge`, `nix-env`, etc.), installs or updates Rust (`>= 1.85`) via [rustup.rs](https://rustup.rs/), and installs `frameassembly` via Cargo:
+```bash
+curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
+```
+
+**From Crates.io (with Rust `>= 1.85` installed):**
 ```bash
 cargo install frameassembly
 ```
 
 **From Source Repository:**
 ```bash
-git clone https://github.com/stevewinschel/frameassembly.git
-cd frameassembly
-cargo build --release
+git clone https://github.com/SteveWinschel/FrameAssembly.git
+cd FrameAssembly
+./install.sh --local   # or: cargo build --release
 ```
 
 ### Command-Line Usage
@@ -98,38 +85,46 @@ frameassembly scenario.fasm --output /path/to/traffic.pcap
 A dedicated VS Code extension providing full syntax highlighting for all 81 protocols, sub-keywords, modifiers, durations, IPv6, and OIDs is available in `frameassembly-vscode/`:
 
 ```bash
-code --install-extension frameassembly-vscode/frameassembly-vscode-1.0.1.vsix
+code --install-extension frameassembly-vscode/frameassembly-vscode-1.1.0.vsix
 ```
 
 ---
 
 ## Language Syntax Guide
 
-### 1. Host Declarations
-Hosts define network endpoints with IP and optional MAC addresses. Unspecified MAC addresses are automatically derived from the IP address:
+### 1. Host, Flow & Compile Declarations
+A FrameAssembly (`.fasm`) program consists of `HOST` endpoint definitions, parameterized `FLOW` blocks (`->` and `<-`), and a `COMPILE` block supporting polymorphic dual-stack invocation and `LOOP` bursts:
 
 ```frameassembly
-// IPv4 Host with explicit MAC
-HOST web_server { IP 192.168.1.100 MAC 00:11:22:33:44:55 }
+// PROMPT: Dual-stack TCP 3-way handshake and mDNS multicast query demonstrating HOST, FLOW, and COMPILE LOOP syntax.
+// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, WIN, MDNS, QUERY, QNAME, QTYPE, WAIT, COMPILE, LOOP
 
-// IPv6 Host with auto-derived unicast MAC
-HOST ipv6_client { IP 2001:db8::10 }
-
-// Multicast Host (auto-derives 33:33:00:00:00:01 per RFC 2464)
-HOST all_nodes_mcast { IP ff02::1 }
-
-// IPv4 Multicast Host (auto-derives 01:00:5e:00:00:fb per RFC 1112)
+// INSTRUCTION: Define IPv4 and IPv6 unicast and multicast endpoints.
+HOST client_v4  { IP 192.168.1.50 }
+HOST server_v4  { IP 192.168.1.100 MAC 00:11:22:33:44:55 }
+HOST client_v6  { IP 2001:db8::10 }
+HOST server_v6  { IP 2001:db8::100 }
 HOST mdns_mcast { IP 224.0.0.251 }
-```
 
-### 2. Flow Declarations & Directionality
-Flows define parameterized communication sequences between endpoints:
-
-```frameassembly
+// INSTRUCTION: Define a polymorphic TCP 3-way handshake flow reusable across IPv4 and IPv6.
 FLOW tcp_handshake(client, server) {
     client -> server TCP SYN WIN 65535
-    client <- server TCP SYN ACK WIN 65535
-    client -> server TCP ACK
+    client <- server TCP SYN ACK WIN 65535 WAIT 1ms
+    client -> server TCP ACK WAIT 1ms
+}
+
+// INSTRUCTION: Define an mDNS multicast service discovery flow.
+FLOW mdns_probe(host, mcast) {
+    host -> mcast MDNS QUERY QNAME "_http._tcp.local" QTYPE "PTR" WAIT 2ms
+}
+
+// INSTRUCTION: Compile 2 dual-stack TCP handshake iterations followed by an mDNS multicast probe.
+COMPILE {
+    LOOP 2 {
+        tcp_handshake(client_v4, server_v4)
+        tcp_handshake(client_v6, server_v6)
+    }
+    mdns_probe(client_v4, mdns_mcast)
 }
 ```
 
@@ -137,7 +132,7 @@ FLOW tcp_handshake(client, server) {
 - `A <- B`: `B` is the transmitter (source), `A` is the receiver (destination).
 - **Two-Stage Port Inheritance:** If subsequent statements omit `SRCPORT` or `DSTPORT`, ports are automatically remembered and swapped across reversed arrows.
 
-### 3. Layer 2–L4 Frame Modifiers
+### 2. Layer 2–L4 Frame Modifiers
 
 | Category | Modifiers | Description |
 |---|---|---|
@@ -159,19 +154,6 @@ FLOW tcp_handshake(client, server) {
 | **Payload** | `PAYLOAD "<string>"` | Text payload with escape sequences (`\r`, `\n`, `\t`, `\xHH`) |
 | | `HEXPAYLOAD "<hex>"` | Arbitrary hexadecimal byte payload (e.g. `"deadbeef"`) |
 | **Timing** | `WAIT <duration>` | Inter-frame step delay (`ns`, `us`, `ms`, `s`, `m`) |
-
-### 4. Compilation & Execution Loops
-
-The `COMPILE` block executes declared flows, supporting multi-host parameter passing and loops:
-
-```frameassembly
-COMPILE {
-    LOOP 10 {
-        tcp_handshake(client_v4, server_v4)
-        tcp_handshake(client_v6, server_v6)
-    }
-}
-```
 
 ---
 
@@ -268,8 +250,8 @@ Every protocol in FrameAssembly can be instantiated with **zero mandatory sub-ke
 ### 1. Layer 2 Protocols (8 Protocols)
 
 - [examples/l2/arp/](examples/l2/arp/) — **`ARP` (Address Resolution Protocol - RFC 826):**
-  - Sub-keywords: `REQUEST`, `REPLY`, `GRATUITOUS` / `GARP`, `SPA <ip>`, `THA <mac>`, `TPA <ip>`, `SENDERMAC <mac>`, `TARGETMAC <mac>`, `SENDERIP <ip>`, `TARGETIP <ip>`.
-  - Wire behavior: EtherType 0x0806, Hardware Type 1 (Ethernet), Protocol Type 0x0800 (IPv4). Defaults to `REQUEST` asking for target IP.
+  - Sub-keywords: `REQUEST`, `REPLY`, `GRATUITOUS` / `GARP`, `SHA <mac>`, `SPA <ip>`, `THA <mac>`, `TPA <ip>`, `SENDERMAC <mac>`, `TARGETMAC <mac>`, `SENDERIP <ip>`, `TARGETIP <ip>`.
+  - Wire behavior: EtherType 0x0806, Hardware Type 1, Protocol 0x0800 (or ICMPv6 NS/NA with Hop Limit 255 over IPv6). Defaults to `REQUEST`.
 - [examples/l2/vlan/](examples/l2/vlan/) — **`VLAN` (IEEE 802.1Q Virtual Bridged LANs):**
   - Sub-keywords: `VLAN <1..4094>`, `PCP <0..7>`, `DEI <0..1>`.
   - Wire behavior: Inserts 4-byte 802.1Q tag (EtherType 0x8100) before inner payload. Defaults to VLAN 100, PCP 0, DEI 0.
@@ -280,14 +262,14 @@ Every protocol in FrameAssembly can be instantiated with **zero mandatory sub-ke
   - Sub-keywords: `CHASSIS_ID "<str>"`, `PORT_ID "<str>"`, `TTL <u16>`, `SYSNAME "<str>"`, `SYSDESC "<str>"`.
   - Wire behavior: EtherType 0x88CC to multicast `01:80:c2:00:00:0e`. Emits Chassis ID, Port ID, TTL (default 120s), and End TLVs.
 - [examples/l2/stp/](examples/l2/stp/) — **`STP` (IEEE 802.1D Spanning Tree / 802.1w RSTP):**
-  - Sub-keywords: `ROOT_ID "<str>"`, `BRIDGE_ID "<str>"`, `COST <u32>`, `PORT_ID <u16>`, `MAX_AGE <u16>`, `HELLO_TIME <u16>`, `FORWARD_DELAY <u16>`, `RSTP`, `FLAGS <u8>`.
-  - Wire behavior: Emitted over LLC/SNAP to `01:80:c2:00:00:00`. Emits Configuration or RSTP BPDU.
+  - Sub-keywords: `ROOTID "<str>"` / `ROOT_ID "<str>"`, `BRIDGEID "<str>"` / `BRIDGE_ID "<str>"`, `COST <u32>`, `PORT_ID <u16>`, `MAX_AGE <u16>`, `HELLO_TIME <u16>`, `FORWARD_DELAY <u16>`, `RSTP`, `FLAGS <u8>`.
+  - Wire behavior: LLC/SNAP to `01:80:c2:00:00:00`. Emits 35-byte Configuration BPDU or 36-byte `RSTP` BPDU (`Version 1 Length = 0x00`).
 - [examples/l2/lacp/](examples/l2/lacp/) — **`LACP` (IEEE 802.3ad Link Aggregation Control):**
   - Sub-keywords: `ACTOR_SYS "<mac>"`, `ACTOR_KEY <u16>`, `ACTOR_PORT <u16>`, `PARTNER_SYS "<mac>"`, `PARTNER_KEY <u16>`, `PARTNER_PORT <u16>`, `ACTOR_STATE <u8>`, `PARTNER_STATE <u8>`.
   - Wire behavior: Slow Protocols (EtherType 0x8809, Subtype 1) to `01:80:c2:00:00:02`.
 - [examples/l2/eapol/](examples/l2/eapol/) — **`EAPOL` (IEEE 802.1X Port-Based Network Access Control):**
-  - Sub-keywords: `VERSION <u8>`, `TYPE <u8>`, `START`, `LOGOFF`, `KEY`, `EAP_PACKET`, `EAP_CODE <u8>`, `EAP_ID <u8>`, `EAP_METHOD <u8>`, `IDENTITY "<str>"`.
-  - Wire behavior: EtherType 0x888E. Defaults to EAP-Packet with EAP-Request/Response Identity.
+  - Sub-keywords: `VERSION <u8>`, `TYPE <START|LOGOFF|KEY|EAP_PACKET>`, `EAP_CODE <u8>`, `EAP_ID <u8>`, `EAP_METHOD <u8>`, `IDENTITY "<str>"`.
+  - Wire behavior: EtherType 0x888E. Defaults to EAP-Packet Identity; `EAP_CODE` `3` (Success) and `4` (Failure) emit a 4-byte EAP header without a `Type` byte when payload is empty.
 - [examples/l2/mpls/](examples/l2/mpls/) — **`MPLS` (RFC 3031 / 3032 Multi-Protocol Label Switching):**
   - Sub-keywords: `LABEL <u32>`, `EXP <0..7>`, `TC <0..7>`, `BOS <0..1>`, `MPLS_TTL <u8>`.
   - Wire behavior: EtherType 0x8847. Emits 32-bit label stack entry (default Label 16, BOS 1, TTL 64).
@@ -299,51 +281,51 @@ Every protocol in FrameAssembly can be instantiated with **zero mandatory sub-ke
   - Wire behavior: Polymorphic dual-stack (IPv4 protocol 1 or IPv6 protocol 58). Defaults to Echo Request (ID 1, Seq 1).
 - [examples/l3/ndp/](examples/l3/ndp/) — **`NDP` (IPv6 Neighbor Discovery - RFC 4861):**
   - Sub-keywords: `ROUTER_SOLICIT`, `ROUTER_ADVERT`, `NEIGHBOR_SOLICIT`, `NEIGHBOR_ADVERT`, `TARGET <ipv6>`, `SLLA <mac>`, `TLLA <mac>`, `ROUTER_LIFETIME <u16>`.
-  - Wire behavior: ICMPv6 Type 135 Neighbor Solicitation to Solicited-Node Multicast (`ff02::1:ffxx:xxxx`), Hop Limit 255.
+  - Wire behavior: ICMPv6 Type 135 Neighbor Solicitation to Solicited-Node Multicast (`ff02::1:ffxx:xxxx`), default Hop Limit `255`.
 - [examples/l3/igmp/](examples/l3/igmp/) — **`IGMP` (Internet Group Management Protocol - RFC 2236 / RFC 3376):**
-  - Sub-keywords: `QUERY`, `REPORT`, `LEAVE`, `V1`, `V2`, `V3`, `GROUP <ipv4>`, `MAX_RESP <u8>`.
-  - Wire behavior: IPv4 protocol 2. Defaults to Membership Query to all-systems multicast `224.0.0.1`.
+  - Sub-keywords: `QUERY`, `REPORT`, `LEAVE`, `V1`, `V2`, `V3`, `VERSION <1..3>`, `GROUP <ipv4>`, `MAX_RESP <u8>`.
+  - Wire behavior: IPv4 protocol 2. Emits Query (`0x11`), Report (`V1`=`0x12`, `V2`=`0x16`, `V3`=`0x22`), or Leave (`0x17`).
 - [examples/l3/mld/](examples/l3/mld/) — **`MLD` (Multicast Listener Discovery for IPv6 - RFC 2710 / RFC 3810):**
   - Sub-keywords: `QUERY`, `REPORT`, `DONE`, `V1`, `V2`, `MULTICAST_ADDR <ipv6>`, `MAX_RESP_DELAY <u16>`.
   - Wire behavior: ICMPv6 Type 130 Listener Query to `ff02::1` with Router Alert hop-by-hop option.
 - [examples/l3/gre/](examples/l3/gre/) — **`GRE` (Generic Routing Encapsulation - RFC 2784 / RFC 2890):**
-  - Sub-keywords: `CHECKSUM`, `GRE_KEY <u32>`, `GRE_SEQ <u32>`, `GRE_PROTO <u16>`.
-  - Wire behavior: IP protocol 47. Encapsulates inner protocol payload (default EtherType 0x0800 or 0x86DD).
+  - Sub-keywords: `CHECKSUM`, `GRE_KEY <u32>`, `GRE_SEQ <u32>`, `SEQ <u32>`, `GRE_PROTO <u16>`.
+  - Wire behavior: IP protocol 47. Computes RFC 2784 16-bit GRE checksum when `CHECKSUM` is set and encapsulates inner payload.
 - [examples/l3/vxlan/](examples/l3/vxlan/) — **`VXLAN` (Virtual eXtensible Local Area Network - RFC 7348):**
   - Sub-keywords: `VNI <u32>` / `VNID <u32>`, `SRCPORT <u16>`, `DSTPORT <u16>`.
-  - Wire behavior: UDP port 4789. Emits 8-byte VXLAN header with 24-bit VNI (default 1000) and inner Ethernet frame.
+  - Wire behavior: UDP port 4789. Emits 8-byte VXLAN header with 24-bit VNI and a 42-byte inner Ethernet+IPv4+UDP frame when payload is empty.
 - [examples/l3/geneve/](examples/l3/geneve/) — **`GENEVE` (Generic Network Virtualization Encapsulation - RFC 8926):**
-  - Sub-keywords: `VNI <u32>`, `PROTOCOL_TYPE <u16>`, `OPT_CLASS <u16>`, `OPT_TYPE <u8>`.
-  - Wire behavior: UDP port 6081. Emits GENEVE header with 24-bit VNI and EtherType 0x6558.
+  - Sub-keywords: `VNI <u32>` / `VNID <u32>`, `PROTOCOL_TYPE <u16>`, `OPT_CLASS <u16>`, `OPT_TYPE <u8>`.
+  - Wire behavior: UDP port 6081. Emits GENEVE header with 24-bit VNI and a 42-byte inner Ethernet+IPv4+UDP frame when payload is empty.
 - [examples/l3/ipsec/](examples/l3/ipsec/) — **`IPSEC` (IP Security Architecture - RFC 4301):**
-  - Sub-keywords: `SPI <u32>`, `SEQ <u32>`, `IV "<hex>"`, `ICV "<hex>"`.
+  - Sub-keywords: `SPI <u32>`, `SEQ <u32>`, `IV "<hex>"`, `ICV "<hex>"`, `NEXT_HEADER <u8>`.
   - Wire behavior: IP protocol 50 (ESP wrapper). SPI default 0x1000, sequence 1.
 - [examples/l3/esp/](examples/l3/esp/) — **`ESP` (Encapsulating Security Payload - RFC 4303):**
   - Sub-keywords: `SPI <u32>`, `SEQ <u32>`, `IV "<hex>"`, `ICV "<hex>"`, `NEXT_HEADER <u8>`.
-  - Wire behavior: IP protocol 50. Encapsulates encrypted payload with SPI and sequence counter.
+  - Wire behavior: IP protocol 50. Encapsulates encrypted payload with SPI, sequence counter, IV, trailer, and ICV.
 - [examples/l3/ah/](examples/l3/ah/) — **`AH` (IP Authentication Header - RFC 4302):**
   - Sub-keywords: `SPI <u32>`, `SEQ <u32>`, `ICV "<hex>"`, `NEXT_HEADER <u8>`.
   - Wire behavior: IP protocol 51. Emits SPI, sequence counter, and 96-bit ICV authentication tag.
 - [examples/l3/ikev2/](examples/l3/ikev2/) — **`IKEV2` (Internet Key Exchange Protocol Version 2 - RFC 7296):**
-  - Sub-keywords: `INITIATOR_SPI "<hex>"`, `RESPONDER_SPI "<hex>"`, `EXCHANGE <u8>`, `SA_INIT`, `CREATE_CHILD_SA`, `INFORMATIONAL`, `MSGID <u32>`, `NEXT_PAYLOAD <u8>`.
+  - Sub-keywords: `INITIATOR_SPI <u64>`, `RESPONDER_SPI <u64>`, `EXCHANGE <u8>`, `SA_INIT`, `CREATE_CHILD_SA`, `INFORMATIONAL`, `MSGID <u32>`, `NEXT_PAYLOAD <u8>`.
   - Wire behavior: UDP port 500. Defaults to IKE_SA_INIT (Exchange Type 34).
 - [examples/l3/wireguard/](examples/l3/wireguard/) — **`WIREGUARD` (WireGuard VPN Protocol):**
-  - Sub-keywords: `INITIATION`, `COOKIE`, `DATA`, `SENDER <u32>`, `RECEIVER <u32>`, `COUNTER <u64>`.
-  - Wire behavior: UDP port 51820. Defaults to Type 1 Handshake Initiation message.
+  - Sub-keywords: `TYPE <INITIATION|RESPONSE|COOKIE|DATA>`, `SENDER <u32>`, `RECEIVER <u32>`, `COUNTER <u64>`.
+  - Wire behavior: UDP port 51820. Type 4 (`DATA`) includes 16-byte Poly1305 AEAD tag (`>= 32` bytes total).
 - [examples/l3/ospf/](examples/l3/ospf/) — **`OSPF` (Open Shortest Path First - RFC 2328 / RFC 5340):**
-  - Sub-keywords: `HELLO`, `DBD`, `LSR`, `LSU`, `LSACK`, `ROUTER_ID <ip>`, `AREA_ID <ip>`, `HELLO_INTERVAL <u16>`, `DEAD_INTERVAL <u32>`, `PRIORITY <u8>`.
+  - Sub-keywords: `HELLO`, `DBD`, `LSR`, `LSU`, `LSACK`, `ROUTER_ID <ip>`, `AREA_ID <u32>`, `HELLO_INTERVAL <u16>`, `DEAD_INTERVAL <u32>`, `PRIORITY <u8>`.
   - Wire behavior: IP protocol 89. Emits OSPFv2 (IPv4) or OSPFv3 (IPv6) Hello packet to `224.0.0.5` / `ff02::5`.
 - [examples/l3/bgp/](examples/l3/bgp/) — **`BGP` (Border Gateway Protocol 4 - RFC 4271 / RFC 2545):**
-  - Sub-keywords: `OPEN`, `UPDATE`, `NOTIFICATION`, `KEEPALIVE`, `ASN <u32>`, `HOLDTIME <u16>`, `BGPID <ip>`, `PREFIX "<cidr>"`, `NLRI "<cidr>"`, `NEXTHOP <ip>`.
-  - Wire behavior: TCP port 179. Defaults to BGP OPEN message with ASN 65001 and Hold Time 180s.
+  - Sub-keywords: `OPEN`, `UPDATE`, `NOTIFICATION`, `KEEPALIVE`, `ASN <u32>`, `HOLDTIME <u16>`, `BGPID <ip>`, `PREFIX "<cidr>"`, `NEXTHOP <ip>`.
+  - Wire behavior: TCP port 179. `UPDATE` encodes `PREFIX` as NLRI and `NEXTHOP` as Path Attribute Type 3 (`NEXT_HOP`).
 - [examples/l3/rip/](examples/l3/rip/) — **`RIP` (Routing Information Protocol - RFC 2453 / RFC 2080):**
-  - Sub-keywords: `REQUEST`, `REPLY`, `COMMAND <u8>`, `VERSION <u8>`, `METRIC <u32>`, `TAG <u16>`, `PREFIX "<cidr>"`.
+  - Sub-keywords: `REQUEST`, `REPLY`, `COMMAND <u8>`, `VERSION <u8>`, `METRIC <u32>`, `TAG <u16>`, `PREFIX <ip>`, `NEXTHOP <ip>`.
   - Wire behavior: UDP port 520 (RIPv2) or 521 (RIPng). Emits Route Table Response.
-- [examples/l3/vrrp/](examples/l3/vrrp/) — **`VRRP` (Virtual Router Redundancy Protocol - RFC 5798):**
-  - Sub-keywords: `VRID <u8>`, `PRIORITY <u8>`, `ADV_INT <u8>`, `VIP <ip>`, `VERSION <u8>`.
-  - Wire behavior: IP protocol 112 to `224.0.0.18` / `ff02::12`. Defaults to VRID 1, Priority 100.
+- [examples/l3/vrrp/](examples/l3/vrrp/) — **`VRRP` (Virtual Router Redundancy Protocol - RFC 5798 / RFC 3768):**
+  - Sub-keywords: `VERSION <2|3>`, `VRID <u8>`, `PRIORITY <u8>`, `ADV_INT <u16>`, `VIP <ip>`.
+  - Wire behavior: IP protocol 112 (`TTL 255`) to `224.0.0.18` / `ff02::12`. Defaults to `VERSION 3` (RFC 5798 pseudo-header checksum; `VERSION 2` uses RFC 3768 message checksum).
 - [examples/l3/hsrp/](examples/l3/hsrp/) — **`HSRP` (Cisco Hot Standby Router Protocol - RFC 2281):**
-  - Sub-keywords: `GROUP <u8>`, `PRIORITY <u8>`, `HELLOTIME <u8>`, `STATE <u8>`, `VIP <ip>`.
+  - Sub-keywords: `GROUP <u8>`, `PRIORITY <u8>`, `HELLOTIME <u8>`, `HOLDTIME <u16>`, `STATE <u8>`, `VIP <ip>`.
   - Wire behavior: UDP port 1985 to `224.0.0.2`. Defaults to Hello message, State Active, Group 1.
 - [examples/l3/pim/](examples/l3/pim/) — **`PIM` (Protocol Independent Multicast - RFC 7761):**
   - Sub-keywords: `HELLO`, `JOIN_PRUNE`, `REGISTER`, `DR_PRIORITY <u32>`, `HOLDTIME <u16>`, `SOURCE <ip>`, `GROUP <ip>`, `RP <ip>`.
@@ -352,7 +334,7 @@ Every protocol in FrameAssembly can be instantiated with **zero mandatory sub-ke
   - Sub-keywords: `STATE <u8>`, `DIAG <u8>`, `MY_DISC <u32>`, `YOUR_DISC <u32>`, `MIN_TX <u32>`, `MIN_RX <u32>`, `MULT <u8>`.
   - Wire behavior: UDP port 3784. Single-hop control packet, State Up, Detect Mult 3, Min TX/RX 1s.
 - [examples/l3/openflow/](examples/l3/openflow/) — **`OPENFLOW` (OpenFlow Switch Protocol 1.3):**
-  - Sub-keywords: `HELLO`, `FEATURES_REQ`, `FEATURES_REPLY`, `PACKET_IN`, `PACKET_OUT`, `FLOW_MOD`, `ECHO_REQ`, `XID <u32>`, `DPID <u64>`, `TABLE_ID <u8>`.
+  - Sub-keywords: `HELLO`, `FEATURES_REQ`, `FEATURES_REPLY`, `PACKET_IN`, `PACKET_OUT`, `FLOW_MOD`, `ECHO_REQ`, `ECHO_REPLY`, `VERSION <u8>`, `XID <u32>`, `DPID <u64>`, `TABLE <u8>` / `TABLE_ID <u8>`, `PRIORITY <u16>`.
   - Wire behavior: TCP port 6653. OpenFlow Version 1.3 (0x04) OFPT_HELLO, XID 1.
 
 ### 3. Layer 4 Transport Protocols (3 Protocols)
@@ -371,7 +353,7 @@ Every protocol in FrameAssembly can be instantiated with **zero mandatory sub-ke
 
 - [examples/l7/snmp/snmpv1/](examples/l7/snmp/snmpv1/) — **`SNMP1` (Simple Network Management Protocol v1 - RFC 1157):**
   - Sub-keywords: `TRAP`, `GET`, `SET`, `RESPONSE`, `GETNEXT`, `COMMUNITY "<str>"`, `OID <oid>`, `SYSUPTIME <u32>`, `ENTERPRISE <oid>`, `AGENTIP <ipv4>`, `GENTRAP <0..6>`, `SPECTRAP <u32>`, `VARBIND`.
-  - Wire behavior: UDP port 162 (Trap) / 161 (Get/Set). Emits RFC 1157 SMIv1 ASN.1 BER encoded messages.
+  - Wire behavior: UDP port 162 (Trap) / 161 (Get/Set). Emits RFC 1157 SMIv1 ASN.1 BER encoded messages with strict ITU-T X.690 OID validation (rejecting 1-arc OIDs and invalid root/second arcs).
 - [examples/l7/snmp/snmpv2c/](examples/l7/snmp/snmpv2c/) — **`SNMP2` (Simple Network Management Protocol v2c - RFC 3416):**
   - Sub-keywords: `TRAP`, `INFORM`, `GET`, `GETNEXT`, `GETBULK`, `SET`, `RESPONSE`, `COMMUNITY "<str>"`, `OID <oid>`, `SYSUPTIME <u32>`, `REQID <u32>`, `NONREPEATERS <u32>`, `MAXREPETITIONS <u32>`, `VARBIND`.
   - Wire behavior: UDP port 162 / 161. Emits RFC 3416 SMIv2 BER encoded PDUs with 64-bit counter support.
@@ -482,49 +464,43 @@ Every protocol in FrameAssembly can be instantiated with **zero mandatory sub-ke
 
 ## Examples Corpus Directory Index
 
-The `examples/` directory contains an exhaustive suite of validated `.fasm` scripts:
+The `examples/` directory contains an exhaustive verified corpus of **`2,611` `.fasm` scenarios** across all 82 dedicated directories:
 
-- **Layer 2 Data-Link (`examples/l2/`):**
-  - [`examples/l2/arp/`](examples/l2/arp/) — ARP request, reply, gratuitous ARP (GARP)
-  - [`examples/l2/vlan/`](examples/l2/vlan/) — 802.1Q single-tagged traffic with PCP/DEI priorities
-  - [`examples/l2/qinq/`](examples/l2/qinq/) — 802.1ad dual-tagged QinQ service provider tunnels
-  - [`examples/l2/lldp/`](examples/l2/lldp/) — LLDP chassis, port, system description discovery
-  - [`examples/l2/stp/`](examples/l2/stp/) — STP configuration and RSTP rapid topology change BPDUs
-  - [`examples/l2/lacp/`](examples/l2/lacp/) — LACP actor and partner bundle negotiation
-  - [`examples/l2/eapol/`](examples/l2/eapol/) — 802.1X EAPOL-Start, Identity, and key exchange
-  - [`examples/l2/mpls/`](examples/l2/mpls/) — MPLS single and multi-label shim encapsulation
-- **Layer 3 Routing & Tunneling (`examples/l3/`):**
-  - [`examples/l3/icmp/`](examples/l3/icmp/) — Dual-stack ICMPv4/ICMPv6 echo and error flows
-  - [`examples/l3/ndp/`](examples/l3/ndp/) — IPv6 Router and Neighbor Solicitations & Advertisements
-  - [`examples/l3/igmp/`](examples/l3/igmp/) — IGMPv2/v3 membership queries and host reports
-  - [`examples/l3/mld/`](examples/l3/mld/) — MLDv1/v2 IPv6 multicast listener discovery
-  - [`examples/l3/gre/`](examples/l3/gre/) — GRE point-to-point tunnels with checksums and keys
-  - [`examples/l3/vxlan/`](examples/l3/vxlan/) — VXLAN overlay encapsulation across VNI boundaries
-  - [`examples/l3/geneve/`](examples/l3/geneve/) — GENEVE virtualization with variable TLV options
-  - [`examples/l3/ipsec/`](examples/l3/ipsec/) / [`examples/l3/esp/`](examples/l3/esp/) / [`examples/l3/ah/`](examples/l3/ah/) — IPsec security associations
-  - [`examples/l3/ikev2/`](examples/l3/ikev2/) — IKEv2 SA_INIT and CHILD_SA negotiations
-  - [`examples/l3/wireguard/`](examples/l3/wireguard/) — WireGuard handshake initiation and transport
-  - [`examples/l3/ospf/`](examples/l3/ospf/) — OSPFv2/v3 adjacency establishment and DBD exchange
-  - [`examples/l3/bgp/`](examples/l3/bgp/) — BGP-4 OPEN, UPDATE, and KEEPALIVE peering
-  - [`examples/l3/rip/`](examples/l3/rip/) — RIPv2 and RIPng metric advertisement
-  - [`examples/l3/vrrp/`](examples/l3/vrrp/) / [`examples/l3/hsrp/`](examples/l3/hsrp/) — First-hop gateway redundancy failover
-  - [`examples/l3/pim/`](examples/l3/pim/) — PIM-SM multicast router hello and join/prune trees
-  - [`examples/l3/bfd/`](examples/l3/bfd/) — High-frequency sub-second link failure detection
-  - [`examples/l3/openflow/`](examples/l3/openflow/) — SDN controller flow table modification
-- **Layer 4 Transports (`examples/l4/`):**
-  - [`examples/l4/tcp/`](examples/l4/tcp/) — 3-way handshakes, options, window scaling, teardowns
-  - [`examples/l4/udp/`](examples/l4/udp/) — High-speed UDP streaming and empty probe probes
-  - [`examples/l4/sctp/`](examples/l4/sctp/) — SCTP 4-way association, data chunks, and multi-homing
-- **Layer 7 SNMP (`examples/l7/snmp/`):**
-  - [`examples/l7/snmp/snmpv1/`](examples/l7/snmp/snmpv1/) — SNMPv1 traps, coldStart, warmStart, linkUp/Down
-  - [`examples/l7/snmp/snmpv2c/`](examples/l7/snmp/snmpv2c/) — GET, GETNEXT, GETBULK walks and 64-bit varbinds
-  - [`examples/l7/snmp/snmpv3/`](examples/l7/snmp/snmpv3/) — USM authentication (MD5/SHA/SHA-2) and privacy (DES/AES)
-- **Layer 7 Telemetry, Web & Industrial (`examples/l7/`):**
-  - Telemetry & Infra: [`dns/`](examples/l7/dns/), [`mdns/`](examples/l7/mdns/), [`dhcp/`](examples/l7/dhcp/), [`ntp/`](examples/l7/ntp/), [`ptp/`](examples/l7/ptp/), [`radius/`](examples/l7/radius/), [`tacacs/`](examples/l7/tacacs/), [`syslog/`](examples/l7/syslog/), [`netflow/`](examples/l7/netflow/), [`ipfix/`](examples/l7/ipfix/), [`sflow/`](examples/l7/sflow/)
-  - Web & App: [`http/`](examples/l7/http/), [`http2/`](examples/l7/http2/), [`grpc/`](examples/l7/grpc/), [`websocket/`](examples/l7/websocket/), [`tls/`](examples/l7/tls/), [`quic/`](examples/l7/quic/), [`stun/`](examples/l7/stun/), [`sip/`](examples/l7/sip/), [`rtp/`](examples/l7/rtp/), [`rtsp/`](examples/l7/rtsp/), [`smtp/`](examples/l7/smtp/), [`imap/`](examples/l7/imap/), [`pop3/`](examples/l7/pop3/), [`kerberos/`](examples/l7/kerberos/), [`ldap/`](examples/l7/ldap/), [`smb/`](examples/l7/smb/), [`nfs/`](examples/l7/nfs/), [`redis/`](examples/l7/redis/), [`memcached/`](examples/l7/memcached/), [`mysql/`](examples/l7/mysql/), [`postgres/`](examples/l7/postgres/), [`mqtt/`](examples/l7/mqtt/), [`coap/`](examples/l7/coap/), [`amqp/`](examples/l7/amqp/), [`ssdp/`](examples/l7/ssdp/), [`whois/`](examples/l7/whois/), [`tftp/`](examples/l7/tftp/), [`ftp/`](examples/l7/ftp/), [`ssh/`](examples/l7/ssh/), [`telnet/`](examples/l7/telnet/)
-  - SCADA & OT: [`modbus/`](examples/l7/modbus/), [`bacnet/`](examples/l7/bacnet/), [`dnp3/`](examples/l7/dnp3/), [`s7comm/`](examples/l7/s7comm/), [`ethernetip/`](examples/l7/ethernetip/), [`opcua/`](examples/l7/opcua/)
-- **Cross-Cutting Topologies (`examples/topologies/`):**
-  - [`examples/topologies/`](examples/topologies/) — Spine-leaf enterprise topologies, DMZ firewall alerts, DNS amplification defense, VoIP QoS prioritization, Kubernetes service mesh simulations, and grand omnibus showcases.
+- **Layer 2 Data-Link (`examples/l2/` — `248` examples):** `arp/`, `vlan/`, `qinq/`, `lldp/`, `stp/`, `lacp/`, `eapol/`, `mpls/`.
+- **Layer 3 Routing & Tunneling (`examples/l3/` — `620` examples):** `icmp/`, `ndp/`, `igmp/`, `mld/`, `gre/`, `vxlan/`, `geneve/`, `ipsec/`, `esp/`, `ah/`, `ikev2/`, `wireguard/`, `ospf/`, `bgp/`, `rip/`, `vrrp/`, `hsrp/`, `pim/`, `bfd/`, `openflow/`.
+- **Layer 4 Transports (`examples/l4/` — `95` examples):** `tcp/`, `udp/`, `sctp/`.
+- **Layer 7 Telemetry, Web & Industrial (`examples/l7/` — `1,544` examples):**
+  - Telemetry & Infra: `dns/`, `mdns/`, `dhcp/`, `ntp/`, `ptp/`, `radius/`, `tacacs/`, `syslog/`, `netflow/`, `ipfix/`, `sflow/`.
+  - Web & App: `http/`, `http2/`, `grpc/`, `websocket/`, `tls/`, `quic/`, `stun/`, `sip/`, `rtp/`, `rtsp/`, `smtp/`, `imap/`, `pop3/`, `kerberos/`, `ldap/`, `smb/`, `nfs/`, `redis/`, `memcached/`, `mysql/`, `postgres/`, `mqtt/`, `coap/`, `amqp/`, `ssdp/`, `whois/`, `tftp/`, `ftp/`, `ssh/`, `telnet/`.
+  - SCADA & OT: `modbus/`, `bacnet/`, `dnp3/`, `s7comm/`, `ethernetip/`, `opcua/`.
+  - SNMP (`examples/l7/snmp/`): `snmpv1/`, `snmpv2c/`, `snmpv3/`.
+- **Cross-Cutting Topologies (`examples/topologies/` — `104` examples):** Spine-leaf EVPN-VXLAN fabric, campus 802.1X NAC, DMZ firewall alerts, VoIP QoS, 5G SBA core, IEC 62443 substations, Kubernetes dual-stack service mesh, and SD-WAN failover.
+
+---
+
+## Technical Documentation & Formal Grammars
+
+Comprehensive deep-dive architecture, RFC wire default mappings, and instruction-tuning guides are available in `docs/` (`< 50 KB` per file):
+
+- [`docs/architecture_and_grammar.md`](docs/architecture_and_grammar.md) — Compiler pipeline, `HOST`/`FLOW`/`COMPILE` syntax, L2–L4 modifiers, dual-stack polymorphism, and formal grammar specification.
+- [`docs/l2_protocols.md`](docs/l2_protocols.md) — All 8 Layer 2 protocols (`ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`, `MPLS`).
+- [`docs/l3_protocols.md`](docs/l3_protocols.md) — All 20 Layer 3 control, tunneling, VPN, and routing protocols (`ICMP`, `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`, `GENEVE`, `IPSEC`, `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`, `PIM`, `BFD`, `OPENFLOW`).
+- [`docs/l4_transports.md`](docs/l4_transports.md) — Layer 4 transports (`TCP`, `UDP`, `SCTP`), 4-tuple state tracking, RFC 7323 options, and SCTP multi-chunk signaling.
+- [`docs/l7_snmp.md`](docs/l7_snmp.md) — `SNMP1`, `SNMP2`, and `SNMP3` USM cryptographic authentication (`MD5`/`SHA`/`SHA256`/`SHA384`/`SHA512`), encryption (`DES`/`AES`), and all 9 SMI `VARBIND` types.
+- [`docs/l7_infra_and_telemetry.md`](docs/l7_infra_and_telemetry.md) — Infrastructure, time, AAA, and flow telemetry (`DNS`, `MDNS`, `DHCP`, `NTP`, `PTP`, `RADIUS`, `TACACS`, `SYSLOG`, `NETFLOW`, `IPFIX`, `SFLOW`).
+- [`docs/l7_web_and_cloud.md`](docs/l7_web_and_cloud.md) — Web, cloud-native, TLS/QUIC, VoIP, and remote access (`HTTP`, `HTTP2`, `GRPC`, `WEBSOCKET`, `TLS`, `QUIC`, `STUN`, `SIP`, `RTP`, `RTSP`, `SSDP`, `TFTP`, `FTP`, `SSH`, `TELNET`, `WHOIS`).
+- [`docs/l7_mail_auth_storage_db.md`](docs/l7_mail_auth_storage_db.md) — Mail, directory, storage, databases, caches, and message brokers (`SMTP`, `IMAP`, `POP3`, `KERBEROS`, `LDAP`, `SMB`, `NFS`, `REDIS`, `MEMCACHED`, `MYSQL`, `POSTGRES`, `MQTT`, `COAP`, `AMQP`).
+- [`docs/l7_industrial_ot.md`](docs/l7_industrial_ot.md) — Industrial Control Systems (ICS) & SCADA/OT (`MODBUS`, `BACNET`, `DNP3`, `S7COMM`, `ETHERNETIP`, `OPCUA`).
+- [`docs/topologies_and_dual_stack.md`](docs/topologies_and_dual_stack.md) — Multi-tier enterprise, EVPN-VXLAN data center, Zero-Trust 802.1X NAC, Kubernetes dual-stack, and IEC 62443 substation topologies.
+- [`docs/qa_synthesis_guide.md`](docs/qa_synthesis_guide.md) — Natural-language Prompt-to-`.fasm` instruction-tuning Q&A pairs and constrained decoding guide.
+
+Formal Grammars, AI Discovery & Metadata Specifications:
+- [`grammar.ebnf`](grammar.ebnf) — ISO/IEC 14977 formal context-free EBNF grammar.
+- [`frameassembly.gbnf`](frameassembly.gbnf) — `llama.cpp` GBNF grammar for constrained decoding (`--grammar-file frameassembly.gbnf`).
+- [`frameassembly.lark`](frameassembly.lark) — Earley/LALR Lark grammar for `vLLM`, `Outlines`, `Guidance`, `XGrammar`, and `llguidance`.
+- [`AGENTS.md`](AGENTS.md), [`CLAUDE.md`](CLAUDE.md) & [`.github/copilot-instructions.md`](.github/copilot-instructions.md) — AI coding agent onboarding and syntax guardrails.
+- [`llms.txt`](llms.txt), [`llms-full.txt`](llms-full.txt) & [`context7.json`](context7.json) — Curated LLM index, full context bundle, and Context7 MCP configuration.
+- [`CITATION.cff`](CITATION.cff) & [`codemeta.json`](codemeta.json) — CFF 1.2.0 and CodeMeta 2.0 software citation metadata.
 
 ---
 

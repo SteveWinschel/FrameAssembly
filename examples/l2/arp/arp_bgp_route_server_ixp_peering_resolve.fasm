@@ -1,0 +1,25 @@
+// PROMPT: Internet Exchange Point (IXP) member routers resolving BGP route server next-hop MAC addresses over shared peering LAN.
+// TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, SENDERMAC, SENDERIP, TARGETMAC, TARGETIP, WAIT, REPLY, COMPILE
+
+// INSTRUCTION: Define IXP member AS65001 border router on shared peering fabric.
+HOST ixp_member_as65001 {
+    IP 198.32.160.101
+    MAC 00:1c:73:a0:00:65
+}
+
+// INSTRUCTION: Define IXP multilateral BGP route server on shared peering fabric.
+HOST ixp_route_server {
+    IP 198.32.160.1
+    MAC 00:1c:73:a0:00:01
+}
+
+// INSTRUCTION: Resolve IXP route server MAC via ARP Request and Reply before establishing TCP BGP session.
+FLOW arp_ixp_route_server(member, rs) {
+    member -> rs ARP REQUEST SENDERMAC 00:1c:73:a0:00:65 SENDERIP 198.32.160.101 TARGETMAC 00:00:00:00:00:00 TARGETIP 198.32.160.1 WAIT 5ms
+    member <- rs ARP REPLY SENDERMAC 00:1c:73:a0:00:01 SENDERIP 198.32.160.1 TARGETMAC 00:1c:73:a0:00:65 TARGETIP 198.32.160.101
+}
+
+// INSTRUCTION: Compile the IXP BGP route server ARP resolution trace.
+COMPILE {
+    arp_ixp_route_server(ixp_member_as65001, ixp_route_server)
+}

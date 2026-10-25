@@ -1,0 +1,21 @@
+// PROMPT: Enterprise Voice VLAN 500 RTP stream with 802.1p CoS PCP 5 and 20ms pacing loop.
+// TOKENS: HOST, IP, MAC, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, VLAN, PCP, DEI, DSCP, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define IP phone on Voice VLAN 500.
+HOST voice_phone { IP 192.168.250.25 MAC 00:21:55:fa:00:19 }
+
+// INSTRUCTION: Define Session Border Controller (SBC) on Voice VLAN 500.
+HOST voice_sbc { IP 192.168.250.1 MAC 00:21:55:fa:00:01 }
+
+// INSTRUCTION: Define 20ms G.711 A-law (PT 8) voice exchange on VLAN 500.
+FLOW rtp_voice_vlan_tick(phone, sbc) {
+    phone -> sbc RTP PT 8 TIMESTAMP 160 SSRC 0x08080001 MARKER 0 VLAN 500 PCP 5 DEI 0 DSCP 46 WAIT 20ms
+    phone <- sbc RTP PT 8 TIMESTAMP 160 SSRC 0x08080002 MARKER 0 VLAN 500 PCP 5 DEI 0 DSCP 46 WAIT 20ms
+}
+
+// INSTRUCTION: Execute 5 consecutive 20ms voice intervals in COMPILE LOOP.
+COMPILE {
+    LOOP 5 {
+        rtp_voice_vlan_tick(voice_phone, voice_sbc)
+    }
+}

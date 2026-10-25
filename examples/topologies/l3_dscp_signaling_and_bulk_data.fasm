@@ -1,5 +1,5 @@
 // PROMPT: Quality of Service DSCP classification across signaling AF31, low-latency AF21, and bulk AF11.
-// TOKENS: HOST, IP, FLOW, ->, DSCP, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, DSCP, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define enterprise application client.
 HOST app_client { IP 172.20.1.1 }

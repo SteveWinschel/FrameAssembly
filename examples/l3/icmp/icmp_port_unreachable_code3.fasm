@@ -1,0 +1,19 @@
+// PROMPT: Server returning ICMP DEST_UNREACH Code 3 (Port Unreachable) and Code 2 (Protocol Unreachable).
+// TOKENS: HOST, IP, FLOW, ICMP, DEST_UNREACH, CODE, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define network scanner host.
+HOST scanner_node { IP 10.50.0.15 }
+
+// INSTRUCTION: Define hardened server rejecting closed UDP port and unsupported IP protocol.
+HOST hardened_srv { IP 10.50.0.80 }
+
+// INSTRUCTION: Define ICMP Destination Unreachable Code 3 and Code 2 error responses.
+FLOW icmp_port_proto_unreach(scan, srv) {
+    scan <- srv ICMP DEST_UNREACH CODE 3 PAYLOAD "CLOSED_UDP_PORT_HEADER_ECHO"
+    scan <- srv ICMP DEST_UNREACH CODE 2 PAYLOAD "UNSUPPORTED_IP_PROTO_ECHO" WAIT 10ms
+}
+
+// INSTRUCTION: Compile the ICMP Port and Protocol Unreachable flow.
+COMPILE {
+    icmp_port_proto_unreach(scanner_node, hardened_srv)
+}

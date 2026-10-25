@@ -1,0 +1,21 @@
+// PROMPT: Industrial sensor streaming continuous metrics via WebSocket frames.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+
+// INSTRUCTION: Define manufacturing line vibration sensor.
+HOST vibration_sensor { IP 10.70.3.14 }
+
+// INSTRUCTION: Define factory floor telemetry receiver.
+HOST floor_receiver { IP 10.70.3.1 }
+
+// INSTRUCTION: Define telemetry metric transmission flow.
+FLOW ws_sensor_metric_flow(c, s) {
+    c -> s WEBSOCKET
+        OPCODE "BINARY"
+        FIN_BIT 1
+        MASK_KEY 2468135790
+}
+
+// INSTRUCTION: Compile block executing sensor metric streaming.
+COMPILE {
+    ws_sensor_metric_flow(vibration_sensor, floor_receiver)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Industrial VLAN 200 and PCP 6 prioritized OPC UA subscription publish exchange.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, VLAN, PCP, DEI, DSCP, WAIT, COMPILE
+
+// INSTRUCTION: Define plant floor historian on industrial VLAN 200.
+HOST plant_hist { IP 192.168.200.10 MAC 00:1c:06:c8:00:0a }
+
+// INSTRUCTION: Define CNC machine controller on industrial VLAN 200.
+HOST cnc_ctrl { IP 192.168.200.50 MAC 00:1c:06:c8:00:32 }
+
+// INSTRUCTION: Define VLAN-tagged OPC UA publish request and notification response.
+FLOW opcua_vlan_publish(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 300 TOKEN_ID 4 SEQ_NUM 21 REQID 501 NODE_ID "ns=4;s=CNC.SpindleLoad" VLAN 200 PCP 6 DEI 0 DSCP 46 WAIT 10ms
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 300 TOKEN_ID 4 SEQ_NUM 22 REQID 501 NODE_ID "ns=4;s=CNC.SpindleLoad" VLAN 200 PCP 6 DEI 0 DSCP 46
+}
+
+// INSTRUCTION: Compile VLAN-tagged OPC UA subscription flow.
+COMPILE {
+    opcua_vlan_publish(plant_hist, cnc_ctrl)
+}

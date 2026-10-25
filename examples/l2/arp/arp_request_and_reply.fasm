@@ -1,5 +1,5 @@
 // PROMPT: Standard ARP request broadcast and unicast reply on IPv4 subnet.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, ARP, REPLY, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, ARP, REPLY, COMPILE
 
 // INSTRUCTION: Define IPv4 workstation endpoint.
 HOST workstation {

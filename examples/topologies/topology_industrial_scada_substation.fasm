@@ -1,5 +1,5 @@
 // PROMPT: Power grid electrical substation automation integrating Modbus, DNP3, and S7comm telemetry.
-// TOKENS: HOST, IP, FLOW, ->, MODBUS, FUNC, READ_HOLDING_REGISTERS, DNP3, READ, S7COMM, READ_VAR, COMPILE
+// TOKENS: HOST, IP, FLOW, MODBUS, FUNC, READ_HOLDING_REGISTERS, DNP3, S7COMM, READ_VAR, COMPILE
 
 // INSTRUCTION: Define substation central HMI station.
 HOST scada_hmi { IP 10.50.0.10 }

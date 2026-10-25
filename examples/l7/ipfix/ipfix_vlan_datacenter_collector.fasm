@@ -1,0 +1,18 @@
+// PROMPT: IPFIX telemetry collection over 802.1Q tagged datacenter monitoring VLAN.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define datacenter spine switch exporter.
+HOST spine_switch { IP 10.240.0.1 }
+
+// INSTRUCTION: Define network operations collector on monitoring VLAN 400.
+HOST noc_collector { IP 10.240.0.100 }
+
+// INSTRUCTION: Define tagged VLAN telemetry export flow.
+FLOW vlan_ipfix_flow(sw, noc) {
+    sw -> noc IPFIX DOMAIN_ID 4001 SRCIP 10.100.1.50 DSTIP 10.200.2.60 PROTO 17 PACKETS 85 OCTETS 12400 VLAN 400 PCP 4 DEI 0
+}
+
+// INSTRUCTION: Compile VLAN telemetry scenario.
+COMPILE {
+    vlan_ipfix_flow(spine_switch, noc_collector)
+}

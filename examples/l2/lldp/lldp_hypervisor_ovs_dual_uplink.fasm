@@ -1,0 +1,37 @@
+// PROMPT: Hypervisor Open vSwitch (OVS) bridge emitting LLDP beacons across dual-NIC physical uplinks.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define hypervisor physical uplink NIC 0.
+HOST kvm_uplink_eth0 {
+    IP 10.14.1.11
+    MAC 52:54:00:0e:01:0b
+}
+
+// INSTRUCTION: Define hypervisor physical uplink NIC 1.
+HOST kvm_uplink_eth1 {
+    IP 10.14.2.11
+    MAC 52:54:00:0e:02:0b
+}
+
+// INSTRUCTION: Define Top-of-Rack switch A receiving uplink 0 LLDP.
+HOST tor_switch_a {
+    IP 10.14.1.1
+    MAC 00:1c:73:0e:01:01
+}
+
+// INSTRUCTION: Define Top-of-Rack switch B receiving uplink 1 LLDP.
+HOST tor_switch_b {
+    IP 10.14.2.1
+    MAC 00:1c:73:0e:02:01
+}
+
+// INSTRUCTION: Define hypervisor multi-homing LLDP beacon flow across dual ToR switches.
+FLOW ovs_dual_uplink_lldp(nic0, tor_a, nic1, tor_b) {
+    nic0 -> tor_a LLDP CHASSIS_ID "eb90-4412-kvm01" PORT_ID "ens1f0np0" SYSNAME "kvm-hypervisor-01.dc.local" SYSDESC "Open vSwitch 3.3.0 Linux 6.8" TTL 120
+    nic1 -> tor_b LLDP CHASSIS_ID "eb90-4412-kvm01" PORT_ID "ens1f1np1" SYSNAME "kvm-hypervisor-01.dc.local" SYSDESC "Open vSwitch 3.3.0 Linux 6.8" TTL 120 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing dual-NIC hypervisor LLDP topology announcement.
+COMPILE {
+    ovs_dual_uplink_lldp(kvm_uplink_eth0, tor_switch_a, kvm_uplink_eth1, tor_switch_b)
+}

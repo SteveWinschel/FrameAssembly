@@ -1,0 +1,26 @@
+// PROMPT: RFC 7761 RPT-to-SPT switchover sending (S,G) Join toward source followed by (S,G,rpt) Prune toward the RP.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, JOIN_PRUNE, GROUP, RP, HOLDTIME, DSCP, TTL, PAYLOAD, WAIT, SOURCE, COMPILE
+
+// INSTRUCTION: Define Last-Hop DR switching from shared tree (*,G) to shortest-path tree (S,G).
+HOST spt_switch_lhr {
+    IP 10.103.80.10
+    MAC 00:1a:a1:67:80:0a
+}
+
+// INSTRUCTION: Define upstream core router along both RPT and SPT paths.
+HOST spt_core_transit {
+    IP 10.103.80.1
+    MAC 00:1a:a1:67:80:01
+}
+
+// INSTRUCTION: Define (S,G) Join followed by (S,G,rpt) Prune pruning the shared Rendezvous Point Tree.
+FLOW pim_rpt_to_spt_switchover(lhr, core) {
+    lhr -> core PIM JOIN_PRUNE GROUP 239.80.1.1 RP 10.103.0.254 HOLDTIME 210 DSCP 48 TTL 1 PAYLOAD "STAR_G_SHARED_TREE_JOIN" WAIT 5ms
+    lhr -> core PIM JOIN_PRUNE GROUP 239.80.1.1 SOURCE 10.80.5.50 HOLDTIME 210 DSCP 48 TTL 1 PAYLOAD "S_G_SHORTEST_PATH_TREE_JOIN" WAIT 5ms
+    lhr -> core PIM JOIN_PRUNE GROUP 239.80.1.1 SOURCE 10.80.5.50 RP 10.103.0.254 HOLDTIME 210 DSCP 48 TTL 1 PAYLOAD "S_G_RPT_BIT_PRUNE_SHARED_BRANCH"
+}
+
+// INSTRUCTION: Compile the RFC 7761 RPT-to-SPT switchover and (S,G,rpt) Prune flow.
+COMPILE {
+    pim_rpt_to_spt_switchover(spt_switch_lhr, spt_core_transit)
+}

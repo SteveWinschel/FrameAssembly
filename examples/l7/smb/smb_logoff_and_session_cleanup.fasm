@@ -1,0 +1,27 @@
+// PROMPT: SMB2 LOGOFF and TREE_DISCONNECT session teardown after active file share operations on TCP port 445.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, STATUS, TREE_ID, SESSION_ID, MSGID, WAIT, COMPILE
+
+// INSTRUCTION: Define the enterprise workstation host disconnecting from the file server.
+HOST workstation {
+    IP 10.60.1.25
+    MAC 00:1a:2b:60:01:25
+}
+
+// INSTRUCTION: Define the Windows SMB2 storage server host.
+HOST smb_server {
+    IP 10.60.1.10
+    MAC 00:1a:2b:60:01:10
+}
+
+// INSTRUCTION: Disconnect the active share tree and log off the authenticated SMB2 session.
+FLOW smb_logoff_flow(c, s) {
+    c -> s SMB COMMAND "TREE_DISCONNECT" STATUS 0 TREE_ID 4 SESSION_ID 9001 MSGID 12
+    c <- s SMB COMMAND "TREE_DISCONNECT" STATUS 0 TREE_ID 4 SESSION_ID 9001 MSGID 12 WAIT 2ms
+    c -> s SMB COMMAND "LOGOFF" STATUS 0 SESSION_ID 9001 MSGID 13
+    c <- s SMB COMMAND "LOGOFF" STATUS 0 SESSION_ID 9001 MSGID 13
+}
+
+// INSTRUCTION: Compile the SMB2 session cleanup flow.
+COMPILE {
+    smb_logoff_flow(workstation, smb_server)
+}

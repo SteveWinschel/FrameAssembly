@@ -1,0 +1,18 @@
+// PROMPT: IPFIX flow telemetry exported over out-of-band management VLAN 400 with DSCP CS2 marking.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, VLAN, PCP, DSCP, COMPILE
+
+// INSTRUCTION: Define top-of-rack leaf switch exporter.
+HOST tor_leaf { IP 10.40.0.11 }
+
+// INSTRUCTION: Define management VLAN IPFIX collector.
+HOST mgmt_collector { IP 10.40.0.250 }
+
+// INSTRUCTION: Export IPFIX datagram tagged on management VLAN 400 with DSCP 16 (CS2).
+FLOW ipfix_mgmt_vlan(l, c) {
+    l -> c IPFIX DOMAIN_ID 400 SRCIP 10.1.10.5 DSTIP 10.1.20.8 PROTO 6 PACKETS 850 OCTETS 612000 VLAN 400 PCP 2 DSCP 16
+}
+
+// INSTRUCTION: Compile the VLAN-tagged IPFIX export scenario.
+COMPILE {
+    ipfix_mgmt_vlan(tor_leaf, mgmt_collector)
+}

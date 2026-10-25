@@ -1,0 +1,29 @@
+// PROMPT: Multi-adapter EtherNet/IP cell controller polling three distributed I/O drops in a workcell.
+// TOKENS: HOST, IP, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, STATUS, COMPILE
+
+// INSTRUCTION: Define workcell master PLC.
+HOST cell_plc { IP 192.168.33.1 }
+
+// INSTRUCTION: Define Gripper I/O drop.
+HOST io_gripper { IP 192.168.33.11 }
+
+// INSTRUCTION: Define Vision sensor drop.
+HOST io_vision { IP 192.168.33.12 }
+
+// INSTRUCTION: Define Safety light curtain drop.
+HOST io_curtain { IP 192.168.33.13 }
+
+// INSTRUCTION: Poll input assemblies on all three EtherNet/IP workcell drops.
+FLOW enip_workcell_scan(plc, g, v, c) {
+    plc -> g ETHERNETIP CMD "SendRRData" SESSION_HANDLE 11 CIP_SERVICE 14 CIP_CLASS 4 CIP_INSTANCE 101 CIP_ATTR 3
+    plc <- g ETHERNETIP CMD "SendRRData" SESSION_HANDLE 11 STATUS 0
+    plc -> v ETHERNETIP CMD "SendRRData" SESSION_HANDLE 12 CIP_SERVICE 14 CIP_CLASS 4 CIP_INSTANCE 101 CIP_ATTR 3
+    plc <- v ETHERNETIP CMD "SendRRData" SESSION_HANDLE 12 STATUS 0
+    plc -> c ETHERNETIP CMD "SendRRData" SESSION_HANDLE 13 CIP_SERVICE 14 CIP_CLASS 4 CIP_INSTANCE 101 CIP_ATTR 3
+    plc <- c ETHERNETIP CMD "SendRRData" SESSION_HANDLE 13 STATUS 0
+}
+
+// INSTRUCTION: Compile the 4-host EtherNet/IP workcell scan.
+COMPILE {
+    enip_workcell_scan(cell_plc, io_gripper, io_vision, io_curtain)
+}

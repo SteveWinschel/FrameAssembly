@@ -1,5 +1,5 @@
 // PROMPT: Cisco HSRP state advertisement with active state code, virtual IP, and priority.
-// TOKENS: HOST, IP, FLOW, ->, HSRP, GROUP, PRIORITY, STATE, VIP, COMPILE
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, COMPILE
 
 // INSTRUCTION: Define active Cisco router interface.
 HOST cisco_rtr_active { IP 10.1.1.253 }

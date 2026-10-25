@@ -1,0 +1,28 @@
+// PROMPT: Complete AMQP lifecycle from TCP SYN through publish/deliver and graceful TCP FIN teardown.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, AMQP, PROTOCOL_HEADER, CONNECTION_START, CHANNEL_OPEN, CHANNEL, BASIC_PUBLISH, EXCHANGE, ROUTING_KEY, BASIC_DELIVER, FIN, COMPILE
+
+// INSTRUCTION: Define microservice worker endpoint.
+HOST worker_ep { IP 10.0.55.12 }
+
+// INSTRUCTION: Define AMQP broker endpoint.
+HOST broker_ep { IP 10.0.55.1 }
+
+// INSTRUCTION: Execute full connection setup, message exchange, and TCP FIN teardown.
+FLOW amqp_full_lifecycle(w, b) {
+    w -> b TCP SYN SRCPORT 54001 DSTPORT 5672
+    w <- b TCP SYN ACK
+    w -> b TCP ACK
+    w -> b AMQP PROTOCOL_HEADER
+    w <- b AMQP CONNECTION_START
+    w -> b AMQP CHANNEL_OPEN CHANNEL 1
+    w -> b AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "rpc.direct" ROUTING_KEY "calc"
+    w <- b AMQP BASIC_DELIVER CHANNEL 1 EXCHANGE "" ROUTING_KEY "amq.gen-reply1"
+    w -> b TCP FIN ACK
+    w <- b TCP FIN ACK
+    w -> b TCP ACK
+}
+
+// INSTRUCTION: Compile the complete AMQP session lifecycle.
+COMPILE {
+    amqp_full_lifecycle(worker_ep, broker_ep)
+}

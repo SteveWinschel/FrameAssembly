@@ -1,0 +1,18 @@
+// PROMPT: Enterprise LDAP directory authentication on 802.1Q tagged management VLAN.
+// TOKENS: HOST, IP, FLOW, LDAP, BIND_REQ, MSGID, BASE_DN, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define server rack management controller.
+HOST bmc_controller { IP 10.110.5.8 }
+
+// INSTRUCTION: Define identity directory server on VLAN 310.
+HOST vlan_ldap_server { IP 10.110.5.1 }
+
+// INSTRUCTION: Define tagged VLAN LDAP bind flow.
+FLOW vlan_ldap_bind(bmc, srv) {
+    bmc -> srv LDAP BIND_REQ MSGID 2 BASE_DN "cn=admin,ou=systems,dc=local" VLAN 310 PCP 5 DEI 0
+}
+
+// INSTRUCTION: Compile VLAN tagged directory scenario.
+COMPILE {
+    vlan_ldap_bind(bmc_controller, vlan_ldap_server)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Multi-domain IPFIX aggregation exporting telemetry from access and aggregation domains.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, WAIT, COMPILE
+
+// INSTRUCTION: Define multi-tenant border router.
+HOST border_router { IP 172.31.1.1 }
+
+// INSTRUCTION: Define corporate flow collector.
+HOST corp_collector { IP 172.31.2.20 }
+
+// INSTRUCTION: Define multi-domain telemetry export flow.
+FLOW domain_aggregation_flow(rtr, col) {
+    rtr -> col IPFIX DOMAIN_ID 10 SRCIP 192.168.1.10 DSTIP 198.51.100.5 PROTO 6 PACKETS 50 OCTETS 64000 WAIT 5ms
+    rtr -> col IPFIX DOMAIN_ID 20 SRCIP 192.168.2.20 DSTIP 203.0.113.8 PROTO 17 PACKETS 12 OCTETS 1440
+}
+
+// INSTRUCTION: Compile domain aggregation export scenario.
+COMPILE {
+    domain_aggregation_flow(border_router, corp_collector)
+}

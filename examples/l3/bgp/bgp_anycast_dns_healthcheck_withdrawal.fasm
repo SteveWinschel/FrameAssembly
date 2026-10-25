@@ -1,0 +1,26 @@
+// PROMPT: Anycast DNS node withdrawing its /32 service prefix via BGP UPDATE and gracefully closing session on healthcheck failure.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, UPDATE, ASN, PREFIX, NEXTHOP, DSCP, TTL, PAYLOAD, WAIT, KEEPALIVE, NOTIFICATION, COMPILE
+
+// INSTRUCTION: Define Anycast DNS instance draining traffic during maintenance.
+HOST anycast_dns_node {
+    IP 10.53.0.12
+    MAC 00:50:56:53:00:0c
+}
+
+// INSTRUCTION: Define POP edge router removing the anycast ECMP member upon withdrawal.
+HOST pop_edge_router {
+    IP 10.53.0.1
+    MAC 00:50:56:53:00:01
+}
+
+// INSTRUCTION: Define BGP UPDATE route withdrawal followed by Administrative Shutdown NOTIFICATION.
+FLOW bgp_anycast_drain_flow(dns, edge) {
+    dns -> edge BGP UPDATE ASN 65053 PREFIX "198.51.100.53/32" NEXTHOP 10.53.0.12 DSCP 48 TTL 1 PAYLOAD "WITHDRAWN_ROUTE_198_51_100_53_32" WAIT 10ms
+    dns <- edge BGP KEEPALIVE DSCP 48 TTL 1 WAIT 5ms
+    dns -> edge BGP NOTIFICATION DSCP 48 TTL 1 PAYLOAD "CEASE_ADMINISTRATIVE_SHUTDOWN"
+}
+
+// INSTRUCTION: Compile the Anycast DNS BGP prefix withdrawal and graceful drain flow.
+COMPILE {
+    bgp_anycast_drain_flow(anycast_dns_node, pop_edge_router)
+}

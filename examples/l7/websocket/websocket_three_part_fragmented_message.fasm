@@ -1,0 +1,24 @@
+// PROMPT: Multi-frame WebSocket message split across initial text frame, middle continuation, and final continuation.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define document collaboration client uploading large JSON diff.
+HOST doc_client {
+    IP 10.64.20.15
+}
+
+// INSTRUCTION: Define collaborative editing WebSocket server.
+HOST collab_server {
+    IP 10.64.20.1
+}
+
+// INSTRUCTION: Define three-part fragmented client-to-server WebSocket transmission.
+FLOW ws_three_fragments(c, s) {
+    c -> s WEBSOCKET OPCODE "TEXT" FIN_BIT 0 MASK_KEY 0x10203040 PAYLOAD "{'ops':[{'insert':'Part1'}," WAIT 2ms
+    c -> s WEBSOCKET OPCODE "CONTINUATION" FIN_BIT 0 MASK_KEY 0x10203040 PAYLOAD "{'insert':'Part2'}," WAIT 2ms
+    c -> s WEBSOCKET OPCODE "CONTINUATION" FIN_BIT 1 MASK_KEY 0x10203040 PAYLOAD "{'insert':'Part3'}]}"
+}
+
+// INSTRUCTION: Compile the three-part fragmented WebSocket message scenario.
+COMPILE {
+    ws_three_fragments(doc_client, collab_server)
+}

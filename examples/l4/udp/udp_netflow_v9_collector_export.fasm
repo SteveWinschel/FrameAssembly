@@ -1,5 +1,5 @@
 // PROMPT: Simulate a core router exporting NetFlow v9 template and flow-set telemetry records to a traffic analyzer on UDP port 2055.
-// TOKENS: HOST, IP, MAC, FLOW, ->, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE, LOOP
 
 // INSTRUCTION: Define a core aggregation router with IP 10.0.255.1.
 HOST netflow_exporter { IP 10.0.255.1 MAC 00:1b:54:00:ff:01 }

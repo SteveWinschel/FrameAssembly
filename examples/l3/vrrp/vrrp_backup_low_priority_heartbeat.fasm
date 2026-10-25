@@ -1,0 +1,18 @@
+// PROMPT: VRRP backup gateway monitoring virtual router with low priority 50 on VRID 10.
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, VIP, COMPILE
+
+// INSTRUCTION: Define secondary backup gateway router.
+HOST vrrp_secondary_backup { IP 10.1.1.253 }
+
+// INSTRUCTION: Define VRRP multicast destination.
+HOST vrrp_mcast_dest { IP 224.0.0.18 }
+
+// INSTRUCTION: Define low priority backup heartbeat advertisement flow.
+FLOW vrrp_backup_flow(backup, dst) {
+    backup -> dst VRRP VRID 10 PRIORITY 50 VIP 10.1.1.1
+}
+
+// INSTRUCTION: Compile block executing backup router heartbeat.
+COMPILE {
+    vrrp_backup_flow(vrrp_secondary_backup, vrrp_mcast_dest)
+}

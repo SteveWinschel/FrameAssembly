@@ -1,0 +1,25 @@
+// PROMPT: gRPC context cancellation propagation returning GRPC_STATUS 1 (CANCELLED) when upstream client disconnects.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, WAIT, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define search aggregator service cancelling an expensive shard query.
+HOST search_aggregator {
+    IP 10.100.35.10
+    MAC 02:42:0a:64:23:0a
+}
+
+// INSTRUCTION: Define vector index shard gRPC worker node.
+HOST vector_shard {
+    IP 10.100.35.99
+    MAC 02:42:0a:64:23:63
+}
+
+// INSTRUCTION: Dispatch NearestNeighbors RPC and terminate with GRPC_STATUS 1 CANCELLED after 10ms.
+FLOW grpc_err_cancelled(agg, shard) {
+    agg -> shard GRPC SERVICE "vector.v1.IndexService" METHOD "NearestNeighbors" WAIT 10ms
+    agg <- shard GRPC SERVICE "vector.v1.IndexService" METHOD "NearestNeighbors" GRPC_STATUS 1
+}
+
+// INSTRUCTION: Compile the gRPC status 1 CANCELLED context propagation scenario.
+COMPILE {
+    grpc_err_cancelled(search_aggregator, vector_shard)
+}

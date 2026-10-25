@@ -1,0 +1,25 @@
+// PROMPT: AI training cluster 800GbE GPU node NICs exchanging LLDP rail-optimized topology TLVs with leaf switch ports.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define AI compute node GPU-0 NIC port on Rail 1 fabric.
+HOST gpu_rail1_nic0 {
+    IP 10.80.1.101
+    MAC 0c:42:a1:80:01:65
+}
+
+// INSTRUCTION: Define Rail 1 800GbE leaf switch port 1.
+HOST rail1_leaf_sw01 {
+    IP 10.80.1.1
+    MAC 00:1c:73:80:01:01
+}
+
+// INSTRUCTION: Validate physical cable wiring between GPU NIC and Rail 1 leaf switch via bidirectional LLDP.
+FLOW lldp_gpu_rail_verify(gpu, leaf) {
+    gpu -> leaf LLDP CHASSIS_ID "gpu-node-013-hgx" PORT_ID "mlx5_0" SYSNAME "hgx-h200-node013" SYSDESC "ConnectX-7 400G/800G RoCEv2" TTL 120 WAIT 2ms
+    gpu <- leaf LLDP CHASSIS_ID "rail1-leaf-01" PORT_ID "Ethernet1/1" SYSNAME "dc-ai-rail1-leaf01" SYSDESC "Tomahawk5 51.2T AI Fabric Switch" TTL 120
+}
+
+// INSTRUCTION: Compile the AI GPU cluster rail-topology LLDP verification trace.
+COMPILE {
+    lldp_gpu_rail_verify(gpu_rail1_nic0, rail1_leaf_sw01)
+}

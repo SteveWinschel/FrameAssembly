@@ -1,5 +1,5 @@
 // PROMPT: MLD Listener Done message terminating membership in IPv6 multicast stream.
-// TOKENS: HOST, IP, FLOW, ->, MLD, DONE, MULTICAST_ADDR, COMPILE
+// TOKENS: HOST, IP, FLOW, MLD, DONE, MULTICAST_ADDR, COMPILE
 
 // INSTRUCTION: Define IPv6 host leaving multicast reception.
 HOST leaving_node { IP fe80::500 }

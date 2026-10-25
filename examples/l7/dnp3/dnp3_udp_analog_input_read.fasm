@@ -1,0 +1,19 @@
+// PROMPT: DNP3 over UDP transport reading 32-bit Analog Input measurements (Group 30 Variation 1).
+// TOKENS: HOST, IP, FLOW, DNP3, TRANSPORT, UDP, FUNC, SRC, DST, GROUP, VARIATION, COMPILE
+
+// INSTRUCTION: Define telemetry concentrator master.
+HOST udp_master { IP 10.95.0.1 }
+
+// INSTRUCTION: Define solar inverter DNP3 UDP outstation.
+HOST solar_rtu { IP 10.95.0.12 }
+
+// INSTRUCTION: Query Analog Input Group 30 Variation 1 over connectionless UDP port 20000.
+FLOW dnp3_udp_analog(m, s) {
+    m -> s DNP3 TRANSPORT UDP FUNC "READ" SRC 1 DST 12 GROUP 30 VARIATION 1
+    m <- s DNP3 TRANSPORT UDP FUNC "RESPONSE" SRC 12 DST 1 GROUP 30 VARIATION 1
+}
+
+// INSTRUCTION: Compile the DNP3 over UDP analog measurement query.
+COMPILE {
+    dnp3_udp_analog(udp_master, solar_rtu)
+}

@@ -1,0 +1,22 @@
+// PROMPT: FTP authentication failure returning 530 Login incorrect after invalid PASS attempt.
+// TOKENS: HOST, IP, FLOW, FTP, CODE, REPLY, CMD, ARG, WAIT, COMPILE
+
+// INSTRUCTION: Define client attempting login with wrong credentials.
+HOST bad_client { IP 172.16.21.99 }
+
+// INSTRUCTION: Define hardened vsftpd server.
+HOST vsftpd_srv { IP 172.16.21.1 }
+
+// INSTRUCTION: Send Greeting, USER, and invalid PASS, resulting in 530 Login incorrect.
+FLOW ftp_login_failed(c, s) {
+    c <- s FTP CODE 220 REPLY "vsFTPd 3.0.5 ready"
+    c -> s FTP CMD "USER" ARG "admin" WAIT 10ms
+    c <- s FTP CODE 331 REPLY "Please specify the password"
+    c -> s FTP CMD "PASS" ARG "wrong_secret" WAIT 20ms
+    c <- s FTP CODE 530 REPLY "Login incorrect"
+}
+
+// INSTRUCTION: Compile the FTP 530 failed authentication flow.
+COMPILE {
+    ftp_login_failed(bad_client, vsftpd_srv)
+}

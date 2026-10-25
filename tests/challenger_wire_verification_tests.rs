@@ -8,9 +8,6 @@
 //! 5. SCTP chunk framing and RFC 9260 CRC32c checksum verification.
 //! 6. Empirical confirmation of masked parser/syntax bugs in `e2e_60_protocols_tests.rs`.
 
-#![warn(missing_docs)]
-#![warn(clippy::missing_docs_in_private_items)]
-
 use core::net::IpAddr;
 use frameassembly::ast::TcpFlag;
 use frameassembly::backend::generate_pcap;
@@ -39,17 +36,14 @@ fn read_emitted_packets(path: &Path) -> Vec<Vec<u8>> {
 
 /// Helper to compile a DSL string and return raw frame bytes for each emitted packet.
 fn compile_dsl_to_packets(dsl: &str) -> Result<Vec<Vec<u8>>, String> {
+    /// Atomic counter ensuring unique temporary PCAPNG paths across concurrent test executions.
     static TEST_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let count = TEST_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    let temp_pcap = std::env::temp_dir().join(format!(
-        "chal_test_{}_{}_{}.pcap",
-        std::process::id(),
-        count,
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let temp_pcap = std::env::temp_dir().join(format!("chal_test_{}_{}_{}.pcap", std::process::id(), count, nanos));
 
     let program = parse_program(dsl).map_err(|e| format!("Parse error: {:?}", e))?;
     generate_pcap(&program, temp_pcap.to_str().unwrap())
@@ -89,51 +83,24 @@ fn test_zero_subkeyword_defaults_across_protocols() {
         let is_ipv6_only = proto == "NDP" || proto == "MLD";
         let dsl = if is_ipv6_only {
             format!(
-                r#"
-                HOST h1 {{ IP 2001:db8::1 MAC 00:00:00:00:00:01 }}
-                HOST h2 {{ IP 2001:db8::2 MAC 00:00:00:00:00:02 }}
-                FLOW test_f(a, b) {{
-                    a -> b {proto}
-                }}
-                COMPILE {{
-                    test_f(h1, h2)
-                }}
-                "#
+                "HOST z6_a {{ IP 2001:db8::1 MAC 00:00:00:00:00:01 }}\nHOST z6_b {{ IP 2001:db8::2 MAC 00:00:00:00:00:02 }}\nFLOW zf6(a, b) {{ a -> b {proto} }}\nCOMPILE {{ zf6(z6_a, z6_b) }}"
             )
         } else {
             format!(
-                r#"
-                HOST h1 {{ IP 10.0.0.1 MAC 00:00:00:00:00:01 }}
-                HOST h2 {{ IP 10.0.0.2 MAC 00:00:00:00:00:02 }}
-                FLOW test_f(a, b) {{
-                    a -> b {proto}
-                }}
-                COMPILE {{
-                    test_f(h1, h2)
-                }}
-                "#
+                "HOST z4_a {{ IP 10.0.0.1 MAC 00:00:00:00:00:01 }}\nHOST z4_b {{ IP 10.0.0.2 MAC 00:00:00:00:00:02 }}\nFLOW zf4(a, b) {{ a -> b {proto} }}\nCOMPILE {{ zf4(z4_a, z4_b) }}"
             )
         };
 
         match compile_dsl_to_packets(&dsl) {
             Ok(pkts) => {
-                assert!(
-                    !pkts.is_empty(),
-                    "Protocol {proto} generated 0 packets with zero subkeywords"
-                );
+                assert!(!pkts.is_empty(), "Protocol {proto} generated 0 packets with zero subkeywords");
                 successful_protocols.push(proto);
             }
-            Err(e) => {
-                failed_protocols.push((proto, e));
-            }
+            Err(e) => failed_protocols.push((proto, e)),
         }
     }
 
-    assert!(
-        failed_protocols.is_empty(),
-        "The following protocols unexpectedly failed with zero subkeywords: {:?}",
-        failed_protocols
-    );
+    assert!(failed_protocols.is_empty(), "Protocols unexpectedly failed with zero subkeywords: {:?}", failed_protocols);
 }
 
 /// 1b. Verify that TCP, VLAN, QINQ, and MPLS now compile with zero subkeywords without defects.
@@ -148,24 +115,11 @@ fn test_zero_subkeyword_defects_documented() {
 
     for (proto, reason) in formerly_failing_protocols {
         let dsl = format!(
-            r#"
-            HOST h1 {{ IP 10.0.0.1 MAC 00:00:00:00:00:01 }}
-            HOST h2 {{ IP 10.0.0.2 MAC 00:00:00:00:00:02 }}
-            FLOW test_f(a, b) {{
-                a -> b {proto}
-            }}
-            COMPILE {{
-                test_f(h1, h2)
-            }}
-            "#
+            "HOST d_h1 {{ IP 10.1.0.1 MAC 00:00:00:00:00:01 }}\nHOST d_h2 {{ IP 10.1.0.2 MAC 00:00:00:00:00:02 }}\nFLOW df(a, b) {{ a -> b {proto} }}\nCOMPILE {{ df(d_h1, d_h2) }}"
         );
 
         let res = compile_dsl_to_packets(&dsl);
-        assert!(
-            res.is_ok(),
-            "Expected protocol {proto} to succeed zero-subkeyword compilation ({reason}): {:?}",
-            res.err()
-        );
+        assert!(res.is_ok(), "Expected protocol {proto} to succeed ({reason}): {:?}", res.err());
         let pkts = res.unwrap();
         assert!(!pkts.is_empty(), "Expected protocol {proto} to emit at least 1 packet");
     }
@@ -338,24 +292,12 @@ fn test_snmp_protocol_invariants() {
     ];
 
     for (pdu_name, expected_tag) in pdu_tests {
-        let dsl = format!(
-            r#"
-            HOST mgr {{ IP 10.0.0.1 }}
-            HOST agent {{ IP 10.0.0.2 }}
-            FLOW snmp_test(m, a) {{
-                m -> a SNMP1 {pdu_name} OID "1.3.6.1.2.1.1.1.0"
-            }}
-            COMPILE {{
-                snmp_test(mgr, agent)
-            }}
-            "#
+        let snmp1_dsl = format!(
+            "HOST s1_mgr {{ IP 10.2.0.1 }}\nHOST s1_ag {{ IP 10.2.0.2 }}\nFLOW snmp_test(m, a) {{ m -> a SNMP1 {pdu_name} OID \"1.3.6.1.2.1.1.1.0\" }}\nCOMPILE {{ snmp_test(s1_mgr, s1_ag) }}"
         );
-        let pkts = compile_dsl_to_packets(&dsl).expect("compile snmp1 non-trap");
+        let pkts = compile_dsl_to_packets(&snmp1_dsl).expect("compile snmp1 non-trap");
         let udp_payload = &pkts[0][42..]; // 14 Ethernet + 20 IPv4 + 8 UDP = 42
 
-        // In SNMPv1 BER Message:
-        // SEQUENCE { version INTEGER, community OCTET STRING, data ANY }
-        // The data field contains the PDU starting with the context tag [0]..[3].
         assert!(
             udp_payload.contains(&expected_tag),
             "SNMP1 {pdu_name} BER payload missing expected tag 0x{:02x}",
@@ -365,40 +307,26 @@ fn test_snmp_protocol_invariants() {
 
     // Check NULLVAL tag 0x05 in BER varbind
     let nullval_dsl = r#"
-        HOST mgr { IP 10.0.0.1 }
-        HOST agent { IP 10.0.0.2 }
-        FLOW snmp_null(m, a) {
-            m -> a SNMP1 GET VARBIND "1.3.6.1.2.1.1.1.0" NULLVAL
-        }
-        COMPILE {
-            snmp_null(mgr, agent)
-        }
-    "#;
+        HOST nv_mgr { IP 10.3.0.1 }
+        HOST nv_agent { IP 10.3.0.2 }
+        FLOW snmp_null(m, a) { m -> a SNMP1 GET VARBIND "1.3.6.1.2.1.1.1.0" NULLVAL }
+        COMPILE { snmp_null(nv_mgr, nv_agent) }"#;
     let null_pkts = compile_dsl_to_packets(nullval_dsl).expect("compile snmp1 nullval");
     let udp_payload = &null_pkts[0][42..];
-    // ASN.1 BER NULL tag is 0x05, length 0x00
-    let has_null_ber = udp_payload
-        .windows(2)
-        .any(|w| w[0] == 0x05 && w[1] == 0x00);
+    let has_null_ber = udp_payload.array_windows::<2>().any(|w| w == &[0x05, 0x00]);
     assert!(has_null_ber, "BER payload must contain NULL tag [0x05, 0x00]");
 
     // Check RFC 3584 IPv6 agent-addr defaults to 0.0.0.0
     let rfc3584_dsl = r#"
         HOST srv_v6 { IP 2001:db8::1 }
         HOST nms_v6 { IP 2001:db8::2 }
-        FLOW trap_v6(s, n) {
-            s -> n SNMP1 TRAP
-        }
-        COMPILE {
-            trap_v6(srv_v6, nms_v6)
-        }
-    "#;
+        FLOW trap_v6(s, n) { s -> n SNMP1 TRAP }
+        COMPILE { trap_v6(srv_v6, nms_v6) }"#;
     let v6_pkts = compile_dsl_to_packets(rfc3584_dsl).expect("compile snmp1 trap v6");
     let udp_payload_v6 = &v6_pkts[0][62..]; // 14 Ethernet + 40 IPv6 + 8 UDP = 62
-    // SNMPv1 Trap agent-addr is encoded as Application 0 (0x40), Length 4, [0, 0, 0, 0]
     let has_zero_agent_addr = udp_payload_v6
-        .windows(6)
-        .any(|w| w == [0x40, 0x04, 0x00, 0x00, 0x00, 0x00]);
+        .array_windows::<6>()
+        .any(|w| w == &[0x40, 0x04, 0x00, 0x00, 0x00, 0x00]);
     assert!(
         has_zero_agent_addr,
         "RFC 3584: IPv6 SNMPv1 trap agent-addr must default to 0.0.0.0 ([0x40, 0x04, 0, 0, 0, 0])"
@@ -406,21 +334,13 @@ fn test_snmp_protocol_invariants() {
 
     // Check RFC 4001 16-byte OCTET STRING for IPVAL <ipv6>
     let rfc4001_dsl = r#"
-        HOST mgr { IP 10.0.0.1 }
-        HOST agent { IP 10.0.0.2 }
-        FLOW ipval_v6(m, a) {
-            m -> a SNMP2 GET VARBIND "1.3.6.1.2.1.1.1.0" IPVAL 2001:db8::1234
-        }
-        COMPILE {
-            ipval_v6(mgr, agent)
-        }
-    "#;
+        HOST v6_mgr { IP 10.4.0.1 }
+        HOST v6_ag { IP 10.4.0.2 }
+        FLOW ipval_v6(m, a) { m -> a SNMP2 GET VARBIND "1.3.6.1.2.1.1.1.0" IPVAL 2001:db8::1234 }
+        COMPILE { ipval_v6(v6_mgr, v6_ag) }"#;
     let ipval_pkts = compile_dsl_to_packets(rfc4001_dsl).expect("compile snmp2 ipval ipv6");
     let ipval_payload = &ipval_pkts[0][42..];
-    // RFC 4001 specifies InetAddressIPv6 as a 16-byte OCTET STRING: tag 0x04, length 0x10 (16)
-    let has_16byte_octet_str = ipval_payload
-        .windows(2)
-        .any(|w| w[0] == 0x04 && w[1] == 0x10);
+    let has_16byte_octet_str = ipval_payload.array_windows::<2>().any(|w| w == &[0x04, 0x10]);
     assert!(
         has_16byte_octet_str,
         "RFC 4001: IPv6 IPVAL must encode as 16-byte OCTET STRING [0x04, 0x10]"
@@ -428,153 +348,65 @@ fn test_snmp_protocol_invariants() {
 
     // Verify empty password string in USM does not panic with division by zero
     let empty_key = password_to_key_md5(b"", b"8000000001");
-    assert!(
-        empty_key.is_empty(),
-        "Empty USM password must return empty key without panicking"
-    );
+    assert!(empty_key.is_empty(), "Empty USM password must return empty key without panicking");
 }
 
 /// 5. Verify SCTP Transports:
 /// - SCTP common header and chunk encodings with CRC32c checksum.
 #[test]
 fn test_sctp_transports_and_crc32c() {
-    // Verify standard RFC 9260 §3.3.10 CRC32c test vector
     assert_eq!(crc32c(&[b"123456789"]), 0xe3069283);
     assert_eq!(crc32c(&[&[0u8; 32]]), 0x8a9136aa);
 
-    let dsl = r#"
-        HOST sctp_client { IP 10.0.0.1 }
-        HOST sctp_server { IP 10.0.0.2 }
+    let sctp_dsl = r#"
+        HOST sctp_client { IP 10.5.0.1 }
+        HOST sctp_server { IP 10.5.0.2 }
         FLOW sctp_flow(c, s) {
             c -> s SCTP SRCPORT 5000 DSTPORT 5000 VTAG 0x11223344 CHUNK INIT
             c -> s SCTP SRCPORT 5000 DSTPORT 5000 VTAG 0x11223344 CHUNK DATA STREAM 1 SSN 0 PPID 3 PAYLOAD "SCTP_DATA_CHUNK"
             c -> s SCTP SRCPORT 5000 DSTPORT 5000 VTAG 0x11223344 CHUNK SACK
             c -> s SCTP SRCPORT 5000 DSTPORT 5000 VTAG 0x11223344 CHUNK HEARTBEAT PAYLOAD "PING"
-        }
-        COMPILE {
-            sctp_flow(sctp_client, sctp_server)
-        }
-    "#;
+        } COMPILE { sctp_flow(sctp_client, sctp_server) }"#;
 
-    let pkts = compile_dsl_to_packets(dsl).expect("compile sctp flow");
+    let pkts = compile_dsl_to_packets(sctp_dsl).expect("compile sctp flow");
     assert_eq!(pkts.len(), 4);
 
     for (idx, pkt) in pkts.iter().enumerate() {
-        let ip_hdr = &pkt[14..34]; // IPv4 header
+        let ip_hdr = &pkt[14..34];
         assert_eq!(ip_hdr[9], 132, "IP protocol must be 132 (SCTP)");
 
-        let sctp_hdr = &pkt[34..]; // SCTP datagram
-        assert_eq!(&sctp_hdr[0..2], &5000u16.to_be_bytes()); // src port
-        assert_eq!(&sctp_hdr[2..4], &5000u16.to_be_bytes()); // dst port
-        assert_eq!(&sctp_hdr[4..8], &0x11223344u32.to_be_bytes()); // vtag
+        let sctp_hdr = &pkt[34..];
+        assert_eq!(&sctp_hdr[0..2], &5000u16.to_be_bytes());
+        assert_eq!(&sctp_hdr[2..4], &5000u16.to_be_bytes());
+        assert_eq!(&sctp_hdr[4..8], &0x11223344u32.to_be_bytes());
 
-        // Validate CRC32c: calculate CRC32c with checksum bytes (8..12) zeroed
         let mut zeroed = sctp_hdr.to_vec();
         zeroed[8..12].copy_from_slice(&[0; 4]);
         let expected_crc = crc32c(&[&zeroed]);
         let wire_crc = u32::from_le_bytes([sctp_hdr[8], sctp_hdr[9], sctp_hdr[10], sctp_hdr[11]]);
-        assert_eq!(
-            wire_crc, expected_crc,
-            "SCTP packet {} CRC32c mismatch: wire=0x{:08x}, expected=0x{:08x}",
-            idx, wire_crc, expected_crc
-        );
+        assert_eq!(wire_crc, expected_crc, "SCTP packet {idx} CRC32c mismatch");
     }
 }
 
 /// 6. Empirical confirmation of masked parser/syntax bugs in `e2e_60_protocols_tests.rs`.
 ///
-/// Demonstrates that the 7 tests in `e2e_60_protocols_tests.rs` which were passing silently
-/// due to error-catching facades fail when parsed strictly.
+/// Demonstrates that the 7 tests which previously passed silently due to error-catching
+/// facades now parse strictly and cleanly.
 #[test]
 fn test_reproduce_and_document_e2e_masked_parser_bugs() {
     let buggy_scripts = [
-        (
-            "FTP CODE and REPLY",
-            r#"
-            HOST client { IP 10.0.0.1 }
-            HOST server { IP 10.0.0.2 }
-            FLOW f(c, s) {
-                c <- s FTP CODE 331 REPLY "Password required"
-            }
-            COMPILE { f(client, server) }
-            "#,
-        ),
-        (
-            "SMTP CODE and REPLY",
-            r#"
-            HOST m1 { IP 10.0.0.1 }
-            HOST m2 { IP 10.0.0.2 }
-            FLOW f(m1, m2) {
-                m1 <- m2 SMTP CODE 250 REPLY "250-mail.dest.org"
-            }
-            COMPILE { f(m1, m2) }
-            "#,
-        ),
-        (
-            "PTP DOMAIN unquoted integer",
-            r#"
-            HOST master { IP 10.0.0.1 }
-            HOST slave { IP 10.0.0.2 }
-            FLOW f(m, s) {
-                m -> s PTP MSG_TYPE SYNC DOMAIN 0
-            }
-            COMPILE { f(master, slave) }
-            "#,
-        ),
-        (
-            "RADIUS CODE ACCESS_REQUEST",
-            r#"
-            HOST nas { IP 10.0.0.1 }
-            HOST srv { IP 10.0.0.2 }
-            FLOW f(n, r) {
-                n -> r RADIUS CODE ACCESS_REQUEST ID 1 USER "alice"
-            }
-            COMPILE { f(nas, srv) }
-            "#,
-        ),
-        (
-            "MEMCACHED KEY",
-            r#"
-            HOST app { IP 10.0.0.1 }
-            HOST db { IP 10.0.0.2 }
-            FLOW f(a, d) {
-                a -> d MEMCACHED GET KEY "session:123"
-            }
-            COMPILE { f(app, db) }
-            "#,
-        ),
-        (
-            "TACACS TYPE AUTHEN",
-            r#"
-            HOST client { IP 10.0.0.1 }
-            HOST srv { IP 10.0.0.2 }
-            FLOW f(c, s) {
-                c -> s TACACS TYPE AUTHEN USER "admin"
-            }
-            COMPILE { f(client, srv) }
-            "#,
-        ),
-        (
-            "TFTP MODE octet",
-            r#"
-            HOST client { IP 10.0.0.1 }
-            HOST server { IP 10.0.0.2 }
-            FLOW f(c, s) {
-                c -> s TFTP RRQ FILENAME "boot.bin" MODE "octet"
-            }
-            COMPILE { f(client, server) }
-            "#,
-        ),
+        ("FTP CODE and REPLY", "HOST b_c1 { IP 10.6.1.1 }\nHOST b_s1 { IP 10.6.1.2 }\nFLOW bf1(c, s) { c <- s FTP CODE 331 REPLY \"Password required\" }\nCOMPILE { bf1(b_c1, b_s1) }"),
+        ("SMTP CODE and REPLY", "HOST b_m1 { IP 10.6.2.1 }\nHOST b_m2 { IP 10.6.2.2 }\nFLOW bf2(m1, m2) { m1 <- m2 SMTP CODE 250 REPLY \"250-mail.dest.org\" }\nCOMPILE { bf2(b_m1, b_m2) }"),
+        ("PTP DOMAIN unquoted integer", "HOST b_gm { IP 10.6.3.1 }\nHOST b_sl { IP 10.6.3.2 }\nFLOW bf3(m, s) { m -> s PTP MSG_TYPE SYNC DOMAIN 0 }\nCOMPILE { bf3(b_gm, b_sl) }"),
+        ("RADIUS CODE ACCESS_REQUEST", "HOST b_nas { IP 10.6.4.1 }\nHOST b_rad { IP 10.6.4.2 }\nFLOW bf4(n, r) { n -> r RADIUS CODE ACCESS_REQUEST ID 1 USER \"alice\" }\nCOMPILE { bf4(b_nas, b_rad) }"),
+        ("MEMCACHED KEY", "HOST b_app { IP 10.6.5.1 }\nHOST b_mc { IP 10.6.5.2 }\nFLOW bf5(a, d) { a -> d MEMCACHED GET KEY \"session:123\" }\nCOMPILE { bf5(b_app, b_mc) }"),
+        ("TACACS TYPE AUTHEN", "HOST b_tc { IP 10.6.6.1 }\nHOST b_ts { IP 10.6.6.2 }\nFLOW bf6(c, s) { c -> s TACACS TYPE AUTHEN USER \"admin\" }\nCOMPILE { bf6(b_tc, b_ts) }"),
+        ("TFTP MODE octet", "HOST b_pxe { IP 10.6.7.1 }\nHOST b_tftp { IP 10.6.7.2 }\nFLOW bf7(c, s) { c -> s TFTP RRQ FILENAME \"boot.bin\" MODE \"octet\" }\nCOMPILE { bf7(b_pxe, b_tftp) }"),
     ];
 
     for (name, script) in buggy_scripts {
         let res = parse_program(script);
-        assert!(
-            res.is_ok(),
-            "Expected script '{}' to parse successfully after grammar fixes, but got error: {:?}",
-            name,
-            res.err()
-        );
+        assert!(res.is_ok(), "Expected script '{name}' to parse cleanly, got: {:?}", res.err());
     }
 }
 
@@ -598,23 +430,9 @@ fn test_wire_header_correctness_all_60_protocols() {
 
     for (proto, stmt, is_v6) in cat1 {
         let dsl = if is_v6 {
-            format!(
-                r#"
-                HOST h1 {{ IP 2001:db8::1 MAC 00:00:00:00:00:01 }}
-                HOST h2 {{ IP 2001:db8::2 MAC 00:00:00:00:00:02 }}
-                FLOW f(h1, h2) {{ {stmt} }}
-                COMPILE {{ f(h1, h2) }}
-                "#
-            )
+            format!("HOST h1 {{ IP 2001:db8::1 MAC 00:00:00:00:00:01 }}\nHOST h2 {{ IP 2001:db8::2 MAC 00:00:00:00:00:02 }}\nFLOW f_c1_v6(h1, h2) {{ {stmt} }}\nCOMPILE {{ f_c1_v6(h1, h2) }}")
         } else {
-            format!(
-                r#"
-                HOST h1 {{ IP 10.0.0.1 MAC 00:00:00:00:00:01 }}
-                HOST h2 {{ IP 10.0.0.2 MAC 00:00:00:00:00:02 }}
-                FLOW f(h1, h2) {{ {stmt} }}
-                COMPILE {{ f(h1, h2) }}
-                "#
-            )
+            format!("HOST h1 {{ IP 10.7.1.1 MAC 00:00:00:00:00:01 }}\nHOST h2 {{ IP 10.7.1.2 MAC 00:00:00:00:00:02 }}\nFLOW f_c1_v4(h1, h2) {{ {stmt} }}\nCOMPILE {{ f_c1_v4(h1, h2) }}")
         };
         let pkts = compile_dsl_to_packets(&dsl).unwrap_or_else(|e| panic!("Failed to compile {proto}: {e}"));
         assert!(!pkts.is_empty(), "Empty packet for {proto}");
@@ -646,32 +464,24 @@ fn test_wire_header_correctness_all_60_protocols() {
                 assert_eq!(next_ethertype, 0x0800, "Default QINQ payload EtherType must be 0x0800");
             }
             "LLDP" => {
-                let dst_mac = &pkt[0..6];
-                assert_eq!(dst_mac, &[0x01, 0x80, 0xc2, 0x00, 0x00, 0x0e], "LLDP Multicast MAC");
-                let ethertype = u16::from_be_bytes([pkt[12], pkt[13]]);
-                assert_eq!(ethertype, 0x88CC, "LLDP EtherType must be 0x88CC");
+                assert_eq!(&pkt[0..6], &[0x01, 0x80, 0xc2, 0x00, 0x00, 0x0e], "LLDP Multicast MAC");
+                assert_eq!(u16::from_be_bytes([pkt[12], pkt[13]]), 0x88CC, "LLDP EtherType must be 0x88CC");
             }
             "STP" => {
-                let dst_mac = &pkt[0..6];
-                assert_eq!(dst_mac, &[0x01, 0x80, 0xc2, 0x00, 0x00, 0x00], "STP Multicast MAC");
+                assert_eq!(&pkt[0..6], &[0x01, 0x80, 0xc2, 0x00, 0x00, 0x00], "STP Multicast MAC");
                 assert_eq!(&pkt[14..17], &[0x42, 0x42, 0x03], "LLC DSAP/SSAP/Control");
                 assert_eq!(&pkt[17..19], &[0x00, 0x00], "STP Protocol ID 0x0000");
             }
             "LACP" => {
-                let dst_mac = &pkt[0..6];
-                assert_eq!(dst_mac, &[0x01, 0x80, 0xc2, 0x00, 0x00, 0x02], "LACP Multicast MAC");
-                let ethertype = u16::from_be_bytes([pkt[12], pkt[13]]);
-                assert_eq!(ethertype, 0x8809, "LACP EtherType must be 0x8809");
+                assert_eq!(&pkt[0..6], &[0x01, 0x80, 0xc2, 0x00, 0x00, 0x02], "LACP Multicast MAC");
+                assert_eq!(u16::from_be_bytes([pkt[12], pkt[13]]), 0x8809, "LACP EtherType must be 0x8809");
             }
             "EAPOL" => {
-                let dst_mac = &pkt[0..6];
-                assert_eq!(dst_mac, &[0x01, 0x80, 0xc2, 0x00, 0x00, 0x03], "EAPOL Multicast MAC");
-                let ethertype = u16::from_be_bytes([pkt[12], pkt[13]]);
-                assert_eq!(ethertype, 0x888E, "EAPOL EtherType must be 0x888E");
+                assert_eq!(&pkt[0..6], &[0x01, 0x80, 0xc2, 0x00, 0x00, 0x03], "EAPOL Multicast MAC");
+                assert_eq!(u16::from_be_bytes([pkt[12], pkt[13]]), 0x888E, "EAPOL EtherType must be 0x888E");
             }
             "MPLS" => {
-                let ethertype = u16::from_be_bytes([pkt[12], pkt[13]]);
-                assert_eq!(ethertype, 0x8847, "MPLS EtherType must be 0x8847");
+                assert_eq!(u16::from_be_bytes([pkt[12], pkt[13]]), 0x8847, "MPLS EtherType must be 0x8847");
                 assert_eq!(&pkt[14..18], &[0x00, 0x00, 0x01, 0x40], "Default MPLS Label 0 BOS 1 TTL 64");
             }
             _ => {}
@@ -702,27 +512,16 @@ fn test_wire_header_correctness_all_60_protocols() {
 
     for (proto, stmt, expected_ip_proto, expected_port) in cat2 {
         let dsl = format!(
-            r#"
-            HOST h1 {{ IP 10.0.0.1 MAC 00:00:00:00:00:01 }}
-            HOST h2 {{ IP 10.0.0.2 MAC 00:00:00:00:00:02 }}
-            FLOW f(h1, h2) {{ {stmt} }}
-            COMPILE {{ f(h1, h2) }}
-            "#
+            "HOST h1 {{ IP 10.7.2.1 MAC 00:00:00:00:00:01 }}\nHOST h2 {{ IP 10.7.2.2 MAC 00:00:00:00:00:02 }}\nFLOW f_c2(h1, h2) {{ {stmt} }}\nCOMPILE {{ f_c2(h1, h2) }}"
         );
         let pkts = compile_dsl_to_packets(&dsl).unwrap_or_else(|e| panic!("Failed to compile {proto}: {e}"));
         let pkt = &pkts[0];
         let ip_proto = pkt[23];
-        assert_eq!(
-            ip_proto, expected_ip_proto,
-            "{proto}: Expected IP protocol {expected_ip_proto}, got {ip_proto}"
-        );
+        assert_eq!(ip_proto, expected_ip_proto, "{proto}: Expected IP protocol {expected_ip_proto}, got {ip_proto}");
 
         if let Some(port) = expected_port {
             let dst_port = u16::from_be_bytes([pkt[36], pkt[37]]);
-            assert_eq!(
-                dst_port, port,
-                "{proto}: Expected dst port {port}, got {dst_port}"
-            );
+            assert_eq!(dst_port, port, "{proto}: Expected dst port {port}, got {dst_port}");
         }
     }
 
@@ -733,12 +532,7 @@ fn test_wire_header_correctness_all_60_protocols() {
     ];
     for (proto, stmt, expected_next_hdr) in v6_protocols {
         let dsl = format!(
-            r#"
-            HOST h1 {{ IP 2001:db8::1 MAC 00:00:00:00:00:01 }}
-            HOST h2 {{ IP 2001:db8::2 MAC 00:00:00:00:00:02 }}
-            FLOW f(h1, h2) {{ {stmt} }}
-            COMPILE {{ f(h1, h2) }}
-            "#
+            "HOST h1 {{ IP 2001:db8::10 MAC 00:00:00:00:00:01 }}\nHOST h2 {{ IP 2001:db8::20 MAC 00:00:00:00:00:02 }}\nFLOW f_v6_only(h1, h2) {{ {stmt} }}\nCOMPILE {{ f_v6_only(h1, h2) }}"
         );
         let pkts = compile_dsl_to_packets(&dsl).unwrap_or_else(|e| panic!("Failed to compile {proto}: {e}"));
         let pkt = &pkts[0];
@@ -754,12 +548,7 @@ fn test_wire_header_correctness_all_60_protocols() {
     ];
     for (proto, stmt, expected_ip_proto) in cat3 {
         let dsl = format!(
-            r#"
-            HOST h1 {{ IP 10.0.0.1 MAC 00:00:00:00:00:01 }}
-            HOST h2 {{ IP 10.0.0.2 MAC 00:00:00:00:00:02 }}
-            FLOW f(h1, h2) {{ {stmt} }}
-            COMPILE {{ f(h1, h2) }}
-            "#
+            "HOST h1 {{ IP 10.7.3.1 MAC 00:00:00:00:00:01 }}\nHOST h2 {{ IP 10.7.3.2 MAC 00:00:00:00:00:02 }}\nFLOW f_c3(h1, h2) {{ {stmt} }}\nCOMPILE {{ f_c3(h1, h2) }}"
         );
         let pkts = compile_dsl_to_packets(&dsl).unwrap_or_else(|e| panic!("Failed to compile {proto}: {e}"));
         let pkt = &pkts[0];
@@ -790,19 +579,12 @@ fn test_wire_header_correctness_all_60_protocols() {
     ];
     for (proto, stmt, expected_ip_proto, expected_port) in cat4 {
         let dsl = format!(
-            r#"
-            HOST h1 {{ IP 10.0.0.1 MAC 00:00:00:00:00:01 }}
-            HOST h2 {{ IP 10.0.0.2 MAC 00:00:00:00:00:02 }}
-            FLOW f(h1, h2) {{ {stmt} }}
-            COMPILE {{ f(h1, h2) }}
-            "#
+            "HOST h1 {{ IP 10.7.4.1 MAC 00:00:00:00:00:01 }}\nHOST h2 {{ IP 10.7.4.2 MAC 00:00:00:00:00:02 }}\nFLOW f_c4(h1, h2) {{ {stmt} }}\nCOMPILE {{ f_c4(h1, h2) }}"
         );
         let pkts = compile_dsl_to_packets(&dsl).unwrap_or_else(|e| panic!("Failed to compile {proto}: {e}"));
         let pkt = &pkts[0];
-        let ip_proto = pkt[23];
-        assert_eq!(ip_proto, expected_ip_proto, "{proto}: IP protocol mismatch");
-        let dst_port = u16::from_be_bytes([pkt[36], pkt[37]]);
-        assert_eq!(dst_port, expected_port, "{proto}: Dst port mismatch");
+        assert_eq!(pkt[23], expected_ip_proto, "{proto}: IP protocol mismatch");
+        assert_eq!(u16::from_be_bytes([pkt[36], pkt[37]]), expected_port, "{proto}: Dst port mismatch");
     }
 
     // Category 5: L7 Web & Apps
@@ -840,19 +622,12 @@ fn test_wire_header_correctness_all_60_protocols() {
     ];
     for (proto, stmt, expected_ip_proto, expected_port) in cat5 {
         let dsl = format!(
-            r#"
-            HOST h1 {{ IP 10.0.0.1 MAC 00:00:00:00:00:01 }}
-            HOST h2 {{ IP 10.0.0.2 MAC 00:00:00:00:00:02 }}
-            FLOW f(h1, h2) {{ {stmt} }}
-            COMPILE {{ f(h1, h2) }}
-            "#
+            "HOST h1 {{ IP 10.7.5.1 MAC 00:00:00:00:00:01 }}\nHOST h2 {{ IP 10.7.5.2 MAC 00:00:00:00:00:02 }}\nFLOW f_c5(h1, h2) {{ {stmt} }}\nCOMPILE {{ f_c5(h1, h2) }}"
         );
         let pkts = compile_dsl_to_packets(&dsl).unwrap_or_else(|e| panic!("Failed to compile {proto}: {e}"));
         let pkt = &pkts[0];
-        let ip_proto = pkt[23];
-        assert_eq!(ip_proto, expected_ip_proto, "{proto}: IP proto mismatch");
-        let dst_port = u16::from_be_bytes([pkt[36], pkt[37]]);
-        assert_eq!(dst_port, expected_port, "{proto}: Dst port mismatch");
+        assert_eq!(pkt[23], expected_ip_proto, "{proto}: IP proto mismatch");
+        assert_eq!(u16::from_be_bytes([pkt[36], pkt[37]]), expected_port, "{proto}: Dst port mismatch");
     }
 
     // Category 6: Industrial OT
@@ -866,19 +641,12 @@ fn test_wire_header_correctness_all_60_protocols() {
     ];
     for (proto, stmt, expected_ip_proto, expected_port) in cat6 {
         let dsl = format!(
-            r#"
-            HOST h1 {{ IP 10.0.0.1 MAC 00:00:00:00:00:01 }}
-            HOST h2 {{ IP 10.0.0.2 MAC 00:00:00:00:00:02 }}
-            FLOW f(h1, h2) {{ {stmt} }}
-            COMPILE {{ f(h1, h2) }}
-            "#
+            "HOST h1 {{ IP 10.7.6.1 MAC 00:00:00:00:00:01 }}\nHOST h2 {{ IP 10.7.6.2 MAC 00:00:00:00:00:02 }}\nFLOW f_c6(h1, h2) {{ {stmt} }}\nCOMPILE {{ f_c6(h1, h2) }}"
         );
         let pkts = compile_dsl_to_packets(&dsl).unwrap_or_else(|e| panic!("Failed to compile {proto}: {e}"));
         let pkt = &pkts[0];
-        let ip_proto = pkt[23];
-        assert_eq!(ip_proto, expected_ip_proto, "{proto}: IP proto mismatch");
-        let dst_port = u16::from_be_bytes([pkt[36], pkt[37]]);
-        assert_eq!(dst_port, expected_port, "{proto}: Dst port mismatch");
+        assert_eq!(pkt[23], expected_ip_proto, "{proto}: IP proto mismatch");
+        assert_eq!(u16::from_be_bytes([pkt[36], pkt[37]]), expected_port, "{proto}: Dst port mismatch");
     }
 }
 
@@ -1020,16 +788,15 @@ fn test_tcp_pseudo_header_checksum_verification_v4_and_v6() {
 ///   `224.0.0.18` -> `01:00:5e:00:00:12`.
 #[test]
 fn test_extended_deterministic_mac_derivations() {
-    let dsl = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST server { IP 10.0.0.2 }
+    let ext_mac_dsl = r#"
+        HOST em_client { IP 10.8.0.1 }
+        HOST em_server { IP 10.8.0.2 }
         HOST v6_c { IP 2001:db8::1 }
         HOST v6_all_routers { IP ff02::2 }
         HOST v6_site_dhcp { IP ff05::1:3 }
         HOST v6_global { IP ff0e::dead:beef }
         HOST v4_all_hosts { IP 224.0.0.1 }
         HOST v4_vrrp { IP 224.0.0.18 }
-
         FLOW test_extended_macs(c, s, c6, r6, d6, g6, a4, v4) {
             c <- s UDP PAYLOAD "reversed_arrow"
             c6 -> r6 UDP PAYLOAD "all_routers"
@@ -1037,32 +804,16 @@ fn test_extended_deterministic_mac_derivations() {
             c6 -> g6 UDP PAYLOAD "global_mcast"
             c -> a4 UDP PAYLOAD "all_hosts"
             c -> v4 UDP PAYLOAD "vrrp"
-        }
-
-        COMPILE {
-            test_extended_macs(client, server, v6_c, v6_all_routers, v6_site_dhcp, v6_global, v4_all_hosts, v4_vrrp)
-        }
-    "#;
-    let pkts = compile_dsl_to_packets(dsl).expect("compile extended macs");
+        } COMPILE { test_extended_macs(em_client, em_server, v6_c, v6_all_routers, v6_site_dhcp, v6_global, v4_all_hosts, v4_vrrp) }"#;
+    let pkts = compile_dsl_to_packets(ext_mac_dsl).expect("compile extended macs");
     assert_eq!(pkts.len(), 6);
 
-    // Reversed arrow: sender is callee (00:00:00:00:00:02), receiver is caller (00:00:00:00:00:01)
     assert_eq!(&pkts[0][0..6], &[0x00, 0x00, 0x00, 0x00, 0x00, 0x01]);
     assert_eq!(&pkts[0][6..12], &[0x00, 0x00, 0x00, 0x00, 0x00, 0x02]);
-
-    // ff02::2 -> 33:33:00:00:00:02
     assert_eq!(&pkts[1][0..6], &[0x33, 0x33, 0x00, 0x00, 0x00, 0x02]);
-
-    // ff05::1:3 -> 33:33:00:01:00:03
     assert_eq!(&pkts[2][0..6], &[0x33, 0x33, 0x00, 0x01, 0x00, 0x03]);
-
-    // ff0e::dead:beef -> 33:33:de:ad:be:ef
     assert_eq!(&pkts[3][0..6], &[0x33, 0x33, 0xde, 0xad, 0xbe, 0xef]);
-
-    // 224.0.0.1 -> 01:00:5e:00:00:01
     assert_eq!(&pkts[4][0..6], &[0x01, 0x00, 0x5e, 0x00, 0x00, 0x01]);
-
-    // 224.0.0.18 -> 01:00:5e:00:00:12
     assert_eq!(&pkts[5][0..6], &[0x01, 0x00, 0x5e, 0x00, 0x00, 0x12]);
 }
 
@@ -1072,20 +823,11 @@ fn test_extended_deterministic_mac_derivations() {
 /// triggering a division-by-zero panic in any digest variant.
 #[test]
 fn test_snmp_empty_passwords_all_hashes() {
-    let empty_md5 = password_to_key_md5(b"", b"8000000001");
-    assert!(empty_md5.is_empty(), "Empty password MD5 must return empty key");
-
-    let empty_sha1 = password_to_key_sha1(b"", b"8000000001");
-    assert!(empty_sha1.is_empty(), "Empty password SHA1 must return empty key");
-
-    let empty_sha256 = password_to_key_sha256(b"", b"8000000001");
-    assert!(empty_sha256.is_empty(), "Empty password SHA256 must return empty key");
-
-    let empty_sha384 = password_to_key_sha384(b"", b"8000000001");
-    assert!(empty_sha384.is_empty(), "Empty password SHA384 must return empty key");
-
-    let empty_sha512 = password_to_key_sha512(b"", b"8000000001");
-    assert!(empty_sha512.is_empty(), "Empty password SHA512 must return empty key");
+    assert!(password_to_key_md5(b"", b"8000000001").is_empty(), "Empty password MD5 must return empty key");
+    assert!(password_to_key_sha1(b"", b"8000000001").is_empty(), "Empty password SHA1 must return empty key");
+    assert!(password_to_key_sha256(b"", b"8000000001").is_empty(), "Empty password SHA256 must return empty key");
+    assert!(password_to_key_sha384(b"", b"8000000001").is_empty(), "Empty password SHA384 must return empty key");
+    assert!(password_to_key_sha512(b"", b"8000000001").is_empty(), "Empty password SHA512 must return empty key");
 }
 
 /// 12. Verify SCTP Chunk Framing Matrix and Little-Endian CRC32c Encoding.
@@ -1095,9 +837,9 @@ fn test_snmp_empty_passwords_all_hashes() {
 /// Verifies CRC32c checksum is encoded in little-endian format on the wire.
 #[test]
 fn test_sctp_all_chunk_types_and_little_endian_crc32c() {
-    let dsl = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST server { IP 10.0.0.2 }
+    let chunk_matrix_dsl = r#"
+        HOST cm_client { IP 10.9.0.1 }
+        HOST cm_server { IP 10.9.0.2 }
         FLOW sctp_chunks(c, s) {
             c -> s SCTP SRCPORT 5000 DSTPORT 5000 VTAG 0x12345678 CHUNK DATA STREAM 1 SSN 0 PPID 3 PAYLOAD "chunk_data"
             c -> s SCTP SRCPORT 5000 DSTPORT 5000 VTAG 0x12345678 CHUNK INIT
@@ -1109,45 +851,22 @@ fn test_sctp_all_chunk_types_and_little_endian_crc32c() {
             c -> s SCTP SRCPORT 5000 DSTPORT 5000 VTAG 0x12345678 CHUNK SHUTDOWN
             c -> s SCTP SRCPORT 5000 DSTPORT 5000 VTAG 0x12345678 CHUNK COOKIE_ECHO PAYLOAD "cookie"
             c -> s SCTP SRCPORT 5000 DSTPORT 5000 VTAG 0x12345678 CHUNK COOKIE_ACK
-        }
-        COMPILE {
-            sctp_chunks(client, server)
-        }
-    "#;
-    let pkts = compile_dsl_to_packets(dsl).expect("compile sctp chunk matrix");
+        } COMPILE { sctp_chunks(cm_client, cm_server) }"#;
+    let pkts = compile_dsl_to_packets(chunk_matrix_dsl).expect("compile sctp chunk matrix");
     assert_eq!(pkts.len(), 10);
 
-    let expected_chunk_types = [
-        0u8,  // DATA
-        1u8,  // INIT
-        2u8,  // INIT_ACK
-        3u8,  // SACK
-        4u8,  // HEARTBEAT
-        5u8,  // HEARTBEAT_ACK
-        6u8,  // ABORT
-        7u8,  // SHUTDOWN
-        10u8, // COOKIE_ECHO
-        11u8, // COOKIE_ACK
-    ];
+    let expected_chunk_types = [0u8, 1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 10u8, 11u8];
 
     for (idx, (pkt, expected_type)) in pkts.iter().zip(expected_chunk_types.iter()).enumerate() {
         let sctp_hdr = &pkt[34..];
         let chunk_type = sctp_hdr[12];
-        assert_eq!(
-            chunk_type, *expected_type,
-            "SCTP packet {} expected chunk type {}, found {}",
-            idx, expected_type, chunk_type
-        );
+        assert_eq!(chunk_type, *expected_type, "SCTP packet {idx} expected chunk type {expected_type}, found {chunk_type}");
 
         let mut zeroed = sctp_hdr.to_vec();
         zeroed[8..12].copy_from_slice(&[0; 4]);
         let expected_crc = crc32c(&[&zeroed]);
         let wire_crc = u32::from_le_bytes([sctp_hdr[8], sctp_hdr[9], sctp_hdr[10], sctp_hdr[11]]);
-        assert_eq!(
-            wire_crc, expected_crc,
-            "SCTP packet {} CRC32c mismatch: wire=0x{:08x}, expected=0x{:08x}",
-            idx, wire_crc, expected_crc
-        );
+        assert_eq!(wire_crc, expected_crc, "SCTP chunk {idx} little-endian CRC32c mismatch");
     }
 }
 
@@ -1158,31 +877,17 @@ fn test_sctp_all_chunk_types_and_little_endian_crc32c() {
 #[test]
 fn test_snmp_rejection_of_getbulk_and_inform_in_v1() {
     let script_bulk = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST server { IP 10.0.0.2 }
-        FLOW f(c, s) {
-            c -> s SNMP1 GETBULK COMMUNITY "public" NONREPEATERS 0 MAXREPETITIONS 10
-        }
-        COMPILE { f(client, server) }
-    "#;
-    let res_bulk = compile_dsl_to_packets(script_bulk);
-    assert!(
-        res_bulk.is_err(),
-        "SNMP1 GETBULK must be rejected as invalid cross-protocol modifier"
-    );
+        HOST v1_bulk_c { IP 10.10.0.1 }
+        HOST v1_bulk_s { IP 10.10.0.2 }
+        FLOW f_bulk(c, s) { c -> s SNMP1 GETBULK COMMUNITY "public" NONREPEATERS 0 MAXREPETITIONS 10 }
+        COMPILE { f_bulk(v1_bulk_c, v1_bulk_s) }"#;
+    assert!(compile_dsl_to_packets(script_bulk).is_err(), "SNMP1 GETBULK must be rejected");
 
     let script_inform = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST server { IP 10.0.0.2 }
-        FLOW f(c, s) {
-            c -> s SNMP1 INFORM COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.1"
-        }
-        COMPILE { f(client, server) }
-    "#;
-    let res_inform = compile_dsl_to_packets(script_inform);
-    assert!(
-        res_inform.is_err(),
-        "SNMP1 INFORM must be rejected as invalid cross-protocol modifier"
-    );
+        HOST v1_inf_c { IP 10.10.1.1 }
+        HOST v1_inf_s { IP 10.10.1.2 }
+        FLOW f_inf(c, s) { c -> s SNMP1 INFORM COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.1" }
+        COMPILE { f_inf(v1_inf_c, v1_inf_s) }"#;
+    assert!(compile_dsl_to_packets(script_inform).is_err(), "SNMP1 INFORM must be rejected");
 }
 

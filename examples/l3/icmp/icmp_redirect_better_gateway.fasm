@@ -1,0 +1,18 @@
+// PROMPT: ICMP Redirect message (Type 5, Code 1) notifying host of optimal first-hop router.
+// TOKENS: HOST, IP, FLOW, ICMP, REDIRECT, CODE, GATEWAY, COMPILE
+
+// INSTRUCTION: Define default gateway advising alternate route.
+HOST default_first_gw { IP 10.0.0.1 }
+
+// INSTRUCTION: Define local subnet client host.
+HOST local_client_host { IP 10.0.0.50 }
+
+// INSTRUCTION: Define ICMP Redirect flow specifying better gateway 10.0.0.254.
+FLOW icmp_redirect_flow(gw, host) {
+    gw -> host ICMP REDIRECT CODE 1 GATEWAY 10.0.0.254
+}
+
+// INSTRUCTION: Compile block executing ICMP Redirect generation.
+COMPILE {
+    icmp_redirect_flow(default_first_gw, local_client_host)
+}

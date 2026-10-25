@@ -1,0 +1,26 @@
+// PROMPT: Enterprise Wi-Fi 6E access point splitting management CAPWAP control on VLAN 40 and local-bridged employee data on VLAN 140.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define ceiling Wi-Fi 6E access point trunk uplink port.
+HOST wifi6e_ap_uplink {
+    IP 10.40.0.50
+    MAC 00:2c:c8:28:00:32
+}
+
+// INSTRUCTION: Define campus distribution switch terminating AP trunk VLANs 40 and 140.
+HOST campus_wlc_sw {
+    IP 10.40.0.1
+    MAC 00:1c:73:28:00:01
+}
+
+// INSTRUCTION: Send CAPWAP control keepalive on management VLAN 40 PCP 6 and employee data on VLAN 140 PCP 0.
+FLOW vlan_ap_split_tunnel(ap, sw) {
+    ap -> sw VLAN 40 PCP 6 DEI 0 DSCP 48 UDP SRCPORT 5246 DSTPORT 5246 PAYLOAD "capwap_echo_request_ap_radio_stats" WAIT 5ms
+    ap <- sw VLAN 40 PCP 6 DEI 0 DSCP 48 UDP SRCPORT 5246 DSTPORT 5246 PAYLOAD "capwap_echo_response_wlc_ack" WAIT 5ms
+    ap -> sw VLAN 140 PCP 0 DEI 0 UDP SRCPORT 55100 DSTPORT 443 PAYLOAD "quic_http3_employee_ssid_local_breakout"
+}
+
+// INSTRUCTION: Compile the Wi-Fi 6E split-tunnel VLAN 40 and VLAN 140 trunk flow.
+COMPILE {
+    vlan_ap_split_tunnel(wifi6e_ap_uplink, campus_wlc_sw)
+}

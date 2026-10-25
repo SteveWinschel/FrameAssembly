@@ -1,0 +1,25 @@
+// PROMPT: RFC 7761 Section 4.3.1 PIM Graceful Shutdown sending a PIM Hello with Holdtime 0 (Goodbye) to trigger immediate DR failover.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, HELLO, DR_PRIORITY, HOLDTIME, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define active PIM Designated Router entering maintenance mode and sending Holdtime 0.
+HOST maint_pim_dr {
+    IP 10.103.99.1
+    MAC 00:1b:63:67:99:01
+}
+
+// INSTRUCTION: Define backup PIM router immediately assuming Designated Router role upon Holdtime 0 receipt.
+HOST backup_pim_dr {
+    IP 10.103.99.2
+    MAC 00:1b:63:67:99:02
+}
+
+// INSTRUCTION: Define PIM Hello with HOLDTIME 0 (Goodbye) followed by backup DR assertion with DR_PRIORITY 200.
+FLOW pim_goodbye_holdtime_zero(maint, backup) {
+    maint -> backup PIM HELLO DR_PRIORITY 250 HOLDTIME 0 DSCP 48 TTL 1 PAYLOAD "PIM_GOODBYE_IMMEDIATE_NEIGHBOR_EXPIRE" WAIT 3ms
+    maint <- backup PIM HELLO DR_PRIORITY 200 HOLDTIME 105 DSCP 48 TTL 1 PAYLOAD "PIM_BACKUP_DR_TAKEOVER_ACTIVE"
+}
+
+// INSTRUCTION: Compile the PIM Holdtime 0 Graceful Shutdown failover flow.
+COMPILE {
+    pim_goodbye_holdtime_zero(maint_pim_dr, backup_pim_dr)
+}

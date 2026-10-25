@@ -1,0 +1,21 @@
+// PROMPT: DNS CNAME alias resolution followed by target A record lookup.
+// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define web browser workstation.
+HOST browser_ws { IP 192.168.5.22 }
+
+// INSTRUCTION: Define local DNS forwarder.
+HOST dns_fw { IP 192.168.5.1 }
+
+// INSTRUCTION: Resolve CNAME alias cdn.example.com and then its canonical target A record.
+FLOW dns_cname_chain(b, d) {
+    b -> d DNS QUERY TXID 0x5001 QNAME "cdn.example.com" QTYPE "CNAME"
+    b <- d DNS RESPONSE TXID 0x5001 QNAME "cdn.example.com" QTYPE "CNAME" RDATA "edge.akamaiedge.net" ANS_TTL 600
+    b -> d DNS QUERY TXID 0x5002 QNAME "edge.akamaiedge.net" QTYPE "A"
+    b <- d DNS RESPONSE TXID 0x5002 QNAME "edge.akamaiedge.net" QTYPE "A" RDATA "23.45.67.89" ANS_TTL 60
+}
+
+// INSTRUCTION: Compile the DNS CNAME chain resolution flow.
+COMPILE {
+    dns_cname_chain(browser_ws, dns_fw)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Simulate an Nmap Xmas tree stealth port scan setting FIN, PSH, and URG flags across common service ports with RST ACK responses.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, FIN, PSH, URG, RST, ACK, SRCPORT, DSTPORT, WIN, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, FIN, PSH, URG, SRCPORT, DSTPORT, WIN, WAIT, RST, ACK, COMPILE
 
 // INSTRUCTION: Define a penetration testing scanner host with IP 192.168.99.5.
 HOST pentest_scanner { IP 192.168.99.5 MAC de:ad:be:ef:00:01 }

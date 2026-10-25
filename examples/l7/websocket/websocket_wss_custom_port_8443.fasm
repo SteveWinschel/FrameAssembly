@@ -1,0 +1,23 @@
+// PROMPT: WebSocket traffic tunneled over custom TCP port 8443 for reverse-proxied microservice API.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, TEXT, FIN_BIT, MASK_KEY, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define single-page application client host.
+HOST spa_client {
+    IP 10.120.5.90
+}
+
+// INSTRUCTION: Define API gateway listening on custom port 8443.
+HOST api_gateway {
+    IP 10.120.5.10
+}
+
+// INSTRUCTION: Define bidirectional WebSocket JSON-RPC exchange on custom TCP port 8443.
+FLOW ws_custom_port(c, s) {
+    c -> s WEBSOCKET TEXT FIN_BIT 1 MASK_KEY 0x99887766 SRCPORT 54321 DSTPORT 8443 PAYLOAD "{'id':1,'method':'ping'}" WAIT 4ms
+    c <- s WEBSOCKET TEXT FIN_BIT 1 SRCPORT 8443 DSTPORT 54321 PAYLOAD "{'id':1,'result':'pong'}"
+}
+
+// INSTRUCTION: Compile the custom port 8443 WebSocket exchange.
+COMPILE {
+    ws_custom_port(spa_client, api_gateway)
+}

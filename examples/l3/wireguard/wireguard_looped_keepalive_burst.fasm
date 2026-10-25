@@ -1,0 +1,20 @@
+// PROMPT: Periodic WireGuard authenticated keepalive packet burst inside a COMPILE LOOP.
+// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define remote mobile worker maintaining tunnel NAT mapping.
+HOST roaming_nat_client { IP 192.0.2.77 }
+
+// INSTRUCTION: Define enterprise VPN gateway endpoint.
+HOST enterprise_vpn_gw { IP 198.51.100.10 }
+
+// INSTRUCTION: Define periodic WireGuard keepalive burst flow.
+FLOW wg_keepalive_burst(cli, gw) {
+    cli -> gw WIREGUARD TYPE DATA RECEIVER 12345 COUNTER 0 WAIT 25ms
+}
+
+// INSTRUCTION: Compile loop executing 4 periodic WireGuard keepalives.
+COMPILE {
+    LOOP 4 {
+        wg_keepalive_burst(roaming_nat_client, enterprise_vpn_gw)
+    }
+}

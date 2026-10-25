@@ -1,0 +1,19 @@
+// PROMPT: BFD session prioritized with DSCP CS6 (48) and IPv4 Don't Fragment flag.
+// TOKENS: HOST, IP, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, DSCP, ECN, TTL, DF, COMPILE
+
+// INSTRUCTION: Define core gateway router A.
+HOST core_gw_a { IP 192.0.2.101 }
+
+// INSTRUCTION: Define core gateway router B.
+HOST core_gw_b { IP 192.0.2.102 }
+
+// INSTRUCTION: Define DSCP CS6 (48) marked BFD packets with TTL 255 and DF set.
+FLOW bfd_cs6_control_flow(a, b) {
+    a -> b BFD STATE 3 DIAG 0 MY_DISC 11111 YOUR_DISC 22222 MIN_TX 10000 MIN_RX 10000 MULT 3 DSCP 48 ECN 0 TTL 255 DF
+    a <- b BFD STATE 3 DIAG 0 MY_DISC 22222 YOUR_DISC 11111 MIN_TX 10000 MIN_RX 10000 MULT 3 DSCP 48 ECN 0 TTL 255 DF
+}
+
+// INSTRUCTION: Compile the DSCP CS6 BFD control flow.
+COMPILE {
+    bfd_cs6_control_flow(core_gw_a, core_gw_b)
+}

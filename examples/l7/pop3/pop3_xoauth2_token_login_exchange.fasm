@@ -1,0 +1,27 @@
+// PROMPT: Simulate a POP3 AUTH XOAUTH2 bearer token login sequence with a cloud mail provider.
+// TOKENS: HOST, IP, MAC, FLOW, POP3, CMD, ARG, WAIT, OK, RESPONSE, COMPILE
+
+// INSTRUCTION: Define the modern desktop mail client using OAuth2 tokens for POP3.
+HOST oauth_pop3_client {
+    IP 10.110.80.14
+    MAC 00:50:56:6e:50:0e
+}
+
+// INSTRUCTION: Define the cloud POP3 gateway.
+HOST cloud_pop3_gw {
+    IP 10.110.80.1
+    MAC 00:50:56:6e:50:01
+}
+
+// INSTRUCTION: Authenticate via AUTH XOAUTH2 and check mailbox statistics.
+FLOW pop3_xoauth2_flow(c, s) {
+    c -> s POP3 CMD "AUTH" ARG "XOAUTH2 dXNlcj1ib2JAZXhhbXBsZS5jb20BYXV0aD1CZWFyZXIgeWEyOS50b2tlbg==" WAIT 4ms
+    c <- s POP3 OK RESPONSE "Logged in via XOAUTH2" WAIT 2ms
+    c -> s POP3 CMD "STAT" WAIT 2ms
+    c <- s POP3 OK RESPONSE "5 28410"
+}
+
+// INSTRUCTION: Compile the POP3 XOAUTH2 authentication flow.
+COMPILE {
+    pop3_xoauth2_flow(oauth_pop3_client, cloud_pop3_gw)
+}

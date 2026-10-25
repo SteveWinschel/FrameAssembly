@@ -1,0 +1,26 @@
+// PROMPT: Kubernetes IPv6 pod interface completing Router Solicitation, DAD Neighbor Solicitation, and host gateway resolution.
+// TOKENS: HOST, IP, MAC, FLOW, TTL, NDP, NEIGHBOR_SOLICIT, TARGET, DSTMAC, WAIT, ROUTER_SOLICIT, SLLA, ROUTER_ADVERT, ROUTER_LIFETIME, COMPILE
+
+// INSTRUCTION: Define newly scheduled Kubernetes pod veth interface on IPv6 cluster subnet.
+HOST k8s_pod_veth {
+    IP 2001:db8:c0de:1::42
+    MAC 0a:58:c0:de:01:42
+}
+
+// INSTRUCTION: Define worker node CNI bridge interface acting as link-local IPv6 router.
+HOST cni_node_router {
+    IP 2001:db8:c0de:1::1
+    MAC 0a:58:c0:de:01:01
+}
+
+// INSTRUCTION: Perform DAD check on pod address followed by Router Solicitation and Router Advertisement.
+FLOW ndp_k8s_pod_init(pod, cni) {
+    pod -> cni TTL 255 NDP NEIGHBOR_SOLICIT TARGET 2001:db8:c0de:1::42 DSTMAC 33:33:ff:01:00:42 WAIT 10ms
+    pod -> cni TTL 255 NDP ROUTER_SOLICIT SLLA 0a:58:c0:de:01:42 DSTMAC 33:33:00:00:00:02 WAIT 5ms
+    cni -> pod TTL 255 NDP ROUTER_ADVERT ROUTER_LIFETIME 3600 SLLA 0a:58:c0:de:01:01
+}
+
+// INSTRUCTION: Compile the Kubernetes IPv6 pod CNI bootstrap NDP exchange.
+COMPILE {
+    ndp_k8s_pod_init(k8s_pod_veth, cni_node_router)
+}

@@ -1,0 +1,22 @@
+// PROMPT: FTP STOR file upload sequence with TYPE I binary mode negotiation and 226 Transfer complete.
+// TOKENS: HOST, IP, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define backup agent client.
+HOST backup_agent { IP 10.21.0.50 }
+
+// INSTRUCTION: Define central FTP backup repository.
+HOST backup_repo { IP 10.21.0.10 }
+
+// INSTRUCTION: Set binary transfer mode (TYPE I), issue STOR command, and receive 150 and 226 replies.
+FLOW ftp_stor_upload(c, s) {
+    c -> s FTP CMD "TYPE" ARG "I"
+    c <- s FTP CODE 200 REPLY "Switching to Binary mode"
+    c -> s FTP CMD "STOR" ARG "db_dump_2026.tar.gz"
+    c <- s FTP CODE 150 REPLY "Ok to send data"
+    c <- s FTP CODE 226 REPLY "Transfer complete"
+}
+
+// INSTRUCTION: Compile the FTP binary file upload sequence.
+COMPILE {
+    ftp_stor_upload(backup_agent, backup_repo)
+}

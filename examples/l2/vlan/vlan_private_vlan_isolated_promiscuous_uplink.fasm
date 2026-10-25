@@ -1,0 +1,25 @@
+// PROMPT: Private VLAN (PVLAN) architecture mapping isolated secondary VLAN 502 host to promiscuous primary VLAN 500 gateway.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, ICMP, ECHO_REQUEST, ID, SEQ, PAYLOAD, WAIT, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define multi-tenant colocation server on isolated secondary PVLAN 502.
+HOST pvlan_isolated_srv {
+    IP 172.30.50.102
+    MAC 00:25:90:1e:32:66
+}
+
+// INSTRUCTION: Define upstream firewall on promiscuous primary PVLAN 500 port.
+HOST pvlan_promisc_fw {
+    IP 172.30.50.1
+    MAC 00:1b:17:1e:32:01
+}
+
+// INSTRUCTION: Send upstream frame tagged on isolated secondary VLAN 502 and receive reply mapped to primary VLAN 500.
+FLOW pvlan_isolated_to_promisc(srv, fw) {
+    srv -> fw VLAN 502 PCP 0 DEI 0 ICMP ECHO_REQUEST ID 502 SEQ 1 PAYLOAD "pvlan_isolated_upstream_ping" WAIT 5ms
+    srv <- fw VLAN 500 PCP 0 DEI 0 ICMP ECHO_REPLY ID 502 SEQ 1 PAYLOAD "pvlan_isolated_upstream_ping"
+}
+
+// INSTRUCTION: Compile the Private VLAN isolated-to-promiscuous asymmetric VLAN tag trace.
+COMPILE {
+    pvlan_isolated_to_promisc(pvlan_isolated_srv, pvlan_promisc_fw)
+}

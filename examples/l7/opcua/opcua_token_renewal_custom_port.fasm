@@ -1,0 +1,19 @@
+// PROMPT: OPC UA SecurityToken renewal over an existing SecureChannel on non-standard port 4841.
+// TOKENS: HOST, IP, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, SRCPORT, DSTPORT, WAIT, COMPILE
+
+// INSTRUCTION: Define redundant OPC UA client.
+HOST red_client { IP 10.33.10.11 }
+
+// INSTRUCTION: Define redundant OPC UA server listening on port 4841.
+HOST red_server { IP 10.33.10.12 }
+
+// INSTRUCTION: Define OPN token renewal incrementing TOKEN_ID from 1 to 2.
+FLOW opcua_token_renew(c, s) {
+    c -> s OPCUA MSG_TYPE "OPN" CHUNK_TYPE "F" SECURE_CHANNEL_ID 900 TOKEN_ID 2 SEQ_NUM 500 REQID 450 SRCPORT 51200 DSTPORT 4841 WAIT 5ms
+    c <- s OPCUA MSG_TYPE "OPN" CHUNK_TYPE "F" SECURE_CHANNEL_ID 900 TOKEN_ID 2 SEQ_NUM 500 REQID 450 SRCPORT 4841 DSTPORT 51200
+}
+
+// INSTRUCTION: Compile the OPC UA token renewal flow.
+COMPILE {
+    opcua_token_renew(red_client, red_server)
+}

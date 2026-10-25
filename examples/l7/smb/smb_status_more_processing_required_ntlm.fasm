@@ -1,0 +1,29 @@
+// PROMPT: SMB2 multi-stage NTLM challenge-response SESSION_SETUP returning STATUS_MORE_PROCESSING_REQUIRED (3221225494).
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, MSGID, STATUS, WAIT, SESSION_ID, COMPILE
+
+// INSTRUCTION: Define the workgroup client initiating NTLMv2 authentication.
+HOST ntlm_client {
+    IP 192.168.60.75
+    MAC 00:1a:2b:60:60:75
+}
+
+// INSTRUCTION: Define the standalone SMB2 file server.
+HOST standalone_filer {
+    IP 192.168.60.5
+    MAC 00:1a:2b:60:60:05
+}
+
+// INSTRUCTION: Negotiate dialect and perform two-step SESSION_SETUP handshake.
+FLOW smb_ntlm_setup(c, s) {
+    c -> s SMB COMMAND "NEGOTIATE" MSGID 0
+    c <- s SMB COMMAND "NEGOTIATE" STATUS 0 MSGID 0 WAIT 1ms
+    c -> s SMB COMMAND "SESSION_SETUP" SESSION_ID 0 MSGID 1
+    c <- s SMB COMMAND "SESSION_SETUP" STATUS 3221225494 SESSION_ID 501 MSGID 1 WAIT 2ms
+    c -> s SMB COMMAND "SESSION_SETUP" SESSION_ID 501 MSGID 2
+    c <- s SMB COMMAND "SESSION_SETUP" STATUS 0 SESSION_ID 501 MSGID 2
+}
+
+// INSTRUCTION: Compile the two-stage NTLMv2 SMB2 session setup flow.
+COMPILE {
+    smb_ntlm_setup(ntlm_client, standalone_filer)
+}

@@ -1,0 +1,20 @@
+// PROMPT: HSRP router startup sequence transitioning through Listen, Speak, and Standby states.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, WAIT, COMPILE
+
+// INSTRUCTION: Define bootstrapping backup gateway router.
+HOST hsrp_boot_gw { IP 192.168.50.253 }
+
+// INSTRUCTION: Define HSRP multicast group destination.
+HOST hsrp_mcast_dest { IP 224.0.0.2 }
+
+// INSTRUCTION: Define state transition flow from Listen (2) to Speak (4) and Standby (8).
+FLOW hsrp_init_states(rtr, mcast) {
+    rtr -> mcast HSRP GROUP 5 PRIORITY 90 STATE 2 VIP 192.168.50.1 WAIT 20ms
+    rtr -> mcast HSRP GROUP 5 PRIORITY 90 STATE 4 VIP 192.168.50.1 WAIT 20ms
+    rtr -> mcast HSRP GROUP 5 PRIORITY 90 STATE 8 VIP 192.168.50.1
+}
+
+// INSTRUCTION: Compile block executing progressive HSRP state transitions.
+COMPILE {
+    hsrp_init_states(hsrp_boot_gw, hsrp_mcast_dest)
+}

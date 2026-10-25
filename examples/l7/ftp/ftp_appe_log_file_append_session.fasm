@@ -1,0 +1,28 @@
+// PROMPT: FTP APPE (Append) command session appending telemetry batch records to an existing remote log file.
+// TOKENS: HOST, IP, MAC, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define branch telemetry concentrator uploading daily CSV logs.
+HOST log_shipper {
+    IP 10.85.21.30
+    MAC 00:1a:a0:55:15:1e
+}
+
+// INSTRUCTION: Define central log warehouse FTP server.
+HOST log_warehouse {
+    IP 10.85.21.1
+    MAC 00:1a:a0:55:15:01
+}
+
+// INSTRUCTION: Set binary transfer mode and append records via APPE with 226 completion.
+FLOW ftp_appe_append(c, s) {
+    c -> s FTP CMD "TYPE" ARG "I"
+    c <- s FTP CODE 200 REPLY "Type set to I"
+    c -> s FTP CMD "APPE" ARG "audit_trail_2026.csv"
+    c <- s FTP CODE 150 REPLY "Opening BINARY mode data connection for append"
+    c <- s FTP CODE 226 REPLY "Transfer complete"
+}
+
+// INSTRUCTION: Compile the FTP APPE log file append scenario.
+COMPILE {
+    ftp_appe_append(log_shipper, log_warehouse)
+}

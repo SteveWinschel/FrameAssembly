@@ -1,0 +1,27 @@
+// PROMPT: SNMPv1 GetNextRequest walking the MIB-II interfaces table (ifIndex, ifDescr, ifOperStatus).
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, GETNEXT, COMMUNITY, REQID, VARBIND, NULLVAL, RESPONSE, STRING, INT, WAIT, COMPILE
+
+// INSTRUCTION: Define the legacy network discovery collector.
+HOST snmp_walker {
+    IP 10.145.10.20
+    MAC 00:1a:2b:91:10:20
+}
+
+// INSTRUCTION: Define the branch office Ethernet switch agent.
+HOST branch_sw {
+    IP 10.145.10.2
+    MAC 00:1a:2b:91:10:02
+}
+
+// INSTRUCTION: Walk ifDescr and ifOperStatus for interface 1 and interface 2 using SNMP1 GETNEXT.
+FLOW snmpv1_walk_iftable(m, a) {
+    m -> a SNMP1 GETNEXT COMMUNITY "public" REQID 2001 VARBIND 1.3.6.1.2.1.2.2.1.2 NULLVAL VARBIND 1.3.6.1.2.1.2.2.1.8 NULLVAL
+    m <- a SNMP1 RESPONSE COMMUNITY "public" REQID 2001 VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "GigabitEthernet0/1" VARBIND 1.3.6.1.2.1.2.2.1.8.1 INT 1 WAIT 2ms
+    m -> a SNMP1 GETNEXT COMMUNITY "public" REQID 2002 VARBIND 1.3.6.1.2.1.2.2.1.2.1 NULLVAL VARBIND 1.3.6.1.2.1.2.2.1.8.1 NULLVAL
+    m <- a SNMP1 RESPONSE COMMUNITY "public" REQID 2002 VARBIND 1.3.6.1.2.1.2.2.1.2.2 STRING "GigabitEthernet0/2" VARBIND 1.3.6.1.2.1.2.2.1.8.2 INT 2
+}
+
+// INSTRUCTION: Compile the SNMPv1 GetNext ifTable walk flow.
+COMPILE {
+    snmpv1_walk_iftable(snmp_walker, branch_sw)
+}

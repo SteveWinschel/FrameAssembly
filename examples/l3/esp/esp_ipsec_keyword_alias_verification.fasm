@@ -1,0 +1,25 @@
+// PROMPT: RFC 4303 ESP Security Association configured using the canonical IPSEC protocol keyword alias.
+// TOKENS: HOST, IP, MAC, FLOW, IPSEC, SPI, SEQ, IV, ICV, NEXT_HEADER, DF, TTL, PAYLOAD, WAIT, ESP, COMPILE
+
+// INSTRUCTION: Define primary encryption gateway using IPSEC keyword syntax.
+HOST ipsec_alias_gw1 {
+    IP 10.50.50.1
+    MAC 00:16:3e:50:50:01
+}
+
+// INSTRUCTION: Define secondary encryption gateway validating protocol 50 wire output.
+HOST ipsec_alias_gw2 {
+    IP 10.50.50.2
+    MAC 00:16:3e:50:50:02
+}
+
+// INSTRUCTION: Define bidirectional exchange mixing IPSEC and ESP keywords with explicit SPI, IV, and ICV.
+FLOW ipsec_esp_keyword_parity(gw1, gw2) {
+    gw1 -> gw2 IPSEC SPI 50501 SEQ 1 IV "aabbccddeeff0011" ICV "112233445566778899aabbcc" NEXT_HEADER 4 DF TTL 64 PAYLOAD "ENCRYPTED_VIA_IPSEC_KEYWORD" WAIT 4ms
+    gw1 <- gw2 ESP SPI 50502 SEQ 1 IV "1100ffeeddccbbaa" ICV "ccbbaa998877665544332211" NEXT_HEADER 4 DF TTL 64 PAYLOAD "ENCRYPTED_VIA_ESP_KEYWORD"
+}
+
+// INSTRUCTION: Compile the IPSEC and ESP keyword equivalence verification flow.
+COMPILE {
+    ipsec_esp_keyword_parity(ipsec_alias_gw1, ipsec_alias_gw2)
+}

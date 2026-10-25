@@ -1,0 +1,32 @@
+// PROMPT: Campus core HSRP active router failback restoring priority 200 after uplink recovery with subsecond timers.
+// TOKENS: HOST, IP, MAC, FLOW, HSRP, GROUP, PRIORITY, STATE, HELLOTIME, HOLDTIME, VIP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define primary campus core switch returning to service after link restoration.
+HOST campus_core_pri {
+    IP 10.44.0.2
+    MAC 00:00:0c:07:ac:0a
+}
+
+// INSTRUCTION: Define secondary campus core switch ceding active role to higher-priority peer.
+HOST campus_core_sec {
+    IP 10.44.0.3
+    MAC 00:00:0c:07:ac:0b
+}
+
+// INSTRUCTION: Define HSRP all-routers IPv4 multicast destination group.
+HOST hsrp_all_rtrs {
+    IP 224.0.0.2
+    MAC 01:00:5e:00:00:02
+}
+
+// INSTRUCTION: Exchange HSRP Coup, Resign, and Active Hello advertisements during planned core failback.
+FLOW hsrp_core_failback(pri, sec, mcast) {
+    pri -> mcast HSRP GROUP 10 PRIORITY 200 STATE 16 HELLOTIME 1 HOLDTIME 3 VIP 10.44.0.1 TTL 1 WAIT 10ms
+    sec -> mcast HSRP GROUP 10 PRIORITY 150 STATE 8 HELLOTIME 1 HOLDTIME 3 VIP 10.44.0.1 TTL 1 WAIT 10ms
+    pri -> mcast HSRP GROUP 10 PRIORITY 200 STATE 16 HELLOTIME 1 HOLDTIME 3 VIP 10.44.0.1 TTL 1
+}
+
+// INSTRUCTION: Compile the campus core HSRP priority 200 failback sequence.
+COMPILE {
+    hsrp_core_failback(campus_core_pri, campus_core_sec, hsrp_all_rtrs)
+}

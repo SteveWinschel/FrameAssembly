@@ -1,0 +1,25 @@
+// PROMPT: CoAP GET request returning 5.00 Internal Server Error when an I2C peripheral bus read fails.
+// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, ACK, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the telemetry collector polling a remote weather station.
+HOST weather_poller {
+    IP 10.110.110.10
+    MAC 00:1a:2b:6e:b0:10
+}
+
+// INSTRUCTION: Define the weather station CoAP node experiencing an I2C bus fault.
+HOST weather_node {
+    IP 10.110.110.50
+    MAC 00:1a:2b:6e:b0:50
+}
+
+// INSTRUCTION: Request barometric pressure and receive 5.00 Internal Server Error diagnostic payload.
+FLOW coap_500_fault(c, s) {
+    c -> s COAP CON CODE "0.01" MSGID 11500 TOKEN 604 URI_PATH "sensors/bme280/pressure"
+    c <- s COAP ACK CODE "5.00" MSGID 11500 TOKEN 604 PAYLOAD "I2C bus NACK on 0x76"
+}
+
+// INSTRUCTION: Compile the CoAP 5.00 Internal Server Error flow.
+COMPILE {
+    coap_500_fault(weather_poller, weather_node)
+}

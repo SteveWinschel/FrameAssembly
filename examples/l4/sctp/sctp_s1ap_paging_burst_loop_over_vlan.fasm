@@ -1,0 +1,27 @@
+// PROMPT: 4G MME broadcasting periodic S1AP Paging messages to an eNodeB tracking area over VLAN 412 SCTP port 36412.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE, LOOP
+
+// INSTRUCTION: Define MME paging controller on RAN signaling VLAN 412.
+HOST mme_paging_ctrl {
+    IP 172.19.12.1
+    MAC 00:1c:73:13:0c:01
+}
+
+// INSTRUCTION: Define eNodeB tracking area cell receiving S1AP Paging bursts on VLAN 412.
+HOST enb_tac_cell {
+    IP 172.19.12.20
+    MAC 00:1c:73:13:0c:14
+}
+
+// INSTRUCTION: Send non-UE-associated S1AP Paging message on Stream 0 (PPID 18) and receive SACK in a 2-iteration loop.
+FLOW sctp_s1ap_paging_loop(mme, enb) {
+    mme -> enb VLAN 412 PCP 6 DSCP 46 SCTP CHUNK DATA VTAG 412001 STREAM 0 SSN 1 PPID 18 SRCPORT 36412 DSTPORT 36412 PAYLOAD "s1ap_paging_s_tmsi_00112233_tai_310_410" WAIT 5ms
+    mme <- enb VLAN 412 PCP 6 DSCP 46 SCTP CHUNK SACK VTAG 412001 SRCPORT 36412 DSTPORT 36412
+}
+
+// INSTRUCTION: Compile 2 iterations of the VLAN 412 S1AP Paging SCTP burst.
+COMPILE {
+    LOOP 2 {
+        sctp_s1ap_paging_loop(mme_paging_ctrl, enb_tac_cell)
+    }
+}

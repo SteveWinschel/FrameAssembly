@@ -1,0 +1,25 @@
+// PROMPT: NetFlow v5 flow export monitoring NFS TCP port 2049 NAS storage filer read/write throughput.
+// TOKENS: HOST, IP, MAC, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, VLAN, PCP, COMPILE
+
+// INSTRUCTION: Define storage area network aggregation router.
+HOST san_router {
+    IP 10.77.0.1
+    MAC 00:25:90:77:00:01
+}
+
+// INSTRUCTION: Define storage capacity NetFlow collector.
+HOST san_collector {
+    IP 10.77.0.200
+    MAC 00:25:90:77:00:c8
+}
+
+// INSTRUCTION: Export bidirectional NFS port 2049 flow summaries over VLAN 77.
+FLOW netflow_nfs_storage(rtr, col) {
+    rtr -> col NETFLOW SRCIP 10.77.5.100 DSTIP 10.77.5.10 SRCPORT 51022 DSTPORT 2049 PROTO 6 PACKETS 18400 OCTETS 26864000 VLAN 77 PCP 4
+    rtr -> col NETFLOW SRCIP 10.77.5.10 DSTIP 10.77.5.100 SRCPORT 2049 DSTPORT 51022 PROTO 6 PACKETS 42000 OCTETS 61320000 VLAN 77 PCP 4
+}
+
+// INSTRUCTION: Compile the NFS storage filer NetFlow telemetry scenario.
+COMPILE {
+    netflow_nfs_storage(san_router, san_collector)
+}

@@ -1,0 +1,27 @@
+// PROMPT: High-Performance Computing (HPC) 9000-byte Jumbo Frame TCP negotiation with MSS 8960 and Window Scale 14.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DF, TCP, SYN, SRCPORT, DSTPORT, WIN, MSS, WSCALE, SACK_PERM, TSVAL, TSECR, ACK, WAIT, PSH, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define HPC compute node A with 9000 MTU jumbo frame interface.
+HOST hpc_node_01 {
+    IP 172.30.90.1
+    MAC 0c:42:a1:90:00:01
+}
+
+// INSTRUCTION: Define HPC parallel filesystem storage node B with 9000 MTU interface.
+HOST hpc_lustre_oss {
+    IP 172.30.90.2
+    MAC 0c:42:a1:90:00:02
+}
+
+// INSTRUCTION: Define TCP handshake negotiating MSS 8960 and maximum RFC 7323 WSCALE 14 with DF bit set.
+FLOW tcp_jumbo_mss_8960(node, oss) {
+    node -> oss VLAN 90 PCP 3 DF TCP SYN SRCPORT 52100 DSTPORT 988 WIN 65535 MSS 8960 WSCALE 14 SACK_PERM TSVAL 500100 TSECR 0
+    node <- oss VLAN 90 PCP 3 DF TCP SYN ACK WIN 65535 MSS 8960 WSCALE 14 SACK_PERM TSVAL 800100 TSECR 500100 WAIT 200us
+    node -> oss VLAN 90 PCP 3 DF TCP ACK WIN 4096 TSVAL 500101 TSECR 800100 WAIT 100us
+    node -> oss VLAN 90 PCP 3 DF TCP PSH ACK WIN 4096 TSVAL 500102 TSECR 800100 PAYLOAD "lustre_ost_bulk_write_jumbo_segment" WAIT 200us
+}
+
+// INSTRUCTION: Compile block executing HPC jumbo frame TCP MSS 8960 negotiation.
+COMPILE {
+    tcp_jumbo_mss_8960(hpc_node_01, hpc_lustre_oss)
+}

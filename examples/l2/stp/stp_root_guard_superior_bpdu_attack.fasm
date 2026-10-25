@@ -1,0 +1,24 @@
+// PROMPT: STP Root Guard validation test where a rogue access switch advertises priority 0 superior Root ID on a customer port.
+// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, FLAGS, COMPILE
+
+// INSTRUCTION: Define unauthorized rogue switch plugged into edge port.
+HOST rogue_stp_switch {
+    IP 10.66.6.66
+    MAC de:ad:00:66:06:42
+}
+
+// INSTRUCTION: Define Root-Guard-enabled enterprise access switch port.
+HOST rootguard_edge_sw {
+    IP 10.66.6.1
+    MAC 00:23:04:66:06:01
+}
+
+// INSTRUCTION: Define superior BPDU with priority 0 triggering Root-Inconsistent port blocking.
+FLOW stp_root_guard_trigger(rogue, edge) {
+    rogue -> edge STP RSTP ROOT_ID "0:de:ad:00:66:06:42" BRIDGE_ID "0:de:ad:00:66:06:42" COST 0 PORT_ID 32769 FLAGS 60
+}
+
+// INSTRUCTION: Compile block generating STP Root Guard test frame.
+COMPILE {
+    stp_root_guard_trigger(rogue_stp_switch, rootguard_edge_sw)
+}

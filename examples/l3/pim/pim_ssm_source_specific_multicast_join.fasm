@@ -1,0 +1,26 @@
+// PROMPT: RFC 7761 / RFC 4607 PIM Source-Specific Multicast (PIM-SSM) (S,G) Join in the 232.0.0.0/8 SSM range without an RP.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, HELLO, DR_PRIORITY, HOLDTIME, DSCP, TTL, WAIT, JOIN_PRUNE, GROUP, SOURCE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define Last-Hop Router (LHR) receiving IGMPv3 INCLUDE(S,G) report from host.
+HOST ssm_lhr_router {
+    IP 10.103.10.2
+    MAC 00:1c:73:67:10:02
+}
+
+// INSTRUCTION: Define upstream core multicast router toward source 10.200.1.50.
+HOST ssm_upstream_rtr {
+    IP 10.103.10.1
+    MAC 00:1c:73:67:10:01
+}
+
+// INSTRUCTION: Define PIM JOIN_PRUNE for SSM group 232.10.20.30 and source 10.200.1.50.
+FLOW pim_ssm_sg_join_flow(lhr, up) {
+    lhr -> up PIM HELLO DR_PRIORITY 100 HOLDTIME 105 DSCP 48 TTL 1 WAIT 5ms
+    lhr <- up PIM HELLO DR_PRIORITY 200 HOLDTIME 105 DSCP 48 TTL 1 WAIT 5ms
+    lhr -> up PIM JOIN_PRUNE GROUP 232.10.20.30 SOURCE 10.200.1.50 HOLDTIME 210 DSCP 48 TTL 1 PAYLOAD "PIM_SSM_SG_JOIN_NO_RP"
+}
+
+// INSTRUCTION: Compile the RFC 4607 PIM-SSM (S,G) Join signaling flow.
+COMPILE {
+    pim_ssm_sg_join_flow(ssm_lhr_router, ssm_upstream_rtr)
+}

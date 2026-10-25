@@ -1,0 +1,19 @@
+// PROMPT: Closed-port TCP probe answered by an immediate RST ACK with Window 0 and RFC 793 sequence-plus-one acknowledgment.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, RST, ACK, ACKNUM, WAIT, COMPILE
+
+// INSTRUCTION: Define health-check prober testing an unlistening service port.
+HOST port_prober { IP 10.48.0.15 }
+
+// INSTRUCTION: Define hardened server rejecting connection to closed port 8443.
+HOST hardened_host { IP 10.48.0.100 }
+
+// INSTRUCTION: Define TCP SYN to closed port 8443 and immediate RST ACK (WIN 0, ACKNUM = SEQ + 1).
+FLOW tcp_closed_port_rst_ack(prober, host) {
+    prober -> host TCP SYN SRCPORT 61000 DSTPORT 8443 SEQ 700000 WIN 64240
+    prober <- host TCP RST ACK SRCPORT 8443 DSTPORT 61000 SEQ 0 ACKNUM 700001 WIN 0 WAIT 500us
+}
+
+// INSTRUCTION: Compile block executing closed-port TCP RST ACK response.
+COMPILE {
+    tcp_closed_port_rst_ack(port_prober, hardened_host)
+}

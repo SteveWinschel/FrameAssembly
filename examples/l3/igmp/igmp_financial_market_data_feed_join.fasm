@@ -1,0 +1,25 @@
+// PROMPT: Low-latency trading engine joining UDP multicast market data feed 239.192.10.50 via IGMPv2 REPORT.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, TTL, IGMP, REPORT, MAX_RESP, GROUP, WAIT, COMPILE
+
+// INSTRUCTION: Define colocation algorithmic trading server subscribing to equity order-book multicast feed.
+HOST algo_trade_srv {
+    IP 10.210.40.15
+    MAC 00:0f:53:d2:28:0f
+}
+
+// INSTRUCTION: Define exchange multicast feed group address 239.192.10.50.
+HOST market_feed_grp {
+    IP 239.192.10.50
+    MAC 01:00:5e:40:0a:32
+}
+
+// INSTRUCTION: Transmit unsolicited IGMPv2 Membership Report with DSCP CS6 and TTL 1 for immediate join.
+FLOW igmp_market_feed_join(srv, grp) {
+    srv -> grp DSCP 48 TTL 1 IGMP REPORT MAX_RESP 0 GROUP 239.192.10.50 WAIT 10ms
+    srv -> grp DSCP 48 TTL 1 IGMP REPORT MAX_RESP 0 GROUP 239.192.10.50
+}
+
+// INSTRUCTION: Compile the financial market data IGMPv2 rapid join flow.
+COMPILE {
+    igmp_market_feed_join(algo_trade_srv, market_feed_grp)
+}

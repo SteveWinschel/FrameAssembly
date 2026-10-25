@@ -1,0 +1,30 @@
+// PROMPT: Model an SMTP 421 4.7.0 Service not available connection rate-limit banner dropping an aggressive client.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SMTP, CODE, REPLY, FIN, COMPILE
+
+// INSTRUCTION: Define the bulk mail sender and rate-limiting inbound MX server.
+HOST bulk_sender {
+    MAC 00:21:9b:44:55:66
+    IP 198.51.100.144
+}
+
+// INSTRUCTION: Define the ratelimit_mx mail endpoint.
+HOST ratelimit_mx {
+    MAC 00:21:9b:44:55:01
+    IP 203.0.113.5
+}
+
+// INSTRUCTION: Connect on TCP port 25, receive 421 4.7.0 rate limit exceeded, and close the TCP connection.
+FLOW smtp_421_rate_limit_drop(bulk_sender, ratelimit_mx) {
+    bulk_sender -> ratelimit_mx TCP SYN SRCPORT 59025 DSTPORT 25
+    ratelimit_mx -> bulk_sender TCP SYN ACK
+    bulk_sender -> ratelimit_mx TCP ACK
+    ratelimit_mx -> bulk_sender SMTP CODE 421 REPLY "4.7.0 mx.example.com Too many concurrent connections from your IP"
+    ratelimit_mx -> bulk_sender TCP FIN ACK
+    bulk_sender -> ratelimit_mx TCP FIN ACK
+    ratelimit_mx -> bulk_sender TCP ACK
+}
+
+// INSTRUCTION: Compile the SMTP 421 rate limit banner drop flow.
+COMPILE {
+    smtp_421_rate_limit_drop(bulk_sender, ratelimit_mx)
+}

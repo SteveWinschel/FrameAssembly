@@ -1,0 +1,27 @@
+// PROMPT: Generate an MQTT periodic keep-alive heartbeat loop exchanging PINGREQ and PINGRESP frames.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, PINGREQ, WAIT, PINGRESP, COMPILE, LOOP
+
+// INSTRUCTION: Define the idle connected home thermostat maintaining its MQTT broker session.
+HOST smart_thermostat {
+    IP 192.168.50.32
+    MAC 18:b4:30:50:00:32
+}
+
+// INSTRUCTION: Define the cloud MQTT broker endpoint.
+HOST cloud_broker {
+    IP 192.168.50.1
+    MAC 18:b4:30:50:00:01
+}
+
+// INSTRUCTION: Exchange 4 consecutive MQTT PINGREQ and PINGRESP keep-alive pairs in a LOOP block.
+FLOW mqtt_ping_keepalive_loop(c, s) {
+    c -> s MQTT PINGREQ WAIT 3ms
+    c <- s MQTT PINGRESP WAIT 45ms
+}
+
+// INSTRUCTION: Compile the MQTT PINGREQ/PINGRESP keep-alive loop into a PCAP file.
+COMPILE {
+    LOOP 4 {
+        mqtt_ping_keepalive_loop(smart_thermostat, cloud_broker)
+    }
+}

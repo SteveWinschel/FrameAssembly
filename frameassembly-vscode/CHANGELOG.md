@@ -4,6 +4,10 @@ All notable changes to the "frameassembly-vscode" extension will be documented i
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.1.0] - 2026-10-25
+- Synchronized all 640 lexer keywords across the 5-way grammar lockstep (`src/lexer/mod.rs`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly.tmLanguage.json`).
+- Synchronized with FrameAssembly v1.1.0 release.
+
 ## [1.0.1] - 2026-10-24
 - Synchronized with FrameAssembly v1.0.1 release.
 

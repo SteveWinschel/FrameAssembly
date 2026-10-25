@@ -1,0 +1,28 @@
+// PROMPT: Generate an SSDP discovery exchange for a hospitality IPTV set-top box encapsulated in QinQ outer VLAN 900 inner VLAN 45.
+// TOKENS: HOST, IP, MAC, FLOW, SSDP, MSEARCH, HOST_HDR, MAN, MX, ST, QINQ, INNER_VLAN, WAIT, NOTIFY, NT, NTS, USN, LOCATION, COMPILE
+
+// INSTRUCTION: Define the hotel room IPTV set-top box searching for the local VOD server.
+HOST room_iptv_stb {
+    IP 10.45.12.101
+    MAC 00:1a:79:2d:0c:65
+}
+
+// INSTRUCTION: Define the hospitality VOD media server gateway.
+HOST hotel_vod_srv {
+    IP 10.45.12.1
+    MAC 00:1a:79:2d:0c:01
+}
+
+// INSTRUCTION: Exchange SSDP M-SEARCH and NOTIFY frames over QinQ 900/45.
+FLOW ssdp_qinq_iptv_discovery(stb, vod) {
+    stb -> vod SSDP MSEARCH HOST_HDR "239.255.255.250:1900" MAN "ssdp:discover" MX 1
+        ST "urn:schemas-upnp-org:service:ContentDirectory:1" QINQ 900 INNER_VLAN 45 WAIT 5ms
+    stb <- vod SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "urn:schemas-upnp-org:service:ContentDirectory:1"
+        NTS "ssdp:alive" USN "uuid:hotel-vod-core::urn:schemas-upnp-org:service:ContentDirectory:1"
+        LOCATION "http://10.45.12.1:9000/cds/desc.xml" QINQ 900 INNER_VLAN 45
+}
+
+// INSTRUCTION: Compile the QinQ hospitality IPTV SSDP discovery flow.
+COMPILE {
+    ssdp_qinq_iptv_discovery(room_iptv_stb, hotel_vod_srv)
+}

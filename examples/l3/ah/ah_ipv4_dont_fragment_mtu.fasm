@@ -1,0 +1,19 @@
+// PROMPT: IPv4 AH authenticated packet asserting Don't Fragment and explicit IP identification.
+// TOKENS: HOST, IP, FLOW, AH, SPI, SEQ, IPID, DF, NEXT_HEADER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define path MTU discovery sender using AH.
+HOST pmtud_sender { IP 10.12.34.1 }
+
+// INSTRUCTION: Define path MTU discovery receiver.
+HOST pmtud_receiver { IP 10.12.34.2 }
+
+// INSTRUCTION: Define AH flow with DF flag and incrementing IPID values.
+FLOW ah_df_mtu_probe(src, dst) {
+    src -> dst AH SPI 60010 SEQ 1 IPID 1024 DF NEXT_HEADER 4 PAYLOAD "MTU_PROBE_1400"
+    src -> dst AH SPI 60010 SEQ 2 IPID 1025 DF NEXT_HEADER 4 PAYLOAD "MTU_PROBE_1460"
+}
+
+// INSTRUCTION: Compile the IPv4 Don't Fragment AH probe flow.
+COMPILE {
+    ah_df_mtu_probe(pmtud_sender, pmtud_receiver)
+}

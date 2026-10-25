@@ -1,0 +1,25 @@
+// PROMPT: Minimal zero-argument STP statement synthesizing a standard 35-byte IEEE 802.1D Configuration BPDU over 802.2 LLC.
+// TOKENS: HOST, IP, MAC, FLOW, STP, WAIT, RSTP, COMPILE
+
+// INSTRUCTION: Define default STP bridge A.
+HOST default_stp_a {
+    IP 10.0.10.1
+    MAC 00:11:22:33:44:01
+}
+
+// INSTRUCTION: Define default STP bridge B.
+HOST default_stp_b {
+    IP 10.0.10.2
+    MAC 00:11:22:33:44:02
+}
+
+// INSTRUCTION: Emit default IEEE 802.1D Configuration BPDU and default IEEE 802.1w RSTP BPDU with zero optional modifiers.
+FLOW stp_minimal_defaults(a, b) {
+    a -> b STP WAIT 5ms
+    a <- b STP RSTP
+}
+
+// INSTRUCTION: Compile the minimal default STP and RSTP BPDU exchange.
+COMPILE {
+    stp_minimal_defaults(default_stp_a, default_stp_b)
+}

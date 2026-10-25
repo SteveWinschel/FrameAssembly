@@ -1,0 +1,18 @@
+// PROMPT: MLD query prioritizing control traffic with DSCP Class Selector 6.
+// TOKENS: HOST, IP, FLOW, MLD, QUERY, DSCP, COMPILE
+
+// INSTRUCTION: Define campus distribution switch querier.
+HOST campus_querier_sw { IP fe80::c001:1 }
+
+// INSTRUCTION: Define campus multicast nodes address.
+HOST campus_nodes { IP ff02::1 }
+
+// INSTRUCTION: Define DSCP CS6 prioritized query flow.
+FLOW mld_dscp_control_flow(sw, nodes) {
+    sw -> nodes MLD QUERY DSCP 48
+}
+
+// INSTRUCTION: Compile block executing DSCP prioritized query.
+COMPILE {
+    mld_dscp_control_flow(campus_querier_sw, campus_nodes)
+}

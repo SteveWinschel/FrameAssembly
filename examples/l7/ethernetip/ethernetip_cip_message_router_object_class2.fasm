@@ -1,0 +1,27 @@
+// PROMPT: EtherNet/IP CIP query targeting the Message Router Object (Class 0x02, Instance 1) supported object classes list.
+// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, STATUS, WAIT, COMPILE
+
+// INSTRUCTION: Define the CIP conformance test tool host.
+HOST odva_tester {
+    IP 10.135.30.10
+    MAC 00:1a:2b:87:30:10
+}
+
+// INSTRUCTION: Define the ArmorBlock Guard I/O module under test.
+HOST armorblock_io {
+    IP 10.135.30.22
+    MAC 00:1a:2b:87:30:22
+}
+
+// INSTRUCTION: Read Attribute 1 (Object_List) and Attribute 2 (Number_Available) on Message Router Class 2 Instance 1.
+FLOW enip_msg_router(t, m) {
+    t -> m ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 8192 CONTEXT 701 CIP_SERVICE 14 CIP_CLASS 2 CIP_INSTANCE 1 CIP_ATTR 1
+    t <- m ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 8192 CONTEXT 701 CIP_SERVICE 142 CIP_CLASS 2 CIP_INSTANCE 1 CIP_ATTR 1 WAIT 1ms
+    t -> m ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 8192 CONTEXT 702 CIP_SERVICE 14 CIP_CLASS 2 CIP_INSTANCE 1 CIP_ATTR 2
+    t <- m ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 8192 CONTEXT 702 CIP_SERVICE 142 CIP_CLASS 2 CIP_INSTANCE 1 CIP_ATTR 2
+}
+
+// INSTRUCTION: Compile the CIP Message Router Object query flow.
+COMPILE {
+    enip_msg_router(odva_tester, armorblock_io)
+}

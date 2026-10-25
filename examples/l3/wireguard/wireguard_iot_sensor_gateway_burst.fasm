@@ -1,0 +1,18 @@
+// PROMPT: Embedded IoT gateway transmitting encrypted telemetry to cloud WireGuard receiver.
+// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define environmental IoT sensor gateway.
+HOST iot_sensor_node { IP 172.30.99.10 }
+
+// INSTRUCTION: Define cloud IoT telemetry receiver.
+HOST cloud_iot_receiver { IP 172.30.99.1 }
+
+// INSTRUCTION: Define telemetry data payload transmission flow.
+FLOW wg_iot_telemetry_flow(sensor, cloud) {
+    sensor -> cloud WIREGUARD TYPE DATA RECEIVER 90901 COUNTER 1 PAYLOAD "SENSOR_TEMP_HUMIDITY_DATA"
+}
+
+// INSTRUCTION: Compile block executing IoT sensor encrypted telemetry.
+COMPILE {
+    wg_iot_telemetry_flow(iot_sensor_node, cloud_iot_receiver)
+}

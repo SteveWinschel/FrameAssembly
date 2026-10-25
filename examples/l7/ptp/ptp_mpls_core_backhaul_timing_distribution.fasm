@@ -1,0 +1,25 @@
+// PROMPT: Generate an MPLS-encapsulated PTPv2 timing distribution stream (label 3190) across a regional carrier core.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, CLOCK_ID, MPLS, EXP, BOS, MPLS_TTL, WAIT, FOLLOW_UP, COMPILE
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
+HOST ptp_grandmaster {
+    IP 172.18.31.1
+    MAC 00:1b:21:31:90:01
+}
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
+HOST ptp_slave_clock {
+    IP 172.18.31.20
+    MAC 00:1b:21:31:90:25
+}
+
+// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
+FLOW ptp_scenario_flow(gm, slv) {
+    gm -> slv PTP SYNC DOMAIN 4 SEQ_ID 2040 CLOCK_ID "001b21fffe040001" MPLS 3190 EXP 6 BOS 1 MPLS_TTL 64 WAIT 2ms
+    gm -> slv PTP FOLLOW_UP DOMAIN 4 SEQ_ID 2040 CLOCK_ID "001b21fffe040001" MPLS 3190 EXP 6 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
+COMPILE {
+    ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
+}

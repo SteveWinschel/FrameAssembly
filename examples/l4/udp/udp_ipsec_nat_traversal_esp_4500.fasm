@@ -1,0 +1,21 @@
+// PROMPT: RFC 3948 IPsec NAT-Traversal (NAT-T) over UDP port 4500 with Non-ESP Marker IKEv2 and encapsulated ESP data, plus 0xFF keepalive.
+// TOKENS: HOST, IP, FLOW, UDP, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define mobile road-warrior VPN client behind carrier-grade NAT.
+HOST natt_vpn_client { IP 100.64.88.15 }
+
+// INSTRUCTION: Define corporate edge VPN concentrator listening on UDP port 4500.
+HOST natt_vpn_gateway { IP 198.51.100.250 }
+
+// INSTRUCTION: Define UDP port 4500 Non-ESP Marker frame, ESP-in-UDP SPI 0x20010001 frame, and 1-byte 0xFF NAT keepalive.
+FLOW udp_ipsec_nat_traversal(cli, gw) {
+    cli -> gw UDP SRCPORT 4500 DSTPORT 4500 HEXPAYLOAD "00000000a1b2c3d4e5f607181122334455667788"
+    cli -> gw UDP SRCPORT 4500 DSTPORT 4500 HEXPAYLOAD "200100010000000199aabbccddeeff0011223344" WAIT 2ms
+    cli <- gw UDP SRCPORT 4500 DSTPORT 4500 HEXPAYLOAD "20010002000000015566778899aabbccddeeff00" WAIT 2ms
+    cli -> gw UDP SRCPORT 4500 DSTPORT 4500 HEXPAYLOAD "ff" WAIT 20s
+}
+
+// INSTRUCTION: Compile block executing IPsec NAT-T UDP port 4500 session.
+COMPILE {
+    udp_ipsec_nat_traversal(natt_vpn_client, natt_vpn_gateway)
+}

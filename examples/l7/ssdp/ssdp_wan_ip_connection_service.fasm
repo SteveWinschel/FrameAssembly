@@ -1,0 +1,20 @@
+// PROMPT: Router WAN IP connection service query using ST urn:schemas-upnp-org:service:WANIPConnection:1.
+// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, ST, MX, MAN, COMPILE
+
+// INSTRUCTION: Define port mapping client.
+HOST mapping_client { IP 192.168.10.82 }
+
+// INSTRUCTION: Define UPnP multicast destination.
+HOST igd_mcast { IP 239.255.255.250 }
+
+// INSTRUCTION: Define WAN IP service discovery flow.
+FLOW ssdp_wanip_flow(c, s) {
+    c -> s SSDP MSEARCH
+        ST "urn:schemas-upnp-org:service:WANIPConnection:1"
+        MX 2 MAN "\"ssdp:discover\""
+}
+
+// INSTRUCTION: Compile block executing WAN IP discovery.
+COMPILE {
+    ssdp_wanip_flow(mapping_client, igd_mcast)
+}

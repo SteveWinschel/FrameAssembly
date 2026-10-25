@@ -1,5 +1,5 @@
 // PROMPT: IPsec tunnel mode security encapsulation using SPI and sequence number.
-// TOKENS: HOST, IP, FLOW, ->, IPSEC, SPI, SEQ, COMPILE
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, COMPILE
 
 // INSTRUCTION: Define primary VPN gateway.
 HOST vpn_gw_primary { IP 198.51.100.1 }

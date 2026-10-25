@@ -1,0 +1,21 @@
+// PROMPT: SMB2 file handle creation and subsequent closure using CREATE and CLOSE commands.
+// TOKENS: HOST, IP, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, FILENAME, WAIT, STATUS, COMPILE
+
+// INSTRUCTION: Define database backup worker client.
+HOST backup_worker { IP 192.168.45.22 }
+
+// INSTRUCTION: Define centralized NAS file store.
+HOST nas_store { IP 192.168.45.2 }
+
+// INSTRUCTION: Define CREATE open handle and CLOSE handle termination flow.
+FLOW smb_file_lifecycle(c, s) {
+    c -> s SMB COMMAND "CREATE" TREE_ID 1 SESSION_ID 0x1000 MSGID 10 FILENAME "db_dump_2026.bak" WAIT 5ms
+    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 1 SESSION_ID 0x1000 MSGID 10 WAIT 10ms
+    c -> s SMB COMMAND "CLOSE" TREE_ID 1 SESSION_ID 0x1000 MSGID 11 WAIT 5ms
+    c <- s SMB COMMAND "CLOSE" STATUS 0 TREE_ID 1 SESSION_ID 0x1000 MSGID 11
+}
+
+// INSTRUCTION: Compile SMB2 CREATE and CLOSE file lifecycle flow.
+COMPILE {
+    smb_file_lifecycle(backup_worker, nas_store)
+}

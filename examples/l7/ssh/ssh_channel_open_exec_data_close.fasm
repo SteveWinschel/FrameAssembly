@@ -1,0 +1,33 @@
+// PROMPT: Generate an SSH session channel lifecycle: CHANNEL_OPEN (90), CHANNEL_OPEN_CONFIRMATION (91), CHANNEL_DATA (94), and CHANNEL_CLOSE (97).
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SSH, MSG_CODE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint admin_term.
+HOST admin_term {
+    MAC 00:25:90:44:22:10
+    IP 10.22.1.10
+}
+
+// INSTRUCTION: Define host endpoint linux_srv.
+HOST linux_srv {
+    MAC 00:25:90:44:22:01
+    IP 10.22.1.1
+}
+
+// INSTRUCTION: Open a session channel (90/91), request exec (98), exchange encrypted channel data (94), and close (96/97).
+FLOW ssh_channel_open_data_close(admin_term, linux_srv) {
+    admin_term -> linux_srv TCP SYN SRCPORT 54022 DSTPORT 22
+    linux_srv -> admin_term TCP SYN ACK
+    admin_term -> linux_srv TCP ACK
+    admin_term -> linux_srv SSH MSG_CODE 90 PAYLOAD "session"
+    linux_srv -> admin_term SSH MSG_CODE 91 PAYLOAD "channel-0-confirmed"
+    admin_term -> linux_srv SSH MSG_CODE 98 PAYLOAD "exec:uptime"
+    linux_srv -> admin_term SSH MSG_CODE 94 PAYLOAD "ENC-CHANNEL-DATA-UPTIME-OUTPUT"
+    linux_srv -> admin_term SSH MSG_CODE 96
+    admin_term -> linux_srv SSH MSG_CODE 97
+    linux_srv -> admin_term SSH MSG_CODE 97
+}
+
+// INSTRUCTION: Compile the SSH channel lifecycle flow.
+COMPILE {
+    ssh_channel_open_data_close(admin_term, linux_srv)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Cilium Kubernetes CNI encapsulating pod-to-pod traffic in RFC 8926 GENEVE with eBPF Security Identity TLV metadata.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Kubernetes worker node 1 running Cilium eBPF GENEVE dataplane.
+HOST cilium_node_01 {
+    IP 10.244.0.11
+    MAC 00:16:3e:60:81:0b
+}
+
+// INSTRUCTION: Define Kubernetes worker node 2 enforcing Cilium network policy based on GENEVE TLV.
+HOST cilium_node_02 {
+    IP 10.244.0.12
+    MAC 00:16:3e:60:81:0c
+}
+
+// INSTRUCTION: Define GENEVE packet on UDP 6081 with OPT_CLASS 267 (Cilium) and OPT_TYPE 1 (Security Identity).
+FLOW geneve_cilium_identity_flow(n1, n2) {
+    n1 -> n2 GENEVE VNI 2 OPT_CLASS 267 OPT_TYPE 1 PROTOCOL_TYPE 25944 SRCPORT 51234 DSTPORT 6081 DF DSCP 18 TTL 64 PAYLOAD "CILIUM_POD_TO_POD_ID_42105_HTTP_GET" WAIT 2ms
+    n1 <- n2 GENEVE VNI 2 OPT_CLASS 267 OPT_TYPE 1 PROTOCOL_TYPE 25944 SRCPORT 51235 DSTPORT 6081 DF DSCP 18 TTL 64 PAYLOAD "CILIUM_POD_TO_POD_ID_19820_HTTP_200"
+}
+
+// INSTRUCTION: Compile the Cilium eBPF GENEVE Security Identity TLV flow.
+COMPILE {
+    geneve_cilium_identity_flow(cilium_node_01, cilium_node_02)
+}

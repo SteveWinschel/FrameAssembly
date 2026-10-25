@@ -1,5 +1,5 @@
 // PROMPT: Stacked QinQ double-tagged frames carrying IPv6 packets across a metro Ethernet network boundary.
-// TOKENS: HOST, IP, FLOW, ->, QINQ, INNER_VLAN, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, QINQ, INNER_VLAN, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define metro IPv6 customer site A.
 HOST metro_v6_a { IP 2001:db8:cafe:1::1 }

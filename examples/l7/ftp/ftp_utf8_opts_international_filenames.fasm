@@ -1,0 +1,27 @@
+// PROMPT: RFC 2640 FTP OPTS UTF8 ON negotiation enabling internationalized UTF-8 pathnames before CWD.
+// TOKENS: HOST, IP, MAC, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define international localization workstation client.
+HOST l10n_client {
+    IP 10.60.21.22
+    MAC 00:21:9b:3c:15:16
+}
+
+// INSTRUCTION: Define UTF-8 capable enterprise FTP server.
+HOST utf8_ftp_srv {
+    IP 10.60.21.1
+    MAC 00:21:9b:3c:15:01
+}
+
+// INSTRUCTION: Enable UTF-8 filename encoding via OPTS UTF8 ON and change directory.
+FLOW ftp_opts_utf8(c, s) {
+    c -> s FTP CMD "OPTS" ARG "UTF8 ON"
+    c <- s FTP CODE 200 REPLY "Always in UTF8 mode"
+    c -> s FTP CMD "CWD" ARG "/releases/international"
+    c <- s FTP CODE 250 REPLY "Directory successfully changed"
+}
+
+// INSTRUCTION: Compile the RFC 2640 FTP OPTS UTF8 ON negotiation scenario.
+COMPILE {
+    ftp_opts_utf8(l10n_client, utf8_ftp_srv)
+}

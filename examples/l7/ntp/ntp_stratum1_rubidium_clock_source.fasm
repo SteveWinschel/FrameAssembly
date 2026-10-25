@@ -1,0 +1,18 @@
+// PROMPT: Stratum 1 server response referencing synchronized Rubidium atomic frequency standard.
+// TOKENS: HOST, IP, FLOW, NTP, MODE, VN, STRATUM, REFID, PRECISION, COMPILE
+
+// INSTRUCTION: Define mission control time receiver.
+HOST mission_control { IP 192.168.0.50 }
+
+// INSTRUCTION: Define rubidium atomic frequency reference.
+HOST rubidium_server { IP 192.168.0.1 }
+
+// INSTRUCTION: Define rubidium reference response flow.
+FLOW rubidium_response_flow(mc, srv) {
+    mc <- srv NTP MODE 4 VN 4 STRATUM 1 REFID "ATOM" PRECISION -22
+}
+
+// INSTRUCTION: Compile Rubidium clock source scenario.
+COMPILE {
+    rubidium_response_flow(mission_control, rubidium_server)
+}

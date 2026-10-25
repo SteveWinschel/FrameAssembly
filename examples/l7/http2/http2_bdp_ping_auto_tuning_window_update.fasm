@@ -1,0 +1,28 @@
+// PROMPT: HTTP/2 Bandwidth-Delay Product (BDP) estimation using PING round-trip measurement to trigger WINDOW_UPDATE.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP2, DATA, STREAM_ID, DF, IPID, PAYLOAD, PING, WAIT, WINDOW_UPDATE, COMPILE
+
+// INSTRUCTION: Define high-throughput WAN replication client.
+HOST wan_h2_client {
+    IP 10.145.1.10
+    MAC 00:25:90:91:01:0a
+}
+
+// INSTRUCTION: Define remote region HTTP/2 storage server.
+HOST wan_h2_server {
+    IP 10.145.2.10
+    MAC 00:25:90:91:02:0a
+}
+
+// INSTRUCTION: Receive high-rate DATA on Stream 1, measure RTT with PING, and expand connection and stream windows.
+FLOW http2_bdp_autotune(c, s) {
+    c <- s HTTP2 DATA STREAM_ID 1 DF IPID 4100 PAYLOAD "wan-bulk-replication-frame-01"
+    c -> s HTTP2 PING STREAM_ID 0 DF IPID 4101 WAIT 15ms
+    c <- s HTTP2 PING STREAM_ID 0 DF IPID 4102
+    c -> s HTTP2 WINDOW_UPDATE STREAM_ID 0 DF IPID 4103
+    c -> s HTTP2 WINDOW_UPDATE STREAM_ID 1 DF IPID 4104
+}
+
+// INSTRUCTION: Compile the HTTP/2 BDP PING auto-tuning flow-control scenario.
+COMPILE {
+    http2_bdp_autotune(wan_h2_client, wan_h2_server)
+}

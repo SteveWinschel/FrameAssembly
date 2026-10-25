@@ -1,0 +1,23 @@
+// PROMPT: Legacy client proposing TLS 1.0 (0x0301) rejected by strict server with protocol_version ALERT.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, RECORD_VERSION, HANDSHAKE_VERSION, SNI, WAIT, ALERT, COMPILE
+
+// INSTRUCTION: Define outdated embedded appliance proposing TLS 1.0.
+HOST legacy_scanner {
+    IP 10.15.99.200
+}
+
+// INSTRUCTION: Define PCI-DSS hardened TLS 1.3-only payment server.
+HOST hardened_srv {
+    IP 10.15.99.1
+}
+
+// INSTRUCTION: Define legacy ClientHello and immediate fatal TLS Alert response.
+FLOW tls_downgrade_reject(c, s) {
+    c -> s TLS CLIENT_HELLO RECORD_VERSION 0x0301 HANDSHAKE_VERSION 0x0301 SNI "vault.pci.example.com" WAIT 2ms
+    c <- s TLS ALERT RECORD_VERSION 0x0301
+}
+
+// INSTRUCTION: Compile the TLS version downgrade alert rejection scenario.
+COMPILE {
+    tls_downgrade_reject(legacy_scanner, hardened_srv)
+}

@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: "FrameAssembly: A Domain-Specific Language and Optimizing Compiler for Deterministic Network Traffic Generation"
+message: "If you use FrameAssembly in your research, network security engineering, or AI training pipelines, please cite it using this metadata."
+type: software
+version: "1.1.0"
+date-released: "2026-10-25"
+authors:
+  - given-names: Steve
+    family-names: Winschel
+repository-code: "https://github.com/SteveWinschel/FrameAssembly"
+url: "https://crates.io/crates/frameassembly"
+license: MIT
+keywords:
+  - network-packets
+  - pcap
+  - pcapng
+  - domain-specific-language
+  - packet-crafting
+  - network-security
+  - synthetic-traffic
+  - rust
+abstract: >-
+  FrameAssembly is a domain-specific language (DSL) and optimizing compiler written in Rust
+  that compiles declarative network packet specifications (.fasm) into deterministic,
+  wire-valid PCAPNG (.pcap) packet captures across 81 native Layer 2 through Layer 7
+  protocols (2,611 verified .fasm corpus scenarios) with polymorphic IPv4/IPv6 dual-stack
+  flows, stateful 4-tuple TCP sequence progression, and cryptographic SNMPv3 USM
+  authentication and privacy.

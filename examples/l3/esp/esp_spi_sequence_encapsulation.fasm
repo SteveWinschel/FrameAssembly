@@ -1,5 +1,5 @@
 // PROMPT: IPsec Encapsulating Security Payload packet transmission with SPI and sequence number.
-// TOKENS: HOST, IP, FLOW, ->, ESP, SPI, SEQ, COMPILE
+// TOKENS: HOST, IP, FLOW, ESP, SPI, SEQ, COMPILE
 
 // INSTRUCTION: Define IPsec security gateway 1.
 HOST ipsec_gw1 { IP 198.51.100.1 }

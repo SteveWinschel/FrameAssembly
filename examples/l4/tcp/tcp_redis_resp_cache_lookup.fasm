@@ -1,5 +1,5 @@
 // PROMPT: Simulate a low-latency Redis RESP cache SET and GET pipeline over TCP port 6379.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE, LOOP
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, COMPILE, LOOP
 
 // INSTRUCTION: Define a web backend worker with IP 10.8.0.12.
 HOST backend_worker { IP 10.8.0.12 MAC 02:42:0a:08:00:0c }

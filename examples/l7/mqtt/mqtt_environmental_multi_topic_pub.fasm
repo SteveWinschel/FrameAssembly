@@ -1,0 +1,19 @@
+// PROMPT: Environmental monitoring station publishing sequential humidity and air quality telemetry.
+// TOKENS: HOST, IP, FLOW, MQTT, PUBLISH, TOPIC, WAIT, COMPILE
+
+// INSTRUCTION: Define environmental sensor station.
+HOST weather_station { IP 192.168.33.10 }
+
+// INSTRUCTION: Define environmental data broker.
+HOST env_data_broker { IP 192.168.33.1 }
+
+// INSTRUCTION: Define multi-topic sequential publishing flow.
+FLOW env_multi_publish(ws, brk) {
+    ws -> brk MQTT PUBLISH TOPIC "env/sensors/humidity" WAIT 10ms
+    ws -> brk MQTT PUBLISH TOPIC "env/sensors/co2_ppm"
+}
+
+// INSTRUCTION: Compile multi-topic publishing scenario.
+COMPILE {
+    env_multi_publish(weather_station, env_data_broker)
+}

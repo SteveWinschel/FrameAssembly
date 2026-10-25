@@ -1,0 +1,27 @@
+// PROMPT: IMS Media Gateway Controller (MGC) controlling a trunking Media Gateway (MGW) via H.248/Megaco over SCTP port 2944 (PPID 7).
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define IMS Media Gateway Controller (Softswitch MGC) on SCTP port 2944.
+HOST ims_mgc_ctrl {
+    IP 172.25.29.1
+    MAC 00:1c:73:19:1d:01
+}
+
+// INSTRUCTION: Define Voice-over-LTE trunking Media Gateway (MGW) on SCTP port 2944.
+HOST ims_mgw_trunk {
+    IP 172.25.29.44
+    MAC 00:1c:73:19:1d:2c
+}
+
+// INSTRUCTION: Send H.248 Add command allocating RTP termination on Stream 1 (PPID 7) and receive H.248 Reply.
+FLOW sctp_h248_megaco_call(mgc, mgw) {
+    mgc -> mgw DSCP 46 SCTP CHUNK DATA VTAG 294401 STREAM 1 SSN 5 PPID 7 SRCPORT 2944 DSTPORT 2944 PAYLOAD "MEGACO/3 [172.25.29.1] Transaction=105{Context=${Add=ep1}}" WAIT 2ms
+    mgc <- mgw DSCP 46 SCTP CHUNK SACK VTAG 294401 SRCPORT 2944 DSTPORT 2944 WAIT 2ms
+    mgc <- mgw DSCP 46 SCTP CHUNK DATA VTAG 294401 STREAM 1 SSN 5 PPID 7 SRCPORT 2944 DSTPORT 2944 PAYLOAD "MEGACO/3 [172.25.29.44] Reply=105{Context=5001{Add=ep1}}" WAIT 2ms
+    mgc -> mgw DSCP 46 SCTP CHUNK SACK VTAG 294401 SRCPORT 2944 DSTPORT 2944
+}
+
+// INSTRUCTION: Compile the IMS H.248/Megaco Media Gateway Control SCTP trace.
+COMPILE {
+    sctp_h248_megaco_call(ims_mgc_ctrl, ims_mgw_trunk)
+}

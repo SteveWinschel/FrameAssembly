@@ -1,0 +1,26 @@
+// PROMPT: WPA3-Enterprise 192-bit CNSA suite completing EAP-TLS followed by two-message EAPOL-Key Group Temporal Key (GTK) installation.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, WAIT, KEY, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define WPA3-Enterprise 192-bit wireless supplicant station.
+HOST wpa3_cnsa_sta {
+    IP 10.192.0.50
+    MAC 00:24:d7:c0:00:32
+}
+
+// INSTRUCTION: Define WPA3-Enterprise access point authenticator installing GCMP-256 keys.
+HOST wpa3_cnsa_ap {
+    IP 10.192.0.1
+    MAC 00:2c:c8:c0:00:01
+}
+
+// INSTRUCTION: Deliver EAP-Success (Code 3) followed by bidirectional EAPOL TYPE KEY GCMP-256 key installation.
+FLOW eapol_wpa3_gtk_install(sta, ap) {
+    sta <- ap EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 99 EAP_METHOD 13 WAIT 2ms
+    sta <- ap EAPOL VERSION 2 TYPE KEY PAYLOAD "WPA3_192BIT_KEY_MSG1_ANONCE_GCMP256" WAIT 2ms
+    sta -> ap EAPOL VERSION 2 TYPE KEY PAYLOAD "WPA3_192BIT_KEY_MSG2_SNONCE_MIC_SHA384"
+}
+
+// INSTRUCTION: Compile the WPA3-Enterprise 192-bit EAP-Success and EAPOL-Key exchange.
+COMPILE {
+    eapol_wpa3_gtk_install(wpa3_cnsa_sta, wpa3_cnsa_ap)
+}

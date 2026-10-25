@@ -1,0 +1,29 @@
+// PROMPT: RADIUS failover from unresponsive primary AAA server to secondary standby AAA server.
+// TOKENS: HOST, IP, FLOW, RADIUS, ACCESS_REQUEST, USER, NAS_IP, SERVICE_TYPE, WAIT, ACCESS_ACCEPT, FRAMED_IP, COMPILE
+
+// INSTRUCTION: Define enterprise edge router NAS.
+HOST edge_nas { IP 192.168.181.10 }
+
+// INSTRUCTION: Define unresponsive primary RADIUS server.
+HOST rad_primary { IP 192.168.181.1 }
+
+// INSTRUCTION: Define active secondary standby RADIUS server.
+HOST rad_secondary { IP 192.168.181.2 }
+
+// INSTRUCTION: Define timeout retry against primary AAA server.
+FLOW radius_try_primary(nas, p) {
+    nas -> p RADIUS ACCESS_REQUEST USER "vpn_corp_user" NAS_IP 192.168.181.10 SERVICE_TYPE 2 WAIT 500ms
+    nas -> p RADIUS ACCESS_REQUEST USER "vpn_corp_user" NAS_IP 192.168.181.10 SERVICE_TYPE 2 WAIT 500ms
+}
+
+// INSTRUCTION: Define successful fallback against secondary AAA server.
+FLOW radius_failover_secondary(nas, s) {
+    nas -> s RADIUS ACCESS_REQUEST USER "vpn_corp_user" NAS_IP 192.168.181.10 SERVICE_TYPE 2 WAIT 5ms
+    nas <- s RADIUS ACCESS_ACCEPT USER "vpn_corp_user" FRAMED_IP 10.200.1.55 SERVICE_TYPE 2
+}
+
+// INSTRUCTION: Compile primary retry followed by secondary failover.
+COMPILE {
+    radius_try_primary(edge_nas, rad_primary)
+    radius_failover_secondary(edge_nas, rad_secondary)
+}

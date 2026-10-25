@@ -1,5 +1,5 @@
 // PROMPT: RFC 4001 InetAddress encoding of 16-byte IPv6 and 4-byte IPv4 addresses in the same SNMP VarBind list.
-// TOKENS: HOST, IP, FLOW, ->, SNMP2, TRAP, COMMUNITY, VARBIND, IPVAL, COMPILE
+// TOKENS: HOST, IP, FLOW, SNMP2, TRAP, COMMUNITY, VARBIND, IPVAL, COMPILE
 
 // INSTRUCTION: Define dual-stack SNMP agent.
 HOST dual_agent { IP 10.0.0.1 }

@@ -1,0 +1,22 @@
+// PROMPT: Kerberos authentication over TCP port 88 handling large ticket structures.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, DSTPORT, ACK, WAIT, KERBEROS, AS_REQ, REALM, CNAME, ETYPE, AS_REP, COMPILE
+
+// INSTRUCTION: Define directory client machine.
+HOST dir_client { IP 10.10.5.25 }
+
+// INSTRUCTION: Define domain controller port 88 listener.
+HOST kdc_tcp_node { IP 10.10.5.1 }
+
+// INSTRUCTION: Define TCP handshake and Kerberos AS exchange flow.
+FLOW krb_tcp_stream(c, s) {
+    c -> s TCP SYN DSTPORT 88
+    c <- s TCP SYN ACK
+    c -> s TCP ACK WAIT 2ms
+    c -> s KERBEROS AS_REQ REALM "GLOBAL.CORP" CNAME "service_admin" ETYPE 18 WAIT 10ms
+    c <- s KERBEROS AS_REP REALM "GLOBAL.CORP" CNAME "service_admin" ETYPE 18
+}
+
+// INSTRUCTION: Compile TCP Kerberos authentication scenario.
+COMPILE {
+    krb_tcp_stream(dir_client, kdc_tcp_node)
+}

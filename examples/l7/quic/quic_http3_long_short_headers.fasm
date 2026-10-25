@@ -1,5 +1,5 @@
 // PROMPT: QUIC and HTTP/3 connection establishment on UDP 443 with Initial and Short header framing.
-// TOKENS: HOST, IP, FLOW, ->, <-, QUIC, INITIAL, SHORT, DCID, SCID, COMPILE
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, DCID, SCID, SHORT, COMPILE
 
 // INSTRUCTION: Define QUIC client node.
 HOST quic_client { IP 2001:db8:8888::1 }

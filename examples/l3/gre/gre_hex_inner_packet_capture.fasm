@@ -1,0 +1,18 @@
+// PROMPT: GRE tunnel encapsulating a raw binary inner IPv4 packet via HEXPAYLOAD and explicit MACs.
+// TOKENS: HOST, IP, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, SRCMAC, DSTMAC, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define security scrubbing center ingress router.
+HOST scrub_ingress_gre { IP 198.51.100.240 }
+
+// INSTRUCTION: Define clean-pipe customer return router.
+HOST customer_clean_gre { IP 198.51.100.241 }
+
+// INSTRUCTION: Define GRE clean-pipe return packet carrying raw hex inner IPv4 datagram.
+FLOW gre_clean_pipe_hex(scrub, cust) {
+    scrub -> cust GRE GRE_KEY 91100 GRE_SEQ 42 GRE_PROTO 0x0800 SRCMAC 00:00:5e:00:53:10 DSTMAC 00:00:5e:00:53:20 HEXPAYLOAD "4500001c0001000040017cce0a0000010a000002"
+}
+
+// INSTRUCTION: Compile the GRE hex inner packet flow.
+COMPILE {
+    gre_clean_pipe_hex(scrub_ingress_gre, customer_clean_gre)
+}

@@ -1,0 +1,27 @@
+// PROMPT: Hospital operating room steam humidifier control and air change rate monitoring over IPv6 BACnet/IPv6.
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, READ_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, WAIT, WRITE_PROPERTY, COMPILE
+
+// INSTRUCTION: Define the hospital clinical BMS supervisor over IPv6.
+HOST hospital_bms {
+    IP 2001:db8:120:120::1
+    MAC 00:1a:2b:78:c0:01
+}
+
+// INSTRUCTION: Define Operating Room 4 HVAC controller over IPv6.
+HOST or4_hvac {
+    IP 2001:db8:120:120::4
+    MAC 00:1a:2b:78:c0:04
+}
+
+// INSTRUCTION: Read relative humidity (Object Type 0, Instance 2) and command steam valve setpoint (Object Type 2, Instance 2) to 50%.
+FLOW bacnet_hospital_or(b, h) {
+    b -> h BACNET READ_PROPERTY INVOKE_ID 140 OBJECT_TYPE 0 OBJECT_INSTANCE 2 PROPERTY_ID 85
+    b <- h BACNET READ_PROPERTY INVOKE_ID 140 OBJECT_TYPE 0 OBJECT_INSTANCE 2 PROPERTY_ID 85 VALUE 46 WAIT 1ms
+    b -> h BACNET WRITE_PROPERTY INVOKE_ID 141 OBJECT_TYPE 2 OBJECT_INSTANCE 2 PROPERTY_ID 85 VALUE 50
+    b <- h BACNET WRITE_PROPERTY INVOKE_ID 141 OBJECT_TYPE 2 OBJECT_INSTANCE 2 PROPERTY_ID 85 VALUE 50
+}
+
+// INSTRUCTION: Compile the IPv6 hospital operating room BACnet flow.
+COMPILE {
+    bacnet_hospital_or(hospital_bms, or4_hvac)
+}

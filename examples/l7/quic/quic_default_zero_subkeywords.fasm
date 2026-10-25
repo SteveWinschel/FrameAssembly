@@ -1,0 +1,18 @@
+// PROMPT: Default RFC 9000 QUIC packet with zero sub-keywords on UDP port 443.
+// TOKENS: HOST, IP, MAC, FLOW, QUIC, COMPILE
+
+// INSTRUCTION: Define HTTP/3 browser client host.
+HOST h3_browser { IP 192.168.1.40 MAC 00:1a:11:01:00:28 }
+
+// INSTRUCTION: Define CDN edge QUIC server host.
+HOST cdn_edge { IP 198.51.100.10 MAC 00:1a:11:64:00:0a }
+
+// INSTRUCTION: Define flow sending default QUIC Initial frame.
+FLOW quic_default(c, s) {
+    c -> s QUIC
+}
+
+// INSTRUCTION: Compile default QUIC scenario.
+COMPILE {
+    quic_default(h3_browser, cdn_edge)
+}

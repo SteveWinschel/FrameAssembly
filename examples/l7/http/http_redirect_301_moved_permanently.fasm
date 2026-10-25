@@ -1,0 +1,25 @@
+// PROMPT: HTTP GET request receiving 301 Moved Permanently redirect with Location header to HTTPS URI.
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, STATUS, REASON, HEADER, COMPILE
+
+// INSTRUCTION: Define user browser client.
+HOST visitor_browser {
+    IP 172.16.88.42
+}
+
+// INSTRUCTION: Define legacy HTTP edge gateway host.
+HOST legacy_edge {
+    IP 172.16.88.1
+}
+
+// INSTRUCTION: Request legacy URL and receive 301 redirect.
+FLOW http_redirect_permanent(c, s) {
+    c -> s HTTP METHOD "GET" URI "/old-portal"
+           HOST_HDR "legacy.corp.net"
+    c <- s HTTP STATUS 301 REASON "Moved Permanently"
+           HEADER "Location" "https://portal.corp.net/dashboard"
+}
+
+// INSTRUCTION: Compile 301 redirect scenario.
+COMPILE {
+    http_redirect_permanent(visitor_browser, legacy_edge)
+}

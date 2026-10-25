@@ -1,0 +1,19 @@
+// PROMPT: Secure shell connection exchanging OpenSSH 9.5 protocol banner.
+// TOKENS: HOST, IP, FLOW, SSH, BANNER, COMPILE
+
+// INSTRUCTION: Define admin management client.
+HOST admin_ws { IP 10.88.1.12 }
+
+// INSTRUCTION: Define production server host.
+HOST prod_svr { IP 10.88.1.2 }
+
+// INSTRUCTION: Define OpenSSH banner exchange flow.
+FLOW ssh_banner_flow(c, s) {
+    c -> s SSH BANNER "SSH-2.0-OpenSSH_9.5p1 Debian-1"
+    c <- s SSH BANNER "SSH-2.0-OpenSSH_9.5p1 Ubuntu-3"
+}
+
+// INSTRUCTION: Compile block executing banner exchange.
+COMPILE {
+    ssh_banner_flow(admin_ws, prod_svr)
+}

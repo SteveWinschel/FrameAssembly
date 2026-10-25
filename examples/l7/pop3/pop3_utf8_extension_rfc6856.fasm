@@ -1,0 +1,33 @@
+// PROMPT: Model an RFC 6856 POP3 UTF8 capability negotiation enabling internationalized UTF-8 headers and bodies.
+// TOKENS: HOST, IP, MAC, FLOW, POP3, CMD, WAIT, OK, RESPONSE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the internationalized mail client negotiating UTF8 support.
+HOST i18n_pop3_client {
+    IP 10.110.22.18
+    MAC 00:25:90:6e:16:12
+}
+
+// INSTRUCTION: Define the RFC 6856 compliant POP3 server.
+HOST i18n_pop3_server {
+    IP 10.110.22.1
+    MAC 00:25:90:6e:16:01
+}
+
+// INSTRUCTION: Query CAPA, enable UTF8 mode, and retrieve an internationalized message.
+FLOW pop3_utf8_negotiation(c, s) {
+    c -> s POP3 CMD "CAPA" WAIT 2ms
+    c <- s POP3 OK RESPONSE "Capability list follows" PAYLOAD "TOP
+UIDL
+UTF8 USER
+.
+" WAIT 2ms
+    c -> s POP3 CMD "UTF8" WAIT 2ms
+    c <- s POP3 OK RESPONSE "UTF8 enabled" WAIT 2ms
+    c -> s POP3 CMD "STAT" WAIT 2ms
+    c <- s POP3 OK RESPONSE "1 1024"
+}
+
+// INSTRUCTION: Compile the RFC 6856 POP3 UTF8 negotiation flow.
+COMPILE {
+    pop3_utf8_negotiation(i18n_pop3_client, i18n_pop3_server)
+}

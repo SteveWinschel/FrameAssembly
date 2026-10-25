@@ -1,0 +1,27 @@
+// PROMPT: EtherNet/IP target returning encapsulation error status 1 (Invalid/Unsupported Command) and status 101 (Invalid Length).
+// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, STATUS, WAIT, COMPILE
+
+// INSTRUCTION: Define the protocol fuzzing security scanner host.
+HOST sec_fuzzer {
+    IP 10.135.100.200
+    MAC 00:1a:2b:87:a0:c8
+}
+
+// INSTRUCTION: Define the hardened industrial EtherNet/IP gateway.
+HOST hardened_gw {
+    IP 10.135.100.1
+    MAC 00:1a:2b:87:a0:01
+}
+
+// INSTRUCTION: Send malformed encapsulation requests and receive error status codes 1 and 101.
+FLOW enip_error_codes(f, g) {
+    f -> g ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 0 CONTEXT 1501
+    f <- g ETHERNETIP CMD "SEND_RR_DATA" STATUS 1 SESSION_HANDLE 0 CONTEXT 1501 WAIT 1ms
+    f -> g ETHERNETIP CMD "REGISTER_SESSION" SESSION_HANDLE 0 CONTEXT 1502
+    f <- g ETHERNETIP CMD "REGISTER_SESSION" STATUS 101 SESSION_HANDLE 0 CONTEXT 1502
+}
+
+// INSTRUCTION: Compile the EtherNet/IP error status verification flow.
+COMPILE {
+    enip_error_codes(sec_fuzzer, hardened_gw)
+}

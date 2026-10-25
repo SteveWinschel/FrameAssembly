@@ -1,0 +1,18 @@
+// PROMPT: Default Siemens S7comm Setup Communication frame with zero sub-keywords on TCP port 102.
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, COMPILE
+
+// INSTRUCTION: Define TIA Portal engineering station.
+HOST tia_eng { IP 192.168.0.200 MAC 00:1b:1b:00:00:c8 }
+
+// INSTRUCTION: Define Simatic S7-1500 PLC controller.
+HOST s7_1500 { IP 192.168.0.1 MAC 00:1b:1b:00:00:01 }
+
+// INSTRUCTION: Define flow sending default S7COMM frame on ISO-on-TCP port 102.
+FLOW s7comm_default(eng, plc) {
+    eng -> plc S7COMM
+}
+
+// INSTRUCTION: Compile default S7comm scenario.
+COMPILE {
+    s7comm_default(tia_eng, s7_1500)
+}

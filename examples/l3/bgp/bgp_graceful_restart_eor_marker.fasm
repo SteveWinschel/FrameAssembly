@@ -1,0 +1,27 @@
+// PROMPT: RFC 4724 BGP Graceful Restart exchanging route updates followed by an empty UPDATE End-of-RIB (EoR) marker.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, DSCP, TTL, WAIT, UPDATE, PREFIX, NEXTHOP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define restarting BGP speaker advertising preserved Forwarding State.
+HOST bgp_gr_restarting {
+    IP 10.47.24.1
+    MAC 00:1a:64:47:24:01
+}
+
+// INSTRUCTION: Define helper BGP speaker retaining stale routes until End-of-RIB receipt.
+HOST bgp_gr_helper {
+    IP 10.47.24.2
+    MAC 00:1a:64:47:24:02
+}
+
+// INSTRUCTION: Define BGP OPEN, initial table refresh UPDATE, and End-of-RIB empty UPDATE marker.
+FLOW bgp_graceful_restart_eor(restarting, helper) {
+    restarting -> helper BGP OPEN ASN 65047 HOLDTIME 120 BGPID 10.47.24.1 DSCP 48 TTL 1 WAIT 5ms
+    restarting <- helper BGP OPEN ASN 65048 HOLDTIME 120 BGPID 10.47.24.2 DSCP 48 TTL 1 WAIT 5ms
+    restarting -> helper BGP UPDATE ASN 65047 PREFIX "10.100.0.0/16" NEXTHOP 10.47.24.1 DSCP 48 TTL 1 WAIT 5ms
+    restarting -> helper BGP UPDATE ASN 65047 DSCP 48 TTL 1 PAYLOAD "BGP_END_OF_RIB_IPV4_UNICAST"
+}
+
+// INSTRUCTION: Compile the RFC 4724 BGP Graceful Restart and End-of-RIB flow.
+COMPILE {
+    bgp_graceful_restart_eor(bgp_gr_restarting, bgp_gr_helper)
+}

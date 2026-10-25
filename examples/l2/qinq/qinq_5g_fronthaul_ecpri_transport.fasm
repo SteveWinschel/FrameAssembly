@@ -1,0 +1,26 @@
+// PROMPT: 5G O-RAN midhaul/fronthaul transport over Metro Ethernet QinQ carrying high-priority PTP and UDP IQ data.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSCP, PTP, SYNC, SEQ_ID, UDP, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define 5G Distributed Unit (O-DU) baseband controller.
+HOST oran_du_node {
+    IP 2001:db8:5000:1::10
+    MAC 00:11:22:50:00:0a
+}
+
+// INSTRUCTION: Define 5G Radio Unit (O-RU) cell site transceiver.
+HOST oran_ru_cell {
+    IP 2001:db8:5000:1::20
+    MAC 00:11:22:50:00:14
+}
+
+// INSTRUCTION: Define QinQ S-VLAN 4010 C-VLAN 101 PTP synchronization and eCPRI UDP IQ transport over IPv6.
+FLOW oran_qinq_fronthaul(du, ru) {
+    du -> ru QINQ 4010 INNER_VLAN 101 DSCP 56 PTP SYNC SEQ_ID 4010
+    du -> ru QINQ 4010 INNER_VLAN 101 DSCP 46 UDP SRCPORT 31999 DSTPORT 31999 HEXPAYLOAD "10000018000100007f807f807f807f80" WAIT 125us
+    du -> ru QINQ 4010 INNER_VLAN 101 DSCP 46 UDP SRCPORT 31999 DSTPORT 31999 HEXPAYLOAD "10000018000100017f807f807f807f80" WAIT 125us
+}
+
+// INSTRUCTION: Compile block executing 5G O-RAN QinQ fronthaul exchange.
+COMPILE {
+    oran_qinq_fronthaul(oran_du_node, oran_ru_cell)
+}

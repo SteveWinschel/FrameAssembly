@@ -1,0 +1,24 @@
+// PROMPT: Minimal zero-keyword IEEE 802.1AB LLDP advertisement using automatic MAC-derived Chassis ID and default TTL.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, COMPILE
+
+// INSTRUCTION: Define access switch port sending default LLDP beacon.
+HOST lldp_default_tx {
+    IP 10.12.0.1
+    MAC 00:1c:73:12:00:01
+}
+
+// INSTRUCTION: Define neighbor switch port receiving default LLDP beacon.
+HOST lldp_default_rx {
+    IP 10.12.0.2
+    MAC 00:1c:73:12:00:02
+}
+
+// INSTRUCTION: Define zero-argument LLDP discovery frame with RFC-compliant defaults.
+FLOW lldp_minimal_default(tx, rx) {
+    tx -> rx LLDP
+}
+
+// INSTRUCTION: Compile block executing minimal default LLDP advertisement.
+COMPILE {
+    lldp_minimal_default(lldp_default_tx, lldp_default_rx)
+}

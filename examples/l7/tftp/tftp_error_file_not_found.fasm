@@ -1,0 +1,19 @@
+// PROMPT: TFTP error response returning ERRCODE 1 File Not Found.
+// TOKENS: HOST, IP, FLOW, TFTP, RRQ, FILENAME, MODE, ERRCODE, ERRMSG, COMPILE
+
+// INSTRUCTION: Define querying client requesting missing file.
+HOST query_client { IP 10.10.10.8 }
+
+// INSTRUCTION: Define TFTP server returning error.
+HOST error_tftp_svr { IP 10.10.10.1 }
+
+// INSTRUCTION: Define File Not Found error transaction flow.
+FLOW tftp_err_not_found(c, s) {
+    c -> s TFTP RRQ FILENAME "nonexistent_image.bin" MODE "octet"
+    c <- s TFTP ERRCODE 1 ERRMSG "File not found"
+}
+
+// INSTRUCTION: Compile block executing error response.
+COMPILE {
+    tftp_err_not_found(query_client, error_tftp_svr)
+}

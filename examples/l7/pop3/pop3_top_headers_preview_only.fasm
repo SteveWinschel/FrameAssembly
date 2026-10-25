@@ -1,0 +1,33 @@
+// PROMPT: Simulate a POP3 client issuing TOP 1 0 and TOP 2 0 commands to preview message headers without downloading bodies.
+// TOKENS: HOST, IP, MAC, FLOW, POP3, CMD, ARG, DSCP, TTL, WAIT, OK, RESPONSE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the low-bandwidth satellite mail client previewing message headers.
+HOST sat_mail_client {
+    IP 10.110.10.25
+    MAC 00:1b:21:6e:0a:19
+}
+
+// INSTRUCTION: Define the POP3 mail server on TCP port 110.
+HOST pop3_store {
+    IP 10.110.10.1
+    MAC 00:1b:21:6e:0a:01
+}
+
+// INSTRUCTION: Issue TOP 1 0 and TOP 2 0 to inspect Subject and From headers before full retrieval.
+FLOW pop3_top_header_preview(c, s) {
+    c -> s POP3 CMD "TOP" ARG "1 0" DSCP 16 TTL 64 WAIT 2ms
+    c <- s POP3 OK RESPONSE "headers follow" PAYLOAD "From: alerts@corp.local
+Subject: Daily Backup OK
+.
+" DSCP 16 TTL 64 WAIT 2ms
+    c -> s POP3 CMD "TOP" ARG "2 0" DSCP 16 TTL 64 WAIT 2ms
+    c <- s POP3 OK RESPONSE "headers follow" PAYLOAD "From: billing@corp.local
+Subject: Q4 Statement
+.
+" DSCP 16 TTL 64
+}
+
+// INSTRUCTION: Compile the POP3 TOP header preview scenario.
+COMPILE {
+    pop3_top_header_preview(sat_mail_client, pop3_store)
+}

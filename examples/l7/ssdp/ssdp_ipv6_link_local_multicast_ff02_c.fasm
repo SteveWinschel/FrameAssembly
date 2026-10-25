@@ -1,0 +1,32 @@
+// PROMPT: Simulate an IPv6 link-local SSDP M-SEARCH and NOTIFY exchange using ff02::c for UPnP IPv6 device discovery.
+// TOKENS: HOST, MAC, IP, FLOW, SSDP, MSEARCH, HOST_HDR, MAN, MX, ST, NOTIFY, NT, NTS, USN, LOCATION, COMPILE
+
+// INSTRUCTION: Define host endpoint ctrl_point_v6.
+HOST ctrl_point_v6 {
+    MAC 00:1c:b3:19:00:01
+    IP fe80::21c:b3ff:fe19:1
+}
+
+// INSTRUCTION: Define host endpoint upnp_gw_v6.
+HOST upnp_gw_v6 {
+    MAC 00:1c:b3:19:00:fe
+    IP fe80::21c:b3ff:fe19:fe
+}
+
+// INSTRUCTION: Define host endpoint ssdp_mcast_v6.
+HOST ssdp_mcast_v6 {
+    MAC 33:33:00:00:00:0c
+    IP ff02::c
+}
+
+// INSTRUCTION: Send an IPv6 SSDP M-SEARCH to [ff02::c]:1900 and receive an ssdp:alive NOTIFY.
+FLOW ssdp_ipv6_link_local_discovery(ctrl_point_v6, upnp_gw_v6, ssdp_mcast_v6) {
+    ctrl_point_v6 -> ssdp_mcast_v6 SSDP MSEARCH HOST_HDR "[ff02::c]:1900" MAN "\"ssdp:discover\"" MX 3 ST "ssdp:all"
+    upnp_gw_v6 -> ssdp_mcast_v6 SSDP NOTIFY HOST_HDR "[ff02::c]:1900" NT "upnp:rootdevice" NTS "ssdp:alive" USN "uuid:igd-v6-0001::upnp:rootdevice"
+        LOCATION "http://[fe80::21c:b3ff:fe19:fe]:49152/rootDesc.xml"
+}
+
+// INSTRUCTION: Compile the IPv6 link-local SSDP discovery flow.
+COMPILE {
+    ssdp_ipv6_link_local_discovery(ctrl_point_v6, upnp_gw_v6, ssdp_mcast_v6)
+}

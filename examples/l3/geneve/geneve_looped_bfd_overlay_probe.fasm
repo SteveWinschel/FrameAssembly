@@ -1,0 +1,21 @@
+// PROMPT: RFC 8926 GENEVE tunnel keepalive health probes executed inside a COMPILE LOOP block.
+// TOKENS: HOST, IP, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define primary network virtualization edge.
+HOST primary_nve_node { IP 10.111.1.1 }
+
+// INSTRUCTION: Define standby network virtualization edge.
+HOST standby_nve_node { IP 10.111.1.2 }
+
+// INSTRUCTION: Define bidirectional GENEVE tunnel health probe.
+FLOW geneve_health_probe(p, s) {
+    p -> s GENEVE VNI 1000 OPT_CLASS 258 OPT_TYPE 254 WAIT 15ms
+    p <- s GENEVE VNI 1000 OPT_CLASS 258 OPT_TYPE 254 WAIT 15ms
+}
+
+// INSTRUCTION: Compile 4 iterations of the GENEVE tunnel health probe.
+COMPILE {
+    LOOP 4 {
+        geneve_health_probe(primary_nve_node, standby_nve_node)
+    }
+}

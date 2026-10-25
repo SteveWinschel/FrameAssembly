@@ -1,0 +1,18 @@
+// PROMPT: Administrative cache invalidation purging all cached entries via flush_all command.
+// TOKENS: HOST, IP, FLOW, MEMCACHED, CMD, COMPILE
+
+// INSTRUCTION: Define cache maintenance orchestrator.
+HOST devops_admin { IP 10.10.10.99 }
+
+// INSTRUCTION: Define target Memcached instance.
+HOST target_cache { IP 10.10.10.2 }
+
+// INSTRUCTION: Define cache flush command flow.
+FLOW flush_cache_flow(adm, srv) {
+    adm -> srv MEMCACHED CMD "flush_all"
+}
+
+// INSTRUCTION: Compile cache eviction flush scenario.
+COMPILE {
+    flush_cache_flow(devops_admin, target_cache)
+}

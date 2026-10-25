@@ -1,0 +1,24 @@
+// PROMPT: BACnet/IP default frame emission over UDP port 47808 using smart protocol defaults.
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, COMPILE
+
+// INSTRUCTION: Define the BACnet operator workstation.
+HOST bacnet_ws {
+    IP 192.168.100.10
+    MAC 00:50:56:a1:01:01
+}
+
+// INSTRUCTION: Define the BACnet field controller.
+HOST bacnet_plc {
+    IP 192.168.100.20
+    MAC 00:50:56:a1:01:02
+}
+
+// INSTRUCTION: Emit a default BACnet/IP frame with zero optional overrides.
+FLOW bacnet_default(ws, plc) {
+    ws -> plc BACNET
+}
+
+// INSTRUCTION: Compile the default BACnet/IP scenario.
+COMPILE {
+    bacnet_default(bacnet_ws, bacnet_plc)
+}

@@ -1,0 +1,27 @@
+// PROMPT: Create a Modbus Function Code 01 (Read Coils) and Function Code 02 (Read Discrete Inputs) exchange on TCP port 502.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TXID, UNITID, FUNC, ADDR, COUNT, WAIT, IS_RESPONSE, VALUE, COMPILE
+
+// INSTRUCTION: Define the manufacturing execution system (MES) polling digital I/O status.
+HOST mes_poller {
+    IP 10.50.1.10
+    MAC 00:1c:06:50:01:10
+}
+
+// INSTRUCTION: Define the conveyor line PLC controller with Unit ID 1.
+HOST conveyor_plc {
+    IP 10.50.1.101
+    MAC 00:1c:06:50:01:65
+}
+
+// INSTRUCTION: Poll 16 output coils starting at address 0 (FC 01) and 16 discrete limit-switch inputs at address 100 (FC 02).
+FLOW read_coils_and_discrete_inputs(c, s) {
+    c -> s MODBUS TXID 101 UNITID 1 FUNC "READ_COILS" ADDR 0 COUNT 16 WAIT 3ms
+    c <- s MODBUS TXID 101 UNITID 1 FUNC "READ_COILS" IS_RESPONSE VALUE 0x05a3 WAIT 10ms
+    c -> s MODBUS TXID 102 UNITID 1 FUNC "READ_DISCRETE_INPUTS" ADDR 100 COUNT 16 WAIT 3ms
+    c <- s MODBUS TXID 102 UNITID 1 FUNC "READ_DISCRETE_INPUTS" IS_RESPONSE VALUE 0x00ff
+}
+
+// INSTRUCTION: Compile the Modbus FC 01 and FC 02 digital I/O poll into a PCAP file.
+COMPILE {
+    read_coils_and_discrete_inputs(mes_poller, conveyor_plc)
+}

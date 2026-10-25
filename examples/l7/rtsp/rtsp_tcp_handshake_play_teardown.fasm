@@ -1,0 +1,24 @@
+// PROMPT: Full TCP 3-way handshake on port 554 followed by RTSP PLAY and TEARDOWN session control.
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, DSTPORT, ACK, WAIT, RTSP, METHOD, URI, CSEQ, SESSION, STATUS, COMPILE
+
+// INSTRUCTION: Define NVR video surveillance client.
+HOST nvr_client { IP 10.55.4.20 MAC 00:1c:cb:55:04:14 }
+
+// INSTRUCTION: Define PTZ dome camera RTSP server.
+HOST ptz_camera { IP 10.55.4.1 MAC 00:1c:cb:55:04:01 }
+
+// INSTRUCTION: Define TCP handshake followed by RTSP PLAY and TEARDOWN.
+FLOW rtsp_play_teardown(c, s) {
+    c -> s TCP SYN DSTPORT 554
+    c <- s TCP SYN ACK
+    c -> s TCP ACK WAIT 2ms
+    c -> s RTSP METHOD "PLAY" URI "rtsp://10.55.4.1/stream1" CSEQ 4 SESSION "91827364" WAIT 5ms
+    c <- s RTSP STATUS 200 CSEQ 4 WAIT 20ms
+    c -> s RTSP METHOD "TEARDOWN" URI "rtsp://10.55.4.1/stream1" CSEQ 5 SESSION "91827364" WAIT 5ms
+    c <- s RTSP STATUS 200 CSEQ 5
+}
+
+// INSTRUCTION: Compile RTSP PLAY and TEARDOWN flow.
+COMPILE {
+    rtsp_play_teardown(nvr_client, ptz_camera)
+}

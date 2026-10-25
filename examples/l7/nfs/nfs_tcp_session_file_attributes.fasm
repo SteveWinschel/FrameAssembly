@@ -1,0 +1,21 @@
+// PROMPT: TCP 3-way handshake on port 2049 followed by NFS GETATTR metadata procedure call.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, DSTPORT, ACK, WAIT, NFS, VERS, PROC, PATH, COMPILE
+
+// INSTRUCTION: Define storage management client.
+HOST storage_mgr_client { IP 10.10.80.12 }
+
+// INSTRUCTION: Define NFS daemon listening on port 2049.
+HOST nfs_daemon_node { IP 10.10.80.1 }
+
+// INSTRUCTION: Define TCP handshake and NFS getattr flow.
+FLOW nfs_tcp_handshake_flow(c, s) {
+    c -> s TCP SYN DSTPORT 2049
+    c <- s TCP SYN ACK
+    c -> s TCP ACK WAIT 1ms
+    c -> s NFS VERS 4 PROC "GETATTR" PATH "/exports/production"
+}
+
+// INSTRUCTION: Compile TCP session NFS scenario.
+COMPILE {
+    nfs_tcp_handshake_flow(storage_mgr_client, nfs_daemon_node)
+}

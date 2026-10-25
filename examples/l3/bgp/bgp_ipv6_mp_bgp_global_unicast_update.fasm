@@ -1,0 +1,26 @@
+// PROMPT: RFC 4760 Multiprotocol BGP (MP-BGP) over IPv6 advertising global IPv6 unicast prefixes and link-local Next-Hop.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, UPDATE, ASN, PREFIX, NEXTHOP, FLOWLABEL, DSCP, TTL, WAIT, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define Tier-1 IPv6 transit router A in AS 64501.
+HOST v6_tier1_rtr_a {
+    IP 2001:db8:feed::1
+    MAC 00:25:90:fe:ed:01
+}
+
+// INSTRUCTION: Define Tier-1 IPv6 transit router B in AS 64502.
+HOST v6_tier1_rtr_b {
+    IP 2001:db8:feed::2
+    MAC 00:25:90:fe:ed:02
+}
+
+// INSTRUCTION: Define IPv6 MP-BGP UPDATE advertising /32 and /48 IPv6 prefixes with Flow Label 17900.
+FLOW bgp_v6_global_unicast_flow(a, b) {
+    a -> b BGP UPDATE ASN 64501 PREFIX "2001:db8:1000::/36" NEXTHOP 2001:db8:feed::1 FLOWLABEL 17900 DSCP 48 TTL 255 WAIT 5ms
+    a <- b BGP UPDATE ASN 64502 PREFIX "2001:db8:2000::/36" NEXTHOP 2001:db8:feed::2 FLOWLABEL 17900 DSCP 48 TTL 255 WAIT 5ms
+    a -> b BGP KEEPALIVE FLOWLABEL 17900 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the IPv6 MP-BGP global unicast prefix advertisement flow.
+COMPILE {
+    bgp_v6_global_unicast_flow(v6_tier1_rtr_a, v6_tier1_rtr_b)
+}

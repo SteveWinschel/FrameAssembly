@@ -1,0 +1,27 @@
+// PROMPT: Simulate a looped IPsec tunnel keepalive sequence maintaining security association state across a firewall
+// TOKENS: HOST, IP, MAC, FLOW, IPSEC, SPI, SEQ, TTL, PAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define the branch office IPsec endpoint
+HOST branch_fw {
+    IP 10.140.1.1
+    MAC 00:16:3e:c1:01:01
+}
+
+// INSTRUCTION: Define the central headquarters IPsec endpoint
+HOST hq_fw {
+    IP 10.140.2.1
+    MAC 00:16:3e:c1:02:01
+}
+
+// INSTRUCTION: Exchange IPsec keepalive probes and acknowledgments
+FLOW ipsec_keepalive_cycle(branch, hq) {
+    branch -> hq IPSEC SPI 77001 SEQ 10 TTL 64 PAYLOAD "ipsec-sa-keepalive-ping" WAIT 25ms
+    hq -> branch IPSEC SPI 77002 SEQ 10 TTL 64 PAYLOAD "ipsec-sa-keepalive-pong" WAIT 25ms
+}
+
+// INSTRUCTION: Compile five iterations of the IPsec tunnel keepalive cycle
+COMPILE {
+    LOOP 5 {
+        ipsec_keepalive_cycle(branch_fw, hq_fw)
+    }
+}

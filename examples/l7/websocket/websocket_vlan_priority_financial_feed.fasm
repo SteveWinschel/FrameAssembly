@@ -1,0 +1,25 @@
+// PROMPT: Low-latency financial orderbook WebSocket feed over VLAN 250 with 802.1p priority 6 and DSCP EF.
+// TOKENS: HOST, IP, MAC, FLOW, WEBSOCKET, BINARY, FIN_BIT, VLAN, PCP, DSCP, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define algorithmic trading engine subscriber host.
+HOST algo_trader {
+    IP 10.250.1.50
+    MAC 00:0f:53:25:01:32
+}
+
+// INSTRUCTION: Define exchange matching engine WebSocket publisher host.
+HOST exchange_pub {
+    IP 10.250.1.1
+    MAC 00:0f:53:25:01:01
+}
+
+// INSTRUCTION: Define high-priority VLAN-tagged WebSocket market depth updates.
+FLOW ws_orderbook_vlan(c, s) {
+    c <- s WEBSOCKET BINARY FIN_BIT 1 VLAN 250 PCP 6 DSCP 46 HEXPAYLOAD "4254435553440001" WAIT 1ms
+    c <- s WEBSOCKET BINARY FIN_BIT 1 VLAN 250 PCP 6 DSCP 46 HEXPAYLOAD "4254435553440002"
+}
+
+// INSTRUCTION: Compile the VLAN-prioritized financial WebSocket feed.
+COMPILE {
+    ws_orderbook_vlan(algo_trader, exchange_pub)
+}

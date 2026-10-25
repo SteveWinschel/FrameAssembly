@@ -1,0 +1,21 @@
+// PROMPT: Pure IPv6 OpenFlow 1.3 control channel between cloud controller and virtual switch.
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, HELLO, ECHO_REQ, XID, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define IPv6 SDN control plane cluster.
+HOST sdn_v6_controller { IP 2001:db8:5d01::1 }
+
+// INSTRUCTION: Define IPv6 programmable virtual switch.
+HOST sdn_v6_vswitch { IP 2001:db8:5d01::10 }
+
+// INSTRUCTION: Define IPv6 OpenFlow session setup and echo flow.
+FLOW of_ipv6_session_flow(ctrl, vsw) {
+    ctrl -> vsw OPENFLOW TYPE HELLO
+    ctrl <- vsw OPENFLOW TYPE HELLO
+    ctrl -> vsw OPENFLOW TYPE ECHO_REQ XID 1001
+    ctrl <- vsw OPENFLOW TYPE ECHO_REPLY XID 1001
+}
+
+// INSTRUCTION: Compile block executing IPv6 OpenFlow session.
+COMPILE {
+    of_ipv6_session_flow(sdn_v6_controller, sdn_v6_vswitch)
+}

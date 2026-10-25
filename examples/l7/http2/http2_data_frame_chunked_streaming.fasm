@@ -1,0 +1,28 @@
+// PROMPT: HTTP/2 DATA frame streaming exchange on Stream 1 delivering JSON API response chunks with WINDOW_UPDATE.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP2, HEADERS, STREAM_ID, DATA, PAYLOAD, WINDOW_UPDATE, COMPILE
+
+// INSTRUCTION: Define HTTP/2 API gateway client host.
+HOST h2_api_client {
+    IP 10.44.2.10
+    MAC 00:1b:21:2c:02:0a
+}
+
+// INSTRUCTION: Define HTTP/2 streaming analytics server host.
+HOST h2_stream_srv {
+    IP 10.44.2.100
+    MAC 00:1b:21:2c:02:64
+}
+
+// INSTRUCTION: Send HEADERS on Stream 1 and stream two HTTP/2 DATA frames followed by WINDOW_UPDATE.
+FLOW http2_data_streaming(c, s) {
+    c -> s HTTP2 HEADERS STREAM_ID 1
+    c <- s HTTP2 HEADERS STREAM_ID 1
+    c <- s HTTP2 DATA STREAM_ID 1 PAYLOAD "{'batch':1,'items':[10,20]}"
+    c <- s HTTP2 DATA STREAM_ID 1 PAYLOAD "{'batch':2,'items':[30,40]}"
+    c -> s HTTP2 WINDOW_UPDATE STREAM_ID 1
+}
+
+// INSTRUCTION: Compile the HTTP/2 DATA frame streaming scenario.
+COMPILE {
+    http2_data_streaming(h2_api_client, h2_stream_srv)
+}

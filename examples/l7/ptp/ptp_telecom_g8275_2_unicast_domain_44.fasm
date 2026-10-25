@@ -1,0 +1,26 @@
+// PROMPT: Model an ITU-T G.8275.2 telecom profile unicast PTPv2 phase synchronization exchange on Domain 44.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, ANNOUNCE, DOMAIN, SEQ_ID, CLOCK_ID, DSCP, WAIT, SYNC, FOLLOW_UP, COMPILE
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
+HOST ptp_grandmaster {
+    IP 172.22.44.1
+    MAC 00:1b:21:31:90:01
+}
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
+HOST ptp_slave_clock {
+    IP 172.22.44.50
+    MAC 00:1b:21:31:90:25
+}
+
+// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
+FLOW ptp_scenario_flow(gm, slv) {
+    gm -> slv PTP ANNOUNCE DOMAIN 44 SEQ_ID 8801 CLOCK_ID "002590fffe440001" DSCP 46 WAIT 2ms
+    gm -> slv PTP SYNC DOMAIN 44 SEQ_ID 8801 CLOCK_ID "002590fffe440001" DSCP 46 WAIT 1ms
+    gm -> slv PTP FOLLOW_UP DOMAIN 44 SEQ_ID 8801 CLOCK_ID "002590fffe440001" DSCP 46
+}
+
+// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
+COMPILE {
+    ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
+}

@@ -1,0 +1,22 @@
+// PROMPT: Device service configuration update notification using NTS ssdp:update.
+// TOKENS: HOST, IP, FLOW, SSDP, NOTIFY, NT, NTS, USN, LOCATION, COMPILE
+
+// INSTRUCTION: Define multimedia gateway device.
+HOST gateway_dev { IP 10.200.1.1 }
+
+// INSTRUCTION: Define SSDP multicast destination.
+HOST mcast_endpoint { IP 239.255.255.250 }
+
+// INSTRUCTION: Define service configuration update flow.
+FLOW ssdp_update_flow(c, s) {
+    c -> s SSDP NOTIFY
+        NT "upnp:rootdevice"
+        NTS "ssdp:update"
+        USN "uuid:media-gw-9900::upnp:rootdevice"
+        LOCATION "http://10.200.1.1:8080/desc.xml"
+}
+
+// INSTRUCTION: Compile block executing update notification.
+COMPILE {
+    ssdp_update_flow(gateway_dev, mcast_endpoint)
+}

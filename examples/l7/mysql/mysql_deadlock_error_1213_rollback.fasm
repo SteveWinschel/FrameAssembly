@@ -1,0 +1,27 @@
+// PROMPT: MySQL InnoDB transaction deadlock detection returning error code 1213 followed by explicit ROLLBACK.
+// TOKENS: HOST, IP, MAC, FLOW, MYSQL, SQL, ERR, ERRCODE, PAYLOAD, WAIT, OK, COMPILE
+
+// INSTRUCTION: Define the order fulfillment worker encountering a lock wait conflict.
+HOST order_worker {
+    IP 10.90.1.25
+    MAC 00:1a:2b:90:01:25
+}
+
+// INSTRUCTION: Define the primary MySQL 8.0 transactional database server.
+HOST mysql_primary {
+    IP 10.90.1.10
+    MAC 00:1a:2b:90:01:10
+}
+
+// INSTRUCTION: Attempt an UPDATE that triggers ER_LOCK_DEADLOCK (1213) and issue ROLLBACK.
+FLOW mysql_deadlock_recovery(c, s) {
+    c -> s MYSQL SQL "UPDATE inventory SET qty = qty - 1 WHERE sku_id = 4092"
+    c <- s MYSQL ERR ERRCODE 1213 PAYLOAD "Deadlock found when trying to get lock; try restarting transaction" WAIT 2ms
+    c -> s MYSQL SQL "ROLLBACK"
+    c <- s MYSQL OK
+}
+
+// INSTRUCTION: Compile the MySQL InnoDB deadlock and rollback flow.
+COMPILE {
+    mysql_deadlock_recovery(order_worker, mysql_primary)
+}

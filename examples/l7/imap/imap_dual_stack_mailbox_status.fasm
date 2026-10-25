@@ -1,0 +1,27 @@
+// PROMPT: Dual-stack IMAP STATUS mailbox unread count check over IPv4 and IPv6 networks.
+// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, COMPILE
+
+// INSTRUCTION: Define IPv4 mail notifier widget.
+HOST notifier_v4 { IP 192.168.14.50 }
+
+// INSTRUCTION: Define IPv4 IMAP server.
+HOST imap_v4 { IP 192.168.14.1 }
+
+// INSTRUCTION: Define IPv6 mail notifier widget.
+HOST notifier_v6 { IP 2001:db8:143::50 }
+
+// INSTRUCTION: Define IPv6 IMAP server.
+HOST imap_v6 { IP 2001:db8:143::1 }
+
+// INSTRUCTION: Query mailbox STATUS (MESSAGES UNSEEN RECENT) without selecting the folder.
+FLOW imap_dual_status_check(c, s) {
+    c -> s IMAP TAG "H01" CMD "STATUS" ARG "INBOX (MESSAGES UNSEEN RECENT)"
+    c <- s IMAP TAG "*" CMD "STATUS" ARG "INBOX (MESSAGES 120 UNSEEN 4 RECENT 1)"
+    c <- s IMAP TAG "H01" CMD "OK" ARG "STATUS completed"
+}
+
+// INSTRUCTION: Execute the polymorphic IMAP STATUS check over IPv4 and IPv6.
+COMPILE {
+    imap_dual_status_check(notifier_v4, imap_v4)
+    imap_dual_status_check(notifier_v6, imap_v6)
+}

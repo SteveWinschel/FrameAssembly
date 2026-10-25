@@ -1,0 +1,27 @@
+// PROMPT: Simulate an RFC 6851 IMAP UID MOVE command atomically relocating spam messages to the Junk folder.
+// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, ARG, WAIT, STATUS, RESPONSE, COMPILE
+
+// INSTRUCTION: Define the mail filtering agent moving classified messages.
+HOST sieve_worker {
+    IP 10.143.20.15
+    MAC 00:1a:4a:8f:14:0f
+}
+
+// INSTRUCTION: Define the IMAP server supporting the MOVE extension.
+HOST imap_move_srv {
+    IP 10.143.20.1
+    MAC 00:1a:4a:8f:14:01
+}
+
+// INSTRUCTION: Issue UID MOVE for UIDs 880:885 into the Junk mailbox and receive COPYUID and EXPUNGE notifications.
+FLOW imap_uid_move_junk(c, s) {
+    c -> s IMAP TAG "M01" CMD "UID MOVE" ARG "880:885 Junk" WAIT 3ms
+    c <- s IMAP TAG "*" STATUS "OK" RESPONSE "[COPYUID 17119001 880:885 401:406] Moved UIDs" WAIT 1ms
+    c <- s IMAP TAG "*" STATUS "EXPUNGE" RESPONSE "880" WAIT 1ms
+    c <- s IMAP TAG "M01" STATUS "OK" RESPONSE "Move completed"
+}
+
+// INSTRUCTION: Compile the RFC 6851 IMAP UID MOVE scenario.
+COMPILE {
+    imap_uid_move_junk(sieve_worker, imap_move_srv)
+}

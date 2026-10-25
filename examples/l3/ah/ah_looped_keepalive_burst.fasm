@@ -1,0 +1,21 @@
+// PROMPT: Periodic IPsec AH heartbeat burst executed inside a COMPILE LOOP block.
+// TOKENS: HOST, IP, FLOW, AH, SPI, SEQ, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define primary WAN concentrator.
+HOST wan_conc_primary { IP 203.0.113.100 }
+
+// INSTRUCTION: Define remote spoke router.
+HOST wan_spoke_router { IP 203.0.113.101 }
+
+// INSTRUCTION: Define bidirectional AH heartbeat probe with 20ms interval.
+FLOW ah_heartbeat_cycle(conc, spoke) {
+    conc -> spoke AH SPI 3300 SEQ 1 WAIT 20ms
+    conc <- spoke AH SPI 3301 SEQ 1 WAIT 20ms
+}
+
+// INSTRUCTION: Compile 4 consecutive iterations of the AH heartbeat cycle.
+COMPILE {
+    LOOP 4 {
+        ah_heartbeat_cycle(wan_conc_primary, wan_spoke_router)
+    }
+}

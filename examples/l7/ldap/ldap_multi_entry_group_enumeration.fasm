@@ -1,0 +1,28 @@
+// PROMPT: Create an LDAP search query that returns multiple SEARCH_ENTRY responses before completing with SEARCH_DONE.
+// TOKENS: HOST, IP, MAC, FLOW, LDAP, MSGID, SEARCH_REQ, BASE_DN, FILTER, WAIT, SEARCH_ENTRY, SEARCH_DONE, RESULT_CODE, COMPILE
+
+// INSTRUCTION: Define the internal address book service querying all engineering group members.
+HOST addressbook_app {
+    IP 10.30.5.40
+    MAC 00:16:3e:30:05:40
+}
+
+// INSTRUCTION: Define the corporate directory server returning multiple matching entries.
+HOST dir_server {
+    IP 10.30.5.10
+    MAC 00:16:3e:30:05:10
+}
+
+// INSTRUCTION: Issue a single SEARCH_REQ and receive three separate SEARCH_ENTRY packets followed by SEARCH_DONE.
+FLOW multi_entry_search(c, s) {
+    c -> s LDAP MSGID 5 SEARCH_REQ BASE_DN "ou=engineering,dc=acme,dc=io" FILTER "(objectClass=inetOrgPerson)" WAIT 3ms
+    c <- s LDAP MSGID 5 SEARCH_ENTRY BASE_DN "cn=alice,ou=engineering,dc=acme,dc=io" WAIT 1ms
+    c <- s LDAP MSGID 5 SEARCH_ENTRY BASE_DN "cn=charlie,ou=engineering,dc=acme,dc=io" WAIT 1ms
+    c <- s LDAP MSGID 5 SEARCH_ENTRY BASE_DN "cn=diana,ou=engineering,dc=acme,dc=io" WAIT 1ms
+    c <- s LDAP MSGID 5 SEARCH_DONE RESULT_CODE 0
+}
+
+// INSTRUCTION: Compile the multi-entry LDAP search response trace into a PCAP file.
+COMPILE {
+    multi_entry_search(addressbook_app, dir_server)
+}

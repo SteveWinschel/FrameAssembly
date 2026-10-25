@@ -1,5 +1,5 @@
 // PROMPT: Simulate a PXE network boot TFTP firmware read request (RRQ) on UDP port 69 followed by numbered data blocks and acknowledgments on ephemeral ports.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define a diskless PXE boot client with IP 192.168.100.55.
 HOST pxe_client { IP 192.168.100.55 MAC 52:54:00:12:34:55 }

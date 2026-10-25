@@ -1,0 +1,19 @@
+// PROMPT: GRE point-to-point tunnel transported over an MPLS-labeled core underlay.
+// TOKENS: HOST, IP, FLOW, GRE, GRE_KEY, GRE_SEQ, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define west customer edge GRE endpoint.
+HOST ce_west_gre { IP 10.249.1.1 }
+
+// INSTRUCTION: Define east customer edge GRE endpoint.
+HOST ce_east_gre { IP 10.249.2.1 }
+
+// INSTRUCTION: Define MPLS-encapsulated GRE tunnel packets with label 47100.
+FLOW gre_over_mpls_core(w, e) {
+    w -> e GRE GRE_KEY 1234 GRE_SEQ 5 MPLS 47100 EXP 2 BOS 1 MPLS_TTL 62
+    w <- e GRE GRE_KEY 1234 GRE_SEQ 5 MPLS 47200 EXP 2 BOS 1 MPLS_TTL 62
+}
+
+// INSTRUCTION: Compile the GRE-over-MPLS underlay flow.
+COMPILE {
+    gre_over_mpls_core(ce_west_gre, ce_east_gre)
+}

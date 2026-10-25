@@ -1,0 +1,36 @@
+// PROMPT: Submarine optical cable landing station border peering combining eBGP multihop, MPLS traffic engineering labels, BFD fast failure detection, and NetFlow v9 accounting.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, WAIT, BGP, OPEN, ASN, HOLDTIME, BGPID, UPDATE, PREFIX, NEXTHOP, MPLS, EXP, BOS, MPLS_TTL, ICMP, COMPILE
+
+// INSTRUCTION: Define submarine cable landing station border router (CLS-East).
+HOST cls_east_border {
+    IP 198.18.100.1
+    MAC 00:05:85:64:00:01
+}
+
+// INSTRUCTION: Define transoceanic wet-plant optical line terminal peer router (CLS-West).
+HOST cls_west_border {
+    IP 198.18.100.2
+    MAC 00:05:85:64:00:02
+}
+
+// INSTRUCTION: Define submarine cable NOC NetFlow billing and capacity planner.
+HOST cls_noc_collector {
+    IP 198.18.100.250
+    MAC 00:50:56:64:00:fa
+}
+
+// INSTRUCTION: Define BFD transoceanic keepalive, eBGP session and prefix update, MPLS-TE labeled probe, and NetFlow export.
+FLOW submarine_cable_peering_flow(east, west, noc) {
+    east -> west BFD MY_DISC 9001 YOUR_DISC 9002 MIN_TX 50000 MIN_RX 50000 MULT 3
+    east <- west BFD MY_DISC 9002 YOUR_DISC 9001 MIN_TX 50000 MIN_RX 50000 MULT 3 WAIT 35ms
+    east -> west BGP OPEN ASN 64512 HOLDTIME 90 BGPID 198.18.100.1 WAIT 35ms
+    east -> west BGP UPDATE PREFIX "203.0.113.0/24" NEXTHOP 198.18.100.1 WAIT 35ms
+    east -> west MPLS 300100 EXP 5 BOS 1 MPLS_TTL 64 ICMP ECHO_REQUEST WAIT 35ms
+    east <- west MPLS 300200 EXP 5 BOS 1 MPLS_TTL 64 ICMP ECHO_REPLY WAIT 35ms
+    east -> noc NETFLOW VERSION 9 SRCIP 198.18.100.1 DSTIP 198.18.100.2 PACKETS 125000 OCTETS 187500000 PROTO 6 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing submarine cable landing station BFD, BGP, MPLS, and NetFlow topology.
+COMPILE {
+    submarine_cable_peering_flow(cls_east_border, cls_west_border, cls_noc_collector)
+}

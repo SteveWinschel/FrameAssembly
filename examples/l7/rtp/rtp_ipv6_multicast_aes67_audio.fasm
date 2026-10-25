@@ -1,0 +1,19 @@
+// PROMPT: IPv6 multicast AES67 studio audio RTP stream to ff0e::5004 with RFC 2464 MAC derivation.
+// TOKENS: HOST, IP, MAC, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, DSCP, TTL, FLOWLABEL, WAIT, COMPILE
+
+// INSTRUCTION: Define AES67 mixing console transmitter.
+HOST aes67_tx { IP 2001:db8:ae67::1 MAC 00:1d:c1:ae:67:01 }
+
+// INSTRUCTION: Define IPv6 multicast audio group ff0e::5004.
+HOST aes67_mcast_v6 { IP ff0e::5004 }
+
+// INSTRUCTION: Define 1ms packet-time L24 studio audio RTP frames (48 samples/pkt).
+FLOW rtp_aes67_ipv6_mcast(tx, grp) {
+    tx -> grp RTP PT 98 TIMESTAMP 48 SSRC 0xae670001 MARKER 1 DSCP 46 TTL 16 FLOWLABEL 0xae670 WAIT 1ms
+    tx -> grp RTP PT 98 TIMESTAMP 96 SSRC 0xae670001 MARKER 0 DSCP 46 TTL 16 FLOWLABEL 0xae670
+}
+
+// INSTRUCTION: Compile IPv6 multicast AES67 RTP stream.
+COMPILE {
+    rtp_aes67_ipv6_mcast(aes67_tx, aes67_mcast_v6)
+}

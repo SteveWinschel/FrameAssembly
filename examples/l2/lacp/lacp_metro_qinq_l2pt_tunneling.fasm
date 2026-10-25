@@ -1,0 +1,29 @@
+// PROMPT: Metro Ethernet provider L2PT (Layer 2 Protocol Tunneling) encapsulating customer LACP frames inside QinQ S-VLAN 1800.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSTMAC, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define customer edge router A tunneling LACP across Metro Ethernet.
+HOST ce_lacp_site_a {
+    IP 172.19.18.1
+    MAC 00:1e:67:19:18:01
+}
+
+// INSTRUCTION: Define customer edge router B terminating tunneled LACP port-channel.
+HOST ce_lacp_site_b {
+    IP 172.19.18.2
+    MAC 00:1e:67:19:18:02
+}
+
+// INSTRUCTION: Define QinQ double-tagged LACPDU using L2PT multicast MAC 01:00:0c:cd:cd:d0.
+FLOW qinq_l2pt_lacp_tunnel(a, b) {
+    a -> b QINQ 1800 INNER_VLAN 1 DSTMAC 01:00:0c:cd:cd:d0 LACP
+        ACTOR_SYS 00:1e:67:19:18:01 ACTOR_KEY 18 ACTOR_PORT 1 ACTOR_STATE 61
+        PARTNER_SYS 00:1e:67:19:18:02 PARTNER_KEY 18 PARTNER_PORT 1 PARTNER_STATE 61
+    a <- b QINQ 1800 INNER_VLAN 1 DSTMAC 01:00:0c:cd:cd:d0 LACP
+        ACTOR_SYS 00:1e:67:19:18:02 ACTOR_KEY 18 ACTOR_PORT 1 ACTOR_STATE 61
+        PARTNER_SYS 00:1e:67:19:18:01 PARTNER_KEY 18 PARTNER_PORT 1 PARTNER_STATE 61 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing QinQ L2PT LACP tunneling.
+COMPILE {
+    qinq_l2pt_lacp_tunnel(ce_lacp_site_a, ce_lacp_site_b)
+}

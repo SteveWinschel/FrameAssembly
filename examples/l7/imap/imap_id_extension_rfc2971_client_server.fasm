@@ -1,0 +1,26 @@
+// PROMPT: Simulate an RFC 2971 IMAP ID command exchanging client and server software vendor version strings.
+// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, ARG, WAIT, STATUS, RESPONSE, COMPILE
+
+// INSTRUCTION: Define the enterprise mobile mail client identifying its version via RFC 2971 ID.
+HOST mobile_client {
+    IP 10.143.80.33
+    MAC 00:16:3e:8f:50:21
+}
+
+// INSTRUCTION: Define the corporate IMAP proxy logging client telemetry.
+HOST imap_proxy {
+    IP 10.143.80.1
+    MAC 00:16:3e:8f:50:01
+}
+
+// INSTRUCTION: Exchange RFC 2971 ID parameters between the client and IMAP server.
+FLOW imap_rfc2971_id(c, s) {
+    c -> s IMAP TAG "I01" CMD "ID" ARG "('name' 'FrameMail' 'version' '4.2.0' 'os' 'Linux')" WAIT 2ms
+    c <- s IMAP TAG "*" STATUS "ID" RESPONSE "('name' 'Dovecot' 'version' '2.3.21' 'support-url' 'https://dovecot.org')" WAIT 1ms
+    c <- s IMAP TAG "I01" STATUS "OK" RESPONSE "ID completed"
+}
+
+// INSTRUCTION: Compile the RFC 2971 IMAP ID exchange scenario.
+COMPILE {
+    imap_rfc2971_id(mobile_client, imap_proxy)
+}

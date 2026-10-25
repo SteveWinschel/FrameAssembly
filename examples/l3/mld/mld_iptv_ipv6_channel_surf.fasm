@@ -1,0 +1,27 @@
+// PROMPT: Capture an IPv6 IPTV set-top box channel surf sequence using MLD Done and Report messages
+// TOKENS: HOST, IP, MAC, FLOW, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, TTL, WAIT, DONE, QUERY, COMPILE
+
+// INSTRUCTION: Define the IPv6 IPTV set-top box
+HOST stb_v6 {
+    IP 2001:db8:400:10::55
+    MAC 00:16:3e:c2:10:55
+}
+
+// INSTRUCTION: Define the broadband network gateway multicast router
+HOST bng_mrouter {
+    IP 2001:db8:400:10::1
+    MAC 00:16:3e:c2:10:01
+}
+
+// INSTRUCTION: Join channel 1, leave channel 1, and immediately join channel 2
+FLOW mld_iptv_channel_surf(stb, bng) {
+    stb -> bng MLD REPORT MULTICAST_ADDR ff3e::8000:101 MAX_RESP_DELAY 0 TTL 1 WAIT 50ms
+    stb -> bng MLD DONE MULTICAST_ADDR ff3e::8000:101 MAX_RESP_DELAY 0 TTL 1 WAIT 5ms
+    bng -> stb MLD QUERY MULTICAST_ADDR ff3e::8000:101 MAX_RESP_DELAY 500 TTL 1 WAIT 5ms
+    stb -> bng MLD REPORT MULTICAST_ADDR ff3e::8000:102 MAX_RESP_DELAY 0 TTL 1
+}
+
+// INSTRUCTION: Compile the IPv6 IPTV channel change MLD trace
+COMPILE {
+    mld_iptv_channel_surf(stb_v6, bng_mrouter)
+}

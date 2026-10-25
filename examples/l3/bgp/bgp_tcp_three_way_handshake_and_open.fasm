@@ -1,0 +1,27 @@
+// PROMPT: Complete TCP port 179 three-way handshake (SYN, SYN-ACK, ACK) followed by RFC 4271 BGP OPEN and KEEPALIVE.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, SYN, DSCP, TTL, WAIT, ACK, PSH, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define Customer Edge eBGP router initiating active TCP port 179 connection.
+HOST ce_bgp_initiator {
+    IP 192.0.2.2
+    MAC 00:1e:49:02:00:02
+}
+
+// INSTRUCTION: Define Provider Edge eBGP router listening on TCP port 179.
+HOST pe_bgp_listener {
+    IP 192.0.2.1
+    MAC 00:1e:49:02:00:01
+}
+
+// INSTRUCTION: Define TCP 3-way handshake on port 179 followed by BGP OPEN and KEEPALIVE exchange.
+FLOW bgp_tcp_handshake_open(ce, pe) {
+    ce -> pe BGP OPEN ASN 65010 HOLDTIME 180 BGPID 192.0.2.2 SRCPORT 52179 DSTPORT 179 SEQ 1000 ACKNUM 0 WIN 64240 SYN DSCP 48 TTL 1 WAIT 5ms
+    ce <- pe BGP OPEN ASN 65001 HOLDTIME 180 BGPID 192.0.2.1 SRCPORT 179 DSTPORT 52179 SEQ 5000 ACKNUM 1001 WIN 65535 SYN ACK DSCP 48 TTL 1 WAIT 5ms
+    ce -> pe BGP OPEN ASN 65010 HOLDTIME 180 BGPID 192.0.2.2 SRCPORT 52179 DSTPORT 179 SEQ 1001 ACKNUM 5001 WIN 64240 PSH ACK DSCP 48 TTL 1 WAIT 5ms
+    ce <- pe BGP KEEPALIVE SRCPORT 179 DSTPORT 52179 SEQ 5030 ACKNUM 1030 WIN 65535 PSH ACK DSCP 48 TTL 1
+}
+
+// INSTRUCTION: Compile the TCP handshake + BGP OPEN session establishment flow.
+COMPILE {
+    bgp_tcp_handshake_open(ce_bgp_initiator, pe_bgp_listener)
+}

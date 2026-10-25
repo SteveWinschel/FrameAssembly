@@ -1,0 +1,25 @@
+// PROMPT: Create a Memcached pipelined binary protocol batch using GETQ and GAT (Get-And-Touch) with custom HEXPAYLOAD extras.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, SRCPORT, DSTPORT, CMD, KEY, EXPTIME, OPAQUE, CAS, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the high-throughput feed service issuing binary protocol GAT requests on custom port 11212.
+HOST feed_reader {
+    IP 172.30.10.45
+    MAC 00:25:90:1e:0a:2d
+}
+
+// INSTRUCTION: Define the dedicated Twemproxy/Mcrouter Memcached proxy listening on port 11212.
+HOST mcrouter_proxy {
+    IP 172.30.10.5
+    MAC 00:25:90:1e:0a:05
+}
+
+// INSTRUCTION: Issue a GAT (Get-And-Touch) request on port 11212 with binary flags in HEXPAYLOAD and receive the value.
+FLOW mcrouter_binary_gat(c, s) {
+    c -> s MEMCACHED SRCPORT 58200 DSTPORT 11212 CMD "GAT" KEY "feed:timeline:u882" EXPTIME 900 OPAQUE 710 CAS 44 HEXPAYLOAD "00000384" WAIT 2ms
+    c <- s MEMCACHED SRCPORT 11212 DSTPORT 58200 CMD "GAT" KEY "feed:timeline:u882" OPAQUE 710 CAS 44 HEXPAYLOAD "deadbeefcafebabe"
+}
+
+// INSTRUCTION: Compile the Mcrouter custom-port Memcached binary GAT trace into a PCAP file.
+COMPILE {
+    mcrouter_binary_gat(feed_reader, mcrouter_proxy)
+}

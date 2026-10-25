@@ -1,0 +1,25 @@
+// PROMPT: Two parallel distribution routers advertising equal hop-count metric 2 for 10.80.0.0/24 enabling RIPv2 ECMP load balancing.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, TAG, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define distribution router 1 advertising 10.80.0.0 at metric 2.
+HOST ecmp_rip_dist1 {
+    IP 192.168.80.1
+    MAC 00:1c:73:50:00:01
+}
+
+// INSTRUCTION: Define access router installing dual equal-cost paths to 10.80.0.0.
+HOST ecmp_rip_access {
+    IP 192.168.80.10
+    MAC 00:1c:73:50:00:0a
+}
+
+// INSTRUCTION: Define RIPv2 updates advertising equal METRIC 2 across distinct NEXTHOPs.
+FLOW rip_ecmp_load_share_flow(dist, access) {
+    dist -> access RIP RESPONSE PREFIX 10.80.0.0 METRIC 2 NEXTHOP 192.168.80.1 TAG 80 DSCP 48 TTL 1 WAIT 5ms
+    dist -> access RIP RESPONSE PREFIX 10.80.0.0 METRIC 2 NEXTHOP 192.168.80.2 TAG 80 DSCP 48 TTL 1
+}
+
+// INSTRUCTION: Compile the RIPv2 Equal-Cost Multipath route advertisement flow.
+COMPILE {
+    rip_ecmp_load_share_flow(ecmp_rip_dist1, ecmp_rip_access)
+}

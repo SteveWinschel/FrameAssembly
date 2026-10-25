@@ -1,0 +1,19 @@
+// PROMPT: Traceroute TTL expiration triggering ICMP TIME_EXCEEDED (Code 0) from intermediate hop.
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, TTL, TIME_EXCEEDED, CODE, COMPILE
+
+// INSTRUCTION: Define workstation running traceroute.
+HOST trace_client { IP 10.10.1.50 }
+
+// INSTRUCTION: Define intermediate transit router returning Time Exceeded.
+HOST transit_hop_1 { IP 10.10.1.1 }
+
+// INSTRUCTION: Define low-TTL ICMP Echo Request and resulting TIME_EXCEEDED response.
+FLOW icmp_traceroute_hop(client, hop) {
+    client -> hop ICMP ECHO_REQUEST ID 4001 SEQ 1 TTL 1
+    client <- hop ICMP TIME_EXCEEDED CODE 0 TTL 64
+}
+
+// INSTRUCTION: Compile the ICMP traceroute Time Exceeded flow.
+COMPILE {
+    icmp_traceroute_hop(trace_client, transit_hop_1)
+}

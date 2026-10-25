@@ -1,5 +1,5 @@
 // PROMPT: Simulate VXLAN overlay data-plane keepalive packet on UDP 4789 with explicit VNI.
-// TOKENS: HOST, IP, FLOW, ->, VXLAN, VNI, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define VTEP hypervisor A.
 HOST vtep_hv1 { IP 10.10.10.1 }

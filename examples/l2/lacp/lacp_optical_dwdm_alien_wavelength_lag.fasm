@@ -1,0 +1,25 @@
+// PROMPT: Metro core routers aggregating two coherent 400ZR+ DWDM alien wavelengths into a single LACP link bundle.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define Metro West router 400ZR+ optical bundle interface.
+HOST metro_west_zr {
+    IP 192.0.2.201
+    MAC 00:1c:73:c9:00:01
+}
+
+// INSTRUCTION: Define Metro East router 400ZR+ optical bundle interface.
+HOST metro_east_zr {
+    IP 192.0.2.202
+    MAC 00:1c:73:c9:00:02
+}
+
+// INSTRUCTION: Synchronize LACP across DWDM coherent transponders with Key 4000 and fast timeout state 63.
+FLOW lacp_dwdm_400zr_bundle(west, east) {
+    west -> east LACP ACTOR_SYS 00:1c:73:c9:00:01 ACTOR_KEY 4000 ACTOR_PORT 1 ACTOR_STATE 63 PARTNER_SYS 00:1c:73:c9:00:02 PARTNER_KEY 4000 PARTNER_PORT 1 PARTNER_STATE 63 WAIT 5ms
+    west <- east LACP ACTOR_SYS 00:1c:73:c9:00:02 ACTOR_KEY 4000 ACTOR_PORT 1 ACTOR_STATE 63 PARTNER_SYS 00:1c:73:c9:00:01 PARTNER_KEY 4000 PARTNER_PORT 1 PARTNER_STATE 63
+}
+
+// INSTRUCTION: Compile the 400ZR+ DWDM alien wavelength LACP bundle trace.
+COMPILE {
+    lacp_dwdm_400zr_bundle(metro_west_zr, metro_east_zr)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Simulate a stealth TCP FIN scan probing closed and open ports on a target host.
-// TOKENS: HOST, IP, FLOW, ->, <-, TCP, FIN, RST, ACK, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, FLOW, TCP, FIN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, RST, ACK, COMPILE
 
 // INSTRUCTION: Define a security scanner host with IP 10.0.50.9.
 HOST recon_scanner { IP 10.0.50.9 }

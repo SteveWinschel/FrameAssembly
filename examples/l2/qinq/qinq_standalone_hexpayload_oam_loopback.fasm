@@ -1,0 +1,25 @@
+// PROMPT: Standalone IEEE 802.1ad QinQ Layer 2 frame carrying synthetic Ethernet OAM loopback payload bytes on S-VLAN 3000 C-VLAN 30.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Carrier Ethernet NID (Network Interface Device) at customer demarcation point A.
+HOST nid_demarc_a {
+    IP 10.30.0.1
+    MAC 00:15:ad:1e:00:01
+}
+
+// INSTRUCTION: Define Carrier Ethernet NID at remote demarcation point B looped back across provider core.
+HOST nid_demarc_b {
+    IP 10.30.0.2
+    MAC 00:15:ad:1e:00:02
+}
+
+// INSTRUCTION: Exchange standalone Layer 2 QinQ S-VLAN 3000 C-VLAN 30 frames with hexadecimal OAM test pattern.
+FLOW qinq_nid_oam_loopback(nid_a, nid_b) {
+    nid_a -> nid_b QINQ 3000 INNER_VLAN 30 HEXPAYLOAD "0003000000000001deadbeefcafebabe" WAIT 5ms
+    nid_a <- nid_b QINQ 3000 INNER_VLAN 30 HEXPAYLOAD "0002000000000001deadbeefcafebabe"
+}
+
+// INSTRUCTION: Compile the standalone Carrier Ethernet NID QinQ S-VLAN 3000 C-VLAN 30 loopback trace.
+COMPILE {
+    qinq_nid_oam_loopback(nid_demarc_a, nid_demarc_b)
+}

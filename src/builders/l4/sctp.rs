@@ -1,4 +1,13 @@
-//! Stream Control Transmission Protocol (SCTP) wire builder and CRC32c engine.
+//! Stream Control Transmission Protocol (SCTP, RFC 9260 / RFC 4960) wire builder and CRC32c engine.
+//!
+//! Synthesizes RFC 9260 SCTP packets over IP Protocol `132` (`0x84`). Constructs the 12-byte
+//! SCTP Common Header (16-bit Source Port, 16-bit Destination Port, 32-bit Verification Tag
+//! `VTAG`, and 32-bit little-endian Castagnoli CRC32c checksum) followed by 32-bit padded
+//! control or data chunks (`DATA`, `INIT`, `INIT_ACK`, `SACK`, `HEARTBEAT`, `HEARTBEAT_ACK`,
+//! `ABORT`, `SHUTDOWN`, `COOKIE_ECHO`, `COOKIE_ACK`).
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b SCTP [CHUNK <type>] [VTAG <u32>] [STREAM <u16>] [SSN <u16>] [PPID <u32>] [SRCPORT <u16>] [DSTPORT <u16>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

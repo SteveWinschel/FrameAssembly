@@ -1,0 +1,25 @@
+// PROMPT: Model a STUN Binding exchange encapsulated in double-tagged QinQ (S-VLAN 500, C-VLAN 50) for metro residential broadband.
+// TOKENS: HOST, MAC, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, QINQ, INNER_VLAN, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define host endpoint ont_voice.
+HOST ont_voice {
+    MAC 00:1a:a0:34:78:50
+    IP 10.50.50.10
+}
+
+// INSTRUCTION: Define host endpoint bng_stun.
+HOST bng_stun {
+    MAC 00:1a:a0:34:78:01
+    IP 10.50.50.1
+}
+
+// INSTRUCTION: Exchange STUN Binding Request and Response over QinQ 500/50.
+FLOW stun_qinq_metro_voice(ont_voice, bng_stun) {
+    ont_voice -> bng_stun STUN BINDING_REQUEST SOFTWARE "ONT-SIP-Agent/4.0" QINQ 500 INNER_VLAN 50
+    bng_stun -> ont_voice STUN BINDING_RESPONSE XOR_MAPPED_ADDR 192.0.2.50 SOFTWARE "BNG-STUN-Daemon" QINQ 500 INNER_VLAN 50
+}
+
+// INSTRUCTION: Compile the QinQ-tagged STUN Binding flow.
+COMPILE {
+    stun_qinq_metro_voice(ont_voice, bng_stun)
+}

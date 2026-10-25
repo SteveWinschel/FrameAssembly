@@ -1,0 +1,25 @@
+// PROMPT: Data center BGP Unnumbered spine and leaf routers using IPv6 hosts and LLDP to audit interface peering.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6 spine router interface participating in RFC 5549 BGP unnumbered fabric.
+HOST bgp_unnum_spine {
+    IP fe80::200:1
+    MAC 00:1c:73:aa:02:01
+}
+
+// INSTRUCTION: Define IPv6 leaf router interface discovering spine neighbor identity via LLDP.
+HOST bgp_unnum_leaf {
+    IP fe80::200:2
+    MAC 00:1c:73:aa:02:02
+}
+
+// INSTRUCTION: Exchange LLDP system and interface descriptors alongside IPv6 link-local peering.
+FLOW lldp_bgp_unnumbered_audit(spine, leaf) {
+    spine -> leaf LLDP CHASSIS_ID "spine02.pod1" PORT_ID "swp1" SYSNAME "spine02.pod1.dc" SYSDESC "Cumulus Linux 5.9 BGP-Unnumbered" TTL 120 WAIT 5ms
+    spine <- leaf LLDP CHASSIS_ID "leaf01.pod1" PORT_ID "swp50" SYSNAME "leaf01.pod1.dc" SYSDESC "Cumulus Linux 5.9 BGP-Unnumbered" TTL 120
+}
+
+// INSTRUCTION: Compile the IPv6 BGP unnumbered fabric LLDP audit trace.
+COMPILE {
+    lldp_bgp_unnumbered_audit(bgp_unnum_spine, bgp_unnum_leaf)
+}

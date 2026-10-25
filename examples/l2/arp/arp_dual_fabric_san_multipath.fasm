@@ -1,0 +1,38 @@
+// PROMPT: Multi-homed storage server resolving dual iSCSI target interfaces across independent SAN subnets.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, ARP, REQUEST, REPLY, WAIT, COMPILE
+
+// INSTRUCTION: Define iSCSI initiator NIC 1 on SAN fabric A.
+HOST iscsi_init_a {
+    IP 172.18.1.10
+    MAC 00:25:b5:0a:01:0a
+}
+
+// INSTRUCTION: Define iSCSI target array controller A on SAN fabric A.
+HOST iscsi_tgt_a {
+    IP 172.18.1.100
+    MAC 00:25:b5:0a:01:64
+}
+
+// INSTRUCTION: Define iSCSI initiator NIC 2 on SAN fabric B.
+HOST iscsi_init_b {
+    IP 172.18.2.10
+    MAC 00:25:b5:0b:02:0a
+}
+
+// INSTRUCTION: Define iSCSI target array controller B on SAN fabric B.
+HOST iscsi_tgt_b {
+    IP 172.18.2.100
+    MAC 00:25:b5:0b:02:64
+}
+
+// INSTRUCTION: Define SAN fabric ARP resolution flow with VLAN tagging.
+FLOW san_arp_resolve(init, tgt) {
+    init -> tgt VLAN 180 ARP REQUEST
+    init <- tgt VLAN 180 ARP REPLY WAIT 500us
+}
+
+// INSTRUCTION: Compile block resolving both dual-fabric SAN paths.
+COMPILE {
+    san_arp_resolve(iscsi_init_a, iscsi_tgt_a)
+    san_arp_resolve(iscsi_init_b, iscsi_tgt_b)
+}

@@ -1,0 +1,25 @@
+// PROMPT: P4 In-band Network Telemetry (INT) metadata carried inside RFC 8926 GENEVE TLV Option Class 0x0103 (259).
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define P4 programmable ToR switch 1 inserting hop latency and queue depth into GENEVE INT TLV.
+HOST p4_int_source_tor {
+    IP 10.60.90.1
+    MAC 00:1c:73:59:00:01
+}
+
+// INSTRUCTION: Define P4 sink ToR switch 2 extracting GENEVE INT telemetry before delivering inner frame.
+HOST p4_int_sink_tor {
+    IP 10.60.90.2
+    MAC 00:1c:73:59:00:02
+}
+
+// INSTRUCTION: Define GENEVE packet carrying OPT_CLASS 259 (INT) and OPT_TYPE 1 with DSCP CS2 (16).
+FLOW geneve_p4_int_telemetry(src_tor, sink_tor) {
+    src_tor -> sink_tor GENEVE VNI 9001 OPT_CLASS 259 OPT_TYPE 1 PROTOCOL_TYPE 25944 SRCPORT 59001 DSTPORT 6081 DF DSCP 16 TTL 63 PAYLOAD "INT_HOP1_SW1_LATENCY_420NS_QDEPTH_2" WAIT 2ms
+    src_tor <- sink_tor GENEVE VNI 9001 OPT_CLASS 259 OPT_TYPE 2 PROTOCOL_TYPE 25944 SRCPORT 59002 DSTPORT 6081 DF DSCP 16 TTL 63 PAYLOAD "INT_TELEMETRY_REPORT_ACK"
+}
+
+// INSTRUCTION: Compile the P4 In-band Network Telemetry over GENEVE flow.
+COMPILE {
+    geneve_p4_int_telemetry(p4_int_source_tor, p4_int_sink_tor)
+}

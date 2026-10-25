@@ -1,0 +1,29 @@
+// PROMPT: Create a Memcached rate-limiter counter flow using INCR and DECR commands with numeric VALUE fields.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, SET, KEY, EXPTIME, OPAQUE, VALUE, WAIT, CMD, COMPILE
+
+// INSTRUCTION: Define the API gateway rate limiter tracking per-IP request quotas in Memcached.
+HOST rate_limiter {
+    IP 172.16.40.15
+    MAC 00:25:90:10:28:0f
+}
+
+// INSTRUCTION: Define the Memcached rate-limit state server.
+HOST quota_cache {
+    IP 172.16.40.5
+    MAC 00:25:90:10:28:05
+}
+
+// INSTRUCTION: Initialize a counter with SET, increment it with INCR, and decrement it with DECR.
+FLOW rate_limit_incr_decr(c, s) {
+    c -> s MEMCACHED SET KEY "ratelimit:ip:203.0.113.9" EXPTIME 60 OPAQUE 10 VALUE 1 WAIT 1ms
+    c <- s MEMCACHED CMD "STORED" KEY "ratelimit:ip:203.0.113.9" OPAQUE 10 VALUE 1 WAIT 4ms
+    c -> s MEMCACHED CMD "INCR" KEY "ratelimit:ip:203.0.113.9" OPAQUE 11 VALUE 1 WAIT 1ms
+    c <- s MEMCACHED CMD "INCR" KEY "ratelimit:ip:203.0.113.9" OPAQUE 11 VALUE 2 WAIT 4ms
+    c -> s MEMCACHED CMD "DECR" KEY "ratelimit:ip:203.0.113.9" OPAQUE 12 VALUE 1 WAIT 1ms
+    c <- s MEMCACHED CMD "DECR" KEY "ratelimit:ip:203.0.113.9" OPAQUE 12 VALUE 1
+}
+
+// INSTRUCTION: Compile the Memcached INCR and DECR counter flow into a PCAP file.
+COMPILE {
+    rate_limit_incr_decr(rate_limiter, quota_cache)
+}

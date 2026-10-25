@@ -1,0 +1,25 @@
+// PROMPT: Passive switch vs Active server LACP negotiation where only the server sets the LACP Activity bit (0x01).
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define Linux bonding server configured in LACP active mode (state 0x3D = 61).
+HOST active_linux_bond {
+    IP 192.168.120.10
+    MAC 52:54:00:78:00:0a
+}
+
+// INSTRUCTION: Define access switch configured in LACP passive mode (state 0x3C = 60, Activity=0).
+HOST passive_access_sw {
+    IP 192.168.120.1
+    MAC 00:1b:21:78:00:01
+}
+
+// INSTRUCTION: Define Active-to-Passive LACP negotiation exchange.
+FLOW lacp_active_vs_passive(srv, sw) {
+    srv -> sw LACP ACTOR_SYS 52:54:00:78:00:0a ACTOR_KEY 120 ACTOR_PORT 1 ACTOR_STATE 61 PARTNER_SYS 00:1b:21:78:00:01 PARTNER_KEY 120 PARTNER_PORT 24 PARTNER_STATE 60
+    srv <- sw LACP ACTOR_SYS 00:1b:21:78:00:01 ACTOR_KEY 120 ACTOR_PORT 24 ACTOR_STATE 60 PARTNER_SYS 52:54:00:78:00:0a PARTNER_KEY 120 PARTNER_PORT 1 PARTNER_STATE 61 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing Active/Passive LACP port-channel synchronization.
+COMPILE {
+    lacp_active_vs_passive(active_linux_bond, passive_access_sw)
+}

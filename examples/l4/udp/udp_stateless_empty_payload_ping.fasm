@@ -1,5 +1,5 @@
 // PROMPT: Send minimal zero-length UDP datagrams without PAYLOAD using both default ports and explicit high-numbered ports for traceroute probing.
-// TOKENS: HOST, IP, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, FLOW, UDP, WAIT, SRCPORT, DSTPORT, COMPILE
 
 // INSTRUCTION: Define a traceroute source host with IP 10.0.1.10.
 HOST trace_source { IP 10.0.1.10 }

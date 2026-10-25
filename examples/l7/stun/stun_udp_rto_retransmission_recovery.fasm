@@ -1,0 +1,26 @@
+// PROMPT: Simulate a STUN UDP retransmission sequence where the initial Binding Request is lost and a retry after 100ms succeeds.
+// TOKENS: HOST, MAC, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, WAIT, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define host endpoint mobile_client.
+HOST mobile_client {
+    MAC 00:26:bb:34:78:11
+    IP 10.45.12.88
+}
+
+// INSTRUCTION: Define host endpoint cloud_stun.
+HOST cloud_stun {
+    MAC 00:26:bb:34:78:01
+    IP 198.51.100.88
+}
+
+// INSTRUCTION: Transmit an initial STUN Binding Request, wait 100ms (RTO), retransmit, and receive the Binding Response.
+FLOW stun_rto_retransmission_flow(mobile_client, cloud_stun) {
+    mobile_client -> cloud_stun STUN BINDING_REQUEST SOFTWARE "Linphone-iOS/5.1" WAIT 100ms
+    mobile_client -> cloud_stun STUN BINDING_REQUEST SOFTWARE "Linphone-iOS/5.1"
+    cloud_stun -> mobile_client STUN BINDING_RESPONSE XOR_MAPPED_ADDR 203.0.113.88 SOFTWARE "Flexisip-STUN/2.2"
+}
+
+// INSTRUCTION: Compile the STUN RTO retransmission flow.
+COMPILE {
+    stun_rto_retransmission_flow(mobile_client, cloud_stun)
+}

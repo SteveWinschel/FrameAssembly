@@ -1,0 +1,28 @@
+// PROMPT: Simulate a TACACS+ authorization request returning AUTHOR_STATUS_PASS_REPL to rewrite a user's command arguments.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TACACS, AUTHOR, SESSION_ID, USER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint leaf_sw.
+HOST leaf_sw {
+    MAC 00:1e:67:49:30:01
+    IP 10.39.1.11
+}
+
+// INSTRUCTION: Define host endpoint policy_srv.
+HOST policy_srv {
+    MAC 00:1e:67:49:30:02
+    IP 10.39.1.2
+}
+
+// INSTRUCTION: Authorize a ping command and return AUTHOR_STATUS_PASS_REPL restricting the repeat count.
+FLOW tacacs_author_pass_replace(leaf_sw, policy_srv) {
+    leaf_sw -> policy_srv TCP SYN SRCPORT 59049 DSTPORT 49
+    policy_srv -> leaf_sw TCP SYN ACK
+    leaf_sw -> policy_srv TCP ACK
+    leaf_sw -> policy_srv TACACS AUTHOR SESSION_ID 50501 USER "helpdesk" PAYLOAD "service=shell:cmd=ping:cmd-arg=10.0.0.1 repeat 10000"
+    policy_srv -> leaf_sw TACACS AUTHOR SESSION_ID 50501 PAYLOAD "AUTHOR_STATUS_PASS_REPL:cmd-arg=10.0.0.1 repeat 5"
+}
+
+// INSTRUCTION: Compile the TACACS+ AUTHOR_STATUS_PASS_REPL attribute replacement flow.
+COMPILE {
+    tacacs_author_pass_replace(leaf_sw, policy_srv)
+}

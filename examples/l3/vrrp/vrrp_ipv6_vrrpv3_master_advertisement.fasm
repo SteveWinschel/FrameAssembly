@@ -1,0 +1,18 @@
+// PROMPT: Pure IPv6 VRRPv3 master router advertising virtual IPv6 gateway to ff02::12.
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, VIP, COMPILE
+
+// INSTRUCTION: Define IPv6 VRRPv3 master router on link-local interface.
+HOST vrrp3_v6_master { IP fe80::100:1 }
+
+// INSTRUCTION: Define IPv6 VRRP all-routers multicast address ff02::12.
+HOST vrrp3_v6_mcast { IP ff02::12 }
+
+// INSTRUCTION: Define IPv6 VRRPv3 master advertisement flow with virtual link-local VIP.
+FLOW vrrp3_v6_advert_flow(master, dst) {
+    master -> dst VRRP VRID 1 PRIORITY 200 VIP fe80::1
+}
+
+// INSTRUCTION: Compile block executing IPv6 VRRPv3 master advertisement.
+COMPILE {
+    vrrp3_v6_advert_flow(vrrp3_v6_master, vrrp3_v6_mcast)
+}

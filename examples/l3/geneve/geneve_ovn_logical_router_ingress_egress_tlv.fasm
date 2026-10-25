@@ -1,0 +1,25 @@
+// PROMPT: Open Virtual Network (OVN) hypervisor chassis exchanging GENEVE frames with Option Class 0x0102 (258) logical port keys.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define OVN hypervisor chassis hv-compute-01 hosting logical switch port.
+HOST ovn_hv_compute_01 {
+    IP 10.168.60.101
+    MAC 52:54:00:60:01:01
+}
+
+// INSTRUCTION: Define OVN gateway chassis hv-gw-01 hosting distributed logical router port.
+HOST ovn_hv_gw_01 {
+    IP 10.168.60.201
+    MAC 52:54:00:60:02:01
+}
+
+// INSTRUCTION: Define OVN GENEVE packet with VNI 15 (datapath tunnel key) and OPT_CLASS 258 (0x0102 OVN).
+FLOW geneve_ovn_logical_router_flow(hv1, gw1) {
+    hv1 -> gw1 GENEVE VNI 15 OPT_CLASS 258 OPT_TYPE 128 PROTOCOL_TYPE 25944 SRCPORT 58101 DSTPORT 6081 DF TTL 64 PAYLOAD "OVN_INGRESS_PORT_KEY_3_EGRESS_PORT_KEY_7" WAIT 3ms
+    hv1 <- gw1 GENEVE VNI 15 OPT_CLASS 258 OPT_TYPE 128 PROTOCOL_TYPE 25944 SRCPORT 58201 DSTPORT 6081 DF TTL 64 PAYLOAD "OVN_INGRESS_PORT_KEY_7_EGRESS_PORT_KEY_3"
+}
+
+// INSTRUCTION: Compile the OVN logical router GENEVE datapath flow.
+COMPILE {
+    geneve_ovn_logical_router_flow(ovn_hv_compute_01, ovn_hv_gw_01)
+}

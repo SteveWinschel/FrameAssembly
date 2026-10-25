@@ -1,0 +1,28 @@
+// PROMPT: MySQL protocol client connecting to a Vitess VTGate sharded proxy on custom TCP port 15306.
+// TOKENS: HOST, IP, MAC, FLOW, SRCPORT, DSTPORT, MYSQL, GREETING, SERVER_VERSION, WAIT, LOGIN, USER, DB, OK, SQL, EOF, COMPILE
+
+// INSTRUCTION: Define the microservice connecting to Vitess VTGate.
+HOST tenant_service {
+    IP 10.90.120.42
+    MAC 00:1a:2b:90:c0:42
+}
+
+// INSTRUCTION: Define the Vitess VTGate proxy listening on port 15306.
+HOST vtgate_proxy {
+    IP 10.90.120.5
+    MAC 00:1a:2b:90:c0:05
+}
+
+// INSTRUCTION: Authenticate against VTGate on port 15306 and target keyspaceks_commerce/-80@primary.
+FLOW mysql_vtgate_shard(c, s) {
+    c <- s SRCPORT 15306 DSTPORT 48200 MYSQL GREETING SERVER_VERSION "8.0.30-Vitess" WAIT 1ms
+    c -> s SRCPORT 48200 DSTPORT 15306 MYSQL LOGIN USER "vt_app" DB "ks_commerce:-80@primary"
+    c <- s SRCPORT 15306 DSTPORT 48200 MYSQL OK WAIT 1ms
+    c -> s SRCPORT 48200 DSTPORT 15306 MYSQL SQL "SELECT tenant_id, plan FROM tenants WHERE tenant_id = 12"
+    c <- s SRCPORT 15306 DSTPORT 48200 MYSQL EOF
+}
+
+// INSTRUCTION: Compile the Vitess VTGate custom port MySQL flow.
+COMPILE {
+    mysql_vtgate_shard(tenant_service, vtgate_proxy)
+}

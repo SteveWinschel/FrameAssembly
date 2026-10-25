@@ -1,8 +1,10 @@
-//! Cryptographic primitives for SNMPv3 User-based Security Model (USM).
+//! Cryptographic primitives for the SNMPv3 User-Based Security Model (USM, RFC 3414 / RFC 3826 / RFC 7860).
 //!
-//! Implements RFC 3414 key localization (MD5, SHA-1), RFC 7860 key localization
-//! (SHA-224, SHA-256, SHA-384, SHA-512), HMAC message authentication,
-//! DES-CBC encryption with zero padding, and AES-128-CFB encryption.
+//! This module implements the RFC 3414 and RFC 7860 1-megabyte password-to-key stretching and
+//! authoritative `snmpEngineID` key-localization algorithms across MD5, SHA-1, SHA-256, SHA-384,
+//! and SHA-512, alongside truncated HMAC message authentication code calculation (`96`, `128`,
+//! `192`, and `256` bits), RFC 3414 CBC-DES ScopedPDU encryption with zero-padded block alignment,
+//! and RFC 3826 CFB128-AES-128 encryption using the 128-bit engine boots/time/salt IV.
 
 use aes::Aes128;
 use alloc::vec::Vec;

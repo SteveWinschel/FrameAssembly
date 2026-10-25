@@ -1,0 +1,29 @@
+// PROMPT: OPC UA server registering its endpoint URL with a local Discovery Server (LDS) on TCP port 4840.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, ENDPOINT_URL, WAIT, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, COMPILE
+
+// INSTRUCTION: Define the newly started PLC OPC UA server registering itself.
+HOST plc_ua_registrar {
+    IP 10.140.110.33
+    MAC 00:1a:2b:8c:b0:33
+}
+
+// INSTRUCTION: Define the host Local Discovery Server (LDS).
+HOST lds_server {
+    IP 10.140.110.1
+    MAC 00:1a:2b:8c:b0:01
+}
+
+// INSTRUCTION: Connect with HEL/ACK, open channel to opc.tcp://10.140.110.1:4840/UADiscovery, and invoke RegisterServer2 (i=12193).
+FLOW opcua_lds_register(p, l) {
+    p -> l OPCUA MSG_TYPE "HEL" CHUNK_TYPE "F" ENDPOINT_URL "opc.tcp://10.140.110.1:4840/UADiscovery"
+    p <- l OPCUA MSG_TYPE "ACK" CHUNK_TYPE "F" WAIT 1ms
+    p -> l OPCUA MSG_TYPE "OPN" CHUNK_TYPE "F" SECURE_CHANNEL_ID 55 TOKEN_ID 1 SEQ_NUM 1 REQID 1
+    p <- l OPCUA MSG_TYPE "OPN" CHUNK_TYPE "F" SECURE_CHANNEL_ID 55 TOKEN_ID 1 SEQ_NUM 1 REQID 1 WAIT 1ms
+    p -> l OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 55 TOKEN_ID 1 SEQ_NUM 2 REQID 2 NODE_ID "i=12193"
+    p <- l OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 55 TOKEN_ID 1 SEQ_NUM 2 REQID 2 NODE_ID "i=12196"
+}
+
+// INSTRUCTION: Compile the OPC UA Local Discovery Server registration flow.
+COMPILE {
+    opcua_lds_register(plc_ua_registrar, lds_server)
+}

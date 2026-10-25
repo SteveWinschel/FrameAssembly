@@ -1,0 +1,26 @@
+// PROMPT: TFTP RFC 1350 transfer ID (TID) port negotiation switching from UDP port 69 to server ephemeral port 54120.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, RRQ, FILENAME, MODE, SRCPORT, DSTPORT, DF, IPID, DATA, BLOCK, PAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define PXE client using client TID port 50100.
+HOST pxe_host {
+    IP 10.80.69.55
+    MAC 00:25:90:50:45:37
+}
+
+// INSTRUCTION: Define TFTP server responding from server TID port 54120.
+HOST tid_tftp_srv {
+    IP 10.80.69.1
+    MAC 00:25:90:50:45:01
+}
+
+// INSTRUCTION: Send RRQ to UDP port 69 and continue DATA/ACK on ephemeral TID 54120.
+FLOW tftp_tid_negotiation(c, s) {
+    c -> s TFTP RRQ FILENAME "grubx64.efi" MODE "octet" SRCPORT 50100 DSTPORT 69 DF IPID 2001
+    c <- s TFTP DATA BLOCK 1 SRCPORT 54120 DSTPORT 50100 DF IPID 2002 PAYLOAD "MZ-EFI-BOOTLOADER"
+    c -> s TFTP ACK BLOCK 1 SRCPORT 50100 DSTPORT 54120 DF IPID 2003
+}
+
+// INSTRUCTION: Compile the TFTP ephemeral TID port negotiation scenario.
+COMPILE {
+    tftp_tid_negotiation(pxe_host, tid_tftp_srv)
+}

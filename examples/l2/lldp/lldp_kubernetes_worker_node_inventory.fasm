@@ -1,0 +1,27 @@
+// PROMPT: Kubernetes worker node daemonset broadcasting container host and CNI bridge metadata via LLDP.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define bare-metal Kubernetes worker node network interface.
+HOST k8s_worker_bm {
+    IP 10.96.10.21
+    MAC 3c:fd:fe:96:10:15
+}
+
+// INSTRUCTION: Define rack leaf switch port collecting node LLDP inventory.
+HOST rack_leaf_collector {
+    IP 10.96.10.1
+    MAC 3c:fd:fe:96:10:01
+}
+
+// INSTRUCTION: Define LLDP advertisement from Kubernetes node with Cilium eBPF metadata payload.
+FLOW k8s_node_lldp_inventory(worker, leaf) {
+    worker -> leaf LLDP CHASSIS_ID "k8s-worker-gpu-21" PORT_ID "bond0"
+        SYSNAME "k8s-gpu-21.cluster.local"
+        SYSDESC "Talos Linux v1.7 Kubernetes v1.30 Cilium eBPF"
+        TTL 60 PAYLOAD "k8s_zone=us-west-2a,rack=r12"
+}
+
+// INSTRUCTION: Compile block executing Kubernetes worker node LLDP inventory beacon.
+COMPILE {
+    k8s_node_lldp_inventory(k8s_worker_bm, rack_leaf_collector)
+}

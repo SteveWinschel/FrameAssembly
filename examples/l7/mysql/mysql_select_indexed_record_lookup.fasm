@@ -1,0 +1,18 @@
+// PROMPT: High-speed primary key SELECT query retrieving user profile record from MySQL.
+// TOKENS: HOST, IP, FLOW, MYSQL, SQL, COMPILE
+
+// INSTRUCTION: Define user session authentication provider.
+HOST auth_provider { IP 192.168.10.40 }
+
+// INSTRUCTION: Define user database replica node.
+HOST user_db_replica { IP 192.168.10.2 }
+
+// INSTRUCTION: Define indexed record retrieval flow.
+FLOW select_user_flow(auth, db) {
+    auth -> db MYSQL SQL "SELECT id, email, role FROM accounts WHERE id = 4210"
+}
+
+// INSTRUCTION: Compile indexed record lookup scenario.
+COMPILE {
+    select_user_flow(auth_provider, user_db_replica)
+}

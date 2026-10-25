@@ -1,0 +1,19 @@
+// PROMPT: Pure IPv6 OSPFv3 Hello exchange across link-local multicast ff02::5.
+// TOKENS: HOST, IP, FLOW, OSPF, HELLO, AREA_ID, COMPILE
+
+// INSTRUCTION: Define IPv6 OSPFv3 router 1 on link-local interface.
+HOST ospfv3_rtr_1 { IP fe80::1:1 }
+
+// INSTRUCTION: Define IPv6 OSPFv3 router 2 on link-local interface.
+HOST ospfv3_rtr_2 { IP fe80::1:2 }
+
+// INSTRUCTION: Define OSPFv3 link-local Hello exchange flow in Area 0.
+FLOW ospfv3_hello_flow(r1, r2) {
+    r1 -> r2 OSPF HELLO AREA_ID 0
+    r1 <- r2 OSPF HELLO AREA_ID 0
+}
+
+// INSTRUCTION: Compile block executing IPv6 OSPFv3 adjacency Hello.
+COMPILE {
+    ospfv3_hello_flow(ospfv3_rtr_1, ospfv3_rtr_2)
+}

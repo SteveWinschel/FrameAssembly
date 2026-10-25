@@ -1,0 +1,27 @@
+// PROMPT: Create a cyclic 100ms SCADA polling loop reading holding registers from a turbine controller.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TXID, UNITID, FUNC, ADDR, COUNT, WAIT, IS_RESPONSE, VALUE, COMPILE, LOOP
+
+// INSTRUCTION: Define the historian data collector polling turbine speed every 100ms.
+HOST historian_node {
+    IP 10.80.12.10
+    MAC 00:15:5d:80:0c:0a
+}
+
+// INSTRUCTION: Define the wind turbine PLC controller.
+HOST turbine_plc {
+    IP 10.80.12.50
+    MAC 00:15:5d:80:0c:32
+}
+
+// INSTRUCTION: Execute 4 consecutive holding register reads inside a LOOP block.
+FLOW cyclic_turbine_poll(c, s) {
+    c -> s MODBUS TXID 600 UNITID 1 FUNC "READ_HOLDING_REGISTERS" ADDR 50 COUNT 4 WAIT 3ms
+    c <- s MODBUS TXID 600 UNITID 1 FUNC "READ_HOLDING_REGISTERS" IS_RESPONSE VALUE 1800 WAIT 97ms
+}
+
+// INSTRUCTION: Compile the cyclic Modbus SCADA polling loop into a PCAP file.
+COMPILE {
+    LOOP 4 {
+        cyclic_turbine_poll(historian_node, turbine_plc)
+    }
+}

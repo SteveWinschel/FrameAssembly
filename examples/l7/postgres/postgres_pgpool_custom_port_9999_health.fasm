@@ -1,0 +1,28 @@
+// PROMPT: Pgpool-II middleware connection on custom TCP port 9999 routing read/write traffic with DSCP AF21.
+// TOKENS: HOST, IP, MAC, FLOW, SRCPORT, DSTPORT, POSTGRES, STARTUP, USER, DB, DSCP, AUTH_OK, WAIT, READY_FOR_QUERY, SQL, COMMAND_COMPLETE, COMPILE
+
+// INSTRUCTION: Define the Java Spring Boot microservice host.
+HOST spring_service {
+    IP 172.24.95.40
+    MAC 00:1a:2b:24:95:40
+}
+
+// INSTRUCTION: Define the Pgpool-II load balancer listening on TCP port 9999.
+HOST pgpool_lb {
+    IP 172.24.95.5
+    MAC 00:1a:2b:24:95:05
+}
+
+// INSTRUCTION: Perform startup handshake on port 9999 and check standby replication status via SHOW pool_nodes.
+FLOW pg_pgpool_check(c, s) {
+    c -> s SRCPORT 51400 DSTPORT 9999 POSTGRES STARTUP USER "spring_app" DB "orders_prod" DSCP 18
+    c <- s SRCPORT 9999 DSTPORT 51400 POSTGRES AUTH_OK DSCP 18 WAIT 1ms
+    c <- s SRCPORT 9999 DSTPORT 51400 POSTGRES READY_FOR_QUERY DSCP 18 WAIT 1ms
+    c -> s SRCPORT 51400 DSTPORT 9999 POSTGRES SQL "SHOW pool_nodes" DSCP 18
+    c <- s SRCPORT 9999 DSTPORT 51400 POSTGRES COMMAND_COMPLETE DSCP 18
+}
+
+// INSTRUCTION: Compile the custom port 9999 Pgpool-II flow.
+COMPILE {
+    pg_pgpool_check(spring_service, pgpool_lb)
+}

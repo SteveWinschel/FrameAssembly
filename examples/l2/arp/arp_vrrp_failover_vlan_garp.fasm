@@ -1,0 +1,25 @@
+// PROMPT: High-availability VRRP virtual MAC failover using Gratuitous ARP (GARP) on an 802.1Q tagged VLAN trunk.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, ARP, GARP, SHA, SPA, WAIT, COMPILE
+
+// INSTRUCTION: Define active VRRP primary router interface with virtual MAC.
+HOST vrrp_primary_gw {
+    IP 10.100.50.1
+    MAC 00:00:5e:00:01:32
+}
+
+// INSTRUCTION: Define distribution switch learning updated MAC-to-port binding.
+HOST dist_switch_core {
+    IP 10.100.50.254
+    MAC 00:25:90:fd:ac:10
+}
+
+// INSTRUCTION: Define VLAN-tagged Gratuitous ARP burst updating L2 forwarding tables.
+FLOW vrrp_garp_failover(gw, sw) {
+    gw -> sw VLAN 50 PCP 6 ARP GARP SHA 00:00:5e:00:01:32 SPA 10.100.50.1
+    gw -> sw VLAN 50 PCP 6 ARP GARP SHA 00:00:5e:00:01:32 SPA 10.100.50.1 WAIT 50ms
+}
+
+// INSTRUCTION: Compile block executing VRRP failover GARP announcement.
+COMPILE {
+    vrrp_garp_failover(vrrp_primary_gw, dist_switch_core)
+}

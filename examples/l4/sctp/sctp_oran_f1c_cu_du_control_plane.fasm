@@ -1,0 +1,22 @@
+// PROMPT: 5G F1-C control plane interface between O-RAN Central Unit (O-CU-CP) and Distributed Unit (O-DU) over SCTP port 38472 (PPID 62).
+// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, INIT, VTAG, SRCPORT, DSTPORT, INIT_ACK, WAIT, COOKIE_ECHO, PAYLOAD, COOKIE_ACK, DATA, STREAM, SSN, PPID, COMPILE
+
+// INSTRUCTION: Define O-RAN Distributed Unit (O-DU) F1-C endpoint.
+HOST oran_du_f1c { IP 10.185.38.10 }
+
+// INSTRUCTION: Define O-RAN Central Unit Control Plane (O-CU-CP) F1-C endpoint.
+HOST oran_cucp_f1c { IP 10.185.38.1 }
+
+// INSTRUCTION: Define 3GPP TS 38.472 F1-C SCTP association and F1 Setup Request (PPID 62).
+FLOW sctp_oran_f1c_setup(du, cucp) {
+    du -> cucp SCTP CHUNK INIT VTAG 0 SRCPORT 38472 DSTPORT 38472
+    du <- cucp SCTP CHUNK INIT_ACK VTAG 384720 SRCPORT 38472 DSTPORT 38472 WAIT 1ms
+    du -> cucp SCTP CHUNK COOKIE_ECHO VTAG 384720 SRCPORT 38472 DSTPORT 38472 PAYLOAD "f1c_cookie" WAIT 1ms
+    du <- cucp SCTP CHUNK COOKIE_ACK VTAG 384720 SRCPORT 38472 DSTPORT 38472 WAIT 1ms
+    du -> cucp SCTP CHUNK DATA VTAG 384720 STREAM 0 SSN 0 PPID 62 SRCPORT 38472 DSTPORT 38472 PAYLOAD "f1ap_f1_setup_request_gnb_du_id_7" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing O-RAN F1-C SCTP control plane setup.
+COMPILE {
+    sctp_oran_f1c_setup(oran_du_f1c, oran_cucp_f1c)
+}

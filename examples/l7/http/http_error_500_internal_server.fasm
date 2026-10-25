@@ -1,0 +1,28 @@
+// PROMPT: HTTP POST request triggering unhandled backend database exception and 500 Internal Server Error.
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, CONTENT_TYPE, BODY, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define billing microservice client.
+HOST billing_svc {
+    IP 10.200.50.8
+}
+
+// INSTRUCTION: Define payment processing backend host.
+HOST payment_gateway {
+    IP 10.200.50.1
+}
+
+// INSTRUCTION: Send POST payment charge and receive 500 error response.
+FLOW http_server_fault(c, s) {
+    c -> s HTTP METHOD "POST" URI "/v1/charge"
+           HOST_HDR "pay.cloudcorp.io"
+           CONTENT_TYPE "application/json"
+           BODY "{\"txn_id\":\"tx-9912\"}"
+    c <- s HTTP STATUS 500 REASON "Internal Server Error"
+           CONTENT_TYPE "application/json"
+           BODY "{\"error\":\"database_timeout\"}"
+}
+
+// INSTRUCTION: Compile 500 internal server error scenario.
+COMPILE {
+    http_server_fault(billing_svc, payment_gateway)
+}

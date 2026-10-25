@@ -1,0 +1,24 @@
+// PROMPT: NetFlow v5 telemetry capturing UDP port 123 NTP monlist amplification reflection traffic.
+// TOKENS: HOST, IP, MAC, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define ISP edge router observing UDP port 123 reflection traffic.
+HOST isp_edge_rtr {
+    IP 172.22.0.1
+    MAC 00:19:e8:22:00:01
+}
+
+// INSTRUCTION: Define ISP threat intelligence NetFlow ingestion node.
+HOST threat_ingest {
+    IP 172.22.0.99
+    MAC 00:19:e8:22:00:63
+}
+
+// INSTRUCTION: Export high-octet UDP port 123 NTP reflection flow record.
+FLOW netflow_ntp_reflection(edge, ing) {
+    edge -> ing NETFLOW SRCIP 198.51.100.123 DSTIP 203.0.113.77 SRCPORT 123 DSTPORT 40812 PROTO 17 PACKETS 9000 OCTETS 4212000
+}
+
+// INSTRUCTION: Compile the NTP amplification reflection NetFlow audit scenario.
+COMPILE {
+    netflow_ntp_reflection(isp_edge_rtr, threat_ingest)
+}

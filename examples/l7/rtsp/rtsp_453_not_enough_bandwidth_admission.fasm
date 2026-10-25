@@ -1,0 +1,27 @@
+// PROMPT: RTSP admission control rejecting 4K stream SETUP with 453 Not Enough Bandwidth.
+// TOKENS: HOST, IP, FLOW, RTSP, DESCRIBE, URI, CSEQ, WAIT, STATUS, SETUP, TRANSPORT_HDR, SESSION, COMPILE
+
+// INSTRUCTION: Define branch viewer requesting 4K stream over congested WAN.
+HOST wan_viewer {
+    IP 10.115.30.40
+}
+
+// INSTRUCTION: Define bandwidth-managed RTSP media server.
+HOST bw_rtsp_srv {
+    IP 10.115.30.1
+}
+
+// INSTRUCTION: Define 4K SETUP rejected with 453 followed by successful 720p substream SETUP.
+FLOW rtsp_453_admission(c, s) {
+    c -> s RTSP DESCRIBE URI "rtsp://10.115.30.1/cam/uhd4k" CSEQ 1 WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 1 WAIT 4ms
+    c -> s RTSP SETUP URI "rtsp://10.115.30.1/cam/uhd4k/track1" CSEQ 2 TRANSPORT_HDR "RTP/AVP;unicast;client_port=7000-7001" WAIT 4ms
+    c <- s RTSP STATUS 453 CSEQ 2 WAIT 4ms
+    c -> s RTSP SETUP URI "rtsp://10.115.30.1/cam/sub720p/track1" CSEQ 3 TRANSPORT_HDR "RTP/AVP;unicast;client_port=7000-7001" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 3 SESSION "sub720_ok"
+}
+
+// INSTRUCTION: Compile the RTSP 453 bandwidth admission control scenario.
+COMPILE {
+    rtsp_453_admission(wan_viewer, bw_rtsp_srv)
+}

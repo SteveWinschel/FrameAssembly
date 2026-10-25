@@ -1,0 +1,18 @@
+// PROMPT: HSRP hello packet with GTSM TTL 255 and explicit virtual MAC destination.
+// TOKENS: HOST, IP, MAC, FLOW, HSRP, GROUP, PRIORITY, VIP, TTL, SRCMAC, DSTMAC, COMPILE
+
+// INSTRUCTION: Define secure gateway router.
+HOST secure_gw_rtr { IP 192.168.12.254 MAC 00:00:0c:07:ac:0c }
+
+// INSTRUCTION: Define multicast target with standard Cisco HSRP MAC.
+HOST hsrp_mcast_endpoint { IP 224.0.0.2 MAC 01:00:5e:00:00:02 }
+
+// INSTRUCTION: Define secure HSRP flow with TTL 255 and virtual MAC bindings.
+FLOW hsrp_secure_flow(gw, dst) {
+    gw -> dst HSRP GROUP 12 PRIORITY 115 VIP 192.168.12.1 TTL 255 SRCMAC 00:00:0c:07:ac:0c DSTMAC 01:00:5e:00:00:02
+}
+
+// INSTRUCTION: Compile block executing single-hop secured HSRP frame.
+COMPILE {
+    hsrp_secure_flow(secure_gw_rtr, hsrp_mcast_endpoint)
+}

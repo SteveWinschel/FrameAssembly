@@ -1,0 +1,25 @@
+// PROMPT: Generate a legacy unicast mDNS query from a non-5353 source port receiving a direct unicast response with matching TXID.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, SRCPORT, DSTPORT, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RCODE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the legacy DNS stub resolver sending a one-shot unicast query to port 5353 from ephemeral port 54112.
+HOST legacy_resolver {
+    IP 10.0.10.33
+    MAC 00:1c:42:0a:00:21
+}
+
+// INSTRUCTION: Define the mDNS responder answering the legacy unicast query directly.
+HOST mdns_responder {
+    IP 10.0.10.80
+    MAC 00:1c:42:0a:00:50
+}
+
+// INSTRUCTION: Send an mDNS A query from SRCPORT 54112 with TXID 0x4210 and receive a direct unicast reply with RCODE 0.
+FLOW legacy_unicast_mdns(c, s) {
+    c -> s MDNS SRCPORT 54112 DSTPORT 5353 QUERY TXID 0x4210 QNAME "build-cache.local" QTYPE "A" WAIT 2ms
+    c <- s MDNS SRCPORT 5353 DSTPORT 54112 RESPONSE TXID 0x4210 RCODE 0 QNAME "build-cache.local" QTYPE "A" RDATA "10.0.10.80" ANS_TTL 10
+}
+
+// INSTRUCTION: Compile the legacy unicast mDNS query and response into a PCAP file.
+COMPILE {
+    legacy_unicast_mdns(legacy_resolver, mdns_responder)
+}

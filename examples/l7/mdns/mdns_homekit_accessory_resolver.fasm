@@ -1,0 +1,18 @@
+// PROMPT: Apple HomeKit smart home accessory resolver query over local multicast.
+// TOKENS: HOST, IP, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, COMPILE
+
+// INSTRUCTION: Define smart home mobile controller.
+HOST mobile_device { IP 192.168.100.88 }
+
+// INSTRUCTION: Define local link multicast receiver.
+HOST mcast_listener { IP 224.0.0.251 }
+
+// INSTRUCTION: Define HomeKit accessory query flow.
+FLOW homekit_query_flow(mob, grp) {
+    mob -> grp MDNS QUERY TXID 6006 QNAME "_hap._tcp.local" QTYPE "PTR"
+}
+
+// INSTRUCTION: Compile HomeKit accessory resolver scenario.
+COMPILE {
+    homekit_query_flow(mobile_device, mcast_listener)
+}

@@ -1,0 +1,25 @@
+// PROMPT: RFC 1701 / RFC 2784 Layer 2 GRETAP tunnel encapsulating full Ethernet frames with GRE_PROTO 0x6558 (25944 TEB).
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, DF, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Linux / Cisco L2 GRETAP bridge endpoint A.
+HOST gretap_bridge_a {
+    IP 10.47.65.1
+    MAC 00:16:3e:47:65:01
+}
+
+// INSTRUCTION: Define L2 GRETAP bridge endpoint B extending broadcast domain across L3 WAN.
+HOST gretap_bridge_b {
+    IP 10.47.65.2
+    MAC 00:16:3e:47:65:02
+}
+
+// INSTRUCTION: Define GRETAP flow with GRE_PROTO 25944 (0x6558 Transparent Ethernet Bridging) and GRE_KEY 6558.
+FLOW gre_teb_gretap_flow(a, b) {
+    a -> b GRE GRE_KEY 6558 GRE_SEQ 10 GRE_PROTO 25944 DF TTL 64 HEXPAYLOAD "00112233445566778899aabb08004500001c000100004001" WAIT 4ms
+    a <- b GRE GRE_KEY 6558 GRE_SEQ 10 GRE_PROTO 25944 DF TTL 64 HEXPAYLOAD "66778899aabb00112233445508004500001c000200004001"
+}
+
+// INSTRUCTION: Compile the Layer 2 GRETAP Transparent Ethernet Bridging flow.
+COMPILE {
+    gre_teb_gretap_flow(gretap_bridge_a, gretap_bridge_b)
+}

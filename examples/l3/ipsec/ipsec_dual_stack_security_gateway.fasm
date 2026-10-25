@@ -1,5 +1,5 @@
 // PROMPT: IPsec security gateway exchanging protected traffic across IPv6 endpoints.
-// TOKENS: HOST, IP, FLOW, ->, IPSEC, SPI, SEQ, COMPILE
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, COMPILE
 
 // INSTRUCTION: Define IPv6 site A security gateway.
 HOST ipsec_v6_site_a { IP 2001:db8:8000::1 }

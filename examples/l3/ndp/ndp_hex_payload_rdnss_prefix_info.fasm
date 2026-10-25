@@ -1,0 +1,25 @@
+// PROMPT: Generate an IPv6 Router Advertisement carrying hexadecimal ICMPv6 Prefix Information and RDNSS options
+// TOKENS: HOST, IP, MAC, FLOW, NDP, ROUTER_SOLICIT, SLLA, TTL, WAIT, ROUTER_ADVERT, ROUTER_LIFETIME, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define the requesting IPv6 laptop
+HOST laptop_v6 {
+    IP fe80::b00:99
+    MAC 00:1e:67:db:0b:99
+}
+
+// INSTRUCTION: Define the SLAAC and RDNSS router
+HOST rdnss_router_v6 {
+    IP fe80::b00:1
+    MAC 00:1e:67:db:0b:01
+}
+
+// INSTRUCTION: Request router configuration and return an RA with hex-encoded Prefix Info Option
+FLOW ndp_ra_hex_options(client, router) {
+    client -> router NDP ROUTER_SOLICIT SLLA 00:1e:67:db:0b:99 TTL 255 WAIT 15ms
+    router -> client NDP ROUTER_ADVERT ROUTER_LIFETIME 1800 SLLA 00:1e:67:db:0b:01 TTL 255 HEXPAYLOAD "030440c000278d0000093a800000000020010db80b0000000000000000000000"
+}
+
+// INSTRUCTION: Compile the hex-extended Router Advertisement exchange
+COMPILE {
+    ndp_ra_hex_options(laptop_v6, rdnss_router_v6)
+}

@@ -1,5 +1,5 @@
 // PROMPT: TCP SYN negotiation with comprehensive TCP options including MSS, WSCALE, SACK_PERM, TSVAL, and TSECR.
-// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, SRCPORT, DSTPORT, MSS, WSCALE, SACK_PERM, TSVAL, TSECR, COMPILE
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, MSS, WSCALE, SACK_PERM, TSVAL, TSECR, ACK, COMPILE
 
 // INSTRUCTION: Define client endpoint advertising TCP options.
 HOST client_opt { IP 10.1.1.1 }

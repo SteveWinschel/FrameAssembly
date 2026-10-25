@@ -1,0 +1,23 @@
+// PROMPT: Uncompressed 16-bit stereo 44.1kHz linear PCM audio (RFC 3551 PT 10) over studio LAN.
+// TOKENS: HOST, IP, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define digital audio workstation (DAW) RTP transmitter.
+HOST daw_master {
+    IP 192.168.77.10
+}
+
+// INSTRUCTION: Define studio monitor DAC network receiver.
+HOST studio_dac {
+    IP 192.168.77.20
+}
+
+// INSTRUCTION: Define RFC 3551 static payload type 10 (L16 stereo) RTP packets.
+FLOW rtp_l16_stereo(tx, rx) {
+    tx -> rx RTP PT 10 SEQ 1000 TIMESTAMP 44100 SSRC 0x44100010 MARKER 1 HEXPAYLOAD "0100ff000200fe00" WAIT 5ms
+    tx -> rx RTP PT 10 SEQ 1001 TIMESTAMP 44541 SSRC 0x44100010 MARKER 0 HEXPAYLOAD "0300fd000400fc00"
+}
+
+// INSTRUCTION: Compile the uncompressed L16 stereo RTP audio scenario.
+COMPILE {
+    rtp_l16_stereo(daw_master, studio_dac)
+}

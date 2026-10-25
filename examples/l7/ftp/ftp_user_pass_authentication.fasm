@@ -1,5 +1,5 @@
 // PROMPT: FTP command session authenticating user credentials on TCP port 21.
-// TOKENS: HOST, IP, FLOW, ->, <-, FTP, CMD, ARG, CODE, REPLY, COMPILE
+// TOKENS: HOST, IP, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.10 }

@@ -1,0 +1,19 @@
+// PROMPT: User authentication request message with MSG_CODE 50.
+// TOKENS: HOST, IP, FLOW, SSH, MSG_CODE, COMPILE
+
+// INSTRUCTION: Define remote developer laptop.
+HOST dev_laptop { IP 192.168.4.15 }
+
+// INSTRUCTION: Define build cluster node.
+HOST build_node { IP 192.168.4.1 }
+
+// INSTRUCTION: Define user authentication request flow.
+FLOW ssh_userauth_req(c, s) {
+    c -> s SSH MSG_CODE 50
+    c <- s SSH MSG_CODE 51
+}
+
+// INSTRUCTION: Compile block executing auth request.
+COMPILE {
+    ssh_userauth_req(dev_laptop, build_node)
+}

@@ -1,0 +1,26 @@
+// PROMPT: WebRTC real-time collaboration topology combining STUN NAT traversal, SIP call signaling, RTP audio/video, and SCTP DataChannel.
+// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, BINDING_RESPONSE, XOR_MAPPED_ADDR, SOFTWARE, WAIT, DSCP, SIP, INVITE, URI, METHOD, RTP, PT, SEQ, TIMESTAMP, SSRC, PAYLOAD, SCTP, CHUNK, COMPILE
+
+// INSTRUCTION: Define WebRTC browser participant client.
+HOST webrtc_caller { IP 192.168.10.45 }
+
+// INSTRUCTION: Define public STUN/TURN traversal server.
+HOST stun_turn_srv { IP 198.51.100.40 }
+
+// INSTRUCTION: Define SIP/WebRTC Selective Forwarding Unit (SFU) media gateway.
+HOST webrtc_sfu_gw { IP 198.51.100.50 }
+
+// INSTRUCTION: Define STUN binding discovery, SIP INVITE call setup, RTP Opus audio frame, and SCTP DataChannel whiteboard event.
+FLOW webrtc_collaboration_session(caller, stun, sfu) {
+    caller -> stun STUN BINDING_REQUEST
+    caller <- stun STUN BINDING_RESPONSE XOR_MAPPED_ADDR 203.0.113.45 SOFTWARE "coturn-4.6" WAIT 2ms
+    caller -> sfu DSCP 24 SIP INVITE URI "sip:room-42@sfu.collab.example.com" WAIT 2ms
+    caller <- sfu DSCP 24 SIP METHOD "ACK" URI "sip:room-42@sfu.collab.example.com" WAIT 2ms
+    caller -> sfu DSCP 46 RTP PT 111 SEQ 1 TIMESTAMP 960 SSRC 0x99887766 PAYLOAD "opus_voice_packet_20ms" WAIT 10ms
+    caller -> sfu DSCP 18 SCTP CHUNK DATA VTAG 42001 STREAM 1 PPID 51 PAYLOAD "{\"whiteboard\":\"draw_stroke\"}" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing WebRTC STUN, SIP, RTP, and SCTP collaboration topology.
+COMPILE {
+    webrtc_collaboration_session(webrtc_caller, stun_turn_srv, webrtc_sfu_gw)
+}

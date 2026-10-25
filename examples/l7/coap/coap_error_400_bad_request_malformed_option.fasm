@@ -1,0 +1,25 @@
+// PROMPT: CoAP request rejected with 4.00 Bad Request due to an invalid query parameter payload.
+// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, PAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define the third-party gateway sending an improperly formatted CoAP command.
+HOST third_party_gw {
+    IP 10.110.100.40
+    MAC 00:1a:2b:6e:a0:40
+}
+
+// INSTRUCTION: Define the industrial pressure transmitter CoAP server.
+HOST pressure_tx {
+    IP 10.110.100.2
+    MAC 00:1a:2b:6e:a0:02
+}
+
+// INSTRUCTION: Send a PUT with malformed calibration payload and receive 4.00 Bad Request.
+FLOW coap_400_bad_req(c, s) {
+    c -> s COAP CON CODE "0.03" MSGID 10200 TOKEN 99 URI_PATH "cal/zero_offset" CONTENT_FORMAT 50 PAYLOAD "{bad_json"
+    c <- s COAP ACK CODE "4.00" MSGID 10200 TOKEN 99 PAYLOAD "Malformed JSON payload"
+}
+
+// INSTRUCTION: Compile the CoAP 4.00 Bad Request error flow.
+COMPILE {
+    coap_400_bad_req(third_party_gw, pressure_tx)
+}

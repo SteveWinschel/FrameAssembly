@@ -1,5 +1,5 @@
 // PROMPT: QUIC Handshake packet establishing 1-RTT cryptographic context over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, <-, QUIC, HANDSHAKE, DCID, SCID, COMPILE
+// TOKENS: HOST, IP, FLOW, QUIC, HANDSHAKE, DCID, SCID, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

@@ -1,0 +1,19 @@
+// PROMPT: EtherNet/IP CIP TCP/IP Interface Object (Class 245) configuration inspection over QinQ.
+// TOKENS: HOST, IP, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, QINQ, INNER_VLAN, STATUS, COMPILE
+
+// INSTRUCTION: Define OT network management appliance.
+HOST ot_nms { IP 10.130.0.10 }
+
+// INSTRUCTION: Define Stratix managed industrial switch.
+HOST stratix_sw { IP 10.130.0.2 }
+
+// INSTRUCTION: Read TCP/IP Interface Object (Class 245, Instance 1, Attr 5) over QinQ tags.
+FLOW enip_tcpip_interface_qinq(n, s) {
+    n -> s ETHERNETIP CMD "SendRRData" SESSION_HANDLE 777 CIP_SERVICE 14 CIP_CLASS 245 CIP_INSTANCE 1 CIP_ATTR 5 QINQ 900 INNER_VLAN 30
+    n <- s ETHERNETIP CMD "SendRRData" SESSION_HANDLE 777 STATUS 0 QINQ 900 INNER_VLAN 30
+}
+
+// INSTRUCTION: Compile the QinQ EtherNet/IP TCP/IP Interface Object inspection.
+COMPILE {
+    enip_tcpip_interface_qinq(ot_nms, stratix_sw)
+}

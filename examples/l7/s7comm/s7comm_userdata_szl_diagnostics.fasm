@@ -1,0 +1,19 @@
+// PROMPT: S7comm USERDATA cyclic diagnostic SZL (System Status List) query and response.
+// TOKENS: HOST, IP, FLOW, S7COMM, ROSCTR, PDU_REF, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define OT asset inventory scanner.
+HOST ot_scanner { IP 10.42.102.15 }
+
+// INSTRUCTION: Define Siemens S7 PLC target.
+HOST target_plc { IP 10.42.102.1 }
+
+// INSTRUCTION: Define ROSCTR USERDATA request reading CPU identification SZL 0x001C.
+FLOW s7comm_szl_userdata(c, plc) {
+    c -> plc S7COMM ROSCTR "USERDATA" PDU_REF 200 HEXPAYLOAD "ff090004001c0000" WAIT 5ms
+    c <- plc S7COMM ROSCTR "USERDATA" PDU_REF 200 HEXPAYLOAD "ff090008001c000136455337"
+}
+
+// INSTRUCTION: Compile S7comm USERDATA SZL diagnostic flow.
+COMPILE {
+    s7comm_szl_userdata(ot_scanner, target_plc)
+}

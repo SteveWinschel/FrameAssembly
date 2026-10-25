@@ -1,0 +1,22 @@
+// PROMPT: Kerberos ticket request failover sequence querying primary and secondary KDC nodes.
+// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REQ, REALM, CNAME, ETYPE, WAIT, COMPILE
+
+// INSTRUCTION: Define redundant client station.
+HOST branch_client { IP 172.22.1.80 }
+
+// INSTRUCTION: Define primary site KDC.
+HOST primary_kdc { IP 172.22.1.10 }
+
+// INSTRUCTION: Define secondary site backup KDC.
+HOST backup_kdc { IP 172.22.2.10 }
+
+// INSTRUCTION: Define failover ticket request flow.
+FLOW kdc_failover_flow(c, k1, k2) {
+    c -> k1 KERBEROS AS_REQ REALM "BRANCH.INTERNAL" CNAME "teller01" ETYPE 18 WAIT 50ms
+    c -> k2 KERBEROS AS_REQ REALM "BRANCH.INTERNAL" CNAME "teller01" ETYPE 18
+}
+
+// INSTRUCTION: Compile redundant KDC failover scenario.
+COMPILE {
+    kdc_failover_flow(branch_client, primary_kdc, backup_kdc)
+}

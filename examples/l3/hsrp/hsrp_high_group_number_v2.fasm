@@ -1,0 +1,18 @@
+// PROMPT: HSRP configuration utilizing extended standby group number 250 with custom timers.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, HELLOTIME, HOLDTIME, VIP, COMPILE
+
+// INSTRUCTION: Define high-density access switch router.
+HOST access_sw_rtr { IP 172.24.1.254 }
+
+// INSTRUCTION: Define standard HSRP multicast destination.
+HOST access_mcast { IP 224.0.0.2 }
+
+// INSTRUCTION: Define HSRP flow for group 250 with 2s hello and 6s hold timers.
+FLOW hsrp_high_grp(rtr, dst) {
+    rtr -> dst HSRP GROUP 250 PRIORITY 130 HELLOTIME 2 HOLDTIME 6 VIP 172.24.1.1
+}
+
+// INSTRUCTION: Compile block executing extended group HSRP advertisement.
+COMPILE {
+    hsrp_high_grp(access_sw_rtr, access_mcast)
+}

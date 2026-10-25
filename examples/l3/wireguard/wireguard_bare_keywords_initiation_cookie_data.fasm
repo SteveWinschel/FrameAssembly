@@ -1,0 +1,28 @@
+// PROMPT: WireGuard packet sequence exercising bare INITIATION, COOKIE, and DATA keywords alongside explicit TYPE RESPONSE.
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, INITIATION, SENDER, DF, TTL, WAIT, COOKIE, RECEIVER, TYPE, RESPONSE, DATA, COUNTER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define WireGuard edge client using bare INITIATION and DATA keywords.
+HOST wg_bare_kw_cli {
+    IP 10.51.99.1
+    MAC 00:50:56:51:99:01
+}
+
+// INSTRUCTION: Define WireGuard server using bare COOKIE and TYPE RESPONSE keywords.
+HOST wg_bare_kw_srv {
+    IP 10.51.99.2
+    MAC 00:50:56:51:99:02
+}
+
+// INSTRUCTION: Define complete sequence exercising bare INITIATION, COOKIE, TYPE RESPONSE, and bare DATA.
+FLOW wg_bare_keyword_sequence(cli, srv) {
+    cli -> srv WIREGUARD INITIATION SENDER 9901 DF TTL 64 WAIT 3ms
+    cli <- srv WIREGUARD COOKIE RECEIVER 9901 DF TTL 64 WAIT 3ms
+    cli -> srv WIREGUARD INITIATION SENDER 9902 DF TTL 64 WAIT 3ms
+    cli <- srv WIREGUARD TYPE RESPONSE SENDER 9903 RECEIVER 9902 DF TTL 64 WAIT 3ms
+    cli -> srv WIREGUARD DATA RECEIVER 9903 COUNTER 1 DF TTL 64 PAYLOAD "BARE_KEYWORD_DATA_VERIFIED"
+}
+
+// INSTRUCTION: Compile the WireGuard bare keyword syntax verification flow.
+COMPILE {
+    wg_bare_keyword_sequence(wg_bare_kw_cli, wg_bare_kw_srv)
+}

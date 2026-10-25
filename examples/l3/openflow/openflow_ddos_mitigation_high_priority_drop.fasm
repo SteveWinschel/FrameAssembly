@@ -1,0 +1,27 @@
+// PROMPT: SDN security controller reacting to a volumetric flood PACKET_IN by installing a priority 65000 FLOW_MOD drop rule.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, OPENFLOW, TYPE, PACKET_IN, VERSION, XID, PAYLOAD, WAIT, FLOW_MOD, TABLE_ID, PRIORITY, ECHO_REQ, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define SDN DDoS mitigation controller monitoring border switch table-miss events.
+HOST ddos_sdn_ctrl {
+    IP 10.254.0.10
+    MAC 00:1c:73:fe:00:0a
+}
+
+// INSTRUCTION: Define border OpenFlow 1.3 scrubbing switch enforcing hardware ACL tables.
+HOST border_scrub_sw {
+    IP 10.254.0.20
+    MAC 00:1c:73:fe:00:14
+}
+
+// INSTRUCTION: Escalate anomalous packet via PACKET_IN, push high-priority FLOW_MOD in table 0, and confirm liveness.
+FLOW openflow_ddos_mitigate(ctrl, sw) {
+    sw -> ctrl DSCP 48 OPENFLOW TYPE PACKET_IN VERSION 4 XID 801 PAYLOAD "syn_flood_anomaly_sample" WAIT 5ms
+    ctrl -> sw DSCP 48 OPENFLOW TYPE FLOW_MOD VERSION 4 XID 802 TABLE_ID 0 PRIORITY 65000 PAYLOAD "drop_malicious_prefix_oxm" WAIT 5ms
+    ctrl -> sw DSCP 48 OPENFLOW TYPE ECHO_REQ VERSION 4 XID 803 WAIT 5ms
+    sw -> ctrl DSCP 48 OPENFLOW TYPE ECHO_REPLY VERSION 4 XID 803
+}
+
+// INSTRUCTION: Compile the reactive OpenFlow DDoS scrubbing flow installation sequence.
+COMPILE {
+    openflow_ddos_mitigate(ddos_sdn_ctrl, border_scrub_sw)
+}

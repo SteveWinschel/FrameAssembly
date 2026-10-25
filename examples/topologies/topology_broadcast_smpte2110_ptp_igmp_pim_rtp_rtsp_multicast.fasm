@@ -1,0 +1,37 @@
+// PROMPT: Live IP broadcast studio (SMPTE ST 2110) combining IEEE 1588v2 PTP media clock synchronization, IGMPv3 and PIM-SM multicast routing, RTSP stream setup, and uncompressed RTP video.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, ANNOUNCE, DOMAIN, SYNC, WAIT, FOLLOW_UP, IGMP, REPORT, VERSION, GROUP, PIM, JOIN_PRUNE, RP, RTSP, METHOD, URI, DSCP, RTP, PT, SEQ, SSRC, MARKER, COMPILE
+
+// INSTRUCTION: Define SMPTE ST 2110 4K camera essence sender.
+HOST st2110_camera_tx {
+    IP 10.211.10.10
+    MAC 00:1b:21:d3:0a:0a
+}
+
+// INSTRUCTION: Define broadcast studio spine switch and PTP Grandmaster clock.
+HOST broadcast_spine_gm {
+    IP 10.211.10.1
+    MAC 00:1c:73:d3:0a:01
+}
+
+// INSTRUCTION: Define production vision mixer multiviewer receiver.
+HOST vision_mixer_rx {
+    IP 10.211.20.50
+    MAC 00:1b:21:d3:14:32
+}
+
+// INSTRUCTION: Define PTP ST 2059 clock lock, IGMPv3/PIM multicast subscription, RTSP SDP discovery, and ST 2110-20 RTP video essence.
+FLOW smpte_st2110_broadcast_studio(cam, spine, mixer) {
+    spine -> cam PTP ANNOUNCE DOMAIN 127
+    spine -> cam PTP SYNC DOMAIN 127 WAIT 50us
+    spine -> cam PTP FOLLOW_UP DOMAIN 127 WAIT 50us
+    mixer -> spine IGMP REPORT VERSION 3 GROUP 239.211.20.1 WAIT 100us
+    spine -> cam PIM JOIN_PRUNE GROUP 239.211.20.1 RP 10.211.10.1 WAIT 100us
+    mixer -> cam RTSP METHOD "DESCRIBE" URI "rtsp://10.211.10.10:554/by-name/cam01-uhd-video" WAIT 200us
+    cam -> mixer DSCP 46 RTP PT 96 SEQ 1 SSRC 0x21100001 MARKER 0 PAYLOAD "ST2110_20_YCBCR_422_10BIT_SCANLINE_0001" WAIT 20us
+    cam -> mixer DSCP 46 RTP PT 96 SEQ 2 SSRC 0x21100001 MARKER 1 PAYLOAD "ST2110_20_YCBCR_422_10BIT_SCANLINE_2160_EOF" WAIT 20us
+}
+
+// INSTRUCTION: Compile block executing SMPTE ST 2110 PTP, IGMP, PIM, RTSP, and RTP broadcast topology.
+COMPILE {
+    smpte_st2110_broadcast_studio(st2110_camera_tx, broadcast_spine_gm, vision_mixer_rx)
+}

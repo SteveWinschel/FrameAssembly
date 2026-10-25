@@ -1,0 +1,25 @@
+// PROMPT: Simulate an authoritative DNS server returning RCODE 5 (REFUSED) to an unauthorized recursive query from an external host.
+// TOKENS: HOST, IP, MAC, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RCODE, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the DNS stub resolver client endpoint.
+HOST dns_client {
+    IP 203.0.113.88
+    MAC 00:1b:21:53:01:0a
+}
+
+// INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
+HOST dns_server {
+    IP 198.51.100.53
+    MAC 00:1b:21:53:01:35
+}
+
+// INSTRUCTION: Execute the DNS query and authoritative response transaction.
+FLOW dns_scenario_flow(c, s) {
+    c -> s DNS QUERY TXID 2110 QNAME "www.external-domain.org" QTYPE "A" WAIT 2ms
+    c <- s DNS RESPONSE TXID 2110 RCODE 5 QNAME "www.external-domain.org" QTYPE "A" ANS_TTL 0
+}
+
+// INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
+COMPILE {
+    dns_scenario_flow(dns_client, dns_server)
+}

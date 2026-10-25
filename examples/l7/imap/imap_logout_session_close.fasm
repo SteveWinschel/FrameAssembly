@@ -1,5 +1,5 @@
 // PROMPT: IMAP graceful session logout closing connection over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, IMAP, TAG, CMD, COMPILE
+// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::25 }

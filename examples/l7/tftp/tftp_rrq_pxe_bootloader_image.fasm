@@ -1,0 +1,20 @@
+// PROMPT: Read request downloading PXE network boot loader pxelinux.0.
+// TOKENS: HOST, IP, FLOW, TFTP, RRQ, FILENAME, MODE, COMPILE
+
+// INSTRUCTION: Define bare-metal compute node booting via PXE.
+HOST pxe_client { IP 172.16.100.45 }
+
+// INSTRUCTION: Define PXE boot TFTP server.
+HOST pxe_tftp_host { IP 172.16.100.1 }
+
+// INSTRUCTION: Define PXE bootloader retrieval flow.
+FLOW tftp_pxe_flow(c, s) {
+    c -> s TFTP RRQ
+        FILENAME "pxelinux.0"
+        MODE "octet"
+}
+
+// INSTRUCTION: Compile block executing PXE loader request.
+COMPILE {
+    tftp_pxe_flow(pxe_client, pxe_tftp_host)
+}

@@ -1,0 +1,23 @@
+// PROMPT: Dual-stack IPv4 and IPv6 sFlow v5 telemetry export using a shared polymorphic flow.
+// TOKENS: HOST, IP, FLOW, SFLOW, SUB_AGENT_ID, UPTIME, SAMPLES, DSCP, TTL, FLOWLABEL, COMPILE
+
+// INSTRUCTION: Define IPv4 switch exporter and sFlow collector.
+HOST sflow_v4_sw { IP 172.16.63.1 }
+// INSTRUCTION: Define IPv4 sFlow collector endpoint.
+HOST sflow_v4_coll { IP 172.16.63.100 }
+
+// INSTRUCTION: Define IPv6 switch exporter and sFlow collector.
+HOST sflow_v6_sw { IP 2001:db8:6343::1 }
+// INSTRUCTION: Define IPv6 sFlow collector endpoint.
+HOST sflow_v6_coll { IP 2001:db8:6343::100 }
+
+// INSTRUCTION: Define polymorphic sFlow export relying on automatic source IP agent derivation.
+FLOW sflow_dual_stack(sw, coll) {
+    sw -> coll SFLOW SUB_AGENT_ID 10 UPTIME 360000 SAMPLES 2 DSCP 16 TTL 64 FLOWLABEL 0x63430
+}
+
+// INSTRUCTION: Compile dual-stack sFlow export over IPv4 and IPv6.
+COMPILE {
+    sflow_dual_stack(sflow_v4_sw, sflow_v4_coll)
+    sflow_dual_stack(sflow_v6_sw, sflow_v6_coll)
+}

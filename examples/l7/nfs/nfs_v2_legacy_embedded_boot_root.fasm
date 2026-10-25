@@ -1,0 +1,27 @@
+// PROMPT: Legacy NFSv2 root filesystem LOOKUP and READ for a diskless embedded industrial controller.
+// TOKENS: HOST, IP, MAC, FLOW, NFS, VERS, PROC, PATH, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the diskless embedded ARM controller booting over NFSroot.
+HOST embedded_board {
+    IP 192.168.72.90
+    MAC 00:1a:2b:72:00:90
+}
+
+// INSTRUCTION: Define the lab embedded boot server running NFSv2.
+HOST boot_srv {
+    IP 192.168.72.1
+    MAC 00:1a:2b:72:00:01
+}
+
+// INSTRUCTION: Perform NFSv2 LOOKUP and READ for /sbin/init during kernel root mount.
+FLOW nfs2_nfsroot(c, s) {
+    c -> s NFS VERS 2 PROC "LOOKUP" PATH "/tftpboot/rootfs/sbin/init"
+    c <- s NFS VERS 2 PROC "LOOKUP" WAIT 2ms
+    c -> s NFS VERS 2 PROC "READ" PATH "/tftpboot/rootfs/sbin/init"
+    c <- s NFS VERS 2 PROC "READ" PAYLOAD "ELF_32BIT_LSB_ARM_INIT"
+}
+
+// INSTRUCTION: Compile the legacy NFSv2 diskless boot flow.
+COMPILE {
+    nfs2_nfsroot(embedded_board, boot_srv)
+}

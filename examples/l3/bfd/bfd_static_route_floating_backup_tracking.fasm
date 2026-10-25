@@ -1,0 +1,25 @@
+// PROMPT: BFD session tracking primary WAN next-hop reachability for floating static route failover.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, SRCPORT, DSTPORT, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define branch SD-WAN router tracking primary ISP next-hop via BFD.
+HOST branch_wan_rtr {
+    IP 203.0.113.2
+    MAC 00:1d:aa:71:00:02
+}
+
+// INSTRUCTION: Define primary ISP PE gateway responding to BFD probes.
+HOST isp_primary_pe {
+    IP 203.0.113.1
+    MAC 00:1d:aa:71:00:01
+}
+
+// INSTRUCTION: Define BFD 100ms probe sequence with Multiplier 4 verifying static route next-hop.
+FLOW bfd_static_route_track(branch, isp) {
+    branch -> isp BFD STATE 3 DIAG 0 MY_DISC 2031 YOUR_DISC 2032 MIN_TX 100000 MIN_RX 100000 MULT 4 SRCPORT 49400 DSTPORT 3784 DSCP 48 TTL 255 WAIT 100ms
+    branch <- isp BFD STATE 3 DIAG 0 MY_DISC 2032 YOUR_DISC 2031 MIN_TX 100000 MIN_RX 100000 MULT 4 SRCPORT 49401 DSTPORT 3784 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the BFD floating static route next-hop tracking flow.
+COMPILE {
+    bfd_static_route_track(branch_wan_rtr, isp_primary_pe)
+}

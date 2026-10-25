@@ -1,0 +1,25 @@
+// PROMPT: Simulate an RFC 3761 ENUM e164.arpa NAPTR DNS query mapping a telephone number to a SIP URI.
+// TOKENS: HOST, IP, MAC, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, DSCP, WAIT, RESPONSE, RCODE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the DNS stub resolver client endpoint.
+HOST dns_client {
+    IP 10.88.53.12
+    MAC 00:1b:21:53:01:0a
+}
+
+// INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
+HOST dns_server {
+    IP 10.88.53.100
+    MAC 00:1b:21:53:01:35
+}
+
+// INSTRUCTION: Execute the DNS query and authoritative response transaction.
+FLOW dns_scenario_flow(c, s) {
+    c -> s DNS QUERY TXID 2104 QNAME "4.3.2.1.5.5.5.0.0.8.1.e164.arpa" QTYPE "NAPTR" DSCP 24 WAIT 5ms
+    c <- s DNS RESPONSE TXID 2104 RCODE 0 QNAME "4.3.2.1.5.5.5.0.0.8.1.e164.arpa" QTYPE "NAPTR" RDATA "100 10 u E2U+sip !^.*$!sip:support@voip.example.com!" ANS_TTL 600 DSCP 24
+}
+
+// INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
+COMPILE {
+    dns_scenario_flow(dns_client, dns_server)
+}

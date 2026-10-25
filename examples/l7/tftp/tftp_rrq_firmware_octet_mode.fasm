@@ -1,0 +1,20 @@
+// PROMPT: Read request downloading router firmware image in octet binary mode.
+// TOKENS: HOST, IP, FLOW, TFTP, RRQ, FILENAME, MODE, COMPILE
+
+// INSTRUCTION: Define network switch upgrading firmware.
+HOST upgrading_sw { IP 192.168.1.25 }
+
+// INSTRUCTION: Define central TFTP repository.
+HOST tftp_repo { IP 192.168.1.1 }
+
+// INSTRUCTION: Define firmware download request flow.
+FLOW tftp_fw_flow(c, s) {
+    c -> s TFTP RRQ
+        FILENAME "c2960x-universalk9-mz.152-7.E0a.bin"
+        MODE "octet"
+}
+
+// INSTRUCTION: Compile block executing firmware RRQ.
+COMPILE {
+    tftp_fw_flow(upgrading_sw, tftp_repo)
+}

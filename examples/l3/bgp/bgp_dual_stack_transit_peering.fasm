@@ -1,0 +1,28 @@
+// PROMPT: Polymorphic dual-stack BGP OPEN and UPDATE flow running over IPv4 and IPv6 transport.
+// TOKENS: HOST, IP, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, DSCP, TTL, FLOWLABEL, UPDATE, PREFIX, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define IPv4 ISP peer A.
+HOST isp_v4_peer_a { IP 192.0.2.1 }
+
+// INSTRUCTION: Define IPv4 ISP peer B.
+HOST isp_v4_peer_b { IP 192.0.2.2 }
+
+// INSTRUCTION: Define IPv6 ISP peer A.
+HOST isp_v6_peer_a { IP 2001:db8:179::1 }
+
+// INSTRUCTION: Define IPv6 ISP peer B.
+HOST isp_v6_peer_b { IP 2001:db8:179::2 }
+
+// INSTRUCTION: Define polymorphic BGP peering and prefix advertisement flow.
+FLOW bgp_dual_stack_peering(a, b) {
+    a -> b BGP OPEN ASN 65010 HOLDTIME 180 BGPID 192.0.2.1 DSCP 48 TTL 255 FLOWLABEL 17900
+    a <- b BGP OPEN ASN 65020 HOLDTIME 180 BGPID 192.0.2.2 DSCP 48 TTL 255 FLOWLABEL 17901
+    a -> b BGP UPDATE ASN 65010 PREFIX "198.51.100.0/24" DSCP 48 TTL 255 FLOWLABEL 17900
+    a <- b BGP KEEPALIVE DSCP 48 TTL 255 FLOWLABEL 17901
+}
+
+// INSTRUCTION: Compile the dual-stack BGP peering flow across IPv4 and IPv6.
+COMPILE {
+    bgp_dual_stack_peering(isp_v4_peer_a, isp_v4_peer_b)
+    bgp_dual_stack_peering(isp_v6_peer_a, isp_v6_peer_b)
+}

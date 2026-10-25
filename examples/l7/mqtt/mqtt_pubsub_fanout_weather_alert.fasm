@@ -1,0 +1,51 @@
+// PROMPT: Simulate a 1-to-many MQTT pub/sub fan-out where one weather station publishes an alert and the broker dispatches it to two subscribers.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, PUBLISH, TOPIC, QOS, PKT_ID, PAYLOAD, WAIT, PUBACK, COMPILE
+
+// INSTRUCTION: Define the rooftop weather sensor publishing wind gust alerts.
+HOST weather_station {
+    IP 192.168.90.15
+    MAC 00:1c:42:90:00:0f
+}
+
+// INSTRUCTION: Define the central MQTT broker routing publications to active subscribers.
+HOST central_broker {
+    IP 192.168.90.5
+    MAC 00:1c:42:90:00:05
+}
+
+// INSTRUCTION: Define the crane safety controller subscribed to wind alerts.
+HOST crane_controller {
+    IP 192.168.90.101
+    MAC 00:1c:42:90:01:01
+}
+
+// INSTRUCTION: Define the site operations siren controller subscribed to wind alerts.
+HOST siren_controller {
+    IP 192.168.90.102
+    MAC 00:1c:42:90:01:02
+}
+
+// INSTRUCTION: Publish the high-wind alert from the weather station to the broker at QoS 1.
+FLOW publish_wind_alert(c, s) {
+    c -> s MQTT PUBLISH TOPIC "weather/site1/wind/gust_kmh" QOS 1 PKT_ID 301 PAYLOAD "{\"gust_kmh\":82,\"alert\":true}" WAIT 2ms
+    c <- s MQTT PUBACK PKT_ID 301
+}
+
+// INSTRUCTION: Fan out the alert from the broker to the crane safety controller.
+FLOW fanout_to_crane(c, s) {
+    c -> s MQTT PUBLISH TOPIC "weather/site1/wind/gust_kmh" QOS 1 PKT_ID 401 PAYLOAD "{\"gust_kmh\":82,\"alert\":true}" WAIT 2ms
+    c <- s MQTT PUBACK PKT_ID 401
+}
+
+// INSTRUCTION: Fan out the alert from the broker to the site operations siren controller.
+FLOW fanout_to_siren(c, s) {
+    c -> s MQTT PUBLISH TOPIC "weather/site1/wind/gust_kmh" QOS 1 PKT_ID 402 PAYLOAD "{\"gust_kmh\":82,\"alert\":true}" WAIT 2ms
+    c <- s MQTT PUBACK PKT_ID 402
+}
+
+// INSTRUCTION: Compile the 1-to-2 MQTT fan-out alert topology into a PCAP file.
+COMPILE {
+    publish_wind_alert(weather_station, central_broker)
+    fanout_to_crane(central_broker, crane_controller)
+    fanout_to_siren(central_broker, siren_controller)
+}

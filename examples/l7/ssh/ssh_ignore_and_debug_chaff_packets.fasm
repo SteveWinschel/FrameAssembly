@@ -1,0 +1,31 @@
+// PROMPT: Simulate an SSH traffic analysis defense sequence combining SSH_MSG_IGNORE (2) and SSH_MSG_DEBUG (4) with channel data.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SSH, MSG_CODE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint sec_client.
+HOST sec_client {
+    MAC 00:1e:67:22:33:01
+    IP 192.168.44.11
+}
+
+// INSTRUCTION: Define host endpoint sec_server.
+HOST sec_server {
+    MAC 00:1e:67:22:33:02
+    IP 192.168.44.22
+}
+
+// INSTRUCTION: Send SSH_MSG_DEBUG (4), SSH_MSG_IGNORE (2) chaff packet, and SSH_MSG_CHANNEL_DATA (94).
+FLOW ssh_ignore_and_debug_messages(sec_client, sec_server) {
+    sec_client -> sec_server TCP SYN SRCPORT 59022 DSTPORT 22
+    sec_server -> sec_client TCP SYN ACK
+    sec_client -> sec_server TCP ACK
+    sec_client -> sec_server SSH MSG_CODE 4 PAYLOAD "debug1: keystroke timing obfuscation enabled"
+    sec_client -> sec_server SSH MSG_CODE 2 PAYLOAD "CHAFF-PADDING-00000000"
+    sec_client -> sec_server SSH MSG_CODE 94 PAYLOAD "ENC-KEYSTROKE-PACKET"
+    sec_server -> sec_client SSH MSG_CODE 2 PAYLOAD "CHAFF-PADDING-11111111"
+    sec_server -> sec_client SSH MSG_CODE 94 PAYLOAD "ENC-ECHO-RESPONSE"
+}
+
+// INSTRUCTION: Compile the SSH ignore and debug packet flow.
+COMPILE {
+    ssh_ignore_and_debug_messages(sec_client, sec_server)
+}

@@ -1,0 +1,18 @@
+// PROMPT: 802.1Q VLAN tagged ICMP Echo Request traceroute probe with explicit SEQ and DSCP.
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, VLAN, PCP, DEI, DSCP, COMPILE
+
+// INSTRUCTION: Define diagnostic tester on VLAN 42.
+HOST diag_tester { IP 192.168.42.10 }
+
+// INSTRUCTION: Define remote target switch.
+HOST remote_sw { IP 192.168.42.1 }
+
+// INSTRUCTION: Define VLAN-tagged ICMP echo flow with CS4 DSCP marking.
+FLOW icmp_vlan_probe(t, s) {
+    t -> s ICMP ECHO_REQUEST ID 1042 SEQ 1 VLAN 42 PCP 4 DEI 0 DSCP 32
+}
+
+// INSTRUCTION: Compile block executing tagged ICMP traceroute probe.
+COMPILE {
+    icmp_vlan_probe(diag_tester, remote_sw)
+}

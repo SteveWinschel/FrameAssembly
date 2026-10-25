@@ -1,0 +1,27 @@
+// PROMPT: RFC 7752 BGP Link-State (BGP-LS) exporting IGP Traffic Engineering topology to a centralized PCE controller.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, DSCP, TTL, WAIT, UPDATE, PREFIX, NEXTHOP, PAYLOAD, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define Area Border Router exporting OSPF-TE / IS-IS-TE graph via BGP-LS.
+HOST bgpls_abr_exporter {
+    IP 10.77.52.10
+    MAC 00:22:bd:77:52:0a
+}
+
+// INSTRUCTION: Define Path Computation Element (PCE) SDN controller collecting BGP-LS NLRI.
+HOST sdn_pce_collector {
+    IP 10.77.52.100
+    MAC 00:22:bd:77:52:64
+}
+
+// INSTRUCTION: Define BGP-LS session establishment and link-state topology UPDATE export.
+FLOW bgp_link_state_export(abr, pce) {
+    abr -> pce BGP OPEN ASN 65077 HOLDTIME 180 BGPID 10.77.52.10 DSCP 48 TTL 64 WAIT 5ms
+    abr <- pce BGP OPEN ASN 65077 HOLDTIME 180 BGPID 10.77.52.100 DSCP 48 TTL 64 WAIT 5ms
+    abr -> pce BGP UPDATE ASN 65077 PREFIX "10.0.0.0/8" NEXTHOP 10.77.52.10 DSCP 48 TTL 64 PAYLOAD "BGPLS_AFI16388_SAFI71_NODE_LINK_SID_16001" WAIT 5ms
+    abr <- pce BGP KEEPALIVE DSCP 48 TTL 64
+}
+
+// INSTRUCTION: Compile the RFC 7752 BGP-LS topology export flow.
+COMPILE {
+    bgp_link_state_export(bgpls_abr_exporter, sdn_pce_collector)
+}

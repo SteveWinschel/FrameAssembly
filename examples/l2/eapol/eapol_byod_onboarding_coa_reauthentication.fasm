@@ -1,0 +1,28 @@
+// PROMPT: Campus switch triggering IEEE 802.1X re-authentication after a RADIUS Change of Authorization (CoA) posture upgrade.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, WAIT, IDENTITY, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define employee BYOD laptop completing posture compliance check.
+HOST byod_laptop_supp {
+    IP 10.110.20.45
+    MAC 00:24:d7:6e:14:2d
+}
+
+// INSTRUCTION: Define campus access switch port re-issuing EAP-Request/Identity upon CoA trigger.
+HOST campus_coa_sw {
+    IP 10.110.20.1
+    MAC 00:1e:be:6e:14:01
+}
+
+// INSTRUCTION: Perform switch-initiated EAP-Request/Identity, EAP-TLS (Method 13) verify, and EAP-Success.
+FLOW eapol_coa_reauth(laptop, sw) {
+    laptop <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 40 EAP_METHOD 1 WAIT 2ms
+    laptop -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 40 EAP_METHOD 1 IDENTITY "alice.byod@corp.example.com" WAIT 5ms
+    laptop <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 41 EAP_METHOD 13 PAYLOAD "EAP_TLS_START_POSTURE_VERIFIED" WAIT 5ms
+    laptop -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 41 EAP_METHOD 13 PAYLOAD "EAP_TLS_CLIENT_CERT_FINISHED" WAIT 5ms
+    laptop <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 41 EAP_METHOD 13
+}
+
+// INSTRUCTION: Compile the RADIUS CoA triggered EAPOL re-authentication trace.
+COMPILE {
+    eapol_coa_reauth(byod_laptop_supp, campus_coa_sw)
+}

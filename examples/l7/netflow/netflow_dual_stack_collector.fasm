@@ -1,5 +1,5 @@
 // PROMPT: NetFlow telemetry export sent over an IPv6 network underlay.
-// TOKENS: HOST, IP, FLOW, ->, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
+// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8:1::1 }

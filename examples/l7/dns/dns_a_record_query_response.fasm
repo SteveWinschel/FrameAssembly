@@ -1,5 +1,5 @@
 // PROMPT: DNS A record forward resolution query and response over UDP port 53.
-// TOKENS: HOST, IP, FLOW, ->, <-, DNS, QUERY, TXID, QNAME, QTYPE, RESPONSE, RDATA, COMPILE
+// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, RESPONSE, RDATA, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.100 }

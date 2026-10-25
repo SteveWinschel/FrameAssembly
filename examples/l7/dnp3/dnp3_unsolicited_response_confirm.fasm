@@ -1,0 +1,19 @@
+// PROMPT: DNP3 Unsolicited Response from RTU outstation reporting binary input change event and master CONFIRM.
+// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, COMPILE
+
+// INSTRUCTION: Define regional control center master.
+HOST control_center { IP 10.180.0.5 }
+
+// INSTRUCTION: Define pipeline pressure alarm outstation.
+HOST pressure_rtu { IP 10.180.0.88 }
+
+// INSTRUCTION: Outstation pushes Unsolicited Response (Group 2 Var 2); master acknowledges with Confirm.
+FLOW dnp3_unsolicited_alarm(m, o) {
+    m <- o DNP3 FUNC "UNSOLICITED_RESPONSE" SRC 88 DST 5 GROUP 2 VARIATION 2
+    m -> o DNP3 FUNC "CONFIRM" SRC 5 DST 88
+}
+
+// INSTRUCTION: Compile the DNP3 unsolicited event alarm exchange.
+COMPILE {
+    dnp3_unsolicited_alarm(control_center, pressure_rtu)
+}

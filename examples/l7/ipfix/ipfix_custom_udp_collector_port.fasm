@@ -1,0 +1,18 @@
+// PROMPT: IPFIX telemetry flow targeted at custom UDP collector port 4739 with source port specification.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define campus aggregation router.
+HOST campus_agg { IP 172.18.0.1 }
+
+// INSTRUCTION: Define custom port telemetry server.
+HOST custom_collector { IP 172.18.0.250 }
+
+// INSTRUCTION: Define IPFIX export with port details.
+FLOW custom_port_ipfix(agg, col) {
+    agg -> col IPFIX DOMAIN_ID 7701 SRCIP 10.10.1.1 DSTIP 10.20.1.1 SRCPORT 8080 DSTPORT 58200 PROTO 6 PACKETS 64 OCTETS 8192
+}
+
+// INSTRUCTION: Compile custom port IPFIX scenario.
+COMPILE {
+    custom_port_ipfix(campus_agg, custom_collector)
+}

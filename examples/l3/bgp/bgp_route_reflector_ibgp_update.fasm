@@ -1,0 +1,20 @@
+// PROMPT: iBGP Route Reflector distributing multiple NLRI prefixes to route reflector clients.
+// TOKENS: HOST, IP, FLOW, BGP, UPDATE, ASN, PREFIX, NEXTHOP, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define core iBGP Route Reflector in AS 64512.
+HOST ibgp_route_reflector { IP 10.0.100.1 }
+
+// INSTRUCTION: Define iBGP Route Reflector client in PoP 1.
+HOST ibgp_rr_client_pop1 { IP 10.0.100.11 }
+
+// INSTRUCTION: Define iBGP UPDATE sequence reflecting internal and external prefixes.
+FLOW ibgp_rr_distribution(rr, client) {
+    rr -> client BGP UPDATE ASN 64512 PREFIX "10.10.0.0/16" NEXTHOP 10.0.100.254
+    rr -> client BGP UPDATE ASN 64512 PREFIX "172.16.0.0/12" NEXTHOP 10.0.100.253
+    rr <- client BGP KEEPALIVE
+}
+
+// INSTRUCTION: Compile the iBGP Route Reflector prefix distribution flow.
+COMPILE {
+    ibgp_rr_distribution(ibgp_route_reflector, ibgp_rr_client_pop1)
+}

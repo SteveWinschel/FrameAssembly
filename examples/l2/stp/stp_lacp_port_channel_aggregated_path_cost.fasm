@@ -1,0 +1,25 @@
+// PROMPT: RSTP operating over a 2x100GbE LACP port-channel advertising halved IEEE 802.1t long path cost (100).
+// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, MAX_AGE, HELLO_TIME, FORWARD_DELAY, FLAGS, WAIT, COMPILE
+
+// INSTRUCTION: Define core switch port-channel Po1 master bridge.
+HOST core_po1_bridge {
+    IP 10.100.1.1
+    MAC 00:1c:73:64:01:01
+}
+
+// INSTRUCTION: Define aggregation switch port-channel Po1 downstream bridge.
+HOST agg_po1_bridge {
+    IP 10.100.1.2
+    MAC 00:1c:73:64:01:02
+}
+
+// INSTRUCTION: Advertise RSTP root path cost 0 from core and aggregated 200GbE path cost 100 from downstream switch.
+FLOW stp_port_channel_cost(core, agg) {
+    core -> agg STP RSTP ROOT_ID "4096:00:1c:73:64:01:01" BRIDGE_ID "4096:00:1c:73:64:01:01" COST 0 PORT_ID 36865 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 60 WAIT 5ms
+    core <- agg STP RSTP ROOT_ID "4096:00:1c:73:64:01:01" BRIDGE_ID "8192:00:1c:73:64:01:02" COST 100 PORT_ID 36865 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 60
+}
+
+// INSTRUCTION: Compile the 200GbE port-channel RSTP path cost exchange.
+COMPILE {
+    stp_port_channel_cost(core_po1_bridge, agg_po1_bridge)
+}

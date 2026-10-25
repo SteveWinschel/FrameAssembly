@@ -1,0 +1,22 @@
+// PROMPT: Rapid channel change signaling IGMP Leave from old stream followed by Report join for new stream.
+// TOKENS: HOST, IP, FLOW, IGMP, LEAVE, GROUP, WAIT, REPORT, COMPILE
+
+// INSTRUCTION: Define streaming media subscriber host.
+HOST media_subscriber { IP 10.15.2.40 }
+
+// INSTRUCTION: Define current channel multicast address.
+HOST channel_alpha { IP 239.10.1.1 }
+
+// INSTRUCTION: Define new target channel multicast address.
+HOST channel_bravo { IP 239.10.1.2 }
+
+// INSTRUCTION: Define fast leave and immediate join flow sequence.
+FLOW igmp_channel_switch(sub, ch1, ch2) {
+    sub -> ch1 IGMP LEAVE GROUP 239.10.1.1 WAIT 15ms
+    sub -> ch2 IGMP REPORT GROUP 239.10.1.2
+}
+
+// INSTRUCTION: Compile block executing IGMP channel change sequence.
+COMPILE {
+    igmp_channel_switch(media_subscriber, channel_alpha, channel_bravo)
+}

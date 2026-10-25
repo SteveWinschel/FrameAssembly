@@ -1,0 +1,18 @@
+// PROMPT: 802.1Q tagged MLD query on subscriber multicast delivery VLAN 200.
+// TOKENS: HOST, IP, FLOW, MLD, QUERY, VLAN, PCP, DEI, MAX_RESP_DELAY, COMPILE
+
+// INSTRUCTION: Define broadband access BNG gateway.
+HOST bng_access_gw { IP fe80::b00:1 }
+
+// INSTRUCTION: Define subscriber broadcast listener.
+HOST sub_listener { IP ff02::1 }
+
+// INSTRUCTION: Define VLAN 200 tagged MLD query with high PCP priority.
+FLOW mld_vlan_query_flow(bng, sub) {
+    bng -> sub MLD QUERY VLAN 200 PCP 6 DEI 0 MAX_RESP_DELAY 5000
+}
+
+// INSTRUCTION: Compile block executing tagged MLD query.
+COMPILE {
+    mld_vlan_query_flow(bng_access_gw, sub_listener)
+}

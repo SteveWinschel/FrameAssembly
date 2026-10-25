@@ -1,0 +1,19 @@
+// PROMPT: Dual-stack IPv6 STUN binding request to public session controller.
+// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_RESPONSE, COMPILE
+
+// INSTRUCTION: Define IPv6 dual-stack terminal.
+HOST dual_terminal { IP 2001:db8:9000::25 }
+
+// INSTRUCTION: Define IPv6 STUN controller.
+HOST stun_v6_ctrl { IP 2001:db8:9000::1 }
+
+// INSTRUCTION: Define IPv6 STUN binding flow.
+FLOW stun_v6_flow(c, s) {
+    c -> s STUN BINDING_REQUEST SOFTWARE "V6-Client-Lib"
+    c <- s STUN BINDING_RESPONSE SOFTWARE "V6-Coturn-Core"
+}
+
+// INSTRUCTION: Compile block executing IPv6 STUN flow.
+COMPILE {
+    stun_v6_flow(dual_terminal, stun_v6_ctrl)
+}

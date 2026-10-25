@@ -1,0 +1,25 @@
+// PROMPT: LACP port-channel with max-bundle=1 keeping backup member port 2 in InSync Waiting state (0x0D = 13, not Collecting/Distributing).
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define access switch with LACP max-bundle 1 active/standby port policy.
+HOST maxbundle_sw_a {
+    IP 10.70.0.1
+    MAC 00:1c:73:46:00:01
+}
+
+// INSTRUCTION: Define peer switch terminating the active/standby LACP bundle.
+HOST maxbundle_sw_b {
+    IP 10.70.0.2
+    MAC 00:1c:73:46:00:02
+}
+
+// INSTRUCTION: Advertise Port 1 in Collecting/Distributing state 61 (0x3D) and standby Port 2 in Waiting state 13 (0x0D).
+FLOW lacp_hot_standby_port(a, b) {
+    a -> b LACP ACTOR_SYS 00:1c:73:46:00:01 ACTOR_KEY 70 ACTOR_PORT 1 ACTOR_STATE 61 PARTNER_SYS 00:1c:73:46:00:02 PARTNER_KEY 70 PARTNER_PORT 1 PARTNER_STATE 61 WAIT 5ms
+    a -> b LACP ACTOR_SYS 00:1c:73:46:00:01 ACTOR_KEY 70 ACTOR_PORT 2 ACTOR_STATE 13 PARTNER_SYS 00:1c:73:46:00:02 PARTNER_KEY 70 PARTNER_PORT 2 PARTNER_STATE 13
+}
+
+// INSTRUCTION: Compile the LACP max-bundle hot-standby port state trace.
+COMPILE {
+    lacp_hot_standby_port(maxbundle_sw_a, maxbundle_sw_b)
+}

@@ -1,0 +1,19 @@
+// PROMPT: BFD fault detection over an 802.1ad QinQ service provider circuit.
+// TOKENS: HOST, IP, FLOW, BFD, STATE, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define metro access node 1.
+HOST metro_bfd_n1 { IP 172.25.100.1 }
+
+// INSTRUCTION: Define metro access node 2.
+HOST metro_bfd_n2 { IP 172.25.100.2 }
+
+// INSTRUCTION: Define QinQ double-tagged BFD exchange on outer VLAN 1500 and inner VLAN 50.
+FLOW bfd_qinq_circuit_flow(n1, n2) {
+    n1 -> n2 BFD STATE 3 MY_DISC 3100 YOUR_DISC 3200 MIN_TX 25000 MIN_RX 25000 MULT 3 QINQ 1500 INNER_VLAN 50
+    n1 <- n2 BFD STATE 3 MY_DISC 3200 YOUR_DISC 3100 MIN_TX 25000 MIN_RX 25000 MULT 3 QINQ 1500 INNER_VLAN 50
+}
+
+// INSTRUCTION: Compile the QinQ carrier trunk BFD flow.
+COMPILE {
+    bfd_qinq_circuit_flow(metro_bfd_n1, metro_bfd_n2)
+}

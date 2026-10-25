@@ -1,0 +1,27 @@
+// PROMPT: RFC 5065 BGP Autonomous System Confederation eBGP session between internal Member-AS 65510 and Member-AS 65520.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, DSCP, TTL, WAIT, UPDATE, PREFIX, NEXTHOP, PAYLOAD, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define Confederation Member-AS 65510 border router.
+HOST confed_sub_as_1 {
+    IP 172.30.50.1
+    MAC 00:1e:13:50:65:01
+}
+
+// INSTRUCTION: Define Confederation Member-AS 65520 border router.
+HOST confed_sub_as_2 {
+    IP 172.30.50.2
+    MAC 00:1e:13:50:65:02
+}
+
+// INSTRUCTION: Define RFC 5065 Confederation eBGP OPEN, UPDATE, and KEEPALIVE with TTL 1.
+FLOW bgp_confederation_flow(sub1, sub2) {
+    sub1 -> sub2 BGP OPEN ASN 65510 HOLDTIME 90 BGPID 172.30.50.1 DSCP 48 TTL 1 WAIT 5ms
+    sub1 <- sub2 BGP OPEN ASN 65520 HOLDTIME 90 BGPID 172.30.50.2 DSCP 48 TTL 1 WAIT 5ms
+    sub1 -> sub2 BGP UPDATE ASN 65510 PREFIX "10.50.65.0/24" NEXTHOP 172.30.50.1 DSCP 48 TTL 1 PAYLOAD "AS_CONFED_SEQUENCE_65510" WAIT 5ms
+    sub1 <- sub2 BGP KEEPALIVE DSCP 48 TTL 1
+}
+
+// INSTRUCTION: Compile the RFC 5065 BGP Confederation Member-AS peering flow.
+COMPILE {
+    bgp_confederation_flow(confed_sub_as_1, confed_sub_as_2)
+}

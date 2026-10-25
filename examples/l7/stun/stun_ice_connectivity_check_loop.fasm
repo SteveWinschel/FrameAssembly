@@ -1,0 +1,27 @@
+// PROMPT: Model a periodic WebRTC ICE connectivity check keepalive loop using STUN Binding Requests and Responses.
+// TOKENS: HOST, MAC, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_RESPONSE, XOR_MAPPED_ADDR, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define host endpoint ice_agent_a.
+HOST ice_agent_a {
+    MAC 00:1c:42:34:78:10
+    IP 192.168.1.105
+}
+
+// INSTRUCTION: Define host endpoint ice_agent_b.
+HOST ice_agent_b {
+    MAC 00:1c:42:34:78:20
+    IP 198.51.100.42
+}
+
+// INSTRUCTION: Execute 3 periodic STUN Binding Request/Response keepalive checks with 25ms interval.
+FLOW stun_ice_keepalive_loop(ice_agent_a, ice_agent_b) {
+    ice_agent_a -> ice_agent_b STUN BINDING_REQUEST SOFTWARE "libnice-0.1.21"
+    ice_agent_b -> ice_agent_a STUN BINDING_RESPONSE XOR_MAPPED_ADDR 203.0.113.105 SOFTWARE "libnice-0.1.21" WAIT 25ms
+}
+
+// INSTRUCTION: Compile the STUN ICE connectivity keepalive loop flow.
+COMPILE {
+    LOOP 3 {
+        stun_ice_keepalive_loop(ice_agent_a, ice_agent_b)
+    }
+}

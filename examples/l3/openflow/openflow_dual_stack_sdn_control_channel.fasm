@@ -1,0 +1,39 @@
+// PROMPT: Build a dual-stack OpenFlow control plane managing both IPv4 and IPv6 SDN switches
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, FEATURES_REQ, VERSION, XID, WAIT, FEATURES_REPLY, DPID, FLOW_MOD, TABLE_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define the IPv4 SDN controller interface
+HOST ctrl_v4 {
+    IP 192.168.210.1
+    MAC 00:50:56:e3:10:01
+}
+
+// INSTRUCTION: Define the IPv4 OpenFlow switch interface
+HOST sw_v4 {
+    IP 192.168.210.11
+    MAC 00:50:56:e3:10:11
+}
+
+// INSTRUCTION: Define the IPv6 SDN controller interface
+HOST ctrl_v6 {
+    IP 2001:db8:210::1
+    MAC 00:50:56:e3:10:21
+}
+
+// INSTRUCTION: Define the IPv6 OpenFlow switch interface
+HOST sw_v6 {
+    IP 2001:db8:210::11
+    MAC 00:50:56:e3:10:31
+}
+
+// INSTRUCTION: Query switch features and install a base table-miss flow rule
+FLOW openflow_dual_stack_session(ctrl, sw) {
+    ctrl -> sw OPENFLOW FEATURES_REQ VERSION 4 XID 701 WAIT 10ms
+    sw -> ctrl OPENFLOW FEATURES_REPLY VERSION 4 XID 701 DPID 987654321 WAIT 10ms
+    ctrl -> sw OPENFLOW FLOW_MOD VERSION 4 XID 702 TABLE_ID 0 PRIORITY 0
+}
+
+// INSTRUCTION: Compile the OpenFlow control exchange across IPv4 and IPv6 management planes
+COMPILE {
+    openflow_dual_stack_session(ctrl_v4, sw_v4)
+    openflow_dual_stack_session(ctrl_v6, sw_v6)
+}

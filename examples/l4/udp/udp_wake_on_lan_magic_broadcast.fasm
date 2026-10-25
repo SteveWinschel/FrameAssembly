@@ -1,0 +1,24 @@
+// PROMPT: Wake-on-LAN (WoL) magic packet broadcast over UDP port 9 to wake sleeping enterprise workstations.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, DSTMAC, UDP, SRCPORT, DSTPORT, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define SCCM patch management server sending Wake-on-LAN broadcast.
+HOST sccm_wol_server {
+    IP 10.25.1.5
+    MAC 00:50:56:25:01:05
+}
+
+// INSTRUCTION: Define directed subnet broadcast address on desktop VLAN 25.
+HOST desktop_bcast_v25 {
+    IP 10.25.1.255
+    MAC ff:ff:ff:ff:ff:ff
+}
+
+// INSTRUCTION: Define UDP port 9 Wake-on-LAN magic packet with 6x 0xFF sync stream and repeated target MAC.
+FLOW udp_wake_on_lan_magic(srv, bcast) {
+    srv -> bcast VLAN 25 DSTMAC ff:ff:ff:ff:ff:ff UDP SRCPORT 49152 DSTPORT 9 HEXPAYLOAD "ffffffffffff001b21aabbcc001b21aabbcc001b21aabbcc001b21aabbcc"
+}
+
+// INSTRUCTION: Compile block executing UDP Wake-on-LAN broadcast.
+COMPILE {
+    udp_wake_on_lan_magic(sccm_wol_server, desktop_bcast_v25)
+}

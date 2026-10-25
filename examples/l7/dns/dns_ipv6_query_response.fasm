@@ -1,5 +1,5 @@
 // PROMPT: Domain Name System query and response over IPv6 UDP 53 resolving AAAA record.
-// TOKENS: HOST, IP, FLOW, ->, <-, DNS, QUERY, TXID, QNAME, QTYPE, AAAA, RESPONSE, RDATA, COMPILE
+// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, RESPONSE, RDATA, COMPILE
 
 // INSTRUCTION: Define recursive DNS resolver.
 HOST dns_resolver { IP 2001:db8:53::10 }

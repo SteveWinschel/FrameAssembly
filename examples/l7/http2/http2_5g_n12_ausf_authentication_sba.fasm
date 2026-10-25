@@ -1,0 +1,27 @@
+// PROMPT: 3GPP 5G N12 interface HTTP/2 exchange between AMF and AUSF performing UE 5G-AKA authentication on Stream 17.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP2, HEADERS, STREAM_ID, DSCP, DATA, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define 5G Access and Mobility Management Function (AMF).
+HOST amf_node {
+    IP 172.31.12.10
+    MAC 00:1e:49:1f:0c:0a
+}
+
+// INSTRUCTION: Define 5G Authentication Server Function (AUSF).
+HOST ausf_node {
+    IP 172.31.12.20
+    MAC 00:1e:49:1f:0c:14
+}
+
+// INSTRUCTION: Execute Nausf_UEAuthentication POST request and 201 Created response on HTTP/2 Stream 17.
+FLOW http2_5g_n12_ausf(amf, ausf) {
+    amf -> ausf HTTP2 HEADERS STREAM_ID 17 DSCP 34
+    amf -> ausf HTTP2 DATA STREAM_ID 17 DSCP 34 PAYLOAD "{'supiOrSuci':'suci-0-001-01-0'}"
+    amf <- ausf HTTP2 HEADERS STREAM_ID 17 DSCP 34
+    amf <- ausf HTTP2 DATA STREAM_ID 17 DSCP 34 PAYLOAD "{'authType':'5G_AKA'}"
+}
+
+// INSTRUCTION: Compile the 5G SBA N12 AMF-to-AUSF HTTP/2 authentication scenario.
+COMPILE {
+    http2_5g_n12_ausf(amf_node, ausf_node)
+}

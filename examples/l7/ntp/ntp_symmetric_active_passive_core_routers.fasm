@@ -1,0 +1,25 @@
+// PROMPT: Create an NTPv4 symmetric active (MODE 1) and symmetric passive (MODE 2) peering exchange between core routers.
+// TOKENS: HOST, IP, MAC, FLOW, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, REFID, TX_TIMESTAMP, DSCP, WAIT, COMPILE
+
+// INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
+HOST ntp_client {
+    IP 10.255.123.1
+    MAC 00:1b:21:7b:01:0a
+}
+
+// INSTRUCTION: Define the NTP reference server or peer endpoint.
+HOST ntp_server {
+    IP 10.255.123.2
+    MAC 00:1b:21:7b:01:01
+}
+
+// INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
+FLOW ntp_scenario_flow(c, s) {
+    c -> s NTP LI 0 VN 4 MODE 1 STRATUM 2 POLL 6 PRECISION -21 REFID "GPS" TX_TIMESTAMP 0xe9b4c60000000000 DSCP 48 WAIT 3ms
+    c <- s NTP LI 0 VN 4 MODE 2 STRATUM 2 POLL 6 PRECISION -21 REFID "PPS" TX_TIMESTAMP 0xe9b4c600003126e9 DSCP 48
+}
+
+// INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
+COMPILE {
+    ntp_scenario_flow(ntp_client, ntp_server)
+}

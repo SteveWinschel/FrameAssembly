@@ -1,0 +1,24 @@
+// PROMPT: Dynamic ARP Inspection (DAI) test scenario with spoofed sender IP in unsolicited ARP reply.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, ARP, REPLY, SENDERMAC, SENDERIP, TARGETMAC, TARGETIP, COMPILE
+
+// INSTRUCTION: Define rogue workstation attempting ARP cache poisoning on access VLAN.
+HOST rogue_endpoint {
+    IP 192.168.10.66
+    MAC de:ad:be:ef:10:66
+}
+
+// INSTRUCTION: Define victim host targeted by unsolicited ARP reply.
+HOST victim_workstation {
+    IP 192.168.10.25
+    MAC 00:21:cc:bb:aa:25
+}
+
+// INSTRUCTION: Define unsolicited ARP reply claiming default gateway IP address.
+FLOW dai_poison_attempt(attacker, victim) {
+    attacker -> victim VLAN 10 ARP REPLY SENDERMAC de:ad:be:ef:10:66 SENDERIP 192.168.10.1 TARGETMAC 00:21:cc:bb:aa:25 TARGETIP 192.168.10.25
+}
+
+// INSTRUCTION: Compile block generating DAI test vector.
+COMPILE {
+    dai_poison_attempt(rogue_endpoint, victim_workstation)
+}

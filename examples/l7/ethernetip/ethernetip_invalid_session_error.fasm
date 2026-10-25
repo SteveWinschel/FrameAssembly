@@ -1,0 +1,19 @@
+// PROMPT: EtherNet/IP encapsulation error response returning Status 1 (Invalid or unsupported command).
+// TOKENS: HOST, IP, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, STATUS, COMPILE
+
+// INSTRUCTION: Define diagnostic scanner client.
+HOST diag_scanner { IP 10.44.18.99 }
+
+// INSTRUCTION: Define legacy EtherNet/IP gateway.
+HOST legacy_gw { IP 10.44.18.1 }
+
+// INSTRUCTION: Send SendRRData with invalid session handle and receive Status 100 (Invalid Session Handle).
+FLOW enip_error_invalid_handle(s, g) {
+    s -> g ETHERNETIP CMD "SendRRData" SESSION_HANDLE 0xdeadbeef CONTEXT 42
+    s <- g ETHERNETIP CMD "SendRRData" SESSION_HANDLE 0xdeadbeef STATUS 100 CONTEXT 42
+}
+
+// INSTRUCTION: Compile the EtherNet/IP invalid session handle error scenario.
+COMPILE {
+    enip_error_invalid_handle(diag_scanner, legacy_gw)
+}

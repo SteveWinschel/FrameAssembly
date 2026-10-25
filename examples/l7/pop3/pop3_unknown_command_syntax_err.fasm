@@ -1,0 +1,28 @@
+// PROMPT: Model a POP3 server returning -ERR Unknown command when a client mistakenly sends IMAP verbs on port 110.
+// TOKENS: HOST, IP, MAC, FLOW, POP3, OK, RESPONSE, WAIT, CMD, ARG, ERR, COMPILE
+
+// INSTRUCTION: Define the misconfigured mail client probing TCP port 110.
+HOST misconfig_client {
+    IP 192.168.110.99
+    MAC 00:1a:2b:6e:00:63
+}
+
+// INSTRUCTION: Define the POP3 server rejecting unrecognized verbs.
+HOST pop3_daemon {
+    IP 192.168.110.1
+    MAC 00:1a:2b:6e:00:01
+}
+
+// INSTRUCTION: Send invalid SELECT and FETCH commands and receive -ERR responses before quitting.
+FLOW pop3_invalid_verb_err(c, s) {
+    c <- s POP3 OK RESPONSE "POP3 server ready" WAIT 2ms
+    c -> s POP3 CMD "SELECT" ARG "INBOX" WAIT 2ms
+    c <- s POP3 ERR RESPONSE "Unknown AUTHORIZATION state command: SELECT" WAIT 2ms
+    c -> s POP3 CMD "QUIT" WAIT 1ms
+    c <- s POP3 OK RESPONSE "Signing off"
+}
+
+// INSTRUCTION: Compile the POP3 invalid command error handling flow.
+COMPILE {
+    pop3_invalid_verb_err(misconfig_client, pop3_daemon)
+}

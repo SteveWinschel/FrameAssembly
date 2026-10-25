@@ -1,0 +1,27 @@
+// PROMPT: 5G gNodeB to AMF N2 Handover Required and Handover Request Ack multiplexed over dedicated SCTP Stream 4 (PPID 60).
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define source 5G gNodeB initiating inter-gNodeB N2 handover.
+HOST src_gnb_n2 {
+    IP 172.22.38.10
+    MAC 00:25:90:16:26:0a
+}
+
+// INSTRUCTION: Define 5G Core AMF coordinating target gNodeB resource allocation.
+HOST core_amf_n2 {
+    IP 172.22.38.1
+    MAC 00:1c:73:16:26:01
+}
+
+// INSTRUCTION: Transmit NGAP Handover Required on Stream 4 SSN 0 (PPID 60) and receive Handover Command.
+FLOW sctp_n2_handover(gnb, amf) {
+    gnb -> amf DSCP 46 SCTP CHUNK DATA VTAG 900384 STREAM 4 SSN 0 PPID 60 SRCPORT 38412 DSTPORT 38412 PAYLOAD "ngap_handover_required_target_gnb_008" WAIT 2ms
+    gnb <- amf DSCP 46 SCTP CHUNK SACK VTAG 900384 SRCPORT 38412 DSTPORT 38412 WAIT 5ms
+    gnb <- amf DSCP 46 SCTP CHUNK DATA VTAG 900384 STREAM 4 SSN 0 PPID 60 SRCPORT 38412 DSTPORT 38412 PAYLOAD "ngap_handover_command_pdu_session_tunnels" WAIT 2ms
+    gnb -> amf DSCP 46 SCTP CHUNK SACK VTAG 900384 SRCPORT 38412 DSTPORT 38412
+}
+
+// INSTRUCTION: Compile the 5G N2 inter-gNodeB handover SCTP trace.
+COMPILE {
+    sctp_n2_handover(src_gnb_n2, core_amf_n2)
+}

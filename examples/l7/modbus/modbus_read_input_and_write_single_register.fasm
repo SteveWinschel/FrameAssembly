@@ -1,0 +1,27 @@
+// PROMPT: Generate a Modbus Function Code 04 (Read Input Registers) analog sensor poll and Function Code 06 (Write Single Register) setpoint command.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TXID, UNITID, FUNC, ADDR, COUNT, WAIT, IS_RESPONSE, VALUE, COMPILE
+
+// INSTRUCTION: Define the chemical reactor DCS workstation reading temperature and updating a pressure setpoint.
+HOST dcs_console {
+    IP 172.16.80.15
+    MAC 00:0e:8c:50:00:0f
+}
+
+// INSTRUCTION: Define the reactor RTU controller with Unit ID 2.
+HOST reactor_rtu {
+    IP 172.16.80.200
+    MAC 00:0e:8c:50:00:c8
+}
+
+// INSTRUCTION: Read 4 analog input registers at 30001 (ADDR 0) with FC 04, then write setpoint 2450 to holding register 40010 (ADDR 9) with FC 06.
+FLOW analog_poll_and_setpoint_write(c, s) {
+    c -> s MODBUS TXID 201 UNITID 2 FUNC "READ_INPUT_REGISTERS" ADDR 0 COUNT 4 WAIT 4ms
+    c <- s MODBUS TXID 201 UNITID 2 FUNC "READ_INPUT_REGISTERS" IS_RESPONSE VALUE 2418 WAIT 15ms
+    c -> s MODBUS TXID 202 UNITID 2 FUNC "WRITE_SINGLE_REGISTER" ADDR 9 VALUE 2450 WAIT 4ms
+    c <- s MODBUS TXID 202 UNITID 2 FUNC "WRITE_SINGLE_REGISTER" ADDR 9 VALUE 2450 IS_RESPONSE
+}
+
+// INSTRUCTION: Compile the Modbus FC 04 and FC 06 analog control trace into a PCAP file.
+COMPILE {
+    analog_poll_and_setpoint_write(dcs_console, reactor_rtu)
+}

@@ -1,0 +1,44 @@
+// PROMPT: Dual-stack IPv4 and IPv6 HPC compute nodes reading and writing simulation checkpoints on an NFSv4 scratch volume.
+// TOKENS: HOST, IP, MAC, FLOW, NFS, VERS, PROC, TAG, PATH, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the IPv4 HPC compute node.
+HOST hpc_node_v4 {
+    IP 10.70.50.101
+    MAC 00:1a:2b:70:50:01
+}
+
+// INSTRUCTION: Define the IPv4 parallel NFSv4 gateway.
+HOST nfs_gw_v4 {
+    IP 10.70.50.1
+    MAC 00:1a:2b:70:50:fe
+}
+
+// INSTRUCTION: Define the IPv6 HPC compute node.
+HOST hpc_node_v6 {
+    IP 2001:db8:70:50::101
+    MAC 00:1a:2b:70:56:01
+}
+
+// INSTRUCTION: Define the IPv6 parallel NFSv4 gateway.
+HOST nfs_gw_v6 {
+    IP 2001:db8:70:50::1
+    MAC 00:1a:2b:70:56:fe
+}
+
+// INSTRUCTION: Write simulation checkpoint over IPv4.
+FLOW nfs_hpc_v4(c, s) {
+    c -> s NFS VERS 4 PROC "WRITE" TAG "ckpt_rank0" PATH "/scratch/cfd_run42/step_1000.h5" PAYLOAD "HDF5_HEADER_RANK0"
+    c <- s NFS VERS 4 PROC "WRITE" TAG "ckpt_rank0"
+}
+
+// INSTRUCTION: Read mesh geometry over IPv6.
+FLOW nfs_hpc_v6(c, s) {
+    c -> s NFS VERS 4 PROC "READ" TAG "mesh_rank1" PATH "/scratch/cfd_run42/wing_mesh.cgns"
+    c <- s NFS VERS 4 PROC "READ" TAG "mesh_rank1" PAYLOAD "CGNS_MESH_VERTICES"
+}
+
+// INSTRUCTION: Compile both IPv4 and IPv6 HPC NFSv4 flows.
+COMPILE {
+    nfs_hpc_v4(hpc_node_v4, nfs_gw_v4)
+    nfs_hpc_v6(hpc_node_v6, nfs_gw_v6)
+}

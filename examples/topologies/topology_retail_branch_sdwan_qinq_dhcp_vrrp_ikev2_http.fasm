@@ -1,0 +1,36 @@
+// PROMPT: Retail store SD-WAN branch zero-touch provisioning combining QinQ metro Ethernet access, DHCP WAN lease, VRRP LAN gateway redundancy, IKEv2 IPsec overlay, and HTTP check-in.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DHCP, DISCOVER, OFFER, YIADDR, WAIT, VRRP, VRID, PRIORITY, VIP, IKEV2, SA_INIT, MSGID, HTTP, METHOD, URI, BODY, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define retail branch SD-WAN primary CPE appliance.
+HOST retail_sdwan_cpe1 {
+    IP 10.125.10.2
+    MAC 00:1b:21:7d:0a:02
+}
+
+// INSTRUCTION: Define retail branch SD-WAN secondary CPE appliance.
+HOST retail_sdwan_cpe2 {
+    IP 10.125.10.3
+    MAC 00:1b:21:7d:0a:03
+}
+
+// INSTRUCTION: Define carrier BNG and central SD-WAN orchestrator hub.
+HOST sdwan_hub_orchestrator {
+    IP 10.125.0.1
+    MAC 00:05:85:7d:00:01
+}
+
+// INSTRUCTION: Define QinQ DHCP WAN lease, LAN VRRP election, IKEv2 overlay tunnel, and HTTP ZTP configuration fetch.
+FLOW retail_branch_sdwan_bringup(cpe1, cpe2, hub) {
+    cpe1 -> hub QINQ 1200 INNER_VLAN 25 DHCP DISCOVER
+    cpe1 <- hub QINQ 1200 INNER_VLAN 25 DHCP OFFER YIADDR 10.125.10.2 WAIT 1ms
+    cpe1 -> cpe2 VRRP VRID 25 PRIORITY 200 VIP 10.125.10.1 WAIT 1ms
+    cpe1 -> hub IKEV2 SA_INIT MSGID 0 WAIT 1ms
+    cpe1 <- hub IKEV2 SA_INIT MSGID 0 WAIT 1ms
+    cpe1 -> hub HTTP METHOD "POST" URI "/ztp/v1/checkin" BODY "{\"store_id\":\"STORE-0492\"}" WAIT 1ms
+    cpe1 <- hub HTTP STATUS 200 REASON "OK" BODY "{\"policy\":\"pci-pos-segmented-v4\"}" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing retail SD-WAN QinQ, DHCP, VRRP, IKEv2, and HTTP topology.
+COMPILE {
+    retail_branch_sdwan_bringup(retail_sdwan_cpe1, retail_sdwan_cpe2, sdwan_hub_orchestrator)
+}

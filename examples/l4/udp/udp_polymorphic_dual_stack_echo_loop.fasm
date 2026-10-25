@@ -1,0 +1,28 @@
+// PROMPT: Polymorphic dual-stack IPv4 and IPv6 RFC 862 UDP Echo service (port 7) jitter test executed inside a LOOP block.
+// TOKENS: HOST, IP, FLOW, TTL, DSCP, FLOWLABEL, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define IPv4 SLA probe generator.
+HOST sla_gen_v4 { IP 10.70.7.10 }
+
+// INSTRUCTION: Define IPv4 RFC 862 UDP Echo responder.
+HOST sla_echo_v4 { IP 10.70.7.1 }
+
+// INSTRUCTION: Define IPv6 SLA probe generator.
+HOST sla_gen_v6 { IP 2001:db8:70:7::10 }
+
+// INSTRUCTION: Define IPv6 RFC 862 UDP Echo responder.
+HOST sla_echo_v6 { IP 2001:db8:70:7::1 }
+
+// INSTRUCTION: Define polymorphic UDP port 7 Echo request and reply with canonical TTL, DSCP, and FLOWLABEL modifiers.
+FLOW udp_rfc862_echo_probe(gen, echo) {
+    gen -> echo TTL 64 DSCP 46 FLOWLABEL 0x70007 UDP SRCPORT 50007 DSTPORT 7 PAYLOAD "rfc862_sla_jitter_beacon"
+    gen <- echo TTL 64 DSCP 46 FLOWLABEL 0x70007 UDP SRCPORT 7 DSTPORT 50007 PAYLOAD "rfc862_sla_jitter_beacon" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block running 3 iterations of dual-stack UDP Echo probes.
+COMPILE {
+    LOOP 3 {
+        udp_rfc862_echo_probe(sla_gen_v4, sla_echo_v4)
+        udp_rfc862_echo_probe(sla_gen_v6, sla_echo_v6)
+    }
+}

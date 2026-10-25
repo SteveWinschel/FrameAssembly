@@ -1,5 +1,5 @@
 // PROMPT: Simulate a TCP SYN-ACK reflection attack where a reflector server sends unsolicited SYN-ACK packets to a spoofed victim IP in a loop.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, RST, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, WAIT, ms, COMPILE, LOOP
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, ACK, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, WAIT, RST, COMPILE, LOOP
 
 // INSTRUCTION: Define the spoofed victim host with IP 192.0.2.50.
 HOST spoofed_victim { IP 192.0.2.50 MAC 00:50:56:c0:00:08 }

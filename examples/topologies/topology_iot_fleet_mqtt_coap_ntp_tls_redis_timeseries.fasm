@@ -1,0 +1,30 @@
+// PROMPT: Industrial IoT fleet telemetry pipeline combining NTP stratum-1 synchronization, CoAP constrained sensor collection, TLS-wrapped MQTT cloud publish, and Redis timeseries ingest.
+// TOKENS: HOST, IP, FLOW, NTP, VN, MODE, STRATUM, WAIT, COAP, CON, CODE, MSGID, URI_PATH, PAYLOAD, ACK, TLS, CLIENT_HELLO, SNI, SERVER_HELLO, MQTT, CONNECT, CLIENT_ID, CONNACK, PUBLISH, COMPILE
+
+// INSTRUCTION: Define constrained smart factory vibration sensor node.
+HOST coap_sensor_node { IP 10.140.10.25 }
+
+// INSTRUCTION: Define local IoT edge gateway bridging CoAP to MQTT over TLS.
+HOST iot_edge_gateway { IP 10.140.10.1 }
+
+// INSTRUCTION: Define cloud MQTT broker, NTP server, and Redis timeseries store.
+HOST cloud_iot_core { IP 10.140.200.50 }
+
+// INSTRUCTION: Define NTP sync, CoAP sensor report, TLS handshake, MQTT telemetry publish, and Redis XADD stream append.
+FLOW iot_fleet_telemetry_pipeline(sensor, gw, cloud) {
+    gw -> cloud NTP VN 4 MODE 3 STRATUM 2
+    gw <- cloud NTP VN 4 MODE 4 STRATUM 1 WAIT 1ms
+    sensor -> gw COAP CON CODE "0.02" MSGID 401 URI_PATH "sensors/vibration" PAYLOAD "{\"rms_mm_s\":2.45}" WAIT 1ms
+    sensor <- gw COAP ACK CODE "2.04" MSGID 401 WAIT 1ms
+    gw -> cloud TLS CLIENT_HELLO SNI "mqtt.iot-cloud.example.com" WAIT 1ms
+    gw <- cloud TLS SERVER_HELLO WAIT 1ms
+    gw -> cloud MQTT CONNECT CLIENT_ID "edge-gw-plant04" WAIT 1ms
+    gw <- cloud MQTT CONNACK WAIT 1ms
+    gw -> cloud MQTT PUBLISH TOPIC "factory/plant04/vibration" QOS 1 PAYLOAD "{\"rms_mm_s\":2.45,\"ts\":1729850000}" WAIT 1ms
+    gw -> cloud REDIS CMD "XADD" ARGS "ts:plant04:vibration * rms 2.45" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing IoT fleet NTP, CoAP, TLS, MQTT, and Redis topology.
+COMPILE {
+    iot_fleet_telemetry_pipeline(coap_sensor_node, iot_edge_gateway, cloud_iot_core)
+}

@@ -1,0 +1,29 @@
+// PROMPT: Enterprise email infrastructure lifecycle covering DNS MX resolution, SMTP message submission, IMAP folder sync, and POP3 retrieval.
+// TOKENS: HOST, IP, FLOW, DNS, QNAME, QTYPE, RDATA, WAIT, SMTP, EHLO, MAIL_FROM, PARAM, BODY, CODE, REPLY, IMAP, TAG, CMD, ARG, PAYLOAD, POP3, OK, COMPILE
+
+// INSTRUCTION: Define corporate mail user agent (MUA) workstation.
+HOST mail_client_ws { IP 10.40.20.15 }
+
+// INSTRUCTION: Define internal recursive DNS resolver.
+HOST internal_dns_srv { IP 10.40.1.53 }
+
+// INSTRUCTION: Define unified enterprise mail server (SMTP/IMAP/POP3).
+HOST mail_exchange_srv { IP 10.40.1.25 }
+
+// INSTRUCTION: Define DNS MX lookup, SMTP mail submission, IMAP inbox fetch, and legacy POP3 status check.
+FLOW enterprise_email_lifecycle(mua, dns, mta) {
+    mua -> dns DNS QNAME "corp.example.com" QTYPE "MX"
+    mua <- dns DNS QNAME "corp.example.com" QTYPE "MX" RDATA "mail.corp.example.com" WAIT 1ms
+    mua -> mta SMTP EHLO "ws15.corp.example.com" WAIT 1ms
+    mua -> mta SMTP MAIL_FROM PARAM "alice@corp.example.com" BODY "Subject: Quarterly Report\r\n" WAIT 2ms
+    mua <- mta SMTP CODE 250 REPLY "2.0.0 OK Queued" WAIT 1ms
+    mua -> mta IMAP TAG "A001" CMD "SELECT" ARG "INBOX" WAIT 2ms
+    mua <- mta IMAP TAG "A001" PAYLOAD "* 12 EXISTS\r\nA001 OK SELECT completed\r\n" WAIT 1ms
+    mua -> mta POP3 CMD "STAT" ARG "1" WAIT 2ms
+    mua <- mta POP3 OK WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing enterprise DNS, SMTP, IMAP, and POP3 mail topology.
+COMPILE {
+    enterprise_email_lifecycle(mail_client_ws, internal_dns_srv, mail_exchange_srv)
+}

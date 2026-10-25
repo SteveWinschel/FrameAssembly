@@ -1,0 +1,21 @@
+// PROMPT: 802.1Q VLAN-tagged ICMP Echo Request and Echo Reply diagnostic sweep with explicit ID and SEQ.
+// TOKENS: HOST, IP, MAC, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, VLAN, PCP, DEI, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define network management station on VLAN 250.
+HOST nms_ping_station { IP 10.250.1.10 MAC 00:21:5a:25:01:10 }
+
+// INSTRUCTION: Define managed access switch on VLAN 250.
+HOST managed_sw_250 { IP 10.250.1.254 MAC 00:21:5a:25:02:54 }
+
+// INSTRUCTION: Define VLAN 250 tagged ICMP ping sequence advancing SEQ numbers.
+FLOW icmp_vlan_sweep(nms, sw) {
+    nms -> sw ICMP ECHO_REQUEST ID 2500 SEQ 1 VLAN 250 PCP 2 DEI 0
+    nms <- sw ICMP ECHO_REPLY ID 2500 SEQ 1 VLAN 250 PCP 2 DEI 0
+    nms -> sw ICMP ECHO_REQUEST ID 2500 SEQ 2 VLAN 250 PCP 2 DEI 0
+    nms <- sw ICMP ECHO_REPLY ID 2500 SEQ 2 VLAN 250 PCP 2 DEI 0
+}
+
+// INSTRUCTION: Compile the VLAN-tagged ICMP ping sweep flow.
+COMPILE {
+    icmp_vlan_sweep(nms_ping_station, managed_sw_250)
+}

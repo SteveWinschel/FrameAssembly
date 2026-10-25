@@ -1,0 +1,23 @@
+// PROMPT: PostgreSQL transactional BEGIN, INSERT, and COMMIT batch with COMMAND_COMPLETE replies.
+// TOKENS: HOST, IP, FLOW, POSTGRES, SQL, WAIT, COMMAND_COMPLETE, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define payment service client.
+HOST pay_svc { IP 10.50.10.22 }
+
+// INSTRUCTION: Define ledger PostgreSQL server.
+HOST ledger_db { IP 10.50.10.10 }
+
+// INSTRUCTION: Define SQL transaction lifecycle from BEGIN to COMMIT.
+FLOW pg_acid_txn(c, s) {
+    c -> s POSTGRES SQL "BEGIN" WAIT 2ms
+    c <- s POSTGRES COMMAND_COMPLETE WAIT 2ms
+    c -> s POSTGRES SQL "INSERT INTO ledger (acct_id, amount) VALUES (1042, 5000)" WAIT 5ms
+    c <- s POSTGRES COMMAND_COMPLETE WAIT 2ms
+    c -> s POSTGRES SQL "COMMIT" WAIT 3ms
+    c <- s POSTGRES COMMAND_COMPLETE READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile PostgreSQL ACID transaction flow.
+COMPILE {
+    pg_acid_txn(pay_svc, ledger_db)
+}

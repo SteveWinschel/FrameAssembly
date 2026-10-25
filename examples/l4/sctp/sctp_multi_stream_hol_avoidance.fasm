@@ -1,0 +1,22 @@
+// PROMPT: Multi-stream SCTP Head-of-Line (HoL) blocking avoidance multiplexing independent streams 0, 1, 2, and 3 on a single association.
+// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define SCTP multi-stream sender gateway.
+HOST sctp_mux_sender { IP 172.22.90.1 }
+
+// INSTRUCTION: Define SCTP multi-stream receiver gateway.
+HOST sctp_mux_receiver { IP 172.22.90.2 }
+
+// INSTRUCTION: Define concurrent SCTP DATA chunks across streams 0, 1, 2, and 3 with independent SSNs.
+FLOW sctp_multistream_mux(tx, rx) {
+    tx -> rx SCTP CHUNK DATA VTAG 800100 STREAM 0 SSN 0 PPID 39 SRCPORT 9899 DSTPORT 9899 PAYLOAD "stream_0_control_channel_msg_0"
+    tx -> rx SCTP CHUNK DATA VTAG 800100 STREAM 1 SSN 0 PPID 39 SRCPORT 9899 DSTPORT 9899 PAYLOAD "stream_1_telemetry_channel_msg_0" WAIT 500us
+    tx -> rx SCTP CHUNK DATA VTAG 800100 STREAM 2 SSN 0 PPID 39 SRCPORT 9899 DSTPORT 9899 PAYLOAD "stream_2_audit_channel_msg_0" WAIT 500us
+    tx -> rx SCTP CHUNK DATA VTAG 800100 STREAM 3 SSN 0 PPID 39 SRCPORT 9899 DSTPORT 9899 PAYLOAD "stream_3_Alert_channel_msg_0" WAIT 500us
+    tx <- rx SCTP CHUNK SACK VTAG 800100 SRCPORT 9899 DSTPORT 9899 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing multi-stream SCTP multiplexing.
+COMPILE {
+    sctp_multistream_mux(sctp_mux_sender, sctp_mux_receiver)
+}

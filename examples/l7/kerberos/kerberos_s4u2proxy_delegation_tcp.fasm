@@ -1,0 +1,32 @@
+// PROMPT: Generate a Kerberos S4U2Proxy constrained delegation exchange where a web frontend requests a backend CIFS ticket over TCP.
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SRCPORT, DSTPORT, SYN, SEQ, WIN, WAIT, ACK, ACKNUM, KERBEROS, TRANSPORT, TGS_REQ, REALM, CNAME, SNAME, ETYPE, HEXPAYLOAD, TGS_REP, FIN, COMPILE
+
+// INSTRUCTION: Define the middle-tier web portal performing Kerberos constrained delegation.
+HOST web_portal {
+    IP 10.55.10.20
+    MAC 00:15:5d:55:10:20
+}
+
+// INSTRUCTION: Define the Active Directory KDC validating the S4U2Proxy evidence ticket.
+HOST ad_kdc {
+    IP 10.55.1.10
+    MAC 00:15:5d:55:01:10
+}
+
+// INSTRUCTION: Establish a TCP connection on port 88 and exchange a delegated CIFS service ticket with custom PA-PAC-OPTIONS hex payload.
+FLOW s4u2proxy_delegation(c, s) {
+    c -> s TCP SRCPORT 54120 DSTPORT 88 SYN SEQ 700000 WIN 64240 WAIT 1ms
+    c <- s TCP SRCPORT 88 DSTPORT 54120 SYN ACK SEQ 800000 ACKNUM 700001 WIN 65535 WAIT 1ms
+    c -> s TCP SRCPORT 54120 DSTPORT 88 ACK SEQ 700001 ACKNUM 800001 WIN 64240 WAIT 2ms
+    c -> s KERBEROS TRANSPORT TCP SRCPORT 54120 DSTPORT 88 SEQ 700001 ACKNUM 800001 TGS_REQ REALM "CORP.LOCAL" CNAME "svc_webapp" SNAME "cifs/fileserver01.corp.local" ETYPE 18
+        HEXPAYLOAD "300ba0030201a7a20404021000" WAIT 6ms
+    c <- s KERBEROS TRANSPORT TCP SRCPORT 88 DSTPORT 54120 SEQ 800001 ACKNUM 700130 TGS_REP REALM "CORP.LOCAL" CNAME "svc_webapp" SNAME "cifs/fileserver01.corp.local" ETYPE 18 WAIT 2ms
+    c -> s TCP SRCPORT 54120 DSTPORT 88 FIN ACK SEQ 700130 ACKNUM 800120 WIN 64240 WAIT 1ms
+    c <- s TCP SRCPORT 88 DSTPORT 54120 FIN ACK SEQ 800120 ACKNUM 700131 WIN 65535 WAIT 1ms
+    c -> s TCP SRCPORT 54120 DSTPORT 88 ACK SEQ 700131 ACKNUM 800121 WIN 64240
+}
+
+// INSTRUCTION: Compile the Kerberos S4U2Proxy TCP trace into a PCAP file.
+COMPILE {
+    s4u2proxy_delegation(web_portal, ad_kdc)
+}

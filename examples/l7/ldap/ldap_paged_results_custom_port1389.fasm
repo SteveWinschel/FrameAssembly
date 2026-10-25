@@ -1,0 +1,27 @@
+// PROMPT: Generate an LDAP search with paged results control appended via HEXPAYLOAD on custom port 1389.
+// TOKENS: HOST, IP, MAC, FLOW, LDAP, SRCPORT, DSTPORT, MSGID, SEARCH_REQ, BASE_DN, FILTER, HEXPAYLOAD, WAIT, SEARCH_ENTRY, SEARCH_DONE, RESULT_CODE, COMPILE
+
+// INSTRUCTION: Define the identity sync connector running paged queries against an unprivileged LDAP instance.
+HOST sync_connector {
+    IP 172.28.4.12
+    MAC 00:25:90:28:04:0c
+}
+
+// INSTRUCTION: Define the directory server listening on non-privileged port 1389.
+HOST unpriv_ldap {
+    IP 172.28.4.10
+    MAC 00:25:90:28:04:0a
+}
+
+// INSTRUCTION: Execute a search on port 1389 carrying an ASN.1 pagedResultsControl (1.2.840.113556.1.4.319) suffix in HEXPAYLOAD.
+FLOW paged_search_custom_port(c, s) {
+    c -> s LDAP SRCPORT 48920 DSTPORT 1389 MSGID 77 SEARCH_REQ BASE_DN "ou=employees,dc=hr,dc=local" FILTER "(employeeType=fulltime)"
+        HEXPAYLOAD "a01b30190416312e322e3834302e3131333535362e312e342e333139" WAIT 5ms
+    c <- s LDAP SRCPORT 1389 DSTPORT 48920 MSGID 77 SEARCH_ENTRY BASE_DN "uid=emp1001,ou=employees,dc=hr,dc=local" WAIT 2ms
+    c <- s LDAP SRCPORT 1389 DSTPORT 48920 MSGID 77 SEARCH_DONE RESULT_CODE 0
+}
+
+// INSTRUCTION: Compile the custom-port LDAP paged search trace into a PCAP file.
+COMPILE {
+    paged_search_custom_port(sync_connector, unpriv_ldap)
+}

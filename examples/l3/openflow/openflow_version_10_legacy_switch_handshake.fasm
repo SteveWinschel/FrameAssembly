@@ -1,0 +1,28 @@
+// PROMPT: Capture a legacy OpenFlow 1.0 (VERSION 1) switch handshake, capability exchange, and flow installation
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, VERSION, XID, WAIT, FEATURES_REQ, FEATURES_REPLY, DPID, FLOW_MOD, TABLE_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define the OpenFlow 1.0 controller
+HOST of10_ctrl {
+    IP 192.168.55.1
+    MAC 00:16:3e:e9:55:01
+}
+
+// INSTRUCTION: Define the OpenFlow 1.0 access switch
+HOST of10_switch {
+    IP 192.168.55.10
+    MAC 00:16:3e:e9:55:10
+}
+
+// INSTRUCTION: Complete the OpenFlow 1.0 HELLO, FEATURES_REQ/REPLY, and FLOW_MOD sequence
+FLOW openflow_v10_lifecycle(ctrl, sw) {
+    ctrl -> sw OPENFLOW VERSION 1 XID 1 WAIT 5ms
+    sw -> ctrl OPENFLOW VERSION 1 XID 1 WAIT 10ms
+    ctrl -> sw OPENFLOW FEATURES_REQ VERSION 1 XID 2 WAIT 10ms
+    sw -> ctrl OPENFLOW FEATURES_REPLY VERSION 1 XID 2 DPID 65535 WAIT 10ms
+    ctrl -> sw OPENFLOW FLOW_MOD VERSION 1 XID 3 TABLE_ID 0 PRIORITY 32768
+}
+
+// INSTRUCTION: Compile the OpenFlow 1.0 handshake and flow setup
+COMPILE {
+    openflow_v10_lifecycle(of10_ctrl, of10_switch)
+}

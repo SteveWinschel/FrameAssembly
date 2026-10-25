@@ -1,0 +1,25 @@
+// PROMPT: Load balancer floating virtual IP (VIP) takeover with Gratuitous ARP reply broadcast.
+// TOKENS: HOST, IP, MAC, FLOW, DSTMAC, ARP, REPLY, SHA, SPA, THA, TPA, WAIT, COMPILE
+
+// INSTRUCTION: Define standby load balancer promoting itself to active VIP owner.
+HOST lb_node_standby {
+    IP 198.51.100.50
+    MAC 02:42:c6:33:64:32
+}
+
+// INSTRUCTION: Define upstream edge router updating ARP cache for floating VIP.
+HOST edge_router_wan {
+    IP 198.51.100.1
+    MAC 00:0f:f7:10:20:30
+}
+
+// INSTRUCTION: Define broadcast Gratuitous ARP reply updating floating VIP ownership.
+FLOW vip_takeover_garp_reply(lb, router) {
+    lb -> router DSTMAC ff:ff:ff:ff:ff:ff ARP REPLY SHA 02:42:c6:33:64:32 SPA 198.51.100.50 THA ff:ff:ff:ff:ff:ff TPA 198.51.100.50
+    lb -> router DSTMAC ff:ff:ff:ff:ff:ff ARP REPLY SHA 02:42:c6:33:64:32 SPA 198.51.100.50 THA ff:ff:ff:ff:ff:ff TPA 198.51.100.50 WAIT 100ms
+}
+
+// INSTRUCTION: Compile block executing VIP takeover broadcast ARP reply.
+COMPILE {
+    vip_takeover_garp_reply(lb_node_standby, edge_router_wan)
+}

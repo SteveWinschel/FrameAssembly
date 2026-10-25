@@ -1,5 +1,5 @@
 // PROMPT: HTTP/1.1 POST API request submitting JSON payload and receiving 201 Created.
-// TOKENS: HOST, IP, FLOW, ->, <-, HTTP, METHOD, URI, CONTENT_TYPE, BODY, STATUS, REASON, COMPILE
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, CONTENT_TYPE, BODY, STATUS, REASON, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.5 }

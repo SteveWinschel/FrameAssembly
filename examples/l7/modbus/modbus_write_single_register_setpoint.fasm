@@ -1,0 +1,18 @@
+// PROMPT: Modbus TCP function code 6 updating industrial PID temperature controller setpoint.
+// TOKENS: HOST, IP, FLOW, MODBUS, FUNC, ADDR, VALUE, UNITID, COMPILE
+
+// INSTRUCTION: Define furnace supervisory station.
+HOST furnace_hmi { IP 172.16.80.14 }
+
+// INSTRUCTION: Define temperature controller device.
+HOST temp_controller { IP 172.16.80.200 }
+
+// INSTRUCTION: Define setpoint write flow.
+FLOW write_setpoint_flow(hmi, ctrl) {
+    hmi -> ctrl MODBUS FUNC "WRITE_SINGLE_REGISTER" ADDR 40050 VALUE 750 UNITID 1
+}
+
+// INSTRUCTION: Compile write single register setpoint scenario.
+COMPILE {
+    write_setpoint_flow(furnace_hmi, temp_controller)
+}

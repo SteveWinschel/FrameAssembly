@@ -1,5 +1,5 @@
 // PROMPT: LACPDU negotiation asserting actor state flags, port numbers, and partner system parameters.
-// TOKENS: HOST, IP, FLOW, ->, LACP, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, COMPILE
+// TOKENS: HOST, IP, FLOW, LACP, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, COMPILE
 
 // INSTRUCTION: Define active trunk interface A.
 HOST trunk_intf_a { IP 10.10.10.1 }

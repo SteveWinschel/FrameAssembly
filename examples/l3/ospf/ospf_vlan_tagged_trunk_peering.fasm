@@ -1,0 +1,19 @@
+// PROMPT: OSPF routing adjacency established across 802.1Q tagged routing VLAN 50.
+// TOKENS: HOST, IP, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, VLAN, COMPILE
+
+// INSTRUCTION: Define campus distribution switch A.
+HOST dist_switch_a { IP 10.50.0.1 }
+
+// INSTRUCTION: Define campus distribution switch B.
+HOST dist_switch_b { IP 10.50.0.2 }
+
+// INSTRUCTION: Define 802.1Q tagged OSPF Hello peering flow.
+FLOW ospf_vlan_peering(sw_a, sw_b) {
+    sw_a -> sw_b OSPF HELLO ROUTER_ID 10.50.0.1 AREA_ID 0 VLAN 50
+    sw_a <- sw_b OSPF HELLO ROUTER_ID 10.50.0.2 AREA_ID 0 VLAN 50
+}
+
+// INSTRUCTION: Compile block executing VLAN tagged OSPF adjacency.
+COMPILE {
+    ospf_vlan_peering(dist_switch_a, dist_switch_b)
+}

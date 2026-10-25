@@ -1,0 +1,20 @@
+// PROMPT: Steady-state VRRP master advertisement heartbeats inside a COMPILE LOOP.
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define master core gateway router.
+HOST master_core_gw { IP 10.0.0.254 }
+
+// INSTRUCTION: Define standard VRRP multicast listener address.
+HOST vrrp_peers_dst { IP 224.0.0.18 }
+
+// INSTRUCTION: Define periodic 10ms heartbeat burst flow.
+FLOW vrrp_loop_heartbeat(gw, dst) {
+    gw -> dst VRRP VRID 1 PRIORITY 100 ADV_INT 100 VIP 10.0.0.1 WAIT 10ms
+}
+
+// INSTRUCTION: Compile loop executing 5 VRRP master heartbeats.
+COMPILE {
+    LOOP 5 {
+        vrrp_loop_heartbeat(master_core_gw, vrrp_peers_dst)
+    }
+}

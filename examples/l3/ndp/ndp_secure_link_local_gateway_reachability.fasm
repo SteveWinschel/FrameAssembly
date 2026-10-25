@@ -1,0 +1,19 @@
+// PROMPT: Secure IPv6 link-local gateway address resolution with full SLLA and TLLA validation.
+// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_SOLICIT, TARGET, SLLA, NEIGHBOR_ADVERT, TLLA, COMPILE
+
+// INSTRUCTION: Define secure enclave client workstation.
+HOST enclave_client_host { IP fe80::e01:10 MAC 00:08:74:aa:bb:01 }
+
+// INSTRUCTION: Define security boundary link-local gateway.
+HOST enclave_boundary_gw { IP fe80::e01:1 MAC 00:08:74:aa:bb:fe }
+
+// INSTRUCTION: Define secure link-local resolution handshake.
+FLOW enclave_ndp_handshake(cli, gw) {
+    cli -> gw NDP NEIGHBOR_SOLICIT TARGET fe80::e01:1 SLLA 00:08:74:aa:bb:01
+    cli <- gw NDP NEIGHBOR_ADVERT TARGET fe80::e01:1 TLLA 00:08:74:aa:bb:fe
+}
+
+// INSTRUCTION: Compile block executing enclave neighbor discovery.
+COMPILE {
+    enclave_ndp_handshake(enclave_client_host, enclave_boundary_gw)
+}

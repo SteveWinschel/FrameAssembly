@@ -1,0 +1,21 @@
+// PROMPT: Periodic IGMP General Query and host Membership Report executed in a COMPILE LOOP block.
+// TOKENS: HOST, IP, FLOW, IGMP, QUERY, GROUP, MAX_RESP, TTL, WAIT, REPORT, COMPILE, LOOP
+
+// INSTRUCTION: Define designated IGMP querier switch.
+HOST igmp_loop_querier { IP 192.168.55.1 }
+
+// INSTRUCTION: Define active multicast listener node.
+HOST igmp_loop_listener { IP 192.168.55.20 }
+
+// INSTRUCTION: Define periodic IGMP General Query and listener Report cycle.
+FLOW igmp_periodic_poll(q, l) {
+    q -> l IGMP QUERY GROUP 0.0.0.0 MAX_RESP 100 TTL 1 WAIT 15ms
+    q <- l IGMP REPORT GROUP 239.55.1.1 TTL 1 WAIT 15ms
+}
+
+// INSTRUCTION: Compile 4 consecutive IGMP query/report poll intervals.
+COMPILE {
+    LOOP 4 {
+        igmp_periodic_poll(igmp_loop_querier, igmp_loop_listener)
+    }
+}

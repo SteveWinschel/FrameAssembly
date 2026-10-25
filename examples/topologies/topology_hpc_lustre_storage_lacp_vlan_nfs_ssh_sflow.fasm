@@ -1,0 +1,35 @@
+// PROMPT: High-Performance Computing (HPC) cluster batch execution combining LACP bond heartbeats, SSH Slurm job launch, VLAN 400 NFSv4 parallel dataset reads, and sFlow telemetry.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, SSH, BANNER, WAIT, KEXINIT, VLAN, PCP, NFS, VERS, PROC, TAG, PATH, SFLOW, VERSION, AGENT_IP, COMPILE
+
+// INSTRUCTION: Define HPC Slurm head login node.
+HOST hpc_slurm_head {
+    IP 10.240.1.1
+    MAC 0c:42:a1:f0:01:01
+}
+
+// INSTRUCTION: Define HPC compute node 042 executing MPI simulation.
+HOST hpc_compute_042 {
+    IP 10.240.1.42
+    MAC 0c:42:a1:f0:01:2a
+}
+
+// INSTRUCTION: Define parallel NFSv4 scratch storage gateway and sFlow collector.
+HOST hpc_storage_filer {
+    IP 10.240.1.200
+    MAC 0c:42:a1:f0:01:c8
+}
+
+// INSTRUCTION: Define LACP 2x200G bond sync, SSH Slurm step launch, VLAN 400 NFSv4 checkpoint read, and sFlow fabric sample.
+FLOW hpc_cluster_batch_job_flow(head, node, filer) {
+    node -> filer LACP ACTOR_SYS 0c:42:a1:f0:01:2a ACTOR_KEY 400 ACTOR_PORT 1 ACTOR_STATE 61
+    head -> node SSH BANNER "SSH-2.0-SlurmStepd_24.05" WAIT 1ms
+    head <- node SSH KEXINIT WAIT 1ms
+    node -> filer VLAN 400 PCP 4 NFS VERS 4 PROC "COMPOUND" TAG "cfd_mesh_read" PATH "/scratch/cfd/run88/mesh_part042.h5" WAIT 1ms
+    node -> filer VLAN 400 PCP 4 NFS VERS 4 PROC "COMPOUND" TAG "cfd_ckpt_write" PATH "/scratch/cfd/run88/ckpt_step1000.h5" WAIT 1ms
+    node -> head SFLOW VERSION 5 AGENT_IP 10.240.1.42 SUB_AGENT_ID 1 SEQ_NUM 800 UPTIME 120000 SAMPLES 4 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing HPC LACP, SSH, VLAN, NFSv4, and sFlow topology.
+COMPILE {
+    hpc_cluster_batch_job_flow(hpc_slurm_head, hpc_compute_042, hpc_storage_filer)
+}

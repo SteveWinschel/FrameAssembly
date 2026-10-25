@@ -1,0 +1,25 @@
+// PROMPT: Unicast ARP cache validation poll (NUD REACHABLE confirmation) between database cluster nodes.
+// TOKENS: HOST, IP, MAC, FLOW, DSTMAC, ARP, REQUEST, SHA, SPA, THA, TPA, REPLY, WAIT, COMPILE
+
+// INSTRUCTION: Define primary database cluster node verifying neighbor reachability.
+HOST db_node_primary {
+    IP 172.31.10.11
+    MAC 52:54:00:11:22:33
+}
+
+// INSTRUCTION: Define replica database cluster node responding to unicast ARP poll.
+HOST db_node_replica {
+    IP 172.31.10.12
+    MAC 52:54:00:44:55:66
+}
+
+// INSTRUCTION: Define unicast ARP request directed to known MAC and immediate unicast reply.
+FLOW unicast_arp_nud_poll(pri, rep) {
+    pri -> rep DSTMAC 52:54:00:44:55:66 ARP REQUEST SHA 52:54:00:11:22:33 SPA 172.31.10.11 THA 52:54:00:44:55:66 TPA 172.31.10.12
+    pri <- rep DSTMAC 52:54:00:11:22:33 ARP REPLY SHA 52:54:00:44:55:66 SPA 172.31.10.12 THA 52:54:00:11:22:33 TPA 172.31.10.11 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing unicast ARP cache refresh.
+COMPILE {
+    unicast_arp_nud_poll(db_node_primary, db_node_replica)
+}

@@ -1,0 +1,19 @@
+// PROMPT: IKEv2 Dead Peer Detection (DPD) INFORMATIONAL keepalive request and response.
+// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, INFORMATIONAL, MSGID, COMPILE
+
+// INSTRUCTION: Define primary IPsec tunnel peer.
+HOST dpd_peer_alpha { IP 172.16.50.1 }
+
+// INSTRUCTION: Define secondary IPsec tunnel peer.
+HOST dpd_peer_bravo { IP 172.16.50.2 }
+
+// INSTRUCTION: Define DPD keepalive exchange flow with established SPIs and incremented MSGID 15.
+FLOW ikev2_dpd_flow(p1, p2) {
+    p1 -> p2 IKEV2 INITIATOR_SPI 1111222233334444 RESPONDER_SPI 5555666677778888 INFORMATIONAL MSGID 15
+    p1 <- p2 IKEV2 INITIATOR_SPI 1111222233334444 RESPONDER_SPI 5555666677778888 INFORMATIONAL MSGID 15
+}
+
+// INSTRUCTION: Compile block executing DPD liveness check.
+COMPILE {
+    ikev2_dpd_flow(dpd_peer_alpha, dpd_peer_bravo)
+}

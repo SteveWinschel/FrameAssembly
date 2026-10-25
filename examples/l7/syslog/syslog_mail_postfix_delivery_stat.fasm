@@ -1,0 +1,20 @@
+// PROMPT: Mail server informational log recording queued email delivery to destination.
+// TOKENS: HOST, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, COMPILE
+
+// INSTRUCTION: Define corporate mail host.
+HOST mail_host { IP 172.20.10.5 }
+
+// INSTRUCTION: Define central syslog archive.
+HOST log_archive { IP 172.20.10.1 }
+
+// INSTRUCTION: Define mail delivery log transmission flow.
+FLOW syslog_postfix_flow(c, s) {
+    c -> s SYSLOG FACILITY 2 SEVERITY 6
+        HOSTNAME "mail-hub-01" APP "postfix/smtp" PROCID "14209"
+        MSG "to=<alice@example.com>, relay=mx1.example.com[93.184.216.34], status=sent"
+}
+
+// INSTRUCTION: Compile block executing postfix delivery log.
+COMPILE {
+    syslog_postfix_flow(mail_host, log_archive)
+}

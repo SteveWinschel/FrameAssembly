@@ -1,0 +1,51 @@
+// PROMPT: Build a consistent-hashing Memcached ring topology where an application client shards keys across three cache servers.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, SET, KEY, EXPTIME, OPAQUE, PAYLOAD, WAIT, GET, COMPILE
+
+// INSTRUCTION: Define the application router sharding keys across a 3-node ketama consistent hash ring.
+HOST ketama_router {
+    IP 10.95.0.5
+    MAC 00:50:56:95:00:05
+}
+
+// INSTRUCTION: Define shard 1 of the Memcached cluster.
+HOST shard_node1 {
+    IP 10.95.0.101
+    MAC 00:50:56:95:01:01
+}
+
+// INSTRUCTION: Define shard 2 of the Memcached cluster.
+HOST shard_node2 {
+    IP 10.95.0.102
+    MAC 00:50:56:95:01:02
+}
+
+// INSTRUCTION: Define shard 3 of the Memcached cluster.
+HOST shard_node3 {
+    IP 10.95.0.103
+    MAC 00:50:56:95:01:03
+}
+
+// INSTRUCTION: Route key shard_a to shard_node1.
+FLOW route_shard1(c, s) {
+    c -> s MEMCACHED SET KEY "cart:shard_a:101" EXPTIME 900 OPAQUE 1 PAYLOAD "item_count=3" WAIT 2ms
+    c <- s MEMCACHED SET KEY "cart:shard_a:101" OPAQUE 1
+}
+
+// INSTRUCTION: Route key shard_b to shard_node2.
+FLOW route_shard2(c, s) {
+    c -> s MEMCACHED GET KEY "cart:shard_b:202" OPAQUE 2 WAIT 2ms
+    c <- s MEMCACHED GET KEY "cart:shard_b:202" OPAQUE 2 PAYLOAD "item_count=1"
+}
+
+// INSTRUCTION: Route key shard_c to shard_node3.
+FLOW route_shard3(c, s) {
+    c -> s MEMCACHED GET KEY "cart:shard_c:303" OPAQUE 3 WAIT 2ms
+    c <- s MEMCACHED GET KEY "cart:shard_c:303" OPAQUE 3 PAYLOAD "item_count=7"
+}
+
+// INSTRUCTION: Compile the 3-shard ketama consistent-hashing Memcached trace into a PCAP file.
+COMPILE {
+    route_shard1(ketama_router, shard_node1)
+    route_shard2(ketama_router, shard_node2)
+    route_shard3(ketama_router, shard_node3)
+}

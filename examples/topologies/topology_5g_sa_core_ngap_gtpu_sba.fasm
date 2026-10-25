@@ -1,0 +1,40 @@
+// PROMPT: 5G Stand-Alone (5G SA) Core Network topology combining N1/N2 SCTP NGAP signaling, N3 GTP-U user plane, and N4 PFCP/HTTP2 SBA.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, SACK, WAIT, HTTP2, HEADERS, STREAM_ID, UDP, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define 5G gNodeB radio base station.
+HOST gnb_cell_01 {
+    IP 10.50.1.10
+    MAC 00:1c:73:50:01:0a
+}
+
+// INSTRUCTION: Define 5G Access and Mobility Management Function (AMF).
+HOST core_amf_01 {
+    IP 10.50.1.1
+    MAC 00:1c:73:50:01:01
+}
+
+// INSTRUCTION: Define 5G Session Management Function (SMF) on Service-Based Architecture (SBA).
+HOST core_smf_01 {
+    IP 10.50.1.2
+    MAC 00:1c:73:50:01:02
+}
+
+// INSTRUCTION: Define 5G User Plane Function (UPF) packet gateway.
+HOST core_upf_01 {
+    IP 10.50.1.3
+    MAC 00:1c:73:50:01:03
+}
+
+// INSTRUCTION: Define end-to-end 5G PDU session establishment across gNodeB, AMF (SCTP NGAP), SMF (HTTP/2 N11), and UPF (UDP GTP-U).
+FLOW topology_5g_sa_pdu_session(gnb, amf, smf, upf) {
+    gnb -> amf VLAN 501 PCP 6 DSCP 46 SCTP CHUNK DATA VTAG 500101 STREAM 1 SSN 0 PPID 60 SRCPORT 38412 DSTPORT 38412 PAYLOAD "ngap_pdu_session_resource_setup_req"
+    gnb <- amf VLAN 501 PCP 6 DSCP 46 SCTP CHUNK SACK VTAG 500101 SRCPORT 38412 DSTPORT 38412 WAIT 1ms
+    amf -> smf VLAN 502 PCP 5 DSCP 34 HTTP2 HEADERS STREAM_ID 1 PAYLOAD "POST /nsmf-pdusession/v1/sm-contexts" WAIT 2ms
+    smf -> upf VLAN 503 PCP 6 DSCP 46 UDP SRCPORT 8805 DSTPORT 8805 HEXPAYLOAD "21320010000000000000000100000100" WAIT 2ms
+    gnb -> upf VLAN 504 PCP 4 DSCP 34 UDP SRCPORT 2152 DSTPORT 2152 HEXPAYLOAD "34ff0010000102030000000085010000" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing 5G SA Core multi-node call flow.
+COMPILE {
+    topology_5g_sa_pdu_session(gnb_cell_01, core_amf_01, core_smf_01, core_upf_01)
+}

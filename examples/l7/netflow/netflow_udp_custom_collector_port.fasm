@@ -1,0 +1,18 @@
+// PROMPT: NetFlow export datagram directed to custom UDP collector port 2055 with source port.
+// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define branch office VPN gateway router.
+HOST branch_vpn_rtr { IP 172.30.0.1 }
+
+// INSTRUCTION: Define corporate collector on custom port 2055.
+HOST custom_netflow_srv { IP 172.30.0.250 }
+
+// INSTRUCTION: Define custom port NetFlow export flow.
+FLOW custom_netflow_port_flow(rtr, srv) {
+    rtr -> srv NETFLOW SRCIP 10.0.2.14 DSTIP 10.0.4.88 SRCPORT 8080 DSTPORT 49822 PROTO 6 PACKETS 95 OCTETS 124500
+}
+
+// INSTRUCTION: Compile custom UDP port NetFlow scenario.
+COMPILE {
+    custom_netflow_port_flow(branch_vpn_rtr, custom_netflow_srv)
+}

@@ -1,0 +1,26 @@
+// PROMPT: RFC 4302 IPsec AH verifying that mutable ECN bits (RFC 3168) do not invalidate immutable header authentication.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, DSCP, ECN, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define data center storage replication source using AH integrity.
+HOST dc_storage_src {
+    IP 10.120.51.10
+    MAC 00:25:b5:51:10:01
+}
+
+// INSTRUCTION: Define DR site storage target observing ECN Congestion Experienced (CE = 3).
+HOST dr_storage_dst {
+    IP 10.120.51.20
+    MAC 00:25:b5:51:20:02
+}
+
+// INSTRUCTION: Define AH flow transitioning from ECN ECT(0) (2) to ECN CE (3) under congestion.
+FLOW ah_ecn_mutable_field_flow(src, dst) {
+    src -> dst AH SPI 60510 SEQ 1 NEXT_HEADER 6 ICV "abcdef0123456789abcdef01" DSCP 18 ECN 2 DF TTL 60 PAYLOAD "STORAGE_BLOCK_REPL_SEQ1" WAIT 5ms
+    src -> dst AH SPI 60510 SEQ 2 NEXT_HEADER 6 ICV "01efcdab8967452301efcdab" DSCP 18 ECN 3 DF TTL 60 PAYLOAD "STORAGE_BLOCK_REPL_SEQ2_CONGESTED" WAIT 5ms
+    src <- dst AH SPI 60511 SEQ 1 NEXT_HEADER 6 ICV "1032547698badcfe10325476" DSCP 18 ECN 0 DF TTL 60 PAYLOAD "STORAGE_BLOCK_ECE_FEEDBACK"
+}
+
+// INSTRUCTION: Compile the AH ECN mutable field congestion test flow.
+COMPILE {
+    ah_ecn_mutable_field_flow(dc_storage_src, dr_storage_dst)
+}

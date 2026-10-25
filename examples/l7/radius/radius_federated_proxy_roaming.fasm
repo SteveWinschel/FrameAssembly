@@ -1,0 +1,23 @@
+// PROMPT: Eduroam-style federated RADIUS proxy forwarding roaming authentication to home institution.
+// TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, USER, NAS_IP, SERVICE_TYPE, WAIT, ACCESS_ACCEPT, FRAMED_IP, COMPILE
+
+// INSTRUCTION: Define visited university wireless controller.
+HOST visited_wlc { IP 172.30.1.10 MAC 00:1a:a1:30:01:0a }
+
+// INSTRUCTION: Define regional RADIUS proxy server.
+HOST fed_proxy { IP 172.30.1.1 MAC 00:1a:a1:30:01:01 }
+
+// INSTRUCTION: Define home university RADIUS server.
+HOST home_idp { IP 172.30.2.1 MAC 00:1a:a1:30:02:01 }
+
+// INSTRUCTION: Define RADIUS hop flow from client NAS to upstream server.
+FLOW radius_proxy_hop(src, dst) {
+    src -> dst RADIUS ACCESS_REQUEST USER "researcher@uni-home.edu" NAS_IP 172.30.1.10 SERVICE_TYPE 2 WAIT 6ms
+    src <- dst RADIUS ACCESS_ACCEPT USER "researcher@uni-home.edu" FRAMED_IP 172.30.99.15 SERVICE_TYPE 2
+}
+
+// INSTRUCTION: Compile two-hop federated RADIUS proxy chain.
+COMPILE {
+    radius_proxy_hop(visited_wlc, fed_proxy)
+    radius_proxy_hop(fed_proxy, home_idp)
+}

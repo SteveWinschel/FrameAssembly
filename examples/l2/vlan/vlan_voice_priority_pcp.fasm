@@ -1,5 +1,5 @@
 // PROMPT: IEEE 802.1Q tagged Ethernet frame with priority code point and drop eligible indicator.
-// TOKENS: HOST, IP, FLOW, ->, VLAN, PCP, DEI, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, VLAN, PCP, DEI, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define trunk port endpoint A.
 HOST trunk_port_a { IP 10.10.1.1 }

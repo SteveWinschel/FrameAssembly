@@ -1,0 +1,18 @@
+// PROMPT: Data center leaf switches synchronizing virtual gateway IP 10.250.0.1 via VRRP.
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, VIP, COMPILE
+
+// INSTRUCTION: Define Data Center Leaf Switch 1.
+HOST dc_leaf_sw_1 { IP 10.250.0.254 }
+
+// INSTRUCTION: Define Data Center Leaf Switch 2 peer.
+HOST dc_leaf_sw_2 { IP 10.250.0.253 }
+
+// INSTRUCTION: Define DC gateway synchronization flow.
+FLOW dc_vrrp_sync_flow(sw1, sw2) {
+    sw1 -> sw2 VRRP VRID 50 PRIORITY 120 VIP 10.250.0.1
+}
+
+// INSTRUCTION: Compile block executing data center EVPN gateway VRRP advertisement.
+COMPILE {
+    dc_vrrp_sync_flow(dc_leaf_sw_1, dc_leaf_sw_2)
+}

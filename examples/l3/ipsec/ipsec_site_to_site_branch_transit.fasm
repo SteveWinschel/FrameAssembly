@@ -1,0 +1,19 @@
+// PROMPT: Enterprise branch-to-headquarters IPsec VPN transit marked with DSCP EF.
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, DSCP, TTL, COMPILE
+
+// INSTRUCTION: Define retail branch office security gateway.
+HOST branch_store_gw { IP 172.24.10.1 }
+
+// INSTRUCTION: Define corporate headquarters VPN concentrator.
+HOST hq_vpn_concentrator { IP 172.24.100.1 }
+
+// INSTRUCTION: Define expedited forwarding IPsec tunnel flow for VoIP traffic.
+FLOW branch_hq_ipsec_flow(br, hq) {
+    br -> hq IPSEC SPI 65536 SEQ 50 DSCP 46 TTL 64
+    br <- hq IPSEC SPI 65537 SEQ 80 DSCP 46 TTL 64
+}
+
+// INSTRUCTION: Compile block executing site-to-site branch transit.
+COMPILE {
+    branch_hq_ipsec_flow(branch_store_gw, hq_vpn_concentrator)
+}

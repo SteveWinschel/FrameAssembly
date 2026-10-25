@@ -1,0 +1,25 @@
+// PROMPT: Wholesale fiber bitstream access encapsulating residential subscriber C-VLAN 105 inside RSP S-VLAN 3100 toward BNG.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, ICMP, ECHO_REQUEST, ID, SEQ, PAYLOAD, WAIT, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define optical network terminal (ONT) residential gateway behind OLT QinQ tagger.
+HOST subscriber_ont_rg {
+    IP 100.64.105.50
+    MAC 00:24:d7:69:00:32
+}
+
+// INSTRUCTION: Define retail service provider Broadband Network Gateway (BNG) terminating S-VLAN 3100 C-VLAN 105.
+HOST rsp_bng_edge {
+    IP 100.64.105.1
+    MAC 00:1c:73:69:00:01
+}
+
+// INSTRUCTION: Verify wholesale bitstream subscriber reachability with ICMP Echo over QinQ S-VLAN 3100 C-VLAN 105.
+FLOW qinq_wholesale_bitstream(ont, bng) {
+    ont -> bng QINQ 3100 INNER_VLAN 105 ICMP ECHO_REQUEST ID 3105 SEQ 1 PAYLOAD "wholesale_bitstream_oam_ping" WAIT 5ms
+    ont <- bng QINQ 3100 INNER_VLAN 105 ICMP ECHO_REPLY ID 3105 SEQ 1 PAYLOAD "wholesale_bitstream_oam_ping"
+}
+
+// INSTRUCTION: Compile the wholesale fiber bitstream QinQ S-VLAN 3100 C-VLAN 105 ping trace.
+COMPILE {
+    qinq_wholesale_bitstream(subscriber_ont_rg, rsp_bng_edge)
+}

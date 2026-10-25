@@ -1,0 +1,24 @@
+// PROMPT: Kubernetes API server remote pod exec session multiplexing stdout and stdin over WebSocket binary channels.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, BINARY, FIN_BIT, MASK_KEY, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, CLOSE, COMPILE
+
+// INSTRUCTION: Define kubectl administrator workstation host.
+HOST kubectl_cli {
+    IP 10.240.0.50
+}
+
+// INSTRUCTION: Define Kubernetes kube-apiserver control plane host.
+HOST kube_apiserver {
+    IP 10.240.0.1
+}
+
+// INSTRUCTION: Define channel-prefixed WebSocket binary frames (0x00 stdin, 0x01 stdout) on port 6443.
+FLOW ws_k8s_exec(c, s) {
+    c -> s WEBSOCKET BINARY FIN_BIT 1 MASK_KEY 0x90abcdef SRCPORT 51200 DSTPORT 6443 HEXPAYLOAD "00756e616d650a" WAIT 5ms
+    c <- s WEBSOCKET BINARY FIN_BIT 1 SRCPORT 6443 DSTPORT 51200 HEXPAYLOAD "014c696e75780a" WAIT 5ms
+    c <- s WEBSOCKET CLOSE FIN_BIT 1 SRCPORT 6443 DSTPORT 51200
+}
+
+// INSTRUCTION: Compile Kubernetes pod exec WebSocket session.
+COMPILE {
+    ws_k8s_exec(kubectl_cli, kube_apiserver)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Polymorphic ARP statement between IPv6 endpoints automatically synthesizing RFC 4861 ICMPv6 Neighbor Solicitation and Advertisement.
+// TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, WAIT, REPLY, COMPILE
+
+// INSTRUCTION: Define IPv6 compute node invoking polymorphic ARP resolution on link-local fabric.
+HOST compute_v6_node_a {
+    IP 2001:db8:500:1::10
+    MAC 00:1c:73:50:01:0a
+}
+
+// INSTRUCTION: Define IPv6 storage target node responding via polymorphic Neighbor Advertisement.
+HOST storage_v6_node_b {
+    IP 2001:db8:500:1::20
+    MAC 00:1c:73:50:01:14
+}
+
+// INSTRUCTION: Execute ARP REQUEST and ARP REPLY between IPv6 hosts to trigger automatic NDP Type 135/136 adaptation.
+FLOW arp_ipv6_polymorphic(a, b) {
+    a -> b ARP REQUEST WAIT 5ms
+    a <- b ARP REPLY
+}
+
+// INSTRUCTION: Compile the polymorphic IPv6 ARP-to-NDP adaptation scenario.
+COMPILE {
+    arp_ipv6_polymorphic(compute_v6_node_a, storage_v6_node_b)
+}

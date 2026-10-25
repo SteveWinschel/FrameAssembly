@@ -1,0 +1,19 @@
+// PROMPT: HTTP/2 DoH (DNS over HTTPS) wireformat query carried inside Stream 13 with DF flag.
+// TOKENS: HOST, IP, FLOW, HTTP2, HEADERS, STREAM_ID, DF, IPID, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define DoH privacy-enabled stub client.
+HOST doh_client { IP 192.168.53.10 }
+
+// INSTRUCTION: Define public DoH resolver on port 443.
+HOST doh_server { IP 1.1.1.1 }
+
+// INSTRUCTION: Send HTTP/2 HEADERS on Stream 13 carrying /dns-query path and receive response.
+FLOW http2_doh_query(c, s) {
+    c -> s HTTP2 HEADERS STREAM_ID 13 DF IPID 0x4431 PAYLOAD "/dns-query?dns=AAABAAABAAAAAAAAA3d3dw"
+    c <- s HTTP2 HEADERS STREAM_ID 13 DF IPID 0x4432
+}
+
+// INSTRUCTION: Compile the HTTP/2 DoH query scenario.
+COMPILE {
+    http2_doh_query(doh_client, doh_server)
+}

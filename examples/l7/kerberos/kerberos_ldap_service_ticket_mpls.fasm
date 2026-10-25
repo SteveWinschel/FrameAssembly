@@ -1,0 +1,27 @@
+// PROMPT: Model a Kerberos v5 TGS_REQ and TGS_REP exchange for an ldap/dc01.corp.net service principal over MPLS label 4088.
+// TOKENS: HOST, IP, MAC, FLOW, KERBEROS, TGS_REQ, REALM, CNAME, SNAME, ETYPE, MPLS, EXP, BOS, MPLS_TTL, WAIT, TGS_REP, COMPILE
+
+// INSTRUCTION: Define the branch office domain client requesting an LDAP service ticket.
+HOST branch_client {
+    IP 172.29.88.40
+    MAC 00:15:5d:1d:58:28
+}
+
+// INSTRUCTION: Define the headquarters KDC reachable across an MPLS WAN core.
+HOST hq_kdc {
+    IP 172.29.1.10
+    MAC 00:15:5d:1d:01:0a
+}
+
+// INSTRUCTION: Request and receive an LDAP directory service ticket encapsulated in MPLS label 4088.
+FLOW krb5_ldap_tgs_mpls(c, k) {
+    c -> k KERBEROS TGS_REQ REALM "CORP.NET" CNAME "netadmin" SNAME "ldap/dc01.corp.net" ETYPE 18
+        MPLS 4088 EXP 5 BOS 1 MPLS_TTL 64 WAIT 4ms
+    c <- k KERBEROS TGS_REP REALM "CORP.NET" CNAME "netadmin" SNAME "ldap/dc01.corp.net" ETYPE 18
+        MPLS 4088 EXP 5 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the MPLS-encapsulated Kerberos LDAP service ticket exchange.
+COMPILE {
+    krb5_ldap_tgs_mpls(branch_client, hq_kdc)
+}

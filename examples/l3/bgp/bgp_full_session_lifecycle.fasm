@@ -1,0 +1,24 @@
+// PROMPT: Complete BGP session lifecycle from OPEN to UPDATE, KEEPALIVE, and NOTIFICATION cease.
+// TOKENS: HOST, IP, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, KEEPALIVE, WAIT, UPDATE, PREFIX, NEXTHOP, NOTIFICATION, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define enterprise edge BGP router.
+HOST ent_bgp_edge { IP 172.31.250.1 }
+
+// INSTRUCTION: Define cloud direct-connect BGP gateway.
+HOST cloud_dx_bgp { IP 172.31.250.2 }
+
+// INSTRUCTION: Define full BGP lifecycle including OPEN, KEEPALIVE, UPDATE, and NOTIFICATION.
+FLOW bgp_full_lifecycle(ent, cloud) {
+    ent -> cloud BGP OPEN ASN 65200 HOLDTIME 60 BGPID 172.31.250.1
+    ent <- cloud BGP OPEN ASN 64515 HOLDTIME 60 BGPID 172.31.250.2
+    ent -> cloud BGP KEEPALIVE WAIT 10ms
+    ent <- cloud BGP KEEPALIVE WAIT 10ms
+    ent -> cloud BGP UPDATE ASN 65200 PREFIX "10.50.0.0/16" NEXTHOP 172.31.250.1 WAIT 20ms
+    ent <- cloud BGP UPDATE ASN 64515 PREFIX "10.200.0.0/16" NEXTHOP 172.31.250.2 WAIT 20ms
+    ent -> cloud BGP NOTIFICATION PAYLOAD "Administrative Shutdown" WAIT 50ms
+}
+
+// INSTRUCTION: Compile the full BGP session lifecycle flow.
+COMPILE {
+    bgp_full_lifecycle(ent_bgp_edge, cloud_dx_bgp)
+}

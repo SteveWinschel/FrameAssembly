@@ -1,7 +1,9 @@
-//! Unit tests for the FrameAssembly backend PCAP emission engine.
+//! Unit tests for the FrameAssembly backend evaluation and PCAPNG emission engine.
 //!
-//! Tests endpoint resolution, RFC-compliant multicast/unicast MAC derivation,
-//! transport protocol defaults, destination port mappings, and PCAP file generation.
+//! This test suite verifies host endpoint resolution from environment bindings, RFC 1112 IPv4
+//! and RFC 2464 IPv6 multicast MAC address derivation, deterministic unicast MAC fallbacks,
+//! default destination port mappings across Layer 2 through Layer 7 protocols, TCP/UDP transport
+//! selection, and end-to-end PCAPNG file generation.
 
 use super::*;
 use std::net::{Ipv4Addr, Ipv6Addr};

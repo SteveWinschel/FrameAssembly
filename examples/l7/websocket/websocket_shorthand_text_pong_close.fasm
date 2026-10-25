@@ -1,0 +1,25 @@
+// PROMPT: WebSocket session using shorthand TEXT, PING, PONG, and CLOSE keywords with payload data.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, TEXT, FIN_BIT, MASK_KEY, PAYLOAD, WAIT, PING, PONG, CLOSE, COMPILE
+
+// INSTRUCTION: Define interactive web dashboard client endpoint.
+HOST dash_client {
+    IP 192.168.50.14
+}
+
+// INSTRUCTION: Define push notification WebSocket server endpoint.
+HOST push_server {
+    IP 192.168.50.1
+}
+
+// INSTRUCTION: Define WebSocket exchange exercising shorthand TEXT, PING, PONG, and CLOSE tokens.
+FLOW ws_shorthand_ops(c, s) {
+    c -> s WEBSOCKET TEXT FIN_BIT 1 MASK_KEY 0x11223344 PAYLOAD "SUB:ALERTS" WAIT 5ms
+    c -> s WEBSOCKET PING FIN_BIT 1 MASK_KEY 0x55667788 WAIT 5ms
+    c <- s WEBSOCKET PONG FIN_BIT 1 WAIT 5ms
+    c <- s WEBSOCKET CLOSE FIN_BIT 1
+}
+
+// INSTRUCTION: Compile the shorthand WebSocket opcode flow.
+COMPILE {
+    ws_shorthand_ops(dash_client, push_server)
+}

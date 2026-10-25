@@ -1,0 +1,27 @@
+// PROMPT: TFTP Write Request (WRQ) acknowledged by server BLOCK 0 ACK followed by client DATA block 1 upload.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, WRQ, FILENAME, MODE, ACK, BLOCK, DATA, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define managed router uploading its running configuration via TFTP.
+HOST router_exporter {
+    IP 172.16.69.25
+    MAC 00:1c:58:69:00:19
+}
+
+// INSTRUCTION: Define configuration archive TFTP server.
+HOST archive_tftp {
+    IP 172.16.69.1
+    MAC 00:1c:58:69:00:01
+}
+
+// INSTRUCTION: Perform RFC 1350 WRQ handshake with BLOCK 0 ACK and DATA block 1 upload.
+FLOW tftp_wrq_block_upload(rtr, srv) {
+    rtr -> srv TFTP WRQ FILENAME "core-rtr-running.cfg" MODE "netascii"
+    rtr <- srv TFTP ACK BLOCK 0
+    rtr -> srv TFTP DATA BLOCK 1 PAYLOAD "hostname core-rtr-01"
+    rtr <- srv TFTP ACK BLOCK 1
+}
+
+// INSTRUCTION: Compile the TFTP WRQ BLOCK 0 acknowledgement and upload scenario.
+COMPILE {
+    tftp_wrq_block_upload(router_exporter, archive_tftp)
+}

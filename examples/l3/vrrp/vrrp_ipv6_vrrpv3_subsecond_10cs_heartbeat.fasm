@@ -1,0 +1,25 @@
+// PROMPT: RFC 5798 IPv6 VRRPv3 advertisement using a 10-centisecond (100ms) fast interval and virtual MAC 00:00:5e:00:02:40.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, SRCMAC, DSTMAC, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6 VRRPv3 Master router using RFC 5798 IPv6 Virtual MAC 00:00:5e:00:02:40 (VRID 64).
+HOST v6_vrrp_fast_master {
+    IP fe80::112:1
+    MAC 00:00:5e:00:02:40
+}
+
+// INSTRUCTION: Define IPv6 VRRP link-local multicast group ff02::12.
+HOST v6_vrrp_mcast_12 {
+    IP ff02::12
+    MAC 33:33:00:00:00:12
+}
+
+// INSTRUCTION: Define IPv6 VRRPv3 (VERSION 3) fast 10cs (ADV_INT 10) advertisement on VRID 64.
+FLOW vrrp_v6_subsecond_10cs_flow(master, mcast) {
+    master -> mcast VRRP VRID 64 PRIORITY 200 ADV_INT 10 VIP fe80::64:1 VERSION 3 SRCMAC 00:00:5e:00:02:40 DSTMAC 33:33:00:00:00:12 DSCP 48 TTL 255 WAIT 100ms
+    master -> mcast VRRP VRID 64 PRIORITY 200 ADV_INT 10 VIP fe80::64:1 VERSION 3 SRCMAC 00:00:5e:00:02:40 DSTMAC 33:33:00:00:00:12 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the IPv6 VRRPv3 10-centisecond sub-second advertisement flow.
+COMPILE {
+    vrrp_v6_subsecond_10cs_flow(v6_vrrp_fast_master, v6_vrrp_mcast_12)
+}

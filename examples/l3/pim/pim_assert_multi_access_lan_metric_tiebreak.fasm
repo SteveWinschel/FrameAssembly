@@ -1,0 +1,26 @@
+// PROMPT: RFC 7761 Section 4.6 PIM Assert election resolving duplicate multicast forwarders on a multi-access broadcast VLAN.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, HELLO, GROUP, SOURCE, DR_PRIORITY, HOLDTIME, VLAN, PCP, DSCP, TTL, PAYLOAD, WAIT, JOIN_PRUNE, COMPILE
+
+// INSTRUCTION: Define upstream multicast router 1 with superior Admin Distance and IGP metric.
+HOST lan_mcast_fwd_1 {
+    IP 172.16.103.1
+    MAC 00:1c:73:67:01:01
+}
+
+// INSTRUCTION: Define upstream multicast router 2 pruning its outbound interface upon losing Assert.
+HOST lan_mcast_fwd_2 {
+    IP 172.16.103.2
+    MAC 00:1c:73:67:01:02
+}
+
+// INSTRUCTION: Define competing PIM Assert messages on VLAN 103 and subsequent prune resolution.
+FLOW pim_lan_assert_resolution(r1, r2) {
+    r1 -> r2 PIM HELLO GROUP 239.16.1.1 SOURCE 10.16.0.10 DR_PRIORITY 200 HOLDTIME 105 VLAN 103 PCP 6 DSCP 48 TTL 1 PAYLOAD "PIM_ASSERT_PREF_110_METRIC_5" WAIT 3ms
+    r1 <- r2 PIM HELLO GROUP 239.16.1.1 SOURCE 10.16.0.10 DR_PRIORITY 100 HOLDTIME 105 VLAN 103 PCP 6 DSCP 48 TTL 1 PAYLOAD "PIM_ASSERT_PREF_110_METRIC_20_LOSER" WAIT 3ms
+    r1 <- r2 PIM JOIN_PRUNE GROUP 239.16.1.1 SOURCE 10.16.0.10 HOLDTIME 210 VLAN 103 PCP 6 DSCP 48 TTL 1 PAYLOAD "PIM_PRUNE_LOSING_OIL_INTERFACE"
+}
+
+// INSTRUCTION: Compile the RFC 7761 multi-access LAN PIM Assert resolution flow.
+COMPILE {
+    pim_lan_assert_resolution(lan_mcast_fwd_1, lan_mcast_fwd_2)
+}

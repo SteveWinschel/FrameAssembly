@@ -1,0 +1,25 @@
+// PROMPT: IEEE 802.1s Multiple Spanning Tree (MSTP) boundary bridges exchanging CIST Configuration and MSTI digest extensions.
+// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, FLAGS, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define MST Region 1 boundary root bridge.
+HOST mst_region1_br {
+    IP 10.180.1.1
+    MAC 00:1c:73:b4:01:01
+}
+
+// INSTRUCTION: Define MST Region 2 boundary peer bridge.
+HOST mst_region2_br {
+    IP 10.180.1.2
+    MAC 00:1c:73:b4:01:02
+}
+
+// INSTRUCTION: Exchange RSTP/MSTP BPDUs carrying appended MST Configuration Identifier payload.
+FLOW stp_mstp_inter_region(r1, r2) {
+    r1 -> r2 STP RSTP ROOT_ID "4096:00:1c:73:b4:01:01" BRIDGE_ID "4096:00:1c:73:b4:01:01" COST 0 PORT_ID 32769 FLAGS 60 PAYLOAD "MSTP_DC_WEST_REV1" WAIT 5ms
+    r1 <- r2 STP RSTP ROOT_ID "4096:00:1c:73:b4:01:01" BRIDGE_ID "8192:00:1c:73:b4:01:02" COST 20000 PORT_ID 32769 FLAGS 60 PAYLOAD "MSTP_DC_EAST_REV1"
+}
+
+// INSTRUCTION: Compile the inter-region MSTP CIST boundary BPDU exchange.
+COMPILE {
+    stp_mstp_inter_region(mst_region1_br, mst_region2_br)
+}

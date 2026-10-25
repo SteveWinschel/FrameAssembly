@@ -1,0 +1,21 @@
+// PROMPT: Telnet IAC WILL 3 and IAC DO 3 suppress go ahead transmission mode.
+// TOKENS: HOST, IP, FLOW, TELNET, WILL, DO, COMPILE
+
+// INSTRUCTION: Define console workstation.
+HOST console_ws { IP 10.10.5.20 }
+
+// INSTRUCTION: Define network gateway terminal.
+HOST gw_term { IP 10.10.5.1 }
+
+// INSTRUCTION: Define suppress go ahead negotiation flow.
+FLOW telnet_sga_flow(c, s) {
+    c -> s TELNET WILL 3
+    c <- s TELNET DO 3
+    c <- s TELNET WILL 3
+    c -> s TELNET DO 3
+}
+
+// INSTRUCTION: Compile block executing SGA negotiation.
+COMPILE {
+    telnet_sga_flow(console_ws, gw_term)
+}

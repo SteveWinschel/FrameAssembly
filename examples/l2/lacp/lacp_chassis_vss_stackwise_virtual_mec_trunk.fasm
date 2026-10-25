@@ -1,0 +1,26 @@
+// PROMPT: StackWise Virtual / VSS dual-supervisor core chassis negotiating Multichassis EtherChannel (MEC) LACP with distribution switch.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define StackWise Virtual core switch pair sharing virtual system MAC 00:1e:be:aa:bb:00.
+HOST svl_core_chassis {
+    IP 172.16.250.1
+    MAC 00:1e:be:aa:bb:00
+}
+
+// INSTRUCTION: Define campus distribution switch uplink Port-channel 127.
+HOST campus_dist_po127 {
+    IP 172.16.250.2
+    MAC 00:1e:be:c0:00:02
+}
+
+// INSTRUCTION: Exchange LACPDUs across chassis members 101 and 201 using shared Actor System MAC 00:1e:be:aa:bb:00.
+FLOW lacp_svl_mec_negotiate(core, dist) {
+    core -> dist LACP ACTOR_SYS 00:1e:be:aa:bb:00 ACTOR_KEY 127 ACTOR_PORT 101 ACTOR_STATE 61 PARTNER_SYS 00:1e:be:c0:00:02 PARTNER_KEY 127 PARTNER_PORT 1 PARTNER_STATE 61 WAIT 5ms
+    core -> dist LACP ACTOR_SYS 00:1e:be:aa:bb:00 ACTOR_KEY 127 ACTOR_PORT 201 ACTOR_STATE 61 PARTNER_SYS 00:1e:be:c0:00:02 PARTNER_KEY 127 PARTNER_PORT 2 PARTNER_STATE 61 WAIT 5ms
+    core <- dist LACP ACTOR_SYS 00:1e:be:c0:00:02 ACTOR_KEY 127 ACTOR_PORT 1 ACTOR_STATE 61 PARTNER_SYS 00:1e:be:aa:bb:00 PARTNER_KEY 127 PARTNER_PORT 101 PARTNER_STATE 61
+}
+
+// INSTRUCTION: Compile the StackWise Virtual MEC LACP trunk negotiation trace.
+COMPILE {
+    lacp_svl_mec_negotiate(svl_core_chassis, campus_dist_po127)
+}

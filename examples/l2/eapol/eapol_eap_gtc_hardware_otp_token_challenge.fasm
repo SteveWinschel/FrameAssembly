@@ -1,0 +1,29 @@
+// PROMPT: High-security laboratory terminal authenticating via EAP-GTC (Generic Token Card, EAP_METHOD 6) one-time password challenge.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, START, WAIT, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define air-gapped lab terminal supplicant responding with hardware OTP token code.
+HOST lab_terminal_supp {
+    IP 172.29.10.50
+    MAC 00:21:70:1d:0a:32
+}
+
+// INSTRUCTION: Define lab security switch port enforcing EAP-GTC token verification.
+HOST lab_sec_switch {
+    IP 172.29.10.1
+    MAC 00:1c:73:1d:0a:01
+}
+
+// INSTRUCTION: Exchange EAP-Identity and EAP-GTC (Method 6) ASCII OTP challenge/response followed by EAP-Success.
+FLOW eapol_gtc_otp_auth(term, sw) {
+    term -> sw EAPOL VERSION 2 TYPE START WAIT 2ms
+    term <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 20 EAP_METHOD 1 WAIT 2ms
+    term -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 20 EAP_METHOD 1 IDENTITY "dr.chen@quantum-lab.internal" WAIT 5ms
+    term <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 21 EAP_METHOD 6 PAYLOAD "Challenge: Enter Hardware YubiKey OTP:" WAIT 10ms
+    term -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 21 EAP_METHOD 6 PAYLOAD "ccccccbcgujhingjrdejhgfnuetrgigvejhh" WAIT 5ms
+    term <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 21 EAP_METHOD 6
+}
+
+// INSTRUCTION: Compile the EAP-GTC hardware OTP token authentication trace.
+COMPILE {
+    eapol_gtc_otp_auth(lab_terminal_supp, lab_sec_switch)
+}

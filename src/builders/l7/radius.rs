@@ -1,4 +1,11 @@
-//! RADIUS protocol wire builder.
+//! Remote Authentication Dial-In User Service (RADIUS) (RFC 2865 (Authentication) / RFC 2866 (Accounting) / RFC 5176 (CoA)) Layer 7 wire packet builder.
+//!
+//! This module synthesizes deterministic on-the-wire Remote Authentication Dial-In User Service (RADIUS) frames over UDP port 1812 (Authentication) and UDP port 1813 (Accounting).
+//! The wire encoder constructs a 20-byte fixed RADIUS header (8-bit Code: 1 Access-Request, 2 Access-Accept, 3 Access-Reject, 4 Accounting-Request, 5 Accounting-Response, 11 Access-Challenge; 8-bit Identifier; 16-bit big-endian Length; 16-byte Request/Response Authenticator) followed by TLV Attribute-Value Pairs (AVPs: Type 1 User-Name, Type 4 NAS-IP-Address, Type 6 Service-Type, Type 8 Framed-IP-Address). When optional fields in [`RadiusSpec`]
+//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b RADIUS [ACCESS_REQUEST | ACCESS_ACCEPT | ACCESS_REJECT | ACCESS_CHALLENGE | ACCOUNTING_REQUEST | ACCOUNTING_RESPONSE | CODE <str>] [ID <u8>] [USER <str>] [NAS_IP <ip>] [SERVICE_TYPE <u32>] [FRAMED_IP <ip>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -6,6 +13,12 @@ use alloc::vec::Vec;
 use core::net::IpAddr;
 
 /// Builds an RFC 2865 RADIUS packet payload and returns payload and UDP port (1812 or 1813).
+/// Syntax mapping: `RADIUS [ACCESS_REQUEST | ACCESS_ACCEPT | ACCESS_REJECT | ACCESS_CHALLENGE | ACCOUNTING_REQUEST | ACCOUNTING_RESPONSE | CODE <str>] [ID <u8>] [USER <str>] [NAS_IP <ip>] [SERVICE_TYPE <u32>] [FRAMED_IP <ip>]`
+#[doc(alias = "RADIUS")]
+#[doc(alias = "RFC2865")]
+#[doc(alias = "RFC2866")]
+#[doc(alias = "NAS_IP")]
+#[doc(alias = "FRAMED_IP")]
 pub fn build_radius_payload(
     _ctx: &WireContext,
     spec: &RadiusSpec,
@@ -31,11 +44,19 @@ pub fn build_radius_payload(
     avps.push((user_bytes.len() + 2) as u8);
     avps.extend_from_slice(user_bytes);
 
-    // NAS-IP-Address (Type 4)
-    if let Some(IpAddr::V4(v4)) = spec.nas_ip {
-        avps.push(4);
-        avps.push(6);
-        avps.extend_from_slice(&v4.octets());
+    // NAS-IP-Address (Type 4) or NAS-IPv6-Address (Type 95, RFC 3162)
+    match spec.nas_ip {
+        Some(IpAddr::V4(v4)) => {
+            avps.push(4);
+            avps.push(6);
+            avps.extend_from_slice(&v4.octets());
+        }
+        Some(IpAddr::V6(v6)) => {
+            avps.push(95);
+            avps.push(18);
+            avps.extend_from_slice(&v6.octets());
+        }
+        None => {}
     }
 
     // Service-Type (Type 6)
@@ -45,11 +66,19 @@ pub fn build_radius_payload(
         avps.extend_from_slice(&service_type.to_be_bytes());
     }
 
-    // Framed-IP-Address (Type 8)
-    if let Some(IpAddr::V4(v4)) = spec.framed_ip {
-        avps.push(8);
-        avps.push(6);
-        avps.extend_from_slice(&v4.octets());
+    // Framed-IP-Address (Type 8) or Framed-IPv6-Address (Type 168, RFC 6911)
+    match spec.framed_ip {
+        Some(IpAddr::V4(v4)) => {
+            avps.push(8);
+            avps.push(6);
+            avps.extend_from_slice(&v4.octets());
+        }
+        Some(IpAddr::V6(v6)) => {
+            avps.push(168);
+            avps.push(18);
+            avps.extend_from_slice(&v6.octets());
+        }
+        None => {}
     }
 
     if !payload_bytes.is_empty() {

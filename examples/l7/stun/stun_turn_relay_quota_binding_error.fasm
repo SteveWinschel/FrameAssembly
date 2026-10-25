@@ -1,0 +1,25 @@
+// PROMPT: Simulate a TURN relay server returning a STUN Binding Error when an allocation quota is exceeded.
+// TOKENS: HOST, MAC, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, DSCP, BINDING_ERROR, COMPILE
+
+// INSTRUCTION: Define host endpoint conf_client.
+HOST conf_client {
+    MAC 00:15:5d:34:78:05
+    IP 10.80.10.55
+}
+
+// INSTRUCTION: Define host endpoint relay_srv.
+HOST relay_srv {
+    MAC 00:15:5d:34:78:99
+    IP 10.80.10.1
+}
+
+// INSTRUCTION: Send STUN Binding Request and receive a STUN Binding Error due to server capacity limits.
+FLOW stun_quota_exceeded_error(conf_client, relay_srv) {
+    conf_client -> relay_srv STUN BINDING_REQUEST SOFTWARE "Jitsi-Meet-ICE/2.0" DSCP 34
+    relay_srv -> conf_client STUN BINDING_ERROR SOFTWARE "eturnal-1.11.0" DSCP 34
+}
+
+// INSTRUCTION: Compile the STUN allocation quota error flow.
+COMPILE {
+    stun_quota_exceeded_error(conf_client, relay_srv)
+}

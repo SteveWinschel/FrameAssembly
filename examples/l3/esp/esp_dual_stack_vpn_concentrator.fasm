@@ -1,0 +1,26 @@
+// PROMPT: Polymorphic dual-stack IPsec ESP encrypted tunnel across IPv4 and IPv6 endpoints.
+// TOKENS: HOST, IP, FLOW, ESP, SPI, SEQ, IV, ICV, DSCP, TTL, FLOWLABEL, COMPILE
+
+// INSTRUCTION: Define IPv4 security gateway A.
+HOST esp_v4_gw_a { IP 192.0.2.21 }
+
+// INSTRUCTION: Define IPv4 security gateway B.
+HOST esp_v4_gw_b { IP 192.0.2.22 }
+
+// INSTRUCTION: Define IPv6 security gateway A.
+HOST esp_v6_gw_a { IP 2001:db8:50::21 }
+
+// INSTRUCTION: Define IPv6 security gateway B.
+HOST esp_v6_gw_b { IP 2001:db8:50::22 }
+
+// INSTRUCTION: Define polymorphic ESP tunnel flow with QoS and flow label controls.
+FLOW dual_stack_esp_sa(a, b) {
+    a -> b ESP SPI 300500 SEQ 1 IV "0102030405060708" ICV "102030405060708090a0b0c0" DSCP 34 TTL 64 FLOWLABEL 50001
+    a <- b ESP SPI 300501 SEQ 1 IV "0807060504030201" ICV "c0b0a0908070605040302010" DSCP 34 TTL 64 FLOWLABEL 50002
+}
+
+// INSTRUCTION: Compile the polymorphic ESP flow for IPv4 and IPv6 gateways.
+COMPILE {
+    dual_stack_esp_sa(esp_v4_gw_a, esp_v4_gw_b)
+    dual_stack_esp_sa(esp_v6_gw_a, esp_v6_gw_b)
+}

@@ -1,5 +1,5 @@
 // PROMPT: TACACS+ administrative login authentication START message on TCP port 49.
-// TOKENS: HOST, IP, FLOW, ->, TACACS, TYPE, AUTHEN, USER, SESSION_ID, COMPILE
+// TOKENS: HOST, IP, FLOW, TACACS, TYPE, AUTHEN, USER, SESSION_ID, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.10.5 }

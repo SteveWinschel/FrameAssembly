@@ -1,0 +1,27 @@
+// PROMPT: Zero-Touch Provisioning (ZTP) Python script download via TFTP executed across IPv4 and IPv6 leaf switches.
+// TOKENS: HOST, IP, FLOW, TFTP, RRQ, FILENAME, MODE, DATA, BLOCK, PAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define IPv4 unprovisioned leaf switch.
+HOST ztp_leaf_v4 { IP 10.254.1.101 }
+
+// INSTRUCTION: Define IPv4 ZTP TFTP server.
+HOST ztp_srv_v4 { IP 10.254.1.1 }
+
+// INSTRUCTION: Define IPv6 unprovisioned leaf switch.
+HOST ztp_leaf_v6 { IP 2001:db8:69:1::101 }
+
+// INSTRUCTION: Define IPv6 ZTP TFTP server.
+HOST ztp_srv_v6 { IP 2001:db8:69:1::1 }
+
+// INSTRUCTION: Define polymorphic ZTP provisioning script download flow.
+FLOW tftp_ztp_fetch(leaf, srv) {
+    leaf -> srv TFTP RRQ FILENAME "ztp_bootstrap.py" MODE "octet"
+    leaf <- srv TFTP DATA BLOCK 1 PAYLOAD "#!/usr/bin/env python3"
+    leaf -> srv TFTP ACK BLOCK 1
+}
+
+// INSTRUCTION: Compile ZTP TFTP bootstrap across both IPv4 and IPv6 switch pairs.
+COMPILE {
+    tftp_ztp_fetch(ztp_leaf_v4, ztp_srv_v4)
+    tftp_ztp_fetch(ztp_leaf_v6, ztp_srv_v6)
+}

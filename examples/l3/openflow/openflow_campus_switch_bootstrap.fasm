@@ -1,0 +1,21 @@
+// PROMPT: Freshly booted campus edge switch establishing OpenFlow control session via HELLO and ECHO.
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, HELLO, ECHO_REQ, XID, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define centralized campus SDN director.
+HOST campus_sdn_director { IP 10.10.10.1 }
+
+// INSTRUCTION: Define newly provisioned campus edge switch.
+HOST boot_edge_switch { IP 10.10.10.55 }
+
+// INSTRUCTION: Define switch bootstrap control channel initiation flow.
+FLOW of_switch_bootstrap(dir, sw) {
+    sw -> dir OPENFLOW TYPE HELLO
+    dir -> sw OPENFLOW TYPE HELLO
+    dir -> sw OPENFLOW TYPE ECHO_REQ XID 1
+    sw -> dir OPENFLOW TYPE ECHO_REPLY XID 1
+}
+
+// INSTRUCTION: Compile block executing edge switch bootstrap handshake.
+COMPILE {
+    of_switch_bootstrap(campus_sdn_director, boot_edge_switch)
+}

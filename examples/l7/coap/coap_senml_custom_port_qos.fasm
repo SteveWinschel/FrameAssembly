@@ -1,0 +1,19 @@
+// PROMPT: CoAP over custom UDP port 5684 with SenML JSON payload and DSCP Expedited Forwarding.
+// TOKENS: HOST, IP, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, SRCPORT, DSTPORT, DSCP, DF, PAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define medical wearable CoAP monitor.
+HOST med_monitor { IP 172.28.4.12 }
+
+// INSTRUCTION: Define hospital ward CoAP gateway.
+HOST ward_gw { IP 172.28.4.1 }
+
+// INSTRUCTION: Send high-priority SenML JSON vital signs (Content-Format 110) with DSCP 46.
+FLOW coap_medical_vitals(m, g) {
+    m -> g COAP CON CODE "0.02" MSGID 999 TOKEN 0xbeef URI_PATH "vitals/hr" CONTENT_FORMAT 110 SRCPORT 49200 DSTPORT 5684 DSCP 46 DF PAYLOAD "[{\"n\":\"hr\",\"v\":72}]"
+    m <- g COAP ACK CODE "2.01" MSGID 999 TOKEN 0xbeef SRCPORT 5684 DSTPORT 49200 DSCP 46 DF
+}
+
+// INSTRUCTION: Compile the medical telemetry CoAP exchange.
+COMPILE {
+    coap_medical_vitals(med_monitor, ward_gw)
+}

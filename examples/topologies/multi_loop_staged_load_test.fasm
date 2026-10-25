@@ -1,5 +1,5 @@
 // PROMPT: Simulate a multi-stage load test using sequential LOOP blocks in the COMPILE section representing warm-up, peak burst, and cool-down traffic phases.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, TCP, SYN, ACK, PSH, COMPILE, LOOP
 
 // INSTRUCTION: Define a load generator client host with IP 10.201.0.10.
 HOST load_generator { IP 10.201.0.10 MAC 00:16:3e:c9:00:0a }

@@ -1,0 +1,22 @@
+// PROMPT: RFC 7323 PAWS (Protection Against Wrapped Sequences) high-speed TCP timestamp wraparound validation near 2^32-1.
+// TOKENS: HOST, IP, FLOW, TCP, PSH, ACK, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, TSVAL, TSECR, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define 100GbE sender testing RFC 7323 PAWS timestamp wraparound.
+HOST paws_sender { IP 10.73.23.1 }
+
+// INSTRUCTION: Define 100GbE receiver validating monotonically advancing 32-bit TSVAL across wraparound.
+HOST paws_receiver { IP 10.73.23.2 }
+
+// INSTRUCTION: Define TCP segments crossing the 32-bit unsigned TSVAL boundary (4294967294 -> 4294967295 -> 10).
+FLOW tcp_paws_tsval_wraparound(tx, rx) {
+    tx -> rx TCP PSH ACK SRCPORT 48000 DSTPORT 5201 SEQ 100000 ACKNUM 1 WIN 32768 TSVAL 4294967294 TSECR 900000 PAYLOAD "iperf3_block_pre_wrap_01"
+    tx <- rx TCP ACK SRCPORT 5201 DSTPORT 48000 SEQ 1 ACKNUM 100024 WIN 32768 TSVAL 900005 TSECR 4294967294 WAIT 1ms
+    tx -> rx TCP PSH ACK SRCPORT 48000 DSTPORT 5201 SEQ 100024 ACKNUM 1 WIN 32768 TSVAL 4294967295 TSECR 900005 PAYLOAD "iperf3_block_at_u32_max" WAIT 1ms
+    tx -> rx TCP PSH ACK SRCPORT 48000 DSTPORT 5201 SEQ 100047 ACKNUM 1 WIN 32768 TSVAL 10 TSECR 900005 PAYLOAD "iperf3_block_post_wrap_02" WAIT 2ms
+    tx <- rx TCP ACK SRCPORT 5201 DSTPORT 48000 SEQ 1 ACKNUM 100072 WIN 32768 TSVAL 900010 TSECR 10 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing TCP PAWS timestamp wraparound test.
+COMPILE {
+    tcp_paws_tsval_wraparound(paws_sender, paws_receiver)
+}

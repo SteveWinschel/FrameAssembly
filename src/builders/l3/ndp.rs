@@ -1,4 +1,15 @@
-//! NDP Layer 3 protocol wire builder.
+//! IPv6 Neighbor Discovery Protocol (NDP, RFC 4861) Layer 3 wire builder.
+//!
+//! Serializes an [`NdpSpec`] into an RFC 4861 IPv6 Neighbor Discovery ICMPv6 control frame over
+//! IPv6 Next Header `58` (`0x3A`). Supports `NEIGHBOR_SOLICIT` (Type `135`, deriving the
+//! Solicited-Node Multicast destination `ff02::1:ffXX:XXXX` from the low 24 bits of `TARGET` and
+//! appending Option 1 Source Link-Layer Address `SLLA`), `NEIGHBOR_ADVERT` (Type `136`, setting
+//! Solicited + Override flags `0x60` and appending Option 2 Target Link-Layer Address `TLLA`),
+//! `ROUTER_SOLICIT` (Type `133` to `ff02::2`), `ROUTER_ADVERT` (Type `134` with `ROUTER_LIFETIME`),
+//! and `REDIRECT` (Type `137`), with full 40-byte IPv6 pseudo-header checksum calculation.
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b NDP [ROUTER_SOLICIT | ROUTER_ADVERT | NEIGHBOR_SOLICIT | NEIGHBOR_ADVERT | REDIRECT] [TARGET <ipv6>] [SLLA <mac>] [TLLA <mac>] [ROUTER_LIFETIME <u16>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -8,7 +19,7 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::net::IpAddr;
 
-/// Builds an RFC 4861 IPv6 Neighbor Discovery Protocol (NDP) payload.
+/// Builds an RFC 4861 IPv6 Neighbor Discovery Protocol (`NDP`) payload over ICMPv6 (`58`).
 ///
 /// # Errors
 /// Returns `CompilerError::BackendError` if called with IPv4 endpoints.

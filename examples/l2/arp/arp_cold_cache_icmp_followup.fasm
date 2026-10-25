@@ -1,0 +1,27 @@
+// PROMPT: ARP request and reply followed immediately by ICMP Echo verification between resolved hosts.
+// TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, REPLY, WAIT, ICMP, ECHO_REQUEST, ID, SEQ, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define source host initiating communication on cold ARP cache.
+HOST cold_cache_host {
+    IP 10.44.0.10
+    MAC 00:15:5d:44:00:0a
+}
+
+// INSTRUCTION: Define destination gateway responding to ARP and ICMP ping.
+HOST local_gateway {
+    IP 10.44.0.1
+    MAC 00:15:5d:44:00:01
+}
+
+// INSTRUCTION: Define complete L2 ARP resolution followed by L3 ICMP echo exchange.
+FLOW arp_then_ping(host, gw) {
+    host -> gw ARP REQUEST
+    host <- gw ARP REPLY WAIT 1ms
+    host -> gw ICMP ECHO_REQUEST ID 4401 SEQ 1 WAIT 1ms
+    host <- gw ICMP ECHO_REPLY ID 4401 SEQ 1 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing cold-cache ARP and ICMP ping sequence.
+COMPILE {
+    arp_then_ping(cold_cache_host, local_gateway)
+}

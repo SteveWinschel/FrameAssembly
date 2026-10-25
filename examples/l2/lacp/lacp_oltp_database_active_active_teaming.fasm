@@ -1,0 +1,26 @@
+// PROMPT: High-availability OLTP database server NIC team synchronizing dual-port LACP with data center core switch.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define OLTP database server LACP team0 interface.
+HOST oltp_db_team0 {
+    IP 10.99.10.50
+    MAC 00:25:90:63:0a:32
+}
+
+// INSTRUCTION: Define data center core switch Port-channel 50 interface.
+HOST dc_core_po50 {
+    IP 10.99.10.1
+    MAC 00:1c:73:63:0a:01
+}
+
+// INSTRUCTION: Exchange LACP synchronization frames across team0 member ports 1 and 2.
+FLOW lacp_oltp_team_verify(db, sw) {
+    db -> sw LACP ACTOR_SYS 00:25:90:63:0a:32 ACTOR_KEY 50 ACTOR_PORT 1 ACTOR_STATE 63 PARTNER_SYS 00:1c:73:63:0a:01 PARTNER_KEY 50 PARTNER_PORT 50 PARTNER_STATE 63 WAIT 2ms
+    db <- sw LACP ACTOR_SYS 00:1c:73:63:0a:01 ACTOR_KEY 50 ACTOR_PORT 50 ACTOR_STATE 63 PARTNER_SYS 00:25:90:63:0a:32 PARTNER_KEY 50 PARTNER_PORT 1 PARTNER_STATE 63 WAIT 2ms
+    db -> sw LACP ACTOR_SYS 00:25:90:63:0a:32 ACTOR_KEY 50 ACTOR_PORT 2 ACTOR_STATE 63 PARTNER_SYS 00:1c:73:63:0a:01 PARTNER_KEY 50 PARTNER_PORT 51 PARTNER_STATE 63
+}
+
+// INSTRUCTION: Compile the OLTP database NIC team LACP verification trace.
+COMPILE {
+    lacp_oltp_team_verify(oltp_db_team0, dc_core_po50)
+}

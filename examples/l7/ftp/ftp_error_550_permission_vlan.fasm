@@ -1,0 +1,19 @@
+// PROMPT: FTP 550 File unavailable error when attempting to download a restricted configuration file.
+// TOKENS: HOST, IP, FLOW, FTP, CMD, ARG, VLAN, DSCP, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define DMZ client host.
+HOST dmz_client { IP 172.16.100.50 }
+
+// INSTRUCTION: Define DMZ FTP server on VLAN 100.
+HOST dmz_ftp { IP 172.16.100.21 }
+
+// INSTRUCTION: Request restricted file and receive 550 Permission denied over VLAN 100.
+FLOW ftp_error_550_vlan(c, s) {
+    c -> s FTP CMD "RETR" ARG "/etc/shadow" VLAN 100 DSCP 10
+    c <- s FTP CODE 550 REPLY "Permission denied" VLAN 100 DSCP 10
+}
+
+// INSTRUCTION: Compile the VLAN-tagged FTP 550 error flow.
+COMPILE {
+    ftp_error_550_vlan(dmz_client, dmz_ftp)
+}

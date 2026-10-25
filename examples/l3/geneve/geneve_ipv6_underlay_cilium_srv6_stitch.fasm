@@ -1,0 +1,25 @@
+// PROMPT: IPv6 underlay RFC 8926 GENEVE tunnel carrying Cilium metadata TLVs with IPv6 Flow Label ECMP entropy.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, FLOWLABEL, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6-only Kubernetes node A encapsulating pod traffic in GENEVE over IPv6.
+HOST v6_cilium_node_a {
+    IP 2001:db8:6081:1::10
+    MAC 00:16:3e:66:81:0a
+}
+
+// INSTRUCTION: Define IPv6-only Kubernetes node B terminating GENEVE UDP 6081 over IPv6.
+HOST v6_cilium_node_b {
+    IP 2001:db8:6081:2::20
+    MAC 00:16:3e:66:81:14
+}
+
+// INSTRUCTION: Define IPv6 GENEVE flow with FLOWLABEL 60810, OPT_CLASS 267, and PROTOCOL_TYPE 0x86DD (34525).
+FLOW geneve_v6_cilium_flow(a, b) {
+    a -> b GENEVE VNI 6001 OPT_CLASS 267 OPT_TYPE 1 PROTOCOL_TYPE 34525 SRCPORT 56081 DSTPORT 6081 FLOWLABEL 60810 DSCP 34 TTL 64 PAYLOAD "IPV6_POD_TO_POD_CILIUM_GENEVE" WAIT 3ms
+    a <- b GENEVE VNI 6001 OPT_CLASS 267 OPT_TYPE 1 PROTOCOL_TYPE 34525 SRCPORT 56082 DSTPORT 6081 FLOWLABEL 60810 DSCP 34 TTL 64 PAYLOAD "IPV6_POD_TO_POD_CILIUM_REPLY"
+}
+
+// INSTRUCTION: Compile the IPv6 underlay Cilium GENEVE flow.
+COMPILE {
+    geneve_v6_cilium_flow(v6_cilium_node_a, v6_cilium_node_b)
+}

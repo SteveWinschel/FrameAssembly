@@ -1,0 +1,19 @@
+// PROMPT: MySQL transactional write inserting customer order record followed by COMMIT.
+// TOKENS: HOST, IP, FLOW, MYSQL, SQL, WAIT, COMPILE
+
+// INSTRUCTION: Define ecommerce checkout service.
+HOST checkout_service { IP 10.8.0.22 }
+
+// INSTRUCTION: Define primary transactional database node.
+HOST oltp_mysql_primary { IP 10.8.0.1 }
+
+// INSTRUCTION: Define multi-statement transaction flow.
+FLOW insert_commit_flow(app, db) {
+    app -> db MYSQL SQL "INSERT INTO orders (id, amount) VALUES (998, 149.99)" WAIT 5ms
+    app -> db MYSQL SQL "COMMIT"
+}
+
+// INSTRUCTION: Compile transactional insert commit scenario.
+COMPILE {
+    insert_commit_flow(checkout_service, oltp_mysql_primary)
+}

@@ -1,0 +1,22 @@
+// PROMPT: Full TCP handshake followed by gRPC unary request and GRPC_STATUS 0 OK response.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, GRPC, SERVICE, METHOD, PAYLOAD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define checkout API gateway pod.
+HOST api_gateway { IP 10.244.1.10 }
+
+// INSTRUCTION: Define payment processing gRPC service pod.
+HOST payment_svc { IP 10.244.2.50 }
+
+// INSTRUCTION: Complete TCP handshake on port 50051, invoke ChargeCard RPC, and return status 0.
+FLOW grpc_payment_rpc(gw, pay) {
+    gw -> pay TCP SYN SRCPORT 44100 DSTPORT 50051
+    gw <- pay TCP SYN ACK
+    gw -> pay TCP ACK
+    gw -> pay GRPC SERVICE "payment.v1.PaymentService" METHOD "ChargeCard" PAYLOAD "\x08\xe8\x07"
+    gw <- pay GRPC SERVICE "payment.v1.PaymentService" METHOD "ChargeCard" GRPC_STATUS 0
+}
+
+// INSTRUCTION: Compile the gRPC payment RPC flow.
+COMPILE {
+    grpc_payment_rpc(api_gateway, payment_svc)
+}

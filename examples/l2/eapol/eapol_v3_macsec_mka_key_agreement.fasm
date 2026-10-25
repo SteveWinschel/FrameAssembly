@@ -1,0 +1,26 @@
+// PROMPT: IEEE 802.1X-2020 EAPOL Version 3 MKA (MACsec Key Agreement) key server election and SAK distribution.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, KEY, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define MACsec Key Server core router interface.
+HOST macsec_key_srv {
+    IP 10.254.20.1
+    MAC 00:1c:73:fe:14:01
+}
+
+// INSTRUCTION: Define MACsec peer router interface on dark fiber WAN link.
+HOST macsec_peer_rtr {
+    IP 10.254.20.2
+    MAC 00:1c:73:fe:14:02
+}
+
+// INSTRUCTION: Define EAPOL Version 3 Key frames exchanging MKA Basic Parameter Set and SAK wrap.
+FLOW eapol_v3_macsec_mka(ks, peer) {
+    ks -> peer EAPOL VERSION 3 TYPE KEY HEXPAYLOAD "01001020001c73fe14010001a1b2c3d4"
+    ks <- peer EAPOL VERSION 3 TYPE KEY HEXPAYLOAD "01801020001c73fe14020001e5f60718" WAIT 5ms
+    ks -> peer EAPOL VERSION 3 TYPE KEY HEXPAYLOAD "04000018aabbccddeeff001122334455" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing EAPOL Version 3 MACsec MKA key agreement.
+COMPILE {
+    eapol_v3_macsec_mka(macsec_key_srv, macsec_peer_rtr)
+}

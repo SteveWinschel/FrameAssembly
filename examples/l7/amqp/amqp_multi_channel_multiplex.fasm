@@ -1,0 +1,23 @@
+// PROMPT: Multi-channel AMQP multiplexer opening three concurrent virtual channels on a single connection.
+// TOKENS: HOST, IP, FLOW, AMQP, CHANNEL_OPEN, CHANNEL, WAIT, BASIC_PUBLISH, EXCHANGE, ROUTING_KEY, COMPILE
+
+// INSTRUCTION: Define the application gateway host.
+HOST app_gw { IP 10.30.0.15 }
+
+// INSTRUCTION: Define the message broker core host.
+HOST mq_core { IP 10.30.0.1 }
+
+// INSTRUCTION: Open channels 10, 11, and 12 and publish to distinct exchanges.
+FLOW amqp_multiplex_channels(gw, mq) {
+    gw -> mq AMQP CHANNEL_OPEN CHANNEL 10 WAIT 2ms
+    gw -> mq AMQP CHANNEL_OPEN CHANNEL 11 WAIT 2ms
+    gw -> mq AMQP CHANNEL_OPEN CHANNEL 12 WAIT 2ms
+    gw -> mq AMQP BASIC_PUBLISH CHANNEL 10 EXCHANGE "logs.direct" ROUTING_KEY "info"
+    gw -> mq AMQP BASIC_PUBLISH CHANNEL 11 EXCHANGE "metrics.topic" ROUTING_KEY "net.rx"
+    gw -> mq AMQP BASIC_PUBLISH CHANNEL 12 EXCHANGE "alerts.fanout" ROUTING_KEY "crit"
+}
+
+// INSTRUCTION: Compile the multi-channel AMQP scenario.
+COMPILE {
+    amqp_multiplex_channels(app_gw, mq_core)
+}

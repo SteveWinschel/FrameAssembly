@@ -1,0 +1,25 @@
+// PROMPT: S7comm USERDATA (ROSCTR 0x07) request reading System Status List SZL 0x0174 (CPU LED indicators).
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define the plant maintenance portal querying PLC front-panel LED states.
+HOST maint_portal {
+    IP 10.130.30.15
+    MAC 00:1a:2b:82:30:15
+}
+
+// INSTRUCTION: Define the stamping press S7-300 PLC.
+HOST press_plc {
+    IP 10.130.30.2
+    MAC 00:1a:2b:82:30:02
+}
+
+// INSTRUCTION: Send USERDATA SZL request for CPU RUN/STOP/SF LEDs and receive USERDATA response.
+FLOW s7_szl_leds(m, p) {
+    m -> p S7COMM ROSCTR "USERDATA" PDU_REF 410 HEXPAYLOAD "0001120411440100ff09000401740000"
+    m <- p S7COMM ROSCTR "USERDATA" PDU_REF 410 HEXPAYLOAD "000112081284010100000000ff09000801740000"
+}
+
+// INSTRUCTION: Compile the S7comm USERDATA SZL LED diagnostics flow.
+COMPILE {
+    s7_szl_leds(maint_portal, press_plc)
+}

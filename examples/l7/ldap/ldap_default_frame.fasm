@@ -1,0 +1,24 @@
+// PROMPT: Generate a minimal default LDAP frame with default protocol parameters between an LDAP client and directory server.
+// TOKENS: HOST, IP, MAC, FLOW, LDAP, COMPILE
+
+// INSTRUCTION: Define the client host querying the directory service.
+HOST ldap_client {
+    IP 10.10.15.20
+    MAC 00:1a:2b:15:00:20
+}
+
+// INSTRUCTION: Define the OpenLDAP directory server.
+HOST ldap_server {
+    IP 10.10.15.5
+    MAC 00:1a:2b:15:00:05
+}
+
+// INSTRUCTION: Emit a default LDAP protocol frame using built-in defaults.
+FLOW default_ldap_flow(c, s) {
+    c -> s LDAP
+}
+
+// INSTRUCTION: Compile the default LDAP packet into a PCAP file.
+COMPILE {
+    default_ldap_flow(ldap_client, ldap_server)
+}

@@ -1,0 +1,27 @@
+// PROMPT: Branch office SMB2 document synchronization over MPLS WAN with DSCP AF21 and explicit TCP window sizing.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, FILENAME, MPLS, DSCP, WINDOW, STATUS, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the remote branch office client.
+HOST branch_pc {
+    IP 172.29.12.34
+    MAC 00:1a:2b:29:12:34
+}
+
+// INSTRUCTION: Define the headquarters central document repository server.
+HOST hq_files {
+    IP 172.29.1.10
+    MAC 00:1a:2b:29:01:10
+}
+
+// INSTRUCTION: Open and read a branch contract PDF over MPLS label 1640.
+FLOW smb_wan_sync(c, s) {
+    c -> s SMB COMMAND "CREATE" TREE_ID 6 SESSION_ID 2100 MSGID 8 FILENAME "contracts\branch12_lease.pdf" MPLS 1640 DSCP 18 WINDOW 65535
+    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 6 SESSION_ID 2100 MSGID 8 MPLS 1640 DSCP 18 WINDOW 65535 WAIT 15ms
+    c -> s SMB COMMAND "READ" TREE_ID 6 SESSION_ID 2100 MSGID 9 MPLS 1640 DSCP 18 WINDOW 65535
+    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 6 SESSION_ID 2100 MSGID 9 MPLS 1640 DSCP 18 WINDOW 65535 PAYLOAD "%PDF-1.7 LEASE AGREEMENT"
+}
+
+// INSTRUCTION: Compile the branch WAN SMB2 synchronization flow.
+COMPILE {
+    smb_wan_sync(branch_pc, hq_files)
+}

@@ -1,5 +1,5 @@
 // PROMPT: EtherNet/IP encapsulation command 0x0065 RegisterSession establishing session.
-// TOKENS: HOST, IP, FLOW, ->, ETHERNETIP, CMD, STATUS, COMPILE
+// TOKENS: HOST, IP, FLOW, ETHERNETIP, CMD, STATUS, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.10 }

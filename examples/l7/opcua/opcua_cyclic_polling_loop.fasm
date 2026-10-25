@@ -1,0 +1,21 @@
+// PROMPT: Periodic high-frequency OPC UA cyclic polling using a COMPILE LOOP block.
+// TOKENS: HOST, IP, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define edge analytics collector.
+HOST edge_collector { IP 192.168.77.10 }
+
+// INSTRUCTION: Define packaging line PLC.
+HOST pack_plc { IP 192.168.77.2 }
+
+// INSTRUCTION: Define single OPC UA poll cycle with 25ms interval.
+FLOW opcua_poll_cycle(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 12 TOKEN_ID 1 SEQ_NUM 10 REQID 10 NODE_ID "ns=2;s=Line1.BottleCount" WAIT 25ms
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 12 TOKEN_ID 1 SEQ_NUM 11 REQID 10 NODE_ID "ns=2;s=Line1.BottleCount" WAIT 25ms
+}
+
+// INSTRUCTION: Execute 5 cyclic polling iterations in COMPILE LOOP.
+COMPILE {
+    LOOP 5 {
+        opcua_poll_cycle(edge_collector, pack_plc)
+    }
+}

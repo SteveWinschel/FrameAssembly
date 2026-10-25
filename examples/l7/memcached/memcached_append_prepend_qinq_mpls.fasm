@@ -1,0 +1,29 @@
+// PROMPT: Generate a Memcached APPEND and PREPEND log buffer aggregation flow over QinQ and MPLS encapsulation.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, SET, KEY, EXPTIME, OPAQUE, PAYLOAD, QINQ, INNER_VLAN, MPLS, DSCP, TTL, WAIT, CMD, GET, COMPILE
+
+// INSTRUCTION: Define the audit trail collector appending event IDs into a Memcached list key.
+HOST audit_worker {
+    IP 10.150.12.30
+    MAC 00:1e:67:96:0c:1e
+}
+
+// INSTRUCTION: Define the remote Memcached aggregation server across an MPLS core.
+HOST remote_memcache {
+    IP 10.150.1.10
+    MAC 00:1e:67:96:01:0a
+}
+
+// INSTRUCTION: Initialize a list with SET, APPEND a newer event ID, PREPEND a header tag, and GET the combined string over QinQ/MPLS.
+FLOW append_prepend_qinq_mpls(c, s) {
+    c -> s MEMCACHED SET KEY "audit:batch:42" EXPTIME 600 OPAQUE 601 PAYLOAD "evt100," QINQ 350 INNER_VLAN 25 MPLS 51000 DSCP 24 TTL 61 WAIT 3ms
+    c <- s MEMCACHED CMD "STORED" KEY "audit:batch:42" OPAQUE 601 QINQ 350 INNER_VLAN 25 MPLS 51000 DSCP 24 TTL 61 WAIT 2ms
+    c -> s MEMCACHED CMD "APPEND" KEY "audit:batch:42" OPAQUE 602 PAYLOAD "evt101" QINQ 350 INNER_VLAN 25 MPLS 51000 DSCP 24 TTL 61 WAIT 3ms
+    c <- s MEMCACHED CMD "STORED" KEY "audit:batch:42" OPAQUE 602 QINQ 350 INNER_VLAN 25 MPLS 51000 DSCP 24 TTL 61 WAIT 2ms
+    c -> s MEMCACHED GET KEY "audit:batch:42" OPAQUE 603 QINQ 350 INNER_VLAN 25 MPLS 51000 DSCP 24 TTL 61 WAIT 3ms
+    c <- s MEMCACHED GET KEY "audit:batch:42" OPAQUE 603 PAYLOAD "evt100,evt101" QINQ 350 INNER_VLAN 25 MPLS 51000 DSCP 24 TTL 61
+}
+
+// INSTRUCTION: Compile the QinQ and MPLS Memcached APPEND trace into a PCAP file.
+COMPILE {
+    append_prepend_qinq_mpls(audit_worker, remote_memcache)
+}

@@ -1,0 +1,18 @@
+// PROMPT: AMQP custom port override on TCP 15672 with binary HEXPAYLOAD protobuf body.
+// TOKENS: HOST, IP, FLOW, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, SRCPORT, DSTPORT, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define financial trading feed publisher.
+HOST trade_feed { IP 192.168.88.10 }
+
+// INSTRUCTION: Define custom-port AMQP ingest broker.
+HOST ingest_broker { IP 192.168.88.20 }
+
+// INSTRUCTION: Publish binary protobuf tick data over non-standard TCP port 15672.
+FLOW amqp_binary_feed(f, b) {
+    f -> b AMQP BASIC_PUBLISH CHANNEL 7 EXCHANGE "market.ticks" ROUTING_KEY "nyse.aapl" SRCPORT 49152 DSTPORT 15672 HEXPAYLOAD "08960112044141504c"
+}
+
+// INSTRUCTION: Compile the custom-port binary AMQP feed.
+COMPILE {
+    amqp_binary_feed(trade_feed, ingest_broker)
+}

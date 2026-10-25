@@ -1,0 +1,46 @@
+// PROMPT: Simulate a Telnet brute-force login failure sequence returning 'Login incorrect' 3 times in a LOOP before disconnecting.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TELNET, PAYLOAD, WAIT, FIN, COMPILE, LOOP
+
+// INSTRUCTION: Define host endpoint scanner_bot.
+HOST scanner_bot {
+    MAC 00:16:3e:00:23:66
+    IP 198.51.100.66
+}
+
+// INSTRUCTION: Define host endpoint telnet_honeypot.
+HOST telnet_honeypot {
+    MAC 00:16:3e:00:23:01
+    IP 203.0.113.23
+}
+
+// INSTRUCTION: Initialize session before loop for telnet_login_failure_loop.
+FLOW telnet_login_failure_loop_init(scanner_bot, telnet_honeypot) {
+    scanner_bot -> telnet_honeypot TCP SYN SRCPORT 61023 DSTPORT 23
+    telnet_honeypot -> scanner_bot TCP SYN ACK
+    scanner_bot -> telnet_honeypot TCP ACK
+}
+
+// INSTRUCTION: Attempt 3 failed credential pairs in a loop followed by server-initiated TCP FIN.
+FLOW telnet_login_failure_loop(scanner_bot, telnet_honeypot) {
+    telnet_honeypot -> scanner_bot TELNET PAYLOAD "login: "
+    scanner_bot -> telnet_honeypot TELNET PAYLOAD "admin\r\n"
+    telnet_honeypot -> scanner_bot TELNET PAYLOAD "Password: "
+    scanner_bot -> telnet_honeypot TELNET PAYLOAD "123456\r\n"
+    telnet_honeypot -> scanner_bot TELNET PAYLOAD "Login incorrect\r\n" WAIT 20ms
+}
+
+// INSTRUCTION: Complete session teardown after loop for telnet_login_failure_loop.
+FLOW telnet_login_failure_loop_done(scanner_bot, telnet_honeypot) {
+    telnet_honeypot -> scanner_bot TCP FIN ACK
+    scanner_bot -> telnet_honeypot TCP FIN ACK
+    telnet_honeypot -> scanner_bot TCP ACK
+}
+
+// INSTRUCTION: Compile the Telnet failed login loop flow.
+COMPILE {
+    telnet_login_failure_loop_init(scanner_bot, telnet_honeypot)
+    LOOP 3 {
+        telnet_login_failure_loop(scanner_bot, telnet_honeypot)
+    }
+    telnet_login_failure_loop_done(scanner_bot, telnet_honeypot)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Modbus industrial automation command with DSCP expedited forwarding priority marking.
+// TOKENS: HOST, IP, FLOW, MODBUS, FUNC, ADDR, VALUE, UNITID, DSCP, COMPILE
+
+// INSTRUCTION: Define emergency shutdown safety system.
+HOST safety_system { IP 192.168.1.99 }
+
+// INSTRUCTION: Define emergency relief valve actuator.
+HOST valve_actuator { IP 192.168.1.150 }
+
+// INSTRUCTION: Define DSCP prioritized emergency coil write flow.
+FLOW emergency_valve_trip(sys, act) {
+    sys -> act MODBUS FUNC "WRITE_SINGLE_COIL" ADDR 10 VALUE 65280 UNITID 1 DSCP 46
+}
+
+// INSTRUCTION: Compile DSCP marked process automation scenario.
+COMPILE {
+    emergency_valve_trip(safety_system, valve_actuator)
+}

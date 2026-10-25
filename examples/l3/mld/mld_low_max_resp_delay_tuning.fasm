@@ -1,0 +1,18 @@
+// PROMPT: Low Max Response Delay MLD query for rapid multicast group pruning audit.
+// TOKENS: HOST, IP, FLOW, MLD, QUERY, MULTICAST_ADDR, MAX_RESP_DELAY, COMPILE
+
+// INSTRUCTION: Define core distribution router auditing active listeners.
+HOST core_dist_rtr { IP fe80::1 }
+
+// INSTRUCTION: Define multicast channel target address.
+HOST channel_target_grp { IP ff05::200 }
+
+// INSTRUCTION: Define fast-audit query flow with 1000ms maximum response delay.
+FLOW mld_audit_query_flow(core, grp) {
+    core -> grp MLD QUERY MULTICAST_ADDR ff05::200 MAX_RESP_DELAY 1000
+}
+
+// INSTRUCTION: Compile block executing group-specific audit query.
+COMPILE {
+    mld_audit_query_flow(core_dist_rtr, channel_target_grp)
+}

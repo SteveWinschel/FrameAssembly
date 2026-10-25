@@ -1,5 +1,5 @@
 // PROMPT: SCTP data chunk transmission with verification tag and stream parameters.
-// TOKENS: HOST, IP, FLOW, ->, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define SCTP telephony endpoint A.
 HOST sctp_tel_a { IP 172.20.0.1 }

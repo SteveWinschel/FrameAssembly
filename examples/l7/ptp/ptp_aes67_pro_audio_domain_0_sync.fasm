@@ -1,0 +1,27 @@
+// PROMPT: Simulate an AES67 studio audio-over-IP IEEE 1588v2 PTP synchronization cycle on Domain 0 with DSCP EF.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, CLOCK_ID, DSCP, WAIT, FOLLOW_UP, DELAY_REQ, DELAY_RESP, COMPILE
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
+HOST ptp_grandmaster {
+    IP 10.158.0.1
+    MAC 00:1b:21:31:90:01
+}
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
+HOST ptp_slave_clock {
+    IP 10.158.0.25
+    MAC 00:1b:21:31:90:25
+}
+
+// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
+FLOW ptp_scenario_flow(gm, slv) {
+    gm -> slv PTP SYNC DOMAIN 0 SEQ_ID 4010 CLOCK_ID "001b21fffe319001" DSCP 46 WAIT 1ms
+    gm -> slv PTP FOLLOW_UP DOMAIN 0 SEQ_ID 4010 CLOCK_ID "001b21fffe319001" DSCP 46 WAIT 2ms
+    gm <- slv PTP DELAY_REQ DOMAIN 0 SEQ_ID 4010 CLOCK_ID "001b21fffe319025" DSCP 46 WAIT 1ms
+    gm -> slv PTP DELAY_RESP DOMAIN 0 SEQ_ID 4010 CLOCK_ID "001b21fffe319001" DSCP 46
+}
+
+// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
+COMPILE {
+    ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
+}

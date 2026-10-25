@@ -1,5 +1,5 @@
 // PROMPT: Virtual Router Redundancy Protocol master router advertisement with VRID and priority.
-// TOKENS: HOST, IP, FLOW, ->, VRRP, VRID, PRIORITY, COMPILE
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, COMPILE
 
 // INSTRUCTION: Define primary master gateway router.
 HOST vrrp_master_gw { IP 192.168.1.254 }

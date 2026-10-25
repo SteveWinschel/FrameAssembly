@@ -1,0 +1,18 @@
+// PROMPT: NFS backup stream marked with DSCP lower-effort scavenger priority marking.
+// TOKENS: HOST, IP, FLOW, NFS, VERS, PROC, PATH, DSCP, COMPILE
+
+// INSTRUCTION: Define secondary backup replication client.
+HOST repl_backup_client { IP 10.80.1.18 }
+
+// INSTRUCTION: Define remote DR site NFS server.
+HOST dr_nfs_target { IP 10.80.1.2 }
+
+// INSTRUCTION: Define DSCP marked backup write flow.
+FLOW dscp_backup_write(cli, tgt) {
+    cli -> tgt NFS VERS 4 PROC "WRITE" PATH "/dr/backups/daily_snapshot.tar" DSCP 8
+}
+
+// INSTRUCTION: Compile DSCP prioritized backup scenario.
+COMPILE {
+    dscp_backup_write(repl_backup_client, dr_nfs_target)
+}

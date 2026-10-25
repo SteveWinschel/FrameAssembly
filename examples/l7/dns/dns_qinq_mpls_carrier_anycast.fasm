@@ -1,0 +1,19 @@
+// PROMPT: Carrier ISP DNS resolution carried over QinQ subscriber VLANs and MPLS core label.
+// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, QINQ, INNER_VLAN, MPLS, DSCP, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define subscriber home gateway.
+HOST home_gw { IP 100.64.55.12 }
+
+// INSTRUCTION: Define ISP anycast DNS resolver.
+HOST isp_anycast_dns { IP 198.18.0.53 }
+
+// INSTRUCTION: Exchange QinQ and MPLS encapsulated DNS lookup frames.
+FLOW dns_carrier_anycast(g, d) {
+    g -> d DNS QUERY TXID 0xaa55 QNAME "portal.isp.net" QTYPE "A" QINQ 800 INNER_VLAN 55 MPLS 12053 DSCP 16
+    g <- d DNS RESPONSE TXID 0xaa55 QNAME "portal.isp.net" QTYPE "A" RDATA "198.18.10.20" ANS_TTL 600 QINQ 800 INNER_VLAN 55 MPLS 12053 DSCP 16
+}
+
+// INSTRUCTION: Compile the ISP carrier QinQ/MPLS DNS scenario.
+COMPILE {
+    dns_carrier_anycast(home_gw, isp_anycast_dns)
+}

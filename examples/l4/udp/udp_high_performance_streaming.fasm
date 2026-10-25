@@ -1,5 +1,5 @@
 // PROMPT: High-throughput stateless UDP streaming over IPv6 with explicit ports and payload data.
-// TOKENS: HOST, IP, FLOW, ->, UDP, SRCPORT, DSTPORT, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define high-speed telemetry client.
 HOST stream_client { IP 2001:db8:feed::1 }

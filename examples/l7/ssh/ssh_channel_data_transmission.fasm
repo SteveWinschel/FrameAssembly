@@ -1,0 +1,19 @@
+// PROMPT: Encrypted pseudo-terminal session data frame with MSG_CODE 94.
+// TOKENS: HOST, IP, FLOW, SSH, MSG_CODE, COMPILE
+
+// INSTRUCTION: Define interactive user shell.
+HOST shell_client { IP 192.168.33.22 }
+
+// INSTRUCTION: Define remote target bastion.
+HOST target_bastion { IP 192.168.33.1 }
+
+// INSTRUCTION: Define interactive data exchange flow.
+FLOW ssh_data_flow(c, s) {
+    c -> s SSH MSG_CODE 94
+    c <- s SSH MSG_CODE 94
+}
+
+// INSTRUCTION: Compile block executing channel data transmission.
+COMPILE {
+    ssh_data_flow(shell_client, target_bastion)
+}

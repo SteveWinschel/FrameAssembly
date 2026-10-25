@@ -1,3 +1,11 @@
+//! PCAP Next Generation (`PCAPNG`) file writer and packet block serialization engine.
+//!
+//! This module wraps `pcap_file::pcapng::PcapNgWriter` via [`PcapWriter`] to emit standards-compliant
+//! `.pcap` and `.pcapng` network capture files. It automatically initializes an Ethernet (`LINKTYPE_ETHERNET`)
+//! `InterfaceDescriptionBlock` configured with a 65,535-byte snapshot length and `IfTsResol(9)`
+//! nanosecond timestamp resolution (`10^-9` seconds), writing each synthesized frame as an
+//! `EnhancedPacketBlock`.
+
 use pcap_file::pcapng::PcapNgBlock;
 use pcap_file::pcapng::PcapNgWriter;
 use pcap_file::pcapng::blocks::enhanced_packet::EnhancedPacketBlock;

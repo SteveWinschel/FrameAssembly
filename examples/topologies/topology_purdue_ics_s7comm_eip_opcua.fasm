@@ -1,0 +1,40 @@
+// PROMPT: Industrial Purdue Model (Levels 1-3) OT/ICS factory floor combining Siemens S7comm, EtherNet/IP CIP, and OPC UA historian aggregation.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, S7COMM, ROSCTR, FUNC, PDU_REF, AREA, DB_NUM, OFFSET, COUNT, WAIT, ETHERNETIP, CMD, SESSION_HANDLE, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, COMPILE
+
+// INSTRUCTION: Define Level 1 Siemens S7-1500 assembly line PLC.
+HOST l1_siemens_plc {
+    IP 192.168.101.10
+    MAC 00:0e:8c:65:00:0a
+}
+
+// INSTRUCTION: Define Level 1 Allen-Bradley ControlLogix robotic cell PLC.
+HOST l1_ab_controllogix {
+    IP 192.168.101.20
+    MAC 00:00:bc:65:00:14
+}
+
+// INSTRUCTION: Define Level 2 supervisory SCADA gateway polling L1 PLCs.
+HOST l2_scada_gateway {
+    IP 192.168.101.1
+    MAC 00:1b:21:65:00:01
+}
+
+// INSTRUCTION: Define Level 3 plant MES historian server receiving OPC UA telemetry.
+HOST l3_plant_historian {
+    IP 192.168.101.200
+    MAC 00:50:56:65:00:c8
+}
+
+// INSTRUCTION: Define Purdue Model L1-L3 industrial polling across S7comm, EtherNet/IP, and OPC UA.
+FLOW purdue_ot_factory_flow(s7_plc, ab_plc, scada, hist) {
+    scada -> s7_plc VLAN 101 PCP 6 S7COMM ROSCTR "JOB" FUNC "SETUP_COMM" PDU_REF 1
+    scada -> s7_plc VLAN 101 PCP 6 S7COMM ROSCTR "JOB" FUNC "READ_VAR" AREA 0x84 DB_NUM 1 OFFSET 0 COUNT 16 WAIT 2ms
+    scada -> ab_plc VLAN 101 PCP 6 ETHERNETIP CMD "REGISTER_SESSION" SESSION_HANDLE 1 WAIT 2ms
+    scada -> ab_plc VLAN 101 PCP 6 ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 1 CIP_SERVICE 0x0e CIP_CLASS 0x04 CIP_INSTANCE 100 CIP_ATTR 3 WAIT 2ms
+    scada -> hist VLAN 102 PCP 4 OPCUA CHUNK_TYPE "F" ENDPOINT_URL "opc.tcp://historian.plant.local:4840" NODE_ID "ns=2;s=Line1.Throughput" WAIT 3ms
+}
+
+// INSTRUCTION: Compile block executing Purdue Model OT/ICS factory topology.
+COMPILE {
+    purdue_ot_factory_flow(l1_siemens_plc, l1_ab_controllogix, l2_scada_gateway, l3_plant_historian)
+}

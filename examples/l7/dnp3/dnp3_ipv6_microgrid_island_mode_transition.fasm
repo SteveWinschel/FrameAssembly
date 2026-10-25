@@ -1,0 +1,27 @@
+// PROMPT: IPv6 DNP3 microgrid controller commanding point-of-common-coupling (PCC) breaker open for islanding.
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, WAIT, COMPILE
+
+// INSTRUCTION: Define the campus microgrid master controller over IPv6.
+HOST microgrid_master {
+    IP 2001:db8:125:100::1
+    MAC 00:1a:2b:7d:a0:01
+}
+
+// INSTRUCTION: Define the PCC interconnection relay outstation over IPv6.
+HOST pcc_relay {
+    IP 2001:db8:125:100::10
+    MAC 00:1a:2b:7d:a0:10
+}
+
+// INSTRUCTION: Command PCC breaker open via Direct Operate and read binary status confirmation over IPv6.
+FLOW dnp3_ipv6_island(m, r) {
+    m -> r DNP3 FUNC "DIRECT_OPERATE" SRC 1 DST 10 GROUP 12 VARIATION 1
+    m <- r DNP3 FUNC "RESPONSE" SRC 10 DST 1 GROUP 12 VARIATION 1 WAIT 1ms
+    m -> r DNP3 FUNC "READ" SRC 1 DST 10 GROUP 1 VARIATION 2
+    m <- r DNP3 FUNC "RESPONSE" SRC 10 DST 1 GROUP 1 VARIATION 2
+}
+
+// INSTRUCTION: Compile the IPv6 microgrid islanding DNP3 flow.
+COMPILE {
+    dnp3_ipv6_island(microgrid_master, pcc_relay)
+}

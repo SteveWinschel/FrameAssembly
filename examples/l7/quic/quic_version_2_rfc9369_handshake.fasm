@@ -1,0 +1,26 @@
+// PROMPT: QUIC Version 2 (RFC 9369, version 0x6b3343cf) Initial and Handshake packet exchange.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, VERSION, DCID, SCID, PKT_NUM, WAIT, HANDSHAKE, SHORT, COMPILE
+
+// INSTRUCTION: Define RFC 9369 QUIC v2 client endpoint.
+HOST quic_v2_client {
+    IP 10.70.2.15
+}
+
+// INSTRUCTION: Define RFC 9369 QUIC v2 server endpoint.
+HOST quic_v2_server {
+    IP 10.70.2.1
+}
+
+// INSTRUCTION: Define QUIC v2 Initial, Handshake, and 1-RTT Short header packet sequence.
+FLOW quic_v2_flow(c, s) {
+    c -> s QUIC INITIAL VERSION 0x6b3343cf DCID 0x1122334455667788 SCID 0x8877665544332211 PKT_NUM 1 WAIT 4ms
+    c <- s QUIC INITIAL VERSION 0x6b3343cf DCID 0x8877665544332211 SCID 0x99aabbccddeeff00 PKT_NUM 1 WAIT 4ms
+    c <- s QUIC HANDSHAKE VERSION 0x6b3343cf DCID 0x8877665544332211 SCID 0x99aabbccddeeff00 PKT_NUM 2 WAIT 4ms
+    c -> s QUIC HANDSHAKE VERSION 0x6b3343cf DCID 0x99aabbccddeeff00 SCID 0x8877665544332211 PKT_NUM 2 WAIT 4ms
+    c -> s QUIC SHORT DCID 0x99aabbccddeeff00 PKT_NUM 3
+}
+
+// INSTRUCTION: Compile the QUIC Version 2 handshake flow.
+COMPILE {
+    quic_v2_flow(quic_v2_client, quic_v2_server)
+}

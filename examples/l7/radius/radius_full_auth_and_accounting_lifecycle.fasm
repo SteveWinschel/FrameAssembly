@@ -1,0 +1,23 @@
+// PROMPT: Complete subscriber lifecycle combining Access-Request, Access-Accept, Accounting-Request, and Accounting-Response.
+// TOKENS: HOST, IP, FLOW, RADIUS, ACCESS_REQUEST, USER, NAS_IP, SERVICE_TYPE, WAIT, ACCESS_ACCEPT, FRAMED_IP, ACCOUNTING_REQUEST, PAYLOAD, ACCOUNTING_RESPONSE, COMPILE
+
+// INSTRUCTION: Define FTTH access concentrator NAS.
+HOST ftth_nas { IP 10.66.0.5 }
+
+// INSTRUCTION: Define subscriber AAA server.
+HOST sub_aaa { IP 10.66.0.1 }
+
+// INSTRUCTION: Define full auth + accounting start + accounting stop lifecycle.
+FLOW radius_full_lifecycle(nas, aaa) {
+    nas -> aaa RADIUS ACCESS_REQUEST USER "fiber_user_101" NAS_IP 10.66.0.5 SERVICE_TYPE 2 WAIT 4ms
+    nas <- aaa RADIUS ACCESS_ACCEPT USER "fiber_user_101" FRAMED_IP 100.64.101.10 SERVICE_TYPE 2 WAIT 4ms
+    nas -> aaa RADIUS ACCOUNTING_REQUEST USER "fiber_user_101" NAS_IP 10.66.0.5 FRAMED_IP 100.64.101.10 PAYLOAD "Acct-Status-Type=Start" WAIT 4ms
+    nas <- aaa RADIUS ACCOUNTING_RESPONSE USER "fiber_user_101" WAIT 20ms
+    nas -> aaa RADIUS ACCOUNTING_REQUEST USER "fiber_user_101" NAS_IP 10.66.0.5 FRAMED_IP 100.64.101.10 PAYLOAD "Acct-Status-Type=Stop" WAIT 4ms
+    nas <- aaa RADIUS ACCOUNTING_RESPONSE USER "fiber_user_101"
+}
+
+// INSTRUCTION: Compile full subscriber RADIUS lifecycle.
+COMPILE {
+    radius_full_lifecycle(ftth_nas, sub_aaa)
+}

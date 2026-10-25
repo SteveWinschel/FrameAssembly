@@ -1,0 +1,25 @@
+// PROMPT: Automated colocation patch-panel audit verifying cross-connect circuit IDs in LLDP PORT_ID and SYSDESC strings.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define enterprise border router port connected to colocation meet-me room patch panel.
+HOST enterprise_mmr_rtr {
+    IP 198.51.100.11
+    MAC 00:1c:73:64:00:0b
+}
+
+// INSTRUCTION: Define transit provider peering router on opposite side of colocation cross-connect.
+HOST transit_mmr_rtr {
+    IP 198.51.100.12
+    MAC 00:1c:73:64:00:0c
+}
+
+// INSTRUCTION: Advertise colocation cage and patch panel circuit identifiers in LLDP TLVs.
+FLOW lldp_mmr_patch_audit(ent, isp) {
+    ent -> isp LLDP CHASSIS_ID "rtr01.iad02.ent" PORT_ID "et-0/0/0:XC-99412" SYSNAME "rtr01.iad02" SYSDESC "Cage-4B Cabinet-12 Panel-A Port-07" TTL 120 WAIT 5ms
+    ent <- isp LLDP CHASSIS_ID "pe04.iad02.isp" PORT_ID "Hu0/0/1/2:XC-99412" SYSNAME "pe04.iad02" SYSDESC "MMR-Row3 Rack-08 Demarc-XC-99412" TTL 120
+}
+
+// INSTRUCTION: Compile the colocation cross-connect audit LLDP exchange.
+COMPILE {
+    lldp_mmr_patch_audit(enterprise_mmr_rtr, transit_mmr_rtr)
+}

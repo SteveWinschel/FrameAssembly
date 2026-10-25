@@ -1,0 +1,21 @@
+// PROMPT: TCP 3-way handshake on port 3306 followed by MySQL COM_QUERY database statement.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, DSTPORT, ACK, WAIT, MYSQL, SQL, COMPILE
+
+// INSTRUCTION: Define microservice API database client.
+HOST microservice_db_client { IP 10.0.100.15 }
+
+// INSTRUCTION: Define MySQL database instance listening on 3306.
+HOST mysql_db_instance { IP 10.0.100.2 }
+
+// INSTRUCTION: Define TCP handshake and COM_QUERY sequence flow.
+FLOW mysql_tcp_query_flow(c, s) {
+    c -> s TCP SYN DSTPORT 3306
+    c <- s TCP SYN ACK
+    c -> s TCP ACK WAIT 1ms
+    c -> s MYSQL SQL "SELECT COUNT(*) FROM orders WHERE status = 'pending'"
+}
+
+// INSTRUCTION: Compile TCP handshake and query scenario.
+COMPILE {
+    mysql_tcp_query_flow(microservice_db_client, mysql_db_instance)
+}

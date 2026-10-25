@@ -1,0 +1,41 @@
+// PROMPT: Model an SMTP message sent to multiple recipients using two RCPT TO commands before DATA submission.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SMTP, CODE, REPLY, EHLO, MAIL_FROM, PARAM, RCPT_TO, CMD, BODY, QUIT, COMPILE
+
+// INSTRUCTION: Define the internal alert server and corporate mail hub.
+HOST alert_srv {
+    MAC 00:0c:29:60:25:10
+    IP 10.40.25.10
+}
+
+// INSTRUCTION: Define the mail_hub mail endpoint.
+HOST mail_hub {
+    MAC 00:0c:29:60:25:01
+    IP 10.40.25.1
+}
+
+// INSTRUCTION: Send an alert email addressed to both noc@corp.local and secops@corp.local.
+FLOW smtp_multi_rcpt_delivery(alert_srv, mail_hub) {
+    alert_srv -> mail_hub TCP SYN SRCPORT 55025 DSTPORT 25
+    mail_hub -> alert_srv TCP SYN ACK
+    alert_srv -> mail_hub TCP ACK
+    mail_hub -> alert_srv SMTP CODE 220 REPLY "hub.corp.local ESMTP"
+    alert_srv -> mail_hub SMTP EHLO "alerts.corp.local"
+    mail_hub -> alert_srv SMTP CODE 250 REPLY "hub.corp.local"
+    alert_srv -> mail_hub SMTP MAIL_FROM PARAM "<monitor@corp.local>"
+    mail_hub -> alert_srv SMTP CODE 250 REPLY "2.1.0 Ok"
+    alert_srv -> mail_hub SMTP RCPT_TO PARAM "<noc@corp.local>"
+    mail_hub -> alert_srv SMTP CODE 250 REPLY "2.1.5 Ok"
+    alert_srv -> mail_hub SMTP RCPT_TO PARAM "<secops@corp.local>"
+    mail_hub -> alert_srv SMTP CODE 250 REPLY "2.1.5 Ok"
+    alert_srv -> mail_hub SMTP CMD "DATA"
+    mail_hub -> alert_srv SMTP CODE 354 REPLY "End data with <CR><LF>.<CR><LF>"
+    alert_srv -> mail_hub SMTP BODY "Subject: High CPU Alert\r\n\r\nCore router CPU exceeded 90%.\r\n."
+    mail_hub -> alert_srv SMTP CODE 250 REPLY "2.0.0 Ok: queued as 9F4A21"
+    alert_srv -> mail_hub SMTP QUIT
+    mail_hub -> alert_srv SMTP CODE 221 REPLY "2.0.0 Bye"
+}
+
+// INSTRUCTION: Compile the multi-recipient SMTP delivery flow.
+COMPILE {
+    smtp_multi_rcpt_delivery(alert_srv, mail_hub)
+}

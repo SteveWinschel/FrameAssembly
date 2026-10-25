@@ -1,0 +1,24 @@
+// PROMPT: Generate an IPFIX telemetry export capturing a lossless RoCEv2 RDMA over Converged Ethernet elephant flow on UDP port 4791.
+// TOKENS: HOST, IP, MAC, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, DSCP, ECN, COMPILE
+
+// INSTRUCTION: Define the AI training fabric Top-of-Rack switch exporting IPFIX metrics.
+HOST ai_tor_switch {
+    IP 172.30.100.1
+    MAC 00:02:c9:30:64:01
+}
+
+// INSTRUCTION: Define the AI fabric telemetry analyzer.
+HOST fabric_analyzer {
+    IP 172.30.100.50
+    MAC 00:02:c9:30:64:32
+}
+
+// INSTRUCTION: Report a high-throughput UDP port 4791 RoCEv2 RDMA flow record in IPFIX.
+FLOW ipfix_rocev2_rdma_export(tor, col) {
+    tor -> col IPFIX DOMAIN_ID 800 SRCIP 172.30.1.11 DSTIP 172.30.1.12 SRCPORT 59100 DSTPORT 4791 PROTO 17 PACKETS 250000 OCTETS 1024000000 DSCP 26 ECN 2
+}
+
+// INSTRUCTION: Compile the RoCEv2 RDMA elephant flow IPFIX export scenario.
+COMPILE {
+    ipfix_rocev2_rdma_export(ai_tor_switch, fabric_analyzer)
+}

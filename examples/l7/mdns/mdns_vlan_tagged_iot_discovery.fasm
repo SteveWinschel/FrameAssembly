@@ -1,0 +1,18 @@
+// PROMPT: Zero-configuration IoT smart sensor discovery isolated on tagged home automation VLAN.
+// TOKENS: HOST, IP, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define smart home hub controller.
+HOST home_hub { IP 10.80.20.5 }
+
+// INSTRUCTION: Define IoT multicast endpoint.
+HOST iot_mcast { IP 224.0.0.251 }
+
+// INSTRUCTION: Define VLAN tagged IoT service query flow.
+FLOW iot_discovery_vlan(hub, grp) {
+    hub -> grp MDNS QUERY TXID 4004 QNAME "_iot-sensor._sub._http._tcp.local" QTYPE "PTR" VLAN 80 PCP 3 DEI 0
+}
+
+// INSTRUCTION: Compile VLAN tagged IoT discovery scenario.
+COMPILE {
+    iot_discovery_vlan(home_hub, iot_mcast)
+}

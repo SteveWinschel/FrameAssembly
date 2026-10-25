@@ -1,0 +1,18 @@
+// PROMPT: VXLAN underlay packet transported across 802.1Q tagged data center transit VLAN 800.
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define rack server VTEP endpoint.
+HOST rack_vtep_server { IP 10.80.0.10 }
+
+// INSTRUCTION: Define aggregation leaf VTEP endpoint.
+HOST agg_leaf_vtep { IP 10.80.0.1 }
+
+// INSTRUCTION: Define VLAN 800 tagged VXLAN underlay flow.
+FLOW vxlan_vlan_underlay(srv, leaf) {
+    srv -> leaf VXLAN VNI 12000 VLAN 800 PCP 4 DEI 0
+}
+
+// INSTRUCTION: Compile block executing VLAN tagged VXLAN encapsulation.
+COMPILE {
+    vxlan_vlan_underlay(rack_vtep_server, agg_leaf_vtep)
+}

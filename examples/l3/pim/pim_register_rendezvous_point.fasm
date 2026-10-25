@@ -1,5 +1,5 @@
 // PROMPT: PIM Register message transmitting encapsulated multicast data to Rendezvous Point.
-// TOKENS: HOST, IP, FLOW, ->, PIM, REGISTER, RP, GROUP, COMPILE
+// TOKENS: HOST, IP, FLOW, PIM, REGISTER, RP, GROUP, COMPILE
 
 // INSTRUCTION: Define designated router connected to multicast source.
 HOST pim_source_dr { IP 192.168.10.1 }

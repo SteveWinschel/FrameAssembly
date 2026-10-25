@@ -1,0 +1,27 @@
+// PROMPT: RFC 4271 eBGP multihop peering between redundant loopback interfaces across dual parallel WAN links.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, TTL, DSCP, WAIT, UPDATE, PREFIX, NEXTHOP, COMPILE
+
+// INSTRUCTION: Define AS 65201 border router loopback interface with TTL 2 for eBGP-multihop.
+HOST as65201_lo0 {
+    IP 10.201.255.1
+    MAC 00:23:04:c9:ff:01
+}
+
+// INSTRUCTION: Define AS 65202 border router loopback interface with TTL 2.
+HOST as65202_lo0 {
+    IP 10.202.255.1
+    MAC 00:23:04:ca:ff:01
+}
+
+// INSTRUCTION: Define eBGP multihop (TTL 2) OPEN and UPDATE advertisement between loopbacks.
+FLOW bgp_ebgp_multihop_flow(r1, r2) {
+    r1 -> r2 BGP OPEN ASN 65201 HOLDTIME 60 BGPID 10.201.255.1 TTL 2 DSCP 48 WAIT 5ms
+    r1 <- r2 BGP OPEN ASN 65202 HOLDTIME 60 BGPID 10.202.255.1 TTL 2 DSCP 48 WAIT 5ms
+    r1 -> r2 BGP UPDATE ASN 65201 PREFIX "172.21.0.0/16" NEXTHOP 10.201.255.1 TTL 2 DSCP 48 WAIT 5ms
+    r1 <- r2 BGP UPDATE ASN 65202 PREFIX "172.22.0.0/16" NEXTHOP 10.202.255.1 TTL 2 DSCP 48
+}
+
+// INSTRUCTION: Compile the eBGP multihop loopback peering flow.
+COMPILE {
+    bgp_ebgp_multihop_flow(as65201_lo0, as65202_lo0)
+}

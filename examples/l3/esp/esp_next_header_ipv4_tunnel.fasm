@@ -1,0 +1,19 @@
+// PROMPT: IPsec ESP tunnel mode specifying Next Header 4 (IPv4-in-IP) and encrypted payload.
+// TOKENS: HOST, IP, FLOW, ESP, SPI, SEQ, NEXT_HEADER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define branch firewall initiating tunnel-mode ESP.
+HOST branch_fw_esp { IP 172.16.50.1 }
+
+// INSTRUCTION: Define headquarters firewall terminating tunnel-mode ESP.
+HOST hq_fw_esp { IP 172.16.50.2 }
+
+// INSTRUCTION: Define ESP tunnel mode flow with NEXT_HEADER 4 and ciphertext payload.
+FLOW esp_tunnel_next_hdr(br, hq) {
+    br -> hq ESP SPI 20010 SEQ 10 NEXT_HEADER 4 PAYLOAD "ENC_IPV4_INNER_PKT_01"
+    br <- hq ESP SPI 20020 SEQ 10 NEXT_HEADER 4 PAYLOAD "ENC_IPV4_INNER_PKT_02"
+}
+
+// INSTRUCTION: Compile the ESP Next Header tunnel mode flow.
+COMPILE {
+    esp_tunnel_next_hdr(branch_fw_esp, hq_fw_esp)
+}

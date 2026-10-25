@@ -1,0 +1,28 @@
+// PROMPT: Generate a TACACS+ command authorization (AUTHOR) check denying a dangerous reload command to a junior operator.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TACACS, TYPE, AUTHOR, SESSION_ID, USER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint core_sw.
+HOST core_sw {
+    MAC 00:25:90:00:49:30
+    IP 10.30.49.30
+}
+
+// INSTRUCTION: Define host endpoint policy_tacacs.
+HOST policy_tacacs {
+    MAC 00:25:90:00:49:01
+    IP 10.30.49.1
+}
+
+// INSTRUCTION: Request command authorization for 'reload' and receive AUTHOR_STATUS_FAIL.
+FLOW tacacs_author_command_denied(core_sw, policy_tacacs) {
+    core_sw -> policy_tacacs TCP SYN SRCPORT 54049 DSTPORT 49
+    policy_tacacs -> core_sw TCP SYN ACK
+    core_sw -> policy_tacacs TCP ACK
+    core_sw -> policy_tacacs TACACS TYPE AUTHOR SESSION_ID 400505 USER "jr_noc" PAYLOAD "service=shell:cmd=reload:cmd-arg=<cr>"
+    policy_tacacs -> core_sw TACACS TYPE AUTHOR SESSION_ID 400505 PAYLOAD "AUTHOR_STATUS_FAIL:Command not permitted for role=readonly"
+}
+
+// INSTRUCTION: Compile the TACACS+ command authorization denial flow.
+COMPILE {
+    tacacs_author_command_denied(core_sw, policy_tacacs)
+}

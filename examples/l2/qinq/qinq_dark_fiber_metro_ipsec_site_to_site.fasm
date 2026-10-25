@@ -1,0 +1,25 @@
+// PROMPT: Enterprise IPsec ESP site-to-site VPN transported over a leased Metro Ethernet QinQ circuit (S-VLAN 2200, C-VLAN 220).
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSCP, ESP, SPI, SEQ, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define primary headquarters VPN concentrator on QinQ S-VLAN 2200 C-VLAN 220.
+HOST hq_ipsec_gw {
+    IP 172.17.220.1
+    MAC 00:1b:17:dc:00:01
+}
+
+// INSTRUCTION: Define regional manufacturing plant VPN gateway on QinQ S-VLAN 2200 C-VLAN 220.
+HOST plant_ipsec_gw {
+    IP 172.17.220.2
+    MAC 00:1b:17:dc:00:02
+}
+
+// INSTRUCTION: Exchange encrypted ESP tunnel packets encapsulated inside IEEE 802.1ad QinQ S-VLAN 2200 C-VLAN 220.
+FLOW qinq_metro_ipsec_esp(hq, plant) {
+    hq -> plant QINQ 2200 INNER_VLAN 220 DSCP 46 ESP SPI 22001 SEQ 10 PAYLOAD "erp_manufacturing_schedule_ciphertext" WAIT 5ms
+    hq <- plant QINQ 2200 INNER_VLAN 220 DSCP 46 ESP SPI 22002 SEQ 10 PAYLOAD "erp_shop_floor_telemetry_ciphertext"
+}
+
+// INSTRUCTION: Compile the Metro Ethernet QinQ S-VLAN 2200 C-VLAN 220 IPsec ESP trace.
+COMPILE {
+    qinq_metro_ipsec_esp(hq_ipsec_gw, plant_ipsec_gw)
+}

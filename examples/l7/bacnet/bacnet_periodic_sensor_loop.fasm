@@ -1,0 +1,21 @@
+// PROMPT: Periodic BACnet/IP temperature and humidity polling loop with 500ms interval.
+// TOKENS: HOST, IP, FLOW, BACNET, READ_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define the BACnet historian logger.
+HOST historian { IP 10.60.10.2 }
+
+// INSTRUCTION: Define the cleanroom environmental sensor node.
+HOST env_sensor { IP 10.60.10.44 }
+
+// INSTRUCTION: Poll temperature (Instance 1) and relative humidity (Instance 2) analog inputs.
+FLOW bacnet_env_poll(h, s) {
+    h -> s BACNET READ_PROPERTY INVOKE_ID 10 OBJECT_TYPE 0 OBJECT_INSTANCE 1 PROPERTY_ID 85 WAIT 500ms
+    h -> s BACNET READ_PROPERTY INVOKE_ID 11 OBJECT_TYPE 0 OBJECT_INSTANCE 2 PROPERTY_ID 85 WAIT 500ms
+}
+
+// INSTRUCTION: Repeat the environmental sensor polling cycle 4 times.
+COMPILE {
+    LOOP 4 {
+        bacnet_env_poll(historian, env_sensor)
+    }
+}

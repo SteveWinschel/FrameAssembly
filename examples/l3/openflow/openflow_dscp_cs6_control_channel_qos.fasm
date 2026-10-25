@@ -1,0 +1,26 @@
+// PROMPT: Generate an OpenFlow 1.4 control exchange marked with DSCP CS6 network control priority, ECN ECT(0), and DF
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, FEATURES_REQ, VERSION, XID, DSCP, ECN, TTL, DF, WAIT, FEATURES_REPLY, DPID, FLOW_MOD, TABLE_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define the OpenFlow 1.4 controller cluster VIP
+HOST of14_ctrl {
+    IP 198.51.100.210
+    MAC 00:1b:21:e7:01:01
+}
+
+// INSTRUCTION: Define the OpenFlow 1.4 spine switch
+HOST of14_spine {
+    IP 198.51.100.211
+    MAC 00:1b:21:e7:01:02
+}
+
+// INSTRUCTION: Send OpenFlow 1.4 (VERSION 5) messages with DSCP 48 (CS6) and Don't Fragment
+FLOW openflow_dscp_cs6_exchange(ctrl, spine) {
+    ctrl -> spine OPENFLOW FEATURES_REQ VERSION 5 XID 601 DSCP 48 ECN 2 TTL 64 DF WAIT 10ms
+    spine -> ctrl OPENFLOW FEATURES_REPLY VERSION 5 XID 601 DPID 55001122 DSCP 48 ECN 2 TTL 64 DF WAIT 10ms
+    ctrl -> spine OPENFLOW FLOW_MOD VERSION 5 XID 602 TABLE_ID 0 PRIORITY 50000 DSCP 48 ECN 2 TTL 64 DF
+}
+
+// INSTRUCTION: Compile the DSCP CS6 OpenFlow 1.4 control trace
+COMPILE {
+    openflow_dscp_cs6_exchange(of14_ctrl, of14_spine)
+}

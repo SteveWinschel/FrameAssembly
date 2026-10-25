@@ -1,0 +1,30 @@
+// PROMPT: Windows roaming user profile NTUSER.DAT hive load and save over SMB2 during user login and logout.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, SESSION_ID, MSGID, SHARE, STATUS, TREE_ID, WAIT, FILENAME, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the virtual desktop infrastructure (VDI) session host.
+HOST vdi_desktop {
+    IP 10.60.100.41
+    MAC 00:1a:2b:60:99:41
+}
+
+// INSTRUCTION: Define the user profile storage filer.
+HOST profile_filer {
+    IP 10.60.100.5
+    MAC 00:1a:2b:60:99:05
+}
+
+// INSTRUCTION: Connect to profiles$, open NTUSER.DAT, write updated registry keys, and close.
+FLOW smb_roaming_profile(c, s) {
+    c -> s SMB COMMAND "TREE_CONNECT" SESSION_ID 7050 MSGID 1 SHARE "\\filer\profiles$"
+    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 15 SESSION_ID 7050 MSGID 1 WAIT 1ms
+    c -> s SMB COMMAND "CREATE" TREE_ID 15 SESSION_ID 7050 MSGID 2 FILENAME "jdoe.V6\NTUSER.DAT"
+    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 15 SESSION_ID 7050 MSGID 2 WAIT 1ms
+    c -> s SMB COMMAND "WRITE" TREE_ID 15 SESSION_ID 7050 MSGID 3 PAYLOAD "regf_HIVE_UPDATED_KEYS"
+    c <- s SMB COMMAND "WRITE" STATUS 0 TREE_ID 15 SESSION_ID 7050 MSGID 3 WAIT 1ms
+    c -> s SMB COMMAND "CLOSE" TREE_ID 15 SESSION_ID 7050 MSGID 4
+}
+
+// INSTRUCTION: Compile the roaming profile SMB2 flow.
+COMPILE {
+    smb_roaming_profile(vdi_desktop, profile_filer)
+}

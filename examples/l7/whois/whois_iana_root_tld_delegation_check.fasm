@@ -1,0 +1,25 @@
+// PROMPT: Generate an IANA WHOIS query (whois.iana.org) looking up the authoritative TLD registry for .cloud.
+// TOKENS: HOST, IP, MAC, FLOW, WHOIS, QUERY, DOMAIN, WAIT, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define the WHOIS client workstation or security enrichment node.
+HOST whois_client {
+    IP 172.20.43.19
+    MAC 00:1b:21:00:43:0a
+}
+
+// INSTRUCTION: Define the authoritative RIR or TLD WHOIS directory server on TCP port 43.
+HOST whois_server {
+    IP 192.0.32.59
+    MAC 00:1b:21:00:43:01
+}
+
+// INSTRUCTION: Execute the RFC 3912 WHOIS domain or prefix lookup transaction.
+FLOW whois_scenario_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "cloud" WAIT 4ms
+    c <- s WHOIS RESPONSE DOMAIN "cloud" REGISTRAR "IANA Root Zone Database - Aruba PEC S.p.A."
+}
+
+// INSTRUCTION: Compile the WHOIS registry query flow into a PCAP trace.
+COMPILE {
+    whois_scenario_flow(whois_client, whois_server)
+}

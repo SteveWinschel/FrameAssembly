@@ -1,0 +1,27 @@
+// PROMPT: Automotive body-in-white weld cell reading and writing Merker (M) flags (Area 131) for safety gate interlocks.
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, AREA, DB_NUM, OFFSET, COUNT, DSCP, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the line master safety coordinator PLC.
+HOST line_coordinator {
+    IP 10.130.60.1
+    MAC 00:1a:2b:82:60:01
+}
+
+// INSTRUCTION: Define Weld Cell 4 S7-1500 controller.
+HOST weld_cell_4 {
+    IP 10.130.60.14
+    MAC 00:1a:2b:82:60:14
+}
+
+// INSTRUCTION: Read Merker byte MB0 (AREA 131, OFFSET 0) and write weld release interlock bit at MB1 (OFFSET 8).
+FLOW s7_weld_interlock(m, w) {
+    m -> w S7COMM ROSCTR "JOB" PDU_REF 610 FUNC "READ_VAR" AREA 131 DB_NUM 0 OFFSET 0 COUNT 1 DSCP 46
+    m <- w S7COMM ROSCTR "ACK_DATA" PDU_REF 610 FUNC "READ_VAR" DSCP 46 HEXPAYLOAD "ff04000101" WAIT 1ms
+    m -> w S7COMM ROSCTR "JOB" PDU_REF 611 FUNC "WRITE_VAR" AREA 131 DB_NUM 0 OFFSET 8 COUNT 1 DSCP 46 HEXPAYLOAD "01"
+    m <- w S7COMM ROSCTR "ACK_DATA" PDU_REF 611 FUNC "WRITE_VAR" DSCP 46
+}
+
+// INSTRUCTION: Compile the automotive weld cell S7comm Merker interlock flow.
+COMPILE {
+    s7_weld_interlock(line_coordinator, weld_cell_4)
+}

@@ -1,0 +1,19 @@
+// PROMPT: IPv6 core switch authenticating operator credentials via TACACS+.
+// TOKENS: HOST, IP, FLOW, TACACS, TYPE, AUTHEN, USER, SESSION_ID, COMPILE
+
+// INSTRUCTION: Define IPv6 core switch NAS.
+HOST switch_v6 { IP 2001:db8:7777::10 }
+
+// INSTRUCTION: Define IPv6 enterprise TACACS server.
+HOST tacacs_v6_svr { IP 2001:db8:7777::1 }
+
+// INSTRUCTION: Define IPv6 authentication validation flow.
+FLOW tacacs_v6_flow(c, s) {
+    c -> s TACACS TYPE AUTHEN USER "ipv6_operator" SESSION_ID 14100
+    c <- s TACACS TYPE AUTHEN USER "ipv6_operator" SESSION_ID 14100
+}
+
+// INSTRUCTION: Compile block executing IPv6 TACACS transaction.
+COMPILE {
+    tacacs_v6_flow(switch_v6, tacacs_v6_svr)
+}

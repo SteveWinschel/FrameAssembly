@@ -1,0 +1,34 @@
+// PROMPT: Simulate an OSPF broadcast LAN Designated Router (DR) and Backup Designated Router (BDR) election with distinct priorities
+// TOKENS: HOST, IP, MAC, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, DSTMAC, TTL, WAIT, LSU, LSACK, COMPILE
+
+// INSTRUCTION: Define the Designated Router candidate with Priority 200
+HOST dr_candidate {
+    IP 192.168.100.1
+    MAC 00:25:90:f1:00:01
+}
+
+// INSTRUCTION: Define the Backup Designated Router candidate with Priority 100
+HOST bdr_candidate {
+    IP 192.168.100.2
+    MAC 00:25:90:f1:00:02
+}
+
+// INSTRUCTION: Define the DROther spoke router with Priority 0 (ineligible for DR election)
+HOST drother_spoke {
+    IP 192.168.100.3
+    MAC 00:25:90:f1:00:03
+}
+
+// INSTRUCTION: Exchange OSPF Hellos with priorities 200, 100, and 0 followed by DR Network-LSA flooding
+FLOW ospf_dr_bdr_election(dr, bdr, spoke) {
+    dr -> bdr OSPF HELLO ROUTER_ID 10.100.0.1 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 200 DSTMAC 01:00:5e:00:00:05 TTL 1 WAIT 10ms
+    bdr -> dr OSPF HELLO ROUTER_ID 10.100.0.2 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 100 DSTMAC 01:00:5e:00:00:05 TTL 1 WAIT 10ms
+    spoke -> dr OSPF HELLO ROUTER_ID 10.100.0.3 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 0 DSTMAC 01:00:5e:00:00:05 TTL 1 WAIT 20ms
+    dr -> spoke OSPF LSU ROUTER_ID 10.100.0.1 AREA_ID 0 DSTMAC 01:00:5e:00:00:05 TTL 1 WAIT 10ms
+    spoke -> dr OSPF LSACK ROUTER_ID 10.100.0.3 AREA_ID 0 DSTMAC 01:00:5e:00:00:06 TTL 1
+}
+
+// INSTRUCTION: Compile the three-router OSPF DR/BDR election sequence
+COMPILE {
+    ospf_dr_bdr_election(dr_candidate, bdr_candidate, drother_spoke)
+}

@@ -1,0 +1,24 @@
+// PROMPT: Paris Traceroute UDP probes with incrementing TTL (1, 2, 3) and high ports (33434..33436) eliciting ICMP Time Exceeded and Port Unreachable.
+// TOKENS: HOST, IP, FLOW, TTL, UDP, SRCPORT, DSTPORT, PAYLOAD, ICMP, TIME_EXCEEDED, CODE, WAIT, DEST_UNREACH, COMPILE
+
+// INSTRUCTION: Define diagnostic workstation running UDP traceroute.
+HOST traceroute_src { IP 10.88.1.10 }
+
+// INSTRUCTION: Define hop-1 router returning ICMP Time Exceeded.
+HOST hop1_router { IP 10.88.1.1 }
+
+// INSTRUCTION: Define destination server returning ICMP Port Unreachable (Code 3).
+HOST target_dest_srv { IP 10.88.2.50 }
+
+// INSTRUCTION: Define UDP traceroute probes on ports 33434 and 33435 with TTL 1 and TTL 2.
+FLOW udp_paris_traceroute(src, hop1, dst) {
+    src -> hop1 TTL 1 UDP SRCPORT 54321 DSTPORT 33434 PAYLOAD "paris_traceroute_probe_ttl_1"
+    src <- hop1 ICMP TIME_EXCEEDED CODE 0 WAIT 2ms
+    src -> dst TTL 2 UDP SRCPORT 54321 DSTPORT 33435 PAYLOAD "paris_traceroute_probe_ttl_2" WAIT 2ms
+    src <- dst ICMP DEST_UNREACH CODE 3 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing UDP traceroute hop discovery.
+COMPILE {
+    udp_paris_traceroute(traceroute_src, hop1_router, target_dest_srv)
+}

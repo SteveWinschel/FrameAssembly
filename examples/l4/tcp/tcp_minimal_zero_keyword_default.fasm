@@ -1,0 +1,18 @@
+// PROMPT: Minimal zero-keyword TCP frame emitting an RFC 793 default SYN segment to destination port 80.
+// TOKENS: HOST, IP, FLOW, TCP, COMPILE
+
+// INSTRUCTION: Define client host initiating default TCP connection.
+HOST tcp_min_client { IP 10.6.0.10 }
+
+// INSTRUCTION: Define server host receiving default TCP connection.
+HOST tcp_min_server { IP 10.6.0.80 }
+
+// INSTRUCTION: Define zero-argument TCP statement relying on smart compiler defaults.
+FLOW tcp_minimal_default(cli, srv) {
+    cli -> srv TCP
+}
+
+// INSTRUCTION: Compile block executing minimal default TCP frame generation.
+COMPILE {
+    tcp_minimal_default(tcp_min_client, tcp_min_server)
+}

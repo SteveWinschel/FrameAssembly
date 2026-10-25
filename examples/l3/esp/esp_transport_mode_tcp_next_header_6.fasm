@@ -1,0 +1,25 @@
+// PROMPT: RFC 4303 IPsec ESP in Host-to-Host Transport Mode protecting upper-layer TCP segments (Next Header 6).
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define application server A enforcing host-to-host IPsec ESP transport mode.
+HOST app_srv_esp_a {
+    IP 10.50.6.11
+    MAC 00:50:56:50:06:0b
+}
+
+// INSTRUCTION: Define database server B decrypting transport-mode ESP frames with Next Header 6.
+HOST db_srv_esp_b {
+    IP 10.50.6.22
+    MAC 00:50:56:50:06:16
+}
+
+// INSTRUCTION: Define ESP transport mode exchange with NEXT_HEADER 6 (TCP) and low-latency wait.
+FLOW esp_tcp_transport_mode(app, db) {
+    app -> db ESP SPI 500061 SEQ 101 IV "1122334455667788" ICV "a1a2a3a4a5a6b1b2b3b4b5b6" NEXT_HEADER 6 DF DSCP 18 TTL 64 PAYLOAD "ENCRYPTED_TCP_SQL_QUERY" WAIT 2ms
+    app <- db ESP SPI 500062 SEQ 204 IV "8877665544332211" ICV "b6b5b4b3b2b1a6a5a4a3a2a1" NEXT_HEADER 6 DF DSCP 18 TTL 64 PAYLOAD "ENCRYPTED_TCP_SQL_RESULTSET"
+}
+
+// INSTRUCTION: Compile the Host-to-Host ESP Transport Mode TCP flow.
+COMPILE {
+    esp_tcp_transport_mode(app_srv_esp_a, db_srv_esp_b)
+}

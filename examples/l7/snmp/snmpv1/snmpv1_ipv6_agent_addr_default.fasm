@@ -1,5 +1,5 @@
 // PROMPT: SNMPv1 Traps from IPv6 endpoints automatically defaulting agent-addr to 0.0.0.0 per RFC 3584 §3.2.
-// TOKENS: HOST, IP, FLOW, ->, SNMP1, TRAP, COMMUNITY, OID, SYSUPTIME, COMPILE
+// TOKENS: HOST, IP, FLOW, SNMP1, TRAP, COMMUNITY, OID, SYSUPTIME, COMPILE
 
 // INSTRUCTION: Define SNMPv1 managed agent with IPv6 address.
 HOST agent_v6 { IP 2001:db8::1 }

@@ -1,0 +1,25 @@
+// PROMPT: Segment Routing MPLS (SR-MPLS) TI-LFA fast reroute forwarding across Prefix-SID 16042 and Adjacency-SID 24009.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Point of Local Repair (PLR) SR-MPLS node detecting primary link failure.
+HOST sr_plr_node {
+    IP 10.160.42.1
+    MAC 00:1c:73:a0:2a:01
+}
+
+// INSTRUCTION: Define backup post-convergence repair node receiving TI-LFA label stack.
+HOST sr_repair_pq_node {
+    IP 10.160.42.2
+    MAC 00:1c:73:a0:2a:02
+}
+
+// INSTRUCTION: Define SR-MPLS Prefix-SID (16042) and Adjacency-SID (24009) fast-reroute packet progression.
+FLOW sr_mpls_tilfa_frr(plr, pq) {
+    plr -> pq MPLS 24009 EXP 4 BOS 0 MPLS_TTL 64 UDP SRCPORT 52000 DSTPORT 9100 PAYLOAD "sr_mpls_tilfa_adj_sid_push"
+    plr -> pq MPLS 16042 EXP 4 BOS 1 MPLS_TTL 63 UDP SRCPORT 52000 DSTPORT 9100 PAYLOAD "sr_mpls_prefix_sid_continue" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing Segment Routing MPLS TI-LFA forwarding.
+COMPILE {
+    sr_mpls_tilfa_frr(sr_plr_node, sr_repair_pq_node)
+}

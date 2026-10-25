@@ -1,0 +1,25 @@
+// PROMPT: Simulate a hotel captive portal WLC validating a conference guest voucher code via RADIUS.
+// TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, ID, USER, NAS_IP, SERVICE_TYPE, WAIT, ACCESS_ACCEPT, FRAMED_IP, COMPILE
+
+// INSTRUCTION: Define the Network Access Server (NAS) client initiating RADIUS requests.
+HOST radius_nas {
+    IP 192.168.180.2
+    MAC 00:1b:21:18:12:05
+}
+
+// INSTRUCTION: Define the central RADIUS authentication and accounting server.
+HOST radius_server {
+    IP 192.168.180.10
+    MAC 00:1b:21:18:12:64
+}
+
+// INSTRUCTION: Execute the RFC 2865 / RFC 2866 RADIUS transaction flow.
+FLOW radius_scenario_flow(nas, srv) {
+    nas -> srv RADIUS ACCESS_REQUEST ID 111 USER "CONF-2026-VIP-881" NAS_IP 192.168.180.2 SERVICE_TYPE 1 WAIT 3ms
+    nas <- srv RADIUS ACCESS_ACCEPT ID 111 USER "CONF-2026-VIP-881" NAS_IP 192.168.180.2 SERVICE_TYPE 1 FRAMED_IP 192.168.184.55
+}
+
+// INSTRUCTION: Compile the RADIUS AAA exchange into a PCAP trace.
+COMPILE {
+    radius_scenario_flow(radius_nas, radius_server)
+}

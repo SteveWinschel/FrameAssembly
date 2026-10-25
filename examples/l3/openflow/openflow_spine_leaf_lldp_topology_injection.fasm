@@ -1,0 +1,26 @@
+// PROMPT: SDN fabric controller injecting LLDP discovery probes via PACKET_OUT and receiving neighbor reports via PACKET_IN.
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, TYPE, PACKET_OUT, VERSION, XID, PAYLOAD, WAIT, PACKET_IN, FLOW_MOD, TABLE_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define data center fabric SDN controller running link-discovery topology service.
+HOST fabric_topo_ctrl {
+    IP 10.100.250.1
+    MAC 00:16:3e:64:fa:01
+}
+
+// INSTRUCTION: Define top-of-rack OpenFlow leaf switch executing controller-directed port operations.
+HOST tor_leaf_ofs {
+    IP 10.100.250.12
+    MAC 00:16:3e:64:fa:0c
+}
+
+// INSTRUCTION: Inject synthetic LLDP frame via PACKET_OUT on port uplink and receive neighbor LLDP via PACKET_IN.
+FLOW openflow_topo_discovery(ctrl, leaf) {
+    ctrl -> leaf OPENFLOW TYPE PACKET_OUT VERSION 4 XID 510 PAYLOAD "lldp_chassis_spine01_port_eth1" WAIT 10ms
+    leaf -> ctrl OPENFLOW TYPE PACKET_IN VERSION 4 XID 511 PAYLOAD "lldp_chassis_spine02_port_eth4" WAIT 10ms
+    ctrl -> leaf OPENFLOW TYPE FLOW_MOD VERSION 4 XID 512 TABLE_ID 0 PRIORITY 50000
+}
+
+// INSTRUCTION: Compile the OpenFlow PACKET_OUT / PACKET_IN fabric topology discovery trace.
+COMPILE {
+    openflow_topo_discovery(fabric_topo_ctrl, tor_leaf_ofs)
+}

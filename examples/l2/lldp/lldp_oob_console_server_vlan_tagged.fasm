@@ -1,0 +1,25 @@
+// PROMPT: Out-of-band console terminal server LLDP discovery over tagged management VLAN 99.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define serial console terminal server interface.
+HOST console_term_srv {
+    IP 10.99.99.50
+    MAC 00:05:43:99:99:32
+}
+
+// INSTRUCTION: Define OOB management rack switch port.
+HOST oob_rack_switch {
+    IP 10.99.99.1
+    MAC 00:05:43:99:99:01
+}
+
+// INSTRUCTION: Define VLAN-tagged LLDP exchange between serial console server and OOB switch.
+FLOW oob_console_lldp(term, sw) {
+    term -> sw VLAN 99 PCP 6 LLDP CHASSIS_ID "00:05:43:99:99:32" PORT_ID "net1" SYSNAME "ts01-oob.dc1.corp" SYSDESC "48-Port Serial Console Server" TTL 120
+    term <- sw VLAN 99 PCP 6 LLDP CHASSIS_ID "00:05:43:99:99:01" PORT_ID "gi0/48" SYSNAME "oob-sw01.dc1.corp" SYSDESC "OOB Management Switch" TTL 120 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing OOB console terminal server LLDP discovery.
+COMPILE {
+    oob_console_lldp(console_term_srv, oob_rack_switch)
+}

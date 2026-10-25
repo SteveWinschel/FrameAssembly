@@ -1,5 +1,5 @@
 // PROMPT: Network control and scavenger traffic classes spanning CS6, CS7, CS1, and boundary values 0 and 63.
-// TOKENS: HOST, IP, FLOW, ->, DSCP, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, DSCP, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define router peer A.
 HOST router_peer_a { IP 198.51.100.1 }

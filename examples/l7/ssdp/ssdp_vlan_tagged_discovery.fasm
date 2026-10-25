@@ -1,0 +1,21 @@
+// PROMPT: VLAN 100 tagged SSDP discovery frame with PCP priority tagging.
+// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, ST, MX, MAN, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define multimedia host on VLAN 100.
+HOST vlan_host { IP 10.100.1.14 }
+
+// INSTRUCTION: Define SSDP multicast destination.
+HOST vlan_mcast { IP 239.255.255.250 }
+
+// INSTRUCTION: Define prioritized VLAN SSDP discovery flow.
+FLOW ssdp_vlan_flow(c, s) {
+    c -> s SSDP MSEARCH
+        ST "urn:schemas-upnp-org:device:MediaServer:1"
+        MX 3 MAN "\"ssdp:discover\""
+        VLAN 100 PCP 4 DEI 0
+}
+
+// INSTRUCTION: Compile block executing tagged search.
+COMPILE {
+    ssdp_vlan_flow(vlan_host, vlan_mcast)
+}

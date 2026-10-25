@@ -1,0 +1,27 @@
+// PROMPT: WireGuard under load replying to INITIATION with a Type 3 COOKIE challenge, followed by peer retry with valid MAC2 and Type 2 RESPONSE.
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, TYPE, INITIATION, SENDER, DF, TTL, WAIT, COOKIE, RECEIVER, RESPONSE, COMPILE
+
+// INSTRUCTION: Define remote client initiating WireGuard handshake during DDoS mitigation window.
+HOST wg_challenged_cli {
+    IP 192.0.2.88
+    MAC 00:1b:21:51:82:58
+}
+
+// INSTRUCTION: Define loaded WireGuard server enforcing BLAKE2s MAC2 cookie verification.
+HOST wg_cookie_guard_srv {
+    IP 198.51.100.250
+    MAC 00:1b:21:51:82:fa
+}
+
+// INSTRUCTION: Define INITIATION -> COOKIE (Type 3) -> retried INITIATION with MAC2 -> RESPONSE (Type 2).
+FLOW wg_cookie_retry_handshake(cli, srv) {
+    cli -> srv WIREGUARD TYPE INITIATION SENDER 3010 DF TTL 64 WAIT 5ms
+    cli <- srv WIREGUARD TYPE COOKIE RECEIVER 3010 DF TTL 64 WAIT 5ms
+    cli -> srv WIREGUARD TYPE INITIATION SENDER 3011 DF TTL 64 WAIT 5ms
+    cli <- srv WIREGUARD TYPE RESPONSE SENDER 9090 RECEIVER 3011 DF TTL 64
+}
+
+// INSTRUCTION: Compile the WireGuard Cookie Reply challenge and handshake retry flow.
+COMPILE {
+    wg_cookie_retry_handshake(wg_challenged_cli, wg_cookie_guard_srv)
+}

@@ -1,5 +1,5 @@
 // PROMPT: SSDP NOTIFY announcement broadcasting device availability over IPv6 multicast.
-// TOKENS: HOST, IP, FLOW, ->, SSDP, NOTIFY, NT, NTS, USN, COMPILE
+// TOKENS: HOST, IP, FLOW, SSDP, NOTIFY, NT, NTS, USN, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP fe80::10 }

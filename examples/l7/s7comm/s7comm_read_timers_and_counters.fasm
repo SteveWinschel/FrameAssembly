@@ -1,0 +1,21 @@
+// PROMPT: S7comm Timer (AREA 0x1D) and Counter (AREA 0x1C) register inspection on S7-300 PLC.
+// TOKENS: HOST, IP, FLOW, S7COMM, ROSCTR, FUNC, PDU_REF, AREA, DB_NUM, OFFSET, COUNT, WAIT, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define maintenance diagnostic terminal.
+HOST maint_term { IP 10.102.50.99 }
+
+// INSTRUCTION: Define bottling line S7-300 PLC.
+HOST bottle_plc { IP 10.102.50.1 }
+
+// INSTRUCTION: Define READ_VAR queries targeting S7 Timers (0x1D) and Counters (0x1C).
+FLOW s7comm_timers_counters(c, plc) {
+    c -> plc S7COMM ROSCTR "JOB" FUNC "READ_VAR" PDU_REF 601 AREA 0x1D DB_NUM 0 OFFSET 0 COUNT 1 WAIT 4ms
+    c <- plc S7COMM ROSCTR "ACK_DATA" FUNC "READ_VAR" PDU_REF 601 HEXPAYLOAD "ff0900020150" WAIT 4ms
+    c -> plc S7COMM ROSCTR "JOB" FUNC "READ_VAR" PDU_REF 602 AREA 0x1C DB_NUM 0 OFFSET 0 COUNT 1 WAIT 4ms
+    c <- plc S7COMM ROSCTR "ACK_DATA" FUNC "READ_VAR" PDU_REF 602 HEXPAYLOAD "ff0900020042"
+}
+
+// INSTRUCTION: Compile S7comm timer and counter read flow.
+COMPILE {
+    s7comm_timers_counters(maint_term, bottle_plc)
+}

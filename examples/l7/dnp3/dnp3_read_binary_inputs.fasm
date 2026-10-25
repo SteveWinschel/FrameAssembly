@@ -1,5 +1,5 @@
 // PROMPT: DNP3 SCADA application layer Read function querying binary input objects.
-// TOKENS: HOST, IP, FLOW, ->, DNP3, FUNC, SRC, DST, GROUP, VARIATION, COMPILE
+// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.10 }

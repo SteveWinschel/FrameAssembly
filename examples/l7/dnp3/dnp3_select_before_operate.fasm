@@ -1,0 +1,22 @@
+// PROMPT: DNP3 Select-Before-Operate (SBO) two-step breaker trip sequence with application confirm.
+// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, WAIT, COMPILE
+
+// INSTRUCTION: Define transmission substation master controller.
+HOST sub_master { IP 172.24.10.1 }
+
+// INSTRUCTION: Define 138kV feeder relay outstation.
+HOST feeder_relay { IP 172.24.10.15 }
+
+// INSTRUCTION: Execute Select (Group 12 Var 1), receive Response, then Operate and Confirm.
+FLOW dnp3_sbo_breaker(m, r) {
+    m -> r DNP3 FUNC "SELECT" SRC 1 DST 15 GROUP 12 VARIATION 1 WAIT 10ms
+    m <- r DNP3 FUNC "RESPONSE" SRC 15 DST 1 GROUP 12 VARIATION 1 WAIT 10ms
+    m -> r DNP3 FUNC "OPERATE" SRC 1 DST 15 GROUP 12 VARIATION 1 WAIT 10ms
+    m <- r DNP3 FUNC "RESPONSE" SRC 15 DST 1 GROUP 12 VARIATION 1 WAIT 10ms
+    m -> r DNP3 FUNC "CONFIRM" SRC 1 DST 15
+}
+
+// INSTRUCTION: Compile the DNP3 Select-Before-Operate sequence.
+COMPILE {
+    dnp3_sbo_breaker(sub_master, feeder_relay)
+}

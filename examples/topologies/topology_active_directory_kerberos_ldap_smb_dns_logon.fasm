@@ -1,0 +1,34 @@
+// PROMPT: Active Directory domain workstation logon workflow combining DNS SRV discovery, Kerberos AS/TGS ticket exchange, LDAP directory query, and SMB3 SYSVOL Group Policy mount.
+// TOKENS: HOST, IP, MAC, FLOW, DNS, QUERY, QNAME, RESPONSE, RDATA, WAIT, KERBEROS, AS_REQ, REALM, CNAME, AS_REP, TGS_REQ, TGS_REP, LDAP, BIND_REQ, USER, BIND_RES, SEARCH_REQ, SMB, COMPILE
+
+// INSTRUCTION: Define corporate Windows 11 domain-joined workstation.
+HOST ad_workstation {
+    IP 10.50.10.105
+    MAC 00:50:56:32:0a:69
+}
+
+// INSTRUCTION: Define primary Active Directory Domain Controller and KDC.
+HOST ad_domain_ctrl {
+    IP 10.50.1.10
+    MAC 00:50:56:32:01:0a
+}
+
+// INSTRUCTION: Define DNS SRV lookup, Kerberos TGT/service ticket acquisition, LDAP GPO search, and SMB3 SYSVOL mount.
+FLOW active_directory_domain_logon(ws, dc) {
+    ws -> dc DNS QUERY QNAME "_kerberos._tcp.corp.internal"
+    ws <- dc DNS RESPONSE QNAME "_kerberos._tcp.corp.internal" RDATA "dc01.corp.internal" WAIT 1ms
+    ws -> dc KERBEROS AS_REQ REALM "CORP.INTERNAL" CNAME "jdoe" WAIT 1ms
+    ws <- dc KERBEROS AS_REP REALM "CORP.INTERNAL" CNAME "jdoe" WAIT 1ms
+    ws -> dc KERBEROS TGS_REQ REALM "CORP.INTERNAL" CNAME "jdoe" WAIT 1ms
+    ws <- dc KERBEROS TGS_REP REALM "CORP.INTERNAL" CNAME "jdoe" WAIT 1ms
+    ws -> dc LDAP BIND_REQ USER "CN=jdoe,OU=Staff,DC=corp,DC=internal" WAIT 1ms
+    ws <- dc LDAP BIND_RES WAIT 1ms
+    ws -> dc LDAP SEARCH_REQ WAIT 1ms
+    ws -> dc SMB COMMAND "SESSION_SETUP" WAIT 1ms
+    ws -> dc SMB COMMAND "TREE_CONNECT" SHARE "\\\\dc01.corp.internal\\SYSVOL" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing Active Directory domain logon topology.
+COMPILE {
+    active_directory_domain_logon(ad_workstation, ad_domain_ctrl)
+}

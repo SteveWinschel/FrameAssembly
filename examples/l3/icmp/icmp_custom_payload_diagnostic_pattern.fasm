@@ -1,0 +1,18 @@
+// PROMPT: ICMP Echo Request carrying custom hex payload containing telemetry timestamp and pattern.
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define network analyzer test source.
+HOST net_analyzer { IP 10.254.1.10 }
+
+// INSTRUCTION: Define benchmark responder host.
+HOST benchmark_node { IP 10.254.1.20 }
+
+// INSTRUCTION: Define ICMP Echo Request flow with 16-byte custom diagnostic payload.
+FLOW icmp_hex_payload_flow(src, dst) {
+    src -> dst ICMP ECHO_REQUEST ID 7700 SEQ 42 HEXPAYLOAD "0102030405060708090a0b0c0d0e0f10"
+}
+
+// INSTRUCTION: Compile block executing ICMP custom payload transmission.
+COMPILE {
+    icmp_hex_payload_flow(net_analyzer, benchmark_node)
+}

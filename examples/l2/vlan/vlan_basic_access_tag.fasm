@@ -1,5 +1,5 @@
 // PROMPT: Standard IEEE 802.1Q tagged frame on access VLAN without priority overrides.
-// TOKENS: HOST, IP, FLOW, ->, VLAN, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, VLAN, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define workstation host on access port.
 HOST access_host_a { IP 10.20.1.10 }

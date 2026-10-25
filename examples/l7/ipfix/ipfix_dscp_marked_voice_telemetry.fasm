@@ -1,0 +1,18 @@
+// PROMPT: Expedited forwarding DSCP marked IPFIX export packets for VoIP telemetry.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, DSCP, ECN, COMPILE
+
+// INSTRUCTION: Define VoIP gateway exporter.
+HOST voip_gw { IP 10.45.1.1 }
+
+// INSTRUCTION: Define QoS monitoring collector.
+HOST qos_analyzer { IP 10.45.1.100 }
+
+// INSTRUCTION: Define DSCP prioritized IPFIX export flow.
+FLOW voip_ipfix_export(gw, col) {
+    gw -> col IPFIX DOMAIN_ID 333 SRCIP 10.45.10.15 DSTIP 10.45.20.25 SRCPORT 5060 DSTPORT 5060 PROTO 17 PACKETS 120 OCTETS 24000 DSCP 46 ECN 1
+}
+
+// INSTRUCTION: Compile DSCP voice telemetry scenario.
+COMPILE {
+    voip_ipfix_export(voip_gw, qos_analyzer)
+}

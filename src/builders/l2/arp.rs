@@ -1,4 +1,13 @@
-//! ARP Layer 2 protocol wire builder.
+//! Address Resolution Protocol (ARP, RFC 826 / RFC 5227) Layer 2 wire frame builder.
+//!
+//! Synthesizes 28-byte IPv4-over-Ethernet ARP frames encapsulated in Ethernet II (`EtherType = 0x0806`)
+//! with `HTYPE = 0x0001` (Ethernet), `PTYPE = 0x0800` (IPv4), `HLEN = 6`, `PLEN = 4`, 16-bit
+//! `OPER` (`1` Request, `2` Reply), 48-bit `SHA`, 32-bit `SPA`, 48-bit `THA`, and 32-bit `TPA`.
+//! When invoked between IPv6 endpoints, polymorphically adapts to RFC 4861 ICMPv6 Neighbor
+//! Solicitation (Type 135) or Neighbor Advertisement (Type 136) over `EtherType = 0x86DD`.
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b ARP [REQUEST | REPLY] [GRATUITOUS] [SENDERMAC <mac>] [SENDERIP <ip>] [TARGETMAC <mac>] [TARGETIP <ip>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -20,6 +29,10 @@ pub fn build_arp_frame(
     match (ctx.src_ip, ctx.dst_ip) {
         (IpAddr::V6(src_v6), IpAddr::V6(dst_v6)) => {
             // Polymorphic IPv6 adaptation: Map ARP Request to Neighbor Solicitation, Reply to Neighbor Advertisement
+            let mut l3 = ctx.l3.clone();
+            if l3.ttl.is_none() {
+                l3.ttl = Some(255);
+            }
             let is_reply = spec.opcode == Some(ArpOpcode::Reply);
             if is_reply {
                 // Neighbor Advertisement (Type 136, Code 0)
@@ -47,7 +60,7 @@ pub fn build_arp_frame(
                 let cksum = internet_checksum(&[&pseudo, &ndp_body]);
                 ndp_body[2..4].copy_from_slice(&cksum.to_be_bytes());
 
-                let ip_pkt = build_ip_packet(ctx.src_ip, ctx.dst_ip, 58, ctx.l3, &ndp_body)?;
+                let ip_pkt = build_ip_packet(ctx.src_ip, ctx.dst_ip, 58, &l3, &ndp_body)?;
                 Ok(build_ethernet_and_l2(ctx.src_mac, ctx.dst_mac, ctx.l2, 0x86DD, &ip_pkt))
             } else {
                 // Neighbor Solicitation (Type 135, Code 0)
@@ -87,7 +100,7 @@ pub fn build_arp_frame(
                 let cksum = internet_checksum(&[&pseudo, &ndp_body]);
                 ndp_body[2..4].copy_from_slice(&cksum.to_be_bytes());
 
-                let ip_pkt = build_ip_packet(ctx.src_ip, mcast_ip, 58, ctx.l3, &ndp_body)?;
+                let ip_pkt = build_ip_packet(ctx.src_ip, mcast_ip, 58, &l3, &ndp_body)?;
                 let dst_mac = ctx.l2.dst_mac.unwrap_or(mcast_mac);
                 Ok(build_ethernet_and_l2(ctx.src_mac, dst_mac, ctx.l2, 0x86DD, &ip_pkt))
             }

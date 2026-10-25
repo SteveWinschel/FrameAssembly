@@ -1,0 +1,25 @@
+// PROMPT: RFC 5883 IPv6 multihop BFD session over UDP port 4784 monitoring iBGP Route Reflector reachability.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, SRCPORT, DSTPORT, FLOWLABEL, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6 iBGP Route Reflector Client in POP-1.
+HOST v6_rr_client_pop1 {
+    IP 2001:db8:10::11
+    MAC 00:25:90:10:00:0b
+}
+
+// INSTRUCTION: Define IPv6 iBGP Route Reflector Cluster Server in Core POP.
+HOST v6_rr_server_core {
+    IP 2001:db8:0::1
+    MAC 00:25:90:00:00:01
+}
+
+// INSTRUCTION: Define IPv6 multihop BFD exchange on UDP port 4784 with Flow Label 47840.
+FLOW bfd_v6_multihop_rr(client, rr) {
+    client -> rr BFD STATE 3 DIAG 0 MY_DISC 60011 YOUR_DISC 60001 MIN_TX 50000 MIN_RX 50000 MULT 3 SRCPORT 51000 DSTPORT 4784 FLOWLABEL 47840 DSCP 48 TTL 60 WAIT 50ms
+    client <- rr BFD STATE 3 DIAG 0 MY_DISC 60001 YOUR_DISC 60011 MIN_TX 50000 MIN_RX 50000 MULT 3 SRCPORT 51001 DSTPORT 4784 FLOWLABEL 47840 DSCP 48 TTL 60
+}
+
+// INSTRUCTION: Compile the IPv6 multihop BFD iBGP Route Reflector session.
+COMPILE {
+    bfd_v6_multihop_rr(v6_rr_client_pop1, v6_rr_server_core)
+}

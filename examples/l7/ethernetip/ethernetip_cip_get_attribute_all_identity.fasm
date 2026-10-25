@@ -1,0 +1,27 @@
+// PROMPT: EtherNet/IP SendRRData invoking CIP Service 0x01 (Get_Attribute_All) on Identity Object Class 1 Instance 1.
+// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, STATUS, WAIT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the asset inventory scanner host.
+HOST asset_scanner {
+    IP 10.135.20.99
+    MAC 00:1a:2b:87:20:99
+}
+
+// INSTRUCTION: Define the PowerFlex 755 AC drive EtherNet/IP adapter.
+HOST powerflex_755 {
+    IP 10.135.20.15
+    MAC 00:1a:2b:87:20:15
+}
+
+// INSTRUCTION: Register session and invoke CIP Service 1 (Get_Attribute_All) on Class 1 Instance 1.
+FLOW enip_get_attr_all(c, d) {
+    c -> d ETHERNETIP CMD "REGISTER_SESSION" SESSION_HANDLE 0 CONTEXT 500
+    c <- d ETHERNETIP CMD "REGISTER_SESSION" STATUS 0 SESSION_HANDLE 4096 CONTEXT 500 WAIT 1ms
+    c -> d ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 4096 CONTEXT 501 CIP_SERVICE 1 CIP_CLASS 1 CIP_INSTANCE 1 CIP_ATTR 0
+    c <- d ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 4096 CONTEXT 501 CIP_SERVICE 129 CIP_CLASS 1 CIP_INSTANCE 1 PAYLOAD "PowerFlex 755 Rev 14.002"
+}
+
+// INSTRUCTION: Compile the CIP Get_Attribute_All Identity Object flow.
+COMPILE {
+    enip_get_attr_all(asset_scanner, powerflex_755)
+}

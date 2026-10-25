@@ -1,0 +1,26 @@
+// PROMPT: FTTH GPON OLT double-tagged QinQ aggregation mapping S-VLAN per PON port and C-VLAN per subscriber ONT.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DHCP, DISCOVER, OFFER, YIADDR, WAIT, REQUEST, COMPILE
+
+// INSTRUCTION: Define residential subscriber ONT gateway.
+HOST ont_subscriber_42 {
+    IP 100.64.42.10
+    MAC 48:57:02:42:00:0a
+}
+
+// INSTRUCTION: Define broadband network gateway (BNG) terminating subscriber QinQ sessions.
+HOST bng_edge_router {
+    IP 100.64.0.1
+    MAC 00:22:bd:f8:00:01
+}
+
+// INSTRUCTION: Define GPON OLT S-VLAN 1200 and ONT C-VLAN 42 DHCPv4 subscriber provisioning flow.
+FLOW ftth_gpon_qinq_dhcp(ont, bng) {
+    ont -> bng QINQ 1200 INNER_VLAN 42 DHCP DISCOVER
+    ont <- bng QINQ 1200 INNER_VLAN 42 DHCP OFFER YIADDR 100.64.42.10 WAIT 5ms
+    ont -> bng QINQ 1200 INNER_VLAN 42 DHCP REQUEST WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing FTTH GPON QinQ subscriber DHCP onboarding.
+COMPILE {
+    ftth_gpon_qinq_dhcp(ont_subscriber_42, bng_edge_router)
+}

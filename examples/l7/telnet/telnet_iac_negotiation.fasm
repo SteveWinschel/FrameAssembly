@@ -1,5 +1,5 @@
 // PROMPT: Telnet protocol option negotiation using IAC commands on TCP 23.
-// TOKENS: HOST, IP, FLOW, ->, <-, TELNET, DO, WILL, COMPILE
+// TOKENS: HOST, IP, FLOW, TELNET, DO, WILL, COMPILE
 
 // INSTRUCTION: Define Telnet terminal client.
 HOST telnet_client { IP 172.16.0.10 }

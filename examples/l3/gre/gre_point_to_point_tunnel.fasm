@@ -1,5 +1,5 @@
 // PROMPT: Generic Routing Encapsulation tunnel packet transmission with GRE key and sequence numbers.
-// TOKENS: HOST, IP, FLOW, ->, GRE, GRE_KEY, GRE_SEQ, COMPILE
+// TOKENS: HOST, IP, FLOW, GRE, GRE_KEY, GRE_SEQ, COMPILE
 
 // INSTRUCTION: Define GRE tunnel source gateway.
 HOST gre_endpoint_a { IP 192.0.2.1 }

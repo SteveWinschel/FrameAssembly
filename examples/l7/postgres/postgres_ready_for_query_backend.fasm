@@ -1,5 +1,5 @@
 // PROMPT: PostgreSQL backend command completion and ReadyForQuery signal over IPv6.
-// TOKENS: HOST, IP, FLOW, <-, POSTGRES, COMMAND_COMPLETE, READY_FOR_QUERY, COMPILE
+// TOKENS: HOST, IP, FLOW, POSTGRES, COMMAND_COMPLETE, READY_FOR_QUERY, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::200 }

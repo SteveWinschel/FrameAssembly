@@ -1,0 +1,19 @@
+// PROMPT: Clean session termination packet transmitting MSG_CODE 1 disconnect.
+// TOKENS: HOST, IP, FLOW, SSH, MSG_CODE, COMPILE
+
+// INSTRUCTION: Define departing client terminal.
+HOST departing_client { IP 10.250.0.10 }
+
+// INSTRUCTION: Define corporate bastion host.
+HOST corp_bastion { IP 10.250.0.1 }
+
+// INSTRUCTION: Define clean SSH disconnect flow.
+FLOW ssh_disconnect_flow(c, s) {
+    c -> s SSH MSG_CODE 1
+    c <- s SSH MSG_CODE 1
+}
+
+// INSTRUCTION: Compile block executing disconnect flow.
+COMPILE {
+    ssh_disconnect_flow(departing_client, corp_bastion)
+}

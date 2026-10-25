@@ -1,0 +1,21 @@
+// PROMPT: Administrative HELP query receiving 214 list of supported ESMTP extensions.
+// TOKENS: HOST, IP, FLOW, SMTP, CMD, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define diagnosis probe client.
+HOST probe_client { IP 10.99.1.55 }
+
+// INSTRUCTION: Define standard compliance server.
+HOST compliance_mta { IP 10.99.1.1 }
+
+// INSTRUCTION: Define SMTP HELP command flow.
+FLOW smtp_help_flow(c, s) {
+    c -> s SMTP CMD "HELP"
+    c <- s SMTP CODE 214 REPLY "2.1.4 Supported: 8BITMIME SIZE PIPELINING STARTTLS"
+    c -> s SMTP CMD "NOOP"
+    c <- s SMTP CODE 250 REPLY "2.0.0 OK"
+}
+
+// INSTRUCTION: Compile block executing HELP query.
+COMPILE {
+    smtp_help_flow(probe_client, compliance_mta)
+}

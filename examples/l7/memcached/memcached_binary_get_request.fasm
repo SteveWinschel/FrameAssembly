@@ -1,5 +1,5 @@
 // PROMPT: Memcached binary protocol command execution over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, MEMCACHED, CMD, KEY, OPAQUE, COMPILE
+// TOKENS: HOST, IP, FLOW, MEMCACHED, CMD, KEY, OPAQUE, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

@@ -1,0 +1,18 @@
+// PROMPT: Domain workstation computer account lookup via LDAP SearchRequest.
+// TOKENS: HOST, IP, FLOW, LDAP, SEARCH_REQ, MSGID, BASE_DN, FILTER, COMPILE
+
+// INSTRUCTION: Define domain join provisioning agent.
+HOST provisioning_agent { IP 10.25.1.40 }
+
+// INSTRUCTION: Define Active Directory domain service node.
+HOST domain_service_node { IP 10.25.1.1 }
+
+// INSTRUCTION: Define computer object lookup flow.
+FLOW computer_lookup_flow(agent, dc) {
+    agent -> dc LDAP SEARCH_REQ MSGID 15 BASE_DN "ou=computers,dc=domain,dc=local" FILTER "(sAMAccountName=ws-desk-404$)"
+}
+
+// INSTRUCTION: Compile computer account lookup scenario.
+COMPILE {
+    computer_lookup_flow(provisioning_agent, domain_service_node)
+}

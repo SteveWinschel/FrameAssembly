@@ -1,0 +1,27 @@
+// PROMPT: Emergency Services IP Network (ESInet) Call Routing Function querying Location Information Server over SCTP.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define Next-Generation 911 Emergency Call Routing Function (ECRF).
+HOST ng911_ecrf_node {
+    IP 192.168.91.10
+    MAC 00:25:90:5b:00:0a
+}
+
+// INSTRUCTION: Define carrier Location Information Server (LIS) returning civic/geodetic coordinates.
+HOST carrier_lis_srv {
+    IP 192.168.91.1
+    MAC 00:25:90:5b:00:01
+}
+
+// INSTRUCTION: Query emergency caller location over high-priority DSCP EF SCTP Stream 0 and acknowledge via SACK.
+FLOW sctp_ng911_location_query(ecrf, lis) {
+    ecrf -> lis DSCP 46 SCTP CHUNK DATA VTAG 911911 STREAM 0 SSN 1 PPID 0 SRCPORT 5060 DSTPORT 5060 PAYLOAD "HELD_LOCATION_REQ_ANI_12125550199" WAIT 2ms
+    ecrf <- lis DSCP 46 SCTP CHUNK SACK VTAG 911911 SRCPORT 5060 DSTPORT 5060 WAIT 2ms
+    ecrf <- lis DSCP 46 SCTP CHUNK DATA VTAG 911911 STREAM 0 SSN 1 PPID 0 SRCPORT 5060 DSTPORT 5060 PAYLOAD "PIDF_LO_LAT_40_7128_LON_74_0060_PSAP_NYC" WAIT 2ms
+    ecrf -> lis DSCP 46 SCTP CHUNK SACK VTAG 911911 SRCPORT 5060 DSTPORT 5060
+}
+
+// INSTRUCTION: Compile the NG911 emergency location retrieval SCTP trace.
+COMPILE {
+    sctp_ng911_location_query(ng911_ecrf_node, carrier_lis_srv)
+}

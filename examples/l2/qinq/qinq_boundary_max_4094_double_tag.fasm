@@ -1,0 +1,25 @@
+// PROMPT: IEEE 802.1ad QinQ boundary test with maximum outer S-VLAN 4094 and maximum inner C-VLAN 4094.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define carrier conformance tester port A.
+HOST qinq_tester_a {
+    IP 192.0.2.10
+    MAC 00:00:5e:00:53:0a
+}
+
+// INSTRUCTION: Define carrier conformance tester port B.
+HOST qinq_tester_b {
+    IP 192.0.2.20
+    MAC 00:00:5e:00:53:14
+}
+
+// INSTRUCTION: Define maximum VLAN ID 4094/4094 double-tagged boundary test frames.
+FLOW qinq_max_boundary_4094(a, b) {
+    a -> b QINQ 4094 INNER_VLAN 4094 UDP SRCPORT 60000 DSTPORT 60000 PAYLOAD "qinq_max_vid_4094_4094_forward"
+    a <- b QINQ 4094 INNER_VLAN 4094 UDP SRCPORT 60000 DSTPORT 60000 PAYLOAD "qinq_max_vid_4094_4094_return" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing 4094/4094 QinQ boundary verification.
+COMPILE {
+    qinq_max_boundary_4094(qinq_tester_a, qinq_tester_b)
+}

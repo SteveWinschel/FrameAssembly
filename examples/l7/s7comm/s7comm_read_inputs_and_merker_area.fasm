@@ -1,0 +1,21 @@
+// PROMPT: S7comm READ_VAR polling Process Image Input (AREA 0x81) and Merker flags (AREA 0x83).
+// TOKENS: HOST, IP, FLOW, S7COMM, ROSCTR, FUNC, PDU_REF, AREA, DB_NUM, OFFSET, COUNT, WAIT, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define HMI panel client.
+HOST hmi_panel { IP 192.168.10.30 }
+
+// INSTRUCTION: Define conveyor belt S7-1200 PLC.
+HOST conveyor_plc { IP 192.168.10.1 }
+
+// INSTRUCTION: Define READ_VAR for inputs (0x81) and bit memory merker (0x83).
+FLOW s7comm_inputs_merker(hmi, plc) {
+    hmi -> plc S7COMM ROSCTR "JOB" FUNC "READ_VAR" PDU_REF 31 AREA 0x81 DB_NUM 0 OFFSET 0 COUNT 4 WAIT 5ms
+    hmi <- plc S7COMM ROSCTR "ACK_DATA" FUNC "READ_VAR" PDU_REF 31 HEXPAYLOAD "ff04002001010001" WAIT 5ms
+    hmi -> plc S7COMM ROSCTR "JOB" FUNC "READ_VAR" PDU_REF 32 AREA 0x83 DB_NUM 0 OFFSET 16 COUNT 2 WAIT 5ms
+    hmi <- plc S7COMM ROSCTR "ACK_DATA" FUNC "READ_VAR" PDU_REF 32 HEXPAYLOAD "ff040010a55a"
+}
+
+// INSTRUCTION: Compile S7comm input and merker memory read flow.
+COMPILE {
+    s7comm_inputs_merker(hmi_panel, conveyor_plc)
+}

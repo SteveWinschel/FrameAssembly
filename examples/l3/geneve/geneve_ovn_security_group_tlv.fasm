@@ -1,0 +1,19 @@
+// PROMPT: OVN/OpenStack GENEVE tunnel carrying Open vSwitch TLV option class 0x0102 and security metadata.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define OVN hypervisor chassis 1.
+HOST ovn_chassis_01 { IP 10.120.1.11 MAC 52:54:00:12:01:11 }
+
+// INSTRUCTION: Define OVN hypervisor chassis 2.
+HOST ovn_chassis_02 { IP 10.120.1.12 MAC 52:54:00:12:01:12 }
+
+// INSTRUCTION: Define GENEVE encapsulation with OVN option class 258 (0x0102) and TEB protocol 0x6558.
+FLOW geneve_ovn_metadata(c1, c2) {
+    c1 -> c2 GENEVE VNI 10042 OPT_CLASS 258 OPT_TYPE 128 PROTOCOL_TYPE 0x6558 PAYLOAD "OVN_INGRESS_OUTPORT_META"
+    c1 <- c2 GENEVE VNI 10042 OPT_CLASS 258 OPT_TYPE 128 PROTOCOL_TYPE 0x6558 PAYLOAD "OVN_EGRESS_ACK_META"
+}
+
+// INSTRUCTION: Compile the OVN GENEVE metadata exchange flow.
+COMPILE {
+    geneve_ovn_metadata(ovn_chassis_01, ovn_chassis_02)
+}

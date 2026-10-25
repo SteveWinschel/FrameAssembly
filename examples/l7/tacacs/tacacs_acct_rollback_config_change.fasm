@@ -1,0 +1,25 @@
+// PROMPT: Generate a TACACS+ accounting start and stop transaction recording a configuration rollback event on VLAN 49.
+// TOKENS: HOST, IP, MAC, FLOW, TACACS, TYPE, ACCT, SEQ, FLAGS, SESSION_ID, USER, PAYLOAD, VLAN, PCP, WAIT, COMPILE
+
+// INSTRUCTION: Define the data center aggregation switch on management VLAN 49.
+HOST agg_switch_nas {
+    IP 10.49.10.12
+    MAC 00:24:e8:31:0a:0c
+}
+
+// INSTRUCTION: Define the compliance TACACS+ accounting collector on VLAN 49.
+HOST tacacs_acct_collector {
+    IP 10.49.10.50
+    MAC 00:24:e8:31:0a:32
+}
+
+// INSTRUCTION: Log the configuration rollback start and completion records over VLAN 49.
+FLOW tacacs_rollback_accounting(sw, acct) {
+    sw -> acct TACACS TYPE ACCT SEQ 1 FLAGS 1 SESSION_ID 991204 USER "netops_oncall" PAYLOAD "flags=START:task_id=901:cmd=configure replace flash:golden.cfg" VLAN 49 PCP 6 WAIT 10ms
+    sw <- acct TACACS TYPE ACCT SEQ 2 FLAGS 1 SESSION_ID 991204 USER "netops_oncall" PAYLOAD "ACCT_STATUS_SUCCESS" VLAN 49 PCP 6
+}
+
+// INSTRUCTION: Compile the VLAN 49 TACACS+ configuration rollback accounting flow.
+COMPILE {
+    tacacs_rollback_accounting(agg_switch_nas, tacacs_acct_collector)
+}

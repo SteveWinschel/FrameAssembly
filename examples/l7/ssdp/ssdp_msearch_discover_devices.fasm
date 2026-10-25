@@ -1,5 +1,5 @@
 // PROMPT: SSDP M-SEARCH multicast discovery searching for root devices.
-// TOKENS: HOST, IP, FLOW, ->, SSDP, MSEARCH, ST, MX, MAN, COMPILE
+// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, ST, MX, MAN, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.100 }

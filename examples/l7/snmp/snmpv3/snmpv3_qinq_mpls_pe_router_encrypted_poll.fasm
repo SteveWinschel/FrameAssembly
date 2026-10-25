@@ -1,0 +1,23 @@
+// PROMPT: SNMPv3 authPriv GetBulk poll across QinQ (800/161) and MPLS label 7300 targeting a service provider PE router.
+// TOKENS: HOST, IP, FLOW, SNMP3, GETBULK, USER, REQID, MAXREPETITIONS, AUTH, SHA256, PRIV, AES, QINQ, INNER_VLAN, MPLS, VARBIND, NULLVAL, RESPONSE, STRING, COMPILE
+
+// INSTRUCTION: Define the service provider NMS poller.
+HOST sp_nms {
+    IP 172.27.147.10
+}
+
+// INSTRUCTION: Define the provider edge (PE) router SNMPv3 agent.
+HOST pe_router {
+    IP 172.27.147.1
+}
+
+// INSTRUCTION: Issue encrypted SNMPv3 GETBULK encapsulated in QinQ (800/161) and MPLS label 7300.
+FLOW snmpv3_qinq_mpls_bulk(m, a) {
+    m -> a SNMP3 GETBULK USER "sp" REQID 6200 MAXREPETITIONS 4 AUTH SHA256 "SpSha256!" PRIV AES "SpAes128!" QINQ 800 INNER_VLAN 161 MPLS 7300 VARBIND 1.3.6.1.2.1.31.1.1.1.1 NULLVAL
+    m <- a SNMP3 RESPONSE USER "sp" REQID 6200 AUTH SHA256 "SpSha256!" PRIV AES "SpAes128!" QINQ 800 INNER_VLAN 161 MPLS 7300 VARBIND 1.3.6.1.2.1.31.1.1.1.1.1 STRING "TenGigE0/0/0/0"
+}
+
+// INSTRUCTION: Compile the QinQ + MPLS encrypted SNMPv3 GetBulk flow.
+COMPILE {
+    snmpv3_qinq_mpls_bulk(sp_nms, pe_router)
+}

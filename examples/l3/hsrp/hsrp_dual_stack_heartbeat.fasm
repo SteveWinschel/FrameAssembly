@@ -1,5 +1,5 @@
 // PROMPT: HSRP first hop redundancy hello message with explicit hellotime and holdtime timers.
-// TOKENS: HOST, IP, FLOW, ->, HSRP, GROUP, PRIORITY, HELLOTIME, HOLDTIME, VIP, COMPILE
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, HELLOTIME, HOLDTIME, VIP, COMPILE
 
 // INSTRUCTION: Define HSRP group router with customized timers.
 HOST hsrp_timer_rtr { IP 172.20.1.254 }

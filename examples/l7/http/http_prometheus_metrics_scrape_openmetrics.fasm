@@ -1,0 +1,27 @@
+// PROMPT: Generate a Prometheus server HTTP scrape of /metrics in OpenMetrics text format over MPLS label 9090.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP, METHOD, URI, HOST_HDR, USER_AGENT, HEADER, MPLS, WAIT, STATUS, REASON, CONTENT_TYPE, BODY, COMPILE
+
+// INSTRUCTION: Define the central Prometheus scraper instance.
+HOST prometheus_srv {
+    IP 172.19.90.10
+    MAC 00:1b:21:5a:90:0a
+}
+
+// INSTRUCTION: Define the node_exporter telemetry target across an MPLS backbone.
+HOST node_exporter_tgt {
+    IP 172.19.90.50
+    MAC 00:1b:21:5a:90:32
+}
+
+// INSTRUCTION: Request /metrics with OpenMetrics Accept header and return counter metrics over MPLS 9090.
+FLOW http_prometheus_scrape(prom, exp) {
+    prom -> exp HTTP METHOD "GET" URI "/metrics" HOST_HDR "node01.metrics.local"
+        USER_AGENT "Prometheus/2.51.0" HEADER "Accept" "application/openmetrics-text;version=1.0.0" MPLS 9090 WAIT 4ms
+    prom <- exp HTTP STATUS 200 REASON "OK" CONTENT_TYPE "application/openmetrics-text;version=1.0.0"
+        BODY "node_network_receive_bytes_total{device='eth0'} 948102400\n# EOF\n" MPLS 9090
+}
+
+// INSTRUCTION: Compile the MPLS-encapsulated Prometheus HTTP metrics scrape flow.
+COMPILE {
+    http_prometheus_scrape(prometheus_srv, node_exporter_tgt)
+}

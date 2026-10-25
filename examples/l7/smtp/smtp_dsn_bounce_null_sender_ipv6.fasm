@@ -1,0 +1,39 @@
+// PROMPT: Simulate an SMTP DSN (Delivery Status Notification, RFC 3461) bounce message sent with an empty reverse-path <> over IPv6.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SMTP, CODE, REPLY, EHLO, MAIL_FROM, PARAM, RCPT_TO, CMD, BODY, QUIT, COMPILE
+
+// INSTRUCTION: Define the bouncing IPv6 mail gateway and the original sender's IPv6 MX server.
+HOST bounce_gw {
+    MAC 00:50:56:aa:25:01
+    IP 2001:db8:25:1::10
+}
+
+// INSTRUCTION: Define the orig_mx mail endpoint.
+HOST orig_mx {
+    MAC 00:50:56:aa:25:02
+    IP 2001:db8:25:2::20
+}
+
+// INSTRUCTION: Deliver a non-delivery report using MAIL FROM:<> over IPv6.
+FLOW smtp_dsn_null_sender_ipv6(bounce_gw, orig_mx) {
+    bounce_gw -> orig_mx TCP SYN SRCPORT 62025 DSTPORT 25
+    orig_mx -> bounce_gw TCP SYN ACK
+    bounce_gw -> orig_mx TCP ACK
+    orig_mx -> bounce_gw SMTP CODE 220 REPLY "mx.origin.example ESMTP"
+    bounce_gw -> orig_mx SMTP EHLO "bounce.relay.example"
+    orig_mx -> bounce_gw SMTP CODE 250 REPLY "DSN"
+    bounce_gw -> orig_mx SMTP MAIL_FROM PARAM "<>"
+    orig_mx -> bounce_gw SMTP CODE 250 REPLY "2.1.0 Ok"
+    bounce_gw -> orig_mx SMTP RCPT_TO PARAM "<sender@origin.example> NOTIFY=NEVER"
+    orig_mx -> bounce_gw SMTP CODE 250 REPLY "2.1.5 Ok"
+    bounce_gw -> orig_mx SMTP CMD "DATA"
+    orig_mx -> bounce_gw SMTP CODE 354 REPLY "End data with <CR><LF>.<CR><LF>"
+    bounce_gw -> orig_mx SMTP BODY "Subject: Undelivered Mail Returned to Sender\r\n\r\nDiagnostic-Code: smtp; 550 Mailbox unavailable\r\n."
+    orig_mx -> bounce_gw SMTP CODE 250 REPLY "2.0.0 Queued"
+    bounce_gw -> orig_mx SMTP QUIT
+    orig_mx -> bounce_gw SMTP CODE 221 REPLY "2.0.0 Bye"
+}
+
+// INSTRUCTION: Compile the IPv6 SMTP DSN bounce message flow.
+COMPILE {
+    smtp_dsn_null_sender_ipv6(bounce_gw, orig_mx)
+}

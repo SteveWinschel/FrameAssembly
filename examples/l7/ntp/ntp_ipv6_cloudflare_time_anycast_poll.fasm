@@ -1,0 +1,25 @@
+// PROMPT: Simulate an IPv6 server synchronizing with an anycast Stratum 3 NTPv4 time service using custom flow labels.
+// TOKENS: HOST, IP, MAC, FLOW, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, TX_TIMESTAMP, FLOWLABEL, TTL, WAIT, REFID, COMPILE
+
+// INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
+HOST ntp_client {
+    IP 2001:db8:123:4::50
+    MAC 00:1b:21:7b:01:0a
+}
+
+// INSTRUCTION: Define the NTP reference server or peer endpoint.
+HOST ntp_server {
+    IP 2001:db8:123:4::123
+    MAC 00:1b:21:7b:01:01
+}
+
+// INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
+FLOW ntp_scenario_flow(c, s) {
+    c -> s NTP LI 0 VN 4 MODE 3 STRATUM 0 POLL 6 PRECISION -20 TX_TIMESTAMP 0xe9b4ca0000000000 FLOWLABEL 0x12304 TTL 64 WAIT 4ms
+    c <- s NTP LI 0 VN 4 MODE 4 STRATUM 3 POLL 6 PRECISION -22 REFID "LOCL" TX_TIMESTAMP 0xe9b4ca000051eb85 FLOWLABEL 0x12304 TTL 64
+}
+
+// INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
+COMPILE {
+    ntp_scenario_flow(ntp_client, ntp_server)
+}

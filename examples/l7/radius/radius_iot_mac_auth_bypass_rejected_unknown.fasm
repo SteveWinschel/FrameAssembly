@@ -1,0 +1,25 @@
+// PROMPT: Create a switch port 802.1X MAC Authentication Bypass (MAB) RADIUS lookup rejecting an unrecognized rogue MAC.
+// TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, ID, USER, NAS_IP, SERVICE_TYPE, VLAN, WAIT, ACCESS_REJECT, COMPILE
+
+// INSTRUCTION: Define the Network Access Server (NAS) client initiating RADIUS requests.
+HOST radius_nas {
+    IP 10.55.18.15
+    MAC 00:1b:21:18:12:05
+}
+
+// INSTRUCTION: Define the central RADIUS authentication and accounting server.
+HOST radius_server {
+    IP 10.55.18.1
+    MAC 00:1b:21:18:12:64
+}
+
+// INSTRUCTION: Execute the RFC 2865 / RFC 2866 RADIUS transaction flow.
+FLOW radius_scenario_flow(nas, srv) {
+    nas -> srv RADIUS ACCESS_REQUEST ID 107 USER "deadbeef9901" NAS_IP 10.55.18.15 SERVICE_TYPE 10 VLAN 55 WAIT 2ms
+    nas <- srv RADIUS ACCESS_REJECT ID 107 USER "deadbeef9901" NAS_IP 10.55.18.15 VLAN 55
+}
+
+// INSTRUCTION: Compile the RADIUS AAA exchange into a PCAP trace.
+COMPILE {
+    radius_scenario_flow(radius_nas, radius_server)
+}

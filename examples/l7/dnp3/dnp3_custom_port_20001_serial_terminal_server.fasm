@@ -1,0 +1,25 @@
+// PROMPT: DNP3 over TCP port 20001 addressing a legacy serial RS-485 RTU behind a substation terminal server.
+// TOKENS: HOST, IP, MAC, FLOW, SRCPORT, DSTPORT, DNP3, FUNC, SRC, DST, GROUP, VARIATION, CRC, COMPILE
+
+// INSTRUCTION: Define the central SCADA front-end processor (FEP).
+HOST scada_fep {
+    IP 10.125.110.1
+    MAC 00:1a:2b:7d:b0:01
+}
+
+// INSTRUCTION: Define the RS-485 terminal server listening on TCP port 20001.
+HOST term_server {
+    IP 10.125.110.25
+    MAC 00:1a:2b:7d:b0:25
+}
+
+// INSTRUCTION: Poll static analog inputs (Group 30 Var 1) on outstation address 4 via TCP port 20001.
+FLOW dnp3_port_20001(f, t) {
+    f -> t SRCPORT 51200 DSTPORT 20001 DNP3 FUNC "READ" SRC 1 DST 4 GROUP 30 VARIATION 1
+    f <- t SRCPORT 20001 DSTPORT 51200 DNP3 FUNC "RESPONSE" SRC 4 DST 1 GROUP 30 VARIATION 1 CRC 46458
+}
+
+// INSTRUCTION: Compile the custom port 20001 terminal server DNP3 flow.
+COMPILE {
+    dnp3_port_20001(scada_fep, term_server)
+}

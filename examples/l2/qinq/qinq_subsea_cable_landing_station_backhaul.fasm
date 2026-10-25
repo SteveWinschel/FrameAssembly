@@ -1,0 +1,26 @@
+// PROMPT: Subsea cable landing station backhauling wholesale tenant IPv6 BGP sessions inside QinQ S-VLAN 3800 C-VLAN 380.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSCP, BGP, OPEN, ASN, HOLDTIME, BGPID, WAIT, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define subsea cable landing station (CLS) optical handoff router.
+HOST cls_landing_rtr {
+    IP 2001:db8:3800:380::1
+    MAC 00:1c:73:38:03:81
+}
+
+// INSTRUCTION: Define inland terrestrial PoP core router terminating S-VLAN 3800 C-VLAN 380.
+HOST inland_pop_rtr {
+    IP 2001:db8:3800:380::2
+    MAC 00:1c:73:38:03:82
+}
+
+// INSTRUCTION: Exchange IPv6 BGP OPEN and KEEPALIVE messages inside QinQ S-VLAN 3800 C-VLAN 380.
+FLOW qinq_subsea_cls_bgp(cls, pop) {
+    cls -> pop QINQ 3800 INNER_VLAN 380 DSCP 48 BGP OPEN ASN 65380 HOLDTIME 90 BGPID 192.0.2.38 WAIT 5ms
+    cls <- pop QINQ 3800 INNER_VLAN 380 DSCP 48 BGP OPEN ASN 65381 HOLDTIME 90 BGPID 192.0.2.39 WAIT 5ms
+    cls -> pop QINQ 3800 INNER_VLAN 380 DSCP 48 BGP KEEPALIVE
+}
+
+// INSTRUCTION: Compile the subsea cable landing station QinQ S-VLAN 3800 C-VLAN 380 IPv6 BGP trace.
+COMPILE {
+    qinq_subsea_cls_bgp(cls_landing_rtr, inland_pop_rtr)
+}

@@ -1,0 +1,24 @@
+// PROMPT: Default FTP control channel frame on TCP port 21 using automatic RFC 959 defaults.
+// TOKENS: HOST, IP, MAC, FLOW, FTP, COMPILE
+
+// INSTRUCTION: Define FTP client workstation.
+HOST ftp_ws {
+    IP 192.168.21.10
+    MAC 00:11:22:33:21:01
+}
+
+// INSTRUCTION: Define FTP archive server.
+HOST ftp_srv {
+    IP 192.168.21.1
+    MAC 00:11:22:33:21:02
+}
+
+// INSTRUCTION: Emit a default FTP frame without explicit sub-keywords.
+FLOW ftp_default(c, s) {
+    c -> s FTP
+}
+
+// INSTRUCTION: Compile the default FTP scenario.
+COMPILE {
+    ftp_default(ftp_ws, ftp_srv)
+}

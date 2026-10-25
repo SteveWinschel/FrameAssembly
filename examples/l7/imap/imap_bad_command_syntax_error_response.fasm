@@ -1,0 +1,27 @@
+// PROMPT: Model an IMAP server returning tagged NO and BAD status responses to invalid mailbox and syntax requests.
+// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, ARG, WAIT, STATUS, RESPONSE, COMPILE
+
+// INSTRUCTION: Define the custom mail integration script testing error handling.
+HOST script_client {
+    IP 192.168.143.112
+    MAC 00:1a:2b:8f:00:70
+}
+
+// INSTRUCTION: Define the IMAP server validating command grammar and mailbox existence.
+HOST strict_imap {
+    IP 192.168.143.10
+    MAC 00:1a:2b:8f:00:0a
+}
+
+// INSTRUCTION: Attempt to SELECT a nonexistent folder (NO) and send a malformed command verb (BAD).
+FLOW imap_error_responses(c, s) {
+    c -> s IMAP TAG "E10" CMD "SELECT" ARG "INBOX.NonExistentVault" WAIT 2ms
+    c <- s IMAP TAG "E10" STATUS "NO" RESPONSE "[NONEXISTENT] Mailbox does not exist" WAIT 2ms
+    c -> s IMAP TAG "E11" CMD "FETCHHEADERONLY" ARG "1:*" WAIT 2ms
+    c <- s IMAP TAG "E11" STATUS "BAD" RESPONSE "Error in IMAP command received by server"
+}
+
+// INSTRUCTION: Compile the IMAP NO and BAD error handling flow.
+COMPILE {
+    imap_error_responses(script_client, strict_imap)
+}

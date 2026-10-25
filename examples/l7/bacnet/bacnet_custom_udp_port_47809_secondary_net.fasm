@@ -1,0 +1,27 @@
+// PROMPT: BACnet/IP communication on alternate UDP port 47809 (0xBAC1) for an isolated laboratory HVAC network.
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, SRCPORT, DSTPORT, WHO_IS, I_AM, OBJECT_TYPE, OBJECT_INSTANCE, WAIT, READ_PROPERTY, INVOKE_ID, PROPERTY_ID, VALUE, COMPILE
+
+// INSTRUCTION: Define the laboratory BMS gateway on UDP port 47809.
+HOST lab_bms {
+    IP 172.28.120.10
+    MAC 00:1a:2b:1c:78:10
+}
+
+// INSTRUCTION: Define the fume hood sash controller on UDP port 47809.
+HOST fume_hood_ctrl {
+    IP 172.28.120.55
+    MAC 00:1a:2b:1c:78:55
+}
+
+// INSTRUCTION: Exchange Who-Is, I-Am, and sash height ReadProperty on UDP port 47809.
+FLOW bacnet_port_47809(b, f) {
+    b -> f BACNET SRCPORT 47809 DSTPORT 47809  WHO_IS
+    b <- f BACNET SRCPORT 47809 DSTPORT 47809  I_AM OBJECT_TYPE 8 OBJECT_INSTANCE 5500 WAIT 1ms
+    b -> f BACNET SRCPORT 47809 DSTPORT 47809  READ_PROPERTY INVOKE_ID 101 OBJECT_TYPE 0 OBJECT_INSTANCE 1 PROPERTY_ID 85
+    b <- f BACNET SRCPORT 47809 DSTPORT 47809  READ_PROPERTY INVOKE_ID 101 OBJECT_TYPE 0 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 35
+}
+
+// INSTRUCTION: Compile the custom port 47809 laboratory BACnet flow.
+COMPILE {
+    bacnet_port_47809(lab_bms, fume_hood_ctrl)
+}

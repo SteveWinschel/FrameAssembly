@@ -1,0 +1,19 @@
+// PROMPT: IKEv2 CREATE_CHILD_SA exchange rekeying IPsec Security Association with custom SPIs.
+// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, CREATE_CHILD_SA, MSGID, NEXT_PAYLOAD, COMPILE
+
+// INSTRUCTION: Define branch office VPN gateway.
+HOST branch_vpn_gw { IP 203.0.113.10 }
+
+// INSTRUCTION: Define headquarter VPN concentrator.
+HOST hq_vpn_concentrator { IP 203.0.113.20 }
+
+// INSTRUCTION: Define CREATE_CHILD_SA rekey exchange with NEXT_PAYLOAD 33 (SA).
+FLOW ikev2_rekey_flow(b, hq) {
+    b -> hq IKEV2 INITIATOR_SPI 9988776655443322 RESPONDER_SPI 1122334455667788 CREATE_CHILD_SA MSGID 4 NEXT_PAYLOAD 33
+    b <- hq IKEV2 INITIATOR_SPI 9988776655443322 RESPONDER_SPI 1122334455667788 CREATE_CHILD_SA MSGID 4 NEXT_PAYLOAD 33
+}
+
+// INSTRUCTION: Compile block executing Child SA rekeying exchange.
+COMPILE {
+    ikev2_rekey_flow(branch_vpn_gw, hq_vpn_concentrator)
+}

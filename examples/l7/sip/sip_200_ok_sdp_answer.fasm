@@ -1,5 +1,5 @@
 // PROMPT: SIP 200 OK response accepting call setup with media session description body.
-// TOKENS: HOST, IP, FLOW, <-, SIP, STATUS, REASON, CONTENT_TYPE, BODY, COMPILE
+// TOKENS: HOST, IP, FLOW, SIP, STATUS, REASON, CONTENT_TYPE, BODY, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.10 }

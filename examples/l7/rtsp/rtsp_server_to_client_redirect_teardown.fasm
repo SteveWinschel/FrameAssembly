@@ -1,0 +1,27 @@
+// PROMPT: RTSP server initiating maintenance drain by sending server-to-client REDIRECT request before TEARDOWN.
+// TOKENS: HOST, IP, FLOW, RTSP, PLAY, URI, CSEQ, SESSION, WAIT, STATUS, METHOD, TEARDOWN, COMPILE
+
+// INSTRUCTION: Define connected surveillance monitoring client.
+HOST mon_client {
+    IP 10.52.10.80
+}
+
+// INSTRUCTION: Define RTSP streaming node entering maintenance mode.
+HOST maint_node {
+    IP 10.52.10.1
+}
+
+// INSTRUCTION: Define active PLAY session interrupted by server REDIRECT request and graceful TEARDOWN.
+FLOW rtsp_server_redirect(c, s) {
+    c -> s RTSP PLAY URI "rtsp://10.52.10.1/live/cam04" CSEQ 10 SESSION "sess_drain_04" WAIT 5ms
+    c <- s RTSP STATUS 200 CSEQ 10 SESSION "sess_drain_04" WAIT 10ms
+    c <- s RTSP METHOD "REDIRECT" URI "rtsp://10.52.10.1/live/cam04" CSEQ 1 SESSION "sess_drain_04" WAIT 4ms
+    c -> s RTSP STATUS 200 CSEQ 1 SESSION "sess_drain_04" WAIT 4ms
+    c -> s RTSP TEARDOWN URI "rtsp://10.52.10.1/live/cam04" CSEQ 11 SESSION "sess_drain_04" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 11 SESSION "sess_drain_04"
+}
+
+// INSTRUCTION: Compile the server-initiated RTSP REDIRECT and TEARDOWN flow.
+COMPILE {
+    rtsp_server_redirect(mon_client, maint_node)
+}

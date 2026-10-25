@@ -1,0 +1,31 @@
+// PROMPT: Carrier-Supporting-Carrier (CsC) hierarchical MPLS label swap across three core provider routers.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, TCP, PSH, ACK, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define ingress PE router pushing initial label 100100 with TTL 64.
+HOST csc_ingress_pe {
+    IP 10.210.0.1
+    MAC 00:1c:73:d2:00:01
+}
+
+// INSTRUCTION: Define core transit P router swapping label to 200200 and decrementing TTL to 63.
+HOST csc_transit_p {
+    IP 10.210.0.2
+    MAC 00:1c:73:d2:00:02
+}
+
+// INSTRUCTION: Define egress PE router receiving swapped label 200200 with TTL 63.
+HOST csc_egress_pe {
+    IP 10.210.0.3
+    MAC 00:1c:73:d2:00:03
+}
+
+// INSTRUCTION: Define MPLS label swap and TTL decrement progression across 3 provider hops.
+FLOW mpls_label_swap_pipeline(ing, core, egr) {
+    ing -> core MPLS 100100 EXP 3 BOS 1 MPLS_TTL 64 TCP PSH ACK SRCPORT 44100 DSTPORT 443 PAYLOAD "csc_hierarchical_vpn_payload"
+    core -> egr MPLS 200200 EXP 3 BOS 1 MPLS_TTL 63 TCP PSH ACK SRCPORT 44100 DSTPORT 443 PAYLOAD "csc_hierarchical_vpn_payload" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing MPLS label swap pipeline.
+COMPILE {
+    mpls_label_swap_pipeline(csc_ingress_pe, csc_transit_p, csc_egress_pe)
+}

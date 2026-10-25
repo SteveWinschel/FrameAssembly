@@ -1,0 +1,19 @@
+// PROMPT: CoAP Confirmable DELETE resource removal and 2.02 Deleted response over IPv6.
+// TOKENS: HOST, IP, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, ACK, COMPILE
+
+// INSTRUCTION: Define IPv6 provisioning server.
+HOST prov_srv { IP 2001:db8:c0a0::1 }
+
+// INSTRUCTION: Define IPv6 constrained luminaire node.
+HOST luminaire { IP 2001:db8:c0a0::42 }
+
+// INSTRUCTION: Issue CoAP CON DELETE (0.04) and receive 2.02 Deleted ACK.
+FLOW coap_delete_resource(p, l) {
+    p -> l COAP CON CODE "0.04" MSGID 910 TOKEN 0x7788 URI_PATH "config/schedule"
+    p <- l COAP ACK CODE "2.02" MSGID 910 TOKEN 0x7788
+}
+
+// INSTRUCTION: Compile the IPv6 CoAP DELETE scenario.
+COMPILE {
+    coap_delete_resource(prov_srv, luminaire)
+}

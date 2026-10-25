@@ -1,5 +1,5 @@
 // PROMPT: NFS RPC Procedure 0 (NULL) checking remote file server liveness.
-// TOKENS: HOST, IP, FLOW, ->, NFS, VERS, PROC, COMPILE
+// TOKENS: HOST, IP, FLOW, NFS, VERS, PROC, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.80 }

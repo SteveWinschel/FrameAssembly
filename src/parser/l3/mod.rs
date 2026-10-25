@@ -1,52 +1,58 @@
-//! Layer 3 protocol, routing, and tunnel field parsers.
+//! Layer 3 network-layer, routing, tunneling, and control-plane field parsers for FrameAssembly.
+//!
+//! This module coordinates syntactic combinators for Layer 3 network headers (`DSCP`, `ECN`,
+//! `TTL`, `FLOWLABEL`, `IPID`, `DF`, `MF`, `FRAGOFFSET`, `NEXT_HEADER`) and 19 network-layer,
+//! tunneling, security, and routing protocols: `ICMP`, `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`,
+//! `GENEVE`, `IPSEC`, `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`,
+//! `PIM`, `BFD`, and `OPENFLOW`.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
 use winnow::prelude::*;
 
 use crate::lexer::Token;
-use crate::parser::{parse_u16, parse_u32, parse_u8, tag, ParsedField, Stream};
+use crate::parser::{ParsedField, Stream, parse_u8, parse_u16, parse_u32, tag};
 
 /// AH protocol parser.
-pub mod ah;
+pub(crate) mod ah;
 /// BFD protocol parser.
-pub mod bfd;
+pub(crate) mod bfd;
 /// BGP protocol parser.
-pub mod bgp;
+pub(crate) mod bgp;
 /// ESP protocol parser.
-pub mod esp;
+pub(crate) mod esp;
 /// GENEVE protocol parser.
-pub mod geneve;
+pub(crate) mod geneve;
 /// GRE protocol parser.
-pub mod gre;
+pub(crate) mod gre;
 /// HSRP protocol parser.
-pub mod hsrp;
+pub(crate) mod hsrp;
 /// ICMP protocol parser.
-pub mod icmp;
+pub(crate) mod icmp;
 /// IGMP protocol parser.
-pub mod igmp;
+pub(crate) mod igmp;
 /// IKEV2 protocol parser.
-pub mod ikev2;
+pub(crate) mod ikev2;
 /// IPSEC protocol parser.
-pub mod ipsec;
+pub(crate) mod ipsec;
 /// MLD protocol parser.
-pub mod mld;
+pub(crate) mod mld;
 /// NDP protocol parser.
-pub mod ndp;
+pub(crate) mod ndp;
 /// OPENFLOW protocol parser.
-pub mod openflow;
+pub(crate) mod openflow;
 /// OSPF protocol parser.
-pub mod ospf;
+pub(crate) mod ospf;
 /// PIM protocol parser.
-pub mod pim;
+pub(crate) mod pim;
 /// RIP protocol parser.
-pub mod rip;
+pub(crate) mod rip;
 /// VRRP protocol parser.
-pub mod vrrp;
+pub(crate) mod vrrp;
 /// VXLAN protocol parser.
-pub mod vxlan;
+pub(crate) mod vxlan;
 /// WIREGUARD protocol parser.
-pub mod wireguard;
+pub(crate) mod wireguard;
 
 pub(crate) use ah::*;
 pub(crate) use bfd::*;
@@ -99,16 +105,23 @@ pub(crate) fn parse_l3_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pars
             parse_openflow_field,
         )),
         alt((
-            (tag(Token::Dscp), cut_err(parse_u32)).map(|((_, s), v)| ParsedField::Dscp(v, (s.start, s.end - s.start))),
-            (tag(Token::Ecn), cut_err(parse_u32)).map(|((_, s), v)| ParsedField::Ecn(v, (s.start, s.end - s.start))),
-            (tag(Token::Ttl), cut_err(parse_u32)).map(|((_, s), v)| ParsedField::Ttl(v, (s.start, s.end - s.start))),
-            (tag(Token::FlowLabel), cut_err(parse_u32)).map(|((_, s), v)| ParsedField::FlowLabel(v, (s.start, s.end - s.start))),
-            (tag(Token::IpId), cut_err(parse_u16)).map(|((_, s), v)| ParsedField::IpId(v, (s.start, s.end - s.start))),
+            (tag(Token::Dscp), cut_err(parse_u32))
+                .map(|((_, s), v)| ParsedField::Dscp(v, (s.start, s.end - s.start))),
+            (tag(Token::Ecn), cut_err(parse_u32))
+                .map(|((_, s), v)| ParsedField::Ecn(v, (s.start, s.end - s.start))),
+            (tag(Token::Ttl), cut_err(parse_u32))
+                .map(|((_, s), v)| ParsedField::Ttl(v, (s.start, s.end - s.start))),
+            (tag(Token::FlowLabel), cut_err(parse_u32))
+                .map(|((_, s), v)| ParsedField::FlowLabel(v, (s.start, s.end - s.start))),
+            (tag(Token::IpId), cut_err(parse_u16))
+                .map(|((_, s), v)| ParsedField::IpId(v, (s.start, s.end - s.start))),
             tag(Token::Df).map(|(_, s)| ParsedField::Df((s.start, s.len()))),
             tag(Token::Mf).map(|(_, s)| ParsedField::Mf((s.start, s.len()))),
-            (tag(Token::FragOffset), cut_err(parse_u16)).map(|((_, s), v)| ParsedField::FragOffset(v, (s.start, s.end - s.start))),
+            (tag(Token::FragOffset), cut_err(parse_u16))
+                .map(|((_, s), v)| ParsedField::FragOffset(v, (s.start, s.end - s.start))),
         )),
-        (tag(Token::NextHeader), cut_err(parse_u8)).map(|((_, s), v)| ParsedField::NextHeader(v, (s.start, s.end - s.start))),
+        (tag(Token::NextHeader), cut_err(parse_u8))
+            .map(|((_, s), v)| ParsedField::NextHeader(v, (s.start, s.end - s.start))),
     ))
     .parse_next(input)
 }

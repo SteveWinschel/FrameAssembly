@@ -1,0 +1,27 @@
+// PROMPT: Model a POP3 AUTH CRAM-MD5 challenge-response authentication sequence per RFC 5034.
+// TOKENS: HOST, IP, MAC, FLOW, POP3, CMD, ARG, WAIT, OK, RESPONSE, COMPILE
+
+// INSTRUCTION: Define the mail client authenticating with SASL CRAM-MD5.
+HOST cram_client {
+    IP 10.110.30.40
+    MAC 00:15:5d:6e:1e:28
+}
+
+// INSTRUCTION: Define the corporate POP3 gateway.
+HOST cram_pop3_gw {
+    IP 10.110.30.1
+    MAC 00:15:5d:6e:1e:01
+}
+
+// INSTRUCTION: Request AUTH CRAM-MD5, receive base64 challenge, send HMAC digest, and receive +OK.
+FLOW pop3_auth_cram_md5(c, s) {
+    c -> s POP3 CMD "AUTH" ARG "CRAM-MD5" WAIT 2ms
+    c <- s POP3 OK RESPONSE "PDE4OTYuNjk3MTcwOTUyQHBvcDMuY29ycC5sb2NhbD4=" WAIT 3ms
+    c -> s POP3 CMD "RESPONSE" ARG "dGltIGI5MTNhNjAyYzdlZGE3YTQ5NWI0ZTZlNzMzNGQzODkw" WAIT 3ms
+    c <- s POP3 OK RESPONSE "CRAM-MD5 authentication successful (4 messages)"
+}
+
+// INSTRUCTION: Compile the POP3 SASL CRAM-MD5 authentication scenario.
+COMPILE {
+    pop3_auth_cram_md5(cram_client, cram_pop3_gw)
+}

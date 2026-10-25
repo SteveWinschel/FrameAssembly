@@ -1,0 +1,25 @@
+// PROMPT: RFC 4271 BGP NOTIFICATION message terminating a peering attempt due to OPEN configuration mismatch.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, DSCP, TTL, WAIT, NOTIFICATION, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define upstream transit provider router rejecting misconfigured peer ASN.
+HOST transit_asbr_01 {
+    IP 198.51.100.254
+    MAC 00:1b:21:64:fe:01
+}
+
+// INSTRUCTION: Define customer router sending OPEN with unexpected Autonomous System Number.
+HOST customer_edge_99 {
+    IP 198.51.100.253
+    MAC 00:1b:21:64:fd:02
+}
+
+// INSTRUCTION: Define customer BGP OPEN followed by provider BGP NOTIFICATION rejection.
+FLOW bgp_open_error_notification(cust, provider) {
+    cust -> provider BGP OPEN ASN 65555 HOLDTIME 180 BGPID 198.51.100.253 DSCP 48 TTL 1 WAIT 5ms
+    cust <- provider BGP NOTIFICATION DSCP 48 TTL 1 PAYLOAD "OPEN_MSG_ERROR_BAD_PEER_AS"
+}
+
+// INSTRUCTION: Compile the BGP OPEN error and NOTIFICATION teardown flow.
+COMPILE {
+    bgp_open_error_notification(customer_edge_99, transit_asbr_01)
+}

@@ -1,0 +1,25 @@
+// PROMPT: RoCEv2 (RDMA over Converged Ethernet v2) over UDP port 4791 with ECN congestion encountered marking and CNP feedback.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DSCP, ECN, DF, UDP, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define AI training GPU node A sending RDMA Write over UDP 4791.
+HOST gpu_rdma_tx {
+    IP 10.200.47.11
+    MAC 0c:42:a1:2f:00:0b
+}
+
+// INSTRUCTION: Define AI training GPU node B returning RoCEv2 Congestion Notification Packet (CNP).
+HOST gpu_rdma_rx {
+    IP 10.200.47.12
+    MAC 0c:42:a1:2f:00:0c
+}
+
+// INSTRUCTION: Define RoCEv2 InfiniBand BTH RDMA Write (Opcode 0x0A) with ECN=3 (CE) and CNP response (Opcode 0x81).
+FLOW udp_rocev2_ecn_cnp(tx, rx) {
+    tx -> rx VLAN 470 PCP 3 DSCP 26 ECN 3 DF UDP SRCPORT 53111 DSTPORT 4791 HEXPAYLOAD "0a40ffff0000020080000010"
+    tx <- rx VLAN 470 PCP 6 DSCP 48 ECN 0 DF UDP SRCPORT 53111 DSTPORT 4791 HEXPAYLOAD "8100ffff000002000000000000000000" WAIT 50us
+}
+
+// INSTRUCTION: Compile block executing RoCEv2 UDP port 4791 ECN and CNP control loop.
+COMPILE {
+    udp_rocev2_ecn_cnp(gpu_rdma_tx, gpu_rdma_rx)
+}

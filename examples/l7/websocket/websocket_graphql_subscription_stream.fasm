@@ -1,0 +1,25 @@
+// PROMPT: GraphQL over WebSocket (graphql-transport-ws) connection init, subscribe, and next data push.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, TEXT, FIN_BIT, MASK_KEY, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define React frontend GraphQL subscriber host.
+HOST react_app {
+    IP 10.18.40.12
+}
+
+// INSTRUCTION: Define GraphQL subscription server endpoint.
+HOST graphql_srv {
+    IP 10.18.40.1
+}
+
+// INSTRUCTION: Define graphql-transport-ws protocol message sequence.
+FLOW ws_graphql_sub(c, s) {
+    c -> s WEBSOCKET TEXT FIN_BIT 1 MASK_KEY 0x22446688 PAYLOAD "{'type':'connection_init'}" WAIT 4ms
+    c <- s WEBSOCKET TEXT FIN_BIT 1 PAYLOAD "{'type':'connection_ack'}" WAIT 4ms
+    c -> s WEBSOCKET TEXT FIN_BIT 1 MASK_KEY 0x22446688 PAYLOAD "{'id':'1','type':'subscribe'}" WAIT 10ms
+    c <- s WEBSOCKET TEXT FIN_BIT 1 PAYLOAD "{'id':'1','type':'next','payload':{'data':{}}}"
+}
+
+// INSTRUCTION: Compile the GraphQL over WebSocket subscription flow.
+COMPILE {
+    ws_graphql_sub(react_app, graphql_srv)
+}

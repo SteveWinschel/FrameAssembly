@@ -1,0 +1,27 @@
+// PROMPT: Redis MSET and MGET bulk key-value hydration for e-commerce product catalog caching.
+// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the storefront catalog API host.
+HOST catalog_api {
+    IP 10.80.50.18
+    MAC 00:1a:2b:80:50:18
+}
+
+// INSTRUCTION: Define the catalog cache Redis server.
+HOST catalog_redis {
+    IP 10.80.50.1
+    MAC 00:1a:2b:80:50:01
+}
+
+// INSTRUCTION: Populate multiple SKU prices with MSET and fetch them with MGET.
+FLOW redis_mset_mget(c, s) {
+    c -> s REDIS CMD "MSET" ARGS "sku:101:price 29.99 sku:102:price 49.50 sku:103:price 15.00"
+    c <- s REDIS REPLY_TYPE "STATUS" VALUE "OK" WAIT 1ms
+    c -> s REDIS CMD "MGET" ARGS "sku:101:price sku:102:price"
+    c <- s REDIS REPLY_TYPE "BULK" VALUE "29.99"
+}
+
+// INSTRUCTION: Compile the Redis MSET and MGET batch cache flow.
+COMPILE {
+    redis_mset_mget(catalog_api, catalog_redis)
+}

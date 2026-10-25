@@ -1,0 +1,25 @@
+// PROMPT: Full TCP 3-way handshake and DNS over TCP query for large DNSKEY response payload.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, DNS, TRANSPORT, QUERY, TXID, QNAME, QTYPE, RESPONSE, RDATA, ANS_TTL, FIN, COMPILE
+
+// INSTRUCTION: Define recursive resolver initiating TCP fallback.
+HOST tcp_resolver { IP 172.20.53.10 }
+
+// INSTRUCTION: Define authoritative DNS server listening on TCP port 53.
+HOST tcp_auth_ns { IP 172.20.53.1 }
+
+// INSTRUCTION: Perform TCP handshake, send 2-byte length-prefixed DNS over TCP query, and close.
+FLOW dns_tcp_fallback_session(r, a) {
+    r -> a TCP SYN SRCPORT 54321 DSTPORT 53
+    r <- a TCP SYN ACK
+    r -> a TCP ACK
+    r -> a DNS TRANSPORT TCP QUERY TXID 0x2201 QNAME "iana.org" QTYPE "DNSKEY"
+    r <- a DNS TRANSPORT TCP RESPONSE TXID 0x2201 QNAME "iana.org" QTYPE "DNSKEY" RDATA "257 3 13 ksk-pub-key" ANS_TTL 3600
+    r -> a TCP FIN ACK
+    r <- a TCP FIN ACK
+    r -> a TCP ACK
+}
+
+// INSTRUCTION: Compile the complete DNS over TCP session.
+COMPILE {
+    dns_tcp_fallback_session(tcp_resolver, tcp_auth_ns)
+}

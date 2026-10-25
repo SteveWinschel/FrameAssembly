@@ -1,0 +1,25 @@
+// PROMPT: RFC 2082 / RFC 4822 RIPv2 cryptographic MD5 / HMAC-SHA authentication trailer protecting routing updates.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, TAG, DSCP, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define secure core router A attaching RFC 2082 Keyed-MD5 authentication trailer.
+HOST rip_md5_rtr_a {
+    IP 10.52.208.1
+    MAC 00:1b:63:52:d0:01
+}
+
+// INSTRUCTION: Define secure core router B validating Key ID 1 cryptographic sequence number.
+HOST rip_md5_rtr_b {
+    IP 10.52.208.2
+    MAC 00:1b:63:52:d0:02
+}
+
+// INSTRUCTION: Define authenticated RIPv2 RESPONSE carrying hex-encoded RFC 2082 MD5 trailer.
+FLOW rip_rfc2082_md5_auth(a, b) {
+    a -> b RIP RESPONSE PREFIX 10.208.1.0 METRIC 1 NEXTHOP 10.52.208.1 TAG 2082 DSCP 48 TTL 1 HEXPAYLOAD "ffff00030014011000000001a1b2c3d4e5f60718293a4b5c" WAIT 5ms
+    a <- b RIP RESPONSE PREFIX 10.208.2.0 METRIC 1 NEXTHOP 10.52.208.2 TAG 2082 DSCP 48 TTL 1 HEXPAYLOAD "ffff000300140110000000025c4b3a291807f6e5d4c3b2a1"
+}
+
+// INSTRUCTION: Compile the RFC 2082 RIPv2 cryptographic authentication flow.
+COMPILE {
+    rip_rfc2082_md5_auth(rip_md5_rtr_a, rip_md5_rtr_b)
+}

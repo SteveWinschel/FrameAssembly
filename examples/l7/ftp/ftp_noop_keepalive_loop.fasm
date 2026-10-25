@@ -1,0 +1,21 @@
+// PROMPT: FTP control session keepalive loop issuing periodic NOOP commands to prevent firewall idle timeout.
+// TOKENS: HOST, IP, FLOW, FTP, CMD, WAIT, CODE, REPLY, COMPILE, LOOP
+
+// INSTRUCTION: Define long-running FTP client behind NAT firewall.
+HOST nat_ftp_client { IP 192.168.1.90 }
+
+// INSTRUCTION: Define remote FTP server.
+HOST remote_ftp_srv { IP 198.51.100.21 }
+
+// INSTRUCTION: Exchange FTP NOOP command and 200 NOOP ok response after 30-second wait.
+FLOW ftp_noop_keepalive(c, s) {
+    c -> s FTP CMD "NOOP" WAIT 30s
+    c <- s FTP CODE 200 REPLY "NOOP ok"
+}
+
+// INSTRUCTION: Loop the FTP NOOP keepalive 3 times.
+COMPILE {
+    LOOP 3 {
+        ftp_noop_keepalive(nat_ftp_client, remote_ftp_srv)
+    }
+}

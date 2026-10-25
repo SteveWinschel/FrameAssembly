@@ -1,0 +1,19 @@
+// PROMPT: IPv6 real-time monitoring session with masked WebSocket data frames.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+
+// INSTRUCTION: Define IPv6 monitoring console client.
+HOST console_v6 { IP 2001:db8:4444::12 }
+
+// INSTRUCTION: Define IPv6 telemetry broadcast server.
+HOST broadcast_v6 { IP 2001:db8:4444::1 }
+
+// INSTRUCTION: Define IPv6 streaming telemetry flow.
+FLOW ws_v6_stream_flow(c, s) {
+    c -> s WEBSOCKET OPCODE "TEXT" FIN_BIT 1 MASK_KEY 3456789012
+    c <- s WEBSOCKET OPCODE "TEXT" FIN_BIT 1 MASK_KEY 0
+}
+
+// INSTRUCTION: Compile block executing IPv6 streaming session.
+COMPILE {
+    ws_v6_stream_flow(console_v6, broadcast_v6)
+}

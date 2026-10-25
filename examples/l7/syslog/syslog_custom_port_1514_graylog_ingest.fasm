@@ -1,0 +1,27 @@
+// PROMPT: Model a custom UDP port 1514 Logstash/Graylog syslog ingestion stream carrying JSON application telemetry.
+// TOKENS: HOST, MAC, IP, FLOW, SRCPORT, DSTPORT, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, COMPILE
+
+// INSTRUCTION: Define host endpoint microservice.
+HOST microservice {
+    MAC 00:16:3e:15:14:01
+    IP 10.88.1.40
+}
+
+// INSTRUCTION: Define host endpoint graylog_ingest.
+HOST graylog_ingest {
+    MAC 00:16:3e:15:14:99
+    IP 10.88.1.10
+}
+
+// INSTRUCTION: Send RFC 5424 syslog datagrams to custom destination port 1514 under Facility 23 (Local7).
+FLOW syslog_custom_port_1514_ingest(microservice, graylog_ingest) {
+    microservice -> graylog_ingest SRCPORT 54514 DSTPORT 1514 SYSLOG FACILITY 23 SEVERITY 6 HOSTNAME "checkout-svc-09" APP "envoy" PROCID "99"
+        MSG "{\"trace_id\":\"8f91a2\",\"status\":200,\"latency_ms\":14}"
+    microservice -> graylog_ingest SRCPORT 54514 DSTPORT 1514 SYSLOG FACILITY 23 SEVERITY 3 HOSTNAME "checkout-svc-09" APP "envoy" PROCID "99"
+        MSG "{\"trace_id\":\"8f91b3\",\"status\":503,\"error\":\"upstream_reset\"}"
+}
+
+// INSTRUCTION: Compile the custom port 1514 syslog ingestion flow.
+COMPILE {
+    syslog_custom_port_1514_ingest(microservice, graylog_ingest)
+}

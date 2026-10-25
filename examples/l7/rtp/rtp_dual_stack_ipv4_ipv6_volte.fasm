@@ -1,0 +1,24 @@
+// PROMPT: Dual-stack IPv4 and IPv6 VoLTE / VoNR RTP voice media flow using a polymorphic definition.
+// TOKENS: HOST, IP, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, DSCP, TTL, FLOWLABEL, COMPILE
+
+// INSTRUCTION: Define IPv4 media gateway endpoints.
+HOST rtp_v4_a { IP 10.50.0.11 }
+// INSTRUCTION: Define IPv4 remote media gateway.
+HOST rtp_v4_b { IP 10.50.0.12 }
+
+// INSTRUCTION: Define IPv6 IMS VoLTE UE and media gateway endpoints.
+HOST rtp_v6_a { IP 2001:db8:5004::11 }
+// INSTRUCTION: Define IPv6 IMS media gateway.
+HOST rtp_v6_b { IP 2001:db8:5004::12 }
+
+// INSTRUCTION: Define polymorphic RTP voice exchange with DSCP EF (46) and FLOWLABEL.
+FLOW rtp_dual_stack_media(ep1, ep2) {
+    ep1 -> ep2 RTP PT 0 TIMESTAMP 160 SSRC 0x12340001 MARKER 1 DSCP 46 TTL 64 FLOWLABEL 0x50040
+    ep1 <- ep2 RTP PT 0 TIMESTAMP 160 SSRC 0x12340002 MARKER 1 DSCP 46 TTL 64 FLOWLABEL 0x50040
+}
+
+// INSTRUCTION: Compile dual-stack RTP voice media flow.
+COMPILE {
+    rtp_dual_stack_media(rtp_v4_a, rtp_v4_b)
+    rtp_dual_stack_media(rtp_v6_a, rtp_v6_b)
+}

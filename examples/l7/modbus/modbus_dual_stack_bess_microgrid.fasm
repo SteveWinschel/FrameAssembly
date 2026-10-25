@@ -1,0 +1,44 @@
+// PROMPT: Create a dual-stack IPv4 and IPv6 Modbus substation battery energy storage system (BESS) monitoring trace.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TXID, UNITID, FUNC, ADDR, COUNT, DSCP, WAIT, IS_RESPONSE, VALUE, FLOWLABEL, TTL, COMPILE
+
+// INSTRUCTION: Define the dual-stack microgrid controller managing battery storage racks (IPv4).
+HOST microgrid_ctrl_v4 {
+    IP 10.90.20.10
+    MAC 00:1a:4a:90:20:10
+}
+
+// INSTRUCTION: Define the dual-stack microgrid controller managing battery storage racks (IPv6).
+HOST microgrid_ctrl_v6 {
+    IP 2001:db8:90:20::10
+    MAC 00:1a:4a:90:20:10
+}
+
+// INSTRUCTION: Define the dual-stack Battery Management System (BMS) gateway (IPv4).
+HOST bms_gateway_v4 {
+    IP 10.90.20.80
+    MAC 00:1a:4a:90:20:80
+}
+
+// INSTRUCTION: Define the dual-stack Battery Management System (BMS) gateway (IPv6).
+HOST bms_gateway_v6 {
+    IP 2001:db8:90:20::80
+    MAC 00:1a:4a:90:20:80
+}
+
+// INSTRUCTION: Read battery state-of-charge (SoC) over IPv4.
+FLOW ipv4_soc_read(c, s) {
+    c -> s MODBUS TXID 801 UNITID 1 FUNC "READ_INPUT_REGISTERS" ADDR 100 COUNT 2 DSCP 46 WAIT 3ms
+    c <- s MODBUS TXID 801 UNITID 1 FUNC "READ_INPUT_REGISTERS" IS_RESPONSE VALUE 875 DSCP 46
+}
+
+// INSTRUCTION: Command active power dispatch over IPv6 with flow label 0x80200.
+FLOW ipv6_power_dispatch(c, s) {
+    c -> s MODBUS TXID 802 UNITID 1 FUNC "WRITE_SINGLE_REGISTER" ADDR 200 VALUE 500 FLOWLABEL 0x80200 TTL 64 WAIT 3ms
+    c <- s MODBUS TXID 802 UNITID 1 FUNC "WRITE_SINGLE_REGISTER" ADDR 200 VALUE 500 IS_RESPONSE FLOWLABEL 0x80200 TTL 64
+}
+
+// INSTRUCTION: Compile the dual-stack Modbus BESS control trace into a PCAP file.
+COMPILE {
+    ipv4_soc_read(microgrid_ctrl_v4, bms_gateway_v4)
+    ipv6_power_dispatch(microgrid_ctrl_v6, bms_gateway_v6)
+}

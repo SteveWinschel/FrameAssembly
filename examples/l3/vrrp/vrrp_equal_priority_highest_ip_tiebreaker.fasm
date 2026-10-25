@@ -1,0 +1,26 @@
+// PROMPT: RFC 5798 Section 6.4.3 VRRP election tie-breaker where two routers with equal Priority 100 resolve Master via higher primary IP.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Router 1 with lower primary IP 10.112.33.2 and Priority 100.
+HOST tiebreak_rtr_low_ip {
+    IP 10.112.33.2
+    MAC 00:00:5e:00:01:21
+}
+
+// INSTRUCTION: Define Router 2 with higher primary IP 10.112.33.3 and equal Priority 100 winning Master election.
+HOST tiebreak_rtr_high_ip {
+    IP 10.112.33.3
+    MAC 00:00:5e:00:01:21
+}
+
+// INSTRUCTION: Define simultaneous PRIORITY 100 advertisements resolved in favor of 10.112.33.3.
+FLOW vrrp_equal_priority_tiebreak(low_ip, high_ip) {
+    low_ip -> high_ip VRRP VRID 33 PRIORITY 100 ADV_INT 100 VIP 10.112.33.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "CANDIDATE_10_112_33_2_PRIO_100" WAIT 5ms
+    low_ip <- high_ip VRRP VRID 33 PRIORITY 100 ADV_INT 100 VIP 10.112.33.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "WINNER_HIGHER_IP_10_112_33_3_PRIO_100" WAIT 100ms
+    low_ip <- high_ip VRRP VRID 33 PRIORITY 100 ADV_INT 100 VIP 10.112.33.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "STEADY_MASTER_10_112_33_3"
+}
+
+// INSTRUCTION: Compile the RFC 5798 VRRP equal-priority highest-IP tie-breaker flow.
+COMPILE {
+    vrrp_equal_priority_tiebreak(tiebreak_rtr_low_ip, tiebreak_rtr_high_ip)
+}

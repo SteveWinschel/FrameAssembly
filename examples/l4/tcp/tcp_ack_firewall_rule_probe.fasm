@@ -1,5 +1,5 @@
 // PROMPT: Simulate a TCP ACK firewall rule mapping probe to distinguish stateful vs unfiltered ports via unsolicited ACK packets and RST responses.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, ACK, RST, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, ACK, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, WAIT, RST, COMPILE
 
 // INSTRUCTION: Define an external auditor host with IP 203.0.113.15.
 HOST auditor_box { IP 203.0.113.15 MAC 00:16:3e:10:20:30 }

@@ -1,0 +1,19 @@
+// PROMPT: Cross-datacenter PostgreSQL query over QinQ VLAN stacking and MPLS traffic engineering.
+// TOKENS: HOST, IP, FLOW, POSTGRES, SQL, QINQ, INNER_VLAN, MPLS, EXP, BOS, MPLS_TTL, COMMAND_COMPLETE, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define DR site analytics engine.
+HOST dr_analytics { IP 10.154.0.20 }
+
+// INSTRUCTION: Define primary site PostgreSQL warehouse.
+HOST hq_warehouse { IP 10.154.1.10 }
+
+// INSTRUCTION: Define SQL query with QinQ and MPLS headers.
+FLOW pg_wan_mpls(c, s) {
+    c -> s POSTGRES SQL "SELECT count(*) FROM fact_sales" QINQ 900 INNER_VLAN 54 MPLS 54320 EXP 4 BOS 1 MPLS_TTL 64
+    c <- s POSTGRES COMMAND_COMPLETE READY_FOR_QUERY QINQ 900 INNER_VLAN 54 MPLS 54321 EXP 4 BOS 1 MPLS_TTL 63
+}
+
+// INSTRUCTION: Compile MPLS-encapsulated PostgreSQL query.
+COMPILE {
+    pg_wan_mpls(dr_analytics, hq_warehouse)
+}

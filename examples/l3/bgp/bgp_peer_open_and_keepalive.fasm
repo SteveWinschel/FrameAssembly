@@ -1,5 +1,5 @@
 // PROMPT: BGP peer session establishment and keepalive exchange on TCP port 179.
-// TOKENS: HOST, IP, FLOW, ->, <-, BGP, OPEN, ASN, HOLDTIME, BGPID, KEEPALIVE, COMPILE
+// TOKENS: HOST, IP, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, KEEPALIVE, COMPILE
 
 // INSTRUCTION: Define BGP edge router in Autonomous System 64512.
 HOST bgp_speaker_1 { IP 192.0.2.1 }

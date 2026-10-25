@@ -1,0 +1,28 @@
+// PROMPT: Complete EtherNet/IP TCP session from RegisterSession and CIP read to UnRegisterSession.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, ETHERNETIP, CMD, SESSION_HANDLE, STATUS, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, FIN, COMPILE
+
+// INSTRUCTION: Define HMI client workstation.
+HOST hmi_panel { IP 10.10.44.5 }
+
+// INSTRUCTION: Define CompactLogix PLC controller.
+HOST compact_plc { IP 10.10.44.1 }
+
+// INSTRUCTION: Establish TCP connection, register session, read CIP Identity attribute, and unregister.
+FLOW enip_session_lifecycle(h, p) {
+    h -> p TCP SYN SRCPORT 51000 DSTPORT 44818
+    h <- p TCP SYN ACK
+    h -> p TCP ACK
+    h -> p ETHERNETIP CMD "RegisterSession"
+    h <- p ETHERNETIP CMD "RegisterSession" SESSION_HANDLE 0x00010203 STATUS 0
+    h -> p ETHERNETIP CMD "SendRRData" SESSION_HANDLE 0x00010203 CIP_SERVICE 14 CIP_CLASS 1 CIP_INSTANCE 1 CIP_ATTR 7
+    h <- p ETHERNETIP CMD "SendRRData" SESSION_HANDLE 0x00010203 STATUS 0
+    h -> p ETHERNETIP CMD "UnRegisterSession" SESSION_HANDLE 0x00010203
+    h -> p TCP FIN ACK
+    h <- p TCP FIN ACK
+    h -> p TCP ACK
+}
+
+// INSTRUCTION: Compile the complete EtherNet/IP session lifecycle.
+COMPILE {
+    enip_session_lifecycle(hmi_panel, compact_plc)
+}

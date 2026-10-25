@@ -1,0 +1,27 @@
+// PROMPT: IPv6 tactical UAV drone streaming RTSP video and gimbal metadata on custom TCP port 8554.
+// TOKENS: HOST, IP, FLOW, RTSP, DESCRIBE, URI, CSEQ, SRCPORT, DSTPORT, WAIT, STATUS, SETUP, TRANSPORT_HDR, SESSION, PLAY, COMPILE
+
+// INSTRUCTION: Define ground station IPv6 operator console.
+HOST gcs_console_v6 {
+    IP 2001:db8:8554::10
+}
+
+// INSTRUCTION: Define UAV gimbal camera IPv6 RTSP server on port 8554.
+HOST uav_cam_v6 {
+    IP 2001:db8:8554::1
+}
+
+// INSTRUCTION: Define IPv6 RTSP DESCRIBE, SETUP, and PLAY on port 8554.
+FLOW rtsp_uav_ipv6(c, s) {
+    c -> s RTSP DESCRIBE URI "rtsp://[2001:db8:8554::1]:8554/eo_ir" CSEQ 1 SRCPORT 52000 DSTPORT 8554 WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 1 SRCPORT 8554 DSTPORT 52000 WAIT 4ms
+    c -> s RTSP SETUP URI "rtsp://[2001:db8:8554::1]:8554/eo_ir/video" CSEQ 2 SRCPORT 52000 DSTPORT 8554 TRANSPORT_HDR "RTP/AVP;unicast;client_port=5600-5601" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 2 SRCPORT 8554 DSTPORT 52000 SESSION "uav_eo_01" WAIT 4ms
+    c -> s RTSP PLAY URI "rtsp://[2001:db8:8554::1]:8554/eo_ir" CSEQ 3 SRCPORT 52000 DSTPORT 8554 SESSION "uav_eo_01" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 3 SRCPORT 8554 DSTPORT 52000 SESSION "uav_eo_01"
+}
+
+// INSTRUCTION: Compile the IPv6 UAV drone RTSP control scenario.
+COMPILE {
+    rtsp_uav_ipv6(gcs_console_v6, uav_cam_v6)
+}

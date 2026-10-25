@@ -1,0 +1,25 @@
+// PROMPT: PROFINET Industrial Ethernet topology discovery using LLDP with station chassis ID and port ID.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define Siemens SIMATIC PROFINET IO Controller PLC.
+HOST profinet_plc {
+    IP 192.168.0.10
+    MAC 00:0e:8c:aa:10:01
+}
+
+// INSTRUCTION: Define PROFINET IO Device servo drive on real-time VLAN.
+HOST servo_drive_io {
+    IP 192.168.0.22
+    MAC 00:0e:8c:aa:10:16
+}
+
+// INSTRUCTION: Define PROFINET LLDP neighborhood detection with short 20-second fast-aging TTL.
+FLOW profinet_lldp_topology(plc, drive) {
+    plc -> drive VLAN 100 PCP 6 LLDP CHASSIS_ID "plc-s7-1500-cell01" PORT_ID "port-001" SYSNAME "s7-1516f.profinet.local" SYSDESC "SIMATIC S7-1500 CPU 1516F-3 PN/DP" TTL 20
+    plc <- drive VLAN 100 PCP 6 LLDP CHASSIS_ID "sinamics-s210-axis1" PORT_ID "port-001" SYSNAME "axis1-servo.profinet.local" SYSDESC "SINAMICS S210 PN Servo Drive" TTL 20 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing PROFINET industrial LLDP exchange.
+COMPILE {
+    profinet_lldp_topology(profinet_plc, servo_drive_io)
+}

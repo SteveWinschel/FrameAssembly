@@ -1,0 +1,18 @@
+// PROMPT: NetFlow telemetry collection over 802.1Q tagged network management VLAN.
+// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define campus distribution switch.
+HOST campus_dist_sw { IP 10.15.0.1 }
+
+// INSTRUCTION: Define management VLAN collector on VLAN 105.
+HOST mgmt_flow_analyzer { IP 10.15.0.105 }
+
+// INSTRUCTION: Define tagged VLAN NetFlow export flow.
+FLOW vlan_netflow_flow(sw, ana) {
+    sw -> ana NETFLOW SRCIP 10.10.5.15 DSTIP 10.20.5.25 PROTO 17 PACKETS 42 OCTETS 5376 VLAN 105 PCP 4 DEI 0
+}
+
+// INSTRUCTION: Compile VLAN tagged NetFlow scenario.
+COMPILE {
+    vlan_netflow_flow(campus_dist_sw, mgmt_flow_analyzer)
+}

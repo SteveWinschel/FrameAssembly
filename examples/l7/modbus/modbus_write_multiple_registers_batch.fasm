@@ -1,0 +1,18 @@
+// PROMPT: Modbus TCP function code 16 writing batch parameter configuration to PLC registers.
+// TOKENS: HOST, IP, FLOW, MODBUS, FUNC, ADDR, COUNT, UNITID, COMPILE
+
+// INSTRUCTION: Define assembly line engineering workstation.
+HOST eng_workstation { IP 192.168.2.10 }
+
+// INSTRUCTION: Define manufacturing cell PLC controller.
+HOST robot_cell_plc { IP 192.168.2.88 }
+
+// INSTRUCTION: Define write multiple registers configuration flow.
+FLOW write_batch_config(eng, plc) {
+    eng -> plc MODBUS FUNC "WRITE_MULTIPLE_REGISTERS" ADDR 40100 COUNT 5 UNITID 3
+}
+
+// INSTRUCTION: Compile write multiple registers scenario.
+COMPILE {
+    write_batch_config(eng_workstation, robot_cell_plc)
+}

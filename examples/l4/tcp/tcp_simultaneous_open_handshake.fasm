@@ -1,5 +1,5 @@
 // PROMPT: Simulate an RFC 793 TCP simultaneous open handshake where two peer hosts send SYN packets concurrently and complete the connection with SYN-ACKs.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ACK, ACKNUM, PSH, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define peer alpha with IP 10.40.0.1 and MAC 02:40:00:00:00:01.
 HOST peer_alpha { IP 10.40.0.1 MAC 02:40:00:00:00:01 }

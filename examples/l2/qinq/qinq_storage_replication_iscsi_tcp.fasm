@@ -1,0 +1,28 @@
+// PROMPT: Synchronous block storage replication over Metro Ethernet QinQ using stateful TCP 3-way handshake and data push.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, TCP, SYN, SRCPORT, DSTPORT, MSS, WSCALE, SACK_PERM, ACK, WAIT, PSH, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define primary SAN storage controller at Site A.
+HOST san_site_a {
+    IP 172.30.200.11
+    MAC 00:a0:98:30:c8:0b
+}
+
+// INSTRUCTION: Define synchronous mirror SAN storage controller at Site B.
+HOST san_site_b {
+    IP 172.30.200.12
+    MAC 00:a0:98:30:c8:0c
+}
+
+// INSTRUCTION: Define QinQ S-VLAN 2200 C-VLAN 3260 TCP handshake and synchronous block write replication.
+FLOW qinq_san_replication(pri, mir) {
+    pri -> mir QINQ 2200 INNER_VLAN 3260 TCP SYN SRCPORT 49800 DSTPORT 3260 MSS 1440 WSCALE 8 SACK_PERM
+    pri <- mir QINQ 2200 INNER_VLAN 3260 TCP SYN ACK MSS 1440 WSCALE 8 SACK_PERM WAIT 1ms
+    pri -> mir QINQ 2200 INNER_VLAN 3260 TCP ACK WAIT 500us
+    pri -> mir QINQ 2200 INNER_VLAN 3260 TCP PSH ACK PAYLOAD "iscsi_scsi_write_16_lba_0x004000" WAIT 1ms
+    pri <- mir QINQ 2200 INNER_VLAN 3260 TCP PSH ACK PAYLOAD "iscsi_scsi_response_good_status" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing synchronous SAN replication over QinQ.
+COMPILE {
+    qinq_san_replication(san_site_a, san_site_b)
+}

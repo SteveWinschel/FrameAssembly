@@ -1,0 +1,19 @@
+// PROMPT: 802.1Q VLAN-tagged HSRP first-hop redundancy advertisements on campus SVI VLAN 120.
+// TOKENS: HOST, IP, MAC, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define core switch 1 SVI on VLAN 120.
+HOST svi_core_sw1 { IP 10.120.0.2 MAC 00:00:0c:07:ac:78 }
+
+// INSTRUCTION: Define core switch 2 SVI on VLAN 120.
+HOST svi_core_sw2 { IP 10.120.0.3 MAC 00:1a:e2:12:00:03 }
+
+// INSTRUCTION: Define VLAN 120 tagged HSRP Active and Standby exchange with PCP 6.
+FLOW hsrp_svi_vlan_flow(sw1, sw2) {
+    sw1 -> sw2 HSRP GROUP 120 PRIORITY 115 STATE 16 VIP 10.120.0.1 VLAN 120 PCP 6 DEI 0
+    sw1 <- sw2 HSRP GROUP 120 PRIORITY 100 STATE 8 VIP 10.120.0.1 VLAN 120 PCP 6 DEI 0
+}
+
+// INSTRUCTION: Compile the VLAN-tagged HSRP SVI redundancy flow.
+COMPILE {
+    hsrp_svi_vlan_flow(svi_core_sw1, svi_core_sw2)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Fast convergence sub-second OSPF Hello and Dead interval tuning.
+// TOKENS: HOST, IP, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, COMPILE
+
+// INSTRUCTION: Define low-latency trading router.
+HOST trading_edge_rtr { IP 192.168.12.1 }
+
+// INSTRUCTION: Define trading exchange gateway.
+HOST exchange_gw_rtr { IP 224.0.0.5 }
+
+// INSTRUCTION: Define aggressive timer Hello flow with 1s hello and 4s dead interval.
+FLOW ospf_fast_timer_flow(src, dst) {
+    src -> dst OSPF HELLO ROUTER_ID 192.168.12.1 AREA_ID 0 HELLO_INTERVAL 1 DEAD_INTERVAL 4
+}
+
+// INSTRUCTION: Compile block executing fast convergence OSPF Hello.
+COMPILE {
+    ospf_fast_timer_flow(trading_edge_rtr, exchange_gw_rtr)
+}

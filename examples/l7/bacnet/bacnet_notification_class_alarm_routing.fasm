@@ -1,0 +1,27 @@
+// PROMPT: BACnet/IP Notification Class object (Object Type 15) priority array inspection and configuration.
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, READ_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, WAIT, WRITE_PROPERTY, COMPILE
+
+// INSTRUCTION: Define the HVAC alarm engineering console.
+HOST alarm_console {
+    IP 10.120.20.15
+    MAC 00:1a:2b:78:20:15
+}
+
+// INSTRUCTION: Define the central plant BACnet building controller.
+HOST plant_controller {
+    IP 10.120.20.1
+    MAC 00:1a:2b:78:20:01
+}
+
+// INSTRUCTION: Read Ack_Required (Property 1) and Write Priority (Property 86) on Notification Class 15 Instance 5.
+FLOW bacnet_notif_class(c, p) {
+    c -> p BACNET READ_PROPERTY INVOKE_ID 30 OBJECT_TYPE 15 OBJECT_INSTANCE 5 PROPERTY_ID 1
+    c <- p BACNET READ_PROPERTY INVOKE_ID 30 OBJECT_TYPE 15 OBJECT_INSTANCE 5 PROPERTY_ID 1 VALUE 7 WAIT 2ms
+    c -> p BACNET WRITE_PROPERTY INVOKE_ID 31 OBJECT_TYPE 15 OBJECT_INSTANCE 5 PROPERTY_ID 86 VALUE 1
+    c <- p BACNET WRITE_PROPERTY INVOKE_ID 31 OBJECT_TYPE 15 OBJECT_INSTANCE 5 PROPERTY_ID 86 VALUE 1
+}
+
+// INSTRUCTION: Compile the BACnet Notification Class configuration flow.
+COMPILE {
+    bacnet_notif_class(alarm_console, plant_controller)
+}

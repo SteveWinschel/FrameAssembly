@@ -1,0 +1,18 @@
+// PROMPT: WAN edge router advertising failover default route with higher metric 5.
+// TOKENS: HOST, IP, FLOW, RIP, RESPONSE, PREFIX, METRIC, COMPILE
+
+// INSTRUCTION: Define secondary backup WAN edge gateway.
+HOST backup_wan_gw { IP 172.28.0.2 }
+
+// INSTRUCTION: Define internal core router destination.
+HOST internal_core_gw { IP 172.28.0.1 }
+
+// INSTRUCTION: Define backup default route advertisement flow with metric 5.
+FLOW rip_backup_route_flow(wan, core) {
+    wan -> core RIP RESPONSE PREFIX 0.0.0.0 METRIC 5
+}
+
+// INSTRUCTION: Compile block executing backup default route advertisement.
+COMPILE {
+    rip_backup_route_flow(backup_wan_gw, internal_core_gw)
+}

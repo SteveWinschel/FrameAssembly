@@ -1,0 +1,25 @@
+// PROMPT: Outdoor PTZ security camera negotiating IEEE 802.3at PoE+ 25.5W power allocation via LLDP-MED / 802.3 Power via MDI TLVs.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define PoE+ campus access switch port supplying IEEE 802.3at Type 2 power.
+HOST poe_access_sw {
+    IP 10.33.10.1
+    MAC 00:1e:be:21:0a:01
+}
+
+// INSTRUCTION: Define outdoor PTZ surveillance IP camera requesting 25.5W PoE+ budget for heater/blower.
+HOST ptz_camera_pd {
+    IP 10.33.10.85
+    MAC 00:40:8c:21:0a:55
+}
+
+// INSTRUCTION: Exchange LLDP frames containing IEEE 802.3 OUI (00-12-0F) Power via MDI TLV hex payload.
+FLOW lldp_poe_plus_mdi(sw, cam) {
+    cam -> sw LLDP CHASSIS_ID "00:40:8c:21:0a:55" PORT_ID "eth0" SYSNAME "cam-parking-ptz04" SYSDESC "Axis Q6135-LE PTZ Type2 PD 25.5W" TTL 120 HEXPAYLOAD "fe0c00120f02070100ff00eb" WAIT 10ms
+    cam <- sw LLDP CHASSIS_ID "00:1e:be:21:0a:01" PORT_ID "Gi1/0/22" SYSNAME "bldg4-idf2-sw01" SYSDESC "PoE+ PSE Allocated 25500mW" TTL 120 HEXPAYLOAD "fe0c00120f020f0100ff00ff"
+}
+
+// INSTRUCTION: Compile the PoE+ IP camera LLDP power negotiation trace.
+COMPILE {
+    lldp_poe_plus_mdi(poe_access_sw, ptz_camera_pd)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Memcached text protocol storing key value pair with set and updating via replace.
+// TOKENS: HOST, IP, FLOW, MEMCACHED, CMD, KEY, EXPTIME, WAIT, COMPILE
+
+// INSTRUCTION: Define web backend service.
+HOST web_service { IP 10.0.30.12 }
+
+// INSTRUCTION: Define Memcached cache cluster node.
+HOST memcache_node { IP 10.0.30.5 }
+
+// INSTRUCTION: Define set and replace caching flow.
+FLOW set_replace_flow(c, s) {
+    c -> s MEMCACHED CMD "set" KEY "config_flags" EXPTIME 1800 WAIT 5ms
+    c -> s MEMCACHED CMD "replace" KEY "config_flags" EXPTIME 1800
+}
+
+// INSTRUCTION: Compile Memcached set and replace scenario.
+COMPILE {
+    set_replace_flow(web_service, memcache_node)
+}

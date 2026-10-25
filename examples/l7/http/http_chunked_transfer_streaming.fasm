@@ -1,0 +1,28 @@
+// PROMPT: HTTP data streaming upload using chunked Transfer-Encoding over 802.1Q tagged VLAN 220.
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, HEADER, VLAN, PCP, DEI, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define telemetry sensor streaming node.
+HOST telemetry_streamer {
+    IP 10.99.22.4
+}
+
+// INSTRUCTION: Define central event ingest receiver cluster.
+HOST ingest_cluster {
+    IP 10.99.22.1
+}
+
+// INSTRUCTION: Stream chunked metrics over prioritized VLAN 220.
+FLOW http_chunked_stream(c, s) {
+    c -> s HTTP METHOD "POST" URI "/stream/events"
+           HOST_HDR "ingest.telemetry.net"
+           HEADER "Transfer-Encoding" "chunked"
+           VLAN 220 PCP 4 DEI 0
+    c <- s HTTP STATUS 200 REASON "OK"
+           HEADER "Transfer-Encoding" "chunked"
+           VLAN 220 PCP 4 DEI 0
+}
+
+// INSTRUCTION: Compile chunked stream upload scenario.
+COMPILE {
+    http_chunked_stream(telemetry_streamer, ingest_cluster)
+}

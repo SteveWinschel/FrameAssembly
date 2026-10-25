@@ -1,5 +1,5 @@
 // PROMPT: Explicit Congestion Notification and IPv4 fragmentation control flags including DF, MF, and FRAGOFFSET.
-// TOKENS: HOST, IP, FLOW, ->, ECN, IPID, DF, MF, FRAGOFFSET, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, ECN, IPID, DF, UDP, PAYLOAD, MF, FRAGOFFSET, COMPILE
 
 // INSTRUCTION: Define fragmentation test sender.
 HOST frag_sender { IP 192.168.1.1 }

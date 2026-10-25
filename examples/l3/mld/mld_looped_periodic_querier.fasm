@@ -1,0 +1,27 @@
+// PROMPT: Simulate a periodic MLD General Querier polling loop and host membership report refresh
+// TOKENS: HOST, IP, MAC, FLOW, MLD, QUERY, MULTICAST_ADDR, MAX_RESP_DELAY, TTL, WAIT, REPORT, COMPILE, LOOP
+
+// INSTRUCTION: Define the periodic MLD querier router
+HOST periodic_querier {
+    IP fe80::500:1
+    MAC 00:50:56:ca:05:01
+}
+
+// INSTRUCTION: Define the persistent IPv6 multicast audio receiver
+HOST audio_receiver {
+    IP fe80::500:22
+    MAC 00:50:56:ca:05:22
+}
+
+// INSTRUCTION: Send an MLD General Query and receive an MLD Report in each polling interval
+FLOW mld_periodic_poll(querier, receiver) {
+    querier -> receiver MLD QUERY MULTICAST_ADDR :: MAX_RESP_DELAY 5000 TTL 1 WAIT 25ms
+    receiver -> querier MLD REPORT MULTICAST_ADDR ff08::a000:1 MAX_RESP_DELAY 0 TTL 1 WAIT 50ms
+}
+
+// INSTRUCTION: Compile four iterations of the periodic MLD query and report loop
+COMPILE {
+    LOOP 4 {
+        mld_periodic_poll(periodic_querier, audio_receiver)
+    }
+}

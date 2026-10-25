@@ -1,0 +1,19 @@
+// PROMPT: IGMP control plane messages marked with RFC 4594 DSCP CS6 (48), TTL 1, and DF flag.
+// TOKENS: HOST, IP, FLOW, IGMP, QUERY, GROUP, MAX_RESP, DSCP, ECN, TTL, DF, REPORT, COMPILE
+
+// INSTRUCTION: Define multicast router enforcing TTL=1 and DSCP CS6.
+HOST igmp_cs6_rtr { IP 10.1.99.1 }
+
+// INSTRUCTION: Define multicast host responding with DSCP CS6.
+HOST igmp_cs6_host { IP 10.1.99.20 }
+
+// INSTRUCTION: Define DSCP CS6 (48) marked IGMP Query and Report.
+FLOW igmp_cs6_control(rtr, host) {
+    rtr -> host IGMP QUERY GROUP 239.99.99.1 MAX_RESP 100 DSCP 48 ECN 0 TTL 1 DF
+    rtr <- host IGMP REPORT GROUP 239.99.99.1 DSCP 48 ECN 0 TTL 1 DF
+}
+
+// INSTRUCTION: Compile the DSCP CS6 IGMP control flow.
+COMPILE {
+    igmp_cs6_control(igmp_cs6_rtr, igmp_cs6_host)
+}

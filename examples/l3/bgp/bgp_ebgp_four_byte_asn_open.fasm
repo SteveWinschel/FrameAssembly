@@ -1,0 +1,21 @@
+// PROMPT: eBGP peering establishment using 4-byte Autonomous System Numbers and BGP Identifiers.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define autonomous system 4200000001 border router.
+HOST as4200000001_edge { IP 198.51.100.101 MAC 00:1b:21:aa:bb:01 }
+
+// INSTRUCTION: Define autonomous system 4200000002 border router.
+HOST as4200000002_edge { IP 198.51.100.102 MAC 00:1b:21:aa:bb:02 }
+
+// INSTRUCTION: Define eBGP OPEN and KEEPALIVE exchange with 4-byte ASNs.
+FLOW ebgp_4byte_asn_open(p1, p2) {
+    p1 -> p2 BGP OPEN ASN 4200000001 HOLDTIME 90 BGPID 10.255.0.1
+    p1 <- p2 BGP OPEN ASN 4200000002 HOLDTIME 90 BGPID 10.255.0.2
+    p1 -> p2 BGP KEEPALIVE
+    p1 <- p2 BGP KEEPALIVE
+}
+
+// INSTRUCTION: Compile the 4-byte ASN eBGP peering handshake.
+COMPILE {
+    ebgp_4byte_asn_open(as4200000001_edge, as4200000002_edge)
+}

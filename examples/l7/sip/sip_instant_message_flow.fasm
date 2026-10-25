@@ -1,0 +1,21 @@
+// PROMPT: SIP pager-mode instant messaging using MESSAGE method and 200 OK acknowledgment.
+// TOKENS: HOST, IP, FLOW, SIP, METHOD, URI, FROM, TO, CALL_ID, CSEQ, WAIT, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define emergency dispatch operator terminal.
+HOST dispatch_op { IP 10.91.2.14 }
+
+// INSTRUCTION: Define mobile field technician terminal.
+HOST field_tech { IP 10.91.2.99 }
+
+// INSTRUCTION: Define bidirectional SIP MESSAGE pager communication.
+FLOW sip_instant_msg(c, s) {
+    c -> s SIP METHOD "MESSAGE" URI "sip:tech@field.corp" FROM "sip:dispatch@hq.corp" TO "sip:tech@field.corp" CALL_ID "msg-alert-101" CSEQ 1 WAIT 5ms
+    c <- s SIP STATUS 200 REASON "OK" CALL_ID "msg-alert-101" CSEQ 1 WAIT 10ms
+    c <- s SIP METHOD "MESSAGE" URI "sip:dispatch@hq.corp" FROM "sip:tech@field.corp" TO "sip:dispatch@hq.corp" CALL_ID "msg-reply-102" CSEQ 1 WAIT 5ms
+    c -> s SIP STATUS 200 REASON "OK" CALL_ID "msg-reply-102" CSEQ 1
+}
+
+// INSTRUCTION: Compile SIP instant messaging flow.
+COMPILE {
+    sip_instant_msg(dispatch_op, field_tech)
+}

@@ -1,5 +1,5 @@
 // PROMPT: IEEE 802.1ad QinQ double-tagged Ethernet framing with outer service and inner customer VLAN tags.
-// TOKENS: HOST, IP, FLOW, ->, QINQ, INNER_VLAN, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, QINQ, INNER_VLAN, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define metro Ethernet customer endpoint A.
 HOST metro_ce_a { IP 172.16.1.1 }

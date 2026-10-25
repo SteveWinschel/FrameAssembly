@@ -1,0 +1,21 @@
+// PROMPT: Telnet IAC WILL 1 and IAC DO 1 local character echo negotiation.
+// TOKENS: HOST, IP, FLOW, TELNET, WILL, DO, COMPILE
+
+// INSTRUCTION: Define user terminal client.
+HOST user_term { IP 192.168.1.15 }
+
+// INSTRUCTION: Define Telnet host server.
+HOST telnet_host { IP 192.168.1.1 }
+
+// INSTRUCTION: Define echo option negotiation flow.
+FLOW telnet_echo_negotiate(c, s) {
+    c -> s TELNET WILL 1
+    c <- s TELNET DO 1
+    c <- s TELNET WILL 1
+    c -> s TELNET DO 1
+}
+
+// INSTRUCTION: Compile block executing echo negotiation.
+COMPILE {
+    telnet_echo_negotiate(user_term, telnet_host)
+}

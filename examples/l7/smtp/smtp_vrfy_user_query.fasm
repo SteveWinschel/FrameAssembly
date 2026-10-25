@@ -1,0 +1,21 @@
+// PROMPT: Address verification query using VRFY and 250 verified user mailbox response.
+// TOKENS: HOST, IP, FLOW, SMTP, CMD, PARAM, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define auditing host endpoint.
+HOST auditor_host { IP 10.45.1.9 }
+
+// INSTRUCTION: Define directory mail agent.
+HOST directory_mta { IP 10.45.1.2 }
+
+// INSTRUCTION: Define user verification query flow.
+FLOW smtp_vrfy_flow(c, s) {
+    c -> s SMTP CMD "VRFY" PARAM "postmaster"
+    c <- s SMTP CODE 250 REPLY "Postmaster <postmaster@directory.internal>"
+    c -> s SMTP CMD "VRFY" PARAM "unknown_user_99"
+    c <- s SMTP CODE 550 REPLY "5.1.1 User not found in directory"
+}
+
+// INSTRUCTION: Compile block executing VRFY verification.
+COMPILE {
+    smtp_vrfy_flow(auditor_host, directory_mta)
+}

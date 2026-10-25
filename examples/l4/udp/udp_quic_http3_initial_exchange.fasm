@@ -1,5 +1,5 @@
 // PROMPT: Simulate an HTTP/3 over QUIC initial connection establishment and 0-RTT stream exchange on UDP port 443.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define a browser client supporting HTTP/3 with IP 192.168.1.77.
 HOST h3_browser { IP 192.168.1.77 MAC f0:18:98:aa:bb:cc }

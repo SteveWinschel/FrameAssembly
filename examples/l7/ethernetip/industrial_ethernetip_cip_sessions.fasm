@@ -1,5 +1,5 @@
 // PROMPT: Common Industrial Protocol CIP encapsulation over EtherNet/IP on TCP 44818.
-// TOKENS: HOST, IP, FLOW, ->, ETHERNETIP, CMD, LIST_IDENTITY, REGISTER_SESSION, COMPILE
+// TOKENS: HOST, IP, FLOW, ETHERNETIP, CMD, LIST_IDENTITY, REGISTER_SESSION, COMPILE
 
 // INSTRUCTION: Define EtherNet/IP client scanner.
 HOST enip_scanner { IP 192.168.1.10 }

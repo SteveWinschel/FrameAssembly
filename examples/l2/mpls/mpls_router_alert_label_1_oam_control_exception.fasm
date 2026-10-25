@@ -1,0 +1,25 @@
+// PROMPT: RFC 3032 reserved Router Alert Label 1 punting MPLS OAM diagnostic packets to the LSR control plane CPU.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, ICMP, ECHO_REQUEST, ID, SEQ, PAYLOAD, WAIT, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define ingress LSR injecting an MPLS packet with reserved Router Alert Label 1.
+HOST oam_ingress_lsr {
+    IP 10.10.1.1
+    MAC 00:1c:73:0a:01:01
+}
+
+// INSTRUCTION: Define transit LSR punting Label 1 packet to local control plane and replying with ICMP Echo Reply.
+HOST oam_transit_lsr {
+    IP 10.10.1.2
+    MAC 00:1c:73:0a:01:02
+}
+
+// INSTRUCTION: Send MPLS Label 1 (Router Alert) with EXP 6 and MPLS_TTL 64 carrying OAM diagnostic ping.
+FLOW mpls_router_alert_label1(ing, trn) {
+    ing -> trn MPLS 1 EXP 6 BOS 1 MPLS_TTL 64 ICMP ECHO_REQUEST ID 101 SEQ 1 PAYLOAD "rfc3032_router_alert_label_1_oam_probe" WAIT 5ms
+    ing <- trn MPLS 1 EXP 6 BOS 1 MPLS_TTL 64 ICMP ECHO_REPLY ID 101 SEQ 1 PAYLOAD "rfc3032_router_alert_label_1_oam_reply"
+}
+
+// INSTRUCTION: Compile the RFC 3032 Router Alert Label 1 OAM exception trace.
+COMPILE {
+    mpls_router_alert_label1(oam_ingress_lsr, oam_transit_lsr)
+}

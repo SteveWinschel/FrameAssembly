@@ -1,0 +1,25 @@
+// PROMPT: Simulate MPLS-labeled IPv6 Neighbor Discovery between a 6VPE provider edge and customer edge router
+// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_SOLICIT, TARGET, SLLA, MPLS, EXP, BOS, MPLS_TTL, TTL, WAIT, NEIGHBOR_ADVERT, TLLA, COMPILE
+
+// INSTRUCTION: Define the 6VPE provider edge router
+HOST pe_6vpe_rtr {
+    IP 2001:db8:650::1
+    MAC 00:26:99:d6:06:01
+}
+
+// INSTRUCTION: Define the customer edge IPv6 router
+HOST ce_6vpe_rtr {
+    IP 2001:db8:650::2
+    MAC 00:26:99:d6:06:02
+}
+
+// INSTRUCTION: Resolve link-layer addresses across an MPLS-labeled pseudowire attachment circuit
+FLOW ndp_mpls_attachment_circuit(pe, ce) {
+    pe -> ce NDP NEIGHBOR_SOLICIT TARGET 2001:db8:650::2 SLLA 00:26:99:d6:06:01 MPLS 41000 EXP 6 BOS 1 MPLS_TTL 255 TTL 255 WAIT 10ms
+    ce -> pe NDP NEIGHBOR_ADVERT TARGET 2001:db8:650::2 TLLA 00:26:99:d6:06:02 MPLS 41001 EXP 6 BOS 1 MPLS_TTL 255 TTL 255
+}
+
+// INSTRUCTION: Compile the MPLS-labeled NDP resolution sequence
+COMPILE {
+    ndp_mpls_attachment_circuit(pe_6vpe_rtr, ce_6vpe_rtr)
+}

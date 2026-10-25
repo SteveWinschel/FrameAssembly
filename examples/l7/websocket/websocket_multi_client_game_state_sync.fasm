@@ -1,0 +1,29 @@
+// PROMPT: Multiplayer game server synchronizing state ticks to two WebSocket player endpoints.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, BINARY, FIN_BIT, MASK_KEY, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Player 1 gaming client endpoint.
+HOST player_one {
+    IP 192.168.200.11
+}
+
+// INSTRUCTION: Define Player 2 gaming client endpoint.
+HOST player_two {
+    IP 192.168.200.12
+}
+
+// INSTRUCTION: Define authoritative multiplayer game server endpoint.
+HOST game_server {
+    IP 192.168.200.1
+}
+
+// INSTRUCTION: Define player input upload and server world state broadcast flow.
+FLOW ws_game_tick(p, srv) {
+    p -> srv WEBSOCKET BINARY FIN_BIT 1 MASK_KEY 0x778899aa HEXPAYLOAD "01001020" WAIT 8ms
+    p <- srv WEBSOCKET BINARY FIN_BIT 1 HEXPAYLOAD "ff001020003040"
+}
+
+// INSTRUCTION: Compile game state synchronization for both players.
+COMPILE {
+    ws_game_tick(player_one, game_server)
+    ws_game_tick(player_two, game_server)
+}

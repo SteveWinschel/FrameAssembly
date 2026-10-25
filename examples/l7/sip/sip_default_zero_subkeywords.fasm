@@ -1,0 +1,18 @@
+// PROMPT: Default Session Initiation Protocol SIP frame with zero sub-keywords on UDP port 5060.
+// TOKENS: HOST, IP, MAC, FLOW, SIP, COMPILE
+
+// INSTRUCTION: Define VoIP user agent client.
+HOST sip_client { IP 10.99.1.50 MAC 00:0c:29:99:01:32 }
+
+// INSTRUCTION: Define SIP proxy server host.
+HOST sip_proxy { IP 10.99.1.1 MAC 00:0c:29:99:01:01 }
+
+// INSTRUCTION: Define flow sending default SIP frame.
+FLOW sip_default(c, s) {
+    c -> s SIP
+}
+
+// INSTRUCTION: Compile default SIP frame scenario.
+COMPILE {
+    sip_default(sip_client, sip_proxy)
+}

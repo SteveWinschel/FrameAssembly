@@ -1,0 +1,26 @@
+// PROMPT: EVPN-VXLAN distributed anycast IPv6 gateway advertising virtual MAC via Neighbor Advertisement after VM vMotion.
+// TOKENS: HOST, IP, MAC, FLOW, TTL, NDP, NEIGHBOR_SOLICIT, TARGET, SLLA, WAIT, NEIGHBOR_ADVERT, TLLA, COMPILE
+
+// INSTRUCTION: Define destination leaf switch advertising distributed anycast IPv6 gateway address.
+HOST evpn_leaf_anycast {
+    IP 2001:db8:400::1
+    MAC 00:00:5e:00:02:64
+}
+
+// INSTRUCTION: Define migrated virtual machine resolving default gateway MAC on new rack.
+HOST migrated_vm_v6 {
+    IP 2001:db8:400::88
+    MAC 52:54:00:40:00:88
+}
+
+// INSTRUCTION: Resolve anycast gateway via Neighbor Solicitation and Neighbor Advertisement with Hop Limit 255.
+FLOW ndp_evpn_anycast_resolve(leaf, vm) {
+    vm -> leaf TTL 255 NDP NEIGHBOR_SOLICIT TARGET 2001:db8:400::1 SLLA 52:54:00:40:00:88 WAIT 5ms
+    leaf -> vm TTL 255 NDP NEIGHBOR_ADVERT TARGET 2001:db8:400::1 TLLA 00:00:5e:00:02:64 WAIT 10ms
+    vm -> leaf TTL 255 NDP NEIGHBOR_ADVERT TARGET 2001:db8:400::88 TLLA 52:54:00:40:00:88
+}
+
+// INSTRUCTION: Compile the EVPN distributed anycast IPv6 gateway NDP resolution trace.
+COMPILE {
+    ndp_evpn_anycast_resolve(evpn_leaf_anycast, migrated_vm_v6)
+}

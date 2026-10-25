@@ -1,0 +1,19 @@
+// PROMPT: 802.1Q VLAN-tagged IPsec ESP packets traversing an enterprise DMZ handoff link.
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define perimeter DMZ router.
+HOST dmz_edge_rtr { IP 10.20.30.1 MAC 00:1e:67:aa:11:01 }
+
+// INSTRUCTION: Define internal crypto terminator.
+HOST crypto_term_01 { IP 10.20.30.2 MAC 00:1e:67:aa:11:02 }
+
+// INSTRUCTION: Define VLAN 300 tagged ESP session with PCP 5.
+FLOW esp_vlan_dmz_flow(rtr, term) {
+    rtr -> term ESP SPI 44500 SEQ 1 VLAN 300 PCP 5 DEI 0
+    rtr <- term ESP SPI 44501 SEQ 1 VLAN 300 PCP 5 DEI 0
+}
+
+// INSTRUCTION: Compile the VLAN-tagged DMZ ESP handoff flow.
+COMPILE {
+    esp_vlan_dmz_flow(dmz_edge_rtr, crypto_term_01)
+}

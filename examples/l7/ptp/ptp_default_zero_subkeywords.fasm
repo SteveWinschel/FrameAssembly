@@ -1,0 +1,18 @@
+// PROMPT: Default IEEE 1588v2 PTP Sync frame with zero sub-keywords on UDP port 319.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, COMPILE
+
+// INSTRUCTION: Define grandmaster clock endpoint.
+HOST gm_clock { IP 10.15.88.1 MAC 00:1b:19:15:88:01 }
+
+// INSTRUCTION: Define boundary clock slave endpoint.
+HOST bc_slave { IP 10.15.88.2 MAC 00:1b:19:15:88:02 }
+
+// INSTRUCTION: Define flow sending default PTP Sync packet.
+FLOW ptp_default_sync(gm, slave) {
+    gm -> slave PTP
+}
+
+// INSTRUCTION: Compile default PTP Sync scenario.
+COMPILE {
+    ptp_default_sync(gm_clock, bc_slave)
+}

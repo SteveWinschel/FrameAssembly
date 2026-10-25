@@ -1,0 +1,25 @@
+// PROMPT: Carrier Supporting Carrier (CSC) hierarchical MPLS backbone switching outer ISP label 90100 with BOS 0 for a customer carrier.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define backbone super-carrier ingress PE router.
+HOST csc_backbone_pe1 {
+    IP 172.31.90.1
+    MAC 00:1c:73:5a:5a:01
+}
+
+// INSTRUCTION: Define backbone super-carrier egress PE router serving regional ISP.
+HOST csc_backbone_pe2 {
+    IP 172.31.90.2
+    MAC 00:1c:73:5a:5a:02
+}
+
+// INSTRUCTION: Forward hierarchical CSC packets with BOS 0 indicating nested inner customer carrier labels.
+FLOW mpls_csc_hierarchical(pe1, pe2) {
+    pe1 -> pe2 MPLS 90100 EXP 5 BOS 0 MPLS_TTL 60 PAYLOAD "nested_customer_carrier_ldp_and_vpn_frame" WAIT 5ms
+    pe1 <- pe2 MPLS 90200 EXP 5 BOS 0 MPLS_TTL 60 PAYLOAD "nested_customer_carrier_return_vpn_frame"
+}
+
+// INSTRUCTION: Compile the Carrier Supporting Carrier hierarchical MPLS trace.
+COMPILE {
+    mpls_csc_hierarchical(csc_backbone_pe1, csc_backbone_pe2)
+}

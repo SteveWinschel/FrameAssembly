@@ -1,5 +1,5 @@
 // PROMPT: gRPC procedure response returning error status code GRPC_STATUS 5 (NOT_FOUND) over IPv6.
-// TOKENS: HOST, IP, FLOW, <-, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+// TOKENS: HOST, IP, FLOW, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

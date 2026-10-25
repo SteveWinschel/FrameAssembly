@@ -1,0 +1,27 @@
+// PROMPT: Enterprise campus distribution router sending periodic Router Advertisements on VLAN 120 trusted RA-Guard port.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, TTL, NDP, ROUTER_SOLICIT, SLLA, WAIT, ROUTER_ADVERT, ROUTER_LIFETIME, NEIGHBOR_SOLICIT, TARGET, NEIGHBOR_ADVERT, TLLA, COMPILE
+
+// INSTRUCTION: Define authorized campus distribution router on trusted RA-Guard uplink port.
+HOST trusted_dist_rtr {
+    IP 2001:db8:120::1
+    MAC 00:1e:be:12:00:01
+}
+
+// INSTRUCTION: Define enterprise workstation receiving SLAAC router parameters on VLAN 120.
+HOST corp_workstation {
+    IP 2001:db8:120::50
+    MAC 00:1e:be:12:00:50
+}
+
+// INSTRUCTION: Solicit router on VLAN 120, receive valid Router Advertisement, and resolve router link-layer address.
+FLOW ndp_vlan120_slaac(rtr, ws) {
+    ws -> rtr VLAN 120 PCP 6 TTL 255 NDP ROUTER_SOLICIT SLLA 00:1e:be:12:00:50 WAIT 10ms
+    rtr -> ws VLAN 120 PCP 6 TTL 255 NDP ROUTER_ADVERT ROUTER_LIFETIME 1800 SLLA 00:1e:be:12:00:01 WAIT 10ms
+    ws -> rtr VLAN 120 PCP 6 TTL 255 NDP NEIGHBOR_SOLICIT TARGET 2001:db8:120::1 SLLA 00:1e:be:12:00:50 WAIT 5ms
+    rtr -> ws VLAN 120 PCP 6 TTL 255 NDP NEIGHBOR_ADVERT TARGET 2001:db8:120::1 TLLA 00:1e:be:12:00:01
+}
+
+// INSTRUCTION: Compile the VLAN 120 trusted RA-Guard SLAAC and neighbor resolution flow.
+COMPILE {
+    ndp_vlan120_slaac(trusted_dist_rtr, corp_workstation)
+}

@@ -1,0 +1,25 @@
+// PROMPT: NetFlow v5 export summarizing IoT sensor fleet MQTT TCP port 1883 and 8883 broker connections.
+// TOKENS: HOST, IP, MAC, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define industrial IoT gateway router.
+HOST iiot_gateway {
+    IP 10.188.0.1
+    MAC 00:1d:43:bc:00:01
+}
+
+// INSTRUCTION: Define industrial OT network telemetry collector.
+HOST ot_collector {
+    IP 10.188.0.200
+    MAC 00:1d:43:bc:00:c8
+}
+
+// INSTRUCTION: Export MQTT TCP port 1883 and TLS MQTT port 8883 sensor flow records.
+FLOW netflow_iot_mqtt(gw, col) {
+    gw -> col NETFLOW SRCIP 10.188.12.50 DSTIP 10.188.1.10 SRCPORT 49800 DSTPORT 1883 PROTO 6 PACKETS 320 OCTETS 40960
+    gw -> col NETFLOW SRCIP 10.188.12.51 DSTIP 10.188.1.10 SRCPORT 49801 DSTPORT 8883 PROTO 6 PACKETS 640 OCTETS 140800
+}
+
+// INSTRUCTION: Compile the IoT MQTT broker NetFlow telemetry scenario.
+COMPILE {
+    netflow_iot_mqtt(iiot_gateway, ot_collector)
+}

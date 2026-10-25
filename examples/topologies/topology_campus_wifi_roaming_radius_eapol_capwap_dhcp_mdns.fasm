@@ -1,0 +1,37 @@
+// PROMPT: Enterprise Wi-Fi 6E fast roaming workflow combining 802.1X EAPOL 4-way handshake, RADIUS interim accounting, UDP CAPWAP wireless controller tunnel, DHCP renewal, and mDNS discovery.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, KEY, WAIT, RADIUS, ACCOUNTING_REQUEST, ID, USER, ACCOUNTING_RESPONSE, UDP, DSTPORT, PAYLOAD, DHCP, REQUEST, CIADDR, MDNS, QNAME, COMPILE
+
+// INSTRUCTION: Define roaming Wi-Fi 6E enterprise tablet client.
+HOST wifi6e_roaming_client {
+    IP 10.72.16.88
+    MAC a4:83:e7:48:10:58
+}
+
+// INSTRUCTION: Define target Wi-Fi 6E Access Point (AP-Floor3-East).
+HOST wifi6e_target_ap {
+    IP 10.72.0.32
+    MAC 00:27:e3:48:00:20
+}
+
+// INSTRUCTION: Define centralized Wireless LAN Controller (WLC), RADIUS, and DHCP server.
+HOST campus_wlc_core {
+    IP 10.72.0.1
+    MAC 00:1e:bd:48:00:01
+}
+
+// INSTRUCTION: Define 802.11r EAPOL key exchange, RADIUS roam accounting, CAPWAP mobility tunnel, DHCP verify, and mDNS printer lookup.
+FLOW wifi6e_fast_roaming_flow(cli, ap, wlc) {
+    ap -> cli EAPOL VERSION 2 TYPE KEY
+    cli -> ap EAPOL VERSION 2 TYPE KEY WAIT 1ms
+    ap -> wlc RADIUS ACCOUNTING_REQUEST ID 77 USER "tablet_exec04" WAIT 1ms
+    ap <- wlc RADIUS ACCOUNTING_RESPONSE ID 77 WAIT 1ms
+    ap -> wlc UDP DSTPORT 5246 PAYLOAD "CAPWAP_MOBILITY_ROAM_HANDOFF_PMK_R1_CACHED" WAIT 1ms
+    cli -> wlc DHCP REQUEST CIADDR 10.72.16.88 WAIT 1ms
+    cli -> ap MDNS QNAME "_ipp._tcp.local" WAIT 1ms
+    ap -> cli MDNS QNAME "_ipp._tcp.local" RDATA "printer-fl3.local" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing Wi-Fi 6E fast roaming EAPOL, RADIUS, UDP CAPWAP, DHCP, and mDNS topology.
+COMPILE {
+    wifi6e_fast_roaming_flow(wifi6e_roaming_client, wifi6e_target_ap, campus_wlc_core)
+}

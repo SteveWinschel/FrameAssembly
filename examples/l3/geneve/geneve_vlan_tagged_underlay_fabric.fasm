@@ -1,0 +1,19 @@
+// PROMPT: GENEVE overlay tunnel traversing an 802.1Q VLAN-tagged leaf-spine underlay fabric.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define rack 1 hypervisor NVE on underlay VLAN 608.
+HOST nve_rack_01 { IP 10.60.8.11 MAC 00:25:90:60:08:11 }
+
+// INSTRUCTION: Define rack 2 hypervisor NVE on underlay VLAN 608.
+HOST nve_rack_02 { IP 10.60.8.12 MAC 00:25:90:60:08:12 }
+
+// INSTRUCTION: Define VLAN 608 tagged GENEVE tunnel exchange with PCP 4.
+FLOW geneve_vlan_underlay(r1, r2) {
+    r1 -> r2 GENEVE VNI 40010 OPT_CLASS 257 OPT_TYPE 10 VLAN 608 PCP 4 DEI 0
+    r1 <- r2 GENEVE VNI 40010 OPT_CLASS 257 OPT_TYPE 10 VLAN 608 PCP 4 DEI 0
+}
+
+// INSTRUCTION: Compile the VLAN-tagged GENEVE underlay flow.
+COMPILE {
+    geneve_vlan_underlay(nve_rack_01, nve_rack_02)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Router Advertisement marked with Network Control DSCP Class Selector 6.
+// TOKENS: HOST, IP, MAC, FLOW, NDP, ROUTER_ADVERT, ROUTER_LIFETIME, DSCP, COMPILE
+
+// INSTRUCTION: Define enterprise aggregation gateway router.
+HOST agg_gw_router { IP fe80::ac01:1 MAC 00:26:88:aa:11:01 }
+
+// INSTRUCTION: Define link-local all-nodes multicast address.
+HOST all_link_nodes { IP ff02::1 MAC 33:33:00:00:00:01 }
+
+// INSTRUCTION: Define control plane prioritized Router Advertisement flow.
+FLOW ra_control_plane_flow(gw, nodes) {
+    gw -> nodes NDP ROUTER_ADVERT ROUTER_LIFETIME 3600 DSCP 48
+}
+
+// INSTRUCTION: Compile block transmitting prioritized Router Advertisement.
+COMPILE {
+    ra_control_plane_flow(agg_gw_router, all_link_nodes)
+}

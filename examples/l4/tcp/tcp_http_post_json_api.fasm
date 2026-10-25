@@ -1,5 +1,5 @@
 // PROMPT: Simulate a complete HTTP/1.1 POST JSON authentication transaction over TCP port 8080 from handshake to FIN closure.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, FIN, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, FIN, COMPILE
 
 // INSTRUCTION: Define a mobile app client with IP 192.168.50.12.
 HOST mobile_app { IP 192.168.50.12 MAC 3c:22:fb:11:22:33 }

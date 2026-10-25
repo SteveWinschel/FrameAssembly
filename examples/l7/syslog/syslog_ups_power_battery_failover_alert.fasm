@@ -1,0 +1,27 @@
+// PROMPT: Create an emergency UPS utility power loss and battery failover Syslog notification from a smart PDU.
+// TOKENS: HOST, IP, MAC, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, VLAN, PCP, WAIT, COMPILE
+
+// INSTRUCTION: Define the data center smart UPS management card.
+HOST ups_mgmt_card {
+    IP 192.168.99.15
+    MAC 00:c0:b7:99:00:0f
+}
+
+// INSTRUCTION: Define the facilities infrastructure Syslog monitor.
+HOST dcim_syslog_srv {
+    IP 192.168.99.100
+    MAC 00:c0:b7:99:00:64
+}
+
+// INSTRUCTION: Emit an alert-level (Severity 1) utility power failure followed by battery runtime telemetry.
+FLOW syslog_ups_failover(ups, dcim) {
+    ups -> dcim SYSLOG FACILITY 3 SEVERITY 1 HOSTNAME "ups-row4-rack12" APP "apcupsd" PROCID "402"
+        MSG "Power failure detected on Utility Feed A: switching load to online double-conversion battery bank" VLAN 99 PCP 5 WAIT 15ms
+    ups -> dcim SYSLOG FACILITY 3 SEVERITY 4 HOSTNAME "ups-row4-rack12" APP "apcupsd" PROCID "402"
+        MSG "Battery charge 94% load 62% estimated runtime remaining 28 minutes" VLAN 99 PCP 5
+}
+
+// INSTRUCTION: Compile the UPS battery failover Syslog alert scenario.
+COMPILE {
+    syslog_ups_failover(ups_mgmt_card, dcim_syslog_srv)
+}

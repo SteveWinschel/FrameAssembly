@@ -1,0 +1,30 @@
+// PROMPT: RFC 9113 two-stage graceful HTTP/2 connection drain sending an advisory GOAWAY followed by final GOAWAY.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP2, HEADERS, STREAM_ID, GOAWAY, PING, DATA, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define external API consumer connected to an Envoy edge proxy.
+HOST ext_consumer {
+    IP 192.0.2.88
+    MAC 00:1b:17:02:00:58
+}
+
+// INSTRUCTION: Define Envoy edge ingress proxy initiating graceful connection drain.
+HOST envoy_ingress {
+    IP 192.0.2.1
+    MAC 00:1b:17:02:00:01
+}
+
+// INSTRUCTION: Send initial GOAWAY + PING, complete in-flight Stream 9, and send final GOAWAY.
+FLOW http2_two_stage_goaway(c, e) {
+    c -> e HTTP2 HEADERS STREAM_ID 9
+    c <- e HTTP2 GOAWAY STREAM_ID 0
+    c <- e HTTP2 PING STREAM_ID 0
+    c -> e HTTP2 PING STREAM_ID 0
+    c <- e HTTP2 HEADERS STREAM_ID 9
+    c <- e HTTP2 DATA STREAM_ID 9 PAYLOAD "{'status':'completed_before_drain'}"
+    c <- e HTTP2 GOAWAY STREAM_ID 0
+}
+
+// INSTRUCTION: Compile the RFC 9113 two-stage HTTP/2 GOAWAY drain scenario.
+COMPILE {
+    http2_two_stage_goaway(ext_consumer, envoy_ingress)
+}

@@ -1,0 +1,42 @@
+// PROMPT: Simulate an MQTT client connecting with a Last Will and Testament (LWT) payload and the broker broadcasting the offline will.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, CONNECT, CLIENT_ID, WAIT, CONNACK, RETURN_CODE, PUBLISH, TOPIC, QOS, RETAIN, PKT_ID, PAYLOAD, PUBACK, SUBSCRIBE, SUBACK, COMPILE
+
+// INSTRUCTION: Define the industrial pump controller client.
+HOST pump_ctrl {
+    IP 10.92.10.21
+    MAC 00:1b:21:92:0a:15
+}
+
+// INSTRUCTION: Define the plant SCADA MQTT subscriber console.
+HOST scada_console {
+    IP 10.92.10.50
+    MAC 00:1b:21:92:0a:32
+}
+
+// INSTRUCTION: Define the central industrial MQTT broker.
+HOST plant_broker {
+    IP 10.92.10.1
+    MAC 00:1b:21:92:0a:01
+}
+
+// INSTRUCTION: Connect pump_ctrl and publish initial online status to the broker.
+FLOW mqtt_pump_connect(p, b) {
+    p -> b MQTT CONNECT CLIENT_ID "pump-station-21" WAIT 2ms
+    p <- b MQTT CONNACK RETURN_CODE 0 WAIT 2ms
+    p -> b MQTT PUBLISH TOPIC "plant/pump21/status" QOS 1 RETAIN PKT_ID 10 PAYLOAD "online" WAIT 2ms
+    p <- b MQTT PUBACK PKT_ID 10
+}
+
+// INSTRUCTION: Deliver the retained LWT offline alert from the broker to scada_console upon ungraceful loss.
+FLOW mqtt_lwt_dispatch(s, b) {
+    s -> b MQTT SUBSCRIBE TOPIC "plant/+/status" QOS 1 PKT_ID 20 WAIT 2ms
+    s <- b MQTT SUBACK PKT_ID 20 QOS 1 WAIT 15ms
+    s <- b MQTT PUBLISH TOPIC "plant/pump21/status" QOS 1 RETAIN PKT_ID 21 PAYLOAD "offline_ungraceful_lwt" WAIT 2ms
+    s -> b MQTT PUBACK PKT_ID 21
+}
+
+// INSTRUCTION: Compile the MQTT Last Will and Testament scenario.
+COMPILE {
+    mqtt_pump_connect(pump_ctrl, plant_broker)
+    mqtt_lwt_dispatch(scada_console, plant_broker)
+}

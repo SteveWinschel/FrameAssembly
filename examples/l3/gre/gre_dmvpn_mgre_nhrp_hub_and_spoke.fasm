@@ -1,0 +1,25 @@
+// PROMPT: RFC 2784 / RFC 2890 Multipoint GRE (mGRE) DMVPN tunnel with shared NHRP network GRE_KEY 10000 and sequence tracking.
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, CHECKSUM, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define DMVPN Hub Next Hop Server (NHS) router.
+HOST dmvpn_mgre_hub {
+    IP 198.51.100.1
+    MAC 00:1e:13:47:00:01
+}
+
+// INSTRUCTION: Define DMVPN Spoke branch router registering via mGRE tunnel key 10000.
+HOST dmvpn_mgre_spoke {
+    IP 203.0.113.55
+    MAC 00:1e:13:47:00:37
+}
+
+// INSTRUCTION: Define mGRE tunnel exchange with GRE_KEY 10000, GRE_SEQ, and GRE_PROTO 0x0800 (2048).
+FLOW gre_dmvpn_nhrp_flow(spoke, hub) {
+    spoke -> hub GRE GRE_KEY 10000 GRE_SEQ 1 GRE_PROTO 2048 CHECKSUM DF DSCP 48 TTL 64 PAYLOAD "NHRP_RESOLUTION_REQ_SPOKE_TO_SPOKE" WAIT 5ms
+    spoke <- hub GRE GRE_KEY 10000 GRE_SEQ 1 GRE_PROTO 2048 CHECKSUM DF DSCP 48 TTL 64 PAYLOAD "NHRP_RESOLUTION_REPLY_DIRECT_NBMA"
+}
+
+// INSTRUCTION: Compile the mGRE DMVPN hub-and-spoke flow.
+COMPILE {
+    gre_dmvpn_nhrp_flow(dmvpn_mgre_spoke, dmvpn_mgre_hub)
+}

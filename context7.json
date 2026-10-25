@@ -1,0 +1,59 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "FrameAssembly",
+  "description": "Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative .fasm network traffic specifications into deterministic, nanosecond-precision .pcap / .pcapng packet captures across 81 native Layer 2 through Layer 7 protocols (2,611 verified .fasm corpus scenarios).",
+  "version": "1.1.0",
+  "repository": "https://github.com/SteveWinschel/FrameAssembly",
+  "folders": [
+    "docs",
+    "examples"
+  ],
+  "excludeFolders": [
+    ".agents",
+    ".github",
+    "target",
+    "frameassembly-vscode"
+  ],
+  "documentation": [
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "llms.txt",
+    "llms-full.txt",
+    "docs/architecture_and_grammar.md",
+    "docs/l2_protocols.md",
+    "docs/l3_protocols.md",
+    "docs/l4_transports.md",
+    "docs/l7_snmp.md",
+    "docs/l7_infra_and_telemetry.md",
+    "docs/l7_web_and_cloud.md",
+    "docs/l7_mail_auth_storage_db.md",
+    "docs/l7_industrial_ot.md",
+    "docs/topologies_and_dual_stack.md",
+    "docs/qa_synthesis_guide.md"
+  ],
+  "grammars": [
+    "grammar.ebnf",
+    "frameassembly.gbnf",
+    "frameassembly.lark"
+  ],
+  "examples": [
+    "examples/l2",
+    "examples/l3",
+    "examples/l4",
+    "examples/l7",
+    "examples/topologies"
+  ],
+  "exclude": [
+    "target/**",
+    "*.pcap",
+    "*.pcapng",
+    "*.vsix"
+  ],
+  "rules": [
+    "Every .fasm program must declare HOST <id> { IP <ip> [MAC <mac>] }, parameterized FLOW <id>(<params>) { ... }, and COMPILE { ... }.",
+    "Always use inline WAIT <int><ns|us|ms|s|m> on frame statements; never use standalone WAIT lines or +5ms / [+delay] prefixes.",
+    "Always use SRCPORT, DSTPORT, SEQ, ACKNUM, TTL, QINQ <outer> INNER_VLAN <inner>, and REQID; never use SPORT, DPORT, ACK_NUM, or HOP_LIMIT.",
+    "Never mix IPv4 and IPv6 endpoints in the same packet statement."
+  ]
+}

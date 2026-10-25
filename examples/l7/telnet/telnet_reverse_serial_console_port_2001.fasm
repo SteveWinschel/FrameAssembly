@@ -1,0 +1,31 @@
+// PROMPT: Simulate a Telnet session to a reverse-telnet terminal server port 2001 for serial console access to a switch.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, DSCP, ACK, TELNET, WILL, DO, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint eng_laptop.
+HOST eng_laptop {
+    MAC 00:1a:a0:20:01:10
+    IP 10.100.23.10
+}
+
+// INSTRUCTION: Define host endpoint term_server.
+HOST term_server {
+    MAC 00:1a:a0:20:01:01
+    IP 10.100.23.1
+}
+
+// INSTRUCTION: Connect to reverse-telnet port 2001 with DSCP 16 and interact with the serial console.
+FLOW telnet_reverse_console_port_2001(eng_laptop, term_server) {
+    eng_laptop -> term_server TCP SYN SRCPORT 59023 DSTPORT 2001 DSCP 16
+    term_server -> eng_laptop TCP SYN ACK DSCP 16
+    eng_laptop -> term_server TCP ACK DSCP 16
+    term_server -> eng_laptop DSTPORT 59023 SRCPORT 2001 TELNET WILL 3 DSCP 16
+    eng_laptop -> term_server SRCPORT 59023 DSTPORT 2001 TELNET DO 3 DSCP 16
+    eng_laptop -> term_server SRCPORT 59023 DSTPORT 2001 TELNET PAYLOAD "\r\n" DSCP 16
+    term_server -> eng_laptop DSTPORT 59023 SRCPORT 2001 TELNET PAYLOAD "rommon 1 > " DSCP 16
+    eng_laptop -> term_server SRCPORT 59023 DSTPORT 2001 TELNET PAYLOAD "confreg 0x2102\r\n" DSCP 16
+}
+
+// INSTRUCTION: Compile the reverse-telnet serial console port 2001 flow.
+COMPILE {
+    telnet_reverse_console_port_2001(eng_laptop, term_server)
+}

@@ -1,0 +1,25 @@
+// PROMPT: SIP 183 Session Progress early media acknowledged via RFC 3262 PRACK and 200 OK.
+// TOKENS: HOST, IP, FLOW, SIP, INVITE, URI, FROM, TO, CALL_ID, CSEQ, WAIT, STATUS, REASON, CONTENT_TYPE, BODY, METHOD, COMPILE
+
+// INSTRUCTION: Define VoLTE mobile gateway initiating PSTN call.
+HOST volte_gw {
+    IP 172.30.10.20
+}
+
+// INSTRUCTION: Define PSTN media gateway controller returning early ringback tone.
+HOST pstn_mgc {
+    IP 172.30.10.1
+}
+
+// INSTRUCTION: Define INVITE, reliable 183 Session Progress with SDP, PRACK, and 200 OK.
+FLOW sip_early_media_prack(c, s) {
+    c -> s SIP INVITE URI "sip:+18005550199@172.30.10.1" FROM "sip:+14155550100@172.30.10.20" TO "sip:+18005550199@172.30.10.1" CALL_ID "prack-771" CSEQ 1 WAIT 5ms
+    c <- s SIP STATUS 183 REASON "Session Progress" CALL_ID "prack-771" CSEQ 1 CONTENT_TYPE "application/sdp" BODY "v=0" WAIT 5ms
+    c -> s SIP METHOD "PRACK" URI "sip:+18005550199@172.30.10.1" CALL_ID "prack-771" CSEQ 2 WAIT 5ms
+    c <- s SIP STATUS 200 REASON "OK" CALL_ID "prack-771" CSEQ 2
+}
+
+// INSTRUCTION: Compile the SIP 183 Session Progress and PRACK flow.
+COMPILE {
+    sip_early_media_prack(volte_gw, pstn_mgc)
+}

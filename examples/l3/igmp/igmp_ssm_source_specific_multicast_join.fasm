@@ -1,0 +1,18 @@
+// PROMPT: IGMP report joining Source-Specific Multicast (SSM) distribution group in 232.0.0.0/8 range.
+// TOKENS: HOST, IP, FLOW, IGMP, REPORT, GROUP, COMPILE
+
+// INSTRUCTION: Define financial trading workstation.
+HOST trading_terminal { IP 10.88.1.15 }
+
+// INSTRUCTION: Define financial market ticker SSM multicast group.
+HOST ssm_ticker_group { IP 232.10.20.30 }
+
+// INSTRUCTION: Define SSM IGMP membership report subscription flow.
+FLOW igmp_ssm_join_flow(term, grp) {
+    term -> grp IGMP REPORT GROUP 232.10.20.30
+}
+
+// INSTRUCTION: Compile block executing SSM IGMP join.
+COMPILE {
+    igmp_ssm_join_flow(trading_terminal, ssm_ticker_group)
+}

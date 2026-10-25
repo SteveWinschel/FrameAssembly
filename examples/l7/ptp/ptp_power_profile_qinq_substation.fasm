@@ -1,0 +1,20 @@
+// PROMPT: Power utility IEC 61850-9-3 power profile PTP over QinQ double VLAN tagging.
+// TOKENS: HOST, IP, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, CLOCK_ID, QINQ, INNER_VLAN, WAIT, DELAY_REQ, DELAY_RESP, COMPILE
+
+// INSTRUCTION: Define substation GPS clock master.
+HOST sub_gps_clock { IP 172.25.93.1 }
+
+// INSTRUCTION: Define bay protection relay IED slave.
+HOST relay_ied { IP 172.25.93.20 }
+
+// INSTRUCTION: Define IEC 61850-9-3 Domain 93 PTP over QinQ outer 800 inner 93.
+FLOW ptp_power_profile_qinq(gm, ied) {
+    gm -> ied PTP SYNC DOMAIN 93 SEQ_ID 300 CLOCK_ID "SUBGPS01" QINQ 800 INNER_VLAN 93 WAIT 2ms
+    gm <- ied PTP DELAY_REQ DOMAIN 93 SEQ_ID 300 CLOCK_ID "IEDREL20" QINQ 800 INNER_VLAN 93 WAIT 2ms
+    gm -> ied PTP DELAY_RESP DOMAIN 93 SEQ_ID 300 CLOCK_ID "SUBGPS01" QINQ 800 INNER_VLAN 93
+}
+
+// INSTRUCTION: Compile IEC 61850-9-3 QinQ PTP flow.
+COMPILE {
+    ptp_power_profile_qinq(sub_gps_clock, relay_ied)
+}

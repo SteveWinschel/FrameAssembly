@@ -1,0 +1,21 @@
+// PROMPT: Continuous ICMP Echo Request and Echo Reply ping exchange inside COMPILE LOOP.
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, WAIT, ECHO_REPLY, COMPILE, LOOP
+
+// INSTRUCTION: Define monitoring station initiating latency ping.
+HOST mon_station { IP 172.19.1.50 }
+
+// INSTRUCTION: Define target cloud compute instance.
+HOST cloud_instance { IP 172.19.1.10 }
+
+// INSTRUCTION: Define bidirectional ping exchange flow with 10ms delay.
+FLOW icmp_ping_series(src, dst) {
+    src -> dst ICMP ECHO_REQUEST WAIT 10ms
+    src <- dst ICMP ECHO_REPLY WAIT 10ms
+}
+
+// INSTRUCTION: Compile loop executing 5 consecutive ping echo exchanges.
+COMPILE {
+    LOOP 5 {
+        icmp_ping_series(mon_station, cloud_instance)
+    }
+}

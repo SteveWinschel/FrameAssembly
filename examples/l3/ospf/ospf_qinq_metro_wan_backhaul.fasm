@@ -1,0 +1,27 @@
+// PROMPT: Simulate a QinQ double-tagged OSPF routing adjacency carried across a metro Ethernet E-Line service
+// TOKENS: HOST, IP, MAC, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, QINQ, INNER_VLAN, TTL, WAIT, LSU, LSACK, COMPILE
+
+// INSTRUCTION: Define the headquarters WAN edge router
+HOST hq_ospf_edge {
+    IP 172.30.10.1
+    MAC 00:26:99:f6:30:01
+}
+
+// INSTRUCTION: Define the regional office WAN edge router
+HOST regional_ospf_edge {
+    IP 172.30.10.2
+    MAC 00:26:99:f6:30:02
+}
+
+// INSTRUCTION: Exchange QinQ-encapsulated OSPF packets with S-VLAN 2800 and C-VLAN 310
+FLOW ospf_qinq_metro_peering(hq, reg) {
+    hq -> reg OSPF HELLO ROUTER_ID 172.30.0.1 AREA_ID 20 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 1 QINQ 2800 INNER_VLAN 310 TTL 1 WAIT 10ms
+    reg -> hq OSPF HELLO ROUTER_ID 172.30.0.2 AREA_ID 20 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 1 QINQ 2800 INNER_VLAN 310 TTL 1 WAIT 15ms
+    hq -> reg OSPF LSU ROUTER_ID 172.30.0.1 AREA_ID 20 QINQ 2800 INNER_VLAN 310 TTL 1 WAIT 10ms
+    reg -> hq OSPF LSACK ROUTER_ID 172.30.0.2 AREA_ID 20 QINQ 2800 INNER_VLAN 310 TTL 1
+}
+
+// INSTRUCTION: Compile the QinQ metro OSPF peering trace
+COMPILE {
+    ospf_qinq_metro_peering(hq_ospf_edge, regional_ospf_edge)
+}

@@ -1,0 +1,26 @@
+// PROMPT: Capture an IPv6 smart-home hub registering for link-local mDNSv6 (ff02::fb) and SSDPv6 (ff02::c) via MLD Reports
+// TOKENS: HOST, IP, MAC, FLOW, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, TTL, PAYLOAD, WAIT, QUERY, COMPILE
+
+// INSTRUCTION: Define the IPv6 smart-home IoT controller
+HOST iot_hub_v6 {
+    IP fe80::99:10
+    MAC 00:0f:53:cc:99:10
+}
+
+// INSTRUCTION: Define the home router MLD querier
+HOST home_router_v6 {
+    IP fe80::99:1
+    MAC 00:0f:53:cc:99:01
+}
+
+// INSTRUCTION: Join link-local service discovery multicast groups ff02::fb and ff02::c
+FLOW mld_service_discovery_join(hub, router) {
+    hub -> router MLD REPORT MULTICAST_ADDR ff02::fb MAX_RESP_DELAY 0 TTL 1 PAYLOAD "mdnsv6-listener-join" WAIT 15ms
+    hub -> router MLD REPORT MULTICAST_ADDR ff02::c MAX_RESP_DELAY 0 TTL 1 PAYLOAD "ssdpv6-listener-join" WAIT 25ms
+    router -> hub MLD QUERY MULTICAST_ADDR :: MAX_RESP_DELAY 2000 TTL 1
+}
+
+// INSTRUCTION: Compile the mDNSv6 and SSDPv6 MLD registration sequence
+COMPILE {
+    mld_service_discovery_join(iot_hub_v6, home_router_v6)
+}

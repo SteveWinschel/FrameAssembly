@@ -1,0 +1,25 @@
+// PROMPT: Simulate an RFC 5905 Kiss-o-Death (KoD) NTPv4 response with Stratum 0 and REFID RATE throttling an aggressive client.
+// TOKENS: HOST, IP, MAC, FLOW, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, TX_TIMESTAMP, WAIT, REFID, COMPILE
+
+// INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
+HOST ntp_client {
+    IP 203.0.113.45
+    MAC 00:1b:21:7b:01:0a
+}
+
+// INSTRUCTION: Define the NTP reference server or peer endpoint.
+HOST ntp_server {
+    IP 198.51.100.123
+    MAC 00:1b:21:7b:01:01
+}
+
+// INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
+FLOW ntp_scenario_flow(c, s) {
+    c -> s NTP LI 0 VN 4 MODE 3 STRATUM 0 POLL 3 PRECISION -16 TX_TIMESTAMP 0xe9b4c40000000000 WAIT 2ms
+    c <- s NTP LI 3 VN 4 MODE 4 STRATUM 0 POLL 10 PRECISION -20 REFID "RATE" TX_TIMESTAMP 0xe9b4c40000100000
+}
+
+// INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
+COMPILE {
+    ntp_scenario_flow(ntp_client, ntp_server)
+}

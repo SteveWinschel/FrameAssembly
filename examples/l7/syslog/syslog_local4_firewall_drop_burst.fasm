@@ -1,0 +1,27 @@
+// PROMPT: Model a high-rate firewall packet-drop log burst using LOOP and Syslog Facility 20 (Local4).
+// TOKENS: HOST, MAC, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define host endpoint edge_fw.
+HOST edge_fw {
+    MAC 00:08:25:51:40:20
+    IP 10.0.1.1
+}
+
+// INSTRUCTION: Define host endpoint siem_receiver.
+HOST siem_receiver {
+    MAC 00:08:25:51:40:50
+    IP 10.0.1.50
+}
+
+// INSTRUCTION: Send 4 consecutive firewall drop warnings (Facility 20, Severity 4) in a loop.
+FLOW syslog_firewall_drop_burst(edge_fw, siem_receiver) {
+    edge_fw -> siem_receiver SYSLOG FACILITY 20 SEVERITY 4 HOSTNAME "fw-edge-01" APP "filterlog" PROCID "101"
+        MSG "DROP IN=eth0 OUT= SRC=203.0.113.66 DST=198.51.100.10 PROTO=TCP SPT=48192 DPT=3389 SYN" WAIT 5ms
+}
+
+// INSTRUCTION: Compile the firewall drop syslog burst flow.
+COMPILE {
+    LOOP 4 {
+        syslog_firewall_drop_burst(edge_fw, siem_receiver)
+    }
+}

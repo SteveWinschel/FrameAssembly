@@ -1,5 +1,5 @@
 // PROMPT: Simulate an FTP control session on TCP port 21 authenticating a user and entering passive mode (PASV) for directory listing.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WAIT, ACK, PSH, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define an FTP client workstation with IP 192.168.20.45.
 HOST ftp_workstation { IP 192.168.20.45 MAC 08:00:27:12:34:56 }

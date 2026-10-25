@@ -1,0 +1,25 @@
+// PROMPT: RFC 8926 GENEVE ingress replication flooding an inner Broadcast/Unknown-Unicast/Multicast (BUM) ARP request across NVEs.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, PROTOCOL_TYPE, SRCPORT, DSTPORT, DF, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define ingress NVE replicating a tenant ARP Broadcast across the underlay head-end list.
+HOST bum_ingress_nve {
+    IP 10.60.10.1
+    MAC 00:1c:73:60:10:01
+}
+
+// INSTRUCTION: Define remote NVE member receiving replicated GENEVE VNI 10100 broadcast frame.
+HOST bum_remote_nve {
+    IP 10.60.10.2
+    MAC 00:1c:73:60:10:02
+}
+
+// INSTRUCTION: Define GENEVE BUM ARP request replication and unicast ARP reply over VNI 10100.
+FLOW geneve_bum_arp_flood(ing, rem) {
+    ing -> rem GENEVE VNI 10100 PROTOCOL_TYPE 25944 SRCPORT 49152 DSTPORT 6081 DF TTL 64 HEXPAYLOAD "ffffffffffff00112233445508060001080006040001" WAIT 3ms
+    ing <- rem GENEVE VNI 10100 PROTOCOL_TYPE 25944 SRCPORT 49153 DSTPORT 6081 DF TTL 64 HEXPAYLOAD "00112233445566778899aabb08060001080006040002"
+}
+
+// INSTRUCTION: Compile the GENEVE BUM ARP broadcast ingress replication flow.
+COMPILE {
+    geneve_bum_arp_flood(bum_ingress_nve, bum_remote_nve)
+}

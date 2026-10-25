@@ -1,0 +1,27 @@
+// PROMPT: Dual-stack 6VPE IPv6 VPN over MPLS core transporting HTTP/2 microservice API calls between regional data centers.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, HTTP2, PREFACE, SETTINGS, WAIT, HEADERS, STREAM_ID, DATA, COMPILE
+
+// INSTRUCTION: Define IPv6 6VPE ingress PE router in Frankfurt.
+HOST pe_6vpe_fra {
+    IP 2001:db8:6000:1::1
+    MAC 00:1c:73:60:00:01
+}
+
+// INSTRUCTION: Define IPv6 6VPE egress PE router in Amsterdam.
+HOST pe_6vpe_ams {
+    IP 2001:db8:6000:1::2
+    MAC 00:1c:73:60:00:02
+}
+
+// INSTRUCTION: Define 6VPE MPLS Label 600443 encapsulating IPv6 HTTP/2 stream frames.
+FLOW mpls_6vpe_http2_api(fra, ams) {
+    fra -> ams MPLS 600443 EXP 4 BOS 1 MPLS_TTL 62 HTTP2 PREFACE
+    fra <- ams MPLS 600444 EXP 4 BOS 1 MPLS_TTL 62 HTTP2 SETTINGS WAIT 1ms
+    fra -> ams MPLS 600443 EXP 4 BOS 1 MPLS_TTL 62 HTTP2 HEADERS STREAM_ID 1 WAIT 1ms
+    fra <- ams MPLS 600444 EXP 4 BOS 1 MPLS_TTL 62 HTTP2 DATA STREAM_ID 1 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing 6VPE IPv6 HTTP/2 over MPLS.
+COMPILE {
+    mpls_6vpe_http2_api(pe_6vpe_fra, pe_6vpe_ams)
+}

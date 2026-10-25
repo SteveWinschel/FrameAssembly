@@ -1,0 +1,19 @@
+// PROMPT: Server unmasked pong frame confirming connection availability.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+
+// INSTRUCTION: Define interactive web client.
+HOST inter_client { IP 192.168.4.12 }
+
+// INSTRUCTION: Define interactive hub server.
+HOST hub_server { IP 192.168.4.1 }
+
+// INSTRUCTION: Define ping pong response flow.
+FLOW ws_pong_response_flow(c, s) {
+    c -> s WEBSOCKET OPCODE "PING" FIN_BIT 1 MASK_KEY 1985229328
+    c <- s WEBSOCKET OPCODE "PONG" FIN_BIT 1 MASK_KEY 0
+}
+
+// INSTRUCTION: Compile block executing pong confirmation.
+COMPILE {
+    ws_pong_response_flow(inter_client, hub_server)
+}

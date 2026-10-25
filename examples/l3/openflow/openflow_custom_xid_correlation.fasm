@@ -1,0 +1,19 @@
+// PROMPT: OpenFlow transactions with sequential transaction IDs (XID) tracking request responses.
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, ECHO_REQ, XID, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define network operating system controller.
+HOST nos_ctrl_node { IP 192.168.70.1 }
+
+// INSTRUCTION: Define fabric aggregator switch.
+HOST fabric_agg_node { IP 192.168.70.2 }
+
+// INSTRUCTION: Define correlated transaction flow with XID 10001.
+FLOW of_xid_tracking_flow(ctrl, sw) {
+    ctrl -> sw OPENFLOW TYPE ECHO_REQ XID 10001
+    ctrl <- sw OPENFLOW TYPE ECHO_REPLY XID 10001
+}
+
+// INSTRUCTION: Compile block executing correlated OpenFlow transaction.
+COMPILE {
+    of_xid_tracking_flow(nos_ctrl_node, fabric_agg_node)
+}

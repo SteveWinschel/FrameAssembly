@@ -1,0 +1,34 @@
+// PROMPT: Simulate a complete SSH-2.0 handshake progressing through Banner, KEXINIT, DH Key Exchange (30/31), and NEWKEYS.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SSH, BANNER, KEXINIT, PAYLOAD, MSG_CODE, NEWKEYS, COMPILE
+
+// INSTRUCTION: Define host endpoint ssh_client.
+HOST ssh_client {
+    MAC 00:50:56:a1:22:01
+    IP 10.10.22.50
+}
+
+// INSTRUCTION: Define host endpoint ssh_bastion.
+HOST ssh_bastion {
+    MAC 00:50:56:a1:22:02
+    IP 10.10.22.1
+}
+
+// INSTRUCTION: Complete TCP port 22 handshake, exchange banners, KEXINIT, ECDH INIT/REPLY (30/31), and NEWKEYS.
+FLOW ssh_full_key_exchange_flow(ssh_client, ssh_bastion) {
+    ssh_client -> ssh_bastion TCP SYN SRCPORT 51022 DSTPORT 22
+    ssh_bastion -> ssh_client TCP SYN ACK
+    ssh_client -> ssh_bastion TCP ACK
+    ssh_client -> ssh_bastion SSH BANNER "SSH-2.0-OpenSSH_9.6"
+    ssh_bastion -> ssh_client SSH BANNER "SSH-2.0-OpenSSH_9.6p1 Ubuntu-3ubuntu13"
+    ssh_client -> ssh_bastion SSH KEXINIT PAYLOAD "11223344556677889900aabbccddeeff"
+    ssh_bastion -> ssh_client SSH KEXINIT PAYLOAD "ffeeddccbbaa00998877665544332211"
+    ssh_client -> ssh_bastion SSH MSG_CODE 30
+    ssh_bastion -> ssh_client SSH MSG_CODE 31
+    ssh_client -> ssh_bastion SSH NEWKEYS
+    ssh_bastion -> ssh_client SSH NEWKEYS
+}
+
+// INSTRUCTION: Compile the full SSH key exchange flow.
+COMPILE {
+    ssh_full_key_exchange_flow(ssh_client, ssh_bastion)
+}

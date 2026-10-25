@@ -1,0 +1,27 @@
+// PROMPT: Domain logon script retrieval from the NETLOGON share over VLAN 604 with DSCP AF21.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, SESSION_ID, MSGID, SHARE, VLAN, DSCP, STATUS, TREE_ID, WAIT, FILENAME, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the user workstation logging into the domain.
+HOST logon_ws {
+    IP 10.60.44.50
+    MAC 00:1a:2b:60:44:50
+}
+
+// INSTRUCTION: Define the local branch Read-Only Domain Controller.
+HOST rodc_srv {
+    IP 10.60.44.2
+    MAC 00:1a:2b:60:44:02
+}
+
+// INSTRUCTION: Mount NETLOGON share and read the startup PowerShell logon script.
+FLOW smb_netlogon_read(c, s) {
+    c -> s SMB COMMAND "TREE_CONNECT" SESSION_ID 6200 MSGID 10 SHARE "\\branch.corp\NETLOGON" VLAN 604 DSCP 18
+    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 5 SESSION_ID 6200 MSGID 10 VLAN 604 DSCP 18 WAIT 2ms
+    c -> s SMB COMMAND "CREATE" TREE_ID 5 SESSION_ID 6200 MSGID 11 FILENAME "map_drives.ps1" VLAN 604 DSCP 18
+    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 5 SESSION_ID 6200 MSGID 12 VLAN 604 DSCP 18 PAYLOAD "New-PSDrive -Name Z -PSProvider FileSystem"
+}
+
+// INSTRUCTION: Compile the NETLOGON script retrieval flow.
+COMPILE {
+    smb_netlogon_read(logon_ws, rodc_srv)
+}

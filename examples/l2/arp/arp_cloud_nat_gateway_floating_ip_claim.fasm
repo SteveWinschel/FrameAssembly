@@ -1,0 +1,26 @@
+// PROMPT: Cloud SDN NAT gateway broadcasting Gratuitous ARP Requests to claim an elastic floating public IPv4 address.
+// TOKENS: HOST, IP, MAC, FLOW, ARP, GRATUITOUS, SENDERMAC, SENDERIP, TARGETMAC, TARGETIP, WAIT, COMPILE
+
+// INSTRUCTION: Define cloud SDN edge gateway claiming newly associated floating IP 203.0.113.75.
+HOST sdn_nat_gateway {
+    IP 203.0.113.75
+    MAC 02:42:cb:00:71:4b
+}
+
+// INSTRUCTION: Define provider upstream border router updating its ARP cache for 203.0.113.75.
+HOST provider_wan_rtr {
+    IP 203.0.113.1
+    MAC 00:1b:21:71:00:01
+}
+
+// INSTRUCTION: Broadcast three consecutive Gratuitous ARP announcements for floating IP 203.0.113.75.
+FLOW arp_floating_ip_claim(nat, wan) {
+    nat -> wan ARP GRATUITOUS SENDERMAC 02:42:cb:00:71:4b SENDERIP 203.0.113.75 TARGETMAC 00:00:00:00:00:00 TARGETIP 203.0.113.75 WAIT 10ms
+    nat -> wan ARP GRATUITOUS SENDERMAC 02:42:cb:00:71:4b SENDERIP 203.0.113.75 TARGETMAC 00:00:00:00:00:00 TARGETIP 203.0.113.75 WAIT 10ms
+    nat -> wan ARP GRATUITOUS SENDERMAC 02:42:cb:00:71:4b SENDERIP 203.0.113.75 TARGETMAC 00:00:00:00:00:00 TARGETIP 203.0.113.75
+}
+
+// INSTRUCTION: Compile the cloud elastic floating IP Gratuitous ARP announcement sequence.
+COMPILE {
+    arp_floating_ip_claim(sdn_nat_gateway, provider_wan_rtr)
+}

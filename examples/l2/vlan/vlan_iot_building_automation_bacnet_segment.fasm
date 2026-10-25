@@ -1,0 +1,25 @@
+// PROMPT: Smart building HVAC automation VLAN 180 isolating BACnet/IP UDP port 47808 broadcast and unicast telemetry.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, UDP, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define building management system (BMS) supervisory controller on VLAN 180.
+HOST bms_supervisor {
+    IP 192.168.180.10
+    MAC 00:40:ae:b4:00:0a
+}
+
+// INSTRUCTION: Define rooftop chiller BACnet/IP field controller on VLAN 180.
+HOST hvac_chiller_ctl {
+    IP 192.168.180.55
+    MAC 00:40:ae:b4:00:37
+}
+
+// INSTRUCTION: Poll chiller supply temperature via BACnet/IP UDP 47808 on VLAN 180 PCP 2.
+FLOW vlan_bacnet_hvac_poll(bms, chiller) {
+    bms -> chiller VLAN 180 PCP 2 DEI 0 UDP SRCPORT 47808 DSTPORT 47808 HEXPAYLOAD "810a001101040005010c0c000000011955" WAIT 10ms
+    bms <- chiller VLAN 180 PCP 2 DEI 0 UDP SRCPORT 47808 DSTPORT 47808 HEXPAYLOAD "810a0015010030010c0c0000000119553e422800003f"
+}
+
+// INSTRUCTION: Compile the smart building HVAC BACnet/IP VLAN 180 telemetry exchange.
+COMPILE {
+    vlan_bacnet_hvac_poll(bms_supervisor, hvac_chiller_ctl)
+}

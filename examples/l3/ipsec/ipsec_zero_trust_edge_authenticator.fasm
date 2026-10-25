@@ -1,0 +1,19 @@
+// PROMPT: Zero Trust network access edge node establishing IPsec channel to policy enforcement point.
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, IV, COMPILE
+
+// INSTRUCTION: Define Zero Trust edge connector host.
+HOST ztna_edge_connector { IP 172.30.50.15 }
+
+// INSTRUCTION: Define central Policy Enforcement Point gateway.
+HOST ztna_pep_gateway { IP 172.30.50.1 }
+
+// INSTRUCTION: Define authenticated ZTNA micro-tunnel initiation flow.
+FLOW ztna_ipsec_handshake(edge, pep) {
+    edge -> pep IPSEC SPI 314159 SEQ 1 IV "0011223344556677"
+    edge <- pep IPSEC SPI 314160 SEQ 1 IV "8899aabbccddeeff"
+}
+
+// INSTRUCTION: Compile block executing ZTNA IPsec setup.
+COMPILE {
+    ztna_ipsec_handshake(ztna_edge_connector, ztna_pep_gateway)
+}

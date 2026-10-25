@@ -1,0 +1,26 @@
+// PROMPT: Generate an 802.1Q VLAN-tagged OpenFlow session over a dedicated out-of-band SDN management VLAN
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, FEATURES_REQ, VERSION, XID, VLAN, PCP, WAIT, FEATURES_REPLY, DPID, FLOW_MOD, TABLE_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define the out-of-band SDN controller on VLAN 999
+HOST oob_ctrl {
+    IP 10.99.99.1
+    MAC 00:1e:67:e4:09:01
+}
+
+// INSTRUCTION: Define the managed hardware switch on VLAN 999
+HOST oob_switch {
+    IP 10.99.99.25
+    MAC 00:1e:67:e4:09:25
+}
+
+// INSTRUCTION: Exchange VLAN-tagged OpenFlow messages with 802.1p priority 6
+FLOW openflow_vlan_mgmt_flow(ctrl, sw) {
+    ctrl -> sw OPENFLOW FEATURES_REQ VERSION 4 XID 9001 VLAN 999 PCP 6 WAIT 10ms
+    sw -> ctrl OPENFLOW FEATURES_REPLY VERSION 4 XID 9001 DPID 4096 VLAN 999 PCP 6 WAIT 10ms
+    ctrl -> sw OPENFLOW FLOW_MOD VERSION 4 XID 9002 TABLE_ID 0 PRIORITY 25000 VLAN 999 PCP 6
+}
+
+// INSTRUCTION: Compile the VLAN-tagged OpenFlow management trace
+COMPILE {
+    openflow_vlan_mgmt_flow(oob_ctrl, oob_switch)
+}

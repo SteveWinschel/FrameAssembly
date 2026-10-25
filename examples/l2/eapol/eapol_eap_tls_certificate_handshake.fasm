@@ -1,0 +1,28 @@
+// PROMPT: IEEE 802.1X EAP-TLS (Method 13) mutual certificate authentication exchange with X.509 certificate fragment payloads.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define corporate laptop with TPM client certificate.
+HOST eaptls_client {
+    IP 10.42.10.88
+    MAC f8:75:a4:42:10:58
+}
+
+// INSTRUCTION: Define zero-trust campus access switch authenticator.
+HOST eaptls_switch {
+    IP 10.42.10.1
+    MAC 00:1c:73:42:10:01
+}
+
+// INSTRUCTION: Define EAP-TLS (Method 13) Start, ClientHello/Certificate exchange, and EAP-Success (Code 3).
+FLOW eapol_eap_tls_certificate(cli, sw) {
+    cli <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 1 EAP_METHOD 1
+    cli -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 1 EAP_METHOD 1 IDENTITY "host/laptop-88.corp.example.com" WAIT 2ms
+    cli <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 2 EAP_METHOD 13 PAYLOAD "eap_tls_start_flag_0x20" WAIT 3ms
+    cli -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 2 EAP_METHOD 13 PAYLOAD "eap_tls_client_hello_and_x509_cert" WAIT 4ms
+    cli <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 3 EAP_METHOD 13 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing EAP-TLS mutual certificate authentication.
+COMPILE {
+    eapol_eap_tls_certificate(eaptls_client, eaptls_switch)
+}

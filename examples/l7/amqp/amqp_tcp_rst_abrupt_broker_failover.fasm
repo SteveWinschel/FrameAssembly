@@ -1,0 +1,25 @@
+// PROMPT: AMQP publisher detecting abrupt broker node crash via TCP RST during Basic.Publish.
+// TOKENS: HOST, IP, MAC, FLOW, SRCPORT, DSTPORT, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, PAYLOAD, TCP, RST, SEQ, COMPILE
+
+// INSTRUCTION: Define the resilient event publisher service.
+HOST resilient_pub {
+    IP 10.115.130.20
+    MAC 00:1a:2b:73:d0:20
+}
+
+// INSTRUCTION: Define the failing RabbitMQ cluster node.
+HOST failing_rmq {
+    IP 10.115.130.1
+    MAC 00:1a:2b:73:d0:01
+}
+
+// INSTRUCTION: Publish a message on channel 1 and receive an abrupt TCP RST from the crashing node.
+FLOW amqp_broker_crash_rst(c, b) {
+    c -> b SRCPORT 53100 DSTPORT 5672 AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "tx.events" ROUTING_KEY "tx.new" PAYLOAD "{'id':551}"
+    c <- b TCP SRCPORT 5672 DSTPORT 53100 RST SEQ 4000
+}
+
+// INSTRUCTION: Compile the AMQP abrupt TCP RST failover scenario.
+COMPILE {
+    amqp_broker_crash_rst(resilient_pub, failing_rmq)
+}

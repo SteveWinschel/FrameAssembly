@@ -1,0 +1,19 @@
+// PROMPT: RFC 2784 GRE tunnel path MTU discovery enforcing IPv4 Don't Fragment (DF) on outer header.
+// TOKENS: HOST, IP, FLOW, GRE, GRE_KEY, GRE_SEQ, IPID, DF, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define GRE tunnel headend router.
+HOST gre_mtu_head { IP 10.15.47.1 }
+
+// INSTRUCTION: Define GRE tunnel tailend router.
+HOST gre_mtu_tail { IP 10.15.47.2 }
+
+// INSTRUCTION: Define DF-marked GRE tunnel packets with explicit IPID values.
+FLOW gre_df_mtu_probe(head, tail) {
+    head -> tail GRE GRE_KEY 500 GRE_SEQ 1 IPID 7001 DF PAYLOAD "GRE_PMTUD_1476_BYTE_CHECK"
+    head <- tail GRE GRE_KEY 500 GRE_SEQ 1 IPID 7002 DF PAYLOAD "GRE_PMTUD_1476_BYTE_ACK"
+}
+
+// INSTRUCTION: Compile the GRE Don't Fragment MTU discovery flow.
+COMPILE {
+    gre_df_mtu_probe(gre_mtu_head, gre_mtu_tail)
+}

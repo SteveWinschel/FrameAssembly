@@ -1,0 +1,20 @@
+// PROMPT: Trading engine subscribing simultaneously to multiple financial market data multicast groups.
+// TOKENS: HOST, IP, MAC, FLOW, IGMP, REPORT, GROUP, TTL, DSCP, WAIT, COMPILE
+
+// INSTRUCTION: Define low-latency algorithmic trading server.
+HOST algo_trader_01 { IP 10.240.10.11 MAC 00:0f:53:aa:10:11 }
+
+// INSTRUCTION: Define top-of-rack multicast switch.
+HOST tor_mcast_sw { IP 10.240.10.1 MAC 00:1c:73:aa:10:01 }
+
+// INSTRUCTION: Define rapid IGMP Membership Reports across three market feed multicast groups.
+FLOW market_data_igmp_joins(srv, sw) {
+    srv -> sw IGMP REPORT GROUP 239.192.1.1 TTL 1 DSCP 48
+    srv -> sw IGMP REPORT GROUP 239.192.1.2 TTL 1 DSCP 48 WAIT 2ms
+    srv -> sw IGMP REPORT GROUP 239.192.2.1 TTL 1 DSCP 48 WAIT 2ms
+}
+
+// INSTRUCTION: Compile the multi-group financial market data IGMP join flow.
+COMPILE {
+    market_data_igmp_joins(algo_trader_01, tor_mcast_sw)
+}

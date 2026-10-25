@@ -1,0 +1,21 @@
+// PROMPT: Legacy UDP port 1645 and 1646 RADIUS authentication and accounting exchange.
+// TOKENS: HOST, IP, FLOW, RADIUS, ACCESS_REQUEST, USER, NAS_IP, SRCPORT, DSTPORT, WAIT, ACCESS_ACCEPT, FRAMED_IP, ACCOUNTING_REQUEST, ACCOUNTING_RESPONSE, COMPILE
+
+// INSTRUCTION: Define legacy terminal server NAS.
+HOST legacy_nas { IP 192.168.164.5 }
+
+// INSTRUCTION: Define RADIUS server listening on legacy ports 1645 and 1646.
+HOST legacy_rad { IP 192.168.164.1 }
+
+// INSTRUCTION: Define auth on port 1645 and accounting on port 1646.
+FLOW radius_legacy_ports(nas, srv) {
+    nas -> srv RADIUS ACCESS_REQUEST USER "dialin01" NAS_IP 192.168.164.5 SRCPORT 41645 DSTPORT 1645 WAIT 5ms
+    nas <- srv RADIUS ACCESS_ACCEPT USER "dialin01" FRAMED_IP 192.168.164.200 SRCPORT 1645 DSTPORT 41645 WAIT 5ms
+    nas -> srv RADIUS ACCOUNTING_REQUEST USER "dialin01" NAS_IP 192.168.164.5 FRAMED_IP 192.168.164.200 SRCPORT 41646 DSTPORT 1646 WAIT 5ms
+    nas <- srv RADIUS ACCOUNTING_RESPONSE USER "dialin01" SRCPORT 1646 DSTPORT 41646
+}
+
+// INSTRUCTION: Compile legacy-port RADIUS flow.
+COMPILE {
+    radius_legacy_ports(legacy_nas, legacy_rad)
+}

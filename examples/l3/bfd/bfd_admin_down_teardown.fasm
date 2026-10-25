@@ -1,0 +1,20 @@
+// PROMPT: BFD session graceful administrative shutdown signaling State 0 (AdminDown) and Diag 7.
+// TOKENS: HOST, IP, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MULT, WAIT, COMPILE
+
+// INSTRUCTION: Define core router entering maintenance window.
+HOST core_maint_rtr { IP 172.18.10.1 }
+
+// INSTRUCTION: Define adjacent peer router receiving AdminDown notification.
+HOST core_peer_rtr { IP 172.18.10.2 }
+
+// INSTRUCTION: Define BFD transition from Up (3) to AdminDown (0) with Diag 7.
+FLOW bfd_admin_shutdown(maint, peer) {
+    maint -> peer BFD STATE 3 DIAG 0 MY_DISC 4010 YOUR_DISC 4020 MULT 3
+    maint -> peer BFD STATE 0 DIAG 7 MY_DISC 4010 YOUR_DISC 4020 MULT 3 WAIT 25ms
+    maint <- peer BFD STATE 1 DIAG 3 MY_DISC 4020 YOUR_DISC 4010 MULT 3 WAIT 10ms
+}
+
+// INSTRUCTION: Compile the BFD administrative teardown flow.
+COMPILE {
+    bfd_admin_shutdown(core_maint_rtr, core_peer_rtr)
+}

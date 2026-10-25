@@ -1,0 +1,26 @@
+// PROMPT: RabbitMQ x-consistent-hash exchange distributing order stream messages across sharded consumer queues.
+// TOKENS: HOST, IP, MAC, FLOW, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, PAYLOAD, WAIT, BASIC_DELIVER, COMPILE
+
+// INSTRUCTION: Define the order stream ingester host.
+HOST stream_ingester {
+    IP 10.115.120.44
+    MAC 00:1a:2b:73:c0:44
+}
+
+// INSTRUCTION: Define the RabbitMQ broker running rabbitmq_consistent_hash_exchange.
+HOST hash_broker {
+    IP 10.115.120.1
+    MAC 00:1a:2b:73:c0:01
+}
+
+// INSTRUCTION: Publish messages with customer IDs as routing keys to orders.consistent_hash.
+FLOW amqp_consistent_hash(c, b) {
+    c -> b AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "orders.consistent_hash" ROUTING_KEY "cust_10491" PAYLOAD "{'seq':1,'cust':10491}" WAIT 1ms
+    c -> b AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "orders.consistent_hash" ROUTING_KEY "cust_88310" PAYLOAD "{'seq':2,'cust':88310}" WAIT 1ms
+    c <- b AMQP BASIC_DELIVER CHANNEL 1 EXCHANGE "orders.consistent_hash" ROUTING_KEY "cust_10491" PAYLOAD "{'seq':1,'cust':10491}"
+}
+
+// INSTRUCTION: Compile the AMQP consistent hash exchange flow.
+COMPILE {
+    amqp_consistent_hash(stream_ingester, hash_broker)
+}

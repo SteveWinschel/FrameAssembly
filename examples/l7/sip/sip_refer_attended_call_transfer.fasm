@@ -1,0 +1,25 @@
+// PROMPT: SIP REFER method (RFC 3515) executing attended call transfer with 202 Accepted and NOTIFY.
+// TOKENS: HOST, IP, FLOW, SIP, METHOD, URI, FROM, TO, CALL_ID, CSEQ, CONTACT, WAIT, STATUS, REASON, BODY, COMPILE
+
+// INSTRUCTION: Define receptionist console transferring active call.
+HOST reception_phone {
+    IP 192.168.30.10
+}
+
+// INSTRUCTION: Define enterprise SIP call manager server.
+HOST call_manager {
+    IP 192.168.30.1
+}
+
+// INSTRUCTION: Define SIP REFER request, 202 Accepted response, and sipfrag NOTIFY confirmation.
+FLOW sip_refer_transfer(c, s) {
+    c -> s SIP METHOD "REFER" URI "sip:ext305@192.168.30.1" FROM "sip:oper@192.168.30.10" TO "sip:caller@192.168.30.1" CALL_ID "xfer-5501" CSEQ 10 CONTACT "sip:oper@192.168.30.10" WAIT 4ms
+    c <- s SIP STATUS 202 REASON "Accepted" CALL_ID "xfer-5501" CSEQ 10 WAIT 4ms
+    c <- s SIP METHOD "NOTIFY" URI "sip:oper@192.168.30.10" CALL_ID "xfer-5501" CSEQ 11 BODY "SIP/2.0 200 OK" WAIT 4ms
+    c -> s SIP STATUS 200 REASON "OK" CALL_ID "xfer-5501" CSEQ 11
+}
+
+// INSTRUCTION: Compile the SIP REFER attended call transfer flow.
+COMPILE {
+    sip_refer_transfer(reception_phone, call_manager)
+}

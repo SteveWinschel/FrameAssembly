@@ -1,5 +1,5 @@
 // PROMPT: IPv6 FLOWLABEL field boundary testing using minimum value 0 and maximum 20-bit value 1048575.
-// TOKENS: HOST, IP, FLOW, ->, FLOWLABEL, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, FLOWLABEL, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define boundary source host.
 HOST boundary_src { IP 2001:db8:a::1 }

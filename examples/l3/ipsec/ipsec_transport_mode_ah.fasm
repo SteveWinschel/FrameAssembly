@@ -1,5 +1,5 @@
 // PROMPT: IPsec security association advancing sequence numbers across tunnel endpoints.
-// TOKENS: HOST, IP, FLOW, ->, IPSEC, SPI, SEQ, COMPILE
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, COMPILE
 
 // INSTRUCTION: Define secure enterprise client.
 HOST secure_client { IP 10.10.1.5 }

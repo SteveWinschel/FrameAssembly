@@ -1,0 +1,23 @@
+// PROMPT: 5G NGAP (N2 interface) SCTP signaling between gNodeB and AMF on port 38412 with PPID 60 over IPv6.
+// TOKENS: HOST, IP, FLOW, DSCP, SCTP, CHUNK, INIT, VTAG, SRCPORT, DSTPORT, INIT_ACK, WAIT, COOKIE_ECHO, PAYLOAD, COOKIE_ACK, DATA, STREAM, SSN, PPID, SACK, COMPILE
+
+// INSTRUCTION: Define 5G gNodeB base station IPv6 N2 endpoint.
+HOST gnb_n2_v6 { IP 2001:db8:5000:a2::10 }
+
+// INSTRUCTION: Define 5G Access and Mobility Management Function (AMF) IPv6 N2 endpoint.
+HOST amf_n2_v6 { IP 2001:db8:5000:a2::1 }
+
+// INSTRUCTION: Define 5G N2 SCTP association setup and NGAP Setup Request/Response exchange (PPID 60).
+FLOW sctp_5g_ngap_n2(gnb, amf) {
+    gnb -> amf DSCP 46 SCTP CHUNK INIT VTAG 0 SRCPORT 38412 DSTPORT 38412
+    gnb <- amf DSCP 46 SCTP CHUNK INIT_ACK VTAG 384120 SRCPORT 38412 DSTPORT 38412 WAIT 1ms
+    gnb -> amf DSCP 46 SCTP CHUNK COOKIE_ECHO VTAG 384120 SRCPORT 38412 DSTPORT 38412 PAYLOAD "state_cookie_n2_5g" WAIT 1ms
+    gnb <- amf DSCP 46 SCTP CHUNK COOKIE_ACK VTAG 384120 SRCPORT 38412 DSTPORT 38412 WAIT 1ms
+    gnb -> amf DSCP 46 SCTP CHUNK DATA VTAG 384120 STREAM 0 SSN 0 PPID 60 SRCPORT 38412 DSTPORT 38412 PAYLOAD "ngap_ng_setup_request_gnb_id_001" WAIT 2ms
+    gnb <- amf DSCP 46 SCTP CHUNK SACK VTAG 384120 SRCPORT 38412 DSTPORT 38412 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing 5G NGAP over SCTP IPv6 session.
+COMPILE {
+    sctp_5g_ngap_n2(gnb_n2_v6, amf_n2_v6)
+}

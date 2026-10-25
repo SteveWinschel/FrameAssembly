@@ -1,0 +1,20 @@
+// PROMPT: HSRP active router resigning via Priority 0 and State 4 so standby promotes immediately to Active.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, HELLOTIME, HOLDTIME, WAIT, COMPILE
+
+// INSTRUCTION: Define active router lowering priority for maintenance.
+HOST hsrp_maint_r1 { IP 10.30.40.2 }
+
+// INSTRUCTION: Define standby router promoting to Active (State 16).
+HOST hsrp_promote_r2 { IP 10.30.40.3 }
+
+// INSTRUCTION: Define HSRP resignation and immediate standby promotion on Group 30.
+FLOW hsrp_resign_handover(r1, r2) {
+    r1 -> r2 HSRP GROUP 30 PRIORITY 0 STATE 4 VIP 10.30.40.1 HELLOTIME 3 HOLDTIME 10
+    r1 <- r2 HSRP GROUP 30 PRIORITY 105 STATE 16 VIP 10.30.40.1 HELLOTIME 3 HOLDTIME 10 WAIT 10ms
+    r1 -> r2 HSRP GROUP 30 PRIORITY 0 STATE 8 VIP 10.30.40.1 HELLOTIME 3 HOLDTIME 10 WAIT 10ms
+}
+
+// INSTRUCTION: Compile the HSRP maintenance resignation flow.
+COMPILE {
+    hsrp_resign_handover(hsrp_maint_r1, hsrp_promote_r2)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Embedded IoT gateway running Dropbear SSH banner exchange on port 22.
+// TOKENS: HOST, IP, FLOW, SSH, BANNER, COMPILE
+
+// INSTRUCTION: Define technician diagnostic laptop.
+HOST tech_laptop { IP 192.168.100.8 }
+
+// INSTRUCTION: Define embedded Linux router.
+HOST embedded_rtr { IP 192.168.100.1 }
+
+// INSTRUCTION: Define Dropbear SSH banner flow.
+FLOW ssh_dropbear_flow(c, s) {
+    c -> s SSH BANNER "SSH-2.0-OpenSSH_8.9"
+    c <- s SSH BANNER "SSH-2.0-dropbear_2024.84"
+}
+
+// INSTRUCTION: Compile block executing Dropbear banner flow.
+COMPILE {
+    ssh_dropbear_flow(tech_laptop, embedded_rtr)
+}

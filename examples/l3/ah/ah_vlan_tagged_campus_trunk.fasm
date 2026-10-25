@@ -1,0 +1,19 @@
+// PROMPT: IEEE 802.1Q VLAN-tagged IPsec AH authentication frames traversing a campus trunk.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define campus distribution switch A with MAC and IPv4 address.
+HOST dist_sw_alpha { IP 10.88.12.1 MAC 00:22:33:44:55:01 }
+
+// INSTRUCTION: Define campus distribution switch B on the same VLAN trunk.
+HOST dist_sw_beta { IP 10.88.12.2 MAC 00:22:33:44:55:02 }
+
+// INSTRUCTION: Define VLAN 120 tagged AH exchange with priority code point 6.
+FLOW ah_vlan_trunk_flow(a, b) {
+    a -> b AH SPI 77001 SEQ 1 VLAN 120 PCP 6 DEI 0
+    a <- b AH SPI 77002 SEQ 1 VLAN 120 PCP 6 DEI 0
+}
+
+// INSTRUCTION: Compile the VLAN-tagged AH trunk flow.
+COMPILE {
+    ah_vlan_trunk_flow(dist_sw_alpha, dist_sw_beta)
+}

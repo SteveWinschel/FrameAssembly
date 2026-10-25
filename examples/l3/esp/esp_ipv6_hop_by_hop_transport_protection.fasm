@@ -1,0 +1,25 @@
+// PROMPT: IPv6 Host-to-Host RFC 4303 ESP transport mode protecting upper-layer UDP telemetry (Next Header 17) with custom MACs.
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, FLOWLABEL, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6 telemetry collector node A.
+HOST v6_telem_esp_a {
+    IP 2001:db8:50:17::10
+    MAC 00:16:3e:50:17:0a
+}
+
+// INSTRUCTION: Define IPv6 telemetry analytics engine B.
+HOST v6_telem_esp_b {
+    IP 2001:db8:50:17::20
+    MAC 00:16:3e:50:17:14
+}
+
+// INSTRUCTION: Define IPv6 ESP transport mode (NEXT_HEADER 17) with FLOWLABEL and DSCP.
+FLOW esp_v6_udp_transport_flow(a, b) {
+    a -> b ESP SPI 601701 SEQ 1 IV "0017001700170017" ICV "f1e2d3c4b5a69788796a5b4c" NEXT_HEADER 17 FLOWLABEL 17050 DSCP 26 TTL 64 PAYLOAD "ENCRYPTED_UDP_GNMI_STREAM" WAIT 5ms
+    a <- b ESP SPI 601702 SEQ 1 IV "7100710071007100" ICV "4c5b6a798897a6b5c4d3e2f1" NEXT_HEADER 17 FLOWLABEL 17050 DSCP 26 TTL 64 PAYLOAD "ENCRYPTED_UDP_GNMI_ACK"
+}
+
+// INSTRUCTION: Compile the IPv6 ESP UDP telemetry transport mode flow.
+COMPILE {
+    esp_v6_udp_transport_flow(v6_telem_esp_a, v6_telem_esp_b)
+}

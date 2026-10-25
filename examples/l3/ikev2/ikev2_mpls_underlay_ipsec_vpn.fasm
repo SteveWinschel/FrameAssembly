@@ -1,0 +1,18 @@
+// PROMPT: IKEv2 SA negotiation packets transported across an MPLS carrier backbone.
+// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, SA_INIT, MSGID, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define customer edge router initiating IPsec over MPLS.
+HOST cust_ce_init { IP 10.222.1.1 }
+
+// INSTRUCTION: Define customer edge router responding over MPLS.
+HOST cust_ce_resp { IP 10.222.2.1 }
+
+// INSTRUCTION: Define MPLS labeled IKEv2 SA_INIT packet with label 500100 and EXP 4.
+FLOW ikev2_mpls_vpn_flow(ce1, ce2) {
+    ce1 -> ce2 IKEV2 INITIATOR_SPI 3141592653589793 RESPONDER_SPI 0 SA_INIT MSGID 0 MPLS 500100 EXP 4 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile block executing MPLS encapsulated IKEv2 packet.
+COMPILE {
+    ikev2_mpls_vpn_flow(cust_ce_init, cust_ce_resp)
+}

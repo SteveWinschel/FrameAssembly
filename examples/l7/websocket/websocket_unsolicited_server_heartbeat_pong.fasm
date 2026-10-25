@@ -1,0 +1,24 @@
+// PROMPT: Unidirectional unsolicited WebSocket PONG heartbeat sent by client to keep NAT binding alive.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, PONG, FIN_BIT, MASK_KEY, TTL, DF, PAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define natted home automation hub client.
+HOST home_hub {
+    IP 192.168.1.150
+}
+
+// INSTRUCTION: Define cloud smart-home relay server.
+HOST cloud_relay {
+    IP 192.168.1.1
+}
+
+// INSTRUCTION: Define unsolicited client PONG frame with custom TTL and DF flag.
+FLOW ws_unsolicited_pong(c, s) {
+    c -> s WEBSOCKET PONG FIN_BIT 1 MASK_KEY 0x6543210f TTL 64 DF PAYLOAD "keepalive" WAIT 15ms
+}
+
+// INSTRUCTION: Compile periodic unsolicited PONG loop.
+COMPILE {
+    LOOP 3 {
+        ws_unsolicited_pong(home_hub, cloud_relay)
+    }
+}

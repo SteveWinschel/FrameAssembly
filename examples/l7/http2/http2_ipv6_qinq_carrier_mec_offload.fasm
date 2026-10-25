@@ -1,0 +1,27 @@
+// PROMPT: IPv6 HTTP/2 Multi-access Edge Computing (MEC) inference request encapsulated in carrier QinQ VLANs.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP2, HEADERS, STREAM_ID, QINQ, INNER_VLAN, FLOWLABEL, TTL, DATA, HEXPAYLOAD, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define 5G MEC edge gateway over IPv6.
+HOST mec_edge_v6 {
+    IP 2001:db8:8080:1::10
+    MAC 00:1e:49:80:80:0a
+}
+
+// INSTRUCTION: Define MEC GPU inference server over IPv6.
+HOST mec_infer_v6 {
+    IP 2001:db8:8080:1::100
+    MAC 00:1e:49:80:80:64
+}
+
+// INSTRUCTION: Exchange HTTP/2 HEADERS and DATA on Stream 1 over IPv6 with QinQ outer 700 and inner 80.
+FLOW http2_v6_mec_qinq(edge, srv) {
+    edge -> srv HTTP2 HEADERS STREAM_ID 1 QINQ 700 INNER_VLAN 80 FLOWLABEL 80801 TTL 64
+    edge -> srv HTTP2 DATA STREAM_ID 1 QINQ 700 INNER_VLAN 80 FLOWLABEL 80801 TTL 64 HEXPAYLOAD "828684418aa0e41d139d09"
+    edge <- srv HTTP2 HEADERS STREAM_ID 1 QINQ 700 INNER_VLAN 80 FLOWLABEL 80801 TTL 64
+    edge <- srv HTTP2 DATA STREAM_ID 1 QINQ 700 INNER_VLAN 80 FLOWLABEL 80801 TTL 64 PAYLOAD "{'bbox':[12,34,120,240]}"
+}
+
+// INSTRUCTION: Compile the IPv6 QinQ carrier MEC HTTP/2 offload scenario.
+COMPILE {
+    http2_v6_mec_qinq(mec_edge_v6, mec_infer_v6)
+}

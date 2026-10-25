@@ -1,0 +1,25 @@
+// PROMPT: SNMPv2c GetRequest polling RFC 6933 ENTITY-MIB entPhysicalModelName and entPhysicalSerialNum for optics audit.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP2, GET, COMMUNITY, REQID, VARBIND, NULLVAL, RESPONSE, STRING, COMPILE
+
+// INSTRUCTION: Define the hardware asset management server.
+HOST asset_mgr {
+    IP 10.146.20.25
+    MAC 00:1a:2b:92:20:25
+}
+
+// INSTRUCTION: Define the modular chassis switch agent.
+HOST chassis_sw {
+    IP 10.146.20.1
+    MAC 00:1a:2b:92:20:01
+}
+
+// INSTRUCTION: Query entPhysicalDescr and entPhysicalSerialNum for QSFP28 slot 1042.
+FLOW snmpv2c_entity_inventory(m, s) {
+    m -> s SNMP2 GET COMMUNITY "inventory_ro" REQID 4300 VARBIND 1.3.6.1.2.1.47.1.1.1.1.2.1042 NULLVAL VARBIND 1.3.6.1.2.1.47.1.1.1.1.11.1042 NULLVAL
+    m <- s SNMP2 RESPONSE COMMUNITY "inventory_ro" REQID 4300 VARBIND 1.3.6.1.2.1.47.1.1.1.1.2.1042 STRING "100GBASE-LR4 QSFP28" VARBIND 1.3.6.1.2.1.47.1.1.1.1.11.1042 STRING "FNS2419088A"
+}
+
+// INSTRUCTION: Compile the SNMPv2c ENTITY-MIB optical transceiver inventory flow.
+COMPILE {
+    snmpv2c_entity_inventory(asset_mgr, chassis_sw)
+}

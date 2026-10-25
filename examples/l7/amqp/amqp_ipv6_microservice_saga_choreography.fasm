@@ -1,0 +1,25 @@
+// PROMPT: IPv6 event-driven microservice saga choreography exchanging OrderCreated and PaymentReserved events via AMQP.
+// TOKENS: HOST, IP, MAC, FLOW, AMQP, BASIC_DELIVER, CHANNEL, EXCHANGE, ROUTING_KEY, PAYLOAD, WAIT, BASIC_PUBLISH, COMPILE
+
+// INSTRUCTION: Define the IPv6 payment microservice host.
+HOST payment_svc_v6 {
+    IP 2001:db8:115:50::30
+    MAC 00:1a:2b:73:50:30
+}
+
+// INSTRUCTION: Define the IPv6 RabbitMQ event mesh broker.
+HOST broker_v6 {
+    IP 2001:db8:115:50::1
+    MAC 00:1a:2b:73:50:01
+}
+
+// INSTRUCTION: Consume OrderCreated via Basic.Deliver and publish PaymentReserved via Basic.Publish over IPv6.
+FLOW amqp_ipv6_saga(s, b) {
+    s <- b AMQP BASIC_DELIVER CHANNEL 1 EXCHANGE "saga.events" ROUTING_KEY "order.created" PAYLOAD "{'saga_id':'s_99','amount':75.00}" WAIT 2ms
+    s -> b AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "saga.events" ROUTING_KEY "payment.reserved" PAYLOAD "{'saga_id':'s_99','status':'RESERVED'}"
+}
+
+// INSTRUCTION: Compile the IPv6 AMQP saga choreography flow.
+COMPILE {
+    amqp_ipv6_saga(payment_svc_v6, broker_v6)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Kubernetes CNI pod-to-pod network overlay communication encapsulated over VNI 4096.
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define Kubernetes worker node 1 running source pod.
+HOST k8s_worker_1 { IP 10.244.1.1 }
+
+// INSTRUCTION: Define Kubernetes worker node 2 running destination pod.
+HOST k8s_worker_2 { IP 10.244.2.1 }
+
+// INSTRUCTION: Define pod-to-pod CNI overlay exchange flow on VNI 4096.
+FLOW k8s_cni_overlay_flow(w1, w2) {
+    w1 -> w2 VXLAN VNI 4096 PAYLOAD "HTTP_GET_POD_REST_API"
+    w1 <- w2 VXLAN VNI 4096 PAYLOAD "HTTP_200_POD_REST_RESP"
+}
+
+// INSTRUCTION: Compile block executing container overlay communication.
+COMPILE {
+    k8s_cni_overlay_flow(k8s_worker_1, k8s_worker_2)
+}

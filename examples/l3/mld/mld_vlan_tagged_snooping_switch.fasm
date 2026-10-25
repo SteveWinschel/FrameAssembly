@@ -1,0 +1,25 @@
+// PROMPT: Build an 802.1Q VLAN-tagged MLD snooping query and report exchange on a campus switch VLAN
+// TOKENS: HOST, IP, MAC, FLOW, MLD, QUERY, MULTICAST_ADDR, MAX_RESP_DELAY, VLAN, PCP, TTL, WAIT, REPORT, COMPILE
+
+// INSTRUCTION: Define the VLAN 250 MLD snooping querier switch
+HOST snoop_switch {
+    IP fe80::250:1
+    MAC 00:50:56:c3:02:01
+}
+
+// INSTRUCTION: Define the VLAN 250 IPv6 multimedia workstation
+HOST media_client {
+    IP fe80::250:88
+    MAC 00:50:56:c3:02:88
+}
+
+// INSTRUCTION: Exchange MLD query and report frames tagged with VLAN 250 and priority 6
+FLOW mld_vlan_snooping(querier, client) {
+    querier -> client MLD QUERY MULTICAST_ADDR ff08::400:1 MAX_RESP_DELAY 5000 VLAN 250 PCP 6 TTL 1 WAIT 20ms
+    client -> querier MLD REPORT MULTICAST_ADDR ff08::400:1 MAX_RESP_DELAY 0 VLAN 250 PCP 6 TTL 1
+}
+
+// INSTRUCTION: Compile the VLAN-tagged MLD snooping flow
+COMPILE {
+    mld_vlan_snooping(snoop_switch, media_client)
+}

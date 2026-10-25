@@ -1,0 +1,18 @@
+// PROMPT: Network infrastructure clock synchronization isolated on dedicated 802.1Q management VLAN.
+// TOKENS: HOST, IP, FLOW, NTP, MODE, VN, STRATUM, POLL, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define top of rack management switch.
+HOST tor_mgmt_switch { IP 10.88.10.15 }
+
+// INSTRUCTION: Define datacenter grandmaster clock on VLAN 200.
+HOST grandmaster_clock { IP 10.88.10.1 }
+
+// INSTRUCTION: Define tagged VLAN NTP client request flow.
+FLOW vlan_ntp_sync(sw, gm) {
+    sw -> gm NTP MODE 3 VN 4 STRATUM 0 POLL 6 VLAN 200 PCP 6 DEI 0
+}
+
+// INSTRUCTION: Compile VLAN infrastructure sync scenario.
+COMPILE {
+    vlan_ntp_sync(tor_mgmt_switch, grandmaster_clock)
+}

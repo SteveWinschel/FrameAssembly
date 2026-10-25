@@ -1,0 +1,31 @@
+// PROMPT: Simulate an legacy SMTP HELO greeting and QUIT exchange with a mail relay on TCP port 25.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SMTP, CODE, REPLY, HELO, QUIT, COMPILE
+
+// INSTRUCTION: Define the legacy mail client and corporate SMTP gateway.
+HOST legacy_mta {
+    MAC 00:14:22:10:20:30
+    IP 10.10.25.50
+}
+
+// INSTRUCTION: Define the smtp_gw mail endpoint.
+HOST smtp_gw {
+    MAC 00:14:22:10:20:01
+    IP 10.10.25.1
+}
+
+// INSTRUCTION: Establish TCP port 25, receive 220 banner, send HELO, receive 250 OK, and close with QUIT.
+FLOW smtp_legacy_helo_session(legacy_mta, smtp_gw) {
+    legacy_mta -> smtp_gw TCP SYN SRCPORT 49125 DSTPORT 25
+    smtp_gw -> legacy_mta TCP SYN ACK
+    legacy_mta -> smtp_gw TCP ACK
+    smtp_gw -> legacy_mta SMTP CODE 220 REPLY "mx1.corp.local ESMTP Service Ready"
+    legacy_mta -> smtp_gw SMTP HELO "printer.corp.local"
+    smtp_gw -> legacy_mta SMTP CODE 250 REPLY "mx1.corp.local Hello printer.corp.local"
+    legacy_mta -> smtp_gw SMTP QUIT
+    smtp_gw -> legacy_mta SMTP CODE 221 REPLY "2.0.0 Bye"
+}
+
+// INSTRUCTION: Compile the legacy SMTP HELO session flow.
+COMPILE {
+    smtp_legacy_helo_session(legacy_mta, smtp_gw)
+}

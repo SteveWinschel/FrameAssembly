@@ -1,0 +1,24 @@
+// PROMPT: MASQUE (RFC 9298) CONNECT-UDP proxy tunnel over QUIC Short header datagrams on port 8443.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, VERSION, DCID, SCID, SRCPORT, DSTPORT, PKT_NUM, WAIT, SHORT, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define privacy relay client establishing MASQUE tunnel.
+HOST masque_client {
+    IP 10.88.77.12
+}
+
+// INSTRUCTION: Define MASQUE oblivious HTTP/3 proxy server on port 8443.
+HOST masque_proxy {
+    IP 10.88.77.1
+}
+
+// INSTRUCTION: Define QUIC setup and HTTP/3 Datagram capsule tunneling UDP payload.
+FLOW quic_masque_tunnel(c, s) {
+    c -> s QUIC INITIAL VERSION 1 DCID 0x777788889999aaaa SCID 0x1111222233334444 SRCPORT 58443 DSTPORT 8443 PKT_NUM 1 WAIT 4ms
+    c -> s QUIC SHORT DCID 0x777788889999aaaa SRCPORT 58443 DSTPORT 8443 PKT_NUM 2 HEXPAYLOAD "004500001c" WAIT 4ms
+    c <- s QUIC SHORT DCID 0x1111222233334444 SRCPORT 8443 DSTPORT 58443 PKT_NUM 1 HEXPAYLOAD "0045000020"
+}
+
+// INSTRUCTION: Compile the MASQUE CONNECT-UDP over QUIC scenario.
+COMPILE {
+    quic_masque_tunnel(masque_client, masque_proxy)
+}

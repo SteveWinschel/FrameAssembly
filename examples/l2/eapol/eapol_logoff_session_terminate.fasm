@@ -1,5 +1,5 @@
 // PROMPT: IEEE 802.1X EAPOL logoff frame terminating an authenticated network port session.
-// TOKENS: HOST, IP, FLOW, ->, EAPOL, TYPE, LOGOFF, COMPILE
+// TOKENS: HOST, IP, FLOW, EAPOL, TYPE, LOGOFF, COMPILE
 
 // INSTRUCTION: Define client disconnecting from secured access port.
 HOST departing_client { IP 10.1.1.55 }

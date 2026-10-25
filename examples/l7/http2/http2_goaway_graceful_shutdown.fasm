@@ -1,0 +1,23 @@
+// PROMPT: HTTP/2 graceful connection shutdown via GOAWAY frame on Stream 0 followed by TCP FIN teardown.
+// TOKENS: HOST, IP, FLOW, HTTP2, HEADERS, STREAM_ID, GOAWAY, TCP, FIN, ACK, COMPILE
+
+// INSTRUCTION: Define HTTP/2 client host.
+HOST h2_peer_c { IP 10.43.0.25 }
+
+// INSTRUCTION: Define HTTP/2 origin server initiating drain.
+HOST h2_peer_s { IP 10.43.0.1 }
+
+// INSTRUCTION: Complete active stream 1 headers, emit GOAWAY on stream 0, and close TCP connection.
+FLOW http2_goaway_shutdown(c, s) {
+    c -> s HTTP2 HEADERS STREAM_ID 1
+    c <- s HTTP2 HEADERS STREAM_ID 1
+    c <- s HTTP2 GOAWAY STREAM_ID 0
+    c -> s TCP FIN ACK
+    c <- s TCP FIN ACK
+    c -> s TCP ACK
+}
+
+// INSTRUCTION: Compile the HTTP/2 GOAWAY connection drain scenario.
+COMPILE {
+    http2_goaway_shutdown(h2_peer_c, h2_peer_s)
+}

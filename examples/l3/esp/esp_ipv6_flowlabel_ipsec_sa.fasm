@@ -1,0 +1,19 @@
+// PROMPT: IPv6 ESP tunnel preserving inner traffic classes via IPv6 Flow Labels and DSCP AF41.
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, FLOWLABEL, DSCP, ECN, TTL, COMPILE
+
+// INSTRUCTION: Define IPv6 cloud gateway North.
+HOST v6_esp_north { IP 2001:db8:900:1::1 MAC 00:25:90:aa:00:01 }
+
+// INSTRUCTION: Define IPv6 cloud gateway South.
+HOST v6_esp_south { IP 2001:db8:900:2::1 MAC 00:25:90:aa:00:02 }
+
+// INSTRUCTION: Define IPv6 ESP session with NEXT_HEADER 41 (IPv6-in-IPv6) and Flow Label.
+FLOW esp_ipv6_flowlabel_sa(n, s) {
+    n -> s ESP SPI 700100 SEQ 12 IV "1011121314151617" ICV "a0a1a2a3a4a5a6a7a8a9aaab" NEXT_HEADER 41 FLOWLABEL 262144 DSCP 34 ECN 1 TTL 64
+    n <- s ESP SPI 700200 SEQ 12 IV "1716151413121110" ICV "baaa9a8a7a6a5a4a3a2a1a0a" NEXT_HEADER 41 FLOWLABEL 524288 DSCP 34 ECN 1 TTL 64
+}
+
+// INSTRUCTION: Compile the IPv6 Flow Label ESP tunnel flow.
+COMPILE {
+    esp_ipv6_flowlabel_sa(v6_esp_north, v6_esp_south)
+}

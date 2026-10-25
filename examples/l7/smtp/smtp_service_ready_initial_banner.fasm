@@ -1,0 +1,20 @@
+// PROMPT: Mail transfer agent greeting client with 220 ESMTP service ready banner.
+// TOKENS: HOST, IP, FLOW, SMTP, CODE, REPLY, EHLO, COMPILE
+
+// INSTRUCTION: Define client connection node.
+HOST mta_client { IP 10.60.2.14 }
+
+// INSTRUCTION: Define authoritative inbound mail server.
+HOST inbound_mx { IP 10.60.2.25 }
+
+// INSTRUCTION: Define initial SMTP greeting and EHLO handshake flow.
+FLOW smtp_greeting_flow(c, s) {
+    c <- s SMTP CODE 220 REPLY "mx1.enterprise.net ESMTP ready at Wed, 24 Oct 2026"
+    c -> s SMTP EHLO "mta-client.network.org"
+    c <- s SMTP CODE 250 REPLY "mx1.enterprise.net greets mta-client.network.org"
+}
+
+// INSTRUCTION: Compile block executing banner exchange.
+COMPILE {
+    smtp_greeting_flow(mta_client, inbound_mx)
+}

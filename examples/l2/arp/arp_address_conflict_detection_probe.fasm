@@ -1,0 +1,26 @@
+// PROMPT: RFC 5227 IPv4 Address Conflict Detection (ACD) ARP probe with zero sender IP and subsequent announcement.
+// TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, SENDERMAC, SENDERIP, TARGETMAC, TARGETIP, WAIT, COMPILE
+
+// INSTRUCTION: Define newly booting DHCP client probing tentative IPv4 address.
+HOST acd_prober {
+    IP 192.168.42.77
+    MAC 08:00:27:a1:b2:c3
+}
+
+// INSTRUCTION: Define local broadcast segment peer receiving ACD probes.
+HOST lan_listener {
+    IP 192.168.42.1
+    MAC 00:1c:73:00:00:99
+}
+
+// INSTRUCTION: Define RFC 5227 ARP probe with 0.0.0.0 SPA followed by ARP announcement.
+FLOW acd_probe_and_announce(prober, segment) {
+    prober -> segment ARP REQUEST SENDERMAC 08:00:27:a1:b2:c3 SENDERIP 0.0.0.0 TARGETMAC 00:00:00:00:00:00 TARGETIP 192.168.42.77
+    prober -> segment ARP REQUEST SENDERMAC 08:00:27:a1:b2:c3 SENDERIP 0.0.0.0 TARGETMAC 00:00:00:00:00:00 TARGETIP 192.168.42.77 WAIT 1s
+    prober -> segment ARP REQUEST SENDERMAC 08:00:27:a1:b2:c3 SENDERIP 192.168.42.77 TARGETMAC 00:00:00:00:00:00 TARGETIP 192.168.42.77 WAIT 2s
+}
+
+// INSTRUCTION: Compile block executing IPv4 Address Conflict Detection sequence.
+COMPILE {
+    acd_probe_and_announce(acd_prober, lan_listener)
+}

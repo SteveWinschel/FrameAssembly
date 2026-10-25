@@ -1,0 +1,19 @@
+// PROMPT: NFSv4 compound traverse inspecting export root and mounting user home directory.
+// TOKENS: HOST, IP, FLOW, NFS, VERS, PROC, PATH, WAIT, COMPILE
+
+// INSTRUCTION: Define login desktop client.
+HOST desktop_login_pc { IP 192.168.100.45 }
+
+// INSTRUCTION: Define corporate user fileserver.
+HOST user_fileserver { IP 192.168.100.1 }
+
+// INSTRUCTION: Define compound root traversal flow.
+FLOW traverse_export_flow(pc, srv) {
+    pc -> srv NFS VERS 4 PROC "LOOKUP" PATH "/" WAIT 5ms
+    pc -> srv NFS VERS 4 PROC "LOOKUP" PATH "/home/developers"
+}
+
+// INSTRUCTION: Compile compound export traverse scenario.
+COMPILE {
+    traverse_export_flow(desktop_login_pc, user_fileserver)
+}

@@ -1,0 +1,21 @@
+// PROMPT: Periodic AMQP heartbeat keepalive frames exchanged in a loop with inter-frame delays.
+// TOKENS: HOST, IP, FLOW, AMQP, HEARTBEAT, CHANNEL, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define the long-lived AMQP subscriber client.
+HOST sub_client { IP 192.168.40.15 }
+
+// INSTRUCTION: Define the AMQP broker server.
+HOST broker_srv { IP 192.168.40.1 }
+
+// INSTRUCTION: Exchange bidirectional AMQP heartbeat frames on channel 0.
+FLOW amqp_heartbeat_cycle(c, s) {
+    c -> s AMQP HEARTBEAT CHANNEL 0 WAIT 1s
+    c <- s AMQP HEARTBEAT CHANNEL 0 WAIT 1s
+}
+
+// INSTRUCTION: Run 3 consecutive heartbeat cycles in the compile block.
+COMPILE {
+    LOOP 3 {
+        amqp_heartbeat_cycle(sub_client, broker_srv)
+    }
+}

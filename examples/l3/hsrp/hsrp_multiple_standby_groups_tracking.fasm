@@ -1,0 +1,22 @@
+// PROMPT: Multiple HSRP standby groups running concurrently for VLAN active/active load sharing.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, COMPILE
+
+// INSTRUCTION: Define multi-group aggregation router 1.
+HOST mhsrp_rtr1 { IP 10.1.0.251 }
+
+// INSTRUCTION: Define multi-group aggregation router 2.
+HOST mhsrp_rtr2 { IP 10.1.0.252 }
+
+// INSTRUCTION: Define HSRP all-routers multicast group.
+HOST mhsrp_mcast { IP 224.0.0.2 }
+
+// INSTRUCTION: Define flow announcing Active for Group 1 and Standby for Group 2.
+FLOW mhsrp_dual_group(r1, r2, mcast) {
+    r1 -> mcast HSRP GROUP 1 PRIORITY 110 STATE 16 VIP 10.1.1.1
+    r2 -> mcast HSRP GROUP 2 PRIORITY 110 STATE 16 VIP 10.1.2.1
+}
+
+// INSTRUCTION: Compile block executing dual HSRP group coordination.
+COMPILE {
+    mhsrp_dual_group(mhsrp_rtr1, mhsrp_rtr2, mhsrp_mcast)
+}

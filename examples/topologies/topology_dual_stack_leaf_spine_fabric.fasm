@@ -1,5 +1,5 @@
 // PROMPT: Dual-stack data center Clos leaf-spine fabric with BGP peering and VXLAN overlay encapsulation.
-// TOKENS: HOST, IP, FLOW, ->, BGP, OPEN, ASN, HOLDTIME, BGPID, VXLAN, VNI, COMPILE
+// TOKENS: HOST, IP, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, VXLAN, VNI, COMPILE
 
 // INSTRUCTION: Define IPv4 leaf switch.
 HOST leaf1_v4 { IP 10.0.1.1 }

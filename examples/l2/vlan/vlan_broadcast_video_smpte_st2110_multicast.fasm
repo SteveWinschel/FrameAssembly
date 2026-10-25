@@ -1,0 +1,25 @@
+// PROMPT: Broadcast television studio SMPTE ST 2110-20 uncompressed video over IP multicast on VLAN 2110 with PCP 6.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define studio IP camera encoder transmitting uncompressed video RTP multicast stream.
+HOST studio_cam_enc {
+    IP 192.168.211.10
+    MAC 00:0f:53:d3:00:0a
+}
+
+// INSTRUCTION: Define SMPTE ST 2110 production switcher multicast group receiver.
+HOST vision_mixer_mcast {
+    IP 239.211.0.10
+    MAC 01:00:5e:53:00:0a
+}
+
+// INSTRUCTION: Stream high-priority RTP video packets on VLAN 2110 PCP 6 DEI 0 with DSCP CS6.
+FLOW vlan_smpte2110_stream(cam, mixer) {
+    cam -> mixer VLAN 2110 PCP 6 DEI 0 DSCP 48 UDP SRCPORT 50000 DSTPORT 50000 PAYLOAD "smpte_st2110_20_1080p60_line_001" WAIT 1ms
+    cam -> mixer VLAN 2110 PCP 6 DEI 0 DSCP 48 UDP SRCPORT 50000 DSTPORT 50000 PAYLOAD "smpte_st2110_20_1080p60_line_002"
+}
+
+// INSTRUCTION: Compile the broadcast studio VLAN 2110 SMPTE ST 2110 multicast flow.
+COMPILE {
+    vlan_smpte2110_stream(studio_cam_enc, vision_mixer_mcast)
+}

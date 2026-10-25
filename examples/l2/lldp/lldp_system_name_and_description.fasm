@@ -1,5 +1,5 @@
 // PROMPT: Data center Link Layer Discovery Protocol frame advertising system name and port parameters.
-// TOKENS: HOST, IP, FLOW, ->, LLDP, SYSNAME, COMPILE
+// TOKENS: HOST, IP, FLOW, LLDP, SYSNAME, COMPILE
 
 // INSTRUCTION: Define core switch port.
 HOST switch_core { IP 10.0.0.1 }

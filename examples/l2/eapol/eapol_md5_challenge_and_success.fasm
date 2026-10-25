@@ -1,0 +1,29 @@
+// PROMPT: Complete IEEE 802.1X EAP-MD5 challenge-response authentication sequence ending in EAP-Success (Code 3).
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, START, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, WAIT, IDENTITY, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define wired workstation supplicant.
+HOST md5_supplicant {
+    IP 192.168.30.15
+    MAC 00:24:e8:30:00:0f
+}
+
+// INSTRUCTION: Define campus edge authenticator switch.
+HOST md5_authenticator {
+    IP 192.168.30.1
+    MAC 00:1e:be:30:00:01
+}
+
+// INSTRUCTION: Define full EAPOL-Start, EAP-Identity, EAP-MD5 Challenge (Method 4), and EAP-Success flow.
+FLOW eapol_md5_challenge_success(supp, auth) {
+    supp -> auth EAPOL VERSION 2 TYPE START
+    supp <- auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 10 EAP_METHOD 1 WAIT 2ms
+    supp -> auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 10 EAP_METHOD 1 IDENTITY "eng_workstation_15" WAIT 2ms
+    supp <- auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 11 EAP_METHOD 4 HEXPAYLOAD "10a1b2c3d4e5f60718293a4b5c6d7e8f90" WAIT 5ms
+    supp -> auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 11 EAP_METHOD 4 HEXPAYLOAD "1099887766554433221100ffeeddccbbaa" WAIT 3ms
+    supp <- auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 11 EAP_METHOD 4 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing complete EAP-MD5 authentication handshake.
+COMPILE {
+    eapol_md5_challenge_success(md5_supplicant, md5_authenticator)
+}

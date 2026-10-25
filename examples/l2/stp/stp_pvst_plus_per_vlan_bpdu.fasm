@@ -1,0 +1,25 @@
+// PROMPT: Per-VLAN Spanning Tree Plus (PVST+) BPDUs transmitted to shared spanning tree multicast MAC 01:00:0c:cc:cc:cd on VLAN 100.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DSTMAC, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, FLAGS, WAIT, COMPILE
+
+// INSTRUCTION: Define PVST+ primary distribution switch for VLAN 100.
+HOST pvst_pri_dist {
+    IP 10.100.0.1
+    MAC 00:1e:14:64:00:01
+}
+
+// INSTRUCTION: Define PVST+ secondary distribution switch for VLAN 100.
+HOST pvst_sec_dist {
+    IP 10.100.0.2
+    MAC 00:1e:14:64:00:02
+}
+
+// INSTRUCTION: Define VLAN 100 tagged PVST+ BPDUs directed to 01:00:0c:cc:cc:cd.
+FLOW pvst_plus_vlan_bpdu(pri, sec) {
+    pri -> sec VLAN 100 PCP 7 DSTMAC 01:00:0c:cc:cc:cd STP RSTP ROOT_ID "4196:00:1e:14:64:00:01" BRIDGE_ID "4196:00:1e:14:64:00:01" COST 0 PORT_ID 32769 FLAGS 60
+    pri <- sec VLAN 100 PCP 7 DSTMAC 01:00:0c:cc:cc:cd STP RSTP ROOT_ID "4196:00:1e:14:64:00:01" BRIDGE_ID "8292:00:1e:14:64:00:02" COST 2000 PORT_ID 32770 FLAGS 60 WAIT 2s
+}
+
+// INSTRUCTION: Compile block executing PVST+ tagged BPDU exchange.
+COMPILE {
+    pvst_plus_vlan_bpdu(pvst_pri_dist, pvst_sec_dist)
+}

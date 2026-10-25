@@ -1,0 +1,27 @@
+// PROMPT: Simulate an out-of-band serial console server performing Zero-Touch Provisioning (ZTP) via DHCP on management VLAN 99.
+// TOKENS: HOST, IP, MAC, FLOW, DHCP, DISCOVER, XID, CHADDR, HOSTNAME, VLAN, PCP, WAIT, OFFER, YIADDR, SIADDR, SUBNET_MASK, ROUTER, DNS_SERVER, LEASE_TIME, REQUEST, ACK, COMPILE
+
+// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+HOST dhcp_client {
+    IP 192.168.99.22
+    MAC 00:25:90:67:01:0a
+}
+
+// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+HOST dhcp_server {
+    IP 192.168.99.1
+    MAC 00:25:90:67:01:01
+}
+
+// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
+FLOW dhcp_scenario_flow(c, s) {
+    c -> s DHCP DISCOVER XID 0x31001011 CHADDR 00:13:c6:99:00:16 HOSTNAME "oob-cm7148-rack02" VLAN 99 PCP 6 WAIT 3ms
+    c <- s DHCP OFFER XID 0x31001011 YIADDR 192.168.99.22 SIADDR 192.168.99.10 SUBNET_MASK 255.255.255.0 ROUTER 192.168.99.1 DNS_SERVER 192.168.99.2 LEASE_TIME 604800 VLAN 99 PCP 6 WAIT 3ms
+    c -> s DHCP REQUEST XID 0x31001011 YIADDR 192.168.99.22 SIADDR 192.168.99.10 CHADDR 00:13:c6:99:00:16 VLAN 99 PCP 6 WAIT 3ms
+    c <- s DHCP ACK XID 0x31001011 YIADDR 192.168.99.22 SIADDR 192.168.99.10 SUBNET_MASK 255.255.255.0 ROUTER 192.168.99.1 DNS_SERVER 192.168.99.2 LEASE_TIME 604800 VLAN 99 PCP 6
+}
+
+// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
+COMPILE {
+    dhcp_scenario_flow(dhcp_client, dhcp_server)
+}

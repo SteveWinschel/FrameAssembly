@@ -1,0 +1,19 @@
+// PROMPT: Flow control window buffer adjustment packet with MSG_CODE 93.
+// TOKENS: HOST, IP, FLOW, SSH, MSG_CODE, COMPILE
+
+// INSTRUCTION: Define streaming file receiver.
+HOST receiver_host { IP 10.120.3.5 }
+
+// INSTRUCTION: Define file transfer source server.
+HOST transfer_server { IP 10.120.3.1 }
+
+// INSTRUCTION: Define bidirectional window adjustment flow.
+FLOW ssh_window_adjust_flow(c, s) {
+    c -> s SSH MSG_CODE 93
+    c <- s SSH MSG_CODE 93
+}
+
+// INSTRUCTION: Compile block executing window adjustment.
+COMPILE {
+    ssh_window_adjust_flow(receiver_host, transfer_server)
+}

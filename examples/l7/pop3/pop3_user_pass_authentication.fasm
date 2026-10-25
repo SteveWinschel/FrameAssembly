@@ -1,5 +1,5 @@
 // PROMPT: POP3 mailbox access authentication with USER and PASS commands.
-// TOKENS: HOST, IP, FLOW, ->, <-, POP3, CMD, ARG, OK, COMPILE
+// TOKENS: HOST, IP, FLOW, POP3, CMD, ARG, OK, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.15 }

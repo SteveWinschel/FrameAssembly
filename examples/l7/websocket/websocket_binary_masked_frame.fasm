@@ -1,5 +1,5 @@
 // PROMPT: WebSocket client-to-server masked binary frame with custom mask key over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::50 }

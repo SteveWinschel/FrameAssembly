@@ -1,0 +1,25 @@
+// PROMPT: gRPC backend panic recovery middleware returning GRPC_STATUS 13 (INTERNAL) to upstream caller.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define API gateway calling recommendation engine.
+HOST rec_gateway {
+    IP 10.100.30.5
+    MAC 02:42:0a:64:1e:05
+}
+
+// INSTRUCTION: Define recommendation engine gRPC pod experiencing a database driver error.
+HOST rec_engine_pod {
+    IP 10.100.30.50
+    MAC 02:42:0a:64:1e:32
+}
+
+// INSTRUCTION: Call RankCandidates and receive GRPC_STATUS 13 INTERNAL error code.
+FLOW grpc_err_internal(c, s) {
+    c -> s GRPC SERVICE "rec.v1.RankingService" METHOD "RankCandidates"
+    c <- s GRPC SERVICE "rec.v1.RankingService" METHOD "RankCandidates" GRPC_STATUS 13
+}
+
+// INSTRUCTION: Compile the gRPC status 13 INTERNAL server error scenario.
+COMPILE {
+    grpc_err_internal(rec_gateway, rec_engine_pod)
+}

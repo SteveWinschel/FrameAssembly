@@ -1,0 +1,19 @@
+// PROMPT: RFC 2890 full-featured GRE header combining Checksum, Key, Sequence, and Protocol Type overrides.
+// TOKENS: HOST, IP, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, CHECKSUM, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define enterprise core router A.
+HOST gre_full_rtr_a { IP 172.16.47.10 }
+
+// INSTRUCTION: Define enterprise core router B.
+HOST gre_full_rtr_b { IP 172.16.47.20 }
+
+// INSTRUCTION: Define bidirectional GRE exchange enabling all RFC 2890 optional header words.
+FLOW gre_rfc2890_full(a, b) {
+    a -> b GRE GRE_KEY 305419896 GRE_SEQ 100 GRE_PROTO 0x86DD CHECKSUM PAYLOAD "IPV6_OVER_IPV4_GRE_PKT_1"
+    a <- b GRE GRE_KEY 305419896 GRE_SEQ 101 GRE_PROTO 0x86DD CHECKSUM PAYLOAD "IPV6_OVER_IPV4_GRE_PKT_2"
+}
+
+// INSTRUCTION: Compile the full RFC 2890 GRE header flow.
+COMPILE {
+    gre_rfc2890_full(gre_full_rtr_a, gre_full_rtr_b)
+}

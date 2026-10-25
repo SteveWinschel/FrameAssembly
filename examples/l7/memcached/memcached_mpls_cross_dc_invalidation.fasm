@@ -1,0 +1,27 @@
+// PROMPT: Simulate cross-datacenter Memcached cache invalidation DELETE commands over an MPLS WAN label 5120.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, CMD, KEY, OPAQUE, MPLS, EXP, BOS, MPLS_TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define the primary datacenter cache invalidator service.
+HOST dc1_invalidator {
+    IP 10.210.1.15
+    MAC 00:50:56:d2:01:0f
+}
+
+// INSTRUCTION: Define the secondary datacenter Memcached replica node.
+HOST dc2_memcached {
+    IP 10.220.1.15
+    MAC 00:50:56:dc:01:0f
+}
+
+// INSTRUCTION: Issue binary DELETE commands with opaque correlation IDs across MPLS label 5120.
+FLOW memcached_mpls_invalidate(c, s) {
+    c -> s MEMCACHED CMD "DELETE" KEY "user:profile:88412" OPAQUE 7001 MPLS 5120 EXP 4 BOS 1 MPLS_TTL 64 WAIT 4ms
+    c <- s MEMCACHED CMD "DELETED" KEY "user:profile:88412" OPAQUE 7001 MPLS 5120 EXP 4 BOS 1 MPLS_TTL 64 WAIT 2ms
+    c -> s MEMCACHED CMD "DELETE" KEY "user:perms:88412" OPAQUE 7002 MPLS 5120 EXP 4 BOS 1 MPLS_TTL 64 WAIT 4ms
+    c <- s MEMCACHED CMD "DELETED" KEY "user:perms:88412" OPAQUE 7002 MPLS 5120 EXP 4 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the MPLS cross-datacenter Memcached invalidation flow.
+COMPILE {
+    memcached_mpls_invalidate(dc1_invalidator, dc2_memcached)
+}

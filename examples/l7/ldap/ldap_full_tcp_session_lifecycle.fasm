@@ -1,0 +1,33 @@
+// PROMPT: Create a complete TCP-connected LDAP session performing bind, user search, entry retrieval, search done, and unbind.
+// TOKENS: HOST, IP, FLOW, TCP, DSTPORT, SYN, SEQ, WAIT, ACK, ACKNUM, LDAP, MSGID, BIND_REQ, BASE_DN, BIND_RES, RESULT_CODE, SEARCH_REQ, FILTER, SEARCH_ENTRY, SEARCH_DONE, UNBIND_REQ, COMPILE
+
+// INSTRUCTION: Define the application server authenticating users against LDAP.
+HOST auth_service {
+    IP 10.20.30.50
+}
+
+// INSTRUCTION: Define the enterprise OpenLDAP directory server listening on TCP port 389.
+HOST openldap_srv {
+    IP 10.20.30.10
+}
+
+// INSTRUCTION: Establish a TCP handshake, execute a full LDAP bind-search-unbind lifecycle, and close with FIN.
+FLOW full_ldap_lifecycle(c, s) {
+    c -> s TCP DSTPORT 389 SYN SEQ 100000 WAIT 1ms
+    c <- s TCP SYN ACK SEQ 200000 ACKNUM 100001 WAIT 1ms
+    c -> s TCP DSTPORT 389 ACK SEQ 100001 ACKNUM 200001 WAIT 2ms
+    c -> s LDAP DSTPORT 389 SEQ 100001 ACKNUM 200001 MSGID 1 BIND_REQ BASE_DN "cn=readonly,dc=example,dc=com" WAIT 3ms
+    c <- s LDAP SEQ 200001 ACKNUM 100046 MSGID 1 BIND_RES RESULT_CODE 0 WAIT 2ms
+    c -> s LDAP DSTPORT 389 SEQ 100046 ACKNUM 200015 MSGID 2 SEARCH_REQ BASE_DN "ou=users,dc=example,dc=com" FILTER "(uid=jdoe)" WAIT 4ms
+    c <- s LDAP SEQ 200015 ACKNUM 100105 MSGID 2 SEARCH_ENTRY BASE_DN "uid=jdoe,ou=users,dc=example,dc=com" WAIT 1ms
+    c <- s LDAP SEQ 200068 ACKNUM 100105 MSGID 2 SEARCH_DONE RESULT_CODE 0 WAIT 2ms
+    c -> s LDAP DSTPORT 389 SEQ 100105 ACKNUM 200082 MSGID 3 UNBIND_REQ WAIT 1ms
+    c -> s TCP DSTPORT 389 FIN ACK SEQ 100112 ACKNUM 200082 WAIT 1ms
+    c <- s TCP FIN ACK SEQ 200082 ACKNUM 100113 WAIT 1ms
+    c -> s TCP DSTPORT 389 ACK SEQ 100113 ACKNUM 200083
+}
+
+// INSTRUCTION: Compile the complete TCP + LDAP session lifecycle into a PCAP file.
+COMPILE {
+    full_ldap_lifecycle(auth_service, openldap_srv)
+}

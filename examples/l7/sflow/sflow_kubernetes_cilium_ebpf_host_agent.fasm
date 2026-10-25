@@ -1,0 +1,24 @@
+// PROMPT: Host sFlow (hsFlowd) agent on a Kubernetes worker node exporting container network packet samples.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define Kubernetes worker node running hsFlowd daemon.
+HOST hsflowd_node {
+    IP 10.240.12.5
+    MAC 02:42:0a:f0:0c:05
+}
+
+// INSTRUCTION: Define cluster Prometheus/sFlow metrics gateway.
+HOST sflow_gateway {
+    IP 10.240.0.50
+    MAC 02:42:0a:f0:00:32
+}
+
+// INSTRUCTION: Export hsFlowd host and container network sample datagrams.
+FLOW sflow_k8s_hsflowd(node, gw) {
+    node -> gw SFLOW AGENT_IP 10.240.12.5 SUB_AGENT_ID 100 UPTIME 604800 SAMPLES 6 PAYLOAD "hsflowd-k8s-pod-sample"
+}
+
+// INSTRUCTION: Compile the Kubernetes hsFlowd host agent sFlow scenario.
+COMPILE {
+    sflow_k8s_hsflowd(hsflowd_node, sflow_gateway)
+}

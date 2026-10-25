@@ -1,0 +1,25 @@
+// PROMPT: RSTP bridge promoting its Alternate Port to Root Port in sub-millisecond time and flushing MAC tables via TC flag.
+// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, MAX_AGE, HELLO_TIME, FORWARD_DELAY, FLAGS, WAIT, COMPILE
+
+// INSTRUCTION: Define downstream RSTP switch promoting its Alternate Port to new Root Port.
+HOST rstp_promoted_sw {
+    IP 192.168.55.10
+    MAC 00:25:90:37:00:0a
+}
+
+// INSTRUCTION: Define upstream designated switch on the newly active root path.
+HOST rstp_upstream_desig {
+    IP 192.168.55.1
+    MAC 00:25:90:37:00:01
+}
+
+// INSTRUCTION: Receive Designated Forwarding BPDU and respond with Topology Change (Flags 61) RSTP BPDU.
+FLOW stp_rstp_alt_promotion(sw, up) {
+    sw <- up STP RSTP ROOT_ID "4096:00:25:90:37:00:01" BRIDGE_ID "4096:00:25:90:37:00:01" COST 0 PORT_ID 32770 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 60 WAIT 2ms
+    sw -> up STP RSTP ROOT_ID "4096:00:25:90:37:00:01" BRIDGE_ID "32768:00:25:90:37:00:0a" COST 2000 PORT_ID 32770 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 61
+}
+
+// INSTRUCTION: Compile the RSTP Alternate Port immediate promotion trace.
+COMPILE {
+    stp_rstp_alt_promotion(rstp_promoted_sw, rstp_upstream_desig)
+}

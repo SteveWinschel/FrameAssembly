@@ -1,0 +1,25 @@
+// PROMPT: Simulate an IPFIX transit peering accounting export reporting high-volume HTTPS flow octets on Observation Domain 400.
+// TOKENS: HOST, IP, MAC, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, DSCP, WAIT, COMPILE
+
+// INSTRUCTION: Define the peering edge router exporting IPFIX flow records.
+HOST peering_exporter {
+    IP 198.51.100.1
+    MAC 00:1b:21:47:39:01
+}
+
+// INSTRUCTION: Define the peering billing IPFIX collector appliance.
+HOST billing_collector {
+    IP 198.51.100.200
+    MAC 00:1b:21:47:39:c8
+}
+
+// INSTRUCTION: Export two peering traffic flow records on Observation Domain 400 over UDP port 4739.
+FLOW ipfix_peering_billing(exp, col) {
+    exp -> col IPFIX DOMAIN_ID 400 SRCIP 203.0.113.45 DSTIP 192.0.2.180 SRCPORT 54321 DSTPORT 443 PROTO 6 PACKETS 18500 OCTETS 26640000 DSCP 16 WAIT 5ms
+    exp -> col IPFIX DOMAIN_ID 400 SRCIP 192.0.2.180 DSTIP 203.0.113.45 SRCPORT 443 DSTPORT 54321 PROTO 6 PACKETS 9200 OCTETS 644000 DSCP 16
+}
+
+// INSTRUCTION: Compile the IPFIX peering accounting export flow.
+COMPILE {
+    ipfix_peering_billing(peering_exporter, billing_collector)
+}

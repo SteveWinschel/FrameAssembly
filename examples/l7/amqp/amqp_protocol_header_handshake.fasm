@@ -1,5 +1,5 @@
 // PROMPT: AMQP 0-9-1 connection initialization protocol header handshake.
-// TOKENS: HOST, IP, FLOW, ->, AMQP, PROTOCOL_HEADER, COMPILE
+// TOKENS: HOST, IP, FLOW, AMQP, PROTOCOL_HEADER, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.10 }

@@ -1,0 +1,25 @@
+// PROMPT: Simulate an unsolicited Gratuitous Neighbor Advertisement updating neighbor caches after a virtual IP failover
+// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_ADVERT, TARGET, TLLA, SRCMAC, DSTMAC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define the newly active high-availability load balancer node
+HOST ha_lb_active {
+    IP 2001:db8:40::100
+    MAC 00:00:5e:00:02:64
+}
+
+// INSTRUCTION: Define the upstream IPv6 core switch updating its neighbor cache
+HOST upstream_core_v6 {
+    IP 2001:db8:40::1
+    MAC 00:50:56:d3:00:01
+}
+
+// INSTRUCTION: Broadcast unsolicited Neighbor Advertisements to the all-nodes multicast MAC
+FLOW ndp_gratuitous_na_failover(vip_node, switch) {
+    vip_node -> switch NDP NEIGHBOR_ADVERT TARGET 2001:db8:40::100 TLLA 00:00:5e:00:02:64 SRCMAC 00:00:5e:00:02:64 DSTMAC 33:33:00:00:00:01 TTL 255 WAIT 50ms
+    vip_node -> switch NDP NEIGHBOR_ADVERT TARGET 2001:db8:40::100 TLLA 00:00:5e:00:02:64 SRCMAC 00:00:5e:00:02:64 DSTMAC 33:33:00:00:00:01 TTL 255
+}
+
+// INSTRUCTION: Compile the gratuitous Neighbor Advertisement failover burst
+COMPILE {
+    ndp_gratuitous_na_failover(ha_lb_active, upstream_core_v6)
+}

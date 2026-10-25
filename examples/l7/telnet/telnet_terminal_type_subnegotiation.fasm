@@ -1,5 +1,5 @@
 // PROMPT: Telnet IAC terminal option negotiation offering DO and WILL requests.
-// TOKENS: HOST, IP, FLOW, ->, <-, TELNET, DO, WILL, WONT, DONT, COMPILE
+// TOKENS: HOST, IP, FLOW, TELNET, DO, WILL, DONT, WONT, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.100 }

@@ -1,0 +1,25 @@
+// PROMPT: Windows Server SMB over QUIC encrypted file share access over UDP port 443 across WAN.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, VERSION, DCID, SCID, PKT_NUM, WAIT, HANDSHAKE, SHORT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define remote branch workstation accessing SMB over QUIC share.
+HOST smb_quic_client {
+    IP 172.18.40.55
+}
+
+// INSTRUCTION: Define Windows File Server with SMB over QUIC enabled.
+HOST smb_quic_server {
+    IP 172.18.40.1
+}
+
+// INSTRUCTION: Define QUIC handshake followed by encrypted SMB3 TreeConnect in Short header packet.
+FLOW quic_smb_session(c, s) {
+    c -> s QUIC INITIAL VERSION 1 DCID 0x534d423300000001 SCID 0x434c4e5400000001 PKT_NUM 1 WAIT 4ms
+    c <- s QUIC HANDSHAKE VERSION 1 DCID 0x434c4e5400000001 SCID 0x5352565200000001 PKT_NUM 1 WAIT 4ms
+    c -> s QUIC SHORT DCID 0x5352565200000001 PKT_NUM 2 PAYLOAD "ENC_SMB2_NEGOTIATE" WAIT 4ms
+    c <- s QUIC SHORT DCID 0x434c4e5400000001 PKT_NUM 2 PAYLOAD "ENC_SMB2_SESSION_SETUP"
+}
+
+// INSTRUCTION: Compile the SMB over QUIC file sharing flow.
+COMPILE {
+    quic_smb_session(smb_quic_client, smb_quic_server)
+}

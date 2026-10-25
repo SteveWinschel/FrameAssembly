@@ -1,0 +1,19 @@
+// PROMPT: BACnet/IP Pulse Converter and Trend Log property reads with ASCII diagnostic payload.
+// TOKENS: HOST, IP, FLOW, BACNET, READ_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the BMS analytics collector.
+HOST bms_analytics { IP 10.55.2.10 }
+
+// INSTRUCTION: Define the water flow trend logger.
+HOST trend_logger { IP 10.55.2.200 }
+
+// INSTRUCTION: Read Trend Log (ObjectType 20) Log_Buffer (Property 131) and Record_Count (Property 141).
+FLOW bacnet_trend_fetch(a, l) {
+    a -> l BACNET READ_PROPERTY INVOKE_ID 60 OBJECT_TYPE 20 OBJECT_INSTANCE 3 PROPERTY_ID 141 WAIT 15ms
+    a -> l BACNET READ_PROPERTY INVOKE_ID 61 OBJECT_TYPE 20 OBJECT_INSTANCE 3 PROPERTY_ID 131 PAYLOAD "TREND_BATCH_1"
+}
+
+// INSTRUCTION: Compile the BACnet Trend Log retrieval flow.
+COMPILE {
+    bacnet_trend_fetch(bms_analytics, trend_logger)
+}

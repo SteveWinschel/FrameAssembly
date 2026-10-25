@@ -1,0 +1,25 @@
+// PROMPT: RFC 5884 BFD for MPLS LSPs sub-second data-plane liveliness monitoring with EXP 7 network control priority.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, BFD, STATE, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, WAIT, COMPILE
+
+// INSTRUCTION: Define ingress MPLS Traffic Engineering tunnel headend.
+HOST mpls_te_headend {
+    IP 198.18.50.1
+    MAC 00:05:85:12:32:01
+}
+
+// INSTRUCTION: Define egress MPLS Traffic Engineering tunnel tailend.
+HOST mpls_te_tailend {
+    IP 198.18.50.2
+    MAC 00:05:85:12:32:02
+}
+
+// INSTRUCTION: Define MPLS-encapsulated BFD session monitoring TE tunnel label 300500.
+FLOW bfd_over_mpls_lsp(head, tail) {
+    head -> tail MPLS 300500 EXP 7 BOS 1 MPLS_TTL 255 BFD STATE 3 MY_DISC 3001 YOUR_DISC 3002 MIN_TX 50000 MIN_RX 50000 MULT 3
+    head <- tail MPLS 300501 EXP 7 BOS 1 MPLS_TTL 255 BFD STATE 3 MY_DISC 3002 YOUR_DISC 3001 MIN_TX 50000 MIN_RX 50000 MULT 3 WAIT 50ms
+}
+
+// INSTRUCTION: Compile block executing RFC 5884 BFD over MPLS LSP monitoring.
+COMPILE {
+    bfd_over_mpls_lsp(mpls_te_headend, mpls_te_tailend)
+}

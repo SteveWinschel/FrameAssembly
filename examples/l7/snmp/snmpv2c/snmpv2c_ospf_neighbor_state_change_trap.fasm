@@ -1,0 +1,24 @@
+// PROMPT: SNMPv2c RFC 4750 OSPF-TRAP-MIB ospfNbrStateChange notification reporting Full (8) adjacency.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP2, TRAP, COMMUNITY, REQID, SYSUPTIME, OID, VARBIND, IPVAL, INT, COMPILE
+
+// INSTRUCTION: Define the core OSPF area 0 router agent.
+HOST ospf_core_rtr {
+    IP 10.146.1.1
+    MAC 00:1a:2b:92:01:01
+}
+
+// INSTRUCTION: Define the routing telemetry trap receiver.
+HOST routing_trapd {
+    IP 10.146.1.100
+    MAC 00:1a:2b:92:01:64
+}
+
+// INSTRUCTION: Send an SNMPv2c TRAP for ospfNbrStateChange (1.3.6.1.2.1.14.16.2.2) with router-id and state Full(8).
+FLOW snmpv2c_ospf_trap(r, t) {
+    r -> t SNMP2 TRAP COMMUNITY "ospf_mon" REQID 4100 SYSUPTIME 540200 OID 1.3.6.1.2.1.14.16.2.2 VARBIND 1.3.6.1.2.1.14.1.1.0 IPVAL 10.146.1.1 VARBIND 1.3.6.1.2.1.14.10.1.6.1 INT 8
+}
+
+// INSTRUCTION: Compile the SNMPv2c OSPF neighbor state change trap flow.
+COMPILE {
+    snmpv2c_ospf_trap(ospf_core_rtr, routing_trapd)
+}

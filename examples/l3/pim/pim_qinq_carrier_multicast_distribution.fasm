@@ -1,0 +1,18 @@
+// PROMPT: PIM multicast signaling transported across provider QinQ dual-VLAN bridge.
+// TOKENS: HOST, IP, FLOW, PIM, HELLO, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define enterprise broadcast source gateway.
+HOST broadcast_source_gw { IP 192.168.90.1 }
+
+// INSTRUCTION: Define carrier multicast transit gateway.
+HOST carrier_transit_gw { IP 192.168.90.2 }
+
+// INSTRUCTION: Define QinQ encapsulated PIM Hello flow on service VLAN 800 and customer VLAN 30.
+FLOW pim_qinq_hello_flow(src, gw) {
+    src -> gw PIM HELLO QINQ 800 INNER_VLAN 30
+}
+
+// INSTRUCTION: Compile block executing carrier QinQ PIM Hello.
+COMPILE {
+    pim_qinq_hello_flow(broadcast_source_gw, carrier_transit_gw)
+}

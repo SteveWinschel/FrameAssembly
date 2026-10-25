@@ -1,5 +1,5 @@
 // PROMPT: Multicast group membership management with IGMP query and report on IPv4.
-// TOKENS: HOST, IP, FLOW, ->, IGMP, QUERY, REPORT, COMPILE
+// TOKENS: HOST, IP, FLOW, IGMP, QUERY, REPORT, COMPILE
 
 // INSTRUCTION: Define IPv4 querier router.
 HOST igmp_router { IP 192.168.1.1 }

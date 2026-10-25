@@ -1,0 +1,25 @@
+// PROMPT: BGP EVPN Symmetric IRB inter-subnet routing using RFC 8926 GENEVE with a dedicated L3VNI (VNI 50000).
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define EVPN VTEP/NVE Leaf-A routing from Tenant VLAN 10 to Tenant VLAN 20 via L3VNI 50000.
+HOST irb_nve_leaf_a {
+    IP 10.250.60.11
+    MAC 00:1c:73:fa:3c:0b
+}
+
+// INSTRUCTION: Define EVPN VTEP/NVE Leaf-B decapsulating L3VNI 50000 and routing to destination host.
+HOST irb_nve_leaf_b {
+    IP 10.250.60.22
+    MAC 00:1c:73:fa:3c:16
+}
+
+// INSTRUCTION: Define GENEVE Symmetric IRB exchange over L3VNI 50000 with Router MAC rewrite.
+FLOW geneve_evpn_symmetric_irb(leaf_a, leaf_b) {
+    leaf_a -> leaf_b GENEVE VNI 50000 OPT_CLASS 258 OPT_TYPE 1 PROTOCOL_TYPE 25944 SRCPORT 50011 DSTPORT 6081 DF DSCP 26 TTL 62 PAYLOAD "EVPN_TYPE5_L3VNI_50000_SUBNET_A_TO_B" WAIT 4ms
+    leaf_a <- leaf_b GENEVE VNI 50000 OPT_CLASS 258 OPT_TYPE 1 PROTOCOL_TYPE 25944 SRCPORT 50022 DSTPORT 6081 DF DSCP 26 TTL 62 PAYLOAD "EVPN_TYPE5_L3VNI_50000_SUBNET_B_TO_A"
+}
+
+// INSTRUCTION: Compile the EVPN Symmetric IRB L3VNI GENEVE routing flow.
+COMPILE {
+    geneve_evpn_symmetric_irb(irb_nve_leaf_a, irb_nve_leaf_b)
+}

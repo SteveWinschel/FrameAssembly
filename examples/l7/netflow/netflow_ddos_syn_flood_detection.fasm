@@ -1,0 +1,25 @@
+// PROMPT: NetFlow v5 telemetry export capturing high-packet small-octet TCP SYN flood attack signatures.
+// TOKENS: HOST, IP, MAC, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define perimeter scrubbing router detecting anomalous TCP SYN flood traffic.
+HOST scrubbing_rtr {
+    IP 198.51.100.1
+    MAC 00:22:bd:f8:19:01
+}
+
+// INSTRUCTION: Define security operations center DDoS anomaly detector receiving NetFlow.
+HOST soc_detector {
+    IP 198.51.100.200
+    MAC 00:22:bd:f8:19:c8
+}
+
+// INSTRUCTION: Export suspicious 64-byte packet flows targeting TCP port 443.
+FLOW netflow_syn_flood_alert(rtr, soc) {
+    rtr -> soc NETFLOW SRCIP 203.0.113.55 DSTIP 198.51.100.80 SRCPORT 49152 DSTPORT 443 PROTO 6 PACKETS 50000 OCTETS 3200000
+    rtr -> soc NETFLOW SRCIP 203.0.113.56 DSTIP 198.51.100.80 SRCPORT 49153 DSTPORT 443 PROTO 6 PACKETS 48000 OCTETS 3072000
+}
+
+// INSTRUCTION: Compile the DDoS SYN flood detection NetFlow export scenario.
+COMPILE {
+    netflow_syn_flood_alert(scrubbing_rtr, soc_detector)
+}

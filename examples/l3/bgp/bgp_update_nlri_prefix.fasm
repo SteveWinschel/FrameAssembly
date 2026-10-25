@@ -1,5 +1,5 @@
 // PROMPT: BGP UPDATE message announcing IPv4 Network Layer Reachability Information prefix and next hop.
-// TOKENS: HOST, IP, FLOW, ->, BGP, UPDATE, PREFIX, NEXTHOP, COMPILE
+// TOKENS: HOST, IP, FLOW, BGP, UPDATE, PREFIX, NEXTHOP, COMPILE
 
 // INSTRUCTION: Define upstream ISP transit router.
 HOST isp_transit_router { IP 198.51.100.1 }

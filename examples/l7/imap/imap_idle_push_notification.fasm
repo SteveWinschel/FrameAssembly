@@ -1,0 +1,22 @@
+// PROMPT: RFC 2177 IMAP IDLE push notification session and DONE termination.
+// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, WAIT, ARG, COMPILE
+
+// INSTRUCTION: Define smartphone push email client.
+HOST mobile_mua { IP 172.16.14.88 }
+
+// INSTRUCTION: Define IMAP push mail server.
+HOST imap_push_srv { IP 172.16.14.1 }
+
+// INSTRUCTION: Enter IDLE mode, receive new mail EXISTS notification after 5s, and exit with DONE.
+FLOW imap_idle_push(c, s) {
+    c -> s IMAP TAG "B01" CMD "IDLE"
+    c <- s IMAP TAG "+" CMD "idling" WAIT 5s
+    c <- s IMAP TAG "*" CMD "24" ARG "EXISTS"
+    c -> s IMAP TAG "DONE" CMD "NOOP"
+    c <- s IMAP TAG "B01" CMD "OK" ARG "IDLE terminated"
+}
+
+// INSTRUCTION: Compile the RFC 2177 IMAP IDLE push scenario.
+COMPILE {
+    imap_idle_push(mobile_mua, imap_push_srv)
+}

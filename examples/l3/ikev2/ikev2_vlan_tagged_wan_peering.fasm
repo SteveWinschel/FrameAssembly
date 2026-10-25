@@ -1,0 +1,19 @@
+// PROMPT: 802.1Q VLAN-tagged IKEv2 security association negotiation over a WAN peering VLAN.
+// TOKENS: HOST, IP, MAC, FLOW, IKEV2, SA_INIT, INITIATOR_SPI, RESPONDER_SPI, MSGID, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define WAN crypto edge 1 on VLAN 500.
+HOST wan_ike_edge1 { IP 10.50.5.1 MAC 00:1e:67:50:05:01 }
+
+// INSTRUCTION: Define WAN crypto edge 2 on VLAN 500.
+HOST wan_ike_edge2 { IP 10.50.5.2 MAC 00:1e:67:50:05:02 }
+
+// INSTRUCTION: Define VLAN 500 tagged IKEv2 SA_INIT exchange with PCP 6.
+FLOW ikev2_vlan_peering(e1, e2) {
+    e1 -> e2 IKEV2 SA_INIT INITIATOR_SPI 5001001 RESPONDER_SPI 0 MSGID 0 VLAN 500 PCP 6 DEI 0
+    e1 <- e2 IKEV2 SA_INIT INITIATOR_SPI 5001001 RESPONDER_SPI 5002002 MSGID 0 VLAN 500 PCP 6 DEI 0
+}
+
+// INSTRUCTION: Compile the VLAN-tagged WAN IKEv2 peering flow.
+COMPILE {
+    ikev2_vlan_peering(wan_ike_edge1, wan_ike_edge2)
+}

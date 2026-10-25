@@ -1,0 +1,40 @@
+// PROMPT: Simulate an MQTT Last Will and Testament (LWT) retained status publication where a device publishes online status with RETAIN and a subscriber receives it.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, PUBLISH, TOPIC, QOS, RETAIN, PKT_ID, PAYLOAD, WAIT, PUBACK, SUBSCRIBE, SUBACK, COMPILE
+
+// INSTRUCTION: Define the industrial robot controller publishing its retained online birth certificate.
+HOST robot_arm {
+    IP 10.60.10.21
+    MAC 00:1b:21:60:10:21
+}
+
+// INSTRUCTION: Define the central plant MQTT broker storing retained state messages.
+HOST plant_broker {
+    IP 10.60.10.5
+    MAC 00:1b:21:60:10:05
+}
+
+// INSTRUCTION: Define the monitoring dashboard subscribing to cell status wildcard topics.
+HOST status_dashboard {
+    IP 10.60.10.90
+    MAC 00:1b:21:60:10:90
+}
+
+// INSTRUCTION: Publish a retained QoS 1 birth message from the robot controller to the broker.
+FLOW publish_retained_birth(c, s) {
+    c -> s MQTT PUBLISH TOPIC "factory/cell2/robot01/status" QOS 1 RETAIN PKT_ID 1 PAYLOAD "ONLINE" WAIT 2ms
+    c <- s MQTT PUBACK PKT_ID 1
+}
+
+// INSTRUCTION: Subscribe from the dashboard using a multi-level wildcard and immediately receive the retained status message.
+FLOW subscribe_and_receive_retained(c, s) {
+    c -> s MQTT SUBSCRIBE TOPIC "factory/cell2/#" QOS 1 PKT_ID 50 WAIT 2ms
+    c <- s MQTT SUBACK PKT_ID 50 QOS 1 WAIT 1ms
+    c <- s MQTT PUBLISH TOPIC "factory/cell2/robot01/status" QOS 1 RETAIN PKT_ID 51 PAYLOAD "ONLINE" WAIT 2ms
+    c -> s MQTT PUBACK PKT_ID 51
+}
+
+// INSTRUCTION: Compile the MQTT retained birth status and wildcard subscription trace into a PCAP file.
+COMPILE {
+    publish_retained_birth(robot_arm, plant_broker)
+    subscribe_and_receive_retained(status_dashboard, plant_broker)
+}

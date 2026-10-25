@@ -1,0 +1,18 @@
+// PROMPT: WireGuard VPN prioritizing voice/video packets with DSCP Expedited Forwarding (DSCP 46).
+// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, DSCP, TTL, COMPILE
+
+// INSTRUCTION: Define unified communications VoIP server.
+HOST voip_media_server { IP 172.20.10.5 }
+
+// INSTRUCTION: Define remote branch VoIP gateway.
+HOST branch_voip_gateway { IP 172.20.10.1 }
+
+// INSTRUCTION: Define DSCP EF marked WireGuard voice transport flow.
+FLOW wg_voip_ef_flow(src, dst) {
+    src -> dst WIREGUARD TYPE DATA RECEIVER 654321 COUNTER 888 DSCP 46 TTL 64
+}
+
+// INSTRUCTION: Compile block executing prioritized WireGuard voice packet.
+COMPILE {
+    wg_voip_ef_flow(voip_media_server, branch_voip_gateway)
+}

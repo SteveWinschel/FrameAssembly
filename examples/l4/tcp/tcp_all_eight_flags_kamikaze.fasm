@@ -1,5 +1,5 @@
 // PROMPT: Craft a Christmas/Kamikaze TCP test packet with all 8 TCP header flags enabled simultaneously (SYN, ACK, FIN, RST, PSH, URG, ECE, CWR).
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, FIN, RST, PSH, URG, ECE, CWR, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, ACK, FIN, RST, PSH, URG, ECE, CWR, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define a packet-crafting fuzzing host with IP 10.99.99.1.
 HOST fuzzer_node { IP 10.99.99.1 MAC 00:ff:ff:00:00:01 }

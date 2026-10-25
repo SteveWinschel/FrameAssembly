@@ -1,0 +1,19 @@
+// PROMPT: Multi-datacenter GENEVE interconnect carried over an 802.1ad QinQ carrier link.
+// TOKENS: HOST, IP, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define Datacenter West border NVE.
+HOST dc_west_nve { IP 172.30.60.1 }
+
+// INSTRUCTION: Define Datacenter East border NVE.
+HOST dc_east_nve { IP 172.30.60.2 }
+
+// INSTRUCTION: Define QinQ double-tagged GENEVE flow with S-VLAN 3600 and C-VLAN 600.
+FLOW geneve_qinq_dci(w, e) {
+    w -> e GENEVE VNI 120000 OPT_CLASS 258 OPT_TYPE 5 QINQ 3600 INNER_VLAN 600
+    w <- e GENEVE VNI 120000 OPT_CLASS 258 OPT_TYPE 5 QINQ 3600 INNER_VLAN 600
+}
+
+// INSTRUCTION: Compile the QinQ GENEVE DCI interconnect flow.
+COMPILE {
+    geneve_qinq_dci(dc_west_nve, dc_east_nve)
+}

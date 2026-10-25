@@ -1,0 +1,30 @@
+// PROMPT: HTTP/2 connection coalescing across two virtual hosts sharing a wildcard TLS certificate on Streams 1 and 3.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP2, PREFACE, SETTINGS, STREAM_ID, HEADERS, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define enterprise client reusing a coalesced HTTP/2 connection.
+HOST coalesced_client {
+    IP 10.35.10.90
+    MAC 00:1a:a0:23:0a:5a
+}
+
+// INSTRUCTION: Define multi-domain reverse proxy terminating coalesced HTTP/2 traffic.
+HOST multi_domain_proxy {
+    IP 10.35.10.1
+    MAC 00:1a:a0:23:0a:01
+}
+
+// INSTRUCTION: Issue PREFACE and SETTINGS, then dispatch Stream 1 to app.example.com and Stream 3 to api.example.com.
+FLOW http2_coalesced_domains(c, p) {
+    c -> p HTTP2 PREFACE
+    c -> p HTTP2 SETTINGS STREAM_ID 0
+    c <- p HTTP2 SETTINGS STREAM_ID 0
+    c -> p HTTP2 HEADERS STREAM_ID 1 PAYLOAD ":authority=app.example.com"
+    c -> p HTTP2 HEADERS STREAM_ID 3 PAYLOAD ":authority=api.example.com"
+    c <- p HTTP2 HEADERS STREAM_ID 1
+    c <- p HTTP2 HEADERS STREAM_ID 3
+}
+
+// INSTRUCTION: Compile the HTTP/2 virtual host connection coalescing scenario.
+COMPILE {
+    http2_coalesced_domains(coalesced_client, multi_domain_proxy)
+}

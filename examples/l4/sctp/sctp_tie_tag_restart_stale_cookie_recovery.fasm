@@ -1,0 +1,29 @@
+// PROMPT: SCTP endpoint restart recovery re-running INIT, INIT_ACK, COOKIE_ECHO, and COOKIE_ACK before resuming DATA transmission.
+// TOKENS: HOST, IP, MAC, FLOW, SCTP, CHUNK, INIT, VTAG, SRCPORT, DSTPORT, WAIT, INIT_ACK, COOKIE_ECHO, PAYLOAD, COOKIE_ACK, DATA, STREAM, SSN, PPID, SACK, COMPILE
+
+// INSTRUCTION: Define restarting telecom signaling node re-initializing SCTP association with new VTAG.
+HOST restarting_sctp_a {
+    IP 192.168.132.10
+    MAC 00:50:56:84:00:0a
+}
+
+// INSTRUCTION: Define peer signaling node accepting restart tie-tag cookie and resuming stream 0.
+HOST surviving_sctp_b {
+    IP 192.168.132.20
+    MAC 00:50:56:84:00:14
+}
+
+// INSTRUCTION: Execute 4-way SCTP restart handshake followed by Stream 0 SSN 0 recovery DATA and SACK.
+FLOW sctp_restart_handshake(a, b) {
+    a -> b SCTP CHUNK INIT VTAG 0 SRCPORT 2905 DSTPORT 2905 WAIT 2ms
+    a <- b SCTP CHUNK INIT_ACK VTAG 778899 SRCPORT 2905 DSTPORT 2905 WAIT 2ms
+    a -> b SCTP CHUNK COOKIE_ECHO VTAG 778899 SRCPORT 2905 DSTPORT 2905 PAYLOAD "restart_tie_tag_cookie_vtag_778899" WAIT 2ms
+    a <- b SCTP CHUNK COOKIE_ACK VTAG 778899 SRCPORT 2905 DSTPORT 2905 WAIT 2ms
+    a -> b SCTP CHUNK DATA VTAG 778899 STREAM 0 SSN 0 PPID 3 SRCPORT 2905 DSTPORT 2905 PAYLOAD "m3ua_asp_active_post_restart" WAIT 2ms
+    a <- b SCTP CHUNK SACK VTAG 778899 SRCPORT 2905 DSTPORT 2905
+}
+
+// INSTRUCTION: Compile the SCTP peer restart recovery association trace.
+COMPILE {
+    sctp_restart_handshake(restarting_sctp_a, surviving_sctp_b)
+}

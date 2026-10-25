@@ -1,0 +1,25 @@
+// PROMPT: Linux kernel bridge VXLAN interface using legacy IANA/early-vendor UDP port 8472 for OVS/Flannel interworking.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Linux KVM host 1 with vxlan0 interface bound to UDP port 8472.
+HOST linux_kvm_vxlan1 {
+    IP 10.84.72.11
+    MAC 52:54:00:84:72:0b
+}
+
+// INSTRUCTION: Define Linux KVM host 2 with matching UDP port 8472 FDB entry.
+HOST linux_kvm_vxlan2 {
+    IP 10.84.72.12
+    MAC 52:54:00:84:72:0c
+}
+
+// INSTRUCTION: Define VXLAN frames targeting DSTPORT 8472 on VNI 8472.
+FLOW vxlan_legacy_port_8472_flow(h1, h2) {
+    h1 -> h2 VXLAN VNI 8472 SRCPORT 58472 DSTPORT 8472 DF TTL 64 PAYLOAD "LINUX_VXLAN_UDP_8472_FLANNEL_BACKEND" WAIT 2ms
+    h1 <- h2 VXLAN VNI 8472 SRCPORT 58473 DSTPORT 8472 DF TTL 64 PAYLOAD "LINUX_VXLAN_UDP_8472_FDB_LEARNED_ACK"
+}
+
+// INSTRUCTION: Compile the Linux UDP port 8472 VXLAN interworking flow.
+COMPILE {
+    vxlan_legacy_port_8472_flow(linux_kvm_vxlan1, linux_kvm_vxlan2)
+}

@@ -1,0 +1,19 @@
+// PROMPT: BGP session teardown via NOTIFICATION message after Hold Timer expiration.
+// TOKENS: HOST, IP, FLOW, BGP, KEEPALIVE, NOTIFICATION, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define upstream transit provider BGP speaker.
+HOST transit_bgp_speaker { IP 203.0.113.5 }
+
+// INSTRUCTION: Define downstream enterprise BGP speaker.
+HOST enterprise_bgp_speaker { IP 203.0.113.6 }
+
+// INSTRUCTION: Define BGP keepalive followed by NOTIFICATION teardown.
+FLOW bgp_holdtimer_notification(up, down) {
+    up -> down BGP KEEPALIVE
+    up -> down BGP NOTIFICATION PAYLOAD "Hold Timer Expired" WAIT 50ms
+}
+
+// INSTRUCTION: Compile the BGP NOTIFICATION session teardown flow.
+COMPILE {
+    bgp_holdtimer_notification(transit_bgp_speaker, enterprise_bgp_speaker)
+}

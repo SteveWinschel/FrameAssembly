@@ -1,0 +1,24 @@
+// PROMPT: Multi-backend QUIC load balancer distributing connections to two origin servers.
+// TOKENS: HOST, IP, MAC, FLOW, QUIC, INITIAL, DCID, SCID, PKT_NUM, WAIT, HANDSHAKE, SHORT, COMPILE
+
+// INSTRUCTION: Define anycast QUIC load balancer ingress.
+HOST anycast_lb { IP 10.210.0.1 MAC 00:1b:63:d2:00:01 }
+
+// INSTRUCTION: Define backend QUIC origin pool server 1.
+HOST origin_pool_1 { IP 10.210.0.101 MAC 00:1b:63:d2:00:65 }
+
+// INSTRUCTION: Define backend QUIC origin pool server 2.
+HOST origin_pool_2 { IP 10.210.0.102 MAC 00:1b:63:d2:00:66 }
+
+// INSTRUCTION: Define QUIC backend connection flow.
+FLOW quic_lb_dispatch(lb, backend) {
+    lb -> backend QUIC INITIAL DCID 0x90000001 SCID 0x90000002 PKT_NUM 1 WAIT 2ms
+    lb <- backend QUIC HANDSHAKE DCID 0x90000002 SCID 0x90000001 PKT_NUM 1 WAIT 2ms
+    lb -> backend QUIC SHORT DCID 0x90000001 PKT_NUM 2
+}
+
+// INSTRUCTION: Compile QUIC dispatch across both origin servers.
+COMPILE {
+    quic_lb_dispatch(anycast_lb, origin_pool_1)
+    quic_lb_dispatch(anycast_lb, origin_pool_2)
+}

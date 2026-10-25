@@ -1,5 +1,5 @@
 // PROMPT: Dual-stack dynamic host configuration with DHCPv4 Discover (68->67) and DHCPv6 Solicit (546->547).
-// TOKENS: HOST, IP, FLOW, ->, DHCP, DISCOVER, SOLICIT, COMPILE
+// TOKENS: HOST, IP, FLOW, DHCP, DISCOVER, SOLICIT, COMPILE
 
 // INSTRUCTION: Define unconfigured IPv4 client.
 HOST dhcp_v4_client { IP 0.0.0.0 }

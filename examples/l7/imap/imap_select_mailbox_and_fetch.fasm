@@ -1,5 +1,5 @@
 // PROMPT: IMAP mailbox selection and email header retrieval.
-// TOKENS: HOST, IP, FLOW, ->, IMAP, TAG, CMD, ARG, COMPILE
+// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.25 }

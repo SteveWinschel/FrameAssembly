@@ -1,5 +1,5 @@
 // PROMPT: SNMPv3 privacy encryption over IPv6 using DES-CBC and AES-128-CFB cipher suites with localized keys.
-// TOKENS: HOST, IP, FLOW, ->, SNMP3, TRAP, USER, AUTH, SHA, PRIV, DES, AES, OID, COMPILE
+// TOKENS: HOST, IP, FLOW, SNMP3, TRAP, USER, AUTH, SHA, PRIV, DES, OID, AES, COMPILE
 
 // INSTRUCTION: Define encrypted SNMPv3 agent.
 HOST priv_agent { IP 2001:db8:443::1 }

@@ -1,0 +1,25 @@
+// PROMPT: RFC 7676 IPv4-in-IPv6 GRE tunnel transporting legacy IPv4 subnets (GRE_PROTO 0x0800 = 2048) across an IPv6-only core.
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, FLOWLABEL, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6-only core PE router A encapsulating customer IPv4 traffic in GRE.
+HOST v6_core_gre_pe1 {
+    IP 2001:db8:47:1::1
+    MAC 00:25:90:47:01:01
+}
+
+// INSTRUCTION: Define IPv6-only core PE router B decapsulating GRE_PROTO 2048 (0x0800 IPv4).
+HOST v6_core_gre_pe2 {
+    IP 2001:db8:47:2::1
+    MAC 00:25:90:47:02:02
+}
+
+// INSTRUCTION: Define IPv6 GRE flow with FLOWLABEL 47800, GRE_KEY 4004, and GRE_PROTO 2048 (IPv4).
+FLOW gre_ipv4_over_ipv6_core(pe1, pe2) {
+    pe1 -> pe2 GRE GRE_KEY 4004 GRE_SEQ 100 GRE_PROTO 2048 FLOWLABEL 47800 DSCP 34 TTL 64 PAYLOAD "INNER_IPV4_10_1_1_1_TO_10_2_2_2" WAIT 4ms
+    pe1 <- pe2 GRE GRE_KEY 4004 GRE_SEQ 101 GRE_PROTO 2048 FLOWLABEL 47800 DSCP 34 TTL 64 PAYLOAD "INNER_IPV4_10_2_2_2_TO_10_1_1_1"
+}
+
+// INSTRUCTION: Compile the RFC 7676 IPv4-over-IPv6 GRE tunnel flow.
+COMPILE {
+    gre_ipv4_over_ipv6_core(v6_core_gre_pe1, v6_core_gre_pe2)
+}

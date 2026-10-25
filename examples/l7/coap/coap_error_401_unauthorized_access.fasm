@@ -1,0 +1,25 @@
+// PROMPT: CoAP Confirmable PUT to a restricted firmware resource rejected with 4.01 Unauthorized.
+// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, PAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define the unprovisioned field sensor attempting to modify actuator state.
+HOST untrusted_mote {
+    IP 10.110.10.88
+    MAC 00:1a:2b:6e:10:88
+}
+
+// INSTRUCTION: Define the building automation CoAP gateway.
+HOST bms_coap_gw {
+    IP 10.110.10.1
+    MAC 00:1a:2b:6e:10:01
+}
+
+// INSTRUCTION: Issue a CON PUT to /actuators/lock and receive a piggybacked 4.01 Unauthorized response.
+FLOW coap_401_unauth(c, s) {
+    c -> s COAP CON CODE "0.03" MSGID 2040 TOKEN 901 URI_PATH "actuators/lock" CONTENT_FORMAT 0 PAYLOAD "UNLOCK"
+    c <- s COAP ACK CODE "4.01" MSGID 2040 TOKEN 901 PAYLOAD "DTLS session required"
+}
+
+// INSTRUCTION: Compile the CoAP 4.01 Unauthorized rejection flow.
+COMPILE {
+    coap_401_unauth(untrusted_mote, bms_coap_gw)
+}

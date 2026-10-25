@@ -1,0 +1,25 @@
+// PROMPT: RFC 5882 BFD session detecting peer control timer expiry (DIAG 1) to trigger sub-50ms eBGP fast fallover.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, SRCPORT, DSTPORT, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define Internet edge router monitoring eBGP peer via 15ms BFD timers.
+HOST ixp_edge_rtr1 {
+    IP 198.51.100.10
+    MAC 00:24:38:64:0a:01
+}
+
+// INSTRUCTION: Define IXP peer router experiencing control plane failure.
+HOST ixp_edge_rtr2 {
+    IP 198.51.100.11
+    MAC 00:24:38:64:0b:02
+}
+
+// INSTRUCTION: Define BFD transition from Up (STATE 3) to Down (STATE 1) with DIAG 1 (Control Detection Time Expired).
+FLOW bfd_ebgp_fallover_flow(r1, r2) {
+    r1 -> r2 BFD STATE 3 DIAG 0 MY_DISC 17901 YOUR_DISC 17902 MIN_TX 15000 MIN_RX 15000 MULT 3 SRCPORT 49200 DSTPORT 3784 DSCP 48 TTL 255 WAIT 45ms
+    r1 -> r2 BFD STATE 1 DIAG 1 MY_DISC 17901 YOUR_DISC 0 MIN_TX 1000000 MIN_RX 1000000 MULT 3 SRCPORT 49200 DSTPORT 3784 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the BFD-triggered eBGP fast fallover scenario.
+COMPILE {
+    bfd_ebgp_fallover_flow(ixp_edge_rtr1, ixp_edge_rtr2)
+}

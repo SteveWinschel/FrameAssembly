@@ -1,0 +1,19 @@
+// PROMPT: Bidirectional IKE_SA_INIT exchange establishing initial Security Association on UDP 500.
+// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, SA_INIT, MSGID, COMPILE
+
+// INSTRUCTION: Define VPN client initiator node.
+HOST vpn_client_init { IP 198.51.100.25 }
+
+// INSTRUCTION: Define enterprise VPN gateway responder.
+HOST vpn_gateway_resp { IP 198.51.100.1 }
+
+// INSTRUCTION: Define bidirectional SA_INIT exchange with explicit SPI values and MSGID 0.
+FLOW ikev2_sa_init_flow(c, gw) {
+    c -> gw IKEV2 INITIATOR_SPI 123456789012345678 RESPONDER_SPI 0 SA_INIT MSGID 0
+    c <- gw IKEV2 INITIATOR_SPI 123456789012345678 RESPONDER_SPI 987654321098765432 SA_INIT MSGID 0
+}
+
+// INSTRUCTION: Compile block executing bidirectional IKE_SA_INIT negotiation.
+COMPILE {
+    ikev2_sa_init_flow(vpn_client_init, vpn_gateway_resp)
+}

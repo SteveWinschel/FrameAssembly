@@ -1,0 +1,25 @@
+// PROMPT: RabbitMQ MQTT-to-AMQP bridge delivering sensor messages published to amq.topic with hierarchical routing keys.
+// TOKENS: HOST, IP, MAC, FLOW, AMQP, BASIC_DELIVER, CHANNEL, EXCHANGE, ROUTING_KEY, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the analytics consumer subscribed to amq.topic.
+HOST iot_consumer {
+    IP 10.115.90.50
+    MAC 00:1a:2b:73:90:50
+}
+
+// INSTRUCTION: Define the RabbitMQ broker bridging MQTT and AMQP 0-9-1 clients.
+HOST bridge_broker {
+    IP 10.115.90.1
+    MAC 00:1a:2b:73:90:01
+}
+
+// INSTRUCTION: Receive two bridged IoT sensor messages on amq.topic via Basic.Deliver.
+FLOW amqp_mqtt_bridge(c, b) {
+    c <- b AMQP BASIC_DELIVER CHANNEL 2 EXCHANGE "amq.topic" ROUTING_KEY "factory.line1.vibration" PAYLOAD "{'rms_mm_s':2.14}" WAIT 2ms
+    c <- b AMQP BASIC_DELIVER CHANNEL 2 EXCHANGE "amq.topic" ROUTING_KEY "factory.line1.temperature" PAYLOAD "{'temp_c':68.5}"
+}
+
+// INSTRUCTION: Compile the RabbitMQ amq.topic IoT bridge flow.
+COMPILE {
+    amqp_mqtt_bridge(iot_consumer, bridge_broker)
+}

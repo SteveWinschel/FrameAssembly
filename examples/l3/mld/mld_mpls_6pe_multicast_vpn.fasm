@@ -1,0 +1,25 @@
+// PROMPT: Simulate MLD multicast group signaling carried over an MPLS-labeled 6PE/6VPE access circuit
+// TOKENS: HOST, IP, MAC, FLOW, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, MPLS, EXP, BOS, MPLS_TTL, TTL, WAIT, QUERY, COMPILE
+
+// INSTRUCTION: Define the customer edge IPv6 multicast receiver router
+HOST ce_v6_receiver {
+    IP 2001:db8:600:1::2
+    MAC 00:0f:53:c5:06:02
+}
+
+// INSTRUCTION: Define the provider edge 6VPE multicast router
+HOST pe_v6_mvpn {
+    IP 2001:db8:600:1::1
+    MAC 00:0f:53:c5:06:01
+}
+
+// INSTRUCTION: Transmit MPLS-labeled MLD membership reports and queries
+FLOW mld_mpls_6vpe_flow(ce, pe) {
+    ce -> pe MLD REPORT MULTICAST_ADDR ff08:100::5001 MAX_RESP_DELAY 0 MPLS 38010 EXP 6 BOS 1 MPLS_TTL 1 TTL 1 WAIT 20ms
+    pe -> ce MLD QUERY MULTICAST_ADDR ff08:100::5001 MAX_RESP_DELAY 2000 MPLS 38020 EXP 6 BOS 1 MPLS_TTL 1 TTL 1
+}
+
+// INSTRUCTION: Compile the MPLS-encapsulated MLD 6VPE exchange
+COMPILE {
+    mld_mpls_6vpe_flow(ce_v6_receiver, pe_v6_mvpn)
+}

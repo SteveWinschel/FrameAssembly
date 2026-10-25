@@ -1,0 +1,27 @@
+// PROMPT: BACnet/IP Calendar object (Object Type 6) Present_Value check determining active holiday building mode.
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, READ_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, WAIT, WRITE_PROPERTY, COMPILE
+
+// INSTRUCTION: Define the supervisory scheduler engine host.
+HOST bms_scheduler {
+    IP 10.120.30.10
+    MAC 00:1a:2b:78:30:10
+}
+
+// INSTRUCTION: Define the rooftop unit (RTU) BACnet controller.
+HOST rtu_controller {
+    IP 10.120.30.50
+    MAC 00:1a:2b:78:30:50
+}
+
+// INSTRUCTION: Read Calendar (Object Type 6, Instance 1) Present_Value (85) and set Binary Value (Object Type 5) unoccupied mode.
+FLOW bacnet_holiday_check(s, r) {
+    s -> r BACNET READ_PROPERTY INVOKE_ID 40 OBJECT_TYPE 6 OBJECT_INSTANCE 1 PROPERTY_ID 85
+    s <- r BACNET READ_PROPERTY INVOKE_ID 40 OBJECT_TYPE 6 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 1 WAIT 2ms
+    s -> r BACNET WRITE_PROPERTY INVOKE_ID 41 OBJECT_TYPE 5 OBJECT_INSTANCE 10 PROPERTY_ID 85 VALUE 0
+    s <- r BACNET WRITE_PROPERTY INVOKE_ID 41 OBJECT_TYPE 5 OBJECT_INSTANCE 10 PROPERTY_ID 85 VALUE 0
+}
+
+// INSTRUCTION: Compile the BACnet calendar holiday override flow.
+COMPILE {
+    bacnet_holiday_check(bms_scheduler, rtu_controller)
+}

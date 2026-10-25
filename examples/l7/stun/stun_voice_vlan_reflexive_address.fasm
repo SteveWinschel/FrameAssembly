@@ -1,0 +1,25 @@
+// PROMPT: Simulate a STUN Binding Request and Response on enterprise voice VLAN 200 for a SIP deskphone discovering its public IP.
+// TOKENS: HOST, MAC, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, VLAN, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define host endpoint voip_deskphone.
+HOST voip_deskphone {
+    MAC 00:04:f2:34:78:10
+    IP 10.200.1.50
+}
+
+// INSTRUCTION: Define host endpoint edge_stun.
+HOST edge_stun {
+    MAC 00:04:f2:34:78:01
+    IP 10.200.1.1
+}
+
+// INSTRUCTION: Send STUN Binding Request on VLAN 200 and receive the external WAN IPv4 in XOR_MAPPED_ADDR.
+FLOW stun_voice_vlan_discovery(voip_deskphone, edge_stun) {
+    voip_deskphone -> edge_stun STUN BINDING_REQUEST SOFTWARE "Polycom-VVX450/6.4.5" VLAN 200
+    edge_stun -> voip_deskphone STUN BINDING_RESPONSE XOR_MAPPED_ADDR 203.0.113.200 SOFTWARE "SBC-STUN-Engine" VLAN 200
+}
+
+// INSTRUCTION: Compile the VLAN 200 STUN discovery flow.
+COMPILE {
+    stun_voice_vlan_discovery(voip_deskphone, edge_stun)
+}

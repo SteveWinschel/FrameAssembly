@@ -1,4 +1,13 @@
-//! MLD Layer 3 protocol wire builder.
+//! IPv6 Multicast Listener Discovery (MLD, RFC 2710 / RFC 3810) Layer 3 wire builder.
+//!
+//! Serializes an [`MldSpec`] into a 24-byte RFC 2710 MLDv1 ICMPv6 control message carried over IPv6
+//! Next Header `58` (`0x3A`). The builder maps `QUERY` (`Type = 130`, default group `ff02::1`),
+//! `REPORT` (`Type = 131`, default group `ff02::1`), and `DONE` (`Type = 132`, default group
+//! `ff02::2`), writes the 16-bit `Maximum Response Delay` (`MAX_RESP_DELAY`) and 128-bit IPv6
+//! `Multicast Address` (`MULTICAST_ADDR`), and computes the mandatory 40-byte IPv6 pseudo-header checksum.
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b MLD [QUERY | REPORT | DONE] [MULTICAST_ADDR <ipv6>] [MAX_RESP_DELAY <u16>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -8,7 +17,7 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::net::IpAddr;
 
-/// Builds an RFC 2710 / RFC 3810 MLD payload for IPv6.
+/// Builds an RFC 2710 / RFC 3810 MLD payload for IPv6 over ICMPv6 (`58`).
 ///
 /// # Errors
 /// Returns `CompilerError::BackendError` if called with IPv4 endpoints.

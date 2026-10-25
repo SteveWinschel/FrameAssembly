@@ -1,0 +1,19 @@
+// PROMPT: Path MTU Discovery triggering ICMP DEST_UNREACH Code 4 (Fragmentation Needed and DF Set).
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, DF, IPID, PAYLOAD, DEST_UNREACH, CODE, COMPILE
+
+// INSTRUCTION: Define sender probing path MTU with Don't Fragment set.
+HOST pmtu_probe_host { IP 172.16.10.100 }
+
+// INSTRUCTION: Define bottleneck WAN router with restricted tunnel MTU.
+HOST wan_mtu_router { IP 172.16.10.1 }
+
+// INSTRUCTION: Define DF-marked Echo Request and resulting ICMP Fragmentation Needed (Code 4).
+FLOW icmp_frag_needed(src, rtr) {
+    src -> rtr ICMP ECHO_REQUEST ID 8801 SEQ 1 DF IPID 1200 PAYLOAD "LARGE_UNFRAGMENTABLE_PING_PROBE"
+    src <- rtr ICMP DEST_UNREACH CODE 4
+}
+
+// INSTRUCTION: Compile the ICMP Fragmentation Needed PMTUD flow.
+COMPILE {
+    icmp_frag_needed(pmtu_probe_host, wan_mtu_router)
+}

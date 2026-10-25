@@ -1,0 +1,24 @@
+// PROMPT: RFC 4588 RTP retransmission (RTX) stream recovering lost video packet using separate SSRC.
+// TOKENS: HOST, IP, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, PAYLOAD, WAIT, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define WebRTC media server handling NACK retransmission.
+HOST webrtc_sfu {
+    IP 10.95.30.1
+}
+
+// INSTRUCTION: Define browser viewer requesting and receiving RTX packet.
+HOST viewer_ep {
+    IP 10.95.30.50
+}
+
+// INSTRUCTION: Define primary video stream SSRC 0x1001 and associated RTX repair stream SSRC 0x1002.
+FLOW rtp_rtx_recovery(sfu, v) {
+    sfu -> v RTP PT 96 SEQ 400 TIMESTAMP 540000 SSRC 0x00001001 MARKER 0 PAYLOAD "ORIG_VIDEO_400" WAIT 5ms
+    sfu -> v RTP PT 96 SEQ 402 TIMESTAMP 540000 SSRC 0x00001001 MARKER 1 PAYLOAD "ORIG_VIDEO_402" WAIT 5ms
+    sfu -> v RTP PT 97 SEQ 15 TIMESTAMP 540000 SSRC 0x00001002 MARKER 0 HEXPAYLOAD "01914f5249475f343031"
+}
+
+// INSTRUCTION: Compile the RFC 4588 RTP RTX retransmission scenario.
+COMPILE {
+    rtp_rtx_recovery(webrtc_sfu, viewer_ep)
+}

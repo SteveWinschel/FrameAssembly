@@ -1,0 +1,26 @@
+// PROMPT: EAPOL-Start retransmission loop from a booting PXE workstation waiting for a slow spanning-tree port to unblock.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, START, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define booting PXE workstation sending periodic EAPOL-Start frames.
+HOST pxe_boot_client {
+    IP 0.0.0.0
+    MAC 00:50:56:aa:00:01
+}
+
+// INSTRUCTION: Define access switch port still in STP learning state.
+HOST learning_sw_port {
+    IP 10.10.0.1
+    MAC 00:1c:73:0a:00:01
+}
+
+// INSTRUCTION: Define EAPOL-Start retry frame with 3-second supplicant timeout interval.
+FLOW eapol_start_retry(cli, sw) {
+    cli -> sw EAPOL VERSION 2 TYPE START WAIT 3s
+}
+
+// INSTRUCTION: Compile block executing 3 consecutive EAPOL-Start retries in a loop.
+COMPILE {
+    LOOP 3 {
+        eapol_start_retry(pxe_boot_client, learning_sw_port)
+    }
+}

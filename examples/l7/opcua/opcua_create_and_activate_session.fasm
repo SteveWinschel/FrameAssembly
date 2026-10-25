@@ -1,0 +1,27 @@
+// PROMPT: OPC UA CreateSessionRequest (i=461) and ActivateSessionRequest (i=467) authenticating an operator session.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the SCADA OPC UA client host.
+HOST scada_ua_client {
+    IP 10.140.10.20
+    MAC 00:1a:2b:8c:10:20
+}
+
+// INSTRUCTION: Define the plant OPC UA aggregation server.
+HOST plant_ua_srv {
+    IP 10.140.10.1
+    MAC 00:1a:2b:8c:10:01
+}
+
+// INSTRUCTION: Invoke CreateSession and ActivateSession over SecureChannel 101 Token 1.
+FLOW opcua_session_activate(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 101 TOKEN_ID 1 SEQ_NUM 10 REQID 10 NODE_ID "i=461"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 101 TOKEN_ID 1 SEQ_NUM 10 REQID 10 NODE_ID "i=464" WAIT 2ms
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 101 TOKEN_ID 1 SEQ_NUM 11 REQID 11 NODE_ID "i=467" PAYLOAD "UserNameIdentityToken:operator_01"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 101 TOKEN_ID 1 SEQ_NUM 11 REQID 11 NODE_ID "i=470"
+}
+
+// INSTRUCTION: Compile the OPC UA CreateSession and ActivateSession flow.
+COMPILE {
+    opcua_session_activate(scada_ua_client, plant_ua_srv)
+}

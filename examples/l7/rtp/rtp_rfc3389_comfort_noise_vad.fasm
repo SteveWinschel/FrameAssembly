@@ -1,0 +1,20 @@
+// PROMPT: RFC 3389 Comfort Noise (PT 13) silence suppression frame following active speech.
+// TOKENS: HOST, IP, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, WAIT, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define VoIP gateway with VAD (Voice Activity Detection) enabled.
+HOST vad_gw { IP 10.72.0.10 }
+
+// INSTRUCTION: Define remote VoIP receiver.
+HOST remote_rx { IP 10.72.0.20 }
+
+// INSTRUCTION: Define active PCMU speech followed by PT 13 Comfort Noise update.
+FLOW rtp_comfort_noise(tx, rx) {
+    tx -> rx RTP PT 0 TIMESTAMP 160 SSRC 0x72000001 MARKER 1 WAIT 20ms
+    tx -> rx RTP PT 0 TIMESTAMP 320 SSRC 0x72000001 MARKER 0 WAIT 20ms
+    tx -> rx RTP PT 13 TIMESTAMP 480 SSRC 0x72000001 MARKER 0 HEXPAYLOAD "3a1008"
+}
+
+// INSTRUCTION: Compile VAD Comfort Noise RTP scenario.
+COMPILE {
+    rtp_comfort_noise(vad_gw, remote_rx)
+}

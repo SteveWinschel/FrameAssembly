@@ -1,0 +1,27 @@
+// PROMPT: OPC UA CreateMonitoredItems (i=751) and PublishRequest (i=826) streaming data change notifications.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the cloud edge gateway subscribing to OPC UA tags.
+HOST edge_ua_sub {
+    IP 10.140.50.15
+    MAC 00:1a:2b:8c:50:15
+}
+
+// INSTRUCTION: Define the packaging line PLC OPC UA server.
+HOST line_ua_srv {
+    IP 10.140.50.1
+    MAC 00:1a:2b:8c:50:01
+}
+
+// INSTRUCTION: Register monitored item on ns=2;s=RejectCount and receive PublishResponse notification.
+FLOW opcua_publish_notify(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 500 TOKEN_ID 3 SEQ_NUM 200 REQID 200 NODE_ID "ns=2;s=RejectCount"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 500 TOKEN_ID 3 SEQ_NUM 200 REQID 200 NODE_ID "ns=2;s=RejectCount" WAIT 5ms
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 500 TOKEN_ID 3 SEQ_NUM 201 REQID 201 NODE_ID "i=826"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 500 TOKEN_ID 3 SEQ_NUM 201 REQID 201 NODE_ID "i=829" PAYLOAD "DataChangeNotification:RejectCount=14"
+}
+
+// INSTRUCTION: Compile the OPC UA monitored item Publish notification flow.
+COMPILE {
+    opcua_publish_notify(edge_ua_sub, line_ua_srv)
+}

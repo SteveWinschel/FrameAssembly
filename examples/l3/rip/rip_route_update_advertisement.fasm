@@ -1,5 +1,5 @@
 // PROMPT: RIPv2 routing update advertising network prefixes, hop metric, and next hop.
-// TOKENS: HOST, IP, FLOW, ->, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, COMPILE
+// TOKENS: HOST, IP, FLOW, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, COMPILE
 
 // INSTRUCTION: Define core routing gateway advertising routes.
 HOST core_rip_gw { IP 10.0.0.1 }

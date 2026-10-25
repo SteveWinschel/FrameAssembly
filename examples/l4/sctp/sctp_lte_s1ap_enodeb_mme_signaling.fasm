@@ -1,0 +1,22 @@
+// PROMPT: 4G LTE S1-AP signaling over SCTP port 36412 (PPID 18) between eNodeB and MME with Selective Acknowledgment (SACK).
+// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, SACK, WAIT, COMPILE
+
+// INSTRUCTION: Define LTE eNodeB cell site S1-MME interface.
+HOST lte_enodeb { IP 10.140.36.11 }
+
+// INSTRUCTION: Define LTE Mobility Management Entity (MME) core node.
+HOST lte_mme_core { IP 10.140.36.1 }
+
+// INSTRUCTION: Define S1-AP Initial UE Attach and Authentication Request across SCTP streams 0 and 1.
+FLOW sctp_lte_s1ap_exchange(enb, mme) {
+    enb -> mme SCTP CHUNK DATA VTAG 364121 STREAM 0 SSN 0 PPID 18 SRCPORT 36412 DSTPORT 36412 PAYLOAD "s1ap_s1_setup_request"
+    enb <- mme SCTP CHUNK SACK VTAG 364121 SRCPORT 36412 DSTPORT 36412 WAIT 1ms
+    enb <- mme SCTP CHUNK DATA VTAG 364121 STREAM 0 SSN 0 PPID 18 SRCPORT 36412 DSTPORT 36412 PAYLOAD "s1ap_s1_setup_response" WAIT 1ms
+    enb -> mme SCTP CHUNK DATA VTAG 364121 STREAM 1 SSN 0 PPID 18 SRCPORT 36412 DSTPORT 36412 PAYLOAD "s1ap_initial_ue_message_attach_req" WAIT 2ms
+    enb <- mme SCTP CHUNK SACK VTAG 364121 SRCPORT 36412 DSTPORT 36412 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing LTE S1-AP SCTP signaling.
+COMPILE {
+    sctp_lte_s1ap_exchange(lte_enodeb, lte_mme_core)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Redis RESP simple PING heartbeat command.
-// TOKENS: HOST, IP, FLOW, ->, REDIS, CMD, COMPILE
+// TOKENS: HOST, IP, FLOW, REDIS, CMD, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.10 }

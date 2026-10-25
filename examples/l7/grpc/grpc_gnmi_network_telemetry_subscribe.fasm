@@ -1,0 +1,27 @@
+// PROMPT: OpenConfig gNMI collector subscribing to router interface counters on TCP port 9339 over management VLAN 90.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, SRCPORT, DSTPORT, VLAN, PCP, DSCP, GRPC_STATUS, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define OpenConfig telemetry collector host.
+HOST gnmi_collector {
+    IP 10.90.93.100
+    MAC 00:1c:73:5a:5d:64
+}
+
+// INSTRUCTION: Define data center spine router running gNMI agent on TCP port 9339.
+HOST spine_gnmi_rtr {
+    IP 10.90.93.1
+    MAC 00:1c:73:5a:5d:01
+}
+
+// INSTRUCTION: Invoke gNMI Capabilities and Subscribe RPCs on port 9339 tagged with VLAN 90.
+FLOW grpc_gnmi_telemetry(col, rtr) {
+    col -> rtr GRPC SERVICE "gnmi.gNMI" METHOD "Capabilities" SRCPORT 51939 DSTPORT 9339 VLAN 90 PCP 4 DSCP 16
+    col <- rtr GRPC SERVICE "gnmi.gNMI" METHOD "Capabilities" SRCPORT 9339 DSTPORT 51939 VLAN 90 PCP 4 DSCP 16 GRPC_STATUS 0
+    col -> rtr GRPC SERVICE "gnmi.gNMI" METHOD "Subscribe" SRCPORT 51939 DSTPORT 9339 VLAN 90 PCP 4 DSCP 16 PAYLOAD "/interfaces/interface/state/counters"
+    col <- rtr GRPC SERVICE "gnmi.gNMI" METHOD "Subscribe" SRCPORT 9339 DSTPORT 51939 VLAN 90 PCP 4 DSCP 16 GRPC_STATUS 0
+}
+
+// INSTRUCTION: Compile the OpenConfig gNMI network telemetry subscription gRPC scenario.
+COMPILE {
+    grpc_gnmi_telemetry(gnmi_collector, spine_gnmi_rtr)
+}

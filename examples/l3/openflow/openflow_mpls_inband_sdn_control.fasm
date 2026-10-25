@@ -1,0 +1,26 @@
+// PROMPT: Construct an in-band OpenFlow control session transported over an MPLS-labeled core LSP
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, ECHO_REQ, VERSION, XID, MPLS, EXP, BOS, MPLS_TTL, WAIT, ECHO_REPLY, FLOW_MOD, TABLE_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define the WAN SDN traffic engineering controller
+HOST wan_te_ctrl {
+    IP 10.254.0.1
+    MAC 00:26:99:e6:00:01
+}
+
+// INSTRUCTION: Define the core MPLS-OpenFlow hybrid router
+HOST hybrid_lsr {
+    IP 10.254.0.42
+    MAC 00:26:99:e6:00:42
+}
+
+// INSTRUCTION: Exchange MPLS-encapsulated OpenFlow Echo and Flow-Mod frames
+FLOW openflow_mpls_inband_flow(ctrl, lsr) {
+    ctrl -> lsr OPENFLOW ECHO_REQ VERSION 4 XID 8100 MPLS 55000 EXP 6 BOS 1 MPLS_TTL 64 WAIT 10ms
+    lsr -> ctrl OPENFLOW ECHO_REPLY VERSION 4 XID 8100 MPLS 55001 EXP 6 BOS 1 MPLS_TTL 64 WAIT 10ms
+    ctrl -> lsr OPENFLOW FLOW_MOD VERSION 4 XID 8101 TABLE_ID 0 PRIORITY 55000 MPLS 55000 EXP 6 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the MPLS in-band OpenFlow session trace
+COMPILE {
+    openflow_mpls_inband_flow(wan_te_ctrl, hybrid_lsr)
+}

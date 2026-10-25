@@ -1,0 +1,24 @@
+// PROMPT: sFlow v5 datagram exported directly from a SmartNIC DPU embedded switch sampling PCIe VF traffic.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, DSCP, COMPILE
+
+// INSTRUCTION: Define bare-metal server SmartNIC DPU sFlow agent.
+HOST smartnic_dpu {
+    IP 10.195.4.10
+    MAC 00:02:c9:c3:04:0a
+}
+
+// INSTRUCTION: Define cloud infrastructure telemetry collector.
+HOST cloud_telemetry {
+    IP 10.195.0.10
+    MAC 00:02:c9:c3:00:0a
+}
+
+// INSTRUCTION: Export hardware-offloaded sFlow samples from DPU eswitch sub-agent 2.
+FLOW sflow_dpu_offload(dpu, col) {
+    dpu -> col SFLOW AGENT_IP 10.195.4.10 SUB_AGENT_ID 2 UPTIME 720000 SAMPLES 32 DSCP 18
+}
+
+// INSTRUCTION: Compile the SmartNIC DPU hardware offload sFlow scenario.
+COMPILE {
+    sflow_dpu_offload(smartnic_dpu, cloud_telemetry)
+}

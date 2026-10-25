@@ -1,0 +1,27 @@
+// PROMPT: Polymorphic dual-stack IPv4 and IPv6 IETF RSerPool ENRP/ASAP high-availability server pool registration over SCTP.
+// TOKENS: HOST, IP, FLOW, TTL, DSCP, FLOWLABEL, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, SACK, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv4 Pool Element server registering with Pool Registrar.
+HOST pool_elem_v4 { IP 10.89.1.10 }
+
+// INSTRUCTION: Define IPv4 Pool Registrar server.
+HOST pool_reg_v4 { IP 10.89.1.1 }
+
+// INSTRUCTION: Define IPv6 Pool Element server registering with Pool Registrar.
+HOST pool_elem_v6 { IP 2001:db8:89:1::10 }
+
+// INSTRUCTION: Define IPv6 Pool Registrar server.
+HOST pool_reg_v6 { IP 2001:db8:89:1::1 }
+
+// INSTRUCTION: Define polymorphic RSerPool ASAP Registration (PPID 11, Port 3863) over SCTP.
+FLOW rserpool_asap_sctp(pe, pr) {
+    pe -> pr TTL 64 DSCP 32 FLOWLABEL 0x89001 SCTP CHUNK DATA VTAG 386300 STREAM 0 SSN 0 PPID 11 SRCPORT 3863 DSTPORT 3863 PAYLOAD "asap_registration_pool_handle_db_ha"
+    pe <- pr TTL 64 DSCP 32 FLOWLABEL 0x89002 SCTP CHUNK SACK VTAG 386300 SRCPORT 3863 DSTPORT 3863 WAIT 1ms
+    pe <- pr TTL 64 DSCP 32 FLOWLABEL 0x89002 SCTP CHUNK DATA VTAG 386300 STREAM 0 SSN 0 PPID 11 SRCPORT 3863 DSTPORT 3863 PAYLOAD "asap_registration_response_accepted" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing polymorphic dual-stack SCTP RSerPool registration.
+COMPILE {
+    rserpool_asap_sctp(pool_elem_v4, pool_reg_v4)
+    rserpool_asap_sctp(pool_elem_v6, pool_reg_v6)
+}

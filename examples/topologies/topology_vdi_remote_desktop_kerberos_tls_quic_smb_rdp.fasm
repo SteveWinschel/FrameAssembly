@@ -1,0 +1,27 @@
+// PROMPT: Enterprise Virtual Desktop Infrastructure (VDI) session launch combining Kerberos SSO authentication, TLS 1.3 gateway handshake, QUIC UDP display transport, and SMB3 FSLogix profile mount.
+// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REQ, REALM, CNAME, SNAME, AS_REP, WAIT, TLS, CLIENT_HELLO, SNI, SERVER_HELLO, FINISHED, SMB, COMMAND, SESSION_ID, SHARE, TREE_ID, DSCP, QUIC, COMPILE
+
+// INSTRUCTION: Define thin-client VDI endpoint terminal.
+HOST vdi_thin_client { IP 10.115.10.80 }
+
+// INSTRUCTION: Define VDI session broker, Kerberos KDC, and desktop VM host.
+HOST vdi_desktop_host { IP 10.115.50.25 }
+
+// INSTRUCTION: Define FSLogix SMB3 user profile storage cluster.
+HOST fslogix_smb_filer { IP 10.115.100.10 }
+
+// INSTRUCTION: Define Kerberos ticket issuance, TLS gateway handshake, SMB3 FSLogix VHDX mount, and QUIC display frame stream.
+FLOW vdi_session_launch_workflow(thin, vdi, filer) {
+    thin -> vdi KERBEROS AS_REQ REALM "VDI.CORP.NET" CNAME "eng_user01" SNAME "krbtgt/VDI.CORP.NET"
+    thin <- vdi KERBEROS AS_REP REALM "VDI.CORP.NET" CNAME "eng_user01" WAIT 1ms
+    thin -> vdi TLS CLIENT_HELLO SNI "rdp-gw.vdi.corp.net" WAIT 1ms
+    thin <- vdi TLS SERVER_HELLO FINISHED WAIT 1ms
+    vdi -> filer SMB COMMAND "SESSION_SETUP" SESSION_ID 0x77001100 WAIT 1ms
+    vdi -> filer SMB COMMAND "TREE_CONNECT" SESSION_ID 0x77001100 SHARE "\\\\fslogix\\profiles$\\eng_user01.vhdx" TREE_ID 5 WAIT 1ms
+    thin <- vdi DSCP 34 QUIC SHORT DCID 0x5566778899aabbcc PAYLOAD "RDP_UDP_H264_GPU_ENCODED_DESKTOP_FRAME_60FPS" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing enterprise VDI Kerberos, TLS, SMB3, and QUIC topology.
+COMPILE {
+    vdi_session_launch_workflow(vdi_thin_client, vdi_desktop_host, fslogix_smb_filer)
+}

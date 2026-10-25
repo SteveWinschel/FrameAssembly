@@ -1,0 +1,25 @@
+// PROMPT: IEEE 802.1D Spanning Tree Topology Change Notification (TCN) and Topology Change Acknowledgment (TCA) BPDU exchange.
+// TOKENS: HOST, IP, MAC, FLOW, STP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, FLAGS, WAIT, COMPILE
+
+// INSTRUCTION: Define downstream access switch detecting port link state change.
+HOST access_sw_tcn {
+    IP 10.45.0.12
+    MAC 00:1c:0e:45:00:0c
+}
+
+// INSTRUCTION: Define upstream root bridge acknowledging topology change.
+HOST root_bridge_tca {
+    IP 10.45.0.1
+    MAC 00:1c:0e:45:00:01
+}
+
+// INSTRUCTION: Define STP Topology Change (flag 0x01) and Topology Change Ack (flag 0x81) BPDU exchange.
+FLOW stp_tcn_tca_exchange(access, root) {
+    access -> root STP ROOT_ID "4096:00:1c:0e:45:00:01" BRIDGE_ID "32768:00:1c:0e:45:00:0c" COST 20000 PORT_ID 32769 FLAGS 1
+    access <- root STP ROOT_ID "4096:00:1c:0e:45:00:01" BRIDGE_ID "4096:00:1c:0e:45:00:01" COST 0 PORT_ID 32770 FLAGS 129 WAIT 4ms
+}
+
+// INSTRUCTION: Compile block executing STP Topology Change Notification and Acknowledgment.
+COMPILE {
+    stp_tcn_tca_exchange(access_sw_tcn, root_bridge_tca)
+}

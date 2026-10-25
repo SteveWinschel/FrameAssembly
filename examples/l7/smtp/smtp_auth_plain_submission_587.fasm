@@ -1,0 +1,33 @@
+// PROMPT: Simulate an SMTP AUTH PLAIN authentication on mail submission port 587 with 235 2.7.0 Authentication successful.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SMTP, CODE, REPLY, EHLO, CMD, PARAM, QUIT, COMPILE
+
+// INSTRUCTION: Define the mail user agent and SMTP submission server on port 587.
+HOST mua_client {
+    MAC 00:1c:42:33:44:55
+    IP 192.168.10.45
+}
+
+// INSTRUCTION: Define the submission_srv mail endpoint.
+HOST submission_srv {
+    MAC 00:1c:42:33:44:01
+    IP 192.168.10.5
+}
+
+// INSTRUCTION: Connect to port 587, send EHLO, authenticate with AUTH PLAIN, and receive 235 success.
+FLOW smtp_submission_auth_plain(mua_client, submission_srv) {
+    mua_client -> submission_srv TCP SYN SRCPORT 52587 DSTPORT 587
+    submission_srv -> mua_client TCP SYN ACK
+    mua_client -> submission_srv TCP ACK
+    submission_srv -> mua_client DSTPORT 52587 SRCPORT 587 SMTP CODE 220 REPLY "msa.corp.local ESMTP Submission"
+    mua_client -> submission_srv SRCPORT 52587 DSTPORT 587 SMTP EHLO "laptop.corp.local"
+    submission_srv -> mua_client DSTPORT 52587 SRCPORT 587 SMTP CODE 250 REPLY "AUTH PLAIN LOGIN"
+    mua_client -> submission_srv SRCPORT 52587 DSTPORT 587 SMTP CMD "AUTH" PARAM "PLAIN AGFsaWNlAHNlY3JldHBhc3M="
+    submission_srv -> mua_client DSTPORT 52587 SRCPORT 587 SMTP CODE 235 REPLY "2.7.0 Authentication successful"
+    mua_client -> submission_srv SRCPORT 52587 DSTPORT 587 SMTP QUIT
+    submission_srv -> mua_client DSTPORT 52587 SRCPORT 587 SMTP CODE 221 REPLY "2.0.0 Bye"
+}
+
+// INSTRUCTION: Compile the SMTP port 587 AUTH PLAIN submission flow.
+COMPILE {
+    smtp_submission_auth_plain(mua_client, submission_srv)
+}

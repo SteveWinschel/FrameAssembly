@@ -1,5 +1,5 @@
 // PROMPT: IKEv2 INFORMATIONAL keepalive and dead peer detection message exchange.
-// TOKENS: HOST, IP, FLOW, ->, <-, IKEV2, EXCHANGE, INFORMATIONAL, MSGID, COMPILE
+// TOKENS: HOST, IP, FLOW, IKEV2, EXCHANGE, INFORMATIONAL, MSGID, COMPILE
 
 // INSTRUCTION: Define active VPN peer endpoint 1.
 HOST ike_peer1 { IP 172.31.0.1 }

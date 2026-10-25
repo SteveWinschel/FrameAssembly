@@ -1,0 +1,19 @@
+// PROMPT: IPsec ESP packet carrying explicit Initialization Vector (IV) and Integrity Check Value (ICV).
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, COMPILE
+
+// INSTRUCTION: Define West Coast VPN concentrator.
+HOST esp_conc_west { IP 198.51.100.10 MAC 00:10:db:ff:10:01 }
+
+// INSTRUCTION: Define East Coast VPN concentrator.
+HOST esp_conc_east { IP 203.0.113.10 MAC 00:10:db:ff:10:02 }
+
+// INSTRUCTION: Define bidirectional ESP session with explicit 8-byte IV and 12-byte ICV.
+FLOW esp_iv_icv_exchange(w, e) {
+    w -> e ESP SPI 1048576 SEQ 1 IV "1122334455667788" ICV "aabbccddeeff001122334455"
+    w <- e ESP SPI 1048577 SEQ 1 IV "8877665544332211" ICV "554433221100ffeeddccbbaa"
+}
+
+// INSTRUCTION: Compile the explicit IV and ICV ESP exchange.
+COMPILE {
+    esp_iv_icv_exchange(esp_conc_west, esp_conc_east)
+}

@@ -1,0 +1,32 @@
+// PROMPT: Multi-Chassis Link Aggregation (MLAG / vPC) LACP negotiation using shared virtual system MAC across dual leaf switches.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define hypervisor host NIC 1 connected to MLAG peer A.
+HOST hypervisor_nic1 {
+    IP 172.18.40.10
+    MAC 3c:fd:fe:18:40:0a
+}
+
+// INSTRUCTION: Define MLAG leaf switch A advertising shared virtual system MAC 02:00:00:aa:bb:cc.
+HOST mlag_leaf_a {
+    IP 172.18.40.1
+    MAC 00:1c:73:18:40:01
+}
+
+// INSTRUCTION: Define MLAG leaf switch B advertising identical shared virtual system MAC 02:00:00:aa:bb:cc.
+HOST mlag_leaf_b {
+    IP 172.18.40.2
+    MAC 00:1c:73:18:40:02
+}
+
+// INSTRUCTION: Define MLAG dual-homed LACP negotiation with shared ACTOR_SYS virtual MAC.
+FLOW mlag_vpc_lacp(host, leaf1, leaf2) {
+    leaf1 -> host LACP ACTOR_SYS 02:00:00:aa:bb:cc ACTOR_KEY 400 ACTOR_PORT 101 ACTOR_STATE 63 PARTNER_SYS 3c:fd:fe:18:40:0a PARTNER_KEY 400 PARTNER_PORT 1 PARTNER_STATE 63
+    leaf2 -> host LACP ACTOR_SYS 02:00:00:aa:bb:cc ACTOR_KEY 400 ACTOR_PORT 201 ACTOR_STATE 63 PARTNER_SYS 3c:fd:fe:18:40:0a PARTNER_KEY 400 PARTNER_PORT 2 PARTNER_STATE 63 WAIT 2ms
+    host -> leaf1 LACP ACTOR_SYS 3c:fd:fe:18:40:0a ACTOR_KEY 400 ACTOR_PORT 1 ACTOR_STATE 63 PARTNER_SYS 02:00:00:aa:bb:cc PARTNER_KEY 400 PARTNER_PORT 101 PARTNER_STATE 63 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing MLAG shared system MAC LACP exchange.
+COMPILE {
+    mlag_vpc_lacp(hypervisor_nic1, mlag_leaf_a, mlag_leaf_b)
+}

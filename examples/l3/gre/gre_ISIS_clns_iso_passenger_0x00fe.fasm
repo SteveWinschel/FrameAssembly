@@ -1,0 +1,25 @@
+// PROMPT: RFC 2784 GRE tunnel encapsulating ISO CLNS / IS-IS PDUs (GRE_PROTO 0x00FE = 254) across an IP-only transit link.
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, DSCP, DF, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IS-IS router A tunneling CLNS Hellos and LSPs inside GRE Protocol 0x00FE (254).
+HOST isis_gre_rtr_a {
+    IP 10.47.254.1
+    MAC 00:21:59:47:fe:01
+}
+
+// INSTRUCTION: Define IS-IS router B forming a Level-2 adjacency over the GRE tunnel.
+HOST isis_gre_rtr_b {
+    IP 10.47.254.2
+    MAC 00:21:59:47:fe:02
+}
+
+// INSTRUCTION: Define GRE exchange with GRE_PROTO 254 (0x00FE OSI Network Layer / IS-IS) and DSCP CS6.
+FLOW gre_isis_clns_tunnel(a, b) {
+    a -> b GRE GRE_KEY 4900 GRE_SEQ 1 GRE_PROTO 254 DSCP 48 DF TTL 64 HEXPAYLOAD "831b010011010000021049000119216800100100" WAIT 5ms
+    a <- b GRE GRE_KEY 4900 GRE_SEQ 1 GRE_PROTO 254 DSCP 48 DF TTL 64 HEXPAYLOAD "831b010011010000021049000119216800100200"
+}
+
+// INSTRUCTION: Compile the IS-IS CLNS over GRE (Protocol 0x00FE) tunnel flow.
+COMPILE {
+    gre_isis_clns_tunnel(isis_gre_rtr_a, isis_gre_rtr_b)
+}

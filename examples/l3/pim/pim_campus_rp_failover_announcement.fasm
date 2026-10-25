@@ -1,0 +1,18 @@
+// PROMPT: Secondary Rendezvous Point asserting multicast RP tree coordination.
+// TOKENS: HOST, IP, FLOW, PIM, HELLO, DR_PRIORITY, HOLDTIME, COMPILE
+
+// INSTRUCTION: Define secondary backup RP router.
+HOST backup_rp_rtr { IP 10.60.0.2 }
+
+// INSTRUCTION: Define All-PIM-Routers campus multicast destination.
+HOST campus_pim_mcast { IP 224.0.0.13 }
+
+// INSTRUCTION: Define backup RP Hello assertion with high DR priority 200.
+FLOW pim_rp_failover_hello(rp, dst) {
+    rp -> dst PIM HELLO DR_PRIORITY 200 HOLDTIME 105
+}
+
+// INSTRUCTION: Compile block executing backup RP election Hello.
+COMPILE {
+    pim_rp_failover_hello(backup_rp_rtr, campus_pim_mcast)
+}

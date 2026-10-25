@@ -1,0 +1,27 @@
+// PROMPT: IEEE 802.1ad Provider Bridge PAE group address (01:80:c2:00:00:08) EAPOL authentication between Metro Ethernet NIDs.
+// TOKENS: HOST, IP, MAC, FLOW, DSTMAC, EAPOL, VERSION, TYPE, START, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, WAIT, IDENTITY, COMPILE
+
+// INSTRUCTION: Define customer premises NID demarcation unit acting as 802.1X supplicant.
+HOST metro_cpe_nid {
+    IP 172.30.10.2
+    MAC 00:15:ad:30:10:02
+}
+
+// INSTRUCTION: Define service provider Metro aggregation switch acting as 802.1X authenticator.
+HOST metro_agg_pe {
+    IP 172.30.10.1
+    MAC 00:15:ad:30:10:01
+}
+
+// INSTRUCTION: Define EAPOL exchange using Provider Bridge Group MAC 01:80:c2:00:00:08 so customer dot1x does not collide.
+FLOW metro_nid_eapol_auth(nid, pe) {
+    nid -> pe DSTMAC 01:80:c2:00:00:08 EAPOL VERSION 2 TYPE START
+    nid <- pe DSTMAC 01:80:c2:00:00:08 EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 1 EAP_METHOD 1 WAIT 2ms
+    nid -> pe DSTMAC 01:80:c2:00:00:08 EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 1 EAP_METHOD 1 IDENTITY "nid-cpe-branch42@carrier.net" WAIT 2ms
+    nid <- pe DSTMAC 01:80:c2:00:00:08 EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 1 EAP_METHOD 1 WAIT 4ms
+}
+
+// INSTRUCTION: Compile block executing Metro Ethernet NID EAPOL authentication.
+COMPILE {
+    metro_nid_eapol_auth(metro_cpe_nid, metro_agg_pe)
+}

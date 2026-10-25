@@ -1,5 +1,5 @@
 // PROMPT: Establish a standard TCP 3-way handshake (SYN, SYN-ACK, ACK) on HTTPS port 443 with explicit sequence and acknowledgment numbers.
-// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, SEQ, ACKNUM, DSTPORT, SRCPORT, COMPILE
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SEQ, DSTPORT, ACK, ACKNUM, SRCPORT, COMPILE
 
 // INSTRUCTION: Define an enterprise client with IP 10.10.10.10.
 HOST enterprise_client { IP 10.10.10.10 }

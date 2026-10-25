@@ -1,0 +1,19 @@
+// PROMPT: DNS SERVFAIL (RCODE 2) response when upstream DNSSEC validation fails.
+// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RCODE, COMPILE
+
+// INSTRUCTION: Define client querying a domain with broken DNSSEC signatures.
+HOST sec_client { IP 10.45.0.100 }
+
+// INSTRUCTION: Define validating DNSSEC recursive resolver.
+HOST dnssec_val { IP 10.45.0.1 }
+
+// INSTRUCTION: Query domain and receive RCODE 2 (SERVFAIL) after validation failure.
+FLOW dns_servfail_rcode2(c, v) {
+    c -> v DNS QUERY TXID 0x6601 QNAME "dnssec-failed.org" QTYPE "A" WAIT 50ms
+    c <- v DNS RESPONSE TXID 0x6601 QNAME "dnssec-failed.org" QTYPE "A" RCODE 2
+}
+
+// INSTRUCTION: Compile the DNS SERVFAIL scenario.
+COMPILE {
+    dns_servfail_rcode2(sec_client, dnssec_val)
+}

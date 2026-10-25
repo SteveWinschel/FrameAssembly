@@ -1,0 +1,21 @@
+// PROMPT: Binary opcode WebSocket frame transporting serialized sensor telemetry.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+
+// INSTRUCTION: Define industrial IoT gateway client.
+HOST iot_gateway { IP 10.10.4.15 }
+
+// INSTRUCTION: Define cloud telemetry ingestion node.
+HOST cloud_telemetry { IP 10.10.4.1 }
+
+// INSTRUCTION: Define binary telemetry transmission flow.
+FLOW ws_binary_flow(c, s) {
+    c -> s WEBSOCKET
+        OPCODE "BINARY"
+        FIN_BIT 1
+        MASK_KEY 1437227610
+}
+
+// INSTRUCTION: Compile block executing binary telemetry transmission.
+COMPILE {
+    ws_binary_flow(iot_gateway, cloud_telemetry)
+}

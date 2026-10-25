@@ -1,0 +1,21 @@
+// PROMPT: HTTP/2 server settings renegotiation and GOAWAY rejection on high-numbered stream 101.
+// TOKENS: HOST, IP, FLOW, HTTP2, HEADERS, STREAM_ID, WAIT, SETTINGS, WINDOW_UPDATE, GOAWAY, COMPILE
+
+// INSTRUCTION: Define high-concurrency scraper client.
+HOST scraper_h2 { IP 10.77.43.20 }
+
+// INSTRUCTION: Define rate-limiting HTTP/2 server.
+HOST ratelimit_h2 { IP 10.77.43.1 }
+
+// INSTRUCTION: Open stream 101, receive updated SETTINGS and WINDOW_UPDATE, then GOAWAY on stream 0.
+FLOW http2_stream101_goaway(c, s) {
+    c -> s HTTP2 HEADERS STREAM_ID 101 WAIT 5ms
+    c <- s HTTP2 SETTINGS STREAM_ID 0 WAIT 5ms
+    c <- s HTTP2 WINDOW_UPDATE STREAM_ID 101 WAIT 5ms
+    c <- s HTTP2 GOAWAY STREAM_ID 0
+}
+
+// INSTRUCTION: Compile the HTTP/2 high-stream GOAWAY rejection flow.
+COMPILE {
+    http2_stream101_goaway(scraper_h2, ratelimit_h2)
+}

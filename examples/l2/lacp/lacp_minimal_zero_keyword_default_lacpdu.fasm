@@ -1,0 +1,25 @@
+// PROMPT: Minimal zero-keyword LACP statement synthesizing a standard 110-byte IEEE 802.3ad LACPDU over Slow Protocols 0x8809.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, WAIT, COMPILE
+
+// INSTRUCTION: Define default LACP actor switch A.
+HOST default_lacp_a {
+    IP 10.0.20.1
+    MAC 00:11:22:44:55:01
+}
+
+// INSTRUCTION: Define default LACP partner switch B.
+HOST default_lacp_b {
+    IP 10.0.20.2
+    MAC 00:11:22:44:55:02
+}
+
+// INSTRUCTION: Exchange default 110-byte IEEE 802.3ad LACPDUs addressed to 01:80:c2:00:00:02.
+FLOW lacp_minimal_defaults(a, b) {
+    a -> b LACP WAIT 5ms
+    a <- b LACP
+}
+
+// INSTRUCTION: Compile the minimal default LACPDU exchange.
+COMPILE {
+    lacp_minimal_defaults(default_lacp_a, default_lacp_b)
+}

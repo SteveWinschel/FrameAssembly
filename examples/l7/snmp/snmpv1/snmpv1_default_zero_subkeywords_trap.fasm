@@ -1,0 +1,24 @@
+// PROMPT: Minimal SNMPv1 frame with zero optional sub-keywords exercising builder default trap generation.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, COMPILE
+
+// INSTRUCTION: Define the default SNMPv1 agent host.
+HOST snmp1_def_agent {
+    IP 10.145.0.1
+    MAC 00:1a:2b:91:00:01
+}
+
+// INSTRUCTION: Define the default SNMPv1 manager host.
+HOST snmp1_def_mgr {
+    IP 10.145.0.10
+    MAC 00:1a:2b:91:00:10
+}
+
+// INSTRUCTION: Emit a bare SNMP1 statement to exercise all builder defaults.
+FLOW snmpv1_defaults(a, m) {
+    a -> m SNMP1
+}
+
+// INSTRUCTION: Compile the default SNMPv1 trap flow.
+COMPILE {
+    snmpv1_defaults(snmp1_def_agent, snmp1_def_mgr)
+}

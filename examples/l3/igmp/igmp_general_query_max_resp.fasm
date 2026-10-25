@@ -1,0 +1,19 @@
+// PROMPT: IGMPv2 General Membership Query specifying MAX_RESP (100 = 10.0s) to 224.0.0.1 followed by host Report.
+// TOKENS: HOST, IP, MAC, FLOW, IGMP, QUERY, GROUP, MAX_RESP, TTL, REPORT, COMPILE
+
+// INSTRUCTION: Define multicast querier router on LAN subnet.
+HOST igmp_querier_rtr { IP 192.168.10.1 MAC 00:1b:54:10:00:01 }
+
+// INSTRUCTION: Define multicast receiver host joining group 239.10.10.5.
+HOST igmp_receiver_01 { IP 192.168.10.50 MAC 00:1b:54:10:00:50 }
+
+// INSTRUCTION: Define IGMP General Query (GROUP 0.0.0.0, MAX_RESP 100) and host Membership Report.
+FLOW igmp_general_query_flow(q, r) {
+    q -> r IGMP QUERY GROUP 0.0.0.0 MAX_RESP 100 TTL 1
+    q <- r IGMP REPORT GROUP 239.10.10.5 TTL 1
+}
+
+// INSTRUCTION: Compile the IGMP General Query and Report flow.
+COMPILE {
+    igmp_general_query_flow(igmp_querier_rtr, igmp_receiver_01)
+}

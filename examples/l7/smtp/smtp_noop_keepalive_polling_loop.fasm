@@ -1,0 +1,27 @@
+// PROMPT: Simulate an SMTP connection pooler sending periodic NOOP commands in a loop to keep a warm MTA socket open.
+// TOKENS: HOST, IP, MAC, FLOW, SMTP, CMD, DSCP, TTL, WAIT, CODE, REPLY, COMPILE, LOOP
+
+// INSTRUCTION: Define the transactional email pool worker node.
+HOST pool_worker {
+    IP 10.35.25.20
+    MAC 00:50:56:35:25:14
+}
+
+// INSTRUCTION: Define the enterprise outbound Postfix relay.
+HOST postfix_relay {
+    IP 10.35.25.1
+    MAC 00:50:56:35:25:01
+}
+
+// INSTRUCTION: Exchange an SMTP NOOP command and 250 2.0.0 Ok response with DSCP AF21 marking.
+FLOW smtp_noop_heartbeat(c, s) {
+    c -> s SMTP CMD "NOOP" DSCP 18 TTL 64 WAIT 2ms
+    c <- s SMTP CODE 250 REPLY "2.0.0 Ok" DSCP 18 TTL 64 WAIT 20ms
+}
+
+// INSTRUCTION: Execute 4 consecutive SMTP NOOP keepalive probes inside a COMPILE LOOP block.
+COMPILE {
+    LOOP 4 {
+        smtp_noop_heartbeat(pool_worker, postfix_relay)
+    }
+}

@@ -1,4 +1,11 @@
-//! BACNET industrial OT protocol wire builder.
+//! Building Automation and Control Networks (BACnet/IP, ANSI/ASHRAE 135) wire payload builder.
+//!
+//! This module implements [`build_bacnet_payload`], which serializes a [`BacnetSpec`]
+//! AST specification into an ANSI/ASHRAE 135 BACnet/IP frame over UDP port 47808 (`0xBAC0`). It
+//! builds the APDU for unconfirmed `Who-Is` / `I-Am` or confirmed `ReadProperty` (`0x0C`) /
+//! `WriteProperty` (`0x0F`) services (packing the 32-bit Object Identifier `(object_type << 22) |
+//! instance`, context-tagged Property ID, and application-tagged value), wraps it in a 2-byte NPDU
+//! header, and prepends the 4-byte BVLC header (`0x81`, `0x0A` Unicast or `0x0B` Broadcast, length).
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -11,10 +18,31 @@ pub fn build_bacnet_payload(
     payload_bytes: &[u8],
 ) -> Vec<u8> {
     let mut apdu = Vec::new();
-    let is_broadcast = spec.is_who_is || (!spec.is_i_am && !spec.is_read_property && !spec.is_write_property);
+    let is_write = spec.is_write_property
+        || (spec.value.is_some() && !spec.is_read_property && !spec.is_i_am && !spec.is_who_is);
+    let is_broadcast =
+        spec.is_who_is || (!spec.is_i_am && !spec.is_read_property && !is_write);
 
-    if spec.is_read_property {
-        // Confirmed-Request APDU (Type 0)
+    if is_write {
+        // Confirmed-Request APDU (Type 0): WriteProperty (Service Choice 15)
+        apdu.push(0x00); // PDU Type 0: Confirmed-REQ
+        apdu.push(0x05); // Max Seg / Max Resp (1476 octets)
+        apdu.push(spec.invoke_id.unwrap_or(1)); // Invoke ID
+        apdu.push(0x0F); // Service Choice: WriteProperty (15)
+
+        let obj_type = spec.object_type.unwrap_or(8); // Device (8)
+        let obj_inst = spec.object_instance.unwrap_or(1234);
+        let obj_id = ((obj_type as u32) << 22) | (obj_inst & 0x3FFFFF);
+        apdu.push(0x0C); // Context Tag 0 (ObjectIdentifier, len 4)
+        apdu.extend_from_slice(&obj_id.to_be_bytes());
+        apdu.push(0x19); // Context Tag 1 (PropertyIdentifier, len 1)
+        apdu.push(spec.property_id.unwrap_or(85) as u8); // 85: Present_Value
+        apdu.push(0x3E); // Context Tag 3 Opening Tag (PropertyValue)
+        apdu.push(0x24); // Application Tag 2 (Unsigned Int, len 4)
+        apdu.extend_from_slice(&spec.value.unwrap_or(0).to_be_bytes());
+        apdu.push(0x3F); // Context Tag 3 Closing Tag
+    } else if spec.is_read_property {
+        // Confirmed-Request APDU (Type 0): ReadProperty (Service Choice 12)
         apdu.push(0x00); // PDU Type 0: Confirmed-REQ
         apdu.push(0x05); // Max Seg / Max Resp (1476 octets)
         apdu.push(spec.invoke_id.unwrap_or(1)); // Invoke ID
@@ -27,21 +55,36 @@ pub fn build_bacnet_payload(
         apdu.extend_from_slice(&obj_id.to_be_bytes());
         apdu.extend_from_slice(&[0x19]); // Context Tag 1 (PropertyIdentifier, len 1)
         apdu.push(spec.property_id.unwrap_or(85) as u8); // 85: Present_Value
+        if let Some(val) = spec.value {
+            apdu.push(0x3E);
+            apdu.push(0x24);
+            apdu.extend_from_slice(&val.to_be_bytes());
+            apdu.push(0x3F);
+        }
     } else if spec.is_i_am {
         // Unconfirmed-Request APDU (Type 1): I-Am (Service Choice 0)
         apdu.push(0x10);
         apdu.push(0x00);
+        let obj_type = spec.object_type.unwrap_or(8);
         let obj_inst = spec.object_instance.unwrap_or(1234);
-        let obj_id = (8u32 << 22) | (obj_inst & 0x3FFFFF);
+        let obj_id = ((obj_type as u32) << 22) | (obj_inst & 0x3FFFFF);
         apdu.extend_from_slice(&[0xC4]); // Application Tag 12: ObjectIdentifier
         apdu.extend_from_slice(&obj_id.to_be_bytes());
         apdu.extend_from_slice(&[0x22, 0x04, 0x00]); // Max APDU length accepted: 1024
         apdu.extend_from_slice(&[0x91, 0x00]); // Segmentation supported: no-segmentation (0)
         apdu.extend_from_slice(&[0x21, 0x01]); // Vendor ID: 1
+        if let Some(val) = spec.value {
+            apdu.push(0x24);
+            apdu.extend_from_slice(&val.to_be_bytes());
+        }
     } else {
         // Default: Who-Is Unconfirmed-Request APDU (Type 1): Who-Is (Service Choice 8)
         apdu.push(0x10); // Unconfirmed-REQ
         apdu.push(0x08); // Service Choice: Who-Is (8)
+        if let Some(val) = spec.value {
+            apdu.push(0x24);
+            apdu.extend_from_slice(&val.to_be_bytes());
+        }
     }
 
     if !payload_bytes.is_empty() {

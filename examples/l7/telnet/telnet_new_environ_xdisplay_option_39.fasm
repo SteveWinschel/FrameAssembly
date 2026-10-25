@@ -1,0 +1,32 @@
+// PROMPT: Simulate a Telnet New Environment Option (NEW-ENVIRON, Option 39, RFC 1572) and X Display Location (Option 35) exchange.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TELNET, DO, WILL, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint x11_ws.
+HOST x11_ws {
+    MAC 00:1e:67:00:23:39
+    IP 10.39.23.10
+}
+
+// INSTRUCTION: Define host endpoint compute_host.
+HOST compute_host {
+    MAC 00:1e:67:00:23:01
+    IP 10.39.23.1
+}
+
+// INSTRUCTION: Negotiate Option 39 (NEW-ENVIRON) and Option 35 (XDISPLOC) and pass DISPLAY variable.
+FLOW telnet_environ_and_xdisplay(x11_ws, compute_host) {
+    x11_ws -> compute_host TCP SYN SRCPORT 57023 DSTPORT 23
+    compute_host -> x11_ws TCP SYN ACK
+    x11_ws -> compute_host TCP ACK
+    compute_host -> x11_ws TELNET DO 39
+    x11_ws -> compute_host TELNET WILL 39
+    compute_host -> x11_ws TELNET DO 35
+    x11_ws -> compute_host TELNET WILL 35
+    x11_ws -> compute_host TELNET PAYLOAD "USER=steve DISPLAY=10.39.23.10:0.0"
+    compute_host -> x11_ws TELNET PAYLOAD "Last login: Sat Oct 24 23:00:00\r\n$ "
+}
+
+// INSTRUCTION: Compile the Telnet NEW-ENVIRON and XDISPLOC flow.
+COMPILE {
+    telnet_environ_and_xdisplay(x11_ws, compute_host)
+}

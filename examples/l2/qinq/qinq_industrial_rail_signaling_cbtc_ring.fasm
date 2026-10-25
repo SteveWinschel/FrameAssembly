@@ -1,0 +1,27 @@
+// PROMPT: Railway Communications-Based Train Control (CBTC) trackside fiber ring using QinQ S-VLAN 880 C-VLAN 88 for wayside telemetry.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define wayside zone controller A transmitting train movement authority on QinQ S-VLAN 880 C-VLAN 88.
+HOST cbtc_zone_ctrl_a {
+    IP 10.88.88.1
+    MAC 00:0e:8c:58:58:01
+}
+
+// INSTRUCTION: Define trackside interlocking controller B receiving CBTC movement authority frames.
+HOST cbtc_interlock_b {
+    IP 10.88.88.2
+    MAC 00:0e:8c:58:58:02
+}
+
+// INSTRUCTION: Exchange cyclic CBTC safety-critical movement authority frames in a 2-iteration loop.
+FLOW qinq_cbtc_signaling(zc, il) {
+    zc -> il QINQ 880 INNER_VLAN 88 DSCP 46 UDP SRCPORT 8800 DSTPORT 8800 PAYLOAD "cbtc_ma_block_14_clear_speed_80kph" WAIT 5ms
+    zc <- il QINQ 880 INNER_VLAN 88 DSCP 46 UDP SRCPORT 8800 DSTPORT 8800 PAYLOAD "cbtc_switch_locked_normal_vital_crc_ok"
+}
+
+// INSTRUCTION: Compile 2 cyclic iterations of the railway CBTC QinQ S-VLAN 880 C-VLAN 88 signaling exchange.
+COMPILE {
+    LOOP 2 {
+        qinq_cbtc_signaling(cbtc_zone_ctrl_a, cbtc_interlock_b)
+    }
+}

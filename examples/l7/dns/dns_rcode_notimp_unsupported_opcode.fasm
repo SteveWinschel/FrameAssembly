@@ -1,0 +1,25 @@
+// PROMPT: Generate a DNS response with RCODE 4 (NOTIMP) when a client sends an unsupported query type to a minimal forwarder.
+// TOKENS: HOST, IP, MAC, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RCODE, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the DNS stub resolver client endpoint.
+HOST dns_client {
+    IP 10.53.99.10
+    MAC 00:1b:21:53:01:0a
+}
+
+// INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
+HOST dns_server {
+    IP 10.53.99.1
+    MAC 00:1b:21:53:01:35
+}
+
+// INSTRUCTION: Execute the DNS query and authoritative response transaction.
+FLOW dns_scenario_flow(c, s) {
+    c -> s DNS QUERY TXID 2111 QNAME "legacy.router.local" QTYPE "HINFO" WAIT 2ms
+    c <- s DNS RESPONSE TXID 2111 RCODE 4 QNAME "legacy.router.local" QTYPE "HINFO" ANS_TTL 0
+}
+
+// INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
+COMPILE {
+    dns_scenario_flow(dns_client, dns_server)
+}

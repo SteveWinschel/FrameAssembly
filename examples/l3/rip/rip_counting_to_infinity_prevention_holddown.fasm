@@ -1,0 +1,26 @@
+// PROMPT: RIPv2 holddown timer and poison reverse preventing counting-to-infinity routing loops across a 3-hop topology.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, TAG, DSCP, TTL, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define downstream router R1 detecting failure of 10.99.0.0/24 and advertising metric 16.
+HOST rip_loop_r1 {
+    IP 10.52.1.1
+    MAC 00:0c:29:52:01:01
+}
+
+// INSTRUCTION: Define upstream router R2 acknowledging poison reverse and entering holddown.
+HOST rip_loop_r2 {
+    IP 10.52.1.2
+    MAC 00:0c:29:52:01:02
+}
+
+// INSTRUCTION: Define metric progression from METRIC 3 to METRIC 16 holddown state.
+FLOW rip_holddown_infinity_guard(r1, r2) {
+    r1 -> r2 RIP RESPONSE PREFIX 10.99.0.0 METRIC 3 NEXTHOP 10.52.1.1 TAG 99 DSCP 48 TTL 1 WAIT 5ms
+    r1 -> r2 RIP RESPONSE PREFIX 10.99.0.0 METRIC 16 NEXTHOP 10.52.1.1 TAG 99 DSCP 48 TTL 1 PAYLOAD "HOLDDOWN_TIMER_180S_STARTED" WAIT 5ms
+    r1 <- r2 RIP RESPONSE PREFIX 10.99.0.0 METRIC 16 NEXTHOP 0.0.0.0 TAG 99 DSCP 48 TTL 1 PAYLOAD "POISON_ACK_ROUTE_FLUSHED"
+}
+
+// INSTRUCTION: Compile the RIPv2 counting-to-infinity holddown prevention flow.
+COMPILE {
+    rip_holddown_infinity_guard(rip_loop_r1, rip_loop_r2)
+}

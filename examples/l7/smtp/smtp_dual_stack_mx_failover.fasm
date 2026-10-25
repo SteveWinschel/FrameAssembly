@@ -1,0 +1,45 @@
+// PROMPT: Model a dual-stack SMTP delivery attempting IPv4 primary MX delivery and IPv6 secondary MX delivery.
+// TOKENS: HOST, IP, MAC, FLOW, SMTP, CODE, REPLY, WAIT, EHLO, MAIL_FROM, PARAM, RCPT_TO, QUIT, COMPILE
+
+// INSTRUCTION: Define the IPv4 outbound mail dispatcher.
+HOST mta_out_v4 {
+    IP 192.0.2.25
+    MAC 00:16:3e:02:00:19
+}
+
+// INSTRUCTION: Define the IPv4 primary MX server.
+HOST mx_pri_v4 {
+    IP 198.51.100.10
+    MAC 00:16:3e:64:00:0a
+}
+
+// INSTRUCTION: Define the IPv6 outbound mail dispatcher.
+HOST mta_out_v6 {
+    IP 2001:db8:2::25
+    MAC 00:16:3e:02:06:19
+}
+
+// INSTRUCTION: Define the IPv6 secondary MX server.
+HOST mx_sec_v6 {
+    IP 2001:db8:100::10
+    MAC 00:16:3e:64:06:0a
+}
+
+// INSTRUCTION: Execute a polymorphic SMTP envelope and QUIT transaction.
+FLOW smtp_mx_delivery(c, s) {
+    c <- s SMTP CODE 220 REPLY "mx.example.net ESMTP" WAIT 2ms
+    c -> s SMTP EHLO "out.example.org" WAIT 2ms
+    c <- s SMTP CODE 250 REPLY "mx.example.net" WAIT 2ms
+    c -> s SMTP MAIL_FROM PARAM "<ops@example.org>" WAIT 2ms
+    c <- s SMTP CODE 250 REPLY "2.1.0 OK" WAIT 2ms
+    c -> s SMTP RCPT_TO PARAM "<noc@example.net>" WAIT 2ms
+    c <- s SMTP CODE 250 REPLY "2.1.5 OK" WAIT 2ms
+    c -> s SMTP QUIT WAIT 1ms
+    c <- s SMTP CODE 221 REPLY "2.0.0 Closing channel"
+}
+
+// INSTRUCTION: Compile the dual-stack IPv4 and IPv6 SMTP MX flows.
+COMPILE {
+    smtp_mx_delivery(mta_out_v4, mx_pri_v4)
+    smtp_mx_delivery(mta_out_v6, mx_sec_v6)
+}

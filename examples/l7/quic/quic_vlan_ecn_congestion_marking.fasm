@@ -1,0 +1,20 @@
+// PROMPT: QUIC traffic over enterprise VLAN 443 with ECN Capable Transport (ECN 2) marking.
+// TOKENS: HOST, IP, MAC, FLOW, QUIC, INITIAL, DCID, SCID, PKT_NUM, VLAN, PCP, DEI, DSCP, ECN, WAIT, HANDSHAKE, SHORT, COMPILE
+
+// INSTRUCTION: Define enterprise workstation on VLAN 443.
+HOST corp_ws { IP 172.22.43.10 MAC 00:25:90:43:00:0a }
+
+// INSTRUCTION: Define internal HTTP/3 portal on VLAN 443.
+HOST corp_portal { IP 172.22.43.1 MAC 00:25:90:43:00:01 }
+
+// INSTRUCTION: Define VLAN-tagged QUIC handshake with ECT(0) ECN=2 marking.
+FLOW quic_vlan_ecn(c, s) {
+    c -> s QUIC INITIAL DCID 0x10002000 SCID 0x30004000 PKT_NUM 1 VLAN 443 PCP 4 DEI 0 DSCP 32 ECN 2 WAIT 4ms
+    c <- s QUIC HANDSHAKE DCID 0x30004000 SCID 0x10002000 PKT_NUM 1 VLAN 443 PCP 4 DEI 0 DSCP 32 ECN 2 WAIT 4ms
+    c -> s QUIC SHORT DCID 0x10002000 PKT_NUM 2 VLAN 443 PCP 4 DEI 0 DSCP 32 ECN 2
+}
+
+// INSTRUCTION: Compile VLAN and ECN marked QUIC flow.
+COMPILE {
+    quic_vlan_ecn(corp_ws, corp_portal)
+}

@@ -1,0 +1,31 @@
+// PROMPT: Model a Telnet Status (Option 5, RFC 859) and Timing Mark (Option 6, RFC 860) synchronization probe.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TELNET, DO, WILL, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint probe_client.
+HOST probe_client {
+    MAC 00:24:e8:00:23:05
+    IP 192.168.55.10
+}
+
+// INSTRUCTION: Define host endpoint remote_host.
+HOST remote_host {
+    MAC 00:24:e8:00:23:06
+    IP 192.168.55.20
+}
+
+// INSTRUCTION: Negotiate Option 5 (Status) and Option 6 (Timing Mark) to synchronize output flush.
+FLOW telnet_status_and_timing_mark(probe_client, remote_host) {
+    probe_client -> remote_host TCP SYN SRCPORT 60023 DSTPORT 23
+    remote_host -> probe_client TCP SYN ACK
+    probe_client -> remote_host TCP ACK
+    probe_client -> remote_host TELNET DO 5
+    remote_host -> probe_client TELNET WILL 5
+    probe_client -> remote_host TELNET DO 6
+    remote_host -> probe_client TELNET WILL 6
+    remote_host -> probe_client TELNET PAYLOAD "TIMING-MARK-SYNC-COMPLETE\r\n"
+}
+
+// INSTRUCTION: Compile the Telnet Status and Timing Mark flow.
+COMPILE {
+    telnet_status_and_timing_mark(probe_client, remote_host)
+}

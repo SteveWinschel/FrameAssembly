@@ -1,0 +1,25 @@
+// PROMPT: OSCORE (RFC 8613) object-security CoAP exchange using Content-Format 11522 and encrypted binary payload.
+// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, HEXPAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define the OSCORE-enabled smart door lock over IPv6.
+HOST oscore_lock {
+    IP 2001:db8:110:80::15
+    MAC 00:1a:2b:6e:80:15
+}
+
+// INSTRUCTION: Define the physical access control CoAP controller over IPv6.
+HOST access_ctrl {
+    IP 2001:db8:110:80::1
+    MAC 00:1a:2b:6e:80:01
+}
+
+// INSTRUCTION: Send an OSCORE-protected POST request and receive an encrypted 2.04 Changed response.
+FLOW coap_oscore_exchange(c, s) {
+    c -> s COAP CON CODE "0.02" MSGID 9010 TOKEN 5512 URI_PATH "oscore" CONTENT_FORMAT 11522 HEXPAYLOAD "090001a45f8c92e1b03d"
+    c <- s COAP ACK CODE "2.04" MSGID 9010 TOKEN 5512 CONTENT_FORMAT 11522 HEXPAYLOAD "6b2291c04fa8193e"
+}
+
+// INSTRUCTION: Compile the IPv6 OSCORE CoAP exchange flow.
+COMPILE {
+    coap_oscore_exchange(oscore_lock, access_ctrl)
+}

@@ -1,0 +1,25 @@
+// PROMPT: RFC 8971 / RFC 5883 multihop BFD monitoring underlay reachability between EVPN VXLAN VTEP loopbacks.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, SRCPORT, DSTPORT, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define Leaf-1 VTEP loopback endpoint in Pod A.
+HOST vtep_leaf1_lo {
+    IP 10.255.0.11
+    MAC 00:1c:73:aa:00:0b
+}
+
+// INSTRUCTION: Define Leaf-2 VTEP loopback endpoint in Pod B.
+HOST vtep_leaf2_lo {
+    IP 10.255.0.22
+    MAC 00:1c:73:aa:00:16
+}
+
+// INSTRUCTION: Define multihop BFD over UDP port 4784 monitoring EVPN VTEP tunnel endpoints.
+FLOW bfd_vtep_underlay_check(vtep1, vtep2) {
+    vtep1 -> vtep2 BFD STATE 3 DIAG 0 MY_DISC 89711 YOUR_DISC 89712 MIN_TX 50000 MIN_RX 50000 MULT 3 SRCPORT 50100 DSTPORT 4784 DSCP 48 TTL 62 WAIT 50ms
+    vtep1 <- vtep2 BFD STATE 3 DIAG 0 MY_DISC 89712 YOUR_DISC 89711 MIN_TX 50000 MIN_RX 50000 MULT 3 SRCPORT 50101 DSTPORT 4784 DSCP 48 TTL 62
+}
+
+// INSTRUCTION: Compile the EVPN VTEP multihop BFD liveness flow.
+COMPILE {
+    bfd_vtep_underlay_check(vtep_leaf1_lo, vtep_leaf2_lo)
+}

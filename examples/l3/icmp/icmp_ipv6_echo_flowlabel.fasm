@@ -1,0 +1,19 @@
+// PROMPT: RFC 4443 ICMPv6 Echo Request and Echo Reply with explicit IPv6 Flow Labels and Hop Limit 64.
+// TOKENS: HOST, IP, MAC, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, FLOWLABEL, DSCP, TTL, PAYLOAD, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define IPv6 client host.
+HOST icmpv6_client { IP 2001:db8:4443::10 MAC 00:50:56:44:43:10 }
+
+// INSTRUCTION: Define IPv6 server host.
+HOST icmpv6_server { IP 2001:db8:4443::20 MAC 00:50:56:44:43:20 }
+
+// INSTRUCTION: Define ICMPv6 Echo Request (Type 128) and Echo Reply (Type 129) with Flow Labels.
+FLOW icmpv6_echo_flow(c, s) {
+    c -> s ICMP ECHO_REQUEST ID 4443 SEQ 1 FLOWLABEL 128000 DSCP 8 TTL 64 PAYLOAD "RFC4443_ICMPV6_PING_REQ"
+    c <- s ICMP ECHO_REPLY ID 4443 SEQ 1 FLOWLABEL 129000 DSCP 8 TTL 64 PAYLOAD "RFC4443_ICMPV6_PING_RSP"
+}
+
+// INSTRUCTION: Compile the RFC 4443 ICMPv6 Echo flow.
+COMPILE {
+    icmpv6_echo_flow(icmpv6_client, icmpv6_server)
+}

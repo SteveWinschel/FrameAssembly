@@ -1,0 +1,18 @@
+// PROMPT: Dual-tagged QinQ carrier transport carrying WireGuard encrypted tunnel.
+// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define enterprise site router.
+HOST enterprise_site_rtr { IP 192.168.188.1 }
+
+// INSTRUCTION: Define carrier provider edge router.
+HOST carrier_edge_rtr { IP 192.168.188.2 }
+
+// INSTRUCTION: Define QinQ encapsulated WireGuard data flow on service VLAN 600 and customer VLAN 88.
+FLOW wg_qinq_carrier_flow(site, edge) {
+    site -> edge WIREGUARD TYPE DATA RECEIVER 55500 COUNTER 42 QINQ 600 INNER_VLAN 88
+}
+
+// INSTRUCTION: Compile block executing carrier QinQ WireGuard transmission.
+COMPILE {
+    wg_qinq_carrier_flow(enterprise_site_rtr, carrier_edge_rtr)
+}

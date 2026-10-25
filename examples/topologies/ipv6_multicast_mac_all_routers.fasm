@@ -1,5 +1,5 @@
 // PROMPT: IPv6 all-routers multicast transmission automatically deriving RFC 2464 MAC 33:33:00:00:00:02.
-// TOKENS: HOST, IP, FLOW, ->, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define host node querying local routers.
 HOST host_node { IP fe80::200 }

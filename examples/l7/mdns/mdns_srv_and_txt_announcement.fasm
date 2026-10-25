@@ -1,5 +1,5 @@
 // PROMPT: mDNS local service announcement response with SRV record over IPv6 link-local multicast.
-// TOKENS: HOST, IP, FLOW, ->, MDNS, RESPONSE, TXID, QNAME, QTYPE, RDATA, COMPILE
+// TOKENS: HOST, IP, FLOW, MDNS, RESPONSE, TXID, QNAME, QTYPE, RDATA, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP fe80::1 }

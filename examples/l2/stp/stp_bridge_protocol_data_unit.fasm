@@ -1,5 +1,5 @@
 // PROMPT: Spanning Tree Protocol standard BPDU transmission for loop prevention.
-// TOKENS: HOST, IP, FLOW, ->, STP, COMPILE
+// TOKENS: HOST, IP, FLOW, STP, COMPILE
 
 // INSTRUCTION: Define root bridge switch interface.
 HOST bridge_root { IP 10.0.0.1 }

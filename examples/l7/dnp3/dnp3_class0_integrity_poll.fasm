@@ -1,0 +1,22 @@
+// PROMPT: DNP3 Integrity Poll reading Class 0 static data (Group 60 Variation 1) after TCP 3-way handshake.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, DNP3, FUNC, SRC, DST, GROUP, VARIATION, COMPILE
+
+// INSTRUCTION: Define utility EMS master host.
+HOST ems_master { IP 192.168.200.1 }
+
+// INSTRUCTION: Define substation bay controller RTU.
+HOST bay_rtu { IP 192.168.200.25 }
+
+// INSTRUCTION: Establish TCP connection on port 20000 and issue Class 0 integrity poll.
+FLOW dnp3_class0_integrity(m, r) {
+    m -> r TCP SYN SRCPORT 52100 DSTPORT 20000
+    m <- r TCP SYN ACK
+    m -> r TCP ACK
+    m -> r DNP3 FUNC "READ" SRC 1 DST 25 GROUP 60 VARIATION 1
+    m <- r DNP3 FUNC "RESPONSE" SRC 25 DST 1 GROUP 30 VARIATION 1
+}
+
+// INSTRUCTION: Compile the DNP3 TCP handshake and Class 0 integrity poll.
+COMPILE {
+    dnp3_class0_integrity(ems_master, bay_rtu)
+}

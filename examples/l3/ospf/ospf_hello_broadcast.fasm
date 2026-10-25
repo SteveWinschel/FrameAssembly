@@ -1,5 +1,5 @@
 // PROMPT: OSPFv2 Hello packet multicasting to 224.0.0.5 with explicit hello and dead intervals.
-// TOKENS: HOST, IP, FLOW, ->, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, COMPILE
+// TOKENS: HOST, IP, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, COMPILE
 
 // INSTRUCTION: Define active OSPF area 0 router.
 HOST ospf_area0_rtr { IP 192.168.1.1 }

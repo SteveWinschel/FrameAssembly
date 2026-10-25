@@ -1,0 +1,27 @@
+// PROMPT: OPC UA ISA-TR88 PackML companion specification reading UnitCurrentState and invoking Start method.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the packaging line supervisory controller.
+HOST line_supervisor {
+    IP 10.140.100.5
+    MAC 00:1a:2b:8c:a0:05
+}
+
+// INSTRUCTION: Define the cartoner machine PackML OPC UA server.
+HOST cartoner_ua {
+    IP 10.140.100.20
+    MAC 00:1a:2b:8c:a0:20
+}
+
+// INSTRUCTION: Read PackML Status.StateCurrent (Idle=4), invoke RemoteCommand.Start, and verify Execute=6.
+FLOW opcua_packml_start(s, m) {
+    s -> m OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1010 TOKEN_ID 3 SEQ_NUM 10 REQID 10 NODE_ID "ns=5;s=PackML.Status.StateCurrent"
+    s <- m OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1010 TOKEN_ID 3 SEQ_NUM 10 REQID 10 NODE_ID "ns=5;s=PackML.Status.StateCurrent" PAYLOAD "Int32:4(Idle)" WAIT 1ms
+    s -> m OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1010 TOKEN_ID 3 SEQ_NUM 11 REQID 11 NODE_ID "ns=5;s=PackML.Admin.Start"
+    s <- m OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1010 TOKEN_ID 3 SEQ_NUM 11 REQID 11 NODE_ID "ns=5;s=PackML.Status.StateCurrent" PAYLOAD "Int32:6(Execute)"
+}
+
+// INSTRUCTION: Compile the OPC UA PackML state transition flow.
+COMPILE {
+    opcua_packml_start(line_supervisor, cartoner_ua)
+}

@@ -1,0 +1,27 @@
+// PROMPT: HTTP/2 extended CONNECT tunnel established on Stream 1 for proxied TCP traffic through a corporate forward proxy.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP2, HEADERS, STREAM_ID, PAYLOAD, DATA, COMPILE
+
+// INSTRUCTION: Define corporate workstation establishing an HTTP/2 CONNECT tunnel.
+HOST corp_workstation {
+    IP 10.18.40.22
+    MAC 00:21:70:12:28:16
+}
+
+// INSTRUCTION: Define corporate secure web gateway HTTP/2 proxy.
+HOST swg_h2_proxy {
+    IP 10.18.40.1
+    MAC 00:21:70:12:28:01
+}
+
+// INSTRUCTION: Send CONNECT HEADERS on Stream 1, receive 200 OK HEADERS, and tunnel DATA frames bidirectionally.
+FLOW http2_connect_tunnel(c, p) {
+    c -> p HTTP2 HEADERS STREAM_ID 1 PAYLOAD ":method=CONNECT :authority=git.internal:22"
+    c <- p HTTP2 HEADERS STREAM_ID 1 PAYLOAD ":status=200"
+    c -> p HTTP2 DATA STREAM_ID 1 PAYLOAD "SSH-2.0-OpenSSH_9.6"
+    c <- p HTTP2 DATA STREAM_ID 1 PAYLOAD "SSH-2.0-OpenSSH_9.6-Server"
+}
+
+// INSTRUCTION: Compile the HTTP/2 CONNECT tunnel proxy scenario.
+COMPILE {
+    http2_connect_tunnel(corp_workstation, swg_h2_proxy)
+}

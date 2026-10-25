@@ -1,0 +1,25 @@
+// PROMPT: NetFlow v5 export from a Kubernetes node router tracking CNI pod-to-pod east-west microservice traffic.
+// TOKENS: HOST, IP, MAC, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define Kubernetes worker node routing agent exporting CNI flow records.
+HOST k8s_node_agent {
+    IP 10.244.1.1
+    MAC 02:42:0a:f4:01:01
+}
+
+// INSTRUCTION: Define cluster observability NetFlow collector pod.
+HOST k8s_flow_collector {
+    IP 10.244.0.100
+    MAC 02:42:0a:f4:00:64
+}
+
+// INSTRUCTION: Export pod-to-pod gRPC port 50051 and Redis port 6379 flow summaries.
+FLOW netflow_k8s_cni(node, col) {
+    node -> col NETFLOW SRCIP 10.244.1.15 DSTIP 10.244.2.28 SRCPORT 41820 DSTPORT 50051 PROTO 6 PACKETS 1450 OCTETS 928000
+    node -> col NETFLOW SRCIP 10.244.2.28 DSTIP 10.244.3.9 SRCPORT 53900 DSTPORT 6379 PROTO 6 PACKETS 820 OCTETS 196800
+}
+
+// INSTRUCTION: Compile the Kubernetes CNI east-west NetFlow telemetry scenario.
+COMPILE {
+    netflow_k8s_cni(k8s_node_agent, k8s_flow_collector)
+}

@@ -1,0 +1,18 @@
+// PROMPT: mDNS unsolicited response announcing available SSH remote terminal service on local subnet.
+// TOKENS: HOST, IP, FLOW, MDNS, RESPONSE, TXID, QNAME, QTYPE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define headless Linux server.
+HOST headless_server { IP 192.168.10.8 }
+
+// INSTRUCTION: Define local mDNS multicast address.
+HOST mcast_group { IP 224.0.0.251 }
+
+// INSTRUCTION: Define SSH service announcement flow.
+FLOW ssh_announce_flow(srv, grp) {
+    srv -> grp MDNS RESPONSE TXID 0 QNAME "srv-box._ssh._tcp.local" QTYPE "SRV" RDATA "srv-box.local:22" ANS_TTL 120
+}
+
+// INSTRUCTION: Compile SSH service announcement scenario.
+COMPILE {
+    ssh_announce_flow(headless_server, mcast_group)
+}

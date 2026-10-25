@@ -1,5 +1,5 @@
 // PROMPT: TLS session termination delivering encrypted close_notify alert over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, TLS, ALERT, RECORD_VERSION, COMPILE
+// TOKENS: HOST, IP, FLOW, TLS, ALERT, RECORD_VERSION, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::50 }

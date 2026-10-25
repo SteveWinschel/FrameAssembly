@@ -1,0 +1,43 @@
+// PROMPT: Generate a dual-stack IPv4 and IPv6 connected vehicle V2X telemetry flow publishing GPS coordinates to an MQTT broker.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, PUBLISH, TOPIC, QOS, PAYLOAD, DSCP, PKT_ID, FLOWLABEL, ECN, TTL, WAIT, PUBACK, COMPILE
+
+// INSTRUCTION: Define the connected autonomous shuttle with dual-stack cellular LTE/5G interfaces (IPv4).
+HOST v2x_shuttle_v4 {
+    IP 100.64.22.18
+    MAC 00:1a:4a:22:00:18
+}
+
+// INSTRUCTION: Define the connected autonomous shuttle with dual-stack cellular LTE/5G interfaces (IPv6).
+HOST v2x_shuttle_v6 {
+    IP 2001:db8:720:22::18
+    MAC 00:1a:4a:22:00:18
+}
+
+// INSTRUCTION: Define the dual-stack intelligent transportation system (ITS) MQTT broker (IPv4).
+HOST its_broker_v4 {
+    IP 100.64.22.1
+    MAC 00:1a:4a:22:00:01
+}
+
+// INSTRUCTION: Define the dual-stack intelligent transportation system (ITS) MQTT broker (IPv6).
+HOST its_broker_v6 {
+    IP 2001:db8:720:22::1
+    MAC 00:1a:4a:22:00:01
+}
+
+// INSTRUCTION: Publish high-frequency QoS 0 GPS kinematics over IPv4.
+FLOW v2x_gps_ipv4(c, s) {
+    c -> s MQTT PUBLISH TOPIC "v2x/shuttle18/kinematics" QOS 0 PAYLOAD "{\"lat\":37.3861,\"lon\":-122.0839,\"speed_mps\":11.2}" DSCP 46
+}
+
+// INSTRUCTION: Publish a QoS 1 intersection priority request over IPv6 with flow label 0x91000.
+FLOW v2x_priority_ipv6(c, s) {
+    c -> s MQTT PUBLISH TOPIC "v2x/shuttle18/signal_priority" QOS 1 PKT_ID 77 PAYLOAD "{\"intersection_id\":402,\"approach\":\"NB\"}" FLOWLABEL 0x91000 ECN 2 TTL 64 WAIT 4ms
+    c <- s MQTT PUBACK PKT_ID 77 FLOWLABEL 0x91000 ECN 2 TTL 64
+}
+
+// INSTRUCTION: Compile the dual-stack V2X connected vehicle MQTT trace into a PCAP file.
+COMPILE {
+    v2x_gps_ipv4(v2x_shuttle_v4, its_broker_v4)
+    v2x_priority_ipv6(v2x_shuttle_v6, its_broker_v6)
+}

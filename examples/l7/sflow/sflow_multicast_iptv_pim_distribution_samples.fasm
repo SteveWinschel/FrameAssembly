@@ -1,0 +1,24 @@
+// PROMPT: sFlow v5 export from a video headend switch sampling multicast IPTV PIM-SM video distribution streams.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, DSCP, COMPILE
+
+// INSTRUCTION: Define broadcast video headend multicast switch.
+HOST iptv_headend_sw {
+    IP 10.110.1.1
+    MAC 00:1b:21:6e:01:01
+}
+
+// INSTRUCTION: Define broadcast quality monitoring sFlow collector.
+HOST iptv_monitor {
+    IP 10.110.1.200
+    MAC 00:1b:21:6e:01:c8
+}
+
+// INSTRUCTION: Export sFlow v5 packet samples of high-bitrate IPTV video streams.
+FLOW sflow_iptv_multicast(sw, mon) {
+    sw -> mon SFLOW AGENT_IP 10.110.1.1 SUB_AGENT_ID 8 UPTIME 51840000 SAMPLES 24 DSCP 34
+}
+
+// INSTRUCTION: Compile the multicast IPTV headend sFlow monitoring scenario.
+COMPILE {
+    sflow_iptv_multicast(iptv_headend_sw, iptv_monitor)
+}

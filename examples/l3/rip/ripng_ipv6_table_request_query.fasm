@@ -1,0 +1,19 @@
+// PROMPT: IPv6 branch router soliciting routing table updates via RIPng REQUEST.
+// TOKENS: HOST, IP, FLOW, RIP, REQUEST, RESPONSE, COMPILE
+
+// INSTRUCTION: Define newly booted IPv6 edge router.
+HOST ripng_edge_boot { IP fe80::e01:1 }
+
+// INSTRUCTION: Define IPv6 core distribution router.
+HOST ripng_core_dist { IP fe80::c01:1 }
+
+// INSTRUCTION: Define RIPng table inquiry and response handshake flow.
+FLOW ripng_query_exchange(edge, core) {
+    edge -> core RIP REQUEST
+    edge <- core RIP RESPONSE
+}
+
+// INSTRUCTION: Compile block executing RIPng table inquiry.
+COMPILE {
+    ripng_query_exchange(ripng_edge_boot, ripng_core_dist)
+}

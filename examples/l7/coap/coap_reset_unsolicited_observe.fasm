@@ -1,0 +1,19 @@
+// PROMPT: CoAP Reset (RST) message rejecting an unrecognized non-confirmable observer notification.
+// TOKENS: HOST, IP, FLOW, COAP, NON, CODE, MSGID, TOKEN, URI_PATH, RST, COMPILE
+
+// INSTRUCTION: Define rebooted CoAP client node.
+HOST coap_client { IP 192.168.70.20 }
+
+// INSTRUCTION: Define CoAP observable temperature server.
+HOST temp_server { IP 192.168.70.5 }
+
+// INSTRUCTION: Server pushes stale observer update; client replies with CoAP RST matching MSGID.
+FLOW coap_rst_reject(c, s) {
+    c <- s COAP NON CODE "2.05" MSGID 8821 TOKEN 0x1122 URI_PATH "temp"
+    c -> s COAP RST CODE "0.00" MSGID 8821
+}
+
+// INSTRUCTION: Compile the CoAP observer RST cancellation flow.
+COMPILE {
+    coap_rst_reject(coap_client, temp_server)
+}

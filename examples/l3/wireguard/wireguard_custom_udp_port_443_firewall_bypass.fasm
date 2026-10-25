@@ -1,0 +1,26 @@
+// PROMPT: WireGuard tunnel operating over custom UDP port 443 to traverse restrictive guest Wi-Fi firewalls.
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, INITIATION, SENDER, SRCPORT, DSTPORT, DF, TTL, WAIT, TYPE, RESPONSE, RECEIVER, DATA, COUNTER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define laptop WireGuard client binding to ephemeral source port and targeting UDP 443.
+HOST wg_roaming_laptop {
+    IP 172.16.88.45
+    MAC 00:1c:b3:88:45:01
+}
+
+// INSTRUCTION: Define enterprise WireGuard gateway listening on UDP port 443.
+HOST wg_port443_gateway {
+    IP 198.51.100.43
+    MAC 00:1c:b3:64:2b:02
+}
+
+// INSTRUCTION: Define WireGuard handshake and DATA over custom DSTPORT 443.
+FLOW wg_custom_port_443_flow(laptop, gw) {
+    laptop -> gw WIREGUARD INITIATION SENDER 44301 SRCPORT 54321 DSTPORT 443 DF TTL 64 WAIT 5ms
+    laptop <- gw WIREGUARD TYPE RESPONSE SENDER 44302 RECEIVER 44301 SRCPORT 443 DSTPORT 54321 DF TTL 64 WAIT 5ms
+    laptop -> gw WIREGUARD DATA RECEIVER 44302 COUNTER 0 SRCPORT 54321 DSTPORT 443 DF TTL 64 PAYLOAD "SSH_SESSION_OVER_WG_PORT_443"
+}
+
+// INSTRUCTION: Compile the WireGuard custom UDP port 443 traversal flow.
+COMPILE {
+    wg_custom_port_443_flow(wg_roaming_laptop, wg_port443_gateway)
+}

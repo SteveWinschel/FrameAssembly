@@ -1,0 +1,27 @@
+// PROMPT: EtherNet/IP ListInterfaces (0x0064) encapsulation request enumerating non-CIP communication interfaces.
+// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, STATUS, SESSION_HANDLE, CONTEXT, WAIT, COMPILE
+
+// INSTRUCTION: Define the RSLinx Classic network browser workstation.
+HOST rslinx_pc {
+    IP 10.135.10.50
+    MAC 00:1a:2b:87:10:50
+}
+
+// INSTRUCTION: Define the 1756-EN2TR dual-port EtherNet/IP bridge module.
+HOST en2tr_bridge {
+    IP 10.135.10.1
+    MAC 00:1a:2b:87:10:01
+}
+
+// INSTRUCTION: Query ListInterfaces (CMD LIST_INTERFACES) and ListServices (CMD LIST_SERVICES) on TCP 44818.
+FLOW enip_list_interfaces(c, b) {
+    c -> b ETHERNETIP CMD "LIST_INTERFACES" STATUS 0 SESSION_HANDLE 0 CONTEXT 1001
+    c <- b ETHERNETIP CMD "LIST_INTERFACES" STATUS 0 SESSION_HANDLE 0 CONTEXT 1001 WAIT 1ms
+    c -> b ETHERNETIP CMD "LIST_SERVICES" STATUS 0 SESSION_HANDLE 0 CONTEXT 1002
+    c <- b ETHERNETIP CMD "LIST_SERVICES" STATUS 0 SESSION_HANDLE 0 CONTEXT 1002
+}
+
+// INSTRUCTION: Compile the EtherNet/IP ListInterfaces discovery flow.
+COMPILE {
+    enip_list_interfaces(rslinx_pc, en2tr_bridge)
+}

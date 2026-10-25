@@ -1,5 +1,5 @@
 // PROMPT: Simulate a Kubernetes cluster pod-to-pod service mesh workflow combining CoreDNS UDP service discovery, Envoy mTLS TCP gRPC calls, and node SNMPv2c scraping.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, TCP, SYN, ACK, PSH, SNMP2, GET, RESPONSE, SRCPORT, DSTPORT, PAYLOAD, COMMUNITY, REQID, VARBIND, NULLVAL, COUNTER64, GAUGE32, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, TCP, SYN, ACK, PSH, SNMP2, GET, COMMUNITY, REQID, VARBIND, NULLVAL, RESPONSE, COUNTER64, GAUGE32, COMPILE
 
 // INSTRUCTION: Define a frontend checkout pod with IP 10.244.1.15.
 HOST checkout_pod { IP 10.244.1.15 MAC 0a:58:0a:f4:01:0f }

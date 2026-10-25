@@ -1,8 +1,10 @@
-//! Backend evaluation and PCAPNG wire packet emission engine.
+//! Deterministic backend evaluation and PCAPNG wire packet emission engine.
 //!
-//! Evaluates the FrameAssembly AST, tracks two-stage TCP port inheritance and
-//! canonical 4-tuple sequence/acknowledgment states, performs multicast MAC derivation,
-//! and orchestrates wire packet emission to PCAP files.
+//! This module evaluates a validated [`Program`] AST, resolves host endpoints across flow
+//! invocations and `LOOP` blocks, maintains two-stage TCP/UDP port inheritance and canonical
+//! 4-tuple TCP sequence/acknowledgment state machines, derives RFC 1112 IPv4 and RFC 2464 IPv6
+//! multicast MAC addresses, and emits nanosecond-precision wire frames via [`compile_program`]
+//! and [`generate_pcap`].
 
 use crate::ast::*;
 use crate::packet::build_wire_packet;
@@ -11,6 +13,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::net::IpAddr;
 use std::collections::HashMap;
+
+pub(crate) mod l7_dispatch;
+
+use l7_dispatch::build_l7_packet_payload;
 
 /// Resolves a host definition for a given argument in a flow invocation from the environment.
 ///
@@ -171,7 +177,12 @@ struct EndpointPairPorts {
     pub caller_port: Option<u16>,
     /// Port associated with the callee endpoint.
     pub callee_port: Option<u16>,
+    /// Last protocol that updated `callee_port`.
+    pub last_protocol: Option<Protocol>,
+    /// Whether `callee_port` was set by an explicit `SRCPORT` or `DSTPORT` modifier.
+    pub callee_port_explicit: bool,
 }
+
 
 /// Canonical 4-tuple TCP stream state machine maintaining sequence progression.
 #[derive(Debug, Clone)]
@@ -186,7 +197,7 @@ struct TcpStreamState {
 type Canonical4Tuple = ((IpAddr, u16), (IpAddr, u16));
 
 /// Determines if the given protocol uses TCP transport based on protocol defaults and overrides.
-fn is_tcp_protocol(protocol: &Protocol, transport: Option<TransportProto>) -> bool {
+pub(crate) fn is_tcp_protocol(protocol: &Protocol, transport: Option<TransportProto>) -> bool {
     match protocol {
         Protocol::Tcp
         | Protocol::Bgp
@@ -230,374 +241,22 @@ fn is_tcp_protocol(protocol: &Protocol, transport: Option<TransportProto>) -> bo
     }
 }
 
-/// Builds the L7 application or industrial protocol payload and determines if transport is TCP.
-fn build_l7_packet_payload(
-    ctx: &crate::builders::WireContext,
-    stmt: &FrameStatement,
-    payload_bytes: &[u8],
-) -> Option<(Vec<u8>, bool)> {
-    let is_tcp = is_tcp_protocol(&stmt.protocol, stmt.l4.transport);
-    let payload = match stmt.protocol {
-        Protocol::Dns => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Dns(s)) => s.clone(),
-                _ => DnsSpec::default(),
-            };
-            crate::builders::l7_infra::build_dns_payload(ctx, &spec, payload_bytes, is_tcp)
-        }
-        Protocol::Mdns => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Mdns(s)) => s.clone(),
-                _ => DnsSpec::default(),
-            };
-            let (p, _, _) = crate::builders::l7_infra::build_mdns_payload(ctx, &spec, payload_bytes);
-            p
-        }
-        Protocol::Dhcp => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Dhcp(s)) => s.clone(),
-                _ => DhcpSpec::default(),
-            };
-            let (p, _, _) = crate::builders::l7_infra::build_dhcp_payload(ctx, &spec, payload_bytes);
-            p
-        }
-        Protocol::Ntp => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Ntp(s)) => s.clone(),
-                _ => NtpSpec::default(),
-            };
-            crate::builders::l7_infra::build_ntp_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Ptp => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Ptp(s)) => s.clone(),
-                _ => PtpSpec::default(),
-            };
-            let (p, _) = crate::builders::l7_infra::build_ptp_payload(ctx, &spec, payload_bytes);
-            p
-        }
-        Protocol::Radius => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Radius(s)) => s.clone(),
-                _ => RadiusSpec::default(),
-            };
-            let (p, _) = crate::builders::l7_infra::build_radius_payload(ctx, &spec, payload_bytes);
-            p
-        }
-        Protocol::Tacacs => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Tacacs(s)) => s.clone(),
-                _ => TacacsSpec::default(),
-            };
-            crate::builders::l7_infra::build_tacacs_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Syslog => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Syslog(s)) => s.clone(),
-                _ => SyslogSpec::default(),
-            };
-            crate::builders::l7_infra::build_syslog_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Netflow => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Netflow(s)) => s.clone(),
-                _ => NetflowSpec::default(),
-            };
-            crate::builders::l7_infra::build_netflow_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Ipfix => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Ipfix(s)) => s.clone(),
-                _ => IpfixSpec::default(),
-            };
-            crate::builders::l7_infra::build_ipfix_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Sflow => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Sflow(s)) => s.clone(),
-                _ => SflowSpec::default(),
-            };
-            crate::builders::l7_infra::build_sflow_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Tftp => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Tftp(s)) => s.clone(),
-                _ => TftpSpec::default(),
-            };
-            crate::builders::l7_app::build_tftp_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Ftp => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Ftp(s)) => s.clone(),
-                _ => FtpSpec::default(),
-            };
-            crate::builders::l7_app::build_ftp_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Ssh => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Ssh(s)) => s.clone(),
-                _ => SshSpec::default(),
-            };
-            crate::builders::l7_app::build_ssh_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Telnet => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Telnet(s)) => s.clone(),
-                _ => TelnetSpec::default(),
-            };
-            crate::builders::l7_app::build_telnet_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Http => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Http(s)) => s.clone(),
-                _ => HttpSpec::default(),
-            };
-            crate::builders::l7_app::build_http_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Http2 => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Http2(s)) => s.clone(),
-                _ => Http2Spec::default(),
-            };
-            crate::builders::l7_app::build_http2_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Grpc => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Grpc(s)) => s.clone(),
-                _ => GrpcSpec::default(),
-            };
-            crate::builders::l7_app::build_grpc_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Websocket => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Websocket(s)) => s.clone(),
-                _ => WebsocketSpec::default(),
-            };
-            crate::builders::l7_app::build_websocket_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Tls => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Tls(s)) => s.clone(),
-                _ => TlsSpec::default(),
-            };
-            crate::builders::l7_app::build_tls_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Quic => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Quic(s)) => s.clone(),
-                _ => QuicSpec::default(),
-            };
-            crate::builders::l7_app::build_quic_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Stun => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Stun(s)) => s.clone(),
-                _ => StunSpec::default(),
-            };
-            crate::builders::l7_app::build_stun_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Sip => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Sip(s)) => s.clone(),
-                _ => SipSpec::default(),
-            };
-            crate::builders::l7_app::build_sip_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Rtp => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Rtp(s)) => s.clone(),
-                _ => RtpSpec::default(),
-            };
-            crate::builders::l7_app::build_rtp_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Rtsp => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Rtsp(s)) => s.clone(),
-                _ => RtspSpec::default(),
-            };
-            crate::builders::l7_app::build_rtsp_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Smtp => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Smtp(s)) => s.clone(),
-                _ => SmtpSpec::default(),
-            };
-            crate::builders::l7_app::build_smtp_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Imap => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Imap(s)) => s.clone(),
-                _ => ImapSpec::default(),
-            };
-            crate::builders::l7_app::build_imap_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Pop3 => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Pop3(s)) => s.clone(),
-                _ => Pop3Spec::default(),
-            };
-            crate::builders::l7_app::build_pop3_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Kerberos => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Kerberos(s)) => s.clone(),
-                _ => KerberosSpec::default(),
-            };
-            crate::builders::l7_app::build_kerberos_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Ldap => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Ldap(s)) => s.clone(),
-                _ => LdapSpec::default(),
-            };
-            crate::builders::l7_app::build_ldap_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Smb => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Smb(s)) => s.clone(),
-                _ => SmbSpec::default(),
-            };
-            crate::builders::l7_app::build_smb_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Nfs => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Nfs(s)) => s.clone(),
-                _ => NfsSpec::default(),
-            };
-            crate::builders::l7_app::build_nfs_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Redis => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Redis(s)) => s.clone(),
-                _ => RedisSpec::default(),
-            };
-            crate::builders::l7_app::build_redis_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Memcached => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Memcached(s)) => s.clone(),
-                _ => MemcachedSpec::default(),
-            };
-            crate::builders::l7_app::build_memcached_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Mysql => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Mysql(s)) => s.clone(),
-                _ => MysqlSpec::default(),
-            };
-            crate::builders::l7_app::build_mysql_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Postgres => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Postgres(s)) => s.clone(),
-                _ => PostgresSpec::default(),
-            };
-            crate::builders::l7_app::build_postgres_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Mqtt => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Mqtt(s)) => s.clone(),
-                _ => MqttSpec::default(),
-            };
-            crate::builders::l7_app::build_mqtt_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Coap => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Coap(s)) => s.clone(),
-                _ => CoapSpec::default(),
-            };
-            crate::builders::l7_app::build_coap_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Amqp => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Amqp(s)) => s.clone(),
-                _ => AmqpSpec::default(),
-            };
-            crate::builders::l7_app::build_amqp_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Ssdp => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Ssdp(s)) => s.clone(),
-                _ => SsdpSpec::default(),
-            };
-            crate::builders::l7_app::build_ssdp_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Whois => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Whois(s)) => s.clone(),
-                _ => WhoisSpec::default(),
-            };
-            crate::builders::l7_app::build_whois_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Modbus => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Modbus(s)) => s.clone(),
-                _ => ModbusSpec::default(),
-            };
-            crate::builders::l7_ot::build_modbus_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Bacnet => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Bacnet(s)) => s.clone(),
-                _ => BacnetSpec::default(),
-            };
-            crate::builders::l7_ot::build_bacnet_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Dnp3 => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Dnp3(s)) => s.clone(),
-                _ => Dnp3Spec::default(),
-            };
-            crate::builders::l7_ot::build_dnp3_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::S7comm => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::S7comm(s)) => s.clone(),
-                _ => S7commSpec::default(),
-            };
-            crate::builders::l7_ot::build_s7comm_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Ethernetip => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Ethernetip(s)) => s.clone(),
-                _ => EthernetipSpec::default(),
-            };
-            crate::builders::l7_ot::build_ethernetip_payload(ctx, &spec, payload_bytes)
-        }
-        Protocol::Opcua => {
-            let spec = match &stmt.protocol_spec {
-                Some(ProtocolSpec::Opcua(s)) => s.clone(),
-                _ => OpcuaSpec::default(),
-            };
-            crate::builders::l7_ot::build_opcua_payload(ctx, &spec, payload_bytes)
-        }
-        _ => return None,
-    };
-    Some((payload, is_tcp))
-}
-
-/// Evaluates the AST and generates the PCAP file.
-///
-/// This walks the `Program` AST, builds each packet, and writes it to the specified PCAP file path.
+/// Evaluates the [`Program`] AST and synthesizes raw Ethernet frames paired with nanosecond timestamps in memory.
 ///
 /// # Examples
-/// ```no_run
-/// use frameassembly::ast::Program;
-/// use frameassembly::backend::generate_pcap;
+/// ```
+/// use frameassembly::parser::parse_program;
+/// use frameassembly::backend::compile_program;
 ///
-/// let program = Program { hosts: vec![], flows: vec![], compile_block: vec![] };
-/// generate_pcap(&program, "output.pcap").unwrap();
+/// let src = "HOST a { IP 10.0.0.1 }\nHOST b { IP 10.0.0.2 }\nFLOW f(c, s) { c -> s ICMP ECHO_REQUEST }\nCOMPILE { f(a, b) }";
+/// let program = parse_program(src).unwrap();
+/// let packets = compile_program(&program).unwrap();
+/// assert_eq!(packets.len(), 1);
 /// ```
 ///
 /// # Errors
-/// Returns a `String` containing the error message if:
-/// * Network endpoints cannot be resolved.
-/// * PCAP writing fails.
-/// * Unrecognized protocol combinations occur.
-///
-/// # Panics
-/// Panics if a flow definition requested in the compile block is not found.
-pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String> {
+/// Returns a `String` error if endpoint resolution or wire packet construction fails.
+pub fn compile_program(program: &Program) -> Result<Vec<(Vec<u8>, u64)>, String> {
     let statements = &program.compile_block;
 
     let mut env = HashMap::new();
@@ -663,28 +322,64 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
 
             // Stage 1: Two-Stage Port Inheritance
             let pair_key = (stmt.caller.node, stmt.callee.node);
-            let pair_ports = endpoint_ports.entry(pair_key).or_default();
+            let is_raw_l4 = matches!(stmt.protocol, Protocol::Tcp | Protocol::Udp | Protocol::Sctp);
 
-            let (src_port, dst_port) = match stmt.dir {
-                Direction::LeftToRight => {
-                    let default_dst = default_dst_port(&stmt.protocol, stmt.pdu_type.as_ref());
-                    let s_port = stmt.src_port.or(pair_ports.caller_port).unwrap_or(12345);
-                    let d_port = stmt.dst_port.or(pair_ports.callee_port).unwrap_or(default_dst);
-                    pair_ports.caller_port = Some(s_port);
-                    pair_ports.callee_port = Some(d_port);
-                    (s_port, d_port)
-                }
-                Direction::RightToLeft => {
-                    let default_src = default_dst_port(&stmt.protocol, stmt.pdu_type.as_ref());
-                    let s_port = stmt.src_port.or(pair_ports.callee_port).unwrap_or(default_src);
-                    let d_port = stmt.dst_port.or(pair_ports.caller_port).unwrap_or(12345);
-                    pair_ports.callee_port = Some(s_port);
-                    pair_ports.caller_port = Some(d_port);
-                    (s_port, d_port)
+            let (mut src_port, mut dst_port) = {
+                let pair_ports = endpoint_ports.entry(pair_key).or_default();
+                let can_inherit_callee = is_raw_l4
+                    || (pair_ports.callee_port_explicit
+                        && (pair_ports.last_protocol.as_ref() == Some(&stmt.protocol)
+                            || matches!(
+                                pair_ports.last_protocol,
+                                Some(Protocol::Tcp | Protocol::Udp | Protocol::Sctp)
+                            )));
+                let inherited_callee_port = if can_inherit_callee {
+                    pair_ports.callee_port
+                } else {
+                    None
+                };
+
+                match stmt.dir {
+                    Direction::LeftToRight => {
+                        let default_dst = default_dst_port(&stmt.protocol, stmt.pdu_type.as_ref());
+                        let s_port = stmt.src_port.or(pair_ports.caller_port).unwrap_or(12345);
+                        let d_port = stmt.dst_port.or(inherited_callee_port).unwrap_or(default_dst);
+                        if stmt.dst_port.is_some() {
+                            pair_ports.callee_port_explicit = true;
+                        } else if !can_inherit_callee {
+                            pair_ports.callee_port_explicit = false;
+                        }
+                        pair_ports.caller_port = Some(s_port);
+                        pair_ports.callee_port = Some(d_port);
+                        pair_ports.last_protocol = Some(stmt.protocol.clone());
+                        (s_port, d_port)
+                    }
+                    Direction::RightToLeft => {
+                        let default_src = default_dst_port(&stmt.protocol, stmt.pdu_type.as_ref());
+                        let s_port = stmt.src_port.or(inherited_callee_port).unwrap_or(default_src);
+                        let d_port = stmt.dst_port.or(pair_ports.caller_port).unwrap_or(12345);
+                        if stmt.src_port.is_some() {
+                            pair_ports.callee_port_explicit = true;
+                        } else if !can_inherit_callee {
+                            pair_ports.callee_port_explicit = false;
+                        }
+                        pair_ports.callee_port = Some(s_port);
+                        pair_ports.caller_port = Some(d_port);
+                        pair_ports.last_protocol = Some(stmt.protocol.clone());
+                        (s_port, d_port)
+                    }
                 }
             };
 
             let payload_bytes = stmt.effective_payload().unwrap_or(&[]);
+
+            let mut effective_l3 = stmt.l3.clone();
+            if effective_l3.ttl.is_none()
+                && (matches!(stmt.protocol, Protocol::Ndp | Protocol::Vrrp)
+                    || (stmt.protocol == Protocol::Arp && src_ip.is_ipv6()))
+            {
+                effective_l3.ttl = Some(255);
+            }
 
             let ctx = crate::builders::WireContext {
                 src_ip,
@@ -697,9 +392,39 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                 seq: stmt.seq,
                 ack: stmt.ack_num,
                 l2: &stmt.l2,
-                l3: &stmt.l3,
+                l3: &effective_l3,
                 l4: &stmt.l4,
             };
+
+            let l7_res = build_l7_packet_payload(&ctx, stmt, payload_bytes);
+            if let Some(res) = &l7_res {
+                if let Some(sp) = res.src_port
+                    && stmt.src_port.is_none()
+                {
+                    src_port = sp;
+                }
+                if let Some(dp) = res.dst_port {
+                    if stmt.protocol == Protocol::Radius && stmt.dir == Direction::RightToLeft {
+                        if stmt.src_port.is_none() {
+                            src_port = dp;
+                        }
+                    } else if stmt.dst_port.is_none() {
+                        dst_port = dp;
+                    }
+                }
+                if let Some(pair_ports) = endpoint_ports.get_mut(&pair_key) {
+                    match stmt.dir {
+                        Direction::LeftToRight => {
+                            pair_ports.caller_port = Some(src_port);
+                            pair_ports.callee_port = Some(dst_port);
+                        }
+                        Direction::RightToLeft => {
+                            pair_ports.callee_port = Some(src_port);
+                            pair_ports.caller_port = Some(dst_port);
+                        }
+                    }
+                }
+            }
 
             // Stage 2: Canonical 4-Tuple TCP Sequence and Acknowledgment State Machine
             let mut final_seq = stmt.seq;
@@ -739,8 +464,8 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     final_ack_num = Some(*receiver_seq);
                 }
 
-                let payload_len = if let Some((l7_bytes, _)) = build_l7_packet_payload(&ctx, stmt, payload_bytes) {
-                    l7_bytes.len() as u32
+                let payload_len = if let Some(res) = &l7_res {
+                    res.payload.len() as u32
                 } else {
                     match stmt.protocol {
                         Protocol::Bgp => {
@@ -775,6 +500,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
 
             let wait_time = stmt.wait.unwrap_or(10_000_000); // 10ms default
             current_time_ns += wait_time;
+
 
             let packet_data: Vec<u8> = match stmt.protocol {
                 // Layer 2 protocols
@@ -850,7 +576,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     };
                     let (icmp_body, proto) = crate::builders::l3_tunnel::build_icmp_payload(&ctx, &spec, payload_bytes)
                         .map_err(|e| alloc::format!("{:?}", e))?;
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, proto, &stmt.l3, &icmp_body)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, proto, &effective_l3, &icmp_body)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -862,7 +588,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     let (ndp_body, target_ip, proto) = crate::builders::l3_tunnel::build_ndp_payload(&ctx, &spec, payload_bytes)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     let effective_dst_mac = derive_mac(None, stmt.l2.dst_mac, target_ip, false);
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &stmt.l3, &ndp_body)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &effective_l3, &ndp_body)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, effective_dst_mac, &stmt.l2, 0x86DD, &ip_pkt)
                 }
@@ -874,7 +600,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     let (igmp_body, target_ip, proto) = crate::builders::l3_tunnel::build_igmp_payload(&ctx, &spec, payload_bytes)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     let effective_dst_mac = derive_mac(None, stmt.l2.dst_mac, target_ip, false);
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &stmt.l3, &igmp_body)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &effective_l3, &igmp_body)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, effective_dst_mac, &stmt.l2, 0x0800, &ip_pkt)
                 }
@@ -886,7 +612,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     let (mld_body, target_ip, proto) = crate::builders::l3_tunnel::build_mld_payload(&ctx, &spec, payload_bytes)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     let effective_dst_mac = derive_mac(None, stmt.l2.dst_mac, target_ip, false);
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &stmt.l3, &mld_body)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &effective_l3, &mld_body)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, effective_dst_mac, &stmt.l2, 0x86DD, &ip_pkt)
                 }
@@ -896,7 +622,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         _ => GreSpec::default(),
                     };
                     let (gre_body, proto) = crate::builders::l3_tunnel::build_gre_payload(&ctx, &spec, payload_bytes);
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, proto, &stmt.l3, &gre_body)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, proto, &effective_l3, &gre_body)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -906,9 +632,10 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         _ => VxlanSpec::default(),
                     };
                     let (vxlan_payload, dport) = crate::builders::l3_tunnel::build_vxlan_payload(&spec, payload_bytes);
-                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, dst_ip, src_port, dport, &vxlan_payload)
+                    let final_dport = stmt.dst_port.unwrap_or(dport);
+                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, dst_ip, src_port, final_dport, &vxlan_payload)
                         .map_err(|e| alloc::format!("{:?}", e))?;
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, 17, &stmt.l3, &udp_pkt)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, 17, &effective_l3, &udp_pkt)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -918,9 +645,10 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         _ => GeneveSpec::default(),
                     };
                     let (geneve_payload, dport) = crate::builders::l3_tunnel::build_geneve_payload(&spec, payload_bytes);
-                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, dst_ip, src_port, dport, &geneve_payload)
+                    let final_dport = stmt.dst_port.unwrap_or(dport);
+                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, dst_ip, src_port, final_dport, &geneve_payload)
                         .map_err(|e| alloc::format!("{:?}", e))?;
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, 17, &stmt.l3, &udp_pkt)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, 17, &effective_l3, &udp_pkt)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -930,7 +658,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         _ => IpsecSpec::default(),
                     };
                     let (esp_body, proto) = crate::builders::l3_tunnel::build_ipsec_esp_payload(&spec, payload_bytes);
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, proto, &stmt.l3, &esp_body)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, proto, &effective_l3, &esp_body)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -940,7 +668,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         _ => AhSpec::default(),
                     };
                     let (ah_body, proto) = crate::builders::l3_tunnel::build_ipsec_ah_payload(&spec, payload_bytes);
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, proto, &stmt.l3, &ah_body)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, proto, &effective_l3, &ah_body)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -950,9 +678,10 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         _ => Ikev2Spec::default(),
                     };
                     let (ike_payload, dport) = crate::builders::l3_tunnel::build_ikev2_payload(&spec, payload_bytes);
-                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, dst_ip, src_port, dport, &ike_payload)
+                    let final_dport = stmt.dst_port.unwrap_or(dport);
+                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, dst_ip, src_port, final_dport, &ike_payload)
                         .map_err(|e| alloc::format!("{:?}", e))?;
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, 17, &stmt.l3, &udp_pkt)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, 17, &effective_l3, &udp_pkt)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -962,9 +691,10 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         _ => WireguardSpec::default(),
                     };
                     let (wg_payload, dport) = crate::builders::l3_tunnel::build_wireguard_payload(&spec, payload_bytes);
-                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, dst_ip, src_port, dport, &wg_payload)
+                    let final_dport = stmt.dst_port.unwrap_or(dport);
+                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, dst_ip, src_port, final_dport, &wg_payload)
                         .map_err(|e| alloc::format!("{:?}", e))?;
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, 17, &stmt.l3, &udp_pkt)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, 17, &effective_l3, &udp_pkt)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -975,7 +705,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     };
                     let (ospf_body, target_ip, proto) = crate::builders::l3_tunnel::build_ospf_payload(&ctx, &spec, payload_bytes);
                     let effective_dst_mac = derive_mac(None, stmt.l2.dst_mac, target_ip, false);
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &stmt.l3, &ospf_body)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &effective_l3, &ospf_body)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, effective_dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -986,9 +716,11 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     };
                     let (rip_payload, target_ip, dport) = crate::builders::l3_tunnel::build_rip_payload(&ctx, &spec, payload_bytes);
                     let effective_dst_mac = derive_mac(None, stmt.l2.dst_mac, target_ip, false);
-                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, target_ip, dport, dport, &rip_payload)
+                    let final_sport = stmt.src_port.unwrap_or(dport);
+                    let final_dport = stmt.dst_port.unwrap_or(dport);
+                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, target_ip, final_sport, final_dport, &rip_payload)
                         .map_err(|e| alloc::format!("{:?}", e))?;
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, 17, &stmt.l3, &udp_pkt)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, 17, &effective_l3, &udp_pkt)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, effective_dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -999,7 +731,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     };
                     let (vrrp_body, target_ip, proto) = crate::builders::l3_tunnel::build_vrrp_payload(&ctx, &spec, payload_bytes);
                     let effective_dst_mac = derive_mac(None, stmt.l2.dst_mac, target_ip, false);
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &stmt.l3, &vrrp_body)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &effective_l3, &vrrp_body)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, effective_dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -1010,9 +742,11 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     };
                     let (hsrp_payload, target_ip, dport) = crate::builders::l3_tunnel::build_hsrp_payload(&ctx, &spec, payload_bytes);
                     let effective_dst_mac = derive_mac(None, stmt.l2.dst_mac, target_ip, false);
-                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, target_ip, dport, dport, &hsrp_payload)
+                    let final_sport = stmt.src_port.unwrap_or(dport);
+                    let final_dport = stmt.dst_port.unwrap_or(dport);
+                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, target_ip, final_sport, final_dport, &hsrp_payload)
                         .map_err(|e| alloc::format!("{:?}", e))?;
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, 17, &stmt.l3, &udp_pkt)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, 17, &effective_l3, &udp_pkt)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, effective_dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -1023,7 +757,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     };
                     let (pim_body, target_ip, proto) = crate::builders::l3_tunnel::build_pim_payload(&ctx, &spec, payload_bytes);
                     let effective_dst_mac = derive_mac(None, stmt.l2.dst_mac, target_ip, false);
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &stmt.l3, &pim_body)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, target_ip, proto, &effective_l3, &pim_body)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, effective_dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -1033,9 +767,10 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                         _ => BfdSpec::default(),
                     };
                     let (bfd_payload, dport) = crate::builders::l3_tunnel::build_bfd_payload(&spec, payload_bytes);
-                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, dst_ip, src_port, dport, &bfd_payload)
+                    let final_dport = stmt.dst_port.unwrap_or(dport);
+                    let udp_pkt = crate::packet::build_udp_datagram(src_ip, dst_ip, src_port, final_dport, &bfd_payload)
                         .map_err(|e| alloc::format!("{:?}", e))?;
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, 17, &stmt.l3, &udp_pkt)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, 17, &effective_l3, &udp_pkt)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -1047,7 +782,7 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                     };
                     let (sctp_pkt, proto) = crate::builders::transport::build_sctp_payload(&ctx, &spec, payload_bytes)
                         .map_err(|e| alloc::format!("{:?}", e))?;
-                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, proto, &stmt.l3, &sctp_pkt)
+                    let ip_pkt = crate::packet::build_ip_packet(src_ip, dst_ip, proto, &effective_l3, &sctp_pkt)
                         .map_err(|e| alloc::format!("{:?}", e))?;
                     crate::packet::build_ethernet_and_l2(src_mac, dst_mac, &stmt.l2, if src_ip.is_ipv4() { 0x0800 } else { 0x86DD }, &ip_pkt)
                 }
@@ -1106,8 +841,18 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
                 | Protocol::S7comm
                 | Protocol::Ethernetip
                 | Protocol::Opcua => {
-                    let (actual_payload, is_tcp) = if let Some((l7_bytes, is_tcp)) = build_l7_packet_payload(&ctx, stmt, payload_bytes) {
-                        (l7_bytes, is_tcp)
+                    let (effective_dst_ip, effective_dst_mac) =
+                        if let Some(target_ip) = l7_res.as_ref().and_then(|r| r.target_ip) {
+                            (
+                                target_ip,
+                                derive_mac(None, stmt.l2.dst_mac, target_ip, false),
+                            )
+                        } else {
+                            (dst_ip, dst_mac)
+                        };
+
+                    let (actual_payload, is_tcp) = if let Some(res) = l7_res {
+                        (res.payload, res.is_tcp)
                     } else {
                         match stmt.protocol {
                             Protocol::Tcp => (payload_bytes.to_vec(), true),
@@ -1143,11 +888,11 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
 
                     build_wire_packet(
                         src_ip,
-                        dst_ip,
+                        effective_dst_ip,
                         src_mac,
-                        dst_mac,
+                        effective_dst_mac,
                         &stmt.l2,
-                        &stmt.l3,
+                        &effective_l3,
                         &stmt.l4,
                         is_tcp,
                         src_port,
@@ -1181,6 +926,31 @@ pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>
             }
         }
     }
+
+    Ok(packet_buffer)
+}
+
+/// Evaluates the AST and generates the PCAP file at the specified output path.
+///
+/// This walks the [`Program`] AST via [`compile_program`], builds each packet, and writes it
+/// to the specified `.pcap` / `.pcapng` file path.
+///
+/// # Examples
+/// ```no_run
+/// use frameassembly::ast::Program;
+/// use frameassembly::backend::generate_pcap;
+///
+/// let program = Program { hosts: vec![], flows: vec![], compile_block: vec![] };
+/// generate_pcap(&program, "output.pcap").unwrap();
+/// ```
+///
+/// # Errors
+/// Returns a `String` containing the error message if:
+/// * Network endpoints cannot be resolved.
+/// * PCAP writing fails.
+/// * Unrecognized protocol combinations occur.
+pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String> {
+    let packet_buffer = compile_program(program)?;
 
     let mut pcap = PcapWriter::create(output_path)
         .map_err(|e| alloc::format!("Failed to create PCAP file: {}", e))?;

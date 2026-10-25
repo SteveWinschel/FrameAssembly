@@ -1,0 +1,31 @@
+// PROMPT: Generate a Telnet Terminal Speed (Option 32) and Remote Flow Control (Option 33) negotiation over VLAN 23.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, VLAN, ACK, TELNET, DO, WILL, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint serial_client.
+HOST serial_client {
+    MAC 00:0c:29:00:23:20
+    IP 172.16.23.20
+}
+
+// INSTRUCTION: Define host endpoint fep_host.
+HOST fep_host {
+    MAC 00:0c:29:00:23:01
+    IP 172.16.23.1
+}
+
+// INSTRUCTION: Negotiate Terminal Speed (32) and Remote Flow Control (33) on VLAN 23.
+FLOW telnet_speed_and_flow_control(serial_client, fep_host) {
+    serial_client -> fep_host TCP SYN SRCPORT 54023 DSTPORT 23 VLAN 23
+    fep_host -> serial_client TCP SYN ACK VLAN 23
+    serial_client -> fep_host TCP ACK VLAN 23
+    fep_host -> serial_client TELNET DO 32 VLAN 23
+    serial_client -> fep_host TELNET WILL 32 VLAN 23
+    fep_host -> serial_client TELNET DO 33 VLAN 23
+    serial_client -> fep_host TELNET WILL 33 VLAN 23
+    serial_client -> fep_host TELNET PAYLOAD "38400,38400" VLAN 23
+}
+
+// INSTRUCTION: Compile the Telnet speed and flow control negotiation flow.
+COMPILE {
+    telnet_speed_and_flow_control(serial_client, fep_host)
+}

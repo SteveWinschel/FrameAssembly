@@ -1,0 +1,24 @@
+// PROMPT: Next-generation BGP over QUIC (BoQ) core router peering session on UDP port 179 with DSCP CS6.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, VERSION, DCID, SCID, SRCPORT, DSTPORT, DSCP, TTL, PKT_NUM, WAIT, HANDSHAKE, SHORT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define Autonomous System 65001 border router.
+HOST as65001_rtr {
+    IP 192.0.2.101
+}
+
+// INSTRUCTION: Define Autonomous System 65002 peer router.
+HOST as65002_rtr {
+    IP 192.0.2.102
+}
+
+// INSTRUCTION: Define BGP over QUIC session establishment and OPEN message exchange with DSCP 48 (CS6).
+FLOW quic_bgp_peering(r1, r2) {
+    r1 -> r2 QUIC INITIAL VERSION 1 DCID 0x65001001 SCID 0x65002001 SRCPORT 50179 DSTPORT 179 DSCP 48 TTL 255 PKT_NUM 1 WAIT 3ms
+    r1 <- r2 QUIC HANDSHAKE VERSION 1 DCID 0x65002001 SCID 0x65001001 SRCPORT 179 DSTPORT 50179 DSCP 48 TTL 255 PKT_NUM 1 WAIT 3ms
+    r1 -> r2 QUIC SHORT DCID 0x65001001 SRCPORT 50179 DSTPORT 179 DSCP 48 TTL 255 PKT_NUM 2 PAYLOAD "BGP_OPEN_AS65001"
+}
+
+// INSTRUCTION: Compile the BGP over QUIC core peering scenario.
+COMPILE {
+    quic_bgp_peering(as65001_rtr, as65002_rtr)
+}

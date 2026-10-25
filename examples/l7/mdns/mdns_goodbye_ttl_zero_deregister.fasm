@@ -1,0 +1,25 @@
+// PROMPT: Simulate an mDNS goodbye packet announcement (ANS_TTL 0) when an AirPlay speaker gracefully leaves the network.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, RESPONSE, TXID, QNAME, QTYPE, RDATA, ANS_TTL, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define the smart speaker shutting down its AirPlay service.
+HOST airplay_speaker {
+    IP 192.168.10.85
+    MAC f0:18:98:10:00:85
+}
+
+// INSTRUCTION: Define the mDNS multicast destination group.
+HOST mdns_group {
+    IP 224.0.0.251
+    MAC 01:00:5e:00:00:fb
+}
+
+// INSTRUCTION: First announce the active PTR record with TTL 4500, then multicast a goodbye record with ANS_TTL 0.
+FLOW airplay_goodbye_flow(spk, grp) {
+    spk -> grp MDNS RESPONSE TXID 0 QNAME "_airplay._tcp.local" QTYPE "PTR" RDATA "LivingRoom-Speaker._airplay._tcp.local" ANS_TTL 4500 TTL 255 WAIT 50ms
+    spk -> grp MDNS RESPONSE TXID 0 QNAME "_airplay._tcp.local" QTYPE "PTR" RDATA "LivingRoom-Speaker._airplay._tcp.local" ANS_TTL 0 TTL 255
+}
+
+// INSTRUCTION: Compile the mDNS service announcement and TTL=0 goodbye packet into a PCAP file.
+COMPILE {
+    airplay_goodbye_flow(airplay_speaker, mdns_group)
+}

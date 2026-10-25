@@ -1,0 +1,19 @@
+// PROMPT: DNS reverse PTR lookup resolving an in-addr.arpa IPv4 address to its canonical hostname.
+// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define SIEM log enrichment worker.
+HOST siem_worker { IP 10.88.1.50 }
+
+// INSTRUCTION: Define internal reverse DNS server.
+HOST rdns_srv { IP 10.88.1.2 }
+
+// INSTRUCTION: Query PTR record for 34.216.184.93.in-addr.arpa and return canonical hostname.
+FLOW dns_ptr_reverse(w, s) {
+    w -> s DNS QUERY TXID 0x9920 QNAME "34.216.184.93.in-addr.arpa" QTYPE "PTR"
+    w <- s DNS RESPONSE TXID 0x9920 QNAME "34.216.184.93.in-addr.arpa" QTYPE "PTR" RDATA "web.example.com" ANS_TTL 86400
+}
+
+// INSTRUCTION: Compile the reverse DNS PTR lookup scenario.
+COMPILE {
+    dns_ptr_reverse(siem_worker, rdns_srv)
+}

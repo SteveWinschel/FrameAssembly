@@ -1,0 +1,25 @@
+// PROMPT: Simulate a DENIC WHOIS query on TCP port 43 verifying a German .de country-code top-level domain.
+// TOKENS: HOST, IP, MAC, FLOW, WHOIS, QUERY, DOMAIN, VLAN, PCP, WAIT, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define the WHOIS client workstation or security enrichment node.
+HOST whois_client {
+    IP 192.168.43.12
+    MAC 00:1b:21:00:43:0a
+}
+
+// INSTRUCTION: Define the authoritative RIR or TLD WHOIS directory server on TCP port 43.
+HOST whois_server {
+    IP 81.91.164.5
+    MAC 00:1b:21:00:43:01
+}
+
+// INSTRUCTION: Execute the RFC 3912 WHOIS domain or prefix lookup transaction.
+FLOW whois_scenario_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "bund.de" VLAN 43 PCP 2 WAIT 4ms
+    c <- s WHOIS RESPONSE DOMAIN "bund.de" REGISTRAR "DENIC eG Frankfurt am Main" VLAN 43 PCP 2
+}
+
+// INSTRUCTION: Compile the WHOIS registry query flow into a PCAP trace.
+COMPILE {
+    whois_scenario_flow(whois_client, whois_server)
+}

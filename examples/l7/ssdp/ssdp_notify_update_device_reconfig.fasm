@@ -1,0 +1,25 @@
+// PROMPT: Model a UPnP Architecture 1.1 ssdp:update NOTIFY multicast announcement when a device transitions to a new IP or configuration.
+// TOKENS: HOST, MAC, IP, FLOW, SSDP, NOTIFY, HOST_HDR, NT, NTS, USN, LOCATION, TTL, COMPILE
+
+// INSTRUCTION: Define host endpoint ip_camera.
+HOST ip_camera {
+    MAC 00:40:8c:aa:11:22
+    IP 192.168.20.45
+}
+
+// INSTRUCTION: Define host endpoint ssdp_multicast_grp.
+HOST ssdp_multicast_grp {
+    MAC 01:00:5e:7f:ff:fa
+    IP 239.255.255.250
+}
+
+// INSTRUCTION: Multicast an SSDP NOTIFY with NTS ssdp:update advertising the updated descriptor URL.
+FLOW ssdp_notify_config_update(ip_camera, ssdp_multicast_grp) {
+    ip_camera -> ssdp_multicast_grp SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "upnp:rootdevice" NTS "ssdp:update" USN "uuid:axis-cam-00408caa1122::upnp:rootdevice"
+        LOCATION "http://192.168.20.45:80/upnp/rootdesc.xml" TTL 4
+}
+
+// INSTRUCTION: Compile the SSDP ssdp:update notification flow.
+COMPILE {
+    ssdp_notify_config_update(ip_camera, ssdp_multicast_grp)
+}

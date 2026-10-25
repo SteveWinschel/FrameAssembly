@@ -1,0 +1,25 @@
+// PROMPT: RFC 8971 BFD for VXLAN encapsulated with Management VNI 1 to verify end-to-end VTEP dataplane encapsulation health.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define VTEP-East originating RFC 8971 BFD-over-VXLAN dataplane health check.
+HOST rfc8971_vtep_east {
+    IP 10.89.71.1
+    MAC 00:1c:73:89:71:01
+}
+
+// INSTRUCTION: Define VTEP-West reflecting BFD-over-VXLAN management VNI 1 probe.
+HOST rfc8971_vtep_west {
+    IP 10.89.71.2
+    MAC 00:1c:73:89:71:02
+}
+
+// INSTRUCTION: Define RFC 8971 VXLAN management VNI 1 probe with DSCP CS6 (48) and TTL 1.
+FLOW vxlan_rfc8971_oam_probe(east, west) {
+    east -> west VXLAN VNI 1 SRCPORT 49152 DSTPORT 4789 DF DSCP 48 TTL 1 PAYLOAD "RFC8971_INNER_BFD_DISC_101_STATE_UP" WAIT 10ms
+    east <- west VXLAN VNI 1 SRCPORT 49153 DSTPORT 4789 DF DSCP 48 TTL 1 PAYLOAD "RFC8971_INNER_BFD_DISC_102_STATE_UP"
+}
+
+// INSTRUCTION: Compile the RFC 8971 BFD-over-VXLAN OAM probe flow.
+COMPILE {
+    vxlan_rfc8971_oam_probe(rfc8971_vtep_east, rfc8971_vtep_west)
+}

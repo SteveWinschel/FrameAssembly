@@ -1,0 +1,21 @@
+// PROMPT: ARIN directory lookup for enterprise private autonomous system registration.
+// TOKENS: HOST, IP, FLOW, WHOIS, QUERY, DOMAIN, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define North American network auditor.
+HOST arin_auditor { IP 172.30.2.14 }
+
+// INSTRUCTION: Define ARIN WHOIS database node.
+HOST arin_whois { IP 199.212.0.43 }
+
+// INSTRUCTION: Define autonomous system organization query flow.
+FLOW whois_arin_asn_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "AS64512"
+    c <- s WHOIS RESPONSE
+        DOMAIN "AS64512"
+        REGISTRAR "ARIN"
+}
+
+// INSTRUCTION: Compile block executing ARIN ASN query.
+COMPILE {
+    whois_arin_asn_flow(arin_auditor, arin_whois)
+}

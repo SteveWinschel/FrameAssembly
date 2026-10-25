@@ -1,0 +1,27 @@
+// PROMPT: Generate a unicast IPv6 Neighbor Unreachability Detection (NUD) probe and reachability confirmation
+// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_SOLICIT, TARGET, SLLA, TTL, WAIT, NEIGHBOR_ADVERT, TLLA, COMPILE
+
+// INSTRUCTION: Define the probing IPv6 application server
+HOST app_node_v6 {
+    IP 2001:db8:30::11
+    MAC 00:16:3e:d2:00:11
+}
+
+// INSTRUCTION: Define the neighbor IPv6 database server being verified
+HOST db_node_v6 {
+    IP 2001:db8:30::22
+    MAC 00:16:3e:d2:00:22
+}
+
+// INSTRUCTION: Exchange unicast Neighbor Solicitation and Neighbor Advertisement frames for NUD
+FLOW ndp_nud_unicast_probe(prober, neighbor) {
+    prober -> neighbor NDP NEIGHBOR_SOLICIT TARGET 2001:db8:30::22 SLLA 00:16:3e:d2:00:11 TTL 255 WAIT 5ms
+    neighbor -> prober NDP NEIGHBOR_ADVERT TARGET 2001:db8:30::22 TLLA 00:16:3e:d2:00:22 TTL 255 WAIT 20ms
+    neighbor -> prober NDP NEIGHBOR_SOLICIT TARGET 2001:db8:30::11 SLLA 00:16:3e:d2:00:22 TTL 255 WAIT 5ms
+    prober -> neighbor NDP NEIGHBOR_ADVERT TARGET 2001:db8:30::11 TLLA 00:16:3e:d2:00:11 TTL 255
+}
+
+// INSTRUCTION: Compile the bidirectional NUD reachability verification flow
+COMPILE {
+    ndp_nud_unicast_probe(app_node_v6, db_node_v6)
+}

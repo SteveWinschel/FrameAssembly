@@ -1,0 +1,25 @@
+// PROMPT: MPLS over 802.1Q VLAN subinterface carrying MP-BGP VPNv4 route updates between Route Reflectors.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, MPLS, EXP, BOS, MPLS_TTL, BGP, UPDATE, PREFIX, NEXTHOP, KEEPALIVE, WAIT, COMPILE
+
+// INSTRUCTION: Define MPLS VPN Route Reflector cluster node A.
+HOST vpn_rr_west {
+    IP 10.255.0.11
+    MAC 00:05:85:ff:00:0b
+}
+
+// INSTRUCTION: Define MPLS VPN Route Reflector cluster node B.
+HOST vpn_rr_east {
+    IP 10.255.0.12
+    MAC 00:05:85:ff:00:0c
+}
+
+// INSTRUCTION: Define VLAN 400 subinterface MPLS transport carrying BGP UPDATE and KEEPALIVE messages.
+FLOW vlan_mpls_bgp_rr(rr_w, rr_e) {
+    rr_w -> rr_e VLAN 400 PCP 6 MPLS 24011 EXP 6 BOS 1 MPLS_TTL 64 BGP UPDATE PREFIX "10.120.0.0/16" NEXTHOP 10.255.0.11
+    rr_w <- rr_e VLAN 400 PCP 6 MPLS 24012 EXP 6 BOS 1 MPLS_TTL 64 BGP KEEPALIVE WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing MPLS over VLAN MP-BGP route reflection.
+COMPILE {
+    vlan_mpls_bgp_rr(vpn_rr_west, vpn_rr_east)
+}

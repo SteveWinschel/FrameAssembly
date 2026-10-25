@@ -1,0 +1,31 @@
+// PROMPT: SMB2 client mounting two distinct shares (staging and production) on the same session to copy a release artifact.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, SESSION_ID, MSGID, SHARE, STATUS, TREE_ID, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the release automation worker host.
+HOST release_worker {
+    IP 10.60.110.18
+    MAC 00:1a:2b:60:aa:18
+}
+
+// INSTRUCTION: Define the artifact repository SMB server.
+HOST artifact_srv {
+    IP 10.60.110.2
+    MAC 00:1a:2b:60:aa:02
+}
+
+// INSTRUCTION: Connect to both staging and prod shares under SESSION_ID 8800, read from TREE_ID 1, and write to TREE_ID 2.
+FLOW smb_cross_share_copy(c, s) {
+    c -> s SMB COMMAND "TREE_CONNECT" SESSION_ID 8800 MSGID 1 SHARE "\\repo\staging"
+    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 1 SESSION_ID 8800 MSGID 1 WAIT 1ms
+    c -> s SMB COMMAND "TREE_CONNECT" SESSION_ID 8800 MSGID 2 SHARE "\\repo\production"
+    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 2 SESSION_ID 8800 MSGID 2 WAIT 1ms
+    c -> s SMB COMMAND "READ" TREE_ID 1 SESSION_ID 8800 MSGID 3
+    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 1 SESSION_ID 8800 MSGID 3 PAYLOAD "BINARY_RELEASE_TAR_ZST" WAIT 1ms
+    c -> s SMB COMMAND "WRITE" TREE_ID 2 SESSION_ID 8800 MSGID 4 PAYLOAD "BINARY_RELEASE_TAR_ZST"
+    c <- s SMB COMMAND "WRITE" STATUS 0 TREE_ID 2 SESSION_ID 8800 MSGID 4
+}
+
+// INSTRUCTION: Compile the multi-share cross-copy SMB2 flow.
+COMPILE {
+    smb_cross_share_copy(release_worker, artifact_srv)
+}

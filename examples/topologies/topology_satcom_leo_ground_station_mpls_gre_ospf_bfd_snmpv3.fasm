@@ -1,0 +1,25 @@
+// PROMPT: Low-Earth-Orbit (LEO) satellite ground station gateway handover combining BFD link tracking, OSPF dynamic metric update, GRE/MPLS backhaul, and SNMPv3 USM telemetry.
+// TOKENS: HOST, IP, FLOW, BFD, MY_DISC, YOUR_DISC, MIN_TX, WAIT, OSPF, LSU, ROUTER_ID, AREA_ID, MPLS, EXP, BOS, GRE, GRE_KEY, SNMP3, INFORM, USER, ENGINEID, AUTH, SHA256, PRIV, AES, COMPILE
+
+// INSTRUCTION: Define LEO satellite user terminal gateway router.
+HOST leo_terminal_rtr { IP 10.175.1.10 }
+
+// INSTRUCTION: Define primary satellite ground station gateway (PoP Alpha).
+HOST ground_station_alpha { IP 10.175.1.1 }
+
+// INSTRUCTION: Define satellite network operations center (NOC) SNMPv3 collector.
+HOST satcom_noc_mgr { IP 10.175.100.50 }
+
+// INSTRUCTION: Define BFD beam tracking, OSPF LSA update on satellite handover, MPLS-over-GRE backhaul, and SNMPv3 inform.
+FLOW leo_satcom_beam_handover(term, gs, noc) {
+    term -> gs BFD MY_DISC 701 YOUR_DISC 702 MIN_TX 25000
+    term <- gs BFD MY_DISC 702 YOUR_DISC 701 MIN_TX 25000 WAIT 1ms
+    term -> gs OSPF LSU ROUTER_ID 10.175.1.10 AREA_ID 0 WAIT 1ms
+    term -> gs MPLS 18001 EXP 5 BOS 1 GRE GRE_KEY 9001 WAIT 1ms
+    gs -> noc SNMP3 INFORM USER "satnoc_sec" ENGINEID "80001f888011223344" AUTH SHA256 "SatAuthKey2026!" PRIV AES "SatPrivKey2026!" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing LEO satellite BFD, OSPF, MPLS/GRE, and SNMPv3 topology.
+COMPILE {
+    leo_satcom_beam_handover(leo_terminal_rtr, ground_station_alpha, satcom_noc_mgr)
+}

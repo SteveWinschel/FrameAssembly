@@ -1,0 +1,25 @@
+// PROMPT: Geostationary satellite link QUIC connection maintaining NAT state with periodic PING frames.
+// TOKENS: HOST, IP, FLOW, QUIC, SHORT, DCID, PKT_NUM, TTL, HEXPAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define remote maritime vessel satellite terminal.
+HOST vessel_term {
+    IP 10.220.50.10
+}
+
+// INSTRUCTION: Define shore station QUIC gateway.
+HOST shore_gw {
+    IP 10.220.50.1
+}
+
+// INSTRUCTION: Define QUIC 1-RTT PING frame (0x01) and ACK frame (0x02) over high-hop satellite link.
+FLOW quic_sat_ping(c, s) {
+    c -> s QUIC SHORT DCID 0x5a7e1117e0000001 PKT_NUM 77 TTL 128 HEXPAYLOAD "01" WAIT 20ms
+    c <- s QUIC SHORT DCID 0x5a7e1117e0000002 PKT_NUM 88 TTL 128 HEXPAYLOAD "02004d0000"
+}
+
+// INSTRUCTION: Compile 3 iterations of satellite QUIC keepalive pings.
+COMPILE {
+    LOOP 3 {
+        quic_sat_ping(vessel_term, shore_gw)
+    }
+}

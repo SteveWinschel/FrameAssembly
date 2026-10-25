@@ -1,0 +1,21 @@
+// PROMPT: HTTP 301 Moved Permanently redirect followed by GET request to the new Location URI.
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, STATUS, REASON, HEADER, COMPILE
+
+// INSTRUCTION: Define HTTP client following redirect.
+HOST redir_client { IP 10.18.80.12 }
+
+// INSTRUCTION: Define reverse proxy load balancer.
+HOST rev_proxy { IP 10.18.80.1 }
+
+// INSTRUCTION: Request legacy URI, receive 301 with Location header, and fetch new URI.
+FLOW http_redirect_301(c, p) {
+    c -> p HTTP METHOD "GET" URI "/legacy-docs" HOST_HDR "docs.example.com"
+    c <- p HTTP STATUS 301 REASON "Moved Permanently" HEADER "Location" "/v2/docs"
+    c -> p HTTP METHOD "GET" URI "/v2/docs" HOST_HDR "docs.example.com"
+    c <- p HTTP STATUS 200 REASON "OK"
+}
+
+// INSTRUCTION: Compile the HTTP 301 redirect scenario.
+COMPILE {
+    http_redirect_301(redir_client, rev_proxy)
+}

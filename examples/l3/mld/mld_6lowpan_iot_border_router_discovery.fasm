@@ -1,0 +1,25 @@
+// PROMPT: IPv6 IoT border router querying 6LoWPAN sensor nodes for link-scope CoAP multicast group ff02::fd membership.
+// TOKENS: HOST, IP, MAC, FLOW, TTL, MLD, QUERY, MULTICAST_ADDR, MAX_RESP_DELAY, WAIT, REPORT, COMPILE
+
+// INSTRUCTION: Define 6LoWPAN IPv6 border router acting as MLD querier on sensor subnet.
+HOST iot_border_rtr {
+    IP fe80::600:1
+    MAC 00:12:4b:00:06:01
+}
+
+// INSTRUCTION: Define environmental telemetry node listening on All-CoAP-Nodes multicast ff02::fd.
+HOST coap_sensor_node {
+    IP fe80::600:42
+    MAC 00:12:4b:00:06:42
+}
+
+// INSTRUCTION: Issue MLD Query for ff02::fd with Hop Limit 1 and receive MLD Report from CoAP sensor.
+FLOW mld_coap_group_sync(rtr, sensor) {
+    rtr -> sensor TTL 1 MLD QUERY MULTICAST_ADDR ff02::fd MAX_RESP_DELAY 2000 WAIT 15ms
+    rtr <- sensor TTL 1 MLD REPORT MULTICAST_ADDR ff02::fd MAX_RESP_DELAY 0
+}
+
+// INSTRUCTION: Compile the 6LoWPAN CoAP multicast group MLD query and report exchange.
+COMPILE {
+    mld_coap_group_sync(iot_border_rtr, coap_sensor_node)
+}

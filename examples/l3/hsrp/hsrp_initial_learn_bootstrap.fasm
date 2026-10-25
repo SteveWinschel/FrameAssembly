@@ -1,0 +1,20 @@
+// PROMPT: Newly booted HSRP router transitioning from Initial (0) and Learn (1) states upon hearing Active VIP.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, HELLOTIME, HOLDTIME, WAIT, COMPILE
+
+// INSTRUCTION: Define newly booted router in Learn state (1) with unconfigured VIP 0.0.0.0.
+HOST hsrp_boot_rtr { IP 192.168.88.3 }
+
+// INSTRUCTION: Define existing Active router advertising VIP 192.168.88.1.
+HOST hsrp_active_rtr { IP 192.168.88.2 }
+
+// INSTRUCTION: Define HSRP bootstrap learning VIP from Active router's Hello.
+FLOW hsrp_learn_bootstrap(boot, act) {
+    boot -> act HSRP GROUP 88 PRIORITY 100 STATE 1 VIP 0.0.0.0 HELLOTIME 3 HOLDTIME 10
+    boot <- act HSRP GROUP 88 PRIORITY 115 STATE 16 VIP 192.168.88.1 HELLOTIME 3 HOLDTIME 10 WAIT 15ms
+    boot -> act HSRP GROUP 88 PRIORITY 100 STATE 8 VIP 192.168.88.1 HELLOTIME 3 HOLDTIME 10 WAIT 15ms
+}
+
+// INSTRUCTION: Compile the HSRP Learn state bootstrap flow.
+COMPILE {
+    hsrp_learn_bootstrap(hsrp_boot_rtr, hsrp_active_rtr)
+}

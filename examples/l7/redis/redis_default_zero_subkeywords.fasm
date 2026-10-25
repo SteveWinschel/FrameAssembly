@@ -1,0 +1,18 @@
+// PROMPT: Default Redis RESP PING frame with zero sub-keywords on TCP port 6379.
+// TOKENS: HOST, IP, MAC, FLOW, REDIS, COMPILE
+
+// INSTRUCTION: Define web application worker host.
+HOST web_worker { IP 10.63.79.10 MAC 00:16:3e:63:79:0a }
+
+// INSTRUCTION: Define Redis in-memory cache master.
+HOST redis_master { IP 10.63.79.1 MAC 00:16:3e:63:79:01 }
+
+// INSTRUCTION: Define flow sending default REDIS PING frame.
+FLOW redis_default(c, s) {
+    c -> s REDIS
+}
+
+// INSTRUCTION: Compile default Redis scenario.
+COMPILE {
+    redis_default(web_worker, redis_master)
+}

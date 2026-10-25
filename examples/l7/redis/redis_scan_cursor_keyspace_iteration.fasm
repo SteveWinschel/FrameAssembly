@@ -1,0 +1,27 @@
+// PROMPT: Non-blocking Redis SCAN cursor iteration sweeping expired session keys with MATCH and COUNT.
+// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the background cache janitor daemon.
+HOST cache_janitor {
+    IP 10.80.60.70
+    MAC 00:1a:2b:80:60:70
+}
+
+// INSTRUCTION: Define the session Redis replica node.
+HOST session_replica {
+    IP 10.80.60.10
+    MAC 00:1a:2b:80:60:10
+}
+
+// INSTRUCTION: Iterate the keyspace with SCAN 0 MATCH sess:* COUNT 100 and unlink stale keys.
+FLOW redis_scan_sweep(c, s) {
+    c -> s REDIS CMD "SCAN" ARGS "0 MATCH sess:legacy:* COUNT 100"
+    c <- s REDIS REPLY_TYPE "BULK" VALUE "sess:legacy:901" WAIT 2ms
+    c -> s REDIS CMD "UNLINK" ARGS "sess:legacy:901"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "1"
+}
+
+// INSTRUCTION: Compile the Redis SCAN and UNLINK keyspace maintenance flow.
+COMPILE {
+    redis_scan_sweep(cache_janitor, session_replica)
+}

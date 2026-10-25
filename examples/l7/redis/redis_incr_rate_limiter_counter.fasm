@@ -1,0 +1,27 @@
+// PROMPT: API gateway rate limiter using Redis INCR and EXPIRE commands with integer and status replies.
+// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the API gateway worker enforcing per-IP request quotas.
+HOST api_gateway {
+    IP 10.80.1.20
+    MAC 00:1a:2b:80:01:20
+}
+
+// INSTRUCTION: Define the low-latency Redis rate-limit instance.
+HOST ratelimit_redis {
+    IP 10.80.1.5
+    MAC 00:1a:2b:80:01:05
+}
+
+// INSTRUCTION: Increment the sliding window counter and set a 60-second TTL.
+FLOW redis_rate_limit(c, s) {
+    c -> s REDIS CMD "INCR" ARGS "rl:ip:203.0.113.45:min:1248"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "42" WAIT 1ms
+    c -> s REDIS CMD "EXPIRE" ARGS "rl:ip:203.0.113.45:min:1248 60"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "1"
+}
+
+// INSTRUCTION: Compile the Redis API rate limiter flow.
+COMPILE {
+    redis_rate_limit(api_gateway, ratelimit_redis)
+}

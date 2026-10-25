@@ -1,0 +1,20 @@
+// PROMPT: Periodic IPFIX flow export burst executed in compile loop simulating telemetry timer.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define edge telemetry probe.
+HOST edge_probe { IP 192.168.75.10 }
+
+// INSTRUCTION: Define central flow listener.
+HOST flow_listener { IP 192.168.75.1 }
+
+// INSTRUCTION: Define periodic IPFIX export burst flow.
+FLOW ipfix_burst_flow(probe, srv) {
+    probe -> srv IPFIX DOMAIN_ID 99 SRCIP 10.0.12.3 DSTIP 10.0.14.5 SRCPORT 80 DSTPORT 49152 PROTO 6 PACKETS 15 OCTETS 2140 WAIT 25ms
+}
+
+// INSTRUCTION: Compile periodic IPFIX export burst in loop.
+COMPILE {
+    LOOP 3 {
+        ipfix_burst_flow(edge_probe, flow_listener)
+    }
+}

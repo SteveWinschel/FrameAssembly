@@ -1,0 +1,27 @@
+// PROMPT: Construct an RFC 4861 NDP exchange enforcing DSCP CS6 network control marking and Hop Limit 255 GTSM validation
+// TOKENS: HOST, IP, MAC, FLOW, NDP, ROUTER_SOLICIT, SLLA, DSCP, ECN, TTL, WAIT, ROUTER_ADVERT, ROUTER_LIFETIME, NEIGHBOR_SOLICIT, TARGET, NEIGHBOR_ADVERT, TLLA, COMPILE
+
+// INSTRUCTION: Define the secure IPv6 campus router
+HOST sec_rtr_v6 {
+    IP 2001:db8:700::1
+    MAC 00:1b:21:d7:07:01
+}
+
+// INSTRUCTION: Define the secure IPv6 campus host
+HOST sec_host_v6 {
+    IP 2001:db8:700::77
+    MAC 00:1b:21:d7:07:77
+}
+
+// INSTRUCTION: Exchange NDP control messages with DSCP 48 (CS6) and Hop Limit 255
+FLOW ndp_dscp_cs6_gtsm(rtr, host) {
+    host -> rtr NDP ROUTER_SOLICIT SLLA 00:1b:21:d7:07:77 DSCP 48 ECN 0 TTL 255 WAIT 10ms
+    rtr -> host NDP ROUTER_ADVERT ROUTER_LIFETIME 1800 SLLA 00:1b:21:d7:07:01 DSCP 48 ECN 0 TTL 255 WAIT 10ms
+    host -> rtr NDP NEIGHBOR_SOLICIT TARGET 2001:db8:700::1 SLLA 00:1b:21:d7:07:77 DSCP 48 ECN 0 TTL 255 WAIT 10ms
+    rtr -> host NDP NEIGHBOR_ADVERT TARGET 2001:db8:700::1 TLLA 00:1b:21:d7:07:01 DSCP 48 ECN 0 TTL 255
+}
+
+// INSTRUCTION: Compile the DSCP CS6 and Hop Limit 255 NDP trace
+COMPILE {
+    ndp_dscp_cs6_gtsm(sec_rtr_v6, sec_host_v6)
+}

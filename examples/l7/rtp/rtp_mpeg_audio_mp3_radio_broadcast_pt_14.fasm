@@ -1,0 +1,23 @@
+// PROMPT: RFC 2250 MPEG Audio (MPA static payload type 14) syndication feed between radio stations.
+// TOKENS: HOST, IP, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define national syndicate broadcast studio encoder.
+HOST radio_hq {
+    IP 10.125.14.1
+}
+
+// INSTRUCTION: Define regional FM transmitter site decoder.
+HOST fm_tower {
+    IP 10.125.14.50
+}
+
+// INSTRUCTION: Define MPEG Audio (PT 14) RTP frames using 90kHz presentation clock.
+FLOW rtp_mpa_radio(hq, tower) {
+    hq -> tower RTP PT 14 SEQ 800 TIMESTAMP 90000 SSRC 0x00140001 MARKER 1 PAYLOAD "MPA_HDR_ADTS_FRAME_1" WAIT 24ms
+    hq -> tower RTP PT 14 SEQ 801 TIMESTAMP 92160 SSRC 0x00140001 MARKER 0 PAYLOAD "MPA_HDR_ADTS_FRAME_2"
+}
+
+// INSTRUCTION: Compile the RFC 2250 MPEG Audio radio broadcast RTP scenario.
+COMPILE {
+    rtp_mpa_radio(radio_hq, fm_tower)
+}

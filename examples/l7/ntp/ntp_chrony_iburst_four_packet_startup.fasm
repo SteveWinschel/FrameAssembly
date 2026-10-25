@@ -1,0 +1,27 @@
+// PROMPT: Model a chronyd daemon initial iburst startup sequence sending back-to-back NTPv4 client polls.
+// TOKENS: HOST, IP, MAC, FLOW, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, TX_TIMESTAMP, WAIT, REFID, COMPILE
+
+// INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
+HOST ntp_client {
+    IP 192.168.80.12
+    MAC 00:1b:21:7b:01:0a
+}
+
+// INSTRUCTION: Define the NTP reference server or peer endpoint.
+HOST ntp_server {
+    IP 192.168.80.1
+    MAC 00:1b:21:7b:01:01
+}
+
+// INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
+FLOW ntp_scenario_flow(c, s) {
+    c -> s NTP LI 0 VN 4 MODE 3 STRATUM 0 POLL 4 PRECISION -21 TX_TIMESTAMP 0xe9b4cb0100000000 WAIT 2ms
+    c <- s NTP LI 0 VN 4 MODE 4 STRATUM 2 POLL 4 PRECISION -23 REFID "GPS" TX_TIMESTAMP 0xe9b4cb0100200000 WAIT 10ms
+    c -> s NTP LI 0 VN 4 MODE 3 STRATUM 2 POLL 4 PRECISION -21 TX_TIMESTAMP 0xe9b4cb0200000000 WAIT 2ms
+    c <- s NTP LI 0 VN 4 MODE 4 STRATUM 2 POLL 4 PRECISION -23 REFID "GPS" TX_TIMESTAMP 0xe9b4cb0200200000
+}
+
+// INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
+COMPILE {
+    ntp_scenario_flow(ntp_client, ntp_server)
+}

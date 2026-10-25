@@ -1,0 +1,24 @@
+// PROMPT: Dual-stack IPv4 and IPv6 S7comm Data Block read polling using a polymorphic flow.
+// TOKENS: HOST, IP, FLOW, S7COMM, ROSCTR, FUNC, PDU_REF, AREA, DB_NUM, OFFSET, COUNT, DSCP, TTL, FLOWLABEL, COMPILE
+
+// INSTRUCTION: Define IPv4 SCADA poller and S7 PLC.
+HOST s7_v4_hmi { IP 10.102.1.10 }
+// INSTRUCTION: Define IPv4 S7 PLC endpoint.
+HOST s7_v4_plc { IP 10.102.1.20 }
+
+// INSTRUCTION: Define IPv6 SCADA poller and S7 PLC.
+HOST s7_v6_hmi { IP 2001:db8:102::10 }
+// INSTRUCTION: Define IPv6 S7 PLC endpoint.
+HOST s7_v6_plc { IP 2001:db8:102::20 }
+
+// INSTRUCTION: Define polymorphic S7comm Data Block 10 read exchange.
+FLOW s7comm_dual_stack(hmi, plc) {
+    hmi -> plc S7COMM ROSCTR "JOB" FUNC "READ_VAR" PDU_REF 50 AREA 0x84 DB_NUM 10 OFFSET 4 COUNT 2 DSCP 46 TTL 64 FLOWLABEL 0x10200
+    hmi <- plc S7COMM ROSCTR "ACK_DATA" FUNC "READ_VAR" PDU_REF 50 AREA 0x84 DB_NUM 10 OFFSET 4 COUNT 2 DSCP 46 TTL 64 FLOWLABEL 0x10200
+}
+
+// INSTRUCTION: Compile dual-stack S7comm flow over IPv4 and IPv6.
+COMPILE {
+    s7comm_dual_stack(s7_v4_hmi, s7_v4_plc)
+    s7comm_dual_stack(s7_v6_hmi, s7_v6_plc)
+}

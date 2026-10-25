@@ -1,0 +1,19 @@
+// PROMPT: BFD session reporting Diag 6 (Concatenated Path Down) and Diag 5 (Path Down).
+// TOKENS: HOST, IP, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define pseudowire gateway A.
+HOST pw_gateway_a { IP 10.155.12.1 }
+
+// INSTRUCTION: Define pseudowire gateway B.
+HOST pw_gateway_b { IP 10.155.12.2 }
+
+// INSTRUCTION: Define BFD fault notification signaling concatenated path failure.
+FLOW bfd_concat_path_fault(a, b) {
+    a -> b BFD STATE 3 DIAG 6 MY_DISC 77100 YOUR_DISC 77200 MIN_TX 100000 MIN_RX 100000 MULT 4 PAYLOAD "PW_AC_FAULT"
+    a <- b BFD STATE 1 DIAG 5 MY_DISC 77200 YOUR_DISC 77100 MIN_TX 1000000 MIN_RX 1000000 MULT 4
+}
+
+// INSTRUCTION: Compile the concatenated path down BFD diagnostic flow.
+COMPILE {
+    bfd_concat_path_fault(pw_gateway_a, pw_gateway_b)
+}

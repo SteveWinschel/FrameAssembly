@@ -1,0 +1,31 @@
+// PROMPT: MySQL transaction using SAVEPOINT and ROLLBACK TO SAVEPOINT for partial batch error recovery.
+// TOKENS: HOST, IP, MAC, FLOW, MYSQL, SQL, OK, WAIT, ERR, ERRCODE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the billing batch processor host.
+HOST billing_batch {
+    IP 10.90.30.55
+    MAC 00:1a:2b:90:30:55
+}
+
+// INSTRUCTION: Define the financial ledger MySQL database.
+HOST finance_mysql {
+    IP 10.90.30.1
+    MAC 00:1a:2b:90:30:01
+}
+
+// INSTRUCTION: Create savepoint sp_item2, roll back to savepoint after error 1264, and commit.
+FLOW mysql_savepoint_flow(c, s) {
+    c -> s MYSQL SQL "SAVEPOINT sp_item2"
+    c <- s MYSQL OK WAIT 1ms
+    c -> s MYSQL SQL "INSERT INTO ledger_entries (amount) VALUES (999999999999.99)"
+    c <- s MYSQL ERR ERRCODE 1264 PAYLOAD "Out of range value for column 'amount' at row 1" WAIT 1ms
+    c -> s MYSQL SQL "ROLLBACK TO SAVEPOINT sp_item2"
+    c <- s MYSQL OK WAIT 1ms
+    c -> s MYSQL SQL "COMMIT"
+    c <- s MYSQL OK
+}
+
+// INSTRUCTION: Compile the MySQL savepoint partial rollback flow.
+COMPILE {
+    mysql_savepoint_flow(billing_batch, finance_mysql)
+}

@@ -1,0 +1,20 @@
+// PROMPT: WebRTC Opus dynamic payload type (PT 111) audio stream with talkspurt marker bit.
+// TOKENS: HOST, IP, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define WebRTC browser peer A.
+HOST webrtc_peer_a { IP 172.16.111.10 }
+
+// INSTRUCTION: Define WebRTC SFU media router.
+HOST sfu_router { IP 172.16.111.1 }
+
+// INSTRUCTION: Define Opus 48kHz RTP frames (960 timestamp ticks per 20ms frame).
+FLOW rtp_opus_stream(peer, sfu) {
+    peer -> sfu RTP PT 111 TIMESTAMP 960 SSRC 0xdeadbeef MARKER 1 SRCPORT 52000 DSTPORT 50004 PAYLOAD "OPUS_FRAME_1" WAIT 20ms
+    peer -> sfu RTP PT 111 TIMESTAMP 1920 SSRC 0xdeadbeef MARKER 0 SRCPORT 52000 DSTPORT 50004 PAYLOAD "OPUS_FRAME_2" WAIT 20ms
+    peer -> sfu RTP PT 111 TIMESTAMP 2880 SSRC 0xdeadbeef MARKER 0 SRCPORT 52000 DSTPORT 50004 PAYLOAD "OPUS_FRAME_3"
+}
+
+// INSTRUCTION: Compile WebRTC Opus RTP audio stream.
+COMPILE {
+    rtp_opus_stream(webrtc_peer_a, sfu_router)
+}

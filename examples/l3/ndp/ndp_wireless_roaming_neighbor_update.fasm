@@ -1,0 +1,18 @@
+// PROMPT: Roaming tablet asserting presence on enterprise wireless controller via Neighbor Advertisement.
+// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_ADVERT, TARGET, TLLA, COMPILE
+
+// INSTRUCTION: Define corporate roaming tablet.
+HOST roaming_tablet_device { IP fe80::7b1:1 MAC b8:27:eb:11:22:33 }
+
+// INSTRUCTION: Define wireless LAN controller default router.
+HOST wlan_controller_gw { IP ff02::1 MAC 33:33:00:00:00:01 }
+
+// INSTRUCTION: Define wireless handoff Neighbor Advertisement flow.
+FLOW wireless_roaming_na(client, wlc) {
+    client -> wlc NDP NEIGHBOR_ADVERT TARGET 2001:db8:feed::50 TLLA b8:27:eb:11:22:33
+}
+
+// INSTRUCTION: Compile block executing wireless roaming advertisement.
+COMPILE {
+    wireless_roaming_na(roaming_tablet_device, wlan_controller_gw)
+}

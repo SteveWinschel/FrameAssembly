@@ -1,0 +1,26 @@
+// PROMPT: Dual-stack HTTP GraphQL query execution over both IPv4 and IPv6 endpoints.
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, CONTENT_TYPE, BODY, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define IPv4 frontend SSR worker.
+HOST ssr_v4 { IP 10.11.80.10 }
+
+// INSTRUCTION: Define IPv4 GraphQL gateway.
+HOST gql_v4 { IP 10.11.80.1 }
+
+// INSTRUCTION: Define IPv6 frontend SSR worker.
+HOST ssr_v6 { IP 2001:db8:80::10 }
+
+// INSTRUCTION: Define IPv6 GraphQL gateway.
+HOST gql_v6 { IP 2001:db8:80::1 }
+
+// INSTRUCTION: POST GraphQL query JSON and return data payload.
+FLOW http_graphql_query(c, s) {
+    c -> s HTTP METHOD "POST" URI "/graphql" HOST_HDR "gql.example.com" CONTENT_TYPE "application/json" BODY "{\"query\":\"{viewer{id}}\"}"
+    c <- s HTTP STATUS 200 REASON "OK" CONTENT_TYPE "application/json" BODY "{\"data\":{\"viewer\":{\"id\":\"u1\"}}}"
+}
+
+// INSTRUCTION: Execute the polymorphic GraphQL HTTP flow over IPv4 and IPv6.
+COMPILE {
+    http_graphql_query(ssr_v4, gql_v4)
+    http_graphql_query(ssr_v6, gql_v6)
+}

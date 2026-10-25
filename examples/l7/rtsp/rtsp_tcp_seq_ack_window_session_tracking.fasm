@@ -1,0 +1,25 @@
+// PROMPT: RTSP control exchange with explicit TCP sequence numbers, acknowledgment numbers, and receive windows.
+// TOKENS: HOST, IP, FLOW, RTSP, OPTIONS, URI, CSEQ, SEQ, ACKNUM, WINDOW, WAIT, STATUS, DESCRIBE, COMPILE
+
+// INSTRUCTION: Define media ingestion gateway client.
+HOST ingest_gw {
+    IP 10.78.5.20
+}
+
+// INSTRUCTION: Define broadcast RTSP origin server.
+HOST broadcast_srv {
+    IP 10.78.5.1
+}
+
+// INSTRUCTION: Define RTSP OPTIONS and DESCRIBE messages with explicit TCP SEQ, ACKNUM, and WINDOW fields.
+FLOW rtsp_tcp_tracked(c, s) {
+    c -> s RTSP OPTIONS URI "rtsp://10.78.5.1/feed1" CSEQ 1 SEQ 5000 ACKNUM 9000 WINDOW 64240 WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 1 SEQ 9000 ACKNUM 5065 WINDOW 65535 WAIT 3ms
+    c -> s RTSP DESCRIBE URI "rtsp://10.78.5.1/feed1" CSEQ 2 SEQ 5065 ACKNUM 9040 WINDOW 64240 WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 2 SEQ 9040 ACKNUM 5135 WINDOW 65535
+}
+
+// INSTRUCTION: Compile the TCP-tracked RTSP control flow.
+COMPILE {
+    rtsp_tcp_tracked(ingest_gw, broadcast_srv)
+}

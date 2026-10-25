@@ -1,0 +1,27 @@
+// PROMPT: DNP3 two-step Select-Before-Operate (SELECT then OPERATE) on Analog Output Block (Group 41 Variation 1).
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the AGC (Automatic Generation Control) dispatch master.
+HOST agc_master {
+    IP 10.125.60.1
+    MAC 00:1a:2b:7d:60:01
+}
+
+// INSTRUCTION: Define the battery energy storage system (BESS) plant controller outstation.
+HOST bess_rtu {
+    IP 10.125.60.60
+    MAC 00:1a:2b:7d:60:60
+}
+
+// INSTRUCTION: Execute SELECT followed by OPERATE on Group 41 Variation 1 to command MW output setpoint.
+FLOW dnp3_bess_sbo(m, b) {
+    m -> b DNP3 FUNC "SELECT" SRC 1 DST 60 GROUP 41 VARIATION 1 HEXPAYLOAD "0000c409000000"
+    m <- b DNP3 FUNC "RESPONSE" SRC 60 DST 1 GROUP 41 VARIATION 1 HEXPAYLOAD "0000c409000000" WAIT 2ms
+    m -> b DNP3 FUNC "OPERATE" SRC 1 DST 60 GROUP 41 VARIATION 1 HEXPAYLOAD "0000c409000000"
+    m <- b DNP3 FUNC "RESPONSE" SRC 60 DST 1 GROUP 41 VARIATION 1 HEXPAYLOAD "0000c409000000"
+}
+
+// INSTRUCTION: Compile the DNP3 Analog Output Select-Before-Operate flow.
+COMPILE {
+    dnp3_bess_sbo(agc_master, bess_rtu)
+}

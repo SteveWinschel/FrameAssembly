@@ -1,0 +1,26 @@
+// PROMPT: Model a hardware-timestamped one-step PTPv2 SYNC and DELAY_REQ/DELAY_RESP exchange without FOLLOW_UP frames.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, CLOCK_ID, WAIT, DELAY_REQ, DELAY_RESP, COMPILE
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
+HOST ptp_grandmaster {
+    IP 172.29.31.1
+    MAC 00:1b:21:31:90:01
+}
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
+HOST ptp_slave_clock {
+    IP 172.29.31.40
+    MAC 00:1b:21:31:90:25
+}
+
+// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
+FLOW ptp_scenario_flow(gm, slv) {
+    gm -> slv PTP SYNC DOMAIN 0 SEQ_ID 3301 CLOCK_ID "0002c9fffe310001" WAIT 2ms
+    gm <- slv PTP DELAY_REQ DOMAIN 0 SEQ_ID 3301 CLOCK_ID "0002c9fffe310028" WAIT 2ms
+    gm -> slv PTP DELAY_RESP DOMAIN 0 SEQ_ID 3301 CLOCK_ID "0002c9fffe310001"
+}
+
+// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
+COMPILE {
+    ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
+}

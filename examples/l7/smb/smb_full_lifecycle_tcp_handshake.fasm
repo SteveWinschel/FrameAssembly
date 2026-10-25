@@ -1,0 +1,28 @@
+// PROMPT: Complete TCP 3-way handshake on port 445 followed by SMB2 Negotiate, Session Setup, Tree Connect, and Logoff.
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, DSTPORT, ACK, WAIT, SMB, COMMAND, MSGID, STATUS, SESSION_ID, TREE_ID, SHARE, COMPILE
+
+// INSTRUCTION: Define desktop PC workstation.
+HOST pc_workstation { IP 192.168.1.105 MAC 00:15:5d:01:00:69 }
+
+// INSTRUCTION: Define corporate SMB file server.
+HOST corp_storage { IP 192.168.1.10 MAC 00:15:5d:01:00:0a }
+
+// INSTRUCTION: Define TCP handshake and full SMB2 session lifecycle flow.
+FLOW smb_full_lifecycle(c, s) {
+    c -> s TCP SYN DSTPORT 445
+    c <- s TCP SYN ACK
+    c -> s TCP ACK WAIT 1ms
+    c -> s SMB COMMAND "NEGOTIATE" MSGID 0 WAIT 2ms
+    c <- s SMB COMMAND "NEGOTIATE" STATUS 0 MSGID 0 WAIT 2ms
+    c -> s SMB COMMAND "SESSION_SETUP" SESSION_ID 0x1000 MSGID 1 WAIT 2ms
+    c <- s SMB COMMAND "SESSION_SETUP" STATUS 0 SESSION_ID 0x1000 MSGID 1 WAIT 2ms
+    c -> s SMB COMMAND "TREE_CONNECT" TREE_ID 1 SESSION_ID 0x1000 MSGID 2 SHARE "\corp_storage\documents" WAIT 2ms
+    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 1 SESSION_ID 0x1000 MSGID 2 WAIT 5ms
+    c -> s SMB COMMAND "LOGOFF" SESSION_ID 0x1000 MSGID 3 WAIT 2ms
+    c <- s SMB COMMAND "LOGOFF" STATUS 0 SESSION_ID 0x1000 MSGID 3
+}
+
+// INSTRUCTION: Compile full TCP handshake and SMB2 session flow.
+COMPILE {
+    smb_full_lifecycle(pc_workstation, corp_storage)
+}

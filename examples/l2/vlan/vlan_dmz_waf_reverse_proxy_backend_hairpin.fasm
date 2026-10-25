@@ -1,0 +1,25 @@
+// PROMPT: Web Application Firewall receiving external traffic on DMZ VLAN 110 and forwarding inspected HTTP requests on internal App VLAN 210.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, TCP, PSH, ACK, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define WAF reverse proxy appliance bridging DMZ VLAN 110 and App VLAN 210.
+HOST waf_proxy_node {
+    IP 10.210.0.5
+    MAC 00:16:3e:d2:00:05
+}
+
+// INSTRUCTION: Define internal microservice backend server on App VLAN 210.
+HOST app_backend_srv {
+    IP 10.210.0.50
+    MAC 00:16:3e:d2:00:32
+}
+
+// INSTRUCTION: Forward sanitized request on VLAN 110 and receive backend response on VLAN 210 over trunk link.
+FLOW vlan_waf_backend_hairpin(waf, app) {
+    waf -> app VLAN 110 PCP 3 DEI 0 TCP PSH ACK SRCPORT 41200 DSTPORT 8080 SEQ 100 ACKNUM 1 WIN 32768 PAYLOAD "GET /healthz HTTP/1.1" WAIT 5ms
+    waf <- app VLAN 210 PCP 3 DEI 0 TCP PSH ACK SRCPORT 8080 DSTPORT 41200 SEQ 1 ACKNUM 121 WIN 32768 PAYLOAD "HTTP/1.1 200 OK"
+}
+
+// INSTRUCTION: Compile the DMZ VLAN 110 to App VLAN 210 WAF hairpin trace.
+COMPILE {
+    vlan_waf_backend_hairpin(waf_proxy_node, app_backend_srv)
+}

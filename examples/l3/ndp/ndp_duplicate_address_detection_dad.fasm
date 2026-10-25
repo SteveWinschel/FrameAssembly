@@ -1,0 +1,25 @@
+// PROMPT: Simulate IPv6 Duplicate Address Detection (DAD) where a tentative address collision is defended via Neighbor Advertisement
+// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_SOLICIT, TARGET, DSTMAC, TTL, WAIT, NEIGHBOR_ADVERT, TLLA, COMPILE
+
+// INSTRUCTION: Define the newly joining host using the unspecified IPv6 address during DAD
+HOST tentative_host {
+    IP ::
+    MAC 00:1b:21:d0:01:99
+}
+
+// INSTRUCTION: Define the existing host that already owns the target IPv6 address
+HOST existing_owner {
+    IP 2001:db8:10::50
+    MAC 00:1b:21:d0:01:50
+}
+
+// INSTRUCTION: Probe for address uniqueness with NS and defend the address with a multicast NA
+FLOW ndp_dad_collision_defense(new_node, owner) {
+    new_node -> owner NDP NEIGHBOR_SOLICIT TARGET 2001:db8:10::50 DSTMAC 33:33:ff:00:00:50 TTL 255 WAIT 10ms
+    owner -> new_node NDP NEIGHBOR_ADVERT TARGET 2001:db8:10::50 TLLA 00:1b:21:d0:01:50 DSTMAC 33:33:00:00:00:01 TTL 255
+}
+
+// INSTRUCTION: Compile the NDP Duplicate Address Detection collision trace
+COMPILE {
+    ndp_dad_collision_defense(tentative_host, existing_owner)
+}

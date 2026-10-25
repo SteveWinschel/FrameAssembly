@@ -1,0 +1,27 @@
+// PROMPT: Generate an HTTP API rate-limiting rejection returning 429 Too Many Requests and a Retry-After header.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP, METHOD, URI, HOST_HDR, CONTENT_TYPE, BODY, WAIT, STATUS, REASON, HEADER, COMPILE
+
+// INSTRUCTION: Define the automated API scraper exceeding its token-bucket quota.
+HOST api_consumer {
+    IP 172.22.80.91
+    MAC 00:25:90:16:50:5b
+}
+
+// INSTRUCTION: Define the API gateway enforcing per-client request rate limits.
+HOST kong_api_gw {
+    IP 172.22.80.10
+    MAC 00:25:90:16:50:0a
+}
+
+// INSTRUCTION: Send an API request and receive 429 Too Many Requests with Retry-After and X-RateLimit headers.
+FLOW http_rate_limit_429(client, gw) {
+    client -> gw HTTP METHOD "POST" URI "/v2/orders/quote" HOST_HDR "api.trading.local"
+        CONTENT_TYPE "application/json" BODY "{'symbol':'BTC-USD','qty':5}" WAIT 2ms
+    client <- gw HTTP STATUS 429 REASON "Too Many Requests" CONTENT_TYPE "application/json"
+        HEADER "Retry-After" "30" HEADER "X-RateLimit-Remaining" "0" BODY "{'error':'rate_limit_exceeded','retry_after_sec':30}"
+}
+
+// INSTRUCTION: Compile the HTTP 429 Too Many Requests API rate-limit scenario.
+COMPILE {
+    http_rate_limit_429(api_consumer, kong_api_gw)
+}

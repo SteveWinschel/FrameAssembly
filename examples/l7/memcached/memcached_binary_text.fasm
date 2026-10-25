@@ -1,5 +1,5 @@
 // PROMPT: Memcached distributed memory caching protocol interaction on TCP 11211.
-// TOKENS: HOST, IP, FLOW, ->, MEMCACHED, CMD, COMPILE
+// TOKENS: HOST, IP, FLOW, MEMCACHED, CMD, COMPILE
 
 // INSTRUCTION: Define web application worker.
 HOST cache_client { IP 172.16.50.1 }

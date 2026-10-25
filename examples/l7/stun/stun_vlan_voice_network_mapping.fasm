@@ -1,0 +1,22 @@
+// PROMPT: Dedicated voice VLAN 200 STUN binding transaction with DSCP EF priority.
+// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, VLAN, PCP, DEI, DSCP, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define voice VLAN IP phone.
+HOST voice_phone { IP 10.200.10.15 }
+
+// INSTRUCTION: Define cloud voice gateway.
+HOST cloud_voice_gw { IP 198.51.100.60 }
+
+// INSTRUCTION: Define voice prioritized STUN transaction flow.
+FLOW stun_voice_vlan_flow(c, s) {
+    c -> s STUN BINDING_REQUEST
+        VLAN 200 PCP 5 DEI 0 DSCP 46
+    c <- s STUN BINDING_RESPONSE
+        XOR_MAPPED_ADDR 198.51.100.110
+        VLAN 200 PCP 5 DEI 0 DSCP 46
+}
+
+// INSTRUCTION: Compile block executing prioritized voice STUN.
+COMPILE {
+    stun_voice_vlan_flow(voice_phone, cloud_voice_gw)
+}

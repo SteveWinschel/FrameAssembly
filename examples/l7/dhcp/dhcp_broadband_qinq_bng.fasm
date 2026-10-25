@@ -1,0 +1,19 @@
+// PROMPT: Broadband subscriber DHCPv4 acquisition over IEEE 802.1ad QinQ S-VLAN 1200 and C-VLAN 25.
+// TOKENS: HOST, IP, FLOW, DHCP, DISCOVER, CHADDR, QINQ, INNER_VLAN, OFFER, YIADDR, ROUTER, DNS_SERVER, SUBNET_MASK, LEASE_TIME, COMPILE
+
+// INSTRUCTION: Define residential CPE router.
+HOST cpe_router { IP 0.0.0.0 }
+
+// INSTRUCTION: Define BNG broadband network gateway DHCP server.
+HOST bng_server { IP 100.64.0.1 }
+
+// INSTRUCTION: Exchange QinQ double-tagged DHCP Discover and Offer frames.
+FLOW dhcp_bng_qinq(cpe, bng) {
+    cpe -> bng DHCP DISCOVER CHADDR 3c:fd:fe:90:12:34 QINQ 1200 INNER_VLAN 25
+    cpe <- bng DHCP OFFER CHADDR 3c:fd:fe:90:12:34 YIADDR 100.64.25.10 ROUTER 100.64.0.1 DNS_SERVER 8.8.4.4 SUBNET_MASK 255.255.0.0 LEASE_TIME 3600 QINQ 1200 INNER_VLAN 25
+}
+
+// INSTRUCTION: Compile the broadband QinQ DHCP flow.
+COMPILE {
+    dhcp_bng_qinq(cpe_router, bng_server)
+}

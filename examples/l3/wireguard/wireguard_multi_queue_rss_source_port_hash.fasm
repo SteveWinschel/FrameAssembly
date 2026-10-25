@@ -1,0 +1,26 @@
+// PROMPT: High-speed 100GbE WireGuard router varying outer UDP source ports across flows for NIC Receive Side Scaling (RSS).
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define 100GbE WireGuard router distributing encrypted flows across NIC RSS queues.
+HOST wg_100g_tx_rtr {
+    IP 10.100.51.1
+    MAC 00:1c:73:64:33:01
+}
+
+// INSTRUCTION: Define 100GbE peer WireGuard router processing multi-core decrypted queues.
+HOST wg_100g_rx_rtr {
+    IP 10.100.51.2
+    MAC 00:1c:73:64:33:02
+}
+
+// INSTRUCTION: Define parallel WireGuard DATA frames with varied SRCPORTs (51821..51823) and sequential counters.
+FLOW wg_multi_queue_rss_flow(tx, rx) {
+    tx -> rx WIREGUARD TYPE DATA RECEIVER 100001 COUNTER 1 SRCPORT 51821 DSTPORT 51820 DF DSCP 34 TTL 64 PAYLOAD "RSS_QUEUE_0_STREAM" WAIT 1ms
+    tx -> rx WIREGUARD TYPE DATA RECEIVER 100001 COUNTER 2 SRCPORT 51822 DSTPORT 51820 DF DSCP 34 TTL 64 PAYLOAD "RSS_QUEUE_1_STREAM" WAIT 1ms
+    tx -> rx WIREGUARD TYPE DATA RECEIVER 100001 COUNTER 3 SRCPORT 51823 DSTPORT 51820 DF DSCP 34 TTL 64 PAYLOAD "RSS_QUEUE_2_STREAM"
+}
+
+// INSTRUCTION: Compile the multi-queue RSS WireGuard source-port hashing flow.
+COMPILE {
+    wg_multi_queue_rss_flow(wg_100g_tx_rtr, wg_100g_rx_rtr)
+}

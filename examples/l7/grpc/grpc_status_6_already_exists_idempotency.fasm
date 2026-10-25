@@ -1,0 +1,27 @@
+// PROMPT: gRPC ledger service enforcing idempotency keys by returning GRPC_STATUS 6 (ALREADY_EXISTS) on duplicate create.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, PAYLOAD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define payment retry worker submitting duplicate transaction creation.
+HOST retry_worker {
+    IP 10.100.40.12
+    MAC 02:42:0a:64:28:0c
+}
+
+// INSTRUCTION: Define immutable financial ledger gRPC service.
+HOST ledger_service {
+    IP 10.100.40.1
+    MAC 02:42:0a:64:28:01
+}
+
+// INSTRUCTION: First RecordEntry succeeds with GRPC_STATUS 0; duplicate retry returns GRPC_STATUS 6.
+FLOW grpc_err_already_exists(w, l) {
+    w -> l GRPC SERVICE "ledger.v1.JournalService" METHOD "RecordEntry" PAYLOAD "tx_id=9901"
+    w <- l GRPC SERVICE "ledger.v1.JournalService" METHOD "RecordEntry" GRPC_STATUS 0
+    w -> l GRPC SERVICE "ledger.v1.JournalService" METHOD "RecordEntry" PAYLOAD "tx_id=9901"
+    w <- l GRPC SERVICE "ledger.v1.JournalService" METHOD "RecordEntry" GRPC_STATUS 6
+}
+
+// INSTRUCTION: Compile the gRPC status 6 ALREADY_EXISTS idempotency check scenario.
+COMPILE {
+    grpc_err_already_exists(retry_worker, ledger_service)
+}

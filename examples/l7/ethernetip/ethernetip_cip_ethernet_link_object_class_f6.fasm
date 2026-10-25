@@ -1,0 +1,27 @@
+// PROMPT: EtherNet/IP CIP Ethernet Link Object (Class 0xF6 = 246) reading link speed (Attr 1) and interface counters (Attr 4).
+// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, STATUS, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the industrial network NMS poller.
+HOST ind_nms {
+    IP 10.135.40.5
+    MAC 00:1a:2b:87:40:05
+}
+
+// INSTRUCTION: Define the CompactLogix 5380 dual-IP controller.
+HOST compactlogix {
+    IP 10.135.40.1
+    MAC 00:1a:2b:87:40:01
+}
+
+// INSTRUCTION: Query CIP Class 246 (Ethernet Link Object) Instance 1 Attributes 1 (Interface Speed) and 4 (Interface Counters).
+FLOW enip_eth_link_obj(n, c) {
+    n -> c ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 3000 CONTEXT 801 CIP_SERVICE 14 CIP_CLASS 246 CIP_INSTANCE 1 CIP_ATTR 1
+    n <- c ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 3000 CONTEXT 801 CIP_SERVICE 142 CIP_CLASS 246 CIP_INSTANCE 1 CIP_ATTR 1 HEXPAYLOAD "e8030000" WAIT 1ms
+    n -> c ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 3000 CONTEXT 802 CIP_SERVICE 14 CIP_CLASS 246 CIP_INSTANCE 1 CIP_ATTR 4
+    n <- c ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 3000 CONTEXT 802 CIP_SERVICE 142 CIP_CLASS 246 CIP_INSTANCE 1 CIP_ATTR 4
+}
+
+// INSTRUCTION: Compile the CIP Ethernet Link Object diagnostic flow.
+COMPILE {
+    enip_eth_link_obj(ind_nms, compactlogix)
+}

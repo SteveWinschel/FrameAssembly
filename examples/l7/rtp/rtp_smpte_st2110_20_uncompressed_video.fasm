@@ -1,0 +1,27 @@
+// PROMPT: SMPTE ST 2110-20 uncompressed studio video over RTP with VLAN 110 PCP 6 priority tagging.
+// TOKENS: HOST, IP, MAC, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, VLAN, PCP, DSCP, HEXPAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define studio camera control unit (CCU) ST 2110 sender.
+HOST studio_ccu {
+    IP 10.211.20.10
+    MAC 00:1c:73:21:10:0a
+}
+
+// INSTRUCTION: Define broadcast vision mixer ST 2110 receiver.
+HOST vision_mixer {
+    IP 10.211.20.100
+    MAC 00:1c:73:21:10:64
+}
+
+// INSTRUCTION: Define SMPTE ST 2110-20 scanline RTP packet with end-of-frame marker.
+FLOW rtp_st2110_video(src, dst) {
+    src -> dst RTP PT 96 SEQ 7000 TIMESTAMP 360000 SSRC 0x21102001 MARKER 0 VLAN 110 PCP 6 DSCP 34 HEXPAYLOAD "0000050000000000" WAIT 1ms
+    src -> dst RTP PT 96 SEQ 7001 TIMESTAMP 360000 SSRC 0x21102001 MARKER 1 VLAN 110 PCP 6 DSCP 34 HEXPAYLOAD "0000050004370000"
+}
+
+// INSTRUCTION: Compile 3 frames of SMPTE ST 2110-20 uncompressed video RTP.
+COMPILE {
+    LOOP 3 {
+        rtp_st2110_video(studio_ccu, vision_mixer)
+    }
+}

@@ -1,0 +1,27 @@
+// PROMPT: 4-member 400G Quad-Link LAG bundle synchronizing ports 1 through 4 under shared Actor Key 500.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define core router A 4x100G LAG member bundle.
+HOST core_lag_west {
+    IP 10.220.0.1
+    MAC 00:05:85:dc:00:01
+}
+
+// INSTRUCTION: Define core router B 4x100G LAG member bundle.
+HOST core_lag_east {
+    IP 10.220.0.2
+    MAC 00:05:85:dc:00:02
+}
+
+// INSTRUCTION: Define 4-member LACP bundle synchronization across ACTOR_PORT 1, 2, 3, and 4.
+FLOW quad_member_lag_sync(west, east) {
+    west -> east LACP ACTOR_SYS 00:05:85:dc:00:01 ACTOR_KEY 500 ACTOR_PORT 1 ACTOR_STATE 61 PARTNER_SYS 00:05:85:dc:00:02 PARTNER_KEY 500 PARTNER_PORT 1 PARTNER_STATE 61
+    west -> east LACP ACTOR_SYS 00:05:85:dc:00:01 ACTOR_KEY 500 ACTOR_PORT 2 ACTOR_STATE 61 PARTNER_SYS 00:05:85:dc:00:02 PARTNER_KEY 500 PARTNER_PORT 2 PARTNER_STATE 61 WAIT 1ms
+    west -> east LACP ACTOR_SYS 00:05:85:dc:00:01 ACTOR_KEY 500 ACTOR_PORT 3 ACTOR_STATE 61 PARTNER_SYS 00:05:85:dc:00:02 PARTNER_KEY 500 PARTNER_PORT 3 PARTNER_STATE 61 WAIT 1ms
+    west -> east LACP ACTOR_SYS 00:05:85:dc:00:01 ACTOR_KEY 500 ACTOR_PORT 4 ACTOR_STATE 61 PARTNER_SYS 00:05:85:dc:00:02 PARTNER_KEY 500 PARTNER_PORT 4 PARTNER_STATE 61 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing 4-port LAG member synchronization.
+COMPILE {
+    quad_member_lag_sync(core_lag_west, core_lag_east)
+}

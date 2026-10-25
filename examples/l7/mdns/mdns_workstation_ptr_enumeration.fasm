@@ -1,0 +1,18 @@
+// PROMPT: mDNS PTR record query enumerating local workstation hostnames on 224.0.0.251:5353.
+// TOKENS: HOST, IP, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, COMPILE
+
+// INSTRUCTION: Define network auditing probe.
+HOST audit_probe { IP 10.0.8.55 }
+
+// INSTRUCTION: Define local link multicast endpoint.
+HOST link_multicast { IP 224.0.0.251 }
+
+// INSTRUCTION: Define workstation enumeration flow.
+FLOW workstation_enum_flow(prb, grp) {
+    prb -> grp MDNS QUERY TXID 2002 QNAME "_workstation._tcp.local" QTYPE "PTR"
+}
+
+// INSTRUCTION: Compile workstation enumeration scenario.
+COMPILE {
+    workstation_enum_flow(audit_probe, link_multicast)
+}

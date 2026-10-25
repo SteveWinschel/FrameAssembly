@@ -1,0 +1,27 @@
+// PROMPT: DNP3 WRITE to Analog Input Deadband (Group 34 Variation 2) adjusting feeder current reporting threshold.
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, WAIT, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define the distribution management system (DMS) master.
+HOST dms_master {
+    IP 10.125.20.1
+    MAC 00:1a:2b:7d:20:01
+}
+
+// INSTRUCTION: Define the pole-top recloser controller outstation.
+HOST recloser_rtu {
+    IP 10.125.20.14
+    MAC 00:1a:2b:7d:20:14
+}
+
+// INSTRUCTION: Read current Analog Input Deadbands (Group 34 Var 2) and write updated deadband value.
+FLOW dnp3_deadband_write(m, r) {
+    m -> r DNP3 FUNC "READ" SRC 1 DST 14 GROUP 34 VARIATION 2
+    m <- r DNP3 FUNC "RESPONSE" SRC 14 DST 1 GROUP 34 VARIATION 2 WAIT 2ms
+    m -> r DNP3 FUNC "WRITE" SRC 1 DST 14 GROUP 34 VARIATION 2 HEXPAYLOAD "0005000f00"
+    m <- r DNP3 FUNC "RESPONSE" SRC 14 DST 1 GROUP 34 VARIATION 2
+}
+
+// INSTRUCTION: Compile the DNP3 Analog Input Deadband configuration flow.
+COMPILE {
+    dnp3_deadband_write(dms_master, recloser_rtu)
+}

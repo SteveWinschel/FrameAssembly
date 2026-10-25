@@ -1,0 +1,19 @@
+// PROMPT: 802.1Q tagged Neighbor Solicitation and Advertisement on enterprise access VLAN 100.
+// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_SOLICIT, TARGET, SLLA, VLAN, NEIGHBOR_ADVERT, TLLA, COMPILE
+
+// INSTRUCTION: Define enterprise accounting workstation on VLAN 100.
+HOST acct_workstation { IP fe80::ac:10 MAC 00:25:90:11:22:33 }
+
+// INSTRUCTION: Define local department server on VLAN 100.
+HOST acct_fileserver { IP fe80::ac:20 MAC 00:25:90:44:55:66 }
+
+// INSTRUCTION: Define 802.1Q tagged NDP resolution flow.
+FLOW vlan_ndp_resolution(ws, srv) {
+    ws -> srv NDP NEIGHBOR_SOLICIT TARGET 2001:db8:100::20 SLLA 00:25:90:11:22:33 VLAN 100
+    ws <- srv NDP NEIGHBOR_ADVERT TARGET 2001:db8:100::20 TLLA 00:25:90:44:55:66 VLAN 100
+}
+
+// INSTRUCTION: Compile block executing VLAN tagged NDP exchange.
+COMPILE {
+    vlan_ndp_resolution(acct_workstation, acct_fileserver)
+}

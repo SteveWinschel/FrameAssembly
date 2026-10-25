@@ -1,0 +1,24 @@
+// PROMPT: SNMPv2c RFC 2787 VRRP-MIB vrrpTrapNewMaster notification alerting that the standby router assumed VIP ownership.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP2, TRAP, COMMUNITY, REQID, SYSUPTIME, OID, VARBIND, IPVAL, COMPILE
+
+// INSTRUCTION: Define the newly promoted VRRP master router agent.
+HOST vrrp_router_b {
+    IP 10.146.40.3
+    MAC 00:1a:2b:92:40:03
+}
+
+// INSTRUCTION: Define the datacenter NOC trap receiver.
+HOST dc_trap_sink {
+    IP 10.146.40.100
+    MAC 00:1a:2b:92:40:64
+}
+
+// INSTRUCTION: Send vrrpTrapNewMaster (1.3.6.1.2.1.68.0.1) carrying vrrpOperMasterIpAddr varbind.
+FLOW snmpv2c_vrrp_trap(r, s) {
+    r -> s SNMP2 TRAP COMMUNITY "ha_alerts" REQID 4600 SYSUPTIME 884120 OID 1.3.6.1.2.1.68.0.1 VARBIND 1.3.6.1.2.1.68.1.3.1.7.1.10 IPVAL 10.146.40.3
+}
+
+// INSTRUCTION: Compile the SNMPv2c VRRP new master trap flow.
+COMPILE {
+    snmpv2c_vrrp_trap(vrrp_router_b, dc_trap_sink)
+}

@@ -1,0 +1,26 @@
+// PROMPT: SD-WAN edge appliance load-balancing two active-active IPsec ESP Security Associations (SPI 50101 and SPI 50102).
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, DSCP, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define SD-WAN branch appliance with dual per-flow IPsec ESP SAs.
+HOST sdwan_branch_edge {
+    IP 198.18.50.10
+    MAC 00:1c:73:50:10:01
+}
+
+// INSTRUCTION: Define SD-WAN regional hub terminating parallel ESP SAs.
+HOST sdwan_regional_hub {
+    IP 198.18.50.1
+    MAC 00:1c:73:50:01:01
+}
+
+// INSTRUCTION: Define interleaved packets across SPI 50101 (Voice EF) and SPI 50102 (Bulk AF11).
+FLOW esp_sdwan_dual_sa_flow(branch, hub) {
+    branch -> hub ESP SPI 50101 SEQ 1 IV "0001000100010001" ICV "111111112222222233333333" NEXT_HEADER 4 DSCP 46 DF TTL 64 PAYLOAD "SDWAN_SA1_REALTIME_VOICE" WAIT 2ms
+    branch -> hub ESP SPI 50102 SEQ 1 IV "0002000200020002" ICV "444444445555555566666666" NEXT_HEADER 4 DSCP 10 DF TTL 64 PAYLOAD "SDWAN_SA2_BULK_BACKUP" WAIT 2ms
+    branch <- hub ESP SPI 50103 SEQ 1 IV "0003000300030003" ICV "777777778888888899999999" NEXT_HEADER 4 DSCP 46 DF TTL 64 PAYLOAD "SDWAN_HUB_VOICE_RETURN"
+}
+
+// INSTRUCTION: Compile the SD-WAN active-active dual-SPI ESP flow.
+COMPILE {
+    esp_sdwan_dual_sa_flow(sdwan_branch_edge, sdwan_regional_hub)
+}

@@ -1,0 +1,26 @@
+// PROMPT: CoAP Confirmable request retransmission with identical MSGID and TOKEN after a simulated loss timeout.
+// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, PAYLOAD, WAIT, ACK, COMPILE
+
+// INSTRUCTION: Define the solar inverter telemetry client.
+HOST solar_inverter {
+    IP 10.110.50.25
+    MAC 00:1a:2b:6e:50:25
+}
+
+// INSTRUCTION: Define the microgrid CoAP collector.
+HOST microgrid_collector {
+    IP 10.110.50.1
+    MAC 00:1a:2b:6e:50:01
+}
+
+// INSTRUCTION: Transmit initial CON POST, wait 20ms for ACK_TIMEOUT, retransmit identical MSGID 6200, and receive ACK.
+FLOW coap_retransmit(c, s) {
+    c -> s COAP CON CODE "0.02" MSGID 6200 TOKEN 812 URI_PATH "grid/kw" CONTENT_FORMAT 50 PAYLOAD "{'kw':4.82}" WAIT 20ms
+    c -> s COAP CON CODE "0.02" MSGID 6200 TOKEN 812 URI_PATH "grid/kw" CONTENT_FORMAT 50 PAYLOAD "{'kw':4.82}"
+    c <- s COAP ACK CODE "2.04" MSGID 6200 TOKEN 812
+}
+
+// INSTRUCTION: Compile the CoAP CON retransmission flow.
+COMPILE {
+    coap_retransmit(solar_inverter, microgrid_collector)
+}

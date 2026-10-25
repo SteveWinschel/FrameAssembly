@@ -1,0 +1,21 @@
+// PROMPT: IPsec ESP packet sequence advancing anti-replay verification window.
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, WAIT, COMPILE
+
+// INSTRUCTION: Define finance transaction server gateway.
+HOST fin_tx_gw { IP 10.160.12.1 }
+
+// INSTRUCTION: Define settlement clearinghouse endpoint.
+HOST clearing_hub { IP 10.160.12.254 }
+
+// INSTRUCTION: Define sequenced IPsec transmission testing anti-replay window state.
+FLOW ipsec_seq_advancement(src, dst) {
+    src -> dst IPSEC SPI 91000 SEQ 1000 WAIT 1ms
+    src -> dst IPSEC SPI 91000 SEQ 1001 WAIT 1ms
+    src -> dst IPSEC SPI 91000 SEQ 1002 WAIT 1ms
+    src -> dst IPSEC SPI 91000 SEQ 1003
+}
+
+// INSTRUCTION: Compile block executing sequence advancement.
+COMPILE {
+    ipsec_seq_advancement(fin_tx_gw, clearing_hub)
+}

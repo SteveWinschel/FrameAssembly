@@ -1,0 +1,29 @@
+// PROMPT: MySQL financial settlement session setting TRANSACTION ISOLATION LEVEL SERIALIZABLE and time_zone.
+// TOKENS: HOST, IP, MAC, FLOW, MYSQL, SQL, OK, WAIT, COMPILE
+
+// INSTRUCTION: Define the clearinghouse settlement worker.
+HOST clearing_worker {
+    IP 10.90.100.19
+    MAC 00:1a:2b:90:a0:19
+}
+
+// INSTRUCTION: Define the core banking MySQL server.
+HOST bank_mysql {
+    IP 10.90.100.1
+    MAC 00:1a:2b:90:a0:01
+}
+
+// INSTRUCTION: Configure UTC session timezone and SERIALIZABLE isolation level before beginning a transaction.
+FLOW mysql_serializable_init(c, s) {
+    c -> s MYSQL SQL "SET SESSION time_zone = '+00:00'"
+    c <- s MYSQL OK WAIT 1ms
+    c -> s MYSQL SQL "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE"
+    c <- s MYSQL OK WAIT 1ms
+    c -> s MYSQL SQL "START TRANSACTION READ WRITE"
+    c <- s MYSQL OK
+}
+
+// INSTRUCTION: Compile the MySQL session isolation level configuration flow.
+COMPILE {
+    mysql_serializable_init(clearing_worker, bank_mysql)
+}

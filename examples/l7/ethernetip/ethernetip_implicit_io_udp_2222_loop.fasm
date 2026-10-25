@@ -1,0 +1,21 @@
+// PROMPT: High-speed cyclic EtherNet/IP implicit I/O polling loop on UDP port 2222 with VLAN priority.
+// TOKENS: HOST, IP, FLOW, ETHERNETIP, TRANSPORT, UDP, CMD, SESSION_HANDLE, SRCPORT, DSTPORT, VLAN, PCP, DSCP, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define motion control PLC scanner.
+HOST motion_plc { IP 192.168.22.1 }
+
+// INSTRUCTION: Define Kinetix servo drive adapter.
+HOST servo_drive { IP 192.168.22.10 }
+
+// INSTRUCTION: Exchange cyclic UDP I/O frames on port 2222 over VLAN 22 with PCP 6 and 5ms cycle time.
+FLOW enip_implicit_io_cycle(plc, drv) {
+    plc -> drv ETHERNETIP TRANSPORT UDP CMD "SendUnitData" SESSION_HANDLE 1 SRCPORT 2222 DSTPORT 2222 VLAN 22 PCP 6 DSCP 46 WAIT 5ms
+    plc <- drv ETHERNETIP TRANSPORT UDP CMD "SendUnitData" SESSION_HANDLE 1 SRCPORT 2222 DSTPORT 2222 VLAN 22 PCP 6 DSCP 46 WAIT 5ms
+}
+
+// INSTRUCTION: Execute 4 cyclic implicit I/O exchanges.
+COMPILE {
+    LOOP 4 {
+        enip_implicit_io_cycle(motion_plc, servo_drive)
+    }
+}

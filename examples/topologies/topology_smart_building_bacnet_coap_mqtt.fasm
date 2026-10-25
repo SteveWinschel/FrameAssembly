@@ -1,0 +1,30 @@
+// PROMPT: Smart Building Automation System (BAS) integrating BACnet/IP HVAC controllers, CoAP wireless environmental sensors, and MQTT cloud broker.
+// TOKENS: HOST, IP, FLOW, VLAN, BACNET, WHO_IS, I_AM, OBJECT_TYPE, OBJECT_INSTANCE, WAIT, READ_PROPERTY, COAP, CON, GET, URI_PATH, ACK, PAYLOAD, MQTT, CONNECT, PUBLISH, TOPIC, COMPILE
+
+// INSTRUCTION: Define building management system (BMS) edge controller.
+HOST bms_edge_ctrl { IP 10.85.10.1 }
+
+// INSTRUCTION: Define rooftop HVAC chiller BACnet/IP unit.
+HOST bacnet_chiller { IP 10.85.10.50 }
+
+// INSTRUCTION: Define CoAP smart thermostat sensor node.
+HOST coap_thermostat { IP 10.85.10.80 }
+
+// INSTRUCTION: Define facility IoT MQTT broker aggregating building telemetry.
+HOST facility_mqtt_broker { IP 10.85.10.200 }
+
+// INSTRUCTION: Define BACnet discovery/read, CoAP sensor GET, and MQTT cloud telemetry publish.
+FLOW smart_building_bas_flow(bms, hvac, sensor, mqtt) {
+    bms -> hvac VLAN 85 BACNET WHO_IS
+    bms <- hvac VLAN 85 BACNET I_AM OBJECT_TYPE 8 OBJECT_INSTANCE 5001 WAIT 2ms
+    bms -> hvac VLAN 85 BACNET READ_PROPERTY OBJECT_TYPE 0 OBJECT_INSTANCE 1 WAIT 2ms
+    bms -> sensor VLAN 85 COAP CON GET URI_PATH "temp/zone4" WAIT 2ms
+    bms <- sensor VLAN 85 COAP ACK PAYLOAD "21.8C" WAIT 2ms
+    bms -> mqtt VLAN 85 MQTT CONNECT WAIT 2ms
+    bms -> mqtt VLAN 85 MQTT PUBLISH TOPIC "building/hq/zone4/hvac" PAYLOAD "{\"chiller\":5001,\"temp_c\":21.8}" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing Smart Building BACnet, CoAP, and MQTT topology.
+COMPILE {
+    smart_building_bas_flow(bms_edge_ctrl, bacnet_chiller, coap_thermostat, facility_mqtt_broker)
+}

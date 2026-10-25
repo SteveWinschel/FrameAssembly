@@ -1,0 +1,18 @@
+// PROMPT: Enterprise videoconferencing terminal joining site-local multicast conference group.
+// TOKENS: HOST, IP, FLOW, MLD, REPORT, MULTICAST_ADDR, COMPILE
+
+// INSTRUCTION: Define conference room codec terminal.
+HOST conf_room_codec { IP fe80::a1b:2c3d:4e5f:6001 }
+
+// INSTRUCTION: Define IPv6 all-routers gateway destination.
+HOST all_rtrs_gw { IP ff02::2 }
+
+// INSTRUCTION: Define MLD report subscribing to conference stream ff02::1:3.
+FLOW conf_join_flow(codec, gw) {
+    codec -> gw MLD REPORT MULTICAST_ADDR ff02::1:3
+}
+
+// INSTRUCTION: Compile block executing video conference join.
+COMPILE {
+    conf_join_flow(conf_room_codec, all_rtrs_gw)
+}

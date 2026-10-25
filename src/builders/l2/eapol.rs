@@ -1,4 +1,13 @@
-//! EAPOL Layer 2 protocol wire builder.
+//! IEEE 802.1X Port-Based Network Access Control (EAPOL) and RFC 3748 EAP wire frame builder.
+//!
+//! Synthesizes IEEE 802.1X EAPOL frames over Ethernet II (`EtherType = 0x888E`) addressed by
+//! default to the IEEE 802.1X PAE group multicast MAC `01:80:C2:00:00:03`. Constructs the
+//! 4-byte EAPOL header (`Protocol Version`, `Packet Type`, 16-bit big-endian `Body Length`)
+//! and, for `EAP-Packet` (`Type = 0`), serializes the nested RFC 3748 EAP header (`Code`,
+//! `Identifier`, 16-bit `Length`, `Type/Method`, and optional identity or method data).
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b EAPOL [VERSION <u8>] [TYPE <EAP_PACKET|START|LOGOFF|KEY>] [EAP_CODE <u8>] [EAP_ID <u8>] [EAP_METHOD <u8>] [IDENTITY "<str>"]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -23,21 +32,27 @@ pub fn build_eapol_frame(
         EapolType::Logoff => (2_u8, Vec::new()),
         EapolType::Key => (3_u8, payload.to_vec()),
         EapolType::EapPacket => {
-            let code = spec.eap_code.unwrap_or(1); // 1 = Request, 2 = Response
+            let code = spec.eap_code.unwrap_or(1); // 1 = Request, 2 = Response, 3 = Success, 4 = Failure
             let id = spec.eap_id.unwrap_or(1);
-            let method = spec.eap_method.unwrap_or(1); // 1 = Identity
 
-            let identity_bytes = spec.identity.map(|s| s.as_bytes()).unwrap_or(&[]);
-            let eap_len = 5 + identity_bytes.len() + payload.len();
+            if (code == 3 || code == 4) && payload.is_empty() {
+                // RFC 3748 §4.2: EAP Success (3) and Failure (4) are strictly 4 octets with no Type field
+                let eap = alloc::vec![code, id, 0x00, 0x04];
+                (0_u8, eap)
+            } else {
+                let method = spec.eap_method.unwrap_or(1); // 1 = Identity
+                let identity_bytes = spec.identity.map(|s| s.as_bytes()).unwrap_or(&[]);
+                let eap_len = 5 + identity_bytes.len() + payload.len();
 
-            let mut eap = Vec::with_capacity(eap_len);
-            eap.push(code);
-            eap.push(id);
-            eap.extend_from_slice(&(eap_len as u16).to_be_bytes());
-            eap.push(method);
-            eap.extend_from_slice(identity_bytes);
-            eap.extend_from_slice(payload);
-            (0_u8, eap)
+                let mut eap = Vec::with_capacity(eap_len);
+                eap.push(code);
+                eap.push(id);
+                eap.extend_from_slice(&(eap_len as u16).to_be_bytes());
+                eap.push(method);
+                eap.extend_from_slice(identity_bytes);
+                eap.extend_from_slice(payload);
+                (0_u8, eap)
+            }
         }
     };
 

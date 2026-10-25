@@ -1,0 +1,20 @@
+// PROMPT: Internet Exchange Point (IXP) route server BGP peering over an 802.1Q VLAN fabric.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, VLAN, PCP, UPDATE, PREFIX, NEXTHOP, COMPILE
+
+// INSTRUCTION: Define IXP route server in peering LAN VLAN 900.
+HOST ixp_route_server { IP 198.32.160.1 MAC 00:0f:53:90:00:01 }
+
+// INSTRUCTION: Define member CDN router on IXP peering VLAN 900.
+HOST ixp_cdn_member { IP 198.32.160.45 MAC 00:0f:53:90:00:45 }
+
+// INSTRUCTION: Define VLAN-tagged IXP BGP OPEN and UPDATE exchange.
+FLOW ixp_vlan_peering(rs, member) {
+    rs <- member BGP OPEN ASN 65333 HOLDTIME 90 BGPID 198.32.160.45 VLAN 900 PCP 6
+    rs -> member BGP OPEN ASN 65000 HOLDTIME 90 BGPID 198.32.160.1 VLAN 900 PCP 6
+    rs <- member BGP UPDATE ASN 65333 PREFIX "203.0.113.0/24" NEXTHOP 198.32.160.45 VLAN 900 PCP 6
+}
+
+// INSTRUCTION: Compile the IXP route server VLAN BGP flow.
+COMPILE {
+    ixp_vlan_peering(ixp_route_server, ixp_cdn_member)
+}

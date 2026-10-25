@@ -1,0 +1,23 @@
+// PROMPT: Redis atomic transaction block using WATCH, MULTI, INCR, and EXEC.
+// TOKENS: HOST, IP, FLOW, REDIS, CMD, ARGS, WAIT, COMPILE
+
+// INSTRUCTION: Define rate-limiter microservice client.
+HOST ratelimiter { IP 10.83.1.15 }
+
+// INSTRUCTION: Define Redis counter node.
+HOST counter_redis { IP 10.83.1.1 }
+
+// INSTRUCTION: Define optimistic locking WATCH and MULTI/EXEC block.
+FLOW redis_multi_exec(c, s) {
+    c -> s REDIS CMD "WATCH" ARGS "quota:api_key_99" WAIT 1ms
+    c -> s REDIS CMD "MULTI" WAIT 1ms
+    c -> s REDIS CMD "INCR" ARGS "quota:api_key_99" WAIT 1ms
+    c -> s REDIS CMD "EXPIRE" ARGS "quota:api_key_99 60" WAIT 1ms
+    c -> s REDIS CMD "EXEC" WAIT 2ms
+    c <- s REDIS CMD "ARRAY" ARGS "42"
+}
+
+// INSTRUCTION: Compile Redis MULTI/EXEC transaction flow.
+COMPILE {
+    redis_multi_exec(ratelimiter, counter_redis)
+}

@@ -1,0 +1,19 @@
+// PROMPT: BGP control plane updates marked with DSCP CS6 (48) and ECN congestion notification bits.
+// TOKENS: HOST, IP, FLOW, BGP, UPDATE, ASN, PREFIX, NEXTHOP, DSCP, ECN, KEEPALIVE, WAIT, COMPILE
+
+// INSTRUCTION: Define backbone core router North.
+HOST bgp_core_north { IP 10.1.254.1 }
+
+// INSTRUCTION: Define backbone core router South.
+HOST bgp_core_south { IP 10.1.254.2 }
+
+// INSTRUCTION: Define DSCP CS6 (48) and ECNECT(0) marked BGP updates.
+FLOW bgp_cs6_qos_flow(n, s) {
+    n -> s BGP UPDATE ASN 65001 PREFIX "10.100.0.0/16" NEXTHOP 10.1.254.1 DSCP 48 ECN 2
+    n <- s BGP KEEPALIVE DSCP 48 ECN 2 WAIT 15ms
+}
+
+// INSTRUCTION: Compile the DSCP CS6 prioritized BGP flow.
+COMPILE {
+    bgp_cs6_qos_flow(bgp_core_north, bgp_core_south)
+}

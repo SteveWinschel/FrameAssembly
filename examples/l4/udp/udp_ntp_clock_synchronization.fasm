@@ -1,5 +1,5 @@
 // PROMPT: Simulate Network Time Protocol (NTP) clock synchronization polling between a Linux host and a Stratum-1 NTP server on UDP port 123 with 1s wait intervals.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, s, COMPILE, LOOP
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE, LOOP
 
 // INSTRUCTION: Define an internal application server requiring clock sync with IP 10.10.5.20.
 HOST ntp_client { IP 10.10.5.20 MAC 00:15:5d:01:05:14 }

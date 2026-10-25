@@ -1,0 +1,26 @@
+// PROMPT: RFC 8926 / RFC 6040 GENEVE overlay tunnel propagating ECN Congestion Experienced (ECN 3) across spine switches.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, DSCP, ECN, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define AI training cluster leaf NVE-1 transmitting RoCEv2 over GENEVE.
+HOST ai_leaf_nve_1 {
+    IP 10.180.60.1
+    MAC 00:1c:73:b4:3c:01
+}
+
+// INSTRUCTION: Define AI training cluster leaf NVE-2 receiving ECN-marked GENEVE frames.
+HOST ai_leaf_nve_2 {
+    IP 10.180.60.2
+    MAC 00:1c:73:b4:3c:02
+}
+
+// INSTRUCTION: Define GENEVE frames with DSCP CS3 (24) and ECN transitioning from ECT(0) (2) to CE (3).
+FLOW geneve_ecn_ai_fabric(n1, n2) {
+    n1 -> n2 GENEVE VNI 40960 OPT_CLASS 259 OPT_TYPE 1 PROTOCOL_TYPE 25944 SRCPORT 53100 DSTPORT 6081 DSCP 24 ECN 2 DF TTL 64 PAYLOAD "AI_TENSOR_ALLREDUCE_CHUNK_1" WAIT 2ms
+    n1 -> n2 GENEVE VNI 40960 OPT_CLASS 259 OPT_TYPE 1 PROTOCOL_TYPE 25944 SRCPORT 53100 DSTPORT 6081 DSCP 24 ECN 3 DF TTL 64 PAYLOAD "AI_TENSOR_ALLREDUCE_CHUNK_2_CE" WAIT 2ms
+    n1 <- n2 GENEVE VNI 40960 OPT_CLASS 259 OPT_TYPE 1 PROTOCOL_TYPE 25944 SRCPORT 53101 DSTPORT 6081 DSCP 48 ECN 0 DF TTL 64 PAYLOAD "CNP_CONGESTION_NOTIFICATION_PKT"
+}
+
+// INSTRUCTION: Compile the GENEVE ECN congestion marking AI cluster flow.
+COMPILE {
+    geneve_ecn_ai_fabric(ai_leaf_nve_1, ai_leaf_nve_2)
+}

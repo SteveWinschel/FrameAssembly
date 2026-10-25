@@ -1,0 +1,30 @@
+// PROMPT: Simulate reliable RFC 6587 Syslog over TCP on port 514 with a 3-way TCP handshake before delivering log records.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SYSLOG, TRANSPORT, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, COMPILE
+
+// INSTRUCTION: Define host endpoint payment_app.
+HOST payment_app {
+    MAC 00:50:56:65:87:01
+    IP 10.90.5.11
+}
+
+// INSTRUCTION: Define host endpoint tcp_syslog_srv.
+HOST tcp_syslog_srv {
+    MAC 00:50:56:65:87:02
+    IP 10.90.5.200
+}
+
+// INSTRUCTION: Complete a TCP handshake on port 514 and transmit PCI audit logs over TCP.
+FLOW syslog_over_tcp_rfc6587(payment_app, tcp_syslog_srv) {
+    payment_app -> tcp_syslog_srv TCP SYN SRCPORT 51514 DSTPORT 514
+    tcp_syslog_srv -> payment_app TCP SYN ACK
+    payment_app -> tcp_syslog_srv TCP ACK
+    payment_app -> tcp_syslog_srv SYSLOG TRANSPORT TCP FACILITY 13 SEVERITY 5 HOSTNAME "pay-api-01" APP "vault-auth" PROCID "7710"
+        MSG "Tokenization key rotation completed by operator id=sec-admin"
+    payment_app -> tcp_syslog_srv SYSLOG TRANSPORT TCP FACILITY 13 SEVERITY 6 HOSTNAME "pay-api-01" APP "vault-auth" PROCID "7710"
+        MSG "HSM partition health check verified status=OK"
+}
+
+// INSTRUCTION: Compile the Syslog over TCP flow.
+COMPILE {
+    syslog_over_tcp_rfc6587(payment_app, tcp_syslog_srv)
+}

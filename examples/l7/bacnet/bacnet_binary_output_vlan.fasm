@@ -1,0 +1,18 @@
+// PROMPT: BACnet/IP WriteProperty toggling a Binary Output lighting relay with VLAN tagging.
+// TOKENS: HOST, IP, FLOW, BACNET, WRITE_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, VLAN, PCP, COMPILE
+
+// INSTRUCTION: Define the smart building lighting panel.
+HOST lighting_panel { IP 172.18.5.10 }
+
+// INSTRUCTION: Define the floor relay controller on OT VLAN 50.
+HOST relay_ctrl { IP 172.18.5.102 }
+
+// INSTRUCTION: Command Binary Output (ObjectType 4) Instance 12 to active state (1) over VLAN 50.
+FLOW bacnet_binary_write(p, r) {
+    p -> r BACNET WRITE_PROPERTY INVOKE_ID 33 OBJECT_TYPE 4 OBJECT_INSTANCE 12 PROPERTY_ID 85 VALUE 1 VLAN 50 PCP 5
+}
+
+// INSTRUCTION: Compile the VLAN-tagged BACnet binary relay command.
+COMPILE {
+    bacnet_binary_write(lighting_panel, relay_ctrl)
+}

@@ -1,0 +1,25 @@
+// PROMPT: RFC 4302 IPsec AH tunnel mode encapsulating inner IPv4 datagrams (Next Header 4) between security gateways.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, IPID, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define branch office IPsec AH tunnel headend gateway.
+HOST branch_ah_gw {
+    IP 203.0.113.10
+    MAC 00:15:5d:01:13:0a
+}
+
+// INSTRUCTION: Define headquarters IPsec AH tunnel concentrator gateway.
+HOST hq_ah_concentrator {
+    IP 198.51.100.200
+    MAC 00:15:5d:64:c8:01
+}
+
+// INSTRUCTION: Define AH tunnel mode flow with Next Header 4 (IPv4-in-IPv4) and DF bit enabled.
+FLOW ah_tunnel_ip4_in_ip4(branch, hq) {
+    branch -> hq AH SPI 70010 SEQ 101 NEXT_HEADER 4 ICV "deadbeefcafebabe01020304" IPID 1101 DF TTL 62 PAYLOAD "INNER_IPV4_ERP_TRANSACTION" WAIT 8ms
+    branch <- hq AH SPI 70020 SEQ 505 NEXT_HEADER 4 ICV "04030201babecafebeefdead" IPID 2202 DF TTL 61 PAYLOAD "INNER_IPV4_ERP_COMMIT_OK"
+}
+
+// INSTRUCTION: Compile the IP-in-IP tunnel mode IPsec AH gateway exchange.
+COMPILE {
+    ah_tunnel_ip4_in_ip4(branch_ah_gw, hq_ah_concentrator)
+}

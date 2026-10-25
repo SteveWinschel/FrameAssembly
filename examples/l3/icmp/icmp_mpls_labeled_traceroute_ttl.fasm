@@ -1,0 +1,18 @@
+// PROMPT: MPLS label-switched ICMP Echo Request probe with explicit MPLS label and TTL.
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define ingress MPLS PE router.
+HOST mpls_ingress_pe { IP 10.150.1.1 }
+
+// INSTRUCTION: Define egress MPLS PE router.
+HOST mpls_egress_pe { IP 10.150.2.1 }
+
+// INSTRUCTION: Define MPLS labeled ICMP Echo Request flow with label 300400.
+FLOW icmp_mpls_probe(pe1, pe2) {
+    pe1 -> pe2 ICMP ECHO_REQUEST ID 8899 SEQ 1 MPLS 300400 EXP 3 BOS 1 MPLS_TTL 128
+}
+
+// INSTRUCTION: Compile block executing MPLS encapsulated ICMP traceroute.
+COMPILE {
+    icmp_mpls_probe(mpls_ingress_pe, mpls_egress_pe)
+}

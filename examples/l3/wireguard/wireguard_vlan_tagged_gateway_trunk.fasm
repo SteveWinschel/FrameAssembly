@@ -1,0 +1,18 @@
+// PROMPT: WireGuard VPN tunnel terminating on 802.1Q tagged security VLAN 150.
+// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, INITIATION, SENDER, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define corporate security VLAN VPN gateway.
+HOST wg_vlan_sec_gw { IP 10.150.0.1 }
+
+// INSTRUCTION: Define remote branch VPN initiator.
+HOST wg_branch_initiator { IP 10.150.0.254 }
+
+// INSTRUCTION: Define 802.1Q tagged WireGuard initiation flow with Priority PCP 5.
+FLOW wg_vlan_tagged_flow(gw, peer) {
+    peer -> gw WIREGUARD TYPE INITIATION SENDER 112233 VLAN 150 PCP 5 DEI 0
+}
+
+// INSTRUCTION: Compile block executing tagged WireGuard handshake initiation.
+COMPILE {
+    wg_vlan_tagged_flow(wg_vlan_sec_gw, wg_branch_initiator)
+}

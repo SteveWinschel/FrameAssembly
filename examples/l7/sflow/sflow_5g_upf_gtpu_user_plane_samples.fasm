@@ -1,0 +1,24 @@
+// PROMPT: sFlow v5 export from a 5G mobile core N3/N6 switch sampling GTP-U user plane subscriber traffic.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define 5G N3/N6 user-plane aggregation switch.
+HOST upf_agg_sw {
+    IP 172.29.10.1
+    MAC 00:1e:49:1d:0a:01
+}
+
+// INSTRUCTION: Define telco mobile core sFlow probe collector.
+HOST telco_sflow_col {
+    IP 172.29.10.100
+    MAC 00:1e:49:1d:0a:64
+}
+
+// INSTRUCTION: Export sFlow v5 samples transported over MPLS label 3010.
+FLOW sflow_5g_upf(sw, col) {
+    sw -> col SFLOW AGENT_IP 172.29.10.1 SUB_AGENT_ID 3 UPTIME 12800000 SAMPLES 20 MPLS 3010 EXP 4 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the 5G UPF user-plane sFlow sampling scenario.
+COMPILE {
+    sflow_5g_upf(upf_agg_sw, telco_sflow_col)
+}

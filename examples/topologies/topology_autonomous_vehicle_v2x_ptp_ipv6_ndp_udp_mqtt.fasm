@@ -1,0 +1,35 @@
+// PROMPT: Connected autonomous vehicle V2X roadside unit corridor over IPv6 combining NDP neighbor discovery, PTP clock sync, UDP Basic Safety Message broadcast, and MQTT telemetry.
+// TOKENS: HOST, IP, MAC, FLOW, NDP, ROUTER_ADVERT, SLLA, NEIGHBOR_SOLICIT, TARGET, WAIT, NEIGHBOR_ADVERT, PTP, SYNC, DOMAIN, SEQ_ID, DSCP, FLOWLABEL, UDP, DSTPORT, PAYLOAD, MQTT, COMPILE
+
+// INSTRUCTION: Define autonomous vehicle onboard telematics unit (OBU) with IPv6 address.
+HOST av_vehicle_obu {
+    IP 2001:db8:800:1::55
+    MAC 02:42:ac:11:00:55
+}
+
+// INSTRUCTION: Define smart highway Roadside Unit (RSU) and PTP boundary clock.
+HOST highway_rsu_gw {
+    IP 2001:db8:800:1::1
+    MAC 00:1b:21:80:01:01
+}
+
+// INSTRUCTION: Define regional Transportation Management Center (TMC) MQTT cloud broker.
+HOST regional_tmc_cloud {
+    IP 2001:db8:800:2::100
+    MAC 00:50:56:80:02:64
+}
+
+// INSTRUCTION: Define IPv6 NDP discovery, PTP timing sync, low-latency UDP V2X BSM frame, and MQTT hazard telemetry publish.
+FLOW autonomous_v2x_corridor_flow(obu, rsu, tmc) {
+    rsu -> obu NDP ROUTER_ADVERT SLLA 00:1b:21:80:01:01
+    obu -> rsu NDP NEIGHBOR_SOLICIT TARGET 2001:db8:800:1::1 SLLA 02:42:ac:11:00:55 WAIT 1ms
+    obu <- rsu NDP NEIGHBOR_ADVERT TARGET 2001:db8:800:1::1 WAIT 1ms
+    rsu -> obu PTP SYNC DOMAIN 1 SEQ_ID 500 WAIT 1ms
+    obu -> rsu DSCP 46 FLOWLABEL 0x80055 UDP DSTPORT 30100 PAYLOAD "J2735_BSM_LAT_37.3861_LON_-122.0839_SPEED_28MPS" WAIT 1ms
+    rsu -> tmc DSCP 34 FLOWLABEL 0x80100 MQTT PUBLISH TOPIC "v2x/corridor101/bsm_aggregate" PAYLOAD "{\"vehicles\":14}" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing IPv6 autonomous vehicle V2X NDP, PTP, UDP, and MQTT topology.
+COMPILE {
+    autonomous_v2x_corridor_flow(av_vehicle_obu, highway_rsu_gw, regional_tmc_cloud)
+}

@@ -1,0 +1,28 @@
+// PROMPT: Core router performing OSPF control-plane graceful restart with LSR, LSU, and LSACK link-state synchronization.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, TTL, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, WAIT, LSR, LSU, PAYLOAD, LSACK, COMPILE
+
+// INSTRUCTION: Define restarting core router resynchronizing Area 0 link-state database without forwarding disruption.
+HOST gr_restarting_rtr {
+    IP 172.16.254.1
+    MAC 00:25:90:fe:00:01
+}
+
+// INSTRUCTION: Define helper core router responding to Link State Requests during graceful restart recovery.
+HOST gr_helper_rtr {
+    IP 172.16.254.2
+    MAC 00:25:90:fe:00:02
+}
+
+// INSTRUCTION: Re-establish OSPF Hello adjacency and synchronize missing LSAs via LSR, LSU, and LSACK.
+FLOW ospf_graceful_restart(restarter, helper) {
+    restarter -> helper DSCP 48 TTL 1 OSPF HELLO ROUTER_ID 172.16.0.1 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 100 WAIT 10ms
+    helper -> restarter DSCP 48 TTL 1 OSPF HELLO ROUTER_ID 172.16.0.2 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 100 WAIT 10ms
+    restarter -> helper DSCP 48 TTL 1 OSPF LSR ROUTER_ID 172.16.0.1 AREA_ID 0 WAIT 10ms
+    helper -> restarter DSCP 48 TTL 1 OSPF LSU ROUTER_ID 172.16.0.2 AREA_ID 0 PAYLOAD "graceful_restart_opaque_type9_lsa" WAIT 10ms
+    restarter -> helper DSCP 48 TTL 1 OSPF LSACK ROUTER_ID 172.16.0.1 AREA_ID 0
+}
+
+// INSTRUCTION: Compile the OSPF graceful restart LSA resynchronization sequence.
+COMPILE {
+    ospf_graceful_restart(gr_restarting_rtr, gr_helper_rtr)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Minimal 4-byte RFC 2784 GRE header (Flags 0x0000, Protocol 0x0800) without Checksum, Key, or Sequence fields.
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_PROTO, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define legacy core router A using minimal 4-byte RFC 2784 GRE encapsulation.
+HOST min_gre_rtr_a {
+    IP 10.27.84.1
+    MAC 00:0c:29:27:84:01
+}
+
+// INSTRUCTION: Define legacy core router B decapsulating minimal 4-byte GRE headers.
+HOST min_gre_rtr_b {
+    IP 10.27.84.2
+    MAC 00:0c:29:27:84:02
+}
+
+// INSTRUCTION: Define minimal 4-byte GRE exchange with GRE_PROTO 2048 (0x0800) and no optional words.
+FLOW gre_minimal_4byte_flow(a, b) {
+    a -> b GRE GRE_PROTO 2048 DF TTL 64 PAYLOAD "RFC2784_MINIMAL_4BYTE_GRE_HEADER_PACKET_1" WAIT 5ms
+    a <- b GRE GRE_PROTO 2048 DF TTL 64 PAYLOAD "RFC2784_MINIMAL_4BYTE_GRE_HEADER_PACKET_2"
+}
+
+// INSTRUCTION: Compile the minimal 4-byte RFC 2784 GRE header flow.
+COMPILE {
+    gre_minimal_4byte_flow(min_gre_rtr_a, min_gre_rtr_b)
+}

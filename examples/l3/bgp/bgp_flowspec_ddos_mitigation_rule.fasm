@@ -1,0 +1,25 @@
+// PROMPT: RFC 8955 BGP FlowSpec UPDATE distributing automated DDoS traffic filtering rules to edge scrubbers.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, UPDATE, ASN, PREFIX, NEXTHOP, DSCP, TTL, PAYLOAD, WAIT, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define DDoS Controller BGP speaker originating FlowSpec SAFI 133 rules.
+HOST flowspec_controller {
+    IP 10.89.55.1
+    MAC 00:25:b5:89:55:01
+}
+
+// INSTRUCTION: Define Provider Edge router applying FlowSpec rate-limit and discard actions.
+HOST flowspec_pe_scrubber {
+    IP 10.89.55.20
+    MAC 00:25:b5:89:55:14
+}
+
+// INSTRUCTION: Define BGP FlowSpec UPDATE carrying drop filter for victim prefix 198.51.100.88/32.
+FLOW bgp_flowspec_mitigation(ctrl, pe) {
+    ctrl -> pe BGP UPDATE ASN 65089 PREFIX "198.51.100.88/32" NEXTHOP 10.89.55.1 DSCP 48 TTL 64 PAYLOAD "FLOWSPEC_SAFI133_PROTO17_PORT53_ACTION_DROP" WAIT 4ms
+    ctrl <- pe BGP KEEPALIVE DSCP 48 TTL 64
+}
+
+// INSTRUCTION: Compile the RFC 8955 BGP FlowSpec DDoS mitigation distribution flow.
+COMPILE {
+    bgp_flowspec_mitigation(flowspec_controller, flowspec_pe_scrubber)
+}

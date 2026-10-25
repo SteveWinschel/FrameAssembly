@@ -1,0 +1,18 @@
+// PROMPT: Metro data center interconnect tunneling VXLAN through dual-tagged QinQ carrier backbone.
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define West Data Center border VTEP gateway.
+HOST west_dc_border_vtep { IP 172.29.1.1 }
+
+// INSTRUCTION: Define East Data Center border VTEP gateway.
+HOST east_dc_border_vtep { IP 172.29.1.2 }
+
+// INSTRUCTION: Define QinQ encapsulated DCI VXLAN flow on provider VLAN 1000 and customer VLAN 80.
+FLOW vxlan_qinq_dci_flow(w, e) {
+    w -> e VXLAN VNI 90000 QINQ 1000 INNER_VLAN 80
+}
+
+// INSTRUCTION: Compile block executing carrier QinQ VXLAN inter-DC tunnel.
+COMPILE {
+    vxlan_qinq_dci_flow(west_dc_border_vtep, east_dc_border_vtep)
+}

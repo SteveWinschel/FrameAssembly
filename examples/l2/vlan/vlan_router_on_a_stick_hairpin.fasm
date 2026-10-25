@@ -1,0 +1,34 @@
+// PROMPT: Router-on-a-stick inter-VLAN routing hairpinned across subinterfaces VLAN 20 and VLAN 40.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, TCP, SYN, SRCPORT, DSTPORT, WAIT, ACK, PSH, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define engineering workstation on VLAN 20.
+HOST eng_client {
+    IP 10.20.0.55
+    MAC 00:50:56:80:20:55
+}
+
+// INSTRUCTION: Define one-armed router trunk interface handling inter-VLAN forwarding.
+HOST stick_router {
+    IP 10.20.0.1
+    MAC 00:00:0c:07:ac:14
+}
+
+// INSTRUCTION: Define internal application server on VLAN 40.
+HOST app_server_v40 {
+    IP 10.40.0.80
+    MAC 00:50:56:80:40:80
+}
+
+// INSTRUCTION: Define hairpinned inter-VLAN TCP flow entering on VLAN 20 and exiting on VLAN 40.
+FLOW router_on_a_stick(cli, rtr, srv) {
+    cli -> rtr VLAN 20 PCP 0 TCP SYN SRCPORT 51200 DSTPORT 8080
+    rtr -> srv VLAN 40 PCP 0 TCP SYN SRCPORT 51200 DSTPORT 8080 WAIT 500us
+    srv -> rtr VLAN 40 PCP 0 TCP SYN ACK SRCPORT 8080 DSTPORT 51200 WAIT 500us
+    rtr -> cli VLAN 20 PCP 0 TCP SYN ACK SRCPORT 8080 DSTPORT 51200 WAIT 500us
+    cli -> rtr VLAN 20 PCP 0 TCP PSH ACK SRCPORT 51200 DSTPORT 8080 PAYLOAD "GET /status HTTP/1.1\r\n\r\n" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing router-on-a-stick inter-VLAN hairpin flow.
+COMPILE {
+    router_on_a_stick(eng_client, stick_router, app_server_v40)
+}

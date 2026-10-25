@@ -1,0 +1,25 @@
+// PROMPT: Network diagnostic appliance transmitting an ARP probe with explicit SHA/SPA overrides and 18-byte Ethernet trailer padding.
+// TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, SHA, SPA, THA, TPA, HEXPAYLOAD, WAIT, REPLY, COMPILE
+
+// INSTRUCTION: Define hardware network tap appliance injecting diagnostic ARP frame.
+HOST net_tap_injector {
+    IP 192.168.99.250
+    MAC 00:10:f3:63:00:fa
+}
+
+// INSTRUCTION: Define target gateway under diagnostic ARP latency evaluation.
+HOST target_dut_gw {
+    IP 192.168.99.1
+    MAC 00:10:f3:63:00:01
+}
+
+// INSTRUCTION: Send padded ARP Request and receive padded ARP Reply with 18 zero-padding trailer bytes.
+FLOW arp_padded_diagnostic(tap, dut) {
+    tap -> dut ARP REQUEST SHA 00:10:f3:63:00:fa SPA 192.168.99.250 THA 00:00:00:00:00:00 TPA 192.168.99.1 HEXPAYLOAD "000000000000000000000000000000000000" WAIT 5ms
+    tap <- dut ARP REPLY SHA 00:10:f3:63:00:01 SPA 192.168.99.1 THA 00:10:f3:63:00:fa TPA 192.168.99.250 HEXPAYLOAD "000000000000000000000000000000000000"
+}
+
+// INSTRUCTION: Compile the padded diagnostic ARP Request and Reply exchange.
+COMPILE {
+    arp_padded_diagnostic(net_tap_injector, target_dut_gw)
+}

@@ -1,0 +1,38 @@
+// PROMPT: Generate a Kerberos cross-realm referral TGS exchange between two Active Directory forests over VLAN 340.
+// TOKENS: HOST, IP, MAC, FLOW, KERBEROS, TGS_REQ, REALM, CNAME, SNAME, ETYPE, VLAN, DSCP, TTL, WAIT, TGS_REP, COMPILE
+
+// INSTRUCTION: Define the enterprise workstation and the local forest KDC along with the remote partner forest KDC.
+HOST corp_ws {
+    IP 10.40.10.25
+    MAC 00:1a:2b:40:10:25
+}
+
+// INSTRUCTION: Define the primary corporate realm KDC issuing the cross-realm referral ticket.
+HOST local_kdc {
+    IP 10.40.1.10
+    MAC 00:1a:2b:40:01:10
+}
+
+// INSTRUCTION: Define the partner realm KDC issuing the final service ticket for the remote SQL cluster.
+HOST partner_kdc {
+    IP 10.90.1.10
+    MAC 00:1a:2b:90:01:10
+}
+
+// INSTRUCTION: Request a cross-realm TGT from the local KDC over VLAN 340.
+FLOW local_referral(c, s) {
+    c -> s KERBEROS TGS_REQ REALM "CORP.EXAMPLE.COM" CNAME "alice" SNAME "krbtgt/PARTNER.EXAMPLE.COM" ETYPE 18 VLAN 340 DSCP 24 TTL 64 WAIT 8ms
+    c <- s KERBEROS TGS_REP REALM "CORP.EXAMPLE.COM" CNAME "alice" SNAME "krbtgt/PARTNER.EXAMPLE.COM" ETYPE 18 VLAN 340 DSCP 24 TTL 64
+}
+
+// INSTRUCTION: Present the referral TGT to the partner realm KDC to obtain the remote service ticket.
+FLOW remote_service_ticket(c, s) {
+    c -> s KERBEROS TGS_REQ REALM "PARTNER.EXAMPLE.COM" CNAME "alice" SNAME "MSSQLSvc/db01.partner.example.com:1433" ETYPE 18 VLAN 340 DSCP 24 TTL 60 WAIT 14ms
+    c <- s KERBEROS TGS_REP REALM "PARTNER.EXAMPLE.COM" CNAME "alice" SNAME "MSSQLSvc/db01.partner.example.com:1433" ETYPE 18 VLAN 340 DSCP 24 TTL 60
+}
+
+// INSTRUCTION: Compile the cross-realm Kerberos referral trace into a PCAP file.
+COMPILE {
+    local_referral(corp_ws, local_kdc)
+    remote_service_ticket(corp_ws, partner_kdc)
+}

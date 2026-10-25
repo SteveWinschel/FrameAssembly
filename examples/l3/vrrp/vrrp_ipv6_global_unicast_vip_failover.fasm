@@ -1,0 +1,26 @@
+// PROMPT: IPv6 VRRPv3 Master failure and Backup takeover protecting a global IPv6 subnet gateway VIP 2001:db8:112::1.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, FLOWLABEL, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define primary IPv6 core router releasing VRID 112 with Priority 0.
+HOST v6_core_vrrp_pri {
+    IP 2001:db8:112::2
+    MAC 00:00:5e:00:02:70
+}
+
+// INSTRUCTION: Define backup IPv6 core router assuming ownership of 2001:db8:112::1 with Priority 200.
+HOST v6_core_vrrp_sec {
+    IP 2001:db8:112::3
+    MAC 00:00:5e:00:02:70
+}
+
+// INSTRUCTION: Define IPv6 VRRPv3 failover sequence with FLOWLABEL 11200 and TTL 255.
+FLOW vrrp_v6_global_vip_failover(pri, sec) {
+    pri -> sec VRRP VRID 112 PRIORITY 220 ADV_INT 100 VIP 2001:db8:112::1 VERSION 3 FLOWLABEL 11200 DSCP 48 TTL 255 WAIT 20ms
+    pri -> sec VRRP VRID 112 PRIORITY 0 ADV_INT 100 VIP 2001:db8:112::1 VERSION 3 FLOWLABEL 11200 DSCP 48 TTL 255 WAIT 5ms
+    pri <- sec VRRP VRID 112 PRIORITY 200 ADV_INT 100 VIP 2001:db8:112::1 VERSION 3 FLOWLABEL 11200 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the IPv6 VRRPv3 global VIP failover flow.
+COMPILE {
+    vrrp_v6_global_vip_failover(v6_core_vrrp_pri, v6_core_vrrp_sec)
+}

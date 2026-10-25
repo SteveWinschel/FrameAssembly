@@ -1,0 +1,29 @@
+// PROMPT: Kubernetes kubelet invoking containerd CRI RunPodSandbox and CreateContainer gRPC methods on node localhost.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define Kubernetes kubelet CRI client endpoint.
+HOST kubelet_cri {
+    IP 10.240.10.11
+    MAC 02:42:0a:f0:0a:0b
+}
+
+// INSTRUCTION: Define containerd CRI gRPC runtime daemon endpoint.
+HOST containerd_daemon {
+    IP 10.240.10.12
+    MAC 02:42:0a:f0:0a:0c
+}
+
+// INSTRUCTION: Invoke CRI RunPodSandbox followed by CreateContainer and StartContainer with GRPC_STATUS 0.
+FLOW grpc_cri_pod_launch(k, c) {
+    k -> c GRPC SERVICE "runtime.v1.RuntimeService" METHOD "RunPodSandbox"
+    k <- c GRPC SERVICE "runtime.v1.RuntimeService" METHOD "RunPodSandbox" GRPC_STATUS 0
+    k -> c GRPC SERVICE "runtime.v1.RuntimeService" METHOD "CreateContainer"
+    k <- c GRPC SERVICE "runtime.v1.RuntimeService" METHOD "CreateContainer" GRPC_STATUS 0
+    k -> c GRPC SERVICE "runtime.v1.RuntimeService" METHOD "StartContainer"
+    k <- c GRPC SERVICE "runtime.v1.RuntimeService" METHOD "StartContainer" GRPC_STATUS 0
+}
+
+// INSTRUCTION: Compile the Kubernetes containerd CRI gRPC pod lifecycle scenario.
+COMPILE {
+    grpc_cri_pod_launch(kubelet_cri, containerd_daemon)
+}

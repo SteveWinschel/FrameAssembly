@@ -1,5 +1,5 @@
 // PROMPT: Cisco NetFlow v5 telemetry export datagram reporting IP traffic metrics.
-// TOKENS: HOST, IP, FLOW, ->, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
+// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.1 }

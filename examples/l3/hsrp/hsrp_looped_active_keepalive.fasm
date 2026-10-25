@@ -1,0 +1,21 @@
+// PROMPT: Periodic HSRP Active and Standby heartbeat exchange executed inside a COMPILE LOOP block.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, HELLOTIME, HOLDTIME, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define primary gateway router.
+HOST hsrp_loop_act { IP 172.21.0.252 }
+
+// INSTRUCTION: Define secondary gateway router.
+HOST hsrp_loop_stb { IP 172.21.0.253 }
+
+// INSTRUCTION: Define bidirectional HSRP heartbeat cycle with 20ms interval.
+FLOW hsrp_heartbeat_cycle(act, stb) {
+    act -> stb HSRP GROUP 21 PRIORITY 110 STATE 16 VIP 172.21.0.254 HELLOTIME 3 HOLDTIME 10 WAIT 20ms
+    act <- stb HSRP GROUP 21 PRIORITY 95 STATE 8 VIP 172.21.0.254 HELLOTIME 3 HOLDTIME 10 WAIT 20ms
+}
+
+// INSTRUCTION: Compile 4 consecutive HSRP heartbeat iterations.
+COMPILE {
+    LOOP 4 {
+        hsrp_heartbeat_cycle(hsrp_loop_act, hsrp_loop_stb)
+    }
+}

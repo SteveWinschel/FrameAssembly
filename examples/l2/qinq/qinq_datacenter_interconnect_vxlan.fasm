@@ -1,0 +1,25 @@
+// PROMPT: Data Center Interconnect (DCI) carrying VXLAN overlay network traffic over a QinQ provider dark fiber trunk.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, VXLAN, VNI, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define border leaf VTEP in data center West.
+HOST dci_vtep_west {
+    IP 10.250.1.1
+    MAC 00:1c:73:fa:01:01
+}
+
+// INSTRUCTION: Define border leaf VTEP in data center East.
+HOST dci_vtep_east {
+    IP 10.250.1.2
+    MAC 00:1c:73:fa:01:02
+}
+
+// INSTRUCTION: Define QinQ S-VLAN 3500 C-VLAN 1000 encapsulating VXLAN VNI 100500 across DCI link.
+FLOW dci_qinq_vxlan(west, east) {
+    west -> east QINQ 3500 INNER_VLAN 1000 VXLAN VNI 100500 SRCPORT 54321 DSTPORT 4789 PAYLOAD "dci_east_west_vxlan_frame_1"
+    west <- east QINQ 3500 INNER_VLAN 1000 VXLAN VNI 100500 SRCPORT 51234 DSTPORT 4789 PAYLOAD "dci_east_west_vxlan_frame_2" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing DCI VXLAN over QinQ transport.
+COMPILE {
+    dci_qinq_vxlan(dci_vtep_west, dci_vtep_east)
+}

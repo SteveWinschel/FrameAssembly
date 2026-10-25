@@ -1,5 +1,5 @@
 // PROMPT: Internet Key Exchange version 2 security association initiation and authentication on UDP 500.
-// TOKENS: HOST, IP, FLOW, ->, <-, IKEV2, EXCHANGE, SA_INIT, AUTH, COMPILE
+// TOKENS: HOST, IP, FLOW, IKEV2, EXCHANGE, SA_INIT, AUTH, COMPILE
 
 // INSTRUCTION: Define IKEv2 negotiation initiator.
 HOST ike_initiator { IP 203.0.113.1 }

@@ -1,0 +1,18 @@
+// PROMPT: IPFIX OSPF (Proto 89) control-plane routing traffic accounting export with custom MACs.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, SRCMAC, DSTMAC, COMPILE
+
+// INSTRUCTION: Define core router exporting control-plane flow stats.
+HOST core_rtr { IP 10.0.47.1 }
+
+// INSTRUCTION: Define local flow analyzer appliance.
+HOST flow_analyzer { IP 10.0.47.2 }
+
+// INSTRUCTION: Report OSPF (Proto 89) multicast hello accounting with explicit Ethernet MACs.
+FLOW ipfix_ospf_control_plane(r, a) {
+    r -> a IPFIX DOMAIN_ID 1 SRCIP 10.0.0.1 DSTIP 224.0.0.5 PROTO 89 PACKETS 60 OCTETS 4800 SRCMAC 00:11:22:33:44:01 DSTMAC 00:11:22:33:44:02
+}
+
+// INSTRUCTION: Compile the IPFIX OSPF control-plane accounting flow.
+COMPILE {
+    ipfix_ospf_control_plane(core_rtr, flow_analyzer)
+}

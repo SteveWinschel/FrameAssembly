@@ -1,0 +1,20 @@
+// PROMPT: POP3 APOP digest authentication using server timestamp banner challenge.
+// TOKENS: HOST, IP, FLOW, POP3, OK, WAIT, CMD, ARG, COMPILE
+
+// INSTRUCTION: Define POP3 client using APOP MD5 challenge-response.
+HOST apop_client { IP 10.44.0.15 }
+
+// INSTRUCTION: Define POP3 server emitting banner timestamp challenge.
+HOST apop_server { IP 10.44.0.1 }
+
+// INSTRUCTION: Define banner challenge and APOP digest login.
+FLOW pop3_apop_login(c, s) {
+    c <- s POP3 OK WAIT 5ms
+    c -> s POP3 CMD "APOP" ARG "mrose c4c9334bac560ecc979e58001b3e22fb" WAIT 5ms
+    c <- s POP3 OK
+}
+
+// INSTRUCTION: Compile POP3 APOP authentication flow.
+COMPILE {
+    pop3_apop_login(apop_client, apop_server)
+}

@@ -1,0 +1,36 @@
+// PROMPT: Python Celery distributed task queue publishing a celery task message and delivering it to a worker pool.
+// TOKENS: HOST, IP, MAC, FLOW, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, PAYLOAD, BASIC_DELIVER, COMPILE
+
+// INSTRUCTION: Define the Django web application queuing background image resizing tasks.
+HOST django_web {
+    IP 10.115.60.11
+    MAC 00:1a:2b:73:60:11
+}
+
+// INSTRUCTION: Define the Celery worker node consuming from the default celery queue.
+HOST celery_worker {
+    IP 10.115.60.22
+    MAC 00:1a:2b:73:60:22
+}
+
+// INSTRUCTION: Define the RabbitMQ task broker.
+HOST task_broker {
+    IP 10.115.60.1
+    MAC 00:1a:2b:73:60:01
+}
+
+// INSTRUCTION: Enqueue a Celery task from the Django web node.
+FLOW enqueue_celery_task(w, b) {
+    w -> b AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "celery" ROUTING_KEY "celery" PAYLOAD "{'task':'media.tasks.resize_avatar','id':'c49a-8812','args':[4091]}"
+}
+
+// INSTRUCTION: Deliver the queued Celery task to the worker node.
+FLOW deliver_celery_task(c, b) {
+    c <- b AMQP BASIC_DELIVER CHANNEL 1 EXCHANGE "celery" ROUTING_KEY "celery" PAYLOAD "{'task':'media.tasks.resize_avatar','id':'c49a-8812','args':[4091]}"
+}
+
+// INSTRUCTION: Compile the Celery task enqueue and worker delivery flows.
+COMPILE {
+    enqueue_celery_task(django_web, task_broker)
+    deliver_celery_task(celery_worker, task_broker)
+}

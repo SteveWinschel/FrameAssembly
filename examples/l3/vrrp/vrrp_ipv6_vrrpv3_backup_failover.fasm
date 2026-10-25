@@ -1,0 +1,18 @@
+// PROMPT: IPv6 VRRPv3 backup node transmitting takeover advertisement during failover.
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, VIP, COMPILE
+
+// INSTRUCTION: Define IPv6 secondary backup node taking over active master role.
+HOST vrrp3_v6_backup { IP fe80::100:2 }
+
+// INSTRUCTION: Define IPv6 VRRP multicast destination.
+HOST vrrp3_all_nodes { IP ff02::12 }
+
+// INSTRUCTION: Define failover takeover advertisement flow with Priority 150.
+FLOW vrrp3_failover_flow(backup, dst) {
+    backup -> dst VRRP VRID 1 PRIORITY 150 VIP fe80::1
+}
+
+// INSTRUCTION: Compile block executing IPv6 VRRPv3 backup takeover.
+COMPILE {
+    vrrp3_failover_flow(vrrp3_v6_backup, vrrp3_all_nodes)
+}

@@ -1,0 +1,30 @@
+// PROMPT: Model an SSH keyboard-interactive 2FA challenge-response using MSG_CODE 50, INFO_REQUEST (60), INFO_RESPONSE (61), and SUCCESS (52).
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SSH, MSG_CODE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint admin_client.
+HOST admin_client {
+    MAC 00:1a:a0:60:61:01
+    IP 10.60.22.10
+}
+
+// INSTRUCTION: Define host endpoint pam_bastion.
+HOST pam_bastion {
+    MAC 00:1a:a0:60:61:02
+    IP 10.60.22.1
+}
+
+// INSTRUCTION: Request keyboard-interactive auth (50), receive TOTP prompt (60), send OTP (61), and succeed (52).
+FLOW ssh_keyboard_interactive_totp(admin_client, pam_bastion) {
+    admin_client -> pam_bastion TCP SYN SRCPORT 62022 DSTPORT 22
+    pam_bastion -> admin_client TCP SYN ACK
+    admin_client -> pam_bastion TCP ACK
+    admin_client -> pam_bastion SSH MSG_CODE 50 PAYLOAD "ops:ssh-connection:keyboard-interactive"
+    pam_bastion -> admin_client SSH MSG_CODE 60 PAYLOAD "Verification code: "
+    admin_client -> pam_bastion SSH MSG_CODE 61 PAYLOAD "482910"
+    pam_bastion -> admin_client SSH MSG_CODE 52
+}
+
+// INSTRUCTION: Compile the SSH keyboard-interactive 2FA authentication flow.
+COMPILE {
+    ssh_keyboard_interactive_totp(admin_client, pam_bastion)
+}

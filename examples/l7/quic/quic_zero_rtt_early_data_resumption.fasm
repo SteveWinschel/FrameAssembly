@@ -1,0 +1,21 @@
+// PROMPT: QUIC 0-RTT early data resumption sending application data alongside INITIAL packet.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, DCID, SCID, PKT_NUM, WAIT, ZERO_RTT, PAYLOAD, HANDSHAKE, SHORT, COMPILE
+
+// INSTRUCTION: Define returning client with cached TLS 1.3 session ticket.
+HOST returning_client { IP 172.16.80.12 }
+
+// INSTRUCTION: Define low-latency API server supporting 0-RTT.
+HOST api_edge { IP 172.16.80.1 }
+
+// INSTRUCTION: Define Initial + ZERO_RTT flight followed by Handshake and Short 1-RTT reply.
+FLOW quic_zero_rtt_resumption(c, s) {
+    c -> s QUIC INITIAL DCID 0xa1b2c3d4 SCID 0x10203040 PKT_NUM 1 WAIT 1ms
+    c -> s QUIC ZERO_RTT DCID 0xa1b2c3d4 SCID 0x10203040 PKT_NUM 2 PAYLOAD "GET /v1/quotes" WAIT 4ms
+    c <- s QUIC HANDSHAKE DCID 0x10203040 SCID 0xa1b2c3d4 PKT_NUM 1 WAIT 2ms
+    c <- s QUIC SHORT DCID 0x10203040 PKT_NUM 2 PAYLOAD "{\"symbol\":\"RUST\",\"price\":199.5}"
+}
+
+// INSTRUCTION: Compile QUIC 0-RTT early data flow.
+COMPILE {
+    quic_zero_rtt_resumption(returning_client, api_edge)
+}

@@ -1,0 +1,19 @@
+// PROMPT: TLS application data record transmitting encrypted secure web payload.
+// TOKENS: HOST, IP, FLOW, TLS, APP_DATA, COMPILE
+
+// INSTRUCTION: Define established session client.
+HOST established_client { IP 192.168.100.4 }
+
+// INSTRUCTION: Define established session server.
+HOST established_server { IP 192.168.100.1 }
+
+// INSTRUCTION: Define encrypted application data transmission flow.
+FLOW tls_app_data_flow(c, s) {
+    c -> s TLS APP_DATA
+    c <- s TLS APP_DATA
+}
+
+// INSTRUCTION: Compile block executing application data flow.
+COMPILE {
+    tls_app_data_flow(established_client, established_server)
+}

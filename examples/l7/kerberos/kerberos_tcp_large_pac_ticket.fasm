@@ -1,0 +1,25 @@
+// PROMPT: Kerberos over TCP port 88 with full 3-way handshake for large PAC-heavy Active Directory tickets.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, KERBEROS, TRANSPORT, AS_REQ, REALM, CNAME, SNAME, ETYPE, AS_REP, FIN, COMPILE
+
+// INSTRUCTION: Define Windows enterprise workstation with large group membership PAC.
+HOST pac_client { IP 10.88.10.99 }
+
+// INSTRUCTION: Define Active Directory KDC listening on TCP port 88.
+HOST tcp_kdc { IP 10.88.10.1 }
+
+// INSTRUCTION: Establish TCP connection on port 88, exchange Kerberos AS_REQ/AS_REP over TCP, and close.
+FLOW krb5_tcp_session(c, k) {
+    c -> k TCP SYN SRCPORT 51088 DSTPORT 88
+    c <- k TCP SYN ACK
+    c -> k TCP ACK
+    c -> k KERBEROS TRANSPORT TCP AS_REQ REALM "AD.ENTERPRISE.COM" CNAME "svc_sql" SNAME "krbtgt/AD.ENTERPRISE.COM" ETYPE 18
+    c <- k KERBEROS TRANSPORT TCP AS_REP REALM "AD.ENTERPRISE.COM" CNAME "svc_sql" SNAME "krbtgt/AD.ENTERPRISE.COM" ETYPE 18
+    c -> k TCP FIN ACK
+    c <- k TCP FIN ACK
+    c -> k TCP ACK
+}
+
+// INSTRUCTION: Compile the Kerberos over TCP session lifecycle.
+COMPILE {
+    krb5_tcp_session(pac_client, tcp_kdc)
+}

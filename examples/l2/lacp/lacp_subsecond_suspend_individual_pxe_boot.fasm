@@ -1,0 +1,26 @@
+// PROMPT: Bare-metal server in PXE boot stage before OS bonding driver loads, triggering switch LACP suspend-individual evaluation.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define switch port sending active LACP probes to an unconfigured PXE-booting server NIC.
+HOST tor_pxe_port {
+    IP 10.10.50.1
+    MAC 00:1c:73:0a:32:01
+}
+
+// INSTRUCTION: Define bare-metal server BIOS PXE ROM before LACP teaming initializes.
+HOST pxe_boot_server {
+    IP 10.10.50.99
+    MAC 00:25:90:0a:32:63
+}
+
+// INSTRUCTION: Transmit initial switch LACP probe (State 69 Defaulted) followed by OS boot LACP response (State 63).
+FLOW lacp_pxe_to_os_handover(sw, srv) {
+    sw -> srv LACP ACTOR_SYS 00:1c:73:0a:32:01 ACTOR_KEY 50 ACTOR_PORT 12 ACTOR_STATE 69 PARTNER_SYS 00:00:00:00:00:00 PARTNER_KEY 0 PARTNER_PORT 0 PARTNER_STATE 64 WAIT 10ms
+    sw <- srv LACP ACTOR_SYS 00:25:90:0a:32:63 ACTOR_KEY 50 ACTOR_PORT 1 ACTOR_STATE 63 PARTNER_SYS 00:1c:73:0a:32:01 PARTNER_KEY 50 PARTNER_PORT 12 PARTNER_STATE 69 WAIT 5ms
+    sw -> srv LACP ACTOR_SYS 00:1c:73:0a:32:01 ACTOR_KEY 50 ACTOR_PORT 12 ACTOR_STATE 63 PARTNER_SYS 00:25:90:0a:32:63 PARTNER_KEY 50 PARTNER_PORT 1 PARTNER_STATE 63
+}
+
+// INSTRUCTION: Compile the PXE boot to OS LACP bond synchronization sequence.
+COMPILE {
+    lacp_pxe_to_os_handover(tor_pxe_port, pxe_boot_server)
+}

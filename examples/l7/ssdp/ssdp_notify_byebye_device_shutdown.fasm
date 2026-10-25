@@ -1,0 +1,26 @@
+// PROMPT: Simulate a UPnP SSDP NOTIFY ssdp:byebye multicast advertisement announcing device shutdown.
+// TOKENS: HOST, MAC, IP, FLOW, SSDP, NOTIFY, HOST_HDR, NT, NTS, USN, TTL, COMPILE
+
+// INSTRUCTION: Define host endpoint dlna_server.
+HOST dlna_server {
+    MAC 00:11:32:aa:bb:01
+    IP 192.168.1.50
+}
+
+// INSTRUCTION: Define host endpoint ssdp_mcast.
+HOST ssdp_mcast {
+    MAC 01:00:5e:7f:ff:fa
+    IP 239.255.255.250
+}
+
+// INSTRUCTION: Broadcast two SSDP NOTIFY ssdp:byebye messages for the rootdevice and media server UUID.
+FLOW ssdp_byebye_shutdown(dlna_server, ssdp_mcast) {
+    dlna_server -> ssdp_mcast SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "upnp:rootdevice" NTS "ssdp:byebye" USN "uuid:2f402f80-da50-11e1-9b23-001132aabb01::upnp:rootdevice" TTL 4
+    dlna_server -> ssdp_mcast SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "urn:schemas-upnp-org:device:MediaServer:1" NTS "ssdp:byebye"
+        USN "uuid:2f402f80-da50-11e1-9b23-001132aabb01::urn:schemas-upnp-org:device:MediaServer:1" TTL 4
+}
+
+// INSTRUCTION: Compile the SSDP ssdp:byebye graceful departure flow.
+COMPILE {
+    ssdp_byebye_shutdown(dlna_server, ssdp_mcast)
+}

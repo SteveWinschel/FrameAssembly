@@ -1,0 +1,24 @@
+// PROMPT: Default IMAP4rev2 frame emission on TCP port 143 using automatic RFC 9051 defaults.
+// TOKENS: HOST, IP, MAC, FLOW, IMAP, COMPILE
+
+// INSTRUCTION: Define desktop email client host.
+HOST mail_client {
+    IP 192.168.14.10
+    MAC 00:1b:21:14:30:01
+}
+
+// INSTRUCTION: Define Dovecot IMAP server host.
+HOST dovecot_srv {
+    IP 192.168.14.1
+    MAC 00:1b:21:14:30:02
+}
+
+// INSTRUCTION: Emit a default IMAP frame without optional sub-keywords.
+FLOW imap_default(c, s) {
+    c -> s IMAP
+}
+
+// INSTRUCTION: Compile the default IMAP scenario.
+COMPILE {
+    imap_default(mail_client, dovecot_srv)
+}

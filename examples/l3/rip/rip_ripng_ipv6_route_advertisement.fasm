@@ -1,0 +1,18 @@
+// PROMPT: Pure IPv6 RIPng route advertisement sent to multicast ff02::9 on UDP port 521.
+// TOKENS: HOST, IP, FLOW, RIP, RESPONSE, COMPILE
+
+// INSTRUCTION: Define IPv6 campus router 1 on link-local interface.
+HOST ripng_rtr_1 { IP fe80::1001:1 }
+
+// INSTRUCTION: Define standard RIPng all-routers multicast group ff02::9.
+HOST ripng_all_routers_dst { IP ff02::9 }
+
+// INSTRUCTION: Define RIPng route table update advertisement flow.
+FLOW ripng_advert_flow(rtr, dst) {
+    rtr -> dst RIP RESPONSE
+}
+
+// INSTRUCTION: Compile block executing IPv6 RIPng route advertisement.
+COMPILE {
+    ripng_advert_flow(ripng_rtr_1, ripng_all_routers_dst)
+}

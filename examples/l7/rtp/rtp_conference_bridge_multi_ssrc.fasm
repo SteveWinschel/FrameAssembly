@@ -1,0 +1,23 @@
+// PROMPT: Multi-party audio conference bridge mixing three participant SSRCs.
+// TOKENS: HOST, IP, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, WAIT, COMPILE
+
+// INSTRUCTION: Define central MCU audio conference mixer.
+HOST mcu_mixer { IP 10.80.50.1 }
+
+// INSTRUCTION: Define conference participant 1.
+HOST part_one { IP 10.80.50.11 }
+
+// INSTRUCTION: Define conference participant 2.
+HOST part_two { IP 10.80.50.12 }
+
+// INSTRUCTION: Define RTP leg between participant and MCU mixer.
+FLOW rtp_conf_leg(p, mcu) {
+    p -> mcu RTP PT 0 TIMESTAMP 160 SSRC 0xaaaa0001 MARKER 1 WAIT 10ms
+    p <- mcu RTP PT 0 TIMESTAMP 160 SSRC 0xbbbb0001 MARKER 1
+}
+
+// INSTRUCTION: Compile RTP flows for both conference participants.
+COMPILE {
+    rtp_conf_leg(part_one, mcu_mixer)
+    rtp_conf_leg(part_two, mcu_mixer)
+}

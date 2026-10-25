@@ -1,0 +1,33 @@
+// PROMPT: Generate an SSDP M-SEARCH for a UPnP MediaRenderer:1 smart speaker and its ssdp:alive descriptor advertisement.
+// TOKENS: HOST, MAC, IP, FLOW, SSDP, MSEARCH, HOST_HDR, MAN, MX, ST, NOTIFY, NT, NTS, USN, LOCATION, COMPILE
+
+// INSTRUCTION: Define host endpoint mobile_app.
+HOST mobile_app {
+    MAC 00:26:bb:01:02:03
+    IP 10.0.10.25
+}
+
+// INSTRUCTION: Define host endpoint speaker_renderer.
+HOST speaker_renderer {
+    MAC 00:0e:58:aa:bb:cc
+    IP 10.0.10.80
+}
+
+// INSTRUCTION: Define host endpoint mcast_ssdp.
+HOST mcast_ssdp {
+    MAC 01:00:5e:7f:ff:fa
+    IP 239.255.255.250
+}
+
+// INSTRUCTION: Search for MediaRenderer:1 and receive the renderer's LOCATION descriptor.
+FLOW ssdp_media_renderer_probe(mobile_app, speaker_renderer, mcast_ssdp) {
+    mobile_app -> mcast_ssdp SSDP MSEARCH HOST_HDR "239.255.255.250:1900" MAN "\"ssdp:discover\"" MX 1 ST "urn:schemas-upnp-org:device:MediaRenderer:1"
+    speaker_renderer -> mobile_app SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "urn:schemas-upnp-org:device:MediaRenderer:1" NTS "ssdp:alive"
+        USN "uuid:RINCON_000E58AABBCC01400::urn:schemas-upnp-org:device:MediaRenderer:1"
+        LOCATION "http://10.0.10.80:1400/xml/device_description.xml"
+}
+
+// INSTRUCTION: Compile the SSDP MediaRenderer discovery flow.
+COMPILE {
+    ssdp_media_renderer_probe(mobile_app, speaker_renderer, mcast_ssdp)
+}

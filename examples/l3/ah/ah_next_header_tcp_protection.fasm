@@ -1,0 +1,19 @@
+// PROMPT: IPsec Authentication Header specifying Next Header protocol number for TCP transport.
+// TOKENS: HOST, IP, FLOW, AH, SPI, SEQ, NEXT_HEADER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define application server initiating transport-mode AH protection.
+HOST app_node_primary { IP 10.40.1.15 }
+
+// INSTRUCTION: Define database backend verifying transport-mode AH headers.
+HOST db_node_replica { IP 10.40.1.25 }
+
+// INSTRUCTION: Define AH transport flow with NEXT_HEADER set to 6 (TCP).
+FLOW ah_next_header_tcp(app, db) {
+    app -> db AH SPI 4100 SEQ 1 NEXT_HEADER 6 PAYLOAD "SYNC_COMMIT_BATCH_01"
+    app <- db AH SPI 4101 SEQ 1 NEXT_HEADER 6 PAYLOAD "ACK_COMMIT_BATCH_01"
+}
+
+// INSTRUCTION: Compile the AH Next Header transport verification flow.
+COMPILE {
+    ah_next_header_tcp(app_node_primary, db_node_replica)
+}

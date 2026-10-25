@@ -1,0 +1,25 @@
+// PROMPT: Simulate a Kubernetes container runtime OOM/eviction warning forwarded over QinQ (S-VLAN 600, C-VLAN 60) via Syslog.
+// TOKENS: HOST, MAC, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define host endpoint k8s_worker.
+HOST k8s_worker {
+    MAC 00:26:b9:51:40:60
+    IP 10.60.60.12
+}
+
+// INSTRUCTION: Define host endpoint cluster_sink.
+HOST cluster_sink {
+    MAC 00:26:b9:51:40:01
+    IP 10.60.60.1
+}
+
+// INSTRUCTION: Forward kubelet pod eviction warnings under Facility 19 (Local3) with QinQ 600/60 tags.
+FLOW syslog_k8s_kubelet_eviction_qinq(k8s_worker, cluster_sink) {
+    k8s_worker -> cluster_sink SYSLOG FACILITY 19 SEVERITY 4 HOSTNAME "k8s-node-12" APP "kubelet" PROCID "1420"
+        MSG "Evicting pod analytics/spark-exec-77b due to nodefs.available < 10%" QINQ 600 INNER_VLAN 60
+}
+
+// INSTRUCTION: Compile the QinQ-tagged Kubernetes kubelet syslog flow.
+COMPILE {
+    syslog_k8s_kubelet_eviction_qinq(k8s_worker, cluster_sink)
+}

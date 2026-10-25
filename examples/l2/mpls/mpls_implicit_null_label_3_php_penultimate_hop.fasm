@@ -1,0 +1,25 @@
+// PROMPT: Penultimate Hop Popping (PHP) signaling via reserved Implicit Null Label 3 and delivering final hop with MPLS_TTL 1.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, ICMP, ECHO_REQUEST, ID, SEQ, PAYLOAD, WAIT, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define penultimate Label Switch Router (P-router) forwarding toward egress PE.
+HOST php_penultimate_p {
+    IP 10.100.3.1
+    MAC 00:1c:73:64:03:01
+}
+
+// INSTRUCTION: Define egress Provider Edge (PE-router) receiving penultimate hop VPNv4 label 24003.
+HOST php_egress_pe {
+    IP 10.100.3.2
+    MAC 00:1c:73:64:03:02
+}
+
+// INSTRUCTION: Forward exposed inner VPN label 24003 with BOS 1 after outer transport label PHP pop.
+FLOW mpls_php_delivery(p_rtr, pe_rtr) {
+    p_rtr -> pe_rtr MPLS 24003 EXP 4 BOS 1 MPLS_TTL 61 ICMP ECHO_REQUEST ID 300 SEQ 1 PAYLOAD "php_exposed_inner_vrf_label" WAIT 5ms
+    p_rtr <- pe_rtr MPLS 24004 EXP 4 BOS 1 MPLS_TTL 64 ICMP ECHO_REPLY ID 300 SEQ 1 PAYLOAD "php_exposed_inner_vrf_label"
+}
+
+// INSTRUCTION: Compile the Penultimate Hop Popping exposed VPN label delivery trace.
+COMPILE {
+    mpls_php_delivery(php_penultimate_p, php_egress_pe)
+}

@@ -1,0 +1,23 @@
+// PROMPT: Periodic SSDP alive announcement broadcast in a COMPILE LOOP.
+// TOKENS: HOST, IP, FLOW, SSDP, NOTIFY, NT, NTS, USN, COMPILE, LOOP
+
+// INSTRUCTION: Define home media server beacon.
+HOST media_beacon { IP 192.168.1.200 }
+
+// INSTRUCTION: Define UPnP multicast group endpoint.
+HOST beacon_group { IP 239.255.255.250 }
+
+// INSTRUCTION: Define periodic heartbeat notification flow.
+FLOW ssdp_beacon_flow(c, s) {
+    c -> s SSDP NOTIFY
+        NT "upnp:rootdevice"
+        NTS "ssdp:alive"
+        USN "uuid:beacon-service-01::upnp:rootdevice"
+}
+
+// INSTRUCTION: Compile block broadcasting 3 periodic heartbeat frames.
+COMPILE {
+    LOOP 3 {
+        ssdp_beacon_flow(media_beacon, beacon_group)
+    }
+}

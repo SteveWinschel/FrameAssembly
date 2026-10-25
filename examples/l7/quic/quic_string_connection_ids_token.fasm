@@ -1,0 +1,24 @@
+// PROMPT: QUIC Initial handshake using string literal DCID, SCID, and address validation TOKEN fields.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, VERSION, DCID, SCID, TOKEN, PKT_NUM, WAIT, HANDSHAKE, COMPILE
+
+// INSTRUCTION: Define browser client initiating QUIC connection with string CIDs.
+HOST str_cid_client {
+    IP 192.168.90.40
+}
+
+// INSTRUCTION: Define edge server validating QUIC retry token.
+HOST str_cid_server {
+    IP 192.168.90.1
+}
+
+// INSTRUCTION: Define QUIC Initial and Handshake packets using string DCID, SCID, and TOKEN values.
+FLOW quic_string_cids(c, s) {
+    c -> s QUIC INITIAL VERSION 1 DCID "a1b2c3d4e5f60718" SCID "1807f6e5d4c3b2a1" TOKEN "retry_tok_998877" PKT_NUM 2 WAIT 5ms
+    c <- s QUIC INITIAL VERSION 1 DCID "1807f6e5d4c3b2a1" SCID "fedcba9876543210" PKT_NUM 1 WAIT 5ms
+    c <- s QUIC HANDSHAKE VERSION 1 DCID "1807f6e5d4c3b2a1" SCID "fedcba9876543210" PKT_NUM 2
+}
+
+// INSTRUCTION: Compile the string CID QUIC handshake scenario.
+COMPILE {
+    quic_string_cids(str_cid_client, str_cid_server)
+}

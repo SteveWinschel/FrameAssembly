@@ -1,0 +1,28 @@
+// PROMPT: Mutual TLS (mTLS) zero-trust service mesh handshake where both server and client send CERTIFICATE records.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, ALPN, WAIT, SERVER_HELLO, CIPHERSUITE, CERTIFICATE, FINISHED, APP_DATA, COMPILE
+
+// INSTRUCTION: Define order-processing microservice client workload.
+HOST order_svc {
+    IP 10.244.1.18
+}
+
+// INSTRUCTION: Define payment-vault microservice server workload.
+HOST payment_svc {
+    IP 10.244.2.34
+}
+
+// INSTRUCTION: Define mTLS handshake with bidirectional CERTIFICATE and FINISHED messages.
+FLOW mtls_mesh_handshake(c, s) {
+    c -> s TLS CLIENT_HELLO SNI "payment.mesh.internal" ALPN "istio" WAIT 2ms
+    c <- s TLS SERVER_HELLO CIPHERSUITE 0x1302 ALPN "istio" WAIT 2ms
+    c <- s TLS CERTIFICATE WAIT 2ms
+    c <- s TLS FINISHED WAIT 2ms
+    c -> s TLS CERTIFICATE WAIT 2ms
+    c -> s TLS FINISHED WAIT 2ms
+    c -> s TLS APP_DATA
+}
+
+// INSTRUCTION: Compile the service mesh mTLS handshake flow.
+COMPILE {
+    mtls_mesh_handshake(order_svc, payment_svc)
+}

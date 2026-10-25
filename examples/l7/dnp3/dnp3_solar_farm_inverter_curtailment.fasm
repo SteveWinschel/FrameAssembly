@@ -1,0 +1,27 @@
+// PROMPT: Utility solar farm active power curtailment command over DNP3 TCP port 20000 with DSCP CS6.
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, DSCP, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the Independent System Operator (ISO) curtailment master.
+HOST iso_master {
+    IP 172.30.125.1
+    MAC 00:1a:2b:1e:7d:01
+}
+
+// INSTRUCTION: Define the 150MW solar farm Power Plant Controller (PPC) outstation.
+HOST solar_ppc {
+    IP 172.30.125.100
+    MAC 00:1a:2b:1e:7d:64
+}
+
+// INSTRUCTION: Issue Direct Operate on Group 41 Variation 3 (Single-Precision Float Analog Output) with DSCP 48.
+FLOW dnp3_solar_curtail(m, p) {
+    m -> p DNP3 FUNC "DIRECT_OPERATE" SRC 10 DST 100 GROUP 41 VARIATION 3 DSCP 48 HEXPAYLOAD "010000964200"
+    m <- p DNP3 FUNC "RESPONSE" SRC 100 DST 10 GROUP 41 VARIATION 3 DSCP 48 WAIT 2ms
+    m -> p DNP3 FUNC "READ" SRC 10 DST 100 GROUP 30 VARIATION 5 DSCP 48
+    m <- p DNP3 FUNC "RESPONSE" SRC 100 DST 10 GROUP 30 VARIATION 5 DSCP 48
+}
+
+// INSTRUCTION: Compile the DNP3 solar farm curtailment flow.
+COMPILE {
+    dnp3_solar_curtail(iso_master, solar_ppc)
+}

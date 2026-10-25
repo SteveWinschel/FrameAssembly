@@ -1,1 +1,23 @@
-*.fasm linguist-language=FrameAssembly
+# FrameAssembly Custom Domain-Specific Language
+*.fasm linguist-language=FrameAssembly linguist-detectable=true linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
+
+# Formal Grammars (EBNF, GBNF, Lark)
+*.ebnf linguist-language=EBNF linguist-detectable=true text eol=lf
+*.gbnf linguist-language=GBNF linguist-documentation=true text eol=lf
+*.lark linguist-language=Lark linguist-documentation=true text eol=lf
+
+# Documentation, Citation & AI Context Files
+*.md text eol=lf
+docs/*.md linguist-documentation=true text eol=lf
+llms.txt text eol=lf linguist-documentation=true
+llms-full.txt text eol=lf linguist-documentation=true
+CITATION.cff text eol=lf
+codemeta.json text eol=lf
+context7.json text eol=lf
+AGENTS.md text eol=lf
+CLAUDE.md text eol=lf
+
+# Binary & Packaged Extension Artifacts
+*.vsix binary linguist-generated=true
+*.pcap binary
+*.pcapng binary

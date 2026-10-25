@@ -1,0 +1,27 @@
+// PROMPT: Siemens S7comm PLC_CONTROL (0x28) job stopping and restarting an S7-300 CPU during maintenance.
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the SIMATIC STEP 7 engineering station.
+HOST step7_pg {
+    IP 10.130.1.50
+    MAC 00:1a:2b:82:01:50
+}
+
+// INSTRUCTION: Define the Siemens S7-300 CPU 315-2 PN/DP controller.
+HOST s7_300_cpu {
+    IP 10.130.1.1
+    MAC 00:1a:2b:82:01:01
+}
+
+// INSTRUCTION: Send PLC_CONTROL JOB with PDU_REF 10 to transition the PLC run mode and receive ACK_DATA.
+FLOW s7_cpu_mode_ctrl(pg, plc) {
+    pg -> plc S7COMM ROSCTR "JOB" PDU_REF 10 FUNC "PLC_CONTROL" PAYLOAD "P_PROGRAM"
+    pg <- plc S7COMM ROSCTR "ACK_DATA" PDU_REF 10 FUNC "PLC_CONTROL" WAIT 5ms
+    pg -> plc S7COMM ROSCTR "JOB" PDU_REF 11 FUNC "PLC_CONTROL" PAYLOAD "P_PROGRAM"
+    pg <- plc S7COMM ROSCTR "ACK_DATA" PDU_REF 11 FUNC "PLC_CONTROL"
+}
+
+// INSTRUCTION: Compile the S7comm PLC_CONTROL mode transition flow.
+COMPILE {
+    s7_cpu_mode_ctrl(step7_pg, s7_300_cpu)
+}

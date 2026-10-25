@@ -1,0 +1,19 @@
+// PROMPT: Diffie-Hellman key exchange initialization with cryptographic cookie.
+// TOKENS: HOST, IP, FLOW, SSH, KEXINIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define client node.
+HOST client_node { IP 10.15.0.4 }
+
+// INSTRUCTION: Define security gateway server.
+HOST sec_gw { IP 10.15.0.1 }
+
+// INSTRUCTION: Define KEXINIT parameter exchange flow.
+FLOW ssh_kex_flow(c, s) {
+    c -> s SSH KEXINIT PAYLOAD "0123456789abcdef"
+    c <- s SSH KEXINIT PAYLOAD "fedcba9876543210"
+}
+
+// INSTRUCTION: Compile block executing KEXINIT exchange.
+COMPILE {
+    ssh_kex_flow(client_node, sec_gw)
+}

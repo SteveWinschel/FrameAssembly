@@ -1,0 +1,31 @@
+// PROMPT: Model an SMTP STARTTLS opportunistic encryption upgrade negotiation (220 2.0.0 Ready to start TLS).
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SMTP, CODE, REPLY, EHLO, CMD, COMPILE
+
+// INSTRUCTION: Define the sending MTA and receiving MX server.
+HOST sending_mta {
+    MAC 00:50:56:81:25:01
+    IP 198.51.100.25
+}
+
+// INSTRUCTION: Define the receiving_mx mail endpoint.
+HOST receiving_mx {
+    MAC 00:50:56:81:25:02
+    IP 203.0.113.25
+}
+
+// INSTRUCTION: Perform TCP handshake, exchange EHLO, and issue STARTTLS command receiving 220 Ready.
+FLOW smtp_starttls_negotiation(sending_mta, receiving_mx) {
+    sending_mta -> receiving_mx TCP SYN SRCPORT 51025 DSTPORT 25
+    receiving_mx -> sending_mta TCP SYN ACK
+    sending_mta -> receiving_mx TCP ACK
+    receiving_mx -> sending_mta SMTP CODE 220 REPLY "mx.example.org ESMTP Postfix"
+    sending_mta -> receiving_mx SMTP EHLO "out.sender.net"
+    receiving_mx -> sending_mta SMTP CODE 250 REPLY "STARTTLS"
+    sending_mta -> receiving_mx SMTP CMD "STARTTLS"
+    receiving_mx -> sending_mta SMTP CODE 220 REPLY "2.0.0 Ready to start TLS"
+}
+
+// INSTRUCTION: Compile the SMTP STARTTLS upgrade flow.
+COMPILE {
+    smtp_starttls_negotiation(sending_mta, receiving_mx)
+}

@@ -1,0 +1,27 @@
+// PROMPT: Offshore wind farm collector polling DNP3 Group 30 Variation 3 (32-bit Analog Input without Flag) blade pitch.
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, VLAN, WAIT, COMPILE
+
+// INSTRUCTION: Define the offshore substation collector SCADA server.
+HOST offshore_scada {
+    IP 10.125.130.1
+    MAC 00:1a:2b:7d:d0:01
+}
+
+// INSTRUCTION: Define Wind Turbine Generator 18 (WTG-18) DNP3 controller.
+HOST wtg_18_rtu {
+    IP 10.125.130.18
+    MAC 00:1a:2b:7d:d0:18
+}
+
+// INSTRUCTION: Read 32-bit Analog Inputs (Group 30 Var 3) and Running Counters (Group 20 Var 5) over VLAN 125.
+FLOW dnp3_wtg_poll(s, w) {
+    s -> w DNP3 FUNC "READ" SRC 1 DST 18 GROUP 30 VARIATION 3 VLAN 125
+    s <- w DNP3 FUNC "RESPONSE" SRC 18 DST 1 GROUP 30 VARIATION 3 VLAN 125 WAIT 2ms
+    s -> w DNP3 FUNC "READ" SRC 1 DST 18 GROUP 20 VARIATION 5 VLAN 125
+    s <- w DNP3 FUNC "RESPONSE" SRC 18 DST 1 GROUP 20 VARIATION 5 VLAN 125
+}
+
+// INSTRUCTION: Compile the offshore wind turbine DNP3 telemetry flow.
+COMPILE {
+    dnp3_wtg_poll(offshore_scada, wtg_18_rtu)
+}

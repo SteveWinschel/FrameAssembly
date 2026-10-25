@@ -1,0 +1,25 @@
+// PROMPT: Combined IEEE 802.1ad QinQ (S-VLAN 1800, C-VLAN 80) and RFC 3032 MPLS Label 180800 encapsulation at a wholesale NNI handoff.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, MPLS, EXP, BOS, MPLS_TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define wholesale metro aggregation PE router A.
+HOST nni_qinq_mpls_a {
+    IP 10.180.80.1
+    MAC 00:1c:73:b4:50:01
+}
+
+// INSTRUCTION: Define partner carrier NNI border PE router B.
+HOST nni_qinq_mpls_b {
+    IP 10.180.80.2
+    MAC 00:1c:73:b4:50:02
+}
+
+// INSTRUCTION: Stack QinQ S-VLAN 1800 C-VLAN 80 outer L2 tags with MPLS label 180800 EXP 5.
+FLOW mpls_over_qinq_nni(a, b) {
+    a -> b QINQ 1800 INNER_VLAN 80 MPLS 180800 EXP 5 BOS 1 MPLS_TTL 64 PAYLOAD "carrier_nni_qinq_plus_mpls_pseudowire_pdu" WAIT 5ms
+    a <- b QINQ 1800 INNER_VLAN 80 MPLS 180801 EXP 5 BOS 1 MPLS_TTL 64 PAYLOAD "carrier_nni_qinq_plus_mpls_pseudowire_ack"
+}
+
+// INSTRUCTION: Compile the combined QinQ + MPLS carrier NNI handoff trace.
+COMPILE {
+    mpls_over_qinq_nni(nni_qinq_mpls_a, nni_qinq_mpls_b)
+}

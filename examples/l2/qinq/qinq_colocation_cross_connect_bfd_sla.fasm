@@ -1,0 +1,25 @@
+// PROMPT: Colocation carrier-hotel virtual cross-connect running sub-second UDP BFD liveness probes over QinQ S-VLAN 750 C-VLAN 75.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSCP, TTL, BFD, STATE, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, WAIT, COMPILE
+
+// INSTRUCTION: Define enterprise cage router A on colocation fabric S-VLAN 750 C-VLAN 75.
+HOST colo_cage_rtr_a {
+    IP 192.0.2.75
+    MAC 00:25:90:02:4b:01
+}
+
+// INSTRUCTION: Define cloud exchange cage router B on colocation fabric S-VLAN 750 C-VLAN 75.
+HOST colo_cage_rtr_b {
+    IP 192.0.2.76
+    MAC 00:25:90:02:4b:02
+}
+
+// INSTRUCTION: Exchange BFD control frames with TTL 255 and DSCP CS6 inside QinQ S-VLAN 750 C-VLAN 75.
+FLOW qinq_colo_bfd_sla(a, b) {
+    a -> b QINQ 750 INNER_VLAN 75 DSCP 48 TTL 255 BFD STATE 3 MY_DISC 7501 YOUR_DISC 7502 MIN_TX 50000 MIN_RX 50000 MULT 3 WAIT 5ms
+    a <- b QINQ 750 INNER_VLAN 75 DSCP 48 TTL 255 BFD STATE 3 MY_DISC 7502 YOUR_DISC 7501 MIN_TX 50000 MIN_RX 50000 MULT 3
+}
+
+// INSTRUCTION: Compile the colocation virtual cross-connect QinQ BFD SLA verification trace.
+COMPILE {
+    qinq_colo_bfd_sla(colo_cage_rtr_a, colo_cage_rtr_b)
+}

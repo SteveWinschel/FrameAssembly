@@ -1,0 +1,18 @@
+// PROMPT: Default POP3 command emission with zero sub-keywords on TCP port 110.
+// TOKENS: HOST, IP, MAC, FLOW, POP3, COMPILE
+
+// INSTRUCTION: Define workstation mail client.
+HOST mail_client { IP 192.168.10.25 MAC 00:11:22:33:44:19 }
+
+// INSTRUCTION: Define corporate POP3 server.
+HOST pop3_srv { IP 192.168.10.5 MAC 00:11:22:33:44:05 }
+
+// INSTRUCTION: Define flow sending default POP3 frame.
+FLOW pop3_default(c, s) {
+    c -> s POP3
+}
+
+// INSTRUCTION: Compile default POP3 scenario.
+COMPILE {
+    pop3_default(mail_client, pop3_srv)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Dual-stack IPv4 and IPv6 QUIC connection establishment using a shared polymorphic flow.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, DCID, SCID, PKT_NUM, DSCP, TTL, FLOWLABEL, HANDSHAKE, SHORT, COMPILE
+
+// INSTRUCTION: Define IPv4 QUIC client and server.
+HOST quic_v4_c { IP 10.44.3.10 }
+// INSTRUCTION: Define IPv4 QUIC server endpoint.
+HOST quic_v4_s { IP 10.44.3.1 }
+
+// INSTRUCTION: Define IPv6 QUIC client and server.
+HOST quic_v6_c { IP 2001:db8:443::10 }
+// INSTRUCTION: Define IPv6 QUIC server endpoint.
+HOST quic_v6_s { IP 2001:db8:443::1 }
+
+// INSTRUCTION: Define polymorphic QUIC handshake and 1-RTT exchange.
+FLOW quic_dual_stack(c, s) {
+    c -> s QUIC INITIAL DCID 0x01020304 SCID 0x05060708 PKT_NUM 1 DSCP 34 TTL 64 FLOWLABEL 0x44300
+    c <- s QUIC HANDSHAKE DCID 0x05060708 SCID 0x01020304 PKT_NUM 1 DSCP 34 TTL 64 FLOWLABEL 0x44300
+    c -> s QUIC SHORT DCID 0x01020304 PKT_NUM 2 DSCP 34 TTL 64 FLOWLABEL 0x44300
+}
+
+// INSTRUCTION: Compile dual-stack QUIC flow over IPv4 and IPv6.
+COMPILE {
+    quic_dual_stack(quic_v4_c, quic_v4_s)
+    quic_dual_stack(quic_v6_c, quic_v6_s)
+}

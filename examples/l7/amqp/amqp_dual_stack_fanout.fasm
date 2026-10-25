@@ -1,0 +1,27 @@
+// PROMPT: Dual-stack AMQP message publishing executing the same polymorphic flow over IPv4 and IPv6.
+// TOKENS: HOST, IP, FLOW, AMQP, CHANNEL_OPEN, CHANNEL, BASIC_PUBLISH, EXCHANGE, ROUTING_KEY, BASIC_DELIVER, COMPILE
+
+// INSTRUCTION: Define IPv4 AMQP publisher.
+HOST pub_v4 { IP 10.10.5.20 }
+
+// INSTRUCTION: Define IPv4 AMQP broker.
+HOST brk_v4 { IP 10.10.5.1 }
+
+// INSTRUCTION: Define IPv6 AMQP publisher.
+HOST pub_v6 { IP 2001:db8:5672::20 }
+
+// INSTRUCTION: Define IPv6 AMQP broker.
+HOST brk_v6 { IP 2001:db8:5672::1 }
+
+// INSTRUCTION: Define polymorphic AMQP channel open, publish, and delivery flow.
+FLOW amqp_dual_dispatch(p, b) {
+    p -> b AMQP CHANNEL_OPEN CHANNEL 1
+    p -> b AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "events.fanout" ROUTING_KEY ""
+    p <- b AMQP BASIC_DELIVER CHANNEL 1 EXCHANGE "events.fanout" ROUTING_KEY ""
+}
+
+// INSTRUCTION: Execute the polymorphic flow over both IPv4 and IPv6 endpoint pairs.
+COMPILE {
+    amqp_dual_dispatch(pub_v4, brk_v4)
+    amqp_dual_dispatch(pub_v6, brk_v6)
+}

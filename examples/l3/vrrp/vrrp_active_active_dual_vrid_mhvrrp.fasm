@@ -1,0 +1,26 @@
+// PROMPT: Multi-group VRRP load sharing where Router A is Master for VRID 101 (Backup for 102) and Router B is Master for VRID 102.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define Core Router A (Master for VRID 101 VIP 10.10.0.1, Backup for VRID 102).
+HOST mhvrrp_router_a {
+    IP 10.10.0.252
+    MAC 00:00:5e:00:01:65
+}
+
+// INSTRUCTION: Define Core Router B (Master for VRID 102 VIP 10.10.0.2, Backup for VRID 101).
+HOST mhvrrp_router_b {
+    IP 10.10.0.253
+    MAC 00:00:5e:00:01:66
+}
+
+// INSTRUCTION: Define bidirectional VRRPv3 advertisements load-sharing VRID 101 and VRID 102.
+FLOW vrrp_dual_vrid_active_active(rtr_a, rtr_b) {
+    rtr_a -> rtr_b VRRP VRID 101 PRIORITY 200 ADV_INT 50 VIP 10.10.0.1 VERSION 3 DSCP 48 TTL 255 WAIT 10ms
+    rtr_a <- rtr_b VRRP VRID 102 PRIORITY 200 ADV_INT 50 VIP 10.10.0.2 VERSION 3 DSCP 48 TTL 255 WAIT 10ms
+    rtr_a -> rtr_b VRRP VRID 101 PRIORITY 200 ADV_INT 50 VIP 10.10.0.1 VERSION 3 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the dual-VRID active-active VRRP load-sharing flow.
+COMPILE {
+    vrrp_dual_vrid_active_active(mhvrrp_router_a, mhvrrp_router_b)
+}

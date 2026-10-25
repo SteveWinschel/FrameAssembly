@@ -1,0 +1,18 @@
+// PROMPT: LDAP query navigating organizational unit hierarchy using base DN scoping.
+// TOKENS: HOST, IP, FLOW, LDAP, SEARCH_REQ, MSGID, BASE_DN, FILTER, COMPILE
+
+// INSTRUCTION: Define HR portal directory service.
+HOST hr_portal { IP 172.28.1.10 }
+
+// INSTRUCTION: Define corporate LDAP directory host.
+HOST hr_ldap_host { IP 172.28.1.2 }
+
+// INSTRUCTION: Define organizational hierarchy query flow.
+FLOW ou_hierarchy_query(app, dir) {
+    app -> dir LDAP SEARCH_REQ MSGID 33 BASE_DN "ou=departments,ou=emea,dc=global,dc=com" FILTER "(objectClass=organizationalUnit)"
+}
+
+// INSTRUCTION: Compile OU structural query scenario.
+COMPILE {
+    ou_hierarchy_query(hr_portal, hr_ldap_host)
+}

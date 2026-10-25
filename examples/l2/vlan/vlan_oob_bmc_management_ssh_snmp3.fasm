@@ -1,0 +1,26 @@
+// PROMPT: Out-of-band IPMI/BMC management VLAN 4000 carrying SSH and SNMPv3 health monitoring.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, SSH, BANNER, WAIT, SNMP3, GET, USER, AUTH, SHA256, PRIV, AES, VARBIND, STRING, COMPILE
+
+// INSTRUCTION: Define bastion management jump host on OOB VLAN 4000.
+HOST oob_bastion {
+    IP 10.240.0.5
+    MAC 00:25:90:00:b0:05
+}
+
+// INSTRUCTION: Define rack server BMC controller on OOB VLAN 4000.
+HOST bmc_controller {
+    IP 10.240.0.101
+    MAC 00:25:90:ee:01:01
+}
+
+// INSTRUCTION: Define OOB management VLAN 4000 SSH banner check and SNMPv3 thermal sensor poll.
+FLOW oob_bmc_management(bastion, bmc) {
+    bastion -> bmc VLAN 4000 PCP 2 SSH BANNER "SSH-2.0-OpenSSH_9.6"
+    bastion <- bmc VLAN 4000 PCP 2 SSH BANNER "SSH-2.0-OpenBMC_2.14" WAIT 3ms
+    bastion -> bmc VLAN 4000 PCP 2 SNMP3 GET USER "bmc_admin" AUTH SHA256 "OobAuthKey2026!" PRIV AES "OobPrivKey2026!" VARBIND 1.3.6.1.2.1.1.5.0 STRING "rack01-bmc" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing OOB management VLAN 4000 session.
+COMPILE {
+    oob_bmc_management(oob_bastion, bmc_controller)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Dual active-active VRRP gateway setup load sharing traffic across VRID 1 and VRID 2.
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, VIP, COMPILE
+
+// INSTRUCTION: Define gateway router A serving as master for VRID 1.
+HOST gw_router_a { IP 192.168.1.254 }
+
+// INSTRUCTION: Define gateway router B serving as master for VRID 2.
+HOST gw_router_b { IP 192.168.1.253 }
+
+// INSTRUCTION: Define multi-VRID advertisement flow alternating virtual gateway responsibilities.
+FLOW vrrp_load_share_flow(gw_a, gw_b) {
+    gw_a -> gw_b VRRP VRID 1 PRIORITY 200 VIP 192.168.1.1
+    gw_b -> gw_a VRRP VRID 2 PRIORITY 200 VIP 192.168.1.2
+}
+
+// INSTRUCTION: Compile block executing active-active VRRP load sharing.
+COMPILE {
+    vrrp_load_share_flow(gw_router_a, gw_router_b)
+}

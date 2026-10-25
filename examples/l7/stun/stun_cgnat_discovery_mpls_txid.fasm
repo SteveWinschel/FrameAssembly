@@ -1,0 +1,25 @@
+// PROMPT: Generate a STUN Binding Request and Response carrying a custom TXID and MPLS label 3478 across a service provider core.
+// TOKENS: HOST, MAC, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, TXID, MPLS, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define host endpoint cpe_gateway.
+HOST cpe_gateway {
+    MAC 00:21:5a:34:78:01
+    IP 100.64.10.55
+}
+
+// INSTRUCTION: Define host endpoint carrier_stun.
+HOST carrier_stun {
+    MAC 00:21:5a:34:78:99
+    IP 198.18.0.10
+}
+
+// INSTRUCTION: Probe the carrier STUN server over MPLS label 3478 with explicit TXID 9001.
+FLOW stun_carrier_cgnat_mpls(cpe_gateway, carrier_stun) {
+    cpe_gateway -> carrier_stun STUN BINDING_REQUEST SOFTWARE "TR-069-STUN-Client" TXID 9001 MPLS 3478
+    carrier_stun -> cpe_gateway STUN BINDING_RESPONSE XOR_MAPPED_ADDR 198.51.100.250 SOFTWARE "Carrier-STUN/3.1" TXID 9001 MPLS 3478
+}
+
+// INSTRUCTION: Compile the MPLS-labeled CGNAT STUN discovery flow.
+COMPILE {
+    stun_carrier_cgnat_mpls(cpe_gateway, carrier_stun)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Cisco ERSPAN Type III (GRE_PROTO 0x22EB = 8939) streaming hardware-timestamped SPAN mirror frames to a probe.
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, DSCP, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define data center spine switch mirroring 100G port traffic via ERSPAN Type III.
+HOST spine_erspan_v3_src {
+    IP 10.47.89.1
+    MAC 00:1c:73:47:89:01
+}
+
+// INSTRUCTION: Define network packet broker / NDR security analyzer ingesting ERSPAN Type III.
+HOST ndr_erspan_v3_sink {
+    IP 10.47.89.100
+    MAC 00:25:b5:47:89:64
+}
+
+// INSTRUCTION: Define GRE frames with GRE_PROTO 8939 (0x22EB ERSPAN Type III), GRE_SEQ, and GRE_KEY session ID.
+FLOW gre_erspan_type3_stream(spine, ndr) {
+    spine -> ndr GRE GRE_KEY 301 GRE_SEQ 5001 GRE_PROTO 8939 DSCP 16 DF TTL 64 PAYLOAD "ERSPAN_III_VER2_VLAN100_SGT15_TS_1698235400" WAIT 2ms
+    spine -> ndr GRE GRE_KEY 301 GRE_SEQ 5002 GRE_PROTO 8939 DSCP 16 DF TTL 64 PAYLOAD "ERSPAN_III_VER2_VLAN100_SGT15_TS_1698235402"
+}
+
+// INSTRUCTION: Compile the ERSPAN Type III (GRE_PROTO 0x22EB) traffic mirroring flow.
+COMPILE {
+    gre_erspan_type3_stream(spine_erspan_v3_src, ndr_erspan_v3_sink)
+}

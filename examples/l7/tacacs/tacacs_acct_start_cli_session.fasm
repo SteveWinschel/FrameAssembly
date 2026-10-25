@@ -1,0 +1,19 @@
+// PROMPT: Accounting START record logging initial administrator login timestamp.
+// TOKENS: HOST, IP, FLOW, TACACS, TYPE, ACCT, USER, SESSION_ID, COMPILE
+
+// INSTRUCTION: Define management gateway NAS.
+HOST mgmt_gateway { IP 10.210.1.2 }
+
+// INSTRUCTION: Define central accounting database.
+HOST acct_db { IP 10.210.1.1 }
+
+// INSTRUCTION: Define session accounting START flow.
+FLOW tacacs_acct_start_flow(c, s) {
+    c -> s TACACS TYPE ACCT USER "cisco_admin" SESSION_ID 11070
+    c <- s TACACS TYPE ACCT USER "cisco_admin" SESSION_ID 11070
+}
+
+// INSTRUCTION: Compile block executing accounting START.
+COMPILE {
+    tacacs_acct_start_flow(mgmt_gateway, acct_db)
+}

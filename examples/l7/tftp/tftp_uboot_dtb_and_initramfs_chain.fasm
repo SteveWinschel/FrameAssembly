@@ -1,0 +1,29 @@
+// PROMPT: Embedded U-Boot bootloader sequentially fetching a Linux Device Tree Blob and initramfs archive via TFTP.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, RRQ, FILENAME, MODE, DATA, BLOCK, PAYLOAD, ACK, WAIT, COMPILE
+
+// INSTRUCTION: Define embedded ARM development board running U-Boot.
+HOST uboot_board {
+    IP 192.168.100.150
+    MAC 02:80:ad:20:31:96
+}
+
+// INSTRUCTION: Define developer workstation TFTP server.
+HOST dev_tftp_host {
+    IP 192.168.100.1
+    MAC 02:80:ad:20:31:01
+}
+
+// INSTRUCTION: Fetch board DTB followed by initramfs cpio image over TFTP.
+FLOW tftp_uboot_chain(board, srv) {
+    board -> srv TFTP RRQ FILENAME "bcm2711-rpi-4-b.dtb" MODE "octet"
+    board <- srv TFTP DATA BLOCK 1 PAYLOAD "d00dfeed-fdt-header"
+    board -> srv TFTP ACK BLOCK 1 WAIT 5ms
+    board -> srv TFTP RRQ FILENAME "initramfs-linux.cpio.gz" MODE "octet"
+    board <- srv TFTP DATA BLOCK 1 PAYLOAD "1f8b0800-initramfs"
+    board -> srv TFTP ACK BLOCK 1
+}
+
+// INSTRUCTION: Compile the U-Boot DTB and initramfs TFTP chainboot scenario.
+COMPILE {
+    tftp_uboot_chain(uboot_board, dev_tftp_host)
+}

@@ -1,0 +1,25 @@
+// PROMPT: RFC 4303 IPsec ESP over IPv6 encapsulating inner IPv6 tenant packets (Next Header 41) across a global backbone.
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, FLOWLABEL, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Frankfurt IPv6 IPsec VPN concentrator.
+HOST fra_v6_esp_gw {
+    IP 2001:db8:49:50::1
+    MAC 00:25:90:49:50:01
+}
+
+// INSTRUCTION: Define Tokyo IPv6 IPsec VPN concentrator.
+HOST nrt_v6_esp_gw {
+    IP 2001:db8:81:50::1
+    MAC 00:25:90:81:50:02
+}
+
+// INSTRUCTION: Define IPv6 ESP tunnel mode (NEXT_HEADER 41) with Flow Label 50041 and AF41 QoS.
+FLOW esp_v6_in_v6_tunnel(fra, nrt) {
+    fra -> nrt ESP SPI 600411 SEQ 1 IV "20010db800490050" ICV "112233445566778899aabbccddeeff00" NEXT_HEADER 41 FLOWLABEL 50041 DSCP 34 TTL 58 PAYLOAD "IPV6_INNER_ENCRYPTED_PAYLOAD_REQ" WAIT 10ms
+    fra <- nrt ESP SPI 600412 SEQ 1 IV "20010db800810050" ICV "00ffeeddccbbaa998877665544332211" NEXT_HEADER 41 FLOWLABEL 50041 DSCP 34 TTL 58 PAYLOAD "IPV6_INNER_ENCRYPTED_PAYLOAD_ACK"
+}
+
+// INSTRUCTION: Compile the IPv6-in-IPv6 ESP tunnel mode flow.
+COMPILE {
+    esp_v6_in_v6_tunnel(fra_v6_esp_gw, nrt_v6_esp_gw)
+}

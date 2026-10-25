@@ -1,0 +1,29 @@
+// PROMPT: ONVIF Profile T intercom camera negotiating bidirectional audio backchannel via RTSP SETUP.
+// TOKENS: HOST, IP, FLOW, RTSP, DESCRIBE, URI, CSEQ, WAIT, STATUS, SETUP, TRANSPORT_HDR, SESSION, PLAY, COMPILE
+
+// INSTRUCTION: Define security guard station VMS console.
+HOST guard_vms {
+    IP 192.168.105.10
+}
+
+// INSTRUCTION: Define front-gate ONVIF door intercom camera.
+HOST gate_intercom {
+    IP 192.168.105.50
+}
+
+// INSTRUCTION: Define ONVIF RTSP setup for video track and audio backchannel track.
+FLOW rtsp_onvif_backchannel(c, s) {
+    c -> s RTSP DESCRIBE URI "rtsp://192.168.105.50/onvif-media/media.amp" CSEQ 1 WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 1 WAIT 4ms
+    c -> s RTSP SETUP URI "rtsp://192.168.105.50/onvif-media/media.amp/trackID=1" CSEQ 2 TRANSPORT_HDR "RTP/AVP;unicast;client_port=5100-5101" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 2 SESSION "onvif_bc_99" WAIT 4ms
+    c -> s RTSP SETUP URI "rtsp://192.168.105.50/onvif-media/media.amp/trackID=backchannel" CSEQ 3 SESSION "onvif_bc_99" TRANSPORT_HDR "RTP/AVP;unicast;client_port=5102-5103" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 3 SESSION "onvif_bc_99" WAIT 4ms
+    c -> s RTSP PLAY URI "rtsp://192.168.105.50/onvif-media/media.amp" CSEQ 4 SESSION "onvif_bc_99" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 4 SESSION "onvif_bc_99"
+}
+
+// INSTRUCTION: Compile the ONVIF RTSP audio backchannel scenario.
+COMPILE {
+    rtsp_onvif_backchannel(guard_vms, gate_intercom)
+}

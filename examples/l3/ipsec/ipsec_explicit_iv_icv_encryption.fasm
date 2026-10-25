@@ -1,0 +1,19 @@
+// PROMPT: IPsec security association frame specifying explicit SPI, Sequence, IV, and ICV bytes.
+// TOKENS: HOST, IP, MAC, FLOW, IPSEC, SPI, SEQ, IV, ICV, COMPILE
+
+// INSTRUCTION: Define corporate VPN headend gateway.
+HOST corp_ipsec_hq { IP 198.51.100.5 MAC 00:1b:21:cc:00:01 }
+
+// INSTRUCTION: Define regional branch VPN gateway.
+HOST branch_ipsec_gw { IP 203.0.113.5 MAC 00:1b:21:cc:00:02 }
+
+// INSTRUCTION: Define bidirectional IPsec exchange with explicit IV and ICV fields.
+FLOW ipsec_iv_icv_flow(hq, br) {
+    hq -> br IPSEC SPI 204800 SEQ 1 IV "0102030405060708" ICV "a1b2c3d4e5f60718293a4b5c"
+    hq <- br IPSEC SPI 204801 SEQ 1 IV "0807060504030201" ICV "c5b4a39281706f5e4d3c2b1a"
+}
+
+// INSTRUCTION: Compile the explicit IV and ICV IPsec flow.
+COMPILE {
+    ipsec_iv_icv_flow(corp_ipsec_hq, branch_ipsec_gw)
+}

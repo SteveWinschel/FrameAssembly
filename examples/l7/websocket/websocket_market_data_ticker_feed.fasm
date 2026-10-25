@@ -1,0 +1,19 @@
+// PROMPT: Financial exchange market data streaming ticker updates via text frames.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+
+// INSTRUCTION: Define algorithmic trading workstation.
+HOST algo_trader { IP 10.99.1.5 }
+
+// INSTRUCTION: Define low-latency market exchange server.
+HOST exchange_engine { IP 10.99.1.1 }
+
+// INSTRUCTION: Define market quote streaming flow.
+FLOW ws_ticker_flow(c, s) {
+    c -> s WEBSOCKET OPCODE "TEXT" FIN_BIT 1 MASK_KEY 876543210
+    c <- s WEBSOCKET OPCODE "TEXT" FIN_BIT 1 MASK_KEY 0
+}
+
+// INSTRUCTION: Compile block executing market ticker updates.
+COMPILE {
+    ws_ticker_flow(algo_trader, exchange_engine)
+}

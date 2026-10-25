@@ -1,0 +1,18 @@
+// PROMPT: MQTT client session connection specifying client ID and clean session initiation.
+// TOKENS: HOST, IP, FLOW, MQTT, CONNECT, CLIENT_ID, COMPILE
+
+// INSTRUCTION: Define offshore oil rig telemetry node.
+HOST offshore_telemetry { IP 198.51.100.14 }
+
+// INSTRUCTION: Define onshore central MQTT broker.
+HOST onshore_broker { IP 198.51.100.1 }
+
+// INSTRUCTION: Define extended keepalive connection flow.
+FLOW extended_keepalive_conn(node, brk) {
+    node -> brk MQTT CONNECT CLIENT_ID "offshore-rig-alpha"
+}
+
+// INSTRUCTION: Compile custom keepalive connection scenario.
+COMPILE {
+    extended_keepalive_conn(offshore_telemetry, onshore_broker)
+}

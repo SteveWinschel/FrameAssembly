@@ -1,0 +1,33 @@
+// PROMPT: High-availability campus distribution layer combining RSTP loop prevention, VRRP and HSRP first-hop redundancy, and Gratuitous ARP.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, FLAGS, VRRP, VRID, PRIORITY, VIP, WAIT, HSRP, GROUP, STATE, ARP, GARP, SHA, SPA, COMPILE
+
+// INSTRUCTION: Define primary distribution switch A (RSTP Root and VRRP/HSRP Active).
+HOST campus_dist_pri {
+    IP 10.100.10.2
+    MAC 00:1c:73:64:0a:02
+}
+
+// INSTRUCTION: Define secondary distribution switch B (RSTP Backup and VRRP/HSRP Standby).
+HOST campus_dist_sec {
+    IP 10.100.10.3
+    MAC 00:1c:73:64:0a:03
+}
+
+// INSTRUCTION: Define access layer switch uplink receiving FHRP and RSTP control frames.
+HOST campus_access_sw {
+    IP 10.100.10.10
+    MAC 00:1c:73:64:0a:0a
+}
+
+// INSTRUCTION: Define RSTP convergence, VRRP VRID 10 advertisement, HSRP Group 20 hello, and VIP Gratuitous ARP.
+FLOW campus_ha_fhrp_stp(pri, sec, acc) {
+    pri -> acc VLAN 10 PCP 7 STP RSTP ROOT_ID "4096:00:1c:73:64:0a:02" BRIDGE_ID "4096:00:1c:73:64:0a:02" COST 0 FLAGS 60
+    pri -> sec VLAN 10 PCP 6 VRRP VRID 10 PRIORITY 150 VIP 10.100.10.1 WAIT 2ms
+    sec -> pri VLAN 20 PCP 6 HSRP GROUP 20 PRIORITY 110 STATE 16 VIP 10.100.20.1 WAIT 2ms
+    pri -> acc VLAN 10 PCP 6 ARP GARP SHA 00:00:5e:00:01:0a SPA 10.100.10.1 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing campus RSTP, VRRP, HSRP, and GARP redundancy topology.
+COMPILE {
+    campus_ha_fhrp_stp(campus_dist_pri, campus_dist_sec, campus_access_sw)
+}

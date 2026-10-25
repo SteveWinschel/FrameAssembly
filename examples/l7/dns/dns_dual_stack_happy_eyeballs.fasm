@@ -1,0 +1,28 @@
+// PROMPT: Dual-stack DNS happy eyeballs parallel A and AAAA lookups over IPv4 and IPv6 resolvers.
+// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define dual-stack client IPv4 interface.
+HOST client_v4 { IP 192.168.100.20 }
+
+// INSTRUCTION: Define IPv4 public DNS resolver.
+HOST dns_v4 { IP 8.8.4.4 }
+
+// INSTRUCTION: Define dual-stack client IPv6 interface.
+HOST client_v6 { IP 2001:db8:100::20 }
+
+// INSTRUCTION: Define IPv6 public DNS resolver.
+HOST dns_v6 { IP 2001:4860:4860::8844 }
+
+// INSTRUCTION: Query A and AAAA records polymorphically across IPv4 and IPv6 transport.
+FLOW dns_happy_eyeballs(c, d) {
+    c -> d DNS QUERY TXID 0x1010 QNAME "dual.example.com" QTYPE "A"
+    c <- d DNS RESPONSE TXID 0x1010 QNAME "dual.example.com" QTYPE "A" RDATA "93.184.216.34" ANS_TTL 300
+    c -> d DNS QUERY TXID 0x1011 QNAME "dual.example.com" QTYPE "AAAA"
+    c <- d DNS RESPONSE TXID 0x1011 QNAME "dual.example.com" QTYPE "AAAA" RDATA "2606:2800:220:1::248" ANS_TTL 300
+}
+
+// INSTRUCTION: Execute happy eyeballs DNS resolution on both IPv4 and IPv6 stacks.
+COMPILE {
+    dns_happy_eyeballs(client_v4, dns_v4)
+    dns_happy_eyeballs(client_v6, dns_v6)
+}

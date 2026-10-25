@@ -1,0 +1,29 @@
+// PROMPT: Multi-domain PTP boundary clock distributing Domain 0 and Domain 1 to separate followers.
+// TOKENS: HOST, IP, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, CLOCK_ID, WAIT, FOLLOW_UP, COMPILE
+
+// INSTRUCTION: Define multi-domain boundary clock.
+HOST boundary_clk { IP 10.88.158.1 }
+
+// INSTRUCTION: Define Domain 0 industrial automation follower.
+HOST dom0_slave { IP 10.88.158.11 }
+
+// INSTRUCTION: Define Domain 1 audio AES67 media follower.
+HOST dom1_slave { IP 10.88.158.12 }
+
+// INSTRUCTION: Define Domain 0 PTP flow.
+FLOW ptp_dom0_sync(bc, s0) {
+    bc -> s0 PTP SYNC DOMAIN 0 SEQ_ID 15 CLOCK_ID "BCLOCK00" WAIT 1ms
+    bc -> s0 PTP FOLLOW_UP DOMAIN 0 SEQ_ID 15 CLOCK_ID "BCLOCK00"
+}
+
+// INSTRUCTION: Define Domain 1 PTP flow.
+FLOW ptp_dom1_sync(bc, s1) {
+    bc -> s1 PTP SYNC DOMAIN 1 SEQ_ID 85 CLOCK_ID "BCLOCK01" WAIT 1ms
+    bc -> s1 PTP FOLLOW_UP DOMAIN 1 SEQ_ID 85 CLOCK_ID "BCLOCK01"
+}
+
+// INSTRUCTION: Compile both PTP domains sequentially.
+COMPILE {
+    ptp_dom0_sync(boundary_clk, dom0_slave)
+    ptp_dom1_sync(boundary_clk, dom1_slave)
+}

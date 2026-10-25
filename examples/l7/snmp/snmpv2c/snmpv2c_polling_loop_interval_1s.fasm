@@ -1,5 +1,5 @@
 // PROMPT: Simulate periodic 1-second SNMPv2c CPU and memory utilization polling using a LOOP block and WAIT 1s interval.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, GET, RESPONSE, COMMUNITY, REQID, VARBIND, NULLVAL, GAUGE32, WAIT, ms, s, COMPILE, LOOP
+// TOKENS: HOST, IP, MAC, FLOW, SNMP2, GET, COMMUNITY, REQID, VARBIND, NULLVAL, WAIT, RESPONSE, GAUGE32, COMPILE, LOOP
 
 // INSTRUCTION: Define a Prometheus snmp_exporter host with IP 10.133.0.10.
 HOST snmp_exporter { IP 10.133.0.10 MAC 02:42:0a:85:00:0a }

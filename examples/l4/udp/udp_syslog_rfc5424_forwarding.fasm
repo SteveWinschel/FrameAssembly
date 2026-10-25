@@ -1,5 +1,5 @@
 // PROMPT: Simulate RFC 5424 Syslog security audit messages forwarded over UDP port 514 from an edge router to a SIEM log collector.
-// TOKENS: HOST, IP, MAC, FLOW, ->, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define an edge router generating syslog events with IP 172.16.1.1.
 HOST edge_router { IP 172.16.1.1 MAC 00:1e:67:01:01:01 }

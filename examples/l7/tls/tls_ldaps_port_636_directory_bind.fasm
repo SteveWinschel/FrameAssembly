@@ -1,0 +1,27 @@
+// PROMPT: Active Directory LDAPS authentication bind over TLS on TCP port 636.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, SRCPORT, DSTPORT, WAIT, SERVER_HELLO, CIPHERSUITE, CERTIFICATE, FINISHED, APP_DATA, COMPILE
+
+// INSTRUCTION: Define Linux SSO authentication daemon host.
+HOST sssd_node {
+    IP 10.100.12.75
+}
+
+// INSTRUCTION: Define enterprise Domain Controller LDAPS host.
+HOST dc_ldaps {
+    IP 10.100.12.1
+}
+
+// INSTRUCTION: Define LDAPS TLS handshake and encrypted bind exchange on port 636.
+FLOW tls_ldaps_636(c, s) {
+    c -> s TLS CLIENT_HELLO SNI "dc01.ad.corp.local" SRCPORT 49636 DSTPORT 636 WAIT 3ms
+    c <- s TLS SERVER_HELLO CIPHERSUITE 0xc02f SRCPORT 636 DSTPORT 49636 WAIT 3ms
+    c <- s TLS CERTIFICATE SRCPORT 636 DSTPORT 49636 WAIT 3ms
+    c -> s TLS FINISHED SRCPORT 49636 DSTPORT 636 WAIT 3ms
+    c <- s TLS FINISHED SRCPORT 636 DSTPORT 49636 WAIT 3ms
+    c -> s TLS APP_DATA SRCPORT 49636 DSTPORT 636
+}
+
+// INSTRUCTION: Compile the LDAPS port 636 TLS authentication flow.
+COMPILE {
+    tls_ldaps_636(sssd_node, dc_ldaps)
+}

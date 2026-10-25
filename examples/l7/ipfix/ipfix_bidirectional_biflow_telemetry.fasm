@@ -1,0 +1,19 @@
+// PROMPT: IPFIX bidirectional biflow telemetry reporting TCP payload metrics between core routers.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, WAIT, COMPILE
+
+// INSTRUCTION: Define core router ingress interface.
+HOST core_ingress { IP 10.150.1.1 }
+
+// INSTRUCTION: Define centralized IPFIX collector node.
+HOST ipfix_collector { IP 10.150.10.50 }
+
+// INSTRUCTION: Define bidirectional flow export metrics.
+FLOW biflow_telemetry(ing, col) {
+    ing -> col IPFIX DOMAIN_ID 501 SRCIP 172.20.10.14 DSTIP 172.20.20.88 SRCPORT 443 DSTPORT 51234 PROTO 6 PACKETS 320 OCTETS 450200 WAIT 10ms
+    ing -> col IPFIX DOMAIN_ID 501 SRCIP 172.20.20.88 DSTIP 172.20.10.14 SRCPORT 51234 DSTPORT 443 PROTO 6 PACKETS 410 OCTETS 52400
+}
+
+// INSTRUCTION: Compile biflow telemetry export scenario.
+COMPILE {
+    biflow_telemetry(core_ingress, ipfix_collector)
+}

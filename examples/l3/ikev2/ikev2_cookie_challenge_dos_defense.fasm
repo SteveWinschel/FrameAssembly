@@ -1,0 +1,21 @@
+// PROMPT: RFC 7296 IKEv2 stateless COOKIE challenge (Next Payload 41 Notify) defending against DoS floods.
+// TOKENS: HOST, IP, FLOW, IKEV2, SA_INIT, INITIATOR_SPI, RESPONDER_SPI, MSGID, FLAGS, NEXT_PAYLOAD, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define remote initiator retrying SA_INIT with stateless cookie.
+HOST cookie_ike_init { IP 198.51.100.199 }
+
+// INSTRUCTION: Define DDoS-protected IKEv2 responder issuing Cookie Notify (Next Payload 41).
+HOST cookie_ike_resp { IP 203.0.113.199 }
+
+// INSTRUCTION: Define initial SA_INIT, stateless Cookie challenge (RESPONDER_SPI 0), and retried SA_INIT.
+FLOW ikev2_cookie_challenge(init, resp) {
+    init -> resp IKEV2 SA_INIT INITIATOR_SPI 555666777 RESPONDER_SPI 0 MSGID 0 FLAGS 8 NEXT_PAYLOAD 33
+    init <- resp IKEV2 SA_INIT INITIATOR_SPI 555666777 RESPONDER_SPI 0 MSGID 0 FLAGS 32 NEXT_PAYLOAD 41 PAYLOAD "COOKIE_CHALLENGE_TOKEN"
+    init -> resp IKEV2 SA_INIT INITIATOR_SPI 555666777 RESPONDER_SPI 0 MSGID 0 FLAGS 8 NEXT_PAYLOAD 41 PAYLOAD "COOKIE_CHALLENGE_TOKEN"
+    init <- resp IKEV2 SA_INIT INITIATOR_SPI 555666777 RESPONDER_SPI 888999000 MSGID 0 FLAGS 32 NEXT_PAYLOAD 33
+}
+
+// INSTRUCTION: Compile the IKEv2 stateless Cookie challenge flow.
+COMPILE {
+    ikev2_cookie_challenge(cookie_ike_init, cookie_ike_resp)
+}

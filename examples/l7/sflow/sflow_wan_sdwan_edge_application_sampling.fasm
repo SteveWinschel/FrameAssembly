@@ -1,0 +1,25 @@
+// PROMPT: sFlow v5 export from an SD-WAN branch appliance sampling SaaS breakout traffic over broadband links.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, WAIT, COMPILE
+
+// INSTRUCTION: Define SD-WAN branch edge appliance.
+HOST sdwan_branch {
+    IP 10.132.15.1
+    MAC 00:18:0a:84:0f:01
+}
+
+// INSTRUCTION: Define SD-WAN orchestrator analytics sFlow collector.
+HOST sdwan_analytics {
+    IP 10.132.0.50
+    MAC 00:18:0a:84:00:32
+}
+
+// INSTRUCTION: Export periodic SD-WAN application breakout sFlow samples.
+FLOW sflow_sdwan_edge(edge, ana) {
+    edge -> ana SFLOW AGENT_IP 10.132.15.1 SUB_AGENT_ID 1 UPTIME 288000 SAMPLES 6 WAIT 20ms
+    edge -> ana SFLOW AGENT_IP 10.132.15.1 SUB_AGENT_ID 1 UPTIME 288020 SAMPLES 9
+}
+
+// INSTRUCTION: Compile the SD-WAN branch edge sFlow sampling scenario.
+COMPILE {
+    sflow_sdwan_edge(sdwan_branch, sdwan_analytics)
+}

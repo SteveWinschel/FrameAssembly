@@ -1,0 +1,21 @@
+// PROMPT: Opportunistic TLS upgrade using STARTTLS command and 220 server confirmation.
+// TOKENS: HOST, IP, FLOW, SMTP, EHLO, CODE, REPLY, CMD, COMPILE
+
+// INSTRUCTION: Define sending MTA node.
+HOST sending_mta { IP 192.168.12.10 }
+
+// INSTRUCTION: Define receiving MTA node.
+HOST receiving_mta { IP 192.168.12.1 }
+
+// INSTRUCTION: Define STARTTLS protocol negotiation flow.
+FLOW smtp_starttls_flow(c, s) {
+    c -> s SMTP EHLO "mta1.internal.net"
+    c <- s SMTP CODE 250 REPLY "mta2.internal.net Hello, STARTTLS supported"
+    c -> s SMTP CMD "STARTTLS"
+    c <- s SMTP CODE 220 REPLY "2.0.0 Ready to start TLS"
+}
+
+// INSTRUCTION: Compile block executing STARTTLS upgrade.
+COMPILE {
+    smtp_starttls_flow(sending_mta, receiving_mta)
+}

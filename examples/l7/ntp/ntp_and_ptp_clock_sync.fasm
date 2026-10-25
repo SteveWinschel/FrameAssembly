@@ -1,5 +1,5 @@
 // PROMPT: Network Time Protocol client mode on UDP 123 and Precision Time Protocol synchronization on UDP 319.
-// TOKENS: HOST, IP, FLOW, ->, NTP, MODE, STRATUM, PTP, MSG_TYPE, SYNC, DOMAIN_ID, COMPILE
+// TOKENS: HOST, IP, FLOW, NTP, MODE, STRATUM, PTP, MSG_TYPE, SYNC, DOMAIN_ID, COMPILE
 
 // INSTRUCTION: Define time synchronization client.
 HOST time_client { IP 10.0.1.10 }

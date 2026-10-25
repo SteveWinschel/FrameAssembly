@@ -1,5 +1,5 @@
 // PROMPT: Network service discovery via SSDP M-SEARCH and domain registry query via WHOIS on TCP 43.
-// TOKENS: HOST, IP, FLOW, ->, SSDP, MSEARCH, ST, WHOIS, QUERY, DOMAIN, COMPILE
+// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, ST, WHOIS, QUERY, DOMAIN, COMPILE
 
 // INSTRUCTION: Define network workstation scanner.
 HOST scanner_host { IP 192.168.1.99 }

@@ -1,5 +1,5 @@
 // PROMPT: OpenFlow controller-to-switch liveliness verification with ECHO_REQUEST and ECHO_REPLY.
-// TOKENS: HOST, IP, FLOW, ->, <-, OPENFLOW, TYPE, ECHO_REQUEST, ECHO_REPLY, XID, COMPILE
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, ECHO_REQUEST, XID, ECHO_REPLY, COMPILE
 
 // INSTRUCTION: Define SDN controller.
 HOST sdn_ctrl { IP 192.168.100.1 }

@@ -1,5 +1,5 @@
 // PROMPT: RFC 3261 SIP VoIP call setup with INVITE method, From, To, and Call-ID headers.
-// TOKENS: HOST, IP, FLOW, ->, SIP, INVITE, FROM, TO, CALL_ID, COMPILE
+// TOKENS: HOST, IP, FLOW, SIP, INVITE, FROM, TO, CALL_ID, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.10 }

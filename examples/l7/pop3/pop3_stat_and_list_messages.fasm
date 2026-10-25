@@ -1,5 +1,5 @@
 // PROMPT: POP3 mailbox status inspection retrieving message count and sizes.
-// TOKENS: HOST, IP, FLOW, ->, <-, POP3, CMD, OK, COMPILE
+// TOKENS: HOST, IP, FLOW, POP3, CMD, OK, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.12 }

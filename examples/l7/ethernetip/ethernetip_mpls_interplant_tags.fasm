@@ -1,0 +1,19 @@
+// PROMPT: Inter-plant EtherNet/IP CIP Produced/Consumed tag exchange transported over MPLS.
+// TOKENS: HOST, IP, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, MPLS, EXP, BOS, MPLS_TTL, PAYLOAD, STATUS, COMPILE
+
+// INSTRUCTION: Define Plant A assembly line PLC.
+HOST plant_a_plc { IP 10.201.1.10 }
+
+// INSTRUCTION: Define Plant B packaging line PLC.
+HOST plant_b_plc { IP 10.202.1.10 }
+
+// INSTRUCTION: Exchange CIP symbolic tag data over MPLS label 4481.
+FLOW enip_mpls_interplant(a, b) {
+    a -> b ETHERNETIP CMD "SendUnitData" SESSION_HANDLE 801 CIP_SERVICE 76 CIP_CLASS 107 CIP_INSTANCE 1 CIP_ATTR 0 MPLS 4481 EXP 5 BOS 1 MPLS_TTL 64 PAYLOAD "BATCH_READY=1"
+    a <- b ETHERNETIP CMD "SendUnitData" SESSION_HANDLE 801 STATUS 0 MPLS 4481 EXP 5 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the MPLS inter-plant EtherNet/IP flow.
+COMPILE {
+    enip_mpls_interplant(plant_a_plc, plant_b_plc)
+}

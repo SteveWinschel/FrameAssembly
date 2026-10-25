@@ -1,0 +1,26 @@
+// PROMPT: Simulate an Active Directory CLDAP UDP port 389 Netlogon DnsDomain ping and response.
+// TOKENS: HOST, IP, MAC, FLOW, LDAP, SRCPORT, DSTPORT, MSGID, SEARCH_REQ, BASE_DN, FILTER, WAIT, SEARCH_ENTRY, SEARCH_DONE, RESULT_CODE, COMPILE
+
+// INSTRUCTION: Define the Windows domain member locating the closest site-aware domain controller.
+HOST domain_member {
+    IP 10.45.12.90
+    MAC 00:15:5d:2d:0c:5a
+}
+
+// INSTRUCTION: Define the Active Directory Domain Controller answering CLDAP pings.
+HOST site_dc {
+    IP 10.45.1.10
+    MAC 00:15:5d:2d:01:0a
+}
+
+// INSTRUCTION: Send an LDAP RootDSE Netlogon filter search and receive the Netlogon attribute entry and completion.
+FLOW cldap_netlogon_ping(c, s) {
+    c -> s LDAP SRCPORT 58412 DSTPORT 389 MSGID 1 SEARCH_REQ BASE_DN "" FILTER "(&(DnsDomain=CORP.EXAMPLE.COM)(Host=WIN-CLIENT01)(NtVer=\06\00\00\00))" WAIT 2ms
+    c <- s LDAP SRCPORT 389 DSTPORT 58412 MSGID 1 SEARCH_ENTRY BASE_DN "" WAIT 1ms
+    c <- s LDAP SRCPORT 389 DSTPORT 58412 MSGID 1 SEARCH_DONE RESULT_CODE 0
+}
+
+// INSTRUCTION: Compile the Active Directory Netlogon LDAP ping trace into a PCAP file.
+COMPILE {
+    cldap_netlogon_ping(domain_member, site_dc)
+}

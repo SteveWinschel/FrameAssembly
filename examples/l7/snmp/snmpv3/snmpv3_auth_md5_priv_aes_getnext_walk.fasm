@@ -1,0 +1,25 @@
+// PROMPT: SNMPv3 authPriv GetNext walk using HMAC-MD5-96 authentication and AES-128 privacy over VLAN 147.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP3, GETNEXT, USER, REQID, ENGINEID, AUTH, MD5, PRIV, AES, VLAN, VARBIND, NULLVAL, RESPONSE, IPVAL, COMPILE
+
+// INSTRUCTION: Define the campus compliance auditor host.
+HOST compliance_nms {
+    IP 10.147.20.15
+    MAC 00:1a:2b:93:20:15
+}
+
+// INSTRUCTION: Define the distribution switch SNMPv3 agent.
+HOST dist_sw_v3 {
+    IP 10.147.20.1
+    MAC 00:1a:2b:93:20:01
+}
+
+// INSTRUCTION: Walk ipAdEntAddr using SNMPv3 GETNEXT authenticated with MD5 and encrypted with AES over VLAN 147.
+FLOW snmpv3_md5_aes_walk(m, a) {
+    m -> a SNMP3 GETNEXT USER "audit_md5" REQID 6301 ENGINEID "80001f88" AUTH MD5 "Md5Key2026!!" PRIV AES "AesKey2026!!" VLAN 147 VARBIND 1.3.6.1.2.1.4.20.1.1 NULLVAL
+    m <- a SNMP3 RESPONSE USER "audit_md5" REQID 6301 ENGINEID "80001f88" AUTH MD5 "Md5Key2026!!" PRIV AES "AesKey2026!!" VLAN 147 VARBIND 1.3.6.1.2.1.4.20.1.1.1 IPVAL 10.147.20.1
+}
+
+// INSTRUCTION: Compile the SNMPv3 MD5 + AES GetNext walk flow.
+COMPILE {
+    snmpv3_md5_aes_walk(compliance_nms, dist_sw_v3)
+}

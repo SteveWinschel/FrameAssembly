@@ -1,0 +1,33 @@
+// PROMPT: Simulate a Telnet TN3270 mainframe terminal session negotiating Terminal Type (Option 24) and End of Record (Option 25) over QinQ.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, QINQ, INNER_VLAN, ACK, TELNET, DO, WILL, OPTION, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint tn3270_client.
+HOST tn3270_client {
+    MAC 00:26:b9:32:70:01
+    IP 10.32.70.15
+}
+
+// INSTRUCTION: Define host endpoint zos_mainframe.
+HOST zos_mainframe {
+    MAC 00:26:b9:32:70:99
+    IP 10.32.70.99
+}
+
+// INSTRUCTION: Negotiate Option 24 (Terminal Type), Option 25 (EOR), and Option 0 (Binary) over QinQ 800/23.
+FLOW telnet_tn3270_mainframe_qinq(tn3270_client, zos_mainframe) {
+    tn3270_client -> zos_mainframe TCP SYN SRCPORT 63023 DSTPORT 23 QINQ 800 INNER_VLAN 23
+    zos_mainframe -> tn3270_client TCP SYN ACK QINQ 800 INNER_VLAN 23
+    tn3270_client -> zos_mainframe TCP ACK QINQ 800 INNER_VLAN 23
+    zos_mainframe -> tn3270_client TELNET DO 24 QINQ 800 INNER_VLAN 23
+    tn3270_client -> zos_mainframe TELNET WILL 24 QINQ 800 INNER_VLAN 23
+    tn3270_client -> zos_mainframe TELNET OPTION 24 PAYLOAD "IBM-3278-2-E" QINQ 800 INNER_VLAN 23
+    zos_mainframe -> tn3270_client TELNET DO 25 QINQ 800 INNER_VLAN 23
+    tn3270_client -> zos_mainframe TELNET WILL 25 QINQ 800 INNER_VLAN 23
+    zos_mainframe -> tn3270_client TELNET WILL 25 QINQ 800 INNER_VLAN 23
+    tn3270_client -> zos_mainframe TELNET DO 25 QINQ 800 INNER_VLAN 23
+}
+
+// INSTRUCTION: Compile the QinQ TN3270 mainframe Telnet flow.
+COMPILE {
+    telnet_tn3270_mainframe_qinq(tn3270_client, zos_mainframe)
+}

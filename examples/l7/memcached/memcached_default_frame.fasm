@@ -1,0 +1,24 @@
+// PROMPT: Generate a minimal default Memcached frame with default protocol parameters between an application server and cache node.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, COMPILE
+
+// INSTRUCTION: Define the web application server querying Memcached.
+HOST web_worker {
+    IP 10.10.40.20
+    MAC 00:1a:2b:40:00:20
+}
+
+// INSTRUCTION: Define the Memcached in-memory caching server.
+HOST cache_node {
+    IP 10.10.40.10
+    MAC 00:1a:2b:40:00:10
+}
+
+// INSTRUCTION: Emit a default Memcached protocol frame using built-in defaults.
+FLOW default_memcached_flow(c, s) {
+    c -> s MEMCACHED
+}
+
+// INSTRUCTION: Compile the default Memcached packet into a PCAP file.
+COMPILE {
+    default_memcached_flow(web_worker, cache_node)
+}

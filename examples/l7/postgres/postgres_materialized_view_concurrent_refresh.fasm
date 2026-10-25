@@ -1,0 +1,29 @@
+// PROMPT: PostgreSQL REFRESH MATERIALIZED VIEW CONCURRENTLY updating pre-aggregated analytics dashboards.
+// TOKENS: HOST, IP, MAC, FLOW, POSTGRES, STARTUP, USER, DB, AUTH_OK, WAIT, READY_FOR_QUERY, SQL, COMMAND_COMPLETE, COMPILE
+
+// INSTRUCTION: Define the scheduled Airflow DAG worker host.
+HOST airflow_worker {
+    IP 10.95.20.40
+    MAC 00:1a:2b:95:20:40
+}
+
+// INSTRUCTION: Define the analytics warehouse PostgreSQL server.
+HOST dw_postgres {
+    IP 10.95.20.10
+    MAC 00:1a:2b:95:20:10
+}
+
+// INSTRUCTION: Connect as dw_etl and refresh the hourly revenue materialized view concurrently.
+FLOW pg_matview_refresh(c, s) {
+    c -> s POSTGRES STARTUP USER "dw_etl" DB "analytics_prod"
+    c <- s POSTGRES AUTH_OK WAIT 1ms
+    c <- s POSTGRES READY_FOR_QUERY WAIT 1ms
+    c -> s POSTGRES SQL "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_hourly_revenue_by_country"
+    c <- s POSTGRES COMMAND_COMPLETE WAIT 5ms
+    c <- s POSTGRES READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile the PostgreSQL materialized view refresh flow.
+COMPILE {
+    pg_matview_refresh(airflow_worker, dw_postgres)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Business intelligence reporting service executing aggregation query across IPv6 underlay.
+// TOKENS: HOST, IP, FLOW, MYSQL, SQL, COMPILE
+
+// INSTRUCTION: Define IPv6 analytics reporting engine.
+HOST analytics_engine { IP 2001:db8:501::55 }
+
+// INSTRUCTION: Define IPv6 MySQL reporting warehouse.
+HOST v6_warehouse_db { IP 2001:db8:501::1 }
+
+// INSTRUCTION: Define aggregation report query flow.
+FLOW analytics_query_flow(eng, db) {
+    eng -> db MYSQL SQL "SELECT region, SUM(revenue) FROM sales_archive GROUP BY region"
+}
+
+// INSTRUCTION: Compile IPv6 analytics query scenario.
+COMPILE {
+    analytics_query_flow(analytics_engine, v6_warehouse_db)
+}

@@ -1,0 +1,21 @@
+// PROMPT: Client-to-server masked text frame transmitting JSON message with FIN bit.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+
+// INSTRUCTION: Define web application browser.
+HOST web_browser { IP 192.168.1.88 }
+
+// INSTRUCTION: Define real-time WebSocket server.
+HOST ws_server { IP 192.168.1.1 }
+
+// INSTRUCTION: Define masked text frame transmission flow.
+FLOW ws_masked_text_flow(c, s) {
+    c -> s WEBSOCKET
+        OPCODE "TEXT"
+        FIN_BIT 1
+        MASK_KEY 305419896
+}
+
+// INSTRUCTION: Compile block executing masked text frame transmission.
+COMPILE {
+    ws_masked_text_flow(web_browser, ws_server)
+}

@@ -1,0 +1,25 @@
+// PROMPT: IPv6-only data center management fabric LLDP discovery between a SmartNIC DPU and Top-of-Rack switch.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define server SmartNIC DPU management interface with IPv6 address.
+HOST dpu_smartnic_v6 {
+    IP 2001:db8:d000:1::50
+    MAC b8:ce:f6:d0:00:32
+}
+
+// INSTRUCTION: Define IPv6 Top-of-Rack switch port connected to SmartNIC DPU.
+HOST tor_v6_switch {
+    IP 2001:db8:d000:1::1
+    MAC b8:ce:f6:d0:00:01
+}
+
+// INSTRUCTION: Define SmartNIC DPU and ToR switch bidirectional LLDP discovery.
+FLOW smartnic_dpu_lldp(dpu, tor) {
+    dpu -> tor LLDP CHASSIS_ID "b8:ce:f6:d0:00:32" PORT_ID "p0" SYSNAME "dpu-bf3-node50.dc6.internal" SYSDESC "BlueField-3 SmartNIC DPU ARMv9" TTL 120
+    dpu <- tor LLDP CHASSIS_ID "b8:ce:f6:d0:00:01" PORT_ID "swp50" SYSNAME "tor-sn5600-rack02.dc6.internal" SYSDESC "SONiC Network OS 202511" TTL 120 WAIT 3ms
+}
+
+// INSTRUCTION: Compile block executing SmartNIC DPU IPv6 LLDP discovery.
+COMPILE {
+    smartnic_dpu_lldp(dpu_smartnic_v6, tor_v6_switch)
+}

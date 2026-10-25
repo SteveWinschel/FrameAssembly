@@ -1,0 +1,38 @@
+// PROMPT: Zero-Trust 802.1X campus access onboarding combining EAPOL supplicant authentication, RADIUS CoA VLAN assignment, DHCP lease, ARP defense, and DNS resolution.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, START, EAP_PACKET, IDENTITY, WAIT, RADIUS, ACCESS_REQUEST, USER, ACCESS_ACCEPT, VLAN, DHCP, DISCOVER, OFFER, YIADDR, ARP, GRATUITOUS, COMPILE
+
+// INSTRUCTION: Define corporate employee laptop connecting to access switch port.
+HOST campus_supplicant {
+    IP 10.88.20.55
+    MAC 3c:52:82:58:14:37
+}
+
+// INSTRUCTION: Define 802.1X authenticator campus access switch.
+HOST nac_access_sw {
+    IP 10.88.0.10
+    MAC 00:1e:bd:58:00:0a
+}
+
+// INSTRUCTION: Define centralized RADIUS NAC, DHCP, and DNS server.
+HOST zero_trust_ise_srv {
+    IP 10.88.0.200
+    MAC 00:50:56:58:00:c8
+}
+
+// INSTRUCTION: Define 802.1X EAPOL start, RADIUS authentication, VLAN 20 DHCP lease, gratuitous ARP, and DNS lookup.
+FLOW zero_trust_campus_onboarding(sup, sw, ise) {
+    sup -> sw EAPOL VERSION 2 TYPE START
+    sup -> sw EAPOL VERSION 2 TYPE EAP_PACKET IDENTITY "corp\\alice" WAIT 1ms
+    sw -> ise RADIUS ACCESS_REQUEST USER "corp\\alice" WAIT 1ms
+    sw <- ise RADIUS ACCESS_ACCEPT WAIT 1ms
+    sup -> ise VLAN 20 DHCP DISCOVER WAIT 2ms
+    sup <- ise VLAN 20 DHCP OFFER YIADDR 10.88.20.55 WAIT 2ms
+    sup -> sw VLAN 20 ARP GRATUITOUS WAIT 1ms
+    sup -> ise VLAN 20 DNS QUERY QNAME "intranet.corp.internal" WAIT 1ms
+    sup <- ise VLAN 20 DNS RESPONSE QNAME "intranet.corp.internal" RDATA "10.88.100.10" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing Zero-Trust 802.1X campus onboarding topology.
+COMPILE {
+    zero_trust_campus_onboarding(campus_supplicant, nac_access_sw, zero_trust_ise_srv)
+}

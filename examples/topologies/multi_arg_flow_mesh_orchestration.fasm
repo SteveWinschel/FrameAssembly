@@ -1,5 +1,5 @@
 // PROMPT: Demonstrate a 5-parameter FLOW orchestrating full-mesh east-west microservice heartbeats across five distinct hosts.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, DSTPORT, WAIT, ACK, SRCPORT, PSH, PAYLOAD, UDP, COMPILE
 
 // INSTRUCTION: Define mesh service node A with IP 10.202.0.1.
 HOST mesh_svc_a { IP 10.202.0.1 MAC 02:ca:00:00:00:01 }

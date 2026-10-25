@@ -1,0 +1,26 @@
+// PROMPT: WireGuard Noise_IKpsk2 handshake incorporating a 256-bit PresharedKey (PSK) for post-quantum resistance.
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, INITIATION, SENDER, DF, DSCP, TTL, WAIT, TYPE, RESPONSE, RECEIVER, DATA, COUNTER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define post-quantum hardened WireGuard initiator with PSK configured.
+HOST wg_pq_psk_init {
+    IP 10.251.0.10
+    MAC 00:1b:63:fb:00:0a
+}
+
+// INSTRUCTION: Define post-quantum hardened WireGuard responder verifying BLAKE2s HKDF PSK chain.
+HOST wg_pq_psk_resp {
+    IP 10.251.0.20
+    MAC 00:1b:63:fb:00:14
+}
+
+// INSTRUCTION: Define Noise_IKpsk2 INITIATION, RESPONSE, and initial encrypted DATA confirmation.
+FLOW wg_psk_post_quantum_flow(init, resp) {
+    init -> resp WIREGUARD INITIATION SENDER 256001 DF DSCP 48 TTL 64 WAIT 4ms
+    init <- resp WIREGUARD TYPE RESPONSE SENDER 256002 RECEIVER 256001 DF DSCP 48 TTL 64 WAIT 4ms
+    init -> resp WIREGUARD DATA RECEIVER 256002 COUNTER 0 DF DSCP 34 TTL 64 PAYLOAD "NOISE_IKPSK2_QUANTUM_RESISTANT_SESSION"
+}
+
+// INSTRUCTION: Compile the WireGuard PresharedKey post-quantum handshake flow.
+COMPILE {
+    wg_psk_post_quantum_flow(wg_pq_psk_init, wg_pq_psk_resp)
+}

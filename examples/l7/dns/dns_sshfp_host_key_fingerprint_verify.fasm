@@ -1,0 +1,25 @@
+// PROMPT: Model an SSH client querying a DNS SSHFP record (RFC 4255) to verify a remote server Ed25519 host key.
+// TOKENS: HOST, IP, MAC, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RCODE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the DNS stub resolver client endpoint.
+HOST dns_client {
+    IP 192.168.22.50
+    MAC 00:1b:21:53:01:0a
+}
+
+// INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
+HOST dns_server {
+    IP 192.168.22.53
+    MAC 00:1b:21:53:01:35
+}
+
+// INSTRUCTION: Execute the DNS query and authoritative response transaction.
+FLOW dns_scenario_flow(c, s) {
+    c -> s DNS QUERY TXID 2109 QNAME "bastion.ops.example.com" QTYPE "SSHFP" WAIT 2ms
+    c <- s DNS RESPONSE TXID 2109 RCODE 0 QNAME "bastion.ops.example.com" QTYPE "SSHFP" RDATA "4 2 9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b" ANS_TTL 3600
+}
+
+// INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
+COMPILE {
+    dns_scenario_flow(dns_client, dns_server)
+}

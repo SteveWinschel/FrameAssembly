@@ -1,5 +1,5 @@
 // PROMPT: Minimalist baseline FrameAssembly program defining two hosts, a single-statement TCP SYN flow using all default field values, and a single compile invocation.
-// TOKENS: HOST, IP, FLOW, ->, TCP, SYN, COMPILE
+// TOKENS: HOST, IP, FLOW, TCP, SYN, COMPILE
 
 // INSTRUCTION: Define minimal host A with IP 10.0.0.1.
 HOST host_a { IP 10.0.0.1 }

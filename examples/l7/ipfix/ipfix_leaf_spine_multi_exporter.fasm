@@ -1,0 +1,26 @@
+// PROMPT: Multi-exporter leaf-spine topology where three switches export IPFIX records to one collector.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define Leaf 1 exporter switch.
+HOST leaf_sw1 { IP 10.99.47.11 }
+
+// INSTRUCTION: Define Leaf 2 exporter switch.
+HOST leaf_sw2 { IP 10.99.47.12 }
+
+// INSTRUCTION: Define Spine 1 exporter switch.
+HOST spine_sw1 { IP 10.99.47.21 }
+
+// INSTRUCTION: Define central IPFIX fabric collector.
+HOST fabric_collector { IP 10.99.47.100 }
+
+// INSTRUCTION: Export flow records from three distinct Observation Domain IDs (11, 12, 21).
+FLOW ipfix_fabric_telemetry(l1, l2, s1, col) {
+    l1 -> col IPFIX DOMAIN_ID 11 SRCIP 10.11.0.5 DSTIP 10.12.0.5 PROTO 6 PACKETS 1200 OCTETS 1728000
+    l2 -> col IPFIX DOMAIN_ID 12 SRCIP 10.12.0.5 DSTIP 10.11.0.5 PROTO 6 PACKETS 1150 OCTETS 92000
+    s1 -> col IPFIX DOMAIN_ID 21 SRCIP 10.11.0.5 DSTIP 10.12.0.5 PROTO 6 PACKETS 2350 OCTETS 1820000
+}
+
+// INSTRUCTION: Compile the 4-host leaf-spine IPFIX telemetry topology.
+COMPILE {
+    ipfix_fabric_telemetry(leaf_sw1, leaf_sw2, spine_sw1, fabric_collector)
+}

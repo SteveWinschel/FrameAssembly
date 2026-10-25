@@ -1,0 +1,21 @@
+// PROMPT: Redis Streams event log ingestion and consumer group reading via XADD and XREADGROUP.
+// TOKENS: HOST, IP, FLOW, REDIS, CMD, ARGS, WAIT, COMPILE
+
+// INSTRUCTION: Define telemetry stream consumer.
+HOST stream_worker { IP 192.168.79.40 }
+
+// INSTRUCTION: Define Redis Streams server.
+HOST stream_redis { IP 192.168.79.10 }
+
+// INSTRUCTION: Define XADD append, XREADGROUP read, and XACK acknowledgment.
+FLOW redis_streams_flow(c, s) {
+    c -> s REDIS CMD "XADD" ARGS "mystream * sensor_id 12 temp 23.4" WAIT 2ms
+    c <- s REDIS CMD "BULK" ARGS "1700000000000-0" WAIT 2ms
+    c -> s REDIS CMD "XREADGROUP" ARGS "GROUP cg1 worker1 COUNT 1 STREAMS mystream >" WAIT 2ms
+    c -> s REDIS CMD "XACK" ARGS "mystream cg1 1700000000000-0"
+}
+
+// INSTRUCTION: Compile Redis Streams XADD/XREADGROUP/XACK flow.
+COMPILE {
+    redis_streams_flow(stream_worker, stream_redis)
+}

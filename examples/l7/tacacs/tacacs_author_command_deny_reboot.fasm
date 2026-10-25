@@ -1,0 +1,19 @@
+// PROMPT: Command authorization denying non-admin request to reload hardware.
+// TOKENS: HOST, IP, FLOW, TACACS, TYPE, AUTHOR, USER, SESSION_ID, COMPILE
+
+// INSTRUCTION: Define branch office switch.
+HOST branch_sw { IP 192.168.40.5 }
+
+// INSTRUCTION: Define enterprise AAA cluster.
+HOST aaa_cluster { IP 192.168.40.1 }
+
+// INSTRUCTION: Define reload command rejection flow.
+FLOW tacacs_deny_flow(c, s) {
+    c -> s TACACS TYPE AUTHOR USER "junior_tech" SESSION_ID 9050
+    c <- s TACACS TYPE AUTHOR USER "junior_tech" SESSION_ID 9050
+}
+
+// INSTRUCTION: Compile block executing command denial.
+COMPILE {
+    tacacs_deny_flow(branch_sw, aaa_cluster)
+}

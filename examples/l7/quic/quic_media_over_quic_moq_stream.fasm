@@ -1,0 +1,25 @@
+// PROMPT: Media over QUIC (MoQ) live video relay streaming high-priority datagrams over UDP port 4433.
+// TOKENS: HOST, IP, FLOW, QUIC, SHORT, DCID, PKT_NUM, SRCPORT, DSTPORT, DSCP, HEXPAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define live broadcast encoder MoQ publisher host.
+HOST moq_encoder {
+    IP 10.140.10.25
+}
+
+// INSTRUCTION: Define Media over QUIC CDN relay server host.
+HOST moq_relay {
+    IP 10.140.10.1
+}
+
+// INSTRUCTION: Define 1-RTT Short header MoQ media object transmission on port 4433.
+FLOW quic_moq_chunk(c, s) {
+    c -> s QUIC SHORT DCID 0x4d6f513030303031 PKT_NUM 100 SRCPORT 54433 DSTPORT 4433 DSCP 34 HEXPAYLOAD "0001020304050607" WAIT 5ms
+    c <- s QUIC SHORT DCID 0x456e633030303031 PKT_NUM 200 SRCPORT 4433 DSTPORT 54433 DSCP 34 HEXPAYLOAD "02000064"
+}
+
+// INSTRUCTION: Compile 3 iterations of Media over QUIC frame transmission.
+COMPILE {
+    LOOP 3 {
+        quic_moq_chunk(moq_encoder, moq_relay)
+    }
+}

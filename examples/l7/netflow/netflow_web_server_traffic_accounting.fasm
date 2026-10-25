@@ -1,0 +1,18 @@
+// PROMPT: NetFlow record capturing high-volume HTTP/HTTPS web server client flow accounting.
+// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define web tier load balancer switch.
+HOST web_tier_switch { IP 192.168.180.1 }
+
+// INSTRUCTION: Define datacenter traffic accounting collector.
+HOST traffic_accounting { IP 192.168.180.200 }
+
+// INSTRUCTION: Define web traffic flow export.
+FLOW web_accounting_flow(sw, acc) {
+    sw -> acc NETFLOW SRCIP 198.51.100.15 DSTIP 192.168.180.10 SRCPORT 443 DSTPORT 52100 PROTO 6 PACKETS 1800 OCTETS 2450000
+}
+
+// INSTRUCTION: Compile web server traffic accounting scenario.
+COMPILE {
+    web_accounting_flow(web_tier_switch, traffic_accounting)
+}

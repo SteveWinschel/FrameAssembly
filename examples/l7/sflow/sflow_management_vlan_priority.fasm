@@ -1,0 +1,18 @@
+// PROMPT: Out-of-band management VLAN 634 sFlow export with 802.1p priority tagging.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, VLAN, PCP, DEI, DSCP, COMPILE
+
+// INSTRUCTION: Define data center switch on telemetry VLAN 634.
+HOST dc_switch { IP 10.63.0.5 MAC 00:1c:73:00:63:05 }
+
+// INSTRUCTION: Define telemetry analyzer on VLAN 634.
+HOST dc_analyzer { IP 10.63.0.200 MAC 00:1c:73:00:63:c8 }
+
+// INSTRUCTION: Define VLAN-tagged sFlow datagram with CS2 DSCP 16.
+FLOW sflow_vlan_export(sw, mon) {
+    sw -> mon SFLOW AGENT_IP 10.63.0.5 SUB_AGENT_ID 3 UPTIME 125000 SAMPLES 3 VLAN 634 PCP 2 DEI 0 DSCP 16
+}
+
+// INSTRUCTION: Compile VLAN 634 sFlow export.
+COMPILE {
+    sflow_vlan_export(dc_switch, dc_analyzer)
+}

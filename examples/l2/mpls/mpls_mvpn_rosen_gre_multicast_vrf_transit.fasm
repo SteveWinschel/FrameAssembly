@@ -1,0 +1,25 @@
+// PROMPT: Next-Generation MVPN (RFC 6513 / RFC 6514) carrying customer multicast PIM traffic over MPLS I-PMSI label 65130.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, PIM, JOIN_PRUNE, GROUP, SOURCE, WAIT, UDP, SRCPORT, DSTPORT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define sender PE router encapsulating VRF multicast into MPLS I-PMSI label 65130.
+HOST mvpn_sender_pe {
+    IP 172.20.65.1
+    MAC 00:1c:73:41:0d:01
+}
+
+// INSTRUCTION: Define receiver PE router decapsulating MPLS I-PMSI label 65130 for local VRF subscribers.
+HOST mvpn_receiver_pe {
+    IP 172.20.65.2
+    MAC 00:1c:73:41:0d:02
+}
+
+// INSTRUCTION: Transport customer PIM Join/Prune and multicast UDP data over MPLS label 65130.
+FLOW mpls_ng_mvpn_pmsi(snd, rcv) {
+    snd <- rcv MPLS 65130 EXP 6 BOS 1 MPLS_TTL 64 PIM JOIN_PRUNE GROUP 239.65.1.1 SOURCE 10.65.1.10 WAIT 5ms
+    snd -> rcv MPLS 65130 EXP 4 BOS 1 MPLS_TTL 63 UDP SRCPORT 9000 DSTPORT 9000 PAYLOAD "mvpn_vrf_trading_floor_multicast_tick"
+}
+
+// INSTRUCTION: Compile the RFC 6513 Next-Generation MVPN MPLS I-PMSI trace.
+COMPILE {
+    mpls_ng_mvpn_pmsi(mvpn_sender_pe, mvpn_receiver_pe)
+}

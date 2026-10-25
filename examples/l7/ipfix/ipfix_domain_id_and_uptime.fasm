@@ -1,5 +1,5 @@
 // PROMPT: IPFIX export datagram specifying observation domain ID for flow tracking.
-// TOKENS: HOST, IP, FLOW, ->, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, COMPILE
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.1.1.1 }

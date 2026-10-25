@@ -1,0 +1,27 @@
+// PROMPT: Generate an LDAP search failing with resultCode 32 (noSuchObject) and another failing with resultCode 4 (sizeLimitExceeded).
+// TOKENS: HOST, IP, MAC, FLOW, LDAP, MSGID, SEARCH_REQ, BASE_DN, FILTER, VLAN, WAIT, SEARCH_DONE, RESULT_CODE, COMPILE
+
+// INSTRUCTION: Define the identity governance scanner running directory compliance queries.
+HOST iam_scanner {
+    IP 172.20.12.88
+    MAC 00:25:90:14:0c:58
+}
+
+// INSTRUCTION: Define the LDAP directory server enforcing strict query size limits on VLAN 220.
+HOST strict_ldap {
+    IP 172.20.12.10
+    MAC 00:25:90:14:0c:0a
+}
+
+// INSTRUCTION: Query a non-existent organizational unit (resultCode 32) and then trigger a sizeLimitExceeded error (resultCode 4).
+FLOW search_error_codes(c, s) {
+    c -> s LDAP MSGID 20 SEARCH_REQ BASE_DN "ou=legacy_contractors,dc=corp,dc=net" FILTER "(objectClass=*)" VLAN 220 WAIT 3ms
+    c <- s LDAP MSGID 20 SEARCH_DONE RESULT_CODE 32 VLAN 220 WAIT 10ms
+    c -> s LDAP MSGID 21 SEARCH_REQ BASE_DN "dc=corp,dc=net" FILTER "(cn=*)" VLAN 220 WAIT 8ms
+    c <- s LDAP MSGID 21 SEARCH_DONE RESULT_CODE 4 VLAN 220
+}
+
+// INSTRUCTION: Compile the LDAP error code 32 and 4 trace into a PCAP file.
+COMPILE {
+    search_error_codes(iam_scanner, strict_ldap)
+}

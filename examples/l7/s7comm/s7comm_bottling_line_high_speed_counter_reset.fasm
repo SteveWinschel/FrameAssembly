@@ -1,0 +1,27 @@
+// PROMPT: Beverage bottling line reading S7 Counters (Area 28) for bottle tally and writing DB50 batch reset.
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, AREA, DB_NUM, OFFSET, COUNT, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the Manufacturing Execution System (MES) data collector.
+HOST mes_collector {
+    IP 10.130.70.25
+    MAC 00:1a:2b:82:70:25
+}
+
+// INSTRUCTION: Define the filler machine S7-300 PLC.
+HOST filler_plc {
+    IP 10.130.70.1
+    MAC 00:1a:2b:82:70:01
+}
+
+// INSTRUCTION: Read Counter C0-C3 (AREA 28, COUNT 4) and write batch reset command to DB50 (AREA 132).
+FLOW s7_bottle_counter(m, f) {
+    m -> f S7COMM ROSCTR "JOB" PDU_REF 701 FUNC "READ_VAR" AREA 28 DB_NUM 0 OFFSET 0 COUNT 4
+    m <- f S7COMM ROSCTR "ACK_DATA" PDU_REF 701 FUNC "READ_VAR" HEXPAYLOAD "ff09000809990500" WAIT 2ms
+    m -> f S7COMM ROSCTR "JOB" PDU_REF 702 FUNC "WRITE_VAR" AREA 132 DB_NUM 50 OFFSET 0 COUNT 2 HEXPAYLOAD "0000"
+    m <- f S7COMM ROSCTR "ACK_DATA" PDU_REF 702 FUNC "WRITE_VAR"
+}
+
+// INSTRUCTION: Compile the bottling line counter read and reset flow.
+COMPILE {
+    s7_bottle_counter(mes_collector, filler_plc)
+}

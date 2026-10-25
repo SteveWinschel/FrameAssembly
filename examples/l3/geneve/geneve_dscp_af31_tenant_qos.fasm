@@ -1,0 +1,19 @@
+// PROMPT: Multi-tenant GENEVE overlay preserving outer DSCP AF31 (26) and ECN markings.
+// TOKENS: HOST, IP, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, DSCP, ECN, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define gold-tier tenant hypervisor A.
+HOST tenant_gold_hyp_a { IP 10.180.10.1 }
+
+// INSTRUCTION: Define gold-tier tenant hypervisor B.
+HOST tenant_gold_hyp_b { IP 10.180.10.2 }
+
+// INSTRUCTION: Define GENEVE packets marked with outer DSCP 26 (AF31) and ECN 2 (ECT0).
+FLOW geneve_tenant_qos(a, b) {
+    a -> b GENEVE VNI 30010 OPT_CLASS 258 OPT_TYPE 20 DSCP 26 ECN 2 TTL 64
+    a <- b GENEVE VNI 30010 OPT_CLASS 258 OPT_TYPE 20 DSCP 26 ECN 2 TTL 64 WAIT 10ms
+}
+
+// INSTRUCTION: Compile the QoS-marked multi-tenant GENEVE flow.
+COMPILE {
+    geneve_tenant_qos(tenant_gold_hyp_a, tenant_gold_hyp_b)
+}

@@ -1,0 +1,27 @@
+// PROMPT: Redis Geospatial GEOADD and GEOSEARCH commands indexing and querying nearby delivery vehicles.
+// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the dispatch routing service over IPv6.
+HOST dispatch_svc {
+    IP 2001:db8:80:30::25
+    MAC 00:1a:2b:80:30:25
+}
+
+// INSTRUCTION: Define the geospatial Redis node over IPv6.
+HOST geo_redis {
+    IP 2001:db8:80:30::1
+    MAC 00:1a:2b:80:30:01
+}
+
+// INSTRUCTION: Update courier coordinates with GEOADD and query vehicles within 5 km.
+FLOW redis_geo_fleet(c, s) {
+    c -> s REDIS CMD "GEOADD" ARGS "fleet:sf -122.4194 37.7749 van_104"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "1" WAIT 1ms
+    c -> s REDIS CMD "GEOSEARCH" ARGS "fleet:sf FROMLONLAT -122.4194 37.7749 BYRADIUS 5 km"
+    c <- s REDIS REPLY_TYPE "BULK" VALUE "van_104"
+}
+
+// INSTRUCTION: Compile the IPv6 Redis geospatial fleet tracking flow.
+COMPILE {
+    redis_geo_fleet(dispatch_svc, geo_redis)
+}

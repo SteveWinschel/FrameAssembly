@@ -1,0 +1,21 @@
+// PROMPT: RFC 5415 CAPWAP wireless controller Discovery/Join on UDP port 5246 and split-MAC data tunnel on UDP port 5247.
+// TOKENS: HOST, IP, FLOW, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define lightweight campus wireless access point (WTP).
+HOST capwap_wtp_ap { IP 10.72.10.50 }
+
+// INSTRUCTION: Define centralized Wireless LAN Controller (WLC / AC).
+HOST capwap_wlc_ac { IP 10.72.0.10 }
+
+// INSTRUCTION: Define CAPWAP Control (UDP 5246) Discovery Request/Response and CAPWAP Data (UDP 5247) keepalive.
+FLOW udp_capwap_ap_tunnel(ap, wlc) {
+    ap -> wlc DSCP 48 UDP SRCPORT 52460 DSTPORT 5246 PAYLOAD "capwap_control_discovery_request_wtp_radio_80211ax"
+    ap <- wlc DSCP 48 UDP SRCPORT 5246 DSTPORT 52460 PAYLOAD "capwap_control_discovery_response_ac_name_wlc01" WAIT 2ms
+    ap -> wlc DSCP 34 UDP SRCPORT 52470 DSTPORT 5247 PAYLOAD "capwap_data_split_mac_80211_qos_data_frame" WAIT 2ms
+    ap <- wlc DSCP 34 UDP SRCPORT 5247 DSTPORT 52470 PAYLOAD "capwap_data_keepalive_echo" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing CAPWAP UDP 5246/5247 wireless tunnel exchange.
+COMPILE {
+    udp_capwap_ap_tunnel(capwap_wtp_ap, capwap_wlc_ac)
+}

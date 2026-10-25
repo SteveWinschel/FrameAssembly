@@ -1,0 +1,42 @@
+// PROMPT: Generate an MQTT v5 shared subscription ($share/workers/jobs/+) load-balancing tasks across consumer workers.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, SUBSCRIBE, TOPIC, QOS, PKT_ID, WAIT, SUBACK, PUBLISH, PAYLOAD, PUBACK, COMPILE
+
+// INSTRUCTION: Define two microservice worker instances sharing an MQTT v5 subscription group.
+HOST worker_alpha {
+    IP 10.25.5.101
+    MAC 00:50:56:25:05:65
+}
+
+// INSTRUCTION: Define the second microservice worker in the same shared subscription group.
+HOST worker_beta {
+    IP 10.25.5.102
+    MAC 00:50:56:25:05:66
+}
+
+// INSTRUCTION: Define the central MQTT v5 message broker dispatching shared subscription messages round-robin.
+HOST mqtt5_broker {
+    IP 10.25.5.10
+    MAC 00:50:56:25:05:0a
+}
+
+// INSTRUCTION: Subscribe worker_alpha to $share/workers/jobs/+ and receive job 1.
+FLOW alpha_shared_sub(c, s) {
+    c -> s MQTT SUBSCRIBE TOPIC "$share/workers/jobs/+" QOS 1 PKT_ID 1 WAIT 2ms
+    c <- s MQTT SUBACK PKT_ID 1 QOS 1 WAIT 5ms
+    c <- s MQTT PUBLISH TOPIC "jobs/encode_video" QOS 1 PKT_ID 101 PAYLOAD "{\"job_id\":9001}" WAIT 2ms
+    c -> s MQTT PUBACK PKT_ID 101
+}
+
+// INSTRUCTION: Subscribe worker_beta to $share/workers/jobs/+ and receive job 2 in round-robin order.
+FLOW beta_shared_sub(c, s) {
+    c -> s MQTT SUBSCRIBE TOPIC "$share/workers/jobs/+" QOS 1 PKT_ID 2 WAIT 2ms
+    c <- s MQTT SUBACK PKT_ID 2 QOS 1 WAIT 5ms
+    c <- s MQTT PUBLISH TOPIC "jobs/encode_video" QOS 1 PKT_ID 201 PAYLOAD "{\"job_id\":9002}" WAIT 2ms
+    c -> s MQTT PUBACK PKT_ID 201
+}
+
+// INSTRUCTION: Compile the MQTT shared subscription load-balancing trace into a PCAP file.
+COMPILE {
+    alpha_shared_sub(worker_alpha, mqtt5_broker)
+    beta_shared_sub(worker_beta, mqtt5_broker)
+}

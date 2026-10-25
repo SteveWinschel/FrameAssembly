@@ -1,0 +1,26 @@
+// PROMPT: Automated IPv6 system status alert delivery over ESMTP port 25.
+// TOKENS: HOST, IP, FLOW, SMTP, MAIL_FROM, PARAM, CODE, REPLY, RCPT_TO, BODY, QUIT, COMPILE
+
+// INSTRUCTION: Define IPv6 monitoring server endpoint.
+HOST alert_sender_v6 { IP 2001:db8:feed::50 }
+
+// INSTRUCTION: Define IPv6 destination MX server.
+HOST alert_receiver_v6 { IP 2001:db8:feed::1 }
+
+// INSTRUCTION: Define IPv6 notification delivery transaction flow.
+FLOW smtp_v6_alert_flow(c, s) {
+    c -> s SMTP MAIL_FROM PARAM "mon-daemon@ipv6-infra.net"
+    c <- s SMTP CODE 250 REPLY "2.1.0 Sender ok"
+    c -> s SMTP RCPT_TO PARAM "noc-ops@ipv6-infra.net"
+    c <- s SMTP CODE 250 REPLY "2.1.5 Recipient ok"
+    c -> s SMTP BODY "Subject: NOC Alert
+
+Core interface BGP peer online."
+    c <- s SMTP CODE 250 REPLY "2.0.0 Queued"
+    c -> s SMTP QUIT
+}
+
+// INSTRUCTION: Compile block executing IPv6 alert flow.
+COMPILE {
+    smtp_v6_alert_flow(alert_sender_v6, alert_receiver_v6)
+}

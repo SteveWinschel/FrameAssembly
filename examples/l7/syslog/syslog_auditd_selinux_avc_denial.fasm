@@ -1,0 +1,27 @@
+// PROMPT: Simulate a Linux auditd SELinux AVC denial security alert transmitted over Syslog Facility 13 (log audit).
+// TOKENS: HOST, IP, MAC, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, DSCP, WAIT, COMPILE
+
+// INSTRUCTION: Define the hardened Linux application server running SELinux in enforcing mode.
+HOST selinux_host {
+    IP 10.80.13.45
+    MAC 00:50:56:80:0d:2d
+}
+
+// INSTRUCTION: Define the central security operations SIEM log collector.
+HOST soc_siem_ingest {
+    IP 10.80.13.200
+    MAC 00:50:56:80:0d:c8
+}
+
+// INSTRUCTION: Emit an SELinux AVC denial audit warning (Facility 13, Severity 4) and follow-up syscall record.
+FLOW syslog_selinux_avc_flow(node, siem) {
+    node -> siem SYSLOG FACILITY 13 SEVERITY 4 HOSTNAME "app-prod-04" APP "auditd" PROCID "1104"
+        MSG "type=AVC msg=audit(1711800122.412:889): avc: denied { write } for pid=4912 comm='nginx' name='config.db' scontext=system_u:system_r:httpd_t:s0" DSCP 32 WAIT 5ms
+    node -> siem SYSLOG FACILITY 13 SEVERITY 5 HOSTNAME "app-prod-04" APP "auditd" PROCID "1104"
+        MSG "type=SYSCALL msg=audit(1711800122.412:889): arch=c000003e syscall=257 success=no exit=-13 a0=ffffff9c uid=995" DSCP 32
+}
+
+// INSTRUCTION: Compile the SELinux AVC denial Syslog audit flow.
+COMPILE {
+    syslog_selinux_avc_flow(selinux_host, soc_siem_ingest)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Outer IPv4 fragmentation of an oversized IPsec ESP packet using MF and FRAGOFFSET.
+// TOKENS: HOST, IP, FLOW, ESP, SPI, SEQ, IPID, MF, FRAGOFFSET, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define sender transmitting fragmented outer IPv4 ESP datagram.
+HOST esp_frag_src { IP 192.168.220.10 }
+
+// INSTRUCTION: Define receiver reassembling outer IPv4 ESP fragments.
+HOST esp_frag_dst { IP 192.168.220.20 }
+
+// INSTRUCTION: Define first fragment (MF asserted) and trailing fragment (FRAGOFFSET 185).
+FLOW esp_outer_fragmentation(src, dst) {
+    src -> dst ESP SPI 40400 SEQ 5 IPID 9090 MF FRAGOFFSET 0 PAYLOAD "ESP_FRAG_PART_ONE_CIPHERTEXT"
+    src -> dst ESP SPI 40400 SEQ 5 IPID 9090 FRAGOFFSET 185 PAYLOAD "ESP_FRAG_PART_TWO_ICV"
+}
+
+// INSTRUCTION: Compile the outer IPv4 fragmented ESP flow.
+COMPILE {
+    esp_outer_fragmentation(esp_frag_src, esp_frag_dst)
+}

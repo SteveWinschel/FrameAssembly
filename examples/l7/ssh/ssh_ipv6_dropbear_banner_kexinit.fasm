@@ -1,0 +1,32 @@
+// PROMPT: Simulate an IPv6 SSH-2.0 connection between a management jump host and a core router using Dropbear SSH banner.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SSH, BANNER, KEXINIT, PAYLOAD, NEWKEYS, COMPILE
+
+// INSTRUCTION: Define host endpoint jumpbox_v6.
+HOST jumpbox_v6 {
+    MAC 00:50:56:b6:22:01
+    IP 2001:db8:22:1::10
+}
+
+// INSTRUCTION: Define host endpoint router_dropbear.
+HOST router_dropbear {
+    MAC 00:50:56:b6:22:02
+    IP 2001:db8:22:1::1
+}
+
+// INSTRUCTION: Establish IPv6 TCP port 22, exchange OpenSSH and Dropbear banners, KEXINIT, and NEWKEYS.
+FLOW ssh_ipv6_dropbear_session(jumpbox_v6, router_dropbear) {
+    jumpbox_v6 -> router_dropbear TCP SYN SRCPORT 55022 DSTPORT 22
+    router_dropbear -> jumpbox_v6 TCP SYN ACK
+    jumpbox_v6 -> router_dropbear TCP ACK
+    jumpbox_v6 -> router_dropbear SSH BANNER "SSH-2.0-OpenSSH_9.3"
+    router_dropbear -> jumpbox_v6 SSH BANNER "SSH-2.0-dropbear_2022.83"
+    jumpbox_v6 -> router_dropbear SSH KEXINIT PAYLOAD "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+    router_dropbear -> jumpbox_v6 SSH KEXINIT PAYLOAD "09f8e7d6c5b4a39281706f5e4d3c2b1a"
+    jumpbox_v6 -> router_dropbear SSH NEWKEYS
+    router_dropbear -> jumpbox_v6 SSH NEWKEYS
+}
+
+// INSTRUCTION: Compile the IPv6 Dropbear SSH session flow.
+COMPILE {
+    ssh_ipv6_dropbear_session(jumpbox_v6, router_dropbear)
+}

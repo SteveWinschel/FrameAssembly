@@ -1,4 +1,10 @@
-//! MODBUS industrial OT protocol wire builder.
+//! Modbus TCP Application Protocol v1.1b3 (MBAP + PDU) wire payload builder.
+//!
+//! This module implements [`build_modbus_payload`], which serializes a [`ModbusSpec`]
+//! AST node into a Modbus TCP Application Data Unit (ADU) over TCP or UDP port 502. It constructs
+//! the 7-byte MBAP header (16-bit Transaction ID, 16-bit Protocol ID `0x0000`, 16-bit Length, and
+//! 8-bit Unit ID) followed by the 1-byte Function Code (`0x01..=0x06`, `0x10`) and either a 4-byte
+//! request body (`addr`, `count_or_val`) or a byte-counted response body when `IS_RESPONSE` is set.
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -44,8 +50,15 @@ pub fn build_modbus_payload(
         pdu.extend_from_slice(&spec.addr.unwrap_or(0).to_be_bytes());
         pdu.extend_from_slice(&spec.value.unwrap_or(0).to_be_bytes());
     } else {
+        let count = spec.count.unwrap_or(1);
         pdu.extend_from_slice(&spec.addr.unwrap_or(0).to_be_bytes());
-        pdu.extend_from_slice(&spec.count.unwrap_or(1).to_be_bytes());
+        pdu.extend_from_slice(&count.to_be_bytes());
+        if let Some(val) = spec.value {
+            pdu.push((count * 2) as u8);
+            for _ in 0..count {
+                pdu.extend_from_slice(&val.to_be_bytes());
+            }
+        }
     }
 
     if !payload_bytes.is_empty() {

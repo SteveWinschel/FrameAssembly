@@ -1,0 +1,19 @@
+// PROMPT: Remote teleworker establishing IPsec tunnel session to corporate gateway.
+// TOKENS: HOST, IP, MAC, FLOW, IPSEC, SPI, SEQ, COMPILE
+
+// INSTRUCTION: Define remote worker telecommuting laptop.
+HOST teleworker_laptop { IP 192.168.88.50 MAC 00:0c:29:88:50:01 }
+
+// INSTRUCTION: Define enterprise corporate VPN aggregator.
+HOST corp_vpn_aggregator { IP 198.51.100.254 MAC 00:0c:29:aa:bb:cc }
+
+// INSTRUCTION: Define bidirectional remote access IPsec exchange.
+FLOW remote_access_ipsec(client, vpn) {
+    client -> vpn IPSEC SPI 40001 SEQ 1
+    client <- vpn IPSEC SPI 40002 SEQ 1
+}
+
+// INSTRUCTION: Compile block executing remote access handshake.
+COMPILE {
+    remote_access_ipsec(teleworker_laptop, corp_vpn_aggregator)
+}

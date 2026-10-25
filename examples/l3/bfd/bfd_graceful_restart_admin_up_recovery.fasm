@@ -1,0 +1,28 @@
+// PROMPT: BFD session recovering from AdminDown (STATE 0, DIAG 7) through Down (STATE 1) and Init (STATE 2) back to Up (STATE 3).
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define core router completing control-plane ISSU upgrade and re-enabling BFD.
+HOST issu_upgraded_rtr {
+    IP 10.99.37.1
+    MAC 00:22:55:99:37:01
+}
+
+// INSTRUCTION: Define peer core router re-establishing BFD three-way handshake after AdminDown.
+HOST issu_neighbor_rtr {
+    IP 10.99.37.2
+    MAC 00:22:55:99:37:02
+}
+
+// INSTRUCTION: Define complete BFD recovery from STATE 0 (AdminDown) -> STATE 1 -> STATE 2 -> STATE 3 (Up).
+FLOW bfd_admin_up_recovery_flow(r1, r2) {
+    r1 -> r2 BFD STATE 0 DIAG 7 MY_DISC 9901 YOUR_DISC 9902 MIN_TX 1000000 MIN_RX 1000000 MULT 3 DSCP 48 TTL 255 WAIT 20ms
+    r1 -> r2 BFD STATE 1 DIAG 0 MY_DISC 9901 YOUR_DISC 0 MIN_TX 50000 MIN_RX 50000 MULT 3 DSCP 48 TTL 255 WAIT 10ms
+    r1 <- r2 BFD STATE 2 DIAG 0 MY_DISC 9902 YOUR_DISC 9901 MIN_TX 50000 MIN_RX 50000 MULT 3 DSCP 48 TTL 255 WAIT 10ms
+    r1 -> r2 BFD STATE 3 DIAG 0 MY_DISC 9901 YOUR_DISC 9902 MIN_TX 50000 MIN_RX 50000 MULT 3 DSCP 48 TTL 255 WAIT 10ms
+    r1 <- r2 BFD STATE 3 DIAG 0 MY_DISC 9902 YOUR_DISC 9901 MIN_TX 50000 MIN_RX 50000 MULT 3 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the BFD AdminDown-to-Up recovery state machine flow.
+COMPILE {
+    bfd_admin_up_recovery_flow(issu_upgraded_rtr, issu_neighbor_rtr)
+}

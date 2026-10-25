@@ -1,0 +1,22 @@
+// PROMPT: Three regional branch routers exporting NetFlow v5 summaries into a central collector fan-in topology.
+// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, WAIT, COMPILE
+
+// INSTRUCTION: Define branch A router exporter.
+HOST branch_a_rtr { IP 10.101.1.1 }
+
+// INSTRUCTION: Define branch B router exporter.
+HOST branch_b_rtr { IP 10.101.2.1 }
+
+// INSTRUCTION: Define central regional NetFlow collector.
+HOST central_collector { IP 10.101.0.250 }
+
+// INSTRUCTION: Export branch WAN summary flow record to the central collector.
+FLOW netflow_branch_report(branch, col) {
+    branch -> col NETFLOW SRCIP 10.101.10.5 DSTIP 10.101.0.10 SRCPORT 52400 DSTPORT 443 PROTO 6 PACKETS 950 OCTETS 817000 WAIT 5ms
+}
+
+// INSTRUCTION: Compile fan-in NetFlow exports from multiple regional branch routers.
+COMPILE {
+    netflow_branch_report(branch_a_rtr, central_collector)
+    netflow_branch_report(branch_b_rtr, central_collector)
+}

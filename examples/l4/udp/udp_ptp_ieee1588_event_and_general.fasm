@@ -1,0 +1,27 @@
+// PROMPT: IEEE 1588v2 Precision Time Protocol (PTP) Event messages on UDP port 319 and General messages on UDP port 320.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define broadcast studio ST 2110 PTP Grandmaster clock.
+HOST ptp_gm_clock {
+    IP 10.158.8.1
+    MAC 00:1c:73:9e:08:01
+}
+
+// INSTRUCTION: Define broadcast IP camera boundary clock slave.
+HOST ptp_cam_slave {
+    IP 10.158.8.42
+    MAC 00:1c:73:9e:08:2a
+}
+
+// INSTRUCTION: Define UDP port 319 Event (Sync / Delay_Req) with DSCP 56 and UDP port 320 General (Follow_Up / Delay_Resp).
+FLOW udp_ptp_319_320_sync(gm, slave) {
+    gm -> slave VLAN 158 PCP 7 DSCP 56 UDP SRCPORT 319 DSTPORT 319 PAYLOAD "ptp_v2_event_sync_seq_1040"
+    gm -> slave VLAN 158 PCP 6 DSCP 46 UDP SRCPORT 320 DSTPORT 320 PAYLOAD "ptp_v2_general_follow_up_seq_1040" WAIT 250us
+    gm <- slave VLAN 158 PCP 7 DSCP 56 UDP SRCPORT 319 DSTPORT 319 PAYLOAD "ptp_v2_event_delay_req_seq_512" WAIT 500us
+    gm -> slave VLAN 158 PCP 6 DSCP 46 UDP SRCPORT 320 DSTPORT 320 PAYLOAD "ptp_v2_general_delay_resp_seq_512" WAIT 250us
+}
+
+// INSTRUCTION: Compile block executing IEEE 1588 PTP over UDP ports 319 and 320.
+COMPILE {
+    udp_ptp_319_320_sync(ptp_gm_clock, ptp_cam_slave)
+}

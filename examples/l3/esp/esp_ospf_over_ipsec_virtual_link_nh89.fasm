@@ -1,0 +1,25 @@
+// PROMPT: RFC 4552 / RFC 4303 OSPFv3 / OSPFv2 control packets (Next Header 89) encrypted directly inside IPsec ESP transport mode.
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Area Border Router 1 securing OSPF virtual link with ESP transport mode.
+HOST abr1_ospf_esp {
+    IP 10.89.50.1
+    MAC 00:1e:be:89:50:01
+}
+
+// INSTRUCTION: Define Area Border Router 2 decrypting Next Header 89 OSPF packets.
+HOST abr2_ospf_esp {
+    IP 10.89.50.2
+    MAC 00:1e:be:89:50:02
+}
+
+// INSTRUCTION: Define ESP transport mode protecting Next Header 89 (OSPF) with CS6 DSCP 48.
+FLOW esp_ospf_virtual_link_flow(abr1, abr2) {
+    abr1 -> abr2 ESP SPI 89501 SEQ 77 IV "8950000189500001" ICV "898989890102030405060708" NEXT_HEADER 89 DSCP 48 TTL 64 PAYLOAD "ENCRYPTED_OSPF_VIRTUAL_LINK_DBD" WAIT 5ms
+    abr1 <- abr2 ESP SPI 89502 SEQ 77 IV "8950000289500002" ICV "080706050403020189898989" NEXT_HEADER 89 DSCP 48 TTL 64 PAYLOAD "ENCRYPTED_OSPF_VIRTUAL_LINK_LSR"
+}
+
+// INSTRUCTION: Compile the RFC 4552 OSPF-over-ESP virtual link security flow.
+COMPILE {
+    esp_ospf_virtual_link_flow(abr1_ospf_esp, abr2_ospf_esp)
+}

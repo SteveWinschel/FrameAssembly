@@ -1,0 +1,18 @@
+// PROMPT: Carrier Ethernet QinQ stacked VLAN underlay transporting IPFIX flow datagrams.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, VLAN, COMPILE
+
+// INSTRUCTION: Define broadband network gateway exporter.
+HOST bng_router { IP 100.64.1.1 }
+
+// INSTRUCTION: Define carrier wholesale telemetry collector.
+HOST carrier_noc { IP 100.64.1.200 }
+
+// INSTRUCTION: Define QinQ encapsulated IPFIX export flow.
+FLOW qinq_ipfix_stream(bng, noc) {
+    bng -> noc IPFIX DOMAIN_ID 8000 SRCIP 100.64.10.5 DSTIP 100.64.20.9 PROTO 17 PACKETS 450 OCTETS 57600 VLAN 100
+}
+
+// INSTRUCTION: Compile carrier QinQ flow export scenario.
+COMPILE {
+    qinq_ipfix_stream(bng_router, carrier_noc)
+}

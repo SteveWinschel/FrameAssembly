@@ -1,5 +1,5 @@
 // PROMPT: Simulate VXLAN overlay tunnel encapsulation traffic between two VTEP leaf switches on UDP port 4789.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE, LOOP
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE, LOOP
 
 // INSTRUCTION: Define VTEP Leaf Switch 1 with underlay IP 10.250.0.11 and MAC 00:02:c9:aa:00:11.
 HOST vtep_leaf_1 { IP 10.250.0.11 MAC 00:02:c9:aa:00:11 }

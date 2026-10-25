@@ -1,0 +1,27 @@
+// PROMPT: Simulate a Telnet Environment Option (Option 36, RFC 1408) negotiation passing USER autologin variables.
+// TOKENS: HOST, IP, MAC, FLOW, TELNET, DO, WAIT, WILL, OPTION, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the legacy thin-client terminal negotiating RFC 1408 environment variables.
+HOST thin_client {
+    IP 10.36.23.14
+    MAC 00:c0:4f:24:17:0e
+}
+
+// INSTRUCTION: Define the VAX/VMS terminal host server.
+HOST vms_telnet_srv {
+    IP 10.36.23.1
+    MAC 00:c0:4f:24:17:01
+}
+
+// INSTRUCTION: Negotiate Option 36 (ENVIRON) and transmit the USER variable payload.
+FLOW telnet_environ_autologin(client, srv) {
+    client <- srv TELNET DO 36 WAIT 2ms
+    client -> srv TELNET WILL 36 WAIT 2ms
+    client -> srv TELNET OPTION 36 PAYLOAD "USER=OPERATOR_01" WAIT 4ms
+    client <- srv TELNET PAYLOAD "Welcome to OpenVMS V8.4-2L1\r\n$ "
+}
+
+// INSTRUCTION: Compile the Telnet Option 36 environment autologin flow.
+COMPILE {
+    telnet_environ_autologin(thin_client, vms_telnet_srv)
+}

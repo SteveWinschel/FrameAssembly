@@ -1,0 +1,19 @@
+// PROMPT: 802.1ad QinQ double-tagged GRE backhaul tunnel across a carrier wholesale network.
+// TOKENS: HOST, IP, FLOW, GRE, GRE_KEY, GRE_SEQ, CHECKSUM, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define cell site backhaul router.
+HOST cell_bBU_gre { IP 172.24.47.1 }
+
+// INSTRUCTION: Define mobile packet core gateway.
+HOST epc_core_gre { IP 172.24.47.2 }
+
+// INSTRUCTION: Define QinQ double-tagged GRE tunnel with S-VLAN 2400 and C-VLAN 47.
+FLOW gre_qinq_backhaul(cell, epc) {
+    cell -> epc GRE GRE_KEY 9900 GRE_SEQ 1 CHECKSUM QINQ 2400 INNER_VLAN 47
+    cell <- epc GRE GRE_KEY 9900 GRE_SEQ 1 CHECKSUM QINQ 2400 INNER_VLAN 47
+}
+
+// INSTRUCTION: Compile the QinQ carrier backhaul GRE flow.
+COMPILE {
+    gre_qinq_backhaul(cell_bBU_gre, epc_core_gre)
+}

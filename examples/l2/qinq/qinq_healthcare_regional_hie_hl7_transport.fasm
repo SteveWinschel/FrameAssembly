@@ -1,0 +1,25 @@
+// PROMPT: Regional Health Information Exchange (HIE) carrier circuit using QinQ S-VLAN 1600 C-VLAN 60 for HL7 clinical messaging.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, TCP, PSH, ACK, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define community clinic EHR integration engine on QinQ S-VLAN 1600 C-VLAN 60.
+HOST clinic_ehr_node {
+    IP 172.24.60.10
+    MAC 00:50:56:18:3c:0a
+}
+
+// INSTRUCTION: Define regional hospital HIE message broker on S-VLAN 1600 C-VLAN 60.
+HOST hospital_hie_hub {
+    IP 172.24.60.1
+    MAC 00:50:56:18:3c:01
+}
+
+// INSTRUCTION: Transmit HL7v2 ADT patient admission message and ACK over TCP port 2575 inside QinQ S-VLAN 1600 C-VLAN 60.
+FLOW qinq_healthcare_hl7(clinic, hub) {
+    clinic -> hub QINQ 1600 INNER_VLAN 60 TCP PSH ACK SRCPORT 52575 DSTPORT 2575 SEQ 1 ACKNUM 1 WIN 32768 PAYLOAD "MSH|EHR|CLINIC|HIE|HOSP|20261025||ADT_A01|101|P|2.5" WAIT 5ms
+    clinic <- hub QINQ 1600 INNER_VLAN 60 TCP PSH ACK SRCPORT 2575 DSTPORT 52575 SEQ 1 ACKNUM 52 WIN 32768 PAYLOAD "MSH|HIE|HOSP|EHR|CLINIC|20261025||ACK_A01|101|P|2.5|MSA|AA"
+}
+
+// INSTRUCTION: Compile the regional healthcare HIE QinQ S-VLAN 1600 C-VLAN 60 HL7 exchange.
+COMPILE {
+    qinq_healthcare_hl7(clinic_ehr_node, hospital_hie_hub)
+}

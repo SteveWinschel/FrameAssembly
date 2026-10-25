@@ -1,0 +1,25 @@
+// PROMPT: Simulate a QinQ double-tagged OpenFlow control channel managing a remote metro optical-packet switch
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, PACKET_IN, VERSION, XID, TABLE_ID, QINQ, INNER_VLAN, WAIT, FLOW_MOD, PRIORITY, COMPILE
+
+// INSTRUCTION: Define the metro WAN SDN controller
+HOST metro_sdn_ctrl {
+    IP 172.29.0.1
+    MAC 00:0f:53:e5:29:01
+}
+
+// INSTRUCTION: Define the remote metro aggregation switch
+HOST metro_agg_sw {
+    IP 172.29.0.88
+    MAC 00:0f:53:e5:29:88
+}
+
+// INSTRUCTION: Exchange QinQ-encapsulated OpenFlow messages with outer S-VLAN 3200 and inner C-VLAN 999
+FLOW openflow_qinq_control(ctrl, sw) {
+    sw -> ctrl OPENFLOW PACKET_IN VERSION 4 XID 4401 TABLE_ID 1 QINQ 3200 INNER_VLAN 999 WAIT 15ms
+    ctrl -> sw OPENFLOW FLOW_MOD VERSION 4 XID 4402 TABLE_ID 1 PRIORITY 45000 QINQ 3200 INNER_VLAN 999
+}
+
+// INSTRUCTION: Compile the QinQ OpenFlow control sequence
+COMPILE {
+    openflow_qinq_control(metro_sdn_ctrl, metro_agg_sw)
+}

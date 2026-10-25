@@ -1,5 +1,5 @@
 // PROMPT: Modbus TCP function code 5 writing single coil state over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, MODBUS, FUNC, ADDR, VALUE, UNITID, COMPILE
+// TOKENS: HOST, IP, FLOW, MODBUS, FUNC, ADDR, VALUE, UNITID, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::100 }

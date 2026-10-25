@@ -1,0 +1,27 @@
+// PROMPT: Datacenter Computer Room Air Conditioning (CRAC) cold-aisle temperature setpoint adjustment via Analog Value (Type 2).
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, WRITE_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, WAIT, READ_PROPERTY, COMPILE
+
+// INSTRUCTION: Define the Datacenter Infrastructure Management (DCIM) server.
+HOST dcim_server {
+    IP 10.120.60.5
+    MAC 00:1a:2b:78:60:05
+}
+
+// INSTRUCTION: Define the CRAC unit 7 BACnet/IP interface.
+HOST crac_unit_07 {
+    IP 10.120.60.77
+    MAC 00:1a:2b:78:60:77
+}
+
+// INSTRUCTION: Write new cold-aisle setpoint (21 C) to Analog Value Object Type 2 Instance 1 and verify return air temperature.
+FLOW bacnet_crac_setpoint(d, c) {
+    d -> c BACNET WRITE_PROPERTY INVOKE_ID 70 OBJECT_TYPE 2 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 21
+    d <- c BACNET WRITE_PROPERTY INVOKE_ID 70 OBJECT_TYPE 2 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 21 WAIT 2ms
+    d -> c BACNET READ_PROPERTY INVOKE_ID 71 OBJECT_TYPE 0 OBJECT_INSTANCE 1 PROPERTY_ID 85
+    d <- c BACNET READ_PROPERTY INVOKE_ID 71 OBJECT_TYPE 0 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 29
+}
+
+// INSTRUCTION: Compile the datacenter CRAC BACnet setpoint flow.
+COMPILE {
+    bacnet_crac_setpoint(dcim_server, crac_unit_07)
+}

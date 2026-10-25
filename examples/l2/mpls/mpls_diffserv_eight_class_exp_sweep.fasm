@@ -1,0 +1,31 @@
+// PROMPT: RFC 3270 MPLS DiffServ Pipe Model 8-class Traffic Class (EXP 0 through 7) QoS marking sweep.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define MPLS QoS traffic generator PE router.
+HOST mpls_qos_tx {
+    IP 172.29.0.1
+    MAC 00:1b:21:29:00:01
+}
+
+// INSTRUCTION: Define MPLS QoS traffic analyzer P router.
+HOST mpls_qos_rx {
+    IP 172.29.0.2
+    MAC 00:1b:21:29:00:02
+}
+
+// INSTRUCTION: Define 8-class MPLS EXP 0..7 Traffic Class sweep on Label 50000.
+FLOW mpls_exp_eight_class_sweep(tx, rx) {
+    tx -> rx MPLS 50000 EXP 0 BOS 1 MPLS_TTL 64 UDP SRCPORT 50000 DSTPORT 9000 PAYLOAD "mpls_exp_0_best_effort_be"
+    tx -> rx MPLS 50000 EXP 1 BOS 1 MPLS_TTL 64 UDP SRCPORT 50001 DSTPORT 9001 PAYLOAD "mpls_exp_1_assured_af11" WAIT 1ms
+    tx -> rx MPLS 50000 EXP 2 BOS 1 MPLS_TTL 64 UDP SRCPORT 50002 DSTPORT 9002 PAYLOAD "mpls_exp_2_assured_af21" WAIT 1ms
+    tx -> rx MPLS 50000 EXP 3 BOS 1 MPLS_TTL 64 UDP SRCPORT 50003 DSTPORT 9003 PAYLOAD "mpls_exp_3_assured_af31" WAIT 1ms
+    tx -> rx MPLS 50000 EXP 4 BOS 1 MPLS_TTL 64 UDP SRCPORT 50004 DSTPORT 9004 PAYLOAD "mpls_exp_4_multimedia_af41" WAIT 1ms
+    tx -> rx MPLS 50000 EXP 5 BOS 1 MPLS_TTL 64 UDP SRCPORT 50005 DSTPORT 9005 PAYLOAD "mpls_exp_5_expedited_ef_voice" WAIT 1ms
+    tx -> rx MPLS 50000 EXP 6 BOS 1 MPLS_TTL 64 UDP SRCPORT 50006 DSTPORT 9006 PAYLOAD "mpls_exp_6_internetwork_cs6" WAIT 1ms
+    tx -> rx MPLS 50000 EXP 7 BOS 1 MPLS_TTL 64 UDP SRCPORT 50007 DSTPORT 9007 PAYLOAD "mpls_exp_7_network_control_cs7" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing full 8-class MPLS EXP sweep.
+COMPILE {
+    mpls_exp_eight_class_sweep(mpls_qos_tx, mpls_qos_rx)
+}

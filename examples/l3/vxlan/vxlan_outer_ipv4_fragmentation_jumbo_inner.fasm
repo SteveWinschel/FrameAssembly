@@ -1,0 +1,25 @@
+// PROMPT: Outer IPv4 fragmentation of a VXLAN packet carrying a 1500-byte inner frame across a non-jumbo 1500-byte MTU underlay.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, IPID, MF, FRAGOFFSET, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define branch VTEP fragmenting outer VXLAN UDP datagram over standard 1500-byte WAN.
+HOST frag_vtep_sender {
+    IP 172.20.47.10
+    MAC 00:1e:be:47:89:0a
+}
+
+// INSTRUCTION: Define remote VTEP reassembling outer IPv4 VXLAN fragments (IPID 4789).
+HOST frag_vtep_receiver {
+    IP 172.20.47.20
+    MAC 00:1e:be:47:89:14
+}
+
+// INSTRUCTION: Define first VXLAN fragment (MF set, FRAGOFFSET 0) and trailing fragment (FRAGOFFSET 180).
+FLOW vxlan_outer_ipv4_frag_flow(tx, rx) {
+    tx -> rx VXLAN VNI 1450 SRCPORT 51450 DSTPORT 4789 IPID 4789 MF FRAGOFFSET 0 TTL 60 PAYLOAD "VXLAN_FRAGMENT_1_OUTER_UDP_AND_INNER_HDR" WAIT 2ms
+    tx -> rx VXLAN VNI 1450 SRCPORT 51450 DSTPORT 4789 IPID 4789 FRAGOFFSET 180 TTL 60 PAYLOAD "VXLAN_FRAGMENT_2_TRAILING_50_BYTES"
+}
+
+// INSTRUCTION: Compile the outer IPv4 fragmented VXLAN reassembly flow.
+COMPILE {
+    vxlan_outer_ipv4_frag_flow(frag_vtep_sender, frag_vtep_receiver)
+}

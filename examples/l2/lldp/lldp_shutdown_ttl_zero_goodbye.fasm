@@ -1,0 +1,24 @@
+// PROMPT: IEEE 802.1AB LLDP shutdown goodbye frame advertising TTL 0 to flush neighbor discovery cache immediately.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, TTL, COMPILE
+
+// INSTRUCTION: Define maintenance switch port preparing for administrative shutdown.
+HOST maint_tor_sw {
+    IP 172.16.99.10
+    MAC 00:25:90:99:00:0a
+}
+
+// INSTRUCTION: Define upstream spine neighbor receiving LLDP TTL 0 withdrawal.
+HOST upstream_spine {
+    IP 172.16.99.1
+    MAC 00:25:90:99:00:01
+}
+
+// INSTRUCTION: Define LLDP shutdown PDU with TTL 0 to invalidate neighbor entry immediately.
+FLOW lldp_shutdown_ttl_zero(tor, spine) {
+    tor -> spine LLDP CHASSIS_ID "00:25:90:99:00:0a" PORT_ID "FortyGigE1/0/49" SYSNAME "tor-rack14-sw01" TTL 0
+}
+
+// INSTRUCTION: Compile block executing LLDP TTL 0 shutdown announcement.
+COMPILE {
+    lldp_shutdown_ttl_zero(maint_tor_sw, upstream_spine)
+}

@@ -1,5 +1,5 @@
 // PROMPT: GRE tunnel header asserting checksum verification flag and payload protocol.
-// TOKENS: HOST, IP, FLOW, ->, GRE, GRE_KEY, CHECKSUM, COMPILE
+// TOKENS: HOST, IP, FLOW, GRE, GRE_KEY, CHECKSUM, COMPILE
 
 // INSTRUCTION: Define secure enterprise branch gateway.
 HOST branch_gw { IP 10.100.0.1 }

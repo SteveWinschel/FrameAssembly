@@ -1,0 +1,18 @@
+// PROMPT: High priority OSPF router asserting Designated Router candidacy with Priority 255.
+// TOKENS: HOST, IP, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define primary core switch asserting DR role.
+HOST primary_dr_candidate { IP 172.16.0.254 }
+
+// INSTRUCTION: Define multi-access LAN multicast destination.
+HOST lan_multicast_dst { IP 224.0.0.5 }
+
+// INSTRUCTION: Define DR priority election Hello flow with Priority 255.
+FLOW ospf_dr_election_flow(dr, dst) {
+    dr -> dst OSPF HELLO ROUTER_ID 172.16.0.254 AREA_ID 0 PRIORITY 255
+}
+
+// INSTRUCTION: Compile block executing DR priority assertion Hello.
+COMPILE {
+    ospf_dr_election_flow(primary_dr_candidate, lan_multicast_dst)
+}

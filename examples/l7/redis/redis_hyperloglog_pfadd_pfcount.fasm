@@ -1,0 +1,27 @@
+// PROMPT: Redis HyperLogLog PFADD and PFCOUNT commands estimating unique daily website visitors.
+// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the edge telemetry ingestion worker.
+HOST analytics_ingester {
+    IP 10.80.20.15
+    MAC 00:1a:2b:80:20:15
+}
+
+// INSTRUCTION: Define the analytics Redis server.
+HOST analytics_redis {
+    IP 10.80.20.1
+    MAC 00:1a:2b:80:20:01
+}
+
+// INSTRUCTION: Record visitor hashes with PFADD and read estimated cardinality with PFCOUNT.
+FLOW redis_hll_uv(c, s) {
+    c -> s REDIS CMD "PFADD" ARGS "uv:2026-10-25 usr_99a1 usr_44b2 usr_77c3"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "1" WAIT 1ms
+    c -> s REDIS CMD "PFCOUNT" ARGS "uv:2026-10-25"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "148920"
+}
+
+// INSTRUCTION: Compile the HyperLogLog unique visitor tracking flow.
+COMPILE {
+    redis_hll_uv(analytics_ingester, analytics_redis)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Network Operations Center (NOC) observability pipeline collecting NetFlow v9, IPFIX, sFlow, Syslog, and SNMPv3 traps from core routers.
+// TOKENS: HOST, IP, FLOW, DSCP, NETFLOW, VERSION, PACKETS, OCTETS, IPFIX, DOMAIN_ID, WAIT, SFLOW, SAMPLES, SYSLOG, PRI, APP, MSG, SNMP3, TRAP, USER, AUTH, SHA256, PRIV, AES, VARBIND, COMPILE
+
+// INSTRUCTION: Define core border router exporting multi-protocol telemetry.
+HOST core_border_rtr { IP 10.250.0.1 }
+
+// INSTRUCTION: Define distribution switch exporting sFlow and IPFIX records.
+HOST dist_fabric_sw { IP 10.250.0.2 }
+
+// INSTRUCTION: Define centralized NOC telemetry ingestion collector.
+HOST noc_telemetry_sink { IP 10.250.0.100 }
+
+// INSTRUCTION: Define multi-protocol NOC observability flow combining NetFlow, IPFIX, sFlow, Syslog, and SNMPv3 Trap.
+FLOW noc_observability_pipeline(rtr, sw, sink) {
+    rtr -> sink DSCP 16 NETFLOW VERSION 9 PACKETS 12500 OCTETS 18000000
+    sw -> sink DSCP 16 IPFIX DOMAIN_ID 100 PACKETS 8400 OCTETS 12000000 WAIT 1ms
+    sw -> sink DSCP 16 SFLOW VERSION 5 SAMPLES 64 WAIT 1ms
+    rtr -> sink DSCP 16 SYSLOG PRI 131 APP "bgpd" MSG "BGP-5-ADJCHANGE: neighbor 198.51.100.1 Up" WAIT 1ms
+    rtr -> sink DSCP 48 SNMP3 TRAP USER "noc_sec_ops" AUTH SHA256 "NocAuthPass2026!" PRIV AES "NocPrivPass2026!" VARBIND 1.3.6.1.2.1.1.3.0 STRING "BGP_PEER_ESTABLISHED" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing NOC observability telemetry pipeline.
+COMPILE {
+    noc_observability_pipeline(core_border_rtr, dist_fabric_sw, noc_telemetry_sink)
+}

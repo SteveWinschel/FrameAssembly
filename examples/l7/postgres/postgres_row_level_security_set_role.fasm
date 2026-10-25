@@ -1,0 +1,28 @@
+// PROMPT: PostgreSQL Row-Level Security (RLS) context initialization using SET LOCAL ROLE and app.tenant_id.
+// TOKENS: HOST, IP, MAC, FLOW, POSTGRES, SQL, COMMAND_COMPLETE, WAIT, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define the SaaS API server pooling database connections.
+HOST saas_api {
+    IP 10.95.60.28
+    MAC 00:1a:2b:95:60:28
+}
+
+// INSTRUCTION: Define the multi-tenant RLS PostgreSQL database.
+HOST rls_postgres {
+    IP 10.95.60.2
+    MAC 00:1a:2b:95:60:02
+}
+
+// INSTRUCTION: Set session role and custom GUC app.current_tenant before selecting tenant-isolated rows.
+FLOW pg_rls_tenant_query(c, s) {
+    c -> s POSTGRES SQL "BEGIN; SET LOCAL ROLE tenant_reader; SET LOCAL app.current_tenant = 'tnt_8841'"
+    c <- s POSTGRES COMMAND_COMPLETE WAIT 1ms
+    c -> s POSTGRES SQL "SELECT project_id, name, budget FROM projects; COMMIT"
+    c <- s POSTGRES COMMAND_COMPLETE WAIT 1ms
+    c <- s POSTGRES READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile the PostgreSQL Row-Level Security tenant query flow.
+COMPILE {
+    pg_rls_tenant_query(saas_api, rls_postgres)
+}

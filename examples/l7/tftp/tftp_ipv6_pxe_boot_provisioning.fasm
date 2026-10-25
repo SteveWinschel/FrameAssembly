@@ -1,0 +1,20 @@
+// PROMPT: IPv6 enterprise client requesting network bootstrap provisioning file.
+// TOKENS: HOST, IP, FLOW, TFTP, RRQ, FILENAME, MODE, COMPILE
+
+// INSTRUCTION: Define IPv6 UEFI PXE boot station.
+HOST uefi_station_v6 { IP 2001:db8:aaaa::30 }
+
+// INSTRUCTION: Define IPv6 enterprise TFTP deployment server.
+HOST deploy_tftp_v6 { IP 2001:db8:aaaa::1 }
+
+// INSTRUCTION: Define IPv6 EFI bootloader retrieval flow.
+FLOW tftp_v6_uefi_flow(c, s) {
+    c -> s TFTP RRQ
+        FILENAME "bootx64.efi"
+        MODE "octet"
+}
+
+// INSTRUCTION: Compile block executing IPv6 bootloader request.
+COMPILE {
+    tftp_v6_uefi_flow(uefi_station_v6, deploy_tftp_v6)
+}

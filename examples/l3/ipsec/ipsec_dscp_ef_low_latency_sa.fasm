@@ -1,0 +1,19 @@
+// PROMPT: Low-latency IPsec security association marked with outer DSCP EF (46) and ECN ECT(0).
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, DSCP, ECN, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define financial trading branch IPsec gateway.
+HOST fin_ipsec_branch { IP 192.0.2.150 }
+
+// INSTRUCTION: Define financial exchange colocation IPsec gateway.
+HOST fin_ipsec_colo { IP 192.0.2.151 }
+
+// INSTRUCTION: Define DSCP EF (46) marked IPsec tunnel exchange with 5ms pacing.
+FLOW ipsec_ef_low_latency(br, colo) {
+    br -> colo IPSEC SPI 46001 SEQ 1 DSCP 46 ECN 2 TTL 64
+    br <- colo IPSEC SPI 46002 SEQ 1 DSCP 46 ECN 2 TTL 64 WAIT 5ms
+}
+
+// INSTRUCTION: Compile the DSCP EF low-latency IPsec flow.
+COMPILE {
+    ipsec_ef_low_latency(fin_ipsec_branch, fin_ipsec_colo)
+}

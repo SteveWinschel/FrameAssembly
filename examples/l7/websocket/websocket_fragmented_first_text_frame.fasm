@@ -1,0 +1,21 @@
+// PROMPT: First fragment of multi-frame payload specifying FIN bit 0 and TEXT opcode.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+
+// INSTRUCTION: Define streaming client sending large document.
+HOST doc_client { IP 172.20.15.4 }
+
+// INSTRUCTION: Define document indexing server.
+HOST index_server { IP 172.20.15.1 }
+
+// INSTRUCTION: Define fragmented initial frame flow.
+FLOW ws_frag_first_flow(c, s) {
+    c -> s WEBSOCKET
+        OPCODE "TEXT"
+        FIN_BIT 0
+        MASK_KEY 3735928559
+}
+
+// INSTRUCTION: Compile block executing first fragment transmission.
+COMPILE {
+    ws_frag_first_flow(doc_client, index_server)
+}

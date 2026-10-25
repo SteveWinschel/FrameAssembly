@@ -1,0 +1,32 @@
+// PROMPT: Data center Clos leaf-spine underlay fabric bringup sequencing LLDP discovery, LACP port-channel sync, eBGP peering, and BFD liveliness.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, WAIT, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, BGP, OPEN, ASN, HOLDTIME, BGPID, KEEPALIVE, BFD, STATE, COMPILE
+
+// INSTRUCTION: Define Top-of-Rack Leaf switch 01.
+HOST clos_leaf_01 {
+    IP 10.255.1.1
+    MAC 00:1c:73:ff:01:01
+}
+
+// INSTRUCTION: Define Spine switch 01 in Clos underlay fabric.
+HOST clos_spine_01 {
+    IP 10.255.1.2
+    MAC 00:1c:73:ff:01:02
+}
+
+// INSTRUCTION: Define layered Clos underlay bringup from L2 LLDP/LACP to L3 eBGP and BFD.
+FLOW clos_underlay_bringup(leaf, spine) {
+    leaf -> spine LLDP CHASSIS_ID "00:1c:73:ff:01:01" PORT_ID "Ethernet49/1" SYSNAME "dc1-leaf-01"
+    leaf <- spine LLDP CHASSIS_ID "00:1c:73:ff:01:02" PORT_ID "Ethernet1/1" SYSNAME "dc1-spine-01" WAIT 1ms
+    leaf -> spine LACP ACTOR_SYS 00:1c:73:ff:01:01 ACTOR_KEY 49 ACTOR_PORT 1 ACTOR_STATE 63 WAIT 2ms
+    leaf <- spine LACP ACTOR_SYS 00:1c:73:ff:01:02 ACTOR_KEY 49 ACTOR_PORT 1 ACTOR_STATE 63 WAIT 2ms
+    leaf -> spine BGP OPEN ASN 65101 HOLDTIME 90 BGPID 10.255.1.1 WAIT 2ms
+    leaf <- spine BGP OPEN ASN 65000 HOLDTIME 90 BGPID 10.255.1.2 WAIT 2ms
+    leaf -> spine BGP KEEPALIVE WAIT 1ms
+    leaf -> spine BFD STATE 3 MY_DISC 101 YOUR_DISC 201 WAIT 1ms
+    leaf <- spine BFD STATE 3 MY_DISC 201 YOUR_DISC 101 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing Clos leaf-spine underlay bringup.
+COMPILE {
+    clos_underlay_bringup(clos_leaf_01, clos_spine_01)
+}

@@ -1,0 +1,41 @@
+// PROMPT: Generate an LDAP referrals response (resultCode 10) redirecting a client from a read-only replica to a master server.
+// TOKENS: HOST, IP, MAC, FLOW, LDAP, MSGID, SEARCH_REQ, BASE_DN, FILTER, WAIT, SEARCH_DONE, RESULT_CODE, BIND_REQ, BIND_RES, SEARCH_ENTRY, COMPILE
+
+// INSTRUCTION: Define the directory administration client querying a subordinate subtree.
+HOST admin_workstation {
+    IP 10.75.4.50
+    MAC 00:1a:2b:4b:04:32
+}
+
+// INSTRUCTION: Define the regional LDAP replica that holds a referral for the research subtree.
+HOST regional_replica {
+    IP 10.75.4.10
+    MAC 00:1a:2b:4b:04:0a
+}
+
+// INSTRUCTION: Define the master LDAP server authoritative for the research subtree.
+HOST research_master {
+    IP 10.75.99.10
+    MAC 00:1a:2b:4b:63:0a
+}
+
+// INSTRUCTION: Receive resultCode 10 (referral) from the regional replica, then query the authoritative master server.
+FLOW referral_chase_flow(c, s) {
+    c -> s LDAP MSGID 1 SEARCH_REQ BASE_DN "ou=labs,dc=research,dc=example,dc=com" FILTER "(cn=quantum*)" WAIT 3ms
+    c <- s LDAP MSGID 1 SEARCH_DONE RESULT_CODE 10
+}
+
+// INSTRUCTION: Chase the LDAP referral by binding and searching on the authoritative research master server.
+FLOW master_query_flow(c, s) {
+    c -> s LDAP MSGID 2 BIND_REQ BASE_DN "cn=admin,dc=research,dc=example,dc=com" WAIT 3ms
+    c <- s LDAP MSGID 2 BIND_RES RESULT_CODE 0 WAIT 2ms
+    c -> s LDAP MSGID 3 SEARCH_REQ BASE_DN "ou=labs,dc=research,dc=example,dc=com" FILTER "(cn=quantum*)" WAIT 4ms
+    c <- s LDAP MSGID 3 SEARCH_ENTRY BASE_DN "cn=quantum-rig-01,ou=labs,dc=research,dc=example,dc=com" WAIT 1ms
+    c <- s LDAP MSGID 3 SEARCH_DONE RESULT_CODE 0
+}
+
+// INSTRUCTION: Compile the multi-server LDAP referral chase trace into a PCAP file.
+COMPILE {
+    referral_chase_flow(admin_workstation, regional_replica)
+    master_query_flow(admin_workstation, research_master)
+}

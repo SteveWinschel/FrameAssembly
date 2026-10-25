@@ -1,0 +1,24 @@
+// PROMPT: Distributed Redlock mutex acquisition using SET NX PX and release via DEL.
+// TOKENS: HOST, IP, FLOW, REDIS, CMD, ARGS, WAIT, COMPILE
+
+// INSTRUCTION: Define payment processor acquiring distributed lock.
+HOST lock_client { IP 10.111.0.9 }
+
+// INSTRUCTION: Define independent Redlock quorum node 1.
+HOST redlock_n1 { IP 10.111.0.101 }
+
+// INSTRUCTION: Define independent Redlock quorum node 2.
+HOST redlock_n2 { IP 10.111.0.102 }
+
+// INSTRUCTION: Define SET NX PX lock acquire and DEL unlock flow.
+FLOW redis_redlock_acquire(c, node) {
+    c -> node REDIS CMD "SET" ARGS "lock:order_771 val_uuid_99 NX PX 10000" WAIT 2ms
+    c <- node REDIS CMD "OK" WAIT 5ms
+    c -> node REDIS CMD "DEL" ARGS "lock:order_771"
+}
+
+// INSTRUCTION: Compile Redlock acquisition across quorum nodes.
+COMPILE {
+    redis_redlock_acquire(lock_client, redlock_n1)
+    redis_redlock_acquire(lock_client, redlock_n2)
+}

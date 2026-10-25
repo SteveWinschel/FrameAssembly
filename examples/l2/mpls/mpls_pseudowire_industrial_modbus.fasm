@@ -1,0 +1,25 @@
+// PROMPT: MPLS Pseudowire (VPWS / EoMPLS) transporting industrial Modbus TCP polling between remote utility substations.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, MODBUS, UNITID, FUNC, READ_HOLDING_REGISTERS, ADDR, COUNT, IS_RESPONSE, WAIT, COMPILE
+
+// INSTRUCTION: Define substation A MPLS PE router encapsulating SCADA traffic.
+HOST sub_a_mpls_pe {
+    IP 10.190.1.1
+    MAC 00:05:85:be:01:01
+}
+
+// INSTRUCTION: Define substation B MPLS PE router terminating pseudowire label 90502.
+HOST sub_b_mpls_pe {
+    IP 10.190.1.2
+    MAC 00:05:85:be:01:02
+}
+
+// INSTRUCTION: Define MPLS pseudowire Label 90502 EXP 5 carrying Modbus TCP holding register poll and response.
+FLOW mpls_pseudowire_modbus(pe_a, pe_b) {
+    pe_a -> pe_b MPLS 90502 EXP 5 BOS 1 MPLS_TTL 64 MODBUS UNITID 1 FUNC READ_HOLDING_REGISTERS ADDR 40001 COUNT 10
+    pe_a <- pe_b MPLS 90503 EXP 5 BOS 1 MPLS_TTL 64 MODBUS UNITID 1 FUNC READ_HOLDING_REGISTERS ADDR 40001 COUNT 10 IS_RESPONSE WAIT 3ms
+}
+
+// INSTRUCTION: Compile block executing MPLS pseudowire Modbus TCP exchange.
+COMPILE {
+    mpls_pseudowire_modbus(sub_a_mpls_pe, sub_b_mpls_pe)
+}

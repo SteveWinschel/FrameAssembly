@@ -1,0 +1,25 @@
+// PROMPT: Bidirectional LLDP topology exchange between a spine router and leaf switch over 400GbE interfaces.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define spine router 400G optical interface.
+HOST spine_router_01 {
+    IP 10.200.0.1
+    MAC 2c:60:0c:aa:00:01
+}
+
+// INSTRUCTION: Define leaf switch 400G optical uplink interface.
+HOST leaf_switch_08 {
+    IP 10.200.0.8
+    MAC 2c:60:0c:bb:00:08
+}
+
+// INSTRUCTION: Define full-duplex LLDP neighbor discovery exchange on 400GbE fabric link.
+FLOW bidirectional_fabric_lldp(spine, leaf) {
+    spine -> leaf LLDP CHASSIS_ID "2c:60:0c:aa:00:01" PORT_ID "HundredGigE0/0/0/1" SYSNAME "dc1-spine-01" SYSDESC "IOS-XR 7.10.2 400G Core" TTL 120
+    spine <- leaf LLDP CHASSIS_ID "2c:60:0c:bb:00:08" PORT_ID "Ethernet49/1" SYSNAME "dc1-leaf-08" SYSDESC "Arista EOS 4.31.1F ToR" TTL 120 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing bidirectional spine-leaf LLDP exchange.
+COMPILE {
+    bidirectional_fabric_lldp(spine_router_01, leaf_switch_08)
+}

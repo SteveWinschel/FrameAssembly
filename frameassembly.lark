@@ -1,0 +1,510 @@
+// ============================================================================
+// FrameAssembly Lark Grammar (Outlines / vLLM / Guidance / XGrammar / llguidance)
+// Synchronized with src/lexer/mod.rs, grammar.ebnf, and frameassembly.gbnf.
+// Covers all 81 native protocols, L2-L4 modifiers, SNMPv1/v2c/v3 USM, and L7.
+// ============================================================================
+
+start: top_level_decl* compile_block top_level_decl*
+
+top_level_decl: host_decl
+              | flow_decl
+
+// 1. Host Declarations
+host_decl: "HOST" IDENT "{" host_prop* "}"
+host_prop: "IP" ip_addr
+         | "MAC" MAC_ADDR
+
+// 2. Flow Declarations & Statements
+flow_decl: "FLOW" IDENT "(" param_list? ")" "{" frame_stmt* "}"
+param_list: IDENT ("," IDENT)*
+
+frame_stmt: IDENT direction IDENT frame_field*
+direction: "->" | "<-"
+
+// 3. Compile Block & Loops
+compile_block: "COMPILE" "{" run_stmt* "}"
+run_stmt: loop_block
+        | flow_call
+loop_block: "LOOP" UINT_LIT "{" flow_call* "}"
+flow_call: IDENT "(" param_list? ")"
+
+// 4. Frame Fields (Protocols, Modifiers & Protocol Attributes)
+frame_field: protocol_kw
+           | universal_mod
+           | l2_mod
+           | l3_mod
+           | l4_mod
+           | l2_proto_field
+           | l3_proto_field
+           | l4_proto_field
+           | snmp_proto_field
+           | l7_proto_field
+
+// 5. All 81 Native Protocol Keywords
+protocol_kw: l2_proto
+           | l3_proto
+           | l4_proto
+           | snmp_proto
+           | l7_infra_proto
+           | l7_app_proto
+           | l7_ot_proto
+
+l2_proto: "ARP" | "VLAN" | "QINQ" | "LLDP" | "STP" | "LACP" | "EAPOL" | "MPLS"
+
+l3_proto: "ICMP" | "NDP" | "IGMP" | "MLD" | "GRE" | "VXLAN" | "GENEVE"
+        | "IPSEC" | "ESP" | "AH" | "IKEV2" | "WIREGUARD"
+        | "OSPF" | "BGP" | "RIP" | "VRRP" | "HSRP" | "PIM" | "BFD" | "OPENFLOW"
+
+l4_proto: "TCP" | "UDP" | "SCTP"
+
+snmp_proto: "SNMP1" | "SNMP2" | "SNMP3"
+
+l7_infra_proto: "DNS" | "MDNS" | "DHCP" | "NTP" | "PTP" | "RADIUS"
+              | "TACACS" | "SYSLOG" | "NETFLOW" | "IPFIX" | "SFLOW"
+
+l7_app_proto: "TFTP" | "FTP" | "SSH" | "TELNET" | "HTTP" | "HTTP2" | "GRPC"
+            | "WEBSOCKET" | "TLS" | "QUIC" | "STUN" | "SIP" | "RTP" | "RTSP"
+            | "SMTP" | "IMAP" | "POP3" | "KERBEROS" | "LDAP" | "SMB" | "NFS"
+            | "REDIS" | "MEMCACHED" | "MYSQL" | "POSTGRES" | "MQTT" | "COAP"
+            | "AMQP" | "SSDP" | "WHOIS"
+
+l7_ot_proto: "MODBUS" | "BACNET" | "DNP3" | "S7COMM" | "ETHERNETIP" | "OPCUA"
+
+// 6. Universal & Layer 2-4 Modifiers
+universal_mod: "WAIT" DURATION_LIT
+             | "PAYLOAD" STRING_LIT
+             | "HEXPAYLOAD" HEX_STRING_LIT
+
+l2_mod: "SRCMAC" MAC_ADDR
+      | "DSTMAC" MAC_ADDR
+      | "ETHERTYPE" UINT_LIT
+      | "VLAN" UINT_LIT?
+      | "PCP" UINT_LIT
+      | "DEI" UINT_LIT
+      | "QINQ" UINT_LIT?
+      | "INNER_VLAN" UINT_LIT
+      | "MPLS" UINT_LIT?
+      | "LABEL" UINT_LIT
+      | ("EXP" | "TC") UINT_LIT
+      | "BOS" UINT_LIT
+      | "MPLS_TTL" UINT_LIT
+
+l3_mod: "TTL" UINT_LIT
+      | "DSCP" UINT_LIT
+      | "ECN" UINT_LIT
+      | "FLOWLABEL" UINT_LIT
+      | "IPID" UINT_LIT
+      | "DF"
+      | "MF"
+      | "FRAGOFFSET" UINT_LIT
+      | "NEXT_HEADER" UINT_LIT
+
+l4_mod: "SRCPORT" UINT_LIT
+      | "DSTPORT" UINT_LIT
+      | "TRANSPORT" ("TCP" | "UDP")
+      | tcp_flag
+      | "SEQ" UINT_LIT
+      | "ACKNUM" UINT_LIT
+      | ("WIN" | "WINDOW") UINT_LIT
+      | "URGENT" UINT_LIT
+      | "MSS" UINT_LIT
+      | "WSCALE" UINT_LIT
+      | "SACK_PERM" | "SACKPERM"
+      | "TSVAL" UINT_LIT
+      | "TSECR" UINT_LIT
+
+tcp_flag: "SYN" | "ACK" | "FIN" | "RST" | "PSH" | "URG" | "ECE" | "CWR"
+
+// 7. Layer 2 Protocol Sub-Keywords
+l2_proto_field: "REQUEST"
+              | "REPLY" STRING_LIT?
+              | "GRATUITOUS" | "GARP"
+              | ("SHA" | "SENDERMAC") MAC_ADDR
+              | ("SPA" | "SENDERIP") ip_addr
+              | ("THA" | "TARGETMAC") MAC_ADDR
+              | ("TPA" | "TARGETIP") ip_addr
+              | "CHASSIS_ID" str_or_ident
+              | "PORT_ID" (UINT_LIT | str_or_ident)
+              | "SYSNAME" str_or_ident
+              | "SYSDESC" str_or_ident
+              | "ROOT_ID" str_or_ident
+              | "BRIDGE_ID" str_or_ident
+              | "COST" UINT_LIT
+              | "MAX_AGE" UINT_LIT
+              | "HELLO_TIME" UINT_LIT
+              | "FORWARD_DELAY" UINT_LIT
+              | "RSTP"
+              | "FLAGS" UINT_LIT
+              | "ACTOR_SYS" (MAC_ADDR | STRING_LIT)
+              | "ACTOR_KEY" UINT_LIT
+              | "ACTOR_PORT" UINT_LIT
+              | "PARTNER_SYS" (MAC_ADDR | STRING_LIT)
+              | "PARTNER_KEY" UINT_LIT
+              | "PARTNER_PORT" UINT_LIT
+              | "ACTOR_STATE" UINT_LIT
+              | "PARTNER_STATE" UINT_LIT
+              | "VERSION" (UINT_LIT | str_or_ident)
+              | "TYPE" (UINT_LIT | "START" | "LOGOFF" | "KEY" | "EAP_PACKET" | "INITIATION" | "RESPONSE" | "COOKIE" | "DATA"
+              | "HELLO" | "FEATURES_REQ" | "FEATURES_REPLY" | "PACKET_IN" | "PACKET_OUT" | "FLOW_MOD" | "ECHO_REQ" | "ECHO_REQUEST" | "ECHO_REPLY"
+              | "AUTHEN" | "AUTHOR" | "ACCT" | str_or_ident)
+              | "START" | "LOGOFF" | "KEY" | "EAP_PACKET"
+              | "EAP_CODE" UINT_LIT
+              | "EAP_ID" UINT_LIT
+              | "EAP_METHOD" UINT_LIT
+              | "IDENTITY" str_or_ident
+
+// 8. Layer 3 Protocol Sub-Keywords
+l3_proto_field: "ECHO_REQUEST" | "ECHO_REPLY" | "DEST_UNREACH" | "TIME_EXCEEDED" | "REDIRECT"
+              | "CODE" (UINT_LIT | str_or_ident)
+              | "ID" UINT_LIT
+              | "GATEWAY" ip_addr
+              | "ROUTER_SOLICIT" | "ROUTER_ADVERT" | "NEIGHBOR_SOLICIT" | "NEIGHBOR_ADVERT"
+              | "TARGET" (ip_addr | MAC_ADDR)
+              | "SLLA" MAC_ADDR
+              | "TLLA" MAC_ADDR
+              | "ROUTER_LIFETIME" UINT_LIT
+              | "QUERY" | "REPORT" | "LEAVE" | "DONE" | "V1" | "V2" | "V3"
+              | "GROUP" (ip_addr | UINT_LIT)
+              | "MAX_RESP" UINT_LIT
+              | "MULTICAST_ADDR" ip_addr
+              | "MAX_RESP_DELAY" UINT_LIT
+              | "CHECKSUM"
+              | "GRE_KEY" UINT_LIT
+              | "GRE_SEQ" UINT_LIT
+              | "GRE_PROTO" UINT_LIT
+              | ("VNI" | "VNID") UINT_LIT
+              | "OPT_CLASS" UINT_LIT
+              | "OPT_TYPE" UINT_LIT
+              | "PROTOCOL_TYPE" UINT_LIT
+              | "SPI" UINT_LIT
+              | "IV" (HEX_STRING_LIT | UINT_LIT)
+              | "ICV" (HEX_STRING_LIT | UINT_LIT)
+              | "INITIATOR_SPI" (UINT_LIT | HEX_STRING_LIT)
+              | "RESPONDER_SPI" (UINT_LIT | HEX_STRING_LIT)
+              | "EXCHANGE" (UINT_LIT | "SA_INIT" | "CREATE_CHILD_SA" | "INFORMATIONAL" | str_or_ident)
+              | "SA_INIT" | "CREATE_CHILD_SA" | "INFORMATIONAL"
+              | "MSGID" (UINT_LIT | str_or_ident)
+              | "NEXT_PAYLOAD" UINT_LIT
+              | "INITIATION" | "COOKIE" str_or_ident? | "DATA" str_or_ident?
+              | "SENDER" UINT_LIT
+              | "RECEIVER" UINT_LIT
+              | "COUNTER" UINT_LIT
+              | "HELLO" | "DBD" | "LSR" | "LSU" | "LSACK"
+              | "ROUTER_ID" ip_addr
+              | "AREA_ID" (UINT_LIT | ip_addr)
+              | "HELLO_INTERVAL" UINT_LIT
+              | "DEAD_INTERVAL" UINT_LIT
+              | "PRIORITY" UINT_LIT
+              | "OPEN" | "UPDATE" | "NOTIFICATION" | "KEEPALIVE" UINT_LIT?
+              | "ASN" UINT_LIT
+              | "HOLDTIME" UINT_LIT
+              | "BGPID" ip_addr
+              | ("PREFIX" | "NLRI") (ip_addr | str_or_ident)
+              | "NEXTHOP" ip_addr
+              | "COMMAND" (UINT_LIT | str_or_ident)
+              | "METRIC" UINT_LIT
+              | "TAG" (UINT_LIT | str_or_ident)
+              | "VRID" UINT_LIT
+              | "ADV_INT" UINT_LIT
+              | "VIP" ip_addr
+              | "HELLOTIME" UINT_LIT
+              | "STATE" UINT_LIT
+              | "JOIN_PRUNE" | "REGISTER"
+              | "SOURCE" ip_addr
+              | "RP" ip_addr
+              | "DR_PRIORITY" UINT_LIT
+              | "DIAG" UINT_LIT
+              | "MY_DISC" UINT_LIT
+              | "YOUR_DISC" UINT_LIT
+              | "MIN_TX" UINT_LIT
+              | "MIN_RX" UINT_LIT
+              | "MULT" UINT_LIT
+              | "FEATURES_REQ" | "FEATURES_REPLY" | "PACKET_IN" | "PACKET_OUT" | "FLOW_MOD" | "ECHO_REQ"
+              | "XID" UINT_LIT
+              | "DPID" UINT_LIT
+              | "TABLE_ID" UINT_LIT
+
+// 9. Layer 4 SCTP Sub-Keywords
+l4_proto_field: "VTAG" UINT_LIT
+              | "STREAM" UINT_LIT
+              | "SSN" UINT_LIT
+              | "PPID" UINT_LIT
+              | "TSN" UINT_LIT
+              | "CHUNK" ("DATA" | "INIT" | "INIT_ACK" | "SACK" | "HEARTBEAT" | "HEARTBEAT_ACK" | "ABORT" | "SHUTDOWN" | "COOKIE_ECHO" | "COOKIE_ACK" | UINT_LIT | str_or_ident)
+              | "INIT" | "INIT_ACK" | "SACK" | "HEARTBEAT" | "HEARTBEAT_ACK"
+              | "ABORT" | "SHUTDOWN" | "COOKIE_ECHO" | "COOKIE_ACK"
+
+// 10. SNMPv1 / SNMPv2c / SNMPv3 Sub-Keywords
+snmp_proto_field: "TRAP" | "INFORM" | "GET" | "GETNEXT" | "GETBULK" | "SET" | "RESPONSE" str_or_ident? | "REPORT"
+                | "COMMUNITY" STRING_LIT
+                | "OID" oid_lit
+                | "SYSUPTIME" UINT_LIT
+                | "REQID" UINT_LIT
+                | "NONREPEATERS" UINT_LIT
+                | "MAXREPETITIONS" UINT_LIT
+                | "ENTERPRISE" oid_lit
+                | "AGENTIP" ip_addr
+                | "GENTRAP" UINT_LIT
+                | "SPECTRAP" UINT_LIT
+                | "USER" str_or_ident
+                | "ENGINEID" STRING_LIT
+                | "ENGINEBOOTS" UINT_LIT
+                | "ENGINETIME" UINT_LIT
+                | "CONTEXTNAME" STRING_LIT
+                | "AUTH" ("MD5" | "SHA" | "SHA256" | "SHA384" | "SHA512") STRING_LIT
+                | "PRIV" ("DES" | "AES") STRING_LIT
+                | "VARBIND" oid_lit varbind_val
+
+varbind_val: "NULLVAL" | "NULL"
+           | "STRING" STRING_LIT
+           | "INT" INT_LIT
+           | "TIMETICKS" UINT_LIT
+           | "IPVAL" ip_addr
+           | "OIDVAL" oid_lit
+           | "COUNTER32" UINT_LIT
+           | "GAUGE32" UINT_LIT
+           | "COUNTER64" UINT_LIT
+
+// 11. Layer 7 Sub-Keywords
+l7_proto_field: "TXID" (UINT_LIT | str_or_ident)
+              | "QNAME" str_or_ident
+              | "QTYPE" (UINT_LIT | str_or_ident)
+              | "RDATA" str_or_ident
+              | "RCODE" UINT_LIT
+              | "ANS_TTL" UINT_LIT
+              | "DISCOVER" | "SOLICIT" | "OFFER" | "ADVERTISE" | "RELEASE"
+              | "CIADDR" ip_addr
+              | "YIADDR" ip_addr
+              | "SIADDR" ip_addr
+              | "CHADDR" MAC_ADDR
+              | "HOSTNAME" str_or_ident
+              | "DNS_SERVER" ip_addr
+              | "ROUTER" ip_addr
+              | "SUBNET_MASK" ip_addr
+              | "LEASE_TIME" UINT_LIT
+              | "LI" UINT_LIT
+              | "VN" UINT_LIT
+              | "MODE" (UINT_LIT | str_or_ident)
+              | "STRATUM" UINT_LIT
+              | "POLL" UINT_LIT
+              | "PRECISION" INT_LIT
+              | "REFID" str_or_ident
+              | "TX_TIMESTAMP" UINT_LIT
+              | "MSG_TYPE" (UINT_LIT | str_or_ident)
+              | "SYNC" | "DELAY_REQ" | "FOLLOW_UP" | "DELAY_RESP" | "ANNOUNCE"
+              | "DOMAIN" (UINT_LIT | str_or_ident)
+              | "SEQ_ID" UINT_LIT
+              | "CLOCK_ID" (MAC_ADDR | str_or_ident)
+              | "ACCESS_REQUEST" | "ACCESS_ACCEPT" | "ACCESS_REJECT"
+              | "ACCESS_CHALLENGE" | "ACCOUNTING_REQUEST" | "ACCOUNTING_RESPONSE"
+              | "NAS_IP" ip_addr
+              | "SERVICE_TYPE" UINT_LIT
+              | "FRAMED_IP" ip_addr
+              | "AUTHEN" | "AUTHOR" | "ACCT"
+              | "SESSION_ID" UINT_LIT
+              | "FACILITY" UINT_LIT
+              | "SEVERITY" UINT_LIT
+              | "PRI" UINT_LIT
+              | "APP" str_or_ident
+              | "PROCID" str_or_ident
+              | "MSG" str_or_ident
+              | "SRCIP" ip_addr
+              | "DSTIP" ip_addr
+              | "PROTO" UINT_LIT
+              | "PACKETS" UINT_LIT
+              | "OCTETS" UINT_LIT
+              | "DOMAIN_ID" UINT_LIT
+              | "AGENT_IP" ip_addr
+              | "SUB_AGENT_ID" UINT_LIT
+              | "UPTIME" UINT_LIT
+              | "SAMPLES" UINT_LIT
+              | "RRQ" | "WRQ"
+              | "FILENAME" str_or_ident
+              | "BLOCK" UINT_LIT
+              | "ERRCODE" UINT_LIT
+              | "ERRMSG" str_or_ident
+              | "CMD" (UINT_LIT | str_or_ident)
+              | "ARG" str_or_ident
+              | "BANNER" str_or_ident
+              | "KEXINIT" | "NEWKEYS"
+              | "MSG_CODE" UINT_LIT
+              | "WILL" UINT_LIT
+              | "WONT" UINT_LIT
+              | "DO" UINT_LIT
+              | "DONT" UINT_LIT
+              | "OPTION" UINT_LIT
+              | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
+              | "URI" str_or_ident
+              | "HOST_HDR" str_or_ident
+              | "USER_AGENT" str_or_ident
+              | "CONTENT_TYPE" str_or_ident
+              | "STATUS" (UINT_LIT | str_or_ident)
+              | "REASON" str_or_ident
+              | "HEADER" STRING_LIT STRING_LIT
+              | "BODY" str_or_ident
+              | "PREFACE" | "SETTINGS" | "HEADERS" | "WINDOW_UPDATE" | "PING" | "GOAWAY"
+              | "STREAM_ID" UINT_LIT
+              | "SERVICE" str_or_ident
+              | "METHOD" str_or_ident
+              | "GRPC_STATUS" UINT_LIT
+              | "OPCODE" (UINT_LIT | str_or_ident)
+              | "TEXT" | "BINARY" | "PONG" | "CLOSE"
+              | "FIN_BIT" UINT_LIT
+              | "MASK_KEY" UINT_LIT
+              | "CLIENT_HELLO" | "SERVER_HELLO" | "CERTIFICATE" | "FINISHED" | "APP_DATA" | "ALERT"
+              | "RECORD_VERSION" UINT_LIT
+              | "HANDSHAKE_VERSION" UINT_LIT
+              | "SNI" str_or_ident
+              | "CIPHERSUITE" UINT_LIT
+              | "ALPN" str_or_ident
+              | "INITIAL" | "ZERO_RTT" | "HANDSHAKE" | "RETRY" | "SHORT"
+              | "DCID" (UINT_LIT | str_or_ident)
+              | "SCID" (UINT_LIT | str_or_ident)
+              | "TOKEN" (UINT_LIT | str_or_ident)
+              | "PKT_NUM" UINT_LIT
+              | "BINDING_REQUEST" | "BINDING_RESPONSE" | "BINDING_ERROR"
+              | "XOR_MAPPED_ADDR" ip_addr UINT_LIT?
+              | "SOFTWARE" str_or_ident
+              | "INVITE" | "BYE" | "CANCEL"
+              | "FROM" str_or_ident
+              | "TO" str_or_ident
+              | "CALL_ID" str_or_ident
+              | "CSEQ" UINT_LIT
+              | "VIA" str_or_ident
+              | "CONTACT" str_or_ident
+              | "PT" UINT_LIT
+              | "TIMESTAMP" UINT_LIT
+              | "SSRC" UINT_LIT
+              | "MARKER" UINT_LIT
+              | "DESCRIBE" | "SETUP" | "PLAY" | "TEARDOWN"
+              | "TRANSPORT_HDR" str_or_ident
+              | "SESSION" str_or_ident
+              | "EHLO" str_or_ident?
+              | "HELO" str_or_ident?
+              | "MAIL_FROM" str_or_ident
+              | "RCPT_TO" str_or_ident
+              | "QUIT"
+              | "PARAM" str_or_ident
+              | "OK" | "ERR"
+              | "AS_REQ" | "AS_REP" | "TGS_REQ" | "TGS_REP" | "KRB_ERROR"
+              | "REALM" str_or_ident
+              | "CNAME" str_or_ident
+              | "SNAME" str_or_ident
+              | "ETYPE" UINT_LIT
+              | "BIND_REQ" | "BIND_RES" | "SEARCH_REQ" | "SEARCH_ENTRY" | "SEARCH_DONE" | "UNBIND_REQ"
+              | "BASE_DN" str_or_ident
+              | "FILTER" str_or_ident
+              | "RESULT_CODE" UINT_LIT
+              | "NEGOTIATE" | "SESSION_SETUP" | "TREE_CONNECT" | "CREATE" | "TREE_DISCONNECT"
+              | "TREE_ID" UINT_LIT
+              | "SHARE" str_or_ident
+              | "VERS" UINT_LIT
+              | "PROC" (UINT_LIT | str_or_ident)
+              | "PATH" str_or_ident
+              | "COMPOUND"
+              | "ARGS" str_or_ident
+              | "REPLY_TYPE" str_or_ident
+              | "KEY" (UINT_LIT | str_or_ident)
+              | "VALUE" (UINT_LIT | str_or_ident)
+              | "EXPTIME" UINT_LIT
+              | "OPAQUE" UINT_LIT
+              | "CAS" UINT_LIT
+              | "GREETING" | "LOGIN" | "EOF"
+              | "SQL" str_or_ident
+              | "SERVER_VERSION" str_or_ident
+              | "DB" str_or_ident
+              | "STARTUP" | "READY_FOR_QUERY" | "COMMAND_COMPLETE" | "ERROR_RESPONSE" | "AUTH_OK"
+              | "CONNECT" | "CONNACK" | "PUBLISH" | "PUBACK" | "SUBSCRIBE" | "SUBACK"
+              | "PINGREQ" | "PINGRESP" | "DISCONNECT"
+              | "CLIENT_ID" str_or_ident
+              | "TOPIC" str_or_ident
+              | "QOS" UINT_LIT
+              | "RETAIN" UINT_LIT?
+              | "PKT_ID" UINT_LIT
+              | "RETURN_CODE" UINT_LIT
+              | "CON" | "NON" | "CHANGED" | "CREATED" | "NOT_FOUND"
+              | "URI_PATH" str_or_ident
+              | "CONTENT_FORMAT" UINT_LIT
+              | "PROTOCOL_HEADER" | "CONNECTION_START" | "CHANNEL_OPEN" | "BASIC_PUBLISH" | "BASIC_DELIVER"
+              | "CHANNEL" UINT_LIT
+              | "ROUTING_KEY" str_or_ident
+              | "MSEARCH" | "NOTIFY"
+              | "MAN" str_or_ident
+              | "MX" UINT_LIT
+              | "ST" str_or_ident
+              | "NT" str_or_ident
+              | "NTS" str_or_ident
+              | "USN" str_or_ident
+              | "LOCATION" str_or_ident
+              | "REGISTRAR" str_or_ident
+              | "PROTO_ID" UINT_LIT
+              | "UNITID" UINT_LIT
+              | "FUNC" (UINT_LIT | str_or_ident)
+              | "READ_COILS" | "READ_DISCRETE_INPUTS" | "READ_HOLDING_REGISTERS" | "READ_INPUT_REGISTERS"
+              | "WRITE_SINGLE_COIL" | "WRITE_SINGLE_REGISTER" | "WRITE_MULTIPLE_REGISTERS"
+              | "ADDR" UINT_LIT
+              | "COUNT" UINT_LIT
+              | "IS_RESPONSE"
+              | "WHO_IS" | "I_AM" | "READ_PROPERTY" | "WRITE_PROPERTY"
+              | "INVOKE_ID" UINT_LIT
+              | "OBJECT_TYPE" UINT_LIT
+              | "OBJECT_INSTANCE" UINT_LIT
+              | "PROPERTY_ID" UINT_LIT
+              | "CONFIRM" | "SELECT" | "OPERATE" | "DIRECT_OPERATE" | "UNSOLICITED_RESPONSE"
+              | "VARIATION" UINT_LIT
+              | "CRC" UINT_LIT
+              | "SRC" UINT_LIT
+              | "DST" UINT_LIT
+              | "ROSCTR" (UINT_LIT | str_or_ident)
+              | "PDU_REF" UINT_LIT
+              | "SETUP_COMM" | "READ_VAR" | "WRITE_VAR" | "PLC_CONTROL"
+              | "AREA" (UINT_LIT | str_or_ident)
+              | "DB_NUM" UINT_LIT
+              | "OFFSET" UINT_LIT
+              | "LIST_SERVICES" | "LIST_IDENTITY" | "LIST_INTERFACES"
+              | "REGISTER_SESSION" | "UNREGISTER_SESSION" | "SEND_RR_DATA" | "SEND_UNIT_DATA"
+              | "SESSION_HANDLE" UINT_LIT
+              | "CONTEXT" (UINT_LIT | str_or_ident)
+              | "CIP_SERVICE" UINT_LIT
+              | "CIP_CLASS" UINT_LIT
+              | "CIP_INSTANCE" UINT_LIT
+              | "CIP_ATTR" UINT_LIT
+              | "CHUNK_TYPE" str_or_ident
+              | "SECURE_CHANNEL_ID" UINT_LIT
+              | "TOKEN_ID" UINT_LIT
+              | "SEQ_NUM" UINT_LIT
+              | "ENDPOINT_URL" str_or_ident
+              | "NODE_ID" str_or_ident
+
+// 12. Lexical Terminals
+str_or_ident: STRING_LIT | IDENT | contextual_keyword
+
+contextual_keyword: "CNAME" | "TEXT" | "BINARY" | "PING" | "PONG" | "CLOSE"
+                  | "INIT" | "INIT_ACK" | "SACK" | "HEARTBEAT" | "HEARTBEAT_ACK"
+                  | "ABORT" | "SHUTDOWN" | "COOKIE_ECHO" | "COOKIE_ACK"
+                  | "DATA" | "ACK" | "SYN" | "FIN" | "RST" | "PSH" | "URG"
+                  | "SYNC" | "REPORT" | "TRAP" | "INFORM" | "GET" | "GETNEXT" | "GETBULK" | "SET" | "RESPONSE"
+                  | "REQUEST" | "REPLY" | "QUERY" | "NOTIFY" | "HELLO" | "OPEN" | "UPDATE" | "KEEPALIVE"
+                  | "CONNECT" | "CONNACK" | "PUBLISH" | "SUBSCRIBE" | "DISCONNECT"
+                  | "START" | "LOGOFF" | "KEY" | "EAP_PACKET" | "AUTHEN" | "AUTHOR" | "ACCT"
+                  | "OK" | "ERR" | "QUIT" | "EHLO" | "HELO" | "DB"
+
+ip_addr: IPV4_ADDR | IPV6_ADDR
+oid_lit: OID_LIT | STRING_LIT
+
+IDENT: /[a-zA-Z_][a-zA-Z0-9_]*/
+UINT_LIT: /0[xX][0-9a-fA-F]+|[0-9]+/
+INT_LIT: /-?[0-9]+|0[xX][0-9a-fA-F]+/
+DURATION_LIT: /(?:0[xX][0-9a-fA-F]+|[0-9]+)(?:ns|us|ms|s|m)/
+STRING_LIT: /"(?:[^"\\]|\\.)*"/
+HEX_STRING_LIT: /"[0-9a-fA-F: ]*"/
+MAC_ADDR: /[0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5}/
+IPV4_ADDR: /[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/
+IPV6_ADDR: /::[0-9a-fA-F:.]*|[0-9a-fA-F]{1,4}(?::[0-9a-fA-F:.]*)+/
+OID_LIT: /\.?[0-9]+(?:\.[0-9]+)+/
+
+COMMENT: /\/\/[^\n]*/
+WS: /[ \t\r\n]+/
+
+%ignore WS
+%ignore COMMENT

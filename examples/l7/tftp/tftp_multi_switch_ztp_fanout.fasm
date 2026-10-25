@@ -1,0 +1,28 @@
+// PROMPT: Three top-of-rack switches simultaneously requesting their startup configurations from a central TFTP server.
+// TOKENS: HOST, IP, FLOW, TFTP, RRQ, FILENAME, MODE, DATA, BLOCK, PAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define rack 1 switch client.
+HOST rack1_sw { IP 10.169.1.11 }
+
+// INSTRUCTION: Define rack 2 switch client.
+HOST rack2_sw { IP 10.169.1.12 }
+
+// INSTRUCTION: Define rack 3 switch client.
+HOST rack3_sw { IP 10.169.1.13 }
+
+// INSTRUCTION: Define central TFTP configuration depot.
+HOST config_depot { IP 10.169.1.1 }
+
+// INSTRUCTION: Request startup configuration and receive initial DATA block.
+FLOW tftp_pull_config(sw, depot) {
+    sw -> depot TFTP RRQ FILENAME "tor-leaf-base.cfg" MODE "netascii"
+    sw <- depot TFTP DATA BLOCK 1 PAYLOAD "vlan 10,20,30"
+    sw -> depot TFTP ACK BLOCK 1
+}
+
+// INSTRUCTION: Compile fan-in TFTP requests across all three rack switches.
+COMPILE {
+    tftp_pull_config(rack1_sw, config_depot)
+    tftp_pull_config(rack2_sw, config_depot)
+    tftp_pull_config(rack3_sw, config_depot)
+}

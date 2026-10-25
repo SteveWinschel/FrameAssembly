@@ -1,0 +1,25 @@
+// PROMPT: Simulate an SD-WAN branch router authenticating its chassis serial number via RADIUS during staging.
+// TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, ID, USER, NAS_IP, SERVICE_TYPE, WAIT, ACCESS_ACCEPT, FRAMED_IP, COMPILE
+
+// INSTRUCTION: Define the Network Access Server (NAS) client initiating RADIUS requests.
+HOST radius_nas {
+    IP 172.30.18.40
+    MAC 00:1b:21:18:12:05
+}
+
+// INSTRUCTION: Define the central RADIUS authentication and accounting server.
+HOST radius_server {
+    IP 172.30.18.1
+    MAC 00:1b:21:18:12:64
+}
+
+// INSTRUCTION: Execute the RFC 2865 / RFC 2866 RADIUS transaction flow.
+FLOW radius_scenario_flow(nas, srv) {
+    nas -> srv RADIUS ACCESS_REQUEST ID 116 USER "SN-FDO241109AB" NAS_IP 172.30.18.40 SERVICE_TYPE 7 WAIT 4ms
+    nas <- srv RADIUS ACCESS_ACCEPT ID 116 USER "SN-FDO241109AB" NAS_IP 172.30.18.40 SERVICE_TYPE 7 FRAMED_IP 172.30.200.40
+}
+
+// INSTRUCTION: Compile the RADIUS AAA exchange into a PCAP trace.
+COMPILE {
+    radius_scenario_flow(radius_nas, radius_server)
+}

@@ -1,0 +1,25 @@
+// PROMPT: RFC 8926 GENEVE encapsulating MPLS-labeled packets (PROTOCOL_TYPE 0x8847 = 34887) across a cloud backbone.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, DF, DSCP, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Cloud PE-1 encapsulating MPLS VPN labels directly inside GENEVE UDP 6081.
+HOST cloud_pe1_geneve {
+    IP 192.168.88.1
+    MAC 00:22:bd:88:47:01
+}
+
+// INSTRUCTION: Define Cloud PE-2 decapsulating GENEVE Protocol Type 0x8847 (34887).
+HOST cloud_pe2_geneve {
+    IP 192.168.88.2
+    MAC 00:22:bd:88:47:02
+}
+
+// INSTRUCTION: Define GENEVE flow with PROTOCOL_TYPE 34887 (0x8847 MPLS Unicast) and hex MPLS inner shim.
+FLOW geneve_mpls_passenger_flow(pe1, pe2) {
+    pe1 -> pe2 GENEVE VNI 34887 OPT_CLASS 256 OPT_TYPE 1 PROTOCOL_TYPE 34887 SRCPORT 50847 DSTPORT 6081 DF DSCP 34 TTL 64 HEXPAYLOAD "000101404500001c000100004001f97cc0a80101c0a80201" WAIT 4ms
+    pe1 <- pe2 GENEVE VNI 34887 OPT_CLASS 256 OPT_TYPE 1 PROTOCOL_TYPE 34887 SRCPORT 50848 DSTPORT 6081 DF DSCP 34 TTL 64 HEXPAYLOAD "000201404500001c000200004001f97bc0a80201c0a80101"
+}
+
+// INSTRUCTION: Compile the MPLS-in-GENEVE (Protocol Type 0x8847) encapsulation flow.
+COMPILE {
+    geneve_mpls_passenger_flow(cloud_pe1_geneve, cloud_pe2_geneve)
+}

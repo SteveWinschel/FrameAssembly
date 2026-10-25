@@ -1,0 +1,25 @@
+// PROMPT: Generate an OSPF Link State Update (LSU) carrying a raw hexadecimal Type-1 Router-LSA payload and LSAck response
+// TOKENS: HOST, IP, MAC, FLOW, OSPF, LSU, ROUTER_ID, AREA_ID, TTL, HEXPAYLOAD, WAIT, LSACK, COMPILE
+
+// INSTRUCTION: Define the originating OSPF router advertising a new stub link
+HOST lsa_originator {
+    IP 172.20.5.1
+    MAC 00:1e:67:fb:05:01
+}
+
+// INSTRUCTION: Define the receiving OSPF neighbor router
+HOST lsa_receiver {
+    IP 172.20.5.2
+    MAC 00:1e:67:fb:05:02
+}
+
+// INSTRUCTION: Flood an LSU with hex-encoded Router-LSA bytes and return a hex-encoded LSAck header
+FLOW ospf_hex_router_lsa(orig, recv) {
+    orig -> recv OSPF LSU ROUTER_ID 172.20.0.1 AREA_ID 5 TTL 1 HEXPAYLOAD "0000000100010201ac140001ac14000180000001a1b2002400000001ac140500ffffff000300000a" WAIT 10ms
+    recv -> orig OSPF LSACK ROUTER_ID 172.20.0.2 AREA_ID 5 TTL 1 HEXPAYLOAD "00010201ac140001ac14000180000001a1b20024"
+}
+
+// INSTRUCTION: Compile the hexadecimal Router-LSA OSPF flooding sequence
+COMPILE {
+    ospf_hex_router_lsa(lsa_originator, lsa_receiver)
+}

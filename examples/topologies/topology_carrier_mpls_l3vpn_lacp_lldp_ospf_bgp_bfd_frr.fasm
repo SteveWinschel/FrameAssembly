@@ -1,0 +1,38 @@
+// PROMPT: Carrier MPLS L3VPN backbone with LLDP neighbor discovery, LACP trunking, OSPF IGP, BGP VPNv4 route reflection, MPLS label stacking, and BFD fast reroute.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, WAIT, OSPF, HELLO, ROUTER_ID, AREA_ID, BFD, MY_DISC, YOUR_DISC, COMPILE
+
+// INSTRUCTION: Define ingress Provider Edge router PE1.
+HOST carrier_pe1 {
+    IP 10.255.0.1
+    MAC 00:05:85:ff:00:01
+}
+
+// INSTRUCTION: Define core Label Switch Router P1.
+HOST carrier_core_p1 {
+    IP 10.255.0.2
+    MAC 00:05:85:ff:00:02
+}
+
+// INSTRUCTION: Define egress Provider Edge router PE2.
+HOST carrier_pe2 {
+    IP 10.255.0.3
+    MAC 00:05:85:ff:00:03
+}
+
+// INSTRUCTION: Define LLDP/LACP link bring-up, OSPF/BFD control plane, BGP VPNv4 update, and MPLS-labeled data path.
+FLOW carrier_mpls_l3vpn_frr(pe1, p1, pe2) {
+    pe1 -> p1 LLDP CHASSIS_ID "pe1.core.net" PORT_ID "et-0/0/0" SYSNAME "PE1-NY"
+    pe1 -> p1 LACP ACTOR_SYS 00:05:85:ff:00:01 ACTOR_KEY 10 ACTOR_PORT 1 ACTOR_STATE 61 WAIT 1ms
+    pe1 -> p1 OSPF HELLO ROUTER_ID 10.255.0.1 AREA_ID 0 WAIT 1ms
+    pe1 <- p1 OSPF HELLO ROUTER_ID 10.255.0.2 AREA_ID 0 WAIT 1ms
+    pe1 -> p1 BFD MY_DISC 1001 YOUR_DISC 2001 MIN_TX 50000 MIN_RX 50000 MULT 3 WAIT 1ms
+    pe1 -> pe2 BGP UPDATE PREFIX "172.16.100.0/24" NEXTHOP 10.255.0.1 WAIT 1ms
+    pe1 -> p1 MPLS 24001 EXP 6 BOS 1 MPLS_TTL 63 ICMP ECHO_REQUEST WAIT 1ms
+    p1 -> pe2 MPLS 24002 EXP 6 BOS 1 MPLS_TTL 62 ICMP ECHO_REQUEST WAIT 1ms
+    pe1 <- pe2 MPLS 24001 EXP 6 BOS 1 MPLS_TTL 62 ICMP ECHO_REPLY WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing carrier MPLS L3VPN and BFD fast reroute topology.
+COMPILE {
+    carrier_mpls_l3vpn_frr(carrier_pe1, carrier_core_p1, carrier_pe2)
+}

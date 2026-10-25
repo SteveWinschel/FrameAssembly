@@ -1,0 +1,18 @@
+// PROMPT: Cisco NetFlow telemetry exported over IPv6 transport to centralized monitoring station.
+// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define IPv6 enterprise border router.
+HOST v6_border_router { IP 2001:db8:f100::1 }
+
+// INSTRUCTION: Define IPv6 NetFlow monitoring station.
+HOST v6_monitoring_station { IP 2001:db8:f100::254 }
+
+// INSTRUCTION: Define IPv6 NetFlow telemetry flow.
+FLOW v6_netflow_export(rtr, mon) {
+    rtr -> mon NETFLOW SRCIP 10.100.1.1 DSTIP 10.200.1.1 PROTO 6 PACKETS 620 OCTETS 780000
+}
+
+// INSTRUCTION: Compile IPv6 underlay NetFlow scenario.
+COMPILE {
+    v6_netflow_export(v6_border_router, v6_monitoring_station)
+}

@@ -1,0 +1,18 @@
+// PROMPT: 802.1Q tagged RIPv2 update broadcast across branch routing VLAN 20.
+// TOKENS: HOST, IP, FLOW, RIP, RESPONSE, PREFIX, METRIC, VLAN, COMPILE
+
+// INSTRUCTION: Define branch office routing gateway.
+HOST branch_gw_vlan20 { IP 10.20.0.1 }
+
+// INSTRUCTION: Define VLAN 20 broadcast destination.
+HOST vlan20_broadcast { IP 224.0.0.9 }
+
+// INSTRUCTION: Define VLAN 20 tagged RIP route update flow.
+FLOW rip_vlan_update(gw, dst) {
+    gw -> dst RIP RESPONSE PREFIX 10.20.100.0 METRIC 1 VLAN 20
+}
+
+// INSTRUCTION: Compile block executing VLAN tagged RIP advertisement.
+COMPILE {
+    rip_vlan_update(branch_gw_vlan20, vlan20_broadcast)
+}

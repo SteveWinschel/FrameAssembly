@@ -1,5 +1,5 @@
 // PROMPT: Kubernetes dual-stack service mesh traffic routing between microservices via HTTP/2 and gRPC.
-// TOKENS: HOST, IP, FLOW, ->, HTTP2, SETTINGS, GRPC, SERVICE, METHOD, COMPILE
+// TOKENS: HOST, IP, FLOW, HTTP2, SETTINGS, GRPC, SERVICE, METHOD, COMPILE
 
 // INSTRUCTION: Define frontend pod on IPv4.
 HOST pod_frontend { IP 10.244.0.15 }

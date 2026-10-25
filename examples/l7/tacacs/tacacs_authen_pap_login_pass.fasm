@@ -1,0 +1,28 @@
+// PROMPT: Simulate a single-roundtrip TACACS+ PAP authentication request and PASS response using TYPE AUTHEN.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, DSCP, ACK, TACACS, TYPE, AUTHEN, SESSION_ID, USER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint vpn_nas.
+HOST vpn_nas {
+    MAC 00:1c:42:00:49:20
+    IP 10.20.49.20
+}
+
+// INSTRUCTION: Define host endpoint id_server.
+HOST id_server {
+    MAC 00:1c:42:00:49:01
+    IP 10.20.49.1
+}
+
+// INSTRUCTION: Send a PAP authentication start packet with DSCP 16 and receive AUTHEN_STATUS_PASS.
+FLOW tacacs_pap_single_roundtrip(vpn_nas, id_server) {
+    vpn_nas -> id_server TCP SYN SRCPORT 53049 DSTPORT 49 DSCP 16
+    id_server -> vpn_nas TCP SYN ACK DSCP 16
+    vpn_nas -> id_server TCP ACK DSCP 16
+    vpn_nas -> id_server TACACS TYPE AUTHEN SESSION_ID 300404 USER "vpnuser1" PAYLOAD "PAP-TOKEN-998877" DSCP 16
+    id_server -> vpn_nas TACACS TYPE AUTHEN SESSION_ID 300404 PAYLOAD "AUTHEN_STATUS_PASS" DSCP 16
+}
+
+// INSTRUCTION: Compile the TACACS+ PAP authentication flow.
+COMPILE {
+    tacacs_pap_single_roundtrip(vpn_nas, id_server)
+}

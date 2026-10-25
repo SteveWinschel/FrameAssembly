@@ -1,0 +1,19 @@
+// PROMPT: RFC 7637 NVGRE Layer 2 virtualization using GRE_KEY for 24-bit VSID and GRE_PROTO 0x6558.
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_PROTO, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define Hyper-V virtualization host 1.
+HOST nvgre_host_01 { IP 10.130.10.11 MAC 00:15:5d:10:01:01 }
+
+// INSTRUCTION: Define Hyper-V virtualization host 2.
+HOST nvgre_host_02 { IP 10.130.10.12 MAC 00:15:5d:10:01:02 }
+
+// INSTRUCTION: Define NVGRE tunnel with GRE_PROTO 0x6558 (Transparent Ethernet Bridging) and GRE_KEY.
+FLOW nvgre_l2_bridge(h1, h2) {
+    h1 -> h2 GRE GRE_KEY 16777200 GRE_PROTO 0x6558 PAYLOAD "NVGRE_VM_ETH_FRAME_OUT"
+    h1 <- h2 GRE GRE_KEY 16777200 GRE_PROTO 0x6558 PAYLOAD "NVGRE_VM_ETH_FRAME_IN"
+}
+
+// INSTRUCTION: Compile the NVGRE virtual subnet encapsulation flow.
+COMPILE {
+    nvgre_l2_bridge(nvgre_host_01, nvgre_host_02)
+}

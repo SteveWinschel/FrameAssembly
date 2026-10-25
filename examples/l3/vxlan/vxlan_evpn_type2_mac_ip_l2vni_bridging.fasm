@@ -1,0 +1,25 @@
+// PROMPT: RFC 7348 / RFC 7432 BGP EVPN Type-2 L2VNI (VNI 10010) Intra-Subnet Ethernet bridging between Leaf VTEPs.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Leaf-101 VTEP encapsulating intra-subnet VM traffic into L2VNI 10010.
+HOST evpn_vtep_101 {
+    IP 10.255.1.101
+    MAC 00:1c:73:47:89:01
+}
+
+// INSTRUCTION: Define Leaf-102 VTEP decapsulating L2VNI 10010 and delivering to destination VM.
+HOST evpn_vtep_102 {
+    IP 10.255.1.102
+    MAC 00:1c:73:47:89:02
+}
+
+// INSTRUCTION: Define RFC 7348 VXLAN exchange on UDP 4789 with L2VNI 10010 and entropy SRCPORT.
+FLOW vxlan_evpn_l2vni_bridge(vtep1, vtep2) {
+    vtep1 -> vtep2 VXLAN VNI 10010 SRCPORT 54101 DSTPORT 4789 DF DSCP 18 TTL 62 PAYLOAD "EVPN_TYPE2_INTRA_VLAN10_VM_A_TO_VM_B" WAIT 2ms
+    vtep1 <- vtep2 VXLAN VNI 10010 SRCPORT 54102 DSTPORT 4789 DF DSCP 18 TTL 62 PAYLOAD "EVPN_TYPE2_INTRA_VLAN10_VM_B_TO_VM_A"
+}
+
+// INSTRUCTION: Compile the BGP EVPN L2VNI 10010 VXLAN bridging flow.
+COMPILE {
+    vxlan_evpn_l2vni_bridge(evpn_vtep_101, evpn_vtep_102)
+}

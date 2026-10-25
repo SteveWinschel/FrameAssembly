@@ -1,0 +1,25 @@
+// PROMPT: International LTE roaming Diameter Routing Agent (DRA) S6a authentication relay over SCTP port 3868 (PPID 46).
+// TOKENS: HOST, IP, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define Visited PLMN MME initiating international roaming authentication.
+HOST visited_mme_s6a { IP 172.24.38.10 }
+
+// INSTRUCTION: Define Border Diameter Routing Agent (DRA) relaying S6a messages.
+HOST border_dra_node { IP 172.24.38.1 }
+
+// INSTRUCTION: Define Home PLMN HSS answering Authentication Information Request (AIR/AIA).
+HOST home_hss_s6a { IP 172.24.38.200 }
+
+// INSTRUCTION: Define multi-hop SCTP Diameter S6a roaming relay across Visited MME, DRA, and Home HSS.
+FLOW sctp_diameter_roaming_dra(mme, dra, hss) {
+    mme -> dra DSCP 34 SCTP CHUNK DATA VTAG 600101 STREAM 1 SSN 0 PPID 46 SRCPORT 3868 DSTPORT 3868 PAYLOAD "diameter_air_visited_plmn_26201"
+    dra -> hss DSCP 34 SCTP CHUNK DATA VTAG 600202 STREAM 1 SSN 0 PPID 46 SRCPORT 3868 DSTPORT 3868 PAYLOAD "diameter_air_routed_via_dra" WAIT 2ms
+    dra <- hss DSCP 34 SCTP CHUNK DATA VTAG 600202 STREAM 1 SSN 0 PPID 46 SRCPORT 3868 DSTPORT 3868 PAYLOAD "diameter_aia_eutran_vector_kasme" WAIT 3ms
+    mme <- dra DSCP 34 SCTP CHUNK DATA VTAG 600101 STREAM 1 SSN 0 PPID 46 SRCPORT 3868 DSTPORT 3868 PAYLOAD "diameter_aia_eutran_vector_kasme" WAIT 2ms
+    mme -> dra DSCP 34 SCTP CHUNK SACK VTAG 600101 SRCPORT 3868 DSTPORT 3868 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing SCTP Diameter S6a roaming relay.
+COMPILE {
+    sctp_diameter_roaming_dra(visited_mme_s6a, border_dra_node, home_hss_s6a)
+}

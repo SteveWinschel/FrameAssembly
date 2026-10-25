@@ -1,0 +1,25 @@
+// PROMPT: IEEE 802.1BA Audio Video Bridging (AVB) Time-Sensitive Networking switch and media endpoint LLDP capability exchange.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define TSN automotive/studio Ethernet bridge port advertising LLDP capabilities.
+HOST tsn_avb_bridge {
+    IP 192.168.88.1
+    MAC 00:1d:c1:58:00:01
+}
+
+// INSTRUCTION: Define AVB networked loudspeaker endpoint discovering upstream TSN bridge port.
+HOST avb_speaker_ep {
+    IP 192.168.88.25
+    MAC 00:1d:c1:58:00:19
+}
+
+// INSTRUCTION: Exchange LLDP advertisements with custom organizationally specific AVB TLV hex payload.
+FLOW lldp_tsn_avb_exchange(br, ep) {
+    br -> ep LLDP CHASSIS_ID "tsn-bridge-01" PORT_ID "avb-port-4" SYSNAME "studio-tsn-sw1" SYSDESC "IEEE 802.1Qav/Qbv TSN Bridge" TTL 120 HEXPAYLOAD "fe070080c201000001" WAIT 5ms
+    br <- ep LLDP CHASSIS_ID "avb-spk-left" PORT_ID "eth0" SYSNAME "genelec-avb-l" SYSDESC "Milan Certified AVB Listener" TTL 120
+}
+
+// INSTRUCTION: Compile the TSN/AVB studio bridge LLDP discovery trace.
+COMPILE {
+    lldp_tsn_avb_exchange(tsn_avb_bridge, avb_speaker_ep)
+}

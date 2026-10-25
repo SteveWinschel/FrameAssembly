@@ -1,0 +1,26 @@
+// PROMPT: RFC 6790 MPLS Entropy Label Indicator (ELI Label 7) and Entropy Label for ECMP load balancing across core LAG bundles.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define ingress PE router inserting Entropy Label Indicator (7) and hash labels.
+HOST eli_ingress_pe {
+    IP 172.21.0.1
+    MAC 00:05:85:15:00:01
+}
+
+// INSTRUCTION: Define core P router load-balancing across ECMP links using Entropy Label.
+HOST eli_core_lsr {
+    IP 172.21.0.2
+    MAC 00:05:85:15:00:02
+}
+
+// INSTRUCTION: Define MPLS frames with ELI Label 7 (BOS 0) and distinct Entropy Labels (512345, 789012) for ECMP hashing.
+FLOW mpls_entropy_label_ecmp(pe, lsr) {
+    pe -> lsr MPLS 7 EXP 0 BOS 0 MPLS_TTL 0 UDP SRCPORT 50000 DSTPORT 443 PAYLOAD "eli_indicator_header"
+    pe -> lsr MPLS 512345 EXP 0 BOS 1 MPLS_TTL 64 UDP SRCPORT 50000 DSTPORT 443 PAYLOAD "ecmp_flow_hash_bucket_a" WAIT 1ms
+    pe -> lsr MPLS 789012 EXP 0 BOS 1 MPLS_TTL 64 UDP SRCPORT 50001 DSTPORT 443 PAYLOAD "ecmp_flow_hash_bucket_b" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing MPLS Entropy Label ECMP load distribution.
+COMPILE {
+    mpls_entropy_label_ecmp(eli_ingress_pe, eli_core_lsr)
+}

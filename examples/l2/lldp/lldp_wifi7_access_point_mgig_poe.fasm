@@ -1,0 +1,25 @@
+// PROMPT: Wi-Fi 7 enterprise wireless access point advertising multi-gigabit 10GBASE-T uplink capabilities over LLDP.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define ceiling-mounted Wi-Fi 7 tri-band access point.
+HOST wifi7_ap_node {
+    IP 10.77.4.50
+    MAC 70:69:79:77:04:32
+}
+
+// INSTRUCTION: Define multi-gigabit PoE++ aggregation switch port.
+HOST mgig_poe_switch {
+    IP 10.77.4.1
+    MAC 70:69:79:77:04:01
+}
+
+// INSTRUCTION: Define Wi-Fi 7 AP and multi-gigabit switch LLDP discovery handshake.
+FLOW wifi7_ap_lldp_negotiation(ap, sw) {
+    ap -> sw LLDP CHASSIS_ID "70:69:79:77:04:32" PORT_ID "TenGigabitEthernet0" SYSNAME "ap-auditorium-north-04" SYSDESC "Wi-Fi 7 802.11be Tri-Radio AP" TTL 120
+    ap <- sw LLDP CHASSIS_ID "70:69:79:77:04:01" PORT_ID "Te1/0/24" SYSNAME "sw-auditorium-mgig-01" SYSDESC "PoE++ 802.3bt 90W Switch" TTL 120 WAIT 4ms
+}
+
+// INSTRUCTION: Compile block executing Wi-Fi 7 AP LLDP discovery.
+COMPILE {
+    wifi7_ap_lldp_negotiation(wifi7_ap_node, mgig_poe_switch)
+}

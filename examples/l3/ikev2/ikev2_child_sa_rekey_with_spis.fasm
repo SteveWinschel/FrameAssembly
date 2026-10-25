@@ -1,0 +1,19 @@
+// PROMPT: IKEv2 CREATE_CHILD_SA exchange with explicit Initiator/Responder SPIs and Next Payload 46 (SK).
+// TOKENS: HOST, IP, FLOW, IKEV2, CREATE_CHILD_SA, INITIATOR_SPI, RESPONDER_SPI, MSGID, FLAGS, NEXT_PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define site A IKEv2 daemon initiating rekey.
+HOST rekey_ike_a { IP 172.16.101.1 }
+
+// INSTRUCTION: Define site B IKEv2 daemon completing rekey.
+HOST rekey_ike_b { IP 172.16.101.2 }
+
+// INSTRUCTION: Define encrypted CREATE_CHILD_SA exchange with Next Payload 46 (Encrypted and Authenticated).
+FLOW ikev2_rekey_sk(a, b) {
+    a -> b IKEV2 CREATE_CHILD_SA INITIATOR_SPI 300400500 RESPONDER_SPI 600700800 MSGID 4 FLAGS 8 NEXT_PAYLOAD 46
+    a <- b IKEV2 CREATE_CHILD_SA INITIATOR_SPI 300400500 RESPONDER_SPI 600700800 MSGID 4 FLAGS 32 NEXT_PAYLOAD 46 WAIT 15ms
+}
+
+// INSTRUCTION: Compile the IKEv2 Child SA rekey flow.
+COMPILE {
+    ikev2_rekey_sk(rekey_ike_a, rekey_ike_b)
+}

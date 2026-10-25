@@ -1,0 +1,28 @@
+// PROMPT: Simulate a systemd service crash and automatic restart cycle logged under Syslog Facility 3 (daemon).
+// TOKENS: HOST, MAC, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, WAIT, COMPILE
+
+// INSTRUCTION: Define host endpoint app_host.
+HOST app_host {
+    MAC 00:21:5a:51:40:03
+    IP 10.70.3.15
+}
+
+// INSTRUCTION: Define host endpoint mon_syslog.
+HOST mon_syslog {
+    MAC 00:21:5a:51:40:01
+    IP 10.70.3.1
+}
+
+// INSTRUCTION: Emit systemd error (Severity 3), warning (Severity 4), and info (Severity 6) under Facility 3 (daemon).
+FLOW syslog_daemon_systemd_restart(app_host, mon_syslog) {
+    app_host -> mon_syslog SYSLOG FACILITY 3 SEVERITY 3 HOSTNAME "api-worker-04" APP "systemd" PROCID "1"
+        MSG "order-processor.service: Main process exited, code=killed, status=11/SEGV" WAIT 10ms
+    app_host -> mon_syslog SYSLOG FACILITY 3 SEVERITY 4 HOSTNAME "api-worker-04" APP "systemd" PROCID "1"
+        MSG "order-processor.service: Scheduled restart job, restart counter is at 1." WAIT 15ms
+    app_host -> mon_syslog SYSLOG FACILITY 3 SEVERITY 6 HOSTNAME "api-worker-04" APP "systemd" PROCID "1" MSG "Started Order Processing Microservice."
+}
+
+// INSTRUCTION: Compile the systemd daemon facility syslog flow.
+COMPILE {
+    syslog_daemon_systemd_restart(app_host, mon_syslog)
+}

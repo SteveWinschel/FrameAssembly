@@ -1,5 +1,5 @@
 // PROMPT: IPsec ESP transport session advancing sequence numbers between hosts.
-// TOKENS: HOST, IP, FLOW, ->, <-, ESP, SPI, SEQ, COMPILE
+// TOKENS: HOST, IP, FLOW, ESP, SPI, SEQ, COMPILE
 
 // INSTRUCTION: Define secure workstation node.
 HOST sec_node_a { IP 10.20.30.1 }

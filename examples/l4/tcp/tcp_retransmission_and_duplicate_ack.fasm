@@ -1,5 +1,5 @@
 // PROMPT: Simulate TCP fast retransmission triggered by three duplicate ACKs when an intermediate segment is lost in transit.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ACK, ACKNUM, PSH, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define a video streaming server with IP 172.20.0.10.
 HOST media_server { IP 172.20.0.10 MAC 00:aa:00:20:00:10 }

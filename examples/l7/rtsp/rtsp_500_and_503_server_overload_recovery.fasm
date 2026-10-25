@@ -1,0 +1,29 @@
+// PROMPT: RTSP client encountering 500 Internal Server Error and 503 Service Unavailable before retry succeeds.
+// TOKENS: HOST, IP, FLOW, RTSP, DESCRIBE, URI, CSEQ, WAIT, STATUS, SETUP, TRANSPORT_HDR, SESSION, COMPILE
+
+// INSTRUCTION: Define automated stream health checker client.
+HOST stream_prober {
+    IP 10.190.4.12
+}
+
+// INSTRUCTION: Define recovering RTSP origin server.
+HOST origin_rtsp {
+    IP 10.190.4.1
+}
+
+// INSTRUCTION: Define DESCRIBE retries across 500 and 503 errors until 200 OK and SETUP.
+FLOW rtsp_5xx_recovery(c, s) {
+    c -> s RTSP DESCRIBE URI "rtsp://10.190.4.1/live/news" CSEQ 1 WAIT 5ms
+    c <- s RTSP STATUS 500 CSEQ 1 WAIT 10ms
+    c -> s RTSP DESCRIBE URI "rtsp://10.190.4.1/live/news" CSEQ 2 WAIT 5ms
+    c <- s RTSP STATUS 503 CSEQ 2 WAIT 10ms
+    c -> s RTSP DESCRIBE URI "rtsp://10.190.4.1/live/news" CSEQ 3 WAIT 5ms
+    c <- s RTSP STATUS 200 CSEQ 3 WAIT 5ms
+    c -> s RTSP SETUP URI "rtsp://10.190.4.1/live/news/track1" CSEQ 4 TRANSPORT_HDR "RTP/AVP;unicast;client_port=5200-5201" WAIT 5ms
+    c <- s RTSP STATUS 200 CSEQ 4 SESSION "recovered_5xx"
+}
+
+// INSTRUCTION: Compile the RTSP 5xx server error recovery scenario.
+COMPILE {
+    rtsp_5xx_recovery(stream_prober, origin_rtsp)
+}

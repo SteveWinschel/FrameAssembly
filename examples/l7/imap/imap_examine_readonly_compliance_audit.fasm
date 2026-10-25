@@ -1,0 +1,27 @@
+// PROMPT: Model a legal compliance archiver opening a user mailbox in read-only mode via IMAP EXAMINE.
+// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, ARG, DSCP, TTL, WAIT, STATUS, RESPONSE, COMPILE
+
+// INSTRUCTION: Define the eDiscovery compliance archiver appliance.
+HOST ediscovery_bot {
+    IP 10.143.60.90
+    MAC 00:25:90:8f:3c:5a
+}
+
+// INSTRUCTION: Define the enterprise mail archive IMAP server.
+HOST archive_imap {
+    IP 10.143.60.10
+    MAC 00:25:90:8f:3c:0a
+}
+
+// INSTRUCTION: Open INBOX with EXAMINE so no \Seen flags are modified during compliance inspection.
+FLOW imap_examine_audit(c, s) {
+    c -> s IMAP TAG "E01" CMD "EXAMINE" ARG "INBOX" DSCP 10 TTL 64 WAIT 2ms
+    c <- s IMAP TAG "*" STATUS "1284 EXISTS" RESPONSE "Mailbox messages" DSCP 10 TTL 64 WAIT 1ms
+    c <- s IMAP TAG "*" STATUS "OK" RESPONSE "[UIDVALIDITY 168000100] UIDs valid" DSCP 10 TTL 64 WAIT 1ms
+    c <- s IMAP TAG "E01" STATUS "OK" RESPONSE "[READ-ONLY] Examine completed" DSCP 10 TTL 64
+}
+
+// INSTRUCTION: Compile the read-only IMAP EXAMINE compliance audit scenario.
+COMPILE {
+    imap_examine_audit(ediscovery_bot, archive_imap)
+}

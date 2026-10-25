@@ -1,0 +1,18 @@
+// PROMPT: AMQP inter-datacenter replication traffic encapsulated with MPLS label switching.
+// TOKENS: HOST, IP, FLOW, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, MPLS, EXP, BOS, MPLS_TTL, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define primary datacenter AMQP shovel node.
+HOST dc1_shovel { IP 172.20.1.10 }
+
+// INSTRUCTION: Define secondary datacenter AMQP mirror node.
+HOST dc2_mirror { IP 172.20.2.10 }
+
+// INSTRUCTION: Replicate payment settlement messages over MPLS label 10450.
+FLOW amqp_mpls_shovel(src, dst) {
+    src -> dst AMQP BASIC_PUBLISH CHANNEL 5 EXCHANGE "ledger.direct" ROUTING_KEY "settlement.eu" MPLS 10450 EXP 5 BOS 1 MPLS_TTL 64 PAYLOAD "TX-9941"
+}
+
+// INSTRUCTION: Compile the MPLS-labeled AMQP replication flow.
+COMPILE {
+    amqp_mpls_shovel(dc1_shovel, dc2_mirror)
+}

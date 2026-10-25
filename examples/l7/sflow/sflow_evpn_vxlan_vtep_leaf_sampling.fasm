@@ -1,0 +1,25 @@
+// PROMPT: sFlow v5 telemetry from an EVPN-VXLAN leaf VTEP switch sampling encapsulated tenant overlay frames.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, WAIT, COMPILE
+
+// INSTRUCTION: Define EVPN-VXLAN leaf VTEP switch.
+HOST vtep_leaf_01 {
+    IP 10.180.1.11
+    MAC 00:1c:73:b4:01:0b
+}
+
+// INSTRUCTION: Define EVPN fabric visibility sFlow collector.
+HOST evpn_collector {
+    IP 10.180.0.200
+    MAC 00:1c:73:b4:00:c8
+}
+
+// INSTRUCTION: Export sFlow v5 samples from ASIC pipeline sub-agents 0 and 1.
+FLOW sflow_evpn_vtep(vtep, col) {
+    vtep -> col SFLOW AGENT_IP 10.180.1.11 SUB_AGENT_ID 0 UPTIME 3600000 SAMPLES 10 WAIT 10ms
+    vtep -> col SFLOW AGENT_IP 10.180.1.11 SUB_AGENT_ID 1 UPTIME 3600010 SAMPLES 10
+}
+
+// INSTRUCTION: Compile the EVPN-VXLAN leaf VTEP sFlow sampling scenario.
+COMPILE {
+    sflow_evpn_vtep(vtep_leaf_01, evpn_collector)
+}

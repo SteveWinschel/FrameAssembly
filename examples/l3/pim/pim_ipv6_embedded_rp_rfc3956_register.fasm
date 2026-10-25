@@ -1,0 +1,25 @@
+// PROMPT: RFC 3956 / RFC 7761 IPv6 Embedded-RP PIM Register sent from First-Hop DR to the RP encoded in ff7e:140:2001:db8:beef::1.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, REGISTER, GROUP, SOURCE, RP, HOLDTIME, FLOWLABEL, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6 First-Hop DR encapsulating initial multicast stream in PIM Register.
+HOST v6_fhr_dr_node {
+    IP 2001:db8:100::1
+    MAC 00:16:3e:67:01:01
+}
+
+// INSTRUCTION: Define IPv6 Embedded-RP router extracted from the multicast group address.
+HOST v6_embedded_rp {
+    IP 2001:db8:beef::1
+    MAC 00:16:3e:67:be:ef
+}
+
+// INSTRUCTION: Define IPv6 PIM REGISTER flow carrying group ff7e:140:2001:db8:beef::1.
+FLOW pim_v6_embedded_rp_reg(dr, rp) {
+    dr -> rp PIM REGISTER GROUP ff7e:140:2001:db8:beef::1 SOURCE 2001:db8:100::55 RP 2001:db8:beef::1 HOLDTIME 105 FLOWLABEL 10300 DSCP 48 TTL 60 PAYLOAD "IPV6_EMBEDDED_RP_FIRST_MCAST_PKT" WAIT 5ms
+    dr <- rp PIM REGISTER GROUP ff7e:140:2001:db8:beef::1 SOURCE 2001:db8:100::55 RP 2001:db8:beef::1 HOLDTIME 105 FLOWLABEL 10300 DSCP 48 TTL 60 PAYLOAD "IPV6_EMBEDDED_RP_REGISTER_STOP"
+}
+
+// INSTRUCTION: Compile the RFC 3956 IPv6 Embedded-RP PIM Register flow.
+COMPILE {
+    pim_v6_embedded_rp_reg(v6_fhr_dr_node, v6_embedded_rp)
+}

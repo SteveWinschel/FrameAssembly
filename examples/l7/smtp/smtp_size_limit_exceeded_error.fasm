@@ -1,0 +1,23 @@
+// PROMPT: Mail transaction aborted due to 552 Message size exceeds administrative limit.
+// TOKENS: HOST, IP, FLOW, SMTP, MAIL_FROM, PARAM, CODE, REPLY, RCPT_TO, BODY, COMPILE
+
+// INSTRUCTION: Define branch office mail client.
+HOST branch_client { IP 172.30.15.4 }
+
+// INSTRUCTION: Define regional hub mail server.
+HOST regional_hub { IP 172.30.15.1 }
+
+// INSTRUCTION: Define oversized message rejection flow.
+FLOW smtp_size_limit_flow(c, s) {
+    c -> s SMTP MAIL_FROM PARAM "reporter@branch.net"
+    c <- s SMTP CODE 250 REPLY "2.1.0 Sender accepted"
+    c -> s SMTP RCPT_TO PARAM "archive@regional.net"
+    c <- s SMTP CODE 250 REPLY "2.1.5 Recipient accepted"
+    c -> s SMTP BODY "Oversized attachment payload data..."
+    c <- s SMTP CODE 552 REPLY "5.3.4 Error: message file too big (max 10MB)"
+}
+
+// INSTRUCTION: Compile block executing size limit rejection.
+COMPILE {
+    smtp_size_limit_flow(branch_client, regional_hub)
+}

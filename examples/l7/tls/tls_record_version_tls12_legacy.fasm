@@ -1,0 +1,20 @@
+// PROMPT: TLS handshake record specifying legacy version 0x0303 compatibility.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, RECORD_VERSION, SNI, COMPILE
+
+// INSTRUCTION: Define legacy banking terminal.
+HOST legacy_terminal { IP 172.28.1.18 }
+
+// INSTRUCTION: Define core transaction gateway.
+HOST txn_gateway { IP 172.28.1.2 }
+
+// INSTRUCTION: Define TLS 1.2 compatibility layer flow.
+FLOW tls_legacy_ver_flow(c, s) {
+    c -> s TLS CLIENT_HELLO
+        RECORD_VERSION 771
+        SNI "secure-banking.vault.org"
+}
+
+// INSTRUCTION: Compile block executing TLS 1.2 record flow.
+COMPILE {
+    tls_legacy_ver_flow(legacy_terminal, txn_gateway)
+}

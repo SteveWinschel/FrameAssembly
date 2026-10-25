@@ -1,0 +1,28 @@
+// PROMPT: Create an Eclipse Sparkplug B IIoT MQTT telemetry flow on VLAN 410 publishing NBIRTH and NDATA topics.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, CONNECT, CLIENT_ID, VLAN, DSCP, TTL, WAIT, CONNACK, RETURN_CODE, PUBLISH, TOPIC, QOS, HEXPAYLOAD, PKT_ID, PUBACK, COMPILE
+
+// INSTRUCTION: Define the Sparkplug B edge-of-network (EoN) gateway on industrial VLAN 410.
+HOST sparkplug_eon {
+    IP 10.41.0.30
+    MAC 00:25:90:41:00:1e
+}
+
+// INSTRUCTION: Define the HiveMQ Sparkplug B primary broker on VLAN 410.
+HOST hivemq_broker {
+    IP 10.41.0.10
+    MAC 00:25:90:41:00:0a
+}
+
+// INSTRUCTION: Connect and publish spBv1.0 NBIRTH and NDATA protobuf payloads over VLAN 410.
+FLOW sparkplug_b_telemetry(c, s) {
+    c -> s MQTT CONNECT CLIENT_ID "spb-eon-line4" VLAN 410 DSCP 24 TTL 64 WAIT 2ms
+    c <- s MQTT CONNACK RETURN_CODE 0 VLAN 410 DSCP 24 TTL 64 WAIT 3ms
+    c -> s MQTT PUBLISH TOPIC "spBv1.0/Packaging/NBIRTH/Line4Gateway" QOS 0 HEXPAYLOAD "08c499b59e8631120c0a0662645365711800200a5000" VLAN 410 DSCP 24 TTL 64 WAIT 10ms
+    c -> s MQTT PUBLISH TOPIC "spBv1.0/Packaging/NDATA/Line4Gateway" QOS 1 PKT_ID 101 HEXPAYLOAD "08c599b59e8631120e0a0856656c6f6369747920097842" VLAN 410 DSCP 24 TTL 64 WAIT 2ms
+    c <- s MQTT PUBACK PKT_ID 101 VLAN 410 DSCP 24 TTL 64
+}
+
+// INSTRUCTION: Compile the Sparkplug B IIoT VLAN 410 MQTT trace into a PCAP file.
+COMPILE {
+    sparkplug_b_telemetry(sparkplug_eon, hivemq_broker)
+}

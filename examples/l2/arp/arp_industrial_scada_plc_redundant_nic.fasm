@@ -1,0 +1,26 @@
+// PROMPT: Industrial SCADA Programmable Logic Controller switching from primary NIC MAC to secondary NIC MAC via Gratuitous ARP.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, ARP, GRATUITOUS, SENDERMAC, SENDERIP, WAIT, REQUEST, TARGETMAC, TARGETIP, REPLY, COMPILE
+
+// INSTRUCTION: Define industrial PLC controller failing over its IP 192.168.10.20 to backup Ethernet adapter.
+HOST scada_plc_backup {
+    IP 192.168.10.20
+    MAC 00:0e:8c:10:00:15
+}
+
+// INSTRUCTION: Define HMI supervisory workstation updating its hardware address mapping for the PLC.
+HOST scada_hmi_station {
+    IP 192.168.10.5
+    MAC 00:0e:8c:10:00:05
+}
+
+// INSTRUCTION: Announce backup NIC MAC via Gratuitous ARP and answer unicast HMI verification poll.
+FLOW arp_plc_nic_failover(plc, hmi) {
+    plc -> hmi VLAN 10 PCP 7 ARP GRATUITOUS SENDERMAC 00:0e:8c:10:00:15 SENDERIP 192.168.10.20 WAIT 5ms
+    plc <- hmi VLAN 10 PCP 7 ARP REQUEST SENDERMAC 00:0e:8c:10:00:05 SENDERIP 192.168.10.5 TARGETMAC 00:0e:8c:10:00:15 TARGETIP 192.168.10.20 WAIT 2ms
+    plc -> hmi VLAN 10 PCP 7 ARP REPLY SENDERMAC 00:0e:8c:10:00:15 SENDERIP 192.168.10.20 TARGETMAC 00:0e:8c:10:00:05 TARGETIP 192.168.10.5
+}
+
+// INSTRUCTION: Compile the industrial SCADA PLC NIC failover ARP sequence.
+COMPILE {
+    arp_plc_nic_failover(scada_plc_backup, scada_hmi_station)
+}

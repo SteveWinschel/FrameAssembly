@@ -1,6 +1,11 @@
-//! SNMP protocol family and PDU field parsers.
+//! Simple Network Management Protocol (SNMPv1, SNMPv2c, and SNMPv3) field parser.
 //!
-//! Implements winnow combinators for SNMPv1, SNMPv2c, and SNMPv3 (USM auth/priv), including VarBinds and trap headers.
+//! This module implements the `winnow` parser combinator for RFC 1157 (`SNMP1`), RFC 3416
+//! (`SNMP2`), and RFC 3414 User-based Security Model (`SNMP3`) protocol data units in FrameAssembly
+//! `.fasm` specifications. It recognizes community strings (`COMMUNITY`), USM security parameters
+//! (`USER`, `ENGINEID`, `ENGINEBOOTS`, `ENGINETIME`, `CONTEXTNAME`, `AUTH`, `PRIV`), trap headers
+//! (`ENTERPRISE`, `AGENTIP`, `GENTRAP`, `SPECTRAP`, `SYSUPTIME`), PDU types (`GET`, `SET`,
+//! `RESPONSE`, `TRAP`, `INFORM`, `GETNEXT`, `GETBULK`), and typed ASN.1 `VARBIND` entries.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
@@ -9,7 +14,10 @@ use winnow::token::any;
 
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::parser::{parse_i32, parse_ip, parse_raw_string_lit, parse_u32, parse_u64, tag, ParsedField, Stream};
+use crate::parser::{
+    parse_i32, parse_ip, parse_raw_string_lit, parse_str_val, parse_u32, parse_u64, tag,
+    ParsedField, Stream,
+};
 
 /// Helper to parse an OID string or IP representation.
 fn parse_oid_val<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<&'a str> {
@@ -104,12 +112,15 @@ fn parse_priv<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
 pub(crate) fn parse_snmp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
     alt((
         alt((
-            tag(Token::Snmp1).map(|(_, s)| ParsedField::Protocol(Protocol::Snmp1, (s.start, s.len()))),
-            tag(Token::Snmp2).map(|(_, s)| ParsedField::Protocol(Protocol::Snmp2, (s.start, s.len()))),
-            tag(Token::Snmp3).map(|(_, s)| ParsedField::Protocol(Protocol::Snmp3, (s.start, s.len()))),
+            tag(Token::Snmp1)
+                .map(|(_, s)| ParsedField::Protocol(Protocol::Snmp1, (s.start, s.len()))),
+            tag(Token::Snmp2)
+                .map(|(_, s)| ParsedField::Protocol(Protocol::Snmp2, (s.start, s.len()))),
+            tag(Token::Snmp3)
+                .map(|(_, s)| ParsedField::Protocol(Protocol::Snmp3, (s.start, s.len()))),
             (tag(Token::Community), cut_err(parse_raw_string_lit))
                 .map(|((_, s), v)| ParsedField::Community(v, (s.start, s.end - s.start))),
-            (tag(Token::User), cut_err(parse_raw_string_lit))
+            (tag(Token::User), parse_str_val)
                 .map(|((_, s), v)| ParsedField::User(v, (s.start, s.end - s.start))),
             (tag(Token::SysUpTime), cut_err(parse_u32))
                 .map(|((_, s), v)| ParsedField::SysUpTime(v, (s.start, s.end - s.start))),
@@ -144,13 +155,20 @@ pub(crate) fn parse_snmp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pa
             parse_priv,
         )),
         alt((
-            tag(Token::Trap).map(|(_, s)| ParsedField::PduType(SnmpPduType::Trap, (s.start, s.len()))),
-            tag(Token::Get).map(|(_, s)| ParsedField::PduType(SnmpPduType::Get, (s.start, s.len()))),
-            tag(Token::Set).map(|(_, s)| ParsedField::PduType(SnmpPduType::Set, (s.start, s.len()))),
-            tag(Token::Response).map(|(_, s)| ParsedField::PduType(SnmpPduType::Response, (s.start, s.len()))),
-            tag(Token::Inform).map(|(_, s)| ParsedField::PduType(SnmpPduType::Inform, (s.start, s.len()))),
-            tag(Token::GetNext).map(|(_, s)| ParsedField::PduType(SnmpPduType::GetNext, (s.start, s.len()))),
-            tag(Token::GetBulk).map(|(_, s)| ParsedField::PduType(SnmpPduType::GetBulk, (s.start, s.len()))),
+            tag(Token::Trap)
+                .map(|(_, s)| ParsedField::PduType(SnmpPduType::Trap, (s.start, s.len()))),
+            tag(Token::Get)
+                .map(|(_, s)| ParsedField::PduType(SnmpPduType::Get, (s.start, s.len()))),
+            tag(Token::Set)
+                .map(|(_, s)| ParsedField::PduType(SnmpPduType::Set, (s.start, s.len()))),
+            tag(Token::Response)
+                .map(|(_, s)| ParsedField::PduType(SnmpPduType::Response, (s.start, s.len()))),
+            tag(Token::Inform)
+                .map(|(_, s)| ParsedField::PduType(SnmpPduType::Inform, (s.start, s.len()))),
+            tag(Token::GetNext)
+                .map(|(_, s)| ParsedField::PduType(SnmpPduType::GetNext, (s.start, s.len()))),
+            tag(Token::GetBulk)
+                .map(|(_, s)| ParsedField::PduType(SnmpPduType::GetBulk, (s.start, s.len()))),
         )),
     ))
     .parse_next(input)

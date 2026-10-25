@@ -1,0 +1,31 @@
+// PROMPT: Simulate all 8 RFC 5424 Syslog severity levels (0 Emergency through 7 Debug) emitted sequentially from a test harness.
+// TOKENS: HOST, MAC, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, COMPILE
+
+// INSTRUCTION: Define host endpoint qa_harness.
+HOST qa_harness {
+    MAC 00:50:56:51:40:77
+    IP 192.168.51.10
+}
+
+// INSTRUCTION: Define host endpoint syslog_verify.
+HOST syslog_verify {
+    MAC 00:50:56:51:40:88
+    IP 192.168.51.20
+}
+
+// INSTRUCTION: Emit one Syslog datagram for each severity level 0..7 under Facility 1 (user).
+FLOW syslog_all_eight_severities(qa_harness, syslog_verify) {
+    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 0 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Emergency: system is unusable"
+    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 1 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Alert: action must be taken immediately"
+    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 2 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Critical: critical conditions"
+    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 3 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Error: error conditions"
+    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 4 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Warning: warning conditions"
+    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 5 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Notice: normal but significant condition"
+    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 6 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Informational: informational messages"
+    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 7 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Debug: debug-level messages"
+}
+
+// INSTRUCTION: Compile the 8-severity Syslog verification flow.
+COMPILE {
+    syslog_all_eight_severities(qa_harness, syslog_verify)
+}

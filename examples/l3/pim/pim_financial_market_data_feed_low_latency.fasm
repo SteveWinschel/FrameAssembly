@@ -1,0 +1,26 @@
+// PROMPT: Financial exchange ultra-low-latency multicast market data feed (ITCH/OUCH) signaled via PIM-SSM with microsecond waits.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, HELLO, DR_PRIORITY, HOLDTIME, VLAN, PCP, DSCP, TTL, WAIT, JOIN_PRUNE, GROUP, SOURCE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define trading floor leaf switch subscribing to NASDAQ/NYSE multicast feed group.
+HOST trading_leaf_sw {
+    IP 10.103.200.10
+    MAC 00:1c:73:67:c8:0a
+}
+
+// INSTRUCTION: Define exchange ticker plant multicast gateway router.
+HOST ticker_plant_gw {
+    IP 10.103.200.1
+    MAC 00:1c:73:67:c8:01
+}
+
+// INSTRUCTION: Define sub-millisecond PIM-SSM Join for market feed group 232.200.1.50.
+FLOW pim_market_data_feed_flow(leaf, gw) {
+    leaf -> gw PIM HELLO DR_PRIORITY 500 HOLDTIME 30 VLAN 200 PCP 6 DSCP 48 TTL 1 WAIT 500us
+    leaf <- gw PIM HELLO DR_PRIORITY 1000 HOLDTIME 30 VLAN 200 PCP 6 DSCP 48 TTL 1 WAIT 500us
+    leaf -> gw PIM JOIN_PRUNE GROUP 232.200.1.50 SOURCE 192.0.2.200 HOLDTIME 60 VLAN 200 PCP 6 DSCP 48 TTL 1 PAYLOAD "PITCH_FEED_A_SSM_JOIN"
+}
+
+// INSTRUCTION: Compile the financial market data PIM-SSM subscription flow.
+COMPILE {
+    pim_market_data_feed_flow(trading_leaf_sw, ticker_plant_gw)
+}

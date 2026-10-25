@@ -1,0 +1,26 @@
+// PROMPT: Generate a Modbus UDP transport broadcast time synchronization write and unicast diagnostic poll.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TRANSPORT, UDP, SRCPORT, DSTPORT, TXID, UNITID, FUNC, ADDR, VALUE, WAIT, COUNT, IS_RESPONSE, COMPILE
+
+// INSTRUCTION: Define the real-time automation controller sending low-overhead Modbus UDP frames.
+HOST rtac_master {
+    IP 192.168.60.1
+    MAC 00:30:a7:60:00:01
+}
+
+// INSTRUCTION: Define the substation bay controller listening for Modbus UDP on port 502.
+HOST bay_controller {
+    IP 192.168.60.25
+    MAC 00:30:a7:60:00:19
+}
+
+// INSTRUCTION: Send a broadcast Unit ID 0 register write over TRANSPORT UDP followed by a Unit ID 25 read over UDP.
+FLOW modbus_udp_sync_and_poll(c, s) {
+    c -> s MODBUS TRANSPORT UDP SRCPORT 52502 DSTPORT 502 TXID 1001 UNITID 0 FUNC "WRITE_SINGLE_REGISTER" ADDR 500 VALUE 3600 WAIT 5ms
+    c -> s MODBUS TRANSPORT UDP SRCPORT 52502 DSTPORT 502 TXID 1002 UNITID 25 FUNC "READ_HOLDING_REGISTERS" ADDR 500 COUNT 1 WAIT 2ms
+    c <- s MODBUS TRANSPORT UDP SRCPORT 502 DSTPORT 52502 TXID 1002 UNITID 25 FUNC "READ_HOLDING_REGISTERS" IS_RESPONSE VALUE 3600
+}
+
+// INSTRUCTION: Compile the Modbus UDP broadcast write and unicast read trace into a PCAP file.
+COMPILE {
+    modbus_udp_sync_and_poll(rtac_master, bay_controller)
+}

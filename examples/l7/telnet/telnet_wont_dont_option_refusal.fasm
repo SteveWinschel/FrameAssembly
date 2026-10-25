@@ -1,0 +1,31 @@
+// PROMPT: Simulate a Telnet client rejecting server authentication (Option 37) and encryption (Option 38) using WONT and DONT.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TELNET, DO, WONT, WILL, DONT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint minimal_client.
+HOST minimal_client {
+    MAC 00:25:90:00:23:15
+    IP 10.23.1.15
+}
+
+// INSTRUCTION: Define host endpoint krb_telnetd.
+HOST krb_telnetd {
+    MAC 00:25:90:00:23:01
+    IP 10.23.1.1
+}
+
+// INSTRUCTION: Server requests Option 37 (Auth) and Option 38 (Encrypt); client refuses with WONT 37 and DONT 38.
+FLOW telnet_option_refusal_wont_dont(minimal_client, krb_telnetd) {
+    minimal_client -> krb_telnetd TCP SYN SRCPORT 53023 DSTPORT 23
+    krb_telnetd -> minimal_client TCP SYN ACK
+    minimal_client -> krb_telnetd TCP ACK
+    krb_telnetd -> minimal_client TELNET DO 37
+    minimal_client -> krb_telnetd TELNET WONT 37
+    krb_telnetd -> minimal_client TELNET WILL 38
+    minimal_client -> krb_telnetd TELNET DONT 38
+    krb_telnetd -> minimal_client TELNET PAYLOAD "Unencrypted fallback login: "
+}
+
+// INSTRUCTION: Compile the Telnet WONT/DONT option refusal flow.
+COMPILE {
+    telnet_option_refusal_wont_dont(minimal_client, krb_telnetd)
+}

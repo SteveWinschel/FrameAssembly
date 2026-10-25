@@ -1,0 +1,27 @@
+// PROMPT: WAN overlay MTU discovery triggering ICMP Fragmentation Needed (Type 3, Code 4) from tunnel ingress router.
+// TOKENS: HOST, IP, MAC, FLOW, DF, TTL, ICMP, ECHO_REQUEST, ID, SEQ, PAYLOAD, WAIT, DEST_UNREACH, CODE, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define application server transmitting DF-marked probe across WAN tunnel boundary.
+HOST app_origin_srv {
+    IP 10.88.1.10
+    MAC 00:50:56:88:01:0a
+}
+
+// INSTRUCTION: Define WAN tunnel ingress router enforcing 1400-byte inner MTU limit.
+HOST wan_tunnel_rtr {
+    IP 10.88.1.1
+    MAC 00:50:56:88:01:01
+}
+
+// INSTRUCTION: Probe tunnel MTU with DF bit set, receive ICMP DEST_UNREACH CODE 4, and re-probe successfully.
+FLOW icmp_tunnel_pmtud(srv, rtr) {
+    srv -> rtr DF TTL 64 ICMP ECHO_REQUEST ID 4410 SEQ 1 PAYLOAD "oversized_df_probe_simulating_1472_byte_wan_frame" WAIT 5ms
+    srv <- rtr TTL 64 ICMP DEST_UNREACH CODE 4 PAYLOAD "mtu_1400_exceeded_on_gre0" WAIT 10ms
+    srv -> rtr DF TTL 64 ICMP ECHO_REQUEST ID 4410 SEQ 2 PAYLOAD "clamped_1372_byte_probe" WAIT 5ms
+    srv <- rtr TTL 64 ICMP ECHO_REPLY ID 4410 SEQ 2 PAYLOAD "clamped_1372_byte_probe"
+}
+
+// INSTRUCTION: Compile the WAN tunnel ICMP Path MTU Discovery diagnostic sequence.
+COMPILE {
+    icmp_tunnel_pmtud(app_origin_srv, wan_tunnel_rtr)
+}

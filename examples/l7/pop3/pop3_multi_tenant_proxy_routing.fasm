@@ -1,0 +1,34 @@
+// PROMPT: Simulate a POP3 reverse proxy routing authenticated user sessions to two separate backend storage servers.
+// TOKENS: HOST, IP, MAC, FLOW, POP3, CMD, WAIT, OK, RESPONSE, ARG, COMPILE
+
+// INSTRUCTION: Define the DMZ POP3 reverse proxy load balancer.
+HOST pop3_proxy {
+    IP 10.110.70.5
+    MAC 00:25:90:6e:46:05
+}
+
+// INSTRUCTION: Define backend POP3 storage node 1.
+HOST pop3_backend_1 {
+    IP 10.110.70.101
+    MAC 00:25:90:6e:46:65
+}
+
+// INSTRUCTION: Define backend POP3 storage node 2.
+HOST pop3_backend_2 {
+    IP 10.110.70.102
+    MAC 00:25:90:6e:46:66
+}
+
+// INSTRUCTION: Forward STAT and UIDL checks from the proxy to a backend POP3 storage node.
+FLOW pop3_backend_check(p, b) {
+    p -> b POP3 CMD "STAT" WAIT 2ms
+    p <- b POP3 OK RESPONSE "3 9420" WAIT 2ms
+    p -> b POP3 CMD "UIDL" ARG "1" WAIT 2ms
+    p <- b POP3 OK RESPONSE "1 msg-uid-9001"
+}
+
+// INSTRUCTION: Execute POP3 backend checks across both storage nodes.
+COMPILE {
+    pop3_backend_check(pop3_proxy, pop3_backend_1)
+    pop3_backend_check(pop3_proxy, pop3_backend_2)
+}

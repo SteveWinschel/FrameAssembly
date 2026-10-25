@@ -1,5 +1,5 @@
 // PROMPT: LLDP neighbor discovery frame advertising explicit TTL timer, system name, and system description.
-// TOKENS: HOST, IP, FLOW, ->, LLDP, SYSNAME, SYSDESC, TTL, COMPILE
+// TOKENS: HOST, IP, FLOW, LLDP, SYSNAME, SYSDESC, TTL, COMPILE
 
 // INSTRUCTION: Define aggregation switch port A.
 HOST agg_sw_a { IP 172.16.200.1 }

@@ -1,5 +1,5 @@
 // PROMPT: Enterprise VoIP deployment combining SIP signaling (DSCP 26), RTP audio streams (DSCP 46), and SNMP telemetry.
-// TOKENS: HOST, IP, FLOW, ->, <-, DSCP, SIP, INVITE, RTP, PT, SNMP3, TRAP, USER, OID, COMPILE
+// TOKENS: HOST, IP, FLOW, DSCP, SIP, INVITE, RTP, PT, SNMP3, TRAP, USER, OID, COMPILE
 
 // INSTRUCTION: Define enterprise IP phone.
 HOST ip_phone { IP 10.20.1.100 }

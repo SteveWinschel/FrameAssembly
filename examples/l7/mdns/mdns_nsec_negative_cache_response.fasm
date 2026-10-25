@@ -1,0 +1,25 @@
+// PROMPT: Generate an mDNS NSEC negative response asserting that a local host has no AAAA IPv6 record.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RCODE, RDATA, ANS_TTL, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define the dual-stack client querying an IPv4-only printer for an AAAA record.
+HOST dual_client {
+    IP 192.168.30.12
+    MAC 00:25:90:30:00:0c
+}
+
+// INSTRUCTION: Define the IPv4-only embedded thermal printer returning an mDNS NSEC record.
+HOST ipv4_printer {
+    IP 192.168.30.200
+    MAC 00:25:90:30:00:c8
+}
+
+// INSTRUCTION: Query label-printer.local AAAA and receive an NSEC negative caching response with a bitmap in HEXPAYLOAD.
+FLOW nsec_negative_reply(c, s) {
+    c -> s MDNS QUERY TXID 0 QNAME "label-printer.local" QTYPE "AAAA" WAIT 2ms
+    c <- s MDNS RESPONSE TXID 0 RCODE 0 QNAME "label-printer.local" QTYPE "NSEC" RDATA "label-printer.local" ANS_TTL 120 HEXPAYLOAD "000440000000"
+}
+
+// INSTRUCTION: Compile the mDNS NSEC negative response trace into a PCAP file.
+COMPILE {
+    nsec_negative_reply(dual_client, ipv4_printer)
+}

@@ -1,0 +1,23 @@
+// PROMPT: Pipelined transaction abort and reset using RSET command followed by new envelope.
+// TOKENS: HOST, IP, FLOW, SMTP, MAIL_FROM, PARAM, CODE, REPLY, CMD, COMPILE
+
+// INSTRUCTION: Define newsletter dispatch MTA.
+HOST dispatch_node { IP 192.168.105.10 }
+
+// INSTRUCTION: Define enterprise MX receiver.
+HOST mx_receiver { IP 192.168.105.1 }
+
+// INSTRUCTION: Define RSET abort and retry flow.
+FLOW smtp_reset_flow(c, s) {
+    c -> s SMTP MAIL_FROM PARAM "wrong-sender@newsletter.com"
+    c <- s SMTP CODE 250 REPLY "2.1.0 Sender ok"
+    c -> s SMTP CMD "RSET"
+    c <- s SMTP CODE 250 REPLY "2.0.0 Reset state OK"
+    c -> s SMTP MAIL_FROM PARAM "correct-sender@newsletter.com"
+    c <- s SMTP CODE 250 REPLY "2.1.0 Sender ok"
+}
+
+// INSTRUCTION: Compile block executing transaction reset.
+COMPILE {
+    smtp_reset_flow(dispatch_node, mx_receiver)
+}

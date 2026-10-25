@@ -1,5 +1,5 @@
 // PROMPT: IPsec AH authentication session advancing sequence numbers between hosts.
-// TOKENS: HOST, IP, FLOW, ->, <-, AH, SPI, SEQ, COMPILE
+// TOKENS: HOST, IP, FLOW, AH, SPI, SEQ, COMPILE
 
 // INSTRUCTION: Define client node communicating with authenticated header.
 HOST ah_client { IP 10.0.5.10 }

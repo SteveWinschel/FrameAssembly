@@ -1,0 +1,28 @@
+// PROMPT: Generate a fast-hellos OSPF point-to-point link adjacency with sub-5-second dead timers and priority 0
+// TOKENS: HOST, IP, MAC, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, TTL, WAIT, DBD, LSU, LSACK, COMPILE
+
+// INSTRUCTION: Define the west core point-to-point OSPF router
+HOST p2p_west {
+    IP 172.16.254.1
+    MAC 00:16:3e:f2:fe:01
+}
+
+// INSTRUCTION: Define the east core point-to-point OSPF router
+HOST p2p_east {
+    IP 172.16.254.2
+    MAC 00:16:3e:f2:fe:02
+}
+
+// INSTRUCTION: Exchange fast OSPF Hellos (1s hello, 4s dead, priority 0) and synchronize LSDB
+FLOW ospf_p2p_fast_convergence(west, east) {
+    west -> east OSPF HELLO ROUTER_ID 172.16.0.1 AREA_ID 0 HELLO_INTERVAL 1 DEAD_INTERVAL 4 PRIORITY 0 TTL 1 WAIT 10ms
+    east -> west OSPF HELLO ROUTER_ID 172.16.0.2 AREA_ID 0 HELLO_INTERVAL 1 DEAD_INTERVAL 4 PRIORITY 0 TTL 1 WAIT 10ms
+    west -> east OSPF DBD ROUTER_ID 172.16.0.1 AREA_ID 0 TTL 1 WAIT 10ms
+    east -> west OSPF LSU ROUTER_ID 172.16.0.2 AREA_ID 0 TTL 1 WAIT 10ms
+    west -> east OSPF LSACK ROUTER_ID 172.16.0.1 AREA_ID 0 TTL 1
+}
+
+// INSTRUCTION: Compile the point-to-point fast OSPF convergence flow
+COMPILE {
+    ospf_p2p_fast_convergence(p2p_west, p2p_east)
+}

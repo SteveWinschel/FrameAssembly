@@ -1,0 +1,27 @@
+// PROMPT: Warehouse conveyor PLC receiving an ASCII parcel tracking barcode written into DB80 via S7comm WRITE_VAR.
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, AREA, DB_NUM, OFFSET, COUNT, PAYLOAD, WAIT, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define the warehouse management system (WMS) scanner gateway.
+HOST wms_gateway {
+    IP 10.130.110.22
+    MAC 00:1a:2b:82:b0:22
+}
+
+// INSTRUCTION: Define the cross-belt sorter S7-1500 PLC.
+HOST sorter_plc {
+    IP 10.130.110.1
+    MAC 00:1a:2b:82:b0:01
+}
+
+// INSTRUCTION: Write parcel tracking string into DB80 and read Assigned Chute number from Process Outputs (Area 130).
+FLOW s7_sorter_barcode(w, s) {
+    w -> s S7COMM ROSCTR "JOB" PDU_REF 1100 FUNC "WRITE_VAR" AREA 132 DB_NUM 80 OFFSET 0 COUNT 12 PAYLOAD "PKG9048123US"
+    w <- s S7COMM ROSCTR "ACK_DATA" PDU_REF 1100 FUNC "WRITE_VAR" WAIT 1ms
+    w -> s S7COMM ROSCTR "JOB" PDU_REF 1101 FUNC "READ_VAR" AREA 130 DB_NUM 0 OFFSET 16 COUNT 2
+    w <- s S7COMM ROSCTR "ACK_DATA" PDU_REF 1101 FUNC "READ_VAR" HEXPAYLOAD "ff040010000e"
+}
+
+// INSTRUCTION: Compile the warehouse sorter barcode S7comm flow.
+COMPILE {
+    s7_sorter_barcode(wms_gateway, sorter_plc)
+}

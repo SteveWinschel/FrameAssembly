@@ -1,0 +1,25 @@
+// PROMPT: 5G User Plane Function (UPF) resolving external SGi/N6 data network router MAC address on 100GbE VLAN 600.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, ARP, REQUEST, SENDERMAC, SENDERIP, TARGETMAC, TARGETIP, WAIT, REPLY, COMPILE
+
+// INSTRUCTION: Define 5G User Plane Function (UPF) N6 interface gateway.
+HOST upf_n6_interface {
+    IP 100.64.60.10
+    MAC 00:25:90:40:3c:0a
+}
+
+// INSTRUCTION: Define external ISP peering border router on N6 VLAN 600.
+HOST isp_n6_border_rtr {
+    IP 100.64.60.1
+    MAC 00:1c:73:40:3c:01
+}
+
+// INSTRUCTION: Resolve N6 border router MAC over VLAN 600 PCP 6 before forwarding subscriber GTP-U traffic.
+FLOW arp_upf_n6_resolve(upf, rtr) {
+    upf -> rtr VLAN 600 PCP 6 ARP REQUEST SENDERMAC 00:25:90:40:3c:0a SENDERIP 100.64.60.10 TARGETMAC 00:00:00:00:00:00 TARGETIP 100.64.60.1 WAIT 2ms
+    upf <- rtr VLAN 600 PCP 6 ARP REPLY SENDERMAC 00:1c:73:40:3c:01 SENDERIP 100.64.60.1 TARGETMAC 00:25:90:40:3c:0a TARGETIP 100.64.60.10
+}
+
+// INSTRUCTION: Compile the 5G UPF N6 interface ARP resolution trace.
+COMPILE {
+    arp_upf_n6_resolve(upf_n6_interface, isp_n6_border_rtr)
+}

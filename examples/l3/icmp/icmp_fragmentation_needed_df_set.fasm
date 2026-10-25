@@ -1,0 +1,18 @@
+// PROMPT: ICMP Fragmentation Needed and DF Set (Code 4) generation for Path MTU Discovery.
+// TOKENS: HOST, IP, FLOW, ICMP, DEST_UNREACH, CODE, ID, SEQ, COMPILE
+
+// INSTRUCTION: Define WAN gateway router with MTU restriction.
+HOST wan_bottleneck_rtr { IP 203.0.113.1 }
+
+// INSTRUCTION: Define client transmitting oversize datagram.
+HOST pmtud_client { IP 203.0.113.88 }
+
+// INSTRUCTION: Define ICMP error flow notifying client that fragmentation is required.
+FLOW icmp_pmtud_frag_needed(rtr, c) {
+    rtr -> c ICMP DEST_UNREACH CODE 4 ID 1500 SEQ 1
+}
+
+// INSTRUCTION: Compile block executing ICMP Fragmentation Needed error.
+COMPILE {
+    icmp_pmtud_frag_needed(wan_bottleneck_rtr, pmtud_client)
+}

@@ -1,0 +1,28 @@
+// PROMPT: Generate a TACACS+ CHAP authentication exchange over MPLS label 1049 between a WAN PE router and central AAA server.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, MPLS, ACK, TACACS, AUTHEN, SESSION_ID, USER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint pe_router.
+HOST pe_router {
+    MAC 00:1a:a0:49:20:01
+    IP 10.249.1.1
+}
+
+// INSTRUCTION: Define host endpoint central_aaa.
+HOST central_aaa {
+    MAC 00:1a:a0:49:20:99
+    IP 10.249.1.99
+}
+
+// INSTRUCTION: Perform TACACS+ CHAP authentication over MPLS label 1049.
+FLOW tacacs_chap_auth_mpls(pe_router, central_aaa) {
+    pe_router -> central_aaa TCP SYN SRCPORT 58049 DSTPORT 49 MPLS 1049
+    central_aaa -> pe_router TCP SYN ACK MPLS 1049
+    pe_router -> central_aaa TCP ACK MPLS 1049
+    pe_router -> central_aaa TACACS AUTHEN SESSION_ID 91500 USER "wan_eng" PAYLOAD "CHAP-ID=01:CHALLENGE=a1b2c3d4:DIGEST=9988776655443322" MPLS 1049
+    central_aaa -> pe_router TACACS AUTHEN SESSION_ID 91500 PAYLOAD "AUTHEN_STATUS_PASS" MPLS 1049
+}
+
+// INSTRUCTION: Compile the MPLS-labeled TACACS+ CHAP authentication flow.
+COMPILE {
+    tacacs_chap_auth_mpls(pe_router, central_aaa)
+}

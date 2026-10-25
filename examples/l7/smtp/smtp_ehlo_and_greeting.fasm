@@ -1,5 +1,5 @@
 // PROMPT: SMTP session greeting and EHLO capability negotiation on TCP port 25.
-// TOKENS: HOST, IP, FLOW, ->, <-, SMTP, EHLO, CODE, REPLY, COMPILE
+// TOKENS: HOST, IP, FLOW, SMTP, CODE, REPLY, EHLO, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.10 }

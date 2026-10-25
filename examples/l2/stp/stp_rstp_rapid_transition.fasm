@@ -1,5 +1,5 @@
 // PROMPT: IEEE 802.1w Rapid Spanning Tree Protocol BPDU with rapid transition flags and forward delay.
-// TOKENS: HOST, IP, FLOW, ->, STP, RSTP, FORWARD_DELAY, FLAGS, COMPILE
+// TOKENS: HOST, IP, FLOW, STP, RSTP, FORWARD_DELAY, FLAGS, COMPILE
 
 // INSTRUCTION: Define RSTP active bridge port A.
 HOST rstp_bridge_a { IP 10.100.1.1 }

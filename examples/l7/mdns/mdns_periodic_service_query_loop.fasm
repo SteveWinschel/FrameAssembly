@@ -1,0 +1,20 @@
+// PROMPT: Continuous mDNS background service poll loop discovering dynamic network endpoints.
+// TOKENS: HOST, IP, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define discovery agent scanner.
+HOST scanner_host { IP 192.168.5.25 }
+
+// INSTRUCTION: Define local multicast address.
+HOST local_mcast { IP 224.0.0.251 }
+
+// INSTRUCTION: Define periodic discovery query flow.
+FLOW mcast_poll_flow(s, g) {
+    s -> g MDNS QUERY TXID 5005 QNAME "_services._dns-sd._udp.local" QTYPE "PTR" WAIT 30ms
+}
+
+// INSTRUCTION: Compile periodic mDNS poll in loop.
+COMPILE {
+    LOOP 3 {
+        mcast_poll_flow(scanner_host, local_mcast)
+    }
+}

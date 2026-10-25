@@ -1,5 +1,5 @@
 // PROMPT: Communication between IPv6 loopback and unspecified addresses to test zero-compression and host resolution.
-// TOKENS: HOST, IP, FLOW, ->, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define loopback host with ::1.
 HOST loop_host { IP ::1 }

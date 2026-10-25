@@ -1,0 +1,30 @@
+// PROMPT: Model an SSH-2.0 service request (MSG_CODE 5/6) and user authentication request/success (MSG_CODE 50/52).
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, DSCP, ACK, SSH, MSG_CODE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint dev_laptop.
+HOST dev_laptop {
+    MAC 00:1c:42:22:10:01
+    IP 192.168.22.10
+}
+
+// INSTRUCTION: Define host endpoint prod_sshd.
+HOST prod_sshd {
+    MAC 00:1c:42:22:10:99
+    IP 192.168.22.99
+}
+
+// INSTRUCTION: Exchange SSH_MSG_SERVICE_REQUEST (5), SERVICE_ACCEPT (6), USERAUTH_REQUEST (50), and USERAUTH_SUCCESS (52).
+FLOW ssh_userauth_publickey_flow(dev_laptop, prod_sshd) {
+    dev_laptop -> prod_sshd TCP SYN SRCPORT 52022 DSTPORT 22 DSCP 16
+    prod_sshd -> dev_laptop TCP SYN ACK DSCP 16
+    dev_laptop -> prod_sshd TCP ACK DSCP 16
+    dev_laptop -> prod_sshd SSH MSG_CODE 5 PAYLOAD "ssh-userauth" DSCP 16
+    prod_sshd -> dev_laptop SSH MSG_CODE 6 PAYLOAD "ssh-userauth" DSCP 16
+    dev_laptop -> prod_sshd SSH MSG_CODE 50 PAYLOAD "deploy:ssh-connection:publickey:ssh-ed25519" DSCP 16
+    prod_sshd -> dev_laptop SSH MSG_CODE 52 DSCP 16
+}
+
+// INSTRUCTION: Compile the SSH userauth service and authentication flow.
+COMPILE {
+    ssh_userauth_publickey_flow(dev_laptop, prod_sshd)
+}

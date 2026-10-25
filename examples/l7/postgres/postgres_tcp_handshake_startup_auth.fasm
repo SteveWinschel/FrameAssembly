@@ -1,0 +1,23 @@
+// PROMPT: Full TCP 3-way handshake on port 5432 followed by PostgreSQL STARTUP, AUTH_OK, and READY_FOR_QUERY.
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, DSTPORT, ACK, WAIT, POSTGRES, STARTUP, DB, AUTH_OK, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define ORM database client host.
+HOST orm_worker { IP 192.168.42.20 MAC 00:50:56:42:00:14 }
+
+// INSTRUCTION: Define PostgreSQL cluster leader host.
+HOST pg_leader { IP 192.168.42.10 MAC 00:50:56:42:00:0a }
+
+// INSTRUCTION: Define TCP handshake and PostgreSQL session initialization.
+FLOW pg_tcp_startup(c, s) {
+    c -> s TCP SYN DSTPORT 5432
+    c <- s TCP SYN ACK
+    c -> s TCP ACK WAIT 2ms
+    c -> s POSTGRES STARTUP DB "analytics_prod" WAIT 5ms
+    c <- s POSTGRES AUTH_OK WAIT 2ms
+    c <- s POSTGRES READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile PostgreSQL TCP connection startup flow.
+COMPILE {
+    pg_tcp_startup(orm_worker, pg_leader)
+}

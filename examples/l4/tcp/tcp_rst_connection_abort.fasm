@@ -1,5 +1,5 @@
 // PROMPT: Simulate an abrupt TCP connection abort where a server rejects a client request mid-session using a TCP RST flag and zero window.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, RST, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ACK, ACKNUM, PSH, PAYLOAD, RST, COMPILE
 
 // INSTRUCTION: Define an API client host with IP 10.1.20.11.
 HOST api_client { IP 10.1.20.11 MAC 02:00:00:00:01:01 }

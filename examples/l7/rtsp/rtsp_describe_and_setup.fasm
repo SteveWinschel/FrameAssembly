@@ -1,5 +1,5 @@
 // PROMPT: RTSP session setup negotiating media stream parameters and transport.
-// TOKENS: HOST, IP, FLOW, ->, RTSP, METHOD, URI, CSEQ, TRANSPORT_HDR, COMPILE
+// TOKENS: HOST, IP, FLOW, RTSP, METHOD, URI, CSEQ, TRANSPORT_HDR, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.15 }

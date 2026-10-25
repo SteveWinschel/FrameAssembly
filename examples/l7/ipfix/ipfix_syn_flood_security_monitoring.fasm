@@ -1,0 +1,18 @@
+// PROMPT: High packet volume IPFIX security export recording detected TCP SYN flood anomaly.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define DDoS mitigation appliance.
+HOST ddos_scrubber { IP 198.18.0.1 }
+
+// INSTRUCTION: Define central security operations center.
+HOST soc_collector { IP 198.18.0.254 }
+
+// INSTRUCTION: Define SYN flood anomaly IPFIX report flow.
+FLOW syn_flood_report(scrub, soc) {
+    scrub -> soc IPFIX DOMAIN_ID 9999 SRCIP 203.0.113.77 DSTIP 198.18.10.1 SRCPORT 45123 DSTPORT 80 PROTO 6 PACKETS 50000 OCTETS 2000000
+}
+
+// INSTRUCTION: Compile SYN flood security export scenario.
+COMPILE {
+    syn_flood_report(ddos_scrubber, soc_collector)
+}

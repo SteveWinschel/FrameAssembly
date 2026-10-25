@@ -1,0 +1,24 @@
+// PROMPT: SIP INVITE to unassigned extension rejected with 404 Not Found and confirmed with ACK.
+// TOKENS: HOST, IP, FLOW, SIP, INVITE, URI, FROM, TO, CALL_ID, CSEQ, VIA, WAIT, STATUS, REASON, ACK, COMPILE
+
+// INSTRUCTION: Define branch IP phone dialing unallocated extension 9999.
+HOST branch_phone {
+    IP 10.14.6.22
+}
+
+// INSTRUCTION: Define central SIP registrar and proxy server.
+HOST central_pbx {
+    IP 10.14.6.1
+}
+
+// INSTRUCTION: Define INVITE, 404 Not Found error response, and non-2xx ACK confirmation.
+FLOW sip_404_unassigned(c, s) {
+    c -> s SIP INVITE URI "sip:9999@10.14.6.1" FROM "sip:1022@10.14.6.22" TO "sip:9999@10.14.6.1" CALL_ID "err-404" CSEQ 1 VIA "SIP/2.0/UDP 10.14.6.22:5060" WAIT 3ms
+    c <- s SIP STATUS 404 REASON "Not Found" CALL_ID "err-404" CSEQ 1 WAIT 3ms
+    c -> s SIP ACK URI "sip:9999@10.14.6.1" CALL_ID "err-404" CSEQ 1
+}
+
+// INSTRUCTION: Compile the SIP 404 Not Found error scenario.
+COMPILE {
+    sip_404_unassigned(branch_phone, central_pbx)
+}

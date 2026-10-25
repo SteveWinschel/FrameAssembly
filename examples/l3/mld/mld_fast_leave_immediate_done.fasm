@@ -1,0 +1,18 @@
+// PROMPT: IPv6 set-top box leaving high-definition IPTV channel via MLD Done message.
+// TOKENS: HOST, IP, FLOW, MLD, DONE, MULTICAST_ADDR, COMPILE
+
+// INSTRUCTION: Define residential subscriber set-top box.
+HOST stb_subscriber_node { IP fe80::211:32ff:fe44:5566 }
+
+// INSTRUCTION: Define IPv6 all-routers multicast address.
+HOST all_mld_routers { IP ff02::2 }
+
+// INSTRUCTION: Define fast-leave MLD Done signaling flow for multicast stream.
+FLOW mld_fast_leave_flow(stb, rtr) {
+    stb -> rtr MLD DONE MULTICAST_ADDR ff0e::4321
+}
+
+// INSTRUCTION: Compile block executing immediate group leave.
+COMPILE {
+    mld_fast_leave_flow(stb_subscriber_node, all_mld_routers)
+}

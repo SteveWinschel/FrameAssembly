@@ -1,0 +1,27 @@
+// PROMPT: Wholesale VoIP interconnect over QinQ double-tagged trunk carrying SIP call setup and RTP voice packets.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSCP, SIP, INVITE, URI, ACK, WAIT, RTP, PT, SEQ, TIMESTAMP, SSRC, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define enterprise session border controller (SBC).
+HOST enterprise_sbc {
+    IP 172.24.88.10
+    MAC 00:08:25:24:88:0a
+}
+
+// INSTRUCTION: Define carrier wholesale VoIP softswitch.
+HOST carrier_softswitch {
+    IP 172.24.88.1
+    MAC 00:08:25:24:88:01
+}
+
+// INSTRUCTION: Define QinQ S-VLAN 900 C-VLAN 150 SIP INVITE handshake and RTP voice bearer stream.
+FLOW qinq_voip_trunk(sbc, carrier) {
+    sbc -> carrier QINQ 900 INNER_VLAN 150 DSCP 24 SIP INVITE URI "sip:+18005550199@carrier.voice.net"
+    sbc <- carrier QINQ 900 INNER_VLAN 150 DSCP 24 SIP ACK URI "sip:+18005550199@carrier.voice.net" WAIT 10ms
+    sbc -> carrier QINQ 900 INNER_VLAN 150 DSCP 46 RTP PT 0 SEQ 101 TIMESTAMP 160 SSRC 0x11223344 PAYLOAD "ulaw_voice_frame_01" WAIT 20ms
+    sbc <- carrier QINQ 900 INNER_VLAN 150 DSCP 46 RTP PT 0 SEQ 501 TIMESTAMP 160 SSRC 0x55667788 PAYLOAD "ulaw_voice_frame_02" WAIT 20ms
+}
+
+// INSTRUCTION: Compile block executing wholesale VoIP SIP and RTP over QinQ.
+COMPILE {
+    qinq_voip_trunk(enterprise_sbc, carrier_softswitch)
+}

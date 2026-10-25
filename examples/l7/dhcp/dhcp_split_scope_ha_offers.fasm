@@ -1,0 +1,23 @@
+// PROMPT: Split-scope high-availability DHCPv4 servers responding with competing DHCPOFFER leases.
+// TOKENS: HOST, IP, FLOW, DHCP, DISCOVER, CHADDR, OFFER, YIADDR, SIADDR, LEASE_TIME, WAIT, COMPILE
+
+// INSTRUCTION: Define newly connected client workstation.
+HOST new_client { IP 0.0.0.0 }
+
+// INSTRUCTION: Define primary DHCPv4 server (80% split scope).
+HOST dhcp_primary { IP 172.22.0.2 }
+
+// INSTRUCTION: Define secondary DHCPv4 server (20% split scope).
+HOST dhcp_secondary { IP 172.22.0.3 }
+
+// INSTRUCTION: Client discovers; both primary and secondary servers respond with offers.
+FLOW dhcp_ha_split_scope(c, p, s) {
+    c -> p DHCP DISCOVER CHADDR 52:54:00:12:34:56
+    c <- p DHCP OFFER CHADDR 52:54:00:12:34:56 YIADDR 172.22.1.10 SIADDR 172.22.0.2 LEASE_TIME 86400 WAIT 5ms
+    c <- s DHCP OFFER CHADDR 52:54:00:12:34:56 YIADDR 172.22.2.210 SIADDR 172.22.0.3 LEASE_TIME 86400 WAIT 25ms
+}
+
+// INSTRUCTION: Compile the high-availability split-scope DHCP scenario.
+COMPILE {
+    dhcp_ha_split_scope(new_client, dhcp_primary, dhcp_secondary)
+}

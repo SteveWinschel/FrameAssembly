@@ -1,27 +1,33 @@
-//! Layer 2 and Data-Center protocol wire builders.
+//! Layer 2 Data Link and Carrier Ethernet protocol wire builders.
+//!
+//! This module contains the binary packet synthesizers for IEEE 802 and IETF Layer 2/2.5
+//! protocols, assembling Ethernet II (`DIX`) and IEEE 802.3 LLC frames with optional
+//! IEEE 802.1Q VLAN (`0x8100`), IEEE 802.1ad QinQ (`0x88A8`), and RFC 3032 MPLS (`0x8847`)
+//! shim headers. Supported builders include ARP (`0x0806`), EAPOL (`0x888E`), LACP (`0x8809`),
+//! LLDP (`0x88CC`), MPLS (`0x8847`), QinQ (`0x88A8`), STP/RSTP (`0x424203`), and VLAN (`0x8100`).
 
-/// Address Resolution Protocol wire builder.
 pub mod arp;
-/// IEEE 802.1X EAPOL protocol wire builder.
 pub mod eapol;
-/// IEEE 802.3ad Link Aggregation Control Protocol wire builder.
 pub mod lacp;
-/// IEEE 802.1AB Link Layer Discovery Protocol wire builder.
 pub mod lldp;
-/// RFC 3032 Multi-Protocol Label Switching wire builder.
 pub mod mpls;
-/// IEEE 802.1ad QinQ dual VLAN wire builder.
 pub mod qinq;
-/// IEEE 802.1D / IEEE 802.1w Spanning Tree Protocol wire builder.
 pub mod stp;
-/// IEEE 802.1Q Virtual Local Area Network wire builder.
 pub mod vlan;
 
+#[doc(inline)]
 pub use arp::*;
+#[doc(inline)]
 pub use eapol::*;
+#[doc(inline)]
 pub use lacp::*;
+#[doc(inline)]
 pub use lldp::*;
+#[doc(inline)]
 pub use mpls::*;
+#[doc(inline)]
 pub use qinq::*;
+#[doc(inline)]
 pub use stp::*;
+#[doc(inline)]
 pub use vlan::*;

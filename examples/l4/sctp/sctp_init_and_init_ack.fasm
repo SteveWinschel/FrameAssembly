@@ -1,5 +1,5 @@
 // PROMPT: SCTP 4-way association initiation and acknowledgment with verification tag.
-// TOKENS: HOST, IP, FLOW, ->, <-, SCTP, CHUNK, INIT, INIT_ACK, VTAG, SRCPORT, DSTPORT, COMPILE
+// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, INIT, VTAG, SRCPORT, DSTPORT, INIT_ACK, COMPILE
 
 // INSTRUCTION: Define SCTP signaling client.
 HOST sctp_client { IP 10.10.10.1 }

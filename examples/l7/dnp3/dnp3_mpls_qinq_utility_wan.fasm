@@ -1,0 +1,19 @@
+// PROMPT: Wide-area utility WAN DNP3 teleprotection telemetry transported over MPLS and QinQ tags.
+// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, QINQ, INNER_VLAN, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define regional grid control center.
+HOST grid_cc { IP 10.240.0.1 }
+
+// INSTRUCTION: Define remote switching station RTU.
+HOST switch_rtu { IP 10.240.50.10 }
+
+// INSTRUCTION: Poll Double-bit Binary Input (Group 3 Variation 2) over QinQ and MPLS transport.
+FLOW dnp3_wan_mpls(cc, rtu) {
+    cc -> rtu DNP3 FUNC "READ" SRC 1 DST 500 GROUP 3 VARIATION 2 QINQ 3000 INNER_VLAN 200 MPLS 9001 EXP 6 BOS 1 MPLS_TTL 64
+    cc <- rtu DNP3 FUNC "RESPONSE" SRC 500 DST 1 GROUP 3 VARIATION 2 QINQ 3000 INNER_VLAN 200 MPLS 9001 EXP 6 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the utility WAN MPLS/QinQ DNP3 flow.
+COMPILE {
+    dnp3_wan_mpls(grid_cc, switch_rtu)
+}

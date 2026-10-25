@@ -1,0 +1,25 @@
+// PROMPT: Generate an MLD Report and Done exchange with explicit IPv6 Flow Labels and custom multicast MAC addresses
+// TOKENS: HOST, IP, MAC, FLOW, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, FLOWLABEL, DSTMAC, TTL, WAIT, DONE, COMPILE
+
+// INSTRUCTION: Define the IPv6 telemetry subscriber host
+HOST telemetry_sub {
+    IP 2001:db8:770::50
+    MAC 00:1b:21:c7:00:50
+}
+
+// INSTRUCTION: Define the IPv6 multicast router interface
+HOST telemetry_rtr {
+    IP 2001:db8:770::1
+    MAC 00:1b:21:c7:00:01
+}
+
+// INSTRUCTION: Send MLD Report and Done messages using an explicit IPv6 Flow Label and IPv6 multicast MAC
+FLOW mld_flowlabel_signaling(sub, rtr) {
+    sub -> rtr MLD REPORT MULTICAST_ADDR ff15::9900:1 MAX_RESP_DELAY 0 FLOWLABEL 393216 DSTMAC 33:33:99:00:00:01 TTL 1 WAIT 30ms
+    sub -> rtr MLD DONE MULTICAST_ADDR ff15::9900:1 MAX_RESP_DELAY 0 FLOWLABEL 393216 DSTMAC 33:33:00:00:00:02 TTL 1
+}
+
+// INSTRUCTION: Compile the IPv6 Flow Label MLD signaling trace
+COMPILE {
+    mld_flowlabel_signaling(telemetry_sub, telemetry_rtr)
+}

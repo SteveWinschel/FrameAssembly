@@ -1,0 +1,24 @@
+// PROMPT: SNMPv1 enterprise-specific trap (GENTRAP 6) from a network laser printer reporting low black toner.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, INT, COMPILE
+
+// INSTRUCTION: Define the network laser printer agent.
+HOST office_printer {
+    IP 10.145.30.80
+    MAC 00:1a:2b:91:30:80
+}
+
+// INSTRUCTION: Define the print fleet management trap receiver.
+HOST print_monitor {
+    IP 10.145.30.10
+    MAC 00:1a:2b:91:30:10
+}
+
+// INSTRUCTION: Send an SNMPv1 enterprise-specific trap with Printer-MIB prtMarkerSuppliesLevel varbinds.
+FLOW snmpv1_printer_trap(a, m) {
+    a -> m SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.2.1.43 AGENTIP 10.145.30.80 GENTRAP 6 SPECTRAP 14 SYSUPTIME 450120 VARBIND 1.3.6.1.2.1.43.11.1.1.9.1.1 INT 8
+}
+
+// INSTRUCTION: Compile the SNMPv1 Printer-MIB low toner trap flow.
+COMPILE {
+    snmpv1_printer_trap(office_printer, print_monitor)
+}

@@ -1,0 +1,18 @@
+// PROMPT: Kerberos authentication traffic isolated on 802.1Q tagged security management VLAN.
+// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REQ, REALM, CNAME, ETYPE, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define identity management bastion host.
+HOST bastion_host { IP 10.99.1.5 }
+
+// INSTRUCTION: Define authentication realm controller.
+HOST realm_controller { IP 10.99.1.20 }
+
+// INSTRUCTION: Define VLAN tagged authentication flow.
+FLOW krb_vlan_auth(bas, ctl) {
+    bas -> ctl KERBEROS AS_REQ REALM "MGMT.ZONE" CNAME "admin_sec" ETYPE 18 VLAN 99 PCP 6 DEI 0
+}
+
+// INSTRUCTION: Compile VLAN segmented identity scenario.
+COMPILE {
+    krb_vlan_auth(bastion_host, realm_controller)
+}

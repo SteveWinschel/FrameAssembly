@@ -1,0 +1,19 @@
+// PROMPT: Bidirectional OpenFlow ECHO_REQ and ECHO_REPLY keepalive exchange verifying channel liveness.
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, ECHO_REQ, XID, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define cluster SDN controller node.
+HOST cluster_sdn_ctrl { IP 172.28.1.5 }
+
+// INSTRUCTION: Define monitored OpenFlow spine switch.
+HOST spine_openflow_sw { IP 172.28.1.15 }
+
+// INSTRUCTION: Define echo keepalive exchange flow with matching XID.
+FLOW of_echo_liveness(ctrl, sw) {
+    ctrl -> sw OPENFLOW TYPE ECHO_REQ XID 9999
+    ctrl <- sw OPENFLOW TYPE ECHO_REPLY XID 9999
+}
+
+// INSTRUCTION: Compile block executing echo keepalive heartbeat.
+COMPILE {
+    of_echo_liveness(cluster_sdn_ctrl, spine_openflow_sw)
+}

@@ -1,0 +1,32 @@
+// PROMPT: Model a Telnet Binary Transmission (Option 0, RFC 856) negotiation for 8-bit clean data transfer.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TELNET, DO, WILL, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint ind_term.
+HOST ind_term {
+    MAC 00:1b:21:00:23:05
+    IP 10.55.23.5
+}
+
+// INSTRUCTION: Define host endpoint plc_gw.
+HOST plc_gw {
+    MAC 00:1b:21:00:23:50
+    IP 10.55.23.50
+}
+
+// INSTRUCTION: Negotiate bidirectional Telnet Binary Transmission (Option 0) and send 8-bit frame data.
+FLOW telnet_binary_transmission_rfc856(ind_term, plc_gw) {
+    ind_term -> plc_gw TCP SYN SRCPORT 56023 DSTPORT 23
+    plc_gw -> ind_term TCP SYN ACK
+    ind_term -> plc_gw TCP ACK
+    ind_term -> plc_gw TELNET DO 0
+    plc_gw -> ind_term TELNET WILL 0
+    plc_gw -> ind_term TELNET DO 0
+    ind_term -> plc_gw TELNET WILL 0
+    ind_term -> plc_gw TELNET PAYLOAD "8BIT-BINARY-MODBUS-TUNNEL-FRAME"
+    plc_gw -> ind_term TELNET PAYLOAD "8BIT-BINARY-ACK-FRAME"
+}
+
+// INSTRUCTION: Compile the Telnet Option 0 binary transmission flow.
+COMPILE {
+    telnet_binary_transmission_rfc856(ind_term, plc_gw)
+}

@@ -1,0 +1,26 @@
+// PROMPT: PostgreSQL WITH RECURSIVE Common Table Expression traversing an enterprise organizational tree.
+// TOKENS: HOST, IP, MAC, FLOW, POSTGRES, SQL, COMMAND_COMPLETE, PAYLOAD, WAIT, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define the HR directory backend service.
+HOST hr_service {
+    IP 10.95.10.35
+    MAC 00:1a:2b:95:10:35
+}
+
+// INSTRUCTION: Define the HR PostgreSQL database server.
+HOST hr_postgres {
+    IP 10.95.10.1
+    MAC 00:1a:2b:95:10:01
+}
+
+// INSTRUCTION: Execute a recursive CTE query to fetch all direct and indirect reports under manager 101.
+FLOW pg_recursive_cte(c, s) {
+    c -> s POSTGRES SQL "WITH RECURSIVE org AS (SELECT id, mgr_id FROM emp WHERE id = 101 UNION ALL SELECT e.id, e.mgr_id FROM emp e JOIN org o ON e.mgr_id = o.id) SELECT * FROM org"
+    c <- s POSTGRES COMMAND_COMPLETE PAYLOAD "SELECT 48" WAIT 2ms
+    c <- s POSTGRES READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile the PostgreSQL recursive CTE query flow.
+COMPILE {
+    pg_recursive_cte(hr_service, hr_postgres)
+}

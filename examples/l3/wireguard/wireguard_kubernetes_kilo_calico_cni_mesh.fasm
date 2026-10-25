@@ -1,0 +1,25 @@
+// PROMPT: Kubernetes Calico / Kilo WireGuard CNI encrypting pod-to-pod overlay traffic between cluster worker nodes on UDP port 51820.
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, DATA, RECEIVER, COUNTER, SRCPORT, DSTPORT, DF, DSCP, ECN, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Kubernetes worker node k8s-gpu-01 with wg-calico interface.
+HOST k8s_calico_wg1 {
+    IP 10.240.51.11
+    MAC 00:16:3e:f0:51:0b
+}
+
+// INSTRUCTION: Define Kubernetes worker node k8s-gpu-02 with wg-calico interface.
+HOST k8s_calico_wg2 {
+    IP 10.240.51.12
+    MAC 00:16:3e:f0:51:0c
+}
+
+// INSTRUCTION: Define high-throughput WireGuard DATA stream between Kubernetes nodes with DF and ECN.
+FLOW wg_k8s_calico_cni_flow(n1, n2) {
+    n1 -> n2 WIREGUARD DATA RECEIVER 51012 COUNTER 1024 SRCPORT 51820 DSTPORT 51820 DF DSCP 18 ECN 2 TTL 64 PAYLOAD "K8S_POD_GRPC_REQUEST_ENCRYPTED" WAIT 1ms
+    n1 <- n2 WIREGUARD DATA RECEIVER 51011 COUNTER 2048 SRCPORT 51820 DSTPORT 51820 DF DSCP 18 ECN 2 TTL 64 PAYLOAD "K8S_POD_GRPC_RESPONSE_ENCRYPTED"
+}
+
+// INSTRUCTION: Compile the Kubernetes Calico WireGuard CNI pod mesh flow.
+COMPILE {
+    wg_k8s_calico_cni_flow(k8s_calico_wg1, k8s_calico_wg2)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Model a TACACS+ MSCHAPv2 remote-access VPN concentrator authentication session over MPLS label 4900.
+// TOKENS: HOST, IP, MAC, FLOW, TACACS, TYPE, AUTHEN, SEQ, FLAGS, SESSION_ID, USER, PAYLOAD, MPLS, EXP, BOS, MPLS_TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define the enterprise VPN concentrator forwarding MSCHAPv2 credentials over MPLS.
+HOST vpn_concentrator {
+    IP 172.28.49.5
+    MAC 00:25:90:1c:31:05
+}
+
+// INSTRUCTION: Define the redundant TACACS+ authentication appliance.
+HOST tacacs_auth_node {
+    IP 172.28.49.100
+    MAC 00:25:90:1c:31:64
+}
+
+// INSTRUCTION: Exchange TACACS+ AUTHEN start and reply frames tagged with MPLS label 4900.
+FLOW tacacs_mschapv2_mpls(vpn, aaa) {
+    vpn -> aaa TACACS TYPE AUTHEN SEQ 1 FLAGS 0 SESSION_ID 883920 USER "remote_sre" PAYLOAD "mschapv2-challenge-response-hash" MPLS 4900 EXP 5 BOS 1 MPLS_TTL 64 WAIT 6ms
+    vpn <- aaa TACACS TYPE AUTHEN SEQ 2 FLAGS 0 SESSION_ID 883920 USER "remote_sre" PAYLOAD "AUTHEN_STATUS_PASS" MPLS 4900 EXP 5 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the MPLS-encapsulated TACACS+ MSCHAPv2 authentication flow.
+COMPILE {
+    tacacs_mschapv2_mpls(vpn_concentrator, tacacs_auth_node)
+}

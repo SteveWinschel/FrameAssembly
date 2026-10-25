@@ -1,0 +1,36 @@
+// PROMPT: Two greenhouse agricultural soil sensors reporting Non-Confirmable moisture readings to a central gateway.
+// TOKENS: HOST, IP, MAC, FLOW, COAP, NON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define soil moisture probe 1 in Bed A.
+HOST soil_probe_a {
+    IP 10.110.90.11
+    MAC 00:1a:2b:6e:90:11
+}
+
+// INSTRUCTION: Define soil moisture probe 2 in Bed B.
+HOST soil_probe_b {
+    IP 10.110.90.12
+    MAC 00:1a:2b:6e:90:12
+}
+
+// INSTRUCTION: Define the greenhouse irrigation CoAP gateway.
+HOST irrigation_gw {
+    IP 10.110.90.1
+    MAC 00:1a:2b:6e:90:01
+}
+
+// INSTRUCTION: Report Bed A soil moisture via NON POST.
+FLOW report_bed_a(p, g) {
+    p -> g COAP NON CODE "0.02" MSGID 1101 TOKEN 11 URI_PATH "soil/bed_a" CONTENT_FORMAT 0 PAYLOAD "vwc=34.2"
+}
+
+// INSTRUCTION: Report Bed B soil moisture via NON POST.
+FLOW report_bed_b(p, g) {
+    p -> g COAP NON CODE "0.02" MSGID 2201 TOKEN 22 URI_PATH "soil/bed_b" CONTENT_FORMAT 0 PAYLOAD "vwc=28.9"
+}
+
+// INSTRUCTION: Compile both greenhouse soil sensor CoAP flows.
+COMPILE {
+    report_bed_a(soil_probe_a, irrigation_gw)
+    report_bed_b(soil_probe_b, irrigation_gw)
+}

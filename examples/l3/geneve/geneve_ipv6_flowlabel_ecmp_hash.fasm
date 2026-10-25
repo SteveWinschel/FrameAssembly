@@ -1,0 +1,19 @@
+// PROMPT: IPv6 underlay GENEVE tunnel utilizing IPv6 Flow Labels and VNID alias for ECMP distribution.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNID, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, FLOWLABEL, DSCP, TTL, COMPILE
+
+// INSTRUCTION: Define IPv6 hypervisor NVE Alpha.
+HOST v6_nve_alpha { IP 2001:db8:6081:1::10 MAC 52:54:00:60:81:01 }
+
+// INSTRUCTION: Define IPv6 hypervisor NVE Beta.
+HOST v6_nve_beta { IP 2001:db8:6081:1::20 MAC 52:54:00:60:81:02 }
+
+// INSTRUCTION: Define IPv6 GENEVE tunnel using VNID keyword and 20-bit IPv6 Flow Labels.
+FLOW geneve_v6_flowlabel(a, b) {
+    a -> b GENEVE VNID 500500 OPT_CLASS 258 OPT_TYPE 3 PROTOCOL_TYPE 0x6558 FLOWLABEL 608100 DSCP 32 TTL 64
+    a <- b GENEVE VNID 500500 OPT_CLASS 258 OPT_TYPE 3 PROTOCOL_TYPE 0x6558 FLOWLABEL 608101 DSCP 32 TTL 64
+}
+
+// INSTRUCTION: Compile the IPv6 Flow Label GENEVE overlay flow.
+COMPILE {
+    geneve_v6_flowlabel(v6_nve_alpha, v6_nve_beta)
+}

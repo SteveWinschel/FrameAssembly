@@ -1,0 +1,21 @@
+// PROMPT: Complete 4-step Kerberos v5 AS_REQ, AS_REP, TGS_REQ, and TGS_REP ticket acquisition workflow.
+// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REQ, REALM, CNAME, SNAME, ETYPE, AS_REP, TGS_REQ, TGS_REP, COMPILE
+
+// INSTRUCTION: Define domain user workstation.
+HOST corp_user_ws { IP 10.10.88.50 }
+
+// INSTRUCTION: Define enterprise KDC server.
+HOST corp_kdc { IP 10.10.88.1 }
+
+// INSTRUCTION: Acquire TGT via AS_REQ/AS_REP and CIFS service ticket via TGS_REQ/TGS_REP.
+FLOW krb5_full_ticket_flow(c, kdc) {
+    c -> kdc KERBEROS AS_REQ REALM "EXAMPLE.COM" CNAME "jdoe" SNAME "krbtgt/EXAMPLE.COM" ETYPE 18
+    c <- kdc KERBEROS AS_REP REALM "EXAMPLE.COM" CNAME "jdoe" SNAME "krbtgt/EXAMPLE.COM" ETYPE 18
+    c -> kdc KERBEROS TGS_REQ REALM "EXAMPLE.COM" CNAME "jdoe" SNAME "cifs/fileserver.example.com" ETYPE 18
+    c <- kdc KERBEROS TGS_REP REALM "EXAMPLE.COM" CNAME "jdoe" SNAME "cifs/fileserver.example.com" ETYPE 18
+}
+
+// INSTRUCTION: Compile the 4-way Kerberos v5 TGT and service ticket exchange.
+COMPILE {
+    krb5_full_ticket_flow(corp_user_ws, corp_kdc)
+}

@@ -1,0 +1,27 @@
+// PROMPT: Generate a SunSpec solar inverter Modbus telemetry flow on VLAN 310 reading AC power and grid frequency registers.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TXID, UNITID, FUNC, ADDR, COUNT, VLAN, DSCP, TTL, WAIT, IS_RESPONSE, VALUE, COMPILE
+
+// INSTRUCTION: Define the solar farm plant controller monitoring string inverters on VLAN 310.
+HOST plant_controller {
+    IP 172.25.10.5
+    MAC 00:25:90:19:0a:05
+}
+
+// INSTRUCTION: Define the SunSpec-compliant solar string inverter with Unit ID 126.
+HOST solar_inverter {
+    IP 172.25.10.126
+    MAC 00:25:90:19:0a:7e
+}
+
+// INSTRUCTION: Poll the SunSpec common model block at register 40000 and inverter telemetry block at 40070 over VLAN 310.
+FLOW sunspec_inverter_vlan(c, s) {
+    c -> s MODBUS TXID 701 UNITID 126 FUNC "READ_HOLDING_REGISTERS" ADDR 40000 COUNT 2 VLAN 310 DSCP 32 TTL 64 WAIT 4ms
+    c <- s MODBUS TXID 701 UNITID 126 FUNC "READ_HOLDING_REGISTERS" IS_RESPONSE VALUE 0x5375 VLAN 310 DSCP 32 TTL 64 WAIT 8ms
+    c -> s MODBUS TXID 702 UNITID 126 FUNC "READ_HOLDING_REGISTERS" ADDR 40070 COUNT 12 VLAN 310 DSCP 32 TTL 64 WAIT 5ms
+    c <- s MODBUS TXID 702 UNITID 126 FUNC "READ_HOLDING_REGISTERS" IS_RESPONSE VALUE 6000 VLAN 310 DSCP 32 TTL 64
+}
+
+// INSTRUCTION: Compile the SunSpec solar inverter VLAN 310 Modbus trace into a PCAP file.
+COMPILE {
+    sunspec_inverter_vlan(plant_controller, solar_inverter)
+}

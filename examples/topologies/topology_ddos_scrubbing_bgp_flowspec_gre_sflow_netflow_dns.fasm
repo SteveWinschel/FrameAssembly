@@ -1,0 +1,25 @@
+// PROMPT: Carrier DDoS mitigation scrubbing center combining sFlow and NetFlow volumetric anomaly detection, BGP traffic diversion update, and clean GRE return tunnel.
+// TOKENS: HOST, IP, FLOW, SFLOW, VERSION, AGENT_IP, SUB_AGENT_ID, SEQ_NUM, UPTIME, SAMPLES, NETFLOW, SRCIP, DSTIP, PACKETS, OCTETS, PROTO, WAIT, BGP, UPDATE, PREFIX, NEXTHOP, GRE, COMPILE
+
+// INSTRUCTION: Define transit border router exporting sFlow and NetFlow telemetry.
+HOST transit_border_rtr { IP 198.51.100.1 }
+
+// INSTRUCTION: Define DDoS mitigation scrubbing appliance and BGP controller.
+HOST ddos_scrubber_appliance { IP 198.51.100.250 }
+
+// INSTRUCTION: Define protected enterprise authoritative DNS server.
+HOST protected_dns_srv { IP 203.0.113.53 }
+
+// INSTRUCTION: Define sFlow/NetFlow volumetric spike detection, BGP /32 diversion announcement, and clean GRE injection.
+FLOW carrier_ddos_scrubbing_workflow(border, scrubber, victim) {
+    border -> scrubber SFLOW VERSION 5 AGENT_IP 198.51.100.1 SUB_AGENT_ID 1 SEQ_NUM 4001 UPTIME 990000 SAMPLES 12
+    border -> scrubber NETFLOW VERSION 9 SRCIP 192.0.2.99 DSTIP 203.0.113.53 PACKETS 500000 OCTETS 700000000 PROTO 17 WAIT 1ms
+    scrubber -> border BGP UPDATE PREFIX "203.0.113.53/32" NEXTHOP 198.51.100.250 WAIT 1ms
+    scrubber -> border GRE CHECKSUM GRE_KEY 7700 GRE_SEQ 101 WAIT 1ms
+    scrubber -> victim DNS QUERY QNAME "legitimate.customer-portal.com" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing carrier DDoS sFlow, NetFlow, BGP diversion, and GRE scrubbing topology.
+COMPILE {
+    carrier_ddos_scrubbing_workflow(transit_border_rtr, ddos_scrubber_appliance, protected_dns_srv)
+}

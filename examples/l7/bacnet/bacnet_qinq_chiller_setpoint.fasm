@@ -1,0 +1,19 @@
+// PROMPT: BACnet/IP smart campus QinQ double-VLAN tagged chiller setpoint adjustment.
+// TOKENS: HOST, IP, FLOW, BACNET, READ_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, QINQ, INNER_VLAN, WRITE_PROPERTY, VALUE, COMPILE
+
+// INSTRUCTION: Define central energy management system (EMS).
+HOST central_ems { IP 10.77.1.1 }
+
+// INSTRUCTION: Define building 4 rooftop chiller controller.
+HOST rooftop_chiller { IP 10.77.4.50 }
+
+// INSTRUCTION: Read Analog Value (ObjectType 2) setpoint and write updated chilled water setpoint.
+FLOW bacnet_qinq_setpoint(ems, ch) {
+    ems -> ch BACNET READ_PROPERTY INVOKE_ID 40 OBJECT_TYPE 2 OBJECT_INSTANCE 10 PROPERTY_ID 85 QINQ 500 INNER_VLAN 40
+    ems -> ch BACNET WRITE_PROPERTY INVOKE_ID 41 OBJECT_TYPE 2 OBJECT_INSTANCE 10 PROPERTY_ID 85 VALUE 44 QINQ 500 INNER_VLAN 40
+}
+
+// INSTRUCTION: Compile the QinQ-tagged BACnet chiller adjustment flow.
+COMPILE {
+    bacnet_qinq_setpoint(central_ems, rooftop_chiller)
+}

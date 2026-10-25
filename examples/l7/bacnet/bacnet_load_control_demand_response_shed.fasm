@@ -1,0 +1,27 @@
+// PROMPT: Utility Automated Demand Response (OpenADR-to-BACnet) writing shed level to Load Control object (Object Type 28).
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, WRITE_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, WAIT, READ_PROPERTY, COMPILE
+
+// INSTRUCTION: Define the smart grid demand response gateway.
+HOST adr_gateway {
+    IP 10.120.90.1
+    MAC 00:1a:2b:78:90:01
+}
+
+// INSTRUCTION: Define the main building load controller.
+HOST load_controller {
+    IP 10.120.90.10
+    MAC 00:1a:2b:78:90:10
+}
+
+// INSTRUCTION: Write Requested_Shed_Level (Property 206) = 3 to Load Control (Object Type 28, Instance 1) and read Actual_Shed_Level (Property 182).
+FLOW bacnet_demand_shed(g, c) {
+    g -> c BACNET WRITE_PROPERTY INVOKE_ID 110 OBJECT_TYPE 28 OBJECT_INSTANCE 1 PROPERTY_ID 206 VALUE 3
+    g <- c BACNET WRITE_PROPERTY INVOKE_ID 110 OBJECT_TYPE 28 OBJECT_INSTANCE 1 PROPERTY_ID 206 VALUE 3 WAIT 2ms
+    g -> c BACNET READ_PROPERTY INVOKE_ID 111 OBJECT_TYPE 28 OBJECT_INSTANCE 1 PROPERTY_ID 182
+    g <- c BACNET READ_PROPERTY INVOKE_ID 111 OBJECT_TYPE 28 OBJECT_INSTANCE 1 PROPERTY_ID 182 VALUE 3
+}
+
+// INSTRUCTION: Compile the BACnet demand response load shedding flow.
+COMPILE {
+    bacnet_demand_shed(adr_gateway, load_controller)
+}

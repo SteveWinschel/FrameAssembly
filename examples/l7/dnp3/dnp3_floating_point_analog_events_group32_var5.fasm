@@ -1,0 +1,25 @@
+// PROMPT: DNP3 Group 32 Variation 5 (32-bit Floating-Point Analog Change Event) reporting transformer oil temperature.
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define the substation asset health monitoring master.
+HOST asset_master {
+    IP 10.125.50.1
+    MAC 00:1a:2b:7d:50:01
+}
+
+// INSTRUCTION: Define the dissolved gas and thermal transformer monitor RTU.
+HOST xfmr_monitor {
+    IP 10.125.50.45
+    MAC 00:1a:2b:7d:50:45
+}
+
+// INSTRUCTION: Poll Group 32 Variation 5 single-precision float analog events from outstation 45.
+FLOW dnp3_float_analog_events(m, x) {
+    m -> x DNP3 FUNC "READ" SRC 1 DST 45 GROUP 32 VARIATION 5
+    m <- x DNP3 FUNC "RESPONSE" SRC 45 DST 1 GROUP 32 VARIATION 5 HEXPAYLOAD "0100009a42"
+}
+
+// INSTRUCTION: Compile the DNP3 Group 32 Variation 5 float analog event flow.
+COMPILE {
+    dnp3_float_analog_events(asset_master, xfmr_monitor)
+}

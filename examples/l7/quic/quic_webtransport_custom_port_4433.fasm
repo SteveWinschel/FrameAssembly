@@ -1,0 +1,20 @@
+// PROMPT: QUIC WebTransport bidirectional media stream over UDP port 4433 with New Token.
+// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, DCID, SCID, PKT_NUM, SRCPORT, DSTPORT, WAIT, HANDSHAKE, SHORT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define WebTransport browser client.
+HOST wt_client { IP 10.188.2.30 }
+
+// INSTRUCTION: Define WebTransport relay server on port 4433.
+HOST wt_relay { IP 10.188.2.1 }
+
+// INSTRUCTION: Define QUIC session with address token and WebTransport stream payload.
+FLOW quic_webtransport(c, s) {
+    c -> s QUIC INITIAL DCID 0xabcdef12 SCID 0x12abcdef PKT_NUM 1 SRCPORT 49443 DSTPORT 4433 WAIT 3ms
+    c <- s QUIC HANDSHAKE DCID 0x12abcdef SCID 0xabcdef12 PKT_NUM 1 SRCPORT 4433 DSTPORT 49443 WAIT 3ms
+    c -> s QUIC SHORT DCID 0xabcdef12 PKT_NUM 2 SRCPORT 49443 DSTPORT 4433 PAYLOAD "WT_CONNECT:/live/room42"
+}
+
+// INSTRUCTION: Compile WebTransport QUIC flow.
+COMPILE {
+    quic_webtransport(wt_client, wt_relay)
+}

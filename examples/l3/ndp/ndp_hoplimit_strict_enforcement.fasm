@@ -1,0 +1,18 @@
+// PROMPT: Router Solicitation with strict IPv6 Hop Limit 255 verification per RFC 4861.
+// TOKENS: HOST, IP, MAC, FLOW, NDP, ROUTER_SOLICIT, SLLA, TTL, COMPILE
+
+// INSTRUCTION: Define newly attached IPv6 client device.
+HOST unconfigured_client { IP fe80::707:1 MAC 00:14:22:77:88:99 }
+
+// INSTRUCTION: Define all-routers multicast destination ff02::2.
+HOST all_routers_dst { IP ff02::2 MAC 33:33:00:00:00:02 }
+
+// INSTRUCTION: Define Router Solicitation ensuring strict TTL 255 per specification.
+FLOW router_solicit_strict_ttl(client, rtrs) {
+    client -> rtrs NDP ROUTER_SOLICIT SLLA 00:14:22:77:88:99 TTL 255
+}
+
+// INSTRUCTION: Compile block executing strict TTL Router Solicitation.
+COMPILE {
+    router_solicit_strict_ttl(unconfigured_client, all_routers_dst)
+}

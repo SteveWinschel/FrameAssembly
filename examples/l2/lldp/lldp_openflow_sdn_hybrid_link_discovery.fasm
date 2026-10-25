@@ -1,0 +1,25 @@
+// PROMPT: Hybrid SDN switch emitting standard IEEE 802.1AB LLDP alongside custom OpenFlow BDDP chassis metadata.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define OpenFlow hybrid switch port 10.
+HOST of_hybrid_sw1 {
+    IP 10.180.0.1
+    MAC 00:16:3e:b4:00:01
+}
+
+// INSTRUCTION: Define peer OpenFlow hybrid switch port 20.
+HOST of_hybrid_sw2 {
+    IP 10.180.0.2
+    MAC 00:16:3e:b4:00:02
+}
+
+// INSTRUCTION: Exchange LLDP frames encoding OpenFlow datapath IDs in CHASSIS_ID and port numbers in PORT_ID.
+FLOW lldp_sdn_datapath_map(sw1, sw2) {
+    sw1 -> sw2 LLDP CHASSIS_ID "dpid:000000163eb40001" PORT_ID "ofport:10" SYSNAME "ovs-br0-node1" SYSDESC "Open vSwitch 3.3.0 OF1.3" TTL 30 WAIT 5ms
+    sw1 <- sw2 LLDP CHASSIS_ID "dpid:000000163eb40002" PORT_ID "ofport:20" SYSNAME "ovs-br0-node2" SYSDESC "Open vSwitch 3.3.0 OF1.3" TTL 30
+}
+
+// INSTRUCTION: Compile the OpenFlow SDN datapath LLDP link discovery trace.
+COMPILE {
+    lldp_sdn_datapath_map(of_hybrid_sw1, of_hybrid_sw2)
+}

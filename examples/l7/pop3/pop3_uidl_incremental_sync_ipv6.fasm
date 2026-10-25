@@ -1,0 +1,35 @@
+// PROMPT: Model an IPv6 POP3 client using UIDL to identify new messages since its last local checkpoint.
+// TOKENS: HOST, IP, MAC, FLOW, POP3, CMD, FLOWLABEL, TTL, WAIT, OK, RESPONSE, PAYLOAD, ARG, COMPILE
+
+// INSTRUCTION: Define the IPv6 desktop mail client maintaining a UIDL cache.
+HOST pop3_client_v6 {
+    IP 2001:db8:110:1::35
+    MAC 00:16:3e:6e:01:23
+}
+
+// INSTRUCTION: Define the IPv6 POP3 server.
+HOST pop3_server_v6 {
+    IP 2001:db8:110:1::1
+    MAC 00:16:3e:6e:01:01
+}
+
+// INSTRUCTION: Request full UIDL listing over IPv6 and fetch only the unseen message #3.
+FLOW pop3_uidl_sync_v6(c, s) {
+    c -> s POP3 CMD "UIDL" FLOWLABEL 0x11001 TTL 64 WAIT 2ms
+    c <- s POP3 OK RESPONSE "unique-id listing follows" PAYLOAD "1 0000018a
+2 0000018b
+3 0000018c
+.
+" FLOWLABEL 0x11001 TTL 64 WAIT 3ms
+    c -> s POP3 CMD "RETR" ARG "3" FLOWLABEL 0x11001 TTL 64 WAIT 3ms
+    c <- s POP3 OK RESPONSE "512 octets" PAYLOAD "Subject: New Ticket #491
+
+Please review.
+.
+" FLOWLABEL 0x11001 TTL 64
+}
+
+// INSTRUCTION: Compile the IPv6 POP3 UIDL incremental synchronization flow.
+COMPILE {
+    pop3_uidl_sync_v6(pop3_client_v6, pop3_server_v6)
+}

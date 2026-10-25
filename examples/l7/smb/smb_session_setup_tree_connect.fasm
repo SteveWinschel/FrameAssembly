@@ -1,5 +1,5 @@
 // PROMPT: SMB2 Tree Connect request mounting network share over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, SMB, COMMAND, SHARE, SESSION_ID, COMPILE
+// TOKENS: HOST, IP, FLOW, SMB, COMMAND, SHARE, SESSION_ID, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::50 }

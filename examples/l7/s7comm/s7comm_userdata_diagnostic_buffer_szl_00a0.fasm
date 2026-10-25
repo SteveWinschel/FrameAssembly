@@ -1,0 +1,27 @@
+// PROMPT: S7comm USERDATA reading CPU diagnostic buffer entries (SZL ID 0x00A0) after an OB86 rack fault.
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, WAIT, HEXPAYLOAD, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the TIA Portal diagnostic workstation.
+HOST tia_portal {
+    IP 10.130.40.88
+    MAC 00:1a:2b:82:40:88
+}
+
+// INSTRUCTION: Define the assembly robot cell PLC.
+HOST cell_plc {
+    IP 10.130.40.1
+    MAC 00:1a:2b:82:40:01
+}
+
+// INSTRUCTION: Negotiate communication setup and fetch diagnostic buffer SZL 0x00A0 via USERDATA.
+FLOW s7_diag_buffer(t, p) {
+    t -> p S7COMM ROSCTR "JOB" PDU_REF 1 FUNC "SETUP_COMM"
+    t <- p S7COMM ROSCTR "ACK_DATA" PDU_REF 1 FUNC "SETUP_COMM" WAIT 1ms
+    t -> p S7COMM ROSCTR "USERDATA" PDU_REF 2 HEXPAYLOAD "0001120411440100ff09000400a00000"
+    t <- p S7COMM ROSCTR "USERDATA" PDU_REF 2 PAYLOAD "SZL_00A0_EVENT_16#39C4_PROFINET_IO_STATION_RETURN"
+}
+
+// INSTRUCTION: Compile the S7comm diagnostic buffer retrieval flow.
+COMPILE {
+    s7_diag_buffer(tia_portal, cell_plc)
+}

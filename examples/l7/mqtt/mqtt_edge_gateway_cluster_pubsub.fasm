@@ -1,0 +1,19 @@
+// PROMPT: Edge gateway connecting to broker, subscribing to command topic, and publishing telemetry.
+// TOKENS: HOST, IP, FLOW, MQTT, CONNECT, CLIENT_ID, WAIT, PUBLISH, TOPIC, COMPILE
+
+// INSTRUCTION: Define edge computing gateway.
+HOST edge_compute_node { IP 10.15.2.50 }
+
+// INSTRUCTION: Define centralized edge cluster broker.
+HOST edge_cluster_broker { IP 10.15.2.1 }
+
+// INSTRUCTION: Define connection followed by telemetry publishing.
+FLOW edge_cluster_lifecycle(node, brk) {
+    node -> brk MQTT CONNECT CLIENT_ID "edge-node-50" WAIT 15ms
+    node -> brk MQTT PUBLISH TOPIC "edge/compute/load_avg"
+}
+
+// INSTRUCTION: Compile edge gateway pubsub scenario.
+COMPILE {
+    edge_cluster_lifecycle(edge_compute_node, edge_cluster_broker)
+}

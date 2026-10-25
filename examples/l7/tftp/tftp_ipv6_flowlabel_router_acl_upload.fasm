@@ -1,0 +1,27 @@
+// PROMPT: IPv6 core router uploading an access-control list audit log via TFTP WRQ with IPv6 flow label marking.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, WRQ, FILENAME, MODE, FLOWLABEL, TTL, ACK, BLOCK, DATA, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IPv6 core router exporting ACL audit text.
+HOST core_rtr_v6 {
+    IP 2001:db8:400:69::2
+    MAC 00:1c:73:40:69:02
+}
+
+// INSTRUCTION: Define IPv6 compliance TFTP server.
+HOST audit_tftp_v6 {
+    IP 2001:db8:400:69::1
+    MAC 00:1c:73:40:69:01
+}
+
+// INSTRUCTION: Upload ACL log over IPv6 TFTP with FLOWLABEL and TTL 64.
+FLOW tftp_v6_acl_upload(rtr, srv) {
+    rtr -> srv TFTP WRQ FILENAME "ipv6-edge-acl-hitcount.txt" MODE "netascii" FLOWLABEL 69690 TTL 64
+    rtr <- srv TFTP ACK BLOCK 0 FLOWLABEL 69690 TTL 64
+    rtr -> srv TFTP DATA BLOCK 1 FLOWLABEL 69690 TTL 64 PAYLOAD "permit ipv6 2001:db8::/32 any"
+    rtr <- srv TFTP ACK BLOCK 1 FLOWLABEL 69690 TTL 64
+}
+
+// INSTRUCTION: Compile the IPv6 TFTP WRQ ACL audit upload scenario.
+COMPILE {
+    tftp_v6_acl_upload(core_rtr_v6, audit_tftp_v6)
+}

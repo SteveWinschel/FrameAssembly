@@ -1,0 +1,25 @@
+// PROMPT: AMQP Basic.Publish carrying binary Protocol Buffers payload (HEXPAYLOAD) for high-frequency financial ticks.
+// TOKENS: HOST, IP, MAC, FLOW, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the market data feed handler publishing binary tick frames.
+HOST feed_handler {
+    IP 10.115.70.14
+    MAC 00:1a:2b:73:70:14
+}
+
+// INSTRUCTION: Define the low-latency trading AMQP broker.
+HOST trading_broker {
+    IP 10.115.70.1
+    MAC 00:1a:2b:73:70:01
+}
+
+// INSTRUCTION: Publish binary protobuf tick messages to market.ticks on channel 4.
+FLOW amqp_protobuf_ticks(f, b) {
+    f -> b AMQP BASIC_PUBLISH CHANNEL 4 EXCHANGE "market.ticks" ROUTING_KEY "nasdaq.nvda" HEXPAYLOAD "08941312044e5644411d00800943" WAIT 1ms
+    f -> b AMQP BASIC_PUBLISH CHANNEL 4 EXCHANGE "market.ticks" ROUTING_KEY "nasdaq.aapl" HEXPAYLOAD "08951312044141504c1d00405c43"
+}
+
+// INSTRUCTION: Compile the binary protobuf AMQP market data flow.
+COMPILE {
+    amqp_protobuf_ticks(feed_handler, trading_broker)
+}

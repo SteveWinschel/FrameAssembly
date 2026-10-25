@@ -1,0 +1,19 @@
+// PROMPT: Accounting UPDATE heartbeat record preserving active session audit trail.
+// TOKENS: HOST, IP, FLOW, TACACS, TYPE, ACCT, USER, SESSION_ID, COMPILE
+
+// INSTRUCTION: Define lab console server.
+HOST lab_console { IP 192.168.88.10 }
+
+// INSTRUCTION: Define regional TACACS accounting node.
+HOST reg_acct_node { IP 192.168.88.1 }
+
+// INSTRUCTION: Define accounting UPDATE heartbeat flow.
+FLOW tacacs_acct_update_flow(c, s) {
+    c -> s TACACS TYPE ACCT USER "automation_bot" SESSION_ID 13090
+    c <- s TACACS TYPE ACCT USER "automation_bot" SESSION_ID 13090
+}
+
+// INSTRUCTION: Compile block executing accounting UPDATE.
+COMPILE {
+    tacacs_acct_update_flow(lab_console, reg_acct_node)
+}

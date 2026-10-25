@@ -1,5 +1,5 @@
 // PROMPT: Peer-to-peer communication using IPv6 link-local addressing in the fe80::/10 prefix.
-// TOKENS: HOST, IP, FLOW, ->, <-, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define link-local node A.
 HOST link_node_a { IP fe80::1 }

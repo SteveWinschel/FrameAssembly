@@ -1,0 +1,37 @@
+// PROMPT: Simulate an SMTP VRFY, EXPN, and NOOP diagnostic session where VRFY is disabled by policy (252).
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SMTP, CODE, REPLY, EHLO, CMD, PARAM, QUIT, COMPILE
+
+// INSTRUCTION: Define the security scanner and hardened SMTP server.
+HOST auditor {
+    MAC 00:1b:21:88:25:10
+    IP 172.16.25.100
+}
+
+// INSTRUCTION: Define the hardened_mta mail endpoint.
+HOST hardened_mta {
+    MAC 00:1b:21:88:25:01
+    IP 172.16.25.1
+}
+
+// INSTRUCTION: Test VRFY, EXPN, and NOOP commands against a security-hardened MTA.
+FLOW smtp_vrfy_expn_noop_check(auditor, hardened_mta) {
+    auditor -> hardened_mta TCP SYN SRCPORT 56100 DSTPORT 25
+    hardened_mta -> auditor TCP SYN ACK
+    auditor -> hardened_mta TCP ACK
+    hardened_mta -> auditor SMTP CODE 220 REPLY "mta.corp.example ESMTP"
+    auditor -> hardened_mta SMTP EHLO "audit.corp.example"
+    hardened_mta -> auditor SMTP CODE 250 REPLY "mta.corp.example"
+    auditor -> hardened_mta SMTP CMD "VRFY" PARAM "admin"
+    hardened_mta -> auditor SMTP CODE 252 REPLY "2.5.2 Cannot VRFY user, but will accept message"
+    auditor -> hardened_mta SMTP CMD "EXPN" PARAM "staff-list"
+    hardened_mta -> auditor SMTP CODE 502 REPLY "5.5.2 Error: command not implemented"
+    auditor -> hardened_mta SMTP CMD "NOOP"
+    hardened_mta -> auditor SMTP CODE 250 REPLY "2.0.0 Ok"
+    auditor -> hardened_mta SMTP QUIT
+    hardened_mta -> auditor SMTP CODE 221 REPLY "2.0.0 Bye"
+}
+
+// INSTRUCTION: Compile the SMTP VRFY/EXPN/NOOP diagnostic flow.
+COMPILE {
+    smtp_vrfy_expn_noop_check(auditor, hardened_mta)
+}

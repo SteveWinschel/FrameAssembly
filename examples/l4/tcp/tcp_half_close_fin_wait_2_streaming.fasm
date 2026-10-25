@@ -1,0 +1,26 @@
+// PROMPT: TCP half-close (FIN_WAIT_2 / CLOSE_WAIT) where the client closes its write side while the server continues streaming response data.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, ACK, WAIT, PSH, PAYLOAD, FIN, COMPILE
+
+// INSTRUCTION: Define batch client submitting query and immediately half-closing outbound stream.
+HOST half_close_cli { IP 192.168.92.10 }
+
+// INSTRUCTION: Define streaming log server continuing to push data in CLOSE_WAIT before final FIN.
+HOST stream_log_srv { IP 192.168.92.20 }
+
+// INSTRUCTION: Define TCP handshake, client FIN half-close, unidirectional server data stream, and final server FIN.
+FLOW tcp_half_close_stream(cli, srv) {
+    cli -> srv TCP SYN SRCPORT 53100 DSTPORT 9200 WIN 64240
+    cli <- srv TCP SYN ACK WIN 65535 WAIT 1ms
+    cli -> srv TCP PSH ACK PAYLOAD "EXPORT_ALL_LOGS\n" WAIT 1ms
+    cli -> srv TCP FIN ACK WAIT 1ms
+    cli <- srv TCP ACK WAIT 1ms
+    cli <- srv TCP PSH ACK PAYLOAD "log_chunk_001: system boot ok\n" WAIT 5ms
+    cli <- srv TCP PSH ACK PAYLOAD "log_chunk_002: audit complete\n" WAIT 5ms
+    cli <- srv TCP FIN ACK WAIT 2ms
+    cli -> srv TCP ACK WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing TCP half-close FIN_WAIT_2 streaming sequence.
+COMPILE {
+    tcp_half_close_stream(half_close_cli, stream_log_srv)
+}

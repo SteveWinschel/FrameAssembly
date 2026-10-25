@@ -1,0 +1,21 @@
+// PROMPT: POP3 NOOP keepalive polling loop over VLAN 110 with 802.1p priority tagging.
+// TOKENS: HOST, IP, MAC, FLOW, POP3, CMD, VLAN, PCP, DEI, WAIT, OK, COMPILE, LOOP
+
+// INSTRUCTION: Define campus mail client on VLAN 110.
+HOST campus_mua { IP 192.168.110.45 MAC 00:1a:2b:6e:00:2d }
+
+// INSTRUCTION: Define campus POP3 server on VLAN 110.
+HOST campus_pop { IP 192.168.110.10 MAC 00:1a:2b:6e:00:0a }
+
+// INSTRUCTION: Define single POP3 NOOP heartbeat exchange on VLAN 110.
+FLOW pop3_noop_keepalive(c, s) {
+    c -> s POP3 CMD "NOOP" VLAN 110 PCP 2 DEI 0 WAIT 1s
+    c <- s POP3 OK VLAN 110 PCP 2 DEI 0 WAIT 1s
+}
+
+// INSTRUCTION: Execute 4 keepalive cycles in a COMPILE LOOP.
+COMPILE {
+    LOOP 4 {
+        pop3_noop_keepalive(campus_mua, campus_pop)
+    }
+}

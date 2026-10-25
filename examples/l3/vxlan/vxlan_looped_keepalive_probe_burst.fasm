@@ -1,0 +1,20 @@
+// PROMPT: Continuous VXLAN tunnel keepalive heartbeat probes inside a COMPILE LOOP.
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, PAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define hypervisor node A monitoring tunnel health.
+HOST hv_node_alpha { IP 192.168.111.1 }
+
+// INSTRUCTION: Define hypervisor node B monitoring tunnel health.
+HOST hv_node_beta { IP 192.168.111.2 }
+
+// INSTRUCTION: Define periodic VXLAN probe heartbeat flow.
+FLOW vxlan_probe_burst(a, b) {
+    a -> b VXLAN VNI 1001 PAYLOAD "VTEP_LIVENESS_PROBE_ECHO" WAIT 15ms
+}
+
+// INSTRUCTION: Compile loop executing 4 continuous VXLAN keepalive probes.
+COMPILE {
+    LOOP 4 {
+        vxlan_probe_burst(hv_node_alpha, hv_node_beta)
+    }
+}

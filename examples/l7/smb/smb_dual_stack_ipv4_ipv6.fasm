@@ -1,0 +1,23 @@
+// PROMPT: Dual-stack IPv4 and IPv6 SMB2 file access using a single polymorphic flow.
+// TOKENS: HOST, IP, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, DSCP, TTL, FLOWLABEL, COMPILE
+
+// INSTRUCTION: Define IPv4 SMB client and server hosts.
+HOST smb_v4_c { IP 10.80.1.15 }
+// INSTRUCTION: Define IPv4 SMB server endpoint.
+HOST smb_v4_s { IP 10.80.1.2 }
+
+// INSTRUCTION: Define IPv6 SMB client and server hosts.
+HOST smb_v6_c { IP 2001:db8:445::15 }
+// INSTRUCTION: Define IPv6 SMB server endpoint.
+HOST smb_v6_s { IP 2001:db8:445::2 }
+
+// INSTRUCTION: Define polymorphic SMB2 TREE_CONNECT flow with DSCP, TTL, and FLOWLABEL.
+FLOW smb_dual_flow(c, s) {
+    c -> s SMB COMMAND "TREE_CONNECT" TREE_ID 2 SESSION_ID 0x2000 MSGID 1 DSCP 10 TTL 64 FLOWLABEL 0x44500
+}
+
+// INSTRUCTION: Compile polymorphic SMB2 flow over IPv4 and IPv6.
+COMPILE {
+    smb_dual_flow(smb_v4_c, smb_v4_s)
+    smb_dual_flow(smb_v6_c, smb_v6_s)
+}

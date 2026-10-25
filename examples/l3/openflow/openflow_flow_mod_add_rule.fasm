@@ -1,5 +1,5 @@
 // PROMPT: OpenFlow SDN controller programming switch flow table via FLOW_MOD message with table ID and priority.
-// TOKENS: HOST, IP, FLOW, ->, OPENFLOW, TYPE, FLOW_MOD, XID, TABLE_ID, PRIORITY, COMPILE
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, FLOW_MOD, XID, TABLE_ID, PRIORITY, COMPILE
 
 // INSTRUCTION: Define centralized network operating system controller.
 HOST nos_controller { IP 172.16.0.10 }

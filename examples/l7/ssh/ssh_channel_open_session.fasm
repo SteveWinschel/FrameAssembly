@@ -1,0 +1,19 @@
+// PROMPT: Client requesting interactive shell channel allocation with MSG_CODE 90.
+// TOKENS: HOST, IP, FLOW, SSH, MSG_CODE, COMPILE
+
+// INSTRUCTION: Define interactive client terminal.
+HOST term_client { IP 172.28.0.8 }
+
+// INSTRUCTION: Define Linux application server.
+HOST app_server { IP 172.28.0.2 }
+
+// INSTRUCTION: Define channel open and confirmation flow.
+FLOW ssh_channel_open_flow(c, s) {
+    c -> s SSH MSG_CODE 90
+    c <- s SSH MSG_CODE 91
+}
+
+// INSTRUCTION: Compile block executing channel allocation.
+COMPILE {
+    ssh_channel_open_flow(term_client, app_server)
+}

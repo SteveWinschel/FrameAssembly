@@ -1,0 +1,19 @@
+// PROMPT: DNP3 Time and Date synchronization write (Group 50 Variation 1) with binary timestamp HEXPAYLOAD.
+// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define GPS-synchronized SCADA master.
+HOST gps_master { IP 10.160.1.1 }
+
+// INSTRUCTION: Define remote capacitor bank RTU.
+HOST capbank_rtu { IP 10.160.1.75 }
+
+// INSTRUCTION: Write 48-bit UTC millisecond time (Group 50 Var 1) to outstation clock.
+FLOW dnp3_time_sync(m, c) {
+    m -> c DNP3 FUNC "WRITE" SRC 1 DST 75 GROUP 50 VARIATION 1 HEXPAYLOAD "018b9a4f2c00"
+    m <- c DNP3 FUNC "RESPONSE" SRC 75 DST 1 GROUP 50 VARIATION 1
+}
+
+// INSTRUCTION: Compile the DNP3 clock synchronization write flow.
+COMPILE {
+    dnp3_time_sync(gps_master, capbank_rtu)
+}

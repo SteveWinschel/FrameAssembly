@@ -1,0 +1,20 @@
+// PROMPT: Read request downloading startup configuration file in netascii mode.
+// TOKENS: HOST, IP, FLOW, TFTP, RRQ, FILENAME, MODE, COMPILE
+
+// INSTRUCTION: Define edge router provisioning node.
+HOST prov_rtr { IP 10.20.1.15 }
+
+// INSTRUCTION: Define configuration repository TFTP server.
+HOST cfg_tftp_svr { IP 10.20.1.1 }
+
+// INSTRUCTION: Define netascii configuration download flow.
+FLOW tftp_cfg_download(c, s) {
+    c -> s TFTP RRQ
+        FILENAME "router-startup-config.cfg"
+        MODE "netascii"
+}
+
+// INSTRUCTION: Compile block executing config RRQ.
+COMPILE {
+    tftp_cfg_download(prov_rtr, cfg_tftp_svr)
+}

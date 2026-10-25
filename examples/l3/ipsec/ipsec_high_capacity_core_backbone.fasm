@@ -1,0 +1,18 @@
+// PROMPT: High capacity backbone core router IPsec encryption with custom DSCP Class Selector 4.
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, DSCP, TTL, COMPILE
+
+// INSTRUCTION: Define Frankfurt core transit router.
+HOST core_router_fra { IP 172.18.1.1 }
+
+// INSTRUCTION: Define London core transit router.
+HOST core_router_lon { IP 172.18.1.2 }
+
+// INSTRUCTION: Define backbone bulk transport IPsec flow marked with CS4.
+FLOW backbone_ipsec_flow(fra, lon) {
+    fra -> lon IPSEC SPI 888100 SEQ 9999 DSCP 32 TTL 128
+}
+
+// INSTRUCTION: Compile block executing high capacity backbone IPsec transmission.
+COMPILE {
+    backbone_ipsec_flow(core_router_fra, core_router_lon)
+}

@@ -1,0 +1,19 @@
+// PROMPT: 802.1Q VLAN-tagged IPsec packets traversing a segmented campus security zone.
+// TOKENS: HOST, IP, MAC, FLOW, IPSEC, SPI, SEQ, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define campus research enclave firewall.
+HOST enclave_fw_left { IP 10.75.10.1 MAC 00:1e:67:75:10:01 }
+
+// INSTRUCTION: Define core data center crypto gateway.
+HOST dc_crypto_right { IP 10.75.10.2 MAC 00:1e:67:75:10:02 }
+
+// INSTRUCTION: Define VLAN 750 tagged IPsec tunnel exchange with PCP 5.
+FLOW ipsec_campus_vlan(l, r) {
+    l -> r IPSEC SPI 75001 SEQ 1 VLAN 750 PCP 5 DEI 0
+    l <- r IPSEC SPI 75002 SEQ 1 VLAN 750 PCP 5 DEI 0
+}
+
+// INSTRUCTION: Compile the VLAN-tagged campus IPsec flow.
+COMPILE {
+    ipsec_campus_vlan(enclave_fw_left, dc_crypto_right)
+}

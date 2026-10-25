@@ -1,5 +1,5 @@
 // PROMPT: HTTP/2 client connection preface and initial SETTINGS frame exchange.
-// TOKENS: HOST, IP, FLOW, ->, <-, HTTP2, PREFACE, SETTINGS, COMPILE
+// TOKENS: HOST, IP, FLOW, HTTP2, PREFACE, SETTINGS, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.100 }

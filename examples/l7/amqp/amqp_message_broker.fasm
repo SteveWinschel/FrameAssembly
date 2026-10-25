@@ -1,5 +1,5 @@
 // PROMPT: Advanced Message Queuing Protocol 0-9-1 connection initialization and message publishing on TCP 5672.
-// TOKENS: HOST, IP, FLOW, ->, AMQP, PROTOCOL_HEADER, CHANNEL_OPEN, CHANNEL, BASIC_PUBLISH, ROUTING_KEY, COMPILE
+// TOKENS: HOST, IP, FLOW, AMQP, PROTOCOL_HEADER, CHANNEL_OPEN, CHANNEL, BASIC_PUBLISH, ROUTING_KEY, COMPILE
 
 // INSTRUCTION: Define AMQP publisher client.
 HOST publisher { IP 10.10.0.10 }

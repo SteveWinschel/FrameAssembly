@@ -1,0 +1,25 @@
+// PROMPT: Simulate a branch office DHCP lease transaction transported across an MPLS enterprise WAN (label 6700).
+// TOKENS: HOST, IP, MAC, FLOW, DHCP, REQUEST, XID, CIADDR, YIADDR, CHADDR, HOSTNAME, MPLS, EXP, BOS, MPLS_TTL, WAIT, ACK, SUBNET_MASK, ROUTER, DNS_SERVER, LEASE_TIME, COMPILE
+
+// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+HOST dhcp_client {
+    IP 10.140.20.15
+    MAC 00:25:90:67:01:0a
+}
+
+// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+HOST dhcp_server {
+    IP 10.140.0.10
+    MAC 00:25:90:67:01:01
+}
+
+// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
+FLOW dhcp_scenario_flow(c, s) {
+    c -> s DHCP REQUEST XID 0x31001004 CIADDR 10.140.20.15 YIADDR 10.140.20.15 CHADDR 00:1c:42:8c:14:0f HOSTNAME "branch-pos-03" MPLS 6700 EXP 4 BOS 1 MPLS_TTL 64 WAIT 6ms
+    c <- s DHCP ACK XID 0x31001004 CIADDR 10.140.20.15 YIADDR 10.140.20.15 SUBNET_MASK 255.255.255.0 ROUTER 10.140.20.1 DNS_SERVER 10.140.0.53 LEASE_TIME 43200 MPLS 6700 EXP 4 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
+COMPILE {
+    dhcp_scenario_flow(dhcp_client, dhcp_server)
+}

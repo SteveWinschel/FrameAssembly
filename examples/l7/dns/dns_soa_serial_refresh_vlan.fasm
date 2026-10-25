@@ -1,0 +1,19 @@
+// PROMPT: DNS SOA start of authority serial number check between secondary and primary nameservers.
+// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, VLAN, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define secondary slave nameserver.
+HOST ns_secondary { IP 10.53.0.2 }
+
+// INSTRUCTION: Define primary hidden master nameserver.
+HOST ns_primary { IP 10.53.0.1 }
+
+// INSTRUCTION: Query zone SOA record on management VLAN 53 to check zone serial.
+FLOW dns_soa_serial_check(sec, pri) {
+    sec -> pri DNS QUERY TXID 0x5301 QNAME "corp.example.net" QTYPE "SOA" VLAN 53
+    sec <- pri DNS RESPONSE TXID 0x5301 QNAME "corp.example.net" QTYPE "SOA" RDATA "ns1.corp.example.net hostmaster.corp.example.net" ANS_TTL 86400 VLAN 53
+}
+
+// INSTRUCTION: Compile the DNS SOA serial refresh check.
+COMPILE {
+    dns_soa_serial_check(ns_secondary, ns_primary)
+}

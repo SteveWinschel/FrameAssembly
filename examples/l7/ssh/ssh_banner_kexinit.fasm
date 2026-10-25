@@ -1,5 +1,5 @@
 // PROMPT: Secure Shell version banner exchange and key exchange initialization on TCP 22.
-// TOKENS: HOST, IP, FLOW, ->, <-, SSH, BANNER, KEXINIT, COMPILE
+// TOKENS: HOST, IP, FLOW, SSH, BANNER, KEXINIT, COMPILE
 
 // INSTRUCTION: Define SSH client endpoint.
 HOST ssh_client { IP 10.0.0.50 }

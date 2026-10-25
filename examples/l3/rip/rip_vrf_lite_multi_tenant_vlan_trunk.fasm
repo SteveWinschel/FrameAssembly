@@ -1,0 +1,26 @@
+// PROMPT: VRF-Lite multi-tenant provider edge router exchanging isolated RIPv2 tables over IEEE 802.1Q VLAN 310 and VLAN 320.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, TAG, VLAN, PCP, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define VRF-Lite PE router servicing Tenant A (VLAN 310) and Tenant B (VLAN 320).
+HOST vrf_lite_pe_rtr {
+    IP 10.52.200.1
+    MAC 00:1c:73:52:c8:01
+}
+
+// INSTRUCTION: Define multi-VRF customer aggregation switch.
+HOST vrf_lite_ce_sw {
+    IP 10.52.200.2
+    MAC 00:1c:73:52:c8:02
+}
+
+// INSTRUCTION: Define VLAN-segregated RIPv2 advertisements for Tenant A (TAG 310) and Tenant B (TAG 320).
+FLOW rip_vrf_lite_vlan_isolation(pe, ce) {
+    pe -> ce RIP RESPONSE PREFIX 10.31.0.0 METRIC 1 NEXTHOP 10.52.200.1 TAG 310 VLAN 310 PCP 6 DSCP 48 TTL 1 WAIT 4ms
+    pe -> ce RIP RESPONSE PREFIX 10.32.0.0 METRIC 1 NEXTHOP 10.52.200.1 TAG 320 VLAN 320 PCP 6 DSCP 48 TTL 1 WAIT 4ms
+    pe <- ce RIP RESPONSE PREFIX 192.168.31.0 METRIC 1 NEXTHOP 10.52.200.2 TAG 310 VLAN 310 PCP 6 DSCP 48 TTL 1
+}
+
+// INSTRUCTION: Compile the VRF-Lite VLAN-isolated RIPv2 routing flow.
+COMPILE {
+    rip_vrf_lite_vlan_isolation(vrf_lite_pe_rtr, vrf_lite_ce_sw)
+}

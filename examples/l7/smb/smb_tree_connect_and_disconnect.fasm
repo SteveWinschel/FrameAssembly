@@ -1,0 +1,21 @@
+// PROMPT: SMB2 administrative IPC$ share connection and clean TREE_DISCONNECT teardown.
+// TOKENS: HOST, IP, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, SHARE, WAIT, STATUS, COMPILE
+
+// INSTRUCTION: Define domain administrator management console.
+HOST admin_console { IP 10.50.2.100 }
+
+// INSTRUCTION: Define Active Directory domain controller.
+HOST domain_ctrl { IP 10.50.2.1 }
+
+// INSTRUCTION: Define IPC$ tree connect and clean tree disconnect.
+FLOW smb_ipc_tree(c, s) {
+    c -> s SMB COMMAND "TREE_CONNECT" TREE_ID 100 SESSION_ID 0x3000 MSGID 20 SHARE "\dc01\IPC$" WAIT 2ms
+    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 100 SESSION_ID 0x3000 MSGID 20 WAIT 5ms
+    c -> s SMB COMMAND "TREE_DISCONNECT" TREE_ID 100 SESSION_ID 0x3000 MSGID 21 WAIT 2ms
+    c <- s SMB COMMAND "TREE_DISCONNECT" STATUS 0 TREE_ID 100 SESSION_ID 0x3000 MSGID 21
+}
+
+// INSTRUCTION: Compile SMB2 IPC$ connect and disconnect flow.
+COMPILE {
+    smb_ipc_tree(admin_console, domain_ctrl)
+}

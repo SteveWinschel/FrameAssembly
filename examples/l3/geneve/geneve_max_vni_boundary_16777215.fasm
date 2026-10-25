@@ -1,0 +1,25 @@
+// PROMPT: RFC 8926 GENEVE boundary validation testing the maximum 24-bit Virtual Network Identifier (VNI 16777215 = 0xFFFFFF).
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define multi-tenant cloud NVE testing 24-bit VNI upper boundary 16777215.
+HOST max_vni_nve_src {
+    IP 10.60.255.1
+    MAC 00:25:90:ff:ff:01
+}
+
+// INSTRUCTION: Define peer cloud NVE validating 24-bit VNI 0xFFFFFF decoding.
+HOST max_vni_nve_dst {
+    IP 10.60.255.2
+    MAC 00:25:90:ff:ff:02
+}
+
+// INSTRUCTION: Define GENEVE exchange at maximum 24-bit VNI 16777215 and minimum VNI 1.
+FLOW geneve_vni_boundary_flow(src, dst) {
+    src -> dst GENEVE VNI 16777215 OPT_CLASS 258 OPT_TYPE 1 PROTOCOL_TYPE 25944 SRCPORT 60001 DSTPORT 6081 DF TTL 64 PAYLOAD "GENEVE_MAX_24BIT_VNI_0XFFFFFF" WAIT 2ms
+    src <- dst GENEVE VNI 1 OPT_CLASS 258 OPT_TYPE 1 PROTOCOL_TYPE 25944 SRCPORT 60002 DSTPORT 6081 DF TTL 64 PAYLOAD "GENEVE_MIN_TENANT_VNI_0X000001"
+}
+
+// INSTRUCTION: Compile the GENEVE 24-bit VNI boundary verification flow.
+COMPILE {
+    geneve_vni_boundary_flow(max_vni_nve_src, max_vni_nve_dst)
+}

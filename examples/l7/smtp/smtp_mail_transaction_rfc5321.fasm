@@ -1,5 +1,5 @@
 // PROMPT: Complete RFC 5321 SMTP email delivery transaction from sender to recipient.
-// TOKENS: HOST, IP, FLOW, ->, <-, SMTP, MAIL_FROM, RCPT_TO, PARAM, CODE, REPLY, BODY, QUIT, COMPILE
+// TOKENS: HOST, IP, FLOW, SMTP, MAIL_FROM, PARAM, CODE, REPLY, RCPT_TO, BODY, QUIT, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.5 }

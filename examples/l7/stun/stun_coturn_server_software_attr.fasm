@@ -1,0 +1,21 @@
+// PROMPT: STUN binding response populated with server SOFTWARE attribute.
+// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define enterprise teleconference client.
+HOST conf_client { IP 172.25.1.80 }
+
+// INSTRUCTION: Define Coturn enterprise server.
+HOST coturn_svr { IP 198.51.100.99 }
+
+// INSTRUCTION: Define Coturn response flow.
+FLOW stun_coturn_flow(c, s) {
+    c -> s STUN BINDING_REQUEST SOFTWARE "Jitsi-Meet-Client"
+    c <- s STUN BINDING_RESPONSE
+        XOR_MAPPED_ADDR 198.51.100.14
+        SOFTWARE "Coturn-4.6.2 'dan Eiser'"
+}
+
+// INSTRUCTION: Compile block executing Coturn attribute validation.
+COMPILE {
+    stun_coturn_flow(conf_client, coturn_svr)
+}

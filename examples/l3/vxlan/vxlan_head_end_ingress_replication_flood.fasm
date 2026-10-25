@@ -1,0 +1,31 @@
+// PROMPT: RFC 7432 EVPN Type-3 Inclusive Multicast Ethernet Tag (IMET) Head-End Ingress Replication across three remote VTEPs.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define ingress VTEP replicating a BUM frame via unicast VXLAN to remote IMET peers.
+HOST imet_ingress_vtep {
+    IP 10.255.10.1
+    MAC 00:1c:73:10:00:01
+}
+
+// INSTRUCTION: Define remote Leaf VTEP-2 in the VNI 20200 flood list.
+HOST imet_remote_vtep2 {
+    IP 10.255.10.2
+    MAC 00:1c:73:10:00:02
+}
+
+// INSTRUCTION: Define remote Leaf VTEP-3 in the VNI 20200 flood list.
+HOST imet_remote_vtep3 {
+    IP 10.255.10.3
+    MAC 00:1c:73:10:00:03
+}
+
+// INSTRUCTION: Define sequential unicast VXLAN ingress replication of a tenant DHCP Discover broadcast.
+FLOW vxlan_imet_headend_replication(ing, v2, v3) {
+    ing -> v2 VXLAN VNI 20200 SRCPORT 52200 DSTPORT 4789 DF TTL 64 PAYLOAD "IMET_REPL_COPY1_INNER_DHCP_DISCOVER" WAIT 1ms
+    ing -> v3 VXLAN VNI 20200 SRCPORT 52200 DSTPORT 4789 DF TTL 64 PAYLOAD "IMET_REPL_COPY2_INNER_DHCP_DISCOVER"
+}
+
+// INSTRUCTION: Compile the EVPN Type-3 Head-End Ingress Replication VXLAN flow.
+COMPILE {
+    vxlan_imet_headend_replication(imet_ingress_vtep, imet_remote_vtep2, imet_remote_vtep3)
+}

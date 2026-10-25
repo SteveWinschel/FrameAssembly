@@ -1,0 +1,25 @@
+// PROMPT: MPLS Maximum 20-bit Label boundary test (Label 1048575 = 0xFFFFF) and Reserved Router Alert Label 1.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define MPLS conformance test generator port A.
+HOST mpls_bound_a {
+    IP 192.0.2.101
+    MAC 00:00:5e:00:53:65
+}
+
+// INSTRUCTION: Define MPLS conformance test analyzer port B.
+HOST mpls_bound_b {
+    IP 192.0.2.102
+    MAC 00:00:5e:00:53:66
+}
+
+// INSTRUCTION: Define MPLS Router Alert Label 1 (BOS 0) and maximum 20-bit Label 1048575 (BOS 1) test frames.
+FLOW mpls_boundary_labels(a, b) {
+    a -> b MPLS 1 EXP 6 BOS 0 MPLS_TTL 1 PAYLOAD "rfc3032_router_alert_label_1"
+    a <- b MPLS 1048575 EXP 7 BOS 1 MPLS_TTL 255 PAYLOAD "rfc3032_max_20bit_label_1048575" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing MPLS boundary label verification.
+COMPILE {
+    mpls_boundary_labels(mpls_bound_a, mpls_bound_b)
+}

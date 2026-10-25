@@ -1,5 +1,5 @@
 // PROMPT: Data center network overlay virtualization using VXLAN tunneling protocol.
-// TOKENS: HOST, IP, FLOW, ->, VXLAN, VNI, COMPILE
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, COMPILE
 
 // INSTRUCTION: Define VTEP overlay gateway A.
 HOST vtep_a { IP 192.168.100.1 }

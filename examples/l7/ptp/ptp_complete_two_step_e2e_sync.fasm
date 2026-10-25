@@ -1,0 +1,22 @@
+// PROMPT: Complete 4-message IEEE 1588v2 E2E synchronization cycle (ANNOUNCE, SYNC, FOLLOW_UP, DELAY_REQ, DELAY_RESP).
+// TOKENS: HOST, IP, MAC, FLOW, PTP, ANNOUNCE, DOMAIN, SEQ_ID, CLOCK_ID, WAIT, SYNC, FOLLOW_UP, DELAY_REQ, DELAY_RESP, COMPILE
+
+// INSTRUCTION: Define IEEE 1588v2 Grandmaster clock.
+HOST ptp_master { IP 10.158.0.1 MAC 00:1b:21:aa:bb:01 }
+
+// INSTRUCTION: Define IEEE 1588v2 Ordinary Clock follower.
+HOST ptp_follower { IP 10.158.0.50 MAC 00:1b:21:aa:bb:32 }
+
+// INSTRUCTION: Define complete two-step PTP offset and delay measurement exchange.
+FLOW ptp_full_e2e_cycle(m, s) {
+    m -> s PTP ANNOUNCE DOMAIN 0 SEQ_ID 10 CLOCK_ID "MASTER01" WAIT 1ms
+    m -> s PTP SYNC DOMAIN 0 SEQ_ID 10 CLOCK_ID "MASTER01" WAIT 1ms
+    m -> s PTP FOLLOW_UP DOMAIN 0 SEQ_ID 10 CLOCK_ID "MASTER01" WAIT 2ms
+    m <- s PTP DELAY_REQ DOMAIN 0 SEQ_ID 10 CLOCK_ID "SLAVE050" WAIT 1ms
+    m -> s PTP DELAY_RESP DOMAIN 0 SEQ_ID 10 CLOCK_ID "MASTER01"
+}
+
+// INSTRUCTION: Compile full E2E PTP synchronization cycle.
+COMPILE {
+    ptp_full_e2e_cycle(ptp_master, ptp_follower)
+}

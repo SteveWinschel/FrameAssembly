@@ -1,0 +1,33 @@
+// PROMPT: Generate a multi-interface ICE gathering flow where a dual-homed host probes STUN from both Wi-Fi and LTE interfaces.
+// TOKENS: HOST, MAC, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define host endpoint host_wifi.
+HOST host_wifi {
+    MAC 00:1f:5b:34:01:01
+    IP 192.168.1.40
+}
+
+// INSTRUCTION: Define host endpoint host_lte.
+HOST host_lte {
+    MAC 00:1f:5b:34:02:02
+    IP 100.64.22.19
+}
+
+// INSTRUCTION: Define host endpoint public_stun.
+HOST public_stun {
+    MAC 00:1f:5b:34:99:99
+    IP 198.51.100.1
+}
+
+// INSTRUCTION: Gather server-reflexive candidates from both Wi-Fi and LTE interfaces via STUN.
+FLOW stun_multihomed_ice_gathering(host_wifi, host_lte, public_stun) {
+    host_wifi -> public_stun STUN BINDING_REQUEST SOFTWARE "WebRTC-Mobile/1.0"
+    public_stun -> host_wifi STUN BINDING_RESPONSE XOR_MAPPED_ADDR 192.0.2.40 SOFTWARE "coturn-4.6.2"
+    host_lte -> public_stun STUN BINDING_REQUEST SOFTWARE "WebRTC-Mobile/1.0"
+    public_stun -> host_lte STUN BINDING_RESPONSE XOR_MAPPED_ADDR 203.0.113.19 SOFTWARE "coturn-4.6.2"
+}
+
+// INSTRUCTION: Compile the multi-homed ICE STUN gathering flow.
+COMPILE {
+    stun_multihomed_ice_gathering(host_wifi, host_lte, public_stun)
+}

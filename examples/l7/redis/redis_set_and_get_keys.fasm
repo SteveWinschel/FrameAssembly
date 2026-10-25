@@ -1,5 +1,5 @@
 // PROMPT: Redis RESP key-value cache operations executing SET and GET over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, REDIS, CMD, ARGS, COMPILE
+// TOKENS: HOST, IP, FLOW, REDIS, CMD, ARGS, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

@@ -1,0 +1,19 @@
+// PROMPT: RFC 7296 IKEv2 SA_INIT and AUTH handshake specifying 64-bit Initiator/Responder SPIs and Next Payload.
+// TOKENS: HOST, IP, MAC, FLOW, IKEV2, SA_INIT, INITIATOR_SPI, RESPONDER_SPI, MSGID, FLAGS, NEXT_PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IKEv2 VPN initiator gateway.
+HOST ike_gw_alpha { IP 198.51.100.11 MAC 00:1b:21:50:00:01 }
+
+// INSTRUCTION: Define IKEv2 VPN responder gateway.
+HOST ike_gw_beta { IP 203.0.113.11 MAC 00:1b:21:50:00:02 }
+
+// INSTRUCTION: Define IKEv2 SA_INIT exchange with explicit 64-bit SPIs, MSGID 0, and Next Payload 33 (SA).
+FLOW ikev2_explicit_spi_init(init, resp) {
+    init -> resp IKEV2 SA_INIT INITIATOR_SPI 123456789012345 RESPONDER_SPI 0 MSGID 0 FLAGS 8 NEXT_PAYLOAD 33
+    init <- resp IKEV2 SA_INIT INITIATOR_SPI 123456789012345 RESPONDER_SPI 987654321098765 MSGID 0 FLAGS 32 NEXT_PAYLOAD 33
+}
+
+// INSTRUCTION: Compile the explicit SPI IKEv2 SA_INIT handshake flow.
+COMPILE {
+    ikev2_explicit_spi_init(ike_gw_alpha, ike_gw_beta)
+}

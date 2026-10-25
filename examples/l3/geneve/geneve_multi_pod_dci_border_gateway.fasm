@@ -1,0 +1,25 @@
+// PROMPT: Multi-Pod Data Center Interconnect (DCI) Border Gateways stitching GENEVE VNI 20001 to VNI 30001 across a WAN core.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, VLAN, MPLS, EXP, BOS, MPLS_TTL, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Pod-1 Border Gateway NVE translating local VNI to DCI VNI.
+HOST pod1_dci_bgw {
+    IP 172.30.60.1
+    MAC 00:1c:73:d1:60:01
+}
+
+// INSTRUCTION: Define Pod-2 Border Gateway NVE receiving stitched GENEVE overlay traffic.
+HOST pod2_dci_bgw {
+    IP 172.30.60.2
+    MAC 00:1c:73:d2:60:02
+}
+
+// INSTRUCTION: Define DCI GENEVE tunnel stitch with MPLS core label 60810 and VLAN 300 handoff.
+FLOW geneve_dci_vni_stitch(bgw1, bgw2) {
+    bgw1 -> bgw2 GENEVE VNI 20001 OPT_CLASS 258 OPT_TYPE 1 VLAN 300 MPLS 60810 EXP 5 BOS 1 MPLS_TTL 60 SRCPORT 52001 DSTPORT 6081 DF DSCP 40 TTL 60 PAYLOAD "DCI_POD1_2" WAIT 5ms
+    bgw1 <- bgw2 GENEVE VNI 30001 OPT_CLASS 258 OPT_TYPE 1 VLAN 300 MPLS 60820 EXP 5 BOS 1 MPLS_TTL 60 SRCPORT 53001 DSTPORT 6081 DF DSCP 40 TTL 60 PAYLOAD "DCI_POD2_1"
+}
+
+// INSTRUCTION: Compile the Multi-Pod DCI GENEVE border gateway stitching flow.
+COMPILE {
+    geneve_dci_vni_stitch(pod1_dci_bgw, pod2_dci_bgw)
+}

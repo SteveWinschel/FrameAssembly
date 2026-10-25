@@ -1,0 +1,20 @@
+// PROMPT: Network printer device discovery targeting UPnP Printer device schema.
+// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, ST, MX, MAN, COMPILE
+
+// INSTRUCTION: Define office desktop endpoint.
+HOST office_pc { IP 172.16.8.95 }
+
+// INSTRUCTION: Define multicast query group.
+HOST ssdp_group { IP 239.255.255.250 }
+
+// INSTRUCTION: Define office printer discovery flow.
+FLOW ssdp_printer_search(c, s) {
+    c -> s SSDP MSEARCH
+        ST "urn:schemas-upnp-org:device:Printer:1"
+        MX 4 MAN "\"ssdp:discover\""
+}
+
+// INSTRUCTION: Compile block executing printer discovery.
+COMPILE {
+    ssdp_printer_search(office_pc, ssdp_group)
+}

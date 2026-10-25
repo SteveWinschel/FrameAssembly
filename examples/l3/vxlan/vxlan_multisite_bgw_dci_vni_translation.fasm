@@ -1,0 +1,25 @@
+// PROMPT: EVPN Multi-Site Border Gateways (BGWs) re-encapsulating VXLAN traffic between Site-1 Fabric and DCI Core.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Site-1 EVPN Multi-Site Border Gateway VTEP.
+HOST site1_ms_bgw {
+    IP 172.31.47.1
+    MAC 00:22:bd:47:89:01
+}
+
+// INSTRUCTION: Define Site-2 EVPN Multi-Site Border Gateway VTEP across the DCI core.
+HOST site2_ms_bgw {
+    IP 172.31.47.2
+    MAC 00:22:bd:47:89:02
+}
+
+// INSTRUCTION: Define DCI VXLAN tunnel on VNI 90001 with DF flag and QoS AF31 (DSCP 26).
+FLOW vxlan_multisite_bgw_dci(bgw1, bgw2) {
+    bgw1 -> bgw2 VXLAN VNI 90001 SRCPORT 59001 DSTPORT 4789 DF DSCP 26 TTL 60 PAYLOAD "EVPN_MULTISITE_SITE1_TO_SITE2_L2_EXTENSION" WAIT 5ms
+    bgw1 <- bgw2 VXLAN VNI 90001 SRCPORT 59002 DSTPORT 4789 DF DSCP 26 TTL 60 PAYLOAD "EVPN_MULTISITE_SITE2_TO_SITE1_L2_EXTENSION"
+}
+
+// INSTRUCTION: Compile the EVPN Multi-Site Border Gateway DCI VXLAN flow.
+COMPILE {
+    vxlan_multisite_bgw_dci(site1_ms_bgw, site2_ms_bgw)
+}

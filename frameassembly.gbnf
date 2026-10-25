@@ -1,0 +1,484 @@
+# ============================================================================
+# FrameAssembly GBNF Constrained Decoding Grammar (llama.cpp / GGML BNF)
+# Usage: llama-server -m model.gguf --grammar-file frameassembly.gbnf
+# Enforces 100% syntactically valid FrameAssembly (.fasm) generation across
+# all 81 native protocols, L2-L4 modifiers, SNMPv1/v2c/v3 USM, and L7 specs.
+# ============================================================================
+
+root ::= ws (host-decl | flow-decl)* compile-block (host-decl | flow-decl)* ws
+
+# Whitespace and single-line comments
+ws ::= ([ \t\n\r] | "//" [^\n]* "\n")*
+ws1 ::= ([ \t\n\r] | "//" [^\n]* "\n")+
+
+# 1. Host Declarations
+host-decl ::= "HOST" ws1 ident ws "{" ws host-prop* "}" ws
+host-prop ::= ("IP" ws1 ip-addr | "MAC" ws1 mac-addr) ws
+
+# 2. Flow Declarations & Statements
+flow-decl ::= "FLOW" ws1 ident ws "(" ws param-list? ")" ws "{" ws frame-stmt* "}" ws
+param-list ::= ident ws ("," ws ident ws)*
+
+frame-stmt ::= ident ws direction ws ident (ws1 frame-field)* ws
+direction ::= "->" | "<-"
+
+# 3. Compile Block & Loops
+compile-block ::= "COMPILE" ws "{" ws run-stmt* "}" ws
+run-stmt ::= loop-block | flow-call
+loop-block ::= "LOOP" ws1 uint-lit ws "{" ws flow-call* "}" ws
+flow-call ::= ident ws "(" ws param-list? ")" ws
+
+# 4. Frame Fields (Protocols, Modifiers & Protocol Attributes)
+frame-field ::= protocol-kw
+              | universal-mod
+              | l2-mod
+              | l3-mod
+              | l4-mod
+              | l2-proto-field
+              | l3-proto-field
+              | l4-proto-field
+              | snmp-proto-field
+              | l7-proto-field
+
+# 5. All 81 Native Protocol Keywords
+protocol-kw ::= l2-proto | l3-proto | l4-proto | snmp-proto | l7-infra-proto | l7-app-proto | l7-ot-proto
+
+l2-proto ::= "ARP" | "VLAN" | "QINQ" | "LLDP" | "STP" | "LACP" | "EAPOL" | "MPLS"
+
+l3-proto ::= "ICMP" | "NDP" | "IGMP" | "MLD" | "GRE" | "VXLAN" | "GENEVE"
+           | "IPSEC" | "ESP" | "AH" | "IKEV2" | "WIREGUARD"
+           | "OSPF" | "BGP" | "RIP" | "VRRP" | "HSRP" | "PIM" | "BFD" | "OPENFLOW"
+
+l4-proto ::= "TCP" | "UDP" | "SCTP"
+
+snmp-proto ::= "SNMP1" | "SNMP2" | "SNMP3"
+
+l7-infra-proto ::= "DNS" | "MDNS" | "DHCP" | "NTP" | "PTP" | "RADIUS"
+                 | "TACACS" | "SYSLOG" | "NETFLOW" | "IPFIX" | "SFLOW"
+
+l7-app-proto ::= "TFTP" | "FTP" | "SSH" | "TELNET" | "HTTP" | "HTTP2" | "GRPC"
+               | "WEBSOCKET" | "TLS" | "QUIC" | "STUN" | "SIP" | "RTP" | "RTSP"
+               | "SMTP" | "IMAP" | "POP3" | "KERBEROS" | "LDAP" | "SMB" | "NFS"
+               | "REDIS" | "MEMCACHED" | "MYSQL" | "POSTGRES" | "MQTT" | "COAP"
+               | "AMQP" | "SSDP" | "WHOIS"
+
+l7-ot-proto ::= "MODBUS" | "BACNET" | "DNP3" | "S7COMM" | "ETHERNETIP" | "OPCUA"
+
+# 6. Universal & Layer 2-4 Modifiers
+universal-mod ::= "WAIT" ws1 duration-lit
+                | "PAYLOAD" ws1 string-lit
+                | "HEXPAYLOAD" ws1 hex-string-lit
+
+l2-mod ::= "SRCMAC" ws1 mac-addr
+         | "DSTMAC" ws1 mac-addr
+         | "ETHERTYPE" ws1 uint-lit
+         | "VLAN" (ws1 uint-lit)?
+         | "PCP" ws1 uint-lit
+         | "DEI" ws1 uint-lit
+         | "QINQ" (ws1 uint-lit)?
+         | "INNER_VLAN" ws1 uint-lit
+         | "MPLS" (ws1 uint-lit)?
+         | "LABEL" ws1 uint-lit
+         | ("EXP" | "TC") ws1 uint-lit
+         | "BOS" ws1 uint-lit
+         | "MPLS_TTL" ws1 uint-lit
+
+l3-mod ::= "TTL" ws1 uint-lit
+         | "DSCP" ws1 uint-lit
+         | "ECN" ws1 uint-lit
+         | "FLOWLABEL" ws1 uint-lit
+         | "IPID" ws1 uint-lit
+         | "DF"
+         | "MF"
+         | "FRAGOFFSET" ws1 uint-lit
+         | "NEXT_HEADER" ws1 uint-lit
+
+l4-mod ::= "SRCPORT" ws1 uint-lit
+         | "DSTPORT" ws1 uint-lit
+         | "TRANSPORT" ws1 ("TCP" | "UDP")
+         | tcp-flag
+         | "SEQ" ws1 uint-lit
+         | "ACKNUM" ws1 uint-lit
+         | ("WIN" | "WINDOW") ws1 uint-lit
+         | "URGENT" ws1 uint-lit
+         | "MSS" ws1 uint-lit
+         | "WSCALE" ws1 uint-lit
+         | "SACK_PERM" | "SACKPERM"
+         | "TSVAL" ws1 uint-lit
+         | "TSECR" ws1 uint-lit
+
+tcp-flag ::= "SYN" | "ACK" | "FIN" | "RST" | "PSH" | "URG" | "ECE" | "CWR"
+
+# 7. Layer 2 Protocol Sub-Keywords
+l2-proto-field ::= "REQUEST"
+                 | "REPLY" (ws1 string-lit)?
+                 | "GRATUITOUS" | "GARP"
+                 | ("SHA" | "SENDERMAC") ws1 mac-addr
+                 | ("SPA" | "SENDERIP") ws1 ip-addr
+                 | ("THA" | "TARGETMAC") ws1 mac-addr
+                 | ("TPA" | "TARGETIP") ws1 ip-addr
+                 | "CHASSIS_ID" ws1 str-or-ident
+                 | "PORT_ID" ws1 (uint-lit | str-or-ident)
+                 | "SYSNAME" ws1 str-or-ident
+                 | "SYSDESC" ws1 str-or-ident
+                 | "ROOT_ID" ws1 str-or-ident
+                 | "BRIDGE_ID" ws1 str-or-ident
+                 | "COST" ws1 uint-lit
+                 | "MAX_AGE" ws1 uint-lit
+                 | "HELLO_TIME" ws1 uint-lit
+                 | "FORWARD_DELAY" ws1 uint-lit
+                 | "RSTP"
+                 | "FLAGS" ws1 uint-lit
+                 | "ACTOR_SYS" ws1 (mac-addr | string-lit)
+                 | "ACTOR_KEY" ws1 uint-lit
+                 | "ACTOR_PORT" ws1 uint-lit
+                 | "PARTNER_SYS" ws1 (mac-addr | string-lit)
+                 | "PARTNER_KEY" ws1 uint-lit
+                 | "PARTNER_PORT" ws1 uint-lit
+                 | "ACTOR_STATE" ws1 uint-lit
+                 | "PARTNER_STATE" ws1 uint-lit
+                 | "VERSION" ws1 (uint-lit | str-or-ident)
+                 | "TYPE" ws1 (uint-lit | "START" | "LOGOFF" | "KEY" | "EAP_PACKET" | "INITIATION" | "RESPONSE" | "COOKIE" | "DATA"
+                 | "HELLO" | "FEATURES_REQ" | "FEATURES_REPLY" | "PACKET_IN" | "PACKET_OUT" | "FLOW_MOD" | "ECHO_REQ" | "ECHO_REQUEST" | "ECHO_REPLY"
+                 | "AUTHEN" | "AUTHOR" | "ACCT" | str-or-ident)
+                 | "START" | "LOGOFF" | "KEY" | "EAP_PACKET"
+                 | "EAP_CODE" ws1 uint-lit
+                 | "EAP_ID" ws1 uint-lit
+                 | "EAP_METHOD" ws1 uint-lit
+                 | "IDENTITY" ws1 str-or-ident
+
+# 8. Layer 3 Protocol Sub-Keywords
+l3-proto-field ::= "ECHO_REQUEST" | "ECHO_REPLY" | "DEST_UNREACH" | "TIME_EXCEEDED" | "REDIRECT"
+                 | "CODE" ws1 (uint-lit | str-or-ident)
+                 | "ID" ws1 uint-lit
+                 | "GATEWAY" ws1 ip-addr
+                 | "ROUTER_SOLICIT" | "ROUTER_ADVERT" | "NEIGHBOR_SOLICIT" | "NEIGHBOR_ADVERT"
+                 | "TARGET" ws1 (ip-addr | mac-addr)
+                 | "SLLA" ws1 mac-addr
+                 | "TLLA" ws1 mac-addr
+                 | "ROUTER_LIFETIME" ws1 uint-lit
+                 | "QUERY" | "REPORT" | "LEAVE" | "DONE" | "V1" | "V2" | "V3"
+                 | "GROUP" ws1 (ip-addr | uint-lit)
+                 | "MAX_RESP" ws1 uint-lit
+                 | "MULTICAST_ADDR" ws1 ip-addr
+                 | "MAX_RESP_DELAY" ws1 uint-lit
+                 | "CHECKSUM"
+                 | "GRE_KEY" ws1 uint-lit
+                 | "GRE_SEQ" ws1 uint-lit
+                 | "GRE_PROTO" ws1 uint-lit
+                 | ("VNI" | "VNID") ws1 uint-lit
+                 | "OPT_CLASS" ws1 uint-lit
+                 | "OPT_TYPE" ws1 uint-lit
+                 | "PROTOCOL_TYPE" ws1 uint-lit
+                 | "SPI" ws1 uint-lit
+                 | "IV" ws1 (hex-string-lit | uint-lit)
+                 | "ICV" ws1 (hex-string-lit | uint-lit)
+                 | "INITIATOR_SPI" ws1 (uint-lit | hex-string-lit)
+                 | "RESPONDER_SPI" ws1 (uint-lit | hex-string-lit)
+                 | "EXCHANGE" ws1 (uint-lit | "SA_INIT" | "CREATE_CHILD_SA" | "INFORMATIONAL" | str-or-ident)
+                 | "SA_INIT" | "CREATE_CHILD_SA" | "INFORMATIONAL"
+                 | "MSGID" ws1 (uint-lit | str-or-ident)
+                 | "NEXT_PAYLOAD" ws1 uint-lit
+                 | "INITIATION" | "COOKIE" (ws1 str-or-ident)? | "DATA" (ws1 str-or-ident)?
+                 | "SENDER" ws1 uint-lit
+                 | "RECEIVER" ws1 uint-lit
+                 | "COUNTER" ws1 uint-lit
+                 | "HELLO" | "DBD" | "LSR" | "LSU" | "LSACK"
+                 | "ROUTER_ID" ws1 ip-addr
+                 | "AREA_ID" ws1 (uint-lit | ip-addr)
+                 | "HELLO_INTERVAL" ws1 uint-lit
+                 | "DEAD_INTERVAL" ws1 uint-lit
+                 | "PRIORITY" ws1 uint-lit
+                 | "OPEN" | "UPDATE" | "NOTIFICATION" | "KEEPALIVE" (ws1 uint-lit)?
+                 | "ASN" ws1 uint-lit
+                 | "HOLDTIME" ws1 uint-lit
+                 | "BGPID" ws1 ip-addr
+                 | ("PREFIX" | "NLRI") ws1 (ip-addr | str-or-ident)
+                 | "NEXTHOP" ws1 ip-addr
+                 | "COMMAND" ws1 (uint-lit | str-or-ident)
+                 | "METRIC" ws1 uint-lit
+                 | "TAG" ws1 (uint-lit | str-or-ident)
+                 | "VRID" ws1 uint-lit
+                 | "ADV_INT" ws1 uint-lit
+                 | "VIP" ws1 ip-addr
+                 | "HELLOTIME" ws1 uint-lit
+                 | "STATE" ws1 uint-lit
+                 | "JOIN_PRUNE" | "REGISTER"
+                 | "SOURCE" ws1 ip-addr
+                 | "RP" ws1 ip-addr
+                 | "DR_PRIORITY" ws1 uint-lit
+                 | "DIAG" ws1 uint-lit
+                 | "MY_DISC" ws1 uint-lit
+                 | "YOUR_DISC" ws1 uint-lit
+                 | "MIN_TX" ws1 uint-lit
+                 | "MIN_RX" ws1 uint-lit
+                 | "MULT" ws1 uint-lit
+                 | "FEATURES_REQ" | "FEATURES_REPLY" | "PACKET_IN" | "PACKET_OUT" | "FLOW_MOD" | "ECHO_REQ"
+                 | "XID" ws1 uint-lit
+                 | "DPID" ws1 uint-lit
+                 | "TABLE_ID" ws1 uint-lit
+
+# 9. Layer 4 SCTP Sub-Keywords
+l4-proto-field ::= "VTAG" ws1 uint-lit
+                 | "STREAM" ws1 uint-lit
+                 | "SSN" ws1 uint-lit
+                 | "PPID" ws1 uint-lit
+                 | "TSN" ws1 uint-lit
+                 | "CHUNK" ws1 ("DATA" | "INIT" | "INIT_ACK" | "SACK" | "HEARTBEAT" | "HEARTBEAT_ACK" | "ABORT" | "SHUTDOWN" | "COOKIE_ECHO" | "COOKIE_ACK" | uint-lit | str-or-ident)
+                 | "INIT" | "INIT_ACK" | "SACK" | "HEARTBEAT" | "HEARTBEAT_ACK"
+                 | "ABORT" | "SHUTDOWN" | "COOKIE_ECHO" | "COOKIE_ACK"
+
+# 10. SNMPv1 / SNMPv2c / SNMPv3 Sub-Keywords
+snmp-proto-field ::= "TRAP" | "INFORM" | "GET" | "GETNEXT" | "GETBULK" | "SET" | "RESPONSE" (ws1 str-or-ident)? | "REPORT"
+                   | "COMMUNITY" ws1 string-lit
+                   | "OID" ws1 oid-lit
+                   | "SYSUPTIME" ws1 uint-lit
+                   | "REQID" ws1 uint-lit
+                   | "NONREPEATERS" ws1 uint-lit
+                   | "MAXREPETITIONS" ws1 uint-lit
+                   | "ENTERPRISE" ws1 oid-lit
+                   | "AGENTIP" ws1 ip-addr
+                   | "GENTRAP" ws1 uint-lit
+                   | "SPECTRAP" ws1 uint-lit
+                   | "USER" ws1 str-or-ident
+                   | "ENGINEID" ws1 string-lit
+                   | "ENGINEBOOTS" ws1 uint-lit
+                   | "ENGINETIME" ws1 uint-lit
+                   | "CONTEXTNAME" ws1 string-lit
+                   | "AUTH" ws1 ("MD5" | "SHA" | "SHA256" | "SHA384" | "SHA512") ws1 string-lit
+                   | "PRIV" ws1 ("DES" | "AES") ws1 string-lit
+                   | "VARBIND" ws1 oid-lit ws1 varbind-val
+
+varbind-val ::= "NULLVAL" | "NULL"
+              | "STRING" ws1 string-lit
+              | "INT" ws1 int-lit
+              | "TIMETICKS" ws1 uint-lit
+              | "IPVAL" ws1 ip-addr
+              | "OIDVAL" ws1 oid-lit
+              | "COUNTER32" ws1 uint-lit
+              | "GAUGE32" ws1 uint-lit
+              | "COUNTER64" ws1 uint-lit
+
+# 11. Layer 7 Sub-Keywords
+l7-proto-field ::= "TXID" ws1 (uint-lit | str-or-ident)
+                 | "QNAME" ws1 str-or-ident
+                 | "QTYPE" ws1 (uint-lit | str-or-ident)
+                 | "RDATA" ws1 str-or-ident
+                 | "RCODE" ws1 uint-lit
+                 | "ANS_TTL" ws1 uint-lit
+                 | "DISCOVER" | "SOLICIT" | "OFFER" | "ADVERTISE" | "RELEASE"
+                 | "CIADDR" ws1 ip-addr
+                 | "YIADDR" ws1 ip-addr
+                 | "SIADDR" ws1 ip-addr
+                 | "CHADDR" ws1 mac-addr
+                 | "HOSTNAME" ws1 str-or-ident
+                 | "DNS_SERVER" ws1 ip-addr
+                 | "ROUTER" ws1 ip-addr
+                 | "SUBNET_MASK" ws1 ip-addr
+                 | "LEASE_TIME" ws1 uint-lit
+                 | "LI" ws1 uint-lit
+                 | "VN" ws1 uint-lit
+                 | "MODE" ws1 (uint-lit | str-or-ident)
+                 | "STRATUM" ws1 uint-lit
+                 | "POLL" ws1 uint-lit
+                 | "PRECISION" ws1 int-lit
+                 | "REFID" ws1 str-or-ident
+                 | "TX_TIMESTAMP" ws1 uint-lit
+                 | "MSG_TYPE" ws1 (uint-lit | str-or-ident)
+                 | "SYNC" | "DELAY_REQ" | "FOLLOW_UP" | "DELAY_RESP" | "ANNOUNCE"
+                 | "DOMAIN" ws1 (uint-lit | str-or-ident)
+                 | "SEQ_ID" ws1 uint-lit
+                 | "CLOCK_ID" ws1 (mac-addr | str-or-ident)
+                 | "ACCESS_REQUEST" | "ACCESS_ACCEPT" | "ACCESS_REJECT"
+                 | "ACCESS_CHALLENGE" | "ACCOUNTING_REQUEST" | "ACCOUNTING_RESPONSE"
+                 | "NAS_IP" ws1 ip-addr
+                 | "SERVICE_TYPE" ws1 uint-lit
+                 | "FRAMED_IP" ws1 ip-addr
+                 | "AUTHEN" | "AUTHOR" | "ACCT"
+                 | "SESSION_ID" ws1 uint-lit
+                 | "FACILITY" ws1 uint-lit
+                 | "SEVERITY" ws1 uint-lit
+                 | "PRI" ws1 uint-lit
+                 | "APP" ws1 str-or-ident
+                 | "PROCID" ws1 str-or-ident
+                 | "MSG" ws1 str-or-ident
+                 | "SRCIP" ws1 ip-addr
+                 | "DSTIP" ws1 ip-addr
+                 | "PROTO" ws1 uint-lit
+                 | "PACKETS" ws1 uint-lit
+                 | "OCTETS" ws1 uint-lit
+                 | "DOMAIN_ID" ws1 uint-lit
+                 | "AGENT_IP" ws1 ip-addr
+                 | "SUB_AGENT_ID" ws1 uint-lit
+                 | "UPTIME" ws1 uint-lit
+                 | "SAMPLES" ws1 uint-lit
+                 | "RRQ" | "WRQ"
+                 | "FILENAME" ws1 str-or-ident
+                 | "BLOCK" ws1 uint-lit
+                 | "ERRCODE" ws1 uint-lit
+                 | "ERRMSG" ws1 str-or-ident
+                 | "CMD" ws1 (uint-lit | str-or-ident)
+                 | "ARG" ws1 str-or-ident
+                 | "BANNER" ws1 str-or-ident
+                 | "KEXINIT" | "NEWKEYS"
+                 | "MSG_CODE" ws1 uint-lit
+                 | "WILL" ws1 uint-lit
+                 | "WONT" ws1 uint-lit
+                 | "DO" ws1 uint-lit
+                 | "DONT" ws1 uint-lit
+                 | "OPTION" ws1 uint-lit
+                 | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
+                 | "URI" ws1 str-or-ident
+                 | "HOST_HDR" ws1 str-or-ident
+                 | "USER_AGENT" ws1 str-or-ident
+                 | "CONTENT_TYPE" ws1 str-or-ident
+                 | "STATUS" ws1 (uint-lit | str-or-ident)
+                 | "REASON" ws1 str-or-ident
+                 | "HEADER" ws1 string-lit ws1 string-lit
+                 | "BODY" ws1 str-or-ident
+                 | "PREFACE" | "SETTINGS" | "HEADERS" | "WINDOW_UPDATE" | "PING" | "GOAWAY"
+                 | "STREAM_ID" ws1 uint-lit
+                 | "SERVICE" ws1 str-or-ident
+                 | "METHOD" ws1 str-or-ident
+                 | "GRPC_STATUS" ws1 uint-lit
+                 | "OPCODE" ws1 (uint-lit | str-or-ident)
+                 | "TEXT" | "BINARY" | "PONG" | "CLOSE"
+                 | "FIN_BIT" ws1 uint-lit
+                 | "MASK_KEY" ws1 uint-lit
+                 | "CLIENT_HELLO" | "SERVER_HELLO" | "CERTIFICATE" | "FINISHED" | "APP_DATA" | "ALERT"
+                 | "RECORD_VERSION" ws1 uint-lit
+                 | "HANDSHAKE_VERSION" ws1 uint-lit
+                 | "SNI" ws1 str-or-ident
+                 | "CIPHERSUITE" ws1 uint-lit
+                 | "ALPN" ws1 str-or-ident
+                 | "INITIAL" | "ZERO_RTT" | "HANDSHAKE" | "RETRY" | "SHORT"
+                 | "DCID" ws1 (uint-lit | str-or-ident)
+                 | "SCID" ws1 (uint-lit | str-or-ident)
+                 | "TOKEN" ws1 (uint-lit | str-or-ident)
+                 | "PKT_NUM" ws1 uint-lit
+                 | "BINDING_REQUEST" | "BINDING_RESPONSE" | "BINDING_ERROR"
+                 | "XOR_MAPPED_ADDR" ws1 ip-addr (ws1 uint-lit)?
+                 | "SOFTWARE" ws1 str-or-ident
+                 | "INVITE" | "BYE" | "CANCEL"
+                 | "FROM" ws1 str-or-ident
+                 | "TO" ws1 str-or-ident
+                 | "CALL_ID" ws1 str-or-ident
+                 | "CSEQ" ws1 uint-lit
+                 | "VIA" ws1 str-or-ident
+                 | "CONTACT" ws1 str-or-ident
+                 | "PT" ws1 uint-lit
+                 | "TIMESTAMP" ws1 uint-lit
+                 | "SSRC" ws1 uint-lit
+                 | "MARKER" ws1 uint-lit
+                 | "DESCRIBE" | "SETUP" | "PLAY" | "TEARDOWN"
+                 | "TRANSPORT_HDR" ws1 str-or-ident
+                 | "SESSION" ws1 str-or-ident
+                 | "EHLO" (ws1 str-or-ident)?
+                 | "HELO" (ws1 str-or-ident)?
+                 | "MAIL_FROM" ws1 str-or-ident
+                 | "RCPT_TO" ws1 str-or-ident
+                 | "QUIT"
+                 | "PARAM" ws1 str-or-ident
+                 | "OK" | "ERR"
+                 | "AS_REQ" | "AS_REP" | "TGS_REQ" | "TGS_REP" | "KRB_ERROR"
+                 | "REALM" ws1 str-or-ident
+                 | "CNAME" ws1 str-or-ident
+                 | "SNAME" ws1 str-or-ident
+                 | "ETYPE" ws1 uint-lit
+                 | "BIND_REQ" | "BIND_RES" | "SEARCH_REQ" | "SEARCH_ENTRY" | "SEARCH_DONE" | "UNBIND_REQ"
+                 | "BASE_DN" ws1 str-or-ident
+                 | "FILTER" ws1 str-or-ident
+                 | "RESULT_CODE" ws1 uint-lit
+                 | "NEGOTIATE" | "SESSION_SETUP" | "TREE_CONNECT" | "CREATE" | "TREE_DISCONNECT"
+                 | "TREE_ID" ws1 uint-lit
+                 | "SHARE" ws1 str-or-ident
+                 | "VERS" ws1 uint-lit
+                 | "PROC" ws1 (uint-lit | str-or-ident)
+                 | "PATH" ws1 str-or-ident
+                 | "COMPOUND"
+                 | "ARGS" ws1 str-or-ident
+                 | "REPLY_TYPE" ws1 str-or-ident
+                 | "KEY" ws1 (uint-lit | str-or-ident)
+                 | "VALUE" ws1 (uint-lit | str-or-ident)
+                 | "EXPTIME" ws1 uint-lit
+                 | "OPAQUE" ws1 uint-lit
+                 | "CAS" ws1 uint-lit
+                 | "GREETING" | "LOGIN" | "EOF"
+                 | "SQL" ws1 str-or-ident
+                 | "SERVER_VERSION" ws1 str-or-ident
+                 | "DB" ws1 str-or-ident
+                 | "STARTUP" | "READY_FOR_QUERY" | "COMMAND_COMPLETE" | "ERROR_RESPONSE" | "AUTH_OK"
+                 | "CONNECT" | "CONNACK" | "PUBLISH" | "PUBACK" | "SUBSCRIBE" | "SUBACK" | "PINGREQ" | "PINGRESP" | "DISCONNECT"
+                 | "CLIENT_ID" ws1 str-or-ident
+                 | "TOPIC" ws1 str-or-ident
+                 | "QOS" ws1 uint-lit
+                 | "RETAIN" (ws1 uint-lit)?
+                 | "PKT_ID" ws1 uint-lit
+                 | "RETURN_CODE" ws1 uint-lit
+                 | "CON" | "NON" | "CHANGED" | "CREATED" | "NOT_FOUND"
+                 | "URI_PATH" ws1 str-or-ident
+                 | "CONTENT_FORMAT" ws1 uint-lit
+                 | "PROTOCOL_HEADER" | "CONNECTION_START" | "CHANNEL_OPEN" | "BASIC_PUBLISH" | "BASIC_DELIVER"
+                 | "CHANNEL" ws1 uint-lit
+                 | "ROUTING_KEY" ws1 str-or-ident
+                 | "MSEARCH" | "NOTIFY"
+                 | "MAN" ws1 str-or-ident
+                 | "MX" ws1 uint-lit
+                 | "ST" ws1 str-or-ident
+                 | "NT" ws1 str-or-ident
+                 | "NTS" ws1 str-or-ident
+                 | "USN" ws1 str-or-ident
+                 | "LOCATION" ws1 str-or-ident
+                 | "REGISTRAR" ws1 str-or-ident
+                 | "PROTO_ID" ws1 uint-lit
+                 | "UNITID" ws1 uint-lit
+                 | "FUNC" ws1 (uint-lit | str-or-ident)
+                 | "READ_COILS" | "READ_DISCRETE_INPUTS" | "READ_HOLDING_REGISTERS" | "READ_INPUT_REGISTERS"
+                 | "WRITE_SINGLE_COIL" | "WRITE_SINGLE_REGISTER" | "WRITE_MULTIPLE_REGISTERS"
+                 | "ADDR" ws1 uint-lit
+                 | "COUNT" ws1 uint-lit
+                 | "IS_RESPONSE"
+                 | "WHO_IS" | "I_AM" | "READ_PROPERTY" | "WRITE_PROPERTY"
+                 | "INVOKE_ID" ws1 uint-lit
+                 | "OBJECT_TYPE" ws1 uint-lit
+                 | "OBJECT_INSTANCE" ws1 uint-lit
+                 | "PROPERTY_ID" ws1 uint-lit
+                 | "CONFIRM" | "SELECT" | "OPERATE" | "DIRECT_OPERATE" | "UNSOLICITED_RESPONSE"
+                 | "VARIATION" ws1 uint-lit
+                 | "CRC" ws1 uint-lit
+                 | "SRC" ws1 uint-lit
+                 | "DST" ws1 uint-lit
+                 | "ROSCTR" ws1 (uint-lit | str-or-ident)
+                 | "PDU_REF" ws1 uint-lit
+                 | "SETUP_COMM" | "READ_VAR" | "WRITE_VAR" | "PLC_CONTROL"
+                 | "AREA" ws1 (uint-lit | str-or-ident)
+                 | "DB_NUM" ws1 uint-lit
+                 | "OFFSET" ws1 uint-lit
+                 | "LIST_SERVICES" | "LIST_IDENTITY" | "LIST_INTERFACES"
+                 | "REGISTER_SESSION" | "UNREGISTER_SESSION" | "SEND_RR_DATA" | "SEND_UNIT_DATA"
+                 | "SESSION_HANDLE" ws1 uint-lit
+                 | "CONTEXT" ws1 (uint-lit | str-or-ident)
+                 | "CIP_SERVICE" ws1 uint-lit
+                 | "CIP_CLASS" ws1 uint-lit
+                 | "CIP_INSTANCE" ws1 uint-lit
+                 | "CIP_ATTR" ws1 uint-lit
+                 | "CHUNK_TYPE" ws1 str-or-ident
+                 | "SECURE_CHANNEL_ID" ws1 uint-lit
+                 | "TOKEN_ID" ws1 uint-lit
+                 | "SEQ_NUM" ws1 uint-lit
+                 | "ENDPOINT_URL" ws1 str-or-ident
+                 | "NODE_ID" ws1 str-or-ident
+
+# 12. Lexical Terminals
+str-or-ident ::= string-lit | ident
+ident ::= [a-zA-Z_] [a-zA-Z0-9_]*
+uint-lit ::= [0-9]+ | "0" [xX] [0-9a-fA-F]+
+int-lit ::= "-"? [0-9]+ | "0" [xX] [0-9a-fA-F]+
+duration-lit ::= uint-lit ("ns" | "us" | "ms" | "s" | "m")
+string-lit ::= "\"" ([^"\\] | "\\" (["\\/bfnrt'] | "x" [0-9a-fA-F]{2} | "u" [0-9a-fA-F]{4}))* "\""
+hex-string-lit ::= "\"" [0-9a-fA-F: ]* "\""
+mac-addr ::= [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2}
+ip-addr ::= ipv4-addr | ipv6-addr
+ipv4-addr ::= [0-9]+ "." [0-9]+ "." [0-9]+ "." [0-9]+
+ipv6-addr ::= "::" [0-9a-fA-F:.]* | [0-9a-fA-F]{1,4} (":" [0-9a-fA-F:.]*)+
+oid-lit ::= "."? [0-9]+ ("." [0-9]+)* | string-lit

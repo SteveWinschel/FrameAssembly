@@ -1,0 +1,25 @@
+// PROMPT: IPv6 router-on-a-stick forwarding inter-VLAN traffic between corporate workstation VLAN 101 and server VLAN 102.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, TTL, FLOWLABEL, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, MSS, WAIT, ACK, ACKNUM, COMPILE
+
+// INSTRUCTION: Define enterprise IPv6 workstation on access VLAN 101.
+HOST corp_ws_v6 {
+    IP 2001:db8:101::25
+    MAC 00:21:70:65:01:19
+}
+
+// INSTRUCTION: Define internal application server reachable via router subinterface on VLAN 102.
+HOST corp_srv_v6 {
+    IP 2001:db8:102::80
+    MAC 00:25:90:66:02:50
+}
+
+// INSTRUCTION: Send IPv6 TCP SYN on ingress VLAN 101 and receive SYN-ACK on egress VLAN 102 with decremented Hop Limit.
+FLOW vlan_ipv6_roas_routing(ws, srv) {
+    ws -> srv VLAN 101 PCP 3 DEI 0 TTL 64 FLOWLABEL 10102 TCP SYN SRCPORT 51000 DSTPORT 443 SEQ 1000 WIN 65535 MSS 1440 WAIT 5ms
+    ws <- srv VLAN 102 PCP 3 DEI 0 TTL 63 FLOWLABEL 10102 TCP SYN ACK SRCPORT 443 DSTPORT 51000 SEQ 5000 ACKNUM 1001 WIN 65535 MSS 1440
+}
+
+// INSTRUCTION: Compile the IPv6 router-on-a-stick VLAN 101/102 inter-VLAN forwarding trace.
+COMPILE {
+    vlan_ipv6_roas_routing(corp_ws_v6, corp_srv_v6)
+}

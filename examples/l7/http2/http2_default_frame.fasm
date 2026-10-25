@@ -1,0 +1,24 @@
+// PROMPT: Default HTTP/2 frame emission on TCP port 443 using RFC 9113 wire defaults.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP2, COMPILE
+
+// INSTRUCTION: Define HTTP/2 browser client.
+HOST h2_client {
+    IP 192.168.43.10
+    MAC 00:1a:11:44:33:01
+}
+
+// INSTRUCTION: Define HTTP/2 edge server.
+HOST h2_server {
+    IP 192.168.43.1
+    MAC 00:1a:11:44:33:02
+}
+
+// INSTRUCTION: Emit a default HTTP/2 frame with zero optional parameters.
+FLOW http2_default(c, s) {
+    c -> s HTTP2
+}
+
+// INSTRUCTION: Compile the default HTTP/2 scenario.
+COMPILE {
+    http2_default(h2_client, h2_server)
+}

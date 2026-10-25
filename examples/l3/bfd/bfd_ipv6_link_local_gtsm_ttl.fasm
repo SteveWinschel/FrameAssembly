@@ -1,0 +1,19 @@
+// PROMPT: Single-hop IPv6 link-local BFD session enforcing RFC 5082 GTSM Hop Limit 255.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, TTL, DSCP, FLOWLABEL, COMPILE
+
+// INSTRUCTION: Define IPv6 link-local neighbor A.
+HOST ll_bfd_peer_a { IP fe80::10:1 MAC 52:54:00:bf:d0:01 }
+
+// INSTRUCTION: Define IPv6 link-local neighbor B.
+HOST ll_bfd_peer_b { IP fe80::10:2 MAC 52:54:00:bf:d0:02 }
+
+// INSTRUCTION: Define IPv6 link-local BFD exchange with Hop Limit 255 and DSCP 48.
+FLOW bfd_ipv6_link_local(a, b) {
+    a -> b BFD STATE 3 DIAG 0 MY_DISC 33001 YOUR_DISC 33002 MIN_TX 50000 MIN_RX 50000 MULT 3 TTL 255 DSCP 48 FLOWLABEL 99001
+    a <- b BFD STATE 3 DIAG 0 MY_DISC 33002 YOUR_DISC 33001 MIN_TX 50000 MIN_RX 50000 MULT 3 TTL 255 DSCP 48 FLOWLABEL 99002
+}
+
+// INSTRUCTION: Compile the IPv6 link-local GTSM BFD flow.
+COMPILE {
+    bfd_ipv6_link_local(ll_bfd_peer_a, ll_bfd_peer_b)
+}

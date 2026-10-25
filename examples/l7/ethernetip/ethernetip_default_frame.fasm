@@ -1,0 +1,24 @@
+// PROMPT: Default EtherNet/IP industrial frame emission over TCP port 44818 using protocol defaults.
+// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, COMPILE
+
+// INSTRUCTION: Define ControlLogix PLC scanner host.
+HOST clx_scanner {
+    IP 192.168.1.10
+    MAC 00:00:bc:11:22:01
+}
+
+// INSTRUCTION: Define Point I/O EtherNet/IP adapter module.
+HOST pio_adapter {
+    IP 192.168.1.20
+    MAC 00:00:bc:11:22:02
+}
+
+// INSTRUCTION: Emit a default EtherNet/IP encapsulation packet.
+FLOW enip_default(s, a) {
+    s -> a ETHERNETIP
+}
+
+// INSTRUCTION: Compile the default EtherNet/IP scenario.
+COMPILE {
+    enip_default(clx_scanner, pio_adapter)
+}

@@ -1,0 +1,29 @@
+// PROMPT: Redis error responses (-NOAUTH Authentication required and -WRONGTYPE Operation against wrong key kind).
+// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the misconfigured client attempting unauthenticated and mismatched commands.
+HOST buggy_worker {
+    IP 192.168.80.99
+    MAC 00:1a:2b:80:80:99
+}
+
+// INSTRUCTION: Define the protected Redis server.
+HOST strict_redis {
+    IP 192.168.80.1
+    MAC 00:1a:2b:80:80:01
+}
+
+// INSTRUCTION: Trigger NOAUTH error before authenticating, then trigger WRONGTYPE by calling LPUSH on a string key.
+FLOW redis_error_cases(c, s) {
+    c -> s REDIS CMD "GET" ARGS "config:version"
+    c <- s REDIS REPLY_TYPE "ERROR" VALUE "NOAUTH Authentication required." WAIT 1ms
+    c -> s REDIS CMD "AUTH" ARGS "prod_redis_secret_2026"
+    c <- s REDIS REPLY_TYPE "STATUS" VALUE "OK" WAIT 1ms
+    c -> s REDIS CMD "LPUSH" ARGS "config:version v2"
+    c <- s REDIS REPLY_TYPE "ERROR" VALUE "WRONGTYPE Operation against a key holding the wrong kind of value"
+}
+
+// INSTRUCTION: Compile the Redis error response verification flow.
+COMPILE {
+    redis_error_cases(buggy_worker, strict_redis)
+}

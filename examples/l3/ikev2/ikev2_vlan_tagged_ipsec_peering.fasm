@@ -1,0 +1,18 @@
+// PROMPT: 802.1Q tagged IKEv2 SA negotiation frames across inter-datacenter WAN trunk.
+// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, SA_INIT, MSGID, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define DC1 core VPN router.
+HOST dc1_vpn_rtr { IP 10.110.1.1 }
+
+// INSTRUCTION: Define DC2 core VPN router.
+HOST dc2_vpn_rtr { IP 10.110.1.2 }
+
+// INSTRUCTION: Define tagged IKEv2 SA_INIT flow on VLAN 250 with PCP 6.
+FLOW ikev2_vlan_tagged(dc1, dc2) {
+    dc1 -> dc2 IKEV2 INITIATOR_SPI 3322110099887766 RESPONDER_SPI 0 SA_INIT MSGID 0 VLAN 250 PCP 6 DEI 0
+}
+
+// INSTRUCTION: Compile block executing VLAN tagged IKEv2 negotiation.
+COMPILE {
+    ikev2_vlan_tagged(dc1_vpn_rtr, dc2_vpn_rtr)
+}

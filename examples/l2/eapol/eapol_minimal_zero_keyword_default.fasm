@@ -1,0 +1,24 @@
+// PROMPT: Minimal zero-keyword IEEE 802.1X EAPOL frame emitting default EAP-Packet Identity Request to 01:80:c2:00:00:03.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, COMPILE
+
+// INSTRUCTION: Define 802.1X authenticator switch port.
+HOST dot1x_auth_port {
+    IP 10.18.0.1
+    MAC 00:1c:73:18:00:01
+}
+
+// INSTRUCTION: Define 802.1X supplicant workstation port.
+HOST dot1x_supp_port {
+    IP 10.18.0.50
+    MAC 00:21:cc:18:00:32
+}
+
+// INSTRUCTION: Define zero-argument EAPOL statement using RFC-compliant defaults.
+FLOW eapol_default_frame(auth, supp) {
+    auth -> supp EAPOL
+}
+
+// INSTRUCTION: Compile block executing default EAPOL frame generation.
+COMPILE {
+    eapol_default_frame(dot1x_auth_port, dot1x_supp_port)
+}

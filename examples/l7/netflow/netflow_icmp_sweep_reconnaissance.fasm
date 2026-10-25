@@ -1,0 +1,25 @@
+// PROMPT: NetFlow v5 flow export documenting an ICMP protocol 1 network reconnaissance sweep across subnets.
+// TOKENS: HOST, IP, MAC, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define internal distribution switch monitoring east-west reconnaissance traffic.
+HOST dist_switch {
+    IP 172.16.10.1
+    MAC 00:1e:be:10:01:01
+}
+
+// INSTRUCTION: Define network detection and response (NDR) NetFlow appliance.
+HOST ndr_appliance {
+    IP 172.16.10.100
+    MAC 00:1e:be:10:01:64
+}
+
+// INSTRUCTION: Export ICMP protocol 1 sweep flow records with zeroed transport ports.
+FLOW netflow_icmp_sweep(sw, ndr) {
+    sw -> ndr NETFLOW SRCIP 172.16.40.99 DSTIP 172.16.50.10 SRCPORT 0 DSTPORT 0 PROTO 1 PACKETS 10 OCTETS 840
+    sw -> ndr NETFLOW SRCIP 172.16.40.99 DSTIP 172.16.50.11 SRCPORT 0 DSTPORT 0 PROTO 1 PACKETS 10 OCTETS 840
+}
+
+// INSTRUCTION: Compile the ICMP reconnaissance sweep NetFlow telemetry scenario.
+COMPILE {
+    netflow_icmp_sweep(dist_switch, ndr_appliance)
+}

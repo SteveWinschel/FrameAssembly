@@ -1,0 +1,25 @@
+// PROMPT: East-West tenant traffic hairpinned through a centralized Service Leaf Firewall VTEP using ingress L3VNI 50100 and egress L3VNI 50200.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define compute Leaf VTEP redirecting inter-zone traffic to Service Leaf Firewall.
+HOST compute_zone_vtep {
+    IP 10.255.50.10
+    MAC 00:1c:73:50:00:0a
+}
+
+// INSTRUCTION: Define Service Leaf VTEP attached to stateful firewall cluster.
+HOST service_fw_vtep {
+    IP 10.255.50.250
+    MAC 00:1c:73:50:00:fa
+}
+
+// INSTRUCTION: Define VXLAN PBR service chain entering on VNI 50100 (Untrust VRF) and returning on VNI 50200 (Trust VRF).
+FLOW vxlan_fw_service_hairpin(compute, svc) {
+    compute -> svc VXLAN VNI 50100 SRCPORT 50100 DSTPORT 4789 DF DSCP 34 TTL 63 PAYLOAD "UNTRUST_VRF_TO_FIREWALL_INSPECTION" WAIT 2ms
+    compute <- svc VXLAN VNI 50200 SRCPORT 50200 DSTPORT 4789 DF DSCP 34 TTL 63 PAYLOAD "TRUST_VRF_POST_FIREWALL_PERMITTED"
+}
+
+// INSTRUCTION: Compile the Service Leaf Firewall VXLAN hairpin flow.
+COMPILE {
+    vxlan_fw_service_hairpin(compute_zone_vtep, service_fw_vtep)
+}

@@ -1,0 +1,30 @@
+// PROMPT: Sequential multi-chunk SMB2 WRITE transfer uploading backup archive blocks with incrementing MSGIDs.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, FILENAME, STATUS, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the backup agent host streaming archive blocks.
+HOST backup_agent {
+    IP 10.60.70.20
+    MAC 00:1a:2b:60:70:20
+}
+
+// INSTRUCTION: Define the archival SMB vault appliance.
+HOST backup_vault {
+    IP 10.60.70.100
+    MAC 00:1a:2b:60:70:99
+}
+
+// INSTRUCTION: Create backup file and write two consecutive payload chunks before closing.
+FLOW smb_chunked_write(c, s) {
+    c -> s SMB COMMAND "CREATE" TREE_ID 8 SESSION_ID 9900 MSGID 100 FILENAME "db_full_20261025.bak"
+    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 8 SESSION_ID 9900 MSGID 100 WAIT 1ms
+    c -> s SMB COMMAND "WRITE" TREE_ID 8 SESSION_ID 9900 MSGID 101 PAYLOAD "CHUNK_01_HEADER_AND_SCHEMA"
+    c <- s SMB COMMAND "WRITE" STATUS 0 TREE_ID 8 SESSION_ID 9900 MSGID 101 WAIT 1ms
+    c -> s SMB COMMAND "WRITE" TREE_ID 8 SESSION_ID 9900 MSGID 102 PAYLOAD "CHUNK_02_TABLE_EXTENTS_EOF"
+    c <- s SMB COMMAND "WRITE" STATUS 0 TREE_ID 8 SESSION_ID 9900 MSGID 102 WAIT 1ms
+    c -> s SMB COMMAND "CLOSE" TREE_ID 8 SESSION_ID 9900 MSGID 103
+}
+
+// INSTRUCTION: Compile the sequential multi-chunk SMB2 write flow.
+COMPILE {
+    smb_chunked_write(backup_agent, backup_vault)
+}

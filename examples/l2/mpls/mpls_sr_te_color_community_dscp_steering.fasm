@@ -1,0 +1,25 @@
+// PROMPT: BGP SR-TE automated steering mapping low-latency color community traffic to Segment Routing Binding SID label 24088.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define SR-TE ingress edge router steering colored VRF traffic into Binding SID 24088.
+HOST srte_bsid_ingress {
+    IP 10.240.88.1
+    MAC 00:1c:73:f0:58:01
+}
+
+// INSTRUCTION: Define SR-TE transit midpoint expanding Binding SID 24088 into low-latency path.
+HOST srte_bsid_midpoint {
+    IP 10.240.88.2
+    MAC 00:1c:73:f0:58:02
+}
+
+// INSTRUCTION: Send DSCP EF marked UDP traffic over SR-TE Binding SID label 24088 EXP 5 and default traffic over label 16088 EXP 0.
+FLOW mpls_srte_color_steering(ing, mid) {
+    ing -> mid MPLS 24088 EXP 5 BOS 1 MPLS_TTL 64 DSCP 46 UDP SRCPORT 40000 DSTPORT 40000 PAYLOAD "srte_color_100_low_latency_path" WAIT 2ms
+    ing -> mid MPLS 16088 EXP 0 BOS 1 MPLS_TTL 64 DSCP 0 UDP SRCPORT 40001 DSTPORT 40001 PAYLOAD "srte_color_200_best_effort_path"
+}
+
+// INSTRUCTION: Compile the Segment Routing SR-TE Binding SID color steering trace.
+COMPILE {
+    mpls_srte_color_steering(srte_bsid_ingress, srte_bsid_midpoint)
+}

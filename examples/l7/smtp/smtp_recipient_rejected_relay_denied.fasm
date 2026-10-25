@@ -1,0 +1,22 @@
+// PROMPT: Outbound mail relay rejection with 550 Relaying Denied error reply.
+// TOKENS: HOST, IP, FLOW, SMTP, MAIL_FROM, PARAM, CODE, REPLY, RCPT_TO, QUIT, COMPILE
+
+// INSTRUCTION: Define untrusted external client.
+HOST untrusted_client { IP 203.0.113.88 }
+
+// INSTRUCTION: Define border mail gateway.
+HOST border_gateway { IP 198.51.100.25 }
+
+// INSTRUCTION: Define unauthorized relay rejection flow.
+FLOW smtp_relay_denied_flow(c, s) {
+    c -> s SMTP MAIL_FROM PARAM "spammer@external.org"
+    c <- s SMTP CODE 250 REPLY "2.1.0 Sender ok"
+    c -> s SMTP RCPT_TO PARAM "victim@remote-domain.com"
+    c <- s SMTP CODE 550 REPLY "5.7.1 Relaying denied: authentication required"
+    c -> s SMTP QUIT
+}
+
+// INSTRUCTION: Compile block executing relay rejection flow.
+COMPILE {
+    smtp_relay_denied_flow(untrusted_client, border_gateway)
+}

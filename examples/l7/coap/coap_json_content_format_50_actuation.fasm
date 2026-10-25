@@ -1,0 +1,27 @@
+// PROMPT: CoAP Confirmable PUT updating smart HVAC valve position using application/json (Content-Format 50).
+// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, PAYLOAD, ACK, WAIT, COMPILE
+
+// INSTRUCTION: Define the zone climate controller host.
+HOST climate_ctrl {
+    IP 10.110.70.10
+    MAC 00:1a:2b:6e:70:10
+}
+
+// INSTRUCTION: Define the motorized radiator valve CoAP endpoint.
+HOST valve_node {
+    IP 10.110.70.33
+    MAC 00:1a:2b:6e:70:33
+}
+
+// INSTRUCTION: Put new JSON valve opening percentage and verify current reading via GET.
+FLOW coap_json_valve(c, s) {
+    c -> s COAP CON CODE "0.03" MSGID 8100 TOKEN 401 URI_PATH "valve/opening" CONTENT_FORMAT 50 PAYLOAD "{'pct':65}"
+    c <- s COAP ACK CODE "2.04" MSGID 8100 TOKEN 401 WAIT 2ms
+    c -> s COAP CON CODE "0.01" MSGID 8101 TOKEN 402 URI_PATH "valve/opening"
+    c <- s COAP ACK CODE "2.05" MSGID 8101 TOKEN 402 CONTENT_FORMAT 50 PAYLOAD "{'pct':65}"
+}
+
+// INSTRUCTION: Compile the CoAP JSON actuator update flow.
+COMPILE {
+    coap_json_valve(climate_ctrl, valve_node)
+}

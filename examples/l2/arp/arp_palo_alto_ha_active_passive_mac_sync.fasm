@@ -1,0 +1,25 @@
+// PROMPT: High-availability enterprise firewall pair transitioning virtual MAC ownership during active-passive failover.
+// TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, GRATUITOUS, SENDERMAC, SENDERIP, TARGETMAC, TARGETIP, WAIT, REPLY, DSTMAC, COMPILE
+
+// INSTRUCTION: Define secondary HA firewall assuming active role and advertising virtual MAC 00:1b:17:00:01:10.
+HOST fw_ha_secondary {
+    IP 10.1.1.1
+    MAC 00:1b:17:00:01:10
+}
+
+// INSTRUCTION: Define core distribution switch updating L2 forwarding table for firewall inside interface.
+HOST core_dist_sw {
+    IP 10.1.1.254
+    MAC 00:1c:73:01:01:fe
+}
+
+// INSTRUCTION: Transmit Gratuitous ARP Request followed by Gratuitous ARP Reply to flush stale switch port bindings.
+FLOW arp_fw_ha_cutover(fw, sw) {
+    fw -> sw ARP REQUEST GRATUITOUS SENDERMAC 00:1b:17:00:01:10 SENDERIP 10.1.1.1 TARGETMAC ff:ff:ff:ff:ff:ff TARGETIP 10.1.1.1 WAIT 5ms
+    fw -> sw ARP REPLY GRATUITOUS SENDERMAC 00:1b:17:00:01:10 SENDERIP 10.1.1.1 TARGETMAC ff:ff:ff:ff:ff:ff TARGETIP 10.1.1.1 DSTMAC ff:ff:ff:ff:ff:ff
+}
+
+// INSTRUCTION: Compile the enterprise HA firewall failover Gratuitous ARP sequence.
+COMPILE {
+    arp_fw_ha_cutover(fw_ha_secondary, core_dist_sw)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Carrier Ethernet ring nodes using the Nearest Non-TPMR Bridge multicast MAC 01:80:C2:00:00:03 for link-only LLDP visibility.
+// TOKENS: HOST, IP, MAC, FLOW, DSTMAC, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define Metro Ethernet ring node East optical port.
+HOST metro_ring_east {
+    IP 172.31.20.1
+    MAC 00:15:ad:14:00:01
+}
+
+// INSTRUCTION: Define Metro Ethernet ring node West optical port.
+HOST metro_ring_west {
+    IP 172.31.20.2
+    MAC 00:15:ad:14:00:02
+}
+
+// INSTRUCTION: Exchange LLDPDUs addressed to Nearest Non-TPMR Bridge multicast MAC 01:80:c2:00:00:03.
+FLOW lldp_non_tpmr_exchange(east, west) {
+    east -> west DSTMAC 01:80:c2:00:00:03 LLDP CHASSIS_ID "metro-east-01" PORT_ID "TenGigE0/1/0" SYSNAME "metro-pop-east" SYSDESC "Carrier Ethernet Ring Node" TTL 60 WAIT 5ms
+    east <- west DSTMAC 01:80:c2:00:00:03 LLDP CHASSIS_ID "metro-west-02" PORT_ID "TenGigE0/1/1" SYSNAME "metro-pop-west" SYSDESC "Carrier Ethernet Ring Node" TTL 60
+}
+
+// INSTRUCTION: Compile the Nearest Non-TPMR Bridge multicast LLDP exchange.
+COMPILE {
+    lldp_non_tpmr_exchange(metro_ring_east, metro_ring_west)
+}

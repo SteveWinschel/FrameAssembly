@@ -1,0 +1,19 @@
+// PROMPT: RFC 3376 IGMP VERSION 3 membership query and report with group record payload.
+// TOKENS: HOST, IP, FLOW, IGMP, QUERY, GROUP, MAX_RESP, VERSION, TTL, REPORT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IGMPv3 SSM-capable router.
+HOST igmpv3_ssm_rtr { IP 10.100.33.1 }
+
+// INSTRUCTION: Define IGMPv3 source-specific multicast receiver.
+HOST igmpv3_ssm_host { IP 10.100.33.77 }
+
+// INSTRUCTION: Define IGMP VERSION 3 query and report for SSM group 232.1.1.100.
+FLOW igmp_v3_ssm_flow(rtr, host) {
+    rtr -> host IGMP QUERY GROUP 232.1.1.100 MAX_RESP 50 VERSION 3 TTL 1
+    rtr <- host IGMP REPORT GROUP 232.1.1.100 VERSION 3 TTL 1 PAYLOAD "ALLOW_NEW_SOURCES_10.1.1.5"
+}
+
+// INSTRUCTION: Compile the IGMPv3 SSM membership signaling flow.
+COMPILE {
+    igmp_v3_ssm_flow(igmpv3_ssm_rtr, igmpv3_ssm_host)
+}

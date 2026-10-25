@@ -1,0 +1,25 @@
+// PROMPT: Simulate a minimal RFC 5389 STUN Binding Request and Response without optional SOFTWARE attributes and with TTL 64.
+// TOKENS: HOST, MAC, IP, FLOW, STUN, BINDING_REQUEST, TTL, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define host endpoint embedded_ua.
+HOST embedded_ua {
+    MAC 00:0e:08:34:78:12
+    IP 10.12.34.56
+}
+
+// INSTRUCTION: Define host endpoint minimal_stun.
+HOST minimal_stun {
+    MAC 00:0e:08:34:78:01
+    IP 10.12.34.1
+}
+
+// INSTRUCTION: Send a bare RFC 5389 STUN Binding Request and receive XOR_MAPPED_ADDR with TTL 64.
+FLOW stun_minimal_rfc5389_binding(embedded_ua, minimal_stun) {
+    embedded_ua -> minimal_stun STUN BINDING_REQUEST TTL 64
+    minimal_stun -> embedded_ua STUN BINDING_RESPONSE XOR_MAPPED_ADDR 198.51.100.56 TTL 64
+}
+
+// INSTRUCTION: Compile the minimal RFC 5389 STUN Binding flow.
+COMPILE {
+    stun_minimal_rfc5389_binding(embedded_ua, minimal_stun)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Multi-tenant cloud gRPC service mesh routing with IEEE 802.1ad QinQ double VLAN encapsulation.
+// TOKENS: HOST, IP, FLOW, GRPC, SERVICE, METHOD, QINQ, INNER_VLAN, FLOWLABEL, TTL, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define IPv6 ingress gateway proxy.
+HOST mesh_ingress { IP 2001:db8:ae00::1 }
+
+// INSTRUCTION: Define IPv6 tenant billing gRPC service.
+HOST billing_svc { IP 2001:db8:ae00::88 }
+
+// INSTRUCTION: Invoke CalculateInvoice RPC encapsulated in QinQ outer 2100 / inner 88.
+FLOW grpc_qinq_billing(ing, svc) {
+    ing -> svc GRPC SERVICE "billing.v1.InvoiceService" METHOD "CalculateInvoice" QINQ 2100 INNER_VLAN 88 FLOWLABEL 0x50051 TTL 64
+    ing <- svc GRPC SERVICE "billing.v1.InvoiceService" METHOD "CalculateInvoice" GRPC_STATUS 0 QINQ 2100 INNER_VLAN 88 FLOWLABEL 0x50051 TTL 64
+}
+
+// INSTRUCTION: Compile the QinQ IPv6 gRPC mesh flow.
+COMPILE {
+    grpc_qinq_billing(mesh_ingress, billing_svc)
+}

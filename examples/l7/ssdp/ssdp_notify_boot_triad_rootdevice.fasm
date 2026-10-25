@@ -1,0 +1,30 @@
+// PROMPT: Simulate a full UPnP device boot announcement Triad (rootdevice, device-UUID, and deviceType) via SSDP NOTIFY.
+// TOKENS: HOST, MAC, IP, FLOW, SSDP, NOTIFY, HOST_HDR, NT, NTS, USN, LOCATION, TTL, COMPILE
+
+// INSTRUCTION: Define host endpoint storage_box.
+HOST storage_box {
+    MAC 00:08:9b:aa:bb:cc
+    IP 192.168.5.200
+}
+
+// INSTRUCTION: Define host endpoint ssdp_all_mcast.
+HOST ssdp_all_mcast {
+    MAC 01:00:5e:7f:ff:fa
+    IP 239.255.255.250
+}
+
+// INSTRUCTION: Emit the three required UPnP rootdevice, UUID, and Basic:1 deviceType NOTIFY advertisements.
+FLOW ssdp_boot_announcement_triad(storage_box, ssdp_all_mcast) {
+    storage_box -> ssdp_all_mcast SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "upnp:rootdevice" NTS "ssdp:alive" USN "uuid:qnap-nas-00089baabbcc::upnp:rootdevice"
+        LOCATION "http://192.168.5.200:8080/upnp.xml" TTL 4
+    storage_box -> ssdp_all_mcast SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "uuid:qnap-nas-00089baabbcc" NTS "ssdp:alive" USN "uuid:qnap-nas-00089baabbcc"
+        LOCATION "http://192.168.5.200:8080/upnp.xml" TTL 4
+    storage_box -> ssdp_all_mcast SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "urn:schemas-upnp-org:device:Basic:1" NTS "ssdp:alive"
+        USN "uuid:qnap-nas-00089baabbcc::urn:schemas-upnp-org:device:Basic:1"
+        LOCATION "http://192.168.5.200:8080/upnp.xml" TTL 4
+}
+
+// INSTRUCTION: Compile the UPnP 3-message boot advertisement flow.
+COMPILE {
+    ssdp_boot_announcement_triad(storage_box, ssdp_all_mcast)
+}

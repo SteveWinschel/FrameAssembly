@@ -1,5 +1,5 @@
 // PROMPT: End-to-end traffic exchange using RFC 3849 global unicast documentation prefix 2001:db8::/32.
-// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, SRCPORT, DSTPORT, COMPILE
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, COMPILE
 
 // INSTRUCTION: Define client endpoint in subnet acad:1.
 HOST client_gua { IP 2001:db8:acad:1::10 }

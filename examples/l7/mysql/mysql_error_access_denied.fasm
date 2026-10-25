@@ -1,5 +1,5 @@
 // PROMPT: MySQL authentication error packet indicating access denied over IPv6.
-// TOKENS: HOST, IP, FLOW, <-, MYSQL, ERR, ERRCODE, SQL, COMPILE
+// TOKENS: HOST, IP, FLOW, MYSQL, ERR, ERRCODE, SQL, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::100 }

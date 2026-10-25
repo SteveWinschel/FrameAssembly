@@ -1,0 +1,21 @@
+// PROMPT: Complete 4-step DHCPv4 DORA (Discover, Offer, Request, Ack) address assignment lifecycle.
+// TOKENS: HOST, IP, FLOW, DHCP, DISCOVER, CHADDR, OFFER, YIADDR, SIADDR, SUBNET_MASK, ROUTER, DNS_SERVER, LEASE_TIME, REQUEST, ACK, COMPILE
+
+// INSTRUCTION: Define unconfigured DHCPv4 client host.
+HOST dora_client { IP 0.0.0.0 }
+
+// INSTRUCTION: Define enterprise DHCPv4 server host.
+HOST dora_server { IP 192.168.10.1 }
+
+// INSTRUCTION: Execute the full 4-way DHCPv4 DORA lease negotiation.
+FLOW dhcp_dora_full(c, s) {
+    c -> s DHCP DISCOVER CHADDR 00:1b:63:84:45:e6
+    c <- s DHCP OFFER CHADDR 00:1b:63:84:45:e6 YIADDR 192.168.10.105 SIADDR 192.168.10.1 SUBNET_MASK 255.255.255.0 ROUTER 192.168.10.1 DNS_SERVER 1.1.1.1 LEASE_TIME 43200
+    c -> s DHCP REQUEST CHADDR 00:1b:63:84:45:e6 YIADDR 192.168.10.105 SIADDR 192.168.10.1
+    c <- s DHCP ACK CHADDR 00:1b:63:84:45:e6 YIADDR 192.168.10.105 SIADDR 192.168.10.1 SUBNET_MASK 255.255.255.0 ROUTER 192.168.10.1 DNS_SERVER 1.1.1.1 LEASE_TIME 43200
+}
+
+// INSTRUCTION: Compile the complete DHCPv4 DORA sequence.
+COMPILE {
+    dhcp_dora_full(dora_client, dora_server)
+}

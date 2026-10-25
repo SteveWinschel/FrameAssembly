@@ -1,0 +1,18 @@
+// PROMPT: IPv6-native IPFIX collector receiving SCTP (Protocol 132) mobile core signaling flow metrics.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, FLOWLABEL, TTL, COMPILE
+
+// INSTRUCTION: Define IPv6 5G UPF observation point.
+HOST upf_exporter_v6 { IP 2001:db8:4739::1 }
+
+// INSTRUCTION: Define IPv6 telecom analytics collector.
+HOST telco_collector_v6 { IP 2001:db8:4739::100 }
+
+// INSTRUCTION: Export SCTP (Proto 132) signaling telemetry over IPv6 with FlowLabel.
+FLOW ipfix_ipv6_sctp_telemetry(e, c) {
+    e -> c IPFIX DOMAIN_ID 300 SRCIP 10.200.10.1 DSTIP 10.200.10.2 PROTO 132 PACKETS 3400 OCTETS 544000 FLOWLABEL 0x47390 TTL 64
+}
+
+// INSTRUCTION: Compile the IPv6 SCTP IPFIX telemetry scenario.
+COMPILE {
+    ipfix_ipv6_sctp_telemetry(upf_exporter_v6, telco_collector_v6)
+}

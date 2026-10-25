@@ -1,5 +1,5 @@
 // PROMPT: LDAP subtree search request filtering for user accounts.
-// TOKENS: HOST, IP, FLOW, ->, <-, LDAP, SEARCH_REQ, SEARCH_ENTRY, SEARCH_DONE, MSGID, BASE_DN, FILTER, COMPILE
+// TOKENS: HOST, IP, FLOW, LDAP, SEARCH_REQ, MSGID, BASE_DN, FILTER, SEARCH_ENTRY, SEARCH_DONE, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.50 }

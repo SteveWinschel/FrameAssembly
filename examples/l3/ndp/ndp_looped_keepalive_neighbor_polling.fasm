@@ -1,0 +1,20 @@
+// PROMPT: Periodic Neighbor Solicitation keepalive burst inside a COMPILE LOOP.
+// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_SOLICIT, TARGET, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define health monitor checking host reachability.
+HOST health_monitor_node { IP fe80::beef:10 MAC 00:0c:29:11:22:33 }
+
+// INSTRUCTION: Define monitored database host.
+HOST monitored_db_node { IP fe80::beef:20 MAC 00:0c:29:44:55:66 }
+
+// INSTRUCTION: Define periodic reachability probe flow.
+FLOW ndp_reachability_probe(mon, db) {
+    mon -> db NDP NEIGHBOR_SOLICIT TARGET 2001:db8:88::20 WAIT 15ms
+}
+
+// INSTRUCTION: Compile loop executing 5 reachability confirmation queries.
+COMPILE {
+    LOOP 5 {
+        ndp_reachability_probe(health_monitor_node, monitored_db_node)
+    }
+}

@@ -1,0 +1,27 @@
+// PROMPT: Create a Modbus Function Code 22 (Mask Write Register) and Function Code 43 (Read Device Identification MEI) exchange.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TXID, UNITID, FUNC, ADDR, VALUE, HEXPAYLOAD, WAIT, IS_RESPONSE, COMPILE
+
+// INSTRUCTION: Define the asset inventory scanner reading device identification and toggling status bits.
+HOST ot_asset_scanner {
+    IP 10.30.100.15
+    MAC 00:16:3e:30:64:0f
+}
+
+// INSTRUCTION: Define the Schneider Electric Modicon PLC responding to MEI 0x2B/0x0E and FC 22 requests.
+HOST modicon_plc {
+    IP 10.30.100.80
+    MAC 00:80:f4:30:64:50
+}
+
+// INSTRUCTION: Request Read Device Identification (FC 43 / 0x2B) via HEXPAYLOAD and then execute a Mask Write Register (FC 22).
+FLOW mei_id_and_mask_write(c, s) {
+    c -> s MODBUS TXID 1101 UNITID 1 FUNC "ENCAPSULATED_INTERFACE" ADDR 0 VALUE 1 HEXPAYLOAD "2b0e0100" WAIT 4ms
+    c <- s MODBUS TXID 1101 UNITID 1 FUNC "ENCAPSULATED_INTERFACE" IS_RESPONSE VALUE 1 HEXPAYLOAD "2b0e010100000100095363686e6569646572" WAIT 8ms
+    c -> s MODBUS TXID 1102 UNITID 1 FUNC "MASK_WRITE_REGISTER" ADDR 40 VALUE 0x00f2 HEXPAYLOAD "00f20025" WAIT 3ms
+    c <- s MODBUS TXID 1102 UNITID 1 FUNC "MASK_WRITE_REGISTER" ADDR 40 VALUE 0x00f2 IS_RESPONSE HEXPAYLOAD "00f20025"
+}
+
+// INSTRUCTION: Compile the Modbus MEI device identification and Mask Write Register trace into a PCAP file.
+COMPILE {
+    mei_id_and_mask_write(ot_asset_scanner, modicon_plc)
+}

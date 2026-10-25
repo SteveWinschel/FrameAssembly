@@ -1,0 +1,32 @@
+// PROMPT: HTTP/2 API gateway distributing incoming streams to two backend worker pods.
+// TOKENS: HOST, IP, FLOW, HTTP2, HEADERS, STREAM_ID, WINDOW_UPDATE, COMPILE
+
+// INSTRUCTION: Define external client.
+HOST ext_client { IP 192.0.2.10 }
+
+// INSTRUCTION: Define HTTP/2 ingress proxy.
+HOST h2_ingress { IP 10.50.43.1 }
+
+// INSTRUCTION: Define backend pod A.
+HOST pod_a { IP 10.50.43.11 }
+
+// INSTRUCTION: Define backend pod B.
+HOST pod_b { IP 10.50.43.12 }
+
+// INSTRUCTION: Multiplex client streams 1 and 3 onto backend pods A and B.
+FLOW http2_gateway_split(c, gw, a, b) {
+    c -> gw HTTP2 HEADERS STREAM_ID 1
+    c -> gw HTTP2 HEADERS STREAM_ID 3
+    gw -> a HTTP2 HEADERS STREAM_ID 1
+    gw -> b HTTP2 HEADERS STREAM_ID 1
+    gw <- a HTTP2 HEADERS STREAM_ID 1
+    gw <- b HTTP2 HEADERS STREAM_ID 1
+    c <- gw HTTP2 HEADERS STREAM_ID 1
+    c <- gw HTTP2 HEADERS STREAM_ID 3
+    c <- gw HTTP2 WINDOW_UPDATE STREAM_ID 0
+}
+
+// INSTRUCTION: Compile the 4-host HTTP/2 gateway multiplexing topology.
+COMPILE {
+    http2_gateway_split(ext_client, h2_ingress, pod_a, pod_b)
+}

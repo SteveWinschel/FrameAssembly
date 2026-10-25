@@ -1,0 +1,27 @@
+// PROMPT: Build an Active Directory Global Catalog LDAP query on TCP port 3268 over MPLS and QinQ encapsulation.
+// TOKENS: HOST, IP, MAC, FLOW, LDAP, SRCPORT, DSTPORT, MSGID, SEARCH_REQ, BASE_DN, FILTER, QINQ, INNER_VLAN, MPLS, DSCP, TTL, WAIT, SEARCH_ENTRY, SEARCH_DONE, RESULT_CODE, COMPILE
+
+// INSTRUCTION: Define the Exchange mail router querying the Global Catalog for universal group membership.
+HOST mail_router {
+    IP 10.140.20.15
+    MAC 00:50:56:8c:14:0f
+}
+
+// INSTRUCTION: Define the Active Directory Global Catalog server listening on TCP port 3268.
+HOST gc_server {
+    IP 10.10.1.20
+    MAC 00:50:56:0a:01:14
+}
+
+// INSTRUCTION: Query port 3268 for a userPrincipalName across the enterprise forest using QinQ 400/80 and MPLS label 65000.
+FLOW global_catalog_lookup(c, s) {
+    c -> s LDAP SRCPORT 55320 DSTPORT 3268 MSGID 44 SEARCH_REQ BASE_DN "dc=enterprise,dc=global"
+        FILTER "(userPrincipalName=ceo@enterprise.global)" QINQ 400 INNER_VLAN 80 MPLS 65000 DSCP 24 TTL 61 WAIT 9ms
+    c <- s LDAP SRCPORT 3268 DSTPORT 55320 MSGID 44 SEARCH_ENTRY BASE_DN "cn=Executive,ou=HQ,dc=americas,dc=enterprise,dc=global" QINQ 400 INNER_VLAN 80 MPLS 65000 DSCP 24 TTL 61 WAIT 2ms
+    c <- s LDAP SRCPORT 3268 DSTPORT 55320 MSGID 44 SEARCH_DONE RESULT_CODE 0 QINQ 400 INNER_VLAN 80 MPLS 65000 DSCP 24 TTL 61
+}
+
+// INSTRUCTION: Compile the Global Catalog port 3268 QinQ/MPLS LDAP trace into a PCAP file.
+COMPILE {
+    global_catalog_lookup(mail_router, gc_server)
+}

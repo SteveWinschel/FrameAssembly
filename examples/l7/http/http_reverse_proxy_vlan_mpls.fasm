@@ -1,0 +1,19 @@
+// PROMPT: HTTP reverse proxy X-Forwarded-For request forwarding over VLAN 80 and MPLS label 8000.
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, HEADER, VLAN, MPLS, DSCP, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define edge CDN reverse proxy.
+HOST cdn_edge { IP 172.25.80.1 }
+
+// INSTRUCTION: Define internal origin web server.
+HOST internal_origin { IP 172.25.80.50 }
+
+// INSTRUCTION: Forward HTTP GET with X-Forwarded-For and X-Request-ID headers over VLAN 80 and MPLS.
+FLOW http_proxy_vlan_mpls(e, o) {
+    e -> o HTTP METHOD "GET" URI "/static/app.bundle.js" HOST_HDR "assets.example.com" HEADER "X-Forwarded-For" "203.0.113.9" HEADER "X-Request-ID" "req-771" VLAN 80 MPLS 8000 DSCP 20
+    e <- o HTTP STATUS 200 REASON "OK" HEADER "Cache-Control" "max-age=31536000" VLAN 80 MPLS 8000 DSCP 20
+}
+
+// INSTRUCTION: Compile the VLAN and MPLS HTTP reverse proxy flow.
+COMPILE {
+    http_proxy_vlan_mpls(cdn_edge, internal_origin)
+}

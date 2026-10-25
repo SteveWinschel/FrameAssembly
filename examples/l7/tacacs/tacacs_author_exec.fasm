@@ -1,5 +1,5 @@
 // PROMPT: TACACS+ command authorization request over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, TACACS, TYPE, AUTHOR, USER, SESSION_ID, COMPILE
+// TOKENS: HOST, IP, FLOW, TACACS, TYPE, AUTHOR, USER, SESSION_ID, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::5 }

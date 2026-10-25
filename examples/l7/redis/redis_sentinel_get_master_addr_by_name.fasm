@@ -1,0 +1,27 @@
+// PROMPT: Redis Sentinel high-availability discovery on TCP port 26379 querying master address by name.
+// TOKENS: HOST, IP, MAC, FLOW, SRCPORT, DSTPORT, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the backend microservice discovering the current Redis primary.
+HOST backend_app {
+    IP 10.80.110.40
+    MAC 00:1a:2b:80:b0:40
+}
+
+// INSTRUCTION: Define the Redis Sentinel quorum node listening on TCP port 26379.
+HOST sentinel_node {
+    IP 10.80.110.26
+    MAC 00:1a:2b:80:b0:26
+}
+
+// INSTRUCTION: Query Sentinel on port 26379 for mymaster address and role verification.
+FLOW redis_sentinel_lookup(c, s) {
+    c -> s SRCPORT 51200 DSTPORT 26379 REDIS CMD "SENTINEL" ARGS "get-master-addr-by-name mymaster"
+    c <- s SRCPORT 26379 DSTPORT 51200 REDIS REPLY_TYPE "BULK" VALUE "10.80.110.1" WAIT 1ms
+    c -> s SRCPORT 51200 DSTPORT 26379 REDIS CMD "SENTINEL" ARGS "ckquorum mymaster"
+    c <- s SRCPORT 26379 DSTPORT 51200 REDIS REPLY_TYPE "STATUS" VALUE "OK 3 usable Sentinels. Quorum and failover authorization can be reached"
+}
+
+// INSTRUCTION: Compile the Redis Sentinel master discovery flow.
+COMPILE {
+    redis_sentinel_lookup(backend_app, sentinel_node)
+}

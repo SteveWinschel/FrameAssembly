@@ -1,0 +1,26 @@
+// PROMPT: Generate a QinQ double-tagged MLD multicast listener subscription across a wholesale metro network
+// TOKENS: HOST, IP, MAC, FLOW, MLD, QUERY, MULTICAST_ADDR, MAX_RESP_DELAY, QINQ, INNER_VLAN, TTL, WAIT, REPORT, DONE, COMPILE
+
+// INSTRUCTION: Define the residential IPv6 home gateway
+HOST home_gw_v6 {
+    IP fe80::1800:250
+    MAC 00:1e:67:c4:18:01
+}
+
+// INSTRUCTION: Define the wholesale metro multicast aggregation router
+HOST metro_agg_v6 {
+    IP fe80::1800:1
+    MAC 00:1e:67:c4:18:99
+}
+
+// INSTRUCTION: Exchange QinQ-encapsulated MLD messages with outer S-VLAN 1800 and inner C-VLAN 250
+FLOW mld_qinq_subscription(rgw, agg) {
+    agg -> rgw MLD QUERY MULTICAST_ADDR ff0e::114 MAX_RESP_DELAY 4000 QINQ 1800 INNER_VLAN 250 TTL 1 WAIT 15ms
+    rgw -> agg MLD REPORT MULTICAST_ADDR ff0e::114 MAX_RESP_DELAY 0 QINQ 1800 INNER_VLAN 250 TTL 1 WAIT 30ms
+    rgw -> agg MLD DONE MULTICAST_ADDR ff0e::114 MAX_RESP_DELAY 0 QINQ 1800 INNER_VLAN 250 TTL 1
+}
+
+// INSTRUCTION: Compile the QinQ wholesale MLD multicast flow
+COMPILE {
+    mld_qinq_subscription(home_gw_v6, metro_agg_v6)
+}

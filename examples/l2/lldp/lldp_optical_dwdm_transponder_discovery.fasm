@@ -1,0 +1,25 @@
+// PROMPT: Optical DWDM transponder line card advertising wavelength and optical port identifier over LLDP.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define coherent DWDM optical transponder client port A.
+HOST dwdm_muxponder_a {
+    IP 172.31.250.1
+    MAC 00:04:96:fa:00:01
+}
+
+// INSTRUCTION: Define core IP router coherentZR+ optical port B.
+HOST core_zrplus_rtr {
+    IP 172.31.250.2
+    MAC 00:04:96:fa:00:02
+}
+
+// INSTRUCTION: Define optical transport LLDP discovery between router ZR+ optics and DWDM line system.
+FLOW optical_dwdm_lldp(dwdm, router) {
+    dwdm -> router LLDP CHASSIS_ID "dwdm-shelf1-slot4" PORT_ID "OCH-1-4-C1-193.1THz" SYSNAME "ots-metro-west-01" SYSDESC "OpenROADM Coherent 800G Transponder" TTL 180
+    dwdm <- router LLDP CHASSIS_ID "core-rtr-west-01" PORT_ID "Optics0/2/0/0" SYSNAME "cr01.sfo02.backbone.net" SYSDESC "400G-ZR+ Coherent IPoDWDM Router" TTL 180 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing optical IPoDWDM LLDP neighbor discovery.
+COMPILE {
+    optical_dwdm_lldp(dwdm_muxponder_a, core_zrplus_rtr)
+}

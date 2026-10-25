@@ -1,0 +1,29 @@
+// PROMPT: Create an MQTT CONNACK authentication failure sequence testing RETURN_CODE 4 (Bad username or password) and RETURN_CODE 5 (Not authorized).
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, CONNECT, CLIENT_ID, WAIT, CONNACK, RETURN_CODE, COMPILE
+
+// INSTRUCTION: Define the misconfigured edge gateway attempting to connect with expired credentials.
+HOST edge_gateway {
+    IP 172.18.10.77
+    MAC 00:16:3e:12:0a:4d
+}
+
+// INSTRUCTION: Define the VerneMQ broker enforcing strict credential ACLs.
+HOST vernemq_broker {
+    IP 172.18.10.10
+    MAC 00:16:3e:12:0a:0a
+}
+
+// INSTRUCTION: Attempt CONNECT and receive CONNACK RETURN_CODE 4, retry with another client ID and receive RETURN_CODE 5, then succeed with RETURN_CODE 0.
+FLOW connack_auth_failures(c, s) {
+    c -> s MQTT CONNECT CLIENT_ID "gw-unauth-01" WAIT 3ms
+    c <- s MQTT CONNACK RETURN_CODE 4 WAIT 20ms
+    c -> s MQTT CONNECT CLIENT_ID "gw-restricted-01" WAIT 3ms
+    c <- s MQTT CONNACK RETURN_CODE 5 WAIT 20ms
+    c -> s MQTT CONNECT CLIENT_ID "gw-provisioned-01" WAIT 3ms
+    c <- s MQTT CONNACK RETURN_CODE 0
+}
+
+// INSTRUCTION: Compile the MQTT CONNACK error code 4 and 5 trace into a PCAP file.
+COMPILE {
+    connack_auth_failures(edge_gateway, vernemq_broker)
+}

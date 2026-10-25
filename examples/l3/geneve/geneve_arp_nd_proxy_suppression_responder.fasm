@@ -1,0 +1,25 @@
+// PROMPT: EVPN-GENEVE Leaf NVE intercepting a local ARP/ND query and responding directly from the EVPN Type-2 proxy table.
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define ingress compute hypervisor sending GENEVE-encapsulated ARP query.
+HOST compute_nve_node {
+    IP 10.60.40.10
+    MAC 00:16:3e:60:40:0a
+}
+
+// INSTRUCTION: Define Top-of-Rack EVPN-GENEVE NVE acting as ARP/ND suppression proxy.
+HOST tor_arp_proxy_nve {
+    IP 10.60.40.1
+    MAC 00:1c:73:60:40:01
+}
+
+// INSTRUCTION: Define GENEVE unicast ARP proxy response suppressing fabric-wide BUM flooding.
+FLOW geneve_arp_suppression_flow(hv, tor) {
+    hv -> tor GENEVE VNI 4040 OPT_CLASS 258 OPT_TYPE 2 PROTOCOL_TYPE 25944 SRCPORT 50400 DSTPORT 6081 DF TTL 64 PAYLOAD "ARP_WHO_HAS_10_40_0_99_TELL_10_40_0_10" WAIT 1ms
+    hv <- tor GENEVE VNI 4040 OPT_CLASS 258 OPT_TYPE 2 PROTOCOL_TYPE 25944 SRCPORT 50401 DSTPORT 6081 DF TTL 64 PAYLOAD "ARP_PROXY_REPLY_10_40_0_99_IS_AT_00_16_3E_99_00_01"
+}
+
+// INSTRUCTION: Compile the EVPN-GENEVE ARP proxy suppression flow.
+COMPILE {
+    geneve_arp_suppression_flow(compute_nve_node, tor_arp_proxy_nve)
+}

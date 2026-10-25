@@ -1,0 +1,18 @@
+// PROMPT: NetFlow telemetry exported across MPLS carrier backbone with label tagging.
+// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, MPLS, COMPILE
+
+// INSTRUCTION: Define carrier core router exporter.
+HOST core_transit_rtr { IP 192.168.220.1 }
+
+// INSTRUCTION: Define carrier operations flow collector.
+HOST carrier_flow_col { IP 192.168.220.254 }
+
+// INSTRUCTION: Define MPLS tagged NetFlow export flow.
+FLOW mpls_netflow_export(rtr, col) {
+    rtr -> col NETFLOW SRCIP 10.40.1.10 DSTIP 10.50.2.20 PROTO 6 PACKETS 2400 OCTETS 3120000 MPLS 1024
+}
+
+// INSTRUCTION: Compile MPLS core transit NetFlow scenario.
+COMPILE {
+    mpls_netflow_export(core_transit_rtr, carrier_flow_col)
+}

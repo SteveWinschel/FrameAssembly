@@ -1,0 +1,21 @@
+// PROMPT: Machine learning platform domain query targeting registry whois database.
+// TOKENS: HOST, IP, FLOW, WHOIS, QUERY, DOMAIN, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define research lab computer.
+HOST lab_computer { IP 172.24.8.99 }
+
+// INSTRUCTION: Define AI ccTLD registry server.
+HOST ai_registry { IP 209.59.119.34 }
+
+// INSTRUCTION: Define AI domain registration check flow.
+FLOW whois_ai_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "neuralmodels.ai"
+    c <- s WHOIS RESPONSE
+        DOMAIN "neuralmodels.ai"
+        REGISTRAR "GoDaddy.com LLC"
+}
+
+// INSTRUCTION: Compile block executing AI domain query.
+COMPILE {
+    whois_ai_flow(lab_computer, ai_registry)
+}

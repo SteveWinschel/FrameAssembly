@@ -1,0 +1,19 @@
+// PROMPT: TFTP error packet returning ERRCODE 4 Illegal TFTP Operation.
+// TOKENS: HOST, IP, FLOW, TFTP, RRQ, FILENAME, MODE, ERRCODE, ERRMSG, COMPILE
+
+// INSTRUCTION: Define misconfigured client node.
+HOST malformed_cli { IP 10.35.1.99 }
+
+// INSTRUCTION: Define strict TFTP parser host.
+HOST strict_tftp_host { IP 10.35.1.1 }
+
+// INSTRUCTION: Define Illegal Operation error flow.
+FLOW tftp_err_illegal_op(c, s) {
+    c -> s TFTP RRQ FILENAME "bad_request" MODE "unsupported_mode"
+    c <- s TFTP ERRCODE 4 ERRMSG "Illegal TFTP operation"
+}
+
+// INSTRUCTION: Compile block executing illegal operation error.
+COMPILE {
+    tftp_err_illegal_op(malformed_cli, strict_tftp_host)
+}

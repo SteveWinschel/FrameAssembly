@@ -1,0 +1,25 @@
+// PROMPT: RFC 2453 RIPv2 border gateway originating default route 0.0.0.0 with metric 1 and external route tag 65001.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, REQUEST, PREFIX, METRIC, DSCP, TTL, WAIT, RESPONSE, NEXTHOP, TAG, COMPILE
+
+// INSTRUCTION: Define enterprise Internet border gateway injecting default route into RIPv2 domain.
+HOST rip_inet_border {
+    IP 192.168.254.1
+    MAC 00:1c:73:fe:00:01
+}
+
+// INSTRUCTION: Define internal campus core router learning 0.0.0.0 via RIPv2.
+HOST rip_campus_core {
+    IP 192.168.254.2
+    MAC 00:1c:73:fe:00:02
+}
+
+// INSTRUCTION: Define RIP REQUEST for default route followed by RESPONSE advertising PREFIX 0.0.0.0.
+FLOW rip_default_originate_flow(core, border) {
+    core -> border RIP REQUEST PREFIX 0.0.0.0 METRIC 16 DSCP 48 TTL 1 WAIT 5ms
+    core <- border RIP RESPONSE PREFIX 0.0.0.0 METRIC 1 NEXTHOP 192.168.254.1 TAG 65001 DSCP 48 TTL 1
+}
+
+// INSTRUCTION: Compile the RIPv2 default route 0.0.0.0 origination flow.
+COMPILE {
+    rip_default_originate_flow(rip_campus_core, rip_inet_border)
+}

@@ -1,0 +1,21 @@
+// PROMPT: OPC UA CloseSecureChannel (CLO) session teardown between MES client and PLC server.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, WAIT, TCP, FIN, ACK, COMPILE
+
+// INSTRUCTION: Define manufacturing execution system client.
+HOST mes_client { IP 10.48.0.25 MAC 00:50:56:48:00:19 }
+
+// INSTRUCTION: Define assembly line OPC UA server.
+HOST line_plc { IP 10.48.0.1 MAC 00:50:56:48:00:01 }
+
+// INSTRUCTION: Define OPC UA CLO message followed by TCP connection close.
+FLOW opcua_close_channel(c, s) {
+    c -> s OPCUA MSG_TYPE "CLO" CHUNK_TYPE "F" SECURE_CHANNEL_ID 500 TOKEN_ID 12 SEQ_NUM 99 REQID 99 WAIT 5ms
+    c -> s TCP FIN ACK
+    c <- s TCP FIN ACK
+    c -> s TCP ACK
+}
+
+// INSTRUCTION: Compile the OPC UA secure channel teardown flow.
+COMPILE {
+    opcua_close_channel(mes_client, line_plc)
+}

@@ -1,0 +1,21 @@
+// PROMPT: Network infrastructure domain registration query for backbone transit provider.
+// TOKENS: HOST, IP, FLOW, WHOIS, QUERY, DOMAIN, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define network engineer terminal.
+HOST net_engineer { IP 172.16.4.8 }
+
+// INSTRUCTION: Define NET authoritative WHOIS registry.
+HOST net_registry { IP 192.52.178.30 }
+
+// INSTRUCTION: Define infrastructure domain WHOIS lookup flow.
+FLOW whois_net_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "backbone-core.net"
+    c <- s WHOIS RESPONSE
+        DOMAIN "backbone-core.net"
+        REGISTRAR "CSC Corporate Domains"
+}
+
+// INSTRUCTION: Compile block executing NET domain query.
+COMPILE {
+    whois_net_flow(net_engineer, net_registry)
+}

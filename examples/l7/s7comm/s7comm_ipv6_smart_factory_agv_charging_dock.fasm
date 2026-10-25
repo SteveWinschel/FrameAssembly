@@ -1,0 +1,27 @@
+// PROMPT: IPv6 S7comm exchange between an Automated Guided Vehicle (AGV) fleet manager and an inductive charging dock PLC.
+// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, AREA, DB_NUM, OFFSET, COUNT, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the AGV fleet supervisor over IPv6.
+HOST agv_fleet_mgr {
+    IP 2001:db8:130:130::10
+    MAC 00:1a:2b:82:d0:10
+}
+
+// INSTRUCTION: Define Charging Dock 7 S7-1200 PLC over IPv6.
+HOST dock7_plc {
+    IP 2001:db8:130:130::7
+    MAC 00:1a:2b:82:d0:07
+}
+
+// INSTRUCTION: Enable inductive charging contactor in DB7 and read charging current over IPv6.
+FLOW s7_ipv6_agv_dock(m, d) {
+    m -> d S7COMM ROSCTR "JOB" PDU_REF 1300 FUNC "WRITE_VAR" AREA 132 DB_NUM 7 OFFSET 0 COUNT 1 HEXPAYLOAD "01"
+    m <- d S7COMM ROSCTR "ACK_DATA" PDU_REF 1300 FUNC "WRITE_VAR" WAIT 2ms
+    m -> d S7COMM ROSCTR "JOB" PDU_REF 1301 FUNC "READ_VAR" AREA 132 DB_NUM 7 OFFSET 16 COUNT 4
+    m <- d S7COMM ROSCTR "ACK_DATA" PDU_REF 1301 FUNC "READ_VAR" HEXPAYLOAD "ff04002042340000"
+}
+
+// INSTRUCTION: Compile the IPv6 AGV charging dock S7comm flow.
+COMPILE {
+    s7_ipv6_agv_dock(agv_fleet_mgr, dock7_plc)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Concurrent IGMP Membership Reports from multiple independent client nodes for distinct streams.
+// TOKENS: HOST, IP, FLOW, IGMP, REPORT, GROUP, COMPILE
+
+// INSTRUCTION: Define financial analytics node 1.
+HOST analytics_worker1 { IP 10.120.1.11 }
+
+// INSTRUCTION: Define financial analytics node 2.
+HOST analytics_worker2 { IP 10.120.1.12 }
+
+// INSTRUCTION: Define equities market feed group.
+HOST equities_feed_grp { IP 239.50.1.1 }
+
+// INSTRUCTION: Define commodities market feed group.
+HOST commodities_feed_grp { IP 239.50.1.2 }
+
+// INSTRUCTION: Define multi-receiver join flow issuing independent IGMP reports.
+FLOW igmp_multi_join(w1, w2, g1, g2) {
+    w1 -> g1 IGMP REPORT GROUP 239.50.1.1
+    w2 -> g2 IGMP REPORT GROUP 239.50.1.2
+}
+
+// INSTRUCTION: Compile block executing concurrent IGMP subscriptions.
+COMPILE {
+    igmp_multi_join(analytics_worker1, analytics_worker2, equities_feed_grp, commodities_feed_grp)
+}

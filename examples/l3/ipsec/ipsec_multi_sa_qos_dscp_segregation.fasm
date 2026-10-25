@@ -1,0 +1,26 @@
+// PROMPT: Dual-SA IPsec tunnel segregating voice (DSCP EF) and bulk replication (DSCP AF11) onto distinct SPIs.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, IPSEC, SPI, SEQ, IV, ICV, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define branch office SD-WAN router classifying traffic across per-QoS IPsec Child SAs.
+HOST branch_sdwan_cpe {
+    IP 172.25.10.2
+    MAC 00:1c:73:19:0a:02
+}
+
+// INSTRUCTION: Define regional hub VPN concentrator terminating per-QoS IPsec Child SAs.
+HOST hub_vpn_headend {
+    IP 172.25.10.1
+    MAC 00:1c:73:19:0a:01
+}
+
+// INSTRUCTION: Send voice RTP over SPI 80001 (DSCP 46) and bulk backup over SPI 80002 (DSCP 10) without anti-replay drops.
+FLOW ipsec_qos_dual_spi(cpe, hub) {
+    cpe -> hub DSCP 46 IPSEC SPI 80001 SEQ 1 IV "1000000000000001" ICV "aaaa1111bbbb2222cccc3333" PAYLOAD "voip_g711_frame_spi_80001" WAIT 5ms
+    cpe -> hub DSCP 10 IPSEC SPI 80002 SEQ 1 IV "2000000000000001" ICV "dddd4444eeee5555ffff6666" PAYLOAD "bulk_replication_spi_80002" WAIT 5ms
+    cpe -> hub DSCP 46 IPSEC SPI 80001 SEQ 2 IV "1000000000000002" ICV "1111aaaa2222bbbb3333cccc" PAYLOAD "voip_g711_frame_spi_80001_seq2"
+}
+
+// INSTRUCTION: Compile the multi-SA QoS-segregated IPsec tunnel scenario.
+COMPILE {
+    ipsec_qos_dual_spi(branch_sdwan_cpe, hub_vpn_headend)
+}

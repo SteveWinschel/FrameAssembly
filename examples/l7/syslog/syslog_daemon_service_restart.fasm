@@ -1,0 +1,20 @@
+// PROMPT: System daemon facility notice recording background service restart.
+// TOKENS: HOST, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, COMPILE
+
+// INSTRUCTION: Define application gateway host.
+HOST app_gw { IP 10.40.2.14 }
+
+// INSTRUCTION: Define infrastructure syslog server.
+HOST infra_syslog { IP 10.40.0.1 }
+
+// INSTRUCTION: Define daemon restart notice flow.
+FLOW syslog_daemon_flow(c, s) {
+    c -> s SYSLOG FACILITY 3 SEVERITY 5
+        HOSTNAME "app-gw-01" APP "systemd" PROCID "1"
+        MSG "nginx.service: Deactivated successfully. Service reloaded."
+}
+
+// INSTRUCTION: Compile block executing daemon notice.
+COMPILE {
+    syslog_daemon_flow(app_gw, infra_syslog)
+}

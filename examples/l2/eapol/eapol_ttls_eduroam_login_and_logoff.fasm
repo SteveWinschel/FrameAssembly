@@ -1,0 +1,29 @@
+// PROMPT: EAP-TTLS (Method 21) authentication session followed by graceful user logout via EAPOL-Logoff.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, WAIT, PAYLOAD, LOGOFF, COMPILE
+
+// INSTRUCTION: Define university eduroam laptop supplicant.
+HOST eduroam_supplicant {
+    IP 10.130.4.99
+    MAC d8:cb:8a:82:04:63
+}
+
+// INSTRUCTION: Define campus wireless controller authenticator.
+HOST eduroam_authenticator {
+    IP 10.130.4.1
+    MAC 00:24:97:82:04:01
+}
+
+// INSTRUCTION: Define EAP-TTLS (Method 21) authentication, session success, and subsequent EAPOL-Logoff.
+FLOW eapol_ttls_and_logoff(supp, auth) {
+    supp <- auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 7 EAP_METHOD 1
+    supp -> auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 7 EAP_METHOD 1 IDENTITY "anonymous@university.edu" WAIT 2ms
+    supp <- auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 8 EAP_METHOD 21 PAYLOAD "eap_ttls_v0_server_hello" WAIT 3ms
+    supp -> auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 8 EAP_METHOD 21 PAYLOAD "eap_ttls_avp_pap_credentials" WAIT 3ms
+    supp <- auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 9 EAP_METHOD 21 WAIT 3ms
+    supp -> auth EAPOL VERSION 2 TYPE LOGOFF WAIT 60s
+}
+
+// INSTRUCTION: Compile block executing eduroam EAP-TTLS login and EAPOL-Logoff.
+COMPILE {
+    eapol_ttls_and_logoff(eduroam_supplicant, eduroam_authenticator)
+}

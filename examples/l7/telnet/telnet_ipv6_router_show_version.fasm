@@ -1,0 +1,35 @@
+// PROMPT: Simulate an IPv6 Telnet session to an out-of-band console server executing 'show version' and logging out.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TELNET, WILL, DO, PAYLOAD, FIN, COMPILE
+
+// INSTRUCTION: Define host endpoint noc_v6.
+HOST noc_v6 {
+    MAC 00:50:56:b6:23:01
+    IP 2001:db8:23:1::10
+}
+
+// INSTRUCTION: Define host endpoint console_v6.
+HOST console_v6 {
+    MAC 00:50:56:b6:23:99
+    IP 2001:db8:23:1::99
+}
+
+// INSTRUCTION: Connect over IPv6 TCP 23, authenticate, run 'show version', and exit cleanly.
+FLOW telnet_ipv6_console_session(noc_v6, console_v6) {
+    noc_v6 -> console_v6 TCP SYN SRCPORT 55023 DSTPORT 23
+    console_v6 -> noc_v6 TCP SYN ACK
+    noc_v6 -> console_v6 TCP ACK
+    console_v6 -> noc_v6 TELNET WILL 1
+    noc_v6 -> console_v6 TELNET DO 1
+    console_v6 -> noc_v6 TELNET PAYLOAD "Username: admin\r\nRouter> "
+    noc_v6 -> console_v6 TELNET PAYLOAD "show version\r\n"
+    console_v6 -> noc_v6 TELNET PAYLOAD "IOS Software, Version 15.9(3)M8\r\nRouter> "
+    noc_v6 -> console_v6 TELNET PAYLOAD "exit\r\n"
+    noc_v6 -> console_v6 TCP FIN ACK
+    console_v6 -> noc_v6 TCP FIN ACK
+    noc_v6 -> console_v6 TCP ACK
+}
+
+// INSTRUCTION: Compile the IPv6 Telnet router CLI session flow.
+COMPILE {
+    telnet_ipv6_console_session(noc_v6, console_v6)
+}

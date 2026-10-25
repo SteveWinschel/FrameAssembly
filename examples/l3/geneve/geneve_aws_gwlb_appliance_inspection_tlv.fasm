@@ -1,0 +1,25 @@
+// PROMPT: AWS Gateway Load Balancer (GWLB) encapsulating customer VPC traffic in RFC 8926 GENEVE with Option Class 0x0108 (264).
+// TOKENS: HOST, IP, MAC, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, SRCPORT, DSTPORT, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define AWS Gateway Load Balancer ENI forwarding VPC flow to firewall appliance.
+HOST aws_gwlb_eni {
+    IP 10.100.60.10
+    MAC 02:a1:b2:60:81:0a
+}
+
+// INSTRUCTION: Define partner Next-Gen Firewall virtual appliance returning inspected GENEVE packet.
+HOST ngfw_partner_appliance {
+    IP 10.100.60.50
+    MAC 02:a1:b2:60:81:32
+}
+
+// INSTRUCTION: Define AWS GWLB GENEVE hairpin with OPT_CLASS 264 (AWS) and PROTOCOL_TYPE 0x0800 (2048 IPv4).
+FLOW geneve_aws_gwlb_hairpin(gwlb, fw) {
+    gwlb -> fw GENEVE VNI 1 OPT_CLASS 264 OPT_TYPE 1 PROTOCOL_TYPE 2048 SRCPORT 49800 DSTPORT 6081 DF TTL 64 PAYLOAD "AWS_GWLBE_ENI_ID_FLOW_COOKIE_INGRESS" WAIT 1ms
+    gwlb <- fw GENEVE VNI 1 OPT_CLASS 264 OPT_TYPE 1 PROTOCOL_TYPE 2048 SRCPORT 49800 DSTPORT 6081 DF TTL 64 PAYLOAD "AWS_GWLBE_ENI_ID_FLOW_COOKIE_INSPECTED_OK"
+}
+
+// INSTRUCTION: Compile the AWS Gateway Load Balancer GENEVE inspection hairpin flow.
+COMPILE {
+    geneve_aws_gwlb_hairpin(aws_gwlb_eni, ngfw_partner_appliance)
+}

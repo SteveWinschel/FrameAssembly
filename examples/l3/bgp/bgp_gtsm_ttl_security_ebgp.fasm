@@ -1,0 +1,21 @@
+// PROMPT: RFC 5082 Generalized TTL Security Mechanism (GTSM) eBGP session enforcing TTL 255 and DF.
+// TOKENS: HOST, IP, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, TTL, DF, IPID, UPDATE, PREFIX, NEXTHOP, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define GTSM-hardened border router A.
+HOST gtsm_bgp_a { IP 198.51.100.201 }
+
+// INSTRUCTION: Define GTSM-hardened border router B.
+HOST gtsm_bgp_b { IP 198.51.100.202 }
+
+// INSTRUCTION: Define eBGP session with TTL 255 and IPv4 Don't Fragment flag.
+FLOW bgp_gtsm_protected(a, b) {
+    a -> b BGP OPEN ASN 65401 HOLDTIME 30 BGPID 198.51.100.201 TTL 255 DF IPID 501
+    a <- b BGP OPEN ASN 65402 HOLDTIME 30 BGPID 198.51.100.202 TTL 255 DF IPID 601
+    a -> b BGP UPDATE ASN 65401 PREFIX "192.0.2.0/24" NEXTHOP 198.51.100.201 TTL 255 DF IPID 502
+    a <- b BGP KEEPALIVE TTL 255 DF IPID 602
+}
+
+// INSTRUCTION: Compile the GTSM TTL-hardened eBGP flow.
+COMPILE {
+    bgp_gtsm_protected(gtsm_bgp_a, gtsm_bgp_b)
+}

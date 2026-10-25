@@ -1,0 +1,19 @@
+// PROMPT: SCTP Path Heartbeat (HEARTBEAT and HEARTBEAT_ACK chunks) probing multi-homed transport path reachability.
+// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, HEARTBEAT, VTAG, SRCPORT, DSTPORT, PAYLOAD, HEARTBEAT_ACK, WAIT, COMPILE
+
+// INSTRUCTION: Define primary SCTP multi-homed host probing secondary path.
+HOST sctp_hb_sender { IP 172.16.40.10 }
+
+// INSTRUCTION: Define remote SCTP multi-homed peer echoing Heartbeat Information TLV.
+HOST sctp_hb_responder { IP 172.16.40.20 }
+
+// INSTRUCTION: Define SCTP HEARTBEAT and HEARTBEAT_ACK exchange with path timestamp payload.
+FLOW sctp_path_heartbeat(snd, rsp) {
+    snd -> rsp SCTP CHUNK HEARTBEAT VTAG 440100 SRCPORT 2905 DSTPORT 2905 PAYLOAD "hb_info_path_172_16_40_20_ts_1001"
+    snd <- rsp SCTP CHUNK HEARTBEAT_ACK VTAG 440100 SRCPORT 2905 DSTPORT 2905 PAYLOAD "hb_info_path_172_16_40_20_ts_1001" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing SCTP path heartbeat verification.
+COMPILE {
+    sctp_path_heartbeat(sctp_hb_sender, sctp_hb_responder)
+}

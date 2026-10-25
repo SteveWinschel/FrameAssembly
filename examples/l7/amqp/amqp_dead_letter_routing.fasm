@@ -1,0 +1,18 @@
+// PROMPT: High-priority dead-letter queue routing over AMQP with DF flag and custom IP ID.
+// TOKENS: HOST, IP, FLOW, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, DF, IPID, DSCP, ECN, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the retry processor service.
+HOST retry_svc { IP 172.31.10.50 }
+
+// INSTRUCTION: Define the dead-letter AMQP broker.
+HOST dlx_broker { IP 172.31.10.10 }
+
+// INSTRUCTION: Route failed task to dead-letter exchange with Don't Fragment and ECN marking.
+FLOW amqp_dead_letter_route(r, d) {
+    r -> d AMQP BASIC_PUBLISH CHANNEL 9 EXCHANGE "dlx.exchange" ROUTING_KEY "failed.payment" DF IPID 0x4410 DSCP 46 ECN 2 PAYLOAD "{\"Attempt\":5}"
+}
+
+// INSTRUCTION: Compile the AMQP dead-letter routing flow.
+COMPILE {
+    amqp_dead_letter_route(retry_svc, dlx_broker)
+}

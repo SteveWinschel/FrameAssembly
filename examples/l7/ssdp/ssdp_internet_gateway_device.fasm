@@ -1,0 +1,20 @@
+// PROMPT: Gateway discovery query targeting UPnP InternetGatewayDevice services.
+// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, ST, MX, MAN, COMPILE
+
+// INSTRUCTION: Define residential client workstation.
+HOST resident_pc { IP 10.0.1.75 }
+
+// INSTRUCTION: Define SSDP multicast address.
+HOST mcast_group { IP 239.255.255.250 }
+
+// INSTRUCTION: Define InternetGatewayDevice discovery flow.
+FLOW ssdp_igd_flow(c, s) {
+    c -> s SSDP MSEARCH
+        ST "urn:schemas-upnp-org:device:InternetGatewayDevice:1"
+        MX 5 MAN "\"ssdp:discover\""
+}
+
+// INSTRUCTION: Compile block executing IGD search.
+COMPILE {
+    ssdp_igd_flow(resident_pc, mcast_group)
+}

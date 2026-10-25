@@ -1,0 +1,25 @@
+// PROMPT: NetFlow v5 accounting record exporting VoIP SIP and RTP media session packet and octet counters.
+// TOKENS: HOST, IP, MAC, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, DSCP, COMPILE
+
+// INSTRUCTION: Define enterprise voice gateway router exporting NetFlow v5 records.
+HOST voice_gateway {
+    IP 10.55.1.1
+    MAC 00:1b:54:aa:11:01
+}
+
+// INSTRUCTION: Define central VoIP billing and telemetry NetFlow collector.
+HOST voip_collector {
+    IP 10.55.1.250
+    MAC 00:1b:54:aa:11:fa
+}
+
+// INSTRUCTION: Export NetFlow records for SIP signaling on UDP 5060 and RTP audio on UDP 16384.
+FLOW netflow_voip_accounting(gw, col) {
+    gw -> col NETFLOW SRCIP 10.55.10.21 DSTIP 10.55.20.44 SRCPORT 5060 DSTPORT 5060 PROTO 17 PACKETS 48 OCTETS 28800 DSCP 24
+    gw -> col NETFLOW SRCIP 10.55.10.21 DSTIP 10.55.20.44 SRCPORT 16384 DSTPORT 16400 PROTO 17 PACKETS 3000 OCTETS 600000 DSCP 46
+}
+
+// INSTRUCTION: Compile the VoIP SIP and RTP NetFlow accounting scenario.
+COMPILE {
+    netflow_voip_accounting(voice_gateway, voip_collector)
+}

@@ -1,0 +1,35 @@
+// PROMPT: Build an IPv6 OpenFlow spine-leaf fabric provisioning flow using IPv6 Flow Labels and distinct Datapath IDs
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, FEATURES_REQ, VERSION, XID, FLOWLABEL, TTL, WAIT, FEATURES_REPLY, DPID, FLOW_MOD, TABLE_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define the IPv6 fabric SDN controller
+HOST v6_fabric_ctrl {
+    IP 2001:db8:f00::1
+    MAC 00:0f:53:ec:0f:01
+}
+
+// INSTRUCTION: Define the IPv6 OpenFlow spine switch
+HOST v6_spine_sw {
+    IP 2001:db8:f00::10
+    MAC 00:0f:53:ec:0f:10
+}
+
+// INSTRUCTION: Define the IPv6 OpenFlow leaf switch
+HOST v6_leaf_sw {
+    IP 2001:db8:f00::20
+    MAC 00:0f:53:ec:0f:20
+}
+
+// INSTRUCTION: Discover spine and leaf DPIDs and program ECMP fabric rules with IPv6 Flow Labels
+FLOW openflow_v6_fabric_provision(ctrl, spine, leaf) {
+    ctrl -> spine OPENFLOW FEATURES_REQ VERSION 4 XID 1101 FLOWLABEL 786432 TTL 64 WAIT 8ms
+    spine -> ctrl OPENFLOW FEATURES_REPLY VERSION 4 XID 1101 DPID 100001 FLOWLABEL 786432 TTL 64 WAIT 8ms
+    ctrl -> leaf OPENFLOW FEATURES_REQ VERSION 4 XID 1102 FLOWLABEL 786433 TTL 64 WAIT 8ms
+    leaf -> ctrl OPENFLOW FEATURES_REPLY VERSION 4 XID 1102 DPID 200001 FLOWLABEL 786433 TTL 64 WAIT 10ms
+    ctrl -> spine OPENFLOW FLOW_MOD VERSION 4 XID 1103 TABLE_ID 0 PRIORITY 40000 FLOWLABEL 786432 TTL 64 WAIT 5ms
+    ctrl -> leaf OPENFLOW FLOW_MOD VERSION 4 XID 1104 TABLE_ID 0 PRIORITY 40000 FLOWLABEL 786433 TTL 64
+}
+
+// INSTRUCTION: Compile the IPv6 spine-leaf OpenFlow fabric provisioning trace
+COMPILE {
+    openflow_v6_fabric_provision(v6_fabric_ctrl, v6_spine_sw, v6_leaf_sw)
+}

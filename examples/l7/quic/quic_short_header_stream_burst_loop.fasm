@@ -1,0 +1,21 @@
+// PROMPT: High-rate QUIC 1-RTT short header datagram burst using COMPILE LOOP.
+// TOKENS: HOST, IP, FLOW, QUIC, SHORT, DCID, PKT_NUM, PAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define cloud gaming client endpoint.
+HOST game_client { IP 10.99.0.15 }
+
+// INSTRUCTION: Define cloud gaming GPU server endpoint.
+HOST gpu_server { IP 10.99.0.1 }
+
+// INSTRUCTION: Define bidirectional 1-RTT QUIC frame exchange.
+FLOW quic_game_tick(c, s) {
+    c -> s QUIC SHORT DCID 0x77889900 PKT_NUM 100 PAYLOAD "INPUT_STATE_TICK" WAIT 8ms
+    c <- s QUIC SHORT DCID 0x11223300 PKT_NUM 200 PAYLOAD "VIDEO_SLICE_NAL" WAIT 8ms
+}
+
+// INSTRUCTION: Execute 5 game ticks in COMPILE LOOP.
+COMPILE {
+    LOOP 5 {
+        quic_game_tick(game_client, gpu_server)
+    }
+}

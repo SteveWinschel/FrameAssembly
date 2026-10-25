@@ -1,0 +1,18 @@
+// PROMPT: NFS RPC LOOKUP procedure navigating deep enterprise storage directory paths.
+// TOKENS: HOST, IP, FLOW, NFS, VERS, PROC, PATH, COMPILE
+
+// INSTRUCTION: Define file browser workstation.
+HOST workstation_user { IP 172.16.8.40 }
+
+// INSTRUCTION: Define departmental NFS file server.
+HOST nfs_dept_server { IP 172.16.8.1 }
+
+// INSTRUCTION: Define directory lookup request flow.
+FLOW nfs_lookup_dir_flow(ws, srv) {
+    ws -> srv NFS VERS 4 PROC "LOOKUP" PATH "/shared/engineering/projects/firmware"
+}
+
+// INSTRUCTION: Compile NFS LOOKUP hierarchy scenario.
+COMPILE {
+    nfs_lookup_dir_flow(workstation_user, nfs_dept_server)
+}

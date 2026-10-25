@@ -1,0 +1,18 @@
+// PROMPT: Storage area network NFS traffic isolated on dedicated 802.1Q tagged NAS VLAN.
+// TOKENS: HOST, IP, FLOW, NFS, VERS, PROC, PATH, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define virtualization hypervisor host.
+HOST esxi_hypervisor { IP 10.150.10.20 }
+
+// INSTRUCTION: Define enterprise NAS storage array on VLAN 150.
+HOST enterprise_nas { IP 10.150.10.2 }
+
+// INSTRUCTION: Define tagged VLAN storage lookup flow.
+FLOW vlan_nfs_lookup(hyp, nas) {
+    hyp -> nas NFS VERS 4 PROC "LOOKUP" PATH "/datastores/vm_gold_01" VLAN 150 PCP 6 DEI 0
+}
+
+// INSTRUCTION: Compile VLAN tagged NAS storage scenario.
+COMPILE {
+    vlan_nfs_lookup(esxi_hypervisor, enterprise_nas)
+}

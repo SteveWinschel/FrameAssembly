@@ -1,0 +1,18 @@
+// PROMPT: 1-in-1000 sampled IPFIX export from enterprise edge gateway reporting egress stats.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define enterprise Internet edge firewall.
+HOST edge_firewall { IP 198.51.100.1 }
+
+// INSTRUCTION: Define security information and event collector.
+HOST siem_collector { IP 198.51.100.50 }
+
+// INSTRUCTION: Define sampled egress IPFIX export flow.
+FLOW sampled_egress_flow(fw, siem) {
+    fw -> siem IPFIX DOMAIN_ID 1000 SRCIP 10.1.50.120 DSTIP 198.51.100.254 PROTO 6 PACKETS 1000 OCTETS 1420000
+}
+
+// INSTRUCTION: Compile enterprise sampled export scenario.
+COMPILE {
+    sampled_egress_flow(edge_firewall, siem_collector)
+}

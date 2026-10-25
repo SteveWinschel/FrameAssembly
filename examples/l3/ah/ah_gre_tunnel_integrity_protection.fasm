@@ -1,0 +1,25 @@
+// PROMPT: RFC 4302 IPsec AH authenticating GRE tunnel packets (Next Header 47) between enterprise WAN routers.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, DSCP, DF, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define WAN edge router 1 encapsulating GRE inside IPsec AH.
+HOST wan_gre_ah_rtr1 {
+    IP 198.18.47.1
+    MAC 00:1d:71:47:01:01
+}
+
+// INSTRUCTION: Define WAN edge router 2 authenticating outer IPv4 and AH headers before GRE decapsulation.
+HOST wan_gre_ah_rtr2 {
+    IP 198.18.47.2
+    MAC 00:1d:71:47:01:02
+}
+
+// INSTRUCTION: Define AH over IPv4 flow carrying Next Header 47 (GRE) with DF bit and QoS CS3.
+FLOW ah_protecting_gre_flow(r1, r2) {
+    r1 -> r2 AH SPI 47001 SEQ 301 NEXT_HEADER 47 ICV "474747470102030405060708" DSCP 24 DF TTL 64 HEXPAYLOAD "20000800000003e84752455f494e5f4148" WAIT 6ms
+    r1 <- r2 AH SPI 47002 SEQ 301 NEXT_HEADER 47 ICV "080706050403020147474747" DSCP 24 DF TTL 64 HEXPAYLOAD "20000800000003e84752455f41434b"
+}
+
+// INSTRUCTION: Compile the AH-authenticated GRE tunnel transport flow.
+COMPILE {
+    ah_protecting_gre_flow(wan_gre_ah_rtr1, wan_gre_ah_rtr2)
+}

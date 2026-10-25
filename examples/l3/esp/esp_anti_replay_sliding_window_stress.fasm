@@ -1,0 +1,27 @@
+// PROMPT: RFC 4303 Section 3.4.3 IPsec ESP anti-replay 64-packet sliding window verification under out-of-order delivery.
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define multi-path WAN sender transmitting ESP packets across asymmetric links.
+HOST multipath_esp_tx {
+    IP 10.50.99.1
+    MAC 00:22:bd:50:99:01
+}
+
+// INSTRUCTION: Define WAN receiver validating out-of-order ESP sequence numbers within the 64-bit replay bitmap.
+HOST multipath_esp_rx {
+    IP 10.50.99.2
+    MAC 00:22:bd:50:99:02
+}
+
+// INSTRUCTION: Define out-of-order ESP sequence numbers (SEQ 100, 103, 101, 102) advancing the replay window.
+FLOW esp_anti_replay_window_test(tx, rx) {
+    tx -> rx ESP SPI 99001 SEQ 100 IV "0000000000000064" ICV "010101010202020203030303" NEXT_HEADER 4 DF TTL 64 PAYLOAD "ESP_PKT_SEQ_100_IN_ORDER" WAIT 2ms
+    tx -> rx ESP SPI 99001 SEQ 103 IV "0000000000000067" ICV "040404040505050506060606" NEXT_HEADER 4 DF TTL 64 PAYLOAD "ESP_PKT_SEQ_103_ADVANCE_TOP" WAIT 2ms
+    tx -> rx ESP SPI 99001 SEQ 101 IV "0000000000000065" ICV "070707070808080809090909" NEXT_HEADER 4 DF TTL 64 PAYLOAD "ESP_PKT_SEQ_101_WINDOW_HIT" WAIT 2ms
+    tx -> rx ESP SPI 99001 SEQ 102 IV "0000000000000066" ICV "0a0a0a0a0b0b0b0b0c0c0c0c" NEXT_HEADER 4 DF TTL 64 PAYLOAD "ESP_PKT_SEQ_102_WINDOW_FILL"
+}
+
+// INSTRUCTION: Compile the ESP anti-replay sliding window out-of-order test flow.
+COMPILE {
+    esp_anti_replay_window_test(multipath_esp_tx, multipath_esp_rx)
+}

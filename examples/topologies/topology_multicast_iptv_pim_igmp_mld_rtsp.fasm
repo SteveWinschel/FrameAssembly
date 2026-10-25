@@ -1,0 +1,40 @@
+// PROMPT: Dual-stack IPTV multicast distribution combining PIM-SM rendezvous point routing, IGMPv3/MLDv2 joins, RTSP session control, and RTP media.
+// TOKENS: HOST, IP, FLOW, IGMP, REPORT, VERSION, GROUP, PIM, HELLO, WAIT, JOIN_PRUNE, RP, RTSP, METHOD, URI, RTP, PT, SEQ, PAYLOAD, MLD, MULTICAST_ADDR, COMPILE
+
+// INSTRUCTION: Define IPv4 IPTV set-top box client.
+HOST stb_client_v4 { IP 10.195.1.50 }
+
+// INSTRUCTION: Define IPv4 first-hop multicast router (FHR/LHR).
+HOST mcast_rtr_v4 { IP 10.195.1.1 }
+
+// INSTRUCTION: Define IPv4 IPTV headend RTSP/RTP video server and PIM RP.
+HOST iptv_headend_v4 { IP 10.195.0.10 }
+
+// INSTRUCTION: Define IPv6 IPTV set-top box client.
+HOST stb_client_v6 { IP 2001:db8:195:1::50 }
+
+// INSTRUCTION: Define IPv6 first-hop multicast router.
+HOST mcast_rtr_v6 { IP 2001:db8:195:1::1 }
+
+// INSTRUCTION: Define IPv4 IGMPv3 join, PIM Join/Prune to RP, RTSP SETUP/PLAY, and RTP broadcast stream.
+FLOW iptv_v4_multicast_delivery(stb, rtr, headend) {
+    stb -> rtr IGMP REPORT VERSION 3 GROUP 239.195.1.100
+    rtr -> headend PIM HELLO WAIT 1ms
+    rtr -> headend PIM JOIN_PRUNE GROUP 239.195.1.100 RP 10.195.0.10 WAIT 1ms
+    stb -> headend RTSP METHOD "DESCRIBE" URI "rtsp://10.195.0.10:554/live/uhd1" WAIT 2ms
+    stb -> headend RTSP METHOD "SETUP" URI "rtsp://10.195.0.10:554/live/uhd1/track1" WAIT 2ms
+    stb -> headend RTSP METHOD "PLAY" URI "rtsp://10.195.0.10:554/live/uhd1" WAIT 2ms
+    headend -> stb RTP PT 33 SEQ 1000 PAYLOAD "mpeg2_ts_uhd_hevc_nal_slice" WAIT 5ms
+}
+
+// INSTRUCTION: Define IPv6 MLDv2 listener report and PIMv6 Hello on dual-stack distribution tree.
+FLOW iptv_v6_multicast_join(stb6, rtr6) {
+    stb6 -> rtr6 MLD REPORT VERSION 2 MULTICAST_ADDR ff3e::195:100
+    rtr6 -> stb6 PIM HELLO WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing dual-stack IPTV PIM, IGMPv3, MLDv2, RTSP, and RTP topology.
+COMPILE {
+    iptv_v4_multicast_delivery(stb_client_v4, mcast_rtr_v4, iptv_headend_v4)
+    iptv_v6_multicast_join(stb_client_v6, mcast_rtr_v6)
+}

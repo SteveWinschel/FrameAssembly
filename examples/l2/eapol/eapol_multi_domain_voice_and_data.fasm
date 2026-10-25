@@ -1,0 +1,35 @@
+// PROMPT: Multi-Domain Authentication (MDA) on a single switch port authenticating both a VoIP phone on voice VLAN 110 and a PC.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, EAPOL, VERSION, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, WAIT, COMPILE
+
+// INSTRUCTION: Define VoIP desk phone authenticating in the Voice domain.
+HOST mda_voip_phone {
+    IP 10.110.1.25
+    MAC 00:04:f2:6e:01:19
+}
+
+// INSTRUCTION: Define desktop workstation daisy-chained behind the VoIP phone in the Data domain.
+HOST mda_desktop_pc {
+    IP 10.120.1.25
+    MAC 00:23:24:78:01:19
+}
+
+// INSTRUCTION: Define single switch port authenticator supporting 802.1X Multi-Domain Authentication.
+HOST mda_switch_port {
+    IP 10.110.1.1
+    MAC 00:1e:be:6e:01:01
+}
+
+// INSTRUCTION: Define sequential voice domain and data domain 802.1X EAPOL authentication on shared port.
+FLOW multi_domain_dot1x(phone, pc, sw) {
+    phone <- sw VLAN 110 PCP 6 EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 1 EAP_METHOD 1
+    phone -> sw VLAN 110 PCP 6 EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 1 EAP_METHOD 1 IDENTITY "CP-8861-SEP0004F26E0119" WAIT 2ms
+    phone <- sw VLAN 110 PCP 6 EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 1 EAP_METHOD 1 WAIT 3ms
+    pc <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 2 EAP_METHOD 1 WAIT 2ms
+    pc -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 2 EAP_METHOD 1 IDENTITY "CORP\\jdoe" WAIT 2ms
+    pc <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 2 EAP_METHOD 1 WAIT 3ms
+}
+
+// INSTRUCTION: Compile block executing Multi-Domain Authentication for Voice and Data endpoints.
+COMPILE {
+    multi_domain_dot1x(mda_voip_phone, mda_desktop_pc, mda_switch_port)
+}

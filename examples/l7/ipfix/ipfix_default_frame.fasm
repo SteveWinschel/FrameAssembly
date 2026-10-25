@@ -1,0 +1,24 @@
+// PROMPT: Default RFC 7011 IPFIX flow export datagram over UDP port 4739 using smart defaults.
+// TOKENS: HOST, IP, MAC, FLOW, IPFIX, COMPILE
+
+// INSTRUCTION: Define IPFIX observation point router.
+HOST ipfix_exporter {
+    IP 10.47.39.1
+    MAC 00:1e:f6:47:39:01
+}
+
+// INSTRUCTION: Define IPFIX telemetry collector.
+HOST ipfix_collector {
+    IP 10.47.39.100
+    MAC 00:1e:f6:47:39:64
+}
+
+// INSTRUCTION: Emit a default IPFIX datagram without optional sub-keywords.
+FLOW ipfix_default(e, c) {
+    e -> c IPFIX
+}
+
+// INSTRUCTION: Compile the default IPFIX scenario.
+COMPILE {
+    ipfix_default(ipfix_exporter, ipfix_collector)
+}

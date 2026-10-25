@@ -1,0 +1,26 @@
+// PROMPT: RFC 5882 BFD session protecting an IS-IS Level-2 point-to-point metro fiber circuit at 3.3ms intervals.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, SRCPORT, DSTPORT, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define IS-IS Level-2 core node West with hardware BFD offload.
+HOST isis_l2_west {
+    IP 10.49.0.1
+    MAC 00:26:55:49:00:01
+}
+
+// INSTRUCTION: Define IS-IS Level-2 core node East with 3300us BFD timers.
+HOST isis_l2_east {
+    IP 10.49.0.2
+    MAC 00:26:55:49:00:02
+}
+
+// INSTRUCTION: Define ultra-fast 3.3ms (3300us) BFD control exchange with Multiplier 3 (10ms detection).
+FLOW bfd_isis_p2p_flow(west, east) {
+    west -> east BFD STATE 3 DIAG 0 MY_DISC 49001 YOUR_DISC 49002 MIN_TX 3300 MIN_RX 3300 MULT 3 SRCPORT 49300 DSTPORT 3784 DSCP 48 TTL 255 WAIT 3ms
+    west <- east BFD STATE 3 DIAG 0 MY_DISC 49002 YOUR_DISC 49001 MIN_TX 3300 MIN_RX 3300 MULT 3 SRCPORT 49301 DSTPORT 3784 DSCP 48 TTL 255 WAIT 3ms
+    west -> east BFD STATE 3 DIAG 0 MY_DISC 49001 YOUR_DISC 49002 MIN_TX 3300 MIN_RX 3300 MULT 3 SRCPORT 49300 DSTPORT 3784 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the IS-IS point-to-point ultra-fast BFD monitoring flow.
+COMPILE {
+    bfd_isis_p2p_flow(isis_l2_west, isis_l2_east)
+}

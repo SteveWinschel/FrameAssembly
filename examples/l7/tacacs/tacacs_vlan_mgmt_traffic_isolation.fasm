@@ -1,0 +1,21 @@
+// PROMPT: Out-of-band management VLAN 99 tagged TACACS+ session with CS6 priority.
+// TOKENS: HOST, IP, FLOW, TACACS, TYPE, AUTHEN, USER, SESSION_ID, VLAN, PCP, DEI, DSCP, COMPILE
+
+// INSTRUCTION: Define management VLAN switch client.
+HOST mgmt_switch { IP 10.99.0.15 }
+
+// INSTRUCTION: Define management AAA server.
+HOST mgmt_aaa { IP 10.99.0.1 }
+
+// INSTRUCTION: Define isolated management authentication flow.
+FLOW tacacs_mgmt_vlan_flow(c, s) {
+    c -> s TACACS TYPE AUTHEN USER "oob_admin" SESSION_ID 15110
+        VLAN 99 PCP 6 DEI 0 DSCP 48
+    c <- s TACACS TYPE AUTHEN USER "oob_admin" SESSION_ID 15110
+        VLAN 99 PCP 6 DEI 0 DSCP 48
+}
+
+// INSTRUCTION: Compile block executing VLAN tagged TACACS session.
+COMPILE {
+    tacacs_mgmt_vlan_flow(mgmt_switch, mgmt_aaa)
+}

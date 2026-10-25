@@ -1,0 +1,37 @@
+// PROMPT: Generate an SMTP transaction where RCPT TO is rejected with 550 5.1.1 User unknown followed by RSET and QUIT.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SMTP, CODE, REPLY, EHLO, MAIL_FROM, PARAM, RCPT_TO, CMD, QUIT, COMPILE
+
+// INSTRUCTION: Define the external sender MTA and inbound mail gateway.
+HOST ext_mta {
+    MAC 00:16:3e:55:10:01
+    IP 198.51.100.88
+}
+
+// INSTRUCTION: Define the inbound_mx mail endpoint.
+HOST inbound_mx {
+    MAC 00:16:3e:55:10:02
+    IP 192.0.2.25
+}
+
+// INSTRUCTION: Send MAIL FROM, attempt RCPT TO an invalid mailbox, receive 550 User unknown, reset with RSET, and QUIT.
+FLOW smtp_550_user_unknown_flow(ext_mta, inbound_mx) {
+    ext_mta -> inbound_mx TCP SYN SRCPORT 53100 DSTPORT 25
+    inbound_mx -> ext_mta TCP SYN ACK
+    ext_mta -> inbound_mx TCP ACK
+    inbound_mx -> ext_mta SMTP CODE 220 REPLY "mx.example.com ESMTP"
+    ext_mta -> inbound_mx SMTP EHLO "mail.sender.org"
+    inbound_mx -> ext_mta SMTP CODE 250 REPLY "mx.example.com"
+    ext_mta -> inbound_mx SMTP MAIL_FROM PARAM "<bounce@sender.org>"
+    inbound_mx -> ext_mta SMTP CODE 250 REPLY "2.1.0 Ok"
+    ext_mta -> inbound_mx SMTP RCPT_TO PARAM "<nosuchuser@example.com>"
+    inbound_mx -> ext_mta SMTP CODE 550 REPLY "5.1.1 <nosuchuser@example.com>: Recipient address rejected: User unknown"
+    ext_mta -> inbound_mx SMTP CMD "RSET"
+    inbound_mx -> ext_mta SMTP CODE 250 REPLY "2.0.0 Ok"
+    ext_mta -> inbound_mx SMTP QUIT
+    inbound_mx -> ext_mta SMTP CODE 221 REPLY "2.0.0 Bye"
+}
+
+// INSTRUCTION: Compile the SMTP 550 User unknown rejection flow.
+COMPILE {
+    smtp_550_user_unknown_flow(ext_mta, inbound_mx)
+}

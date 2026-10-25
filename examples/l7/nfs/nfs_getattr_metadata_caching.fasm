@@ -1,0 +1,18 @@
+// PROMPT: NFSv3 GETATTR procedure polling file modification timestamps and POSIX permissions.
+// TOKENS: HOST, IP, FLOW, NFS, VERS, PROC, PATH, COMPILE
+
+// INSTRUCTION: Define file synchronization worker.
+HOST sync_worker { IP 10.20.1.14 }
+
+// INSTRUCTION: Define legacy NFSv3 storage server.
+HOST nfs_v3_server { IP 10.20.1.5 }
+
+// INSTRUCTION: Define file attributes lookup flow.
+FLOW nfs_getattr_flow(wrk, srv) {
+    wrk -> srv NFS VERS 3 PROC "GETATTR" PATH "/vol/shared/docs/spec.pdf"
+}
+
+// INSTRUCTION: Compile NFS GETATTR metadata scenario.
+COMPILE {
+    nfs_getattr_flow(sync_worker, nfs_v3_server)
+}

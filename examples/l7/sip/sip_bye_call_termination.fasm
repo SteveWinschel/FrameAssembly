@@ -1,5 +1,5 @@
 // PROMPT: SIP BYE message gracefully terminating active call dialog over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, SIP, BYE, FROM, TO, CALL_ID, COMPILE
+// TOKENS: HOST, IP, FLOW, SIP, BYE, FROM, TO, CALL_ID, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

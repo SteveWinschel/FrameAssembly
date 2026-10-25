@@ -1,0 +1,31 @@
+// PROMPT: Electronic financial trading venue topology combining IEEE 1588 PTP nanosecond clock sync, multicast UDP market feed, and TCP FIX order entry.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DSCP, PTP, SYNC, SEQ_ID, FOLLOW_UP, WAIT, UDP, SRCPORT, DSTPORT, PAYLOAD, TCP, PSH, ACK, COMPILE
+
+// INSTRUCTION: Define exchange matching engine and PTP grandmaster appliance.
+HOST exchange_engine {
+    IP 10.8.100.1
+    MAC 00:0f:53:08:64:01
+}
+
+// INSTRUCTION: Define quantitative trading execution server.
+HOST algo_trader_srv {
+    IP 10.8.100.50
+    MAC 00:0f:53:08:64:32
+}
+
+// INSTRUCTION: Define multicast market data feed group 239.8.100.1 (RFC 1112 auto-MAC).
+HOST market_feed_mcast { IP 239.8.100.1 }
+
+// INSTRUCTION: Define PTP nanosecond sync, ITCH multicast UDP market tick, and ultra-low-latency TCP FIX order execution.
+FLOW hft_trading_venue_flow(exch, algo, feed) {
+    exch -> algo VLAN 80 PCP 7 DSCP 56 PTP SYNC SEQ_ID 8801
+    exch -> algo VLAN 80 PCP 7 DSCP 56 PTP FOLLOW_UP SEQ_ID 8801 WAIT 10us
+    exch -> feed VLAN 80 PCP 5 DSCP 46 UDP SRCPORT 15000 DSTPORT 15000 PAYLOAD "itch50_add_order_sym_NVDA_px_14050_qty_500" WAIT 20us
+    algo -> exch VLAN 80 PCP 6 DSCP 46 TCP PSH ACK SRCPORT 58100 DSTPORT 9876 PAYLOAD "8=FIX.4.4|35=D|49=ALGO1|56=EXCH|55=NVDA|54=1|38=500|44=140.50|" WAIT 15us
+    algo <- exch VLAN 80 PCP 6 DSCP 46 TCP PSH ACK SRCPORT 9876 DSTPORT 58100 PAYLOAD "8=FIX.4.4|35=8|39=2|150=F|55=NVDA|32=500|31=140.50|" WAIT 25us
+}
+
+// INSTRUCTION: Compile block executing financial trading PTP, multicast UDP, and TCP FIX topology.
+COMPILE {
+    hft_trading_venue_flow(exchange_engine, algo_trader_srv, market_feed_mcast)
+}

@@ -1,0 +1,25 @@
+// PROMPT: RFC 4302 IPsec AH transport mode authenticating UDP (Next Header 17) authoritative DNS metadata.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define primary authoritative DNS server with IPsec AH policy.
+HOST dns_primary_ah {
+    IP 192.0.2.53
+    MAC 00:16:3e:53:00:01
+}
+
+// INSTRUCTION: Define secondary authoritative DNS mirror server.
+HOST dns_secondary_ah {
+    IP 198.51.100.53
+    MAC 00:16:3e:53:00:02
+}
+
+// INSTRUCTION: Define AH transport flow with Next Header 17 (UDP) and explicit ICV authentication digest.
+FLOW ah_udp_dns_notify(pri, sec) {
+    pri -> sec AH SPI 53001 SEQ 12 NEXT_HEADER 17 ICV "53535353aaaaaaaabbbbbbbb" DSCP 26 TTL 64 PAYLOAD "DNS_SOA_SERIAL_2026102501" WAIT 4ms
+    pri <- sec AH SPI 53002 SEQ 12 NEXT_HEADER 17 ICV "bbbbbbbbaaaaaaaa53535353" DSCP 26 TTL 64 PAYLOAD "DNS_NOTIFY_ACK_OK"
+}
+
+// INSTRUCTION: Compile the AH-protected UDP DNS notification flow.
+COMPILE {
+    ah_udp_dns_notify(dns_primary_ah, dns_secondary_ah)
+}

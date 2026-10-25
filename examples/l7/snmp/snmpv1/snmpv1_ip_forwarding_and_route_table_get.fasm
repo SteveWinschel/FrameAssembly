@@ -1,0 +1,25 @@
+// PROMPT: SNMPv1 GetRequest reading MIB-II ipForwarding.0, ipDefaultTTL.0, and ipRouteNextHop.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, GET, COMMUNITY, REQID, VARBIND, NULLVAL, RESPONSE, INT, IPVAL, COMPILE
+
+// INSTRUCTION: Define the routing audit workstation.
+HOST route_auditor {
+    IP 10.145.80.50
+    MAC 00:1a:2b:91:80:50
+}
+
+// INSTRUCTION: Define the internal OSPF router agent.
+HOST ospf_router {
+    IP 10.145.80.1
+    MAC 00:1a:2b:91:80:01
+}
+
+// INSTRUCTION: Query ipForwarding.0 (1=forwarding), ipDefaultTTL.0 (64), and default route next hop.
+FLOW snmpv1_ip_mib_get(m, r) {
+    m -> r SNMP1 GET COMMUNITY "public" REQID 8001 VARBIND 1.3.6.1.2.1.4.1.0 NULLVAL VARBIND 1.3.6.1.2.1.4.21.1.7.0.0.0.0 NULLVAL
+    m <- r SNMP1 RESPONSE COMMUNITY "public" REQID 8001 VARBIND 1.3.6.1.2.1.4.1.0 INT 1 VARBIND 1.3.6.1.2.1.4.21.1.7.0.0.0.0 IPVAL 10.145.80.254
+}
+
+// INSTRUCTION: Compile the SNMPv1 IP-MIB forwarding and route query flow.
+COMPILE {
+    snmpv1_ip_mib_get(route_auditor, ospf_router)
+}

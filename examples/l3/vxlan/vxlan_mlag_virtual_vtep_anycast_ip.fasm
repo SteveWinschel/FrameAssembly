@@ -1,0 +1,26 @@
+// PROMPT: Dual-homed MLAG / vPC ToR switches sharing a common Virtual VTEP Anycast IP 10.255.0.100 for active-active forwarding.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define MLAG Virtual VTEP Anycast loopback shared by ToR-1A and ToR-1B.
+HOST mlag_anycast_vtep {
+    IP 10.255.0.100
+    MAC 00:1c:73:00:01:00
+}
+
+// INSTRUCTION: Define remote Border Leaf VTEP communicating with the MLAG Anycast VTEP IP.
+HOST border_leaf_vtep {
+    IP 10.255.0.254
+    MAC 00:1c:73:00:02:54
+}
+
+// INSTRUCTION: Define active-active VXLAN flows using varied UDP source ports for Spine ECMP hashing.
+FLOW vxlan_mlag_anycast_vtep_flow(mlag, border) {
+    mlag -> border VXLAN VNI 30100 SRCPORT 49152 DSTPORT 4789 DF DSCP 26 TTL 63 PAYLOAD "MLAG_MEMBER_A_LAG_HASH_FLOW1" WAIT 2ms
+    mlag -> border VXLAN VNI 30100 SRCPORT 61000 DSTPORT 4789 DF DSCP 26 TTL 63 PAYLOAD "MLAG_MEMBER_B_LAG_HASH_FLOW2" WAIT 2ms
+    mlag <- border VXLAN VNI 30100 SRCPORT 55555 DSTPORT 4789 DF DSCP 26 TTL 63 PAYLOAD "BORDER_TO_ANYCAST_VTEP_RETURN"
+}
+
+// INSTRUCTION: Compile the MLAG Virtual VTEP Anycast IP VXLAN flow.
+COMPILE {
+    vxlan_mlag_anycast_vtep_flow(mlag_anycast_vtep, border_leaf_vtep)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Address resolution with ARP request/reply on IPv4 and NDP Neighbor Solicitation on IPv6.
-// TOKENS: HOST, IP, FLOW, ->, <-, ARP, REPLY, NDP, NEIGHBOR_SOLICIT, COMPILE
+// TOKENS: HOST, IP, FLOW, ARP, REPLY, NDP, NEIGHBOR_SOLICIT, COMPILE
 
 // INSTRUCTION: Define IPv4 endpoint A.
 HOST ipv4_host_a { IP 192.168.10.1 }

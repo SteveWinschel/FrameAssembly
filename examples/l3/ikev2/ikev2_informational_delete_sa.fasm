@@ -1,0 +1,19 @@
+// PROMPT: IKEv2 INFORMATIONAL Delete payload tearing down an active IKE Security Association.
+// TOKENS: HOST, IP, FLOW, IKEV2, INFORMATIONAL, INITIATOR_SPI, RESPONDER_SPI, MSGID, FLAGS, NEXT_PAYLOAD, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define disconnecting VPN client.
+HOST delete_ike_cli { IP 10.88.1.50 }
+
+// INSTRUCTION: Define VPN concentrator acknowledging SA deletion.
+HOST delete_ike_srv { IP 10.88.1.1 }
+
+// INSTRUCTION: Define INFORMATIONAL Delete SA request and response with Next Payload 46 (SK).
+FLOW ikev2_delete_sa(cli, srv) {
+    cli -> srv IKEV2 INFORMATIONAL INITIATOR_SPI 99001122 RESPONDER_SPI 33445566 MSGID 15 FLAGS 8 NEXT_PAYLOAD 46 PAYLOAD "DELETE_IKE_SA_NOTIFY"
+    cli <- srv IKEV2 INFORMATIONAL INITIATOR_SPI 99001122 RESPONDER_SPI 33445566 MSGID 15 FLAGS 32 NEXT_PAYLOAD 46 PAYLOAD "DELETE_IKE_SA_ACK"
+}
+
+// INSTRUCTION: Compile the IKEv2 INFORMATIONAL Delete SA flow.
+COMPILE {
+    ikev2_delete_sa(delete_ike_cli, delete_ike_srv)
+}

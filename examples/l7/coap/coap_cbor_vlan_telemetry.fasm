@@ -1,0 +1,19 @@
+// PROMPT: CoAP CBOR binary telemetry (Content-Format 60) with HEXPAYLOAD over VLAN 310.
+// TOKENS: HOST, IP, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, VLAN, PCP, HEXPAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define industrial vibration sensor.
+HOST vib_sensor { IP 10.110.31.19 }
+
+// INSTRUCTION: Define edge analytics sink.
+HOST edge_sink { IP 10.110.31.1 }
+
+// INSTRUCTION: Transmit CBOR-encoded payload (Content-Format 60) tagged on VLAN 310.
+FLOW coap_cbor_vlan(s, k) {
+    s -> k COAP CON CODE "0.02" MSGID 701 TOKEN 0x3100 URI_PATH "cbor/vib" CONTENT_FORMAT 60 VLAN 310 PCP 3 HEXPAYLOAD "a16176182a"
+    s <- k COAP ACK CODE "2.01" MSGID 701 TOKEN 0x3100 VLAN 310 PCP 3
+}
+
+// INSTRUCTION: Compile the CBOR VLAN CoAP exchange.
+COMPILE {
+    coap_cbor_vlan(vib_sensor, edge_sink)
+}

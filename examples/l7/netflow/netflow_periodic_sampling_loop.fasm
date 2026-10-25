@@ -1,0 +1,20 @@
+// PROMPT: Periodic NetFlow export timer loop streaming accounting records to collector.
+// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define edge sampling router.
+HOST sampling_router { IP 192.168.60.1 }
+
+// INSTRUCTION: Define telemetry server listener.
+HOST telemetry_listener { IP 192.168.60.200 }
+
+// INSTRUCTION: Define periodic accounting record flow.
+FLOW periodic_accounting_flow(rtr, col) {
+    rtr -> col NETFLOW SRCIP 172.16.8.12 DSTIP 198.51.100.44 SRCPORT 80 DSTPORT 41200 PROTO 6 PACKETS 20 OCTETS 28000 WAIT 15ms
+}
+
+// INSTRUCTION: Compile periodic NetFlow sampling in loop.
+COMPILE {
+    LOOP 3 {
+        periodic_accounting_flow(sampling_router, telemetry_listener)
+    }
+}

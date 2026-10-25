@@ -1,5 +1,5 @@
 // PROMPT: RFC 5424 syslog event notification with facility, severity, hostname, and app identity.
-// TOKENS: HOST, IP, FLOW, ->, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, MSG, COMPILE
+// TOKENS: HOST, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, MSG, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.20 }

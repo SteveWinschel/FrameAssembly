@@ -1,0 +1,18 @@
+// PROMPT: WireGuard concentrator issuing Cookie Reply to mitigate denial-of-service flood.
+// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, COOKIE, RECEIVER, COMPILE
+
+// INSTRUCTION: Define high-capacity WireGuard VPN concentrator under load.
+HOST wg_loaded_concentrator { IP 198.51.100.1 }
+
+// INSTRUCTION: Define incoming peer connection endpoint.
+HOST wg_incoming_peer { IP 203.0.113.77 }
+
+// INSTRUCTION: Define Cookie Reply transmission flow challenging peer authenticity.
+FLOW wg_cookie_mitigation_flow(conc, peer) {
+    conc -> peer WIREGUARD TYPE COOKIE RECEIVER 987654321
+}
+
+// INSTRUCTION: Compile block executing Cookie challenge reply.
+COMPILE {
+    wg_cookie_mitigation_flow(wg_loaded_concentrator, wg_incoming_peer)
+}

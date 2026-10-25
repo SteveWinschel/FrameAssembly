@@ -1,0 +1,23 @@
+// PROMPT: OPC UA Method Call invoking emergency valve shutoff across multiple substation PLCs.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define safety instrumented system (SIS) master controller.
+HOST sis_master { IP 10.70.0.1 MAC 00:1d:9c:70:00:01 }
+
+// INSTRUCTION: Define valve actuator PLC A.
+HOST valve_plc_a { IP 10.70.0.101 MAC 00:1d:9c:70:00:65 }
+
+// INSTRUCTION: Define valve actuator PLC B.
+HOST valve_plc_b { IP 10.70.0.102 MAC 00:1d:9c:70:00:66 }
+
+// INSTRUCTION: Define OPC UA Call service invocation on EmergencyShutoff node.
+FLOW opcua_valve_shutoff(master, plc) {
+    master -> plc OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1001 TOKEN_ID 10 SEQ_NUM 1 REQID 1 NODE_ID "ns=2;s=Valve.EmergencyShutoff" PAYLOAD "CALL_SHUTOFF_NOW" WAIT 3ms
+    master <- plc OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1001 TOKEN_ID 10 SEQ_NUM 2 REQID 1 NODE_ID "ns=2;s=Valve.EmergencyShutoff" PAYLOAD "STATUS_GOOD_CLOSED"
+}
+
+// INSTRUCTION: Compile emergency shutoff across both valve PLCs.
+COMPILE {
+    opcua_valve_shutoff(sis_master, valve_plc_a)
+    opcua_valve_shutoff(sis_master, valve_plc_b)
+}

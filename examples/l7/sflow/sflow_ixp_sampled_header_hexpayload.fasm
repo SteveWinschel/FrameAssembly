@@ -1,0 +1,18 @@
+// PROMPT: sFlow v5 datagram carrying raw sampled Ethernet frame header bytes via HEXPAYLOAD.
+// TOKENS: HOST, IP, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define Internet Exchange Point (IXP) peering switch.
+HOST ixp_switch { IP 198.51.100.1 }
+
+// INSTRUCTION: Define IXP traffic matrix sFlow collector.
+HOST ixp_collector { IP 198.51.100.250 }
+
+// INSTRUCTION: Define sFlow packet with appended raw sampled header record bytes.
+FLOW sflow_raw_header(sw, coll) {
+    sw -> coll SFLOW AGENT_IP 198.51.100.1 SUB_AGENT_ID 1 UPTIME 12345678 SAMPLES 1 HEXPAYLOAD "000000010000001800000001000005dc000000000000000e"
+}
+
+// INSTRUCTION: Compile IXP raw header sample sFlow scenario.
+COMPILE {
+    sflow_raw_header(ixp_switch, ixp_collector)
+}

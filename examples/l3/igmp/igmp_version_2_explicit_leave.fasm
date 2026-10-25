@@ -1,0 +1,21 @@
+// PROMPT: RFC 2236 IGMP VERSION 2 Membership Report and explicit Leave Group sequence.
+// TOKENS: HOST, IP, FLOW, IGMP, REPORT, GROUP, VERSION, TTL, QUERY, MAX_RESP, WAIT, LEAVE, COMPILE
+
+// INSTRUCTION: Define IGMPv2 multicast router.
+HOST igmpv2_rtr { IP 172.16.40.1 }
+
+// INSTRUCTION: Define IGMPv2 multimedia client workstation.
+HOST igmpv2_client { IP 172.16.40.80 }
+
+// INSTRUCTION: Define IGMPv2 Join Report, General Query, and Leave Group exchange.
+FLOW igmp_v2_lifecycle(rtr, cli) {
+    rtr <- cli IGMP REPORT GROUP 239.40.1.10 VERSION 2 TTL 1
+    rtr -> cli IGMP QUERY GROUP 0.0.0.0 MAX_RESP 100 VERSION 2 TTL 1 WAIT 20ms
+    rtr <- cli IGMP REPORT GROUP 239.40.1.10 VERSION 2 TTL 1 WAIT 10ms
+    rtr <- cli IGMP LEAVE GROUP 239.40.1.10 VERSION 2 TTL 1 WAIT 30ms
+}
+
+// INSTRUCTION: Compile the IGMPv2 membership lifecycle flow.
+COMPILE {
+    igmp_v2_lifecycle(igmpv2_rtr, igmpv2_client)
+}

@@ -1,0 +1,27 @@
+// PROMPT: Generate an OSPF control-plane exchange marked with DSCP CS6 network control priority, ECN 0, TTL 1, and Don't Fragment
+// TOKENS: HOST, IP, MAC, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, DSCP, ECN, TTL, DF, WAIT, LSR, LSU, LSACK, COMPILE
+
+// INSTRUCTION: Define the core OSPF router 1
+HOST core_ospf_1 {
+    IP 192.0.2.210
+    MAC 00:25:90:f8:02:10
+}
+
+// INSTRUCTION: Define the core OSPF router 2
+HOST core_ospf_2 {
+    IP 192.0.2.211
+    MAC 00:25:90:f8:02:11
+}
+
+// INSTRUCTION: Exchange DSCP 48 (CS6) marked OSPF packets with TTL 1 and DF
+FLOW ospf_dscp_cs6_exchange(r1, r2) {
+    r1 -> r2 OSPF HELLO ROUTER_ID 192.0.2.210 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 100 DSCP 48 ECN 0 TTL 1 DF WAIT 10ms
+    r2 -> r1 OSPF LSR ROUTER_ID 192.0.2.211 AREA_ID 0 DSCP 48 ECN 0 TTL 1 DF WAIT 10ms
+    r1 -> r2 OSPF LSU ROUTER_ID 192.0.2.210 AREA_ID 0 DSCP 48 ECN 0 TTL 1 DF WAIT 10ms
+    r2 -> r1 OSPF LSACK ROUTER_ID 192.0.2.211 AREA_ID 0 DSCP 48 ECN 0 TTL 1 DF
+}
+
+// INSTRUCTION: Compile the DSCP CS6 OSPF control exchange
+COMPILE {
+    ospf_dscp_cs6_exchange(core_ospf_1, core_ospf_2)
+}

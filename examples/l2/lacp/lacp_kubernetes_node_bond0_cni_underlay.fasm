@@ -1,0 +1,25 @@
+// PROMPT: Bare-metal Kubernetes worker node negotiating Linux bonding 802.3ad LACP with ToR switch before CNI BGP startup.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define bare-metal Kubernetes worker node bond0 interface.
+HOST k8s_worker_bond0 {
+    IP 10.244.0.15
+    MAC 52:54:00:f4:00:0f
+}
+
+// INSTRUCTION: Define rack ToR switch port-channel 15 interface.
+HOST rack_tor_po15 {
+    IP 10.244.0.1
+    MAC 00:1c:73:f4:00:01
+}
+
+// INSTRUCTION: Exchange fast-rate LACPDUs (state 63) between Linux bond0 driver and ToR switch.
+FLOW lacp_k8s_worker_bond(worker, tor) {
+    worker -> tor LACP ACTOR_SYS 52:54:00:f4:00:0f ACTOR_KEY 15 ACTOR_PORT 1 ACTOR_STATE 63 PARTNER_SYS 00:1c:73:f4:00:01 PARTNER_KEY 15 PARTNER_PORT 15 PARTNER_STATE 63 WAIT 5ms
+    worker <- tor LACP ACTOR_SYS 00:1c:73:f4:00:01 ACTOR_KEY 15 ACTOR_PORT 15 ACTOR_STATE 63 PARTNER_SYS 52:54:00:f4:00:0f PARTNER_KEY 15 PARTNER_PORT 1 PARTNER_STATE 63
+}
+
+// INSTRUCTION: Compile the bare-metal Kubernetes worker bond0 LACP trace.
+COMPILE {
+    lacp_k8s_worker_bond(k8s_worker_bond0, rack_tor_po15)
+}

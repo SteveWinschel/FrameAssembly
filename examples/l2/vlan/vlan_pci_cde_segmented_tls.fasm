@@ -1,0 +1,27 @@
+// PROMPT: PCI-DSS cardholder data environment (CDE) VLAN 800 carrying mutually authenticated TLS 1.3 traffic.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, TLS, CLIENT_HELLO, SNI, ALPN, SERVER_HELLO, WAIT, FINISHED, APP_DATA, COMPILE
+
+// INSTRUCTION: Define point-of-sale payment gateway on PCI VLAN 800.
+HOST pos_gateway {
+    IP 10.80.8.12
+    MAC 00:50:56:99:08:0c
+}
+
+// INSTRUCTION: Define cardholder tokenization vault server on PCI VLAN 800.
+HOST token_vault_srv {
+    IP 10.80.8.200
+    MAC 00:50:56:99:08:c8
+}
+
+// INSTRUCTION: Define VLAN 800 segmented TLS 1.3 handshake and encrypted payment token exchange.
+FLOW pci_cde_vlan_tls(pos, vault) {
+    pos -> vault VLAN 800 PCP 4 DEI 0 TLS CLIENT_HELLO SNI "vault.pci.internal" ALPN "h2"
+    pos <- vault VLAN 800 PCP 4 DEI 0 TLS SERVER_HELLO ALPN "h2" WAIT 2ms
+    pos -> vault VLAN 800 PCP 4 DEI 0 TLS FINISHED WAIT 1ms
+    pos -> vault VLAN 800 PCP 4 DEI 0 TLS APP_DATA WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing PCI-DSS VLAN 800 TLS session.
+COMPILE {
+    pci_cde_vlan_tls(pos_gateway, token_vault_srv)
+}

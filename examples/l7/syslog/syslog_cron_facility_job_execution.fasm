@@ -1,0 +1,25 @@
+// PROMPT: Generate a cron job execution log entry using Syslog Facility 9 (cron) and Severity 6 (informational).
+// TOKENS: HOST, MAC, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, VLAN, COMPILE
+
+// INSTRUCTION: Define host endpoint db_server.
+HOST db_server {
+    MAC 00:0c:29:51:40:09
+    IP 10.50.9.20
+}
+
+// INSTRUCTION: Define host endpoint syslog_srv.
+HOST syslog_srv {
+    MAC 00:0c:29:51:40:01
+    IP 10.50.9.1
+}
+
+// INSTRUCTION: Send a Facility 9 (cron) informational message over VLAN 50.
+FLOW syslog_cron_nightly_backup(db_server, syslog_srv) {
+    db_server -> syslog_srv SYSLOG FACILITY 9 SEVERITY 6 HOSTNAME "pg-primary-01" APP "CRON" PROCID "31024"
+        MSG "(postgres) CMD (/usr/local/bin/pg_backup_s3.sh --full)" VLAN 50
+}
+
+// INSTRUCTION: Compile the cron facility syslog flow.
+COMPILE {
+    syslog_cron_nightly_backup(db_server, syslog_srv)
+}

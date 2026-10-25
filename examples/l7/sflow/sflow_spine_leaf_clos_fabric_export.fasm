@@ -1,0 +1,23 @@
+// PROMPT: Spine-and-leafClos fabric switches exporting sFlow v5 samples to a central collector.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, WAIT, COMPILE
+
+// INSTRUCTION: Define Spine switch 1 sFlow agent.
+HOST spine_01 { IP 10.250.1.1 MAC 00:1c:73:fa:01:01 }
+
+// INSTRUCTION: Define Leaf switch 1 sFlow agent.
+HOST leaf_01 { IP 10.250.2.1 MAC 00:1c:73:fa:02:01 }
+
+// INSTRUCTION: Define central network analytics sFlow collector.
+HOST fabric_collector { IP 10.250.0.100 MAC 00:1c:73:fa:00:64 }
+
+// INSTRUCTION: Define sFlow export flow with explicit AGENT_IP and SAMPLES.
+FLOW sflow_fabric_export(sw, coll) {
+    sw -> coll SFLOW AGENT_IP 10.250.1.1 SUB_AGENT_ID 1 UPTIME 8640000 SAMPLES 4 WAIT 10ms
+    sw -> coll SFLOW AGENT_IP 10.250.1.1 SUB_AGENT_ID 2 UPTIME 8640010 SAMPLES 8
+}
+
+// INSTRUCTION: Compile sFlow exports from spine and leaf switches.
+COMPILE {
+    sflow_fabric_export(spine_01, fabric_collector)
+    sflow_fabric_export(leaf_01, fabric_collector)
+}

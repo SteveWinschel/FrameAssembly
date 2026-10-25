@@ -1,0 +1,18 @@
+// PROMPT: PIM Join/Prune signaling prioritizing control packets with DSCP Class Selector 6.
+// TOKENS: HOST, IP, FLOW, PIM, JOIN_PRUNE, GROUP, SOURCE, DSCP, TTL, COMPILE
+
+// INSTRUCTION: Define high-priority multicast subscriber router.
+HOST priority_sub_rtr { IP 10.120.0.2 }
+
+// INSTRUCTION: Define upstream backbone multicast router.
+HOST backbone_mcast_rtr { IP 10.120.0.1 }
+
+// INSTRUCTION: Define DSCP CS6 prioritized Join message flow.
+FLOW pim_dscp_join_flow(sub, bb) {
+    sub -> bb PIM JOIN_PRUNE GROUP 239.50.50.1 SOURCE 10.120.100.10 DSCP 48 TTL 1
+}
+
+// INSTRUCTION: Compile block executing prioritized PIM Join signaling.
+COMPILE {
+    pim_dscp_join_flow(priority_sub_rtr, backbone_mcast_rtr)
+}

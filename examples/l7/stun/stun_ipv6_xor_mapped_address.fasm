@@ -1,0 +1,25 @@
+// PROMPT: Simulate a STUN Binding Request and Binding Response over IPv6 returning an IPv6 XOR-MAPPED-ADDRESS (RFC 5389).
+// TOKENS: HOST, MAC, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define host endpoint webrtc_v6_peer.
+HOST webrtc_v6_peer {
+    MAC 00:50:56:34:78:01
+    IP 2001:db8:3478:1::50
+}
+
+// INSTRUCTION: Define host endpoint stun_v6_srv.
+HOST stun_v6_srv {
+    MAC 00:50:56:34:78:99
+    IP 2001:db8:3478:2::1
+}
+
+// INSTRUCTION: Send a STUN Binding Request over IPv6 and receive a Binding Response with an IPv6 XOR_MAPPED_ADDR.
+FLOW stun_ipv6_binding_discovery(webrtc_v6_peer, stun_v6_srv) {
+    webrtc_v6_peer -> stun_v6_srv STUN BINDING_REQUEST SOFTWARE "WebRTC-ICE-v6/1.0"
+    stun_v6_srv -> webrtc_v6_peer STUN BINDING_RESPONSE XOR_MAPPED_ADDR 2001:db8:3478:1::50 SOFTWARE "coturn-4.6.2"
+}
+
+// INSTRUCTION: Compile the IPv6 STUN Binding Request and Response flow.
+COMPILE {
+    stun_ipv6_binding_discovery(webrtc_v6_peer, stun_v6_srv)
+}

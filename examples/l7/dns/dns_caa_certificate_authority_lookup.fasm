@@ -1,0 +1,25 @@
+// PROMPT: Simulate a DNS CAA record query and response verifying authorized TLS certificate issuers for a banking domain.
+// TOKENS: HOST, IP, MAC, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RCODE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the DNS stub resolver client endpoint.
+HOST dns_client {
+    IP 10.53.1.10
+    MAC 00:1b:21:53:01:0a
+}
+
+// INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
+HOST dns_server {
+    IP 10.53.1.53
+    MAC 00:1b:21:53:01:35
+}
+
+// INSTRUCTION: Execute the DNS query and authoritative response transaction.
+FLOW dns_scenario_flow(c, s) {
+    c -> s DNS QUERY TXID 2101 QNAME "secure.bank.example.com" QTYPE "CAA" WAIT 3ms
+    c <- s DNS RESPONSE TXID 2101 RCODE 0 QNAME "secure.bank.example.com" QTYPE "CAA" RDATA "0 issue letsencrypt.org" ANS_TTL 3600
+}
+
+// INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
+COMPILE {
+    dns_scenario_flow(dns_client, dns_server)
+}

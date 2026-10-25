@@ -1,0 +1,19 @@
+// PROMPT: HSRPv2 for IPv6 advertising link-local Virtual IP over UDP port 2029 to ff02::66.
+// TOKENS: HOST, IP, MAC, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, HELLOTIME, HOLDTIME, TTL, FLOWLABEL, COMPILE
+
+// INSTRUCTION: Define IPv6 HSRPv2 active router with virtual MAC 00:05:73:a0:00:01.
+HOST hsrpv6_active { IP fe80::a1 MAC 00:05:73:a0:00:01 }
+
+// INSTRUCTION: Define IPv6 HSRPv2 standby router.
+HOST hsrpv6_standby { IP fe80::a2 MAC 00:1e:bd:aa:00:02 }
+
+// INSTRUCTION: Define IPv6 HSRPv2 Active and Standby advertisements with link-local VIP fe80::1.
+FLOW hsrpv2_ipv6_flow(act, stb) {
+    act -> stb HSRP GROUP 1 PRIORITY 140 STATE 16 VIP fe80::1 HELLOTIME 3 HOLDTIME 10 TTL 255 FLOWLABEL 20290
+    act <- stb HSRP GROUP 1 PRIORITY 100 STATE 8 VIP fe80::1 HELLOTIME 3 HOLDTIME 10 TTL 255 FLOWLABEL 20291
+}
+
+// INSTRUCTION: Compile the IPv6 HSRPv2 advertisement flow.
+COMPILE {
+    hsrpv2_ipv6_flow(hsrpv6_active, hsrpv6_standby)
+}

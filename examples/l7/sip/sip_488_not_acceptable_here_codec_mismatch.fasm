@@ -1,0 +1,25 @@
+// PROMPT: SIP INVITE offering unsupported G.729 audio codec rejected with 488 Not Acceptable Here.
+// TOKENS: HOST, IP, FLOW, SIP, INVITE, URI, FROM, TO, CALL_ID, CSEQ, CONTENT_TYPE, BODY, WAIT, STATUS, REASON, ACK, COMPILE
+
+// INSTRUCTION: Define legacy VoIP gateway offering only G.729 payload type 18.
+HOST g729_gateway {
+    IP 10.35.12.40
+}
+
+// INSTRUCTION: Define wideband-only conference bridge rejecting narrowband codec.
+HOST hd_bridge {
+    IP 10.35.12.1
+}
+
+// INSTRUCTION: Define INVITE with G.729 SDP, 488 Not Acceptable Here rejection, and ACK.
+FLOW sip_488_codec_mismatch(c, s) {
+    c -> s SIP INVITE URI "sip:conf@10.35.12.1" FROM "sip:gw@10.35.12.40" TO "sip:conf@10.35.12.1" CALL_ID "codec-488" CSEQ 1 CONTENT_TYPE "application/sdp" BODY "v=0
+m=audio 5004 RTP/AVP 18" WAIT 4ms
+    c <- s SIP STATUS 488 REASON "Not Acceptable Here" CALL_ID "codec-488" CSEQ 1 WAIT 4ms
+    c -> s SIP ACK URI "sip:conf@10.35.12.1" CALL_ID "codec-488" CSEQ 1
+}
+
+// INSTRUCTION: Compile the SIP 488 codec mismatch rejection flow.
+COMPILE {
+    sip_488_codec_mismatch(g729_gateway, hd_bridge)
+}

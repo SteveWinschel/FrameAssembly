@@ -1,0 +1,25 @@
+// PROMPT: Simulate a STUN Binding Request on custom UDP port 19302 (Google STUN port) with DSCP 46 voice marking.
+// TOKENS: HOST, MAC, IP, FLOW, SRCPORT, DSTPORT, STUN, BINDING_REQUEST, SOFTWARE, DSCP, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define host endpoint browser_peer.
+HOST browser_peer {
+    MAC 00:25:90:19:30:01
+    IP 10.10.50.25
+}
+
+// INSTRUCTION: Define host endpoint stun_19302.
+HOST stun_19302 {
+    MAC 00:25:90:19:30:02
+    IP 198.51.100.193
+}
+
+// INSTRUCTION: Send a STUN Binding Request to UDP port 19302 with DSCP 46 and receive the reflexive IPv4 address.
+FLOW stun_custom_port_19302_flow(browser_peer, stun_19302) {
+    browser_peer -> stun_19302 SRCPORT 54302 DSTPORT 19302 STUN BINDING_REQUEST SOFTWARE "Chromium-WebRTC/124.0" DSCP 46
+    stun_19302 -> browser_peer SRCPORT 19302 DSTPORT 54302 STUN BINDING_RESPONSE XOR_MAPPED_ADDR 192.0.2.25 SOFTWARE "Google-STUN" DSCP 46
+}
+
+// INSTRUCTION: Compile the STUN port 19302 NAT discovery flow.
+COMPILE {
+    stun_custom_port_19302_flow(browser_peer, stun_19302)
+}

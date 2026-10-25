@@ -1,0 +1,21 @@
+// PROMPT: MPLS-encapsulated ICMP ping and TTL-expired response across a label-switched core.
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, MPLS, EXP, BOS, MPLS_TTL, TIME_EXCEEDED, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define ingress PE router initiating MPLS ping.
+HOST mpls_ping_ing { IP 10.253.0.1 }
+
+// INSTRUCTION: Define egress PE router replying over MPLS LSP.
+HOST mpls_ping_egr { IP 10.253.0.2 }
+
+// INSTRUCTION: Define MPLS-labeled ICMP Echo Request, Time Exceeded, and Echo Reply.
+FLOW icmp_mpls_lsp_trace(ing, egr) {
+    ing -> egr ICMP ECHO_REQUEST ID 9000 SEQ 1 MPLS 16001 EXP 4 BOS 1 MPLS_TTL 1
+    ing <- egr ICMP TIME_EXCEEDED MPLS 16002 EXP 4 BOS 1 MPLS_TTL 64
+    ing -> egr ICMP ECHO_REQUEST ID 9000 SEQ 2 MPLS 16001 EXP 4 BOS 1 MPLS_TTL 64
+    ing <- egr ICMP ECHO_REPLY ID 9000 SEQ 2 MPLS 16002 EXP 4 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the MPLS core ICMP traceroute flow.
+COMPILE {
+    icmp_mpls_lsp_trace(mpls_ping_ing, mpls_ping_egr)
+}

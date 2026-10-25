@@ -1,0 +1,30 @@
+// PROMPT: RTSP REDIRECT (302 Moved Temporarily) load-balancing client to an edge media node.
+// TOKENS: HOST, IP, FLOW, RTSP, METHOD, URI, CSEQ, WAIT, STATUS, TRANSPORT_HDR, SESSION, COMPILE
+
+// INSTRUCTION: Define streaming client endpoint.
+HOST viewer_client { IP 10.90.55.25 }
+
+// INSTRUCTION: Define RTSP director load balancer.
+HOST rtsp_director { IP 10.90.55.1 }
+
+// INSTRUCTION: Define edge RTSP streaming node.
+HOST rtsp_edge { IP 10.90.55.2 }
+
+// INSTRUCTION: Define initial DESCRIBE returning 302 redirect from director.
+FLOW rtsp_redirect_302(c, dir) {
+    c -> dir RTSP METHOD "DESCRIBE" URI "rtsp://10.90.55.1/live/sports" CSEQ 1 WAIT 4ms
+    c <- dir RTSP STATUS 302 CSEQ 1
+}
+
+// INSTRUCTION: Define client connecting to redirected edge server.
+FLOW rtsp_connect_edge(c, edge) {
+    c -> edge RTSP METHOD "SETUP" URI "rtsp://10.90.55.2/live/sports/track1" CSEQ 2 TRANSPORT_HDR "RTP/AVP;unicast;client_port=6000-6001" WAIT 4ms
+    c <- edge RTSP STATUS 200 CSEQ 2 WAIT 4ms
+    c -> edge RTSP METHOD "PLAY" URI "rtsp://10.90.55.2/live/sports" CSEQ 3 SESSION "edge_sess_55"
+}
+
+// INSTRUCTION: Compile RTSP 302 redirect followed by edge playback.
+COMPILE {
+    rtsp_redirect_302(viewer_client, rtsp_director)
+    rtsp_connect_edge(viewer_client, rtsp_edge)
+}

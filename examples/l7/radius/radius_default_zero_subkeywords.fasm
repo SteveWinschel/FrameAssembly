@@ -1,0 +1,18 @@
+// PROMPT: Default RADIUS Access-Request packet with zero sub-keywords on UDP port 1812.
+// TOKENS: HOST, IP, MAC, FLOW, RADIUS, COMPILE
+
+// INSTRUCTION: Define wireless LAN controller NAS client.
+HOST wlc_nas { IP 10.18.12.5 MAC 00:1e:be:12:00:05 }
+
+// INSTRUCTION: Define enterprise RADIUS AAA server.
+HOST radius_aaa { IP 10.18.12.1 MAC 00:1e:be:12:00:01 }
+
+// INSTRUCTION: Define flow sending default RADIUS Access-Request packet.
+FLOW radius_default(nas, aaa) {
+    nas -> aaa RADIUS
+}
+
+// INSTRUCTION: Compile default RADIUS scenario.
+COMPILE {
+    radius_default(wlc_nas, radius_aaa)
+}

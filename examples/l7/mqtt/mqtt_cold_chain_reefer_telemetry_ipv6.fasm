@@ -1,0 +1,28 @@
+// PROMPT: Simulate an IPv6 refrigerated container (reefer) publishing QoS 1 temperature and humidity telemetry.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, CONNECT, CLIENT_ID, FLOWLABEL, DSCP, TTL, WAIT, CONNACK, RETURN_CODE, PUBLISH, TOPIC, QOS, PKT_ID, PAYLOAD, PUBACK, COMPILE
+
+// INSTRUCTION: Define the IPv6 smart refrigerated container telematics unit.
+HOST reefer_unit_v6 {
+    IP 2001:db8:c01d:1::42
+    MAC 00:16:3e:c0:1d:42
+}
+
+// INSTRUCTION: Define the IPv6 logistics cloud MQTT ingestion broker.
+HOST logistics_broker_v6 {
+    IP 2001:db8:c01d:1::1
+    MAC 00:16:3e:c0:1d:01
+}
+
+// INSTRUCTION: Connect over IPv6 and publish cold-chain cargo sensor telemetry with QoS 1 acknowledgment.
+FLOW mqtt_cold_chain_v6(c, b) {
+    c -> b MQTT CONNECT CLIENT_ID "reefer-cont-0042" FLOWLABEL 0xc01d1 DSCP 26 TTL 64 WAIT 3ms
+    c <- b MQTT CONNACK RETURN_CODE 0 FLOWLABEL 0xc01d1 DSCP 26 TTL 64 WAIT 2ms
+    c -> b MQTT PUBLISH TOPIC "fleet/coldchain/cont0042/env" QOS 1 PKT_ID 88
+        PAYLOAD "{'temp_c':-18.4,'rh_pct':82.1,'door':'closed'}" FLOWLABEL 0xc01d1 DSCP 26 TTL 64 WAIT 4ms
+    c <- b MQTT PUBACK PKT_ID 88 FLOWLABEL 0xc01d1 DSCP 26 TTL 64
+}
+
+// INSTRUCTION: Compile the IPv6 cold-chain MQTT telemetry scenario.
+COMPILE {
+    mqtt_cold_chain_v6(reefer_unit_v6, logistics_broker_v6)
+}

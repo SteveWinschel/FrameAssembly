@@ -1,0 +1,27 @@
+// PROMPT: RFC 3868 SIGTRAN SUA (SCCP-User Adaptation Layer, PPID 4) carrying mobile roaming MAP UpdateLocation over SCTP port 14001.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define Visited MSC/VLR signaling gateway initiating international roaming lookup.
+HOST visited_vlr_sua {
+    IP 10.140.1.10
+    MAC 00:1c:73:8c:01:0a
+}
+
+// INSTRUCTION: Define Home HLR international STP gateway on SCTP port 14001.
+HOST home_hlr_sua {
+    IP 10.140.1.1
+    MAC 00:1c:73:8c:01:01
+}
+
+// INSTRUCTION: Exchange SUA CLDT (Connectionless Data Transfer, PPID 4) messages carrying TCAP/MAP roaming dialog.
+FLOW sctp_sua_tcap_roaming(vlr, hlr) {
+    vlr -> hlr DSCP 46 SCTP CHUNK DATA VTAG 140010 STREAM 2 SSN 10 PPID 4 SRCPORT 14001 DSTPORT 14001 PAYLOAD "SUA_CLDT_GT_E214_MAP_UPDATE_LOCATION_REQ" WAIT 5ms
+    vlr <- hlr DSCP 46 SCTP CHUNK SACK VTAG 140010 SRCPORT 14001 DSTPORT 14001 WAIT 5ms
+    vlr <- hlr DSCP 46 SCTP CHUNK DATA VTAG 140010 STREAM 2 SSN 10 PPID 4 SRCPORT 14001 DSTPORT 14001 PAYLOAD "SUA_CLDT_GT_E214_MAP_INSERT_SUBSCRIBER_DATA" WAIT 2ms
+    vlr -> hlr DSCP 46 SCTP CHUNK SACK VTAG 140010 SRCPORT 14001 DSTPORT 14001
+}
+
+// INSTRUCTION: Compile the RFC 3868 SIGTRAN SUA roaming SCTP trace.
+COMPILE {
+    sctp_sua_tcap_roaming(visited_vlr_sua, home_hlr_sua)
+}

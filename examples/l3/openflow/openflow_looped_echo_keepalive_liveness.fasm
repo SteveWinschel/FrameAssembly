@@ -1,0 +1,27 @@
+// PROMPT: Simulate a periodic OpenFlow Echo Request and Echo Reply keepalive loop monitoring control channel liveness
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, ECHO_REQ, VERSION, XID, PAYLOAD, WAIT, ECHO_REPLY, COMPILE, LOOP
+
+// INSTRUCTION: Define the SDN controller monitoring daemon
+HOST health_ctrl {
+    IP 10.180.0.1
+    MAC 00:50:56:ea:00:01
+}
+
+// INSTRUCTION: Define the monitored OpenFlow virtual switch
+HOST monitored_ovs {
+    IP 10.180.0.20
+    MAC 00:50:56:ea:00:20
+}
+
+// INSTRUCTION: Exchange an OpenFlow ECHO_REQ and ECHO_REPLY heartbeat pair
+FLOW openflow_echo_heartbeat(ctrl, ovs) {
+    ctrl -> ovs OPENFLOW ECHO_REQ VERSION 4 XID 9900 PAYLOAD "ofp-keepalive-probe" WAIT 15ms
+    ovs -> ctrl OPENFLOW ECHO_REPLY VERSION 4 XID 9900 PAYLOAD "ofp-keepalive-probe" WAIT 35ms
+}
+
+// INSTRUCTION: Compile five iterations of the OpenFlow echo keepalive cycle
+COMPILE {
+    LOOP 5 {
+        openflow_echo_heartbeat(health_ctrl, monitored_ovs)
+    }
+}

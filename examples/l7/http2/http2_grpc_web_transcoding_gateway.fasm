@@ -1,0 +1,36 @@
+// PROMPT: API gateway accepting an HTTP/2 browser request on Stream 1 and invoking a backend gRPC service.
+// TOKENS: HOST, IP, FLOW, HTTP2, HEADERS, STREAM_ID, DATA, PAYLOAD, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define browser client speaking HTTP/2 to an edge gateway.
+HOST web_h2_client { IP 10.72.1.50 }
+
+// INSTRUCTION: Define Envoy gRPC-JSON transcoding gateway.
+HOST transcode_gw { IP 10.72.1.1 }
+
+// INSTRUCTION: Define backend gRPC catalog microservice.
+HOST catalog_grpc { IP 10.72.2.10 }
+
+// INSTRUCTION: Accept HTTP/2 request on Stream 1 from browser client.
+FLOW frontend_h2_req(c, gw) {
+    c -> gw HTTP2 HEADERS STREAM_ID 1
+    c -> gw HTTP2 DATA STREAM_ID 1 PAYLOAD "{'sku':'NB-2026'}"
+}
+
+// INSTRUCTION: Dispatch transcoded gRPC call to backend catalog service and return HTTP/2 response.
+FLOW backend_grpc_call(gw, svc) {
+    gw -> svc GRPC SERVICE "shop.CatalogService" METHOD "GetItem"
+    gw <- svc GRPC SERVICE "shop.CatalogService" METHOD "GetItem" GRPC_STATUS 0
+}
+
+// INSTRUCTION: Return transcoded HTTP/2 DATA response to browser client on Stream 1.
+FLOW frontend_h2_resp(c, gw) {
+    c <- gw HTTP2 HEADERS STREAM_ID 1
+    c <- gw HTTP2 DATA STREAM_ID 1 PAYLOAD "{'sku':'NB-2026','inStock':true}"
+}
+
+// INSTRUCTION: Compile the end-to-end HTTP/2 to gRPC transcoding gateway scenario.
+COMPILE {
+    frontend_h2_req(web_h2_client, transcode_gw)
+    backend_grpc_call(transcode_gw, catalog_grpc)
+    frontend_h2_resp(web_h2_client, transcode_gw)
+}

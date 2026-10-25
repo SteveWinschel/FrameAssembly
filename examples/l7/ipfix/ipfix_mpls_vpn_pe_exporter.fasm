@@ -1,0 +1,18 @@
+// PROMPT: IPFIX flow exporter running on MPLS PE router with traffic class marking.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, MPLS, COMPILE
+
+// INSTRUCTION: Define MPLS provider edge router exporter.
+HOST pe_exporter { IP 192.168.210.1 }
+
+// INSTRUCTION: Define carrier analytics collector.
+HOST carrier_collector { IP 192.168.210.254 }
+
+// INSTRUCTION: Define MPLS encapsulated IPFIX export flow.
+FLOW pe_ipfix_flow(pe, col) {
+    pe -> col IPFIX DOMAIN_ID 1002 SRCIP 10.80.4.1 DSTIP 10.80.5.2 PROTO 6 PACKETS 1420 OCTETS 1845000 MPLS 2048
+}
+
+// INSTRUCTION: Compile MPLS PE exporter scenario.
+COMPILE {
+    pe_ipfix_flow(pe_exporter, carrier_collector)
+}

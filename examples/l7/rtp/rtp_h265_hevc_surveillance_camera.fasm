@@ -1,0 +1,23 @@
+// PROMPT: IP security camera streaming H.265/HEVC (payload type 100) video to NVR storage server.
+// TOKENS: HOST, IP, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define perimeter PoE H.265 surveillance camera.
+HOST hevc_cam {
+    IP 10.18.200.55
+}
+
+// INSTRUCTION: Define Network Video Recorder (NVR) ingestion server.
+HOST nvr_storage {
+    IP 10.18.200.1
+}
+
+// INSTRUCTION: Define H.265 IDR access unit fragmented across two RTP packets on port 6004.
+FLOW rtp_hevc_stream(cam, nvr) {
+    cam -> nvr RTP PT 100 SEQ 1200 TIMESTAMP 180000 SSRC 0xca000055 MARKER 0 SRCPORT 5004 DSTPORT 6004 PAYLOAD "HEVC_NAL_IDR_START" WAIT 3ms
+    cam -> nvr RTP PT 100 SEQ 1201 TIMESTAMP 180000 SSRC 0xca000055 MARKER 1 SRCPORT 5004 DSTPORT 6004 PAYLOAD "HEVC_NAL_IDR_END"
+}
+
+// INSTRUCTION: Compile the H.265 surveillance RTP flow.
+COMPILE {
+    rtp_hevc_stream(hevc_cam, nvr_storage)
+}

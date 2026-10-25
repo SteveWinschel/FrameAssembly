@@ -1,0 +1,26 @@
+// PROMPT: RFC 6040 ECN propagation across a GRE tunnel copying inner ECN markings to the outer IPv4 header.
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, DSCP, ECN, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define GRE tunnel ingress copying inner ECT(0) (2) to outer IPv4 header.
+HOST gre_ecn_ing {
+    IP 10.60.47.1
+    MAC 00:22:bd:60:47:01
+}
+
+// INSTRUCTION: Define GRE tunnel egress decapsulating congestion-marked ECN CE (3) packet.
+HOST gre_ecn_egr {
+    IP 10.60.47.2
+    MAC 00:22:bd:60:47:02
+}
+
+// INSTRUCTION: Define GRE packets transitioning from ECN 2 (ECT0) to ECN 3 (CE) with DSCP AF21 (18).
+FLOW gre_ecn_propagation_flow(ing, egr) {
+    ing -> egr GRE GRE_KEY 6040 GRE_SEQ 1 GRE_PROTO 2048 DSCP 18 ECN 2 DF TTL 64 PAYLOAD "GRE_PASSENGER_TCP_ECT0" WAIT 3ms
+    ing -> egr GRE GRE_KEY 6040 GRE_SEQ 2 GRE_PROTO 2048 DSCP 18 ECN 3 DF TTL 64 PAYLOAD "GRE_PASSENGER_TCP_CE_EXPERIENCED" WAIT 3ms
+    ing <- egr GRE GRE_KEY 6040 GRE_SEQ 1 GRE_PROTO 2048 DSCP 18 ECN 2 DF TTL 64 PAYLOAD "GRE_PASSENGER_TCP_ECE_ACK"
+}
+
+// INSTRUCTION: Compile the RFC 6040 ECN propagation over GRE tunnel flow.
+COMPILE {
+    gre_ecn_propagation_flow(gre_ecn_ing, gre_ecn_egr)
+}

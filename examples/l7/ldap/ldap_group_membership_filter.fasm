@@ -1,0 +1,18 @@
+// PROMPT: LDAP directory SearchRequest looking up security group memberships for authorization.
+// TOKENS: HOST, IP, FLOW, LDAP, SEARCH_REQ, MSGID, BASE_DN, FILTER, COMPILE
+
+// INSTRUCTION: Define VPN gateway authorization module.
+HOST vpn_gateway { IP 192.168.88.1 }
+
+// INSTRUCTION: Define corporate directory replica.
+HOST directory_replica { IP 192.168.88.10 }
+
+// INSTRUCTION: Define security group membership query flow.
+FLOW group_search_flow(vpn, dir) {
+    vpn -> dir LDAP SEARCH_REQ MSGID 42 BASE_DN "ou=groups,dc=corp,dc=org" FILTER "(member=cn=eng_lead)"
+}
+
+// INSTRUCTION: Compile group membership search scenario.
+COMPILE {
+    group_search_flow(vpn_gateway, directory_replica)
+}

@@ -1,0 +1,18 @@
+// PROMPT: IKEv2 INFORMATIONAL message carrying SA deletion payload to gracefully terminate tunnel.
+// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, INFORMATIONAL, MSGID, NEXT_PAYLOAD, COMPILE
+
+// INSTRUCTION: Define terminating mobile VPN client.
+HOST mobile_vpn_client { IP 10.45.0.99 }
+
+// INSTRUCTION: Define enterprise security gateway.
+HOST security_gateway { IP 10.45.0.1 }
+
+// INSTRUCTION: Define SA teardown flow with NEXT_PAYLOAD 42 (Delete Payload) and MSGID 20.
+FLOW ikev2_teardown_flow(c, gw) {
+    c -> gw IKEV2 INITIATOR_SPI 4433221100998877 RESPONDER_SPI 8877665544332211 INFORMATIONAL MSGID 20 NEXT_PAYLOAD 42
+}
+
+// INSTRUCTION: Compile block executing IKEv2 tunnel termination notification.
+COMPILE {
+    ikev2_teardown_flow(mobile_vpn_client, security_gateway)
+}

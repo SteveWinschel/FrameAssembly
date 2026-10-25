@@ -1,0 +1,27 @@
+// PROMPT: OPC UA GetEndpoints discovery service call over SecureChannel 1 querying server security policies.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, ENDPOINT_URL, WAIT, NODE_ID, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the OPC UA discovery client application.
+HOST ua_explorer {
+    IP 10.140.1.25
+    MAC 00:1a:2b:8c:01:25
+}
+
+// INSTRUCTION: Define the OPC UA server endpoint on TCP port 4840.
+HOST ua_server {
+    IP 10.140.1.1
+    MAC 00:1a:2b:8c:01:01
+}
+
+// INSTRUCTION: Open temporary discovery channel and send GetEndpoints request (NodeId i=428).
+FLOW opcua_get_endpoints(c, s) {
+    c -> s OPCUA MSG_TYPE "OPN" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1 TOKEN_ID 1 SEQ_NUM 1 REQID 1 ENDPOINT_URL "opc.tcp://10.140.1.1:4840"
+    c <- s OPCUA MSG_TYPE "OPN" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1 TOKEN_ID 1 SEQ_NUM 1 REQID 1 WAIT 1ms
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1 TOKEN_ID 1 SEQ_NUM 2 REQID 2 NODE_ID "i=428"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1 TOKEN_ID 1 SEQ_NUM 2 REQID 2 NODE_ID "i=431" PAYLOAD "Basic256Sha256#SignAndEncrypt"
+}
+
+// INSTRUCTION: Compile the OPC UA GetEndpoints discovery flow.
+COMPILE {
+    opcua_get_endpoints(ua_explorer, ua_server)
+}

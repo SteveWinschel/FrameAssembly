@@ -1,0 +1,27 @@
+// PROMPT: BACnet/IP cooling tower Variable Frequency Drive (VFD) fan speed write and condenser water return read.
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, WRITE_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, VLAN, WAIT, READ_PROPERTY, COMPILE
+
+// INSTRUCTION: Define the chiller plant optimizer host.
+HOST chiller_optimizer {
+    IP 10.120.110.5
+    MAC 00:1a:2b:78:b0:05
+}
+
+// INSTRUCTION: Define the cooling tower VFD BACnet node.
+HOST tower_vfd {
+    IP 10.120.110.30
+    MAC 00:1a:2b:78:b0:30
+}
+
+// INSTRUCTION: Command VFD frequency to 52 Hz and read condenser water leaving temperature over VLAN 120.
+FLOW bacnet_cooling_tower(o, v) {
+    o -> v BACNET WRITE_PROPERTY INVOKE_ID 130 OBJECT_TYPE 1 OBJECT_INSTANCE 5 PROPERTY_ID 85 VALUE 52 VLAN 120
+    o <- v BACNET WRITE_PROPERTY INVOKE_ID 130 OBJECT_TYPE 1 OBJECT_INSTANCE 5 PROPERTY_ID 85 VALUE 52 VLAN 120 WAIT 2ms
+    o -> v BACNET READ_PROPERTY INVOKE_ID 131 OBJECT_TYPE 0 OBJECT_INSTANCE 5 PROPERTY_ID 85 VLAN 120
+    o <- v BACNET READ_PROPERTY INVOKE_ID 131 OBJECT_TYPE 0 OBJECT_INSTANCE 5 PROPERTY_ID 85 VALUE 24 VLAN 120
+}
+
+// INSTRUCTION: Compile the cooling tower VFD modulation flow.
+COMPILE {
+    bacnet_cooling_tower(chiller_optimizer, tower_vfd)
+}

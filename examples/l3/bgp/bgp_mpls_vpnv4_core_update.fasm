@@ -1,0 +1,20 @@
+// PROMPT: BGP route updates transported over an MPLS-labeled core backbone with EXP 6.
+// TOKENS: HOST, IP, FLOW, BGP, UPDATE, ASN, PREFIX, NEXTHOP, MPLS, EXP, BOS, MPLS_TTL, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define provider edge router PE1.
+HOST mpls_bgp_pe1 { IP 10.250.0.11 }
+
+// INSTRUCTION: Define provider edge router PE2.
+HOST mpls_bgp_pe2 { IP 10.250.0.22 }
+
+// INSTRUCTION: Define MPLS-encapsulated iBGP prefix updates between PE routers.
+FLOW bgp_mpls_core_updates(pe1, pe2) {
+    pe1 -> pe2 BGP UPDATE ASN 65500 PREFIX "10.101.0.0/16" NEXTHOP 10.250.0.11 MPLS 16100 EXP 6 BOS 1 MPLS_TTL 64
+    pe1 <- pe2 BGP UPDATE ASN 65500 PREFIX "10.202.0.0/16" NEXTHOP 10.250.0.22 MPLS 16200 EXP 6 BOS 1 MPLS_TTL 64
+    pe1 -> pe2 BGP KEEPALIVE MPLS 16100 EXP 6 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile the MPLS-labeled BGP core update flow.
+COMPILE {
+    bgp_mpls_core_updates(mpls_bgp_pe1, mpls_bgp_pe2)
+}

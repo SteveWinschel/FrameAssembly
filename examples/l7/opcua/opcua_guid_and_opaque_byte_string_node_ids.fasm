@@ -1,0 +1,27 @@
+// PROMPT: OPC UA ReadRequest addressing GUID (g=...) and Opaque ByteString (b=...) NodeId identifier formats.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, WAIT, COMPILE
+
+// INSTRUCTION: Define the brownfield PLC tag aggregator client.
+HOST tag_aggregator {
+    IP 10.140.130.25
+    MAC 00:1a:2b:8c:d0:25
+}
+
+// INSTRUCTION: Define the multi-protocol OPC UA wrapper server.
+HOST wrapper_ua_srv {
+    IP 10.140.130.1
+    MAC 00:1a:2b:8c:d0:01
+}
+
+// INSTRUCTION: Read a GUID NodeId (ns=2;g=09087e75-8e5e-499b-954f-f2a9603db28a) and an Opaque NodeId (ns=2;b=M/RbKBsRVkePCePcx24oRA==).
+FLOW opcua_guid_opaque(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1300 TOKEN_ID 1 SEQ_NUM 10 REQID 10 NODE_ID "ns=2;g=09087e75-8e5e-499b-954f-f2a9603db28a"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1300 TOKEN_ID 1 SEQ_NUM 10 REQID 10 NODE_ID "ns=2;g=09087e75-8e5e-499b-954f-f2a9603db28a" WAIT 1ms
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1300 TOKEN_ID 1 SEQ_NUM 11 REQID 11 NODE_ID "ns=2;b=M/RbKBsRVkePCePcx24oRA=="
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1300 TOKEN_ID 1 SEQ_NUM 11 REQID 11 NODE_ID "ns=2;b=M/RbKBsRVkePCePcx24oRA=="
+}
+
+// INSTRUCTION: Compile the OPC UA GUID and Opaque NodeId read flow.
+COMPILE {
+    opcua_guid_opaque(tag_aggregator, wrapper_ua_srv)
+}

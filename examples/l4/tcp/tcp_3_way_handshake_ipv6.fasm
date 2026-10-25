@@ -1,5 +1,5 @@
 // PROMPT: Complete TCP 3-way handshake over IPv6 with two-stage port inheritance across forward and reversed arrows.
-// TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, SRCPORT, DSTPORT, COMPILE
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, COMPILE
 
 // INSTRUCTION: Define IPv6 client host.
 HOST ipv6_client { IP 2001:db8:1::10 }

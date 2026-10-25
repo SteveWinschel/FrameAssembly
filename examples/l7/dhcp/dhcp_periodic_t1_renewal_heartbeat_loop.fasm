@@ -1,0 +1,25 @@
+// PROMPT: Create a periodic DHCP T1 (50% lease timer) renewal loop sending unicast DHCPREQUEST and receiving DHCPACK.
+// TOKENS: HOST, IP, MAC, FLOW, DHCP, REQUEST, XID, CIADDR, YIADDR, CHADDR, HOSTNAME, WAIT, ACK, SUBNET_MASK, ROUTER, DNS_SERVER, LEASE_TIME, COMPILE
+
+// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+HOST dhcp_client {
+    IP 10.40.1.88
+    MAC 00:25:90:67:01:0a
+}
+
+// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+HOST dhcp_server {
+    IP 10.40.1.1
+    MAC 00:25:90:67:01:01
+}
+
+// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
+FLOW dhcp_scenario_flow(c, s) {
+    c -> s DHCP REQUEST XID 0x31001013 CIADDR 10.40.1.88 YIADDR 10.40.1.88 CHADDR 00:24:e8:28:01:58 HOSTNAME "workstation-88" WAIT 5ms
+    c <- s DHCP ACK XID 0x31001013 CIADDR 10.40.1.88 YIADDR 10.40.1.88 SUBNET_MASK 255.255.255.0 ROUTER 10.40.1.1 DNS_SERVER 10.40.1.53 LEASE_TIME 3600 WAIT 20ms
+}
+
+// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
+COMPILE {
+    dhcp_scenario_flow(dhcp_client, dhcp_server)
+}

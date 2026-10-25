@@ -1,0 +1,29 @@
+// PROMPT: Industrial IoT gateway authenticating via RFC 5931 EAP-pwd (EAP_METHOD 52) zero-knowledge password proof over IPv6.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, START, WAIT, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IPv6 industrial IoT edge gateway using RFC 5931 EAP-pwd (Method 52).
+HOST iot_gw_v6_supp {
+    IP 2001:db8:520::10
+    MAC 00:0e:8c:52:00:0a
+}
+
+// INSTRUCTION: Define IPv6 industrial switch authenticator verifying EAP-pwd dragonfly commit/confirm.
+HOST ind_sw_v6_pae {
+    IP 2001:db8:520::1
+    MAC 00:1c:73:52:00:01
+}
+
+// INSTRUCTION: Exchange EAP-Identity and EAP-pwd (Method 52) Commit/Confirm frames ending in EAP-Success.
+FLOW eapol_eap_pwd_iot(gw, sw) {
+    gw -> sw EAPOL VERSION 2 TYPE START WAIT 2ms
+    gw <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 8 EAP_METHOD 1 WAIT 2ms
+    gw -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 8 EAP_METHOD 1 IDENTITY "iot-gw-substation-08" WAIT 5ms
+    gw <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 9 EAP_METHOD 52 PAYLOAD "EAP_PWD_ID_COMMIT_ECC_GROUP_19" WAIT 5ms
+    gw -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 9 EAP_METHOD 52 PAYLOAD "EAP_PWD_PEER_COMMIT_CONFIRM_SCALAR" WAIT 5ms
+    gw <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 9 EAP_METHOD 52
+}
+
+// INSTRUCTION: Compile the RFC 5931 EAP-pwd IoT gateway authentication trace.
+COMPILE {
+    eapol_eap_pwd_iot(iot_gw_v6_supp, ind_sw_v6_pae)
+}

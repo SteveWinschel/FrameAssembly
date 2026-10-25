@@ -1,0 +1,26 @@
+// PROMPT: RFC 4303 / RFC 6040 IPsec ESP tunnel preserving inner DSCP AF21 (18) and ECN ECT(0) (2) markings on the outer header.
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, DSCP, ECN, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define enterprise branch QoS-aware IPsec gateway.
+HOST qos_esp_branch {
+    IP 172.19.50.1
+    MAC 00:1a:a1:50:12:01
+}
+
+// INSTRUCTION: Define regional hub IPsec gateway inspecting outer RFC 6040 ECN bits.
+HOST qos_esp_hub {
+    IP 172.19.50.254
+    MAC 00:1a:a1:50:12:fe
+}
+
+// INSTRUCTION: Define ESP tunnel packets with DSCP 18 (AF21) and ECN 2 (ECT0) transitioning to ECN 3 (CE).
+FLOW esp_rfc6040_ecn_tunnel(branch, hub) {
+    branch -> hub ESP SPI 60401 SEQ 1 IV "6040000160400001" ICV "123456789abcdef012345678" NEXT_HEADER 4 DSCP 18 ECN 2 DF TTL 63 PAYLOAD "TRANSACTIONAL_DATA_ECT0" WAIT 5ms
+    branch -> hub ESP SPI 60401 SEQ 2 IV "6040000260400002" ICV "876543210fedcba987654321" NEXT_HEADER 4 DSCP 18 ECN 3 DF TTL 63 PAYLOAD "TRANSACTIONAL_DATA_CE_MARKED" WAIT 5ms
+    branch <- hub ESP SPI 60402 SEQ 1 IV "6040000360400003" ICV "abcdef0123456789abcdef01" NEXT_HEADER 4 DSCP 18 ECN 2 DF TTL 63 PAYLOAD "TRANSACTIONAL_ACK_ECE_FEEDBACK"
+}
+
+// INSTRUCTION: Compile the RFC 6040 ECN-preserving IPsec ESP tunnel flow.
+COMPILE {
+    esp_rfc6040_ecn_tunnel(qos_esp_branch, qos_esp_hub)
+}

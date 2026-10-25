@@ -1,0 +1,29 @@
+// PROMPT: Sequential multi-chunk SMB2 READ transfer streaming media assets from a shared storage volume.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, FILENAME, STATUS, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the video editing workstation reading raw media frames.
+HOST nle_editor {
+    IP 10.60.80.15
+    MAC 00:1a:2b:60:80:15
+}
+
+// INSTRUCTION: Define the high-throughput media NAS cluster.
+HOST media_nas {
+    IP 10.60.80.1
+    MAC 00:1a:2b:60:80:01
+}
+
+// INSTRUCTION: Open media file and issue two consecutive SMB2 READ requests.
+FLOW smb_chunked_read(c, s) {
+    c -> s SMB COMMAND "CREATE" TREE_ID 12 SESSION_ID 3300 MSGID 50 FILENAME "scene04_prores4444.mov"
+    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 12 SESSION_ID 3300 MSGID 50 WAIT 1ms
+    c -> s SMB COMMAND "READ" TREE_ID 12 SESSION_ID 3300 MSGID 51
+    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 12 SESSION_ID 3300 MSGID 51 PAYLOAD "PRORES_FRAME_0001_DATA" WAIT 1ms
+    c -> s SMB COMMAND "READ" TREE_ID 12 SESSION_ID 3300 MSGID 52
+    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 12 SESSION_ID 3300 MSGID 52 PAYLOAD "PRORES_FRAME_0002_DATA"
+}
+
+// INSTRUCTION: Compile the sequential SMB2 media read flow.
+COMPILE {
+    smb_chunked_read(nle_editor, media_nas)
+}

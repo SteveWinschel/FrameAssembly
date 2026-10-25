@@ -1,5 +1,5 @@
 // PROMPT: IEEE 802.1X EAP-Packet exchange requesting and supplying user identity string.
-// TOKENS: HOST, IP, FLOW, ->, <-, EAPOL, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, COMPILE
+// TOKENS: HOST, IP, FLOW, EAPOL, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, COMPILE
 
 // INSTRUCTION: Define 802.1X client supplicant.
 HOST client_supplicant { IP 192.168.1.100 }

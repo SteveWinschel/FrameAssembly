@@ -1,0 +1,25 @@
+// PROMPT: RFC 4302 IPsec AH over IPv6 in tunnel mode protecting inner IPv6 packets (Next Header 41).
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, FLOWLABEL, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define West Coast IPv6 security gateway.
+HOST v6_ah_gw_west {
+    IP 2001:db8:100::1
+    MAC 00:25:90:aa:00:01
+}
+
+// INSTRUCTION: Define East Coast IPv6 security gateway.
+HOST v6_ah_gw_east {
+    IP 2001:db8:200::1
+    MAC 00:25:90:aa:00:02
+}
+
+// INSTRUCTION: Define IPv6 AH tunnel mode flow with Next Header 41 (IPv6) and Flow Label 65536.
+FLOW ah_v6_tunnel_flow(west, east) {
+    west -> east AH SPI 91001 SEQ 1 NEXT_HEADER 41 ICV "f0e1d2c3b4a5968778695a4b" FLOWLABEL 65536 DSCP 34 TTL 64 PAYLOAD "INNER_IPV6_TELEMETRY_FRAME" WAIT 12ms
+    west <- east AH SPI 91002 SEQ 1 NEXT_HEADER 41 ICV "4b5a69788796a5b4c3d2e1f0" FLOWLABEL 65536 DSCP 34 TTL 64 PAYLOAD "INNER_IPV6_TELEMETRY_ACK"
+}
+
+// INSTRUCTION: Compile the IPv6-in-IPv6 AH tunnel mode security scenario.
+COMPILE {
+    ah_v6_tunnel_flow(v6_ah_gw_west, v6_ah_gw_east)
+}

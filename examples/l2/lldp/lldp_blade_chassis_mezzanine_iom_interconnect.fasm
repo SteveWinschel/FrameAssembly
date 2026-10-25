@@ -1,0 +1,25 @@
+// PROMPT: Enterprise blade enclosure I/O module (IOM) and compute blade mezzanine card exchanging internal backplane LLDP frames.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define compute blade slot 3 converged network adapter mezzanine port.
+HOST blade_slot3_cna {
+    IP 172.20.3.13
+    MAC 00:25:b5:03:00:0d
+}
+
+// INSTRUCTION: Define blade chassis fabric interconnect I/O module A internal backplane port 3.
+HOST chassis_iom_a {
+    IP 172.20.3.1
+    MAC 00:25:b5:03:00:01
+}
+
+// INSTRUCTION: Discover internal KR backplane lane mapping between blade slot 3 and fabric interconnect A.
+FLOW lldp_blade_backplane(blade, iom) {
+    blade -> iom LLDP CHASSIS_ID "blade-sn-JAE2041" PORT_ID "vmnic0-kr-a" SYSNAME "esxi-blade-03.corp" SYSDESC "VIC 14425 25G KR Mezzanine" TTL 180 WAIT 5ms
+    blade <- iom LLDP CHASSIS_ID "fi-6454-fabric-a" PORT_ID "Server-1/3" SYSNAME "ucs-fi-a.corp" SYSDESC "Fabric Interconnect 6454 IOM" TTL 180
+}
+
+// INSTRUCTION: Compile the blade chassis backplane LLDP discovery trace.
+COMPILE {
+    lldp_blade_backplane(blade_slot3_cna, chassis_iom_a)
+}

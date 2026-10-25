@@ -1,0 +1,29 @@
+// PROMPT: RFC 4217 FTPS Clear Command Channel (CCC) downgrade allowing a stateful NAT firewall to inspect PORT.
+// TOKENS: HOST, IP, MAC, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define FTPS client behind a strict enterprise NAT firewall.
+HOST nat_ftps_cli {
+    IP 10.150.21.33
+    MAC 00:19:99:96:15:21
+}
+
+// INSTRUCTION: Define DMZ FTPS server supporting RFC 4217 CCC command.
+HOST dmz_ftps_srv {
+    IP 10.150.21.1
+    MAC 00:19:99:96:15:01
+}
+
+// INSTRUCTION: Issue CCC to revert control channel to cleartext after authentication, then send PASV.
+FLOW ftp_ccc_downgrade(c, s) {
+    c -> s FTP CMD "PBSZ" ARG "0"
+    c <- s FTP CODE 200 REPLY "PBSZ=0"
+    c -> s FTP CMD "CCC"
+    c <- s FTP CODE 200 REPLY "Clearing control channel protection"
+    c -> s FTP CMD "PASV"
+    c <- s FTP CODE 227 REPLY "Entering Passive Mode (10,150,21,1,210,44)"
+}
+
+// INSTRUCTION: Compile the RFC 4217 FTP Clear Command Channel (CCC) scenario.
+COMPILE {
+    ftp_ccc_downgrade(nat_ftps_cli, dmz_ftps_srv)
+}

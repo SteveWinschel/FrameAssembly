@@ -1,0 +1,21 @@
+// PROMPT: PostgreSQL LISTEN and asynchronous NOTIFY pub/sub channel exchange.
+// TOKENS: HOST, IP, FLOW, POSTGRES, SQL, WAIT, COMMAND_COMPLETE, READY_FOR_QUERY, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define event worker subscribing to notifications.
+HOST event_worker { IP 10.82.0.12 }
+
+// INSTRUCTION: Define PostgreSQL broker server.
+HOST pg_broker { IP 10.82.0.1 }
+
+// INSTRUCTION: Define LISTEN registration and NOTIFY payload delivery.
+FLOW pg_listen_notify(c, s) {
+    c -> s POSTGRES SQL "LISTEN job_queue_events" WAIT 3ms
+    c <- s POSTGRES COMMAND_COMPLETE READY_FOR_QUERY WAIT 10ms
+    c -> s POSTGRES SQL "NOTIFY job_queue_events, 'job_id_8821_ready'" WAIT 3ms
+    c <- s POSTGRES COMMAND_COMPLETE READY_FOR_QUERY PAYLOAD "AsyncNotification:job_queue_events:job_id_8821_ready"
+}
+
+// INSTRUCTION: Compile PostgreSQL LISTEN/NOTIFY flow.
+COMPILE {
+    pg_listen_notify(event_worker, pg_broker)
+}

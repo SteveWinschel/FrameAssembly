@@ -1,0 +1,24 @@
+// PROMPT: WebRTC signaling channel over WebSocket exchanging SDP offer, SDP answer, and ICE candidate.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, TEXT, FIN_BIT, MASK_KEY, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define WebRTC caller browser peer.
+HOST rtc_caller {
+    IP 10.88.14.10
+}
+
+// INSTRUCTION: Define WebSocket signaling rendezvous server.
+HOST sig_server {
+    IP 10.88.14.1
+}
+
+// INSTRUCTION: Define SDP offer/answer and ICE candidate relay over WebSocket text frames.
+FLOW ws_webrtc_signaling(c, s) {
+    c -> s WEBSOCKET TEXT FIN_BIT 1 MASK_KEY 0x11112222 PAYLOAD "{'type':'offer','sdp':'v=0...'}" WAIT 6ms
+    c <- s WEBSOCKET TEXT FIN_BIT 1 PAYLOAD "{'type':'answer','sdp':'v=0...'}" WAIT 6ms
+    c -> s WEBSOCKET TEXT FIN_BIT 1 MASK_KEY 0x33334444 PAYLOAD "{'type':'candidate','candidate':'1'}"
+}
+
+// INSTRUCTION: Compile WebRTC signaling over WebSocket scenario.
+COMPILE {
+    ws_webrtc_signaling(rtc_caller, sig_server)
+}

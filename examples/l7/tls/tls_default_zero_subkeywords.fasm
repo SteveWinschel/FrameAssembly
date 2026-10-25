@@ -1,0 +1,24 @@
+// PROMPT: Default TLS record frame with zero sub-keywords over standard HTTPS port 443.
+// TOKENS: HOST, IP, MAC, FLOW, TLS, COMPILE
+
+// INSTRUCTION: Define HTTPS client workstation with IPv4 and MAC addresses.
+HOST https_client {
+    IP 10.20.30.40
+    MAC 00:11:22:33:44:55
+}
+
+// INSTRUCTION: Define TLS web server endpoint with IPv4 and MAC addresses.
+HOST https_server {
+    IP 10.20.30.1
+    MAC 00:11:22:33:44:01
+}
+
+// INSTRUCTION: Define baseline flow sending a default TLS record without sub-keywords.
+FLOW tls_default_flow(c, s) {
+    c -> s TLS
+}
+
+// INSTRUCTION: Compile the default zero-subkeyword TLS scenario.
+COMPILE {
+    tls_default_flow(https_client, https_server)
+}

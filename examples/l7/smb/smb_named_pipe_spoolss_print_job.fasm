@@ -1,0 +1,29 @@
+// PROMPT: SMB2 RPC over named pipe spoolss for network print job submission over IPC$ share.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, FILENAME, STATUS, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the office workstation spooling a print document.
+HOST print_client {
+    IP 10.60.30.80
+    MAC 00:1a:2b:60:30:80
+}
+
+// INSTRUCTION: Define the Windows print spooler server.
+HOST print_server {
+    IP 10.60.30.12
+    MAC 00:1a:2b:60:30:12
+}
+
+// INSTRUCTION: Open the spoolss pipe on IPC$, write RPC print data, and close the pipe handle.
+FLOW smb_print_spool(c, s) {
+    c -> s SMB COMMAND "CREATE" TREE_ID 3 SESSION_ID 4010 MSGID 10 FILENAME "spoolss"
+    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 3 SESSION_ID 4010 MSGID 10 WAIT 2ms
+    c -> s SMB COMMAND "WRITE" TREE_ID 3 SESSION_ID 4010 MSGID 11 PAYLOAD "RPC_START_DOC_PRINTER_RAW"
+    c <- s SMB COMMAND "WRITE" STATUS 0 TREE_ID 3 SESSION_ID 4010 MSGID 11 WAIT 2ms
+    c -> s SMB COMMAND "CLOSE" TREE_ID 3 SESSION_ID 4010 MSGID 12
+    c <- s SMB COMMAND "CLOSE" STATUS 0 TREE_ID 3 SESSION_ID 4010 MSGID 12
+}
+
+// INSTRUCTION: Compile the SMB2 print spooler named pipe flow.
+COMPILE {
+    smb_print_spool(print_client, print_server)
+}

@@ -1,0 +1,31 @@
+// PROMPT: Generate a Telnet Linemode (Option 34, RFC 1184) negotiation over a high-latency satellite MPLS link (MPLS 2300).
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, MPLS, ACK, TELNET, DO, WILL, WONT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint sat_terminal.
+HOST sat_terminal {
+    MAC 00:21:5a:00:23:34
+    IP 10.230.1.10
+}
+
+// INSTRUCTION: Define host endpoint hq_gateway.
+HOST hq_gateway {
+    MAC 00:21:5a:00:23:01
+    IP 10.230.1.1
+}
+
+// INSTRUCTION: Enable Telnet Linemode (Option 34) and disable server Echo (Option 1) over MPLS 2300.
+FLOW telnet_linemode_satellite_mpls(sat_terminal, hq_gateway) {
+    sat_terminal -> hq_gateway TCP SYN SRCPORT 58023 DSTPORT 23 MPLS 2300
+    hq_gateway -> sat_terminal TCP SYN ACK MPLS 2300
+    sat_terminal -> hq_gateway TCP ACK MPLS 2300
+    hq_gateway -> sat_terminal TELNET DO 34 MPLS 2300
+    sat_terminal -> hq_gateway TELNET WILL 34 MPLS 2300
+    hq_gateway -> sat_terminal TELNET WONT 1 MPLS 2300
+    sat_terminal -> hq_gateway TELNET PAYLOAD "show interfaces brief\r\n" MPLS 2300
+    hq_gateway -> sat_terminal TELNET PAYLOAD "Gi0/0  10.230.1.1  YES  up  up\r\n" MPLS 2300
+}
+
+// INSTRUCTION: Compile the Telnet Linemode Option 34 MPLS flow.
+COMPILE {
+    telnet_linemode_satellite_mpls(sat_terminal, hq_gateway)
+}

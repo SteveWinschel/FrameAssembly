@@ -1,0 +1,26 @@
+// PROMPT: RFC 5882 BFD single-hop session coupled with OSPFv2 for sub-second IGP topology reconvergence.
+// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define OSPF backbone router A running 50ms BFD with Multiplier 3.
+HOST ospf_bfd_rtr_a {
+    IP 10.89.1.1
+    MAC 00:1a:a1:89:01:01
+}
+
+// INSTRUCTION: Define OSPF backbone router B signaling Neighbor Signaled Session Down (DIAG 3).
+HOST ospf_bfd_rtr_b {
+    IP 10.89.1.2
+    MAC 00:1a:a1:89:01:02
+}
+
+// INSTRUCTION: Define BFD Up maintenance followed by DIAG 3 teardown notification.
+FLOW bfd_ospf_teardown_flow(a, b) {
+    a -> b BFD STATE 3 DIAG 0 MY_DISC 8901 YOUR_DISC 8902 MIN_TX 50000 MIN_RX 50000 MULT 3 DSCP 48 TTL 255 WAIT 20ms
+    a <- b BFD STATE 1 DIAG 1 MY_DISC 8902 YOUR_DISC 8901 MIN_TX 1000000 MIN_RX 1000000 MULT 3 DSCP 48 TTL 255 WAIT 5ms
+    a -> b BFD STATE 1 DIAG 3 MY_DISC 8901 YOUR_DISC 0 MIN_TX 1000000 MIN_RX 1000000 MULT 3 DSCP 48 TTL 255
+}
+
+// INSTRUCTION: Compile the OSPF-coupled BFD neighbor teardown flow.
+COMPILE {
+    bfd_ospf_teardown_flow(ospf_bfd_rtr_a, ospf_bfd_rtr_b)
+}

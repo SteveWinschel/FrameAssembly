@@ -1,0 +1,26 @@
+// PROMPT: Create a PTPv2 Boundary Clock cascade where a spine switch grandmaster synchronizes a leaf switch on Domain 1.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, ANNOUNCE, DOMAIN, SEQ_ID, CLOCK_ID, WAIT, SYNC, FOLLOW_UP, COMPILE
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
+HOST ptp_grandmaster {
+    IP 10.250.1.1
+    MAC 00:1b:21:31:90:01
+}
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
+HOST ptp_slave_clock {
+    IP 10.250.1.2
+    MAC 00:1b:21:31:90:25
+}
+
+// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
+FLOW ptp_scenario_flow(gm, slv) {
+    gm -> slv PTP ANNOUNCE DOMAIN 1 SEQ_ID 301 CLOCK_ID "00163efffe010001" WAIT 2ms
+    gm -> slv PTP SYNC DOMAIN 1 SEQ_ID 301 CLOCK_ID "00163efffe010001" WAIT 1ms
+    gm -> slv PTP FOLLOW_UP DOMAIN 1 SEQ_ID 301 CLOCK_ID "00163efffe010001"
+}
+
+// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
+COMPILE {
+    ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
+}

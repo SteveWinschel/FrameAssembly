@@ -1,5 +1,5 @@
 // PROMPT: VRRP failover advertisement with virtual IP and preemption priority.
-// TOKENS: HOST, IP, FLOW, ->, VRRP, VRID, PRIORITY, VIP, COMPILE
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, VIP, COMPILE
 
 // INSTRUCTION: Define backup gateway assuming master state upon failover.
 HOST backup_assuming_master { IP 10.0.0.253 }

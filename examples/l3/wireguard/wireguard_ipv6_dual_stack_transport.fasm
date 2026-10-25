@@ -1,5 +1,5 @@
 // PROMPT: WireGuard VPN session running over IPv6 transport exchanging Handshake Initiation and Response packets.
-// TOKENS: HOST, IP, FLOW, ->, <-, WIREGUARD, TYPE, INITIATION, RESPONSE, DATA, SENDER, RECEIVER, COUNTER, COMPILE
+// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, INITIATION, SENDER, RESPONSE, RECEIVER, DATA, COUNTER, COMPILE
 
 // INSTRUCTION: Define IPv6 WireGuard client peer.
 HOST wg_v6_client { IP 2001:db8:beef:1::10 }

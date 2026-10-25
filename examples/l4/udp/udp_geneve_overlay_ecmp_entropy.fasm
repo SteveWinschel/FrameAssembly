@@ -1,0 +1,26 @@
+// PROMPT: GENEVE network virtualization overlay encapsulated in UDP port 6081 with entropy source port hashing.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, UDP, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Kubernetes OVN-Kubernetes hypervisor chassis A.
+HOST ovn_chassis_a {
+    IP 10.244.0.11
+    MAC 52:54:00:f4:00:0b
+}
+
+// INSTRUCTION: Define Kubernetes OVN-Kubernetes hypervisor chassis B.
+HOST ovn_chassis_b {
+    IP 10.244.0.12
+    MAC 52:54:00:f4:00:0c
+}
+
+// INSTRUCTION: Define UDP port 6081 GENEVE tunnel frames with distinct entropy source ports for ECMP spreading.
+FLOW udp_geneve_ecmp_entropy(a, b) {
+    a -> b DSCP 18 UDP SRCPORT 58101 DSTPORT 6081 HEXPAYLOAD "02006558000101000108018000010002"
+    a -> b DSCP 18 UDP SRCPORT 61204 DSTPORT 6081 HEXPAYLOAD "02006558000101000108018000010003" WAIT 1ms
+    a <- b DSCP 18 UDP SRCPORT 59333 DSTPORT 6081 HEXPAYLOAD "02006558000101000108018000020001" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing UDP 6081 GENEVE overlay encapsulation.
+COMPILE {
+    udp_geneve_ecmp_entropy(ovn_chassis_a, ovn_chassis_b)
+}

@@ -1,0 +1,25 @@
+// PROMPT: FTP server rejecting new control sessions under maintenance load with code 421 Service not available.
+// TOKENS: HOST, IP, MAC, FLOW, FTP, CODE, REPLY, CMD, COMPILE
+
+// INSTRUCTION: Define external partner FTP client attempting connection during maintenance window.
+HOST partner_client {
+    IP 198.51.100.45
+    MAC 00:1b:17:64:00:2d
+}
+
+// INSTRUCTION: Define enterprise DMZ FTP gateway undergoing maintenance drain.
+HOST dmz_ftp_gw {
+    IP 198.51.100.1
+    MAC 00:1b:17:64:00:01
+}
+
+// INSTRUCTION: Return code 421 maintenance rejection upon USER authentication attempt.
+FLOW ftp_err_421_drain(c, s) {
+    c <- s FTP CODE 421 REPLY "Service not available, closing control connection"
+    c -> s FTP CMD "QUIT"
+}
+
+// INSTRUCTION: Compile the FTP 421 service unavailable maintenance rejection scenario.
+COMPILE {
+    ftp_err_421_drain(partner_client, dmz_ftp_gw)
+}

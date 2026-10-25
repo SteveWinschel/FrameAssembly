@@ -1,0 +1,25 @@
+// PROMPT: RFC 4106 / RFC 4303 IPsec ESP tunnel using AES-256-GCM with an explicit 8-byte nonce IV and 16-byte AEAD authentication tag.
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Cloud VPC VPN Gateway encrypting site-to-site tunnel traffic with AES-GCM.
+HOST vpc_gcm_gw {
+    IP 198.51.100.10
+    MAC 00:1b:21:50:10:01
+}
+
+// INSTRUCTION: Define on-premises Data Center Firewall terminating AES-GCM ESP Security Association.
+HOST onprem_gcm_fw {
+    IP 203.0.113.20
+    MAC 00:1b:21:50:20:02
+}
+
+// INSTRUCTION: Define bidirectional ESP tunnel mode (NEXT_HEADER 4) with 8B IV and 16B AEAD ICV.
+FLOW esp_aes_gcm_tunnel_flow(vpc, onprem) {
+    vpc -> onprem ESP SPI 410601 SEQ 1 IV "00000001a1b2c3d4" ICV "102030405060708090a0b0c0d0e0f001" NEXT_HEADER 4 DF DSCP 34 TTL 64 PAYLOAD "AES256_GCM_CIPHERTEXT_BLOCK_1" WAIT 5ms
+    vpc <- onprem ESP SPI 410602 SEQ 1 IV "00000001d4c3b2a1" ICV "01f0e0d0c0b0a0908070605040302010" NEXT_HEADER 4 DF DSCP 34 TTL 64 PAYLOAD "AES256_GCM_CIPHERTEXT_BLOCK_2"
+}
+
+// INSTRUCTION: Compile the RFC 4106 AES-GCM IPsec ESP tunnel mode flow.
+COMPILE {
+    esp_aes_gcm_tunnel_flow(vpc_gcm_gw, onprem_gcm_fw)
+}

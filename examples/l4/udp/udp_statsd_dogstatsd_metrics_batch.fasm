@@ -1,0 +1,20 @@
+// PROMPT: DogStatsD / StatsD application telemetry counter, gauge, and histogram batch export over UDP port 8125.
+// TOKENS: HOST, IP, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define checkout microservice pod emitting non-blocking StatsD UDP datagrams.
+HOST checkout_svc_pod { IP 10.244.3.45 }
+
+// INSTRUCTION: Define node-local Datadog / StatsD telemetry agent on UDP port 8125.
+HOST statsd_daemon { IP 10.244.3.1 }
+
+// INSTRUCTION: Define multi-metric StatsD UDP datagrams reporting request latency and error counts.
+FLOW udp_statsd_telemetry(app, agent) {
+    app -> agent UDP SRCPORT 55120 DSTPORT 8125 PAYLOAD "checkout.requests:1|c|#env:prod,region:us-east"
+    app -> agent UDP SRCPORT 55120 DSTPORT 8125 PAYLOAD "checkout.latency_ms:42.7|h|#env:prod,payment:stripe" WAIT 1ms
+    app -> agent UDP SRCPORT 55120 DSTPORT 8125 PAYLOAD "checkout.queue_depth:18|g|#env:prod" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing StatsD UDP port 8125 metrics export.
+COMPILE {
+    udp_statsd_telemetry(checkout_svc_pod, statsd_daemon)
+}

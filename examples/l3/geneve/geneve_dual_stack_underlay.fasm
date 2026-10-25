@@ -1,5 +1,5 @@
 // PROMPT: GENEVE network virtualization tunnel established over IPv6 transport endpoints.
-// TOKENS: HOST, IP, FLOW, ->, GENEVE, VNI, COMPILE
+// TOKENS: HOST, IP, FLOW, GENEVE, VNI, COMPILE
 
 // INSTRUCTION: Define IPv6 GENEVE tunnel endpoint A.
 HOST geneve_v6_a { IP 2001:db8:9000::1 }

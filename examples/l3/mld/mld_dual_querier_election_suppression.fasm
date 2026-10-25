@@ -1,0 +1,18 @@
+// PROMPT: Secondary querier observing higher priority querier General Query.
+// TOKENS: HOST, IP, FLOW, MLD, QUERY, MAX_RESP_DELAY, COMPILE
+
+// INSTRUCTION: Define primary querier with lower numerical IP address.
+HOST primary_querier { IP fe80::1 }
+
+// INSTRUCTION: Define link-local all-nodes group including secondary querier.
+HOST all_nodes_link { IP ff02::1 }
+
+// INSTRUCTION: Define querier announcement query asserting active role.
+FLOW querier_election_flow(p_q, nodes) {
+    p_q -> nodes MLD QUERY MAX_RESP_DELAY 10000
+}
+
+// INSTRUCTION: Compile block executing querier election query.
+COMPILE {
+    querier_election_flow(primary_querier, all_nodes_link)
+}

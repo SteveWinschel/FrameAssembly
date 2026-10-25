@@ -1,0 +1,20 @@
+// PROMPT: BFD asymmetric timer negotiation between fast hardware router and slower software peer.
+// TOKENS: HOST, IP, FLOW, BFD, STATE, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, COMPILE
+
+// INSTRUCTION: Define hardware ASIC router capable of 3.3ms intervals.
+HOST hw_asic_rtr { IP 10.77.0.1 }
+
+// INSTRUCTION: Define virtualized software router requiring 250ms minimum RX interval.
+HOST sw_vrouter { IP 10.77.0.2 }
+
+// INSTRUCTION: Define asymmetric BFD timer advertisement and adaptation.
+FLOW bfd_asymmetric_timers(hw, sw) {
+    hw -> sw BFD STATE 3 MY_DISC 6001 YOUR_DISC 6002 MIN_TX 3300 MIN_RX 3300 MULT 3
+    hw <- sw BFD STATE 3 MY_DISC 6002 YOUR_DISC 6001 MIN_TX 250000 MIN_RX 250000 MULT 5
+    hw -> sw BFD STATE 3 MY_DISC 6001 YOUR_DISC 6002 MIN_TX 250000 MIN_RX 3300 MULT 3
+}
+
+// INSTRUCTION: Compile the asymmetric BFD timer negotiation flow.
+COMPILE {
+    bfd_asymmetric_timers(hw_asic_rtr, sw_vrouter)
+}

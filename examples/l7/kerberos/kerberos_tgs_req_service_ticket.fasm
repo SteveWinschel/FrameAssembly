@@ -1,5 +1,5 @@
 // PROMPT: Kerberos TGS_REQ requesting service ticket for LDAP server access over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, KERBEROS, TGS_REQ, REALM, SNAME, ETYPE, COMPILE
+// TOKENS: HOST, IP, FLOW, KERBEROS, TGS_REQ, REALM, SNAME, ETYPE, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::100 }

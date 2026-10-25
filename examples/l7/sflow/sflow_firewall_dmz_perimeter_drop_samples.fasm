@@ -1,0 +1,25 @@
+// PROMPT: sFlow v5 dropped-packet notification samples exported from a perimeter DMZ switch to a SIEM.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define DMZ perimeter switch monitoring ACL drop counters.
+HOST dmz_perim_sw {
+    IP 10.199.1.1
+    MAC 00:1b:17:c7:01:01
+}
+
+// INSTRUCTION: Define security information and event management sFlow collector.
+HOST siem_sflow_col {
+    IP 10.199.1.200
+    MAC 00:1b:17:c7:01:c8
+}
+
+// INSTRUCTION: Export sFlow datagrams reporting dropped ingress packets across two interfaces.
+FLOW sflow_dmz_drops(sw, siem) {
+    sw -> siem SFLOW AGENT_IP 10.199.1.1 SUB_AGENT_ID 21 UPTIME 810000 SAMPLES 15 VLAN 199 PCP 5 DEI 0
+    sw -> siem SFLOW AGENT_IP 10.199.1.1 SUB_AGENT_ID 22 UPTIME 810050 SAMPLES 19 VLAN 199 PCP 5 DEI 0
+}
+
+// INSTRUCTION: Compile the DMZ perimeter dropped-packet sFlow scenario.
+COMPILE {
+    sflow_dmz_drops(dmz_perim_sw, siem_sflow_col)
+}

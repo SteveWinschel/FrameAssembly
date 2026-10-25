@@ -1,5 +1,5 @@
 // PROMPT: Service provider BGP/MPLS IP VPN routing between Customer Edge (CE) and Provider Edge (PE) routers.
-// TOKENS: HOST, IP, FLOW, ->, MPLS, EXP, BOS, MPLS_TTL, BGP, OPEN, ASN, HOLDTIME, BGPID, COMPILE
+// TOKENS: HOST, IP, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, MPLS, EXP, BOS, MPLS_TTL, COMPILE
 
 // INSTRUCTION: Define customer edge router.
 HOST ce_router { IP 192.168.10.1 }

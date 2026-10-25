@@ -1,0 +1,23 @@
+// PROMPT: SCReAM / RMCAT congestion-controlled interactive video RTP stream with ECN markings.
+// TOKENS: HOST, IP, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, DSCP, ECN, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define remote drone FPV video transmitter.
+HOST drone_tx {
+    IP 10.72.9.20
+}
+
+// INSTRUCTION: Define ground control station video receiver.
+HOST ground_rx {
+    IP 10.72.9.1
+}
+
+// INSTRUCTION: Define ECT(0) (ECN 2) and Congestion Experienced (ECN 3) RTP video packets.
+FLOW rtp_ecn_video(tx, rx) {
+    tx -> rx RTP PT 96 SEQ 9000 TIMESTAMP 450000 SSRC 0xd804e001 MARKER 0 DSCP 34 ECN 2 PAYLOAD "FPV_SLICE_ECT0" WAIT 4ms
+    tx -> rx RTP PT 96 SEQ 9001 TIMESTAMP 450000 SSRC 0xd804e001 MARKER 1 DSCP 34 ECN 3 PAYLOAD "FPV_SLICE_CE_MARKED"
+}
+
+// INSTRUCTION: Compile the ECN congestion-marked RTP video scenario.
+COMPILE {
+    rtp_ecn_video(drone_tx, ground_rx)
+}

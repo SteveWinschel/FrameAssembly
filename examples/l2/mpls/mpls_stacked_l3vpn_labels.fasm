@@ -1,5 +1,5 @@
 // PROMPT: MPLS L3VPN provider edge transport with high-priority experimental class bits.
-// TOKENS: HOST, IP, FLOW, ->, MPLS, EXP, BOS, MPLS_TTL, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, MPLS, EXP, BOS, MPLS_TTL, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define ingress provider edge router.
 HOST pe_ingress { IP 172.16.0.1 }

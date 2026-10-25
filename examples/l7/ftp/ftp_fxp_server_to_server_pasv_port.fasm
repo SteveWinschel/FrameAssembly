@@ -1,0 +1,31 @@
+// PROMPT: File eXchange Protocol (FXP) controller orchestrating direct server-to-server FTP transfer via PASV and PORT.
+// TOKENS: HOST, IP, FLOW, FTP, CMD, CODE, REPLY, ARG, COMPILE
+
+// INSTRUCTION: Define FXP orchestration workstation controlling two FTP servers.
+HOST fxp_controller { IP 10.70.21.100 }
+
+// INSTRUCTION: Define source FTP server A.
+HOST ftp_source_a { IP 10.70.21.10 }
+
+// INSTRUCTION: Define destination FTP server B.
+HOST ftp_dest_b { IP 10.70.21.20 }
+
+// INSTRUCTION: Place server B in PASV mode and instruct server A to connect via PORT.
+FLOW fxp_pasv_setup(ctrl, srv_b) {
+    ctrl -> srv_b FTP CMD "PASV"
+    ctrl <- srv_b FTP CODE 227 REPLY "Entering Passive Mode (10,70,21,20,200,10)"
+    ctrl -> srv_b FTP CMD "STOR" ARG "dataset-replica.tar"
+}
+
+// INSTRUCTION: Instruct source server A to push the file directly to server B passive port.
+FLOW fxp_port_trigger(ctrl, srv_a) {
+    ctrl -> srv_a FTP CMD "PORT" ARG "10,70,21,20,200,10"
+    ctrl <- srv_a FTP CODE 200 REPLY "PORT command successful"
+    ctrl -> srv_a FTP CMD "RETR" ARG "dataset-replica.tar"
+}
+
+// INSTRUCTION: Compile the two-server FXP orchestration scenario.
+COMPILE {
+    fxp_pasv_setup(fxp_controller, ftp_dest_b)
+    fxp_port_trigger(fxp_controller, ftp_source_a)
+}

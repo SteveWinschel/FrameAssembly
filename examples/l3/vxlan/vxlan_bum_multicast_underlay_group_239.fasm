@@ -1,0 +1,25 @@
+// PROMPT: RFC 7348 Section 4.2 VXLAN Broadcast, Unknown-Unicast, and Multicast (BUM) frame replicated over underlay group 239.1.1.100.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, DF, DSCP, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define source VTEP encapsulating an inner broadcast ARP request into underlay multicast 239.1.1.100.
+HOST vtep_bum_source {
+    IP 10.250.10.11
+    MAC 00:1c:73:fa:10:0b
+}
+
+// INSTRUCTION: Define underlay multicast group 239.1.1.100 mapped to VNI 10100.
+HOST vxlan_mcast_239 {
+    IP 239.1.1.100
+    MAC 01:00:5e:01:01:64
+}
+
+// INSTRUCTION: Define VXLAN multicast underlay flood on VNI 10100 with inner broadcast Ethernet header.
+FLOW vxlan_bum_mcast_flood(src, mcast) {
+    src -> mcast VXLAN VNI 10100 SRCPORT 50100 DSTPORT 4789 DF DSCP 8 TTL 64 HEXPAYLOAD "ffffffffffff00163e10000108060001080006040001" WAIT 5ms
+    src -> mcast VXLAN VNI 10100 SRCPORT 50101 DSTPORT 4789 DF DSCP 8 TTL 64 HEXPAYLOAD "ffffffffffff00163e10000208004500002012340000"
+}
+
+// INSTRUCTION: Compile the RFC 7348 VXLAN BUM underlay multicast replication flow.
+COMPILE {
+    vxlan_bum_mcast_flood(vtep_bum_source, vxlan_mcast_239)
+}

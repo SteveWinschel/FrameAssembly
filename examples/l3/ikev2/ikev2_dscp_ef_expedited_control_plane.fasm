@@ -1,0 +1,18 @@
+// PROMPT: IKEv2 handshake packets prioritized with Expedited Forwarding (DSCP 46 EF) and TTL 64.
+// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, SA_INIT, MSGID, DSCP, TTL, COMPILE
+
+// INSTRUCTION: Define emergency services VPN gateway.
+HOST emergency_gw { IP 192.168.188.1 }
+
+// INSTRUCTION: Define dispatch center VPN responder.
+HOST dispatch_center { IP 192.168.188.2 }
+
+// INSTRUCTION: Define QoS prioritized IKEv2 negotiation flow with DSCP 46 (EF).
+FLOW ikev2_qos_flow(gw, dc) {
+    gw -> dc IKEV2 INITIATOR_SPI 6677889900112233 RESPONDER_SPI 0 SA_INIT MSGID 0 DSCP 46 TTL 64
+}
+
+// INSTRUCTION: Compile block executing expedited forwarding IKEv2 frame.
+COMPILE {
+    ikev2_qos_flow(emergency_gw, dispatch_center)
+}

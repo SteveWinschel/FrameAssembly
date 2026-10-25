@@ -1,0 +1,24 @@
+// PROMPT: Dual-stack IPv4 and IPv6 RADIUS authentication and Framed-IP assignment.
+// TOKENS: HOST, IP, FLOW, RADIUS, ACCESS_REQUEST, USER, NAS_IP, SERVICE_TYPE, DSCP, TTL, FLOWLABEL, ACCESS_ACCEPT, FRAMED_IP, COMPILE
+
+// INSTRUCTION: Define IPv4 NAS and RADIUS server.
+HOST nas_v4 { IP 10.181.2.10 }
+// INSTRUCTION: Define IPv4 RADIUS AAA endpoint.
+HOST rad_v4 { IP 10.181.2.1 }
+
+// INSTRUCTION: Define IPv6 NAS and RADIUS server.
+HOST nas_v6 { IP 2001:db8:1812::10 }
+// INSTRUCTION: Define IPv6 RADIUS AAA endpoint.
+HOST rad_v6 { IP 2001:db8:1812::1 }
+
+// INSTRUCTION: Define polymorphic RADIUS authentication exchange.
+FLOW radius_dual_stack(nas, aaa) {
+    nas -> aaa RADIUS ACCESS_REQUEST USER "netops_dual" NAS_IP 10.181.2.10 SERVICE_TYPE 6 DSCP 48 TTL 64 FLOWLABEL 0x18120
+    nas <- aaa RADIUS ACCESS_ACCEPT USER "netops_dual" FRAMED_IP 10.181.99.50 SERVICE_TYPE 6 DSCP 48 TTL 64 FLOWLABEL 0x18120
+}
+
+// INSTRUCTION: Compile dual-stack RADIUS flow over IPv4 and IPv6.
+COMPILE {
+    radius_dual_stack(nas_v4, rad_v4)
+    radius_dual_stack(nas_v6, rad_v6)
+}

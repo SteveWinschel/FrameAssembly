@@ -1,0 +1,18 @@
+// PROMPT: OpenFlow datapath forwarding unhandled frame to controller via PACKET_IN message.
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, PACKET_IN, XID, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define edge access switch datapath.
+HOST edge_access_sw { IP 172.16.20.2 }
+
+// INSTRUCTION: Define cloud-native SDN controller.
+HOST cloud_sdn_ctrl { IP 172.16.20.1 }
+
+// INSTRUCTION: Define PACKET_IN notification carrying buffer miss payload.
+FLOW of_packet_in_flow(sw, ctrl) {
+    sw -> ctrl OPENFLOW TYPE PACKET_IN XID 2001 PAYLOAD "BUFFER_TABLE_MISS_RAW_FRAME"
+}
+
+// INSTRUCTION: Compile block executing PACKET_IN event.
+COMPILE {
+    of_packet_in_flow(edge_access_sw, cloud_sdn_ctrl)
+}

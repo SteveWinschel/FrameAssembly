@@ -1,0 +1,19 @@
+// PROMPT: DNS REFUSED (RCODE 5) response when an external host attempts unauthorized recursion.
+// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, RESPONSE, RCODE, COMPILE
+
+// INSTRUCTION: Define external scanner host.
+HOST ext_scanner { IP 198.51.100.77 }
+
+// INSTRUCTION: Define authoritative-only nameserver refusing recursion.
+HOST auth_ns { IP 203.0.113.53 }
+
+// INSTRUCTION: Send recursive query and receive RCODE 5 (REFUSED).
+FLOW dns_refused_recursion(e, a) {
+    e -> a DNS QUERY TXID 0xdead QNAME "google.com" QTYPE "A"
+    e <- a DNS RESPONSE TXID 0xdead QNAME "google.com" QTYPE "A" RCODE 5
+}
+
+// INSTRUCTION: Compile the DNS RCODE 5 REFUSED scenario.
+COMPILE {
+    dns_refused_recursion(ext_scanner, auth_ns)
+}

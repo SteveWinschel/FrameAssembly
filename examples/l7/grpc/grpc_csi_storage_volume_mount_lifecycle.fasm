@@ -1,0 +1,27 @@
+// PROMPT: Container Storage Interface (CSI) controller invoking NodeStageVolume and NodePublishVolume over gRPC.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, PAYLOAD, GRPC_STATUS, COMPILE
+
+// INSTRUCTION: Define Kubernetes CSI sidecar provisioner pod.
+HOST csi_provisioner {
+    IP 10.244.8.10
+    MAC 02:42:0a:f4:08:0a
+}
+
+// INSTRUCTION: Define Ceph RBD CSI driver gRPC plugin pod.
+HOST ceph_csi_plugin {
+    IP 10.244.8.20
+    MAC 02:42:0a:f4:08:14
+}
+
+// INSTRUCTION: Stage block device via NodeStageVolume and bind mount via NodePublishVolume.
+FLOW grpc_csi_volume_attach(prov, plugin) {
+    prov -> plugin GRPC SERVICE "csi.v1.Node" METHOD "NodeStageVolume" PAYLOAD "vol_id=pvc-8821"
+    prov <- plugin GRPC SERVICE "csi.v1.Node" METHOD "NodeStageVolume" GRPC_STATUS 0
+    prov -> plugin GRPC SERVICE "csi.v1.Node" METHOD "NodePublishVolume" PAYLOAD "target=/var/lib/kubelet/pods"
+    prov <- plugin GRPC SERVICE "csi.v1.Node" METHOD "NodePublishVolume" GRPC_STATUS 0
+}
+
+// INSTRUCTION: Compile the CSI storage volume mount gRPC lifecycle scenario.
+COMPILE {
+    grpc_csi_volume_attach(csi_provisioner, ceph_csi_plugin)
+}

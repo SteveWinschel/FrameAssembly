@@ -1,0 +1,20 @@
+// PROMPT: BFD session signaling Diag 4 (Forwarding Plane Reset) during linecard reload.
+// TOKENS: HOST, IP, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, COMPILE
+
+// INSTRUCTION: Define modular chassis router undergoing linecard reset.
+HOST chassis_rtr_1 { IP 172.16.200.1 }
+
+// INSTRUCTION: Define peer router detecting forwarding plane reset diagnostic.
+HOST chassis_rtr_2 { IP 172.16.200.2 }
+
+// INSTRUCTION: Define BFD transition to Down (1) with Diag 4 (Forwarding Plane Reset).
+FLOW bfd_fp_reset_flow(r1, r2) {
+    r1 -> r2 BFD STATE 1 DIAG 4 MY_DISC 15001 YOUR_DISC 15002 MIN_TX 1000000 MIN_RX 1000000 MULT 3
+    r1 <- r2 BFD STATE 2 DIAG 3 MY_DISC 15002 YOUR_DISC 15001 MIN_TX 100000 MIN_RX 100000 MULT 3
+    r1 -> r2 BFD STATE 3 DIAG 0 MY_DISC 15001 YOUR_DISC 15002 MIN_TX 100000 MIN_RX 100000 MULT 3
+}
+
+// INSTRUCTION: Compile the BFD forwarding plane reset recovery flow.
+COMPILE {
+    bfd_fp_reset_flow(chassis_rtr_1, chassis_rtr_2)
+}

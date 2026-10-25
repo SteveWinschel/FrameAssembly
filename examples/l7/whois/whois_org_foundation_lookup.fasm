@@ -1,0 +1,21 @@
+// PROMPT: Public interest foundation domain lookup query for open source project.
+// TOKENS: HOST, IP, FLOW, WHOIS, QUERY, DOMAIN, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define developer audit client.
+HOST dev_audit { IP 192.168.10.45 }
+
+// INSTRUCTION: Define Public Interest Registry ORG server.
+HOST org_registry { IP 199.19.56.1 }
+
+// INSTRUCTION: Define foundation domain WHOIS lookup flow.
+FLOW whois_org_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "opensourcesoftware.org"
+    c <- s WHOIS RESPONSE
+        DOMAIN "opensourcesoftware.org"
+        REGISTRAR "Public Interest Registry"
+}
+
+// INSTRUCTION: Compile block executing ORG domain query.
+COMPILE {
+    whois_org_flow(dev_audit, org_registry)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Multicast endpoint declaration with explicit MAC override taking precedence over auto-derivation.
-// TOKENS: HOST, IP, MAC, FLOW, ->, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define unicast sender host.
 HOST custom_sender { IP 192.168.1.100 }

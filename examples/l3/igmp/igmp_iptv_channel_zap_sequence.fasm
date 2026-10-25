@@ -1,0 +1,20 @@
+// PROMPT: IPTV set-top box channel zapping leaving channel 239.1.1.1 and joining channel 239.1.1.2.
+// TOKENS: HOST, IP, MAC, FLOW, IGMP, LEAVE, GROUP, TTL, REPORT, WAIT, COMPILE
+
+// INSTRUCTION: Define residential IPTV set-top box.
+HOST iptv_stb_livingroom { IP 192.168.100.42 MAC 00:09:df:aa:bb:42 }
+
+// INSTRUCTION: Define home gateway IGMP proxy.
+HOST home_gw_igmp_proxy { IP 192.168.100.1 MAC 00:09:df:aa:bb:01 }
+
+// INSTRUCTION: Define IPTV channel zap leaving old multicast stream and immediately reporting new group.
+FLOW iptv_channel_zap(stb, gw) {
+    stb -> gw IGMP LEAVE GROUP 239.1.1.1 TTL 1
+    stb -> gw IGMP REPORT GROUP 239.1.1.2 TTL 1 WAIT 2ms
+    stb -> gw IGMP REPORT GROUP 239.1.1.2 TTL 1 WAIT 20ms
+}
+
+// INSTRUCTION: Compile the IPTV set-top box channel zap flow.
+COMPILE {
+    iptv_channel_zap(iptv_stb_livingroom, home_gw_igmp_proxy)
+}

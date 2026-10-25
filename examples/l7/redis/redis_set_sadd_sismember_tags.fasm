@@ -1,0 +1,29 @@
+// PROMPT: Redis Set operations SADD, SISMEMBER, and SCARD for real-time user permission role checks.
+// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the authorization microservice host.
+HOST authz_service {
+    IP 10.80.10.30
+    MAC 00:1a:2b:80:10:30
+}
+
+// INSTRUCTION: Define the Redis permissions cache node.
+HOST perm_redis {
+    IP 10.80.10.10
+    MAC 00:1a:2b:80:10:10
+}
+
+// INSTRUCTION: Add roles to user set, check membership with SISMEMBER, and query cardinality.
+FLOW redis_role_set(c, s) {
+    c -> s REDIS CMD "SADD" ARGS "user:8812:roles billing_admin audit_viewer"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "2" WAIT 1ms
+    c -> s REDIS CMD "SISMEMBER" ARGS "user:8812:roles billing_admin"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "1" WAIT 1ms
+    c -> s REDIS CMD "SCARD" ARGS "user:8812:roles"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "2"
+}
+
+// INSTRUCTION: Compile the Redis Set permission verification flow.
+COMPILE {
+    redis_role_set(authz_service, perm_redis)
+}

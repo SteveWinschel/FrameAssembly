@@ -1,0 +1,29 @@
+// PROMPT: IBM z/OS mainframe FTP job submission using TYPE E (EBCDIC) and SITE FILETYPE=JES before STOR.
+// TOKENS: HOST, IP, MAC, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define enterprise batch scheduler submitting JCL jobs to a mainframe.
+HOST batch_scheduler {
+    IP 10.10.21.50
+    MAC 00:14:5e:0a:15:32
+}
+
+// INSTRUCTION: Define IBM z/OS mainframe FTP server listener.
+HOST zos_mainframe {
+    IP 10.10.21.1
+    MAC 00:14:5e:0a:15:01
+}
+
+// INSTRUCTION: Configure EBCDIC type and JES job queue mode via SITE before submitting JCL.
+FLOW ftp_mainframe_jes(c, s) {
+    c -> s FTP CMD "TYPE" ARG "E"
+    c <- s FTP CODE 200 REPLY "Representation type is Ebcdic"
+    c -> s FTP CMD "SITE" ARG "FILETYPE=JES"
+    c <- s FTP CODE 200 REPLY "SITE command was accepted"
+    c -> s FTP CMD "STOR" ARG "PAYROLL.JCL"
+    c <- s FTP CODE 250 REPLY "It is known to JES as JOB04912"
+}
+
+// INSTRUCTION: Compile the mainframe EBCDIC JES job submission FTP scenario.
+COMPILE {
+    ftp_mainframe_jes(batch_scheduler, zos_mainframe)
+}

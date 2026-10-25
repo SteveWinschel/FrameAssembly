@@ -1,0 +1,19 @@
+// PROMPT: Provider Edge (PE) and Customer Edge (CE) exchanging RIP routes across MPLS VPN.
+// TOKENS: HOST, IP, FLOW, RIP, REQUEST, MPLS, RESPONSE, PREFIX, METRIC, COMPILE
+
+// INSTRUCTION: Define Customer Edge (CE) router.
+HOST cust_edge_rtr { IP 10.10.10.2 }
+
+// INSTRUCTION: Define Provider Edge (PE) router.
+HOST prov_edge_rtr { IP 10.10.10.1 }
+
+// INSTRUCTION: Define MPLS VPN PE-CE RIP routing exchange flow.
+FLOW rip_mpls_pe_ce(ce, pe) {
+    ce -> pe RIP REQUEST MPLS 100
+    ce <- pe RIP RESPONSE PREFIX 10.0.0.0 METRIC 1 MPLS 100
+}
+
+// INSTRUCTION: Compile block executing MPLS PE-CE RIP exchange.
+COMPILE {
+    rip_mpls_pe_ce(cust_edge_rtr, prov_edge_rtr)
+}

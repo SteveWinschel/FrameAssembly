@@ -1,5 +1,5 @@
 // PROMPT: HTTP/1.1 GET request for web resource and server 200 OK response with body.
-// TOKENS: HOST, IP, FLOW, ->, <-, HTTP, METHOD, URI, HOST_HDR, STATUS, REASON, BODY, COMPILE
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, STATUS, REASON, BODY, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.50 }

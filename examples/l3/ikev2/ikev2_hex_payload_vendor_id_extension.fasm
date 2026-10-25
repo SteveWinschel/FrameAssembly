@@ -1,0 +1,18 @@
+// PROMPT: IKEv2 SA_INIT packet containing proprietary vendor ID extension in hex representation.
+// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, SA_INIT, MSGID, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define vendor appliance initiating tunnel.
+HOST vendor_appliance { IP 198.51.100.80 }
+
+// INSTRUCTION: Define vendor VPN gateway.
+HOST vendor_gateway { IP 198.51.100.1 }
+
+// INSTRUCTION: Define IKEv2 negotiation frame carrying 16-byte vendor ID hash in HEXPAYLOAD.
+FLOW ikev2_vendor_id_flow(app, gw) {
+    app -> gw IKEV2 INITIATOR_SPI 9876123456789012 RESPONDER_SPI 0 SA_INIT MSGID 0 HEXPAYLOAD "434953434f2d5544502d454e43415000"
+}
+
+// INSTRUCTION: Compile block executing vendor extension IKEv2 frame.
+COMPILE {
+    ikev2_vendor_id_flow(vendor_appliance, vendor_gateway)
+}

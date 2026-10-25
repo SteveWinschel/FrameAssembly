@@ -1,0 +1,20 @@
+// PROMPT: Periodic OpenFlow echo keepalive requests inside a COMPILE LOOP.
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, ECHO_REQ, XID, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define telemetry polling SDN controller.
+HOST stat_polling_ctrl { IP 172.31.10.1 }
+
+// INSTRUCTION: Define leaf switch datapath.
+HOST telemetry_leaf_sw { IP 172.31.10.22 }
+
+// INSTRUCTION: Define periodic echo polling transmission flow.
+FLOW of_echo_poll_flow(ctrl, sw) {
+    ctrl -> sw OPENFLOW TYPE ECHO_REQ XID 5050 WAIT 25ms
+}
+
+// INSTRUCTION: Compile loop executing 4 periodic echo polls.
+COMPILE {
+    LOOP 4 {
+        of_echo_poll_flow(stat_polling_ctrl, telemetry_leaf_sw)
+    }
+}

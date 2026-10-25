@@ -1,5 +1,5 @@
 // PROMPT: Simulate Apple Bonjour / Avahi Multicast DNS (mDNS) service discovery on 224.0.0.251 UDP port 5353.
-// TOKENS: HOST, IP, MAC, FLOW, ->, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define a workstation querying for local printers with IP 192.168.1.30.
 HOST mdns_querier { IP 192.168.1.30 MAC ac:de:48:00:11:22 }

@@ -1,0 +1,18 @@
+// PROMPT: IKEv2 SA_INIT packet specifying NEXT_PAYLOAD 33 (Security Association) and explicit SPIs.
+// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, SA_INIT, MSGID, NEXT_PAYLOAD, COMPILE
+
+// INSTRUCTION: Define security audit probe host.
+HOST sec_audit_probe { IP 10.130.5.50 }
+
+// INSTRUCTION: Define audited IPsec gateway.
+HOST audited_ipsec_gw { IP 10.130.5.1 }
+
+// INSTRUCTION: Define IKEv2 packet with explicit NEXT_PAYLOAD 33 header field.
+FLOW ikev2_next_payload_flow(src, gw) {
+    src -> gw IKEV2 INITIATOR_SPI 9081726354453627 RESPONDER_SPI 0 SA_INIT MSGID 0 NEXT_PAYLOAD 33
+}
+
+// INSTRUCTION: Compile block executing custom next-payload IKEv2 frame.
+COMPILE {
+    ikev2_next_payload_flow(sec_audit_probe, audited_ipsec_gw)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Demonstrate implicit default TRAP PDU encoding in SNMP1, SNMP2, and SNMP3 statements when the PDU type keyword is omitted.
-// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, SNMP2, SNMP3, COMMUNITY, USER, OID, SYSUPTIME, VARBIND, STRING, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, COMMUNITY, OID, SYSUPTIME, VARBIND, STRING, WAIT, SNMP2, SNMP3, USER, COMPILE
 
 // INSTRUCTION: Define a multi-version SNMP agent host with IP 10.137.0.5.
 HOST default_pdu_agent { IP 10.137.0.5 MAC 00:1a:2b:37:00:05 }

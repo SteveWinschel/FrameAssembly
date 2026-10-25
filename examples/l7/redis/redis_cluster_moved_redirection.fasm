@@ -1,0 +1,38 @@
+// PROMPT: Redis Cluster -MOVED hash slot redirection followed by client retry against the target shard node.
+// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, COMPILE
+
+// INSTRUCTION: Define the Redis Cluster client.
+HOST cluster_client {
+    IP 10.80.100.50
+    MAC 00:1a:2b:80:a0:50
+}
+
+// INSTRUCTION: Define Redis shard 1 (slots 0-5460).
+HOST redis_shard_1 {
+    IP 10.80.100.1
+    MAC 00:1a:2b:80:a0:01
+}
+
+// INSTRUCTION: Define Redis shard 2 (slots 5461-10922).
+HOST redis_shard_2 {
+    IP 10.80.100.2
+    MAC 00:1a:2b:80:a0:02
+}
+
+// INSTRUCTION: Query shard 1 for a key in slot 8192 and receive a MOVED error redirect.
+FLOW query_wrong_shard(c, s1) {
+    c -> s1 REDIS CMD "GET" ARGS "{account:409}:balance"
+    c <- s1 REDIS REPLY_TYPE "ERROR" VALUE "MOVED 8192 10.80.100.2:6379"
+}
+
+// INSTRUCTION: Follow the MOVED redirect and fetch the value from shard 2.
+FLOW query_right_shard(c, s2) {
+    c -> s2 REDIS CMD "GET" ARGS "{account:409}:balance"
+    c <- s2 REDIS REPLY_TYPE "BULK" VALUE "12500.00"
+}
+
+// INSTRUCTION: Compile both legs of the Redis Cluster MOVED redirection flow.
+COMPILE {
+    query_wrong_shard(cluster_client, redis_shard_1)
+    query_right_shard(cluster_client, redis_shard_2)
+}

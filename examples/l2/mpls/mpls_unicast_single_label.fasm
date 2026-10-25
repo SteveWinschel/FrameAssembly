@@ -1,5 +1,5 @@
 // PROMPT: Network WAN transport over single MPLS label stack with experimental bits and TTL.
-// TOKENS: HOST, IP, FLOW, ->, MPLS, EXP, BOS, MPLS_TTL, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, MPLS, EXP, BOS, MPLS_TTL, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define customer edge router CE1.
 HOST ce_router_1 { IP 10.10.0.1 }

@@ -1,0 +1,26 @@
+// PROMPT: RFC 5036 Label Distribution Protocol (LDP) targeted UDP discovery (port 646) and TCP session keepalive over MPLS core.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, UDP, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, MPLS, EXP, BOS, MPLS_TTL, TCP, PSH, ACK, SEQ, ACKNUM, WIN, COMPILE
+
+// INSTRUCTION: Define LSR A initiating targeted LDP discovery and session maintenance on port 646.
+HOST ldp_lsr_alpha {
+    IP 10.64.6.1
+    MAC 00:1c:73:40:06:01
+}
+
+// INSTRUCTION: Define remote LSR B responding to targeted LDP Hello and TCP 646 KeepAlive.
+HOST ldp_lsr_beta {
+    IP 10.64.6.2
+    MAC 00:1c:73:40:06:02
+}
+
+// INSTRUCTION: Exchange targeted LDP Hello over UDP 646 and LDP KeepAlive over TCP 646 with MPLS label 16006.
+FLOW mpls_ldp_session_sync(a, b) {
+    a -> b DSCP 48 UDP SRCPORT 646 DSTPORT 646 HEXPAYLOAD "0001001c010000140000000104000004000f8000" WAIT 5ms
+    a <- b DSCP 48 UDP SRCPORT 646 DSTPORT 646 HEXPAYLOAD "0001001c010000140000000204000004000f8000" WAIT 5ms
+    a -> b MPLS 16006 EXP 6 BOS 1 MPLS_TTL 64 DSCP 48 TCP PSH ACK SRCPORT 51646 DSTPORT 646 SEQ 1 ACKNUM 1 WIN 16384 HEXPAYLOAD "0001000a0201000400000001"
+}
+
+// INSTRUCTION: Compile the RFC 5036 LDP discovery and session keepalive trace.
+COMPILE {
+    mpls_ldp_session_sync(ldp_lsr_alpha, ldp_lsr_beta)
+}

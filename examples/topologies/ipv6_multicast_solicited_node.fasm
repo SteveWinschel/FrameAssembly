@@ -1,5 +1,5 @@
 // PROMPT: IPv6 solicited-node multicast transmission deriving RFC 2464 MAC 33:33:ff:00:12:34.
-// TOKENS: HOST, IP, FLOW, ->, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define soliciting host node.
 HOST solicit_sender { IP fe80::1 }

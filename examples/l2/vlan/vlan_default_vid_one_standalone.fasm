@@ -1,0 +1,24 @@
+// PROMPT: Default VLAN 1 management frame using zero-parameter VLAN keyword and standalone L2 payload.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define access switch management interface on default VLAN 1.
+HOST access_mgmt_sw {
+    IP 192.168.1.251
+    MAC 00:19:56:10:20:30
+}
+
+// INSTRUCTION: Define network management controller on default VLAN 1.
+HOST nms_collector {
+    IP 192.168.1.10
+    MAC 00:19:56:10:20:99
+}
+
+// INSTRUCTION: Define standalone default VLAN 1 frame with management keepalive payload.
+FLOW default_vlan_one(sw, nms) {
+    sw -> nms VLAN PAYLOAD "vlan1_native_keepalive_beacon"
+}
+
+// INSTRUCTION: Compile block executing default VLAN 1 frame generation.
+COMPILE {
+    default_vlan_one(access_mgmt_sw, nms_collector)
+}

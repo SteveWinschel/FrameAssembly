@@ -1,0 +1,18 @@
+// PROMPT: IPFIX elephant flow telemetry export reporting high-bandwidth TCP data transfer metrics.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define spine switch exporter.
+HOST spine_exporter { IP 172.16.47.1 }
+
+// INSTRUCTION: Define network analytics collector.
+HOST analytics_sink { IP 172.16.47.200 }
+
+// INSTRUCTION: Export TCP (Proto 6) elephant flow record with 250,000 packets and 360 MB octets.
+FLOW ipfix_elephant_flow(e, c) {
+    e -> c IPFIX DOMAIN_ID 10 SRCIP 10.100.1.50 DSTIP 10.200.2.50 PROTO 6 PACKETS 250000 OCTETS 360000000
+}
+
+// INSTRUCTION: Compile the IPFIX elephant flow export scenario.
+COMPILE {
+    ipfix_elephant_flow(spine_exporter, analytics_sink)
+}

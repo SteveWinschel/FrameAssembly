@@ -1,0 +1,29 @@
+// PROMPT: Model a security surveillance gateway broadcasting SSDP ssdp:alive and ssdp:update notifications on CCTV VLAN 70.
+// TOKENS: HOST, IP, MAC, FLOW, SSDP, NOTIFY, HOST_HDR, NT, NTS, USN, LOCATION, VLAN, PCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define the ONVIF/UPnP network video recorder appliance on VLAN 70.
+HOST nvr_appliance {
+    IP 10.70.0.10
+    MAC 00:40:8c:46:00:0a
+}
+
+// INSTRUCTION: Define the CCTV VLAN 70 SSDP multicast group.
+HOST cctv_ssdp_mcast {
+    IP 239.255.255.250
+    MAC 01:00:5e:7f:ff:fa
+}
+
+// INSTRUCTION: Broadcast initial ssdp:alive and subsequent ssdp:update announcements on VLAN 70.
+FLOW ssdp_nvr_cctv_announce(nvr, mcast) {
+    nvr -> mcast SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "urn:schemas-upnp-org:device:DigitalSecurityCamera:1"
+        NTS "ssdp:alive" USN "uuid:nvr-cam-bay01::urn:schemas-upnp-org:device:DigitalSecurityCamera:1"
+        LOCATION "http://10.70.0.10:8080/upnp/camera01.xml" VLAN 70 PCP 2 TTL 2 WAIT 25ms
+    nvr -> mcast SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "urn:schemas-upnp-org:device:DigitalSecurityCamera:1"
+        NTS "ssdp:update" USN "uuid:nvr-cam-bay01::urn:schemas-upnp-org:device:DigitalSecurityCamera:1"
+        LOCATION "http://10.70.0.10:8080/upnp/camera01.xml" VLAN 70 PCP 2 TTL 2
+}
+
+// INSTRUCTION: Compile the CCTV VLAN 70 SSDP camera advertisement flow.
+COMPILE {
+    ssdp_nvr_cctv_announce(nvr_appliance, cctv_ssdp_mcast)
+}

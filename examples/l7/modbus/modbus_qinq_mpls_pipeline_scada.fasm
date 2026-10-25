@@ -1,0 +1,25 @@
+// PROMPT: Build a wide-area pipeline SCADA Modbus telemetry flow encapsulated in QinQ 500/30 and MPLS label 72000.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TXID, UNITID, FUNC, ADDR, COUNT, QINQ, INNER_VLAN, MPLS, DSCP, TTL, WAIT, IS_RESPONSE, VALUE, COMPILE
+
+// INSTRUCTION: Define the central pipeline control center master station.
+HOST pipeline_mcc {
+    IP 10.210.1.10
+    MAC 00:50:56:d2:01:0a
+}
+
+// INSTRUCTION: Define the remote compressor station RTU across the utility MPLS network.
+HOST compressor_rtu {
+    IP 10.210.45.20
+    MAC 00:50:56:d2:2d:14
+}
+
+// INSTRUCTION: Poll suction and discharge pressure registers over QinQ 500/30 and MPLS label 72000.
+FLOW pipeline_qinq_mpls_modbus(c, s) {
+    c -> s MODBUS TXID 901 UNITID 1 FUNC "READ_HOLDING_REGISTERS" ADDR 300 COUNT 6 QINQ 500 INNER_VLAN 30 MPLS 72000 DSCP 46 TTL 58 WAIT 14ms
+    c <- s MODBUS TXID 901 UNITID 1 FUNC "READ_HOLDING_REGISTERS" IS_RESPONSE VALUE 1140 QINQ 500 INNER_VLAN 30 MPLS 72000 DSCP 46 TTL 58
+}
+
+// INSTRUCTION: Compile the QinQ and MPLS pipeline Modbus trace into a PCAP file.
+COMPILE {
+    pipeline_qinq_mpls_modbus(pipeline_mcc, compressor_rtu)
+}

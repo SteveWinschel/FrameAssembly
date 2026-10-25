@@ -1,0 +1,27 @@
+// PROMPT: BACnet/IP to DALI lighting gateway dimming command on Lighting Output object (Object Type 54).
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, WRITE_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, WAIT, READ_PROPERTY, COMPILE
+
+// INSTRUCTION: Define the smart building lighting controller host.
+HOST lighting_master {
+    IP 10.120.70.1
+    MAC 00:1a:2b:78:70:01
+}
+
+// INSTRUCTION: Define the floor 4 DALI-to-BACnet lighting gateway.
+HOST dali_gateway {
+    IP 10.120.70.40
+    MAC 00:1a:2b:78:70:40
+}
+
+// INSTRUCTION: Set conference room dimming level to 40% for presentation mode on Object Type 54 Instance 12.
+FLOW bacnet_dali_dimming(m, g) {
+    m -> g BACNET WRITE_PROPERTY INVOKE_ID 80 OBJECT_TYPE 54 OBJECT_INSTANCE 12 PROPERTY_ID 85 VALUE 40
+    m <- g BACNET WRITE_PROPERTY INVOKE_ID 80 OBJECT_TYPE 54 OBJECT_INSTANCE 12 PROPERTY_ID 85 VALUE 40 WAIT 1ms
+    m -> g BACNET READ_PROPERTY INVOKE_ID 81 OBJECT_TYPE 54 OBJECT_INSTANCE 12 PROPERTY_ID 85
+    m <- g BACNET READ_PROPERTY INVOKE_ID 81 OBJECT_TYPE 54 OBJECT_INSTANCE 12 PROPERTY_ID 85 VALUE 40
+}
+
+// INSTRUCTION: Compile the BACnet DALI lighting control flow.
+COMPILE {
+    bacnet_dali_dimming(lighting_master, dali_gateway)
+}

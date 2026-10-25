@@ -1,0 +1,19 @@
+// PROMPT: IPv6 Authentication Header session utilizing custom IPv6 Flow Labels and ECN markings.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, ICV, NEXT_HEADER, FLOWLABEL, DSCP, ECN, TTL, COMPILE
+
+// INSTRUCTION: Define IPv6 core security node Alpha.
+HOST v6_sec_alpha { IP 2001:db8:cafe:1::10 MAC 00:50:56:a1:00:01 }
+
+// INSTRUCTION: Define IPv6 core security node Omega.
+HOST v6_sec_omega { IP 2001:db8:cafe:1::20 MAC 00:50:56:a1:00:02 }
+
+// INSTRUCTION: Define IPv6 AH exchange with explicit Flow Label, DSCP, and ECN bits.
+FLOW ah_v6_flowlabel_session(alpha, omega) {
+    alpha -> omega AH SPI 512000 SEQ 11 ICV "deadbeefcafebabe01020304" NEXT_HEADER 58 FLOWLABEL 98304 DSCP 24 ECN 2 TTL 255
+    alpha <- omega AH SPI 512001 SEQ 11 ICV "04030201bebafecaefbeadde" NEXT_HEADER 58 FLOWLABEL 65535 DSCP 24 ECN 2 TTL 255
+}
+
+// INSTRUCTION: Compile the IPv6 Flow Label AH exchange.
+COMPILE {
+    ah_v6_flowlabel_session(v6_sec_alpha, v6_sec_omega)
+}

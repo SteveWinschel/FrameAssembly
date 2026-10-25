@@ -1,0 +1,21 @@
+// PROMPT: High-frequency 125us PTP Sync pulse train using COMPILE LOOP for sub-microsecond servo locking.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, CLOCK_ID, WAIT, FOLLOW_UP, COMPILE, LOOP
+
+// INSTRUCTION: Define HFT trading floor atomic grandmaster.
+HOST hft_gm { IP 10.1.158.1 MAC 00:0f:53:15:80:01 }
+
+// INSTRUCTION: Define matching engine server NIC clock.
+HOST match_engine { IP 10.1.158.10 MAC 00:0f:53:15:80:0a }
+
+// INSTRUCTION: Define rapid 125us Sync and Follow_Up pair.
+FLOW ptp_hft_pulse(gm, nic) {
+    gm -> nic PTP SYNC DOMAIN 10 SEQ_ID 77 CLOCK_ID "ATOMIC01" WAIT 125us
+    gm -> nic PTP FOLLOW_UP DOMAIN 10 SEQ_ID 77 CLOCK_ID "ATOMIC01" WAIT 125us
+}
+
+// INSTRUCTION: Execute 6 high-rate PTP sync cycles in COMPILE LOOP.
+COMPILE {
+    LOOP 6 {
+        ptp_hft_pulse(hft_gm, match_engine)
+    }
+}

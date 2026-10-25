@@ -1,0 +1,26 @@
+// PROMPT: Periodic 2-second RSTP Hello timer BPDU keepalive loop between redundant industrial ring switches.
+// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, HELLO_TIME, MAX_AGE, FORWARD_DELAY, FLAGS, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define industrial DIN-rail ring master switch.
+HOST ring_master_sw {
+    IP 192.168.150.1
+    MAC 00:80:63:96:00:01
+}
+
+// INSTRUCTION: Define industrial DIN-rail ring transit switch.
+HOST ring_transit_sw {
+    IP 192.168.150.2
+    MAC 00:80:63:96:00:02
+}
+
+// INSTRUCTION: Define RSTP Hello BPDU with fast industrial timers (Hello 1s, MaxAge 6s, ForwardDelay 4s).
+FLOW industrial_ring_hello(master, transit) {
+    master -> transit STP RSTP ROOT_ID "4096:00:80:63:96:00:01" BRIDGE_ID "4096:00:80:63:96:00:01" COST 0 PORT_ID 32769 HELLO_TIME 1 MAX_AGE 6 FORWARD_DELAY 4 FLAGS 60 WAIT 1s
+}
+
+// INSTRUCTION: Compile block transmitting 4 consecutive RSTP Hello BPDUs in a loop.
+COMPILE {
+    LOOP 4 {
+        industrial_ring_hello(ring_master_sw, ring_transit_sw)
+    }
+}

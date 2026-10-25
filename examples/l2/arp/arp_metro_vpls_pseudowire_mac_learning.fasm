@@ -1,0 +1,25 @@
+// PROMPT: Customer edge routers resolving next-hop MAC addresses across an MPLS VPLS pseudowire (Label 40500).
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, ARP, REQUEST, SENDERMAC, SENDERIP, TARGETIP, WAIT, REPLY, TARGETMAC, COMPILE
+
+// INSTRUCTION: Define site A customer edge router connected to Metro Ethernet VPLS service.
+HOST vpls_ce_site_a {
+    IP 172.31.100.1
+    MAC 00:1e:be:64:00:01
+}
+
+// INSTRUCTION: Define site B customer edge router reachable across MPLS VPLS pseudowire label 40500.
+HOST vpls_ce_site_b {
+    IP 172.31.100.2
+    MAC 00:1e:be:64:00:02
+}
+
+// INSTRUCTION: Encapsulate broadcast ARP Request and unicast ARP Reply inside MPLS label 40500 EXP 5.
+FLOW arp_over_mpls_vpls(ce_a, ce_b) {
+    ce_a -> ce_b MPLS 40500 EXP 5 BOS 1 MPLS_TTL 64 ARP REQUEST SENDERMAC 00:1e:be:64:00:01 SENDERIP 172.31.100.1 TARGETIP 172.31.100.2 WAIT 5ms
+    ce_a <- ce_b MPLS 40500 EXP 5 BOS 1 MPLS_TTL 64 ARP REPLY SENDERMAC 00:1e:be:64:00:02 SENDERIP 172.31.100.2 TARGETMAC 00:1e:be:64:00:01 TARGETIP 172.31.100.1
+}
+
+// INSTRUCTION: Compile the MPLS VPLS pseudowire ARP MAC-learning flow.
+COMPILE {
+    arp_over_mpls_vpls(vpls_ce_site_a, vpls_ce_site_b)
+}

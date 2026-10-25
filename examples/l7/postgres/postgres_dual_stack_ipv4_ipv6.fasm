@@ -1,0 +1,24 @@
+// PROMPT: Dual-stack IPv4 and IPv6 PostgreSQL read replica queries using a polymorphic flow.
+// TOKENS: HOST, IP, FLOW, POSTGRES, SQL, DSCP, TTL, FLOWLABEL, COMMAND_COMPLETE, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define IPv4 reporting worker and PostgreSQL replica.
+HOST pg_v4_client { IP 10.54.32.10 }
+// INSTRUCTION: Define IPv4 PostgreSQL read replica.
+HOST pg_v4_replica { IP 10.54.32.20 }
+
+// INSTRUCTION: Define IPv6 reporting worker and PostgreSQL replica.
+HOST pg_v6_client { IP 2001:db8:5432::10 }
+// INSTRUCTION: Define IPv6 PostgreSQL read replica.
+HOST pg_v6_replica { IP 2001:db8:5432::20 }
+
+// INSTRUCTION: Define polymorphic PostgreSQL SELECT query flow.
+FLOW pg_dual_stack_select(c, s) {
+    c -> s POSTGRES SQL "SELECT id, status FROM orders WHERE created_at > NOW() - INTERVAL '1 hour'" DSCP 26 TTL 64 FLOWLABEL 0x54320
+    c <- s POSTGRES COMMAND_COMPLETE READY_FOR_QUERY DSCP 26 TTL 64 FLOWLABEL 0x54320
+}
+
+// INSTRUCTION: Compile dual-stack PostgreSQL queries over IPv4 and IPv6.
+COMPILE {
+    pg_dual_stack_select(pg_v4_client, pg_v4_replica)
+    pg_dual_stack_select(pg_v6_client, pg_v6_replica)
+}

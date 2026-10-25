@@ -1,0 +1,27 @@
+// PROMPT: NFSv3 GETATTR and LOOKUP procedures over UDP port 2049 for legacy Unix home directory automounting.
+// TOKENS: HOST, IP, MAC, FLOW, NFS, SRCPORT, DSTPORT, VERS, PROC, PATH, WAIT, COMPILE
+
+// INSTRUCTION: Define the legacy Solaris/Linux workstation host.
+HOST unix_ws {
+    IP 10.70.1.50
+    MAC 00:1a:2b:70:01:50
+}
+
+// INSTRUCTION: Define the NFSv3 home directory server.
+HOST nfs3_filer {
+    IP 10.70.1.10
+    MAC 00:1a:2b:70:01:10
+}
+
+// INSTRUCTION: Query root attributes and lookup the user home directory over UDP.
+FLOW nfs3_udp_lookup(c, s) {
+    c -> s NFS SRCPORT 892 DSTPORT 2049  VERS 3 PROC "GETATTR" PATH "/export/home"
+    c <- s NFS SRCPORT 2049 DSTPORT 892  VERS 3 PROC "GETATTR" WAIT 2ms
+    c -> s NFS SRCPORT 892 DSTPORT 2049  VERS 3 PROC "LOOKUP" PATH "/export/home/alice"
+    c <- s NFS SRCPORT 2049 DSTPORT 892  VERS 3 PROC "LOOKUP"
+}
+
+// INSTRUCTION: Compile the NFSv3 over UDP lookup flow.
+COMPILE {
+    nfs3_udp_lookup(unix_ws, nfs3_filer)
+}

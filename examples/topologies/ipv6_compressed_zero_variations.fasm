@@ -1,5 +1,5 @@
 // PROMPT: Verification of varied IPv6 zero compression positions including leading, middle, and trailing zeros.
-// TOKENS: HOST, IP, FLOW, ->, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define host with middle zero compression.
 HOST comp_mid { IP 2001:db8:0:0:1::1 }

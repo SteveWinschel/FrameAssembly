@@ -1,0 +1,27 @@
+// PROMPT: IEEE 802.1X authentication rejection emitting EAP-Failure (EAP_CODE 4) for an unauthorized contractor device.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, START, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, WAIT, IDENTITY, COMPILE
+
+// INSTRUCTION: Define unprovisioned contractor laptop attempting port access.
+HOST untrusted_laptop {
+    IP 10.99.0.200
+    MAC b4:b5:2f:99:00:c8
+}
+
+// INSTRUCTION: Define NAC-enforced campus switch port denying access.
+HOST nac_enforced_sw {
+    IP 10.99.0.1
+    MAC 00:1e:14:99:00:01
+}
+
+// INSTRUCTION: Define EAPOL identity check culminating in EAP-Failure (EAP_CODE 4) port block.
+FLOW eapol_auth_failure_reject(cli, sw) {
+    cli -> sw EAPOL VERSION 1 TYPE START
+    cli <- sw EAPOL VERSION 1 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 5 EAP_METHOD 1 WAIT 2ms
+    cli -> sw EAPOL VERSION 1 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 5 EAP_METHOD 1 IDENTITY "contractor_temp@external.org" WAIT 3ms
+    cli <- sw EAPOL VERSION 1 TYPE EAP_PACKET EAP_CODE 4 EAP_ID 5 EAP_METHOD 1 WAIT 10ms
+}
+
+// INSTRUCTION: Compile block executing 802.1X EAP-Failure rejection.
+COMPILE {
+    eapol_auth_failure_reject(untrusted_laptop, nac_enforced_sw)
+}

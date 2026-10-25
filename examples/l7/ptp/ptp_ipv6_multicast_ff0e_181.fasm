@@ -1,0 +1,19 @@
+// PROMPT: IPv6 multicast PTP Sync and Announce to ff0e::181 with RFC 2464 multicast MAC derivation.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, ANNOUNCE, DOMAIN, SEQ_ID, CLOCK_ID, DSCP, TTL, FLOWLABEL, WAIT, SYNC, COMPILE
+
+// INSTRUCTION: Define IPv6 PTP grandmaster clock.
+HOST ptp_gm_v6 { IP 2001:db8:1588::1 MAC 00:15:88:06:00:01 }
+
+// INSTRUCTION: Define IPv6 global-scope PTP multicast group ff0e::181.
+HOST ptp_mcast_v6 { IP ff0e::181 }
+
+// INSTRUCTION: Define IPv6 multicast ANNOUNCE and SYNC packets.
+FLOW ptp_ipv6_multicast(gm, mcast) {
+    gm -> mcast PTP ANNOUNCE DOMAIN 1 SEQ_ID 201 CLOCK_ID "GMV60001" DSCP 46 TTL 64 FLOWLABEL 0x15880 WAIT 5ms
+    gm -> mcast PTP SYNC DOMAIN 1 SEQ_ID 201 CLOCK_ID "GMV60001" DSCP 46 TTL 64 FLOWLABEL 0x15880
+}
+
+// INSTRUCTION: Compile IPv6 multicast PTP scenario.
+COMPILE {
+    ptp_ipv6_multicast(ptp_gm_v6, ptp_mcast_v6)
+}

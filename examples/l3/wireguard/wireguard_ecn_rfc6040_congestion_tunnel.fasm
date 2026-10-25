@@ -1,0 +1,26 @@
+// PROMPT: RFC 6040 Explicit Congestion Notification (ECN) propagation across a WireGuard encrypted tunnel.
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, DSCP, ECN, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define WireGuard ingress gateway copying inner TCP ECT(0) (2) to outer UDP header.
+HOST wg_ecn_ingress {
+    IP 10.60.51.1
+    MAC 00:24:38:60:51:01
+}
+
+// INSTRUCTION: Define WireGuard egress gateway decapsulating ECN Congestion Experienced (ECN 3) packet.
+HOST wg_ecn_egress {
+    IP 10.60.51.2
+    MAC 00:24:38:60:51:02
+}
+
+// INSTRUCTION: Define WireGuard DATA packets transitioning from ECN 2 (ECT0) to ECN 3 (CE).
+FLOW wg_ecn_propagation_flow(ing, egr) {
+    ing -> egr WIREGUARD TYPE DATA RECEIVER 60401 COUNTER 10 DSCP 18 ECN 2 DF TTL 64 PAYLOAD "WG_INNER_TCP_ECT0_NORMAL" WAIT 2ms
+    ing -> egr WIREGUARD TYPE DATA RECEIVER 60401 COUNTER 11 DSCP 18 ECN 3 DF TTL 64 PAYLOAD "WG_INNER_TCP_CE_MARKED_BY_CORE" WAIT 2ms
+    ing <- egr WIREGUARD TYPE DATA RECEIVER 60402 COUNTER 5 DSCP 18 ECN 2 DF TTL 64 PAYLOAD "WG_INNER_TCP_ECE_FEEDBACK"
+}
+
+// INSTRUCTION: Compile the RFC 6040 ECN propagation over WireGuard flow.
+COMPILE {
+    wg_ecn_propagation_flow(wg_ecn_ingress, wg_ecn_egress)
+}

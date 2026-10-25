@@ -1,0 +1,18 @@
+// PROMPT: Explicit cache invalidation executing Memcached delete command for stale data.
+// TOKENS: HOST, IP, FLOW, MEMCACHED, CMD, KEY, COMPILE
+
+// INSTRUCTION: Define user profile updater service.
+HOST profile_updater { IP 10.40.2.18 }
+
+// INSTRUCTION: Define primary Memcached server.
+HOST profile_cache { IP 10.40.2.2 }
+
+// INSTRUCTION: Define cache key deletion flow.
+FLOW delete_cache_key(app, c) {
+    app -> c MEMCACHED CMD "delete" KEY "profile:uid:88192"
+}
+
+// INSTRUCTION: Compile delete key invalidation scenario.
+COMPILE {
+    delete_cache_key(profile_updater, profile_cache)
+}

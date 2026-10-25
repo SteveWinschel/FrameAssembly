@@ -1,0 +1,27 @@
+// PROMPT: PanelView Plus HMI reading controller-scoped symbolic tags via CIP Service 0x4C (76 = Read_Tag_Service).
+// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, PAYLOAD, STATUS, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the PanelView Plus 7 operator terminal.
+HOST panelview_hmi {
+    IP 10.135.110.20
+    MAC 00:1a:2b:87:b0:20
+}
+
+// INSTRUCTION: Define the ControlLogix batch reactor PLC.
+HOST reactor_clx {
+    IP 10.135.110.1
+    MAC 00:1a:2b:87:b0:01
+}
+
+// INSTRUCTION: Invoke CIP Service 76 (Read_Tag) and CIP Service 77 (Write_Tag) on Symbol Object Class 107 (0x6B).
+FLOW enip_hmi_tags(h, p) {
+    h -> p ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 4400 CONTEXT 1601 CIP_SERVICE 76 CIP_CLASS 107 CIP_INSTANCE 1 CIP_ATTR 0 PAYLOAD " Reactor_Temp_PV"
+    h <- p ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 4400 CONTEXT 1601 CIP_SERVICE 204 CIP_CLASS 107 CIP_INSTANCE 1 HEXPAYLOAD "ca000000aa42" WAIT 2ms
+    h -> p ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 4400 CONTEXT 1602 CIP_SERVICE 77 CIP_CLASS 107 CIP_INSTANCE 2 CIP_ATTR 0 PAYLOAD " Reactor_Agitator_Auto"
+    h <- p ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 4400 CONTEXT 1602 CIP_SERVICE 205 CIP_CLASS 107 CIP_INSTANCE 2
+}
+
+// INSTRUCTION: Compile the PanelView HMI symbolic tag read/write flow.
+COMPILE {
+    enip_hmi_tags(panelview_hmi, reactor_clx)
+}

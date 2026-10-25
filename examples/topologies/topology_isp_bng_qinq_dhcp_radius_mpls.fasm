@@ -1,0 +1,41 @@
+// PROMPT: ISP Broadband Network Gateway (BNG) subscriber onboarding combining QinQ double tagging, DHCPv4, RADIUS AAA, and MPLS core transit.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DHCP, DISCOVER, RADIUS, ACCESS_REQUEST, USER, WAIT, ACCESS_ACCEPT, OFFER, YIADDR, ACCOUNTING_REQUEST, MPLS, EXP, BOS, MPLS_TTL, HTTP, COMPILE
+
+// INSTRUCTION: Define residential FTTH ONT subscriber CPE.
+HOST ftth_cpe_home {
+    IP 100.64.10.50
+    MAC 48:57:02:0a:00:32
+}
+
+// INSTRUCTION: Define ISP Broadband Network Gateway (BNG) edge router.
+HOST isp_bng_router {
+    IP 100.64.0.1
+    MAC 00:05:85:b0:00:01
+}
+
+// INSTRUCTION: Define ISP RADIUS AAA and billing server.
+HOST isp_radius_aaa {
+    IP 172.20.10.5
+    MAC 00:50:56:14:0a:05
+}
+
+// INSTRUCTION: Define ISP MPLS core transit router.
+HOST isp_mpls_core {
+    IP 172.20.0.1
+    MAC 00:05:85:c0:00:01
+}
+
+// INSTRUCTION: Define subscriber QinQ DHCP discovery, RADIUS subscriber authorization, and MPLS-labeled Internet traffic.
+FLOW isp_bng_subscriber_flow(cpe, bng, aaa, core) {
+    cpe -> bng QINQ 1100 INNER_VLAN 50 DHCP DISCOVER
+    bng -> aaa RADIUS ACCESS_REQUEST USER "sub_ftth_1100_50@isp.net" WAIT 1ms
+    bng <- aaa RADIUS ACCESS_ACCEPT USER "sub_ftth_1100_50@isp.net" WAIT 2ms
+    cpe <- bng QINQ 1100 INNER_VLAN 50 DHCP OFFER YIADDR 100.64.10.50 WAIT 1ms
+    bng -> aaa RADIUS ACCOUNTING_REQUEST USER "sub_ftth_1100_50@isp.net" WAIT 1ms
+    bng -> core MPLS 40100 EXP 3 BOS 1 MPLS_TTL 64 HTTP GET URI "/speedtest" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing ISP BNG QinQ, RADIUS, DHCP, and MPLS workflow.
+COMPILE {
+    isp_bng_subscriber_flow(ftth_cpe_home, isp_bng_router, isp_radius_aaa, isp_mpls_core)
+}

@@ -1,5 +1,5 @@
 // PROMPT: NTP Stratum 1 server response referencing GPS synchronized reference clock over IPv6.
-// TOKENS: HOST, IP, FLOW, <-, NTP, MODE, VN, STRATUM, REFID, COMPILE
+// TOKENS: HOST, IP, FLOW, NTP, MODE, VN, STRATUM, REFID, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

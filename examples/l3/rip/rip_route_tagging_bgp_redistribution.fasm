@@ -1,0 +1,18 @@
+// PROMPT: RIPv2 route update carrying autonomous system route tag 65001 for BGP redistribution.
+// TOKENS: HOST, IP, FLOW, RIP, RESPONSE, PREFIX, METRIC, TAG, COMPILE
+
+// INSTRUCTION: Define autonomous system boundary router (ASBR).
+HOST asbr_redist_rtr { IP 192.168.44.1 }
+
+// INSTRUCTION: Define internal RIP peers multicast address.
+HOST internal_rip_peers { IP 224.0.0.9 }
+
+// INSTRUCTION: Define route redistribution update tagging external route with AS tag 65001.
+FLOW rip_tagging_flow(asbr, peers) {
+    asbr -> peers RIP RESPONSE PREFIX 192.168.100.0 METRIC 2 TAG 65001
+}
+
+// INSTRUCTION: Compile block executing tagged route advertisement.
+COMPILE {
+    rip_tagging_flow(asbr_redist_rtr, internal_rip_peers)
+}

@@ -1,0 +1,26 @@
+// PROMPT: PostgreSQL INSERT ... ON CONFLICT DO UPDATE atomic upsert with COMMAND_COMPLETE and READY_FOR_QUERY.
+// TOKENS: HOST, IP, MAC, FLOW, POSTGRES, SQL, COMMAND_COMPLETE, PAYLOAD, WAIT, READY_FOR_QUERY, COMPILE
+
+// INSTRUCTION: Define the inventory synchronization worker host.
+HOST inv_sync_worker {
+    IP 10.95.1.20
+    MAC 00:1a:2b:95:01:20
+}
+
+// INSTRUCTION: Define the primary PostgreSQL 16 database server.
+HOST pg_primary {
+    IP 10.95.1.5
+    MAC 00:1a:2b:95:01:05
+}
+
+// INSTRUCTION: Execute an atomic upsert on the stock_levels table and receive completion tags.
+FLOW pg_upsert_flow(c, s) {
+    c -> s POSTGRES SQL "INSERT INTO stock_levels (sku, qty) VALUES ('SKU-900', 50) ON CONFLICT (sku) DO UPDATE SET qty = EXCLUDED.qty"
+    c <- s POSTGRES COMMAND_COMPLETE PAYLOAD "INSERT 0 1" WAIT 1ms
+    c <- s POSTGRES READY_FOR_QUERY
+}
+
+// INSTRUCTION: Compile the PostgreSQL atomic upsert flow.
+COMPILE {
+    pg_upsert_flow(inv_sync_worker, pg_primary)
+}

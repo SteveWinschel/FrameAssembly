@@ -1,0 +1,27 @@
+// PROMPT: Generate a Kerberos KRB_ERROR response for clock skew too great (KRB_AP_ERR_SKEW) followed by a corrected AS_REQ.
+// TOKENS: HOST, IP, MAC, FLOW, KERBEROS, AS_REQ, REALM, CNAME, SNAME, ETYPE, WAIT, KRB_ERROR, PAYLOAD, AS_REP, COMPILE
+
+// INSTRUCTION: Define the client workstation with an unsynchronized system clock.
+HOST skewed_client {
+    IP 192.168.70.112
+    MAC 00:1b:63:70:01:12
+}
+
+// INSTRUCTION: Define the realm KDC enforcing a strict 5-minute clock skew window.
+HOST strict_kdc {
+    IP 192.168.70.10
+    MAC 00:1b:63:70:00:10
+}
+
+// INSTRUCTION: Reject the initial AS_REQ with KRB_ERROR due to clock skew, then succeed after NTP resynchronization.
+FLOW clock_skew_recovery(c, s) {
+    c -> s KERBEROS AS_REQ REALM "LAB.EXAMPLE.ORG" CNAME "devops" SNAME "krbtgt/LAB.EXAMPLE.ORG" ETYPE 18 WAIT 3ms
+    c <- s KERBEROS KRB_ERROR REALM "LAB.EXAMPLE.ORG" CNAME "devops" SNAME "krbtgt/LAB.EXAMPLE.ORG" PAYLOAD "KRB5KRB_AP_ERR_SKEW: Clock skew too great" WAIT 50ms
+    c -> s KERBEROS AS_REQ REALM "LAB.EXAMPLE.ORG" CNAME "devops" SNAME "krbtgt/LAB.EXAMPLE.ORG" ETYPE 18 WAIT 4ms
+    c <- s KERBEROS AS_REP REALM "LAB.EXAMPLE.ORG" CNAME "devops" SNAME "krbtgt/LAB.EXAMPLE.ORG" ETYPE 18
+}
+
+// INSTRUCTION: Compile the Kerberos clock skew error and recovery trace into a PCAP file.
+COMPILE {
+    clock_skew_recovery(skewed_client, strict_kdc)
+}

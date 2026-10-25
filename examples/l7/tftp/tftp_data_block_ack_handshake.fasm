@@ -1,0 +1,28 @@
+// PROMPT: TFTP RRQ followed by DATA block 1 and DATA block 2 transfers with corresponding client ACK packets.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, RRQ, FILENAME, MODE, DATA, BLOCK, PAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define embedded bootloader client host.
+HOST boot_client {
+    IP 10.69.10.50
+    MAC 00:1b:63:10:00:32
+}
+
+// INSTRUCTION: Define TFTP image repository server.
+HOST image_server {
+    IP 10.69.10.1
+    MAC 00:1b:63:10:00:01
+}
+
+// INSTRUCTION: Request kernel image and acknowledge two consecutive TFTP DATA blocks.
+FLOW tftp_block_transfer(c, s) {
+    c -> s TFTP RRQ FILENAME "uImage-arm64.bin" MODE "octet"
+    c <- s TFTP DATA BLOCK 1 PAYLOAD "uImage-header-chunk-001"
+    c -> s TFTP ACK BLOCK 1
+    c <- s TFTP DATA BLOCK 2 PAYLOAD "uImage-kernel-chunk-002"
+    c -> s TFTP ACK BLOCK 2
+}
+
+// INSTRUCTION: Compile the multi-block TFTP DATA and ACK transfer scenario.
+COMPILE {
+    tftp_block_transfer(boot_client, image_server)
+}

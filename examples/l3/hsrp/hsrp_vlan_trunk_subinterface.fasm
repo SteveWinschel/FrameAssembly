@@ -1,0 +1,18 @@
+// PROMPT: HSRP hello heartbeat on 802.1Q tagged subinterface for campus VLAN 100.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, VIP, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define campus distribution switch subinterface.
+HOST campus_dist_rtr { IP 10.100.1.254 }
+
+// INSTRUCTION: Define all-routers multicast target.
+HOST hsrp_all_rtrs { IP 224.0.0.2 }
+
+// INSTRUCTION: Define tagged HSRP flow with VLAN 100 and voice-level PCP priority 5.
+FLOW hsrp_vlan_tagged(rtr, dst) {
+    rtr -> dst HSRP GROUP 10 PRIORITY 110 VIP 10.100.1.1 VLAN 100 PCP 5 DEI 0
+}
+
+// INSTRUCTION: Compile block executing VLAN-encapsulated HSRP hello.
+COMPILE {
+    hsrp_vlan_tagged(campus_dist_rtr, hsrp_all_rtrs)
+}

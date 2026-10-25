@@ -1,0 +1,29 @@
+// PROMPT: Windows domain workstation authenticating machine account credentials via standalone EAP-MSCHAPv2 (EAP_METHOD 26).
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, START, WAIT, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define Windows domain-joined desktop authenticating machine account host/ws-fin-04.
+HOST win_domain_pc {
+    IP 10.45.12.40
+    MAC 00:24:e8:2d:0c:28
+}
+
+// INSTRUCTION: Define enterprise floor switch port connected to Active Directory NPS RADIUS server.
+HOST floor_nps_sw {
+    IP 10.45.12.1
+    MAC 00:1e:be:2d:0c:01
+}
+
+// INSTRUCTION: Execute machine identity exchange and EAP-MSCHAPv2 (Method 26) challenge/response.
+FLOW eapol_machine_mschapv2(pc, sw) {
+    pc -> sw EAPOL VERSION 2 TYPE START WAIT 2ms
+    pc <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 1 EAP_METHOD 1 WAIT 2ms
+    pc -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 1 EAP_METHOD 1 IDENTITY "host/ws-fin-04.corp.internal" WAIT 5ms
+    pc <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 2 EAP_METHOD 26 PAYLOAD "MSCHAPV2_CHALLENGE_16B_NONCE" WAIT 5ms
+    pc -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 2 EAP_METHOD 26 PAYLOAD "MSCHAPV2_NT_RESPONSE_PEER_NONCE" WAIT 5ms
+    pc <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 2 EAP_METHOD 26
+}
+
+// INSTRUCTION: Compile the Windows machine account EAP-MSCHAPv2 authentication trace.
+COMPILE {
+    eapol_machine_mschapv2(win_domain_pc, floor_nps_sw)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Telnet terminal session option negotiation over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, <-, TELNET, DO, WILL, DONT, WONT, COMPILE
+// TOKENS: HOST, IP, FLOW, TELNET, DO, WILL, DONT, WONT, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

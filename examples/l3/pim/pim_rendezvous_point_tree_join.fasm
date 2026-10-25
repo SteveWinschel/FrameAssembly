@@ -1,0 +1,18 @@
+// PROMPT: Downstream PIM router subscribing to shared (*,G) multicast tree toward Rendezvous Point.
+// TOKENS: HOST, IP, FLOW, PIM, JOIN_PRUNE, GROUP, RP, COMPILE
+
+// INSTRUCTION: Define downstream branch multicast router.
+HOST branch_pim_downstream { IP 172.25.1.2 }
+
+// INSTRUCTION: Define upstream Rendezvous Point neighbor router.
+HOST upstream_rp_neighbor { IP 172.25.1.1 }
+
+// INSTRUCTION: Define PIM Join flow targeting group 239.255.0.1 via RP 10.0.0.1.
+FLOW pim_rp_join_flow(down, up) {
+    down -> up PIM JOIN_PRUNE GROUP 239.255.0.1 RP 10.0.0.1
+}
+
+// INSTRUCTION: Compile block executing RP shared tree Join.
+COMPILE {
+    pim_rp_join_flow(branch_pim_downstream, upstream_rp_neighbor)
+}

@@ -1,0 +1,29 @@
+// PROMPT: RTSP client sending PLAY before SETUP rejected with 455 Method Not Valid in This State.
+// TOKENS: HOST, IP, FLOW, RTSP, DESCRIBE, URI, CSEQ, WAIT, STATUS, PLAY, SETUP, TRANSPORT_HDR, SESSION, COMPILE
+
+// INSTRUCTION: Define buggy RTSP player state machine client.
+HOST buggy_player {
+    IP 10.62.14.20
+}
+
+// INSTRUCTION: Define strict RFC 2326 compliant RTSP server.
+HOST strict_rtsp {
+    IP 10.62.14.1
+}
+
+// INSTRUCTION: Define premature PLAY rejected with 455 followed by proper SETUP and PLAY.
+FLOW rtsp_455_state_error(c, s) {
+    c -> s RTSP DESCRIBE URI "rtsp://10.62.14.1/vod/lecture" CSEQ 1 WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 1 WAIT 3ms
+    c -> s RTSP PLAY URI "rtsp://10.62.14.1/vod/lecture" CSEQ 2 WAIT 3ms
+    c <- s RTSP STATUS 455 CSEQ 2 WAIT 3ms
+    c -> s RTSP SETUP URI "rtsp://10.62.14.1/vod/lecture/track1" CSEQ 3 TRANSPORT_HDR "RTP/AVP;unicast;client_port=5400-5401" WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 3 SESSION "fixed_state_1" WAIT 3ms
+    c -> s RTSP PLAY URI "rtsp://10.62.14.1/vod/lecture" CSEQ 4 SESSION "fixed_state_1" WAIT 3ms
+    c <- s RTSP STATUS 200 CSEQ 4 SESSION "fixed_state_1"
+}
+
+// INSTRUCTION: Compile the RTSP 455 state error recovery scenario.
+COMPILE {
+    rtsp_455_state_error(buggy_player, strict_rtsp)
+}

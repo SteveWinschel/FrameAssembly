@@ -1,0 +1,19 @@
+// PROMPT: IPv4 multicast PTP Sync and Follow_Up distribution to 224.0.1.129 with RFC 1112 MAC auto-derivation.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, DSCP, TTL, WAIT, FOLLOW_UP, COMPILE
+
+// INSTRUCTION: Define PTP grandmaster clock source.
+HOST ptp_gm_src { IP 172.16.158.1 MAC 00:15:88:00:01:01 }
+
+// INSTRUCTION: Define IANA IPv4 primary PTP multicast group 224.0.1.129.
+HOST ptp_mcast_v4 { IP 224.0.1.129 }
+
+// INSTRUCTION: Define multicast PTP Sync and Follow_Up with EF DSCP 46.
+FLOW ptp_ipv4_multicast(gm, grp) {
+    gm -> grp PTP SYNC DOMAIN 0 SEQ_ID 900 DSCP 46 TTL 16 WAIT 2ms
+    gm -> grp PTP FOLLOW_UP DOMAIN 0 SEQ_ID 900 DSCP 46 TTL 16
+}
+
+// INSTRUCTION: Compile IPv4 multicast PTP distribution.
+COMPILE {
+    ptp_ipv4_multicast(ptp_gm_src, ptp_mcast_v4)
+}

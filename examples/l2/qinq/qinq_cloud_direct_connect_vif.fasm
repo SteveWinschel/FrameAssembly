@@ -1,0 +1,26 @@
+// PROMPT: Cloud Direct Connect dedicated colocation cross-connect with QinQ partner S-VLAN and private VIF C-VLAN.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, BFD, STATE, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, WAIT, TLS, CLIENT_HELLO, SNI, COMPILE
+
+// INSTRUCTION: Define enterprise colocation cage router.
+HOST colo_edge_rtr {
+    IP 169.254.200.1
+    MAC 00:1c:73:c8:00:01
+}
+
+// INSTRUCTION: Define cloud provider direct connect gateway router.
+HOST cloud_dx_gw {
+    IP 169.254.200.2
+    MAC 00:1c:73:c8:00:02
+}
+
+// INSTRUCTION: Define QinQ S-VLAN 1500 C-VLAN 305 BFD fast-failover session and TLS workload traffic.
+FLOW cloud_dx_qinq_vif(colo, cloud) {
+    colo -> cloud QINQ 1500 INNER_VLAN 305 BFD STATE 3 MY_DISC 9001 YOUR_DISC 9002 MIN_TX 300000 MIN_RX 300000 MULT 3
+    colo <- cloud QINQ 1500 INNER_VLAN 305 BFD STATE 3 MY_DISC 9002 YOUR_DISC 9001 MIN_TX 300000 MIN_RX 300000 MULT 3 WAIT 1ms
+    colo -> cloud QINQ 1500 INNER_VLAN 305 TLS CLIENT_HELLO SNI "s3.us-east-1.amazonaws.com" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing Cloud Direct Connect QinQ VIF traffic.
+COMPILE {
+    cloud_dx_qinq_vif(colo_edge_rtr, cloud_dx_gw)
+}

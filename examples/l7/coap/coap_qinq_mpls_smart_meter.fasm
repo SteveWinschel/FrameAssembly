@@ -1,0 +1,19 @@
+// PROMPT: CoAP smart metering uplink over MPLS and QinQ carrier transport.
+// TOKENS: HOST, IP, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, QINQ, INNER_VLAN, MPLS, PAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define residential smart electric meter.
+HOST smart_meter { IP 100.64.10.55 }
+
+// INSTRUCTION: Define utility head-end CoAP concentrator.
+HOST utility_hes { IP 100.64.0.1 }
+
+// INSTRUCTION: Report kWh meter reading over QinQ and MPLS backhaul.
+FLOW coap_ami_backhaul(m, h) {
+    m -> h COAP CON CODE "0.02" MSGID 7700 TOKEN 0x9001 URI_PATH "ami/kwh" QINQ 2000 INNER_VLAN 105 MPLS 8080 PAYLOAD "14820.5"
+    m <- h COAP ACK CODE "2.04" MSGID 7700 TOKEN 0x9001 QINQ 2000 INNER_VLAN 105 MPLS 8080
+}
+
+// INSTRUCTION: Compile the utility AMI CoAP backhaul scenario.
+COMPILE {
+    coap_ami_backhaul(smart_meter, utility_hes)
+}

@@ -1,0 +1,18 @@
+// PROMPT: High-precision NTP clock sync packets prioritized with DSCP Expedited Forwarding.
+// TOKENS: HOST, IP, FLOW, NTP, MODE, VN, STRATUM, POLL, DSCP, COMPILE
+
+// INSTRUCTION: Define telecommunications base station clock.
+HOST bts_clock_client { IP 192.168.250.10 }
+
+// INSTRUCTION: Define carrier primary reference clock.
+HOST carrier_prc_server { IP 192.168.250.1 }
+
+// INSTRUCTION: Define DSCP marked NTP request flow.
+FLOW dscp_ntp_request(bts, prc) {
+    bts -> prc NTP MODE 3 VN 4 STRATUM 0 POLL 5 DSCP 46
+}
+
+// INSTRUCTION: Compile DSCP expedited forwarding sync scenario.
+COMPILE {
+    dscp_ntp_request(bts_clock_client, carrier_prc_server)
+}

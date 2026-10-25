@@ -1,0 +1,19 @@
+// PROMPT: DHCPv4 DISCOVER with custom vendor class option bytes appended via HEXPAYLOAD.
+// TOKENS: HOST, IP, FLOW, DHCP, DISCOVER, CHADDR, HOSTNAME, HEXPAYLOAD, OFFER, YIADDR, COMPILE
+
+// INSTRUCTION: Define OpenWRT embedded router WAN interface.
+HOST openwrt_wan { IP 0.0.0.0 }
+
+// INSTRUCTION: Define ISP edge DHCP server.
+HOST isp_dhcp { IP 10.100.0.1 }
+
+// INSTRUCTION: Send DHCPDISCOVER with Option 60 (Vendor Class Identifier "udhcp") in HEXPAYLOAD.
+FLOW dhcp_vendor_opt60(c, s) {
+    c -> s DHCP DISCOVER CHADDR b8:27:eb:10:20:30 HOSTNAME "openwrt-gw" HEXPAYLOAD "3c057564686370"
+    c <- s DHCP OFFER CHADDR b8:27:eb:10:20:30 YIADDR 10.100.4.88
+}
+
+// INSTRUCTION: Compile the custom Option 60 DHCP flow.
+COMPILE {
+    dhcp_vendor_opt60(openwrt_wan, isp_dhcp)
+}

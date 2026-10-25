@@ -1,0 +1,30 @@
+// PROMPT: Back-to-Back User Agent (B2BUA) bridging inbound A-leg SIP INVITE to outbound B-leg SIP INVITE.
+// TOKENS: HOST, IP, FLOW, SIP, INVITE, URI, FROM, TO, CALL_ID, CSEQ, WAIT, STATUS, REASON, ACK, COMPILE
+
+// INSTRUCTION: Define external customer A-leg SIP endpoint.
+HOST leg_a_caller {
+    IP 10.130.1.10
+}
+
+// INSTRUCTION: Define Asterisk/FreeSWITCH B2BUA media server.
+HOST b2bua_core {
+    IP 10.130.1.1
+}
+
+// INSTRUCTION: Define internal contact center agent B-leg endpoint.
+HOST leg_b_agent {
+    IP 10.130.1.20
+}
+
+// INSTRUCTION: Define SIP dialog on a single call leg between two endpoints.
+FLOW sip_dialog_leg(src, dst) {
+    src -> dst SIP INVITE URI "sip:bridge@10.130.1.1" FROM "sip:caller@10.130.1.10" TO "sip:agent@10.130.1.20" CALL_ID "b2b-leg" CSEQ 1 WAIT 4ms
+    src <- dst SIP STATUS 200 REASON "OK" CALL_ID "b2b-leg" CSEQ 1 WAIT 4ms
+    src -> dst SIP ACK URI "sip:bridge@10.130.1.1" CALL_ID "b2b-leg" CSEQ 1
+}
+
+// INSTRUCTION: Compile both A-leg and B-leg SIP dialogs across the B2BUA.
+COMPILE {
+    sip_dialog_leg(leg_a_caller, b2bua_core)
+    sip_dialog_leg(b2bua_core, leg_b_agent)
+}

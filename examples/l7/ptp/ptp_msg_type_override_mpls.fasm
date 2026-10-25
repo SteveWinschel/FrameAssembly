@@ -1,0 +1,20 @@
+// PROMPT: Explicit MSG_TYPE keyword overrides testing SYNC, FOLLOW_UP, and ANNOUNCE over MPLS.
+// TOKENS: HOST, IP, FLOW, PTP, MSG_TYPE, DOMAIN, SEQ_ID, CLOCK_ID, MPLS, EXP, BOS, MPLS_TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define core network timing hub.
+HOST core_timing { IP 10.200.158.1 }
+
+// INSTRUCTION: Define edge aggregation switch clock.
+HOST edge_clock { IP 10.200.158.50 }
+
+// INSTRUCTION: Define PTP frames using explicit MSG_TYPE strings and MPLS EXP 7.
+FLOW ptp_msg_type_mpls(hub, edge) {
+    hub -> edge PTP MSG_TYPE "ANNOUNCE" DOMAIN 44 SEQ_ID 1 CLOCK_ID "COREHUB1" MPLS 31900 EXP 7 BOS 1 MPLS_TTL 64 WAIT 2ms
+    hub -> edge PTP MSG_TYPE "SYNC" DOMAIN 44 SEQ_ID 1 CLOCK_ID "COREHUB1" MPLS 31900 EXP 7 BOS 1 MPLS_TTL 64 WAIT 1ms
+    hub -> edge PTP MSG_TYPE "FOLLOW_UP" DOMAIN 44 SEQ_ID 1 CLOCK_ID "COREHUB1" MPLS 31900 EXP 7 BOS 1 MPLS_TTL 64
+}
+
+// INSTRUCTION: Compile MPLS-encapsulated PTP MSG_TYPE flow.
+COMPILE {
+    ptp_msg_type_mpls(core_timing, edge_clock)
+}

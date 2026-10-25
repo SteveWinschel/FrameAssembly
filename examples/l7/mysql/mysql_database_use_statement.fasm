@@ -1,0 +1,18 @@
+// PROMPT: MySQL client setting active database schema context with USE statement.
+// TOKENS: HOST, IP, FLOW, MYSQL, SQL, DB, COMPILE
+
+// INSTRUCTION: Define database migration runner.
+HOST migration_runner { IP 10.35.2.14 }
+
+// INSTRUCTION: Define target corporate MySQL instance.
+HOST corp_mysql_db { IP 10.35.2.1 }
+
+// INSTRUCTION: Define database context switch flow.
+FLOW switch_db_context_flow(mig, db) {
+    mig -> db MYSQL SQL "USE production_sales" DB "production_sales"
+}
+
+// INSTRUCTION: Compile database USE statement scenario.
+COMPILE {
+    switch_db_context_flow(migration_runner, corp_mysql_db)
+}

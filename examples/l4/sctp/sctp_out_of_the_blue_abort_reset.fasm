@@ -1,0 +1,19 @@
+// PROMPT: SCTP sudden association abort via ABORT chunk (Type 6) after receiving an out-of-the-blue invalid stream frame.
+// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, ABORT, WAIT, COMPILE
+
+// INSTRUCTION: Define stale SCTP client transmitting DATA with expired Verification Tag.
+HOST stale_sctp_client { IP 10.19.1.50 }
+
+// INSTRUCTION: Define restarted SCTP server rejecting unknown association with ABORT chunk.
+HOST restarted_sctp_srv { IP 10.19.1.1 }
+
+// INSTRUCTION: Define out-of-the-blue SCTP DATA chunk immediately answered by SCTP ABORT chunk.
+FLOW sctp_ootb_abort_reset(cli, srv) {
+    cli -> srv SCTP CHUNK DATA VTAG 999111 STREAM 0 SSN 5 PPID 0 SRCPORT 41000 DSTPORT 3868 PAYLOAD "stale_association_payload"
+    cli <- srv SCTP CHUNK ABORT VTAG 999111 SRCPORT 3868 DSTPORT 41000 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing SCTP out-of-the-blue ABORT response.
+COMPILE {
+    sctp_ootb_abort_reset(stale_sctp_client, restarted_sctp_srv)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Administrative user sending exit command data to close telnet terminal.
+// TOKENS: HOST, IP, FLOW, TELNET, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define departing operator workstation.
+HOST departing_op { IP 192.168.60.25 }
+
+// INSTRUCTION: Define active access router.
+HOST active_rtr { IP 192.168.60.1 }
+
+// INSTRUCTION: Define exit session termination flow.
+FLOW telnet_exit_flow(c, s) {
+    c -> s TELNET PAYLOAD "exit\r\n"
+    c <- s TELNET PAYLOAD "Connection closed by foreign host.\r\n"
+}
+
+// INSTRUCTION: Compile block executing session exit.
+COMPILE {
+    telnet_exit_flow(departing_op, active_rtr)
+}

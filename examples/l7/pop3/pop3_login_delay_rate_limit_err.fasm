@@ -1,0 +1,28 @@
+// PROMPT: Simulate a POP3 server enforcing RFC 2449 LOGIN-DELAY by rejecting rapid re-polling with -ERR [LOGIN-DELAY].
+// TOKENS: HOST, IP, MAC, FLOW, POP3, OK, RESPONSE, WAIT, CMD, ARG, ERR, COMPILE
+
+// INSTRUCTION: Define the aggressive desktop POP3 poller polling too frequently.
+HOST fast_poller {
+    IP 10.110.45.88
+    MAC 00:16:3e:6e:2d:58
+}
+
+// INSTRUCTION: Define the rate-limiting POP3 server enforcing a 120-second minimum poll interval.
+HOST ratelimit_pop3 {
+    IP 10.110.45.1
+    MAC 00:16:3e:6e:2d:01
+}
+
+// INSTRUCTION: Attempt authentication before the LOGIN-DELAY timer expires and receive -ERR [LOGIN-DELAY].
+FLOW pop3_login_delay_reject(c, s) {
+    c <- s POP3 OK RESPONSE "POP3 ready [LOGIN-DELAY 120]" WAIT 2ms
+    c -> s POP3 CMD "USER" ARG "polling_user" WAIT 2ms
+    c <- s POP3 OK RESPONSE "send PASS" WAIT 2ms
+    c -> s POP3 CMD "PASS" ARG "SecretPass99" WAIT 2ms
+    c <- s POP3 ERR RESPONSE "[LOGIN-DELAY] Minimum poll interval 120 seconds not elapsed"
+}
+
+// INSTRUCTION: Compile the POP3 LOGIN-DELAY rate limit rejection flow.
+COMPILE {
+    pop3_login_delay_reject(fast_poller, ratelimit_pop3)
+}

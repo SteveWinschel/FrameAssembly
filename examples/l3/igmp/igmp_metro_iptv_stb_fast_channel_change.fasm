@@ -1,0 +1,26 @@
+// PROMPT: Residential IPTV set-top box executing fast channel change with IGMP LEAVE on old channel and REPORT on new channel.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, TTL, IGMP, LEAVE, MAX_RESP, GROUP, WAIT, QUERY, REPORT, COMPILE
+
+// INSTRUCTION: Define residential IPTV set-top box on subscriber VLAN 300.
+HOST iptv_stb_client {
+    IP 100.64.30.105
+    MAC 00:1a:2b:3c:4d:69
+}
+
+// INSTRUCTION: Define broadband aggregation multicast router handling IGMP snooping and proxy.
+HOST bng_mcast_rtr {
+    IP 100.64.30.1
+    MAC 00:1a:2b:3c:00:01
+}
+
+// INSTRUCTION: Leave multicast channel 239.1.1.10, receive group-specific query, and join channel 239.1.1.11.
+FLOW igmp_iptv_zap(stb, bng) {
+    stb -> bng VLAN 300 PCP 5 TTL 1 IGMP LEAVE MAX_RESP 0 GROUP 239.1.1.10 WAIT 5ms
+    stb <- bng VLAN 300 PCP 6 TTL 1 IGMP QUERY MAX_RESP 10 GROUP 239.1.1.10 WAIT 5ms
+    stb -> bng VLAN 300 PCP 5 TTL 1 IGMP REPORT MAX_RESP 0 GROUP 239.1.1.11
+}
+
+// INSTRUCTION: Compile the IPTV set-top box fast channel zapping IGMP trace.
+COMPILE {
+    igmp_iptv_zap(iptv_stb_client, bng_mcast_rtr)
+}

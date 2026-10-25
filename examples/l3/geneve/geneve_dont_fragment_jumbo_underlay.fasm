@@ -1,0 +1,19 @@
+// PROMPT: IPv4 GENEVE underlay asserting Don't Fragment (DF) to verify jumbo frame path MTU.
+// TOKENS: HOST, IP, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, IPID, DF, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define underlay leaf VTEP/NVE 1.
+HOST jumbo_nve_1 { IP 192.168.60.1 }
+
+// INSTRUCTION: Define underlay leaf VTEP/NVE 2.
+HOST jumbo_nve_2 { IP 192.168.60.2 }
+
+// INSTRUCTION: Define DF-marked GENEVE packets with explicit IPID values.
+FLOW geneve_df_mtu_check(n1, n2) {
+    n1 -> n2 GENEVE VNI 22000 OPT_CLASS 258 OPT_TYPE 1 IPID 3001 DF PAYLOAD "JUMBO_UNDERLAY_PROBE_REQ"
+    n1 <- n2 GENEVE VNI 22000 OPT_CLASS 258 OPT_TYPE 1 IPID 3002 DF PAYLOAD "JUMBO_UNDERLAY_PROBE_ACK"
+}
+
+// INSTRUCTION: Compile the DF-asserted GENEVE underlay MTU verification flow.
+COMPILE {
+    geneve_df_mtu_check(jumbo_nve_1, jumbo_nve_2)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Model an NTPv4 Mode 6 control message exchange used by ntpq to inspect peer association status.
+// TOKENS: HOST, IP, MAC, FLOW, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, TX_TIMESTAMP, PAYLOAD, WAIT, REFID, COMPILE
+
+// INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
+HOST ntp_client {
+    IP 127.0.0.1
+    MAC 00:1b:21:7b:01:0a
+}
+
+// INSTRUCTION: Define the NTP reference server or peer endpoint.
+HOST ntp_server {
+    IP 127.0.0.1
+    MAC 00:1b:21:7b:01:01
+}
+
+// INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
+FLOW ntp_scenario_flow(c, s) {
+    c -> s NTP LI 0 VN 4 MODE 6 STRATUM 0 POLL 0 PRECISION 0 TX_TIMESTAMP 0x0000000000000000 PAYLOAD "ntpq-read-status-vars" WAIT 1ms
+    c <- s NTP LI 0 VN 4 MODE 6 STRATUM 1 POLL 0 PRECISION 0 REFID "PPS" TX_TIMESTAMP 0x0000000000000000 PAYLOAD "assid=0 status=0615 leap_none, sync_pps"
+}
+
+// INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
+COMPILE {
+    ntp_scenario_flow(ntp_client, ntp_server)
+}

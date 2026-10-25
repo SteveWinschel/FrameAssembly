@@ -1,0 +1,21 @@
+// PROMPT: Device graceful shutdown notification using NTS ssdp:byebye.
+// TOKENS: HOST, IP, FLOW, SSDP, NOTIFY, NT, NTS, USN, COMPILE
+
+// INSTRUCTION: Define departing printer node.
+HOST printer_node { IP 192.168.1.50 }
+
+// INSTRUCTION: Define multicast notification group.
+HOST ssdp_broadcast { IP 239.255.255.250 }
+
+// INSTRUCTION: Define device shutdown departure flow.
+FLOW ssdp_byebye_flow(c, s) {
+    c -> s SSDP NOTIFY
+        NT "urn:schemas-upnp-org:device:Printer:1"
+        NTS "ssdp:byebye"
+        USN "uuid:print-lab-uuid::urn:schemas-upnp-org:device:Printer:1"
+}
+
+// INSTRUCTION: Compile block executing byebye advertisement.
+COMPILE {
+    ssdp_byebye_flow(printer_node, ssdp_broadcast)
+}

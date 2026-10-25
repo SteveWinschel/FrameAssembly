@@ -1,0 +1,19 @@
+// PROMPT: GENEVE overlay stitched into an MPLS WAN core with explicit label and EXP bits.
+// TOKENS: HOST, IP, FLOW, GENEVE, VNI, OPT_CLASS, OPT_TYPE, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define data center gateway router 1.
+HOST dcgw_geneve_1 { IP 10.252.60.1 }
+
+// INSTRUCTION: Define data center gateway router 2.
+HOST dcgw_geneve_2 { IP 10.252.60.2 }
+
+// INSTRUCTION: Define MPLS-encapsulated GENEVE tunnel packets.
+FLOW geneve_mpls_stitch(g1, g2) {
+    g1 -> g2 GENEVE VNI 75000 OPT_CLASS 256 OPT_TYPE 1 MPLS 60810 EXP 3 BOS 1 MPLS_TTL 63
+    g1 <- g2 GENEVE VNI 75000 OPT_CLASS 256 OPT_TYPE 1 MPLS 60820 EXP 3 BOS 1 MPLS_TTL 63
+}
+
+// INSTRUCTION: Compile the MPLS-labeled GENEVE overlay stitch flow.
+COMPILE {
+    geneve_mpls_stitch(dcgw_geneve_1, dcgw_geneve_2)
+}

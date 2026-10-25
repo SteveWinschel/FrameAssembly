@@ -1,0 +1,27 @@
+// PROMPT: RTSP client setting up separate audio (trackID=0) and video (trackID=1) streams before aggregate PLAY.
+// TOKENS: HOST, IP, FLOW, RTSP, SETUP, URI, CSEQ, TRANSPORT_HDR, WAIT, STATUS, SESSION, PLAY, COMPILE
+
+// INSTRUCTION: Define desktop media player client.
+HOST vlc_client {
+    IP 10.44.12.35
+}
+
+// INSTRUCTION: Define Darwin/Live555 RTSP media server.
+HOST live555_srv {
+    IP 10.44.12.1
+}
+
+// INSTRUCTION: Define dual SETUP requests sharing one RTSP SESSION ID followed by aggregate PLAY.
+FLOW rtsp_dual_track(c, s) {
+    c -> s RTSP SETUP URI "rtsp://10.44.12.1/clip.mp4/trackID=0" CSEQ 1 TRANSPORT_HDR "RTP/AVP;unicast;client_port=8000-8001" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 1 SESSION "av_sess_4412" WAIT 4ms
+    c -> s RTSP SETUP URI "rtsp://10.44.12.1/clip.mp4/trackID=1" CSEQ 2 SESSION "av_sess_4412" TRANSPORT_HDR "RTP/AVP;unicast;client_port=8002-8003" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 2 SESSION "av_sess_4412" WAIT 4ms
+    c -> s RTSP PLAY URI "rtsp://10.44.12.1/clip.mp4/" CSEQ 3 SESSION "av_sess_4412" WAIT 4ms
+    c <- s RTSP STATUS 200 CSEQ 3 SESSION "av_sess_4412"
+}
+
+// INSTRUCTION: Compile the multi-track audio/video RTSP setup flow.
+COMPILE {
+    rtsp_dual_track(vlc_client, live555_srv)
+}

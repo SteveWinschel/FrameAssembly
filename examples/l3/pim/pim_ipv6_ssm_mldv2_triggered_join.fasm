@@ -1,0 +1,25 @@
+// PROMPT: RFC 7761 IPv6 PIM-SM / PIM-SSM (S,G) Join triggered by an MLDv2 listener for ff3e::8000:1.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, HELLO, DR_PRIORITY, HOLDTIME, DSCP, TTL, WAIT, JOIN_PRUNE, GROUP, SOURCE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IPv6 Last-Hop Designated Router on link-local subnet.
+HOST v6_pim_lhr {
+    IP fe80::67:2
+    MAC 00:25:90:67:00:02
+}
+
+// INSTRUCTION: Define IPv6 upstream RPF neighbor router.
+HOST v6_pim_rpf_nbr {
+    IP fe80::67:1
+    MAC 00:25:90:67:00:01
+}
+
+// INSTRUCTION: Define IPv6 PIM HELLO and JOIN_PRUNE for SSM group ff3e::8000:1.
+FLOW pim_v6_ssm_join_flow(lhr, rpf) {
+    lhr -> rpf PIM HELLO DR_PRIORITY 150 HOLDTIME 105 DSCP 48 TTL 1 WAIT 5ms
+    lhr -> rpf PIM JOIN_PRUNE GROUP ff3e::8000:1 SOURCE 2001:db8:500::10 HOLDTIME 210 DSCP 48 TTL 1 PAYLOAD "IPV6_PIM_SSM_JOIN_SG"
+}
+
+// INSTRUCTION: Compile the IPv6 PIM-SSM (S,G) Join flow.
+COMPILE {
+    pim_v6_ssm_join_flow(v6_pim_lhr, v6_pim_rpf_nbr)
+}

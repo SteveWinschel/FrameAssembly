@@ -1,0 +1,19 @@
+// PROMPT: OSPF Hello packets over point-to-point leased line between core routers with Area 0.
+// TOKENS: HOST, IP, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, COMPILE
+
+// INSTRUCTION: Define core router 1 on WAN leased line.
+HOST core_ospf_r1 { IP 10.254.0.1 }
+
+// INSTRUCTION: Define core router 2 on WAN leased line.
+HOST core_ospf_r2 { IP 10.254.0.2 }
+
+// INSTRUCTION: Define point-to-point OSPF Hello discovery flow in backbone Area 0.
+FLOW ospf_p2p_hello(r1, r2) {
+    r1 -> r2 OSPF HELLO ROUTER_ID 10.254.0.1 AREA_ID 0
+    r1 <- r2 OSPF HELLO ROUTER_ID 10.254.0.2 AREA_ID 0
+}
+
+// INSTRUCTION: Compile block executing OSPF point-to-point Hello exchange.
+COMPILE {
+    ospf_p2p_hello(core_ospf_r1, core_ospf_r2)
+}

@@ -1,0 +1,24 @@
+// PROMPT: SNMPv1 linkDown trap from a managed customer-premises router encapsulated in QinQ (500/162) and MPLS label 8100.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, QINQ, INNER_VLAN, MPLS, VARBIND, INT, COMPILE
+
+// INSTRUCTION: Define the managed CPE router agent at the customer branch.
+HOST cpe_router {
+    IP 172.31.145.1
+    MAC 00:1a:2b:1f:91:01
+}
+
+// INSTRUCTION: Define the carrier NOC trap collector.
+HOST carrier_noc {
+    IP 172.31.1.162
+    MAC 00:1a:2b:1f:01:a2
+}
+
+// INSTRUCTION: Transmit an SNMPv1 linkDown trap (GENTRAP 2) encapsulated in QinQ and MPLS headers.
+FLOW snmpv1_cpe_wan_trap(a, n) {
+    a -> n SNMP1 TRAP COMMUNITY "cpe" ENTERPRISE 1.3.6.1.4.1.9.1 AGENTIP 172.31.145.1 GENTRAP 2 SPECTRAP 0 SYSUPTIME 55000 QINQ 500 INNER_VLAN 162 MPLS 8100 VARBIND 1.3.6.1.2.1.2.2.1.1.2 INT 2
+}
+
+// INSTRUCTION: Compile the QinQ + MPLS carrier CPE SNMPv1 trap flow.
+COMPILE {
+    snmpv1_cpe_wan_trap(cpe_router, carrier_noc)
+}

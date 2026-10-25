@@ -1,0 +1,19 @@
+// PROMPT: HSRP Hello messages marked with DSCP CS6 (48), TTL 1, and IPv4 Don't Fragment flag.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, HELLOTIME, HOLDTIME, DSCP, ECN, TTL, DF, COMPILE
+
+// INSTRUCTION: Define campus core router 1.
+HOST hsrp_cs6_r1 { IP 10.1.1.252 }
+
+// INSTRUCTION: Define campus core router 2.
+HOST hsrp_cs6_r2 { IP 10.1.1.253 }
+
+// INSTRUCTION: Define DSCP CS6 (48) marked HSRP packets with TTL 1.
+FLOW hsrp_dscp_cs6_flow(r1, r2) {
+    r1 -> r2 HSRP GROUP 1 PRIORITY 110 STATE 16 VIP 10.1.1.254 HELLOTIME 3 HOLDTIME 10 DSCP 48 ECN 0 TTL 1 DF
+    r1 <- r2 HSRP GROUP 1 PRIORITY 100 STATE 8 VIP 10.1.1.254 HELLOTIME 3 HOLDTIME 10 DSCP 48 ECN 0 TTL 1 DF
+}
+
+// INSTRUCTION: Compile the DSCP CS6 HSRP control plane flow.
+COMPILE {
+    hsrp_dscp_cs6_flow(hsrp_cs6_r1, hsrp_cs6_r2)
+}

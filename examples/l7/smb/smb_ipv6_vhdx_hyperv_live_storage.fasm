@@ -1,0 +1,27 @@
+// PROMPT: SMB3 over IPv6 Hyper-V virtual machine VHDX live storage read and write I/O operations.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, FILENAME, STATUS, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the Hyper-V compute node over IPv6.
+HOST hyperv_node {
+    IP 2001:db8:60:1::11
+    MAC 00:1a:2b:60:06:11
+}
+
+// INSTRUCTION: Define the Scale-Out File Server (SOFS) cluster node over IPv6.
+HOST sofs_node {
+    IP 2001:db8:60:1::2
+    MAC 00:1a:2b:60:06:02
+}
+
+// INSTRUCTION: Open a virtual hard disk file and execute synchronous write and read blocks.
+FLOW smb_vhdx_io(c, s) {
+    c -> s SMB COMMAND "CREATE" TREE_ID 10 SESSION_ID 5500 MSGID 40 FILENAME "vm_sql01_disk.vhdx"
+    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 10 SESSION_ID 5500 MSGID 40 WAIT 1ms
+    c -> s SMB COMMAND "WRITE" TREE_ID 10 SESSION_ID 5500 MSGID 41 PAYLOAD "VHDX_BLOCK_4096_SECTOR_DATA"
+    c <- s SMB COMMAND "WRITE" STATUS 0 TREE_ID 10 SESSION_ID 5500 MSGID 41
+}
+
+// INSTRUCTION: Compile the IPv6 SMB3 Hyper-V storage flow.
+COMPILE {
+    smb_vhdx_io(hyperv_node, sofs_node)
+}

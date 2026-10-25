@@ -1,0 +1,18 @@
+// PROMPT: LDAP subtree SearchRequest querying active user accounts matching filter criteria.
+// TOKENS: HOST, IP, FLOW, LDAP, SEARCH_REQ, MSGID, BASE_DN, FILTER, COMPILE
+
+// INSTRUCTION: Define web application user authenticator.
+HOST app_auth_worker { IP 172.16.20.10 }
+
+// INSTRUCTION: Define central LDAP directory directory.
+HOST corporate_ldap { IP 172.16.20.2 }
+
+// INSTRUCTION: Define user search query flow.
+FLOW user_search_flow(app, dir) {
+    app -> dir LDAP SEARCH_REQ MSGID 10 BASE_DN "ou=users,dc=enterprise,dc=com" FILTER "(mail=user@enterprise.com)"
+}
+
+// INSTRUCTION: Compile LDAP user search scenario.
+COMPILE {
+    user_search_flow(app_auth_worker, corporate_ldap)
+}

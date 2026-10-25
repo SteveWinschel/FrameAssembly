@@ -1,0 +1,23 @@
+// PROMPT: SIPREC (RFC 7866) Session Border Controller forking caller and callee RTP streams to recorder.
+// TOKENS: HOST, IP, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define enterprise SBC acting as SIPREC Recording Client (SRC).
+HOST sbc_src {
+    IP 10.160.5.10
+}
+
+// INSTRUCTION: Define compliance voice Recording Server (SRS).
+HOST compliance_srs {
+    IP 10.160.5.100
+}
+
+// INSTRUCTION: Define forked RTP streams for caller SSRC (port 10000) and agent SSRC (port 10002).
+FLOW rtp_siprec_fork(src, srs) {
+    src -> srs RTP PT 0 SEQ 50 TIMESTAMP 8000 SSRC 0xca11e801 MARKER 1 SRCPORT 20000 DSTPORT 10000 PAYLOAD "CALLER_AUDIO_CH" WAIT 5ms
+    src -> srs RTP PT 0 SEQ 50 TIMESTAMP 8000 SSRC 0xa9e07002 MARKER 1 SRCPORT 20002 DSTPORT 10002 PAYLOAD "AGENT_AUDIO_CH"
+}
+
+// INSTRUCTION: Compile the SIPREC dual-stream compliance recording flow.
+COMPILE {
+    rtp_siprec_fork(sbc_src, compliance_srs)
+}

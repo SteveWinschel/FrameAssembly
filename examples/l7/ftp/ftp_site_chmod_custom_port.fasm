@@ -1,0 +1,19 @@
+// PROMPT: FTP SITE CHMOD permissions update on custom control port 2121 with DF flag.
+// TOKENS: HOST, IP, FLOW, FTP, CMD, ARG, SRCPORT, DSTPORT, DF, TTL, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define web developer workstation.
+HOST dev_ws { IP 192.168.80.15 }
+
+// INSTRUCTION: Define custom-port staging FTP server on port 2121.
+HOST custom_ftp { IP 192.168.80.2 }
+
+// INSTRUCTION: Execute SITE CHMOD 755 deploy.sh on non-standard TCP port 2121.
+FLOW ftp_site_chmod(c, s) {
+    c -> s FTP CMD "SITE" ARG "CHMOD 755 deploy.sh" SRCPORT 55100 DSTPORT 2121 DF TTL 64
+    c <- s FTP CODE 200 REPLY "SITE CHMOD command ok" SRCPORT 2121 DSTPORT 55100 DF TTL 64
+}
+
+// INSTRUCTION: Compile the custom-port FTP SITE CHMOD scenario.
+COMPILE {
+    ftp_site_chmod(dev_ws, custom_ftp)
+}

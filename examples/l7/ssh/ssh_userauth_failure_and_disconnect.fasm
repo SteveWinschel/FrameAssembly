@@ -1,0 +1,44 @@
+// PROMPT: Simulate an SSH password brute-force failure sequence returning SSH_MSG_USERAUTH_FAILURE (51) and SSH_MSG_DISCONNECT (1).
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SSH, MSG_CODE, PAYLOAD, WAIT, FIN, COMPILE, LOOP
+
+// INSTRUCTION: Define host endpoint scanner_node.
+HOST scanner_node {
+    MAC 00:16:3e:99:22:01
+    IP 198.51.100.77
+}
+
+// INSTRUCTION: Define host endpoint hardened_sshd.
+HOST hardened_sshd {
+    MAC 00:16:3e:99:22:02
+    IP 203.0.113.22
+}
+
+// INSTRUCTION: Initialize session before loop for ssh_userauth_failure_disconnect.
+FLOW ssh_userauth_failure_disconnect_init(scanner_node, hardened_sshd) {
+    scanner_node -> hardened_sshd TCP SYN SRCPORT 53022 DSTPORT 22
+    hardened_sshd -> scanner_node TCP SYN ACK
+    scanner_node -> hardened_sshd TCP ACK
+}
+
+// INSTRUCTION: Send 3 failed SSH_MSG_USERAUTH_REQUEST (50) attempts followed by SSH_MSG_DISCONNECT (1).
+FLOW ssh_userauth_failure_disconnect(scanner_node, hardened_sshd) {
+    scanner_node -> hardened_sshd SSH MSG_CODE 50 PAYLOAD "root:ssh-connection:password"
+    hardened_sshd -> scanner_node SSH MSG_CODE 51 PAYLOAD "publickey,password" WAIT 20ms
+}
+
+// INSTRUCTION: Complete session teardown after loop for ssh_userauth_failure_disconnect.
+FLOW ssh_userauth_failure_disconnect_done(scanner_node, hardened_sshd) {
+    hardened_sshd -> scanner_node SSH MSG_CODE 1 PAYLOAD "Too many authentication failures"
+    hardened_sshd -> scanner_node TCP FIN ACK
+    scanner_node -> hardened_sshd TCP FIN ACK
+    hardened_sshd -> scanner_node TCP ACK
+}
+
+// INSTRUCTION: Compile the SSH authentication failure and disconnect flow.
+COMPILE {
+    ssh_userauth_failure_disconnect_init(scanner_node, hardened_sshd)
+    LOOP 3 {
+        ssh_userauth_failure_disconnect(scanner_node, hardened_sshd)
+    }
+    ssh_userauth_failure_disconnect_done(scanner_node, hardened_sshd)
+}

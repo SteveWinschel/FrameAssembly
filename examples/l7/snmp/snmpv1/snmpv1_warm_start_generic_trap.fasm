@@ -1,5 +1,5 @@
 // PROMPT: Generate an SNMPv1 warmStart generic trap (GENTRAP 1) demonstrating both automatic RFC 1157 OID mapping (1.3.6.1.6.3.1.1.5.2) and explicit GENTRAP configuration.
-// TOKENS: HOST, IP, MAC, FLOW, ->, SNMP1, TRAP, COMMUNITY, OID, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, TRAP, COMMUNITY, OID, SYSUPTIME, WAIT, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, COMPILE
 
 // INSTRUCTION: Define a managed distribution switch with IP 10.101.0.2.
 HOST dist_switch { IP 10.101.0.2 MAC 00:1c:73:00:01:02 }

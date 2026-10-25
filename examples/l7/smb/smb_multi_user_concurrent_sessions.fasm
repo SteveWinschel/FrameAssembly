@@ -1,0 +1,29 @@
+// PROMPT: Multi-client concurrent SMB2 session setups to clustered enterprise file cluster.
+// TOKENS: HOST, IP, FLOW, SMB, COMMAND, SESSION_ID, MSGID, STATUS, COMPILE
+
+// INSTRUCTION: Define workstation alpha in engineering department.
+HOST ws_alpha { IP 10.12.0.11 }
+
+// INSTRUCTION: Define workstation bravo in finance department.
+HOST ws_bravo { IP 10.12.0.12 }
+
+// INSTRUCTION: Define clustered NAS file server.
+HOST nas_cluster { IP 10.12.0.2 }
+
+// INSTRUCTION: Define SMB2 session setup flow for client alpha.
+FLOW smb_client_alpha(c, s) {
+    c -> s SMB COMMAND "NEGOTIATE" SESSION_ID 0x1001 MSGID 1
+    c <- s SMB COMMAND "NEGOTIATE" STATUS 0 SESSION_ID 0x1001 MSGID 1
+}
+
+// INSTRUCTION: Define SMB2 session setup flow for client bravo.
+FLOW smb_client_bravo(c, s) {
+    c -> s SMB COMMAND "NEGOTIATE" SESSION_ID 0x1002 MSGID 1
+    c <- s SMB COMMAND "NEGOTIATE" STATUS 0 SESSION_ID 0x1002 MSGID 1
+}
+
+// INSTRUCTION: Compile concurrent multi-client SMB session flows.
+COMPILE {
+    smb_client_alpha(ws_alpha, nas_cluster)
+    smb_client_bravo(ws_bravo, nas_cluster)
+}

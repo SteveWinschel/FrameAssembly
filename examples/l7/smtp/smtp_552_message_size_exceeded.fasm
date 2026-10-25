@@ -1,0 +1,33 @@
+// PROMPT: Simulate an SMTP 552 5.3.4 Message size exceeds fixed maximum message size rejection during MAIL FROM SIZE.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, VLAN, ACK, SMTP, CODE, REPLY, EHLO, MAIL_FROM, PARAM, QUIT, COMPILE
+
+// INSTRUCTION: Define the mail sender and size-restricted SMTP relay on VLAN 25.
+HOST sender_node {
+    MAC 00:1e:67:10:25:11
+    IP 10.25.0.11
+}
+
+// INSTRUCTION: Define the relay_node mail endpoint.
+HOST relay_node {
+    MAC 00:1e:67:10:25:01
+    IP 10.25.0.1
+}
+
+// INSTRUCTION: Declare a 100MB message in MAIL FROM SIZE and receive 552 5.3.4 size limit exceeded on VLAN 25.
+FLOW smtp_552_size_exceeded(sender_node, relay_node) {
+    sender_node -> relay_node TCP SYN SRCPORT 58025 DSTPORT 25 VLAN 25
+    relay_node -> sender_node TCP SYN ACK VLAN 25
+    sender_node -> relay_node TCP ACK VLAN 25
+    relay_node -> sender_node SMTP CODE 220 REPLY "relay.corp.local ESMTP" VLAN 25
+    sender_node -> relay_node SMTP EHLO "app.corp.local" VLAN 25
+    relay_node -> sender_node SMTP CODE 250 REPLY "SIZE 26214400" VLAN 25
+    sender_node -> relay_node SMTP MAIL_FROM PARAM "<reports@corp.local> SIZE=104857600" VLAN 25
+    relay_node -> sender_node SMTP CODE 552 REPLY "5.3.4 Message size exceeds fixed limit" VLAN 25
+    sender_node -> relay_node SMTP QUIT VLAN 25
+    relay_node -> sender_node SMTP CODE 221 REPLY "2.0.0 Bye" VLAN 25
+}
+
+// INSTRUCTION: Compile the SMTP 552 message size limit flow.
+COMPILE {
+    smtp_552_size_exceeded(sender_node, relay_node)
+}

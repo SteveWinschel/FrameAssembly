@@ -1,0 +1,27 @@
+// PROMPT: Software-defined WAN controller shifting MPLS traffic-engineering paths across Table 1 and Table 2 via FLOW_MOD.
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, TYPE, FEATURES_REQ, VERSION, XID, WAIT, FEATURES_REPLY, DPID, FLOW_MOD, TABLE_ID, PRIORITY, COMPILE
+
+// INSTRUCTION: Define central SD-WAN traffic engineering orchestrator.
+HOST wan_te_ctrl {
+    IP 172.30.100.1
+    MAC 00:50:56:30:64:01
+}
+
+// INSTRUCTION: Define WAN edge OpenFlow switch managing dual MPLS uplinks.
+HOST wan_edge_ofs {
+    IP 172.30.100.15
+    MAC 00:50:56:30:64:0f
+}
+
+// INSTRUCTION: Query switch DPID capabilities and program Table 1 classifier and Table 2 MPLS group forwarding rules.
+FLOW openflow_wan_te_shift(ctrl, ofs) {
+    ctrl -> ofs OPENFLOW TYPE FEATURES_REQ VERSION 4 XID 301 WAIT 5ms
+    ofs -> ctrl OPENFLOW TYPE FEATURES_REPLY VERSION 4 XID 301 DPID 987654321 WAIT 5ms
+    ctrl -> ofs OPENFLOW TYPE FLOW_MOD VERSION 4 XID 302 TABLE_ID 1 PRIORITY 40000 WAIT 5ms
+    ctrl -> ofs OPENFLOW TYPE FLOW_MOD VERSION 4 XID 303 TABLE_ID 2 PRIORITY 30000
+}
+
+// INSTRUCTION: Compile the SD-WAN traffic-engineering OpenFlow multi-table path shift.
+COMPILE {
+    openflow_wan_te_shift(wan_te_ctrl, wan_edge_ofs)
+}

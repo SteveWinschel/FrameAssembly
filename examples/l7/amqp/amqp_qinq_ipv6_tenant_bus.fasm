@@ -1,0 +1,19 @@
+// PROMPT: AMQP carrier-grade QinQ 802.1ad double-tagged message delivery over IPv6 with FlowLabel.
+// TOKENS: HOST, IP, FLOW, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, QINQ, INNER_VLAN, FLOWLABEL, TTL, BASIC_DELIVER, COMPILE
+
+// INSTRUCTION: Define edge tenant AMQP producer over IPv6.
+HOST tenant_edge { IP 2001:db8:cafe:1::10 }
+
+// INSTRUCTION: Define provider core AMQP broker over IPv6.
+HOST provider_mq { IP 2001:db8:cafe:1::1 }
+
+// INSTRUCTION: Exchange QinQ double-tagged AMQP messages with IPv6 flow label.
+FLOW amqp_qinq_v6(t, p) {
+    t -> p AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "tenant.bus" ROUTING_KEY "job.enqueue" QINQ 1000 INNER_VLAN 101 FLOWLABEL 0x12345 TTL 60
+    t <- p AMQP BASIC_DELIVER CHANNEL 1 EXCHANGE "tenant.bus" ROUTING_KEY "job.result" QINQ 1000 INNER_VLAN 101 FLOWLABEL 0x12345 TTL 60
+}
+
+// INSTRUCTION: Compile the QinQ IPv6 AMQP flow.
+COMPILE {
+    amqp_qinq_v6(tenant_edge, provider_mq)
+}

@@ -1,0 +1,27 @@
+// PROMPT: VMware ESXi NFSv4 datastore read/write traffic encapsulated in QinQ (400/2049) and MPLS label 5020.
+// TOKENS: HOST, IP, MAC, FLOW, NFS, VERS, PROC, TAG, PATH, QINQ, INNER_VLAN, MPLS, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the ESXi hypervisor host accessing its remote NFS datastore.
+HOST esxi_host {
+    IP 172.22.40.11
+    MAC 00:1a:2b:22:40:11
+}
+
+// INSTRUCTION: Define the metro-cluster NFSv4 datastore target.
+HOST metro_datastore {
+    IP 172.22.40.100
+    MAC 00:1a:2b:22:40:99
+}
+
+// INSTRUCTION: Issue NFSv4 READ and WRITE procedures across QinQ and MPLS transport.
+FLOW nfs_esxi_datastore(c, s) {
+    c -> s NFS VERS 4 PROC "READ" TAG "vmdk_read" PATH "/vmfs/prod_vm01/prod_vm01-flat.vmdk" QINQ 400 INNER_VLAN 2049 MPLS 5020
+    c <- s NFS VERS 4 PROC "READ" TAG "vmdk_read" QINQ 400 INNER_VLAN 2049 MPLS 5020 PAYLOAD "VMDK_BOOT_SECTOR_BYTES" WAIT 2ms
+    c -> s NFS VERS 4 PROC "WRITE" TAG "vmdk_write" PATH "/vmfs/prod_vm01/prod_vm01-flat.vmdk" QINQ 400 INNER_VLAN 2049 MPLS 5020 PAYLOAD "VMDK_DIRTY_PAGE_FLUSH"
+    c <- s NFS VERS 4 PROC "WRITE" TAG "vmdk_write" QINQ 400 INNER_VLAN 2049 MPLS 5020
+}
+
+// INSTRUCTION: Compile the QinQ + MPLS ESXi NFSv4 datastore flow.
+COMPILE {
+    nfs_esxi_datastore(esxi_host, metro_datastore)
+}

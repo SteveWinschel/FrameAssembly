@@ -1,5 +1,5 @@
 // PROMPT: Kerberos AS_REQ initial authentication requesting Ticket Granting Ticket (TGT).
-// TOKENS: HOST, IP, FLOW, ->, KERBEROS, AS_REQ, REALM, CNAME, ETYPE, COMPILE
+// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REQ, REALM, CNAME, ETYPE, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.100 }

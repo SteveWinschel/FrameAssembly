@@ -1,0 +1,18 @@
+// PROMPT: IGMP Membership Report joining organization-wide video conference stream 239.192.100.1.
+// TOKENS: HOST, IP, FLOW, IGMP, REPORT, GROUP, VLAN, COMPILE
+
+// INSTRUCTION: Define boardroom conferencing codec.
+HOST boardroom_codec { IP 10.210.4.50 }
+
+// INSTRUCTION: Define corporate town hall video stream address.
+HOST townhall_stream { IP 239.192.100.1 }
+
+// INSTRUCTION: Define conferencing IGMP join flow on AV VLAN 210.
+FLOW igmp_conf_join(codec, grp) {
+    codec -> grp IGMP REPORT GROUP 239.192.100.1 VLAN 210
+}
+
+// INSTRUCTION: Compile block executing corporate video IGMP join.
+COMPILE {
+    igmp_conf_join(boardroom_codec, townhall_stream)
+}

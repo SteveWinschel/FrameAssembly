@@ -1,5 +1,5 @@
 // PROMPT: IPsec AH authentication header protecting IPv6 traffic between endpoints.
-// TOKENS: HOST, IP, FLOW, ->, AH, SPI, SEQ, COMPILE
+// TOKENS: HOST, IP, FLOW, AH, SPI, SEQ, COMPILE
 
 // INSTRUCTION: Define IPv6 client host A.
 HOST ah_v6_host_a { IP 2001:db8:a::1 }

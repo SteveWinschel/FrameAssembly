@@ -1,0 +1,18 @@
+// PROMPT: PTP message carrying appended TLV management extension via HEXPAYLOAD.
+// TOKENS: HOST, IP, FLOW, PTP, ANNOUNCE, DOMAIN, SEQ_ID, CLOCK_ID, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define telecom grandmaster clock.
+HOST tgm_node { IP 192.168.240.1 }
+
+// INSTRUCTION: Define downstream telecom slave clock.
+HOST tsc_node { IP 192.168.240.2 }
+
+// INSTRUCTION: Define PTP ANNOUNCE with trailing TLV hex bytes.
+FLOW ptp_tlv_extension(gm, sc) {
+    gm -> sc PTP ANNOUNCE DOMAIN 4 SEQ_ID 12 CLOCK_ID "TGMNODE1" HEXPAYLOAD "0008000401020304"
+}
+
+// INSTRUCTION: Compile PTP TLV extension scenario.
+COMPILE {
+    ptp_tlv_extension(tgm_node, tsc_node)
+}

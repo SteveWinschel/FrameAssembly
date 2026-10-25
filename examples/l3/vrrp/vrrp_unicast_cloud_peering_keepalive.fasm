@@ -1,0 +1,25 @@
+// PROMPT: Cloud virtual router pair exchanging unicast VRRPv3 heartbeats in an environment where L2 multicast is restricted.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Cloud Virtual Router 1 (Active VIP holder) sending unicast VRRP to peer.
+HOST cloud_vrrp_vr1 {
+    IP 10.212.0.11
+    MAC 02:11:22:70:00:0b
+}
+
+// INSTRUCTION: Define Cloud Virtual Router 2 (Standby) monitoring unicast VRRP heartbeats.
+HOST cloud_vrrp_vr2 {
+    IP 10.212.0.12
+    MAC 02:11:22:70:00:0c
+}
+
+// INSTRUCTION: Define unicast VRRPv3 heartbeat exchange with DF flag and TTL 255.
+FLOW vrrp_cloud_unicast_flow(vr1, vr2) {
+    vr1 -> vr2 VRRP VRID 212 PRIORITY 180 ADV_INT 50 VIP 10.212.0.1 VERSION 3 DF DSCP 48 TTL 255 PAYLOAD "UNICAST_VRRP_CLOUD_HA_PRIMARY" WAIT 50ms
+    vr1 -> vr2 VRRP VRID 212 PRIORITY 180 ADV_INT 50 VIP 10.212.0.1 VERSION 3 DF DSCP 48 TTL 255 PAYLOAD "UNICAST_VRRP_CLOUD_HA_SEQ2"
+}
+
+// INSTRUCTION: Compile the unicast cloud VRRPv3 peering flow.
+COMPILE {
+    vrrp_cloud_unicast_flow(cloud_vrrp_vr1, cloud_vrrp_vr2)
+}

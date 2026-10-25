@@ -1,0 +1,25 @@
+// PROMPT: Minimal NFS frame with zero optional sub-keywords exercising builder defaults (NFSv4 LOOKUP on /).
+// TOKENS: HOST, IP, MAC, FLOW, NFS, VERS, PROC, COMPILE
+
+// INSTRUCTION: Define the default NFS client endpoint.
+HOST nfs_def_client {
+    IP 10.70.0.10
+    MAC 00:1a:2b:70:00:10
+}
+
+// INSTRUCTION: Define the default NFS server endpoint.
+HOST nfs_def_server {
+    IP 10.70.0.1
+    MAC 00:1a:2b:70:00:01
+}
+
+// INSTRUCTION: Emit a bare NFS statement relying on default version, procedure, tag, and path.
+FLOW nfs_defaults(c, s) {
+    c -> s NFS
+    c <- s NFS VERS 4 PROC "LOOKUP"
+}
+
+// INSTRUCTION: Compile the default NFS protocol test flow.
+COMPILE {
+    nfs_defaults(nfs_def_client, nfs_def_server)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Generate an MLD Report carrying a raw hexadecimal extension payload for source-filtered multicast records
+// TOKENS: HOST, IP, MAC, FLOW, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, TTL, HEXPAYLOAD, WAIT, QUERY, COMPILE
+
+// INSTRUCTION: Define the IPv6 market data feed subscriber
+HOST feed_sub_v6 {
+    IP 2001:db8:880:1::44
+    MAC 00:1e:67:cb:01:44
+}
+
+// INSTRUCTION: Define the IPv6 top-of-rack multicast switch
+HOST tor_mcast_v6 {
+    IP 2001:db8:880:1::1
+    MAC 00:1e:67:cb:01:01
+}
+
+// INSTRUCTION: Exchange MLD Report and Query frames with additional hex record bytes
+FLOW mld_hex_extension_flow(sub, tor) {
+    sub -> tor MLD REPORT MULTICAST_ADDR ff3e::f00d:1 MAX_RESP_DELAY 0 TTL 1 HEXPAYLOAD "04000001ff3e0000000000000000f00d0001" WAIT 20ms
+    tor -> sub MLD QUERY MULTICAST_ADDR ff3e::f00d:1 MAX_RESP_DELAY 1000 TTL 1 HEXPAYLOAD "0000000120010db808800001000000000001"
+}
+
+// INSTRUCTION: Compile the hex-extended MLD report and query trace
+COMPILE {
+    mld_hex_extension_flow(feed_sub_v6, tor_mcast_v6)
+}

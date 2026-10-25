@@ -1,0 +1,21 @@
+// PROMPT: LACNIC regional internet registry lookup for South American IP allocation.
+// TOKENS: HOST, IP, FLOW, WHOIS, QUERY, DOMAIN, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define South American operations terminal.
+HOST lacnic_cli { IP 192.168.99.20 }
+
+// INSTRUCTION: Define LACNIC WHOIS directory.
+HOST lacnic_whois { IP 200.3.14.10 }
+
+// INSTRUCTION: Define LACNIC regional IP query flow.
+FLOW whois_lacnic_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "200.7.84.0/22"
+    c <- s WHOIS RESPONSE
+        DOMAIN "200.7.84.0/22"
+        REGISTRAR "LACNIC"
+}
+
+// INSTRUCTION: Compile block executing LACNIC query.
+COMPILE {
+    whois_lacnic_flow(lacnic_cli, lacnic_whois)
+}

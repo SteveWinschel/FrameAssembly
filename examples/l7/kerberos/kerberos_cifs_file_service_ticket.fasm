@@ -1,0 +1,18 @@
+// PROMPT: Kerberos TGS-REQ service ticket request for enterprise CIFS/SMB storage cluster.
+// TOKENS: HOST, IP, FLOW, KERBEROS, TGS_REQ, REALM, SNAME, ETYPE, COMPILE
+
+// INSTRUCTION: Define file transfer client workstation.
+HOST storage_client { IP 10.50.2.100 }
+
+// INSTRUCTION: Define enterprise KDC server.
+HOST file_kdc { IP 10.50.2.1 }
+
+// INSTRUCTION: Define CIFS ticket acquisition flow.
+FLOW cifs_ticket_flow(cli, kdc) {
+    cli -> kdc KERBEROS TGS_REQ REALM "STORAGE.CORP" SNAME "cifs/nas01.storage.corp" ETYPE 18
+}
+
+// INSTRUCTION: Compile CIFS file service ticket scenario.
+COMPILE {
+    cifs_ticket_flow(storage_client, file_kdc)
+}

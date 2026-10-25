@@ -1,0 +1,27 @@
+// PROMPT: IEEE 802.11i / WPA2/WPA3 4-Way Handshake using EAPOL-Key (TYPE KEY) frames with ANonce, SNonce, and MIC payloads.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, KEY, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define wireless access point authenticator (BSSID).
+HOST wpa3_ap_bssid {
+    IP 192.168.200.1
+    MAC 70:69:79:c8:00:01
+}
+
+// INSTRUCTION: Define wireless client station supplicant (STA).
+HOST wpa3_client_sta {
+    IP 192.168.200.45
+    MAC a4:83:e7:c8:00:2d
+}
+
+// INSTRUCTION: Define 4-way EAPOL-Key PTK/GTK derivation exchange between AP and station.
+FLOW eapol_wpa_four_way_key(ap, sta) {
+    ap -> sta EAPOL VERSION 2 TYPE KEY HEXPAYLOAD "02008a00100000000000000001aabbccddeeff0011"
+    ap <- sta EAPOL VERSION 2 TYPE KEY HEXPAYLOAD "02010a001000000000000000011122334455667788" WAIT 3ms
+    ap -> sta EAPOL VERSION 2 TYPE KEY HEXPAYLOAD "0213ca00100000000000000002aabbccddeeff0011" WAIT 2ms
+    ap <- sta EAPOL VERSION 2 TYPE KEY HEXPAYLOAD "02030a000000000000000000020000000000000000" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing WPA 4-way EAPOL-Key handshake.
+COMPILE {
+    eapol_wpa_four_way_key(wpa3_ap_bssid, wpa3_client_sta)
+}

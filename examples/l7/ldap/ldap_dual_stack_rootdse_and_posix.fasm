@@ -1,0 +1,46 @@
+// PROMPT: Create a dual-stack IPv4 and IPv6 LDAP RootDSE capability discovery flow querying namingContexts.
+// TOKENS: HOST, IP, MAC, FLOW, LDAP, MSGID, SEARCH_REQ, BASE_DN, FILTER, DSCP, WAIT, SEARCH_ENTRY, SEARCH_DONE, RESULT_CODE, FLOWLABEL, TTL, COMPILE
+
+// INSTRUCTION: Define the dual-stack SSSD client discovering directory capabilities (IPv4).
+HOST sssd_node_v4 {
+    IP 10.60.1.35
+    MAC 00:1a:4a:60:01:35
+}
+
+// INSTRUCTION: Define the dual-stack SSSD client discovering directory capabilities (IPv6).
+HOST sssd_node_v6 {
+    IP 2001:db8:60:1::35
+    MAC 00:1a:4a:60:01:35
+}
+
+// INSTRUCTION: Define the dual-stack 389 Directory Server (IPv4).
+HOST ds389_srv_v4 {
+    IP 10.60.1.10
+    MAC 00:1a:4a:60:01:10
+}
+
+// INSTRUCTION: Define the dual-stack 389 Directory Server (IPv6).
+HOST ds389_srv_v6 {
+    IP 2001:db8:60:1::10
+    MAC 00:1a:4a:60:01:10
+}
+
+// INSTRUCTION: Perform an anonymous RootDSE search over IPv4.
+FLOW ipv4_rootdse_probe(c, s) {
+    c -> s LDAP MSGID 1 SEARCH_REQ BASE_DN "" FILTER "(objectClass=*)" DSCP 16 WAIT 2ms
+    c <- s LDAP MSGID 1 SEARCH_ENTRY BASE_DN "" DSCP 16 WAIT 1ms
+    c <- s LDAP MSGID 1 SEARCH_DONE RESULT_CODE 0 DSCP 16
+}
+
+// INSTRUCTION: Perform a POSIX account lookup over IPv6 with flow label 0x61000.
+FLOW ipv6_posix_lookup(c, s) {
+    c -> s LDAP MSGID 2 SEARCH_REQ BASE_DN "cn=accounts,dc=linux,dc=org" FILTER "(uidNumber=10042)" FLOWLABEL 0x61000 TTL 64 WAIT 3ms
+    c <- s LDAP MSGID 2 SEARCH_ENTRY BASE_DN "uid=ops,cn=users,cn=accounts,dc=linux,dc=org" FLOWLABEL 0x61000 TTL 64 WAIT 1ms
+    c <- s LDAP MSGID 2 SEARCH_DONE RESULT_CODE 0 FLOWLABEL 0x61000 TTL 64
+}
+
+// INSTRUCTION: Compile the dual-stack LDAP RootDSE and POSIX account trace into a PCAP file.
+COMPILE {
+    ipv4_rootdse_probe(sssd_node_v4, ds389_srv_v4)
+    ipv6_posix_lookup(sssd_node_v6, ds389_srv_v6)
+}

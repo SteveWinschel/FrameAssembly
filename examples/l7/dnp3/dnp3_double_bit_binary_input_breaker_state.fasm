@@ -1,0 +1,25 @@
+// PROMPT: DNP3 Group 3 Variation 2 (Double-Bit Binary Input) read monitoring high-voltage disconnect switch intermediate states.
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define the transmission control center master station.
+HOST trans_master {
+    IP 10.125.10.1
+    MAC 00:1a:2b:7d:10:01
+}
+
+// INSTRUCTION: Define the 230kV switchyard bay controller outstation.
+HOST switchyard_ied {
+    IP 10.125.10.23
+    MAC 00:1a:2b:7d:10:23
+}
+
+// INSTRUCTION: Poll Group 3 Variation 2 Double-Bit Binary Inputs and receive breaker closed state (0b10).
+FLOW dnp3_double_bit_input(m, i) {
+    m -> i DNP3 FUNC "READ" SRC 1 DST 23 GROUP 3 VARIATION 2
+    m <- i DNP3 FUNC "RESPONSE" SRC 23 DST 1 GROUP 3 VARIATION 2 HEXPAYLOAD "00038102"
+}
+
+// INSTRUCTION: Compile the DNP3 Double-Bit Binary Input flow.
+COMPILE {
+    dnp3_double_bit_input(trans_master, switchyard_ied)
+}

@@ -1,0 +1,18 @@
+// PROMPT: NTP server response signaling upcoming leap second insertion with leap indicator 1.
+// TOKENS: HOST, IP, FLOW, NTP, LI, VN, MODE, STRATUM, REFID, COMPILE
+
+// INSTRUCTION: Define reference clock client listener.
+HOST clock_listener { IP 172.24.1.45 }
+
+// INSTRUCTION: Define national time laboratory server.
+HOST nist_time_server { IP 172.24.1.1 }
+
+// INSTRUCTION: Define leap second warning response flow.
+FLOW leap_warning_response(cli, srv) {
+    cli <- srv NTP LI 1 VN 4 MODE 4 STRATUM 1 REFID "ACTS"
+}
+
+// INSTRUCTION: Compile leap indicator warning scenario.
+COMPILE {
+    leap_warning_response(clock_listener, nist_time_server)
+}

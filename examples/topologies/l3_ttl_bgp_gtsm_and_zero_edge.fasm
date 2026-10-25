@@ -1,5 +1,5 @@
 // PROMPT: Generalized TTL Security Mechanism with maximum TTL 255 and boundary edge case TTL 0.
-// TOKENS: HOST, IP, FLOW, ->, TTL, TCP, SYN, SRCPORT, DSTPORT, COMPILE
+// TOKENS: HOST, IP, FLOW, TTL, TCP, SYN, SRCPORT, DSTPORT, COMPILE
 
 // INSTRUCTION: Define BGP speaker A.
 HOST bgp_speaker_a { IP 192.0.2.1 }

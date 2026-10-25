@@ -1,0 +1,27 @@
+// PROMPT: IPv6 OPC UA Robotics Companion Specification telemetry reading 6-axis joint angles with DSCP EF.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, DSCP, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the semiconductor fab scheduler over IPv6.
+HOST fab_scheduler {
+    IP 2001:db8:140:140::10
+    MAC 00:1a:2b:8c:e0:10
+}
+
+// INSTRUCTION: Define the wafer handling cleanroom robot OPC UA server over IPv6.
+HOST wafer_robot {
+    IP 2001:db8:140:140::1
+    MAC 00:1a:2b:8c:e0:01
+}
+
+// INSTRUCTION: Read MotionDeviceSystem Axis 1-6 angles and vacuum gripper state over IPv6 with DSCP 46.
+FLOW opcua_ipv6_robotics(c, r) {
+    c -> r OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1400 TOKEN_ID 2 SEQ_NUM 90 REQID 90 NODE_ID "ns=3;s=MotionDevice.Axes.J1_Angle" DSCP 46
+    c <- r OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1400 TOKEN_ID 2 SEQ_NUM 90 REQID 90 NODE_ID "ns=3;s=MotionDevice.Axes.J1_Angle" DSCP 46 PAYLOAD "Double:45.12" WAIT 1ms
+    c -> r OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1400 TOKEN_ID 2 SEQ_NUM 91 REQID 91 NODE_ID "ns=3;s=MotionDevice.EndEffector.VacuumOk" DSCP 46
+    c <- r OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1400 TOKEN_ID 2 SEQ_NUM 91 REQID 91 NODE_ID "ns=3;s=MotionDevice.EndEffector.VacuumOk" DSCP 46 PAYLOAD "Boolean:true"
+}
+
+// INSTRUCTION: Compile the IPv6 cleanroom robotics OPC UA flow.
+COMPILE {
+    opcua_ipv6_robotics(fab_scheduler, wafer_robot)
+}

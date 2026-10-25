@@ -1,0 +1,27 @@
+// PROMPT: Generate a STUN unauthenticated Binding Request rejected with a Binding Error response, followed by a successful retry.
+// TOKENS: HOST, MAC, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_ERROR, WAIT, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define host endpoint ice_client.
+HOST ice_client {
+    MAC 00:1b:21:34:78:01
+    IP 172.16.30.15
+}
+
+// INSTRUCTION: Define host endpoint turn_server.
+HOST turn_server {
+    MAC 00:1b:21:34:78:02
+    IP 172.16.30.1
+}
+
+// INSTRUCTION: Send initial Binding Request, receive BINDING_ERROR, wait 10ms, and succeed on retry.
+FLOW stun_error_and_retry_flow(ice_client, turn_server) {
+    ice_client -> turn_server STUN BINDING_REQUEST SOFTWARE "PJSIP-pjnath/2.14"
+    turn_server -> ice_client STUN BINDING_ERROR SOFTWARE "coturn-4.6.2" WAIT 10ms
+    ice_client -> turn_server STUN BINDING_REQUEST SOFTWARE "PJSIP-pjnath/2.14"
+    turn_server -> ice_client STUN BINDING_RESPONSE XOR_MAPPED_ADDR 203.0.113.15 SOFTWARE "coturn-4.6.2"
+}
+
+// INSTRUCTION: Compile the STUN error challenge and retry flow.
+COMPILE {
+    stun_error_and_retry_flow(ice_client, turn_server)
+}

@@ -1,0 +1,29 @@
+// PROMPT: Factory floor PLC authenticating its IEEE 802.1AR Initial Device Identifier (IDevID) TPM certificate via EAP-TLS on VLAN 60.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, EAPOL, VERSION, TYPE, START, WAIT, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define factory robotics controller PLC with embedded TPM 2.0 IDevID certificate.
+HOST robotics_plc_tpm {
+    IP 192.168.60.15
+    MAC 00:0e:8c:3c:00:0f
+}
+
+// INSTRUCTION: Define industrial DIN-rail switch enforcing IEEE 802.1X on automation VLAN 60.
+HOST dinrail_ind_sw {
+    IP 192.168.60.1
+    MAC 00:0e:8c:3c:00:01
+}
+
+// INSTRUCTION: Complete VLAN 60 tagged EAP-TLS (Method 13) IDevID hardware certificate verification.
+FLOW eapol_idevid_plc_auth(plc, sw) {
+    plc -> sw VLAN 60 PCP 6 EAPOL VERSION 2 TYPE START WAIT 2ms
+    plc <- sw VLAN 60 PCP 6 EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 7 EAP_METHOD 1 WAIT 2ms
+    plc -> sw VLAN 60 PCP 6 EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 7 EAP_METHOD 1 IDENTITY "IDEVID-SN-PLC7500-99182" WAIT 5ms
+    plc <- sw VLAN 60 PCP 6 EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 8 EAP_METHOD 13 PAYLOAD "TLS13_CERT_REQ_MANUFACTURER_CA" WAIT 5ms
+    plc -> sw VLAN 60 PCP 6 EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 8 EAP_METHOD 13 PAYLOAD "TLS13_IDEVID_X509_TPM_SIGNATURE" WAIT 5ms
+    plc <- sw VLAN 60 PCP 6 EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 8 EAP_METHOD 13
+}
+
+// INSTRUCTION: Compile the IEEE 802.1AR IDevID PLC EAP-TLS authentication trace.
+COMPILE {
+    eapol_idevid_plc_auth(robotics_plc_tpm, dinrail_ind_sw)
+}

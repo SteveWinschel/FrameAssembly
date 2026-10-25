@@ -1,0 +1,18 @@
+// PROMPT: Kerberos AS-REQ ticket request negotiating AES256-CTS-HMAC-SHA1-96 encryption type 18.
+// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REQ, REALM, CNAME, ETYPE, COMPILE
+
+// INSTRUCTION: Define secure banking workstation.
+HOST finance_pc { IP 10.88.2.14 }
+
+// INSTRUCTION: Define security hardened domain controller.
+HOST secure_dc { IP 10.88.2.1 }
+
+// INSTRUCTION: Define AES256 ticket request flow.
+FLOW krb_aes_req_flow(pc, dc) {
+    pc -> dc KERBEROS AS_REQ REALM "BANKING.INTERNAL" CNAME "auditor" ETYPE 18
+}
+
+// INSTRUCTION: Compile AES256 crypto exchange scenario.
+COMPILE {
+    krb_aes_req_flow(finance_pc, secure_dc)
+}

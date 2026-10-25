@@ -1,0 +1,30 @@
+// PROMPT: iSCSI SAN block storage session over TCP port 3260 with 802.1Q VLAN priority tagging and DSCP AF31 marking.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DSCP, TCP, SYN, SRCPORT, DSTPORT, MSS, WSCALE, SACK_PERM, ACK, WAIT, PSH, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define virtualization hypervisor iSCSI software initiator.
+HOST esxi_iscsi_init {
+    IP 172.18.32.11
+    MAC 00:50:56:c0:32:0b
+}
+
+// INSTRUCTION: Define enterprise all-flash iSCSI storage array target portal.
+HOST flash_iscsi_tgt {
+    IP 172.18.32.200
+    MAC 00:a0:98:c0:32:c8
+}
+
+// INSTRUCTION: Define VLAN 320 PCP 3 TCP port 3260 connection and iSCSI Login / SCSI Read(10) exchange.
+FLOW tcp_iscsi_san_io(init, tgt) {
+    init -> tgt VLAN 320 PCP 3 DSCP 26 TCP SYN SRCPORT 49200 DSTPORT 3260 MSS 1460 WSCALE 7 SACK_PERM
+    init <- tgt VLAN 320 PCP 3 DSCP 26 TCP SYN ACK MSS 1460 WSCALE 7 SACK_PERM WAIT 500us
+    init -> tgt VLAN 320 PCP 3 DSCP 26 TCP ACK WAIT 200us
+    init -> tgt VLAN 320 PCP 3 DSCP 26 TCP PSH ACK PAYLOAD "iscsi_login_req_iqn_2026_01_com_corp_esxi01" WAIT 500us
+    init <- tgt VLAN 320 PCP 3 DSCP 26 TCP PSH ACK PAYLOAD "iscsi_login_rsp_status_success_tsih_0001" WAIT 500us
+    init -> tgt VLAN 320 PCP 3 DSCP 26 TCP PSH ACK PAYLOAD "iscsi_scsi_read10_lun0_lba_0x001000_len_64" WAIT 500us
+    init <- tgt VLAN 320 PCP 3 DSCP 26 TCP PSH ACK PAYLOAD "iscsi_data_in_block_payload_4096b_good" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing iSCSI over TCP port 3260 storage flow.
+COMPILE {
+    tcp_iscsi_san_io(esxi_iscsi_init, flash_iscsi_tgt)
+}

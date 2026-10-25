@@ -1,0 +1,20 @@
+// PROMPT: RFC 4733 RTP telephone-event DTMF digit press (PT 101) with end-of-event marker.
+// TOKENS: HOST, IP, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define SIP softphone sending IVR keypad digit.
+HOST softphone { IP 10.50.101.15 }
+
+// INSTRUCTION: Define IVR voice gateway receiving DTMF.
+HOST ivr_gw { IP 10.50.101.1 }
+
+// INSTRUCTION: Define RFC 4733 DTMF digit '1' start and end packets with constant timestamp.
+FLOW rtp_dtmf_digit(phone, ivr) {
+    phone -> ivr RTP PT 101 TIMESTAMP 8000 SSRC 0x10102020 MARKER 1 HEXPAYLOAD "010a00a0" WAIT 20ms
+    phone -> ivr RTP PT 101 TIMESTAMP 8000 SSRC 0x10102020 MARKER 0 HEXPAYLOAD "010a0140" WAIT 20ms
+    phone -> ivr RTP PT 101 TIMESTAMP 8000 SSRC 0x10102020 MARKER 0 HEXPAYLOAD "018a01e0"
+}
+
+// INSTRUCTION: Compile RFC 4733 DTMF telephone-event flow.
+COMPILE {
+    rtp_dtmf_digit(softphone, ivr_gw)
+}

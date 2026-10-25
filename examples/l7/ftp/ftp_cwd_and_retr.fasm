@@ -1,5 +1,5 @@
 // PROMPT: FTP file retrieval sequence navigating directory and requesting file download.
-// TOKENS: HOST, IP, FLOW, ->, <-, FTP, CMD, ARG, CODE, REPLY, COMPILE
+// TOKENS: HOST, IP, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.50 }

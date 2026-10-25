@@ -1,0 +1,29 @@
+// PROMPT: Generate an 802.1Q VLAN-tagged OSPF neighbor adjacency across a campus distribution switch trunk
+// TOKENS: HOST, IP, MAC, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, VLAN, PCP, TTL, WAIT, DBD, LSR, LSU, LSACK, COMPILE
+
+// INSTRUCTION: Define the campus distribution switch A on VLAN 310
+HOST dist_sw_a {
+    IP 10.31.0.1
+    MAC 00:0f:53:f5:31:01
+}
+
+// INSTRUCTION: Define the campus distribution switch B on VLAN 310
+HOST dist_sw_b {
+    IP 10.31.0.2
+    MAC 00:0f:53:f5:31:02
+}
+
+// INSTRUCTION: Exchange VLAN 310 tagged OSPF control frames with 802.1p priority 6
+FLOW ospf_vlan_trunk_adjacency(sw_a, sw_b) {
+    sw_a -> sw_b OSPF HELLO ROUTER_ID 10.31.255.1 AREA_ID 10 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 128 VLAN 310 PCP 6 TTL 1 WAIT 10ms
+    sw_b -> sw_a OSPF HELLO ROUTER_ID 10.31.255.2 AREA_ID 10 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 64 VLAN 310 PCP 6 TTL 1 WAIT 10ms
+    sw_a -> sw_b OSPF DBD ROUTER_ID 10.31.255.1 AREA_ID 10 VLAN 310 PCP 6 TTL 1 WAIT 10ms
+    sw_b -> sw_a OSPF LSR ROUTER_ID 10.31.255.2 AREA_ID 10 VLAN 310 PCP 6 TTL 1 WAIT 10ms
+    sw_a -> sw_b OSPF LSU ROUTER_ID 10.31.255.1 AREA_ID 10 VLAN 310 PCP 6 TTL 1 WAIT 10ms
+    sw_b -> sw_a OSPF LSACK ROUTER_ID 10.31.255.2 AREA_ID 10 VLAN 310 PCP 6 TTL 1
+}
+
+// INSTRUCTION: Compile the VLAN-tagged OSPF campus adjacency flow
+COMPILE {
+    ospf_vlan_trunk_adjacency(dist_sw_a, dist_sw_b)
+}

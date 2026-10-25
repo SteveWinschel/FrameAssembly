@@ -1,0 +1,19 @@
+// PROMPT: Multi-homed gateway verifying secondary WAN uplink NAT binding.
+// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+
+// INSTRUCTION: Define secondary WAN branch interface.
+HOST wan2_interface { IP 172.31.50.10 }
+
+// INSTRUCTION: Define public STUN discovery node.
+HOST public_stun { IP 198.51.100.222 }
+
+// INSTRUCTION: Define secondary WAN NAT probe flow.
+FLOW stun_wan2_flow(c, s) {
+    c -> s STUN BINDING_REQUEST
+    c <- s STUN BINDING_RESPONSE XOR_MAPPED_ADDR 198.51.100.77
+}
+
+// INSTRUCTION: Compile block executing secondary WAN NAT check.
+COMPILE {
+    stun_wan2_flow(wan2_interface, public_stun)
+}

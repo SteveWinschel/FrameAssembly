@@ -1,0 +1,28 @@
+// PROMPT: Simulate a TACACS+ accounting (ACCT) start and stop session logging CLI privilege level 15 commands on TCP port 49.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TACACS, ACCT, SESSION_ID, USER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint switch_nas.
+HOST switch_nas {
+    MAC 00:1b:21:00:49:01
+    IP 10.10.49.10
+}
+
+// INSTRUCTION: Define host endpoint tacacs_srv.
+HOST tacacs_srv {
+    MAC 00:1b:21:00:49:99
+    IP 10.10.49.99
+}
+
+// INSTRUCTION: Establish TCP port 49 and exchange TACACS+ ACCT records for a router configuration command.
+FLOW tacacs_accounting_command_log(switch_nas, tacacs_srv) {
+    switch_nas -> tacacs_srv TCP SYN SRCPORT 51049 DSTPORT 49
+    tacacs_srv -> switch_nas TCP SYN ACK
+    switch_nas -> tacacs_srv TCP ACK
+    switch_nas -> tacacs_srv TACACS ACCT SESSION_ID 900101 USER "netadmin" PAYLOAD "task_id=42:service=shell:cmd=configure terminal"
+    tacacs_srv -> switch_nas TACACS ACCT SESSION_ID 900101 PAYLOAD "ACCT_STATUS_SUCCESS"
+}
+
+// INSTRUCTION: Compile the TACACS+ command accounting flow.
+COMPILE {
+    tacacs_accounting_command_log(switch_nas, tacacs_srv)
+}

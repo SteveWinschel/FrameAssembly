@@ -1,0 +1,27 @@
+// PROMPT: RFC 6388 Multipoint LDP (mLDP) Point-to-Multipoint (P2MP) LSP distributing IPTV multicast stream over label 77500.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define mLDP P2MP root ingress PE router injecting national IPTV broadcast stream.
+HOST mldp_root_pe {
+    IP 10.77.50.1
+    MAC 00:1c:73:4d:32:01
+}
+
+// INSTRUCTION: Define mLDP branch transit router replicating P2MP label 77500 to downstream leaves.
+HOST mldp_branch_p {
+    IP 10.77.50.2
+    MAC 00:1c:73:4d:32:02
+}
+
+// INSTRUCTION: Stream sequential UDP MPEG-TS video frames over mLDP P2MP label 77500 with EXP 5 in a loop.
+FLOW mpls_mldp_p2mp_iptv(root, branch) {
+    root -> branch MPLS 77500 EXP 5 BOS 1 MPLS_TTL 60 DSCP 40 UDP SRCPORT 5004 DSTPORT 5004 PAYLOAD "mpeg_ts_uhd_channel_101_i_frame" WAIT 5ms
+    root -> branch MPLS 77500 EXP 5 BOS 1 MPLS_TTL 60 DSCP 40 UDP SRCPORT 5004 DSTPORT 5004 PAYLOAD "mpeg_ts_uhd_channel_101_p_frame"
+}
+
+// INSTRUCTION: Compile 2 iterations of the mLDP P2MP IPTV video distribution burst.
+COMPILE {
+    LOOP 2 {
+        mpls_mldp_p2mp_iptv(mldp_root_pe, mldp_branch_p)
+    }
+}

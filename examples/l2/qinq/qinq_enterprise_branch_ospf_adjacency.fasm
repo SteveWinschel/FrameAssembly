@@ -1,0 +1,28 @@
+// PROMPT: Enterprise branch OSPFv2 adjacency and LSDB synchronization tunneled across a QinQ L2VPN.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, OSPF, HELLO, ROUTER_ID, AREA_ID, WAIT, DBD, LSU, LSACK, COMPILE
+
+// INSTRUCTION: Define enterprise core router at regional hub.
+HOST hub_ospf_rtr {
+    IP 10.99.1.1
+    MAC 00:1e:be:99:01:01
+}
+
+// INSTRUCTION: Define enterprise branch router connected via carrier QinQ L2VPN.
+HOST branch_ospf_rtr {
+    IP 10.99.1.2
+    MAC 00:1e:be:99:01:02
+}
+
+// INSTRUCTION: Define OSPFv2 Hello, Database Description, and Link State Update over QinQ S-Tag 850 C-Tag 12.
+FLOW qinq_ospf_adjacency(hub, branch) {
+    hub -> branch QINQ 850 INNER_VLAN 12 OSPF HELLO ROUTER_ID 10.99.1.1 AREA_ID 0
+    hub <- branch QINQ 850 INNER_VLAN 12 OSPF HELLO ROUTER_ID 10.99.1.2 AREA_ID 0 WAIT 2ms
+    hub -> branch QINQ 850 INNER_VLAN 12 OSPF DBD ROUTER_ID 10.99.1.1 AREA_ID 0 WAIT 3ms
+    hub <- branch QINQ 850 INNER_VLAN 12 OSPF LSU ROUTER_ID 10.99.1.2 AREA_ID 0 WAIT 3ms
+    hub -> branch QINQ 850 INNER_VLAN 12 OSPF LSACK ROUTER_ID 10.99.1.1 AREA_ID 0 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing OSPF adjacency over QinQ L2VPN.
+COMPILE {
+    qinq_ospf_adjacency(hub_ospf_rtr, branch_ospf_rtr)
+}

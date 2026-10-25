@@ -1,0 +1,22 @@
+// PROMPT: High-availability storage client querying primary and backup NFS file controllers.
+// TOKENS: HOST, IP, FLOW, NFS, VERS, PROC, PATH, WAIT, COMPILE
+
+// INSTRUCTION: Define HA application client.
+HOST ha_app_client { IP 172.28.2.50 }
+
+// INSTRUCTION: Define primary NFS storage controller.
+HOST primary_nfs_controller { IP 172.28.2.1 }
+
+// INSTRUCTION: Define secondary backup NFS controller.
+HOST secondary_nfs_controller { IP 172.28.2.2 }
+
+// INSTRUCTION: Define failover storage query flow.
+FLOW ha_nfs_failover(app, p1, p2) {
+    app -> p1 NFS VERS 4 PROC "LOOKUP" PATH "/ha/storage" WAIT 25ms
+    app -> p2 NFS VERS 4 PROC "LOOKUP" PATH "/ha/storage"
+}
+
+// INSTRUCTION: Compile storage failover probe scenario.
+COMPILE {
+    ha_nfs_failover(ha_app_client, primary_nfs_controller, secondary_nfs_controller)
+}

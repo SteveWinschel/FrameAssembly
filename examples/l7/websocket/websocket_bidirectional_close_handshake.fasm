@@ -1,0 +1,23 @@
+// PROMPT: Clean RFC 6455 bidirectional WebSocket close handshake initiated by client and echoed by server.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, CLOSE, FIN_BIT, MASK_KEY, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define mobile app client closing active WebSocket session.
+HOST app_client {
+    IP 192.168.75.33
+}
+
+// INSTRUCTION: Define backend WebSocket session server.
+HOST sess_server {
+    IP 192.168.75.1
+}
+
+// INSTRUCTION: Define mutual CLOSE frame exchange carrying status code 1000 (0x03e8).
+FLOW ws_mutual_close(c, s) {
+    c -> s WEBSOCKET CLOSE FIN_BIT 1 MASK_KEY 0xdeadbeef HEXPAYLOAD "03e8" WAIT 5ms
+    c <- s WEBSOCKET CLOSE FIN_BIT 1 HEXPAYLOAD "03e8"
+}
+
+// INSTRUCTION: Compile the bidirectional WebSocket close handshake.
+COMPILE {
+    ws_mutual_close(app_client, sess_server)
+}

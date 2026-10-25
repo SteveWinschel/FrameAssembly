@@ -1,5 +1,5 @@
 // PROMPT: Constrained Application Protocol RESTful request over UDP 5683 with confirmable GET message.
-// TOKENS: HOST, IP, FLOW, ->, COAP, CON, GET, URI_PATH, COMPILE
+// TOKENS: HOST, IP, FLOW, COAP, CON, GET, URI_PATH, COMPILE
 
 // INSTRUCTION: Define low-power CoAP client node.
 HOST coap_node { IP 2001:db8:5683::1 }

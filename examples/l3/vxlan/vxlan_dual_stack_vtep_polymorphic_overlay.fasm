@@ -1,0 +1,38 @@
+// PROMPT: Polymorphic VXLAN overlay flow executed across both IPv4 underlay VTEPs and IPv6 underlay VTEPs.
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv4 Underlay VTEP-A.
+HOST vxlan_v4_vtep_a {
+    IP 10.250.4.1
+    MAC 00:1c:73:04:47:01
+}
+
+// INSTRUCTION: Define IPv4 Underlay VTEP-B.
+HOST vxlan_v4_vtep_b {
+    IP 10.250.4.2
+    MAC 00:1c:73:04:47:02
+}
+
+// INSTRUCTION: Define IPv6 Underlay VTEP-A.
+HOST vxlan_v6_vtep_a {
+    IP 2001:db8:250:6::1
+    MAC 00:1c:73:06:47:01
+}
+
+// INSTRUCTION: Define IPv6 Underlay VTEP-B.
+HOST vxlan_v6_vtep_b {
+    IP 2001:db8:250:6::2
+    MAC 00:1c:73:06:47:02
+}
+
+// INSTRUCTION: Define address-family-independent VXLAN VNI 25000 exchange.
+FLOW vxlan_dual_stack_flow(a, b) {
+    a -> b VXLAN VNI 25000 SRCPORT 52500 DSTPORT 4789 DSCP 26 TTL 64 PAYLOAD "DUAL_STACK_VXLAN_TENANT_REQ" WAIT 3ms
+    a <- b VXLAN VNI 25000 SRCPORT 52501 DSTPORT 4789 DSCP 26 TTL 64 PAYLOAD "DUAL_STACK_VXLAN_TENANT_ACK"
+}
+
+// INSTRUCTION: Compile the polymorphic VXLAN flow across both IPv4 and IPv6 VTEP pairs.
+COMPILE {
+    vxlan_dual_stack_flow(vxlan_v4_vtep_a, vxlan_v4_vtep_b)
+    vxlan_dual_stack_flow(vxlan_v6_vtep_a, vxlan_v6_vtep_b)
+}

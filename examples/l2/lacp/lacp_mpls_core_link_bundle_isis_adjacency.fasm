@@ -1,0 +1,25 @@
+// PROMPT: MPLS core routers maintaining a 4x400GbE LACP link bundle carrying labeled transit traffic.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define MPLS core Label Switch Router P1 Bundle-Ether100.
+HOST mpls_core_p1 {
+    IP 172.16.100.1
+    MAC 00:1c:73:64:64:01
+}
+
+// INSTRUCTION: Define MPLS core Label Switch Router P2 Bundle-Ether100.
+HOST mpls_core_p2 {
+    IP 172.16.100.2
+    MAC 00:1c:73:64:64:02
+}
+
+// INSTRUCTION: Exchange LACP control PDUs on Bundle-Ether100 (Key 100, State 63).
+FLOW lacp_mpls_core_bundle(p1, p2) {
+    p1 -> p2 LACP ACTOR_SYS 00:1c:73:64:64:01 ACTOR_KEY 100 ACTOR_PORT 4 ACTOR_STATE 63 PARTNER_SYS 00:1c:73:64:64:02 PARTNER_KEY 100 PARTNER_PORT 4 PARTNER_STATE 63 WAIT 5ms
+    p1 <- p2 LACP ACTOR_SYS 00:1c:73:64:64:02 ACTOR_KEY 100 ACTOR_PORT 4 ACTOR_STATE 63 PARTNER_SYS 00:1c:73:64:64:01 PARTNER_KEY 100 PARTNER_PORT 4 PARTNER_STATE 63
+}
+
+// INSTRUCTION: Compile the MPLS core Bundle-Ether100 LACP synchronization trace.
+COMPILE {
+    lacp_mpls_core_bundle(mpls_core_p1, mpls_core_p2)
+}

@@ -1,5 +1,5 @@
-// PROMPT: Simulate an SD-WAN primary circuit failure detected via Bidirectional Forwarding Detection (BFD) on UDP port 3784, triggering an SNMPv2c linkDown trap and TCP tunnel failover.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, TCP, SYN, ACK, PSH, SNMP2, TRAP, SRCPORT, DSTPORT, PAYLOAD, COMMUNITY, OID, SYSUPTIME, VARBIND, INT, STRING, IPVAL, WAIT, ms, COMPILE
+// PROMPT: Simulate an SD-WAN primary circuit failure detected via Bidirectional Forwarding Detection (BFD) on UDP port 3784, triggering an SNMPv2c linkDown trap and TCP.
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, SNMP2, TRAP, COMMUNITY, OID, SYSUPTIME, VARBIND, INT, STRING, IPVAL, TCP, SYN, ACK, PSH, COMPILE
 
 // INSTRUCTION: Define Branch SD-WAN Edge Router with IP 172.25.1.1.
 HOST sdwan_branch { IP 172.25.1.1 MAC 00:1e:13:97:01:01 }
@@ -15,11 +15,18 @@ HOST sdwan_orchestrator { IP 172.25.250.100 MAC 00:1e:13:97:fa:64 }
 
 // INSTRUCTION: Define a 4-host flow showing BFD control down on UDP 3784, SNMPv2c linkDown alert, and backup control connection on TCP 23456.
 FLOW sdwan_circuit_failover(branch, primary_hub, backup_hub, orchestrator) {
-    branch -> primary_hub UDP SRCPORT 49152 DSTPORT 3784 PAYLOAD "BFD_CTRL_STATE_DOWN_DIAG_ECHO_FAILED" WAIT 5ms
-    branch -> orchestrator SNMP2 TRAP COMMUNITY "sdwan_ops" OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 712000 VARBIND 1.3.6.1.2.1.2.2.1.1.1 INT 1 VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "WAN-MPLS-Transport-0" VARBIND 1.3.6.1.2.1.4.20.1.1.172.25.100.1 IPVAL 172.25.100.1 WAIT 10ms
+    branch -> primary_hub UDP SRCPORT 49152 DSTPORT 3784 PAYLOAD "BFD_CTRL_STATE_DOWN_DIAG_ECHO_FAILED"
+        WAIT 5ms
+    branch -> orchestrator SNMP2 TRAP COMMUNITY "sdwan_ops" OID 1.3.6.1.6.3.1.1.5.3
+        SYSUPTIME 712000
+        VARBIND 1.3.6.1.2.1.2.2.1.1.1 INT 1
+        VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "WAN-MPLS-Transport-0"
+        VARBIND 1.3.6.1.2.1.4.20.1.1.172.25.100.1 IPVAL 172.25.100.1
+        WAIT 10ms
     branch -> backup_hub TCP SYN SRCPORT 52345 DSTPORT 23456 WAIT 5ms
     branch <- backup_hub TCP SYN ACK SRCPORT 23456 DSTPORT 52345 WAIT 5ms
-    branch -> backup_hub TCP PSH ACK SRCPORT 52345 DSTPORT 23456 PAYLOAD "OMP_TUNNEL_FAILOVER_ACTIVE_LTE" WAIT 5ms
+    branch -> backup_hub TCP PSH ACK SRCPORT 52345 DSTPORT 23456 PAYLOAD "OMP_TUNNEL_FAILOVER_ACTIVE_LTE"
+        WAIT 5ms
 }
 
 // INSTRUCTION: Compile block to run the SD-WAN BFD failover simulation.

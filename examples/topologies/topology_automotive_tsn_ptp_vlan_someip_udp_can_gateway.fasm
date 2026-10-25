@@ -1,0 +1,35 @@
+// PROMPT: Automotive zonal Ethernet Time-Sensitive Networking (TSN) backbone combining IEEE 802.1AS PTP sync, VLAN PCP 7 ADAS LiDAR stream, UDP SOME/IP service discovery, and DoIP diagnostics.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, PTP, SYNC, DOMAIN, SEQ_ID, FOLLOW_UP, WAIT, DSCP, UDP, SRCPORT, DSTPORT, PAYLOAD, TCP, PSH, ACK, WIN, COMPILE
+
+// INSTRUCTION: Define central ADAS compute domain controller and gPTP Grandmaster.
+HOST adas_central_ecu {
+    IP 192.168.88.10
+    MAC 02:00:00:58:00:0a
+}
+
+// INSTRUCTION: Define front-bumper solid-state LiDAR and radar zonal gateway.
+HOST front_zonal_gw {
+    IP 192.168.88.20
+    MAC 02:00:00:58:00:14
+}
+
+// INSTRUCTION: Define OBD-II DoIP diagnostic tester interface.
+HOST doip_diag_tester {
+    IP 192.168.88.250
+    MAC 02:00:00:58:00:fa
+}
+
+// INSTRUCTION: Define 802.1AS PTP sync, SOME/IP service offer, VLAN PCP 7 LiDAR point-cloud burst, and TCP DoIP UDS diagnostic read.
+FLOW automotive_tsn_zonal_backbone(adas, zonal, tester) {
+    adas -> zonal VLAN 88 PCP 7 PTP SYNC DOMAIN 0 SEQ_ID 1200
+    adas -> zonal VLAN 88 PCP 7 PTP FOLLOW_UP DOMAIN 0 SEQ_ID 1200 WAIT 100us
+    zonal -> adas VLAN 88 PCP 6 DSCP 46 UDP SRCPORT 30490 DSTPORT 30490 PAYLOAD "SOMEIP_SD_OFFER_SERVICE_0x1234_LIDAR_OBJECT_TRACK" WAIT 200us
+    zonal -> adas VLAN 88 PCP 7 DSCP 56 UDP SRCPORT 30501 DSTPORT 30501 PAYLOAD "SOMEIP_LIDAR_POINT_CLOUD_FRAME_8810_64_CHANNELS" WAIT 200us
+    tester -> adas VLAN 88 PCP 4 TCP PSH ACK SRCPORT 49200 DSTPORT 13400 WIN 65535 PAYLOAD "DOIP_UDS_0x22_READ_DID_F190_VIN_NUMBER" WAIT 500us
+    tester <- adas VLAN 88 PCP 4 TCP PSH ACK SRCPORT 13400 DSTPORT 49200 WIN 65535 PAYLOAD "DOIP_UDS_0x62_POSITIVE_RESPONSE_VIN_VERIFIED" WAIT 500us
+}
+
+// INSTRUCTION: Compile block executing automotive TSN PTP, VLAN PCP, UDP SOME/IP, and TCP DoIP topology.
+COMPILE {
+    automotive_tsn_zonal_backbone(adas_central_ecu, front_zonal_gw, doip_diag_tester)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Model a low-latency financial trading server polling a Stratum 1 PPS reference clock over MPLS label 1230.
+// TOKENS: HOST, IP, MAC, FLOW, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, TX_TIMESTAMP, MPLS, EXP, BOS, MPLS_TTL, DSCP, WAIT, REFID, COMPILE
+
+// INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
+HOST ntp_client {
+    IP 172.31.123.10
+    MAC 00:1b:21:7b:01:0a
+}
+
+// INSTRUCTION: Define the NTP reference server or peer endpoint.
+HOST ntp_server {
+    IP 172.31.123.1
+    MAC 00:1b:21:7b:01:01
+}
+
+// INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
+FLOW ntp_scenario_flow(c, s) {
+    c -> s NTP LI 0 VN 4 MODE 3 STRATUM 2 POLL 4 PRECISION -22 TX_TIMESTAMP 0xe9b4c80000000000 MPLS 1230 EXP 6 BOS 1 MPLS_TTL 64 DSCP 46 WAIT 1ms
+    c <- s NTP LI 0 VN 4 MODE 4 STRATUM 1 POLL 4 PRECISION -26 REFID "PPS" TX_TIMESTAMP 0xe9b4c8000010624d MPLS 1230 EXP 6 BOS 1 MPLS_TTL 64 DSCP 46
+}
+
+// INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
+COMPILE {
+    ntp_scenario_flow(ntp_client, ntp_server)
+}

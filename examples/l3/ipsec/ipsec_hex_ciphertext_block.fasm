@@ -1,0 +1,25 @@
+// PROMPT: Generate an IPsec ESP tunnel frame carrying raw hexadecimal ciphertext blocks and explicit IV/ICV bytes
+// TOKENS: HOST, IP, MAC, FLOW, IPSEC, SPI, SEQ, IV, ICV, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the primary corporate VPN gateway
+HOST vpn_primary {
+    IP 198.51.100.141
+    MAC 00:1b:21:a8:01:01
+}
+
+// INSTRUCTION: Define the remote data center VPN gateway
+HOST vpn_remote {
+    IP 203.0.113.141
+    MAC 00:1b:21:a8:01:02
+}
+
+// INSTRUCTION: Send IPsec packets with raw hex ciphertext payloads and explicit cryptographic trailers
+FLOW ipsec_hex_ciphertext_flow(src, dst) {
+    src -> dst IPSEC SPI 88101 SEQ 501 IV "1122334455667788" ICV "aabbccddeeff001122334455" HEXPAYLOAD "9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d" WAIT 15ms
+    dst -> src IPSEC SPI 88102 SEQ 901 IV "8877665544332211" ICV "554433221100ffeeddccbbaa" HEXPAYLOAD "0f1e2d3c4b5a69788796a5b4c3d2e1f0"
+}
+
+// INSTRUCTION: Compile the raw hexadecimal IPsec ciphertext exchange
+COMPILE {
+    ipsec_hex_ciphertext_flow(vpn_primary, vpn_remote)
+}

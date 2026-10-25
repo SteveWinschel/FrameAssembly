@@ -1,0 +1,35 @@
+// PROMPT: Simulate an SMTP greylisting temporary deferral returning 451 4.7.1 Try again later on RCPT TO.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, SMTP, CODE, REPLY, EHLO, MAIL_FROM, PARAM, RCPT_TO, QUIT, COMPILE
+
+// INSTRUCTION: Define the remote mail server and greylisting MX gateway.
+HOST remote_mta {
+    MAC 00:25:90:12:25:01
+    IP 203.0.113.90
+}
+
+// INSTRUCTION: Define the greylist_mx mail endpoint.
+HOST greylist_mx {
+    MAC 00:25:90:12:25:02
+    IP 198.51.100.10
+}
+
+// INSTRUCTION: Attempt mail delivery and receive a 451 4.7.1 Greylisting temporary failure response.
+FLOW smtp_451_greylisting_deferral(remote_mta, greylist_mx) {
+    remote_mta -> greylist_mx TCP SYN SRCPORT 54025 DSTPORT 25
+    greylist_mx -> remote_mta TCP SYN ACK
+    remote_mta -> greylist_mx TCP ACK
+    greylist_mx -> remote_mta SMTP CODE 220 REPLY "mx.secure.net ESMTP"
+    remote_mta -> greylist_mx SMTP EHLO "mta1.partner.org"
+    greylist_mx -> remote_mta SMTP CODE 250 REPLY "mx.secure.net"
+    remote_mta -> greylist_mx SMTP MAIL_FROM PARAM "<news@partner.org>"
+    greylist_mx -> remote_mta SMTP CODE 250 REPLY "2.1.0 Sender OK"
+    remote_mta -> greylist_mx SMTP RCPT_TO PARAM "<ops@secure.net>"
+    greylist_mx -> remote_mta SMTP CODE 451 REPLY "4.7.1 Greylisted, please try again in 300 seconds"
+    remote_mta -> greylist_mx SMTP QUIT
+    greylist_mx -> remote_mta SMTP CODE 221 REPLY "2.0.0 Closing connection"
+}
+
+// INSTRUCTION: Compile the SMTP 451 greylisting deferral flow.
+COMPILE {
+    smtp_451_greylisting_deferral(remote_mta, greylist_mx)
+}

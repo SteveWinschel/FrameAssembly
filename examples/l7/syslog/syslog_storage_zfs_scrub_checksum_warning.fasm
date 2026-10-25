@@ -1,0 +1,27 @@
+// PROMPT: Generate a ZFS storage pool scrub checksum repair notification transmitted over Syslog Facility 0 (kern).
+// TOKENS: HOST, IP, MAC, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, WAIT, COMPILE
+
+// INSTRUCTION: Define the ZFS petabyte storage server emitting kernel zed events.
+HOST zfs_filer_node {
+    IP 172.20.51.14
+    MAC 00:25:90:33:00:0e
+}
+
+// INSTRUCTION: Define the storage operations log server.
+HOST storage_log_srv {
+    IP 172.20.51.250
+    MAC 00:25:90:33:00:fa
+}
+
+// INSTRUCTION: Emit kernel ZFS scrub start and repaired checksum sector notifications.
+FLOW syslog_zfs_scrub_event(filer, logsrv) {
+    filer -> logsrv SYSLOG FACILITY 0 SEVERITY 4 HOSTNAME "zfs-vault-02" APP "zed" PROCID "88"
+        MSG "ZFS checksum error on pool tank/vmstore vdev nvme2n1p1 offset 0x1a4f80000: repaired 4096 bytes via raidz2 parity" WAIT 10ms
+    filer -> logsrv SYSLOG FACILITY 0 SEVERITY 5 HOSTNAME "zfs-vault-02" APP "zed" PROCID "88"
+        MSG "ZFS pool scrub completed on tank/vmstore: 0 unrecoverable errors, 4KB repaired in 02h14m"
+}
+
+// INSTRUCTION: Compile the ZFS storage scrub Syslog telemetry trace.
+COMPILE {
+    syslog_zfs_scrub_event(zfs_filer_node, storage_log_srv)
+}

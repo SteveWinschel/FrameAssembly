@@ -1,0 +1,27 @@
+// PROMPT: Hot water plant staging two condensing boilers via BACnet Binary Output (Type 4) and Analog Output (Type 1).
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, WRITE_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the central heating plant master controller.
+HOST plant_master {
+    IP 10.120.100.1
+    MAC 00:1a:2b:78:a0:01
+}
+
+// INSTRUCTION: Define the boiler skid BACnet controller.
+HOST boiler_skid {
+    IP 10.120.100.20
+    MAC 00:1a:2b:78:a0:20
+}
+
+// INSTRUCTION: Enable Boiler 1 pump (Binary Output 4, Instance 1) and set burner firing rate to 80% (Analog Output 1, Instance 1).
+FLOW bacnet_boiler_stage(m, b) {
+    m -> b BACNET WRITE_PROPERTY INVOKE_ID 120 OBJECT_TYPE 4 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 1
+    m <- b BACNET WRITE_PROPERTY INVOKE_ID 120 OBJECT_TYPE 4 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 1 WAIT 2ms
+    m -> b BACNET WRITE_PROPERTY INVOKE_ID 121 OBJECT_TYPE 1 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 80
+    m <- b BACNET WRITE_PROPERTY INVOKE_ID 121 OBJECT_TYPE 1 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 80
+}
+
+// INSTRUCTION: Compile the BACnet boiler cascade staging flow.
+COMPILE {
+    bacnet_boiler_stage(plant_master, boiler_skid)
+}

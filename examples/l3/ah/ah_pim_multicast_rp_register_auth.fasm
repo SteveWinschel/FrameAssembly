@@ -1,0 +1,25 @@
+// PROMPT: RFC 4302 IPsec AH authenticating PIM-SM (Next Header 103) Register messages between First-Hop DR and RP.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define First-Hop Multicast Designated Router authenticating PIM Register packets with AH.
+HOST fhr_pim_ah_dr {
+    IP 10.103.1.1
+    MAC 00:19:e8:67:01:01
+}
+
+// INSTRUCTION: Define Rendezvous Point router requiring RFC 4302 AH authentication on PIM Registers.
+HOST core_pim_ah_rp {
+    IP 10.103.0.254
+    MAC 00:19:e8:67:00:fe
+}
+
+// INSTRUCTION: Define AH flow with Next Header 103 (PIM) protecting unicast Register messages.
+FLOW ah_pim_register_auth(dr, rp) {
+    dr -> rp AH SPI 10301 SEQ 1 NEXT_HEADER 103 ICV "67676767abcdef0123456789" DSCP 48 TTL 60 PAYLOAD "PIM_REGISTER_MCAST_239_1_1_1" WAIT 5ms
+    dr <- rp AH SPI 10302 SEQ 1 NEXT_HEADER 103 ICV "8967452301efcdab67676767" DSCP 48 TTL 60 PAYLOAD "PIM_REGISTER_STOP_ACK"
+}
+
+// INSTRUCTION: Compile the AH-authenticated PIM-SM Register flow.
+COMPILE {
+    ah_pim_register_auth(fhr_pim_ah_dr, core_pim_ah_rp)
+}

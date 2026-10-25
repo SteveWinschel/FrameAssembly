@@ -1,0 +1,19 @@
+// PROMPT: 802.1ad QinQ double-tagged ICMP reachability check across a wholesale carrier circuit.
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, QINQ, INNER_VLAN, PAYLOAD, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define customer edge router A.
+HOST qinq_ping_ce_a { IP 172.29.10.1 }
+
+// INSTRUCTION: Define customer edge router B.
+HOST qinq_ping_ce_b { IP 172.29.10.2 }
+
+// INSTRUCTION: Define QinQ double-tagged ICMP Echo exchange on S-VLAN 1800 and C-VLAN 80.
+FLOW icmp_qinq_oam(a, b) {
+    a -> b ICMP ECHO_REQUEST ID 1880 SEQ 10 QINQ 1800 INNER_VLAN 80 PAYLOAD "CARRIER_CIRCUIT_SLA_PROBE"
+    a <- b ICMP ECHO_REPLY ID 1880 SEQ 10 QINQ 1800 INNER_VLAN 80 PAYLOAD "CARRIER_CIRCUIT_SLA_PROBE"
+}
+
+// INSTRUCTION: Compile the QinQ service OAM ICMP flow.
+COMPILE {
+    icmp_qinq_oam(qinq_ping_ce_a, qinq_ping_ce_b)
+}

@@ -1,0 +1,22 @@
+// PROMPT: Next Generation 911 (NG911) emergency SIP INVITE carrying PIDF-LO civic geolocation body and DSCP CS3.
+// TOKENS: HOST, IP, FLOW, SIP, INVITE, URI, FROM, TO, CALL_ID, CSEQ, CONTENT_TYPE, BODY, DSCP, WAIT, STATUS, REASON, ACK, COMPILE
+// INSTRUCTION: Define enterprise E911 gateway originating emergency call.
+HOST e911_gw {
+    IP 10.91.1.10
+}
+// INSTRUCTION: Define Public Safety Answering Point (PSAP) ESInet ESRP server.
+HOST psap_esrp {
+    IP 10.91.1.1
+}
+// INSTRUCTION: Define priority-marked NG911 INVITE to urn:service:sos with geolocation body.
+FLOW sip_ng911_call(c, s) {
+    c -> s SIP INVITE URI "urn:service:sos" FROM "sip:+12065550111@10.91.1.10" TO "urn:service:sos"
+        CALL_ID "ng911-sos-01" CSEQ 1
+        CONTENT_TYPE "application/pidf+xml" BODY "<presence><tuple><status><geopriv/></status></tuple></presence>" DSCP 24 WAIT 4ms
+    c <- s SIP STATUS 200 REASON "OK" CALL_ID "ng911-sos-01" CSEQ 1 DSCP 24 WAIT 4ms
+    c -> s SIP ACK URI "urn:service:sos" CALL_ID "ng911-sos-01" CSEQ 1 DSCP 24
+}
+// INSTRUCTION: Compile the NG911 emergency SIP call flow.
+COMPILE {
+    sip_ng911_call(e911_gw, psap_esrp)
+}

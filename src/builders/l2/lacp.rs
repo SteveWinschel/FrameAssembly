@@ -1,4 +1,13 @@
-//! LACP Layer 2 protocol wire builder.
+//! IEEE 802.3ad / IEEE 802.1AX Link Aggregation Control Protocol (LACP) wire frame builder.
+//!
+//! Synthesizes 110-byte LACP Data Units (LACPDUs) over Ethernet Slow Protocols (`EtherType = 0x8809`)
+//! addressed to the Slow Protocols multicast MAC `01:80:C2:00:00:02`. Encodes Subtype `0x01`
+//! and Version `0x01`, followed by the 20-byte Actor Information TLV (`Type = 0x01`), 20-byte
+//! Partner Information TLV (`Type = 0x02`), 16-byte Collector Information TLV (`Type = 0x03`),
+//! 2-byte Terminator TLV (`Type = 0x00`), and 50 bytes of reserved zero padding.
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b LACP [ACTOR_SYS <mac>] [ACTOR_KEY <u16>] [ACTOR_PORT <u16>] [ACTOR_STATE <u8>] [PARTNER_SYS <mac>] [PARTNER_KEY <u16>] [PARTNER_PORT <u16>] [PARTNER_STATE <u8>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

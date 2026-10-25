@@ -1,0 +1,27 @@
+// PROMPT: Simulate an IPv6 IMAP UID FETCH command retrieving ENVELOPE and RFC822.SIZE metadata for unread messages.
+// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, ARG, FLOWLABEL, TTL, WAIT, STATUS, RESPONSE, COMPILE
+
+// INSTRUCTION: Define the IPv6 mobile mail client synchronizing message headers.
+HOST ios_mail_v6 {
+    IP 2001:db8:143:2::40
+    MAC 00:16:3e:8f:02:28
+}
+
+// INSTRUCTION: Define the IPv6 enterprise IMAP server.
+HOST imap_edge_v6 {
+    IP 2001:db8:143:2::1
+    MAC 00:16:3e:8f:02:01
+}
+
+// INSTRUCTION: Execute UID FETCH over IPv6 for message sequence range 501:502.
+FLOW imap_uid_fetch_v6(c, s) {
+    c -> s IMAP TAG "U201" CMD "UID FETCH" ARG "501:502 (UID FLAGS RFC822.SIZE ENVELOPE)" FLOWLABEL 0x14302 TTL 64 WAIT 3ms
+    c <- s IMAP TAG "*" STATUS "501 FETCH" RESPONSE "(UID 501 FLAGS (\Seen) RFC822.SIZE 4821)" FLOWLABEL 0x14302 TTL 64 WAIT 1ms
+    c <- s IMAP TAG "*" STATUS "502 FETCH" RESPONSE "(UID 502 FLAGS () RFC822.SIZE 12940)" FLOWLABEL 0x14302 TTL 64 WAIT 1ms
+    c <- s IMAP TAG "U201" STATUS "OK" RESPONSE "UID FETCH completed" FLOWLABEL 0x14302 TTL 64
+}
+
+// INSTRUCTION: Compile the IPv6 IMAP UID FETCH header synchronization flow.
+COMPILE {
+    imap_uid_fetch_v6(ios_mail_v6, imap_edge_v6)
+}

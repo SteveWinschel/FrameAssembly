@@ -1,5 +1,5 @@
 // PROMPT: Simulate UPnP Simple Service Discovery Protocol (SSDP) M-SEARCH multicast discovery on UDP port 1900 and unicast device response.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define a smart home controller host with IP 192.168.1.20.
 HOST smart_controller { IP 192.168.1.20 MAC dc:a6:32:00:01:20 }

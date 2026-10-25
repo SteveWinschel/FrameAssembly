@@ -1,0 +1,25 @@
+// PROMPT: Generate a NTP clock synchronization step warning under Syslog Facility 12 (ntp) over MPLS label 1514.
+// TOKENS: HOST, MAC, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, MPLS, COMPILE
+
+// INSTRUCTION: Define host endpoint ntp_node.
+HOST ntp_node {
+    MAC 00:1a:a0:51:40:12
+    IP 10.120.12.10
+}
+
+// INSTRUCTION: Define host endpoint wan_syslog.
+HOST wan_syslog {
+    MAC 00:1a:a0:51:40:99
+    IP 10.120.12.99
+}
+
+// INSTRUCTION: Send a Facility 12 (ntp) clock step notice over MPLS label 1514.
+FLOW syslog_ntp_clock_step_mpls(ntp_node, wan_syslog) {
+    ntp_node -> wan_syslog SYSLOG FACILITY 12 SEVERITY 4 HOSTNAME "time-sync-02" APP "chronyd" PROCID "614"
+        MSG "System clock was stepped by -0.418291 seconds" MPLS 1514
+}
+
+// INSTRUCTION: Compile the NTP facility MPLS syslog flow.
+COMPILE {
+    syslog_ntp_clock_step_mpls(ntp_node, wan_syslog)
+}

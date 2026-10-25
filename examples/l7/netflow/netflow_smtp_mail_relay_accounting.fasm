@@ -1,0 +1,25 @@
+// PROMPT: NetFlow v5 accounting export tracking outbound SMTP TCP port 25 and 587 mail relay traffic.
+// TOKENS: HOST, IP, MAC, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define DMZ firewall router monitoring outbound mail relay servers.
+HOST dmz_fw_rtr {
+    IP 10.33.1.1
+    MAC 00:0e:0c:33:01:01
+}
+
+// INSTRUCTION: Define DMZ compliance flow collector.
+HOST dmz_collector {
+    IP 10.33.1.50
+    MAC 00:0e:0c:33:01:32
+}
+
+// INSTRUCTION: Export SMTP port 25 and submission port 587 flow records.
+FLOW netflow_smtp_relay(fw, col) {
+    fw -> col NETFLOW SRCIP 10.33.10.25 DSTIP 198.51.100.200 SRCPORT 43210 DSTPORT 25 PROTO 6 PACKETS 420 OCTETS 386400
+    fw -> col NETFLOW SRCIP 10.33.10.25 DSTIP 198.51.100.201 SRCPORT 43211 DSTPORT 587 PROTO 6 PACKETS 190 OCTETS 152000
+}
+
+// INSTRUCTION: Compile the SMTP mail relay NetFlow accounting scenario.
+COMPILE {
+    netflow_smtp_relay(dmz_fw_rtr, dmz_collector)
+}

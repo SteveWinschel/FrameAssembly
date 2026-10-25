@@ -1,0 +1,24 @@
+// PROMPT: Dual-stack IPv4 and IPv6 unicast PTP Delay_Req and Delay_Resp timing exchange.
+// TOKENS: HOST, IP, FLOW, PTP, DELAY_REQ, DOMAIN, SEQ_ID, DSCP, TTL, FLOWLABEL, DELAY_RESP, COMPILE
+
+// INSTRUCTION: Define IPv4 PTP slave and master endpoints.
+HOST ptp_slave_v4 { IP 10.31.9.10 }
+// INSTRUCTION: Define IPv4 PTP grandmaster endpoint.
+HOST ptp_master_v4 { IP 10.31.9.1 }
+
+// INSTRUCTION: Define IPv6 PTP slave and master endpoints.
+HOST ptp_slave_v6 { IP 2001:db8:319::10 }
+// INSTRUCTION: Define IPv6 PTP grandmaster endpoint.
+HOST ptp_master_v6 { IP 2001:db8:319::1 }
+
+// INSTRUCTION: Define polymorphic unicast PTP delay measurement flow.
+FLOW ptp_unicast_delay(slave, master) {
+    slave -> master PTP DELAY_REQ DOMAIN 0 SEQ_ID 42 DSCP 46 TTL 64 FLOWLABEL 0x31900
+    slave <- master PTP DELAY_RESP DOMAIN 0 SEQ_ID 42 DSCP 46 TTL 64 FLOWLABEL 0x31900
+}
+
+// INSTRUCTION: Compile dual-stack unicast PTP delay flow.
+COMPILE {
+    ptp_unicast_delay(ptp_slave_v4, ptp_master_v4)
+    ptp_unicast_delay(ptp_slave_v6, ptp_master_v6)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Simulate an SNMPv2c SET request using a read-write community string to administratively disable and re-enable a switch port (ifAdminStatus) with confirmation responses.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, SET, RESPONSE, SRCPORT, DSTPORT, COMMUNITY, REQID, VARBIND, INT, WAIT, ms, s, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, SNMP2, SET, SRCPORT, DSTPORT, COMMUNITY, REQID, VARBIND, INT, WAIT, RESPONSE, COMPILE
 
 // INSTRUCTION: Define an automation controller host with IP 10.123.0.100.
 HOST net_automation { IP 10.123.0.100 MAC 00:50:56:23:00:64 }

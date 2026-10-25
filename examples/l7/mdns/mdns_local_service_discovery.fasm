@@ -1,5 +1,5 @@
 // PROMPT: Multicast DNS local zero-configuration service discovery over UDP 5353.
-// TOKENS: HOST, IP, FLOW, ->, MDNS, QUERY, QNAME, QTYPE, A, COMPILE
+// TOKENS: HOST, IP, FLOW, MDNS, QUERY, QNAME, QTYPE, COMPILE
 
 // INSTRUCTION: Define discovery client workstation.
 HOST workstation { IP 192.168.1.15 }

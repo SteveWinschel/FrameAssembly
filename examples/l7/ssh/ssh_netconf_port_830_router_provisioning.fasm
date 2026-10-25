@@ -1,0 +1,27 @@
+// PROMPT: Model an RFC 6242 NETCONF over SSH session on TCP port 830 between an SDN orchestrator and a core router.
+// TOKENS: HOST, IP, MAC, FLOW, SSH, SRCPORT, DSTPORT, BANNER, DSCP, WAIT, MSG_CODE, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the SDN network orchestrator initiating NETCONF over SSH.
+HOST sdn_orchestrator {
+    IP 172.18.83.10
+    MAC 00:1b:21:53:00:0a
+}
+
+// INSTRUCTION: Define the core router listening on NETCONF over SSH port 830.
+HOST netconf_router {
+    IP 172.18.83.1
+    MAC 00:1b:21:53:00:01
+}
+
+// INSTRUCTION: Negotiate SSH banners and invoke the netconf subsystem on DSTPORT 830.
+FLOW ssh_netconf_830_session(sdn, rtr) {
+    sdn -> rtr SSH SRCPORT 54830 DSTPORT 830 BANNER "SSH-2.0-libssh_0.10.6_NETCONF" DSCP 16 WAIT 3ms
+    sdn <- rtr SSH SRCPORT 830 DSTPORT 54830 BANNER "SSH-2.0-Cisco-2.0" DSCP 16 WAIT 3ms
+    sdn -> rtr SSH SRCPORT 54830 DSTPORT 830 MSG_CODE 98 PAYLOAD "subsystem:netconf" DSCP 16 WAIT 4ms
+    sdn <- rtr SSH SRCPORT 830 DSTPORT 54830 MSG_CODE 99 PAYLOAD "netconf-hello-capabilities-1.1" DSCP 16
+}
+
+// INSTRUCTION: Compile the RFC 6242 NETCONF over SSH port 830 session flow.
+COMPILE {
+    ssh_netconf_830_session(sdn_orchestrator, netconf_router)
+}

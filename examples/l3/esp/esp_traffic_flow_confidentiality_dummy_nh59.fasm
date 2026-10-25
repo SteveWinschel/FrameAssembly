@@ -1,0 +1,26 @@
+// PROMPT: RFC 4303 Section 2.6 Traffic Flow Confidentiality (TFC) transmitting dummy ESP packets with Next Header 59 (No Next Header).
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, DF, DSCP, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define high-security military IPsec gateway masking traffic patterns with TFC dummy frames.
+HOST tfc_highsec_gw_a {
+    IP 192.0.2.240
+    MAC 00:1b:63:50:f0:01
+}
+
+// INSTRUCTION: Define peer high-security gateway discarding decrypted Next Header 59 dummy padding.
+HOST tfc_highsec_gw_b {
+    IP 192.0.2.241
+    MAC 00:1b:63:50:f0:02
+}
+
+// INSTRUCTION: Define constant-rate ESP stream mixing Next Header 59 (Dummy) and Next Header 4 (IPv4) frames.
+FLOW esp_tfc_dummy_padding_flow(a, b) {
+    a -> b ESP SPI 595901 SEQ 1 IV "5900000159000001" ICV "aaaaaaaaaaaaaaaaaaaaaaaa" NEXT_HEADER 59 DF DSCP 46 TTL 64 HEXPAYLOAD "ffffffffffffffffffffffffffffffff" WAIT 5ms
+    a -> b ESP SPI 595901 SEQ 2 IV "5900000259000002" ICV "bbbbbbbbbbbbbbbbbbbbbbbb" NEXT_HEADER 4 DF DSCP 46 TTL 64 HEXPAYLOAD "4500002012344000401100000a000001" WAIT 5ms
+    a -> b ESP SPI 595901 SEQ 3 IV "5900000359000003" ICV "cccccccccccccccccccccccc" NEXT_HEADER 59 DF DSCP 46 TTL 64 HEXPAYLOAD "ffffffffffffffffffffffffffffffff"
+}
+
+// INSTRUCTION: Compile the RFC 4303 Traffic Flow Confidentiality dummy packet scenario.
+COMPILE {
+    esp_tfc_dummy_padding_flow(tfc_highsec_gw_a, tfc_highsec_gw_b)
+}

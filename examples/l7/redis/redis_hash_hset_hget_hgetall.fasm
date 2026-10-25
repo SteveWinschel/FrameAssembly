@@ -1,0 +1,22 @@
+// PROMPT: Redis hash operations HSET, HGET, and HGETALL storing user profile fields.
+// TOKENS: HOST, IP, FLOW, REDIS, CMD, ARGS, WAIT, COMPILE
+
+// INSTRUCTION: Define profile service client.
+HOST prof_svc { IP 10.40.63.15 }
+
+// INSTRUCTION: Define Redis cluster shard.
+HOST redis_shard { IP 10.40.63.2 }
+
+// INSTRUCTION: Define HSET, HGET, and HGETALL hash commands.
+FLOW redis_hash_ops(c, s) {
+    c -> s REDIS CMD "HSET" ARGS "user:1001 role admin" WAIT 2ms
+    c <- s REDIS CMD "INTEGER" ARGS "1" WAIT 2ms
+    c -> s REDIS CMD "HGET" ARGS "user:1001 role" WAIT 2ms
+    c <- s REDIS CMD "BULK" ARGS "admin" WAIT 2ms
+    c -> s REDIS CMD "HGETALL" ARGS "user:1001"
+}
+
+// INSTRUCTION: Compile Redis hash operations flow.
+COMPILE {
+    redis_hash_ops(prof_svc, redis_shard)
+}

@@ -1,5 +1,5 @@
 // PROMPT: MPLS encapsulated 6PE IPv6 packet transit across service provider core.
-// TOKENS: HOST, IP, FLOW, ->, MPLS, EXP, BOS, MPLS_TTL, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, MPLS, EXP, BOS, MPLS_TTL, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define dual-stack provider edge 6PE router A.
 HOST pe6_router_a { IP 2001:db8:6e::1 }

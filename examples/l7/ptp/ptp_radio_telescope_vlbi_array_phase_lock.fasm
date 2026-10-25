@@ -1,0 +1,27 @@
+// PROMPT: Generate a radio astronomy antenna array PTPv2 white-rabbit sub-nanosecond phase sync trace on Domain 8.
+// TOKENS: HOST, IP, MAC, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, CLOCK_ID, DSCP, WAIT, FOLLOW_UP, DELAY_REQ, DELAY_RESP, COMPILE
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
+HOST ptp_grandmaster {
+    IP 10.8.158.1
+    MAC 00:1b:21:31:90:01
+}
+
+// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
+HOST ptp_slave_clock {
+    IP 10.8.158.16
+    MAC 00:1b:21:31:90:25
+}
+
+// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
+FLOW ptp_scenario_flow(gm, slv) {
+    gm -> slv PTP SYNC DOMAIN 8 SEQ_ID 19001 CLOCK_ID "0026b9fffe080001" DSCP 56 WAIT 1ms
+    gm -> slv PTP FOLLOW_UP DOMAIN 8 SEQ_ID 19001 CLOCK_ID "0026b9fffe080001" DSCP 56 WAIT 1ms
+    gm <- slv PTP DELAY_REQ DOMAIN 8 SEQ_ID 19001 CLOCK_ID "0026b9fffe080010" DSCP 56 WAIT 1ms
+    gm -> slv PTP DELAY_RESP DOMAIN 8 SEQ_ID 19001 CLOCK_ID "0026b9fffe080001" DSCP 56
+}
+
+// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
+COMPILE {
+    ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
+}

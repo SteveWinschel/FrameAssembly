@@ -1,5 +1,5 @@
 // PROMPT: OpenFlow SDN control plane channel negotiation using TYPE HELLO.
-// TOKENS: HOST, IP, FLOW, ->, OPENFLOW, TYPE, HELLO, COMPILE
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, HELLO, COMPILE
 
 // INSTRUCTION: Define network controller node.
 HOST of_controller { IP 10.200.1.1 }

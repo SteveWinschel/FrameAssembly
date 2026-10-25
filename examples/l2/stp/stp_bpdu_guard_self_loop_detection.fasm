@@ -1,0 +1,25 @@
+// PROMPT: BPDU Guard security test simulating an accidental hub loop reflecting a switch's own PORT_ID and BRIDGE_ID back to itself.
+// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, FLAGS, WAIT, COMPILE
+
+// INSTRUCTION: Define access switch port 1 transmitting BPDU into unmanaged desk hub.
+HOST access_sw_port1 {
+    IP 10.11.12.1
+    MAC 00:26:cb:0b:0c:01
+}
+
+// INSTRUCTION: Define access switch port 2 receiving reflected BPDU from unmanaged desk hub.
+HOST access_sw_port2 {
+    IP 10.11.12.2
+    MAC 00:26:cb:0b:0c:02
+}
+
+// INSTRUCTION: Define self-looped RSTP BPDU triggering Backup port role and BPDU Guard err-disable.
+FLOW bpdu_guard_self_loop(p1, p2) {
+    p1 -> p2 STP RSTP ROOT_ID "32768:00:26:cb:0b:0c:01" BRIDGE_ID "32768:00:26:cb:0b:0c:01" COST 20000 PORT_ID 32769 FLAGS 60
+    p2 -> p1 STP RSTP ROOT_ID "32768:00:26:cb:0b:0c:01" BRIDGE_ID "32768:00:26:cb:0b:0c:01" COST 20000 PORT_ID 32770 FLAGS 28 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing BPDU Guard self-loop detection test.
+COMPILE {
+    bpdu_guard_self_loop(access_sw_port1, access_sw_port2)
+}

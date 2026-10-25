@@ -1,0 +1,18 @@
+// PROMPT: Kerberos AS-REQ ticket request with legacy RC4-HMAC encryption type 23 for backward compatibility.
+// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REQ, REALM, CNAME, ETYPE, COMPILE
+
+// INSTRUCTION: Define legacy terminal client.
+HOST legacy_terminal { IP 192.168.4.99 }
+
+// INSTRUCTION: Define Active Directory domain controller.
+HOST ad_controller { IP 192.168.4.10 }
+
+// INSTRUCTION: Define RC4-HMAC legacy ticket request flow.
+FLOW krb_rc4_req_flow(term, dc) {
+    term -> dc KERBEROS AS_REQ REALM "LEGACY.CORP" CNAME "scanner_svc" ETYPE 23
+}
+
+// INSTRUCTION: Compile legacy RC4 compatibility scenario.
+COMPILE {
+    krb_rc4_req_flow(legacy_terminal, ad_controller)
+}

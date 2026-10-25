@@ -1,0 +1,18 @@
+// PROMPT: LDAP graceful session termination with UnbindRequest after operations.
+// TOKENS: HOST, IP, FLOW, LDAP, UNBIND_REQ, MSGID, COMPILE
+
+// INSTRUCTION: Define directory client application.
+HOST app_session_client { IP 192.168.200.75 }
+
+// INSTRUCTION: Define LDAP directory service server.
+HOST directory_service { IP 192.168.200.1 }
+
+// INSTRUCTION: Define graceful unbind termination flow.
+FLOW unbind_close_flow(c, s) {
+    c -> s LDAP UNBIND_REQ MSGID 99
+}
+
+// INSTRUCTION: Compile LDAP unbind session close scenario.
+COMPILE {
+    unbind_close_flow(app_session_client, directory_service)
+}

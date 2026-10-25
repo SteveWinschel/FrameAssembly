@@ -1,0 +1,19 @@
+// PROMPT: Pure IPv6 underlay transport encapsulating VNI 50000 enterprise overlay frames.
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, COMPILE
+
+// INSTRUCTION: Define IPv6 underlay VTEP hypervisor A.
+HOST vtep6_hv_a { IP 2001:db8:dc01::1 }
+
+// INSTRUCTION: Define IPv6 underlay VTEP hypervisor B.
+HOST vtep6_hv_b { IP 2001:db8:dc01::2 }
+
+// INSTRUCTION: Define bidirectional IPv6 VXLAN overlay flow with VNI 50000.
+FLOW vxlan_v6_enterprise(a, b) {
+    a -> b VXLAN VNI 50000
+    a <- b VXLAN VNI 50000
+}
+
+// INSTRUCTION: Compile block executing IPv6 underlay VXLAN exchange.
+COMPILE {
+    vxlan_v6_enterprise(vtep6_hv_a, vtep6_hv_b)
+}

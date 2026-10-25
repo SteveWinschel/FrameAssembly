@@ -1,0 +1,25 @@
+// PROMPT: High-availability firewall pair validating dedicated HA1/HA2 control and state-sync physical links via LLDP.
+// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define active firewall node HA2 state-synchronization interface.
+HOST fw_active_ha2 {
+    IP 169.254.200.1
+    MAC 00:1b:17:c8:00:01
+}
+
+// INSTRUCTION: Define passive firewall node HA2 state-synchronization interface.
+HOST fw_passive_ha2 {
+    IP 169.254.200.2
+    MAC 00:1b:17:c8:00:02
+}
+
+// INSTRUCTION: Verify direct HA2 cabling without intermediate switch miswiring via bidirectional LLDP.
+FLOW lldp_fw_ha_link_check(act, pas) {
+    act -> pas LLDP CHASSIS_ID "pa-5450-pri" PORT_ID "HA2-a" SYSNAME "fw-dc1-pri" SYSDESC "HA2 Session Sync Dedicated Link" TTL 30 WAIT 5ms
+    act <- pas LLDP CHASSIS_ID "pa-5450-sec" PORT_ID "HA2-a" SYSNAME "fw-dc1-sec" SYSDESC "HA2 Session Sync Dedicated Link" TTL 30
+}
+
+// INSTRUCTION: Compile the firewall HA dedicated link LLDP verification trace.
+COMPILE {
+    lldp_fw_ha_link_check(fw_active_ha2, fw_passive_ha2)
+}

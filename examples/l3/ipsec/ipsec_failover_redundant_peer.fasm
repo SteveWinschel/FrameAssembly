@@ -1,0 +1,18 @@
+// PROMPT: Redundant failover IPsec gateway taking over active tunnel SPI session.
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, COMPILE
+
+// INSTRUCTION: Define secondary failover VPN appliance.
+HOST failover_vpn_appliance { IP 192.0.2.202 }
+
+// INSTRUCTION: Define remote data center endpoint.
+HOST remote_dc_peer { IP 192.0.2.1 }
+
+// INSTRUCTION: Define failover resumption flow carrying state sequence 10001.
+FLOW failover_ipsec_flow(sec_app, dc) {
+    sec_app -> dc IPSEC SPI 700500 SEQ 10001
+}
+
+// INSTRUCTION: Compile block executing failover tunnel transmission.
+COMPILE {
+    failover_ipsec_flow(failover_vpn_appliance, remote_dc_peer)
+}

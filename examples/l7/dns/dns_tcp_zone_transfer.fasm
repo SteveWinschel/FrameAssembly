@@ -1,5 +1,5 @@
 // PROMPT: DNS query over TCP transport requesting zone authority records.
-// TOKENS: HOST, IP, FLOW, ->, <-, DNS, TRANSPORT, TCP, QUERY, TXID, QNAME, QTYPE, COMPILE
+// TOKENS: HOST, IP, FLOW, DNS, TRANSPORT, TCP, QUERY, TXID, QNAME, QTYPE, RESPONSE, RDATA, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.10 }

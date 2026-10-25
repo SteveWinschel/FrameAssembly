@@ -1,0 +1,24 @@
+// PROMPT: Generate a minimal default mDNS frame with default protocol parameters between a workstation and multicast responder.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, COMPILE
+
+// INSTRUCTION: Define the local LAN workstation sending an mDNS packet.
+HOST lan_host {
+    IP 192.168.1.40
+    MAC 00:1a:2b:01:00:40
+}
+
+// INSTRUCTION: Define the IPv4 mDNS link-local multicast group endpoint 224.0.0.251.
+HOST mdns_multicast {
+    IP 224.0.0.251
+    MAC 01:00:5e:00:00:fb
+}
+
+// INSTRUCTION: Emit a default mDNS protocol frame using built-in defaults.
+FLOW default_mdns_flow(c, m) {
+    c -> m MDNS
+}
+
+// INSTRUCTION: Compile the default mDNS packet into a PCAP file.
+COMPILE {
+    default_mdns_flow(lan_host, mdns_multicast)
+}

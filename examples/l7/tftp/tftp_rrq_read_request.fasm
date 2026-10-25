@@ -1,5 +1,5 @@
 // PROMPT: TFTP Read Request (RRQ) querying remote boot image file in octet mode.
-// TOKENS: HOST, IP, FLOW, ->, TFTP, RRQ, FILENAME, MODE, COMPILE
+// TOKENS: HOST, IP, FLOW, TFTP, RRQ, FILENAME, MODE, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.15 }

@@ -1,0 +1,21 @@
+// PROMPT: Final fragment of multi-frame message with FIN bit 1 completing payload.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+
+// INSTRUCTION: Define data transmitter host.
+HOST data_tx_host { IP 192.168.8.18 }
+
+// INSTRUCTION: Define data collector host.
+HOST data_rx_host { IP 192.168.8.1 }
+
+// INSTRUCTION: Define final fragment completion flow.
+FLOW ws_frag_final_flow(c, s) {
+    c -> s WEBSOCKET
+        OPCODE "TEXT"
+        FIN_BIT 1
+        MASK_KEY 1122334455
+}
+
+// INSTRUCTION: Compile block executing final fragment transmission.
+COMPILE {
+    ws_frag_final_flow(data_tx_host, data_rx_host)
+}

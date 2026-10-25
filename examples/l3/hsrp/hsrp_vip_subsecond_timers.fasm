@@ -1,0 +1,18 @@
+// PROMPT: Cisco HSRP active router advertising Virtual IP (VIP) with explicit HELLOTIME and HOLDTIME.
+// TOKENS: HOST, IP, MAC, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, HELLOTIME, HOLDTIME, COMPILE
+
+// INSTRUCTION: Define active HSRP distribution router.
+HOST hsrp_dist_active { IP 10.10.20.2 MAC 00:00:0c:07:ac:0a }
+
+// INSTRUCTION: Define HSRP all-routers multicast destination 224.0.0.2.
+HOST hsrp_all_routers { IP 224.0.0.2 }
+
+// INSTRUCTION: Define HSRP Group 10 active advertisement with VIP 10.10.20.1 and timers 1s/3s.
+FLOW hsrp_vip_timers_flow(act, mcast) {
+    act -> mcast HSRP GROUP 10 PRIORITY 120 STATE 16 VIP 10.10.20.1 HELLOTIME 1 HOLDTIME 3
+}
+
+// INSTRUCTION: Compile the HSRP VIP and fast timers advertisement flow.
+COMPILE {
+    hsrp_vip_timers_flow(hsrp_dist_active, hsrp_all_routers)
+}

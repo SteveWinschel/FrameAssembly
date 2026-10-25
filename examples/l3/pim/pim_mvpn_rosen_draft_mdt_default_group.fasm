@@ -1,0 +1,25 @@
+// PROMPT: RFC 6037 / Draft-Rosen Multicast VPN (mVPN) Provider Edge routers running PIM over a Default-MDT group.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, HELLO, DR_PRIORITY, HOLDTIME, MPLS, EXP, BOS, MPLS_TTL, DSCP, TTL, WAIT, JOIN_PRUNE, GROUP, SOURCE, RP, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define mVPN Provider Edge router PE-1 encapsulating customer PIM inside provider MPLS/GRE.
+HOST mvpn_pe_west {
+    IP 10.60.37.1
+    MAC 00:22:bd:60:37:01
+}
+
+// INSTRUCTION: Define mVPN Provider Edge router PE-2 joining Default-MDT 239.255.0.1.
+HOST mvpn_pe_east {
+    IP 10.60.37.2
+    MAC 00:22:bd:60:37:02
+}
+
+// INSTRUCTION: Define mVPN PIM adjacency and customer multicast tree Join with MPLS shim 60370.
+FLOW pim_mvpn_default_mdt_flow(pe1, pe2) {
+    pe1 -> pe2 PIM HELLO DR_PRIORITY 100 HOLDTIME 105 MPLS 60370 EXP 6 BOS 1 MPLS_TTL 64 DSCP 48 TTL 1 WAIT 5ms
+    pe1 <- pe2 PIM JOIN_PRUNE GROUP 239.255.0.1 SOURCE 10.60.37.1 RP 10.60.37.254 HOLDTIME 210 MPLS 60370 EXP 6 BOS 1 MPLS_TTL 64 DSCP 48 TTL 1 PAYLOAD "MVPN_DEFAULT_MDT_JOIN"
+}
+
+// INSTRUCTION: Compile the RFC 6037 mVPN Default-MDT PIM flow.
+COMPILE {
+    pim_mvpn_default_mdt_flow(mvpn_pe_west, mvpn_pe_east)
+}

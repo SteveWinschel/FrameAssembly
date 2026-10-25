@@ -1,5 +1,5 @@
 // PROMPT: Network virtualization overlay utilizing GENEVE tunneling protocol with VNI.
-// TOKENS: HOST, IP, FLOW, ->, GENEVE, VNI, COMPILE
+// TOKENS: HOST, IP, FLOW, GENEVE, VNI, COMPILE
 
 // INSTRUCTION: Define GENEVE gateway hypervisor 1.
 HOST geneve_gw1 { IP 192.168.20.1 }

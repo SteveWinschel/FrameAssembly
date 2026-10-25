@@ -1,0 +1,25 @@
+// PROMPT: IEEE 802.1Q VLAN-tagged IPsec ESP voice trunk carrying RTP media with 802.1p PCP 5 and DSCP EF (46).
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, VLAN, PCP, DEI, DSCP, DF, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Enterprise Session Border Controller (SBC) encrypting SIP/RTP media trunk.
+HOST sbc_voice_esp_a {
+    IP 10.210.50.10
+    MAC 00:0c:29:d2:32:0a
+}
+
+// INSTRUCTION: Define Carrier Interconnect SBC terminating VLAN 210 IPsec ESP media stream.
+HOST sbc_voice_esp_b {
+    IP 10.210.50.20
+    MAC 00:0c:29:d2:32:14
+}
+
+// INSTRUCTION: Define VLAN 210 (PCP 5) and DSCP 46 (EF) ESP stream protecting UDP RTP media (Next Header 17).
+FLOW esp_voice_media_trunk_flow(sbc_a, sbc_b) {
+    sbc_a -> sbc_b ESP SPI 210501 SEQ 1 IV "5001500150015001" ICV "aaaa1111bbbb2222cccc3333" NEXT_HEADER 17 VLAN 210 PCP 5 DEI 0 DSCP 46 DF TTL 64 PAYLOAD "G711_ULAW_ENCRYPTED_FRAME_1" WAIT 20ms
+    sbc_a <- sbc_b ESP SPI 210502 SEQ 1 IV "5002500250025002" ICV "3333cccc2222bbbb1111aaaa" NEXT_HEADER 17 VLAN 210 PCP 5 DEI 0 DSCP 46 DF TTL 64 PAYLOAD "G711_ULAW_ENCRYPTED_FRAME_2"
+}
+
+// INSTRUCTION: Compile the VLAN-prioritized IPsec ESP voice media trunk flow.
+COMPILE {
+    esp_voice_media_trunk_flow(sbc_voice_esp_a, sbc_voice_esp_b)
+}

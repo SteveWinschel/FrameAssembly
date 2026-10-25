@@ -1,0 +1,20 @@
+// PROMPT: Client hello offering ALPN h3 next-generation transport negotiation.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, ALPN, COMPILE
+
+// INSTRUCTION: Define mobile application endpoint.
+HOST mobile_app { IP 192.168.10.99 }
+
+// INSTRUCTION: Define edge CDN POP server.
+HOST cdn_edge { IP 192.168.10.1 }
+
+// INSTRUCTION: Define ClientHello with h3 ALPN flow.
+FLOW tls_alpn_h3_flow(c, s) {
+    c -> s TLS CLIENT_HELLO
+        SNI "cdn.fast-delivery.net"
+        ALPN "h3"
+}
+
+// INSTRUCTION: Compile block executing h3 ALPN advertisement.
+COMPILE {
+    tls_alpn_h3_flow(mobile_app, cdn_edge)
+}

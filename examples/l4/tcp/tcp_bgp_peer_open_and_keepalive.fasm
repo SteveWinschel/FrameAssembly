@@ -1,5 +1,5 @@
 // PROMPT: Simulate a BGP-4 eBGP peering session establishment (OPEN, KEEP-ALIVE, UPDATE) between two autonomous system border routers on TCP port 179.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, s, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ACK, ACKNUM, PSH, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define AS65001 border router with IP 192.0.2.1 and MAC 00:00:5e:00:53:01.
 HOST as65001_router { IP 192.0.2.1 MAC 00:00:5e:00:53:01 }

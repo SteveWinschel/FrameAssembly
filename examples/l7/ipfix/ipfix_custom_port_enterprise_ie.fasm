@@ -1,0 +1,18 @@
+// PROMPT: IPFIX export to custom collector port 9995 with enterprise Information Element HEXPAYLOAD.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, SRCPORT, DSTPORT, DF, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define SD-WAN branch appliance.
+HOST sdwan_branch { IP 192.168.199.1 }
+
+// INSTRUCTION: Define custom-port IPFIX collector on UDP 9995.
+HOST custom_ipfix_col { IP 192.168.199.250 }
+
+// INSTRUCTION: Send IPFIX record to UDP 9995 with trailing enterprise vendor extension bytes.
+FLOW ipfix_custom_port_enterprise(b, c) {
+    b -> c IPFIX DOMAIN_ID 77 SRCIP 172.16.1.10 DSTIP 172.16.2.20 PROTO 17 PACKETS 500 OCTETS 256000 SRCPORT 54739 DSTPORT 9995 DF HEXPAYLOAD "8001000400001a2b"
+}
+
+// INSTRUCTION: Compile the custom-port enterprise IPFIX export scenario.
+COMPILE {
+    ipfix_custom_port_enterprise(sdwan_branch, custom_ipfix_col)
+}

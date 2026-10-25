@@ -1,0 +1,19 @@
+// PROMPT: MPLS-labeled IPsec AH integrity-protected packets traversing a service provider core.
+// TOKENS: HOST, IP, FLOW, AH, SPI, SEQ, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+
+// INSTRUCTION: Define ingress provider edge router.
+HOST pe_ingress_nyc { IP 10.254.0.1 }
+
+// INSTRUCTION: Define egress provider edge router.
+HOST pe_egress_lon { IP 10.254.0.2 }
+
+// INSTRUCTION: Define MPLS label switched AH session with traffic class EXP 5.
+FLOW ah_mpls_core_flow(ing, egr) {
+    ing -> egr AH SPI 88400 SEQ 101 MPLS 16040 EXP 5 BOS 1 MPLS_TTL 62
+    ing <- egr AH SPI 88401 SEQ 101 MPLS 24080 EXP 5 BOS 1 MPLS_TTL 61
+}
+
+// INSTRUCTION: Compile the MPLS-encapsulated AH flow.
+COMPILE {
+    ah_mpls_core_flow(pe_ingress_nyc, pe_egress_lon)
+}

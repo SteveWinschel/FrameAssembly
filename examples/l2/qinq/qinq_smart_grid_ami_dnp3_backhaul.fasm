@@ -1,0 +1,26 @@
+// PROMPT: Utility smart grid backhaul aggregating substation C-VLANs into a regional S-VLAN carrying DNP3 telemetry.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DNP3, FUNC, SRC, DST, WAIT, DIRECT_OPERATE, COMPILE
+
+// INSTRUCTION: Define regional utility distribution management system (DMS) headend.
+HOST utility_dms_headend {
+    IP 10.140.0.10
+    MAC 00:a0:c9:8c:00:0a
+}
+
+// INSTRUCTION: Define remote substation RTU gateway over utility metro ring.
+HOST substation_rtu_gw {
+    IP 10.140.0.55
+    MAC 00:a0:c9:8c:00:37
+}
+
+// INSTRUCTION: Define QinQ S-VLAN 1400 C-VLAN 22 DNP3 integrity read and breaker direct operate command.
+FLOW utility_qinq_dnp3(dms, rtu) {
+    dms -> rtu QINQ 1400 INNER_VLAN 22 DNP3 FUNC READ SRC 1 DST 55
+    dms <- rtu QINQ 1400 INNER_VLAN 22 DNP3 FUNC READ SRC 55 DST 1 WAIT 8ms
+    dms -> rtu QINQ 1400 INNER_VLAN 22 DNP3 FUNC DIRECT_OPERATE SRC 1 DST 55 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing utility smart grid QinQ DNP3 backhaul.
+COMPILE {
+    utility_qinq_dnp3(utility_dms_headend, substation_rtu_gw)
+}

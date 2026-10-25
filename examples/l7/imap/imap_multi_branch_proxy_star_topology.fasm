@@ -1,0 +1,33 @@
+// PROMPT: Model an IMAP director proxy routing sessions from one ingress load balancer to two backend mailstore pods.
+// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, ARG, WAIT, STATUS, RESPONSE, COMPILE
+
+// INSTRUCTION: Define the ingress nginx/dovecot-director IMAP proxy.
+HOST imap_director {
+    IP 10.143.90.5
+    MAC 00:50:56:8f:5a:05
+}
+
+// INSTRUCTION: Define backend mailstore pod A hosting shard 1 users.
+HOST mailstore_pod_a {
+    IP 10.143.90.101
+    MAC 00:50:56:8f:5a:65
+}
+
+// INSTRUCTION: Define backend mailstore pod B hosting shard 2 users.
+HOST mailstore_pod_b {
+    IP 10.143.90.102
+    MAC 00:50:56:8f:5a:66
+}
+
+// INSTRUCTION: Check mailbox status on backend mailstore pod A.
+FLOW imap_shard_check(p, m) {
+    p -> m IMAP TAG "P01" CMD "STATUS" ARG "INBOX (MESSAGES UNSEEN UIDNEXT)" WAIT 2ms
+    p <- m IMAP TAG "*" STATUS "STATUS" RESPONSE "INBOX (MESSAGES 180 UNSEEN 4 UIDNEXT 920)" WAIT 1ms
+    p <- m IMAP TAG "P01" STATUS "OK" RESPONSE "Status completed"
+}
+
+// INSTRUCTION: Execute IMAP STATUS checks across both backend mailstore pods.
+COMPILE {
+    imap_shard_check(imap_director, mailstore_pod_a)
+    imap_shard_check(imap_director, mailstore_pod_b)
+}

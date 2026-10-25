@@ -1,0 +1,18 @@
+// PROMPT: MQTT QoS 0 telemetry publishing fire-and-forget temperature sensor updates.
+// TOKENS: HOST, IP, FLOW, MQTT, PUBLISH, TOPIC, QOS, COMPILE
+
+// INSTRUCTION: Define edge temperature sensor node.
+HOST edge_temp_sensor { IP 192.168.1.80 }
+
+// INSTRUCTION: Define central MQTT message broker.
+HOST central_broker { IP 192.168.1.10 }
+
+// INSTRUCTION: Define QoS 0 telemetry publish flow.
+FLOW qos0_publish_flow(sensor, broker) {
+    sensor -> broker MQTT PUBLISH TOPIC "factory/zone1/temperature" QOS 0
+}
+
+// INSTRUCTION: Compile QoS 0 sensor telemetry scenario.
+COMPILE {
+    qos0_publish_flow(edge_temp_sensor, central_broker)
+}

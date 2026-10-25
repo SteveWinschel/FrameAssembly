@@ -1,0 +1,20 @@
+// PROMPT: Local1 switch facility notice reporting STP topology change event.
+// TOKENS: HOST, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, MSG, COMPILE
+
+// INSTRUCTION: Define access switch.
+HOST access_switch { IP 192.168.10.2 }
+
+// INSTRUCTION: Define campus monitoring collector.
+HOST campus_mon { IP 192.168.10.1 }
+
+// INSTRUCTION: Define spanning tree state notice flow.
+FLOW syslog_stp_flow(c, s) {
+    c -> s SYSLOG FACILITY 17 SEVERITY 5
+        HOSTNAME "sw-access-4" APP "stp"
+        MSG "%SPANTREE-5-TOPOTRANS: Topology change detected on port Gi1/0/24"
+}
+
+// INSTRUCTION: Compile block executing STP state notice.
+COMPILE {
+    syslog_stp_flow(access_switch, campus_mon)
+}

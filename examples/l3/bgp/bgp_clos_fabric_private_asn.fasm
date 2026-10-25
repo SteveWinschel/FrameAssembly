@@ -1,0 +1,22 @@
+// PROMPT: Data center Clos fabric RFC 7938 eBGP underlay exchanging loopback prefixes between Leaf and Spine.
+// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, TTL, DSCP, UPDATE, PREFIX, NEXTHOP, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define Clos leaf switch in private ASN 65101.
+HOST clos_leaf_01 { IP 10.0.1.1 MAC 00:1c:73:c1:00:01 }
+
+// INSTRUCTION: Define Clos spine switch in private ASN 65000.
+HOST clos_spine_01 { IP 10.0.1.0 MAC 00:1c:73:c0:00:01 }
+
+// INSTRUCTION: Define RFC 7938 data center eBGP peering and /32 loopback advertisement.
+FLOW clos_ebgp_underlay(leaf, spine) {
+    leaf -> spine BGP OPEN ASN 65101 HOLDTIME 9 BGPID 10.255.1.11 TTL 1 DSCP 48
+    leaf <- spine BGP OPEN ASN 65000 HOLDTIME 9 BGPID 10.255.0.1 TTL 1 DSCP 48
+    leaf -> spine BGP UPDATE ASN 65101 PREFIX "10.255.1.11/32" NEXTHOP 10.0.1.1 TTL 1 DSCP 48
+    leaf <- spine BGP UPDATE ASN 65000 PREFIX "10.255.0.1/32" NEXTHOP 10.0.1.0 TTL 1 DSCP 48
+    leaf -> spine BGP KEEPALIVE TTL 1 DSCP 48
+}
+
+// INSTRUCTION: Compile the Clos fabric eBGP underlay flow.
+COMPILE {
+    clos_ebgp_underlay(clos_leaf_01, clos_spine_01)
+}

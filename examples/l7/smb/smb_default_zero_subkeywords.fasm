@@ -1,0 +1,18 @@
+// PROMPT: Default Server Message Block SMB2 frame with zero sub-keywords on TCP port 445.
+// TOKENS: HOST, IP, MAC, FLOW, SMB, COMPILE
+
+// INSTRUCTION: Define office workstation client.
+HOST smb_client { IP 10.14.0.55 MAC 00:50:56:14:00:37 }
+
+// INSTRUCTION: Define enterprise file server.
+HOST file_srv { IP 10.14.0.1 MAC 00:50:56:14:00:01 }
+
+// INSTRUCTION: Define flow sending default SMB frame.
+FLOW smb_default(c, s) {
+    c -> s SMB
+}
+
+// INSTRUCTION: Compile default SMB frame scenario.
+COMPILE {
+    smb_default(smb_client, file_srv)
+}

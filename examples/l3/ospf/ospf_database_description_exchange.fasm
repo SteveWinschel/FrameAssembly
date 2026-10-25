@@ -1,5 +1,5 @@
 // PROMPT: OSPF Database Description packet exchange synchronizing link-state database headers between neighbors.
-// TOKENS: HOST, IP, FLOW, ->, <-, OSPF, DBD, ROUTER_ID, AREA_ID, COMPILE
+// TOKENS: HOST, IP, FLOW, OSPF, DBD, ROUTER_ID, AREA_ID, COMPILE
 
 // INSTRUCTION: Define OSPF master router in area 1.
 HOST ospf_master { IP 10.1.1.1 }

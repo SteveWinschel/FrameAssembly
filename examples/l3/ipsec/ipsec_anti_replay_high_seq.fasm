@@ -1,0 +1,26 @@
+// PROMPT: Simulate an IPsec anti-replay sliding window validation sequence using high sequence numbers and custom MACs
+// TOKENS: HOST, IP, MAC, FLOW, IPSEC, SPI, SEQ, IV, ICV, SRCMAC, DSTMAC, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the high-throughput encryption engine A
+HOST crypto_engine_a {
+    IP 10.250.10.1
+    MAC 00:0f:53:f1:10:01
+}
+
+// INSTRUCTION: Define the high-throughput encryption engine B
+HOST crypto_engine_b {
+    IP 10.250.10.2
+    MAC 00:0f:53:f1:10:02
+}
+
+// INSTRUCTION: Send consecutive high-sequence IPsec frames testing anti-replay window advancement
+FLOW ipsec_anti_replay_window(a, b) {
+    a -> b IPSEC SPI 990099 SEQ 2147483640 IV "000000007ffffff8" ICV "112233445566778899aabbcc" SRCMAC 00:0f:53:f1:10:01 DSTMAC 00:0f:53:f1:10:02 PAYLOAD "replay-window-seq-max-minus-7" WAIT 5ms
+    a -> b IPSEC SPI 990099 SEQ 2147483641 IV "000000007ffffff9" ICV "2233445566778899aabbccdd" SRCMAC 00:0f:53:f1:10:01 DSTMAC 00:0f:53:f1:10:02 PAYLOAD "replay-window-seq-max-minus-6" WAIT 5ms
+    a -> b IPSEC SPI 990099 SEQ 2147483642 IV "000000007ffffffa" ICV "33445566778899aabbccddee" SRCMAC 00:0f:53:f1:10:01 DSTMAC 00:0f:53:f1:10:02 PAYLOAD "replay-window-seq-max-minus-5"
+}
+
+// INSTRUCTION: Compile the anti-replay window IPsec sequence
+COMPILE {
+    ipsec_anti_replay_window(crypto_engine_a, crypto_engine_b)
+}

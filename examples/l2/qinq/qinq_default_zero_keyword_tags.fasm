@@ -1,0 +1,24 @@
+// PROMPT: Standalone IEEE 802.1ad QinQ frame using default outer S-VLAN and inner C-VLAN tags.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define provider bridge ingress port A.
+HOST pb_port_a {
+    IP 10.108.0.1
+    MAC 00:1b:21:ad:00:01
+}
+
+// INSTRUCTION: Define provider bridge egress port B.
+HOST pb_port_b {
+    IP 10.108.0.2
+    MAC 00:1b:21:ad:00:02
+}
+
+// INSTRUCTION: Define standalone QinQ frame relying on RFC-compliant default S-Tag and C-Tag IDs.
+FLOW default_qinq_frame(a, b) {
+    a -> b QINQ PAYLOAD "ieee_802_1ad_default_provider_bridge"
+}
+
+// INSTRUCTION: Compile block executing default QinQ frame generation.
+COMPILE {
+    default_qinq_frame(pb_port_a, pb_port_b)
+}

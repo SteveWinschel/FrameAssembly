@@ -1,5 +1,5 @@
 // PROMPT: Simple Mail Transfer Protocol exchange over IPv6 with EHLO, MAIL FROM, RCPT TO, and QUIT.
-// TOKENS: HOST, IP, FLOW, ->, SMTP, EHLO, MAIL_FROM, RCPT_TO, QUIT, COMPILE
+// TOKENS: HOST, IP, FLOW, SMTP, EHLO, MAIL_FROM, RCPT_TO, QUIT, COMPILE
 
 // INSTRUCTION: Define sending mail transfer agent.
 HOST mail_client { IP 2001:db8:25::1 }

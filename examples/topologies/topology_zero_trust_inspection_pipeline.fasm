@@ -1,5 +1,5 @@
 // PROMPT: Comprehensive perimeter security inspection chain traversing next-gen firewall, TLS proxy, and SIEM Syslog.
-// TOKENS: HOST, IP, FLOW, ->, TCP, SYN, SRCPORT, DSTPORT, TLS, CLIENT_HELLO, SNI, SYSLOG, FACILITY, SEVERITY, MSG, COMPILE
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, TLS, CLIENT_HELLO, SNI, SYSLOG, FACILITY, SEVERITY, MSG, COMPILE
 
 // INSTRUCTION: Define internal user workstation.
 HOST workstation { IP 10.1.1.50 }

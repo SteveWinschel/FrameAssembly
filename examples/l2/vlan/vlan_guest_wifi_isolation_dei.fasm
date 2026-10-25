@@ -1,0 +1,21 @@
+// PROMPT: Guest Wi-Fi isolation VLAN 666 with DEI drop-eligible marking and captive portal DNS/HTTP redirect.
+// TOKENS: HOST, IP, FLOW, VLAN, PCP, DEI, DNS, QNAME, RDATA, WAIT, HTTP, GET, URI, STATUS, COMPILE
+
+// INSTRUCTION: Define untrusted guest wireless client on isolated VLAN 666.
+HOST guest_wifi_sta { IP 172.19.66.142 }
+
+// INSTRUCTION: Define wireless LAN controller captive portal gateway.
+HOST wlc_portal_gw { IP 172.19.66.1 }
+
+// INSTRUCTION: Define DEI-marked guest VLAN DNS lookup and HTTP captive portal interception.
+FLOW guest_vlan_captive_portal(sta, wlc) {
+    sta -> wlc VLAN 666 PCP 1 DEI 1 DNS QNAME "connectivitycheck.gstatic.com"
+    sta <- wlc VLAN 666 PCP 1 DEI 0 DNS QNAME "connectivitycheck.gstatic.com" RDATA "172.19.66.1" WAIT 3ms
+    sta -> wlc VLAN 666 PCP 1 DEI 1 HTTP GET URI "/generate_204" WAIT 2ms
+    sta <- wlc VLAN 666 PCP 1 DEI 0 HTTP STATUS 302 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing guest Wi-Fi VLAN 666 isolation flow.
+COMPILE {
+    guest_vlan_captive_portal(guest_wifi_sta, wlc_portal_gw)
+}

@@ -1,0 +1,31 @@
+// PROMPT: Firewall High-Availability (HA) cluster Redundant Ethernet (reth0) LACP failover transferring active Actor System MAC.
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define primary firewall node relinquishing reth0 LAG ownership.
+HOST fw_node0_pri {
+    IP 10.90.0.1
+    MAC 00:10:db:ff:10:00
+}
+
+// INSTRUCTION: Define secondary firewall node assuming active reth0 LAG ownership.
+HOST fw_node1_sec {
+    IP 10.90.0.2
+    MAC 00:10:db:ff:10:01
+}
+
+// INSTRUCTION: Define core switch terminating firewall reth0 LACP bundle.
+HOST core_fw_agg_sw {
+    IP 10.90.0.254
+    MAC 00:1c:73:90:00:fe
+}
+
+// INSTRUCTION: Define firewall HA reth0 LACP failover from Node 0 to Node 1.
+FLOW fw_ha_reth_lacp_failover(n0, n1, sw) {
+    n0 -> sw LACP ACTOR_SYS 00:10:db:ff:10:00 ACTOR_KEY 90 ACTOR_PORT 1 ACTOR_STATE 5 PARTNER_SYS 00:1c:73:90:00:fe PARTNER_KEY 90 PARTNER_PORT 1 PARTNER_STATE 61
+    n1 -> sw LACP ACTOR_SYS 00:10:db:ff:10:00 ACTOR_KEY 90 ACTOR_PORT 2 ACTOR_STATE 63 PARTNER_SYS 00:1c:73:90:00:fe PARTNER_KEY 90 PARTNER_PORT 2 PARTNER_STATE 63 WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing firewall HA reth0 LACP failover.
+COMPILE {
+    fw_ha_reth_lacp_failover(fw_node0_pri, fw_node1_sec, core_fw_agg_sw)
+}

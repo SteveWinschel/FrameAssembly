@@ -1,0 +1,21 @@
+// PROMPT: Periodic GRE tunnel keepalive probes executed inside a COMPILE LOOP block.
+// TOKENS: HOST, IP, FLOW, GRE, GRE_KEY, GRE_SEQ, CHECKSUM, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define primary WAN GRE endpoint.
+HOST gre_ka_primary { IP 10.210.1.1 }
+
+// INSTRUCTION: Define secondary WAN GRE endpoint.
+HOST gre_ka_secondary { IP 10.210.1.2 }
+
+// INSTRUCTION: Define bidirectional GRE keepalive exchange with 25ms delay.
+FLOW gre_keepalive_cycle(p, s) {
+    p -> s GRE GRE_KEY 1010 GRE_SEQ 1 CHECKSUM WAIT 25ms
+    p <- s GRE GRE_KEY 1010 GRE_SEQ 1 CHECKSUM WAIT 25ms
+}
+
+// INSTRUCTION: Compile 4 iterations of the GRE keepalive probe cycle.
+COMPILE {
+    LOOP 4 {
+        gre_keepalive_cycle(gre_ka_primary, gre_ka_secondary)
+    }
+}

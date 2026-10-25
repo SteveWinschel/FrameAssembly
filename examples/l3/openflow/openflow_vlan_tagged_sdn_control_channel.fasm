@@ -1,0 +1,18 @@
+// PROMPT: 802.1Q tagged OpenFlow control channel running on out-of-band management VLAN 99.
+// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, HELLO, VLAN, PCP, DEI, COMPILE
+
+// INSTRUCTION: Define out-of-band network controller.
+HOST oob_sdn_controller { IP 192.168.99.1 }
+
+// INSTRUCTION: Define remote rack switch management interface.
+HOST rack_mgmt_switch { IP 192.168.99.20 }
+
+// INSTRUCTION: Define VLAN 99 tagged OpenFlow HELLO flow.
+FLOW of_vlan_control_flow(ctrl, sw) {
+    ctrl -> sw OPENFLOW TYPE HELLO VLAN 99 PCP 5 DEI 0
+}
+
+// INSTRUCTION: Compile block executing VLAN tagged OpenFlow session setup.
+COMPILE {
+    of_vlan_control_flow(oob_sdn_controller, rack_mgmt_switch)
+}

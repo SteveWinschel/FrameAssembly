@@ -1,0 +1,25 @@
+// PROMPT: 5G UPF DPDK poll-mode driver bonding two 100GbE ports via IEEE 802.1AX LACP (state 0x3F fast active collecting/distributing).
+// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+
+// INSTRUCTION: Define 5G UPF DPDK bond0 primary 100GbE interface.
+HOST upf_dpdk_bond0 {
+    IP 100.64.10.10
+    MAC 0c:42:a1:40:0a:0a
+}
+
+// INSTRUCTION: Define leaf switch port-channel 10 member interface.
+HOST leaf_po10_port {
+    IP 100.64.10.1
+    MAC 00:1c:73:40:0a:01
+}
+
+// INSTRUCTION: Synchronize LACP fast timeout (state 63 = 0x3F) and forward GTP-U payload over the active bond.
+FLOW lacp_upf_dpdk_bond(upf, leaf) {
+    upf -> leaf LACP ACTOR_SYS 0c:42:a1:40:0a:0a ACTOR_KEY 10 ACTOR_PORT 1 ACTOR_STATE 63 PARTNER_SYS 00:1c:73:40:0a:01 PARTNER_KEY 10 PARTNER_PORT 101 PARTNER_STATE 63 WAIT 2ms
+    upf <- leaf LACP ACTOR_SYS 00:1c:73:40:0a:01 ACTOR_KEY 10 ACTOR_PORT 101 ACTOR_STATE 63 PARTNER_SYS 0c:42:a1:40:0a:0a PARTNER_KEY 10 PARTNER_PORT 1 PARTNER_STATE 63
+}
+
+// INSTRUCTION: Compile the 5G UPF DPDK Mode 4 LACP synchronization trace.
+COMPILE {
+    lacp_upf_dpdk_bond(upf_dpdk_bond0, leaf_po10_port)
+}

@@ -1,5 +1,5 @@
 // PROMPT: NTP client time synchronization request and server timestamp response.
-// TOKENS: HOST, IP, FLOW, ->, <-, NTP, MODE, VN, STRATUM, POLL, COMPILE
+// TOKENS: HOST, IP, FLOW, NTP, MODE, VN, STRATUM, POLL, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.10 }

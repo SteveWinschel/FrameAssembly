@@ -1,0 +1,29 @@
+// PROMPT: Model an IPv6 Memcached GETS and CAS optimistic lock contention and retry sequence.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, CMD, KEY, OPAQUE, FLOWLABEL, TTL, WAIT, VALUE, CAS, EXPTIME, COMPILE
+
+// INSTRUCTION: Define the IPv6 inventory checkout worker.
+HOST checkout_v6 {
+    IP 2001:db8:1121:1::50
+    MAC 00:16:3e:11:21:50
+}
+
+// INSTRUCTION: Define the IPv6 Memcached hot-item cluster node.
+HOST cache_v6 {
+    IP 2001:db8:1121:1::10
+    MAC 00:16:3e:11:21:10
+}
+
+// INSTRUCTION: Fetch item with GETS, experience EXISTS on stale CAS token, re-fetch, and succeed with updated CAS.
+FLOW memcached_cas_retry_v6(c, s) {
+    c -> s MEMCACHED CMD "GETS" KEY "sku:gpu_h200:stock" OPAQUE 101 FLOWLABEL 0x11211 TTL 64 WAIT 1ms
+    c <- s MEMCACHED CMD "VALUE" KEY "sku:gpu_h200:stock" VALUE "8" CAS 5001 OPAQUE 101 FLOWLABEL 0x11211 TTL 64 WAIT 2ms
+    c -> s MEMCACHED CMD "CAS" KEY "sku:gpu_h200:stock" VALUE "7" CAS 5000 EXPTIME 300 OPAQUE 102 FLOWLABEL 0x11211 TTL 64 WAIT 1ms
+    c <- s MEMCACHED CMD "EXISTS" KEY "sku:gpu_h200:stock" OPAQUE 102 FLOWLABEL 0x11211 TTL 64 WAIT 2ms
+    c -> s MEMCACHED CMD "CAS" KEY "sku:gpu_h200:stock" VALUE "7" CAS 5001 EXPTIME 300 OPAQUE 103 FLOWLABEL 0x11211 TTL 64 WAIT 1ms
+    c <- s MEMCACHED CMD "STORED" KEY "sku:gpu_h200:stock" CAS 5002 OPAQUE 103 FLOWLABEL 0x11211 TTL 64
+}
+
+// INSTRUCTION: Compile the IPv6 Memcached CAS retry flow.
+COMPILE {
+    memcached_cas_retry_v6(checkout_v6, cache_v6)
+}

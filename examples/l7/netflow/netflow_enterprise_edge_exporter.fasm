@@ -1,0 +1,18 @@
+// PROMPT: Cisco NetFlow v5 export datagram reporting enterprise edge gateway traffic metrics.
+// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define enterprise edge router exporter.
+HOST edge_router_exp { IP 10.10.1.1 }
+
+// INSTRUCTION: Define central NetFlow monitoring collector.
+HOST central_collector { IP 10.10.1.250 }
+
+// INSTRUCTION: Define edge traffic export flow.
+FLOW edge_export_flow(rtr, col) {
+    rtr -> col NETFLOW SRCIP 192.168.10.101 DSTIP 172.217.16.206 SRCPORT 54321 DSTPORT 443 PROTO 6 PACKETS 85 OCTETS 114200
+}
+
+// INSTRUCTION: Compile enterprise edge NetFlow scenario.
+COMPILE {
+    edge_export_flow(edge_router_exp, central_collector)
+}

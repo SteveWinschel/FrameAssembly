@@ -1,0 +1,25 @@
+// PROMPT: SIP SUBSCRIBE and NOTIFY (RFC 6665) busy lamp field (BLF) presence monitoring exchange.
+// TOKENS: HOST, IP, FLOW, SIP, METHOD, URI, FROM, TO, CALL_ID, CSEQ, CONTACT, WAIT, STATUS, REASON, CONTENT_TYPE, BODY, COMPILE
+
+// INSTRUCTION: Define executive assistant IP phone monitoring BLF line keys.
+HOST blf_phone {
+    IP 10.60.20.45
+}
+
+// INSTRUCTION: Define SIP presence and dialog state server.
+HOST presence_srv {
+    IP 10.60.20.1
+}
+
+// INSTRUCTION: Define SIP SUBSCRIBE for dialog event package and XML presence NOTIFY push.
+FLOW sip_blf_presence(c, s) {
+    c -> s SIP METHOD "SUBSCRIBE" URI "sip:director@10.60.20.1" FROM "sip:asst@10.60.20.45" TO "sip:director@10.60.20.1" CALL_ID "blf-9001" CSEQ 1 CONTACT "sip:asst@10.60.20.45" WAIT 4ms
+    c <- s SIP STATUS 200 REASON "OK" CALL_ID "blf-9001" CSEQ 1 WAIT 4ms
+    c <- s SIP METHOD "NOTIFY" URI "sip:asst@10.60.20.45" CALL_ID "blf-9001" CSEQ 2 CONTENT_TYPE "application/dialog-info+xml" BODY "<dialog-info state='full'/>" WAIT 4ms
+    c -> s SIP STATUS 200 REASON "OK" CALL_ID "blf-9001" CSEQ 2
+}
+
+// INSTRUCTION: Compile the SIP BLF presence SUBSCRIBE/NOTIFY flow.
+COMPILE {
+    sip_blf_presence(blf_phone, presence_srv)
+}

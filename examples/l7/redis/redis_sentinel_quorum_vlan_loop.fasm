@@ -1,0 +1,21 @@
+// PROMPT: Redis Sentinel master discovery and health ping loop on port 26379 over VLAN 637.
+// TOKENS: HOST, IP, FLOW, REDIS, CMD, ARGS, VLAN, PCP, DEI, SRCPORT, DSTPORT, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define Redis Sentinel monitor node on VLAN 637.
+HOST sentinel_mon { IP 192.168.163.11 }
+
+// INSTRUCTION: Define Redis Sentinel peer on port 26379.
+HOST sentinel_peer { IP 192.168.163.12 }
+
+// INSTRUCTION: Define Sentinel master-addr query on port 26379.
+FLOW redis_sentinel_check(s1, s2) {
+    s1 -> s2 REDIS CMD "SENTINEL" ARGS "get-master-addr-by-name mymaster" VLAN 637 PCP 5 DEI 0 SRCPORT 56379 DSTPORT 26379 WAIT 50ms
+    s1 <- s2 REDIS CMD "ARRAY" ARGS "192.168.163.1:6379" VLAN 637 PCP 5 DEI 0 SRCPORT 26379 DSTPORT 56379 WAIT 50ms
+}
+
+// INSTRUCTION: Execute 4 Sentinel quorum checks in COMPILE LOOP.
+COMPILE {
+    LOOP 4 {
+        redis_sentinel_check(sentinel_mon, sentinel_peer)
+    }
+}

@@ -1,0 +1,18 @@
+// PROMPT: Industrial SCADA sensor advertising membership in site-local multicast group ff05::100.
+// TOKENS: HOST, IP, FLOW, MLD, REPORT, MULTICAST_ADDR, TTL, COMPILE
+
+// INSTRUCTION: Define factory floor pressure telemetry transducer.
+HOST scada_pressure_sensor { IP fe80::9999:8888:7777:1111 }
+
+// INSTRUCTION: Define plant industrial router address.
+HOST plant_mld_router { IP ff02::2 }
+
+// INSTRUCTION: Define MLD report for site-local telemetry group ff05::100.
+FLOW scada_telemetry_join(sensor, rtr) {
+    sensor -> rtr MLD REPORT MULTICAST_ADDR ff05::100 TTL 1
+}
+
+// INSTRUCTION: Compile block executing industrial sensor group join.
+COMPILE {
+    scada_telemetry_join(scada_pressure_sensor, plant_mld_router)
+}

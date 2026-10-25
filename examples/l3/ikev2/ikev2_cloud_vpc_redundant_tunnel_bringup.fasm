@@ -1,0 +1,27 @@
+// PROMPT: Enterprise edge router establishing primary IKEv2 SA_INIT and AUTH tunnel with a cloud VPC VPN gateway.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, IKEV2, SA_INIT, INITIATOR_SPI, RESPONDER_SPI, MSGID, FLAGS, NEXT_PAYLOAD, WAIT, EXCHANGE, AUTH, COMPILE
+
+// INSTRUCTION: Define on-premises enterprise SD-WAN border router.
+HOST onprem_vpn_edge {
+    IP 198.51.100.45
+    MAC 00:1c:73:c6:64:2d
+}
+
+// INSTRUCTION: Define cloud VPC virtual private gateway endpoint.
+HOST cloud_vpc_vgw {
+    IP 203.0.113.200
+    MAC 00:1c:73:cb:71:c8
+}
+
+// INSTRUCTION: Complete four-message IKE_SA_INIT and IKE_AUTH negotiation between on-premises edge and cloud VGW.
+FLOW ikev2_cloud_vpc_setup(edge, vgw) {
+    edge -> vgw DSCP 48 IKEV2 SA_INIT INITIATOR_SPI 91002001 RESPONDER_SPI 0 MSGID 0 FLAGS 8 NEXT_PAYLOAD 33 WAIT 10ms
+    edge <- vgw DSCP 48 IKEV2 SA_INIT INITIATOR_SPI 91002001 RESPONDER_SPI 92003002 MSGID 0 FLAGS 32 NEXT_PAYLOAD 33 WAIT 10ms
+    edge -> vgw DSCP 48 IKEV2 EXCHANGE AUTH INITIATOR_SPI 91002001 RESPONDER_SPI 92003002 MSGID 1 FLAGS 8 NEXT_PAYLOAD 46 WAIT 10ms
+    edge <- vgw DSCP 48 IKEV2 EXCHANGE AUTH INITIATOR_SPI 91002001 RESPONDER_SPI 92003002 MSGID 1 FLAGS 32 NEXT_PAYLOAD 46
+}
+
+// INSTRUCTION: Compile the cloud VPC IKEv2 SA_INIT and AUTH negotiation trace.
+COMPILE {
+    ikev2_cloud_vpc_setup(onprem_vpn_edge, cloud_vpc_vgw)
+}

@@ -1,0 +1,25 @@
+// PROMPT: Hospital clinical switch identifying a wired smart infusion pump via LLDP asset inventory TLVs on medical VLAN 350.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define smart IV infusion pump Ethernet dock reporting model and firmware in LLDP SYSDESC.
+HOST smart_iv_pump {
+    IP 10.35.10.90
+    MAC 00:19:99:23:0a:5a
+}
+
+// INSTRUCTION: Define hospital clinical floor switch port on VLAN 350.
+HOST clinical_floor_sw {
+    IP 10.35.10.1
+    MAC 00:1c:73:23:0a:01
+}
+
+// INSTRUCTION: Report medical device serial number and firmware over VLAN 350 LLDP frames.
+FLOW lldp_medical_asset_tag(pump, sw) {
+    pump -> sw VLAN 350 PCP 6 LLDP CHASSIS_ID "SN-IVP-884920" PORT_ID "dock-eth0" SYSNAME "icu-bed04-pump1" SYSDESC "MedFusion SmartPump FW-v9.4.1" TTL 120 WAIT 10ms
+    pump <- sw VLAN 350 PCP 6 LLDP CHASSIS_ID "icu-fl3-sw02" PORT_ID "Gi1/0/4" SYSNAME "icu-fl3-sw02.hosp" SYSDESC "Clinical Biomem VLAN 350 Port" TTL 120
+}
+
+// INSTRUCTION: Compile the hospital medical device LLDP asset inventory trace.
+COMPILE {
+    lldp_medical_asset_tag(smart_iv_pump, clinical_floor_sw)
+}

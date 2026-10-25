@@ -1,5 +1,5 @@
 // PROMPT: PIM Join message signaling upstream multicast distribution tree for group and source.
-// TOKENS: HOST, IP, FLOW, ->, PIM, JOIN_PRUNE, GROUP, SOURCE, COMPILE
+// TOKENS: HOST, IP, FLOW, PIM, JOIN_PRUNE, GROUP, SOURCE, COMPILE
 
 // INSTRUCTION: Define downstream PIM router initiating tree join.
 HOST pim_downstream { IP 10.10.1.2 }

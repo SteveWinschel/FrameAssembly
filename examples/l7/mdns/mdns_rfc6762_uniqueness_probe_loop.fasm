@@ -1,0 +1,32 @@
+// PROMPT: Simulate an RFC 6762 mDNS tiebreaking probe loop (3 QTYPE ANY queries separated by 25ms) followed by an authoritative A record announcement.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RDATA, ANS_TTL, COMPILE, LOOP
+
+// INSTRUCTION: Define the newly booted IoT camera probing for uniqueness of cam-lobby.local.
+HOST iot_camera {
+    IP 192.168.50.140
+    MAC 00:60:2f:50:01:40
+}
+
+// INSTRUCTION: Define the IPv4 mDNS multicast address receiving the probes and announcement.
+HOST mdns_mcast {
+    IP 224.0.0.251
+    MAC 01:00:5e:00:00:fb
+}
+
+// INSTRUCTION: Send an ANY probe query with 25ms wait interval.
+FLOW rfc6762_probe_step(cam, mcast) {
+    cam -> mcast MDNS QUERY TXID 0 QNAME "cam-lobby.local" QTYPE "ANY" WAIT 25ms
+}
+
+// INSTRUCTION: Broadcast the authoritative A record response after probing completes.
+FLOW rfc6762_announce_step(cam, mcast) {
+    cam -> mcast MDNS RESPONSE TXID 0 QNAME "cam-lobby.local" QTYPE "A" RDATA "192.168.50.140" ANS_TTL 120
+}
+
+// INSTRUCTION: Compile the mDNS RFC 6762 probing loop and announcement sequence into a PCAP file.
+COMPILE {
+    LOOP 3 {
+        rfc6762_probe_step(iot_camera, mdns_mcast)
+    }
+    rfc6762_announce_step(iot_camera, mdns_mcast)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Perimeter firewall rejecting unauthorized ping with ICMP DEST_UNREACH Code 13 (Admin Prohibited).
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, TTL, DEST_UNREACH, CODE, COMPILE
+
+// INSTRUCTION: Define external untrusted host probing perimeter.
+HOST ext_untrusted_host { IP 203.0.113.99 }
+
+// INSTRUCTION: Define perimeter ACL filter router returning Code 13 (Communication Administratively Prohibited).
+HOST acl_border_filter { IP 198.51.100.1 }
+
+// INSTRUCTION: Define blocked ICMP Echo Request and resulting Code 13 Destination Unreachable.
+FLOW icmp_acl_prohibited(ext, fw) {
+    ext -> fw ICMP ECHO_REQUEST ID 666 SEQ 1 TTL 54
+    ext <- fw ICMP DEST_UNREACH CODE 13 TTL 64
+}
+
+// INSTRUCTION: Compile the ICMP Administratively Prohibited firewall response flow.
+COMPILE {
+    icmp_acl_prohibited(ext_untrusted_host, acl_border_filter)
+}

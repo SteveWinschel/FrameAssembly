@@ -1,0 +1,26 @@
+// PROMPT: Mobile client negotiating TLS_CHACHA20_POLY1305_SHA256 (0x1303) cipher suite over IPv6.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, HANDSHAKE_VERSION, SNI, CIPHERSUITE, ALPN, WAIT, SERVER_HELLO, FINISHED, APP_DATA, COMPILE
+
+// INSTRUCTION: Define ARM mobile handset IPv6 endpoint.
+HOST mobile_v6 {
+    IP 2001:db8:443:1::99
+}
+
+// INSTRUCTION: Define CDN edge node IPv6 endpoint.
+HOST cdn_edge_v6 {
+    IP 2001:db8:443:1::1
+}
+
+// INSTRUCTION: Define TLS 1.3 handshake selecting cipher suite 0x1303 for mobile efficiency.
+FLOW tls_chacha20_flow(c, s) {
+    c -> s TLS CLIENT_HELLO HANDSHAKE_VERSION 0x0303 SNI "m.video.example.org" CIPHERSUITE 0x1303 ALPN "h2" WAIT 6ms
+    c <- s TLS SERVER_HELLO HANDSHAKE_VERSION 0x0303 CIPHERSUITE 0x1303 ALPN "h2" WAIT 6ms
+    c <- s TLS FINISHED WAIT 6ms
+    c -> s TLS FINISHED WAIT 6ms
+    c <- s TLS APP_DATA
+}
+
+// INSTRUCTION: Compile the mobile ChaCha20-Poly1305 TLS 1.3 flow.
+COMPILE {
+    tls_chacha20_flow(mobile_v6, cdn_edge_v6)
+}

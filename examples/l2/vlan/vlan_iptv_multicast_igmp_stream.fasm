@@ -1,0 +1,29 @@
+// PROMPT: IPTV multicast distribution VLAN 500 with IGMPv3 membership report and UDP MPEG-TS video stream.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, IGMP, REPORT, GROUP, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define set-top box receiver on IPTV VLAN 500.
+HOST iptv_stb {
+    IP 10.50.5.88
+    MAC 00:09:df:50:05:58
+}
+
+// INSTRUCTION: Define multicast video headend router on IPTV VLAN 500.
+HOST iptv_headend {
+    IP 10.50.5.1
+    MAC 00:1b:21:50:05:01
+}
+
+// INSTRUCTION: Define multicast group 239.100.1.1 endpoint with RFC 1112 auto-derived MAC.
+HOST mcast_channel_hd { IP 239.100.1.1 }
+
+// INSTRUCTION: Define VLAN 500 IGMPv3 join from STB followed by multicast video stream from headend.
+FLOW iptv_multicast_vlan(stb, headend, channel) {
+    stb -> headend VLAN 500 PCP 4 IGMP REPORT GROUP 239.100.1.1
+    headend -> channel VLAN 500 PCP 5 UDP SRCPORT 5000 DSTPORT 5000 PAYLOAD "mpeg_ts_sync_0x47_pid_0x0100_iframe" WAIT 5ms
+    headend -> channel VLAN 500 PCP 5 UDP SRCPORT 5000 DSTPORT 5000 PAYLOAD "mpeg_ts_sync_0x47_pid_0x0100_pframe" WAIT 5ms
+}
+
+// INSTRUCTION: Compile block executing IPTV VLAN 500 multicast join and stream delivery.
+COMPILE {
+    iptv_multicast_vlan(iptv_stb, iptv_headend, mcast_channel_hd)
+}

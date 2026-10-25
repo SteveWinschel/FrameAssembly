@@ -1,30 +1,34 @@
-//! Abstract Syntax Tree (AST) definitions for FrameAssembly.
+//! Abstract Syntax Tree (AST) Definitions for the FrameAssembly Compiler.
 //!
-//! This module defines the complete AST representing parsed FrameAssembly scripts,
-//! including endpoint hosts, reusable flows, frame statements, protocol discriminators,
-//! and execution blocks. Protocol-specific types are partitioned into submodules
-//! by OSI layer and re-exported at the root of `ast` for backwards compatibility.
+//! This module hierarchy defines the complete intermediate representation for parsed `.fasm`
+//! protocol specification programs, including [`HostDef`] endpoint declarations, parameterized
+//! [`FlowDef`] templates, [`FrameStatement`] protocol specifications, [`Protocol`] discriminators,
+//! and [`Program`] execution blocks. Layer-specific specifications and header modifiers are
+//! organized into dedicated submodules across OSI Layer 2 ([`l2`]), Layer 3 ([`l3`]), Layer 4
+//! ([`l4`]), and Layer 7 ([`l7`]), and re-exported with `#[doc(inline)]` at the crate AST root.
 
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::net::IpAddr;
 
-/// Layer 2 Data Link protocols and frame modifiers.
 pub mod l2;
-/// Layer 3 Network, routing, tunneling, and security protocols and modifiers.
 pub mod l3;
-/// Layer 4 Transport layer protocols, TCP flags, options, and modifiers.
 pub mod l4;
-/// Layer 7 Application, infrastructure, and industrial protocols.
 pub mod l7;
-/// SNMP protocol specifications and variable bindings (backwards-compatible alias).
+
+/// SNMP protocol specifications and variable bindings (backwards-compatible alias for [`l7::snmp`]).
 pub mod snmp {
+    #[doc(inline)]
     pub use super::l7::snmp::*;
 }
 
+#[doc(inline)]
 pub use l2::*;
+#[doc(inline)]
 pub use l3::*;
+#[doc(inline)]
 pub use l4::*;
+#[doc(inline)]
 pub use l7::*;
 
 /// Type alias for standard IP address representation.
@@ -55,10 +59,27 @@ impl<T> core::ops::Deref for Spanned<T> {
 
 /// A host definition with an IP and optional MAC address.
 ///
-/// Syntax mapping:
+/// Syntax mapping: `HOST <name> { IP <ip_addr> [MAC <mac_addr>] }`
+///
+/// # Examples
 /// ```frameassembly
-/// HOST name { IP 1.2.3.4 MAC 00:11:22:33:44:55 }
+/// // PROMPT: Declare IPv4 endpoints with explicit MAC addresses and execute an ICMP Echo Request.
+/// // TOKENS: HOST, IP, MAC, FLOW, ICMP, ECHO_REQUEST, COMPILE
+/// // INSTRUCTION: Declare two IPv4 hosts.
+/// HOST client { IP 10.0.0.1 MAC 00:11:22:33:44:55 }
+/// HOST server { IP 10.0.0.2 MAC 00:aa:bb:cc:dd:ee }
+/// // INSTRUCTION: Define a minimal ICMP flow.
+/// FLOW ping(a, b) {
+///     a -> b ICMP ECHO_REQUEST
+/// }
+/// // INSTRUCTION: Compile the flow.
+/// COMPILE {
+///     ping(client, server)
+/// }
 /// ```
+#[doc(alias = "HOST")]
+#[doc(alias = "IP")]
+#[doc(alias = "MAC")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostDef<'a> {
     /// The name of the host.
@@ -74,15 +95,15 @@ pub struct HostDef<'a> {
 /// The direction of the packet in a template statement.
 ///
 /// # Examples
-/// ```
+/// ```rust
 /// use frameassembly::ast::Direction;
 /// let dir = Direction::LeftToRight;
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
-    /// -> operator
+    /// Left-to-right packet direction (`->` operator).
     LeftToRight, // ->
-    /// <- operator
+    /// Right-to-left packet direction (`<-` operator).
     RightToLeft, // <-
 }
 
@@ -92,7 +113,7 @@ pub type ArrowDirection = Direction;
 /// Represents the supported network protocols.
 ///
 /// # Examples
-/// ```
+/// ```rust
 /// use frameassembly::ast::Protocol;
 /// let proto = Protocol::Tcp;
 /// ```
@@ -433,8 +454,10 @@ pub enum ProtocolSpec<'a> {
 
 /// A single frame statement inside a flow.
 ///
-/// Syntax mapping:
-/// ```frameassembly
+/// Syntax mapping: `<caller> ->|<- <callee> [L2/L3/L4 modifiers] <Protocol> [ProtocolSpec] [WAIT <duration>]`
+///
+/// # Examples
+/// ```text
 /// client -> server TCP SYN ACK PAYLOAD "World" WAIT 10ms
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -540,22 +563,25 @@ impl<'a> FrameStatement<'a> {
     ///
     /// Prioritizes `hex_payload` if present, falling back to UTF-8 bytes of `payload`.
     pub fn effective_payload(&self) -> Option<&[u8]> {
-        if let Some(ref hex) = self.hex_payload {
+        if let Some(hex) = &self.hex_payload {
             Some(hex.as_slice())
         } else {
-            self.payload.as_deref().map(|s| s.as_bytes())
+            self.payload.as_deref().map(str::as_bytes)
         }
     }
 }
 
 /// A flow definition in the form `FLOW name(arg1, arg2) { statements }`
 ///
-/// Syntax mapping:
-/// ```frameassembly
+/// Syntax mapping: `FLOW <name>(<param1>, <param2>) { <statements> }`
+///
+/// # Examples
+/// ```text
 /// FLOW name(arg1, arg2) {
 ///     arg1 -> arg2 TCP SYN
 /// }
 /// ```
+#[doc(alias = "FLOW")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FlowDef<'a> {
     /// The name of the flow.
@@ -578,7 +604,7 @@ pub enum Argument<'a> {
 /// A flow invocation, e.g., `tcp_handshake(my_client, google_dns)`
 ///
 /// # Examples
-/// ```
+/// ```rust
 /// use frameassembly::ast::{TemplateInvocation, Argument};
 /// let inv = TemplateInvocation { name: "handshake", args: vec![], span: (0, 0) };
 /// ```
@@ -593,6 +619,8 @@ pub struct TemplateInvocation<'a> {
 }
 
 /// A statement in the run/compile block, can be a loop or a single invocation
+#[doc(alias = "COMPILE")]
+#[doc(alias = "LOOP")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunStatement<'a> {
     /// A single template invocation directly in the block
@@ -604,7 +632,7 @@ pub enum RunStatement<'a> {
 /// The root of the AST containing all assignments, flows, and the compile block.
 ///
 /// # Examples
-/// ```
+/// ```rust
 /// use frameassembly::ast::Program;
 /// let prog = Program { hosts: vec![], flows: vec![], compile_block: vec![] };
 /// ```

@@ -1,0 +1,26 @@
+// PROMPT: RFC 5015 Bidirectional PIM (PIM-Bidir) Designated Forwarder (DF) election and Rendezvous Point Address signaling.
+// TOKENS: HOST, IP, MAC, FLOW, PIM, HELLO, RP, DR_PRIORITY, HOLDTIME, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define PIM-Bidir router A advertising lower IGP metric to the RPA.
+HOST bidir_pim_rtr_a {
+    IP 10.50.15.1
+    MAC 00:1b:21:50:15:01
+}
+
+// INSTRUCTION: Define PIM-Bidir router B yielding Designated Forwarder role on the shared LAN.
+HOST bidir_pim_rtr_b {
+    IP 10.50.15.2
+    MAC 00:1b:21:50:15:02
+}
+
+// INSTRUCTION: Define PIM HELLO and Bidir DF Offer/Winner exchange with RP 10.50.0.1.
+FLOW pim_bidir_df_election(a, b) {
+    a -> b PIM HELLO RP 10.50.0.1 DR_PRIORITY 200 HOLDTIME 105 DSCP 48 TTL 1 PAYLOAD "BIDIR_DF_OFFER_METRIC_10" WAIT 5ms
+    a <- b PIM HELLO RP 10.50.0.1 DR_PRIORITY 100 HOLDTIME 105 DSCP 48 TTL 1 PAYLOAD "BIDIR_DF_BACKOFF_METRIC_20" WAIT 5ms
+    a -> b PIM HELLO RP 10.50.0.1 DR_PRIORITY 200 HOLDTIME 105 DSCP 48 TTL 1 PAYLOAD "BIDIR_DF_WINNER_ASSERTED"
+}
+
+// INSTRUCTION: Compile the RFC 5015 PIM-Bidir Designated Forwarder election flow.
+COMPILE {
+    pim_bidir_df_election(bidir_pim_rtr_a, bidir_pim_rtr_b)
+}

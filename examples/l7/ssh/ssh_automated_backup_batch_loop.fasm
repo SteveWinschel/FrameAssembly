@@ -1,0 +1,23 @@
+// PROMPT: Automated configuration backup probe loop across network routers.
+// TOKENS: HOST, IP, FLOW, SSH, BANNER, NEWKEYS, COMPILE, LOOP
+
+// INSTRUCTION: Define configuration audit controller.
+HOST audit_ctrl { IP 172.22.1.100 }
+
+// INSTRUCTION: Define target router.
+HOST target_rtr { IP 172.22.1.1 }
+
+// INSTRUCTION: Define recurring configuration pull flow.
+FLOW ssh_audit_flow(c, s) {
+    c -> s SSH BANNER "SSH-2.0-Ansible_Automation"
+    c <- s SSH BANNER "SSH-2.0-Cisco-1.25"
+    c -> s SSH NEWKEYS
+    c <- s SSH NEWKEYS
+}
+
+// INSTRUCTION: Compile block executing 3 repeated audit checks.
+COMPILE {
+    LOOP 3 {
+        ssh_audit_flow(audit_ctrl, target_rtr)
+    }
+}

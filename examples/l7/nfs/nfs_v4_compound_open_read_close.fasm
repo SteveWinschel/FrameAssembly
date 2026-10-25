@@ -1,0 +1,29 @@
+// PROMPT: NFSv4 COMPOUND procedure reading configuration data with descriptive RPC compound tags.
+// TOKENS: HOST, IP, MAC, FLOW, NFS, VERS, PROC, TAG, PATH, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the Kubernetes worker node mounting an NFSv4 persistent volume.
+HOST k8s_worker {
+    IP 10.70.10.22
+    MAC 00:1a:2b:70:10:22
+}
+
+// INSTRUCTION: Define the enterprise NetApp NFSv4 storage virtual machine.
+HOST netapp_svm {
+    IP 10.70.10.5
+    MAC 00:1a:2b:70:10:05
+}
+
+// INSTRUCTION: Execute COMPOUND LOOKUP, GETATTR, and READ operations with explicit tags.
+FLOW nfs4_read_config(c, s) {
+    c -> s NFS VERS 4 PROC "COMPOUND" TAG "lookup_cfg" PATH "/pv/app01/config.yaml"
+    c <- s NFS VERS 4 PROC "COMPOUND" TAG "lookup_cfg" WAIT 1ms
+    c -> s NFS VERS 4 PROC "READ" TAG "read_cfg" PATH "/pv/app01/config.yaml"
+    c <- s NFS VERS 4 PROC "READ" TAG "read_cfg" PAYLOAD "replicas: 3
+image: app:1.4.2
+"
+}
+
+// INSTRUCTION: Compile the NFSv4 persistent volume configuration read flow.
+COMPILE {
+    nfs4_read_config(k8s_worker, netapp_svm)
+}

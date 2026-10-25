@@ -1,0 +1,29 @@
+// PROMPT: Dual-stack HTTP/2 connection preface, settings, and stream headers over IPv4 and IPv6.
+// TOKENS: HOST, IP, FLOW, HTTP2, PREFACE, SETTINGS, STREAM_ID, HEADERS, COMPILE
+
+// INSTRUCTION: Define IPv4 HTTP/2 client.
+HOST h2_c4 { IP 192.168.143.10 }
+
+// INSTRUCTION: Define IPv4 HTTP/2 server.
+HOST h2_s4 { IP 192.168.143.1 }
+
+// INSTRUCTION: Define IPv6 HTTP/2 client.
+HOST h2_c6 { IP 2001:db8:443::10 }
+
+// INSTRUCTION: Define IPv6 HTTP/2 server.
+HOST h2_s6 { IP 2001:db8:443::1 }
+
+// INSTRUCTION: Exchange HTTP/2 preface, settings, and stream 1 headers polymorphically.
+FLOW http2_dual_exchange(c, s) {
+    c -> s HTTP2 PREFACE
+    c -> s HTTP2 SETTINGS STREAM_ID 0
+    c <- s HTTP2 SETTINGS STREAM_ID 0
+    c -> s HTTP2 HEADERS STREAM_ID 1
+    c <- s HTTP2 HEADERS STREAM_ID 1
+}
+
+// INSTRUCTION: Execute the polymorphic HTTP/2 flow over both IPv4 and IPv6 endpoints.
+COMPILE {
+    http2_dual_exchange(h2_c4, h2_s4)
+    http2_dual_exchange(h2_c6, h2_s6)
+}

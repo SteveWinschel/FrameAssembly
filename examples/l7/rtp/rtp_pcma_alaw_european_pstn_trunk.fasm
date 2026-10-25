@@ -1,0 +1,24 @@
+// PROMPT: European E1 PSTN gateway streaming ITU-T G.711 A-law (PCMA payload type 8) RTP audio frames.
+// TOKENS: HOST, IP, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Frankfurt E1 media gateway endpoint.
+HOST e1_gateway {
+    IP 10.49.8.10
+}
+
+// INSTRUCTION: Define Munich IP-PBX media termination endpoint.
+HOST munich_pbx {
+    IP 10.49.8.20
+}
+
+// INSTRUCTION: Define bidirectional G.711 PCMA (PT 8) 20ms audio frames (160 timestamp ticks).
+FLOW rtp_pcma_trunk(a, b) {
+    a -> b RTP PT 8 SEQ 100 TIMESTAMP 16000 SSRC 0x49000001 MARKER 1 PAYLOAD "PCMA_FRAME_01" WAIT 20ms
+    a -> b RTP PT 8 SEQ 101 TIMESTAMP 16160 SSRC 0x49000001 MARKER 0 PAYLOAD "PCMA_FRAME_02" WAIT 20ms
+    a <- b RTP PT 8 SEQ 500 TIMESTAMP 32000 SSRC 0x49000002 MARKER 1 PAYLOAD "PCMA_RETURN_01"
+}
+
+// INSTRUCTION: Compile the G.711 A-law European trunk RTP scenario.
+COMPILE {
+    rtp_pcma_trunk(e1_gateway, munich_pbx)
+}

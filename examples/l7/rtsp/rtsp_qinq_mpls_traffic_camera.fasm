@@ -1,0 +1,19 @@
+// PROMPT: Smart city traffic camera RTSP control over metro QinQ VLANs and MPLS transport.
+// TOKENS: HOST, IP, FLOW, RTSP, METHOD, URI, CSEQ, SESSION, QINQ, INNER_VLAN, MPLS, EXP, BOS, MPLS_TTL, STATUS, COMPILE
+
+// INSTRUCTION: Define traffic management center VMS.
+HOST tmc_vms { IP 10.254.0.10 }
+
+// INSTRUCTION: Define highway intersection camera RTSP endpoint.
+HOST hwy_cam { IP 10.254.12.50 }
+
+// INSTRUCTION: Define RTSP PLAY command encapsulated in QinQ and MPLS.
+FLOW rtsp_metro_mpls(vms, cam) {
+    vms -> cam RTSP METHOD "PLAY" URI "rtsp://10.254.12.50/traffic_hd" CSEQ 12 SESSION "hwy_sess_12" QINQ 1500 INNER_VLAN 554 MPLS 55400 EXP 4 BOS 1 MPLS_TTL 64
+    vms <- cam RTSP STATUS 200 CSEQ 12 QINQ 1500 INNER_VLAN 554 MPLS 55401 EXP 4 BOS 1 MPLS_TTL 63
+}
+
+// INSTRUCTION: Compile metro QinQ + MPLS RTSP flow.
+COMPILE {
+    rtsp_metro_mpls(tmc_vms, hwy_cam)
+}

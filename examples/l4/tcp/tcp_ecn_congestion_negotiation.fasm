@@ -1,5 +1,5 @@
 // PROMPT: Simulate Explicit Congestion Notification (ECN) negotiation and congestion window reduction using TCP SYN, ECE, CWR, and ACK flags.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, ECE, CWR, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, ECE, CWR, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define a data center sender host with IP 10.100.1.10 and MAC 00:25:90:aa:bb:01.
 HOST dc_sender { IP 10.100.1.10 MAC 00:25:90:aa:bb:01 }

@@ -1,5 +1,5 @@
 // PROMPT: sFlow v5 sample datagram with explicit agent IP and sub-agent ID.
-// TOKENS: HOST, IP, FLOW, ->, SFLOW, AGENT_IP, SUB_AGENT_ID, SAMPLES, COMPILE
+// TOKENS: HOST, IP, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, SAMPLES, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.1 }

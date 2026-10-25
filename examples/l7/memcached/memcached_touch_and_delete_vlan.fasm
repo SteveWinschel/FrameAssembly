@@ -1,0 +1,27 @@
+// PROMPT: Generate a Memcached cache eviction and TTL refresh sequence using DELETE and TOUCH commands over VLAN 240.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, CMD, KEY, EXPTIME, OPAQUE, VLAN, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define the session manager invalidating an expired token and extending an active session TTL.
+HOST session_mgr {
+    IP 10.24.0.50
+    MAC 00:1b:21:18:00:32
+}
+
+// INSTRUCTION: Define the Memcached cluster node on VLAN 240.
+HOST memcache_vlan {
+    IP 10.24.0.10
+    MAC 00:1b:21:18:00:0a
+}
+
+// INSTRUCTION: Issue a TOUCH command to extend an active session's EXPTIME to 1800s, then DELETE a revoked token.
+FLOW touch_and_delete_flow(c, s) {
+    c -> s MEMCACHED CMD "TOUCH" KEY "sess:active:7712" EXPTIME 1800 OPAQUE 301 VLAN 240 DSCP 16 TTL 64 WAIT 2ms
+    c <- s MEMCACHED CMD "TOUCHED" KEY "sess:active:7712" OPAQUE 301 VLAN 240 DSCP 16 TTL 64 WAIT 5ms
+    c -> s MEMCACHED CMD "DELETE" KEY "sess:revoked:4409" OPAQUE 302 VLAN 240 DSCP 16 TTL 64 WAIT 2ms
+    c <- s MEMCACHED CMD "DELETED" KEY "sess:revoked:4409" OPAQUE 302 VLAN 240 DSCP 16 TTL 64
+}
+
+// INSTRUCTION: Compile the Memcached TOUCH and DELETE VLAN 240 trace into a PCAP file.
+COMPILE {
+    touch_and_delete_flow(session_mgr, memcache_vlan)
+}

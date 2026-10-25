@@ -1,5 +1,5 @@
 // PROMPT: gRPC unary Remote Procedure Call requesting user profile information.
-// TOKENS: HOST, IP, FLOW, ->, GRPC, SERVICE, METHOD, COMPILE
+// TOKENS: HOST, IP, FLOW, GRPC, SERVICE, METHOD, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.10 }

@@ -1,0 +1,25 @@
+// PROMPT: Full TCP 3-way handshake, HTTP GET with Host and User-Agent headers, 200 OK, and FIN teardown.
+// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, HTTP, METHOD, URI, HOST_HDR, USER_AGENT, STATUS, REASON, CONTENT_TYPE, BODY, FIN, COMPILE
+
+// INSTRUCTION: Define desktop browser client.
+HOST browser_host { IP 10.0.80.25 }
+
+// INSTRUCTION: Define Apache HTTP web server.
+HOST apache_srv { IP 10.0.80.1 }
+
+// INSTRUCTION: Complete TCP handshake, fetch /index.html with custom User-Agent, and close TCP session.
+FLOW http_full_tcp_session(c, s) {
+    c -> s TCP SYN SRCPORT 51080 DSTPORT 80
+    c <- s TCP SYN ACK
+    c -> s TCP ACK
+    c -> s HTTP METHOD "GET" URI "/index.html" HOST_HDR "www.example.com" USER_AGENT "Mozilla/5.0"
+    c <- s HTTP STATUS 200 REASON "OK" CONTENT_TYPE "text/html" BODY "<html><body>Hello</body></html>"
+    c -> s TCP FIN ACK
+    c <- s TCP FIN ACK
+    c -> s TCP ACK
+}
+
+// INSTRUCTION: Compile the complete HTTP over TCP lifecycle.
+COMPILE {
+    http_full_tcp_session(browser_host, apache_srv)
+}

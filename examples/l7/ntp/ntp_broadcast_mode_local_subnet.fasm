@@ -1,0 +1,18 @@
+// PROMPT: NTP server broadcast mode 5 distributing periodic clock beacons to local subnet.
+// TOKENS: HOST, IP, FLOW, NTP, MODE, VN, STRATUM, POLL, COMPILE
+
+// INSTRUCTION: Define local subnet master clock server.
+HOST subnet_clock_server { IP 10.0.10.1 }
+
+// INSTRUCTION: Define local subnet broadcast address.
+HOST subnet_broadcast { IP 10.0.10.255 }
+
+// INSTRUCTION: Define NTP broadcast mode transmission flow.
+FLOW ntp_broadcast_flow(srv, bcast) {
+    srv -> bcast NTP MODE 5 VN 4 STRATUM 1 POLL 6
+}
+
+// INSTRUCTION: Compile NTP broadcast mode scenario.
+COMPILE {
+    ntp_broadcast_flow(subnet_clock_server, subnet_broadcast)
+}

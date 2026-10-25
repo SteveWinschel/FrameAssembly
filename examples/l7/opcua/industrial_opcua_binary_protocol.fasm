@@ -1,5 +1,5 @@
 // PROMPT: OPC Unified Architecture binary secure connection hello and open secure channel on TCP 4840.
-// TOKENS: HOST, IP, FLOW, ->, <-, OPCUA, MSG_TYPE, HEL, ACK, OPN, COMPILE
+// TOKENS: HOST, IP, FLOW, OPCUA, MSG_TYPE, ACK, COMPILE
 
 // INSTRUCTION: Define OPC UA client application.
 HOST opc_client { IP 10.0.10.10 }

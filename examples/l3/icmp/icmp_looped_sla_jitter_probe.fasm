@@ -1,0 +1,21 @@
+// PROMPT: IP SLA jitter and latency ICMP Echo probe executed repeatedly inside a COMPILE LOOP block.
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, DSCP, WAIT, ECHO_REPLY, COMPILE, LOOP
+
+// INSTRUCTION: Define IP SLA source router.
+HOST sla_responder_src { IP 10.222.1.1 }
+
+// INSTRUCTION: Define IP SLA target router.
+HOST sla_responder_dst { IP 10.222.1.2 }
+
+// INSTRUCTION: Define single SLA ping sample with 10ms round-trip time.
+FLOW icmp_sla_sample(src, dst) {
+    src -> dst ICMP ECHO_REQUEST ID 901 SEQ 1 DSCP 46 WAIT 5ms
+    src <- dst ICMP ECHO_REPLY ID 901 SEQ 1 DSCP 46 WAIT 5ms
+}
+
+// INSTRUCTION: Compile 5 consecutive IP SLA ICMP ping samples.
+COMPILE {
+    LOOP 5 {
+        icmp_sla_sample(sla_responder_src, sla_responder_dst)
+    }
+}

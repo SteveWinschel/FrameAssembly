@@ -1,5 +1,5 @@
 // PROMPT: gRPC procedure response returning successful status code GRPC_STATUS 0 (OK).
-// TOKENS: HOST, IP, FLOW, <-, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+// TOKENS: HOST, IP, FLOW, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.10 }

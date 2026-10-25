@@ -1,0 +1,26 @@
+// PROMPT: WireGuard client behind stateful carrier-grade NAT sending 0-length encrypted DATA frames every 25s (PersistentKeepalive).
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, SRCPORT, DSTPORT, DF, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define WireGuard peer behind CGNAT maintaining UDP pinhole state.
+HOST wg_cgnat_client {
+    IP 100.64.10.55
+    MAC 00:1e:67:64:0a:37
+}
+
+// INSTRUCTION: Define public cloud WireGuard bounce server.
+HOST wg_public_relay {
+    IP 203.0.113.200
+    MAC 00:1e:67:71:c8:01
+}
+
+// INSTRUCTION: Define empty-payload Type 4 DATA PersistentKeepalive frames advancing COUNTER 50..52.
+FLOW wg_nat_persistent_keepalive(cli, relay) {
+    cli -> relay WIREGUARD TYPE DATA RECEIVER 77001 COUNTER 50 SRCPORT 41920 DSTPORT 51820 DF TTL 64 WAIT 25ms
+    cli -> relay WIREGUARD TYPE DATA RECEIVER 77001 COUNTER 51 SRCPORT 41920 DSTPORT 51820 DF TTL 64 WAIT 25ms
+    cli <- relay WIREGUARD TYPE DATA RECEIVER 44001 COUNTER 12 SRCPORT 51820 DSTPORT 41920 DF TTL 64
+}
+
+// INSTRUCTION: Compile the WireGuard NAT-Traversal PersistentKeepalive flow.
+COMPILE {
+    wg_nat_persistent_keepalive(wg_cgnat_client, wg_public_relay)
+}

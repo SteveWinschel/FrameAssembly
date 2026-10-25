@@ -1,0 +1,25 @@
+// PROMPT: Build an enterprise mDNS reflector gateway forwarding Bonjour AirPrint discovery across QinQ and MPLS campus trunks.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, QINQ, INNER_VLAN, MPLS, DSCP, TTL, WAIT, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the campus wireless controller reflecting mDNS queries between student and printer subnets.
+HOST wlc_reflector {
+    IP 10.200.1.1
+    MAC 00:1e:be:c8:01:01
+}
+
+// INSTRUCTION: Define the shared campus AirPrint print server on the services VLAN.
+HOST airprint_srv {
+    IP 10.200.50.10
+    MAC 00:1e:be:c8:32:0a
+}
+
+// INSTRUCTION: Forward an _ipp._tcp.local mDNS query and response across QinQ 600/50 and MPLS label 31050.
+FLOW bonjour_gateway_reflection(wlc, srv) {
+    wlc -> srv MDNS QUERY TXID 0 QNAME "_ipp._tcp.local" QTYPE "PTR" QINQ 600 INNER_VLAN 50 MPLS 31050 DSCP 16 TTL 255 WAIT 4ms
+    wlc <- srv MDNS RESPONSE TXID 0 QNAME "_ipp._tcp.local" QTYPE "PTR" RDATA "Library-LaserJet._ipp._tcp.local" ANS_TTL 4500 QINQ 600 INNER_VLAN 50 MPLS 31050 DSCP 16 TTL 255
+}
+
+// INSTRUCTION: Compile the QinQ and MPLS mDNS gateway reflection trace into a PCAP file.
+COMPILE {
+    bonjour_gateway_reflection(wlc_reflector, airprint_srv)
+}

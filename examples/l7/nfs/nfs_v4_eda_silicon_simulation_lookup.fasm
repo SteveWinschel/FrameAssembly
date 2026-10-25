@@ -1,0 +1,27 @@
+// PROMPT: Electronic Design Automation (EDA) RTL simulator resolving deep Verilog library paths via NFSv4 LOOKUP.
+// TOKENS: HOST, IP, MAC, FLOW, NFS, VERS, PROC, TAG, PATH, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the EDA compute farm runner executing Verilog elaboration.
+HOST eda_runner {
+    IP 10.70.140.77
+    MAC 00:1a:2b:70:e0:77
+}
+
+// INSTRUCTION: Define the high-IOPS EDA filer hosting standard cell libraries.
+HOST pdk_filer {
+    IP 10.70.140.1
+    MAC 00:1a:2b:70:e0:01
+}
+
+// INSTRUCTION: Resolve PDK library paths and read standard cell timing models.
+FLOW nfs_eda_pdk(c, s) {
+    c -> s NFS VERS 4 PROC "LOOKUP" TAG "pdk_stdcell" PATH "/proj/asic_v5/pdk/3nm/stdcell/tt_0p75v_85c.lib"
+    c <- s NFS VERS 4 PROC "LOOKUP" TAG "pdk_stdcell" WAIT 1ms
+    c -> s NFS VERS 4 PROC "READ" TAG "read_liberty" PATH "/proj/asic_v5/pdk/3nm/stdcell/tt_0p75v_85c.lib"
+    c <- s NFS VERS 4 PROC "READ" TAG "read_liberty" PAYLOAD "library (stdcell_3nm_tt) { delay_model : table_lookup; }"
+}
+
+// INSTRUCTION: Compile the EDA PDK library lookup and read flow.
+COMPILE {
+    nfs_eda_pdk(eda_runner, pdk_filer)
+}

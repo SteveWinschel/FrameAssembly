@@ -1,0 +1,25 @@
+// PROMPT: Model an IPv6 5G SMF/UPF node authenticating a PDU session against an IPv6 FreeRADIUS server.
+// TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, ID, USER, NAS_IP, SERVICE_TYPE, FLOWLABEL, TTL, WAIT, ACCESS_ACCEPT, FRAMED_IP, COMPILE
+
+// INSTRUCTION: Define the Network Access Server (NAS) client initiating RADIUS requests.
+HOST radius_nas {
+    IP 2001:db8:1812:1::10
+    MAC 00:1b:21:18:12:05
+}
+
+// INSTRUCTION: Define the central RADIUS authentication and accounting server.
+HOST radius_server {
+    IP 2001:db8:1812:1::100
+    MAC 00:1b:21:18:12:64
+}
+
+// INSTRUCTION: Execute the RFC 2865 / RFC 2866 RADIUS transaction flow.
+FLOW radius_scenario_flow(nas, srv) {
+    nas -> srv RADIUS ACCESS_REQUEST ID 110 USER "5g_supi_001010123456789" NAS_IP 2001:db8:1812:1::10 SERVICE_TYPE 2 FLOWLABEL 0x18120 TTL 64 WAIT 3ms
+    nas <- srv RADIUS ACCESS_ACCEPT ID 110 USER "5g_supi_001010123456789" NAS_IP 2001:db8:1812:1::10 SERVICE_TYPE 2 FRAMED_IP 2001:db8:cafe::42 FLOWLABEL 0x18120 TTL 64
+}
+
+// INSTRUCTION: Compile the RADIUS AAA exchange into a PCAP trace.
+COMPILE {
+    radius_scenario_flow(radius_nas, radius_server)
+}

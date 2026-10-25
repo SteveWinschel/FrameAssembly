@@ -1,0 +1,20 @@
+// PROMPT: Real-time VoIP media encapsulated in IPsec ESP marked with outer DSCP EF (46).
+// TOKENS: HOST, IP, FLOW, ESP, SPI, SEQ, DSCP, ECN, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define branch voice gateway with IPsec offload.
+HOST voice_vpn_branch { IP 198.51.100.81 }
+
+// INSTRUCTION: Define central SIP/RTP media border gateway.
+HOST voice_vpn_central { IP 198.51.100.82 }
+
+// INSTRUCTION: Define low-latency ESP flow with DSCP 46 (EF) and 20ms packetization interval.
+FLOW esp_voip_ef_stream(br, hq) {
+    br -> hq ESP SPI 90100 SEQ 101 DSCP 46 ECN 0 TTL 64 WAIT 20ms
+    br <- hq ESP SPI 90200 SEQ 201 DSCP 46 ECN 0 TTL 64 WAIT 20ms
+    br -> hq ESP SPI 90100 SEQ 102 DSCP 46 ECN 0 TTL 64 WAIT 20ms
+}
+
+// INSTRUCTION: Compile the DSCP EF marked ESP VoIP tunnel flow.
+COMPILE {
+    esp_voip_ef_stream(voice_vpn_branch, voice_vpn_central)
+}

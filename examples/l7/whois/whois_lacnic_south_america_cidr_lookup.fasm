@@ -1,0 +1,25 @@
+// PROMPT: Simulate a LACNIC regional internet registry WHOIS query on TCP port 43 for a South American IPv4 block.
+// TOKENS: HOST, IP, MAC, FLOW, WHOIS, QUERY, DOMAIN, WAIT, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define the WHOIS client workstation or security enrichment node.
+HOST whois_client {
+    IP 10.43.10.15
+    MAC 00:1b:21:00:43:0a
+}
+
+// INSTRUCTION: Define the authoritative RIR or TLD WHOIS directory server on TCP port 43.
+HOST whois_server {
+    IP 200.3.14.10
+    MAC 00:1b:21:00:43:01
+}
+
+// INSTRUCTION: Execute the RFC 3912 WHOIS domain or prefix lookup transaction.
+FLOW whois_scenario_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "200.160.0.0/13" WAIT 5ms
+    c <- s WHOIS RESPONSE DOMAIN "200.160.0.0/13" REGISTRAR "LACNIC - Latin America and Caribbean Network Information Centre"
+}
+
+// INSTRUCTION: Compile the WHOIS registry query flow into a PCAP trace.
+COMPILE {
+    whois_scenario_flow(whois_client, whois_server)
+}

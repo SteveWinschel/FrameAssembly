@@ -1,0 +1,29 @@
+// PROMPT: Build an MQTT inter-datacenter broker bridge synchronization flow over QinQ 700/40 and MPLS label 88100.
+// TOKENS: HOST, IP, MAC, FLOW, MQTT, CONNECT, CLIENT_ID, QINQ, INNER_VLAN, MPLS, DSCP, WAIT, CONNACK, RETURN_CODE, SUBSCRIBE, TOPIC, QOS, PKT_ID, SUBACK, PUBLISH, PAYLOAD, PUBACK, COMPILE
+
+// INSTRUCTION: Define the regional edge MQTT broker bridging local sensor topics to the central cloud broker.
+HOST edge_bridge_broker {
+    IP 10.180.40.5
+    MAC 00:50:56:b4:28:05
+}
+
+// INSTRUCTION: Define the central core MQTT broker receiving bridged publications over MPLS.
+HOST core_cloud_broker {
+    IP 10.180.1.5
+    MAC 00:50:56:b4:01:05
+}
+
+// INSTRUCTION: Establish the MQTT bridge session, subscribe to downward command topics, and forward an upward QoS 1 event over QinQ/MPLS.
+FLOW broker_bridge_qinq_mpls(c, s) {
+    c -> s MQTT CONNECT CLIENT_ID "bridge-site40-primary" QINQ 700 INNER_VLAN 40 MPLS 88100 DSCP 32 WAIT 6ms
+    c <- s MQTT CONNACK RETURN_CODE 0 QINQ 700 INNER_VLAN 40 MPLS 88100 DSCP 32 WAIT 3ms
+    c -> s MQTT SUBSCRIBE TOPIC "cmd/site40/+/setpoint" QOS 1 PKT_ID 1 QINQ 700 INNER_VLAN 40 MPLS 88100 DSCP 32 WAIT 6ms
+    c <- s MQTT SUBACK PKT_ID 1 QOS 1 QINQ 700 INNER_VLAN 40 MPLS 88100 DSCP 32 WAIT 5ms
+    c -> s MQTT PUBLISH TOPIC "telemetry/site40/chiller1/temp" QOS 1 PKT_ID 2 PAYLOAD "6.8" QINQ 700 INNER_VLAN 40 MPLS 88100 DSCP 32 WAIT 6ms
+    c <- s MQTT PUBACK PKT_ID 2 QINQ 700 INNER_VLAN 40 MPLS 88100 DSCP 32
+}
+
+// INSTRUCTION: Compile the QinQ and MPLS MQTT broker bridge trace into a PCAP file.
+COMPILE {
+    broker_bridge_qinq_mpls(edge_bridge_broker, core_cloud_broker)
+}

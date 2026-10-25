@@ -1,0 +1,27 @@
+// PROMPT: OPC UA BrowseRequest traversing the ObjectsFolder (i=85) to discover CNC machine tool nodes.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the digital twin modeling client.
+HOST twin_client {
+    IP 10.140.20.30
+    MAC 00:1a:2b:8c:20:30
+}
+
+// INSTRUCTION: Define the CNC machine tool embedded OPC UA server.
+HOST cnc_ua_server {
+    IP 10.140.20.5
+    MAC 00:1a:2b:8c:20:05
+}
+
+// INSTRUCTION: Browse ObjectsFolder (NODE_ID i=85) and then browse MachineTool sub-tree (ns=2;i=5001).
+FLOW opcua_browse_tree(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 202 TOKEN_ID 4 SEQ_NUM 50 REQID 50 NODE_ID "i=85"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 202 TOKEN_ID 4 SEQ_NUM 50 REQID 50 NODE_ID "i=85" PAYLOAD "Server,Aliases,MachineTool_01" WAIT 2ms
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 202 TOKEN_ID 4 SEQ_NUM 51 REQID 51 NODE_ID "ns=2;i=5001"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 202 TOKEN_ID 4 SEQ_NUM 51 REQID 51 NODE_ID "ns=2;i=5001" PAYLOAD "SpindleSpeed,FeedRate,ToolNumber"
+}
+
+// INSTRUCTION: Compile the OPC UA address space browse flow.
+COMPILE {
+    opcua_browse_tree(twin_client, cnc_ua_server)
+}

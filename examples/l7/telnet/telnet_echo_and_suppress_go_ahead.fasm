@@ -1,0 +1,31 @@
+// PROMPT: Simulate a Telnet Echo (Option 1) and Suppress Go Ahead (Option 3) negotiation for character-at-a-time full-duplex mode.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TELNET, WILL, DO, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint term_client.
+HOST term_client {
+    MAC 00:50:56:00:23:01
+    IP 10.10.23.50
+}
+
+// INSTRUCTION: Define host endpoint unix_telnetd.
+HOST unix_telnetd {
+    MAC 00:50:56:00:23:02
+    IP 10.10.23.1
+}
+
+// INSTRUCTION: Complete TCP port 23 handshake, negotiate Suppress Go Ahead (3) and Echo (1), and send banner.
+FLOW telnet_echo_sga_negotiation(term_client, unix_telnetd) {
+    term_client -> unix_telnetd TCP SYN SRCPORT 51023 DSTPORT 23
+    unix_telnetd -> term_client TCP SYN ACK
+    term_client -> unix_telnetd TCP ACK
+    unix_telnetd -> term_client TELNET WILL 3
+    term_client -> unix_telnetd TELNET DO 3
+    unix_telnetd -> term_client TELNET WILL 1
+    term_client -> unix_telnetd TELNET DO 1
+    unix_telnetd -> term_client TELNET PAYLOAD "SunOS 5.10\r\nlogin: "
+}
+
+// INSTRUCTION: Compile the Telnet Echo and SGA option negotiation flow.
+COMPILE {
+    telnet_echo_sga_negotiation(term_client, unix_telnetd)
+}

@@ -1,0 +1,27 @@
+// PROMPT: Implicit TLS handshake for secure mail submission (SMTPS) on TCP port 465 with ALPN smtp.
+// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, ALPN, SRCPORT, DSTPORT, WAIT, SERVER_HELLO, CIPHERSUITE, CERTIFICATE, FINISHED, APP_DATA, COMPILE
+
+// INSTRUCTION: Define mail user agent workstation host.
+HOST mail_client {
+    IP 172.20.15.44
+}
+
+// INSTRUCTION: Define enterprise SMTPS submission gateway host.
+HOST smtps_gateway {
+    IP 172.20.15.1
+}
+
+// INSTRUCTION: Define TLS handshake over TCP port 465 for encrypted SMTP submission.
+FLOW tls_smtps_465(c, s) {
+    c -> s TLS CLIENT_HELLO SNI "smtp.corp.example" ALPN "smtp" SRCPORT 52100 DSTPORT 465 WAIT 5ms
+    c <- s TLS SERVER_HELLO CIPHERSUITE 0x1301 ALPN "smtp" SRCPORT 465 DSTPORT 52100 WAIT 5ms
+    c <- s TLS CERTIFICATE SRCPORT 465 DSTPORT 52100 WAIT 5ms
+    c <- s TLS FINISHED SRCPORT 465 DSTPORT 52100 WAIT 5ms
+    c -> s TLS FINISHED SRCPORT 52100 DSTPORT 465 WAIT 5ms
+    c <- s TLS APP_DATA SRCPORT 465 DSTPORT 52100
+}
+
+// INSTRUCTION: Compile the SMTPS port 465 TLS scenario.
+COMPILE {
+    tls_smtps_465(mail_client, smtps_gateway)
+}

@@ -1,0 +1,27 @@
+// PROMPT: AMQP publishing compliance events to the amq.headers exchange for attribute-based routing.
+// TOKENS: HOST, IP, MAC, FLOW, AMQP, CHANNEL_OPEN, CHANNEL, WAIT, BASIC_PUBLISH, EXCHANGE, ROUTING_KEY, PAYLOAD, TCP, SRCPORT, DSTPORT, ACK, SEQ, ACKNUM, COMPILE
+
+// INSTRUCTION: Define the identity audit producer host.
+HOST audit_producer {
+    IP 10.115.10.30
+    MAC 00:1a:2b:73:10:30
+}
+
+// INSTRUCTION: Define the central compliance RabbitMQ broker.
+HOST compliance_rmq {
+    IP 10.115.10.1
+    MAC 00:1a:2b:73:10:01
+}
+
+// INSTRUCTION: Publish an authentication audit event to amq.headers with empty routing key on channel 2.
+FLOW amqp_headers_pub(p, b) {
+    p -> b AMQP CHANNEL_OPEN CHANNEL 2
+    p <- b AMQP CHANNEL_OPEN CHANNEL 2 WAIT 1ms
+    p -> b AMQP BASIC_PUBLISH CHANNEL 2 EXCHANGE "amq.headers" ROUTING_KEY "" PAYLOAD "{'event':'mfa_enrolled','severity':'high'}"
+    p <- b TCP SRCPORT 5672 DSTPORT 49152 ACK SEQ 1 ACKNUM 100
+}
+
+// INSTRUCTION: Compile the AMQP headers exchange publish flow.
+COMPILE {
+    amqp_headers_pub(audit_producer, compliance_rmq)
+}

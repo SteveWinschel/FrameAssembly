@@ -1,0 +1,18 @@
+// PROMPT: Kerberos TGS-REP response from KDC delivering service ticket for application server.
+// TOKENS: HOST, IP, FLOW, KERBEROS, TGS_REP, REALM, SNAME, ETYPE, COMPILE
+
+// INSTRUCTION: Define application client workstation.
+HOST app_client { IP 172.16.8.50 }
+
+// INSTRUCTION: Define Key Distribution Center server.
+HOST kdc_server { IP 172.16.8.1 }
+
+// INSTRUCTION: Define TGS-REP service ticket delivery flow.
+FLOW krb_tgs_rep_flow(c, kdc) {
+    c <- kdc KERBEROS TGS_REP REALM "SERVICES.LOCAL" SNAME "http/portal.services.local" ETYPE 18
+}
+
+// INSTRUCTION: Compile Kerberos TGS-REP scenario.
+COMPILE {
+    krb_tgs_rep_flow(app_client, kdc_server)
+}

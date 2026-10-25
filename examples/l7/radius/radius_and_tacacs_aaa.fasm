@@ -1,5 +1,5 @@
 // PROMPT: Authentication, Authorization, and Accounting signaling with RADIUS Access-Request and TACACS+ Authen.
-// TOKENS: HOST, IP, FLOW, ->, RADIUS, ACCESS_REQUEST, USER, TACACS, AUTHEN, COMPILE
+// TOKENS: HOST, IP, FLOW, RADIUS, ACCESS_REQUEST, USER, TACACS, AUTHEN, COMPILE
 
 // INSTRUCTION: Define network access server.
 HOST nas_client { IP 172.16.10.1 }

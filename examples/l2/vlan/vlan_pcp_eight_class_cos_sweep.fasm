@@ -1,0 +1,25 @@
+// PROMPT: IEEE 802.1Q full Priority Code Point (PCP 0 through 7) CoS marking sweep across a trunk link.
+// TOKENS: HOST, IP, FLOW, VLAN, PCP, DEI, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define QoS traffic generator port.
+HOST cos_tx_port { IP 172.16.80.1 }
+
+// INSTRUCTION: Define QoS traffic analyzer port.
+HOST cos_rx_port { IP 172.16.80.2 }
+
+// INSTRUCTION: Define 8-class IEEE 802.1p PCP 0..7 priority sweep on VLAN 802.
+FLOW pcp_eight_class_sweep(tx, rx) {
+    tx -> rx VLAN 802 PCP 0 DEI 0 UDP SRCPORT 40000 DSTPORT 8000 PAYLOAD "cos_pcp_0_best_effort"
+    tx -> rx VLAN 802 PCP 1 DEI 1 UDP SRCPORT 40001 DSTPORT 8001 PAYLOAD "cos_pcp_1_background_scavenger" WAIT 1ms
+    tx -> rx VLAN 802 PCP 2 DEI 0 UDP SRCPORT 40002 DSTPORT 8002 PAYLOAD "cos_pcp_2_excellent_effort" WAIT 1ms
+    tx -> rx VLAN 802 PCP 3 DEI 0 UDP SRCPORT 40003 DSTPORT 8003 PAYLOAD "cos_pcp_3_critical_applications" WAIT 1ms
+    tx -> rx VLAN 802 PCP 4 DEI 0 UDP SRCPORT 40004 DSTPORT 8004 PAYLOAD "cos_pcp_4_video_conferencing" WAIT 1ms
+    tx -> rx VLAN 802 PCP 5 DEI 0 UDP SRCPORT 40005 DSTPORT 8005 PAYLOAD "cos_pcp_5_interactive_voice" WAIT 1ms
+    tx -> rx VLAN 802 PCP 6 DEI 0 UDP SRCPORT 40006 DSTPORT 8006 PAYLOAD "cos_pcp_6_internetwork_control" WAIT 1ms
+    tx -> rx VLAN 802 PCP 7 DEI 0 UDP SRCPORT 40007 DSTPORT 8007 PAYLOAD "cos_pcp_7_network_control" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing full 8-level 802.1p PCP CoS verification sweep.
+COMPILE {
+    pcp_eight_class_sweep(cos_tx_port, cos_rx_port)
+}

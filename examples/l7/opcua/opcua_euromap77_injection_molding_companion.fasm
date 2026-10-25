@@ -1,0 +1,27 @@
+// PROMPT: OPC UA EUROMAP 77 plastics injection molding companion specification reading cycle counter and mold temperature.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the plastics shopfloor MES host.
+HOST plastics_mes {
+    IP 10.140.90.10
+    MAC 00:1a:2b:8c:90:10
+}
+
+// INSTRUCTION: Define the injection molding machine (IMM) EUROMAP 77 OPC UA server.
+HOST imm_ua_server {
+    IP 10.140.90.42
+    MAC 00:1a:2b:8c:90:42
+}
+
+// INSTRUCTION: Read EUROMAP 77 IMM_MES_Interface cycle counter and clamping force nodes.
+FLOW opcua_euromap77(m, i) {
+    m -> i OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 910 TOKEN_ID 1 SEQ_NUM 70 REQID 70 NODE_ID "ns=4;s=IMM.Jobs.Job_01.PartsCounter"
+    m <- i OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 910 TOKEN_ID 1 SEQ_NUM 70 REQID 70 NODE_ID "ns=4;s=IMM.Jobs.Job_01.PartsCounter" PAYLOAD "UInt64:18490" WAIT 2ms
+    m -> i OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 910 TOKEN_ID 1 SEQ_NUM 71 REQID 71 NODE_ID "ns=4;s=IMM.Clamp.ActualForce"
+    m <- i OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 910 TOKEN_ID 1 SEQ_NUM 71 REQID 71 NODE_ID "ns=4;s=IMM.Clamp.ActualForce" PAYLOAD "Double:2500.0"
+}
+
+// INSTRUCTION: Compile the EUROMAP 77 injection molding OPC UA flow.
+COMPILE {
+    opcua_euromap77(plastics_mes, imm_ua_server)
+}

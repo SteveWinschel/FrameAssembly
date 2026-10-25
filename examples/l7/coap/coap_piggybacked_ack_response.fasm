@@ -1,5 +1,5 @@
 // PROMPT: CoAP acknowledgment (ACK) response with content payload over IPv6.
-// TOKENS: HOST, IP, FLOW, <-, COAP, ACK, CODE, MSGID, COMPILE
+// TOKENS: HOST, IP, FLOW, COAP, ACK, CODE, MSGID, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::25 }

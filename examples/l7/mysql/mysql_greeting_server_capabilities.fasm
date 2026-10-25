@@ -1,0 +1,18 @@
+// PROMPT: MySQL server initial greeting packet announcing version 8.0.36 protocol capabilities.
+// TOKENS: HOST, IP, FLOW, MYSQL, GREETING, SERVER_VERSION, COMPILE
+
+// INSTRUCTION: Define connecting application client.
+HOST connecting_app_client { IP 192.168.1.50 }
+
+// INSTRUCTION: Define MySQL relational database server.
+HOST enterprise_mysql { IP 192.168.1.10 }
+
+// INSTRUCTION: Define server greeting response flow.
+FLOW mysql_greeting_flow(app, db) {
+    app <- db MYSQL GREETING SERVER_VERSION "8.0.36"
+}
+
+// INSTRUCTION: Compile MySQL greeting capabilities scenario.
+COMPILE {
+    mysql_greeting_flow(connecting_app_client, enterprise_mysql)
+}

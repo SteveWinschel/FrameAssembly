@@ -1,0 +1,29 @@
+// PROMPT: Simulate an Ansible automation controller establishing an SSH-2.0 session through a bastion jump host on VLAN 22.
+// TOKENS: HOST, IP, MAC, FLOW, SSH, BANNER, VLAN, PCP, WAIT, KEXINIT, PAYLOAD, NEWKEYS, COMPILE
+
+// INSTRUCTION: Define the Ansible AWX automation runner on management VLAN 22.
+HOST ansible_runner {
+    IP 10.22.100.15
+    MAC 00:50:56:22:64:0f
+}
+
+// INSTRUCTION: Define the hardened SSH bastion host on management VLAN 22.
+HOST ssh_bastion_gw {
+    IP 10.22.100.1
+    MAC 00:50:56:22:64:01
+}
+
+// INSTRUCTION: Exchange SSH-2.0 banners, KEXINIT, NEWKEYS, and publickey authentication messages over VLAN 22.
+FLOW ssh_ansible_bastion_flow(runner, bastion) {
+    runner -> bastion SSH BANNER "SSH-2.0-OpenSSH_9.6p1 Ansible-Runner" VLAN 22 PCP 4 WAIT 2ms
+    runner <- bastion SSH BANNER "SSH-2.0-OpenSSH_9.6p1 Bastion-Hardened" VLAN 22 PCP 4 WAIT 2ms
+    runner -> bastion SSH KEXINIT PAYLOAD "curve25519-sha256,aes256-gcm@openssh.com" VLAN 22 PCP 4 WAIT 3ms
+    runner <- bastion SSH KEXINIT PAYLOAD "curve25519-sha256,aes256-gcm@openssh.com" VLAN 22 PCP 4 WAIT 3ms
+    runner -> bastion SSH NEWKEYS VLAN 22 PCP 4
+    runner <- bastion SSH NEWKEYS VLAN 22 PCP 4
+}
+
+// INSTRUCTION: Compile the VLAN 22 Ansible bastion SSH handshake flow.
+COMPILE {
+    ssh_ansible_bastion_flow(ansible_runner, ssh_bastion_gw)
+}

@@ -1,0 +1,31 @@
+// PROMPT: Redis key lifecycle management using SETEX, TTL inspection, PERSIST, and atomic RENAME.
+// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the checkout cart service managing temporary order holds.
+HOST cart_service {
+    IP 10.80.90.25
+    MAC 00:1a:2b:80:90:25
+}
+
+// INSTRUCTION: Define the checkout Redis node.
+HOST checkout_redis {
+    IP 10.80.90.5
+    MAC 00:1a:2b:80:90:05
+}
+
+// INSTRUCTION: Create expiring hold key, inspect TTL, remove expiration with PERSIST, and RENAME to confirmed order.
+FLOW redis_key_lifecycle(c, s) {
+    c -> s REDIS CMD "SETEX" ARGS "hold:ord_701 300 pending_payment"
+    c <- s REDIS REPLY_TYPE "STATUS" VALUE "OK" WAIT 1ms
+    c -> s REDIS CMD "TTL" ARGS "hold:ord_701"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "299" WAIT 1ms
+    c -> s REDIS CMD "PERSIST" ARGS "hold:ord_701"
+    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "1" WAIT 1ms
+    c -> s REDIS CMD "RENAME" ARGS "hold:ord_701 confirmed:ord_701"
+    c <- s REDIS REPLY_TYPE "STATUS" VALUE "OK"
+}
+
+// INSTRUCTION: Compile the Redis key lifecycle management flow.
+COMPILE {
+    redis_key_lifecycle(cart_service, checkout_redis)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Syslog critical emergency alert delivered over TCP transport.
-// TOKENS: HOST, IP, FLOW, ->, SYSLOG, TRANSPORT, TCP, FACILITY, SEVERITY, MSG, COMPILE
+// TOKENS: HOST, IP, FLOW, SYSLOG, TRANSPORT, TCP, FACILITY, SEVERITY, MSG, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.5 }

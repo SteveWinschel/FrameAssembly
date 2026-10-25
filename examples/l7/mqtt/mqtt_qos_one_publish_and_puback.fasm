@@ -1,0 +1,19 @@
+// PROMPT: MQTT QoS 1 reliable publishing with broker PUBACK acknowledgment packet.
+// TOKENS: HOST, IP, FLOW, MQTT, PUBLISH, TOPIC, QOS, PKT_ID, WAIT, PUBACK, COMPILE
+
+// INSTRUCTION: Define smart power meter device.
+HOST smart_meter { IP 10.0.12.50 }
+
+// INSTRUCTION: Define utility telemetry broker.
+HOST utility_broker { IP 10.0.12.1 }
+
+// INSTRUCTION: Define QoS 1 publish and PUBACK flow.
+FLOW qos1_publish_ack_flow(dev, brk) {
+    dev -> brk MQTT PUBLISH TOPIC "grid/meter/power_kw" QOS 1 PKT_ID 401 WAIT 5ms
+    dev <- brk MQTT PUBACK PKT_ID 401
+}
+
+// INSTRUCTION: Compile QoS 1 publish and PUBACK scenario.
+COMPILE {
+    qos1_publish_ack_flow(smart_meter, utility_broker)
+}

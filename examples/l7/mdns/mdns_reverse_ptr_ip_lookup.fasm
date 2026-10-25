@@ -1,0 +1,25 @@
+// PROMPT: Generate an mDNS reverse IPv4 address lookup for 50.1.168.192.in-addr.arpa.local returning a PTR hostname record.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the network scanner resolving an IPv4 address to its .local hostname via mDNS PTR.
+HOST net_scanner {
+    IP 192.168.1.10
+    MAC 00:1b:63:01:00:10
+}
+
+// INSTRUCTION: Define the target NAS appliance answering for its own reverse PTR record.
+HOST nas_appliance {
+    IP 192.168.1.50
+    MAC 00:11:32:01:00:50
+}
+
+// INSTRUCTION: Query 50.1.168.192.in-addr.arpa PTR and receive synology-nas.local in response.
+FLOW reverse_ptr_mdns(c, s) {
+    c -> s MDNS QUERY TXID 0 QNAME "50.1.168.192.in-addr.arpa" QTYPE "PTR" WAIT 3ms
+    c <- s MDNS RESPONSE TXID 0 QNAME "50.1.168.192.in-addr.arpa" QTYPE "PTR" RDATA "synology-nas.local" ANS_TTL 120
+}
+
+// INSTRUCTION: Compile the reverse PTR mDNS lookup into a PCAP file.
+COMPILE {
+    reverse_ptr_mdns(net_scanner, nas_appliance)
+}

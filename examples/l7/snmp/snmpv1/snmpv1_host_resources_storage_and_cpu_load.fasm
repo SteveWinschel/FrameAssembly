@@ -1,0 +1,25 @@
+// PROMPT: SNMPv1 GetRequest reading RFC 2790 Host-Resources-MIB hrSystemProcesses.0 and hrProcessorLoad.1.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, GET, COMMUNITY, REQID, VARBIND, NULLVAL, RESPONSE, GAUGE32, INT, COMPILE
+
+// INSTRUCTION: Define the server infrastructure monitoring station.
+HOST infra_nms {
+    IP 10.145.120.5
+    MAC 00:1a:2b:91:c0:05
+}
+
+// INSTRUCTION: Define the legacy Unix application server running net-snmp.
+HOST unix_server {
+    IP 10.145.120.40
+    MAC 00:1a:2b:91:c0:40
+}
+
+// INSTRUCTION: Query hrSystemProcesses.0 (GAUGE32) and hrProcessorLoad.1 (INT) via SNMP1 GET.
+FLOW snmpv1_host_resources(n, s) {
+    n -> s SNMP1 GET COMMUNITY "srv_public" REQID 12300 VARBIND 1.3.6.1.2.1.25.1.6.0 NULLVAL VARBIND 1.3.6.1.2.1.25.3.3.1.2.1 NULLVAL
+    n <- s SNMP1 RESPONSE COMMUNITY "srv_public" REQID 12300 VARBIND 1.3.6.1.2.1.25.1.6.0 GAUGE32 184 VARBIND 1.3.6.1.2.1.25.3.3.1.2.1 INT 67
+}
+
+// INSTRUCTION: Compile the SNMPv1 Host-Resources-MIB poll flow.
+COMPILE {
+    snmpv1_host_resources(infra_nms, unix_server)
+}

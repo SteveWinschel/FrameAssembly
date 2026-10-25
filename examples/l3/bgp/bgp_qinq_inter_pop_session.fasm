@@ -1,0 +1,21 @@
+// PROMPT: Inter-PoP BGP session encapsulated in 802.1ad QinQ double VLAN tags.
+// TOKENS: HOST, IP, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, QINQ, INNER_VLAN, UPDATE, PREFIX, NEXTHOP, KEEPALIVE, COMPILE
+
+// INSTRUCTION: Define metro PoP east router.
+HOST pop_east_bgp { IP 172.22.1.1 }
+
+// INSTRUCTION: Define metro PoP west router.
+HOST pop_west_bgp { IP 172.22.1.2 }
+
+// INSTRUCTION: Define QinQ double-tagged BGP peering session.
+FLOW bgp_qinq_inter_pop(east, west) {
+    east -> west BGP OPEN ASN 65101 HOLDTIME 60 BGPID 172.22.1.1 QINQ 3100 INNER_VLAN 179
+    east <- west BGP OPEN ASN 65102 HOLDTIME 60 BGPID 172.22.1.2 QINQ 3100 INNER_VLAN 179
+    east -> west BGP UPDATE ASN 65101 PREFIX "10.220.0.0/16" NEXTHOP 172.22.1.1 QINQ 3100 INNER_VLAN 179
+    east <- west BGP KEEPALIVE QINQ 3100 INNER_VLAN 179
+}
+
+// INSTRUCTION: Compile the QinQ inter-PoP BGP flow.
+COMPILE {
+    bgp_qinq_inter_pop(pop_east_bgp, pop_west_bgp)
+}

@@ -1,0 +1,18 @@
+// PROMPT: RIPv2 distribution update advertising branch route with metric 3 and explicit NEXTHOP.
+// TOKENS: HOST, IP, FLOW, RIP, RESPONSE, PREFIX, METRIC, NEXTHOP, COMPILE
+
+// INSTRUCTION: Define regional distribution router.
+HOST reg_dist_router { IP 172.20.1.1 }
+
+// INSTRUCTION: Define branch aggregation router.
+HOST branch_agg_peer { IP 172.20.1.2 }
+
+// INSTRUCTION: Define split-horizon filtered route update advertising prefix with designated next hop.
+FLOW rip_split_horizon(dist, br) {
+    dist -> br RIP RESPONSE PREFIX 172.20.10.0 METRIC 3 NEXTHOP 172.20.1.254
+}
+
+// INSTRUCTION: Compile block executing filtered RIP advertisement.
+COMPILE {
+    rip_split_horizon(reg_dist_router, branch_agg_peer)
+}

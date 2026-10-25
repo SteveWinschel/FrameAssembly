@@ -1,5 +1,5 @@
 // PROMPT: PostgreSQL database protocol v3 frontend startup and simple query execution on TCP 5432.
-// TOKENS: HOST, IP, FLOW, ->, POSTGRES, QUERY, SQL, COMPILE
+// TOKENS: HOST, IP, FLOW, POSTGRES, QUERY, SQL, COMPILE
 
 // INSTRUCTION: Define PostgreSQL application client.
 HOST pg_client { IP 10.0.3.10 }

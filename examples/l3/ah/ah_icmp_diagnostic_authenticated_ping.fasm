@@ -1,0 +1,25 @@
+// PROMPT: RFC 4302 IPsec AH authenticating diagnostic ICMPv4 Echo traffic (Next Header 1) between Bastion hosts.
+// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define management bastion host initiating authenticated ICMP probes.
+HOST mgmt_bastion_01 {
+    IP 10.254.0.10
+    MAC 00:50:56:fe:00:0a
+}
+
+// INSTRUCTION: Define core firewall appliance responding under AH Security Association.
+HOST core_fw_appliance {
+    IP 10.254.0.1
+    MAC 00:50:56:fe:00:01
+}
+
+// INSTRUCTION: Define AH flow carrying Next Header 1 (ICMPv4) with hexadecimal echo payload.
+FLOW ah_icmp_ping_flow(bastion, fw) {
+    bastion -> fw AH SPI 10101 SEQ 1 NEXT_HEADER 1 ICV "080012340001aabbccddeeff" TTL 64 HEXPAYLOAD "0800f7fd0001000141485f50494e47" WAIT 5ms
+    bastion <- fw AH SPI 10102 SEQ 1 NEXT_HEADER 1 ICV "ffeeddccbbaa000112340800" TTL 64 HEXPAYLOAD "0000fffd0001000141485f504f4e47"
+}
+
+// INSTRUCTION: Compile the AH-authenticated ICMP diagnostic flow.
+COMPILE {
+    ah_icmp_ping_flow(mgmt_bastion_01, core_fw_appliance)
+}

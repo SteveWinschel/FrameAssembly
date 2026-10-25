@@ -1,0 +1,26 @@
+// PROMPT: Hypervisor vSwitch trunk port carrying SCTP Diameter signaling on telco NFV VLAN 2100.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, SCTP, CHUNK, INIT, VTAG, SRCPORT, DSTPORT, INIT_ACK, WAIT, DATA, STREAM, SSN, PPID, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define virtualized MME pod on NFV compute host A.
+HOST vnf_mme_node {
+    IP 10.210.1.10
+    MAC 52:54:00:d2:01:0a
+}
+
+// INSTRUCTION: Define virtualized HSS pod on NFV compute host B.
+HOST vnf_hss_node {
+    IP 10.210.1.20
+    MAC 52:54:00:d2:01:14
+}
+
+// INSTRUCTION: Define VLAN 2100 tagged SCTP association and S6a Diameter payload exchange.
+FLOW nfv_vlan_sctp_s6a(mme, hss) {
+    mme -> hss VLAN 2100 PCP 5 SCTP CHUNK INIT VTAG 0 SRCPORT 3868 DSTPORT 3868
+    mme <- hss VLAN 2100 PCP 5 SCTP CHUNK INIT_ACK VTAG 77100 SRCPORT 3868 DSTPORT 3868 WAIT 1ms
+    mme -> hss VLAN 2100 PCP 5 SCTP CHUNK DATA VTAG 77100 STREAM 1 SSN 0 PPID 46 SRCPORT 3868 DSTPORT 3868 PAYLOAD "diameter_ulr_imsi_00101" WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing NFV VLAN 2100 SCTP Diameter exchange.
+COMPILE {
+    nfv_vlan_sctp_s6a(vnf_mme_node, vnf_hss_node)
+}

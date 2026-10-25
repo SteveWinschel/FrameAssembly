@@ -1,0 +1,18 @@
+// PROMPT: Default sFlow v5 datagram export with zero sub-keywords on UDP port 6343.
+// TOKENS: HOST, IP, MAC, FLOW, SFLOW, COMPILE
+
+// INSTRUCTION: Define top-of-rack leaf switch exporter.
+HOST leaf_sw { IP 10.63.43.1 MAC 00:1c:73:63:43:01 }
+
+// INSTRUCTION: Define sFlow telemetry collector server.
+HOST sflow_coll { IP 10.63.43.100 MAC 00:1c:73:63:43:64 }
+
+// INSTRUCTION: Define flow sending default SFLOW datagram.
+FLOW sflow_default(sw, coll) {
+    sw -> coll SFLOW
+}
+
+// INSTRUCTION: Compile default sFlow scenario.
+COMPILE {
+    sflow_default(leaf_sw, sflow_coll)
+}

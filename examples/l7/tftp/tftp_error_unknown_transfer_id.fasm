@@ -1,0 +1,18 @@
+// PROMPT: TFTP error packet returning ERRCODE 5 Unknown Transfer ID.
+// TOKENS: HOST, IP, FLOW, TFTP, ERRCODE, ERRMSG, COMPILE
+
+// INSTRUCTION: Define out-of-sync client endpoint.
+HOST tid_client { IP 192.168.5.7 }
+
+// INSTRUCTION: Define TFTP server enforcing TID validation.
+HOST tid_server { IP 192.168.5.1 }
+
+// INSTRUCTION: Define unknown TID error response flow.
+FLOW tftp_err_tid_flow(c, s) {
+    c <- s TFTP ERRCODE 5 ERRMSG "Unknown transfer ID"
+}
+
+// INSTRUCTION: Compile block executing unknown TID notification.
+COMPILE {
+    tftp_err_tid_flow(tid_client, tid_server)
+}

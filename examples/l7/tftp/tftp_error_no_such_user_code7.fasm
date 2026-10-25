@@ -1,0 +1,25 @@
+// PROMPT: TFTP mail mode write request rejected by server with RFC 1350 ERRCODE 7 No such user.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, WRQ, FILENAME, MODE, ERR, ERRCODE, ERRMSG, COMPILE
+
+// INSTRUCTION: Define legacy mail-mode TFTP client host.
+HOST legacy_client {
+    IP 10.19.69.12
+    MAC 00:13:72:13:45:0c
+}
+
+// INSTRUCTION: Define legacy TFTP daemon host.
+HOST legacy_tftp_d {
+    IP 10.19.69.1
+    MAC 00:13:72:13:45:01
+}
+
+// INSTRUCTION: Send mail-mode WRQ and receive ERRCODE 7 No such user.
+FLOW tftp_err_code7(c, s) {
+    c -> s TFTP WRQ FILENAME "nonexistent_mailbox" MODE "mail"
+    c <- s TFTP ERR ERRCODE 7 ERRMSG "No such user"
+}
+
+// INSTRUCTION: Compile the TFTP ERRCODE 7 no such user scenario.
+COMPILE {
+    tftp_err_code7(legacy_client, legacy_tftp_d)
+}

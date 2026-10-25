@@ -1,0 +1,18 @@
+// PROMPT: HSRPv2 IPv6 redundancy announcement over link-local addresses on port 2029.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, COMPILE
+
+// INSTRUCTION: Define IPv6 primary router with link-local address.
+HOST hsrp_v6_primary { IP fe80::20c:29ff:fe11:2233 }
+
+// INSTRUCTION: Define HSRP IPv6 multicast address ff02::66.
+HOST hsrp_v6_mcast { IP ff02::66 }
+
+// INSTRUCTION: Define HSRPv2 IPv6 hello flow with virtual link-local address.
+FLOW hsrp_v6_hello(rtr, mcast) {
+    rtr -> mcast HSRP GROUP 100 PRIORITY 120 STATE 16 VIP fe80::1
+}
+
+// INSTRUCTION: Compile block executing IPv6 HSRPv2 heartbeat.
+COMPILE {
+    hsrp_v6_hello(hsrp_v6_primary, hsrp_v6_mcast)
+}

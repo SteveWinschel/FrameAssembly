@@ -1,0 +1,18 @@
+// PROMPT: Modbus TCP to RTU serial bridge routing command to slave device unit ID 15.
+// TOKENS: HOST, IP, FLOW, MODBUS, FUNC, ADDR, COUNT, UNITID, TXID, COMPILE
+
+// INSTRUCTION: Define multi-drop master poller.
+HOST master_poller { IP 10.10.8.5 }
+
+// INSTRUCTION: Define RS485 serial gateway bridge.
+HOST rs485_gateway { IP 10.10.8.20 }
+
+// INSTRUCTION: Define bridged serial command flow.
+FLOW bridged_unit_flow(mst, gw) {
+    mst -> gw MODBUS FUNC "READ_HOLDING_REGISTERS" ADDR 50 COUNT 10 UNITID 15 TXID 7788
+}
+
+// INSTRUCTION: Compile custom unit ID gateway scenario.
+COMPILE {
+    bridged_unit_flow(master_poller, rs485_gateway)
+}

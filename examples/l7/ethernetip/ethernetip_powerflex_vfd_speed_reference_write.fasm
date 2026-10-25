@@ -1,0 +1,27 @@
+// PROMPT: EtherNet/IP connected SendUnitData writing output assembly Instance 101 speed reference to a PowerFlex drive.
+// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, HEXPAYLOAD, STATUS, WAIT, COMPILE
+
+// INSTRUCTION: Define the mixer line PLC controller.
+HOST mixer_plc {
+    IP 10.135.60.1
+    MAC 00:1a:2b:87:60:01
+}
+
+// INSTRUCTION: Define the mixer agitator PowerFlex 525 VFD.
+HOST vfd_agitator {
+    IP 10.135.60.12
+    MAC 00:1a:2b:87:60:12
+}
+
+// INSTRUCTION: Write speed reference (60.0 Hz) to Assembly Class 4 Instance 101 Attribute 3 and read feedback Instance 100.
+FLOW enip_vfd_control(p, v) {
+    p -> v ETHERNETIP CMD "SEND_UNIT_DATA" SESSION_HANDLE 6100 CONTEXT 1101 CIP_SERVICE 16 CIP_CLASS 4 CIP_INSTANCE 101 CIP_ATTR 3 HEXPAYLOAD "01007017"
+    p <- v ETHERNETIP CMD "SEND_UNIT_DATA" STATUS 0 SESSION_HANDLE 6100 CONTEXT 1101 CIP_SERVICE 144 CIP_CLASS 4 CIP_INSTANCE 101 CIP_ATTR 3 WAIT 2ms
+    p -> v ETHERNETIP CMD "SEND_UNIT_DATA" SESSION_HANDLE 6100 CONTEXT 1102 CIP_SERVICE 14 CIP_CLASS 4 CIP_INSTANCE 100 CIP_ATTR 3
+    p <- v ETHERNETIP CMD "SEND_UNIT_DATA" STATUS 0 SESSION_HANDLE 6100 CONTEXT 1102 CIP_SERVICE 142 CIP_CLASS 4 CIP_INSTANCE 100 CIP_ATTR 3 HEXPAYLOAD "03007017"
+}
+
+// INSTRUCTION: Compile the PowerFlex VFD speed reference control flow.
+COMPILE {
+    enip_vfd_control(mixer_plc, vfd_agitator)
+}

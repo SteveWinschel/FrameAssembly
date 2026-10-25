@@ -1,0 +1,24 @@
+// PROMPT: Generate a minimal default Modbus TCP frame with default protocol parameters between an HMI master and PLC slave.
+// TOKENS: HOST, IP, MAC, FLOW, MODBUS, COMPILE
+
+// INSTRUCTION: Define the SCADA HMI master station.
+HOST hmi_master {
+    IP 192.168.100.10
+    MAC 00:1a:2b:64:00:10
+}
+
+// INSTRUCTION: Define the programmable logic controller (PLC) listening on TCP port 502.
+HOST plc_slave {
+    IP 192.168.100.50
+    MAC 00:1a:2b:64:00:50
+}
+
+// INSTRUCTION: Emit a default Modbus TCP frame using built-in defaults.
+FLOW default_modbus_flow(c, s) {
+    c -> s MODBUS
+}
+
+// INSTRUCTION: Compile the default Modbus packet into a PCAP file.
+COMPILE {
+    default_modbus_flow(hmi_master, plc_slave)
+}

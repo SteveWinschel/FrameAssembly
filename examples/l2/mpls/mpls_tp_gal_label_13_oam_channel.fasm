@@ -1,0 +1,25 @@
+// PROMPT: RFC 5586 MPLS Generic Associated Channel (G-ACh Label 13) carrying MPLS-TP OAM Continuity Check frames.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define MPLS Transport Profile (MPLS-TP) Maintenance End Point (MEP) West.
+HOST mplstp_mep_west {
+    IP 10.173.13.1
+    MAC 00:15:ad:ad:0d:01
+}
+
+// INSTRUCTION: Define MPLS Transport Profile (MPLS-TP) Maintenance End Point (MEP) East.
+HOST mplstp_mep_east {
+    IP 10.173.13.2
+    MAC 00:15:ad:ad:0d:02
+}
+
+// INSTRUCTION: Define MPLS GAL Label 13 with Ach header (0x10000022) for ITU-T Y.1731 OAM Continuity Check.
+FLOW mplstp_gach_oam_ccm(west, east) {
+    west -> east MPLS 13 EXP 7 BOS 1 MPLS_TTL 1 HEXPAYLOAD "100000220001010000000001"
+    west <- east MPLS 13 EXP 7 BOS 1 MPLS_TTL 1 HEXPAYLOAD "100000220001010000000002" WAIT 3ms
+}
+
+// INSTRUCTION: Compile block executing MPLS-TP G-ACh Label 13 OAM continuity check.
+COMPILE {
+    mplstp_gach_oam_ccm(mplstp_mep_west, mplstp_mep_east)
+}

@@ -1,5 +1,5 @@
 // PROMPT: Polymorphic ICMP echo request and reply executed across IPv4 (ICMPv4 0x01) and IPv6 (ICMPv6 0x3a).
-// TOKENS: HOST, IP, FLOW, ->, <-, ICMP, ECHO_REQUEST, ECHO_REPLY, COMPILE
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ECHO_REPLY, COMPILE
 
 // INSTRUCTION: Define IPv4 ping initiator.
 HOST ping_v4_a { IP 10.1.1.1 }

@@ -1,0 +1,21 @@
+// PROMPT: RADIUS Administrative-User (SERVICE_TYPE 6) and Callback-Login (SERVICE_TYPE 3) comparison.
+// TOKENS: HOST, IP, FLOW, RADIUS, ACCESS_REQUEST, USER, NAS_IP, SERVICE_TYPE, WAIT, ACCESS_ACCEPT, COMPILE
+
+// INSTRUCTION: Define out-of-band console server NAS.
+HOST oob_console { IP 10.9.9.10 }
+
+// INSTRUCTION: Define OOB RADIUS server.
+HOST oob_radius { IP 10.9.9.1 }
+
+// INSTRUCTION: Define SERVICE_TYPE 6 and SERVICE_TYPE 3 authentication requests.
+FLOW radius_service_types(nas, aaa) {
+    nas -> aaa RADIUS ACCESS_REQUEST USER "oob_root" NAS_IP 10.9.9.10 SERVICE_TYPE 6 WAIT 5ms
+    nas <- aaa RADIUS ACCESS_ACCEPT USER "oob_root" SERVICE_TYPE 6 WAIT 10ms
+    nas -> aaa RADIUS ACCESS_REQUEST USER "modem_cb" NAS_IP 10.9.9.10 SERVICE_TYPE 3 WAIT 5ms
+    nas <- aaa RADIUS ACCESS_ACCEPT USER "modem_cb" SERVICE_TYPE 3
+}
+
+// INSTRUCTION: Compile OOB console RADIUS service type flow.
+COMPILE {
+    radius_service_types(oob_console, oob_radius)
+}

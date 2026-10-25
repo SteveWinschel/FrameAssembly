@@ -1,0 +1,28 @@
+// PROMPT: Generate an OpenFlow 1.3 multi-table pipeline provisioning sequence across ingress ACL, routing, and egress tables
+// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, FLOW_MOD, VERSION, XID, TABLE_ID, PRIORITY, WAIT, ECHO_REQ, ECHO_REPLY, COMPILE
+
+// INSTRUCTION: Define the SDN fabric orchestrator
+HOST fabric_ctrl {
+    IP 10.200.5.1
+    MAC 00:16:3e:e2:05:01
+}
+
+// INSTRUCTION: Define the multi-table OpenFlow leaf switch
+HOST leaf_datapath {
+    IP 10.200.5.12
+    MAC 00:16:3e:e2:05:12
+}
+
+// INSTRUCTION: Program Table 0 (ACL), Table 10 (L3 Routing), and Table 20 (Egress Rewrite)
+FLOW openflow_multi_table_setup(ctrl, leaf) {
+    ctrl -> leaf OPENFLOW FLOW_MOD VERSION 4 XID 301 TABLE_ID 0 PRIORITY 60000 WAIT 5ms
+    ctrl -> leaf OPENFLOW FLOW_MOD VERSION 4 XID 302 TABLE_ID 10 PRIORITY 32768 WAIT 5ms
+    ctrl -> leaf OPENFLOW FLOW_MOD VERSION 4 XID 303 TABLE_ID 20 PRIORITY 16384 WAIT 10ms
+    ctrl -> leaf OPENFLOW ECHO_REQ VERSION 4 XID 304 WAIT 5ms
+    leaf -> ctrl OPENFLOW ECHO_REPLY VERSION 4 XID 304
+}
+
+// INSTRUCTION: Compile the multi-table OpenFlow provisioning trace
+COMPILE {
+    openflow_multi_table_setup(fabric_ctrl, leaf_datapath)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Authentication accepted by server transmitting MSG_CODE 52.
+// TOKENS: HOST, IP, FLOW, SSH, MSG_CODE, COMPILE
+
+// INSTRUCTION: Define authenticated operator client.
+HOST oper_client { IP 10.77.2.19 }
+
+// INSTRUCTION: Define authenticating server.
+HOST auth_server { IP 10.77.2.1 }
+
+// INSTRUCTION: Define successful user authentication flow.
+FLOW ssh_userauth_success(c, s) {
+    c -> s SSH MSG_CODE 50
+    c <- s SSH MSG_CODE 52
+}
+
+// INSTRUCTION: Compile block executing authentication success.
+COMPILE {
+    ssh_userauth_success(oper_client, auth_server)
+}

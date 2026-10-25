@@ -1,0 +1,21 @@
+// PROMPT: HTTP/2 Cleartext (h2c) prior-knowledge microservice communication on TCP port 8080 over VLAN 80.
+// TOKENS: HOST, IP, FLOW, HTTP2, PREFACE, SRCPORT, DSTPORT, VLAN, PCP, DSCP, SETTINGS, STREAM_ID, HEADERS, COMPILE
+
+// INSTRUCTION: Define internal ingress controller.
+HOST ingress_ctrl { IP 10.80.80.5 }
+
+// INSTRUCTION: Define Go h2c backend service on port 8080.
+HOST h2c_backend { IP 10.80.80.40 }
+
+// INSTRUCTION: Initiate h2c prior-knowledge session on TCP port 8080 tagged with VLAN 80.
+FLOW http2_h2c_vlan(i, b) {
+    i -> b HTTP2 PREFACE SRCPORT 50800 DSTPORT 8080 VLAN 80 PCP 3 DSCP 26
+    i -> b HTTP2 SETTINGS STREAM_ID 0 SRCPORT 50800 DSTPORT 8080 VLAN 80 PCP 3 DSCP 26
+    i -> b HTTP2 HEADERS STREAM_ID 1 SRCPORT 50800 DSTPORT 8080 VLAN 80 PCP 3 DSCP 26
+    i <- b HTTP2 HEADERS STREAM_ID 1 SRCPORT 8080 DSTPORT 50800 VLAN 80 PCP 3 DSCP 26
+}
+
+// INSTRUCTION: Compile the h2c cleartext HTTP/2 over VLAN 80 scenario.
+COMPILE {
+    http2_h2c_vlan(ingress_ctrl, h2c_backend)
+}

@@ -1,0 +1,40 @@
+// PROMPT: Build a dual-stack OSPF routing topology running both IPv4 OSPFv2 and IPv6 OSPFv3 sessions
+// TOKENS: HOST, IP, MAC, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, TTL, WAIT, DBD, LSU, LSACK, COMPILE
+
+// INSTRUCTION: Define the IPv4 core router A
+HOST ospf_v4_a {
+    IP 198.51.100.10
+    MAC 00:1e:67:f4:04:01
+}
+
+// INSTRUCTION: Define the IPv4 core router B
+HOST ospf_v4_b {
+    IP 198.51.100.11
+    MAC 00:1e:67:f4:04:02
+}
+
+// INSTRUCTION: Define the IPv6 core router A
+HOST ospf_v6_a {
+    IP fe80::f4:1
+    MAC 00:1e:67:f4:06:01
+}
+
+// INSTRUCTION: Define the IPv6 core router B
+HOST ospf_v6_b {
+    IP fe80::f4:2
+    MAC 00:1e:67:f4:06:02
+}
+
+// INSTRUCTION: Exchange OSPF Hello, DBD, LSU, and LSAck packets between peering routers
+FLOW ospf_dual_stack_sync(rtr_a, rtr_b) {
+    rtr_a -> rtr_b OSPF HELLO ROUTER_ID 10.255.0.1 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 1 TTL 1 WAIT 10ms
+    rtr_b -> rtr_a OSPF DBD ROUTER_ID 10.255.0.2 AREA_ID 0 TTL 1 WAIT 10ms
+    rtr_a -> rtr_b OSPF LSU ROUTER_ID 10.255.0.1 AREA_ID 0 TTL 1 WAIT 10ms
+    rtr_b -> rtr_a OSPF LSACK ROUTER_ID 10.255.0.2 AREA_ID 0 TTL 1
+}
+
+// INSTRUCTION: Compile the OSPF synchronization flow for both IPv4 and IPv6 router pairs
+COMPILE {
+    ospf_dual_stack_sync(ospf_v4_a, ospf_v4_b)
+    ospf_dual_stack_sync(ospf_v6_a, ospf_v6_b)
+}

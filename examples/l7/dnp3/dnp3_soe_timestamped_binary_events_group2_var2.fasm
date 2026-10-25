@@ -1,0 +1,25 @@
+// PROMPT: DNP3 Sequence of Events (SOE) retrieval using Group 2 Variation 2 (Binary Input Event with Absolute Time).
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the fault analysis SCADA historian master.
+HOST soe_master {
+    IP 10.125.40.1
+    MAC 00:1a:2b:7d:40:01
+}
+
+// INSTRUCTION: Define the protective relay IED outstation.
+HOST protection_relay {
+    IP 10.125.40.19
+    MAC 00:1a:2b:7d:40:19
+}
+
+// INSTRUCTION: Receive Unsolicited Response with Group 2 Var 2 SOE events and send application CONFIRM.
+FLOW dnp3_soe_events(m, r) {
+    m <- r DNP3 FUNC "UNSOLICITED_RESPONSE" SRC 19 DST 1 GROUP 2 VARIATION 2 HEXPAYLOAD "8124eb8c0100" WAIT 1ms
+    m -> r DNP3 FUNC "CONFIRM" SRC 1 DST 19 GROUP 2 VARIATION 2
+}
+
+// INSTRUCTION: Compile the DNP3 Sequence of Events retrieval flow.
+COMPILE {
+    dnp3_soe_events(soe_master, protection_relay)
+}

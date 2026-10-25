@@ -1,5 +1,5 @@
 // PROMPT: VXLAN overlay tunneling across an IPv6 transport underlay between VTEPs.
-// TOKENS: HOST, IP, FLOW, ->, VXLAN, VNI, COMPILE
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, COMPILE
 
 // INSTRUCTION: Define IPv6 underlay VTEP endpoint A.
 HOST vtep6_a { IP 2001:db8:beef::1 }

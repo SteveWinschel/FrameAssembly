@@ -1,0 +1,19 @@
+// PROMPT: Dual-stack mDNS queries resolving both IPv4 A and IPv6 AAAA records for local host.
+// TOKENS: HOST, IP, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, WAIT, COMPILE
+
+// INSTRUCTION: Define dual-stack workstation.
+HOST dual_workstation { IP 192.168.10.15 }
+
+// INSTRUCTION: Define multicast group endpoint.
+HOST mcast_endpoint { IP 224.0.0.251 }
+
+// INSTRUCTION: Define dual-stack address queries flow.
+FLOW dual_query_flow(w, g) {
+    w -> g MDNS QUERY TXID 8008 QNAME "fileserver.local" QTYPE "A" WAIT 10ms
+    w -> g MDNS QUERY TXID 8009 QNAME "fileserver.local" QTYPE "AAAA"
+}
+
+// INSTRUCTION: Compile dual-stack hostname resolution scenario.
+COMPILE {
+    dual_query_flow(dual_workstation, mcast_endpoint)
+}

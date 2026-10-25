@@ -1,0 +1,18 @@
+// PROMPT: Minimal zero-keyword UDP datagram using RFC 768 default destination port 80 and automatic checksum calculation.
+// TOKENS: HOST, IP, FLOW, UDP, COMPILE
+
+// INSTRUCTION: Define stateless UDP sender host.
+HOST udp_min_tx { IP 10.17.0.1 }
+
+// INSTRUCTION: Define stateless UDP receiver host.
+HOST udp_min_rx { IP 10.17.0.2 }
+
+// INSTRUCTION: Define zero-argument UDP statement relying on RFC-compliant defaults.
+FLOW udp_minimal_default(tx, rx) {
+    tx -> rx UDP
+}
+
+// INSTRUCTION: Compile block executing minimal default UDP datagram generation.
+COMPILE {
+    udp_minimal_default(udp_min_tx, udp_min_rx)
+}

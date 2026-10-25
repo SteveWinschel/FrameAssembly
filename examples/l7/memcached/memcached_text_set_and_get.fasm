@@ -1,5 +1,5 @@
 // PROMPT: Memcached text protocol key storage and retrieval.
-// TOKENS: HOST, IP, FLOW, ->, MEMCACHED, CMD, KEY, COMPILE
+// TOKENS: HOST, IP, FLOW, MEMCACHED, CMD, KEY, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 10.0.0.10 }

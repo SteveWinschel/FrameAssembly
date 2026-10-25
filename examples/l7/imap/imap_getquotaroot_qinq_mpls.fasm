@@ -1,0 +1,20 @@
+// PROMPT: RFC 2087 IMAP GETQUOTAROOT storage quota check over MPLS and QinQ carrier tags.
+// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, QINQ, INNER_VLAN, MPLS, COMPILE
+
+// INSTRUCTION: Define hosted webmail proxy.
+HOST webmail_proxy { IP 100.64.143.10 }
+
+// INSTRUCTION: Define backend multi-tenant IMAP storage node.
+HOST quota_imap { IP 100.64.143.1 }
+
+// INSTRUCTION: Query mailbox storage usage via GETQUOTAROOT over QinQ and MPLS.
+FLOW imap_quota_qinq_mpls(p, q) {
+    p -> q IMAP TAG "Q01" CMD "GETQUOTAROOT" ARG "INBOX" QINQ 1143 INNER_VLAN 143 MPLS 1430
+    p <- q IMAP TAG "*" CMD "QUOTA" ARG "\"\" (STORAGE 40960 102400)" QINQ 1143 INNER_VLAN 143 MPLS 1430
+    p <- q IMAP TAG "Q01" CMD "OK" ARG "GETQUOTAROOT completed" QINQ 1143 INNER_VLAN 143 MPLS 1430
+}
+
+// INSTRUCTION: Compile the QinQ and MPLS IMAP quota check flow.
+COMPILE {
+    imap_quota_qinq_mpls(webmail_proxy, quota_imap)
+}

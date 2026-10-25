@@ -1,5 +1,5 @@
 // PROMPT: Demonstrate FrameAssembly OID syntax flexibility using quoted OIDs, unquoted multi-segment OIDs, and 4-segment IPv4-shaped OIDs (1.3.6.1) in OID and OIDVAL fields.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, SNMP2, TRAP, GET, RESPONSE, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, OIDVAL, STRING, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, SNMP2, TRAP, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, OIDVAL, STRING, WAIT, GET, RESPONSE, COMPILE
 
 // INSTRUCTION: Define an OID syntax test agent with IP 10.132.0.5.
 HOST oid_agent { IP 10.132.0.5 MAC 00:11:22:32:00:05 }
@@ -9,9 +9,15 @@ HOST oid_manager { IP 10.132.0.100 MAC 00:11:22:32:00:64 }
 
 // INSTRUCTION: Define a flow mixing quoted OIDs ("1.3.6.1.6.3.1.1.5.1"), unquoted OIDs (1.3.6.1.4.1.8072), and 4-arc OIDs (1.3.6.1).
 FLOW oid_format_permutations(agent, manager) {
-    agent -> manager SNMP2 TRAP COMMUNITY "public" REQID 8501 OID "1.3.6.1.6.3.1.1.5.1" SYSUPTIME 100 VARBIND "1.3.6.1.2.1.1.2.0" OIDVAL "1.3.6.1.4.1.8072.3.2.10" VARBIND 1.3.6.1.2.1.1.5.0 STRING "quoted-and-unquoted" WAIT 10ms
+    agent -> manager SNMP2 TRAP COMMUNITY "public" REQID 8501 OID "1.3.6.1.6.3.1.1.5.1"
+        SYSUPTIME 100
+        VARBIND "1.3.6.1.2.1.1.2.0" OIDVAL "1.3.6.1.4.1.8072.3.2.10"
+        VARBIND 1.3.6.1.2.1.1.5.0 STRING "quoted-and-unquoted"
+        WAIT 10ms
     agent <- manager SNMP2 GET COMMUNITY "public" REQID 8502 OID 1.3.6.1 WAIT 10ms
-    agent -> manager SNMP2 RESPONSE COMMUNITY "public" REQID 8502 VARBIND 1.3.6.1 OIDVAL 1.3.6.1.4.1 WAIT 10ms
+    agent -> manager SNMP2 RESPONSE COMMUNITY "public" REQID 8502
+        VARBIND 1.3.6.1 OIDVAL 1.3.6.1.4.1
+        WAIT 10ms
 }
 
 // INSTRUCTION: Compile block to run the OID format permutation flow.

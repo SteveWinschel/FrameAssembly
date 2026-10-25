@@ -1,0 +1,26 @@
+// PROMPT: IEEE 1588v2 PTP over IPv6 slave clock joining and leaving primary PTP-event multicast group ff0e::181.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, TTL, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, WAIT, QUERY, DONE, COMPILE
+
+// INSTRUCTION: Define boundary clock switch port tracking MLD state for PTP multicast group ff0e::181.
+HOST ptp_boundary_sw {
+    IP fe80::1588:1
+    MAC 00:80:ea:15:88:01
+}
+
+// INSTRUCTION: Define telecom grandmaster-locked slave clock joining ff0e::181 over VLAN 158.
+HOST ptp_slave_clock {
+    IP fe80::1588:20
+    MAC 00:80:ea:15:88:20
+}
+
+// INSTRUCTION: Join ff0e::181 on VLAN 158 PCP 7, confirm query, and send MLD Done during clock switchover.
+FLOW mld_ptp_group_lifecycle(sw, clk) {
+    clk -> sw VLAN 158 PCP 7 TTL 1 MLD REPORT MULTICAST_ADDR ff0e::181 MAX_RESP_DELAY 0 WAIT 10ms
+    sw -> clk VLAN 158 PCP 7 TTL 1 MLD QUERY MULTICAST_ADDR ff0e::181 MAX_RESP_DELAY 500 WAIT 10ms
+    clk -> sw VLAN 158 PCP 7 TTL 1 MLD DONE MULTICAST_ADDR ff0e::181 MAX_RESP_DELAY 0
+}
+
+// INSTRUCTION: Compile the PTP-over-IPv6 multicast group MLD lifecycle trace.
+COMPILE {
+    mld_ptp_group_lifecycle(ptp_boundary_sw, ptp_slave_clock)
+}

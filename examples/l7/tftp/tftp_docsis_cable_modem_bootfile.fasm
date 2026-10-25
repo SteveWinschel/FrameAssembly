@@ -1,0 +1,26 @@
+// PROMPT: DOCSIS cable modem requesting its binary QoS configuration bootfile over a carrier QinQ access network.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, RRQ, FILENAME, MODE, QINQ, INNER_VLAN, DATA, BLOCK, HEXPAYLOAD, ACK, COMPILE
+
+// INSTRUCTION: Define subscriber DOCSIS cable modem management interface.
+HOST cable_modem {
+    IP 10.220.44.19
+    MAC 00:1d:d4:44:00:13
+}
+
+// INSTRUCTION: Define MSO headend DOCSIS TFTP boot server.
+HOST mso_tftp_headend {
+    IP 10.220.0.5
+    MAC 00:1d:d4:00:00:05
+}
+
+// INSTRUCTION: Download DOCSIS binary profile encapsulated in QinQ outer VLAN 500 and inner VLAN 44.
+FLOW tftp_docsis_boot(cm, head) {
+    cm -> head TFTP RRQ FILENAME "docsis31-gigabit.cm" MODE "octet" QINQ 500 INNER_VLAN 44
+    cm <- head TFTP DATA BLOCK 1 QINQ 500 INNER_VLAN 44 HEXPAYLOAD "03010104020001"
+    cm -> head TFTP ACK BLOCK 1 QINQ 500 INNER_VLAN 44
+}
+
+// INSTRUCTION: Compile the DOCSIS cable modem QinQ TFTP bootfile scenario.
+COMPILE {
+    tftp_docsis_boot(cable_modem, mso_tftp_headend)
+}

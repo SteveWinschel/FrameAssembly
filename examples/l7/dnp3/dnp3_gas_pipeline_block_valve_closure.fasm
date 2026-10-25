@@ -1,0 +1,29 @@
+// PROMPT: Natural gas pipeline emergency mainline block valve closure using DNP3 Select-Before-Operate.
+// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, WAIT, COMPILE
+
+// INSTRUCTION: Define the pipeline gas control SCADA master.
+HOST gas_control {
+    IP 10.125.90.1
+    MAC 00:1a:2b:7d:90:01
+}
+
+// INSTRUCTION: Define Mainline Valve 44 (MLV-44) solar RTU outstation.
+HOST mlv_44_rtu {
+    IP 10.125.90.44
+    MAC 00:1a:2b:7d:90:44
+}
+
+// INSTRUCTION: Select CROB trip/close (Group 12 Var 1), verify echo response, and execute OPERATE.
+FLOW dnp3_mlv_close(m, v) {
+    m -> v DNP3 FUNC "SELECT" SRC 1 DST 44 GROUP 12 VARIATION 1
+    m <- v DNP3 FUNC "RESPONSE" SRC 44 DST 1 GROUP 12 VARIATION 1 WAIT 5ms
+    m -> v DNP3 FUNC "OPERATE" SRC 1 DST 44 GROUP 12 VARIATION 1
+    m <- v DNP3 FUNC "RESPONSE" SRC 44 DST 1 GROUP 12 VARIATION 1 WAIT 2ms
+    m <- v DNP3 FUNC "UNSOLICITED_RESPONSE" SRC 44 DST 1 GROUP 2 VARIATION 2
+    m -> v DNP3 FUNC "CONFIRM" SRC 1 DST 44 GROUP 2 VARIATION 2
+}
+
+// INSTRUCTION: Compile the pipeline block valve DNP3 SBO closure flow.
+COMPILE {
+    dnp3_mlv_close(gas_control, mlv_44_rtu)
+}

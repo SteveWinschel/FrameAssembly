@@ -1,0 +1,27 @@
+// PROMPT: 4G LTE MME and eNodeB exchanging S1AP UE Context Release Command and Complete over SCTP port 36412 (PPID 18).
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define 4G Mobility Management Entity (MME) signaling endpoint.
+HOST lte_mme_core {
+    IP 10.36.12.1
+    MAC 00:1c:73:24:0c:01
+}
+
+// INSTRUCTION: Define 4G eNodeB macro cell site signaling endpoint.
+HOST lte_enb_macro {
+    IP 10.36.12.50
+    MAC 00:1c:73:24:0c:32
+}
+
+// INSTRUCTION: Send S1AP UE Context Release Command on Stream 1 (PPID 18), receive SACK, and receive Release Complete.
+FLOW sctp_s1ap_ue_release(mme, enb) {
+    mme -> enb DSCP 46 SCTP CHUNK DATA VTAG 364121 STREAM 1 SSN 12 PPID 18 SRCPORT 36412 DSTPORT 36412 PAYLOAD "s1ap_ue_context_release_cmd_cause_normal" WAIT 2ms
+    mme <- enb DSCP 46 SCTP CHUNK SACK VTAG 364121 SRCPORT 36412 DSTPORT 36412 WAIT 2ms
+    mme <- enb DSCP 46 SCTP CHUNK DATA VTAG 364121 STREAM 1 SSN 12 PPID 18 SRCPORT 36412 DSTPORT 36412 PAYLOAD "s1ap_ue_context_release_complete_ok" WAIT 2ms
+    mme -> enb DSCP 46 SCTP CHUNK SACK VTAG 364121 SRCPORT 36412 DSTPORT 36412
+}
+
+// INSTRUCTION: Compile the 4G LTE S1AP UE Context Release SCTP exchange.
+COMPILE {
+    sctp_s1ap_ue_release(lte_mme_core, lte_enb_macro)
+}

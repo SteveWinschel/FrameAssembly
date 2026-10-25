@@ -1,5 +1,5 @@
 // PROMPT: Simulate TCP receiver buffer exhaustion advertising a zero window (WIN 0), a zero-window probe, and subsequent window recovery (WIN 65535).
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ms, s, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ACK, ACKNUM, PSH, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define a bulk storage sender with IP 10.20.0.10.
 HOST storage_sender { IP 10.20.0.10 MAC 00:1b:21:aa:00:01 }

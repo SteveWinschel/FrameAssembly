@@ -1,5 +1,5 @@
 // PROMPT: sFlow v5 network sampling agent datagram exporting packet samples.
-// TOKENS: HOST, IP, FLOW, ->, SFLOW, AGENT_IP, SAMPLES, UPTIME, COMPILE
+// TOKENS: HOST, IP, FLOW, SFLOW, AGENT_IP, SAMPLES, UPTIME, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 172.16.0.1 }

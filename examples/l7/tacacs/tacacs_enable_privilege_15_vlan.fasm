@@ -1,0 +1,30 @@
+// PROMPT: Model a Cisco IOS enable privilege level 15 elevation authentication using TACACS+ AUTHEN on management VLAN 49.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, VLAN, ACK, TACACS, AUTHEN, SESSION_ID, USER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define host endpoint dist_switch.
+HOST dist_switch {
+    MAC 00:0c:29:49:00:10
+    IP 10.49.0.10
+}
+
+// INSTRUCTION: Define host endpoint aaa_server.
+HOST aaa_server {
+    MAC 00:0c:29:49:00:01
+    IP 10.49.0.1
+}
+
+// INSTRUCTION: Request TACACS+ enable authentication on VLAN 49 and receive PASS.
+FLOW tacacs_enable_privilege_15(dist_switch, aaa_server) {
+    dist_switch -> aaa_server TCP SYN SRCPORT 56049 DSTPORT 49 VLAN 49
+    aaa_server -> dist_switch TCP SYN ACK VLAN 49
+    dist_switch -> aaa_server TCP ACK VLAN 49
+    dist_switch -> aaa_server TACACS AUTHEN SESSION_ID 71001 USER "$enab15$" PAYLOAD "service=enable:priv-lvl=15" VLAN 49
+    aaa_server -> dist_switch TACACS AUTHEN SESSION_ID 71001 PAYLOAD "GETPASS:Password: " VLAN 49
+    dist_switch -> aaa_server TACACS AUTHEN SESSION_ID 71001 USER "$enab15$" PAYLOAD "EnableSecret#2026" VLAN 49
+    aaa_server -> dist_switch TACACS AUTHEN SESSION_ID 71001 PAYLOAD "AUTHEN_STATUS_PASS" VLAN 49
+}
+
+// INSTRUCTION: Compile the TACACS+ enable privilege 15 flow.
+COMPILE {
+    tacacs_enable_privilege_15(dist_switch, aaa_server)
+}

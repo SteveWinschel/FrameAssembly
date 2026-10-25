@@ -1,0 +1,25 @@
+// PROMPT: Hypervisor virtual switch trunk port carrying live VM migration TCP stream on provisioning VLAN 900 with DEI 1 burst marking.
+// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, TCP, PSH, ACK, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define source hypervisor host streaming live VM memory pages on vMotion VLAN 900.
+HOST hv_source_node {
+    IP 10.90.0.11
+    MAC 00:50:56:5a:00:0b
+}
+
+// INSTRUCTION: Define destination hypervisor host receiving live VM state on VLAN 900.
+HOST hv_target_node {
+    IP 10.90.0.12
+    MAC 00:50:56:5a:00:0c
+}
+
+// INSTRUCTION: Transmit high-throughput TCP memory copy segments on VLAN 900 PCP 2 DEI 1 and receive ACK.
+FLOW vlan_vmotion_stream(src, dst) {
+    src -> dst VLAN 900 PCP 2 DEI 1 TCP PSH ACK SRCPORT 54001 DSTPORT 8000 SEQ 10000 ACKNUM 1 WIN 65535 PAYLOAD "vm_dirty_page_batch_01" WAIT 2ms
+    src <- dst VLAN 900 PCP 2 DEI 0 TCP ACK SRCPORT 8000 DSTPORT 54001 SEQ 1 ACKNUM 10022 WIN 65535
+}
+
+// INSTRUCTION: Compile the hypervisor vSwitch VLAN 900 live migration TCP trace.
+COMPILE {
+    vlan_vmotion_stream(hv_source_node, hv_target_node)
+}

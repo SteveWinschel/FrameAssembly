@@ -1,0 +1,19 @@
+// PROMPT: Multi-user chat broadcast message delivered via WebSocket text frame.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+
+// INSTRUCTION: Define chat client user node.
+HOST chat_user { IP 192.168.55.19 }
+
+// INSTRUCTION: Define chat channel relay server.
+HOST chat_relay { IP 192.168.55.1 }
+
+// INSTRUCTION: Define chat message exchange flow.
+FLOW ws_chat_flow(c, s) {
+    c -> s WEBSOCKET OPCODE "TEXT" FIN_BIT 1 MASK_KEY 1234567890
+    c <- s WEBSOCKET OPCODE "TEXT" FIN_BIT 1 MASK_KEY 0
+}
+
+// INSTRUCTION: Compile block executing chat message delivery.
+COMPILE {
+    ws_chat_flow(chat_user, chat_relay)
+}

@@ -1,0 +1,20 @@
+// PROMPT: Broadcast video contribution GRE tunnel marked with outer DSCP CS4 (32) and ECN ECT(0).
+// TOKENS: HOST, IP, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, DSCP, ECN, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define stadium video encoder gateway.
+HOST video_ing_gre { IP 203.0.113.120 }
+
+// INSTRUCTION: Define broadcast production studio gateway.
+HOST studio_egr_gre { IP 203.0.113.121 }
+
+// INSTRUCTION: Define DSCP CS4 (32) marked GRE video transport stream.
+FLOW gre_video_cs4_stream(ing, egr) {
+    ing -> egr GRE GRE_KEY 8080 GRE_SEQ 1 GRE_PROTO 0x0800 DSCP 32 ECN 2 TTL 64 PAYLOAD "MPEG_TS_SLICE_01"
+    ing -> egr GRE GRE_KEY 8080 GRE_SEQ 2 GRE_PROTO 0x0800 DSCP 32 ECN 2 TTL 64 PAYLOAD "MPEG_TS_SLICE_02" WAIT 8ms
+    ing -> egr GRE GRE_KEY 8080 GRE_SEQ 3 GRE_PROTO 0x0800 DSCP 32 ECN 2 TTL 64 PAYLOAD "MPEG_TS_SLICE_03" WAIT 8ms
+}
+
+// INSTRUCTION: Compile the DSCP CS4 GRE video backhaul flow.
+COMPILE {
+    gre_video_cs4_stream(video_ing_gre, studio_egr_gre)
+}

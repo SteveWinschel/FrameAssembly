@@ -1,0 +1,27 @@
+// PROMPT: RFC 2428 FTP Extended Passive Mode (EPSV) negotiation over IPv6 returning code 229.
+// TOKENS: HOST, IP, MAC, FLOW, FTP, CMD, ARG, FLOWLABEL, TTL, CODE, REPLY, COMPILE
+
+// INSTRUCTION: Define IPv6 FTP client host requesting extended passive data port.
+HOST ftp_v6_client {
+    IP 2001:db8:21:10::50
+    MAC 00:1b:21:21:10:32
+}
+
+// INSTRUCTION: Define IPv6 FTP archive server supporting RFC 2428 EPSV.
+HOST ftp_v6_server {
+    IP 2001:db8:21:10::1
+    MAC 00:1b:21:21:10:01
+}
+
+// INSTRUCTION: Negotiate binary type and EPSV extended passive mode over IPv6.
+FLOW ftp_epsv_negotiation(c, s) {
+    c -> s FTP CMD "TYPE" ARG "I" FLOWLABEL 21001 TTL 64
+    c <- s FTP CODE 200 REPLY "Switching to Binary mode" FLOWLABEL 21001 TTL 64
+    c -> s FTP CMD "EPSV" ARG "2" FLOWLABEL 21001 TTL 64
+    c <- s FTP CODE 229 REPLY "Entering Extended Passive Mode (|||6446|)" FLOWLABEL 21001 TTL 64
+}
+
+// INSTRUCTION: Compile the RFC 2428 IPv6 FTP EPSV negotiation scenario.
+COMPILE {
+    ftp_epsv_negotiation(ftp_v6_client, ftp_v6_server)
+}

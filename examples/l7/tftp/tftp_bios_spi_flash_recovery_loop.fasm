@@ -1,0 +1,28 @@
+// PROMPT: Baseboard Management Controller (BMC) fetching sequential BIOS SPI flash recovery blocks in a COMPILE LOOP.
+// TOKENS: HOST, IP, MAC, FLOW, TFTP, RRQ, FILENAME, MODE, DATA, BLOCK, PAYLOAD, ACK, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define server BMC recovery interface.
+HOST bmc_recovery {
+    IP 10.250.69.99
+    MAC 00:25:90:fa:45:63
+}
+
+// INSTRUCTION: Define rack management TFTP appliance.
+HOST rack_tftp_srv {
+    IP 10.250.69.1
+    MAC 00:25:90:fa:45:01
+}
+
+// INSTRUCTION: Exchange TFTP DATA block 1 and ACK with 10ms inter-iteration wait.
+FLOW tftp_bmc_flash_chunk(bmc, srv) {
+    bmc -> srv TFTP RRQ FILENAME "bios_recovery_rom.bin" MODE "octet"
+    bmc <- srv TFTP DATA BLOCK 1 PAYLOAD "SPI-FLASH-ROM-PAGE"
+    bmc -> srv TFTP ACK BLOCK 1 WAIT 10ms
+}
+
+// INSTRUCTION: Execute 3 recovery verification cycles in a COMPILE LOOP.
+COMPILE {
+    LOOP 3 {
+        tftp_bmc_flash_chunk(bmc_recovery, rack_tftp_srv)
+    }
+}

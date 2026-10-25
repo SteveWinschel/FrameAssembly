@@ -1,0 +1,21 @@
+// PROMPT: Client liveness heartbeat ping frame with 32-bit masking key.
+// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE
+
+// INSTRUCTION: Define active client connection.
+HOST client_conn { IP 172.16.2.9 }
+
+// INSTRUCTION: Define streaming broker host.
+HOST stream_broker { IP 172.16.2.1 }
+
+// INSTRUCTION: Define heartbeat ping frame flow.
+FLOW ws_ping_flow(c, s) {
+    c -> s WEBSOCKET
+        OPCODE "PING"
+        FIN_BIT 1
+        MASK_KEY 2863311530
+}
+
+// INSTRUCTION: Compile block executing heartbeat ping.
+COMPILE {
+    ws_ping_flow(client_conn, stream_broker)
+}

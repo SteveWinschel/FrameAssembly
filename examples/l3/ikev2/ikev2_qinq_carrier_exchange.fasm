@@ -1,0 +1,20 @@
+// PROMPT: 802.1ad QinQ double-tagged IKEv2 negotiation across a carrier Ethernet transport link.
+// TOKENS: HOST, IP, FLOW, IKEV2, SA_INIT, INITIATOR_SPI, RESPONDER_SPI, MSGID, QINQ, INNER_VLAN, CREATE_CHILD_SA, COMPILE
+
+// INSTRUCTION: Define site 1 VPN appliance.
+HOST qinq_ike_s1 { IP 172.26.50.1 }
+
+// INSTRUCTION: Define site 2 VPN appliance.
+HOST qinq_ike_s2 { IP 172.26.50.2 }
+
+// INSTRUCTION: Define QinQ tagged IKEv2 negotiation on S-VLAN 2500 and C-VLAN 500.
+FLOW ikev2_qinq_exchange(s1, s2) {
+    s1 -> s2 IKEV2 SA_INIT INITIATOR_SPI 25005001 RESPONDER_SPI 0 MSGID 0 QINQ 2500 INNER_VLAN 500
+    s1 <- s2 IKEV2 SA_INIT INITIATOR_SPI 25005001 RESPONDER_SPI 25005002 MSGID 0 QINQ 2500 INNER_VLAN 500
+    s1 -> s2 IKEV2 CREATE_CHILD_SA INITIATOR_SPI 25005001 RESPONDER_SPI 25005002 MSGID 1 QINQ 2500 INNER_VLAN 500
+}
+
+// INSTRUCTION: Compile the QinQ carrier IKEv2 exchange flow.
+COMPILE {
+    ikev2_qinq_exchange(qinq_ike_s1, qinq_ike_s2)
+}

@@ -1,0 +1,21 @@
+// PROMPT: EtherNet/IP ListServices and ListInterfaces discovery broadcast over UDP port 44818.
+// TOKENS: HOST, IP, FLOW, ETHERNETIP, TRANSPORT, UDP, CMD, CONTEXT, STATUS, COMPILE
+
+// INSTRUCTION: Define RSLinx engineering workstation.
+HOST rslinx_ws { IP 192.168.10.100 }
+
+// INSTRUCTION: Define variable frequency drive (VFD) EtherNet/IP node.
+HOST vfd_drive { IP 192.168.10.30 }
+
+// INSTRUCTION: Probe ListServices and ListInterfaces over UDP transport with 64-bit sender context.
+FLOW enip_udp_discovery(ws, vfd) {
+    ws -> vfd ETHERNETIP TRANSPORT UDP CMD "ListServices" CONTEXT 0x0102030405060708
+    ws <- vfd ETHERNETIP TRANSPORT UDP CMD "ListServices" STATUS 0 CONTEXT 0x0102030405060708
+    ws -> vfd ETHERNETIP TRANSPORT UDP CMD "ListInterfaces" CONTEXT 0x1122334455667788
+    ws <- vfd ETHERNETIP TRANSPORT UDP CMD "ListInterfaces" STATUS 0 CONTEXT 0x1122334455667788
+}
+
+// INSTRUCTION: Compile the EtherNet/IP UDP discovery flow.
+COMPILE {
+    enip_udp_discovery(rslinx_ws, vfd_drive)
+}

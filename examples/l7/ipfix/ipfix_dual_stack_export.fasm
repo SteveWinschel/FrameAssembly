@@ -1,5 +1,5 @@
 // PROMPT: IPFIX datagram exported across an IPv6 transport underlay.
-// TOKENS: HOST, IP, FLOW, ->, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PACKETS, COMPILE
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PACKETS, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

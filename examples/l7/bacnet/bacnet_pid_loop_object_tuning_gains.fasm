@@ -1,0 +1,27 @@
+// PROMPT: BACnet/IP Loop object (Object Type 12) proportional and integral gain parameter tuning.
+// TOKENS: HOST, IP, MAC, FLOW, BACNET, WRITE_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, WAIT, COMPILE
+
+// INSTRUCTION: Define the commissioning laptop tuning chilled water valve PID loops.
+HOST commissioning_tool {
+    IP 10.120.40.99
+    MAC 00:1a:2b:78:40:99
+}
+
+// INSTRUCTION: Define the Air Handling Unit (AHU) BACnet controller.
+HOST ahu_pid_ctrl {
+    IP 10.120.40.12
+    MAC 00:1a:2b:78:40:12
+}
+
+// INSTRUCTION: Write Proportional_Constant (Property 93) and Integral_Constant (Property 49) on Loop Object Type 12 Instance 1.
+FLOW bacnet_pid_tuning(t, a) {
+    t -> a BACNET WRITE_PROPERTY INVOKE_ID 50 OBJECT_TYPE 12 OBJECT_INSTANCE 1 PROPERTY_ID 93 VALUE 15
+    t <- a BACNET WRITE_PROPERTY INVOKE_ID 50 OBJECT_TYPE 12 OBJECT_INSTANCE 1 PROPERTY_ID 93 VALUE 15 WAIT 2ms
+    t -> a BACNET WRITE_PROPERTY INVOKE_ID 51 OBJECT_TYPE 12 OBJECT_INSTANCE 1 PROPERTY_ID 49 VALUE 4
+    t <- a BACNET WRITE_PROPERTY INVOKE_ID 51 OBJECT_TYPE 12 OBJECT_INSTANCE 1 PROPERTY_ID 49 VALUE 4
+}
+
+// INSTRUCTION: Compile the BACnet PID Loop object tuning flow.
+COMPILE {
+    bacnet_pid_tuning(commissioning_tool, ahu_pid_ctrl)
+}

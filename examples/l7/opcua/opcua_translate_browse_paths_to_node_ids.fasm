@@ -1,0 +1,27 @@
+// PROMPT: OPC UA TranslateBrowsePathsToNodeIds (i=554) resolving symbolic path strings to numeric NodeIds.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the MES connector resolving ISA-95 equipment browse paths.
+HOST mes_connector {
+    IP 10.140.70.22
+    MAC 00:1a:2b:8c:70:22
+}
+
+// INSTRUCTION: Define the shopfloor OPC UA gateway server.
+HOST shopfloor_gw {
+    IP 10.140.70.1
+    MAC 00:1a:2b:8c:70:01
+}
+
+// INSTRUCTION: Resolve browse path /Objects/2:Cell_03/2:OEE to its numeric NodeId and read its current value.
+FLOW opcua_translate_path(c, s) {
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 705 TOKEN_ID 1 SEQ_NUM 40 REQID 40 NODE_ID "i=554" PAYLOAD "/Objects/2:Cell_03/2:OEE"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 705 TOKEN_ID 1 SEQ_NUM 40 REQID 40 NODE_ID "i=557" PAYLOAD "ResolvedNodeId=ns=2;i=8402" WAIT 1ms
+    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 705 TOKEN_ID 1 SEQ_NUM 41 REQID 41 NODE_ID "ns=2;i=8402"
+    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 705 TOKEN_ID 1 SEQ_NUM 41 REQID 41 NODE_ID "ns=2;i=8402" PAYLOAD "Double:0.892"
+}
+
+// INSTRUCTION: Compile the OPC UA TranslateBrowsePathsToNodeIds flow.
+COMPILE {
+    opcua_translate_path(mes_connector, shopfloor_gw)
+}

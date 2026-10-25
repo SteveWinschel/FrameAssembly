@@ -1,5 +1,5 @@
 // PROMPT: PostgreSQL frontend connection initialization StartupMessage.
-// TOKENS: HOST, IP, FLOW, ->, POSTGRES, STARTUP, DB, COMPILE
+// TOKENS: HOST, IP, FLOW, POSTGRES, STARTUP, DB, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 192.168.1.200 }

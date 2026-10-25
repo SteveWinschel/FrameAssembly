@@ -1,0 +1,25 @@
+// PROMPT: Long-running RTP audio session demonstrating 16-bit sequence number rollover from 65535 to 0.
+// TOKENS: HOST, IP, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define 24x7 dispatch console VoIP endpoint A.
+HOST dispatch_a {
+    IP 192.168.99.10
+}
+
+// INSTRUCTION: Define radio gateway VoIP endpoint B.
+HOST radio_gw_b {
+    IP 192.168.99.20
+}
+
+// INSTRUCTION: Define consecutive RTP packets crossing the 16-bit SEQ boundary (65534, 65535, 0, 1).
+FLOW rtp_seq_rollover(a, b) {
+    a -> b RTP PT 0 SEQ 65534 TIMESTAMP 10485440 SSRC 0x99990001 MARKER 0 PAYLOAD "PCM_65534" WAIT 20ms
+    a -> b RTP PT 0 SEQ 65535 TIMESTAMP 10485600 SSRC 0x99990001 MARKER 0 PAYLOAD "PCM_65535" WAIT 20ms
+    a -> b RTP PT 0 SEQ 0 TIMESTAMP 10485760 SSRC 0x99990001 MARKER 0 PAYLOAD "PCM_00000" WAIT 20ms
+    a -> b RTP PT 0 SEQ 1 TIMESTAMP 10485920 SSRC 0x99990001 MARKER 0 PAYLOAD "PCM_00001"
+}
+
+// INSTRUCTION: Compile the RTP sequence number wraparound scenario.
+COMPILE {
+    rtp_seq_rollover(dispatch_a, radio_gw_b)
+}

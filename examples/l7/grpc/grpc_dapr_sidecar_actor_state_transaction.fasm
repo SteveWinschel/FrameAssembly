@@ -1,0 +1,27 @@
+// PROMPT: Dapr application sidecar executing an actor state transaction and pub/sub publish over gRPC.
+// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, SRCPORT, DSTPORT, GRPC_STATUS, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define microservice container communicating with its local Dapr sidecar.
+HOST app_container {
+    IP 10.244.3.40
+    MAC 02:42:0a:f4:03:28
+}
+
+// INSTRUCTION: Define Dapr runtime sidecar gRPC listener on port 50001.
+HOST dapr_sidecar {
+    IP 10.244.3.41
+    MAC 02:42:0a:f4:03:29
+}
+
+// INSTRUCTION: Persist actor state via ExecuteActorStateTransaction and publish event via PublishEvent.
+FLOW grpc_dapr_sidecar(app, dapr) {
+    app -> dapr GRPC SERVICE "dapr.proto.runtime.v1.Dapr" METHOD "ExecuteActorStateTransaction" SRCPORT 45001 DSTPORT 50001
+    app <- dapr GRPC SERVICE "dapr.proto.runtime.v1.Dapr" METHOD "ExecuteActorStateTransaction" SRCPORT 50001 DSTPORT 45001 GRPC_STATUS 0
+    app -> dapr GRPC SERVICE "dapr.proto.runtime.v1.Dapr" METHOD "PublishEvent" SRCPORT 45001 DSTPORT 50001 PAYLOAD "topic=orders"
+    app <- dapr GRPC SERVICE "dapr.proto.runtime.v1.Dapr" METHOD "PublishEvent" SRCPORT 50001 DSTPORT 45001 GRPC_STATUS 0
+}
+
+// INSTRUCTION: Compile the Dapr sidecar actor state and pub/sub gRPC scenario.
+COMPILE {
+    grpc_dapr_sidecar(app_container, dapr_sidecar)
+}

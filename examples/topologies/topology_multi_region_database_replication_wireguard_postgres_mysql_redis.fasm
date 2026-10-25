@@ -1,0 +1,27 @@
+// PROMPT: Multi-region disaster recovery database replication combining WireGuard inter-region VPN mesh, PostgreSQL WAL streaming, MySQL binlog replication, and Redis cache invalidation.
+// TOKENS: HOST, IP, FLOW, WIREGUARD, INITIATION, SENDER, RECEIVER, DATA, COUNTER, WAIT, POSTGRES, SQL, COMMAND_COMPLETE, MYSQL, OK, REDIS, CMD, ARGS, COMPILE
+
+// INSTRUCTION: Define Region-A (US-East) primary database and WireGuard gateway node.
+HOST region_a_primary { IP 10.10.1.10 }
+
+// INSTRUCTION: Define Region-B (US-West) disaster recovery standby database node.
+HOST region_b_standby { IP 10.20.1.10 }
+
+// INSTRUCTION: Define Region-B global Redis cache invalidation coordinator.
+HOST region_b_redis_coord { IP 10.20.1.50 }
+
+// INSTRUCTION: Define WireGuard tunnel setup, PostgreSQL synchronous WAL commit, MySQL GTID replication, and Redis cache purge.
+FLOW multi_region_dr_replication(reg_a, reg_b, cache_b) {
+    reg_a -> reg_b WIREGUARD INITIATION SENDER 0x3001 RECEIVER 0
+    reg_a <- reg_b WIREGUARD DATA SENDER 0x4001 RECEIVER 0x3001 COUNTER 1 WAIT 1ms
+    reg_a -> reg_b POSTGRES SQL "START_REPLICATION SLOT dr_west_slot LOGICAL 0/16B3748;" WAIT 1ms
+    reg_a <- reg_b POSTGRES COMMAND_COMPLETE WAIT 1ms
+    reg_a -> reg_b MYSQL SQL "BINLOG_DUMP_GTID pos=491820 table=global_accounts" WAIT 1ms
+    reg_a <- reg_b MYSQL OK WAIT 1ms
+    reg_b -> cache_b REDIS CMD "PUBLISH" ARGS "cache:invalidate:global_accounts acct_99201" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing multi-region WireGuard, PostgreSQL, MySQL, and Redis DR topology.
+COMPILE {
+    multi_region_dr_replication(region_a_primary, region_b_standby, region_b_redis_coord)
+}

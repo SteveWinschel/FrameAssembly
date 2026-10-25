@@ -1,0 +1,25 @@
+// PROMPT: RFC 2080 RIPng over IPv6 advertising default route ::/0 with Hop Limit 255 over UDP port 521.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, RESPONSE, PREFIX, METRIC, TAG, SRCPORT, DSTPORT, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6 border router originating RIPng default route on link-local address.
+HOST ripng_v6_border {
+    IP fe80::521:1
+    MAC 00:25:90:05:21:01
+}
+
+// INSTRUCTION: Define All-RIPng-Routers link-local multicast group ff02::9.
+HOST ripng_all_routers {
+    IP ff02::9
+    MAC 33:33:00:00:00:09
+}
+
+// INSTRUCTION: Define RFC 2080 RIPng RESPONSE with TTL 255 (Hop Limit 255 mandatory per RFC 2080).
+FLOW ripng_v6_default_route(border, mcast) {
+    border -> mcast RIP RESPONSE PREFIX :: METRIC 1 TAG 64512 SRCPORT 521 DSTPORT 521 DSCP 48 TTL 255 PAYLOAD "RIPNG_DEFAULT_ROUTE_FE80_521_1" WAIT 10ms
+    border -> mcast RIP RESPONSE PREFIX 2001:db8:521:: METRIC 2 TAG 64512 SRCPORT 521 DSTPORT 521 DSCP 48 TTL 255 PAYLOAD "RIPNG_CAMPUS_PREFIX_ADVERT"
+}
+
+// INSTRUCTION: Compile the RFC 2080 RIPng IPv6 default route advertisement flow.
+COMPILE {
+    ripng_v6_default_route(ripng_v6_border, ripng_all_routers)
+}

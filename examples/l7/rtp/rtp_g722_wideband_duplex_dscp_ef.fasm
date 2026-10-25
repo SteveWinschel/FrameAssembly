@@ -1,0 +1,21 @@
+// PROMPT: Full-duplex G.722 wideband audio RTP conversation (PT 9) with EF DSCP 46 marking.
+// TOKENS: HOST, IP, MAC, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define conference room SIP phone.
+HOST conf_phone { IP 192.168.50.11 MAC 00:15:65:50:00:0b }
+
+// INSTRUCTION: Define IP PBX media gateway.
+HOST pbx_media { IP 192.168.50.1 MAC 00:15:65:50:00:01 }
+
+// INSTRUCTION: Define bidirectional G.722 RTP frames with 20ms pacing.
+FLOW rtp_g722_duplex(a, b) {
+    a -> b RTP PT 9 TIMESTAMP 160 SSRC 0x11223344 MARKER 1 DSCP 46 TTL 64 WAIT 20ms
+    a <- b RTP PT 9 TIMESTAMP 160 SSRC 0x55667788 MARKER 1 DSCP 46 TTL 64 WAIT 20ms
+    a -> b RTP PT 9 TIMESTAMP 320 SSRC 0x11223344 MARKER 0 DSCP 46 TTL 64 WAIT 20ms
+    a <- b RTP PT 9 TIMESTAMP 320 SSRC 0x55667788 MARKER 0 DSCP 46 TTL 64
+}
+
+// INSTRUCTION: Compile full-duplex G.722 RTP audio flow.
+COMPILE {
+    rtp_g722_duplex(conf_phone, pbx_media)
+}

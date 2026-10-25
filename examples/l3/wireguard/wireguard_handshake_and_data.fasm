@@ -1,5 +1,5 @@
 // PROMPT: WireGuard VPN protocol handshake initiation, response, and encrypted data packet transmission on UDP 51820.
-// TOKENS: HOST, IP, FLOW, ->, <-, WIREGUARD, TYPE, INITIATION, RESPONSE, DATA, COMPILE
+// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, INITIATION, RESPONSE, DATA, COMPILE
 
 // INSTRUCTION: Define WireGuard peer A.
 HOST wg_peer_a { IP 198.51.100.10 }

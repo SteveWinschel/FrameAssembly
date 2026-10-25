@@ -1,5 +1,5 @@
 // PROMPT: IPv6 20-bit FLOWLABEL generation across parallel traffic streams for ECMP multipath distribution.
-// TOKENS: HOST, IP, FLOW, ->, FLOWLABEL, UDP, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, FLOWLABEL, UDP, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define leaf switch in datacenter fabric.
 HOST leaf_switch { IP 2001:db8:10::1 }

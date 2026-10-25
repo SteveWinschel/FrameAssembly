@@ -1,0 +1,25 @@
+// PROMPT: RFC 4023 MPLS-in-GRE encapsulation (GRE_PROTO 0x8847 = 34887) carrying L3VPN traffic over an IPv6 core.
+// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, FLOWLABEL, DSCP, TTL, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define IPv6 PE-North encapsulating MPLS VPN frames inside GRE (GRE_PROTO 34887).
+HOST pe_north_mpls_gre {
+    IP 2001:db8:4023::1
+    MAC 00:24:38:40:23:01
+}
+
+// INSTRUCTION: Define IPv6 PE-South decapsulating RFC 4023 MPLS-in-GRE packets.
+HOST pe_south_mpls_gre {
+    IP 2001:db8:4023::2
+    MAC 00:24:38:40:23:02
+}
+
+// INSTRUCTION: Define IPv6 GRE tunnel with GRE_PROTO 34887 (0x8847 MPLS) and GRE_KEY 40230.
+FLOW gre_rfc4023_v6_mpls(north, south) {
+    north -> south GRE GRE_KEY 40230 GRE_SEQ 1 GRE_PROTO 34887 FLOWLABEL 40230 DSCP 34 TTL 64 HEXPAYLOAD "0004e1404500001c000100004001" WAIT 4ms
+    north <- south GRE GRE_KEY 40230 GRE_SEQ 1 GRE_PROTO 34887 FLOWLABEL 40230 DSCP 34 TTL 64 HEXPAYLOAD "0004e2404500001c000200004001"
+}
+
+// INSTRUCTION: Compile the RFC 4023 MPLS-in-GRE over IPv6 core flow.
+COMPILE {
+    gre_rfc4023_v6_mpls(pe_north_mpls_gre, pe_south_mpls_gre)
+}

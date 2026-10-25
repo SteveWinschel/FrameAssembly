@@ -1,0 +1,19 @@
+// PROMPT: OPC UA Read service request and response targeting an industrial temperature sensor NODE_ID.
+// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define historian collector endpoint.
+HOST historian { IP 172.16.40.20 MAC 00:19:99:40:00:14 }
+
+// INSTRUCTION: Define furnace telemetry server endpoint.
+HOST furnace_opc { IP 172.16.40.5 MAC 00:19:99:40:00:05 }
+
+// INSTRUCTION: Define OPC UA MSG request reading node ns=2;s=Furnace.TempC and server reply.
+FLOW opcua_node_read(client, srv) {
+    client -> srv OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 42 TOKEN_ID 7 SEQ_NUM 10 REQID 100 NODE_ID "ns=2;s=Furnace.TempC" WAIT 10ms
+    client <- srv OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 42 TOKEN_ID 7 SEQ_NUM 11 REQID 100 NODE_ID "ns=2;s=Furnace.TempC" PAYLOAD "842.5C"
+}
+
+// INSTRUCTION: Compile the OPC UA node read exchange.
+COMPILE {
+    opcua_node_read(historian, furnace_opc)
+}

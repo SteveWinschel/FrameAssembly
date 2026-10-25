@@ -1,0 +1,24 @@
+// PROMPT: Default DNS datagram emission on UDP port 53 using automatic RFC 1035 wire defaults.
+// TOKENS: HOST, IP, MAC, FLOW, DNS, COMPILE
+
+// INSTRUCTION: Define stub resolver workstation.
+HOST stub_client {
+    IP 192.168.1.55
+    MAC 00:1c:42:10:20:30
+}
+
+// INSTRUCTION: Define recursive DNS resolver.
+HOST dns_recursor {
+    IP 1.1.1.1
+    MAC 00:1c:42:10:20:01
+}
+
+// INSTRUCTION: Emit a default DNS frame without explicit sub-keywords.
+FLOW dns_default(c, r) {
+    c -> r DNS
+}
+
+// INSTRUCTION: Compile the default DNS scenario.
+COMPILE {
+    dns_default(stub_client, dns_recursor)
+}

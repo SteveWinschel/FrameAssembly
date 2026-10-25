@@ -1,0 +1,18 @@
+// PROMPT: IPsec ESP frame with raw binary HEXPAYLOAD, custom MACs, and Next Header 59 (No Next Header).
+// TOKENS: HOST, IP, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, SRCMAC, DSTMAC, HEXPAYLOAD, COMPILE
+
+// INSTRUCTION: Define high-assurance crypto bridge 1.
+HOST crypto_bridge_1 { IP 10.80.80.1 }
+
+// INSTRUCTION: Define high-assurance crypto bridge 2.
+HOST crypto_bridge_2 { IP 10.80.80.2 }
+
+// INSTRUCTION: Define dummy traffic padding ESP packet using RFC 4303 Next Header 59.
+FLOW esp_dummy_padding_flow(b1, b2) {
+    b1 -> b2 ESP SPI 555000 SEQ 99 IV "cafebabedeadbeef" ICV "0123456789abcdef01234567" NEXT_HEADER 59 SRCMAC 02:aa:bb:cc:dd:01 DSTMAC 02:aa:bb:cc:dd:02 HEXPAYLOAD "f0e1d2c3b4a5968778695a4b3c2d1e0f"
+}
+
+// INSTRUCTION: Compile the raw hex ciphertext ESP flow.
+COMPILE {
+    esp_dummy_padding_flow(crypto_bridge_1, crypto_bridge_2)
+}

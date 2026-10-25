@@ -1,0 +1,26 @@
+// PROMPT: HTTP persistent connection sending recurring health poll requests in a COMPILE loop.
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, WAIT, STATUS, REASON, COMPILE, LOOP
+
+// INSTRUCTION: Define automated polling agent host.
+HOST poll_agent {
+    IP 192.168.140.7
+}
+
+// INSTRUCTION: Define target service endpoint host.
+HOST target_web {
+    IP 192.168.140.1
+}
+
+// INSTRUCTION: Send periodic HTTP probe and receive status acknowledgment.
+FLOW http_probe_flow(c, s) {
+    c -> s HTTP METHOD "GET" URI "/probe"
+           HOST_HDR "internal.mesh" WAIT 10ms
+    c <- s HTTP STATUS 200 REASON "OK" WAIT 10ms
+}
+
+// INSTRUCTION: Execute 4 probe iterations in COMPILE loop.
+COMPILE {
+    LOOP 4 {
+        http_probe_flow(poll_agent, target_web)
+    }
+}

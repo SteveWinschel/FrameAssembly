@@ -1,5 +1,5 @@
 // PROMPT: Simulate 802.1X RADIUS authentication on UDP port 1812 and RADIUS accounting start/response on UDP port 1813 between a wireless controller and AAA server.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define a wireless LAN controller (NAS) with IP 10.5.10.2.
 HOST wlan_controller { IP 10.5.10.2 MAC 00:24:97:10:20:02 }

@@ -1,0 +1,27 @@
+// PROMPT: RFC 4165 SIGTRAN M2PA (MTP2 User Peer-to-Peer Adaptation Layer, PPID 5) link alignment and data transfer on SCTP port 3565.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+
+// INSTRUCTION: Define SS7 Signaling Transfer Point A (STP-A) M2PA interface.
+HOST stp_node_alpha {
+    IP 172.18.35.1
+    MAC 00:1c:73:12:23:01
+}
+
+// INSTRUCTION: Define SS7 Signaling Transfer Point B (STP-B) M2PA interface.
+HOST stp_node_beta {
+    IP 172.18.35.2
+    MAC 00:1c:73:12:23:02
+}
+
+// INSTRUCTION: Send M2PA Link Status Alignment on Stream 0 (PPID 5) and MSU signaling data on Stream 1 (PPID 5).
+FLOW sctp_m2pa_ss7_link(stp_a, stp_b) {
+    stp_a -> stp_b DSCP 48 SCTP CHUNK DATA VTAG 356501 STREAM 0 SSN 0 PPID 5 SRCPORT 3565 DSTPORT 3565 PAYLOAD "M2PA_V1_CLASS11_TYPE2_LINK_STATUS_PROVING" WAIT 2ms
+    stp_a <- stp_b DSCP 48 SCTP CHUNK DATA VTAG 356501 STREAM 0 SSN 0 PPID 5 SRCPORT 3565 DSTPORT 3565 PAYLOAD "M2PA_V1_CLASS11_TYPE2_LINK_STATUS_READY" WAIT 2ms
+    stp_a -> stp_b DSCP 48 SCTP CHUNK DATA VTAG 356501 STREAM 1 SSN 0 PPID 5 SRCPORT 3565 DSTPORT 3565 PAYLOAD "M2PA_V1_CLASS11_TYPE1_USER_DATA_ISUP_IAM" WAIT 2ms
+    stp_a <- stp_b DSCP 48 SCTP CHUNK SACK VTAG 356501 SRCPORT 3565 DSTPORT 3565
+}
+
+// INSTRUCTION: Compile the RFC 4165 SIGTRAN M2PA SS7 link alignment SCTP trace.
+COMPILE {
+    sctp_m2pa_ss7_link(stp_node_alpha, stp_node_beta)
+}

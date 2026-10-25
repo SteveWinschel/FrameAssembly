@@ -1,5 +1,5 @@
 // PROMPT: DNP3 SCADA direct operate command pulsing substation breaker relay over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, DNP3, FUNC, SRC, DST, GROUP, VARIATION, COMPILE
+// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::10 }

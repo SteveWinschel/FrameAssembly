@@ -1,0 +1,21 @@
+// PROMPT: 3GPP GTPv1-U (GPRS Tunneling Protocol User Plane) mobile bearer encapsulation over UDP port 2152.
+// TOKENS: HOST, IP, FLOW, DSCP, UDP, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define 5G gNodeB N3 user-plane interface.
+HOST gnb_n3_gtpu { IP 10.153.21.10 }
+
+// INSTRUCTION: Define 5G User Plane Function (UPF) core gateway N3 interface.
+HOST upf_n3_gtpu { IP 10.153.21.1 }
+
+// INSTRUCTION: Define UDP port 2152 GTP-U Echo Request/Reply and G-PDU (Type 0xFF) user plane bearer frames.
+FLOW udp_gtpu_5g_n3_bearer(gnb, upf) {
+    gnb -> upf DSCP 46 UDP SRCPORT 2152 DSTPORT 2152 HEXPAYLOAD "320100040000000000010000"
+    gnb <- upf DSCP 46 UDP SRCPORT 2152 DSTPORT 2152 HEXPAYLOAD "3202000600000000000100000e00" WAIT 1ms
+    gnb -> upf DSCP 34 UDP SRCPORT 2152 DSTPORT 2152 HEXPAYLOAD "34ff001411223344000000008501001045000014" WAIT 1ms
+    gnb <- upf DSCP 34 UDP SRCPORT 2152 DSTPORT 2152 HEXPAYLOAD "34ff001455667788000000008501000045000014" WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing 5G N3 GTPv1-U over UDP port 2152.
+COMPILE {
+    udp_gtpu_5g_n3_bearer(gnb_n3_gtpu, upf_n3_gtpu)
+}

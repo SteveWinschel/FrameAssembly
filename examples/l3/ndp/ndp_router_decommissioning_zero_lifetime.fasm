@@ -1,0 +1,31 @@
+// PROMPT: Capture an IPv6 default router graceful withdrawal using Router Lifetime 0 followed by backup router takeover
+// TOKENS: HOST, IP, MAC, FLOW, NDP, ROUTER_ADVERT, ROUTER_LIFETIME, SLLA, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define the retiring primary IPv6 default router
+HOST primary_rtr_v6 {
+    IP fe80::1
+    MAC 00:25:90:d1:00:01
+}
+
+// INSTRUCTION: Define the standby IPv6 default router taking over forwarding
+HOST backup_rtr_v6 {
+    IP fe80::2
+    MAC 00:25:90:d1:00:02
+}
+
+// INSTRUCTION: Define the on-link IPv6 server receiving router advertisements
+HOST lan_server_v6 {
+    IP fe80::100
+    MAC 00:25:90:d1:01:00
+}
+
+// INSTRUCTION: Advertise zero router lifetime from primary router and active lifetime from backup router
+FLOW ndp_router_graceful_handover(pri, bkp, host) {
+    pri -> host NDP ROUTER_ADVERT ROUTER_LIFETIME 0 SLLA 00:25:90:d1:00:01 TTL 255 WAIT 20ms
+    bkp -> host NDP ROUTER_ADVERT ROUTER_LIFETIME 3600 SLLA 00:25:90:d1:00:02 TTL 255
+}
+
+// INSTRUCTION: Compile the NDP router decommissioning and takeover sequence
+COMPILE {
+    ndp_router_graceful_handover(primary_rtr_v6, backup_rtr_v6, lan_server_v6)
+}

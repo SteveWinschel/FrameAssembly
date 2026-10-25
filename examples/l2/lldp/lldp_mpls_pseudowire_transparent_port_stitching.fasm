@@ -1,0 +1,25 @@
+// PROMPT: Port-based MPLS EoMPLS pseudowire carrying customer LLDP frames transparently across provider label 60100.
+// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define customer router at site 1 transmitting LLDP over an EoMPLS port pseudowire.
+HOST eompls_ce_site1 {
+    IP 10.60.1.1
+    MAC 00:25:90:3c:01:01
+}
+
+// INSTRUCTION: Define customer router at site 2 receiving transparent LLDP over MPLS label 60100.
+HOST eompls_ce_site2 {
+    IP 10.60.1.2
+    MAC 00:25:90:3c:01:02
+}
+
+// INSTRUCTION: Encapsulate bidirectional customer LLDPDUs inside MPLS label 60100 EXP 6 BOS 1.
+FLOW lldp_over_eompls_pw(ce1, ce2) {
+    ce1 -> ce2 MPLS 60100 EXP 6 BOS 1 MPLS_TTL 64 LLDP CHASSIS_ID "ce-nyc-01" PORT_ID "ge-0/0/1" SYSNAME "ce-nyc-01.wan" SYSDESC "EoMPLS Pseudowire Endpoint" TTL 120 WAIT 5ms
+    ce1 <- ce2 MPLS 60100 EXP 6 BOS 1 MPLS_TTL 64 LLDP CHASSIS_ID "ce-bos-02" PORT_ID "ge-0/0/1" SYSNAME "ce-bos-02.wan" SYSDESC "EoMPLS Pseudowire Endpoint" TTL 120
+}
+
+// INSTRUCTION: Compile the EoMPLS pseudowire transparent LLDP stitching trace.
+COMPILE {
+    lldp_over_eompls_pw(eompls_ce_site1, eompls_ce_site2)
+}

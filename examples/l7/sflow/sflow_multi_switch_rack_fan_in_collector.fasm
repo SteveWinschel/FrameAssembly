@@ -1,0 +1,26 @@
+// PROMPT: Three top-of-rack switches exporting sFlow v5 datagrams into a shared rack telemetry collector.
+// TOKENS: HOST, IP, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, COMPILE
+
+// INSTRUCTION: Define rack 1 top-of-rack switch.
+HOST tor_rack_01 { IP 10.160.1.1 }
+
+// INSTRUCTION: Define rack 2 top-of-rack switch.
+HOST tor_rack_02 { IP 10.160.2.1 }
+
+// INSTRUCTION: Define rack 3 top-of-rack switch.
+HOST tor_rack_03 { IP 10.160.3.1 }
+
+// INSTRUCTION: Define shared row sFlow collector.
+HOST row_collector { IP 10.160.0.250 }
+
+// INSTRUCTION: Export sFlow v5 sample datagram from any rack switch to the row collector.
+FLOW sflow_rack_report(tor, col) {
+    tor -> col SFLOW AGENT_IP 10.160.0.1 SUB_AGENT_ID 1 UPTIME 500000 SAMPLES 10
+}
+
+// INSTRUCTION: Compile fan-in sFlow exports from all three rack switches.
+COMPILE {
+    sflow_rack_report(tor_rack_01, row_collector)
+    sflow_rack_report(tor_rack_02, row_collector)
+    sflow_rack_report(tor_rack_03, row_collector)
+}

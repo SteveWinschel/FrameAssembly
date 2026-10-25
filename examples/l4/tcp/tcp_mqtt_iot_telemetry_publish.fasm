@@ -1,5 +1,5 @@
 // PROMPT: Simulate an IoT sensor publishing telemetry topics to an MQTT broker over TCP port 1883 with QoS 1 PUBACK acknowledgments.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE, LOOP
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, COMPILE, LOOP
 
 // INSTRUCTION: Define an IoT environmental sensor with IP 192.168.40.101.
 HOST iot_sensor { IP 192.168.40.101 MAC b8:27:eb:10:20:30 }

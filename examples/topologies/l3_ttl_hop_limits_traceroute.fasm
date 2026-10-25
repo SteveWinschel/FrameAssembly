@@ -1,5 +1,5 @@
 // PROMPT: Traceroute simulation with incremental TTL hop limit values 1, 2, and 3.
-// TOKENS: HOST, IP, FLOW, ->, TTL, UDP, DSTPORT, PAYLOAD, COMPILE
+// TOKENS: HOST, IP, FLOW, TTL, UDP, DSTPORT, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define traceroute client endpoint.
 HOST trace_client { IP 10.1.1.10 }

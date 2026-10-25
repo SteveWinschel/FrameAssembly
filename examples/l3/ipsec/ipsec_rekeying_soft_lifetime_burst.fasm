@@ -1,0 +1,20 @@
+// PROMPT: Periodic IPsec security association heartbeat burst inside a COMPILE LOOP.
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define banking transactions gateway A.
+HOST bank_gw_a { IP 10.220.5.10 }
+
+// INSTRUCTION: Define banking transactions gateway B.
+HOST bank_gw_b { IP 10.220.5.20 }
+
+// INSTRUCTION: Define IPsec heartbeat flow verifying tunnel continuity.
+FLOW ipsec_heartbeat_flow(g1, g2) {
+    g1 -> g2 IPSEC SPI 88000 SEQ 500 WAIT 10ms
+}
+
+// INSTRUCTION: Compile loop executing 5 IPsec keepalive packets.
+COMPILE {
+    LOOP 5 {
+        ipsec_heartbeat_flow(bank_gw_a, bank_gw_b)
+    }
+}

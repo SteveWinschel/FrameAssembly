@@ -1,0 +1,25 @@
+// PROMPT: Industrial Ethernet ring gateway redundancy using VRRPv3 with 802.1Q VLAN 10, PCP 7, and sub-second 20cs intervals.
+// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, VLAN, PCP, DEI, DSCP, TTL, WAIT, COMPILE
+
+// INSTRUCTION: Define Substation PLC Gateway A acting as VRRP Master for SCADA VLAN 10.
+HOST scada_vrrp_gw_a {
+    IP 192.168.10.252
+    MAC 00:00:5e:00:01:0a
+}
+
+// INSTRUCTION: Define Substation PLC Gateway B acting as hot-standby VRRP Backup.
+HOST scada_vrrp_gw_b {
+    IP 192.168.10.253
+    MAC 00:21:59:10:00:fd
+}
+
+// INSTRUCTION: Define high-priority PCP 7 / DSCP CS7 (56) VRRPv3 advertisements on VLAN 10.
+FLOW vrrp_scada_ring_redundancy(gw_a, gw_b) {
+    gw_a -> gw_b VRRP VRID 10 PRIORITY 240 ADV_INT 20 VIP 192.168.10.1 VERSION 3 VLAN 10 PCP 7 DEI 0 DSCP 56 TTL 255 WAIT 20ms
+    gw_a -> gw_b VRRP VRID 10 PRIORITY 240 ADV_INT 20 VIP 192.168.10.1 VERSION 3 VLAN 10 PCP 7 DEI 0 DSCP 56 TTL 255
+}
+
+// INSTRUCTION: Compile the industrial SCADA ring VRRPv3 gateway redundancy flow.
+COMPILE {
+    vrrp_scada_ring_redundancy(scada_vrrp_gw_a, scada_vrrp_gw_b)
+}

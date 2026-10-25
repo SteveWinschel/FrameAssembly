@@ -1,0 +1,18 @@
+// PROMPT: ICMP Time Exceeded (Type 11, Code 0) notification generated when packet TTL reaches 0.
+// TOKENS: HOST, IP, FLOW, ICMP, TIME_EXCEEDED, CODE, ID, SEQ, COMPILE
+
+// INSTRUCTION: Define transit core router dropping expired datagram.
+HOST transit_core_rtr { IP 198.51.100.1 }
+
+// INSTRUCTION: Define traceroute probing host.
+HOST traceroute_src { IP 198.51.100.45 }
+
+// INSTRUCTION: Define ICMP Time Exceeded notification flow with code 0 (TTL exceeded in transit).
+FLOW icmp_ttl_expired_flow(rtr, src) {
+    rtr -> src ICMP TIME_EXCEEDED CODE 0 ID 4001 SEQ 1
+}
+
+// INSTRUCTION: Compile block executing ICMP Time Exceeded generation.
+COMPILE {
+    icmp_ttl_expired_flow(transit_core_rtr, traceroute_src)
+}

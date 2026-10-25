@@ -1,0 +1,18 @@
+// PROMPT: OSPF routing packets encapsulated within MPLS label stack for core transit.
+// TOKENS: HOST, IP, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, MPLS, COMPILE
+
+// INSTRUCTION: Define MPLS provider edge router.
+HOST mpls_pe_ospf_rtr { IP 10.200.0.1 }
+
+// INSTRUCTION: Define provider core transit router.
+HOST mpls_p_core_rtr { IP 10.200.0.2 }
+
+// INSTRUCTION: Define MPLS labeled OSPF Hello flow traversing core label switched path.
+FLOW ospf_mpls_hello(pe, p) {
+    pe -> p OSPF HELLO ROUTER_ID 10.200.0.1 AREA_ID 0 MPLS 2048
+}
+
+// INSTRUCTION: Compile block executing MPLS encapsulated OSPF transmission.
+COMPILE {
+    ospf_mpls_hello(mpls_pe_ospf_rtr, mpls_p_core_rtr)
+}

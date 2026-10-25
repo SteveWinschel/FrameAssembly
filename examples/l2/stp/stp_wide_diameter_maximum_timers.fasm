@@ -1,0 +1,24 @@
+// PROMPT: Wide-diameter campus network STP BPDU configured with maximum IEEE 802.1D timers (MaxAge 40s, Hello 10s, ForwardDelay 30s).
+// TOKENS: HOST, IP, MAC, FLOW, STP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, MAX_AGE, HELLO_TIME, FORWARD_DELAY, FLAGS, COMPILE
+
+// INSTRUCTION: Define wide-diameter campus root switch.
+HOST wide_campus_root {
+    IP 10.175.0.1
+    MAC 00:13:c4:af:00:01
+}
+
+// INSTRUCTION: Define 7-hop perimeter building switch.
+HOST perimeter_bldg_sw {
+    IP 10.175.0.7
+    MAC 00:13:c4:af:00:07
+}
+
+// INSTRUCTION: Define classical 802.1D BPDU with maximum timer bounds for 7-bridge diameter topology.
+FLOW stp_wide_diameter_timers(root, perim) {
+    root -> perim STP ROOT_ID "8192:00:13:c4:af:00:01" BRIDGE_ID "8192:00:13:c4:af:00:01" COST 140000 PORT_ID 32775 MAX_AGE 40 HELLO_TIME 10 FORWARD_DELAY 30 FLAGS 0
+}
+
+// INSTRUCTION: Compile block executing wide-diameter STP timer configuration.
+COMPILE {
+    stp_wide_diameter_timers(wide_campus_root, perimeter_bldg_sw)
+}

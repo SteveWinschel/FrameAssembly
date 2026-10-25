@@ -1,0 +1,19 @@
+// PROMPT: STUN error response indicating unauthorized credential challenge.
+// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_ERROR, COMPILE
+
+// INSTRUCTION: Define unauthenticated client endpoint.
+HOST unauth_client { IP 10.140.2.19 }
+
+// INSTRUCTION: Define strict auth STUN gateway.
+HOST auth_stun_gw { IP 10.140.2.1 }
+
+// INSTRUCTION: Define STUN unauthorized error response flow.
+FLOW stun_error_flow(c, s) {
+    c -> s STUN BINDING_REQUEST SOFTWARE "Generic-STUN-Tester"
+    c <- s STUN BINDING_ERROR SOFTWARE "Secure-STUN-Gateway"
+}
+
+// INSTRUCTION: Compile block executing STUN error response.
+COMPILE {
+    stun_error_flow(unauth_client, auth_stun_gw)
+}

@@ -1,0 +1,25 @@
+// PROMPT: SNMPv1 polling MIB-II tcpCurrEstab.0 (GAUGE32) and tcpActiveOpens.0 (COUNTER32) on a load balancer.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, GET, COMMUNITY, REQID, VARBIND, NULLVAL, RESPONSE, COUNTER32, GAUGE32, COMPILE
+
+// INSTRUCTION: Define the Cacti / RRDtool SNMP poller host.
+HOST cacti_poller {
+    IP 10.145.90.10
+    MAC 00:1a:2b:91:90:10
+}
+
+// INSTRUCTION: Define the L4 hardware load balancer agent.
+HOST l4_load_balancer {
+    IP 10.145.90.1
+    MAC 00:1a:2b:91:90:01
+}
+
+// INSTRUCTION: Query tcpActiveOpens.0 (1.3.6.1.2.1.6.5.0) and tcpCurrEstab.0 (1.3.6.1.2.1.6.9.0).
+FLOW snmpv1_tcp_mib_poll(p, l) {
+    p -> l SNMP1 GET COMMUNITY "stats_ro" REQID 9010 VARBIND 1.3.6.1.2.1.6.5.0 NULLVAL VARBIND 1.3.6.1.2.1.6.9.0 NULLVAL
+    p <- l SNMP1 RESPONSE COMMUNITY "stats_ro" REQID 9010 VARBIND 1.3.6.1.2.1.6.5.0 COUNTER32 4829100 VARBIND 1.3.6.1.2.1.6.9.0 GAUGE32 14250
+}
+
+// INSTRUCTION: Compile the SNMPv1 TCP-MIB connection metrics flow.
+COMPILE {
+    snmpv1_tcp_mib_poll(cacti_poller, l4_load_balancer)
+}

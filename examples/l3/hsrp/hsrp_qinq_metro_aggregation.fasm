@@ -1,0 +1,19 @@
+// PROMPT: 802.1ad QinQ double-tagged HSRP gateway heartbeats across a metro aggregation trunk.
+// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, HELLOTIME, HOLDTIME, QINQ, INNER_VLAN, COMPILE
+
+// INSTRUCTION: Define metro BNG active gateway.
+HOST bng_hsrp_act { IP 100.64.10.2 }
+
+// INSTRUCTION: Define metro BNG standby gateway.
+HOST bng_hsrp_stb { IP 100.64.10.3 }
+
+// INSTRUCTION: Define QinQ double-tagged HSRP exchange on S-VLAN 2100 and C-VLAN 10.
+FLOW hsrp_qinq_bng_flow(act, stb) {
+    act -> stb HSRP GROUP 10 PRIORITY 130 STATE 16 VIP 100.64.10.1 HELLOTIME 2 HOLDTIME 6 QINQ 2100 INNER_VLAN 10
+    act <- stb HSRP GROUP 10 PRIORITY 100 STATE 8 VIP 100.64.10.1 HELLOTIME 2 HOLDTIME 6 QINQ 2100 INNER_VLAN 10
+}
+
+// INSTRUCTION: Compile the QinQ metro aggregation HSRP flow.
+COMPILE {
+    hsrp_qinq_bng_flow(bng_hsrp_act, bng_hsrp_stb)
+}

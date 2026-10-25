@@ -1,0 +1,19 @@
+// PROMPT: IKEv2 SA_INIT exchange operating natively over IPv6 transport on UDP port 500.
+// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, SA_INIT, MSGID, COMPILE
+
+// INSTRUCTION: Define IPv6 site A VPN router.
+HOST v6_vpn_site_a { IP 2001:db8:abc:1::1 }
+
+// INSTRUCTION: Define IPv6 site B VPN router.
+HOST v6_vpn_site_b { IP 2001:db8:abc:2::1 }
+
+// INSTRUCTION: Define bidirectional IPv6 IKEv2 SA_INIT exchange flow.
+FLOW ikev2_v6_init_flow(a, b) {
+    a -> b IKEV2 INITIATOR_SPI 7711223344556677 RESPONDER_SPI 0 SA_INIT MSGID 0
+    a <- b IKEV2 INITIATOR_SPI 7711223344556677 RESPONDER_SPI 8822334455667788 SA_INIT MSGID 0
+}
+
+// INSTRUCTION: Compile block executing native IPv6 IKEv2 negotiation.
+COMPILE {
+    ikev2_v6_init_flow(v6_vpn_site_a, v6_vpn_site_b)
+}

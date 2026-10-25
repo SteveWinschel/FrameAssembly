@@ -11,9 +11,7 @@
 .DS_Store
 Thumbs.db
 
-# Agent files
-.agents/
-
-# Build artifacts & temporary dumps
+# Build artifacts & temporary packet captures
 lints.json
 *.pcap
+*.pcapng

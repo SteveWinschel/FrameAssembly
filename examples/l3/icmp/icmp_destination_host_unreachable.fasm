@@ -1,0 +1,18 @@
+// PROMPT: ICMP Destination Unreachable with Code 1 (Host Unreachable) and explicit ID and Sequence.
+// TOKENS: HOST, IP, FLOW, ICMP, DEST_UNREACH, CODE, ID, SEQ, COMPILE
+
+// INSTRUCTION: Define edge router unable to resolve target host.
+HOST edge_boundary_rtr { IP 172.28.1.1 }
+
+// INSTRUCTION: Define requesting workstation.
+HOST requesting_wrk { IP 172.28.1.100 }
+
+// INSTRUCTION: Define ICMP Host Unreachable error notification flow.
+FLOW icmp_host_unreach_flow(rtr, wrk) {
+    rtr -> wrk ICMP DEST_UNREACH CODE 1 ID 2200 SEQ 1
+}
+
+// INSTRUCTION: Compile block executing ICMP Host Unreachable generation.
+COMPILE {
+    icmp_host_unreach_flow(edge_boundary_rtr, requesting_wrk)
+}

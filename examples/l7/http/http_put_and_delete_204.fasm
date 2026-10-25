@@ -1,0 +1,21 @@
+// PROMPT: HTTP PUT idempotent resource replacement and HTTP DELETE resource removal with 204 No Content.
+// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, CONTENT_TYPE, BODY, STATUS, REASON, COMPILE
+
+// INSTRUCTION: Define REST API administration client.
+HOST api_admin { IP 172.16.80.10 }
+
+// INSTRUCTION: Define REST microservice endpoint.
+HOST rest_svc { IP 172.16.80.2 }
+
+// INSTRUCTION: Update user record via PUT and delete stale session via DELETE returning 204.
+FLOW http_put_and_delete(c, s) {
+    c -> s HTTP METHOD "PUT" URI "/api/v1/users/42" HOST_HDR "api.internal" CONTENT_TYPE "application/json" BODY "{\"role\":\"admin\"}"
+    c <- s HTTP STATUS 200 REASON "OK" CONTENT_TYPE "application/json" BODY "{\"updated\":true}"
+    c -> s HTTP METHOD "DELETE" URI "/api/v1/sessions/99" HOST_HDR "api.internal"
+    c <- s HTTP STATUS 204 REASON "No Content"
+}
+
+// INSTRUCTION: Compile the HTTP PUT and DELETE REST operations flow.
+COMPILE {
+    http_put_and_delete(api_admin, rest_svc)
+}

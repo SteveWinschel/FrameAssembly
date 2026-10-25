@@ -1,0 +1,28 @@
+// PROMPT: EAP-FAST (Method 43) Protected Access Credential (PAC) tunnel provisioning on an IPv6-only enterprise access network.
+// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, WAIT, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define IPv6-only enterprise workstation supplicant.
+HOST ipv6_fast_client {
+    IP 2001:db8:1000:43::100
+    MAC 00:50:56:10:43:64
+}
+
+// INSTRUCTION: Define IPv6-only enterprise access switch authenticator.
+HOST ipv6_fast_switch {
+    IP 2001:db8:1000:43::1
+    MAC 00:1c:73:10:43:01
+}
+
+// INSTRUCTION: Define EAP-FAST (EAP_METHOD 43) PAC-Key tunnel authentication over IPv6 endpoints.
+FLOW eapol_eap_fast_ipv6(cli, sw) {
+    cli <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 30 EAP_METHOD 1
+    cli -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 30 EAP_METHOD 1 IDENTITY "fast-user@ipv6.corp.net" WAIT 2ms
+    cli <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 31 EAP_METHOD 43 PAYLOAD "eap_fast_authority_id_pac_req" WAIT 3ms
+    cli -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 31 EAP_METHOD 43 PAYLOAD "eap_fast_pac_opaque_ticket" WAIT 3ms
+    cli <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 32 EAP_METHOD 43 WAIT 3ms
+}
+
+// INSTRUCTION: Compile block executing EAP-FAST authentication over IPv6 hosts.
+COMPILE {
+    eapol_eap_fast_ipv6(ipv6_fast_client, ipv6_fast_switch)
+}

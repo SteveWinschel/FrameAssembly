@@ -1,5 +1,5 @@
 // PROMPT: IEEE 1588 PTP Announce message with custom clock ID and non-default domain over IPv6.
-// TOKENS: HOST, IP, FLOW, <-, PTP, ANNOUNCE, DOMAIN, CLOCK_ID, COMPILE
+// TOKENS: HOST, IP, FLOW, PTP, ANNOUNCE, DOMAIN, CLOCK_ID, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP fe80::2 }

@@ -1,0 +1,26 @@
+// PROMPT: Star topology AMQP fanout from one central broker delivering to two worker consumers.
+// TOKENS: HOST, IP, FLOW, AMQP, BASIC_PUBLISH, CHANNEL, EXCHANGE, ROUTING_KEY, PAYLOAD, BASIC_DELIVER, COMPILE
+
+// INSTRUCTION: Define the job dispatcher producer.
+HOST job_dispatcher { IP 10.80.1.5 }
+
+// INSTRUCTION: Define the central AMQP broker.
+HOST central_mq { IP 10.80.1.1 }
+
+// INSTRUCTION: Define worker consumer alpha.
+HOST worker_alpha { IP 10.80.1.21 }
+
+// INSTRUCTION: Define worker consumer beta.
+HOST worker_beta { IP 10.80.1.22 }
+
+// INSTRUCTION: Dispatch a broadcast event from producer to both consumers via the broker.
+FLOW amqp_star_fanout(disp, mq, wa, wb) {
+    disp -> mq AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "cache.invalidate" ROUTING_KEY "all" PAYLOAD "flush_all"
+    wa <- mq AMQP BASIC_DELIVER CHANNEL 1 EXCHANGE "cache.invalidate" ROUTING_KEY "all" PAYLOAD "flush_all"
+    wb <- mq AMQP BASIC_DELIVER CHANNEL 1 EXCHANGE "cache.invalidate" ROUTING_KEY "all" PAYLOAD "flush_all"
+}
+
+// INSTRUCTION: Compile the 4-host AMQP fanout topology.
+COMPILE {
+    amqp_star_fanout(job_dispatcher, central_mq, worker_alpha, worker_beta)
+}

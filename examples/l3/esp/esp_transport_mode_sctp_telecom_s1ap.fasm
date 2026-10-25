@@ -1,0 +1,25 @@
+// PROMPT: 3GPP LTE/5G eNodeB-to-MME S1-MME interface secured by RFC 4303 IPsec ESP protecting SCTP (Next Header 132).
+// TOKENS: HOST, IP, MAC, FLOW, ESP, SPI, SEQ, IV, ICV, NEXT_HEADER, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define 5G gNodeB / LTE eNodeB radio access node with IPsec ESP transport SA.
+HOST ran_enodeb_01 {
+    IP 172.28.50.10
+    MAC 00:0f:53:50:00:0a
+}
+
+// INSTRUCTION: Define Evolved Packet Core MME / AMF security gateway.
+HOST epc_mme_secgw {
+    IP 172.28.50.1
+    MAC 00:0f:53:50:00:01
+}
+
+// INSTRUCTION: Define ESP flow protecting SCTP Next Header 132 with DSCP EF (46).
+FLOW esp_s1ap_sctp_flow(ran, epc) {
+    ran -> epc ESP SPI 132501 SEQ 55 IV "0102030405060708" ICV "11223344556677889900aabb" NEXT_HEADER 132 DF DSCP 46 TTL 64 PAYLOAD "ENCRYPTED_SCTP_S1AP_INITIAL_UE_MSG" WAIT 3ms
+    ran <- epc ESP SPI 132502 SEQ 55 IV "0807060504030201" ICV "bbaa00998877665544332211" NEXT_HEADER 132 DF DSCP 46 TTL 64 PAYLOAD "ENCRYPTED_SCTP_S1AP_CONTEXT_SETUP"
+}
+
+// INSTRUCTION: Compile the 3GPP S1-MME SCTP-over-ESP transport security flow.
+COMPILE {
+    esp_s1ap_sctp_flow(ran_enodeb_01, epc_mme_secgw)
+}

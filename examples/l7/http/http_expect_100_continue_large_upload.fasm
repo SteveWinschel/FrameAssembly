@@ -1,0 +1,29 @@
+// PROMPT: Model an HTTP/1.1 Expect: 100-continue two-phase negotiation before uploading a multipart backup archive.
+// TOKENS: HOST, IP, MAC, FLOW, HTTP, METHOD, URI, HOST_HDR, CONTENT_TYPE, HEADER, WAIT, STATUS, REASON, BODY, COMPILE
+
+// INSTRUCTION: Define the backup agent initiating a large object upload with Expect: 100-continue.
+HOST backup_uploader {
+    IP 10.90.10.22
+    MAC 00:24:e8:5a:0a:16
+}
+
+// INSTRUCTION: Define the S3-compatible object storage gateway.
+HOST minio_object_gw {
+    IP 10.90.10.100
+    MAC 00:24:e8:5a:0a:64
+}
+
+// INSTRUCTION: Send PUT headers with Expect: 100-continue, receive 100 Continue, and complete with 201 Created.
+FLOW http_expect_100_continue(agent, store) {
+    agent -> store HTTP METHOD "PUT" URI "/backups/db-snapshot-2026.tar.zst" HOST_HDR "s3.storage.local"
+        CONTENT_TYPE "application/zstd" HEADER "Expect" "100-continue" WAIT 3ms
+    agent <- store HTTP STATUS 100 REASON "Continue" WAIT 10ms
+    agent -> store HTTP METHOD "PUT" URI "/backups/db-snapshot-2026.tar.zst" HOST_HDR "s3.storage.local"
+        BODY "ZSTD-COMPRESSED-DATABASE-SNAPSHOT-BLOCK-STREAM" WAIT 5ms
+    agent <- store HTTP STATUS 201 REASON "Created" HEADER "ETag" "d41d8cd98f00b204e9800998ecf8427e"
+}
+
+// INSTRUCTION: Compile the HTTP 100 Continue upload negotiation flow.
+COMPILE {
+    http_expect_100_continue(backup_uploader, minio_object_gw)
+}

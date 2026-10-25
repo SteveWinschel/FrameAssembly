@@ -1,0 +1,26 @@
+// PROMPT: Simulate an IMAP4rev2 NAMESPACE discovery command and server response revealing personal, other users, and shared prefixes.
+// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, DSCP, TTL, WAIT, STATUS, RESPONSE, COMPILE
+
+// INSTRUCTION: Define the desktop mail client discovering server hierarchy namespaces.
+HOST thunderbird_mua {
+    IP 10.143.10.21
+    MAC 00:1b:21:8f:0a:15
+}
+
+// INSTRUCTION: Define the Dovecot IMAP mailstore server.
+HOST dovecot_srv {
+    IP 10.143.10.1
+    MAC 00:1b:21:8f:0a:01
+}
+
+// INSTRUCTION: Send tagged NAMESPACE command and receive untagged namespace hierarchy delimiters.
+FLOW imap_namespace_query(c, s) {
+    c -> s IMAP TAG "A001" CMD "NAMESPACE" DSCP 16 TTL 64 WAIT 2ms
+    c <- s IMAP TAG "*" STATUS "NAMESPACE" RESPONSE "(('INBOX.' '.')) (('user.' '.')) (('shared.' '.'))" DSCP 16 TTL 64 WAIT 1ms
+    c <- s IMAP TAG "A001" STATUS "OK" RESPONSE "Namespace completed (0.001 + 0.000 secs)." DSCP 16 TTL 64
+}
+
+// INSTRUCTION: Compile the IMAP NAMESPACE discovery scenario.
+COMPILE {
+    imap_namespace_query(thunderbird_mua, dovecot_srv)
+}

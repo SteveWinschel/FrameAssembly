@@ -1,5 +1,5 @@
 // PROMPT: Simulate a 4-host three-tier web application architecture (External Client -> Reverse Proxy Load Balancer -> App Server -> Database Server) in a single multi-parameter flow.
-// TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, ms, COMPILE
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define an external browser client with IP 198.51.100.12.
 HOST ext_client { IP 198.51.100.12 MAC 00:11:22:91:00:01 }

@@ -1,0 +1,25 @@
+// PROMPT: RFC 9136 BGP EVPN Type-5 IP Prefix route inter-subnet forwarding using a dedicated Tenant VRF L3VNI (VNI 50001).
+// TOKENS: HOST, IP, MAC, FLOW, VXLAN, VNI, SRCPORT, DSTPORT, DF, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define Ingress Leaf VTEP routing from Subnet A to Subnet B via Tenant VRF L3VNI 50001.
+HOST irb_vtep_ingress {
+    IP 10.255.2.11
+    MAC 00:1c:73:50:01:0b
+}
+
+// INSTRUCTION: Define Egress Leaf VTEP performing L3VNI 50001 lookup and local ARP delivery.
+HOST irb_vtep_egress {
+    IP 10.255.2.22
+    MAC 00:1c:73:50:01:16
+}
+
+// INSTRUCTION: Define VXLAN L3VNI 50001 Symmetric IRB forwarding with Router MAC inner header.
+FLOW vxlan_evpn_l3vni_irb_flow(ing, egr) {
+    ing -> egr VXLAN VNI 50001 SRCPORT 58001 DSTPORT 4789 DF DSCP 26 TTL 63 PAYLOAD "RFC9136_EVPN_TYPE5_L3VNI_50001_ROUTED_PKT" WAIT 2ms
+    ing <- egr VXLAN VNI 50001 SRCPORT 58002 DSTPORT 4789 DF DSCP 26 TTL 63 PAYLOAD "RFC9136_EVPN_TYPE5_L3VNI_50001_ROUTED_ACK"
+}
+
+// INSTRUCTION: Compile the RFC 9136 EVPN Type-5 L3VNI Symmetric IRB VXLAN flow.
+COMPILE {
+    vxlan_evpn_l3vni_irb_flow(irb_vtep_ingress, irb_vtep_egress)
+}

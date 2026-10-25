@@ -1,0 +1,26 @@
+// PROMPT: Tailscale / Headscale mesh peers performing simultaneous UDP hole-punching with WireGuard INITIATION and direct DATA cutover.
+// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, TYPE, INITIATION, SENDER, SRCPORT, DSTPORT, DF, TTL, WAIT, RESPONSE, RECEIVER, DATA, COUNTER, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define Mesh Peer A behind NAT-A initiating simultaneous STUN/WG hole-punch.
+HOST mesh_peer_nat_a {
+    IP 198.51.100.71
+    MAC 00:16:3e:71:00:01
+}
+
+// INSTRUCTION: Define Mesh Peer B behind NAT-B completing direct peer-to-peer WireGuard path.
+HOST mesh_peer_nat_b {
+    IP 203.0.113.82
+    MAC 00:16:3e:82:00:02
+}
+
+// INSTRUCTION: Define simultaneous UDP hole-punch handshake on disco ports 41641 and direct DATA cutover.
+FLOW wg_direct_hole_punch_flow(peer_a, peer_b) {
+    peer_a -> peer_b WIREGUARD TYPE INITIATION SENDER 41641 SRCPORT 41641 DSTPORT 41641 DF TTL 64 WAIT 3ms
+    peer_a <- peer_b WIREGUARD TYPE RESPONSE SENDER 41642 RECEIVER 41641 SRCPORT 41641 DSTPORT 41641 DF TTL 64 WAIT 3ms
+    peer_a -> peer_b WIREGUARD TYPE DATA RECEIVER 41642 COUNTER 0 SRCPORT 41641 DSTPORT 41641 DF TTL 64 PAYLOAD "DIRECT_P2P_CUTOVER_SUCCESS"
+}
+
+// INSTRUCTION: Compile the Tailscale/WireGuard direct UDP hole-punching flow.
+COMPILE {
+    wg_direct_hole_punch_flow(mesh_peer_nat_a, mesh_peer_nat_b)
+}

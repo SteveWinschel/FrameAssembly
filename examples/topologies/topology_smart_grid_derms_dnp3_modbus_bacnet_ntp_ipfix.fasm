@@ -1,0 +1,28 @@
+// PROMPT: Smart grid Distributed Energy Resource Management System (DERMS) combining NTP sync, DNP3 solar inverter telemetry, Modbus battery storage, BACnet HVAC load shedding, and IPFIX export.
+// TOKENS: HOST, IP, FLOW, NTP, VN, MODE, STRATUM, WAIT, DNP3, SRC, DST, FUNC, MODBUS, UNITID, ADDR, IS_RESPONSE, BACNET, WRITE_PROPERTY, OBJECT_INSTANCE, VALUE, IPFIX, DOMAIN_ID, COMPILE
+
+// INSTRUCTION: Define utility DERMS microgrid controller and IPFIX exporter.
+HOST derms_controller { IP 10.135.1.1 }
+
+// INSTRUCTION: Define utility-scale solar PV inverter and battery storage RTU.
+HOST solar_bess_rtu { IP 10.135.1.50 }
+
+// INSTRUCTION: Define commercial campus BACnet building management controller and IPFIX collector.
+HOST campus_bms_collector { IP 10.135.2.100 }
+
+// INSTRUCTION: Define NTP clock check, DNP3 solar generation read, Modbus battery charge command, BACnet demand response, and IPFIX flow export.
+FLOW smart_grid_derms_dispatch(derms, rtu, bms) {
+    rtu -> derms NTP VN 4 MODE 3 STRATUM 2
+    rtu <- derms NTP VN 4 MODE 4 STRATUM 1 WAIT 1ms
+    derms -> rtu DNP3 SRC 1 DST 50 FUNC "READ" WAIT 1ms
+    derms <- rtu DNP3 SRC 50 DST 1 FUNC "RESPONSE" WAIT 1ms
+    derms -> rtu MODBUS UNITID 2 FUNC "WRITE_SINGLE_REGISTER" ADDR 40200 WAIT 1ms
+    derms <- rtu MODBUS UNITID 2 FUNC "WRITE_SINGLE_REGISTER" ADDR 40200 IS_RESPONSE WAIT 1ms
+    derms -> bms BACNET WRITE_PROPERTY OBJECT_INSTANCE 101 VALUE 74 WAIT 1ms
+    derms -> bms IPFIX DOMAIN_ID 135 PACKETS 48 OCTETS 6144 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing smart grid DERMS NTP, DNP3, Modbus, BACnet, and IPFIX topology.
+COMPILE {
+    smart_grid_derms_dispatch(derms_controller, solar_bess_rtu, campus_bms_collector)
+}

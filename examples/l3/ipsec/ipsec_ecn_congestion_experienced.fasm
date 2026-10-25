@@ -1,0 +1,18 @@
+// PROMPT: IPsec ESP frame marked with Explicit Congestion Notification Congestion Experienced (ECN 3).
+// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, DSCP, ECN, COMPILE
+
+// INSTRUCTION: Define border router forwarding WAN traffic.
+HOST wan_edge_router { IP 192.0.2.14 }
+
+// INSTRUCTION: Define destination security appliance.
+HOST sec_appliance_peer { IP 192.0.2.29 }
+
+// INSTRUCTION: Define ECN Congestion Experienced marked IPsec packet flow.
+FLOW ipsec_ecn_flow(rtr, sec) {
+    rtr -> sec IPSEC SPI 44300 SEQ 77 DSCP 18 ECN 3
+}
+
+// INSTRUCTION: Compile block transmitting ECN marked IPsec frame.
+COMPILE {
+    ipsec_ecn_flow(wan_edge_router, sec_appliance_peer)
+}

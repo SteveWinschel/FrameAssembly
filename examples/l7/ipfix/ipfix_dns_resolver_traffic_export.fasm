@@ -1,0 +1,18 @@
+// PROMPT: IPFIX export datagram capturing recursive DNS resolver UDP port 53 traffic volumes.
+// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+
+// INSTRUCTION: Define caching DNS resolver exporter.
+HOST dns_cache_rtr { IP 192.0.2.53 }
+
+// INSTRUCTION: Define DNS security telemetry analytics engine.
+HOST dns_analytics { IP 192.0.2.200 }
+
+// INSTRUCTION: Define DNS volume export flow.
+FLOW dns_ipfix_flow(rtr, ana) {
+    rtr -> ana IPFIX DOMAIN_ID 5353 SRCIP 10.2.1.15 DSTIP 192.0.2.53 SRCPORT 61240 DSTPORT 53 PROTO 17 PACKETS 24 OCTETS 1920
+}
+
+// INSTRUCTION: Compile DNS telemetry export scenario.
+COMPILE {
+    dns_ipfix_flow(dns_cache_rtr, dns_analytics)
+}

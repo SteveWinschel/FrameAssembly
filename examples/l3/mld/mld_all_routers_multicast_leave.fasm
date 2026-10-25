@@ -1,0 +1,34 @@
+// PROMPT: Capture multiple IPv6 hosts reporting multicast group membership and one host sending MLD Done to all-routers multicast
+// TOKENS: HOST, IP, MAC, FLOW, MLD, REPORT, MULTICAST_ADDR, MAX_RESP_DELAY, SRCMAC, DSTMAC, TTL, WAIT, DONE, QUERY, COMPILE
+
+// INSTRUCTION: Define the first cluster node participating in an IPv6 multicast group
+HOST cluster_node_1 {
+    IP fe80::10:1
+    MAC 00:16:3e:c9:10:01
+}
+
+// INSTRUCTION: Define the second cluster node participating in the same IPv6 multicast group
+HOST cluster_node_2 {
+    IP fe80::10:2
+    MAC 00:16:3e:c9:10:02
+}
+
+// INSTRUCTION: Define the IPv6 multicast router on the cluster network
+HOST cluster_mrouter {
+    IP fe80::10:fe
+    MAC 00:16:3e:c9:10:fe
+}
+
+// INSTRUCTION: Both nodes report membership, node 1 leaves to 33:33:00:00:00:02, and node 2 re-confirms
+FLOW mld_cluster_leave_sequence(n1, n2, rtr) {
+    n1 -> rtr MLD REPORT MULTICAST_ADDR ff05::c100:1 MAX_RESP_DELAY 0 SRCMAC 00:16:3e:c9:10:01 DSTMAC 33:33:c1:00:00:01 TTL 1 WAIT 10ms
+    n2 -> rtr MLD REPORT MULTICAST_ADDR ff05::c100:1 MAX_RESP_DELAY 0 SRCMAC 00:16:3e:c9:10:02 DSTMAC 33:33:c1:00:00:01 TTL 1 WAIT 30ms
+    n1 -> rtr MLD DONE MULTICAST_ADDR ff05::c100:1 MAX_RESP_DELAY 0 SRCMAC 00:16:3e:c9:10:01 DSTMAC 33:33:00:00:00:02 TTL 1 WAIT 10ms
+    rtr -> n2 MLD QUERY MULTICAST_ADDR ff05::c100:1 MAX_RESP_DELAY 1000 TTL 1 WAIT 10ms
+    n2 -> rtr MLD REPORT MULTICAST_ADDR ff05::c100:1 MAX_RESP_DELAY 0 SRCMAC 00:16:3e:c9:10:02 DSTMAC 33:33:c1:00:00:01 TTL 1
+}
+
+// INSTRUCTION: Compile the cluster multicast leave and re-confirmation trace
+COMPILE {
+    mld_cluster_leave_sequence(cluster_node_1, cluster_node_2, cluster_mrouter)
+}

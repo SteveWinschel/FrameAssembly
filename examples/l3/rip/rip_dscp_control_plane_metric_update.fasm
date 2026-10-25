@@ -1,0 +1,18 @@
+// PROMPT: RIP route advertisement prioritizing control plane traffic with DSCP CS6.
+// TOKENS: HOST, IP, FLOW, RIP, RESPONSE, PREFIX, METRIC, DSCP, TTL, COMPILE
+
+// INSTRUCTION: Define campus core distribution router.
+HOST campus_core_dist { IP 10.2.0.1 }
+
+// INSTRUCTION: Define RIP multicast listener group.
+HOST rip_listener_mcast { IP 224.0.0.9 }
+
+// INSTRUCTION: Define DSCP CS6 prioritized route update flow.
+FLOW rip_dscp_update(core, dst) {
+    core -> dst RIP RESPONSE PREFIX 10.2.10.0 METRIC 1 DSCP 48 TTL 2
+}
+
+// INSTRUCTION: Compile block executing DSCP prioritized RIP advertisement.
+COMPILE {
+    rip_dscp_update(campus_core_dist, rip_listener_mcast)
+}

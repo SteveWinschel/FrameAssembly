@@ -1,0 +1,21 @@
+// PROMPT: University campus building S-VLAN 600 aggregating research lab C-VLAN 61 and lecture hall C-VLAN 62.
+// TOKENS: HOST, IP, FLOW, QINQ, INNER_VLAN, DNS, QNAME, RDATA, WAIT, HTTP, GET, URI, STATUS, COMPILE
+
+// INSTRUCTION: Define campus building distribution switch uplink.
+HOST building_dist_sw { IP 10.60.0.10 }
+
+// INSTRUCTION: Define campus core services gateway.
+HOST campus_core_srv { IP 10.60.0.1 }
+
+// INSTRUCTION: Define multi-C-VLAN campus building traffic for DNS resolution and HTTP portal access.
+FLOW campus_building_qinq(bldg, core) {
+    bldg -> core QINQ 600 INNER_VLAN 61 DNS QNAME "arxiv.org"
+    bldg <- core QINQ 600 INNER_VLAN 61 DNS QNAME "arxiv.org" RDATA "128.84.21.199" WAIT 2ms
+    bldg -> core QINQ 600 INNER_VLAN 62 HTTP GET URI "/syllabus.pdf" WAIT 1ms
+    bldg <- core QINQ 600 INNER_VLAN 62 HTTP STATUS 200 WAIT 2ms
+}
+
+// INSTRUCTION: Compile block executing campus building QinQ aggregation.
+COMPILE {
+    campus_building_qinq(building_dist_sw, campus_core_srv)
+}

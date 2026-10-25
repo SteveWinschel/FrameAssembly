@@ -1,0 +1,25 @@
+// PROMPT: RFC 1582 RIP on Demand Circuits suppressing periodic updates over a metered satellite link after initial table sync.
+// TOKENS: HOST, IP, MAC, FLOW, RIP, REQUEST, PREFIX, METRIC, DSCP, TTL, PAYLOAD, WAIT, RESPONSE, NEXTHOP, TAG, COMPILE
+
+// INSTRUCTION: Define remote maritime VSAT router running RFC 1582 Demand Circuit RIPv2.
+HOST vsat_demand_rtr {
+    IP 172.31.52.10
+    MAC 00:a0:bc:52:00:0a
+}
+
+// INSTRUCTION: Define shore station aggregation router acknowledging demand-circuit table sync.
+HOST shore_demand_agg {
+    IP 172.31.52.1
+    MAC 00:a0:bc:52:00:01
+}
+
+// INSTRUCTION: Define initial RIPv2 REQUEST and RESPONSE sync before quieting periodic broadcasts.
+FLOW rip_rfc1582_demand_circuit(vsat, shore) {
+    vsat -> shore RIP REQUEST PREFIX 0.0.0.0 METRIC 16 DSCP 48 TTL 64 PAYLOAD "RFC1582_DEMAND_CIRCUIT_POLL" WAIT 10ms
+    vsat <- shore RIP RESPONSE PREFIX 10.0.0.0 METRIC 1 NEXTHOP 172.31.52.1 TAG 1582 DSCP 48 TTL 64 PAYLOAD "RFC1582_PRESERVED_TABLE_SYNC"
+}
+
+// INSTRUCTION: Compile the RFC 1582 RIP Demand Circuit synchronization flow.
+COMPILE {
+    rip_rfc1582_demand_circuit(vsat_demand_rtr, shore_demand_agg)
+}

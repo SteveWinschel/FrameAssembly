@@ -1,0 +1,27 @@
+// PROMPT: Generate an SSH remote port forwarding request using SSH_MSG_GLOBAL_REQUEST (80) tcpip-forward and confirmation (81).
+// TOKENS: HOST, IP, MAC, FLOW, SSH, MSG_CODE, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define the developer workstation requesting remote port forwarding.
+HOST dev_workstation {
+    IP 192.168.77.25
+    MAC 00:24:e8:4d:00:19
+}
+
+// INSTRUCTION: Define the cloud relay server accepting tcpip-forward tunnels.
+HOST cloud_relay_sshd {
+    IP 192.168.77.1
+    MAC 00:24:e8:4d:00:01
+}
+
+// INSTRUCTION: Request remote port forwarding via MSG_CODE 80 and open a forwarded-tcpip channel (90/91).
+FLOW ssh_remote_port_forward(dev, relay) {
+    dev -> relay SSH MSG_CODE 80 PAYLOAD "tcpip-forward:0.0.0.0:8443" WAIT 5ms
+    dev <- relay SSH MSG_CODE 81 PAYLOAD "bound-port-8443" WAIT 10ms
+    dev <- relay SSH MSG_CODE 90 PAYLOAD "forwarded-tcpip:0.0.0.0:8443" WAIT 2ms
+    dev -> relay SSH MSG_CODE 91 PAYLOAD "channel-1-open-confirmed"
+}
+
+// INSTRUCTION: Compile the SSH remote port forwarding tunnel flow.
+COMPILE {
+    ssh_remote_port_forward(dev_workstation, cloud_relay_sshd)
+}

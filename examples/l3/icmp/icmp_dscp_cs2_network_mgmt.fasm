@@ -1,0 +1,19 @@
+// PROMPT: OAM ICMP Echo probe marked with DSCP CS2 (16) and ECN ECT(1) for network management telemetry.
+// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, DSCP, ECN, TTL, ECHO_REPLY, WAIT, COMPILE
+
+// INSTRUCTION: Define network operations center probe engine.
+HOST noc_probe_srv { IP 198.51.100.15 }
+
+// INSTRUCTION: Define remote branch WAN router.
+HOST branch_wan_rtr { IP 198.51.100.16 }
+
+// INSTRUCTION: Define DSCP CS2 (16) marked ICMP ping exchange with 20ms latency.
+FLOW icmp_cs2_oam_ping(noc, br) {
+    noc -> br ICMP ECHO_REQUEST ID 3001 SEQ 1 DSCP 16 ECN 1 TTL 128
+    noc <- br ICMP ECHO_REPLY ID 3001 SEQ 1 DSCP 16 ECN 1 TTL 126 WAIT 20ms
+}
+
+// INSTRUCTION: Compile the DSCP CS2 OAM ICMP ping flow.
+COMPILE {
+    icmp_cs2_oam_ping(noc_probe_srv, branch_wan_rtr)
+}

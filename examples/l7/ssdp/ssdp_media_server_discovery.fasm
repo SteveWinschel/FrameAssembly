@@ -1,0 +1,20 @@
+// PROMPT: SSDP M-SEARCH broadcast locating DLNA MediaServer storage appliances.
+// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, ST, MX, MAN, COMPILE
+
+// INSTRUCTION: Define smart TV control point.
+HOST smart_tv { IP 192.168.2.40 }
+
+// INSTRUCTION: Define SSDP multicast group.
+HOST upnp_multicast { IP 239.255.255.250 }
+
+// INSTRUCTION: Define MediaServer discovery query flow.
+FLOW ssdp_server_flow(c, s) {
+    c -> s SSDP MSEARCH
+        ST "urn:schemas-upnp-org:device:MediaServer:1"
+        MX 2 MAN "\"ssdp:discover\""
+}
+
+// INSTRUCTION: Compile block executing MediaServer search.
+COMPILE {
+    ssdp_server_flow(smart_tv, upnp_multicast)
+}

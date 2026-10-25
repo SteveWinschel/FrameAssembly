@@ -1,0 +1,21 @@
+// PROMPT: SIP PUBLISH request (RFC 3903) uploading user availability state to Event State Compositor.
+// TOKENS: HOST, IP, FLOW, SIP, METHOD, URI, FROM, TO, CALL_ID, CSEQ, CONTENT_TYPE, BODY, WAIT, STATUS, REASON, COMPILE
+// INSTRUCTION: Define unified communications desktop client publishing DND status.
+HOST uc_client {
+    IP 192.168.44.80
+}
+// INSTRUCTION: Define SIP Event State Compositor server.
+HOST esc_server {
+    IP 192.168.44.1
+}
+// INSTRUCTION: Define SIP PUBLISH PIDF+XML presence upload and 200 OK response.
+FLOW sip_publish_state(c, s) {
+    c -> s SIP METHOD "PUBLISH" URI "sip:alice@192.168.44.1" FROM "sip:alice@192.168.44.80" TO "sip:alice@192.168.44.1"
+        CALL_ID "pub-3903" CSEQ 1
+        CONTENT_TYPE "application/pidf+xml" BODY "<presence entity='sip:alice'/>" WAIT 5ms
+    c <- s SIP STATUS 200 REASON "OK" CALL_ID "pub-3903" CSEQ 1
+}
+// INSTRUCTION: Compile the SIP PUBLISH presence upload flow.
+COMPILE {
+    sip_publish_state(uc_client, esc_server)
+}

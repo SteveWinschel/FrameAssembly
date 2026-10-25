@@ -1,0 +1,25 @@
+// PROMPT: Long-lived QUIC 1-RTT session rotating cryptographic keys across consecutive packet numbers.
+// TOKENS: HOST, IP, FLOW, QUIC, SHORT, DCID, PKT_NUM, HEXPAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define encrypted backup agent client host.
+HOST backup_agent {
+    IP 10.19.8.30
+}
+
+// INSTRUCTION: Define cloud archive QUIC vault server host.
+HOST vault_server {
+    IP 10.19.8.1
+}
+
+// INSTRUCTION: Define sequence of 1-RTT Short header packets before and after key phase bit rotation.
+FLOW quic_key_update(c, s) {
+    c -> s QUIC SHORT DCID 0xabcdef0123456789 PKT_NUM 1000 HEXPAYLOAD "aa0001" WAIT 3ms
+    c <- s QUIC SHORT DCID 0x9876543210fedcba PKT_NUM 2000 HEXPAYLOAD "bb0001" WAIT 3ms
+    c -> s QUIC SHORT DCID 0xabcdef0123456789 PKT_NUM 1001 HEXPAYLOAD "cc0002" WAIT 3ms
+    c <- s QUIC SHORT DCID 0x9876543210fedcba PKT_NUM 2001 HEXPAYLOAD "dd0002"
+}
+
+// INSTRUCTION: Compile the QUIC key update Short header sequence.
+COMPILE {
+    quic_key_update(backup_agent, vault_server)
+}

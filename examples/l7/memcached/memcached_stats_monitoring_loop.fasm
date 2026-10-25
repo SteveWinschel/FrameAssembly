@@ -1,0 +1,27 @@
+// PROMPT: Generate a Memcached STATS monitoring polling loop from a Prometheus exporter to a cache node.
+// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, CMD, KEY, OPAQUE, WAIT, PAYLOAD, COMPILE, LOOP
+
+// INSTRUCTION: Define the Prometheus memcached_exporter scraping runtime slab and eviction statistics.
+HOST stats_exporter {
+    IP 10.50.20.90
+    MAC 00:16:3e:50:20:5a
+}
+
+// INSTRUCTION: Define the monitored Memcached server.
+HOST monitored_cache {
+    IP 10.50.20.10
+    MAC 00:16:3e:50:20:0a
+}
+
+// INSTRUCTION: Poll Memcached STATS slabs 3 times in a LOOP block.
+FLOW stats_polling_loop(c, s) {
+    c -> s MEMCACHED CMD "STATS" KEY "items" OPAQUE 900 WAIT 2ms
+    c <- s MEMCACHED CMD "STAT" KEY "items" OPAQUE 900 PAYLOAD "STAT curr_items 14820\r\nSTAT evictions 0\r\nEND\r\n" WAIT 25ms
+}
+
+// INSTRUCTION: Compile the Memcached STATS monitoring loop into a PCAP file.
+COMPILE {
+    LOOP 3 {
+        stats_polling_loop(stats_exporter, monitored_cache)
+    }
+}

@@ -1,0 +1,18 @@
+// PROMPT: VXLAN underlay packet with Don't Fragment (DF) flag set for Path MTU Discovery.
+// TOKENS: HOST, IP, FLOW, VXLAN, VNI, DF, TTL, COMPILE
+
+// INSTRUCTION: Define PMTUD probing VTEP gateway.
+HOST pmtud_vtep_gw { IP 172.17.0.1 }
+
+// INSTRUCTION: Define remote VTEP terminating endpoint.
+HOST pmtud_remote_vtep { IP 172.17.0.2 }
+
+// INSTRUCTION: Define DF flag enabled VXLAN underlay transmission flow.
+FLOW vxlan_pmtud_flow(gw, rem) {
+    gw -> rem VXLAN VNI 30303 DF TTL 64
+}
+
+// INSTRUCTION: Compile block executing PMTUD enabled VXLAN encapsulation.
+COMPILE {
+    vxlan_pmtud_flow(pmtud_vtep_gw, pmtud_remote_vtep)
+}

@@ -1,0 +1,29 @@
+// PROMPT: Out-of-band network management bastion workflow using TACACS+ AAA authorization, SSH and Telnet CLI access, and TFTP running-config archive.
+// TOKENS: HOST, IP, FLOW, SSH, BANNER, KEXINIT, WAIT, TACACS, AUTHEN, SESSION_ID, USER, AUTHOR, TFTP, WRQ, FILENAME, MODE, BLOCK, ACCT, TELNET, WILL, DO, COMPILE
+
+// INSTRUCTION: Define network engineer jumpbox workstation.
+HOST neteng_jumpbox { IP 10.254.100.10 }
+
+// INSTRUCTION: Define core router being administered and backed up.
+HOST managed_core_rtr { IP 10.254.100.1 }
+
+// INSTRUCTION: Define centralized TACACS+ AAA security server and TFTP config vault.
+HOST tacacs_tftp_vault { IP 10.254.100.200 }
+
+// INSTRUCTION: Define SSH login to router, TACACS+ authentication/command authorization, legacy Telnet check, and TFTP config upload.
+FLOW oob_network_admin_workflow(eng, rtr, vault) {
+    eng -> rtr SSH BANNER "SSH-2.0-OpenSSH_9.7"
+    eng <- rtr SSH KEXINIT WAIT 1ms
+    rtr -> vault TACACS AUTHEN SESSION_ID 0x88001122 USER "netadmin_steve" WAIT 1ms
+    rtr -> vault TACACS AUTHOR SESSION_ID 0x88001122 USER "netadmin_steve" WAIT 1ms
+    rtr -> vault TFTP WRQ FILENAME "core-rtr-01-running-cfg" MODE "octet" WAIT 2ms
+    rtr -> vault TFTP BLOCK 1 WAIT 1ms
+    rtr -> vault TACACS ACCT SESSION_ID 0x88001122 USER "netadmin_steve" WAIT 1ms
+    eng -> rtr TELNET WILL 3 WAIT 2ms
+    eng <- rtr TELNET DO 3 WAIT 1ms
+}
+
+// INSTRUCTION: Compile block executing OOB TACACS+, SSH, Telnet, and TFTP administration topology.
+COMPILE {
+    oob_network_admin_workflow(neteng_jumpbox, managed_core_rtr, tacacs_tftp_vault)
+}

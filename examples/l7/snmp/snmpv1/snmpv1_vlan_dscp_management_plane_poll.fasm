@@ -1,0 +1,25 @@
+// PROMPT: SNMPv1 management VLAN 161 query marked with DSCP CS2 (16) reading interface octet counters.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, GET, COMMUNITY, REQID, VLAN, PCP, DSCP, VARBIND, NULLVAL, RESPONSE, COUNTER32, COMPILE
+
+// INSTRUCTION: Define the out-of-band management poller.
+HOST oob_poller {
+    IP 10.145.110.10
+    MAC 00:1a:2b:91:b0:10
+}
+
+// INSTRUCTION: Define the spine switch agent on management VLAN 161.
+HOST spine_sw {
+    IP 10.145.110.1
+    MAC 00:1a:2b:91:b0:01
+}
+
+// INSTRUCTION: Poll ifInOctets.1 and ifOutOctets.1 over VLAN 161 with DSCP 16.
+FLOW snmpv1_vlan_octets(m, s) {
+    m -> s SNMP1 GET COMMUNITY "oob_ro" REQID 11200 VLAN 161 PCP 2 DSCP 16 VARBIND 1.3.6.1.2.1.2.2.1.10.1 NULLVAL VARBIND 1.3.6.1.2.1.2.2.1.16.1 NULLVAL
+    m <- s SNMP1 RESPONSE COMMUNITY "oob_ro" REQID 11200 VLAN 161 PCP 2 DSCP 16 VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 841209500 VARBIND 1.3.6.1.2.1.2.2.1.16.1 COUNTER32 612094100
+}
+
+// INSTRUCTION: Compile the VLAN-tagged DSCP-marked SNMPv1 counter flow.
+COMPILE {
+    snmpv1_vlan_octets(oob_poller, spine_sw)
+}

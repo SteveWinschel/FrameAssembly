@@ -1,0 +1,21 @@
+// PROMPT: WHOIS server response payload returning domain delegation registrar records.
+// TOKENS: HOST, IP, FLOW, WHOIS, QUERY, DOMAIN, RESPONSE, REGISTRAR, COMPILE
+
+// INSTRUCTION: Define domain registrar inspector.
+HOST registrar_insp { IP 10.85.12.4 }
+
+// INSTRUCTION: Define authoritative registry database.
+HOST registry_db { IP 198.51.100.75 }
+
+// INSTRUCTION: Define delegation response flow.
+FLOW whois_delegation_flow(c, s) {
+    c -> s WHOIS QUERY DOMAIN "hybrid-cloud-networks.com"
+    c <- s WHOIS RESPONSE
+        DOMAIN "hybrid-cloud-networks.com"
+        REGISTRAR "VeriSign Global Registry"
+}
+
+// INSTRUCTION: Compile block executing delegation verification.
+COMPILE {
+    whois_delegation_flow(registrar_insp, registry_db)
+}

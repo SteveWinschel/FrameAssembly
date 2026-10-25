@@ -1,0 +1,25 @@
+// PROMPT: Carrier Layer 2 Protocol Tunneling (L2PT) encapsulating customer Spanning Tree BPDUs inside QinQ S-VLAN 4000 C-VLAN 1.
+// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSTMAC, RSTP, ROOT_ID, BRIDGE_ID, PORT_ID, COST, FLAGS, WAIT, COMPILE
+
+// INSTRUCTION: Define customer headquarters root switch sending RSTP BPDUs into carrier UNI port.
+HOST cust_hq_root_sw {
+    IP 10.1.0.1
+    MAC 00:1c:73:01:00:01
+}
+
+// INSTRUCTION: Define customer branch switch receiving tunneled RSTP BPDUs from remote carrier UNI port.
+HOST cust_branch_sw {
+    IP 10.1.0.2
+    MAC 00:1c:73:01:00:02
+}
+
+// INSTRUCTION: Tunnel customer RSTP BPDUs transparently across carrier QinQ S-VLAN 4000 C-VLAN 1 with provider MAC rewrite.
+FLOW qinq_l2pt_rstp_tunnel(hq, br) {
+    hq -> br QINQ 4000 INNER_VLAN 1 DSTMAC 01:00:0c:cd:cd:d0 RSTP ROOT_ID "32768:00:1c:73:01:00:01" BRIDGE_ID "32768:00:1c:73:01:00:01" PORT_ID 32769 COST 0 FLAGS 62 WAIT 10ms
+    hq <- br QINQ 4000 INNER_VLAN 1 DSTMAC 01:00:0c:cd:cd:d0 RSTP ROOT_ID "32768:00:1c:73:01:00:01" BRIDGE_ID "32768:00:1c:73:01:00:02" PORT_ID 32770 COST 2000 FLAGS 60
+}
+
+// INSTRUCTION: Compile the carrier L2PT QinQ S-VLAN 4000 C-VLAN 1 RSTP BPDU tunnel trace.
+COMPILE {
+    qinq_l2pt_rstp_tunnel(cust_hq_root_sw, cust_branch_sw)
+}

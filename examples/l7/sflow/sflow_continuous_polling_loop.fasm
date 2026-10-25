@@ -1,0 +1,20 @@
+// PROMPT: Continuous 1-second sFlow counter polling export using a COMPILE LOOP block.
+// TOKENS: HOST, IP, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, WAIT, COMPILE, LOOP
+
+// INSTRUCTION: Define core modular chassis switch.
+HOST core_chassis { IP 192.168.63.1 }
+
+// INSTRUCTION: Define sFlow time-series ingestion server.
+HOST ts_collector { IP 192.168.63.50 }
+
+// INSTRUCTION: Define single sFlow export datagram with 1s interval.
+FLOW sflow_periodic_tick(sw, coll) {
+    sw -> coll SFLOW AGENT_IP 192.168.63.1 SUB_AGENT_ID 0 UPTIME 500000 SAMPLES 5 WAIT 1s
+}
+
+// INSTRUCTION: Execute 5 sFlow export intervals in COMPILE LOOP.
+COMPILE {
+    LOOP 5 {
+        sflow_periodic_tick(core_chassis, ts_collector)
+    }
+}

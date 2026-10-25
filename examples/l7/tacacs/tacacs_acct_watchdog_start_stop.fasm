@@ -1,0 +1,32 @@
+// PROMPT: Model a TACACS+ accounting watchdog interim update (ACCT_FLAG_WATCHDOG) reporting elapsed session time and byte counters.
+// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TACACS, ACCT, SESSION_ID, USER, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define host endpoint ras_gateway.
+HOST ras_gateway {
+    MAC 00:24:e8:49:40:01
+    IP 192.168.49.10
+}
+
+// INSTRUCTION: Define host endpoint acct_collector.
+HOST acct_collector {
+    MAC 00:24:e8:49:40:02
+    IP 192.168.49.2
+}
+
+// INSTRUCTION: Send an ACCT START record followed by a WATCHDOG interim update and ACCT STOP record.
+FLOW tacacs_acct_watchdog_update(ras_gateway, acct_collector) {
+    ras_gateway -> acct_collector TCP SYN SRCPORT 60049 DSTPORT 49
+    acct_collector -> ras_gateway TCP SYN ACK
+    ras_gateway -> acct_collector TCP ACK
+    ras_gateway -> acct_collector TACACS ACCT SESSION_ID 77400 USER "field_tech" PAYLOAD "flags=START:task_id=19:start_time=1729810000"
+    acct_collector -> ras_gateway TACACS ACCT SESSION_ID 77400 PAYLOAD "ACCT_STATUS_SUCCESS" WAIT 50ms
+    ras_gateway -> acct_collector TACACS ACCT SESSION_ID 77400 USER "field_tech" PAYLOAD "flags=WATCHDOG:task_id=19:elapsed_time=300:bytes_in=14200"
+    acct_collector -> ras_gateway TACACS ACCT SESSION_ID 77400 PAYLOAD "ACCT_STATUS_SUCCESS" WAIT 50ms
+    ras_gateway -> acct_collector TACACS ACCT SESSION_ID 77400 USER "field_tech" PAYLOAD "flags=STOP:task_id=19:elapsed_time=600:disc-cause=1"
+    acct_collector -> ras_gateway TACACS ACCT SESSION_ID 77400 PAYLOAD "ACCT_STATUS_SUCCESS"
+}
+
+// INSTRUCTION: Compile the TACACS+ accounting start, watchdog, and stop flow.
+COMPILE {
+    tacacs_acct_watchdog_update(ras_gateway, acct_collector)
+}

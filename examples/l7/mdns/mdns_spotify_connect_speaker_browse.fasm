@@ -1,0 +1,26 @@
+// PROMPT: Simulate a Spotify Connect smart speaker discovery over mDNS querying _spotify-connect._tcp.local on VLAN 25.
+// TOKENS: HOST, IP, MAC, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, VLAN, PCP, TTL, WAIT, RESPONSE, RDATA, ANS_TTL, COMPILE
+
+// INSTRUCTION: Define the mobile listener endpoint on home entertainment VLAN 25.
+HOST listener_phone {
+    IP 10.25.0.34
+    MAC 3c:22:fb:25:00:34
+}
+
+// INSTRUCTION: Define the Wi-Fi soundbar responder on VLAN 25.
+HOST wifi_soundbar {
+    IP 10.25.0.88
+    MAC 00:0e:58:25:00:88
+}
+
+// INSTRUCTION: Query _spotify-connect._tcp.local and return the CPath API endpoint over VLAN 25.
+FLOW spotify_connect_mdns(phone, speaker) {
+    phone -> speaker MDNS QUERY TXID 0 QNAME "_spotify-connect._tcp.local" QTYPE "PTR" VLAN 25 PCP 2 TTL 255 WAIT 5ms
+    phone <- speaker MDNS RESPONSE TXID 0 QNAME "_spotify-connect._tcp.local" QTYPE "PTR" RDATA "LivingRoom-Bar._spotify-connect._tcp.local" ANS_TTL 120 VLAN 25 PCP 2 TTL 255 WAIT 2ms
+    phone <- speaker MDNS RESPONSE TXID 0 QNAME "LivingRoom-Bar._spotify-connect._tcp.local" QTYPE "SRV" RDATA "soundbar.local:4070" ANS_TTL 120 VLAN 25 PCP 2 TTL 255
+}
+
+// INSTRUCTION: Compile the VLAN-tagged Spotify Connect mDNS browse trace.
+COMPILE {
+    spotify_connect_mdns(listener_phone, wifi_soundbar)
+}

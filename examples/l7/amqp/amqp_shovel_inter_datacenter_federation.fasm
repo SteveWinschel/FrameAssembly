@@ -1,0 +1,28 @@
+// PROMPT: RabbitMQ Shovel plugin forwarding messages from an edge datacenter broker to a central hub broker.
+// TOKENS: HOST, IP, MAC, FLOW, AMQP, PROTOCOL_HEADER, CONNECTION_START, WAIT, CHANNEL_OPEN, CHANNEL, BASIC_PUBLISH, EXCHANGE, ROUTING_KEY, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define the edge datacenter RabbitMQ node running the Shovel plugin.
+HOST edge_rmq {
+    IP 172.26.115.10
+    MAC 00:1a:2b:1a:73:10
+}
+
+// INSTRUCTION: Define the central cloud RabbitMQ hub cluster.
+HOST hub_rmq {
+    IP 172.26.1.10
+    MAC 00:1a:2b:1a:01:10
+}
+
+// INSTRUCTION: Establish AMQP protocol header handshake and shovel telemetry batches across channel 1.
+FLOW amqp_shovel_forward(e, h) {
+    e -> h AMQP PROTOCOL_HEADER
+    e <- h AMQP CONNECTION_START WAIT 2ms
+    e -> h AMQP CHANNEL_OPEN CHANNEL 1
+    e <- h AMQP CHANNEL_OPEN CHANNEL 1 WAIT 2ms
+    e -> h AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "central.ingest" ROUTING_KEY "site.eu_west.metrics" PAYLOAD "{'site':'eu_west','cpu_avg':0.64}"
+}
+
+// INSTRUCTION: Compile the inter-datacenter RabbitMQ Shovel flow.
+COMPILE {
+    amqp_shovel_forward(edge_rmq, hub_rmq)
+}

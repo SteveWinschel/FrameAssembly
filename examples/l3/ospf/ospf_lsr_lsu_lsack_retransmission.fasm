@@ -1,0 +1,27 @@
+// PROMPT: Simulate an OSPF Link State Request (LSR), Link State Update (LSU) retransmission, and explicit LSAck confirmation
+// TOKENS: HOST, IP, MAC, FLOW, OSPF, LSR, ROUTER_ID, AREA_ID, TTL, PAYLOAD, WAIT, LSU, LSACK, COMPILE
+
+// INSTRUCTION: Define the requesting OSPF router in Loading state
+HOST loading_rtr {
+    IP 10.88.1.1
+    MAC 00:16:3e:f9:88:01
+}
+
+// INSTRUCTION: Define the responding OSPF neighbor holding the latest LSDB
+HOST database_rtr {
+    IP 10.88.1.2
+    MAC 00:16:3e:f9:88:02
+}
+
+// INSTRUCTION: Request missing LSAs via LSR, retransmit LSU after timeout, and acknowledge with LSACK
+FLOW ospf_lsr_lsu_retransmit(requester, responder) {
+    requester -> responder OSPF LSR ROUTER_ID 10.88.0.1 AREA_ID 88 TTL 1 PAYLOAD "lsr-type1-router-lsa-10.88.0.2" WAIT 10ms
+    responder -> requester OSPF LSU ROUTER_ID 10.88.0.2 AREA_ID 88 TTL 1 PAYLOAD "lsu-type1-router-lsa-seq-0x80000005" WAIT 50ms
+    responder -> requester OSPF LSU ROUTER_ID 10.88.0.2 AREA_ID 88 TTL 1 PAYLOAD "lsu-type1-router-lsa-seq-0x80000005-retransmit" WAIT 10ms
+    requester -> responder OSPF LSACK ROUTER_ID 10.88.0.1 AREA_ID 88 TTL 1 PAYLOAD "lsack-type1-router-lsa-seq-0x80000005"
+}
+
+// INSTRUCTION: Compile the OSPF LSR/LSU retransmission and acknowledgment trace
+COMPILE {
+    ospf_lsr_lsu_retransmit(loading_rtr, database_rtr)
+}

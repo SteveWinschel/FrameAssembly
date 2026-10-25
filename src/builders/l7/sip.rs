@@ -1,10 +1,24 @@
-//! SIP protocol wire builder.
+//! Session Initiation Protocol (SIP) (RFC 3261 / RFC 3262 (PRACK) / RFC 3428 (MESSAGE) / RFC 4566 (SDP)) Layer 7 wire packet builder.
+//!
+//! This module synthesizes deterministic on-the-wire Session Initiation Protocol (SIP) frames over UDP/TCP port 5060 (SIP) and TCP/TLS port 5061 (SIPS).
+//! The wire encoder constructs a UTF-8 text signaling message starting with a Request-Line (`<METHOD> <URI> SIP/2.0\r\n` for `INVITE`, `ACK`, `BYE`, `CANCEL`, `REGISTER`, `OPTIONS`, `MESSAGE`) or Status-Line (`SIP/2.0 <STATUS> <REASON>\r\n` e.g. `100 Trying`, `180 Ringing`, `200 OK`, `401 Unauthorized`, `486 Busy Here`), followed by `Via:`, `From:`, `To:`, `Call-ID:`, `CSeq:`, `Contact:`, `Content-Type:`, `Content-Length:`, and optional `application/sdp` body. When optional fields in [`SipSpec`]
+//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//!
+//! Canonical `.fasm` syntax:
+//! `a -> b SIP [INVITE | BYE | CANCEL | METHOD <str>] [URI <str>] [STATUS <u16>] [REASON <str>] [FROM <str>] [TO <str>] [CALL_ID <str>] [CSEQ <u32>] [VIA <str>] [CONTACT <str>] [CONTENT_TYPE <str>] [BODY <str>] [TRANSPORT TCP]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 3261 SIP VoIP message string.
+/// Syntax mapping: `SIP [INVITE | BYE | CANCEL | METHOD <str>] [URI <str>] [STATUS <u16>] [REASON <str>] [FROM <str>] [TO <str>] [CALL_ID <str>] [CSEQ <u32>] [VIA <str>] [CONTACT <str>] [CONTENT_TYPE <str>] [BODY <str>] [TRANSPORT TCP]`
+#[doc(alias = "SIP")]
+#[doc(alias = "VOIP")]
+#[doc(alias = "RFC3261")]
+#[doc(alias = "INVITE")]
+#[doc(alias = "CALL_ID")]
+#[doc(alias = "CSEQ")]
 pub fn build_sip_payload(
     ctx: &WireContext,
     spec: &SipSpec,
@@ -13,6 +27,7 @@ pub fn build_sip_payload(
     let mut out = String::new();
     let call_id = spec.call_id.unwrap_or("call123@pbx");
     let cseq = spec.cseq.unwrap_or(1);
+    let cseq_method = spec.method.unwrap_or("INVITE");
 
     if let Some(status) = spec.status {
         let reason = spec.reason.unwrap_or("OK");
@@ -26,9 +41,29 @@ pub fn build_sip_payload(
         if let Some(to) = spec.to {
             out.push_str(&format!("To: {}\r\n", to));
         }
-        out.push_str(&format!("Call-ID: {}\r\nCSeq: {} INVITE\r\n", call_id, cseq));
+        out.push_str(&format!(
+            "Call-ID: {}\r\nCSeq: {} {}\r\n",
+            call_id, cseq, cseq_method
+        ));
+        if let Some(contact) = spec.contact {
+            if contact.starts_with('<') {
+                out.push_str(&format!("Contact: {}\r\n", contact));
+            } else {
+                out.push_str(&format!("Contact: <{}>\r\n", contact));
+            }
+        }
+        if let Some(ct) = spec.content_type {
+            out.push_str(&format!("Content-Type: {}\r\n", ct));
+        } else if !payload_bytes.is_empty() {
+            out.push_str("Content-Type: application/sdp\r\n");
+        }
         if let Some(body) = spec.body {
             out.push_str(&format!("Content-Length: {}\r\n\r\n{}", body.len(), body));
+        } else if !payload_bytes.is_empty() {
+            out.push_str(&format!("Content-Length: {}\r\n\r\n", payload_bytes.len()));
+            let mut bytes = out.into_bytes();
+            bytes.extend_from_slice(payload_bytes);
+            return bytes;
         } else {
             out.push_str("Content-Length: 0\r\n\r\n");
         }
@@ -37,9 +72,27 @@ pub fn build_sip_payload(
         let uri = spec.uri.unwrap_or("sip:service@pbx.local");
         let from = spec.from.unwrap_or("sip:alice@pbx");
         let to = spec.to.unwrap_or("sip:bob@pbx");
-        let via = spec.via.map(|v| v.to_string()).unwrap_or_else(|| format!("SIP/2.0/UDP {}:5060;branch=z9hG4bK-1", ctx.src_ip));
+        let via = spec
+            .via
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| format!("SIP/2.0/UDP {}:5060;branch=z9hG4bK-1", ctx.src_ip));
 
-        out.push_str(&format!("{} {} SIP/2.0\r\nVia: {}\r\nFrom: <{}>;tag=1\r\nTo: <{}>\r\nCall-ID: {}\r\nCSeq: {} {}\r\n", method, uri, via, from, to, call_id, cseq, method));
+        out.push_str(&format!(
+            "{} {} SIP/2.0\r\nVia: {}\r\nFrom: <{}>;tag=1\r\nTo: <{}>\r\nCall-ID: {}\r\nCSeq: {} {}\r\n",
+            method, uri, via, from, to, call_id, cseq, method
+        ));
+        if let Some(contact) = spec.contact {
+            if contact.starts_with('<') {
+                out.push_str(&format!("Contact: {}\r\n", contact));
+            } else {
+                out.push_str(&format!("Contact: <{}>\r\n", contact));
+            }
+        }
+        if let Some(ct) = spec.content_type {
+            out.push_str(&format!("Content-Type: {}\r\n", ct));
+        } else if !payload_bytes.is_empty() {
+            out.push_str("Content-Type: application/sdp\r\n");
+        }
         if let Some(body) = spec.body {
             out.push_str(&format!("Content-Length: {}\r\n\r\n{}", body.len(), body));
         } else if !payload_bytes.is_empty() {

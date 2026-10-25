@@ -1,0 +1,29 @@
+// PROMPT: 5G XnAP direct inter-gNodeB signaling over IPv6 SCTP port 38422 with PPID 61.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, INIT, VTAG, SRCPORT, DSTPORT, WAIT, INIT_ACK, COOKIE_ECHO, PAYLOAD, COOKIE_ACK, DATA, STREAM, SSN, PPID, SACK, COMPILE
+
+// INSTRUCTION: Define neighboring 5G gNodeB West Xn-C IPv6 interface.
+HOST gnb_west_xn_v6 {
+    IP 2001:db8:384:22::1
+    MAC 00:11:22:38:22:01
+}
+
+// INSTRUCTION: Define neighboring 5G gNodeB East Xn-C IPv6 interface.
+HOST gnb_east_xn_v6 {
+    IP 2001:db8:384:22::2
+    MAC 00:11:22:38:22:02
+}
+
+// INSTRUCTION: Establish Xn-C SCTP association on port 38422 and exchange XnAP Setup Request/Response (PPID 61).
+FLOW sctp_5g_xnap_setup(west, east) {
+    west -> east DSCP 46 SCTP CHUNK INIT VTAG 0 SRCPORT 38422 DSTPORT 38422 WAIT 2ms
+    west <- east DSCP 46 SCTP CHUNK INIT_ACK VTAG 610022 SRCPORT 38422 DSTPORT 38422 WAIT 2ms
+    west -> east DSCP 46 SCTP CHUNK COOKIE_ECHO VTAG 610022 SRCPORT 38422 DSTPORT 38422 PAYLOAD "xnap_cookie_v6" WAIT 2ms
+    west <- east DSCP 46 SCTP CHUNK COOKIE_ACK VTAG 610022 SRCPORT 38422 DSTPORT 38422 WAIT 2ms
+    west -> east DSCP 46 SCTP CHUNK DATA VTAG 610022 STREAM 0 SSN 0 PPID 61 SRCPORT 38422 DSTPORT 38422 PAYLOAD "xnap_xn_setup_request_tai_list" WAIT 2ms
+    west <- east DSCP 46 SCTP CHUNK SACK VTAG 610022 SRCPORT 38422 DSTPORT 38422
+}
+
+// INSTRUCTION: Compile the 5G XnAP direct inter-gNodeB IPv6 SCTP trace.
+COMPILE {
+    sctp_5g_xnap_setup(gnb_west_xn_v6, gnb_east_xn_v6)
+}

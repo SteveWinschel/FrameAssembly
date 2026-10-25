@@ -1,0 +1,18 @@
+// PROMPT: IGMP Group-Specific Query auditing active listeners for video group 239.255.10.20.
+// TOKENS: HOST, IP, FLOW, IGMP, QUERY, MAX_RESP, GROUP, COMPILE
+
+// INSTRUCTION: Define multicast access switch querier.
+HOST igmp_access_querier { IP 192.168.100.1 }
+
+// INSTRUCTION: Define video multicast target group address.
+HOST igmp_video_mcast { IP 239.255.10.20 }
+
+// INSTRUCTION: Define group-specific IGMP query flow with aggressive 2s max-response timer.
+FLOW igmp_specific_query(querier, grp) {
+    querier -> grp IGMP QUERY MAX_RESP 20 GROUP 239.255.10.20
+}
+
+// INSTRUCTION: Compile block executing IGMP group-specific query.
+COMPILE {
+    igmp_specific_query(igmp_access_querier, igmp_video_mcast)
+}

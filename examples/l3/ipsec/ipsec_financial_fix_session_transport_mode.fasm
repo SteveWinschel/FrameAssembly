@@ -1,0 +1,25 @@
+// PROMPT: Host-to-host IPsec Transport Mode (NEXT_HEADER 6) protecting a low-latency FIX trading session.
+// TOKENS: HOST, IP, MAC, FLOW, DSCP, DF, IPSEC, SPI, SEQ, NEXT_HEADER, IV, ICV, PAYLOAD, WAIT, COMPILE
+
+// INSTRUCTION: Define buy-side order management gateway encrypting outbound TCP FIX messages.
+HOST fix_oms_initiator {
+    IP 10.77.10.11
+    MAC 00:0f:53:4d:0a:0b
+}
+
+// INSTRUCTION: Define sell-side matching engine gateway decrypting inbound IPsec transport frames.
+HOST fix_match_acceptor {
+    IP 10.77.10.22
+    MAC 00:0f:53:4d:0a:16
+}
+
+// INSTRUCTION: Transmit sequential Transport Mode IPsec packets (Next Header 6 for TCP) with AES-GCM IV and ICV.
+FLOW ipsec_fix_transport(oms, match_eng) {
+    oms -> match_eng DSCP 46 DF IPSEC SPI 31001 SEQ 501 NEXT_HEADER 6 IV "00000000000001f5" ICV "1a2b3c4d5e6f7a8b9c0d1e2f" PAYLOAD "8=FIX.4.4|35=D|49=BUY|56=SELL|38=500" WAIT 2ms
+    oms <- match_eng DSCP 46 DF IPSEC SPI 32002 SEQ 501 NEXT_HEADER 6 IV "00000000000001f5" ICV "f2e1d0c9b8a7f6e5d4c3b2a1" PAYLOAD "8=FIX.4.4|35=8|49=SELL|56=BUY|39=2"
+}
+
+// INSTRUCTION: Compile the low-latency IPsec Transport Mode FIX trading exchange.
+COMPILE {
+    ipsec_fix_transport(fix_oms_initiator, fix_match_acceptor)
+}

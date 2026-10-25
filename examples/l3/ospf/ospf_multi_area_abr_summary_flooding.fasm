@@ -1,0 +1,35 @@
+// PROMPT: Simulate an OSPF Area Border Router (ABR) flooding summary LSAs between Backbone Area 0 and Regional Area 51
+// TOKENS: HOST, IP, MAC, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, TTL, WAIT, LSU, LSACK, COMPILE
+
+// INSTRUCTION: Define the Backbone Area 0 internal router
+HOST area0_core {
+    IP 10.0.0.1
+    MAC 00:50:56:f3:00:01
+}
+
+// INSTRUCTION: Define the Area Border Router connecting Area 0 and Area 51
+HOST abr_border {
+    IP 10.0.0.2
+    MAC 00:50:56:f3:00:02
+}
+
+// INSTRUCTION: Define the Regional Area 51 internal router
+HOST area51_internal {
+    IP 10.51.0.2
+    MAC 00:50:56:f3:51:02
+}
+
+// INSTRUCTION: Receive an Area 0 LSU on the ABR and flood a summary LSU into Area 51
+FLOW ospf_abr_inter_area_flood(core, abr, internal) {
+    core -> abr OSPF HELLO ROUTER_ID 10.0.0.1 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 1 TTL 1 WAIT 10ms
+    core -> abr OSPF LSU ROUTER_ID 10.0.0.1 AREA_ID 0 TTL 1 WAIT 5ms
+    abr -> core OSPF LSACK ROUTER_ID 10.0.0.2 AREA_ID 0 TTL 1 WAIT 15ms
+    abr -> internal OSPF HELLO ROUTER_ID 10.0.0.2 AREA_ID 51 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 100 TTL 1 WAIT 10ms
+    abr -> internal OSPF LSU ROUTER_ID 10.0.0.2 AREA_ID 51 TTL 1 WAIT 5ms
+    internal -> abr OSPF LSACK ROUTER_ID 10.51.0.2 AREA_ID 51 TTL 1
+}
+
+// INSTRUCTION: Compile the multi-area ABR OSPF flooding sequence
+COMPILE {
+    ospf_abr_inter_area_flood(area0_core, abr_border, area51_internal)
+}

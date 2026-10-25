@@ -1,0 +1,18 @@
+// PROMPT: VRRP failover redundancy signaling encapsulated across MPLS core network.
+// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, VIP, MPLS, COMPILE
+
+// INSTRUCTION: Define provider edge redundancy gateway.
+HOST mpls_pe_redundancy_gw { IP 172.24.0.254 }
+
+// INSTRUCTION: Define MPLS core multicast listener.
+HOST mpls_core_mcast_dst { IP 224.0.0.18 }
+
+// INSTRUCTION: Define MPLS labeled VRRP advertisement flow with label 4096.
+FLOW vrrp_mpls_flow(gw, dst) {
+    gw -> dst VRRP VRID 50 PRIORITY 210 VIP 172.24.0.1 MPLS 4096
+}
+
+// INSTRUCTION: Compile block executing MPLS transported VRRP heartbeat.
+COMPILE {
+    vrrp_mpls_flow(mpls_pe_redundancy_gw, mpls_core_mcast_dst)
+}

@@ -1,0 +1,19 @@
+// PROMPT: Legacy industrial RTU serial-to-ethernet console telemetry query.
+// TOKENS: HOST, IP, FLOW, TELNET, PAYLOAD, COMPILE
+
+// INSTRUCTION: Define SCADA polling master.
+HOST scada_poller { IP 10.12.34.50 }
+
+// INSTRUCTION: Define industrial terminal server RTU.
+HOST scada_rtu { IP 10.12.34.1 }
+
+// INSTRUCTION: Define RTU telemetry query flow.
+FLOW telnet_rtu_flow(c, s) {
+    c -> s TELNET PAYLOAD "READ STATUS\r\n"
+    c <- s TELNET PAYLOAD "STATUS=OK VOLT=24.2 CURRENT=1.4A\r\n"
+}
+
+// INSTRUCTION: Compile block executing RTU polling.
+COMPILE {
+    telnet_rtu_flow(scada_poller, scada_rtu)
+}

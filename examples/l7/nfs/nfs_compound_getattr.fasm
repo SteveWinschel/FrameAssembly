@@ -1,5 +1,5 @@
 // PROMPT: NFSv4 compound RPC procedure inspecting file attributes over IPv6.
-// TOKENS: HOST, IP, FLOW, ->, NFS, VERS, PROC, PATH, COMPILE
+// TOKENS: HOST, IP, FLOW, NFS, VERS, PROC, PATH, COMPILE
 
 // INSTRUCTION: Define client endpoint.
 HOST client { IP 2001:db8::80 }

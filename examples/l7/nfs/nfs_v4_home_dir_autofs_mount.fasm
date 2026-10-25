@@ -1,0 +1,29 @@
+// PROMPT: Linux autofs on-demand home directory mount using NFSv4 NULL ping, LOOKUP, and GETATTR.
+// TOKENS: HOST, IP, MAC, FLOW, NFS, VERS, PROC, TAG, WAIT, PATH, COMPILE
+
+// INSTRUCTION: Define the interactive SSH login bastion triggering autofs.
+HOST login_node {
+    IP 10.70.100.20
+    MAC 00:1a:2b:70:a0:20
+}
+
+// INSTRUCTION: Define the central university home directory NFSv4 server.
+HOST homes_srv {
+    IP 10.70.100.1
+    MAC 00:1a:2b:70:a0:01
+}
+
+// INSTRUCTION: Verify server liveness with NULL, then LOOKUP and GETATTR the user home directory.
+FLOW nfs_autofs_mount(c, s) {
+    c -> s NFS VERS 4 PROC "NULL" TAG "autofs_ping"
+    c <- s NFS VERS 4 PROC "NULL" TAG "autofs_ping" WAIT 1ms
+    c -> s NFS VERS 4 PROC "LOOKUP" TAG "autofs_lookup" PATH "/home/faculty/dr_smith"
+    c <- s NFS VERS 4 PROC "LOOKUP" TAG "autofs_lookup" WAIT 1ms
+    c -> s NFS VERS 4 PROC "GETATTR" TAG "autofs_stat" PATH "/home/faculty/dr_smith/.bashrc"
+    c <- s NFS VERS 4 PROC "GETATTR" TAG "autofs_stat"
+}
+
+// INSTRUCTION: Compile the autofs home directory mount flow.
+COMPILE {
+    nfs_autofs_mount(login_node, homes_srv)
+}

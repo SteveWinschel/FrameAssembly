@@ -1,0 +1,24 @@
+// PROMPT: SNMPv1 enterprise trap (1.3.6.1.4.1.9.9.43.2) auditing an interactive CLI running-config modification.
+// TOKENS: HOST, IP, MAC, FLOW, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, INT, COMPILE
+
+// INSTRUCTION: Define the router where an engineer just exited config mode.
+HOST audited_router {
+    IP 10.145.130.1
+    MAC 00:1a:2b:91:d0:01
+}
+
+// INSTRUCTION: Define the security compliance SIEM trap listener.
+HOST siem_trapd {
+    IP 10.145.130.200
+    MAC 00:1a:2b:91:d0:c8
+}
+
+// INSTRUCTION: Send ciscoConfigManEvent trap (GENTRAP 6, SPECTRAP 1) reporting commandSource=commandLine(1).
+FLOW snmpv1_config_change_trap(r, s) {
+    r -> s SNMP1 TRAP COMMUNITY "sec_audit" ENTERPRISE 1.3.6.1.4.1.9.9.43.2 AGENTIP 10.145.130.1 GENTRAP 6 SPECTRAP 1 SYSUPTIME 6048000 VARBIND 1.3.6.1.4.1.9.9.43.1.1.6.1.3.12 INT 1
+}
+
+// INSTRUCTION: Compile the SNMPv1 configuration change audit trap flow.
+COMPILE {
+    snmpv1_config_change_trap(audited_router, siem_trapd)
+}

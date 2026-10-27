@@ -4,6 +4,10 @@ All notable changes to the "frameassembly-vscode" extension will be documented i
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.2.0] - 2026-10-27
+- Enabled full case-insensitive syntax highlighting (`(?i)`) across all keywords, protocols, constants, modifiers, and duration units (`ns`, `us`, `ms`, `s`, `m`).
+- Synchronized with FrameAssembly v1.2.0 release.
+
 ## [1.1.1] - 2026-10-25
 - Added zero-clone `.vsix` bootstrap installation via `install.sh` and synchronized with FrameAssembly v1.1.1.
 

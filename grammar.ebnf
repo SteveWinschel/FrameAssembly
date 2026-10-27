@@ -2,6 +2,8 @@
 (* FrameAssembly Formal Grammar Specification (ISO/IEC 14977 EBNF)           *)
 (* Covers all 81 native protocols, L2-L7 sub-keywords, modifiers & literals. *)
 (* Synchronized with src/lexer/mod.rs and src/parser/                        *)
+(* Note: All keyword, protocol, modifier, and duration terminals are matched *)
+(* ASCII case-insensitively by the lexer (e.g., "HOST", "host", "Host").     *)
 (* ========================================================================= *)
 
 program                 = { top_level_decl } , compile_block , { top_level_decl } ;

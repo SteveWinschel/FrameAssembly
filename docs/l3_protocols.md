@@ -88,50 +88,50 @@ When `ICMP` is used between IPv4 hosts, the compiler emits ICMPv4 (IP Protocol `
 // TOKENS: HOST, IP, MAC, FLOW, ICMP, ECHO_REQUEST, ECHO_REPLY, DEST_UNREACH, TIME_EXCEEDED, REDIRECT, CODE, ID, SEQ, GATEWAY, NDP, ROUTER_SOLICIT, ROUTER_ADVERT, NEIGHBOR_SOLICIT, NEIGHBOR_ADVERT, TARGET, SLLA, TLLA, ROUTER_LIFETIME, TTL, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare IPv4 client and router endpoints.
-HOST client_v4 {
-    IP 192.168.10.50
-    MAC 00:50:56:10:00:50
+host client_v4 {
+    ip 192.168.10.50
+    mac 00:50:56:10:00:50
 }
 
 // INSTRUCTION: Declare the IPv4 core router.
-HOST router_v4 {
-    IP 192.168.10.1
-    MAC 00:50:56:10:00:01
+host router_v4 {
+    ip 192.168.10.1
+    mac 00:50:56:10:00:01
 }
 
 // INSTRUCTION: Declare IPv6 host and router endpoints for ICMPv6 and NDP.
-HOST host_v6 {
-    IP 2001:db8:100::50
-    MAC 00:50:56:60:00:50
+host host_v6 {
+    ip 2001:db8:100::50
+    mac 00:50:56:60:00:50
 }
 
 // INSTRUCTION: Declare the IPv6 first-hop router.
-HOST router_v6 {
-    IP 2001:db8:100::1
-    MAC 00:50:56:60:00:01
+host router_v6 {
+    ip 2001:db8:100::1
+    mac 00:50:56:60:00:01
 }
 
 // INSTRUCTION: Define IPv4 ICMP Echo, Destination Unreachable (Frag Needed Code 4), Time Exceeded, and Redirect.
-FLOW icmpv4_diagnostics(c, r) {
-    c -> r ICMP ECHO_REQUEST ID 1001 SEQ 1 PAYLOAD "IPV4_ECHO_PROBE" WAIT 1ms
-    c <- r ICMP ECHO_REPLY ID 1001 SEQ 1 PAYLOAD "IPV4_ECHO_PROBE" WAIT 1ms
-    c <- r ICMP DEST_UNREACH CODE 4 PAYLOAD "PMTUD_NEXT_HOP_MTU_1400" WAIT 1ms
-    c <- r ICMP TIME_EXCEEDED CODE 0 PAYLOAD "TRACEROUTE_HOP_EXPIRED" WAIT 1ms
-    c <- r ICMP REDIRECT CODE 1 GATEWAY 192.168.10.254 PAYLOAD "REDIRECT_TO_OPTIMAL_RTR" WAIT 1ms
+flow icmpv4_diagnostics(c, r) {
+    c -> r icmp echo_request id 1001 seq 1 payload "IPV4_ECHO_PROBE" wait 1ms
+    c <- r icmp echo_reply id 1001 seq 1 payload "IPV4_ECHO_PROBE" wait 1ms
+    c <- r icmp dest_unreach code 4 payload "PMTUD_NEXT_HOP_MTU_1400" wait 1ms
+    c <- r icmp time_exceeded code 0 payload "TRACEROUTE_HOP_EXPIRED" wait 1ms
+    c <- r icmp redirect code 1 gateway 192.168.10.254 payload "REDIRECT_TO_OPTIMAL_RTR" wait 1ms
 }
 
 // INSTRUCTION: Define IPv6 NDP Router Solicitation/Advertisement, Neighbor Solicitation/Advertisement, and ICMPv6 Ping.
-FLOW ipv6_ndp_and_icmp6(h, r) {
-    h -> r NDP ROUTER_SOLICIT SLLA 00:50:56:60:00:50 TTL 255 WAIT 2ms
-    h <- r NDP ROUTER_ADVERT SLLA 00:50:56:60:00:01 ROUTER_LIFETIME 1800 TTL 255 WAIT 2ms
-    h -> r NDP NEIGHBOR_SOLICIT TARGET 2001:db8:100::1 SLLA 00:50:56:60:00:50 TTL 255 WAIT 2ms
-    h <- r NDP NEIGHBOR_ADVERT TARGET 2001:db8:100::1 TLLA 00:50:56:60:00:01 TTL 255 WAIT 2ms
-    h -> r ICMP ECHO_REQUEST ID 6001 SEQ 1 PAYLOAD "IPV6_ECHO_PROBE" WAIT 1ms
-    h <- r ICMP ECHO_REPLY ID 6001 SEQ 1 PAYLOAD "IPV6_ECHO_PROBE" WAIT 1ms
+flow ipv6_ndp_and_icmp6(h, r) {
+    h -> r ndp router_solicit slla 00:50:56:60:00:50 ttl 255 wait 2ms
+    h <- r ndp router_advert slla 00:50:56:60:00:01 router_lifetime 1800 ttl 255 wait 2ms
+    h -> r ndp neighbor_solicit target 2001:db8:100::1 slla 00:50:56:60:00:50 ttl 255 wait 2ms
+    h <- r ndp neighbor_advert target 2001:db8:100::1 tlla 00:50:56:60:00:01 ttl 255 wait 2ms
+    h -> r icmp echo_request id 6001 seq 1 payload "IPV6_ECHO_PROBE" wait 1ms
+    h <- r icmp echo_reply id 6001 seq 1 payload "IPV6_ECHO_PROBE" wait 1ms
 }
 
 // INSTRUCTION: Compile both IPv4 ICMP diagnostics and IPv6 NDP/ICMPv6 flows.
-COMPILE {
+compile {
     icmpv4_diagnostics(client_v4, router_v4)
     ipv6_ndp_and_icmp6(host_v6, router_v6)
 }
@@ -160,45 +160,45 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, IGMP, QUERY, REPORT, LEAVE, VERSION, GROUP, MAX_RESP, MLD, DONE, MULTICAST_ADDR, MAX_RESP_DELAY, TTL, WAIT, COMPILE
 
 // INSTRUCTION: Declare IPv4 multicast querier router and IPTV receiver.
-HOST mcast_router_v4 {
-    IP 10.40.1.1
-    MAC 00:1c:73:40:01:01
+host mcast_router_v4 {
+    ip 10.40.1.1
+    mac 00:1c:73:40:01:01
 }
 
 // INSTRUCTION: Declare IPv4 IPTV receiver host.
-HOST iptv_stb_v4 {
-    IP 10.40.1.50
-    MAC 00:1c:73:40:01:50
+host iptv_stb_v4 {
+    ip 10.40.1.50
+    mac 00:1c:73:40:01:50
 }
 
 // INSTRUCTION: Declare IPv6 MLD querier router and subscriber host.
-HOST mld_router_v6 {
-    IP fe80::1
-    MAC 00:1c:73:60:01:01
+host mld_router_v6 {
+    ip fe80::1
+    mac 00:1c:73:60:01:01
 }
 
 // INSTRUCTION: Declare IPv6 multicast listener host.
-HOST mld_listener_v6 {
-    IP fe80::50
-    MAC 00:1c:73:60:01:50
+host mld_listener_v6 {
+    ip fe80::50
+    mac 00:1c:73:60:01:50
 }
 
 // INSTRUCTION: Define IPv4 IGMPv3 query, IGMPv2 report, and leave sequence with TTL 1.
-FLOW igmp_group_lifecycle(rtr, stb) {
-    rtr -> stb IGMP VERSION 3 QUERY GROUP 239.255.1.1 MAX_RESP 100 TTL 1 WAIT 2ms
-    rtr <- stb IGMP VERSION 2 REPORT GROUP 239.255.1.1 TTL 1 WAIT 2ms
-    rtr <- stb IGMP VERSION 2 LEAVE GROUP 239.255.1.1 TTL 1 WAIT 2ms
+flow igmp_group_lifecycle(rtr, stb) {
+    rtr -> stb igmp version 3 query group 239.255.1.1 max_resp 100 ttl 1 wait 2ms
+    rtr <- stb igmp version 2 report group 239.255.1.1 ttl 1 wait 2ms
+    rtr <- stb igmp version 2 leave group 239.255.1.1 ttl 1 wait 2ms
 }
 
 // INSTRUCTION: Define IPv6 MLD query, report, and done teardown with Hop Limit 1.
-FLOW mld_group_lifecycle(rtr6, host6) {
-    rtr6 -> host6 MLD QUERY MULTICAST_ADDR ff3e::100 MAX_RESP_DELAY 1000 TTL 1 WAIT 2ms
-    rtr6 <- host6 MLD REPORT MULTICAST_ADDR ff3e::100 TTL 1 WAIT 2ms
-    rtr6 <- host6 MLD DONE MULTICAST_ADDR ff3e::100 TTL 1 WAIT 2ms
+flow mld_group_lifecycle(rtr6, host6) {
+    rtr6 -> host6 mld query multicast_addr ff3e::100 max_resp_delay 1000 ttl 1 wait 2ms
+    rtr6 <- host6 mld report multicast_addr ff3e::100 ttl 1 wait 2ms
+    rtr6 <- host6 mld done multicast_addr ff3e::100 ttl 1 wait 2ms
 }
 
 // INSTRUCTION: Compile both IPv4 IGMP and IPv6 MLD flows.
-COMPILE {
+compile {
     igmp_group_lifecycle(mcast_router_v4, iptv_stb_v4)
     mld_group_lifecycle(mld_router_v6, mld_listener_v6)
 }
@@ -228,28 +228,28 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, CHECKSUM, VXLAN, VNI, GENEVE, OPT_CLASS, OPT_TYPE, PROTOCOL_TYPE, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare VTEP / Tunnel Endpoint Alpha.
-HOST vtep_alpha {
-    IP 10.200.0.1
-    MAC 00:1c:73:c0:00:01
+host vtep_alpha {
+    ip 10.200.0.1
+    mac 00:1c:73:c0:00:01
 }
 
 // INSTRUCTION: Declare VTEP / Tunnel Endpoint Beta.
-HOST vtep_beta {
-    IP 10.200.0.2
-    MAC 00:1c:73:c0:00:02
+host vtep_beta {
+    ip 10.200.0.2
+    mac 00:1c:73:c0:00:02
 }
 
 // INSTRUCTION: Define GRE key/sequence/checksum tunneling, VXLAN VNI 10500, and Geneve TLV metadata overlay.
-FLOW overlay_tunnels_showcase(vtep_a, vtep_b) {
-    vtep_a -> vtep_b GRE GRE_KEY 50010 GRE_SEQ 1 GRE_PROTO 0x0800 CHECKSUM PAYLOAD "INNER_GRE_ROUTED_PACKET" WAIT 1ms
-    vtep_a <- vtep_b GRE GRE_KEY 50010 GRE_SEQ 2 GRE_PROTO 0x0800 CHECKSUM PAYLOAD "INNER_GRE_RETURN_PACKET" WAIT 1ms
-    vtep_a -> vtep_b VXLAN VNI 10500 PAYLOAD "EVPN_VXLAN_L2_TENANT_FRAME" WAIT 1ms
-    vtep_a <- vtep_b VXLAN VNI 10500 PAYLOAD "EVPN_VXLAN_L2_RETURN_FRAME" WAIT 1ms
-    vtep_a -> vtep_b GENEVE VNI 20800 OPT_CLASS 0x0102 OPT_TYPE 1 PROTOCOL_TYPE 0x6558 PAYLOAD "CILIUM_EBPF_SECURITY_IDENTITY_FRAME" WAIT 1ms
+flow overlay_tunnels_showcase(vtep_a, vtep_b) {
+    vtep_a -> vtep_b gre gre_key 50010 gre_seq 1 gre_proto 0x0800 checksum payload "INNER_GRE_ROUTED_PACKET" wait 1ms
+    vtep_a <- vtep_b gre gre_key 50010 gre_seq 2 gre_proto 0x0800 checksum payload "INNER_GRE_RETURN_PACKET" wait 1ms
+    vtep_a -> vtep_b vxlan vni 10500 payload "EVPN_VXLAN_L2_TENANT_FRAME" wait 1ms
+    vtep_a <- vtep_b vxlan vni 10500 payload "EVPN_VXLAN_L2_RETURN_FRAME" wait 1ms
+    vtep_a -> vtep_b geneve vni 20800 opt_class 0x0102 opt_type 1 protocol_type 0x6558 payload "CILIUM_EBPF_SECURITY_IDENTITY_FRAME" wait 1ms
 }
 
 // INSTRUCTION: Compile the overlay tunnel encapsulation capture.
-COMPILE {
+compile {
     overlay_tunnels_showcase(vtep_alpha, vtep_beta)
 }
 ```
@@ -278,38 +278,38 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, IKEV2, SA_INIT, CREATE_CHILD_SA, INFORMATIONAL, INITIATOR_SPI, RESPONDER_SPI, MSGID, NEXT_PAYLOAD, ESP, AH, IPSEC, SPI, SEQ, IV, ICV, NEXT_HEADER, WIREGUARD, TYPE, INITIATION, RESPONSE, COOKIE, DATA, SENDER, RECEIVER, COUNTER, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare Branch VPN Gateway.
-HOST vpn_branch {
-    IP 198.51.100.10
-    MAC 00:50:56:a0:00:10
+host vpn_branch {
+    ip 198.51.100.10
+    mac 00:50:56:a0:00:10
 }
 
 // INSTRUCTION: Declare Headquarters VPN Concentrator.
-HOST vpn_hq {
-    IP 203.0.113.1
-    MAC 00:50:56:a0:00:01
+host vpn_hq {
+    ip 203.0.113.1
+    mac 00:50:56:a0:00:01
 }
 
 // INSTRUCTION: Define IKEv2 negotiation followed by IPsec ESP, IPsec AH, and generic IPSEC frames.
-FLOW ipsec_ikev2_suite(branch, hq) {
-    branch -> hq IKEV2 SA_INIT INITIATOR_SPI 0xa1b2c3d4e5f60001 RESPONDER_SPI 0x0000000000000000 MSGID 0 NEXT_PAYLOAD 33 WAIT 2ms
-    branch <- hq IKEV2 SA_INIT INITIATOR_SPI 0xa1b2c3d4e5f60001 RESPONDER_SPI 0x9988776655440002 MSGID 0 NEXT_PAYLOAD 33 WAIT 2ms
-    branch -> hq IKEV2 CREATE_CHILD_SA INITIATOR_SPI 0xa1b2c3d4e5f60001 RESPONDER_SPI 0x9988776655440002 MSGID 1 NEXT_PAYLOAD 46 WAIT 2ms
-    branch -> hq ESP SPI 0x10002001 SEQ 1 IV "1122334455667788" ICV "aabbccddeeff001122334455" NEXT_HEADER 4 PAYLOAD "AES_GCM_CIPHERTEXT" WAIT 1ms
-    branch <- hq AH SPI 0x20003002 SEQ 1 ICV "99887766554433221100ffeeddcc" NEXT_HEADER 4 PAYLOAD "AUTHENTICATED_IP_PACKET" WAIT 1ms
-    branch -> hq IPSEC SPI 0x10002001 SEQ 2 IV "8877665544332211" ICV "00112233445566778899aabb" WAIT 1ms
-    branch <- hq IKEV2 INFORMATIONAL INITIATOR_SPI 0xa1b2c3d4e5f60001 RESPONDER_SPI 0x9988776655440002 MSGID 2 NEXT_PAYLOAD 46 WAIT 1ms
+flow ipsec_ikev2_suite(branch, hq) {
+    branch -> hq ikev2 sa_init initiator_spi 0xa1b2c3d4e5f60001 responder_spi 0x0000000000000000 msgid 0 next_payload 33 wait 2ms
+    branch <- hq ikev2 sa_init initiator_spi 0xa1b2c3d4e5f60001 responder_spi 0x9988776655440002 msgid 0 next_payload 33 wait 2ms
+    branch -> hq ikev2 create_child_sa initiator_spi 0xa1b2c3d4e5f60001 responder_spi 0x9988776655440002 msgid 1 next_payload 46 wait 2ms
+    branch -> hq esp spi 0x10002001 seq 1 iv "1122334455667788" icv "aabbccddeeff001122334455" next_header 4 payload "AES_GCM_CIPHERTEXT" wait 1ms
+    branch <- hq ah spi 0x20003002 seq 1 icv "99887766554433221100ffeeddcc" next_header 4 payload "AUTHENTICATED_IP_PACKET" wait 1ms
+    branch -> hq ipsec spi 0x10002001 seq 2 iv "8877665544332211" icv "00112233445566778899aabb" wait 1ms
+    branch <- hq ikev2 informational initiator_spi 0xa1b2c3d4e5f60001 responder_spi 0x9988776655440002 msgid 2 next_payload 46 wait 1ms
 }
 
 // INSTRUCTION: Define a complete WireGuard handshake initiation, response, cookie reply, and encrypted data transport.
-FLOW wireguard_tunnel_lifecycle(branch, hq) {
-    branch -> hq WIREGUARD TYPE INITIATION SENDER 0x10203040 PAYLOAD "WG_NOISE_EPHEMERAL_STATIC_TIMESTAMP" WAIT 1ms
-    branch <- hq WIREGUARD TYPE COOKIE RECEIVER 0x10203040 PAYLOAD "WG_DOS_MITIGATION_MAC2_COOKIE" WAIT 1ms
-    branch <- hq WIREGUARD TYPE RESPONSE SENDER 0x50607080 RECEIVER 0x10203040 PAYLOAD "WG_EPHEMERAL_EMPTY_TAG" WAIT 1ms
-    branch -> hq WIREGUARD TYPE DATA RECEIVER 0x50607080 COUNTER 1 PAYLOAD "CHACHA20_POLY1305_TRANSPORT_DATA" WAIT 1ms
+flow wireguard_tunnel_lifecycle(branch, hq) {
+    branch -> hq wireguard type initiation sender 0x10203040 payload "WG_NOISE_EPHEMERAL_STATIC_TIMESTAMP" wait 1ms
+    branch <- hq wireguard type cookie receiver 0x10203040 payload "WG_DOS_MITIGATION_MAC2_COOKIE" wait 1ms
+    branch <- hq wireguard type response sender 0x50607080 receiver 0x10203040 payload "WG_EPHEMERAL_EMPTY_TAG" wait 1ms
+    branch -> hq wireguard type data receiver 0x50607080 counter 1 payload "CHACHA20_POLY1305_TRANSPORT_DATA" wait 1ms
 }
 
 // INSTRUCTION: Compile both the IPsec/IKEv2 suite and WireGuard tunnel lifecycle.
-COMPILE {
+compile {
     ipsec_ikev2_suite(vpn_branch, vpn_hq)
     wireguard_tunnel_lifecycle(vpn_branch, vpn_hq)
 }
@@ -344,42 +344,42 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, OSPF, HELLO, DBD, LSR, LSU, LSACK, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, BGP, OPEN, UPDATE, KEEPALIVE, NOTIFICATION, ASN, HOLDTIME, BGPID, PREFIX, NEXTHOP, RIP, METRIC, TAG, PIM, JOIN_PRUNE, REGISTER, GROUP, SOURCE, RP, DR_PRIORITY, TTL, WAIT, COMPILE
 
 // INSTRUCTION: Declare Core Router 1.
-HOST core_rtr1 {
-    IP 10.0.0.1
-    MAC 00:1c:73:00:00:01
+host core_rtr1 {
+    ip 10.0.0.1
+    mac 00:1c:73:00:00:01
 }
 
 // INSTRUCTION: Declare Core Router 2.
-HOST core_rtr2 {
-    IP 10.0.0.2
-    MAC 00:1c:73:00:00:02
+host core_rtr2 {
+    ip 10.0.0.2
+    mac 00:1c:73:00:00:02
 }
 
 // INSTRUCTION: Define full OSPF 5-packet adjacency synchronization and PIM-SM multicast tree join.
-FLOW igp_ospf_and_pim(r1, r2) {
-    r1 -> r2 OSPF HELLO ROUTER_ID 1.1.1.1 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 TTL 1 WAIT 1ms
-    r1 <- r2 OSPF HELLO ROUTER_ID 2.2.2.2 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 TTL 1 WAIT 1ms
-    r1 -> r2 OSPF DBD ROUTER_ID 1.1.1.1 AREA_ID 0 TTL 1 WAIT 1ms
-    r1 <- r2 OSPF LSR ROUTER_ID 2.2.2.2 AREA_ID 0 TTL 1 WAIT 1ms
-    r1 -> r2 OSPF LSU ROUTER_ID 1.1.1.1 AREA_ID 0 TTL 1 WAIT 1ms
-    r1 <- r2 OSPF LSACK ROUTER_ID 2.2.2.2 AREA_ID 0 TTL 1 WAIT 1ms
-    r1 -> r2 PIM HELLO HOLDTIME 105 DR_PRIORITY 100 TTL 1 WAIT 1ms
-    r1 <- r2 PIM JOIN_PRUNE GROUP 239.10.10.1 SOURCE 10.1.1.10 RP 10.0.0.1 TTL 1 WAIT 1ms
-    r1 -> r2 PIM REGISTER GROUP 239.10.10.1 SOURCE 10.1.1.10 RP 10.0.0.1 TTL 64 WAIT 1ms
+flow igp_ospf_and_pim(r1, r2) {
+    r1 -> r2 ospf hello router_id 1.1.1.1 area_id 0 hello_interval 10 dead_interval 40 ttl 1 wait 1ms
+    r1 <- r2 ospf hello router_id 2.2.2.2 area_id 0 hello_interval 10 dead_interval 40 ttl 1 wait 1ms
+    r1 -> r2 ospf dbd router_id 1.1.1.1 area_id 0 ttl 1 wait 1ms
+    r1 <- r2 ospf lsr router_id 2.2.2.2 area_id 0 ttl 1 wait 1ms
+    r1 -> r2 ospf lsu router_id 1.1.1.1 area_id 0 ttl 1 wait 1ms
+    r1 <- r2 ospf lsack router_id 2.2.2.2 area_id 0 ttl 1 wait 1ms
+    r1 -> r2 pim hello holdtime 105 dr_priority 100 ttl 1 wait 1ms
+    r1 <- r2 pim join_prune group 239.10.10.1 source 10.1.1.10 rp 10.0.0.1 ttl 1 wait 1ms
+    r1 -> r2 pim register group 239.10.10.1 source 10.1.1.10 rp 10.0.0.1 ttl 64 wait 1ms
 }
 
 // INSTRUCTION: Define eBGP session establishment, NLRI update, keepalive, and RIPv2 route advertisement.
-FLOW bgp_and_rip_exchange(r1, r2) {
-    r1 -> r2 BGP OPEN ASN 65001 HOLDTIME 90 BGPID 1.1.1.1 TTL 255 WAIT 1ms
-    r1 <- r2 BGP OPEN ASN 65002 HOLDTIME 90 BGPID 2.2.2.2 TTL 255 WAIT 1ms
-    r1 -> r2 BGP KEEPALIVE TTL 255 WAIT 1ms
-    r1 <- r2 BGP UPDATE PREFIX "172.16.0.0/12" NEXTHOP 10.0.0.2 TTL 255 WAIT 1ms
-    r1 -> r2 BGP NOTIFICATION TTL 255 WAIT 1ms
-    r1 -> r2 RIP PREFIX 192.168.50.0 NEXTHOP 10.0.0.1 METRIC 2 TAG 100 TTL 2 WAIT 1ms
+flow bgp_and_rip_exchange(r1, r2) {
+    r1 -> r2 bgp open asn 65001 holdtime 90 bgpid 1.1.1.1 ttl 255 wait 1ms
+    r1 <- r2 bgp open asn 65002 holdtime 90 bgpid 2.2.2.2 ttl 255 wait 1ms
+    r1 -> r2 bgp keepalive ttl 255 wait 1ms
+    r1 <- r2 bgp update prefix "172.16.0.0/12" nexthop 10.0.0.2 ttl 255 wait 1ms
+    r1 -> r2 bgp notification ttl 255 wait 1ms
+    r1 -> r2 rip prefix 192.168.50.0 nexthop 10.0.0.1 metric 2 tag 100 ttl 2 wait 1ms
 }
 
 // INSTRUCTION: Compile the dynamic routing protocols convergence capture.
-COMPILE {
+compile {
     igp_ospf_and_pim(core_rtr1, core_rtr2)
     bgp_and_rip_exchange(core_rtr1, core_rtr2)
 }
@@ -410,39 +410,39 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, VRRP, VERSION, VRID, PRIORITY, ADV_INT, VIP, HSRP, GROUP, STATE, HELLOTIME, HOLDTIME, BFD, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, OPENFLOW, FEATURES_REQ, FEATURES_REPLY, PACKET_IN, FLOW_MOD, PACKET_OUT, ECHO_REQ, ECHO_REPLY, XID, DPID, TABLE_ID, TTL, WAIT, COMPILE
 
 // INSTRUCTION: Declare Primary Gateway / SDN Switch.
-HOST gw_primary {
-    IP 10.10.0.2
-    MAC 00:00:5e:00:01:0a
+host gw_primary {
+    ip 10.10.0.2
+    mac 00:00:5e:00:01:0a
 }
 
 // INSTRUCTION: Declare Secondary Gateway / SDN Controller.
-HOST gw_secondary {
-    IP 10.10.0.3
-    MAC 00:00:0c:07:ac:0a
+host gw_secondary {
+    ip 10.10.0.3
+    mac 00:00:0c:07:ac:0a
 }
 
 // INSTRUCTION: Define VRRPv3 active advertisement, HSRPv1 active/standby election, and 50ms BFD echo liveness.
-FLOW fhrp_and_bfd_ha(pri, sec) {
-    pri -> sec VRRP VERSION 3 VRID 10 PRIORITY 200 ADV_INT 1 VIP 10.10.0.1 TTL 255 WAIT 1ms
-    pri -> sec HSRP GROUP 10 PRIORITY 150 STATE 16 HELLOTIME 3 HOLDTIME 10 VIP 10.10.0.254 TTL 1 WAIT 1ms
-    pri <- sec HSRP GROUP 10 PRIORITY 100 STATE 8 HELLOTIME 3 HOLDTIME 10 VIP 10.10.0.254 TTL 1 WAIT 1ms
-    pri -> sec BFD STATE 3 DIAG 0 MY_DISC 1001 YOUR_DISC 2002 MIN_TX 50000 MIN_RX 50000 MULT 3 TTL 255 WAIT 1ms
-    pri <- sec BFD STATE 3 DIAG 0 MY_DISC 2002 YOUR_DISC 1001 MIN_TX 50000 MIN_RX 50000 MULT 3 TTL 255 WAIT 1ms
+flow fhrp_and_bfd_ha(pri, sec) {
+    pri -> sec vrrp version 3 vrid 10 priority 200 adv_int 1 vip 10.10.0.1 ttl 255 wait 1ms
+    pri -> sec hsrp group 10 priority 150 state 16 hellotime 3 holdtime 10 vip 10.10.0.254 ttl 1 wait 1ms
+    pri <- sec hsrp group 10 priority 100 state 8 hellotime 3 holdtime 10 vip 10.10.0.254 ttl 1 wait 1ms
+    pri -> sec bfd state 3 diag 0 my_disc 1001 your_disc 2002 min_tx 50000 min_rx 50000 mult 3 ttl 255 wait 1ms
+    pri <- sec bfd state 3 diag 0 my_disc 2002 your_disc 1001 min_tx 50000 min_rx 50000 mult 3 ttl 255 wait 1ms
 }
 
 // INSTRUCTION: Define SDN OpenFlow 1.3 handshake, Packet-In punt, Flow-Mod rule push, and Echo heartbeat.
-FLOW sdn_openflow_control(sw, ctrl) {
-    sw <- ctrl OPENFLOW VERSION 4 FEATURES_REQ XID 101 WAIT 1ms
-    sw -> ctrl OPENFLOW VERSION 4 FEATURES_REPLY XID 101 DPID 0x0000001c73aabbcc WAIT 1ms
-    sw -> ctrl OPENFLOW VERSION 4 PACKET_IN XID 102 TABLE_ID 0 WAIT 1ms
-    sw <- ctrl OPENFLOW VERSION 4 FLOW_MOD XID 103 TABLE_ID 0 PRIORITY 1000 WAIT 1ms
-    sw <- ctrl OPENFLOW VERSION 4 PACKET_OUT XID 104 WAIT 1ms
-    sw -> ctrl OPENFLOW VERSION 4 ECHO_REQ XID 105 WAIT 1ms
-    sw <- ctrl OPENFLOW VERSION 4 ECHO_REPLY XID 105 WAIT 1ms
+flow sdn_openflow_control(sw, ctrl) {
+    sw <- ctrl openflow version 4 features_req xid 101 wait 1ms
+    sw -> ctrl openflow version 4 features_reply xid 101 dpid 0x0000001c73aabbcc wait 1ms
+    sw -> ctrl openflow version 4 packet_in xid 102 table_id 0 wait 1ms
+    sw <- ctrl openflow version 4 flow_mod xid 103 table_id 0 priority 1000 wait 1ms
+    sw <- ctrl openflow version 4 packet_out xid 104 wait 1ms
+    sw -> ctrl openflow version 4 echo_req xid 105 wait 1ms
+    sw <- ctrl openflow version 4 echo_reply xid 105 wait 1ms
 }
 
 // INSTRUCTION: Compile the FHRP/BFD high-availability and OpenFlow SDN control plane capture.
-COMPILE {
+compile {
     fhrp_and_bfd_ha(gw_primary, gw_secondary)
     sdn_openflow_control(gw_primary, gw_secondary)
 }

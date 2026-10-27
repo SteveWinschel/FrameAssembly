@@ -60,49 +60,49 @@ This canonical reference covers:
 // TOKENS: HOST, IP, MAC, FLOW, SMTP, CODE, REPLY, EHLO, MAIL_FROM, RCPT_TO, PARAM, BODY, QUIT, IMAP, TAG, CMD, ARG, POP3, OK, ERR, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare Mail User Agent (MUA) workstation.
-HOST mua_client {
-    IP 10.30.1.50
-    MAC 00:50:56:30:01:50
+host mua_client {
+    ip 10.30.1.50
+    mac 00:50:56:30:01:50
 }
 
 // INSTRUCTION: Declare Unified Mail Transfer & Mailstore Server.
-HOST mail_server {
-    IP 10.30.1.10
-    MAC 00:1c:73:30:01:10
+host mail_server {
+    ip 10.30.1.10
+    mac 00:1c:73:30:01:10
 }
 
 // INSTRUCTION: Define SMTP submission, IMAP tagged session, and POP3 mailbox retrieval.
-FLOW enterprise_mail_suite(mua, mta) {
-    mua <- mta SMTP CODE 220 REPLY "mx01.corp.example.com ESMTP Postfix" WAIT 1ms
-    mua -> mta SMTP EHLO "ws01.corp.example.com" WAIT 1ms
-    mua <- mta SMTP CODE 250 REPLY "mx01.corp.example.com PIPELINING SIZE 52428800 STARTTLS" WAIT 1ms
-    mua -> mta SMTP MAIL_FROM PARAM "alice@corp.example.com" WAIT 1ms
-    mua <- mta SMTP CODE 250 REPLY "2.1.0 Ok" WAIT 1ms
-    mua -> mta SMTP RCPT_TO PARAM "bob@corp.example.com" WAIT 1ms
-    mua <- mta SMTP CODE 250 REPLY "2.1.5 Ok" WAIT 1ms
-    mua -> mta SMTP BODY "Subject: Q4 Architecture Review\r\nFrom: alice@corp.example.com\r\nTo: bob@corp.example.com\r\n\r\nPlease review the updated topology." WAIT 2ms
-    mua <- mta SMTP CODE 250 REPLY "2.0.0 Ok: queued as 4X9z8B1234" WAIT 1ms
-    mua -> mta SMTP QUIT WAIT 1ms
-    mua <- mta SMTP CODE 221 REPLY "2.0.0 Bye" WAIT 1ms
-    mua -> mta IMAP TAG "A001" CMD "LOGIN" ARG "bob@corp.example.com SecretPass!" WAIT 1ms
-    mua <- mta IMAP TAG "A001" PAYLOAD "A001 OK [CAPABILITY IMAP4rev2] Logged in" WAIT 1ms
-    mua -> mta IMAP TAG "A002" CMD "SELECT" ARG "INBOX" WAIT 1ms
-    mua <- mta IMAP TAG "A002" PAYLOAD "* 12 EXISTS\r\nA002 OK [READ-WRITE] Select completed" WAIT 1ms
-    mua -> mta IMAP TAG "A003" CMD "FETCH" ARG "12 (FLAGS BODY[HEADER])" WAIT 1ms
-    mua <- mta IMAP TAG "A003" PAYLOAD "* 12 FETCH (FLAGS (\\Seen))\r\nA003 OK Fetch completed" WAIT 1ms
-    mua -> mta POP3 CMD "USER" ARG "bob" WAIT 1ms
-    mua <- mta POP3 OK PAYLOAD "User accepted" WAIT 1ms
-    mua -> mta POP3 CMD "PASS" ARG "SecretPass!" WAIT 1ms
-    mua <- mta POP3 OK PAYLOAD "Mailbox locked and ready" WAIT 1ms
-    mua -> mta POP3 CMD "STAT" WAIT 1ms
-    mua <- mta POP3 OK PAYLOAD "12 48920" WAIT 1ms
-    mua -> mta POP3 CMD "RETR" ARG "12" WAIT 1ms
-    mua <- mta POP3 ERR PAYLOAD "Message 999 does not exist" WAIT 1ms
-    mua -> mta POP3 CMD "QUIT" WAIT 1ms
+flow enterprise_mail_suite(mua, mta) {
+    mua <- mta smtp code 220 reply "mx01.corp.example.com ESMTP Postfix" wait 1ms
+    mua -> mta smtp ehlo "ws01.corp.example.com" wait 1ms
+    mua <- mta smtp code 250 reply "mx01.corp.example.com PIPELINING SIZE 52428800 STARTTLS" wait 1ms
+    mua -> mta smtp mail_from param "alice@corp.example.com" wait 1ms
+    mua <- mta smtp code 250 reply "2.1.0 Ok" wait 1ms
+    mua -> mta smtp rcpt_to param "bob@corp.example.com" wait 1ms
+    mua <- mta smtp code 250 reply "2.1.5 Ok" wait 1ms
+    mua -> mta smtp body "Subject: Q4 Architecture Review\r\nFrom: alice@corp.example.com\r\nTo: bob@corp.example.com\r\n\r\nPlease review the updated topology." wait 2ms
+    mua <- mta smtp code 250 reply "2.0.0 Ok: queued as 4X9z8B1234" wait 1ms
+    mua -> mta smtp quit wait 1ms
+    mua <- mta smtp code 221 reply "2.0.0 Bye" wait 1ms
+    mua -> mta imap tag "A001" cmd "LOGIN" arg "bob@corp.example.com SecretPass!" wait 1ms
+    mua <- mta imap tag "A001" payload "A001 OK [CAPABILITY IMAP4rev2] Logged in" wait 1ms
+    mua -> mta imap tag "A002" cmd "SELECT" arg "INBOX" wait 1ms
+    mua <- mta imap tag "A002" payload "* 12 EXISTS\r\nA002 OK [READ-WRITE] Select completed" wait 1ms
+    mua -> mta imap tag "A003" cmd "FETCH" arg "12 (FLAGS BODY[HEADER])" wait 1ms
+    mua <- mta imap tag "A003" payload "* 12 FETCH (FLAGS (\\Seen))\r\nA003 OK Fetch completed" wait 1ms
+    mua -> mta pop3 cmd "USER" arg "bob" wait 1ms
+    mua <- mta pop3 ok payload "User accepted" wait 1ms
+    mua -> mta pop3 cmd "PASS" arg "SecretPass!" wait 1ms
+    mua <- mta pop3 ok payload "Mailbox locked and ready" wait 1ms
+    mua -> mta pop3 cmd "STAT" wait 1ms
+    mua <- mta pop3 ok payload "12 48920" wait 1ms
+    mua -> mta pop3 cmd "RETR" arg "12" wait 1ms
+    mua <- mta pop3 err payload "Message 999 does not exist" wait 1ms
+    mua -> mta pop3 cmd "QUIT" wait 1ms
 }
 
 // INSTRUCTION: Compile the SMTP, IMAP, and POP3 email suite capture.
-COMPILE {
+compile {
     enterprise_mail_suite(mua_client, mail_server)
 }
 ```
@@ -151,35 +151,35 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, KERBEROS, AS_REQ, AS_REP, TGS_REQ, TGS_REP, KRB_ERROR, REALM, CNAME, SNAME, ETYPE, LDAP, BIND_REQ, BIND_RES, SEARCH_REQ, SEARCH_ENTRY, SEARCH_DONE, UNBIND_REQ, MSGID, BASE_DN, FILTER, RESULT_CODE, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare Domain Member Workstation.
-HOST ad_workstation {
-    IP 10.45.1.100
-    MAC 00:50:56:45:01:64
+host ad_workstation {
+    ip 10.45.1.100
+    mac 00:50:56:45:01:64
 }
 
 // INSTRUCTION: Declare Active Directory Domain Controller (KDC + LDAP).
-HOST domain_controller {
-    IP 10.45.1.10
-    MAC 00:1c:73:45:01:10
+host domain_controller {
+    ip 10.45.1.10
+    mac 00:1c:73:45:01:10
 }
 
 // INSTRUCTION: Execute Kerberos pre-auth error, AS_REQ/AS_REP TGT issuance, TGS_REQ/TGS_REP service ticket, and LDAPv3 group lookup.
-FLOW active_directory_kerberos_ldap(ws, dc) {
-    ws -> dc KERBEROS AS_REQ REALM "CORP.EXAMPLE.COM" CNAME "jdoe" SNAME "krbtgt/CORP.EXAMPLE.COM" ETYPE 18 WAIT 1ms
-    ws <- dc KERBEROS KRB_ERROR REALM "CORP.EXAMPLE.COM" CNAME "jdoe" SNAME "krbtgt/CORP.EXAMPLE.COM" PAYLOAD "KRB5KDC_ERR_PREAUTH_REQUIRED_25" WAIT 1ms
-    ws -> dc KERBEROS AS_REQ REALM "CORP.EXAMPLE.COM" CNAME "jdoe" SNAME "krbtgt/CORP.EXAMPLE.COM" ETYPE 18 PAYLOAD "PA_ENC_TIMESTAMP_AES256" WAIT 1ms
-    ws <- dc KERBEROS AS_REP REALM "CORP.EXAMPLE.COM" CNAME "jdoe" SNAME "krbtgt/CORP.EXAMPLE.COM" ETYPE 18 WAIT 1ms
-    ws -> dc KERBEROS TGS_REQ REALM "CORP.EXAMPLE.COM" CNAME "jdoe" SNAME "ldap/dc01.corp.example.com" ETYPE 18 WAIT 1ms
-    ws <- dc KERBEROS TGS_REP REALM "CORP.EXAMPLE.COM" CNAME "jdoe" SNAME "ldap/dc01.corp.example.com" ETYPE 18 WAIT 1ms
-    ws -> dc LDAP BIND_REQ MSGID 1 BASE_DN "cn=jdoe,ou=Users,dc=corp,dc=example,dc=com" WAIT 1ms
-    ws <- dc LDAP BIND_RES MSGID 1 RESULT_CODE 0 WAIT 1ms
-    ws -> dc LDAP SEARCH_REQ MSGID 2 BASE_DN "ou=Users,dc=corp,dc=example,dc=com" FILTER "(&(objectClass=user)(sAMAccountName=jdoe))" WAIT 1ms
-    ws <- dc LDAP SEARCH_ENTRY MSGID 2 BASE_DN "cn=jdoe,ou=Users,dc=corp,dc=example,dc=com" PAYLOAD "memberOf: cn=Domain Admins,ou=Groups,dc=corp,dc=example,dc=com" WAIT 1ms
-    ws <- dc LDAP SEARCH_DONE MSGID 2 RESULT_CODE 0 WAIT 1ms
-    ws -> dc LDAP UNBIND_REQ MSGID 3 WAIT 1ms
+flow active_directory_kerberos_ldap(ws, dc) {
+    ws -> dc kerberos as_req realm "CORP.EXAMPLE.COM" cname "jdoe" sname "krbtgt/CORP.EXAMPLE.COM" etype 18 wait 1ms
+    ws <- dc kerberos krb_error realm "CORP.EXAMPLE.COM" cname "jdoe" sname "krbtgt/CORP.EXAMPLE.COM" payload "KRB5KDC_ERR_PREAUTH_REQUIRED_25" wait 1ms
+    ws -> dc kerberos as_req realm "CORP.EXAMPLE.COM" cname "jdoe" sname "krbtgt/CORP.EXAMPLE.COM" etype 18 payload "PA_ENC_TIMESTAMP_AES256" wait 1ms
+    ws <- dc kerberos as_rep realm "CORP.EXAMPLE.COM" cname "jdoe" sname "krbtgt/CORP.EXAMPLE.COM" etype 18 wait 1ms
+    ws -> dc kerberos tgs_req realm "CORP.EXAMPLE.COM" cname "jdoe" sname "ldap/dc01.corp.example.com" etype 18 wait 1ms
+    ws <- dc kerberos tgs_rep realm "CORP.EXAMPLE.COM" cname "jdoe" sname "ldap/dc01.corp.example.com" etype 18 wait 1ms
+    ws -> dc ldap bind_req msgid 1 base_dn "cn=jdoe,ou=Users,dc=corp,dc=example,dc=com" wait 1ms
+    ws <- dc ldap bind_res msgid 1 result_code 0 wait 1ms
+    ws -> dc ldap search_req msgid 2 base_dn "ou=Users,dc=corp,dc=example,dc=com" filter "(&(objectClass=user)(sAMAccountName=jdoe))" wait 1ms
+    ws <- dc ldap search_entry msgid 2 base_dn "cn=jdoe,ou=Users,dc=corp,dc=example,dc=com" payload "memberOf: cn=Domain Admins,ou=Groups,dc=corp,dc=example,dc=com" wait 1ms
+    ws <- dc ldap search_done msgid 2 result_code 0 wait 1ms
+    ws -> dc ldap unbind_req msgid 3 wait 1ms
 }
 
 // INSTRUCTION: Compile the Kerberos and LDAP directory authentication flow.
-COMPILE {
+compile {
     active_directory_kerberos_ldap(ad_workstation, domain_controller)
 }
 ```
@@ -217,36 +217,36 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, STATUS, SESSION_ID, TREE_ID, MSGID, SHARE, FILENAME, NFS, VERS, PROC, TAG, PATH, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare Compute Hypervisor Host mounting remote NAS storage.
-HOST compute_host {
-    IP 10.90.1.25
-    MAC 00:50:56:90:01:25
+host compute_host {
+    ip 10.90.1.25
+    mac 00:50:56:90:01:25
 }
 
 // INSTRUCTION: Declare Unified Enterprise NAS Storage Filer.
-HOST nas_filer {
-    IP 10.90.1.10
-    MAC 00:1c:73:90:01:10
+host nas_filer {
+    ip 10.90.1.10
+    mac 00:1c:73:90:01:10
 }
 
 // INSTRUCTION: Define SMB 3.1.1 Negotiate, Session Setup, Tree Connect, Create, Write, and Tree Disconnect plus NFSv4 COMPOUND I/O.
-FLOW enterprise_nas_storage(host, filer) {
-    host -> filer SMB COMMAND "NEGOTIATE" MSGID 0 WAIT 1ms
-    host <- filer SMB COMMAND "NEGOTIATE" STATUS 0 MSGID 0 WAIT 1ms
-    host -> filer SMB COMMAND "SESSION_SETUP" SESSION_ID 0x100001 MSGID 1 WAIT 1ms
-    host <- filer SMB COMMAND "SESSION_SETUP" STATUS 0 SESSION_ID 0x100001 MSGID 1 WAIT 1ms
-    host -> filer SMB COMMAND "TREE_CONNECT" SESSION_ID 0x100001 MSGID 2 SHARE "\\\\nas01.corp.example.com\\vmstore" WAIT 1ms
-    host <- filer SMB COMMAND "TREE_CONNECT" STATUS 0 SESSION_ID 0x100001 TREE_ID 10 MSGID 2 WAIT 1ms
-    host -> filer SMB COMMAND "CREATE" SESSION_ID 0x100001 TREE_ID 10 MSGID 3 FILENAME "prod-db-disk0.vhdx" WAIT 1ms
-    host <- filer SMB COMMAND "CREATE" STATUS 0 SESSION_ID 0x100001 TREE_ID 10 MSGID 3 FILENAME "prod-db-disk0.vhdx" WAIT 1ms
-    host -> filer SMB COMMAND "TREE_DISCONNECT" SESSION_ID 0x100001 TREE_ID 10 MSGID 4 WAIT 1ms
-    host -> filer NFS VERS 4 PROC "NULL" WAIT 1ms
-    host <- filer NFS VERS 4 PROC "NULL" WAIT 1ms
-    host -> filer NFS VERS 4 PROC "COMPOUND" TAG "lookup_open_read" PATH "/exports/hpc/checkpoint_0042.dat" WAIT 1ms
-    host <- filer NFS VERS 4 PROC "COMPOUND" TAG "lookup_open_read" PATH "/exports/hpc/checkpoint_0042.dat" PAYLOAD "NFS4_OK_DATA_CHUNK_4096B" WAIT 1ms
+flow enterprise_nas_storage(host, filer) {
+    host -> filer smb command "NEGOTIATE" msgid 0 wait 1ms
+    host <- filer smb command "NEGOTIATE" status 0 msgid 0 wait 1ms
+    host -> filer smb command "SESSION_SETUP" session_id 0x100001 msgid 1 wait 1ms
+    host <- filer smb command "SESSION_SETUP" status 0 session_id 0x100001 msgid 1 wait 1ms
+    host -> filer smb command "TREE_CONNECT" session_id 0x100001 msgid 2 share "\\\\nas01.corp.example.com\\vmstore" wait 1ms
+    host <- filer smb command "TREE_CONNECT" status 0 session_id 0x100001 tree_id 10 msgid 2 wait 1ms
+    host -> filer smb command "CREATE" session_id 0x100001 tree_id 10 msgid 3 filename "prod-db-disk0.vhdx" wait 1ms
+    host <- filer smb command "CREATE" status 0 session_id 0x100001 tree_id 10 msgid 3 filename "prod-db-disk0.vhdx" wait 1ms
+    host -> filer smb command "TREE_DISCONNECT" session_id 0x100001 tree_id 10 msgid 4 wait 1ms
+    host -> filer nfs vers 4 proc "NULL" wait 1ms
+    host <- filer nfs vers 4 proc "NULL" wait 1ms
+    host -> filer nfs vers 4 proc "COMPOUND" tag "lookup_open_read" path "/exports/hpc/checkpoint_0042.dat" wait 1ms
+    host <- filer nfs vers 4 proc "COMPOUND" tag "lookup_open_read" path "/exports/hpc/checkpoint_0042.dat" payload "NFS4_OK_DATA_CHUNK_4096B" wait 1ms
 }
 
 // INSTRUCTION: Compile the SMB 3.1.1 and NFSv4.1 storage capture.
-COMPILE {
+compile {
     enterprise_nas_storage(compute_host, nas_filer)
 }
 ```
@@ -295,43 +295,43 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, MEMCACHED, KEY, EXPTIME, OPAQUE, CAS, MYSQL, GREETING, LOGIN, SERVER_VERSION, DB, SQL, OK, ERR, ERRCODE, EOF, POSTGRES, STARTUP, USER, AUTH_OK, COMMAND_COMPLETE, READY_FOR_QUERY, ERROR_RESPONSE, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare Backend Microservice Worker Node.
-HOST app_worker {
-    IP 10.110.1.50
-    MAC 00:50:56:6e:01:50
+host app_worker {
+    ip 10.110.1.50
+    mac 00:50:56:6e:01:50
 }
 
 // INSTRUCTION: Declare Data Tier Cluster Node hosting Redis, Memcached, MySQL, and PostgreSQL.
-HOST data_cluster {
-    IP 10.110.1.10
-    MAC 00:1c:73:6e:01:10
+host data_cluster {
+    ip 10.110.1.10
+    mac 00:1c:73:6e:01:10
 }
 
 // INSTRUCTION: Define Redis cache lookup/populate, Memcached CAS update, MySQL v10 query lifecycle, and PostgreSQL v3.0 transaction.
-FLOW polyglot_data_tier_flow(app, db) {
-    app -> db REDIS CMD "GET" ARGS "user:profile:4201" WAIT 1ms
-    app <- db REDIS REPLY_TYPE "BULK" PAYLOAD "$-1\r\n" WAIT 1ms
-    app -> db REDIS CMD "SET" ARGS "user:profile:4201 {\"tier\":\"platinum\"} EX 300" WAIT 1ms
-    app <- db REDIS REPLY_TYPE "SIMPLE" PAYLOAD "+OK\r\n" WAIT 1ms
-    app -> db MEMCACHED CMD "set" KEY "rate_limit:ip:198.51.100.9" EXPTIME 60 OPAQUE 701 CAS 10001 PAYLOAD "14" WAIT 1ms
-    app <- db MEMCACHED CMD "STORED" KEY "rate_limit:ip:198.51.100.9" OPAQUE 701 CAS 10002 WAIT 1ms
-    app <- db MYSQL GREETING SERVER_VERSION "8.4.2-MySQL-Enterprise" WAIT 1ms
-    app -> db MYSQL LOGIN USER "orders_app" DB "commerce_prod" WAIT 1ms
-    app <- db MYSQL OK WAIT 1ms
-    app -> db MYSQL SQL "INSERT INTO orders (id, user_id, total_cents) VALUES (9001, 4201, 14999);" WAIT 1ms
-    app <- db MYSQL OK WAIT 1ms
-    app -> db MYSQL SQL "INSERT INTO orders (id, user_id, total_cents) VALUES (9001, 4201, 14999);" WAIT 1ms
-    app <- db MYSQL ERR ERRCODE 1062 PAYLOAD "Duplicate entry '9001' for key 'orders.PRIMARY'" WAIT 1ms
-    app <- db MYSQL EOF WAIT 1ms
-    app -> db POSTGRES STARTUP USER "ledger_app" DB "financial_ledger" WAIT 1ms
-    app <- db POSTGRES AUTH_OK READY_FOR_QUERY WAIT 1ms
-    app -> db POSTGRES SQL "BEGIN; UPDATE accounts SET balance = balance - 14999 WHERE id = 4201; COMMIT;" WAIT 1ms
-    app <- db POSTGRES COMMAND_COMPLETE READY_FOR_QUERY PAYLOAD "COMMIT" WAIT 1ms
-    app -> db POSTGRES SQL "SELECT * FROM non_existent_audit_view;" WAIT 1ms
-    app <- db POSTGRES ERROR_RESPONSE READY_FOR_QUERY PAYLOAD "ERROR: relation does not exist (SQLSTATE 42P01)" WAIT 1ms
+flow polyglot_data_tier_flow(app, db) {
+    app -> db redis cmd "GET" args "user:profile:4201" wait 1ms
+    app <- db redis reply_type "BULK" payload "$-1\r\n" wait 1ms
+    app -> db redis cmd "SET" args "user:profile:4201 {\"tier\":\"platinum\"} EX 300" wait 1ms
+    app <- db redis reply_type "SIMPLE" payload "+OK\r\n" wait 1ms
+    app -> db memcached cmd "set" key "rate_limit:ip:198.51.100.9" exptime 60 opaque 701 cas 10001 payload "14" wait 1ms
+    app <- db memcached cmd "STORED" key "rate_limit:ip:198.51.100.9" opaque 701 cas 10002 wait 1ms
+    app <- db mysql greeting server_version "8.4.2-MySQL-Enterprise" wait 1ms
+    app -> db mysql login user "orders_app" db "commerce_prod" wait 1ms
+    app <- db mysql ok wait 1ms
+    app -> db mysql sql "INSERT INTO orders (id, user_id, total_cents) VALUES (9001, 4201, 14999);" wait 1ms
+    app <- db mysql ok wait 1ms
+    app -> db mysql sql "INSERT INTO orders (id, user_id, total_cents) VALUES (9001, 4201, 14999);" wait 1ms
+    app <- db mysql err errcode 1062 payload "Duplicate entry '9001' for key 'orders.PRIMARY'" wait 1ms
+    app <- db mysql eof wait 1ms
+    app -> db postgres startup user "ledger_app" db "financial_ledger" wait 1ms
+    app <- db postgres auth_ok ready_for_query wait 1ms
+    app -> db postgres sql "BEGIN; UPDATE accounts SET balance = balance - 14999 WHERE id = 4201; COMMIT;" wait 1ms
+    app <- db postgres command_complete ready_for_query payload "COMMIT" wait 1ms
+    app -> db postgres sql "SELECT * FROM non_existent_audit_view;" wait 1ms
+    app <- db postgres error_response ready_for_query payload "ERROR: relation does not exist (SQLSTATE 42P01)" wait 1ms
 }
 
 // INSTRUCTION: Compile the polyglot cache and relational database capture.
-COMPILE {
+compile {
     polyglot_data_tier_flow(app_worker, data_cluster)
 }
 ```

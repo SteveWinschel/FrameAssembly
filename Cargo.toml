@@ -1,6 +1,6 @@
 [package]
 name = "frameassembly"
-version = "1.1.1"
+version = "1.2.0"
 edition = "2024"
 rust-version = "1.85"
 description = "Deterministic network packet crafting DSL and compiler synthesizing nanosecond-accurate PCAPNG captures across 81 L2-L7 protocols (Ethernet, VLAN, MPLS, ARP, IPv4, IPv6, ICMP, BGP, OSPF, WireGuard, IPsec, TCP, UDP, SCTP, DNS, HTTP/2, gRPC, TLS, QUIC, SNMPv3 USM, Modbus, DNP3, S7comm, OPC UA)."

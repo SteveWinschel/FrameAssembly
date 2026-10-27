@@ -3,6 +3,9 @@
 # Usage: llama-server -m model.gguf --grammar-file frameassembly.gbnf
 # Enforces 100% syntactically valid FrameAssembly (.fasm) generation across
 # all 81 native protocols, L2-L4 modifiers, SNMPv1/v2c/v3 USM, and L7 specs.
+# Note: The FrameAssembly compiler accepts all keywords, protocols, modifiers,
+# time units, and identifiers case-insensitively; canonical uppercase tokens
+# are used here for deterministic LLM constrained decoding.
 # ============================================================================
 
 root ::= ws (host-decl | flow-decl)* compile-block (host-decl | flow-decl)* ws

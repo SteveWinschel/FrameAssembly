@@ -69,31 +69,31 @@ SNMPv1 uses plaintext community strings (`COMMUNITY "<str>"`, default `"public"`
 // TOKENS: HOST, IP, MAC, FLOW, SNMP1, GET, GETNEXT, SET, RESPONSE, TRAP, COMMUNITY, REQID, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, NULL, STRING, INT, TIMETICKS, OIDVAL, WAIT, COMPILE
 
 // INSTRUCTION: Declare the Network Management Station (NMS) poller.
-HOST nms_poller {
-    IP 10.100.1.10
-    MAC 00:50:56:a0:01:10
+host nms_poller {
+    ip 10.100.1.10
+    mac 00:50:56:a0:01:10
 }
 
 // INSTRUCTION: Declare the managed legacy campus access switch.
-HOST legacy_switch {
-    IP 10.100.1.50
-    MAC 00:1c:73:a0:01:50
+host legacy_switch {
+    ip 10.100.1.50
+    mac 00:1c:73:a0:01:50
 }
 
 // INSTRUCTION: Define SNMPv1 GET, GETNEXT, SET, and RESPONSE interactions alongside linkDown (GENTRAP 2) and enterpriseSpecific (GENTRAP 6) traps.
-FLOW snmpv1_polling_and_traps(nms, agent) {
-    nms -> agent SNMP1 GET COMMUNITY "public" REQID 1001 VARBIND 1.3.6.1.2.1.1.1.0 NULL VARBIND 1.3.6.1.2.1.1.3.0 NULL WAIT 2ms
-    nms <- agent SNMP1 RESPONSE COMMUNITY "public" REQID 1001 VARBIND 1.3.6.1.2.1.1.1.0 STRING "Cisco IOS Software, C2960 Software Version 15.2" VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 4320000 WAIT 2ms
-    nms -> agent SNMP1 GETNEXT COMMUNITY "public" REQID 1002 VARBIND 1.3.6.1.2.1.1.1.0 NULL WAIT 2ms
-    nms <- agent SNMP1 RESPONSE COMMUNITY "public" REQID 1002 VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.9.1.716 WAIT 2ms
-    nms -> agent SNMP1 SET COMMUNITY "private_rw" REQID 1003 VARBIND 1.3.6.1.2.1.1.6.0 STRING "Bldg-4-Wiring-Closet-2B" WAIT 2ms
-    nms <- agent SNMP1 RESPONSE COMMUNITY "private_rw" REQID 1003 VARBIND 1.3.6.1.2.1.1.6.0 STRING "Bldg-4-Wiring-Closet-2B" WAIT 2ms
-    nms <- agent SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.9.1.716 AGENTIP 10.100.1.50 GENTRAP 2 SPECTRAP 0 SYSUPTIME 4320500 VARBIND 1.3.6.1.2.1.2.2.1.1.5 INT 5 VARBIND 1.3.6.1.2.1.2.2.1.8.5 INT 2 WAIT 2ms
-    nms <- agent SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.9.9.43.2 AGENTIP 10.100.1.50 GENTRAP 6 SPECTRAP 1 SYSUPTIME 4321000 VARBIND 1.3.6.1.4.1.9.9.43.1.1.6.1.3.1 INT 1 WAIT 2ms
+flow snmpv1_polling_and_traps(nms, agent) {
+    nms -> agent snmp1 get community "public" reqid 1001 varbind 1.3.6.1.2.1.1.1.0 null varbind 1.3.6.1.2.1.1.3.0 null wait 2ms
+    nms <- agent snmp1 response community "public" reqid 1001 varbind 1.3.6.1.2.1.1.1.0 string "Cisco IOS Software, C2960 Software Version 15.2" varbind 1.3.6.1.2.1.1.3.0 timeticks 4320000 wait 2ms
+    nms -> agent snmp1 getnext community "public" reqid 1002 varbind 1.3.6.1.2.1.1.1.0 null wait 2ms
+    nms <- agent snmp1 response community "public" reqid 1002 varbind 1.3.6.1.2.1.1.2.0 oidval 1.3.6.1.4.1.9.1.716 wait 2ms
+    nms -> agent snmp1 set community "private_rw" reqid 1003 varbind 1.3.6.1.2.1.1.6.0 string "Bldg-4-Wiring-Closet-2B" wait 2ms
+    nms <- agent snmp1 response community "private_rw" reqid 1003 varbind 1.3.6.1.2.1.1.6.0 string "Bldg-4-Wiring-Closet-2B" wait 2ms
+    nms <- agent snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.1.716 agentip 10.100.1.50 gentrap 2 spectrap 0 sysuptime 4320500 varbind 1.3.6.1.2.1.2.2.1.1.5 int 5 varbind 1.3.6.1.2.1.2.2.1.8.5 int 2 wait 2ms
+    nms <- agent snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.9.43.2 agentip 10.100.1.50 gentrap 6 spectrap 1 sysuptime 4321000 varbind 1.3.6.1.4.1.9.9.43.1.1.6.1.3.1 int 1 wait 2ms
 }
 
 // INSTRUCTION: Compile the SNMPv1 management and trap capture.
-COMPILE {
+compile {
     snmpv1_polling_and_traps(nms_poller, legacy_switch)
 }
 ```
@@ -122,28 +122,28 @@ SNMPv2c introduces high-efficiency bulk table retrieval (`GETBULK` `0xA5` with `
 // TOKENS: HOST, IP, MAC, FLOW, SNMP2, GETBULK, RESPONSE, TRAP, INFORM, COMMUNITY, REQID, NONREPEATERS, MAXREPETITIONS, SYSUPTIME, OID, VARBIND, NULL, STRING, INT, COUNTER32, GAUGE32, COUNTER64, IPVAL, WAIT, COMPILE
 
 // INSTRUCTION: Declare the Telemetry Collector NMS host.
-HOST telemetry_nms {
-    IP 172.16.10.10
-    MAC 00:50:56:16:10:10
+host telemetry_nms {
+    ip 172.16.10.10
+    mac 00:50:56:16:10:10
 }
 
 // INSTRUCTION: Declare the Spine Router agent host.
-HOST spine_router {
-    IP 172.16.10.1
-    MAC 00:1c:73:16:10:01
+host spine_router {
+    ip 172.16.10.1
+    mac 00:1c:73:16:10:01
 }
 
 // INSTRUCTION: Define an SNMPv2c GETBULK walk of ifXTable followed by an SNMPv2-Trap and an acknowledged INFORM notification.
-FLOW snmpv2c_bulk_and_inform(nms, rtr) {
-    nms -> rtr SNMP2 GETBULK COMMUNITY "spine_ro_v2c" REQID 2001 NONREPEATERS 1 MAXREPETITIONS 15 VARBIND 1.3.6.1.2.1.1.3.0 NULL VARBIND 1.3.6.1.2.1.31.1.1.1.1 NULL VARBIND 1.3.6.1.2.1.31.1.1.1.6 NULL WAIT 2ms
-    nms <- rtr SNMP2 RESPONSE COMMUNITY "spine_ro_v2c" REQID 2001 VARBIND 1.3.6.1.2.1.31.1.1.1.1.1 STRING "Ethernet1/1" VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 1844674407370955100 VARBIND 1.3.6.1.2.1.31.1.1.1.15.1 GAUGE32 400000 VARBIND 1.3.6.1.2.1.2.2.1.14.1 COUNTER32 0 VARBIND 1.3.6.1.2.1.4.20.1.1.172.16.10.1 IPVAL 172.16.10.1 WAIT 2ms
-    nms <- rtr SNMP2 TRAP COMMUNITY "spine_trap_v2c" REQID 2002 SYSUPTIME 9950000 OID 1.3.6.1.6.3.1.1.5.4 VARBIND 1.3.6.1.2.1.2.2.1.1.1 INT 1 VARBIND 1.3.6.1.2.1.2.2.1.8.1 INT 1 WAIT 2ms
-    nms <- rtr SNMP2 INFORM COMMUNITY "spine_inform_v2c" REQID 2003 SYSUPTIME 9950100 OID 1.3.6.1.4.1.9.9.138.2.0.1 VARBIND 1.3.6.1.4.1.9.9.138.1.1.1.0 STRING "BGP_PEER_AS65002_ESTABLISHED" WAIT 2ms
-    nms -> rtr SNMP2 RESPONSE COMMUNITY "spine_inform_v2c" REQID 2003 VARBIND 1.3.6.1.4.1.9.9.138.1.1.1.0 STRING "BGP_PEER_AS65002_ESTABLISHED" WAIT 2ms
+flow snmpv2c_bulk_and_inform(nms, rtr) {
+    nms -> rtr snmp2 getbulk community "spine_ro_v2c" reqid 2001 nonrepeaters 1 maxrepetitions 15 varbind 1.3.6.1.2.1.1.3.0 null varbind 1.3.6.1.2.1.31.1.1.1.1 null varbind 1.3.6.1.2.1.31.1.1.1.6 null wait 2ms
+    nms <- rtr snmp2 response community "spine_ro_v2c" reqid 2001 varbind 1.3.6.1.2.1.31.1.1.1.1.1 string "Ethernet1/1" varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 1844674407370955100 varbind 1.3.6.1.2.1.31.1.1.1.15.1 gauge32 400000 varbind 1.3.6.1.2.1.2.2.1.14.1 counter32 0 varbind 1.3.6.1.2.1.4.20.1.1.172.16.10.1 ipval 172.16.10.1 wait 2ms
+    nms <- rtr snmp2 trap community "spine_trap_v2c" reqid 2002 sysuptime 9950000 oid 1.3.6.1.6.3.1.1.5.4 varbind 1.3.6.1.2.1.2.2.1.1.1 int 1 varbind 1.3.6.1.2.1.2.2.1.8.1 int 1 wait 2ms
+    nms <- rtr snmp2 inform community "spine_inform_v2c" reqid 2003 sysuptime 9950100 oid 1.3.6.1.4.1.9.9.138.2.0.1 varbind 1.3.6.1.4.1.9.9.138.1.1.1.0 string "BGP_PEER_AS65002_ESTABLISHED" wait 2ms
+    nms -> rtr snmp2 response community "spine_inform_v2c" reqid 2003 varbind 1.3.6.1.4.1.9.9.138.1.1.1.0 string "BGP_PEER_AS65002_ESTABLISHED" wait 2ms
 }
 
 // INSTRUCTION: Compile the SNMPv2c bulk walk, trap, and inform sequence.
-COMPILE {
+compile {
     snmpv2c_bulk_and_inform(telemetry_nms, spine_router)
 }
 ```
@@ -190,30 +190,30 @@ SNMPv3 replaces plaintext community strings with the **User-based Security Model
 // TOKENS: HOST, IP, MAC, FLOW, SNMP3, GET, SET, RESPONSE, TRAP, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, CONTEXTNAME, AUTH, PRIV, SHA256, SHA512, AES, REQID, VARBIND, NULL, STRING, INT, TIMETICKS, COUNTER64, WAIT, COMPILE
 
 // INSTRUCTION: Declare the secure Network Operations Center (NOC) manager.
-HOST noc_manager {
-    IP 10.254.0.10
-    MAC 00:50:56:fe:00:10
+host noc_manager {
+    ip 10.254.0.10
+    mac 00:50:56:fe:00:10
 }
 
 // INSTRUCTION: Declare the core router SNMPv3 agent.
-HOST core_agent {
-    IP 10.254.0.1
-    MAC 00:1c:73:fe:00:01
+host core_agent {
+    ip 10.254.0.1
+    mac 00:1c:73:fe:00:01
 }
 
 // INSTRUCTION: Execute RFC 3414 Engine ID discovery, SHA256 authNoPriv polling, and SHA512 + AES authPriv configuration & trap.
-FLOW snmpv3_usm_security_levels(mgr, agent) {
-    mgr -> agent SNMP3 GET USER "" ENGINEID "" ENGINEBOOTS 0 ENGINETIME 0 REQID 3001 WAIT 2ms
-    mgr <- agent SNMP3 RESPONSE USER "" ENGINEID "80001f8880aabbccddeeff0011" ENGINEBOOTS 12 ENGINETIME 86400 REQID 3001 VARBIND 1.3.6.1.6.3.15.1.1.4.0 INT 1 WAIT 2ms
-    mgr -> agent SNMP3 GET USER "auditor_ro" ENGINEID "80001f8880aabbccddeeff0011" ENGINEBOOTS 12 ENGINETIME 86401 CONTEXTNAME "vrf-prod" AUTH SHA256 "AuditSha256Pass!" REQID 3002 VARBIND 1.3.6.1.2.1.1.5.0 NULL WAIT 2ms
-    mgr <- agent SNMP3 RESPONSE USER "auditor_ro" ENGINEID "80001f8880aabbccddeeff0011" ENGINEBOOTS 12 ENGINETIME 86401 CONTEXTNAME "vrf-prod" AUTH SHA256 "AuditSha256Pass!" REQID 3002 VARBIND 1.3.6.1.2.1.1.5.0 STRING "core-rtr-01.prod.example.com" WAIT 2ms
-    mgr -> agent SNMP3 SET USER "netadmin_rw" ENGINEID "80001f8880aabbccddeeff0011" ENGINEBOOTS 12 ENGINETIME 86402 CONTEXTNAME "vrf-prod" AUTH SHA512 "AdminSha512MasterKey!" PRIV AES "AdminAes128CfbSecret!" REQID 3003 VARBIND 1.3.6.1.2.1.1.4.0 STRING "secops@example.com" WAIT 2ms
-    mgr <- agent SNMP3 RESPONSE USER "netadmin_rw" ENGINEID "80001f8880aabbccddeeff0011" ENGINEBOOTS 12 ENGINETIME 86402 CONTEXTNAME "vrf-prod" AUTH SHA512 "AdminSha512MasterKey!" PRIV AES "AdminAes128CfbSecret!" REQID 3003 VARBIND 1.3.6.1.2.1.1.4.0 STRING "secops@example.com" WAIT 2ms
-    mgr <- agent SNMP3 TRAP USER "netadmin_rw" ENGINEID "80001f8880aabbccddeeff0011" ENGINEBOOTS 12 ENGINETIME 86405 CONTEXTNAME "vrf-prod" AUTH SHA512 "AdminSha512MasterKey!" PRIV AES "AdminAes128CfbSecret!" REQID 3004 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 8640500 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 9988776655443322 WAIT 2ms
+flow snmpv3_usm_security_levels(mgr, agent) {
+    mgr -> agent snmp3 get user "" engineid "" engineboots 0 enginetime 0 reqid 3001 wait 2ms
+    mgr <- agent snmp3 response user "" engineid "80001f8880aabbccddeeff0011" engineboots 12 enginetime 86400 reqid 3001 varbind 1.3.6.1.6.3.15.1.1.4.0 int 1 wait 2ms
+    mgr -> agent snmp3 get user "auditor_ro" engineid "80001f8880aabbccddeeff0011" engineboots 12 enginetime 86401 contextname "vrf-prod" auth sha256 "AuditSha256Pass!" reqid 3002 varbind 1.3.6.1.2.1.1.5.0 null wait 2ms
+    mgr <- agent snmp3 response user "auditor_ro" engineid "80001f8880aabbccddeeff0011" engineboots 12 enginetime 86401 contextname "vrf-prod" auth sha256 "AuditSha256Pass!" reqid 3002 varbind 1.3.6.1.2.1.1.5.0 string "core-rtr-01.prod.example.com" wait 2ms
+    mgr -> agent snmp3 set user "netadmin_rw" engineid "80001f8880aabbccddeeff0011" engineboots 12 enginetime 86402 contextname "vrf-prod" auth sha512 "AdminSha512MasterKey!" priv aes "AdminAes128CfbSecret!" reqid 3003 varbind 1.3.6.1.2.1.1.4.0 string "secops@example.com" wait 2ms
+    mgr <- agent snmp3 response user "netadmin_rw" engineid "80001f8880aabbccddeeff0011" engineboots 12 enginetime 86402 contextname "vrf-prod" auth sha512 "AdminSha512MasterKey!" priv aes "AdminAes128CfbSecret!" reqid 3003 varbind 1.3.6.1.2.1.1.4.0 string "secops@example.com" wait 2ms
+    mgr <- agent snmp3 trap user "netadmin_rw" engineid "80001f8880aabbccddeeff0011" engineboots 12 enginetime 86405 contextname "vrf-prod" auth sha512 "AdminSha512MasterKey!" priv aes "AdminAes128CfbSecret!" reqid 3004 varbind 1.3.6.1.2.1.1.3.0 timeticks 8640500 varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 9988776655443322 wait 2ms
 }
 
 // INSTRUCTION: Compile the SNMPv3 USM security progression capture.
-COMPILE {
+compile {
     snmpv3_usm_security_levels(noc_manager, core_agent)
 }
 ```
@@ -224,29 +224,29 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, SNMP3, GET, GETBULK, INFORM, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, PRIV, MD5, SHA, SHA256, SHA384, SHA512, DES, AES, NONREPEATERS, MAXREPETITIONS, REQID, VARBIND, NULL, STRING, GAUGE32, WAIT, COMPILE
 
 // INSTRUCTION: Declare IPv6 Management Station.
-HOST nms_v6 {
-    IP 2001:db8:fe:161::10
-    MAC 00:50:56:61:61:10
+host nms_v6 {
+    ip 2001:db8:fe:161::10
+    mac 00:50:56:61:61:10
 }
 
 // INSTRUCTION: Declare IPv6 Core Switch Agent.
-HOST switch_v6 {
-    IP 2001:db8:fe:161::1
-    MAC 00:1c:73:61:61:01
+host switch_v6 {
+    ip 2001:db8:fe:161::1
+    mac 00:1c:73:61:61:01
 }
 
 // INSTRUCTION: Exercise all five RFC 3414 / RFC 7860 authentication algorithms and both DES and AES privacy ciphers over IPv6.
-FLOW ipv6_snmpv3_crypto_matrix(nms, sw) {
-    nms -> sw SNMP3 GET USER "u_md5_des" ENGINEID "800000090300001c73616101" ENGINEBOOTS 5 ENGINETIME 1000 AUTH MD5 "Md5AuthKey999" PRIV DES "DesPrivKey999" REQID 401 VARBIND 1.3.6.1.2.1.1.1.0 NULL WAIT 2ms
-    nms <- sw SNMP3 RESPONSE USER "u_md5_des" ENGINEID "800000090300001c73616101" ENGINEBOOTS 5 ENGINETIME 1000 AUTH MD5 "Md5AuthKey999" PRIV DES "DesPrivKey999" REQID 401 VARBIND 1.3.6.1.2.1.1.1.0 STRING "Arista EOS-4.32.1F" WAIT 2ms
-    nms -> sw SNMP3 GET USER "u_sha1_aes" ENGINEID "800000090300001c73616101" ENGINEBOOTS 5 ENGINETIME 1001 AUTH SHA "Sha1AuthKey999" PRIV AES "AesPrivKey999" REQID 402 VARBIND 1.3.6.1.2.1.1.5.0 NULL WAIT 2ms
-    nms -> sw SNMP3 GETBULK USER "u_sha256_aes" ENGINEID "800000090300001c73616101" ENGINEBOOTS 5 ENGINETIME 1002 AUTH SHA256 "Sha256AuthKey999" PRIV AES "AesPrivKey999" REQID 403 NONREPEATERS 0 MAXREPETITIONS 10 VARBIND 1.3.6.1.2.1.2.2.1.5 NULL WAIT 2ms
-    nms -> sw SNMP3 GET USER "u_sha384_aes" ENGINEID "800000090300001c73616101" ENGINEBOOTS 5 ENGINETIME 1003 AUTH SHA384 "Sha384AuthKey999" PRIV AES "AesPrivKey999" REQID 404 VARBIND 1.3.6.1.2.1.2.2.1.5.1 GAUGE32 1000000000 WAIT 2ms
-    nms <- sw SNMP3 INFORM USER "u_sha512_aes" ENGINEID "800000090300001c73616101" ENGINEBOOTS 5 ENGINETIME 1004 AUTH SHA512 "Sha512AuthKey999" PRIV AES "AesPrivKey999" REQID 405 VARBIND 1.3.6.1.2.1.1.5.0 STRING "TRAP_OPTICAL_DOM_HIGH_TEMP" WAIT 2ms
+flow ipv6_snmpv3_crypto_matrix(nms, sw) {
+    nms -> sw snmp3 get user "u_md5_des" engineid "800000090300001c73616101" engineboots 5 enginetime 1000 auth md5 "Md5AuthKey999" priv des "DesPrivKey999" reqid 401 varbind 1.3.6.1.2.1.1.1.0 null wait 2ms
+    nms <- sw snmp3 response user "u_md5_des" engineid "800000090300001c73616101" engineboots 5 enginetime 1000 auth md5 "Md5AuthKey999" priv des "DesPrivKey999" reqid 401 varbind 1.3.6.1.2.1.1.1.0 string "Arista EOS-4.32.1F" wait 2ms
+    nms -> sw snmp3 get user "u_sha1_aes" engineid "800000090300001c73616101" engineboots 5 enginetime 1001 auth sha "Sha1AuthKey999" priv aes "AesPrivKey999" reqid 402 varbind 1.3.6.1.2.1.1.5.0 null wait 2ms
+    nms -> sw snmp3 getbulk user "u_sha256_aes" engineid "800000090300001c73616101" engineboots 5 enginetime 1002 auth sha256 "Sha256AuthKey999" priv aes "AesPrivKey999" reqid 403 nonrepeaters 0 maxrepetitions 10 varbind 1.3.6.1.2.1.2.2.1.5 null wait 2ms
+    nms -> sw snmp3 get user "u_sha384_aes" engineid "800000090300001c73616101" engineboots 5 enginetime 1003 auth sha384 "Sha384AuthKey999" priv aes "AesPrivKey999" reqid 404 varbind 1.3.6.1.2.1.2.2.1.5.1 gauge32 1000000000 wait 2ms
+    nms <- sw snmp3 inform user "u_sha512_aes" engineid "800000090300001c73616101" engineboots 5 enginetime 1004 auth sha512 "Sha512AuthKey999" priv aes "AesPrivKey999" reqid 405 varbind 1.3.6.1.2.1.1.5.0 string "TRAP_OPTICAL_DOM_HIGH_TEMP" wait 2ms
 }
 
 // INSTRUCTION: Compile the IPv6 SNMPv3 cryptographic matrix flow.
-COMPILE {
+compile {
     ipv6_snmpv3_crypto_matrix(nms_v6, switch_v6)
 }
 ```
@@ -262,28 +262,28 @@ In production enterprise and carrier networks, a single Network Management Stati
 // TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DSCP, SNMP1, SNMP2, SNMP3, GET, GETBULK, RESPONSE, TRAP, COMMUNITY, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, PRIV, SHA256, AES, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, NONREPEATERS, MAXREPETITIONS, REQID, VARBIND, NULL, STRING, INT, COUNTER64, TIMETICKS, WAIT, COMPILE
 
 // INSTRUCTION: Declare the unified Network Management Station on Management VLAN 99.
-HOST unified_nms {
-    IP 10.99.0.10
-    MAC 00:50:56:99:00:10
+host unified_nms {
+    ip 10.99.0.10
+    mac 00:50:56:99:00:10
 }
 
 // INSTRUCTION: Declare the multi-agent network appliance responding to v1, v2c, and v3 management queries.
-HOST managed_appliance {
-    IP 10.99.0.100
-    MAC 00:1c:73:99:00:64
+host managed_appliance {
+    ip 10.99.0.100
+    mac 00:1c:73:99:00:64
 }
 
 // INSTRUCTION: Define a tri-version SNMP audit flow over 802.1Q VLAN 99 with CS2 (DSCP 16) OAM marking.
-FLOW tri_version_snmp_audit(nms, dev) {
-    nms <- dev VLAN 99 PCP 2 DSCP 16 SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.9.1.1 AGENTIP 10.99.0.100 GENTRAP 3 SPECTRAP 0 SYSUPTIME 12000 VARBIND 1.3.6.1.2.1.2.2.1.1.1 INT 1 WAIT 2ms
-    nms -> dev VLAN 99 PCP 2 DSCP 16 SNMP2 GETBULK COMMUNITY "perf_ro" REQID 5001 NONREPEATERS 1 MAXREPETITIONS 5 VARBIND 1.3.6.1.2.1.1.3.0 NULL VARBIND 1.3.6.1.2.1.31.1.1.1.6 NULL WAIT 2ms
-    nms <- dev VLAN 99 PCP 2 DSCP 16 SNMP2 RESPONSE COMMUNITY "perf_ro" REQID 5001 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 12500 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 45000123456 WAIT 2ms
-    nms -> dev VLAN 99 PCP 2 DSCP 16 SNMP3 GET USER "sec_auditor" ENGINEID "80001f8880990064" ENGINEBOOTS 3 ENGINETIME 5400 AUTH SHA256 "SecAuditSha256!" PRIV AES "SecAuditAes128!" REQID 5002 VARBIND 1.3.6.1.2.1.1.1.0 NULL WAIT 2ms
-    nms <- dev VLAN 99 PCP 2 DSCP 16 SNMP3 RESPONSE USER "sec_auditor" ENGINEID "80001f8880990064" ENGINEBOOTS 3 ENGINETIME 5400 AUTH SHA256 "SecAuditSha256!" PRIV AES "SecAuditAes128!" REQID 5002 VARBIND 1.3.6.1.2.1.1.1.0 STRING "FrameAssembly Multi-Version SNMP Agent v1.1.1" WAIT 2ms
+flow tri_version_snmp_audit(nms, dev) {
+    nms <- dev vlan 99 pcp 2 dscp 16 snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.1.1 agentip 10.99.0.100 gentrap 3 spectrap 0 sysuptime 12000 varbind 1.3.6.1.2.1.2.2.1.1.1 int 1 wait 2ms
+    nms -> dev vlan 99 pcp 2 dscp 16 snmp2 getbulk community "perf_ro" reqid 5001 nonrepeaters 1 maxrepetitions 5 varbind 1.3.6.1.2.1.1.3.0 null varbind 1.3.6.1.2.1.31.1.1.1.6 null wait 2ms
+    nms <- dev vlan 99 pcp 2 dscp 16 snmp2 response community "perf_ro" reqid 5001 varbind 1.3.6.1.2.1.1.3.0 timeticks 12500 varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 45000123456 wait 2ms
+    nms -> dev vlan 99 pcp 2 dscp 16 snmp3 get user "sec_auditor" engineid "80001f8880990064" engineboots 3 enginetime 5400 auth sha256 "SecAuditSha256!" priv aes "SecAuditAes128!" reqid 5002 varbind 1.3.6.1.2.1.1.1.0 null wait 2ms
+    nms <- dev vlan 99 pcp 2 dscp 16 snmp3 response user "sec_auditor" engineid "80001f8880990064" engineboots 3 enginetime 5400 auth sha256 "SecAuditSha256!" priv aes "SecAuditAes128!" reqid 5002 varbind 1.3.6.1.2.1.1.1.0 string "FrameAssembly Multi-Version SNMP Agent v1.2.0" wait 2ms
 }
 
 // INSTRUCTION: Compile the tri-version SNMP coexistence audit flow.
-COMPILE {
+compile {
     tri_version_snmp_audit(unified_nms, managed_appliance)
 }
 ```

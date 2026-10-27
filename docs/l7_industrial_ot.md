@@ -93,31 +93,31 @@ Modbus TCP (`src/builders/l7/modbus.rs`) encapsulates a standard Modbus Protocol
 // TOKENS: HOST, IP, MAC, FLOW, ->, <-, MODBUS, FUNC, TXID, UNITID, ADDR, COUNT, IS_RESPONSE, WAIT, COMPILE
 
 // INSTRUCTION: Define the Level 3 SCADA HMI master station and Level 1 Modbus TCP PLC.
-HOST scada_hmi {
-    IP 192.168.100.10
-    MAC 00:1b:21:a0:00:10
+host scada_hmi {
+    ip 192.168.100.10
+    mac 00:1b:21:a0:00:10
 }
 
 // INSTRUCTION: Define the programmable logic controller (PLC) controlling turbine speed and valve state.
-HOST turbine_plc {
-    IP 192.168.100.50
-    MAC 00:0e:8c:a0:00:50
+host turbine_plc {
+    ip 192.168.100.50
+    mac 00:0e:8c:a0:00:50
 }
 
 // INSTRUCTION: Poll holding registers (FC 03), input registers (FC 04), coils (FC 01), and write a register setpoint (FC 06).
-FLOW modbus_scada_polling_cycle(hmi, plc) {
-    hmi -> plc MODBUS FUNC "READ_HOLDING_REGISTERS" TXID 101 UNITID 1 ADDR 40001 COUNT 4
-    hmi <- plc MODBUS FUNC "READ_HOLDING_REGISTERS" TXID 101 UNITID 1 COUNT 4 IS_RESPONSE WAIT 2ms
-    hmi -> plc MODBUS FUNC "READ_INPUT_REGISTERS" TXID 102 UNITID 1 ADDR 30001 COUNT 2 WAIT 5ms
-    hmi <- plc MODBUS FUNC "READ_INPUT_REGISTERS" TXID 102 UNITID 1 COUNT 2 IS_RESPONSE WAIT 2ms
-    hmi -> plc MODBUS FUNC "READ_COILS" TXID 103 UNITID 1 ADDR 1 COUNT 8 WAIT 5ms
-    hmi <- plc MODBUS FUNC "READ_COILS" TXID 103 UNITID 1 COUNT 8 IS_RESPONSE WAIT 2ms
-    hmi -> plc MODBUS FUNC "WRITE_SINGLE_REGISTER" TXID 104 UNITID 1 ADDR 40010 COUNT 1500 WAIT 5ms
-    hmi <- plc MODBUS FUNC "WRITE_SINGLE_REGISTER" TXID 104 UNITID 1 ADDR 40010 COUNT 1500 IS_RESPONSE WAIT 2ms
+flow modbus_scada_polling_cycle(hmi, plc) {
+    hmi -> plc modbus func "READ_HOLDING_REGISTERS" txid 101 unitid 1 addr 40001 count 4
+    hmi <- plc modbus func "READ_HOLDING_REGISTERS" txid 101 unitid 1 count 4 is_response wait 2ms
+    hmi -> plc modbus func "READ_INPUT_REGISTERS" txid 102 unitid 1 addr 30001 count 2 wait 5ms
+    hmi <- plc modbus func "READ_INPUT_REGISTERS" txid 102 unitid 1 count 2 is_response wait 2ms
+    hmi -> plc modbus func "READ_COILS" txid 103 unitid 1 addr 1 count 8 wait 5ms
+    hmi <- plc modbus func "READ_COILS" txid 103 unitid 1 count 8 is_response wait 2ms
+    hmi -> plc modbus func "WRITE_SINGLE_REGISTER" txid 104 unitid 1 addr 40010 count 1500 wait 5ms
+    hmi <- plc modbus func "WRITE_SINGLE_REGISTER" txid 104 unitid 1 addr 40010 count 1500 is_response wait 2ms
 }
 
 // INSTRUCTION: Compile the Modbus TCP industrial polling scenario.
-COMPILE {
+compile {
     modbus_scada_polling_cycle(scada_hmi, turbine_plc)
 }
 ```
@@ -178,20 +178,20 @@ BACnet/IP (`src/builders/l7/bacnet.rs`) implements ANSI/ASHRAE Standard 135 over
 // TOKENS: HOST, IP, FLOW, ->, <-, BACNET, WHO_IS, I_AM, READ_PROPERTY, WRITE_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, VALUE, WAIT, COMPILE
 
 // INSTRUCTION: Define the central Building Management System (BMS) server and rooftop HVAC chiller controller.
-HOST bms_workstation { IP 10.120.1.10 }
-HOST chiller_ahu_01  { IP 10.120.1.50 }
+host bms_workstation { ip 10.120.1.10 }
+host chiller_ahu_01  { ip 10.120.1.50 }
 
 // INSTRUCTION: Perform BACnet/IP Who-Is discovery, I-Am response, ReadProperty on Analog Input 1, and WriteProperty on Analog Value 2.
-FLOW bacnet_hvac_control(bms, ahu) {
-    bms -> ahu BACNET WHO_IS
-    bms <- ahu BACNET I_AM OBJECT_TYPE 8 OBJECT_INSTANCE 1010 WAIT 2ms
-    bms -> ahu BACNET READ_PROPERTY INVOKE_ID 10 OBJECT_TYPE 0 OBJECT_INSTANCE 1 PROPERTY_ID 85 WAIT 5ms
-    bms <- ahu BACNET READ_PROPERTY INVOKE_ID 10 OBJECT_TYPE 0 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 68 WAIT 2ms
-    bms -> ahu BACNET WRITE_PROPERTY INVOKE_ID 11 OBJECT_TYPE 2 OBJECT_INSTANCE 2 PROPERTY_ID 85 VALUE 72 WAIT 5ms
+flow bacnet_hvac_control(bms, ahu) {
+    bms -> ahu bacnet who_is
+    bms <- ahu bacnet i_am object_type 8 object_instance 1010 wait 2ms
+    bms -> ahu bacnet read_property invoke_id 10 object_type 0 object_instance 1 property_id 85 wait 5ms
+    bms <- ahu bacnet read_property invoke_id 10 object_type 0 object_instance 1 property_id 85 value 68 wait 2ms
+    bms -> ahu bacnet write_property invoke_id 11 object_type 2 object_instance 2 property_id 85 value 72 wait 5ms
 }
 
 // INSTRUCTION: Compile the BACnet/IP smart building automation flow.
-COMPILE {
+compile {
     bacnet_hvac_control(bms_workstation, chiller_ahu_01)
 }
 ```
@@ -251,23 +251,23 @@ DNP3 (`src/builders/l7/dnp3.rs`) implements the IEEE 1815-2012 specification use
 // TOKENS: HOST, IP, FLOW, ->, <-, DNP3, FUNC, SRC, DST, SEQ, GROUP, VARIATION, WAIT, COMPILE
 
 // INSTRUCTION: Define the utility Control Center SCADA master and remote 230kV Substation RTU.
-HOST scada_master   { IP 10.200.1.1 }
-HOST substation_rtu { IP 10.200.1.50 }
+host scada_master   { ip 10.200.1.1 }
+host substation_rtu { ip 10.200.1.50 }
 
 // INSTRUCTION: Perform DNP3 Class 0 Read (Group 60 Var 1), receive Response, and execute Select/Operate breaker trip (Group 12 Var 1).
-FLOW dnp3_substation_control(master, rtu) {
-    master -> rtu DNP3 FUNC "READ" SRC 1 DST 50 SEQ 1 GROUP 60 VARIATION 1
-    master <- rtu DNP3 FUNC "RESPONSE" SRC 50 DST 1 SEQ 1 GROUP 30 VARIATION 1 WAIT 3ms
-    master -> rtu DNP3 FUNC "SELECT" SRC 1 DST 50 SEQ 2 GROUP 12 VARIATION 1 WAIT 5ms
-    master <- rtu DNP3 FUNC "RESPONSE" SRC 50 DST 1 SEQ 2 GROUP 12 VARIATION 1 WAIT 2ms
-    master -> rtu DNP3 FUNC "OPERATE" SRC 1 DST 50 SEQ 3 GROUP 12 VARIATION 1 WAIT 2ms
-    master <- rtu DNP3 FUNC "RESPONSE" SRC 50 DST 1 SEQ 3 GROUP 12 VARIATION 1 WAIT 2ms
-    master <- rtu DNP3 FUNC "UNSOLICITED_RESPONSE" SRC 50 DST 1 SEQ 4 GROUP 1 VARIATION 2 WAIT 10ms
-    master -> rtu DNP3 FUNC "CONFIRM" SRC 1 DST 50 SEQ 4 WAIT 1ms
+flow dnp3_substation_control(master, rtu) {
+    master -> rtu dnp3 func "READ" src 1 dst 50 seq 1 group 60 variation 1
+    master <- rtu dnp3 func "RESPONSE" src 50 dst 1 seq 1 group 30 variation 1 wait 3ms
+    master -> rtu dnp3 func "SELECT" src 1 dst 50 seq 2 group 12 variation 1 wait 5ms
+    master <- rtu dnp3 func "RESPONSE" src 50 dst 1 seq 2 group 12 variation 1 wait 2ms
+    master -> rtu dnp3 func "OPERATE" src 1 dst 50 seq 3 group 12 variation 1 wait 2ms
+    master <- rtu dnp3 func "RESPONSE" src 50 dst 1 seq 3 group 12 variation 1 wait 2ms
+    master <- rtu dnp3 func "UNSOLICITED_RESPONSE" src 50 dst 1 seq 4 group 1 variation 2 wait 10ms
+    master -> rtu dnp3 func "CONFIRM" src 1 dst 50 seq 4 wait 1ms
 }
 
 // INSTRUCTION: Compile the IEEE 1815 DNP3 electrical substation scenario.
-COMPILE {
+compile {
     dnp3_substation_control(scada_master, substation_rtu)
 }
 ```
@@ -404,41 +404,41 @@ OPC UA (`src/builders/l7/opcua.rs`) implements the IEC 62541 Part 6 OPC UA Binar
 // TOKENS: HOST, IP, MAC, FLOW, ->, <-, S7COMM, ROSCTR, FUNC, PDU_REF, AREA, DB_NUM, OFFSET, COUNT, ETHERNETIP, CMD, SESSION_HANDLE, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, OPCUA, MSG_TYPE, CHUNK_TYPE, ENDPOINT_URL, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, WAIT, COMPILE
 
 // INSTRUCTION: Define the Level 3 Engineering & Historian Station and Level 1 Multi-Vendor PLC Gateway.
-HOST eng_historian {
-    IP 10.80.10.5
-    MAC 00:1b:21:80:0a:05
+host eng_historian {
+    ip 10.80.10.5
+    mac 00:1b:21:80:0a:05
 }
 
 // INSTRUCTION: Define the factory automation cell controller speaking S7comm, EtherNet/IP, and OPC UA.
-HOST factory_cell_plc {
-    IP 10.80.10.20
-    MAC 00:0e:8c:80:0a:14
+host factory_cell_plc {
+    ip 10.80.10.20
+    mac 00:0e:8c:80:0a:14
 }
 
 // INSTRUCTION: Execute Siemens S7comm setup/read/write, ODVA EtherNet/IP CIP read, and IEC 62541 OPC UA session.
-FLOW factory_automation_orchestration(eng, plc) {
+flow factory_automation_orchestration(eng, plc) {
     // 1. Siemens S7comm Communication Setup & Data Block DB1 Read/Write
-    eng -> plc S7COMM ROSCTR "JOB" FUNC "SETUP_COMM" PDU_REF 100
-    eng <- plc S7COMM ROSCTR "ACK_DATA" FUNC "SETUP_COMM" PDU_REF 100 WAIT 2ms
-    eng -> plc S7COMM ROSCTR "JOB" FUNC "READ_VAR" PDU_REF 101 AREA 0x84 DB_NUM 1 OFFSET 0 COUNT 8 WAIT 5ms
-    eng <- plc S7COMM ROSCTR "ACK_DATA" FUNC "READ_VAR" PDU_REF 101 COUNT 8 WAIT 2ms
-    eng -> plc S7COMM ROSCTR "JOB" FUNC "WRITE_VAR" PDU_REF 102 AREA 0x84 DB_NUM 1 OFFSET 16 COUNT 4 WAIT 5ms
+    eng -> plc s7comm rosctr "JOB" func "SETUP_COMM" pdu_ref 100
+    eng <- plc s7comm rosctr "ACK_DATA" func "SETUP_COMM" pdu_ref 100 wait 2ms
+    eng -> plc s7comm rosctr "JOB" func "READ_VAR" pdu_ref 101 area 0x84 db_num 1 offset 0 count 8 wait 5ms
+    eng <- plc s7comm rosctr "ACK_DATA" func "READ_VAR" pdu_ref 101 count 8 wait 2ms
+    eng -> plc s7comm rosctr "JOB" func "WRITE_VAR" pdu_ref 102 area 0x84 db_num 1 offset 16 count 4 wait 5ms
 
     // 2. ODVA EtherNet/IP RegisterSession and CIP Identity & Assembly Object Read
-    eng -> plc ETHERNETIP CMD "REGISTER_SESSION" SESSION_HANDLE 1001 WAIT 5ms
-    eng <- plc ETHERNETIP CMD "REGISTER_SESSION" SESSION_HANDLE 1001 WAIT 2ms
-    eng -> plc ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 1001 CIP_SERVICE 0x0e CIP_CLASS 0x04 CIP_INSTANCE 100 CIP_ATTR 3 WAIT 5ms
+    eng -> plc ethernetip cmd "REGISTER_SESSION" session_handle 1001 wait 5ms
+    eng <- plc ethernetip cmd "REGISTER_SESSION" session_handle 1001 wait 2ms
+    eng -> plc ethernetip cmd "SEND_RR_DATA" session_handle 1001 cip_service 0x0e cip_class 0x04 cip_instance 100 cip_attr 3 wait 5ms
 
     // 3. IEC 62541 OPC UA Binary Handshake (HEL/ACK), OpenSecureChannel (OPN), Read (MSG), and Close (CLO)
-    eng -> plc OPCUA MSG_TYPE "HEL" CHUNK_TYPE "F" ENDPOINT_URL "opc.tcp://10.80.10.20:4840/simatic" WAIT 5ms
-    eng <- plc OPCUA MSG_TYPE "ACK" CHUNK_TYPE "F" WAIT 2ms
-    eng -> plc OPCUA MSG_TYPE "OPN" CHUNK_TYPE "F" SECURE_CHANNEL_ID 10 SEQ_NUM 1 REQID 1 WAIT 5ms
-    eng -> plc OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 10 TOKEN_ID 1 SEQ_NUM 2 REQID 2 NODE_ID "ns=2;s=Cell01.SpindleRPM" WAIT 5ms
-    eng -> plc OPCUA MSG_TYPE "CLO" CHUNK_TYPE "F" SECURE_CHANNEL_ID 10 TOKEN_ID 1 SEQ_NUM 3 REQID 3 WAIT 2ms
+    eng -> plc opcua msg_type "HEL" chunk_type "F" endpoint_url "opc.tcp://10.80.10.20:4840/simatic" wait 5ms
+    eng <- plc opcua msg_type "ACK" chunk_type "F" wait 2ms
+    eng -> plc opcua msg_type "OPN" chunk_type "F" secure_channel_id 10 seq_num 1 reqid 1 wait 5ms
+    eng -> plc opcua msg_type "MSG" chunk_type "F" secure_channel_id 10 token_id 1 seq_num 2 reqid 2 node_id "ns=2;s=Cell01.SpindleRPM" wait 5ms
+    eng -> plc opcua msg_type "CLO" chunk_type "F" secure_channel_id 10 token_id 1 seq_num 3 reqid 3 wait 2ms
 }
 
 // INSTRUCTION: Compile the multi-vendor factory automation capture.
-COMPILE {
+compile {
     factory_automation_orchestration(eng_historian, factory_cell_plc)
 }
 ```

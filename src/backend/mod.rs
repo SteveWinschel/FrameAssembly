@@ -30,6 +30,10 @@ pub fn resolve_endpoint<'a>(
         Argument::Variable(var_name) => {
             if let Some(val) = env.get(var_name) {
                 Ok(val.clone())
+            } else if let Some((_, val)) =
+                env.iter().find(|(k, _)| k.eq_ignore_ascii_case(var_name))
+            {
+                Ok(val.clone())
             } else {
                 Err(alloc::format!("Undefined variable: '{}'", var_name))
             }
@@ -266,22 +270,22 @@ pub fn compile_program(program: &Program) -> Result<Vec<(Vec<u8>, u64)>, String>
 
     let mut flows = HashMap::new();
     for f in &program.flows {
-        flows.insert(f.name, f);
+        flows.insert(f.name.to_ascii_lowercase(), f);
     }
 
     let mut packet_buffer: Vec<(Vec<u8>, u64)> = Vec::new();
 
     let mut current_time_ns: u64 = 1_700_000_000_000_000_000;
 
-    // Stage 1: Port inheritance remembered per endpoint pair
-    let mut endpoint_ports: HashMap<(&str, &str), EndpointPairPorts> = HashMap::new();
+    // Stage 1: Port inheritance remembered per endpoint pair (case-insensitive)
+    let mut endpoint_ports: HashMap<(String, String), EndpointPairPorts> = HashMap::new();
 
     // Stage 2: Canonical 4-tuple TCP connection state machine
     let mut tcp_connections: HashMap<Canonical4Tuple, TcpStreamState> = HashMap::new();
 
     let mut execute_invocation = |invocation: &TemplateInvocation| -> Result<(), String> {
         let flow = flows
-            .get(&invocation.name)
+            .get(&invocation.name.to_ascii_lowercase())
             .ok_or_else(|| alloc::format!("Undefined flow: '{}'", invocation.name))?;
 
         if flow.params.len() != invocation.args.len() {
@@ -296,15 +300,17 @@ pub fn compile_program(program: &Program) -> Result<Vec<(Vec<u8>, u64)>, String>
         let mut param_map = HashMap::new();
         for (i, param_name) in flow.params.iter().enumerate() {
             let endpoint = resolve_endpoint(&invocation.args[i], &env)?;
-            param_map.insert(*param_name, endpoint);
+            param_map.insert(param_name.to_ascii_lowercase(), endpoint);
         }
 
         for stmt in &flow.statements {
+            let caller_key = stmt.caller.node.to_ascii_lowercase();
+            let callee_key = stmt.callee.node.to_ascii_lowercase();
             let caller_ep = param_map
-                .get(stmt.caller.node)
+                .get(&caller_key)
                 .ok_or_else(|| alloc::format!("Unknown caller '{}' in flow", stmt.caller.node))?;
             let callee_ep = param_map
-                .get(stmt.callee.node)
+                .get(&callee_key)
                 .ok_or_else(|| alloc::format!("Unknown callee '{}' in flow", stmt.callee.node))?;
 
             // Resolve Source and Destination based on Direction
@@ -321,11 +327,11 @@ pub fn compile_program(program: &Program) -> Result<Vec<(Vec<u8>, u64)>, String>
             let dst_mac = derive_mac(dst_host.mac, stmt.l2.dst_mac, dst_ip, !is_forward);
 
             // Stage 1: Two-Stage Port Inheritance
-            let pair_key = (stmt.caller.node, stmt.callee.node);
+            let pair_key = (caller_key, callee_key);
             let is_raw_l4 = matches!(stmt.protocol, Protocol::Tcp | Protocol::Udp | Protocol::Sctp);
 
             let (mut src_port, mut dst_port) = {
-                let pair_ports = endpoint_ports.entry(pair_key).or_default();
+                let pair_ports = endpoint_ports.entry(pair_key.clone()).or_default();
                 let can_inherit_callee = is_raw_l4
                     || (pair_ports.callee_port_explicit
                         && (pair_ports.last_protocol.as_ref() == Some(&stmt.protocol)

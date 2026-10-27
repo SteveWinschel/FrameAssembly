@@ -64,7 +64,7 @@ fn extract_lexer_uppercase_keywords() -> HashSet<String> {
     for line in lexer_src.lines() {
         let trimmed = line.trim();
         if let Some(rest) = trimmed.strip_prefix("#[token(\"")
-            && let Some(end_idx) = rest.find("\")]")
+            && let Some(end_idx) = rest.find('"')
         {
             let tok = &rest[..end_idx];
             if !tok.is_empty()
@@ -423,7 +423,11 @@ fn verify_fasm_blocks_in_file(path: &Path) -> Result<usize, String> {
         } else if in_block && trimmed.starts_with("```") {
             in_block = false;
             let snippet = current_block.trim();
-            if snippet.contains("HOST ") && snippet.contains("FLOW ") && snippet.contains("COMPILE") {
+            let snippet_upper = snippet.to_ascii_uppercase();
+            if snippet_upper.contains("HOST ")
+                && snippet_upper.contains("FLOW ")
+                && snippet_upper.contains("COMPILE")
+            {
                 let prog = parse_program(snippet).map_err(|e| {
                     format!(
                         "{}:{}: Fenced .fasm block failed to parse: {:?}",

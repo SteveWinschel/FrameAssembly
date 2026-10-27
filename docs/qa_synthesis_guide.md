@@ -39,18 +39,18 @@ Every `.fasm` file in the FrameAssembly training corpus (`examples/`) follows fo
 // TOKENS: HOST, IP, MAC, FLOW, ->, <-, ARP, REQUEST, REPLY, GRATUITOUS, DSTMAC, SHA, SPA, THA, TPA, WAIT, COMPILE
 
 // INSTRUCTION: Define the local host and default gateway with explicit IPv4 and MAC addresses.
-HOST host_a  { IP 192.168.1.10 MAC 00:11:22:33:44:55 }
-HOST gateway { IP 192.168.1.1  MAC aa:bb:cc:dd:ee:ff }
+host host_a  { ip 192.168.1.10 mac 00:11:22:33:44:55 }
+host gateway { ip 192.168.1.1  mac aa:bb:cc:dd:ee:ff }
 
 // INSTRUCTION: Execute ARP request, unicast reply, and RFC 5227 Gratuitous ARP announcement.
-FLOW arp_resolution_and_garp(h, gw) {
-    h -> gw ARP REQUEST DSTMAC ff:ff:ff:ff:ff:ff THA 00:00:00:00:00:00
-    h <- gw ARP REPLY WAIT 2ms
-    h -> gw ARP GRATUITOUS DSTMAC ff:ff:ff:ff:ff:ff SHA 00:11:22:33:44:55 SPA 192.168.1.10 TPA 192.168.1.10 WAIT 2ms
+flow arp_resolution_and_garp(h, gw) {
+    h -> gw arp request dstmac ff:ff:ff:ff:ff:ff tha 00:00:00:00:00:00
+    h <- gw arp reply wait 2ms
+    h -> gw arp gratuitous dstmac ff:ff:ff:ff:ff:ff sha 00:11:22:33:44:55 spa 192.168.1.10 tpa 192.168.1.10 wait 2ms
 }
 
 // INSTRUCTION: Compile the ARP resolution and Gratuitous ARP flow.
-COMPILE {
+compile {
     arp_resolution_and_garp(host_a, gateway)
 }
 ```
@@ -65,17 +65,17 @@ COMPILE {
 // TOKENS: HOST, IP, FLOW, ->, VLAN, QINQ, INNER_VLAN, PCP, DEI, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define Provider Edge (PE) routers pe1 and pe2.
-HOST pe1 { IP 10.1.0.1 }
-HOST pe2 { IP 10.1.0.2 }
+host pe1 { ip 10.1.0.1 }
+host pe2 { ip 10.1.0.2 }
 
 // INSTRUCTION: Send an 802.1Q VLAN 200 frame followed by an 802.1ad QinQ (1000/200) frame.
-FLOW vlan_and_qinq_tagging(a, b) {
-    a -> b VLAN 200 PCP 5 DEI 0 PAYLOAD "802.1Q Voice VLAN Frame"
-    a -> b QINQ 1000 INNER_VLAN 200 PCP 5 DEI 0 PAYLOAD "802.1ad QinQ Metro Ethernet Frame" WAIT 2ms
+flow vlan_and_qinq_tagging(a, b) {
+    a -> b vlan 200 pcp 5 dei 0 payload "802.1Q Voice VLAN Frame"
+    a -> b qinq 1000 inner_vlan 200 pcp 5 dei 0 payload "802.1ad QinQ Metro Ethernet Frame" wait 2ms
 }
 
 // INSTRUCTION: Compile the VLAN and QinQ tagging scenario.
-COMPILE {
+compile {
     vlan_and_qinq_tagging(pe1, pe2)
 }
 ```
@@ -90,16 +90,16 @@ COMPILE {
 // TOKENS: HOST, IP, FLOW, ->, MPLS, EXP, BOS, MPLS_TTL, PAYLOAD, COMPILE
 
 // INSTRUCTION: Define ingress LER and core transit LSR endpoints.
-HOST ingress_ler { IP 10.200.0.1 }
-HOST transit_lsr { IP 10.200.0.2 }
+host ingress_ler { ip 10.200.0.1 }
+host transit_lsr { ip 10.200.0.2 }
 
 // INSTRUCTION: Encapsulate payload with MPLS label 24010 and Traffic Class 5 (EF).
-FLOW mpls_lsp_forward(ler, lsr) {
-    ler -> lsr MPLS 24010 EXP 5 BOS 1 MPLS_TTL 64 PAYLOAD "MPLS L3VPN Customer Frame"
+flow mpls_lsp_forward(ler, lsr) {
+    ler -> lsr mpls 24010 exp 5 bos 1 mpls_ttl 64 payload "MPLS L3VPN Customer Frame"
 }
 
 // INSTRUCTION: Compile the MPLS label switching flow.
-COMPILE {
+compile {
     mpls_lsp_forward(ingress_ler, transit_lsr)
 }
 ```
@@ -114,18 +114,18 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, ->, <-, STP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, HELLO_TIME, MAX_AGE, FORWARD_DELAY, LLDP, CHASSIS_ID, TTL, SYSNAME, SYSDESC, WAIT, COMPILE
 
 // INSTRUCTION: Define root core switch and distribution switch with explicit MAC addresses.
-HOST core_sw { IP 10.0.0.1 MAC 00:1c:73:00:00:01 }
-HOST dist_sw { IP 10.0.0.2 MAC 00:1c:73:00:00:02 }
+host core_sw { ip 10.0.0.1 mac 00:1c:73:00:00:01 }
+host dist_sw { ip 10.0.0.2 mac 00:1c:73:00:00:02 }
 
 // INSTRUCTION: Transmit an STP root BPDU followed by bidirectional LLDP advertisements.
-FLOW stp_and_lldp_discovery(core, dist) {
-    core -> dist STP ROOT_ID "4096/00:1c:73:00:00:01" BRIDGE_ID "4096/00:1c:73:00:00:01" COST 0 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15
-    core -> dist LLDP CHASSIS_ID "core-sw-01.dc" PORT_ID "Ethernet1/1" TTL 120 SYSNAME "core-sw-01" SYSDESC "Arista EOS" WAIT 2ms
-    core <- dist LLDP CHASSIS_ID "dist-sw-01.dc" PORT_ID "Ethernet49/1" TTL 120 SYSNAME "dist-sw-01" SYSDESC "Cisco NX-OS" WAIT 2ms
+flow stp_and_lldp_discovery(core, dist) {
+    core -> dist stp root_id "4096/00:1c:73:00:00:01" bridge_id "4096/00:1c:73:00:00:01" cost 0 max_age 20 hello_time 2 forward_delay 15
+    core -> dist lldp chassis_id "core-sw-01.dc" port_id "Ethernet1/1" ttl 120 sysname "core-sw-01" sysdesc "Arista EOS" wait 2ms
+    core <- dist lldp chassis_id "dist-sw-01.dc" port_id "Ethernet49/1" ttl 120 sysname "dist-sw-01" sysdesc "Cisco NX-OS" wait 2ms
 }
 
 // INSTRUCTION: Compile the STP and LLDP control-plane flow.
-COMPILE {
+compile {
     stp_and_lldp_discovery(core_sw, dist_sw)
 }
 ```
@@ -140,19 +140,19 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, ->, <-, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, EAPOL, VERSION, TYPE, START, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, WAIT, COMPILE
 
 // INSTRUCTION: Define two aggregation endpoints with MAC addresses.
-HOST node_a { IP 10.0.10.1 MAC 00:1b:21:01:02:03 }
-HOST node_b { IP 10.0.10.2 MAC 00:1b:21:04:05:06 }
+host node_a { ip 10.0.10.1 mac 00:1b:21:01:02:03 }
+host node_b { ip 10.0.10.2 mac 00:1b:21:04:05:06 }
 
 // INSTRUCTION: Synchronize LACP actor/partner state and run 802.1X EAPOL identity verification.
-FLOW lacp_and_eapol_bringup(a, b) {
-    a -> b LACP ACTOR_SYS 00:1b:21:01:02:03 ACTOR_KEY 10 ACTOR_PORT 1 ACTOR_STATE 0x3d PARTNER_SYS 00:1b:21:04:05:06 PARTNER_KEY 10 PARTNER_PORT 1 PARTNER_STATE 0x3d
-    a -> b EAPOL VERSION 2 TYPE START WAIT 2ms
-    a <- b EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 1 EAP_METHOD 1 WAIT 2ms
-    a -> b EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 1 EAP_METHOD 1 IDENTITY "host/node-a.corp.example" WAIT 2ms
+flow lacp_and_eapol_bringup(a, b) {
+    a -> b lacp actor_sys 00:1b:21:01:02:03 actor_key 10 actor_port 1 actor_state 0x3d partner_sys 00:1b:21:04:05:06 partner_key 10 partner_port 1 partner_state 0x3d
+    a -> b eapol version 2 type start wait 2ms
+    a <- b eapol version 2 type eap_packet eap_code 1 eap_id 1 eap_method 1 wait 2ms
+    a -> b eapol version 2 type eap_packet eap_code 2 eap_id 1 eap_method 1 identity "host/node-a.corp.example" wait 2ms
 }
 
 // INSTRUCTION: Compile the LACP and EAPOL port bring-up flow.
-COMPILE {
+compile {
     lacp_and_eapol_bringup(node_a, node_b)
 }
 ```
@@ -169,19 +169,19 @@ COMPILE {
 // TOKENS: HOST, IP, FLOW, ->, <-, ICMP, ECHO_REQUEST, ECHO_REPLY, ID, SEQ, TTL, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare IPv4 endpoints and IPv6 endpoints.
-HOST client_v4 { IP 10.0.0.10 }
-HOST dns_v4    { IP 8.8.8.8 }
-HOST client_v6 { IP 2001:db8::10 }
-HOST dns_v6    { IP 2001:4860:4860::8888 }
+host client_v4 { ip 10.0.0.10 }
+host dns_v4    { ip 8.8.8.8 }
+host client_v6 { ip 2001:db8::10 }
+host dns_v6    { ip 2001:4860:4860::8888 }
 
 // INSTRUCTION: Define a polymorphic ping flow that works over both IPv4 and IPv6.
-FLOW dual_stack_ping(src, dst) {
-    src -> dst ICMP ECHO_REQUEST ID 100 SEQ 1 TTL 64 PAYLOAD "polymorphic-ping"
-    src <- dst ICMP ECHO_REPLY ID 100 SEQ 1 TTL 57 PAYLOAD "polymorphic-ping" WAIT 5ms
+flow dual_stack_ping(src, dst) {
+    src -> dst icmp echo_request id 100 seq 1 ttl 64 payload "polymorphic-ping"
+    src <- dst icmp echo_reply id 100 seq 1 ttl 57 payload "polymorphic-ping" wait 5ms
 }
 
 // INSTRUCTION: Compile the flow for IPv4 and IPv6 endpoint pairs.
-COMPILE {
+compile {
     dual_stack_ping(client_v4, dns_v4)
     dual_stack_ping(client_v6, dns_v6)
 }
@@ -197,20 +197,20 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, ->, <-, NDP, ROUTER_SOLICIT, ROUTER_ADVERT, NEIGHBOR_SOLICIT, NEIGHBOR_ADVERT, TARGET, SLLA, TLLA, ROUTER_LIFETIME, TTL, MLD, REPORT, VERSION, GROUP, WAIT, COMPILE
 
 // INSTRUCTION: Define IPv6 host and router with link-local/global addresses and MACs.
-HOST host_v6   { IP 2001:db8::100 MAC 00:11:22:33:44:66 }
-HOST router_v6 { IP 2001:db8::1   MAC aa:bb:cc:dd:ee:66 }
+host host_v6   { ip 2001:db8::100 mac 00:11:22:33:44:66 }
+host router_v6 { ip 2001:db8::1   mac aa:bb:cc:dd:ee:66 }
 
 // INSTRUCTION: Execute ROUTER_SOLICIT, ROUTER_ADVERT, NEIGHBOR_SOLICIT, NEIGHBOR_ADVERT, and MLDv2 Report.
-FLOW ipv6_ndp_and_mld(h, r) {
-    h -> r NDP ROUTER_SOLICIT SLLA 00:11:22:33:44:66 TTL 255
-    h <- r NDP ROUTER_ADVERT SLLA aa:bb:cc:dd:ee:66 ROUTER_LIFETIME 1800 TTL 255 WAIT 2ms
-    h -> r NDP NEIGHBOR_SOLICIT TARGET 2001:db8::1 SLLA 00:11:22:33:44:66 TTL 255 WAIT 2ms
-    h <- r NDP NEIGHBOR_ADVERT TARGET 2001:db8::1 TLLA aa:bb:cc:dd:ee:66 TTL 255 WAIT 2ms
-    h -> r MLD REPORT VERSION 2 GROUP ff02::1:ff00:100 WAIT 2ms
+flow ipv6_ndp_and_mld(h, r) {
+    h -> r ndp router_solicit slla 00:11:22:33:44:66 ttl 255
+    h <- r ndp router_advert slla aa:bb:cc:dd:ee:66 router_lifetime 1800 ttl 255 wait 2ms
+    h -> r ndp neighbor_solicit target 2001:db8::1 slla 00:11:22:33:44:66 ttl 255 wait 2ms
+    h <- r ndp neighbor_advert target 2001:db8::1 tlla aa:bb:cc:dd:ee:66 ttl 255 wait 2ms
+    h -> r mld report version 2 group ff02::1:ff00:100 wait 2ms
 }
 
 // INSTRUCTION: Compile the IPv6 NDP and MLDv2 onboarding flow.
-COMPILE {
+compile {
     ipv6_ndp_and_mld(host_v6, router_v6)
 }
 ```
@@ -225,22 +225,22 @@ COMPILE {
 // TOKENS: HOST, IP, FLOW, ->, <-, BFD, STATE, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, OSPF, HELLO, ROUTER_ID, AREA_ID, BGP, OPEN, KEEPALIVE, UPDATE, ASN, HOLDTIME, BGPID, PREFIX, NEXTHOP, VRRP, VRID, PRIORITY, VIP, WAIT, COMPILE
 
 // INSTRUCTION: Define two core routers r1 and r2.
-HOST r1 { IP 10.0.0.1 }
-HOST r2 { IP 10.0.0.2 }
+host r1 { ip 10.0.0.1 }
+host r2 { ip 10.0.0.2 }
 
 // INSTRUCTION: Bring up BFD, OSPF Area 0, eBGP peering, and VRRPv3 virtual gateway redundancy.
-FLOW routing_control_plane(a, b) {
-    a -> b BFD STATE 3 MY_DISC 101 YOUR_DISC 202 MIN_TX 50000 MIN_RX 50000 MULT 3
-    a -> b OSPF HELLO ROUTER_ID 1.1.1.1 AREA_ID 0 WAIT 2ms
-    a -> b BGP OPEN ASN 65001 HOLDTIME 180 BGPID 1.1.1.1 WAIT 2ms
-    a <- b BGP OPEN ASN 65002 HOLDTIME 180 BGPID 2.2.2.2 WAIT 2ms
-    a -> b BGP KEEPALIVE WAIT 1ms
-    a -> b BGP UPDATE ASN 65001 PREFIX "172.16.0.0/16" NEXTHOP 10.0.0.1 WAIT 2ms
-    a -> b VRRP VRID 10 PRIORITY 200 VIP 10.0.0.254 WAIT 2ms
+flow routing_control_plane(a, b) {
+    a -> b bfd state 3 my_disc 101 your_disc 202 min_tx 50000 min_rx 50000 mult 3
+    a -> b ospf hello router_id 1.1.1.1 area_id 0 wait 2ms
+    a -> b bgp open asn 65001 holdtime 180 bgpid 1.1.1.1 wait 2ms
+    a <- b bgp open asn 65002 holdtime 180 bgpid 2.2.2.2 wait 2ms
+    a -> b bgp keepalive wait 1ms
+    a -> b bgp update asn 65001 prefix "172.16.0.0/16" nexthop 10.0.0.1 wait 2ms
+    a -> b vrrp vrid 10 priority 200 vip 10.0.0.254 wait 2ms
 }
 
 // INSTRUCTION: Compile the routing control-plane scenario.
-COMPILE {
+compile {
     routing_control_plane(r1, r2)
 }
 ```
@@ -255,23 +255,23 @@ COMPILE {
 // TOKENS: HOST, IP, FLOW, ->, <-, GRE, GRE_KEY, SEQ, VXLAN, VNI, GENEVE, IKEV2, SA_INIT, INITIATOR_SPI, RESPONDER_SPI, MSGID, ESP, SPI, AH, WIREGUARD, TYPE, INITIATION, DATA, SENDER, RECEIVER, COUNTER, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define two WAN tunnel gateways gw1 and gw2.
-HOST gw1 { IP 198.51.100.1 }
-HOST gw2 { IP 203.0.113.1 }
+host gw1 { ip 198.51.100.1 }
+host gw2 { ip 203.0.113.1 }
 
 // INSTRUCTION: Transmit GRE, VXLAN, GENEVE, IKEv2/ESP/AH, and WireGuard frames.
-FLOW overlay_and_vpn_showcase(a, b) {
-    a -> b GRE GRE_KEY 100 SEQ 1 PAYLOAD "GRE Encapsulated Frame"
-    a -> b VXLAN VNI 5000 PAYLOAD "VXLAN VNI 5000 Tenant Frame" WAIT 1ms
-    a -> b GENEVE VNI 6000 PAYLOAD "GENEVE VNI 6000 Cloud Frame" WAIT 1ms
-    a -> b IKEV2 SA_INIT INITIATOR_SPI 0x1122334455667788 RESPONDER_SPI 0 MSGID 0 WAIT 2ms
-    a -> b ESP SPI 0xabcdef01 SEQ 1 PAYLOAD "IPsec ESP Ciphertext" WAIT 1ms
-    a -> b AH SPI 0xabcdef02 SEQ 1 PAYLOAD "IPsec AH Authenticated Packet" WAIT 1ms
-    a -> b WIREGUARD TYPE INITIATION SENDER 0x01020304 PAYLOAD "WG_NOISE_INIT" WAIT 1ms
-    a -> b WIREGUARD TYPE DATA RECEIVER 0x01020304 COUNTER 1 PAYLOAD "WireGuard ChaCha20Poly1305" WAIT 1ms
+flow overlay_and_vpn_showcase(a, b) {
+    a -> b gre gre_key 100 seq 1 payload "GRE Encapsulated Frame"
+    a -> b vxlan vni 5000 payload "VXLAN VNI 5000 Tenant Frame" wait 1ms
+    a -> b geneve vni 6000 payload "GENEVE VNI 6000 Cloud Frame" wait 1ms
+    a -> b ikev2 sa_init initiator_spi 0x1122334455667788 responder_spi 0 msgid 0 wait 2ms
+    a -> b esp spi 0xabcdef01 seq 1 payload "IPsec ESP Ciphertext" wait 1ms
+    a -> b ah spi 0xabcdef02 seq 1 payload "IPsec AH Authenticated Packet" wait 1ms
+    a -> b wireguard type initiation sender 0x01020304 payload "WG_NOISE_INIT" wait 1ms
+    a -> b wireguard type data receiver 0x01020304 counter 1 payload "WireGuard ChaCha20Poly1305" wait 1ms
 }
 
 // INSTRUCTION: Compile the overlay and VPN tunnel showcase.
-COMPILE {
+compile {
     overlay_and_vpn_showcase(gw1, gw2)
 }
 ```
@@ -288,23 +288,23 @@ COMPILE {
 // TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, FIN, SRCPORT, DSTPORT, MSS, WSCALE, SACK_PERM, HTTP, GET, RESPONSE, URI, HOST_HDR, STATUS, REASON, CONTENT_TYPE, BODY, WAIT, COMPILE
 
 // INSTRUCTION: Define client and web server endpoints.
-HOST client { IP 10.0.1.50 }
-HOST server { IP 10.0.1.10 }
+host client { ip 10.0.1.50 }
+host server { ip 10.0.1.10 }
 
 // INSTRUCTION: Execute TCP handshake, HTTP GET/200 exchange, and TCP FIN teardown.
-FLOW web_healthcheck(c, s) {
-    c -> s TCP SYN SRCPORT 52000 DSTPORT 80 MSS 1460 WSCALE 7 SACK_PERM
-    c <- s TCP SYN ACK MSS 1460 WSCALE 7 SACK_PERM WAIT 1ms
-    c -> s TCP ACK WAIT 1ms
-    c -> s HTTP GET URI "/healthz" HOST_HDR "service.internal" WAIT 2ms
-    c <- s HTTP RESPONSE STATUS 200 REASON "OK" CONTENT_TYPE "application/json" BODY "{\"ok\":true}" WAIT 2ms
-    c -> s TCP FIN ACK WAIT 1ms
-    c <- s TCP FIN ACK WAIT 1ms
-    c -> s TCP ACK
+flow web_healthcheck(c, s) {
+    c -> s tcp syn srcport 52000 dstport 80 mss 1460 wscale 7 sack_perm
+    c <- s tcp syn ack mss 1460 wscale 7 sack_perm wait 1ms
+    c -> s tcp ack wait 1ms
+    c -> s http get uri "/healthz" host_hdr "service.internal" wait 2ms
+    c <- s http response status 200 reason "OK" content_type "application/json" body "{\"ok\":true}" wait 2ms
+    c -> s tcp fin ack wait 1ms
+    c <- s tcp fin ack wait 1ms
+    c -> s tcp ack
 }
 
 // INSTRUCTION: Compile the stateful TCP and HTTP healthcheck flow.
-COMPILE {
+compile {
     web_healthcheck(client, server)
 }
 ```
@@ -319,21 +319,21 @@ COMPILE {
 // TOKENS: HOST, IP, FLOW, ->, <-, SCTP, SRCPORT, DSTPORT, VTAG, CHUNK, INIT, INIT_ACK, COOKIE_ECHO, COOKIE_ACK, DATA, SACK, STREAM, SEQ, PPID, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Define 5G AMF and gNodeB signaling endpoints.
-HOST amf_node { IP 10.50.0.1 }
-HOST gnb_node { IP 10.50.0.2 }
+host amf_node { ip 10.50.0.1 }
+host gnb_node { ip 10.50.0.2 }
 
 // INSTRUCTION: Perform SCTP 4-way handshake and exchange NGAP signaling data.
-FLOW sctp_ngap_signaling(a, b) {
-    a -> b SCTP SRCPORT 38412 DSTPORT 38412 VTAG 0 CHUNK INIT
-    a <- b SCTP SRCPORT 38412 DSTPORT 38412 VTAG 0x11223344 CHUNK INIT_ACK WAIT 1ms
-    a -> b SCTP SRCPORT 38412 DSTPORT 38412 VTAG 0x11223344 CHUNK COOKIE_ECHO WAIT 1ms
-    a <- b SCTP SRCPORT 38412 DSTPORT 38412 VTAG 0x55667788 CHUNK COOKIE_ACK WAIT 1ms
-    a -> b SCTP SRCPORT 38412 DSTPORT 38412 VTAG 0x11223344 CHUNK DATA STREAM 1 SEQ 1 PPID 60 PAYLOAD "NGAP_InitialUEMessage" WAIT 2ms
-    a <- b SCTP SRCPORT 38412 DSTPORT 38412 VTAG 0x55667788 CHUNK SACK SEQ 1 WAIT 1ms
+flow sctp_ngap_signaling(a, b) {
+    a -> b sctp srcport 38412 dstport 38412 vtag 0 chunk init
+    a <- b sctp srcport 38412 dstport 38412 vtag 0x11223344 chunk init_ack wait 1ms
+    a -> b sctp srcport 38412 dstport 38412 vtag 0x11223344 chunk cookie_echo wait 1ms
+    a <- b sctp srcport 38412 dstport 38412 vtag 0x55667788 chunk cookie_ack wait 1ms
+    a -> b sctp srcport 38412 dstport 38412 vtag 0x11223344 chunk data stream 1 seq 1 ppid 60 payload "NGAP_InitialUEMessage" wait 2ms
+    a <- b sctp srcport 38412 dstport 38412 vtag 0x55667788 chunk sack seq 1 wait 1ms
 }
 
 // INSTRUCTION: Compile the SCTP signaling association flow.
-COMPILE {
+compile {
     sctp_ngap_signaling(amf_node, gnb_node)
 }
 ```
@@ -348,17 +348,17 @@ COMPILE {
 // TOKENS: HOST, IP, FLOW, ->, <-, SNMP3, GET, RESPONSE, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA256, PRIV, AES, REQID, VARBIND, NULLVAL, STRING, WAIT, COMPILE
 
 // INSTRUCTION: Define the NMS polling manager and core router agent.
-HOST nms    { IP 192.168.10.5 }
-HOST router { IP 192.168.10.1 }
+host nms    { ip 192.168.10.5 }
+host router { ip 192.168.10.1 }
 
 // INSTRUCTION: Poll sysDescr.0 over SNMPv3 authPriv (SHA256 + AES).
-FLOW snmpv3_encrypted_poll(mgr, agt) {
-    mgr -> agt SNMP3 GET USER "netadmin" ENGINEID "80001f88801122334455" ENGINEBOOTS 10 ENGINETIME 5000 AUTH SHA256 "MyAuthSecretKey99!" PRIV AES "MyPrivSecretKey99!" REQID 1 VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL
-    mgr <- agt SNMP3 RESPONSE USER "netadmin" ENGINEID "80001f88801122334455" ENGINEBOOTS 10 ENGINETIME 5001 AUTH SHA256 "MyAuthSecretKey99!" PRIV AES "MyPrivSecretKey99!" REQID 1 VARBIND 1.3.6.1.2.1.1.1.0 STRING "Linux core-router 6.8.0" WAIT 2ms
+flow snmpv3_encrypted_poll(mgr, agt) {
+    mgr -> agt snmp3 get user "netadmin" engineid "80001f88801122334455" engineboots 10 enginetime 5000 auth sha256 "MyAuthSecretKey99!" priv aes "MyPrivSecretKey99!" reqid 1 varbind 1.3.6.1.2.1.1.1.0 nullval
+    mgr <- agt snmp3 response user "netadmin" engineid "80001f88801122334455" engineboots 10 enginetime 5001 auth sha256 "MyAuthSecretKey99!" priv aes "MyPrivSecretKey99!" reqid 1 varbind 1.3.6.1.2.1.1.1.0 string "Linux core-router 6.8.0" wait 2ms
 }
 
 // INSTRUCTION: Compile the SNMPv3 authPriv polling flow.
-COMPILE {
+compile {
     snmpv3_encrypted_poll(nms, router)
 }
 ```
@@ -373,23 +373,23 @@ COMPILE {
 // TOKENS: HOST, IP, FLOW, ->, <-, MODBUS, FUNC, TXID, UNITID, ADDR, COUNT, IS_RESPONSE, DNP3, SRC, DST, SEQ, GROUP, VARIATION, S7COMM, ROSCTR, PDU_REF, AREA, DB_NUM, OFFSET, OPCUA, MSG_TYPE, CHUNK_TYPE, ENDPOINT_URL, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, WAIT, COMPILE
 
 // INSTRUCTION: Define SCADA HMI master and multi-protocol industrial PLC.
-HOST scada_hmi { IP 192.168.100.10 }
-HOST plc_node  { IP 192.168.100.50 }
+host scada_hmi { ip 192.168.100.10 }
+host plc_node  { ip 192.168.100.50 }
 
 // INSTRUCTION: Poll the PLC over Modbus TCP, DNP3, Siemens S7comm, and OPC UA.
-FLOW industrial_ot_poll(hmi, plc) {
-    hmi -> plc MODBUS FUNC "READ_HOLDING_REGISTERS" TXID 1 UNITID 1 ADDR 40001 COUNT 4
-    hmi <- plc MODBUS FUNC "READ_HOLDING_REGISTERS" TXID 1 UNITID 1 COUNT 4 IS_RESPONSE WAIT 2ms
-    hmi -> plc DNP3 FUNC "READ" SRC 1 DST 50 SEQ 1 GROUP 60 VARIATION 1 WAIT 2ms
-    hmi <- plc DNP3 FUNC "RESPONSE" SRC 50 DST 1 SEQ 1 GROUP 30 VARIATION 1 WAIT 2ms
-    hmi -> plc S7COMM ROSCTR "JOB" FUNC "READ_VAR" PDU_REF 10 AREA 0x84 DB_NUM 1 OFFSET 0 COUNT 4 WAIT 2ms
-    hmi -> plc OPCUA MSG_TYPE "HEL" CHUNK_TYPE "F" ENDPOINT_URL "opc.tcp://192.168.100.50:4840" WAIT 2ms
-    hmi <- plc OPCUA MSG_TYPE "ACK" CHUNK_TYPE "F" WAIT 2ms
-    hmi -> plc OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1 TOKEN_ID 1 SEQ_NUM 1 REQID 1 NODE_ID "ns=2;s=BoilerTemp" WAIT 2ms
+flow industrial_ot_poll(hmi, plc) {
+    hmi -> plc modbus func "READ_HOLDING_REGISTERS" txid 1 unitid 1 addr 40001 count 4
+    hmi <- plc modbus func "READ_HOLDING_REGISTERS" txid 1 unitid 1 count 4 is_response wait 2ms
+    hmi -> plc dnp3 func "READ" src 1 dst 50 seq 1 group 60 variation 1 wait 2ms
+    hmi <- plc dnp3 func "RESPONSE" src 50 dst 1 seq 1 group 30 variation 1 wait 2ms
+    hmi -> plc s7comm rosctr "JOB" func "READ_VAR" pdu_ref 10 area 0x84 db_num 1 offset 0 count 4 wait 2ms
+    hmi -> plc opcua msg_type "HEL" chunk_type "F" endpoint_url "opc.tcp://192.168.100.50:4840" wait 2ms
+    hmi <- plc opcua msg_type "ACK" chunk_type "F" wait 2ms
+    hmi -> plc opcua msg_type "MSG" chunk_type "F" secure_channel_id 1 token_id 1 seq_num 1 reqid 1 node_id "ns=2;s=BoilerTemp" wait 2ms
 }
 
 // INSTRUCTION: Compile the industrial OT polling scenario.
-COMPILE {
+compile {
     industrial_ot_poll(scada_hmi, plc_node)
 }
 ```

@@ -1,6 +1,6 @@
 # CLAUDE.md — FrameAssembly Project Instructions for Claude Code & AI Agents
 
-**FrameAssembly** (`frameassembly` v1.1.1) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network packet specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
+**FrameAssembly** (`frameassembly` v1.2.0) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network packet specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
 
 ---
 
@@ -27,7 +27,8 @@ cargo run -- demo.fasm -o output.pcap
 
 ## 2. Canonical `.fasm` Language Rules (Zero Hallucinations)
 
-1. **Three-Block Program Structure**:
+1. **Three-Block Program Structure & Case-Insensitivity**:
+   - All keywords, protocols, modifiers, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and user-defined identifiers (`HOST`, `FLOW`, parameters) are case-insensitive (`host` / `HOST`, `tcp` / `TCP`).
    - `HOST <id> { IP <ipv4_or_ipv6> [MAC <mac>] }` (`MAC` is optional; never use `IPV4`, `IPV6`, `=`, colons, commas, or `MASK`).
    - `FLOW <id>(<param1>, <param2>, ...) { <src> -> <dst> <PROTOCOL> [modifiers...] [WAIT <int><ns|us|ms|s|m>] }` (never declare parameterless `FLOW <id> { ... }` or use `FROM`, `TO`, `REVERSE`, `SEND`, standalone `WAIT` lines, or `+5ms` / `[+delay]` prefixes).
    - `COMPILE { <flow_id>(<host1>, <host2>, ...) [LOOP <count> { ... }] }` (every compilable `.fasm` program or Markdown ````frameassembly` code block must include `HOST`, `FLOW`, and `COMPILE { ... }`).

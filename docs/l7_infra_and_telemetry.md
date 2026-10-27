@@ -73,55 +73,55 @@ This canonical reference covers:
 // TOKENS: HOST, IP, MAC, FLOW, DHCP, DISCOVER, OFFER, REQUEST, ACK, RELEASE, SOLICIT, ADVERTISE, REPLY, CIADDR, YIADDR, SIADDR, CHADDR, HOSTNAME, SUBNET_MASK, ROUTER, DNS_SERVER, LEASE_TIME, DNS, MDNS, QUERY, RESPONSE, TXID, QNAME, QTYPE, RDATA, RCODE, ANS_TTL, TRANSPORT, TCP, WAIT, COMPILE
 
 // INSTRUCTION: Declare IPv4 client workstation and infrastructure server (DHCP + DNS).
-HOST client_v4 {
-    IP 192.168.20.100
-    MAC 00:50:56:20:00:64
+host client_v4 {
+    ip 192.168.20.100
+    mac 00:50:56:20:00:64
 }
 
 // INSTRUCTION: Declare the IPv4 DHCP/DNS infrastructure appliance.
-HOST infra_srv_v4 {
-    IP 192.168.20.1
-    MAC 00:50:56:20:00:01
+host infra_srv_v4 {
+    ip 192.168.20.1
+    mac 00:50:56:20:00:01
 }
 
 // INSTRUCTION: Declare IPv6 client and DHCPv6/DNSv6 server.
-HOST client_v6 {
-    IP 2001:db8:20::100
-    MAC 00:50:56:62:00:64
+host client_v6 {
+    ip 2001:db8:20::100
+    mac 00:50:56:62:00:64
 }
 
 // INSTRUCTION: Declare the IPv6 DHCPv6/DNSv6 server.
-HOST infra_srv_v6 {
-    IP 2001:db8:20::1
-    MAC 00:50:56:62:00:01
+host infra_srv_v6 {
+    ip 2001:db8:20::1
+    mac 00:50:56:62:00:01
 }
 
 // INSTRUCTION: Define DHCPv4 DORA lease lifecycle, DNS UDP/TCP queries, and mDNS service discovery.
-FLOW dhcpv4_dns_mdns_flow(c, s) {
-    c -> s DHCP DISCOVER CHADDR 00:50:56:20:00:64 HOSTNAME "eng-ws-01" WAIT 2ms
-    c <- s DHCP OFFER YIADDR 192.168.20.100 SIADDR 192.168.20.1 CHADDR 00:50:56:20:00:64 SUBNET_MASK 255.255.255.0 ROUTER 192.168.20.1 DNS_SERVER 192.168.20.1 LEASE_TIME 86400 WAIT 2ms
-    c -> s DHCP REQUEST CIADDR 192.168.20.100 YIADDR 192.168.20.100 SIADDR 192.168.20.1 CHADDR 00:50:56:20:00:64 HOSTNAME "eng-ws-01" WAIT 2ms
-    c <- s DHCP ACK YIADDR 192.168.20.100 SIADDR 192.168.20.1 CHADDR 00:50:56:20:00:64 SUBNET_MASK 255.255.255.0 ROUTER 192.168.20.1 DNS_SERVER 192.168.20.1 LEASE_TIME 86400 WAIT 2ms
-    c -> s DNS QUERY TXID 1010 QNAME "git.corp.example.com" QTYPE "A" WAIT 1ms
-    c <- s DNS RESPONSE TXID 1010 QNAME "git.corp.example.com" QTYPE "A" RDATA "192.168.20.55" RCODE 0 ANS_TTL 300 WAIT 1ms
-    c -> s TRANSPORT TCP DNS QUERY TXID 1011 QNAME "corp.example.com" QTYPE "AXFR" WAIT 2ms
-    c -> s MDNS QUERY QNAME "_ipp._tcp.local" QTYPE "PTR" WAIT 2ms
-    c <- s MDNS RESPONSE QNAME "_ipp._tcp.local" QTYPE "PTR" RDATA "LaserJet-Floor3._ipp._tcp.local" ANS_TTL 120 WAIT 2ms
-    c -> s DHCP RELEASE CIADDR 192.168.20.100 CHADDR 00:50:56:20:00:64 WAIT 1ms
+flow dhcpv4_dns_mdns_flow(c, s) {
+    c -> s dhcp discover chaddr 00:50:56:20:00:64 hostname "eng-ws-01" wait 2ms
+    c <- s dhcp offer yiaddr 192.168.20.100 siaddr 192.168.20.1 chaddr 00:50:56:20:00:64 subnet_mask 255.255.255.0 router 192.168.20.1 dns_server 192.168.20.1 lease_time 86400 wait 2ms
+    c -> s dhcp request ciaddr 192.168.20.100 yiaddr 192.168.20.100 siaddr 192.168.20.1 chaddr 00:50:56:20:00:64 hostname "eng-ws-01" wait 2ms
+    c <- s dhcp ack yiaddr 192.168.20.100 siaddr 192.168.20.1 chaddr 00:50:56:20:00:64 subnet_mask 255.255.255.0 router 192.168.20.1 dns_server 192.168.20.1 lease_time 86400 wait 2ms
+    c -> s dns query txid 1010 qname "git.corp.example.com" qtype "A" wait 1ms
+    c <- s dns response txid 1010 qname "git.corp.example.com" qtype "A" rdata "192.168.20.55" rcode 0 ans_ttl 300 wait 1ms
+    c -> s transport tcp dns query txid 1011 qname "corp.example.com" qtype "AXFR" wait 2ms
+    c -> s mdns query qname "_ipp._tcp.local" qtype "PTR" wait 2ms
+    c <- s mdns response qname "_ipp._tcp.local" qtype "PTR" rdata "LaserJet-Floor3._ipp._tcp.local" ans_ttl 120 wait 2ms
+    c -> s dhcp release ciaddr 192.168.20.100 chaddr 00:50:56:20:00:64 wait 1ms
 }
 
 // INSTRUCTION: Define DHCPv6 Solicit-Advertise-Request-Reply (SARR) and AAAA DNS resolution over IPv6.
-FLOW dhcpv6_sarr_and_aaaa(c6, s6) {
-    c6 -> s6 DHCP SOLICIT HOSTNAME "eng-ws-01-v6" WAIT 2ms
-    c6 <- s6 DHCP ADVERTISE YIADDR 2001:db8:20::100 DNS_SERVER 2001:db8:20::1 LEASE_TIME 86400 WAIT 2ms
-    c6 -> s6 DHCP REQUEST HOSTNAME "eng-ws-01-v6" WAIT 2ms
-    c6 <- s6 DHCP REPLY YIADDR 2001:db8:20::100 DNS_SERVER 2001:db8:20::1 LEASE_TIME 86400 WAIT 2ms
-    c6 -> s6 DNS QUERY TXID 2020 QNAME "git.corp.example.com" QTYPE "AAAA" WAIT 1ms
-    c6 <- s6 DNS RESPONSE TXID 2020 QNAME "git.corp.example.com" QTYPE "AAAA" RDATA "2001:db8:20::55" RCODE 0 ANS_TTL 300 WAIT 1ms
+flow dhcpv6_sarr_and_aaaa(c6, s6) {
+    c6 -> s6 dhcp solicit hostname "eng-ws-01-v6" wait 2ms
+    c6 <- s6 dhcp advertise yiaddr 2001:db8:20::100 dns_server 2001:db8:20::1 lease_time 86400 wait 2ms
+    c6 -> s6 dhcp request hostname "eng-ws-01-v6" wait 2ms
+    c6 <- s6 dhcp reply yiaddr 2001:db8:20::100 dns_server 2001:db8:20::1 lease_time 86400 wait 2ms
+    c6 -> s6 dns query txid 2020 qname "git.corp.example.com" qtype "AAAA" wait 1ms
+    c6 <- s6 dns response txid 2020 qname "git.corp.example.com" qtype "AAAA" rdata "2001:db8:20::55" rcode 0 ans_ttl 300 wait 1ms
 }
 
 // INSTRUCTION: Compile both the IPv4 and IPv6 naming and address assignment flows.
-COMPILE {
+compile {
     dhcpv4_dns_mdns_flow(client_v4, infra_srv_v4)
     dhcpv6_sarr_and_aaaa(client_v6, infra_srv_v6)
 }
@@ -157,30 +157,30 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, DSCP, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, REFID, TX_TIMESTAMP, PTP, ANNOUNCE, SYNC, FOLLOW_UP, DELAY_REQ, DELAY_RESP, DOMAIN, SEQ_ID, CLOCK_ID, WAIT, COMPILE
 
 // INSTRUCTION: Declare the Grandmaster Clock / Stratum-1 Time Server.
-HOST grandmaster_clock {
-    IP 10.158.0.1
-    MAC 00:1c:73:00:01:01
+host grandmaster_clock {
+    ip 10.158.0.1
+    mac 00:1c:73:00:01:01
 }
 
 // INSTRUCTION: Declare the trading engine follower node synchronizing both NTP and PTP.
-HOST follower_node {
-    IP 10.158.0.50
-    MAC 00:1c:73:00:01:50
+host follower_node {
+    ip 10.158.0.50
+    mac 00:1c:73:00:01:50
 }
 
 // INSTRUCTION: Define NTPv4 Mode 3/4 exchange and IEEE 1588v2 PTP two-step Sync, Follow_Up, Delay_Req, and Delay_Resp cycle.
-FLOW precision_time_sync(gm, sub) {
-    sub -> gm DSCP 46 NTP LI 0 VN 4 MODE 3 STRATUM 2 POLL 6 PRECISION 236 REFID "INIT" TX_TIMESTAMP 0xe9b0000100000000 WAIT 1ms
-    sub <- gm DSCP 46 NTP LI 0 VN 4 MODE 4 STRATUM 1 POLL 6 PRECISION 232 REFID "GPS" TX_TIMESTAMP 0xe9b0000100001000 WAIT 1ms
-    gm -> sub DSCP 46 PTP ANNOUNCE DOMAIN 0 SEQ_ID 500 CLOCK_ID "00:1c:73:ff:fe:00:01:01" WAIT 500us
-    gm -> sub DSCP 46 PTP SYNC DOMAIN 0 SEQ_ID 501 CLOCK_ID "00:1c:73:ff:fe:00:01:01" WAIT 100us
-    gm -> sub DSCP 46 PTP FOLLOW_UP DOMAIN 0 SEQ_ID 501 CLOCK_ID "00:1c:73:ff:fe:00:01:01" WAIT 200us
-    sub -> gm DSCP 46 PTP DELAY_REQ DOMAIN 0 SEQ_ID 501 CLOCK_ID "00:1c:73:ff:fe:00:01:50" WAIT 200us
-    gm -> sub DSCP 46 PTP DELAY_RESP DOMAIN 0 SEQ_ID 501 CLOCK_ID "00:1c:73:ff:fe:00:01:01" WAIT 200us
+flow precision_time_sync(gm, sub) {
+    sub -> gm dscp 46 ntp li 0 vn 4 mode 3 stratum 2 poll 6 precision 236 refid "INIT" tx_timestamp 0xe9b0000100000000 wait 1ms
+    sub <- gm dscp 46 ntp li 0 vn 4 mode 4 stratum 1 poll 6 precision 232 refid "GPS" tx_timestamp 0xe9b0000100001000 wait 1ms
+    gm -> sub dscp 46 ptp announce domain 0 seq_id 500 clock_id "00:1c:73:ff:fe:00:01:01" wait 500us
+    gm -> sub dscp 46 ptp sync domain 0 seq_id 501 clock_id "00:1c:73:ff:fe:00:01:01" wait 100us
+    gm -> sub dscp 46 ptp follow_up domain 0 seq_id 501 clock_id "00:1c:73:ff:fe:00:01:01" wait 200us
+    sub -> gm dscp 46 ptp delay_req domain 0 seq_id 501 clock_id "00:1c:73:ff:fe:00:01:50" wait 200us
+    gm -> sub dscp 46 ptp delay_resp domain 0 seq_id 501 clock_id "00:1c:73:ff:fe:00:01:01" wait 200us
 }
 
 // INSTRUCTION: Compile the NTPv4 and IEEE 1588v2 PTP synchronization capture.
-COMPILE {
+compile {
     precision_time_sync(grandmaster_clock, follower_node)
 }
 ```
@@ -217,34 +217,34 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, ACCESS_CHALLENGE, ACCESS_ACCEPT, ACCOUNTING_REQUEST, ACCOUNTING_RESPONSE, USER, NAS_IP, SERVICE_TYPE, FRAMED_IP, TACACS, AUTHEN, AUTHOR, ACCT, SESSION_ID, DATA, WAIT, COMPILE
 
 // INSTRUCTION: Declare the Network Access Server (NAS) switch.
-HOST nas_switch {
-    IP 10.60.1.10
-    MAC 00:1c:73:60:01:10
+host nas_switch {
+    ip 10.60.1.10
+    mac 00:1c:73:60:01:10
 }
 
 // INSTRUCTION: Declare the centralized AAA Policy Server (RADIUS + TACACS+).
-HOST aaa_policy_srv {
-    IP 10.60.1.200
-    MAC 00:50:56:60:01:c8
+host aaa_policy_srv {
+    ip 10.60.1.200
+    mac 00:50:56:60:01:c8
 }
 
 // INSTRUCTION: Define RADIUS EAP challenge-response authentication, accounting start, and TACACS+ CLI command audit.
-FLOW radius_and_tacacs_aaa(nas, aaa) {
-    nas -> aaa RADIUS ACCESS_REQUEST USER "alice@corp.example.com" NAS_IP 10.60.1.10 SERVICE_TYPE 2 WAIT 2ms
-    nas <- aaa RADIUS ACCESS_CHALLENGE USER "alice@corp.example.com" NAS_IP 10.60.1.10 WAIT 2ms
-    nas -> aaa RADIUS ACCESS_REQUEST USER "alice@corp.example.com" NAS_IP 10.60.1.10 SERVICE_TYPE 2 WAIT 2ms
-    nas <- aaa RADIUS ACCESS_ACCEPT USER "alice@corp.example.com" NAS_IP 10.60.1.10 SERVICE_TYPE 2 FRAMED_IP 10.60.20.55 WAIT 2ms
-    nas -> aaa RADIUS ACCOUNTING_REQUEST USER "alice@corp.example.com" NAS_IP 10.60.1.10 FRAMED_IP 10.60.20.55 WAIT 2ms
-    nas <- aaa RADIUS ACCOUNTING_RESPONSE USER "alice@corp.example.com" NAS_IP 10.60.1.10 WAIT 2ms
-    nas -> aaa TACACS AUTHEN SESSION_ID 900101 USER "netops_admin" PAYLOAD "Interactive-SSH-Login" WAIT 2ms
-    nas <- aaa TACACS AUTHEN SESSION_ID 900101 USER "netops_admin" PAYLOAD "AUTHEN_STATUS_PASS" WAIT 2ms
-    nas -> aaa TACACS AUTHOR SESSION_ID 900102 USER "netops_admin" PAYLOAD "cmd=configure;cmd-arg=terminal" WAIT 2ms
-    nas <- aaa TACACS AUTHOR SESSION_ID 900102 USER "netops_admin" PAYLOAD "AUTHOR_STATUS_PASS_ADD" WAIT 2ms
-    nas -> aaa TACACS ACCT SESSION_ID 900103 USER "netops_admin" PAYLOAD "task_id=42;service=shell;cmd=write memory" WAIT 2ms
+flow radius_and_tacacs_aaa(nas, aaa) {
+    nas -> aaa radius access_request user "alice@corp.example.com" nas_ip 10.60.1.10 service_type 2 wait 2ms
+    nas <- aaa radius access_challenge user "alice@corp.example.com" nas_ip 10.60.1.10 wait 2ms
+    nas -> aaa radius access_request user "alice@corp.example.com" nas_ip 10.60.1.10 service_type 2 wait 2ms
+    nas <- aaa radius access_accept user "alice@corp.example.com" nas_ip 10.60.1.10 service_type 2 framed_ip 10.60.20.55 wait 2ms
+    nas -> aaa radius accounting_request user "alice@corp.example.com" nas_ip 10.60.1.10 framed_ip 10.60.20.55 wait 2ms
+    nas <- aaa radius accounting_response user "alice@corp.example.com" nas_ip 10.60.1.10 wait 2ms
+    nas -> aaa tacacs authen session_id 900101 user "netops_admin" payload "Interactive-SSH-Login" wait 2ms
+    nas <- aaa tacacs authen session_id 900101 user "netops_admin" payload "AUTHEN_STATUS_PASS" wait 2ms
+    nas -> aaa tacacs author session_id 900102 user "netops_admin" payload "cmd=configure;cmd-arg=terminal" wait 2ms
+    nas <- aaa tacacs author session_id 900102 user "netops_admin" payload "AUTHOR_STATUS_PASS_ADD" wait 2ms
+    nas -> aaa tacacs acct session_id 900103 user "netops_admin" payload "task_id=42;service=shell;cmd=write memory" wait 2ms
 }
 
 // INSTRUCTION: Compile the RADIUS and TACACS+ AAA capture.
-COMPILE {
+compile {
     radius_and_tacacs_aaa(nas_switch, aaa_policy_srv)
 }
 ```
@@ -294,27 +294,27 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, SYSLOG, FACILITY, SEVERITY, PRI, HOSTNAME, APP, PROCID, MSG, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, IPFIX, DOMAIN_ID, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, WAIT, COMPILE
 
 // INSTRUCTION: Declare Core Border Router exporting logs and flow telemetry.
-HOST border_exporter {
-    IP 10.250.10.1
-    MAC 00:1c:73:fa:10:01
+host border_exporter {
+    ip 10.250.10.1
+    mac 00:1c:73:fa:10:01
 }
 
 // INSTRUCTION: Declare the SIEM & Flow Telemetry Ingestion Cluster.
-HOST telemetry_ingest {
-    IP 10.250.10.100
-    MAC 00:50:56:fa:10:64
+host telemetry_ingest {
+    ip 10.250.10.100
+    mac 00:50:56:fa:10:64
 }
 
 // INSTRUCTION: Export RFC 5424 Syslog event, NetFlow record, IPFIX observation domain record, and sFlow datagram.
-FLOW noc_telemetry_export(rtr, collector) {
-    rtr -> collector SYSLOG FACILITY 16 SEVERITY 4 PRI 132 HOSTNAME "border-rtr-01" APP "bgpd" PROCID "1842" MSG "BGP-5-ADJCHANGE: neighbor 198.51.100.1 Up" WAIT 1ms
-    rtr -> collector NETFLOW SRCIP 198.51.100.25 DSTIP 203.0.113.80 PROTO 6 PACKETS 15400 OCTETS 21560000 WAIT 1ms
-    rtr -> collector IPFIX DOMAIN_ID 4001 SRCIP 198.51.100.25 DSTIP 203.0.113.80 PROTO 6 PACKETS 15400 OCTETS 21560000 WAIT 1ms
-    rtr -> collector SFLOW AGENT_IP 10.250.10.1 SUB_AGENT_ID 1 UPTIME 86400000 SAMPLES 8 WAIT 1ms
+flow noc_telemetry_export(rtr, collector) {
+    rtr -> collector syslog facility 16 severity 4 pri 132 hostname "border-rtr-01" app "bgpd" procid "1842" msg "BGP-5-ADJCHANGE: neighbor 198.51.100.1 Up" wait 1ms
+    rtr -> collector netflow srcip 198.51.100.25 dstip 203.0.113.80 proto 6 packets 15400 octets 21560000 wait 1ms
+    rtr -> collector ipfix domain_id 4001 srcip 198.51.100.25 dstip 203.0.113.80 proto 6 packets 15400 octets 21560000 wait 1ms
+    rtr -> collector sflow agent_ip 10.250.10.1 sub_agent_id 1 uptime 86400000 samples 8 wait 1ms
 }
 
 // INSTRUCTION: Compile the NOC telemetry export capture.
-COMPILE {
+compile {
     noc_telemetry_export(border_exporter, telemetry_ingest)
 }
 ```
@@ -349,40 +349,40 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, SSH, BANNER, KEXINIT, NEWKEYS, MSG_CODE, TELNET, DO, WILL, DONT, WONT, TFTP, RRQ, FILENAME, MODE, BLOCK, FTP, CMD, ARG, CODE, REPLY, WHOIS, QUERY, RESPONSE, DOMAIN, REGISTRAR, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare the Admin Bastion Workstation.
-HOST admin_bastion {
-    IP 10.70.1.50
-    MAC 00:50:56:70:01:50
+host admin_bastion {
+    ip 10.70.1.50
+    mac 00:50:56:70:01:50
 }
 
 // INSTRUCTION: Declare the Managed Infrastructure Server hosting SSH, Telnet, TFTP, FTP, and WHOIS services.
-HOST managed_srv {
-    IP 10.70.1.10
-    MAC 00:1c:73:70:01:10
+host managed_srv {
+    ip 10.70.1.10
+    mac 00:1c:73:70:01:10
 }
 
 // INSTRUCTION: Define SSHv2 handshake, Telnet IAC negotiation, TFTP octet transfer, FTP login/retrieve, and WHOIS query/response.
-FLOW remote_admin_and_file_transfer(adm, srv) {
-    adm -> srv SSH BANNER "SSH-2.0-OpenSSH_9.8p1" WAIT 1ms
-    adm <- srv SSH BANNER "SSH-2.0-Cisco-2.0" WAIT 1ms
-    adm -> srv SSH KEXINIT PAYLOAD "KEX_CURVE25519_SHA256" WAIT 1ms
-    adm <- srv SSH KEXINIT PAYLOAD "KEX_CURVE25519_SHA256" WAIT 1ms
-    adm -> srv SSH MSG_CODE 30 PAYLOAD "CURVE25519_SHA256_EPHEMERAL_PUBKEY" WAIT 1ms
-    adm <- srv SSH NEWKEYS WAIT 1ms
-    adm <- srv TELNET DO 24 WILL 1 OPTION 3 PAYLOAD "User Access Verification\r\nUsername: " WAIT 1ms
-    adm -> srv TELNET WILL 24 DO 3 DONT 31 WONT 32 PAYLOAD "admin\r\n" WAIT 1ms
-    adm -> srv TFTP RRQ FILENAME "sonic-broadcom-202511.bin" MODE "octet" WAIT 1ms
-    adm <- srv TFTP BLOCK 1 PAYLOAD "FIRMWARE_IMAGE_BLOCK_0001_512B" WAIT 1ms
-    adm <- srv FTP CODE 220 REPLY "vsFTPd 3.0.5 Ready" WAIT 1ms
-    adm -> srv FTP CMD "USER" ARG "backup_ops" WAIT 1ms
-    adm <- srv FTP CODE 230 REPLY "Login successful" WAIT 1ms
-    adm -> srv FTP CMD "RETR" ARG "running-config.cfg" WAIT 1ms
-    adm <- srv FTP CODE 226 REPLY "Transfer complete" WAIT 1ms
-    adm -> srv WHOIS QUERY DOMAIN "AS65001" REGISTRAR "whois.arin.net" WAIT 1ms
-    adm <- srv WHOIS RESPONSE DOMAIN "AS65001" REGISTRAR "whois.arin.net" PAYLOAD "ASNumber: 65001\r\nASName: ENTERPRISE-CORE-ASN\r\n" WAIT 1ms
+flow remote_admin_and_file_transfer(adm, srv) {
+    adm -> srv ssh banner "SSH-2.0-OpenSSH_9.8p1" wait 1ms
+    adm <- srv ssh banner "SSH-2.0-Cisco-2.0" wait 1ms
+    adm -> srv ssh kexinit payload "KEX_CURVE25519_SHA256" wait 1ms
+    adm <- srv ssh kexinit payload "KEX_CURVE25519_SHA256" wait 1ms
+    adm -> srv ssh msg_code 30 payload "CURVE25519_SHA256_EPHEMERAL_PUBKEY" wait 1ms
+    adm <- srv ssh newkeys wait 1ms
+    adm <- srv telnet do 24 will 1 option 3 payload "User Access Verification\r\nUsername: " wait 1ms
+    adm -> srv telnet will 24 do 3 dont 31 wont 32 payload "admin\r\n" wait 1ms
+    adm -> srv tftp rrq filename "sonic-broadcom-202511.bin" mode "octet" wait 1ms
+    adm <- srv tftp block 1 payload "FIRMWARE_IMAGE_BLOCK_0001_512B" wait 1ms
+    adm <- srv ftp code 220 reply "vsFTPd 3.0.5 Ready" wait 1ms
+    adm -> srv ftp cmd "USER" arg "backup_ops" wait 1ms
+    adm <- srv ftp code 230 reply "Login successful" wait 1ms
+    adm -> srv ftp cmd "RETR" arg "running-config.cfg" wait 1ms
+    adm <- srv ftp code 226 reply "Transfer complete" wait 1ms
+    adm -> srv whois query domain "AS65001" registrar "whois.arin.net" wait 1ms
+    adm <- srv whois response domain "AS65001" registrar "whois.arin.net" payload "ASNumber: 65001\r\nASName: ENTERPRISE-CORE-ASN\r\n" wait 1ms
 }
 
 // INSTRUCTION: Compile the remote administration and file transfer suite.
-COMPILE {
+compile {
     remote_admin_and_file_transfer(admin_bastion, managed_srv)
 }
 ```

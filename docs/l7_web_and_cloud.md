@@ -71,36 +71,36 @@ This canonical reference covers:
 // TOKENS: HOST, IP, MAC, FLOW, HTTP, METHOD, URI, HOST_HDR, USER_AGENT, CONTENT_TYPE, HEADER, STATUS, REASON, BODY, HTTP2, PREFACE, SETTINGS, HEADERS, WINDOW_UPDATE, PING, GOAWAY, STREAM_ID, GRPC, SERVICE, GRPC_STATUS, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare API Ingress Gateway node.
-HOST ingress_gw {
-    IP 10.120.1.10
-    MAC 00:50:56:78:01:10
+host ingress_gw {
+    ip 10.120.1.10
+    mac 00:50:56:78:01:10
 }
 
 // INSTRUCTION: Declare Microservice Backend Pod node.
-HOST mesh_pod {
-    IP 10.120.1.50
-    MAC 00:50:56:78:01:50
+host mesh_pod {
+    ip 10.120.1.50
+    mac 00:50:56:78:01:50
 }
 
 // INSTRUCTION: Define HTTP/1.1 REST POST/201, HTTP/2 stream multiplexing, gRPC unary call, and WebSocket bidirectional frames.
-FLOW web_and_microservice_mesh(gw, pod) {
-    gw -> pod HTTP METHOD "POST" URI "/v1/checkout" HOST_HDR "api.shop.example.com" USER_AGENT "Envoy/1.31" CONTENT_TYPE "application/json" HEADER "X-Request-Id" "req-9901" BODY "{\"cart_id\":42}" WAIT 1ms
-    gw <- pod HTTP STATUS 201 REASON "Created" CONTENT_TYPE "application/json" HEADER "X-Request-Id" "req-9901" BODY "{\"order_id\":8801,\"status\":\"confirmed\"}" WAIT 1ms
-    gw -> pod HTTP2 PREFACE SETTINGS STREAM_ID 0 WAIT 1ms
-    gw <- pod HTTP2 SETTINGS WINDOW_UPDATE STREAM_ID 0 WAIT 1ms
-    gw -> pod HTTP2 HEADERS STREAM_ID 1 PAYLOAD ":method GET :path /v2/catalog" WAIT 1ms
-    gw <- pod HTTP2 HEADERS STREAM_ID 1 PAYLOAD ":status 200 content-type application/json" WAIT 1ms
-    gw -> pod HTTP2 PING STREAM_ID 0 WAIT 1ms
-    gw <- pod HTTP2 GOAWAY STREAM_ID 0 WAIT 1ms
-    gw -> pod GRPC SERVICE "payment.v1.LedgerService" METHOD "AuthorizeCharge" PAYLOAD "PROTOBUF_CHARGE_REQ_100_USD" WAIT 1ms
-    gw <- pod GRPC SERVICE "payment.v1.LedgerService" METHOD "AuthorizeCharge" GRPC_STATUS 0 PAYLOAD "PROTOBUF_CHARGE_RES_AUTH_OK" WAIT 1ms
-    gw -> pod WEBSOCKET OPCODE "TEXT" FIN_BIT 1 MASK_KEY 0x37fa213d PAYLOAD "{\"sub\":\"ticker.btcusd\"}" WAIT 1ms
-    gw <- pod WEBSOCKET OPCODE "TEXT" FIN_BIT 1 PAYLOAD "{\"ticker\":\"btcusd\",\"price\":94520.50}" WAIT 1ms
-    gw -> pod WEBSOCKET OPCODE "CLOSE" FIN_BIT 1 MASK_KEY 0x37fa213d WAIT 1ms
+flow web_and_microservice_mesh(gw, pod) {
+    gw -> pod http method "POST" uri "/v1/checkout" host_hdr "api.shop.example.com" user_agent "Envoy/1.31" content_type "application/json" header "X-Request-Id" "req-9901" body "{\"cart_id\":42}" wait 1ms
+    gw <- pod http status 201 reason "Created" content_type "application/json" header "X-Request-Id" "req-9901" body "{\"order_id\":8801,\"status\":\"confirmed\"}" wait 1ms
+    gw -> pod http2 preface settings stream_id 0 wait 1ms
+    gw <- pod http2 settings window_update stream_id 0 wait 1ms
+    gw -> pod http2 headers stream_id 1 payload ":method GET :path /v2/catalog" wait 1ms
+    gw <- pod http2 headers stream_id 1 payload ":status 200 content-type application/json" wait 1ms
+    gw -> pod http2 ping stream_id 0 wait 1ms
+    gw <- pod http2 goaway stream_id 0 wait 1ms
+    gw -> pod grpc service "payment.v1.LedgerService" method "AuthorizeCharge" payload "PROTOBUF_CHARGE_REQ_100_USD" wait 1ms
+    gw <- pod grpc service "payment.v1.LedgerService" method "AuthorizeCharge" grpc_status 0 payload "PROTOBUF_CHARGE_RES_AUTH_OK" wait 1ms
+    gw -> pod websocket opcode "TEXT" fin_bit 1 mask_key 0x37fa213d payload "{\"sub\":\"ticker.btcusd\"}" wait 1ms
+    gw <- pod websocket opcode "TEXT" fin_bit 1 payload "{\"ticker\":\"btcusd\",\"price\":94520.50}" wait 1ms
+    gw -> pod websocket opcode "CLOSE" fin_bit 1 mask_key 0x37fa213d wait 1ms
 }
 
 // INSTRUCTION: Compile the cloud-native web and microservice mesh capture.
-COMPILE {
+compile {
     web_and_microservice_mesh(ingress_gw, mesh_pod)
 }
 ```
@@ -141,42 +141,42 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, TLS, CLIENT_HELLO, SERVER_HELLO, CERTIFICATE, FINISHED, APP_DATA, ALERT, RECORD_VERSION, HANDSHAKE_VERSION, SNI, CIPHERSUITE, ALPN, QUIC, INITIAL, RETRY, HANDSHAKE, ZERO_RTT, SHORT, DCID, SCID, PKT_NUM, TOKEN, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare Edge Client IPv6 host.
-HOST client_v6 {
-    IP 2001:db8:443::50
-    MAC 00:50:56:44:03:50
+host client_v6 {
+    ip 2001:db8:443::50
+    mac 00:50:56:44:03:50
 }
 
 // INSTRUCTION: Declare Anycast CDN Edge Server IPv6 host.
-HOST cdn_edge_v6 {
-    IP 2001:db8:443::1
-    MAC 00:1c:73:44:03:01
+host cdn_edge_v6 {
+    ip 2001:db8:443::1
+    mac 00:1c:73:44:03:01
 }
 
 // INSTRUCTION: Define a complete TLS 1.3 handshake, encrypted application data exchange, and close_notify alert.
-FLOW tls13_full_session(c, s) {
-    c -> s TLS CLIENT_HELLO RECORD_VERSION 0x0301 HANDSHAKE_VERSION 0x0303 SNI "edge.cdn.example.com" CIPHERSUITE 4866 ALPN "h2" WAIT 1ms
-    c <- s TLS SERVER_HELLO RECORD_VERSION 0x0303 HANDSHAKE_VERSION 0x0303 CIPHERSUITE 4866 ALPN "h2" WAIT 1ms
-    c <- s TLS CERTIFICATE RECORD_VERSION 0x0303 PAYLOAD "X509_ECDSA_P256_CERT_CHAIN" WAIT 1ms
-    c <- s TLS FINISHED RECORD_VERSION 0x0303 PAYLOAD "HMAC_SHA384_VERIFY_DATA" WAIT 1ms
-    c -> s TLS FINISHED RECORD_VERSION 0x0303 PAYLOAD "CLIENT_HMAC_VERIFY_DATA" WAIT 1ms
-    c -> s TLS APP_DATA RECORD_VERSION 0x0303 PAYLOAD "AEAD_AES_256_GCM_H2_GET_INDEX" WAIT 1ms
-    c <- s TLS APP_DATA RECORD_VERSION 0x0303 PAYLOAD "AEAD_AES_256_GCM_H2_200_OK" WAIT 1ms
-    c -> s TLS ALERT RECORD_VERSION 0x0303 PAYLOAD "CLOSE_NOTIFY_0x0100" WAIT 1ms
+flow tls13_full_session(c, s) {
+    c -> s tls client_hello record_version 0x0301 handshake_version 0x0303 sni "edge.cdn.example.com" ciphersuite 4866 alpn "h2" wait 1ms
+    c <- s tls server_hello record_version 0x0303 handshake_version 0x0303 ciphersuite 4866 alpn "h2" wait 1ms
+    c <- s tls certificate record_version 0x0303 payload "X509_ECDSA_P256_CERT_CHAIN" wait 1ms
+    c <- s tls finished record_version 0x0303 payload "HMAC_SHA384_VERIFY_DATA" wait 1ms
+    c -> s tls finished record_version 0x0303 payload "CLIENT_HMAC_VERIFY_DATA" wait 1ms
+    c -> s tls app_data record_version 0x0303 payload "AEAD_AES_256_GCM_H2_GET_INDEX" wait 1ms
+    c <- s tls app_data record_version 0x0303 payload "AEAD_AES_256_GCM_H2_200_OK" wait 1ms
+    c -> s tls alert record_version 0x0303 payload "CLOSE_NOTIFY_0x0100" wait 1ms
 }
 
 // INSTRUCTION: Define a QUIC v1 handshake with Retry token validation, 0-RTT early data, and 1-RTT SHORT header frames.
-FLOW quic_http3_lifecycle(c, s) {
-    c -> s QUIC INITIAL DCID 0x8394c8f03e515708 SCID 0x1122334455667788 PKT_NUM 1 PAYLOAD "QUIC_CRYPTO_CLIENT_HELLO_H3" WAIT 1ms
-    c <- s QUIC RETRY DCID 0x1122334455667788 SCID 0x9988776655443322 PAYLOAD "retry_addr_validation_tok" WAIT 1ms
-    c -> s QUIC INITIAL DCID 0x9988776655443322 SCID 0x1122334455667788 PKT_NUM 2 PAYLOAD "QUIC_CRYPTO_CLIENT_HELLO_RETRY" WAIT 1ms
-    c -> s QUIC ZERO_RTT DCID 0x9988776655443322 SCID 0x1122334455667788 PKT_NUM 3 PAYLOAD "HTTP3_EARLY_DATA_GET_API" WAIT 1ms
-    c <- s QUIC HANDSHAKE DCID 0x1122334455667788 SCID 0x9988776655443322 PKT_NUM 1 PAYLOAD "QUIC_CRYPTO_SERVER_HELLO_FINISHED" WAIT 1ms
-    c -> s QUIC SHORT DCID 0x9988776655443322 PKT_NUM 4 PAYLOAD "HTTP3_1RTT_HEADERS_STREAM_0" WAIT 1ms
-    c <- s QUIC SHORT DCID 0x1122334455667788 PKT_NUM 2 PAYLOAD "HTTP3_1RTT_DATA_200_OK" WAIT 1ms
+flow quic_http3_lifecycle(c, s) {
+    c -> s quic initial dcid 0x8394c8f03e515708 scid 0x1122334455667788 pkt_num 1 payload "QUIC_CRYPTO_CLIENT_HELLO_H3" wait 1ms
+    c <- s quic retry dcid 0x1122334455667788 scid 0x9988776655443322 payload "retry_addr_validation_tok" wait 1ms
+    c -> s quic initial dcid 0x9988776655443322 scid 0x1122334455667788 pkt_num 2 payload "QUIC_CRYPTO_CLIENT_HELLO_RETRY" wait 1ms
+    c -> s quic zero_rtt dcid 0x9988776655443322 scid 0x1122334455667788 pkt_num 3 payload "HTTP3_EARLY_DATA_GET_API" wait 1ms
+    c <- s quic handshake dcid 0x1122334455667788 scid 0x9988776655443322 pkt_num 1 payload "QUIC_CRYPTO_SERVER_HELLO_FINISHED" wait 1ms
+    c -> s quic short dcid 0x9988776655443322 pkt_num 4 payload "HTTP3_1RTT_HEADERS_STREAM_0" wait 1ms
+    c <- s quic short dcid 0x1122334455667788 pkt_num 2 payload "HTTP3_1RTT_DATA_200_OK" wait 1ms
 }
 
 // INSTRUCTION: Compile both the TLS 1.3 and QUIC v1 HTTP/3 flows over IPv6.
-COMPILE {
+compile {
     tls13_full_session(client_v6, cdn_edge_v6)
     quic_http3_lifecycle(client_v6, cdn_edge_v6)
 }
@@ -223,40 +223,40 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, DSCP, STUN, BINDING_REQUEST, BINDING_RESPONSE, XOR_MAPPED_ADDR, SOFTWARE, SIP, INVITE, BYE, METHOD, URI, FROM, TO, CALL_ID, CSEQ, VIA, CONTACT, CONTENT_TYPE, STATUS, REASON, BODY, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, RTSP, OPTIONS, TRANSPORT_HDR, SESSION, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare the VoIP / Media Client endpoint.
-HOST media_client {
-    IP 10.80.1.50
-    MAC 00:50:56:80:01:50
+host media_client {
+    ip 10.80.1.50
+    mac 00:50:56:80:01:50
 }
 
 // INSTRUCTION: Declare the Session Border Controller / Media Server endpoint.
-HOST sbc_media_srv {
-    IP 10.80.1.10
-    MAC 00:1c:73:80:01:10
+host sbc_media_srv {
+    ip 10.80.1.10
+    mac 00:1c:73:80:01:10
 }
 
 // INSTRUCTION: Define STUN ICE discovery, SIP INVITE/200/ACK/BYE call lifecycle, QoS EF RTP audio frames, and RTSP stream control.
-FLOW voip_and_rtsp_media_session(c, s) {
-    c -> s STUN BINDING_REQUEST SOFTWARE "FrameAssembly-WebRTC/1.0" WAIT 1ms
-    c <- s STUN BINDING_RESPONSE XOR_MAPPED_ADDR 203.0.113.50 SOFTWARE "Coturn-4.6" WAIT 1ms
-    c -> s DSCP 24 SIP INVITE URI "sip:bob@example.com" FROM "sip:alice@example.com" TO "sip:bob@example.com" CALL_ID "call-9901@10.80.1.50" CSEQ 1 VIA "SIP/2.0/UDP 10.80.1.50:5060" CONTACT "sip:alice@10.80.1.50" CONTENT_TYPE "application/sdp" BODY "v=0\r\nm=audio 16384 RTP/AVP 0\r\n" WAIT 2ms
-    c <- s DSCP 24 SIP STATUS 180 REASON "Ringing" CALL_ID "call-9901@10.80.1.50" CSEQ 1 WAIT 5ms
-    c <- s DSCP 24 SIP STATUS 200 REASON "OK" CALL_ID "call-9901@10.80.1.50" CSEQ 1 CONTENT_TYPE "application/sdp" BODY "v=0\r\nm=audio 16384 RTP/AVP 0\r\n" WAIT 2ms
-    c -> s DSCP 24 SIP METHOD "ACK" URI "sip:bob@example.com" CALL_ID "call-9901@10.80.1.50" CSEQ 1 WAIT 1ms
-    c -> s DSCP 46 RTP PT 0 SEQ 1001 TIMESTAMP 160 SSRC 0x11223344 MARKER 1 PAYLOAD "G711_ULAW_20MS_TALKSPURT_1" WAIT 20ms
-    c <- s DSCP 46 RTP PT 0 SEQ 5001 TIMESTAMP 160 SSRC 0x55667788 MARKER 1 PAYLOAD "G711_ULAW_20MS_RETURN_1" WAIT 20ms
-    c -> s DSCP 24 SIP BYE URI "sip:bob@example.com" CALL_ID "call-9901@10.80.1.50" CSEQ 2 WAIT 1ms
-    c <- s DSCP 24 SIP STATUS 200 REASON "OK" CALL_ID "call-9901@10.80.1.50" CSEQ 2 WAIT 1ms
-    c -> s RTSP OPTIONS URI "rtsp://10.80.1.10:554/cam01" CSEQ 1 WAIT 1ms
-    c <- s RTSP STATUS 200 CSEQ 1 WAIT 1ms
-    c -> s RTSP METHOD "DESCRIBE" URI "rtsp://10.80.1.10:554/cam01" CSEQ 2 WAIT 1ms
-    c -> s RTSP METHOD "SETUP" URI "rtsp://10.80.1.10:554/cam01/track1" CSEQ 3 TRANSPORT_HDR "RTP/AVP;unicast;client_port=5004-5005" WAIT 1ms
-    c <- s RTSP STATUS 200 CSEQ 3 SESSION "sess-778899" WAIT 1ms
-    c -> s RTSP METHOD "PLAY" URI "rtsp://10.80.1.10:554/cam01" CSEQ 4 SESSION "sess-778899" WAIT 1ms
-    c -> s RTSP METHOD "TEARDOWN" URI "rtsp://10.80.1.10:554/cam01" CSEQ 5 SESSION "sess-778899" WAIT 1ms
+flow voip_and_rtsp_media_session(c, s) {
+    c -> s stun binding_request software "FrameAssembly-WebRTC/1.0" wait 1ms
+    c <- s stun binding_response xor_mapped_addr 203.0.113.50 software "Coturn-4.6" wait 1ms
+    c -> s dscp 24 sip invite uri "sip:bob@example.com" from "sip:alice@example.com" to "sip:bob@example.com" call_id "call-9901@10.80.1.50" cseq 1 via "SIP/2.0/UDP 10.80.1.50:5060" contact "sip:alice@10.80.1.50" content_type "application/sdp" body "v=0\r\nm=audio 16384 RTP/AVP 0\r\n" wait 2ms
+    c <- s dscp 24 sip status 180 reason "Ringing" call_id "call-9901@10.80.1.50" cseq 1 wait 5ms
+    c <- s dscp 24 sip status 200 reason "OK" call_id "call-9901@10.80.1.50" cseq 1 content_type "application/sdp" body "v=0\r\nm=audio 16384 RTP/AVP 0\r\n" wait 2ms
+    c -> s dscp 24 sip method "ACK" uri "sip:bob@example.com" call_id "call-9901@10.80.1.50" cseq 1 wait 1ms
+    c -> s dscp 46 rtp pt 0 seq 1001 timestamp 160 ssrc 0x11223344 marker 1 payload "G711_ULAW_20MS_TALKSPURT_1" wait 20ms
+    c <- s dscp 46 rtp pt 0 seq 5001 timestamp 160 ssrc 0x55667788 marker 1 payload "G711_ULAW_20MS_RETURN_1" wait 20ms
+    c -> s dscp 24 sip bye uri "sip:bob@example.com" call_id "call-9901@10.80.1.50" cseq 2 wait 1ms
+    c <- s dscp 24 sip status 200 reason "OK" call_id "call-9901@10.80.1.50" cseq 2 wait 1ms
+    c -> s rtsp options uri "rtsp://10.80.1.10:554/cam01" cseq 1 wait 1ms
+    c <- s rtsp status 200 cseq 1 wait 1ms
+    c -> s rtsp method "DESCRIBE" uri "rtsp://10.80.1.10:554/cam01" cseq 2 wait 1ms
+    c -> s rtsp method "SETUP" uri "rtsp://10.80.1.10:554/cam01/track1" cseq 3 transport_hdr "RTP/AVP;unicast;client_port=5004-5005" wait 1ms
+    c <- s rtsp status 200 cseq 3 session "sess-778899" wait 1ms
+    c -> s rtsp method "PLAY" uri "rtsp://10.80.1.10:554/cam01" cseq 4 session "sess-778899" wait 1ms
+    c -> s rtsp method "TEARDOWN" uri "rtsp://10.80.1.10:554/cam01" cseq 5 session "sess-778899" wait 1ms
 }
 
 // INSTRUCTION: Compile the STUN, SIP, RTP, and RTSP real-time media capture.
-COMPILE {
+compile {
     voip_and_rtsp_media_session(media_client, sbc_media_srv)
 }
 ```
@@ -290,41 +290,41 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, MQTT, CONNECT, CONNACK, SUBSCRIBE, SUBACK, PUBLISH, PUBACK, PINGREQ, PINGRESP, CLIENT_ID, RETURN_CODE, TOPIC, QOS, RETAIN, PKT_ID, COAP, CON, ACK, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, AMQP, PROTOCOL_HEADER, CONNECTION_START, CHANNEL_OPEN, BASIC_PUBLISH, BASIC_DELIVER, HEARTBEAT, CHANNEL, EXCHANGE, ROUTING_KEY, SSDP, MSEARCH, NOTIFY, HOST_HDR, MAN, MX, ST, NT, NTS, USN, LOCATION, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare the IoT Edge Gateway node.
-HOST iot_gateway {
-    IP 192.168.140.10
-    MAC 00:50:56:8c:00:10
+host iot_gateway {
+    ip 192.168.140.10
+    mac 00:50:56:8c:00:10
 }
 
 // INSTRUCTION: Declare the Central Message Broker & IoT Hub node.
-HOST message_broker {
-    IP 192.168.140.1
-    MAC 00:1c:73:8c:00:01
+host message_broker {
+    ip 192.168.140.1
+    mac 00:1c:73:8c:00:01
 }
 
 // INSTRUCTION: Define MQTT session, CoAP sensor push, AMQP exchange publish/deliver, and SSDP discovery.
-FLOW iot_and_messaging_pipeline(edge, broker) {
-    edge -> broker MQTT CONNECT CLIENT_ID "iot-gw-floor2" WAIT 1ms
-    edge <- broker MQTT CONNACK RETURN_CODE 0 WAIT 1ms
-    edge -> broker MQTT SUBSCRIBE PKT_ID 10 TOPIC "factory/floor2/cmd/#" QOS 1 WAIT 1ms
-    edge <- broker MQTT SUBACK PKT_ID 10 RETURN_CODE 1 WAIT 1ms
-    edge -> broker MQTT PUBLISH PKT_ID 11 TOPIC "factory/floor2/temp" QOS 1 RETAIN PAYLOAD "{\"temp_c\":23.8}" WAIT 1ms
-    edge <- broker MQTT PUBACK PKT_ID 11 WAIT 1ms
-    edge -> broker MQTT PINGREQ WAIT 1ms
-    edge <- broker MQTT PINGRESP WAIT 1ms
-    edge -> broker COAP CON CODE "0.02" MSGID 401 TOKEN 0x99aabb URI_PATH "sensors/pressure" CONTENT_FORMAT 50 PAYLOAD "{\"kpa\":101.3}" WAIT 1ms
-    edge <- broker COAP ACK CODE "2.04" MSGID 401 TOKEN 0x99aabb WAIT 1ms
-    edge -> broker AMQP PROTOCOL_HEADER WAIT 1ms
-    edge <- broker AMQP CONNECTION_START CHANNEL 0 WAIT 1ms
-    edge -> broker AMQP CHANNEL_OPEN CHANNEL 1 WAIT 1ms
-    edge -> broker AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "telemetry.topic" ROUTING_KEY "floor2.alerts" PAYLOAD "{\"alert\":\"NORMAL\"}" WAIT 1ms
-    edge <- broker AMQP BASIC_DELIVER CHANNEL 1 EXCHANGE "telemetry.topic" ROUTING_KEY "floor2.alerts" PAYLOAD "{\"ack\":true}" WAIT 1ms
-    edge -> broker AMQP HEARTBEAT CHANNEL 0 WAIT 1ms
-    edge -> broker SSDP MSEARCH HOST_HDR "239.255.255.250:1900" MAN "\"ssdp:discover\"" MX 3 ST "urn:schemas-upnp-org:device:IoTGateway:1" WAIT 1ms
-    edge <- broker SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "urn:schemas-upnp-org:device:IoTGateway:1" NTS "ssdp:alive" USN "uuid:8899aabb-ccdd-1122::urn:schemas-upnp-org:device:IoTGateway:1" LOCATION "http://192.168.140.1:8080/desc.xml" WAIT 1ms
+flow iot_and_messaging_pipeline(edge, broker) {
+    edge -> broker mqtt connect client_id "iot-gw-floor2" wait 1ms
+    edge <- broker mqtt connack return_code 0 wait 1ms
+    edge -> broker mqtt subscribe pkt_id 10 topic "factory/floor2/cmd/#" qos 1 wait 1ms
+    edge <- broker mqtt suback pkt_id 10 return_code 1 wait 1ms
+    edge -> broker mqtt publish pkt_id 11 topic "factory/floor2/temp" qos 1 retain payload "{\"temp_c\":23.8}" wait 1ms
+    edge <- broker mqtt puback pkt_id 11 wait 1ms
+    edge -> broker mqtt pingreq wait 1ms
+    edge <- broker mqtt pingresp wait 1ms
+    edge -> broker coap con code "0.02" msgid 401 token 0x99aabb uri_path "sensors/pressure" content_format 50 payload "{\"kpa\":101.3}" wait 1ms
+    edge <- broker coap ack code "2.04" msgid 401 token 0x99aabb wait 1ms
+    edge -> broker amqp protocol_header wait 1ms
+    edge <- broker amqp connection_start channel 0 wait 1ms
+    edge -> broker amqp channel_open channel 1 wait 1ms
+    edge -> broker amqp basic_publish channel 1 exchange "telemetry.topic" routing_key "floor2.alerts" payload "{\"alert\":\"NORMAL\"}" wait 1ms
+    edge <- broker amqp basic_deliver channel 1 exchange "telemetry.topic" routing_key "floor2.alerts" payload "{\"ack\":true}" wait 1ms
+    edge -> broker amqp heartbeat channel 0 wait 1ms
+    edge -> broker ssdp msearch host_hdr "239.255.255.250:1900" man "\"ssdp:discover\"" mx 3 st "urn:schemas-upnp-org:device:IoTGateway:1" wait 1ms
+    edge <- broker ssdp notify host_hdr "239.255.255.250:1900" nt "urn:schemas-upnp-org:device:IoTGateway:1" nts "ssdp:alive" usn "uuid:8899aabb-ccdd-1122::urn:schemas-upnp-org:device:IoTGateway:1" location "http://192.168.140.1:8080/desc.xml" wait 1ms
 }
 
 // INSTRUCTION: Compile the IoT and messaging pipeline capture.
-COMPILE {
+compile {
     iot_and_messaging_pipeline(iot_gateway, message_broker)
 }
 ```

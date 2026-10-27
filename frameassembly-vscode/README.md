@@ -1,4 +1,4 @@
-# FrameAssembly DSL Support (v1.1.1)
+# FrameAssembly DSL Support (v1.2.0)
 
 Provides full syntax highlighting and language tooling for FrameAssembly (`.fasm`) files in VS Code and Antigravity IDE.
 

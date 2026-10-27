@@ -2,6 +2,9 @@
 // FrameAssembly Lark Grammar (Outlines / vLLM / Guidance / XGrammar / llguidance)
 // Synchronized with src/lexer/mod.rs, grammar.ebnf, and frameassembly.gbnf.
 // Covers all 81 native protocols, L2-L4 modifiers, SNMPv1/v2c/v3 USM, and L7.
+// Note: The FrameAssembly compiler accepts all keywords, protocols, modifiers,
+// time units, and identifiers case-insensitively; canonical uppercase tokens
+// are used here for deterministic LLM constrained decoding.
 // ============================================================================
 
 start: top_level_decl* compile_block top_level_decl*

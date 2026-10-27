@@ -33,7 +33,7 @@ Use this skill when designing, implementing, extending, testing, or auditing the
 
 ### 2.1 The Five-Stage FrameAssembly Compiler Pipeline
 1. **Lexical Analysis (`src/lexer/mod.rs`)**:
-   - Zero-copy `logos 0.14` tokenizer producing spanned `Token<'a>` slices across all 81 protocols, L2–L4 modifiers, SNMPv3 USM parameters, time units (`ns`, `us`, `ms`, `s`, `m`), IPv4/IPv6 addresses, MAC addresses, and ASN.1 OIDs.
+   - Zero-copy `logos 0.14` case-insensitive tokenizer (`#[token("...", ignore(ascii_case))]`) producing spanned `Token<'a>` slices across all 81 protocols, L2–L4 modifiers, SNMPv3 USM parameters, time units (`ns`, `us`, `ms`, `s`, `m`), IPv4/IPv6 addresses, MAC addresses, and ASN.1 OIDs.
 2. **AST & Two-Phase Combinator Parsing (`src/ast/` & `src/parser/`)**:
    - Strongly-typed AST nodes in `src/ast/mod.rs` (`Program<'a>`, `HostDef<'a>`, `FlowDef<'a>`, `FrameStatement<'a>`, `Protocol`, `ProtocolSpec<'a>`) and `src/ast/{l2,l3,l4,l7}/<protocol>.rs`. Every AST `*Spec` struct includes `/// Syntax mapping: \`...\`` and `#[doc(alias = "...")]`.
    - Two-phase `winnow 1.0` parser over `Stream<'i, 'a>` (`&'i [(Token<'a>, Range<usize>)]`) in `src/parser/mod.rs`, `src/parser/fields.rs`, and `src/parser/{l2,l3,l4,l7}/<protocol>.rs` (`pub(crate) mod` for internal parser submodules), followed by `validate_semantics(&program, &source)`.

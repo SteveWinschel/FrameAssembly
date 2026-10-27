@@ -76,7 +76,7 @@ Before any byte is lowered to wire format, the semantic validator enforces stric
 
 ## 3. Core DSL Syntax & Top-Level Declarations
 
-Every `.fasm` program comprises three top-level constructs: `HOST` declarations, `FLOW` declarations, and a `COMPILE` orchestration block.
+FrameAssembly syntax is completely **case-insensitive** across all keywords, protocol names, modifiers, flags, duration suffixes (`ns`, `us`, `ms`, `s`, `m`), and user-defined identifiers (`host`, `Host`, and `HOST` compile identically). Every `.fasm` program comprises three top-level constructs: `host` (`HOST`) declarations, `flow` (`FLOW`) declarations, and a `compile` (`COMPILE`) orchestration block.
 
 ### 3.1 `HOST` Declarations
 A `HOST` block binds a symbolic identifier to an IPv4 or IPv6 address and an optional 48-bit IEEE 802 MAC address. Always use `IP <address>` and `MAC <mac>` without colons or equals signs after the keywords:
@@ -86,37 +86,37 @@ A `HOST` block binds a symbolic identifier to an IPv4 or IPv6 address and an opt
 // TOKENS: HOST, IP, MAC, FLOW, UDP, DSTPORT, PAYLOAD, COMPILE
 
 // INSTRUCTION: Declare an IPv4 client with an explicit IEEE 802 MAC address.
-HOST edge_client_v4 {
-    IP 192.168.10.25
-    MAC 00:1a:2b:3c:4d:5e
+host edge_client_v4 {
+    ip 192.168.10.25
+    mac 00:1a:2b:3c:4d:5e
 }
 
 // INSTRUCTION: Declare an IPv4 server with an explicit MAC address.
-HOST edge_server_v4 {
-    IP 192.168.10.1
-    MAC 00:1a:2b:3c:4d:01
+host edge_server_v4 {
+    ip 192.168.10.1
+    mac 00:1a:2b:3c:4d:01
 }
 
 // INSTRUCTION: Declare an IPv6 client and server with auto-derived MAC addresses.
-HOST edge_client_v6 {
-    IP 2001:db8:10::25
-    MAC 00:1a:2b:3c:60:25
+host edge_client_v6 {
+    ip 2001:db8:10::25
+    mac 00:1a:2b:3c:60:25
 }
 
 // INSTRUCTION: Declare the IPv6 server endpoint.
-HOST edge_server_v6 {
-    IP 2001:db8:10::1
-    MAC 00:1a:2b:3c:60:01
+host edge_server_v6 {
+    ip 2001:db8:10::1
+    mac 00:1a:2b:3c:60:01
 }
 
 // INSTRUCTION: Define a polymorphic UDP echo flow reusable across IPv4 and IPv6 pairs.
-FLOW udp_echo_exchange(client, server) {
-    client -> server UDP SRCPORT 54000 DSTPORT 9000 PAYLOAD "ECHO_PING_FRAME" WAIT 1ms
-    client <- server UDP SRCPORT 9000 DSTPORT 54000 PAYLOAD "ECHO_PONG_FRAME" WAIT 1ms
+flow udp_echo_exchange(client, server) {
+    client -> server udp srcport 54000 dstport 9000 payload "ECHO_PING_FRAME" wait 1ms
+    client <- server udp srcport 9000 dstport 54000 payload "ECHO_PONG_FRAME" wait 1ms
 }
 
 // INSTRUCTION: Compile the flow for both IPv4 and IPv6 host pairs.
-COMPILE {
+compile {
     udp_echo_exchange(edge_client_v4, edge_server_v4)
     udp_echo_exchange(edge_client_v6, edge_server_v6)
 }
@@ -133,31 +133,31 @@ A `FLOW` declaration defines a parameterized sequence of frame statements:
 // TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, ACK, PSH, FIN, SRCPORT, DSTPORT, WIN, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare the initiating workstation host.
-HOST workstation {
-    IP 10.10.1.50
-    MAC 00:50:56:a1:01:50
+host workstation {
+    ip 10.10.1.50
+    mac 00:50:56:a1:01:50
 }
 
 // INSTRUCTION: Declare the internal application gateway host.
-HOST app_gateway {
-    IP 10.10.1.10
-    MAC 00:50:56:a1:01:10
+host app_gateway {
+    ip 10.10.1.10
+    mac 00:50:56:a1:01:10
 }
 
 // INSTRUCTION: Define a complete TCP lifecycle using -> and <- arrows with stateful SEQ/ACK tracking.
-FLOW stateful_tcp_session(c, s) {
-    c -> s TCP SYN SRCPORT 51234 DSTPORT 8080 SEQ 1000 WIN 65535 WAIT 1ms
-    c <- s TCP SYN ACK SEQ 5000 ACKNUM 1001 WIN 65535 WAIT 1ms
-    c -> s TCP ACK SEQ 1001 ACKNUM 5001 WIN 65535 WAIT 1ms
-    c -> s TCP PSH ACK SEQ 1001 ACKNUM 5001 PAYLOAD "POST /v1/events HTTP/1.1\r\nHost: app.internal\r\n\r\n" WAIT 2ms
-    c <- s TCP PSH ACK SEQ 5001 ACKNUM 1049 PAYLOAD "HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n" WAIT 2ms
-    c -> s TCP FIN ACK SEQ 1049 ACKNUM 5045 WAIT 1ms
-    c <- s TCP FIN ACK SEQ 5045 ACKNUM 1050 WAIT 1ms
-    c -> s TCP ACK SEQ 1050 ACKNUM 5046 WAIT 1ms
+flow stateful_tcp_session(c, s) {
+    c -> s tcp syn srcport 51234 dstport 8080 seq 1000 win 65535 wait 1ms
+    c <- s tcp syn ack seq 5000 acknum 1001 win 65535 wait 1ms
+    c -> s tcp ack seq 1001 acknum 5001 win 65535 wait 1ms
+    c -> s tcp psh ack seq 1001 acknum 5001 payload "POST /v1/events HTTP/1.1\r\nHost: app.internal\r\n\r\n" wait 2ms
+    c <- s tcp psh ack seq 5001 acknum 1049 payload "HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n" wait 2ms
+    c -> s tcp fin ack seq 1049 acknum 5045 wait 1ms
+    c <- s tcp fin ack seq 5045 acknum 1050 wait 1ms
+    c -> s tcp ack seq 1050 acknum 5046 wait 1ms
 }
 
 // INSTRUCTION: Compile the stateful TCP session.
-COMPILE {
+compile {
     stateful_tcp_session(workstation, app_gateway)
 }
 ```
@@ -170,33 +170,33 @@ The `COMPILE` block instantiates flows with concrete `HOST` identifiers and supp
 // TOKENS: HOST, IP, MAC, FLOW, ICMP, ECHO_REQUEST, ECHO_REPLY, ID, SEQ, UDP, DSTPORT, PAYLOAD, WAIT, COMPILE, LOOP
 
 // INSTRUCTION: Declare the network monitoring probe host.
-HOST net_probe {
-    IP 172.16.50.10
-    MAC 00:1b:63:84:45:10
+host net_probe {
+    ip 172.16.50.10
+    mac 00:1b:63:84:45:10
 }
 
 // INSTRUCTION: Declare the core router loopback interface.
-HOST core_router {
-    IP 172.16.50.1
-    MAC 00:1b:63:84:45:01
+host core_router {
+    ip 172.16.50.1
+    mac 00:1b:63:84:45:01
 }
 
 // INSTRUCTION: Define an ICMP reachability check flow.
-FLOW icmp_reachability(probe, router) {
-    probe -> router ICMP ECHO_REQUEST ID 901 SEQ 1 PAYLOAD "PREFLIGHT_PING" WAIT 2ms
-    probe <- router ICMP ECHO_REPLY ID 901 SEQ 1 PAYLOAD "PREFLIGHT_PING" WAIT 2ms
+flow icmp_reachability(probe, router) {
+    probe -> router icmp echo_request id 901 seq 1 payload "PREFLIGHT_PING" wait 2ms
+    probe <- router icmp echo_reply id 901 seq 1 payload "PREFLIGHT_PING" wait 2ms
 }
 
 // INSTRUCTION: Define a high-rate UDP jitter measurement burst flow.
-FLOW udp_jitter_sample(probe, router) {
-    probe -> router UDP SRCPORT 60000 DSTPORT 1967 PAYLOAD "IP_SLA_JITTER_SAMPLE_32B" WAIT 500us
-    probe <- router UDP SRCPORT 1967 DSTPORT 60000 PAYLOAD "IP_SLA_JITTER_RETURN_32B" WAIT 500us
+flow udp_jitter_sample(probe, router) {
+    probe -> router udp srcport 60000 dstport 1967 payload "IP_SLA_JITTER_SAMPLE_32B" wait 500us
+    probe <- router udp srcport 1967 dstport 60000 payload "IP_SLA_JITTER_RETURN_32B" wait 500us
 }
 
 // INSTRUCTION: Execute the preflight check followed by 10 jitter measurement iterations.
-COMPILE {
+compile {
     icmp_reachability(net_probe, core_router)
-    LOOP 10 {
+    loop 10 {
         udp_jitter_sample(net_probe, core_router)
     }
 }
@@ -233,25 +233,25 @@ FrameAssembly supports attaching L2, L3, L4, timing, and payload modifiers to an
 // TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, PCP, MPLS, EXP, BOS, MPLS_TTL, DSCP, TTL, TLS, CLIENT_HELLO, SERVER_HELLO, CIPHERSUITE, SNI, ALPN, WAIT, COMPILE
 
 // INSTRUCTION: Declare customer branch CPE gateway.
-HOST branch_cpe {
-    IP 10.220.1.10
-    MAC 00:50:56:c0:01:10
+host branch_cpe {
+    ip 10.220.1.10
+    mac 00:50:56:c0:01:10
 }
 
 // INSTRUCTION: Declare headquarters data center concentrator.
-HOST hq_concentrator {
-    IP 10.220.1.200
-    MAC 00:50:56:c0:01:c8
+host hq_concentrator {
+    ip 10.220.1.200
+    mac 00:50:56:c0:01:c8
 }
 
 // INSTRUCTION: Define a TLS 1.3 handshake encapsulated in QinQ S-VLAN 2000, C-VLAN 150, and MPLS Label 40960.
-FLOW metro_backhaul_tls(cpe, hq) {
-    cpe -> hq QINQ 2000 INNER_VLAN 150 PCP 6 MPLS 40960 EXP 6 BOS 1 MPLS_TTL 64 DSCP 46 TTL 64 TLS CLIENT_HELLO SNI "vault.hq.example.com" CIPHERSUITE 4866 ALPN "h2" WAIT 5ms
-    cpe <- hq QINQ 2000 INNER_VLAN 150 PCP 6 MPLS 40960 EXP 6 BOS 1 MPLS_TTL 63 DSCP 46 TTL 63 TLS SERVER_HELLO CIPHERSUITE 4866 ALPN "h2" WAIT 5ms
+flow metro_backhaul_tls(cpe, hq) {
+    cpe -> hq qinq 2000 inner_vlan 150 pcp 6 mpls 40960 exp 6 bos 1 mpls_ttl 64 dscp 46 ttl 64 tls client_hello sni "vault.hq.example.com" ciphersuite 4866 alpn "h2" wait 5ms
+    cpe <- hq qinq 2000 inner_vlan 150 pcp 6 mpls 40960 exp 6 bos 1 mpls_ttl 63 dscp 46 ttl 63 tls server_hello ciphersuite 4866 alpn "h2" wait 5ms
 }
 
 // INSTRUCTION: Compile the multi-layer encapsulated flow.
-COMPILE {
+compile {
     metro_backhaul_tls(branch_cpe, hq_concentrator)
 }
 ```
@@ -263,44 +263,44 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, IPID, MF, FRAGOFFSET, DF, FLOWLABEL, DSCP, ECN, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare IPv4 storage endpoints for fragmented UDP payload transfer.
-HOST nfs_client_v4 {
-    IP 192.168.80.10
-    MAC 00:0c:29:80:00:10
+host nfs_client_v4 {
+    ip 192.168.80.10
+    mac 00:0c:29:80:00:10
 }
 
 // INSTRUCTION: Declare the IPv4 storage server.
-HOST nfs_server_v4 {
-    IP 192.168.80.20
-    MAC 00:0c:29:80:00:20
+host nfs_server_v4 {
+    ip 192.168.80.20
+    mac 00:0c:29:80:00:20
 }
 
 // INSTRUCTION: Declare IPv6 RoCEv2 compute nodes using Flow Labels for spine ECMP spreading.
-HOST gpu_node_a {
-    IP 2001:db8:fab:1::10
-    MAC 00:0c:29:90:00:10
+host gpu_node_a {
+    ip 2001:db8:fab:1::10
+    mac 00:0c:29:90:00:10
 }
 
 // INSTRUCTION: Declare the peer IPv6 GPU compute node.
-HOST gpu_node_b {
-    IP 2001:db8:fab:1::20
-    MAC 00:0c:29:90:00:20
+host gpu_node_b {
+    ip 2001:db8:fab:1::20
+    mac 00:0c:29:90:00:20
 }
 
 // INSTRUCTION: Define an IPv4 fragmented UDP flow followed by an unfragmentable DF response.
-FLOW ipv4_fragmented_transfer(c, s) {
-    c -> s UDP SRCPORT 41000 DSTPORT 2049 IPID 7788 MF FRAGOFFSET 0 PAYLOAD "FRAGMENT_ONE_1480B_BLOCK" WAIT 1ms
-    c -> s UDP SRCPORT 41000 DSTPORT 2049 IPID 7788 FRAGOFFSET 185 PAYLOAD "FRAGMENT_TWO_TAIL_BLOCK" WAIT 1ms
-    c <- s UDP SRCPORT 2049 DSTPORT 41000 IPID 7789 DF PAYLOAD "REASSEMBLED_ACK_OK" WAIT 1ms
+flow ipv4_fragmented_transfer(c, s) {
+    c -> s udp srcport 41000 dstport 2049 ipid 7788 mf fragoffset 0 payload "FRAGMENT_ONE_1480B_BLOCK" wait 1ms
+    c -> s udp srcport 41000 dstport 2049 ipid 7788 fragoffset 185 payload "FRAGMENT_TWO_TAIL_BLOCK" wait 1ms
+    c <- s udp srcport 2049 dstport 41000 ipid 7789 df payload "REASSEMBLED_ACK_OK" wait 1ms
 }
 
 // INSTRUCTION: Define an IPv6 ECMP flow spreading two subflows across distinct 20-bit Flow Labels.
-FLOW ipv6_ecmp_subflows(a, b) {
-    a -> b UDP SRCPORT 47910 DSTPORT 4791 FLOWLABEL 0x1a2b3 DSCP 26 ECN 2 PAYLOAD "RDMA_WRITE_QP_101" WAIT 500us
-    a -> b UDP SRCPORT 47911 DSTPORT 4791 FLOWLABEL 0x9f8e7 DSCP 26 ECN 2 PAYLOAD "RDMA_WRITE_QP_102" WAIT 500us
+flow ipv6_ecmp_subflows(a, b) {
+    a -> b udp srcport 47910 dstport 4791 flowlabel 0x1a2b3 dscp 26 ecn 2 payload "RDMA_WRITE_QP_101" wait 500us
+    a -> b udp srcport 47911 dstport 4791 flowlabel 0x9f8e7 dscp 26 ecn 2 payload "RDMA_WRITE_QP_102" wait 500us
 }
 
 // INSTRUCTION: Compile both the IPv4 fragmentation flow and IPv6 Flow Label ECMP flow.
-COMPILE {
+compile {
     ipv4_fragmented_transfer(nfs_client_v4, nfs_server_v4)
     ipv6_ecmp_subflows(gpu_node_a, gpu_node_b)
 }

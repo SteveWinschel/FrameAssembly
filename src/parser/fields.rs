@@ -414,7 +414,7 @@ pub(crate) fn parse_universal_field<'i, 'a>(
     if matches!(
         current_protocol,
         Some(Protocol::Coap | Protocol::Dhcp | Protocol::Tftp | Protocol::Sip)
-    ) && let Some((tok, _)) = input.first()
+    ) && let Some((tok, _, _)) = input.first()
         && matches!(tok, Token::Ack | Token::Rst)
     {
         return Err(winnow::error::ErrMode::Backtrack(

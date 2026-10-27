@@ -5,7 +5,7 @@ You are working on **FrameAssembly**, a Rust 2024 Domain-Specific Language (DSL)
 ## 1. Canonical `.fasm` Syntax Guardrails (Never Hallucinate Keywords)
 
 When generating or editing FrameAssembly (`.fasm`) code or Markdown ````frameassembly` blocks:
-1. **Always include `HOST`, `FLOW`, and `COMPILE` blocks** so every snippet compiles standalone:
+1. **Always include `HOST`, `FLOW`, and `COMPILE` blocks** (all keywords, protocols, modifiers, time units, and identifiers are case-insensitive: `host` or `HOST`, `tcp` or `TCP`) so every snippet compiles standalone:
    ```frameassembly
    // PROMPT: TCP 3-way handshake and HTTP/1.1 GET healthcheck between client and server.
    // TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, SRCPORT, DSTPORT, MSS, HTTP, GET, RESPONSE, URI, HOST_HDR, STATUS, REASON, BODY, WAIT, COMPILE

@@ -8,7 +8,7 @@
 
 ## Unified `<layer>/<protocol>` Architecture
 
-FrameAssembly v1.1.1 enforces a unified `<layer>/<protocol>` architecture across both compiler implementation modules (`src/`) and example captures (`examples/`):
+FrameAssembly v1.2.0 enforces a unified `<layer>/<protocol>` architecture across both compiler implementation modules (`src/`) and example captures (`examples/`):
 
 ```text
 frameassembly/
@@ -85,7 +85,7 @@ frameassembly scenario.fasm --output /path/to/traffic.pcap
 The one-line `install.sh` bootstrap above installs the `.vsix` extension automatically when `code` or `agy` is detected. To install only the syntax highlighting extension without cloning the repository:
 
 ```bash
-curl -fsSLo /tmp/frameassembly.vsix https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-1.1.1.vsix && code --install-extension /tmp/frameassembly.vsix && rm -f /tmp/frameassembly.vsix
+curl -fsSLo /tmp/frameassembly.vsix https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-1.2.0.vsix && code --install-extension /tmp/frameassembly.vsix && rm -f /tmp/frameassembly.vsix
 ```
 
 ---
@@ -93,34 +93,34 @@ curl -fsSLo /tmp/frameassembly.vsix https://raw.githubusercontent.com/SteveWinsc
 ## Language Syntax Guide
 
 ### 1. Host, Flow & Compile Declarations
-A FrameAssembly (`.fasm`) program consists of `HOST` endpoint definitions, parameterized `FLOW` blocks (`->` and `<-`), and a `COMPILE` block supporting polymorphic dual-stack invocation and `LOOP` bursts:
+FrameAssembly (`.fasm`) syntax is completely **case-insensitive** across all keywords, protocols, modifiers, time units, and identifiers (`host` or `HOST`, `tcp` or `TCP`). A program consists of `host` endpoint definitions, parameterized `flow` blocks (`->` and `<-`), and a `compile` block supporting polymorphic dual-stack invocation and `loop` bursts:
 
 ```frameassembly
 // PROMPT: Dual-stack TCP 3-way handshake and mDNS multicast query demonstrating HOST, FLOW, and COMPILE LOOP syntax.
 // TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, WIN, MDNS, QUERY, QNAME, QTYPE, WAIT, COMPILE, LOOP
 
 // INSTRUCTION: Define IPv4 and IPv6 unicast and multicast endpoints.
-HOST client_v4  { IP 192.168.1.50 }
-HOST server_v4  { IP 192.168.1.100 MAC 00:11:22:33:44:55 }
-HOST client_v6  { IP 2001:db8::10 }
-HOST server_v6  { IP 2001:db8::100 }
-HOST mdns_mcast { IP 224.0.0.251 }
+host client_v4  { ip 192.168.1.50 }
+host server_v4  { ip 192.168.1.100 mac 00:11:22:33:44:55 }
+host client_v6  { ip 2001:db8::10 }
+host server_v6  { ip 2001:db8::100 }
+host mdns_mcast { ip 224.0.0.251 }
 
 // INSTRUCTION: Define a polymorphic TCP 3-way handshake flow reusable across IPv4 and IPv6.
-FLOW tcp_handshake(client, server) {
-    client -> server TCP SYN WIN 65535
-    client <- server TCP SYN ACK WIN 65535 WAIT 1ms
-    client -> server TCP ACK WAIT 1ms
+flow tcp_handshake(client, server) {
+    client -> server tcp syn win 65535
+    client <- server tcp syn ack win 65535 wait 1ms
+    client -> server tcp ack wait 1ms
 }
 
 // INSTRUCTION: Define an mDNS multicast service discovery flow.
-FLOW mdns_probe(host, mcast) {
-    host -> mcast MDNS QUERY QNAME "_http._tcp.local" QTYPE "PTR" WAIT 2ms
+flow mdns_probe(host, mcast) {
+    host -> mcast mdns query qname "_http._tcp.local" qtype "PTR" wait 2ms
 }
 
 // INSTRUCTION: Compile 2 dual-stack TCP handshake iterations followed by an mDNS multicast probe.
-COMPILE {
-    LOOP 2 {
+compile {
+    loop 2 {
         tcp_handshake(client_v4, server_v4)
         tcp_handshake(client_v6, server_v6)
     }
@@ -510,25 +510,25 @@ Formal Grammars, AI Discovery & Metadata Specifications:
 // PROMPT: Dual-stack HTTP and DNS monitoring scenario with QoS tagging.
 // TOKENS: HOST, IP, FLOW, ->, <-, TCP, SYN, ACK, PSH, PAYLOAD, UDP, DSTPORT, DSCP, FLOWLABEL, COMPILE
 
-HOST client_v4 { IP 192.168.1.50 }
-HOST server_v4 { IP 192.168.1.1 }
+host client_v4 { ip 192.168.1.50 }
+host server_v4 { ip 192.168.1.1 }
 
-HOST client_v6 { IP 2001:db8::50 }
-HOST server_v6 { IP 2001:db8::1 }
+host client_v6 { ip 2001:db8::50 }
+host server_v6 { ip 2001:db8::1 }
 
-FLOW web_request(client, server) {
-    client -> server TCP SYN WIN 65535 DSCP 46
-    client <- server TCP SYN ACK WIN 65535 DSCP 46
-    client -> server TCP ACK DSCP 46
-    client -> server TCP PSH ACK PAYLOAD "GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n"
+flow web_request(client, server) {
+    client -> server tcp syn win 65535 dscp 46
+    client <- server tcp syn ack win 65535 dscp 46
+    client -> server tcp ack dscp 46
+    client -> server tcp psh ack payload "GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n"
 }
 
-FLOW dns_lookup(client, resolver) {
-    client -> resolver UDP DSTPORT 53 FLOWLABEL 1000 PAYLOAD "DNS_QUERY_EXAMPLE"
-    client <- resolver UDP FLOWLABEL 1000 PAYLOAD "DNS_RESPONSE_EXAMPLE"
+flow dns_lookup(client, resolver) {
+    client -> resolver udp dstport 53 flowlabel 1000 payload "DNS_QUERY_EXAMPLE"
+    client <- resolver udp flowlabel 1000 payload "DNS_RESPONSE_EXAMPLE"
 }
 
-COMPILE {
+compile {
     // Run IPv4 web session
     web_request(client_v4, server_v4)
     // Run IPv6 web session using the same polymorphic flow!

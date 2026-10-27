@@ -6,7 +6,7 @@ FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates
 
 ## Canonical `.fasm` Grammar Rules (Anti-Hallucination Guardrails)
 
-1. **Program Structure**: Every `.fasm` file declares one or more `HOST <id> { IP <ip> [MAC <mac>] }` blocks, one or more `FLOW <id>(<param1>, <param2>, ...) { <statements> }` blocks, and exactly one `COMPILE { <flow_calls_or_loops> }` block.
+1. **Program Structure & Case-Insensitivity**: Every `.fasm` file declares one or more `HOST <id> { IP <ip> [MAC <mac>] }` blocks, one or more `FLOW <id>(<param1>, <param2>, ...) { <statements> }` blocks, and exactly one `COMPILE { <flow_calls_or_loops> }` block. All keywords, protocols, modifiers, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and identifiers (`HOST`, `FLOW`, parameters) are case-insensitive (`host` or `HOST`).
 2. **Host Blocks**: Use space-separated `IP <ipv4_or_ipv6>` and optional `MAC <mac>` (`HOST client { IP 10.0.0.1 MAC 00:11:22:33:44:55 }`). Never use `=`, `:`, `,`, `IPV4`, `IPV6`, or `MASK`.
 3. **Flow Blocks**: Always parameterize flows (`FLOW web(c, s) { c -> s HTTP GET URI "/" }`). Never use `FROM`, `TO`, `REVERSE`, `SEND`, standalone `WAIT` lines, or `+5ms` / `[+delay]` prefixes.
 4. **Inline Timing**: Place `WAIT <int><ns|us|ms|s|m>` as an inline modifier on a frame statement (`c <- s HTTP STATUS 200 REASON "OK" WAIT 5ms`).
@@ -74,7 +74,7 @@ FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates
 
 ## Unified `<layer>/<protocol>` Architecture
 
-FrameAssembly v1.1.1 enforces a unified `<layer>/<protocol>` architecture across both compiler implementation modules (`src/`) and example captures (`examples/`):
+FrameAssembly v1.2.0 enforces a unified `<layer>/<protocol>` architecture across both compiler implementation modules (`src/`) and example captures (`examples/`):
 
 ```text
 frameassembly/
@@ -151,7 +151,7 @@ frameassembly scenario.fasm --output /path/to/traffic.pcap
 A dedicated VS Code extension providing full syntax highlighting for all 81 protocols, sub-keywords, modifiers, durations, IPv6, and OIDs is available in `frameassembly-vscode/`:
 
 ```bash
-code --install-extension frameassembly-vscode/frameassembly-vscode-1.1.1.vsix
+code --install-extension frameassembly-vscode/frameassembly-vscode-1.2.0.vsix
 ```
 
 ---
@@ -2630,7 +2630,7 @@ FLOW tri_version_snmp_audit(nms, dev) {
     nms -> dev VLAN 99 PCP 2 DSCP 16 SNMP2 GETBULK COMMUNITY "perf_ro" REQID 5001 NONREPEATERS 1 MAXREPETITIONS 5 VARBIND 1.3.6.1.2.1.1.3.0 NULL VARBIND 1.3.6.1.2.1.31.1.1.1.6 NULL WAIT 2ms
     nms <- dev VLAN 99 PCP 2 DSCP 16 SNMP2 RESPONSE COMMUNITY "perf_ro" REQID 5001 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 12500 VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 45000123456 WAIT 2ms
     nms -> dev VLAN 99 PCP 2 DSCP 16 SNMP3 GET USER "sec_auditor" ENGINEID "80001f8880990064" ENGINEBOOTS 3 ENGINETIME 5400 AUTH SHA256 "SecAuditSha256!" PRIV AES "SecAuditAes128!" REQID 5002 VARBIND 1.3.6.1.2.1.1.1.0 NULL WAIT 2ms
-    nms <- dev VLAN 99 PCP 2 DSCP 16 SNMP3 RESPONSE USER "sec_auditor" ENGINEID "80001f8880990064" ENGINEBOOTS 3 ENGINETIME 5400 AUTH SHA256 "SecAuditSha256!" PRIV AES "SecAuditAes128!" REQID 5002 VARBIND 1.3.6.1.2.1.1.1.0 STRING "FrameAssembly Multi-Version SNMP Agent v1.1.1" WAIT 2ms
+    nms <- dev VLAN 99 PCP 2 DSCP 16 SNMP3 RESPONSE USER "sec_auditor" ENGINEID "80001f8880990064" ENGINEBOOTS 3 ENGINETIME 5400 AUTH SHA256 "SecAuditSha256!" PRIV AES "SecAuditAes128!" REQID 5002 VARBIND 1.3.6.1.2.1.1.1.0 STRING "FrameAssembly Multi-Version SNMP Agent v1.2.0" WAIT 2ms
 }
 
 // INSTRUCTION: Compile the tri-version SNMP coexistence audit flow.

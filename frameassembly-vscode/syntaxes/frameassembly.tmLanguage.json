@@ -45,25 +45,25 @@
       ]
     },
     "keywords": {
-      "match": "\\b(HOST|FLOW|COMPILE|LOOP)\\b",
+      "match": "(?i)\\b(HOST|FLOW|COMPILE|LOOP)\\b",
       "name": "keyword.control.frameassembly"
     },
     "protocols": {
       "patterns": [
         {
-          "match": "\\b(TCP|UDP|SCTP|SNMP1|SNMP2|SNMP3|ARP|VLAN|QINQ|LLDP|STP|LACP|EAPOL|MPLS|ICMP|NDP|IGMP|MLD|GRE|VXLAN|GENEVE|IPSEC|ESP|AH)\\b",
+          "match": "(?i)\\b(TCP|UDP|SCTP|SNMP1|SNMP2|SNMP3|ARP|VLAN|QINQ|LLDP|STP|LACP|EAPOL|MPLS|ICMP|NDP|IGMP|MLD|GRE|VXLAN|GENEVE|IPSEC|ESP|AH)\\b",
           "name": "entity.name.type.protocol.frameassembly"
         },
         {
-          "match": "\\b(IKEV2|WIREGUARD|OSPF|BGP|RIP|VRRP|HSRP|PIM|BFD|OPENFLOW|DNS|MDNS|DHCP|NTP|PTP|RADIUS|TACACS|SYSLOG|NETFLOW|IPFIX|SFLOW)\\b",
+          "match": "(?i)\\b(IKEV2|WIREGUARD|OSPF|BGP|RIP|VRRP|HSRP|PIM|BFD|OPENFLOW|DNS|MDNS|DHCP|NTP|PTP|RADIUS|TACACS|SYSLOG|NETFLOW|IPFIX|SFLOW)\\b",
           "name": "entity.name.type.protocol.frameassembly"
         },
         {
-          "match": "\\b(TFTP|FTP|SSH|TELNET|HTTP|HTTP2|GRPC|WEBSOCKET|TLS|QUIC|STUN|SIP|RTP|RTSP|SMTP|IMAP|POP3|KERBEROS|LDAP|SMB|NFS|REDIS)\\b",
+          "match": "(?i)\\b(TFTP|FTP|SSH|TELNET|HTTP|HTTP2|GRPC|WEBSOCKET|TLS|QUIC|STUN|SIP|RTP|RTSP|SMTP|IMAP|POP3|KERBEROS|LDAP|SMB|NFS|REDIS)\\b",
           "name": "entity.name.type.protocol.frameassembly"
         },
         {
-          "match": "\\b(MEMCACHED|MYSQL|POSTGRES|MQTT|COAP|AMQP|SSDP|WHOIS|MODBUS|BACNET|DNP3|S7COMM|ETHERNETIP|OPCUA)\\b",
+          "match": "(?i)\\b(MEMCACHED|MYSQL|POSTGRES|MQTT|COAP|AMQP|SSDP|WHOIS|MODBUS|BACNET|DNP3|S7COMM|ETHERNETIP|OPCUA)\\b",
           "name": "entity.name.type.protocol.frameassembly"
         }
       ]
@@ -71,67 +71,67 @@
     "constants": {
       "patterns": [
         {
-          "match": "\\b(ABORT|ACCESS_ACCEPT|ACCESS_CHALLENGE|ACCESS_REJECT|ACCESS_REQUEST|ACCOUNTING_REQUEST|ACCOUNTING_RESPONSE|ACCT|ACK)\\b",
+          "match": "(?i)\\b(ABORT|ACCESS_ACCEPT|ACCESS_CHALLENGE|ACCESS_REJECT|ACCESS_REQUEST|ACCOUNTING_REQUEST|ACCOUNTING_RESPONSE|ACCT|ACK)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(ADVERTISE|AES|ALERT|ANNOUNCE|APP_DATA|AS_REP|AS_REQ|AUTHEN|AUTHOR|BASIC_DELIVER|BASIC_PUBLISH|BINDING_ERROR)\\b",
+          "match": "(?i)\\b(ADVERTISE|AES|ALERT|ANNOUNCE|APP_DATA|AS_REP|AS_REQ|AUTHEN|AUTHOR|BASIC_DELIVER|BASIC_PUBLISH|BINDING_ERROR)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(BINDING_REQUEST|BINDING_RESPONSE|BIND_REQ|BIND_RES|BYE|CANCEL|CERTIFICATE|CHANGED|CHANNEL_OPEN|CLIENT_HELLO|CLOSE|CON)\\b",
+          "match": "(?i)\\b(BINDING_REQUEST|BINDING_RESPONSE|BIND_REQ|BIND_RES|BYE|CANCEL|CERTIFICATE|CHANGED|CHANNEL_OPEN|CLIENT_HELLO|CLOSE|CON)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(CONNACK|CONNECT|CONNECTION_START|COOKIE|COOKIE_ACK|COOKIE_ECHO|COUNTER32|COUNTER64|CREATED|CREATE_CHILD_SA|CWR|DATA|DBD)\\b",
+          "match": "(?i)\\b(CONNACK|CONNECT|CONNECTION_START|COOKIE|COOKIE_ACK|COOKIE_ECHO|COUNTER32|COUNTER64|CREATED|CREATE_CHILD_SA|CWR|DATA|DBD)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(DELAY_REQ|DELAY_RESP|DELETE|DES|DESCRIBE|DEST_UNREACH|DIRECT_OPERATE|DISCONNECT|DISCOVER|DONE|ECE|ECHO_REPLY|ECHO_REQ)\\b",
+          "match": "(?i)\\b(DELAY_REQ|DELAY_RESP|DELETE|DES|DESCRIBE|DEST_UNREACH|DIRECT_OPERATE|DISCONNECT|DISCOVER|DONE|ECE|ECHO_REPLY|ECHO_REQ)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(ECHO_REQUEST|EHLO|ERR|FEATURES_REPLY|FEATURES_REQ|FIN|FINISHED|FLOW_MOD|FOLLOW_UP|GARP|GAUGE32|GET|GETBULK|GETNEXT)\\b",
+          "match": "(?i)\\b(ECHO_REQUEST|EHLO|ERR|FEATURES_REPLY|FEATURES_REQ|FIN|FINISHED|FLOW_MOD|FOLLOW_UP|GARP|GAUGE32|GET|GETBULK|GETNEXT)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(GOAWAY|GRATUITOUS|HANDSHAKE|HEAD|HEADERS|HEARTBEAT|HEARTBEAT_ACK|HELLO|HELO|INFORM|INFORMATIONAL|INIT|INITIAL|INITIATION)\\b",
+          "match": "(?i)\\b(GOAWAY|GRATUITOUS|HANDSHAKE|HEAD|HEADERS|HEARTBEAT|HEARTBEAT_ACK|HELLO|HELO|INFORM|INFORMATIONAL|INIT|INITIAL|INITIATION)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(INIT_ACK|INT|INVITE|IPVAL|I_AM|JOIN_PRUNE|KEEPALIVE|KRB_ERROR|LEAVE|LIST_IDENTITY|LIST_INTERFACES|LIST_SERVICES|LOGOFF)\\b",
+          "match": "(?i)\\b(INIT_ACK|INT|INVITE|IPVAL|I_AM|JOIN_PRUNE|KEEPALIVE|KRB_ERROR|LEAVE|LIST_IDENTITY|LIST_INTERFACES|LIST_SERVICES|LOGOFF)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(LSACK|LSR|LSU|MD5|MSEARCH|NEGOTIATE|NEIGHBOR_ADVERT|NEIGHBOR_SOLICIT|NON|NOTIFICATION|NOTIFY|NOT_FOUND|NULL|NULLVAL)\\b",
+          "match": "(?i)\\b(LSACK|LSR|LSU|MD5|MSEARCH|NEGOTIATE|NEIGHBOR_ADVERT|NEIGHBOR_SOLICIT|NON|NOTIFICATION|NOTIFY|NOT_FOUND|NULL|NULLVAL)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(OFFER|OIDVAL|OK|OPEN|OPERATE|OPTIONS|PACKET_IN|PACKET_OUT|PATCH|PING|PINGREQ|PINGRESP|PLAY|PONG|POST|PREFACE|PSH|PUBACK)\\b",
+          "match": "(?i)\\b(OFFER|OIDVAL|OK|OPEN|OPERATE|OPTIONS|PACKET_IN|PACKET_OUT|PATCH|PING|PINGREQ|PINGRESP|PLAY|PONG|POST|PREFACE|PSH|PUBACK)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(PUBLISH|PUT|QUERY|QUIT|READ_COILS|READ_DISCRETE_INPUTS|READ_HOLDING_REGISTERS|READ_INPUT_REGISTERS|REDIRECT|REGISTER)\\b",
+          "match": "(?i)\\b(PUBLISH|PUT|QUERY|QUIT|READ_COILS|READ_DISCRETE_INPUTS|READ_HOLDING_REGISTERS|READ_INPUT_REGISTERS|REDIRECT|REGISTER)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(REGISTER_SESSION|RELEASE|REPLY|REPORT|REQUEST|RESPONSE|RETRY|ROUTER_ADVERT|ROUTER_SOLICIT|RRQ|RST|RSTP|SACK|SA_INIT)\\b",
+          "match": "(?i)\\b(REGISTER_SESSION|RELEASE|REPLY|REPORT|REQUEST|RESPONSE|RETRY|ROUTER_ADVERT|ROUTER_SOLICIT|RRQ|RST|RSTP|SACK|SA_INIT)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(SEARCH_DONE|SEARCH_ENTRY|SEARCH_REQ|SELECT|SEND_RR_DATA|SEND_UNIT_DATA|SERVER_HELLO|SESSION_SETUP|SET|SETTINGS|SETUP|SHA)\\b",
+          "match": "(?i)\\b(SEARCH_DONE|SEARCH_ENTRY|SEARCH_REQ|SELECT|SEND_RR_DATA|SEND_UNIT_DATA|SERVER_HELLO|SESSION_SETUP|SET|SETTINGS|SETUP|SHA)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(SHA256|SHA384|SHA512|SHORT|SHUTDOWN|SOLICIT|START|STRING|SUBACK|SUBSCRIBE|SYN|SYNC|TEARDOWN|TGS_REP|TGS_REQ|TIMETICKS)\\b",
+          "match": "(?i)\\b(SHA256|SHA384|SHA512|SHORT|SHUTDOWN|SOLICIT|START|STRING|SUBACK|SUBSCRIBE|SYN|SYNC|TEARDOWN|TGS_REP|TGS_REQ|TIMETICKS)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(TIME_EXCEEDED|TRAP|TREE_CONNECT|TREE_DISCONNECT|UNBIND_REQ|UNREGISTER_SESSION|UNSOLICITED_RESPONSE|UPDATE|URG|V1|V2|V3)\\b",
+          "match": "(?i)\\b(TIME_EXCEEDED|TRAP|TREE_CONNECT|TREE_DISCONNECT|UNBIND_REQ|UNREGISTER_SESSION|UNSOLICITED_RESPONSE|UPDATE|URG|V1|V2|V3)\\b",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(WHO_IS|WINDOW_UPDATE|WRITE_MULTIPLE_REGISTERS|WRITE_SINGLE_COIL|WRITE_SINGLE_REGISTER|WRQ|ZERO_RTT)\\b",
+          "match": "(?i)\\b(WHO_IS|WINDOW_UPDATE|WRITE_MULTIPLE_REGISTERS|WRITE_SINGLE_COIL|WRITE_SINGLE_REGISTER|WRQ|ZERO_RTT)\\b",
           "name": "constant.language.frameassembly"
         }
       ]
@@ -139,99 +139,99 @@
     "properties": {
       "patterns": [
         {
-          "match": "\\b(ACKNUM|ACTOR_KEY|ACTOR_PORT|ACTOR_STATE|ACTOR_SYS|ADDR|ADV_INT|AGENTIP|AGENT_IP|ALPN|ANS_TTL|APP|AREA|AREA_ID|ARG|ARGS)\\b",
+          "match": "(?i)\\b(ACKNUM|ACTOR_KEY|ACTOR_PORT|ACTOR_STATE|ACTOR_SYS|ADDR|ADV_INT|AGENTIP|AGENT_IP|ALPN|ANS_TTL|APP|AREA|AREA_ID|ARG|ARGS)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(ASN|AUTH|AUTH_OK|BANNER|BASE_DN|BGPID|BINARY|BLOCK|BODY|BOS|BRIDGE_ID|CALL_ID|CAS|CHADDR|CHANNEL|CHASSIS_ID|CHECKSUM)\\b",
+          "match": "(?i)\\b(ASN|AUTH|AUTH_OK|BANNER|BASE_DN|BGPID|BINARY|BLOCK|BODY|BOS|BRIDGE_ID|CALL_ID|CAS|CHADDR|CHANNEL|CHASSIS_ID|CHECKSUM)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(CHUNK|CHUNK_TYPE|CIADDR|CIPHERSUITE|CIP_ATTR|CIP_CLASS|CIP_INSTANCE|CIP_SERVICE|CLIENT_ID|CLOCK_ID|CMD|CNAME|CODE)\\b",
+          "match": "(?i)\\b(CHUNK|CHUNK_TYPE|CIADDR|CIPHERSUITE|CIP_ATTR|CIP_CLASS|CIP_INSTANCE|CIP_SERVICE|CLIENT_ID|CLOCK_ID|CMD|CNAME|CODE)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(COMMAND|COMMAND_COMPLETE|COMMUNITY|COMPOUND|CONFIRM|CONTACT|CONTENT_FORMAT|CONTENT_TYPE|CONTEXT|CONTEXTNAME|COST|COUNT)\\b",
+          "match": "(?i)\\b(COMMAND|COMMAND_COMPLETE|COMMUNITY|COMPOUND|CONFIRM|CONTACT|CONTENT_FORMAT|CONTENT_TYPE|CONTEXT|CONTEXTNAME|COST|COUNT)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(COUNTER|CRC|CREATE|CSEQ|DB|DB_NUM|DCID|DEAD_INTERVAL|DEI|DF|DIAG|DNS_SERVER|DO|DOMAIN|DOMAIN_ID|DONT|DPID|DR_PRIORITY)\\b",
+          "match": "(?i)\\b(COUNTER|CRC|CREATE|CSEQ|DB|DB_NUM|DCID|DEAD_INTERVAL|DEI|DF|DIAG|DNS_SERVER|DO|DOMAIN|DOMAIN_ID|DONT|DPID|DR_PRIORITY)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(DSCP|DST|DSTIP|DSTMAC|DSTPORT|EAP_CODE|EAP_ID|EAP_METHOD|EAP_PACKET|ECN|ENDPOINT_URL|ENGINEBOOTS|ENGINEID|ENGINETIME)\\b",
+          "match": "(?i)\\b(DSCP|DST|DSTIP|DSTMAC|DSTPORT|EAP_CODE|EAP_ID|EAP_METHOD|EAP_PACKET|ECN|ENDPOINT_URL|ENGINEBOOTS|ENGINEID|ENGINETIME)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(ENTERPRISE|EOF|ERRCODE|ERRMSG|ERROR_RESPONSE|ETHERTYPE|ETYPE|EXCHANGE|EXP|EXPTIME|FACILITY|FILENAME|FILTER|FIN_BIT|FLAGS)\\b",
+          "match": "(?i)\\b(ENTERPRISE|EOF|ERRCODE|ERRMSG|ERROR_RESPONSE|ETHERTYPE|ETYPE|EXCHANGE|EXP|EXPTIME|FACILITY|FILENAME|FILTER|FIN_BIT|FLAGS)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(FLOWLABEL|FORWARD_DELAY|FRAGOFFSET|FRAMED_IP|FROM|FUNC|GATEWAY|GENTRAP|GREETING|GRE_KEY|GRE_PROTO|GRE_SEQ|GROUP)\\b",
+          "match": "(?i)\\b(FLOWLABEL|FORWARD_DELAY|FRAGOFFSET|FRAMED_IP|FROM|FUNC|GATEWAY|GENTRAP|GREETING|GRE_KEY|GRE_PROTO|GRE_SEQ|GROUP)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(GRPC_STATUS|HANDSHAKE_VERSION|HEADER|HELLOTIME|HELLO_INTERVAL|HELLO_TIME|HEXPAYLOAD|HOLDTIME|HOSTNAME|HOST_HDR|ICV|ID)\\b",
+          "match": "(?i)\\b(GRPC_STATUS|HANDSHAKE_VERSION|HEADER|HELLOTIME|HELLO_INTERVAL|HELLO_TIME|HEXPAYLOAD|HOLDTIME|HOSTNAME|HOST_HDR|ICV|ID)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(IDENTITY|INITIATOR_SPI|INNER_VLAN|INVOKE_ID|IP|IPID|IS_RESPONSE|IV|KEXINIT|KEY|LABEL|LEASE_TIME|LI|LOCATION|LOGIN|MAC)\\b",
+          "match": "(?i)\\b(IDENTITY|INITIATOR_SPI|INNER_VLAN|INVOKE_ID|IP|IPID|IS_RESPONSE|IV|KEXINIT|KEY|LABEL|LEASE_TIME|LI|LOCATION|LOGIN|MAC)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(MAIL_FROM|MAN|MARKER|MASK_KEY|MAXREPETITIONS|MAX_AGE|MAX_RESP|MAX_RESP_DELAY|METHOD|METRIC|MF|MIN_RX|MIN_TX|MODE)\\b",
+          "match": "(?i)\\b(MAIL_FROM|MAN|MARKER|MASK_KEY|MAXREPETITIONS|MAX_AGE|MAX_RESP|MAX_RESP_DELAY|METHOD|METRIC|MF|MIN_RX|MIN_TX|MODE)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(MPLS_TTL|MSG|MSGID|MSG_CODE|MSG_TYPE|MSS|MULT|MULTICAST_ADDR|MX|MY_DISC|NAS_IP|NEWKEYS|NEXTHOP|NEXT_HEADER|NEXT_PAYLOAD)\\b",
+          "match": "(?i)\\b(MPLS_TTL|MSG|MSGID|MSG_CODE|MSG_TYPE|MSS|MULT|MULTICAST_ADDR|MX|MY_DISC|NAS_IP|NEWKEYS|NEXTHOP|NEXT_HEADER|NEXT_PAYLOAD)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(NLRI|NODE_ID|NONREPEATERS|NT|NTS|OBJECT_INSTANCE|OBJECT_TYPE|OCTETS|OFFSET|OID|OPAQUE|OPCODE|OPTION|OPT_CLASS|OPT_TYPE)\\b",
+          "match": "(?i)\\b(NLRI|NODE_ID|NONREPEATERS|NT|NTS|OBJECT_INSTANCE|OBJECT_TYPE|OCTETS|OFFSET|OID|OPAQUE|OPCODE|OPTION|OPT_CLASS|OPT_TYPE)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(PACKETS|PARAM|PARTNER_KEY|PARTNER_PORT|PARTNER_STATE|PARTNER_SYS|PATH|PAYLOAD|PCP|PDU_REF|PKT_ID|PKT_NUM|PLC_CONTROL)\\b",
+          "match": "(?i)\\b(PACKETS|PARAM|PARTNER_KEY|PARTNER_PORT|PARTNER_STATE|PARTNER_SYS|PATH|PAYLOAD|PCP|PDU_REF|PKT_ID|PKT_NUM|PLC_CONTROL)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(POLL|PORT_ID|PPID|PRECISION|PREFIX|PRI|PRIORITY|PRIV|PROC|PROCID|PROPERTY_ID|PROTO|PROTOCOL_HEADER|PROTOCOL_TYPE)\\b",
+          "match": "(?i)\\b(POLL|PORT_ID|PPID|PRECISION|PREFIX|PRI|PRIORITY|PRIV|PROC|PROCID|PROPERTY_ID|PROTO|PROTOCOL_HEADER|PROTOCOL_TYPE)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(PROTO_ID|PT|QNAME|QOS|QTYPE|RCODE|RCPT_TO|RDATA|READY_FOR_QUERY|READ_PROPERTY|READ_VAR|REALM|REASON|RECEIVER)\\b",
+          "match": "(?i)\\b(PROTO_ID|PT|QNAME|QOS|QTYPE|RCODE|RCPT_TO|RDATA|READY_FOR_QUERY|READ_PROPERTY|READ_VAR|REALM|REASON|RECEIVER)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(RECORD_VERSION|REFID|REGISTRAR|REPLY_TYPE|REQID|RESPONDER_SPI|RESULT_CODE|RETAIN|RETURN_CODE|ROOT_ID|ROSCTR|ROUTER)\\b",
+          "match": "(?i)\\b(RECORD_VERSION|REFID|REGISTRAR|REPLY_TYPE|REQID|RESPONDER_SPI|RESULT_CODE|RETAIN|RETURN_CODE|ROOT_ID|ROSCTR|ROUTER)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(ROUTER_ID|ROUTER_LIFETIME|ROUTING_KEY|RP|SACKPERM|SACK_PERM|SAMPLES|SCID|SECURE_CHANNEL_ID|SENDER|SENDERIP|SENDERMAC|SEQ)\\b",
+          "match": "(?i)\\b(ROUTER_ID|ROUTER_LIFETIME|ROUTING_KEY|RP|SACKPERM|SACK_PERM|SAMPLES|SCID|SECURE_CHANNEL_ID|SENDER|SENDERIP|SENDERMAC|SEQ)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(SEQ_ID|SEQ_NUM|SERVER_VERSION|SERVICE|SERVICE_TYPE|SESSION|SESSION_HANDLE|SESSION_ID|SETUP_COMM|SEVERITY|SHARE|SIADDR)\\b",
+          "match": "(?i)\\b(SEQ_ID|SEQ_NUM|SERVER_VERSION|SERVICE|SERVICE_TYPE|SESSION|SESSION_HANDLE|SESSION_ID|SETUP_COMM|SEVERITY|SHARE|SIADDR)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(SLLA|SNAME|SNI|SOFTWARE|SOURCE|SPA|SPECTRAP|SPI|SQL|SRC|SRCIP|SRCMAC|SRCPORT|SSN|SSRC|ST|STARTUP|STATE|STATUS|STRATUM)\\b",
+          "match": "(?i)\\b(SLLA|SNAME|SNI|SOFTWARE|SOURCE|SPA|SPECTRAP|SPI|SQL|SRC|SRCIP|SRCMAC|SRCPORT|SSN|SSRC|ST|STARTUP|STATE|STATUS|STRATUM)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(STREAM|STREAM_ID|SUBNET_MASK|SUB_AGENT_ID|SYSDESC|SYSNAME|SYSUPTIME|TABLE_ID|TAG|TARGET|TARGETIP|TARGETMAC|TC|TEXT|THA)\\b",
+          "match": "(?i)\\b(STREAM|STREAM_ID|SUBNET_MASK|SUB_AGENT_ID|SYSDESC|SYSNAME|SYSUPTIME|TABLE_ID|TAG|TARGET|TARGETIP|TARGETMAC|TC|TEXT|THA)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(TIMESTAMP|TLLA|TO|TOKEN|TOKEN_ID|TOPIC|TPA|TRANSPORT|TRANSPORT_HDR|TREE_ID|TSECR|TSN|TSVAL|TTL|TXID|TX_TIMESTAMP|TYPE)\\b",
+          "match": "(?i)\\b(TIMESTAMP|TLLA|TO|TOKEN|TOKEN_ID|TOPIC|TPA|TRANSPORT|TRANSPORT_HDR|TREE_ID|TSECR|TSN|TSVAL|TTL|TXID|TX_TIMESTAMP|TYPE)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(UNITID|UPTIME|URGENT|URI|URI_PATH|USER|USER_AGENT|USN|VALUE|VARBIND|VARIATION|VERS|VERSION|VIA|VIP|VN|VNI|VNID|VRID|VTAG)\\b",
+          "match": "(?i)\\b(UNITID|UPTIME|URGENT|URI|URI_PATH|USER|USER_AGENT|USN|VALUE|VARBIND|VARIATION|VERS|VERSION|VIA|VIP|VN|VNI|VNID|VRID|VTAG)\\b",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(WAIT|WILL|WIN|WINDOW|WONT|WRITE_PROPERTY|WRITE_VAR|WSCALE|XID|XOR_MAPPED_ADDR|YIADDR|YOUR_DISC)\\b",
+          "match": "(?i)\\b(WAIT|WILL|WIN|WINDOW|WONT|WRITE_PROPERTY|WRITE_VAR|WSCALE|XID|XOR_MAPPED_ADDR|YIADDR|YOUR_DISC)\\b",
           "name": "support.type.property-name.frameassembly"
         }
       ]
@@ -263,7 +263,7 @@
           "name": "constant.numeric.oid.frameassembly"
         },
         {
-          "match": "-?\\b[0-9]+(ns|us|ms|s|m)?\\b",
+          "match": "(?i)-?\\b[0-9]+(ns|us|ms|s|m)?\\b",
           "name": "constant.numeric.integer.frameassembly"
         }
       ]

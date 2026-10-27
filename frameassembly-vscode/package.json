@@ -2,7 +2,7 @@
   "name": "frameassembly-vscode",
   "displayName": "frameassembly-vscode",
   "description": "FrameAssembly (DSL for text->PCAP compilation) support",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "publisher": "stevewinschel",
   "repository": {
     "type": "git",

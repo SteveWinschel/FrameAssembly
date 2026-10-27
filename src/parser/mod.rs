@@ -59,22 +59,30 @@ pub use ident::unescape_string;
 pub(crate) use statement::parse_frame_statement;
 pub use validation::validate_semantics;
 
-/// A stream of lexical tokens mapped to their source spans.
+/// A stream of lexical tokens mapped to their source spans and zero-copy source slices.
 ///
 /// Used extensively throughout the parser combinators.
-pub type Stream<'i, 'a> = &'i [(Token<'a>, core::ops::Range<usize>)];
+pub type Stream<'i, 'a> = &'i [(Token<'a>, core::ops::Range<usize>, &'a str)];
 
-/// Helper to match a specific token exactly, returning the token and its source span.
+/// Helper to match a specific token (case-insensitively for identifier tags), returning the token and its source span.
 pub(crate) fn tag<'i, 'a: 'i>(
     expected: Token<'a>,
 ) -> impl Parser<Stream<'i, 'a>, (Token<'a>, core::ops::Range<usize>), ErrMode<ContextError>> {
-    any.verify(move |(t, _): &(Token<'a>, core::ops::Range<usize>)| *t == expected)
+    any.verify_map(
+        move |(t, span, _): (Token<'a>, core::ops::Range<usize>, &'a str)| {
+            let matches = match (&t, &expected) {
+                (Token::Ident(a), Token::Ident(b)) => a.eq_ignore_ascii_case(b),
+                _ => t == expected,
+            };
+            if matches { Some((t, span)) } else { None }
+        },
+    )
 }
 
 /// Helper to parse a raw string literal token and extract its inner value without quotes.
 pub(crate) fn parse_raw_string_lit<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<&'a str> {
-    let (t, _) = any
-        .verify(|(t, _)| matches!(t, Token::StringLit(_)))
+    let (t, _, _) = any
+        .verify(|(t, _, _)| matches!(t, Token::StringLit(_)))
         .parse_next(input)?;
     match t {
         Token::StringLit(s) => Ok(s
@@ -134,7 +142,7 @@ pub(crate) fn parse_hex_bytes<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Vec
 
 /// Parses an IP address from a token stream.
 pub(crate) fn parse_ip<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<IpAddr> {
-    any.verify_map(|(t, _)| match t {
+    any.verify_map(|(t, _, _)| match t {
         Token::IpAddress(s) | Token::OidStr(s) => IpAddr::from_str(s).ok(),
         _ => None,
     })
@@ -143,7 +151,7 @@ pub(crate) fn parse_ip<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<IpAddr> {
 
 /// Parses a MAC address from a token stream.
 pub(crate) fn parse_mac<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<[u8; 6]> {
-    any.verify_map(|(t, _)| {
+    any.verify_map(|(t, _, _)| {
         if let Token::MacAddress(s) = t {
             let parts: Vec<&str> = s.split(':').collect();
             if parts.len() == 6 {
@@ -164,7 +172,7 @@ pub(crate) fn parse_mac<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<[u8; 6]> 
 
 /// Parses a `u8` integer supporting decimal and hex.
 pub(crate) fn parse_u8<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u8> {
-    any.verify_map(|(t, _)| {
+    any.verify_map(|(t, _, _)| {
         if let Token::Number(s) = t {
             if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
                 u8::from_str_radix(hex, 16).ok()
@@ -180,7 +188,7 @@ pub(crate) fn parse_u8<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u8> {
 
 /// Parses a `u16` integer supporting decimal and hex.
 pub(crate) fn parse_u16<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u16> {
-    any.verify_map(|(t, _)| {
+    any.verify_map(|(t, _, _)| {
         if let Token::Number(s) = t {
             if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
                 u16::from_str_radix(hex, 16).ok()
@@ -198,7 +206,7 @@ pub(crate) fn parse_u16<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u16> {
 pub(crate) fn parse_spanned_u32<'i, 'a>(
     input: &mut Stream<'i, 'a>,
 ) -> PResult<(u32, (usize, usize))> {
-    any.verify_map(|(t, span): (Token<'a>, core::ops::Range<usize>)| {
+    any.verify_map(|(t, span, _): (Token<'a>, core::ops::Range<usize>, &'a str)| {
         if let Token::Number(s) = t {
             let val = if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
                 u32::from_str_radix(hex, 16).ok()
@@ -220,7 +228,7 @@ pub(crate) fn parse_u32<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u32> {
 
 /// Parses an `i32` signed integer.
 pub(crate) fn parse_i32<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<i32> {
-    any.verify_map(|(t, _)| {
+    any.verify_map(|(t, _, _)| {
         if let Token::Number(s) = t {
             if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
                 i32::from_str_radix(hex, 16).ok()
@@ -236,7 +244,7 @@ pub(crate) fn parse_i32<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<i32> {
 
 /// Parses a `u64` unsigned integer.
 pub(crate) fn parse_u64<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u64> {
-    any.verify_map(|(t, _)| {
+    any.verify_map(|(t, _, _)| {
         if let Token::Number(s) = t {
             if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
                 u64::from_str_radix(hex, 16).ok()
@@ -442,7 +450,14 @@ pub(crate) fn parse_all<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Program<'
 /// * There are unexpected trailing tokens after the program block.
 /// * Semantic rules (ranges, mixed IP versions, duplicate declarations) are violated.
 pub fn parse_program<'a>(input_str: &'a str) -> Result<Program<'a>, CompilerError> {
-    let tokens = crate::lexer::lex(input_str)?;
+    let raw_tokens = crate::lexer::lex(input_str)?;
+    let tokens: Vec<(Token<'a>, core::ops::Range<usize>, &'a str)> = raw_tokens
+        .into_iter()
+        .map(|(t, span)| {
+            let slice = &input_str[span.clone()];
+            (t, span, slice)
+        })
+        .collect();
     let mut stream: Stream<'_, 'a> = &tokens;
 
     let program = match parse_all.parse_next(&mut stream) {

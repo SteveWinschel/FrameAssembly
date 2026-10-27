@@ -7,7 +7,7 @@
 //! `FLOWLABEL`, `GENTRAP`), cross-protocol modifier compatibility, flow parameter arity, and
 //! homogeneous IPv4/IPv6 endpoint addressing.
 
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::*;
@@ -18,14 +18,14 @@ use crate::error::CompilerError;
 /// # Checks
 /// * Mixed IPv4 and IPv6 endpoints in any statement.
 /// * Out-of-range fields (`VLAN > 4094`, `DSCP > 63`, `ECN > 3`, `TTL > 255`, `FLOWLABEL > 0xFFFFF`, `GENTRAP > 6`).
-/// * Duplicate `HOST`, `FLOW`, or parameter declarations.
+/// * Duplicate `HOST`, `FLOW`, or parameter declarations (case-insensitive).
 /// * Duplicate statement modifiers.
 /// * Invalid cross-protocol modifiers.
 pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerError> {
-    // 1. Check duplicate HOST definitions
-    let mut seen_hosts: HashMap<&str, (usize, usize)> = HashMap::new();
+    // 1. Check duplicate HOST definitions (case-insensitive)
+    let mut seen_hosts: HashMap<String, (usize, usize)> = HashMap::new();
     for host in &program.hosts {
-        if let Some(first_span) = seen_hosts.insert(host.name, host.span) {
+        if let Some(first_span) = seen_hosts.insert(host.name.to_ascii_lowercase(), host.span) {
             let _ = first_span;
             return Err(CompilerError::SemanticError {
                 message: alloc::format!("Duplicate HOST declaration: '{}'", host.name),
@@ -35,10 +35,10 @@ pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerEr
         }
     }
 
-    // 2. Check duplicate FLOW definitions and duplicate parameter declarations
-    let mut seen_flows: HashMap<&str, (usize, usize)> = HashMap::new();
+    // 2. Check duplicate FLOW definitions and duplicate parameter declarations (case-insensitive)
+    let mut seen_flows: HashMap<String, (usize, usize)> = HashMap::new();
     for flow in &program.flows {
-        if let Some(first_span) = seen_flows.insert(flow.name, flow.span) {
+        if let Some(first_span) = seen_flows.insert(flow.name.to_ascii_lowercase(), flow.span) {
             let _ = first_span;
             return Err(CompilerError::SemanticError {
                 message: alloc::format!("Duplicate FLOW declaration: '{}'", flow.name),
@@ -47,9 +47,9 @@ pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerEr
             });
         }
 
-        let mut seen_params = HashSet::new();
+        let mut seen_params: HashSet<String> = HashSet::new();
         for param in &flow.params {
-            if !seen_params.insert(*param) {
+            if !seen_params.insert(param.to_ascii_lowercase()) {
                 return Err(CompilerError::SemanticError {
                     message: alloc::format!(
                         "Duplicate parameter '{}' in FLOW '{}'",
@@ -302,15 +302,21 @@ pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerEr
         }
     }
 
-    // 3. Check compile block invocations and mixed IPv4/IPv6 endpoints
-    let host_map: HashMap<&str, &HostDef> =
-        program.hosts.iter().map(|h| (h.name, h)).collect();
-    let flow_map: HashMap<&str, &FlowDef> =
-        program.flows.iter().map(|f| (f.name, f)).collect();
+    // 3. Check compile block invocations and mixed IPv4/IPv6 endpoints (case-insensitive)
+    let host_map: HashMap<String, &HostDef> = program
+        .hosts
+        .iter()
+        .map(|h| (h.name.to_ascii_lowercase(), h))
+        .collect();
+    let flow_map: HashMap<String, &FlowDef> = program
+        .flows
+        .iter()
+        .map(|f| (f.name.to_ascii_lowercase(), f))
+        .collect();
 
     let check_invocation = |inv: &TemplateInvocation| -> Result<(), CompilerError> {
         let flow = flow_map
-            .get(inv.name)
+            .get(&inv.name.to_ascii_lowercase())
             .ok_or_else(|| CompilerError::SemanticError {
                 message: alloc::format!("Undefined flow: '{}'", inv.name),
                 src: src.to_string(),
@@ -330,24 +336,24 @@ pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerEr
             });
         }
 
-        let mut param_to_host = HashMap::new();
+        let mut param_to_host: HashMap<String, &HostDef> = HashMap::new();
         for (i, param_name) in flow.params.iter().enumerate() {
             let Argument::Variable(var_name) = &inv.args[i];
-            let host =
-                host_map
-                    .get(*var_name)
-                    .ok_or_else(|| CompilerError::SemanticError {
-                        message: alloc::format!("Undefined host: '{}'", var_name),
-                        src: src.to_string(),
-                        span: inv.span,
-                    })?;
-            param_to_host.insert(*param_name, *host);
+            let host = host_map
+                .get(&var_name.to_ascii_lowercase())
+                .ok_or_else(|| CompilerError::SemanticError {
+                    message: alloc::format!("Undefined host: '{}'", var_name),
+                    src: src.to_string(),
+                    span: inv.span,
+                })?;
+            param_to_host.insert(param_name.to_ascii_lowercase(), *host);
         }
 
         // Validate endpoints in flow statements
         for stmt in &flow.statements {
-            let caller_host = param_to_host.get(stmt.caller.node).ok_or_else(|| {
-                CompilerError::SemanticError {
+            let caller_host = param_to_host
+                .get(&stmt.caller.node.to_ascii_lowercase())
+                .ok_or_else(|| CompilerError::SemanticError {
                     message: alloc::format!(
                         "Unknown caller endpoint '{}' in flow '{}'",
                         stmt.caller.node,
@@ -355,11 +361,11 @@ pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerEr
                     ),
                     src: src.to_string(),
                     span: stmt.span,
-                }
-            })?;
+                })?;
 
-            let callee_host = param_to_host.get(stmt.callee.node).ok_or_else(|| {
-                CompilerError::SemanticError {
+            let callee_host = param_to_host
+                .get(&stmt.callee.node.to_ascii_lowercase())
+                .ok_or_else(|| CompilerError::SemanticError {
                     message: alloc::format!(
                         "Unknown callee endpoint '{}' in flow '{}'",
                         stmt.callee.node,
@@ -367,8 +373,7 @@ pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerEr
                     ),
                     src: src.to_string(),
                     span: stmt.span,
-                }
-            })?;
+                })?;
 
             // Check mixed IPv4 / IPv6 endpoints
             if caller_host.ip.is_ipv4() != callee_host.ip.is_ipv4() {

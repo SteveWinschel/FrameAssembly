@@ -70,25 +70,25 @@ The Address Resolution Protocol maps IPv4 network addresses (`0x0800`) to 48-bit
 // TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, REPLY, SHA, SPA, THA, TPA, WAIT, COMPILE
 
 // INSTRUCTION: Declare the enterprise workstation host.
-HOST workstation {
-    IP 192.168.1.105
-    MAC 00:50:56:a1:00:20
+host workstation {
+    ip 192.168.1.105
+    mac 00:50:56:a1:00:20
 }
 
 // INSTRUCTION: Declare the local subnet default gateway router.
-HOST default_gateway {
-    IP 192.168.1.1
-    MAC 00:50:56:fe:00:01
+host default_gateway {
+    ip 192.168.1.1
+    mac 00:50:56:fe:00:01
 }
 
 // INSTRUCTION: Define standard ARP resolution using explicit SHA, SPA, THA, and TPA fields.
-FLOW arp_gateway_resolution(client, gw) {
-    client -> gw ARP REQUEST SHA 00:50:56:a1:00:20 SPA 192.168.1.105 THA 00:00:00:00:00:00 TPA 192.168.1.1 WAIT 1ms
-    client <- gw ARP REPLY SHA 00:50:56:fe:00:01 SPA 192.168.1.1 THA 00:50:56:a1:00:20 TPA 192.168.1.105 WAIT 1ms
+flow arp_gateway_resolution(client, gw) {
+    client -> gw arp request sha 00:50:56:a1:00:20 spa 192.168.1.105 tha 00:00:00:00:00:00 tpa 192.168.1.1 wait 1ms
+    client <- gw arp reply sha 00:50:56:fe:00:01 spa 192.168.1.1 tha 00:50:56:a1:00:20 tpa 192.168.1.105 wait 1ms
 }
 
 // INSTRUCTION: Compile the ARP resolution exchange.
-COMPILE {
+compile {
     arp_gateway_resolution(workstation, default_gateway)
 }
 ```
@@ -98,26 +98,26 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, REPLY, GRATUITOUS, GARP, SENDERMAC, SENDERIP, TARGETMAC, TARGETIP, WAIT, COMPILE
 
 // INSTRUCTION: Declare the active high-availability load balancer node claiming a virtual IP.
-HOST ha_node_primary {
-    IP 10.0.0.10
-    MAC 00:0c:29:88:99:aa
+host ha_node_primary {
+    ip 10.0.0.10
+    mac 00:0c:29:88:99:aa
 }
 
 // INSTRUCTION: Declare the Layer 2 broadcast target for the subnet.
-HOST subnet_broadcast {
-    IP 10.0.0.255
-    MAC ff:ff:ff:ff:ff:ff
+host subnet_broadcast {
+    ip 10.0.0.255
+    mac ff:ff:ff:ff:ff:ff
 }
 
 // INSTRUCTION: Define an RFC 5227 ARP Probe (SENDERIP 0.0.0.0) followed by Gratuitous ARP announcements.
-FLOW garp_failover_sequence(node, bcast) {
-    node -> bcast ARP REQUEST SENDERMAC 00:0c:29:88:99:aa SENDERIP 0.0.0.0 TARGETMAC 00:00:00:00:00:00 TARGETIP 10.0.0.10 WAIT 5ms
-    node -> bcast ARP REQUEST GRATUITOUS SENDERMAC 00:0c:29:88:99:aa SENDERIP 10.0.0.10 TARGETMAC ff:ff:ff:ff:ff:ff TARGETIP 10.0.0.10 WAIT 5ms
-    node -> bcast ARP REPLY GARP SENDERMAC 00:0c:29:88:99:aa SENDERIP 10.0.0.10 TARGETMAC ff:ff:ff:ff:ff:ff TARGETIP 10.0.0.10 WAIT 5ms
+flow garp_failover_sequence(node, bcast) {
+    node -> bcast arp request sendermac 00:0c:29:88:99:aa senderip 0.0.0.0 targetmac 00:00:00:00:00:00 targetip 10.0.0.10 wait 5ms
+    node -> bcast arp request gratuitous sendermac 00:0c:29:88:99:aa senderip 10.0.0.10 targetmac ff:ff:ff:ff:ff:ff targetip 10.0.0.10 wait 5ms
+    node -> bcast arp reply garp sendermac 00:0c:29:88:99:aa senderip 10.0.0.10 targetmac ff:ff:ff:ff:ff:ff targetip 10.0.0.10 wait 5ms
 }
 
 // INSTRUCTION: Compile the ACD probe and Gratuitous ARP announcement frames.
-COMPILE {
+compile {
     garp_failover_sequence(ha_node_primary, subnet_broadcast)
 }
 ```
@@ -156,26 +156,26 @@ FrameAssembly supports both standalone Layer 2 `VLAN` / `QINQ` frames and univer
 // TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, UDP, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare access switch trunk interface.
-HOST access_switch {
-    IP 10.100.1.10
-    MAC 00:1c:73:aa:00:10
+host access_switch {
+    ip 10.100.1.10
+    mac 00:1c:73:aa:00:10
 }
 
 // INSTRUCTION: Declare distribution switch trunk interface.
-HOST dist_switch {
-    IP 10.100.1.1
-    MAC 00:1c:73:aa:00:01
+host dist_switch {
+    ip 10.100.1.1
+    mac 00:1c:73:aa:00:01
 }
 
 // INSTRUCTION: Define multi-VLAN trunk traffic spanning Voice (VLAN 100, PCP 5), Video (VLAN 200, PCP 4), and Bulk (VLAN 300, PCP 1, DEI 1).
-FLOW campus_trunk_cos(acc, dist) {
-    acc -> dist VLAN 100 PCP 5 DEI 0 UDP SRCPORT 16384 DSTPORT 16384 PAYLOAD "VOICE_G711_RTP_FRAME" WAIT 1ms
-    acc -> dist VLAN 200 PCP 4 DEI 0 UDP SRCPORT 5004 DSTPORT 5004 PAYLOAD "VIDEO_H264_KEYFRAME" WAIT 1ms
-    acc -> dist VLAN 300 PCP 1 DEI 1 UDP SRCPORT 49200 DSTPORT 873 PAYLOAD "BACKUP_RSYNC_BULK_CHUNK" WAIT 1ms
+flow campus_trunk_cos(acc, dist) {
+    acc -> dist vlan 100 pcp 5 dei 0 udp srcport 16384 dstport 16384 payload "VOICE_G711_RTP_FRAME" wait 1ms
+    acc -> dist vlan 200 pcp 4 dei 0 udp srcport 5004 dstport 5004 payload "VIDEO_H264_KEYFRAME" wait 1ms
+    acc -> dist vlan 300 pcp 1 dei 1 udp srcport 49200 dstport 873 payload "BACKUP_RSYNC_BULK_CHUNK" wait 1ms
 }
 
 // INSTRUCTION: Compile the 802.1Q CoS trunk capture.
-COMPILE {
+compile {
     campus_trunk_cos(access_switch, dist_switch)
 }
 ```
@@ -185,26 +185,26 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, PCP, DEI, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare Customer Edge router at Site A.
-HOST ce_site_a {
-    IP 172.20.10.1
-    MAC 00:50:56:ce:0a:01
+host ce_site_a {
+    ip 172.20.10.1
+    mac 00:50:56:ce:0a:01
 }
 
 // INSTRUCTION: Declare Customer Edge router at Site B.
-HOST ce_site_b {
-    IP 172.20.10.2
-    MAC 00:50:56:ce:0b:02
+host ce_site_b {
+    ip 172.20.10.2
+    mac 00:50:56:ce:0b:02
 }
 
 // INSTRUCTION: Define a double-tagged 802.1ad QinQ flow using outer S-VLAN 2500 and inner C-VLAN 40.
-FLOW carrier_qinq_l2vpn(site_a, site_b) {
-    site_a -> site_b QINQ 2500 INNER_VLAN 40 PCP 6 DEI 0 TCP SYN SRCPORT 52000 DSTPORT 179 SEQ 1000 WAIT 1ms
-    site_a <- site_b QINQ 2500 INNER_VLAN 40 PCP 6 DEI 0 TCP SYN ACK SRCPORT 179 DSTPORT 52000 SEQ 2000 ACKNUM 1001 WAIT 1ms
-    site_a -> site_b QINQ 2500 INNER_VLAN 40 PCP 6 DEI 0 TCP PSH ACK SRCPORT 52000 DSTPORT 179 SEQ 1001 ACKNUM 2001 PAYLOAD "BGP_OVER_QINQ_KEEPALIVE" WAIT 1ms
+flow carrier_qinq_l2vpn(site_a, site_b) {
+    site_a -> site_b qinq 2500 inner_vlan 40 pcp 6 dei 0 tcp syn srcport 52000 dstport 179 seq 1000 wait 1ms
+    site_a <- site_b qinq 2500 inner_vlan 40 pcp 6 dei 0 tcp syn ack srcport 179 dstport 52000 seq 2000 acknum 1001 wait 1ms
+    site_a -> site_b qinq 2500 inner_vlan 40 pcp 6 dei 0 tcp psh ack srcport 52000 dstport 179 seq 1001 acknum 2001 payload "BGP_OVER_QINQ_KEEPALIVE" wait 1ms
 }
 
 // INSTRUCTION: Compile the IEEE 802.1ad QinQ L2VPN exchange.
-COMPILE {
+compile {
     carrier_qinq_l2vpn(ce_site_a, ce_site_b)
 }
 ```
@@ -232,25 +232,25 @@ LLDP enables network interfaces to advertise their identity, system name, softwa
 // TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, TTL, SYSNAME, SYSDESC, WAIT, COMPILE
 
 // INSTRUCTION: Declare Spine Switch 01 interface Ethernet1/1.
-HOST spine_node {
-    IP 10.255.0.1
-    MAC 00:1c:73:a0:01:01
+host spine_node {
+    ip 10.255.0.1
+    mac 00:1c:73:a0:01:01
 }
 
 // INSTRUCTION: Declare Leaf Switch 01 uplink interface Ethernet49/1.
-HOST leaf_node {
-    IP 10.255.0.11
-    MAC 00:1c:73:b0:11:49
+host leaf_node {
+    ip 10.255.0.11
+    mac 00:1c:73:b0:11:49
 }
 
 // INSTRUCTION: Exchange complete LLDP neighbor discovery frames with mandatory and optional TLVs.
-FLOW clos_lldp_discovery(spine, leaf) {
-    spine -> leaf LLDP CHASSIS_ID "00:1c:73:a0:01:01" PORT_ID "Ethernet1/1" TTL 120 SYSNAME "spine-01.dc1.example.com" SYSDESC "SONiC OS 202511 Switch-ASIC-25.6T" WAIT 5ms
-    spine <- leaf LLDP CHASSIS_ID "00:1c:73:b0:11:49" PORT_ID "Ethernet49/1" TTL 120 SYSNAME "leaf-01.dc1.example.com" SYSDESC "SONiC OS 202511 ToR-400G" WAIT 5ms
+flow clos_lldp_discovery(spine, leaf) {
+    spine -> leaf lldp chassis_id "00:1c:73:a0:01:01" port_id "Ethernet1/1" ttl 120 sysname "spine-01.dc1.example.com" sysdesc "SONiC OS 202511 Switch-ASIC-25.6T" wait 5ms
+    spine <- leaf lldp chassis_id "00:1c:73:b0:11:49" port_id "Ethernet49/1" ttl 120 sysname "leaf-01.dc1.example.com" sysdesc "SONiC OS 202511 ToR-400G" wait 5ms
 }
 
 // INSTRUCTION: Compile the bidirectional LLDP exchange.
-COMPILE {
+compile {
     clos_lldp_discovery(spine_node, leaf_node)
 }
 ```
@@ -282,26 +282,26 @@ STP and Rapid Spanning Tree Protocol (`RSTP`) prevent Layer 2 bridging loops by 
 // TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, FLAGS, ROOT_ID, BRIDGE_ID, COST, MAX_AGE, HELLO_TIME, FORWARD_DELAY, WAIT, COMPILE
 
 // INSTRUCTION: Declare the elected Root Bridge switch (Priority 4096).
-HOST root_switch {
-    IP 10.0.1.1
-    MAC 00:05:73:a0:00:01
+host root_switch {
+    ip 10.0.1.1
+    mac 00:05:73:a0:00:01
 }
 
 // INSTRUCTION: Declare the downstream Designated Bridge switch (Priority 32768).
-HOST downstream_switch {
-    IP 10.0.1.2
-    MAC 00:05:73:a0:00:02
+host downstream_switch {
+    ip 10.0.1.2
+    mac 00:05:73:a0:00:02
 }
 
 // INSTRUCTION: Define classic STP root BPDU advertisement followed by RSTP Proposal and Agreement BPDUs.
-FLOW stp_and_rstp_convergence(root, access) {
-    root -> access STP ROOT_ID "4096/00:05:73:a0:00:01" BRIDGE_ID "4096/00:05:73:a0:00:01" COST 0 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 0x00 WAIT 2ms
-    root -> access STP RSTP ROOT_ID "4096/00:05:73:a0:00:01" BRIDGE_ID "4096/00:05:73:a0:00:01" COST 0 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 0x0e WAIT 2ms
-    root <- access STP RSTP ROOT_ID "4096/00:05:73:a0:00:01" BRIDGE_ID "32768/00:05:73:a0:00:02" COST 2000 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 0x7c WAIT 2ms
+flow stp_and_rstp_convergence(root, access) {
+    root -> access stp root_id "4096/00:05:73:a0:00:01" bridge_id "4096/00:05:73:a0:00:01" cost 0 max_age 20 hello_time 2 forward_delay 15 flags 0x00 wait 2ms
+    root -> access stp rstp root_id "4096/00:05:73:a0:00:01" bridge_id "4096/00:05:73:a0:00:01" cost 0 max_age 20 hello_time 2 forward_delay 15 flags 0x0e wait 2ms
+    root <- access stp rstp root_id "4096/00:05:73:a0:00:01" bridge_id "32768/00:05:73:a0:00:02" cost 2000 max_age 20 hello_time 2 forward_delay 15 flags 0x7c wait 2ms
 }
 
 // INSTRUCTION: Compile the STP and RSTP BPDU sequence.
-COMPILE {
+compile {
     stp_and_rstp_convergence(root_switch, downstream_switch)
 }
 ```
@@ -332,27 +332,27 @@ LACP negotiates dynamic link aggregation groups (LAGs / Port-Channels) using Slo
 // TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
 
 // INSTRUCTION: Declare ToR Switch A member port.
-HOST tor_switch_a {
-    IP 10.0.2.1
-    MAC 00:e0:f7:01:02:03
+host tor_switch_a {
+    ip 10.0.2.1
+    mac 00:e0:f7:01:02:03
 }
 
 // INSTRUCTION: Declare Spine Switch B member port.
-HOST spine_switch_b {
-    IP 10.0.2.2
-    MAC 00:e0:f7:04:05:06
+host spine_switch_b {
+    ip 10.0.2.2
+    mac 00:e0:f7:04:05:06
 }
 
 // INSTRUCTION: Negotiate LACP Port-Channel 100 from unbundled (0x47) to synchronized collecting/distributing (0x3f).
-FLOW lacp_lag_bringup(swa, swb) {
-    swa -> swb LACP ACTOR_SYS 00:e0:f7:01:02:03 ACTOR_KEY 100 ACTOR_PORT 1 ACTOR_STATE 0x47 PARTNER_SYS 00:00:00:00:00:00 PARTNER_KEY 0 PARTNER_PORT 0 PARTNER_STATE 0x00 WAIT 5ms
-    swa <- swb LACP ACTOR_SYS 00:e0:f7:04:05:06 ACTOR_KEY 100 ACTOR_PORT 1 ACTOR_STATE 0x0f PARTNER_SYS 00:e0:f7:01:02:03 PARTNER_KEY 100 PARTNER_PORT 1 PARTNER_STATE 0x07 WAIT 5ms
-    swa -> swb LACP ACTOR_SYS 00:e0:f7:01:02:03 ACTOR_KEY 100 ACTOR_PORT 1 ACTOR_STATE 0x3f PARTNER_SYS 00:e0:f7:04:05:06 PARTNER_KEY 100 PARTNER_PORT 1 PARTNER_STATE 0x3f WAIT 5ms
-    swa <- swb LACP ACTOR_SYS 00:e0:f7:04:05:06 ACTOR_KEY 100 ACTOR_PORT 1 ACTOR_STATE 0x3f PARTNER_SYS 00:e0:f7:01:02:03 PARTNER_KEY 100 PARTNER_PORT 1 PARTNER_STATE 0x3f WAIT 5ms
+flow lacp_lag_bringup(swa, swb) {
+    swa -> swb lacp actor_sys 00:e0:f7:01:02:03 actor_key 100 actor_port 1 actor_state 0x47 partner_sys 00:00:00:00:00:00 partner_key 0 partner_port 0 partner_state 0x00 wait 5ms
+    swa <- swb lacp actor_sys 00:e0:f7:04:05:06 actor_key 100 actor_port 1 actor_state 0x0f partner_sys 00:e0:f7:01:02:03 partner_key 100 partner_port 1 partner_state 0x07 wait 5ms
+    swa -> swb lacp actor_sys 00:e0:f7:01:02:03 actor_key 100 actor_port 1 actor_state 0x3f partner_sys 00:e0:f7:04:05:06 partner_key 100 partner_port 1 partner_state 0x3f wait 5ms
+    swa <- swb lacp actor_sys 00:e0:f7:04:05:06 actor_key 100 actor_port 1 actor_state 0x3f partner_sys 00:e0:f7:01:02:03 partner_key 100 partner_port 1 partner_state 0x3f wait 5ms
 }
 
 // INSTRUCTION: Compile the LACP state machine bringup flow.
-COMPILE {
+compile {
     lacp_lag_bringup(tor_switch_a, spine_switch_b)
 }
 ```
@@ -383,32 +383,32 @@ EAPOL provides port-based Network Access Control (NAC) over EtherType `0x888E` b
 // TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, START, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, KEY, LOGOFF, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare the 802.1X supplicant endpoint.
-HOST corp_laptop {
-    IP 10.50.10.25
-    MAC 00:24:d7:11:22:33
+host corp_laptop {
+    ip 10.50.10.25
+    mac 00:24:d7:11:22:33
 }
 
 // INSTRUCTION: Declare the 802.1X authenticator switch port.
-HOST dot1x_switch {
-    IP 10.50.10.1
-    MAC 00:1c:73:80:21:10
+host dot1x_switch {
+    ip 10.50.10.1
+    mac 00:1c:73:80:21:10
 }
 
 // INSTRUCTION: Define the 802.1X EAP-TLS authentication, EAP-Success, EAPOL-Key exchange, and EAPOL-Logoff.
-FLOW dot1x_eap_tls_lifecycle(supp, auth) {
-    supp -> auth EAPOL VERSION 2 TYPE START WAIT 2ms
-    supp <- auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 1 EAP_METHOD 1 WAIT 2ms
-    supp -> auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 1 EAP_METHOD 1 IDENTITY "host/corp-laptop.corp.example.com" WAIT 2ms
-    supp <- auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 2 EAP_METHOD 13 PAYLOAD "EAP_TLS_START" WAIT 4ms
-    supp -> auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 2 EAP_METHOD 13 PAYLOAD "EAP_TLS_CLIENT_HELLO_CERT" WAIT 4ms
-    supp <- auth EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 2 WAIT 2ms
-    supp <- auth EAPOL VERSION 2 TYPE KEY PAYLOAD "WPA2_ANONCE_MSG1" WAIT 2ms
-    supp -> auth EAPOL VERSION 2 TYPE KEY PAYLOAD "WPA2_SNONCE_MIC_MSG2" WAIT 2ms
-    supp -> auth EAPOL VERSION 2 TYPE LOGOFF WAIT 2ms
+flow dot1x_eap_tls_lifecycle(supp, auth) {
+    supp -> auth eapol version 2 type start wait 2ms
+    supp <- auth eapol version 2 type eap_packet eap_code 1 eap_id 1 eap_method 1 wait 2ms
+    supp -> auth eapol version 2 type eap_packet eap_code 2 eap_id 1 eap_method 1 identity "host/corp-laptop.corp.example.com" wait 2ms
+    supp <- auth eapol version 2 type eap_packet eap_code 1 eap_id 2 eap_method 13 payload "EAP_TLS_START" wait 4ms
+    supp -> auth eapol version 2 type eap_packet eap_code 2 eap_id 2 eap_method 13 payload "EAP_TLS_CLIENT_HELLO_CERT" wait 4ms
+    supp <- auth eapol version 2 type eap_packet eap_code 3 eap_id 2 wait 2ms
+    supp <- auth eapol version 2 type key payload "WPA2_ANONCE_MSG1" wait 2ms
+    supp -> auth eapol version 2 type key payload "WPA2_SNONCE_MIC_MSG2" wait 2ms
+    supp -> auth eapol version 2 type logoff wait 2ms
 }
 
 // INSTRUCTION: Compile the IEEE 802.1X EAPOL lifecycle.
-COMPILE {
+compile {
     dot1x_eap_tls_lifecycle(corp_laptop, dot1x_switch)
 }
 ```
@@ -435,25 +435,25 @@ MPLS inserts a 32-bit shim header (EtherType `0x8847`) carrying a 20-bit label, 
 // TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, ICMP, ECHO_REQUEST, ECHO_REPLY, ID, SEQ, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare Ingress Provider Edge router (PE1).
-HOST ingress_pe1 {
-    IP 10.250.0.1
-    MAC 00:1c:73:f0:00:01
+host ingress_pe1 {
+    ip 10.250.0.1
+    mac 00:1c:73:f0:00:01
 }
 
 // INSTRUCTION: Declare Egress Provider Edge router (PE2).
-HOST egress_pe2 {
-    IP 10.250.0.2
-    MAC 00:1c:73:f0:00:02
+host egress_pe2 {
+    ip 10.250.0.2
+    mac 00:1c:73:f0:00:02
 }
 
 // INSTRUCTION: Define an MPLS-labeled ICMP customer probe with explicit EXP 5 QoS and MPLS_TTL decrement.
-FLOW mpls_l3vpn_forwarding(pe1, pe2) {
-    pe1 -> pe2 MPLS 24010 EXP 5 BOS 1 MPLS_TTL 64 ICMP ECHO_REQUEST ID 3001 SEQ 1 PAYLOAD "L3VPN_VRF_FINANCE_PING" WAIT 2ms
-    pe1 <- pe2 MPLS 24020 EXP 5 BOS 1 MPLS_TTL 63 ICMP ECHO_REPLY ID 3001 SEQ 1 PAYLOAD "L3VPN_VRF_FINANCE_PONG" WAIT 2ms
+flow mpls_l3vpn_forwarding(pe1, pe2) {
+    pe1 -> pe2 mpls 24010 exp 5 bos 1 mpls_ttl 64 icmp echo_request id 3001 seq 1 payload "L3VPN_VRF_FINANCE_PING" wait 2ms
+    pe1 <- pe2 mpls 24020 exp 5 bos 1 mpls_ttl 63 icmp echo_reply id 3001 seq 1 payload "L3VPN_VRF_FINANCE_PONG" wait 2ms
 }
 
 // INSTRUCTION: Compile the MPLS L3VPN forwarding capture.
-COMPILE {
+compile {
     mpls_l3vpn_forwarding(ingress_pe1, egress_pe2)
 }
 ```

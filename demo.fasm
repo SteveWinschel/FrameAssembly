@@ -1,34 +1,34 @@
 // Written vertically -> Intuitive for programmers
-HOST example_server { 
+host example_server { 
     IP 10.0.10.5
     MAC aa:bb:cc:dd:ee:ff 
 }
 
 // Written horizontally -> Intuitive for network engineers
-HOST example_nms { IP 10.0.10.100  MAC ff:ee:dd:cc:bb:aa }
+host example_nms { IP 10.0.10.100  MAC ff:ee:dd:cc:bb:aa }
 
 // A broadcast can be declard like an ordinary host
-HOST broadcast { IP 255.255.255.255  }
+host broadcast { IP 255.255.255.255  }
 
-FLOW tcp_handshake(client, server) {
+flow tcp_handshake(client, server) {
     client -> server TCP SYN PAYLOAD "Hello" SRCPORT 67 DSTPORT 100
     client <- server TCP SYN ACK PAYLOAD "World"
     client -> server TCP ACK PAYLOAD "!" 
 }
 
-FLOW snmp_v1_trap(agent, nms) {
+flow snmp_v1_trap(agent, nms) {
     agent -> nms SNMP1 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.2"
 }
 
-FLOW snmp_v2_trap(agent, nms) {
+flow snmp_v2_trap(agent, nms) {
     agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3"
 }
 
-FLOW snmp_v3_trap(agent, nms) {
+flow snmp_v3_trap(agent, nms) {
     agent -> nms SNMP3 TRAP USER "admin" OID "1.3.6.1.6.3.1.1.5.3"
 }
 
-COMPILE {
+compile {
         tcp_handshake(example_server, example_nms)
         snmp_v1_trap(example_server, example_nms)
         snmp_v2_trap(example_server, example_nms)

@@ -249,7 +249,10 @@ impl<'a> FrameBuilder<'a> {
                     }
                     "ENDPOINT_URL" => self.opcua_spec.endpoint_url = Some(*val),
                     "NODE_ID" => self.opcua_spec.node_id = Some(*val),
-                    "CHUNK_TYPE" => self.opcua_spec.chunk_type = val.chars().next(),
+                    "CHUNK_TYPE" => {
+                        self.opcua_spec.chunk_type =
+                            val.chars().next().map(|c| c.to_ascii_uppercase());
+                    }
                     "HSRP_AUTH" => self.hsrp_auth = Some(*val),
                     _ => {}
                 }

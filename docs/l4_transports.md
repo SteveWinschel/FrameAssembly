@@ -74,31 +74,31 @@ When `SEQ`, `ACKNUM`, or ports are omitted on subsequent frames in a flow, the F
 // TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, ACK, PSH, FIN, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, MSS, WSCALE, SACK_PERM, TSVAL, TSECR, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare the client application node.
-HOST app_client {
-    IP 10.10.20.50
-    MAC 00:50:56:a1:20:50
+host app_client {
+    ip 10.10.20.50
+    mac 00:50:56:a1:20:50
 }
 
 // INSTRUCTION: Declare the backend API server node.
-HOST api_server {
-    IP 10.10.20.10
-    MAC 00:50:56:a1:20:10
+host api_server {
+    ip 10.10.20.10
+    mac 00:50:56:a1:20:10
 }
 
 // INSTRUCTION: Define a complete TCP session negotiating MSS 1460, WSCALE 7, SACK_PERM, and TCP Timestamps.
-FLOW tcp_rfc7323_full_lifecycle(c, s) {
-    c -> s TCP SYN SRCPORT 54321 DSTPORT 443 SEQ 1000 WIN 65535 MSS 1460 WSCALE 7 SACK_PERM TSVAL 10000 TSECR 0 WAIT 1ms
-    c <- s TCP SYN ACK SRCPORT 443 DSTPORT 54321 SEQ 5000 ACKNUM 1001 WIN 65535 MSS 1460 WSCALE 7 SACK_PERM TSVAL 20000 TSECR 10000 WAIT 1ms
-    c -> s TCP ACK SRCPORT 54321 DSTPORT 443 SEQ 1001 ACKNUM 5001 WIN 512 TSVAL 10002 TSECR 20000 WAIT 1ms
-    c -> s TCP PSH ACK SRCPORT 54321 DSTPORT 443 SEQ 1001 ACKNUM 5001 WIN 512 TSVAL 10005 TSECR 20000 PAYLOAD "GET /v1/health HTTP/1.1\r\nHost: api.internal\r\n\r\n" WAIT 2ms
-    c <- s TCP PSH ACK SRCPORT 443 DSTPORT 54321 SEQ 5001 ACKNUM 1048 WIN 512 TSVAL 20005 TSECR 10005 PAYLOAD "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK" WAIT 2ms
-    c -> s TCP FIN ACK SRCPORT 54321 DSTPORT 443 SEQ 1048 ACKNUM 5041 WIN 512 TSVAL 10010 TSECR 20005 WAIT 1ms
-    c <- s TCP FIN ACK SRCPORT 443 DSTPORT 54321 SEQ 5041 ACKNUM 1049 WIN 512 TSVAL 20010 TSECR 10010 WAIT 1ms
-    c -> s TCP ACK SRCPORT 54321 DSTPORT 443 SEQ 1049 ACKNUM 5042 WIN 512 TSVAL 10012 TSECR 20010 WAIT 1ms
+flow tcp_rfc7323_full_lifecycle(c, s) {
+    c -> s tcp syn srcport 54321 dstport 443 seq 1000 win 65535 mss 1460 wscale 7 sack_perm tsval 10000 tsecr 0 wait 1ms
+    c <- s tcp syn ack srcport 443 dstport 54321 seq 5000 acknum 1001 win 65535 mss 1460 wscale 7 sack_perm tsval 20000 tsecr 10000 wait 1ms
+    c -> s tcp ack srcport 54321 dstport 443 seq 1001 acknum 5001 win 512 tsval 10002 tsecr 20000 wait 1ms
+    c -> s tcp psh ack srcport 54321 dstport 443 seq 1001 acknum 5001 win 512 tsval 10005 tsecr 20000 payload "GET /v1/health HTTP/1.1\r\nHost: api.internal\r\n\r\n" wait 2ms
+    c <- s tcp psh ack srcport 443 dstport 54321 seq 5001 acknum 1048 win 512 tsval 20005 tsecr 10005 payload "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK" wait 2ms
+    c -> s tcp fin ack srcport 54321 dstport 443 seq 1048 acknum 5041 win 512 tsval 10010 tsecr 20005 wait 1ms
+    c <- s tcp fin ack srcport 443 dstport 54321 seq 5041 acknum 1049 win 512 tsval 20010 tsecr 10010 wait 1ms
+    c -> s tcp ack srcport 54321 dstport 443 seq 1049 acknum 5042 win 512 tsval 10012 tsecr 20010 wait 1ms
 }
 
 // INSTRUCTION: Compile the RFC 7323 TCP session.
-COMPILE {
+compile {
     tcp_rfc7323_full_lifecycle(app_client, api_server)
 }
 ```
@@ -109,32 +109,32 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, ACK, PSH, URG, ECE, CWR, RST, SRCPORT, DSTPORT, SEQ, ACKNUM, WINDOW, URGENT, ECN, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare IPv6 sender and receiver endpoints.
-HOST sender_v6 {
-    IP 2001:db8:40::10
-    MAC 00:1c:73:40:00:10
+host sender_v6 {
+    ip 2001:db8:40::10
+    mac 00:1c:73:40:00:10
 }
 
 // INSTRUCTION: Declare the IPv6 receiver endpoint.
-HOST receiver_v6 {
-    IP 2001:db8:40::20
-    MAC 00:1c:73:40:00:20
+host receiver_v6 {
+    ip 2001:db8:40::20
+    mac 00:1c:73:40:00:20
 }
 
 // INSTRUCTION: Define ECN capability negotiation, congestion feedback (ECE/CWR), Urgent pointer signaling, Zero-Window stall, and RST teardown.
-FLOW tcp_ecn_urg_zwin_rst(a, b) {
-    a -> b TCP SYN ECE CWR SRCPORT 58000 DSTPORT 9000 SEQ 100 WINDOW 65535 ECN 2 WAIT 1ms
-    a <- b TCP SYN ACK ECE SRCPORT 9000 DSTPORT 58000 SEQ 200 ACKNUM 101 WINDOW 65535 ECN 2 WAIT 1ms
-    a -> b TCP PSH ACK SRCPORT 58000 DSTPORT 9000 SEQ 101 ACKNUM 201 WINDOW 65535 ECN 3 PAYLOAD "CONGESTED_BURST_SEGMENT" WAIT 1ms
-    a <- b TCP ACK ECE SRCPORT 9000 DSTPORT 58000 SEQ 201 ACKNUM 124 WINDOW 16384 ECN 2 WAIT 1ms
-    a -> b TCP PSH ACK CWR SRCPORT 58000 DSTPORT 9000 SEQ 124 ACKNUM 201 WINDOW 32768 ECN 2 PAYLOAD "CWND_HALVED_SEGMENT" WAIT 1ms
-    a -> b TCP PSH ACK URG SRCPORT 58000 DSTPORT 9000 SEQ 143 ACKNUM 201 WINDOW 32768 URGENT 1 PAYLOAD "!" WAIT 1ms
-    a <- b TCP ACK SRCPORT 9000 DSTPORT 58000 SEQ 201 ACKNUM 144 WINDOW 0 WAIT 5ms
-    a <- b TCP ACK SRCPORT 9000 DSTPORT 58000 SEQ 201 ACKNUM 144 WINDOW 65535 WAIT 1ms
-    a -> b TCP RST ACK SRCPORT 58000 DSTPORT 9000 SEQ 144 ACKNUM 201 WINDOW 0 WAIT 1ms
+flow tcp_ecn_urg_zwin_rst(a, b) {
+    a -> b tcp syn ece cwr srcport 58000 dstport 9000 seq 100 window 65535 ecn 2 wait 1ms
+    a <- b tcp syn ack ece srcport 9000 dstport 58000 seq 200 acknum 101 window 65535 ecn 2 wait 1ms
+    a -> b tcp psh ack srcport 58000 dstport 9000 seq 101 acknum 201 window 65535 ecn 3 payload "CONGESTED_BURST_SEGMENT" wait 1ms
+    a <- b tcp ack ece srcport 9000 dstport 58000 seq 201 acknum 124 window 16384 ecn 2 wait 1ms
+    a -> b tcp psh ack cwr srcport 58000 dstport 9000 seq 124 acknum 201 window 32768 ecn 2 payload "CWND_HALVED_SEGMENT" wait 1ms
+    a -> b tcp psh ack urg srcport 58000 dstport 9000 seq 143 acknum 201 window 32768 urgent 1 payload "!" wait 1ms
+    a <- b tcp ack srcport 9000 dstport 58000 seq 201 acknum 144 window 0 wait 5ms
+    a <- b tcp ack srcport 9000 dstport 58000 seq 201 acknum 144 window 65535 wait 1ms
+    a -> b tcp rst ack srcport 58000 dstport 9000 seq 144 acknum 201 window 0 wait 1ms
 }
 
 // INSTRUCTION: Compile the ECN, Urgent, Zero-Window, and RST edge-case flow.
-COMPILE {
+compile {
     tcp_ecn_urg_zwin_rst(sender_v6, receiver_v6)
 }
 ```
@@ -173,45 +173,45 @@ The User Datagram Protocol provides minimal-overhead connectionless datagram del
 // TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DSCP, ECN, UDP, SRCPORT, DSTPORT, PAYLOAD, HEXPAYLOAD, WAIT, COMPILE, LOOP
 
 // INSTRUCTION: Declare GPU compute node A and node B for lossless RoCEv2 over UDP port 4791.
-HOST gpu_worker_a {
-    IP 10.88.1.10
-    MAC 00:02:c9:88:01:10
+host gpu_worker_a {
+    ip 10.88.1.10
+    mac 00:02:c9:88:01:10
 }
 
 // INSTRUCTION: Declare peer GPU compute node B.
-HOST gpu_worker_b {
-    IP 10.88.1.20
-    MAC 00:02:c9:88:01:20
+host gpu_worker_b {
+    ip 10.88.1.20
+    mac 00:02:c9:88:01:20
 }
 
 // INSTRUCTION: Declare multicast market feed publisher and multicast group receiver.
-HOST feed_publisher {
-    IP 10.99.1.1
-    MAC 00:1c:73:99:01:01
+host feed_publisher {
+    ip 10.99.1.1
+    mac 00:1c:73:99:01:01
 }
 
 // INSTRUCTION: Declare the RFC 1112 multicast group 239.192.10.1.
-HOST market_mcast_group {
-    IP 239.192.10.1
-    MAC 01:00:5e:40:0a:01
+host market_mcast_group {
+    ip 239.192.10.1
+    mac 01:00:5e:40:0a:01
 }
 
 // INSTRUCTION: Define lossless Priority Flow Control (PCP 3, DSCP 26, ECN 2) RoCEv2 RDMA Write and CNP congestion feedback.
-FLOW rocev2_rdma_exchange(a, b) {
-    a -> b VLAN 88 PCP 3 DSCP 26 ECN 3 UDP SRCPORT 51001 DSTPORT 4791 PAYLOAD "IB_BTH_RDMA_WRITE_ONLY_QP_000100_PSN_101" WAIT 200us
-    a <- b VLAN 88 PCP 6 DSCP 48 ECN 0 UDP SRCPORT 4791 DSTPORT 4791 HEXPAYLOAD "81000000000001000000000000000000" WAIT 100us
-    a <- b VLAN 88 PCP 3 DSCP 26 ECN 2 UDP SRCPORT 51001 DSTPORT 4791 PAYLOAD "IB_BTH_RDMA_ACK_SYNDROME_00_PSN_101" WAIT 200us
+flow rocev2_rdma_exchange(a, b) {
+    a -> b vlan 88 pcp 3 dscp 26 ecn 3 udp srcport 51001 dstport 4791 payload "IB_BTH_RDMA_WRITE_ONLY_QP_000100_PSN_101" wait 200us
+    a <- b vlan 88 pcp 6 dscp 48 ecn 0 udp srcport 4791 dstport 4791 hexpayload "81000000000001000000000000000000" wait 100us
+    a <- b vlan 88 pcp 3 dscp 26 ecn 2 udp srcport 51001 dstport 4791 payload "IB_BTH_RDMA_ACK_SYNDROME_00_PSN_101" wait 200us
 }
 
 // INSTRUCTION: Define a multicast UDP market data tick burst.
-FLOW multicast_market_tick(pub_host, mcast_grp) {
-    pub_host -> mcast_grp DSCP 34 UDP SRCPORT 30001 DSTPORT 15500 PAYLOAD "ITCH_50_ADD_ORDER_NVDA_100_SHARES" WAIT 500us
+flow multicast_market_tick(pub_host, mcast_grp) {
+    pub_host -> mcast_grp dscp 34 udp srcport 30001 dstport 15500 payload "ITCH_50_ADD_ORDER_NVDA_100_SHARES" wait 500us
 }
 
 // INSTRUCTION: Compile the RoCEv2 RDMA exchange and 4 multicast market ticks.
-COMPILE {
+compile {
     rocev2_rdma_exchange(gpu_worker_a, gpu_worker_b)
-    LOOP 4 {
+    loop 4 {
         multicast_market_tick(feed_publisher, market_mcast_group)
     }
 }
@@ -263,35 +263,35 @@ The Stream Control Transmission Protocol (`SCTP`, IP Protocol `132`) is a messag
 // TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, INIT, INIT_ACK, COOKIE_ECHO, COOKIE_ACK, DATA, SACK, HEARTBEAT, HEARTBEAT_ACK, SHUTDOWN, VTAG, SEQ, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare 5G gNodeB radio base station.
-HOST gnb_n2 {
-    IP 10.50.2.10
-    MAC 00:1c:73:50:02:10
+host gnb_n2 {
+    ip 10.50.2.10
+    mac 00:1c:73:50:02:10
 }
 
 // INSTRUCTION: Declare 5G Core Access and Mobility Management Function (AMF).
-HOST amf_n2 {
-    IP 10.50.2.1
-    MAC 00:1c:73:50:02:01
+host amf_n2 {
+    ip 10.50.2.1
+    mac 00:1c:73:50:02:01
 }
 
 // INSTRUCTION: Execute 4-way SCTP association setup, NGAP Stream 0 & Stream 1 DATA transfer, SACK, Heartbeat, and Shutdown.
-FLOW sctp_5g_ngap_lifecycle(gnb, amf) {
-    gnb -> amf DSCP 46 SCTP CHUNK INIT VTAG 0 SRCPORT 38412 DSTPORT 38412 WAIT 1ms
-    gnb <- amf DSCP 46 SCTP CHUNK INIT_ACK VTAG 3841201 SRCPORT 38412 DSTPORT 38412 WAIT 1ms
-    gnb -> amf DSCP 46 SCTP CHUNK COOKIE_ECHO VTAG 3841201 SRCPORT 38412 DSTPORT 38412 PAYLOAD "HMAC_STATE_COOKIE_5G_AMF" WAIT 1ms
-    gnb <- amf DSCP 46 SCTP CHUNK COOKIE_ACK VTAG 3841201 SRCPORT 38412 DSTPORT 38412 WAIT 1ms
-    gnb -> amf DSCP 46 SCTP CHUNK DATA VTAG 3841201 SEQ 100 STREAM 0 SSN 0 PPID 60 SRCPORT 38412 DSTPORT 38412 PAYLOAD "NGAP_NG_SETUP_REQUEST_GNB_ID_001" WAIT 2ms
-    gnb <- amf DSCP 46 SCTP CHUNK SACK VTAG 3841201 SEQ 100 SRCPORT 38412 DSTPORT 38412 WAIT 1ms
-    gnb <- amf DSCP 46 SCTP CHUNK DATA VTAG 3841201 SEQ 200 STREAM 0 SSN 0 PPID 60 SRCPORT 38412 DSTPORT 38412 PAYLOAD "NGAP_NG_SETUP_RESPONSE_PLMN_00101" WAIT 2ms
-    gnb -> amf DSCP 46 SCTP CHUNK DATA VTAG 3841201 SEQ 101 STREAM 1 SSN 0 PPID 60 SRCPORT 38412 DSTPORT 38412 PAYLOAD "NGAP_INITIAL_UE_MESSAGE_REGISTRATION_REQ" WAIT 2ms
-    gnb <- amf DSCP 46 SCTP CHUNK SACK VTAG 3841201 SEQ 101 SRCPORT 38412 DSTPORT 38412 WAIT 1ms
-    gnb -> amf DSCP 46 SCTP CHUNK HEARTBEAT VTAG 3841201 SRCPORT 38412 DSTPORT 38412 PAYLOAD "HB_INFO_PATH_PRIMARY" WAIT 5ms
-    gnb <- amf DSCP 46 SCTP CHUNK HEARTBEAT_ACK VTAG 3841201 SRCPORT 38412 DSTPORT 38412 PAYLOAD "HB_INFO_PATH_PRIMARY" WAIT 5ms
-    gnb -> amf DSCP 46 SCTP CHUNK SHUTDOWN VTAG 3841201 SEQ 200 SRCPORT 38412 DSTPORT 38412 WAIT 1ms
+flow sctp_5g_ngap_lifecycle(gnb, amf) {
+    gnb -> amf dscp 46 sctp chunk init vtag 0 srcport 38412 dstport 38412 wait 1ms
+    gnb <- amf dscp 46 sctp chunk init_ack vtag 3841201 srcport 38412 dstport 38412 wait 1ms
+    gnb -> amf dscp 46 sctp chunk cookie_echo vtag 3841201 srcport 38412 dstport 38412 payload "HMAC_STATE_COOKIE_5G_AMF" wait 1ms
+    gnb <- amf dscp 46 sctp chunk cookie_ack vtag 3841201 srcport 38412 dstport 38412 wait 1ms
+    gnb -> amf dscp 46 sctp chunk data vtag 3841201 seq 100 stream 0 ssn 0 ppid 60 srcport 38412 dstport 38412 payload "NGAP_NG_SETUP_REQUEST_GNB_ID_001" wait 2ms
+    gnb <- amf dscp 46 sctp chunk sack vtag 3841201 seq 100 srcport 38412 dstport 38412 wait 1ms
+    gnb <- amf dscp 46 sctp chunk data vtag 3841201 seq 200 stream 0 ssn 0 ppid 60 srcport 38412 dstport 38412 payload "NGAP_NG_SETUP_RESPONSE_PLMN_00101" wait 2ms
+    gnb -> amf dscp 46 sctp chunk data vtag 3841201 seq 101 stream 1 ssn 0 ppid 60 srcport 38412 dstport 38412 payload "NGAP_INITIAL_UE_MESSAGE_REGISTRATION_REQ" wait 2ms
+    gnb <- amf dscp 46 sctp chunk sack vtag 3841201 seq 101 srcport 38412 dstport 38412 wait 1ms
+    gnb -> amf dscp 46 sctp chunk heartbeat vtag 3841201 srcport 38412 dstport 38412 payload "HB_INFO_PATH_PRIMARY" wait 5ms
+    gnb <- amf dscp 46 sctp chunk heartbeat_ack vtag 3841201 srcport 38412 dstport 38412 payload "HB_INFO_PATH_PRIMARY" wait 5ms
+    gnb -> amf dscp 46 sctp chunk shutdown vtag 3841201 seq 200 srcport 38412 dstport 38412 wait 1ms
 }
 
 // INSTRUCTION: Compile the 5G N2 SCTP association lifecycle.
-COMPILE {
+compile {
     sctp_5g_ngap_lifecycle(gnb_n2, amf_n2)
 }
 ```
@@ -302,28 +302,28 @@ COMPILE {
 // TOKENS: HOST, IP, MAC, FLOW, SCTP, CHUNK, DATA, SACK, ABORT, VTAG, SEQ, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
 
 // INSTRUCTION: Declare IPv6 Signaling Gateway A.
-HOST sgw_v6_a {
-    IP 2001:db8:2905::1
-    MAC 00:50:56:29:05:01
+host sgw_v6_a {
+    ip 2001:db8:2905::1
+    mac 00:50:56:29:05:01
 }
 
 // INSTRUCTION: Declare IPv6 Softswitch MGC B.
-HOST mgc_v6_b {
-    IP 2001:db8:2905::2
-    MAC 00:50:56:29:05:02
+host mgc_v6_b {
+    ip 2001:db8:2905::2
+    mac 00:50:56:29:05:02
 }
 
 // INSTRUCTION: Define SIGTRAN M3UA signaling on Stream 1 (PPID 3) and WebRTC DataChannel messages on Stream 2 (PPID 50/51).
-FLOW ipv6_sctp_m3ua_and_webrtc(a, b) {
-    a -> b SCTP CHUNK DATA VTAG 290501 SEQ 1 STREAM 1 SSN 0 PPID 3 SRCPORT 2905 DSTPORT 2905 PAYLOAD "M3UA_PAYLOAD_DATA_ISUP_IAM" WAIT 2ms
-    a <- b SCTP CHUNK SACK VTAG 290501 SEQ 1 SRCPORT 2905 DSTPORT 2905 WAIT 1ms
-    a -> b SCTP CHUNK DATA VTAG 500051 SEQ 10 STREAM 2 SSN 0 PPID 50 SRCPORT 5000 DSTPORT 5000 PAYLOAD "DCEP_DATA_CHANNEL_OPEN_RELIABLE" WAIT 2ms
-    a <- b SCTP CHUNK DATA VTAG 500051 SEQ 20 STREAM 2 SSN 0 PPID 51 SRCPORT 5000 DSTPORT 5000 PAYLOAD "{\"channel\":\"telemetry\",\"status\":\"connected\"}" WAIT 2ms
-    a -> b SCTP CHUNK ABORT VTAG 500051 SRCPORT 5000 DSTPORT 5000 PAYLOAD "USER_INITIATED_ABORT_CAUSE_0x000C" WAIT 1ms
+flow ipv6_sctp_m3ua_and_webrtc(a, b) {
+    a -> b sctp chunk data vtag 290501 seq 1 stream 1 ssn 0 ppid 3 srcport 2905 dstport 2905 payload "M3UA_PAYLOAD_DATA_ISUP_IAM" wait 2ms
+    a <- b sctp chunk sack vtag 290501 seq 1 srcport 2905 dstport 2905 wait 1ms
+    a -> b sctp chunk data vtag 500051 seq 10 stream 2 ssn 0 ppid 50 srcport 5000 dstport 5000 payload "DCEP_DATA_CHANNEL_OPEN_RELIABLE" wait 2ms
+    a <- b sctp chunk data vtag 500051 seq 20 stream 2 ssn 0 ppid 51 srcport 5000 dstport 5000 payload "{\"channel\":\"telemetry\",\"status\":\"connected\"}" wait 2ms
+    a -> b sctp chunk abort vtag 500051 srcport 5000 dstport 5000 payload "USER_INITIATED_ABORT_CAUSE_0x000C" wait 1ms
 }
 
 // INSTRUCTION: Compile the IPv6 SCTP M3UA and WebRTC DataChannel capture.
-COMPILE {
+compile {
     ipv6_sctp_m3ua_and_webrtc(sgw_v6_a, mgc_v6_b)
 }
 ```

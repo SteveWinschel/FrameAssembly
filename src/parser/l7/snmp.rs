@@ -21,7 +21,7 @@ use crate::parser::{
 
 /// Helper to parse an OID string or IP representation.
 fn parse_oid_val<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<&'a str> {
-    any.verify_map(|(t, _)| match t {
+    any.verify_map(|(t, _, _)| match t {
         Token::OidStr(s) | Token::IpAddress(s) => Some(s),
         Token::StringLit(s) => Some(
             s.strip_prefix('"')

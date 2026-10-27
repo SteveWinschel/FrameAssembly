@@ -60,7 +60,7 @@ FrameAssembly enforces strict structural symmetry across `src/`, `examples/`, an
 
 ## 3. Core FrameAssembly DSL Rules & Invariants
 
-1. **Program Structure**: Every `.fasm` file declares `HOST <id> { IP <ip> [MAC <mac>] }`, `FLOW <id>(<params>) { <statements> }`, and exactly one `COMPILE { <invocations_or_loops> }` block.
+1. **Program Structure & Case-Insensitivity**: Every `.fasm` file declares `HOST <id> { IP <ip> [MAC <mac>] }`, `FLOW <id>(<params>) { <statements> }`, and exactly one `COMPILE { <invocations_or_loops> }` block. All keywords, protocols, modifiers, time units (`ns`, `us`, `ms`, `s`, `m`), and identifiers (`HOST`, `FLOW`, parameters) are case-insensitive (`host` / `HOST`).
 2. **Polymorphic Dual-Stack Flows**: A `FLOW` works identically over IPv4 and IPv6 host pairs. Mixing IPv4 and IPv6 endpoints in the same statement is a semantic error.
 3. **Zero-Keyword RFC Defaults**: Every one of the 81 protocols compiles with zero mandatory sub-keywords (emitting RFC-compliant default headers and ports) and supports explicit field overrides.
 4. **1 Statement = 1 Frame & Shared 4-Tuple State**: Each statement emits 1 frame. TCP-based L7 statements emit a `PSH ACK` frame on that protocol's well-known port and share 4-tuple sequence/ack counters with raw `TCP` statements on the same connection.

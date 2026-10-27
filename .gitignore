@@ -15,3 +15,8 @@ Thumbs.db
 lints.json
 *.pcap
 *.pcapng
+
+# Python files & bytecode
+*.py
+*.pyc
+__pycache__/

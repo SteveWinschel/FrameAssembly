@@ -1,36 +1,44 @@
-// Written vertically -> Intuitive for programmers
-host example_server { 
-    IP 10.0.10.5
-    MAC aa:bb:cc:dd:ee:ff 
+// PROMPT: Compile a realistic TCP 3-way handshake, HTTP GET/200 OK transaction, and cryptographic SNMPv3 USM linkUp trap into a deterministic PCAPNG capture.
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WAIT, ACK, HTTP, GET, URI, HOST_HDR, STATUS, BODY, SNMP3, TRAP, USER, ENGINEID, AUTH, SHA256, PRIV, AES, OID, VARBIND, STRING, COMPILE
+
+// INSTRUCTION: Declare the client workstation and web/application server IPv4 endpoints with IEEE 802 MAC addresses.
+HOST edge_client {
+    IP 10.0.10.50
+    MAC 00:1a:2b:3c:4d:50
 }
 
-// Written horizontally -> Intuitive for network engineers
-host example_nms { IP 10.0.10.100  MAC ff:ee:dd:cc:bb:aa }
-
-// A broadcast can be declard like an ordinary host
-host broadcast { IP 255.255.255.255  }
-
-flow tcp_handshake(client, server) {
-    client -> server TCP SYN PAYLOAD "Hello" SRCPORT 67 DSTPORT 100
-    client <- server TCP SYN ACK PAYLOAD "World"
-    client -> server TCP ACK PAYLOAD "!" 
+// INSTRUCTION: Declare the web server and SNMP agent endpoint.
+HOST app_server {
+    IP 10.0.10.80
+    MAC 00:1a:2b:3c:4d:80
 }
 
-flow snmp_v1_trap(agent, nms) {
-    agent -> nms SNMP1 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.2"
+// INSTRUCTION: Declare the Network Management System (NMS) telemetry collector endpoint.
+HOST nms_collector {
+    IP 10.0.10.100
+    MAC 00:1a:2b:3c:4d:99
 }
 
-flow snmp_v2_trap(agent, nms) {
-    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3"
+// INSTRUCTION: Define a stateful TCP 3-way handshake followed by an HTTP/1.1 GET request and 200 OK response.
+FLOW web_session(client, server) {
+    client -> server TCP SYN SRCPORT 51234 DSTPORT 80 WAIT 1ms
+    client <- server TCP SYN ACK WAIT 1ms
+    client -> server TCP ACK WAIT 1ms
+    client -> server HTTP GET URI "/api/v1/health" HOST_HDR "app.internal" WAIT 5ms
+    client <- server HTTP STATUS 200 BODY "{\"status\":\"healthy\"}" WAIT 2ms
 }
 
-flow snmp_v3_trap(agent, nms) {
-    agent -> nms SNMP3 TRAP USER "admin" OID "1.3.6.1.6.3.1.1.5.3"
+// INSTRUCTION: Define an authenticated and encrypted SNMPv3 USM trap (HMAC-SHA-256 + AES-128-CFB) to the NMS.
+FLOW snmpv3_linkup_trap(agent, nms) {
+    agent -> nms SNMP3 TRAP USER "secops_admin" ENGINEID "80001f888011223344"
+        AUTH SHA256 "AuthSecretKey99!" PRIV AES "PrivSecretKey99!"
+        OID 1.3.6.1.6.3.1.1.5.4
+        VARBIND 1.3.6.1.2.1.1.5.0 STRING "app-server-01.internal"
+        WAIT 5ms
 }
 
-compile {
-        tcp_handshake(example_server, example_nms)
-        snmp_v1_trap(example_server, example_nms)
-        snmp_v2_trap(example_server, example_nms)
-        snmp_v3_trap(example_server, example_nms)
+// INSTRUCTION: Compile the web session and SNMPv3 telemetry alert into the output capture.
+COMPILE {
+    web_session(edge_client, app_server)
+    snmpv3_linkup_trap(app_server, nms_collector)
 }

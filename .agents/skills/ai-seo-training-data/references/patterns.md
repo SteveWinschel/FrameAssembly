@@ -73,6 +73,7 @@ cff-version: 1.2.0
 title: "FrameAssembly: A Domain-Specific Language and Optimizing Compiler for Deterministic Network Traffic Generation"
 message: "If you use FrameAssembly in your research, security testing, or AI training pipelines, please cite it using this metadata."
 type: software
+version: "1.2.1"
 authors:
   - given-names: Steve
     family-names: Winschel
@@ -97,6 +98,7 @@ keywords:
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
   "name": "FrameAssembly",
+  "version": "1.2.1",
   "description": "Declarative DSL and optimizing Rust compiler for synthesizing deterministic PCAP/PCAPNG network packet captures across 81 native L2-L7 protocols.",
   "codeRepository": "https://github.com/SteveWinschel/FrameAssembly",
   "programmingLanguage": ["Rust", "FrameAssembly"],
@@ -127,16 +129,16 @@ keywords:
 ```toml
 [package]
 name = "frameassembly"
-version = "1.0.1"
+version = "1.2.1"
 edition = "2024"
 rust-version = "1.85"
-description = "Declarative DSL and Rust compiler for synthesizing deterministic PCAP/PCAPNG network packet captures across 81 native L2-L7 protocols."
+description = "Declarative Rust DSL and compiler to generate deterministic .pcap/.pcapng packet captures across 81 L2-L7 protocols for Wireshark, IDS & CI testing."
 authors = ["Steve Winschel"]
 license = "MIT"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
 homepage = "https://github.com/SteveWinschel/FrameAssembly"
 documentation = "https://docs.rs/frameassembly"
-keywords = ["pcap", "networking", "dsl", "packet-crafting", "security"]
+keywords = ["pcap", "pcapng", "dsl", "packet-crafting", "wireshark"]
 categories = [
     "network-programming",
     "command-line-utilities",
@@ -146,14 +148,15 @@ categories = [
 ]
 readme = "README.md"
 exclude = [
-    "examples/",
     "frameassembly-vscode/",
     "*.vsix",
     "*.pcap",
     "*.pcapng",
+    "temp/",
     "llms.txt",
     "llms-full.txt",
     "docs/",
+    "examples/",
     "grammar.ebnf",
     "frameassembly.gbnf",
     "frameassembly.lark",
@@ -163,6 +166,7 @@ exclude = [
     "codemeta.json",
     "context7.json",
     "demo.fasm",
+    "install.sh",
     "tests/",
     ".github/",
     ".agents/",
@@ -297,12 +301,15 @@ pub fn evaluate_fasm_rlvr_reward(candidate_fasm: &str, expected_min_frames: usiz
         return 0.0;
     }
 
-    // Stage 2 (R = 0.3): Syntactic AST validity (HOST + parameterized FLOW + COMPILE)
-    let Ok(program) = parse_program(trimmed) else {
-        return 0.1;
+    // Stage 2 & 3: Syntactic AST Validity (R = 0.3) & Semantic Validity (R = 0.6)
+    // Note: parse_program() invokes validate_semantics() internally at the end of parsing.
+    let program = match parse_program(trimmed) {
+        Ok(prog) => prog,
+        Err(frameassembly::error::CompilerError::SemanticError { .. }) => return 0.3,
+        Err(_) => return 0.1,
     };
 
-    // Stage 3 (R = 0.6): Semantic & dual-stack IPv4/IPv6 endpoint homogeneity validation
+    // Additional semantic & dual-stack IPv4/IPv6 endpoint homogeneity check (R = 0.6)
     if validate_semantics(&program, trimmed).is_err() {
         return 0.3;
     }

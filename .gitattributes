@@ -3,14 +3,14 @@
 
 # Formal Grammars (EBNF, GBNF, Lark)
 *.ebnf linguist-language=EBNF linguist-detectable=true text eol=lf
-*.gbnf linguist-language=GBNF linguist-documentation=true text eol=lf
-*.lark linguist-language=Lark linguist-documentation=true text eol=lf
+*.gbnf linguist-language=EBNF linguist-detectable=true text eol=lf
+*.lark linguist-language=EBNF linguist-detectable=true text eol=lf
 
 # Documentation, Citation & AI Context Files
 *.md text eol=lf
 docs/*.md linguist-documentation=true text eol=lf
 llms.txt text eol=lf linguist-documentation=true
-llms-full.txt text eol=lf linguist-documentation=true
+llms-full.txt text eol=lf linguist-generated=true
 CITATION.cff text eol=lf
 codemeta.json text eol=lf
 context7.json text eol=lf

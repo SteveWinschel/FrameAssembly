@@ -1,61 +1,120 @@
 # FrameAssembly (`frameassembly`)
 
-> Deterministic network packet crafting Domain-Specific Language (DSL) and optimizing Rust compiler synthesizing nanosecond-accurate `.pcap` and `.pcapng` packet captures across 81 native Layer 2 through Layer 7 protocols, dual-stack IPv4/IPv6 polymorphism, stateful 4-tuple TCP progression, and SNMPv3 USM (RFC 3414/3826/7860) cryptography.
+> Declarative network packet crafting Domain-Specific Language (DSL) and optimizing Rust compiler (v1.2.1) that compiles human-readable `.fasm` traffic specifications into deterministic, nanosecond-accurate `.pcap` and `.pcapng` packet captures across 81 native Layer 2 through Layer 7 protocols, dual-stack IPv4/IPv6 polymorphism, stateful 4-tuple TCP progression, and SNMPv3 USM (RFC 3414/3826/7860) cryptography.
 
-FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`) compiles human-readable, declarative `.fasm` specifications into bit-exact, reproducible `.pcap` / `.pcapng` captures with zero root privileges or live sockets required. Every protocol compiles with zero mandatory sub-keywords (RFC-compliant defaults) and supports fine-grained header and payload overrides.
+FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures in userspace with zero root privileges or live sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides.
 
-## Canonical `.fasm` Grammar Rules (Anti-Hallucination Guardrails)
+### Zero-Shot `.fasm` Grammar & Anti-Hallucination Reference
 
-1. **Program Structure & Case-Insensitivity**: Every `.fasm` file declares one or more `HOST <id> { IP <ip> [MAC <mac>] }` blocks, one or more `FLOW <id>(<param1>, <param2>, ...) { <statements> }` blocks, and exactly one `COMPILE { <flow_calls_or_loops> }` block. All keywords, protocols, modifiers, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and identifiers (`HOST`, `FLOW`, parameters) are case-insensitive (`host` or `HOST`).
-2. **Host Blocks**: Use space-separated `IP <ipv4_or_ipv6>` and optional `MAC <mac>` (`HOST client { IP 10.0.0.1 MAC 00:11:22:33:44:55 }`). Never use `=`, `:`, `,`, `IPV4`, `IPV6`, or `MASK`.
-3. **Flow Blocks**: Always parameterize flows (`FLOW web(c, s) { c -> s HTTP GET URI "/" }`). Never use `FROM`, `TO`, `REVERSE`, `SEND`, standalone `WAIT` lines, or `+5ms` / `[+delay]` prefixes.
-4. **Inline Timing**: Place `WAIT <int><ns|us|ms|s|m>` as an inline modifier on a frame statement (`c <- s HTTP STATUS 200 REASON "OK" WAIT 5ms`).
-5. **L2–L4 Modifiers**: Use `VLAN <id> [PCP <p>] [DEI <d>]`, `QINQ <svlan> [INNER_VLAN <cvlan>]`, `MPLS <label> [EXP <e>] [BOS <b>] [MPLS_TTL <t>]`, `TTL <n>`, `DSCP <d>`, `ECN <e>`, `FLOWLABEL <fl>`, `IPID <id>`, `DF`, `MF`, `FRAGOFFSET <off>`, `SRCPORT <p>`, `DSTPORT <p>`, `SEQ <n>`, `ACKNUM <n>`, `WIN <w>`, and bare TCP flags (`SYN ACK FIN RST PSH URG ECE CWR`).
-6. **Dataset Headers**: All `2,611` corpus `.fasm` files begin with `// PROMPT: <description>` on Line 1, `// TOKENS: <UPPERCASE_LEXER_TOKENS>` on Line 2, and `// INSTRUCTION: <explanation>` before every `HOST`, `FLOW`, and `COMPILE` block.
+1. **Three-Block Program Structure & Case-Insensitivity**: Every compilable `.fasm` file declares one or more `HOST <id> { IP <ip> [MAC <mac>] }` blocks, one or more parameterized `FLOW <id>(<param1>, <param2>, ...) { <statements> }` blocks, and one `COMPILE { <flow_calls_or_loops> }` block. All keywords, protocols, modifiers, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and identifiers (`HOST`, `FLOW`, parameters) are ASCII case-insensitive (`host` or `HOST`).
+2. **1 Statement = 1 Wire Frame & Shared 4-Tuple State**: Each statement (`<a> -> <b> <PROTO> ...` or `<a> <- <b> <PROTO> ...`) emits 1 frame. TCP-based L7 statements emit a `PSH ACK` segment on that protocol's well-known port and share 4-tuple `SEQ`/`ACK` counters and bidirectional port inheritance with raw `TCP` statements on the same connection.
+3. **Dual-Stack Endpoint Homogeneity**: A `FLOW` is polymorphic across IPv4 and IPv6 host pairs, but both endpoints in any single statement must share the same IP family (both IPv4 or both IPv6).
 
-## Core Documentation (`docs/*.md`)
+| Construct | ❌ NEVER WRITE (Invalid / Hallucinated) | ✅ ALWAYS WRITE (Canonical `.fasm` Syntax) |
+| :--- | :--- | :--- |
+| **Host Block** | `HOST c = { IPV4: "10.0.0.1", MASK: 24 }` | `HOST c { IP 10.0.0.1 MAC 00:11:22:33:44:55 }` |
+| **Flow Signature** | `FLOW web { FROM c TO s SEND HTTP }` | `FLOW web(c, s) { c -> s HTTP GET URI "/" }` |
+| **Return Direction** | `s -> c REVERSE TCP` or `REPLY s -> c` | `c <- s TCP SYN ACK` (or `s -> c TCP SYN ACK`) |
+| **Inter-Frame Delay** | `[+5ms] c -> s TCP ACK` or standalone `WAIT 5ms` | `c -> s TCP ACK WAIT 5ms` (inline modifier; `ns`,`us`,`ms`,`s`,`m`) |
+| **Ports & TCP Ack** | `SPORT 1234 DPORT 80 ACK 100` | `SRCPORT 1234 DSTPORT 80 SEQ 1 ACKNUM 100` |
+| **TCP Flags** | `FLAGS [SYN, ACK]` or `FLAGS="SA"` | `TCP SYN ACK` (bare space-separated tokens: `SYN ACK FIN RST PSH URG ECE CWR`) |
+| **IPv4/IPv6 Hop Limit** | `HOP_LIMIT 64` or `HOPLIMIT 255` | `TTL 64` or `TTL 255` (canonical across both IPv4 and IPv6) |
+| **802.1ad QinQ Tags** | `QINQ 100 200` or `SVLAN 100 CVLAN 200` | `QINQ 100 INNER_VLAN 200` |
+| **HTTP Host Header** | `c -> s HTTP GET HOST "example.com"` | `c -> s HTTP GET URI "/" HOST_HDR "example.com"` |
+| **SNMP Request ID** | `REQ_ID 10` or `REQUEST_ID 10` | `REQID 10` |
+| **Compile Block** | Bare `COMPILE` or `COMPILE { web }` | `COMPILE { web(client, server) LOOP 3 { web(client, server) } }` |
 
-- [Architecture, Compiler Pipeline & Formal Grammar](docs/architecture_and_grammar.md): Five-stage compiler pipeline (`logos` -> `winnow` -> AST -> stateful backend -> `pcap-file`), `HOST`/`FLOW`/`COMPILE` syntax, L2–L4 modifiers, and dual-stack polymorphism.
-- [Layer 2 Switching & Data-Link Protocols](docs/l2_protocols.md): Complete syntax and wire framing for `ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`, and `MPLS` (248 verified examples).
-- [Layer 3 Control, Tunneling, VPN & Routing Protocols](docs/l3_protocols.md): Complete syntax and wire framing for `ICMP`, `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`, `GENEVE`, `IPSEC`, `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`, `PIM`, `BFD`, and `OPENFLOW` (620 verified examples).
-- [Layer 4 Transport Protocols](docs/l4_transports.md): Stateful 4-tuple progression, bidirectional port inheritance, RFC 7323 TCP options, UDP checksums, and SCTP multi-chunk bundling for `TCP`, `UDP`, and `SCTP` (95 verified examples).
-- [Layer 7 SNMPv1, SNMPv2c & SNMPv3 USM](docs/l7_snmp.md): ASN.1 BER encoding, `SNMP1`, `SNMP2`, and `SNMP3` USM authentication (`MD5`, `SHA`, `SHA256`, `SHA384`, `SHA512`), privacy encryption (`DES`, `AES`), and all 9 SMI `VARBIND` types (`93` verified examples).
-- [Layer 7 Infrastructure, Time, AAA & Flow Telemetry](docs/l7_infra_and_telemetry.md): `DNS`, `MDNS`, `DHCP`, `NTP`, `PTP`, `RADIUS`, `TACACS`, `SYSLOG`, `NETFLOW`, `IPFIX`, and `SFLOW` (`341` verified examples).
-- [Layer 7 Web, Cloud-Native, Transport Security, VoIP & Remote Access](docs/l7_web_and_cloud.md): `HTTP`, `HTTP2`, `GRPC`, `WEBSOCKET`, `TLS`, `QUIC`, `TFTP`, `FTP`, `SSH`, `TELNET`, `WHOIS`, `SIP`, `RTP`, `RTSP`, `STUN`, and `SSDP` (`496` verified examples).
-- [Layer 7 Mail, Directory, Storage, Databases & Message Brokers](docs/l7_mail_auth_storage_db.md): `SMTP`, `IMAP`, `POP3`, `KERBEROS`, `LDAP`, `SMB`, `NFS`, `REDIS`, `MEMCACHED`, `MYSQL`, `POSTGRES`, `MQTT`, `COAP`, and `AMQP` (`434` verified examples).
-- [Layer 7 Industrial Control Systems (ICS) & SCADA/OT](docs/l7_industrial_ot.md): `MODBUS`, `BACNET`, `DNP3`, `S7COMM`, `ETHERNETIP`, and `OPCUA` (`186` verified examples).
-- [Multi-Protocol Topologies & Dual-Stack Architectures](docs/topologies_and_dual_stack.md): Leaf-Spine EVPN-VXLAN, Zero-Trust 802.1X NAC, 5G Service-Based Architecture, MPLS L3VPN, and Purdue ICS substations (104 verified topologies).
-- [Instruction-Tuning Q&A Synthesis & Constrained Decoding Guide](docs/qa_synthesis_guide.md): Natural-Language Prompt to `.fasm` Q&A pairs and constrained decoding setup with `grammar.ebnf`, `frameassembly.gbnf`, and `frameassembly.lark`.
+### Complete 81 Native Protocol Keywords by OSI Layer
 
-## Formal Grammars & Constrained Decoding Specifications
+- **Layer 2 (`8` protocols)**: `ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`, `MPLS`.
+- **Layer 3 (`20` protocols)**: `ICMP`, `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`, `GENEVE`, `IPSEC`, `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`, `PIM`, `BFD`, `OPENFLOW`.
+- **Layer 4 (`3` protocols)**: `TCP`, `UDP`, `SCTP`.
+- **Layer 7 SNMP (`3` protocols)**: `SNMP1`, `SNMP2`, `SNMP3` (9 `VARBIND <oid> <TYPE> <val>` types: `STRING`, `INT`, `COUNTER32`, `GAUGE32`, `TIMETICKS`, `COUNTER64`, `IPVAL`, `OIDVAL`, `NULLVAL`).
+- **Layer 7 Infra & Telemetry (`11` protocols)**: `DNS`, `MDNS`, `DHCP`, `NTP`, `PTP`, `RADIUS`, `TACACS`, `SYSLOG`, `NETFLOW`, `IPFIX`, `SFLOW`.
+- **Layer 7 Web, Security, VoIP & Access (`16` protocols)**: `HTTP`, `HTTP2`, `GRPC`, `WEBSOCKET`, `TLS`, `QUIC`, `STUN`, `SIP`, `RTP`, `RTSP`, `SSDP`, `TFTP`, `FTP`, `SSH`, `TELNET`, `WHOIS`.
+- **Layer 7 Mail, Auth, Storage, DB & Messaging (`14` protocols)**: `SMTP`, `IMAP`, `POP3`, `KERBEROS`, `LDAP`, `SMB`, `NFS`, `REDIS`, `MEMCACHED`, `MYSQL`, `POSTGRES`, `MQTT`, `COAP`, `AMQP`.
+- **Layer 7 Industrial ICS / SCADA / OT (`6` protocols)**: `MODBUS`, `BACNET`, `DNP3`, `S7COMM`, `ETHERNETIP`, `OPCUA`.
+- **Universal Frame Modifiers**: `SRCMAC <mac>`, `DSTMAC <mac>`, `ETHERTYPE <u16>`, `VLAN <1..4094> [PCP <0..7>] [DEI <0..1>]`, `QINQ <1..4094> [INNER_VLAN <1..4094>]`, `MPLS <label> [EXP <0..7>] [BOS <0..1>] [MPLS_TTL <u8>]`, `TTL <u8>`, `DSCP <0..63>`, `ECN <0..3>`, `FLOWLABEL <u32>`, `IPID <u16>`, `DF`, `MF`, `FRAGOFFSET <u16>`, `SRCPORT <u16>`, `DSTPORT <u16>`, `TRANSPORT TCP|UDP`, `SEQ <u32>`, `ACKNUM <u32>`, `WIN <u16>`, `MSS <u16>`, `WSCALE <u8>`, `SACK_PERM`, `TSVAL <u32>`, `TSECR <u32>`, `URGENT <u16>`, `PAYLOAD "<str>"`, `HEXPAYLOAD "<hex>"`, `WAIT <int><ns|us|ms|s|m>`.
 
-- [ISO/IEC 14977 EBNF Grammar](grammar.ebnf): Complete formal EBNF specification covering all 81 protocols and 640 uppercase terminal keywords.
-- [llama.cpp & XGrammar GBNF Grammar](frameassembly.gbnf): Constrained decoding grammar for `llama.cpp` (`--grammar-file frameassembly.gbnf`), `vLLM`, `SGLang`, and `TensorRT-LLM`.
-- [Lark / Outlines / llguidance CFG Grammar](frameassembly.lark): Earley/LALR Context-Free Grammar for `Outlines`, `Guidance`, and `llguidance`.
-- [Full Single-Fetch LLM Context Bundle](llms-full.txt): Consolidated single-file bundle containing all 11 documentation guides, formal grammar, and representative `.fasm` corpus scenarios.
+### Minimal Canonical `.fasm` Template & Public Rust API
 
-## Rust Compiler Architecture (`src/`)
+```frameassembly
+// PROMPT: Stateful TCP 3-way handshake, HTTP/1.1 GET/200 OK, and SNMPv3 USM SHA-256/AES trap
+// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, MSS, WAIT, ACK, HTTP, GET, URI, HOST_HDR, STATUS, REASON, BODY, SNMP3, TRAP, USER, ENGINEID, AUTH, SHA256, PRIV, AES, OID, VARBIND, STRING, COMPILE
 
-- [Library Crate Root (`src/lib.rs`)](src/lib.rs): Public Rust API (`lexer::lex`, `parser::parse_program`, `parser::validate_semantics`, `backend::compile_program`, `backend::generate_pcap`).
-- [CLI Entry Point (`src/main.rs`)](src/main.rs): `clap` command-line binary compiling `.fasm` files to `.pcap` / `.pcapng`.
-- [Zero-Copy Lexer (`src/lexer/mod.rs`)](src/lexer/mod.rs): `logos 0.14` finite-automaton lexer defining all 640 uppercase keyword tokens, time units, IP/MAC/OID literals, and spans.
-- [AST Definitions (`src/ast/mod.rs`)](src/ast/mod.rs): Strongly-typed AST nodes and `*Spec` structs across [`src/ast/l2/`](src/ast/l2/mod.rs), [`src/ast/l3/`](src/ast/l3/mod.rs), [`src/ast/l4/`](src/ast/l4/mod.rs), and [`src/ast/l7/`](src/ast/l7/mod.rs).
-- [Two-Phase Combinator Parser (`src/parser/mod.rs`)](src/parser/mod.rs): `winnow 1.0` token-slice parser with protocol-scoped field dispatch ([`src/parser/fields.rs`](src/parser/fields.rs), [`src/parser/statement.rs`](src/parser/statement.rs)) and semantic validator ([`src/parser/validation.rs`](src/parser/validation.rs)).
-- [Wire Payload Builders (`src/builders/mod.rs`)](src/builders/mod.rs): 81 native RFC wire encoders across [`src/builders/l2/`](src/builders/l2/mod.rs), [`src/builders/l3/`](src/builders/l3/mod.rs), [`src/builders/l4/`](src/builders/l4/mod.rs), and [`src/builders/l7/`](src/builders/l7/mod.rs) (including [`src/builders/l7/snmp/`](src/builders/l7/snmp/mod.rs)).
-- [Stateful 4-Tuple Backend (`src/backend/mod.rs`)](src/backend/mod.rs): Flow expansion, `LOOP` unrolling, bidirectional port inheritance, TCP sequence/acknowledgment progression, and RFC 1112/2464 multicast MAC derivation.
-- [Native Packet Framing (`src/packet.rs`)](src/packet.rs) & [PCAPNG Serializer (`src/pcap.rs`)](src/pcap.rs): Ethernet/VLAN/QinQ/MPLS/IPv4/IPv6/TCP/UDP/SCTP header assembly, RFC 1071 & RFC 9260 CRC32c checksums, and nanosecond PCAPNG output.
+// INSTRUCTION: Declare IPv4 endpoints
+HOST client { IP 10.0.0.10 MAC 00:11:22:33:44:55 }
+HOST server { IP 10.0.0.80 MAC aa:bb:cc:dd:ee:ff }
 
-## Verified `.fasm` Corpus Index (2611 Scenarios Across 81 Protocols + Topologies)
+// INSTRUCTION: Define stateful web and SNMPv3 flow
+FLOW demo_flow(c, s) {
+    c -> s TCP SYN SRCPORT 51234 DSTPORT 80 WIN 65535 MSS 1460 WAIT 1ms
+    c <- s TCP SYN ACK WIN 65535 MSS 1460 WAIT 1ms
+    c -> s TCP ACK WAIT 1ms
+    c -> s HTTP GET URI "/health" HOST_HDR "api.internal" WAIT 5ms
+    c <- s HTTP STATUS 200 REASON "OK" BODY "{\"ok\":true}" WAIT 2ms
+    s -> c SNMP3 TRAP USER "admin" ENGINEID "80001f8880112233" AUTH SHA256 "authpass123" PRIV AES "privpass123" OID 1.3.6.1.6.3.1.1.5.4 VARBIND 1.3.6.1.2.1.1.5.0 STRING "srv01" WAIT 5ms
+}
 
-- **Layer 2 (`248` files)**: [`arp`](examples/l2/arp/), [`vlan`](examples/l2/vlan/), [`qinq`](examples/l2/qinq/), [`lldp`](examples/l2/lldp/), [`stp`](examples/l2/stp/), [`lacp`](examples/l2/lacp/), [`eapol`](examples/l2/eapol/), [`mpls`](examples/l2/mpls/).
-- **Layer 3 (`620` files)**: [`icmp`](examples/l3/icmp/), [`ndp`](examples/l3/ndp/), [`igmp`](examples/l3/igmp/), [`mld`](examples/l3/mld/), [`gre`](examples/l3/gre/), [`vxlan`](examples/l3/vxlan/), [`geneve`](examples/l3/geneve/), [`ipsec`](examples/l3/ipsec/), [`esp`](examples/l3/esp/), [`ah`](examples/l3/ah/), [`ikev2`](examples/l3/ikev2/), [`wireguard`](examples/l3/wireguard/), [`ospf`](examples/l3/ospf/), [`bgp`](examples/l3/bgp/), [`rip`](examples/l3/rip/), [`vrrp`](examples/l3/vrrp/), [`hsrp`](examples/l3/hsrp/), [`pim`](examples/l3/pim/), [`bfd`](examples/l3/bfd/), [`openflow`](examples/l3/openflow/).
-- **Layer 4 (`95` files)**: [`tcp`](examples/l4/tcp/), [`udp`](examples/l4/udp/), [`sctp`](examples/l4/sctp/).
-- **Layer 7 (`1544` files)**: [`snmpv1`](examples/l7/snmp/snmpv1/), [`snmpv2c`](examples/l7/snmp/snmpv2c/), [`snmpv3`](examples/l7/snmp/snmpv3/), [`dns`](examples/l7/dns/), [`mdns`](examples/l7/mdns/), [`dhcp`](examples/l7/dhcp/), [`ntp`](examples/l7/ntp/), [`ptp`](examples/l7/ptp/), [`radius`](examples/l7/radius/), [`tacacs`](examples/l7/tacacs/), [`syslog`](examples/l7/syslog/), [`netflow`](examples/l7/netflow/), [`ipfix`](examples/l7/ipfix/), [`sflow`](examples/l7/sflow/), [`tftp`](examples/l7/tftp/), [`ftp`](examples/l7/ftp/), [`ssh`](examples/l7/ssh/), [`telnet`](examples/l7/telnet/), [`http`](examples/l7/http/), [`http2`](examples/l7/http2/), [`grpc`](examples/l7/grpc/), [`websocket`](examples/l7/websocket/), [`tls`](examples/l7/tls/), [`quic`](examples/l7/quic/), [`stun`](examples/l7/stun/), [`sip`](examples/l7/sip/), [`rtp`](examples/l7/rtp/), [`rtsp`](examples/l7/rtsp/), [`ssdp`](examples/l7/ssdp/), [`whois`](examples/l7/whois/), [`smtp`](examples/l7/smtp/), [`imap`](examples/l7/imap/), [`pop3`](examples/l7/pop3/), [`kerberos`](examples/l7/kerberos/), [`ldap`](examples/l7/ldap/), [`smb`](examples/l7/smb/), [`nfs`](examples/l7/nfs/), [`redis`](examples/l7/redis/), [`memcached`](examples/l7/memcached/), [`mysql`](examples/l7/mysql/), [`postgres`](examples/l7/postgres/), [`mqtt`](examples/l7/mqtt/), [`coap`](examples/l7/coap/), [`amqp`](examples/l7/amqp/), [`modbus`](examples/l7/modbus/), [`bacnet`](examples/l7/bacnet/), [`dnp3`](examples/l7/dnp3/), [`s7comm`](examples/l7/s7comm/), [`ethernetip`](examples/l7/ethernetip/), [`opcua`](examples/l7/opcua/).
-- **Multi-Protocol Topologies (`104` files)**: [`examples/topologies/`](examples/topologies/).
+// INSTRUCTION: Compile flow for client and server
+COMPILE {
+    demo_flow(client, server)
+}
+```
 
-## AI Agent & Metadata Files
+- **Public Rust Library Signatures (`frameassembly` crate v1.2.1)**:
+  - `frameassembly::lexer::lex(source: &str) -> Result<Vec<SpannedToken<'_>>, CompilerError>`
+  - `frameassembly::parser::parse_program(source: &str) -> Result<Program<'_>, CompilerError>` (runs `validate_semantics` automatically)
+  - `frameassembly::parser::validate_semantics<'a>(program: &Program<'a>, source: &'a str) -> Result<(), CompilerError>`
+  - `frameassembly::backend::compile_program(program: &Program<'_>) -> Result<Vec<(Vec<u8>, u64)>, String>` (returns `(raw_ethernet_frame_bytes, timestamp_ns)`)
+  - `frameassembly::backend::generate_pcap(program: &Program<'_>, output_path: &str) -> Result<(), String>`
+  - `frameassembly::error::CompilerError::{LexError, ParseError, SemanticError, BackendError}`
 
-- [Cross-Platform Bootstrap Installer (`install.sh`)](install.sh): One-line zero-clone installer (`curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`) handling OS package manager prerequisites (`curl`, `ca-certificates`, C linker), `rustup` (`>= 1.85`), `cargo install frameassembly`, and automatic `.vsix` editor extension installation.
-- [AGENTS.md](AGENTS.md) & [CLAUDE.md](CLAUDE.md): AI coding agent onboarding, build commands, and canonical DSL invariants.
-- [GitHub Copilot Instructions](.github/copilot-instructions.md): IDE completion guardrails.
-- [Context7 Configuration](context7.json), [CodeMeta JSON-LD](codemeta.json) & [CITATION.cff](CITATION.cff): Structured indexing and academic citation metadata.
+## Core Documentation
+
+- [README & 81-Protocol Default Table](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Above-the-fold 30-second quickstart, `tshark` output, tool comparison, RFC wire defaults table, and sub-keyword reference for all 81 protocols.
+- [Architecture, Compiler Pipeline & Formal Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/architecture_and_grammar.md): Six-stage compiler pipeline (`logos` -> `winnow` -> AST -> semantic validator -> 4-tuple backend -> `pcap-file`), `HOST`/`FLOW`/`COMPILE` syntax, L2–L4 modifiers, and dual-stack polymorphism.
+- [Layer 2 Switching & Data-Link Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l2_protocols.md): Complete syntax and wire framing for `ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`, and `MPLS` (248 verified examples).
+- [Layer 3 Control, Tunneling, VPN & Routing Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l3_protocols.md): Complete syntax and wire framing for `ICMP`, `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`, `GENEVE`, `IPSEC`, `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`, `PIM`, `BFD`, and `OPENFLOW` (620 verified examples).
+- [Layer 4 Transport Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l4_transports.md): Stateful 4-tuple progression, bidirectional port inheritance, RFC 7323 TCP options, UDP checksums, and SCTP multi-chunk bundling for `TCP`, `UDP`, and `SCTP` (95 verified examples).
+- [Layer 7 SNMPv1, SNMPv2c & SNMPv3 USM](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_snmp.md): ASN.1 BER encoding, `SNMP1`, `SNMP2`, and `SNMP3` USM authentication (`MD5`, `SHA`, `SHA256`, `SHA384`, `SHA512`), privacy encryption (`DES`, `AES`), and all 9 SMI `VARBIND` types (93 verified examples).
+- [Layer 7 Infrastructure, Time, AAA & Flow Telemetry](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_infra_and_telemetry.md): Complete reference for `DNS`, `MDNS`, `DHCP`, `NTP`, `PTP`, `RADIUS`, `TACACS`, `SYSLOG`, `NETFLOW`, `IPFIX`, and `SFLOW` (341 verified examples).
+- [Layer 7 Web, Cloud-Native, Transport Security, VoIP & Remote Access](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_web_and_cloud.md): Complete reference for `HTTP`, `HTTP2`, `GRPC`, `WEBSOCKET`, `TLS`, `QUIC`, `TFTP`, `FTP`, `SSH`, `TELNET`, `WHOIS`, `SIP`, `RTP`, `RTSP`, `STUN`, and `SSDP` (496 verified examples).
+- [Layer 7 Mail, Directory, Storage, Databases & Message Brokers](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_mail_auth_storage_db.md): Complete reference for `SMTP`, `IMAP`, `POP3`, `KERBEROS`, `LDAP`, `SMB`, `NFS`, `REDIS`, `MEMCACHED`, `MYSQL`, `POSTGRES`, `MQTT`, `COAP`, and `AMQP` (434 verified examples).
+- [Layer 7 Industrial Control Systems (ICS) & SCADA/OT](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_industrial_ot.md): Complete reference for `MODBUS`, `BACNET`, `DNP3`, `S7COMM`, `ETHERNETIP`, and `OPCUA` (186 verified examples).
+- [Multi-Protocol Topologies & Dual-Stack Architectures](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/topologies_and_dual_stack.md): Leaf-Spine EVPN-VXLAN, Zero-Trust 802.1X NAC, 5G Service-Based Architecture, MPLS L3VPN, and Purdue ICS substations (104 verified topologies).
+- [Instruction-Tuning Q&A Synthesis & Constrained Decoding Guide](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/qa_synthesis_guide.md): Natural-Language Prompt to `.fasm` Q&A pairs, RLVR reward evaluation, and constrained decoding setup with EBNF, GBNF, and Lark.
+
+## Formal Grammars & Constrained Decoding
+
+- [ISO/IEC 14977 EBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Formal context-free EBNF specification covering all 81 protocols and 640 uppercase terminal keywords.
+- [llama.cpp & XGrammar GBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.gbnf): Constrained decoding grammar (`root ::= ...`) for `llama.cpp`, `vLLM`, `SGLang`, and `TensorRT-LLM`.
+- [Lark / Outlines / llguidance CFG Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.lark): Earley/LALR Context-Free Grammar (`start: ...`) for `Outlines`, `Guidance`, and `llguidance`.
+- [Full Single-Fetch LLM Context Bundle](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Consolidated single-file bundle (`< 900 KB`) containing section manifest, all 11 documentation guides, formal grammars, AST specs, and representative `.fasm` corpus scenarios.
+
+## Rust Compiler Architecture
+
+- [Library Crate Root (`src/lib.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lib.rs): Public Rust API entry point, protocol matrix, and library quickstart.
+- [Structured Compiler Errors (`src/error.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/error.rs): `CompilerError` (`LexError`, `ParseError`, `SemanticError`, `BackendError`) with `miette` diagnostic spans.
+- [Zero-Copy Lexer (`src/lexer/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lexer/mod.rs): `logos 0.14` tokenizer defining all 640 uppercase keyword tokens, time units, IP/MAC/OID literals, and source spans.
+- [AST Definitions (`src/ast/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/ast/mod.rs): Strongly-typed AST nodes and `*Spec` structs across `src/ast/{l2,l3,l4,l7}/`.
+- [Two-Phase Combinator Parser (`src/parser/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/parser/mod.rs): `winnow 1.0` token-slice parser with protocol-scoped field dispatch and semantic validator.
+- [Stateful 4-Tuple Backend (`src/backend/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/backend/mod.rs): Flow expansion, `LOOP` unrolling, bidirectional port inheritance, TCP `SEQ`/`ACK` progression, and RFC 1112/2464 multicast MAC derivation.
+- [Native Packet Framing (`src/packet.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/packet.rs): Ethernet/VLAN/QinQ/MPLS/IPv4/IPv6/TCP/UDP/SCTP framing and RFC 1071 / RFC 9260 CRC32c checksums.
+- [PCAPNG Serializer (`src/pcap.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/pcap.rs): Nanosecond-resolution PCAPNG writer (`IfTsResol(9)`) via `pcap-file 2.0`.
+
+## Representative Verified Corpus Examples
+
+- [Canonical Showcase (`demo.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/demo.fasm): Complete TCP 3-way handshake, HTTP/1.1 GET/200 OK transaction, and SNMPv3 USM SHA-256/AES trap.
+- [Omnibus DSL Token Reference (`complete_dsl_omnibus_reference.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/complete_dsl_omnibus_reference.fasm): Reference topology exercising TCP flags, UDP, and SNMPv1/v2c/v3 USM auth/priv algorithms.
+- [Leaf-Spine EVPN-VXLAN Fabric (`topology_datacenter_spine_leaf_vxlan_evpn.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/topology_datacenter_spine_leaf_vxlan_evpn.fasm): Data center underlay/overlay topology with OSPF, BGP, VXLAN, and BFD.
+- [Campus Zero-Trust 802.1X NAC (`topology_campus_zero_trust_8021x_nac.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/topology_campus_zero_trust_8021x_nac.fasm): Enterprise port authentication workflow combining EAPOL, RADIUS, DHCP, and TLS.
+- [Industrial SCADA Modbus Monitoring (`topology_industrial_scada_modbus_monitoring.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/topology_industrial_scada_modbus_monitoring.fasm): ICS/OT polling and telemetry workflow with Modbus TCP, NTP, and SNMPv3 traps.
+
+## Optional
+
+- [AI Agent Onboarding Guide (`AGENTS.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/AGENTS.md): Build/test commands, repository structure, and routing tables for all 13 workspace rules and 9 skills.
+- [Claude Code Instructions (`CLAUDE.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CLAUDE.md): Concise project instructions and canonical syntax rules for Claude Code.
+- [Cross-Platform Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Zero-clone POSIX shell installer for Linux, macOS, and BSDs.
+- [Context7 MCP Configuration (`context7.json`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/context7.json): Upstash Context7 indexing rules and curated folder configuration.
+- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.2.1.

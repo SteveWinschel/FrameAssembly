@@ -1,18 +1,34 @@
 {
   "name": "frameassembly-vscode",
-  "displayName": "frameassembly-vscode",
-  "description": "FrameAssembly (DSL for text->PCAP compilation) support",
-  "version": "1.2.0",
+  "displayName": "FrameAssembly (.fasm Packet Crafting DSL)",
+  "description": "Syntax highlighting and language support for FrameAssembly (.fasm), the declarative DSL for deterministic .pcap/.pcapng network packet generation across 81 L2-L7 protocols.",
+  "version": "1.2.1",
   "publisher": "stevewinschel",
+  "license": "MIT",
+  "homepage": "https://github.com/SteveWinschel/FrameAssembly",
+  "bugs": {
+    "url": "https://github.com/SteveWinschel/FrameAssembly/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/stevewinschel/frameassembly.git"
+    "url": "https://github.com/SteveWinschel/FrameAssembly.git"
   },
   "engines": {
-    "vscode": "^1.107.0"
+    "vscode": "^1.75.0"
   },
   "categories": [
     "Programming Languages"
+  ],
+  "keywords": [
+    "frameassembly",
+    "fasm",
+    "pcap",
+    "pcapng",
+    "wireshark",
+    "packet-crafting",
+    "networking",
+    "security",
+    "dsl"
   ],
   "contributes": {
     "languages": [

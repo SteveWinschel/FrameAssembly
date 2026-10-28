@@ -1,10 +1,10 @@
-//! **FrameAssembly** (`frameassembly`) is a deterministic network packet crafting Domain-Specific Language (DSL) and optimizing Rust compiler that synthesizes nanosecond-accurate `.pcap` and `.pcapng` packet captures across 81 native Layer 2 through Layer 7 protocols.
+//! **FrameAssembly** (`frameassembly`) is a declarative Rust DSL and compiler that generates deterministic `.pcap`/`.pcapng` packet captures across 81 L2–L7 protocols.
 //!
-//! Designed for network protocol engineering, intrusion detection system (IDS/IPS) validation,
-//! deep packet inspection (DPI) testing, firewall verification, and high-fidelity synthetic
-//! network telemetry generation, FrameAssembly compiles declarative `.fasm` topology and flow
-//! specifications directly into standards-compliant wire frames without requiring root privileges
-//! or live network interfaces.
+//! Designed for network protocol engineering, Wireshark dissector testing, Suricata/Zeek intrusion
+//! detection system (IDS/IPS) rule validation, deep packet inspection (DPI) verification, and
+//! deterministic CI packet capture fixtures, FrameAssembly compiles human-readable `.fasm` topology
+//! and flow specifications directly into standards-compliant wire frames without requiring root
+//! privileges or live network interfaces.
 //!
 //! ## Compiler Architecture
 //!
@@ -23,10 +23,10 @@
 //! | OSI Layer | Count | Supported Protocols |
 //! | :--- | :---: | :--- |
 //! | **Layer 2 (Data Link)** | 8 | `ARP`, `VLAN` (802.1Q), `QINQ` (802.1ad), `MPLS`, `LLDP`, `STP` / `RSTP`, `LACP`, `EAPOL` (802.1X) |
-//! | **Layer 3 (Network, Tunnel, Routing)** | 19 | `ICMP` / `ICMPv6`, `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`, `GENEVE`, `IPSEC`, `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`, `PIM`, `BFD`, `OPENFLOW` |
+//! | **Layer 3 (Network, Tunnel, Routing)** | 20 | `ICMP` / `ICMPv6`, `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`, `GENEVE`, `IPSEC`, `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`, `PIM`, `BFD`, `OPENFLOW` |
 //! | **Layer 4 (Transport)** | 3 | `TCP`, `UDP`, `SCTP` |
 //! | **Layer 7 (Infrastructure & Telemetry)** | 14 | `DNS`, `MDNS`, `DHCP` / `DHCPv6`, `NTP`, `PTP`, `SNMP1`, `SNMP2`, `SNMP3`, `RADIUS`, `TACACS`, `SYSLOG`, `NETFLOW`, `IPFIX`, `SFLOW` |
-//! | **Layer 7 (Application, Web, VoIP, DB)** | 31 | `TFTP`, `FTP`, `SSH`, `TELNET`, `HTTP`, `HTTP2`, `GRPC`, `WEBSOCKET`, `TLS`, `QUIC`, `STUN`, `SIP`, `RTP`, `RTSP`, `SMTP`, `IMAP`, `POP3`, `KERBEROS`, `LDAP`, `SMB`, `NFS`, `REDIS`, `MEMCACHED`, `MYSQL`, `POSTGRES`, `MQTT`, `COAP`, `AMQP`, `SSDP`, `WHOIS` |
+//! | **Layer 7 (Application, Web, VoIP, DB)** | 30 | `TFTP`, `FTP`, `SSH`, `TELNET`, `HTTP`, `HTTP2`, `GRPC`, `WEBSOCKET`, `TLS`, `QUIC`, `STUN`, `SIP`, `RTP`, `RTSP`, `SMTP`, `IMAP`, `POP3`, `KERBEROS`, `LDAP`, `SMB`, `NFS`, `REDIS`, `MEMCACHED`, `MYSQL`, `POSTGRES`, `MQTT`, `COAP`, `AMQP`, `SSDP`, `WHOIS` |
 //! | **Layer 7 (Industrial SCADA / OT)** | 6 | `MODBUS`, `BACNET`, `DNP3`, `S7COMM`, `ETHERNETIP`, `OPCUA` |
 //!
 //! ## FrameAssembly DSL Syntax Example

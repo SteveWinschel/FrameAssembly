@@ -2,8 +2,8 @@ cff-version: 1.2.0
 title: "FrameAssembly: A Domain-Specific Language and Optimizing Compiler for Deterministic Network Traffic Generation"
 message: "If you use FrameAssembly in your research, network security engineering, or AI training pipelines, please cite it using this metadata."
 type: software
-version: "1.2.0"
-date-released: "2026-10-27"
+version: "1.2.1"
+date-released: "2026-10-28"
 authors:
   - given-names: Steve
     family-names: Winschel
@@ -16,6 +16,8 @@ keywords:
   - pcapng
   - domain-specific-language
   - packet-crafting
+  - wireshark
+  - suricata
   - network-security
   - synthetic-traffic
   - rust

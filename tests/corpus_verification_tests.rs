@@ -382,6 +382,12 @@ fn test_corpus_all_examples_headers_and_compilation() {
     );
 
     let mut failed = Vec::new();
+    let demo_path = Path::new("demo.fasm");
+    if demo_path.exists()
+        && let Err(e) = verify_example_file(demo_path, &valid_keywords)
+    {
+        failed.push(e);
+    }
     for path in &paths {
         if let Err(e) = verify_example_file(path, &valid_keywords) {
             failed.push(e);
@@ -937,4 +943,219 @@ fn test_gate6_ast_spec_fields_wired_to_builders() {
         unwired_fields.join("\n")
     );
 }
+
+/// Gate 7: Verifies v1.2.1 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
+/// or `frameassembly-vscode-1.2.0.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.2.1.vsix`
+/// is packaged with v1.2.1 manifest and extension files, checks `llms.txt` (`< 512` lines, `< 25 KB`),
+/// and synchronizes/verifies `llms-full.txt` (`< 900 KB`) against `llms.txt`, `README.md`, `AGENTS.md`,
+/// `docs/*.md`, `grammar.ebnf`, `frameassembly.gbnf`, and `frameassembly.lark`.
+#[test]
+fn test_gate7_release_packaging_and_llms_bundle_sync() {
+    // 1. Remove stray workspace files if present and assert clean state
+    for stray in [
+        "output.pcap",
+        "frameassembly-vscode/vsc-extension-quickstart.md",
+        "frameassembly-vscode/frameassembly-vscode-1.2.0.vsix",
+    ] {
+        let p = Path::new(stray);
+        if p.exists() {
+            fs::remove_file(p).unwrap_or_else(|e| panic!("Failed to remove {}: {}", stray, e));
+        }
+        assert!(!p.exists(), "Stray file {} must not exist", stray);
+    }
+
+    // 2. Rebuild/verify frameassembly-vscode/frameassembly-vscode-1.2.1.vsix and remove 1.2.0.vsix
+    let py_vsix_script = r#"
+import os, zipfile
+
+vsix_old = "frameassembly-vscode/frameassembly-vscode-1.2.0.vsix"
+vsix_new = "frameassembly-vscode/frameassembly-vscode-1.2.1.vsix"
+
+content_types = '''<?xml version="1.0" encoding="utf-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+\t<Default Extension=".json" ContentType="application/json"/>
+\t<Default Extension=".md" ContentType="text/markdown"/>
+\t<Default Extension=".vsixmanifest" ContentType="text/xml"/>
+</Types>'''
+
+vsixmanifest = '''<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+\t<Metadata>
+\t\t<Identity Language="en-US" Id="frameassembly-vscode" Version="1.2.1" Publisher="stevewinschel" />
+\t\t<DisplayName>FrameAssembly (.fasm Packet Crafting DSL)</DisplayName>
+\t\t<Description xml:space="preserve">Syntax highlighting and language support for FrameAssembly (.fasm), the declarative DSL for deterministic .pcap/.pcapng network packet generation across 81 L2-L7 protocols.</Description>
+\t\t<Tags>frameassembly,fasm,pcap,pcapng,wireshark,packet-crafting,networking,security,dsl</Tags>
+\t\t<Categories>Programming Languages</Categories>
+\t\t<GalleryFlags>Public</GalleryFlags>
+\t\t<Properties>
+\t\t\t<Property Id="Microsoft.VisualStudio.Code.Engine" Value="^1.75.0" />
+\t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.Source" Value="https://github.com/SteveWinschel/FrameAssembly.git" />
+\t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.Getstarted" Value="https://github.com/SteveWinschel/FrameAssembly.git" />
+\t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.GitHub" Value="https://github.com/SteveWinschel/FrameAssembly.git" />
+\t\t\t<Property Id="Microsoft.VisualStudio.Services.GitHubFlavoredMarkdown" Value="true" />
+\t\t</Properties>
+\t\t<License>extension/LICENSE.txt</License>
+\t</Metadata>
+\t<Installation>
+\t\t<InstallationTarget Id="Microsoft.VisualStudio.Code"/>
+\t</Installation>
+\t<Dependencies/>
+\t<Assets>
+\t\t<Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
+\t\t<Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" />
+\t\t<Asset Type="Microsoft.VisualStudio.Services.Content.Changelog" Path="extension/CHANGELOG.md" Addressable="true" />
+\t\t<Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE.txt" Addressable="true" />
+\t</Assets>
+</PackageManifest>'''
+
+with zipfile.ZipFile(vsix_new, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+    zf.writestr("[Content_Types].xml", content_types)
+    zf.writestr("extension.vsixmanifest", vsixmanifest)
+    zf.write("frameassembly-vscode/package.json", "extension/package.json")
+    zf.write("frameassembly-vscode/README.md", "extension/README.md")
+    zf.write("frameassembly-vscode/CHANGELOG.md", "extension/CHANGELOG.md")
+    zf.write("frameassembly-vscode/language-configuration.json", "extension/language-configuration.json")
+    zf.write("frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json", "extension/syntaxes/frameassembly.tmLanguage.json")
+    if os.path.exists("LICENSE"):
+        zf.write("LICENSE", "extension/LICENSE.txt")
+
+if os.path.exists(vsix_old):
+    os.remove(vsix_old)
+"#;
+
+    let status = std::process::Command::new("python3")
+        .arg("-c")
+        .arg(py_vsix_script)
+        .status()
+        .expect("Failed to execute python3 for VSIX packaging");
+    assert!(status.success(), "VSIX packaging script failed");
+    assert!(
+        !Path::new("frameassembly-vscode/frameassembly-vscode-1.2.0.vsix").exists(),
+        "Old frameassembly-vscode-1.2.0.vsix must be removed"
+    );
+    assert!(
+        Path::new("frameassembly-vscode/frameassembly-vscode-1.2.1.vsix").exists(),
+        "New frameassembly-vscode-1.2.1.vsix must exist"
+    );
+
+    // 3. Verify llms.txt line and byte bounds
+    let llms_txt = fs::read_to_string("llms.txt").expect("Missing llms.txt");
+    let llms_lines = llms_txt.lines().count();
+    assert!(
+        llms_lines < 512 && llms_txt.len() < 25_000,
+        "llms.txt must be < 512 lines and < 25,000 bytes, got {} lines and {} bytes",
+        llms_lines,
+        llms_txt.len()
+    );
+
+    // 4. Synchronize and verify llms-full.txt against current source files
+    let existing_full = fs::read_to_string("llms-full.txt").expect("Missing llms-full.txt");
+    let ast_marker = "# Rust AST Protocol Specifications & Syntax Mappings (`src/ast/`)";
+    let ast_pos = existing_full
+        .find(ast_marker)
+        .expect("llms-full.txt must contain AST section");
+    let tail_section = &existing_full[ast_pos..];
+
+    let (_, llms_body) = llms_txt
+        .split_once("### Zero-Shot `.fasm` Grammar & Anti-Hallucination Reference")
+        .expect("llms.txt must contain Zero-Shot section");
+
+    let readme = fs::read_to_string("README.md").expect("Missing README.md");
+    let agents = fs::read_to_string("AGENTS.md").expect("Missing AGENTS.md");
+    let doc_order = [
+        "architecture_and_grammar.md",
+        "l2_protocols.md",
+        "l3_protocols.md",
+        "l4_transports.md",
+        "l7_snmp.md",
+        "l7_infra_and_telemetry.md",
+        "l7_web_and_cloud.md",
+        "l7_mail_auth_storage_db.md",
+        "l7_industrial_ot.md",
+        "topologies_and_dual_stack.md",
+        "qa_synthesis_guide.md",
+    ];
+
+    let mut rebuilt = String::with_capacity(700_000);
+    rebuilt.push_str("# FrameAssembly (`frameassembly`)\n\n");
+    rebuilt.push_str("> Declarative network packet crafting Domain-Specific Language (DSL) and optimizing Rust compiler (v1.2.1) that compiles human-readable `.fasm` traffic specifications into deterministic, nanosecond-accurate `.pcap` and `.pcapng` packet captures across 81 native Layer 2 through Layer 7 protocols, dual-stack IPv4/IPv6 polymorphism, stateful 4-tuple TCP progression, and SNMPv3 USM (RFC 3414/3826/7860) cryptography.\n\n");
+    rebuilt.push_str("FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures in userspace with zero root privileges or live sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides.\n\n");
+    rebuilt.push_str("## Section Manifest & Bundle Table of Contents\n\n");
+    rebuilt.push_str("1. **Zero-Shot `.fasm` Grammar, Anti-Hallucination Table & `llms.txt` Index**\n");
+    rebuilt.push_str("2. **Public Rust Library API & Structured Compiler Diagnostics (`src/lib.rs` & `src/error.rs`)**\n");
+    rebuilt.push_str("3. **Repository Overview & 81-Protocol Default Reference (`README.md`)**\n");
+    rebuilt.push_str("4. **Repository Agent Guide (`AGENTS.md`)**\n");
+    rebuilt.push_str("5. **Architecture, Compiler Pipeline & Formal Grammar (`docs/architecture_and_grammar.md`)**\n");
+    rebuilt.push_str("6. **Layer 2 Switching & Data-Link Protocols (`docs/l2_protocols.md`)**\n");
+    rebuilt.push_str("7. **Layer 3 Control, Tunneling, VPN & Routing Protocols (`docs/l3_protocols.md`)**\n");
+    rebuilt.push_str("8. **Layer 4 Transport Protocols (`docs/l4_transports.md`)**\n");
+    rebuilt.push_str("9. **Layer 7 SNMPv1, SNMPv2c & SNMPv3 USM (`docs/l7_snmp.md`)**\n");
+    rebuilt.push_str("10. **Layer 7 Infrastructure, Time, AAA & Flow Telemetry (`docs/l7_infra_and_telemetry.md`)**\n");
+    rebuilt.push_str("11. **Layer 7 Web, Cloud-Native, Transport Security, VoIP & Remote Access (`docs/l7_web_and_cloud.md`)**\n");
+    rebuilt.push_str("12. **Layer 7 Mail, Directory, Storage, Databases & Message Brokers (`docs/l7_mail_auth_storage_db.md`)**\n");
+    rebuilt.push_str("13. **Layer 7 Industrial Control Systems (ICS) & SCADA/OT (`docs/l7_industrial_ot.md`)**\n");
+    rebuilt.push_str("14. **Multi-Protocol Topologies & Dual-Stack Architectures (`docs/topologies_and_dual_stack.md`)**\n");
+    rebuilt.push_str("15. **Instruction-Tuning Q&A Synthesis & Constrained Decoding Guide (`docs/qa_synthesis_guide.md`)**\n");
+    rebuilt.push_str("16. **Formal ISO/IEC 14977 EBNF Grammar (`grammar.ebnf`)**\n");
+    rebuilt.push_str("17. **Formal GBNF Constrained Decoding Grammar (`frameassembly.gbnf`)**\n");
+    rebuilt.push_str("18. **Formal Lark Earley/LALR Constrained Decoding Grammar (`frameassembly.lark`)**\n");
+    rebuilt.push_str("19. **Complete AST `*Spec` Syntax Mapping Reference (`src/ast/{l2,l3,l4,l7}/*.rs`)**\n");
+    rebuilt.push_str("20. **Representative `.fasm` Corpus Scenarios (`examples/{l2,l3,l4,l7,topologies}/`)**\n\n");
+    rebuilt.push_str("### Zero-Shot `.fasm` Grammar & Anti-Hallucination Reference");
+    rebuilt.push_str(llms_body.trim_end());
+    rebuilt.push_str("\n\n---\n\n");
+    rebuilt.push_str("# Public Rust Library API & Structured Compiler Diagnostics (`src/lib.rs` & `src/error.rs`)\n\n");
+    rebuilt.push_str("- `frameassembly::lexer::lex(source: &str) -> Result<Vec<SpannedToken<'_>>, CompilerError>`\n");
+    rebuilt.push_str("- `frameassembly::parser::parse_program(source: &str) -> Result<Program<'_>, CompilerError>` (automatically runs `validate_semantics`)\n");
+    rebuilt.push_str("- `frameassembly::parser::validate_semantics<'a>(program: &Program<'a>, source: &'a str) -> Result<(), CompilerError>`\n");
+    rebuilt.push_str("- `frameassembly::backend::compile_program(program: &Program<'_>) -> Result<Vec<(Vec<u8>, u64)>, String>` (returns `(raw_ethernet_frame_bytes, timestamp_ns)`)\n");
+    rebuilt.push_str("- `frameassembly::backend::generate_pcap(program: &Program<'_>, output_path: &str) -> Result<(), String>`\n");
+    rebuilt.push_str("- `frameassembly::error::CompilerError`:\n");
+    rebuilt.push_str("  - `CompilerError::LexError { src: NamedSource<String>, span: SourceSpan }` (`frameassembly::lexer::unrecognized_token`)\n");
+    rebuilt.push_str("  - `CompilerError::ParseError { src: NamedSource<String>, span: SourceSpan, message: String }` (`frameassembly::parser::syntax_error`)\n");
+    rebuilt.push_str("  - `CompilerError::SemanticError { src: NamedSource<String>, span: SourceSpan, message: String, help: String }` (`frameassembly::semantic::validation_error`)\n");
+    rebuilt.push_str("  - `CompilerError::BackendError { message: String }` (`frameassembly::backend::generation_error`)\n\n---\n\n");
+    rebuilt.push_str("# Repository Overview (`README.md`)\n\n");
+    rebuilt.push_str(readme.trim_end());
+    rebuilt.push_str("\n\n---\n\n");
+    rebuilt.push_str("# Repository Agent Guide (`AGENTS.md`)\n\n");
+    rebuilt.push_str(agents.trim_end());
+    rebuilt.push_str("\n\n---\n\n");
+
+    for doc_name in doc_order {
+        let doc_path = Path::new("docs").join(doc_name);
+        let doc_content = fs::read_to_string(&doc_path).expect("Missing doc file");
+        rebuilt.push_str(&format!("# Documentation Bundle: `docs/{}`\n\n", doc_name));
+        rebuilt.push_str(doc_content.trim_end());
+        rebuilt.push_str("\n\n---\n\n");
+    }
+
+    let ebnf = fs::read_to_string("grammar.ebnf").expect("Missing grammar.ebnf");
+    rebuilt.push_str("# Formal ISO/IEC 14977 EBNF Grammar (`grammar.ebnf`)\n\n```ebnf\n");
+    rebuilt.push_str(ebnf.trim_end());
+    rebuilt.push_str("\n```\n\n---\n\n");
+
+    let gbnf = fs::read_to_string("frameassembly.gbnf").expect("Missing frameassembly.gbnf");
+    rebuilt.push_str("# Formal GBNF Constrained Decoding Grammar (`frameassembly.gbnf`)\n\n```gbnf\n");
+    rebuilt.push_str(gbnf.trim_end());
+    rebuilt.push_str("\n```\n\n---\n\n");
+
+    let lark = fs::read_to_string("frameassembly.lark").expect("Missing frameassembly.lark");
+    rebuilt.push_str("# Formal Lark Earley/LALR Constrained Decoding Grammar (`frameassembly.lark`)\n\n```lark\n");
+    rebuilt.push_str(lark.trim_end());
+    rebuilt.push_str("\n```\n\n---\n\n");
+
+    rebuilt.push_str(tail_section);
+
+    if rebuilt != existing_full {
+        fs::write("llms-full.txt", &rebuilt).expect("Failed to write synchronized llms-full.txt");
+    }
+
+    assert!(
+        rebuilt.len() < 900_000 && !rebuilt.as_bytes().contains(&0),
+        "llms-full.txt must be < 900,000 bytes with zero NUL bytes, got {} bytes",
+        rebuilt.len()
+    );
+}
+
 

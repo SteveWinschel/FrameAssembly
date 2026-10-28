@@ -14,7 +14,7 @@ use std::fs;
 fn build_cli() -> Command {
     Command::new("frameassembly")
         .version(env!("CARGO_PKG_VERSION"))
-        .about("A Domain-Specific Language (DSL) compiler for writing deterministic network traffic to .pcap files")
+        .about("Declarative network packet crafting DSL compiler generating deterministic .pcap/.pcapng captures across 81 L2-L7 protocols")
         .arg(
             Arg::new("input")
                 .help("Path to the .fasm source file")

@@ -4,6 +4,10 @@ All notable changes to the "frameassembly-vscode" extension will be documented i
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.2.1] - 2026-10-28
+- Lowered minimum VS Code engine requirement (`engines.vscode`) from `^1.107.0` to `^1.75.0` for broad compatibility across VS Code, Cursor, Windsurf, VSCodium, and Antigravity IDE.
+- Enriched extension manifest metadata (`displayName`, `license`, `homepage`, `bugs`, `keywords`) and synchronized with FrameAssembly v1.2.1 release.
+
 ## [1.2.0] - 2026-10-27
 - Enabled full case-insensitive syntax highlighting (`(?i)`) across all keywords, protocols, constants, modifiers, and duration units (`ns`, `us`, `ms`, `s`, `m`).
 - Synchronized with FrameAssembly v1.2.0 release.

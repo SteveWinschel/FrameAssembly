@@ -1,4 +1,4 @@
-// PROMPT: Omnibus reference script exercising 100% of all FrameAssembly DSL lexical tokens, protocols, TCP flags, SNMP versions, PDU types, USM auth/priv algorithms,.
+// PROMPT: Omnibus reference script exercising 100% of all FrameAssembly DSL lexical tokens, protocols, TCP flags, SNMP versions, PDU types, and USM auth/priv algorithms.
 // TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, ECE, CWR, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ACK, PSH, URG, FIN, RST, UDP, SNMP1, TRAP, COMMUNITY, OID, ENTERPRISE, AGENTIP, COMPILE
 
 // INSTRUCTION: Define omnibus host alpha with IP 10.254.0.1 and MAC 00:11:22:33:44:01.

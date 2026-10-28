@@ -1,6 +1,6 @@
 # FrameAssembly Architecture, Compiler Pipeline & Formal Grammar Reference
 
-FrameAssembly (`frameassembly`) is an optimizing domain-specific language (DSL) and zero-copy network packet compiler written in Rust (Edition 2024). It compiles declarative, human-readable, and LLM-friendly network traffic specifications (`.fasm`) into deterministic, wire-valid classic PCAP (`.pcap`) and PCAPNG packet captures across **81 protocols spanning OSI Layers 2 through 7**.
+FrameAssembly (`frameassembly` v1.2.1) is an optimizing domain-specific language (DSL) and zero-copy network packet compiler written in Rust (Edition 2024). It compiles declarative, human-readable, and LLM-friendly network traffic specifications (`.fasm`) into deterministic, wire-valid classic PCAP (`.pcap`) and PCAPNG packet captures across **81 protocols spanning OSI Layers 2 through 7**.
 
 This canonical reference details the six-stage compiler pipeline, lexical and syntactic design, formal constrained-decoding grammars ([`grammar.ebnf`](../grammar.ebnf), [`frameassembly.gbnf`](../frameassembly.gbnf), and [`frameassembly.lark`](../frameassembly.lark)), stateful 4-tuple tracking, dual-stack IPv4/IPv6 polymorphism, universal cross-layer modifiers, and source-mapped diagnostic reporting.
 

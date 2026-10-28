@@ -279,7 +279,7 @@ flow tri_version_snmp_audit(nms, dev) {
     nms -> dev vlan 99 pcp 2 dscp 16 snmp2 getbulk community "perf_ro" reqid 5001 nonrepeaters 1 maxrepetitions 5 varbind 1.3.6.1.2.1.1.3.0 null varbind 1.3.6.1.2.1.31.1.1.1.6 null wait 2ms
     nms <- dev vlan 99 pcp 2 dscp 16 snmp2 response community "perf_ro" reqid 5001 varbind 1.3.6.1.2.1.1.3.0 timeticks 12500 varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 45000123456 wait 2ms
     nms -> dev vlan 99 pcp 2 dscp 16 snmp3 get user "sec_auditor" engineid "80001f8880990064" engineboots 3 enginetime 5400 auth sha256 "SecAuditSha256!" priv aes "SecAuditAes128!" reqid 5002 varbind 1.3.6.1.2.1.1.1.0 null wait 2ms
-    nms <- dev vlan 99 pcp 2 dscp 16 snmp3 response user "sec_auditor" engineid "80001f8880990064" engineboots 3 enginetime 5400 auth sha256 "SecAuditSha256!" priv aes "SecAuditAes128!" reqid 5002 varbind 1.3.6.1.2.1.1.1.0 string "FrameAssembly Multi-Version SNMP Agent v1.2.0" wait 2ms
+    nms <- dev vlan 99 pcp 2 dscp 16 snmp3 response user "sec_auditor" engineid "80001f8880990064" engineboots 3 enginetime 5400 auth sha256 "SecAuditSha256!" priv aes "SecAuditAes128!" reqid 5002 varbind 1.3.6.1.2.1.1.1.0 string "FrameAssembly Multi-Version SNMP Agent v1.2.1" wait 2ms
 }
 
 // INSTRUCTION: Compile the tri-version SNMP coexistence audit flow.

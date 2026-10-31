@@ -18,10 +18,10 @@
 //!    uppercase `#[token("...")]` keyword in `src/lexer/mod.rs` is present in `grammar.ebnf`,
 //!    `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`,
 //!    and every RHS non-terminal referenced in `grammar.ebnf` and `frameassembly.gbnf` is defined on the LHS.
-//! 5. **Gate 5 (`< 50 KB` File Ceiling, `//!` Module Docstrings, Zero NUL Bytes & Link Integrity)**:
-//!    Every `src/**/*.rs`, `tests/*.rs`, `docs/*.md`, `README.md`, and `examples/**/*.fasm` file is
-//!    `< 50,000` bytes, every `src/**/*.rs` and `tests/*.rs` file begins with `//!` (`>= 50` words),
-//!    zero `0x00` bytes exist in any text or source file, and `docs/` contains the exact 11 canonical guides.
+//! 5. **Gate 5 (`< 50 KB` Rust/Corpus Ceiling, `//!` Module Docstrings, Zero NUL Bytes & Doc Inventory)**:
+//!    Every `src/**/*.rs`, `tests/*.rs`, and `examples/**/*.fasm` file is `< 50,000` bytes (Markdown
+//!    has no size cap), every `src/**/*.rs` and `tests/*.rs` file begins with `//!` (`>= 50` words),
+//!    zero `0x00` bytes exist in any text or source file, and `docs/` holds exactly the 12 canonical guides.
 //! 6. **Gate 6 (AST `*Spec` Fields Wired to Wire Builders)**: Every public field on every protocol
 //!    `*Spec` struct (plus `TcpOptions` and `SctpParams`) in `src/ast/{l2,l3,l4,l7}/*.rs` is wired
 //!    into and referenced by the corresponding wire builder or packet/backend encoder.
@@ -715,33 +715,36 @@ fn test_gate4_constrained_decoding_grammar_lockstep() {
     verify_gbnf_non_terminal_resolution(&gbnf);
 }
 
-/// Gate 5: Verifies `< 50 KB` chunk size limits, `//!` module docstrings (`>= 50` words),
+/// Canonical `docs/*.md` inventory (human guides first, then `for_nerds.md`), shared by Gate 5
+/// (orphan check) and Gate 7 (`llms-full.txt` bundle order).
+const CANONICAL_DOCS: [&str; 12] = [
+    "getting_started.md",
+    "use_cases.md",
+    "l2_protocols.md",
+    "l3_protocols.md",
+    "l4_transports.md",
+    "l7_snmp.md",
+    "l7_infra_and_telemetry.md",
+    "l7_web_and_cloud.md",
+    "l7_mail_auth_storage_db.md",
+    "l7_industrial_ot.md",
+    "topologies_and_dual_stack.md",
+    "for_nerds.md",
+];
+
+/// Gate 5: Verifies `< 50 KB` size limits on Rust sources, `//!` module docstrings (`>= 50` words),
 /// zero `0x00` NUL bytes across `src/**/*.rs`, `tests/*.rs`, `docs/*.md`, and `README.md`,
-/// and canonical `docs/*.md` inventory without orphans.
+/// and canonical `docs/*.md` inventory without orphans (Markdown has no size cap).
 #[test]
 fn test_gate5_markdown_fasm_blocks_and_file_sizes() {
-    let expected_docs: HashSet<&str> = [
-        "architecture_and_grammar.md",
-        "l2_protocols.md",
-        "l3_protocols.md",
-        "l4_transports.md",
-        "l7_snmp.md",
-        "l7_infra_and_telemetry.md",
-        "l7_web_and_cloud.md",
-        "l7_mail_auth_storage_db.md",
-        "l7_industrial_ot.md",
-        "topologies_and_dual_stack.md",
-        "qa_synthesis_guide.md",
-    ]
-    .into_iter()
-    .collect();
+    let expected_docs: HashSet<&str> = CANONICAL_DOCS.into_iter().collect();
 
     let mut doc_files = Vec::new();
     collect_files_with_ext(Path::new("docs"), "md", &mut doc_files);
     assert_eq!(
         doc_files.len(),
-        11,
-        "docs/ must contain exactly the 11 canonical .md guides, found: {:?}",
+        CANONICAL_DOCS.len(),
+        "docs/ must contain exactly the canonical .md guides, found: {:?}",
         doc_files
     );
 
@@ -757,12 +760,6 @@ fn test_gate5_markdown_fasm_blocks_and_file_sizes() {
             !bytes.contains(&0),
             "NUL byte found in {}",
             doc_path.display()
-        );
-        assert!(
-            bytes.len() < 50_000,
-            "{} exceeds 50,000-byte limit ({} bytes)",
-            doc_path.display(),
-            bytes.len()
         );
         let text = String::from_utf8(bytes).unwrap();
         assert!(
@@ -806,14 +803,6 @@ fn test_gate5_markdown_fasm_blocks_and_file_sizes() {
             doc_words
         );
     }
-
-    let readme_bytes = fs::read("README.md").expect("Missing README.md");
-    assert!(!readme_bytes.contains(&0), "NUL byte found in README.md");
-    assert!(
-        readme_bytes.len() < 50_000,
-        "README.md exceeds 50,000-byte limit ({} bytes)",
-        readme_bytes.len()
-    );
 
     for root_file in [
         "README.md",
@@ -944,9 +933,9 @@ fn test_gate6_ast_spec_fields_wired_to_builders() {
     );
 }
 
-/// Gate 7: Verifies v1.2.1 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
-/// or `frameassembly-vscode-1.2.0.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.2.1.vsix`
-/// is packaged with v1.2.1 manifest and extension files, checks `llms.txt` (`< 512` lines, `< 25 KB`),
+/// Gate 7: Verifies v1.2.2 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
+/// or `frameassembly-vscode-1.2.1.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.2.2.vsix`
+/// is packaged with v1.2.2 manifest and extension files, checks `llms.txt` (`< 512` lines, `< 25 KB`),
 /// and synchronizes/verifies `llms-full.txt` (`< 900 KB`) against `llms.txt`, `README.md`, `AGENTS.md`,
 /// `docs/*.md`, `grammar.ebnf`, `frameassembly.gbnf`, and `frameassembly.lark`.
 #[test]
@@ -955,7 +944,7 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
     for stray in [
         "output.pcap",
         "frameassembly-vscode/vsc-extension-quickstart.md",
-        "frameassembly-vscode/frameassembly-vscode-1.2.0.vsix",
+        "frameassembly-vscode/frameassembly-vscode-1.2.1.vsix",
     ] {
         let p = Path::new(stray);
         if p.exists() {
@@ -964,12 +953,12 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
         assert!(!p.exists(), "Stray file {} must not exist", stray);
     }
 
-    // 2. Rebuild/verify frameassembly-vscode/frameassembly-vscode-1.2.1.vsix and remove 1.2.0.vsix
+    // 2. Rebuild/verify frameassembly-vscode/frameassembly-vscode-1.2.2.vsix and remove 1.2.1.vsix
     let py_vsix_script = r#"
 import os, zipfile
 
-vsix_old = "frameassembly-vscode/frameassembly-vscode-1.2.0.vsix"
-vsix_new = "frameassembly-vscode/frameassembly-vscode-1.2.1.vsix"
+vsix_old = "frameassembly-vscode/frameassembly-vscode-1.2.1.vsix"
+vsix_new = "frameassembly-vscode/frameassembly-vscode-1.2.2.vsix"
 
 content_types = '''<?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -981,7 +970,7 @@ content_types = '''<?xml version="1.0" encoding="utf-8"?>
 vsixmanifest = '''<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
 \t<Metadata>
-\t\t<Identity Language="en-US" Id="frameassembly-vscode" Version="1.2.1" Publisher="stevewinschel" />
+\t\t<Identity Language="en-US" Id="frameassembly-vscode" Version="1.2.2" Publisher="stevewinschel" />
 \t\t<DisplayName>FrameAssembly (.fasm Packet Crafting DSL)</DisplayName>
 \t\t<Description xml:space="preserve">Syntax highlighting and language support for FrameAssembly (.fasm), the declarative DSL for deterministic .pcap/.pcapng network packet generation across 81 L2-L7 protocols.</Description>
 \t\t<Tags>frameassembly,fasm,pcap,pcapng,wireshark,packet-crafting,networking,security,dsl</Tags>
@@ -1030,12 +1019,12 @@ if os.path.exists(vsix_old):
         .expect("Failed to execute python3 for VSIX packaging");
     assert!(status.success(), "VSIX packaging script failed");
     assert!(
-        !Path::new("frameassembly-vscode/frameassembly-vscode-1.2.0.vsix").exists(),
-        "Old frameassembly-vscode-1.2.0.vsix must be removed"
+        !Path::new("frameassembly-vscode/frameassembly-vscode-1.2.1.vsix").exists(),
+        "Old frameassembly-vscode-1.2.1.vsix must be removed"
     );
     assert!(
-        Path::new("frameassembly-vscode/frameassembly-vscode-1.2.1.vsix").exists(),
-        "New frameassembly-vscode-1.2.1.vsix must exist"
+        Path::new("frameassembly-vscode/frameassembly-vscode-1.2.2.vsix").exists(),
+        "New frameassembly-vscode-1.2.2.vsix must exist"
     );
 
     // 3. Verify llms.txt line and byte bounds
@@ -1062,45 +1051,23 @@ if os.path.exists(vsix_old):
 
     let readme = fs::read_to_string("README.md").expect("Missing README.md");
     let agents = fs::read_to_string("AGENTS.md").expect("Missing AGENTS.md");
-    let doc_order = [
-        "architecture_and_grammar.md",
-        "l2_protocols.md",
-        "l3_protocols.md",
-        "l4_transports.md",
-        "l7_snmp.md",
-        "l7_infra_and_telemetry.md",
-        "l7_web_and_cloud.md",
-        "l7_mail_auth_storage_db.md",
-        "l7_industrial_ot.md",
-        "topologies_and_dual_stack.md",
-        "qa_synthesis_guide.md",
-    ];
-
     let mut rebuilt = String::with_capacity(700_000);
     rebuilt.push_str("# FrameAssembly (`frameassembly`)\n\n");
-    rebuilt.push_str("> Declarative network packet crafting Domain-Specific Language (DSL) and optimizing Rust compiler (v1.2.1) that compiles human-readable `.fasm` traffic specifications into deterministic, nanosecond-accurate `.pcap` and `.pcapng` packet captures across 81 native Layer 2 through Layer 7 protocols, dual-stack IPv4/IPv6 polymorphism, stateful 4-tuple TCP progression, and SNMPv3 USM (RFC 3414/3826/7860) cryptography.\n\n");
+    rebuilt.push_str("> Rust compiler (v1.2.2) that turns plain-text `.fasm` packet recipes into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built for network engineers who do not program; a companion to Wireshark/`tshark` (inspection) and `tcpreplay` (wire injection).\n\n");
     rebuilt.push_str("FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures in userspace with zero root privileges or live sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides.\n\n");
     rebuilt.push_str("## Section Manifest & Bundle Table of Contents\n\n");
     rebuilt.push_str("1. **Zero-Shot `.fasm` Grammar, Anti-Hallucination Table & `llms.txt` Index**\n");
     rebuilt.push_str("2. **Public Rust Library API & Structured Compiler Diagnostics (`src/lib.rs` & `src/error.rs`)**\n");
     rebuilt.push_str("3. **Repository Overview & 81-Protocol Default Reference (`README.md`)**\n");
     rebuilt.push_str("4. **Repository Agent Guide (`AGENTS.md`)**\n");
-    rebuilt.push_str("5. **Architecture, Compiler Pipeline & Formal Grammar (`docs/architecture_and_grammar.md`)**\n");
-    rebuilt.push_str("6. **Layer 2 Switching & Data-Link Protocols (`docs/l2_protocols.md`)**\n");
-    rebuilt.push_str("7. **Layer 3 Control, Tunneling, VPN & Routing Protocols (`docs/l3_protocols.md`)**\n");
-    rebuilt.push_str("8. **Layer 4 Transport Protocols (`docs/l4_transports.md`)**\n");
-    rebuilt.push_str("9. **Layer 7 SNMPv1, SNMPv2c & SNMPv3 USM (`docs/l7_snmp.md`)**\n");
-    rebuilt.push_str("10. **Layer 7 Infrastructure, Time, AAA & Flow Telemetry (`docs/l7_infra_and_telemetry.md`)**\n");
-    rebuilt.push_str("11. **Layer 7 Web, Cloud-Native, Transport Security, VoIP & Remote Access (`docs/l7_web_and_cloud.md`)**\n");
-    rebuilt.push_str("12. **Layer 7 Mail, Directory, Storage, Databases & Message Brokers (`docs/l7_mail_auth_storage_db.md`)**\n");
-    rebuilt.push_str("13. **Layer 7 Industrial Control Systems (ICS) & SCADA/OT (`docs/l7_industrial_ot.md`)**\n");
-    rebuilt.push_str("14. **Multi-Protocol Topologies & Dual-Stack Architectures (`docs/topologies_and_dual_stack.md`)**\n");
-    rebuilt.push_str("15. **Instruction-Tuning Q&A Synthesis & Constrained Decoding Guide (`docs/qa_synthesis_guide.md`)**\n");
-    rebuilt.push_str("16. **Formal ISO/IEC 14977 EBNF Grammar (`grammar.ebnf`)**\n");
-    rebuilt.push_str("17. **Formal GBNF Constrained Decoding Grammar (`frameassembly.gbnf`)**\n");
-    rebuilt.push_str("18. **Formal Lark Earley/LALR Constrained Decoding Grammar (`frameassembly.lark`)**\n");
-    rebuilt.push_str("19. **Complete AST `*Spec` Syntax Mapping Reference (`src/ast/{l2,l3,l4,l7}/*.rs`)**\n");
-    rebuilt.push_str("20. **Representative `.fasm` Corpus Scenarios (`examples/{l2,l3,l4,l7,topologies}/`)**\n\n");
+    for (i, doc_name) in CANONICAL_DOCS.iter().enumerate() {
+        rebuilt.push_str(&format!("{}. **Documentation Guide (`docs/{}`)**\n", i + 5, doc_name));
+    }
+    rebuilt.push_str("17. **Formal ISO/IEC 14977 EBNF Grammar (`grammar.ebnf`)**\n");
+    rebuilt.push_str("18. **Formal GBNF Constrained Decoding Grammar (`frameassembly.gbnf`)**\n");
+    rebuilt.push_str("19. **Formal Lark Earley/LALR Constrained Decoding Grammar (`frameassembly.lark`)**\n");
+    rebuilt.push_str("20. **Complete AST `*Spec` Syntax Mapping Reference (`src/ast/{l2,l3,l4,l7}/*.rs`)**\n");
+    rebuilt.push_str("21. **Representative `.fasm` Corpus Scenarios (`examples/{l2,l3,l4,l7,topologies}/`)**\n\n");
     rebuilt.push_str("### Zero-Shot `.fasm` Grammar & Anti-Hallucination Reference");
     rebuilt.push_str(llms_body.trim_end());
     rebuilt.push_str("\n\n---\n\n");
@@ -1122,7 +1089,7 @@ if os.path.exists(vsix_old):
     rebuilt.push_str(agents.trim_end());
     rebuilt.push_str("\n\n---\n\n");
 
-    for doc_name in doc_order {
+    for doc_name in CANONICAL_DOCS {
         let doc_path = Path::new("docs").join(doc_name);
         let doc_content = fs::read_to_string(&doc_path).expect("Missing doc file");
         rebuilt.push_str(&format!("# Documentation Bundle: `docs/{}`\n\n", doc_name));

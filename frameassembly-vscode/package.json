@@ -2,7 +2,7 @@
   "name": "frameassembly-vscode",
   "displayName": "FrameAssembly (.fasm Packet Crafting DSL)",
   "description": "Syntax highlighting and language support for FrameAssembly (.fasm), the declarative DSL for deterministic .pcap/.pcapng network packet generation across 81 L2-L7 protocols.",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "publisher": "stevewinschel",
   "license": "MIT",
   "homepage": "https://github.com/SteveWinschel/FrameAssembly",

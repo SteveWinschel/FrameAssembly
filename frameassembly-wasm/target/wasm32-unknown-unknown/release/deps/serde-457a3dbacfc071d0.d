@@ -1,0 +1,14 @@
+/home/steve/frameassembly/frameassembly-wasm/target/wasm32-unknown-unknown/release/deps/serde-457a3dbacfc071d0.d: /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/steve/frameassembly/frameassembly-wasm/target/wasm32-unknown-unknown/release/build/serde-bd2fb786e5e7b4a7/out/private.rs
+
+/home/steve/frameassembly/frameassembly-wasm/target/wasm32-unknown-unknown/release/deps/libserde-457a3dbacfc071d0.rlib: /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/steve/frameassembly/frameassembly-wasm/target/wasm32-unknown-unknown/release/build/serde-bd2fb786e5e7b4a7/out/private.rs
+
+/home/steve/frameassembly/frameassembly-wasm/target/wasm32-unknown-unknown/release/deps/libserde-457a3dbacfc071d0.rmeta: /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/steve/frameassembly/frameassembly-wasm/target/wasm32-unknown-unknown/release/build/serde-bd2fb786e5e7b4a7/out/private.rs
+
+/home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs:
+/home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs:
+/home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs:
+/home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs:
+/home/steve/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs:
+/home/steve/frameassembly/frameassembly-wasm/target/wasm32-unknown-unknown/release/build/serde-bd2fb786e5e7b4a7/out/private.rs:
+
+# env-dep:OUT_DIR=/home/steve/frameassembly/frameassembly-wasm/target/wasm32-unknown-unknown/release/build/serde-bd2fb786e5e7b4a7/out

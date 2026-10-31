@@ -4,6 +4,9 @@ All notable changes to the "frameassembly-vscode" extension will be documented i
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.2.2] - Unreleased
+- Synchronized extension version with FrameAssembly v1.2.2 (documentation overhaul for network engineers; no grammar changes).
+
 ## [1.2.1] - 2026-10-28
 - Lowered minimum VS Code engine requirement (`engines.vscode`) from `^1.107.0` to `^1.75.0` for broad compatibility across VS Code, Cursor, Windsurf, VSCodium, and Antigravity IDE.
 - Enriched extension manifest metadata (`displayName`, `license`, `homepage`, `bugs`, `keywords`) and synchronized with FrameAssembly v1.2.1 release.

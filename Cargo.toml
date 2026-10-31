@@ -1,6 +1,6 @@
 [package]
 name = "frameassembly"
-version = "1.2.1"
+version = "1.2.2"
 edition = "2024"
 rust-version = "1.85"
 description = "Declarative Rust DSL and compiler to generate deterministic .pcap/.pcapng packet captures across 81 L2-L7 protocols for Wireshark, IDS & CI testing."

@@ -1,0 +1,37 @@
+[package]
+name = "frameassembly-wasm"
+version = "1.2.2"
+edition = "2024"
+authors = ["Steve Winschel"]
+description = "WebAssembly compiler, packet inspector, and IDE diagnostics for the FrameAssembly (.fasm) network packet synthesis DSL"
+license = "MIT"
+repository = "https://github.com/SteveWinschel/FrameAssembly"
+homepage = "https://github.com/SteveWinschel/FrameAssembly"
+keywords = ["frameassembly", "pcap", "pcapng", "wireshark", "wasm"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+frameassembly = "1.2.1"
+miette = { version = "7.6.0", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6.5"
+wasm-bindgen = "0.2.129"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = [
+    "-Oz",
+    "--enable-bulk-memory",
+    "--enable-bulk-memory-opt",
+    "--enable-nontrapping-float-to-int",
+    "--enable-sign-ext",
+    "--enable-mutable-globals",
+    "--enable-reference-types",
+]

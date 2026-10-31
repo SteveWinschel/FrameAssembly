@@ -1,459 +1,210 @@
 # Layer 2 Data Link Protocols & Encapsulation Reference
 
-FrameAssembly provides native, zero-dependency packet crafting and wire encapsulation for all eight IEEE and IETF Layer 2 (Data Link) and Layer 2.5 protocols: **ARP (RFC 826)**, **VLAN (IEEE 802.1Q)**, **QINQ (IEEE 802.1ad)**, **LLDP (IEEE 802.1AB)**, **STP / RSTP (IEEE 802.1D / 802.1w)**, **LACP (IEEE 802.3ad / 802.1AX)**, **EAPOL (IEEE 802.1X)**, and **MPLS (RFC 3031 / RFC 3032)**.
+FrameAssembly supports **8 Layer 2 and Layer 2.5 protocols** natively—generating valid Ethernet II / IEEE 802.3 LLC framing, multicast MACs, and protocol TLVs automatically when optional fields are omitted.
 
-Every Layer 2 protocol compiles with RFC-compliant default fields when optional modifiers are omitted and supports granular field overrides for switch fabric simulation, carrier Ethernet testing, Network Access Control (NAC) verification, and security dataset generation.
-
----
-
-## 1. Layer 2 Protocol Architecture & RFC Summary
-
-| Protocol | Keyword | Standard RFC / IEEE | EtherType / Multicast MAC | Corpus Directory | Key Capabilities |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **ARP** | `ARP` | RFC 826 / RFC 5227 | `0x0806` / `ff:ff:ff:ff:ff:ff` | [`examples/l2/arp/`](../examples/l2/arp) | Address resolution, gratuitous ARP (`GARP`), proxy ARP, DAD |
-| **VLAN** | `VLAN` | IEEE 802.1Q / 802.1p | `0x8100` | [`examples/l2/vlan/`](../examples/l2/vlan) | 12-bit VID (`0..4095`), 3-bit `PCP` CoS (`0..7`), 1-bit `DEI` |
-| **QINQ** | `QINQ` | IEEE 802.1ad | `0x88A8` (S-Tag) + `0x8100` (C-Tag) | [`examples/l2/qinq/`](../examples/l2/qinq) | Provider bridging double-tagging (`QINQ <s_vid> INNER_VLAN <c_vid>`) |
-| **LLDP** | `LLDP` | IEEE 802.1AB | `0x88CC` / `01:80:c2:00:00:0e` | [`examples/l2/lldp/`](../examples/l2/lldp) | Chassis ID, Port ID, TTL, System Name, System Description TLVs |
-| **STP** | `STP` | IEEE 802.1D / 802.1w | `0x0026` (802.3 LLC) / `01:80:c2:00:00:00` | [`examples/l2/stp/`](../examples/l2/stp) | Classic STP and `RSTP` BPDUs, root elections, path cost, timers |
-| **LACP** | `LACP` | IEEE 802.3ad / 802.1AX | `0x8809` / `01:80:c2:00:00:02` | [`examples/l2/lacp/`](../examples/l2/lacp) | Link aggregation Actor/Partner system MAC, key, port, state machine |
-| **EAPOL** | `EAPOL` | IEEE 802.1X-2020 | `0x888E` / `01:80:c2:00:00:03` | [`examples/l2/eapol/`](../examples/l2/eapol) | `START`, `LOGOFF`, `KEY`, and `EAP_PACKET` (Identity, MD5, TLS) |
-| **MPLS** | `MPLS` | RFC 3031 / RFC 3032 | `0x8847` (unicast) | [`examples/l2/mpls/`](../examples/l2/mpls) | 20-bit label switching (`LABEL`), 3-bit `EXP`, `BOS`, `MPLS_TTL` |
+| Protocol | Keyword | Standard | EtherType / Multicast MAC | Primary Use Cases |
+| :--- | :--- | :--- | :--- | :--- |
+| **ARP** | `ARP` | RFC 826 / 5227 | `0x0806` / `ff:ff:ff:ff:ff:ff` | Gateway MAC lookup, Gratuitous ARP (`GARP`) VIP failover, IP conflict probes |
+| **VLAN** | `VLAN` | IEEE 802.1Q / 802.1p | `0x8100` | 12-bit VLAN ID (`1..4094`), 3-bit CoS priority (`PCP`), 1-bit drop bit (`DEI`) |
+| **QinQ** | `QINQ` | IEEE 802.1ad | `0x88A8` (S-Tag) + `0x8100` (C-Tag) | Carrier Metro Ethernet double-tagging (`QINQ <s_vid> INNER_VLAN <c_vid>`) |
+| **LLDP** | `LLDP` | IEEE 802.1AB | `0x88CC` / `01:80:c2:00:00:0e` | Chassis ID, Port ID, TTL, System Name, and System Description TLVs |
+| **STP / RSTP**| `STP` | IEEE 802.1D / 802.1w | 802.3 LLC / `01:80:c2:00:00:00` | Root Bridge elections, RSTP Proposal/Agreement BPDUs, BPDU Guard tests |
+| **LACP** | `LACP` | IEEE 802.3ad / 802.1AX| `0x8809` / `01:80:c2:00:00:02` | Port-Channel / LAG Actor & Partner state synchronization |
+| **EAPOL** | `EAPOL` | IEEE 802.1X | `0x888E` / `01:80:c2:00:00:03` | Port NAC (`START`, `EAP_PACKET` Identity/MD5/TLS, WPA `KEY`, `LOGOFF`) |
+| **MPLS** | `MPLS` | RFC 3031 / 3032 | `0x8847` | 20-bit label switching (`MPLS` / `LABEL`), Traffic Class (`EXP`), `BOS`, `MPLS_TTL` |
 
 ### Universal Ethernet II Header Overrides
-In addition to protocol-specific modifiers, any frame statement in FrameAssembly accepts Ethernet II header overrides:
-- `SRCMAC <mac>` (or `SRC_MAC <mac>`): Overrides the 48-bit source MAC address in the outer Ethernet II frame header.
-- `DSTMAC <mac>` (or `DST_MAC <mac>`): Overrides the 48-bit destination MAC address in the outer Ethernet II frame header.
-- `ETHERTYPE <u16>` (or `ETHER_TYPE <u16>`): Overrides the 16-bit EtherType field in the outer Ethernet II frame header.
+Any statement in FrameAssembly also accepts outer Ethernet header overrides:
+* `SRCMAC <mac>`: Overrides the 48-bit source MAC address.
+* `DSTMAC <mac>`: Overrides the 48-bit destination MAC address.
+* `ETHERTYPE <u16>`: Overrides the 16-bit EtherType field.
 
 ---
 
-## 2. Address Resolution Protocol (`ARP` — RFC 826)
+## 1. Address Resolution Protocol (`ARP` — RFC 826)
 
-The Address Resolution Protocol maps IPv4 network addresses (`0x0800`) to 48-bit IEEE 802 Ethernet hardware addresses (`0x0001`). When `ARP` is used between IPv6 endpoints in a polymorphic dual-stack flow, the compiler automatically synthesizes an RFC 4861 ICMPv6 Neighbor Solicitation / Advertisement frame with default IPv6 Hop Limit `255`.
+Maps IPv4 addresses (`0x0800`) to 48-bit Ethernet MAC addresses. *(If an `ARP` flow is run with IPv6 hosts in `compile`, FrameAssembly automatically emits an RFC 4861 ICMPv6 Neighbor Solicitation / Advertisement packet with Hop Limit `255`.)*
 
-### 2.1 Wire Format & Header Layout (28 Bytes)
-```text
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|       Hardware Type (1)       |     Protocol Type (0x0800)    |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|  HW Size (6)  | Proto Size(4) |          Opcode (1/2)         |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                  Sender Hardware Address (Bytes 0-3)          |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|  Sender HW Addr (Bytes 4-5)   |   Sender Protocol IP (0-1)    |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|   Sender Protocol IP (2-3)    |   Target HW Addr (Bytes 0-1)  |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                  Target Hardware Address (Bytes 2-5)          |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                  Target Protocol IP Address (Bytes 0-3)       |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-```
-
-### 2.2 Canonical `ARP` Modifiers
-
-| Modifier | Syntax | Description | Wire Default |
+| Modifier | Syntax | Description | Default |
 | :--- | :--- | :--- | :--- |
-| **Operation** | `REQUEST` / `REPLY` | Sets ARP Opcode (`1` = Request, `2` = Reply) | `1` (Request) |
-| **Gratuitous Mode** | `GRATUITOUS` or `GARP` | Sets Sender IP equal to Target IP for failover / DAD announcements | Disabled |
-| **Sender MAC** | `SHA <mac>` or `SENDERMAC <mac>` | Overrides 48-bit Sender Hardware Address | Source Host MAC |
-| **Sender IP** | `SPA <ipv4>` or `SENDERIP <ipv4>` | Overrides 32-bit Sender Protocol Address | Source Host IP |
-| **Target MAC** | `THA <mac>` or `TARGETMAC <mac>` | Overrides 48-bit Target Hardware Address (`00:00:00:00:00:00` on Request) | Destination Host MAC |
-| **Target IP** | `TPA <ipv4>` or `TARGETIP <ipv4>` | Overrides 32-bit Target Protocol Address | Destination Host IP |
-
-### 2.3 Verified `ARP` Examples
+| **Operation** | `REQUEST` / `REPLY` | ARP Opcode (`1` = Request, `2` = Reply) | `REQUEST` (`1`) |
+| **Gratuitous Mode**| `GRATUITOUS` or `GARP` | Sets Sender IP = Target IP for VIP failover or duplicate address detection | Disabled |
+| **Sender MAC** | `SHA <mac>` or `SENDERMAC <mac>` | 48-bit Sender Hardware Address | Source host MAC |
+| **Sender IP** | `SPA <ipv4>` or `SENDERIP <ipv4>` | 32-bit Sender Protocol Address | Source host IP |
+| **Target MAC** | `THA <mac>` or `TARGETMAC <mac>` | 48-bit Target Hardware Address (`00:00:00:00:00:00` on Request) | Dest host MAC |
+| **Target IP** | `TPA <ipv4>` or `TARGETIP <ipv4>` | 32-bit Target Protocol Address | Dest host IP |
 
 ```frameassembly
-// PROMPT: Standard ARP request and unicast reply cycle resolving the default gateway hardware address.
-// TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, REPLY, SHA, SPA, THA, TPA, WAIT, COMPILE
+host workstation { ip 192.168.1.105 mac 00:50:56:a1:00:20 }
+host gateway     { ip 192.168.1.1   mac 00:50:56:fe:00:01 }
+host broadcast   { ip 192.168.1.255 mac ff:ff:ff:ff:ff:ff }
 
-// INSTRUCTION: Declare the enterprise workstation host.
-host workstation {
-    ip 192.168.1.105
-    mac 00:50:56:a1:00:20
+flow arp_and_failover_garp(client, gw, bcast) {
+    // Standard broadcast ARP Request and unicast Reply
+    client -> gw arp request dstmac ff:ff:ff:ff:ff:ff tha 00:00:00:00:00:00 wait 1ms
+    client <- gw arp reply wait 5ms
+
+    // RFC 5227 ARP Probe (senderip 0.0.0.0) followed by Gratuitous ARP VIP announcement
+    gw -> bcast arp request sendermac 00:50:56:fe:00:01 senderip 0.0.0.0 targetmac 00:00:00:00:00:00 targetip 192.168.1.1 wait 5ms
+    gw -> bcast arp reply gratuitous sendermac 00:50:56:fe:00:01 senderip 192.168.1.1 targetmac ff:ff:ff:ff:ff:ff targetip 192.168.1.1
 }
 
-// INSTRUCTION: Declare the local subnet default gateway router.
-host default_gateway {
-    ip 192.168.1.1
-    mac 00:50:56:fe:00:01
-}
-
-// INSTRUCTION: Define standard ARP resolution using explicit SHA, SPA, THA, and TPA fields.
-flow arp_gateway_resolution(client, gw) {
-    client -> gw arp request sha 00:50:56:a1:00:20 spa 192.168.1.105 tha 00:00:00:00:00:00 tpa 192.168.1.1 wait 1ms
-    client <- gw arp reply sha 00:50:56:fe:00:01 spa 192.168.1.1 tha 00:50:56:a1:00:20 tpa 192.168.1.105 wait 1ms
-}
-
-// INSTRUCTION: Compile the ARP resolution exchange.
 compile {
-    arp_gateway_resolution(workstation, default_gateway)
-}
-```
-
-```frameassembly
-// PROMPT: Gratuitous ARP (GARP) failover announcement and RFC 5227 Address Conflict Detection probe.
-// TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, REPLY, GRATUITOUS, GARP, SENDERMAC, SENDERIP, TARGETMAC, TARGETIP, WAIT, COMPILE
-
-// INSTRUCTION: Declare the active high-availability load balancer node claiming a virtual IP.
-host ha_node_primary {
-    ip 10.0.0.10
-    mac 00:0c:29:88:99:aa
-}
-
-// INSTRUCTION: Declare the Layer 2 broadcast target for the subnet.
-host subnet_broadcast {
-    ip 10.0.0.255
-    mac ff:ff:ff:ff:ff:ff
-}
-
-// INSTRUCTION: Define an RFC 5227 ARP Probe (SENDERIP 0.0.0.0) followed by Gratuitous ARP announcements.
-flow garp_failover_sequence(node, bcast) {
-    node -> bcast arp request sendermac 00:0c:29:88:99:aa senderip 0.0.0.0 targetmac 00:00:00:00:00:00 targetip 10.0.0.10 wait 5ms
-    node -> bcast arp request gratuitous sendermac 00:0c:29:88:99:aa senderip 10.0.0.10 targetmac ff:ff:ff:ff:ff:ff targetip 10.0.0.10 wait 5ms
-    node -> bcast arp reply garp sendermac 00:0c:29:88:99:aa senderip 10.0.0.10 targetmac ff:ff:ff:ff:ff:ff targetip 10.0.0.10 wait 5ms
-}
-
-// INSTRUCTION: Compile the ACD probe and Gratuitous ARP announcement frames.
-compile {
-    garp_failover_sequence(ha_node_primary, subnet_broadcast)
+    arp_and_failover_garp(workstation, gateway, broadcast)
 }
 ```
 
 ---
 
-## 3. Virtual LAN (`VLAN` — IEEE 802.1Q) & Provider Bridging (`QINQ` — IEEE 802.1ad)
+## 2. Virtual LAN (`VLAN` — 802.1Q) & Provider Bridging (`QINQ` — 802.1ad)
 
-FrameAssembly supports both standalone Layer 2 `VLAN` / `QINQ` frames and universal `VLAN` / `QINQ` modifiers attached to any upper-layer protocol (such as `TCP`, `UDP`, `HTTP`, `OSPF`, or `SIP`).
-
-### 3.1 IEEE 802.1Q / 802.1ad Tag Control Information (TCI)
-```text
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|       TPID (0x8100 / 0x88A8)  | PCP |D|      VID (12 bits)    |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-```
-
-### 3.2 Canonical `VLAN` and `QINQ` Modifiers
+Both `VLAN` and `QINQ` can be used as standalone Layer 2 frames or attached as modifiers to any upper-layer protocol (`TCP`, `UDP`, `HTTP`, `OSPF`, `SIP`, `MODBUS`, etc.).
 
 | Modifier | Syntax | Range | Description |
 | :--- | :--- | :--- | :--- |
-| **802.1Q VLAN ID** | `VLAN <u16>` | `0..4095` | Inserts an 802.1Q tag (`0x8100`) with the specified 12-bit VLAN Identifier |
-| **Priority Code Point** | `PCP <u8>` | `0..7` | Sets the 3-bit IEEE 802.1p Class of Service priority (`5` = Voice, `6` = Control, `7` = Network) |
-| **Drop Eligible** | `DEI <u8>` | `0..1` | Sets the 1-bit Drop Eligible Indicator for congestion policing |
-| **802.1ad Outer S-Tag** | `QINQ <u16>` | `0..4095` | Inserts an outer IEEE 802.1ad Service VLAN tag (`0x88A8`) |
-| **802.1ad Inner C-Tag** | `INNER_VLAN <u16>` | `0..4095` | Sets the inner Customer VLAN ID (`0x8100`) paired with `QINQ <s_vid>` |
+| **802.1Q VLAN ID** | `VLAN <u16>` | `0..4095` | Inserts an 802.1Q tag (`0x8100`) with 12-bit VLAN ID |
+| **Priority (CoS)** | `PCP <u8>` | `0..7` | 3-bit IEEE 802.1p priority (`5` = Voice, `6` = Control, `7` = Network) |
+| **Drop Eligible** | `DEI <u8>` | `0..1` | 1-bit Drop Eligible Indicator for congestion policing |
+| **Outer S-VLAN** | `QINQ <u16>` | `0..4095` | Inserts outer IEEE 802.1ad Service VLAN tag (`0x88A8`) |
+| **Inner C-VLAN** | `INNER_VLAN <u16>` | `0..4095` | Sets inner Customer VLAN tag (`0x8100`) paired with `QINQ` |
 
-> **Important Syntax Rule**: When specifying double-tagged 802.1ad frames, always write `QINQ <outer_svid> INNER_VLAN <inner_cvid> [PCP <pcp>] [DEI <dei>]`. Do not combine `QINQ` and `VLAN` on the same statement; use `INNER_VLAN` for the customer tag inside `QINQ`.
-
-### 3.3 Verified `VLAN` and `QINQ` Examples
+> **Syntax Rule:** For double-tagged 802.1ad frames, always write `QINQ <outer_svid> INNER_VLAN <inner_cvid>`. Do not combine `QINQ` and `VLAN` on the same statement.
 
 ```frameassembly
-// PROMPT: Enterprise campus trunk carrying multi-CoS 802.1Q VLAN tagged voice, video, and scavenger traffic.
-// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DEI, UDP, DSTPORT, PAYLOAD, WAIT, COMPILE
+host site_a { ip 172.20.10.1 mac 00:50:56:ce:0a:01 }
+host site_b { ip 172.20.10.2 mac 00:50:56:ce:0b:02 }
 
-// INSTRUCTION: Declare access switch trunk interface.
-host access_switch {
-    ip 10.100.1.10
-    mac 00:1c:73:aa:00:10
+flow trunk_and_qinq(a, b) {
+    // Single-tagged 802.1Q voice and bulk frames
+    a -> b vlan 100 pcp 5 dei 0 udp srcport 16384 dstport 16384 payload "VOICE_RTP" wait 1ms
+    a -> b vlan 300 pcp 1 dei 1 udp srcport 49200 dstport 873 payload "BULK_BACKUP" wait 2ms
+
+    // Double-tagged 802.1ad Metro Ethernet L2VPN carrying BGP
+    a -> b qinq 2500 inner_vlan 40 pcp 6 tcp syn srcport 52000 dstport 179 wait 1ms
+    a <- b qinq 2500 inner_vlan 40 pcp 6 tcp syn ack
 }
 
-// INSTRUCTION: Declare distribution switch trunk interface.
-host dist_switch {
-    ip 10.100.1.1
-    mac 00:1c:73:aa:00:01
-}
-
-// INSTRUCTION: Define multi-VLAN trunk traffic spanning Voice (VLAN 100, PCP 5), Video (VLAN 200, PCP 4), and Bulk (VLAN 300, PCP 1, DEI 1).
-flow campus_trunk_cos(acc, dist) {
-    acc -> dist vlan 100 pcp 5 dei 0 udp srcport 16384 dstport 16384 payload "VOICE_G711_RTP_FRAME" wait 1ms
-    acc -> dist vlan 200 pcp 4 dei 0 udp srcport 5004 dstport 5004 payload "VIDEO_H264_KEYFRAME" wait 1ms
-    acc -> dist vlan 300 pcp 1 dei 1 udp srcport 49200 dstport 873 payload "BACKUP_RSYNC_BULK_CHUNK" wait 1ms
-}
-
-// INSTRUCTION: Compile the 802.1Q CoS trunk capture.
 compile {
-    campus_trunk_cos(access_switch, dist_switch)
-}
-```
-
-```frameassembly
-// PROMPT: Carrier Metro Ethernet IEEE 802.1ad QinQ tunnel encapsulating customer C-VLANs inside provider S-VLANs.
-// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, PCP, DEI, TCP, SYN, ACK, PSH, SRCPORT, DSTPORT, SEQ, ACKNUM, PAYLOAD, WAIT, COMPILE
-
-// INSTRUCTION: Declare Customer Edge router at Site A.
-host ce_site_a {
-    ip 172.20.10.1
-    mac 00:50:56:ce:0a:01
-}
-
-// INSTRUCTION: Declare Customer Edge router at Site B.
-host ce_site_b {
-    ip 172.20.10.2
-    mac 00:50:56:ce:0b:02
-}
-
-// INSTRUCTION: Define a double-tagged 802.1ad QinQ flow using outer S-VLAN 2500 and inner C-VLAN 40.
-flow carrier_qinq_l2vpn(site_a, site_b) {
-    site_a -> site_b qinq 2500 inner_vlan 40 pcp 6 dei 0 tcp syn srcport 52000 dstport 179 seq 1000 wait 1ms
-    site_a <- site_b qinq 2500 inner_vlan 40 pcp 6 dei 0 tcp syn ack srcport 179 dstport 52000 seq 2000 acknum 1001 wait 1ms
-    site_a -> site_b qinq 2500 inner_vlan 40 pcp 6 dei 0 tcp psh ack srcport 52000 dstport 179 seq 1001 acknum 2001 payload "BGP_OVER_QINQ_KEEPALIVE" wait 1ms
-}
-
-// INSTRUCTION: Compile the IEEE 802.1ad QinQ L2VPN exchange.
-compile {
-    carrier_qinq_l2vpn(ce_site_a, ce_site_b)
+    trunk_and_qinq(site_a, site_b)
 }
 ```
 
 ---
 
-## 4. Link Layer Discovery Protocol (`LLDP` — IEEE 802.1AB)
+## 3. Link Layer Discovery Protocol (`LLDP` — IEEE 802.1AB)
 
-LLDP enables network interfaces to advertise their identity, system name, software description, and port capabilities to directly attached neighbors via Ethernet multicast address `01:80:c2:00:00:0e` and EtherType `0x88CC`.
+Advertises switch/server identity, interface names, and software versions to directly connected neighbors (`01:80:c2:00:00:0e`, EtherType `0x88CC`).
 
-### 4.1 Canonical `LLDP` Modifiers
-
-| Modifier | Syntax | Argument Type | TLV Type & Description |
-| :--- | :--- | :--- | :--- |
-| **Chassis ID** | `CHASSIS_ID "<str>"` | Quoted string | TLV Type `1` (Mandatory): Chassis identifier string or MAC |
-| **Port ID** | `PORT_ID "<str>"` or `PORT_ID <u16>` | String or `u16` | TLV Type `2` (Mandatory): Interface name (e.g. `"Ethernet1/1"`) or port index |
-| **Time to Live** | `TTL <u8>` | `u8` (`0..255`) | TLV Type `3` (Mandatory): Neighbor hold time in seconds (default `120`) |
-| **System Name** | `SYSNAME "<str>"` | Quoted string | TLV Type `5` (Optional): Fully qualified hostname of the switch/router |
-| **System Description**| `SYSDESC "<str>"` | Quoted string | TLV Type `6` (Optional): NOS version, platform model, and build metadata |
-
-### 4.2 Verified `LLDP` Example
+| Modifier | Syntax | TLV & Description |
+| :--- | :--- | :--- |
+| **Chassis ID** | `CHASSIS_ID "<str>"` | TLV Type `1` (Mandatory): Chassis MAC or identifier string |
+| **Port ID** | `PORT_ID "<str>"` or `<u16>` | TLV Type `2` (Mandatory): Interface name (e.g. `"Ethernet1/1"`) or index |
+| **Hold Time** | `TTL <u8>` | TLV Type `3` (Mandatory): Neighbor hold time in seconds (default `120`) |
+| **System Name** | `SYSNAME "<str>"` | TLV Type `5` (Optional): Device FQDN / hostname |
+| **System Desc** | `SYSDESC "<str>"` | TLV Type `6` (Optional): OS version and hardware platform string |
 
 ```frameassembly
-// PROMPT: Bidirectional LLDP topology discovery between a leaf switch and a spine switch in a Clos fabric.
-// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, TTL, SYSNAME, SYSDESC, WAIT, COMPILE
+host spine_sw { ip 10.255.0.1  mac 00:1c:73:a0:01:01 }
+host leaf_sw  { ip 10.255.0.11 mac 00:1c:73:b0:11:49 }
 
-// INSTRUCTION: Declare Spine Switch 01 interface Ethernet1/1.
-host spine_node {
-    ip 10.255.0.1
-    mac 00:1c:73:a0:01:01
+flow lldp_neighbor_exchange(spine, leaf) {
+    spine -> leaf lldp chassis_id "00:1c:73:a0:01:01" port_id "Ethernet1/1" ttl 120 sysname "spine-01.dc1" sysdesc "SONiC 202511 400G" wait 5ms
+    spine <- leaf lldp chassis_id "00:1c:73:b0:11:49" port_id "Ethernet49/1" ttl 120 sysname "leaf-01.dc1" sysdesc "SONiC 202511 ToR"
 }
 
-// INSTRUCTION: Declare Leaf Switch 01 uplink interface Ethernet49/1.
-host leaf_node {
-    ip 10.255.0.11
-    mac 00:1c:73:b0:11:49
-}
-
-// INSTRUCTION: Exchange complete LLDP neighbor discovery frames with mandatory and optional TLVs.
-flow clos_lldp_discovery(spine, leaf) {
-    spine -> leaf lldp chassis_id "00:1c:73:a0:01:01" port_id "Ethernet1/1" ttl 120 sysname "spine-01.dc1.example.com" sysdesc "SONiC OS 202511 Switch-ASIC-25.6T" wait 5ms
-    spine <- leaf lldp chassis_id "00:1c:73:b0:11:49" port_id "Ethernet49/1" ttl 120 sysname "leaf-01.dc1.example.com" sysdesc "SONiC OS 202511 ToR-400G" wait 5ms
-}
-
-// INSTRUCTION: Compile the bidirectional LLDP exchange.
 compile {
-    clos_lldp_discovery(spine_node, leaf_node)
+    lldp_neighbor_exchange(spine_sw, leaf_sw)
 }
 ```
 
 ---
 
-## 5. Spanning Tree Protocol (`STP` / `RSTP` — IEEE 802.1D / 802.1w)
+## 4. Spanning Tree Protocol (`STP` / `RSTP` — IEEE 802.1D / 802.1w)
 
-STP and Rapid Spanning Tree Protocol (`RSTP`) prevent Layer 2 bridging loops by electing a Root Bridge and calculating loop-free active topologies via Bridge Protocol Data Units (BPDUs) sent to `01:80:c2:00:00:00`.
+Emits classic STP Configuration BPDUs or 36-byte Rapid Spanning Tree (`RSTP`) BPDUs to `01:80:c2:00:00:00`.
 
-### 5.1 Canonical `STP` Modifiers
-
-| Modifier | Syntax | Argument Type | Description & Wire Default |
-| :--- | :--- | :--- | :--- |
-| **Rapid STP Mode** | `RSTP` | Flag (0-arg) | Emits 36-byte IEEE 802.1w Rapid Spanning Tree BPDU (Version `2`, Type `0x02`, trailing `Version 1 Length = 0x00`) |
-| **BPDU Flags** | `FLAGS <u8>` | `u8` (`0x00..0xFF`) | Sets Topology Change (`0x01`), Proposal (`0x02`), Role, Learning/Forwarding, TCA (`0x80`) |
-| **Root Bridge ID** | `ROOTID "<str>"` or `ROOT_ID "<str>"` | Quoted string | Root Bridge priority/MAC string (e.g. `"4096/00:1c:73:00:00:01"`) encoded as 8-byte Bridge ID |
-| **Transmitting Bridge**| `BRIDGEID "<str>"` or `BRIDGE_ID "<str>"` | Quoted string | Sender Bridge priority/MAC string (e.g. `"32768/00:1c:73:00:02:01"`) encoded as 8-byte Bridge ID |
-| **Root Path Cost** | `COST <u32>` | `u32` | Cumulative path cost to Root Bridge (`0` for root bridge, `2000` for 10GbE) |
-| **Port Identifier** | `PORT_ID <u16>` | `u16` | 16-bit STP Port Priority and Port Number (`0x8001` default) |
-| **Max Age Timer** | `MAX_AGE <u16>` | `u16` | Maximum BPDU age before topology reconvergence (default `20` seconds) |
-| **Hello Time** | `HELLO_TIME <u16>` | `u16` | Interval between Root Bridge configuration BPDUs (default `2` seconds) |
-| **Forward Delay** | `FORWARD_DELAY <u16>`| `u16` | Listening/Learning state transition delay (default `15` seconds) |
-
-### 5.2 Verified `STP` and `RSTP` Example
+| Modifier | Syntax | Description & Default |
+| :--- | :--- | :--- |
+| **Rapid STP** | `RSTP` | Emits IEEE 802.1w Version `2` Rapid Spanning Tree BPDU |
+| **BPDU Flags** | `FLAGS <u8>` | Topology Change (`0x01`), Proposal (`0x02`), Role/State bits, TCA (`0x80`) |
+| **Root Bridge ID**| `ROOT_ID "<prio>/<mac>"` | Root priority and MAC (e.g. `"4096/00:05:73:a0:00:01"`) |
+| **Sender Bridge**| `BRIDGE_ID "<prio>/<mac>"` | Transmitting bridge priority and MAC |
+| **Path Cost** | `COST <u32>` | Root path cost (`0` on root bridge, `2000` for 10GbE) |
+| **Port & Timers** | `PORT_ID <u16>`, `MAX_AGE <u16>`, `HELLO_TIME <u16>`, `FORWARD_DELAY <u16>` | Port ID (`0x8001`) and timers (defaults: Max Age `20`s, Hello `2`s, Fwd Delay `15`s) |
 
 ```frameassembly
-// PROMPT: Root bridge election and Rapid Spanning Tree (RSTP) proposal-agreement synchronization.
-// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, FLAGS, ROOT_ID, BRIDGE_ID, COST, MAX_AGE, HELLO_TIME, FORWARD_DELAY, WAIT, COMPILE
+host root_sw   { ip 10.0.1.1 mac 00:05:73:a0:00:01 }
+host access_sw { ip 10.0.1.2 mac 00:05:73:a0:00:02 }
 
-// INSTRUCTION: Declare the elected Root Bridge switch (Priority 4096).
-host root_switch {
-    ip 10.0.1.1
-    mac 00:05:73:a0:00:01
+flow rstp_proposal_agreement(root, acc) {
+    root -> acc stp rstp root_id "4096/00:05:73:a0:00:01" bridge_id "4096/00:05:73:a0:00:01" cost 0 max_age 20 hello_time 2 forward_delay 15 flags 0x0e wait 2ms
+    root <- acc stp rstp root_id "4096/00:05:73:a0:00:01" bridge_id "32768/00:05:73:a0:00:02" cost 2000 max_age 20 hello_time 2 forward_delay 15 flags 0x7c
 }
 
-// INSTRUCTION: Declare the downstream Designated Bridge switch (Priority 32768).
-host downstream_switch {
-    ip 10.0.1.2
-    mac 00:05:73:a0:00:02
-}
-
-// INSTRUCTION: Define classic STP root BPDU advertisement followed by RSTP Proposal and Agreement BPDUs.
-flow stp_and_rstp_convergence(root, access) {
-    root -> access stp root_id "4096/00:05:73:a0:00:01" bridge_id "4096/00:05:73:a0:00:01" cost 0 max_age 20 hello_time 2 forward_delay 15 flags 0x00 wait 2ms
-    root -> access stp rstp root_id "4096/00:05:73:a0:00:01" bridge_id "4096/00:05:73:a0:00:01" cost 0 max_age 20 hello_time 2 forward_delay 15 flags 0x0e wait 2ms
-    root <- access stp rstp root_id "4096/00:05:73:a0:00:01" bridge_id "32768/00:05:73:a0:00:02" cost 2000 max_age 20 hello_time 2 forward_delay 15 flags 0x7c wait 2ms
-}
-
-// INSTRUCTION: Compile the STP and RSTP BPDU sequence.
 compile {
-    stp_and_rstp_convergence(root_switch, downstream_switch)
+    rstp_proposal_agreement(root_sw, access_sw)
 }
 ```
 
 ---
 
-## 6. Link Aggregation Control Protocol (`LACP` — IEEE 802.3ad / 802.1AX)
+## 5. Link Aggregation Control Protocol (`LACP` — IEEE 802.3ad)
 
-LACP negotiates dynamic link aggregation groups (LAGs / Port-Channels) using Slow Protocols EtherType `0x8809` (Subtype `0x01`) sent to `01:80:c2:00:00:02`.
+Negotiates dynamic LAG / Port-Channel bundles (`01:80:c2:00:00:02`, EtherType `0x8809`).
 
-### 6.1 Canonical `LACP` Modifiers
-
-| Modifier | Syntax | Argument Type | Description |
-| :--- | :--- | :--- | :--- |
-| **Actor System MAC** | `ACTOR_SYS <mac>` | 48-bit MAC | Transmitting switch's LACP System Identifier MAC |
-| **Actor Key** | `ACTOR_KEY <u16>` | `u16` | Administrative aggregation key assigned to the Actor port |
-| **Actor Port Number** | `ACTOR_PORT <u16>` | `u16` | Physical port index on the Actor switch |
-| **Actor State Byte** | `ACTOR_STATE <u8>` | `u8` (`0x00..0xFF`)| Bitmask (`0x3d` = Active/Long/Agg/Sync/Col/Dist; `0x3f` = Active/Short/Agg/Sync/Col/Dist) |
-| **Partner System MAC**| `PARTNER_SYS <mac>` | 48-bit MAC | Remote peer's LACP System Identifier MAC learned by the Actor |
-| **Partner Key** | `PARTNER_KEY <u16>` | `u16` | Remote peer's operational aggregation key |
-| **Partner Port** | `PARTNER_PORT <u16>`| `u16` | Remote peer's physical port index |
-| **Partner State Byte**| `PARTNER_STATE <u8>`| `u8` (`0x00..0xFF`)| Remote peer's LACP state bitmask |
-
-### 6.2 Verified `LACP` Example
+| Modifier | Syntax | Description |
+| :--- | :--- | :--- |
+| **Actor Fields** | `ACTOR_SYS <mac>`, `ACTOR_KEY <u16>`, `ACTOR_PORT <u16>`, `ACTOR_STATE <u8>` | Local switch system MAC, admin key, port number, and state bitmask (`0x3f` = Active/Short/Agg/Sync/Col/Dist) |
+| **Partner Fields**| `PARTNER_SYS <mac>`, `PARTNER_KEY <u16>`, `PARTNER_PORT <u16>`, `PARTNER_STATE <u8>` | Remote peer's system MAC, key, port, and state bitmask |
 
 ```frameassembly
-// PROMPT: IEEE 802.3ad LACP fast-rate Port-Channel negotiation from initial defaulted state to full collecting/distributing sync.
-// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+host sw_a { ip 10.0.2.1 mac 00:e0:f7:01:02:03 }
+host sw_b { ip 10.0.2.2 mac 00:e0:f7:04:05:06 }
 
-// INSTRUCTION: Declare ToR Switch A member port.
-host tor_switch_a {
-    ip 10.0.2.1
-    mac 00:e0:f7:01:02:03
+flow lacp_port_channel_sync(a, b) {
+    a -> b lacp actor_sys 00:e0:f7:01:02:03 actor_key 100 actor_port 1 actor_state 0x47 partner_sys 00:00:00:00:00:00 partner_key 0 partner_port 0 partner_state 0x00 wait 5ms
+    a <- b lacp actor_sys 00:e0:f7:04:05:06 actor_key 100 actor_port 1 actor_state 0x3f partner_sys 00:e0:f7:01:02:03 partner_key 100 partner_port 1 partner_state 0x3f wait 5ms
+    a -> b lacp actor_sys 00:e0:f7:01:02:03 actor_key 100 actor_port 1 actor_state 0x3f partner_sys 00:e0:f7:04:05:06 partner_key 100 partner_port 1 partner_state 0x3f
 }
 
-// INSTRUCTION: Declare Spine Switch B member port.
-host spine_switch_b {
-    ip 10.0.2.2
-    mac 00:e0:f7:04:05:06
-}
-
-// INSTRUCTION: Negotiate LACP Port-Channel 100 from unbundled (0x47) to synchronized collecting/distributing (0x3f).
-flow lacp_lag_bringup(swa, swb) {
-    swa -> swb lacp actor_sys 00:e0:f7:01:02:03 actor_key 100 actor_port 1 actor_state 0x47 partner_sys 00:00:00:00:00:00 partner_key 0 partner_port 0 partner_state 0x00 wait 5ms
-    swa <- swb lacp actor_sys 00:e0:f7:04:05:06 actor_key 100 actor_port 1 actor_state 0x0f partner_sys 00:e0:f7:01:02:03 partner_key 100 partner_port 1 partner_state 0x07 wait 5ms
-    swa -> swb lacp actor_sys 00:e0:f7:01:02:03 actor_key 100 actor_port 1 actor_state 0x3f partner_sys 00:e0:f7:04:05:06 partner_key 100 partner_port 1 partner_state 0x3f wait 5ms
-    swa <- swb lacp actor_sys 00:e0:f7:04:05:06 actor_key 100 actor_port 1 actor_state 0x3f partner_sys 00:e0:f7:01:02:03 partner_key 100 partner_port 1 partner_state 0x3f wait 5ms
-}
-
-// INSTRUCTION: Compile the LACP state machine bringup flow.
 compile {
-    lacp_lag_bringup(tor_switch_a, spine_switch_b)
+    lacp_port_channel_sync(sw_a, sw_b)
 }
 ```
 
 ---
 
-## 7. Extensible Authentication Protocol over LAN (`EAPOL` — IEEE 802.1X)
+## 6. 802.1X Port Authentication (`EAPOL`) & MPLS (`MPLS`)
 
-EAPOL provides port-based Network Access Control (NAC) over EtherType `0x888E` between an 802.1X Supplicant (client workstation/IoT device) and an Authenticator (access switch or wireless controller).
+### `EAPOL` Modifiers (EtherType `0x888E`)
+* `VERSION <1|2|3>`: 802.1X version (`2` = 2004, `3` = 2010/2020).
+* `TYPE <START|LOGOFF|KEY|EAP_PACKET>`: Always include the `TYPE` keyword before the packet type.
+* `EAP_CODE <1..4>`: `1` = Request, `2` = Response, `3` = Success, `4` = Failure.
+* `EAP_ID <u8>`, `EAP_METHOD <u8>` (`1` = Identity, `4` = MD5, `13` = EAP-TLS, `25` = PEAP), `IDENTITY "<str>"`.
 
-### 7.1 Canonical `EAPOL` Modifiers
-
-| Modifier | Syntax | Argument Type | Description |
-| :--- | :--- | :--- | :--- |
-| **Protocol Version** | `VERSION <u8>` | `u8` (`1`, `2`, `3`) | IEEE 802.1X protocol version (`1` = 2001, `2` = 2004, `3` = 2010/2020) |
-| **Packet Type** | `TYPE <START\|LOGOFF\|KEY\|EAP_PACKET>` | Keyword | Sets EAPOL Packet Type (`START` = 1, `LOGOFF` = 2, `KEY` = 3, `EAP_PACKET` = 0) |
-| **EAP Code** | `EAP_CODE <u8>` | `u8` (`1..4`) | `1` = Request, `2` = Response, `3` = Success, `4` = Failure (RFC 3748 §4.2: Codes `3` and `4` emit a 4-byte EAP header without a `Type` byte when payload is empty) |
-| **EAP Identifier** | `EAP_ID <u8>` | `u8` (`0..255`) | Matches EAP Responses to EAP Requests |
-| **EAP Method Type** | `EAP_METHOD <u8>` | `u8` | `1` = Identity, `4` = MD5-Challenge, `13` = EAP-TLS, `25` = PEAP |
-| **Identity String** | `IDENTITY "<str>"` | Quoted string | Populates the EAP Identity string payload |
-
-> **Important Syntax Rule**: Always prefix the EAPOL packet type keyword with `TYPE` (e.g., `EAPOL VERSION 2 TYPE START`, `EAPOL VERSION 2 TYPE EAP_PACKET`, `EAPOL VERSION 2 TYPE KEY`, `EAPOL VERSION 2 TYPE LOGOFF`).
-
-### 7.2 Verified `EAPOL` Example
+### `MPLS` Modifiers (EtherType `0x8847`)
+* `MPLS <0..1048575>` (or `LABEL <u20>`): 20-bit MPLS label value.
+* `EXP <0..7>` (or `TC <0..7>`): 3-bit Traffic Class QoS marking.
+* `BOS <0|1>`: Bottom-of-Stack bit (`1` default).
+* `MPLS_TTL <0..255>`: MPLS shim TTL independent of the inner IP TTL (`64` default).
 
 ```frameassembly
-// PROMPT: Complete IEEE 802.1X EAP-TLS port authentication lifecycle from EAPOL-Start to EAP-Success and WPA2 4-way EAPOL-Key handshake.
-// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, START, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, KEY, LOGOFF, PAYLOAD, WAIT, COMPILE
+host laptop   { ip 10.50.10.25 mac 00:24:d7:11:22:33 }
+host auth_sw  { ip 10.50.10.1  mac 00:1c:73:80:21:10 }
 
-// INSTRUCTION: Declare the 802.1X supplicant endpoint.
-host corp_laptop {
-    ip 10.50.10.25
-    mac 00:24:d7:11:22:33
+flow dot1x_and_mpls_forwarding(supp, sw) {
+    // 802.1X EAP-TLS onboarding
+    supp -> sw eapol version 2 type start wait 2ms
+    supp <- sw eapol version 2 type eap_packet eap_code 1 eap_id 1 eap_method 1 wait 2ms
+    supp -> sw eapol version 2 type eap_packet eap_code 2 eap_id 1 eap_method 1 identity "host/laptop.corp" wait 2ms
+    supp <- sw eapol version 2 type eap_packet eap_code 3 eap_id 1 wait 5ms
+
+    // MPLS L3VPN labeled ICMP exchange
+    supp -> sw mpls 24010 exp 5 bos 1 mpls_ttl 64 icmp echo_request id 301 seq 1 payload "VRF_PING" wait 2ms
+    supp <- sw mpls 24020 exp 5 bos 1 mpls_ttl 63 icmp echo_reply id 301 seq 1 payload "VRF_PONG"
 }
 
-// INSTRUCTION: Declare the 802.1X authenticator switch port.
-host dot1x_switch {
-    ip 10.50.10.1
-    mac 00:1c:73:80:21:10
-}
-
-// INSTRUCTION: Define the 802.1X EAP-TLS authentication, EAP-Success, EAPOL-Key exchange, and EAPOL-Logoff.
-flow dot1x_eap_tls_lifecycle(supp, auth) {
-    supp -> auth eapol version 2 type start wait 2ms
-    supp <- auth eapol version 2 type eap_packet eap_code 1 eap_id 1 eap_method 1 wait 2ms
-    supp -> auth eapol version 2 type eap_packet eap_code 2 eap_id 1 eap_method 1 identity "host/corp-laptop.corp.example.com" wait 2ms
-    supp <- auth eapol version 2 type eap_packet eap_code 1 eap_id 2 eap_method 13 payload "EAP_TLS_START" wait 4ms
-    supp -> auth eapol version 2 type eap_packet eap_code 2 eap_id 2 eap_method 13 payload "EAP_TLS_CLIENT_HELLO_CERT" wait 4ms
-    supp <- auth eapol version 2 type eap_packet eap_code 3 eap_id 2 wait 2ms
-    supp <- auth eapol version 2 type key payload "WPA2_ANONCE_MSG1" wait 2ms
-    supp -> auth eapol version 2 type key payload "WPA2_SNONCE_MIC_MSG2" wait 2ms
-    supp -> auth eapol version 2 type logoff wait 2ms
-}
-
-// INSTRUCTION: Compile the IEEE 802.1X EAPOL lifecycle.
 compile {
-    dot1x_eap_tls_lifecycle(corp_laptop, dot1x_switch)
-}
-```
-
----
-
-## 8. Multi-Protocol Label Switching (`MPLS` — RFC 3031 / RFC 3032)
-
-MPLS inserts a 32-bit shim header (EtherType `0x8847`) carrying a 20-bit label, 3-bit Traffic Class (`EXP`), 1-bit Bottom-of-Stack (`BOS`), and 8-bit `MPLS_TTL`. It can be used as a standalone Layer 2.5 protocol or as an encapsulation modifier on any L3/L4/L7 statement.
-
-### 8.1 Canonical `MPLS` Modifiers
-
-| Modifier | Syntax | Range | Description & Default |
-| :--- | :--- | :--- | :--- |
-| **Label (Primary)** | `MPLS <u20>` or `LABEL <u20>` | `0..1048575` | Sets 20-bit MPLS label value (use either `MPLS <label>` or `LABEL <label>`, not both) |
-| **Traffic Class** | `EXP <u8>` or `TC <u8>` | `0..7` | Sets 3-bit MPLS Experimental / Traffic Class QoS bits (default `0`) |
-| **Bottom of Stack** | `BOS <u8>` | `0..1` | Sets 1-bit Bottom-of-Stack indicator (`1` = innermost label, default `1`) |
-| **MPLS Hop Limit** | `MPLS_TTL <u8>` | `0..255` | Sets 8-bit MPLS shim TTL independent of the inner IP TTL (default `64`) |
-
-### 8.2 Verified `MPLS` Example
-
-```frameassembly
-// PROMPT: Service provider MPLS L3VPN label switching with Traffic Engineering EXP markings and Penultimate Hop Popping (PHP).
-// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, ICMP, ECHO_REQUEST, ECHO_REPLY, ID, SEQ, PAYLOAD, WAIT, COMPILE
-
-// INSTRUCTION: Declare Ingress Provider Edge router (PE1).
-host ingress_pe1 {
-    ip 10.250.0.1
-    mac 00:1c:73:f0:00:01
-}
-
-// INSTRUCTION: Declare Egress Provider Edge router (PE2).
-host egress_pe2 {
-    ip 10.250.0.2
-    mac 00:1c:73:f0:00:02
-}
-
-// INSTRUCTION: Define an MPLS-labeled ICMP customer probe with explicit EXP 5 QoS and MPLS_TTL decrement.
-flow mpls_l3vpn_forwarding(pe1, pe2) {
-    pe1 -> pe2 mpls 24010 exp 5 bos 1 mpls_ttl 64 icmp echo_request id 3001 seq 1 payload "L3VPN_VRF_FINANCE_PING" wait 2ms
-    pe1 <- pe2 mpls 24020 exp 5 bos 1 mpls_ttl 63 icmp echo_reply id 3001 seq 1 payload "L3VPN_VRF_FINANCE_PONG" wait 2ms
-}
-
-// INSTRUCTION: Compile the MPLS L3VPN forwarding capture.
-compile {
-    mpls_l3vpn_forwarding(ingress_pe1, egress_pe2)
+    dot1x_and_mpls_forwarding(laptop, auth_sw)
 }
 ```

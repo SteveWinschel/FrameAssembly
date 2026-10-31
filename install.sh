@@ -27,7 +27,7 @@ set -eu
 REQUIRED_RUST_MAJOR=1
 REQUIRED_RUST_MINOR=85
 CRATE_NAME="frameassembly"
-VSIX_VERSION="1.2.1"
+VSIX_VERSION="1.2.2"
 VSIX_RAW_URL="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-${VSIX_VERSION}.vsix"
 RUSTUP_INIT_URL="https://sh.rustup.rs"
 

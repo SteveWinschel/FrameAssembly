@@ -1,388 +1,168 @@
-# Layer 7 Core Infrastructure, AAA, Flow Telemetry & Remote Administration Reference
+# Layer 7 Infrastructure, Time, AAA, Flow Telemetry & CLI Reference
 
-FrameAssembly provides native, RFC-compliant wire builders for **16 Layer 7 Core Infrastructure, Time Synchronization, AAA Security, Flow Observability, File Transfer, and Remote CLI Administration** protocols across IPv4 and IPv6.
-
-This canonical reference covers:
-- **Naming & Address Assignment**: `DNS` (RFC 1035 / RFC 3596), `MDNS` (RFC 6762), and `DHCP` (RFC 2131 DHCPv4 / RFC 8415 DHCPv6)
-- **Precision Time Synchronization**: `NTP` (RFC 5905) and `PTP` (IEEE 1588v2 Precision Time Protocol)
-- **AAA & Network Access Security**: `RADIUS` (RFC 2865 / RFC 2866 / RFC 5176) and `TACACS` (RFC 8907 TACACS+)
-- **Logging & Flow Telemetry**: `SYSLOG` (RFC 5424), `NETFLOW` (Cisco v5/v9), `IPFIX` (RFC 7011 v10), and `SFLOW` (sFlow v5)
-- **File Transfer, Remote CLI & Registry Lookup**: `TFTP` (RFC 1350), `FTP` (RFC 959), `SSH` (RFC 4253), `TELNET` (RFC 854), and `WHOIS` (RFC 3912)
+This guide covers **16 core network infrastructure, precision time, AAA authentication, logging/flow export, and remote administration protocols** across IPv4 and IPv6.
 
 ---
 
-## 1. Protocol Architecture & RFC Matrix
+## 1. Naming & Address Assignment (`DNS`, `MDNS`, `DHCP`)
 
-| Protocol | Keyword | Standard RFC / IEEE | Default Transport & Port | Corpus Directory | Primary Use Case |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **DNS** | `DNS` | RFC 1035, RFC 3596 | UDP / TCP `53` | [`examples/l7/dns/`](../examples/l7/dns) | Recursive/authoritative `A`, `AAAA`, `MX`, `SRV`, `TXT`, `PTR` resolution |
-| **mDNS** | `MDNS` | RFC 6762, RFC 6763 | UDP `5353` (`224.0.0.251` / `ff02::fb`) | [`examples/l7/mdns/`](../examples/l7/mdns) | Zero-configuration link-local DNS-SD service discovery |
-| **DHCP / v6** | `DHCP` | RFC 2131, RFC 8415 | UDP `67`/`68` (v4), `546`/`547` (v6) | [`examples/l7/dhcp/`](../examples/l7/dhcp) | DORA (`DISCOVER`/`OFFER`/`REQUEST`/`ACK`) & SARR (`SOLICIT`/`ADVERTISE`/`REPLY`) |
-| **NTPv4** | `NTP` | RFC 5905 | UDP `123` | [`examples/l7/ntp/`](../examples/l7/ntp) | Stratum clock hierarchy synchronization (`STRATUM`, `REFID`, `TX_TIMESTAMP`) |
-| **PTPv2** | `PTP` | IEEE 1588-2008 (v2) | UDP `319` (Event), `320` (General) | [`examples/l7/ptp/`](../examples/l7/ptp) | Hardware nanosecond clock sync (`SYNC`, `FOLLOW_UP`, `DELAY_REQ`, `ANNOUNCE`) |
-| **RADIUS** | `RADIUS` | RFC 2865, RFC 2866 | UDP `1812` (Auth), `1813` (Acct) | [`examples/l7/radius/`](../examples/l7/radius) | 802.1X / VPN AAA (`ACCESS_REQUEST`, `ACCESS_ACCEPT`, `ACCOUNTING_REQUEST`) |
-| **TACACS+** | `TACACS` | RFC 8907 | TCP `49` | [`examples/l7/tacacs/`](../examples/l7/tacacs) | Device administration AAA (`AUTHEN`, `AUTHOR`, `ACCT`, `SESSION_ID`) |
-| **Syslog** | `SYSLOG` | RFC 5424 | UDP / TCP `514` | [`examples/l7/syslog/`](../examples/l7/syslog) | Structured SIEM event logging (`FACILITY`, `SEVERITY`, `PRI`, `APP`, `MSG`) |
-| **NetFlow** | `NETFLOW`| Cisco NetFlow v5/v9 | UDP `2055` | [`examples/l7/netflow/`](../examples/l7/netflow) | Router flow accounting (`SRCIP`, `DSTIP`, `PROTO`, `PACKETS`, `OCTETS`) |
-| **IPFIX** | `IPFIX` | RFC 7011 (NetFlow v10)| UDP / TCP `4739` | [`examples/l7/ipfix/`](../examples/l7/ipfix) | IETF template flow export (`DOMAIN_ID`, `SRCIP`, `DSTIP`, `PACKETS`, `OCTETS`) |
-| **sFlow** | `SFLOW` | sFlow v5 | UDP `6343` | [`examples/l7/sflow/`](../examples/l7/sflow) | Switch ASIC packet sampling (`AGENT_IP`, `SUB_AGENT_ID`, `UPTIME`, `SAMPLES`) |
-| **TFTP** | `TFTP` | RFC 1350 | UDP `69` | [`examples/l7/tftp/`](../examples/l7/tftp) | PXE boot & firmware transfer (`RRQ`, `WRQ`, `FILENAME`, `MODE`, `BLOCK`) |
-| **FTP** | `FTP` | RFC 959, RFC 2428 | TCP `21` | [`examples/l7/ftp/`](../examples/l7/ftp) | File transfer control channel (`CMD`, `ARG`, `CODE`, `REPLY`) |
-| **SSHv2** | `SSH` | RFC 4253 | TCP `22` | [`examples/l7/ssh/`](../examples/l7/ssh) | Encrypted remote shell (`BANNER`, `KEXINIT`, `NEWKEYS`, `MSG_CODE`, `COOKIE`) |
-| **Telnet** | `TELNET` | RFC 854, RFC 855 | TCP `23` | [`examples/l7/telnet/`](../examples/l7/telnet) | IAC option negotiation (`WILL`, `WONT`, `DO`, `DONT`, `OPTION`, `DATA`) |
-| **WHOIS** | `WHOIS` | RFC 3912 | TCP `43` | [`examples/l7/whois/`](../examples/l7/whois) | Domain & ASN registry lookup (`QUERY`, `RESPONSE`, `DOMAIN`, `REGISTRAR`) |
+| Protocol | Default Port | Modifiers & Wire Behavior |
+| :--- | :--- | :--- |
+| **`DNS`** | UDP / TCP `53` | `QUERY` / `RESPONSE` *(0-arg flags)*, `TXID <u16>`, `QNAME "<domain>"`, `QTYPE "<A\|AAAA\|PTR\|MX\|TXT\|SRV\|CNAME\|SOA\|AXFR>"`, `RDATA "<val>"`, `RCODE <u8>` (`0`=NOERROR, `3`=NXDOMAIN, `5`=REFUSED), `ANS_TTL <u32>`, `TRANSPORT TCP` |
+| **`MDNS`** | UDP `5353` | Same modifiers as `DNS`; automatically targets multicast `224.0.0.251` (`01:00:5e:00:00:fb`) or `ff02::fb` (`33:33:00:00:00:fb`) with default `TXID 0` |
+| **`DHCP`** | UDP `68`/`67` (v4), `546`/`547` (v6) | v4 flags: `DISCOVER`, `OFFER`, `REQUEST`, `ACK`, `RELEASE`. v6 flags: `SOLICIT`, `ADVERTISE`, `REQUEST`, `REPLY`. Fields: `XID <u32>` / `TXID <u32>`, `CHADDR <mac>`, `CIADDR <ip>`, `YIADDR <ip>`, `SIADDR <ip>`, `HOSTNAME "<str>"`, `SUBNET_MASK <ip>`, `ROUTER <ip>`, `DNS_SERVER <ip>`, `LEASE_TIME <u32>` |
 
----
-
-## 2. Naming & Dynamic Address Assignment (`DNS`, `MDNS`, `DHCP`)
-
-### 2.1 Canonical `DNS`, `MDNS`, and `DHCP` Modifiers
-
-| Protocol | Modifier Syntax | Argument Type | Description |
-| :--- | :--- | :--- | :--- |
-| **`DNS` / `MDNS`** | `QUERY` / `RESPONSE` | Bare flag (0-arg) | Sets DNS QR bit (`0` = Query, `1` = Response) |
-| **`DNS` / `MDNS`** | `TXID <u32>` | `u32` (`0..65535`) | 16-bit DNS Transaction ID (`0` default for mDNS) |
-| **`DNS` / `MDNS`** | `QNAME "<domain>"` | Quoted string | Target domain or service name (e.g. `"api.corp.example.com"`) |
-| **`DNS` / `MDNS`** | `QTYPE "<type>"` | String or ident | Record type (`"A"`, `"AAAA"`, `"CNAME"`, `"MX"`, `"TXT"`, `"SRV"`, `"PTR"`, `"SOA"`) |
-| **`DNS` / `MDNS`** | `RDATA "<value>"` | Quoted string | Resource Record answer data in `RESPONSE` packets |
-| **`DNS` / `MDNS`** | `RCODE <u32>` / `ANS_TTL <u32>` | `u32`, `u32` | Response Code (`0` = NOERROR, `3` = NXDOMAIN) and Answer TTL in seconds |
-| **`DHCP` (v4)** | `DISCOVER` / `OFFER` / `REQUEST` / `ACK` / `NAK` / `RELEASE` | Bare flag (0-arg) | DHCPv4 Option 53 Message Type on dynamic UDP ports `68`/`67` |
-| **`DHCP` (v6)** | `SOLICIT` / `ADVERTISE` / `REQUEST` / `REPLY` | Bare flag (0-arg) | RFC 8415 DHCPv6 Message Type on dynamic UDP ports `546`/`547` |
-| **`DHCP`** | `XID <u32>` / `TXID <u32>` | `u32` | 32-bit DHCPv4 Transaction ID or 24-bit DHCPv6 Transaction ID |
-| **`DHCP`** | `CIADDR <ip>` / `YIADDR <ip>` / `SIADDR <ip>` / `GIADDR <ip>` | IP literal | Client IP, Your (Assigned) IP, Next Server IP, and Relay Agent IP |
-| **`DHCP`** | `CHADDR <mac>` / `HOSTNAME "<str>"` / `DOMAIN "<str>"` | 48-bit MAC, String | Client MAC (v4 `chaddr` / v6 Option 1 DUID-LL), Option 12 Hostname, Option 15 Domain |
-| **`DHCP`** | `SERVER_ID <ip>` / `SUBNET_MASK <ip>` / `ROUTER <ip>` / `DNS_SERVER <ip>` | IP literal | DHCP Options 54 (Server ID), 1 (Subnet Mask), 3 (Router), and 6/23 (DNS Server) |
-| **`DHCP`** | `LEASE_TIME <u32>` | `u32` | DHCP Option 51 (v4) / IA_NA IAADDR (v6) IP Address Lease Time in seconds |
-
-#### Wire Encoding & Dynamic Return-Tuple Invariants (`DNS`, `MDNS`, `DHCP`)
-- **`DNS` (`QUERY` / `RESPONSE`, RFC 1035 / RFC 3596)**: Encodes a 12-byte big-endian header (`TXID`, 16-bit `Flags` with `QR=0` for `QUERY` or `QR=1` for `RESPONSE` plus `RCODE`, `QDCOUNT=1`, `ANCOUNT=0/1`, `NSCOUNT=0`, `ARCOUNT=0`), DNS length-prefixed label encoding of `QNAME`, 2-byte `QTYPE` (`A=1`, `NS=2`, `CNAME=5`, `SOA=6`, `PTR=12`, `MX=15`, `TXT=16`, `AAAA=28`, `SRV=33`, `AXFR=252`, `ANY=255`), and `QCLASS=1` (`IN`). When `RESPONSE` is set, appends an Answer Resource Record (`0xC00C` name compression pointer, `TYPE`, `CLASS=1`, 4-byte `ANS_TTL`, `RDLENGTH`, and parsed IP/domain/text `RDATA`). When `TRANSPORT TCP` is specified, prefixes the DNS message with a 2-byte big-endian byte length per RFC 1035 §4.2.2.
-- **`MDNS` (RFC 6762 Multicast IP, MAC & Port `5353`)**: `build_mdns_payload` returns `(payload, target_ip, 5353)` which `src/backend/l7_dispatch.rs` preserves verbatim:
-  - Automatically binds UDP source and destination port **`5353`** (with default `TXID 0` per RFC 6762).
-  - Automatically sets the destination IP to the link-local mDNS multicast group **`224.0.0.251`** (IPv4) or **`ff02::fb`** (IPv6).
-  - Automatically derives the destination Ethernet multicast MAC per RFC 1112 (**`01:00:5e:00:00:fb`** for IPv4) or RFC 2464 (**`33:33:00:00:00:fb`** for IPv6) when no explicit L2 `DST_MAC` override is present.
-- **`DHCP` Dynamic UDP Ports & `CHADDR` in DHCPv6 DUID-LL**: `build_dhcp_payload` returns `(pkt, sport, dport)` preserved by `l7_dispatch.rs`:
-  - **DHCPv4 (RFC 2131)**: Dynamically assigns UDP ports **`(68, 67)`** for client-to-server frames (`DISCOVER`, `REQUEST`, `RELEASE`) and **`(67, 68)`** for server-to-client frames (`OFFER`, `ACK`, `NAK`). Serializes a 240-byte BOOTP header (`op`, `htype=1`, `hlen=6`, `xid`, `ciaddr`, `yiaddr`, `siaddr`, `giaddr`, 16-byte `chaddr` populated from `CHADDR <mac>`) followed by Magic Cookie `0x63825363` and TLV options (`53`, `1`, `3`, `6`, `51`, `54`, `12`, `15`, `255`).
-  - **DHCPv6 (RFC 8415)**: Dynamically assigns UDP ports **`(546, 547)`** for client-to-server frames (`SOLICIT`, `REQUEST`) and **`(547, 546)`** for server-to-client frames (`ADVERTISE`, `REPLY`). Serializes a 4-byte header (`[msg_type(1B), txid(3B)]`) followed by Option `1` (`OPTION_CLIENTID`, `0x0001`), which encodes `CHADDR <mac>` inside a 10-byte **DUID-LL** (DUID Type `3` = `0x0003`, Hardware Type `1` = `0x0001` Ethernet, plus the 6-byte MAC address), alongside Option `2` (`OPTION_SERVERID`), Option `3` (`OPTION_IA_NA` + `OPTION_IAADDR`), Option `23` (`OPTION_DNS_SERVERS`), and Option `39` (`OPTION_CLIENT_FQDN`).
-
-> **Important Syntax Rule**: In `DNS` and `MDNS`, `QUERY` and `RESPONSE` are 0-argument flags. Always specify the domain name with `QNAME "<domain>"` (never `DNS QUERY "<domain>"`), and specify `QTYPE` as a string or identifier (`QTYPE "A"`, `QTYPE "AAAA"`, `QTYPE "PTR"`).
-
-### 2.2 Verified `DNS`, `MDNS`, and `DHCP` (v4 DORA + v6 SARR) Example
+> **Syntax Rule:** In `DNS` and `MDNS`, `QUERY` and `RESPONSE` take no inline string—always pass the domain name with `QNAME "<domain>"`.
 
 ```frameassembly
-// PROMPT: Enterprise DHCPv4 DORA lease allocation, DHCPv6 SARR assignment, DNS A/AAAA resolution, and mDNS zero-conf discovery.
-// TOKENS: HOST, IP, MAC, FLOW, DHCP, DISCOVER, OFFER, REQUEST, ACK, RELEASE, SOLICIT, ADVERTISE, REPLY, CIADDR, YIADDR, SIADDR, CHADDR, HOSTNAME, SUBNET_MASK, ROUTER, DNS_SERVER, LEASE_TIME, DNS, MDNS, QUERY, RESPONSE, TXID, QNAME, QTYPE, RDATA, RCODE, ANS_TTL, TRANSPORT, TCP, WAIT, COMPILE
+host client_v4 { ip 192.168.20.100 mac 00:50:56:20:00:64 }
+host infra_v4  { ip 192.168.20.1   mac 00:50:56:20:00:01 }
+host client_v6 { ip 2001:db8:20::100 mac 00:50:56:62:00:64 }
+host infra_v6  { ip 2001:db8:20::1   mac 00:50:56:62:00:01 }
 
-// INSTRUCTION: Declare IPv4 client workstation and infrastructure server (DHCP + DNS).
-host client_v4 {
-    ip 192.168.20.100
-    mac 00:50:56:20:00:64
-}
+flow dhcp_dns_mdns_onboarding(c4, s4, c6, s6) {
+    // DHCPv4 DORA lease + DNS A lookup + DNS TCP AXFR + mDNS printer discovery
+    c4 -> s4 dhcp discover chaddr 00:50:56:20:00:64 hostname "eng-ws-01" wait 2ms
+    c4 <- s4 dhcp offer yiaddr 192.168.20.100 siaddr 192.168.20.1 chaddr 00:50:56:20:00:64 subnet_mask 255.255.255.0 router 192.168.20.1 dns_server 192.168.20.1 lease_time 86400 wait 2ms
+    c4 -> s4 dhcp request ciaddr 192.168.20.100 yiaddr 192.168.20.100 chaddr 00:50:56:20:00:64 wait 2ms
+    c4 <- s4 dhcp ack yiaddr 192.168.20.100 chaddr 00:50:56:20:00:64 subnet_mask 255.255.255.0 router 192.168.20.1 dns_server 192.168.20.1 lease_time 86400 wait 2ms
+    c4 -> s4 dns query txid 1010 qname "git.corp.example.com" qtype "A" wait 1ms
+    c4 <- s4 dns response txid 1010 qname "git.corp.example.com" qtype "A" rdata "192.168.20.55" rcode 0 ans_ttl 300 wait 1ms
+    c4 -> s4 transport tcp dns query txid 1011 qname "corp.example.com" qtype "AXFR" wait 2ms
+    c4 -> s4 mdns query qname "_ipp._tcp.local" qtype "PTR" wait 2ms
 
-// INSTRUCTION: Declare the IPv4 DHCP/DNS infrastructure appliance.
-host infra_srv_v4 {
-    ip 192.168.20.1
-    mac 00:50:56:20:00:01
-}
-
-// INSTRUCTION: Declare IPv6 client and DHCPv6/DNSv6 server.
-host client_v6 {
-    ip 2001:db8:20::100
-    mac 00:50:56:62:00:64
-}
-
-// INSTRUCTION: Declare the IPv6 DHCPv6/DNSv6 server.
-host infra_srv_v6 {
-    ip 2001:db8:20::1
-    mac 00:50:56:62:00:01
-}
-
-// INSTRUCTION: Define DHCPv4 DORA lease lifecycle, DNS UDP/TCP queries, and mDNS service discovery.
-flow dhcpv4_dns_mdns_flow(c, s) {
-    c -> s dhcp discover chaddr 00:50:56:20:00:64 hostname "eng-ws-01" wait 2ms
-    c <- s dhcp offer yiaddr 192.168.20.100 siaddr 192.168.20.1 chaddr 00:50:56:20:00:64 subnet_mask 255.255.255.0 router 192.168.20.1 dns_server 192.168.20.1 lease_time 86400 wait 2ms
-    c -> s dhcp request ciaddr 192.168.20.100 yiaddr 192.168.20.100 siaddr 192.168.20.1 chaddr 00:50:56:20:00:64 hostname "eng-ws-01" wait 2ms
-    c <- s dhcp ack yiaddr 192.168.20.100 siaddr 192.168.20.1 chaddr 00:50:56:20:00:64 subnet_mask 255.255.255.0 router 192.168.20.1 dns_server 192.168.20.1 lease_time 86400 wait 2ms
-    c -> s dns query txid 1010 qname "git.corp.example.com" qtype "A" wait 1ms
-    c <- s dns response txid 1010 qname "git.corp.example.com" qtype "A" rdata "192.168.20.55" rcode 0 ans_ttl 300 wait 1ms
-    c -> s transport tcp dns query txid 1011 qname "corp.example.com" qtype "AXFR" wait 2ms
-    c -> s mdns query qname "_ipp._tcp.local" qtype "PTR" wait 2ms
-    c <- s mdns response qname "_ipp._tcp.local" qtype "PTR" rdata "LaserJet-Floor3._ipp._tcp.local" ans_ttl 120 wait 2ms
-    c -> s dhcp release ciaddr 192.168.20.100 chaddr 00:50:56:20:00:64 wait 1ms
-}
-
-// INSTRUCTION: Define DHCPv6 Solicit-Advertise-Request-Reply (SARR) and AAAA DNS resolution over IPv6.
-flow dhcpv6_sarr_and_aaaa(c6, s6) {
-    c6 -> s6 dhcp solicit hostname "eng-ws-01-v6" wait 2ms
+    // DHCPv6 SARR lease + DNS AAAA lookup
+    c6 -> s6 dhcp solicit chaddr 00:50:56:62:00:64 hostname "eng-ws-01-v6" wait 2ms
     c6 <- s6 dhcp advertise yiaddr 2001:db8:20::100 dns_server 2001:db8:20::1 lease_time 86400 wait 2ms
     c6 -> s6 dhcp request hostname "eng-ws-01-v6" wait 2ms
     c6 <- s6 dhcp reply yiaddr 2001:db8:20::100 dns_server 2001:db8:20::1 lease_time 86400 wait 2ms
     c6 -> s6 dns query txid 2020 qname "git.corp.example.com" qtype "AAAA" wait 1ms
-    c6 <- s6 dns response txid 2020 qname "git.corp.example.com" qtype "AAAA" rdata "2001:db8:20::55" rcode 0 ans_ttl 300 wait 1ms
+    c6 <- s6 dns response txid 2020 qname "git.corp.example.com" qtype "AAAA" rdata "2001:db8:20::55" rcode 0 ans_ttl 300
 }
 
-// INSTRUCTION: Compile both the IPv4 and IPv6 naming and address assignment flows.
 compile {
-    dhcpv4_dns_mdns_flow(client_v4, infra_srv_v4)
-    dhcpv6_sarr_and_aaaa(client_v6, infra_srv_v6)
+    dhcp_dns_mdns_onboarding(client_v4, infra_v4, client_v6, infra_v6)
 }
 ```
 
 ---
 
-## 3. Precision Time Synchronization (`NTP` & `PTP`)
+## 2. Precision Time Synchronization (`NTP` & `PTP`)
 
-### 3.1 Canonical `NTP` (RFC 5905) and `PTP` (IEEE 1588v2) Modifiers
-
-| Protocol | Modifier Syntax | Argument Type | Description |
-| :--- | :--- | :--- | :--- |
-| **`NTP`** | `LI <0..3>` / `VN <1..4>` / `MODE <1..7>` | `u32` | Leap Indicator (`0`), Version (`4`), Mode (`3`=Client, `4`=Server, `5`=Broadcast) |
-| **`NTP`** | `STRATUM <0..16>` | `u32` | Clock stratum (`1` = Primary GPS/Atomic, `2..15` = Secondary, `16` = Unsynced) |
-| **`NTP`** | `POLL <u32>` / `PRECISION <i32>` | `u32`, `i32` | Poll interval exponent (e.g. `6` = $64$s) and signed clock precision (e.g. `236`) |
-| **`NTP`** | `REFID "<str>"` / `TX_TIMESTAMP <u64>` | String, `u64` | 4-char Reference ID (`"GPS"`, `"PPS"`, `"ATOM"`) and 64-bit NTP transmit timestamp |
-| **`PTP`** | `ANNOUNCE` / `SYNC` / `FOLLOW_UP` / `DELAY_REQ` / `DELAY_RESP` | Bare flag (0-arg) | IEEE 1588v2 message type on dynamic UDP port `319` (event) / `320` (general) |
-| **`PTP`** | `MSG_TYPE "<str>"` / `VERSION <u32>` | String, `u32` | Explicit message type override and PTP protocol version (`2` default) |
-| **`PTP`** | `DOMAIN <u32>` / `SEQ_ID <u32>` / `FLAGS <u32>` | `u32` | PTP domain (`0` default, `24` telecom, `127` SMPTE), sequence ID, and 16-bit flags |
-| **`PTP`** | `CLOCK_ID "<str>"` / `SOURCE_PORT_ID <u32>` / `CORRECTION <u64>` | String, `u32`, `u64` | 64-bit EUI-64 Clock Identity, source port number, and 64-bit scaled ns `correctionField` |
-
-#### Wire Encoding & Dynamic Return-Tuple Invariants (`NTP`, `PTP`)
-- **`NTP` (RFC 5905)**: Encodes a fixed 48-byte header on UDP port `123` with byte `0` packing `((LI & 0x3) << 6) | ((VN & 0x7) << 3) | (MODE & 0x7)`, `STRATUM`, `POLL`, `PRECISION`, 32-bit Root Delay/Dispersion, 4-byte ASCII `REFID`, and 64-bit big-endian `TX_TIMESTAMP` at bytes `40..48` (plus optional trailing extension/auth `PAYLOAD`).
-- **`PTP` Dynamic UDP Port (`319` Event vs. `320` General) & Payload-Inclusive `messageLength`**: `build_ptp_payload` returns `(result, dport)` preserved by `l7_dispatch.rs`:
-  - **Dynamic UDP Destination Port**: Routes time-critical **Event** messages (`SYNC` `0x0`, `DELAY_REQ` `0x1`, `PDELAY_REQ` `0x2`, `PDELAY_RESP` `0x3`) to **UDP port `319`**, and **General** messages (`FOLLOW_UP` `0x8`, `DELAY_RESP` `0x9`, `PDELAY_RESP_FOLLOW_UP` `0xA`, `ANNOUNCE` `0xB`, `SIGNALING` `0xC`, `MANAGEMENT` `0xD`) to **UDP port `320`**.
-  - **Payload-Inclusive `messageLength`**: The 16-bit big-endian `messageLength` field at bytes `2..4` of the 34-byte IEEE 1588v2 header is computed over the complete PTP PDU (`34-byte header + message-specific body + trailing PAYLOAD bytes` — `44` bytes base for `SYNC`/`DELAY_REQ`/`FOLLOW_UP` with 10B `originTimestamp`, `54` bytes base for `DELAY_RESP` with 10B `receiveTimestamp` + 10B `requestingPortIdentity`, and `64` bytes base for `ANNOUNCE`, plus `payload_bytes.len()`).
-
-### 3.2 Verified `NTP` and `PTP` Example
+* **`NTP` (UDP 123):** `LI <0..3>`, `VN <1..4>` (`4` default), `MODE <1..7>` (`3`=Client, `4`=Server, `5`=Broadcast), `STRATUM <0..16>` (`1`=Primary GPS/Atomic, `16`=Unsynchronized), `POLL <u8>`, `PRECISION <i8>`, `REFID "<4char>"`, `TX_TIMESTAMP <u64>`.
+* **`PTP` (IEEE 1588v2):** Automatically routes time-critical Event frames (`SYNC`, `DELAY_REQ`) to **UDP port `319`** and General frames (`FOLLOW_UP`, `DELAY_RESP`, `ANNOUNCE`) to **UDP port `320`**. Modifiers: `DOMAIN <u8>`, `SEQ_ID <u16>`, `CLOCK_ID "<eui64>"`, `VERSION <u8>`.
 
 ```frameassembly
-// PROMPT: Stratum-1 GPS NTPv4 synchronization and IEEE 1588v2 PTP two-step hardware timestamping exchange.
-// TOKENS: HOST, IP, MAC, FLOW, DSCP, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, REFID, TX_TIMESTAMP, PTP, ANNOUNCE, SYNC, FOLLOW_UP, DELAY_REQ, DELAY_RESP, DOMAIN, SEQ_ID, CLOCK_ID, WAIT, COMPILE
+host grandmaster { ip 10.158.0.1 }
+host follower    { ip 10.158.0.50 }
 
-// INSTRUCTION: Declare the Grandmaster Clock / Stratum-1 Time Server.
-host grandmaster_clock {
-    ip 10.158.0.1
-    mac 00:1c:73:00:01:01
-}
+flow clock_synchronization(gm, sub) {
+    sub -> gm dscp 46 ntp li 0 vn 4 mode 3 stratum 2 poll 6 refid "INIT" tx_timestamp 0xe9b0000100000000 wait 1ms
+    sub <- gm dscp 46 ntp li 0 vn 4 mode 4 stratum 1 poll 6 refid "GPS" tx_timestamp 0xe9b0000100001000 wait 2ms
 
-// INSTRUCTION: Declare the trading engine follower node synchronizing both NTP and PTP.
-host follower_node {
-    ip 10.158.0.50
-    mac 00:1c:73:00:01:50
-}
-
-// INSTRUCTION: Define NTPv4 Mode 3/4 exchange and IEEE 1588v2 PTP two-step Sync, Follow_Up, Delay_Req, and Delay_Resp cycle.
-flow precision_time_sync(gm, sub) {
-    sub -> gm dscp 46 ntp li 0 vn 4 mode 3 stratum 2 poll 6 precision 236 refid "INIT" tx_timestamp 0xe9b0000100000000 wait 1ms
-    sub <- gm dscp 46 ntp li 0 vn 4 mode 4 stratum 1 poll 6 precision 232 refid "GPS" tx_timestamp 0xe9b0000100001000 wait 1ms
     gm -> sub dscp 46 ptp announce domain 0 seq_id 500 clock_id "00:1c:73:ff:fe:00:01:01" wait 500us
     gm -> sub dscp 46 ptp sync domain 0 seq_id 501 clock_id "00:1c:73:ff:fe:00:01:01" wait 100us
     gm -> sub dscp 46 ptp follow_up domain 0 seq_id 501 clock_id "00:1c:73:ff:fe:00:01:01" wait 200us
     sub -> gm dscp 46 ptp delay_req domain 0 seq_id 501 clock_id "00:1c:73:ff:fe:00:01:50" wait 200us
-    gm -> sub dscp 46 ptp delay_resp domain 0 seq_id 501 clock_id "00:1c:73:ff:fe:00:01:01" wait 200us
+    gm -> sub dscp 46 ptp delay_resp domain 0 seq_id 501 clock_id "00:1c:73:ff:fe:00:01:01"
 }
 
-// INSTRUCTION: Compile the NTPv4 and IEEE 1588v2 PTP synchronization capture.
 compile {
-    precision_time_sync(grandmaster_clock, follower_node)
+    clock_synchronization(grandmaster, follower)
 }
 ```
 
 ---
 
-## 4. AAA & Network Access Security (`RADIUS` & `TACACS`)
+## 3. AAA Access Security (`RADIUS` & `TACACS`)
 
-### 4.1 Canonical `RADIUS` and `TACACS` Modifiers
-
-| Protocol | Modifier Syntax | Argument Type | Description |
-| :--- | :--- | :--- | :--- |
-| **`RADIUS`** | `ACCESS_REQUEST` / `ACCESS_ACCEPT` / `ACCESS_REJECT` / `ACCESS_CHALLENGE` / `ACCOUNTING_REQUEST` / `ACCOUNTING_RESPONSE` | Bare flag (0-arg) | Standard RFC 2865 / 2866 RADIUS packet codes (`1`, `2`, `3`, `11`, `4`, `5`) |
-| **`RADIUS`** | `CODE "<str>"` / `ID <u32>` | String, `u32` | Custom RADIUS code (or RFC 5176 CoA / Disconnect) and 1-byte RADIUS Identifier |
-| **`RADIUS`** | `USER "<username>"` / `REPLY_MSG "<str>"` | Quoted string | Attribute 1 `User-Name` and Attribute 18 `Reply-Message` |
-| **`RADIUS`** | `NAS_IP <ip>` / `FRAMED_IP <ip>` | IPv4 or IPv6 | Attribute 4/95 `NAS-IP(v6)-Address` and Attribute 8/168 `Framed-IP(v6)-Address` |
-| **`RADIUS`** | `SERVICE_TYPE <u32>` / `NAS_PORT <u32>` | `u32` | Attribute 6 `Service-Type` (`2` = Framed, `6` = Admin) and Attribute 5 `NAS-Port` |
-| **`RADIUS`** | `ACCT_STATUS <u32>` / `ACCT_SESSION_ID "<str>"` | `u32`, String | Attribute 40 `Acct-Status-Type` (`1`=Start, `2`=Stop) and Attribute 44 `Acct-Session-Id` |
-| **`TACACS`** | `AUTHEN` / `AUTHOR` / `ACCT` or `TYPE <AUTHEN\|AUTHOR\|ACCT>` | Keyword | RFC 8907 TACACS+ packet type (`1` = Authentication, `2` = Authorization, `3` = Accounting) |
-| **`TACACS`** | `VERSION <u32>` / `SEQ <u32>` / `FLAGS <u32>` | `u32` | TACACS+ header version (`0xc0`/`0xc1`), sequence number, and encryption flags |
-| **`TACACS`** | `SESSION_ID <u64>` | `u64` | 32-bit TACACS+ session identifier |
-| **`TACACS`** | `USER "<username>"` / `DATA "<str>"` | Quoted string | TACACS+ principal username and command/attribute payload |
-
-#### Wire Encoding & Dynamic Return-Tuple Invariants (`RADIUS`, `TACACS`)
-- **`RADIUS` Dynamic UDP Port (`1812` Auth vs. `1813` Accounting) & Dual-Stack IP Attributes**: `build_radius_payload` returns `(pkt, dport)` preserved by `l7_dispatch.rs`:
-  - **Dynamic UDP Destination Port**: Routes Authentication/Authorization messages (`ACCESS_REQUEST` `1`, `ACCESS_ACCEPT` `2`, `ACCESS_REJECT` `3`, `ACCESS_CHALLENGE` `11`) to **UDP port `1812`** (RFC 2865), and Accounting messages (`ACCOUNTING_REQUEST` `4`, `ACCOUNTING_RESPONSE` `5`) to **UDP port `1813`** (RFC 2866).
-  - **20-Byte Header & Dual-Stack `NAS_IP` / `FRAMED_IP` Encoding**: Serializes `[Code(1B), ID(1B), Length(2B BE), Authenticator(16B)]` plus TLV attributes. When `NAS_IP` or `FRAMED_IP` is an **IPv4** address, emits RFC 2865 Attribute `4` (`NAS-IP-Address`, 6 bytes `[4, 6, a, b, c, d]`) and Attribute `8` (`Framed-IP-Address`, 6 bytes `[8, 6, a, b, c, d]`). When `NAS_IP` or `FRAMED_IP` is an **IPv6** address, automatically emits RFC 3162 Attribute `95` (`NAS-IPv6-Address`, 18 bytes `[95, 18, <16B IPv6>]`) and Attribute `168` (`Framed-IPv6-Address`, 18 bytes `[168, 18, <16B IPv6>]`).
-- **`TACACS` (RFC 8907 TACACS+)**: Encodes a 12-byte big-endian header on TCP port `49` (`[version(1B), type(1B: 1=AUTHEN, 2=AUTHOR, 3=ACCT), seq_no(1B), flags(1B), session_id(4B BE), length(4B BE)]`) followed by the structured body containing `USER` and `DATA` / `PAYLOAD`.
-
-### 4.2 Verified `RADIUS` and `TACACS` Example
+* **`RADIUS`:** Automatically routes Authentication packets (`ACCESS_REQUEST`, `ACCESS_ACCEPT`, `ACCESS_REJECT`, `ACCESS_CHALLENGE`) to **UDP port `1812`** and Accounting packets (`ACCOUNTING_REQUEST`, `ACCOUNTING_RESPONSE`) to **UDP port `1813`**. Supports `ID <u8>`, `USER "<str>"`, `NAS_IP <ip>`, `FRAMED_IP <ip>` (automatically emitting IPv4 Attributes `4`/`8` or IPv6 Attributes `95`/`168`), and `SERVICE_TYPE <u32>`.
+* **`TACACS` (TCP 49):** `AUTHEN`, `AUTHOR`, `ACCT` (or `TYPE <AUTHEN|AUTHOR|ACCT>`), `SEQ <u8>`, `FLAGS <u8>`, `SESSION_ID <u32>`, `USER "<str>"`, `PAYLOAD "<str>"`.
 
 ```frameassembly
-// PROMPT: Enterprise AAA verification covering RADIUS 802.1X authentication/accounting and TACACS+ CLI command authorization.
-// TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, ACCESS_CHALLENGE, ACCESS_ACCEPT, ACCOUNTING_REQUEST, ACCOUNTING_RESPONSE, USER, NAS_IP, SERVICE_TYPE, FRAMED_IP, TACACS, AUTHEN, AUTHOR, ACCT, SESSION_ID, DATA, WAIT, COMPILE
+host nas_switch { ip 10.60.1.10 }
+host aaa_server { ip 10.60.1.200 }
 
-// INSTRUCTION: Declare the Network Access Server (NAS) switch.
-host nas_switch {
-    ip 10.60.1.10
-    mac 00:1c:73:60:01:10
+flow radius_and_tacacs_audit(nas, aaa) {
+    nas -> aaa radius access_request id 10 user "alice@corp.local" nas_ip 10.60.1.10 service_type 2 wait 2ms
+    nas <- aaa radius access_accept id 10 user "alice@corp.local" framed_ip 10.60.20.55 wait 2ms
+    nas -> aaa radius accounting_request id 11 user "alice@corp.local" nas_ip 10.60.1.10 framed_ip 10.60.20.55 wait 2ms
+    nas <- aaa radius accounting_response id 11 wait 5ms
+
+    nas -> aaa tacacs author session_id 900102 user "netadmin" payload "cmd=configure;cmd-arg=terminal" wait 2ms
+    nas <- aaa tacacs author session_id 900102 user "netadmin" payload "AUTHOR_STATUS_PASS_ADD"
 }
 
-// INSTRUCTION: Declare the centralized AAA Policy Server (RADIUS + TACACS+).
-host aaa_policy_srv {
-    ip 10.60.1.200
-    mac 00:50:56:60:01:c8
-}
-
-// INSTRUCTION: Define RADIUS EAP challenge-response authentication, accounting start, and TACACS+ CLI command audit.
-flow radius_and_tacacs_aaa(nas, aaa) {
-    nas -> aaa radius access_request user "alice@corp.example.com" nas_ip 10.60.1.10 service_type 2 wait 2ms
-    nas <- aaa radius access_challenge user "alice@corp.example.com" nas_ip 10.60.1.10 wait 2ms
-    nas -> aaa radius access_request user "alice@corp.example.com" nas_ip 10.60.1.10 service_type 2 wait 2ms
-    nas <- aaa radius access_accept user "alice@corp.example.com" nas_ip 10.60.1.10 service_type 2 framed_ip 10.60.20.55 wait 2ms
-    nas -> aaa radius accounting_request user "alice@corp.example.com" nas_ip 10.60.1.10 framed_ip 10.60.20.55 wait 2ms
-    nas <- aaa radius accounting_response user "alice@corp.example.com" nas_ip 10.60.1.10 wait 2ms
-    nas -> aaa tacacs authen session_id 900101 user "netops_admin" payload "Interactive-SSH-Login" wait 2ms
-    nas <- aaa tacacs authen session_id 900101 user "netops_admin" payload "AUTHEN_STATUS_PASS" wait 2ms
-    nas -> aaa tacacs author session_id 900102 user "netops_admin" payload "cmd=configure;cmd-arg=terminal" wait 2ms
-    nas <- aaa tacacs author session_id 900102 user "netops_admin" payload "AUTHOR_STATUS_PASS_ADD" wait 2ms
-    nas -> aaa tacacs acct session_id 900103 user "netops_admin" payload "task_id=42;service=shell;cmd=write memory" wait 2ms
-}
-
-// INSTRUCTION: Compile the RADIUS and TACACS+ AAA capture.
 compile {
-    radius_and_tacacs_aaa(nas_switch, aaa_policy_srv)
+    radius_and_tacacs_audit(nas_switch, aaa_server)
 }
 ```
 
 ---
 
-## 5. Logging & Flow Telemetry (`SYSLOG`, `NETFLOW`, `IPFIX`, `SFLOW`)
+## 4. Logging & Flow Telemetry (`SYSLOG`, `NETFLOW`, `IPFIX`, `SFLOW`)
 
-### 5.1 Canonical Telemetry Modifiers
-
-| Protocol | Modifier Syntax | Argument Type | Description |
-| :--- | :--- | :--- | :--- |
-| **`SYSLOG`** | `FACILITY <0..23>` / `SEVERITY <0..7>` / `PRI <0..191>` | `u32` | RFC 5424 Facility (`4` = auth, `16` = local0), Severity (`0` = emerg .. `6` = info), or raw `PRI` |
-| **`SYSLOG`** | `VERSION <u32>` / `TIMESTAMP "<str>"` | `u32`, String | RFC 5424 version (`1` default) and ISO 8601 timestamp |
-| **`SYSLOG`** | `HOSTNAME "<str>"` / `APP "<str>"` / `PROCID "<str>"` / `MSGID "<str>"` | Quoted string | Originating FQDN, application name, process ID, and message ID |
-| **`SYSLOG`** | `MSG "<str>"` | Quoted string | RFC 5424 structured log text |
-| **`NETFLOW`**| `VERSION <u32>` / `COUNT <u32>` / `SEQ <u32>` / `UPTIME <u32>` | `u32` | NetFlow header version (`5` default), record count, sequence number, and sysUptime |
-| **`NETFLOW`**| `SRCIP <ip>` / `DSTIP <ip>` / `SRCPORT <u32>` / `DSTPORT <u32>` / `PROTO <u32>` | IP, `u32` | Flow 5-tuple source/destination IP, L4 ports, and IP protocol number |
-| **`NETFLOW`**| `PACKETS <u32>` / `OCTETS <u32>` / `TCP_FLAGS <u32>` / `TOS <u32>` | `u32` | Cumulative packet and byte counters, cumulative TCP flags, and IPv4 ToS byte |
-| **`IPFIX`** | `DOMAIN_ID <u32>` / `SEQ <u32>` / `SET_ID <u32>` / `EXPORT_TIME <u32>` | `u32` | RFC 7011 Observation Domain ID, sequence number, Set ID (`256` default), and export epoch |
-| **`IPFIX`** | `SRCIP <ip>` / `DSTIP <ip>` / `SRCPORT <u32>` / `DSTPORT <u32>` / `PROTO <u32>` / `PACKETS <u32>` / `OCTETS <u32>` | IP, `u32` | Dual-stack IPv4/IPv6 flow record fields and counters |
-| **`SFLOW`** | `VERSION <u32>` / `AGENT_IP <ip>` / `SUB_AGENT_ID <u32>` / `SEQ <u32>` / `UPTIME <u32>` / `SAMPLES <u32>` | IP, `u32` | sFlow v5 datagram header fields (`VERSION 5`, IPv4/IPv6 `AGENT_IP`, uptime ms, sample count) |
-| **`SFLOW`** | `SAMPLING_RATE <u32>` / `SAMPLE_POOL <u32>` / `DROPS <u32>` / `INPUT_IF <u32>` / `OUTPUT_IF <u32>` | `u32` | sFlow v5 32-byte Flow Sample header parameters and interface indices |
-
-#### Wire Encoding & Length Invariants (`SYSLOG`, `NETFLOW`, `IPFIX`, `SFLOW`)
-- **`SYSLOG` (RFC 5424)**: Serializes `<PRI>1 <TIMESTAMP> <HOSTNAME> <APP> <PROCID> <MSGID> - <MSG>` over UDP/TCP port `514`, computing `PRI = (FACILITY * 8) + SEVERITY` when `PRI` is not explicitly overridden.
-- **`NETFLOW` (Cisco NetFlow v5)**: Serializes a 24-byte NetFlow v5 header (`version = 5`, `count = 1`, `sys_uptime`, `unix_secs`, `unix_nsecs`, `flow_sequence`, `engine_type`, `engine_id`, `sampling_interval`) followed by a 48-byte big-endian flow record (`SRCIP`, `DSTIP`, `nexthop`, `input`, `output`, `PACKETS`, `OCTETS`, `first`, `last`, `SRCPORT`, `DSTPORT`, `tcp_flags`, `PROTO`, `tos`, `src_as`, `dst_as`, `src_mask`, `dst_mask`) on UDP port `2055`.
-- **`IPFIX` Payload-Inclusive `set_len` & `total_len` (RFC 7011)**:
-  - Encodes a 16-byte IPFIX Message Header (`version = 0x000a`, `total_len`, `export_time`, `seq_num`, `domain_id`) followed by a 4-byte Set Header (`set_id = 256` default, `set_len`), dual-stack IPv4 (4B IPs) or IPv6 (16B IPs) flow record fields (`SRCIP`, `DSTIP`, `PACKETS`, `OCTETS`, `SRCPORT`, `DSTPORT`, `PROTO`), and any trailing `PAYLOAD` bytes on port `4739`.
-  - Both `set_len` (`4 + record.len() + payload_bytes.len()`) and `total_len` (`16 + set_len`) **include `payload_bytes.len()`** so Wireshark's IPFIX dissector never reports truncated or trailing garbage bytes.
-- **`SFLOW` Full 32-Byte (8 `u32` Fields) Flow Sample Header (sFlow v5)**:
-  - Following the sFlow v5 Datagram Header (`version = 5`, `address_type = 1` for IPv4 or `2` for IPv6, `AGENT_IP`, `SUB_AGENT_ID`, `SEQ`, `UPTIME`, `num_samples`) and the 8-byte Sample Data TLV header (`sample_type = 1` Flow Sample, `sample_len`), encodes the complete **32-byte (8 big-endian `u32` fields) sFlow v5 Flow Sample header**:
-    1. `sequence_number` (`u32`)
-    2. `source_id` (`u32`, `0x00000001` default)
-    3. `sampling_rate` (`u32`, `SAMPLING_RATE`, default `512`)
-    4. `sample_pool` (`u32`, `SAMPLE_POOL`)
-    5. `drops` (`u32`, `DROPS`)
-    6. `input_if` (`u32`, `INPUT_IF`)
-    7. `output_if` (`u32`, `OUTPUT_IF`)
-    8. `num_flow_records` (`u32`, `1`)
-  - Followed by the Raw Packet Header flow record (`flow_format = 1`, `flow_data_len`, `protocol = 1` Ethernet, `frame_length`, `stripped = 4`, `header_length`, and 4-byte XDR-padded sampled frame bytes) on UDP port `6343`.
-
-### 5.2 Verified `SYSLOG`, `NETFLOW`, `IPFIX`, and `SFLOW` Example
+| Protocol | Default Port | Modifiers |
+| :--- | :--- | :--- |
+| **`SYSLOG`** | UDP / TCP `514` | `FACILITY <0..23>`, `SEVERITY <0..7>` (`0`=Emerg .. `7`=Debug), `PRI <0..191>` (`FACILITY * 8 + SEVERITY` if omitted), `HOSTNAME "<str>"`, `APP "<str>"`, `PROCID "<str>"`, `MSG "<text>"`, `TRANSPORT TCP` |
+| **`NETFLOW`**| UDP `2055` | NetFlow v5 record: `SRCIP <ip>`, `DSTIP <ip>`, `SRCPORT <u16>`, `DSTPORT <u16>`, `PROTO <u8>`, `PACKETS <u32>`, `OCTETS <u32>` |
+| **`IPFIX`** | UDP / TCP `4739` | Dual-stack v10 flow record: `DOMAIN_ID <u32>`, `SRCIP <ip>`, `DSTIP <ip>`, `SRCPORT <u16>`, `DSTPORT <u16>`, `PROTO <u8>`, `PACKETS <u32>`, `OCTETS <u32>` |
+| **`SFLOW`** | UDP `6343` | sFlow v5 Flow Sample: `AGENT_IP <ip>`, `SUB_AGENT_ID <u32>`, `SEQ <u32>`, `UPTIME <u32>`, `SAMPLES <u32>` |
 
 ```frameassembly
-// PROMPT: NOC observability pipeline exporting RFC 5424 Syslog alerts, NetFlow v9 records, IPFIX v10 templates, and sFlow v5 ASIC packet samples.
-// TOKENS: HOST, IP, MAC, FLOW, SYSLOG, FACILITY, SEVERITY, PRI, HOSTNAME, APP, PROCID, MSG, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, IPFIX, DOMAIN_ID, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, WAIT, COMPILE
+host core_exporter { ip 10.250.10.1 }
+host collector     { ip 10.250.10.100 }
 
-// INSTRUCTION: Declare Core Border Router exporting logs and flow telemetry.
-host border_exporter {
-    ip 10.250.10.1
-    mac 00:1c:73:fa:10:01
+flow observability_export(rtr, col) {
+    rtr -> col syslog facility 16 severity 4 hostname "core-rtr-01" app "bgpd" procid "1842" msg "Neighbor 198.51.100.1 Up" wait 1ms
+    rtr -> col netflow srcip 198.51.100.25 dstip 203.0.113.80 srcport 51200 dstport 443 proto 6 packets 15400 octets 21560000 wait 1ms
+    rtr -> col ipfix domain_id 4001 srcip 198.51.100.25 dstip 203.0.113.80 srcport 51200 dstport 443 proto 6 packets 15400 octets 21560000 wait 1ms
+    rtr -> col sflow agent_ip 10.250.10.1 sub_agent_id 1 uptime 86400000 samples 8
 }
 
-// INSTRUCTION: Declare the SIEM & Flow Telemetry Ingestion Cluster.
-host telemetry_ingest {
-    ip 10.250.10.100
-    mac 00:50:56:fa:10:64
-}
-
-// INSTRUCTION: Export RFC 5424 Syslog event, NetFlow record, IPFIX observation domain record, and sFlow datagram.
-flow noc_telemetry_export(rtr, collector) {
-    rtr -> collector syslog facility 16 severity 4 pri 132 hostname "border-rtr-01" app "bgpd" procid "1842" msg "BGP-5-ADJCHANGE: neighbor 198.51.100.1 Up" wait 1ms
-    rtr -> collector netflow srcip 198.51.100.25 dstip 203.0.113.80 proto 6 packets 15400 octets 21560000 wait 1ms
-    rtr -> collector ipfix domain_id 4001 srcip 198.51.100.25 dstip 203.0.113.80 proto 6 packets 15400 octets 21560000 wait 1ms
-    rtr -> collector sflow agent_ip 10.250.10.1 sub_agent_id 1 uptime 86400000 samples 8 wait 1ms
-}
-
-// INSTRUCTION: Compile the NOC telemetry export capture.
 compile {
-    noc_telemetry_export(border_exporter, telemetry_ingest)
+    observability_export(core_exporter, collector)
 }
 ```
 
 ---
 
-## 6. File Transfer, Remote CLI & Registry Lookup (`TFTP`, `FTP`, `SSH`, `TELNET`, `WHOIS`)
+## 5. File Transfer, Remote CLI & Registry (`TFTP`, `FTP`, `SSH`, `TELNET`, `WHOIS`)
 
-### 6.1 Canonical Modifiers (`TFTP`, `FTP`, `SSH`, `TELNET`, `WHOIS`)
-
-| Protocol | Modifier Syntax | Argument Type | Description |
-| :--- | :--- | :--- | :--- |
-| **`TFTP`** | `RRQ` / `WRQ` / `OPCODE <u32>` | Flag, `u32` | Read Request (`1`), Write Request (`2`), Data (`3`), ACK (`4`), or Error (`5`) on UDP `69` |
-| **`TFTP`** | `FILENAME "<str>"` / `MODE "<str>"` | Quoted string | Target file path and transfer mode (`"octet"` or `"netascii"`) |
-| **`TFTP`** | `BLOCK <u32>` / `ERRCODE <u32>` / `ERRMSG "<str>"` | `u32`, String | Data/ACK block number (`1..65535`) or TFTP Error code and string |
-| **`FTP`** | `CMD "<str>"` / `ARG "<str>"` | Quoted string | FTP client command (`"USER"`, `"PASS"`, `"EPSV"`, `"RETR"`, `"QUIT"`) and argument |
-| **`FTP`** | `CODE <u32>` / `REPLY "<str>"` | `u32`, String | 3-digit FTP server response code (`220`, `230`, `229`, `150`, `226`) and text |
-| **`SSH`** | `BANNER "<str>"` | Quoted string | RFC 4253 §4.2 identification string (e.g. `"SSH-2.0-OpenSSH_9.8"`, emitted as `<BANNER>\r\n`) |
-| **`SSH`** | `KEXINIT` / `NEWKEYS` / `MSG_CODE <u32>` / `MSGCODE <u32>` | Flag, `u32` | RFC 4253 §6 binary packet framing (`20`=`KEXINIT`, `21`=`NEWKEYS`, `30`/`31`=ECDH KEX) |
-| **`SSH`** | `COOKIE "<hex_or_str>"` | Quoted string | 16-byte random cookie inside `SSH_MSG_KEXINIT` (`20`) binary packets |
-| **`TELNET`** | `WILL <u32>` / `WONT <u32>` / `DO <u32>` / `DONT <u32>` / `OPTION <u32>` | `u32` (`0..255`) | RFC 854 3-byte `0xff <cmd> <opt>` IAC negotiation (`1`=Echo, `3`=SGA, `24`=TTYPE, `31`=NAWS) |
-| **`TELNET`** | `CMD <u32>` / `DATA "<str>"` | `u32`, String | Explicit Telnet command byte (`251..254`) and interactive terminal data stream |
-| **`WHOIS`** | `QUERY` / `RESPONSE` | Bare flag (0-arg) | Selects client query (`<DOMAIN>\r\n`) or registry server response on TCP port `43` |
-| **`WHOIS`** | `DOMAIN "<str>"` / `REGISTRAR "<str>"` | Quoted string | Queried domain/prefix/ASN and authoritative RIR/registrar name included in response banner |
-
-> **Important Syntax Rule**: In `TELNET`, `WILL`, `WONT`, `DO`, `DONT`, and `OPTION` each take an integer option code `<u32>` directly (e.g. `TELNET DO 1 WILL 3`). Never write `WILL OPTION 3`. In `WHOIS`, `QUERY` is a 0-argument flag; always write `WHOIS QUERY DOMAIN "example.com" REGISTRAR "whois.arin.net"`.
-
-### 6.2 Verified `TFTP`, `FTP`, `SSH`, `TELNET`, and `WHOIS` Example
+| Protocol | Default Port | Modifiers & Syntax Notes |
+| :--- | :--- | :--- |
+| **`TFTP`** | UDP `69` | `RRQ`, `WRQ`, `DATA`, `ACK`, `FILENAME "<str>"`, `MODE "<octet\|netascii>"`, `BLOCK <u16>`, `ERRCODE <u16>`, `ERRMSG "<str>"` |
+| **`FTP`** | TCP `21` | `CMD "<USER\|PASS\|EPSV\|RETR\|STOR\|QUIT>"`, `ARG "<str>"`, `CODE <u16>` (`220`, `230`, `226`), `REPLY "<str>"` |
+| **`SSH`** | TCP `22` | `BANNER "<str>"` (e.g. `"SSH-2.0-OpenSSH_9.8p1"`), `KEXINIT`, `NEWKEYS`, `MSG_CODE <u8>` |
+| **`TELNET`** | TCP `23` | `WILL <u8>`, `WONT <u8>`, `DO <u8>`, `DONT <u8>`, `OPTION <u8>` *(pass option code integer directly, e.g. `DO 1 WILL 3`)*, `PAYLOAD "<str>"` |
+| **`WHOIS`** | TCP `43` | `QUERY` / `RESPONSE` *(0-arg flags)*, `DOMAIN "<domain_or_asn>"`, `REGISTRAR "<str>"` |
 
 ```frameassembly
-// PROMPT: Network administration session combining SSHv2 key exchange, Telnet IAC option negotiation, TFTP firmware boot, FTP archive retrieval, and WHOIS ASN lookup.
-// TOKENS: HOST, IP, MAC, FLOW, SSH, BANNER, KEXINIT, NEWKEYS, MSG_CODE, TELNET, DO, WILL, DONT, WONT, TFTP, RRQ, FILENAME, MODE, BLOCK, FTP, CMD, ARG, CODE, REPLY, WHOIS, QUERY, RESPONSE, DOMAIN, REGISTRAR, PAYLOAD, WAIT, COMPILE
+host bastion { ip 10.70.1.50 }
+host server  { ip 10.70.1.10 }
 
-// INSTRUCTION: Declare the Admin Bastion Workstation.
-host admin_bastion {
-    ip 10.70.1.50
-    mac 00:50:56:70:01:50
-}
-
-// INSTRUCTION: Declare the Managed Infrastructure Server hosting SSH, Telnet, TFTP, FTP, and WHOIS services.
-host managed_srv {
-    ip 10.70.1.10
-    mac 00:1c:73:70:01:10
-}
-
-// INSTRUCTION: Define SSHv2 handshake, Telnet IAC negotiation, TFTP octet transfer, FTP login/retrieve, and WHOIS query/response.
-flow remote_admin_and_file_transfer(adm, srv) {
+flow remote_cli_and_transfers(adm, srv) {
     adm -> srv ssh banner "SSH-2.0-OpenSSH_9.8p1" wait 1ms
     adm <- srv ssh banner "SSH-2.0-Cisco-2.0" wait 1ms
-    adm -> srv ssh kexinit payload "KEX_CURVE25519_SHA256" wait 1ms
-    adm <- srv ssh kexinit payload "KEX_CURVE25519_SHA256" wait 1ms
-    adm -> srv ssh msg_code 30 payload "CURVE25519_SHA256_EPHEMERAL_PUBKEY" wait 1ms
-    adm <- srv ssh newkeys wait 1ms
-    adm <- srv telnet do 24 will 1 option 3 payload "User Access Verification\r\nUsername: " wait 1ms
-    adm -> srv telnet will 24 do 3 dont 31 wont 32 payload "admin\r\n" wait 1ms
-    adm -> srv tftp rrq filename "sonic-broadcom-202511.bin" mode "octet" wait 1ms
-    adm <- srv tftp block 1 payload "FIRMWARE_IMAGE_BLOCK_0001_512B" wait 1ms
-    adm <- srv ftp code 220 reply "vsFTPd 3.0.5 Ready" wait 1ms
+    adm -> srv ssh kexinit payload "curve25519-sha256" wait 1ms
+    adm <- srv ssh newkeys wait 2ms
+
+    adm <- srv telnet do 24 will 1 option 3 payload "Username: " wait 1ms
+    adm -> srv telnet will 24 do 3 payload "admin\r\n" wait 2ms
+
+    adm -> srv tftp rrq filename "nos-image.bin" mode "octet" wait 1ms
+    adm <- srv tftp data block 1 payload "FIRMWARE_BLOCK_0001" wait 1ms
+    adm -> srv tftp ack block 1 wait 2ms
+
+    adm <- srv ftp code 220 reply "vsFTPd Ready" wait 1ms
     adm -> srv ftp cmd "USER" arg "backup_ops" wait 1ms
-    adm <- srv ftp code 230 reply "Login successful" wait 1ms
-    adm -> srv ftp cmd "RETR" arg "running-config.cfg" wait 1ms
-    adm <- srv ftp code 226 reply "Transfer complete" wait 1ms
+    adm <- srv ftp code 230 reply "Login successful" wait 2ms
+
     adm -> srv whois query domain "AS65001" registrar "whois.arin.net" wait 1ms
-    adm <- srv whois response domain "AS65001" registrar "whois.arin.net" payload "ASNumber: 65001\r\nASName: ENTERPRISE-CORE-ASN\r\n" wait 1ms
+    adm <- srv whois response domain "AS65001" registrar "whois.arin.net"
 }
 
-// INSTRUCTION: Compile the remote administration and file transfer suite.
 compile {
-    remote_admin_and_file_transfer(admin_bastion, managed_srv)
+    remote_cli_and_transfers(bastion, server)
 }
 ```

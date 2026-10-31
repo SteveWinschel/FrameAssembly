@@ -33,7 +33,7 @@ import init, {
   validate_fasm,
   inspect_fasm,
   compile_fasm_to_pcapng,
-} from "[https://cdn.jsdelivr.net/npm/frameassembly-wasm@1.2.2/frameassembly_wasm.js](https://cdn.jsdelivr.net/npm/frameassembly-wasm@1.2.2/frameassembly_wasm.js)";
+} from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@1.3.0/frameassembly_wasm.js";
 
 await init();
 ```
@@ -47,12 +47,18 @@ await init();
 ## Minimal `.fasm` Example & PCAPNG Download
 
 ```ts
-const source = `HOST client = 00:11:22:33:44:55 / 192.168.1.10
-HOST server = aa:bb:cc:dd:ee:ff / 192.168.1.20
+const source = `HOST client { IP 192.168.1.10 MAC 00:11:22:33:44:55 }
+HOST server { IP 192.168.1.20 MAC aa:bb:cc:dd:ee:ff }
 
-client -> server : TCP SYN DSTPORT=443
-server -> client : TCP SYN ACK SRCPORT=443
-client -> server : TCP ACK DSTPORT=443`;
+FLOW handshake(c, s) {
+    c -> s TCP SYN SRCPORT 51234 DSTPORT 443 WAIT 1ms
+    c <- s TCP SYN ACK WAIT 1ms
+    c -> s TCP ACK WAIT 1ms
+}
+
+COMPILE {
+    handshake(client, server)
+}`;
 
 const diagnostics = validate_fasm(source);
 if (diagnostics.length === 0) {

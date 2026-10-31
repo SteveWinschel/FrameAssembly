@@ -297,6 +297,130 @@ fn test_case_insensitive_duplicate_symbol_errors() {
         CompilerError::SemanticError { message, .. } => {
             assert!(message.contains("Duplicate parameter"));
         }
-        other => panic!("Expected SemanticError for duplicate param, got {:?}", other),
+        other => panic!(
+            "Expected SemanticError for duplicate param, got {:?}",
+            other
+        ),
+    }
+}
+
+/// Verifies that colon-separated, hyphen-separated, and Cisco dotted-quad MAC addresses compile to identical wire bytes.
+#[test]
+fn test_multi_format_mac_wire_equivalence() {
+    let colon_fasm = r#"
+        HOST sw1 { IP 10.0.0.1 MAC 00:1a:2b:3c:4d:5e }
+        HOST sw2 { IP 10.0.0.2 MAC aabb.ccdd.eeff }
+        FLOW check(a, b) {
+            a -> b SRCMAC 00:1a:2b:3c:4d:5e DSTMAC aa:bb:cc:dd:ee:ff ARP REQUEST SENDERMAC 00:1a:2b:3c:4d:5e TARGETMAC aa:bb:cc:dd:ee:ff TARGETIP 10.0.0.2
+            a -> b STP ROOT_ID "00:1a:2b:3c:4d:5e" BRIDGE_ID "aa:bb:cc:dd:ee:ff"
+        }
+        COMPILE { check(sw1, sw2) }
+    "#;
+
+    let hyphen_fasm = r#"
+        HOST sw1 { IP 10.0.0.1 MAC 00-1A-2B-3C-4D-5E }
+        HOST sw2 { IP 10.0.0.2 MAC AA-BB-CC-DD-EE-FF }
+        FLOW check(a, b) {
+            a -> b SRCMAC 00-1A-2B-3C-4D-5E DSTMAC AA-BB-CC-DD-EE-FF ARP REQUEST SENDERMAC 00-1A-2B-3C-4D-5E TARGETMAC AA-BB-CC-DD-EE-FF TARGETIP 10.0.0.2
+            a -> b STP ROOT_ID "00-1A-2B-3C-4D-5E" BRIDGE_ID "AA-BB-CC-DD-EE-FF"
+        }
+        COMPILE { check(sw1, sw2) }
+    "#;
+
+    let cisco_fasm = r#"
+        HOST sw1 { IP 10.0.0.1 MAC 001a.2b3c.4d5e }
+        HOST sw2 { IP 10.0.0.2 MAC aabb.ccdd.eeff }
+        FLOW check(a, b) {
+            a -> b SRCMAC 001a.2b3c.4d5e DSTMAC aabb.ccdd.eeff ARP REQUEST SENDERMAC 001a.2b3c.4d5e TARGETMAC aabb.ccdd.eeff TARGETIP 10.0.0.2
+            a -> b STP ROOT_ID "001a.2b3c.4d5e" BRIDGE_ID "aabb.ccdd.eeff"
+        }
+        COMPILE { check(sw1, sw2) }
+    "#;
+
+    let frames_colon =
+        crate::backend::compile_program(&parse_program(colon_fasm).unwrap()).unwrap();
+    let frames_hyphen =
+        crate::backend::compile_program(&parse_program(hyphen_fasm).unwrap()).unwrap();
+    let frames_cisco =
+        crate::backend::compile_program(&parse_program(cisco_fasm).unwrap()).unwrap();
+
+    assert_eq!(frames_colon, frames_hyphen);
+    assert_eq!(frames_colon, frames_cisco);
+}
+
+/// Verifies plain-English parser diagnostics for structural traps and networking aliases without compiler jargon.
+#[test]
+fn test_plain_english_parser_structural_and_networking_hints() {
+    use miette::Diagnostic;
+
+    let cases = [
+        (
+            "HOST r1 { MAC 00:11:22:33:44:55 } FLOW f(a, b) { a -> b ICMP } COMPILE { f(r1, r1) }",
+            "missing a required 'IP <address>' field",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } FLOW f { r1 -> r1 ICMP } COMPILE { f(r1) }",
+            "is missing its endpoint parameter list '(a, b)'",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b ICMP }",
+            "missing 'COMPILE { ... }' block",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } r1 -> r1 ICMP COMPILE {}",
+            "is outside a FLOW block",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b TCP sport 80 } COMPILE { f(r1, r1) }",
+            "SRCPORT <port>",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b TCP dport 443 } COMPILE { f(r1, r1) }",
+            "DSTPORT <port>",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b TCP ACK 100 } COMPILE { f(r1, r1) }",
+            "ACKNUM 100",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b hoplimit 64 ICMP } COMPILE { f(r1, r1) }",
+            "Use 'TTL <value>'",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b tos 46 ICMP } COMPILE { f(r1, r1) }",
+            "DSCP <0..63>",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b vlan_id 100 ICMP } COMPILE { f(r1, r1) }",
+            "VLAN 100",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b QINQ 100 200 ICMP } COMPILE { f(r1, r1) }",
+            "INNER_VLAN",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b HTTP GET URI \"/\" HOST \"example.com\" } COMPILE { f(r1, r1) }",
+            "HOST_HDR",
+        ),
+        (
+            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b TCP SRCPROT 80 } COMPILE { f(r1, r1) }",
+            "Did you mean 'SRCPORT'?",
+        ),
+    ];
+
+    for (src, expected_msg) in cases {
+        let err = parse_program(src).unwrap_err();
+        let rendered = format!(
+            "{} {}",
+            err,
+            err.help().map(|h| h.to_string()).unwrap_or_default()
+        );
+        assert!(
+            rendered.contains(expected_msg),
+            "For input `{src}`, expected `{expected_msg}`, got `{rendered}`"
+        );
+        assert!(!rendered.contains("AST"));
+        assert!(!rendered.contains("Ident("));
+        assert!(!rendered.ends_with("Syntax error: "));
     }
 }

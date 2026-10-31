@@ -1,0 +1,186 @@
+{
+  "FrameAssembly Program Skeleton": {
+    "prefix": "fasm",
+    "description": "Complete FrameAssembly (.fasm) specification with HOST, FLOW, and COMPILE blocks",
+    "body": [
+      "HOST ${1:client} {",
+      "    IP ${2:10.0.0.10}",
+      "    MAC ${3:00:1a:2b:3c:4d:01}",
+      "}",
+      "",
+      "HOST ${4:server} {",
+      "    IP ${5:10.0.0.20}",
+      "    MAC ${6:00:1a:2b:3c:4d:02}",
+      "}",
+      "",
+      "FLOW ${7:session}(a, b) {",
+      "    a -> b ${8:ICMP ECHO_REQUEST ID 1 SEQ 1}",
+      "    a <- b ${9:ICMP ECHO_REPLY ID 1 SEQ 1} WAIT 5ms",
+      "}",
+      "",
+      "COMPILE {",
+      "    ${7:session}(${1:client}, ${4:server})",
+      "}"
+    ]
+  },
+  "Host Definition": {
+    "prefix": "host",
+    "description": "Declare a network endpoint HOST with IPv4/IPv6 and optional MAC address (colon, hyphen, or Cisco dotted-quad)",
+    "body": [
+      "HOST ${1:endpoint} {",
+      "    IP ${2:10.0.0.1}",
+      "    MAC ${3:00:1a:2b:3c:4d:5e}",
+      "}"
+    ]
+  },
+  "TCP 3-Way Handshake": {
+    "prefix": "tcp-handshake",
+    "description": "Standard TCP 3-way handshake (SYN, SYN ACK, ACK) with automatic sequence tracking",
+    "body": [
+      "a -> b TCP SRCPORT ${1:50000} DSTPORT ${2:443} SYN",
+      "a <- b TCP SYN ACK WAIT 2ms",
+      "a -> b TCP ACK WAIT 1ms"
+    ]
+  },
+  "SNMPv2c LinkDown Trap": {
+    "prefix": "snmp2-trap",
+    "description": "Complete SNMPv2c linkDown trap with sysUpTime and snmpTrapOID varbinds",
+    "body": [
+      "HOST ${1:switch} {",
+      "    IP ${2:10.10.1.5}",
+      "}",
+      "",
+      "HOST ${3:nms} {",
+      "    IP ${4:10.10.1.100}",
+      "}",
+      "",
+      "FLOW ${5:link_down_trap}(a, b) {",
+      "    a -> b SNMP2 TRAP COMMUNITY \"${6:public}\" REQID ${7:101} SYSUPTIME ${8:450000} OID 1.3.6.1.6.3.1.1.5.3 VARBIND 1.3.6.1.2.1.2.2.1.1.1 INT ${9:1}",
+      "}",
+      "",
+      "COMPILE {",
+      "    ${5:link_down_trap}(${1:switch}, ${3:nms})",
+      "}"
+    ]
+  },
+  "SNMPv3 AuthPriv Trap (SHA256 + AES)": {
+    "prefix": "snmp3-trap",
+    "description": "Complete SNMPv3 USM authPriv trap using HMAC-SHA-256 and AES-128-CFB encryption",
+    "body": [
+      "HOST ${1:router} {",
+      "    IP ${2:10.20.0.1}",
+      "}",
+      "",
+      "HOST ${3:nms} {",
+      "    IP ${4:10.20.0.50}",
+      "}",
+      "",
+      "FLOW ${5:snmpv3_alert}(a, b) {",
+      "    a -> b SNMP3 TRAP USER \"${6:netadmin}\" ENGINEID \"80001f888011223344\" ENGINEBOOTS 5 ENGINETIME 1200 AUTH SHA256 \"${7:AuthSecretKey123}\" PRIV AES \"${8:PrivSecretKey456}\" OID 1.3.6.1.6.3.1.1.5.3 VARBIND 1.3.6.1.2.1.1.5.0 STRING \"${9:core-rtr-01}\"",
+      "}",
+      "",
+      "COMPILE {",
+      "    ${5:snmpv3_alert}(${1:router}, ${3:nms})",
+      "}"
+    ]
+  },
+  "HTTP GET Request and 200 OK Response": {
+    "prefix": "http-get",
+    "description": "TCP 3-way handshake followed by HTTP GET request and 200 OK JSON response",
+    "body": [
+      "a -> b TCP SRCPORT ${1:52000} DSTPORT ${2:80} SYN",
+      "a <- b TCP SYN ACK WAIT 2ms",
+      "a -> b TCP ACK WAIT 1ms",
+      "a -> b HTTP GET URI \"${3:/api/v1/health}\" HOST_HDR \"${4:api.internal.net}\" WAIT 2ms",
+      "a <- b HTTP STATUS 200 REASON \"OK\" BODY \"{\\\"status\\\":\\\"ok\\\"}\" WAIT 5ms"
+    ]
+  },
+  "DNS A Record Query and Response": {
+    "prefix": "dns-query",
+    "description": "DNS A record lookup and authoritative answer",
+    "body": [
+      "a -> b DNS QUERY TXID ${1:4096} QNAME \"${2:db.internal.corp}\" QTYPE \"A\"",
+      "a <- b DNS RESPONSE TXID ${1:4096} QNAME \"${2:db.internal.corp}\" QTYPE \"A\" RDATA \"${3:10.50.1.25}\" WAIT 3ms"
+    ]
+  },
+  "DHCPv4 DORA 4-Way Handshake": {
+    "prefix": "dhcp-dora",
+    "description": "Full DHCP Discover, Offer, Request, and Ack lease negotiation",
+    "body": [
+      "a -> b DHCP DISCOVER XID ${1:1001} HOSTNAME \"${2:workstation-01}\"",
+      "a <- b DHCP OFFER XID ${1:1001} YIADDR ${3:192.168.10.50} SIADDR ${4:192.168.10.1} LEASE_TIME 86400 WAIT 5ms",
+      "a -> b DHCP REQUEST XID ${1:1001} YIADDR ${3:192.168.10.50} SIADDR ${4:192.168.10.1} WAIT 2ms",
+      "a <- b DHCP ACK XID ${1:1001} YIADDR ${3:192.168.10.50} SIADDR ${4:192.168.10.1} LEASE_TIME 86400 WAIT 5ms"
+    ]
+  },
+  "802.1Q VLAN + QoS DSCP Voice Frame": {
+    "prefix": "vlan-qos",
+    "description": "802.1Q VLAN tagged frame with Layer 2 PCP 5 and Layer 3 DSCP 46 (Expedited Forwarding)",
+    "body": [
+      "a -> b VLAN ${1:100} PCP ${2:5} DSCP ${3:46} RTP PT 0 SEQ 1 TIMESTAMP 160 SSRC 9001"
+    ]
+  },
+  "802.1ad QinQ Double-Tagged Carrier Frame": {
+    "prefix": "qinq",
+    "description": "802.1ad QinQ outer service VLAN and inner customer VLAN (INNER_VLAN) frame",
+    "body": [
+      "a -> b QINQ ${1:1000} INNER_VLAN ${2:200} ICMP ECHO_REQUEST ID 1 SEQ 1"
+    ]
+  },
+  "BGP-4 Peer Session Open and Keepalive": {
+    "prefix": "bgp-open",
+    "description": "TCP handshake followed by BGP-4 OPEN and KEEPALIVE peering exchange",
+    "body": [
+      "a -> b TCP SRCPORT ${1:51000} DSTPORT 179 SYN",
+      "a <- b TCP SYN ACK WAIT 2ms",
+      "a -> b TCP ACK WAIT 1ms",
+      "a -> b BGP OPEN ASN ${2:65001} HOLDTIME 180 BGPID ${3:10.0.0.1} WAIT 2ms",
+      "a <- b BGP OPEN ASN ${4:65002} HOLDTIME 180 BGPID ${5:10.0.0.2} WAIT 2ms",
+      "a -> b BGP KEEPALIVE WAIT 5ms",
+      "a <- b BGP KEEPALIVE WAIT 5ms"
+    ]
+  },
+  "OSPFv2 Adjacency Hello and DBD": {
+    "prefix": "ospf-hello",
+    "description": "OSPF Hello and Database Description exchange with Router ID and Area ID",
+    "body": [
+      "a -> b OSPF HELLO ROUTER_ID ${1:1.1.1.1} AREA_ID ${2:0}",
+      "a <- b OSPF HELLO ROUTER_ID ${3:2.2.2.2} AREA_ID ${2:0} WAIT 5ms",
+      "a -> b OSPF DBD ROUTER_ID ${1:1.1.1.1} AREA_ID ${2:0} WAIT 5ms"
+    ]
+  },
+  "Modbus/TCP Read Holding Registers": {
+    "prefix": "modbus-poll",
+    "description": "Industrial SCADA Modbus/TCP Read Holding Registers poll and register response",
+    "body": [
+      "a -> b TCP SRCPORT ${1:54000} DSTPORT 502 SYN",
+      "a <- b TCP SYN ACK WAIT 2ms",
+      "a -> b TCP ACK WAIT 1ms",
+      "a -> b MODBUS TXID ${2:1} UNITID ${3:1} ADDR ${4:100} COUNT ${5:2} WAIT 2ms",
+      "a <- b MODBUS TXID ${2:1} UNITID ${3:1} ADDR ${4:100} COUNT ${5:2} VALUE ${6:42} IS_RESPONSE WAIT 5ms"
+    ]
+  },
+  "Firewall ACL Blocked TCP SYN -> RST ACK": {
+    "prefix": "firewall-rst",
+    "description": "Test firewall ACL rejection where a blocked TCP SYN receives an immediate RST ACK",
+    "body": [
+      "a -> b TCP SRCPORT ${1:55123} DSTPORT ${2:22} SYN SEQ 1000",
+      "a <- b TCP RST ACK SEQ 0 ACKNUM 1001 WAIT 1ms"
+    ]
+  },
+  "ICMP Ping Echo Request and Reply": {
+    "prefix": "icmp-ping",
+    "description": "ICMP Echo Request and Echo Reply with matching Identifier and Sequence number",
+    "body": [
+      "a -> b ICMP ECHO_REQUEST ID ${1:100} SEQ ${2:1} PAYLOAD \"ping-check\"",
+      "a <- b ICMP ECHO_REPLY ID ${1:100} SEQ ${2:1} PAYLOAD \"ping-check\" WAIT 2ms"
+    ]
+  },
+  "VXLAN Data Center Overlay Frame": {
+    "prefix": "vxlan-overlay",
+    "description": "VXLAN UDP encapsulated frame with 24-bit Virtual Network Identifier (VNI)",
+    "body": [
+      "a -> b VXLAN VNI ${1:10000} PAYLOAD \"overlay-segment-frame\""
+    ]
+  }
+}

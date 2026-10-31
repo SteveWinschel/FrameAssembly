@@ -30,7 +30,10 @@ fn encode_bridge_id(id_str: Option<&str>, default_mac: [u8; 6]) -> [u8; 8] {
         return out;
     }
 
-    if let Some((prio_part, mac_part)) = s.split_once('/') {
+    if let Some((prio_part, mac_part)) = s.split_once('/').or_else(|| {
+        s.split_once(':')
+            .filter(|(_, rest)| parse_mac_str(rest).is_some())
+    }) {
         let prio = if let Some(hex) = prio_part.strip_prefix("0x").or_else(|| prio_part.strip_prefix("0X")) {
             u16::from_str_radix(hex, 16).unwrap_or(0x8000)
         } else {
@@ -61,18 +64,38 @@ fn encode_bridge_id(id_str: Option<&str>, default_mac: [u8; 6]) -> [u8; 8] {
     out
 }
 
-/// Parses a colon- or hyphen-separated 6-octet MAC string.
+/// Parses a colon-separated, hyphen-separated, or Cisco dotted-quad 6-octet MAC string.
 fn parse_mac_str(s: &str) -> Option<[u8; 6]> {
-    let mut mac = [0u8; 6];
-    let mut count = 0usize;
-    for part in s.split([':', '-']) {
-        if count >= 6 {
-            return None;
+    let trimmed = s.trim();
+    if trimmed.contains(':') || trimmed.contains('-') {
+        let mut mac = [0u8; 6];
+        let mut count = 0usize;
+        for part in trimmed.split([':', '-']) {
+            if count >= 6 {
+                return None;
+            }
+            mac[count] = u8::from_str_radix(part.trim(), 16).ok()?;
+            count += 1;
         }
-        mac[count] = u8::from_str_radix(part.trim(), 16).ok()?;
-        count += 1;
+        (count == 6).then_some(mac)
+    } else if trimmed.contains('.') {
+        let mut mac = [0u8; 6];
+        let mut count = 0usize;
+        for part in trimmed.split('.') {
+            let p = part.trim();
+            if count >= 3 || p.len() != 4 {
+                return None;
+            }
+            let word = u16::from_str_radix(p, 16).ok()?;
+            let [hi, lo] = word.to_be_bytes();
+            mac[count * 2] = hi;
+            mac[count * 2 + 1] = lo;
+            count += 1;
+        }
+        (count == 3).then_some(mac)
+    } else {
+        None
     }
-    if count == 6 { Some(mac) } else { None }
 }
 
 /// Builds an IEEE 802.1D / 802.1w Spanning Tree Protocol (STP) BPDU wire frame.

@@ -1,4 +1,12 @@
-// Used for an experimental NPM package
+//! WebAssembly bindings, frame inspector, and UTF-16 IDE diagnostics for the FrameAssembly
+//! (`.fasm`) network packet synthesis compiler.
+//!
+//! This crate exposes `validate_fasm`, `inspect_fasm`, and `compile_fasm_to_pcapng` to browser
+//! environments and web-based code editors (Monaco, CodeMirror) via `wasm-bindgen`. It compiles
+//! declarative `.fasm` specifications across all 81 native Layer 2 through Layer 7 protocols into
+//! deterministic nanosecond-resolution PCAPNG byte arrays (`Uint8Array`) and maps compiler spans
+//! into zero-based UTF-16 line and column coordinates.
+
 use std::fmt::Write;
 
 use frameassembly::backend::compile_program;
@@ -7,6 +15,7 @@ use miette::Diagnostic;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
+/// Custom TypeScript interface definitions appended to the generated `.d.ts` bindings.
 #[wasm_bindgen(typescript_custom_section)]
 const TS_APPEND_CONTENT: &'static str = r#"
 export interface IdeDiagnostic {
@@ -26,24 +35,37 @@ export interface PacketPreview {
 }
 "#;
 
+/// Zero-based UTF-16 source range diagnostic and remediation hint for browser code editors.
 #[derive(Serialize)]
 pub struct IdeDiagnostic {
+    /// Zero-based starting line index.
     pub start_line: u32,
+    /// Zero-based starting UTF-16 column offset.
     pub start_col: u32,
+    /// Zero-based ending line index.
     pub end_line: u32,
+    /// Zero-based ending UTF-16 column offset.
     pub end_col: u32,
+    /// Primary diagnostic error message.
     pub message: String,
+    /// Optional plain-English remediation hint.
     pub help: Option<String>,
 }
 
+/// Summary metadata and hexadecimal wire dump for a single synthesized Ethernet frame.
 #[derive(Serialize)]
 pub struct PacketPreview {
+    /// One-based frame sequence index in the capture.
     pub index: usize,
+    /// Relative frame timestamp in milliseconds from the first frame.
     pub timestamp_ms: f64,
+    /// Total Ethernet frame length in bytes.
     pub length: usize,
+    /// Space-delimited lowercase hexadecimal representation of the frame bytes.
     pub hex: String,
 }
 
+/// Converts a UTF-8 byte offset within `source` into a zero-based `(line, utf16_col)` pair.
 fn byte_to_utf16_pos(source: &str, byte_offset: usize) -> (u32, u32) {
     let clamped = byte_offset.min(source.len());
     let safe_end = (0..=clamped)
@@ -122,6 +144,7 @@ pub fn compile_fasm_to_pcapng(source: &str) -> Result<Vec<u8>, JsError> {
     Ok(packets_to_pcapng(&packets))
 }
 
+/// Serializes `(frame_bytes, timestamp_ns)` tuples into a PCAPNG byte vector with nanosecond resolution.
 fn packets_to_pcapng(packets: &[(Vec<u8>, u64)]) -> Vec<u8> {
     let mut buf = Vec::with_capacity(60 + packets.len() * 96);
 
@@ -168,6 +191,7 @@ fn packets_to_pcapng(packets: &[(Vec<u8>, u64)]) -> Vec<u8> {
     buf
 }
 
+/// Extracts span coordinates and remediation hints from a `miette::Diagnostic` and appends an `IdeDiagnostic`.
 fn push_diagnostic(source: &str, err: &dyn Diagnostic, out: &mut Vec<IdeDiagnostic>) {
     let message = err.to_string();
     let help = err.help().map(|h| h.to_string());

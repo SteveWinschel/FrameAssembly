@@ -84,3 +84,47 @@ use super::*;
         assert_eq!(upper_tokens, lower_tokens);
         assert_eq!(upper_tokens, mixed_tokens);
     }
+
+    /// Verifies native tokenization of colon-separated, hyphen-separated, and Cisco dotted-quad MAC addresses.
+    #[test]
+    fn test_multi_format_mac_tokenization() {
+        let input = "00:1a:2b:3c:4d:5e 00-1A-2B-3C-4D-5E 001a.2b3c.4d5e";
+        let tokens = lex(input).unwrap();
+        assert_eq!(tokens.len(), 3);
+        assert_eq!(tokens[0].0, Token::MacAddress("00:1a:2b:3c:4d:5e"));
+        assert_eq!(tokens[1].0, Token::MacAddress("00-1A-2B-3C-4D-5E"));
+        assert_eq!(tokens[2].0, Token::MacAddress("001a.2b3c.4d5e"));
+    }
+
+    /// Verifies that common non-programmer lexical mistakes produce plain-English hints without compiler jargon.
+    #[test]
+    fn test_plain_english_lexer_error_hints() {
+        use miette::Diagnostic;
+
+        let cases = [
+            ("# router config", "comments in .fasm start with '//'"),
+            ("/* block */", "block comments are not supported"),
+            ("HOST a { IP '10.0.0.1' }", "single quotes are not used"),
+            ("HOST a { IP 10.0.0.1/24 }", "subnet masks (CIDR notation) are not used"),
+            ("HOST a = { IP 10.0.0.1 }", "assignment symbol '=' is not used"),
+            ("HOST a { IP: 10.0.0.1 }", "assignment symbol ':' is not used"),
+            ("a -> b TCP [SYN]", "square brackets '[' and ']' are not used"),
+            ("HOST a { IP 10.0.0.1; }", "semicolons are not needed"),
+            ("+5ms a -> b TCP SYN", "relative delay prefixes like '+5ms' are not used"),
+        ];
+
+        for (src, expected_hint) in cases {
+            let err = lex(src).unwrap_err();
+            let combined = format!(
+                "{} {}",
+                err,
+                err.help().map(|h| h.to_string()).unwrap_or_default()
+            );
+            assert!(
+                combined.contains(expected_hint),
+                "For input `{src}`, expected diagnostic containing `{expected_hint}`, got `{combined}`"
+            );
+            assert!(!combined.contains("AST"));
+        }
+    }
+

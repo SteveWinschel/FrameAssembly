@@ -624,9 +624,13 @@ hex_string_literal      = '"' , { hex_digit | ":" | " " } , '"' ;
 escape_sequence         = "\" , ( "r" | "n" | "t" | "\" | '"' | "'"
                                 | ( "x" , hex_digit , hex_digit )
                                 | ( "u" , hex_digit , hex_digit , hex_digit , hex_digit ) ) ;
-mac_address             = hex_byte , ":" , hex_byte , ":" , hex_byte , ":" ,
-                          hex_byte , ":" , hex_byte , ":" , hex_byte ;
+mac_address             = ( hex_byte , ":" , hex_byte , ":" , hex_byte , ":" ,
+                            hex_byte , ":" , hex_byte , ":" , hex_byte )
+                        | ( hex_byte , "-" , hex_byte , "-" , hex_byte , "-" ,
+                            hex_byte , "-" , hex_byte , "-" , hex_byte )
+                        | ( hex_word , "." , hex_word , "." , hex_word ) ;
 hex_byte                = hex_digit , hex_digit ;
+hex_word                = hex_digit , hex_digit , hex_digit , hex_digit ;
 ip_address              = ipv4_address | ipv6_address ;
 ipv4_address            = decimal_int , "." , decimal_int , "." , decimal_int , "." , decimal_int ;
 ipv6_address            = ( "::" , { hex_digit | ":" | "." } )

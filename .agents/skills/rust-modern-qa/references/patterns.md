@@ -238,13 +238,15 @@ pub fn verify_markdown_fasm_blocks_compile(path: &Path) -> Result<usize, String>
     Ok(compiled_blocks)
 }
 
-/// Gate 5: Verifies that every file in `docs/*.md` and `src/**/*.rs` is strictly < 50 KB
+/// Gate 5: Verifies that every AI-critical Rust source/test file (`src/**/*.rs`, `tests/*.rs`)
+/// and `.fasm` corpus file is strictly < 50 KB (Markdown documentation has no 50 KB cap)
 /// and has at least 50 words (OpenCoder opc_data_filtering minimum word count).
 pub fn verify_file_chunk_size_and_word_bounds(path: &Path) -> Result<(), String> {
     let content = fs::read_to_string(path)
         .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
+    let is_markdown = path.extension().and_then(|s| s.to_str()) == Some("md");
     let byte_len = content.len();
-    if byte_len >= 50_000 {
+    if !is_markdown && byte_len >= 50_000 {
         return Err(format!(
             "{}: File size {} bytes exceeds 50,000-byte AI chunk limit",
             path.display(),

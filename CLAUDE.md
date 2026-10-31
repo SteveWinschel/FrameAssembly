@@ -1,13 +1,13 @@
 # CLAUDE.md — FrameAssembly Project Instructions for Claude Code & AI Agents
 
-**FrameAssembly** (`frameassembly` v1.2.2) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network packet specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
+**FrameAssembly** (`frameassembly` v1.3.0) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network packet specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
 
 ---
 
 ## 1. Essential Build, Test & Verification Commands
 
 ```bash
-# Cross-platform bootstrap install (curl + C linker + rustup >= 1.85 + cargo install)
+# Cross-platform bootstrap install (prebuilt release binary fast-path or curl + C linker + rustup >= 1.85 + cargo install)
 curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
 
 # Build compiler and CLI binary
@@ -21,6 +21,9 @@ cargo test --test corpus_verification_tests
 
 # Compile a single .fasm specification to a .pcap file
 cargo run -- demo.fasm -o output.pcap
+
+# Show the terminal packet ladder for a .fasm file without writing a .pcap file
+cargo run -- show demo.fasm
 ```
 
 ---
@@ -29,7 +32,7 @@ cargo run -- demo.fasm -o output.pcap
 
 1. **Three-Block Program Structure & Case-Insensitivity**:
    - All keywords, protocols, modifiers, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and user-defined identifiers (`HOST`, `FLOW`, parameters) are case-insensitive (`host` / `HOST`, `tcp` / `TCP`).
-   - `HOST <id> { IP <ipv4_or_ipv6> [MAC <mac>] }` (`MAC` is optional; never use `IPV4`, `IPV6`, `=`, colons, commas, or `MASK`).
+   - `HOST <id> { IP <ipv4_or_ipv6> [MAC <mac>] }` (`MAC` is optional and accepts colon `00:1a:2b:3c:4d:5e`, hyphen `00-1A-2B-3C-4D-5E`, or Cisco dotted-quad `001a.2b3c.4d5e`; never use `IPV4`, `IPV6`, `=`, colons, commas, or `MASK`).
    - `FLOW <id>(<param1>, <param2>, ...) { <src> -> <dst> <PROTOCOL> [modifiers...] [WAIT <int><ns|us|ms|s|m>] }` (never declare parameterless `FLOW <id> { ... }` or use `FROM`, `TO`, `REVERSE`, `SEND`, standalone `WAIT` lines, or `+5ms` / `[+delay]` prefixes).
    - `COMPILE { <flow_id>(<host1>, <host2>, ...) [LOOP <count> { ... }] }` (every compilable `.fasm` program or Markdown ````frameassembly` code block must include `HOST`, `FLOW`, and `COMPILE { ... }`).
 2. **Exact Modifier Keywords**:
@@ -41,7 +44,7 @@ cargo run -- demo.fasm -o output.pcap
    - Line 1: `// PROMPT: <natural language description>`
    - Line 2: `// TOKENS: <comma-separated uppercase lexer tokens>`
    - Preceding every `HOST`, `FLOW`, and `COMPILE` block: `// INSTRUCTION: <explanation>`
-   - Metrics: `words >= 50`, `avg_line_length <= 85`, `max_line_length <= 200`, `< 50,000` bytes.
+   - Metrics: `words >= 50`, `avg_line_length <= 85`, `max_line_length <= 200`, `< 50,000` bytes (`< 50 KB` applies to AI-critical `src/**/*.rs`, `tests/*.rs`, and `examples/**/*.fasm` files; human-facing `README.md` and `docs/*.md` have no `< 50 KB` cap and must never include `// PROMPT:`, `// TOKENS:`, or `// INSTRUCTION:` lines, except `docs/for_nerds.md`).
 
 ---
 
@@ -53,8 +56,8 @@ cargo run -- demo.fasm -o output.pcap
   - [`src/parser/`](src/parser/mod.rs) — `winnow 1.0` combinator parser (`parse_program`) and 2-arg semantic validator (`validate_semantics(&program, &source)`).
   - [`src/builders/`](src/builders/mod.rs) — Wire-level protocol encoders (`l2/`, `l3/`, `l4/`, `l7/`, including RFC 3414/3826/7860 `l7/snmp/`).
   - [`src/backend/mod.rs`](src/backend/mod.rs), [`src/packet.rs`](src/packet.rs), [`src/pcap.rs`](src/pcap.rs) — Stateful 4-tuple TCP sequence progression, Ethernet/IPv4/IPv6 encapsulation, and nanosecond PCAPNG writer.
-- **Canonical Documentation (`docs/*.md`, all `< 50 KB`)**:
-  - [`docs/architecture_and_grammar.md`](docs/architecture_and_grammar.md), [`docs/l2_protocols.md`](docs/l2_protocols.md), [`docs/l3_protocols.md`](docs/l3_protocols.md), [`docs/l4_transports.md`](docs/l4_transports.md), [`docs/l7_snmp.md`](docs/l7_snmp.md), [`docs/l7_infra_and_telemetry.md`](docs/l7_infra_and_telemetry.md), [`docs/l7_web_and_cloud.md`](docs/l7_web_and_cloud.md), [`docs/l7_mail_auth_storage_db.md`](docs/l7_mail_auth_storage_db.md), [`docs/l7_industrial_ot.md`](docs/l7_industrial_ot.md), [`docs/topologies_and_dual_stack.md`](docs/topologies_and_dual_stack.md), [`docs/qa_synthesis_guide.md`](docs/qa_synthesis_guide.md).
+- **Canonical Documentation (`docs/*.md` — 12 guides)**:
+  - [`docs/getting_started.md`](docs/getting_started.md), [`docs/use_cases.md`](docs/use_cases.md), [`docs/l2_protocols.md`](docs/l2_protocols.md), [`docs/l3_protocols.md`](docs/l3_protocols.md), [`docs/l4_transports.md`](docs/l4_transports.md), [`docs/l7_snmp.md`](docs/l7_snmp.md), [`docs/l7_infra_and_telemetry.md`](docs/l7_infra_and_telemetry.md), [`docs/l7_web_and_cloud.md`](docs/l7_web_and_cloud.md), [`docs/l7_mail_auth_storage_db.md`](docs/l7_mail_auth_storage_db.md), [`docs/l7_industrial_ot.md`](docs/l7_industrial_ot.md), [`docs/topologies_and_dual_stack.md`](docs/topologies_and_dual_stack.md), [`docs/for_nerds.md`](docs/for_nerds.md).
 - **Constrained Decoding Grammars & AI Context Bundles**:
   - [`grammar.ebnf`](grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](frameassembly.gbnf) (`llama.cpp` & `XGrammar` GBNF), [`frameassembly.lark`](frameassembly.lark) (`llguidance` & `Outlines` Lark).
   - [`AGENTS.md`](AGENTS.md), [`llms.txt`](llms.txt), [`llms-full.txt`](llms-full.txt), [`context7.json`](context7.json), [`CITATION.cff`](CITATION.cff), [`codemeta.json`](codemeta.json).

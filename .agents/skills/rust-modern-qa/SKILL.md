@@ -24,7 +24,7 @@ Use this skill when architecting, implementing, debugging, optimizing, or auditi
 | **External Dissector Verification (`tshark`)** | Pipe generated PCAPNG captures through `tshark -r out.pcap -V` and assert zero `[Malformed Packet]`, `[Bogus ... length]`, or `[Bad Checksum]` expert infos | Relying exclusively on internal unit tests to validate complex RFC wire framing (self-confirming bias) |
 | **Thread-Safe Temp File Generation** | Atomic file naming via `AtomicU64` + PID + RAII cleanup guard (`TempCaptureGuard`) | Fixed temp file names (`/tmp/out.pcap`) causing parallel test collisions |
 | **Documentation Test Execution** | Edition 2024 merged single-binary doctests (`cargo test --doc`) with runnable ````rust` API tests | Zero runnable ````rust` doctests (`0 passed`) or broken host references in `src/lib.rs` |
-| **Link, Orphan & `< 50 KB` Chunk Gate** | Verify all relative Markdown links resolve on disk, zero orphan files exist in `docs/`, and all `docs/*.md` & `src/**/*.rs` are `< 50,000` bytes (`>= 50` words) | Dead 404 links in `README.md`/`AGENTS.md`/`llms.txt` or `> 50 KB` source modules |
+| **Link, Orphan & `< 50 KB` AI-Critical Chunk Gate** | Verify all relative Markdown links resolve on disk, zero orphan files exist in `docs/`, all `docs/*.md` & `src/**/*.rs` have `>= 50` words, and AI-critical source/test/corpus files (`src/**/*.rs`, `tests/*.rs`, `examples/**/*.fasm`) are `< 50,000` bytes (human-facing `README.md` and `docs/*.md` have no `< 50 KB` cap) | Dead 404 links in `README.md`/`AGENTS.md`/`llms.txt` or `> 50 KB` Rust source modules |
 
 ---
 
@@ -63,8 +63,8 @@ In projects maintaining extensive example corpora (`2,611` `.fasm` files across 
    - Every block must be a complete program (`HOST` + `FLOW` + `COMPILE`) that passes `parse_program(snippet)`, `validate_semantics(&prog, snippet)`, and `compile_program(&prog)`.
 4. **Gate 4 — Five-Way Grammar & Non-Terminal Lockstep**:
    - Verify that every keyword `#[token("...")]` in `src/lexer/mod.rs` is present in `grammar.ebnf`, `frameassembly.gbnf`, and `frameassembly.lark`, that every referenced non-terminal on the RHS of a grammar rule is defined on the LHS, and that `frameassembly.lark` includes contextual uppercase keywords in `str_or_ident`.
-5. **Gate 5 — Link, Orphan, Word-Count & `< 50 KB` Chunk Hygiene**:
-   - Assert every relative link `[...](path)` in `README.md`, `AGENTS.md`, `CLAUDE.md`, `llms.txt`, and `docs/*.md` resolves to an existing file on disk, zero unindexed orphan `.md` files exist in `docs/`, zero `0x00` NUL bytes exist, and every file in `docs/*.md` and `src/**/*.rs` satisfies `size < 50,000` bytes and `words >= 50` (OpenCoder `opc_data_filtering`).
+5. **Gate 5 — Link, Orphan, Word-Count & `< 50 KB` Rust Source Hygiene**:
+   - Assert every relative link `[...](path)` in `README.md`, `AGENTS.md`, `CLAUDE.md`, `llms.txt`, and `docs/*.md` resolves to an existing file on disk, zero unindexed orphan `.md` files exist in `docs/`, zero `0x00` NUL bytes exist, every file in `src/**/*.rs` and `tests/*.rs` satisfies `size < 50,000` bytes, and every file in `docs/*.md` and `src/**/*.rs` satisfies `words >= 50` (OpenCoder `opc_data_filtering`).
 
 ---
 

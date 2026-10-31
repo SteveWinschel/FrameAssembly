@@ -12,7 +12,7 @@ use winnow::prelude::*;
 
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::parser::{parse_str_val, parse_u32, tag, ParsedField, Stream};
+use crate::parser::{parse_any_str, parse_str_val, parse_u32, tag, ParsedField, Stream};
 
 /// Parses a PTP protocol declaration or timestamp field.
 pub(crate) fn parse_ptp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
@@ -36,7 +36,7 @@ pub(crate) fn parse_ptp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Par
             (tag(Token::SeqId), cut_err(parse_u32)).map(|((_, s), v)| {
                 ParsedField::L7U32Field("SEQ_ID", v, (s.start, s.end - s.start))
             }),
-            (tag(Token::ClockId), cut_err(parse_str_val)).map(|((_, s), v)| {
+            (tag(Token::ClockId), cut_err(parse_any_str)).map(|((_, s), v)| {
                 ParsedField::L7StringField("CLOCK_ID", v, (s.start, s.end - s.start))
             }),
         )),

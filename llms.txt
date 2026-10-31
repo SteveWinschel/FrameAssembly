@@ -1,17 +1,19 @@
 # FrameAssembly (`frameassembly`)
 
-> Declarative network packet crafting Domain-Specific Language (DSL) and optimizing Rust compiler (v1.2.2) that compiles human-readable `.fasm` traffic specifications into deterministic, nanosecond-accurate `.pcap` and `.pcapng` packet captures across 81 native Layer 2 through Layer 7 protocols, dual-stack IPv4/IPv6 polymorphism, stateful 4-tuple TCP progression, and SNMPv3 USM (RFC 3414/3826/7860) cryptography.
+> Rust compiler (v1.3.0) that turns plain-text `.fasm` packet recipes into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built for network engineers who do not program; a companion to Wireshark/`tshark` (inspection) and `tcpreplay` (wire injection).
 
-FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures in userspace with zero root privileges or live sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides.
+FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures in userspace with zero root privileges or live sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides, plus `frameassembly show <file.fasm>` to display the frames in the terminal without writing a `.pcap` file.
 
 ### Zero-Shot `.fasm` Grammar & Anti-Hallucination Reference
 
-1. **Three-Block Program Structure & Case-Insensitivity**: Every compilable `.fasm` file declares one or more `HOST <id> { IP <ip> [MAC <mac>] }` blocks, one or more parameterized `FLOW <id>(<param1>, <param2>, ...) { <statements> }` blocks, and one `COMPILE { <flow_calls_or_loops> }` block. All keywords, protocols, modifiers, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and identifiers (`HOST`, `FLOW`, parameters) are ASCII case-insensitive (`host` or `HOST`).
+1. **Three-Block Program Structure & Case-Insensitivity**: Every compilable `.fasm` file declares one or more `HOST <id> { IP <ip> [MAC <mac>] }` blocks (`MAC` natively accepts colon `00:1a:2b:3c:4d:5e`, hyphen `00-1A-2B-3C-4D-5E`, and Cisco dotted-quad `001a.2b3c.4d5e`), one or more parameterized `FLOW <id>(<param1>, <param2>, ...) { <statements> }` blocks, and one `COMPILE { <flow_calls_or_loops> }` block. All keywords, protocols, modifiers, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and identifiers (`HOST`, `FLOW`, parameters) are ASCII case-insensitive (`host` or `HOST`).
 2. **1 Statement = 1 Wire Frame & Shared 4-Tuple State**: Each statement (`<a> -> <b> <PROTO> ...` or `<a> <- <b> <PROTO> ...`) emits 1 frame. TCP-based L7 statements emit a `PSH ACK` segment on that protocol's well-known port and share 4-tuple `SEQ`/`ACK` counters and bidirectional port inheritance with raw `TCP` statements on the same connection.
 3. **Dual-Stack Endpoint Homogeneity**: A `FLOW` is polymorphic across IPv4 and IPv6 host pairs, but both endpoints in any single statement must share the same IP family (both IPv4 or both IPv6).
+4. **Comment Syntax & File-Size Rules**: `.fasm` comments always use `//` (never `#`). Human-facing docs (`README.md`, `docs/*.md` except `docs/for_nerds.md`) use plain `//` comments and have no `< 50 KB` cap; AI-critical files (`src/**/*.rs`, `tests/*.rs`, `examples/**/*.fasm`) are strictly `< 50 KB` (`50,000` bytes), and `examples/**/*.fasm` files require `// PROMPT:`, `// TOKENS:`, and `// INSTRUCTION:` headers.
 
 | Construct | ❌ NEVER WRITE (Invalid / Hallucinated) | ✅ ALWAYS WRITE (Canonical `.fasm` Syntax) |
 | :--- | :--- | :--- |
+| **Comments** | `# comment` or `/* block comment */` | `// single-line comment` (only `//` is valid in `.fasm`) |
 | **Host Block** | `HOST c = { IPV4: "10.0.0.1", MASK: 24 }` | `HOST c { IP 10.0.0.1 MAC 00:11:22:33:44:55 }` |
 | **Flow Signature** | `FLOW web { FROM c TO s SEND HTTP }` | `FLOW web(c, s) { c -> s HTTP GET URI "/" }` |
 | **Return Direction** | `s -> c REVERSE TCP` or `REPLY s -> c` | `c <- s TCP SYN ACK` (or `s -> c TCP SYN ACK`) |
@@ -62,7 +64,12 @@ COMPILE {
 }
 ```
 
-- **Public Rust Library Signatures (`frameassembly` crate v1.2.2)**:
+- **Linux CLI Workflow (`frameassembly` + `tshark` + `tcpreplay`)**:
+  - Compile `.fasm` to `.pcap`: `frameassembly demo.fasm -o demo.pcap`
+  - Show frames in the terminal without generating a `.pcap` file: `frameassembly show demo.fasm`
+  - Inspect frames in terminal or Wireshark: `tshark -r demo.pcap` / `wireshark demo.pcap`
+  - Replay capture onto a test interface: `sudo tcpreplay -i eth0 demo.pcap`
+- **Public Rust Library Signatures (`frameassembly` crate v1.3.0)**:
   - `frameassembly::lexer::lex(source: &str) -> Result<Vec<SpannedToken<'_>>, CompilerError>`
   - `frameassembly::parser::parse_program(source: &str) -> Result<Program<'_>, CompilerError>` (runs `validate_semantics` automatically)
   - `frameassembly::parser::validate_semantics<'a>(program: &Program<'a>, source: &'a str) -> Result<(), CompilerError>`
@@ -72,8 +79,9 @@ COMPILE {
 
 ## Core Documentation
 
-- [README & 81-Protocol Default Table](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Above-the-fold 30-second quickstart, `tshark` output, tool comparison, RFC wire defaults table, and sub-keyword reference for all 81 protocols.
-- [Architecture, Compiler Pipeline & Formal Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/architecture_and_grammar.md): Six-stage compiler pipeline (`logos` -> `winnow` -> AST -> semantic validator -> 4-tuple backend -> `pcap-file`), `HOST`/`FLOW`/`COMPILE` syntax, L2–L4 modifiers, and dual-stack polymorphism.
+- [README & 81-Protocol Default Table](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Plain-English quickstart, `tshark` + `tcpreplay` workflow, tool comparison, RFC wire defaults table, and sub-keyword reference for all 81 protocols.
+- [Getting Started Guide](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/getting_started.md): Beginner walkthrough of `.fasm` files, defaults vs. overrides, automatic TCP `SEQ`/`ACK` and reply ports, cross-layer tags, compiler error diagnostics, and Wireshark/`tshark`/`tcpreplay` workflows.
+- [Practical Use Cases & Cookbook](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/use_cases.md): Ready-to-copy `.fasm` recipes for SNMPv1/v2c/v3 traps & polls, firewall ACL testing, VLAN/QinQ/MPLS/QoS verification, IDS/IPS & telemetry collectors, OT/SCADA dissectors, and zero-noise captures.
 - [Layer 2 Switching & Data-Link Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l2_protocols.md): Complete syntax and wire framing for `ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`, and `MPLS` (248 verified examples).
 - [Layer 3 Control, Tunneling, VPN & Routing Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l3_protocols.md): Complete syntax and wire framing for `ICMP`, `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`, `GENEVE`, `IPSEC`, `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`, `PIM`, `BFD`, and `OPENFLOW` (620 verified examples).
 - [Layer 4 Transport Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l4_transports.md): Stateful 4-tuple progression, bidirectional port inheritance, RFC 7323 TCP options, UDP checksums, and SCTP multi-chunk bundling for `TCP`, `UDP`, and `SCTP` (95 verified examples).
@@ -83,14 +91,14 @@ COMPILE {
 - [Layer 7 Mail, Directory, Storage, Databases & Message Brokers](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_mail_auth_storage_db.md): Complete reference for `SMTP`, `IMAP`, `POP3`, `KERBEROS`, `LDAP`, `SMB`, `NFS`, `REDIS`, `MEMCACHED`, `MYSQL`, `POSTGRES`, `MQTT`, `COAP`, and `AMQP` (434 verified examples).
 - [Layer 7 Industrial Control Systems (ICS) & SCADA/OT](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_industrial_ot.md): Complete reference for `MODBUS`, `BACNET`, `DNP3`, `S7COMM`, `ETHERNETIP`, and `OPCUA` (186 verified examples).
 - [Multi-Protocol Topologies & Dual-Stack Architectures](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/topologies_and_dual_stack.md): Leaf-Spine EVPN-VXLAN, Zero-Trust 802.1X NAC, 5G Service-Based Architecture, MPLS L3VPN, and Purdue ICS substations (104 verified topologies).
-- [Instruction-Tuning Q&A Synthesis & Constrained Decoding Guide](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/qa_synthesis_guide.md): Natural-Language Prompt to `.fasm` Q&A pairs, RLVR reward evaluation, and constrained decoding setup with EBNF, GBNF, and Lark.
+- [For Nerds: Compiler Pipeline, Rust Library API & Formal Grammars](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/for_nerds.md): Six-stage zero-copy Rust compiler internals, public Rust library API, formal EBNF/GBNF/Lark grammars, constrained decoding, and `examples/` SFT/RLVR corpus conventions.
 
 ## Formal Grammars & Constrained Decoding
 
 - [ISO/IEC 14977 EBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Formal context-free EBNF specification covering all 81 protocols and 640 uppercase terminal keywords.
 - [llama.cpp & XGrammar GBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.gbnf): Constrained decoding grammar (`root ::= ...`) for `llama.cpp`, `vLLM`, `SGLang`, and `TensorRT-LLM`.
 - [Lark / Outlines / llguidance CFG Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.lark): Earley/LALR Context-Free Grammar (`start: ...`) for `Outlines`, `Guidance`, and `llguidance`.
-- [Full Single-Fetch LLM Context Bundle](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Consolidated single-file bundle (`< 900 KB`) containing section manifest, all 11 documentation guides, formal grammars, AST specs, and representative `.fasm` corpus scenarios.
+- [Full Single-Fetch LLM Context Bundle](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Consolidated single-file bundle (`< 900 KB`) containing section manifest, all 12 documentation guides, formal grammars, AST specs, and representative `.fasm` corpus scenarios.
 
 ## Rust Compiler Architecture
 
@@ -117,4 +125,4 @@ COMPILE {
 - [Claude Code Instructions (`CLAUDE.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CLAUDE.md): Concise project instructions and canonical syntax rules for Claude Code.
 - [Cross-Platform Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Zero-clone POSIX shell installer for Linux, macOS, and BSDs.
 - [Context7 MCP Configuration (`context7.json`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/context7.json): Upstash Context7 indexing rules and curated folder configuration.
-- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.2.2.
+- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.3.0.

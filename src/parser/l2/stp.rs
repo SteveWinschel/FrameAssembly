@@ -11,16 +11,16 @@ use winnow::prelude::*;
 
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::parser::{ParsedField, Stream, parse_str_val, parse_u8, parse_u16, parse_u32, tag};
+use crate::parser::{ParsedField, Stream, parse_any_str, parse_str_val, parse_u8, parse_u16, parse_u32, tag};
 
 /// Parses an STP protocol declaration or BPDU field.
 pub(crate) fn parse_stp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
     alt((
         alt((
             tag(Token::Stp).map(|(_, s)| ParsedField::Protocol(Protocol::Stp, (s.start, s.len()))),
-            (tag(Token::RootId), cut_err(parse_str_val))
+            (tag(Token::RootId), cut_err(parse_any_str))
                 .map(|((_, s), v)| ParsedField::RootId(v, (s.start, s.end - s.start))),
-            (tag(Token::BridgeId), cut_err(parse_str_val))
+            (tag(Token::BridgeId), cut_err(parse_any_str))
                 .map(|((_, s), v)| ParsedField::BridgeId(v, (s.start, s.end - s.start))),
             (
                 tag(Token::PortId),

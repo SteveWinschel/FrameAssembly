@@ -1351,9 +1351,11 @@ pub enum Token<'a> {
   #[regex(r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+", priority = 5)]
   #[regex(r"::[0-9a-fA-F:.]*|[0-9a-fA-F]{1,4}(:[0-9a-fA-F:.]*)+", priority = 2)]
   IpAddress(&'a str),
-  // Match MAC addresses loosely
+  // Match MAC addresses in colon (00:1a:2b:3c:4d:5e), hyphen (00-1A-2B-3C-4D-5E), or Cisco dotted-quad (001a.2b3c.4d5e) notation
   /// MAC address
   #[regex(r"([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}", priority = 6)]
+  #[regex(r"([0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2}", priority = 6)]
+  #[regex(r"[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}", priority = 6)]
   MacAddress(&'a str),
   // Match OIDs loosely
   /// SNMP OID
@@ -1362,6 +1364,28 @@ pub enum Token<'a> {
   /// Numeric literal (supports decimal and hex integers)
   #[regex(r"-?[0-9]+|0[xX][0-9a-fA-F]+", priority = 4)]
   Number(&'a str),
+}
+
+/// Expands a single-byte lexer failure span for multi-character constructs (`/24`, `/*`, `'...'`).
+fn expand_lex_error_span(input: &str, span: std::ops::Range<usize>) -> (usize, usize) {
+    let start = span.start.min(input.len());
+    let rest = &input[start..];
+    let bytes = rest.as_bytes();
+    let len = if bytes.starts_with(b"/*") || bytes.starts_with(b"*/") {
+        2
+    } else if bytes.first() == Some(&b'/') && bytes.get(1).is_some_and(|b| b.is_ascii_digit()) {
+        1 + bytes[1..].iter().take_while(|b| b.is_ascii_digit()).count()
+    } else if bytes.first() == Some(&b'\'') {
+        let line_rest = rest.lines().next().unwrap_or(rest);
+        if let Some(close_idx) = line_rest.get(1..).and_then(|s| s.find('\'')) {
+            close_idx + 2
+        } else {
+            span.end.saturating_sub(span.start).max(1)
+        }
+    } else {
+        span.end.saturating_sub(span.start).max(1)
+    };
+    (start, len)
 }
 
 /// Lexes an input string into a sequence of tokens and their source spans.
@@ -1388,7 +1412,7 @@ pub fn lex<'a>(
             Err(_) => {
                 return Err(crate::error::CompilerError::LexError {
                     src: input.to_string(),
-                    span: (lexer.span().start, lexer.span().end - lexer.span().start),
+                    span: expand_lex_error_span(input, lexer.span()),
                 });
             }
         }

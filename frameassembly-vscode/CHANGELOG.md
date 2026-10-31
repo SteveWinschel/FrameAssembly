@@ -4,7 +4,13 @@ All notable changes to the "frameassembly-vscode" extension will be documented i
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [1.2.2] - Unreleased
+## [1.3.0] - 2026-10-31
+- Added 16 tab-completable `.fasm` code snippets (`snippets/frameassembly.code-snippets`) for rapid network scenario authoring.
+- Extended MAC address TextMate syntax highlighting to support colon-separated (`00:1a:2b:3c:4d:5e`), hyphen-separated (`00-1A-2B-3C-4D-5E`), and Cisco IOS dotted-quad (`001a.2b3c.4d5e`) formats.
+- Removed unsupported `/* ... */` block comments, `[...]` bracket auto-closing pairs, and `'...'` single-quote auto-closing pairs from `language-configuration.json` to prevent invalid syntax insertion.
+- Synchronized with FrameAssembly v1.3.0 release.
+
+## [1.2.2] - 2026-10-29
 - Synchronized extension version with FrameAssembly v1.2.2 (documentation overhaul for network engineers; no grammar changes).
 
 ## [1.2.1] - 2026-10-28

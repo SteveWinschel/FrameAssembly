@@ -11,7 +11,7 @@ description: "Zero NUL bytes, Rustdoc and docs.rs lint gates, inner module doc h
 
 ## 2. Rustdoc & `docs.rs` Lint Gates
 - **Mandatory Rustdoc & Clippy Lints**: Enforce clean builds under `missing_docs`, `clippy::missing_docs_in_private_items`, `rustdoc::broken_intra_doc_links`, `rustdoc::private_intra_doc_links`, `rustdoc::bare_urls`, `rustdoc::invalid_html_tags`, `rustdoc::invalid_rust_codeblocks`, and `rustdoc::unescaped_backticks`.
-- **Inner `//!` Module Doc Hygiene**: Every `src/**/*.rs` file must remain strictly `< 50 KB` (`50,000` bytes) and begin with an inner `//!` module docstring containing `>= 50` words. Never combine outer `///` doc comments on `pub mod <name>;` with inner `//!` module docs in the child file (which causes sentence stuttering on `docs.rs`).
+- **Inner `//!` Module Doc & AI-Critical Size Hygiene**: Every Rust file in `src/**/*.rs` (and `tests/*.rs`) must remain strictly `< 50 KB` (`50,000` bytes) and begin with an inner `//!` module docstring containing `>= 50` words (human-facing Markdown files in `README.md` and `docs/*.md` have no `< 50 KB` cap). Never combine outer `///` doc comments on `pub mod <name>;` with inner `//!` module docs in the child file (which causes sentence stuttering on `docs.rs`).
 - **Visibility & Re-Export Hygiene**: Keep internal parser implementation submodules (`src/parser/{l2,l3,l4,l7,snmp}`) as `pub(crate) mod` so `docs.rs` never generates empty module pages. Annotate layer re-exports (`pub use <proto>::*;`) with `#[doc(inline)]`.
 - **AST `*Spec` Annotations**: Annotate all 81 AST `*Spec` structs in `src/ast/{l2,l3,l4,l7}/` with `/// Syntax mapping:` (including a compilable ````frameassembly` example) and `#[doc(alias = "...")]`.
 

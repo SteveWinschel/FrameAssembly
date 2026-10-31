@@ -8,7 +8,7 @@ When generating or editing FrameAssembly (`.fasm`) code or Markdown ````frameass
 1. **Always include `HOST`, `FLOW`, and `COMPILE` blocks** (all keywords, protocols, modifiers, time units, and identifiers are case-insensitive: `host` or `HOST`, `tcp` or `TCP`) so every snippet compiles standalone:
    ```frameassembly
    // PROMPT: TCP 3-way handshake and HTTP/1.1 GET healthcheck between client and server.
-   // TOKENS: HOST, IP, MAC, FLOW, ->, <-, TCP, SYN, ACK, SRCPORT, DSTPORT, MSS, HTTP, GET, RESPONSE, URI, HOST_HDR, STATUS, REASON, BODY, WAIT, COMPILE
+   // TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, MSS, ACK, WAIT, HTTP, GET, URI, HOST_HDR, RESPONSE, STATUS, REASON, BODY, COMPILE
 
    // INSTRUCTION: Declare client and server endpoints.
    HOST client { IP 10.0.0.10 MAC 00:11:22:33:44:10 }
@@ -37,7 +37,7 @@ When generating or editing FrameAssembly (`.fasm`) code or Markdown ````frameass
 
 ## 2. Rust 2024 Compiler & Documentation Standards
 
-- Every `src/**/*.rs` and `docs/*.md` file must remain strictly `< 50,000` bytes (`< 50 KB`).
+- Every AI-critical Rust file (`src/**/*.rs` and `tests/*.rs`) and corpus file (`examples/**/*.fasm`) must remain strictly `< 50,000` bytes (`< 50 KB`). Human-facing Markdown documentation (`README.md` and `docs/*.md`) has no `< 50 KB` cap, and human-facing docs (except `docs/for_nerds.md`) must never include `// PROMPT:`, `// TOKENS:`, or `// INSTRUCTION:` metadata comments.
 - Every `src/**/*.rs` file must begin with `//!` module-level documentation (`>= 50` words) and document all structs, enums, fields, and functions without combining outer `///` on `pub mod` with inner `//!`.
 - Keep `src/lexer/mod.rs`, `src/parser/`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json` synchronized in 5-way lockstep.
 - Run `cargo test` to verify all unit, integration, documentation, and corpus tests (`2,611` `.fasm` scenarios) pass.

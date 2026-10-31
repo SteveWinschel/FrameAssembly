@@ -27,8 +27,10 @@ set -eu
 REQUIRED_RUST_MAJOR=1
 REQUIRED_RUST_MINOR=85
 CRATE_NAME="frameassembly"
-VSIX_VERSION="1.2.2"
+VSIX_VERSION="1.3.0"
+RELEASE_VERSION="1.3.0"
 VSIX_RAW_URL="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-${VSIX_VERSION}.vsix"
+GITHUB_RELEASE_BASE="https://github.com/SteveWinschel/FrameAssembly/releases/download/v${RELEASE_VERSION}"
 RUSTUP_INIT_URL="https://sh.rustup.rs"
 
 CARGO_LOCKED=0
@@ -235,6 +237,56 @@ source_cargo_env() {
     esac
 }
 
+detect_prebuilt_target() {
+    os_name="$(uname -s 2>/dev/null || echo unknown)"
+    arch_name="$(uname -m 2>/dev/null || echo unknown)"
+    case "${os_name}:${arch_name}" in
+        Linux:x86_64|Linux:amd64)
+            printf 'x86_64-unknown-linux-gnu'
+            ;;
+        Linux:aarch64|Linux:arm64)
+            printf 'aarch64-unknown-linux-gnu'
+            ;;
+        Darwin:x86_64)
+            printf 'x86_64-apple-darwin'
+            ;;
+        Darwin:arm64|Darwin:aarch64)
+            printf 'aarch64-apple-darwin'
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+try_install_prebuilt_binary() {
+    if ! command -v curl >/dev/null 2>&1 || ! command -v tar >/dev/null 2>&1; then
+        return 1
+    fi
+    target_triple="$(detect_prebuilt_target)" || return 1
+    archive_url="${GITHUB_RELEASE_BASE}/${CRATE_NAME}-v${RELEASE_VERSION}-${target_triple}.tar.gz"
+    bin_dir="${CARGO_HOME:-$HOME/.cargo}/bin"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        log_info "[dry-run] Checking prebuilt release binary at ${archive_url} (falling back to cargo install if unavailable)"
+        return 1
+    fi
+    tmp_archive="${TMPDIR:-/tmp}/${CRATE_NAME}-${RELEASE_VERSION}-$$.tar.gz"
+    tmp_extract="${TMPDIR:-/tmp}/${CRATE_NAME}-extract-$$"
+    if curl -fsSL "$archive_url" -o "$tmp_archive" 2>/dev/null; then
+        mkdir -p "$tmp_extract" "$bin_dir"
+        if tar -xzf "$tmp_archive" -C "$tmp_extract" 2>/dev/null && [ -f "${tmp_extract}/${CRATE_NAME}" ]; then
+            mv -f "${tmp_extract}/${CRATE_NAME}" "${bin_dir}/${CRATE_NAME}"
+            chmod +x "${bin_dir}/${CRATE_NAME}"
+            rm -rf -- "$tmp_archive" "$tmp_extract"
+            source_cargo_env
+            log_ok "Installed prebuilt ${CRATE_NAME} v${RELEASE_VERSION} (${target_triple}) to ${bin_dir}/${CRATE_NAME}."
+            return 0
+        fi
+    fi
+    rm -rf -- "$tmp_archive" "$tmp_extract"
+    return 1
+}
+
 rust_version_meets_msrv() {
     if ! command -v rustc >/dev/null 2>&1 || ! command -v cargo >/dev/null 2>&1; then
         return 1
@@ -337,9 +389,11 @@ cleanup_self() {
 
 main() {
     log_info "Starting FrameAssembly (${CRATE_NAME}) bootstrap installer..."
-    install_system_prerequisites
-    ensure_rust_toolchain
-    install_frameassembly
+    if ! try_install_prebuilt_binary; then
+        install_system_prerequisites
+        ensure_rust_toolchain
+        install_frameassembly
+    fi
     install_vscode_extension_if_requested
     cleanup_self
 
@@ -350,7 +404,7 @@ main() {
 
     if command -v frameassembly >/dev/null 2>&1; then
         log_ok "Successfully installed $(frameassembly --version)!"
-        log_info "Quickstart: frameassembly demo.fasm -o output.pcap"
+        log_info "Quickstart: frameassembly --explain snmp3 > demo.fasm && frameassembly demo.fasm -i"
     else
         log_warn "frameassembly was installed to ${CARGO_HOME:-$HOME/.cargo}/bin, which is not yet in your current shell PATH."
         log_warn "Run: . \"${CARGO_HOME:-$HOME/.cargo}/env\"  (or restart your terminal)"

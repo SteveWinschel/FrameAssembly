@@ -4,6 +4,16 @@ All notable changes to the "frameassembly-vscode" extension will be documented i
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.4.0] - 2026-11-01
+- Full multi-platform packaging and distribution release automation across APT, AUR, WinGet, Homebrew, and Scoop.
+- Official WebAssembly compiler package (`frameassembly-wasm`) on NPM for browser and node runtimes.
+- Synchronized with FrameAssembly v1.4.0 release.
+
+## [1.3.1] - 2026-11-01
+- Multi-platform packaging and distribution release synchronization across APT, AUR, WinGet, Homebrew, and Scoop.
+- Official `.fasm` (`text/vnd.frameassembly`) MIME and magic registration harmonization.
+- Synchronized with FrameAssembly v1.3.1 release.
+
 ## [1.3.0] - 2026-10-31
 - Added 16 tab-completable `.fasm` code snippets (`snippets/frameassembly.code-snippets`) for rapid network scenario authoring.
 - Extended MAC address TextMate syntax highlighting to support colon-separated (`00:1a:2b:3c:4d:5e`), hyphen-separated (`00-1A-2B-3C-4D-5E`), and Cisco IOS dotted-quad (`001a.2b3c.4d5e`) formats.

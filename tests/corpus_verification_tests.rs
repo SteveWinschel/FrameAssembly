@@ -478,8 +478,10 @@ fn test_gate3_all_markdown_and_rustdoc_fasm_blocks_compile() {
         PathBuf::from("AGENTS.md"),
         PathBuf::from("CLAUDE.md"),
         PathBuf::from(".github/copilot-instructions.md"),
+        PathBuf::from("llms.txt"),
     ];
     collect_files_with_ext(Path::new("docs"), "md", &mut files_to_check);
+    collect_files_with_ext(Path::new("contrib"), "md", &mut files_to_check);
     collect_files_with_ext(Path::new("src"), "rs", &mut files_to_check);
     collect_files_with_ext(Path::new(".agents/skills"), "md", &mut files_to_check);
 
@@ -717,7 +719,7 @@ fn test_gate4_constrained_decoding_grammar_lockstep() {
 
 /// Canonical `docs/*.md` inventory (human guides first, then `for_nerds.md`), shared by Gate 5
 /// (orphan check) and Gate 7 (`llms-full.txt` bundle order).
-const CANONICAL_DOCS: [&str; 12] = [
+const CANONICAL_DOCS: [&str; 13] = [
     "getting_started.md",
     "use_cases.md",
     "l2_protocols.md",
@@ -729,6 +731,7 @@ const CANONICAL_DOCS: [&str; 12] = [
     "l7_mail_auth_storage_db.md",
     "l7_industrial_ot.md",
     "topologies_and_dual_stack.md",
+    "fasm-specification.md",
     "for_nerds.md",
 ];
 
@@ -952,9 +955,9 @@ fn test_gate6_ast_spec_fields_wired_to_builders() {
     );
 }
 
-/// Gate 7: Verifies v1.3.0 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
-/// or old `.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.3.0.vsix`
-/// is packaged with v1.3.0 manifest, syntax, and snippets, checks `llms.txt` (`< 512` lines, `< 25 KB`),
+/// Gate 7: Verifies v1.4.0 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
+/// or old `.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.4.0.vsix`
+/// is packaged with v1.4.0 manifest, syntax, and snippets, checks `llms.txt` (`< 512` lines, `< 25 KB`),
 /// and synchronizes/verifies `llms-full.txt` against `llms.txt`, `README.md`, `AGENTS.md`,
 /// `docs/*.md`, `grammar.ebnf`, `frameassembly.gbnf`, and `frameassembly.lark`.
 #[test]
@@ -977,14 +980,15 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
     let py_vsix_script = r#"
 import os, zipfile
 
-vsix_old = "frameassembly-vscode/frameassembly-vscode-1.2.2.vsix"
-vsix_new = "frameassembly-vscode/frameassembly-vscode-1.3.0.vsix"
+vsix_old = "frameassembly-vscode/frameassembly-vscode-1.3.0.vsix"
+vsix_new = "frameassembly-vscode/frameassembly-vscode-1.4.0.vsix"
 
 content_types = '''<?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
 \t<Default Extension=".json" ContentType="application/json"/>
 \t<Default Extension=".md" ContentType="text/markdown"/>
 \t<Default Extension=".vsixmanifest" ContentType="text/xml"/>
+\t<Default Extension=".png" ContentType="image/png"/>
 </Types>'''
 
 vsixmanifest = '''<?xml version="1.0" encoding="utf-8"?>
@@ -996,6 +1000,7 @@ vsixmanifest = '''<?xml version="1.0" encoding="utf-8"?>
 \t\t<Tags>frameassembly,fasm,pcap,pcapng,wireshark,packet-crafting,networking,security,dsl</Tags>
 \t\t<Categories>Programming Languages</Categories>
 \t\t<GalleryFlags>Public</GalleryFlags>
+\t\t<Icon>extension/icon.png</Icon>
 \t\t<Properties>
 \t\t\t<Property Id="Microsoft.VisualStudio.Code.Engine" Value="^1.75.0" />
 \t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.Source" Value="https://github.com/SteveWinschel/FrameAssembly.git" />
@@ -1014,18 +1019,21 @@ vsixmanifest = '''<?xml version="1.0" encoding="utf-8"?>
 \t\t<Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" />
 \t\t<Asset Type="Microsoft.VisualStudio.Services.Content.Changelog" Path="extension/CHANGELOG.md" Addressable="true" />
 \t\t<Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE.txt" Addressable="true" />
+\t\t<Asset Type="Microsoft.VisualStudio.Services.Icons.Default" Path="extension/icon.png" Addressable="true" />
 \t</Assets>
 </PackageManifest>'''
 
 with zipfile.ZipFile(vsix_new, "w", compression=zipfile.ZIP_DEFLATED) as zf:
     zf.writestr("[Content_Types].xml", content_types.replace("</Types>", "\t<Default Extension=\".code-snippets\" ContentType=\"application/json\"/>\n</Types>"))
-    zf.writestr("extension.vsixmanifest", vsixmanifest.replace("1.2.2", "1.3.0"))
+    zf.writestr("extension.vsixmanifest", vsixmanifest.replace("1.2.2", "1.4.0").replace("stevewinschel", "SteveWinschel"))
     zf.write("frameassembly-vscode/package.json", "extension/package.json")
     zf.write("frameassembly-vscode/README.md", "extension/README.md")
     zf.write("frameassembly-vscode/CHANGELOG.md", "extension/CHANGELOG.md")
     zf.write("frameassembly-vscode/language-configuration.json", "extension/language-configuration.json")
     zf.write("frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json", "extension/syntaxes/frameassembly.tmLanguage.json")
     zf.write("frameassembly-vscode/snippets/frameassembly.code-snippets", "extension/snippets/frameassembly.code-snippets")
+    if os.path.exists("frameassembly-vscode/icon.png"):
+        zf.write("frameassembly-vscode/icon.png", "extension/icon.png")
     if os.path.exists("LICENSE"):
         zf.write("LICENSE", "extension/LICENSE.txt")
 
@@ -1040,12 +1048,12 @@ if os.path.exists(vsix_old):
         .expect("Failed to execute python3 for VSIX packaging");
     assert!(status.success(), "VSIX packaging script failed");
     assert!(
-        !Path::new("frameassembly-vscode/frameassembly-vscode-1.2.2.vsix").exists(),
-        "Old frameassembly-vscode-1.2.2.vsix must be removed"
+        !Path::new("frameassembly-vscode/frameassembly-vscode-1.3.0.vsix").exists(),
+        "Old frameassembly-vscode-1.3.0.vsix must be removed"
     );
     assert!(
-        Path::new("frameassembly-vscode/frameassembly-vscode-1.3.0.vsix").exists(),
-        "New frameassembly-vscode-1.3.0.vsix must exist"
+        Path::new("frameassembly-vscode/frameassembly-vscode-1.4.0.vsix").exists(),
+        "New frameassembly-vscode-1.4.0.vsix must exist"
     );
 
     // 3. Verify llms.txt line and byte bounds
@@ -1074,8 +1082,8 @@ if os.path.exists(vsix_old):
     let agents = fs::read_to_string("AGENTS.md").expect("Missing AGENTS.md");
     let mut rebuilt = String::with_capacity(700_000);
     rebuilt.push_str("# FrameAssembly (`frameassembly`)\n\n");
-    rebuilt.push_str("> Rust compiler (v1.3.0) that turns plain-text `.fasm` packet recipes into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built for network engineers who do not program; a companion to Wireshark/`tshark` (inspection) and `tcpreplay` (wire injection).\n\n");
-    rebuilt.push_str("FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures in userspace with zero root privileges or live sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides, plus CLI flags `--inspect` (`-i`), `--explain <PROTO>`, `--list-protocols`, and `--check`.\n\n");
+    rebuilt.push_str("> Rootless \"Packets as Code\" / \"PCAP as Code\" DSL & Rust compiler (v1.4.0) that compiles plain-text `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).\n\n");
+    rebuilt.push_str("FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in userspace with no `libpcap` or raw sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides via `frameassembly <input.fasm> [-o <output.pcap>]` and `frameassembly show <input.fasm>`.\n\n");
     rebuilt.push_str("## Section Manifest & Bundle Table of Contents\n\n");
     rebuilt.push_str("1. **Zero-Shot `.fasm` Grammar, Anti-Hallucination Table & `llms.txt` Index**\n");
     rebuilt.push_str("2. **Public Rust Library API & Structured Compiler Diagnostics (`src/lib.rs` & `src/error.rs`)**\n");
@@ -1084,11 +1092,11 @@ if os.path.exists(vsix_old):
     for (i, doc_name) in CANONICAL_DOCS.iter().enumerate() {
         rebuilt.push_str(&format!("{}. **Documentation Guide (`docs/{}`)**\n", i + 5, doc_name));
     }
-    rebuilt.push_str("17. **Formal ISO/IEC 14977 EBNF Grammar (`grammar.ebnf`)**\n");
-    rebuilt.push_str("18. **Formal GBNF Constrained Decoding Grammar (`frameassembly.gbnf`)**\n");
-    rebuilt.push_str("19. **Formal Lark Earley/LALR Constrained Decoding Grammar (`frameassembly.lark`)**\n");
-    rebuilt.push_str("20. **Complete AST `*Spec` Syntax Mapping Reference (`src/ast/{l2,l3,l4,l7}/*.rs`)**\n");
-    rebuilt.push_str("21. **Representative `.fasm` Corpus Scenarios (`examples/{l2,l3,l4,l7,topologies}/`)**\n\n");
+    rebuilt.push_str("18. **Formal ISO/IEC 14977 EBNF Grammar (`grammar.ebnf`)**\n");
+    rebuilt.push_str("19. **Formal GBNF Constrained Decoding Grammar (`frameassembly.gbnf`)**\n");
+    rebuilt.push_str("20. **Formal Lark Earley/LALR Constrained Decoding Grammar (`frameassembly.lark`)**\n");
+    rebuilt.push_str("21. **Complete AST `*Spec` Syntax Mapping Reference (`src/ast/{l2,l3,l4,l7}/*.rs`)**\n");
+    rebuilt.push_str("22. **Representative `.fasm` Corpus Scenarios (`examples/{l2,l3,l4,l7,topologies}/`)**\n\n");
     rebuilt.push_str("### Zero-Shot `.fasm` Grammar & Anti-Hallucination Reference");
     rebuilt.push_str(llms_body.trim_end());
     rebuilt.push_str("\n\n---\n\n");

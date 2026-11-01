@@ -333,3 +333,4 @@ compile {
 - [**Layer 4 Transport Protocols (`l4_transports.md`)**](l4_transports.md) — Shared 4-tuple `TCP` state tracking and `transport udp` switching for `MODBUS`, `DNP3`, and `ETHERNETIP`.
 - [**Layer 7 Mail, Directory, Storage, Databases & Message Brokers (`l7_mail_auth_storage_db.md`)**](l7_mail_auth_storage_db.md) — Combine PLC/SCADA telemetry with `MQTT`, `COAP`, `AMQP`, and historian databases (`POSTGRES`, `MYSQL`).
 - [**Multi-Host Topologies & Dual-Stack Scenarios (`topologies_and_dual_stack.md`)**](topologies_and_dual_stack.md) — Includes a full IEC 62443 Substation & Industrial DMZ multi-protocol conduit topology.
+- [**`.fasm` File Format & Media Type Specification (`fasm-specification.md`)**](fasm-specification.md) — Normative `text/vnd.frameassembly` media type specification, lexical rules, and `.fasm` extension disambiguation.

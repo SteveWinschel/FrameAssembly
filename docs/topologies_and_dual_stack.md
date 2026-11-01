@@ -301,3 +301,4 @@ compile {
 - [**Layer 4 Transport Protocols (`l4_transports.md`)**](l4_transports.md) — `TCP`, `UDP`, and `SCTP` 4-tuple state tracking and RFC 7323 options.
 - [**Layer 7 Network Management (`l7_snmp.md`)**](l7_snmp.md) & [**Layer 7 Infrastructure & Telemetry (`l7_infra_and_telemetry.md`)**](l7_infra_and_telemetry.md) — `SNMP3`, `RADIUS`, `DHCP`, `DNS`, `SYSLOG`, and `IPFIX`.
 - [**Layer 7 Industrial Control Systems & SCADA/OT (`l7_industrial_ot.md`)**](l7_industrial_ot.md) — Complete reference for `MODBUS`, `BACNET`, `DNP3`, `S7COMM`, `ETHERNETIP`, and `OPCUA`.
+- [**`.fasm` File Format & Media Type Specification (`fasm-specification.md`)**](fasm-specification.md) — Normative `text/vnd.frameassembly` media type specification, lexical rules, and `.fasm` extension disambiguation.

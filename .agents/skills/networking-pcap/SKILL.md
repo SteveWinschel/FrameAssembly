@@ -5,7 +5,7 @@ description: Comprehensive guide, API selection matrix, and production code temp
 
 # Networking, Native RFC Wire Crafting & PCAP Engineering Skill
 
-Use this skill when designing, implementing, debugging, or verifying network protocol packet crafting, multi-layer encapsulation, wire dissection, and packet capture (`.pcap` / `.pcapng`) serialization in Rust using **native zero-dependency RFC wire builders** (`src/packet.rs`, `src/builders/`, `src/backend/`) and **`pcap-file` (`2.0.0`)** (`src/pcap.rs`).
+Use this skill when designing, implementing, debugging, or verifying network protocol packet crafting, multi-layer encapsulation, wire dissection, and packet capture (`.pcap` / `.pcapng`) serialization in Rust using **rootless, offline native RFC wire builders** (`src/packet.rs`, `src/builders/`, `src/backend/`) and **`pcap-file` (`2.0.0`)** (`src/pcap.rs`).
 
 > **Architectural Note (`frameassembly`)**: `frameassembly` does **not** depend on external packet-crafting crates such as `etherparse`. All L2–L7 headers, pseudo-headers, RFC 1071 one's complement checksums, RFC 9260 Castagnoli CRC32c checksums, and IEEE 1815 DNP3 CRC-16 checksums are synthesized natively using Rust 2024 slice operations (`slice.as_chunks::<2>()`) and serialized into PCAPNG streams via `pcap-file = "2.0.0"`.
 

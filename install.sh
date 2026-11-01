@@ -27,8 +27,8 @@ set -eu
 REQUIRED_RUST_MAJOR=1
 REQUIRED_RUST_MINOR=85
 CRATE_NAME="frameassembly"
-VSIX_VERSION="1.3.0"
-RELEASE_VERSION="1.3.0"
+VSIX_VERSION="1.4.0"
+RELEASE_VERSION="1.4.0"
 VSIX_RAW_URL="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-${VSIX_VERSION}.vsix"
 GITHUB_RELEASE_BASE="https://github.com/SteveWinschel/FrameAssembly/releases/download/v${RELEASE_VERSION}"
 RUSTUP_INIT_URL="https://sh.rustup.rs"
@@ -242,10 +242,10 @@ detect_prebuilt_target() {
     arch_name="$(uname -m 2>/dev/null || echo unknown)"
     case "${os_name}:${arch_name}" in
         Linux:x86_64|Linux:amd64)
-            printf 'x86_64-unknown-linux-gnu'
+            printf 'x86_64-unknown-linux-musl'
             ;;
         Linux:aarch64|Linux:arm64)
-            printf 'aarch64-unknown-linux-gnu'
+            printf 'aarch64-unknown-linux-musl'
             ;;
         Darwin:x86_64)
             printf 'x86_64-apple-darwin'
@@ -274,13 +274,21 @@ try_install_prebuilt_binary() {
     tmp_extract="${TMPDIR:-/tmp}/${CRATE_NAME}-extract-$$"
     if curl -fsSL "$archive_url" -o "$tmp_archive" 2>/dev/null; then
         mkdir -p "$tmp_extract" "$bin_dir"
-        if tar -xzf "$tmp_archive" -C "$tmp_extract" 2>/dev/null && [ -f "${tmp_extract}/${CRATE_NAME}" ]; then
-            mv -f "${tmp_extract}/${CRATE_NAME}" "${bin_dir}/${CRATE_NAME}"
-            chmod +x "${bin_dir}/${CRATE_NAME}"
-            rm -rf -- "$tmp_archive" "$tmp_extract"
-            source_cargo_env
-            log_ok "Installed prebuilt ${CRATE_NAME} v${RELEASE_VERSION} (${target_triple}) to ${bin_dir}/${CRATE_NAME}."
-            return 0
+        if tar -xzf "$tmp_archive" -C "$tmp_extract" 2>/dev/null; then
+            extracted_bin=""
+            if [ -f "${tmp_extract}/${CRATE_NAME}" ]; then
+                extracted_bin="${tmp_extract}/${CRATE_NAME}"
+            elif command -v find >/dev/null 2>&1; then
+                extracted_bin="$(find "$tmp_extract" -type f -name "$CRATE_NAME" 2>/dev/null | head -n 1)"
+            fi
+            if [ -n "$extracted_bin" ] && [ -f "$extracted_bin" ]; then
+                mv -f "$extracted_bin" "${bin_dir}/${CRATE_NAME}"
+                chmod +x "${bin_dir}/${CRATE_NAME}"
+                rm -rf -- "$tmp_archive" "$tmp_extract"
+                source_cargo_env
+                log_ok "Installed prebuilt ${CRATE_NAME} v${RELEASE_VERSION} (${target_triple}) to ${bin_dir}/${CRATE_NAME}."
+                return 0
+            fi
         fi
     fi
     rm -rf -- "$tmp_archive" "$tmp_extract"

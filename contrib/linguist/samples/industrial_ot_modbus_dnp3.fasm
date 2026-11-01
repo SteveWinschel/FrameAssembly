@@ -1,0 +1,29 @@
+// FrameAssembly (.fasm) Sample 2: Industrial OT / SCADA Conduit Verification (Modbus, DNP3, S7comm, OPC UA)
+// Media Type: text/vnd.frameassembly
+// Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+
+HOST scada_hmi      { IP 192.168.110.10 MAC 00:1b:21:b0:00:10 }
+HOST substation_plc { IP 192.168.110.50 MAC 00:0e:8c:b0:00:50 }
+
+// Purdue Level 2 HMI to Level 1 PLC polling across 802.1ad QinQ and MPLS transport
+FLOW industrial_conduit_audit(hmi, plc) {
+    // Explicit TCP 3-way handshake on Modbus TCP port 502
+    hmi -> plc VLAN 110 PCP 5 DSCP 46 TCP SYN SRCPORT 54502 DSTPORT 502 WIN 64240 MSS 1460 WAIT 1ms
+    hmi <- plc VLAN 110 PCP 5 DSCP 46 TCP SYN ACK WIN 64240 MSS 1460 WAIT 1ms
+    hmi -> plc VLAN 110 PCP 5 DSCP 46 TCP ACK WAIT 1ms
+
+    // Modbus TCP Function 0x03 (Read Holding Registers) request and response
+    hmi -> plc VLAN 110 PCP 5 DSCP 46 MODBUS READ_HOLDING_REGISTERS TXID 101 UNITID 1 ADDR 40001 COUNT 4 WAIT 3ms
+    hmi <- plc VLAN 110 PCP 5 DSCP 46 MODBUS READ_HOLDING_REGISTERS TXID 101 UNITID 1 COUNT 4 VALUE 1500 IS_RESPONSE WAIT 3ms
+
+    // IEEE 1815 DNP3 Class 0 integrity poll with automatic CRC-16 calculation
+    hmi -> plc QINQ 2100 INNER_VLAN 110 MPLS 24000 EXP 5 BOS 1 MPLS_TTL 64 DNP3 READ SRC 1 DST 10 SEQ 1 GROUP 60 VARIATION 1 WAIT 4ms
+
+    // Siemens S7comm communication setup and OPC UA Binary Hello handshake
+    hmi -> plc VLAN 110 S7COMM SETUP_COMM ROSCTR "JOB" PDU_REF 201 WAIT 2ms
+    hmi -> plc VLAN 110 OPCUA MSG_TYPE "HEL" CHUNK_TYPE "F" ENDPOINT_URL "opc.tcp://192.168.110.50:4840" WAIT 2ms
+}
+
+COMPILE {
+    industrial_conduit_audit(scada_hmi, substation_plc)
+}

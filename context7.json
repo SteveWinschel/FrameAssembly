@@ -1,8 +1,8 @@
 {
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "FrameAssembly",
-  "description": "Rust compiler (v1.3.0) that turns plain-text .fasm network packet recipes into deterministic, nanosecond-precision .pcap / .pcapng packet captures across 81 native Layer 2 through Layer 7 protocols (2,611 verified .fasm corpus scenarios). Companion to Wireshark/tshark and tcpreplay.",
-  "version": "1.3.0",
+  "description": "Rust compiler (v1.4.0) that turns plain-text .fasm network packet recipes into deterministic, nanosecond-precision .pcap / .pcapng packet captures across 81 native Layer 2 through Layer 7 protocols (2,611 verified .fasm corpus scenarios). Companion to Wireshark/tshark and tcpreplay.",
+  "version": "1.4.0",
   "repository": "https://github.com/SteveWinschel/FrameAssembly",
   "folders": [
     "docs",

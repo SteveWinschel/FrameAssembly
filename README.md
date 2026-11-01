@@ -5,73 +5,24 @@
 [![Rust 1.85+](https://img.shields.io/badge/rust-1.85%2B%20(Edition%202024)-orange.svg)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[**60-Second Quickstart**](#60-second-quickstart) • [**CLI Commands (`frameassembly show`)**](#cli-commands) • [**Generate `.fasm` with ChatGPT / Claude / Copilot**](#use-chatgpt-claude-or-copilot-to-write-fasm-from-plain-english) • [**Wireshark / `tcpdump` to `.fasm` Cheat Sheet**](#from-wireshark--tcpdump-to-fasm-translation-table) • [**Copy-Paste Packet Recipes**](#copy-paste-fasm-recipes-for-common-network-tasks) • [**All 81 Protocols**](#supported-protocols--default-wire-behavior) • [**Documentation**](#documentation)
+[**Copy-Paste Packet Recipes**](#copy-paste-packet-recipes-for-common-network-tasks) • [**The 3-Step Mental Model**](#the-3-step-mental-model-for-network-engineers) • [**Terminal Ladder (`frameassembly show`)**](#visual-packet-ladders--terminal-inspection-frameassembly-show) • [**Multi-Platform Install**](#multi-platform-installation) • [**Wireshark Cheat Sheet**](#from-wireshark--tcpdump-to-fasm-translation-table) • [**Common Mistakes**](#common-syntax-mistakes--plain-english-error-messages) • [**All 81 Protocols**](#supported-protocols--default-wire-behavior) • [**FAQ & Disambiguation**](#faq-what-is-a-fasm-file-frameassembly-vs-flat-assembler-vs-fpga-fasm) • [**Documentation**](#documentation)
 
-**FrameAssembly** (`frameassembly` v1.3.0) is a **rootless packet generator** that turns a **plain-text packet recipe (`.fasm`) into a standard `.pcap` / `.pcapng` packet capture file** across **81 network protocols spanning Layers 2 through 7**.
+**FrameAssembly** (`frameassembly` v1.4.0) is a **rootless, offline "Packets as Code" ("PCAP as Code") packet generator and compiler** that turns a **plain-text packet recipe (`.fasm`, media type `text/vnd.frameassembly`) into a deterministic `.pcap` / `.pcapng` packet capture file** across **81 network protocols spanning Layers 2 through 7**—with no `libpcap` or raw sockets required.
 
-It is built for **network technicians, firewall engineers, Linux system administrators, NOC/SOC analysts, and OT/SCADA integrators** who want a **Scapy alternative without Python** and without fighting raw hexadecimal byte offsets in `text2pcap`. You simply list the devices in your scenario, write one line per packet using everyday networking terms (`VLAN 100`, `TCP SYN`, `DSTPORT 443`, `DSCP 46`, `SNMP3 TRAP`), and FrameAssembly automatically builds the Ethernet/IPv4/IPv6/TCP/UDP headers, calculates lengths and checksums, swaps ports on reply packets (`<-`), and tracks TCP `SEQ`/`ACK` numbers—producing a clean, zero-noise `.pcap` file ready to open in **Wireshark** / **`tshark`**, feed into **Suricata** / **Zeek**, or transmit onto a live network port with **`tcpreplay`**.
-
----
-
-## What Network Technicians Search For (and Solve in Seconds with FrameAssembly)
-
-* **Create a custom `.pcap` file from text without root (`sudo`)**: Generate bit-accurate `.pcap` files in normal user space on any workstation, jump host, or CI runner—no raw sockets, kernel drivers, or root access required.
-* **Generate SNMPv1, SNMPv2c, and encrypted SNMPv3 `authPriv` trap `.pcap` files**: Test Zabbix, LibreNMS, Checkmk, PRTG, SolarWinds, Datadog, or `snmptrapd` alert rules with real `MD5`/`SHA-1`/`SHA-256`/`SHA-512` authentication and `DES`/`AES-128` encryption without waiting for a switch power supply or BGP peer to fail.
-* **Test firewall ACLs with custom `TCP SYN`, `RST`, out-of-state `ACK`, and fragmented packets**: Craft exact permitted and blocked flows, Path MTU Discovery (`DF`) probes, IPv4 fragments (`MF` + `FRAGOFFSET`), and spoofed-source egress tests.
-* **802.1Q `VLAN`, 802.1ad `QinQ`, `MPLS`, and `DSCP` QoS packet crafting tool**: Tag any packet with single VLANs, 802.1p `PCP`/`DEI` priority bits, carrier `QinQ` double tags, MPLS label stacks, or DiffServ `DSCP` / `ECN` markings that desktop OS sockets strip or block.
-* **Wireshark / `tcpreplay` / Suricata / Zeek test `.pcap` generator**: Create clean, deterministic test captures for IDS/IPS signature validation (`DNS`, `TLS 1.3 SNI`/`ALPN`, `HTTP`, `SMB`, `Kerberos`), NetFlow/IPFIX/sFlow collectors, or vendor TAC bug tickets with zero background LAN noise.
-* **Modbus, DNP3, S7comm, BACnet, EtherNet/IP, and OPC UA packet generator**: Validate industrial OT firewall conduits and SCADA security sensors without physical PLCs.
-
-| Capability | FrameAssembly (`.fasm`) | Python + `Scapy` | `text2pcap` / Hex Editing | Capturing Live Lab Traffic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Who It Is Built For** | **Network technicians & firewall/NOC engineers** (no coding needed) | Python programmers & developers | Analysts editing raw hex dumps | Engineers with spare physical/VM labs |
-| **How You Write Packets** | **Plain-text hosts & 1-line-per-packet flows** | Python scripts, loops & class objects | Raw hexadecimal byte offsets | Live device CLI & OS commands |
-| **Low-Level Header Control** | **Full control** over flags, VLAN/QinQ/MPLS tags, QoS, TTL & options | Full control via nested Python code | Manual bit-by-bit hex math | Hard to force specific flags, errors, or faults |
-| **Unset Optional Fields** | **Works out of the box** with standard RFC wire defaults | Varies by protocol layer | None (every byte typed by hand) | OS / vendor stack dependent |
-| **Checksums & TCP `SEQ`/`ACK`** | **Automatic checksums, TCP `SEQ`/`ACK` math** & reply port swapping on `<-` | Manual per-packet sequence & port math | Manual hex recalculation on every edit | Handled by OS kernel (normal flows only) |
-| **SNMPv3 `authPriv` Encryption**| **Built-in SNMPv3 encryption** (`MD5`/`SHA`/`SHA-2` + `DES`/`AES`) | Manual ASN.1 BER & crypto code | Impractical by hand | Requires configuring a live SNMPv3 agent |
-| **Rootless `.pcap` for `tcpreplay`** | **No root needed** to build `.pcap`; zero noise; ready for `tcpreplay` | Root needed for raw socket sending | Normal user space | Root required; captures unwanted LAN noise |
+It is built for **network technicians, firewall engineers, Linux system administrators, NOC/SOC analysts, and OT/SCADA integrators** who want a **Scapy alternative without Python**, without clicking through GUI stream dialogs in `Ostinato`, and without fighting raw hexadecimal byte offsets in `text2pcap`. Positioned as the upstream companion compiler to your analysis and replay tools, you simply list the devices in your scenario, write one line per packet using everyday networking terms (`VLAN 100`, `TCP SYN`, `DSTPORT 443`, `DSCP 46`, `SNMP3 TRAP`), and FrameAssembly automatically builds the Ethernet/IPv4/IPv6/TCP/UDP/SCTP headers, calculates lengths and checksums, swaps ports on reply packets (`<-`), and tracks TCP `SEQ`/`ACK` numbers—producing a clean, zero-noise `.pcap` file ready to open in **Wireshark** / **`tshark`**, feed into **Suricata** / **Zeek**, or transmit onto a live network port with **`tcpreplay`**.
 
 ---
 
-## 60-Second Quickstart
+## Copy-Paste Packet Recipes for Common Network Tasks
 
-### Step 1: Install `frameassembly`
+### Create Custom `.pcap` Captures from Plain Text (No Root Permissions or Programming Experience Required)
 
-**Option A — One-Line Linux Installer (No Rust or Programming Experience Needed):**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
-```
-
-What `install.sh` does automatically:
-1. Checks that basic system tools (`curl` and a standard C linker such as `cc`/`gcc`) are present.
-2. Installs the official user-space Rust build tool (`~/.cargo`) in your home directory if not already present (no system-wide root library changes).
-3. Installs the `frameassembly` command into `~/.cargo/bin/frameassembly`.
-4. Automatically installs the `.fasm` color syntax-highlighting extension if **VS Code** (`code`) or **Antigravity** (`agy`) is detected.
-
-**Option B — Install via Cargo (Linux, macOS, or Windows with Rust `>= 1.85`):**
-
-```bash
-cargo install frameassembly
-```
-
-**Optional — Manual VS Code / Antigravity `.vsix` Syntax Extension:**
-
-```bash
-curl -fsSLo /tmp/frameassembly.vsix https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-1.3.0.vsix && code --install-extension /tmp/frameassembly.vsix && rm -f /tmp/frameassembly.vsix
-```
-
-### Step 2: Write a Plain-Text `.fasm` Packet Recipe (`demo.fasm`)
-
-Every protocol works out of the box with standard RFC defaults—you only type the fields you want to customize:
+Generate a test capture without setting up a Python environment for `Scapy`, calculating raw hex offsets in `text2pcap`, or needing `sudo` raw-socket permissions. Write your hosts and packet lines in plain text and compile directly to `.pcap` in user space:
 
 ```frameassembly
-// Define the devices in your scenario
 host client { ip 10.0.0.10 mac 00:11:22:33:44:55 }
 host server { ip 10.0.0.80 mac aa:bb:cc:dd:ee:ff }
 
-// List the packets exchanged between them (1 line = 1 Ethernet frame)
 flow web_session(c, s) {
     c -> s tcp syn srcport 51234 dstport 80 win 65535 mss 1460 wait 1ms
     c <- s tcp syn ack win 65535 mss 1460 wait 1ms
@@ -80,13 +31,217 @@ flow web_session(c, s) {
     c <- s http status 200 reason "OK" body "<h1>Hello</h1>" wait 2ms
 }
 
-// Build the packet capture
 compile {
     web_session(client, server)
 }
 ```
 
-### Step 3: Preview Frames with `frameassembly show` or Build `output.pcap`
+```console
+$ frameassembly web.fasm -o web.pcap && frameassembly show web.fasm
+```
+
+---
+
+### Test SNMPv1/v2c & Encrypted SNMPv3 Trap Receivers
+
+Verify Zabbix, SolarWinds, LibreNMS, PRTG, or `snmptrapd` alerting rules without waiting for a switch power supply or BGP peer to fail. FrameAssembly generates SNMPv1/v2c polls and encrypted SNMPv3 `authPriv` (`SHA-256` + `AES-128`) traps with standard RFC 3414/3826/7860 cryptography out of the box:
+
+```frameassembly
+host core_switch { ip 10.10.1.2  mac 00:1a:2b:3c:4d:01 }
+host nms_server  { ip 10.10.1.50 mac 00:1a:2b:3c:4d:50 }
+
+flow snmp_alert_and_poll(sw, nms) {
+    sw -> nms vlan 100 snmp3 trap user "netops" engineid "80001f8801" engineboots 5 enginetime 3600 auth sha256 "AuthPass123!" priv aes "PrivPass123!" oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.8.1 int 2 wait 5ms
+    nms -> sw vlan 100 snmp2 get community "noc_ro" reqid 101 varbind 1.3.6.1.2.1.1.5.0 null wait 2ms
+    nms <- sw vlan 100 snmp2 response community "noc_ro" reqid 101 varbind 1.3.6.1.2.1.1.5.0 string "core-sw-01.dc1" wait 2ms
+}
+
+compile {
+    snmp_alert_and_poll(core_switch, nms_server)
+}
+```
+
+```console
+$ frameassembly snmp_test.fasm -o snmp_test.pcap && tshark -r snmp_test.pcap
+```
+
+---
+
+### Craft 802.1Q VLAN, 802.1ad QinQ, MPLS & DSCP QoS Packets
+
+Desktop OS network stacks and NIC drivers often strip 802.1Q tags on capture and block raw-socket injection of carrier `QinQ` double tags or custom DiffServ markings. FrameAssembly writes `VLAN <id> PCP <0..7>`, `QINQ <s_vid> INNER_VLAN <c_vid>`, `MPLS <label> EXP <0..7>`, and `DSCP <0..63>` headers directly into the `.pcap` file:
+
+```frameassembly
+host branch_cpe { ip 10.220.1.10  mac 00:50:56:c0:01:10 }
+host hq_gateway { ip 10.220.1.200 mac 00:50:56:c0:01:c8 }
+
+flow metro_qos_and_tls(cpe, hq) {
+    cpe -> hq vlan 110 pcp 5 dei 0 dscp 46 rtp pt 0 seq 1 timestamp 160 ssrc 0x10203040 payload "G711_VOICE" wait 5ms
+    cpe -> hq qinq 2000 inner_vlan 150 pcp 6 mpls 40960 exp 6 bos 1 mpls_ttl 64 dscp 46 ttl 64 tls client_hello sni "vault.hq.example.com" ciphersuite 4866 alpn "h2" wait 5ms
+    cpe <- hq qinq 2000 inner_vlan 150 pcp 6 mpls 40960 exp 6 bos 1 mpls_ttl 63 dscp 46 ttl 63 tls server_hello ciphersuite 4866 alpn "h2" wait 5ms
+}
+
+compile {
+    metro_qos_and_tls(branch_cpe, hq_gateway)
+}
+```
+
+```console
+$ frameassembly qos.fasm -o qos.pcap && wireshark qos.pcap &
+```
+
+---
+
+### Validate Firewall ACLs & Suricata / Zeek IDS Rules
+
+Stateful firewalls and IDS/IPS engines drop isolated packets that lack a valid 3-way TCP handshake or sequence progression. FrameAssembly tracks TCP sequence numbers and reply ports automatically across permitted handshakes, blocked port `RST ACK` rejections, and ICMP Administratively Prohibited replies:
+
+```frameassembly
+host dmz_scanner { ip 172.16.99.9 mac 00:1a:2b:3c:4d:09 }
+host target_fw   { ip 10.10.1.1   mac 00:1a:2b:3c:4d:01 }
+
+flow firewall_acl_test(scanner, fw) {
+    scanner -> fw vlan 200 tcp syn srcport 54320 dstport 443 win 64240 mss 1460 wait 1ms
+    scanner <- fw vlan 200 tcp syn ack win 65535 mss 1460 wait 1ms
+    scanner -> fw vlan 200 tcp ack wait 2ms
+    scanner -> fw vlan 200 tcp syn srcport 54321 dstport 22 win 64240 wait 1ms
+    scanner <- fw vlan 200 tcp rst ack wait 2ms
+    scanner -> fw vlan 200 ttl 64 icmp echo_request id 500 seq 1 payload "ACL_PING_TEST" wait 1ms
+    scanner <- fw vlan 200 ttl 64 icmp dest_unreach code 13
+}
+
+compile {
+    firewall_acl_test(dmz_scanner, target_fw)
+}
+```
+
+```console
+$ frameassembly firewall.fasm -o firewall.pcap && suricata -r firewall.pcap -k none
+```
+
+---
+
+### Build Sanitized Reproducer Captures for Vendor TAC Tickets & CI
+
+Instead of scrubbing live production captures for vendor support tickets (Cisco TAC, Juniper JTAC, Arista) or CI tests—and risking leaked internal IPs or customer data—build a clean, zero-noise reproducer using RFC 5737 documentation subnets (`192.0.2.0/24`, `198.51.100.0/24`):
+
+```frameassembly
+host branch_gw { ip 192.0.2.1     mac 00:11:22:aa:bb:01 }
+host auth_srv  { ip 198.51.100.10 mac 00:11:22:cc:dd:10 }
+
+flow tac_sanitized_radius(gw, srv) {
+    gw -> srv radius access_request user "redacted_user" nas_ip 192.0.2.1 wait 10ms
+    gw <- srv radius access_accept wait 5ms
+    gw -> srv syslog facility 1 severity 6 hostname "branch-gw" app "tacacs" msg "User authenticated via 802.1X"
+}
+
+compile {
+    tac_sanitized_radius(branch_gw, auth_srv)
+}
+```
+
+```console
+$ frameassembly tac_repro.fasm -o tac_repro.pcap && frameassembly show tac_repro.fasm
+```
+
+---
+
+### Test Industrial OT / SCADA Firewalls (Modbus, DNP3, S7comm, BACnet, OPC UA)
+
+Test industrial firewall conduits and OT security sensors without physical PLCs or vendor engineering workstations. Generate Modbus TCP, IEEE 1815 DNP3 (with automatic CRC-16), Siemens S7comm, BACnet/IP, EtherNet/IP, and OPC UA traffic directly on your laptop:
+
+```frameassembly
+host scada_hmi { ip 192.168.100.10 mac 00:1b:21:a0:00:10 }
+host plant_plc { ip 192.168.100.50 mac 00:0e:8c:a0:00:50 }
+
+flow ot_firewall_test(hmi, plc) {
+    hmi -> plc vlan 110 modbus read_holding_registers txid 1 unitid 1 addr 40001 count 2 wait 2ms
+    hmi <- plc vlan 110 modbus read_holding_registers txid 1 unitid 1 count 2 is_response wait 2ms
+    hmi -> plc vlan 110 dnp3 read src 1 dst 10 group 60 variation 1 wait 2ms
+    hmi -> plc vlan 110 s7comm setup_comm rosctr "JOB" pdu_ref 101 wait 2ms
+    hmi -> plc vlan 110 bacnet read_property invoke_id 1 object_type 0 object_instance 1 property_id 85 wait 2ms
+    hmi -> plc vlan 110 opcua msg_type "HEL" chunk_type "F" endpoint_url "opc.tcp://192.168.100.50:4840"
+}
+
+compile {
+    ot_firewall_test(scada_hmi, plant_plc)
+}
+```
+
+```console
+$ frameassembly ot_test.fasm -o ot_test.pcap && tshark -r ot_test.pcap
+```
+
+---
+
+## Comparison Matrix: FrameAssembly vs. Traditional Tools
+
+| Capability | FrameAssembly (`.fasm`) | Python + `Scapy` | `text2pcap` / Hex Editing | `Ostinato` (GUI / Streams) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Who It Is Built For** | **Network technicians, firewall/NOC engineers & CI** (no coding needed) | Python programmers & developers | Analysts editing raw hex dumps | Desktop lab engineers using a GUI |
+| **How You Write Packets** | **Plain-text hosts & 1-line-per-packet flows ("Packets as Code")** | Python scripts, loops & class objects | Raw hexadecimal byte offsets | Interactive GUI stream builder dialogs |
+| **Low-Level Header Control** | **Full control** over flags, VLAN/QinQ/MPLS tags, QoS, TTL & options | Full control via nested Python code | Manual bit-by-bit hex math | Per-stream protocol field forms |
+| **Unset Optional Fields** | **Works out of the box** with standard RFC wire defaults | Varies by protocol layer | None (every byte typed by hand) | Requires filling stream dialogs |
+| **Checksums & TCP `SEQ`/`ACK`** | **Automatic checksums, TCP `SEQ`/`ACK` math** & reply port swapping on `<-` | Manual per-packet sequence & port math | Manual hex recalculation on every edit | Stateless stream templates |
+| **SNMPv3 `authPriv` Encryption**| **Built-in SNMPv3 encryption** (`MD5`/`SHA`/`SHA-2` + `DES`/`AES`) | Manual ASN.1 BER & crypto code | Impractical by hand | Not built-in |
+| **Offline & Rootless Workflow** | **No root, `libpcap`, or raw sockets needed**; ready for `Wireshark` & `tcpreplay` | Requires Python env; root needed for wire send | Offline user space | Requires `drone` agent / privileges |
+
+---
+
+## The 3-Step Mental Model for Network Engineers
+
+Every `.fasm` file is structured in three logical steps that mirror how network technicians diagram traffic:
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                      The 3-Step Mental Model                           │
+├───────────────────┬───────────────────────────────┬────────────────────┤
+│ 1. HOST           │ 2. FLOW                       │ 3. COMPILE         │
+│ Declare endpoints │ Define the packet sequence    │ Emit the .pcap     │
+│ IP & optional MAC │ 1 statement = 1 wire frame    │ Wire hosts to flow │
+│ (v4, v6, any MAC) │ -> forward, <- reply (swaps)  │ Single or loop N   │
+└───────────────────┴───────────────────────────────┴────────────────────┘
+```
+
+1. **Step 1: Declare Endpoints with `HOST`**: Give friendly names to your IPv4 or IPv6 endpoints. FrameAssembly natively accepts Linux colon (`00:1a:2b:3c:4d:5e`), Windows hyphen (`00-1A-2B-3C-4D-5E`), and Cisco dotted-quad (`001a.2b3c.4d5e`) MAC addresses. If you omit the MAC, FrameAssembly assigns clean unicast MACs or derives standard RFC 1112 / RFC 2464 multicast MACs automatically.
+2. **Step 2: Define Packet Sequences with `FLOW`**: Write traffic patterns between placeholder endpoints (`c`, `s`). Every statement inside a `FLOW` block generates **exactly one Ethernet frame**. Using `c -> s` marks a forward request; using `c <- s` marks a reverse response that automatically swaps source and destination ports.
+3. **Step 3: Build the Capture with `COMPILE`**: Connect your declared hosts into your flow templates. A single flow can be executed once or repeated across multiple host pairs and `loop <count>` iterations.
+
+---
+
+## Visual Packet Ladders & Terminal Inspection (`frameassembly show`)
+
+FrameAssembly aligns directly with Wireshark's **Flow Graph** ladder view:
+
+```text
+  Wireshark Flow Graph               FrameAssembly .fasm Flow Statement
+--------------------------------------------------------------------------------------
+  10.0.0.10             10.0.0.80
+      |                     |
+      |   TCP 51234 -> 80   |
+      |-------------------->|        c -> s tcp syn srcport 51234 dstport 80 win 65535
+      |        [SYN]        |
+      |                     |
+      |   TCP 80 -> 51234   |
+      |<--------------------|        c <- s tcp syn ack win 65535 wait 1ms
+      |      [SYN, ACK]     |
+      |                     |
+      |   TCP 51234 -> 80   |
+      |-------------------->|        c -> s tcp ack wait 1ms
+      |        [ACK]        |
+      |                     |
+      |  HTTP GET /index    |
+      |-------------------->|        c -> s http get uri "/index.html" host_hdr "example.com"
+      |      [PSH, ACK]     |
+      |                     |
+      |   HTTP 200 OK       |
+      |<--------------------|        c <- s http status 200 reason "OK" body "<h1>Hello</h1>"
+      |      [PSH, ACK]     |
+```
+
+### Inspecting Frames in Terminal Without Writing Files
+
+Use `frameassembly show <file.fasm>` to inspect your generated ladder directly in your terminal without touching the disk:
 
 ```console
 $ frameassembly show demo.fasm
@@ -97,71 +252,74 @@ $ frameassembly show demo.fasm
 3      2.000       10.0.0.10 -> 10.0.0.80                   TCP         54     51234 -> 80 [ACK] seq=1001 ack=2001 len=0
 4      3.000       10.0.0.10 -> 10.0.0.80                   HTTP        97     51234 -> 80 [ACK PSH] seq=1001 ack=2001 len=43
 5      8.000       10.0.0.80 -> 10.0.0.10                   HTTP        126    80 -> 51234 [ACK PSH] seq=2001 ack=1044 len=72
+```
 
+To compile to a `.pcap` capture file:
+
+```console
 $ frameassembly demo.fasm -o output.pcap
 Successfully parsed 2 hosts, 1 flows
 Starting PCAP compilation...
 Successfully generated output.pcap (5 frames, 393 bytes, duration 8.000 ms)
 ```
 
-You can also inspect the capture with `tshark` / **Wireshark** or transmit the frames onto a live network interface with **`tcpreplay`**:
+You can then inspect the output in **Wireshark** or replay it on a live network port with **`tcpreplay`**:
 
 ```bash
-# Inspect with tshark or open in Wireshark GUI
+# Inspect in Wireshark or tshark
 tshark -r output.pcap
 wireshark output.pcap &
 
-# Replay onto a physical NIC, VLAN trunk, or firewall test port
+# Replay onto a live interface or firewall test port
 sudo tcpreplay -i eth0 output.pcap
 ```
 
-**What FrameAssembly handled for you automatically:**
-* **Automatic Port Swapping on `<-`:** `srcport 51234 dstport 80` on `c -> s` automatically reversed to `80 -> 51234` on `c <- s` without retyping port numbers.
-* **Automatic TCP `SEQ` & `ACK` Tracking Across `TCP` and `HTTP`:** The `http` request and response automatically shared the connection state from the `tcp` handshake, emitted `PSH, ACK` frames on port `80`, and advanced `Seq` and `Ack` numbers by the exact byte length of each HTTP payload.
-* **Automatic Checksums & Nanosecond `WAIT` Timestamps:** Ethernet framing, IPv4 header checksums, TCP/UDP checksums, HTTP `Content-Length`, and exact `wait` timestamp deltas (`1.000 ms`, `2.000 ms`, `3.000 ms`, `8.000 ms`) were calculated automatically.
+---
+
+## Multi-Platform Installation
+
+Install FrameAssembly using your platform's standard package manager:
+
+| Platform / OS | Package Manager / Method | Installation Command | Package Identifier |
+| :--- | :--- | :--- | :--- |
+| **Linux (Universal)** | **One-line installer** (prebuilt binary fast-path + fallback) | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` | `frameassembly` |
+| **Debian / Ubuntu** | **APT** (`.deb` package from GitHub Releases) | `curl -fsSLo /tmp/frameassembly.deb https://github.com/SteveWinschel/FrameAssembly/releases/latest/download/frameassembly_amd64.deb && sudo apt install -y /tmp/frameassembly.deb && rm -f /tmp/frameassembly.deb` | `frameassembly` |
+| **macOS & Linux** | **Homebrew** (Tap) | `brew install SteveWinschel/tap-FrameAssembly/frameassembly` | `frameassembly` |
+| **Arch Linux** | **AUR** (`yay` / `paru`) | `yay -S frameassembly-bin` | `frameassembly-bin` |
+| **Windows 10 / 11** | **WinGet** (Windows Package Manager) | `winget install SteveWinschel.FrameAssembly` | `SteveWinschel.FrameAssembly` |
+| **Windows** | **Scoop** | `scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly && scoop install frameassembly` | `frameassembly` |
+| **Any (Rust 1.85+)** | **Cargo** (crates.io) | `cargo install frameassembly` | `frameassembly` |
+| **Browser / Node.js** | **NPM** (WebAssembly compiler) | `npm install frameassembly-wasm` | `frameassembly-wasm` |
+| **VS Code / Cursor / VSCodium** | **VS Marketplace & Open VSX** | `code --install-extension SteveWinschel.frameassembly` | `SteveWinschel.frameassembly` |
+| **Direct Binaries** | **GitHub Releases** (`.tar.gz`, `.zip`, `.deb`, `.vsix`) | [Download from GitHub Releases (`latest`)](https://github.com/SteveWinschel/FrameAssembly/releases/latest) | `v1.4.0` |
 
 ---
 
-## CLI Commands
+## Common Syntax Mistakes & Plain-English Error Messages
 
-| Command | What It Does | Example |
-| :--- | :--- | :--- |
-| `frameassembly <file.fasm>` | Builds `output.pcap` from `<file.fasm>` | `frameassembly demo.fasm` |
-| `frameassembly <file.fasm> -o <file.pcap>` | Writes the generated packet capture to a specific filename | `frameassembly demo.fasm -o acl_test.pcap` |
-| `frameassembly show <file.fasm>` | Validates `<file.fasm>` and prints the packet ladder table directly in your terminal **without** writing a `.pcap` file | `frameassembly show demo.fasm` |
+FrameAssembly's diagnostic engine provides actionable, plain-English `"Did you mean...?"` hints designed specifically for network technicians:
 
-```bash
-# Preview the frames in your terminal without generating a .pcap file
-frameassembly show demo.fasm
-
-# Generate a .pcap file (defaults to output.pcap, or specify -o)
-frameassembly demo.fasm -o demo.pcap
-```
-
----
-
-## Use ChatGPT, Claude, or Copilot to Write `.fasm` from Plain English
-
-Don't want to write `.fasm` by hand? FrameAssembly publishes a machine-readable reference sheet ([`llms.txt`](llms.txt)) specifically designed for AI assistants. Copy and paste the prompt below into **ChatGPT**, **Claude**, **Microsoft Copilot**, or **Cursor**, describe the network scenario you want in plain English, and it will output a valid `.fasm` file ready to compile:
-
-```text
-Read the FrameAssembly (.fasm) syntax reference at:
-https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms.txt
-
-Write a complete, compilable FrameAssembly (.fasm) packet recipe with HOST, FLOW, and COMPILE blocks for the following network scenario:
-[Describe your scenario here — for example: "A branch router at 10.10.1.1 sending an encrypted SNMPv3 SHA256 + AES trap to NMS server 10.10.1.50 on VLAN 100, followed by a TCP 3-way handshake and HTTPS TLS 1.3 ClientHello to vault.example.com"]
-
-Rules to follow:
-- Use only canonical HOST <id> { IP <ip> [MAC <mac>] }, FLOW <id>(<params>) { ... }, and COMPILE { ... } blocks.
-- Use SRCPORT, DSTPORT, ACKNUM, bare TCP flag names (SYN ACK), and trailing WAIT <n><ms|s|us|ns>.
-- Output only the compilable .fasm file.
-```
+| Networking Habit / Typo | Incorrect in `.fasm` | Correct `.fasm` Syntax | Helpful Compiler Diagnostic Hint |
+| :--- | :--- | :--- | :--- |
+| **Assigning with `:` or `=`** | `host rtr { ip: 10.0.0.1 }` | `host rtr { ip 10.0.0.1 }` | *"Separate keywords and values with a space instead of '=' or ':'"* |
+| **CIDR subnet masks in HOST** | `ip 10.0.0.1/24` | `ip 10.0.0.1` | *"Remove the CIDR prefix length and write a plain IP address"* |
+| **Bash / Python `#` comments** | `# Test DMZ flow` | `// Test DMZ flow` | *"Replace '#' with '//' to write a comment"* |
+| **Short port names (`sport`/`dport`)** | `sport 50000 dport 443` | `srcport 50000 dstport 443` | *"Replace 'sport' with 'SRCPORT <port>'"* |
+| **TCP ACK with number** | `tcp ack 1000` | `tcp ack acknum 1000` | *"Use 'ACK' alone as a TCP flag, and 'ACKNUM <number>' for the acknowledgment value"* |
+| **IPv6 Hop Limit keyword** | `hoplimit 64` / `hlim 64` | `ttl 64` | *"Use 'TTL <value>' for both IPv4 Time-to-Live and IPv6 Hop Limit"* |
+| **IPv4 TOS or Traffic Class** | `tos 0xb8` / `trafficclass` | `dscp 46 ecn 0` | *"Use 'DSCP <0..63>' and optional 'ECN <0..3>'"* |
+| **TCP flags in brackets** | `flags [SYN, ACK]` | `tcp syn ack` | *"Write TCP flags as space-separated words without brackets"* |
+| **Delay prefix (`+5ms`)** | `+5ms c -> s tcp syn` | `c -> s tcp syn wait 5ms` | *"Put 'WAIT <duration>' at the end of the packet statement instead"* |
+| **Omitting flow arguments** | `flow test { ... }` | `flow test(c, s) { ... }` | *"Add endpoint parameter names in parentheses after the flow name"* |
+| **Omitting COMPILE block** | *(only HOST and FLOW)* | `compile { test(h1, h2) }` | *"Every .fasm file must contain exactly one COMPILE { ... } block at the end"* |
+| **Passing x86 Flat Assembler file** | `format PE` / `section` / `;` | *(FrameAssembly DSL)* | *"This file appears to be an x86 Flat Assembler file, not a FrameAssembly network packet specification"* |
+| **Passing FPGA FASM file** | `CLBLL_L_X0Y0.ENABLE` / `#` | *(FrameAssembly DSL)* | *"This file appears to be an FPGA FASM file, not a FrameAssembly network packet specification"* |
 
 ---
 
 ## From Wireshark / `tcpdump` to `.fasm` Translation Table
 
-If you already know how to read **Wireshark** display filters, **`tcpdump`** expressions, or Cisco/Linux interface outputs, you already know 90% of FrameAssembly:
+If you know how to read Wireshark filters or `tcpdump` expressions, you already know FrameAssembly syntax:
 
 | What You See in Wireshark / `tcpdump` / Switch CLI | Wireshark Display Filter / `tcpdump` | How You Write It in `.fasm` | Reference Table Link |
 | :--- | :--- | :--- | :--- |
@@ -182,143 +340,26 @@ If you already know how to read **Wireshark** display filters, **`tcpdump`** exp
 
 ---
 
-## Copy-Paste `.fasm` Recipes for Common Network Tasks
+## Use ChatGPT, Claude, or Copilot to Write `.fasm` from Plain English
 
-### Recipe 1: Generate Encrypted SNMPv3 `authPriv` Trap (`SHA-256` + `AES-128`) & SNMPv2c Poll `.pcap`
+FrameAssembly publishes a machine-readable reference sheet ([`llms.txt`](llms.txt)) specifically optimized for AI coding assistants. Copy and paste the prompt below into **ChatGPT**, **Claude**, **Microsoft Copilot**, or **Cursor**:
 
-Test your NMS trap receiver or polling alert rules without touching production hardware:
+```text
+Read the FrameAssembly (.fasm) syntax reference at:
+https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms.txt
 
-```frameassembly
-host core_switch { ip 10.10.1.2  mac 00:1a:2b:3c:4d:01 }
-host nms_server  { ip 10.10.1.50 mac 00:1a:2b:3c:4d:50 }
+Write a complete, compilable FrameAssembly (.fasm) packet recipe with HOST, FLOW, and COMPILE blocks for the following network scenario:
+[Describe your scenario here — for example: "A branch router at 10.10.1.1 sending an encrypted SNMPv3 SHA256 + AES trap to NMS server 10.10.1.50 on VLAN 100, followed by a TCP 3-way handshake and HTTPS TLS 1.3 ClientHello to vault.example.com"]
 
-flow snmp_alert_and_poll(sw, nms) {
-    // Encrypted SNMPv3 linkDown trap (HMAC-SHA256 + AES-128) on VLAN 100
-    sw -> nms vlan 100 snmp3 trap user "netops" engineid "80001f8801" engineboots 5 enginetime 3600 auth sha256 "AuthPass123!" priv aes "PrivPass123!" oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.8.1 int 2 wait 5ms
-
-    // SNMPv2c GET poll for sysName.0 and switch response
-    nms -> sw vlan 100 snmp2 get community "noc_ro" reqid 101 varbind 1.3.6.1.2.1.1.5.0 null wait 2ms
-    nms <- sw vlan 100 snmp2 response community "noc_ro" reqid 101 varbind 1.3.6.1.2.1.1.5.0 string "core-sw-01.dc1" wait 2ms
-}
-
-compile {
-    snmp_alert_and_poll(core_switch, nms_server)
-}
-```
-
-### Recipe 2: Test Firewall ACLs with Custom `TCP SYN`, `RST ACK` & `ICMP` Unreachable Packets
-
-Verify permitted handshakes, blocked ports (`TCP RST`), and ACL-prohibited ICMP responses in a single `.pcap`:
-
-```frameassembly
-host dmz_scanner { ip 172.16.99.9 mac 00:1a:2b:3c:4d:09 }
-host target_fw   { ip 10.10.1.1   mac 00:1a:2b:3c:4d:01 }
-
-flow firewall_acl_test(scanner, fw) {
-    // Permitted HTTPS port 443 TCP 3-way handshake
-    scanner -> fw vlan 200 tcp syn srcport 54320 dstport 443 win 64240 mss 1460 wait 1ms
-    scanner <- fw vlan 200 tcp syn ack win 65535 mss 1460 wait 1ms
-    scanner -> fw vlan 200 tcp ack wait 2ms
-
-    // Blocked SSH port 22 attempt rejected with TCP RST + ACK
-    scanner -> fw vlan 200 tcp syn srcport 54321 dstport 22 win 64240 wait 1ms
-    scanner <- fw vlan 200 tcp rst ack wait 2ms
-
-    // Blocked ping answered with ICMP Destination Unreachable (Code 13: Administratively Prohibited)
-    scanner -> fw vlan 200 ttl 64 icmp echo_request id 500 seq 1 payload "ACL_PING_TEST" wait 1ms
-    scanner <- fw vlan 200 ttl 64 icmp dest_unreach code 13
-}
-
-compile {
-    firewall_acl_test(dmz_scanner, target_fw)
-}
-```
-
-### Recipe 3: 802.1Q `VLAN`, Carrier `QinQ`, `MPLS` & DiffServ `DSCP` QoS Packet Crafting
-
-Verify switch QoS queues, 802.1p CoS priority bits, carrier double-tagging, and MPLS label stacks:
-
-```frameassembly
-host branch_cpe { ip 10.220.1.10  mac 00:50:56:c0:01:10 }
-host hq_gateway { ip 10.220.1.200 mac 00:50:56:c0:01:c8 }
-
-flow metro_qos_and_tls(cpe, hq) {
-    // VoIP RTP audio over 802.1Q VLAN 110 (802.1p PCP 5) + DiffServ EF (DSCP 46)
-    cpe -> hq vlan 110 pcp 5 dei 0 dscp 46 rtp pt 0 seq 1 timestamp 160 ssrc 0x10203040 payload "G711_VOICE" wait 5ms
-
-    // TLS 1.3 handshake carried over QinQ (S-VLAN 2000 / C-VLAN 150) + MPLS (Label 40960) + DSCP 46
-    cpe -> hq qinq 2000 inner_vlan 150 pcp 6 mpls 40960 exp 6 bos 1 mpls_ttl 64 dscp 46 ttl 64 tls client_hello sni "vault.hq.example.com" ciphersuite 4866 alpn "h2" wait 5ms
-    cpe <- hq qinq 2000 inner_vlan 150 pcp 6 mpls 40960 exp 6 bos 1 mpls_ttl 63 dscp 46 ttl 63 tls server_hello ciphersuite 4866 alpn "h2" wait 5ms
-}
-
-compile {
-    metro_qos_and_tls(branch_cpe, hq_gateway)
-}
-```
-
-### Recipe 4: Industrial OT / SCADA Packet Generator (`Modbus`, `DNP3`, `S7comm`, `BACnet`, `OPC UA`)
-
-Test industrial zone firewalls and OT intrusion detection sensors without physical PLCs:
-
-```frameassembly
-host scada_hmi { ip 192.168.100.10 mac 00:1b:21:a0:00:10 }
-host plant_plc { ip 192.168.100.50 mac 00:0e:8c:a0:00:50 }
-
-flow ot_firewall_test(hmi, plc) {
-    hmi -> plc vlan 110 modbus read_holding_registers txid 1 unitid 1 addr 40001 count 2 wait 2ms
-    hmi <- plc vlan 110 modbus read_holding_registers txid 1 unitid 1 count 2 is_response wait 2ms
-    hmi -> plc vlan 110 dnp3 read src 1 dst 10 group 60 variation 1 wait 2ms
-    hmi -> plc vlan 110 s7comm setup_comm rosctr "JOB" pdu_ref 101 wait 2ms
-    hmi -> plc vlan 110 bacnet read_property invoke_id 1 object_type 0 object_instance 1 property_id 85 wait 2ms
-    hmi -> plc vlan 110 opcua msg_type "HEL" chunk_type "F" endpoint_url "opc.tcp://192.168.100.50:4840"
-}
-
-compile {
-    ot_firewall_test(scada_hmi, plant_plc)
-}
+Rules to follow:
+- Use only canonical HOST <id> { IP <ip> [MAC <mac>] }, FLOW <id>(<params>) { ... }, and COMPILE { ... } blocks.
+- Use SRCPORT, DSTPORT, ACKNUM, bare TCP flag names (SYN ACK), and trailing WAIT <n><ms|s|us|ns>.
+- Output only the compilable .fasm file.
 ```
 
 ---
 
-## Syntax Guide
-
-### 1. `host`, `flow`, `compile` & Reusing Flows Across IPv4 and IPv6
-
-FrameAssembly is **case-insensitive** everywhere (`host` or `HOST`, `tcp` or `TCP`, `ms` or `MS`). Comments start with `//`.
-
-* **`host <name> { ip <address> [mac <mac>] }`**: Gives a readable name to an IPv4 or IPv6 device. You can write `mac` in standard colon format (`00:1a:2b:3c:4d:5e`), Windows hyphen format (`00-1A-2B-3C-4D-5E`), or Cisco dotted-quad format (`001a.2b3c.4d5e`). If `mac` is omitted, FrameAssembly assigns a consistent unicast MAC—or automatically derives the standard RFC 1112 (`01:00:5e:xx:xx:xx` for IPv4) or RFC 2464 (`33:33:xx:xx:xx:xx` for IPv6) multicast MAC when the IP is a multicast group.
-* **`flow <name>(<endpoint1>, <endpoint2>, ...) { ... }`**: Lists a sequence of packets between placeholder endpoints (`1 line = 1 frame`):
-  * `A -> B`: `A` is the sender (source), `B` is the receiver (destination).
-  * `A <- B`: `B` is the sender (source), `A` is the receiver (destination), automatically swapping source and destination ports on replies.
-* **`compile { ... }` & `loop <count> { ... }`**: Builds the `.pcap` by plugging your `host` definitions into your `flow` templates. You can **write a traffic flow once and run it with both IPv4 and IPv6 hosts**:
-
-```frameassembly
-host client_v4  { ip 192.168.1.50  mac 00-1A-2B-3C-4D-5E }
-host server_v4  { ip 192.168.1.100 mac 001a.2b3c.4d5f }
-host client_v6  { ip 2001:db8::10  mac 00:11:22:33:44:55 }
-host server_v6  { ip 2001:db8::100 }
-host mdns_mcast { ip 224.0.0.251 }
-
-flow tcp_handshake(client, server) {
-    client -> server tcp syn srcport 50100 dstport 443 win 65535
-    client <- server tcp syn ack win 65535 wait 1ms
-    client -> server tcp ack wait 1ms
-}
-
-flow mdns_probe(node, mcast) {
-    node -> mcast mdns query qname "_http._tcp.local" qtype "PTR" wait 2ms
-}
-
-compile {
-    loop 2 {
-        tcp_handshake(client_v4, server_v4)
-        tcp_handshake(client_v6, server_v6)
-    }
-    mdns_probe(client_v4, mdns_mcast)
-}
-```
-
-### 2. Universal Layer 2–4 Modifiers
+## Universal Layer 2–4 Modifiers
 
 Any packet line can attach Layer 2 trunk tags, Layer 3 QoS/fragmentation headers, Layer 4 port/TCP options, raw payloads, and capture timestamps alongside any protocol:
 
@@ -544,9 +585,36 @@ Every protocol works out of the box with standard RFC defaults when optional fie
 
 ---
 
+## FAQ: What is a .fasm file? (FrameAssembly vs. Flat Assembler vs. FPGA FASM)
+
+### What is a `.fasm` file in FrameAssembly?
+A `.fasm` file is a plain-text network packet recipe defined by the **FrameAssembly** compiler (registered IANA vendor media type `text/vnd.frameassembly`, Freedesktop `shared-mime-info` subclass of `text/plain`). It allows network technicians, security engineers, and DevOps pipelines to write declarative "Packets as Code" specifications that compile into deterministic, nanosecond-precision `.pcap` and `.pcapng` packet captures without requiring root permissions, Python scripting, or raw sockets.
+
+### Why do other software tools also use the `.fasm` extension?
+Historically, the `.fasm` extension has been used informally by two unrelated tools that lack registered IANA vendor media types:
+1. **Flat Assembler (FASM)**: An x86/x86-64 assembly compiler created by Tomasz Grysztar. Flat Assembler `.fasm` files contain CPU assembly instructions (`mov`, `jmp`, `xor`), directives (`format PE`, `format ELF`, `section`, `use32`), and `;` comments, producing `.exe` or `.o` machine code.
+2. **FPGA FASM (FPGA Assembly)**: A plain-text hardware configuration format used by SymbiFlow / F4PGA / Project X-Ray. FPGA FASM files contain dot-separated FPGA tile feature paths (`CLBLL_L_X12Y34.SLICEL_X0.ALUT.INIT[31:0] = 32'h00000000`) and `#` comments, producing FPGA `.bit` bitstreams.
+
+### How does FrameAssembly disambiguate `.fasm` files?
+FrameAssembly provides unambiguous, multi-layered disambiguation:
+* **IANA Media Type**: Formally registered vendor tree media type [`text/vnd.frameassembly`](contrib/iana/text-vnd.frameassembly.md).
+* **Freedesktop XML MIME Database**: Provides [`contrib/mime/text-vnd.frameassembly.xml`](contrib/mime/text-vnd.frameassembly.xml) with magic rules matching `HOST`, `FLOW`, and `COMPILE` blocks.
+* **Unix `file(1)` Magic**: Magic rules in `contrib/magic/frameassembly.magic` identifying FrameAssembly network packet specifications.
+* **GitHub Linguist**: Language definition in `contrib/linguist/languages.yml` and regex disambiguation in `contrib/linguist/heuristics.yml`.
+* **Editor Syntax Scope**: Dedicated TextMate scope `source.frameassembly` in `frameassembly-vscode` (avoiding Flat Assembler's `source.fasm`).
+* **Compiler Error Diagnostics**: Built-in detection in `src/error.rs` that automatically detects when an x86 Flat Assembler or FPGA FASM file is passed by mistake and guides the user with a plain-English explanation.
+
+| Format | Domain | Comment Syntax | Structural Signature | Output Artifact |
+| :--- | :--- | :--- | :--- | :--- |
+| **FrameAssembly (`.fasm`, `text/vnd.frameassembly`)** | Declarative network packet capture recipes ("Packets as Code") | `// comment` | `HOST <id> { IP ... }`, `FLOW <id>(...) { ... }`, `COMPILE { ... }`, `->` / `<-` | `.pcap` / `.pcapng` captures for Wireshark, `tshark`, `tcpreplay`, Suricata & Zeek |
+| **Flat Assembler (`.asm`, `.fasm`)** | x86 / x86-64 CPU assembly | `; comment` | `format PE`/`ELF`, `section`, `org`, `mov`/`xor`/`int` mnemonics | x86 machine binaries (`.o`, `.exe`, `.elf`) |
+| **FPGA Assembly (`FASM`, `.fasm`)** | SymbiFlow / F4PGA hardware bitstreams | `# comment` | Dot-separated tile feature paths (`CLBLL_L_X10Y100.SLICEL_X0...`) | FPGA bitstream frames (`.bit`) |
+
+---
+
 ## Documentation
 
-### Tutorials & Practical Cookbooks
+### Step-by-Step Guides & Practical Cookbooks
 * **[Getting Started Guide](docs/getting_started.md)** — Step-by-step introduction for network technicians with zero programming background: anatomy of a `.fasm` file, colon/hyphen/Cisco dotted-quad MAC support, `frameassembly show` terminal preview, Wireshark/`tcpdump`-to-`.fasm` translation table, generating `.fasm` with ChatGPT/Claude/Copilot, and pairing `frameassembly` with `Wireshark`, `tshark`, and `tcpreplay`.
 * **[Practical Use Cases & Recipes](docs/use_cases.md)** — Symptom-based quick-jump index and ready-to-copy `.fasm` recipes for simulating SNMPv1/v2c/v3 traps & polls, testing firewall rules and ACLs, verifying VLAN/QinQ trunks and DiffServ QoS, testing IDS/IPS & flow collectors, validating industrial OT dissectors, and sharing zero-noise captures.
 
@@ -561,7 +629,8 @@ Every protocol works out of the box with standard RFC defaults when optional fie
 * **[Layer 7 Industrial Control Systems (ICS) & SCADA/OT](docs/l7_industrial_ot.md)** — `MODBUS`, `BACNET`, `DNP3`, `S7COMM`, `ETHERNETIP`, and `OPCUA` (`6` protocols).
 * **[Multi-Protocol Network Topologies & Dual-Stack Scenarios](docs/topologies_and_dual_stack.md)** — Multi-host enterprise, data center EVPN-VXLAN, campus 802.1X NAC, and industrial OT topologies (plus [`examples/`](examples/) with `2,611` verified `.fasm` scenarios across all 81 protocols).
 
-### For Systems Engineers & Developers
+### Standards Specifications, Developer & AI Architecture
+* **[`.fasm` File Format & Media Type Specification (`text/vnd.frameassembly`)](docs/fasm-specification.md)** — Canonical RFC 6838 specification for the FrameAssembly `.fasm` file format: UTF-8 encoding rules, lexical magic numbers, disambiguation from x86 Flat Assembler and FPGA FASM files, security considerations, and links to IANA ([`contrib/iana/text-vnd.frameassembly.md`](contrib/iana/text-vnd.frameassembly.md)), Freedesktop MIME ([`contrib/mime/text-vnd.frameassembly.xml`](contrib/mime/text-vnd.frameassembly.xml)), and GitHub Linguist ([`contrib/linguist/`](contrib/linguist/)) registration artifacts.
 * **[For Nerds: Architecture, Rust Library API & Formal Grammars](docs/for_nerds.md)** — Six-stage Rust pipeline, embedding `frameassembly` as a Rust library (`parse_program`, `compile_program`, `generate_pcap`), formal grammars ([`grammar.ebnf`](grammar.ebnf), [`frameassembly.gbnf`](frameassembly.gbnf), [`frameassembly.lark`](frameassembly.lark)), constrained LLM decoding, and `examples/` SFT/RLVR corpus conventions.
 
 ---

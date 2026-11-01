@@ -6,7 +6,7 @@ description: "Native RFC L2-L7 wire packet crafting, checksums, Wireshark/tshark
 
 # Networking, Native RFC Wire Crafting & PCAP Architecture Best Practices
 
-Always enforce these zero-dependency, wire-valid, and idiomatic native RFC packet construction (`src/packet.rs`, `src/builders/`, `src/backend/`) and `pcap-file` (`2.0.0`) (`src/pcap.rs`) engineering rules when designing, implementing, testing, or auditing network protocol builders, checksum engines, traffic dissectors, and PCAPNG serializers in Rust:
+Always enforce these rootless, offline, wire-valid, and idiomatic native RFC packet construction (`src/packet.rs`, `src/builders/`, `src/backend/`) and `pcap-file` (`2.0.0`) (`src/pcap.rs`) engineering rules when designing, implementing, testing, or auditing network protocol builders, checksum engines, traffic dissectors, and PCAPNG serializers in Rust:
 
 ---
 

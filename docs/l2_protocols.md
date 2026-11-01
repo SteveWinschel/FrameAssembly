@@ -514,3 +514,4 @@ tshark -r output.pcap -Y "mpls" -T fields -e frame.number -e vlan.id -e mpls.lab
 - [**Layer 4 Transport Protocols (`l4_transports.md`)**](l4_transports.md) — `TCP`, `UDP`, and `SCTP` 4-tuple state tracking, RFC 7323 TCP options, and SCTP multi-chunk signaling.
 - [**Layer 7 Infrastructure, Time, AAA & Flow Telemetry (`l7_infra_and_telemetry.md`)**](l7_infra_and_telemetry.md) — Pair `802.1X EAPOL` with `RADIUS`, `DHCP`, `DNS`, `SYSLOG`, `NETFLOW`, `IPFIX`, and `SFLOW`.
 - [**Multi-Host Topologies & Dual-Stack Scenarios (`topologies_and_dual_stack.md`)**](topologies_and_dual_stack.md) — Complete EVPN-VXLAN leaf-spine fabric, Campus 802.1X NAC, and WAN QinQ/MPLS failover topologies.
+- [**`.fasm` File Format & Media Type Specification (`fasm-specification.md`)**](fasm-specification.md) — Normative `text/vnd.frameassembly` media type specification, lexical rules, and `.fasm` extension disambiguation.

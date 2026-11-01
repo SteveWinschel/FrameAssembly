@@ -44,7 +44,7 @@ Use this skill when designing, implementing, extending, testing, or auditing the
    - Preserves builder-returned `(payload, sport, dport)` and `target_ip` tuples in `src/backend/l7_dispatch.rs` (`DHCP` `546/547` vs `68/67`, `MDNS` `224.0.0.251`/`ff02::fb` port `5353`, `PTP` `319` vs `320`, `RADIUS` `1812` vs `1813`).
 4. **Zero-Heap Protocol Payload Synthesis & Native Wire Framing (`src/builders/` & `src/packet.rs`)**:
    - 81 native RFC protocol builders in `src/builders/{l2,l3,l4,l7}/<protocol>.rs` and `src/builders/l7/snmp/{builder,crypto}.rs`.
-   - `src/packet.rs` is a 100% native, zero-external-dependency wire framing engine (Ethernet II, IEEE 802.1Q VLAN, IEEE 802.1ad QinQ, RFC 3032 MPLS, IPv4/IPv6, TCP/UDP/SCTP, RFC 1071 / RFC 9260 CRC32c checksums).
+   - `src/packet.rs` is a 100% native, rootless, offline slice-based wire framing engine (Ethernet II, IEEE 802.1Q VLAN, IEEE 802.1ad QinQ, RFC 3032 MPLS, IPv4/IPv6, TCP/UDP/SCTP, RFC 1071 / RFC 9260 CRC32c checksums) requiring no `libpcap` or raw sockets.
 5. **PCAPNG Serialization (`src/pcap.rs`)**:
    - Writes deterministic, nanosecond-resolution `.pcap` / `.pcapng` packet captures via `pcap-file 2.0.0` with mandatory `InterfaceDescriptionOption::IfTsResol(9)` and transactional file creation.
 

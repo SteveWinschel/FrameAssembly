@@ -365,9 +365,7 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "frameassembly"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fd20ed27323d34a3a6bf3298ac938976704c25e5d61334620d157ded43c01a4"
+version = "1.4.0"
 dependencies = [
  "aes",
  "block-padding",
@@ -390,7 +388,7 @@ dependencies = [
 
 [[package]]
 name = "frameassembly-wasm"
-version = "1.2.2"
+version = "1.4.0"
 dependencies = [
  "frameassembly",
  "miette",

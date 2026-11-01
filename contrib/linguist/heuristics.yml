@@ -1,0 +1,21 @@
+# GitHub Linguist heuristics.yml disambiguation rules for .fasm
+# Upstream target: lib/linguist/heuristics.yml in https://github.com/github-linguist/linguist
+# Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+
+disambiguations:
+  - extensions: ['.fasm']
+    rules:
+      # 1. FrameAssembly network packet specification (text/vnd.frameassembly)
+      # Matches top-level HOST { IP|MAC ... }, FLOW name(...) {, COMPILE { flow(...) }, or directional -> / <- packet lines
+      - language: FrameAssembly
+        pattern:
+          - '(?i)^\s*HOST\s+[A-Za-z_][A-Za-z0-9_]*\s*\{\s*(?:IP|MAC)\b'
+          - '(?i)^\s*FLOW\s+[A-Za-z_][A-Za-z0-9_]*\s*\([A-Za-z0-9_,\s]*\)\s*\{'
+          - '(?i)^\s*COMPILE\s*\{\s*(?:LOOP\s+[0-9]+\s*\{|[A-Za-z_][A-Za-z0-9_]*\s*\()'
+          - '(?i)\b[A-Za-z_][A-Za-z0-9_]*\s*(?:->|<-)\s*[A-Za-z_][A-Za-z0-9_]*\s+(?:SRCMAC|DSTMAC|ETHERTYPE|VLAN|QINQ|MPLS|TTL|DSCP|ECN|FLOWLABEL|IPID|DF|MF|FRAGOFFSET|SRCPORT|DSTPORT|TRANSPORT|SEQ|ACKNUM|WIN|MSS|WSCALE|SACK_PERM|TSVAL|TSECR|URGENT|ARP|LLDP|STP|LACP|EAPOL|ICMP|NDP|IGMP|MLD|GRE|VXLAN|GENEVE|IPSEC|ESP|AH|IKEV2|WIREGUARD|OSPF|BGP|RIP|VRRP|HSRP|PIM|BFD|OPENFLOW|TCP|UDP|SCTP|SNMP[123]|DNS|MDNS|DHCP|NTP|PTP|RADIUS|TACACS|SYSLOG|NETFLOW|IPFIX|SFLOW|TFTP|FTP|SSH|TELNET|HTTP|HTTP2|GRPC|WEBSOCKET|TLS|QUIC|STUN|SIP|RTP|RTSP|SMTP|IMAP|POP3|KERBEROS|LDAP|SMB|NFS|REDIS|MEMCACHED|MYSQL|POSTGRES|MQTT|COAP|AMQP|SSDP|WHOIS|MODBUS|BACNET|DNP3|S7COMM|ETHERNETIP|OPCUA)\b'
+      # 2. Flat Assembler (x86 / x86-64 machine assembly)
+      - language: Assembly
+        pattern:
+          - '(?i)^\s*format\s+(?:PE|PE64|ELF|ELF64|MZ|COFF|binary)\b'
+          - '(?i)^\s*(?:section|segment|use16|use32|use64|org)\b'
+          - '^\s*;'

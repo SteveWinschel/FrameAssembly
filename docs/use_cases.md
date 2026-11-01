@@ -690,4 +690,5 @@ tshark -r routing_ha_failover.pcap
   * [Layer 7 Mail, Auth, Storage, Databases & Messaging (`l7_mail_auth_storage_db.md`)](l7_mail_auth_storage_db.md) — `SMTP`, `IMAP`, `POP3`, `KERBEROS`, `LDAP`, `SMB`, `NFS`, `REDIS`, `MEMCACHED`, `MYSQL`, `POSTGRES`, `MQTT`, `COAP`, `AMQP`
   * [Layer 7 Industrial Control Systems & SCADA/OT (`l7_industrial_ot.md`)](l7_industrial_ot.md) — `MODBUS`, `BACNET`, `DNP3`, `S7COMM`, `ETHERNETIP`, `OPCUA`
   * [Multi-Host Topologies & Dual-Stack Scenarios (`topologies_and_dual_stack.md`)](topologies_and_dual_stack.md) — Full enterprise, EVPN-VXLAN, and 802.1X NAC topologies
+  * [`.fasm` File Format & Media Type Specification (`fasm-specification.md`)](fasm-specification.md) — Formal `text/vnd.frameassembly` specification, UTF-8 encoding rules, and `.fasm` extension disambiguation
   * [For Nerds: Architecture, Rust Library API & Formal Grammars (`for_nerds.md`)](for_nerds.md) — Rust library API, internal architecture, and `EBNF`/`GBNF`/`Lark` grammars

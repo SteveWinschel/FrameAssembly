@@ -1,14 +1,19 @@
-# FrameAssembly Custom Domain-Specific Language
+# FrameAssembly Custom Domain-Specific Language (.fasm — text/vnd.frameassembly)
+# Overrides GitHub's default x86 Assembly mapping so .fasm files are always indexed as FrameAssembly
 *.fasm linguist-language=FrameAssembly linguist-detectable=true linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
+contrib/linguist/samples/*.fasm linguist-language=FrameAssembly linguist-detectable=true linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
 
 # Formal Grammars (EBNF, GBNF, Lark)
 *.ebnf linguist-language=EBNF linguist-detectable=true text eol=lf
 *.gbnf linguist-language=EBNF linguist-detectable=true text eol=lf
 *.lark linguist-language=EBNF linguist-detectable=true text eol=lf
 
-# Documentation, Citation & AI Context Files
+# Documentation, Standards Registration, Citation & AI Context Files
 *.md text eol=lf
 docs/*.md linguist-documentation=true text eol=lf
+contrib/**/*.md linguist-documentation=true text eol=lf
+contrib/**/*.xml text eol=lf
+contrib/**/*.yml text eol=lf
 llms.txt text eol=lf linguist-documentation=true
 llms-full.txt text eol=lf linguist-generated=true
 CITATION.cff text eol=lf

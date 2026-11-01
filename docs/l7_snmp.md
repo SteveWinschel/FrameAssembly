@@ -336,3 +336,4 @@ sudo tcpreplay --intf1=eth0 --topspeed snmpv3_test.pcap
 - [**Layer 4 Transport Protocols (`l4_transports.md`)**](l4_transports.md) — `UDP`, `TCP`, and `SCTP` transport behaviors and port inheritance.
 - [**Layer 7 Infrastructure, Time, AAA & Flow Telemetry (`l7_infra_and_telemetry.md`)**](l7_infra_and_telemetry.md) — Pair SNMP polling with `SYSLOG`, `NETFLOW`, `IPFIX`, `SFLOW`, `NTP`, `PTP`, `DNS`, `DHCP`, `RADIUS`, and `TACACS`.
 - [**Multi-Host Topologies & Dual-Stack Scenarios (`topologies_and_dual_stack.md`)**](topologies_and_dual_stack.md) — End-to-end enterprise, data center, and Campus 802.1X NAC topologies with SNMPv3 reporting.
+- [**`.fasm` File Format & Media Type Specification (`fasm-specification.md`)**](fasm-specification.md) — Normative `text/vnd.frameassembly` media type specification, lexical rules, and `.fasm` extension disambiguation.

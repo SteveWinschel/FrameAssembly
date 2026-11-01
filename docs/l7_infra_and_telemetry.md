@@ -367,3 +367,4 @@ compile {
 - [**Layer 7 SNMP Reference (`l7_snmp.md`)**](l7_snmp.md) — Complete guide to `SNMP1`, `SNMP2` (`GETBULK` & `INFORM`), and encrypted `SNMP3` USM (`SHA256`/`SHA512` + `AES-128`).
 - [**Layer 7 Web, Cloud, VoIP & Remote Access (`l7_web_and_cloud.md`)**](l7_web_and_cloud.md) — Reference for `TFTP`, `FTP`, `SSH`, `TELNET`, `WHOIS`, `HTTP`, `HTTP2`, `GRPC`, `WEBSOCKET`, `TLS`, `QUIC`, `SIP`, `RTP`, `RTSP`, `STUN`, and `SSDP`.
 - [**Multi-Host Topologies & Dual-Stack Scenarios (`topologies_and_dual_stack.md`)**](topologies_and_dual_stack.md) — Complete Campus 802.1X NAC and EVPN-VXLAN IPFIX fabric captures.
+- [**`.fasm` File Format & Media Type Specification (`fasm-specification.md`)**](fasm-specification.md) — Normative `text/vnd.frameassembly` media type specification, lexical rules, and `.fasm` extension disambiguation.

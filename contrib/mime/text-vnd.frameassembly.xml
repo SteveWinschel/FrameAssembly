@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Freedesktop.org shared-mime-info definition for FrameAssembly (.fasm)
+  Media Type: text/vnd.frameassembly
+  Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+
+  Local Linux Installation & Verification:
+    mkdir -p ~/.local/share/mime/packages
+    cp contrib/mime/text-vnd.frameassembly.xml ~/.local/share/mime/packages/
+    update-mime-database ~/.local/share/mime
+    gio info -a standard::content-type demo.fasm
+    xdg-mime query filetype demo.fasm
+-->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="text/vnd.frameassembly">
+    <comment>FrameAssembly network packet specification</comment>
+    <acronym>FASM</acronym>
+    <expanded-acronym>FrameAssembly</expanded-acronym>
+    <sub-class-of type="text/plain"/>
+    <generic-icon name="text-x-script"/>
+    <glob pattern="*.fasm" weight="60"/>
+    <magic priority="60">
+      <!-- Match top-level HOST ... IP ... COMPILE tokens (uppercase/lowercase, space/tab) from src/lexer/mod.rs -->
+      <match type="string" value="HOST " offset="0:1024">
+        <match type="string" value="IP " offset="0:1536">
+          <match type="string" value="COMPILE" offset="0:8192"/>
+        </match>
+      </match>
+      <match type="string" value="HOST&#x09;" offset="0:1024">
+        <match type="string" value="IP " offset="0:1536">
+          <match type="string" value="COMPILE" offset="0:8192"/>
+        </match>
+      </match>
+      <match type="string" value="host " offset="0:1024">
+        <match type="string" value="ip " offset="0:1536">
+          <match type="string" value="compile" offset="0:8192"/>
+        </match>
+      </match>
+      <match type="string" value="host&#x09;" offset="0:1024">
+        <match type="string" value="ip " offset="0:1536">
+          <match type="string" value="compile" offset="0:8192"/>
+        </match>
+      </match>
+      <!-- Match top-level FLOW ... COMPILE tokens (uppercase/lowercase) from src/lexer/mod.rs -->
+      <match type="string" value="FLOW " offset="0:2048">
+        <match type="string" value="COMPILE" offset="0:8192"/>
+      </match>
+      <match type="string" value="flow " offset="0:2048">
+        <match type="string" value="compile" offset="0:8192"/>
+      </match>
+    </magic>
+  </mime-type>
+</mime-info>

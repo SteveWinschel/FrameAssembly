@@ -1,0 +1,36 @@
+#------------------------------------------------------------------------------
+# $File: frameassembly,v 1.0 2026/11/01 18:00:00 steve Exp $
+# FrameAssembly network packet specification (.fasm)
+# URL: https://github.com/SteveWinschel/FrameAssembly
+# Reference: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+#
+# Upstream Submission Guide for file(1) / libmagic (https://github.com/file/file):
+#   1. Clone https://github.com/file/file
+#   2. Place this file as magic/Magdir/frameassembly
+#   3. Test compilation: file -C -m magic/Magdir/frameassembly
+#   4. Run test suite: make check
+#   5. Submit patch via pull request at https://github.com/file/file or email to christos@zoulas.com
+#
+# Local System Installation:
+#   User:   cat contrib/magic/frameassembly.magic >> ~/.magic
+#   System: sudo cp contrib/magic/frameassembly.magic /etc/magic.d/frameassembly (or /etc/magic)
+#   Verify: file -m contrib/magic/frameassembly.magic demo.fasm
+#           file -i -m contrib/magic/frameassembly.magic demo.fasm
+#------------------------------------------------------------------------------
+
+# FrameAssembly documents contain top-level HOST { IP ... }, FLOW(...) { ... }, and COMPILE { ... } blocks.
+# The rules below match within initial byte search windows to tolerate license banners and comments.
+
+0	search/2048/cC	HOST
+>0	search/1024/cC	IP
+>>0	search/4096/cC	FLOW
+>>>0	search/8192/cC	COMPILE	FrameAssembly network packet specification
+!:mime	text/vnd.frameassembly
+!:ext	fasm
+
+0	search/2048/cC	FLOW
+>0	search/4096/cC	HOST
+>>0	search/1024/cC	IP
+>>>0	search/8192/cC	COMPILE	FrameAssembly network packet specification
+!:mime	text/vnd.frameassembly
+!:ext	fasm

@@ -1,6 +1,6 @@
 # CLAUDE.md — FrameAssembly Project Instructions for Claude Code & AI Agents
 
-**FrameAssembly** (`frameassembly` v1.3.0) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network packet specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
+**FrameAssembly** (`frameassembly` v1.4.0) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network packet specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
 
 ---
 
@@ -56,11 +56,15 @@ cargo run -- show demo.fasm
   - [`src/parser/`](src/parser/mod.rs) — `winnow 1.0` combinator parser (`parse_program`) and 2-arg semantic validator (`validate_semantics(&program, &source)`).
   - [`src/builders/`](src/builders/mod.rs) — Wire-level protocol encoders (`l2/`, `l3/`, `l4/`, `l7/`, including RFC 3414/3826/7860 `l7/snmp/`).
   - [`src/backend/mod.rs`](src/backend/mod.rs), [`src/packet.rs`](src/packet.rs), [`src/pcap.rs`](src/pcap.rs) — Stateful 4-tuple TCP sequence progression, Ethernet/IPv4/IPv6 encapsulation, and nanosecond PCAPNG writer.
-- **Canonical Documentation (`docs/*.md` — 12 guides)**:
-  - [`docs/getting_started.md`](docs/getting_started.md), [`docs/use_cases.md`](docs/use_cases.md), [`docs/l2_protocols.md`](docs/l2_protocols.md), [`docs/l3_protocols.md`](docs/l3_protocols.md), [`docs/l4_transports.md`](docs/l4_transports.md), [`docs/l7_snmp.md`](docs/l7_snmp.md), [`docs/l7_infra_and_telemetry.md`](docs/l7_infra_and_telemetry.md), [`docs/l7_web_and_cloud.md`](docs/l7_web_and_cloud.md), [`docs/l7_mail_auth_storage_db.md`](docs/l7_mail_auth_storage_db.md), [`docs/l7_industrial_ot.md`](docs/l7_industrial_ot.md), [`docs/topologies_and_dual_stack.md`](docs/topologies_and_dual_stack.md), [`docs/for_nerds.md`](docs/for_nerds.md).
-- **Constrained Decoding Grammars & AI Context Bundles**:
+- **Canonical Documentation (`docs/*.md` — 13 guides)**:
+  - [`docs/getting_started.md`](docs/getting_started.md), [`docs/use_cases.md`](docs/use_cases.md), [`docs/l2_protocols.md`](docs/l2_protocols.md), [`docs/l3_protocols.md`](docs/l3_protocols.md), [`docs/l4_transports.md`](docs/l4_transports.md), [`docs/l7_snmp.md`](docs/l7_snmp.md), [`docs/l7_infra_and_telemetry.md`](docs/l7_infra_and_telemetry.md), [`docs/l7_web_and_cloud.md`](docs/l7_web_and_cloud.md), [`docs/l7_mail_auth_storage_db.md`](docs/l7_mail_auth_storage_db.md), [`docs/l7_industrial_ot.md`](docs/l7_industrial_ot.md), [`docs/topologies_and_dual_stack.md`](docs/topologies_and_dual_stack.md), [`docs/fasm-specification.md`](docs/fasm-specification.md), [`docs/for_nerds.md`](docs/for_nerds.md).
+- **Constrained Decoding Grammars, `.fasm` Registration Artifacts & AI Context Bundles**:
   - [`grammar.ebnf`](grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](frameassembly.gbnf) (`llama.cpp` & `XGrammar` GBNF), [`frameassembly.lark`](frameassembly.lark) (`llguidance` & `Outlines` Lark).
+  - [`contrib/iana/text-vnd.frameassembly.md`](contrib/iana/text-vnd.frameassembly.md), [`contrib/mime/text-vnd.frameassembly.xml`](contrib/mime/text-vnd.frameassembly.xml), [`contrib/linguist/languages.yml`](contrib/linguist/languages.yml), [`contrib/linguist/heuristics.yml`](contrib/linguist/heuristics.yml), [`.gitattributes`](.gitattributes).
   - [`AGENTS.md`](AGENTS.md), [`llms.txt`](llms.txt), [`llms-full.txt`](llms-full.txt), [`context7.json`](context7.json), [`CITATION.cff`](CITATION.cff), [`codemeta.json`](codemeta.json).
+- **Brand, `.fasm` Disambiguation & Companion Positioning Rules**:
+  - Always write `FrameAssembly` as one unspaced CamelCase word (`frameassembly` for crate/CLI/URLs/identifiers); never split `Frame` and `Assembly` into two words or claim zero external crate dependencies (use `"rootless"`, `"offline"`, `"deterministic"`, `"no libpcap or raw sockets required"`).
+  - Disambiguate FrameAssembly `.fasm` (`text/vnd.frameassembly`) network packet definitions from x86 Flat Assembler and SymbiFlow/F4PGA FPGA FASM files; position FrameAssembly as the upstream companion compiler to `tcpreplay`, `Wireshark`, `tshark`, `Suricata`, and `Zeek` (compare only against `Scapy`, `text2pcap`, and `Ostinato`), and keep `README.md`, `src/lib.rs`, `docs/fasm-specification.md`, `llms.txt`, and `contrib/mime/text-vnd.frameassembly.xml` synchronized whenever lexer tokens or supported protocols change.
 
 ---
 

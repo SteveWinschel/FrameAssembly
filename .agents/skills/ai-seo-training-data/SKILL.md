@@ -50,7 +50,7 @@ Weave these exact problem-oriented phrases naturally into `README.md`, `src/lib.
 | Search Intent Category | Target Search Queries & Ecosystem Terms | Where to Embed |
 | :--- | :--- | :--- |
 | **1. Core Problem Queries** | `"generate pcap file in Rust"`, `"deterministic pcapng packet generator"`, `"synthetic network traffic generator"`, `"declarative packet crafting DSL"` | `Cargo.toml` `description`, `src/lib.rs` line 1 (`<meta name="description">`), `README.md` H1/lead paragraph, `llms.txt` blockquote |
-| **2. Tool & Companion Workflows** | `"Scapy alternative in Rust"`, `"text2pcap alternative"`, `"create pcap for tcpreplay and Wireshark"`, `"zero-dependency etherparse / pnet / gopacket alternative for test captures"` | `README.md` ("Why FrameAssembly?"), `docs/getting_started.md`, `docs/use_cases.md`, `src/lib.rs` |
+| **2. Tool & Companion Workflows** | `"Scapy alternative in Rust"`, `"text2pcap / Ostinato alternative"`, `"create pcap for tcpreplay and Wireshark"`, `"rootless offline packet crafting without libpcap or raw sockets"` | `README.md` ("Why FrameAssembly?"), `docs/getting_started.md`, `docs/use_cases.md`, `src/lib.rs` |
 | **3. Security, IDS/IPS & Dissector Testing** | `"Wireshark / tshark dissector test PCAP generator"`, `"Suricata / Zeek / Snort IDS rule validation packet captures"`, `"SIEM & NDR synthetic network telemetry"`, `"802.1X EAPOL / SNMPv3 USM / IPSec IKEv2 / WireGuard test vectors"` | `README.md` use-cases section, `docs/l2_protocols.md`, `docs/l3_protocols.md`, `docs/l7_snmp.md`, `examples/` `// PROMPT:` headers |
 | **4. Industrial OT / ICS & Cloud Topologies** | `"ICS SCADA OT packet generator (Modbus TCP, DNP3, S7comm, EtherNet/IP, BACnet, OPC UA)"`, `"EVPN-VXLAN / Geneve / BGP / OSPF / MPLS control-plane PCAP synthesis"` | `docs/l7_industrial_ot.md`, `docs/topologies_and_dual_stack.md`, `src/ast/l7/*.rs` & `src/builders/l7/*.rs` module docs |
 | **5. CI/CD & Rust Integration Testing** | `"deterministic CI packet capture fixtures"`, `"nanosecond-precision reproducible PCAPNG generation"`, `"zero-heap RFC wire framing in Rust"` | `src/lib.rs` Rust API quickstart, `docs/for_nerds.md` |
@@ -109,10 +109,16 @@ For 2025–2026 Reinforcement Learning with Verifiable Rewards (**RLVR** / **Dee
 
 ---
 
-## 6. Crates.io, `docs.rs` & `lib.rs` Registry Optimization Checklist
+## 6. Crates.io, `docs.rs`, `lib.rs` & Task-First README Optimization Checklist
 
-1. **`Cargo.toml` Manifest**: Keep `description` between `120–160` chars front-loading problem-intent keywords, set `documentation = "https://docs.rs/frameassembly"`, `homepage = "https://github.com/SteveWinschel/FrameAssembly"`, `rust-version = "1.85"`, valid `crates.io` categories (`"network-programming"`, `"command-line-utilities"`, `"compilers"`, `"development-tools::testing"`, `"parser-implementations"`), `[package.metadata.docs.rs]`, and exclude corpus/docs/grammars from the crate tarball.
-2. **`docs.rs` & `rustdoc` Hygiene**:
+1. **Task-First README Architecture & Zero Prompt-Leak Copywriting**:
+   - Lead READMEs and entrypoints (`README.md`, `frameassembly-vscode/README.md`, `frameassembly-wasm/README.md`, `src/lib.rs`, and `docs/getting_started.md`) with concrete, real-world network engineering tasks and solutions (rootless/Python-free `.pcap` creation; SNMPv1/v2c/v3 `authPriv` trap testing; 802.1Q `VLAN` / 802.1ad `QinQ` / `MPLS` / `DSCP` tagging; firewall ACL & Suricata/Zeek/Snort IDS testing; sanitized vendor TAC / CI captures; and industrial OT `MODBUS`/`DNP3`/`S7COMM`/`BACNET`/`ETHERNETIP`/`OPCUA` conduit testing) written in natural, professional technical prose followed by a compilable `.fasm` recipe.
+   - **CRITICAL ANTI-PROMPT-LEAK GUARDRAIL**: NEVER print meta-copywriting scaffold labels such as `"Problem -> Solution"`, `"Why It Hurts Today:"`, `"The FrameAssembly Solution:"`, `"The Old Way:"`, or `"Pain Point:"` in headings, bullets, or prose.
+2. **Multi-Layer `.fasm` Extension Disambiguation (`text/vnd.frameassembly`, `source.frameassembly`)**:
+   - Unify the TextMate scope to `source.frameassembly` (never `source.fasm`) across `frameassembly.tmLanguage.json`, `frameassembly-vscode/package.json`, and `contrib/linguist/languages.yml`.
+   - Maintain Freedesktop `shared-mime-info` (`contrib/mime/text-vnd.frameassembly.xml`) and `libmagic` (`contrib/magic/frameassembly.magic`) rules bundled in Linux packages, foreign x86/FPGA `.fasm` detection in `src/error.rs`, and the *"What is a `.fasm` file?"* search-engine FAQ section.
+3. **`Cargo.toml` Manifest**: Keep `description` between `120–160` chars front-loading problem-intent keywords, set `documentation = "https://docs.rs/frameassembly"`, `homepage = "https://github.com/SteveWinschel/FrameAssembly"`, `rust-version = "1.85"`, valid `crates.io` categories (`"network-programming"`, `"command-line-utilities"`, `"compilers"`, `"development-tools::testing"`, `"parser-implementations"`), `[package.metadata.docs.rs]`, and exclude corpus/docs/grammars from the crate tarball.
+4. **`docs.rs` & `rustdoc` Hygiene**:
    - Line 1 of `src/lib.rs` must be a complete summary sentence (`120–180` chars) for `<meta name="description">`.
    - Keep internal parser submodules (`src/parser/{l2,l3,l4,l7,snmp}`) as `pub(crate) mod` so `docs.rs` never generates empty HTML pages.
    - Start every `src/**/*.rs` file with an inner `//!` docstring (`>= 50` words) and never place outer `///` comments on `pub mod` declarations that have inner `//!` docstrings.

@@ -1,69 +1,66 @@
 # Getting Started with FrameAssembly
 
-**FrameAssembly** (`frameassembly`) is a command-line tool that turns a plain-text packet recipe (`.fasm`) into a standard `.pcap` / `.pcapng` packet capture file ready for **Wireshark**, **`tshark`**, **Suricata**, **Zeek**, or **`tcpreplay`**.
+**FrameAssembly** (`frameassembly`) is an offline, rootless "Packets as Code" ("PCAP as Code") command-line compiler that turns a plain-text packet recipe (`.fasm`, media type `text/vnd.frameassembly`) into a deterministic `.pcap` / `.pcapng` packet capture file ready for **Wireshark**, **`tshark`**, **Suricata**, **Zeek**, or **`tcpreplay`**.
 
-You do not need any programming experience to use FrameAssembly. There are no Python scripts to debug, no libraries or virtual environments to manage, no byte-offset math to calculate by hand, and no root (`sudo`) privileges required to build a capture. You simply list the network devices in your scenario and write one line per packet—FrameAssembly builds the Ethernet frames, IPv4/IPv6 headers, UDP/TCP/SCTP transport headers, Layer 7 protocol payloads, lengths, checksums, and TCP sequence numbers automatically.
+You do not need any programming experience to use FrameAssembly. There are no Python scripts to debug, no libraries or virtual environments to manage, no byte-offset math to calculate by hand, and no root (`sudo`) privileges, `libpcap` libraries, or live raw sockets required to build a capture. You simply list the network devices in your scenario and write one line per packet—FrameAssembly builds the Ethernet frames, IPv4/IPv6 headers, UDP/TCP/SCTP transport headers, Layer 7 protocol payloads, lengths, checksums, and TCP sequence numbers automatically.
 
 ---
 
-## Step 1 — Installing on Linux
+## Fast Packet Crafting for Network Engineers
 
-### Option A: One-Line Linux Installer (Recommended)
+Instead of writing Python `Scapy` scripts with nested packet layers (`Ether()/IP()/TCP()`), managing virtual environments, or calculating hexadecimal byte offsets by hand in `text2pcap`, FrameAssembly lets you declare your endpoints with standard IP and MAC addresses (`HOST`), write your packet sequence in everyday networking terms (`FLOW`), and compile directly to a `.pcap` capture file (`COMPILE`):
 
-If you are on a fresh Linux workstation, lab VM, jump host, or container and have never installed Rust before, run the official installer script in your terminal:
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                      The 3-Step Mental Model                           │
+├───────────────────┬───────────────────────────────┬────────────────────┤
+│ 1. HOST           │ 2. FLOW                       │ 3. COMPILE         │
+│ Declare endpoints │ Define the packet sequence    │ Emit the .pcap     │
+│ IP & optional MAC │ 1 statement = 1 wire frame    │ Wire hosts to flow │
+│ (v4, v6, any MAC) │ -> forward, <- reply (swaps)  │ Single or loop N   │
+└───────────────────┴───────────────────────────────┴────────────────────┘
+```
+
+---
+
+## Step 1 — Installing FrameAssembly Across Platforms
+
+Choose the installation method that matches your operating system:
+
+| Platform / OS | Package Manager / Method | Installation Command | Package Identifier |
+| :--- | :--- | :--- | :--- |
+| **Linux (Universal)** | **One-line installer** (prebuilt binary fast-path + fallback) | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` | `frameassembly` |
+| **Debian / Ubuntu** | **APT** (`.deb` package from GitHub Releases) | `curl -fsSLo /tmp/frameassembly.deb https://github.com/SteveWinschel/FrameAssembly/releases/latest/download/frameassembly_amd64.deb && sudo apt install -y /tmp/frameassembly.deb && rm -f /tmp/frameassembly.deb` | `frameassembly` |
+| **macOS & Linux** | **Homebrew** (Tap) | `brew install SteveWinschel/tap-FrameAssembly/frameassembly` | `frameassembly` |
+| **Arch Linux** | **AUR** (`yay` / `paru`) | `yay -S frameassembly-bin` | `frameassembly-bin` |
+| **Windows 10 / 11** | **WinGet** (Windows Package Manager) | `winget install SteveWinschel.FrameAssembly` | `SteveWinschel.FrameAssembly` |
+| **Windows** | **Scoop** | `scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly && scoop install frameassembly` | `frameassembly` |
+| **Any (Rust 1.85+)** | **Cargo** (crates.io) | `cargo install frameassembly` | `frameassembly` |
+| **Browser / Node.js** | **NPM** (WebAssembly compiler) | `npm install frameassembly-wasm` | `frameassembly-wasm` |
+| **VS Code / Cursor / VSCodium** | **VS Marketplace & Open VSX** | `code --install-extension SteveWinschel.frameassembly` | `SteveWinschel.frameassembly` |
+| **Direct Binaries** | **GitHub Releases** (`.tar.gz`, `.zip`, `.deb`, `.vsix`) | [Download from GitHub Releases (`latest`)](https://github.com/SteveWinschel/FrameAssembly/releases/latest) | `v1.4.0` |
+
+### One-Line Linux Installer Details
+
+If you are on a fresh Linux workstation, lab VM, jump host, or container, run the official installer script:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
 ```
 
 #### What this command does behind the scenes:
-1. **Checks system prerequisites:** Verifies that `curl`, `ca-certificates`, and a standard C linker (`cc`, `gcc`, or `clang`) are present. If any are missing, it detects your Linux distribution's package manager (`apt-get` on Ubuntu/Debian, `dnf`/`yum` on RHEL/Rocky/Alma/Fedora, `pacman` on Arch, `apk` on Alpine, `zypper` on openSUSE/SLES) and installs them.
-2. **Sets up the Rust build tool (`rustup`):** If Rust (`>= 1.85`) is not already on your machine, it downloads and installs the official user-space Rust toolchain into `~/.rustup` and `~/.cargo`.
-3. **Installs the `frameassembly` command:** Builds the latest release of FrameAssembly and places the executable at:
-   ```text
-   ~/.cargo/bin/frameassembly
-   ```
-4. **Configures editor color highlighting:** If **VS Code** (`code`) or **Antigravity** (`agy`) is installed on your `PATH`, it automatically installs the `.fasm` syntax highlighting extension so keywords, IP/MAC addresses, and protocol names are color-coded in your editor.
+1. **Checks system prerequisites:** Verifies that `curl`, `ca-certificates`, and a standard C linker (`cc`, `gcc`, or `clang`) are present.
+2. **Sets up the Rust build tool (`rustup`):** If Rust (`>= 1.85`) is not already installed, it installs user-space Rust into `~/.cargo`.
+3. **Installs the `frameassembly` command:** Places the executable at `~/.cargo/bin/frameassembly`.
+4. **Configures editor color highlighting:** If **VS Code** (`code`) or **Antigravity** (`agy`) is detected, it automatically installs the `.fasm` syntax highlighting extension.
 
-#### Making sure `~/.cargo/bin` is on your `PATH`:
-When the installer finishes, reload your shell environment (or open a new terminal window) so your shell can find `frameassembly`:
+Reload your shell environment after installation:
 
 ```bash
 . "$HOME/.cargo/env"
 ```
 
-If your shell still reports `frameassembly: command not found`, add `~/.cargo/bin` to your shell profile (`~/.bashrc` for Bash or `~/.zshrc` for Zsh):
-
-```bash
-echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-#### Optional installer flags:
-You can pass flags to the installer using `sh -s --`:
-
-```bash
-# Preview every step without changing anything on your system
-curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh -s -- --dry-run
-
-# Install on a headless server without checking for VS Code
-curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh -s -- --no-vscode
-
-# Force a clean reinstall or upgrade of an existing binary
-curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh -s -- --force
-```
-
-### Option B: Installing via `cargo` (If Rust `>= 1.85` Is Already Installed)
-
-If your machine already has Rust `1.85` or newer installed, you can install or update `frameassembly` directly from [crates.io](https://crates.io/crates/frameassembly):
-
-```bash
-cargo install frameassembly
-```
-
-### Verify Your Installation
-
-Run the following commands to confirm `frameassembly` is ready:
+Verify your installation:
 
 ```bash
 frameassembly --version
@@ -179,20 +176,20 @@ FrameAssembly supports **81 protocols** across Layer 2 through Layer 7, and **ev
 * When you want to **customize specific fields**, you simply add those field keywords onto the same line in any order—leaving everything else at its default.
 * Want to preview the frames in your terminal without writing a `.pcap` file? Run `frameassembly show <file.fasm>`!
 
-### Before vs. After: Zero-Keyword Defaults vs. Custom Overrides
+### Zero-Keyword Defaults vs. Custom Overrides
 
 ```frameassembly
 host peer_a { ip 10.10.0.1 }
 host peer_b { ip 10.10.0.2 }
 
-// BEFORE: Using 100% built-in RFC defaults (minimal typing)
+// Using built-in RFC defaults (minimal typing)
 flow quick_defaults(c, s) {
     c -> s icmp wait 1ms
     c -> s dns wait 1ms
     c -> s bgp
 }
 
-// AFTER: Overriding specific header fields on the exact same protocols
+// Overriding specific header fields on the exact same protocols
 flow custom_headers(c, s) {
     // Custom ICMP Echo Request: TTL 128, Don't Fragment (DF), custom ID/SEQ and payload
     c -> s ttl 128 df icmp echo_request id 42 seq 10 payload "MTU_PROBE_1472" wait 2ms
@@ -212,29 +209,50 @@ compile {
 
 ---
 
-## Step 4 — Directional Arrows (`->` and `<-`), Automatic TCP `SEQ`/`ACK` Math & Reply Ports
+## Step 4 — Visual Packet Ladders, Arrows (`->` / `<-`) & Automatic TCP Math
 
-### Why Keep the Client on the Left?
+Inside a `flow(c, s)` block, keep the initiating client (`c`) on the left and the server (`s`) on the right:
+* **`c -> s`** sends a packet **from `c` to `s`** (forward client request).
+* **`c <- s`** sends a packet **from `s` back to `c`** (reverse server response).
 
-Inside a `flow(c, s)` block, best practice is to keep the initiating host (`c`) on the left and the responder (`s`) on the right on every line, flipping only the arrow between them:
-* **`c -> s`** sends a packet **from `c` to `s`** (client request / forward direction).
-* **`c <- s`** sends a packet **from `s` back to `c`** (server reply / reverse direction).
+This structure maps 1:1 to Wireshark's graphical **Flow Graph**:
 
-Reading down the page feels just like reading a ladder diagram in Wireshark's *Flow Graph*: you can immediately see who sent each packet without mentally swapping host names on every other line.
+```text
+  Wireshark Flow Graph               FrameAssembly .fasm Flow Statement
+--------------------------------------------------------------------------------------
+  10.0.0.10             10.0.0.80
+      |                     |
+      |   TCP 51234 -> 80   |
+      |-------------------->|        c -> s tcp syn srcport 51234 dstport 80 win 65535
+      |        [SYN]        |
+      |                     |
+      |   TCP 80 -> 51234   |
+      |<--------------------|        c <- s tcp syn ack win 65535 wait 1ms
+      |      [SYN, ACK]     |
+      |                     |
+      |   TCP 51234 -> 80   |
+      |-------------------->|        c -> s tcp ack wait 1ms
+      |        [ACK]        |
+      |                     |
+      |  HTTP GET /status   |
+      |-------------------->|        c -> s http get uri "/status" host_hdr "api.local"
+      |      [PSH, ACK]     |
+      |                     |
+      |   HTTP 200 OK       |
+      |<--------------------|        c <- s http status 200 reason "OK" body "{\"up\":true}"
+      |      [PSH, ACK]     |
+```
 
 ### Automatic Reply Port Swapping
+When `c -> s` sets `srcport 52100 dstport 80`, FrameAssembly automatically remembers that session:
+* Subsequent forward packets (`c -> s`) automatically use `52100 -> 80`.
+* Subsequent reply packets (`c <- s`) automatically swap the ports to `80 -> 52100`.
 
-When `c -> s` opens a session (for example, `srcport 52100 dstport 443`), FrameAssembly remembers that port pair for the `(c, s)` conversation:
-* Subsequent forward packets (`c -> s`) automatically use `52100 -> 443`.
-* Subsequent reply packets (`c <- s`) automatically swap the ports to `443 -> 52100`.
-* Even better: when you use a Layer 7 protocol keyword like `http`, `tls`, `ssh`, `bgp`, `smb`, or `modbus`, FrameAssembly automatically defaults the server port to that protocol's well-known port (`80`, `443`, `22`, `179`, `445`, `502`) unless you override it.
-
-### Automatic TCP `SEQ` and `ACKNUM` Tracking Across Raw `TCP` and Layer 7
-
-Calculating TCP sequence and acknowledgment numbers by hand in Wireshark is tedious because every byte of Layer 7 payload shifts the numbers for all following packets. FrameAssembly tracks every TCP connection automatically:
-1. **`SYN` and `FIN` flags** automatically consume `1` sequence number, so the peer's next acknowledgment advances by `+1`.
-2. **Layer 7 TCP statements** (`http`, `tls`, `ssh`, `bgp`, `smb`, `postgres`, `modbus`, etc.) automatically emit a `PSH ACK` TCP segment on that connection and advance `SEQ` and `ACKNUM` by the exact byte length of the generated Layer 7 message.
-3. **Graceful `FIN ACK` or `RST` teardowns** pick up right where the Layer 7 exchange finished.
+### Automatic TCP `SEQ` and `ACKNUM` Progression
+FrameAssembly tracks TCP connection state automatically:
+1. **`SYN` and `FIN` flags** consume 1 sequence number each.
+2. **Layer 7 TCP statements** (`http`, `tls`, `ssh`, `bgp`, `smb`, `modbus`, etc.) automatically emit a `PSH ACK` TCP segment on that connection and advance `SEQ` and `ACKNUM` by the exact byte length of the generated payload.
+3. **Graceful `FIN ACK` teardowns** resume sequence numbers exactly where Layer 7 finished.
 
 ```frameassembly
 host app_client { ip 10.20.1.50 }
@@ -261,32 +279,28 @@ compile {
 }
 ```
 
-### How to Intentionally Override `seq`, `acknum`, or `win`
+### Intentionally Overriding `seq`, `acknum`, or `win` (Anomalies & Zero-Window)
 
-What if you are testing whether a stateful firewall drops out-of-window segments, how a load balancer handles a duplicate retransmission, or how an application reacts to a **TCP Zero-Window (`win 0`)** stall?
-
-Simply write `seq <n>`, `acknum <n>`, or `win <n>` on that specific line. Your explicit value overrides the automatic counter for that frame:
+To test firewall state tables or TCP stack anomalies, simply specify explicit values on that packet line:
 
 ```frameassembly
 host client_node { ip 10.30.0.10 }
 host server_node { ip 10.30.0.20 }
 
 flow tcp_anomaly_and_zero_window(c, s) {
-    // Normal 3-way handshake
     c -> s tcp syn srcport 54000 dstport 8080 win 65535 mss 1460 wait 1ms
     c <- s tcp syn ack win 65535 mss 1460 wait 1ms
     c -> s tcp ack wait 1ms
 
-    // Client sends an HTTP POST request
     c -> s http post uri "/upload" host_hdr "ingest.local" body "CHUNK_DATA_01" wait 2ms
 
-    // Override #1: Server advertises a TCP Zero Window (receive buffer full)
+    // Override 1: Server advertises a TCP Zero Window (buffer full)
     c <- s tcp ack win 0 wait 50ms
 
-    // Override #2: Inject an out-of-window segment (seq 900000) to test firewall state inspection
+    // Override 2: Inject an out-of-window segment (seq 900000) to test state inspection
     c -> s tcp psh ack seq 900000 acknum 1 payload "OUT_OF_WINDOW_PROBE" wait 5ms
 
-    // Override #3: Server sends a TCP Window Update reopening the window to 32768 bytes
+    // Override 3: Server sends a Window Update reopening the window to 32768 bytes
     c <- s tcp ack win 32768 wait 2ms
     c <- s http status 200 reason "OK" body "UPLOAD_COMPLETE"
 }
@@ -298,11 +312,9 @@ compile {
 
 ---
 
-## Step 5 — Attaching VLAN, QinQ, MPLS, QoS (`DSCP`/`ECN`) & IPv4 Fragmentation Modifiers
+## Step 5 — Attaching VLAN, QinQ, MPLS, QoS (`DSCP`/`ECN`) & Fragmentation
 
-Any packet line in FrameAssembly can be wrapped in Layer 2 trunk tags (`VLAN`, `QINQ`, `MPLS`) or stamped with Layer 3 QoS and IPv4 fragmentation flags. You do not need special wrapper blocks—just place the modifiers on the packet line.
-
-### Complete Cross-Layer Modifier Reference Table
+Any packet line in FrameAssembly can attach Layer 2 trunk tags (`VLAN`, `QINQ`, `MPLS`) or Layer 3 QoS/fragmentation modifiers:
 
 | Layer | Modifier Syntax | Valid Range / Format | What It Sets on the Wire |
 | :--- | :--- | :--- | :--- |
@@ -325,8 +337,6 @@ Any packet line in FrameAssembly can be wrapped in Layer 2 trunk tags (`VLAN`, `
 | **Layer 4 (Proto)**| `transport <tcp>` or `transport <udp>` | `tcp` or `udp` | Forces a dual-transport L7 protocol (like `dns`, `sip`, or `syslog`) onto TCP or UDP |
 | **Timing** | `wait <n><unit>` | `ns`, `us`, `ms`, `s`, `m` | Advances the PCAP timestamp after this packet by the exact duration |
 
-### Compilable Example: VLAN, QinQ, MPLS, QoS & IPv4 Fragmentation
-
 ```frameassembly
 host branch_edge { ip 172.16.100.10 mac 00:1c:73:aa:00:10 }
 host core_pe     { ip 172.16.100.1  mac 00:1c:73:aa:00:01 }
@@ -345,9 +355,7 @@ flow wan_encapsulation_showcase(edge, core) {
     edge -> core df ipid 0x4400 ttl 64 icmp echo_request id 51 seq 1 payload "PMTUD_DO_NOT_FRAGMENT" wait 5ms
 
     // 5. IPv4 fragmented ping sharing IPID 0x7788:
-    //    Fragment #1 carries 16 bytes (2 x 8-byte blocks) with More Fragments (MF) set at offset 0
     edge -> core ipid 0x7788 mf fragoffset 0 icmp echo_request id 52 seq 1 payload "FIRST_8B_SECOND8" wait 1ms
-    //    Fragment #2 carries the remaining payload with MF cleared at offset 2 (16 bytes)
     edge -> core ipid 0x7788 fragoffset 2 icmp echo_request id 52 seq 1 payload "FINAL_FRAGMENT_B"
 }
 
@@ -358,33 +366,28 @@ compile {
 
 ---
 
-## Step 6 — Writing a Flow Once for Both IPv4 and IPv6 + Repeating with `loop`
+## Step 6 — Polymorphic Dual-Stack Flows & Repeating with `loop`
 
-In FrameAssembly, a `flow` does not hardcode IPv4 or IPv6 addresses—it uses placeholder names like `(client, server)`. That means you can write a protocol test **once** and run it against both IPv4 hosts and IPv6 hosts inside `compile`.
+A `flow` uses placeholder endpoint names like `(client, server)`, meaning you can define a traffic scenario **once** and run it over both IPv4 and IPv6 host pairs without duplicate definitions.
 
-* When called with IPv4 hosts, FrameAssembly builds Ethernet (`0x0800`) + IPv4 headers.
-* When called with IPv6 hosts, FrameAssembly builds Ethernet (`0x86dd`) + IPv6 headers, automatically translating `icmp` to **ICMPv6** (with mandatory RFC 4443 checksums), `dhcp` to **DHCPv6** (ports `546`/`547`), `ttl` to **IPv6 Hop Limit**, and applying `flowlabel` to the 20-bit IPv6 Flow Label field.
-* Wrapping flow calls inside **`loop <count> { ... }`** inside `compile` repeats the sequence `<count>` times while continuously advancing timestamps and TCP sequence numbers.
+* On IPv4 pairs: emits standard IPv4 headers (`EtherType 0x0800`).
+* On IPv6 pairs: emits standard IPv6 headers (`EtherType 0x86dd`), translates `icmp` to **ICMPv6** (with RFC 4443 checksums), and applies `flowlabel`.
+* **`loop <count>`**: repeats the enclosed flows `<count>` times while advancing sequence numbers and timestamps.
 
 ```frameassembly
-// Declare IPv4 endpoint pair
 host sensor_v4    { ip 10.50.0.10 }
 host collector_v4 { ip 10.50.0.100 }
 
-// Declare IPv6 endpoint pair
 host sensor_v6    { ip 2001:db8:50::10 }
 host collector_v6 { ip 2001:db8:50::100 }
 
-// Write the flow ONCE — works over both IPv4 and IPv6
 flow dns_and_syslog_heartbeat(node, srv) {
-    // flowlabel 0x1a2b3 is stamped onto IPv6 headers and cleanly ignored on IPv4
     node -> srv vlan 50 dscp 16 ttl 64 flowlabel 0x1a2b3 dns query txid 0x1001 qname "time.corp.internal" qtype "A" wait 2ms
     node <- srv vlan 50 dscp 16 ttl 64 flowlabel 0x1a2b3 dns response txid 0x1001 qname "time.corp.internal" qtype "A" rdata "10.50.0.100" wait 5ms
     node -> srv vlan 50 dscp 16 ttl 64 flowlabel 0x1a2b3 syslog facility 16 severity 6 hostname "edge-sensor" app "healthd" msg "Heartbeat OK" wait 10ms
 }
 
 compile {
-    // Emit 4 back-to-back rounds of both IPv4 and IPv6 traffic (24 frames total)
     loop 4 {
         dns_and_syslog_heartbeat(sensor_v4, collector_v4)
         dns_and_syslog_heartbeat(sensor_v6, collector_v6)
@@ -392,15 +395,9 @@ compile {
 }
 ```
 
-### Why Mixing IPv4 and IPv6 on the Same Packet Line Is Blocked
-
-An Ethernet frame cannot have an IPv4 source address and an IPv6 destination address in the same IP header. If you accidentally pass an IPv4 host and an IPv6 host into the same `->` statement (for example, `ping(sensor_v4, collector_v6)`), FrameAssembly stops immediately before generating a broken `.pcap` and points out the exact mismatch.
-
 ---
 
 ## Step 7 — From Wireshark / `tcpdump` to `.fasm` Translation Table
-
-If you already know how to filter traffic in **Wireshark** or **`tcpdump`**, use this table to translate what you see in a capture into `.fasm` keywords:
 
 | Networking Field / Concept | Wireshark Display Filter | `tcpdump` Filter Expression | `.fasm` Keyword Syntax | Detailed Reference Table |
 | :--- | :--- | :--- | :--- | :--- |
@@ -422,7 +419,7 @@ If you already know how to filter traffic in **Wireshark** or **`tcpdump`**, use
 
 ## Step 8 — Use ChatGPT / Claude / Copilot to Write `.fasm` from Plain English
 
-If you want to generate a multi-protocol `.fasm` file from a plain-English description without looking up protocol keywords, copy and paste the prompt below into **ChatGPT**, **Claude**, **Microsoft Copilot**, or **Cursor**. It points the AI directly to FrameAssembly's official reference sheet (`llms.txt`):
+Copy and paste this prompt into **ChatGPT**, **Claude**, **Microsoft Copilot**, or **Cursor**:
 
 ```text
 Read the FrameAssembly (.fasm) syntax reference at:
@@ -437,21 +434,13 @@ Rules to follow:
 - Output only the compilable .fasm file.
 ```
 
-Save the generated `.fasm` text to a file, run `frameassembly show my_scenario.fasm` to preview the frames in your terminal, and run `frameassembly my_scenario.fasm -o my_scenario.pcap` to build your `.pcap`!
-
 ---
 
-## Step 9 — How to Read Error Messages When You Make a Typo
+## Step 9 — How to Read Compiler Error Messages & Foreign `.fasm` Diagnostics
 
-When a `.fasm` file has a typo or a networking mistake, FrameAssembly never writes a half-baked or corrupted `.pcap` file. Instead, it prints a clear error message showing:
-1. **The error type** (`frameassembly::lex_error` for unsupported punctuation like `#` comments or `/24` masks, `frameassembly::parse_error` for keyword typos like `sport` or `dport`, or `frameassembly::semantic_error` for networking rule violations like undefined hosts, out-of-range VLAN IDs, or mixed IPv4/IPv6 endpoints).
-2. **The exact file, line number, and column** (`[my_test.fasm:6:16]`).
-3. **An underline pointer (`──┬──`)** directly beneath the offending word (`Invalid token`, `Here`, or `Error occurred here`).
-4. **A plain-English `"Did you mean...?"` message and `help:` hint** explaining how to fix it.
+When a `.fasm` file contains a typo, FrameAssembly never writes a corrupt `.pcap`. Instead, it renders an exact file pointer and plain-English remediation hint:
 
-### Example 1: Keyword Typo (`frameassembly::parse_error` — Typing `sport` Instead of `srcport`)
-
-Suppose you write `sport 50000` (`tcpdump` style) instead of FrameAssembly's `srcport 50000`:
+### Example 1: Keyword Typo (`frameassembly::parse_error`)
 
 ```text
 frameassembly::parse_error
@@ -467,138 +456,48 @@ frameassembly::parse_error
   help: Replace 'sport' with 'SRCPORT <port>' (for example: SRCPORT 51234).
 ```
 
-**How to fix it:** Look at line `6`, column `16` (`sport`), change `sport` to `srcport`, and run `frameassembly` again. FrameAssembly gives similar `"Did you mean...?"` hints if you accidentally type `dport`, `ack 1000`, `hoplimit`, `tos`, `cos`, `#` comments, or `10.0.0.1/24` CIDR subnet masks:
+### Example 2: Accidentally Passing an x86 Flat Assembler or FPGA FASM File
+
+If you accidentally pass an x86 Flat Assembler file (with `format PE`, `section`, or `;` comments) or an FPGA FASM bitstream file, FrameAssembly identifies the foreign format and guides you:
 
 ```text
-frameassembly::lex_error
+frameassembly::parse_error
 
-  × Failed to parse token '/24': subnet masks (CIDR notation) are not used in HOST or IP declarations
-   ╭─[cidr_typo.fasm:1:24]
- 1 │ host router { ip 10.0.0.1/24 }
-   ·                        ─┬─
-   ·                         ╰── Invalid token
+  × Failed to parse input: unexpected token
+   ╭─[firmware.fasm:1:1]
+ 1 │ format PE GUI 4.0
+   · ──┬───
+   ·   ╰── Here
    ╰────
-  help: Remove the CIDR prefix length and write a plain IP address (for example: IP 10.0.0.1 instead of IP 10.0.0.1/24).
-```
-
-### Example 2: Networking Rule Error (`frameassembly::semantic_error` — Mixing IPv4 and IPv6 or Undefined Host)
-
-Suppose your syntax is valid, but you accidentally pass an IPv4 host (`client_v4`) and an IPv6 host (`server_v6`) into the same flow call, or specify an invalid VLAN ID like `vlan 5000` (above the IEEE 802.1Q maximum of `4094`):
-
-```text
-frameassembly::semantic_error
-
-  × Semantic error: Mixed IPv4 and IPv6 endpoints in statement: client_v4 (10.0.0.10) -> server_v6 (2001:db8::80)
-   ╭─[dual_stack_typo.fasm:6:5]
- 5 │ flow check_web(c, s) {
- 6 │     c -> s tcp syn srcport 51000 dstport 443
-   ·     ────────────────────┬───────────────────
-   ·                         ╰── Error occurred here
- 7 │ }
-   ╰────
-  help: Use either two IPv4 hosts or two IPv6 hosts in the same flow call — a single packet cannot have an IPv4 source and an IPv6 destination.
-```
-
-And if you reference a host name inside `compile` that you forgot to declare with a `host` block:
-
-```text
-frameassembly::semantic_error
-
-  × Semantic error: Undefined host: 'typo_server_name'
-    ╭─[missing_host.fasm:10:26]
-  9 │ compile {
- 10 │     check_web(client_v4, typo_server_name)
-    ·                          ────────┬───────
-    ·                                  ╰── Error occurred here
- 11 │ }
-    ╰────
-  help: Declare the host at the top of the file with 'HOST <name> { IP <address> }' before passing it into a flow call in COMPILE.
+  help: This file appears to be an x86 Flat Assembler file, not a FrameAssembly network packet specification. FrameAssembly files declare HOST { IP ... }, FLOW(...), and COMPILE { ... } blocks to compile network traffic into .pcap/.pcapng captures. See https://github.com/SteveWinschel/FrameAssembly for syntax and examples.
 ```
 
 ---
 
-## Step 10 — CLI Commands & Linux Workflow with Wireshark, `tshark` & `tcpreplay`
-
-### 1. Built-In CLI Commands (`frameassembly <file.fasm> -o <out.pcap>` & `frameassembly show <file.fasm>`)
-
-Run `frameassembly` as a normal non-root user:
+## Step 10 — Verification with Wireshark, `tshark` & `tcpreplay`
 
 ```bash
-# Preview the frames in your terminal without generating a .pcap file
+# Preview packet ladder in terminal without creating files
 frameassembly show ping_test.fasm
 
-# Build a .pcap file (writes to output.pcap if -o is omitted)
+# Build the .pcap file
 frameassembly ping_test.fasm -o ping_test.pcap
-```
 
-### 2. Inspect Packets with `tshark` or Wireshark
-
-You can verify every header field right from your Linux terminal using `tshark` (part of the `wireshark-cli` / `tshark` package) or open the file graphically in Wireshark:
-
-```bash
-# View a one-line summary of every frame (timestamps, IPs, protocols, ports, info)
+# Inspect packet headers in terminal with tshark
 tshark -r ping_test.pcap
-
-# View the full Layer 2 -> Layer 7 protocol tree decode for every packet
-tshark -r ping_test.pcap -V
-
-# Filter for specific packets using any Wireshark display filter
-tshark -r ping_test.pcap -Y "icmp.seq == 2"
-
-# Extract specific header columns for scripts or automated checks
-tshark -r ping_test.pcap -T fields -e frame.number -e frame.time_relative -e ip.src -e ip.dst -e icmp.type -e data.text
 
 # Open graphically in Wireshark
 wireshark ping_test.pcap &
-```
 
-### 3. Inject Traffic onto a Live Interface with `tcpreplay`
-
-Once your frames look right in `frameassembly show` or `tshark`, use `tcpreplay` to transmit the `.pcap` out of a physical network card, a VLAN sub-interface, a virtual bridge (`veth` / `tap`), or a firewall test port:
-
-```bash
-# Replay at the exact nanosecond/millisecond WAIT timing defined in your .fasm file
+# Replay onto a live interface or firewall test port
 sudo tcpreplay -i eth0 ping_test.pcap
-
-# Replay as fast as the NIC can transmit (stress testing)
-sudo tcpreplay -i eth0 --topspeed ping_test.pcap
-
-# Replay at a controlled rate of 1,000 packets per second
-sudo tcpreplay -i eth0 --pps=1000 ping_test.pcap
-
-# Loop the capture 100 times continuously for soak testing or live firewall debugging
-sudo tcpreplay -i eth0 --loop=100 ping_test.pcap
 ```
 
 ---
 
-## Quick Syntax Cheat Sheet
+## Where to Go Next: The 12 Other FrameAssembly Guides
 
-| What You Want to Do | Correct `.fasm` Syntax | Common Mistake to Avoid |
-| :--- | :--- | :--- |
-| **Declare a host (colon, hyphen, or Cisco MAC)** | `host web { ip 10.0.0.1 mac 00:11:22:33:44:55 }` *(or `00-11-22-33-44-55` / `0011.2233.4455`)* | Using `=`, commas, `ipv4`, or CIDR `/24` masks |
-| **Declare a host (auto MAC)** | `host web { ip 10.0.0.1 }` | Writing `mac auto` or `mac none` |
-| **Write a comment** | `// Testing DMZ firewall rule 42` | Using `#` or `/* ... */` comments |
-| **Define a flow** | `flow check_http(c, s) { ... }` | Leaving off the parameter parentheses `(c, s)` |
-| **Send forward / reply packet** | `c -> s tcp syn` / `c <- s tcp syn ack` | Using `from`, `to`, `send`, or `reverse` keywords |
-| **Add inter-packet delay** | `c -> s icmp echo_request wait 5ms` | Putting `wait 5ms` on its own line or writing `+5ms` |
-| **Set source / dest ports** | `srcport 52000 dstport 443` | Writing `sport 52000` or `dport 443` |
-| **Set TCP sequence / ack** | `seq 1000 acknum 2000` | Writing `ack 2000` (bare `ack` is the TCP ACK flag) |
-| **Set TCP flags** | `tcp syn ack` or `tcp fin psh urg` | Writing `flags [syn, ack]` or `flags="SA"` |
-| **Set IPv4 TTL / IPv6 Hop Limit**| `ttl 64` | Writing `hop_limit 64` or `hoplimit 64` |
-| **Set DiffServ QoS** | `dscp 46 ecn 0` | Writing `tos 0xb8` or `traffic_class` |
-| **Single 802.1Q VLAN tag** | `vlan 100 pcp 5 dei 0` | Writing `vlan_id 100` or `cos 5` |
-| **Double 802.1ad QinQ tag** | `qinq 2000 inner_vlan 100` | Putting both `qinq` and `vlan` on the same line |
-| **MPLS label stack** | `mpls 16000 exp 5 bos 1 mpls_ttl 64` | Writing `mpls_label 16000` |
-| **Set HTTP `Host:` header** | `http get uri "/" host_hdr "app.local"` | Writing `host "app.local"` inside an `http` line |
-| **Force DNS/Syslog over TCP** | `c -> s transport tcp dns query qname "example.com"` | Writing `dns_tcp` |
-| **Repeat flows in `compile`** | `compile { loop 10 { check_http(a, b) } }` | Putting `loop` inside a `flow` block |
-
----
-
-## Where to Go Next: The 11 Other FrameAssembly Guides
-
-* **[Practical Use Cases & Cookbook (`use_cases.md`)](use_cases.md)** — Symptom-based quick-jump table and ready-to-copy `.fasm` recipes for SNMPv1/v2c/v3 traps & polls, firewall ACL & stateful inspection testing, VLAN/QinQ/MPLS/QoS verification, SIEM & IDS/IPS validation (Suricata/Zeek), industrial OT/SCADA dissectors, and zero-noise bug/failover reproducers.
+* **[Practical Use Cases & Cookbook (`use_cases.md`)](use_cases.md)** — Ready-to-copy `.fasm` recipes for SNMPv1/v2c/v3 traps & polls, firewall ACL & stateful inspection testing, VLAN/QinQ/MPLS/QoS verification, SIEM & IDS/IPS validation (Suricata/Zeek), industrial OT/SCADA dissectors, and zero-noise bug/failover reproducers.
 * **[Layer 2 Switching & Data-Link Protocols (`l2_protocols.md`)](l2_protocols.md)** — All **8** Layer 2 protocols: `ARP` (including Gratuitous ARP), `VLAN` (802.1Q), `QINQ` (802.1ad), `LLDP`, `STP` / RSTP, `LACP`, `EAPOL` (802.1X), and `MPLS`.
 * **[Layer 3 Control, Tunneling, VPN & Routing (`l3_protocols.md`)](l3_protocols.md)** — All **20** Layer 3 protocols: `ICMP` (v4/v6), `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`, `GENEVE`, `IPSEC`, `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`, `PIM`, `BFD`, and `OPENFLOW`.
 * **[Layer 4 Transports (`l4_transports.md`)](l4_transports.md)** — All **3** Layer 4 transports: `TCP` (connection tracking, handshakes, resets, zero-window, RFC 7323 options `MSS`/`WSCALE`/`SACK_PERM`/`TSVAL`/`TSECR`), `UDP`, and `SCTP` (verification tags, streams, chunks, and RFC 9260 CRC32c).
@@ -608,4 +507,5 @@ sudo tcpreplay -i eth0 --loop=100 ping_test.pcap
 * **[Layer 7 Mail, Auth, Storage, Databases & Messaging (`l7_mail_auth_storage_db.md`)](l7_mail_auth_storage_db.md)** — All **14** mail, directory, file storage, database, cache, and message broker protocols: `SMTP`, `IMAP`, `POP3`, `KERBEROS`, `LDAP`, `SMB`, `NFS`, `REDIS`, `MEMCACHED`, `MYSQL`, `POSTGRES`, `MQTT`, `COAP`, and `AMQP`.
 * **[Layer 7 Industrial Control Systems & SCADA/OT (`l7_industrial_ot.md`)](l7_industrial_ot.md)** — All **6** industrial automation and SCADA protocols: `MODBUS` (Modbus TCP), `BACNET` (BACnet/IP), `DNP3` (IEEE 1815 with automatic CRC-16), `S7COMM` (Siemens S7), `ETHERNETIP` (ODVA CIP), and `OPCUA` (OPC UA Binary).
 * **[Multi-Host Topologies & Dual-Stack Scenarios (`topologies_and_dual_stack.md`)](topologies_and_dual_stack.md)** — End-to-end multi-tier enterprise, EVPN-VXLAN data center, and Zero-Trust 802.1X campus NAC architectures across IPv4 and IPv6.
+* **[`.fasm` File Format & Media Type Specification (`fasm-specification.md`)](fasm-specification.md)** — Normative `text/vnd.frameassembly` specification, UTF-8 encoding rules, lexical magic signatures, and disambiguation from x86 Flat Assembler and FPGA FASM files.
 * **[For Nerds: Architecture, Rust Library API & Formal Grammars (`for_nerds.md`)](for_nerds.md)** — Deep dive into the internal Rust pipeline, embedding `frameassembly` as a Rust crate, formal `EBNF`/`GBNF`/`Lark` grammars, and LLM constrained decoding.

@@ -1,0 +1,13 @@
+# GitHub Linguist languages.yml definition for FrameAssembly (.fasm)
+# Upstream target: lib/linguist/languages.yml in https://github.com/github-linguist/linguist
+# Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+
+FrameAssembly:
+  type: programming
+  color: "#2b6cb0"
+  extensions:
+    - ".fasm"
+  tm_scope: source.frameassembly
+  ace_mode: text
+  codemirror_mode: rust
+  codemirror_mime_type: text/x-rustsrc

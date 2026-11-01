@@ -39,7 +39,8 @@ When generating or editing FrameAssembly (`.fasm`) code or Markdown ````frameass
 
 - Every AI-critical Rust file (`src/**/*.rs` and `tests/*.rs`) and corpus file (`examples/**/*.fasm`) must remain strictly `< 50,000` bytes (`< 50 KB`). Human-facing Markdown documentation (`README.md` and `docs/*.md`) has no `< 50 KB` cap, and human-facing docs (except `docs/for_nerds.md`) must never include `// PROMPT:`, `// TOKENS:`, or `// INSTRUCTION:` metadata comments.
 - Every `src/**/*.rs` file must begin with `//!` module-level documentation (`>= 50` words) and document all structs, enums, fields, and functions without combining outer `///` on `pub mod` with inner `//!`.
-- Keep `src/lexer/mod.rs`, `src/parser/`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json` synchronized in 5-way lockstep.
+- Keep `src/lexer/mod.rs`, `src/parser/`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`, `README.md`, `src/lib.rs`, `docs/fasm-specification.md`, `llms.txt`, and `contrib/mime/text-vnd.frameassembly.xml` synchronized whenever lexer tokens or supported protocols change.
+- Always write `FrameAssembly` as one unspaced CamelCase word (`frameassembly` for crate/CLI/URLs/identifiers; never split `Frame` and `Assembly` with a space), never claim zero external crate dependencies (use `"rootless"`, `"offline"`, `"deterministic"`, `"no libpcap or raw sockets required"`), disambiguate `.fasm` (`text/vnd.frameassembly`) from x86 Flat Assembler and FPGA FASM, and position FrameAssembly as the upstream companion compiler to `tcpreplay`, `Wireshark`, `tshark`, `Suricata`, and `Zeek` (comparing only against packet-crafting generators `Scapy`, `text2pcap`, and `Ostinato`).
 - Run `cargo test` to verify all unit, integration, documentation, and corpus tests (`2,611` `.fasm` scenarios) pass.
 
 ## 3. Repository Rules & Skills Index

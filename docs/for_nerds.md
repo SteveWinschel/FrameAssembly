@@ -1,8 +1,8 @@
 # For Nerds: Six-Stage Compiler Architecture, Rust Library API & Formal Grammars
 
-While FrameAssembly is designed so network engineers, firewall administrators, and NOC/SOC operators can generate deterministic `.pcap` / `.pcapng` captures without writing code, under the hood `frameassembly` (v1.3.0, Rust Edition 2024) is a six-stage, zero-copy optimizing compiler, a reusable Rust library crate, and a formally specified language backed by five-way synchronized context-free grammars and a `2,611`-scenario compiler-verified training corpus.
+While FrameAssembly is designed so network engineers, firewall administrators, and NOC/SOC operators can generate deterministic `.pcap` / `.pcapng` captures without writing code, under the hood `frameassembly` (v1.3.0, Rust Edition 2024) is a six-stage, zero-copy optimizing compiler, a reusable Rust library crate, and a formally specified language (`text/vnd.frameassembly`) backed by five-way synchronized context-free grammars and a `2,611`-scenario compiler-verified training corpus.
 
-This guide is the dedicated home for **systems engineers**, **Rust developers**, and **AI/ML practitioners**.
+This guide is the dedicated home for **systems engineers**, **Rust developers**, and **AI/ML practitioners**. For the formal RFC 6838 media type specification, UTF-8 encoding rules, lexical magic numbers, and `.fasm` extension disambiguation (IANA, Freedesktop `shared-mime-info`, Wikidata, and GitHub Linguist), see **[`docs/fasm-specification.md`](fasm-specification.md)** and **[`contrib/`](../contrib/)**.
 
 ---
 

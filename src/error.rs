@@ -65,8 +65,90 @@ fn lex_error_summary(src: &str, span: (usize, usize)) -> String {
     }
 }
 
+/// Detects whether `src` appears to be a foreign `.fasm` file (such as x86 Flat Assembler
+/// or FPGA FASM bitstream configuration) rather than a FrameAssembly network packet specification.
+///
+/// Returns `Some("an x86 Flat Assembler")` or `Some("an FPGA FASM")` if foreign signatures
+/// are identified and the input lacks canonical FrameAssembly `FLOW` and `COMPILE` structure.
+pub fn detect_foreign_fasm(src: &str) -> Option<&'static str> {
+    // If the file already contains clear FrameAssembly flow and compile constructs, it is not foreign.
+    let has_compile = src.lines().any(|l| {
+        let trimmed = l.trim();
+        trimmed.to_ascii_uppercase().starts_with("COMPILE")
+    });
+    let has_flow = src.lines().any(|l| {
+        let trimmed = l.trim();
+        trimmed.to_ascii_uppercase().starts_with("FLOW")
+    });
+    if has_compile && has_flow {
+        return None;
+    }
+
+    let mut has_semicolon_comment = false;
+    let mut has_x86_directive = false;
+    let mut has_hash_comment = false;
+    let mut has_fpga_tile = false;
+    let mut has_dot_tile_feature = false;
+
+    let fpga_tiles = ["CLB", "LUT", "IOB", "INT_L", "INT_R", "BRAM", "DSP", "SLICE"];
+
+    for line in src.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if trimmed.starts_with(';') {
+            has_semicolon_comment = true;
+        }
+        if trimmed.starts_with('#') {
+            has_hash_comment = true;
+        }
+
+        let upper = trimmed.to_ascii_uppercase();
+        if upper.starts_with("FORMAT ")
+            || upper.starts_with("SECTION ")
+            || upper.starts_with("SEGMENT ")
+            || upper.starts_with("USE16")
+            || upper.starts_with("USE32")
+            || upper.starts_with("USE64")
+            || upper.starts_with("ORG ")
+            || upper.starts_with("ENTRY ")
+            || (upper.starts_with("INCLUDE ") && (trimmed.contains('\'') || trimmed.contains('"')))
+        {
+            has_x86_directive = true;
+        }
+
+        for tile in &fpga_tiles {
+            if upper.contains(tile) {
+                has_fpga_tile = true;
+                if trimmed.contains('.') && (trimmed.contains('[') || trimmed.contains('=')) {
+                    has_dot_tile_feature = true;
+                }
+                break;
+            }
+        }
+    }
+
+    if has_x86_directive || (has_semicolon_comment && !has_flow && !has_compile) {
+        return Some("an x86 Flat Assembler");
+    }
+
+    if has_fpga_tile && (has_hash_comment || has_dot_tile_feature) && !has_flow && !has_compile {
+        return Some("an FPGA FASM");
+    }
+
+    None
+}
+
 /// Produces a plain-English remediation hint for [`CompilerError::LexError`].
 fn lex_error_help(src: &str, span: (usize, usize)) -> String {
+    if let Some(kind) = detect_foreign_fasm(src) {
+        return alloc::format!(
+            "This file appears to be {} file, not a FrameAssembly network packet specification. FrameAssembly files declare HOST {{ IP ... }}, FLOW(...), and COMPILE {{ ... }} blocks to compile network traffic into .pcap/.pcapng captures. See https://github.com/SteveWinschel/FrameAssembly for syntax and examples.",
+            kind
+        );
+    }
+
     let rest = src.get(span.0.min(src.len())..).unwrap_or("");
     if rest.starts_with('#') {
         "Replace '#' with '//' to write a comment (for example: // Define client and server hosts)."
@@ -95,6 +177,13 @@ fn lex_error_help(src: &str, span: (usize, usize)) -> String {
 
 /// Produces a plain-English remediation hint for [`CompilerError::ParseError`].
 fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
+    if let Some(kind) = detect_foreign_fasm(src) {
+        return alloc::format!(
+            "This file appears to be {} file, not a FrameAssembly network packet specification. FrameAssembly files declare HOST {{ IP ... }}, FLOW(...), and COMPILE {{ ... }} blocks to compile network traffic into .pcap/.pcapng captures. See https://github.com/SteveWinschel/FrameAssembly for syntax and examples.",
+            kind
+        );
+    }
+
     let snippet = slice_at_span(src, span).to_ascii_lowercase();
     if matches!(snippet.as_str(), "sport" | "src_port" | "source_port") {
         "Replace 'sport' with 'SRCPORT <port>' (for example: SRCPORT 51234).".to_string()
@@ -248,3 +337,56 @@ impl core::fmt::Display for CompilerError {
 }
 
 impl std::error::Error for CompilerError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_detect_x86_flat_assembler() {
+        let sample1 = "format PE GUI 4.0\nentry start\nsection '.text' code readable executable\nstart:\n  ret\n";
+        assert_eq!(detect_foreign_fasm(sample1), Some("an x86 Flat Assembler"));
+
+        let sample2 = "; Flat Assembler source\nuse32\norg 0x100\nmov ax, 0x4c00\nint 0x21\n";
+        assert_eq!(detect_foreign_fasm(sample2), Some("an x86 Flat Assembler"));
+
+        let sample3 = "format ELF64 executable\nsegment readable executable\nentry $\n";
+        assert_eq!(detect_foreign_fasm(sample3), Some("an x86 Flat Assembler"));
+    }
+
+    #[test]
+    fn test_detect_fpga_fasm() {
+        let sample1 = "# Generated by Project X-Ray\nCLBLL_L_X12Y34.SLICEL_X0.ALUT.INIT[31:0] = 32'h00000000\nIOB_X0Y1.ENABLE 1\n";
+        assert_eq!(detect_foreign_fasm(sample1), Some("an FPGA FASM"));
+
+        let sample2 = "CLBLL_L_X12Y34.SLICEL_X0.ALUT.INIT[31:0] = 32'h00000000\n";
+        assert_eq!(detect_foreign_fasm(sample2), Some("an FPGA FASM"));
+    }
+
+    #[test]
+    fn test_valid_frameassembly_is_not_foreign() {
+        let sample = "HOST client { IP 10.0.0.1 }\nFLOW ping(c, s) { c -> s ICMP }\nCOMPILE { ping(client, client) }\n";
+        assert_eq!(detect_foreign_fasm(sample), None);
+    }
+
+    #[test]
+    fn test_foreign_fasm_lex_error_help_hint() {
+        let sample = "; x86 assembly file\nformat PE\n";
+        let help = lex_error_help(sample, (0, 1));
+        assert!(help.contains("x86 Flat Assembler"));
+        assert!(help.contains("FrameAssembly files declare HOST { IP ... }, FLOW(...), and COMPILE { ... } blocks"));
+        assert!(help.contains("https://github.com/SteveWinschel/FrameAssembly"));
+
+        let fpga_sample = "# FPGA bitstream\nCLBLL_L_X0Y0.ENABLE 1\n";
+        let fpga_help = lex_error_help(fpga_sample, (0, 1));
+        assert!(fpga_help.contains("FPGA FASM"));
+    }
+
+    #[test]
+    fn test_foreign_fasm_parse_error_help_hint() {
+        let sample = "format PE GUI 4.0\nentry start\n";
+        let help = parse_error_help("unexpected token", sample, (0, 6));
+        assert!(help.contains("x86 Flat Assembler"));
+    }
+}
+

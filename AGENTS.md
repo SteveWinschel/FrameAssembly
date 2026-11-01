@@ -1,6 +1,6 @@
 # AGENTS.md — FrameAssembly AI Agent & LLM Onboarding Guide
 
-**FrameAssembly** (`frameassembly` v1.3.0) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
+**FrameAssembly** (`frameassembly` v1.4.0) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
 
 ---
 
@@ -38,7 +38,7 @@ FrameAssembly enforces strict structural symmetry across `src/`, `examples/`, an
 - **`src/builders/{l2,l3,l4,l7}/<protocol>.rs`**: Zero-heap wire payload encoders and `src/builders/l7/snmp/` (`builder.rs`, `crypto.rs`) for RFC 1157 / 3416 / 3414 / 3826 / 7860 BER and USM encryption.
 - **`src/backend/mod.rs` & `src/packet.rs` & `src/pcap.rs`**: 4-tuple TCP sequence/acknowledgment progression, bidirectional port inheritance across `->` and `<-`, multicast MAC derivation (RFC 2464 `33:33:xx:xx:xx:xx` and RFC 1112 `01:00:5e:xx:xx:xx`), and `pcap-file 2.0` PCAPNG serialization.
 - **`examples/{l2,l3,l4,l7,topologies}/`**: Verified `.fasm` corpus (`2,611` files) organized by `<layer>/<protocol>/<protocol>_<scenario>.fasm`.
-- **`docs/*.md`**: 12 canonical Markdown guides (human-first getting started, use-case cookbook, 9 layer/topology references, and `for_nerds.md` for compiler/LLM internals):
+- **`docs/*.md`**: 13 canonical Markdown guides (human-first getting started, use-case cookbook, 9 layer/topology references, `.fasm` media type specification, and `for_nerds.md` for compiler/LLM internals):
   - [`docs/getting_started.md`](docs/getting_started.md) — Step-by-step beginner guide: `.fasm` anatomy, defaults vs. overrides, automatic TCP `SEQ`/`ACK` and reply ports, cross-layer tags, compiler error messages, and pairing with Wireshark/`tshark` and `tcpreplay`.
   - [`docs/use_cases.md`](docs/use_cases.md) — Practical cookbook: SNMPv1/v2c/v3 traps & polls, firewall ACL testing, VLAN/QinQ/MPLS/QoS verification, IDS/IPS & telemetry validation, OT/SCADA dissectors, and zero-noise captures.
   - [`docs/l2_protocols.md`](docs/l2_protocols.md) — Layer 2 switching & data-link protocols (`ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`, `MPLS`).
@@ -50,11 +50,15 @@ FrameAssembly enforces strict structural symmetry across `src/`, `examples/`, an
   - [`docs/l7_mail_auth_storage_db.md`](docs/l7_mail_auth_storage_db.md) — Layer 7 mail, directory, storage, databases, caches, and message brokers (`SMTP`, `IMAP`, `POP3`, `KERBEROS`, `LDAP`, `SMB`, `NFS`, `REDIS`, `MEMCACHED`, `MYSQL`, `POSTGRES`, `MQTT`, `COAP`, `AMQP`).
   - [`docs/l7_industrial_ot.md`](docs/l7_industrial_ot.md) — Layer 7 Industrial Control Systems (ICS) & SCADA/OT (`MODBUS`, `BACNET`, `DNP3`, `S7COMM`, `ETHERNETIP`, `OPCUA`).
   - [`docs/topologies_and_dual_stack.md`](docs/topologies_and_dual_stack.md) — Multi-host enterprise, data center EVPN-VXLAN, and campus Zero-Trust 802.1X NAC topologies.
+  - [`docs/fasm-specification.md`](docs/fasm-specification.md) — Canonical RFC 6838 specification for the FrameAssembly `.fasm` file format (`text/vnd.frameassembly`), UTF-8 encoding, lexical magic rules, and `.fasm` extension disambiguation.
   - [`docs/for_nerds.md`](docs/for_nerds.md) — Six-stage zero-copy Rust compiler architecture, public Rust library API (`parse_program`, `compile_program`, `generate_pcap`), formal grammars (`EBNF`/`GBNF`/`Lark`), constrained decoding, and `examples/` SFT/RLVR corpus conventions.
-- **Formal Grammars**:
+- **Formal Grammars & `.fasm` Standards Registration (`contrib/`)**:
   - [`grammar.ebnf`](grammar.ebnf): Formal ISO/IEC 14977 EBNF grammar.
   - [`frameassembly.gbnf`](frameassembly.gbnf): `llama.cpp` & MLC `XGrammar` GBNF grammar for constrained decoding (`--grammar-file frameassembly.gbnf`).
   - [`frameassembly.lark`](frameassembly.lark): Earley/LALR Lark grammar for `vLLM`, `Outlines`, `Guidance`, `XGrammar`, and `llguidance`.
+  - [`contrib/iana/text-vnd.frameassembly.md`](contrib/iana/text-vnd.frameassembly.md): IANA RFC 6838 Vendor Tree registration (`text/vnd.frameassembly`) & Wikidata property mappings (`P31`, `P1195`, `P1163`, `P973`).
+  - [`contrib/mime/text-vnd.frameassembly.xml`](contrib/mime/text-vnd.frameassembly.xml): Freedesktop.org `shared-mime-info` XML database definition (`*.fasm` glob + lexer-derived `<magic>` rules).
+  - [`contrib/linguist/`](contrib/linguist/README.md): GitHub Linguist `languages.yml`, `heuristics.yml` regex disambiguation, and verified `.fasm` samples.
 - **AI Routing Maps & Metadata**:
   - [`CLAUDE.md`](CLAUDE.md) & [`.github/copilot-instructions.md`](.github/copilot-instructions.md): Agent & IDE instructions.
   - [`llms.txt`](llms.txt) & [`llms-full.txt`](llms-full.txt): Concise index map and single-fetch full context bundle.
@@ -68,15 +72,19 @@ FrameAssembly enforces strict structural symmetry across `src/`, `examples/`, an
 2. **Polymorphic Dual-Stack Flows**: A `FLOW` works identically over IPv4 and IPv6 host pairs. Mixing IPv4 and IPv6 endpoints in the same statement is a semantic error.
 3. **Zero-Keyword RFC Defaults**: Every one of the 81 protocols compiles with zero mandatory sub-keywords (emitting RFC-compliant default headers and ports) and supports explicit field overrides.
 4. **1 Statement = 1 Frame & Shared 4-Tuple State**: Each statement emits 1 frame. TCP-based L7 statements emit a `PSH ACK` frame on that protocol's well-known port and share 4-tuple sequence/ack counters with raw `TCP` statements on the same connection.
-5. **Corpus, AI Discovery & Documentation Hygiene**:
+5. **Branding, `.fasm` (`text/vnd.frameassembly`) Disambiguation & Companion Positioning**:
+   - Always write the project name as one CamelCase word: `FrameAssembly` (or lowercase `frameassembly` strictly for the crate name, CLI binary, URLs, and code identifiers); never split the name into two words, which collides with CAD queries.
+   - Maintain clear, factual disambiguation separating FrameAssembly `.fasm` (`text/vnd.frameassembly`) network packet specifications from unregistered x86 Flat Assembler and SymbiFlow/F4PGA FPGA FASM files.
+   - Position FrameAssembly as the upstream "Packets as Code" companion compiler to `Wireshark`, `tshark`, `tcpreplay`, `Suricata`, and `Zeek` (comparing only against packet-crafting generators: `Scapy`, `text2pcap`, `Ostinato`), and describe its architecture accurately ("rootless", "offline", "deterministic", "no `libpcap` or raw sockets required") without claiming zero external crate dependencies.
+6. **Corpus, AI Discovery & Documentation Hygiene**:
    - Every `.fasm` file in `examples/` must start with `// PROMPT: ...` on line 1, `// TOKENS: ...` on line 2 (matching real `src/lexer/mod.rs` tokens), and include `// INSTRUCTION: ...` before every `HOST`, `FLOW`, and `COMPILE` block (`avg_line_length <= 85`, `max_line_length <= 200`, `words >= 50`). Human-facing docs (`README.md` and `docs/*.md` except `docs/for_nerds.md`) must never include `// PROMPT:`, `// TOKENS:`, or `// INSTRUCTION:` metadata comments.
    - **Canonical Syntax Only (Anti-Hallucination Guardrail)**:
      - Never use `=`, colons, commas, `IPV4`, `IPV6`, or `MASK` in `HOST` blocks (only `HOST <id> { IP <ip> [MAC <mac>] }`).
      - Never declare parameterless `FLOW <id> { ... }` or use `FROM`, `TO`, `REVERSE`, `SEND`, standalone `WAIT` lines, or `+5ms` / `[+delay]` prefixes (always `FLOW <id>(<params>) { <a> -> <b> <PROTO> ... [WAIT <int><ns|us|ms|s|m>] }`).
      - Never use `SPORT`, `DPORT`, `ACK <n>`, or `FLAGS [...]` (always `SRCPORT`, `DSTPORT`, `ACKNUM <n>`, and bare flag tokens `SYN ACK`).
      - Never write bare `COMPILE` or argumentless flow calls inside `COMPILE { <flow>(<hosts>) }`.
-   - **Five-Way Grammar & Parser Lockstep**: Every keyword in `src/lexer/mod.rs`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly.tmLanguage.json` must be wired into `src/parser/` (with protocol-scoped field dispatch so `cut_err` or 0-arg flags never shadow other protocols) and included in `parse_spanned_ident`.
-   - **100% Compilable Documentation & Examples**: Every `.fasm` file in `examples/` (`2,611` files) and every ````frameassembly` / ````fasm` code block in `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, `docs/*.md`, `src/**/*.rs`, and `.agents/skills/**/*.md` must compile with zero errors.
+   - **Five-Way Grammar, Parser, Specification & MIME Lockstep**: Every keyword in `src/lexer/mod.rs`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly.tmLanguage.json` must be wired into `src/parser/` (with protocol-scoped field dispatch so `cut_err` or 0-arg flags never shadow other protocols) and included in `parse_spanned_ident`. Whenever lexer tokens or supported protocols change, automatically synchronize `README.md`, `src/lib.rs`, `docs/fasm-specification.md`, `llms.txt`, `llms-full.txt`, and `contrib/mime/text-vnd.frameassembly.xml`.
+   - **100% Compilable Documentation & Examples**: Every `.fasm` file in `examples/` (`2,611` files) and `contrib/linguist/samples/` and every ````frameassembly` / ````fasm` code block in `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, `docs/*.md`, `contrib/**/*.md`, `src/**/*.rs`, and `.agents/skills/**/*.md` must compile with zero errors.
    - **Rustdoc & `docs.rs` SEO Hygiene**: Every `src/**/*.rs` file must start with `//!` (`< 50 KB` per file, `>= 50` words). Never place outer `///` comments on `pub mod` declarations that have inner `//!` docs. Keep internal parser submodules `pub(crate) mod` so `docs.rs` never generates empty module pages, use `#[doc(inline)]` on layer re-exports, and annotate all 81 AST `*Spec` structs with `/// Syntax mapping:` and `#[doc(alias = "...")]`.
    - Never write literal NUL bytes (`0x00`) into any `.md` or `.txt` file.
    - Keep AI-critical Rust and corpus files (`src/**/*.rs`, `tests/*.rs`, `examples/**/*.fasm`) strictly `< 50 KB` (`50,000` bytes) (human-facing `README.md` and `docs/*.md` have no `< 50 KB` cap), and maintain zero broken links or orphan `.md` files in `docs/`.

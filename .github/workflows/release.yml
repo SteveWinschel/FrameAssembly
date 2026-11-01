@@ -1,0 +1,541 @@
+name: Release Binaries
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Cargo.toml'
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing git tag to build and publish (e.g. v1.3.0)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_PROFILE_RELEASE_STRIP: symbols
+  # Statically link the MSVC C runtime so Windows .exe files need no VC++ Redistributable
+  CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: '-C target-feature=+crt-static'
+  CARGO_TARGET_AARCH64_PC_WINDOWS_MSVC_RUSTFLAGS: '-C target-feature=+crt-static'
+
+jobs:
+  prepare:
+    name: Prepare Tag & Version
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release version and tag
+        id: resolve
+        run: |
+          ROOT_VERSION=$(grep -m1 '^version[[:space:]]*=' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')
+
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+            VERSION="${TAG#v}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${{ github.ref_name }}"
+            VERSION="${TAG#v}"
+          else
+            VERSION="$ROOT_VERSION"
+            TAG="v$VERSION"
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved release TAG=$TAG, VERSION=$VERSION (root Cargo.toml=$ROOT_VERSION)"
+
+          # When triggered by push to main or branch, auto-create and push tag if not already existing
+          if [[ "${{ github.ref }}" == refs/heads/* ]]; then
+            git fetch --tags origin || true
+            if git rev-parse "refs/tags/$TAG" >/dev/null 2>&1 || git ls-remote --tags origin "refs/tags/$TAG" | grep -q "$TAG"; then
+              echo "Git tag $TAG already exists; skipping tag creation."
+            else
+              echo "Creating and pushing git tag $TAG..."
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git tag -a "$TAG" -m "Release $TAG"
+              git push origin "$TAG"
+            fi
+          fi
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: [prepare]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-24.04
+            archive: tar.gz
+            ext: ''
+            run_tests: true
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-24.04-arm
+            archive: tar.gz
+            ext: ''
+            run_tests: true
+          - target: x86_64-pc-windows-msvc
+            os: windows-2025
+            archive: zip
+            ext: '.exe'
+            run_tests: true
+          - target: aarch64-pc-windows-msvc
+            os: windows-2025
+            archive: zip
+            ext: '.exe'
+            run_tests: false
+          - target: aarch64-apple-darwin
+            os: macos-15
+            archive: tar.gz
+            ext: ''
+            run_tests: true
+          - target: x86_64-apple-darwin
+            os: macos-15
+            archive: tar.gz
+            ext: ''
+            run_tests: false
+
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - name: Verify git tag matches Cargo.toml version
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          EXPECTED="${TAG#v}"
+          ACTUAL="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "frameassembly") | .version')"
+          if [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "::error::Tag version ($EXPECTED) does not match Cargo.toml version ($ACTUAL)"
+            exit 1
+          fi
+
+      - name: Install musl tools (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends musl-tools
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build release binary
+        run: |
+          LOCKED_FLAG=""
+          if [ -f Cargo.lock ]; then
+            LOCKED_FLAG="--locked"
+          fi
+          cargo build --release $LOCKED_FLAG --bin frameassembly --target "${{ matrix.target }}"
+
+      - name: Run test suite on native targets
+        if: matrix.run_tests
+        run: |
+          LOCKED_FLAG=""
+          if [ -f Cargo.lock ]; then
+            LOCKED_FLAG="--locked"
+          fi
+          cargo test --release $LOCKED_FLAG --target "${{ matrix.target }}"
+
+      - name: Stage release bundle
+        id: stage
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          STAGE="frameassembly-${TAG}-${{ matrix.target }}"
+          mkdir -p "$STAGE"
+
+          cp "target/${{ matrix.target }}/release/frameassembly${{ matrix.ext }}" "$STAGE/"
+          [ -f README.md ] && cp README.md "$STAGE/"
+
+          shopt -s nullglob
+          for lic in LICENSE* COPYING*; do
+            cp "$lic" "$STAGE/"
+          done
+
+          [ -f contrib/mime/text-vnd.frameassembly.xml ] && cp contrib/mime/text-vnd.frameassembly.xml "$STAGE/"
+          [ -f contrib/magic/frameassembly.magic ] && cp contrib/magic/frameassembly.magic "$STAGE/"
+
+          echo "stage_dir=$STAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Package .tar.gz archive (Linux & macOS)
+        if: matrix.archive == 'tar.gz'
+        run: |
+          tar -czf "${{ steps.stage.outputs.stage_dir }}.tar.gz" "${{ steps.stage.outputs.stage_dir }}"
+
+      - name: Package .zip archive (Windows)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "${{ steps.stage.outputs.stage_dir }}" -DestinationPath "${{ steps.stage.outputs.stage_dir }}.zip" -Force
+
+      - name: Build Debian .deb package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          ARCH="amd64"
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-musl" ]; then
+            ARCH="arm64"
+          fi
+          mkdir -p deb-dist
+          chmod +x contrib/packaging/apt/build-deb.sh
+          ./contrib/packaging/apt/build-deb.sh "${TAG}" "target/${{ matrix.target }}/release/frameassembly" "${ARCH}" deb-dist
+          cp -f deb-dist/frameassembly_*_${ARCH}.deb "deb-dist/frameassembly_${ARCH}.deb"
+
+      - name: Upload built archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.target }}
+          path: ${{ steps.stage.outputs.stage_dir }}.${{ matrix.archive }}
+          if-no-files-found: error
+          retention-days: 5
+
+      - name: Upload Debian .deb package (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-deb-${{ matrix.target }}
+          path: deb-dist/*.deb
+          if-no-files-found: error
+          retention-days: 5
+
+  wasm:
+    name: Build & Package WebAssembly (NPM)
+    needs: [prepare]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - name: Sync version across Cargo.toml, WASM, and VS Code
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          echo "Syncing version $VERSION into WASM Cargo.toml and VS Code package.json..."
+          sed -i -E "s/^version = \".*\"/version = \"$VERSION\"/" frameassembly-wasm/Cargo.toml
+          sed -i -E "s/frameassembly = \{ path = \"\.\.\", version = \".*\" \}/frameassembly = { path = \"..\", version = \"$VERSION\" }/" frameassembly-wasm/Cargo.toml
+          sed -i -E "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" frameassembly-vscode/package.json
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Build WebAssembly package
+        working-directory: frameassembly-wasm
+        run: |
+          wasm-pack build --release --target web
+
+      - name: Package WASM tarball
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          tar -czf "frameassembly-wasm-${TAG}.tar.gz" -C frameassembly-wasm pkg
+
+      - name: Publish to NPM Registry via Token (Optional)
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        working-directory: frameassembly-wasm/pkg
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          npm publish --provenance --access public
+
+      - name: Publish to NPM Registry via OIDC Trusted Publisher
+        if: ${{ secrets.NPM_TOKEN == '' }}
+        continue-on-error: true
+        working-directory: frameassembly-wasm/pkg
+        run: |
+          npm install -g npm@latest
+          rm -f ~/.npmrc "$NPM_CONFIG_USERCONFIG"
+          npm publish --provenance --access public
+
+      - name: Upload WASM archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-wasm
+          path: frameassembly-wasm-*.tar.gz
+          if-no-files-found: error
+          retention-days: 5
+
+  vscode-extension:
+    name: Package & Publish VS Code Extension (.vsix)
+    needs: [prepare]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - name: Sync version in package.json
+        working-directory: frameassembly-vscode
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          sed -i -E "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Package VSIX
+        working-directory: frameassembly-vscode
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          VERSION="${TAG#v}"
+          npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o "frameassembly-vscode-${VERSION}.vsix"
+
+      - name: Publish to Visual Studio Marketplace via PAT (Optional)
+        if: ${{ secrets.VSCE_PAT != '' }}
+        working-directory: frameassembly-vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          VERSION="${TAG#v}"
+          npx --yes @vscode/vsce publish -p "${{ secrets.VSCE_PAT }}" --packagePath "frameassembly-vscode-${VERSION}.vsix"
+
+      - name: Publish to Visual Studio Marketplace via OIDC Trusted Publisher
+        if: ${{ secrets.VSCE_PAT == '' }}
+        continue-on-error: true
+        working-directory: frameassembly-vscode
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          VERSION="${TAG#v}"
+          npx --yes @vscode/vsce publish --packagePath "frameassembly-vscode-${VERSION}.vsix"
+
+      - name: Publish to Open VSX Registry (Optional)
+        if: ${{ secrets.OVSX_PAT != '' }}
+        working-directory: frameassembly-vscode
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          VERSION="${TAG#v}"
+          npx --yes ovsx publish -p "${{ secrets.OVSX_PAT }}" --packagePath "frameassembly-vscode-${VERSION}.vsix"
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-vsix
+          path: frameassembly-vscode/*.vsix
+          if-no-files-found: error
+          retention-days: 5
+
+  publish:
+    name: Checksum, Attest & Publish Release
+    needs: [prepare, build, wasm, vscode-extension]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download all target archives
+        uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate SHA-256 checksums
+        working-directory: dist
+        run: |
+          shopt -s nullglob
+          FILES=( *.tar.gz *.zip *.deb *.vsix )
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "::error::No release archives found in dist/"
+            exit 1
+          fi
+          for f in "${FILES[@]}"; do
+            sha256sum "$f" > "${f}.sha256"
+          done
+          sha256sum "${FILES[@]}" > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Generate GitHub SLSA build provenance attestations
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.deb
+            dist/*.vsix
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: FrameAssembly ${{ needs.prepare.outputs.tag }}
+          generate_release_notes: true
+          prerelease: ${{ contains(needs.prepare.outputs.tag, '-') }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.deb
+            dist/*.vsix
+            dist/*.sha256
+            dist/SHA256SUMS.txt
+
+      - name: Publish to Crates.io (Optional)
+        if: ${{ secrets.CARGO_REGISTRY_TOKEN != '' }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          cargo publish --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+
+      - name: Auto-sync manifest checksums
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          if [ -f dist/SHA256SUMS.txt ]; then
+            ./contrib/packaging/update-checksums.sh --sums-file dist/SHA256SUMS.txt "$TAG"
+          else
+            ./contrib/packaging/update-checksums.sh "$TAG"
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add contrib/packaging/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(packaging): auto-sync release $TAG checksums [skip ci]"
+            git push origin main || true
+          fi
+
+      - name: Push to Arch User Repository (AUR) (Optional)
+        if: ${{ secrets.AUR_SSH_PRIVATE_KEY != '' }}
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur_key
+          chmod 600 ~/.ssh/aur_key
+          ssh-keyscan -t ed25519,rsa aur.archlinux.org >> ~/.ssh/known_hosts 2>/dev/null || true
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/aur_key -o StrictHostKeyChecking=accept-new" git clone ssh://aur@aur.archlinux.org/frameassembly-bin.git aur-dist || true
+          if [ -d aur-dist ]; then
+            cp contrib/packaging/aur/PKGBUILD aur-dist/
+            cp contrib/packaging/aur/.SRCINFO aur-dist/
+            cd aur-dist
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add PKGBUILD .SRCINFO
+            if ! git diff --cached --quiet; then
+              git commit -m "chore(release): bump frameassembly-bin to $TAG"
+              GIT_SSH_COMMAND="ssh -i ~/.ssh/aur_key -o StrictHostKeyChecking=accept-new" git push origin master
+            fi
+            cd ..
+          fi
+
+      - name: Trigger Microsoft WinGet Manifest Update (Optional)
+        if: ${{ secrets.WINGET_TOKEN != '' }}
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          echo "Triggering WinGet package manifest submission for FrameAssembly $VERSION ($TAG)..."
+
+      - name: Trigger Homebrew Tap and Scoop Bucket Sync (Optional)
+        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          echo "Syncing Homebrew tap formula and Scoop bucket manifest for FrameAssembly $VERSION ($TAG)..."
+          # Sync Homebrew tap with 4-repo fallback
+          TAP_SYNCED=0
+          for TAP_REPO in homebrew-tap-FrameAssembly homebrew-tap homebrew-frameassembly tap-FrameAssembly; do
+            echo "Attempting Homebrew tap sync to SteveWinschel/${TAP_REPO}..."
+            rm -rf tap-repo
+            if git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/SteveWinschel/${TAP_REPO}.git" tap-repo 2>/dev/null; then
+              mkdir -p tap-repo/Formula
+              cp contrib/packaging/homebrew/Formula/frameassembly.rb tap-repo/Formula/
+              cd tap-repo
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git add Formula/frameassembly.rb
+              if ! git diff --cached --quiet; then
+                git commit -m "frameassembly $VERSION"
+                git push origin main || true
+              fi
+              cd ..
+              TAP_SYNCED=1
+              echo "Successfully synced Formula/frameassembly.rb to SteveWinschel/${TAP_REPO}."
+              break
+            fi
+          done
+          if [ "$TAP_SYNCED" -eq 0 ]; then
+            echo "::warning::Could not clone homebrew-tap-FrameAssembly, homebrew-tap, homebrew-frameassembly, or tap-FrameAssembly; tap sync skipped."
+          fi
+          # Sync Scoop bucket
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/SteveWinschel/scoop-bucket.git" scoop-repo || true
+          if [ -d scoop-repo ]; then
+            mkdir -p scoop-repo/bucket
+            cp contrib/packaging/scoop/frameassembly.json scoop-repo/bucket/
+            cd scoop-repo
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add bucket/frameassembly.json
+            if ! git diff --cached --quiet; then
+              git commit -m "frameassembly $VERSION"
+              git push origin main || true
+            fi
+            cd ..
+          fi

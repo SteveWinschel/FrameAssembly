@@ -1,15 +1,15 @@
 # FrameAssembly (`frameassembly`)
 
-> Rust compiler (v1.3.0) that turns plain-text `.fasm` packet recipes into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built for network engineers who do not program; a companion to Wireshark/`tshark` (inspection) and `tcpreplay` (wire injection).
+> Rootless, offline "Packets as Code" Rust DSL & compiler (v1.4.0) that compiles plain-text `.fasm` (`text/vnd.frameassembly`) packet recipes into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built for network engineers who do not program; an upstream companion to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS validation).
 
-FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures in userspace with zero root privileges or live sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides, plus `frameassembly show <file.fasm>` to display the frames in the terminal without writing a `.pcap` file.
+FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in unprivileged user space with no root privileges (`CAP_NET_RAW`), no live raw sockets, and no `libpcap` required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides, plus `frameassembly show <file.fasm>` to display the packet ladder in the terminal without writing a `.pcap` file.
 
 ### Zero-Shot `.fasm` Grammar & Anti-Hallucination Reference
 
 1. **Three-Block Program Structure & Case-Insensitivity**: Every compilable `.fasm` file declares one or more `HOST <id> { IP <ip> [MAC <mac>] }` blocks (`MAC` natively accepts colon `00:1a:2b:3c:4d:5e`, hyphen `00-1A-2B-3C-4D-5E`, and Cisco dotted-quad `001a.2b3c.4d5e`), one or more parameterized `FLOW <id>(<param1>, <param2>, ...) { <statements> }` blocks, and one `COMPILE { <flow_calls_or_loops> }` block. All keywords, protocols, modifiers, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and identifiers (`HOST`, `FLOW`, parameters) are ASCII case-insensitive (`host` or `HOST`).
 2. **1 Statement = 1 Wire Frame & Shared 4-Tuple State**: Each statement (`<a> -> <b> <PROTO> ...` or `<a> <- <b> <PROTO> ...`) emits 1 frame. TCP-based L7 statements emit a `PSH ACK` segment on that protocol's well-known port and share 4-tuple `SEQ`/`ACK` counters and bidirectional port inheritance with raw `TCP` statements on the same connection.
 3. **Dual-Stack Endpoint Homogeneity**: A `FLOW` is polymorphic across IPv4 and IPv6 host pairs, but both endpoints in any single statement must share the same IP family (both IPv4 or both IPv6).
-4. **Comment Syntax & File-Size Rules**: `.fasm` comments always use `//` (never `#`). Human-facing docs (`README.md`, `docs/*.md` except `docs/for_nerds.md`) use plain `//` comments and have no `< 50 KB` cap; AI-critical files (`src/**/*.rs`, `tests/*.rs`, `examples/**/*.fasm`) are strictly `< 50 KB` (`50,000` bytes), and `examples/**/*.fasm` files require `// PROMPT:`, `// TOKENS:`, and `// INSTRUCTION:` headers.
+4. **Comment Syntax, `.fasm` Disambiguation & File-Size Rules**: `.fasm` (`text/vnd.frameassembly`) comments always use `//` (never `#` or `;`). FrameAssembly `.fasm` network packet specifications are completely distinct from unregistered x86 Flat Assembler files (`; ` comments, `format PE`/`ELF`, CPU mnemonics) and SymbiFlow/F4PGA FPGA bitstream assembly files (`#` comments, tile bit paths). Human-facing docs (`README.md`, `docs/*.md` except `docs/for_nerds.md`) use plain `//` comments and have no `< 50 KB` cap; AI-critical files (`src/**/*.rs`, `tests/*.rs`, `examples/**/*.fasm`) are strictly `< 50 KB` (`50,000` bytes), and `examples/**/*.fasm` files require `// PROMPT:`, `// TOKENS:`, and `// INSTRUCTION:` headers.
 
 | Construct | ❌ NEVER WRITE (Invalid / Hallucinated) | ✅ ALWAYS WRITE (Canonical `.fasm` Syntax) |
 | :--- | :--- | :--- |
@@ -64,12 +64,20 @@ COMPILE {
 }
 ```
 
-- **Linux CLI Workflow (`frameassembly` + `tshark` + `tcpreplay`)**:
+- **Companion CLI Workflows (`frameassembly` + `wireshark` / `tshark` + `tcpreplay` + `suricata` / `zeek`)**:
   - Compile `.fasm` to `.pcap`: `frameassembly demo.fasm -o demo.pcap`
-  - Show frames in the terminal without generating a `.pcap` file: `frameassembly show demo.fasm`
-  - Inspect frames in terminal or Wireshark: `tshark -r demo.pcap` / `wireshark demo.pcap`
-  - Replay capture onto a test interface: `sudo tcpreplay -i eth0 demo.pcap`
-- **Public Rust Library Signatures (`frameassembly` crate v1.3.0)**:
+  - Show frames in terminal without writing `.pcap`: `frameassembly show demo.fasm`
+  - Inspect frames in Wireshark GUI or terminal: `wireshark demo.pcap` / `tshark -r demo.pcap -V`
+  - Replay capture onto wire interface: `sudo tcpreplay -i eth0 demo.pcap`
+  - Validate IDS/IPS sensor rules: `suricata -r demo.pcap` / `zeek -C -r demo.pcap`
+- **Multi-Platform Installation Commands**:
+  - Homebrew (macOS & Linux): `brew install SteveWinschel/tap/frameassembly`
+  - WinGet (Windows 10/11): `winget install SteveWinschel.FrameAssembly`
+  - Scoop (Windows): `scoop bucket add frameassembly https://github.com/SteveWinschel/scoop-bucket && scoop install frameassembly`
+  - APT (Debian/Ubuntu): `curl -fsSL https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.0/frameassembly_1.4.0_amd64.deb -o frameassembly.deb && sudo dpkg -i frameassembly.deb`
+  - Cargo (All platforms with Rust): `cargo install frameassembly`
+  - Zero-clone bootstrap script: `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
+- **Public Rust Library Signatures (`frameassembly` crate v1.4.0)**:
   - `frameassembly::lexer::lex(source: &str) -> Result<Vec<SpannedToken<'_>>, CompilerError>`
   - `frameassembly::parser::parse_program(source: &str) -> Result<Program<'_>, CompilerError>` (runs `validate_semantics` automatically)
   - `frameassembly::parser::validate_semantics<'a>(program: &Program<'a>, source: &'a str) -> Result<(), CompilerError>`
@@ -79,7 +87,7 @@ COMPILE {
 
 ## Core Documentation
 
-- [README & 81-Protocol Default Table](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Plain-English quickstart, `tshark` + `tcpreplay` workflow, tool comparison, RFC wire defaults table, and sub-keyword reference for all 81 protocols.
+- [README & 81-Protocol Default Table](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Plain-English quickstart, `tshark` + `tcpreplay` workflow, packet generator comparison (`Scapy`, `text2pcap`, `Ostinato`), RFC wire defaults table, and sub-keyword reference for all 81 protocols.
 - [Getting Started Guide](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/getting_started.md): Beginner walkthrough of `.fasm` files, defaults vs. overrides, automatic TCP `SEQ`/`ACK` and reply ports, cross-layer tags, compiler error diagnostics, and Wireshark/`tshark`/`tcpreplay` workflows.
 - [Practical Use Cases & Cookbook](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/use_cases.md): Ready-to-copy `.fasm` recipes for SNMPv1/v2c/v3 traps & polls, firewall ACL testing, VLAN/QinQ/MPLS/QoS verification, IDS/IPS & telemetry collectors, OT/SCADA dissectors, and zero-noise captures.
 - [Layer 2 Switching & Data-Link Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l2_protocols.md): Complete syntax and wire framing for `ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`, and `MPLS` (248 verified examples).
@@ -91,6 +99,7 @@ COMPILE {
 - [Layer 7 Mail, Directory, Storage, Databases & Message Brokers](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_mail_auth_storage_db.md): Complete reference for `SMTP`, `IMAP`, `POP3`, `KERBEROS`, `LDAP`, `SMB`, `NFS`, `REDIS`, `MEMCACHED`, `MYSQL`, `POSTGRES`, `MQTT`, `COAP`, and `AMQP` (434 verified examples).
 - [Layer 7 Industrial Control Systems (ICS) & SCADA/OT](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_industrial_ot.md): Complete reference for `MODBUS`, `BACNET`, `DNP3`, `S7COMM`, `ETHERNETIP`, and `OPCUA` (186 verified examples).
 - [Multi-Protocol Topologies & Dual-Stack Architectures](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/topologies_and_dual_stack.md): Leaf-Spine EVPN-VXLAN, Zero-Trust 802.1X NAC, 5G Service-Based Architecture, MPLS L3VPN, and Purdue ICS substations (104 verified topologies).
+- [`.fasm` File Format & Media Type Specification (`text/vnd.frameassembly`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/fasm-specification.md): Normative RFC 6838 media type specification, UTF-8 encoding rules, lexical magic heuristics, `.fasm` extension disambiguation, and Wikidata/IANA mappings.
 - [For Nerds: Compiler Pipeline, Rust Library API & Formal Grammars](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/for_nerds.md): Six-stage zero-copy Rust compiler internals, public Rust library API, formal EBNF/GBNF/Lark grammars, constrained decoding, and `examples/` SFT/RLVR corpus conventions.
 
 ## Formal Grammars & Constrained Decoding
@@ -98,7 +107,7 @@ COMPILE {
 - [ISO/IEC 14977 EBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Formal context-free EBNF specification covering all 81 protocols and 640 uppercase terminal keywords.
 - [llama.cpp & XGrammar GBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.gbnf): Constrained decoding grammar (`root ::= ...`) for `llama.cpp`, `vLLM`, `SGLang`, and `TensorRT-LLM`.
 - [Lark / Outlines / llguidance CFG Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.lark): Earley/LALR Context-Free Grammar (`start: ...`) for `Outlines`, `Guidance`, and `llguidance`.
-- [Full Single-Fetch LLM Context Bundle](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Consolidated single-file bundle (`< 900 KB`) containing section manifest, all 12 documentation guides, formal grammars, AST specs, and representative `.fasm` corpus scenarios.
+- [Full Single-Fetch LLM Context Bundle](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Consolidated single-file bundle (`< 900 KB`) containing section manifest, all 13 documentation guides, formal grammars, AST specs, and representative `.fasm` corpus scenarios.
 
 ## Rust Compiler Architecture
 
@@ -121,8 +130,11 @@ COMPILE {
 
 ## Optional
 
+- [IANA Media Type & Wikidata Registration (`contrib/iana/text-vnd.frameassembly.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/iana/text-vnd.frameassembly.md): RFC 6838 Vendor Tree registration template (`text/vnd.frameassembly`) and Wikidata property mappings (`P31`, `P1195`, `P1163`, `P973`).
+- [Freedesktop Shared MIME Info (`contrib/mime/text-vnd.frameassembly.xml`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/mime/text-vnd.frameassembly.xml): Linux desktop MIME definition (`*.fasm` glob and `<magic>` token rules).
+- [GitHub Linguist Grammar & Heuristics (`contrib/linguist/README.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/linguist/README.md): `languages.yml`, `heuristics.yml` regex disambiguation, and verified `.fasm` samples.
 - [AI Agent Onboarding Guide (`AGENTS.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/AGENTS.md): Build/test commands, repository structure, and routing tables for all 13 workspace rules and 9 skills.
 - [Claude Code Instructions (`CLAUDE.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CLAUDE.md): Concise project instructions and canonical syntax rules for Claude Code.
 - [Cross-Platform Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Zero-clone POSIX shell installer for Linux, macOS, and BSDs.
 - [Context7 MCP Configuration (`context7.json`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/context7.json): Upstash Context7 indexing rules and curated folder configuration.
-- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.3.0.
+- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.4.0.

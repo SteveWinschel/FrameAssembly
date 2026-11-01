@@ -460,3 +460,4 @@ compile {
 - [**Layer 4 Transport Protocols (`l4_transports.md`)**](l4_transports.md) — `TCP`, `UDP`, and `SCTP` 4-tuple state tracking, RFC 7323 TCP options, and SCTP multi-chunk signaling.
 - [**Layer 7 Network Management (`l7_snmp.md`)**](l7_snmp.md) — `SNMP1`, `SNMP2`, and encrypted `SNMP3` USM traps and polls for routing/FHRP alerting.
 - [**Multi-Host Topologies & Dual-Stack Scenarios (`topologies_and_dual_stack.md`)**](topologies_and_dual_stack.md) — Complete EVPN-VXLAN leaf-spine fabric and WAN BFD/OSPF/VRRP/IPsec/MPLS failover captures.
+- [**`.fasm` File Format & Media Type Specification (`fasm-specification.md`)**](fasm-specification.md) — Normative `text/vnd.frameassembly` media type specification, lexical rules, and `.fasm` extension disambiguation.

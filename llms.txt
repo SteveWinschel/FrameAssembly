@@ -1,6 +1,6 @@
 # FrameAssembly (`frameassembly`)
 
-> Rootless, offline "Packets as Code" Rust DSL & compiler (v1.4.0) that compiles plain-text `.fasm` (`text/vnd.frameassembly`) packet recipes into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built for network engineers who do not program; an upstream companion to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS validation).
+> Rootless, offline "Packets as Code" Rust DSL & compiler (v1.4.1) that compiles plain-text `.fasm` (`text/vnd.frameassembly`) packet recipes into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built for network engineers who do not program; an upstream companion to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS validation).
 
 FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in unprivileged user space with no root privileges (`CAP_NET_RAW`), no live raw sockets, and no `libpcap` required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides, plus `frameassembly show <file.fasm>` to display the packet ladder in the terminal without writing a `.pcap` file.
 
@@ -74,10 +74,10 @@ COMPILE {
   - Homebrew (macOS & Linux): `brew install SteveWinschel/tap/frameassembly`
   - WinGet (Windows 10/11): `winget install SteveWinschel.FrameAssembly`
   - Scoop (Windows): `scoop bucket add frameassembly https://github.com/SteveWinschel/scoop-bucket && scoop install frameassembly`
-  - APT (Debian/Ubuntu): `curl -fsSL https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.0/frameassembly_1.4.0_amd64.deb -o frameassembly.deb && sudo dpkg -i frameassembly.deb`
+  - APT (Debian/Ubuntu): `curl -fsSL https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.1/frameassembly_1.4.1_amd64.deb -o frameassembly.deb && sudo dpkg -i frameassembly.deb`
   - Cargo (All platforms with Rust): `cargo install frameassembly`
   - Zero-clone bootstrap script: `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
-- **Public Rust Library Signatures (`frameassembly` crate v1.4.0)**:
+- **Public Rust Library Signatures (`frameassembly` crate v1.4.1)**:
   - `frameassembly::lexer::lex(source: &str) -> Result<Vec<SpannedToken<'_>>, CompilerError>`
   - `frameassembly::parser::parse_program(source: &str) -> Result<Program<'_>, CompilerError>` (runs `validate_semantics` automatically)
   - `frameassembly::parser::validate_semantics<'a>(program: &Program<'a>, source: &'a str) -> Result<(), CompilerError>`
@@ -137,4 +137,4 @@ COMPILE {
 - [Claude Code Instructions (`CLAUDE.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CLAUDE.md): Concise project instructions and canonical syntax rules for Claude Code.
 - [Cross-Platform Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Zero-clone POSIX shell installer for Linux, macOS, and BSDs.
 - [Context7 MCP Configuration (`context7.json`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/context7.json): Upstash Context7 indexing rules and curated folder configuration.
-- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.4.0.
+- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.4.1.

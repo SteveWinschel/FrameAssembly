@@ -1,6 +1,6 @@
 [package]
 name = "frameassembly"
-version = "1.4.0"
+version = "1.4.1"
 edition = "2024"
 rust-version = "1.85"
 description = "Offline, rootless PCAP generator & Packets-as-Code DSL: generate deterministic .pcap/.pcapng from text across 81 protocols for Wireshark, tcpreplay & IDS."

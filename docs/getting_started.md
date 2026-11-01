@@ -38,7 +38,7 @@ Choose the installation method that matches your operating system:
 | **Any (Rust 1.85+)** | **Cargo** (crates.io) | `cargo install frameassembly` | `frameassembly` |
 | **Browser / Node.js** | **NPM** (WebAssembly compiler) | `npm install frameassembly-wasm` | `frameassembly-wasm` |
 | **VS Code / Cursor / VSCodium** | **VS Marketplace & Open VSX** | `code --install-extension SteveWinschel.frameassembly` | `SteveWinschel.frameassembly` |
-| **Direct Binaries** | **GitHub Releases** (`.tar.gz`, `.zip`, `.deb`, `.vsix`) | [Download from GitHub Releases (`latest`)](https://github.com/SteveWinschel/FrameAssembly/releases/latest) | `v1.4.0` |
+| **Direct Binaries** | **GitHub Releases** (`.tar.gz`, `.zip`, `.deb`, `.vsix`) | [Download from GitHub Releases (`latest`)](https://github.com/SteveWinschel/FrameAssembly/releases/latest) | `v1.4.1` |
 
 ### One-Line Linux Installer Details
 

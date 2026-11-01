@@ -1,4 +1,4 @@
-# FrameAssembly (.fasm Packet Crafting DSL) Support (v1.4.0)
+# FrameAssembly (.fasm Packet Crafting DSL) Support (v1.4.1)
 
 Comprehensive syntax highlighting, 16 tab-completable snippets, and language tooling for FrameAssembly (`.fasm`, `text/vnd.frameassembly`) network packet specifications in Visual Studio Code, Cursor, Windsurf, VSCodium, and Antigravity IDE.
 

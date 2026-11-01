@@ -1,6 +1,6 @@
 # FrameAssembly (`frameassembly`)
 
-> Rootless "Packets as Code" / "PCAP as Code" DSL & Rust compiler (v1.4.0) that compiles plain-text `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).
+> Rootless "Packets as Code" / "PCAP as Code" DSL & Rust compiler (v1.4.1) that compiles plain-text `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).
 
 FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in userspace with no `libpcap` or raw sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides via `frameassembly <input.fasm> [-o <output.pcap>]` and `frameassembly show <input.fasm>`.
 
@@ -99,10 +99,10 @@ COMPILE {
   - Homebrew (macOS & Linux): `brew install SteveWinschel/tap/frameassembly`
   - WinGet (Windows 10/11): `winget install SteveWinschel.FrameAssembly`
   - Scoop (Windows): `scoop bucket add frameassembly https://github.com/SteveWinschel/scoop-bucket && scoop install frameassembly`
-  - APT (Debian/Ubuntu): `curl -fsSL https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.0/frameassembly_1.4.0_amd64.deb -o frameassembly.deb && sudo dpkg -i frameassembly.deb`
+  - APT (Debian/Ubuntu): `curl -fsSL https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.1/frameassembly_1.4.1_amd64.deb -o frameassembly.deb && sudo dpkg -i frameassembly.deb`
   - Cargo (All platforms with Rust): `cargo install frameassembly`
   - Zero-clone bootstrap script: `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
-- **Public Rust Library Signatures (`frameassembly` crate v1.4.0)**:
+- **Public Rust Library Signatures (`frameassembly` crate v1.4.1)**:
   - `frameassembly::lexer::lex(source: &str) -> Result<Vec<SpannedToken<'_>>, CompilerError>`
   - `frameassembly::parser::parse_program(source: &str) -> Result<Program<'_>, CompilerError>` (runs `validate_semantics` automatically)
   - `frameassembly::parser::validate_semantics<'a>(program: &Program<'a>, source: &'a str) -> Result<(), CompilerError>`
@@ -162,7 +162,7 @@ COMPILE {
 - [Claude Code Instructions (`CLAUDE.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CLAUDE.md): Concise project instructions and canonical syntax rules for Claude Code.
 - [Cross-Platform Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Zero-clone POSIX shell installer for Linux, macOS, and BSDs.
 - [Context7 MCP Configuration (`context7.json`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/context7.json): Upstash Context7 indexing rules and curated folder configuration.
-- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.4.0.
+- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.4.1.
 
 ---
 
@@ -192,7 +192,7 @@ COMPILE {
 
 [**Problem -> Solution Recipes**](#problem---solution-real-world-network-tasks) • [**The 3-Step Mental Model**](#the-3-step-mental-model-for-network-engineers) • [**Terminal Ladder (`frameassembly show`)**](#visual-packet-ladders--terminal-inspection-frameassembly-show) • [**Multi-Platform Install**](#multi-platform-installation) • [**Wireshark Cheat Sheet**](#from-wireshark--tcpdump-to-fasm-translation-table) • [**Common Mistakes**](#common-syntax-mistakes--plain-english-error-messages) • [**All 81 Protocols**](#supported-protocols--default-wire-behavior) • [**FAQ & Disambiguation**](#faq-what-is-a-fasm-file-frameassembly-vs-flat-assembler-vs-fpga-fasm) • [**Documentation**](#documentation)
 
-**FrameAssembly** (`frameassembly` v1.4.0) is a **rootless, offline "Packets as Code" ("PCAP as Code") packet generator and compiler** that turns a **plain-text packet recipe (`.fasm`, media type `text/vnd.frameassembly`) into a deterministic `.pcap` / `.pcapng` packet capture file** across **81 network protocols spanning Layers 2 through 7**—with no `libpcap` or raw sockets required.
+**FrameAssembly** (`frameassembly` v1.4.1) is a **rootless, offline "Packets as Code" ("PCAP as Code") packet generator and compiler** that turns a **plain-text packet recipe (`.fasm`, media type `text/vnd.frameassembly`) into a deterministic `.pcap` / `.pcapng` packet capture file** across **81 network protocols spanning Layers 2 through 7**—with no `libpcap` or raw sockets required.
 
 It is built for **network technicians, firewall engineers, Linux system administrators, NOC/SOC analysts, and OT/SCADA integrators** who want a **Scapy alternative without Python**, without clicking through GUI stream dialogs in `Ostinato`, and without fighting raw hexadecimal byte offsets in `text2pcap`. Positioned as the upstream companion compiler to your analysis and replay tools, you simply list the devices in your scenario, write one line per packet using everyday networking terms (`VLAN 100`, `TCP SYN`, `DSTPORT 443`, `DSCP 46`, `SNMP3 TRAP`), and FrameAssembly automatically builds the Ethernet/IPv4/IPv6/TCP/UDP/SCTP headers, calculates lengths and checksums, swaps ports on reply packets (`<-`), and tracks TCP `SEQ`/`ACK` numbers—producing a clean, zero-noise `.pcap` file ready to open in **Wireshark** / **`tshark`**, feed into **Suricata** / **Zeek**, or transmit onto a live network port with **`tcpreplay`**.
 
@@ -834,7 +834,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 # AGENTS.md — FrameAssembly AI Agent & LLM Onboarding Guide
 
-**FrameAssembly** (`frameassembly` v1.4.0) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
+**FrameAssembly** (`frameassembly` v1.4.1) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
 
 ---
 
@@ -3671,7 +3671,7 @@ Keep this table handy when building realistic polling flows or trap alerts for y
 | **`sysDescr.0`** | `1.3.6.1.2.1.1.1.0` | `string` | Full OS, hardware, and software version banner |
 | **`sysObjectID.0`** | `1.3.6.1.2.1.1.2.0` | `oidval` | Vendor enterprise hardware model OID (e.g., `1.3.6.1.4.1.9.1.716`) |
 | **`sysUpTime.0`** | `1.3.6.1.2.1.1.3.0` | `timeticks` | Time since the network management portion of the system was re-initialized (`1/100` s) |
-| **`sysContact.0`** | `1.3.6.1.2.1.1.4.0` | `string` | Responsible NOC/admin contact email or phone number |
+| **`sysContact.0`** | `1.3.6.1.2.1.1.4.1` | `string` | Responsible NOC/admin contact email or phone number |
 | **`sysName.0`** | `1.3.6.1.2.1.1.5.0` | `string` | Fully-qualified administrative hostname (e.g., `"spine-01.dc1.example.com"`) |
 | **`sysLocation.0`** | `1.3.6.1.2.1.1.6.0` | `string` | Physical data center, rack, and RU location |
 | **`ifIndex.<n>`** | `1.3.6.1.2.1.2.2.1.1.<n>` | `int` | Unique numeric interface index (`1`, `2`, ...) |
@@ -3741,8 +3741,8 @@ flow snmpv1_operations(nms, sw) {
     nms <- sw snmp1 response community "public" reqid 1002 varbind 1.3.6.1.2.1.1.2.0 oidval 1.3.6.1.4.1.9.1.716 wait 5ms
 
     // 3. Update sysContact.0 with SNMPv1 SET
-    nms -> sw snmp1 set community "private_rw" reqid 1003 varbind 1.3.6.1.2.1.1.4.0 string "noc-oncall@corp.example.com" wait 2ms
-    nms <- sw snmp1 response community "private_rw" reqid 1003 varbind 1.3.6.1.2.1.1.4.0 string "noc-oncall@corp.example.com" wait 10ms
+    nms -> sw snmp1 set community "private_rw" reqid 1003 varbind 1.3.6.1.2.1.1.4.1 string "noc-oncall@corp.example.com" wait 2ms
+    nms <- sw snmp1 response community "private_rw" reqid 1003 varbind 1.3.6.1.2.1.1.4.1 string "noc-oncall@corp.example.com" wait 10ms
 
     // 4. Generic Trap: linkDown (gentrap 2, spectrap 0) on port ifIndex 5 (UDP 162)
     nms <- sw snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.1.716 agentip 10.100.1.50 gentrap 2 spectrap 0 sysuptime 4321000 varbind 1.3.6.1.2.1.2.2.1.1.5 int 5 varbind 1.3.6.1.2.1.2.2.1.2.5 string "GigabitEthernet0/5" varbind 1.3.6.1.2.1.2.2.1.8.5 int 2 wait 5ms
@@ -3867,15 +3867,15 @@ host rtr_v6      { ip 2001:db8:fe::1 }
 flow snmpv3_full_lifecycle(mgr, agent) {
     // 1. Level 1 — noAuthNoPriv: RFC 3414 Engine ID & timeline discovery probe + response
     mgr -> agent snmp3 get user "" engineid "" engineboots 0 enginetime 0 reqid 3001 wait 2ms
-    mgr <- agent snmp3 response user "" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86400 reqid 3001 varbind 1.3.6.1.6.3.15.1.1.4.0 counter32 1 wait 2ms
+    mgr <- agent snmp3 response user "" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86400 reqid 3001 varbind 1.3.6.1.6.3.15.1.1.4.1 counter32 1 wait 2ms
 
     // 2. Level 2 — authNoPriv: Signed poll with HMAC-SHA-256 (RFC 7860), cleartext scopedPDU
     mgr -> agent snmp3 get user "auditor_ro" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86401 auth sha256 "AuditSha256Pass!" reqid 3002 varbind 1.3.6.1.2.1.1.5.0 null varbind 1.3.6.1.2.1.1.6.0 null wait 2ms
     mgr <- agent snmp3 response user "auditor_ro" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86401 auth sha256 "AuditSha256Pass!" reqid 3002 varbind 1.3.6.1.2.1.1.5.0 string "core-rtr-01.prod.example.com" varbind 1.3.6.1.2.1.1.6.0 string "DC1 Row-B Rack-04 RU-40" wait 5ms
 
     // 3. Level 3 — authPriv: Signed & encrypted SET, RESPONSE, TRAP, and INFORM (HMAC-SHA-512 + AES-128)
-    mgr -> agent dscp 48 snmp3 set user "netadmin_rw" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86402 contextname "vrf-prod" auth sha512 "AdminSha512Key!" priv aes "AdminAes128Key!" reqid 3003 varbind 1.3.6.1.2.1.1.4.0 string "noc@example.com" wait 2ms
-    mgr <- agent dscp 48 snmp3 response user "netadmin_rw" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86402 contextname "vrf-prod" auth sha512 "AdminSha512Key!" priv aes "AdminAes128Key!" reqid 3003 varbind 1.3.6.1.2.1.1.4.0 string "noc@example.com" wait 5ms
+    mgr -> agent dscp 48 snmp3 set user "netadmin_rw" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86402 contextname "vrf-prod" auth sha512 "AdminSha512Key!" priv aes "AdminAes128Key!" reqid 3003 varbind 1.3.6.1.2.1.1.4.1 string "noc@example.com" wait 2ms
+    mgr <- agent dscp 48 snmp3 response user "netadmin_rw" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86402 contextname "vrf-prod" auth sha512 "AdminSha512Key!" priv aes "AdminAes128Key!" reqid 3003 varbind 1.3.6.1.2.1.1.4.1 string "noc@example.com" wait 5ms
 
     // Encrypted SNMPv3 TRAP on UDP 162 (sysUpTime.0 and snmpTrapOID.0 auto-prepended)
     mgr <- agent dscp 48 snmp3 trap user "netadmin_rw" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86405 contextname "vrf-prod" auth sha512 "AdminSha512Key!" priv aes "AdminAes128Key!" reqid 3004 sysuptime 8640500 oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.1.10 int 10 varbind 1.3.6.1.2.1.2.2.1.8.10 int 2 wait 5ms
@@ -12584,7 +12584,7 @@ FLOW snmpv2c_all_nine_varbinds(tester, agent) {
         VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL
         WAIT 10ms
     tester <- agent SNMP2 RESPONSE COMMUNITY "all_types" REQID 9999
-        VARBIND 1.3.6.1.2.1.1.4.0 NULLVAL
+        VARBIND 1.3.6.1.2.1.1.4.1 NULLVAL
         VARBIND 1.3.6.1.2.1.1.5.0 STRING "ref-agent-01"
         VARBIND 1.3.6.1.4.1.9999.1.1.0 INT -42
         VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 360000

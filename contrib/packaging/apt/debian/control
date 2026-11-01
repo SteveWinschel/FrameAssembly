@@ -1,5 +1,5 @@
 Package: frameassembly
-Version: 1.4.0-1
+Version: 1.4.1-1
 Section: net
 Priority: optional
 Architecture: amd64 arm64

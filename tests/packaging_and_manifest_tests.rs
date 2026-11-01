@@ -85,7 +85,7 @@ fn verify_bash_syntax(script_path: &Path) {
 // ==============================================================================
 
 /// Verifies that the APT Debian package control file exists and contains all mandatory fields:
-/// Package, Version (1.4.0), Section, Priority, Architecture, Maintainer, Description, and Homepage.
+/// Package, Version (1.4.1), Section, Priority, Architecture, Maintainer, Description, and Homepage.
 #[test]
 fn test_tier1_apt_control_structure() {
     let path = "contrib/packaging/apt/debian/control";
@@ -98,8 +98,8 @@ fn test_tier1_apt_control_structure() {
         "APT control must declare 'Package: frameassembly'"
     );
     assert!(
-        content.contains("Version: 1.4.0"),
-        "APT control must declare version 1.4.0"
+        content.contains("Version: 1.4.1"),
+        "APT control must declare version 1.4.1"
     );
     assert!(
         content.contains("Section: net"),
@@ -170,8 +170,8 @@ fn test_tier1_aur_pkgbuild_structure() {
         "PKGBUILD must define pkgname=frameassembly-bin"
     );
     assert!(
-        content.contains("pkgver=1.4.0"),
-        "PKGBUILD must define pkgver=1.4.0"
+        content.contains("pkgver=1.4.1"),
+        "PKGBUILD must define pkgver=1.4.1"
     );
     assert!(
         content.contains("pkgrel=1"),
@@ -220,8 +220,8 @@ fn test_tier1_aur_srcinfo_parity() {
         ".SRCINFO must declare pkgbase = frameassembly-bin"
     );
     assert!(
-        content.contains("pkgver = 1.4.0"),
-        ".SRCINFO must declare pkgver = 1.4.0"
+        content.contains("pkgver = 1.4.1"),
+        ".SRCINFO must declare pkgver = 1.4.1"
     );
     assert!(
         content.contains("pkgrel = 1"),
@@ -248,7 +248,7 @@ fn test_tier1_aur_srcinfo_parity() {
 /// Verifies that the WinGet v1.6.0 manifest triplet exists and conforms to Microsoft specifications.
 #[test]
 fn test_tier1_winget_manifest_triplet() {
-    let base_dir = "contrib/packaging/winget/manifests/s/SteveWinschel/FrameAssembly/1.4.0";
+    let base_dir = "contrib/packaging/winget/manifests/s/SteveWinschel/FrameAssembly/1.4.1";
     let version_path = format!("{}/SteveWinschel.FrameAssembly.yaml", base_dir);
     let installer_path = format!("{}/SteveWinschel.FrameAssembly.installer.yaml", base_dir);
     let locale_path = format!(
@@ -272,14 +272,14 @@ fn test_tier1_winget_manifest_triplet() {
 
     // 1. Version manifest checks
     assert!(version_content.contains("PackageIdentifier: SteveWinschel.FrameAssembly"));
-    assert!(version_content.contains("PackageVersion: 1.4.0"));
+    assert!(version_content.contains("PackageVersion: 1.4.1"));
     assert!(version_content.contains("DefaultLocale: en-US"));
     assert!(version_content.contains("ManifestType: version"));
     assert!(version_content.contains("ManifestVersion: 1.6.0"));
 
     // 2. Installer manifest checks
     assert!(installer_content.contains("PackageIdentifier: SteveWinschel.FrameAssembly"));
-    assert!(installer_content.contains("PackageVersion: 1.4.0"));
+    assert!(installer_content.contains("PackageVersion: 1.4.1"));
     assert!(installer_content.contains("InstallerSha256: \""));
     assert!(installer_content.contains("ManifestType: installer"));
     assert!(installer_content.contains("InstallerType: zip"));
@@ -309,8 +309,8 @@ fn test_tier1_homebrew_formula_structure() {
         "Homebrew formula must define class Frameassembly < Formula"
     );
     assert!(
-        content.contains("version \"1.4.0\""),
-        "Homebrew formula must declare version \"1.4.0\""
+        content.contains("version \"1.4.1\""),
+        "Homebrew formula must declare version \"1.4.1\""
     );
     assert!(
         content.contains("homepage \"https://github.com/SteveWinschel/FrameAssembly\""),
@@ -347,8 +347,8 @@ fn test_tier1_scoop_manifest_structure() {
     };
 
     assert!(
-        content.contains("\"version\": \"1.4.0\""),
-        "Scoop manifest must declare version 1.4.0"
+        content.contains("\"version\": \"1.4.1\""),
+        "Scoop manifest must declare version 1.4.1"
     );
     assert!(
         content.contains("\"license\": \"MIT\""),
@@ -506,12 +506,12 @@ fn test_tier1_update_checksums_script() {
     );
     let synthetic_sums = temp_root.join("SHA256SUMS.txt");
     let test_sums_content = format!(
-        "{h1}  frameassembly-v1.4.0-x86_64-unknown-linux-musl.tar.gz\n\
-{h2}  frameassembly-v1.4.0-aarch64-unknown-linux-musl.tar.gz\n\
-{h3}  frameassembly-v1.4.0-x86_64-apple-darwin.tar.gz\n\
-{h4}  frameassembly-v1.4.0-aarch64-apple-darwin.tar.gz\n\
-{h5}  frameassembly-v1.4.0-x86_64-pc-windows-msvc.zip\n\
-{h6}  frameassembly-v1.4.0-aarch64-pc-windows-msvc.zip\n"
+        "{h1}  frameassembly-v1.4.1-x86_64-unknown-linux-musl.tar.gz\n\
+{h2}  frameassembly-v1.4.1-aarch64-unknown-linux-musl.tar.gz\n\
+{h3}  frameassembly-v1.4.1-x86_64-apple-darwin.tar.gz\n\
+{h4}  frameassembly-v1.4.1-aarch64-apple-darwin.tar.gz\n\
+{h5}  frameassembly-v1.4.1-x86_64-pc-windows-msvc.zip\n\
+{h6}  frameassembly-v1.4.1-aarch64-pc-windows-msvc.zip\n"
     );
     fs::write(&synthetic_sums, test_sums_content).expect("Failed to write synthetic SHA256SUMS.txt");
 
@@ -522,7 +522,7 @@ fn test_tier1_update_checksums_script() {
         .arg(&synthetic_sums)
         .arg("--repo-root")
         .arg(&temp_root)
-        .arg("1.4.0")
+        .arg("1.4.1")
         .output()
         .expect("Failed to execute update-checksums.sh");
 
@@ -556,7 +556,7 @@ fn test_tier1_update_checksums_script() {
 
     // Verify 2: WinGet Installer Manifest
     let winget_installer = fs::read_to_string(
-        temp_pkg_dir.join("winget/manifests/s/SteveWinschel/FrameAssembly/1.4.0/SteveWinschel.FrameAssembly.installer.yaml"),
+        temp_pkg_dir.join("winget/manifests/s/SteveWinschel/FrameAssembly/1.4.1/SteveWinschel.FrameAssembly.installer.yaml"),
     ).expect("Read WinGet installer");
     assert!(
         winget_installer.contains(&format!("InstallerSha256: \"{h5}\"")),
@@ -631,12 +631,12 @@ fn test_tier2_install_sh_harmonization() {
         "install.sh must define try_install_prebuilt_binary function"
     );
     assert!(
-        content.contains("VSIX_VERSION=\"1.4.0\""),
-        "install.sh must declare VSIX_VERSION=\"1.4.0\""
+        content.contains("VSIX_VERSION=\"1.4.1\""),
+        "install.sh must declare VSIX_VERSION=\"1.4.1\""
     );
     assert!(
-        content.contains("RELEASE_VERSION=\"1.4.0\""),
-        "install.sh must declare RELEASE_VERSION=\"1.4.0\""
+        content.contains("RELEASE_VERSION=\"1.4.1\""),
+        "install.sh must declare RELEASE_VERSION=\"1.4.1\""
     );
 
     // Check for musl target alignment (if Worker M1 has updated install.sh)
@@ -1053,7 +1053,7 @@ fn test_tier4_vscode_extension_store_readiness() {
     assert!(pkg_json.contains("text/vnd.frameassembly"), "package.json must register text/vnd.frameassembly MIME");
     assert!(pkg_json.contains("\"firstLine\":"), "package.json must declare firstLine pattern");
     assert!(pkg_json.contains("\"publisher\": \"SteveWinschel\""), "package.json must declare publisher SteveWinschel");
-    assert!(pkg_json.contains("\"version\": \"1.4.0\""), "package.json must declare version 1.4.0");
+    assert!(pkg_json.contains("\"version\": \"1.4.1\""), "package.json must declare version 1.4.1");
 
     // Syntaxes check
     let tml = fs::read_to_string(base_dir.join("syntaxes/frameassembly.tmLanguage.json"))
@@ -1069,7 +1069,7 @@ fn test_tier4_vscode_extension_store_readiness() {
     assert!(readme.contains("source.frameassembly"), "frameassembly-vscode/README.md must reference source.frameassembly");
 
     // VSIX archive check if present
-    let vsix_path = base_dir.join("frameassembly-vscode-1.4.0.vsix");
+    let vsix_path = base_dir.join("frameassembly-vscode-1.4.1.vsix");
     if vsix_path.exists() {
         let unzip_output = Command::new("unzip")
             .arg("-l")
@@ -1080,7 +1080,7 @@ fn test_tier4_vscode_extension_store_readiness() {
         let out_str = String::from_utf8_lossy(&unzip_output.stdout);
         assert!(
             out_str.contains("extension/icon.png"),
-            "frameassembly-vscode-1.4.0.vsix must bundle extension/icon.png"
+            "frameassembly-vscode-1.4.1.vsix must bundle extension/icon.png"
         );
     }
 }
@@ -1094,9 +1094,9 @@ fn test_tier1_release_workflow_full_matrix_and_secrets() {
     let workflow_path = Path::new(".github/workflows/release.yml");
     let content = fs::read_to_string(workflow_path).expect("Failed to read release.yml");
 
-    // Triggers
+    // Triggers (must NOT combine branches: and tags: under on.push, which GitHub Actions rejects)
     assert!(content.contains("paths:\n      - 'Cargo.toml'"), "release.yml must trigger on push with Cargo.toml path filter");
-    assert!(content.contains("tags:\n      - 'v[0-9]+.[0-9]+.[0-9]*'"), "release.yml must trigger on v* semver tags");
+    assert!(!content.contains("tags:\n      - 'v[0-9]+"), "release.yml must not combine branches: and tags: under on.push");
     assert!(content.contains("workflow_dispatch:"), "release.yml must support manual workflow_dispatch");
 
     // Matrix jobs
@@ -1122,14 +1122,14 @@ fn test_tier1_release_workflow_full_matrix_and_secrets() {
         );
     }
 
-    // Secret placement & step if conditions: guarded by secrets != ''
-    assert!(content.contains("if: ${{ secrets.NPM_TOKEN != '' }}"), "NPM publish must be guarded by secrets.NPM_TOKEN");
-    assert!(content.contains("if: ${{ secrets.VSCE_PAT != '' }}"), "VSCE publish must be guarded by secrets.VSCE_PAT");
-    assert!(content.contains("if: ${{ secrets.OVSX_PAT != '' }}"), "OVSX publish must be guarded by secrets.OVSX_PAT");
-    assert!(content.contains("if: ${{ secrets.CARGO_REGISTRY_TOKEN != '' }}"), "Crates.io publish must be guarded by secrets.CARGO_REGISTRY_TOKEN");
-    assert!(content.contains("if: ${{ secrets.AUR_SSH_PRIVATE_KEY != '' }}"), "AUR push must be guarded by secrets.AUR_SSH_PRIVATE_KEY");
-    assert!(content.contains("if: ${{ secrets.WINGET_TOKEN != '' }}"), "WinGet trigger must be guarded by secrets.WINGET_TOKEN");
-    assert!(content.contains("if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}"), "Homebrew/Scoop sync must be guarded by secrets.HOMEBREW_TAP_TOKEN");
+    // Secret placement & step if conditions: guarded by job-level env != '' (since secrets.* is invalid in step if:)
+    assert!(content.contains("if: ${{ env.NPM_TOKEN != '' }}"), "NPM publish must be guarded by env.NPM_TOKEN");
+    assert!(content.contains("if: ${{ env.VSCE_PAT != '' }}"), "VSCE publish must be guarded by env.VSCE_PAT");
+    assert!(content.contains("if: ${{ env.OVSX_PAT != '' }}"), "OVSX publish must be guarded by env.OVSX_PAT");
+    assert!(content.contains("if: ${{ env.CARGO_REGISTRY_TOKEN != '' }}"), "Crates.io publish must be guarded by env.CARGO_REGISTRY_TOKEN");
+    assert!(content.contains("if: ${{ env.AUR_SSH_PRIVATE_KEY != '' }}"), "AUR push must be guarded by env.AUR_SSH_PRIVATE_KEY");
+    assert!(content.contains("if: ${{ env.WINGET_TOKEN != '' }}"), "WinGet trigger must be guarded by env.WINGET_TOKEN");
+    assert!(content.contains("if: ${{ env.HOMEBREW_TAP_TOKEN != '' }}"), "Homebrew/Scoop sync must be guarded by env.HOMEBREW_TAP_TOKEN");
 
     // Homebrew tap candidate loop checks homebrew-tap-FrameAssembly first
     assert!(
@@ -1145,15 +1145,15 @@ fn test_tier1_release_workflow_full_matrix_and_secrets() {
 }
 
 /// Verifies that frameassembly-wasm packaging manifest, dependencies, and README SEO formatting
-/// use natural task-driven headings without prompt-leaked meta-labels and declare v1.4.0 versioning.
+/// use natural task-driven headings without prompt-leaked meta-labels and declare v1.4.1 versioning.
 #[test]
 fn test_tier1_wasm_packaging_and_readme_seo() {
     let wasm_manifest = fs::read_to_string("frameassembly-wasm/Cargo.toml").expect("Read frameassembly-wasm/Cargo.toml");
-    assert!(wasm_manifest.contains("version = \"1.4.0\""), "WASM manifest must declare version 1.4.0");
-    assert!(wasm_manifest.contains("frameassembly = { path = \"..\", version = \"1.4.0\" }"), "WASM manifest must depend on root frameassembly v1.4.0");
+    assert!(wasm_manifest.contains("version = \"1.4.1\""), "WASM manifest must declare version 1.4.1");
+    assert!(wasm_manifest.contains("frameassembly = { path = \"..\", version = \"1.4.1\" }"), "WASM manifest must depend on root frameassembly v1.4.1");
 
     let wasm_readme = fs::read_to_string("frameassembly-wasm/README.md").expect("Read frameassembly-wasm/README.md");
-    assert!(wasm_readme.contains("frameassembly-wasm` v1.4.0"), "WASM README must reference v1.4.0 in title");
+    assert!(wasm_readme.contains("frameassembly-wasm` v1.4.1"), "WASM README must reference v1.4.1 in title");
     assert!(
         wasm_readme.contains("Client-Side `.fasm` to `.pcapng` Compilation")
             && !wasm_readme.contains("Problem -> Solution"),

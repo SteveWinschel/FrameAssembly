@@ -6,12 +6,11 @@ on:
       - main
     paths:
       - 'Cargo.toml'
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]*'
+      - '.github/workflows/release.yml'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing git tag to build and publish (e.g. v1.3.0)'
+        description: 'Existing git tag to build and publish (e.g. v1.4.1)'
         required: false
         type: string
 
@@ -36,7 +35,7 @@ jobs:
       version: ${{ steps.resolve.outputs.version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -118,7 +117,7 @@ jobs:
 
     steps:
       - name: Checkout tagged commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare.outputs.tag }}
 
@@ -205,7 +204,7 @@ jobs:
           cp -f deb-dist/frameassembly_*_${ARCH}.deb "deb-dist/frameassembly_${ARCH}.deb"
 
       - name: Upload built archive
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.target }}
           path: ${{ steps.stage.outputs.stage_dir }}.${{ matrix.archive }}
@@ -214,7 +213,7 @@ jobs:
 
       - name: Upload Debian .deb package (Linux)
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: release-deb-${{ matrix.target }}
           path: deb-dist/*.deb
@@ -232,7 +231,7 @@ jobs:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - name: Checkout tagged commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare.outputs.tag }}
 
@@ -270,7 +269,7 @@ jobs:
           tar -czf "frameassembly-wasm-${TAG}.tar.gz" -C frameassembly-wasm pkg
 
       - name: Publish to NPM Registry via Token (Optional)
-        if: ${{ secrets.NPM_TOKEN != '' }}
+        if: ${{ env.NPM_TOKEN != '' }}
         working-directory: frameassembly-wasm/pkg
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -280,7 +279,7 @@ jobs:
           npm publish --provenance --access public
 
       - name: Publish to NPM Registry via OIDC Trusted Publisher
-        if: ${{ secrets.NPM_TOKEN == '' }}
+        if: ${{ env.NPM_TOKEN == '' }}
         continue-on-error: true
         working-directory: frameassembly-wasm/pkg
         run: |
@@ -289,7 +288,7 @@ jobs:
           npm publish --provenance --access public
 
       - name: Upload WASM archive
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: release-wasm
           path: frameassembly-wasm-*.tar.gz
@@ -308,7 +307,7 @@ jobs:
       OVSX_PAT: ${{ secrets.OVSX_PAT }}
     steps:
       - name: Checkout tagged commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare.outputs.tag }}
 
@@ -331,7 +330,7 @@ jobs:
           npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o "frameassembly-vscode-${VERSION}.vsix"
 
       - name: Publish to Visual Studio Marketplace via PAT (Optional)
-        if: ${{ secrets.VSCE_PAT != '' }}
+        if: ${{ env.VSCE_PAT != '' }}
         working-directory: frameassembly-vscode
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
@@ -341,7 +340,7 @@ jobs:
           npx --yes @vscode/vsce publish -p "${{ secrets.VSCE_PAT }}" --packagePath "frameassembly-vscode-${VERSION}.vsix"
 
       - name: Publish to Visual Studio Marketplace via OIDC Trusted Publisher
-        if: ${{ secrets.VSCE_PAT == '' }}
+        if: ${{ env.VSCE_PAT == '' }}
         continue-on-error: true
         working-directory: frameassembly-vscode
         run: |
@@ -350,7 +349,7 @@ jobs:
           npx --yes @vscode/vsce publish --packagePath "frameassembly-vscode-${VERSION}.vsix"
 
       - name: Publish to Open VSX Registry (Optional)
-        if: ${{ secrets.OVSX_PAT != '' }}
+        if: ${{ env.OVSX_PAT != '' }}
         working-directory: frameassembly-vscode
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
@@ -360,7 +359,7 @@ jobs:
           npx --yes ovsx publish -p "${{ secrets.OVSX_PAT }}" --packagePath "frameassembly-vscode-${VERSION}.vsix"
 
       - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: release-vsix
           path: frameassembly-vscode/*.vsix
@@ -383,13 +382,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
 
       - name: Download all target archives
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
@@ -410,7 +409,7 @@ jobs:
           cat SHA256SUMS.txt
 
       - name: Generate GitHub SLSA build provenance attestations
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
             dist/*.tar.gz
@@ -419,7 +418,7 @@ jobs:
             dist/*.vsix
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           name: FrameAssembly ${{ needs.prepare.outputs.tag }}
@@ -435,7 +434,7 @@ jobs:
             dist/SHA256SUMS.txt
 
       - name: Publish to Crates.io (Optional)
-        if: ${{ secrets.CARGO_REGISTRY_TOKEN != '' }}
+        if: ${{ env.CARGO_REGISTRY_TOKEN != '' }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
@@ -458,7 +457,7 @@ jobs:
           fi
 
       - name: Push to Arch User Repository (AUR) (Optional)
-        if: ${{ secrets.AUR_SSH_PRIVATE_KEY != '' }}
+        if: ${{ env.AUR_SSH_PRIVATE_KEY != '' }}
         env:
           AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
           TAG: ${{ needs.prepare.outputs.tag }}
@@ -483,7 +482,7 @@ jobs:
           fi
 
       - name: Trigger Microsoft WinGet Manifest Update (Optional)
-        if: ${{ secrets.WINGET_TOKEN != '' }}
+        if: ${{ env.WINGET_TOKEN != '' }}
         env:
           WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
           TAG: ${{ needs.prepare.outputs.tag }}
@@ -492,7 +491,7 @@ jobs:
           echo "Triggering WinGet package manifest submission for FrameAssembly $VERSION ($TAG)..."
 
       - name: Trigger Homebrew Tap and Scoop Bucket Sync (Optional)
-        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+        if: ${{ env.HOMEBREW_TAP_TOKEN != '' }}
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           TAG: ${{ needs.prepare.outputs.tag }}
@@ -505,37 +504,23 @@ jobs:
             echo "Attempting Homebrew tap sync to SteveWinschel/${TAP_REPO}..."
             rm -rf tap-repo
             if git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/SteveWinschel/${TAP_REPO}.git" tap-repo 2>/dev/null; then
-              mkdir -p tap-repo/Formula
+              mkdir -p tap-repo/Formula tap-repo/bucket
               cp contrib/packaging/homebrew/Formula/frameassembly.rb tap-repo/Formula/
+              cp contrib/packaging/scoop/frameassembly.json tap-repo/bucket/
               cd tap-repo
               git config user.name "github-actions[bot]"
               git config user.email "github-actions[bot]@users.noreply.github.com"
-              git add Formula/frameassembly.rb
+              git add Formula/frameassembly.rb bucket/frameassembly.json
               if ! git diff --cached --quiet; then
                 git commit -m "frameassembly $VERSION"
                 git push origin main || true
               fi
               cd ..
               TAP_SYNCED=1
-              echo "Successfully synced Formula/frameassembly.rb to SteveWinschel/${TAP_REPO}."
+              echo "Successfully synced Formula/frameassembly.rb and bucket/frameassembly.json to SteveWinschel/${TAP_REPO}."
               break
             fi
           done
           if [ "$TAP_SYNCED" -eq 0 ]; then
             echo "::warning::Could not clone homebrew-tap-FrameAssembly, homebrew-tap, homebrew-frameassembly, or tap-FrameAssembly; tap sync skipped."
-          fi
-          # Sync Scoop bucket
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/SteveWinschel/scoop-bucket.git" scoop-repo || true
-          if [ -d scoop-repo ]; then
-            mkdir -p scoop-repo/bucket
-            cp contrib/packaging/scoop/frameassembly.json scoop-repo/bucket/
-            cd scoop-repo
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add bucket/frameassembly.json
-            if ! git diff --cached --quiet; then
-              git commit -m "frameassembly $VERSION"
-              git push origin main || true
-            fi
-            cd ..
           fi

@@ -20,7 +20,7 @@ use rasn::types::{Integer, ObjectIdentifier, OctetString, Oid};
 /// Compile-time zero-heap `sysUpTime.0` OID (`1.3.6.1.2.1.1.3.0`).
 pub const SYS_UP_TIME_OID: &Oid = Oid::const_new(&[1, 3, 6, 1, 2, 1, 1, 3, 0]);
 
-/// Compile-time zero-heap `snmpTrapOID.0` OID (`1.3.6.1.6.3.1.1.4.1.0`).
+/// Compile-time zero-heap `snmpTrapOID.0` OID (`1.3.6.1.6.3.1.1.4.2.0`).
 pub const SNMP_TRAP_OID: &Oid = Oid::const_new(&[1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0]);
 
 /// Parses a dot-notation OID string (e.g., `"1.3.6.1.2.1.1.1.0"` or `".1.3.6.1.2.1.1.1.0"`)
@@ -332,7 +332,7 @@ pub fn build_snmpv1_trap_packet(
 
 Demonstrates:
 - Exact `rasn_snmp::v2::Pdu` field types: `pub request_id: i32`, `pub error_status: u32`, `pub error_index: u32`, `pub variable_bindings: VarBindList` (with `v2::Pdu::ERROR_STATUS_*` constants `0..=18` typed as `u32`).
-- Zero-heap static OID construction (`ObjectIdentifier::from(Oid::const_new(...))`) when prepending `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) at index 0 and `snmpTrapOID.0` (`1.3.6.1.6.3.1.1.4.1.0`) at index 1 for both `Trap` (`0xa7`) and `InformRequest` (`0xa6`).
+- Zero-heap static OID construction (`ObjectIdentifier::from(Oid::const_new(...))`) when prepending `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) at index 0 and `snmpTrapOID.0` (`1.3.6.1.6.3.1.1.4.2.0`) at index 1 for both `Trap` (`0xa7`) and `InformRequest` (`0xa6`).
 - `GetBulkRequest` (`0xa5`) using `snmpv2::BulkPdu` (`request_id: i32`, `non_repeaters: u32`, `max_repetitions: u32`).
 
 ```rust

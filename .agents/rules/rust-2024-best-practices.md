@@ -177,3 +177,6 @@ Always enforce these idiomatic, performant, and sound `rustc 1.99.1` (`clippy 0.
 | 10| Emitting `0x0000` UDP checksum over IPv6 | Map `if c == 0 { 0xFFFF } else { c }` | Violates RFC 8200 §8.1; dropped by IPv6 stacks |
 | 11| Writing SCTP CRC32c in big-endian | Write `cksum.to_le_bytes()` in bytes `8..12` | Violates RFC 9260 §3.3.10 little-endian rule |
 | 12| Omitting `IfTsResol(9)` in PCAPNG IDB | Include `InterfaceDescriptionOption::IfTsResol(9)` | Prevents 1000x nanosecond timestamp skew |
+| 13| Unconditional `bash`/`unzip` or `\n` checks in tests | Guard Unix tools with `cfg!(unix)` & normalize `\r\n` | Prevents `x86_64-pc-windows-msvc` CI test panics |
+| 14| Setting `strip = symbols` or `--enable-bulk-memory-opt` on WASM | Set `CARGO_PROFILE_RELEASE_STRIP=none` & `wasm-opt = false` | Preserves `.target_features` for `wasm-bindgen` & avoids CI `wasm-opt` flag errors |
+| 15| Using `secrets.*` in step `if:` or blocking release on optional jobs | Bind job `env:` (`if: ${{ env.X != '' }}`) & `continue-on-error: true` | Prevents workflow parse errors & ensures GitHub Releases always publish |

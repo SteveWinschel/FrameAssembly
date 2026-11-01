@@ -1,6 +1,6 @@
 # FrameAssembly (`frameassembly`)
 
-> Rootless "Packets as Code" / "PCAP as Code" DSL & Rust compiler (v1.4.1) that compiles plain-text `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).
+> Rootless "Packets as Code" / "PCAP as Code" DSL & Rust compiler (v1.4.2) that compiles plain-text `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).
 
 FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in userspace with no `libpcap` or raw sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides via `frameassembly <input.fasm> [-o <output.pcap>]` and `frameassembly show <input.fasm>`.
 
@@ -99,10 +99,10 @@ COMPILE {
   - Homebrew (macOS & Linux): `brew install SteveWinschel/tap/frameassembly`
   - WinGet (Windows 10/11): `winget install SteveWinschel.FrameAssembly`
   - Scoop (Windows): `scoop bucket add frameassembly https://github.com/SteveWinschel/scoop-bucket && scoop install frameassembly`
-  - APT (Debian/Ubuntu): `curl -fsSL https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.1/frameassembly_1.4.1_amd64.deb -o frameassembly.deb && sudo dpkg -i frameassembly.deb`
+  - APT (Debian/Ubuntu): `curl -fsSL https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.2/frameassembly_1.4.2_amd64.deb -o frameassembly.deb && sudo dpkg -i frameassembly.deb`
   - Cargo (All platforms with Rust): `cargo install frameassembly`
   - Zero-clone bootstrap script: `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
-- **Public Rust Library Signatures (`frameassembly` crate v1.4.1)**:
+- **Public Rust Library Signatures (`frameassembly` crate v1.4.2)**:
   - `frameassembly::lexer::lex(source: &str) -> Result<Vec<SpannedToken<'_>>, CompilerError>`
   - `frameassembly::parser::parse_program(source: &str) -> Result<Program<'_>, CompilerError>` (runs `validate_semantics` automatically)
   - `frameassembly::parser::validate_semantics<'a>(program: &Program<'a>, source: &'a str) -> Result<(), CompilerError>`
@@ -162,7 +162,7 @@ COMPILE {
 - [Claude Code Instructions (`CLAUDE.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CLAUDE.md): Concise project instructions and canonical syntax rules for Claude Code.
 - [Cross-Platform Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Zero-clone POSIX shell installer for Linux, macOS, and BSDs.
 - [Context7 MCP Configuration (`context7.json`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/context7.json): Upstash Context7 indexing rules and curated folder configuration.
-- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.4.1.
+- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.4.2.
 
 ---
 
@@ -192,7 +192,7 @@ COMPILE {
 
 [**Problem -> Solution Recipes**](#problem---solution-real-world-network-tasks) • [**The 3-Step Mental Model**](#the-3-step-mental-model-for-network-engineers) • [**Terminal Ladder (`frameassembly show`)**](#visual-packet-ladders--terminal-inspection-frameassembly-show) • [**Multi-Platform Install**](#multi-platform-installation) • [**Wireshark Cheat Sheet**](#from-wireshark--tcpdump-to-fasm-translation-table) • [**Common Mistakes**](#common-syntax-mistakes--plain-english-error-messages) • [**All 81 Protocols**](#supported-protocols--default-wire-behavior) • [**FAQ & Disambiguation**](#faq-what-is-a-fasm-file-frameassembly-vs-flat-assembler-vs-fpga-fasm) • [**Documentation**](#documentation)
 
-**FrameAssembly** (`frameassembly` v1.4.1) is a **rootless, offline "Packets as Code" ("PCAP as Code") packet generator and compiler** that turns a **plain-text packet recipe (`.fasm`, media type `text/vnd.frameassembly`) into a deterministic `.pcap` / `.pcapng` packet capture file** across **81 network protocols spanning Layers 2 through 7**—with no `libpcap` or raw sockets required.
+**FrameAssembly** (`frameassembly` v1.4.2) is a **rootless, offline "Packets as Code" ("PCAP as Code") packet generator and compiler** that turns a **plain-text packet recipe (`.fasm`, media type `text/vnd.frameassembly`) into a deterministic `.pcap` / `.pcapng` packet capture file** across **81 network protocols spanning Layers 2 through 7**—with no `libpcap` or raw sockets required.
 
 It is built for **network technicians, firewall engineers, Linux system administrators, NOC/SOC analysts, and OT/SCADA integrators** who want a **Scapy alternative without Python**, without clicking through GUI stream dialogs in `Ostinato`, and without fighting raw hexadecimal byte offsets in `text2pcap`. Positioned as the upstream companion compiler to your analysis and replay tools, you simply list the devices in your scenario, write one line per packet using everyday networking terms (`VLAN 100`, `TCP SYN`, `DSTPORT 443`, `DSCP 46`, `SNMP3 TRAP`), and FrameAssembly automatically builds the Ethernet/IPv4/IPv6/TCP/UDP/SCTP headers, calculates lengths and checksums, swaps ports on reply packets (`<-`), and tracks TCP `SEQ`/`ACK` numbers—producing a clean, zero-noise `.pcap` file ready to open in **Wireshark** / **`tshark`**, feed into **Suricata** / **Zeek**, or transmit onto a live network port with **`tcpreplay`**.
 
@@ -834,7 +834,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 # AGENTS.md — FrameAssembly AI Agent & LLM Onboarding Guide
 
-**FrameAssembly** (`frameassembly` v1.4.1) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
+**FrameAssembly** (`frameassembly` v1.4.2) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
 
 ---
 
@@ -1557,10 +1557,10 @@ host nms_collector {
 
 flow snmp_v1_and_v2c_verification(sw, nms) {
     // 1. SNMPv1 generic linkDown trap (gentrap 2, spectrap 0) for interface index 5
-    sw -> nms snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.1.1 agentip 10.100.0.254 gentrap 2 spectrap 0 sysuptime 125000 varbind 1.3.6.1.2.1.2.2.1.1.5 int 5 varbind 1.3.6.1.2.1.2.2.1.2.5 string "GigabitEthernet0/5" wait 5ms
+    sw -> nms snmp1 trap community "public" enterprise 1.3.6.1.4.2.9.1.1 agentip 10.100.0.254 gentrap 2 spectrap 0 sysuptime 125000 varbind 1.3.6.1.2.1.2.2.1.1.5 int 5 varbind 1.3.6.1.2.1.2.2.1.2.5 string "GigabitEthernet0/5" wait 5ms
 
     // 2. SNMPv1 vendor enterprise-specific trap (gentrap 6, spectrap 1 = chassis temperature alarm)
-    sw -> nms snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.9.13.3 agentip 10.100.0.254 gentrap 6 spectrap 1 sysuptime 125100 varbind 1.3.6.1.4.1.9.9.13.1.3.1.3.1 gauge32 84 wait 10ms
+    sw -> nms snmp1 trap community "public" enterprise 1.3.6.1.4.2.9.9.13.3 agentip 10.100.0.254 gentrap 6 spectrap 1 sysuptime 125100 varbind 1.3.6.1.4.2.9.9.13.1.3.1.3.1 gauge32 84 wait 10ms
 
     // 3. SNMPv2c GET poll from NMS and switch RESPONSE with sysName.0 and sysUpTime.0
     nms -> sw snmp2 get community "noc_ro" reqid 1001 varbind 1.3.6.1.2.1.1.5.0 null varbind 1.3.6.1.2.1.1.3.0 null wait 2ms
@@ -1609,7 +1609,7 @@ host trap_receiver {
 
 flow snmpv3_usm_authpriv_suite(rtr, nms) {
     // 1. Modern SNMPv3 authPriv TRAP: HMAC-SHA256 + AES-128-CFB
-    rtr -> nms snmp3 trap user "ops_sha256_aes" engineid "80001f8880001c73a000fa" engineboots 14 enginetime 86400 contextname "dc1_vrf" auth sha256 "AuthSecret_SHA256_2026!" priv aes "PrivSecret_AES128_2026!" reqid 3001 oid 1.3.6.1.4.1.9.9.13.3.0.1 varbind 1.3.6.1.2.1.1.5.0 string "dist-rtr-01.dc1" varbind 1.3.6.1.4.1.9.9.13.1.3.1.3.1 gauge32 89 wait 10ms
+    rtr -> nms snmp3 trap user "ops_sha256_aes" engineid "80001f8880001c73a000fa" engineboots 14 enginetime 86400 contextname "dc1_vrf" auth sha256 "AuthSecret_SHA256_2026!" priv aes "PrivSecret_AES128_2026!" reqid 3001 oid 1.3.6.1.4.2.9.9.13.3.0.1 varbind 1.3.6.1.2.1.1.5.0 string "dist-rtr-01.dc1" varbind 1.3.6.1.4.2.9.9.13.1.3.1.3.1 gauge32 89 wait 10ms
 
     // 2. High-security SNMPv3 authPriv INFORM + NMS RESPONSE: HMAC-SHA512 + AES-128-CFB
     rtr -> nms snmp3 inform user "sec_sha512_aes" engineid "80001f8880001c73a000fa" engineboots 14 enginetime 86405 contextname "dc1_vrf" auth sha512 "HighSecAuth_SHA512_Key!" priv aes "HighSecPriv_AES128_Key!" reqid 3002 oid 1.3.6.1.6.3.1.1.5.5 varbind 1.3.6.1.2.1.1.5.0 string "dist-rtr-01.dc1" wait 2ms
@@ -3622,7 +3622,7 @@ As a full-featured **SNMPv1 / SNMPv2c / SNMPv3 USM `authPriv` trap & poll pcap g
   * **Bidirectional Reply Port Tracking:** When a manager sends a `GET` (`mgr -> agent snmp2 get ...`) or an agent sends an `INFORM` (`mgr <- agent snmp2 inform ...`), the reply statement in the opposite direction automatically swaps the UDP source and destination ports so the `RESPONSE` lands back on the initiator's ephemeral port.
 * **No MIB Files Needed:** You never have to install vendor MIB files or configure `MIBS=+ALL`. Write standard numeric dotted-decimal OIDs (`1.3.6.1.2.1.1.5.0`) and explicit, readable data-type keywords (`string`, `int`, `gauge32`, `counter32`, `counter64`, `timeticks`, `ipval`, `oidval`, `null`).
 * **Automatic RFC 3416 Trap & Inform Header Prepending (`sysUpTime.0` & `snmpTrapOID.0`):**
-  * RFC 3416 §4.2.6 requires every SNMPv2c and SNMPv3 `TRAP` or `INFORM` packet to carry `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) as its first VarBind and `snmpTrapOID.0` (`1.3.6.1.6.3.1.1.4.1.0`) as its second VarBind.
+  * RFC 3416 §4.2.6 requires every SNMPv2c and SNMPv3 `TRAP` or `INFORM` packet to carry `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) as its first VarBind and `snmpTrapOID.0` (`1.3.6.1.6.3.1.1.4.2.0`) as its second VarBind.
   * FrameAssembly builds both for you automatically from `sysuptime <ticks>` and `oid <trap_oid>`, then appends your custom `varbind` entries in exact order.
 * **Real SNMPv3 USM Key Localization, Signing & Encryption Out of the Box:**
   * Provide plain-text passphrases (`auth sha256 "..." priv aes "..."`) and an `engineid` hex string.
@@ -3653,7 +3653,7 @@ An SNMP packet carries a list of **Variable Bindings (`VARBIND`)**, where each e
 | **`INT`** | `varbind 1.3.6.1.2.1.2.2.1.8.1 int 2` | `0x02` | **ASN.1 `INTEGER` (32-bit signed)**: Signed 32-bit integer for interface states (`1` = `up`, `2` = `down`, `3` = `testing`), BGP peer states (`1..6`), temperatures, or table indices (`ifIndex`). |
 | **`TIMETICKS`** | `varbind 1.3.6.1.2.1.1.3.0 timeticks 8640000` | `0x43` | **SMI `TimeTicks` (32-bit unsigned)**: Elapsed time in **1/100ths of a second** (centiseconds) since agent boot or state change (`8640000` ticks = 24 hours). |
 | **`IPVAL`** | `varbind 1.3.6.1.2.1.4.20.1.1.10.0.0.1 ipval 10.0.0.1` | `0x40` / `0x04` | **SMI `IpAddress` / `InetAddress`**: Accepts both IPv4 (`10.0.0.1`, encoded as 4-byte `0x40` `IpAddress`) and IPv6 (`2001:db8::1`, encoded as 16-byte `0x04` `OCTET STRING` per RFC 4001). |
-| **`OIDVAL`** | `varbind 1.3.6.1.2.1.1.2.0 oidval 1.3.6.1.4.1.9.1.1` | `0x06` | **ASN.1 `OBJECT IDENTIFIER`**: Value that is itself an OID pointer, such as `sysObjectID.0` or `snmpTrapOID.0`. Accepts unquoted (`1.3.6.1...`) or quoted (`"1.3.6.1..."`) OIDs. |
+| **`OIDVAL`** | `varbind 1.3.6.1.2.1.1.2.0 oidval 1.3.6.1.4.2.9.1.1` | `0x06` | **ASN.1 `OBJECT IDENTIFIER`**: Value that is itself an OID pointer, such as `sysObjectID.0` or `snmpTrapOID.0`. Accepts unquoted (`1.3.6.1...`) or quoted (`"1.3.6.1..."`) OIDs. |
 | **`COUNTER32`** | `varbind 1.3.6.1.2.1.2.2.1.10.1 counter32 4590123` | `0x41` | **SMI `Counter32` (32-bit unsigned)**: 32-bit monotonically increasing counter that wraps at $2^{32}-1$ (`ifInOctets`, `ifInErrors`, `snmpInPkts`). |
 | **`GAUGE32`** | `varbind 1.3.6.1.2.1.2.2.1.5.1 gauge32 1000000000` | `0x42` | **SMI `Gauge32` (32-bit unsigned)**: 32-bit non-wrapping gauge that can rise or fall (`ifSpeed`, CPU load percentage, memory usage, optical transceiver dBm). |
 | **`COUNTER64`** | `varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 98765432100` | `0x46` | **SMIv2 `Counter64` (64-bit unsigned)**: 64-bit high-capacity counter (`ifHCInOctets`, `ifHCOutOctets` for 10G/40G/100G/400G links). *Valid in `SNMP2` and `SNMP3` only (prohibited in `SNMP1` per RFC 2578).* |
@@ -3669,9 +3669,9 @@ Keep this table handy when building realistic polling flows or trap alerts for y
 | MIB Object Name | Numeric OID | Typical `VARBIND` Type | Description & Common Values |
 | :--- | :--- | :--- | :--- |
 | **`sysDescr.0`** | `1.3.6.1.2.1.1.1.0` | `string` | Full OS, hardware, and software version banner |
-| **`sysObjectID.0`** | `1.3.6.1.2.1.1.2.0` | `oidval` | Vendor enterprise hardware model OID (e.g., `1.3.6.1.4.1.9.1.716`) |
+| **`sysObjectID.0`** | `1.3.6.1.2.1.1.2.0` | `oidval` | Vendor enterprise hardware model OID (e.g., `1.3.6.1.4.2.9.1.716`) |
 | **`sysUpTime.0`** | `1.3.6.1.2.1.1.3.0` | `timeticks` | Time since the network management portion of the system was re-initialized (`1/100` s) |
-| **`sysContact.0`** | `1.3.6.1.2.1.1.4.1` | `string` | Responsible NOC/admin contact email or phone number |
+| **`sysContact.0`** | `1.3.6.1.2.1.1.4.2` | `string` | Responsible NOC/admin contact email or phone number |
 | **`sysName.0`** | `1.3.6.1.2.1.1.5.0` | `string` | Fully-qualified administrative hostname (e.g., `"spine-01.dc1.example.com"`) |
 | **`sysLocation.0`** | `1.3.6.1.2.1.1.6.0` | `string` | Physical data center, rack, and RU location |
 | **`ifIndex.<n>`** | `1.3.6.1.2.1.2.2.1.1.<n>` | `int` | Unique numeric interface index (`1`, `2`, ...) |
@@ -3682,7 +3682,7 @@ Keep this table handy when building realistic polling flows or trap alerts for y
 | **`ifInOctets.<n>`** | `1.3.6.1.2.1.2.2.1.10.<n>` | `counter32` | Legacy 32-bit inbound byte counter on interface `<n>` |
 | **`ifHCInOctets.<n>`** | `1.3.6.1.2.1.31.1.1.1.6.<n>` | `counter64` | High-capacity 64-bit inbound byte counter (`ifXTable`, SNMPv2c/v3) |
 | **`ifHCOutOctets.<n>`**| `1.3.6.1.2.1.31.1.1.1.10.<n>`| `counter64` | High-capacity 64-bit outbound byte counter (`ifXTable`, SNMPv2c/v3) |
-| **`snmpTrapOID.0`** | `1.3.6.1.6.3.1.1.4.1.0` | `oidval` | Identifies the notification being sent (auto-prepended in v2c/v3 `TRAP` & `INFORM`) |
+| **`snmpTrapOID.0`** | `1.3.6.1.6.3.1.1.4.2.0` | `oidval` | Identifies the notification being sent (auto-prepended in v2c/v3 `TRAP` & `INFORM`) |
 | **`coldStart`** | `1.3.6.1.6.3.1.1.5.1` | `oid` (Trap OID) | Agent rebooted with possible configuration changes (v1 `gentrap 0`) |
 | **`warmStart`** | `1.3.6.1.6.3.1.1.5.2` | `oid` (Trap OID) | Agent restarted without configuration changes (v1 `gentrap 1`) |
 | **`linkDown`** | `1.3.6.1.6.3.1.1.5.3` | `oid` (Trap OID) | Physical or logical interface transitioned to `down` (v1 `gentrap 2`) |
@@ -3704,7 +3704,7 @@ SNMPv1 is still widely encountered on legacy switches, PDUs, UPS battery control
 | **`COMMUNITY`** | `COMMUNITY "<text>"` | `"public"` | Cleartext SNMPv1 community string (e.g., `"public"`, `"private"`). |
 | **`REQID`** | `REQID <number>` | `1` | 32-bit `request-id` matching a `RESPONSE` to its `GET`, `GETNEXT`, or `SET` request. |
 | **`SYSUPTIME`** | `SYSUPTIME <ticks>` | `0` | Populates the v1 `Trap-PDU` `time-stamp` header in hundredths of a second. |
-| **`ENTERPRISE`**| `ENTERPRISE <oid>` | `"1.3.6.1.4.1"` | Originating vendor enterprise OID inside an SNMPv1 `Trap-PDU`. Falls back to `OID` if omitted. |
+| **`ENTERPRISE`**| `ENTERPRISE <oid>` | `"1.3.6.1.4.2"` | Originating vendor enterprise OID inside an SNMPv1 `Trap-PDU`. Falls back to `OID` if omitted. |
 | **`OID`** | `OID <oid>` | None | Shorthand single-OID query (emits a `NULL` VarBind on `GET`/`GETNEXT`) or fallback enterprise/trap OID. |
 | **`AGENTIP`** | `AGENTIP <ipv4>` | Sender IPv4 (`0.0.0.0` on IPv6) | Sets the 4-byte `agent-addr` field inside the SNMPv1 `Trap-PDU`. When running over **IPv6**, automatically defaults to `0.0.0.0` per **RFC 3584 §3.2**. |
 | **`GENTRAP`** | `GENTRAP <0..6>` | `6` (or mapped from `OID`) | Generic trap integer (`0..=6`). Values `> 6` are rejected with a clear validation error. |
@@ -3738,22 +3738,22 @@ flow snmpv1_operations(nms, sw) {
 
     // 2. Walk the next MIB object with GETNEXT
     nms -> sw snmp1 getnext community "public" reqid 1002 varbind 1.3.6.1.2.1.1.1.0 null wait 2ms
-    nms <- sw snmp1 response community "public" reqid 1002 varbind 1.3.6.1.2.1.1.2.0 oidval 1.3.6.1.4.1.9.1.716 wait 5ms
+    nms <- sw snmp1 response community "public" reqid 1002 varbind 1.3.6.1.2.1.1.2.0 oidval 1.3.6.1.4.2.9.1.716 wait 5ms
 
     // 3. Update sysContact.0 with SNMPv1 SET
-    nms -> sw snmp1 set community "private_rw" reqid 1003 varbind 1.3.6.1.2.1.1.4.1 string "noc-oncall@corp.example.com" wait 2ms
-    nms <- sw snmp1 response community "private_rw" reqid 1003 varbind 1.3.6.1.2.1.1.4.1 string "noc-oncall@corp.example.com" wait 10ms
+    nms -> sw snmp1 set community "private_rw" reqid 1003 varbind 1.3.6.1.2.1.1.4.2 string "noc-oncall@corp.example.com" wait 2ms
+    nms <- sw snmp1 response community "private_rw" reqid 1003 varbind 1.3.6.1.2.1.1.4.2 string "noc-oncall@corp.example.com" wait 10ms
 
     // 4. Generic Trap: linkDown (gentrap 2, spectrap 0) on port ifIndex 5 (UDP 162)
-    nms <- sw snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.1.716 agentip 10.100.1.50 gentrap 2 spectrap 0 sysuptime 4321000 varbind 1.3.6.1.2.1.2.2.1.1.5 int 5 varbind 1.3.6.1.2.1.2.2.1.2.5 string "GigabitEthernet0/5" varbind 1.3.6.1.2.1.2.2.1.8.5 int 2 wait 5ms
+    nms <- sw snmp1 trap community "public" enterprise 1.3.6.1.4.2.9.1.716 agentip 10.100.1.50 gentrap 2 spectrap 0 sysuptime 4321000 varbind 1.3.6.1.2.1.2.2.1.1.5 int 5 varbind 1.3.6.1.2.1.2.2.1.2.5 string "GigabitEthernet0/5" varbind 1.3.6.1.2.1.2.2.1.8.5 int 2 wait 5ms
 
     // 5. Enterprise-Specific Trap: Cisco config change (gentrap 6, spectrap 1)
-    nms <- sw snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.9.43.2 agentip 10.100.1.50 gentrap 6 spectrap 1 sysuptime 4321500 varbind 1.3.6.1.4.1.9.9.43.1.1.6.1.3.1 int 1
+    nms <- sw snmp1 trap community "public" enterprise 1.3.6.1.4.2.9.9.43.2 agentip 10.100.1.50 gentrap 6 spectrap 1 sysuptime 4321500 varbind 1.3.6.1.4.2.9.9.43.1.1.6.1.3.1 int 1
 }
 
 flow snmpv1_ipv6_rfc3584(nms, ups) {
     // Over IPv6, SNMPv1 Trap agent-addr automatically defaults to 0.0.0.0 per RFC 3584 Section 3.2
-    nms <- ups snmp1 trap community "public" enterprise 1.3.6.1.4.1.318 gentrap 6 spectrap 5 sysuptime 90000 varbind 1.3.6.1.2.1.1.5.0 string "ups-row4-rack12"
+    nms <- ups snmp1 trap community "public" enterprise 1.3.6.1.4.2.318 gentrap 6 spectrap 5 sysuptime 90000 varbind 1.3.6.1.2.1.1.5.0 string "ups-row4-rack12"
 }
 
 compile {
@@ -3785,7 +3785,7 @@ SNMPv2c modernizes SNMPv1 while keeping simple community-string authentication (
 | **`NONREPEATERS`** | `NONREPEATERS <count>` | `0` | Number of scalar VarBinds at the start of a `GETBULK` request fetched only once. |
 | **`MAXREPETITIONS`**| `MAXREPETITIONS <rows>` | `10` | Maximum number of table rows returned per repeating OID in a `GETBULK` request. |
 | **`SYSUPTIME`** | `SYSUPTIME <ticks>` | `0` | Value for the auto-prepended `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) VarBind on `TRAP` and `INFORM` PDUs. |
-| **`OID`** | `OID <oid>` | `"1.3.6.1.6.3.1.1.5.3"` (`linkDown`) | Trap OID value for the auto-prepended `snmpTrapOID.0` (`1.3.6.1.6.3.1.1.4.1.0`) VarBind on `TRAP` and `INFORM` PDUs (or single-OID query shorthand on `GET`). |
+| **`OID`** | `OID <oid>` | `"1.3.6.1.6.3.1.1.5.3"` (`linkDown`) | Trap OID value for the auto-prepended `snmpTrapOID.0` (`1.3.6.1.6.3.1.1.4.2.0`) VarBind on `TRAP` and `INFORM` PDUs (or single-OID query shorthand on `GET`). |
 | **`VARBIND`** | `VARBIND <oid> <type> [val]` | Empty list | Appends any of the 9 SMIv2 data types (`NULL`, `STRING`, `INT`, `TIMETICKS`, `IPVAL`, `OIDVAL`, `COUNTER32`, `GAUGE32`, `COUNTER64`). |
 
 ### 4.2 Compilable Example: `SNMP2` `GETBULK` Table Walk, All 9 `VARBIND` Types & `TRAP` vs. `INFORM`
@@ -3799,7 +3799,7 @@ flow snmpv2c_monitoring_suite(nms, rtr) {
     nms -> rtr snmp2 getbulk community "spine_ro" reqid 2001 nonrepeaters 1 maxrepetitions 15 varbind 1.3.6.1.2.1.1.3.0 null varbind 1.3.6.1.2.1.31.1.1.1.6 null wait 2ms
 
     // 2. Agent RESPONSE showcasing multiple SMIv2 data types (TIMETICKS, STRING, INT, GAUGE32, COUNTER32, COUNTER64, IPVAL, OIDVAL)
-    nms <- rtr snmp2 response community "spine_ro" reqid 2001 varbind 1.3.6.1.2.1.1.3.0 timeticks 9950000 varbind 1.3.6.1.2.1.1.2.0 oidval 1.3.6.1.4.1.9.1.2870 varbind 1.3.6.1.2.1.2.2.1.2.1 string "HundredGigE0/0/0/0" varbind 1.3.6.1.2.1.2.2.1.8.1 int 1 varbind 1.3.6.1.2.1.2.2.1.5.1 gauge32 4294967295 varbind 1.3.6.1.2.1.2.2.1.14.1 counter32 0 varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 1844674407370955100 varbind 1.3.6.1.2.1.4.20.1.1.172.16.10.1 ipval 172.16.10.1 wait 5ms
+    nms <- rtr snmp2 response community "spine_ro" reqid 2001 varbind 1.3.6.1.2.1.1.3.0 timeticks 9950000 varbind 1.3.6.1.2.1.1.2.0 oidval 1.3.6.1.4.2.9.1.2870 varbind 1.3.6.1.2.1.2.2.1.2.1 string "HundredGigE0/0/0/0" varbind 1.3.6.1.2.1.2.2.1.8.1 int 1 varbind 1.3.6.1.2.1.2.2.1.5.1 gauge32 4294967295 varbind 1.3.6.1.2.1.2.2.1.14.1 counter32 0 varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 1844674407370955100 varbind 1.3.6.1.2.1.4.20.1.1.172.16.10.1 ipval 172.16.10.1 wait 5ms
 
     // 3. Unacknowledged SNMPv2c TRAP (UDP 162): linkUp (1.3.6.1.6.3.1.1.5.4)
     //    FrameAssembly automatically prepends sysUpTime.0 (9950050) and snmpTrapOID.0 (1.3.6.1.6.3.1.1.5.4)
@@ -3867,15 +3867,15 @@ host rtr_v6      { ip 2001:db8:fe::1 }
 flow snmpv3_full_lifecycle(mgr, agent) {
     // 1. Level 1 — noAuthNoPriv: RFC 3414 Engine ID & timeline discovery probe + response
     mgr -> agent snmp3 get user "" engineid "" engineboots 0 enginetime 0 reqid 3001 wait 2ms
-    mgr <- agent snmp3 response user "" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86400 reqid 3001 varbind 1.3.6.1.6.3.15.1.1.4.1 counter32 1 wait 2ms
+    mgr <- agent snmp3 response user "" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86400 reqid 3001 varbind 1.3.6.1.6.3.15.1.1.4.2 counter32 1 wait 2ms
 
     // 2. Level 2 — authNoPriv: Signed poll with HMAC-SHA-256 (RFC 7860), cleartext scopedPDU
     mgr -> agent snmp3 get user "auditor_ro" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86401 auth sha256 "AuditSha256Pass!" reqid 3002 varbind 1.3.6.1.2.1.1.5.0 null varbind 1.3.6.1.2.1.1.6.0 null wait 2ms
     mgr <- agent snmp3 response user "auditor_ro" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86401 auth sha256 "AuditSha256Pass!" reqid 3002 varbind 1.3.6.1.2.1.1.5.0 string "core-rtr-01.prod.example.com" varbind 1.3.6.1.2.1.1.6.0 string "DC1 Row-B Rack-04 RU-40" wait 5ms
 
     // 3. Level 3 — authPriv: Signed & encrypted SET, RESPONSE, TRAP, and INFORM (HMAC-SHA-512 + AES-128)
-    mgr -> agent dscp 48 snmp3 set user "netadmin_rw" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86402 contextname "vrf-prod" auth sha512 "AdminSha512Key!" priv aes "AdminAes128Key!" reqid 3003 varbind 1.3.6.1.2.1.1.4.1 string "noc@example.com" wait 2ms
-    mgr <- agent dscp 48 snmp3 response user "netadmin_rw" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86402 contextname "vrf-prod" auth sha512 "AdminSha512Key!" priv aes "AdminAes128Key!" reqid 3003 varbind 1.3.6.1.2.1.1.4.1 string "noc@example.com" wait 5ms
+    mgr -> agent dscp 48 snmp3 set user "netadmin_rw" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86402 contextname "vrf-prod" auth sha512 "AdminSha512Key!" priv aes "AdminAes128Key!" reqid 3003 varbind 1.3.6.1.2.1.1.4.2 string "noc@example.com" wait 2ms
+    mgr <- agent dscp 48 snmp3 response user "netadmin_rw" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86402 contextname "vrf-prod" auth sha512 "AdminSha512Key!" priv aes "AdminAes128Key!" reqid 3003 varbind 1.3.6.1.2.1.1.4.2 string "noc@example.com" wait 5ms
 
     // Encrypted SNMPv3 TRAP on UDP 162 (sysUpTime.0 and snmpTrapOID.0 auto-prepended)
     mgr <- agent dscp 48 snmp3 trap user "netadmin_rw" engineid "80001f8880aabbccddeeff" engineboots 12 enginetime 86405 contextname "vrf-prod" auth sha512 "AdminSha512Key!" priv aes "AdminAes128Key!" reqid 3004 sysuptime 8640500 oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.1.10 int 10 varbind 1.3.6.1.2.1.2.2.1.8.10 int 2 wait 5ms
@@ -12522,13 +12522,13 @@ HOST smiv1_nms { IP 10.108.0.100 MAC 00:1a:a1:08:00:64 }
 
 // INSTRUCTION: Define a flow sending a single SNMPv1 trap carrying STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, and GAUGE32 varbinds.
 FLOW snmpv1_all_smiv1_varbinds(agent, nms) {
-    agent -> nms SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.1.8072
+    agent -> nms SNMP1 TRAP COMMUNITY "public" ENTERPRISE 1.3.6.1.4.2.8072
         AGENTIP 10.108.0.1 GENTRAP 6 SPECTRAP 99 SYSUPTIME 50000
         VARBIND 1.3.6.1.2.1.1.5.0 STRING "edge-rtr-01"
         VARBIND 1.3.6.1.2.1.2.1.0 INT 24
         VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 50000
         VARBIND 1.3.6.1.2.1.4.20.1.1.10.108.0.1 IPVAL 10.108.0.1
-        VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.8072.3.2.10
+        VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.2.8072.3.2.10
         VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 9876543
         VARBIND 1.3.6.1.2.1.2.2.1.5.1 GAUGE32 1000000000
 }
@@ -12554,10 +12554,10 @@ HOST secops_nms { IP 10.104.0.99 MAC 00:19:56:00:01:99 }
 // INSTRUCTION: Define a flow sending an SNMPv1 authenticationFailure trap (GENTRAP 4) with the offending host IP in an IPVAL varbind.
 FLOW snmpv1_auth_failure(agent, nms) {
     agent -> nms SNMP1 TRAP COMMUNITY "sec_trap" OID 1.3.6.1.6.3.1.1.5.5
-        ENTERPRISE 1.3.6.1.4.1.9.1 AGENTIP 10.104.0.1 GENTRAP 4 SPECTRAP 0
+        ENTERPRISE 1.3.6.1.4.2.9.1 AGENTIP 10.104.0.1 GENTRAP 4 SPECTRAP 0
         SYSUPTIME 543210
-        VARBIND 1.3.6.1.4.1.9.2.1.5.0 IPVAL 192.168.66.13
-        VARBIND 1.3.6.1.4.1.9.2.1.6.0 STRING "bad_community_attempt"
+        VARBIND 1.3.6.1.4.2.9.2.1.5.0 IPVAL 192.168.66.13
+        VARBIND 1.3.6.1.4.2.9.2.1.6.0 STRING "bad_community_attempt"
 }
 
 // INSTRUCTION: Compile block to emit the SNMPv1 authenticationFailure trap.
@@ -12584,12 +12584,12 @@ FLOW snmpv2c_all_nine_varbinds(tester, agent) {
         VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL
         WAIT 10ms
     tester <- agent SNMP2 RESPONSE COMMUNITY "all_types" REQID 9999
-        VARBIND 1.3.6.1.2.1.1.4.1 NULLVAL
+        VARBIND 1.3.6.1.2.1.1.4.2 NULLVAL
         VARBIND 1.3.6.1.2.1.1.5.0 STRING "ref-agent-01"
-        VARBIND 1.3.6.1.4.1.9999.1.1.0 INT -42
+        VARBIND 1.3.6.1.4.2.9999.1.1.0 INT -42
         VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 360000
         VARBIND 1.3.6.1.2.1.4.20.1.1.10.127.0.20 IPVAL 10.127.0.20
-        VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.8072.3.2.10
+        VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.2.8072.3.2.10
         VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 500000
         VARBIND 1.3.6.1.2.1.2.2.1.5.1 GAUGE32 100000000
         VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 9876543210123
@@ -13338,8 +13338,8 @@ FLOW omnibus_tcp_udp(a, b) {
 
 // INSTRUCTION: Define a flow exercising SNMP1, SNMP2, and SNMP3 across all 7 PDU types, all 9 VarBind types, and all 5 AUTH and 2 PRIV algorithms.
 FLOW omnibus_snmp(agent, nms) {
-    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.4.1.8072
-        ENTERPRISE 1.3.6.1.4.1.8072 AGENTIP 10.254.0.1 GENTRAP 6 SPECTRAP 1
+    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.4.2.8072
+        ENTERPRISE 1.3.6.1.4.2.8072 AGENTIP 10.254.0.1 GENTRAP 6 SPECTRAP 1
         SYSUPTIME 100
         VARBIND 1.3.6.1.2.1.1.5.0 STRING "omni"
         VARBIND 1.3.6.1.2.1.2.1.0 INT -5
@@ -13348,7 +13348,7 @@ FLOW omnibus_snmp(agent, nms) {
     agent <- nms SNMP2 RESPONSE COMMUNITY "public" REQID 101
         VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 500
         VARBIND 1.3.6.1.2.1.4.20.1.1.10.254.0.1 IPVAL 10.254.0.1
-        VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.8072
+        VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.2.8072
     agent -> nms SNMP2 GETNEXT COMMUNITY "public" REQID 102
         VARBIND 1.3.6.1.2.1.1 NULLVAL
     agent -> nms SNMP2 GETBULK COMMUNITY "public" REQID 103 NONREPEATERS 1
@@ -13406,7 +13406,7 @@ FLOW web_traffic(client, server) {
 
 // INSTRUCTION: Define a flow for SNMPv3 monitoring with authentication.
 FLOW secure_monitoring(agent, nms) {
-    agent -> nms SNMP3 TRAP USER "admin_user" OID 1.3.6.1.4.1 SYSUPTIME 50000
+    agent -> nms SNMP3 TRAP USER "admin_user" OID 1.3.6.1.4.2 SYSUPTIME 50000
 }
 
 // INSTRUCTION: Compile block to simulate traffic between the router, web server, and monitoring server.

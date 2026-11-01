@@ -19,7 +19,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
-VERSION="${1:-1.4.1}"
+VERSION="${1:-1.4.2}"
 VERSION="${VERSION#v}" # strip leading 'v' if provided
 
 BINARY_PATH="${2:-}"
@@ -120,6 +120,7 @@ Homepage: https://github.com/SteveWinschel/FrameAssembly
 EOF
 
 chmod 644 "${STAGE_DIR}/DEBIAN/control"
+find "${STAGE_DIR}" -type d -exec chmod 755 {} +
 
 DEB_FILENAME="frameassembly_${VERSION}_${TARGET_ARCH}.deb"
 OUTPUT_FILE="${OUTPUT_DIR}/${DEB_FILENAME}"

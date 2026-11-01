@@ -33,7 +33,7 @@ Always enforce these version-exact (`0.28.15`), RFC-compliant, zero-copy, and cr
     - However, passing a 1-arc `ObjectIdentifier` to `rasn::ber::encode` fails at serialization time with `BerEncodeErrorKind::InvalidObjectIdentifier` because ITU-T X.690 §8.19 requires at least 2 arcs to compute `(first * 40) + second`.
     - **Mandatory Rule**: Every `parse_oid` implementation MUST explicitly enforce `if oid_vec.len() < 2 { return Err(...); }` before calling `ObjectIdentifier::new(oid_vec)`. Never call `new_unchecked` on untrusted or external DSL input.
   - **Zero-Heap Compile-Time Static OIDs**:
-    - For standard protocol OIDs (such as `sysUpTime.0` `1.3.6.1.2.1.1.3.0` or `snmpTrapOID.0` `1.3.6.1.6.3.1.1.4.1.0`), use `ObjectIdentifier::from(Oid::const_new(&[1, 3, 6, 1, 2, 1, 1, 3, 0]))` instead of `ObjectIdentifier::new(vec![...]).unwrap()` to avoid heap allocation during `const` construction.
+    - For standard protocol OIDs (such as `sysUpTime.0` `1.3.6.1.2.1.1.3.0` or `snmpTrapOID.0` `1.3.6.1.6.3.1.1.4.2.0`), use `ObjectIdentifier::from(Oid::const_new(&[1, 3, 6, 1, 2, 1, 1, 3, 0]))` instead of `ObjectIdentifier::new(vec![...]).unwrap()` to avoid heap allocation during `const` construction.
 
 - **Zero-Heap `Integer` & `OctetString` Representation (`rasn 0.28.15`)**:
   - `rasn::types::Integer` is a **hybrid enum** (`IntegerKind::Primitive(isize)` vs. `IntegerKind::Big(BigInt)`), **not** an unconditional heap-allocated `BigInt`! All `i8`, `i16`, `i32`, `i64` (on 64-bit targets), `u8`, `u16`, `u32`, and `isize` values construct `IntegerKind::Primitive(isize)` on the stack with **zero heap allocation**, while seamlessly spilling over to `Big(BigInt)` only for values outside `isize::MIN..=isize::MAX` (such as `u64::MAX`).
@@ -118,7 +118,7 @@ Always enforce these version-exact (`0.28.15`), RFC-compliant, zero-copy, and cr
 - **Mandatory SNMPv2c/v3 Notification VarBind Ordering (`Trap` & `Inform`)**:
   - Every SNMPv2c/v3 `Trap` (`0xa7`) or `InformRequest` (`0xa6`) PDU MUST prepend two standard variable bindings in exact order before any user variable bindings:
     1. Index 0: `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) -> `ApplicationSyntax::Ticks(TimeTicks(uptime))`.
-    2. Index 1: `snmpTrapOID.0` (`1.3.6.1.6.3.1.1.4.1.0`) -> `SimpleSyntax::ObjectId(trap_oid)`.
+    2. Index 1: `snmpTrapOID.0` (`1.3.6.1.6.3.1.1.4.2.0`) -> `SimpleSyntax::ObjectId(trap_oid)`.
     3. Index 2+: User-supplied variable bindings.
   - Non-notification PDUs (`Get`, `GetNext`, `GetBulk`, `Set`, `Response`) MUST NOT prepend `sysUpTime.0` or `snmpTrapOID.0`.
 

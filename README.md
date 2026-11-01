@@ -7,7 +7,7 @@
 
 [**Copy-Paste Packet Recipes**](#copy-paste-packet-recipes-for-common-network-tasks) • [**The 3-Step Mental Model**](#the-3-step-mental-model-for-network-engineers) • [**Terminal Ladder (`frameassembly show`)**](#visual-packet-ladders--terminal-inspection-frameassembly-show) • [**Multi-Platform Install**](#multi-platform-installation) • [**Wireshark Cheat Sheet**](#from-wireshark--tcpdump-to-fasm-translation-table) • [**Common Mistakes**](#common-syntax-mistakes--plain-english-error-messages) • [**All 81 Protocols**](#supported-protocols--default-wire-behavior) • [**FAQ & Disambiguation**](#faq-what-is-a-fasm-file-frameassembly-vs-flat-assembler-vs-fpga-fasm) • [**Documentation**](#documentation)
 
-**FrameAssembly** (`frameassembly` v1.4.1) is a **rootless, offline "Packets as Code" ("PCAP as Code") packet generator and compiler** that turns a **plain-text packet recipe (`.fasm`, media type `text/vnd.frameassembly`) into a deterministic `.pcap` / `.pcapng` packet capture file** across **81 network protocols spanning Layers 2 through 7**—with no `libpcap` or raw sockets required.
+**FrameAssembly** (`frameassembly` v1.4.2) is a **rootless, offline "Packets as Code" ("PCAP as Code") packet generator and compiler** that turns a **plain-text packet recipe (`.fasm`, media type `text/vnd.frameassembly`) into a deterministic `.pcap` / `.pcapng` packet capture file** across **81 network protocols spanning Layers 2 through 7**—with no `libpcap` or raw sockets required.
 
 It is built for **network technicians, firewall engineers, Linux system administrators, NOC/SOC analysts, and OT/SCADA integrators** who want a **Scapy alternative without Python**, without clicking through GUI stream dialogs in `Ostinato`, and without fighting raw hexadecimal byte offsets in `text2pcap`. Positioned as the upstream companion compiler to your analysis and replay tools, you simply list the devices in your scenario, write one line per packet using everyday networking terms (`VLAN 100`, `TCP SYN`, `DSTPORT 443`, `DSCP 46`, `SNMP3 TRAP`), and FrameAssembly automatically builds the Ethernet/IPv4/IPv6/TCP/UDP/SCTP headers, calculates lengths and checksums, swaps ports on reply packets (`<-`), and tracks TCP `SEQ`/`ACK` numbers—producing a clean, zero-noise `.pcap` file ready to open in **Wireshark** / **`tshark`**, feed into **Suricata** / **Zeek**, or transmit onto a live network port with **`tcpreplay`**.
 
@@ -291,7 +291,7 @@ Install FrameAssembly using your platform's standard package manager:
 | **Any (Rust 1.85+)** | **Cargo** (crates.io) | `cargo install frameassembly` | `frameassembly` |
 | **Browser / Node.js** | **NPM** (WebAssembly compiler) | `npm install frameassembly-wasm` | `frameassembly-wasm` |
 | **VS Code / Cursor / VSCodium** | **VS Marketplace & Open VSX** | `code --install-extension SteveWinschel.frameassembly` | `SteveWinschel.frameassembly` |
-| **Direct Binaries** | **GitHub Releases** (`.tar.gz`, `.zip`, `.deb`, `.vsix`) | [Download from GitHub Releases (`latest`)](https://github.com/SteveWinschel/FrameAssembly/releases/latest) | `v1.4.1` |
+| **Direct Binaries** | **GitHub Releases** (`.tar.gz`, `.zip`, `.deb`, `.vsix`) | [Download from GitHub Releases (`latest`)](https://github.com/SteveWinschel/FrameAssembly/releases/latest) | `v1.4.2` |
 
 ---
 

@@ -16,6 +16,7 @@ lints.json
 *.pcap
 *.pcapng
 temp/
+dist/
 .agents/teamwork/
 
 # Python files & bytecode

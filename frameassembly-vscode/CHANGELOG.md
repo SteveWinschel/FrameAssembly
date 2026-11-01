@@ -4,10 +4,10 @@ All notable changes to the "frameassembly-vscode" extension will be documented i
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [1.4.1] - 2026-11-01
+## [1.4.2] - 2026-11-01
 - Full multi-platform packaging and distribution release automation across APT, AUR, WinGet, Homebrew, and Scoop.
 - Official WebAssembly compiler package (`frameassembly-wasm`) on NPM for browser and node runtimes.
-- Synchronized with FrameAssembly v1.4.1 release.
+- Synchronized with FrameAssembly v1.4.2 release.
 
 ## [1.3.1] - 2026-11-01
 - Multi-platform packaging and distribution release synchronization across APT, AUR, WinGet, Homebrew, and Scoop.

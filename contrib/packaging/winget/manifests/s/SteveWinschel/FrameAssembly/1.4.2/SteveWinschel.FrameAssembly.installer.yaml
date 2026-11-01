@@ -10,13 +10,13 @@ NestedInstallerType: portable
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.2/frameassembly-v1.4.2-x86_64-pc-windows-msvc.zip
-    InstallerSha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    InstallerSha256: "d0e53074f0bea11d033197626e9f869811cf1110072a48c3a1cdb007c85c0110"
     NestedInstallerFiles:
       - RelativeFilePath: frameassembly-v1.4.2-x86_64-pc-windows-msvc\frameassembly.exe
         PortableCommandAlias: frameassembly
   - Architecture: arm64
     InstallerUrl: https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.2/frameassembly-v1.4.2-aarch64-pc-windows-msvc.zip
-    InstallerSha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    InstallerSha256: "38dd027545f8e587706831533928f7a027f6e2f385b302bf67125a1c87c9dcee"
     NestedInstallerFiles:
       - RelativeFilePath: frameassembly-v1.4.2-aarch64-pc-windows-msvc\frameassembly.exe
         PortableCommandAlias: frameassembly

@@ -1,12 +1,22 @@
 # Layer 7 Core Infrastructure, Precision Time, AAA & Flow Telemetry Reference
 
-Whether you need a **DNS / DHCP / RADIUS / TACACS+ / Syslog / NetFlow v5 / IPFIX / sFlow test capture** or an **mDNS / NTPv4 / IEEE 1588v2 PTP precision timing pcap generator**, this guide covers the **11 core network infrastructure, precision clock synchronization, AAA access security, centralized logging, and flow telemetry protocols** in FrameAssembly across IPv4 and IPv6:
+Standing up `bind`, `kea-dhcp4`/`kea-dhcp6`, FreeRADIUS/Cisco ISE, a Stratum-1 NTP/PTP grandmaster, and waiting for a hardware router to export NetFlow/IPFIX/sFlow templates just to verify a firewall rule, SIEM parser, or DNS sinkhole takes hours of lab plumbing. FrameAssembly solves that with a few lines of `.fasm` code and two CLI commands:
+
+```bash
+# 1. Compile the .fasm code into a deterministic .pcap capture
+frameassembly infra.fasm -o infra.pcap
+
+# 2. Replay the traffic onto the network interface (or open infra.pcap in Wireshark / Suricata)
+sudo tcpreplay -i eth0 infra.pcap
+```
+
+This guide covers all **11 core network infrastructure, precision clock synchronization, AAA access security, centralized logging, and flow telemetry protocols** across IPv4 and IPv6:
 * **Naming & Address Assignment (3 Protocols):** `DNS`, `MDNS`, `DHCP`
 * **Precision Time Synchronization (2 Protocols):** `NTP`, `PTP`
 * **AAA Access & Device Administration (2 Protocols):** `RADIUS`, `TACACS`
 * **Centralized Logging & Flow Telemetry (4 Protocols):** `SYSLOG`, `NETFLOW`, `IPFIX`, `SFLOW`
 
-> **Looking for `SSH`, `TELNET`, `TFTP`, `FTP`, or `WHOIS`?**
+> **Where to Find `SSH`, `TELNET`, `TFTP`, `FTP`, and `WHOIS`:**
 > Remote CLI, file transfer, and registry protocols (`TFTP`, `FTP`, `SSH`, `TELNET`, and `WHOIS`) are covered in **[Layer 7 Web, Cloud, VoIP & Remote Access Reference (`l7_web_and_cloud.md`)](l7_web_and_cloud.md)**. For SNMP polling and traps (`SNMP1`, `SNMP2`, `SNMP3`), see **[Layer 7 SNMP Reference (`l7_snmp.md`)](l7_snmp.md)**.
 
 ---
@@ -33,11 +43,11 @@ Every protocol works with **zero mandatory sub-keywords** (emitting RFC-complian
 
 ## 1. Naming & Address Assignment (`DNS`, `MDNS`, `DHCP`)
 
-Whether you are validating DDI appliances (Infoblox, BlueCat, Kea, `dnsmasq`, `named`), testing DNS sinkholes and RPZ firewall rules, or troubleshooting campus client onboarding (`DHCP` DORA / SARR + `DNS` + `MDNS`), FrameAssembly lets you build complete dual-stack onboarding captures in a few readable lines.
+Validating DDI appliances (Infoblox, BlueCat, Kea, `dnsmasq`, `named`), testing DNS RPZ sinkholes, or troubleshooting dual-stack campus client onboarding (`DHCP` DORA / SARR + `DNS` + `MDNS`) doesn't require spinning up DHCP scopes or poisoning a lab resolver. A few lines of `.fasm` code synthesize the entire sequence with valid ports and multicast MACs.
 
 ### 1.1 `DNS` (Domain Name System — RFC 1035 / RFC 3596)
 
-Need a **DNS `A`/`AAAA`/`PTR`/`SRV`/`TXT` query & `NXDOMAIN` sinkhole pcap**, or a **DNS zone transfer (`AXFR`) over TCP port 53 capture**? On the wire, `DNS` builds a 12-byte RFC 1035 header, encodes `QNAME` into length-prefixed DNS labels (`[3]www[7]example[3]com[0]`), and—when `RESPONSE` or `RDATA` is present—appends an Answer Resource Record using RFC 1035 `0xC00C` name compression. Adding `TRANSPORT TCP` automatically prepends the mandatory 2-byte big-endian message length prefix (RFC 1035 §4.2.2) for zone transfers (`AXFR`) or large responses.
+Testing DNS sinkholes (`NXDOMAIN` / `REFUSED`), split-horizon records (`A`, `AAAA`, `PTR`, `SRV`, `TXT`), or unauthorized zone transfer (`AXFR`) alerts in Suricata and Zeek usually means editing zone files in `bind` or `dnsmasq` and firing `dig` commands across VLANs. Instead, write the query and response directly in `.fasm` code. On the wire, `DNS` builds a 12-byte RFC 1035 header, encodes `QNAME` into length-prefixed DNS labels (`[3]www[7]example[3]com[0]`), and—when `RESPONSE` or `RDATA` is present—appends an Answer Resource Record using RFC 1035 `0xC00C` name compression. Adding `TRANSPORT TCP` automatically prepends the mandatory 2-byte big-endian message length prefix (RFC 1035 §4.2.2) for zone transfers (`AXFR`) or large responses.
 
 | Modifier | Syntax | Default Value | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -54,13 +64,13 @@ Need a **DNS `A`/`AAAA`/`PTR`/`SRV`/`TXT` query & `NXDOMAIN` sinkhole pcap**, or
 
 ### 1.2 `MDNS` (Multicast DNS / Bonjour / Avahi — RFC 6762 & RFC 6763)
 
-Need a **Multicast DNS (`mDNS` / Bonjour / Avahi) UDP 5353 printer & IoT service discovery pcap**? `MDNS` shares the exact same modifiers as `DNS` (`QUERY`, `RESPONSE`, `TXID`, `QNAME`, `QTYPE`, `RDATA`, `RCODE`, `ANS_TTL`), but automatically applies RFC 6762 link-local multicast addressing over **UDP port `5353`**:
+Reproducing Apple Bonjour or Avahi `mDNS` printer and IoT service discovery across campus VLANs normally requires physical IoT hardware or a multicast reflector daemon. In `.fasm` code, `MDNS` shares the exact same modifiers as `DNS` (`QUERY`, `RESPONSE`, `TXID`, `QNAME`, `QTYPE`, `RDATA`, `RCODE`, `ANS_TTL`), while automatically applying RFC 6762 link-local multicast addressing over **UDP port `5353`**:
 * **Over IPv4:** Automatically sets the destination IP to **`224.0.0.251`** and derives the RFC 1112 multicast destination MAC **`01:00:5e:00:00:fb`** (unless explicitly overridden).
 * **Over IPv6:** Automatically sets the destination IP to **`ff02::fb`** and derives the RFC 2464 multicast destination MAC **`33:33:00:00:00:fb`** (unless explicitly overridden).
 
 ### 1.3 `DHCP` (DHCPv4 BOOTP & DHCPv6 — RFC 2131 / RFC 2132 / RFC 8415)
 
-Need a **DHCPv4 DORA (`Discover`/`Offer`/`Request`/`ACK`) or DHCPv6 SARR (`Solicit`/`Advertise`/`Request`/`Reply`) lease test capture**? The `DHCP` keyword is fully dual-stack. When used between IPv4 hosts, it builds a 236-byte BOOTP header + RFC 1497 magic cookie (`0x63825363`) + TLV DHCPv4 options over **UDP ports `68` / `67`**. When used between IPv6 hosts, it builds an RFC 8415 DHCPv6 message + Client DUID-LL option (Option `1`) over **UDP ports `546` / `547`**.
+Verifying switch DHCP snooping, Dynamic ARP Inspection (DAI), or relay agent ACLs shouldn't require plugging a rogue DHCP server into a switch port. The `DHCP` keyword is fully dual-stack: between IPv4 hosts, it builds a 236-byte BOOTP header + RFC 1497 magic cookie (`0x63825363`) + TLV DHCPv4 options over **UDP ports `68` / `67`** for a complete DORA (`Discover` / `Offer` / `Request` / `ACK`) handshake; between IPv6 hosts, it builds an RFC 8415 DHCPv6 SARR (`Solicit` / `Advertise` / `Request` / `Reply`) exchange + Client DUID-LL option (Option `1`) over **UDP ports `546` / `547`**.
 
 | Modifier | Syntax | Default Value | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -133,7 +143,7 @@ Accurate clock synchronization is critical for correlating syslog/SIEM timelines
 
 ### 2.1 `NTP` (Network Time Protocol v4 — RFC 5905)
 
-Need an **NTPv4 UDP 123 Stratum-1 clock synchronization or Kiss-o'-Death (`KoD`) test capture**? `NTP` emits a 48-byte RFC 5905 packet over **UDP port `123`**, packing the Leap Indicator (`LI`), Version (`VN`), and Association Mode (`MODE`) into byte `0`, followed by Stratum, Poll, Precision, Reference ID, and 64-bit fixed-point timestamps.
+Testing firewall rules for UDP port `123`, simulating Stratum-1 GPS/PPS clock drift, or verifying how clients handle a Stratum-0 Kiss-o'-Death (`RATE` / `DENY`) packet is much easier when you don't have to reconfigure `chronyd` or `ntpd`. In `.fasm` code, `NTP` emits a 48-byte RFC 5905 packet over **UDP port `123`**, packing the Leap Indicator (`LI`), Version (`VN`), and Association Mode (`MODE`) into byte `0`, followed by Stratum, Poll, Precision, Reference ID, and 64-bit fixed-point timestamps.
 
 | Modifier | Syntax | Default Value | Wire Behavior & Common Values |
 | :--- | :--- | :--- | :--- |
@@ -148,7 +158,7 @@ Need an **NTPv4 UDP 123 Stratum-1 clock synchronization or Kiss-o'-Death (`KoD`)
 
 ### 2.2 `PTP` (Precision Time Protocol — IEEE 1588v2)
 
-Need an **IEEE 1588v2 PTP Grandmaster `Announce` / `Sync` / `Follow_Up` / `Delay_Req` / `Delay_Resp` UDP 319 & 320 pcap**? `PTP` builds a 44-byte IEEE 1588v2 frame (34-byte `commonPTP` header with `versionPTP = 2` + 10-byte `originTimestamp`) and **automatically selects the required UDP port** based on whether the message is time-critical (hardware-timestamped) or general:
+Hardware IEEE 1588v2 Grandmaster clocks cost thousands of dollars, making it painful to test PTP boundary clock ACLs, QoS `DSCP EF` queues, or SMPTE ST 2110 / financial-trading timing dissectors in a lab. `PTP` builds a 44-byte IEEE 1588v2 frame (34-byte `commonPTP` header with `versionPTP = 2` + 10-byte `originTimestamp`) directly from code and **automatically selects the required UDP port** based on whether the message is time-critical (hardware-timestamped) or general:
 * **UDP Port `319` (PTP Event Port):** Automatically selected for **`SYNC`** (`0x00`) and **`DELAY_REQ`** (`0x01`).
 * **UDP Port `320` (PTP General Port):** Automatically selected for **`FOLLOW_UP`** (`0x08`), **`DELAY_RESP`** (`0x09`), and **`ANNOUNCE`** (`0x0B`).
 
@@ -195,7 +205,7 @@ Network Access Control (802.1X / MAB / VPN authentication via FreeRADIUS, Cisco 
 
 ### 3.1 `RADIUS` (Authentication & Accounting — RFC 2865 / RFC 2866 / RFC 3162 / RFC 6911)
 
-Need a **RADIUS 802.1X `Access-Request` / `Access-Accept` / `Access-Challenge` (UDP 1812) or `Accounting-Request` (UDP 1813) pcap**? `RADIUS` builds a 20-byte fixed header (Code, Identifier, Length, 16-byte Authenticator) followed by TLV Attribute-Value Pairs (AVPs). FrameAssembly **automatically switches between UDP port `1812` and UDP port `1813`** and **automatically selects IPv4 vs. IPv6 RADIUS attribute codes**:
+Testing 802.1X NAC policies, VPN authentication flows, or RADIUS accounting collectors usually forces you to spin up FreeRADIUS, Cisco ISE, or Aruba ClearPass and wrangle supplicant certificates. With FrameAssembly, you script the entire `Access-Request` / `Access-Challenge` / `Access-Accept` and `Accounting-Request` exchange in `.fasm` code. `RADIUS` builds a 20-byte fixed header (Code, Identifier, Length, 16-byte Authenticator) followed by TLV Attribute-Value Pairs (AVPs). FrameAssembly **automatically switches between UDP port `1812` and UDP port `1813`** and **automatically selects IPv4 vs. IPv6 RADIUS attribute codes**:
 * **UDP Port `1812` (Authentication):** `ACCESS_REQUEST` (Code `1`), `ACCESS_ACCEPT` (Code `2`), `ACCESS_REJECT` (Code `3`), `ACCESS_CHALLENGE` (Code `11`).
 * **UDP Port `1813` (Accounting):** `ACCOUNTING_REQUEST` (Code `4`), `ACCOUNTING_RESPONSE` (Code `5`).
 * **Smart Dual-Stack AVPs:** Passing an IPv4 address to `NAS_IP` or `FRAMED_IP` emits RFC 2865 Attributes `4` (`NAS-IP-Address`) and `8` (`Framed-IP-Address`). Passing an IPv6 address automatically emits RFC 3162 Attribute `95` (`NAS-IPv6-Address`) and RFC 6911 Attribute `168` (`Framed-IPv6-Address`).
@@ -212,7 +222,7 @@ Need a **RADIUS 802.1X `Access-Request` / `Access-Accept` / `Access-Challenge` (
 
 ### 3.2 `TACACS` (TACACS+ Device Administration — RFC 8907)
 
-Need a **TACACS+ TCP 49 router CLI authentication, command authorization & accounting pcap**? `TACACS` runs over **TCP port `49`** and emits a 12-byte RFC 8907 header (`version = 0xC0`, `type`, `seq_no`, `flags`, `session_id`, `length`) followed by a formatted Authentication (`START`), Authorization (`REQUEST`), or Accounting (`REQUEST`) body.
+Auditing router and switch CLI command authorization (`cmd=configure`, `cmd=reload`) or SIEM TACACS+ parsers without logging into production jump boxes is a one-liner in `.fasm` code. `TACACS` runs over **TCP port `49`** and emits a 12-byte RFC 8907 header (`version = 0xC0`, `type`, `seq_no`, `flags`, `session_id`, `length`) followed by a formatted Authentication (`START`), Authorization (`REQUEST`), or Accounting (`REQUEST`) body.
 
 | Modifier | Syntax | Default Value | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -270,7 +280,7 @@ Testing SIEM ingestion rules (Splunk, Elastic, Graylog, Sentinel, QRadar, Loki) 
 
 ### 4.1 `SYSLOG` (RFC 5424 / RFC 6587 Event Logging)
 
-Need an **RFC 5424 Syslog UDP 514 or TCP 514 SIEM alert test capture**? `SYSLOG` formats an RFC 5424 message (`<PRI>1 2026-10-23T00:00:00Z <HOSTNAME> <APP> <PROCID> <MSGID> - <MSG>`) over **UDP port `514`** by default, or over **TCP port `514`** when `TRANSPORT TCP` is specified. Unless you override `PRI` directly, FrameAssembly calculates `PRI = (FACILITY * 8) + SEVERITY` automatically.
+When you write a new Splunk, Elastic, Sentinel, or Graylog Grok/regex parser for a BGP flap or SSH login alert, you shouldn't have to pull a core router's fiber just to see if the alert fires. `SYSLOG` formats an RFC 5424 message (`<PRI>1 2026-10-23T00:00:00Z <HOSTNAME> <APP> <PROCID> <MSGID> - <MSG>`) over **UDP port `514`** by default, or over **TCP port `514`** when `TRANSPORT TCP` is specified. Unless you override `PRI` directly, FrameAssembly calculates `PRI = (FACILITY * 8) + SEVERITY` automatically.
 
 | Modifier | Syntax | Default Value | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -299,7 +309,7 @@ Need an **RFC 5424 Syslog UDP 514 or TCP 514 SIEM alert test capture**? `SYSLOG`
 
 ### 4.2 `NETFLOW`, `IPFIX` & `SFLOW` (Network Flow & Packet Sampling Telemetry)
 
-Need a **Cisco NetFlow v5 (UDP 2055), IPFIX v10 (UDP 4739), or sFlow v5 (UDP 6343) collector test capture**?
+Waiting for a hardware switch or router to export flow records—or trying to generate synthetic high-byte-count elephant flows on a laptop—makes testing ElastiFlow, Akvorado, `pmacct`, `nfcapd`, or Kentik pipelines unnecessarily slow. In `.fasm` code, you specify the exact monitored source/destination IPs, ports, protocol byte, and packet/octet counters in a single statement:
 * **`NETFLOW` (Cisco NetFlow v5 — UDP `2055`):** Emits a 72-byte NetFlow v5 packet (24-byte v5 export header with `version = 5`, `count = 1`, `sys_uptime`, `unix_secs`, `flow_sequence` + 48-byte flow record).
 * **`IPFIX` (IETF IP Flow Information Export v10 — RFC 7011, UDP `4739`):** Emits a 16-byte IPFIX header (`version = 0x000a`, `length`, `export_time`, `seq_no`, `domain_id`) followed by Data Set `256` carrying source/destination IPs, transport ports, protocol byte, and 64-bit packet/octet delta counters.
 * **`SFLOW` (sFlow v5 — RFC 3176, UDP `6343`):** Emits a dual-stack sFlow v5 datagram header (`version = 5`, `address_type = 1` for IPv4 or `2` for IPv6, `agent_ip`, `sub_agent_id`, `seq_no`, `uptime`, `samples`) followed by a 32-byte Format `1` Flow Sample record.

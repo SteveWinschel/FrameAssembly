@@ -1,8 +1,8 @@
 {
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "FrameAssembly",
-  "description": "Rust compiler (v1.4.2) that turns plain-text .fasm network packet recipes into deterministic, nanosecond-precision .pcap / .pcapng packet captures across 81 native Layer 2 through Layer 7 protocols (2,611 verified .fasm corpus scenarios). Companion to Wireshark/tshark and tcpreplay.",
-  "version": "1.4.2",
+  "description": "Rootless Packets-as-Code DSL & Rust compiler (v1.4.3) that compiles declarative .fasm code into deterministic, nanosecond-precision .pcap / .pcapng packet captures across 81 native Layer 2 through Layer 7 protocols (2,611 verified .fasm corpus scenarios). Companion to Wireshark/tshark, tcpreplay, Suricata, and Zeek.",
+  "version": "1.4.3",
   "repository": "https://github.com/SteveWinschel/FrameAssembly",
   "folders": [
     "docs",
@@ -35,6 +35,7 @@
     "docs/l7_mail_auth_storage_db.md",
     "docs/l7_industrial_ot.md",
     "docs/topologies_and_dual_stack.md",
+    "docs/fasm-specification.md",
     "docs/for_nerds.md"
   ],
   "grammars": [

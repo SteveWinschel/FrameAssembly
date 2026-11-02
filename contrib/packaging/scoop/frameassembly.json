@@ -1,18 +1,18 @@
 {
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Rootless Packets-as-Code DSL & compiler: generate deterministic .pcap/.pcapng captures from .fasm across 81 L2-L7 protocols",
   "homepage": "https://github.com/SteveWinschel/FrameAssembly",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.2/frameassembly-v1.4.2-x86_64-pc-windows-msvc.zip",
-      "hash": "d0e53074f0bea11d033197626e9f869811cf1110072a48c3a1cdb007c85c0110",
-      "extract_dir": "frameassembly-v1.4.2-x86_64-pc-windows-msvc"
+      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.3/frameassembly-v1.4.3-x86_64-pc-windows-msvc.zip",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "extract_dir": "frameassembly-v1.4.3-x86_64-pc-windows-msvc"
     },
     "arm64": {
-      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.2/frameassembly-v1.4.2-aarch64-pc-windows-msvc.zip",
-      "hash": "38dd027545f8e587706831533928f7a027f6e2f385b302bf67125a1c87c9dcee",
-      "extract_dir": "frameassembly-v1.4.2-aarch64-pc-windows-msvc"
+      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.3/frameassembly-v1.4.3-aarch64-pc-windows-msvc.zip",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "extract_dir": "frameassembly-v1.4.3-aarch64-pc-windows-msvc"
     }
   },
   "bin": "frameassembly.exe",

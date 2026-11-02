@@ -1,8 +1,8 @@
 # Layer 4 Transport Protocols Reference (`TCP`, `UDP`, `SCTP`)
 
-This guide is a practical reference for Linux network administrators, firewall engineers, security operations (SOC) analysts, and mobile core / telecom engineers looking for a **TCP 3-way handshake, RFC 7323 options, UDP multicast, and 5G NGAP / 4G S1AP / SIGTRAN M3UA SCTP pcap generator**.
+Crafting custom TCP or SCTP traffic to test stateful firewalls or IDS rules is notorious for one reason: if a single `SEQ`, `ACK`, or Castagnoli `CRC32c` byte is off, stateful firewalls drop the packet (`ct state INVALID`) and Wireshark flags a broken stream.
 
-Whether you are validating stateful firewall connection tables, testing IDS/IPS signature engines against out-of-order TCP segments and zero-window stalls, verifying UDP multicast feeds, or troubleshooting 4G/5G (`S1AP`/`NGAP`) and SS7 SIGTRAN (`M3UA`) SCTP multi-stream associations, every Layer 4 protocol in FrameAssembly works out of the box with **zero mandatory keywords** while allowing you to override any header field, flag, or option on the wire.
+FrameAssembly tracks 4-tuple TCP sequence numbers, computes IPv4/IPv6 pseudo-header and SCTP `CRC32c` checksums, and swaps reply ports (`<-`) automatically when you want clean traffic—and lets you override `seq`, `acknum`, `win 0`, `rst`, or SCTP chunk flags on any line when you *want* to test how your firewall or IDS handles bad traffic. Write the conversation in a few lines of `.fasm` code, compile it with `frameassembly`, and replay or inspect it with `tcpreplay`, **Wireshark**, or **Suricata**. Every Layer 4 protocol (`TCP`, `UDP`, `SCTP`) works with zero mandatory sub-keywords while exposing every header field, RFC 7323 option, and telecom signaling `PPID` (5G `NGAP`, 4G `S1AP`, `M3UA`, Diameter) for explicit control.
 
 ---
 
@@ -16,9 +16,9 @@ Whether you are validating stateful firewall connection tables, testing IDS/IPS 
 
 ---
 
-## 1. `TCP` — Transmission Control Protocol (RFC 9293 & RFC 7323)
+### 1. `TCP` — Transmission Control Protocol (RFC 9293 & RFC 7323)
 
-### Plain-English Networking Overview
+### How FrameAssembly Tracks TCP State & Reply Ports
 
 When capturing or crafting TCP traffic manually with traditional packet tools, the hardest part is computing **Sequence Numbers (`SEQ`)**, **Acknowledgment Numbers (`ACKNUM`)**, and **reversed source/destination ports** across multi-packet conversations—especially when mixing raw TCP handshake frames (`SYN`, `SYN ACK`, `ACK`) with Layer 7 application payloads (`HTTP`, `TLS`, `SSH`, `BGP`, `SMB`, `MODBUS`, etc.). A single off-by-one sequence byte causes Wireshark to flag `[TCP Previous segment not captured]` or `[TCP Spurious Retransmission]`, and causes stateful firewalls (`nftables`/`conntrack`, Palo Alto, FortiGate, CheckPoint) to drop the packet as out-of-window.
 
@@ -186,7 +186,7 @@ compile {
 
 ## 2. `UDP` — User Datagram Protocol (RFC 768 & RFC 8200)
 
-### Plain-English Networking Overview
+### Connectionless Datagrams, Multicast & IPv6 Checksums
 
 **UDP (`IP Protocol 17`)** provides connectionless, zero-handshake datagram delivery with an 8-byte header (`Source Port`, `Destination Port`, `Length`, and `Checksum`). Network engineers rely on raw and L7-backed UDP captures to validate:
 
@@ -212,7 +212,7 @@ compile {
 
 > **Guardrail**: Never combine TCP-only modifiers (`syn`, `ack`, `fin`, `rst`, `psh`, `seq`, `acknum`, `win`, `mss`, `wscale`, `tsval`) with a `udp` statement; FrameAssembly rejects TCP flags on UDP datagrams with a clear validation error highlighting the invalid flag in your `.fasm` file.
 
-### Compilable Example 2: Unicast Request/Reply, IPv6 Multicast Feed & Dual-Transport `MODBUS` over UDP
+### Compilable Example 2: Unicast Request/Reply, Multicast Telemetry Feed & Dual-Transport `MODBUS` over UDP
 
 ```frameassembly
 // UDP unicast request/reply port reversal, multicast telemetry, and Modbus over UDP
@@ -253,7 +253,7 @@ compile {
 
 ## 3. `SCTP` — Stream Control Transmission Protocol (RFC 9260)
 
-### Plain-English Networking Overview
+### Multi-Stream Telecom Signaling & 4-Way Cookie Handshakes
 
 **SCTP (`IP Protocol 132`, RFC 9260 / RFC 4960)** is a message-oriented, reliable transport protocol heavily used in **4G LTE / 5G Core mobile networks** (`S1AP` between eNodeB and MME, `NGAP` between gNodeB and AMF, `X2AP`/`XnAP`), **Diameter AAA signaling**, **SS7 SIGTRAN (`M3UA`)** telecom PSTN gateways, and **WebRTC Data Channels**.
 

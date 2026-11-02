@@ -1,15 +1,15 @@
 [package]
 name = "frameassembly"
-version = "1.4.2"
+version = "1.4.3"
 edition = "2024"
 rust-version = "1.85"
-description = "Offline, rootless PCAP generator & Packets-as-Code DSL: generate deterministic .pcap/.pcapng from text across 81 protocols for Wireshark, tcpreplay & IDS."
+description = "Compile .fasm code into deterministic .pcap/.pcapng captures across 81 L2-L7 protocols to test firewalls, IDS rules, SNMPv3 traps, Wireshark & Rust."
 authors = ["Steve Winschel"]
 license = "MIT"
 documentation = "https://docs.rs/frameassembly"
 homepage = "https://github.com/SteveWinschel/FrameAssembly"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
-keywords = ["pcap", "pcapng", "packet-generator", "packet-crafting", "wireshark"]
+keywords = ["pcap", "pcapng", "packet-generator", "networking", "wireshark", "pentesting"]
 categories = [
     "network-programming",
     "command-line-utilities",

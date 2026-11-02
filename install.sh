@@ -27,8 +27,8 @@ set -eu
 REQUIRED_RUST_MAJOR=1
 REQUIRED_RUST_MINOR=85
 CRATE_NAME="frameassembly"
-VSIX_VERSION="1.4.2"
-RELEASE_VERSION="1.4.2"
+VSIX_VERSION="1.4.3"
+RELEASE_VERSION="1.4.3"
 VSIX_RAW_URL="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-${VSIX_VERSION}.vsix"
 GITHUB_RELEASE_BASE="https://github.com/SteveWinschel/FrameAssembly/releases/download/v${RELEASE_VERSION}"
 RUSTUP_INIT_URL="https://sh.rustup.rs"
@@ -412,7 +412,7 @@ main() {
 
     if command -v frameassembly >/dev/null 2>&1; then
         log_ok "Successfully installed $(frameassembly --version)!"
-        log_info "Quickstart: frameassembly --explain snmp3 > demo.fasm && frameassembly demo.fasm -i"
+        log_info "Quickstart: frameassembly demo.fasm -o output.pcap && frameassembly show demo.fasm"
     else
         log_warn "frameassembly was installed to ${CARGO_HOME:-$HOME/.cargo}/bin, which is not yet in your current shell PATH."
         log_warn "Run: . \"${CARGO_HOME:-$HOME/.cargo}/env\"  (or restart your terminal)"

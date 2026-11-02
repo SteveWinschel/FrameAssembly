@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing git tag to build and publish (e.g. v1.4.2)'
+        description: 'Existing git tag to build and publish (e.g. v1.4.3)'
         required: false
         type: string
 
@@ -255,14 +255,33 @@ jobs:
         working-directory: frameassembly-wasm
         run: |
           wasm-pack build --release --target web
+          node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("pkg/package.json", "utf8"));
+            pkg.repository = {
+              type: "git",
+              url: "git+https://github.com/SteveWinschel/FrameAssembly.git"
+            };
+            fs.writeFileSync("pkg/package.json", JSON.stringify(pkg, null, 2) + "\n");
+          '
 
       - name: Package WASM tarball
         run: |
           TAG="${{ needs.prepare.outputs.tag }}"
           tar -czf "frameassembly-wasm-${TAG}.tar.gz" -C frameassembly-wasm pkg
 
+      - name: Upload WASM archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-wasm
+          path: frameassembly-wasm-*.tar.gz
+          if-no-files-found: error
+          retention-days: 5
+
       - name: Publish to NPM Registry via Token (Optional)
+        id: npm_token_publish
         if: ${{ env.NPM_TOKEN != '' }}
+        continue-on-error: true
         working-directory: frameassembly-wasm/pkg
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -272,21 +291,14 @@ jobs:
           npm publish --provenance --access public
 
       - name: Publish to NPM Registry via OIDC Trusted Publisher
-        if: ${{ env.NPM_TOKEN == '' }}
+        if: ${{ env.NPM_TOKEN == '' || steps.npm_token_publish.outcome == 'failure' }}
         continue-on-error: true
         working-directory: frameassembly-wasm/pkg
         run: |
           npm install -g npm@latest
           rm -f ~/.npmrc "$NPM_CONFIG_USERCONFIG"
+          unset NPM_TOKEN NODE_AUTH_TOKEN NPM_CONFIG_USERCONFIG
           npm publish --provenance --access public
-
-      - name: Upload WASM archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-wasm
-          path: frameassembly-wasm-*.tar.gz
-          if-no-files-found: error
-          retention-days: 5
 
   vscode-extension:
     name: Package & Publish VS Code Extension (.vsix)
@@ -323,35 +335,6 @@ jobs:
           VERSION="${TAG#v}"
           npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o "frameassembly-vscode-${VERSION}.vsix"
 
-      - name: Publish to Visual Studio Marketplace via PAT (Optional)
-        if: ${{ env.VSCE_PAT != '' }}
-        working-directory: frameassembly-vscode
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: |
-          TAG="${{ needs.prepare.outputs.tag }}"
-          VERSION="${TAG#v}"
-          npx --yes @vscode/vsce publish -p "${{ secrets.VSCE_PAT }}" --packagePath "frameassembly-vscode-${VERSION}.vsix"
-
-      - name: Publish to Visual Studio Marketplace via OIDC Trusted Publisher
-        if: ${{ env.VSCE_PAT == '' }}
-        continue-on-error: true
-        working-directory: frameassembly-vscode
-        run: |
-          TAG="${{ needs.prepare.outputs.tag }}"
-          VERSION="${TAG#v}"
-          npx --yes @vscode/vsce publish --packagePath "frameassembly-vscode-${VERSION}.vsix"
-
-      - name: Publish to Open VSX Registry (Optional)
-        if: ${{ env.OVSX_PAT != '' }}
-        working-directory: frameassembly-vscode
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: |
-          TAG="${{ needs.prepare.outputs.tag }}"
-          VERSION="${TAG#v}"
-          npx --yes ovsx publish -p "${{ secrets.OVSX_PAT }}" --packagePath "frameassembly-vscode-${VERSION}.vsix"
-
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
@@ -359,6 +342,39 @@ jobs:
           path: frameassembly-vscode/*.vsix
           if-no-files-found: error
           retention-days: 5
+
+      - name: Publish to Visual Studio Marketplace via PAT (Optional)
+        id: vsce_pat_publish
+        if: ${{ env.VSCE_PAT != '' }}
+        continue-on-error: true
+        working-directory: frameassembly-vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          VERSION="${TAG#v}"
+          npx --yes @vscode/vsce@latest publish -p "${{ secrets.VSCE_PAT }}" --packagePath "frameassembly-vscode-${VERSION}.vsix"
+
+      - name: Publish to Visual Studio Marketplace via OIDC Trusted Publisher
+        if: ${{ env.VSCE_PAT == '' || steps.vsce_pat_publish.outcome == 'failure' }}
+        continue-on-error: true
+        working-directory: frameassembly-vscode
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          VERSION="${TAG#v}"
+          unset VSCE_PAT
+          npx --yes @vscode/vsce@latest publish --oidc --packagePath "frameassembly-vscode-${VERSION}.vsix"
+
+      - name: Publish to Open VSX Registry (Optional)
+        if: ${{ env.OVSX_PAT != '' }}
+        continue-on-error: true
+        working-directory: frameassembly-vscode
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          VERSION="${TAG#v}"
+          npx --yes ovsx publish -p "${{ secrets.OVSX_PAT }}" --packagePath "frameassembly-vscode-${VERSION}.vsix"
 
   publish:
     name: Checksum, Attest & Publish Release

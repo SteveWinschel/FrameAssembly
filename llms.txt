@@ -1,8 +1,12 @@
 # FrameAssembly (`frameassembly`)
 
-> Rootless, offline "Packets as Code" Rust DSL & compiler (v1.4.2) that compiles plain-text `.fasm` (`text/vnd.frameassembly`) packet recipes into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built for network engineers who do not program; an upstream companion to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS validation).
+> Rootless, offline "Packets as Code" Rust DSL & compiler (v1.4.3) that compiles declarative `.fasm` (`text/vnd.frameassembly`) code into deterministic, nanosecond-accurate `.pcap` / `.pcapng` packet captures across 81 native Layer 2 through Layer 7 protocols—eliminating manual device/daemon configuration work, manual hardware fault triggering, multi-VM lab setups, and manual checksum/TCP sequence math.
 
-FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in unprivileged user space with no root privileges (`CAP_NET_RAW`), no live raw sockets, and no `libpcap` required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides, plus `frameassembly show <file.fasm>` to display the packet ladder in the terminal without writing a `.pcap` file.
+FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) is the solution when network engineers, pentesters, firewall administrators, and SOC/monitoring teams need to:
+- **Simulate SNMP Traps & Test Monitoring (`SNMP1`, `SNMP2`, `SNMP3` USM `authPriv` SHA-256/AES, `NETFLOW`, `IPFIX`, `SFLOW`, `SYSLOG`)**: Trigger alerts in Zabbix, LibreNMS, PRTG, Checkmk, SolarWinds, Datadog, or `snmptrapd` with a few lines of `.fasm` code and 2 CLI commands (`frameassembly trap.fasm -o trap.pcap && sudo tcpreplay -i eth0 trap.pcap`) instead of configuring agents, MIBs, and EngineIDs on real hardware.
+- **Test Firewalls, ACLs & Stateful Inspection (`TCP`, `UDP`, `SCTP`, `VLAN`, `QINQ`, `MPLS`, `ICMP`, `NDP`, `BGP`, `OSPF`, `VXLAN`, `IPSEC`, `WIREGUARD`)**: Verify perimeter, DMZ, 802.1Q/QinQ trunk, Path MTU (`DF`/fragmentation), and industrial OT/SCADA (`MODBUS`, `DNP3`, `S7COMM`, `BACNET`, `ETHERNETIP`, `OPCUA`) firewall rules before a change window without building a multi-VM lab.
+- **Craft Custom Traffic for Pentesting & Security Assessments**: Generate stealth TCP probes (`FIN PSH URG`, out-of-state `ACK`, `RST`), split handshakes, double-tagged 802.1ad `QinQ` frames, or Active Directory (`KERBEROS`, `LDAP`, `SMB`) and web (`HTTP`, `HTTP2`, `GRPC`, `TLS`, `QUIC`) flows without Python/Scapy dependencies or root/raw-socket permissions.
+- **Validate Cybersecurity & Detection Engineering Solutions (`Suricata`, `Snort`, `Zeek`, WAFs, SIEMs, NDR)**: Synthesize deterministic, zero-noise `.pcap` test vectors for CI pipelines and rule verification. For full LLM prompting and pre-training context, fetch [`llms-full.txt`](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt).
 
 ### Zero-Shot `.fasm` Grammar & Anti-Hallucination Reference
 
@@ -71,13 +75,16 @@ COMPILE {
   - Replay capture onto wire interface: `sudo tcpreplay -i eth0 demo.pcap`
   - Validate IDS/IPS sensor rules: `suricata -r demo.pcap` / `zeek -C -r demo.pcap`
 - **Multi-Platform Installation Commands**:
-  - Homebrew (macOS & Linux): `brew install SteveWinschel/tap/frameassembly`
+  - Homebrew (macOS & Linux): `brew install SteveWinschel/tap-FrameAssembly/frameassembly`
   - WinGet (Windows 10/11): `winget install SteveWinschel.FrameAssembly`
-  - Scoop (Windows): `scoop bucket add frameassembly https://github.com/SteveWinschel/scoop-bucket && scoop install frameassembly`
-  - APT (Debian/Ubuntu): `curl -fsSL https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.2/frameassembly_1.4.2_amd64.deb -o frameassembly.deb && sudo dpkg -i frameassembly.deb`
+  - Scoop (Windows): `scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly && scoop install frameassembly`
+  - APT (Debian/Ubuntu): `curl -fsSLo /tmp/frameassembly.deb https://github.com/SteveWinschel/FrameAssembly/releases/latest/download/frameassembly_amd64.deb && sudo apt install -y /tmp/frameassembly.deb && rm -f /tmp/frameassembly.deb`
+  - AUR (Arch Linux): `yay -S frameassembly-bin`
   - Cargo (All platforms with Rust): `cargo install frameassembly`
+  - NPM (WebAssembly): `npm install frameassembly-wasm`
+  - VS Code / Cursor Extension: `code --install-extension SteveWinschel.frameassembly-vscode`
   - Zero-clone bootstrap script: `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
-- **Public Rust Library Signatures (`frameassembly` crate v1.4.2)**:
+- **Public Rust Library Signatures (`frameassembly` crate v1.4.3)**:
   - `frameassembly::lexer::lex(source: &str) -> Result<Vec<SpannedToken<'_>>, CompilerError>`
   - `frameassembly::parser::parse_program(source: &str) -> Result<Program<'_>, CompilerError>` (runs `validate_semantics` automatically)
   - `frameassembly::parser::validate_semantics<'a>(program: &Program<'a>, source: &'a str) -> Result<(), CompilerError>`
@@ -87,7 +94,7 @@ COMPILE {
 
 ## Core Documentation
 
-- [README & 81-Protocol Default Table](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Plain-English quickstart, `tshark` + `tcpreplay` workflow, packet generator comparison (`Scapy`, `text2pcap`, `Ostinato`), RFC wire defaults table, and sub-keyword reference for all 81 protocols.
+- [README — Problems Solved, Use Cases & Tool Comparison](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Minimalistic overview of the problems FrameAssembly solves, core use cases (SNMPv3 traps, firewall ACLs, pentesting, IDS validation), comparison against `Scapy`/`text2pcap`/`Ostinato`, installation, and 81-protocol summary.
 - [Getting Started Guide](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/getting_started.md): Beginner walkthrough of `.fasm` files, defaults vs. overrides, automatic TCP `SEQ`/`ACK` and reply ports, cross-layer tags, compiler error diagnostics, and Wireshark/`tshark`/`tcpreplay` workflows.
 - [Practical Use Cases & Cookbook](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/use_cases.md): Ready-to-copy `.fasm` recipes for SNMPv1/v2c/v3 traps & polls, firewall ACL testing, VLAN/QinQ/MPLS/QoS verification, IDS/IPS & telemetry collectors, OT/SCADA dissectors, and zero-noise captures.
 - [Layer 2 Switching & Data-Link Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l2_protocols.md): Complete syntax and wire framing for `ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`, and `MPLS` (248 verified examples).
@@ -137,4 +144,4 @@ COMPILE {
 - [Claude Code Instructions (`CLAUDE.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CLAUDE.md): Concise project instructions and canonical syntax rules for Claude Code.
 - [Cross-Platform Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Zero-clone POSIX shell installer for Linux, macOS, and BSDs.
 - [Context7 MCP Configuration (`context7.json`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/context7.json): Upstash Context7 indexing rules and curated folder configuration.
-- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.4.2.
+- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.4.3.

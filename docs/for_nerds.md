@@ -1,6 +1,6 @@
 # For Nerds: Six-Stage Compiler Architecture, Rust Library API & Formal Grammars
 
-While FrameAssembly is designed so network engineers, firewall administrators, and NOC/SOC operators can generate deterministic `.pcap` / `.pcapng` captures without writing code, under the hood `frameassembly` (v1.3.0, Rust Edition 2024) is a six-stage, zero-copy optimizing compiler, a reusable Rust library crate, and a formally specified language (`text/vnd.frameassembly`) backed by five-way synchronized context-free grammars and a `2,611`-scenario compiler-verified training corpus.
+While FrameAssembly is designed so network engineers, firewall administrators, and NOC/SOC operators can generate deterministic `.pcap` / `.pcapng` captures with a few lines of declarative `.fasm` code ("Packets as Code"), under the hood `frameassembly` (v1.4.3, Rust Edition 2024) is a six-stage, zero-copy optimizing compiler, a reusable Rust library crate, and a formally specified language (`text/vnd.frameassembly`) backed by five-way synchronized context-free grammars and a `2,611`-scenario compiler-verified training corpus.
 
 This guide is the dedicated home for **systems engineers**, **Rust developers**, and **AI/ML practitioners**. For the formal RFC 6838 media type specification, UTF-8 encoding rules, lexical magic numbers, and `.fasm` extension disambiguation (IANA, Freedesktop `shared-mime-info`, Wikidata, and GitHub Linguist), see **[`docs/fasm-specification.md`](fasm-specification.md)** and **[`contrib/`](../contrib/)**.
 
@@ -232,13 +232,13 @@ frameassembly/
 │   └── backend/
 │       ├── mod.rs                     # compile_program(), generate_pcap(), 4-tuple & port inheritance state
 │       └── l7_dispatch.rs             # L7DispatchResult dynamic port & multicast IP preservation
-├── docs/                              # 12 canonical Markdown guides
+├── docs/                              # 13 canonical Markdown guides
 ├── examples/                          # 2,611 verified .fasm scenarios across 82 directories
 │   ├── l2/{arp,vlan,qinq,lldp,stp,lacp,eapol,mpls}/
 │   ├── l3/{icmp,ndp,igmp,mld,gre,vxlan,geneve,ipsec,esp,ah,ikev2,wireguard,ospf,bgp,rip,vrrp,hsrp,pim,bfd,openflow}/
 │   ├── l4/{tcp,udp,sctp}/
 │   ├── l7/{snmp/{snmpv1,snmpv2c,snmpv3},dns,mdns,dhcp,...,modbus,bacnet,dnp3,s7comm,ethernetip,opcua}/
-│   └── topologies/                    # 101 multi-host enterprise, EVPN-VXLAN, 802.1X, and OT scenarios
+│   └── topologies/                    # 104 multi-host enterprise, EVPN-VXLAN, 802.1X, and OT scenarios
 └── tests/
     └── corpus_verification_tests.rs   # 7-gate automated verification suite
 ```
@@ -470,7 +470,7 @@ pub fn compute_rlvr_reward(candidate_fasm: &str) -> f64 {
 
 ## 5. Verified SFT / RLVR Corpus Architecture (`examples/`)
 
-Every `.fasm` file across the **`2,611` verified scenarios** (`>= 30` per protocol across all 81 protocols plus `101` multi-host topologies in [`examples/`](../examples/)) is continuously validated by `cargo test --test corpus_verification_tests`:
+Every `.fasm` file across the **`2,611` verified scenarios** (`>= 30` per protocol across all 81 protocols plus `104` multi-host topologies in [`examples/`](../examples/)) is continuously validated by `cargo test --test corpus_verification_tests`:
 
 * **Pre-Training Quality Filter Compliance**: Every corpus file satisfies the heuristic quality gates used by **The Stack v2**, **StarCoder2**, **FineWeb-Edu**, **Dolma**, **DeepSeek-Coder**, and **OpenCoder**:
   * Word count `>= 50` words and file size `< 50,000` bytes.

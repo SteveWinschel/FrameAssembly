@@ -1,9 +1,19 @@
 # Layer 7 Industrial Control Systems (ICS), SCADA & OT Reference
 
-Whether you need a **Modbus TCP / DNP3 / Siemens S7comm / BACnet / EtherNet/IP / OPC UA pcap** for industrial firewall validation or SCADA IDS testing, FrameAssembly provides built-in packet support for **6 core Industrial Control System (ICS), building-automation, electrical substation, and factory PLC protocols**:
+Nobody in their right mind tests a new industrial firewall rule or OT intrusion detection sensor by firing write commands at a live spinning turbine or substation breaker relay—and building a physical lab rack of Rockwell, Siemens, and DNP3 outstations costs a small fortune. FrameAssembly solves that with a few lines of `.fasm` code and two CLI commands:
+
+```bash
+# 1. Compile the .fasm code into a deterministic, checksum-valid .pcap capture
+frameassembly ot_conduit.fasm -o ot_conduit.pcap
+
+# 2. Replay the capture onto the test interface (or inspect ot_conduit.pcap in Wireshark / Suricata / Zeek)
+sudo tcpreplay -i eth0 ot_conduit.pcap
+```
+
+This guide covers all **6 built-in Industrial Control System (ICS), building-automation, electrical substation, and factory PLC protocols**:
 **`MODBUS`**, **`BACNET`**, **`DNP3`**, **`S7COMM`**, **`ETHERNETIP`**, and **`OPCUA`**.
 
-OT security engineers, industrial firewall administrators, and SCADA system integrators can generate deterministic, checksum-valid industrial packet captures to test:
+OT security engineers, industrial firewall administrators, and SCADA system integrators use these protocols to validate:
 - **Purdue Model (ISA-95 / IEC 62443) Zone & Conduit Firewalls:** Verify that deep packet inspection (DPI) policies between Level 3 (Site Operations / Historian), Level 2 (Supervisory HMI), and Level 1 (PLCs / RTUs / IEDs) allow read-only polling while blocking unauthorized register/coil writes or PLC STOP commands.
 - **OT Intrusion Detection & Asset Discovery Sensors:** Validate dissectors and alert rules in Dragos, Claroty, Nozomi Networks, Cisco Cyber Vision, Palo Alto App-ID, Fortinet OT Security, Zeek, and Suricata—without risking live factory controllers or physical substation relays.
 
@@ -26,7 +36,7 @@ Every protocol below works with **zero mandatory modifiers** (emitting a complet
 
 ## 1. Modbus TCP (`MODBUS` — Default: TCP Port `502`)
 
-Need a **Modbus TCP port 502 coil/register poll & write pcap** for OT firewall or PLC testing? `MODBUS` wraps a Modbus Protocol Data Unit (PDU: 1-byte Function Code + register address/count/value fields) inside a 7-byte **MBAP (Modbus Application Protocol) header**:
+A classic Purdue Level 2-to-Level 1 conduit policy permits HMI read polling (Function Codes `0x01..0x04`) on TCP port `502` while blocking unauthorized coil or holding-register writes (`0x05`, `0x06`, `0x10`). Instead of wiring up a Modbus simulator and a physical PLC, you can script both read polls and write attempts in `.fasm` code. On the wire, `MODBUS` wraps a Modbus Protocol Data Unit (PDU: 1-byte Function Code + register address/count/value fields) inside a 7-byte **MBAP (Modbus Application Protocol) header**:
 - Bytes `0..2`: 16-bit big-endian Transaction Identifier (`TXID`)
 - Bytes `2..4`: 16-bit Protocol Identifier (`PROTO_ID`, `0x0000` for standard Modbus)
 - Bytes `4..6`: 16-bit computed byte `Length` (Unit ID byte + PDU length)
@@ -87,7 +97,7 @@ compile {
 
 ## 2. BACnet/IP (`BACNET` — Default: UDP Port `47808` / `0xBAC0`)
 
-Need a **BACnet/IP UDP 47808 (`0xBAC0`) `Who-Is` / `I-Am` discovery & `ReadProperty` / `WriteProperty` pcap** for BMS and HVAC network testing? `BACNET` builds ANSI/ASHRAE 135 Building Automation and Control Networks frames over UDP port `47808` (`0xBAC0`), packing:
+Building Management Systems (BMS), data-center chillers, and HVAC controllers speak BACnet/IP over UDP port `47808` (`0xBAC0`). To test campus segmentation between BMS workstations and field controllers without touching the building's air conditioning, write the discovery and property exchange in `.fasm` code. `BACNET` builds ANSI/ASHRAE 135 Building Automation and Control Networks frames over UDP port `47808` (`0xBAC0`), packing:
 1. **4-byte BVLC (BACnet Virtual Link Control) Header:** Type `0x81` (`BACnet/IP`), Function `0x0B` (`Original-Broadcast-NPDU` for `WHO_IS`) or `0x0A` (`Original-Unicast-NPDU` for `I_AM`, `READ_PROPERTY`, and `WRITE_PROPERTY`), and 16-bit total length.
 2. **2-byte NPDU (Network Layer) Header:** Protocol Version `0x01`, Control `0x00`.
 3. **APDU (Application Layer):** Encodes unconfirmed discovery (`Who-Is` / `I-Am`) or confirmed property access (`ReadProperty` / `WriteProperty`) with a packed 32-bit `ObjectIdentifier` (`(object_type << 22) | (object_instance & 0x3FFFFF)`), context-tagged `PropertyIdentifier`, and application-tagged unsigned integer `PropertyValue`.
@@ -134,7 +144,7 @@ compile {
 
 ## 3. Distributed Network Protocol v3 (`DNP3` — Default: TCP / UDP Port `20000`)
 
-Need an **IEEE 1815 DNP3 TCP/UDP 20000 Class 0 integrity poll & CROB `Select-Before-Operate` breaker trip pcap** for utility SCADA and substation firewall testing? `DNP3` builds IEEE 1815-2012 frames for electrical utility substations, water treatment plants, and oil/gas RTUs:
+Crafting IEEE 1815 DNP3 packets by hand is notoriously painful because DNP3 requires a reflected CRC-16 (`0xA653`) on the 10-byte Data Link header *and* a separate CRC-16 after every 16-byte chunk of application data—get one bit wrong and Wireshark or your substation firewall drops the frame as corrupted. FrameAssembly computes every DNP3 CRC-16 automatically from `.fasm` code, letting you simulate Class 0 integrity polls (`READ`) and Control Relay Output Block (`CROB` Group `12`) `SELECT` / `OPERATE` breaker sequences for electrical substations, water treatment plants, and oil/gas RTUs:
 1. **10-byte Data Link Layer Header:** Start bytes `0x0564`, `Length`, Control byte `0xC4`, 16-bit little-endian `DST` and `SRC` outstation addresses, and a 16-bit little-endian **IEEE 1815 DNP3 CRC-16** (reflected polynomial `0xA653`, initial `0x0000`, inverted remainder).
 2. **1-byte Transport Header (`0xC0`):** `FIN = 1`, `FIR = 1`, `SEQ = 0`.
 3. **Application Layer & Object Header:** Application Control (`0xC0`), 1-byte Function Code, Object `GROUP` and `VARIATION`, Qualifier `0x06` (all objects), and automatic 16-bit DNP3 CRC-16 appended after every 16-byte user data block.
@@ -179,7 +189,7 @@ compile {
 
 ## 4. Siemens SIMATIC S7comm (`S7COMM` — Default: TCP Port `102`)
 
-Need a **Siemens SIMATIC S7comm TCP 102 (`ISO-on-TCP` RFC 1006) Data Block (`DB`) read/write & `PLC_CONTROL` pcap** for industrial IDS validation? `S7COMM` builds Siemens SIMATIC S7-300/400/1200/1500 PLC communication frames over ISO-on-TCP (RFC 1006, TCP port `102`):
+Validating deep packet inspection rules for Siemens SIMATIC S7-300/400/1200/1500 PLCs—such as allowing `READ_VAR` (`0x04`) on Data Blocks while alerting on `WRITE_VAR` (`0x05`) or `PLC_CONTROL` (`0x28`) over TCP port `102`—normally requires Siemens TIA Portal and hardware controllers. In `.fasm` code, `S7COMM` builds complete Siemens SIMATIC PLC communication frames over ISO-on-TCP (RFC 1006, TCP port `102`):
 1. **4-byte TPKT Header:** Version `3`, Reserved `0`, 16-bit big-endian total packet length.
 2. **3-byte ISO 8073 COTP Header:** `0x02 0xF0 0x80` (`DT Data` TPDU with `EOT = 1`).
 3. **10-byte / 12-byte S7 Header:** Magic byte `0x32`, `ROSCTR` (`0x01` `JOB`, `0x02` `ACK`, `0x03` `ACK_DATA`, `0x07` `USERDATA`), 16-bit `PDU_REF`, parameter/data lengths, and a 2-byte error class/code field on `ACK`/`ACK_DATA` replies.
@@ -228,7 +238,7 @@ compile {
 
 ## 5. ODVA EtherNet/IP & CIP (`ETHERNETIP` — Default: TCP Port `44818`)
 
-Need an **ODVA EtherNet/IP TCP 44818 `ListIdentity`, `RegisterSession` & CIP `SendRRData` tag/assembly pcap** for Rockwell Automation / Allen-Bradley ControlLogix testing? `ETHERNETIP` builds ODVA EtherNet/IP frames used by ControlLogix and CompactLogix PLCs:
+Rockwell Automation / Allen-Bradley ControlLogix and CompactLogix environments use ODVA EtherNet/IP over TCP port `44818` to discover assets (`ListIdentity`), register sessions, and read/write Common Industrial Protocol (CIP) objects. Rather than capturing live Studio 5000 traffic on the plant floor, you can express the encapsulation command and CIP EPATH (`Class` / `Instance` / `Attribute`) in `.fasm` code. `ETHERNETIP` builds ODVA EtherNet/IP frames with:
 1. **24-byte Little-Endian Encapsulation Header:** 16-bit `Command`, 16-bit `Length`, 32-bit `SessionHandle`, 32-bit `Status`, 64-bit `SenderContext`, and 32-bit `Options`.
 2. **Common Packet Format (CPF) & CIP EPATH:** For `SEND_RR_DATA` (`0x006F`) and `SEND_UNIT_DATA` (`0x0070`) packets (or whenever any `CIP_*` modifier is specified), FrameAssembly automatically constructs a 2-item CPF body (`Null Address Item 0x0000` + `Unconnected Data Item 0x00B2`) containing the CIP Service code and logical EPATH segments (`0x20 <Class>`, `0x24 <Instance>`, and optional `0x30 <Attribute>`).
 
@@ -278,7 +288,7 @@ compile {
 
 ## 6. OPC Unified Architecture Binary (`OPCUA` — Default: TCP Port `4840`)
 
-Need an **OPC UA Binary (`opc.tcp` port 4840) `HEL`/`ACK`/`OPN`/`MSG`/`CLO` historian session pcap** for IEC 62443 IDMZ conduit testing? `OPCUA` builds IEC 62541-6 OPC UA Connection Protocol (`UACP`) binary messages over TCP port `4840`:
+In IEC 62443 architectures, the conduit across the Level 3.5 Industrial DMZ (IDMZ) between plant-floor servers and enterprise historians almost always runs OPC UA Binary (`opc.tcp`) on TCP port `4840`. To test IDMZ firewall conduits and `NodeId` inspection rules without standing up an OPC UA server/client pair, `OPCUA` builds IEC 62541-6 OPC UA Connection Protocol (`UACP`) binary messages over TCP port `4840`:
 - **8-byte UACP Header:** 3-byte ASCII `MessageType` (`HEL`, `ACK`, `ERR`, `OPN`, `CLO`, `MSG`), 1-byte `ChunkType` (`'F'` Final, `'C'` Intermediate, `'A'` Aborted), and 32-bit little-endian `MessageSize`.
 - **Connection & SecureChannel Bodies:** `HEL` and `ACK` frames automatically populate the 20-byte receive/send buffer negotiation fields (64 KB buffers, 16 MB max message, 5,000 max chunks) plus length-prefixed `ENDPOINT_URL`. `OPN`, `MSG`, and `CLO` frames encode 32-bit little-endian `SECURE_CHANNEL_ID`, `TOKEN_ID`, `SEQ_NUM`, `REQID`, and string `NODE_ID` descriptors.
 

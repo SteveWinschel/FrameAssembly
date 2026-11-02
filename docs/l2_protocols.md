@@ -1,6 +1,8 @@
 # Layer 2 Switching, VLAN Trunking & Data-Link Protocols Reference (`ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`, `MPLS`)
 
-Whether you need an **802.1Q VLAN trunk & 802.1ad QinQ packet generator**, a **Gratuitous ARP (`GARP`) VIP failover capture**, **STP / RSTP BPDU Guard test frames**, **LACP Port-Channel negotiation**, **IEEE 802.1X EAPOL NAC onboarding**, or **MPLS L3VPN label stacks**, FrameAssembly supports **8 Layer 2 and Layer 2.5 protocols** out of the box. When optional fields are omitted, FrameAssembly automatically builds standards-compliant Ethernet II or IEEE 802.3 LLC headers, derives unicast, broadcast, and multicast MAC addresses, and populates mandatory protocol TLVs.
+Testing Layer 2 edge cases—double-tagged 802.1ad QinQ trunks, Gratuitous ARP (`GARP`) VIP failovers, STP BPDU Guard triggers, LACP port-channel negotiations, 802.1X EAPOL NAC onboarding, or MPLS label stacks—is normally a headache because OS network stacks strip VLAN tags and physical lab switches take time to cable and configure.
+
+With FrameAssembly, you write the exact Layer 2 or Layer 2.5 frame in a few lines of `.fasm` code, compile it to `.pcap`, and replay it straight onto a trunk port with `tcpreplay` (or inspect it in Wireshark). When optional fields are omitted, FrameAssembly automatically builds standards-compliant Ethernet II or IEEE 802.3 LLC headers, derives unicast, broadcast, and multicast MAC addresses, and populates mandatory protocol TLVs.
 
 | Protocol | Keyword | Standard | Framing / EtherType | Default Destination MAC | Primary Operational Use Cases |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -221,7 +223,7 @@ tshark -r output.pcap -T fields -e frame.number -e eth.type -e vlan.id -e vlan.p
 
 ## 3. Link Layer Discovery Protocol (`LLDP` — IEEE 802.1AB)
 
-Whether you need an **LLDP switch neighbor discovery & voice VLAN pcap** or a **leaf-spine cable-map verification capture**, `LLDP` is the vendor-neutral Layer 2 neighbor discovery protocol used by switches, routers, Linux hypervisors (`lldpd`), and VoIP phones to advertise chassis identity, port names, hold times, system hostnames, and software versions to directly connected peers.
+Tracking down miscabled leaf-spine ports or testing how an inventory daemon (`lldpd`, NetBox, or a VoIP phone provisioning script) parses neighbor discovery frames normally requires live switches on the other end of the patch cord. With `LLDP`, you can script switch, router, and hypervisor advertisements—including chassis identity, port names, hold times, system hostnames, software banners, and `TTL 0` port-shutdown withdrawals—directly in `.fasm` code.
 
 ### Default Wire Behavior
 * **Framing:** Ethernet II (`EtherType = 0x88CC`) addressed to the IEEE 802.1D Nearest Bridge non-TPMR multicast MAC `01:80:c2:00:00:0e`.
@@ -340,7 +342,7 @@ compile {
 
 ## 5. Link Aggregation Control Protocol (`LACP` — IEEE 802.3ad / 802.1AX)
 
-When troubleshooting an **802.3ad LACP Port-Channel or Linux `bond0` negotiation pcap**, `LACP` negotiates and maintains dynamic Link Aggregation Groups (`LAG` / Cisco `Port-Channel` / Arista `Port-Channel` / Linux `bonding` mode 4 `802.3ad`). FrameAssembly builds complete 110-byte LACPDUs over Ethernet Slow Protocols (`EtherType = 0x8809`) addressed to `01:80:c2:00:00:02`, including the Actor Information TLV (`Type 1, Length 20`), Partner Information TLV (`Type 2, Length 20`), Collector Information TLV (`Type 3, Length 16`), Terminator TLV (`Type 0, Length 0`), and 50 bytes of IEEE 802.3ad zero padding.
+Anyone who has stared at a switch port stuck in `Individual` or `Suspended` state knows that debugging IEEE 802.3ad Link Aggregation (`LAG` / Cisco & Arista `Port-Channel` / Linux `bond0` mode 4) comes down to the 8-bit Actor and Partner state flags. FrameAssembly builds complete 110-byte LACPDUs over Ethernet Slow Protocols (`EtherType = 0x8809`, destination MAC `01:80:c2:00:00:02`)—including Actor (`Type 1, Length 20`), Partner (`Type 2, Length 20`), Collector (`Type 3, Length 16`), and Terminator (`Type 0, Length 0`) TLVs plus the mandatory 50-byte IEEE 802.3ad zero pad—so you can replay exact bundle bring-up and timeout sequences without a second switch.
 
 ### `LACP` Modifiers
 
@@ -369,9 +371,9 @@ When troubleshooting an **802.3ad LACP Port-Channel or Linux `bond0` negotiation
 | **Bit 7** | `0x80` | `Expired` | **Expired** (receive state machine timed out) | Normal operation |
 
 **Common Operational Hex Combinations:**
-* `0x47` (`0x01 | 0x02 | 0x04 | 0x40`): **Initial Unbundled Port** — Active, Short Timeout, Aggregatable, Defaulted (partner unknown).
-* `0x3d` (`0x01 | 0x04 | 0x08 | 0x10 | 0x20`): **Healthy Slow-Timer Bundle (Default)** — Active, Long Timeout (`30`s), Aggregatable, In Sync, Collecting, Distributing.
-* `0x3f` (`0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20`): **Healthy Fast-Timer Bundle** — Active, Short Timeout (`1`s), Aggregatable, In Sync, Collecting, Distributing.
+* `0x47` (`0x01 + 0x02 + 0x04 + 0x40`): **Initial Unbundled Port** — Active, Short Timeout, Aggregatable, Defaulted (partner unknown).
+* `0x3d` (`0x01 + 0x04 + 0x08 + 0x10 + 0x20`): **Healthy Slow-Timer Bundle (Default)** — Active, Long Timeout (`30`s), Aggregatable, In Sync, Collecting, Distributing.
+* `0x3f` (`0x01 + 0x02 + 0x04 + 0x08 + 0x10 + 0x20`): **Healthy Fast-Timer Bundle** — Active, Short Timeout (`1`s), Aggregatable, In Sync, Collecting, Distributing.
 
 ### Example: LACP Port-Channel Bring-Up (`Defaulted` to `In-Sync Collecting/Distributing`)
 
@@ -400,7 +402,7 @@ compile {
 
 ## 6. IEEE 802.1X Port-Based Network Access Control (`EAPOL` — IEEE 802.1X / RFC 3748)
 
-Whether you need an **IEEE 802.1X EAPOL NAC & EAP-TLS supplicant onboarding pcap** or a **campus switch port authentication test capture**, `EAPOL` encapsulates Extensible Authentication Protocol (`EAP`, RFC 3748) messages directly over Ethernet (`EtherType = 0x888E`, destination MAC `01:80:c2:00:00:03`) between a **Supplicant** (client workstation or IoT endpoint) and an **Authenticator** (campus switch port or wireless AP).
+Testing campus 802.1X Network Access Control (`NAC`) policies or debugging why an IoT supplicant failed EAP-TLS onboarding usually means wrestling with `wpa_supplicant` certificates and a live RADIUS/ISE lab. FrameAssembly lets you script the entire `EAPOL` conversation (`EtherType = 0x888E`, destination MAC `01:80:c2:00:00:03`) between the **Supplicant** (client workstation or IoT endpoint) and the **Authenticator** (campus switch port or wireless AP)—from `EAPOL-Start` and Identity requests through EAP-TLS challenges, `EAP-Success`, and `EAPOL-Logoff`.
 
 ### Default Wire Behavior
 * **4-Byte EAPOL Header:** `Protocol Version` (default `1`), `Packet Type` (`0` = `EAP_PACKET`, `1` = `START`, `2` = `LOGOFF`, `3` = `KEY`), and 16-bit `Body Length`.
@@ -456,7 +458,7 @@ compile {
 
 ## 7. Multiprotocol Label Switching (`MPLS` — RFC 3032 / RFC 5462)
 
-Whether you are generating an **MPLS L3VPN & Segment Routing (`SR-MPLS`) label stack pcap** or verifying provider-edge (`PE`) QoS Traffic Class (`EXP`/`TC`) markings, `MPLS` inserts a 32-bit Layer 2.5 label stack entry (`EtherType = 0x8847`) between the Ethernet/VLAN header and the inner IPv4/IPv6 packet:
+Capturing real MPLS L3VPN or Segment Routing (`SR-MPLS`) packets normally requires a provider-edge (`PE`) router lab running LDP, RSVP-TE, or IS-IS segment routing just to put a 4-byte shim header on the wire. In FrameAssembly, adding an `MPLS` label (`EtherType = 0x8847`)—complete with 20-bit Label ID, 3-bit QoS Traffic Class (`EXP`/`TC`), Bottom-of-Stack (`BOS`) bit, and independent `MPLS_TTL`—takes a single modifier on any packet statement:
 
 ```text
  0                   1                   2                   3

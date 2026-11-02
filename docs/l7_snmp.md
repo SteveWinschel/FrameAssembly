@@ -1,8 +1,33 @@
 # Layer 7 Network Management: SNMPv1, SNMPv2c & Encrypted SNMPv3 USM Guide
 
-Testing your Network Management System (Zabbix, Checkmk, LibreNMS, PRTG, SolarWinds, Datadog, or Linux `snmptrapd`) shouldn't require waiting for a core router power supply to fail at 3:00 AM, fighting `net-snmp` MIB path errors, memorizing cryptic `snmptrap` single-letter type flags (`i`, `u`, `t`, `s`, `o`, `a`, `c`), or wrestling with SNMPv3 Engine ID key localization.
+Simulating SNMP traps—especially encrypted SNMPv3 `authPriv` traps—is a pain in the ass. Normally, testing whether your monitoring system (Zabbix, Checkmk, LibreNMS, PRTG, SolarWinds, Datadog, or `snmptrapd`) actually alerts on a failure means configuring an SNMP agent on a device, matching EngineIDs and USM credentials, fighting `net-snmp` MIB path errors, and manually pulling a cable or triggering a test trap just to see if your collector notices.
 
-As a full-featured **SNMPv1 / SNMPv2c / SNMPv3 USM `authPriv` trap & poll pcap generator**, FrameAssembly lets you write clean, human-readable `.fasm` statements for **SNMPv1 (`SNMP1`)**, **SNMPv2c (`SNMP2`)**, and **SNMPv3 (`SNMP3`)**, and builds standards-compliant `.pcap` / `.pcapng` packet captures ready for Wireshark inspection or live replay into your monitoring collector.
+FrameAssembly solves that with a few lines of `.fasm` code and two CLI commands: compile the `.fasm` file into a `.pcap`, and fire it onto the network with `tcpreplay` (or inspect it in Wireshark):
+
+```frameassembly
+host zabbix_collector { ip 10.100.1.10 mac 00:50:56:10:00:10 }
+host core_switch      { ip 10.100.1.50 mac 00:50:56:10:00:50 }
+
+flow simulate_link_down_traps(nms, sw) {
+    // SNMPv2c linkDown trap (sysUpTime.0 and snmpTrapOID.0 are prepended automatically)
+    nms <- sw snmp2 trap community "public" sysuptime 4320000 oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.2.5 string "GigabitEthernet0/5" varbind 1.3.6.1.2.1.2.2.1.8.5 int 2 wait 5ms
+
+    // Encrypted SNMPv3 USM authPriv (HMAC-SHA-256 + AES-128) linkDown trap on UDP 162
+    nms <- sw snmp3 trap user "netadmin" engineid "80001f8880aabbccddeeff" engineboots 4 enginetime 86400 auth sha256 "AuthSecretPass123!" priv aes "PrivSecretPass456!" sysuptime 4320500 oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.2.5 string "GigabitEthernet0/5"
+}
+
+compile {
+    simulate_link_down_traps(zabbix_collector, core_switch)
+}
+```
+
+```bash
+# 1. Compile the .fasm code into a .pcap capture
+frameassembly trap.fasm -o trap.pcap
+
+# 2. Replay the traps onto the network interface (or open trap.pcap in Wireshark)
+sudo tcpreplay -i eth0 trap.pcap
+```
 
 ---
 
@@ -17,7 +42,7 @@ As a full-featured **SNMPv1 / SNMPv2c / SNMPv3 USM `authPriv` trap & poll pcap g
   * RFC 3416 §4.2.6 requires every SNMPv2c and SNMPv3 `TRAP` or `INFORM` packet to carry `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) as its first VarBind and `snmpTrapOID.0` (`1.3.6.1.6.3.1.1.4.1.0`) as its second VarBind.
   * FrameAssembly builds both for you automatically from `sysuptime <ticks>` and `oid <trap_oid>`, then appends your custom `varbind` entries in exact order.
 * **Real SNMPv3 USM Key Localization, Signing & Encryption Out of the Box:**
-  * Provide plain-text passphrases (`auth sha256 "..." priv aes "..."`) and an `engineid` hex string.
+  * Provide cleartext passphrases (`auth sha256 "..." priv aes "..."`) and an `engineid` hex string.
   * FrameAssembly performs full **RFC 3414 / RFC 3826 / RFC 7860** password-to-key stretching (`1,048,576`-byte digest loop `Ku`) and Engine ID key localization (`Kul`), encrypts the `scopedPDU` using `DES-CBC` or `AES-128-CFB`, and signs the entire BER message with `HMAC-MD5-96`, `HMAC-SHA-96`, `HMAC-SHA-256-128`, `HMAC-SHA-384-192`, or `HMAC-SHA-512-256`.
 
 ### Quick Protocol Comparison
@@ -86,7 +111,7 @@ Keep this table handy when building realistic polling flows or trap alerts for y
 
 ## 3. `SNMP1` (SNMPv1 — RFC 1157)
 
-SNMPv1 is still widely encountered on legacy switches, PDUs, UPS battery controllers, environmental sensors, and printers. Unlike SNMPv2c/v3, **SNMPv1 uses a dedicated `Trap-PDU` packet format (`0xA4`)** with explicit `enterprise`, `agent-addr`, `generic-trap`, and `specific-trap` fields.
+SNMPv1 is still widely encountered on legacy switches, rack PDUs, UPS battery controllers, environmental sensors, and printers. Testing SNMPv1 alert rules manually is a headache because embedded UPS and sensor cards rarely let you trigger specific fault traps on demand, and typing raw positional enterprise OIDs, agent-addr IPs, generic-trap integers, and specific-trap codes into `snmptrap -v 1` is tedious and error-prone. Unlike SNMPv2c/v3, **SNMPv1 uses a dedicated `Trap-PDU` packet format (`0xA4`)**—and in `.fasm` code, every field (`enterprise`, `agentip`, `gentrap`, `spectrap`, `sysuptime`) is named and readable.
 
 ### 3.1 `SNMP1` Modifiers & Defaults
 
@@ -158,7 +183,7 @@ compile {
 
 ## 4. `SNMP2` (SNMPv2c — RFC 3416)
 
-SNMPv2c modernizes SNMPv1 while keeping simple community-string authentication (`COMMUNITY "<text>"`). It introduces three major capabilities essential for production network monitoring:
+SNMPv2c modernizes SNMPv1 while keeping simple community-string authentication (`COMMUNITY "<text>"`). Reproducing high-capacity 64-bit counter wraps or acknowledged `INFORM` handshakes in a lab normally requires hardware routers with 10G/100G interfaces and two cooperating SNMP engines—whereas `.fasm` code lets you script all three core SNMPv2c capabilities in seconds:
 1. **`GETBULK` (`NONREPEATERS` & `MAXREPETITIONS`):** Retrieves an entire table (such as 48 switch ports in `ifXTable`) in a single request/response round-trip instead of dozens of slow sequential `GETNEXT` packets.
    * `NONREPEATERS <n>` tells the agent that the first `<n>` OIDs in your request are scalar objects (like `sysUpTime.0`) that should only be fetched **once**.
    * `MAXREPETITIONS <m>` tells the agent to fetch up to `<m>` consecutive rows for each remaining tabular OID in your request.
@@ -211,7 +236,7 @@ compile {
 
 ## 5. `SNMP3` (SNMPv3 USM Authentication & Encryption — RFC 3414 / 3826 / 7860)
 
-Modern enterprise, data center, government, and PCI-DSS/HIPAA networks require **SNMPv3 User-Based Security Model (`USM`)** so management credentials and MIB payloads cannot be sniffed or forged on the wire.
+Modern enterprise, data center, government, and PCI-DSS/HIPAA networks require **SNMPv3 User-Based Security Model (`USM`)** so management credentials and MIB payloads cannot be sniffed or forged on the wire. Setting up SNMPv3 `authPriv` manually in a lab is notorious for silent packet drops whenever `EngineID`, `EngineBoots`, `EngineTime`, or localized `SHA-2`/`AES` keys don't match between the switch and `snmptrapd` or Zabbix. In `.fasm` code, you provide the cleartext passphrases and engine parameters directly, and FrameAssembly handles the RFC 3414 / 3826 / 7860 key localization, AES/DES encryption, and HMAC signing automatically.
 
 ### 5.1 Understanding the Three SNMPv3 Security Levels
 

@@ -1,9 +1,19 @@
 # Layer 7 Mail, Directory, Storage, Databases, Caches & Message Brokers Reference
 
-Whether you need an **SMTP / IMAP / POP3 mail gateway test capture**, an **Active Directory Kerberos v5 / LDAPv3 & SMB2/3 / NFSv4 NAS storage pcap**, a **Redis / Memcached / MySQL / PostgreSQL database firewall capture**, or an **MQTT / CoAP / AMQP IoT message broker packet generator**, this guide covers **14 enterprise application, identity, storage, database, caching, and message-queuing protocols** across IPv4 and IPv6:
+Testing mail gateway DLP rules, Active Directory Kerberos/LDAP/SMB lateral-movement signatures, database activity monitors (`MySQL`/`PostgreSQL`/`Redis`/`Memcached`), or IoT message brokers (`MQTT`/`CoAP`/`AMQP`) usually means spinning up domain controllers, mail relays, NAS filers, or database clusters just to capture a few packets. FrameAssembly solves that with a few lines of `.fasm` code and two CLI commands:
+
+```bash
+# 1. Compile the .fasm code into a deterministic .pcap capture
+frameassembly enterprise.fasm -o enterprise.pcap
+
+# 2. Replay the capture onto the wire (or inspect enterprise.pcap in Wireshark / Suricata)
+sudo tcpreplay -i eth0 enterprise.pcap
+```
+
+This guide covers **14 enterprise application, identity, storage, database, caching, and message-queuing protocols** across IPv4 and IPv6:
 **`SMTP`**, **`IMAP`**, **`POP3`**, **`KERBEROS`**, **`LDAP`**, **`SMB`**, **`NFS`**, **`REDIS`**, **`MEMCACHED`**, **`MYSQL`**, **`POSTGRES`**, **`MQTT`**, **`COAP`**, and **`AMQP`**.
 
-> **Looking for Web, TLS/QUIC, Remote CLI (`SSH`/`TELNET`), File Transfer (`TFTP`/`FTP`), or VoIP (`SIP`/`RTP`)?**
+> **Where to Find Web, TLS/QUIC, Remote CLI (`SSH`/`TELNET`), File Transfer (`TFTP`/`FTP`), and VoIP (`SIP`/`RTP`):**
 > Those 16 protocols are documented in [**Layer 7 Web, Cloud-Native, Transport Security, VoIP & Remote Access (`l7_web_and_cloud.md`)**](l7_web_and_cloud.md).
 
 ---
@@ -35,7 +45,7 @@ Every protocol below works with **zero mandatory modifiers** (emitting an RFC-co
 
 ### 1.1 Simple Mail Transfer Protocol (`SMTP` — Default: TCP Port `25`)
 
-Need an **SMTP TCP 25 `EHLO` / `MAIL FROM` / `RCPT TO` / `DATA` mail gateway & DLP test pcap**? `SMTP` builds RFC 5321 SMTP client commands (`EHLO`, `HELO`, `MAIL FROM`, `RCPT TO`, `DATA`, `QUIT`), 3-digit server status replies (`220`, `250`, `354`, `221`, `550`), and RFC 5322 MIME message bodies.
+Testing mail gateway relay filters, ESMTP banner rules, or DLP content inspection normally requires configuring Postfix or Exchange and sending test messages through a live relay. In `.fasm` code, `SMTP` scripts both the client and server sides directly—building RFC 5321 SMTP client commands (`EHLO`, `HELO`, `MAIL FROM`, `RCPT TO`, `DATA`, `QUIT`), 3-digit server status replies (`220`, `250`, `354`, `221`, `550`), and RFC 5322 MIME message bodies over TCP port `25`.
 - **Passing Envelope Addresses (`MAIL_FROM` / `RCPT_TO`):** You can pass the address either directly after `MAIL_FROM "<addr>"` / `RCPT_TO "<addr>"` or via the `PARAM "<addr>"` modifier (`mail_from param "alice@corp.example.com"`).
 - **Sending the `DATA` Command vs. Message Body:** Use `cmd "DATA"` to emit the `DATA\r\n` command line, and use `body "<mime_text>"` on the following packet after the server's `354` response to transmit the email headers/body and trailing `.\r\n` terminator.
 
@@ -54,7 +64,7 @@ Need an **SMTP TCP 25 `EHLO` / `MAIL FROM` / `RCPT TO` / `DATA` mail gateway & D
 
 ### 1.2 Internet Message Access Protocol (`IMAP` — Default: TCP Port `143`)
 
-Need an **IMAP4 TCP 143 `LOGIN` / `SELECT` / `FETCH` mailbox access & audit pcap**? `IMAP` builds RFC 3501 / RFC 9051 IMAP4rev1/v4rev2 client commands (`<TAG> <CMD> <ARG>\r\n`) and server completion or untagged responses (`<TAG> <STATUS> <RESPONSE>\r\n`).
+Validating mailbox access ACLs, cleartext authentication alerts, or SIEM parsers for IMAP commands doesn't require standing up a Dovecot or Exchange mailbox server. `IMAP` builds RFC 3501 / RFC 9051 IMAP4rev1/v4rev2 client commands (`<TAG> <CMD> <ARG>\r\n`) and server completion or untagged responses (`<TAG> <STATUS> <RESPONSE>\r\n`) over TCP port `143`.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -67,7 +77,7 @@ Need an **IMAP4 TCP 143 `LOGIN` / `SELECT` / `FETCH` mailbox access & audit pcap
 
 ### 1.3 Post Office Protocol v3 (`POP3` — Default: TCP Port `110`)
 
-Need a **POP3 TCP 110 `USER` / `PASS` / `STAT` / `RETR` mail retrieval & `+OK`/`-ERR` lockout test pcap**? `POP3` builds RFC 1939 POP3 mailbox commands (`USER`, `PASS`, `STAT`, `LIST`, `UIDL`, `RETR`, `DELE`, `QUIT`) and `+OK` / `-ERR` server replies.
+Verifying that IDS sensors detect legacy cleartext mail retrieval or brute-force `-ERR` lockouts on TCP port `110` is straightforward with `POP3`, which builds RFC 1939 mailbox commands (`USER`, `PASS`, `STAT`, `LIST`, `UIDL`, `RETR`, `DELE`, `QUIT`) and `+OK` / `-ERR` server replies.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -128,7 +138,7 @@ compile {
 
 ### 2.1 Kerberos v5 (`KERBEROS` — Default: UDP / TCP Port `88`)
 
-Need an **Active Directory Kerberos v5 UDP/TCP 88 `AS-REQ` / `AS-REP` / `TGS-REQ` / `TGS-REP` / `KRB-ERROR` KDC ticket pcap**? `KERBEROS` builds RFC 4120 ASN.1 DER application-tagged Kerberos v5 Key Distribution Center (KDC) exchanges (`AS-REQ` tag `0x6A`, `AS-REP` tag `0x6B`, `TGS-REQ` tag `0x6C`, `TGS-REP` tag `0x6D`, and `KRB-ERROR` tag `0x7E`).
+Reproducing Active Directory KDC ticket exchanges, Kerberoasting (`ETYPE 23` `rc4-hmac` downgrade) alerts, or `KRB-ERROR` pre-authentication failures normally requires a full Windows Server domain controller lab. Instead, `KERBEROS` builds RFC 4120 ASN.1 DER application-tagged Kerberos v5 Key Distribution Center (KDC) exchanges (`AS-REQ` tag `0x6A`, `AS-REP` tag `0x6B`, `TGS-REQ` tag `0x6C`, `TGS-REP` tag `0x6D`, and `KRB-ERROR` tag `0x7E`) directly from `.fasm` code.
 - **Transport Selection:** Defaults to UDP port `88`; add `transport tcp` on the statement to emit TCP port `88` (with the 4-byte RFC 4120 §7.2.2 TCP record length prefix).
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
@@ -145,7 +155,7 @@ Need an **Active Directory Kerberos v5 UDP/TCP 88 `AS-REQ` / `AS-REP` / `TGS-REQ
 
 ### 2.2 Lightweight Directory Access Protocol v3 (`LDAP` — Default: TCP Port `389`)
 
-Need an **LDAPv3 TCP 389 `BindRequest`, `SearchRequest` & `invalidCredentials` (`49`) directory lookup pcap**? `LDAP` builds RFC 4511 ASN.1 BER `LDAPMessage` envelopes (`SEQUENCE 0x30`) containing a `messageID` and protocol operation choice (`BindRequest`, `BindResponse`, `SearchRequest`, `SearchResultEntry`, `SearchResultDone`, or `UnbindRequest`).
+Testing SIEM rules for Active Directory or OpenLDAP reconnaissance queries, group enumeration filters, and `invalidCredentials` (`49`) bind failures doesn't require querying a live directory server. `LDAP` builds RFC 4511 ASN.1 BER `LDAPMessage` envelopes (`SEQUENCE 0x30`) containing a `messageID` and protocol operation choice (`BindRequest`, `BindResponse`, `SearchRequest`, `SearchResultEntry`, `SearchResultDone`, or `UnbindRequest`) over TCP port `389`.
 - **Complete RFC 4511 `SearchRequest` Encoding:** `SEARCH_REQ` encodes all 8 mandatory ASN.1 fields (`baseObject`, `scope`, `derefAliases`, `sizeLimit`, `timeLimit`, `typesOnly`, `filter`, and `attributes`) so Wireshark's BER dissector decodes every field without warnings.
 - **Always write `BASE_DN`:** Use `BASE_DN "<dn>"` (never `DN`) to set the Distinguished Name on bind and search operations.
 
@@ -196,7 +206,7 @@ compile {
 
 ### 3.1 Server Message Block v2/v3 (`SMB` — Default: TCP Port `445`)
 
-Need an **SMB2 / SMB3 TCP 445 `NEGOTIATE`, `SESSION_SETUP`, `TREE_CONNECT` & UNC file share access pcap** for lateral-movement IDS or storage firewall testing? `SMB` builds Microsoft `[MS-SMB2]` packets prefixed with a 4-byte NetBIOS Session Service stream length header, a 64-byte SMB2 header (`\xFESMB` magic, 64-byte header length, `Status`, `Command`, `MessageId`, `TreeId`, `SessionId`, and 16-byte signature), and command-specific UTF-16LE share or file paths.
+Validating east-west firewall segmentation, UNC share access controls, or lateral-movement IDS rules (`IPC$`, `ADMIN$`, `C$`) on TCP port `445` is much faster when you don't have to mount Windows file shares in a test VM. `SMB` builds Microsoft `[MS-SMB2]` packets prefixed with a 4-byte NetBIOS Session Service stream length header, a 64-byte SMB2 header (`\xFESMB` magic, 64-byte header length, `Status`, `Command`, `MessageId`, `TreeId`, `SessionId`, and 16-byte signature), and command-specific UTF-16LE share or file paths.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -211,7 +221,7 @@ Need an **SMB2 / SMB3 TCP 445 `NEGOTIATE`, `SESSION_SETUP`, `TREE_CONNECT` & UNC
 
 ### 3.2 Network File System (`NFS` — Default: TCP / UDP Port `2049`)
 
-Need an **NFSv3 / NFSv4 TCP/UDP 2049 ONC-RPC `COMPOUND` NAS export mount & read/write pcap**? `NFS` builds RFC 1813 (NFSv3) and RFC 7530 / RFC 8881 (NFSv4) calls encapsulated inside RFC 5531 ONC-RPC v2 messages (with the 4-byte RPC Record Marking fragment header `0x80000000 | len` on TCP and 4-byte XDR string padding).
+Verifying NAS/HPC storage VLAN ACLs or ONC-RPC export mount rules on port `2049` without provisioning an NFS filer is simple in `.fasm` code. `NFS` builds RFC 1813 (NFSv3) and RFC 7530 / RFC 8881 (NFSv4) calls encapsulated inside RFC 5531 ONC-RPC v2 messages (with the 4-byte RPC Record Marking fragment header `0x80000000 | len` on TCP and 4-byte XDR string padding).
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -259,7 +269,7 @@ compile {
 
 ### 4.1 Redis (`REDIS` — Default: TCP Port `6379`)
 
-Need a **Redis TCP 6379 RESP2/RESP3 `SET` / `GET` / `AUTH` cache lookup pcap**? `REDIS` builds Redis Serialization Protocol client command arrays (`*<n>\r\n$<len>\r\n<arg>\r\n...`) and server replies (`+OK\r\n`, `-ERR ...\r\n`, `:<int>\r\n`, `$<len>\r\n<val>\r\n`).
+Auditing east-west cache tier ACLs or testing IDS alerts for unauthenticated Redis commands on TCP port `6379` requires zero database setup. `REDIS` builds Redis Serialization Protocol (RESP2/RESP3) client command arrays (`*<n>\r\n$<len>\r\n<arg>\r\n...`) and server replies (`+OK\r\n`, `-ERR ...\r\n`, `:<int>\r\n`, `$<len>\r\n<val>\r\n`).
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -272,7 +282,7 @@ Need a **Redis TCP 6379 RESP2/RESP3 `SET` / `GET` / `AUTH` cache lookup pcap**? 
 
 ### 4.2 Memcached (`MEMCACHED` — Default: TCP / UDP Port `11211`)
 
-Need a **Memcached TCP/UDP 11211 ASCII & Binary (`0x80`) cache lookup or UDP reflection block pcap**? `MEMCACHED` builds both the Memcached ASCII text protocol (`set <key> <flags> <exptime> <bytes>\r\n<value>\r\n`, `get <key>\r\n`) and the 24-byte Memcached Binary Protocol (`0x80` request / `0x81` response magic when `OPCODE` is specified).
+Verifying that perimeter firewalls block UDP `11211` DDoS reflection/amplification vectors or inspecting east-west cache traffic doesn't require spinning up a live Memcached daemon. In `.fasm` code, `MEMCACHED` builds both the Memcached ASCII protocol (`set <key> <flags> <exptime> <bytes>\r\n<value>\r\n`, `get <key>\r\n`) and the 24-byte Memcached Binary Protocol (`0x80` request / `0x81` response magic when `OPCODE` is specified).
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -288,7 +298,7 @@ Need a **Memcached TCP/UDP 11211 ASCII & Binary (`0x80`) cache lookup or UDP ref
 
 ### 4.3 MySQL / MariaDB (`MYSQL` — Default: TCP Port `3306`)
 
-Need a **MySQL / MariaDB TCP 3306 Wire v10 `HandshakeV10` login, `COM_QUERY` & error `1045`/`1062` database firewall pcap**? `MYSQL` builds MySQL Client/Server Wire Protocol v10 packets with 3-byte little-endian payload length and 1-byte sequence ID headers.
+Testing Database Activity Monitoring (DAM) appliances, SQL query logging, or failed-login (`1045`) alerts on TCP port `3306` doesn't require running a live MySQL or MariaDB instance. `MYSQL` builds MySQL Client/Server Wire Protocol v10 packets with 3-byte little-endian payload length and 1-byte sequence ID headers.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -306,7 +316,7 @@ Need a **MySQL / MariaDB TCP 3306 Wire v10 `HandshakeV10` login, `COM_QUERY` & e
 
 ### 4.4 PostgreSQL (`POSTGRES` — Default: TCP Port `5432`)
 
-Need a **PostgreSQL TCP 5432 Wire v3.0 `StartupMessage`, SQL `Query` & `ErrorResponse` database audit pcap**? `POSTGRES` builds PostgreSQL Wire Protocol v3.0 (`0x00030000` / `196608`) `StartupMessage` frames and 1-byte tagged messages (`'Q'` Query, `'R'` AuthenticationOk, `'C'` CommandComplete, `'Z'` ReadyForQuery, `'E'` ErrorResponse). Multiple server response tags (such as `auth_ok ready_for_query` or `command_complete ready_for_query`) can be combined into a single TCP frame just like a real PostgreSQL server.
+Validating PostgreSQL startup role/database policies, SQL transaction audit rules, or `ErrorResponse` handling on TCP port `5432` can be scripted directly in `.fasm` code. `POSTGRES` builds PostgreSQL Wire Protocol v3.0 (`0x00030000` / `196608`) `StartupMessage` frames and 1-byte tagged messages (`'Q'` Query, `'R'` AuthenticationOk, `'C'` CommandComplete, `'Z'` ReadyForQuery, `'E'` ErrorResponse). Multiple server response tags (such as `auth_ok ready_for_query` or `command_complete ready_for_query`) can be combined into a single TCP frame just like a real PostgreSQL server.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -364,7 +374,7 @@ compile {
 
 ### 5.1 MQTT v3.1.1 (`MQTT` — Default: TCP Port `1883`)
 
-Need an **MQTT v3.1.1 TCP 1883 `CONNECT` / `CONNACK` / `SUBSCRIBE` / `PUBLISH` (`QoS 0..2`, `RETAIN`) IoT broker pcap**? `MQTT` builds OASIS MQTT v3.1.1 control packets with 1-byte Fixed Headers (4-bit packet type, `DUP`, 2-bit `QoS`, and `RETAIN` bit), RFC-compliant variable-length Remaining Length encoding, Variable Headers, and payloads.
+Testing IoT broker topic ACLs, unauthorized `PUBLISH`/`SUBSCRIBE` alerts (`RETURN_CODE 5`), or `QoS 0..2` and `RETAIN` policies on TCP port `1883` doesn't require deploying Mosquitto or EMQX. `MQTT` builds OASIS MQTT v3.1.1 control packets with 1-byte Fixed Headers (4-bit packet type, `DUP`, 2-bit `QoS`, and `RETAIN` bit), RFC-compliant variable-length Remaining Length encoding, Variable Headers, and payloads.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -380,7 +390,7 @@ Need an **MQTT v3.1.1 TCP 1883 `CONNECT` / `CONNACK` / `SUBSCRIBE` / `PUBLISH` (
 
 ### 5.2 Constrained Application Protocol (`COAP` — Default: UDP Port `5683`)
 
-Need a **CoAP UDP 5683 `CON`/`NON`/`ACK`/`RST` IoT sensor REST call & CBOR/JSON payload pcap**? `COAP` builds RFC 7252 4-byte binary CoAP headers (`Version = 1`, 2-bit Type, Token Length, 8-bit `c.dd` Code byte `(class << 5) | detail`, and 16-bit `Message ID`), variable-length Token, delta-encoded `Uri-Path` (Option `11`) and `Content-Format` (Option `12`) options, and the `0xFF` payload marker.
+Simulating constrained IoT sensor REST telemetry (`CON`/`NON`/`ACK`/`RST`) on UDP port `5683` without flashing embedded hardware is straightforward with `COAP`. It builds RFC 7252 4-byte binary CoAP headers (`Version = 1`, 2-bit Type, Token Length, 8-bit `c.dd` Code byte `(class << 5) | detail`, and 16-bit `Message ID`), variable-length Token, delta-encoded `Uri-Path` (Option `11`) and `Content-Format` (Option `12`) options, and the `0xFF` payload marker.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -395,7 +405,7 @@ Need a **CoAP UDP 5683 `CON`/`NON`/`ACK`/`RST` IoT sensor REST call & CBOR/JSON 
 
 ### 5.3 Advanced Message Queuing Protocol (`AMQP` — Default: TCP Port `5672`)
 
-Need an **AMQP 0-9-1 TCP 5672 RabbitMQ `Connection.Start`, `Channel.Open`, `Basic.Publish` & `Heartbeat` message broker pcap**? `AMQP` builds AMQP 0-9-1 protocol handshake headers (`'AMQP\x00\x00\x09\x01'`) and general frames (1-byte Frame Type, 16-bit Channel, 32-bit Payload Size, Class/Method IDs, and trailing `0xCE` frame-end marker).
+Verifying RabbitMQ exchange and routing-key firewall rules or message-broker dissectors on TCP port `5672` requires no broker cluster—`AMQP` builds AMQP 0-9-1 protocol handshake headers (`'AMQP\x00\x00\x09\x01'`) and general frames (1-byte Frame Type, 16-bit Channel, 32-bit Payload Size, Class/Method IDs, and trailing `0xCE` frame-end marker).
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |

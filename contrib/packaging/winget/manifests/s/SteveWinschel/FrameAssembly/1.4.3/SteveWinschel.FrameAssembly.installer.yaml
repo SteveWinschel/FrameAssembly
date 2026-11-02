@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: SteveWinschel.FrameAssembly
+PackageVersion: 1.4.3
+InstallerLocale: en-US
+Platform:
+  - Windows.Desktop
+MinimumOSVersion: 10.0.0.0
+InstallerType: zip
+NestedInstallerType: portable
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.3/frameassembly-v1.4.3-x86_64-pc-windows-msvc.zip
+    InstallerSha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    NestedInstallerFiles:
+      - RelativeFilePath: frameassembly-v1.4.3-x86_64-pc-windows-msvc\frameassembly.exe
+        PortableCommandAlias: frameassembly
+  - Architecture: arm64
+    InstallerUrl: https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.3/frameassembly-v1.4.3-aarch64-pc-windows-msvc.zip
+    InstallerSha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    NestedInstallerFiles:
+      - RelativeFilePath: frameassembly-v1.4.3-aarch64-pc-windows-msvc\frameassembly.exe
+        PortableCommandAlias: frameassembly
+ManifestType: installer
+ManifestVersion: 1.6.0

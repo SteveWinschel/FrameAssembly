@@ -5,11 +5,11 @@
 # Reference: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
 #
 # Upstream Submission Guide for file(1) / libmagic (https://github.com/file/file):
-#   1. Clone https://github.com/file/file
+#   1. Clone https://github.com/file/file (official read-only Git mirror)
 #   2. Place this file as magic/Magdir/frameassembly
 #   3. Test compilation: file -C -m magic/Magdir/frameassembly
 #   4. Run test suite: make check
-#   5. Submit patch via pull request at https://github.com/file/file or email to christos@zoulas.com
+#   5. Submit patch via the upstream bug tracker (https://bugs.astron.com/) or mailing list (file@astron.com / christos@zoulas.com)
 #
 # Local System Installation:
 #   User:   cat contrib/magic/frameassembly.magic >> ~/.magic

@@ -1,8 +1,10 @@
 # Multi-Host Network Topologies & Dual-Stack Scenarios
 
-Real production incidents rarely involve just two hosts or a single protocol. A single user transaction or network convergence event often spans Layer 2 switching, Layer 3 routing/tunneling, Layer 4 transport handshakes, and multiple Layer 7 services across 4 to 8 devices.
+Real production incidents rarely happen between just two hosts speaking a single protocol. A single user login, WAN failover, or microservice call typically crosses Layer 2 switching, Layer 3 routing or tunneling, Layer 4 transport handshakes, and three or four Layer 7 services across 4 to 8 devices.
 
-Whether you need an **EVPN-VXLAN leaf-spine fabric pcap**, a **Campus Zero-Trust 802.1X RADIUS NAC onboarding capture**, a **Dual-Stack IPv4/IPv6 Kubernetes service-mesh trace**, a **WAN BFD / OSPF / VRRP / IPsec / MPLS failover pcap**, or an **IEC 62443 OT SCADA substation conduit capture**, FrameAssembly lets you model complete **multi-tier enterprise, data center, WAN, and industrial architectures** in a single `.fasm` file using three core capabilities:
+Reproducing that kind of multi-hop sequence in a physical lab or a virtual network emulator (GNS3, EVE-NG, Containerlab) just to get a clean test capture takes hours: you have to boot half a dozen router and server images, wire up VLAN trunks and VRFs, configure routing protocols and AAA daemons, and then coordinate `tcpdump` across multiple interfaces while manually triggering the event.
+
+FrameAssembly lets you express the entire multi-device conversation in a single `.fasm` file ("Packets as Code") and run it with two CLI commands (`frameassembly topology.fasm -o topology.pcap` to compile + `tcpreplay`, **Wireshark**, or **Suricata** to replay or inspect) using three core capabilities:
 
 1. **Multi-Host Flows:** Pass 3, 4, or 8+ endpoints into a single `flow(client, switch, radius, firewall, server, siem)` to interleave north-south client traffic, east-west service calls, and out-of-band telemetry in exact chronological order.
 2. **Reusable Dual-Stack IPv4 & IPv6 Flows:** Write a `flow` once and run it inside `compile` first with IPv4 `host` definitions and then with IPv6 `host` definitions—automatically switching between IPv4 (`EtherType 0x0800`) and IPv6 (`EtherType 0x86DD`), recomputing IPv4/IPv6 pseudo-header checksums, and deriving multicast MAC addresses per RFC 1112 (`01:00:5e:xx:xx:xx`) and RFC 2464 (`33:33:xx:xx:xx:xx`).
@@ -26,6 +28,8 @@ flow branch_transaction(client, edge_fw, app_srv, siem) {
     client  <- app_srv tcp syn ack
 }
 ```
+
+When you run `branch_transaction(workstation, perimeter_fw, web_srv, splunk_siem)` inside `compile { ... }`, FrameAssembly plugs those four `host` definitions into `(client, edge_fw, app_srv, siem)` in matching left-to-right order.
 
 ### 2. Dual-Stack IPv4 / IPv6 Reuse & Multicast MAC Derivation
 
@@ -113,7 +117,7 @@ compile {
 1. **802.1X Supplicant Handshake (`EAPOL`):** The laptop sends `EAPOL-Start`, responds to the switch's `EAP-Request/Identity` (`eap_code 1, eap_method 1`), and awaits port authorization.
 2. **AAA Policy Verification (`RADIUS`):** The switch relays the identity to the RADIUS server (`Access-Request` on UDP `1812`) and receives `Access-Accept` with the assigned `Framed-IP-Address`, then sends `EAP-Success` (`eap_code 3`) to open the switch port.
 3. **IPv4 Address Assignment (`DHCP`):** Full 4-packet `DORA` exchange (`Discover` $\rightarrow$ `Offer` $\rightarrow$ `Request` $\rightarrow$ `Ack`) assigning `10.10.50.100/24`.
-4. **Duplicate Address Detection (`ARP`):** The workstation broadcasts a Gratuitous ARP (`SPA == TPA == 10.10.50.100`).
+4. **Duplicate Address Detection (`ARP`):** The workstation broadcasts a Gratuitous ARP (`senderip` and `targetip` both set to `10.10.50.100`).
 5. **Encrypted NMS Audit (`SNMP3`):** The switch sends an authenticated and AES-128-CFB encrypted `SNMPv3 InformRequest` (`SHA256` + `AES`) to the NMS reporting `ifOperStatus = up(1)` on port 12.
 
 ```frameassembly

@@ -1,22 +1,26 @@
-//! **FrameAssembly** (`frameassembly`) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles plain-text `.fasm` packet recipes into deterministic `.pcap` and `.pcapng` captures across **81 native Layer 2 through Layer 7 protocols**.
+//! **FrameAssembly** (`frameassembly` v1.4.3) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.fasm` code into deterministic `.pcap` and `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols**.
 //!
 //! * **Canonical Repository & CLI:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
 //! * **Crates.io Package:** [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly)
 //! * **API Documentation:** [docs.rs/frameassembly](https://docs.rs/frameassembly)
 //! * **`.fasm` Format Specification (`text/vnd.frameassembly`):** [`docs/fasm-specification.md`](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md)
 //!
-//! Built first and foremost for **network engineers, firewall administrators, NOC/SOC analysts,
-//! OT/SCADA integrators, and QA teams who do not write code**, FrameAssembly synthesizes clean,
-//! bit-exact capture files offline in unprivileged user space—requiring no root privileges
-//! (`CAP_NET_RAW`), no live raw sockets, no `libpcap` library, and no Python runtime.
+//! Whether you are testing firewall ACLs, simulating SNMPv3 traps, validating Suricata/Zeek IDS
+//! rules, or verifying VLAN/QinQ/MPLS QoS markings, generating custom network traffic manually is
+//! tedious—requiring lab hardware, manual fault triggers, raw-socket privileges (`CAP_NET_RAW`),
+//! or manual TCP `SEQ`/`ACK` math in `Scapy`. FrameAssembly solves this for **network engineers,
+//! firewall administrators, NOC/SOC analysts, OT/SCADA integrators, and CI pipelines** with a few
+//! lines of `.fasm` code and two CLI commands: compile bit-exact capture files offline in
+//! unprivileged user space (no root, no live raw sockets, no `libpcap`) and replay or inspect with
+//! **`tcpreplay`**, **Wireshark**, **`tshark`**, **Suricata**, or **Zeek**.
 //!
 //! ## Upstream Companion Workflow: FrameAssembly $\rightarrow$ Wireshark / `tshark` / `tcpreplay` / IDS
 //!
 //! FrameAssembly is the **upstream packet-crafting compiler** in your network testing and analysis
 //! pipeline—never a competitor to packet analyzers or live wire injectors:
 //!
-//! 1. **Compile (`frameassembly` / `frameassembly show`)**: Turn a human-readable `.fasm`
-//!    ("PCAP as Code") specification into a deterministic `.pcap` / `.pcapng` file with automatic
+//! 1. **Compile (`frameassembly` / `frameassembly show`)**: Turn a declarative `.fasm`
+//!    ("Packets as Code") specification into a deterministic `.pcap` / `.pcapng` file with automatic
 //!    RFC defaults, 4-tuple TCP `SEQ`/`ACK` progression, bidirectional port inheritance across
 //!    `->` and `<-`, IPv4/IPv6 dual-stack flow reuse, and full SNMPv3 USM (`MD5`/`SHA-1`/`SHA-2` +
 //!    `DES`/`AES`) cryptography—or preview the packet ladder in the terminal with
@@ -32,18 +36,18 @@
 //!
 //! | Capability | **FrameAssembly (`.fasm`)** | **Python + `Scapy`** | **`text2pcap` (Hex Dumps)** | **`Ostinato` (GUI / Streams)** |
 //! | :--- | :--- | :--- | :--- | :--- |
-//! | **Primary Interface** | Declarative plain-text DSL (`1 line = 1 frame`) | Imperative Python scripts & classes | Raw hexadecimal byte offsets | Desktop GUI & stream dialogs |
+//! | **Primary Interface** | Declarative `.fasm` code (`1 line = 1 frame`) | Imperative Python scripts & classes | Raw hexadecimal byte offsets | Desktop GUI & stream dialogs |
 //! | **Target Audience** | Network/firewall engineers & CI pipelines | Python developers & researchers | Analysts editing hex dumps | Desktop lab engineers |
 //! | **Rootless / Offline** | Offline user space (no `libpcap` or raw sockets) | Requires Python + root for wire send | Offline user space | Requires daemon / agent setup |
 //! | **TCP `SEQ`/`ACK` & Ports** | Automatic 4-tuple `SEQ`/`ACK` & `<-` port swap | Manual per-packet sequence math | Manual hex recalculation | Manual per-stream configuration |
 //! | **SNMPv3 `authPriv` USM** | Built-in RFC 3414/3826/7860 `SHA-2` + `AES`/`DES` | Manual ASN.1 BER & crypto code | Impractical by hand | Not built-in |
-//! | **Version Control ("PCAP as Code")** | Clean, diffable UTF-8 `.fasm` text files | Code scripts coupled to Python env | Opaque hex blobs | Binary/protobuf stream files |
+//! | **Version Control ("Packets as Code")** | Clean, diffable UTF-8 `.fasm` code | Code scripts coupled to Python env | Opaque hex blobs | Binary/protobuf stream files |
 //!
 //! ## Common Network Testing Scenarios
 //!
-//! ### 1. Create a Custom `.pcap` Capture from Plain Text (No Root or Python)
+//! ### 1. Generate Custom Network Traffic & Protocol Exchanges Without Raw Sockets
 //!
-//! Write a declarative `.fasm` recipe with automatic RFC checksums and compile it in unprivileged user space—without writing Python `Scapy` scripts, requesting `CAP_NET_RAW` root permissions, or calculating hexadecimal byte offsets in `text2pcap`:
+//! Instead of setting up a Python environment for `Scapy`, requesting `CAP_NET_RAW` root privileges, or calculating hexadecimal byte offsets in `text2pcap`, write your hosts and packet lines in `.fasm` code and compile directly to `.pcap` in unprivileged user space:
 //!
 //! ```frameassembly
 //! HOST client { IP 192.168.1.100 }
@@ -59,9 +63,9 @@
 //! $ frameassembly dns.fasm -o dns.pcap
 //! ```
 //!
-//! ### 2. Test SNMPv1/v2c & Encrypted SNMPv3 `authPriv` Trap Receivers
+//! ### 2. Simulate SNMPv1/v2c & Encrypted SNMPv3 `authPriv` Traps Without Touching Live Gear
 //!
-//! Verify Zabbix, SolarWinds, LibreNMS, PRTG, or `snmptrapd` alerting rules without waiting for hardware to fail. FrameAssembly performs RFC 3414/3826/7860 USM key localization (`Ku -> Kul`), HMAC signing, and `DES-CBC`/`AES-128-CFB` encryption automatically:
+//! Simulating SNMP traps to verify Zabbix, SolarWinds, LibreNMS, PRTG, or `snmptrapd` alerting rules normally requires configuring agent credentials, loading MIB files, and manually triggering faults on a switch. FrameAssembly replaces that with a few lines of `.fasm` code (performing RFC 3414/3826/7860 USM key localization `Ku -> Kul`, HMAC signing, and `DES-CBC`/`AES-128-CFB` encryption automatically) and two CLI commands:
 //!
 //! ```frameassembly
 //! HOST router { IP 10.151.0.1 }
@@ -76,7 +80,7 @@
 //! $ frameassembly trap.fasm -o trap.pcap && tcpreplay -i eth0 trap.pcap
 //! ```
 //!
-//! ### 3. Craft 802.1Q `VLAN`, 802.1ad `QinQ`, `MPLS` & `DSCP` QoS Packets
+//! ### 3. Test 802.1Q `VLAN` Trunks, 802.1ad `QinQ`, `MPLS` & `DSCP` QoS Queues
 //!
 //! Desktop OS network stacks and NIC drivers often strip 802.1Q VLAN tags and block raw-socket injection of carrier `QinQ` double tags or custom DiffServ markings. FrameAssembly writes inner and outer VLAN tags, MPLS label stacks, and `DSCP` priority bits directly into the `.pcap` file:
 //!
@@ -115,9 +119,9 @@
 //! $ frameassembly ids_test.fasm -o ids_test.pcap && suricata -r ids_test.pcap
 //! ```
 //!
-//! ### 5. Build Sanitized Captures for Vendor TAC Tickets & CI Tests
+//! ### 5. Reproduce Customer Incidents & Sanitize Captures for Vendor TAC Tickets
 //!
-//! Instead of scrubbing production PCAPs and risking leaked internal IPs or customer payloads, write a minimal `.fasm` reproducer containing only the relevant protocol exchange:
+//! Instead of scrubbing production PCAPs and risking leaked internal IPs or customer payloads, write a clean `.fasm` reproducer containing only the relevant protocol exchange:
 //!
 //! ```frameassembly
 //! HOST client { IP 10.0.0.10 }
@@ -133,7 +137,7 @@
 //! $ frameassembly tac_ticket.fasm -o sanitized.pcap
 //! ```
 //!
-//! ### 6. Test Industrial OT / SCADA Firewalls Without a Physical PLC
+//! ### 6. Test Industrial OT / SCADA Firewalls Without a Live PLC
 //!
 //! Generate bit-accurate Modbus TCP, IEEE 1815 DNP3 (with automatic CRC-16), Siemens S7comm, BACnet/IP, EtherNet/IP, and OPC UA frames without physical PLCs or simulator VMs:
 //!
@@ -198,7 +202,7 @@
 //!
 //! ## Canonical Documentation Guides (`docs/`)
 //!
-//! * [Getting Started Guide](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/getting_started.md) — Step-by-step tutorial for non-programmers, defaults vs. overrides, automatic TCP `SEQ`/`ACK` & reply ports, and Wireshark/`tshark` + `tcpreplay` workflows.
+//! * [Getting Started Guide](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/getting_started.md) — Step-by-step tutorial to writing `.fasm` code, defaults vs. overrides, automatic TCP `SEQ`/`ACK` & reply ports, and Wireshark/`tshark` + `tcpreplay` workflows.
 //! * [Practical Use-Case Cookbook](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/use_cases.md) — Ready-to-run recipes for SNMPv1/v2c/v3 traps, firewall ACL verification, VLAN/QinQ/MPLS QoS tagging, IDS/IPS validation, and OT/SCADA testing.
 //! * [Layer 2 Switching & Data-Link Protocols](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/l2_protocols.md) — `ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`, and `MPLS`.
 //! * [Layer 3 Control, Tunneling, VPN & Routing](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/l3_protocols.md) — `ICMP`, `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`, `GENEVE`, `IPSEC`, `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`, `PIM`, `BFD`, and `OPENFLOW`.

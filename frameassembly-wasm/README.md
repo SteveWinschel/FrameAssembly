@@ -1,12 +1,12 @@
-# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v1.4.2)
+# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v1.4.3)
 
-High-performance WebAssembly compiler, frame inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.fasm`)** — the deterministic domain-specific language for synthesizing standards-compliant network packets (L2–L7) and PCAPNG captures in browser applications, web playgrounds, and Node.js runtimes. *(Note: FrameAssembly is a network protocol DSL, not x86 Flat Assembler).*
+High-performance WebAssembly compiler, frame inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.fasm`)** — the **Packets as Code** domain-specific language for compiling `.fasm` code into deterministic `.pcapng` packet captures across 81 L2–L7 protocols for pentesting labs, testing firewall rules, simulating SNMPv1/v2c/v3 traps, and validating network monitoring and cybersecurity solutions in browser applications, web cyber ranges, and Node.js test suites. *(Note: FrameAssembly is a network protocol DSL, not x86 Flat Assembler).*
 
 ---
 
 ## Client-Side `.fasm` to `.pcapng` Compilation in the Browser & Node.js
 
-`frameassembly-wasm` compiles the complete FrameAssembly Rust compiler directly to WebAssembly, generating deterministic, nanosecond-precision `.pcapng` byte streams and real-time Monaco/CodeMirror syntax diagnostics entirely in the browser or Node.js—with no backend server, Python runtime, or native `libpcap` dependencies required:
+`frameassembly-wasm` compiles the complete FrameAssembly Rust engine directly to WebAssembly, turning `.fasm` code into nanosecond-precision `.pcapng` byte streams and real-time Monaco/CodeMirror syntax diagnostics entirely in the browser or Node.js—with no backend packet-crafting server, root privileges (`CAP_NET_RAW`), Python `Scapy` runtime, manual `text2pcap` hex offsets, or native `libpcap` dependencies required:
 
 ```ts
 import init, {
@@ -18,15 +18,15 @@ import init, {
 // Initialize WASM module once at startup
 await init();
 
-const source = `HOST client { IP 192.168.1.10 MAC 00:11:22:33:44:55 }
-HOST server { IP 8.8.8.8 MAC aa:bb:cc:dd:ee:ff }
+const source = `host client { ip 192.168.1.10 mac 00:11:22:33:44:55 }
+host server { ip 8.8.8.8 mac aa:bb:cc:dd:ee:ff }
 
-FLOW dns_query(c, s) {
-    c -> s DNS QUERY TXID 0x1234 QNAME "example.com" QTYPE "A" WAIT 1ms
-    c <- s DNS RESPONSE TXID 0x1234 QNAME "example.com" QTYPE "A" RDATA "93.184.216.34" WAIT 1ms
+flow dns_query(c, s) {
+    c -> s dns query txid 0x1234 qname "example.com" qtype "A" wait 1ms
+    c <- s dns response txid 0x1234 qname "example.com" qtype "A" rdata "93.184.216.34" wait 1ms
 }
 
-COMPILE {
+compile {
     dns_query(client, server)
 }`;
 
@@ -64,7 +64,7 @@ npm install frameassembly-wasm
     validate_fasm,
     inspect_fasm,
     compile_fasm_to_pcapng,
-  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@1.4.2/frameassembly_wasm.js";
+  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@1.4.3/frameassembly_wasm.js";
 
   await init();
   console.log("FrameAssembly WebAssembly engine loaded successfully.");

@@ -2,19 +2,19 @@
 
 * **Canonical Media Type:** `text/vnd.frameassembly`
 * **File Extension:** `.fasm`
-* **Uniform Type Identifier (UTI):** `io.github.stevewinschel.frameassembly` (conforms to `public.plain-text`, `public.source-code`)
+* **Uniform Type Identifier (UTI):** `io.github.stevewinschel.frameassembly` (conforms to `public.source-code`, `public.text`)
 * **Freedesktop Shared MIME Info:** [`contrib/mime/text-vnd.frameassembly.xml`](../contrib/mime/text-vnd.frameassembly.xml) (`sub-class-of` `text/plain`, glob `*.fasm`) • [`contrib/mime/README.md`](../contrib/mime/README.md)
 * **Unix `file(1)` / `libmagic` Rule:** [`contrib/magic/frameassembly.magic`](../contrib/magic/frameassembly.magic)
 * **IANA Vendor Tree Registration Template:** [`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md)
 * **GitHub Linguist Grammar & Heuristics:** [`contrib/linguist/languages.yml`](../contrib/linguist/languages.yml), [`contrib/linguist/heuristics.yml`](../contrib/linguist/heuristics.yml) • [`contrib/linguist/README.md`](../contrib/linguist/README.md)
 * **Formal Context-Free Grammars:** [`grammar.ebnf`](../grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](../frameassembly.gbnf) (`llama.cpp` / `XGrammar` GBNF), [`frameassembly.lark`](../frameassembly.lark) (Earley/LALR Lark)
-* **Reference Compiler & Repository:** [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
+* **Reference Compiler & Repository:** `frameassembly` v1.4.3 • [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
 
 ---
 
 ## 1. Abstract & Scope
 
-The **FrameAssembly** file format (`.fasm`, media type `text/vnd.frameassembly`) is a declarative, human-readable, plain-text Domain-Specific Language (DSL) for specifying deterministic network packet captures ("Packets as Code" / "PCAP as Code").
+The **FrameAssembly** file format (`.fasm`, media type `text/vnd.frameassembly`) is a declarative, human-readable Domain-Specific Language (DSL) for specifying deterministic network packet captures ("Packets as Code" / "PCAP as Code").
 
 A `.fasm` document declares network endpoints (`HOST`), parameterized multi-packet traffic sequences (`FLOW`), and compilation targets (`COMPILE`). The `frameassembly` reference compiler translates `.fasm` source files entirely offline in unprivileged user space—requiring no root privileges (`CAP_NET_RAW`), no live network sockets, and no `libpcap` library—into deterministic, nanosecond-resolution `.pcap` / `.pcapng` packet capture files across **81 native Layer 2 through Layer 7 network protocols**.
 
@@ -32,10 +32,10 @@ This section defines the formal media type registration parameters for `text/vnd
 | **Subtype name** | `vnd.frameassembly` |
 | **Required parameters** | None. |
 | **Optional parameters** | `charset`: Per RFC 6657 §3, the default charset is `UTF-8`. Implementations MUST support `UTF-8` without a Byte Order Mark (BOM). |
-| **Encoding considerations** | `8bit` (UTF-8 plain text). Documents containing only ASCII characters in comments and string literals are valid `7bit` US-ASCII. |
+| **Encoding considerations** | `8bit` (UTF-8 source code). Documents containing only ASCII characters in comments and string literals are valid `7bit` US-ASCII. |
 | **File extension(s)** | `.fasm` |
 | **Macintosh file type code(s)** | `TEXT` |
-| **Uniform Type Identifier (UTI)** | `io.github.stevewinschel.frameassembly` (`public.plain-text`, `public.source-code`) |
+| **Uniform Type Identifier (UTI)** | `io.github.stevewinschel.frameassembly` (`public.source-code`, `public.text`) |
 | **Object Identifiers (OIDs)** | None. |
 | **Fragment identifier considerations** | Supports [RFC 5147](https://www.rfc-editor.org/rfc/rfc5147) `text/plain` character and line fragment identifiers (for example, `#line=10,25`). |
 | **Published specification** | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` |
@@ -52,8 +52,8 @@ This section defines the formal media type registration parameters for `text/vnd
    - The canonical line ending for `.fasm` files in version control is LF (`0x0A`, `\n`).
    - Compliant parsers MUST accept both LF (`\n`) and CRLF (`\r\n`) line endings, as well as horizontal tabs (`\t`), form feeds (`\f`), and spaces (`0x20`) as token delimiters (`[ \t\r\n\f]+`).
 3. **Prohibition of Literal NUL Bytes (`0x00`)**:
-   - A valid `.fasm` text file MUST NOT contain literal NUL bytes (`0x00`).
-   - Arbitrary binary wire payloads (including NUL bytes) are represented safely in plain text using hexadecimal escape sequences inside `PAYLOAD "<string>"` (such as `\x00\x09\x01`) or hexadecimal byte strings inside `HEXPAYLOAD "<hex>"` (such as `HEXPAYLOAD "000102ff"`).
+   - A valid `.fasm` file MUST NOT contain literal NUL bytes (`0x00`).
+   - Arbitrary binary wire payloads (including NUL bytes) are represented safely in `.fasm` source code using hexadecimal escape sequences inside `PAYLOAD "<string>"` (such as `\x00\x09\x01`) or hexadecimal byte strings inside `HEXPAYLOAD "<hex>"` (such as `HEXPAYLOAD "000102ff"`).
 
 ---
 
@@ -153,8 +153,8 @@ The table below provides the authoritative technical disambiguation across all e
 | **Reference Tool / Compiler** | `frameassembly` compiler & CLI (offline userspace, rootless, zero raw sockets) | Flat Assembler (`fasm`) assembler & linker | `fasm2frames` / `xc7frames2bit` (SymbiFlow / F4PGA architecture tooling) |
 | **Downstream Consumers** | **Wireshark**, **`tshark`**, **`tcpreplay`**, **Suricata**, **Zeek**, Snort, test harnesses | Operating system loader, CPU execution, static linkers (`ld`, `link.exe`) | Xilinx 7-Series / Lattice iCE40 FPGA programming hardware |
 | **Registry Authority** | Candidate IANA Vendor Tree (`text/vnd.frameassembly`), Freedesktop XML, Wikidata | Unregistered informal convention (`.asm` primary, `.fasm` secondary) | Unregistered informal convention (`.fasm` tile configuration) |
-| **Text Encoding & Line Endings** | UTF-8 without BOM (RFC 6657), LF / CRLF accepted, literal NUL (`0x00`) prohibited | ASCII or regional 8-bit code pages, CR+LF or LF | Plain ASCII, LF or CRLF |
-| **Syntax Highlighting Scopes** | `source.frameassembly` (TextMate), `FrameAssembly` (Linguist) | `source.assembly` or `source.x86` | Generic plain text or hardware configuration |
+| **Text Encoding & Line Endings** | UTF-8 without BOM (RFC 6657), LF / CRLF accepted, literal NUL (`0x00`) prohibited | ASCII or regional 8-bit code pages, CR+LF or LF | US-ASCII, LF or CRLF |
+| **Syntax Highlighting Scopes** | `source.frameassembly` (TextMate), `FrameAssembly` (Linguist) | `source.assembly` or `source.x86` | Generic text or hardware configuration |
 
 ### 5.2 Explicit Syntactic Distinguishing Marks & Zero False-Positive Proof
 
@@ -219,7 +219,7 @@ Running `file -i <file.fasm>` returns `text/vnd.frameassembly; charset=us-ascii`
 ### 5.6 FAQ: What is a `.fasm` File? (FrameAssembly vs. Flat Assembler vs. FPGA FASM)
 
 #### Q1: What is a `.fasm` file in FrameAssembly?
-A `.fasm` file is a plain-text network traffic specification written in the FrameAssembly Domain-Specific Language ("Packets as Code"). It defines network endpoints (`HOST`), directional packet exchanges across OSI Layers 2 through 7 (`FLOW`), and execution schedules (`COMPILE`). The `frameassembly` compiler compiles `.fasm` specifications offline into deterministic `.pcap` or `.pcapng` capture files for Wireshark, `tshark`, `tcpreplay`, Suricata, and Zeek.
+A `.fasm` file is a declarative network traffic specification written in the FrameAssembly Domain-Specific Language ("Packets as Code"). It defines network endpoints (`HOST`), directional packet exchanges across OSI Layers 2 through 7 (`FLOW`), and execution schedules (`COMPILE`). The `frameassembly` compiler compiles `.fasm` specifications offline into deterministic `.pcap` or `.pcapng` capture files for Wireshark, `tshark`, `tcpreplay`, Suricata, and Zeek.
 
 #### Q2: How does a FrameAssembly `.fasm` file differ from an x86 Flat Assembler file?
 Flat Assembler (traditionally abbreviated FASM) is a machine-code assembler that translates low-level x86/x86-64 assembly instructions into binary executables (`.exe`, `.elf`, `.bin`). Flat Assembler files use semicolon (`;`) comments, format directives (`format PE`, `section '.text'`), and CPU mnemonics (`mov`, `jmp`, `xor`). In contrast, FrameAssembly files use slash (`//`) comments, structural blocks (`HOST`, `FLOW`, `COMPILE`), and networking directives (`client -> server TCP SYN`).
@@ -245,7 +245,7 @@ The `.fasm` file extension and `text/vnd.frameassembly` media type maintain acti
 3. **Unix `file(1)` / `libmagic`**: Magic rule definition in [`contrib/magic/frameassembly.magic`](../contrib/magic/frameassembly.magic).
 4. **GitHub Linguist**: Language definition in [`contrib/linguist/languages.yml`](../contrib/linguist/languages.yml), disambiguation heuristics in [`contrib/linguist/heuristics.yml`](../contrib/linguist/heuristics.yml), TextMate grammar in [`frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`](../frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json), and upstream PR guide in [`contrib/linguist/README.md`](../contrib/linguist/README.md).
 5. **Wikidata Knowledge Graph**: Entity specification and QuickStatements batch script mapping properties `P31`, `P1195`, `P1163`, `P973`, `P856`, `P1324`, `P275`, `P306`, and `P277`.
-6. **Public File Extension Databases & Preservation**: Submission templates for `file-extensions.org`, `FileInfo.com`, `FILExt.com`, and UK National Archives PRONOM in [`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md).
+6. **Public File Extension Databases, Preservation & Web Ecosystem**: Submission templates for `file-extensions.org`, `FileInfo.com`, `FILExt.com`, UK National Archives PRONOM (`digital-preservation/PRONOM_Research`), and Node.js `jshttp/mime-db` in [`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md).
 
 ---
 

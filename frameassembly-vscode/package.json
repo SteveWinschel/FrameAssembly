@@ -2,7 +2,7 @@
   "name": "frameassembly-vscode",
   "displayName": "FrameAssembly (.fasm Packet Crafting DSL)",
   "description": "Syntax highlighting and language support for FrameAssembly (.fasm), the declarative DSL for deterministic .pcap/.pcapng network packet generation across 81 L2-L7 protocols.",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "publisher": "SteveWinschel",
   "icon": "icon.png",
   "galleryBanner": {
@@ -51,7 +51,7 @@
         "mimetypes": [
           "text/vnd.frameassembly"
         ],
-        "firstLine": "^(?:HOST|FLOW|COMPILE|#|//)",
+        "firstLine": "^(?:HOST|FLOW|COMPILE|host|flow|compile|#|//)",
         "configuration": "./language-configuration.json"
       }
     ],
@@ -60,6 +60,16 @@
         "language": "frameassembly",
         "scopeName": "source.frameassembly",
         "path": "./syntaxes/frameassembly.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.frameassembly.codeblock",
+        "path": "./syntaxes/frameassembly.markdown.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.frameassembly": "frameassembly"
+        }
       }
     ],
     "snippets": [

@@ -1,44 +1,42 @@
-// PROMPT: Compile a realistic TCP 3-way handshake, HTTP GET/200 OK transaction, and cryptographic SNMPv3 USM linkUp trap into a deterministic PCAPNG capture.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WAIT, ACK, HTTP, GET, URI, HOST_HDR, STATUS, BODY, SNMP3, TRAP, USER, ENGINEID, AUTH, SHA256, PRIV, AES, OID, VARBIND, STRING, COMPILE
+// Demo: Stateful HTTP/1.1 health check and encrypted SNMPv3 USM linkUp alert.
+// Compile to PCAPNG:  frameassembly demo.fasm -o output.pcap
+// Inspect ladder:     frameassembly show demo.fasm
 
-// INSTRUCTION: Declare the client workstation and web/application server IPv4 endpoints with IEEE 802 MAC addresses.
-HOST edge_client {
-    IP 10.0.10.50
-    MAC 00:1a:2b:3c:4d:50
+// Client workstation, application server, and NMS collector endpoints
+host edge_client {
+    ip 10.0.10.50
+    mac 00:1a:2b:3c:4d:50
 }
 
-// INSTRUCTION: Declare the web server and SNMP agent endpoint.
-HOST app_server {
-    IP 10.0.10.80
-    MAC 00:1a:2b:3c:4d:80
+host app_server {
+    ip 10.0.10.80
+    mac 00:1a:2b:3c:4d:80
 }
 
-// INSTRUCTION: Declare the Network Management System (NMS) telemetry collector endpoint.
-HOST nms_collector {
-    IP 10.0.10.100
-    MAC 00:1a:2b:3c:4d:99
+host nms_collector {
+    ip 10.0.10.100
+    mac 00:1a:2b:3c:4d:99
 }
 
-// INSTRUCTION: Define a stateful TCP 3-way handshake followed by an HTTP/1.1 GET request and 200 OK response.
-FLOW web_session(client, server) {
-    client -> server TCP SYN SRCPORT 51234 DSTPORT 80 WAIT 1ms
-    client <- server TCP SYN ACK WAIT 1ms
-    client -> server TCP ACK WAIT 1ms
-    client -> server HTTP GET URI "/api/v1/health" HOST_HDR "app.internal" WAIT 5ms
-    client <- server HTTP STATUS 200 BODY "{\"status\":\"healthy\"}" WAIT 2ms
+// TCP 3-way handshake followed by an HTTP GET request and 200 OK JSON response
+flow web_session(client, server) {
+    client -> server tcp syn srcport 51234 dstport 80 wait 1ms
+    client <- server tcp syn ack wait 1ms
+    client -> server tcp ack wait 1ms
+    client -> server http get uri "/api/v1/health" host_hdr "app.internal" wait 5ms
+    client <- server http status 200 body "{\"status\":\"healthy\"}" wait 2ms
 }
 
-// INSTRUCTION: Define an authenticated and encrypted SNMPv3 USM trap (HMAC-SHA-256 + AES-128-CFB) to the NMS.
-FLOW snmpv3_linkup_trap(agent, nms) {
-    agent -> nms SNMP3 TRAP USER "secops_admin" ENGINEID "80001f888011223344"
-        AUTH SHA256 "AuthSecretKey99!" PRIV AES "PrivSecretKey99!"
-        OID 1.3.6.1.6.3.1.1.5.4
-        VARBIND 1.3.6.1.2.1.1.5.0 STRING "app-server-01.internal"
-        WAIT 5ms
+// Authenticated and encrypted SNMPv3 USM trap (HMAC-SHA-256 + AES-128-CFB)
+flow snmpv3_linkup_trap(agent, nms) {
+    agent -> nms snmp3 trap user "secops_admin" engineid "80001f888011223344"
+        auth sha256 "AuthSecretKey99!" priv aes "PrivSecretKey99!"
+        oid 1.3.6.1.6.3.1.1.5.4
+        varbind 1.3.6.1.2.1.1.5.0 string "app-server-01.internal"
+        wait 5ms
 }
 
-// INSTRUCTION: Compile the web session and SNMPv3 telemetry alert into the output capture.
-COMPILE {
+compile {
     web_session(edge_client, app_server)
     snmpv3_linkup_trap(app_server, nms_collector)
 }

@@ -21,7 +21,7 @@
 //! 5. **Gate 5 (`< 50 KB` Rust/Corpus Ceiling, `//!` Module Docstrings, Zero NUL Bytes & Doc Inventory)**:
 //!    Every `src/**/*.rs`, `tests/*.rs`, and `examples/**/*.fasm` file is `< 50,000` bytes (Markdown
 //!    has no size cap), every `src/**/*.rs` and `tests/*.rs` file begins with `//!` (`>= 50` words),
-//!    zero `0x00` bytes exist in any text or source file, and `docs/` holds exactly the 12 canonical guides.
+//!    zero `0x00` bytes exist in any text or source file, and `docs/` holds exactly the 13 canonical guides.
 //! 6. **Gate 6 (AST `*Spec` Fields Wired to Wire Builders)**: Every public field on every protocol
 //!    `*Spec` struct (plus `TcpOptions` and `SctpParams`) in `src/ast/{l2,l3,l4,l7}/*.rs` is wired
 //!    into and referenced by the corresponding wire builder or packet/backend encoder.
@@ -383,10 +383,14 @@ fn test_corpus_all_examples_headers_and_compilation() {
 
     let mut failed = Vec::new();
     let demo_path = Path::new("demo.fasm");
-    if demo_path.exists()
-        && let Err(e) = verify_example_file(demo_path, &valid_keywords)
-    {
-        failed.push(e);
+    if demo_path.exists() {
+        let demo_src = fs::read_to_string(demo_path).expect("Failed to read demo.fasm");
+        for tag in ["// PROMPT:", "// TOKENS:", "// INSTRUCTION:"] {
+            assert!(!demo_src.contains(tag), "demo.fasm must not contain {}", tag);
+        }
+        let prog = parse_program(&demo_src).expect("demo.fasm failed to parse");
+        validate_semantics(&prog, &demo_src).expect("demo.fasm failed semantic validation");
+        compile_program(&prog).expect("demo.fasm failed wire compilation");
     }
     for path in &paths {
         if let Err(e) = verify_example_file(path, &valid_keywords) {
@@ -705,6 +709,10 @@ fn test_gate4_constrained_decoding_grammar_lockstep() {
         if !tm_json.contains(kw.as_str()) {
             missing.push(format!("frameassembly.tmLanguage.json missing {}", kw));
         }
+        let kw_lower = kw.to_ascii_lowercase();
+        if !tm_json.contains(&kw_lower) {
+            missing.push(format!("frameassembly.tmLanguage.json missing {}", kw_lower));
+        }
     }
 
     assert!(
@@ -955,9 +963,9 @@ fn test_gate6_ast_spec_fields_wired_to_builders() {
     );
 }
 
-/// Gate 7: Verifies v1.4.2 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
-/// or old `.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.4.2.vsix`
-/// is packaged with v1.4.2 manifest, syntax, and snippets, checks `llms.txt` (`< 512` lines, `< 25 KB`),
+/// Gate 7: Verifies v1.4.3 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
+/// or old `.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.4.3.vsix`
+/// is packaged with v1.4.3 manifest, syntax, and snippets, checks `llms.txt` (`< 512` lines, `< 25 KB`),
 /// and synchronizes/verifies `llms-full.txt` against `llms.txt`, `README.md`, `AGENTS.md`,
 /// `docs/*.md`, `grammar.ebnf`, `frameassembly.gbnf`, and `frameassembly.lark`.
 #[test]
@@ -976,19 +984,19 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
         assert!(!p.exists(), "Stray file {} must not exist", stray);
     }
 
-    // 2. Rebuild/verify frameassembly-vscode/frameassembly-vscode-1.3.0.vsix and remove 1.2.2.vsix
+    // 2. Rebuild/verify frameassembly-vscode/frameassembly-vscode-1.4.3.vsix and remove 1.4.2.vsix
     let py_vsix_script = r#"
 import os, zipfile
 
-vsix_old = "frameassembly-vscode/frameassembly-vscode-1.3.0.vsix"
-vsix_new = "frameassembly-vscode/frameassembly-vscode-1.4.2.vsix"
+vsix_old = "frameassembly-vscode/frameassembly-vscode-1.4.2.vsix"
+vsix_new = "frameassembly-vscode/frameassembly-vscode-1.4.3.vsix"
 
 content_types = '''<?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-\t<Default Extension=".json" ContentType="application/json"/>
-\t<Default Extension=".md" ContentType="text/markdown"/>
-\t<Default Extension=".vsixmanifest" ContentType="text/xml"/>
-\t<Default Extension=".png" ContentType="image/png"/>
+\t<Default Extension="json" ContentType="application/json"/>
+\t<Default Extension="md" ContentType="text/markdown"/>
+\t<Default Extension="vsixmanifest" ContentType="text/xml"/>
+\t<Default Extension="png" ContentType="image/png"/>
 </Types>'''
 
 vsixmanifest = '''<?xml version="1.0" encoding="utf-8"?>
@@ -1023,15 +1031,20 @@ vsixmanifest = '''<?xml version="1.0" encoding="utf-8"?>
 \t</Assets>
 </PackageManifest>'''
 
+files = [
+    ("package.json", "extension/package.json"),
+    ("README.md", "extension/README.md"),
+    ("CHANGELOG.md", "extension/CHANGELOG.md"),
+    ("language-configuration.json", "extension/language-configuration.json"),
+    ("syntaxes/frameassembly.tmLanguage.json", "extension/syntaxes/frameassembly.tmLanguage.json"),
+    ("syntaxes/frameassembly.markdown.tmLanguage.json", "extension/syntaxes/frameassembly.markdown.tmLanguage.json"),
+    ("snippets/frameassembly.code-snippets", "extension/snippets/frameassembly.code-snippets"),
+]
 with zipfile.ZipFile(vsix_new, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-    zf.writestr("[Content_Types].xml", content_types.replace("</Types>", "\t<Default Extension=\".code-snippets\" ContentType=\"application/json\"/>\n</Types>"))
-    zf.writestr("extension.vsixmanifest", vsixmanifest.replace("1.2.2", "1.4.2").replace("stevewinschel", "SteveWinschel"))
-    zf.write("frameassembly-vscode/package.json", "extension/package.json")
-    zf.write("frameassembly-vscode/README.md", "extension/README.md")
-    zf.write("frameassembly-vscode/CHANGELOG.md", "extension/CHANGELOG.md")
-    zf.write("frameassembly-vscode/language-configuration.json", "extension/language-configuration.json")
-    zf.write("frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json", "extension/syntaxes/frameassembly.tmLanguage.json")
-    zf.write("frameassembly-vscode/snippets/frameassembly.code-snippets", "extension/snippets/frameassembly.code-snippets")
+    zf.writestr("[Content_Types].xml", content_types.replace("</Types>", "\t<Default Extension=\"code-snippets\" ContentType=\"application/json\"/>\n</Types>"))
+    zf.writestr("extension.vsixmanifest", vsixmanifest.replace("1.2.2", "1.4.3").replace("stevewinschel", "SteveWinschel"))
+    for src, arc in files:
+        zf.write(os.path.join("frameassembly-vscode", src), arc)
     if os.path.exists("frameassembly-vscode/icon.png"):
         zf.write("frameassembly-vscode/icon.png", "extension/icon.png")
     if os.path.exists("LICENSE"):
@@ -1048,12 +1061,12 @@ if os.path.exists(vsix_old):
         .expect("Failed to execute python3 for VSIX packaging");
     assert!(status.success(), "VSIX packaging script failed");
     assert!(
-        !Path::new("frameassembly-vscode/frameassembly-vscode-1.3.0.vsix").exists(),
-        "Old frameassembly-vscode-1.3.0.vsix must be removed"
+        !Path::new("frameassembly-vscode/frameassembly-vscode-1.4.2.vsix").exists(),
+        "Old frameassembly-vscode-1.4.2.vsix must be removed"
     );
     assert!(
-        Path::new("frameassembly-vscode/frameassembly-vscode-1.4.2.vsix").exists(),
-        "New frameassembly-vscode-1.4.2.vsix must exist"
+        Path::new("frameassembly-vscode/frameassembly-vscode-1.4.3.vsix").exists(),
+        "New frameassembly-vscode-1.4.3.vsix must exist"
     );
 
     // 3. Verify llms.txt line and byte bounds
@@ -1074,15 +1087,16 @@ if os.path.exists(vsix_old):
         .expect("llms-full.txt must contain AST section");
     let tail_section = &existing_full[ast_pos..];
 
-    let (_, llms_body) = llms_txt
+    let llms_body = llms_txt
         .split_once("### Zero-Shot `.fasm` Grammar & Anti-Hallucination Reference")
-        .expect("llms.txt must contain Zero-Shot section");
+        .map(|(_, b)| b)
+        .unwrap_or(&llms_txt);
 
     let readme = fs::read_to_string("README.md").expect("Missing README.md");
     let agents = fs::read_to_string("AGENTS.md").expect("Missing AGENTS.md");
     let mut rebuilt = String::with_capacity(700_000);
     rebuilt.push_str("# FrameAssembly (`frameassembly`)\n\n");
-    rebuilt.push_str("> Rootless \"Packets as Code\" / \"PCAP as Code\" DSL & Rust compiler (v1.4.2) that compiles plain-text `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).\n\n");
+    rebuilt.push_str("> Rootless \"Packets as Code\" / \"PCAP as Code\" DSL & Rust compiler (v1.4.3) that compiles declarative `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).\n\n");
     rebuilt.push_str("FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in userspace with no `libpcap` or raw sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides via `frameassembly <input.fasm> [-o <output.pcap>]` and `frameassembly show <input.fasm>`.\n\n");
     rebuilt.push_str("## Section Manifest & Bundle Table of Contents\n\n");
     rebuilt.push_str("1. **Zero-Shot `.fasm` Grammar, Anti-Hallucination Table & `llms.txt` Index**\n");

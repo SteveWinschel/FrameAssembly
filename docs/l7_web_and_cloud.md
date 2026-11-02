@@ -1,9 +1,19 @@
 # Layer 7 Web, Cloud-Native, Transport Security, VoIP & Remote Access Reference
 
-Whether you need an **HTTP/1.1, HTTP/2, gRPC, or WebSocket API test capture**, a **TLS 1.3 SNI/ALPN & QUIC / HTTP/3 firewall inspection pcap**, an **SSH / Telnet / TFTP / FTP / WHOIS remote administration capture**, or a **SIP / RTP / RTSP / STUN / SSDP VoIP & media stream packet generator**, this guide covers **16 Layer 7 application protocols** across IPv4 and IPv6:
+Testing a Web Application Firewall (WAF), verifying TLS 1.3 SNI/ALPN inspection or UDP `443` QUIC pinholes, auditing a VoIP Session Border Controller (SBC), or triggering IDS rules for legacy Telnet/FTP shouldn't require spinning up Docker containers, Nginx reverse proxies, throwaway certificate authorities, and Asterisk PBXs. FrameAssembly solves that with a few lines of `.fasm` code and two CLI commands:
+
+```bash
+# 1. Compile the .fasm code into a deterministic .pcap capture
+frameassembly web.fasm -o web.pcap
+
+# 2. Replay the capture onto the wire (or inspect web.pcap in Wireshark / Suricata)
+sudo tcpreplay -i eth0 web.pcap
+```
+
+This guide covers **16 Layer 7 web, cloud-native, transport security, VoIP, and remote access protocols** across IPv4 and IPv6:
 **`HTTP`**, **`HTTP2`**, **`GRPC`**, **`WEBSOCKET`**, **`TLS`**, **`QUIC`**, **`TFTP`**, **`FTP`**, **`SSH`**, **`TELNET`**, **`WHOIS`**, **`SIP`**, **`RTP`**, **`RTSP`**, **`STUN`**, and **`SSDP`**.
 
-> **Looking for IoT & Message Broker protocols (`MQTT`, `COAP`, `AMQP`)?**
+> **Where to Find IoT & Message Broker Protocols (`MQTT`, `COAP`, `AMQP`):**
 > Those three protocols are documented in [**Layer 7 Mail, Directory, Storage, Databases & Message Brokers (`l7_mail_auth_storage_db.md`)**](l7_mail_auth_storage_db.md#5-message-brokers--iot-telemetry-mqtt-coap-amqp).
 
 ---
@@ -40,10 +50,10 @@ Every protocol below works with **zero mandatory modifiers** (emitting a complet
 
 ### 1.1 HTTP/1.1 (`HTTP` — Default: TCP Port `80`)
 
-Need an **HTTP/1.1 `GET`/`POST` request & `200`/`404`/`503` response pcap** for WAF rule testing, reverse-proxy validation, or REST API health checks? `HTTP` builds CRLF-delimited RFC 9112 HTTP/1.1 request and response messages:
+Testing WAF signatures, reverse-proxy header routing (`X-Forwarded-For`, `Host`), or Suricata HTTP rules with `curl` only captures traffic if you already have a live backend server listening and returning the exact status code and JSON body you need. In `.fasm` code, you script both the client request and server response directly—`HTTP` builds CRLF-delimited RFC 9112 HTTP/1.1 messages over TCP port `80`:
 - **Request vs. Response:** If `STATUS` (or `REASON`) is specified, FrameAssembly emits an HTTP response (`HTTP/1.1 <status> <reason>\r\n...`). Otherwise, it emits an HTTP request (`<method> <uri> HTTP/<version>\r\n...`).
 - **Automatic `Content-Length`:** Whenever you include `BODY "<text>"`, FrameAssembly automatically computes the exact byte length of the body and appends a matching `Content-Length: <n>\r\n` header before the blank `\r\n\r\n` separator.
-- **Why `HOST_HDR` instead of `HOST`?** In FrameAssembly, `HOST` is a top-level keyword used to declare network endpoints (`host web_srv { ip 10.0.0.10 }`). Using `HOST_HDR "<hostname>"` for the HTTP `Host:` header prevents any ambiguity between endpoint declarations and HTTP headers.
+- **Setting the HTTP `Host:` Header with `HOST_HDR`:** Because `HOST` is a top-level keyword used to declare network endpoints (`host web_srv { ip 10.0.0.10 }`), use `HOST_HDR "<hostname>"` inside `HTTP` statements to set the HTTP `Host:` header without ambiguity.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -61,7 +71,7 @@ Need an **HTTP/1.1 `GET`/`POST` request & `200`/`404`/`503` response pcap** for 
 
 ### 1.2 HTTP/2 (`HTTP2` — Default: TCP Port `443`)
 
-Need an **HTTP/2 connection preface, `SETTINGS`, `HEADERS`, `DATA` & `GOAWAY` stream pcap** for ALPN/proxy inspection? `HTTP2` builds RFC 9113 binary HTTP/2 frames (9-byte header: 24-bit length, 8-bit frame type, 8-bit flags, 1-bit reserved bit, and 31-bit stream ID) and the optional 24-byte client connection preface (`PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n`). Multiple frame type flags can be combined in a single packet (such as `preface settings`).
+Crafting binary HTTP/2 stream multiplexing, flow-control `WINDOW_UPDATE` frames, or graceful `GOAWAY` connection drains by hand is miserable because RFC 9113 packs length, type, flags, and stream IDs into a binary 9-byte header. `HTTP2` builds those RFC 9113 binary frames (24-bit length, 8-bit frame type, 8-bit flags, 1-bit reserved bit, and 31-bit stream ID) and the optional 24-byte client connection preface (`PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n`) straight from readable modifiers. Multiple frame type flags can be combined in a single packet (such as `preface settings`).
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -77,7 +87,7 @@ Need an **HTTP/2 connection preface, `SETTINGS`, `HEADERS`, `DATA` & `GOAWAY` st
 
 ### 1.3 gRPC (`GRPC` — Default: TCP Port `50051`)
 
-Need a **gRPC over HTTP/2 TCP 50051 unary RPC & `grpc-status` trailer pcap** for Kubernetes service-mesh or Envoy proxy testing? `GRPC` builds HTTP/2 frames carrying `/package.Service/Method` call paths, 5-byte length-prefixed Protocol Buffers envelopes (1-byte compression flag `0x00` + 32-bit big-endian message length), and `grpc-status` trailer codes.
+Reproducing a Kubernetes service-mesh RPC failure (like `grpc-status: 14 UNAVAILABLE` or `7 PERMISSION_DENIED`) normally requires compiling `.proto` files and running client/server stubs behind Envoy or Istio. Instead, `GRPC` builds HTTP/2 frames on TCP port `50051` carrying `/package.Service/Method` call paths, 5-byte length-prefixed Protocol Buffers envelopes (1-byte compression flag `0x00` + 32-bit big-endian message length), and `grpc-status` trailer codes directly from `.fasm` code.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -88,7 +98,7 @@ Need a **gRPC over HTTP/2 TCP 50051 unary RPC & `grpc-status` trailer pcap** for
 
 ### 1.4 WebSocket (`WEBSOCKET` — Default: TCP Port `80`)
 
-Need a **WebSocket RFC 6455 masked client frame, `PING`/`PONG` keepalive & `CLOSE` pcap**? `WEBSOCKET` builds binary WebSocket frames with configurable opcodes, `FIN` bit fragmentation control, and automatic 32-bit XOR client masking when `MASK_KEY` is provided.
+RFC 6455 mandates that every client-to-server WebSocket frame be XOR-masked with a 32-bit key—which means a naive packet generator produces malformed frames that Wireshark and proxies reject. `WEBSOCKET` builds binary RFC 6455 frames with configurable opcodes, `FIN` bit fragmentation control, and automatic 32-bit XOR payload masking whenever `MASK_KEY` is provided.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -140,7 +150,7 @@ compile {
 
 ### 2.1 Transport Layer Security (`TLS` — Default: TCP Port `443`)
 
-Need a **TLS 1.2 / TLS 1.3 `ClientHello` SNI & ALPN firewall inspection pcap**? `TLS` builds RFC 5246 (TLS 1.2) and RFC 8446 (TLS 1.3) 5-byte Record Layer headers (`ContentType`, `RecordVersion`, `Length`) and Handshake messages (`ClientHello`, `ServerHello`, `Certificate`, `Finished`) complete with RFC 6066 Server Name Indication (`SNI`) and RFC 7301 Application-Layer Protocol Negotiation (`ALPN`) extensions.
+Next-generation firewalls, egress proxies, and IDS sensors inspect the cleartext `ClientHello` for Server Name Indication (`SNI`), Application-Layer Protocol Negotiation (`ALPN`), and weak cipher suites. Rather than generating throwaway OpenSSL certificates and running `openssl s_client` against a dummy server, you can declare the exact `SNI`, `ALPN`, and `CIPHERSUITE` in `.fasm` code. `TLS` builds RFC 5246 (TLS 1.2) and RFC 8446 (TLS 1.3) 5-byte Record Layer headers (`ContentType`, `RecordVersion`, `Length`) and Handshake messages (`ClientHello`, `ServerHello`, `Certificate`, `Finished`) complete with RFC 6066 `SNI` and RFC 7301 `ALPN` extensions.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -159,7 +169,7 @@ Need a **TLS 1.2 / TLS 1.3 `ClientHello` SNI & ALPN firewall inspection pcap**? 
 
 ### 2.2 QUIC & HTTP/3 Transport (`QUIC` — Default: UDP Port `443`)
 
-Need a **QUIC v1 / HTTP/3 UDP 443 `Initial`, `Retry`, `0-RTT`, `Handshake` & `Short` header pcap** for next-gen firewall testing? `QUIC` builds RFC 9000 QUIC Long Header packets (`INITIAL`, `ZERO_RTT`, `HANDSHAKE`, `RETRY`) with RFC 9000 §16 2-byte variable-length integer payload lengths and 1-RTT `SHORT` Header packets over UDP port `443`.
+Verifying how firewalls and middleboxes handle UDP port `443` HTTP/3 traffic—whether they allow QUIC `Initial` handshakes, validate `Retry` tokens, or force a fallback to TCP—is tricky without a full QUIC stack. `QUIC` builds RFC 9000 QUIC Long Header packets (`INITIAL`, `ZERO_RTT`, `HANDSHAKE`, `RETRY`) with RFC 9000 §16 2-byte variable-length integer payload lengths and 1-RTT `SHORT` Header packets over UDP port `443`.
 - **Important Syntax Note on `DCID` and `SCID`:** Destination and Source Connection IDs (`DCID` and `SCID`) take **unquoted 64-bit integer or hexadecimal values** (for example `dcid 0x8394c8f03e515708`), never quoted strings.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
@@ -213,7 +223,7 @@ compile {
 
 ### 3.1 Secure Shell (`SSH` — Default: TCP Port `22`)
 
-Need an **SSH-2 TCP 22 version banner, `KEXINIT` algorithm negotiation & `NEWKEYS` pcap** for bastion ACL or IDS testing? `SSH` builds RFC 4253 version banners (`SSH-2.0-...`) and binary SSH packet framing (`packet_length`, `padding_length`, `msg_code`, 16-byte `KEXINIT` cookie + algorithm negotiation lists, `NEWKEYS`, and encrypted channel payloads).
+Security teams frequently write IDS rules and bastion ACLs to flag outdated SSH client/server banners (like `OpenSSH_7.2`) or weak key-exchange algorithms during the cleartext handshake. `SSH` builds RFC 4253 version banners (`SSH-2.0-...`) and binary SSH packet framing (`packet_length`, `padding_length`, `msg_code`, 16-byte `KEXINIT` cookie + algorithm negotiation lists, `NEWKEYS`, and encrypted channel payloads) on TCP port `22`.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -226,7 +236,7 @@ Need an **SSH-2 TCP 22 version banner, `KEXINIT` algorithm negotiation & `NEWKEY
 
 ### 3.2 Telnet (`TELNET` — Default: TCP Port `23`)
 
-Need a **Telnet TCP 23 `IAC` option negotiation & cleartext management alert pcap**? `TELNET` builds RFC 854 Interpret As Command (`IAC = 0xFF`) option negotiation sequences (`WILL = 0xFB`, `WONT = 0xFC`, `DO = 0xFD`, `DONT = 0xFE`) and NVT-ASCII terminal lines.
+Every enterprise SOC has an alert rule for unauthorized Telnet login prompts on management VLANs, but nobody wants to enable `telnetd` on a core switch just to test the sensor. `TELNET` builds RFC 854 Interpret As Command (`IAC = 0xFF`) option negotiation sequences (`WILL = 0xFB`, `WONT = 0xFC`, `DO = 0xFD`, `DONT = 0xFE`) and NVT-ASCII terminal lines over TCP port `23`.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -240,7 +250,7 @@ Need a **Telnet TCP 23 `IAC` option negotiation & cleartext management alert pca
 
 ### 3.3 Trivial File Transfer Protocol (`TFTP` — Default: UDP Port `69`)
 
-Need a **TFTP UDP 69 PXE network boot or switch Zero-Touch Provisioning (`ZTP`) `RRQ`/`WRQ`/`DATA`/`ACK`/`ERROR` pcap**? `TFTP` builds RFC 1350 UDP file transfer packets used for PXE bootloaders, switch/router ZTP, and VoIP phone configuration downloads.
+Troubleshooting PXE network boot, switch Zero-Touch Provisioning (`ZTP`), or VoIP phone firmware downloads over UDP port `69` is straightforward when you can script the exact block-by-block transfer or `File not found` error in `.fasm` code. `TFTP` builds RFC 1350 UDP file transfer packets (`RRQ`, `WRQ`, `DATA`, `ACK`, `ERROR`) with 16-bit block counters and NUL-terminated filenames and transfer modes.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -258,7 +268,7 @@ Need a **TFTP UDP 69 PXE network boot or switch Zero-Touch Provisioning (`ZTP`) 
 
 ### 3.4 File Transfer Protocol (`FTP` — Default: TCP Port `21`)
 
-Need an **FTP TCP 21 control-channel login & `PASV`/`EPSV` firewall ALG helper pcap**? `FTP` builds RFC 959 / RFC 2428 control-channel commands and 3-digit server status replies (`<CODE> <REPLY>\r\n` or `<CMD> <ARG>\r\n`).
+Testing firewall FTP Application Layer Gateways (ALGs)—which inspect `227 Entering Passive Mode` or `229 Entering Extended Passive Mode` replies to open dynamic data-channel pinholes—or validating cleartext credential IDS alerts is much faster in `.fasm` code than configuring `vsftpd`. `FTP` builds RFC 959 / RFC 2428 control-channel commands and 3-digit server status replies (`<CODE> <REPLY>\r\n` or `<CMD> <ARG>\r\n`) on TCP port `21`.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -269,7 +279,7 @@ Need an **FTP TCP 21 control-channel login & `PASV`/`EPSV` firewall ALG helper p
 
 ### 3.5 WHOIS Registry Lookup (`WHOIS` — Default: TCP Port `43`)
 
-Need a **WHOIS TCP 43 domain, IP prefix, or ASN registry lookup pcap** for SOC enrichment testing? `WHOIS` builds RFC 3912 domain, IPv4/IPv6 CIDR prefix, and Autonomous System Number (ASN) queries and registry responses.
+Testing SOC threat-intelligence enrichment scripts or outbound TCP port `43` firewall rules against live public RIR WHOIS servers from an isolated lab either gets rate-limited or blocked at an air-gapped perimeter. In `.fasm` code, `WHOIS` synthesizes both the RFC 3912 domain/IPv4/IPv6 CIDR/ASN query and the formatted registry response offline.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -332,7 +342,7 @@ compile {
 
 ### 4.1 Session Initiation Protocol (`SIP` — Default: UDP / TCP Port `5060`)
 
-Need a **SIP UDP/TCP 5060 `INVITE` / `100 Trying` / `180 Ringing` / `200 OK` / `ACK` / `BYE` VoIP call setup & SBC ALG pcap**? `SIP` builds RFC 3261 VoIP call control signaling and status responses with automatic `Content-Length` calculation when an SDP `BODY` is attached.
+Debugging a broken VoIP call through a firewall SIP ALG or Session Border Controller (SBC) usually means digging out two hardware desk phones or wrestling with `sipp` XML templates. In `.fasm` code, each step of the dialog (`INVITE` -> `100 Trying` -> `180 Ringing` -> `200 OK` -> `ACK` -> `BYE`) is a single readable line: `SIP` builds RFC 3261 VoIP call control signaling and status responses with automatic `Content-Length` calculation whenever an SDP `BODY` is attached.
 - **UDP vs. TCP Transport:** `SIP` defaults to UDP port `5060`. Add `transport tcp` on the statement to emit SIP over TCP port `5060`.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
@@ -354,7 +364,7 @@ Need a **SIP UDP/TCP 5060 `INVITE` / `100 Trying` / `180 Ringing` / `200 OK` / `
 
 ### 4.2 Real-Time Transport Protocol (`RTP` — Default: UDP Port `5004`)
 
-Need an **RTP UDP 5004 G.711 PCMU / PCMA / Opus voice stream & DSCP `EF` (`46`) QoS priority queue pcap**? `RTP` builds RFC 3550 12-byte RTP headers (`Version = 2`, `Marker`, 7-bit `Payload Type`, 16-bit `Sequence Number`, 32-bit `Timestamp`, and 32-bit `SSRC`) over UDP port `5004`.
+Once SIP negotiates a call, network engineers need to verify that the media stream (`G.711 PCMU`/`PCMA`, `G.722`, `Opus`) actually lands in the router's low-latency priority queue (`DSCP EF` / `46`) without getting dropped. `RTP` builds RFC 3550 12-byte RTP headers (`Version = 2`, `Marker`, 7-bit `Payload Type`, 16-bit `Sequence Number`, 32-bit `Timestamp`, and 32-bit `SSRC`) over UDP port `5004`.
 - **Canonical Syntax Note:** Always write `a -> b rtp ...` directly (never `a -> b udp rtp ...`). Override ports with `srcport <0..65535> dstport <0..65535>` if your SDP negotiated a custom UDP media port such as `16384`.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
@@ -368,8 +378,8 @@ Need an **RTP UDP 5004 G.711 PCMU / PCMA / Opus voice stream & DSCP `EF` (`46`) 
 
 ### 4.3 Real-Time Streaming Protocol (`RTSP` — Default: TCP Port `554`)
 
-Need an **RTSP TCP 554 IP security camera & NVR `DESCRIBE` / `SETUP` / `PLAY` / `TEARDOWN` stream control pcap**? `RTSP` builds RFC 2326 / RFC 7826 media streaming control commands and status replies.
-- **Why `TRANSPORT_HDR`?** FrameAssembly reserves `TRANSPORT TCP` / `TRANSPORT UDP` to select the Layer 4 protocol. Use `TRANSPORT_HDR "<spec>"` to set the RTSP `Transport: RTP/AVP;unicast;client_port=5004-5005` header.
+Verifying physical-security VLAN ACLs between an NVR and IP cameras on TCP port `554` doesn't require climbing a ladder to reboot a camera. `RTSP` builds RFC 2326 / RFC 7826 media streaming control commands (`OPTIONS`, `DESCRIBE`, `SETUP`, `PLAY`, `TEARDOWN`) and status replies.
+- **Setting the RTSP `Transport:` Header with `TRANSPORT_HDR`:** Because FrameAssembly reserves `TRANSPORT TCP` / `TRANSPORT UDP` to select the Layer 4 protocol, use `TRANSPORT_HDR "<spec>"` to set the RTSP `Transport: RTP/AVP;unicast;client_port=5004-5005` header.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |
@@ -383,7 +393,7 @@ Need an **RTSP TCP 554 IP security camera & NVR `DESCRIBE` / `SETUP` / `PLAY` / 
 
 ### 4.4 Session Traversal Utilities for NAT (`STUN` — Default: UDP Port `3478`)
 
-Need a **STUN UDP 3478 WebRTC ICE NAT traversal & `XOR-MAPPED-ADDRESS` reflexive IP discovery pcap**? `STUN` builds RFC 8489 / RFC 5389 20-byte STUN headers (with fixed magic cookie `0x2112A442` and 96-bit transaction ID) and padded TLV attributes (`0x0020` `XOR-MAPPED-ADDRESS` and `0x8022` `SOFTWARE`).
+When WebRTC video calls or remote-work softphones fail to establish direct media paths across NAT, the culprit is often a blocked UDP `3478` STUN binding or a mangled reflexive IP. `STUN` builds RFC 8489 / RFC 5389 20-byte STUN headers (with fixed magic cookie `0x2112A442` and 96-bit transaction ID) and padded TLV attributes (`0x0020` `XOR-MAPPED-ADDRESS` and `0x8022` `SOFTWARE`).
 - **Important Syntax Note on `XOR_MAPPED_ADDR`:** Pass an IPv4 or IPv6 address only (e.g., `xor_mapped_addr 203.0.113.50` or `xor_mapped_addr 2001:db8::50`), never an `ip:port` pair.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
@@ -397,7 +407,7 @@ Need a **STUN UDP 3478 WebRTC ICE NAT traversal & `XOR-MAPPED-ADDRESS` reflexive
 
 ### 4.5 Simple Service Discovery Protocol (`SSDP` — Default: UDP Port `1900`)
 
-Need an **SSDP / UPnP UDP 1900 `M-SEARCH` & `NOTIFY` multicast IoT discovery pcap**? `SSDP` builds UPnP HTTPU multicast discovery requests (`M-SEARCH * HTTP/1.1`) and presence advertisements (`NOTIFY * HTTP/1.1`) over UDP port `1900`.
+Auditing enterprise networks for rogue UPnP media servers or testing IoT segmentation rules on UDP port `1900` (`239.255.255.250`) takes two lines of `.fasm` code. `SSDP` builds UPnP HTTPU multicast discovery requests (`M-SEARCH * HTTP/1.1`) and presence advertisements (`NOTIFY * HTTP/1.1`) over UDP port `1900`.
 
 | Modifier | Syntax | Default | Wire Behavior & Notes |
 | :--- | :--- | :--- | :--- |

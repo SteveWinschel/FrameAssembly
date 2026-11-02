@@ -1,11 +1,13 @@
 # Practical Use Cases & Cookbook for Network Engineers
 
-Every recipe in this guide is a **complete, ready-to-copy `.fasm` file** solving a day-to-day networking, firewall, security, or monitoring task.
+Testing a new firewall ACL, an encrypted SNMPv3 trap alert, an 802.1ad QinQ / MPLS trunk, or a Suricata IDS rule usually means hours of lab cabling, MIB hunting, or fighting `root` raw-socket scripts. Every recipe in this cookbook replaces that setup with a **complete, ready-to-copy `.fasm` file** ("Packets as Code") built from three simple sections—no programming experience required:
+- **`host` blocks** declare the devices on your network diagram (`ip` and optional `mac`).
+- **`flow(a, b)` blocks** script the packet-by-packet sequence between role labels (`a -> b` sends forward; `a <- b` sends a reply from `b` back to `a`).
+- **`compile` block** plugs your `host` devices into those flow roles in left-to-right order (or repeats them inside `loop <count> { ... }`) to emit the `.pcap`.
 
-To use any recipe:
-1. Copy the `.fasm` block into a text file (for example, `scenario.fasm`).
-2. Preview the frames in your terminal (`frameassembly show scenario.fasm`) or build the `.pcap` file: `frameassembly scenario.fasm -o scenario.pcap` (no `sudo` required).
-3. Open `scenario.pcap` in **Wireshark** / **`tshark`**, feed it into **Suricata** / **Zeek**, or inject it onto a live test interface with **`tcpreplay`**.
+To run any recipe below:
+1. Save the `.fasm` code to a file (for example, `scenario.fasm`) and compile it to `.pcap`: `frameassembly scenario.fasm -o scenario.pcap` (or preview in your terminal with `frameassembly show scenario.fasm`—no `sudo` required).
+2. Replay or inspect `scenario.pcap` with **`tcpreplay`**, **Wireshark** / **`tshark`**, or **Suricata** / **Zeek**.
 
 ---
 
@@ -51,12 +53,11 @@ To use any recipe:
 
 ## 1. Simulating SNMP Traps & Polls (`SNMPv1`, `SNMPv2c` & Encrypted `SNMPv3`)
 
-### Why This Matters
-When configuring an NMS or trap receiver (**Zabbix**, **LibreNMS**, **Checkmk**, **PRTG**, **Datadog**, **SolarWinds**, or **`snmptrapd`**), verifying that alert rules fire properly is notoriously tedious:
+When configuring an NMS or trap receiver (**Zabbix**, **LibreNMS**, **Checkmk**, **PRTG**, **Datadog**, **SolarWinds**, or **`snmptrapd`**), simulating SNMP traps manually is a pain:
 * You cannot unplug production uplinks or overheat chassis power supplies just to trigger a `linkDown` or thermal trap.
-* Running `snmptrap` from the command line requires hunting down vendor MIB files, remembering arcane positional arguments, and fighting hex EngineID and SNMPv3 USM key-localization flags.
+* Running `snmptrap` from the CLI requires configuring agents, hunting down vendor MIB files, remembering arcane positional arguments, and fighting hex EngineID and SNMPv3 USM key-localization flags.
 
-FrameAssembly encodes ASN.1 BER structures and computes RFC 3414 / 3826 / 7860 SNMPv3 key localization, HMAC authentication digests, and DES/AES payload encryption directly from human-readable `.fasm` lines.
+FrameAssembly solves it with a few lines of `.fasm` code and two CLI commands (`frameassembly` to compile + `tcpreplay` to inject)—encoding ASN.1 BER structures and computing RFC 3414 / 3826 / 7860 SNMPv3 key localization, HMAC authentication digests, and DES/AES payload encryption automatically.
 
 ### Recipe 1A — `SNMPv1` Generic/Enterprise Traps & `SNMPv2c` Polls, Traps, and Informs
 
@@ -162,7 +163,6 @@ wireshark snmp_v3_encrypted.pcap &
 
 ## 2. Testing Firewall Rules, ACLs & Stateful Inspection
 
-### Why This Matters
 Standard Linux utilities (`ping`, `curl`, `nc`) go through the local kernel's TCP/IP stack, which means you cannot easily emit an out-of-state `ACK` packet without an existing socket, craft a single capture containing both a permitted handshake and a rejected `RST ACK`, or test how a firewall handles fragmented packets and spoofed source IPs.
 
 ### Recipe 2A — DMZ & Perimeter Firewall Policy Audit (Handshakes, Rejections, Out-of-State & Stealth Probes)
@@ -281,7 +281,6 @@ sudo tcpreplay -i eth2 firewall_mtu_frag_spoof.pcap
 
 ## 3. Testing VLAN Trunks, Carrier QinQ, MPLS & DiffServ QoS Policies
 
-### Why This Matters
 Standard desktop NIC drivers often strip 802.1Q tags before packets reach user space, and unprivileged applications cannot set 802.1p Priority Code Points (`PCP`), Drop Eligible Indicators (`DEI`), outer 802.1ad `QinQ` S-tags, or MPLS `EXP` bits. FrameAssembly writes these headers directly at the Ethernet layer so you can verify switch QoS queues, trunk allowed-VLAN lists, and WAN shapers.
 
 ### Recipe 3A — 802.1Q Trunk & Voice / Video / Scavenger DiffServ QoS Verification
@@ -377,7 +376,6 @@ tshark -r carrier_qinq_mpls.pcap -T fields -e frame.number -e vlan.id -e mpls.la
 
 ## 4. Validating Monitoring Appliances, Flow Collectors & IDS/IPS (Suricata / Zeek / Snort)
 
-### Why This Matters
 Before deploying a new SIEM parser, flow collector (**ElastiFlow**, **Akvorado**, **pmacct**, **nfdump**), or IDS/IPS ruleset (**Suricata**, **Zeek**, **Snort**), you need to verify that your pipeline extracts every field and fires the expected alerts—without polluting your test with thousands of unrelated background packets.
 
 ### Recipe 4A — SIEM & Flow Collector Ingest (`SYSLOG` over UDP/TCP, `NETFLOW` v5, `IPFIX` v10 & `SFLOW` v5)
@@ -494,7 +492,6 @@ zeek -C -r ids_dpi_validation.pcap
 
 ## 5. Industrial / OT Firewall & SCADA Dissector Testing (Without Physical PLCs)
 
-### Why This Matters
 In industrial networks (Purdue Model Levels 1 through 3.5), firewall rules and OT security appliances (**Claroty**, **Dragos**, **Nozomi Networks**, **Palo Alto / Fortinet OT profiles**, **Suricata ICS rules**) frequently inspect deep inside industrial protocols—permitting `READ` functions while blocking `WRITE` or `OPERATE` commands. Testing those rules normally requires physical PLCs or proprietary engineering software.
 
 FrameAssembly natively builds all **6 core industrial OT protocols**—including automatic **IEEE 1815 DNP3 CRC-16** calculation over every header and 16-byte data block.
@@ -565,12 +562,11 @@ sudo tcpreplay -i eth1 ot_scada_conduit_test.pcap
 
 ## 6. Creating Zero-Noise Captures for Training, Bug Tickets & Routing/HA Lab Reproducers
 
-### Why This Matters
 Attaching a live `tcpdump` capture to a vendor TAC case, an internal Jira ticket, or a team training wiki has two major downsides:
 1. Live captures contain **sensitive production IPs, internal DNS names, and unrelated background chatter**.
 2. Binary `.pcap` files cannot be reviewed in a Git pull request or edited when someone asks *"What happens if the timer is 50ms instead?"*
 
-With FrameAssembly, you can paste a 25-line `.fasm` block directly into a ticket or commit it to Git. Anyone on your team can read the exact packet sequence in plain English and compile an identical, zero-noise `.pcap` in milliseconds.
+With FrameAssembly, you can paste a 25-line `.fasm` block directly into a ticket or commit it to Git. Anyone on your team can read the exact packet sequence as code and compile an identical, zero-noise `.pcap` in milliseconds.
 
 ### Recipe 6A — Application Troubleshooting Reproducer: TCP Zero-Window Stall & Window Update Recovery
 

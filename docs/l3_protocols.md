@@ -1,6 +1,8 @@
 # Layer 3 Control, Tunneling, VPN, Routing & FHRP Reference
 
-Whether you need an **OSPF / BGP / VRRP / HSRP / BFD failover pcap**, an **EVPN-VXLAN / GENEVE / GRE tunnel overlay test capture**, an **IKEv2 / IPsec ESP & AH / WireGuard VPN packet generator**, or **ICMPv4/v6, IPv6 NDP SLAAC, and IGMPv2/v3 / MLD multicast snooping frames**, FrameAssembly natively supports **20 Layer 3 protocols** across IPv4 (`EtherType 0x0800`) and IPv6 (`EtherType 0x86DD`), along with universal IPv4/IPv6 header modifiers (`TTL`, `DSCP`, `ECN`, `FLOWLABEL`, `IPID`, `DF`, `MF`, `FRAGOFFSET`, `NEXT_HEADER`) that can be attached to any statement in a `.fasm` file.
+Reproducing a BGP route update, an OSPF adjacency drop, a VRRP/HSRP/BFD gateway failover, or an EVPN-VXLAN, GENEVE, IPsec, or WireGuard tunnel packet usually means spinning up a multi-router lab and writing pages of routing daemon configuration just to capture four packets.
+
+FrameAssembly lets you write those exact Layer 3 control-plane, multicast (`IGMP`/`MLD`/`NDP`), and tunnel packets in `.fasm` code, compile them to `.pcap` with `frameassembly`, and replay or inspect them in seconds with `tcpreplay`, **Wireshark**, or **Suricata**. All **20 Layer 3 protocols** work identically across IPv4 (`EtherType 0x0800`) and IPv6 (`EtherType 0x86DD`), alongside universal IPv4/IPv6 header modifiers (`TTL`, `DSCP`, `ECN`, `FLOWLABEL`, `IPID`, `DF`, `MF`, `FRAGOFFSET`, `NEXT_HEADER`) that can be attached to any statement.
 
 | Category | Protocol | Keyword | Standard | IP Proto / Port | Default Target / Multicast IP | Primary Operational Use Cases |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -91,7 +93,7 @@ compile {
 
 ## 2. Diagnostics & IPv6 Neighbor Discovery (`ICMP` & `NDP`)
 
-Whether you need an **ICMP ping, traceroute TTL expiration, or Path MTU Discovery (`PMTUD`) pcap** or an **IPv6 NDP SLAAC Router Advertisement & Neighbor Solicitation capture**, `ICMP` and `NDP` provide full dual-stack diagnostic and neighbor discovery coverage.
+Half of real-world network troubleshooting comes down to ICMP and IPv6 Neighbor Discovery—figuring out whether a firewall silently swallowed a Path MTU Discovery (`PMTUD`) `Fragmentation Needed` / `Packet Too Big` error, how a traceroute hop expires, or why an IPv6 host ignored a SLAAC Router Advertisement. With `ICMP` and `NDP`, you can script every diagnostic control message and neighbor solicitation across IPv4 and IPv6 in a few lines of code.
 
 ### 2.1 Internet Control Message Protocol (`ICMP` — RFC 792 / RFC 4443)
 `ICMP` is completely dual-stack:
@@ -251,7 +253,7 @@ tshark -r output.pcap -Y "gre or vxlan or geneve" -V
 
 ## 5. IPsec & Modern Cryptographic VPNs (`IKEV2`, `IPSEC`, `ESP`, `AH`, `WIREGUARD`)
 
-Whether you need an **IKEv2 NAT-T (`UDP 500/4500`) & IPsec `ESP`/`AH` tunnel pcap** or a **WireGuard `Noise_IKpsk2` handshake & encrypted data capture**, FrameAssembly supports all 5 VPN and IPsec protocol keywords.
+Verifying that a border firewall passes IPsec `ESP` (`IP Protocol 50`), `AH` (`IP Protocol 51`), `IKEv2` (`UDP 500/4500`), or WireGuard (`UDP 51820`) traffic normally requires standing up two VPN gateways and exchanging keys before a single tunnel packet crosses the wire. FrameAssembly lets you generate all five VPN and IPsec protocols directly—complete with custom SPIs, anti-replay sequence numbers, Initialization Vectors (`IV`), Integrity Check Values (`ICV`), and WireGuard `Noise_IKpsk2` handshake frames.
 
 ### 5.1 `IKEV2` (Internet Key Exchange v2 — RFC 7296, UDP `500` / `4500`)
 Negotiates IPsec Security Associations (`SA`). By default, `IKEV2` uses UDP port `500`; add `dstport 4500 srcport 4500` to simulate NAT-Traversal (`NAT-T`) over UDP `4500`.
@@ -316,7 +318,7 @@ compile {
 
 ## 6. Dynamic Unicast & Multicast Routing (`OSPF`, `BGP`, `RIP`, `PIM`)
 
-Whether you are building an **OSPF Area 0 adjacency & LSA flooding pcap**, an **eBGP/iBGP TCP port 179 route update capture**, or **RIPv2 / RIPng and PIM-SM multicast tree test traffic**, FrameAssembly handles all multicast addressing and routing checksums automatically.
+Spinning up FRRouting, BIRD, or virtual router VMs just to test how a monitoring tool, firewall ACL, or packet dissector handles an OSPF adjacency, an eBGP route update, a RIPv2 poison-reverse advertisement, or a PIM-SM multicast join is overkill when you only need the packets. FrameAssembly handles link-local multicast addressing (`224.0.0.5`/`ff02::5`, `224.0.0.9`/`ff02::9`, `224.0.0.13`/`ff02::d`), TCP port `179` sequence tracking for `BGP`, and routing header checksums automatically.
 
 ### 6.1 `OSPF` (Open Shortest Path First — RFC 2328 / RFC 5340, IP Protocol `89`)
 FrameAssembly automatically addresses `OSPF` packets to the **AllSPFRouters** multicast group (`224.0.0.5` / MAC `01:00:5e:00:00:05` on IPv4, and `ff02::5` / MAC `33:33:00:00:00:05` on IPv6) and computes the 16-bit OSPF packet checksum.
@@ -389,7 +391,7 @@ compile {
 
 ## 7. First-Hop Redundancy, Fast Liveness & SDN (`VRRP`, `HSRP`, `BFD`, `OPENFLOW`)
 
-Whether you need a **VRRPv2/v3 or Cisco HSRP VIP failover pcap**, a **sub-second BFD session state transition capture**, or an **OpenFlow 1.3 SDN flow-table programming pcap**, FrameAssembly generates complete control-plane frames with valid protocol checksums.
+Testing first-hop gateway failovers (`VRRP` and Cisco `HSRP`), sub-second `BFD` link-down detection, or `OpenFlow` SDN controller messages in production is nerve-wracking because triggering a real failover disrupts live traffic. With FrameAssembly, you can synthesize priority-preemption elections, 3-way BFD state transitions (`Down -> Init -> Up`), and OpenFlow 1.0–1.5 `FLOW_MOD` messages offline with valid pseudo-header and control-plane checksums.
 
 ### 7.1 `VRRP` (Virtual Router Redundancy Protocol — RFC 3768 v2 / RFC 5798 v3, IP Proto `112`)
 Automatically sets `TTL 255` and addresses packets to `224.0.0.18` (`01:00:5e:00:00:12`) on IPv4 or `ff02::12` (`33:33:00:00:00:12`) on IPv6.

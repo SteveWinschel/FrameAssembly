@@ -9,8 +9,8 @@ pkgbase = frameassembly-bin
 	provides = frameassembly
 	conflicts = frameassembly
 	source_x86_64 = https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.3/frameassembly-v1.4.3-x86_64-unknown-linux-musl.tar.gz
-	sha256sums_x86_64 = SKIP
+	sha256sums_x86_64 = 01cbaaa16a8eb2053f92dc84328ae611fe0c5d3f96db329f6395fd6ef35bb108
 	source_aarch64 = https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.3/frameassembly-v1.4.3-aarch64-unknown-linux-musl.tar.gz
-	sha256sums_aarch64 = SKIP
+	sha256sums_aarch64 = 781c9b730560f2241900e9c478759fe66794823cc95291702068cb18d52a7e9b
 
 pkgname = frameassembly-bin

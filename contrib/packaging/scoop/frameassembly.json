@@ -6,12 +6,12 @@
   "architecture": {
     "64bit": {
       "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.4/frameassembly-v1.4.4-x86_64-pc-windows-msvc.zip",
-      "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "4eacd6674cd44d24c8b5958b895f553072582094f7b83964d1b9e89ae8f225f7",
       "extract_dir": "frameassembly-v1.4.4-x86_64-pc-windows-msvc"
     },
     "arm64": {
       "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.4/frameassembly-v1.4.4-aarch64-pc-windows-msvc.zip",
-      "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "d85a2521bdaae3682b8091d42bdd74a5cb0a9f8601b3cda6d4b8c55ea3543f95",
       "extract_dir": "frameassembly-v1.4.4-aarch64-pc-windows-msvc"
     }
   },

@@ -4,6 +4,9 @@ All notable changes to the "frameassembly-vscode" extension will be documented i
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.4.4] - 2026-11-03
+- Synchronized with FrameAssembly v1.4.4 release.
+
 ## [1.4.3] - 2026-11-02
 - Added Markdown fenced code block syntax injection (`syntaxes/frameassembly.markdown.tmLanguage.json`) for ```` ```frameassembly ```` and ```` ```fasm ```` blocks.
 - Expanded TextMate keyword, protocol, constant, and property rules with explicit uppercase and lowercase alternations for universal case-insensitive highlighting across all editors.

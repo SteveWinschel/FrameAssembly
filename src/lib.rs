@@ -1,4 +1,4 @@
-//! **FrameAssembly** (`frameassembly` v1.4.3) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.fasm` code into deterministic `.pcap` and `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols**.
+//! **FrameAssembly** (`frameassembly` v1.4.4) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.fasm` code into deterministic `.pcap` and `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols**.
 //!
 //! * **Canonical Repository & CLI:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
 //! * **Crates.io Package:** [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly)

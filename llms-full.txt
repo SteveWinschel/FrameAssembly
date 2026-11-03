@@ -1,6 +1,6 @@
 # FrameAssembly (`frameassembly`)
 
-> Rootless "Packets as Code" / "PCAP as Code" DSL & Rust compiler (v1.4.3) that compiles declarative `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).
+> Rootless "Packets as Code" / "PCAP as Code" DSL & Rust compiler (v1.4.4) that compiles declarative `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).
 
 FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in userspace with no `libpcap` or raw sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides via `frameassembly <input.fasm> [-o <output.pcap>]` and `frameassembly show <input.fasm>`.
 
@@ -105,7 +105,7 @@ COMPILE {
   - NPM (WebAssembly): `npm install frameassembly-wasm`
   - VS Code / Cursor Extension: `code --install-extension SteveWinschel.frameassembly-vscode`
   - Zero-clone bootstrap script: `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
-- **Public Rust Library Signatures (`frameassembly` crate v1.4.3)**:
+- **Public Rust Library Signatures (`frameassembly` crate v1.4.4)**:
   - `frameassembly::lexer::lex(source: &str) -> Result<Vec<SpannedToken<'_>>, CompilerError>`
   - `frameassembly::parser::parse_program(source: &str) -> Result<Program<'_>, CompilerError>` (runs `validate_semantics` automatically)
   - `frameassembly::parser::validate_semantics<'a>(program: &Program<'a>, source: &'a str) -> Result<(), CompilerError>`
@@ -165,7 +165,7 @@ COMPILE {
 - [Claude Code Instructions (`CLAUDE.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CLAUDE.md): Concise project instructions and canonical syntax rules for Claude Code.
 - [Cross-Platform Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Zero-clone POSIX shell installer for Linux, macOS, and BSDs.
 - [Context7 MCP Configuration (`context7.json`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/context7.json): Upstash Context7 indexing rules and curated folder configuration.
-- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.4.3.
+- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for v1.4.4.
 
 ---
 
@@ -192,13 +192,19 @@ COMPILE {
 [![Docs.rs](https://docs.rs/frameassembly/badge.svg)](https://docs.rs/frameassembly)
 [![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
 [![Rust 1.85+](https://img.shields.io/badge/rust-1.85%2B%20(Edition%202024)-orange.svg)](https://www.rust-lang.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
 
-[**Workflows**](#built-for-network--security-testing) • [**How It Works**](#how-it-works) • [**Comparison**](#how-frameassembly-compares) • [**Installation**](#installation) • [**81 Protocols & Docs**](#supported-protocols--documentation)
+[**Use Cases**](#network-and-security-testing-use-cases) • [**How It Works**](#how-frameassembly-works) • [**Comparison**](#why-frameassembly-instead-of-scapy-or-lab-vms) • [**Installation**](#installation) • [**81 Protocols & Docs**](#supported-protocols-and-documentation)
 
-**FrameAssembly** (`frameassembly` v1.4.3) turns a few lines of `.fasm` code into a custom `.pcap` / `.pcapng` packet capture across **81 Layer 2–7 protocols**—no programming background or root privileges needed to build the capture.
+## What Is FrameAssembly?
 
-Instead of spending hours configuring test gear, triggering faults on live hardware, spinning up lab VMs, or calculating TCP sequence numbers and checksums by hand, write the packet exchange you need, generate a clean `.pcap`, and replay or inspect it with **`tcpreplay`**, **Wireshark** / **`tshark`**, or **Suricata** / **Zeek**:
+At first you may think **FrameAssembly** is a programming language for systems development, but ironically it is a tool specifically for the very people who hate programming -> **Networking & Cybersecurity professionals**.
+
+Have you ever wished you could just describe traffic in a few lines of simple networking keywords, get your own `.pcap`, and do a little SQL injection onto your favourite coworker's machine with the help of `tcpreplay`?
+
+Well, here you have it and it's fun and free to use (even commercially) -> as long as **I'm not responsible for what you do with it** :)
+
+FrameAssembly compiles readable `.fasm` packet code into custom `.pcap` / `.pcapng` captures across **81 Layer 2–7 protocols**—with no Python setup or root privileges needed—ready to replay or inspect with **`tcpreplay`**, **Wireshark** / **`tshark`**, or **Suricata** / **Zeek**:
 
 ```frameassembly
 host client   { ip 10.0.0.10 mac 00:11:22:33:44:55 }
@@ -209,99 +215,59 @@ flow http_check(c, fw) {
     c <- fw tcp syn ack win 65535 mss 1460 wait 1ms
     c -> fw tcp ack wait 1ms
     c -> fw http get uri "/healthz" host_hdr "api.example.com" wait 2ms
-    c <- fw http status 200 reason "OK" body "{\"ok\":true}"
+    c <- fw http status 200 reason "OK" body "ok"
 }
 
 compile { http_check(client, firewall) }
 ```
 
 ```console
-$ frameassembly test.fasm -o test.pcap && sudo tcpreplay -i eth0 test.pcap
 $ frameassembly show test.fasm
-#   Time (ms)    Bytes  Source -> Destination                        Proto        Summary
-------------------------------------------------------------------------------------------------------------------------
-1   +0.000          58  10.0.0.10:51234 -> 10.0.0.1:80               TCP          [SYN] seq=1000 ack=0 win=65535
-2   +1.000          58  10.0.0.1:80 -> 10.0.0.10:51234               TCP          [SYN, ACK] seq=2000 ack=1001 win=65535
-3   +2.000          54  10.0.0.10:51234 -> 10.0.0.1:80               TCP          [ACK] seq=1001 ack=2001 win=65535
-4   +3.000         111  10.0.0.10:51234 -> 10.0.0.1:80               HTTP         [PSH, ACK] seq=1001 ack=2001 len=57
-5   +5.000         133  10.0.0.1:80 -> 10.0.0.10:51234               HTTP         [PSH, ACK] seq=2001 ack=1058 len=79
+#      Time (ms)   Source -> Destination                    Proto       Bytes  Summary
+--------------------------------------------------------------------------------------------------------------
+1      0.000       10.0.0.10 -> 10.0.0.1                    TCP         58     51234 -> 80 [SYN] seq=1000 len=0
+2      1.000       10.0.0.1 -> 10.0.0.10                    TCP         58     80 -> 51234 [SYN ACK] seq=1000 ack=1001 len=0
+3      2.000       10.0.0.10 -> 10.0.0.1                    TCP         54     51234 -> 80 [ACK] seq=1001 ack=1001 len=0
+4      3.000       10.0.0.10 -> 10.0.0.1                    HTTP        102    51234 -> 80 [ACK PSH] seq=1001 ack=1001 len=48
+5      5.000       10.0.0.1 -> 10.0.0.10                    HTTP        94     80 -> 51234 [ACK PSH] seq=1001 ack=1049 len=40
+
+$ frameassembly test.fasm -o test.pcap && sudo tcpreplay -i eth0 test.pcap
 ```
 
----
+## Network and Security Testing Use Cases
 
-## Built for Network & Security Testing
-
-### 1. Simulate SNMP Traps & Test Monitoring Alerts
-Testing whether **Zabbix**, **LibreNMS**, **PRTG**, **Checkmk**, **SolarWinds**, or `snmptrapd` actually pages on an encrypted SNMPv3 `authPriv` trap usually means configuring an SNMP agent, loading MIBs, matching EngineIDs, and pulling a cable on a switch. With FrameAssembly, you can generate encrypted SNMPv3 traps (`SHA-256` + `AES-128`), `Syslog` messages, and `NetFlow` / `IPFIX` / `sFlow` records in seconds:
+### 1. Simulate `linkDown` SNMP Traps & Syslog Alerts Without Unplugging Cables
+Testing whether **Zabbix**, **LibreNMS**, **PRTG**, **Checkmk**, **SolarWinds**, **Datadog**, or `snmptrapd` actually pages on an encrypted SNMPv3 `authPriv` trap usually means configuring an SNMP agent, loading vendor MIBs, matching EngineIDs, and pulling a cable out of a switch. With FrameAssembly, you can generate encrypted SNMPv3 traps (`SHA-256` + `AES-128`), SNMPv1/v2c notifications, `Syslog` events, and `NetFlow` / `IPFIX` / `sFlow` records in seconds:
 
 ```frameassembly
 host core_sw { ip 10.10.1.2  mac 00:1a:2b:3c:4d:01 }
 host zabbix  { ip 10.10.1.50 mac 00:1a:2b:3c:4d:50 }
 
-flow snmp_alert(sw, nms) {
+flow link_down_alert(sw, nms) {
     sw -> nms vlan 100 snmp3 trap user "netops" engineid "80001f8801" engineboots 5 enginetime 3600 auth sha256 "AuthPass123!" priv aes "PrivPass123!" oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.8.1 int 2 wait 5ms
-    sw -> nms vlan 100 syslog facility 4 severity 3 hostname "core-sw-01" app "link" msg "Gi0/1 down"
+    sw -> nms vlan 100 syslog facility 16 severity 3 hostname "core-sw-01" app "link" msg "Gi0/1 changed state to down"
 }
 
-compile { snmp_alert(core_sw, zabbix) }
+compile { link_down_alert(core_sw, zabbix) }
 ```
 
 ```console
 $ frameassembly snmp_alert.fasm -o snmp_alert.pcap && sudo tcpreplay -i eth0 snmp_alert.pcap
 ```
 
-### 2. Test Stateful Firewalls, VLAN Trunks & OT Rules
-Sending a single spoofed packet at a stateful firewall (`nftables`/`iptables`, **Palo Alto**, **FortiGate**, **CheckPoint**) won't test your application rules because the firewall drops mid-stream data without a completed 3-way TCP handshake. FrameAssembly tracks TCP `SEQ`/`ACK` numbers and flips reply ports on `<-` automatically, so you can verify DMZ rules, 802.1Q `VLAN` tags, and industrial OT (`Modbus`, `DNP3`, `S7comm`) policies before a maintenance window:
+### 2. Generate `SYN` Floods & Threat Captures for IDS, NDR & SIEM Testing (`Suricata`, `Snort`, `Zeek`)
+Validating detection rules for a TCP `SYN` flood, DNS sinkhole hit, or suspicious TLS `SNI` normally means searching GitHub for third-party `.pcap` files full of background noise or sensitive production IPs. FrameAssembly lets you build clean, repeatable `.pcap` files for detection engineering in a few lines of `.fasm` code:
 
 ```frameassembly
-host branch { ip 198.51.100.25 mac 00:11:22:33:44:55 }
-host dmz_fw { ip 203.0.113.10  mac aa:bb:cc:dd:ee:ff }
+host bot_node    { ip 198.51.100.66 mac 00:50:56:c0:00:66 }
+host workstation { ip 10.40.5.25     mac 00:50:56:40:05:25 }
+host sec_gateway { ip 10.40.5.1      mac 00:1c:73:40:05:01 }
 
-flow acl_audit(c, fw) {
-    c -> fw vlan 20 tcp syn srcport 52000 dstport 443 win 65535 mss 1460 wait 1ms
-    c <- fw vlan 20 tcp syn ack win 65535 mss 1460 wait 1ms
-    c -> fw vlan 20 tcp ack wait 1ms
-    c -> fw vlan 20 tls client_hello sni "portal.example.com" ciphersuite 4866 alpn "h2" wait 2ms
-    c -> fw vlan 20 tcp syn srcport 52001 dstport 22 win 64240 wait 1ms
-    c <- fw vlan 20 tcp rst ack wait 1ms
-    c -> fw vlan 110 modbus read_holding_registers txid 1 unitid 1 addr 40001 count 2
+flow syn_flood(bot, gw) {
+    bot -> gw tcp syn dstport 443 win 1024 wait 100us
 }
 
-compile { acl_audit(branch, dmz_fw) }
-```
-
-```console
-$ frameassembly acl_audit.fasm -o acl_audit.pcap && sudo tcpreplay -i eth1 acl_audit.pcap
-```
-
-### 3. Craft Custom Packets for Pentesting
-Build Xmas scans (`FIN PSH URG`), unsolicited `ACK` probes, zero-window packets, double-tagged 802.1ad `QinQ` frames, MPLS label stacks, or Active Directory (`Kerberos`, `LDAP`, `SMB`) traffic without wrestling with Python libraries, OS socket restrictions that strip VLAN headers, or manual checksum math:
-
-```frameassembly
-host red_box { ip 10.50.1.10  mac 00:50:56:c0:01:10 }
-host target  { ip 10.50.1.200 mac 00:50:56:c0:01:c8 }
-
-flow stealth_probe(src, dst) {
-    src -> dst tcp fin psh urg srcport 44100 dstport 8443 seq 9000 win 1024 wait 2ms
-    src -> dst tcp ack srcport 44101 dstport 445 acknum 50000 win 0 wait 2ms
-    src -> dst qinq 2000 inner_vlan 150 mpls 40960 exp 6 bos 1 mpls_ttl 64 icmp echo_request id 99 seq 1
-}
-
-compile { stealth_probe(red_box, target) }
-```
-
-```console
-$ frameassembly stealth_probe.fasm -o stealth_probe.pcap && sudo tcpreplay -i eth0 stealth_probe.pcap
-```
-
-### 4. Validate IDS / IPS Signatures & Security Tools (`Suricata`, `Snort`, `Zeek`, SIEM)
-Create clean, repeatable `.pcap` files to test detection rules, DNS sinkholes, and TLS `SNI` policies—without background chatter from a live network or sensitive production IPs and credentials:
-
-```frameassembly
-host endpoint    { ip 10.40.5.25 mac 00:50:56:40:05:25 }
-host sec_gateway { ip 10.40.5.1  mac 00:1c:73:40:05:01 }
-
-flow ids_signature_check(ws, gw) {
+flow c2_signature_check(ws, gw) {
     ws -> gw dns query txid 0x4401 qname "c2-beacon.bad-domain.test" qtype "A" wait 1ms
     ws <- gw dns response txid 0x4401 qname "c2-beacon.bad-domain.test" qtype "A" rcode 5 wait 2ms
     ws -> gw tcp syn srcport 53443 dstport 443 win 65535 mss 1460 wait 1ms
@@ -311,97 +277,131 @@ flow ids_signature_check(ws, gw) {
     ws <- gw tls alert payload "BLOCKED_BY_SNI_POLICY"
 }
 
-compile { ids_signature_check(endpoint, sec_gateway) }
+compile {
+    loop 100 { syn_flood(bot_node, sec_gateway) }
+    c2_signature_check(workstation, sec_gateway)
+}
 ```
 
 ```console
-$ frameassembly ids.fasm -o ids.pcap && suricata -r ids.pcap -k none
+$ frameassembly ids_test.fasm -o ids_test.pcap && suricata -r ids_test.pcap -k none
 ```
 
----
-
-## How It Works
-
-Every `.fasm` file has three parts, and all keywords are **case-insensitive** (`host` or `HOST`, `tcp` or `TCP`):
-
-1. **`host` — Define your devices:** Give each device an IPv4 or IPv6 address and an optional MAC address (colon `00:1a:2b:3c:4d:5e`, hyphen `00-1A-2B-3C-4D-5E`, or Cisco `001a.2b3c.4d5e` format). If you leave out `mac`, FrameAssembly fills in valid unicast or multicast MACs automatically.
-2. **`flow` — One line = one packet:** Write `a -> b <protocol>` or `a <- b <protocol>`.
-   - **Smart defaults:** Every protocol works with just its name (`a -> b bgp`, `a -> b ospf`, `a -> b dns`) using standard ports and headers, or you can override any field (`vlan 100`, `ttl 64`, `dscp 46`, `wait 5ms`).
-   - **Automatic TCP `SEQ`/`ACK` & reply ports:** When `a <- b` replies to `a -> b`, source and destination ports swap automatically, and TCP sequence/acknowledgment numbers advance by the exact payload size—unless you override `seq` or `acknum` yourself.
-3. **`compile` — Build IPv4, IPv6, or repeated traffic:** Run a `flow` with IPv4 hosts, reuse the **exact same `flow`** with IPv6 hosts, or wrap it in `loop 100 { ... }`:
+### 3. Test Stateful Firewalls, VLAN Trunks & OT Rules Without Lab VMs
+Sending a single spoofed packet at a stateful firewall (`nftables` / `iptables`, **Palo Alto**, **FortiGate**, **CheckPoint**) won't test your application rules because the firewall drops mid-stream data without a completed 3-way TCP handshake. FrameAssembly tracks TCP `SEQ`/`ACK` numbers and swaps reply ports on `<-` automatically, so you can verify DMZ rules, 802.1Q `VLAN` tags, and industrial OT (`Modbus`, `DNP3`, `S7comm`, `OPC UA`) policies before a maintenance window:
 
 ```frameassembly
-host v4_client { ip 10.0.0.10 }
-host v4_server { ip 10.0.0.80 }
-host v6_client { ip 2001:db8::10 }
-host v6_server { ip 2001:db8::80 }
+host eng_ws  { ip 192.168.20.25  mac 00:11:22:33:44:55 }
+host dmz_srv { ip 203.0.113.10   mac aa:bb:cc:dd:ee:ff }
+host ot_plc  { ip 192.168.110.50 mac 00:0e:8c:aa:bb:01 }
 
-flow dns_ping(c, s) {
-    c -> s dns query qname "internal.corp" qtype "A" wait 1ms
-    c <- s dns response qname "internal.corp" rdata "10.0.0.80" wait 2ms
-    c -> s icmp echo_request id 1 seq 1 wait 1ms
-    c <- s icmp echo_reply id 1 seq 1
+flow acl_audit(c, srv, plc) {
+    c -> srv vlan 20 tcp syn srcport 52000 dstport 443 win 65535 mss 1460 wait 1ms
+    c <- srv vlan 20 tcp syn ack win 65535 mss 1460 wait 1ms
+    c -> srv vlan 20 tcp ack wait 1ms
+    c -> srv vlan 20 tls client_hello sni "portal.example.com" ciphersuite 4866 alpn "h2" wait 2ms
+
+    c -> srv vlan 20 tcp syn srcport 52001 dstport 22 win 64240 wait 1ms
+    c <- srv vlan 20 tcp rst ack wait 1ms
+
+    c -> plc vlan 110 tcp syn srcport 52002 dstport 502 win 64240 mss 1460 wait 1ms
+    c <- plc vlan 110 tcp syn ack win 64240 mss 1460 wait 1ms
+    c -> plc vlan 110 tcp ack wait 1ms
+    c -> plc vlan 110 modbus read_holding_registers txid 1 unitid 1 addr 0 count 2
 }
 
-compile {
-    dns_ping(v4_client, v4_server)
-    loop 3 { dns_ping(v6_client, v6_server) }
-}
+compile { acl_audit(eng_ws, dmz_srv, ot_plc) }
 ```
 
----
+```console
+# Replay into a SPAN/TAP sensor port (for inline firewalls, split client/server NICs via tcpprep + tcpreplay -i eth0 -I eth1)
+$ frameassembly acl_test.fasm -o acl_test.pcap && sudo tcpreplay -i eth0 acl_test.pcap
+```
 
-## How FrameAssembly Compares
+## How FrameAssembly Works
 
-| Feature | FrameAssembly (`.fasm`) | Python + `Scapy` | `text2pcap` (Hex Dumps) | `Ostinato` (GUI) | Hardware / VM Labs |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **How you build traffic** | Readable `.fasm` code (`1 line = 1 packet`) | Python scripts | Raw hex dumps | GUI dialog tabs | Live services & switch CLI |
-| **Setup & permissions** | Single binary, no root needed to build `.pcap` | Python env + root for wire | Offline command line | Requires `drone` agent | Hours of VM & cable setup |
-| **TCP `SEQ`/`ACK` & ports** | Automatic `SEQ`/`ACK` & `<-` port swapping | Manual per-packet math | Manual hex editing | Single-packet stream templates | OS kernel TCP stack |
-| **SNMPv3 `authPriv`** | Built-in `MD5`/`SHA`/`SHA-2` + `DES`/`AES` | Custom ASN.1 & crypto code | Impractical by hand | Not built-in | Full agent + MIB setup |
-| **Sharing & version control** | Easy-to-diff `.fasm` files, clean `.pcapng` output | Tied to Python packages | Hard-to-read hex blobs | Binary stream files | Noisy background traffic |
+Every `.fasm` file follows three declarative building blocks—no loops over byte arrays, no manual bit-shifting, and no socket boilerplate:
 
----
+1. **`host` — Declare Endpoints Once:** Bind readable names to `ip` / `ipv6` and `mac` addresses so topologies stay easy to read and refactor.
+2. **`flow` — Describe Exchanges Directionally:** Write packets top-to-bottom using `->` and `<-` arrows, optional `vlan` / tunnel headers, Layer 2–7 protocol keywords, and microsecond-accurate `wait` deltas (`us`, `ms`, `s`).
+3. **`compile` — Emit Standard Captures:** Call parameterized flows (with optional `loop` blocks) to compile deterministic `.pcap` or `.pcapng` files.
+
+Under the hood, the Rust compiler handles the tedious packet plumbing automatically:
+
+* **Stateful TCP Tracking:** Advances `SEQ` and `ACK` numbers from payload byte lengths and `SYN`/`FIN` flags, while flipping ports, IPs, and MAC addresses on `<-` replies.
+* **Wire-Valid Framing & Checksums:** Computes Ethernet/802.1Q framing, IPv4/IPv6 lengths, and L3/L4 checksums out of the box.
+* **Unprivileged & Git-Friendly:** Generates binary captures purely in userspace without `sudo` or raw sockets, turning opaque `.pcap` blobs into reviewable, `git diff`-able `.fasm` source files for CI/CD and regression suites.
+
+## Why FrameAssembly Instead of Scapy or Lab VMs?
+
+| Capability | FrameAssembly (`.fasm`) | Scapy (Python) | Full Lab VMs / GNS3 | Downloaded `.pcap` |
+| :--- | :--- | :--- | :--- | :--- |
+| **Setup Overhead** | Single CLI binary | Python + `venv` + packages | Hypervisor + OS images | None |
+| **Root to Build PCAP** | Never required | Not for offline `wrpcap` | Admin / hypervisor access | Not required |
+| **TCP `SEQ`/`ACK` Math** | Automatic on `->` / `<-` | Manual state in Python | Real OS TCP stack | Fixed static stream |
+| **Version Control** | Clean L2–L7 text DSL | Imperative scripts | Multi-GB disk images | Binary blobs |
+| **Capture Hygiene** | Zero background chatter | Clean, high boilerplate | ARP / mDNS / OS noise | Foreign IPs & noise |
+
+FrameAssembly is built to work **alongside** **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, and **Zeek**—not replace them. Instead of maintaining Python environments or booting multi-VM labs just to synthesize 10 packets, you compile a `.fasm` file in milliseconds and feed the resulting `.pcap` straight into your existing replay and analysis tools.
 
 ## Installation
 
-| Platform | Method | Command |
-| :--- | :--- | :--- |
-| **Linux (Universal)** | One-line installer | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` |
-| **Debian / Ubuntu** | APT (`.deb`) | `curl -fsSLo /tmp/frameassembly.deb https://github.com/SteveWinschel/FrameAssembly/releases/latest/download/frameassembly_amd64.deb && sudo apt install -y /tmp/frameassembly.deb && rm -f /tmp/frameassembly.deb` |
-| **macOS & Linux** | Homebrew | `brew install SteveWinschel/tap-FrameAssembly/frameassembly` |
-| **Arch Linux** | AUR | `yay -S frameassembly-bin` |
-| **Windows 10 / 11** | WinGet | `winget install SteveWinschel.FrameAssembly` |
-| **Windows** | Scoop | `scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly && scoop install frameassembly` |
-| **Rust (CLI / Crate)** | Cargo (`1.85+`) | `cargo install frameassembly` |
-| **Browser / Node.js** | NPM (WebAssembly) | `npm install frameassembly-wasm` |
-| **VS Code / Cursor** | Extension | `code --install-extension SteveWinschel.frameassembly-vscode` |
-| **Prebuilt Binaries** | GitHub Releases | [Download `.tar.gz`, `.zip`, `.deb`, `.vsix`](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
+### Linux & macOS Shell Installer
+```bash
+curl -fsSL [https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh) | sh
+```
 
----
+### Cargo (Rust 1.85+)
+```bash
+cargo install frameassembly
+```
 
-## Supported Protocols & Documentation
+### Prebuilt Release Binaries (Linux, Windows, macOS)
+Download standalone archives and `SHA-256` checksums from [**GitHub Releases**](https://github.com/SteveWinschel/FrameAssembly/releases).
 
-| Layer & Category | Count | Supported `.fasm` Protocol Keywords | Guide & Examples |
-| :--- | :---: | :--- | :--- |
-| **Layer 2 Switching & Trunks** | 8 | `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls` | [`docs/l2_protocols.md`](docs/l2_protocols.md) • [`examples/l2/`](examples/l2/) |
-| **Layer 3 Control, VPN & Routing** | 20 | `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, `openflow` | [`docs/l3_protocols.md`](docs/l3_protocols.md) • [`examples/l3/`](examples/l3/) |
-| **Layer 4 Transports** | 3 | `tcp`, `udp`, `sctp` | [`docs/l4_transports.md`](docs/l4_transports.md) • [`examples/l4/`](examples/l4/) |
-| **Layer 7 SNMP Management** | 3 | `snmp1`, `snmp2`, `snmp3` *(all 9 `varbind` types + `authPriv`)* | [`docs/l7_snmp.md`](docs/l7_snmp.md) • [`examples/l7/snmp/`](examples/l7/snmp/) |
-| **Layer 7 Infra, Time, AAA & Flow** | 11 | `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, `sflow` | [`docs/l7_infra_and_telemetry.md`](docs/l7_infra_and_telemetry.md) • [`examples/l7/`](examples/l7/) |
-| **Layer 7 Web, TLS/QUIC & VoIP** | 16 | `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `tftp`, `ftp`, `ssh`, `telnet`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, `ssdp` | [`docs/l7_web_and_cloud.md`](docs/l7_web_and_cloud.md) • [`examples/l7/`](examples/l7/) |
-| **Layer 7 Mail, AD, Storage & DBs** | 14 | `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, `amqp` | [`docs/l7_mail_auth_storage_db.md`](docs/l7_mail_auth_storage_db.md) • [`examples/l7/`](examples/l7/) |
-| **Layer 7 Industrial ICS / SCADA** | 6 | `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, `opcua` | [`docs/l7_industrial_ot.md`](docs/l7_industrial_ot.md) • [`examples/l7/`](examples/l7/) |
+### WebAssembly Package (`npm`)
+For browser-based playgrounds, IDEs, and Node/bundler integrations:
+```bash
+npm install frameassembly-wasm
+```
 
-* **[Getting Started Guide](docs/getting_started.md)** — Build your first `.pcap` in 60 seconds, learn `host`/`flow`/`compile`, and replay captures with `tcpreplay` and Wireshark.
-* **[Practical Use-Case Cookbook](docs/use_cases.md)** — Copy-and-paste recipes for SNMPv3 traps, firewall rule checks, VLAN/QinQ trunks, IDS testing, and OT/SCADA traffic.
-* **[Multi-Host Topologies & Dual-Stack Scenarios](docs/topologies_and_dual_stack.md)** — Data center EVPN-VXLAN fabrics, Campus 802.1X NAC onboarding, and 100+ multi-host scenarios in [`examples/topologies/`](examples/topologies/).
-* **[`.fasm` Format Specification (`text/vnd.frameassembly`)](docs/fasm-specification.md)** — File format specification and how FrameAssembly `.fasm` files differ from x86 Flat Assembler (`;` comments) and FPGA FASM (`#` comments).
-* **[For Nerds: Compiler Internals, Rust Crate API & Formal Grammars](docs/for_nerds.md)** — Compiler architecture, Rust library API, and LLM grammars ([`grammar.ebnf`](grammar.ebnf), [`frameassembly.gbnf`](frameassembly.gbnf), [`frameassembly.lark`](frameassembly.lark), [`llms.txt`](llms.txt), [`llms-full.txt`](llms-full.txt)).
+### Quick CLI Usage
+```bash
+# Inspect packet timing, flags, sequence numbers, and byte lengths in the terminal
+frameassembly show capture.fasm
+
+# Compile to standard .pcap or .pcapng
+frameassembly capture.fasm -o capture.pcap
+frameassembly capture.fasm -o capture.pcapng
+
+# View all CLI flags and options
+frameassembly --help
+```
+
+## Supported Protocols and Documentation
+
+FrameAssembly natively compiles **81 protocols across Layers 2–7**. Start with the guides below or jump straight into the protocol reference for your layer:
+
+* [**Documentation Hub (`docs/README.md`)**](docs/README.md) — Full overview and index of all 81 supported protocols.
+* [**Getting Started (`docs/getting_started.md`)**](docs/getting_started.md) — Core `.fasm` syntax, `host` / `flow` / `compile` mechanics, and your first capture.
+* [**Real-World Use Cases (`docs/use_cases.md`)**](docs/use_cases.md) — Copy-paste recipes for NetOps alerting, firewall verification, and SecOps rule validation.
+* [**Topologies & Dual-Stack (`docs/topologies_and_dual_stack.md`)**](docs/topologies_and_dual_stack.md) — Multi-hop gateways, VLAN/QinQ trunks, and IPv4/IPv6 dual-stack flows.
+* [**Compiler Architecture (`docs/for_nerds.md`)**](docs/for_nerds.md) — Lexing, parsing, semantic validation, and binary emission internals for curious engineers.
+
+### Layer 2–7 Protocol Reference
+
+* [**Layer 2 — Switching & Data Link (`docs/l2_protocols.md`)**](docs/l2_protocols.md) — Ethernet II, IEEE 802.1Q `VLAN`, 802.1ad `QinQ`, `ARP`, `STP` / `RSTP`, `LLDP`, `CDP`, `LACP`, `MPLS`, `PPPoE`, `EAPOL` (802.1X), `MACsec`, and more.
+* [**Layer 3 — Network, Routing & Tunnels (`docs/l3_protocols.md`)**](docs/l3_protocols.md) — `IPv4`, `IPv6`, `ICMP`, `ICMPv6` / `NDP`, `IGMP`, `GRE`, `IPsec` (`ESP` / `AH`), `VXLAN`, `Geneve`, `OSPF`, `VRRP`, `HSRP`, and `WireGuard`.
+* [**Layer 4 — Transports (`docs/l4_transports.md`)**](docs/l4_transports.md) — Stateful `TCP` (flags, window, `MSS`, options, automatic `SEQ`/`ACK`), `UDP`, `SCTP`, and `QUIC`.
+* [**Layer 7 — SNMPv1 / v2c / v3 (`docs/l7_snmp.md`)**](docs/l7_snmp.md) — `GET`, `GETNEXT`, `GETBULK`, `SET`, `RESPONSE`, `TRAP`, `INFORM`, and encrypted `SNMPv3` USM (`SHA-256` auth + `AES-128` priv).
+* [**Layer 7 — Infrastructure & Telemetry (`docs/l7_infra_and_telemetry.md`)**](docs/l7_infra_and_telemetry.md) — `DNS`, `DHCP` / `DHCPv6`, `NTP`, `Syslog`, `NetFlow`, `IPFIX`, `sFlow`, `BGP`, `BFD`, and `PTP`.
+* [**Layer 7 — Web, Cloud & Messaging (`docs/l7_web_and_cloud.md`)**](docs/l7_web_and_cloud.md) — `HTTP`, `TLS` (`ClientHello`, `SNI`, `ALPN`, Alerts), `SSH`, `WebSocket`, `gRPC`, `MQTT`, `CoAP`, and `AMQP`.
+* [**Layer 7 — Mail, Auth, Storage & Databases (`docs/l7_mail_auth_storage_db.md`)**](docs/l7_mail_auth_storage_db.md) — `SMTP`, `IMAP`, `POP3`, `RADIUS`, `TACACS+`, `Kerberos`, `LDAP`, `SMB`, `NFS`, `FTP` / `TFTP`, `PostgreSQL`, `MySQL`, and `Redis`.
+* [**Layer 7 — Industrial OT & ICS (`docs/l7_industrial_ot.md`)**](docs/l7_industrial_ot.md) — `Modbus/TCP`, `DNP3`, `S7comm`, `OPC UA`, `BACnet/IP`, `EtherNet/IP`, `IEC 60870-5-104`, and `PROFINET`.
 
 ## License
 
-Licensed under the MIT License. See [LICENSE](LICENSE) for details.
+Released under the [MIT License](LICENSE). Free for personal, academic, and commercial use.
 
 ---
 
@@ -409,7 +409,7 @@ Licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 # AGENTS.md — FrameAssembly AI Agent & LLM Onboarding Guide
 
-**FrameAssembly** (`frameassembly` v1.4.3) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
+**FrameAssembly** (`frameassembly` v1.4.4) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.fasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
 
 ---
 
@@ -574,12 +574,12 @@ Pick the one-liner for your operating system:
 | **Any (Rust 1.85+)** | Cargo | `cargo install frameassembly` |
 | **Browser / Node.js** | NPM (WASM) | `npm install frameassembly-wasm` |
 | **VS Code / Cursor** | Extension | `code --install-extension SteveWinschel.frameassembly-vscode` |
-| **Prebuilt Binaries** | GitHub Releases (`v1.4.3`) | [Download from GitHub Releases (`v1.4.3` / `latest`)](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
+| **Prebuilt Binaries** | GitHub Releases (`v1.4.4`) | [Download from GitHub Releases (`v1.4.4` / `latest`)](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
 
 Verify that the compiler is on your `PATH` (if you used the universal Linux installer, run `. "$HOME/.cargo/env"` or open a new shell first):
 
 ```bash
-frameassembly --version   # frameassembly 1.4.3
+frameassembly --version   # frameassembly 1.4.4
 frameassembly --help
 ```
 
@@ -5435,7 +5435,7 @@ compile {
 * **IANA Vendor Tree Registration Template:** [`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md)
 * **GitHub Linguist Grammar & Heuristics:** [`contrib/linguist/languages.yml`](../contrib/linguist/languages.yml), [`contrib/linguist/heuristics.yml`](../contrib/linguist/heuristics.yml) • [`contrib/linguist/README.md`](../contrib/linguist/README.md)
 * **Formal Context-Free Grammars:** [`grammar.ebnf`](../grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](../frameassembly.gbnf) (`llama.cpp` / `XGrammar` GBNF), [`frameassembly.lark`](../frameassembly.lark) (Earley/LALR Lark)
-* **Reference Compiler & Repository:** `frameassembly` v1.4.3 • [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
+* **Reference Compiler & Repository:** `frameassembly` v1.4.4 • [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
 
 ---
 
@@ -5794,7 +5794,7 @@ COMPILE {
 
 # For Nerds: Six-Stage Compiler Architecture, Rust Library API & Formal Grammars
 
-While FrameAssembly is designed so network engineers, firewall administrators, and NOC/SOC operators can generate deterministic `.pcap` / `.pcapng` captures with a few lines of declarative `.fasm` code ("Packets as Code"), under the hood `frameassembly` (v1.4.3, Rust Edition 2024) is a six-stage, zero-copy optimizing compiler, a reusable Rust library crate, and a formally specified language (`text/vnd.frameassembly`) backed by five-way synchronized context-free grammars and a `2,611`-scenario compiler-verified training corpus.
+While FrameAssembly is designed so network engineers, firewall administrators, and NOC/SOC operators can generate deterministic `.pcap` / `.pcapng` captures with a few lines of declarative `.fasm` code ("Packets as Code"), under the hood `frameassembly` (v1.4.4, Rust Edition 2024) is a six-stage, zero-copy optimizing compiler, a reusable Rust library crate, and a formally specified language (`text/vnd.frameassembly`) backed by five-way synchronized context-free grammars and a `2,611`-scenario compiler-verified training corpus.
 
 This guide is the dedicated home for **systems engineers**, **Rust developers**, and **AI/ML practitioners**. For the formal RFC 6838 media type specification, UTF-8 encoding rules, lexical magic numbers, and `.fasm` extension disambiguation (IANA, Freedesktop `shared-mime-info`, Wikidata, and GitHub Linguist), see **[`docs/fasm-specification.md`](fasm-specification.md)** and **[`contrib/`](../contrib/)**.
 

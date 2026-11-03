@@ -8,7 +8,7 @@
 * **IANA Vendor Tree Registration Template:** [`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md)
 * **GitHub Linguist Grammar & Heuristics:** [`contrib/linguist/languages.yml`](../contrib/linguist/languages.yml), [`contrib/linguist/heuristics.yml`](../contrib/linguist/heuristics.yml) • [`contrib/linguist/README.md`](../contrib/linguist/README.md)
 * **Formal Context-Free Grammars:** [`grammar.ebnf`](../grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](../frameassembly.gbnf) (`llama.cpp` / `XGrammar` GBNF), [`frameassembly.lark`](../frameassembly.lark) (Earley/LALR Lark)
-* **Reference Compiler & Repository:** `frameassembly` v1.4.3 • [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
+* **Reference Compiler & Repository:** `frameassembly` v1.4.4 • [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
 
 ---
 

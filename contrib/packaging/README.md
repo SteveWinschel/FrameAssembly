@@ -1,6 +1,6 @@
 # FrameAssembly Multi-Platform Packaging & Release Maintainer Guide
 
-This directory contains official packaging recipes, manifests, formulas, and distribution templates for **FrameAssembly** (`frameassembly` v1.4.3) across major operating systems and package management ecosystems:
+This directory contains official packaging recipes, manifests, formulas, and distribution templates for **FrameAssembly** (`frameassembly` v1.4.4) across major operating systems and package management ecosystems:
 
 - **Debian / Ubuntu (`APT`)**: Standalone `.deb` package builder and control templates (`contrib/packaging/apt/`)
 - **Arch Linux (`AUR`)**: Binary `PKGBUILD` and `.SRCINFO` for `frameassembly-bin` (`contrib/packaging/aur/`)
@@ -72,17 +72,17 @@ The automated checksum tool `contrib/packaging/update-checksums.sh` reads or dow
 #### 4-Step Maintainer Release Workflow
 1. **Tag and push release on GitHub**:
    ```bash
-   git tag v1.4.3
-   git push origin v1.4.3
+   git tag v1.4.4
+   git push origin v1.4.4
    ```
-   *(Or bump `version = "1.4.3"` in root `Cargo.toml` and push to `main`; CI will auto-create tag `v1.4.3` and run the full release pipeline).*
+   *(Or bump `version = "1.4.4"` in root `Cargo.toml` and push to `main`; CI will auto-create tag `v1.4.4` and run the full release pipeline).*
 2. **Wait for CI artifact generation**:
    GitHub Actions `.github/workflows/release.yml` completes builds and uploads `SHA256SUMS.txt` to the release.
 3. **Run the checksum updater**:
    ```bash
-   ./contrib/packaging/update-checksums.sh v1.4.3
+   ./contrib/packaging/update-checksums.sh v1.4.4
    ```
-   *(For offline or local dry-runs with a pre-existing checksum file, run: `./contrib/packaging/update-checksums.sh --sums-file path/to/SHA256SUMS.txt 1.4.3`)*
+   *(For offline or local dry-runs with a pre-existing checksum file, run: `./contrib/packaging/update-checksums.sh --sums-file path/to/SHA256SUMS.txt 1.4.4`)*
 4. **Submit updated manifests to upstream ecosystems**:
    Submit WinGet PR via `wingetcreate`, push AUR update to `frameassembly-bin.git`, and copy formulas to `homebrew-tap` and `scoop-bucket` as detailed below.
 
@@ -95,22 +95,22 @@ Debian packages are automatically built in CI during tagged releases via `.githu
 #### Local Build & Verification
 ```bash
 # Build amd64 deb package
-contrib/packaging/apt/build-deb.sh 1.4.3 target/release/frameassembly amd64 dist/
+contrib/packaging/apt/build-deb.sh 1.4.4 target/release/frameassembly amd64 dist/
 
 # Build arm64 deb package
-contrib/packaging/apt/build-deb.sh 1.4.3 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist/
+contrib/packaging/apt/build-deb.sh 1.4.4 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist/
 
 # Verify generated package structure and metadata
-dpkg-deb --info dist/frameassembly_1.4.3_amd64.deb
-dpkg-deb --contents dist/frameassembly_1.4.3_amd64.deb
+dpkg-deb --info dist/frameassembly_1.4.4_amd64.deb
+dpkg-deb --contents dist/frameassembly_1.4.4_amd64.deb
 ```
 
 #### Uploading to GitHub Release
 ```bash
 # Attach Debian packages directly to the release
-gh release upload v1.4.3 \
-  dist/frameassembly_1.4.3_amd64.deb \
-  dist/frameassembly_1.4.3_arm64.deb
+gh release upload v1.4.4 \
+  dist/frameassembly_1.4.4_amd64.deb \
+  dist/frameassembly_1.4.4_arm64.deb
 ```
 
 #### End-User Installation Command
@@ -124,7 +124,7 @@ curl -fsSLo /tmp/frameassembly.deb https://github.com/SteveWinschel/FrameAssembl
 
 Or install a specific version directly via dpkg:
 ```bash
-curl -fsSL https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.3/frameassembly_1.4.3_amd64.deb -o frameassembly.deb
+curl -fsSL https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.4/frameassembly_1.4.4_amd64.deb -o frameassembly.deb
 sudo dpkg -i frameassembly.deb
 ```
 
@@ -157,7 +157,7 @@ bash -n PKGBUILD
 
 # Commit and publish to AUR
 git add PKGBUILD .SRCINFO
-git commit -m "chore(release): bump frameassembly-bin to v1.4.3"
+git commit -m "chore(release): bump frameassembly-bin to v1.4.4"
 git push origin master
 ```
 
@@ -183,9 +183,9 @@ winget install Microsoft.WingetCreate
 
 # Submit new release to microsoft/winget-pkgs
 wingetcreate update SteveWinschel.FrameAssembly `
-  --version 1.4.3 `
-  --urls "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.3/frameassembly-v1.4.3-x86_64-pc-windows-msvc.zip" `
-         "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.3/frameassembly-v1.4.3-aarch64-pc-windows-msvc.zip" `
+  --version 1.4.4 `
+  --urls "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.4/frameassembly-v1.4.4-x86_64-pc-windows-msvc.zip" `
+         "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.4/frameassembly-v1.4.4-aarch64-pc-windows-msvc.zip" `
   --token $env:WINGET_TOKEN `
   --submit
 ```
@@ -193,7 +193,7 @@ wingetcreate update SteveWinschel.FrameAssembly `
 #### Manual Submission or Validation
 To test local manifest files before submission:
 ```powershell
-winget validate --manifest contrib/packaging/winget/manifests/s/SteveWinschel/FrameAssembly/1.4.3/
+winget validate --manifest contrib/packaging/winget/manifests/s/SteveWinschel/FrameAssembly/1.4.4/
 ```
 
 #### End-User Installation Command
@@ -212,7 +212,7 @@ The release automation workflow (`.github/workflows/release.yml`) supports autom
 3. `SteveWinschel/homebrew-frameassembly` (dedicated formula tap)
 4. `SteveWinschel/tap-FrameAssembly` (alternative tap name)
 
-The CI pipeline attempts to clone each candidate repository using `HOMEBREW_TAP_TOKEN` and updates `Formula/frameassembly.rb` in whichever repository exists, committing with `frameassembly 1.4.3` [skip ci].
+The CI pipeline attempts to clone each candidate repository using `HOMEBREW_TAP_TOKEN` and updates `Formula/frameassembly.rb` in whichever repository exists, committing with `frameassembly 1.4.4` [skip ci].
 
 #### One-Time Initial Setup
 1. Create a public tap repository (e.g. `SteveWinschel/homebrew-tap-FrameAssembly`, `SteveWinschel/tap-FrameAssembly`, or `SteveWinschel/homebrew-tap`) on GitHub.
@@ -232,7 +232,7 @@ cp /path/to/frameassembly/contrib/packaging/homebrew/Formula/frameassembly.rb Fo
 
 # Commit and push
 git add Formula/frameassembly.rb
-git commit -m "frameassembly 1.4.3"
+git commit -m "frameassembly 1.4.4"
 git push origin main
 ```
 
@@ -325,14 +325,14 @@ jq . contrib/packaging/scoop/frameassembly.json
 
 # 3. WinGet YAML syntax verification
 python3 -c "import yaml; [yaml.safe_load(open(f)) for f in [
-  'contrib/packaging/winget/manifests/s/SteveWinschel/FrameAssembly/1.4.3/SteveWinschel.FrameAssembly.yaml',
-  'contrib/packaging/winget/manifests/s/SteveWinschel/FrameAssembly/1.4.3/SteveWinschel.FrameAssembly.installer.yaml',
-  'contrib/packaging/winget/manifests/s/SteveWinschel/FrameAssembly/1.4.3/SteveWinschel.FrameAssembly.locale.en-US.yaml'
+  'contrib/packaging/winget/manifests/s/SteveWinschel/FrameAssembly/1.4.4/SteveWinschel.FrameAssembly.yaml',
+  'contrib/packaging/winget/manifests/s/SteveWinschel/FrameAssembly/1.4.4/SteveWinschel.FrameAssembly.installer.yaml',
+  'contrib/packaging/winget/manifests/s/SteveWinschel/FrameAssembly/1.4.4/SteveWinschel.FrameAssembly.locale.en-US.yaml'
 ]]; print('WinGet YAML valid.')"
 
 # 4. Debian package assembly test
-contrib/packaging/apt/build-deb.sh 1.4.3 target/debug/frameassembly amd64 temp/
-rm -rf temp/frameassembly_1.4.3_amd64.deb
+contrib/packaging/apt/build-deb.sh 1.4.4 target/debug/frameassembly amd64 temp/
+rm -rf temp/frameassembly_1.4.4_amd64.deb
 ```
 
 ---

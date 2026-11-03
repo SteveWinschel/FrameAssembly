@@ -963,9 +963,9 @@ fn test_gate6_ast_spec_fields_wired_to_builders() {
     );
 }
 
-/// Gate 7: Verifies v1.4.3 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
-/// or old `.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.4.3.vsix`
-/// is packaged with v1.4.3 manifest, syntax, and snippets, checks `llms.txt` (`< 512` lines, `< 25 KB`),
+/// Gate 7: Verifies v1.4.4 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
+/// or old `.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.4.4.vsix`
+/// is packaged with v1.4.4 manifest, syntax, and snippets, checks `llms.txt` (`< 512` lines, `< 25 KB`),
 /// and synchronizes/verifies `llms-full.txt` against `llms.txt`, `README.md`, `AGENTS.md`,
 /// `docs/*.md`, `grammar.ebnf`, `frameassembly.gbnf`, and `frameassembly.lark`.
 #[test]
@@ -984,12 +984,12 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
         assert!(!p.exists(), "Stray file {} must not exist", stray);
     }
 
-    // 2. Rebuild/verify frameassembly-vscode/frameassembly-vscode-1.4.3.vsix and remove 1.4.2.vsix
+    // 2. Rebuild/verify frameassembly-vscode/frameassembly-vscode-1.4.4.vsix and remove 1.4.3.vsix
     let py_vsix_script = r#"
 import os, zipfile
 
-vsix_old = "frameassembly-vscode/frameassembly-vscode-1.4.2.vsix"
-vsix_new = "frameassembly-vscode/frameassembly-vscode-1.4.3.vsix"
+vsix_old = "frameassembly-vscode/frameassembly-vscode-1.4.3.vsix"
+vsix_new = "frameassembly-vscode/frameassembly-vscode-1.4.4.vsix"
 
 content_types = '''<?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -1042,7 +1042,7 @@ files = [
 ]
 with zipfile.ZipFile(vsix_new, "w", compression=zipfile.ZIP_DEFLATED) as zf:
     zf.writestr("[Content_Types].xml", content_types.replace("</Types>", "\t<Default Extension=\"code-snippets\" ContentType=\"application/json\"/>\n</Types>"))
-    zf.writestr("extension.vsixmanifest", vsixmanifest.replace("1.2.2", "1.4.3").replace("stevewinschel", "SteveWinschel"))
+    zf.writestr("extension.vsixmanifest", vsixmanifest.replace("1.2.2", "1.4.4").replace("stevewinschel", "SteveWinschel"))
     for src, arc in files:
         zf.write(os.path.join("frameassembly-vscode", src), arc)
     if os.path.exists("frameassembly-vscode/icon.png"):
@@ -1061,12 +1061,12 @@ if os.path.exists(vsix_old):
         .expect("Failed to execute python3 for VSIX packaging");
     assert!(status.success(), "VSIX packaging script failed");
     assert!(
-        !Path::new("frameassembly-vscode/frameassembly-vscode-1.4.2.vsix").exists(),
-        "Old frameassembly-vscode-1.4.2.vsix must be removed"
+        !Path::new("frameassembly-vscode/frameassembly-vscode-1.4.3.vsix").exists(),
+        "Old frameassembly-vscode-1.4.3.vsix must be removed"
     );
     assert!(
-        Path::new("frameassembly-vscode/frameassembly-vscode-1.4.3.vsix").exists(),
-        "New frameassembly-vscode-1.4.3.vsix must exist"
+        Path::new("frameassembly-vscode/frameassembly-vscode-1.4.4.vsix").exists(),
+        "New frameassembly-vscode-1.4.4.vsix must exist"
     );
 
     // 3. Verify llms.txt line and byte bounds
@@ -1096,7 +1096,7 @@ if os.path.exists(vsix_old):
     let agents = fs::read_to_string("AGENTS.md").expect("Missing AGENTS.md");
     let mut rebuilt = String::with_capacity(700_000);
     rebuilt.push_str("# FrameAssembly (`frameassembly`)\n\n");
-    rebuilt.push_str("> Rootless \"Packets as Code\" / \"PCAP as Code\" DSL & Rust compiler (v1.4.3) that compiles declarative `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).\n\n");
+    rebuilt.push_str("> Rootless \"Packets as Code\" / \"PCAP as Code\" DSL & Rust compiler (v1.4.4) that compiles declarative `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).\n\n");
     rebuilt.push_str("FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in userspace with no `libpcap` or raw sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides via `frameassembly <input.fasm> [-o <output.pcap>]` and `frameassembly show <input.fasm>`.\n\n");
     rebuilt.push_str("## Section Manifest & Bundle Table of Contents\n\n");
     rebuilt.push_str("1. **Zero-Shot `.fasm` Grammar, Anti-Hallucination Table & `llms.txt` Index**\n");

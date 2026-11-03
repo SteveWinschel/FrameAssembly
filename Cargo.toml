@@ -1,6 +1,6 @@
 [package]
 name = "frameassembly"
-version = "1.4.3"
+version = "1.4.4"
 edition = "2024"
 rust-version = "1.85"
 description = "Compile .fasm code into deterministic .pcap/.pcapng captures across 81 L2-L7 protocols to test firewalls, IDS rules, SNMPv3 traps, Wireshark & Rust."
@@ -9,7 +9,7 @@ license = "MIT"
 documentation = "https://docs.rs/frameassembly"
 homepage = "https://github.com/SteveWinschel/FrameAssembly"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
-keywords = ["pcap", "pcapng", "packet-generator", "networking", "wireshark", "pentesting"]
+keywords = ["pcap", "pcapng", "packet-generator", "networking", "pentesting"]
 categories = [
     "network-programming",
     "command-line-utilities",

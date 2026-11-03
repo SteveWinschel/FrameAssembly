@@ -32,12 +32,12 @@ Pick the one-liner for your operating system:
 | **Any (Rust 1.85+)** | Cargo | `cargo install frameassembly` |
 | **Browser / Node.js** | NPM (WASM) | `npm install frameassembly-wasm` |
 | **VS Code / Cursor** | Extension | `code --install-extension SteveWinschel.frameassembly-vscode` |
-| **Prebuilt Binaries** | GitHub Releases (`v1.4.3`) | [Download from GitHub Releases (`v1.4.3` / `latest`)](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
+| **Prebuilt Binaries** | GitHub Releases (`v1.4.4`) | [Download from GitHub Releases (`v1.4.4` / `latest`)](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
 
 Verify that the compiler is on your `PATH` (if you used the universal Linux installer, run `. "$HOME/.cargo/env"` or open a new shell first):
 
 ```bash
-frameassembly --version   # frameassembly 1.4.3
+frameassembly --version   # frameassembly 1.4.4
 frameassembly --help
 ```
 

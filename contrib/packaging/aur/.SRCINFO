@@ -1,6 +1,6 @@
 pkgbase = frameassembly-bin
 	pkgdesc = Rootless Packets-as-Code DSL & compiler: generate deterministic .pcap/.pcapng captures from .fasm across 81 L2-L7 protocols
-	pkgver = 1.4.4
+	pkgver = 1.4.5
 	pkgrel = 1
 	url = https://github.com/SteveWinschel/FrameAssembly
 	arch = x86_64
@@ -8,9 +8,9 @@ pkgbase = frameassembly-bin
 	license = MIT
 	provides = frameassembly
 	conflicts = frameassembly
-	source_x86_64 = https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.4/frameassembly-v1.4.4-x86_64-unknown-linux-musl.tar.gz
-	sha256sums_x86_64 = eb2ab5f2f9cd32bb10f8ba48249c0706221b93390977973be4968cffc6cc4eba
-	source_aarch64 = https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.4/frameassembly-v1.4.4-aarch64-unknown-linux-musl.tar.gz
-	sha256sums_aarch64 = b13eaaea5817ef810e8be86fd0bc010ef1f4828151bb0070b335e864da29f817
+	source_x86_64 = https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.5/frameassembly-v1.4.5-x86_64-unknown-linux-musl.tar.gz
+	sha256sums_x86_64 = SKIP
+	source_aarch64 = https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.5/frameassembly-v1.4.5-aarch64-unknown-linux-musl.tar.gz
+	sha256sums_aarch64 = SKIP
 
 pkgname = frameassembly-bin

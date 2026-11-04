@@ -21,7 +21,7 @@ Usage:
   ./contrib/packaging/update-checksums.sh [OPTIONS] [VERSION|TAG]
 
 Arguments:
-  VERSION | TAG            Release version (e.g. '1.4.4' or 'v1.4.4').
+  VERSION | TAG            Release version (e.g. '1.4.5' or 'v1.4.5').
                            If omitted, auto-detected from Cargo.toml or PKGBUILD.
 
 Options:
@@ -90,7 +90,7 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 if [[ -z "$VERSION" ]]; then
-    echo "Error: Version could not be determined. Please specify VERSION (e.g. 1.4.4 or v1.4.4)." >&2
+    echo "Error: Version could not be determined. Please specify VERSION (e.g. 1.4.5 or v1.4.5)." >&2
     exit 1
 fi
 

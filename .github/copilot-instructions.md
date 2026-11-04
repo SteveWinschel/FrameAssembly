@@ -1,6 +1,6 @@
 # GitHub Copilot Instructions for FrameAssembly (`frameassembly`)
 
-You are working on **FrameAssembly** (`frameassembly` v1.4.4), a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles human-readable `.fasm` network packet specifications into deterministic `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
+You are working on **FrameAssembly** (`frameassembly` v1.4.5), a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles human-readable `.fasm` network packet specifications into deterministic `.pcap` / `.pcapng` packet captures across **81 native Layer 2 through Layer 7 protocols** (`2,611` verified `.fasm` corpus scenarios).
 
 ## 1. Canonical `.fasm` Syntax Guardrails (Never Hallucinate Keywords)
 

@@ -1,9 +1,9 @@
 [package]
 name = "frameassembly"
-version = "1.4.4"
+version = "1.4.5"
 edition = "2024"
 rust-version = "1.85"
-description = "Compile .fasm code into deterministic .pcap/.pcapng captures across 81 L2-L7 protocols to test firewalls, IDS rules, SNMPv3 traps, Wireshark & Rust."
+description = "A DSL for creating custon .pcap files for testing firewalls, IDS rules, SNMP traps and pentesting."
 authors = ["Steve Winschel"]
 license = "MIT"
 documentation = "https://docs.rs/frameassembly"

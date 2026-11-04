@@ -1,4 +1,4 @@
-# FrameAssembly (.fasm Packet Crafting DSL) Support (v1.4.4)
+# FrameAssembly (.fasm Packet Crafting DSL) Support (v1.4.5)
 
 Case-insensitive syntax highlighting, Markdown code block injection (```` ```frameassembly ```` and ```` ```fasm ````), and 16 tab-completable snippets for FrameAssembly (`.fasm`, `text/vnd.frameassembly`) — the declarative **Packets as Code** DSL that compiles `.fasm` code into deterministic `.pcap` / `.pcapng` captures for pentesting, testing firewalls, simulating SNMP traps, and validating network monitoring and cybersecurity solutions in Visual Studio Code, Cursor, Windsurf, VSCodium, and Antigravity IDE.
 

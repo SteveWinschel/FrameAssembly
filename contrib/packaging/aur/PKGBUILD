@@ -11,8 +11,8 @@ conflicts=('frameassembly')
 
 source_x86_64=("https://github.com/SteveWinschel/FrameAssembly/releases/download/v${pkgver}/frameassembly-v${pkgver}-x86_64-unknown-linux-musl.tar.gz")
 source_aarch64=("https://github.com/SteveWinschel/FrameAssembly/releases/download/v${pkgver}/frameassembly-v${pkgver}-aarch64-unknown-linux-musl.tar.gz")
-sha256sums_x86_64=('c062515075cb56d7364737bd0f3522fab75944c40eee9df7091e81f0c8990e73')
-sha256sums_aarch64=('65edd498b253b7176b88a0461c4025f3684e9c39b5ea6cf9715df100db7f68a5')
+sha256sums_x86_64=('6cfe0026d19c7604bf9aa10ff065f3799568c00d4c6b6b6b68ec28506b05e850')
+sha256sums_aarch64=('1fd55e0fac8db9348ddbb780c8121c04bedc84db6b746f974f824b1a123a4f1d')
 
 package() {
     cd "${srcdir}/frameassembly-v${pkgver}-${CARCH}-unknown-linux-musl"

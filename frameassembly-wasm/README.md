@@ -1,4 +1,4 @@
-# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v1.4.5)
+# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v1.4.6)
 
 High-performance WebAssembly compiler, frame inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.fasm`)** — the **Packets as Code** domain-specific language for compiling `.fasm` code into deterministic `.pcapng` packet captures across 81 L2–L7 protocols for pentesting labs, testing firewall rules, simulating SNMPv1/v2c/v3 traps, and validating network monitoring and cybersecurity solutions in browser applications, web cyber ranges, and Node.js test suites. *(Note: FrameAssembly is a network protocol DSL, not x86 Flat Assembler).*
 
@@ -64,7 +64,7 @@ npm install frameassembly-wasm
     validate_fasm,
     inspect_fasm,
     compile_fasm_to_pcapng,
-  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@1.4.5/frameassembly_wasm.js";
+  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@1.4.6/frameassembly_wasm.js";
 
   await init();
   console.log("FrameAssembly WebAssembly engine loaded successfully.");

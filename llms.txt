@@ -2,7 +2,7 @@
 
 
 
-> Rootless, offline "Packets as Code" Rust compiler and domain-specific language (`frameassembly` v1.4.5) that compiles `.fasm` (`text/vnd.frameassembly`) network specifications into deterministic, nanosecond-resolution `.pcap` and `.pcapng` packet captures across 81 native Layer 2 through Layer 7 protocols—with automatic 4-tuple TCP `SEQ`/`ACK` tracking, reply-port swapping, IPv4/IPv6 dual-stack flow reuse, and SNMPv3 USM (`RFC 3414` / `3826` / `7860`) cryptography.
+> Rootless, offline "Packets as Code" Rust compiler and domain-specific language (`frameassembly` v1.4.6) that compiles `.fasm` (`text/vnd.frameassembly`) network specifications into deterministic, nanosecond-resolution `.pcap` and `.pcapng` packet captures across 81 native Layer 2 through Layer 7 protocols—with automatic 4-tuple TCP `SEQ`/`ACK` tracking, reply-port swapping, IPv4/IPv6 dual-stack flow reuse, and SNMPv3 USM (`RFC 3414` / `3826` / `7860`) cryptography.
 
 
 
@@ -324,7 +324,7 @@ compile {
 
   - Cargo / NPM WASM / VS Code: `cargo install frameassembly` / `npm install frameassembly-wasm` / `code --install-extension SteveWinschel.frameassembly-vscode`
 
-- **Public Rust Library Signatures (`frameassembly` v1.4.5)**:
+- **Public Rust Library Signatures (`frameassembly` v1.4.6)**:
 
   - `frameassembly::lexer::lex<'a>(input: &'a str) -> Result<Vec<(Token<'a>, std::ops::Range<usize>)>, CompilerError>`
 
@@ -438,4 +438,4 @@ compile {
 
 - [POSIX Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Cross-platform shell installer for Linux, macOS, and BSDs.
 
-- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for FrameAssembly v1.4.5.
+- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for FrameAssembly v1.4.6.

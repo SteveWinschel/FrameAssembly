@@ -2,7 +2,7 @@
 
 
 
-> **FrameAssembly** (`frameassembly` v1.4.5) is an offline, rootless "Packets as Code" Domain-Specific Language (`.fasm`, media type `text/vnd.frameassembly`) and six-stage Rust 2024 compiler that synthesizes deterministic, nanosecond-resolution `.pcap` and `.pcapng` packet captures across **81 native Layer 2 through Layer 7 network protocols**—with automatic 4-tuple TCP `SEQ`/`ACK` progression, bidirectional reply-port swapping, IPv4/IPv6 dual-stack flow reuse, IEEE 1815 DNP3 / RFC 9260 SCTP / RFC 1071 checksums, and full SNMPv3 USM (`RFC 3414` / `3826` / `7860`) cryptography.
+> **FrameAssembly** (`frameassembly` v1.4.6) is an offline, rootless "Packets as Code" Domain-Specific Language (`.fasm`, media type `text/vnd.frameassembly`) and six-stage Rust 2024 compiler that synthesizes deterministic, nanosecond-resolution `.pcap` and `.pcapng` packet captures across **81 native Layer 2 through Layer 7 network protocols**—with automatic 4-tuple TCP `SEQ`/`ACK` progression, bidirectional reply-port swapping, IPv4/IPv6 dual-stack flow reuse, IEEE 1815 DNP3 / RFC 9260 SCTP / RFC 1071 checksums, and full SNMPv3 USM (`RFC 3414` / `3826` / `7860`) cryptography.
 
 
 
@@ -24,7 +24,7 @@
 
 2. **FrameAssembly (`.fasm`) Anti-Hallucination Table & Cross-Protocol Syntax Guardrails**
 
-3. **FrameAssembly CLI, Companion Workflows & Public Rust Library API (`v1.4.5`)**
+3. **FrameAssembly CLI, Companion Workflows & Public Rust Library API (`v1.4.6`)**
 
 4. **FrameAssembly (`.fasm`) Universal Layer 2, Layer 3, Layer 4, Payload & Timing Modifiers**
 
@@ -240,7 +240,7 @@ When generating `.fasm` or writing assertions against `compile_program` / `tshar
 
 
 
-## 3. FrameAssembly CLI, Companion Workflows & Public Rust Library API (`v1.4.5`)
+## 3. FrameAssembly CLI, Companion Workflows & Public Rust Library API (`v1.4.6`)
 
 
 

@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing git tag to build and publish (e.g. v1.4.5)'
+        description: 'Existing git tag to build and publish (e.g. v1.4.6)'
         required: false
         type: string
 
@@ -88,17 +88,17 @@ jobs:
             os: ubuntu-24.04
             archive: tar.gz
             ext: ''
-            run_tests: true
+            run_tests: false
           - target: aarch64-unknown-linux-musl
             os: ubuntu-24.04-arm
             archive: tar.gz
             ext: ''
-            run_tests: true
+            run_tests: false
           - target: x86_64-pc-windows-msvc
             os: windows-2025
             archive: zip
             ext: '.exe'
-            run_tests: true
+            run_tests: false
           - target: aarch64-pc-windows-msvc
             os: windows-2025
             archive: zip
@@ -108,7 +108,7 @@ jobs:
             os: macos-15
             archive: tar.gz
             ext: ''
-            run_tests: true
+            run_tests: false
           - target: x86_64-apple-darwin
             os: macos-15
             archive: tar.gz

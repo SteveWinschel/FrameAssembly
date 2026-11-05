@@ -1,6 +1,6 @@
 [package]
 name = "frameassembly"
-version = "1.4.5"
+version = "1.4.6"
 edition = "2024"
 rust-version = "1.85"
 description = "A DSL for creating custon .pcap files for testing firewalls, IDS rules, SNMP traps and pentesting."

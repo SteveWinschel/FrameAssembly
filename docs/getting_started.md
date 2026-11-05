@@ -25,7 +25,7 @@ Pick the one-liner for your machine:
 | **Any (Rust 1.85+)** | Cargo | `cargo install frameassembly` |
 | **Browser / Node.js** | NPM (WASM) | `npm install frameassembly-wasm` |
 | **VS Code / Cursor** | Syntax highlighting | `code --install-extension SteveWinschel.frameassembly-vscode` |
-| **Standalone Archives**| GitHub Releases | [**Download prebuilt binaries (`v1.4.5`)**](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
+| **Standalone Archives**| GitHub Releases | [**Download prebuilt binaries (`v1.4.6`)**](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
 
 Check that the binary is ready:
 

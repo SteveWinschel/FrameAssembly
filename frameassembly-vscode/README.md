@@ -1,111 +1,155 @@
-# FrameAssembly (.fasm Packet Crafting DSL) Support (v1.4.5)
+# FrameAssembly (`.fasm`) — Syntax Highlighting for VS Code
 
-Case-insensitive syntax highlighting, Markdown code block injection (```` ```frameassembly ```` and ```` ```fasm ````), and 16 tab-completable snippets for FrameAssembly (`.fasm`, `text/vnd.frameassembly`) — the declarative **Packets as Code** DSL that compiles `.fasm` code into deterministic `.pcap` / `.pcapng` captures for pentesting, testing firewalls, simulating SNMP traps, and validating network monitoring and cybersecurity solutions in Visual Studio Code, Cursor, Windsurf, VSCodium, and Antigravity IDE.
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/SteveWinschel.frameassembly-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
 
----
+[**Editor Problems Solved**](#editor-problems-this-extension-solves) • [**Highlighting Previews**](#highlighted-fasm-in-action-packet-crafting-use-cases) • [**81 Highlighted Protocols**](#highlighted-protocol-keywords-81-native-protocols) • [**16 Snippets**](#bonus-16-tab-completable-keyword-snippets) • [**Get the Compiler**](#compiler-not-included)
 
-## Example `.fasm` Workflows
+## What Is This Extension?
 
-### Pentesting, Testing Firewall ACLs & Validating Cybersecurity / IDS Rules
+[**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) is a declarative **Packets as Code** DSL built ironically for the very people who hate programming -> **Networking & Cybersecurity professionals**.
 
-Write readable `.fasm` code and let the compiler calculate Ethernet headers, IPv4/IPv6 lengths, UDP/TCP pseudo-header checksums, and stateful sequence numbers offline in unprivileged user space—without root sockets (`CAP_NET_RAW`), brittle Python `Scapy` virtualenvs, or counting hex byte offsets by hand in `text2pcap`:
+**What this extension does:** One thing—it highlights `.fasm` keywords so your packet definitions don't look like a monochrome ransom note in `notepad.exe`.
+
+**What this extension does NOT do:** It does **not** download or bundle the `frameassembly` compiler, spin up a bloated background language server eating 2 GB of RAM, or turn `.fasm` files into `.pcap` captures by itself. It is a zero-runtime TextMate grammar (`source.frameassembly`) for **VS Code**, **Cursor**, **Windsurf**, **VSCodium**, and **Antigravity IDE**. If you want to actually compile your `.fasm` files into `.pcap` / `.pcapng` captures for `tcpreplay` or Wireshark, grab the standalone [**FrameAssembly CLI**](#compiler-not-included).
+
+## Editor Problems This Extension Solves
+
+### 1. `.fasm` File Extension Hijacking (x86 Assembly & FPGA Bitstreams)
+* **The Problem:** Open a `.fasm` network capture spec in a stock setup and generic assembly plugins immediately assume you are writing 1999 x86 Flat Assembler (`;` comments, `mov eax, 1`) or SymbiFlow FPGA tile bitstreams (`#` comments)—painting valid `host`, `flow`, and `compile` blocks in bogus syntax errors.
+* **The Solution:** Binds `.fasm` (`text/vnd.frameassembly`) and `host` / `flow` / `compile` first-line signatures to the dedicated `source.frameassembly` scope so x86 and FPGA highlighters leave your packet specs alone.
+
+### 2. Going Blind Reading Raw OIDs, Mixed MAC Formats & 640+ Keywords in Plain Text
+* **The Problem:** Hunting down a typo in a 10-arc SNMP OID (`1.3.6.1.6.3.1.1.5.3`), a compressed IPv6 address, or a Cisco IOS dotted-quad MAC (`001a.2b3c.4d5e`) inside unhighlighted white text is pure eye strain—especially when half your team writes polite lowercase (`tcp syn`) and the other half shouts in `UPPERCASE` (`TCP SYN`).
+* **The Solution:** Case-insensitive keyword highlighting across all **81 Layer 2–7 protocols** and **640+ frame modifiers**, with distinct colors for structural blocks (`host`, `flow`, `compile`, `loop`), directional arrows (`->`, `<-`), IPv4/IPv6 addresses, IEEE colon/hyphen and Cisco MACs, hex literals (`0x...`), SNMP OIDs, and wait units (`ns`, `us`, `ms`, `s`, `m`).
+
+### 3. Unreadable Packet Examples in Markdown Runbooks & Pentest Reports
+* **The Problem:** Pasting firewall test cases, IDS rule reproducers, or sanitized vendor TAC captures into `.md` documentation turns structured L2–L7 flows into flat gray walls of text.
+* **The Solution:** Automatically injects `source.frameassembly` syntax highlighting into ```` ```frameassembly ```` and ```` ```fasm ```` fenced code blocks inside any Markdown file (`markdown.frameassembly.codeblock`).
+
+### 4. Overeager Editors Auto-Inserting Invalid Punctuation
+* **The Problem:** Generic editor defaults love auto-closing `'single quotes'`, `[square brackets]`, and `/* block comments */`—none of which exist in `.fasm` and all of which trigger immediate compiler errors.
+* **The Solution:** Configures clean `//` line-comment toggling (`Ctrl+/`) and `{...}`, `(...)`, `"..."` pairs while intentionally stripping unsupported bracket and single-quote auto-closures.
+
+## Highlighted `.fasm` in Action (Packet-Crafting Use Cases)
+
+> **Heads up:** The blocks below show how this extension highlights `.fasm` keywords for common network and security testing problems. Compiling them into `.pcap` files requires the separate [`frameassembly` CLI](https://github.com/SteveWinschel/FrameAssembly) -> what you do with `tcpreplay` afterward is between you and HR :)
+
+### Simulating `SNMPv3` Traps & `Syslog` Alerts Without Unplugging Switch Cables
+Waiting for a core router interface to die—or yanking patch cables out of a switch after fighting MIB imports and EngineID mismatches—just to verify whether **Zabbix**, **LibreNMS**, **PRTG**, **Checkmk**, **SolarWinds**, or `snmptrapd` fires an alert is nobody's idea of a good afternoon. Keyword highlighting cleanly separates USM crypto parameters (`sha256`, `aes`), EngineIDs, dotted OIDs, and `syslog` severities:
 
 ```frameassembly
-host client { ip 192.168.1.100 }
-host server { ip 8.8.8.8 }
+// Preview: SNMPv3 authPriv linkDown trap + RFC 5424 Syslog alert
+host core_sw { ip 10.10.1.2  mac 001a.2b3c.4d01 }
+host zabbix  { ip 10.10.1.50 mac 00:1a:2b:3c:4d:50 }
 
-flow dns_resolve(c, s) {
-    c -> s dns query txid 0x1a2b qname "example.com" qtype "A"
-    c <- s dns response txid 0x1a2b qname "example.com" qtype "A" rdata "93.184.216.34"
+flow link_down_alert(sw, nms) {
+    sw -> nms vlan 100 snmp3 trap user "netops" engineid "80001f8880510001" engineboots 5 enginetime 3600 auth sha256 "AuthPass123!" priv aes "PrivPass123!" oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.8.1 int 2 wait 5ms
+    sw -> nms vlan 100 syslog facility 16 severity 3 hostname "core-sw-01" app "link" msg "Gi0/1 changed state to down"
+}
+
+compile { link_down_alert(core_sw, zabbix) }
+```
+
+### Testing Stateful Firewalls, ACLs & IDS Rules (`Suricata`, `Zeek`, `Snort`) Without `Scapy` Venvs
+Throwing a single spoofed packet at **Palo Alto**, **FortiGate**, **CheckPoint**, or `nftables` won't test application rules because stateful engines drop mid-stream data without a 3-way handshake—and maintaining Python `Scapy` virtualenvs or downloading noisy mystery `.pcap` files off GitHub gets old fast. Highlighting keeps TCP flags (`syn`, `ack`, `rst`), ports, `dns` queries, and `tls` `sni` fields readable at a glance:
+
+```frameassembly
+// Preview: SYN flood loop + stateful C2 DNS/TLS signature check
+host bot_node    { ip 198.51.100.66 mac 00:50:56:c0:00:66 }
+host workstation { ip 10.40.5.25     mac 00:50:56:40:05:25 }
+host sec_gateway { ip 10.40.5.1      mac 00:1c:73:40:05:01 }
+
+flow syn_flood(bot, gw) {
+    bot -> gw tcp syn dstport 443 win 1024 wait 100us
+}
+
+flow c2_signature_check(ws, gw) {
+    ws -> gw dns query txid 0x4401 qname "c2-beacon.bad-domain.test" qtype "A" wait 1ms
+    ws <- gw dns response txid 0x4401 qname "c2-beacon.bad-domain.test" qtype "A" rcode 5 wait 2ms
+    ws -> gw tcp syn srcport 53443 dstport 443 win 65535 mss 1460 wait 1ms
+    ws <- gw tcp syn ack win 65535 mss 1460 wait 1ms
+    ws -> gw tcp ack wait 1ms
+    ws -> gw tls client_hello sni "shadow-upload.example.net" ciphersuite 4866 alpn "h2" wait 2ms
+    ws <- gw tls alert payload "BLOCKED_BY_SNI_POLICY"
 }
 
 compile {
-    dns_resolve(client, server)
+    loop 100 { syn_flood(bot_node, sec_gateway) }
+    c2_signature_check(workstation, sec_gateway)
 }
 ```
 
-```console
-$ frameassembly dns.fasm -o dns.pcap
-```
-
-### Simulate SNMPv1/v2c & Encrypted SNMPv3 `authPriv` Traps on Demand
-
-Waiting for a core router interface to fail just to verify an NMS alert rule is nobody's idea of a good afternoon. FrameAssembly derives RFC 3414/3826/7860 localized keys (`Ku -> Kul`), computes HMAC-SHA-256 digests, and encrypts `AES-128-CFB` / `DES-CBC` varbind payloads directly into a capture file you can replay with `tcpreplay`:
+### Verifying `802.1Q` `VLAN`, `802.1ad` `QinQ`, `MPLS` & `DSCP` QoS Without NIC Drivers Eating Tags
+OS network card drivers love stripping `802.1Q` and carrier `QinQ` double tags before live capture tools ever see them. Writing offline `.fasm` specs keeps outer service tags, inner customer VLANs, MPLS labels, and `pcp` / `dscp` priority markings visually distinct from the inner payload:
 
 ```frameassembly
-host router { ip 10.151.0.1 }
-host soc    { ip 10.151.0.250 }
+// Preview: Carrier 802.1ad QinQ trunk + 802.1p/DSCP EF voice frame
+host pe_hub    { ip 10.99.1.1 mac 00-1B-21-99-01-01 }
+host ce_branch { ip 10.99.1.2 mac 00-1B-21-99-01-02 }
 
-flow snmpv3_trap(r, s) {
-    r -> s snmp3 trap user "admin" engineid "80001f8880510001" auth sha256 "authpass123" priv aes "privpass123" oid 1.3.6.1.6.3.1.1.5.3
+flow carrier_trunk_check(hub, branch) {
+    hub -> branch qinq 850 inner_vlan 12 dscp 46 icmp echo_request id 1 seq 1
+    hub <- branch qinq 850 inner_vlan 12 dscp 46 icmp echo_reply id 1 seq 1 wait 2ms
+    hub -> branch vlan 100 pcp 5 dscp 46 rtp pt 0 seq 1 timestamp 160 ssrc 9001 wait 5ms
 }
 
-compile {
-    snmpv3_trap(router, soc)
-}
+compile { carrier_trunk_check(pe_hub, ce_branch) }
 ```
 
-```console
-$ frameassembly trap.fasm -o trap.pcap && tcpreplay -i eth0 trap.pcap
-```
-
-### Verify 802.1Q `vlan`, 802.1ad `qinq`, `mpls` & `dscp` QoS Markings
-
-OS network card drivers love stripping 802.1Q and QinQ tags before live capture tools ever see them. FrameAssembly writes outer service tags, inner customer VLANs, MPLS label stacks, and `dscp` priority markings straight into the `.pcapng` file so every header bit survives intact:
+### Auditing Industrial OT / SCADA Firewalls Without Poking a Live PLC
+Throwing live test traffic at a production **Siemens S7** PLC or substation RTU is a great way to update your resume, and editing hex offsets by hand in `text2pcap` to sanitize TAC captures is pure masochism. This grammar highlights industrial `modbus`, `dnp3`, `s7comm`, `opcua`, `bacnet`, and `ethernetip` function codes and register modifiers natively:
 
 ```frameassembly
-host hub    { ip 10.99.1.1 }
-host branch { ip 10.99.1.2 }
+// Preview: VLAN-tagged Modbus/TCP register poll + DNP3 read request
+host scada_hmi { ip 172.22.10.5  mac 00:1b:21:22:0a:05 }
+host field_plc { ip 172.22.10.50 mac 00:0e:8c:22:0a:32 }
 
-flow qinq_flow(h, b) {
-    h -> b qinq 850 inner_vlan 12 icmp echo_request
-    h <- b qinq 850 inner_vlan 12 icmp echo_reply
+flow ot_conduit_audit(hmi, plc) {
+    hmi -> plc vlan 110 tcp syn srcport 54000 dstport 502 win 64240 mss 1460
+    hmi <- plc vlan 110 tcp syn ack win 64240 mss 1460 wait 1ms
+    hmi -> plc vlan 110 tcp ack wait 1ms
+    hmi -> plc vlan 110 modbus read_holding_registers txid 1 unitid 1 addr 100 count 2 wait 2ms
+    hmi <- plc vlan 110 modbus read_holding_registers txid 1 unitid 1 count 2 value 42 is_response wait 5ms
+    hmi -> plc vlan 110 dnp3 read src 1 dst 10 group 60 variation 1 wait 2ms
 }
 
-compile {
-    qinq_flow(hub, branch)
-}
+compile { ot_conduit_audit(scada_hmi, field_plc) }
 ```
 
-```console
-$ frameassembly trunk.fasm -o trunk.pcap && tshark -r trunk.pcap -V
-```
+## Highlighted Protocol Keywords (81 Native Protocols)
 
----
+Every protocol identifier, flag, and sub-keyword below is highlighted case-insensitively (`lowercase`, `UPPERCASE`, or `MixedCase`):
 
-## Features
+| OSI Layer | Count | Highlighted Protocol Keywords |
+| :--- | :---: | :--- |
+| **Layer 2 (Switching & Data Link)** | 8 | `arp`, `vlan` (802.1Q), `qinq` (802.1ad), `mpls`, `lldp`, `stp` / `rstp`, `lacp`, `eapol` (802.1X) |
+| **Layer 3 (Control, Tunnel, VPN, Routing)** | 20 | `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, `openflow` |
+| **Layer 4 (Transport)** | 3 | `tcp`, `udp`, `sctp` |
+| **Layer 7 (SNMP, Infra, AAA, Telemetry)** | 14 | `snmp1`, `snmp2`, `snmp3`, `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, `sflow` |
+| **Layer 7 (Web, Cloud, TLS, VoIP, Access)** | 16 | `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `tftp`, `ftp`, `ssh`, `telnet`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, `ssdp` |
+| **Layer 7 (Mail, Auth, Storage, DB, Brokers)** | 14 | `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, `amqp` |
+| **Layer 7 (Industrial ICS / SCADA / OT)** | 6 | `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, `opcua` |
 
-- **Case-Insensitive Highlighting Across 81 Native Protocols:** Write `.fasm` code in lowercase (`host`, `flow`, `tcp`, `syn`), uppercase (`HOST`, `FLOW`, `TCP`, `SYN`), or mixed case across all 81 Layer 2 through Layer 7 protocols (Ethernet, VLAN, QinQ, MPLS, IPv4, IPv6, ICMP, NDP, GRE, VXLAN, IPsec, OSPF, BGP, TCP, UDP, SCTP, SNMPv1/v2c/v3, DNS, HTTP, TLS, QUIC, Modbus, BACnet, S7comm, and more).
-- **Markdown Fenced Code Block Highlighting:** Automatically highlights ```` ```frameassembly ```` and ```` ```fasm ```` code blocks inside `.md` documentation files and runbooks (`markdown.frameassembly.codeblock`).
-- **16 Built-In Tab-Completable Snippets:** Instant lowercase templates for complete `.fasm` programs and protocol exchanges (`fasm`, `host`, `tcp-handshake`, `snmp2-trap`, `snmp3-trap`, `http-get`, `dns-query`, `dhcp-dora`, `vlan-qos`, `qinq`, `bgp-open`, `ospf-hello`, `modbus-poll`, `firewall-rst`, `icmp-ping`, `vxlan-overlay`).
-- **Comprehensive Modifiers & Sub-Keywords:** Full coverage of over 640 protocol keywords, flags, and frame modifiers (VLAN PCP/DEI, MPLS EXP/BOS/TTL, IPv4/IPv6 TTL, DSCP, ECN, Flow Labels, fragmentation, TCP options, SCTP chunks).
-- **Dual-Stack & Multi-Format MAC Addressing:** Native highlighting for IPv4 dotted-quads, full/compressed/mapped IPv6 addresses, and colon-separated (`00:1a:2b:3c:4d:5e`), hyphen-separated (`00-1A-2B-3C-4D-5E`), and Cisco IOS dotted-quad (`001a.2b3c.4d5e`) MAC addresses.
-- **Timing & Numeric Formats:** Support for duration units (`ns`, `us`, `ms`, `s`, `m`), hexadecimal integer literals (`0x...`), and dotted SNMP OID notation.
-- **Language Structure:** Distinct styling for structural declarations (`host`, `flow`, `compile`, `loop`), transmission direction arrows (`->`, `<-`), and quoted string payloads.
-- **Standardized MIME & Scope:** Bound to the official `text/vnd.frameassembly` media type and `source.frameassembly` TextMate scope.
+## Bonus: 16 Tab-Completable Keyword Snippets
 
----
+If you don't feel like typing protocol boilerplate from scratch inside a `.fasm` file, type any prefix below and press `Tab`:
 
-## Usage
+* **Structure & Reachability:** `fasm` (full `host`/`flow`/`compile` skeleton), `host` (endpoint block), `icmp-ping` (echo request/reply)
+* **Transport & Firewalling:** `tcp-handshake` (3-way `syn` / `syn ack` / `ack`), `firewall-rst` (blocked `syn` -> `rst ack`)
+* **SNMP Alerting:** `snmp2-trap` (`linkDown` v2c trap), `snmp3-trap` (encrypted USM `sha256` + `aes` trap)
+* **Infra, Web & Cloud:** `dns-query` (`A` lookup), `dhcp-dora` (4-way lease), `http-get` (handshake + `GET` + `200 OK`)
+* **Switching, Routing & OT:** `vlan-qos` (`vlan` + `dscp` `rtp`), `qinq` (802.1ad double tag), `vxlan-overlay` (UDP VNI), `bgp-open` (peering + keepalive), `ospf-hello` (`hello` + `dbd`), `modbus-poll` (SCADA register poll)
 
-Open any `.fasm` file (or any Markdown file with ```` ```frameassembly ```` / ```` ```fasm ```` blocks) in VS Code, Cursor, Windsurf, VSCodium, or Antigravity IDE. The extension activates automatically and applies the `source.frameassembly` TextMate grammar and snippets.
+## Compiler Not Included
 
-To install both the `frameassembly` CLI compiler and this editor extension in a single command (without cloning the repository):
+Installing this extension only teaches your editor (**VS Code `^1.75.0`**, **Cursor**, **Windsurf**, **VSCodium**, **Antigravity IDE**) how to highlight `.fasm` files and Markdown blocks.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
-```
+To validate `.fasm` syntax (`frameassembly show`) or compile `.fasm` files into deterministic `.pcap` / `.pcapng` captures, install the standalone **FrameAssembly** compiler from the main repository:
 
-Or install the CLI compiler directly via Cargo and compile `.fasm` files into `.pcap` captures:
-
-```bash
-cargo install frameassembly
-frameassembly show capture.fasm
-frameassembly capture.fasm -o output.pcap
-```
-
----
+* **FrameAssembly CLI, Releases & Protocol Docs:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
+* **Language & Keyword Reference (`docs/`):** [Getting Started](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/getting_started.md) • [Use-Case Cookbook](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/use_cases.md) • [`.fasm` Media Type Spec (`text/vnd.frameassembly`)](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md)
 
 ## License
 
-MIT License. Copyright (c) 2026 Steve Winschel.
+MIT License. Copyright (c) 2026 [Steve Winschel](https://github.com/SteveWinschel/FrameAssembly).

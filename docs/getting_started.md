@@ -1,6 +1,6 @@
 # Getting Started with FrameAssembly (`docs/getting_started.md`)
 
-[**Installation**](#1-install-frameassembly) • [**60-Second Quickstart**](#2-build-your-first-pcap-in-60-seconds) • [**Reverse PCAP to `.fasm`**](#convert-existing-pcap--pcapng-captures-to-fasm-code-frameassembly-reverse) • [**MACs & Defaults**](#3-skip-mac-formatting-and-boilerplate) • [**Stateful TCP**](#4-stateful-tcp-without-sequence-number-math) • [**VLANs, QinQ, MPLS & QoS**](#5-vlan-trunks-qinq-mpls-qos-and-fragments) • [**Dual-Stack & Loops**](#6-ipv4ipv6-reuse-and-loop-traffic-bursts) • [**Cheat Sheet**](#7-wireshark-and-tcpdump-to-fasm-cheat-sheet)
+[**Try in Browser (`frameassembly.ai.studio`)**](https://frameassembly.ai.studio/) • [**Installation**](#1-install-frameassembly) • [**60-Second Quickstart**](#2-build-your-first-pcap-in-60-seconds) • [**Reverse PCAP to `.fasm`**](#convert-existing-pcap--pcapng-captures-to-fasm-code-frameassembly-reverse) • [**MACs & Defaults**](#3-skip-mac-formatting-and-boilerplate) • [**Stateful TCP**](#4-stateful-tcp-without-sequence-number-math) • [**VLANs, QinQ, MPLS & QoS**](#5-vlan-trunks-qinq-mpls-qos-and-fragments) • [**Dual-Stack & Loops**](#6-ipv4ipv6-reuse-and-loop-traffic-bursts) • [**Cheat Sheet**](#7-wireshark-and-tcpdump-to-fasm-cheat-sheet)
 
 ## Why FrameAssembly Exists
 
@@ -12,11 +12,12 @@ Want to verify a stateful firewall rule, check if Zabbix pages on an encrypted S
 
 ## 1. Install FrameAssembly
 
-Installing via **Cargo** (`cargo install frameassembly`) is the recommended method because updating to future releases only requires re-running `cargo install frameassembly`:
+Installing via **Cargo** (`cargo install frameassembly`) is the recommended method because updating to future releases only requires re-running `cargo install frameassembly`—or you can [**Try in Browser (No Install Required)**](https://frameassembly.ai.studio/) on the official web app to compile `.fasm` <-> `.pcap` / `.pcapng` and inspect packets with zero install:
 
 | Platform / OS | Method | Command |
 | :--- | :--- | :--- |
 | **Any (Rust 1.85+)** | **Cargo (Recommended)** | `cargo install frameassembly` |
+| **Web Browser** | **Try in Browser (No Install Required)** | [**frameassembly.ai.studio**](https://frameassembly.ai.studio/) (compile `.fasm` <-> `.pcap`/`.pcapng` & inspect packets in the browser) |
 | **Linux & macOS** | Shell installer | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` |
 | **macOS & Linux** | Homebrew | `brew install SteveWinschel/tap-FrameAssembly/frameassembly` |
 | **Debian / Ubuntu** | APT (`.deb`) | `curl -fsSLo /tmp/frameassembly.deb https://github.com/SteveWinschel/FrameAssembly/releases/latest/download/frameassembly_amd64.deb && sudo apt install -y /tmp/frameassembly.deb && rm -f /tmp/frameassembly.deb` |
@@ -25,7 +26,7 @@ Installing via **Cargo** (`cargo install frameassembly`) is the recommended meth
 | **Windows** | Scoop | `scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly && scoop install frameassembly` |
 | **Browser / Node.js** | NPM (WASM) | `npm install frameassembly-wasm` |
 | **VS Code / Cursor** | Syntax highlighting | `code --install-extension SteveWinschel.frameassembly-vscode` |
-| **Standalone Archives**| GitHub Releases | [**Download prebuilt binaries (`v1.5.0`)**](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
+| **Standalone Archives**| GitHub Releases | [**Download prebuilt binaries (`v1.5.1`)**](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
 
 Check that the binary is ready:
 

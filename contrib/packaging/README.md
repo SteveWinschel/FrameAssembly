@@ -1,6 +1,6 @@
 # FrameAssembly Multi-Platform Packaging & Release Maintainer Guide
 
-This directory contains official packaging recipes, manifests, formulas, and distribution templates for **FrameAssembly** (`frameassembly` v1.4.6) across major operating systems and package management ecosystems:
+This directory contains official packaging recipes, manifests, formulas, and distribution templates for **FrameAssembly** (`frameassembly` v1.5.1, official website & browser playground: [`https://frameassembly.ai.studio/`](https://frameassembly.ai.studio/), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) across major operating systems and package management ecosystems:
 
 - **Debian / Ubuntu (`APT`)**: Standalone `.deb` package builder and control templates (`contrib/packaging/apt/`)
 - **Arch Linux (`AUR`)**: Binary `PKGBUILD` and `.SRCINFO` for `frameassembly-bin` (`contrib/packaging/aur/`)

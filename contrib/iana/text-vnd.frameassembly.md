@@ -87,6 +87,7 @@ For the normative technical specification referenced by all submissions, see [`d
 
 * **Applications that use this media type:**
   ```text
+  - FrameAssembly official website & interactive browser playground (https://frameassembly.ai.studio/)
   - FrameAssembly compiler and CLI (frameassembly, https://crates.io/crates/frameassembly and https://docs.rs/frameassembly)
   - FrameAssembly VS Code / Antigravity syntax and language extension (frameassembly-vscode)
   - Upstream "Packets as Code" test fixture pipelines feeding Wireshark, tshark, tcpreplay, Suricata, Zeek, and CI/CD network validation suites
@@ -160,7 +161,7 @@ Registering the FrameAssembly file format in **Wikidata** populates structured f
 | **`P1195`** | file extension | `"fasm"` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` |
 | **`P1163`** | media type | `"text/vnd.frameassembly"` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` |
 | **`P973`** | described at URL | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` | Language of work (`P407`): `Q1860` (English) |
-| **`P856`** | official website | `https://github.com/SteveWinschel/FrameAssembly` | — |
+| **`P856`** | official website | `https://frameassembly.ai.studio/` | — |
 | **`P1324`** | source code repository | `https://github.com/SteveWinschel/FrameAssembly` | Version control system (`P8423`): `Q186055` (Git) |
 | **`P275`** | copyright license | `Q334661` (MIT License) | [`https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE`](../../LICENSE) |
 | **`P306`** | operating system | `Q388` (Linux)<br>`Q14116` (macOS)<br>`Q1406` (Microsoft Windows) | — |
@@ -181,7 +182,7 @@ Because QuickStatements requires an autoconfirmed Wikidata account ($\ge 4$ days
    - **`file extension` (`P1195`)**: `fasm` (with reference URL `P854` above).
    - **`media type` (`P1163`)**: `text/vnd.frameassembly` (with reference URL `P854` above).
    - **`described at URL` (`P973`)**: `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` (qualifier `language of work or name` `P407` = `English` `Q1860`).
-   - **`official website` (`P856`)**: `https://github.com/SteveWinschel/FrameAssembly`.
+   - **`official website` (`P856`)**: `https://frameassembly.ai.studio/`.
    - **`source code repository` (`P1324`)**: `https://github.com/SteveWinschel/FrameAssembly` (qualifier `version control system` `P8423` = `Git` `Q186055`).
    - **`copyright license` (`P275`)**: `MIT License` (`Q334661`).
    - **`operating system` (`P306`)**: `Linux` (`Q388`), `macOS` (`Q14116`), `Microsoft Windows` (`Q1406`).
@@ -210,7 +211,7 @@ LAST|P31|Q9143|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/do
 LAST|P1195|"fasm"|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md"
 LAST|P1163|"text/vnd.frameassembly"|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md"
 LAST|P973|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md"|P407|Q1860
-LAST|P856|"https://github.com/SteveWinschel/FrameAssembly"
+LAST|P856|"https://frameassembly.ai.studio/"
 LAST|P1324|"https://github.com/SteveWinschel/FrameAssembly"|P8423|Q186055
 LAST|P275|Q334661|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE"
 LAST|P306|Q388
@@ -337,11 +338,11 @@ FrameAssembly CLI (https://github.com/SteveWinschel/FrameAssembly)
 ```text
 Format Name: FrameAssembly Network Packet Specification
 Acronym: FASM
-Version: 1.5.0
+Version: 1.5.1
 Format Type: Text (Source Code) / Network Data Specification
 Disclosure: Full (Open Source, MIT License, RFC 6838 Vendor Tree Candidate)
 Developer / Organisation: Steve Winschel (steve.winschel@gmail.com) / FrameAssembly Project
-Official URL: https://github.com/SteveWinschel/FrameAssembly
+Official URL: https://frameassembly.ai.studio/
 Specification Document: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
 
 File Extension: fasm

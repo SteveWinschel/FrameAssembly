@@ -1,31 +1,12 @@
 //! Seven-gate corpus, lexer-bijection, Markdown/Rustdoc block compilation, five-way grammar
-//! lockstep with non-terminal resolution, AI pre-training chunk filter, AST-to-builder field
-//! wiring, and reverse PCAP decompiler per-protocol symmetry suite for FrameAssembly.
-//!
-//! Enforces comprehensive repository invariants across the codebase and corpus:
-//! 1. **Gate 1 (Corpus Scale, Headers & PCAPNG Compilation)**: All 2,611 `.fasm` files across all
-//!    81 protocols (`>= 30` per protocol) and `examples/topologies/` (`>= 100` topologies) satisfy
-//!    dataset header discipline (`// PROMPT:`, `// TOKENS:`, `// INSTRUCTION:`), pre-training line
-//!    and word metrics (`words >= 50`, `avg_line_length <= 85`, `max_line_length <= 200`, `< 50 KB`),
-//!    and compile into valid PCAPNG captures with `0x0A0D0D0A` Section Header Block magic.
-//! 2. **Gate 2 (`// TOKENS:` Lexer Bijection)**: Every token listed on Line 2 (`// TOKENS:`) of
-//!    every `.fasm` file is a valid uppercase keyword token from `src/lexer/mod.rs` and matches the
-//!    exact uppercase keyword tokens used in the file body in first-appearance order.
-//! 3. **Gate 3 (100% Compilable Documentation & Rustdoc Code Blocks)**: Every ````frameassembly` and
-//!    ````fasm` code block across `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`,
-//!    `docs/*.md`, `src/**/*.rs`, and `.agents/skills/**/*.md` parses, validates, and compiles cleanly.
-//! 4. **Gate 4 (Five-Way Constrained Decoding Grammar Lockstep & Non-Terminal Resolution)**: Every
-//!    uppercase `#[token("...")]` keyword in `src/lexer/mod.rs` is present in `grammar.ebnf`,
-//!    `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`,
-//!    and every RHS non-terminal referenced in `grammar.ebnf` and `frameassembly.gbnf` is defined on the LHS.
-//! 5. **Gate 5 (`< 50 KB` Rust/Corpus Ceiling, `//!` Module Docstrings, Zero NUL Bytes & Doc Inventory)**:
-//!    Every `src/**/*.rs`, `tests/*.rs`, and `examples/**/*.fasm` file is `< 50,000` bytes (Markdown
-//!    has no size cap), every `src/**/*.rs` and `tests/*.rs` file begins with `//!` (`>= 50` words),
-//!    zero `0x00` bytes exist in any text or source file, and `docs/` holds exactly the 13 canonical guides.
-//! 6. **Gate 6 (AST `*Spec` Fields Wired to Wire Builders & 1:1 Reverse Decompiler File Symmetry)**:
-//!    Every public field on every protocol `*Spec` struct in `src/ast/{l2,l3,l4,l7}/*.rs` is wired
-//!    into the corresponding wire builder, and `src/reverse/{l2,l3,l4,l7}/` maintains 1:1 per-protocol
-//!    file symmetry across all 81 protocols with zero orphaned `dissect_*.rs` files.
+//! lockstep, AI pre-training chunk filter, AST-to-builder field wiring, and reverse PCAP
+//! decompiler symmetry suite for FrameAssembly:
+//! 1. **Gate 1**: All 2,611 `.fasm` files satisfy header/metric rules and compile to PCAPNG (`0x0A0D0D0A`).
+//! 2. **Gate 2**: `// TOKENS:` matches `src/lexer/mod.rs` keywords in first-appearance order.
+//! 3. **Gate 3**: All ````frameassembly` and ````fasm` blocks across docs and `src/**/*.rs` compile.
+//! 4. **Gate 4**: Five-way grammar lockstep (`grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, TextMate).
+//! 5. **Gate 5**: `< 50 KB` Rust/corpus ceiling, `//!` docstrings (`>= 50` words), zero NUL bytes, 13 docs.
+//! 6. **Gate 6**: AST `*Spec` fields wired to builders and 1:1 reverse decompiler file symmetry.
 
 use std::collections::HashSet;
 use std::fs;
@@ -899,9 +880,9 @@ fn test_reverse_decompiler_per_protocol_file_symmetry() {
     }
 }
 
-/// Gate 7: Verifies v1.5.0 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
-/// or old `.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.5.0.vsix`
-/// is packaged with v1.5.0 manifest, syntax, and snippets, checks `llms.txt` (`< 512` lines, `< 25 KB`),
+/// Gate 7: Verifies v1.5.1 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
+/// or old `.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.5.1.vsix`
+/// is packaged with v1.5.1 manifest, syntax, and snippets, checks `llms.txt` (`< 512` lines, `< 25 KB`),
 /// and synchronizes/verifies `llms-full.txt` against `llms.txt`, `README.md`, `AGENTS.md`,
 /// `docs/*.md`, `grammar.ebnf`, `frameassembly.gbnf`, and `frameassembly.lark`.
 #[test]
@@ -913,6 +894,7 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
         "frameassembly-vscode/frameassembly-vscode-1.2.2.vsix",
         "frameassembly-vscode/frameassembly-vscode-1.4.5.vsix",
         "frameassembly-vscode/frameassembly-vscode-1.4.6.vsix",
+        "frameassembly-vscode/frameassembly-vscode-1.5.0.vsix",
     ] {
         let p = Path::new(stray);
         if p.exists() {
@@ -924,7 +906,7 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
     let py_vsix_script = r#"
 import os, zipfile
 
-vsix_new = "frameassembly-vscode/frameassembly-vscode-1.5.0.vsix"
+vsix_new = "frameassembly-vscode/frameassembly-vscode-1.5.1.vsix"
 content_types = '''<?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
 \t<Default Extension="json" ContentType="application/json"/>
@@ -937,7 +919,7 @@ content_types = '''<?xml version="1.0" encoding="utf-8"?>
 vsixmanifest = '''<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
 \t<Metadata>
-\t\t<Identity Language="en-US" Id="frameassembly-vscode" Version="1.5.0" Publisher="SteveWinschel" />
+\t\t<Identity Language="en-US" Id="frameassembly-vscode" Version="1.5.1" Publisher="SteveWinschel" />
 \t\t<DisplayName>FrameAssembly (.fasm Packet Crafting DSL)</DisplayName>
 \t\t<Description xml:space="preserve">Syntax highlighting and language support for FrameAssembly (.fasm), the declarative DSL for deterministic .pcap/.pcapng network packet generation across 81 L2-L7 protocols.</Description>
 \t\t<Tags>frameassembly,fasm,pcap,pcapng,wireshark,packet-crafting,networking,security,dsl</Tags>
@@ -947,8 +929,9 @@ vsixmanifest = '''<?xml version="1.0" encoding="utf-8"?>
 \t\t<Properties>
 \t\t\t<Property Id="Microsoft.VisualStudio.Code.Engine" Value="^1.75.0" />
 \t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.Source" Value="https://github.com/SteveWinschel/FrameAssembly.git" />
-\t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.Getstarted" Value="https://github.com/SteveWinschel/FrameAssembly.git" />
+\t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.Getstarted" Value="https://frameassembly.ai.studio/" />
 \t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.GitHub" Value="https://github.com/SteveWinschel/FrameAssembly.git" />
+\t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.Learn" Value="https://frameassembly.ai.studio/" />
 \t\t\t<Property Id="Microsoft.VisualStudio.Services.GitHubFlavoredMarkdown" Value="true" />
 \t\t</Properties>
 \t\t<License>extension/LICENSE.txt</License>
@@ -991,15 +974,15 @@ with zipfile.ZipFile(vsix_new, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         .expect("Failed to execute python3 for VSIX packaging");
     assert!(status.success(), "VSIX packaging script failed");
     assert!(
-        Path::new("frameassembly-vscode/frameassembly-vscode-1.5.0.vsix").exists(),
-        "New frameassembly-vscode-1.5.0.vsix must exist"
+        Path::new("frameassembly-vscode/frameassembly-vscode-1.5.1.vsix").exists(),
+        "New frameassembly-vscode-1.5.1.vsix must exist"
     );
 
     let llms_txt = fs::read_to_string("llms.txt").expect("Missing llms.txt");
     let llms_lines = llms_txt.lines().count();
     assert!(
-        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("1.5.0"),
-        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 1.5.0 (got {} lines, {} bytes)",
+        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("1.5.1"),
+        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 1.5.1 (got {} lines, {} bytes)",
         llms_lines,
         llms_txt.len()
     );
@@ -1009,8 +992,8 @@ with zipfile.ZipFile(vsix_new, "w", compression=zipfile.ZIP_DEFLATED) as zf:
     let agents = fs::read_to_string("AGENTS.md").expect("Missing AGENTS.md");
     let mut rebuilt = String::with_capacity(750_000);
     rebuilt.push_str("# FrameAssembly (`frameassembly`)\n\n");
-    rebuilt.push_str("> Rootless \"Packets as Code\" / \"PCAP as Code\" DSL & Rust compiler (v1.5.0) that compiles declarative `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.fasm` code—across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).\n\n");
-    rebuilt.push_str("FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in userspace with no `libpcap` or raw sockets required. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides via `frameassembly <input.fasm> [-o <output.pcap>]`, `frameassembly show <input.fasm>`, and `frameassembly reverse <input.pcap> [-o <output.fasm>]`.\n\n");
+    rebuilt.push_str("> Rootless \"Packets as Code\" / \"PCAP as Code\" DSL & Rust compiler (v1.5.1) that compiles declarative `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.fasm` code—across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).\n\n");
+    rebuilt.push_str("FrameAssembly (`https://frameassembly.ai.studio/`, `https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in userspace with no `libpcap` or raw sockets required, and provides an interactive browser playground at `https://frameassembly.ai.studio/`. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides via `frameassembly <input.fasm> [-o <output.pcap>]`, `frameassembly show <input.fasm>`, and `frameassembly reverse <input.pcap> [-o <output.fasm>]`.\n\n");
     rebuilt.push_str("## Section Manifest & Bundle Table of Contents\n\n");
     rebuilt.push_str("1. **Zero-Shot `.fasm` Grammar, Anti-Hallucination Table & `llms.txt` Index**\n");
     rebuilt.push_str("2. **Public Rust Library API, 4-Stage RLVR Reward & Compiler Diagnostics (`src/lib.rs`, `src/reverse/mod.rs` & `src/error.rs`)**\n");
@@ -1086,8 +1069,8 @@ with zipfile.ZipFile(vsix_new, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         fs::write("llms-full.txt", &rebuilt).expect("Failed to write synchronized llms-full.txt");
     }
     assert!(
-        rebuilt.len() < 900_000 && !rebuilt.as_bytes().contains(&0) && rebuilt.contains("1.5.0"),
-        "llms-full.txt must be < 900,000 bytes with zero NUL bytes and reference 1.5.0 (got {} bytes)",
+        rebuilt.len() < 900_000 && !rebuilt.as_bytes().contains(&0) && rebuilt.contains("1.5.1"),
+        "llms-full.txt must be < 900,000 bytes with zero NUL bytes and reference 1.5.1 (got {} bytes)",
         rebuilt.len()
     );
 }

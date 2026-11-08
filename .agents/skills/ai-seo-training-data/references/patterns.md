@@ -73,12 +73,12 @@ cff-version: 1.2.0
 title: "FrameAssembly: A Domain-Specific Language and Optimizing Compiler for Deterministic Network Traffic Generation"
 message: "If you use FrameAssembly in your research, security testing, or AI training pipelines, please cite it using this metadata."
 type: software
-version: "1.5.0"
+version: "1.5.1"
 authors:
   - given-names: Steve
     family-names: Winschel
 repository-code: "https://github.com/SteveWinschel/FrameAssembly"
-url: "https://crates.io/crates/frameassembly"
+url: "https://frameassembly.ai.studio/"
 license: MIT
 keywords:
   - network-packets
@@ -98,8 +98,9 @@ keywords:
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
   "name": "FrameAssembly",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Declarative DSL and optimizing Rust compiler for synthesizing deterministic PCAP/PCAPNG network packet captures across 81 native L2-L7 protocols.",
+  "url": "https://frameassembly.ai.studio/",
   "codeRepository": "https://github.com/SteveWinschel/FrameAssembly",
   "programmingLanguage": ["Rust", "FrameAssembly"],
   "runtimePlatform": "Rust 2024 Edition",
@@ -129,14 +130,14 @@ keywords:
 ```toml
 [package]
 name = "frameassembly"
-version = "1.5.0"
+version = "1.5.1"
 edition = "2024"
 rust-version = "1.85"
 description = "Declarative Rust DSL and compiler to generate deterministic .pcap/.pcapng packet captures across 81 L2-L7 protocols for Wireshark, IDS & CI testing."
 authors = ["Steve Winschel"]
 license = "MIT"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
-homepage = "https://github.com/SteveWinschel/FrameAssembly"
+homepage = "https://frameassembly.ai.studio/"
 documentation = "https://docs.rs/frameassembly"
 keywords = ["pcap", "pcapng", "dsl", "packet-crafting", "wireshark"]
 categories = [

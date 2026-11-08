@@ -653,12 +653,12 @@ fn test_tier2_install_sh_harmonization() {
         "install.sh must define try_install_prebuilt_binary function"
     );
     assert!(
-        content.contains("VSIX_VERSION=\"1.5.0\""),
-        "install.sh must declare VSIX_VERSION=\"1.5.0\""
+        content.contains("VSIX_VERSION=\"1.5.1\""),
+        "install.sh must declare VSIX_VERSION=\"1.5.1\""
     );
     assert!(
-        content.contains("RELEASE_VERSION=\"1.5.0\""),
-        "install.sh must declare RELEASE_VERSION=\"1.5.0\""
+        content.contains("RELEASE_VERSION=\"1.5.1\""),
+        "install.sh must declare RELEASE_VERSION=\"1.5.1\""
     );
 
     // Check for musl target alignment (if Worker M1 has updated install.sh)
@@ -862,6 +862,10 @@ fn test_tier3_iana_and_wikidata_assets() {
     assert!(
         content.contains("LAST|P1163|\"text/vnd.frameassembly\""),
         "QuickStatements batch must declare media type 'text/vnd.frameassembly'"
+    );
+    assert!(
+        content.contains("LAST|P856|\"https://frameassembly.ai.studio/\""),
+        "QuickStatements batch must declare official website P856 as https://frameassembly.ai.studio/"
     );
 }
 
@@ -1070,7 +1074,8 @@ fn test_tier4_vscode_extension_store_readiness() {
     assert!(pkg_json.contains("text/vnd.frameassembly"), "package.json must register text/vnd.frameassembly MIME");
     assert!(pkg_json.contains("\"firstLine\":"), "package.json must declare firstLine pattern");
     assert!(pkg_json.contains("\"publisher\": \"SteveWinschel\""), "package.json must declare publisher SteveWinschel");
-    assert!(pkg_json.contains("\"version\": \"1.5.0\""), "package.json must declare version 1.5.0");
+    assert!(pkg_json.contains("\"version\": \"1.5.1\""), "package.json must declare version 1.5.1");
+    assert!(pkg_json.contains("\"homepage\": \"https://frameassembly.ai.studio/\""), "package.json must declare homepage https://frameassembly.ai.studio/");
 
     // Syntaxes check
     let tml = fs::read_to_string(base_dir.join("syntaxes/frameassembly.tmLanguage.json"))
@@ -1086,7 +1091,7 @@ fn test_tier4_vscode_extension_store_readiness() {
     assert!(readme.contains("source.frameassembly"), "frameassembly-vscode/README.md must reference source.frameassembly");
 
     // VSIX archive check if present
-    let vsix_path = base_dir.join("frameassembly-vscode-1.5.0.vsix");
+    let vsix_path = base_dir.join("frameassembly-vscode-1.5.1.vsix");
     if cfg!(unix) && vsix_path.exists() {
         let unzip_output = Command::new("unzip")
             .arg("-l")
@@ -1097,7 +1102,7 @@ fn test_tier4_vscode_extension_store_readiness() {
         let out_str = String::from_utf8_lossy(&unzip_output.stdout);
         assert!(
             out_str.contains("extension/icon.png"),
-            "frameassembly-vscode-1.5.0.vsix must bundle extension/icon.png"
+            "frameassembly-vscode-1.5.1.vsix must bundle extension/icon.png"
         );
     }
 }
@@ -1141,41 +1146,40 @@ fn test_tier1_release_workflow_full_matrix_and_secrets() {
         );
     }
 
-    // Secret placement & step if conditions: guarded by job-level env != '' (since secrets.* is invalid in step if:)
-    assert!(content.contains("if: ${{ env.NPM_TOKEN != '' }}"), "NPM publish must be guarded by env.NPM_TOKEN");
-    assert!(content.contains("if: ${{ env.VSCE_PAT != '' }}"), "VSCE publish must be guarded by env.VSCE_PAT");
-    assert!(content.contains("if: ${{ env.OVSX_PAT != '' }}"), "OVSX publish must be guarded by env.OVSX_PAT");
-    assert!(content.contains("if: ${{ env.CARGO_REGISTRY_TOKEN != '' }}"), "Crates.io publish must be guarded by env.CARGO_REGISTRY_TOKEN");
-    assert!(content.contains("if: ${{ env.AUR_SSH_PRIVATE_KEY != '' }}"), "AUR push must be guarded by env.AUR_SSH_PRIVATE_KEY");
-    assert!(content.contains("if: ${{ env.WINGET_TOKEN != '' }}"), "WinGet trigger must be guarded by env.WINGET_TOKEN");
-    assert!(content.contains("if: ${{ env.HOMEBREW_TAP_TOKEN != '' }}"), "Homebrew/Scoop sync must be guarded by env.HOMEBREW_TAP_TOKEN");
+    // Secret placement & step if conditions
+    for secret in required_secrets {
+        assert!(
+            content.contains(&format!("if: ${{{{ env.{} != '' }}}}", secret)),
+            "Step must be guarded by env.{}",
+            secret
+        );
+    }
 
-    // Homebrew tap candidate loop checks homebrew-tap-FrameAssembly first
     assert!(
         content.contains("for TAP_REPO in homebrew-tap-FrameAssembly homebrew-tap"),
         "release.yml Homebrew tap loop must check homebrew-tap-FrameAssembly first"
     );
-
-    // WASM build and publish actions
-    assert!(content.contains("wasm-pack build --release --target web"), "WASM job must build with wasm-pack web target");
-    assert!(content.contains("cargo publish"), "Publish job must run cargo publish");
-    assert!(content.contains("update-checksums.sh"), "Publish job must run update-checksums.sh");
-    assert!(content.contains("frameassembly_${ARCH}.deb"), "release.yml must emit unversioned deb alias");
+    assert!(content.contains("wasm-pack build --release --target web"));
+    assert!(content.contains("cargo publish"));
+    assert!(content.contains("update-checksums.sh"));
+    assert!(content.contains("frameassembly_${ARCH}.deb"));
 }
 
 /// Verifies that frameassembly-wasm packaging manifest, dependencies, and README SEO formatting
-/// use natural task-driven headings without prompt-leaked meta-labels and declare v1.5.0 versioning.
+/// use natural task-driven headings without prompt-leaked meta-labels and declare v1.5.1 versioning.
 #[test]
 fn test_tier1_wasm_packaging_and_readme_seo() {
     let wasm_manifest = fs::read_to_string("frameassembly-wasm/Cargo.toml").expect("Read frameassembly-wasm/Cargo.toml");
-    assert!(wasm_manifest.contains("version = \"1.5.0\""), "WASM manifest must declare version 1.5.0");
-    assert!(wasm_manifest.contains("frameassembly = { path = \"..\", version = \"1.5.0\" }"), "WASM manifest must depend on root frameassembly v1.5.0");
+    assert!(wasm_manifest.contains("version = \"1.5.1\""), "WASM manifest must declare version 1.5.1");
+    assert!(wasm_manifest.contains("frameassembly = { path = \"..\", version = \"1.5.1\" }"), "WASM manifest must depend on root frameassembly v1.5.1");
+    assert!(wasm_manifest.contains("homepage = \"https://frameassembly.ai.studio/\""), "WASM manifest must declare homepage https://frameassembly.ai.studio/");
 
     let wasm_pkg_json = fs::read_to_string("frameassembly-wasm/package.json").expect("Read frameassembly-wasm/package.json");
-    assert!(wasm_pkg_json.contains("\"version\": \"1.5.0\""), "WASM package.json must declare version 1.5.0");
+    assert!(wasm_pkg_json.contains("\"version\": \"1.5.1\""), "WASM package.json must declare version 1.5.1");
+    assert!(wasm_pkg_json.contains("\"homepage\": \"https://frameassembly.ai.studio/\""), "WASM package.json must declare homepage https://frameassembly.ai.studio/");
 
     let wasm_readme = fs::read_to_string("frameassembly-wasm/README.md").expect("Read frameassembly-wasm/README.md");
-    assert!(wasm_readme.contains("frameassembly-wasm` v1.5.0"), "WASM README must reference v1.5.0 in title");
+    assert!(wasm_readme.contains("frameassembly-wasm` v1.5.1"), "WASM README must reference v1.5.1 in title");
     assert!(
         wasm_readme.contains("Client-Side `.fasm` to `.pcapng` Compilation")
             && !wasm_readme.contains("Problem -> Solution"),

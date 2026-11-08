@@ -4,6 +4,9 @@ All notable changes to the "frameassembly-vscode" extension will be documented i
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.5.1] - 2026-11-08
+- Linked official website and interactive browser playground (`https://frameassembly.ai.studio/`) across extension metadata and documentation, and synchronized with FrameAssembly v1.5.1 release.
+
 ## [1.5.0] - 2026-11-07
 - Synchronized with FrameAssembly v1.5.0 release (`frameassembly reverse <input.pcap> [-o <output.fasm>]` PCAP/PCAPNG-to-`.fasm` decompilation, MAC-only Layer 2 `host` blocks, and inline frame statements inside `compile { ... }`).
 - Added `compile-inline` (inline `compile { ... }` frame capture without a `flow` block) and `host-l2` (MAC-only Layer 2 endpoint) snippets to `snippets/frameassembly.code-snippets` (18 tab-completable snippets total).

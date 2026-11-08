@@ -8,9 +8,9 @@
 //!    `docs/for_nerds.md`, which documents the `examples/` corpus format for AI engineers.
 //! 2. **MIME, Linguist & SEO hygiene**: the `.fasm` MIME XML, GitHub Linguist samples, and
 //!    `Cargo.toml` metadata stay consistent with FrameAssembly branding and terminology.
-//! 3. **Four-Way Ecosystem Version Lockstep (`1.5.0`)**: `Cargo.toml`, `src/lib.rs`, `llms.txt`,
+//! 3. **Four-Way Ecosystem Version Lockstep (`1.5.1`)**: `Cargo.toml`, `src/lib.rs`, `llms.txt`,
 //!    `llms-full.txt`, `frameassembly-wasm`, `frameassembly-vscode`, `install.sh`, `CITATION.cff`,
-//!    and `codemeta.json` remain synchronized on `1.5.0`.
+//!    and `codemeta.json` remain synchronized on `1.5.1` and `https://frameassembly.ai.studio/`.
 
 use std::fs;
 use std::path::PathBuf;
@@ -256,73 +256,119 @@ fn test_cargo_toml_seo_and_brand_terminology_invariants() {
 
 /// Verifies that all four ecosystem publishing and metadata surfaces (`Cargo.toml`, `src/lib.rs`,
 /// `frameassembly-wasm`, `frameassembly-vscode`, `install.sh`, `CITATION.cff`, `codemeta.json`,
-/// `llms.txt`, and `llms-full.txt`) are synchronized at version `1.5.0`.
+/// `llms.txt`, and `llms-full.txt`) are synchronized at version `1.5.1` and link the official
+/// website (`https://frameassembly.ai.studio/`).
 #[test]
-fn test_ecosystem_v1_5_0_version_and_metadata_lockstep() {
+fn test_ecosystem_v1_5_1_version_and_metadata_lockstep() {
     let cargo_toml = fs::read_to_string("Cargo.toml").expect("Missing Cargo.toml");
     assert!(
-        cargo_toml.contains("version = \"1.5.0\""),
-        "Cargo.toml must declare version = \"1.5.0\""
+        cargo_toml.contains("version = \"1.5.1\"")
+            && cargo_toml.contains("homepage = \"https://frameassembly.ai.studio/\""),
+        "Cargo.toml must declare version = \"1.5.1\" and homepage = \"https://frameassembly.ai.studio/\""
     );
 
     let lib_rs = fs::read_to_string("src/lib.rs").expect("Missing src/lib.rs");
     assert!(
-        lib_rs.contains("1.5.0"),
-        "src/lib.rs must reference version 1.5.0"
+        lib_rs.contains("1.5.1") && lib_rs.contains("https://frameassembly.ai.studio/"),
+        "src/lib.rs must reference version 1.5.1 and https://frameassembly.ai.studio/"
     );
 
     let wasm_cargo = fs::read_to_string("frameassembly-wasm/Cargo.toml")
         .expect("Missing frameassembly-wasm/Cargo.toml");
     assert!(
-        wasm_cargo.contains("version = \"1.5.0\"")
-            && wasm_cargo.contains("frameassembly = { path = \"..\", version = \"1.5.0\" }"),
-        "frameassembly-wasm/Cargo.toml must declare version 1.5.0 and pin frameassembly 1.5.0"
+        wasm_cargo.contains("version = \"1.5.1\"")
+            && wasm_cargo.contains("frameassembly = { path = \"..\", version = \"1.5.1\" }")
+            && wasm_cargo.contains("homepage = \"https://frameassembly.ai.studio/\""),
+        "frameassembly-wasm/Cargo.toml must declare version 1.5.1, pin frameassembly 1.5.1, and set homepage"
     );
 
     let wasm_pkg = fs::read_to_string("frameassembly-wasm/package.json")
         .expect("Missing frameassembly-wasm/package.json");
     assert!(
-        wasm_pkg.contains("\"version\": \"1.5.0\""),
-        "frameassembly-wasm/package.json must declare version 1.5.0"
+        wasm_pkg.contains("\"version\": \"1.5.1\"")
+            && wasm_pkg.contains("\"homepage\": \"https://frameassembly.ai.studio/\""),
+        "frameassembly-wasm/package.json must declare version 1.5.1 and homepage"
     );
 
     let vscode_pkg = fs::read_to_string("frameassembly-vscode/package.json")
         .expect("Missing frameassembly-vscode/package.json");
     assert!(
-        vscode_pkg.contains("\"version\": \"1.5.0\""),
-        "frameassembly-vscode/package.json must declare version 1.5.0"
+        vscode_pkg.contains("\"version\": \"1.5.1\"")
+            && vscode_pkg.contains("\"homepage\": \"https://frameassembly.ai.studio/\""),
+        "frameassembly-vscode/package.json must declare version 1.5.1 and homepage"
     );
 
     let install_sh = fs::read_to_string("install.sh").expect("Missing install.sh");
     assert!(
-        install_sh.contains("VSIX_VERSION=\"1.5.0\"")
-            && install_sh.contains("RELEASE_VERSION=\"1.5.0\""),
-        "install.sh must declare VSIX_VERSION=\"1.5.0\" and RELEASE_VERSION=\"1.5.0\""
+        install_sh.contains("VSIX_VERSION=\"1.5.1\"")
+            && install_sh.contains("RELEASE_VERSION=\"1.5.1\""),
+        "install.sh must declare VSIX_VERSION=\"1.5.1\" and RELEASE_VERSION=\"1.5.1\""
     );
 
     let citation_cff = fs::read_to_string("CITATION.cff").expect("Missing CITATION.cff");
     assert!(
-        citation_cff.contains("version: 1.5.0") || citation_cff.contains("version: \"1.5.0\""),
-        "CITATION.cff must declare version 1.5.0"
+        (citation_cff.contains("version: 1.5.1") || citation_cff.contains("version: \"1.5.1\""))
+            && citation_cff.contains("url: \"https://frameassembly.ai.studio/\""),
+        "CITATION.cff must declare version 1.5.1 and url https://frameassembly.ai.studio/"
     );
 
     let codemeta_json = fs::read_to_string("codemeta.json").expect("Missing codemeta.json");
     assert!(
-        codemeta_json.contains("\"version\": \"1.5.0\""),
-        "codemeta.json must declare version 1.5.0"
+        codemeta_json.contains("\"version\": \"1.5.1\"")
+            && codemeta_json.contains("\"url\": \"https://frameassembly.ai.studio/\""),
+        "codemeta.json must declare version 1.5.1 and url https://frameassembly.ai.studio/"
     );
 
     let llms_txt = fs::read_to_string("llms.txt").expect("Missing llms.txt");
     assert!(
-        llms_txt.contains("1.5.0") && llms_txt.lines().count() < 512 && llms_txt.len() < 25_000,
-        "llms.txt must reference 1.5.0 and remain < 512 lines and < 25,000 bytes"
+        llms_txt.contains("1.5.1")
+            && llms_txt.contains("https://frameassembly.ai.studio/")
+            && llms_txt.lines().count() < 512
+            && llms_txt.len() < 25_000,
+        "llms.txt must reference 1.5.1 and https://frameassembly.ai.studio/ and remain < 512 lines and < 25,000 bytes"
     );
 
     let llms_full = fs::read_to_string("llms-full.txt").expect("Missing llms-full.txt");
     assert!(
-        llms_full.contains("1.5.0") && llms_full.len() < 1_500_000 && !llms_full.as_bytes().contains(&0),
-        "llms-full.txt must reference 1.5.0, remain < 1,500,000 bytes, and contain zero NUL bytes"
+        llms_full.contains("1.5.1")
+            && llms_full.contains("https://frameassembly.ai.studio/")
+            && llms_full.len() < 1_500_000
+            && !llms_full.as_bytes().contains(&0),
+        "llms-full.txt must reference 1.5.1, remain < 1,500,000 bytes, and contain zero NUL bytes"
     );
+
+    let context7 = fs::read_to_string("context7.json").expect("Missing context7.json");
+    assert!(
+        context7.contains("\"version\": \"1.5.1\"")
+            && context7.contains("https://frameassembly.ai.studio/"),
+        "context7.json must declare version 1.5.1 and https://frameassembly.ai.studio/"
+    );
+
+    for (doc_path, require_try_in_browser) in [
+        ("README.md", true),
+        ("docs/getting_started.md", true),
+        ("frameassembly-vscode/README.md", true),
+        ("frameassembly-wasm/README.md", false),
+        ("contrib/linguist/README.md", false),
+        ("contrib/packaging/README.md", false),
+        ("AGENTS.md", false),
+        ("CLAUDE.md", false),
+        (".github/copilot-instructions.md", false),
+    ] {
+        let doc = fs::read_to_string(doc_path).unwrap_or_else(|_| panic!("Missing {}", doc_path));
+        assert!(
+            doc.contains("https://frameassembly.ai.studio/"),
+            "{} must link https://frameassembly.ai.studio/",
+            doc_path
+        );
+        if require_try_in_browser {
+            assert!(
+                doc.contains("Try in Browser (No Install Required)"),
+                "{} must include 'Try in Browser (No Install Required)'",
+                doc_path
+            );
+        }
+    }
 }
 
 

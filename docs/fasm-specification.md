@@ -8,7 +8,7 @@
 * **IANA Vendor Tree Registration Template:** [`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md)
 * **GitHub Linguist Grammar & Heuristics:** [`contrib/linguist/languages.yml`](../contrib/linguist/languages.yml), [`contrib/linguist/heuristics.yml`](../contrib/linguist/heuristics.yml) • [`contrib/linguist/README.md`](../contrib/linguist/README.md)
 * **Formal Context-Free Grammars:** [`grammar.ebnf`](../grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](../frameassembly.gbnf) (`llama.cpp` / `XGrammar` GBNF), [`frameassembly.lark`](../frameassembly.lark) (Earley/LALR Lark)
-* **Reference Compiler & Repository:** `frameassembly` v1.5.0 • [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
+* **Reference Compiler, Website & Repository:** `frameassembly` v1.5.1 • [frameassembly.ai.studio](https://frameassembly.ai.studio/) • [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
 
 ---
 
@@ -280,7 +280,7 @@ For knowledge graphs, digital preservation registries (Wikidata, PRONOM, Softwar
 | **Wikidata: file extension** | `P1195` | `fasm` |
 | **Wikidata: media type** | `P1163` | `text/vnd.frameassembly` |
 | **Wikidata: described at URL** | `P973` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` |
-| **Wikidata: official website** | `P856` | `https://github.com/SteveWinschel/FrameAssembly` |
+| **Wikidata: official website** | `P856` | `https://frameassembly.ai.studio/` |
 | **Wikidata: source repository** | `P1324` | `https://github.com/SteveWinschel/FrameAssembly` |
 | **Wikidata: copyright license** | `P275` | `Q334661` (MIT License) |
 | **Wikidata: operating system** | `P306` | `Q388` (Linux), `Q14116` (macOS), `Q1406` (Microsoft Windows) |

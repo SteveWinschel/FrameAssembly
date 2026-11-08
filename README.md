@@ -1,12 +1,13 @@
 # FrameAssembly — Packets as Code
 
+[![Website & Playground](https://img.shields.io/badge/web%20app-frameassembly.ai.studio-0ea5e9.svg)](https://frameassembly.ai.studio/)
 [![Crates.io](https://img.shields.io/crates/v/frameassembly.svg)](https://crates.io/crates/frameassembly)
 [![Docs.rs](https://docs.rs/frameassembly/badge.svg)](https://docs.rs/frameassembly)
 [![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
 [![Rust 1.85+](https://img.shields.io/badge/rust-1.85%2B%20(Edition%202024)-orange.svg)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
 
-[**Use Cases**](#network-and-security-testing-use-cases) • [**How It Works**](#how-frameassembly-works) • [**Comparison**](#why-frameassembly-instead-of-scapy-or-lab-vms) • [**Installation**](#installation) • [**81 Protocols & Docs**](#supported-protocols-and-documentation)
+[**Try in Browser (`frameassembly.ai.studio`)**](https://frameassembly.ai.studio/) • [**Use Cases**](#network-and-security-testing-use-cases) • [**How It Works**](#how-frameassembly-works) • [**Comparison**](#why-frameassembly-instead-of-scapy-or-lab-vms) • [**Installation**](#installation) • [**81 Protocols & Docs**](#supported-protocols-and-documentation)
 
 ## What Is FrameAssembly?
 
@@ -200,6 +201,9 @@ Installing via Cargo is the recommended method because updating to future releas
 ```bash
 cargo install frameassembly
 ```
+
+### Try in Browser (No Install Required)
+Open the official website and browser playground at [**frameassembly.ai.studio**](https://frameassembly.ai.studio/) to compile `.fasm` code <-> `.pcap` / `.pcapng` files and inspect packets directly in your browser with zero installation.
 
 ### Linux & macOS Shell Installer
 ```bash

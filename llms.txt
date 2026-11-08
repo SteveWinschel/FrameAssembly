@@ -1,24 +1,24 @@
 # FrameAssembly
 
-> Rootless, offline "Packets as Code" Rust compiler and DSL (`frameassembly` v1.5.0) that compiles `.fasm` (`text/vnd.frameassembly`) network specifications into deterministic, nanosecond-resolution `.pcap`/`.pcapng` captures—and decompiles `.pcap`/`.pcapng` captures back into canonical `.fasm` code—across 81 native L2–L7 protocols, with 4-tuple TCP `SEQ`/`ACK` tracking, reply-port swapping, IPv4/IPv6 dual-stack flow reuse, and SNMPv3 USM (`RFC 3414`/`3826`/`7860`) cryptography.
+> Rootless, offline "Packets as Code" Rust compiler and DSL (`frameassembly` v1.5.1) that compiles `.fasm` (`text/vnd.frameassembly`) specs into deterministic, nanosecond-resolution `.pcap`/`.pcapng` captures—and decompiles `.pcap`/`.pcapng` back into canonical `.fasm` code—across 81 native L2–L7 protocols, with 4-tuple TCP `SEQ`/`ACK` tracking, reply-port swapping, IPv4/IPv6 flow reuse, and SNMPv3 USM (`RFC 3414`/`3826`/`7860`) crypto.
 
-FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) is the upstream packet-crafting compiler paired with **Wireshark**/**`tshark`**, **`tcpreplay`**, and **Suricata**/**Zeek**/**Snort** (zero `CAP_NET_RAW`, `libpcap`, lab VMs, or manual checksum/TCP sequence math). Single-file RAG bundle: `https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt`.
+FrameAssembly (`https://frameassembly.ai.studio/`, `https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) is the upstream packet-crafting compiler for **Wireshark**/**`tshark`**, **`tcpreplay`**, and **Suricata**/**Zeek**/**Snort** (no `CAP_NET_RAW`, `libpcap`, lab VMs, or manual TCP math) with a browser playground at `https://frameassembly.ai.studio/`. Full RAG bundle: `https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt`.
 
 **Core `.fasm` Language Rules & Deterministic Compiler Defaults**
 
-1. **Three-Block Structure**: Declares `host <id> { [ip <v4_or_v6>] [mac <mac>] }` (at least one of `ip` or `mac` required; MAC-only hosts valid for the 8 L2 protocols), optional `flow <id>(<p1>, <p2>, ...) { <statements> }`, and **one** `compile { <flow_calls_or_loops_or_frames> }` block (`loop <u32> { ... }` or inline `a -> b <proto> ...` statements).
+1. **Three-Block Structure**: Declares `host <id> { [ip <v4_or_v6>] [mac <mac>] }` (at least `ip` or `mac` required; MAC-only valid for the 8 L2 protocols), optional `flow <id>(<p1>, <p2>, ...) { <statements> }`, and **one** `compile { <flow_calls_or_loops_or_frames> }` block (`loop <u32> { ... }` or inline `a -> b <proto> ...`).
 2. **Case-Insensitivity**: Keywords, protocols, modifiers, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and identifiers are ASCII case-insensitive (`host` == `HOST`); `"..."` strings preserve wire casing.
-3. **1 Statement = 1 Frame & Timing**: Each statement (`a -> b <proto> ...` or `a <- b <proto> ...`) emits 1 Ethernet frame. `wait <u32><ns|us|ms|s|m>` sets pre-frame delay (default `10ms`; PCAPNG epoch `1_700_000_000_000_000_000` ns, `IfTsResol(9)` $10^{-9}\text{s}$; `frameassembly show` starts frame 1 at `0.000` ms).
+3. **1 Statement = 1 Frame & Timing**: Each statement (`a -> b <proto> ...` or `a <- b <proto> ...`) emits 1 frame. `wait <u32><ns|us|ms|s|m>` sets pre-frame delay (default `10ms`; PCAPNG epoch `1_700_000_000_000_000_000` ns, `IfTsResol(9)` $10^{-9}\text{s}$; `frameassembly show` starts frame 1 at `0.000` ms).
 4. **Stateful 4-Tuple TCP & Port Inheritance**: Streams start at `seq = 1000` (`win = 64240`, default `srcport = 12345`). `syn`/`fin` add `+1` to `seq`; payloads add byte length. TCP L7 statements emit `psh ack` sharing 4-tuple `seq`/`acknum` with raw `tcp`; `<-` swaps IPs, MACs, and ports.
-5. **Dual-Stack Homogeneity & MAC Derivation**: Flows work over IPv4 (`0x0800`) and IPv6 (`0x86DD`); mixing IPv4 and IPv6 in one statement is a semantic error. `mac` accepts `00:1a:2b:3c:4d:5e`, `00-1A-2B-3C-4D-5E`, and `001a.2b3c.4d5e`; when omitted, derives RFC 1112 (`01:00:5e:xx:xx:xx`), RFC 2464 (`33:33:xx:xx:xx:xx`), IEEE 802.1D L2 group MACs, or `00:00:00:00:00:01`/`02`.
+5. **Dual-Stack Homogeneity & MAC Derivation**: Flows work over IPv4 (`0x0800`) and IPv6 (`0x86DD`); mixing IPv4/IPv6 in one statement is a semantic error. `mac` accepts `00:1a:2b:3c:4d:5e`, `00-1A-2B-3C-4D-5E`, and `001a.2b3c.4d5e`; when omitted, derives RFC 1112 (`01:00:5e:xx:xx:xx`), RFC 2464 (`33:33:xx:xx:xx:xx`), IEEE 802.1D L2 group MACs, or `00:00:00:00:00:01`/`02`.
 6. **Three-Way `.fasm` Disambiguation**: FrameAssembly `.fasm` (`text/vnd.frameassembly`, `//` comments, `host`/`flow`/`compile`, `->`/`<-`) is distinct from x86 Flat Assembler (`;` comments, `format PE`/`ELF`) and FPGA FASM (`#` comments, tile bit paths).
 
 **Anti-Hallucination & Cross-Protocol Syntax Guardrails**
 
-| Construct | Invalid / Hallucinated Syntax (NEVER WRITE) | Canonical `.fasm` Syntax (ALWAYS WRITE) |
+| Construct | Invalid Syntax (NEVER WRITE) | Canonical `.fasm` Syntax (ALWAYS WRITE) |
 | :--- | :--- | :--- |
 | **Comments** | `# comment`, `; comment`, or `/* block */` | `// single-line comment` |
-| **Host Block** | `host c = { ipv4: "10.0.0.1", mask: 24 }`, `ipv6 ::1`, or empty `host c {}` | `host c { ip 10.0.0.1 mac 00:11:22:33:44:55 }` or L2 `host sw { mac 00:11:22:33:44:55 }` |
+| **Host Block** | `host c = { ipv4: "10.0.0.1", mask: 24 }`, `ipv6 ::1`, or `host c {}` | `host c { ip 10.0.0.1 mac 00:11:22:33:44:55 }` or L2 `host sw { mac 00:11:22:33:44:55 }` |
 | **Flow Signature** | `flow web { from c to s send http }` | `flow web(c, s) { c -> s http get uri "/" }` |
 | **Inter-Frame Delay** | `[+5ms] c -> s tcp ack` or standalone `wait 5ms` | `c -> s tcp ack wait 5ms` |
 | **Ports & TCP Ack** | `sport 1234 dport 80 ack 100` | `srcport 1234 dstport 80 seq 1 acknum 100` |
@@ -29,7 +29,7 @@ FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates
 | **BGP vs RIP Prefix** | `bgp update prefix 10.0.0.0/8` / `rip prefix "10.0.0.0/8"` | `bgp update prefix "10.0.0.0/8"` / `rip prefix 10.0.0.0` |
 | **DHCP vs DNS ID** | `dhcp discover txid 1` or `snmp2 get req_id 1` | `dhcp discover xid 1` / `snmp2 get reqid 1` |
 | **IKEv2 & SNMPv3** | `ikev2 exchange auth` or `snmp3 auth "sha256" "pw"` | `ikev2 sa_init` (`create_child_sa`\|`informational`) / `snmp3 auth sha256 "pw"` |
-| **Compile Block** | Omitted `compile`, two `compile` blocks, or bare `compile { f }` | Single `compile { f(h1, h2) loop 3 { f(h1, h2) } h1 -> h2 icmp }` |
+| **Compile Block** | Omitted `compile`, two `compile` blocks, or bare `compile { f }` | `compile { f(h1, h2) loop 3 { f(h1, h2) } h1 -> h2 icmp }` |
 
 **Universal Cross-Layer Modifiers**
 
@@ -155,11 +155,11 @@ compile {
   - Decompile: `frameassembly reverse demo.pcap [-o demo.fasm]`
   - Inspect & replay: `tshark -r demo.pcap -V` / `sudo tcpreplay -i eth0 demo.pcap` / `suricata -r demo.pcap -k none` / `zeek -C -r demo.pcap`
 - **Installation**:
-  - Cargo (recommended — re-run to update): `cargo install frameassembly`
+  - Cargo (recommended): `cargo install frameassembly` | Browser playground: `https://frameassembly.ai.studio/`
   - Bootstrap: `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
   - Packages: `brew install SteveWinschel/tap-FrameAssembly/frameassembly` / `winget install SteveWinschel.FrameAssembly` / `scoop install frameassembly`
   - Web & IDE: `npm install frameassembly-wasm` / `code --install-extension SteveWinschel.frameassembly-vscode`
-- **Public Rust API (`frameassembly` v1.5.0)**:
+- **Public Rust API (`frameassembly` v1.5.1)**:
   - `lexer::lex<'a>(input: &'a str) -> Result<Vec<(Token<'a>, Range<usize>)>, CompilerError>`
   - `parser::parse_program<'a>(input_str: &'a str) -> Result<Program<'a>, CompilerError>`
   - `parser::validate_semantics(program: &Program, src: &str) -> Result<(), CompilerError>`
@@ -170,52 +170,53 @@ compile {
 
 ## Core Documentation
 
-- [README](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Overview, SNMPv3/IDS/firewall examples, and CLI quickstart.
-- [Getting Started](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/getting_started.md): `host`/`flow`/`compile`, defaults, TCP tracking, and `reverse`.
-- [Use-Case Cookbook](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/use_cases.md): SNMPv1/v2c/v3 traps, firewall audits, QoS, IDS, and OT recipes.
-- [Layer 2 Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l2_protocols.md): `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, and `mpls`.
-- [Layer 3 Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l3_protocols.md): `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ikev2`, `ipsec`/`esp`/`ah`, `wireguard`, `ospf`, `bgp`, `rip`, `pim`, `vrrp`, `hsrp`, `bfd`, and `openflow`.
-- [Layer 4 Transports](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l4_transports.md): 4-tuple state, RFC 7323 TCP options, UDP, and SCTP CRC32c.
-- [Layer 7 SNMP](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_snmp.md): `snmp1`/`snmp2`/`snmp3`, all 9 `varbind` types, and USM crypto.
-- [Layer 7 Infrastructure & Telemetry](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_infra_and_telemetry.md): `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, and `sflow`.
-- [Layer 7 Web, Cloud, Security & VoIP](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_web_and_cloud.md): `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `ssh`, `telnet`, `tftp`, `ftp`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, and `ssdp`.
-- [Layer 7 Mail, Auth, Storage & DBs](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_mail_auth_storage_db.md): `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, and `amqp`.
-- [Layer 7 Industrial OT](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_industrial_ot.md): `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, and `opcua`.
-- [Topologies & Dual-Stack](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/topologies_and_dual_stack.md): EVPN-VXLAN, 802.1X NAC, Service Mesh, MPLS/IPsec, and OT conduits.
-- [`.fasm` Format Specification](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/fasm-specification.md): RFC 6838 `text/vnd.frameassembly` spec and disambiguation.
-- [For Nerds](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/for_nerds.md): Compiler & decompiler internals, Rust API, grammars, and RLVR rewards.
+- [README](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Overview, examples, and CLI quickstart.
+- [Getting Started](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/getting_started.md): `host`/`flow`/`compile`, defaults, and `reverse`.
+- [Use-Case Cookbook](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/use_cases.md): Traps, firewall audits, QoS, IDS, and OT recipes.
+- [Layer 2 Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l2_protocols.md): `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`.
+- [Layer 3 Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l3_protocols.md): `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ikev2`, `ipsec`/`esp`/`ah`, `wireguard`, `ospf`, `bgp`, `rip`, `pim`, `vrrp`, `hsrp`, `bfd`, `openflow`.
+- [Layer 4 Transports](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l4_transports.md): 4-tuple state, TCP options, UDP, and SCTP CRC32c.
+- [Layer 7 SNMP](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_snmp.md): `snmp1`/`snmp2`/`snmp3`, `varbind` types, and USM crypto.
+- [Layer 7 Infrastructure & Telemetry](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_infra_and_telemetry.md): `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, `sflow`.
+- [Layer 7 Web, Cloud, Security & VoIP](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_web_and_cloud.md): `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `ssh`, `telnet`, `tftp`, `ftp`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, `ssdp`.
+- [Layer 7 Mail, Auth, Storage & DBs](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_mail_auth_storage_db.md): `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, `amqp`.
+- [Layer 7 Industrial OT](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_industrial_ot.md): `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, `opcua`.
+- [Topologies & Dual-Stack](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/topologies_and_dual_stack.md): EVPN-VXLAN, 802.1X NAC, Service Mesh, MPLS/IPsec, OT.
+- [`.fasm` Format Specification](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/fasm-specification.md): RFC 6838 `text/vnd.frameassembly` spec.
+- [For Nerds](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/for_nerds.md): Compiler/decompiler internals, Rust API, grammars, RLVR.
 
 ## Formal Grammars & Full LLM Context
 
 - [Full LLM Context (`llms-full.txt`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Complete 81-protocol, Rust API, and EBNF reference.
-- [EBNF Grammar (`grammar.ebnf`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): ISO/IEC 14977 grammar for all 81 protocols.
-- [GBNF Grammar (`frameassembly.gbnf`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.gbnf): Constrained decoding (`root ::= ...`) for `llama.cpp` and `XGrammar`.
-- [Lark Grammar (`frameassembly.lark`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.lark): Grammar (`start: ...`) for `Outlines`, `vLLM`, `SGLang`, `Guidance`, and `llguidance`.
+- [EBNF Grammar (`grammar.ebnf`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): ISO/IEC 14977 grammar.
+- [GBNF Grammar (`frameassembly.gbnf`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.gbnf): (`root ::= ...`) for `llama.cpp` and `XGrammar`.
+- [Lark Grammar (`frameassembly.lark`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.lark): (`start: ...`) for `Outlines`, `vLLM`, `SGLang`, `Guidance`, and `llguidance`.
 
 ## Rust Compiler & Ecosystem Packages
 
-- [Crate Root (`src/lib.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lib.rs): Public Rust API exports and 81-protocol matrix.
-- [Diagnostics (`src/error.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/error.rs): `CompilerError` diagnostics and foreign `.fasm` detection.
-- [Lexer (`src/lexer/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lexer/mod.rs): `logos 0.14` DFA tokenizer for 640+ keywords and literals.
+- [Crate Root (`src/lib.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lib.rs): Public Rust API and 81-protocol matrix.
+- [Diagnostics (`src/error.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/error.rs): `CompilerError` and foreign `.fasm` detection.
+- [Lexer (`src/lexer/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lexer/mod.rs): `logos 0.14` tokenizer for 640+ tokens.
 - [AST (`src/ast/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/ast/mod.rs): `Program`, `HostDef`, `FlowDef`, `FrameStatement`, and `src/ast/{l2,l3,l4,l7}/` `*Spec` types.
 - [Parser (`src/parser/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/parser/mod.rs): `winnow 1.0` parser, protocol-scoped dispatch, and `validate_semantics`.
-- [Backend (`src/backend/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/backend/mod.rs): Flow evaluation, `loop` unrolling, port inheritance, and 4-tuple TCP state.
+- [Backend (`src/backend/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/backend/mod.rs): Flow evaluation, `loop`, ports, and 4-tuple TCP state.
 - [Wire Framing (`src/packet.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/packet.rs): L2–L4 framing and RFC 1071 checksums.
 - [PCAPNG Writer (`src/pcap.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/pcap.rs): Nanosecond `PcapWriter` (`LINKTYPE_ETHERNET`, `IfTsResol(9)`).
 - [PCAP Decompiler (`src/reverse/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/reverse/mod.rs): Five-stage PCAP/PCAPNG-to-`.fasm` decompiler (`container.rs`, `topology.rs`, `oracle.rs`, `shadow_emit.rs`, `src/reverse/{l2,l3,l4,l7}/<protocol>.rs` with `l3/{ip,ipv6,icmpv6}.rs` and `l7/{snmp1,snmp2,snmp3}.rs`).
 - [API Docs (`docs.rs/frameassembly`)](https://docs.rs/frameassembly): Hosted Rustdoc documentation.
+- [Official Website (`frameassembly.ai.studio`)](https://frameassembly.ai.studio/): Browser playground (`.fasm` <-> `.pcap`/`.pcapng`).
 - [WASM Package (`npmjs.com/package/frameassembly-wasm`)](https://www.npmjs.com/package/frameassembly-wasm): Browser/Node.js WASM bindings.
 
 ## Verified Reference Examples
 
 - [Enterprise SNMPv3 & TLS (`enterprise_snmpv3_and_tls.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/linguist/samples/enterprise_snmpv3_and_tls.fasm): TCP handshake, TLS 1.3, and SNMPv3 USM trap.
 - [Omnibus (`complete_dsl_omnibus_reference.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/complete_dsl_omnibus_reference.fasm): TCP flags, UDP, and SNMPv1/v2c/v3 USM.
-- [Dual-Stack (`dual_stack_polymorphic_flow_basic.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/dual_stack_polymorphic_flow_basic.fasm): Parameterized flow across IPv4 and IPv6.
+- [Dual-Stack (`dual_stack_polymorphic_flow_basic.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/dual_stack_polymorphic_flow_basic.fasm): Flow reuse across IPv4 and IPv6.
 
 ## Optional
 
 - [IANA & Wikidata (`contrib/iana/text-vnd.frameassembly.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/iana/text-vnd.frameassembly.md): RFC 6838 `text/vnd.frameassembly` registration.
-- [Shared MIME Info (`contrib/mime/text-vnd.frameassembly.xml`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/mime/text-vnd.frameassembly.xml): MIME XML definition (`*.fasm` glob and `<magic>`).
+- [Shared MIME Info (`contrib/mime/text-vnd.frameassembly.xml`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/mime/text-vnd.frameassembly.xml): MIME XML (`*.fasm` glob and `<magic>`).
 - [Linguist Heuristics (`contrib/linguist/README.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/linguist/README.md): Linguist disambiguation rules.
 - [Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Cross-platform shell installer.
-- [Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 metadata (v1.5.0).
+- [Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 metadata (v1.5.1).

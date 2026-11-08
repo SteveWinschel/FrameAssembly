@@ -1,13 +1,13 @@
 [package]
 name = "frameassembly"
-version = "1.5.0"
+version = "1.5.1"
 edition = "2024"
 rust-version = "1.85"
 description = "A DSL for creating custom .pcap/.pcapng captures and decompiling captures to .fasm for testing firewalls, IDS rules, SNMP traps, and pentesting."
 authors = ["Steve Winschel"]
 license = "MIT"
 documentation = "https://docs.rs/frameassembly"
-homepage = "https://github.com/SteveWinschel/FrameAssembly"
+homepage = "https://frameassembly.ai.studio/"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
 keywords = ["pcap", "pcapng", "packet-generator", "networking", "pentesting"]
 categories = [

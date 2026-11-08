@@ -1,9 +1,10 @@
 # FrameAssembly (`.fasm`) — Syntax Highlighting for VS Code
 
+[![Website & Playground](https://img.shields.io/badge/web%20app-frameassembly.ai.studio-0ea5e9.svg)](https://frameassembly.ai.studio/)
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/SteveWinschel.frameassembly-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
 
-[**Editor Problems Solved**](#editor-problems-this-extension-solves) • [**Example `.fasm` Workflows**](#example-fasm-workflows) • [**81 Highlighted Protocols**](#highlighted-protocol-keywords-81-native-protocols) • [**18 Snippets**](#bonus-18-tab-completable-keyword-snippets) • [**Get the Compiler**](#compiler-not-included)
+[**Try in Browser (`frameassembly.ai.studio`)**](https://frameassembly.ai.studio/) • [**Editor Problems Solved**](#editor-problems-this-extension-solves) • [**Example `.fasm` Workflows**](#example-fasm-workflows) • [**81 Highlighted Protocols**](#highlighted-protocol-keywords-81-native-protocols) • [**18 Snippets**](#bonus-18-tab-completable-keyword-snippets) • [**Get the Compiler**](#compiler-not-included)
 
 ## What Is This Extension?
 
@@ -157,10 +158,11 @@ If you don't feel like typing protocol boilerplate from scratch inside a `.fasm`
 
 ## Compiler Not Included
 
-Installing this extension (`frameassembly-vscode-1.5.0.vsix`) only teaches your editor (**VS Code `^1.75.0`**, **Cursor**, **Windsurf**, **VSCodium**, **Antigravity IDE**) how to highlight `.fasm` code and Markdown blocks.
+Installing this extension (`frameassembly-vscode-1.5.1.vsix`) only teaches your editor (**VS Code `^1.75.0`**, **Cursor**, **Windsurf**, **VSCodium**, **Antigravity IDE**) how to highlight `.fasm` code and Markdown blocks.
 
-To compile `.fasm` code into `.pcap` / `.pcapng` captures (`frameassembly input.fasm -o output.pcap`), inspect the packet ladder in your terminal (`frameassembly show input.fasm`), or reverse existing `.pcap` / `.pcapng` captures into editable `.fasm` code (`frameassembly reverse <input.pcap> [-o <output.fasm>]`), install the standalone **FrameAssembly** CLI from the main repository:
+To compile `.fasm` code into `.pcap` / `.pcapng` captures (`frameassembly input.fasm -o output.pcap`), inspect the packet ladder in your terminal (`frameassembly show input.fasm`), or reverse existing `.pcap` / `.pcapng` captures into `.fasm` code (`frameassembly reverse <input.pcap> [-o <output.fasm>]`), try the browser web app or install the standalone **FrameAssembly** CLI:
 
+* **Try in Browser (No Install Required):** [frameassembly.ai.studio](https://frameassembly.ai.studio/)
 * **FrameAssembly CLI, Releases & Protocol Docs:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
 * **Language & Keyword Reference (`docs/`):** [Getting Started](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/getting_started.md) • [Use-Case Cookbook](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/use_cases.md) • [`.fasm` Media Type Spec (`text/vnd.frameassembly`)](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md)
 

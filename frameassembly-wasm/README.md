@@ -1,6 +1,12 @@
-# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v1.5.0)
+# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v1.5.1)
 
-WebAssembly compiler, `.pcap`/`.pcapng`-to-`.fasm` decompiler, frame inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.fasm`)** — compiling `.fasm` code into `.pcapng` packet captures and decompiling existing captures back into `.fasm` code across 81 L2–L7 protocols in browser applications, web cyber ranges, and Node.js test suites. *(Note: FrameAssembly is a network protocol DSL, not x86 Flat Assembler).*
+[![Website & Playground](https://img.shields.io/badge/web%20app-frameassembly.ai.studio-0ea5e9.svg)](https://frameassembly.ai.studio/)
+[![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
+
+[**Try in Browser (`frameassembly.ai.studio`)**](https://frameassembly.ai.studio/) • [**Installation**](#installation) • [**Vite, React & Next.js**](#initialization-vite-react-nextjs--google-ai-studio) • [**TypeScript API**](#typescript-api-reference)
+
+WebAssembly compiler, `.pcap`/`.pcapng`-to-`.fasm` decompiler, frame inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.fasm`)** — compiling `.fasm` code into `.pcapng` packet captures and decompiling existing captures back into `.fasm` code across 81 L2–L7 protocols in browser applications, web cyber ranges, and Node.js test suites. Powers the official FrameAssembly interactive browser playground at [**frameassembly.ai.studio**](https://frameassembly.ai.studio/). *(Note: FrameAssembly is a network protocol DSL, not x86 Flat Assembler).*
 
 ---
 
@@ -84,10 +90,10 @@ npm install frameassembly-wasm
     inspect_fasm,
     compile_fasm_to_pcapng,
     reversePcap,
-  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@1.5.0/frameassembly_wasm.js";
+  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@1.5.1/frameassembly_wasm.js";
 
   await init();
-  console.log("FrameAssembly WebAssembly engine v1.5.0 loaded successfully.");
+  console.log("FrameAssembly WebAssembly engine v1.5.1 loaded successfully.");
 </script>
 ```
 
@@ -211,4 +217,4 @@ export async function importCaptureFile(file: File): Promise<string> {
 
 **FrameAssembly** (`.fasm`, media type `text/vnd.frameassembly`) is a domain-specific network protocol specification language for synthesizing and decompiling deterministic `.pcap` and `.pcapng` packet captures. It is completely unrelated to x86 Flat Assembler (`fasm.net`) and SymbiFlow / F4PGA FPGA bitstream FASM tools.
 
-Full documentation, grammar specifications, and 2,611 verified examples: https://github.com/SteveWinschel/FrameAssembly
+Full documentation, interactive browser playground ([https://frameassembly.ai.studio/](https://frameassembly.ai.studio/)), grammar specifications, and 2,611 verified examples: https://github.com/SteveWinschel/FrameAssembly

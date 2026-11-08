@@ -11,20 +11,20 @@ Configures `crate-type = ["cdylib", "rlib"]`, `miette = { version = "7.6.0", def
 ```toml
 [package]
 name = "frameassembly-wasm"
-version = "1.5.0"
+version = "1.5.1"
 edition = "2024"
 authors = ["Steve Winschel"]
 description = "WebAssembly compiler, packet inspector, and IDE diagnostics for the FrameAssembly (.fasm) network packet synthesis DSL"
 license = "MIT"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
-homepage = "https://github.com/SteveWinschel/FrameAssembly"
+homepage = "https://frameassembly.ai.studio/"
 keywords = ["frameassembly", "pcap", "pcapng", "wireshark", "wasm"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-frameassembly = { path = "..", version = "1.5.0" }
+frameassembly = { path = "..", version = "1.5.1" }
 miette = { version = "7.6.0", default-features = false }
 pcap-file = "2.0.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -346,7 +346,7 @@ Configures language ID `"frameassembly"`, MIME `"text/vnd.frameassembly"`, `firs
   "name": "frameassembly-vscode",
   "displayName": "FrameAssembly (.fasm Packet Crafting DSL)",
   "description": "Syntax highlighting and language support for FrameAssembly (.fasm), the declarative DSL for deterministic .pcap/.pcapng network packet generation across 81 L2-L7 protocols.",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "publisher": "SteveWinschel",
   "icon": "icon.png",
   "galleryBanner": {
@@ -354,7 +354,7 @@ Configures language ID `"frameassembly"`, MIME `"text/vnd.frameassembly"`, `firs
     "theme": "dark"
   },
   "license": "MIT",
-  "homepage": "https://github.com/SteveWinschel/FrameAssembly",
+  "homepage": "https://frameassembly.ai.studio/",
   "bugs": {
     "url": "https://github.com/SteveWinschel/FrameAssembly/issues"
   },

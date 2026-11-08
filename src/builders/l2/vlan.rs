@@ -3,7 +3,8 @@
 //! Synthesizes standalone IEEE 802.1Q single-tagged Ethernet frames inserting a 32-bit VLAN
 //! tag (`TPID = 0x8100` followed by 16-bit Tag Control Information packing 3-bit `PCP`, 1-bit
 //! `DEI`, and 12-bit `VID`) between the Ethernet Source MAC address and the inner payload
-//! EtherType (`0x0800`), followed by the encapsulated frame payload bytes.
+//! EtherType (`0x0800` / `0x86DD` for IP hosts, or `0x88B5` IEEE 802.1 Local Experimental
+//! EtherType for MAC-only Layer 2 hosts), followed by the encapsulated frame payload bytes.
 //!
 //! Canonical `.fasm` syntax:
 //! `a -> b VLAN <vid> [PCP <0..7>] [DEI <0|1>] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
@@ -31,6 +32,16 @@ pub fn build_vlan_frame(
             pcp: spec.pcp,
             dei: spec.dei,
         });
+    }
+    if ctx.src_ip.is_unspecified() || ctx.dst_ip.is_unspecified() {
+        let ethertype = l2.ethertype.unwrap_or(0x88B5);
+        return Ok(build_ethernet_and_l2(
+            ctx.src_mac,
+            ctx.dst_mac,
+            &l2,
+            ethertype,
+            payload,
+        ));
     }
     let ethertype = if ctx.src_ip.is_ipv4() { 0x0800 } else { 0x86DD };
     if payload.is_empty() {

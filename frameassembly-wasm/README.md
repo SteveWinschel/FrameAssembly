@@ -1,18 +1,33 @@
-# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v1.4.6)
+# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v1.5.0)
 
-High-performance WebAssembly compiler, frame inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.fasm`)** — the **Packets as Code** domain-specific language for compiling `.fasm` code into deterministic `.pcapng` packet captures across 81 L2–L7 protocols for pentesting labs, testing firewall rules, simulating SNMPv1/v2c/v3 traps, and validating network monitoring and cybersecurity solutions in browser applications, web cyber ranges, and Node.js test suites. *(Note: FrameAssembly is a network protocol DSL, not x86 Flat Assembler).*
+WebAssembly compiler, `.pcap`/`.pcapng`-to-`.fasm` decompiler, frame inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.fasm`)** — compiling `.fasm` code into `.pcapng` packet captures and decompiling existing captures back into `.fasm` code across 81 L2–L7 protocols in browser applications, web cyber ranges, and Node.js test suites. *(Note: FrameAssembly is a network protocol DSL, not x86 Flat Assembler).*
 
 ---
 
-## Client-Side `.fasm` to `.pcapng` Compilation in the Browser & Node.js
+## Client-Side `.fasm` to `.pcapng` Compilation & PCAP Decompilation in the Browser & Node.js
 
-`frameassembly-wasm` compiles the complete FrameAssembly Rust engine directly to WebAssembly, turning `.fasm` code into nanosecond-precision `.pcapng` byte streams and real-time Monaco/CodeMirror syntax diagnostics entirely in the browser or Node.js—with no backend packet-crafting server, root privileges (`CAP_NET_RAW`), Python `Scapy` runtime, manual `text2pcap` hex offsets, or native `libpcap` dependencies required:
+`frameassembly-wasm` compiles the FrameAssembly Rust engine to WebAssembly, turning `.fasm` code into `.pcapng` byte streams, decompiling binary `.pcap` and `.pcapng` captures into `.fasm` code via `reversePcap(pcapBytes)`, and emitting real-time Monaco/CodeMirror syntax diagnostics directly in the browser or Node.js without a backend server:
+
+```frameassembly
+host client { ip 192.168.1.10 mac 00:11:22:33:44:55 }
+host server { ip 8.8.8.8 mac aa:bb:cc:dd:ee:ff }
+
+flow dns_query(c, s) {
+    c -> s dns query txid 0x1234 qname "example.com" qtype "A" wait 1ms
+    c <- s dns response txid 0x1234 qname "example.com" qtype "A" rdata 93.184.216.34 wait 1ms
+}
+
+compile {
+    dns_query(client, server)
+}
+```
 
 ```ts
 import init, {
   compile_fasm_to_pcapng,
   validate_fasm,
   inspect_fasm,
+  reversePcap,
 } from "frameassembly-wasm";
 
 // Initialize WASM module once at startup
@@ -23,7 +38,7 @@ host server { ip 8.8.8.8 mac aa:bb:cc:dd:ee:ff }
 
 flow dns_query(c, s) {
     c -> s dns query txid 0x1234 qname "example.com" qtype "A" wait 1ms
-    c <- s dns response txid 0x1234 qname "example.com" qtype "A" rdata "93.184.216.34" wait 1ms
+    c <- s dns response txid 0x1234 qname "example.com" qtype "A" rdata 93.184.216.34 wait 1ms
 }
 
 compile {
@@ -41,6 +56,10 @@ if (diagnostics.length === 0) {
   const pcapngBytes = compile_fasm_to_pcapng(source);
   const blob = new Blob([pcapngBytes], { type: "application/vnd.tcpdump.pcap" });
   console.log(`Generated PCAPNG: ${blob.size} bytes`);
+
+  // 4. Decompile binary PCAP/PCAPNG bytes back into canonical .fasm code
+  const reversed = reversePcap(pcapngBytes);
+  console.log(`Reversed ${reversed.packetCount} frames across ${reversed.hostCount} hosts:\n${reversed.fasm}`);
 }
 ```
 
@@ -64,10 +83,11 @@ npm install frameassembly-wasm
     validate_fasm,
     inspect_fasm,
     compile_fasm_to_pcapng,
-  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@1.4.6/frameassembly_wasm.js";
+    reversePcap,
+  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@1.5.0/frameassembly_wasm.js";
 
   await init();
-  console.log("FrameAssembly WebAssembly engine loaded successfully.");
+  console.log("FrameAssembly WebAssembly engine v1.5.0 loaded successfully.");
 </script>
 ```
 
@@ -82,8 +102,10 @@ import init, {
   validate_fasm,
   inspect_fasm,
   compile_fasm_to_pcapng,
+  reversePcap,
   type IdeDiagnostic,
   type PacketPreview,
+  type ReversePcapResult,
 } from "frameassembly-wasm";
 import wasmUrl from "frameassembly-wasm/frameassembly_wasm_bg.wasm?url";
 
@@ -95,7 +117,7 @@ await init({ module_or_path: wasmUrl });
 
 ## API Reference
 
-### `validate_fasm(source: string): IdeDiagnostic[]`
+### `validate_fasm(source: string): IdeDiagnostic[]` / `validateFasm(source: string): IdeDiagnostic[]`
 Parses and validates `.fasm` source code, returning zero-based UTF-16 line and column spans ready for Monaco Editor or CodeMirror 6 diagnostic markers. Returns an empty array `[]` when the source compiles cleanly.
 
 ```ts
@@ -114,22 +136,36 @@ Compiles `.fasm` source code into an array of packet inspection summaries, inclu
 
 ```ts
 interface PacketPreview {
-  index: number;         // 0-based frame index
+  index: number;         // 1-based frame index
   timestamp_ms: number;  // Relative timestamp in milliseconds
   length: number;        // Total packet length in bytes
   hex: string;           // Space-separated lowercase hex byte dump
 }
 ```
 
-### `compile_fasm_to_pcapng(source: string): Uint8Array`
+### `compile_fasm_to_pcapng(source: string): Uint8Array` / `compileFasm(source: string): Uint8Array`
 Compiles `.fasm` source code into a binary `Uint8Array` containing a valid, standards-compliant PCAPNG byte stream with nanosecond timestamp precision (`IfTsResol = 9`). Throws a JavaScript `Error` with rich diagnostic context if compilation fails.
+
+### `reversePcap(pcap_bytes: Uint8Array): ReverseJsResult`
+Decompiles an in-memory `.pcap` or `.pcapng` byte array (`Uint8Array`) across all 81 native Layer 2 through Layer 7 protocols into canonical lowercase `.fasm` code (`host` declarations and an inline `compile` block), returning summary statistics (`packetCount`, `hostCount`). Throws a structured error object (`{ success: false, error, message }`) if `pcap_bytes` is not a valid packet capture.
+
+```ts
+interface ReversePcapResult {
+  success: boolean;     // true when decompilation succeeds
+  fasm: string;         // Canonical lowercase .fasm source code
+  packetCount: number;  // Total number of reversed packets
+  hostCount: number;    // Total number of host_N declarations emitted
+}
+
+type ReverseJsResult = ReversePcapResult;
+```
 
 ---
 
 ## Complete Browser Playground & Download Example
 
 ```ts
-import init, { compile_fasm_to_pcapng, validate_fasm } from "frameassembly-wasm";
+import init, { compile_fasm_to_pcapng, reversePcap, validate_fasm } from "frameassembly-wasm";
 
 export async function downloadCapture(fasmCode: string, filename = "capture.pcapng") {
   await init();
@@ -151,6 +187,13 @@ export async function downloadCapture(fasmCode: string, filename = "capture.pcap
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+export async function importCaptureFile(file: File): Promise<string> {
+  await init();
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const result = reversePcap(bytes);
+  return result.fasm;
+}
 ```
 
 ---
@@ -158,14 +201,14 @@ export async function downloadCapture(fasmCode: string, filename = "capture.pcap
 ## Features & Engine Capabilities
 
 - **Zero Server Dependencies**: Executes 100% locally in WebAssembly inside Chrome, Firefox, Safari, Edge, Web Workers, and Node.js.
-- **81 Native Protocols**: Complete coverage across L2–L7 (Ethernet, 802.1Q VLAN, QinQ, MPLS, ARP, IPv4/IPv6, ICMP, TCP, UDP, SCTP, SNMPv1/v2c/v3 USM, DNS, DHCP, HTTP, TLS, Modbus, DNP3, and more).
-- **Nanosecond Fidelity**: Compiles deterministic PCAPNG captures with nanosecond-resolution Section and Interface Description Blocks (`IfTsResol(9)`).
-- **Sub-Millisecond Compilation**: Small to medium captures compile in `< 5ms`, making real-time live typing diagnostics instantaneous in web editors.
+- **81 Native Protocols (Forward & Reverse)**: Complete compilation and `.pcap`/`.pcapng` decompilation coverage across L2–L7 (Ethernet, 802.1Q VLAN, QinQ, MPLS, ARP, IPv4/IPv6, ICMP, TCP, UDP, SCTP, SNMPv1/v2c/v3 USM, DNS, DHCP, HTTP, TLS, Modbus, DNP3, and more), including pure Layer-2 MAC-only switch topologies and inline `compile` statements.
+- **Nanosecond Fidelity**: Compiles and reverses deterministic PCAP/PCAPNG captures with nanosecond-resolution Section and Interface Description Blocks (`IfTsResol(9)`).
+- **Sub-Millisecond Compilation**: Small to medium captures compile and decompile in `< 5ms`, making real-time live typing diagnostics and drag-and-drop PCAP import instantaneous in web editors.
 
 ---
 
 ## Disambiguation: FrameAssembly vs. Flat Assembler
 
-**FrameAssembly** (`.fasm`, media type `text/vnd.frameassembly`) is a domain-specific network protocol specification language for synthesizing deterministic `.pcap` and `.pcapng` packet captures. It is completely unrelated to x86 Flat Assembler (`fasm.net`) and SymbiFlow / F4PGA FPGA bitstream FASM tools.
+**FrameAssembly** (`.fasm`, media type `text/vnd.frameassembly`) is a domain-specific network protocol specification language for synthesizing and decompiling deterministic `.pcap` and `.pcapng` packet captures. It is completely unrelated to x86 Flat Assembler (`fasm.net`) and SymbiFlow / F4PGA FPGA bitstream FASM tools.
 
 Full documentation, grammar specifications, and 2,611 verified examples: https://github.com/SteveWinschel/FrameAssembly

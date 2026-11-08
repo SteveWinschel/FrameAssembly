@@ -1,0 +1,32 @@
+{
+  "name": "frameassembly-wasm",
+  "type": "module",
+  "collaborators": [
+    "Steve Winschel"
+  ],
+  "description": "WebAssembly compiler, PCAP/PCAPNG decompiler, packet inspector, and IDE diagnostics for the FrameAssembly (.fasm) network packet synthesis DSL",
+  "version": "1.5.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SteveWinschel/FrameAssembly.git"
+  },
+  "files": [
+    "frameassembly_wasm_bg.wasm",
+    "frameassembly_wasm.js",
+    "frameassembly_wasm.d.ts"
+  ],
+  "main": "frameassembly_wasm.js",
+  "homepage": "https://github.com/SteveWinschel/FrameAssembly",
+  "types": "frameassembly_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ],
+  "keywords": [
+    "frameassembly",
+    "pcap",
+    "pcapng",
+    "wireshark",
+    "wasm"
+  ]
+}

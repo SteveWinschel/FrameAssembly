@@ -2,7 +2,21 @@
 
 Testing Layer 2 edge cases—double-tagged 802.1ad QinQ trunks, Gratuitous ARP (`GARP`) VIP failovers, STP BPDU Guard triggers, LACP port-channel negotiations, 802.1X EAPOL NAC onboarding, or MPLS label stacks—is normally a headache because OS network stacks strip VLAN tags and physical lab switches take time to cable and configure.
 
-With FrameAssembly, you write the exact Layer 2 or Layer 2.5 frame in a few lines of `.fasm` code, compile it to `.pcap`, and replay it straight onto a trunk port with `tcpreplay` (or inspect it in Wireshark). When optional fields are omitted, FrameAssembly automatically builds standards-compliant Ethernet II or IEEE 802.3 LLC headers, derives unicast, broadcast, and multicast MAC addresses, and populates mandatory protocol TLVs.
+With FrameAssembly, you write the Layer 2 or Layer 2.5 frame in a few lines of `.fasm` code, compile it to `.pcap` (`frameassembly l2_test.fasm`), and replay it onto a trunk port with `tcpreplay`—or convert an existing `.pcap` / `.pcapng` switch trace into `.fasm` code with `frameassembly reverse trace.pcap`. When optional fields are omitted, FrameAssembly automatically builds Ethernet II or IEEE 802.3 LLC headers, derives unicast, broadcast, and multicast MAC addresses, and populates mandatory protocol TLVs.
+
+### MAC-Only Layer 2 Hosts & Inline `compile` Statements
+All 8 Layer 2 protocols (`ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`, `MPLS`) support **MAC-only `host` blocks** (`host sw1 { mac 00:1c:73:00:00:01 }`) without requiring an `ip` address, and you can write packet statements directly inside `compile { ... }` without a separate `flow` block:
+
+```frameassembly
+host sw1 { mac 00:1c:73:00:00:01 }
+host sw2 { mac 00:1c:73:00:00:02 }
+
+compile {
+    sw1 -> sw2 lldp chassis_id "00:1c:73:00:00:01" port_id "Ethernet1/1" ttl 120 sysname "spine-01" wait 2ms
+    sw1 <- sw2 stp rstp root_id "4096/00:1c:73:00:00:02" bridge_id "4096/00:1c:73:00:00:02" port_id 0x8001 cost 0 flags 0x3c wait 2ms
+    sw1 -> sw2 lacp actor_sys 00:1c:73:00:00:01 actor_key 10 actor_port 1 actor_state 0x3f partner_sys 00:1c:73:00:00:02 partner_key 10 partner_port 1 partner_state 0x3f
+}
+```
 
 | Protocol | Keyword | Standard | Framing / EtherType | Default Destination MAC | Primary Operational Use Cases |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -134,7 +148,8 @@ compile {
 
 **Inspect with `tshark`:**
 ```console
-tshark -r output.pcap -Y "arp or icmpv6" -T fields -e frame.number -e eth.src -e eth.dst -e arp.opcode -e arp.src.proto_ipv4 -e arp.dst.proto_ipv4
+$ frameassembly arp_test.fasm
+$ tshark -r arp_test.pcap -Y "arp or icmpv6" -T fields -e frame.number -e eth.src -e eth.dst -e arp.opcode -e arp.src.proto_ipv4 -e arp.dst.proto_ipv4
 ```
 
 ---
@@ -216,7 +231,8 @@ compile {
 
 **Inspect with `tshark`:**
 ```console
-tshark -r output.pcap -T fields -e frame.number -e eth.type -e vlan.id -e vlan.prio -e vlan.dei -e ip.src -e ip.dst
+$ frameassembly trunk_test.fasm
+$ tshark -r trunk_test.pcap -T fields -e frame.number -e eth.type -e vlan.id -e vlan.prio -e vlan.dei -e ip.src -e ip.dst
 ```
 
 ---
@@ -268,7 +284,8 @@ compile {
 
 **Inspect with `tshark`:**
 ```console
-tshark -r output.pcap -Y "lldp" -V
+$ frameassembly lldp_test.fasm
+$ tshark -r lldp_test.pcap -Y "lldp" -V
 ```
 
 ---
@@ -458,7 +475,7 @@ compile {
 
 ## 7. Multiprotocol Label Switching (`MPLS` — RFC 3032 / RFC 5462)
 
-Capturing real MPLS L3VPN or Segment Routing (`SR-MPLS`) packets normally requires a provider-edge (`PE`) router lab running LDP, RSVP-TE, or IS-IS segment routing just to put a 4-byte shim header on the wire. In FrameAssembly, adding an `MPLS` label (`EtherType = 0x8847`)—complete with 20-bit Label ID, 3-bit QoS Traffic Class (`EXP`/`TC`), Bottom-of-Stack (`BOS`) bit, and independent `MPLS_TTL`—takes a single modifier on any packet statement:
+Capturing real MPLS L3VPN or Segment Routing (`SR-MPLS`) packets normally requires a multi-router provider-edge (`PE`) lab with BGP label distribution and full core routing configured just to put a 4-byte shim header on the wire. In FrameAssembly, adding an `MPLS` label (`EtherType = 0x8847`)—complete with 20-bit Label ID, 3-bit QoS Traffic Class (`EXP`/`TC`), Bottom-of-Stack (`BOS`) bit, and independent `MPLS_TTL`—takes a single modifier on any packet statement:
 
 ```text
  0                   1                   2                   3
@@ -503,7 +520,8 @@ compile {
 
 **Inspect with `tshark`:**
 ```console
-tshark -r output.pcap -Y "mpls" -T fields -e frame.number -e vlan.id -e mpls.label -e mpls.exp -e mpls.bottom -e mpls.ttl -e ip.ttl
+$ frameassembly mpls_test.fasm
+$ tshark -r mpls_test.pcap -Y "mpls" -T fields -e frame.number -e vlan.id -e mpls.label -e mpls.exp -e mpls.bottom -e mpls.ttl -e ip.ttl
 ```
 
 ---

@@ -57,9 +57,9 @@ impl<T> core::ops::Deref for Spanned<T> {
     }
 }
 
-/// A host definition with an IP and optional MAC address.
+/// A host definition with an optional IP and optional MAC address.
 ///
-/// Syntax mapping: `HOST <name> { IP <ip_addr> [MAC <mac_addr>] }`
+/// Syntax mapping: `HOST <name> { [IP <ip_addr>] [MAC <mac_addr>] }`
 ///
 /// # Examples
 /// ```frameassembly
@@ -84,8 +84,8 @@ impl<T> core::ops::Deref for Spanned<T> {
 pub struct HostDef<'a> {
     /// The name of the host.
     pub name: &'a str,
-    /// The IP address of the host.
-    pub ip: IpAddr,
+    /// The optional IP address of the host (omitted for pure Layer 2 MAC-only endpoints).
+    pub ip: Option<IpAddr>,
     /// The optional MAC address of the host.
     pub mac: Option<[u8; 6]>,
     /// Source span of the host definition.
@@ -618,14 +618,16 @@ pub struct TemplateInvocation<'a> {
     pub span: (usize, usize),
 }
 
-/// A statement in the run/compile block, can be a loop or a single invocation
+/// A statement in the run/compile block, which can be a flow invocation, an inline frame statement, or a loop.
 #[doc(alias = "COMPILE")]
 #[doc(alias = "LOOP")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunStatement<'a> {
-    /// A single template invocation directly in the block
+    /// A single template invocation directly in the block.
     Invocation(TemplateInvocation<'a>),
-    /// A loop block containing a count and inner invocations
+    /// An inline directional frame statement directly inside `COMPILE`.
+    Frame(alloc::boxed::Box<FrameStatement<'a>>),
+    /// A loop block containing a count and inner invocations.
     Loop(u32, Vec<TemplateInvocation<'a>>),
 }
 

@@ -8,7 +8,7 @@ Simulating SNMP traffic—especially encrypted **SNMPv3 `authPriv` traps**—is 
 
 If you want to verify that **Zabbix**, **Checkmk**, **LibreNMS**, **PRTG**, **SolarWinds**, **Datadog**, or `snmptrapd` actually pages the on-call engineer when a core uplink dies, your usual options are grim -> configure an SNMP agent, hunt down broken vendor MIB dependencies, match hex EngineIDs and localized keys, and physically yank a patch cord out of a switch just to watch a dashboard turn red :)
 
-With **FrameAssembly**, you describe the poll, walk, `SET`, or encrypted trap in a few lines of `.fasm` packet code, compile a clean `.pcap` with no MIB files or `sudo` privileges needed, and fire it at your collector or IDS with **`tcpreplay`**:
+With **FrameAssembly**, you describe the poll, walk, `SET`, or encrypted trap in a few lines of `.fasm` code, compile a `.pcap` file without MIB dependencies, and fire it at your collector or IDS with **`tcpreplay`**:
 
 ```frameassembly
 host core_sw { ip 10.10.1.2  mac 00:1a:2b:3c:4d:01 }
@@ -227,14 +227,19 @@ tshark -r snmp_alert.pcap \
 ### Decrypt `snmp3` in the Wireshark GUI
 Open **Edit -> Preferences -> Protocols -> SNMP -> Users Table -> Edit...**, add your **Engine ID** (`80001f8801`, or leave blank to match all), **Username** (`netops`), **Auth model** (`SHA2-256`, `SHA2-512`, `SHA2-384`, `SHA1`, or `MD5`), **Auth password**, **Priv protocol** (`AES` or `DES`), and **Priv password**. Wireshark immediately unlocks the `encryptedPDU` and shows `[Authentication OK]`.
 
-### Replay into a Live Collector (`tcpreplay`)
+### Replay into a Live Collector (`tcpreplay`) or Reverse Existing SNMP Captures (`frameassembly reverse`)
 ```bash
 # Replay honoring your .fasm wait intervals
 sudo tcpreplay -i eth0 snmp_alert.pcap
 
 # Blast traps at wire speed to benchmark collector throughput
 sudo tcpreplay -i eth0 --topspeed snmp_alert.pcap
+
+# Reverse an existing SNMP .pcap / .pcapng capture into editable .fasm code (defaults to <input_stem>.fasm)
+frameassembly reverse snmp_walk.pcap -o snmp_walk.fasm
 ```
+
+When reversing an SNMP capture with `frameassembly reverse`, cleartext `snmp1`, `snmp2`, and `snmp3` (`noAuthNoPriv`) packets decompile directly into `snmp1` / `snmp2` / `snmp3` statements with `varbind` entries. Encrypted `snmp3` `authPriv` (or keyed `authNoPriv`) packets are not decrypted; `frameassembly reverse` keeps them as `udp` statements with `hexpayload` so recompiling preserves the exact wire bytes.
 
 ## Related Documentation
 

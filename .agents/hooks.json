@@ -1,0 +1,18 @@
+{
+  "parallel-file-lock-guard": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "edit_file|write_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/steve/frameassembly/.agents/scripts/pre_tool_file_lock_guard.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+

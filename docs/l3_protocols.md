@@ -8,7 +8,7 @@ Testing Layer 3 routing, overlay fabrics, and VPN gateways usually requires way 
 
 If you want to verify a BGP FlowSpec or RTBH blackhole filter, reproduce a `1400`-byte GRE/WireGuard Path MTU blackhole, test sub-second `BFD` + `VRRP` failovers, or check that Suricata flags an `IKEv2` NAT-T float to `UDP 4500`, your normal options are rough -> spin up a 6-node virtual router lab, wait 40 seconds for OSPF Dead timers, wrestle `strongSwan` configs, or clamp MTUs on a live interface and hope you don't drop your own SSH session :)
 
-With **FrameAssembly**, you write the exact routing, overlay, or tunnel exchange in a few lines of `.fasm` packet code, compile a clean `.pcap` offline with zero `sudo` or lab VMs, and replay or inspect it with **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, or **Zeek**:
+With **FrameAssembly**, you write the routing, overlay, or tunnel exchange in a few lines of `.fasm` code, compile a `.pcap` file, and replay or inspect it with **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, or **Zeek**:
 
 ```frameassembly
 host leaf_01  { ip 10.0.1.1 mac 00:1c:73:c1:00:01 }
@@ -163,7 +163,7 @@ compile { pmtud_fhrp_and_erspan(app_srv, wan_pri_gw, wan_sec_gw, ndr_sensor) }
 ```
 
 ### 5. Simulate Multicast Feeds (`IGMP`, `MLD`, `PIM-SSM`) & Reactive `OpenFlow` Scrubbing
-Whether you are validating ultra-low-latency market-data joins (`232.0.0.0/8` SSM), residential IPTV fast channel zaps over IPv6 `MLD`, or an SDN controller pushing a priority-`65000` `OpenFlow` drop rule after a `PACKET_IN` anomaly, everything stays deterministic:
+Whether you are validating ultra-low-latency market-data joins (`232.0.0.0/8` SSM), residential IPTV fast channel zaps over IPv6 `MLD`, or an SDN controller pushing a priority-`65000` `OpenFlow` drop rule after a `PACKET_IN` anomaly, every packet stays repeatable down to the microsecond:
 
 ```frameassembly
 host trade_srv { ip 10.200.40.15 mac 00:0f:53:d2:28:0f }
@@ -185,7 +185,7 @@ compile { multicast_and_sdn_scrub(trade_srv, leaf_ofs, sdn_ctrl) }
 
 ## What FrameAssembly Handles at Layer 3
 
-* **True Dual-Stack Polymorphism:** Write a `flow` once with `icmp`, `ospf`, `bgp`, `rip`, `pim`, `vrrp`, `hsrp`, `bfd`, `openflow`, `gre`, `vxlan`, `geneve`, `esp`/`ipsec`, `ah`, `ikev2`, or `wireguard` and pass either IPv4 or IPv6 `host` endpoints inside `compile`. FrameAssembly switches between IPv4 (`0x0800`) and IPv6 (`0x86dd`—including `ICMPv6`, `OSPFv3`, `MP-BGP`, `RIPng`, `VRRPv3`, and `HSRPv2` on `UDP 2029`) automatically.
+* **Dual-Stack IPv4 & IPv6 Reuse:** Write a `flow` once with `icmp`, `ospf`, `bgp`, `rip`, `pim`, `vrrp`, `hsrp`, `bfd`, `openflow`, `gre`, `vxlan`, `geneve`, `esp`/`ipsec`, `ah`, `ikev2`, or `wireguard` and pass either IPv4 or IPv6 `host` endpoints inside `compile`. FrameAssembly switches between IPv4 (`0x0800`) and IPv6 (`0x86dd`—including `ICMPv6`, `OSPFv3`, `MP-BGP`, `RIPng`, `VRRPv3`, and `HSRPv2` on `UDP 2029`) automatically.
 * **Full IPv4 / IPv6 Outer Header Control:** Add `ttl <0..255>` (IPv4 TTL / IPv6 Hop Limit—such as `ttl 255` for GTSM or `ttl 1` for link-local multicast), `dscp <0..63>`, `ecn <0..3>`, `flowlabel <0..1048575>` (20-bit IPv6 ECMP Flow Label), `df`, `ipid <u16>`, `mf`, and `fragoffset <0..8191>` to any statement.
 * **Automatic RFC Multicast MACs:** Any `host` with an IPv4 multicast IP (`224.0.0.0/4`, such as `224.0.0.5` OSPF or `224.0.0.18` VRRP) or IPv6 multicast IP (`ff00::/8`, such as `ff02::5` OSPFv3 or `ff02::12` VRRPv3) automatically derives `01:00:5e:xx:xx:xx` or `33:33:xx:xx:xx:xx` when `mac` is omitted.
 * **Cross-Layer Stacking:** Combine any Layer 3 protocol with `vlan <id> [pcp <n>] [dei <0|1>]`, `qinq <svid> inner_vlan <cvid>`, or `mpls <label> [exp <n>] [bos <0|1>] [mpls_ttl <n>]` on the exact same line.
@@ -231,7 +231,7 @@ compile { multicast_and_sdn_scrub(trade_srv, leaf_ofs, sdn_ctrl) }
 
 | Protocol | Modifiers & Aliases | Common Passenger Protocol / Option Values |
 | :--- | :--- | :--- |
-| **`gre`** | `gre_proto <u16>`, `gre_key <u32>`, `gre_seq <u32>`, `checksum` | `0x0800` (`2048`) IPv4, `0x86dd` (`34525`) IPv6, `0x6558` (`25944`) L2 `GRETAP`/`NVGRE`, `0x8847` (`34887`) MPLS-in-GRE, `0x88be` (`35006`) ERSPAN II, `0x22eb` (`8939`) ERSPAN III, `0x00fe` (`254`) IS-IS CLNS |
+| **`gre`** | `gre_proto <u16>`, `gre_key <u32>`, `gre_seq <u32>`, `checksum` | `0x0800` (`2048`) IPv4, `0x86dd` (`34525`) IPv6, `0x6558` (`25944`) L2 `GRETAP`/`NVGRE`, `0x8847` (`34887`) MPLS-in-GRE, `0x88be` (`35006`) ERSPAN II, `0x22eb` (`8939`) ERSPAN III |
 | **`vxlan`** | `vni <0..16777215>` (alias `vnid`), `srcport <p>`, `dstport <p>` | Default `UDP 4789` (`dstport 8472` for legacy Linux/Flannel); `vni 1` for RFC 8971 BFD-over-VXLAN |
 | **`geneve`** | `vni <0..16777215>` (alias `vnid`), `opt_class <u16>`, `opt_type <u8>`, `protocol_type <u16>` | `opt_class`: `258` (`0x0102`) OVN, `259` (`0x0103`) P4 INT, `260` (`0x0104`) NSX-T, `264` (`0x0108`) AWS GWLB, `267` Cilium; `opt_type >= 128` sets Critical bit; `protocol_type`: `0x6558` L2 TEB, `0x0800` IPv4, `0x86dd` IPv6, `0x8847` MPLS, `0x894f` NSH |
 

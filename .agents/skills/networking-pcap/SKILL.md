@@ -5,9 +5,11 @@ description: Comprehensive guide, API selection matrix, and production code temp
 
 # Networking, Native RFC Wire Crafting & PCAP Engineering Skill
 
-Use this skill when designing, implementing, debugging, or verifying network protocol packet crafting, multi-layer encapsulation, wire dissection, and packet capture (`.pcap` / `.pcapng`) serialization in Rust using **rootless, offline native RFC wire builders** (`src/packet.rs`, `src/builders/`, `src/backend/`) and **`pcap-file` (`2.0.0`)** (`src/pcap.rs`).
+Use this skill when designing, implementing, debugging, or verifying network protocol packet crafting, multi-layer encapsulation, wire verification, and packet capture (`.pcap` / `.pcapng`) serialization in Rust using **rootless, offline native RFC wire builders** (`src/packet.rs`, `src/builders/`, `src/backend/`) and **`pcap-file` (`2.0.0`)** (`src/pcap.rs`).
 
-> **Architectural Note (`frameassembly`)**: `frameassembly` does **not** depend on external packet-crafting crates such as `etherparse`. All L2–L7 headers, pseudo-headers, RFC 1071 one's complement checksums, RFC 9260 Castagnoli CRC32c checksums, and IEEE 1815 DNP3 CRC-16 checksums are synthesized natively using Rust 2024 slice operations (`slice.as_chunks::<2>()`) and serialized into PCAPNG streams via `pcap-file = "2.0.0"`.
+> **Architectural Boundary (`frameassembly`)**:
+> - **Forward Wire Synthesis (`src/packet.rs`, `src/builders/`)**: Uses 100% zero-heap native Rust 2024 slice operations (`std::slice::as_chunks::<2>()`) and never uses `etherparse::PacketBuilder` or `libpcap`. All L2–L7 headers, pseudo-headers, RFC 1071 one's complement checksums, RFC 9260 Castagnoli CRC32c checksums, and IEEE 1815 DNP3 CRC-16 checksums are synthesized natively and serialized into PCAPNG streams via `pcap-file = "2.0.0"`.
+> - **PCAP/PCAPNG-to-`.fasm` Decompilation (`src/reverse/`)**: Uses `etherparse = { version = "0.21.0", default-features = false, features = ["std"] }` (`SlicedPacket::from_ethernet`, `LaxSlicedPacket::from_ethernet`, `link_exts: ArrayVec<LinkExtSlice, 3>`, `.vlan()`, `NetSlice`, `TransportSlice`) and `pcap-file = "2.0.0"` (`PcapNgReader`, `PcapReader`). For decompiler engineering, consult [`.agents/skills/pcap-decompilation/SKILL.md`](../pcap-decompilation/SKILL.md).
 
 ---
 
@@ -18,6 +20,7 @@ Use this skill when designing, implementing, debugging, or verifying network pro
 | **Full L2–L4 wire packet synthesis** | `frameassembly::packet::build_wire_packet(...)` | External crate builders (`etherparse::PacketBuilder`) or unvalidated byte concatenation |
 | **L2 Ethernet + VLAN/QinQ/MPLS framing** | `build_ethernet_and_l2(src_mac, dst_mac, &l2, ip_ethertype, &inner)` | Hardcoding 14-byte Ethernet offsets when 802.1Q/QinQ/MPLS tags are active |
 | **802.1ad QinQ double VLAN tagging** | Outer TPID `0x88A8` (S-VLAN) + Inner TPID `0x8100` (C-VLAN) | Emitting `0x8100` for outer S-VLAN tag (violates IEEE 802.1ad) |
+| **Pure L2 MAC-only `VLAN` / `QINQ` EtherType** | Default inner EtherType to `0x88B5` (IEEE 802.1 Local Experimental) when `src_ip`/`dst_ip` are unspecified | Synthesizing a dummy `0.0.0.0` IPv4/UDP header inside MAC-only L2 `VLAN`/`QINQ` frames |
 | **RFC 3032 MPLS label stack entry** | EtherType `0x8847` + `((label & 0xFFFFF) << 12) \| ((exp & 7) << 9) \| ((bos & 1) << 8) \| ttl` | Appending an extra 2-byte EtherType after the MPLS shim header |
 | **Multicast MAC auto-derivation** | RFC 1112 IPv4 (`01:00:5e:(b1 & 0x7f):b2:b3`) & RFC 2464 IPv6 (`33:33:b12:b13:b14:b15`) | Using unicast default MACs (`00:00:00:00:00:02`) for multicast destinations |
 | **Dual-stack ARP over IPv6** | Polymorphic adaptation in `build_arp_frame` to ICMPv6 NDP NS (Type 135) / NA (Type 136) with Hop Limit `255` | Emitting EtherType `0x0806` ARP frames with 16-byte IPv6 addresses |
@@ -54,10 +57,11 @@ Use this skill when designing, implementing, debugging, or verifying network pro
 - **Inner-Outward Assembly**:
   - Construct packets **inner-outward**: L7 Payload -> L4 Segment/Datagram (`build_tcp_segment` / `build_udp_datagram` / `build_sctp_payload`) -> L3 Packet (`build_ipv4_header` / `build_ipv6_header`) -> L2 Frame (`build_ethernet_and_l2`).
   - Inner-outward construction ensures exact payload lengths and checksums are known before outer headers are serialized, avoiding retroactive offset patching.
-- **L2 Tag Stacking Order (`build_ethernet_and_l2`)**:
+- **L2 Tag Stacking Order (`build_ethernet_and_l2`) & Pure L2 MAC-Only `0x88B5` Fallback**:
   - Standard Ethernet II: `[dst_mac (6B), src_mac (6B), ethertype (2B), inner_packet]`.
   - Single 802.1Q VLAN: `[dst_mac, src_mac, 0x81, 0x00, TCI (2B), next_ethertype (2B), inner_packet]`.
   - 802.1ad QinQ: `[dst_mac, src_mac, 0x88, 0xA8, outer_TCI (2B), 0x81, 0x00, inner_TCI (2B), next_ethertype (2B), inner_packet]`.
+  - Pure L2 MAC-only `VLAN` / `QINQ` (`src/builders/l2/vlan.rs`, `qinq.rs`): When either endpoint has no IP (`ctx.src_ip.is_unspecified() || ctx.dst_ip.is_unspecified()`), `next_ethertype` defaults to `l2.ethertype.unwrap_or(0x88B5)` (IEEE 802.1 Local Experimental) and wraps `payload` directly without an IP/UDP header.
   - RFC 3032 MPLS (standalone or inside VLAN/QinQ): Replaces `next_ethertype` with `0x8847` followed by the 4-byte MPLS label stack entry `[label(20b) | exp(3b) | bos(1b) | ttl(8b)]` and `inner_packet`.
 - **Two-Stage Port Inheritance & Canonical 4-Tuple TCP State**:
   - Stage 1 (`EndpointPairPorts`): Remembers `(caller_port, callee_port)` across forward (`->`) and reverse (`<-`) arrows so reply packets automatically mirror the request's ephemeral and service ports.

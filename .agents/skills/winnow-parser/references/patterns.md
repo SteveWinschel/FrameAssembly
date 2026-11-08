@@ -1,17 +1,19 @@
-# Winnow 1.0+ Production Reference Patterns
+# Winnow 1.0.5+ & Memchr 2.8.3 Production Reference Patterns
 
-This reference document provides production-ready, fully-documented, and compile-verified Rust code templates covering `winnow 1.0+` for high-performance zero-copy lexing, two-phase AST parsing, Pratt expression evaluation, binary protocol decoding, stateful recursion control, and `miette` diagnostic integration.
+This reference document provides production-ready, fully-documented, and compile-verified Rust code templates covering `winnow 1.0.5+` and `memchr 2.8.3` (`features = ["simd"]`) for high-performance zero-copy lexing, two-phase AST parsing (both FrameAssembly's zero-copy 3-tuple `Stream<'i, 'a>` and standalone `TokenSlice`), 3-tier protocol-scoped field dispatch, Pratt expression evaluation, binary protocol decoding, stateful recursion control, and `miette` diagnostic integration.
 
 ---
 
-## 1. Two-Phase Lexer Bridge (`logos` + `TokenSlice` + `Location` + `ContainsToken`)
+## 1. Two-Phase Lexer Bridge (`Stream<'i, 'a>` 3-Tuple Slice vs. `TokenSlice` + `Location` + `ContainsToken`)
 
 In production language parsers and domain-specific compilers (such as `frameassembly`), lexing and parsing are split into two decoupled phases:
-1. `logos` scans raw UTF-8 source text into a flat vector of token variants paired with byte spans `Range<usize>`.
-2. `winnow::stream::TokenSlice` wraps the token array, enabling zero-copy combinator parsing where `.span()` automatically calculates accurate multi-token byte ranges in the original source code.
+1. `logos 0.14.4` scans raw UTF-8 source text into token variants paired with byte spans `Range<usize>` and original `&'a str` slices.
+2. Either:
+   - **FrameAssembly Zero-Copy 3-Tuple Slice Stream (`src/parser/mod.rs`)**: `pub type Stream<'i, 'a> = &'i [(Token<'a>, core::ops::Range<usize>, &'a str)];`, where leaf combinators (`tag`, `parse_spanned_ident`) match directly against `(t, span, raw_str)` tuples, or
+   - **Standalone `winnow::stream::TokenSlice<'t, SpannedToken<'a>>`**: Wraps a `SpannedToken` array implementing `Location`, `PartialEq`, and `ContainsToken` so `.span()` automatically calculates multi-token byte ranges.
 
 ```rust
-//! Two-phase lexer-parser bridge connecting logos and winnow.
+//! Two-phase lexer-parser bridge connecting logos 0.14.4 and winnow 1.0.5+.
 
 use core::ops::Range;
 use winnow::combinator::{cut_err, opt, preceded, seq};
@@ -19,6 +21,19 @@ use winnow::error::{ContextError, ErrMode, ModalResult, StrContext, StrContextVa
 use winnow::prelude::*;
 use winnow::stream::{ContainsToken, Location, TokenSlice};
 use winnow::token::{any, literal};
+
+/// FrameAssembly's zero-copy 3-tuple slice stream (`src/parser/mod.rs`),
+/// pairing each token with its byte range and original `&'a str` slice.
+pub type FasmStream<'i, 'a> = &'i [(TokenKind<'a>, Range<usize>, &'a str)];
+
+/// Matches a specific token on a 3-tuple `FasmStream`, returning the token and its source byte range.
+pub fn tag_tuple<'i, 'a: 'i>(
+    expected: TokenKind<'a>,
+) -> impl Parser<FasmStream<'i, 'a>, (TokenKind<'a>, Range<usize>), ErrMode<ContextError>> {
+    any.verify_map(move |(t, span, _): (TokenKind<'a>, Range<usize>, &'a str)| {
+        if t == expected { Some((t, span)) } else { None }
+    })
+}
 
 /// Lexical token kinds emitted by the tokenizer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -152,7 +167,7 @@ pub fn parse_integer<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult<u64
 
 ## 2. High-Performance Declarative DSL AST Parsing (`HOST`, `FLOW`, `COMPILE`)
 
-Production grammar rules using `seq!`, `cut_err`, `repeat`, and `opt` to construct validated AST nodes with full source byte spans for canonical FrameAssembly syntax (`HOST <id> { IP <ip> [MAC <mac>] }` and `FLOW <id>(<params>) { <src> -> <dst> <PROTO> ... }`).
+Production grammar rules using `seq!`, `cut_err`, `repeat`, and `opt` to construct validated AST nodes with full source byte spans for canonical FrameAssembly syntax (`HOST <id> { [IP <ip>] [MAC <mac>] }` and `FLOW <id>(<params>) { <src> -> <dst> <PROTO> ... }`).
 
 ```rust
 //! Declarative AST parser for canonical FrameAssembly structural blocks.
@@ -167,7 +182,7 @@ use super::{parse_ident, SpannedToken, TokenKind, TokenStream};
 
 /// AST node representing an evaluated host endpoint definition.
 ///
-/// Syntax mapping: `HOST <name> { IP <ip> [MAC <mac>] }`
+/// Syntax mapping: `HOST <name> { [IP <ip>] [MAC <mac>] }`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HostDef<'a> {
     /// Host name identifier.
@@ -865,7 +880,7 @@ impl CompilerParseError {
         let span = SourceSpan::from((offset, 1));
         Self {
             message: format!("Parse failure at byte offset {offset}"),
-            src: NamedSource::new(filename, source_text.to_string()).with_language("fasm"),
+            src: NamedSource::new(filename, source_text.to_string()).with_language("frameassembly"),
             span,
         }
     }

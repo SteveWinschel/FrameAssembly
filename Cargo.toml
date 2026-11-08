@@ -1,9 +1,9 @@
 [package]
 name = "frameassembly"
-version = "1.4.6"
+version = "1.5.0"
 edition = "2024"
 rust-version = "1.85"
-description = "A DSL for creating custon .pcap files for testing firewalls, IDS rules, SNMP traps and pentesting."
+description = "A DSL for creating custom .pcap/.pcapng captures and decompiling captures to .fasm for testing firewalls, IDS rules, SNMP traps, and pentesting."
 authors = ["Steve Winschel"]
 license = "MIT"
 documentation = "https://docs.rs/frameassembly"
@@ -57,8 +57,9 @@ cbc = "0.2.1"
 cfb-mode = "0.9.1"
 clap = "4.6.7"
 des = "0.9.0"
+etherparse = { version = "0.21.0", default-features = false, features = ["std"] }
 hmac = "0.13.0"
-logos = "0.14.3"
+logos = "0.14.4"
 md-5 = "0.11.0"
 miette = { version = "7.6.0", features = ["fancy"] }
 pcap-file = "2.0.0"
@@ -67,7 +68,7 @@ rasn-smi = "0.28.15"
 rasn-snmp = "0.28.15"
 sha1 = "0.11.0"
 sha2 = "0.11.0"
-winnow = "1.0.4"
+winnow = { version = "1.0.5", features = ["simd"] }
 
 [profile.dev]
 opt-level = 0

@@ -3,22 +3,51 @@
 //! This binary reads declarative `.fasm` source files specifying network hosts, protocol flows,
 //! and execution blocks, runs the two-phase lexical/syntactic parser and semantic validator,
 //! and invokes the deterministic backend engine to emit nanosecond-precision `.pcap` / `.pcapng`
-//! packet capture files with rich `miette` terminal diagnostics and a `frameassembly show <file.fasm>`
+//! packet capture files with rich `miette` terminal diagnostics, a `frameassembly show <file.fasm>`
 //! subcommand that validates `.fasm` specifications and prints a terminal packet ladder table
-//! without writing a `.pcap` file.
-use clap::{Arg, Command};
+//! without writing a `.pcap` file, and a `frameassembly reverse <input.pcap>` subcommand that
+//! decompiles `.pcap` and `.pcapng` captures into canonical `.fasm` code.
+use clap::builder::PathBufValueParser;
+use clap::{Arg, Command, ValueHint};
 use frameassembly::backend::{compile_program, generate_pcap};
 use frameassembly::parser::parse_program;
+use frameassembly::reverse::reverse_pcap_file;
 use miette::{IntoDiagnostic, NamedSource, Result};
 use std::fmt::Write as _;
 use std::fs;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::path::{Path, PathBuf};
+
+/// Derives the default output path from `input` by replacing its extension with `default_ext`,
+/// or appending `.default_ext` if `input` already ends in `default_ext` so the input file is never overwritten.
+fn derive_default_output_path(input: &Path, default_ext: &str) -> PathBuf {
+    let has_same_ext = input
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case(default_ext));
+    if has_same_ext {
+        let mut os = input.as_os_str().to_os_string();
+        os.push(".");
+        os.push(default_ext);
+        PathBuf::from(os)
+    } else {
+        let candidate = input.with_extension(default_ext);
+        if candidate == input {
+            let mut os = input.as_os_str().to_os_string();
+            os.push(".");
+            os.push(default_ext);
+            PathBuf::from(os)
+        } else {
+            candidate
+        }
+    }
+}
 
 /// Constructs the `clap::Command` definition for the `frameassembly` CLI.
 fn build_cli() -> Command {
     Command::new("frameassembly")
         .version(env!("CARGO_PKG_VERSION"))
-        .about("Declarative network packet crafting tool generating deterministic .pcap/.pcapng captures across 81 L2-L7 protocols")
+        .about("Domain specific language for writing and compiling custom .pcap/.pcapng")
         .args_conflicts_with_subcommands(true)
         .subcommand(
             Command::new("show")
@@ -27,21 +56,46 @@ fn build_cli() -> Command {
                     Arg::new("input")
                         .help("Path to the .fasm source file")
                         .required(true)
-                        .index(1),
+                        .index(1)
+                        .value_hint(ValueHint::FilePath)
+                        .value_parser(PathBufValueParser::new()),
+                ),
+        )
+        .subcommand(
+            Command::new("reverse")
+                .about("Decompile a .pcap or .pcapng capture file into canonical .fasm code")
+                .arg(
+                    Arg::new("input")
+                        .help("Path to the input .pcap or .pcapng capture file")
+                        .required(true)
+                        .index(1)
+                        .value_hint(ValueHint::FilePath)
+                        .value_parser(PathBufValueParser::new()),
+                )
+                .arg(
+                    Arg::new("output")
+                        .short('o')
+                        .long("output")
+                        .help("Path to the output .fasm file (defaults to <input_stem>.fasm)")
+                        .value_hint(ValueHint::FilePath)
+                        .value_parser(PathBufValueParser::new()),
                 ),
         )
         .arg(
             Arg::new("input")
                 .help("Path to the .fasm source file")
                 .required(true)
-                .index(1),
+                .index(1)
+                .value_hint(ValueHint::FilePath)
+                .value_parser(PathBufValueParser::new()),
         )
         .arg(
             Arg::new("output")
                 .short('o')
                 .long("output")
-                .help("Path to the output PCAP file")
-                .default_value("output.pcap"),
+                .help("Path to the output PCAP file (defaults to <input_stem>.pcap)")
+                .value_hint(ValueHint::FilePath)
+                .value_parser(PathBufValueParser::new()),
         )
 }
 
@@ -450,32 +504,55 @@ fn format_packet_ladder(frames: &[(Vec<u8>, u64)]) -> String {
 /// The main entry point for the `frameassembly` CLI.
 ///
 /// # Errors
-/// Returns a `miette::Result` error if CLI arguments are invalid, the input `.fasm` file
-/// cannot be read, parsing/validation fails, or writing the `.pcap` capture fails.
+/// Returns a `miette::Result` error if CLI arguments are invalid, the input file
+/// cannot be read, parsing/validation/decompilation fails, or writing the output file fails.
 fn main() -> Result<()> {
     let matches = build_cli().get_matches();
 
-    let (file, show_only, output_pcap) =
+    if let Some(rev_matches) = matches.subcommand_matches("reverse") {
+        let input_path = rev_matches
+            .get_one::<PathBuf>("input")
+            .ok_or_else(|| miette::miette!("Missing input .pcap / .pcapng file"))?;
+        let output_path = rev_matches
+            .get_one::<PathBuf>("output")
+            .cloned()
+            .unwrap_or_else(|| derive_default_output_path(input_path, "fasm"));
+        let res = reverse_pcap_file(input_path)
+            .map_err(|e| miette::miette!("Reverse decompilation error: {}", e))?;
+        fs::write(&output_path, &res.fasm).into_diagnostic()?;
+        println!(
+            "Successfully reversed {} into {} ({} hosts, {} packets)",
+            input_path.display(),
+            output_path.display(),
+            res.host_count,
+            res.packet_count
+        );
+        return Ok(());
+    }
+
+    let (file_path, show_only, output_pcap) =
         if let Some(show_matches) = matches.subcommand_matches("show") {
             let input_file = show_matches
-                .get_one::<String>("input")
+                .get_one::<PathBuf>("input")
                 .ok_or_else(|| miette::miette!("Missing input .fasm file"))?;
-            (input_file, true, "output.pcap")
+            (input_file.clone(), true, PathBuf::new())
         } else {
             let input_file = matches
-                .get_one::<String>("input")
+                .get_one::<PathBuf>("input")
                 .ok_or_else(|| miette::miette!("Missing input .fasm file"))?;
             let out_path = matches
-                .get_one::<String>("output")
-                .map(String::as_str)
-                .unwrap_or("output.pcap");
-            (input_file, false, out_path)
+                .get_one::<PathBuf>("output")
+                .cloned()
+                .unwrap_or_else(|| derive_default_output_path(input_file, "pcap"));
+            (input_file.clone(), false, out_path)
         };
 
-    let code = fs::read_to_string(file).into_diagnostic()?;
+    let file_display = file_path.display().to_string();
+    let code = fs::read_to_string(&file_path).into_diagnostic()?;
 
     let program = parse_program(&code).map_err(|e| {
-        miette::Report::new(e).with_source_code(NamedSource::new(file.clone(), code.clone()))
+        miette::Report::new(e)
+            .with_source_code(NamedSource::new(file_display.clone(), code.clone()))
     })?;
 
     let frames = compile_program(&program).map_err(|e| miette::miette!("Backend error: {}", e))?;
@@ -498,12 +575,14 @@ fn main() -> Result<()> {
         .map(|(_, ts_ns)| ts_ns.saturating_sub(first_ts) as f64 / 1_000_000.0)
         .unwrap_or(0.0);
 
+    let output_pcap_str = output_pcap.to_string_lossy();
     println!("Starting PCAP compilation...");
-    generate_pcap(&program, output_pcap).map_err(|e| miette::miette!("Backend error: {}", e))?;
+    generate_pcap(&program, &output_pcap_str)
+        .map_err(|e| miette::miette!("Backend error: {}", e))?;
 
     println!(
         "Successfully generated {} ({} frames, {} bytes, duration {:.3} ms)",
-        output_pcap,
+        output_pcap_str,
         frames.len(),
         total_bytes,
         duration_ms
@@ -511,7 +590,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/// Unit tests for CLI commands (`frameassembly <input.fasm>` and `frameassembly show <input.fasm>`) and packet ladder formatting.
+/// Unit tests for CLI commands (`frameassembly <input.fasm>`, `frameassembly show <input.fasm>`, and `frameassembly reverse <input.pcap>`) and packet ladder formatting.
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -522,24 +601,49 @@ mod tests {
         build_cli().debug_assert();
     }
 
-    /// Verifies that both `frameassembly <file.fasm> [-o <output.pcap>]` and `frameassembly show <file.fasm>` parse cleanly and format a relative-timestamp packet ladder.
+    /// Verifies `derive_default_output_path` stem matching and collision avoidance for `.pcap` and `.fasm`.
     #[test]
-    fn test_cli_compile_and_show_subcommand() {
+    fn test_derive_default_output_path() {
+        assert_eq!(
+            derive_default_output_path(Path::new("example.fasm"), "pcap"),
+            PathBuf::from("example.pcap")
+        );
+        assert_eq!(
+            derive_default_output_path(Path::new("dir/test.fasm"), "pcap"),
+            PathBuf::from("dir/test.pcap")
+        );
+        assert_eq!(
+            derive_default_output_path(Path::new("already.pcap"), "pcap"),
+            PathBuf::from("already.pcap.pcap")
+        );
+        assert_eq!(
+            derive_default_output_path(Path::new("example.pcap"), "fasm"),
+            PathBuf::from("example.fasm")
+        );
+        assert_eq!(
+            derive_default_output_path(Path::new("traces/cap.pcapng"), "fasm"),
+            PathBuf::from("traces/cap.fasm")
+        );
+        assert_eq!(
+            derive_default_output_path(Path::new("already.fasm"), "fasm"),
+            PathBuf::from("already.fasm.fasm")
+        );
+    }
+
+    /// Verifies that `frameassembly <file.fasm> [-o <output.pcap>]`, `frameassembly show <file.fasm>`, and `frameassembly reverse <file.pcap>` parse cleanly.
+    #[test]
+    fn test_cli_compile_show_and_reverse_subcommands() {
         let compile_matches = build_cli()
             .try_get_matches_from(["frameassembly", "demo.fasm", "-o", "custom.pcap"])
             .expect("compile CLI arguments should parse");
         assert!(compile_matches.subcommand_matches("show").is_none());
         assert_eq!(
-            compile_matches
-                .get_one::<String>("input")
-                .map(String::as_str),
-            Some("demo.fasm")
+            compile_matches.get_one::<PathBuf>("input"),
+            Some(&PathBuf::from("demo.fasm"))
         );
         assert_eq!(
-            compile_matches
-                .get_one::<String>("output")
-                .map(String::as_str),
-            Some("custom.pcap")
+            compile_matches.get_one::<PathBuf>("output"),
+            Some(&PathBuf::from("custom.pcap"))
         );
 
         let show_matches = build_cli()
@@ -549,8 +653,29 @@ mod tests {
             .subcommand_matches("show")
             .expect("show subcommand should be matched");
         assert_eq!(
-            show_sub.get_one::<String>("input").map(String::as_str),
-            Some("demo.fasm")
+            show_sub.get_one::<PathBuf>("input"),
+            Some(&PathBuf::from("demo.fasm"))
+        );
+
+        let rev_matches = build_cli()
+            .try_get_matches_from([
+                "frameassembly",
+                "reverse",
+                "traces/cap.pcapng",
+                "-o",
+                "traces/cap.fasm",
+            ])
+            .expect("reverse subcommand should parse");
+        let rev_sub = rev_matches
+            .subcommand_matches("reverse")
+            .expect("reverse subcommand should be matched");
+        assert_eq!(
+            rev_sub.get_one::<PathBuf>("input"),
+            Some(&PathBuf::from("traces/cap.pcapng"))
+        );
+        assert_eq!(
+            rev_sub.get_one::<PathBuf>("output"),
+            Some(&PathBuf::from("traces/cap.fasm"))
         );
 
         let sample = "HOST a { IP 10.0.0.1 }\nHOST b { IP 10.0.0.2 }\nFLOW f(c, s) {\n    c -> s TCP SRCPORT 50000 DSTPORT 443 SYN\n    c <- s TCP SYN ACK WAIT 5ms\n}\nCOMPILE { f(a, b) }";

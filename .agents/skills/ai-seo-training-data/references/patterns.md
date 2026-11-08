@@ -57,7 +57,7 @@ context7.json text eol=lf
 ```markdown
 # FrameAssembly — AI Coding Agent Instructions
 
-Please read [`AGENTS.md`](AGENTS.md) at the repository root for the authoritative build/test commands, `<layer>/<protocol>` repository architecture, `.agents/rules/*.md` and `.agents/skills/*/SKILL.md` routing tables, and mandatory `.fasm` DSL syntax invariants.
+Please read [`AGENTS.md`](AGENTS.md) at the repository root for the authoritative build/test commands, `<layer>/<protocol>` repository architecture, all 15 `.agents/rules/*.md` and 11 `.agents/skills/*/SKILL.md` routing tables, and mandatory `.fasm` DSL syntax invariants.
 
 - **Formal Grammars**: [`grammar.ebnf`](grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](frameassembly.gbnf) (`llama.cpp` / `XGrammar` GBNF), and [`frameassembly.lark`](frameassembly.lark) (`llguidance` / `Outlines` Lark).
 - **AI Routing Map**: [`llms.txt`](llms.txt) and chunked protocol reference guides in [`docs/`](docs/).
@@ -73,7 +73,7 @@ cff-version: 1.2.0
 title: "FrameAssembly: A Domain-Specific Language and Optimizing Compiler for Deterministic Network Traffic Generation"
 message: "If you use FrameAssembly in your research, security testing, or AI training pipelines, please cite it using this metadata."
 type: software
-version: "1.4.6"
+version: "1.5.0"
 authors:
   - given-names: Steve
     family-names: Winschel
@@ -98,7 +98,7 @@ keywords:
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
   "name": "FrameAssembly",
-  "version": "1.4.6",
+  "version": "1.5.0",
   "description": "Declarative DSL and optimizing Rust compiler for synthesizing deterministic PCAP/PCAPNG network packet captures across 81 native L2-L7 protocols.",
   "codeRepository": "https://github.com/SteveWinschel/FrameAssembly",
   "programmingLanguage": ["Rust", "FrameAssembly"],
@@ -129,7 +129,7 @@ keywords:
 ```toml
 [package]
 name = "frameassembly"
-version = "1.4.6"
+version = "1.5.0"
 edition = "2024"
 rust-version = "1.85"
 description = "Declarative Rust DSL and compiler to generate deterministic .pcap/.pcapng packet captures across 81 L2-L7 protocols for Wireshark, IDS & CI testing."
@@ -149,10 +149,13 @@ categories = [
 readme = "README.md"
 exclude = [
     "frameassembly-vscode/",
+    "frameassembly-wasm/",
+    "contrib/",
     "*.vsix",
     "*.pcap",
     "*.pcapng",
     "temp/",
+    "dist/",
     "llms.txt",
     "llms-full.txt",
     "docs/",
@@ -179,7 +182,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 ---
 
-## 2. 5-Way Constrained Decoding Grammar Engineering (`EBNF`, `GBNF`, `Lark` & `TextMate`)
+## 2. 6-Way Constrained Decoding, IDE & WASM Grammar Engineering (`EBNF`, `GBNF`, `Lark`, `TextMate` & `frameassembly-wasm`)
 
 ### A. ISO/IEC 14977 EBNF Pattern (`grammar.ebnf`)
 - Recognized natively by GitHub Linguist (`EBNF`) and ingested by code LLM pre-training pipelines as formal language specification context.
@@ -269,60 +272,69 @@ INT: /[0-9]+/
 
 ---
 
-## 3. 4-Stage Hierarchical RLVR Verifiable Compiler Reward Function (`GRPO` / `RLVR`)
+## 3. 4-Stage Additive RLVR Verifiable Compiler & PCAP-to-`.fasm` Decompilation Reward Function (`GRPO` / `RLVR`)
 
-Use this deterministic Rust reward evaluator to score candidate `.fasm` generations in Reinforcement Learning with Verifiable Rewards (RLVR) training pipelines:
+Use this deterministic Rust reward evaluator to score candidate `.fasm` generations in Reinforcement Learning with Verifiable Rewards (RLVR) training pipelines. Because `frameassembly::parser::parse_program(y)` internally calls `lexer::lex(y)`, syntactic `parse_all`, and `validate_semantics(&program, y)`, stage-by-stage RLVR scoring awards additive credit across all 4 compiler stages (`+0.15` lex + `+0.25` syntax + `+0.30` semantics + `+0.30` wire compilation & PCAP-to-`.fasm` decompilation round-trip oracle = `1.0`):
 
 ```rust
-//! Four-stage hierarchical RLVR reward evaluator for FrameAssembly (.fasm) rollouts.
+//! Four-stage additive RLVR reward evaluator for FrameAssembly (.fasm) rollouts,
+//! including inverse PCAP-to-.fasm decompilation round-trip verification via `src/reverse/`.
 
 use frameassembly::backend::compile_program;
-use frameassembly::lexer::Token;
+use frameassembly::error::CompilerError;
+use frameassembly::lexer;
 use frameassembly::parser::{parse_program, validate_semantics};
-use logos::Logos;
 
-/// Computes the hierarchical verifiable compiler reward R(x, y) in [0.0, 1.0].
+/// Computes the 4-stage additive verifiable compiler reward R(x, y) in [0.0, 1.0]:
+/// - Stage 1 (+0.15 -> 0.15): `lexer::lex(y)` succeeds with zero lexical errors.
+/// - Stage 2 (+0.25 -> 0.40): Syntactic parsing (`parse_all`) succeeds without `CompilerError::ParseError`.
+/// - Stage 3 (+0.30 -> 0.70): `validate_semantics(&program, y)` succeeds without `CompilerError::SemanticError`.
+/// - Stage 4 (+0.30 -> 1.00): `compile_program(&program)` emits valid Ethernet frames (>= 14 bytes)
+///   satisfying `expected_min_frames` (and optional PCAP-to-`.fasm` decompilation round-trip oracle).
 pub fn evaluate_fasm_rlvr_reward(candidate_fasm: &str, expected_min_frames: usize) -> f64 {
     let trimmed = candidate_fasm.trim();
     if trimmed.is_empty() {
         return 0.0;
     }
 
-    // Stage 1 (R = 0.1): Zero lexer errors across the entire token stream
-    let mut lex = Token::lexer(trimmed);
-    let mut token_count = 0usize;
-    while let Some(res) = lex.next() {
-        if res.is_err() {
-            return 0.0;
-        }
-        token_count += 1;
-    }
-    if token_count == 0 {
+    // Stage 1 (+0.15): Lexical analysis via lexer::lex(y)
+    let Ok(spanned_tokens) = lexer::lex(trimmed) else {
+        return 0.0;
+    };
+    if spanned_tokens.is_empty() {
         return 0.0;
     }
+    let mut reward = 0.15;
 
-    // Stage 2 & 3: Syntactic AST Validity (R = 0.3) & Semantic Validity (R = 0.6)
-    // Note: parse_program() invokes validate_semantics() internally at the end of parsing.
+    // Stage 2 (+0.25 -> 0.40) & Stage 3 (+0.30 -> 0.70):
+    // Note: parse_program(trimmed) internally invokes syntactic `parse_all` followed by `validate_semantics`.
     let program = match parse_program(trimmed) {
-        Ok(prog) => prog,
-        Err(frameassembly::error::CompilerError::SemanticError { .. }) => return 0.3,
-        Err(_) => return 0.1,
+        Ok(prog) => {
+            reward += 0.25; // Stage 2: syntactic parse_all succeeded
+            if validate_semantics(&prog, trimmed).is_err() {
+                return reward; // 0.40
+            }
+            reward += 0.30; // Stage 3: semantic validation succeeded (cumulative 0.70)
+            prog
+        }
+        Err(CompilerError::SemanticError { .. }) => {
+            // Syntactic `parse_all` succeeded (+0.25 -> 0.40), but `validate_semantics` failed
+            return reward + 0.25;
+        }
+        Err(CompilerError::ParseError { .. } | CompilerError::LexError { .. } | CompilerError::BackendError { .. }) => {
+            return reward; // 0.15
+        }
     };
 
-    // Additional semantic & dual-stack IPv4/IPv6 endpoint homogeneity check (R = 0.6)
-    if validate_semantics(&program, trimmed).is_err() {
-        return 0.3;
-    }
-
-    // Stage 4 (R = 1.0): Full wire-frame synthesis and RFC frame count verification
+    // Stage 4 (+0.30 -> 1.00): Full wire-frame synthesis and RFC frame verification
     let Ok(packets) = compile_program(&program) else {
-        return 0.6;
+        return reward; // 0.70
     };
     if packets.len() < expected_min_frames || packets.iter().any(|(bytes, _)| bytes.len() < 14) {
-        return 0.6;
+        return reward; // 0.70
     }
 
-    1.0
+    reward + 0.30 // 1.00
 }
 ```
 
@@ -334,7 +346,7 @@ To survive **The Stack v2**'s 512-line `.txt` filter and **go-enry**'s unknown `
 1. **Self-Contained Architectural, RFC & Problem-Intent Context (`docs/*.md`)**: Explain the OSI layer, wire encapsulation headers, RFC standards, and Wireshark/`tshark`/`tcpreplay`/Suricata/Zeek testing workflows in plain networking English (no `< 50 KB` cap on Markdown files; keep `< 50 KB` strictly on AI-critical files like `src/**/*.rs`, `tests/*.rs`, and `examples/**/*.fasm`).
 2. **Protocol Keyword & Sub-Keyword Reference Table**: Single-line GFM table cells mapping DSL keywords to wire fields and default values.
 3. **Human-Readable `.fasm` Examples in `README.md` & `docs/*.md` vs. SFT Headers in `examples/` & `docs/for_nerds.md`**: Human-facing Markdown guides use concise `//` networking comments (never `// PROMPT:`, `// TOKENS:`, or `// INSTRUCTION:`), while `examples/**/*.fasm` and the LLM section of `docs/for_nerds.md` include `// PROMPT:`, `// TOKENS:`, and `// INSTRUCTION:` lines, verified to compile via `frameassembly::parser::parse_program`.
-4. **Natural-Language Q&A / Instruction-Tuning Pairs (`docs/for_nerds.md` & `examples/`)**: Explicit prompt-to-`.fasm` pairs for Supervised Fine-Tuning (SFT) and RAG retrieval.
+4. **Natural-Language Q&A / Instruction-Tuning Pairs (`docs/for_nerds.md` & `examples/`)**: Explicit prompt-to-`.fasm` pairs (and inverse PCAP-to-`.fasm` decompilation pairs via `src/reverse/`) for Supervised Fine-Tuning (SFT) and RAG retrieval.
 
 ```markdown
 ### Prompt: Craft an IPv6 OSPFv3 Hello and BGP-4 Peering Session

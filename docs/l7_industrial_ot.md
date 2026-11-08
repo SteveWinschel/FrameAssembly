@@ -1,10 +1,10 @@
 # Layer 7 — Industrial Control Systems (ICS) & SCADA/OT
 
-[**Use Cases**](#ot-and-ics-security-testing-use-cases) • [**Protocol Matrix**](#ot-protocol-summary-matrix-6-protocols) • [**Modbus/TCP**](#modbustcp-modbus) • [**DNP3**](#ieee-1815-dnp3-dnp3) • [**Siemens S7comm**](#siemens-s7comm-s7comm) • [**BACnet/IP**](#bacnetip-bacnet) • [**EtherNet/IP**](#odva-ethernetip-ethernetip) • [**OPC UA**](#opc-ua-binary-opcua) • [**Docs Hub**](README.md)
+[**Use Cases**](#ot-and-ics-security-testing-use-cases) • [**Protocol Matrix**](#ot-protocol-summary-matrix-6-protocols) • [**Modbus/TCP**](#modbustcp-modbus) • [**DNP3**](#ieee-1815-dnp3-dnp3) • [**Siemens S7comm**](#siemens-s7comm-s7comm) • [**BACnet/IP**](#bacnetip-bacnet) • [**EtherNet/IP**](#odva-ethernetip-ethernetip) • [**OPC UA**](#opc-ua-binary-opcua) • [**Docs Hub**](../README.md)
 
 Testing IT firewall rules is forgiving: if you fat-finger a rule, someone complains that Jira is slow. Testing OT/ICS firewall policies and NDR sensors on a live plant floor is less fun—nobody lets you fire unauthorized `Write Single Register` or Siemens `PLC_CONTROL` stop commands at a running S7-1500 or substation RTU just to verify that your new conduit ACL works, and buying €20,000 worth of DIN-rail PLCs for your desk usually gets vetoed by finance.
 
-FrameAssembly compiles wire-accurate **`Modbus/TCP`**, **`DNP3`**, **`S7comm`**, **`BACnet/IP`**, **`EtherNet/IP`**, and **`OPC UA`** `.pcap` / `.pcapng` captures offline in unprivileged user space -> complete with automatic TCP `SEQ`/`ACK` tracking, IEEE 1815 `DNP3` per-chunk CRCs, and 802.1Q `VLAN` / `PCP` priority tags. Feed the output straight into **Suricata**, **Zeek**, **Wireshark** / **`tshark`**, **Claroty** / **Nozomi** / **Dragos** sensors, or **`tcpreplay`** without risking an unplanned factory shutdown :)
+FrameAssembly compiles **`Modbus/TCP`**, **`DNP3`**, **`S7comm`**, **`BACnet/IP`**, **`EtherNet/IP`**, and **`OPC UA`** `.pcap` / `.pcapng` captures -> complete with automatic TCP `SEQ`/`ACK` tracking, IEEE 1815 `DNP3` per-chunk CRCs, and 802.1Q `VLAN` / `PCP` priority tags. Feed the output straight into **Suricata**, **Zeek**, **Wireshark** / **`tshark`**, **Claroty** / **Nozomi** / **Dragos** sensors, or **`tcpreplay`** without risking an unplanned factory shutdown :)
 
 ## OT and ICS Security Testing Use Cases
 
@@ -119,6 +119,7 @@ compile { bms_and_factory_conduit(bms_srv, hvac_ctrl, cell_scanner, cip_drive, h
 ```console
 $ frameassembly show ot_conduit.fasm
 $ frameassembly ot_conduit.fasm -o ot_conduit.pcap && sudo tcpreplay -i eth0 ot_conduit.pcap
+$ frameassembly reverse ot_conduit.pcap -o ot_conduit_reversed.fasm
 ```
 
 ## OT Protocol Summary Matrix (6 Protocols)

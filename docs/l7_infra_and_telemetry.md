@@ -6,7 +6,7 @@
 
 Testing core infrastructure rules, SIEM parsers, and flow collectors usually demands an absurd amount of lab plumbing for five packets of traffic. If you want to verify that **Suricata** catches an unauthorized DNS `AXFR` zone transfer, check switch DHCP snooping, test **Cisco ISE** / **FreeRADIUS** attributes, or see if **Splunk** and **ElastiFlow** parse a BGP flap, your normal options are rough -> edit `bind` zone files, configure `kea-dhcp` scopes, buy a four-figure IEEE 1588 PTP grandmaster clock, or yank a fiber out of a core router just to generate one syslog line and hope nobody notices :)
 
-With **FrameAssembly**, you write the exact query, lease, AAA exchange, or flow record in a few lines of `.fasm` packet code, compile a clean `.pcap` offline with no `sudo` or lab daemons needed, and feed it straight into **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, or **Zeek**:
+With **FrameAssembly**, you write the query, lease, AAA exchange, or flow record in a few lines of `.fasm` code, compile a `.pcap` file without running lab daemons, and feed it straight into **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, or **Zeek**:
 
 ```frameassembly
 host core_rtr { ip 10.250.0.1   mac 00:1c:73:fa:00:01 }
@@ -211,7 +211,7 @@ compile {
 | :--- | :--- | :--- | :--- |
 | **`dns`** | `query` (default), `response` | `txid <u16>`, `qname "<domain>"`, `qtype "<type>"`, `rdata "<val>"`, `rcode <0..15>`, `ans_ttl <u32>`, `transport tcp` | `qtype`: `"A"`, `"AAAA"`, `"CNAME"`, `"NS"`, `"PTR"`, `"MX"`, `"TXT"`, `"SOA"`, `"SRV"`, `"AXFR"`, `"ANY"`; `rcode`: `0` NOERROR, `2` SERVFAIL, `3` NXDOMAIN, `5` REFUSED |
 | **`mdns`** | `query` (default), `response` | Same modifiers as `dns` (`txid`, `qname`, `qtype`, `rdata`, `rcode`, `ans_ttl`) | `UDP 5353`; auto-targets `224.0.0.251` (IPv4) or `ff02::fb` (IPv6) with RFC multicast MACs |
-| **`dhcp`** | v4: `discover`, `offer`, `request`, `ack`, `release`<br>v6: `solicit`, `advertise`, `request`, `reply`, `release` | `xid <u32>`, `chaddr <mac>`, `ciaddr <ipv4>`, `yiaddr <ipv4>`, `siaddr <ipv4>`, `subnet_mask <ipv4>`, `router <ipv4>`, `dns_server <ipv4>`, `hostname "<str>"`, `lease_time <u32>` | Builds 236B BOOTP + `0x63825363` cookie + TLV options on IPv4 (`68/67`) or RFC 8415 DHCPv6 + Option 1 DUID-LL on IPv6 (`546/547`) |
+| **`dhcp`** | v4: `discover`, `offer`, `request`, `ack`, `release`; v6: `solicit`, `advertise`, `request`, `reply`, `release` | `xid <u32>`, `chaddr <mac>`, `ciaddr <ipv4>`, `yiaddr <ipv4>`, `siaddr <ipv4>`, `subnet_mask <ipv4>`, `router <ipv4>`, `dns_server <ipv4>`, `hostname "<str>"`, `lease_time <u32>` | Builds 236B BOOTP + `0x63825363` cookie + TLV options on IPv4 (`68/67`) or RFC 8415 DHCPv6 + Option 1 DUID-LL on IPv6 (`546/547`) |
 
 > **Quick Syntax Check (`dns` & `dhcp`):** `query` and `response` are standalone flags—always pass the domain name via `qname "<domain>"` (never `dns query "example.com"`). On `dhcp`, use `xid <u32>` to set the BOOTP / DHCPv6 Transaction ID.
 
@@ -247,11 +247,14 @@ compile {
 | `4` / `5` | `warning` / `notice` | Threshold crossed / config or ACL event | `16`..`19` | `local0`..`local3` (router & switch NOS) |
 | `6` / `7` | `info` / `debug` | Routine message (`6` default) / trace | `20`..`23` | `local4`..`local7` (firewalls, VPN, audit) |
 
-## Inspecting and Replaying Infrastructure Captures
+## Inspecting, Reversing and Replaying Infrastructure Captures
 
 ```console
 # Extract DNS queries/rcodes, Syslog messages, and IPFIX byte counters in tshark
 $ tshark -r infra_check.pcap -T fields -e frame.number -e dns.qry.name -e dns.flags.rcode -e syslog.msg -e cflow.octets64
+
+# Reverse an existing DNS, DHCP, RADIUS, Syslog, or NetFlow/IPFIX capture into editable .fasm code
+$ frameassembly reverse infra_check.pcap -o edited_infra.fasm
 
 # Test Suricata rules against DNS sinkholes, rogue DHCP, or AXFR zone transfers
 $ suricata -r ddi_and_onboarding.pcap -k none

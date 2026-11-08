@@ -163,7 +163,7 @@ compile { remote_admin_and_ztp(admin_ws, core_switch) }
 ```
 
 ### 4. Debug Broken `SIP` ALGs, `DSCP EF` `RTP` Voice Queues, `RTSP` Cameras & Rogue `SSDP` UPnP
-Troubleshooting one-way VoIP audio across NAT or firewall SIP ALGs usually means digging two desk phones out of a closet or fighting `sipp` XML templates. Build the entire `STUN` + `SIP` + `RTP` call flow, `RTSP` NVR camera setup, and `SSDP` multicast sweep in one readable block:
+Troubleshooting one-way VoIP audio across NAT or firewall SIP ALGs usually means digging two desk phones out of a closet or fighting `sipp` XML templates. Build the entire `STUN` + `SIP` + `RTP` call flow, `RTSP` NVR camera setup, and `SSDP` multicast sweep in one flow:
 
 ```frameassembly
 host voip_phone { ip 10.80.1.50 }
@@ -193,7 +193,7 @@ flow voip_camera_and_upnp(phone, sbc) {
 
     // 4. SSDP UPnP multicast M-SEARCH and NOTIFY alive advertisement on UDP 1900
     phone -> sbc ssdp msearch host_hdr "239.255.255.250:1900" man "\"ssdp:discover\"" mx 3 st "urn:schemas-upnp-org:device:MediaServer:1" wait 1ms
-    phone <- sbc ssdp notify  host_hdr "239.255.255.250:1900" nt "urn:schemas-upnp-org:device:MediaServer:1" nts "ssdp:alive" usn "uuid:media-01::upnp:rootdevice" location "[http://10.80.1.10:8200/rootDesc.xml](http://10.80.1.10:8200/rootDesc.xml)"
+    phone <- sbc ssdp notify  host_hdr "239.255.255.250:1900" nt "urn:schemas-upnp-org:device:MediaServer:1" nts "ssdp:alive" usn "uuid:media-01::upnp:rootdevice" location "http://10.80.1.10:8200/rootDesc.xml"
 }
 
 compile { voip_camera_and_upnp(voip_phone, sbc_media) }

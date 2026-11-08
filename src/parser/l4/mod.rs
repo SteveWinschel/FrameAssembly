@@ -14,11 +14,8 @@ use crate::ast::*;
 use crate::lexer::Token;
 use crate::parser::{ParsedField, Stream, parse_u16, parse_u32, tag};
 
-/// Stream Control Transmission Protocol parser.
 pub(crate) mod sctp;
-/// Transmission Control Protocol parser.
 pub(crate) mod tcp;
-/// User Datagram Protocol parser.
 pub(crate) mod udp;
 
 pub(crate) use sctp::*;

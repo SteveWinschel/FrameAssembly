@@ -1,17 +1,22 @@
-# Modern Rust (Edition 2024) QA, Corpus Verification & Testing Reference Patterns
+# Modern Rust (Edition 2024, Rust 1.85–1.99.1) QA, Corpus Verification & Testing Reference Patterns
 
-This reference document provides production-ready, compile-verified, and idiomatic Rust code templates covering the 4-tier testing taxonomy, the 5-gate corpus/lexer-bijection/Markdown-block verification engine (`2,611` scenarios), automated 5-way grammar non-terminal resolution, `proptest` round-trip synthesis, external `tshark` dissector validation, `cargo-mutants`, and CI quality gates.
+This reference document provides production-ready, compile-verified, and idiomatic Rust code templates covering the 4-tier testing taxonomy (with Rust 1.96+ `assert_matches!` and Rust 1.89+ `File::lock`), the 6-gate corpus/lexer-bijection/Markdown-block/AST-wiring verification engine (`2,611` scenarios), automated 6-way grammar/IDE/WASM lockstep and non-terminal resolution, `proptest` round-trip synthesis (`proptest-regressions/`), external `tshark` dissector validation, `cargo-mutants --in-diff`, and `.agents/scripts/file_lock.sh` parallel multi-agent coordination.
 
 ---
 
-## 1. Multi-Tier Testing Hierarchy Implementation (Using Real `frameassembly` APIs)
+## 1. Multi-Tier Testing Hierarchy Implementation (With Rust 1.96+ `assert_matches!` & Rust 1.89+ `File::lock`)
 
-Demonstrates the 4-tier testing pattern used in FrameAssembly to achieve zero-regression test coverage across unit, boundary, cross-layer, and conversational flows using [`frameassembly::parser::parse_program`](file:///home/steve/frameassembly/src/parser/mod.rs), [`frameassembly::parser::validate_semantics`](file:///home/steve/frameassembly/src/parser/mod.rs), and [`frameassembly::backend::compile_program`](file:///home/steve/frameassembly/src/backend/mod.rs).
+Demonstrates the 4-tier testing pattern used in FrameAssembly to achieve zero-regression test coverage across unit, boundary, cross-layer, and conversational flows using [`frameassembly::parser::parse_program`](file:///home/steve/frameassembly/src/parser/mod.rs), [`frameassembly::parser::validate_semantics`](file:///home/steve/frameassembly/src/parser/mod.rs), [`frameassembly::backend::compile_program`](file:///home/steve/frameassembly/src/backend/mod.rs), Rust 1.96 `std::assert_matches::assert_matches!`, and Rust 1.89 `std::fs::File::lock()`.
 
 ```rust
-//! Production implementation of multi-tier test architectures using canonical FrameAssembly APIs.
+//! Production implementation of multi-tier test architectures using canonical FrameAssembly APIs
+//! and modern Rust 1.89–1.99.1 standard library QA primitives.
+
+use std::assert_matches::{assert_matches, debug_assert_matches};
+use std::fs::OpenOptions;
 
 use frameassembly::backend::compile_program;
+use frameassembly::error::CompilerError;
 use frameassembly::parser::{parse_program, validate_semantics};
 
 // ============================================================================
@@ -51,7 +56,7 @@ COMPILE {
 }
 
 // ============================================================================
-// TIER 2: Boundary, Overflow & Corner Cases
+// TIER 2: Boundary, Overflow & Corner Cases (Rust 1.96+ assert_matches!)
 // ============================================================================
 #[test]
 fn test_tier2_mixed_ipv4_ipv6_endpoints_rejected_by_semantics() {
@@ -67,9 +72,14 @@ COMPILE {
 "#
     .trim();
 
-    let prog = parse_program(source).expect("Syntactically valid program");
-    let res = validate_semantics(&prog, source);
-    assert!(res.is_err(), "Mixing IPv4 and IPv6 endpoints in one statement must fail");
+    // parse_program invokes validate_semantics at the end of parsing
+    let res = parse_program(source);
+    assert_matches!(
+        res,
+        Err(CompilerError::SemanticError { ref message, .. })
+            if message.contains("IPv4") || message.contains("IPv6")
+    );
+    debug_assert_matches!(res, Err(CompilerError::SemanticError { .. }));
 }
 
 // ============================================================================
@@ -103,10 +113,20 @@ COMPILE {
 }
 
 // ============================================================================
-// TIER 4: Real-World Conversational Flow & 4-Tuple TCP State Progression
+// TIER 4: Real-World Conversational Flow & Rust 1.89+ File::lock() Guard
 // ============================================================================
 #[test]
 fn test_tier4_complete_three_way_tcp_handshake_and_http_flow() {
+    let lock_path = std::env::temp_dir().join("frameassembly_tier4_fixture.lock");
+    let lock_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(&lock_path)
+        .expect("Failed to open cross-process test lock file");
+    // Rust 1.89+ native OS advisory lock across parallel nextest / cargo test processes
+    lock_file.lock().expect("Failed to acquire File::lock()");
+
     let source = r#"
 HOST client { IP 172.16.0.5 MAC 00:01:02:03:04:05 }
 HOST server { IP 172.16.0.10 MAC 00:06:07:08:09:0a }
@@ -127,21 +147,22 @@ COMPILE {
     validate_semantics(&program, source).expect("TCP + HTTP flow must pass semantics");
     let packets = compile_program(&program).expect("TCP + HTTP flow must compile");
     assert_eq!(packets.len(), 5);
+    let _ = lock_file.unlock();
 }
 ```
 
 ---
 
-## 2. Five-Gate Corpus (`2,611` Files), Lexer Bijection & Markdown Block Verification Engine (`tests/corpus_verification_tests.rs`)
+## 2. Six-Gate Corpus (`2,611` Files), Lexer Bijection, Markdown Block & AST `*Spec`-to-Builder Wiring Engine (`tests/corpus_verification_tests.rs`)
 
-Automates deep structural, lexical bijection, Markdown fenced-block compilation, and OpenCoder/chunk-size verification across the repository.
+Automates deep structural, lexical bijection, Markdown fenced-block compilation, OpenCoder/chunk-size verification, and Gate 6 AST `*Spec` field-to-builder wiring checks across the repository.
 
 ```rust
-//! Five-gate verification suite for FrameAssembly examples (2,611 scenarios) and documentation.
+//! Six-gate verification suite for FrameAssembly examples (2,611 scenarios), documentation,
+//! and AST-to-builder wire completeness.
 
-use std::collections::HashSet;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use logos::Logos;
 use frameassembly::backend::compile_program;
 use frameassembly::lexer::Token;
@@ -162,8 +183,6 @@ pub fn verify_tokens_header_bijection(path: &Path, content: &str) -> Result<(), 
         .filter(|s| !s.is_empty())
         .collect();
 
-    // Lex each declared token string in isolation to ensure it is a real DSL token
-    // (never a hallucinated keyword like IPV4, SEND, SPORT, DPORT, REQ_ID).
     for raw_tok in &header_tokens {
         let mut lex = Token::lexer(raw_tok);
         match lex.next() {
@@ -209,8 +228,8 @@ pub fn verify_markdown_fasm_blocks_compile(path: &Path) -> Result<usize, String>
         } else if in_block && trimmed.starts_with("```") {
             in_block = false;
             let snippet = current_block.trim();
-            // Full programs containing HOST, FLOW, and COMPILE must compile end-to-end
-            if snippet.contains("HOST ") && snippet.contains("FLOW ") && snippet.contains("COMPILE") {
+            let upper = snippet.to_ascii_uppercase();
+            if upper.contains("HOST ") && upper.contains("FLOW ") && upper.contains("COMPILE") {
                 let prog = parse_program(snippet).map_err(|e| {
                     format!("{}:{}: Markdown .fasm block failed to parse: {e:?}", path.display(), block_start_line)
                 })?;
@@ -263,16 +282,51 @@ pub fn verify_file_chunk_size_and_word_bounds(path: &Path) -> Result<(), String>
     }
     Ok(())
 }
+
+/// Gate 6: Verifies that every `pub` field on every protocol `*Spec` struct (plus `TcpOptions`
+/// and `SctpParams`) in `src/ast/{l2,l3,l4,l7}/*.rs` is wired into and referenced by the
+/// corresponding wire builder, `src/packet.rs`, or `src/backend/`.
+pub fn verify_ast_spec_fields_wired(ast_path: &Path, builder_sources: &str) -> Vec<String> {
+    let ast_src = fs::read_to_string(ast_path).expect("Failed to read AST file");
+    let mut current_struct: Option<String> = None;
+    let mut unwired = Vec::new();
+
+    for line in ast_src.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("pub struct ") {
+            let name = rest.split(['{', '<', '(']).next().unwrap_or("").trim();
+            if name.ends_with("Spec") || name == "TcpOptions" || name == "SctpParams" {
+                current_struct = Some(name.to_string());
+            } else {
+                current_struct = None;
+            }
+        } else if current_struct.is_some() && trimmed.starts_with('}') {
+            current_struct = None;
+        } else if let Some(struct_name) = &current_struct
+            && let Some(rest) = trimmed.strip_prefix("pub ")
+            && let Some((field_name, _)) = rest.split_once(':')
+        {
+            let field_name = field_name.trim();
+            if field_name != "_marker" {
+                let dot_access = format!(".{field_name}");
+                if !builder_sources.contains(&dot_access) && !builder_sources.contains(field_name) {
+                    unwired.push(format!("{}::{struct_name}::{field_name}", ast_path.display()));
+                }
+            }
+        }
+    }
+    unwired
+}
 ```
 
 ---
 
-## 3. Automated 5-Way Grammar Lockstep & Non-Terminal Resolution Test Template
+## 3. Automated 6-Way Grammar, IDE & WASM Lockstep + Non-Terminal Resolution Test Template
 
-Verifies not only that every uppercase `#[token("...")]` in `src/lexer/mod.rs` is present in `grammar.ebnf`, `frameassembly.gbnf`, and `frameassembly.lark`, but also that **every non-terminal referenced on the RHS of a grammar rule is actually defined on the LHS** (catching bugs like undefined `string_char` in `grammar.ebnf` or undefined rules in `frameassembly.gbnf` / `frameassembly.lark`):
+Verifies that every uppercase `#[token("...")]` in `src/lexer/mod.rs` is present in `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json` (both uppercase and lowercase), and that **every non-terminal referenced on the RHS of a grammar rule is actually defined on the LHS**:
 
 ```rust
-//! Automated 5-way grammar non-terminal resolution and keyword lockstep test.
+//! Automated 6-way grammar/IDE/WASM non-terminal resolution and keyword lockstep test.
 
 use std::collections::HashSet;
 use std::fs;
@@ -291,7 +345,6 @@ fn test_gbnf_all_referenced_non_terminals_are_defined() {
         }
         if let Some((lhs, rhs)) = trimmed.split_once("::=") {
             defined.insert(lhs.trim().to_string());
-            // Strip string literals "..." and character classes [...] before scanning identifiers
             let mut in_quotes = false;
             let mut in_brackets = false;
             let mut cleaned = String::new();
@@ -334,9 +387,11 @@ fn test_gbnf_all_referenced_non_terminals_are_defined() {
 
 ---
 
-## 4. Property-Based Compiler Testing (`proptest`) & External Wireshark (`tshark`) Dissector Gate
+## 4. Property-Based Compiler Testing (`proptest` + `proptest-regressions/`) & External Wireshark (`tshark`) Dissector Gate
 
 ### A. Property-Based AST & Round-Trip Synthesis (`proptest`)
+Commit generated `proptest-regressions/**/*.txt` seed files to version control so failing counterexamples discovered during fuzzing or CI runs replay deterministically on every `cargo test` invocation.
+
 ```rust
 //! Property-based round-trip testing for FrameAssembly using proptest.
 
@@ -406,7 +461,6 @@ pub fn assert_tshark_clean_dissection(source: &str, temp_pcap_path: &str) {
         .args(["-r", temp_pcap_path, "-V"])
         .output()
     else {
-        // Skip external dissector check gracefully if tshark is not installed in the sandbox
         let _ = std::fs::remove_file(temp_pcap_path);
         return;
     };
@@ -427,19 +481,27 @@ pub fn assert_tshark_clean_dissection(source: &str, temp_pcap_path: &str) {
 
 ---
 
-## 5. Mutation Testing (`cargo-mutants`), Coverage (`cargo-llvm-cov`) & Semver (`cargo-semver-checks`) Commands
+## 5. Nextest, Doctest Coverage, Mutation Testing (`--in-diff`), Semver & `.agents/scripts/file_lock.sh` Commands
 
 ```bash
-# 1. Run full unit, 4-tier integration, 5-gate corpus, and Edition 2024 merged doctests
-cargo test --all-targets
-cargo test --doc
+# 1. Run parallel test processes and Edition 2024 merged doctests with Rust 1.97+ build.warnings gate
+CARGO_BUILD_WARNINGS=deny cargo nextest run --all-targets
+CARGO_BUILD_WARNINGS=deny cargo test --doc
 
-# 2. Enforce >= 90% line coverage across the compiler pipeline
-cargo llvm-cov --all-targets --workspace --fail-under-lines 90
+# 2. Enforce >= 90% line coverage including Edition 2024 doctests (--doctests)
+cargo llvm-cov --all-targets --doctests --workspace --fail-under-lines 90
 
-# 3. Run targeted mutation testing on wire framing, checksums, and protocol builders
-cargo mutants -f src/packet.rs -f src/builders/l2/ -f src/builders/l3/ -f src/builders/l4/
+# 3. Run diff-scoped and module-scoped mutation testing on parsers, validators, USM crypto, and builders
+git diff origin/main...HEAD > temp/changes.diff
+cargo mutants --in-diff temp/changes.diff
+cargo mutants -f src/packet.rs -f src/parser/validation.rs -f src/builders/l7/snmp/crypto.rs
 
 # 4. Verify zero accidental public API semver regressions prior to crate release
 cargo semver-checks check-release
+
+# 5. Coordinate parallel multi-agent file edits and serialized Cargo target builds via file_lock.sh
+.agents/scripts/file_lock.sh acquire worker_qa 600 tests/corpus_verification_tests.rs
+.agents/scripts/file_lock.sh status
+.agents/scripts/file_lock.sh exec cargo-target -- cargo test --test corpus_verification_tests
+.agents/scripts/file_lock.sh release worker_qa tests/corpus_verification_tests.rs
 ```

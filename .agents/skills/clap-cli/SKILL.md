@@ -1,11 +1,11 @@
 ---
 name: clap-cli
-description: Comprehensive guide, API selection matrix, and production code templates for building modern, type-safe, and scalable command-line interfaces in Rust with clap 4.6+ (covering Derive and Builder APIs, deeply nested subcommands, anstyle terminal styling, TypedValueParser validation, and companion crates).
+description: Comprehensive guide, API selection matrix, and production code templates for building modern, type-safe, and scalable command-line interfaces in Rust with clap 4.6.7+, clap_builder 4.6.7, clap_lex 1.1.1, anstyle 1.0.14, and anstream 1.0.0 (covering Derive and Builder APIs, hybrid positional + subcommand routing, lazy deferred subcommands, anstyle terminal styling, TypedValueParser validation, and ValueSource layered configuration).
 ---
 
 # Clap 4.6.7+ CLI Engineering Skill
 
-Use this skill when designing, implementing, refactoring, or testing command-line interfaces using `clap` (`4.6.7+`), `clap_builder` (`4.6.7`), `clap_lex` (`1.1.1`), `anstyle` (`1.0.14`), and `anstream` (`1.0.0`) in Rust.
+Use this skill when designing, implementing, refactoring, or testing command-line interfaces using `clap` (`4.6.7+`, MSRV `1.85.0`), `clap_builder` (`4.6.7`), `clap_lex` (`1.1.1`), `anstyle` (`1.0.14`), and `anstream` (`1.0.0`) in Rust.
 
 ## 1. Quick API Selection Matrix
 
@@ -13,6 +13,10 @@ Use this skill when designing, implementing, refactoring, or testing command-lin
 | :--- | :--- | :--- |
 | Top-level CLI entry point (Derive) | `#[derive(Parser)]` (requires `features = ["derive"]`) | `structopt` / `#[clap(...)]` |
 | Top-level CLI entry point (Builder) | `pub fn build_cli() -> Command` + `build_cli().debug_assert()` | Inlining `App::new` in `main()` without `debug_assert()` |
+| Hybrid root positional + subcommands | `.args_conflicts_with_subcommands(true)` (`<input.fasm>`, `show`, `reverse`) | Setting `.subcommand_required(true)` when root positional args exist |
+| Lazy subcommand tree initialization (`4.6+`) | `#[command(defer = true)]` / `Command::defer` | Eagerly building massive subcommand trees on startup |
+| Inspect custom usage override (`4.6+`) | `cmd.get_overridden_usage()` | Scraping rendered `--help` strings |
+| No-arg / uninhabited trait composition (`4.6+`) | `Args` / `FromArgMatches` impls for `()` and `core::convert::Infallible` | Custom empty dummy structs for generic CLI wrappers |
 | Mutually exclusive subcommands | `#[derive(Subcommand)]` / `cmd.subcommand(...)` | `SubCommand::with_name(...)` |
 | Reusable argument group composition | `#[command(flatten)]` / `Args::augment_args(cmd)` | Duplicating `Arg` definitions across commands |
 | Propagate argument down all subcommands | `#[arg(global = true)]` / `arg.global(true)` | Manually re-declaring flags on every subcommand |
@@ -36,16 +40,17 @@ Use this skill when designing, implementing, refactoring, or testing command-lin
 
 ---
 
-## 2. Workspace Feature Boundary Matrix (`clap 4.6.7`)
+## 2. Workspace Feature Boundary Matrix (`clap 4.6.7`, MSRV `1.85.0`)
 
 Before choosing between Builder and Derive patterns in a crate, check `Cargo.toml`:
 
 | Feature / Capability | Default `clap = "4.6.7"` | Optional Feature Flag Required |
 | :--- | :--- | :--- |
 | `Command`, `Arg`, `ArgGroup`, `ArgAction`, `ArgMatches` | Included (`std`, `color`, `help`, `usage`, `error-context`, `suggestions`) | None |
+| `Command::defer`, `Command::get_overridden_usage` (`4.6+`) | Included | None |
 | `ValueSource`, `ValueHint`, `TypedValueParser`, `Styles` | Included | None |
-| Trait definitions (`Parser`, `Subcommand`, `Args`, `ValueEnum`, `CommandFactory`, `FromArgMatches`) | Included | None (manual impls work without `derive`) |
-| `#[derive(Parser, Subcommand, Args, ValueEnum)]` | **Not enabled** | `features = ["derive"]` |
+| Trait definitions (`Parser`, `Subcommand`, `Args`, `ValueEnum`, `CommandFactory`, `FromArgMatches`, plus impls for `()` and `Infallible`) | Included | None (manual impls work without `derive`) |
+| `#[derive(Parser, Subcommand, Args, ValueEnum)]` & `#[command(defer = true)]` | **Not enabled** | `features = ["derive"]` |
 | `crate_version!()`, `command!()` macros | **Not enabled** (use `env!("CARGO_PKG_VERSION")`) | `features = ["cargo"]` |
 | `Arg::env("VAR")` / `#[arg(env = "VAR")]` | **Not enabled** (use `ValueSource` + `std::env::var`) | `features = ["env"]` |
 | Dynamic `String` arg names/help (`Str::from(String)`) | **Not enabled** (use `&'static str`) | `features = ["string"]` |
@@ -55,14 +60,14 @@ Before choosing between Builder and Derive patterns in a crate, check `Cargo.tom
 
 ## 3. Architecture Decision Guide
 
-1. **Derive vs. Builder vs. Trait-Based Hybrid**:
-   - **Declarative Derive (`#[derive(Parser, Subcommand, Args, ValueEnum)]`)**: Best when `features = ["derive"]` is enabled. Structs reflect CLI grammar directly, type conversions are inferred from field types, and doc comments map to `--help` text automatically.
-   - **Imperative Builder (`Command`, `Arg`, `ArgGroup`)**: Best for zero-proc-macro builds (like `frameassembly`'s default dependency graph), dynamic runtime plugin CLIs, or minimal compile-time profiles. Always pair `PathBufValueParser::new()` with `ValueHint::FilePath` so paths are parsed directly as `PathBuf` rather than `String`.
-   - **Trait-Based Hybrid (`CommandFactory` + `FromArgMatches` + `Parser` + `Args`)**: Implement `CommandFactory` and `FromArgMatches` manually (with `impl Parser for Cli {}`) to enjoy strongly-typed struct parsing (`Cli::parse()`, `Cli::try_parse_from(...)`) without pulling in `clap_derive`.
+1. **Derive vs. Builder vs. Trait-Based Hybrid & FrameAssembly Tri-Modal Routing**:
+   - **Declarative Derive (`#[derive(Parser, Subcommand, Args, ValueEnum)]`)**: Best when `features = ["derive"]` is enabled. Use `#[command(defer = true)]` on heavy subcommands to defer command-tree construction until that subcommand is actually selected.
+   - **Imperative Builder (`Command`, `Arg`, `ArgGroup`)**: Best for zero-proc-macro builds (like `frameassembly`'s default dependency graph). In `frameassembly`, the root `Command` uses `.args_conflicts_with_subcommands(true)` so direct compilation (`frameassembly <input.fasm> [-o <output.pcap>]`), packet-ladder inspection (`frameassembly show <input.fasm>`), and reverse PCAP decompilation (`frameassembly reverse <input.pcap> [-o <output.fasm>]`) coexist cleanly without subcommand-vs-positional collisions.
+   - **Trait-Based Hybrid (`CommandFactory` + `FromArgMatches` + `Parser` + `Args`)**: Implement `CommandFactory` and `FromArgMatches` manually (with `impl Parser for Cli {}`) to enjoy strongly-typed struct parsing (`Cli::parse()`, `Cli::try_parse_from(...)`) without pulling in `clap_derive`. Note that `()` and `core::convert::Infallible` implement `Args` and `FromArgMatches` in `clap 4.6+` for generic CLI wrappers.
 
 2. **Mandatory CLI Verification Gate (`Command::debug_assert()`)**:
    - Always factor `Command` construction out of `fn main()` into `pub fn build_cli() -> Command` (or `Cli::command()`).
-   - Add a unit test `#[test] fn verify_cli() { build_cli().debug_assert(); }` to catch duplicate argument IDs, conflicting short/long flags, dangling `ArgGroup` / `requires` / `conflicts_with` references, and `ValueParser` type mismatches during `cargo test`.
+   - Add a unit test `#[test] fn verify_cli_invariants() { build_cli().debug_assert(); }` to catch duplicate argument IDs, conflicting short/long flags, dangling `ArgGroup` / `requires` / `conflicts_with` references, and `ValueParser` type mismatches during `cargo test`.
 
 3. **Layered Configuration Resolution & The `ValueSource` Invariant**:
    - Production CLIs resolve options through an explicit four-tier precedence hierarchy:
@@ -79,7 +84,7 @@ Before choosing between Builder and Derive patterns in a crate, check `Cargo.tom
 ## 4. Production Reference Templates
 
 Read [references/patterns.md](references/patterns.md) for complete, copy-pasteable production implementations with complete rustdoc comments:
-1. **Multi-Subcommand Enterprise CLI Architecture (`anstyle` 9-Role Styling + `ValueHint` + Global Flags + `debug_assert()` QA)**
+1. **Hybrid Positional + Subcommand CLI (`args_conflicts_with_subcommands(true)` for `<input.fasm>`, `show`, and `reverse` + `anstyle` 9-Role Styling + `debug_assert()` QA)**
 2. **Custom Strongly-Typed Value Validation (`TypedValueParser` + `.try_map()` + `NonEmptyStringValueParser` + Rich `clap::Error` Diagnostics)**
 3. **Advanced Argument Relationships & Flag Constraints (`ArgGroup` + Negatable Flags + `requires_if` + `conflicts_with`)**
 4. **Trait-Based Derive/Builder Interoperability (`CommandFactory` + `FromArgMatches` + `Args` + `Parser` Implementation)**

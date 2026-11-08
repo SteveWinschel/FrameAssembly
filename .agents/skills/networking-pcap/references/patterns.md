@@ -350,7 +350,7 @@ Demonstrates `frameassembly`'s Layer 2 framing and address resolution engine:
   3. **RFC 1112 IPv4 Multicast (`224.0.0.0/4`)**: Maps lower 23 bits of IPv4 into `01:00:5e:(b1 & 0x7f):b2:b3`.
   4. **RFC 2464 IPv6 Multicast (`ff00::/8`)**: Maps lower 32 bits of IPv6 into `33:33:b12:b13:b14:b15`.
   5. Unicast fallback: `00:00:00:00:00:01` for caller, `00:00:00:00:00:02` for callee.
-- **Tag Stacking (`build_ethernet_and_l2`)**: Supports standalone or combined IEEE 802.1Q VLAN (`0x8100`), IEEE 802.1ad QinQ (`0x88A8` outer + `0x8100` inner), and RFC 3032 MPLS (`0x8847`).
+- **Tag Stacking (`build_ethernet_and_l2`) & Pure L2 MAC-Only `0x88B5` Fallback**: Supports standalone or combined IEEE 802.1Q VLAN (`0x8100`), IEEE 802.1ad QinQ (`0x88A8` outer + `0x8100` inner), and RFC 3032 MPLS (`0x8847`). When `VLAN` or `QINQ` is used between pure L2 MAC-only hosts with no IP (`src_ip.is_unspecified() || dst_ip.is_unspecified()`), the inner EtherType defaults to `l2.ethertype.unwrap_or(0x88B5)` (IEEE 802.1 Local Experimental) and wraps `payload` directly without an IP/UDP header.
 
 ```rust
 use core::net::IpAddr;
@@ -402,11 +402,11 @@ pub struct L2EncapConfig {
 }
 
 /// Derives an Ethernet MAC address following RFC 1112 (IPv4 multicast),
-/// RFC 2464 (IPv6 multicast), or deterministic unicast defaults.
+/// RFC 2464 (IPv6 multicast), or deterministic unicast defaults (`None` for MAC-only hosts).
 pub fn derive_mac(
     host_mac: Option<[u8; 6]>,
     stmt_mac: Option<[u8; 6]>,
-    ip: IpAddr,
+    ip: Option<IpAddr>,
     is_caller: bool,
 ) -> [u8; 6] {
     if let Some(mac) = stmt_mac {
@@ -416,7 +416,7 @@ pub fn derive_mac(
         return mac;
     }
     match ip {
-        IpAddr::V6(v6) => {
+        Some(IpAddr::V6(v6)) => {
             let octets = v6.octets();
             if octets[0] == 0xFF {
                 [0x33, 0x33, octets[12], octets[13], octets[14], octets[15]]
@@ -426,7 +426,7 @@ pub fn derive_mac(
                 [0x00, 0x00, 0x00, 0x00, 0x00, 0x02]
             }
         }
-        IpAddr::V4(v4) => {
+        Some(IpAddr::V4(v4)) => {
             let octets = v4.octets();
             if (224..=239).contains(&octets[0]) {
                 [0x01, 0x00, 0x5E, octets[1] & 0x7F, octets[2], octets[3]]
@@ -436,6 +436,24 @@ pub fn derive_mac(
                 [0x00, 0x00, 0x00, 0x00, 0x00, 0x02]
             }
         }
+        None => {
+            if is_caller {
+                [0x00, 0x00, 0x00, 0x00, 0x00, 0x01]
+            } else {
+                [0x00, 0x00, 0x00, 0x00, 0x00, 0x02]
+            }
+        }
+    }
+}
+
+/// Resolves the inner EtherType for standalone `VLAN` / `QINQ` frames (`0x88B5` fallback for MAC-only hosts).
+pub fn resolve_l2_vlan_ethertype(src_ip: IpAddr, dst_ip: IpAddr, l2: &L2EncapConfig) -> u16 {
+    if src_ip.is_unspecified() || dst_ip.is_unspecified() {
+        l2.ethertype.unwrap_or(0x88B5)
+    } else if src_ip.is_ipv4() {
+        l2.ethertype.unwrap_or(0x0800)
+    } else {
+        l2.ethertype.unwrap_or(0x86DD)
     }
 }
 

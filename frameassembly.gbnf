@@ -14,20 +14,20 @@ root ::= ws (host-decl | flow-decl)* compile-block (host-decl | flow-decl)* ws
 ws ::= ([ \t\n\r] | "//" [^\n]* "\n")*
 ws1 ::= ([ \t\n\r] | "//" [^\n]* "\n")+
 
-# 1. Host Declarations
-host-decl ::= "HOST" ws1 ident ws "{" ws host-prop* "}" ws
+# 1. Host Declarations (at least one IP or MAC property in any order)
+host-decl ::= "HOST" ws1 ident ws "{" ws host-prop+ "}" ws
 host-prop ::= ("IP" ws1 ip-addr | "MAC" ws1 mac-addr) ws
 
-# 2. Flow Declarations & Statements
+# 2. Flow Declarations & Statements (FLOW blocks are optional when COMPILE uses inline frame-stmt)
 flow-decl ::= "FLOW" ws1 ident ws "(" ws param-list? ")" ws "{" ws frame-stmt* "}" ws
 param-list ::= ident ws ("," ws ident ws)*
 
 frame-stmt ::= ident ws direction ws ident (ws1 frame-field)* ws
 direction ::= "->" | "<-"
 
-# 3. Compile Block & Loops
+# 3. Compile Block, Loops & Inline Frame Statements
 compile-block ::= "COMPILE" ws "{" ws run-stmt* "}" ws
-run-stmt ::= loop-block | flow-call
+run-stmt ::= loop-block | flow-call | frame-stmt
 loop-block ::= "LOOP" ws1 uint-lit ws "{" ws flow-call* "}" ws
 flow-call ::= ident ws "(" ws param-list? ")" ws
 
@@ -378,8 +378,8 @@ l7-proto-field ::= "TXID" ws1 (uint-lit | str-or-ident)
                  | "SESSION" ws1 str-or-ident
                  | "EHLO" (ws1 str-or-ident)?
                  | "HELO" (ws1 str-or-ident)?
-                 | "MAIL_FROM" ws1 str-or-ident
-                 | "RCPT_TO" ws1 str-or-ident
+                 | "MAIL_FROM" (ws1 str-or-ident)?
+                 | "RCPT_TO" (ws1 str-or-ident)?
                  | "QUIT"
                  | "PARAM" ws1 str-or-ident
                  | "OK" | "ERR"

@@ -3,15 +3,15 @@
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/SteveWinschel.frameassembly-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
 
-[**Editor Problems Solved**](#editor-problems-this-extension-solves) • [**Highlighting Previews**](#highlighted-fasm-in-action-packet-crafting-use-cases) • [**81 Highlighted Protocols**](#highlighted-protocol-keywords-81-native-protocols) • [**16 Snippets**](#bonus-16-tab-completable-keyword-snippets) • [**Get the Compiler**](#compiler-not-included)
+[**Editor Problems Solved**](#editor-problems-this-extension-solves) • [**Example `.fasm` Workflows**](#example-fasm-workflows) • [**81 Highlighted Protocols**](#highlighted-protocol-keywords-81-native-protocols) • [**18 Snippets**](#bonus-18-tab-completable-keyword-snippets) • [**Get the Compiler**](#compiler-not-included)
 
 ## What Is This Extension?
 
-[**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) is a declarative **Packets as Code** DSL built ironically for the very people who hate programming -> **Networking & Cybersecurity professionals**.
+[**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) is a **Packets as Code** tool built ironically for the very people who hate programming -> **Networking & Cybersecurity professionals**.
 
 **What this extension does:** One thing—it highlights `.fasm` keywords so your packet definitions don't look like a monochrome ransom note in `notepad.exe`.
 
-**What this extension does NOT do:** It does **not** download or bundle the `frameassembly` compiler, spin up a bloated background language server eating 2 GB of RAM, or turn `.fasm` files into `.pcap` captures by itself. It is a zero-runtime TextMate grammar (`source.frameassembly`) for **VS Code**, **Cursor**, **Windsurf**, **VSCodium**, and **Antigravity IDE**. If you want to actually compile your `.fasm` files into `.pcap` / `.pcapng` captures for `tcpreplay` or Wireshark, grab the standalone [**FrameAssembly CLI**](#compiler-not-included).
+**What this extension does NOT do:** It does **not** download or bundle the `frameassembly` compiler, spin up a bloated background language server eating 2 GB of RAM, or turn `.fasm` files into `.pcap` captures by itself. It is a zero-runtime TextMate grammar (`source.frameassembly`) for **VS Code**, **Cursor**, **Windsurf**, **VSCodium**, and **Antigravity IDE**. If you want to compile `.fasm` code into `.pcap` / `.pcapng` captures or reverse existing `.pcap` captures into `.fasm` code (`frameassembly reverse <input.pcap>`), grab the standalone [**FrameAssembly CLI**](#compiler-not-included).
 
 ## Editor Problems This Extension Solves
 
@@ -19,7 +19,7 @@
 * **The Problem:** Open a `.fasm` network capture spec in a stock setup and generic assembly plugins immediately assume you are writing 1999 x86 Flat Assembler (`;` comments, `mov eax, 1`) or SymbiFlow FPGA tile bitstreams (`#` comments)—painting valid `host`, `flow`, and `compile` blocks in bogus syntax errors.
 * **The Solution:** Binds `.fasm` (`text/vnd.frameassembly`) and `host` / `flow` / `compile` first-line signatures to the dedicated `source.frameassembly` scope so x86 and FPGA highlighters leave your packet specs alone.
 
-### 2. Going Blind Reading Raw OIDs, Mixed MAC Formats & 640+ Keywords in Plain Text
+### 2. Going Blind Reading Raw OIDs, Mixed MAC Formats & 640+ Keywords in Unhighlighted Code
 * **The Problem:** Hunting down a typo in a 10-arc SNMP OID (`1.3.6.1.6.3.1.1.5.3`), a compressed IPv6 address, or a Cisco IOS dotted-quad MAC (`001a.2b3c.4d5e`) inside unhighlighted white text is pure eye strain—especially when half your team writes polite lowercase (`tcp syn`) and the other half shouts in `UPPERCASE` (`TCP SYN`).
 * **The Solution:** Case-insensitive keyword highlighting across all **81 Layer 2–7 protocols** and **640+ frame modifiers**, with distinct colors for structural blocks (`host`, `flow`, `compile`, `loop`), directional arrows (`->`, `<-`), IPv4/IPv6 addresses, IEEE colon/hyphen and Cisco MACs, hex literals (`0x...`), SNMP OIDs, and wait units (`ns`, `us`, `ms`, `s`, `m`).
 
@@ -31,7 +31,7 @@
 * **The Problem:** Generic editor defaults love auto-closing `'single quotes'`, `[square brackets]`, and `/* block comments */`—none of which exist in `.fasm` and all of which trigger immediate compiler errors.
 * **The Solution:** Configures clean `//` line-comment toggling (`Ctrl+/`) and `{...}`, `(...)`, `"..."` pairs while intentionally stripping unsupported bracket and single-quote auto-closures.
 
-## Highlighted `.fasm` in Action (Packet-Crafting Use Cases)
+## Example `.fasm` Workflows
 
 > **Heads up:** The blocks below show how this extension highlights `.fasm` keywords for common network and security testing problems. Compiling them into `.pcap` files requires the separate [`frameassembly` CLI](https://github.com/SteveWinschel/FrameAssembly) -> what you do with `tcpreplay` afterward is between you and HR :)
 
@@ -111,10 +111,24 @@ flow ot_conduit_audit(hmi, plc) {
     hmi -> plc vlan 110 tcp ack wait 1ms
     hmi -> plc vlan 110 modbus read_holding_registers txid 1 unitid 1 addr 100 count 2 wait 2ms
     hmi <- plc vlan 110 modbus read_holding_registers txid 1 unitid 1 count 2 value 42 is_response wait 5ms
-    hmi -> plc vlan 110 dnp3 read src 1 dst 10 group 60 variation 1 wait 2ms
+    hmi -> plc vlan 110 dnp3 func "READ" src 1 dst 10 group 60 variation 1 wait 2ms
 }
 
 compile { ot_conduit_audit(scada_hmi, field_plc) }
+```
+
+### Reversing `.pcap` Captures (`frameassembly reverse`) & Pure Layer 2 Frames
+When you need to sanitize customer IP addresses in a vendor TAC capture or modify an existing `.pcap` / `.pcapng` file without editing raw hex offsets, `frameassembly reverse <input.pcap> [-o <output.fasm>]` converts the capture into `.fasm` code using inline frame statements inside `compile { ... }` and MAC-only `host` definitions for pure Layer 2 protocols (`lldp`, `stp`, `lacp`, `eapol`):
+
+```frameassembly
+// Preview: Reversed pure L2 LLDP neighbor discovery with MAC-only hosts and inline compile frames
+host core_sw   { mac 00:1a:2b:3c:4d:01 }
+host access_sw { mac 00:1a:2b:3c:4d:02 }
+
+compile {
+    core_sw -> access_sw lldp chassis_id "core-sw-01" port_id "Gi1/0/1" ttl 120 sysname "core-sw-01.corp"
+    core_sw <- access_sw lldp chassis_id "access-sw-02" port_id "Gi0/24" ttl 120 sysname "access-sw-02.corp" wait 5ms
+}
 ```
 
 ## Highlighted Protocol Keywords (81 Native Protocols)
@@ -131,11 +145,11 @@ Every protocol identifier, flag, and sub-keyword below is highlighted case-insen
 | **Layer 7 (Mail, Auth, Storage, DB, Brokers)** | 14 | `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, `amqp` |
 | **Layer 7 (Industrial ICS / SCADA / OT)** | 6 | `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, `opcua` |
 
-## Bonus: 16 Tab-Completable Keyword Snippets
+## Bonus: 18 Tab-Completable Keyword Snippets
 
 If you don't feel like typing protocol boilerplate from scratch inside a `.fasm` file, type any prefix below and press `Tab`:
 
-* **Structure & Reachability:** `fasm` (full `host`/`flow`/`compile` skeleton), `host` (endpoint block), `icmp-ping` (echo request/reply)
+* **Structure & Reachability:** `fasm` (full `host`/`flow`/`compile` skeleton), `compile-inline` (inline `compile` frames without a `flow` block), `host` (IP + MAC endpoint block), `host-l2` (MAC-only Layer 2 endpoint), `icmp-ping` (echo request/reply)
 * **Transport & Firewalling:** `tcp-handshake` (3-way `syn` / `syn ack` / `ack`), `firewall-rst` (blocked `syn` -> `rst ack`)
 * **SNMP Alerting:** `snmp2-trap` (`linkDown` v2c trap), `snmp3-trap` (encrypted USM `sha256` + `aes` trap)
 * **Infra, Web & Cloud:** `dns-query` (`A` lookup), `dhcp-dora` (4-way lease), `http-get` (handshake + `GET` + `200 OK`)
@@ -143,9 +157,9 @@ If you don't feel like typing protocol boilerplate from scratch inside a `.fasm`
 
 ## Compiler Not Included
 
-Installing this extension only teaches your editor (**VS Code `^1.75.0`**, **Cursor**, **Windsurf**, **VSCodium**, **Antigravity IDE**) how to highlight `.fasm` files and Markdown blocks.
+Installing this extension (`frameassembly-vscode-1.5.0.vsix`) only teaches your editor (**VS Code `^1.75.0`**, **Cursor**, **Windsurf**, **VSCodium**, **Antigravity IDE**) how to highlight `.fasm` code and Markdown blocks.
 
-To validate `.fasm` syntax (`frameassembly show`) or compile `.fasm` files into deterministic `.pcap` / `.pcapng` captures, install the standalone **FrameAssembly** compiler from the main repository:
+To compile `.fasm` code into `.pcap` / `.pcapng` captures (`frameassembly input.fasm -o output.pcap`), inspect the packet ladder in your terminal (`frameassembly show input.fasm`), or reverse existing `.pcap` / `.pcapng` captures into editable `.fasm` code (`frameassembly reverse <input.pcap> [-o <output.fasm>]`), install the standalone **FrameAssembly** CLI from the main repository:
 
 * **FrameAssembly CLI, Releases & Protocol Docs:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
 * **Language & Keyword Reference (`docs/`):** [Getting Started](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/getting_started.md) • [Use-Case Cookbook](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/use_cases.md) • [`.fasm` Media Type Spec (`text/vnd.frameassembly`)](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md)

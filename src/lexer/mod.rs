@@ -22,7 +22,7 @@ use logos::Logos;
 /// ```
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"[ \t\r\n\f]+")]
-#[logos(skip r"//.*")]
+#[logos(skip r"//[^\r\n]*")]
 pub enum Token<'a> {
   /// `HOST`
   #[token("HOST", ignore(ascii_case))] Host,

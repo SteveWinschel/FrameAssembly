@@ -16,7 +16,7 @@ Have you ever wished you could just describe traffic in a few lines of simple ne
 
 Well, here you have it and it's fun and free to use (even commercially) -> as long as **I'm not responsible for what you do with it** :)
 
-FrameAssembly compiles readable `.fasm` packet code into custom `.pcap` / `.pcapng` captures across **81 Layer 2–7 protocols**—with no Python setup or root privileges needed—ready to replay or inspect with **`tcpreplay`**, **Wireshark** / **`tshark`**, or **Suricata** / **Zeek**:
+**Compilation works in both directions** -> You can either compile FrameAssembly `.fasm` files into custom `.pcap` or `.pcapng` files covering **81 protocols** or decompile captured `.pcap` or `.pcapng` into `.fasm` files for editing, inspecting and replaying with **`tcpreplay`**, **Wireshark** / **`tshark`**, or **Suricata** / **Zeek**:
 
 ```frameassembly
 host client   { ip 10.0.0.10 mac 00:11:22:33:44:55 }
@@ -43,7 +43,8 @@ $ frameassembly show test.fasm
 4      3.000       10.0.0.10 -> 10.0.0.1                    HTTP        102    51234 -> 80 [ACK PSH] seq=1001 ack=1001 len=48
 5      5.000       10.0.0.1 -> 10.0.0.10                    HTTP        94     80 -> 51234 [ACK PSH] seq=1001 ack=1049 len=40
 
-$ frameassembly test.fasm -o test.pcap && sudo tcpreplay -i eth0 test.pcap
+$ frameassembly test.fasm && sudo tcpreplay -i eth0 test.pcap
+$ frameassembly reverse test.pcap -o edited.fasm
 ```
 
 ## Network and Security Testing Use Cases
@@ -130,19 +131,54 @@ compile { acl_audit(eng_ws, dmz_srv, ot_plc) }
 $ frameassembly acl_test.fasm -o acl_test.pcap && sudo tcpreplay -i eth0 acl_test.pcap
 ```
 
+### **4. Reverse & Edit Production `.pcap` Captures (`frameassembly reverse`)**
+Instead of only generating captures from scratch, `frameassembly reverse` converts existing `.pcap` and `.pcapng` files back into `.fasm` code. When you need to attach a production capture to a vendor TAC ticket without leaking internal subnets, or turn a live `tcpdump` capture into a regression test, reverse the capture, edit the `host` IPs/MACs/VLANs or delete background chatter, and recompile—FrameAssembly automatically recalculates all L3/L4 checksums and TCP `SEQ`/`ACK` numbers:
+
+```console
+$ frameassembly reverse customer_incident.pcap -o sanitized_ticket.fasm
+```
+
+```frameassembly
+host host_1 { ip 192.0.2.10 mac 00:11:22:33:44:01 }
+host host_2 { ip 198.51.100.20 mac 00:11:22:33:44:02 }
+
+compile {
+    host_1 -> host_2 vlan 100 tcp syn srcport 54321 dstport 443 win 64240 mss 1460 wait 1ms
+    host_1 <- host_2 vlan 100 tcp syn ack win 64240 mss 1460 wait 1ms
+    host_1 -> host_2 vlan 100 tcp ack wait 1ms
+    host_1 -> host_2 vlan 100 tls client_hello sni "sanitized-app.example.com" ciphersuite 4865 alpn "h2" wait 2ms
+    host_1 <- host_2 vlan 100 tcp rst ack
+}
+```
+
+```console
+$ frameassembly sanitized_ticket.fasm -o sanitized_ticket.pcap
+```
+
 ## How FrameAssembly Works
 
-Every `.fasm` file follows three declarative building blocks—no loops over byte arrays, no manual bit-shifting, and no socket boilerplate:
+Every `.fasm` file uses up to three building blocks:
 
-1. **`host` — Declare Endpoints Once:** Bind readable names to `ip` / `ipv6` and `mac` addresses so topologies stay easy to read and refactor.
-2. **`flow` — Describe Exchanges Directionally:** Write packets top-to-bottom using `->` and `<-` arrows, optional `vlan` / tunnel headers, Layer 2–7 protocol keywords, and microsecond-accurate `wait` deltas (`us`, `ms`, `s`).
-3. **`compile` — Emit Standard Captures:** Call parameterized flows (with optional `loop` blocks) to compile deterministic `.pcap` or `.pcapng` files.
+1. **`host` — Declare Endpoints Once:** Bind names to `ip` (IPv4 or IPv6) and `mac` addresses—or declare MAC-only switches (`host sw1 { mac 00:1c:73:00:00:01 }`) for Layer 2 switching protocols (`lldp`, `stp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`, `arp`).
+2. **`flow` — Describe Exchanges Directionally:** Write packets top-to-bottom using `->` and `<-` arrows, optional `vlan` / `qinq` / `mpls` headers, Layer 2–7 protocol keywords, and `wait` deltas (`ns`, `us`, `ms`, `s`, `m`).
+3. **`compile` — Emit Standard Captures:** Call parameterized flows, wrap bursts in `loop <count> { ... }` blocks, or write packet statements directly inside `compile { ... }` without a `flow` block.
 
-Under the hood, the Rust compiler handles the tedious packet plumbing automatically:
+```frameassembly
+host sw1 { mac 00:1c:73:00:00:01 }
+host sw2 { mac 00:1c:73:00:00:02 }
+
+compile {
+    sw1 -> sw2 lldp chassis_id "00:1c:73:00:00:01" port_id "Ethernet1/1" ttl 120 sysname "leaf-01" wait 2ms
+    sw1 <- sw2 stp rstp root_id "4096/00:1c:73:00:00:02" bridge_id "4096/00:1c:73:00:00:02" port_id 0x8001 cost 0 flags 0x3c
+}
+```
+
+Under the hood, the compiler handles the packet plumbing automatically:
 
 * **Stateful TCP Tracking:** Advances `SEQ` and `ACK` numbers from payload byte lengths and `SYN`/`FIN` flags, while flipping ports, IPs, and MAC addresses on `<-` replies.
-* **Wire-Valid Framing & Checksums:** Computes Ethernet/802.1Q framing, IPv4/IPv6 lengths, and L3/L4 checksums out of the box.
-* **Unprivileged & Git-Friendly:** Generates binary captures purely in userspace without `sudo` or raw sockets, turning opaque `.pcap` blobs into reviewable, `git diff`-able `.fasm` source files for CI/CD and regression suites.
+* **Wire-Valid Framing & Checksums:** Computes Ethernet/802.1Q framing, IPv4/IPv6 lengths, and L3/L4/L7 checksums out of the box.
+* **Reverse PCAP-to-`.fasm` Decompilation:** Turns existing `.pcap` and `.pcapng` captures into `.fasm` code so you can edit IPs or headers and recompile. Encrypted payloads (such as SNMPv3 `authPriv`, TLS application data, SSH, or IPsec `ESP`) stay intact as `tcp` or `udp` statements with `payload` / `hexpayload` so recompiled captures preserve exact wire bytes.
+* **Git-Friendly:** Turns binary `.pcap` blobs into `.fasm` code files that you can review with `git diff` in CI/CD and regression suites.
 
 ## Why FrameAssembly Instead of Scapy or Lab VMs?
 
@@ -151,21 +187,23 @@ Under the hood, the Rust compiler handles the tedious packet plumbing automatica
 | **Setup Overhead** | Single CLI binary | Python + `venv` + packages | Hypervisor + OS images | None |
 | **Root to Build PCAP** | Never required | Not for offline `wrpcap` | Admin / hypervisor access | Not required |
 | **TCP `SEQ`/`ACK` Math** | Automatic on `->` / `<-` | Manual state in Python | Real OS TCP stack | Fixed static stream |
-| **Version Control** | Clean L2–L7 text DSL | Imperative scripts | Multi-GB disk images | Binary blobs |
+| **Edit Existing `.pcap`s** | `frameassembly reverse` (`.pcap` <-> `.fasm`) | Custom Python parsing & checksum scripts | Cannot import `.pcap` into live state | Hex editor / `tcprewrite` only |
+| **Version Control** | L2–L7 `.fasm` code | Imperative scripts | Multi-GB disk images | Binary blobs |
 | **Capture Hygiene** | Zero background chatter | Clean, high boilerplate | ARP / mDNS / OS noise | Foreign IPs & noise |
 
-FrameAssembly is built to work **alongside** **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, and **Zeek**—not replace them. Instead of maintaining Python environments or booting multi-VM labs just to synthesize 10 packets, you compile a `.fasm` file in milliseconds and feed the resulting `.pcap` straight into your existing replay and analysis tools.
+FrameAssembly is built to work **alongside** **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, and **Zeek**—not replace them. Instead of maintaining Python environments or booting multi-VM labs just to synthesize 10 packets—or struggling to sanitize an existing capture—you compile or reverse `.fasm` code in milliseconds and feed the resulting `.pcap` straight into your existing replay and analysis tools.
 
 ## Installation
 
-### Linux & macOS Shell Installer
-```bash
-curl -fsSL [https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh) | sh
-```
-
-### Cargo (Rust 1.85+)
+### Cargo (Recommended — Rust 1.85+)
+Installing via Cargo is the recommended method because updating to future releases only requires re-running the same command:
 ```bash
 cargo install frameassembly
+```
+
+### Linux & macOS Shell Installer
+```bash
+curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
 ```
 
 ### Prebuilt Release Binaries (Linux, Windows, macOS)
@@ -180,11 +218,15 @@ npm install frameassembly-wasm
 ### Quick CLI Usage
 ```bash
 # Inspect packet timing, flags, sequence numbers, and byte lengths in the terminal
-frameassembly show capture.fasm
+frameassembly show demo.fasm
 
-# Compile to standard .pcap or .pcapng
-frameassembly capture.fasm -o capture.pcap
-frameassembly capture.fasm -o capture.pcapng
+# Compile .fasm to .pcap (writes demo.pcap by default, or pass -o)
+frameassembly demo.fasm
+frameassembly demo.fasm -o custom.pcapng
+
+# Decompile an existing .pcap or .pcapng into .fasm (writes trace.fasm by default, or pass -o)
+frameassembly reverse trace.pcap
+frameassembly reverse trace.pcap -o sanitized.fasm
 
 # View all CLI flags and options
 frameassembly --help
@@ -192,24 +234,24 @@ frameassembly --help
 
 ## Supported Protocols and Documentation
 
-FrameAssembly natively compiles **81 protocols across Layers 2–7**. Start with the guides below or jump straight into the protocol reference for your layer:
+FrameAssembly natively compiles and decompiles **81 protocols across Layers 2–7**. Start with the guides below or jump straight into the protocol reference for your layer:
 
-* [**Documentation Hub (`docs/README.md`)**](docs/README.md) — Full overview and index of all 81 supported protocols.
-* [**Getting Started (`docs/getting_started.md`)**](docs/getting_started.md) — Core `.fasm` syntax, `host` / `flow` / `compile` mechanics, and your first capture.
+* [**Getting Started (`docs/getting_started.md`)**](docs/getting_started.md) — Core `.fasm` syntax, `host` / `flow` / `compile` mechanics, reverse PCAP conversion, and your first capture.
 * [**Real-World Use Cases (`docs/use_cases.md`)**](docs/use_cases.md) — Copy-paste recipes for NetOps alerting, firewall verification, and SecOps rule validation.
 * [**Topologies & Dual-Stack (`docs/topologies_and_dual_stack.md`)**](docs/topologies_and_dual_stack.md) — Multi-hop gateways, VLAN/QinQ trunks, and IPv4/IPv6 dual-stack flows.
+* [**`.fasm` Media Type Specification (`docs/fasm-specification.md`)**](docs/fasm-specification.md) — Canonical `text/vnd.frameassembly` format rules and `.fasm` extension disambiguation.
 * [**Compiler Architecture (`docs/for_nerds.md`)**](docs/for_nerds.md) — Lexing, parsing, semantic validation, and binary emission internals for curious engineers.
 
 ### Layer 2–7 Protocol Reference
 
-* [**Layer 2 — Switching & Data Link (`docs/l2_protocols.md`)**](docs/l2_protocols.md) — Ethernet II, IEEE 802.1Q `VLAN`, 802.1ad `QinQ`, `ARP`, `STP` / `RSTP`, `LLDP`, `CDP`, `LACP`, `MPLS`, `PPPoE`, `EAPOL` (802.1X), `MACsec`, and more.
-* [**Layer 3 — Network, Routing & Tunnels (`docs/l3_protocols.md`)**](docs/l3_protocols.md) — `IPv4`, `IPv6`, `ICMP`, `ICMPv6` / `NDP`, `IGMP`, `GRE`, `IPsec` (`ESP` / `AH`), `VXLAN`, `Geneve`, `OSPF`, `VRRP`, `HSRP`, and `WireGuard`.
-* [**Layer 4 — Transports (`docs/l4_transports.md`)**](docs/l4_transports.md) — Stateful `TCP` (flags, window, `MSS`, options, automatic `SEQ`/`ACK`), `UDP`, `SCTP`, and `QUIC`.
+* [**Layer 2 — Switching & Data Link (`docs/l2_protocols.md`)**](docs/l2_protocols.md) — Ethernet II, IEEE 802.1Q `VLAN`, 802.1ad `QinQ`, `ARP`, `STP` / `RSTP`, `LLDP`, `LACP`, `MPLS`, and `EAPOL` (802.1X).
+* [**Layer 3 — Network, Routing & Tunnels (`docs/l3_protocols.md`)**](docs/l3_protocols.md) — `IPv4`, `IPv6`, `ICMP`, `NDP`, `IGMP`, `MLD`, `GRE`, `IPsec` (`ESP` / `AH`), `IKEv2`, `VXLAN`, `Geneve`, `OSPF`, `BGP`, `RIP`, `PIM`, `VRRP`, `HSRP`, `BFD`, `OpenFlow`, and `WireGuard`.
+* [**Layer 4 — Transports (`docs/l4_transports.md`)**](docs/l4_transports.md) — Stateful `TCP` (flags, window, `MSS`, options, automatic `SEQ`/`ACK`), `UDP`, and `SCTP`.
 * [**Layer 7 — SNMPv1 / v2c / v3 (`docs/l7_snmp.md`)**](docs/l7_snmp.md) — `GET`, `GETNEXT`, `GETBULK`, `SET`, `RESPONSE`, `TRAP`, `INFORM`, and encrypted `SNMPv3` USM (`SHA-256` auth + `AES-128` priv).
-* [**Layer 7 — Infrastructure & Telemetry (`docs/l7_infra_and_telemetry.md`)**](docs/l7_infra_and_telemetry.md) — `DNS`, `DHCP` / `DHCPv6`, `NTP`, `Syslog`, `NetFlow`, `IPFIX`, `sFlow`, `BGP`, `BFD`, and `PTP`.
-* [**Layer 7 — Web, Cloud & Messaging (`docs/l7_web_and_cloud.md`)**](docs/l7_web_and_cloud.md) — `HTTP`, `TLS` (`ClientHello`, `SNI`, `ALPN`, Alerts), `SSH`, `WebSocket`, `gRPC`, `MQTT`, `CoAP`, and `AMQP`.
-* [**Layer 7 — Mail, Auth, Storage & Databases (`docs/l7_mail_auth_storage_db.md`)**](docs/l7_mail_auth_storage_db.md) — `SMTP`, `IMAP`, `POP3`, `RADIUS`, `TACACS+`, `Kerberos`, `LDAP`, `SMB`, `NFS`, `FTP` / `TFTP`, `PostgreSQL`, `MySQL`, and `Redis`.
-* [**Layer 7 — Industrial OT & ICS (`docs/l7_industrial_ot.md`)**](docs/l7_industrial_ot.md) — `Modbus/TCP`, `DNP3`, `S7comm`, `OPC UA`, `BACnet/IP`, `EtherNet/IP`, `IEC 60870-5-104`, and `PROFINET`.
+* [**Layer 7 — Infrastructure & Telemetry (`docs/l7_infra_and_telemetry.md`)**](docs/l7_infra_and_telemetry.md) — `DNS`, `mDNS`, `DHCP` / `DHCPv6`, `NTP`, `PTP`, `RADIUS`, `TACACS+`, `Syslog`, `NetFlow`, `IPFIX`, and `sFlow`.
+* [**Layer 7 — Web, Cloud, Security & VoIP (`docs/l7_web_and_cloud.md`)**](docs/l7_web_and_cloud.md) — `HTTP`, `HTTP/2`, `gRPC`, `WebSocket`, `TLS` (`ClientHello`, `SNI`, `ALPN`, Alerts), `QUIC`, `SSH`, `Telnet`, `FTP`, `TFTP`, `WHOIS`, `SIP`, `RTP`, `RTSP`, `STUN`, and `SSDP`.
+* [**Layer 7 — Mail, Auth, Storage, Databases & Brokers (`docs/l7_mail_auth_storage_db.md`)**](docs/l7_mail_auth_storage_db.md) — `SMTP`, `IMAP`, `POP3`, `Kerberos`, `LDAP`, `SMB`, `NFS`, `PostgreSQL`, `MySQL`, `Redis`, `Memcached`, `MQTT`, `CoAP`, and `AMQP`.
+* [**Layer 7 — Industrial OT & ICS (`docs/l7_industrial_ot.md`)**](docs/l7_industrial_ot.md) — `Modbus/TCP`, `DNP3`, `S7comm`, `OPC UA`, `BACnet/IP`, and `EtherNet/IP`.
 
 ## License
 

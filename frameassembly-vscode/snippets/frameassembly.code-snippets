@@ -25,11 +25,40 @@
   },
   "Host Definition": {
     "prefix": "host",
-    "description": "Declare a network endpoint host with IPv4/IPv6 and optional MAC address (colon, hyphen, or Cisco dotted-quad)",
+    "description": "Declare a network endpoint host with IPv4/IPv6 and/or MAC address (colon, hyphen, or Cisco dotted-quad)",
     "body": [
       "host ${1:endpoint} {",
       "    ip ${2:10.0.0.1}",
       "    mac ${3:00:1a:2b:3c:4d:5e}",
+      "}"
+    ]
+  },
+  "MAC-Only Layer 2 Host": {
+    "prefix": "host-l2",
+    "description": "Declare a MAC-only Layer 2 switch or bridge endpoint without an IP address (for LLDP, STP, LACP, EAPOL)",
+    "body": [
+      "host ${1:switch} {",
+      "    mac ${2:00:1a:2b:3c:4d:01}",
+      "}"
+    ]
+  },
+  "Inline Compile Capture (No Flow Block)": {
+    "prefix": "compile-inline",
+    "description": "Inline frame statements directly inside compile { ... } without a flow block (matches frameassembly reverse output)",
+    "body": [
+      "host ${1:node_a} {",
+      "    ip ${2:10.0.0.1}",
+      "    mac ${3:00:1a:2b:3c:4d:01}",
+      "}",
+      "",
+      "host ${4:node_b} {",
+      "    ip ${5:10.0.0.2}",
+      "    mac ${6:00:1a:2b:3c:4d:02}",
+      "}",
+      "",
+      "compile {",
+      "    ${1:node_a} -> ${4:node_b} ${7:icmp echo_request id 1 seq 1}",
+      "    ${1:node_a} <- ${4:node_b} ${8:icmp echo_reply id 1 seq 1} wait 5ms",
       "}"
     ]
   },

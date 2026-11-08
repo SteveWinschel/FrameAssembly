@@ -24,24 +24,28 @@ pub fn build_mpls_frame(
     spec: &MplsSpec,
     payload: &[u8],
 ) -> Result<Vec<u8>, CompilerError> {
-    let exp = spec.exp.unwrap_or(0) & 0x07;
-    let bos = spec.bos.unwrap_or(1) & 0x01;
-    let ttl = spec.ttl.unwrap_or(64);
-    let label_entry: u32 = ((spec.label & 0x000F_FFFF) << 12)
-        | ((exp as u32) << 9)
-        | ((bos as u32) << 8)
-        | (ttl as u32);
-
-    let mut mpls_packet = Vec::with_capacity(4 + payload.len());
-    mpls_packet.extend_from_slice(&label_entry.to_be_bytes());
-    if payload.is_empty() {
-        let udp = crate::packet::build_udp_datagram(ctx.src_ip, ctx.dst_ip, ctx.src_port, ctx.dst_port, b"")?;
-        let ip = crate::packet::build_ip_packet(ctx.src_ip, ctx.dst_ip, 17, ctx.l3, &udp)?;
-        mpls_packet.extend_from_slice(&ip);
-    } else {
-        mpls_packet.extend_from_slice(payload);
+    let mut l2 = ctx.l2.clone();
+    if l2.mpls.is_none() {
+        l2.mpls = Some(MplsSpec {
+            label: spec.label,
+            exp: spec.exp,
+            bos: spec.bos,
+            ttl: spec.ttl,
+        });
     }
 
-    Ok(build_ethernet_and_l2(ctx.src_mac, ctx.dst_mac, ctx.l2, 0x8847, &mpls_packet))
+    if !payload.is_empty() || ctx.src_ip.is_unspecified() || ctx.dst_ip.is_unspecified() {
+        Ok(build_ethernet_and_l2(
+            ctx.src_mac,
+            ctx.dst_mac,
+            &l2,
+            0x8847,
+            payload,
+        ))
+    } else {
+        let udp = crate::packet::build_udp_datagram(ctx.src_ip, ctx.dst_ip, ctx.src_port, ctx.dst_port, b"")?;
+        let ip = crate::packet::build_ip_packet(ctx.src_ip, ctx.dst_ip, 17, ctx.l3, &udp)?;
+        Ok(build_ethernet_and_l2(ctx.src_mac, ctx.dst_mac, &l2, 0x8847, &ip))
+    }
 }
 

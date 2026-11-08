@@ -14,7 +14,7 @@ use core::net::IpAddr;
 use core::str::FromStr;
 
 use winnow::ModalResult as PResult;
-use winnow::combinator::{alt, cut_err, opt, repeat, separated};
+use winnow::combinator::{alt, cut_err, repeat, separated};
 use winnow::error::{ContextError, ErrMode};
 use winnow::prelude::*;
 use winnow::token::any;
@@ -23,31 +23,20 @@ use crate::ast::*;
 use crate::error::CompilerError;
 use crate::lexer::Token;
 
-/// Layer 2, Layer 3, Layer 4, and SNMP modifier application.
 pub(crate) mod field_apply;
-/// Internal field representation and protocol-scoped modifier dispatch.
 pub(crate) mod fields;
-/// Final FrameStatement synthesis from accumulated FrameBuilder state.
 pub(crate) mod finish;
-/// Identifier, contextual keyword, and string escape parsers.
 pub(crate) mod ident;
-/// Layer 2 field parsers.
 pub(crate) mod l2;
-/// Layer 3 field parsers.
 pub(crate) mod l3;
-/// Layer 4 field parsers.
 pub(crate) mod l4;
-/// Layer 7 field parsers.
 pub(crate) mod l7;
-/// Layer 7 modifier application.
 pub(crate) mod l7_apply;
-/// SNMP protocol parser (backwards-compatible internal alias).
 pub(crate) mod snmp {
+    //! SNMP protocol parser (backwards-compatible internal alias).
     pub(crate) use super::l7::snmp::*;
 }
-/// Frame statement state accumulation and protocol-scoped parser loop.
 pub(crate) mod statement;
-/// Semantic validation pass for parsed AST programs.
 pub(crate) mod validation;
 
 #[cfg(test)]
@@ -57,7 +46,7 @@ pub(crate) use fields::ParsedField;
 pub(crate) use ident::{parse_any_str, parse_ident, parse_spanned_ident};
 pub use ident::unescape_string;
 pub(crate) use statement::parse_frame_statement;
-pub use validation::validate_semantics;
+pub use validation::{protocol_requires_ip, validate_semantics};
 
 /// A stream of lexical tokens mapped to their source spans and zero-copy source slices.
 ///
@@ -292,7 +281,7 @@ pub(crate) fn parse_host_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Host
     let mut ip = None;
     let mut mac = None;
 
-    let _: Vec<()> = repeat(
+    let (): () = repeat(
         0..,
         alt((
             (tag(Token::Ip), cut_err(parse_ip)).map(|(_, i)| ip = Some(i)),
@@ -304,7 +293,7 @@ pub(crate) fn parse_host_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Host
     let saved_before_rbrace = *input;
     let (_, rbrace_span) = cut_err(tag(Token::RBrace)).parse_next(input)?;
 
-    if let Some(ip) = ip {
+    if ip.is_some() || mac.is_some() {
         Ok(HostDef {
             name: name_spanned.node,
             ip,
@@ -378,20 +367,25 @@ pub(crate) fn parse_template_invocation<'i, 'a>(
     })
 }
 
-/// Parses a statement inside the `COMPILE` block (loop or single invocation) with precision `cut_err`.
+/// Parses a statement inside the `COMPILE` block (loop, inline frame statement, or single invocation) with precision `cut_err`.
 pub(crate) fn parse_run_statement<'i, 'a>(
     input: &mut Stream<'i, 'a>,
 ) -> PResult<RunStatement<'a>> {
-    if opt(tag(Token::Loop)).parse_next(input)?.is_some() {
+    if !input.is_empty()
+        && matches!(input[0].0, Token::Loop)
+        && input.get(1).is_some_and(|t| matches!(t.0, Token::Number(_)))
+    {
+        let _ = tag(Token::Loop).parse_next(input)?;
         let count = cut_err(parse_u32).parse_next(input)?;
         let _ = cut_err(tag(Token::LBrace)).parse_next(input)?;
         let invocations: Vec<TemplateInvocation<'a>> =
             cut_err(repeat(0.., parse_template_invocation)).parse_next(input)?;
         let _ = cut_err(tag(Token::RBrace)).parse_next(input)?;
         Ok(RunStatement::Loop(count, invocations))
+    } else if input.len() >= 2 && matches!(input[1].0, Token::RightArrow | Token::LeftArrow) {
+        parse_frame_statement(input).map(|f| RunStatement::Frame(alloc::boxed::Box::new(f)))
     } else {
-        let inv = parse_template_invocation(input)?;
-        Ok(RunStatement::Invocation(inv))
+        parse_template_invocation(input).map(RunStatement::Invocation)
     }
 }
 
@@ -469,8 +463,8 @@ enum EnclosingBlock<'a> {
     Host {
         /// Declared host name.
         name: &'a str,
-        /// Whether an `IP` field has been seen inside this `HOST` block.
-        has_ip: bool,
+        /// Whether an `IP` or `MAC` field has been seen inside this `HOST` block.
+        has_ip_or_mac: bool,
     },
     /// Inside `FLOW <name>(...) { ... }`.
     Flow,
@@ -579,7 +573,7 @@ fn diagnose_parse_error<'a>(
                 let name = tokens.get(i + 1).map_or("<host>", |n| n.2);
                 enclosing = EnclosingBlock::Host {
                     name,
-                    has_ip: false,
+                    has_ip_or_mac: false,
                 };
             }
             Token::Flow if brace_depth == 0 => {
@@ -588,9 +582,12 @@ fn diagnose_parse_error<'a>(
             Token::Compile if brace_depth == 0 => {
                 enclosing = EnclosingBlock::Compile;
             }
-            Token::Ip => {
+            Token::Ip | Token::Mac => {
                 if let EnclosingBlock::Host { name, .. } = enclosing {
-                    enclosing = EnclosingBlock::Host { name, has_ip: true };
+                    enclosing = EnclosingBlock::Host {
+                        name,
+                        has_ip_or_mac: true,
+                    };
                 }
             }
             Token::LBrace => {
@@ -634,11 +631,12 @@ fn diagnose_parse_error<'a>(
         );
     }
 
-    // 2. Packet statement written outside a FLOW block
+    // 2. Packet statement written outside a FLOW or COMPILE block
     let next_is_arrow = tokens
         .get(err_idx + 1)
         .is_some_and(|t| matches!(t.0, Token::RightArrow | Token::LeftArrow));
     if enclosing != EnclosingBlock::Flow
+        && enclosing != EnclosingBlock::Compile
         && (matches!(tok, Token::RightArrow | Token::LeftArrow) || next_is_arrow)
     {
         return (
@@ -664,11 +662,16 @@ fn diagnose_parse_error<'a>(
     }
 
     // 4. Inside a HOST block
-    if let EnclosingBlock::Host { name, has_ip } = enclosing {
-        if *tok == Token::RBrace && !has_ip {
+    if let EnclosingBlock::Host {
+        name,
+        has_ip_or_mac,
+    } = enclosing
+    {
+        if *tok == Token::RBrace && !has_ip_or_mac {
             return (
                 alloc::format!(
-                    "Syntax error: HOST '{}' is missing a required 'IP <address>' field. Example: HOST {} {{ IP 10.0.0.1 }}",
+                    "Syntax error: HOST '{}' must specify at least an 'IP <address>' or 'MAC <address>' field. Example: HOST {} {{ IP 10.0.0.1 }} or HOST {} {{ MAC 00:11:22:33:44:55 }}",
+                    name,
                     name,
                     name
                 ),
@@ -835,13 +838,17 @@ fn diagnose_parse_error<'a>(
             span,
         );
     }
-    if *tok == Token::Host && enclosing == EnclosingBlock::Flow {
+    if *tok == Token::Host
+        && matches!(enclosing, EnclosingBlock::Flow | EnclosingBlock::Compile)
+    {
         return (
             "Syntax error: unexpected 'HOST' inside a FLOW packet statement. Did you mean 'HOST_HDR \"<hostname>\"' for the HTTP Host header?".to_string(),
             span,
         );
     }
-    if *tok == Token::Wait && enclosing == EnclosingBlock::Flow {
+    if *tok == Token::Wait
+        && matches!(enclosing, EnclosingBlock::Flow | EnclosingBlock::Compile)
+    {
         return (
             "Syntax error: standalone 'WAIT' line is not supported. Place 'WAIT <duration>' at the end of a packet statement (for example: c -> s TCP SYN WAIT 5ms)".to_string(),
             span,

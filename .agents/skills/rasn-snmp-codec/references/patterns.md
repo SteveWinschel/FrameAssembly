@@ -1,6 +1,8 @@
 # ASN.1 & SNMP Production Reference Patterns (`rasn`, `rasn-smi`, `rasn-snmp` `0.28.15`)
 
-This reference contains production-ready, fully-documented, and compile-verified Rust patterns for ASN.1 BER/DER encoding, SMIv1/SMIv2 data modeling, SNMPv1/v2c/v3 USM wire framing, and RFC 4511 LDAPv3 / RFC 4120 Kerberos v5 ASN.1 verification verified against `rasn = "0.28.15"`, `rasn-smi = "0.28.15"`, and `rasn-snmp = "0.28.15"`.
+This reference contains production-ready, fully-documented, and compile-verified Rust patterns for ASN.1 BER/DER encoding, PCAP-to-`.fasm` decompilation (`rasn::ber::decode_with_remainder`), SMIv1/SMIv2 data modeling, SNMPv1/v2c/v3 USM wire framing, and RFC 4511 LDAPv3 / RFC 4120 Kerberos v5 ASN.1 verification verified against `rasn = "0.28.15"`, `rasn-smi = "0.28.15"`, and `rasn-snmp = "0.28.15"`.
+
+> **Version Lockstep Note**: Always keep `rasn`, `rasn-smi`, and `rasn-snmp` on matching minor versions (`0.28.15` across all three; never upgrade `rasn` to `0.30.0` while `rasn-smi`/`rasn-snmp` are on `0.29.0`).
 
 ---
 
@@ -8,7 +10,7 @@ This reference contains production-ready, fully-documented, and compile-verified
 
 Demonstrates:
 - Dot-notation OID parsing with leading-dot normalization (`.trim_start_matches('.')`) and **explicit `arcs.len() >= 2` validation** before calling `ObjectIdentifier::new(arcs)`. In `rasn 0.28.15`, `ObjectIdentifier::new(vec![1])` returns `Some(...)` (only checking `arc0 <= 2` and `arc1 < 40` when `len >= 2`), which later fails inside `rasn::ber::encode` (`BerEncodeErrorKind::InvalidObjectIdentifier`) because ITU-T X.690 §8.19 requires $\ge 2$ arcs to pack `(arc0 * 40) + arc1`.
-- Zero-heap compile-time OID construction via `Oid::const_new`, zero-heap static byte strings via `OctetString::from_static`, buffer reuse via `rasn::ber::encode_buf`, and stream remainder decoding via `rasn::ber::decode_with_remainder`.
+- Zero-heap compile-time OID construction via `Oid::const_new`, zero-heap static byte strings via `OctetString::from_static`, buffer reuse via `rasn::ber::encode_buf`, and stream / decompiler remainder decoding via `rasn::ber::decode_with_remainder`.
 - Complete `#[derive(AsnType, Encode, Decode)]` attribute showcase (`delegate`, `choice`, `enumerated`, `tag(context|application|universal|private, N)`, `tag(explicit(...))`, `extension_addition`, `default`, `size("...")`, `value("...")`).
 
 ```rust
@@ -20,7 +22,7 @@ use rasn::types::{Integer, ObjectIdentifier, OctetString, Oid};
 /// Compile-time zero-heap `sysUpTime.0` OID (`1.3.6.1.2.1.1.3.0`).
 pub const SYS_UP_TIME_OID: &Oid = Oid::const_new(&[1, 3, 6, 1, 2, 1, 1, 3, 0]);
 
-/// Compile-time zero-heap `snmpTrapOID.0` OID (`1.3.6.1.6.3.1.1.4.2.0`).
+/// Compile-time zero-heap `snmpTrapOID.0` OID (`1.3.6.1.6.3.1.1.4.1.0`, RFC 3418 — never `.4.2.0`!).
 pub const SNMP_TRAP_OID: &Oid = Oid::const_new(&[1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0]);
 
 /// Parses a dot-notation OID string (e.g., `"1.3.6.1.2.1.1.1.0"` or `".1.3.6.1.2.1.1.1.0"`)
@@ -332,7 +334,7 @@ pub fn build_snmpv1_trap_packet(
 
 Demonstrates:
 - Exact `rasn_snmp::v2::Pdu` field types: `pub request_id: i32`, `pub error_status: u32`, `pub error_index: u32`, `pub variable_bindings: VarBindList` (with `v2::Pdu::ERROR_STATUS_*` constants `0..=18` typed as `u32`).
-- Zero-heap static OID construction (`ObjectIdentifier::from(Oid::const_new(...))`) when prepending `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) at index 0 and `snmpTrapOID.0` (`1.3.6.1.6.3.1.1.4.2.0`) at index 1 for both `Trap` (`0xa7`) and `InformRequest` (`0xa6`).
+- Zero-heap static OID construction (`ObjectIdentifier::from(Oid::const_new(...))`) when prepending `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) at index 0 and `snmpTrapOID.0` (**`1.3.6.1.6.3.1.1.4.1.0`**, RFC 3418 — never `.4.2.0`!) at index 1 for both `Trap` (`0xa7`) and `InformRequest` (`0xa6`).
 - `GetBulkRequest` (`0xa5`) using `snmpv2::BulkPdu` (`request_id: i32`, `non_repeaters: u32`, `max_repetitions: u32`).
 
 ```rust
@@ -766,14 +768,13 @@ pub fn build_snmpv3_usm_packet(
 
 ## 6. RFC 4511 LDAPv3 BER & RFC 4120 Kerberos v5 DER Wire Verification Schemas (`#[derive(AsnType, Encode, Decode)]`)
 
-### Builder Audit Findings (`src/builders/l7/ldap.rs` & `src/builders/l7/kerberos.rs`)
+### Wire Encoder & Decompiler Invariants (`src/builders/l7/ldap.rs` & `src/builders/l7/kerberos.rs`)
 1. **`src/builders/l7/ldap.rs`**:
-   - `build_ldap_payload` currently branches only on `if spec.is_search_req` (`0x63`) vs. default `BindRequest` (`0x60`), ignoring `spec.is_bind_res`, `spec.is_search_entry`, `spec.is_search_done`, `spec.is_unbind_req`, `spec.filter`, and `spec.result_code`.
-   - When `spec.is_search_req` is `true`, `build_ldap_payload` emits only 3 of the 8 mandatory RFC 4511 §4.5.1 `SearchRequest` fields (`baseObject`, `scope`, `derefAliases`), omitting `sizeLimit`, `timeLimit`, `typesOnly`, `filter`, and `attributes`. Consequently, strict RFC 4511 `SearchRequest` decoders will reject the truncated 3-field sequence unless the remaining 5 fields are appended.
+   - `build_ldap_payload` encodes complete RFC 4511 `LDAPMessage` (`0x30`) BER sequences across all 6 operations: `BindRequest` (`0x60`), `BindResponse` (`0x61`), `UnbindRequest` (`0x42`), full 8-field `SearchRequest` (`0x63` containing `baseObject`, `scope`, `derefAliases`, `sizeLimit`, `timeLimit`, `typesOnly`, `[7] Present` filter `0x87`, and `attributes`), `SearchResultEntry` (`0x64`), and `SearchResultDone` (`0x65`).
 2. **`src/builders/l7/kerberos.rs`**:
-   - `build_kerberos_payload` currently emits raw ASCII `b"KRB5_AS_REQ:<realm>:<cname>"` inside `[APPLICATION 10]` (`0x6A`) instead of an RFC 4120 §5.4.1 DER `SEQUENCE` containing explicit context tags `[1] pvno (5)`, `[2] msg-type (10)`, `[3] padata OPTIONAL`, and `[4] req-body KDC-REQ-BODY` (which requires `[0] kdc-options`, `[2] realm`, `[7] till`, `[8] nonce`, and `[9] etype`).
+   - `build_kerberos_payload` encodes complete RFC 4120 explicit-tagged DER sequences across `AS-REQ` (`0x6A`), `AS-REP` (`0x6B`), `TGS-REQ` (`0x6C`), `TGS-REP` (`0x6D`), and `KRB-ERROR` (`0x7E`), including `[1] pvno (5)`, `[2] msg-type`, and `[4] req-body KDC-REQ-BODY` (with `[0] kdc-options`, `[1] cname`, `[2] realm`, `[3] sname`, `[7] till`, `[8] nonce`, and `[9] etype`).
 
-Use the production `#[derive(AsnType, Encode, Decode)]` schemas below to encode and verify canonical RFC 4511 LDAPv3 BER and RFC 4120 Kerberos v5 DER wire frames:
+Use the production `#[derive(AsnType, Encode, Decode)]` schemas below to encode, decompile, and verify canonical RFC 4511 LDAPv3 BER and RFC 4120 Kerberos v5 DER wire frames:
 
 ```rust
 //! Pattern 6: Production RFC 4511 LDAPv3 (BER) and RFC 4120 Kerberos v5 (DER) verification schemas.

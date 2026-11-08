@@ -1,10 +1,10 @@
 # Layer 7 — Mail, Identity, Storage, Databases & Message Brokers
 
-[**Use Cases**](#enterprise-and-secops-testing-use-cases) • [**Mail (`SMTP`, `IMAP`, `POP3`)**](#mail-protocols-smtp-imap-pop3) • [**Identity (`Kerberos`, `LDAP`)**](#identity-and-directory-protocols-kerberos-ldap) • [**Storage (`SMB`, `NFS`)**](#network-file-storage-smb-nfs) • [**Databases & Caches**](#databases-and-caches-postgres-mysql-redis-memcached) • [**Brokers (`MQTT`, `CoAP`, `AMQP`)**](#message-brokers-and-iot-queues-mqtt-coap-amqp) • [**Docs Hub**](README.md)
+[**Use Cases**](#enterprise-and-secops-testing-use-cases) • [**Mail (`SMTP`, `IMAP`, `POP3`)**](#mail-protocols-smtp-imap-pop3) • [**Identity (`Kerberos`, `LDAP`)**](#identity-and-directory-protocols-kerberos-ldap) • [**Storage (`SMB`, `NFS`)**](#network-file-storage-smb-nfs) • [**Databases & Caches**](#databases-and-caches-postgres-mysql-redis-memcached) • [**Brokers (`MQTT`, `CoAP`, `AMQP`)**](#message-brokers-and-iot-queues-mqtt-coap-amqp) • [**Docs Hub**](../README.md)
 
 Testing enterprise firewall rules, DLP policies, or IDS signatures for Active Directory, file shares, databases, and mail gateways usually involves an absurd amount of collateral damage. Nobody wants to babysit a 24 GB Windows Server Domain Controller VM just to generate one Kerberos `TGS-REQ`, get their lab IP blacklisted on Spamhaus testing an `SMTP` attachment rule, or hand-encode ASN.1 DER and UTF-16LE byte offsets in Python.
 
-And if you just want to replay a fake `SELECT password_hash FROM users` or an `ADMIN$` share mount across a SPAN port with `tcpreplay` to see whether the SOC is actually looking at the dashboard -> FrameAssembly compiles all **14 enterprise Layer 7 protocols** into clean, deterministic `.pcap` / `.pcapng` files in milliseconds, with zero root privileges and zero server infrastructure (as usual, what you replay onto your coworker's segment is between you and HR) :)
+And if you just want to replay a fake `SELECT password_hash FROM users` or an `ADMIN$` share mount across a SPAN port with `tcpreplay` to see whether the SOC is actually looking at the dashboard -> FrameAssembly compiles all **14 enterprise Layer 7 protocols** into `.pcap` / `.pcapng` files in milliseconds without needing any server infrastructure (as usual, what you replay onto your coworker's segment is between you and HR) :)
 
 ## Enterprise and SecOps Testing Use Cases
 
@@ -238,6 +238,14 @@ compile { broker_pipeline(edge_gw, broker) }
 * **`amqp` (AMQP 0-9-1 — Default TCP `5672`)**
   * **Syntax:** `amqp [protocol_header | connection_start | channel_open | basic_publish | basic_deliver | heartbeat] [channel <u16>] [exchange "<name>"] [routing_key "<key>"]`
   * **Defaults & Gotchas:** Emits the 8-byte `AMQP\x00\x00\x09\x01` preface when no frame flag is specified, or wraps `Connection.Start` (`10,10`), `Channel.Open` (`20,10`), `Basic.Publish` (`60,40`), `Basic.Deliver` (`60,60`), and `Heartbeat` frames with the mandatory `0xCE` frame-end byte.
+
+## Reversing Existing Mail, Auth, Storage, Database & Broker Captures (`frameassembly reverse`)
+
+```console
+# Convert an existing LDAP, SMB, Postgres, MySQL, Redis, or MQTT .pcap / .pcapng capture into editable .fasm code
+$ frameassembly reverse db_audit.pcap -o sanitized_db_audit.fasm
+$ frameassembly sanitized_db_audit.fasm -o sanitized_db_audit.pcap
+```
 
 ## Related Guides
 

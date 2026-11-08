@@ -15,101 +15,53 @@ use winnow::prelude::*;
 
 use crate::parser::{ParsedField, Stream};
 
-/// AMQP protocol parser.
 pub(crate) mod amqp;
-/// BACNET protocol parser.
 pub(crate) mod bacnet;
-/// COAP protocol parser.
 pub(crate) mod coap;
-/// DHCP protocol parser.
 pub(crate) mod dhcp;
-/// DNP3 protocol parser.
 pub(crate) mod dnp3;
-/// DNS protocol parser.
 pub(crate) mod dns;
-/// ETHERNETIP protocol parser.
 pub(crate) mod ethernetip;
-/// FTP protocol parser.
 pub(crate) mod ftp;
-/// GRPC protocol parser.
 pub(crate) mod grpc;
-/// HTTP protocol parser.
 pub(crate) mod http;
-/// HTTP2 protocol parser.
 pub(crate) mod http2;
-/// IMAP protocol parser.
 pub(crate) mod imap;
-/// IPFIX protocol parser.
 pub(crate) mod ipfix;
-/// KERBEROS protocol parser.
 pub(crate) mod kerberos;
-/// LDAP protocol parser.
 pub(crate) mod ldap;
-/// MDNS protocol parser.
 pub(crate) mod mdns;
-/// MEMCACHED protocol parser.
 pub(crate) mod memcached;
-/// MODBUS protocol parser.
 pub(crate) mod modbus;
-/// MQTT protocol parser.
 pub(crate) mod mqtt;
-/// MYSQL protocol parser.
 pub(crate) mod mysql;
-/// NETFLOW protocol parser.
 pub(crate) mod netflow;
-/// NFS protocol parser.
 pub(crate) mod nfs;
-/// NTP protocol parser.
 pub(crate) mod ntp;
-/// OPCUA protocol parser.
 pub(crate) mod opcua;
-/// POP3 protocol parser.
 pub(crate) mod pop3;
-/// POSTGRES protocol parser.
 pub(crate) mod postgres;
-/// PTP protocol parser.
 pub(crate) mod ptp;
-/// QUIC protocol parser.
 pub(crate) mod quic;
-/// RADIUS protocol parser.
 pub(crate) mod radius;
-/// REDIS protocol parser.
 pub(crate) mod redis;
-/// RTP protocol parser.
 pub(crate) mod rtp;
-/// RTSP protocol parser.
 pub(crate) mod rtsp;
-/// S7COMM protocol parser.
 pub(crate) mod s7comm;
-/// SFLOW protocol parser.
 pub(crate) mod sflow;
-/// SIP protocol parser.
 pub(crate) mod sip;
-/// SMB protocol parser.
 pub(crate) mod smb;
-/// SMTP protocol parser.
 pub(crate) mod smtp;
-/// SNMP protocol parser.
 pub(crate) mod snmp;
-/// SSDP protocol parser.
 pub(crate) mod ssdp;
-/// SSH protocol parser.
 pub(crate) mod ssh;
-/// STUN protocol parser.
 pub(crate) mod stun;
-/// SYSLOG protocol parser.
 pub(crate) mod syslog;
-/// TACACS protocol parser.
 pub(crate) mod tacacs;
-/// TELNET protocol parser.
 pub(crate) mod telnet;
-/// TFTP protocol parser.
 pub(crate) mod tftp;
-/// TLS protocol parser.
 pub(crate) mod tls;
-/// WEBSOCKET protocol parser.
 pub(crate) mod websocket;
-/// WHOIS protocol parser.
 pub(crate) mod whois;
 
 pub(crate) use amqp::*;

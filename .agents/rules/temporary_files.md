@@ -1,9 +1,10 @@
 ---
 trigger: always_on
-description: "Workspace temp/ directory and RAII cleanup guard hygiene for scratch packet captures."
+description: "Workspace temp/ directory hygiene and thread-safe RAII cleanup guards for scratch packet captures."
 ---
 
-# Temporary Files Rule
+# Temporary Files & Scratch Capture Rule
 
-- Always save temporary workspace files in the `temp/` directory at the root of the workspace (or use RAII cleanup guards in `std::env::temp_dir()` for automated tests).
-- Ensure that the `temp/` directory and scratch capture outputs (`*.pcap`, `*.pcapng`) are listed in `.gitignore` so temporary artifacts are never accidentally committed.
+- **Workspace Scratch Files**: Save manual or ad-hoc scratch files strictly inside the root `temp/` directory—never scatter scratch `.fasm`, `.pcap`, `.pcapng`, or `.vsix` files in the repository root.
+- **Parallel-Safe Test Captures**: In automated Rust tests (`tests/**/*.rs`), generate unique paths inside `std::env::temp_dir()` combining `std::process::id()` and a monotonic `AtomicU64` counter wrapped in an RAII `Drop` cleanup guard so parallel `cargo test` threads never collide or leak `.pcap` artifacts on assertion failure.
+- **Ignore & Exclude Hygiene**: Keep `temp/`, `*.pcap`, and `*.pcapng` listed in both `.gitignore` and `Cargo.toml` `package.exclude`.

@@ -1,6 +1,6 @@
 # Getting Started with FrameAssembly (`docs/getting_started.md`)
 
-[**Installation**](#1-install-frameassembly) • [**60-Second Quickstart**](#2-build-your-first-pcap-in-60-seconds) • [**MACs & Defaults**](#3-skip-mac-formatting-and-boilerplate) • [**Stateful TCP**](#4-stateful-tcp-without-sequence-number-math) • [**VLANs, QinQ, MPLS & QoS**](#5-vlan-trunks-qinq-mpls-qos-and-fragments) • [**Dual-Stack & Loops**](#6-ipv4ipv6-reuse-and-loop-traffic-bursts) • [**Cheat Sheet**](#7-wireshark-and-tcpdump-to-fasm-cheat-sheet)
+[**Installation**](#1-install-frameassembly) • [**60-Second Quickstart**](#2-build-your-first-pcap-in-60-seconds) • [**Reverse PCAP to `.fasm`**](#convert-existing-pcap--pcapng-captures-to-fasm-code-frameassembly-reverse) • [**MACs & Defaults**](#3-skip-mac-formatting-and-boilerplate) • [**Stateful TCP**](#4-stateful-tcp-without-sequence-number-math) • [**VLANs, QinQ, MPLS & QoS**](#5-vlan-trunks-qinq-mpls-qos-and-fragments) • [**Dual-Stack & Loops**](#6-ipv4ipv6-reuse-and-loop-traffic-bursts) • [**Cheat Sheet**](#7-wireshark-and-tcpdump-to-fasm-cheat-sheet)
 
 ## Why FrameAssembly Exists
 
@@ -8,24 +8,24 @@ Crafting custom network traffic is usually way harder than whatever you are actu
 
 Want to verify a stateful firewall rule, check if Zabbix pages on an encrypted SNMPv3 trap, or test a new Suricata signature? Normally you have three choices: wire up lab gear and pull cables by hand, fight Python virtual environments and manual TCP sequence math in `Scapy` as `root`, or count hex byte offsets in `text2pcap` until you question your career choices :)
 
-**FrameAssembly** (`frameassembly`) lets you write the conversation as readable `.fasm` packet code ("Packets as Code"), compile a clean `.pcap` / `.pcapng` capture offline without `sudo`, `libpcap`, or raw sockets, and feed it straight into **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, or **Zeek**.
+**FrameAssembly** (`frameassembly`) lets you write traffic in `.fasm` code, compile it into `.pcap` / `.pcapng` captures—or decompile existing captures back into `.fasm`—and feed the result into **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, or **Zeek**.
 
 ## 1. Install FrameAssembly
 
-Pick the one-liner for your machine:
+Installing via **Cargo** (`cargo install frameassembly`) is the recommended method because updating to future releases only requires re-running `cargo install frameassembly`:
 
 | Platform / OS | Method | Command |
 | :--- | :--- | :--- |
+| **Any (Rust 1.85+)** | **Cargo (Recommended)** | `cargo install frameassembly` |
 | **Linux & macOS** | Shell installer | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` |
 | **macOS & Linux** | Homebrew | `brew install SteveWinschel/tap-FrameAssembly/frameassembly` |
 | **Debian / Ubuntu** | APT (`.deb`) | `curl -fsSLo /tmp/frameassembly.deb https://github.com/SteveWinschel/FrameAssembly/releases/latest/download/frameassembly_amd64.deb && sudo apt install -y /tmp/frameassembly.deb && rm -f /tmp/frameassembly.deb` |
 | **Arch Linux** | AUR | `yay -S frameassembly-bin` |
 | **Windows 10 / 11** | WinGet | `winget install SteveWinschel.FrameAssembly` |
 | **Windows** | Scoop | `scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly && scoop install frameassembly` |
-| **Any (Rust 1.85+)** | Cargo | `cargo install frameassembly` |
 | **Browser / Node.js** | NPM (WASM) | `npm install frameassembly-wasm` |
 | **VS Code / Cursor** | Syntax highlighting | `code --install-extension SteveWinschel.frameassembly-vscode` |
-| **Standalone Archives**| GitHub Releases | [**Download prebuilt binaries (`v1.4.6`)**](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
+| **Standalone Archives**| GitHub Releases | [**Download prebuilt binaries (`v1.5.0`)**](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
 
 Check that the binary is ready:
 
@@ -36,11 +36,11 @@ frameassembly --help
 
 ## 2. Build Your First `.pcap` in 60 Seconds
 
-You don't need any programming experience to write `.fasm` code. Every file has just three building blocks:
+Every `.fasm` file has up to three building blocks:
 
-1. **`host` — Name Your Devices:** Bind a readable name to an `ip` (IPv4 or IPv6) and an optional `mac`.
-2. **`flow` — Write the Packet Exchange:** One line = one Ethernet frame. Use `->` for forward packets, `<-` for replies, and `wait` (`ns`, `us`, `ms`, `s`, `m`) for timing.
-3. **`compile` — Generate the Capture:** Plug your `host` names into your `flow` (optionally wrapped in `loop <count> { ... }`).
+1. **`host` — Name Your Devices:** Bind a name to an `ip` (IPv4 or IPv6) and an optional `mac`—or declare MAC-only `host` blocks (`host sw1 { mac 00:1c:73:00:00:01 }`) for Layer 2 switching protocols (`lldp`, `stp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`, `arp`).
+2. **`flow` — Group Reusable Packet Exchanges (Optional):** One line = one Ethernet frame. Use `->` for forward packets, `<-` for replies, and `wait` (`ns`, `us`, `ms`, `s`, `m`) for timing.
+3. **`compile` — Generate the Capture:** Call your `flow` with your `host` names, wrap bursts in `loop <count> { ... }`, or write packet statements directly inside `compile { ... }` without a `flow` block.
 
 Save this as `ping_test.fasm`:
 
@@ -61,7 +61,7 @@ flow ping_check(c, gw) {
 compile { ping_check(workstation, gateway) }
 ```
 
-Preview the packet ladder in your terminal, compile to `.pcap`, and inspect or replay it:
+Preview the packet ladder in your terminal, compile `ping_test.fasm` (which writes `ping_test.pcap` by default unless you pass `-o`), and inspect or replay it:
 
 ```console
 $ frameassembly show ping_test.fasm
@@ -72,13 +72,50 @@ $ frameassembly show ping_test.fasm
 3      12.000      192.168.10.50 -> 192.168.10.1            ICMP        48     Echo Request (type=8 code=0)
 4      14.000      192.168.10.1 -> 192.168.10.50            ICMP        48     Echo Reply (type=0 code=0)
 
-$ frameassembly ping_test.fasm -o ping_test.pcap
+$ frameassembly ping_test.fasm
 $ tshark -r ping_test.pcap
 $ sudo tcpreplay -i eth0 ping_test.pcap
 ```
 
+### Inline Statements in `compile` & MAC-Only Layer 2 Switches
+For quick one-off captures or Layer 2 switch frames (`lldp`, `stp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`, `arp`), you can omit `ip` from your `host` blocks and write packet lines directly inside `compile { ... }` with no `flow` block needed:
+
+```frameassembly
+host sw1 { mac 00:1c:73:00:00:01 }
+host sw2 { mac 00:1c:73:00:00:02 }
+
+compile {
+    sw1 -> sw2 lldp chassis_id "00:1c:73:00:00:01" port_id "Ethernet1/1" ttl 120 sysname "spine-01" wait 2ms
+    sw1 <- sw2 lldp chassis_id "00:1c:73:00:00:02" port_id "Ethernet49/1" ttl 120 sysname "leaf-01" wait 2ms
+    sw1 -> sw2 stp rstp root_id "4096/00:1c:73:00:00:01" bridge_id "4096/00:1c:73:00:00:01" port_id 0x8001 cost 0 flags 0x3c
+}
+```
+
+### Convert Existing `.pcap` / `.pcapng` Captures to `.fasm` Code (`frameassembly reverse`)
+Already have a `.pcap` or `.pcapng` capture from `tcpdump` or Wireshark that you want to sanitize, edit, or check into Git? Run `frameassembly reverse` (which writes `<input_stem>.fasm` by default unless you pass `-o`):
+
+```console
+$ frameassembly reverse ping_test.pcap -o reversed_ping.fasm
+```
+
+`frameassembly reverse` inspects every packet in the capture, discovers the `host` endpoints (`host_1`, `host_2`, ...), and emits `.fasm` code with a `compile { ... }` block:
+
+```frameassembly
+host host_1 { ip 192.168.10.50 mac 00:1a:2b:3c:4d:50 }
+host host_2 { ip 192.168.10.1 mac 00:1a:2b:3c:4d:01 }
+
+compile {
+    host_1 -> host_2 icmp echo_request id 100 seq 1 payload "ping-1"
+    host_1 <- host_2 icmp echo_reply id 100 seq 1 payload "ping-1" wait 2ms
+    host_1 -> host_2 icmp echo_request id 100 seq 2 payload "ping-2" wait 10ms
+    host_1 <- host_2 icmp echo_reply id 100 seq 2 payload "ping-2" wait 2ms
+}
+```
+
+From there, you can change any IP, MAC, VLAN tag, or payload and recompile (`frameassembly reversed_ping.fasm -o edited.pcap`)—FrameAssembly automatically recalculates all L3/L4 checksums and TCP `SEQ`/`ACK` numbers. Encrypted payloads (like SNMPv3 `authPriv`, TLS application data, SSH, or IPsec `ESP`) are not decrypted; `reverse` keeps them as `tcp` or `udp` statements with `payload` / `hexpayload` so recompiling preserves the exact wire bytes.
+
 ### Three Quick Ground Rules
-* **Case-insensitive keywords:** `host`, `HOST`, and `Host` compile to the exact same bytes. Quoted strings (`"..."`) always keep their exact casing on the wire.
+* **Case-insensitive keywords:** `host`, `HOST`, and `Host` compile to the exact same bytes (including all keywords, protocols, modifiers, time units `ns`/`us`/`ms`/`s`/`m`, and identifiers). Quoted strings (`"..."`) always keep their exact casing on the wire.
 * **Comments use `//`:** Never `#` or `;`.
 * **1 statement = 1 frame:** Even if you wrap a long Layer 7 line across multiple indented lines for readability, each `->` or `<-` statement emits one Ethernet frame.
 

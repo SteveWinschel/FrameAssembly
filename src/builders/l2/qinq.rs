@@ -3,7 +3,8 @@
 //! Synthesizes IEEE 802.1ad double-tagged Ethernet frames carrying an outer 32-bit Service
 //! VLAN tag (S-Tag, `TPID = 0x88A8` followed by 16-bit TCI containing `outer_vid`) and an
 //! inner 32-bit Customer VLAN tag (C-Tag, `TPID = 0x8100` followed by 16-bit TCI containing
-//! `inner_vid`), ahead of the encapsulated inner EtherType (`0x0800`) and payload bytes.
+//! `inner_vid`), ahead of the encapsulated inner EtherType (`0x0800` / `0x86DD` for IP hosts,
+//! or `0x88B5` for MAC-only Layer 2 hosts) and payload bytes.
 //!
 //! Canonical `.fasm` syntax:
 //! `a -> b QINQ <outer_vid> [INNER_VLAN <inner_vid>] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
@@ -30,6 +31,16 @@ pub fn build_qinq_frame(
             outer_vid,
             inner_vid: spec.inner_vid.or(Some(2)),
         });
+    }
+    if ctx.src_ip.is_unspecified() || ctx.dst_ip.is_unspecified() {
+        let ethertype = l2.ethertype.unwrap_or(0x88B5);
+        return Ok(build_ethernet_and_l2(
+            ctx.src_mac,
+            ctx.dst_mac,
+            &l2,
+            ethertype,
+            payload,
+        ));
     }
     let ethertype = if ctx.src_ip.is_ipv4() { 0x0800 } else { 0x86DD };
     if payload.is_empty() {

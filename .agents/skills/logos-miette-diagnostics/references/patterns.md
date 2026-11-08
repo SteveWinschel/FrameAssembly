@@ -1,11 +1,11 @@
-# Logos 0.14+ & Miette 7.6+ Production Reference Patterns
+# Logos (`0.14.4` -> `0.16.1`) & Miette `7.6.0` Production Reference Patterns
 
-## 1. Two-Phase Lexing & Diagnostic Pipeline (`logos` + `TokenSlice` + `Location` + `ContainsToken` + `miette`)
+## 1. Two-Phase Lexing & Diagnostic Pipeline (6-Tier Priority Ladder + `expand_lex_error_span` + `detect_foreign_fasm` + `TokenSlice` + `miette`)
 
-When building compilers, language frontends, or network DSLs, combine `logos` for $O(1)$ SIMD lexing and `winnow` for grammar parsing over `TokenSlice`. Implement `Location`, `PartialEq<TokenKind>`, and `ContainsToken` on your spanned token wrapper to unlock native combinators (`literal`, `one_of`, `.span()`, `.with_span()`), then map token offsets directly into `miette::Diagnostic` error frames.
+When building compilers, language frontends, or network DSLs, combine `logos` (`0.14.4` / `0.16.1`-ready) for $O(1)$ SIMD lexing and `winnow 1.0.5+` for grammar parsing. Preserve the 6-tier priority ladder, expand multi-char lex failure spans (`expand_lex_error_span`), detect foreign `.fasm` dialects (`detect_foreign_fasm`), and map token offsets directly into `miette::Diagnostic` error frames with `NamedSource::new(...).with_language("frameassembly")` and `(start_byte_offset, byte_length)` `SourceSpan` tuples.
 
 ```rust
-//! Complete two-phase compiler pipeline: `logos` -> `winnow` -> `miette`.
+//! Complete two-phase compiler pipeline: `logos 0.14.4` -> `winnow 1.0.5` -> `miette 7.6.0`.
 
 use core::ops::Range;
 use logos::Logos;
@@ -16,16 +16,15 @@ use winnow::prelude::*;
 use winnow::stream::{ContainsToken, Location, TokenSlice};
 use winnow::token::{any, literal};
 
-/// Lexer token kinds recognized by `logos 0.14.4`.
+/// Lexer token kinds recognized by `logos 0.14.4` (and `0.16.1`-ready via non-greedy `//[^\r\n]*`).
 ///
-/// Exact `logos-codegen 0.14.4` default priority formula (`Mir::priority`):
-/// - `#[token("...")]`: `2 * bytes.len()` (`"s"` = 2, `"let"` = 6)
-/// - `Mir::Class(_)` (`[a-z]`, `[0-9]`): `2` per required class
-/// - `Mir::Loop(_)` (`*`, repeating tail of `+`) and `Mir::Maybe(_)` (`?`): `0`
-/// Because `Ident` (`[a-zA-Z_][a-zA-Z0-9_]*`) has default priority `2 + 0 = 2`,
-/// it ties with 1-byte tokens (`#[token("s")]`, priority `2`) unless given `priority = 1`.
-/// Similarly, `OidStr` (`\.?[0-9]+(\.[0-9]+)*`, default `0 + 2 + 0 = 2`) ties with
-/// `Int` (`[0-9]+`, default `2`) unless given `priority = 3`.
+/// Mandatory 6-tier priority ladder (`src/lexer/mod.rs`):
+/// 1. `priority = 6` — `MacAddress` (colon, hyphen, Cisco dotted-quad)
+/// 2. `priority = 5` — IPv4 `IpAddress` (outranks 4-arc `OidStr`)
+/// 3. `priority = 4` — `Number` / `Int` (outranks single-arc `OidStr`)
+/// 4. `priority = 3` — `OidStr` (`\.?[0-9]+(\.[0-9]+)*`)
+/// 5. `priority = 2` — IPv6 `IpAddress` & 1-char/2-char Time Units (`ns`, `us`, `ms`, `s`, `m`)
+/// 6. `priority = 1` — `Ident` (`[a-zA-Z_][a-zA-Z0-9_]*`)
 #[derive(Logos, Clone, Copy, Debug, PartialEq, Eq)]
 #[logos(skip r"[ \t\r\n\f]+")]
 #[logos(skip r"//[^\r\n]*")]
@@ -36,8 +35,8 @@ pub enum TokenKind<'s> {
     /// Keyword `mut` (default priority = 6)
     #[token("mut")]
     Mut,
-    /// Single-character unit token `s` (default priority = 2; outranks `Ident` priority = 1)
-    #[token("s")]
+    /// Single-character unit token `s` (explicit `priority = 2` outranks `Ident` priority = 1)
+    #[token("s", priority = 2, ignore(ascii_case))]
     UnitSeconds,
     /// Equals sign `=`
     #[token("=")]
@@ -51,15 +50,65 @@ pub enum TokenKind<'s> {
     /// Minus operator `-`
     #[token("-")]
     Minus,
-    /// Dotted ASN.1 OID literal (explicit `priority = 3` outranks `Int` default priority `2`)
-    #[regex(r"\.?[0-9]+(\.[0-9]+)+", priority = 3)]
+    /// IEEE / Cisco MAC address literal (`priority = 6`)
+    #[regex(r"([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}", priority = 6)]
+    #[regex(r"([0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2}", priority = 6)]
+    #[regex(r"[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}", priority = 6)]
+    MacAddress(&'s str),
+    /// IPv4 or IPv6 address literal (`priority = 5` for IPv4, `priority = 2` for IPv6)
+    #[regex(r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+", priority = 5)]
+    #[regex(r"::[0-9a-fA-F:.]*|[0-9a-fA-F]{1,4}(:[0-9a-fA-F:.]*)+", priority = 2)]
+    IpAddress(&'s str),
+    /// Integer literal (`priority = 4` outranks single-arc `OidStr`)
+    #[regex(r"-?[0-9]+|0[xX][0-9a-fA-F]+", priority = 4)]
+    Int(&'s str),
+    /// Dotted ASN.1 OID literal (`priority = 3`)
+    #[regex(r"\.?[0-9]+(\.[0-9]+)*", priority = 3)]
     OidStr(&'s str),
-    /// Generic identifier (explicit `priority = 1` yields to 1-char keywords like `"s"`)
+    /// Generic identifier (`priority = 1` yields to 1-char time units like `"s"`)
     #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", priority = 1)]
     Ident(&'s str),
-    /// Integer literal (`Mir::Class([0-9])` + `Mir::Loop` = `2 + 0 = 2`)
-    #[regex(r"[0-9]+", priority = 2)]
-    Int(&'s str),
+}
+
+/// Expands a single-byte lexer failure span across multi-character constructs (`/*`, `*/`, `/24`, `'...'`).
+/// Returns `(start_byte_offset, byte_length)` suitable for `miette::SourceSpan::from((usize, usize))`.
+pub fn expand_lex_error_span(input: &str, span: Range<usize>) -> (usize, usize) {
+    let start = span.start.min(input.len());
+    let rest = &input[start..];
+    let bytes = rest.as_bytes();
+    let len = if bytes.starts_with(b"/*") || bytes.starts_with(b"*/") {
+        2
+    } else if bytes.first() == Some(&b'/') && bytes.get(1).is_some_and(|b| b.is_ascii_digit()) {
+        1 + bytes[1..].iter().take_while(|b| b.is_ascii_digit()).count()
+    } else if bytes.first() == Some(&b'\'') {
+        let line_rest = rest.lines().next().unwrap_or(rest);
+        if let Some(close_idx) = line_rest.get(1..).and_then(|s| s.find('\'')) {
+            close_idx + 2
+        } else {
+            span.end.saturating_sub(span.start).max(1)
+        }
+    } else {
+        span.end.saturating_sub(span.start).max(1)
+    };
+    (start, len)
+}
+
+/// Detects whether `src` is a foreign `.fasm` file (x86 Flat Assembler `;` or FPGA FASM `#`)
+/// rather than a FrameAssembly network packet specification.
+pub fn detect_foreign_fasm(src: &str) -> Option<&'static str> {
+    let has_compile = src.lines().any(|l| l.trim().to_ascii_uppercase().starts_with("COMPILE"));
+    let has_flow = src.lines().any(|l| l.trim().to_ascii_uppercase().starts_with("FLOW"));
+    let has_host = src.lines().any(|l| l.trim().to_ascii_uppercase().starts_with("HOST"));
+    if has_compile && (has_flow || has_host) {
+        return None;
+    }
+    if src.lines().any(|l| l.trim().starts_with(';')) && !has_flow && !has_compile && !has_host {
+        return Some("an x86 Flat Assembler");
+    }
+    if src.lines().any(|l| l.trim().starts_with('#')) && !has_flow && !has_compile && !has_host {
+        return Some("an FPGA FASM");
+    }
+    None
 }
 
 /// Token paired with its byte span in the original source code.
@@ -202,11 +251,16 @@ pub fn compile_pipeline<'s>(
                 span: lexer.span(),
             }),
             Err(_) => {
-                let span = lexer.span();
+                let (start, len) = expand_lex_error_span(source, lexer.span());
+                let msg = if let Some(kind) = detect_foreign_fasm(source) {
+                    format!("File appears to be {kind}, not FrameAssembly")
+                } else {
+                    "Lexical analysis failed: unrecognized token".to_string()
+                };
                 return Err(SpannedCompilerError {
-                    message: "Lexical analysis failed: unrecognized token".to_string(),
-                    src: NamedSource::new(filename, source.to_string()),
-                    span: SourceSpan::from(span),
+                    message: msg,
+                    src: NamedSource::new(filename, source.to_string()).with_language("frameassembly"),
+                    span: SourceSpan::from((start, len)),
                     label: "Invalid token here".to_string(),
                 });
             }
@@ -246,7 +300,7 @@ pub fn compile_pipeline<'s>(
 
             Err(SpannedCompilerError {
                 message: format!("Parsing error: {}", err.inner()),
-                src: NamedSource::new(filename, source.to_string()),
+                src: NamedSource::new(filename, source.to_string()).with_language("frameassembly"),
                 span: SourceSpan::from(span),
                 label,
             })

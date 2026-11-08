@@ -356,7 +356,11 @@ fn test_plain_english_parser_structural_and_networking_hints() {
     let cases = [
         (
             "HOST r1 { MAC 00:11:22:33:44:55 } FLOW f(a, b) { a -> b ICMP } COMPILE { f(r1, r1) }",
-            "missing a required 'IP <address>' field",
+            "requires an 'IP <address>' field",
+        ),
+        (
+            "HOST r1 {} FLOW f(a, b) { a -> b ICMP } COMPILE { f(r1, r1) }",
+            "must specify at least an 'IP <address>' or 'MAC <address>' field",
         ),
         (
             "HOST r1 { IP 10.0.0.1 } FLOW f { r1 -> r1 ICMP } COMPILE { f(r1) }",
@@ -423,4 +427,23 @@ fn test_plain_english_parser_structural_and_networking_hints() {
         assert!(!rendered.contains("Ident("));
         assert!(!rendered.ends_with("Syntax error: "));
     }
+}
+
+/// Verifies MAC-only `HOST` definitions and inline frame statements inside `COMPILE`.
+#[test]
+fn test_mac_only_hosts_and_inline_compile_statements() {
+    let input = r#"
+        HOST sw1 { MAC 00:11:22:33:44:01 }
+        HOST sw2 { MAC 00:11:22:33:44:02 }
+        COMPILE {
+            sw1 -> sw2 LLDP CHASSIS_ID "sw1" PORT_ID "Gi0/1" TTL 120
+            sw1 -> sw2 VLAN 100 PAYLOAD "l2-frame"
+        }
+    "#;
+    let prog = parse_program(input).unwrap();
+    assert_eq!(prog.hosts[0].ip, None);
+    assert_eq!(prog.hosts[0].mac, Some([0x00, 0x11, 0x22, 0x33, 0x44, 0x01]));
+    assert_eq!(prog.compile_block.len(), 2);
+    let packets = crate::backend::compile_program(&prog).unwrap();
+    assert_eq!(packets.len(), 2);
 }

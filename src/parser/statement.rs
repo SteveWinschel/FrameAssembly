@@ -727,9 +727,12 @@ pub(crate) fn parse_frame_statement<'i, 'a>(
     let mut current_protocol: Option<Protocol> = None;
 
     while !input.is_empty() {
-        // Stop if we reached the closing brace of the FLOW block or the caller of the next statement
+        // Stop if we reached the closing brace of the FLOW/COMPILE block or the start of the next statement
         if matches!(input[0].0, Token::RBrace)
             || (input.len() >= 2 && matches!(input[1].0, Token::RightArrow | Token::LeftArrow))
+            || (input.len() >= 2 && matches!(input[1].0, Token::LParen))
+            || (matches!(input[0].0, Token::Loop)
+                && input.get(1).is_some_and(|t| matches!(t.0, Token::Number(_))))
         {
             break;
         }

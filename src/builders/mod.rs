@@ -1,11 +1,12 @@
 //! Multi-Layer Wire Packet Builders for the FrameAssembly Compiler.
 //!
-//! This module hierarchy implements deterministic wire-format packet synthesis across OSI Layer 2
-//! ([`l2`]: Ethernet II, IEEE 802.1Q VLAN, IEEE 802.1ad QinQ, MPLS, ARP, STP/RSTP, LLDP, LACP,
-//! PPPoE, EAPOL, MACsec, Profinet RT), Layer 3 ([`l3`]: IPv4, IPv6, ICMPv4/v6, IPsec ESP/AH, GRE,
-//! BGP, OSPF, RIP, EIGRP, IS-IS, PIM, IGMP, VRRP, HSRP, BFD, LDP, RSVP), Layer 4 ([`l4`]: TCP,
-//! UDP, SCTP, VXLAN, Geneve, L2TP, GTP-U), and Layer 7 ([`l7`]: 45 application, database, broker,
-//! industrial OT, and SNMPv1/v2c/v3 protocols).
+//! This module hierarchy implements deterministic wire-format packet synthesis across all 81 native
+//! protocols spanning OSI Layer 2 ([`l2`]: `ARP`, `VLAN`, `QINQ`, `LLDP`, `STP`, `LACP`, `EAPOL`,
+//! and `MPLS`), Layer 3 ([`l3`]: `ICMP`, `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`, `GENEVE`, `IPSEC`,
+//! `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`, `PIM`, `BFD`, and
+//! `OPENFLOW`), Layer 4 ([`l4`]: `TCP`, `UDP`, and `SCTP`), and Layer 7 ([`l7`]: 50 infrastructure,
+//! web, cloud, mail, directory, storage, database, messaging, industrial OT/ICS, and
+//! `SNMP1`/`SNMP2`/`SNMP3` protocols).
 
 use crate::ast::{L2Modifiers, L3Modifiers, L4Modifiers, TransportProto};
 use core::net::IpAddr;

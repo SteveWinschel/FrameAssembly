@@ -5,7 +5,11 @@ description: Comprehensive architecture guide, API selection matrix, SMIv1/SMIv2
 
 # ASN.1 & SNMP Codec Stack Engineering Skill (`rasn`, `rasn-smi`, `rasn-snmp` `0.28.15`)
 
-Use this skill when designing, implementing, debugging, or verifying ASN.1 BER/DER codecs, SMIv1/SMIv2 data structures, SNMPv1/v2c/v3 network management protocol builders, or LDAP (RFC 4511) and Kerberos (RFC 4120) ASN.1 wire encoders in Rust using `rasn = "0.28.15"`, `rasn-smi = "0.28.15"`, and `rasn-snmp = "0.28.15"`.
+Use this skill when designing, implementing, debugging, or verifying ASN.1 BER/DER codecs, SMIv1/SMIv2 data structures, SNMPv1/v2c/v3 network management protocol builders and PCAP-to-`.fasm` decompilers (`src/reverse/l7/{snmp1,snmp2,snmp3}.rs`), or LDAP (RFC 4511) and Kerberos (RFC 4120) ASN.1 wire encoders (`src/builders/l7/ldap.rs`, `src/builders/l7/kerberos.rs`) in Rust using `rasn = "0.28.15"`, `rasn-smi = "0.28.15"`, and `rasn-snmp = "0.28.15"`.
+
+> **CRITICAL Version Lockstep Guardrail (`0.28.15` Active vs. `0.29.0` / `0.30.0` Upstream)**:
+> - `Cargo.toml` and `Cargo.lock` pin `rasn = "0.28.15"`, `rasn-smi = "0.28.15"`, and `rasn-snmp = "0.28.15"` in strict minor-version lockstep.
+> - Upstream `rasn` has a `0.30.0` release while `rasn-smi` and `rasn-snmp` are on `0.29.0` (depending on `rasn ^0.29`). **Never** upgrade `rasn` to `0.30.0` independently of `rasn-smi` and `rasn-snmp`, or Cargo will link two incompatible versions of `rasn::Encode`/`Decode`! Only bump all three together (`0.29.0` across all three, or `0.30.x` once `rasn-snmp 0.30` is published).
 
 ---
 
@@ -15,9 +19,9 @@ Use this skill when designing, implementing, debugging, or verifying ASN.1 BER/D
 | :--- | :--- | :--- |
 | **ASN.1 BER serialization** | `rasn::ber::encode(&value)` or `rasn::ber::encode_buf(&value, &mut buf)` | Manual TLV byte slicing or hand-rolled length packing |
 | **ASN.1 BER deserialization** | `rasn::ber::decode::<T>(&bytes)` | Unbounded manual length decoding |
-| **Stream / QA remainder decode** | `rasn::ber::decode_with_remainder::<T>(&bytes)` (`(T, &[u8])`) | Allocating intermediate vectors or ignoring trailing unconsumed bytes in TCP/QA streams |
+| **Stream / decompiler remainder decode** | `rasn::ber::decode_with_remainder::<T>(&bytes)` (`(T, &[u8])`) | Allocating intermediate vectors or ignoring trailing unconsumed bytes in TCP/decompiler/QA streams |
 | **Canonical ASN.1 encoding** | `rasn::der::encode(&value)` / `rasn::der::decode_with_remainder::<T>(&bytes)` | Using BER where DER is required (e.g., X.509, RFC 4120 Kerberos) |
-| **OID parsing & 1-arc guard** | `oid_str.trim_start_matches('.')` + **check `arcs.len() >= 2`** + `ObjectIdentifier::new(arcs)` | Calling `ObjectIdentifier::new(vec![1])` without `len >= 2` check (succeeds in `new`, then fails in `ber::encode`!) |
+| **OID parsing & `>= 2` arc guard** | `oid_str.trim_start_matches('.')` + **check `arcs.len() >= 2`** + `ObjectIdentifier::new(arcs)` | Calling `ObjectIdentifier::new(vec![1])` without `len >= 2` check (succeeds in `new`, then fails in `ber::encode`!) |
 | **Compile-time static OIDs** | `ObjectIdentifier::from(Oid::const_new(&[1, 3, 6, 1, 2, 1, 1, 3, 0]))` | `ObjectIdentifier::new(vec![1, 3, 6, 1, 2, 1, 1, 3, 0]).unwrap()` (heap-allocates every call) |
 | **Zero-heap static `OctetString`** | `OctetString::from_static(b"public")` (wraps `Bytes::from_static`) | `"public".as_bytes().to_vec().into()` on static string literals |
 | **Zero-heap `Integer` construction** | `Integer::from(val)` (`IntegerKind::Primitive(isize)` stack path for all `i64`/`u32`) | Converting `i64` to `BigInt` before constructing `rasn::types::Integer` |
@@ -32,7 +36,7 @@ Use this skill when designing, implementing, debugging, or verifying ASN.1 BER/D
 | **SNMPv1 generic trap OID mapping** | Auto-map `1.3.6.1.6.3.1.1.5.1`..=`.6` to `generic_trap` `0..=5` (`specific_trap = 0`); else `6` (`specific_trap = 1`) | Hardcoding `generic_trap = 6` for standard `coldStart`/`linkDown` OIDs |
 | **SNMPv1 bulk / inform guard** | Reject `GetBulk` and `Inform` under `SNMP1` with diagnostic error | Silently coercing `GETBULK` or `INFORM` into an SNMPv1 `GET` or `TRAP` |
 | **SNMPv1 trap from IPv6 host** | Default `agent_addr` to `0.0.0.0` (RFC 3584 §3.2) unless `AGENTIP <ipv4>` set | Truncating 16-byte IPv6 address into 4 bytes or panicking |
-| **SNMPv2c/v3 Trap & Inform header** | Prepend Index 0: `sysUpTime.0` (`TimeTicks`), Index 1: `snmpTrapOID.0` (`ObjectId`) | Placing user varbinds ahead of standard notification OIDs (RFC 3416 violation) |
+| **SNMPv2c/v3 Trap & Inform header** | Prepend Index 0: `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`), Index 1: `snmpTrapOID.0` (**`1.3.6.1.6.3.1.1.4.1.0`**, never `.4.2.0`!) | Using `.4.2.0` for `snmpTrapOID.0` or placing user varbinds ahead of standard notification OIDs |
 | **Dual-stack IPv6 in varbinds** | 16-byte `OctetString` (`SimpleSyntax::String(v6.octets().to_vec().into())`, RFC 4001) | Coercing 16-byte IPv6 into 4-octet `IpAddress(FixedOctetString<4>)` |
 | **SNMPv3 USM parameters** | `rasn::ber::encode(&usm)` or `msg.encode_security_parameters(Codec::Ber, &usm)` / `msg.decode_security_parameters::<USMSecurityParameters>(Codec::Ber)` | Inlining `USMSecurityParameters` SEQUENCE directly into outer `Message` |
 | **SNMPv3 USM password validation** | Reject empty `""` auth/priv passwords before RFC 3414 1MB key localization | Calling `password[i % password.len()]` on empty slice (panics with div-by-zero!) |
@@ -104,16 +108,16 @@ When defining custom ASN.1 protocols (such as RFC 4511 LDAPv3 or RFC 4120 Kerber
 
 ---
 
-## 5. Architecture Decision Guide & LDAP / Kerberos Wire Audit
+## 5. Architecture Decision Guide & LDAP / Kerberos Wire Invariants
 
 1. **SNMP Version Selection (`v1` vs. `v2c` vs. `v3`)**:
    - **SNMPv1 (RFC 1157)**: Restricted to 32-bit counters (`Counter64` rejected), 4-octet IPv4 `agent-addr` in traps (`0.0.0.0` fallback on IPv6 per RFC 3584 §3.2), and 5 PDU tags (`0xa0`..=`0xa4`). Rejects `GetBulk` and `Inform`.
-   - **SNMPv2c (RFC 1901 / RFC 3416)**: Supports `Counter64` (`0x46`), `GetBulkRequest` (`0xa5`), `InformRequest` (`0xa6`), `Trap` (`0xa7`), and `Report` (`0xa8`). Context tag 4 (`0xa4`) is omitted.
+   - **SNMPv2c (RFC 1901 / RFC 3416)**: Supports `Counter64` (`0x46`), `GetBulkRequest` (`0xa5`), `InformRequest` (`0xa6`), `Trap` (`0xa7`), and `Report` (`0xa8`). Context tag 4 (`0xa4`) is omitted. Prepend `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) and `snmpTrapOID.0` (**`1.3.6.1.6.3.1.1.4.1.0`**, never `.4.2.0`) on `Trap` and `InformRequest`.
    - **SNMPv3 (RFC 3412 / RFC 3414 / RFC 3826 / RFC 7860)**: USM authentication (`MD5`/`SHA` 12B, `SHA256` 24B, `SHA384` 32B, `SHA512` 48B), privacy (`DES` CBC with `ZeroPadding` on encrypt and `NoPadding` on BER decrypt; `AES` 128-CFB stream mode), and `ScopedPdu`.
-2. **LDAPv3 (RFC 4511) & Kerberos v5 (RFC 4120) Builder Audit & Verification**:
-   - In `src/builders/l7/ldap.rs`, `build_ldap_payload` currently encodes a shortened 3-field `SearchRequest` (`0x63` with only `baseObject`, `scope`, and `derefAliases`, omitting the 5 remaining mandatory RFC 4511 §4.5.1 fields `sizeLimit`, `timeLimit`, `typesOnly`, `filter`, and `attributes`) and ignores `is_bind_res`, `is_search_entry`, `is_search_done`, `is_unbind_req`, `filter`, and `result_code`.
-   - In `src/builders/l7/kerberos.rs`, `build_kerberos_payload` currently emits raw ASCII `b"KRB5_AS_REQ:..."` inside `[APPLICATION 10]` (`0x6A`) instead of a DER `SEQUENCE` with explicit tags `[1] pvno (5)`, `[2] msg-type (10)`, `[3] padata`, and `[4] req-body` (with mandatory `[7] till` and `[8] nonce`).
-   - Use Pattern 6 in [references/patterns.md](references/patterns.md) for complete `#[derive(AsnType, Encode, Decode)]` schemas to verify RFC 4511 LDAPv3 BER and RFC 4120 Kerberos v5 DER frames.
+2. **LDAPv3 (RFC 4511) & Kerberos v5 (RFC 4120) Wire Implementation & Verification**:
+   - **`src/builders/l7/ldap.rs`**: Encodes full RFC 4511 `LDAPMessage` (`0x30`) BER sequences across all 6 operations: `BindRequest` (`0x60`), `BindResponse` (`0x61`), `UnbindRequest` (`0x42`), complete 8-field `SearchRequest` (`0x63` with `baseObject`, `scope`, `derefAliases`, `sizeLimit`, `timeLimit`, `typesOnly`, `[7] Present` filter `0x87`, and `attributes`), `SearchResultEntry` (`0x64`), and `SearchResultDone` (`0x65`).
+   - **`src/builders/l7/kerberos.rs`**: Encodes full RFC 4120 explicit-tagged DER structures across `AS-REQ` (`0x6A`), `AS-REP` (`0x6B`), `TGS-REQ` (`0x6C`), `TGS-REP` (`0x6D`), and `KRB-ERROR` (`0x7E`), including mandatory `[0] kdc-options`, `[1] cname`, `[2] realm`, `[3] sname`, `[7] till (GeneralizedTime)`, `[8] nonce (UInt32)`, and `[9] etype` in `KDC-REQ-BODY`.
+   - Use Pattern 6 in [references/patterns.md](references/patterns.md) for complete `#[derive(AsnType, Encode, Decode)]` schemas to verify RFC 4511 LDAPv3 BER and RFC 4120 Kerberos v5 DER frames via `rasn::ber::decode_with_remainder` and `rasn::der::decode_with_remainder`.
 
 ---
 

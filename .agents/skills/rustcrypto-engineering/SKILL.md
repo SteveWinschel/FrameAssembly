@@ -1,6 +1,6 @@
 ---
 name: rustcrypto-engineering
-description: Comprehensive engineering guide, trait selection matrix, and production code templates for modern RustCrypto (aes 0.9.3, des 0.9.0, cbc 0.2.1, cfb-mode 0.9.1, block-padding 0.4.2, hmac 0.13.0, md-5 0.11.0, sha1 0.11.0, sha2 0.11.1, and transitive cipher 0.5.2, digest 0.11.3, hybrid-array 0.4.15, ctutils 0.4.5, inout 0.2.5) including SNMPv3 USM RFC 3414/3826/7860 cryptography.
+description: Comprehensive engineering guide, trait selection matrix, and production code templates for modern RustCrypto (Cargo.toml: aes 0.9.3, des 0.9.0, cbc 0.2.1, cfb-mode 0.9.1, block-padding 0.4.2, hmac 0.13.0, md-5 0.11.0, sha1 0.11.0, sha2 0.11.0; Cargo.lock: aes 0.9.4, cipher 0.5.2, digest 0.11.3, hybrid-array 0.4.15, ctutils 0.4.2, inout 0.2.5) including SNMPv3 USM RFC 3414/3826/7860 cryptography.
 ---
 
 # RustCrypto Engineering & Cryptographic Primitives Reference
@@ -16,38 +16,38 @@ The **RustCrypto** ecosystem provides pure-Rust, `no_std`-compatible, hardware-a
    - In `block-padding 0.4.2`, **`RawPadding`, `PadType`, and `UnpadError` do NOT exist**, and `Padding` has **zero** type parameters (`pub trait Padding: 'static`). Instead, block size `B: ArraySize` is passed as a method-level generic parameter: `P::pad::<B>(block: &mut Block<B>, pos: usize)`, `P::pad_detached::<B>(blocks: &mut [Block<B>], pos: usize) -> PaddedData<'_, B>`, and `P::unpad::<B>(blocks: &[Block<B>]) -> Result<&[u8], block_padding::Error>`.
    - In `cipher 0.5.2`, **`AsyncStreamCipher` does NOT exist**. Both `cbc 0.2.1` and `cfb-mode 0.9.1` implement `BlockModeEncrypt` and `BlockModeDecrypt`, while `cfb_mode::Encryptor<C>` and `cfb_mode::Decryptor<C>` also expose inherent byte-stream methods: `.encrypt(&mut [u8])`, `.decrypt(&mut [u8])`, `.encrypt_b2b(in, out)`, `.decrypt_b2b(in, out)`, and `.encrypt_inout(InOutBuf)`.
 3. **Strict Separation of Block Ciphers and Modes of Operation**:
-   - Block cipher crates (`aes 0.9.3`, `des 0.9.0`) implement **only** raw single-block transformations (`BlockCipherEncrypt`, `BlockCipherDecrypt`) over fixed-width blocks (16 bytes for AES, 8 bytes for DES/3DES).
+   - Block cipher crates (`aes 0.9.3` [`0.9.4` in `Cargo.lock`], `des 0.9.0`) implement **only** raw single-block transformations (`BlockCipherEncrypt`, `BlockCipherDecrypt`) over fixed-width blocks (16 bytes for AES, 8 bytes for DES/3DES).
    - Multi-block encryption and IV management are delegated entirely to mode crates (`cbc 0.2.1`, `cfb-mode 0.9.1`), which wrap a raw cipher (`cbc::Encryptor<Aes128>`, `cfb_mode::Encryptor<Aes128>`, `cbc::Encryptor<Des>`).
 4. **In-Place & Buffer-to-Buffer (`inout 0.2.5`) Memory Discipline**:
    - All encryption, decryption, and padding operations are engineered around `inout::InOutBuf<'_, '_, u8>`, allowing callers to choose between zero-allocation in-place mutation (`&mut [u8]`) and non-overlapping input-to-output buffer transformations (`&[u8]` -> `&mut [u8]`).
    - Convenience `_vec` methods require the `alloc` feature on `cipher`/`cbc`, which is **disabled by default** when depending only on `cbc = "0.2.1"`. Always prefer stack/slice-based `encrypt_padded` / `decrypt_padded` or explicit buffer sizing.
-5. **Constant-Time Verification via `ctutils 0.4.5`, `CtOutput`, & `verify_truncated_left`**:
-   - Modern `digest 0.11.3` and `hmac 0.13.0` use `ctutils` (`CtEq`, `Choice`) inside `CtOutput<T>`. Full MAC tags are verified via `mac.verify_slice(tag)` and left-truncated wire tags via `mac.verify_truncated_left(tag)` (after checking `tag.len() == expected_wire_len`).
-6. **Transitive Trait Re-Exports (`cbc::cipher::common`, `sha2::digest::common`)**:
+5. **Constant-Time Verification via `ctutils 0.4.2`, `CtOutput`, & `verify_truncated_left`**:
+   - Modern `digest 0.11.3` and `hmac 0.13.0` use `ctutils 0.4.2` (`CtEq`, `Choice`) inside `CtOutput<T>`. Full MAC tags are verified via `mac.verify_slice(tag)` and left-truncated wire tags via `mac.verify_truncated_left(tag)` (after checking `tag.len() == expected_wire_len`).
+6. **Transitive Trait Re-Exports (`cbc::cipher::common::{KeyInit, KeyIvInit}`, `sha2::digest::common`, `hmac::EagerHash`)**:
    - When `Cargo.toml` lists concrete algorithm and mode crates (`aes`, `des`, `cbc`, `cfb-mode`, `block-padding`, `hmac`, `md-5`, `sha1`, `sha2`) without explicitly listing `cipher`, `digest`, or `crypto-common`, always import foundational traits through their public re-exports:
      - `use cbc::cipher::{BlockModeEncrypt, BlockModeDecrypt, KeyIvInit, block_padding::{NoPadding, Pkcs7, ZeroPadding}};`
      - `use cfb_mode::cipher::KeyIvInit;`
-     - `use cbc::cipher::common` and `use sha2::digest::common` (note: the re-export module is named `common`, **not** `crypto_common`!)
-     - `use hmac::{Hmac, HmacReset, KeyInit, Mac, SimpleHmac, SimpleHmacReset};`
+     - `use cbc::cipher::common::{KeyInit, KeyIvInit}` and `use sha2::digest::common` (note: the re-export module is named `common`, **not** `crypto_common`!)
+     - `use hmac::{EagerHash, Hmac, HmacReset, KeyInit, Mac, SimpleHmac, SimpleHmacReset};`
      - `use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};`
 
 ---
 
 ## 2. Crate & Version Matrix
 
-### Direct Workspace Dependencies (`Cargo.toml`)
+### Direct Workspace Dependencies (`Cargo.toml` vs. `Cargo.lock`)
 
-| Crate | Version (`Cargo.lock`) | Core Types & Structs | Primary Role & RFC Alignment |
+| Crate | `Cargo.toml` Spec (`Cargo.lock`) | Core Types & Structs | Primary Role & RFC Alignment |
 | :--- | :--- | :--- | :--- |
-| **`aes`** | `0.9.3` | `Aes128`, `Aes192`, `Aes256`, `Aes128Enc`, `Aes128Dec`, `Block` (`16`B) | FIPS 197 AES block cipher (`16`/`24`/`32`B keys, `16`B block) with AES-NI / ARMv8 Crypto runtime detection (`aes::hardware_accelerated()`). |
-| **`des`** | `0.9.0` | `Des`, `TdesEde2`, `TdesEde3`, `weak_key_test` | FIPS 46-3 DES (`8`B key, `8`B block) and SP 800-67 3DES EDE2 (`16`B key) / EDE3 (`24`B key) + weak/semi-weak key detection. |
-| **`cbc`** | `0.2.1` | `Encryptor<C>`, `Decryptor<C>` | NIST SP 800-38A Cipher Block Chaining (CBC) mode implementing `BlockModeEncrypt`, `BlockModeDecrypt`, and `KeyIvInit`. |
-| **`cfb-mode`** | `0.9.1` | `Encryptor<C>`, `Decryptor<C>`, `BufEncryptor<C>`, `BufDecryptor<C>` | Full-block Cipher Feedback (CFB-128 / CFB-64) mode (RFC 3826 SNMPv3 AES-128-CFB & Draft Blumenthal AES-192/256-CFB). |
-| **`block-padding`** | `0.4.2` | `Padding`, `Pkcs7`, `Iso7816`, `AnsiX923`, `Iso10126`, `ZeroPadding`, `NoPadding`, `PaddedData`, `Error` | Zero-type-parameter `Padding` trait (`P::pad::<B>`, `P::pad_detached::<B>`, `P::unpad::<B>`). *Note: `RawPadding`, `PadType`, and `UnpadError` do not exist in `0.4.2`!* |
-| **`hmac`** | `0.13.0` | `Hmac<D>`, `HmacReset<D>`, `SimpleHmac<D>`, `SimpleHmacReset<D>`, `Mac`, `KeyInit` | RFC 2104 Keyed-Hash Message Authentication Code (`Hmac<D>` for one-shot/streaming; `HmacReset<D>` when `Reset` / `FixedOutputReset` is needed across packets). |
-| **`md-5`** | `0.11.0` | `Md5` (`16`B output, `64`B block) | RFC 1321 MD5 digest (SNMPv3 `usmHMACMD5AuthProtocol`, RADIUS RFC 2865 Authenticator & User-Password XOR, TACACS+ RFC 8907 pseudo-pad). |
-| **`sha1`** | `0.11.0` | `Sha1` (`20`B output, `64`B block) | FIPS 180-4 / RFC 3174 SHA-1 digest (SNMPv3 `usmHMACSHAAuthProtocol`, STUN RFC 5389 `MESSAGE-INTEGRITY`, WebSocket RFC 6455 `Sec-WebSocket-Accept`). |
-| **`sha2`** | `0.11.0` (`0.11.1`) | `Sha224`, `Sha256`, `Sha384`, `Sha512`, `Sha512_224`, `Sha512_256` | FIPS 180-4 / RFC 6234 SHA-2 family (SNMPv3 RFC 7860 `usmHMAC192SHA256AuthProtocol`, `usmHMAC256SHA384AuthProtocol`, `usmHMAC384SHA512AuthProtocol`). |
+| **`aes`** | `0.9.3` (`0.9.4`) | `Aes128`, `Aes192`, `Aes256`, `Aes128Enc`, `Aes128Dec`, `Block` (`16`B) | FIPS 197 AES block cipher (`16`/`24`/`32`B keys, `16`B block) with AES-NI / ARMv8 Crypto runtime detection (`aes::hardware_accelerated()`). |
+| **`des`** | `0.9.0` (`0.9.0`) | `Des`, `TdesEde2`, `TdesEde3`, `weak_key_test` | FIPS 46-3 DES (`8`B key, `8`B block) and SP 800-67 3DES EDE2 (`16`B key) / EDE3 (`24`B key) + weak/semi-weak key detection. |
+| **`cbc`** | `0.2.1` (`0.2.1`) | `Encryptor<C>`, `Decryptor<C>` | NIST SP 800-38A Cipher Block Chaining (CBC) mode implementing `BlockModeEncrypt`, `BlockModeDecrypt`, and `KeyIvInit`. |
+| **`cfb-mode`** | `0.9.1` (`0.9.1`) | `Encryptor<C>`, `Decryptor<C>`, `BufEncryptor<C>`, `BufDecryptor<C>` | Full-block Cipher Feedback (CFB-128 / CFB-64) mode (RFC 3826 SNMPv3 AES-128-CFB & Draft Blumenthal AES-192/256-CFB). |
+| **`block-padding`** | `0.4.2` (`0.4.2`) | `Padding`, `Pkcs7`, `Iso7816`, `AnsiX923`, `Iso10126`, `ZeroPadding`, `NoPadding`, `PaddedData`, `Error` | Zero-type-parameter `Padding` trait (`P::pad::<B>`, `P::pad_detached::<B>`, `P::unpad::<B>`). *Note: `RawPadding`, `PadType`, and `UnpadError` do not exist in `0.4.2`!* |
+| **`hmac`** | `0.13.0` (`0.13.0`) | `Hmac<D>`, `HmacReset<D>`, `SimpleHmac<D>`, `SimpleHmacReset<D>`, `EagerHash`, `Mac`, `KeyInit` | RFC 2104 Keyed-Hash Message Authentication Code (`Hmac<D: EagerHash>` for block-buffer hashes; `HmacReset<D>` when `Reset` / `FixedOutputReset` is needed across packets). |
+| **`md-5`** | `0.11.0` (`0.11.0`) | `Md5` (`16`B output, `64`B block) | RFC 1321 MD5 digest (SNMPv3 `usmHMACMD5AuthProtocol`, RADIUS RFC 2865 Authenticator & User-Password XOR, TACACS+ RFC 8907 pseudo-pad). |
+| **`sha1`** | `0.11.0` (`0.11.0`) | `Sha1` (`20`B output, `64`B block) | FIPS 180-4 / RFC 3174 SHA-1 digest (SNMPv3 `usmHMACSHAAuthProtocol`, STUN RFC 5389 `MESSAGE-INTEGRITY`, WebSocket RFC 6455 `Sec-WebSocket-Accept`). |
+| **`sha2`** | `0.11.0` (`0.11.0`) | `Sha224`, `Sha256`, `Sha384`, `Sha512`, `Sha512_224`, `Sha512_256` | FIPS 180-4 / RFC 6234 SHA-2 family (SNMPv3 RFC 7860 `usmHMAC192SHA256AuthProtocol`, `usmHMAC256SHA384AuthProtocol`, `usmHMAC384SHA512AuthProtocol`). |
 
 ### Transitive Foundation Crates (`Cargo.lock`)
 
@@ -55,9 +55,9 @@ The **RustCrypto** ecosystem provides pure-Rust, `no_std`-compatible, hardware-a
 | :--- | :--- | :--- | :--- |
 | **`cipher`** | `0.5.2` | `cbc::cipher`, `cfb_mode::cipher`, `aes::cipher`, `des::cipher` | `KeyInit`, `KeyIvInit`, `BlockCipherEncrypt`, `BlockCipherDecrypt`, `BlockModeEncrypt`, `BlockModeDecrypt`, `InvalidLength`, `inout::PadError`, `block_padding::Error`. |
 | **`digest`** | `0.11.3` | `sha2::digest`, `hmac::digest` | `Digest`, `Mac`, `Update`, `Reset`, `FixedOutput`, `FixedOutputReset`, `CtOutput`, `MacError`, `InvalidLength`. |
-| **`crypto-common`** | `0.2.2` | `cbc::cipher::common`, `sha2::digest::common` | `Key<B>`, `Iv<B>`, `Block<B>`, `Output<D>`, `KeySizeUser`, `IvSizeUser`, `BlockSizeUser`, `OutputSizeUser`, `InnerInit`. |
+| **`crypto-common`** | `0.2.2` | `cbc::cipher::common`, `sha2::digest::common` | `Key<B>`, `Iv<B>`, `Block<B>`, `Output<D>`, `KeySizeUser`, `IvSizeUser`, `BlockSizeUser`, `OutputSizeUser`, `KeyInit`, `KeyIvInit`, `InnerInit`. |
 | **`inout`** | `0.2.5` | `cbc::cipher::inout` | `InOut<'inp, 'out, T>`, `InOutBuf<'inp, 'out, T>`, `PadError`, `NotEqualError`. |
-| **`ctutils`** | `0.4.5` | Internal to `digest::CtOutput` | `CtEq`, `CtSelect`, `Choice` (constant-time equality & selection). |
+| **`ctutils`** | `0.4.2` | Internal to `digest::CtOutput` | `CtEq`, `CtSelect`, `Choice` (constant-time equality & selection). |
 | **`hybrid-array`** | `0.4.15` | `cbc::cipher::Array`, `sha2::digest::array::Array` | `Array<T, U>`, `ArraySize`, `typenum::consts::{U8, U16, U20, U24, U32, U48, U64}`. |
 
 ---
@@ -109,15 +109,16 @@ In `block-padding 0.4.2`, `pub trait Padding: 'static` has **zero** type paramet
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`Md5`** | `md-5 0.11.0` | `16` bytes (`U16`, 128-bit) | `64` bytes (`U64`) | `1.2.840.113549.2.5` | RFC 3414 `usmHMACMD5AuthProtocol` (`12`B MAC), RADIUS Authenticator & User-Password XOR, TACACS+ pseudo-pad (`MD5(session_id \|\| key \|\| version \|\| seq_no)`). |
 | **`Sha1`** | `sha1 0.11.0` | `20` bytes (`U20`, 160-bit) | `64` bytes (`U64`) | `1.3.14.3.2.26` | RFC 3414 `usmHMACSHAAuthProtocol` (`12`B MAC), STUN RFC 5389 `MESSAGE-INTEGRITY` (`20`B HMAC-SHA1), WebSocket RFC 6455 `Sec-WebSocket-Accept`. |
-| **`Sha224`** | `sha2 0.11.1` | `28` bytes (`U28`, 224-bit) | `64` bytes (`U64`) | `2.16.840.1.101.3.4.2.4` | RFC 7860 `usmHMAC128SHA224AuthProtocol` (`16`B truncated MAC). |
-| **`Sha256`** | `sha2 0.11.1` | `32` bytes (`U32`, 256-bit) | `64` bytes (`U64`) | `2.16.840.1.101.3.4.2.1` | RFC 7860 `usmHMAC192SHA256AuthProtocol` (`24`B truncated MAC). |
-| **`Sha384`** | `sha2 0.11.1` | `48` bytes (`U48`, 384-bit) | `64` bytes (`U64`) | `2.16.840.1.101.3.4.2.2` | RFC 7860 `usmHMAC256SHA384AuthProtocol` (`32`B truncated MAC). |
-| **`Sha512`** | `sha2 0.11.1` | `64` bytes (`U64`, 512-bit) | `128` bytes (`U128`) | `2.16.840.1.101.3.4.2.3` | RFC 7860 `usmHMAC384SHA512AuthProtocol` (`48`B truncated MAC). |
+| **`Sha224`** | `sha2 0.11.0` | `28` bytes (`U28`, 224-bit) | `64` bytes (`U64`) | `2.16.840.1.101.3.4.2.4` | RFC 7860 `usmHMAC128SHA224AuthProtocol` (`16`B truncated MAC). |
+| **`Sha256`** | `sha2 0.11.0` | `32` bytes (`U32`, 256-bit) | `64` bytes (`U64`) | `2.16.840.1.101.3.4.2.1` | RFC 7860 `usmHMAC192SHA256AuthProtocol` (`24`B truncated MAC). |
+| **`Sha384`** | `sha2 0.11.0` | `48` bytes (`U48`, 384-bit) | `64` bytes (`U64`) | `2.16.840.1.101.3.4.2.2` | RFC 7860 `usmHMAC256SHA384AuthProtocol` (`32`B truncated MAC). |
+| **`Sha512`** | `sha2 0.11.0` | `64` bytes (`U64`, 512-bit) | `128` bytes (`U128`) | `2.16.840.1.101.3.4.2.3` | RFC 7860 `usmHMAC384SHA512AuthProtocol` (`48`B truncated MAC). |
 
-### 4.2 `Hmac<D>` vs. `HmacReset<D>` & `Mac::verify_truncated_left` (`hmac 0.13.0`)
+### 4.2 `Hmac<D: EagerHash>` vs. `HmacReset<D>` & `Mac::verify_truncated_left` (`hmac 0.13.0`)
 
-1. **`Hmac<D>` vs. `HmacReset<D>` (`SimpleHmac<D>` vs. `SimpleHmacReset<D>`)**:
-   - In `hmac 0.13.0`, `Hmac<D>` stores only the active inner hash state and finalized outer key pad to minimize stack footprint, so `Hmac<D>` **does not implement `digest::Reset` or `FixedOutputReset`**.
+1. **`Hmac<D>` (`D: EagerHash`) vs. `HmacReset<D>` (`SimpleHmac<D>` vs. `SimpleHmacReset<D>`)**:
+   - In `hmac 0.13.0`, `Hmac<D>` and `HmacReset<D>` require `D: hmac::EagerHash` (satisfied by `Md5`, `Sha1`, `Sha224`, `Sha256`, `Sha384`, `Sha512`). When writing generic functions over `D: Digest + BlockSizeUser` without an `EagerHash` bound, use `SimpleHmac<D>` or `SimpleHmacReset<D>`.
+   - `Hmac<D>` stores only the active inner hash state and finalized outer key pad to minimize stack footprint, so `Hmac<D>` **does not implement `digest::Reset` or `FixedOutputReset`**.
    - When you need to reuse a pre-keyed HMAC instance across multiple packets via `Mac::reset(&mut self)` or `FixedOutputReset::finalize_into_reset(&mut self, out)`, use **`hmac::HmacReset<D>`** (or `hmac::SimpleHmacReset<D>`).
 2. **Full & Left-Truncated Constant-Time MAC Verification**:
    - **Full tag (`OutputSize` bytes)**: Call `mac.verify_slice(candidate_tag) -> Result<(), MacError>`.

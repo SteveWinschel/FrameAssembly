@@ -12,22 +12,23 @@ start: top_level_decl* compile_block top_level_decl*
 top_level_decl: host_decl
               | flow_decl
 
-// 1. Host Declarations
-host_decl: "HOST" IDENT "{" host_prop* "}"
+// 1. Host Declarations (at least one IP or MAC property in any order)
+host_decl: "HOST" IDENT "{" host_prop+ "}"
 host_prop: "IP" ip_addr
          | "MAC" MAC_ADDR
 
-// 2. Flow Declarations & Statements
+// 2. Flow Declarations & Statements (FLOW blocks are optional when COMPILE uses inline frame_stmt)
 flow_decl: "FLOW" IDENT "(" param_list? ")" "{" frame_stmt* "}"
 param_list: IDENT ("," IDENT)*
 
 frame_stmt: IDENT direction IDENT frame_field*
 direction: "->" | "<-"
 
-// 3. Compile Block & Loops
+// 3. Compile Block, Loops & Inline Frame Statements
 compile_block: "COMPILE" "{" run_stmt* "}"
 run_stmt: loop_block
         | flow_call
+        | frame_stmt
 loop_block: "LOOP" UINT_LIT "{" flow_call* "}"
 flow_call: IDENT "(" param_list? ")"
 
@@ -384,8 +385,8 @@ l7_proto_field: "TXID" (UINT_LIT | str_or_ident)
               | "SESSION" str_or_ident
               | "EHLO" str_or_ident?
               | "HELO" str_or_ident?
-              | "MAIL_FROM" str_or_ident
-              | "RCPT_TO" str_or_ident
+              | "MAIL_FROM" str_or_ident?
+              | "RCPT_TO" str_or_ident?
               | "QUIT"
               | "PARAM" str_or_ident
               | "OK" | "ERR"
@@ -489,7 +490,14 @@ contextual_keyword: "CNAME" | "TEXT" | "BINARY" | "PING" | "PONG" | "CLOSE"
                   | "SYNC" | "REPORT" | "TRAP" | "INFORM" | "GET" | "GETNEXT" | "GETBULK" | "SET" | "RESPONSE"
                   | "REQUEST" | "REPLY" | "QUERY" | "NOTIFY" | "HELLO" | "OPEN" | "UPDATE" | "KEEPALIVE"
                   | "CONNECT" | "CONNACK" | "PUBLISH" | "SUBSCRIBE" | "DISCONNECT"
-                  | "START" | "LOGOFF" | "KEY" | "EAP_PACKET" | "AUTHEN" | "AUTHOR" | "ACCT"
+                  | "START" | "LOGOFF" | "KEY" | "EAP_PACKET" | "AUTHEN" | "AUTHOR" | "ACCT" | "AUTH"
+                  | "SA_INIT" | "CREATE_CHILD_SA" | "INFORMATIONAL"
+                  | "NEGOTIATE" | "SESSION_SETUP" | "TREE_CONNECT" | "CREATE" | "TREE_DISCONNECT"
+                  | "LIST_SERVICES" | "LIST_IDENTITY" | "LIST_INTERFACES" | "REGISTER_SESSION" | "UNREGISTER_SESSION" | "SEND_RR_DATA" | "SEND_UNIT_DATA"
+                  | "READ_COILS" | "READ_DISCRETE_INPUTS" | "READ_HOLDING_REGISTERS" | "READ_INPUT_REGISTERS"
+                  | "WRITE_SINGLE_COIL" | "WRITE_SINGLE_REGISTER" | "WRITE_MULTIPLE_REGISTERS"
+                  | "CONFIRM" | "SELECT" | "OPERATE" | "DIRECT_OPERATE" | "UNSOLICITED_RESPONSE"
+                  | "SETUP_COMM" | "READ_VAR" | "WRITE_VAR" | "PLC_CONTROL"
                   | "OK" | "ERR" | "QUIT" | "EHLO" | "HELO" | "DB"
 
 ip_addr: IPV4_ADDR | IPV6_ADDR

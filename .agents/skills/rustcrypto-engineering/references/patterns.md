@@ -1,6 +1,6 @@
 # Production Code Templates for RustCrypto (`cipher 0.5.2`, `digest 0.11.3`, `block-padding 0.4.2`)
 
-Every template in this reference is verified against the workspace dependencies in `Cargo.toml` (`aes = "0.9.3"`, `block-padding = "0.4.2"`, `cbc = "0.2.1"`, `cfb-mode = "0.9.1"`, `des = "0.9.0"`, `hmac = "0.13.0"`, `md-5 = "0.11.0"`, `sha1 = "0.11.0"`, `sha2 = "0.11.0"` [`0.11.1`]) and uses the exact transitive trait re-exports (`cbc::cipher`, `cbc::cipher::common`, `cfb_mode::cipher`, `hmac::Mac`, `sha2::Digest`, `sha2::digest::common`) so no direct `cipher`, `digest`, or `crypto-common` entry is required in `Cargo.toml`.
+Every template in this reference is verified against the workspace dependencies in `Cargo.toml` (`aes = "0.9.3"`, `block-padding = "0.4.2"`, `cbc = "0.2.1"`, `cfb-mode = "0.9.1"`, `des = "0.9.0"`, `hmac = "0.13.0"`, `md-5 = "0.11.0"`, `sha1 = "0.11.0"`, `sha2 = "0.11.0"`) and resolved `Cargo.lock` versions (`aes 0.9.4`, `cipher 0.5.2`, `digest 0.11.3`, `hybrid-array 0.4.15`, `inout 0.2.5`, `ctutils 0.4.2`), using the exact transitive trait re-exports (`cbc::cipher`, `cbc::cipher::common::{KeyInit, KeyIvInit}`, `cbc::cipher::inout::InOutBuf`, `cfb_mode::cipher`, `hmac::{EagerHash, Mac}`, `sha2::Digest`, `sha2::digest::common`) so no direct `cipher`, `digest`, or `crypto-common` entry is required in `Cargo.toml`.
 
 ---
 
@@ -526,15 +526,15 @@ pub fn is_aes_hw_accelerated() -> bool {
 
 ---
 
-## 8. Full & Left-Truncated HMAC (`Mac::verify_truncated_left`) and `HmacReset<D>` (`hmac 0.13.0`)
+## 8. Full & Left-Truncated HMAC (`Mac::verify_truncated_left`), `EagerHash`, and `HmacReset<D>` (`hmac 0.13.0`)
 
 Demonstrates:
-- Full-length constant-time HMAC verification (`Mac::verify_slice`).
+- Full-length constant-time HMAC verification (`Mac::verify_slice`) and generic `D: hmac::EagerHash` bounds (`Hmac<D>`).
 - Left-truncated constant-time HMAC verification (`Mac::verify_truncated_left`) with the **mandatory** `candidate_tag.len() == expected_wire_len` guard (because `verify_truncated_left` accepts any slice length in `1..=OutputSize`).
 - Reusable `hmac::HmacReset<Sha256>` across multiple packets using `Mac::reset(&mut self)` (`Hmac<D>` itself does not implement `Reset` in `hmac 0.13.0`).
 
 ```rust
-use hmac::{Hmac, HmacReset, KeyInit, Mac};
+use hmac::{EagerHash, Hmac, HmacReset, KeyInit, Mac};
 use md5::Md5;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
@@ -549,6 +549,14 @@ pub type HmacSha256 = Hmac<Sha256>;
 pub type HmacSha384 = Hmac<Sha384>;
 /// Type alias for HMAC-SHA512 (RFC 6234 / RFC 7860).
 pub type HmacSha512 = Hmac<Sha512>;
+
+/// Computes an HMAC tag generic over any `D: EagerHash` digest (`Md5`, `Sha1`, `Sha224`, `Sha256`, `Sha384`, `Sha512`).
+pub fn compute_hmac_generic<D: EagerHash>(key: &[u8], message: &[u8]) -> Vec<u8> {
+    let mut mac =
+        <Hmac<D> as KeyInit>::new_from_slice(key).expect("HMAC accepts keys of any byte length");
+    mac.update(message);
+    mac.finalize().into_bytes().to_vec()
+}
 
 /// Verifies a full 32-byte HMAC-SHA256 tag in constant time using `Mac::verify_slice`.
 pub fn verify_hmac_sha256_full(key: &[u8], message: &[u8], candidate_tag: &[u8]) -> bool {

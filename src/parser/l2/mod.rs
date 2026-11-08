@@ -13,21 +13,13 @@ use winnow::prelude::*;
 use crate::lexer::Token;
 use crate::parser::{ParsedField, Stream, parse_mac, parse_u16, tag};
 
-/// Address Resolution Protocol parser.
 pub(crate) mod arp;
-/// IEEE 802.1X EAPOL parser.
 pub(crate) mod eapol;
-/// IEEE 802.3ad Link Aggregation Control Protocol parser.
 pub(crate) mod lacp;
-/// IEEE 802.1AB Link Layer Discovery Protocol parser.
 pub(crate) mod lldp;
-/// RFC 3032 Multi-Protocol Label Switching parser.
 pub(crate) mod mpls;
-/// IEEE 802.1ad QinQ dual VLAN parser.
 pub(crate) mod qinq;
-/// IEEE 802.1D / IEEE 802.1w Spanning Tree Protocol parser.
 pub(crate) mod stp;
-/// IEEE 802.1Q Virtual Local Area Network parser.
 pub(crate) mod vlan;
 
 pub(crate) use arp::*;

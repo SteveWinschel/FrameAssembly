@@ -1,12 +1,13 @@
-# Clap 4.6+ Production Reference Patterns
+# Clap 4.6.7+ Production Reference Patterns
 
-## 1. Multi-Subcommand Enterprise CLI Architecture (`anstyle` Styling + Global Flags + Subcommand Dispatch)
+## 1. Hybrid Positional + Subcommand CLI (`args_conflicts_with_subcommands(true)` + `show` + `reverse` + `anstyle` 9-Role Styling + `debug_assert()`)
 
-When designing large multi-subcommand CLIs, configure high-contrast `anstyle` terminal color palettes, declare reusable global flags at the root command, and dispatch matches cleanly into strongly-typed domain structs:
+When designing a CLI like `frameassembly` that supports both direct positional compilation (`frameassembly <input.fasm> [-o <output.pcap>]`) and subcommands (`frameassembly show <input.fasm>`, `frameassembly reverse <input.pcap> [-o <output.fasm>]`), set `.args_conflicts_with_subcommands(true)` on the root `Command`, configure all 9 `anstyle` roles, use `Command::defer` (`4.6+`) when lazy subcommand construction is desired, and verify invariants with `build_cli().debug_assert()`:
 
 ```rust
-//! Enterprise multi-subcommand CLI architecture demonstrating terminal styling,
-//! hierarchical subcommand dispatch, and global argument propagation using `clap` 4.6+.
+//! Hybrid positional + subcommand CLI architecture demonstrating `args_conflicts_with_subcommands(true)`,
+//! 9-role `anstyle` terminal styling, `show` / `reverse` subcommand dispatch, `Command::defer`,
+//! and `debug_assert()` QA in `clap` 4.6.7+.
 
 use clap::builder::styling::{AnsiColor, Effects, Styles};
 use clap::{Arg, ArgAction, ArgMatches, Command, ValueHint};
@@ -14,7 +15,7 @@ use std::path::PathBuf;
 
 /// Terminal styling configuration for the CLI help output.
 ///
-/// Configures all 9 high-contrast `anstyle` roles for headers, usage lines, literals,
+/// Configures all 9 high-contrast `anstyle 1.0.14` roles for headers, usage lines, literals,
 /// placeholders, error messages, and context hints (`[default: ...]`, `[possible values: ...]`).
 pub const fn cli_styles() -> Styles {
     Styles::styled()
@@ -49,7 +50,7 @@ pub enum CaptureFormat {
     PcapNg,
 }
 
-/// Strongly-typed parameters for the `compile` subcommand.
+/// Strongly-typed parameters for root compilation (`frameassembly <input.fasm> [-o <output.pcap>]`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompileArgs {
     /// Input FrameAssembly source file path.
@@ -62,41 +63,50 @@ pub struct CompileArgs {
     pub dry_run: bool,
 }
 
-/// Strongly-typed parameters for the `verify` subcommand.
+/// Strongly-typed parameters for the `show` subcommand (`frameassembly show <input.fasm>`).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VerifyArgs {
-    /// List of source files to validate.
-    pub file_paths: Vec<PathBuf>,
-    /// Flag enforcing strict validation mode.
-    pub strict: bool,
+pub struct ShowArgs {
+    /// Input `.fasm` file path to validate and render as a packet ladder.
+    pub input_file: PathBuf,
 }
 
-/// Discriminated subcommand operations.
+/// Strongly-typed parameters for the `reverse` subcommand (`frameassembly reverse <input.pcap>`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReverseArgs {
+    /// Input `.pcap` or `.pcapng` capture path to decompile into `.fasm`.
+    pub input_pcap: PathBuf,
+    /// Optional destination `.fasm` file path (`None` prints to stdout).
+    pub output_fasm: Option<PathBuf>,
+}
+
+/// Discriminated CLI operations across root positional compilation and subcommands.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CliCommand {
-    /// Compile a FrameAssembly source file into a PCAP/PCAPNG capture.
+    /// Compile a FrameAssembly `.fasm` source file into a PCAP/PCAPNG capture.
     Compile(CompileArgs),
-    /// Verify syntax and semantic validity of FrameAssembly files.
-    Verify(VerifyArgs),
+    /// Validate a `.fasm` file and print a terminal packet ladder without writing disk files.
+    Show(ShowArgs),
+    /// Decompile a binary `.pcap` / `.pcapng` capture into canonical `.fasm` code.
+    Reverse(ReverseArgs),
 }
 
-/// Parsed CLI execution intent containing global options and the selected subcommand.
+/// Parsed CLI execution intent containing global options and the selected operation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CliInvocation {
     /// Global options extracted from top-level flags.
     pub global: GlobalOptions,
-    /// Subcommand selected by the user.
+    /// Operation selected by the user.
     pub command: CliCommand,
 }
 
-/// Constructs the top-level `clap::Command` definition with nested subcommands.
+/// Constructs the top-level `clap::Command` definition supporting hybrid positional + subcommand routing.
 pub fn build_cli() -> Command {
     Command::new("frameassembly")
         .version(env!("CARGO_PKG_VERSION"))
-        .about("Deterministic network traffic packet crafting compiler")
+        .about("Declarative network packet crafting tool generating deterministic .pcap/.pcapng captures across 81 L2-L7 protocols")
         .styles(cli_styles())
         .arg_required_else_help(true)
-        .subcommand_required(true)
+        .args_conflicts_with_subcommands(true)
         .arg(
             Arg::new("verbose")
                 .short('v')
@@ -124,61 +134,72 @@ pub fn build_cli() -> Command {
                 .value_parser(clap::builder::PathBufValueParser::new())
                 .global(true),
         )
+        .arg(
+            Arg::new("input")
+                .help("Path to the .fasm source file")
+                .required(true)
+                .index(1)
+                .value_name("INPUT")
+                .value_hint(ValueHint::FilePath)
+                .value_parser(clap::builder::PathBufValueParser::new()),
+        )
+        .arg(
+            Arg::new("output")
+                .short('o')
+                .long("output")
+                .help("Path to the output PCAP file")
+                .value_name("PCAP")
+                .default_value("output.pcap")
+                .value_hint(ValueHint::FilePath)
+                .value_parser(clap::builder::PathBufValueParser::new()),
+        )
+        .arg(
+            Arg::new("format")
+                .short('f')
+                .long("format")
+                .help("Target capture file format")
+                .value_name("FORMAT")
+                .default_value("pcapng")
+                .value_parser(clap::builder::PossibleValuesParser::new(["pcap", "pcapng"])),
+        )
+        .arg(
+            Arg::new("dry-run")
+                .long("dry-run")
+                .help("Validate DSL and layout without writing capture to disk")
+                .action(ArgAction::SetTrue),
+        )
         .subcommand(
-            Command::new("compile")
-                .about("Compile a FrameAssembly source file into a PCAP/PCAPNG trace")
+            Command::new("show")
+                .about("Validate a .fasm file and print a terminal packet ladder table without writing a .pcap file")
                 .arg(
                     Arg::new("input")
-                        .help("Source FrameAssembly file (.fasm)")
+                        .help("Path to the .fasm source file")
                         .required(true)
-                        .value_name("INPUT")
+                        .index(1)
                         .value_hint(ValueHint::FilePath)
                         .value_parser(clap::builder::PathBufValueParser::new()),
-                )
-                .arg(
-                    Arg::new("output")
-                        .short('o')
-                        .long("output")
-                        .help("Destination packet capture path")
-                        .value_name("PCAP")
-                        .default_value("output.pcap")
-                        .value_hint(ValueHint::FilePath)
-                        .value_parser(clap::builder::PathBufValueParser::new()),
-                )
-                .arg(
-                    Arg::new("format")
-                        .short('f')
-                        .long("format")
-                        .help("Target capture file format")
-                        .value_name("FORMAT")
-                        .default_value("pcapng")
-                        .value_parser(clap::builder::PossibleValuesParser::new(["pcap", "pcapng"])),
-                )
-                .arg(
-                    Arg::new("dry-run")
-                        .long("dry-run")
-                        .help("Validate DSL and layout without writing capture to disk")
-                        .action(ArgAction::SetTrue),
                 ),
         )
         .subcommand(
-            Command::new("verify")
-                .about("Verify syntax and semantic validity of FrameAssembly sources")
-                .arg(
-                    Arg::new("files")
-                        .help("One or more .fasm files to verify")
-                        .required(true)
-                        .num_args(1..)
-                        .value_name("FILES")
-                        .value_hint(ValueHint::FilePath)
-                        .value_parser(clap::builder::PathBufValueParser::new()),
-                )
-                .arg(
-                    Arg::new("strict")
-                        .long("strict")
-                        .help("Treat all warnings and deprecations as hard errors")
-                        .action(ArgAction::SetTrue),
-                ),
+            Command::new("reverse").defer(|cmd| {
+                cmd.about("Decompile a binary .pcap or .pcapng capture into canonical .fasm code")
+                    .arg(
+                        Arg::new("input")
+                            .help("Path to the input .pcap or .pcapng file")
+                            .required(true)
+                            .index(1)
+                            .value_hint(ValueHint::FilePath)
+                            .value_parser(clap::builder::PathBufValueParser::new()),
+                    )
+                    .arg(
+                        Arg::new("output")
+                            .short('o')
+                            .long("output")
+                            .help("Optional destination .fasm file path (writes to stdout if omitted)")
+                            .value_hint(ValueHint::FilePath)
+                            .value_parser(clap::builder::PathBufValueParser::new()),
+                    )
+            }),
         )
 }
 
@@ -198,16 +219,34 @@ pub fn parse_invocation(matches: &ArgMatches) -> Result<CliInvocation, clap::Err
     };
 
     let command = match matches.subcommand() {
-        Some(("compile", sub_m)) => {
+        Some(("show", sub_m)) => {
             let input_file = sub_m
                 .get_one::<PathBuf>("input")
                 .cloned()
-                .expect("input is a required positional argument");
-            let output_file = sub_m
+                .expect("input is required for show");
+            CliCommand::Show(ShowArgs { input_file })
+        }
+        Some(("reverse", sub_m)) => {
+            let input_pcap = sub_m
+                .get_one::<PathBuf>("input")
+                .cloned()
+                .expect("input is required for reverse");
+            let output_fasm = sub_m.get_one::<PathBuf>("output").cloned();
+            CliCommand::Reverse(ReverseArgs {
+                input_pcap,
+                output_fasm,
+            })
+        }
+        None => {
+            let input_file = matches
+                .get_one::<PathBuf>("input")
+                .cloned()
+                .expect("input is a required positional argument when no subcommand is used");
+            let output_file = matches
                 .get_one::<PathBuf>("output")
                 .cloned()
                 .expect("output has a default value");
-            let format_str = sub_m
+            let format_str = matches
                 .get_one::<String>("format")
                 .map(|s| s.as_str())
                 .unwrap_or("pcapng");
@@ -215,7 +254,7 @@ pub fn parse_invocation(matches: &ArgMatches) -> Result<CliInvocation, clap::Err
                 "pcap" => CaptureFormat::Pcap,
                 _ => CaptureFormat::PcapNg,
             };
-            let dry_run = sub_m.get_flag("dry-run");
+            let dry_run = matches.get_flag("dry-run");
 
             CliCommand::Compile(CompileArgs {
                 input_file,
@@ -224,17 +263,7 @@ pub fn parse_invocation(matches: &ArgMatches) -> Result<CliInvocation, clap::Err
                 dry_run,
             })
         }
-        Some(("verify", sub_m)) => {
-            let file_paths: Vec<PathBuf> = sub_m
-                .get_many::<PathBuf>("files")
-                .expect("files is a required argument")
-                .cloned()
-                .collect();
-            let strict = sub_m.get_flag("strict");
-
-            CliCommand::Verify(VerifyArgs { file_paths, strict })
-        }
-        _ => unreachable!("subcommand_required(true) guarantees a subcommand matches"),
+        _ => unreachable!("only show and reverse subcommands are registered"),
     };
 
     Ok(CliInvocation { global, command })
@@ -247,7 +276,9 @@ mod tests {
     /// Mandatory clap QA gate verifying all Command/Arg/ArgGroup invariants.
     #[test]
     fn verify_cli_invariants() {
-        build_cli().debug_assert();
+        let cmd = build_cli();
+        assert!(cmd.get_overridden_usage().is_none());
+        cmd.debug_assert();
     }
 }
 ```

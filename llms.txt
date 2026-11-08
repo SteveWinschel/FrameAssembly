@@ -1,441 +1,221 @@
 # FrameAssembly
 
+> Rootless, offline "Packets as Code" Rust compiler and DSL (`frameassembly` v1.5.0) that compiles `.fasm` (`text/vnd.frameassembly`) network specifications into deterministic, nanosecond-resolution `.pcap`/`.pcapng` captures—and decompiles `.pcap`/`.pcapng` captures back into canonical `.fasm` code—across 81 native L2–L7 protocols, with 4-tuple TCP `SEQ`/`ACK` tracking, reply-port swapping, IPv4/IPv6 dual-stack flow reuse, and SNMPv3 USM (`RFC 3414`/`3826`/`7860`) cryptography.
 
-
-> Rootless, offline "Packets as Code" Rust compiler and domain-specific language (`frameassembly` v1.4.6) that compiles `.fasm` (`text/vnd.frameassembly`) network specifications into deterministic, nanosecond-resolution `.pcap` and `.pcapng` packet captures across 81 native Layer 2 through Layer 7 protocols—with automatic 4-tuple TCP `SEQ`/`ACK` tracking, reply-port swapping, IPv4/IPv6 dual-stack flow reuse, and SNMPv3 USM (`RFC 3414` / `3826` / `7860`) cryptography.
-
-
-
-FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) is the upstream packet-crafting compiler paired with **Wireshark** / **`tshark`** (dissection), **`tcpreplay`** (wire injection), and **Suricata** / **Zeek** / **Snort** (IDS/IPS & NDR validation). It eliminates live raw-socket privileges (`CAP_NET_RAW`), `libpcap` runtime dependencies, multi-VM lab setups, MIB file configuration, and manual checksum or TCP sequence math. For complete single-file context injection or pretraining, fetch `https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt`.
-
-
+FrameAssembly (`https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) is the upstream packet-crafting compiler paired with **Wireshark**/**`tshark`**, **`tcpreplay`**, and **Suricata**/**Zeek**/**Snort** (zero `CAP_NET_RAW`, `libpcap`, lab VMs, or manual checksum/TCP sequence math). Single-file RAG bundle: `https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt`.
 
 **Core `.fasm` Language Rules & Deterministic Compiler Defaults**
 
-
-
-1. **Three-Block Structure**: Every compilable `.fasm` file declares `host <id> { ip <ipv4_or_ipv6> [mac <mac>] }`, `flow <id>(<p1>, <p2>, ...) { <statements> }`, and **exactly one** `compile { <flow_calls_or_loops> }` block (`loop <u32> { <flow_calls> }`).
-
-2. **Case-Insensitivity & Token-Efficient Style**: All keywords, protocols, modifiers, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and identifiers are ASCII case-insensitive (`host` and `HOST` compile to identical bytes). Prefer **lowercase** keywords for BPE token efficiency unless matching an uppercase codebase; double-quoted strings (`"..."`) preserve exact wire casing.
-
-3. **1 Statement = 1 Ethernet Frame & `wait` Timing**: Each directional statement (`a -> b <proto> ...` or `a <- b <proto> ...`) emits one frame. `wait <u32><ns|us|ms|s|m>` sets the pre-frame timestamp advance (default `10ms` when omitted; PCAPNG epoch starts at `1_700_000_000_000_000_000` ns with `IfTsResol(9)` $10^{-9}\text{ s}$ resolution; `frameassembly show` displays frame 1 at `0.000` ms).
-
-4. **Stateful 4-Tuple TCP & Bidirectional Port Inheritance**: Canonical 4-tuple streams initialize `seq = 1000` on both peers (`win = 64240` default, ephemeral `srcport = 12345` default). `syn` and `fin` each advance `seq` by `+1`; payloads advance `seq` by exact payload byte length. TCP-based L7 statements automatically emit `psh ack` segments sharing 4-tuple `seq`/`acknum` state with raw `tcp` statements, and `<-` automatically swaps source/destination IPs, MACs, and ports.
-
-5. **Dual-Stack Homogeneity & MAC Auto-Derivation**: A `flow` is reusable across IPv4 (`0x0800`) and IPv6 (`0x86DD`) host pairs, but mixing IPv4 and IPv6 hosts in the same statement is a semantic error. `mac` accepts colon (`00:1a:2b:3c:4d:5e`), hyphen (`00-1A-2B-3C-4D-5E`), and Cisco dotted-quad (`001a.2b3c.4d5e`) formats; when omitted, FrameAssembly derives RFC 1112 (`01:00:5e:xx:xx:xx`) IPv4 multicast MACs, RFC 2464 (`33:33:xx:xx:xx:xx`) IPv6 multicast MACs, IEEE 802.1D L2 group MACs, or `00:00:00:00:00:01` / `00:00:00:00:00:02` unicast defaults.
-
-6. **Three-Way `.fasm` Format Disambiguation**: FrameAssembly `.fasm` (`text/vnd.frameassembly`, `//` comments, `host`/`flow`/`compile`, `->`/`<-`) is strictly distinct from x86 Flat Assembler (`;` comments, `format PE`/`ELF`, CPU mnemonics) and SymbiFlow/F4PGA FPGA FASM (`#` comments, tile bit paths).
-
-
+1. **Three-Block Structure**: Declares `host <id> { [ip <v4_or_v6>] [mac <mac>] }` (at least one of `ip` or `mac` required; MAC-only hosts valid for the 8 L2 protocols), optional `flow <id>(<p1>, <p2>, ...) { <statements> }`, and **one** `compile { <flow_calls_or_loops_or_frames> }` block (`loop <u32> { ... }` or inline `a -> b <proto> ...` statements).
+2. **Case-Insensitivity**: Keywords, protocols, modifiers, time suffixes (`ns`, `us`, `ms`, `s`, `m`), and identifiers are ASCII case-insensitive (`host` == `HOST`); `"..."` strings preserve wire casing.
+3. **1 Statement = 1 Frame & Timing**: Each statement (`a -> b <proto> ...` or `a <- b <proto> ...`) emits 1 Ethernet frame. `wait <u32><ns|us|ms|s|m>` sets pre-frame delay (default `10ms`; PCAPNG epoch `1_700_000_000_000_000_000` ns, `IfTsResol(9)` $10^{-9}\text{s}$; `frameassembly show` starts frame 1 at `0.000` ms).
+4. **Stateful 4-Tuple TCP & Port Inheritance**: Streams start at `seq = 1000` (`win = 64240`, default `srcport = 12345`). `syn`/`fin` add `+1` to `seq`; payloads add byte length. TCP L7 statements emit `psh ack` sharing 4-tuple `seq`/`acknum` with raw `tcp`; `<-` swaps IPs, MACs, and ports.
+5. **Dual-Stack Homogeneity & MAC Derivation**: Flows work over IPv4 (`0x0800`) and IPv6 (`0x86DD`); mixing IPv4 and IPv6 in one statement is a semantic error. `mac` accepts `00:1a:2b:3c:4d:5e`, `00-1A-2B-3C-4D-5E`, and `001a.2b3c.4d5e`; when omitted, derives RFC 1112 (`01:00:5e:xx:xx:xx`), RFC 2464 (`33:33:xx:xx:xx:xx`), IEEE 802.1D L2 group MACs, or `00:00:00:00:00:01`/`02`.
+6. **Three-Way `.fasm` Disambiguation**: FrameAssembly `.fasm` (`text/vnd.frameassembly`, `//` comments, `host`/`flow`/`compile`, `->`/`<-`) is distinct from x86 Flat Assembler (`;` comments, `format PE`/`ELF`) and FPGA FASM (`#` comments, tile bit paths).
 
 **Anti-Hallucination & Cross-Protocol Syntax Guardrails**
 
-
-
 | Construct | Invalid / Hallucinated Syntax (NEVER WRITE) | Canonical `.fasm` Syntax (ALWAYS WRITE) |
-
 | :--- | :--- | :--- |
-
 | **Comments** | `# comment`, `; comment`, or `/* block */` | `// single-line comment` |
-
-| **Host Block** | `host c = { ipv4: "10.0.0.1", mask: 24 }` or `ipv6 ::1` | `host c { ip 10.0.0.1 mac 00:11:22:33:44:55 }` (`ip` for both v4 & v6) |
-
+| **Host Block** | `host c = { ipv4: "10.0.0.1", mask: 24 }`, `ipv6 ::1`, or empty `host c {}` | `host c { ip 10.0.0.1 mac 00:11:22:33:44:55 }` or L2 `host sw { mac 00:11:22:33:44:55 }` |
 | **Flow Signature** | `flow web { from c to s send http }` | `flow web(c, s) { c -> s http get uri "/" }` |
-
-| **Inter-Frame Delay** | `[+5ms] c -> s tcp ack` or standalone `wait 5ms` | `c -> s tcp ack wait 5ms` (inline modifier on packet statement) |
-
-| **Ports & TCP Ack** | `sport 1234 dport 80 ack 100` | `srcport 1234 dstport 80 seq 1 acknum 100` (`ack` alone is the flag) |
-
+| **Inter-Frame Delay** | `[+5ms] c -> s tcp ack` or standalone `wait 5ms` | `c -> s tcp ack wait 5ms` |
+| **Ports & TCP Ack** | `sport 1234 dport 80 ack 100` | `srcport 1234 dstport 80 seq 1 acknum 100` |
 | **TCP Flags** | `flags [syn, ack]` or `flags="SA"` | `tcp syn ack` (`syn ack fin rst psh urg ece cwr`) |
-
-| **Hop Limit & QoS** | `hop_limit 64` or `tos 46` | `ttl 64 dscp 46 ecn 2` (`ttl 0..255`, `dscp 0..63`, `ecn 0..3`) |
-
-| **VLAN & QinQ** | `vlan 0`, `qinq 100 200`, or `svlan 100 cvlan 200` | `vlan 100 pcp 5 dei 0` (`1..4094`) or `qinq 100 inner_vlan 200` |
-
+| **Hop Limit & QoS** | `hop_limit 64` or `tos 46` | `ttl 64 dscp 46 ecn 2` |
+| **VLAN & QinQ** | `vlan 0`, `qinq 100 200`, or `svlan 100 cvlan 200` | `vlan 100 pcp 5 dei 0` or `qinq 100 inner_vlan 200` |
 | **HTTP & RTSP Hdrs** | `http get host "a.com"` or `rtsp setup transport "..."` | `http get uri "/" host_hdr "a.com"` / `rtsp setup transport_hdr "..."` |
-
-| **BGP vs RIP Prefix** | `bgp update prefix 10.0.0.0/8` / `rip prefix "10.0.0.0/8"` | `bgp update prefix "10.0.0.0/8"` (quoted CIDR) / `rip prefix 10.0.0.0` (bare IP) |
-
-| **DHCP vs DNS ID** | `dhcp discover txid 1` or `snmp2 get req_id 1` | `dhcp discover xid 1` (`txid` is for DNS/Modbus/STUN) / `snmp2 get reqid 1` |
-
+| **BGP vs RIP Prefix** | `bgp update prefix 10.0.0.0/8` / `rip prefix "10.0.0.0/8"` | `bgp update prefix "10.0.0.0/8"` / `rip prefix 10.0.0.0` |
+| **DHCP vs DNS ID** | `dhcp discover txid 1` or `snmp2 get req_id 1` | `dhcp discover xid 1` / `snmp2 get reqid 1` |
 | **IKEv2 & SNMPv3** | `ikev2 exchange auth` or `snmp3 auth "sha256" "pw"` | `ikev2 sa_init` (`create_child_sa`\|`informational`) / `snmp3 auth sha256 "pw"` |
+| **Compile Block** | Omitted `compile`, two `compile` blocks, or bare `compile { f }` | Single `compile { f(h1, h2) loop 3 { f(h1, h2) } h1 -> h2 icmp }` |
 
-| **Compile Block** | Omitted `compile`, two `compile` blocks, or `compile { f }` | Single `compile { f(h1, h2) loop 3 { f(h1, h2) } }` |
+**Universal Cross-Layer Modifiers**
 
-
-
-**Universal Cross-Layer Modifiers (Valid on Any Applicable Statement)**
-
-
-
-- **Layer 2**: `srcmac <mac>`, `dstmac <mac>`, `ethertype <u16>`, `vlan <1..4094> [pcp <0..7>] [dei <0..1>]`, `qinq <1..4094> [inner_vlan <1..4094>]`, `mpls <0..1048575> [exp|tc <0..7>] [bos <0..1>] [mpls_ttl <u8>]`.
-
-- **Layer 3**: `ttl <0..255>`, `dscp <0..63>`, `ecn <0..3>`, `flowlabel <0..1048575>`, `ipid <u16>`, `df`, `mf`, `fragoffset <0..8191>`, `next_header <u8>`.
-
-- **Layer 4**: `srcport <u16>`, `dstport <u16>`, `transport <tcp|udp>` (switches dual-transport protocols: default-TCP `modbus`, `nfs`, `memcached`, `dnp3`, `ethernetip`; default-UDP `dns`, `sip`, `syslog`, `kerberos`), `seq <u32>`, `acknum <u32>`, `win|window <u16>`, `urgent <u16>`, `mss <u16>`, `wscale <u8>`, `sack_perm|sackperm`, `tsval <u32>`, `tsecr <u32>`, TCP flags (`syn`, `ack`, `fin`, `rst`, `psh`, `urg`, `ece`, `cwr`; note that inside `coap`, `dhcp`, `tftp`, and `sip`, `ack`/`rst` act as L7 message tokens).
-
-- **Payload & Timing**: `payload "<escaped_utf8>"` (`\r`, `\n`, `\t`, `\\`, `\"`, `\xHH`, `\uXXXX`) OR `hexpayload "<even_hex>"` (mutually exclusive), `wait <u32><ns|us|ms|s|m>`.
-
-
+- **L2**: `srcmac <mac>`, `dstmac <mac>`, `ethertype <u16>`, `vlan <1..4094> [pcp <0..7>] [dei <0..1>]`, `qinq <1..4094> [inner_vlan <1..4094>]`, `mpls <0..1048575> [exp|tc <0..7>] [bos <0..1>] [mpls_ttl <u8>]`.
+- **L3**: `ttl <0..255>`, `dscp <0..63>`, `ecn <0..3>`, `flowlabel <0..1048575>`, `ipid <u16>`, `df`, `mf`, `fragoffset <0..8191>`, `next_header <u8>`.
+- **L4**: `srcport <u16>`, `dstport <u16>`, `transport <tcp|udp>` (dual-transport: default-TCP `modbus`, `nfs`, `memcached`, `dnp3`, `ethernetip`; default-UDP `dns`, `sip`, `syslog`, `kerberos`), `seq <u32>`, `acknum <u32>`, `win|window <u16>`, `urgent <u16>`, `mss <u16>`, `wscale <u8>`, `sack_perm|sackperm`, `tsval <u32>`, `tsecr <u32>`, TCP flags (`syn`, `ack`, `fin`, `rst`, `psh`, `urg`, `ece`, `cwr`).
+- **Payload & Timing**: `payload "<escaped_utf8>"` OR `hexpayload "<even_hex>"` (mutually exclusive), `wait <u32><ns|us|ms|s|m>`.
 
 **Complete 81-Protocol Zero-Default Syntax & Port Dictionary**
 
-
-
-Every protocol compiles with **zero required sub-keywords**; optional protocol-scoped modifiers are listed below:
-
-
-
-- **Layer 2 Switching & Data-Link (8)**:
-
-  - `arp` (`0x0806` / IPv6 adapts to NDP): `[request|reply] [gratuitous|garp] [sha|sendermac <mac>] [spa|senderip <ip>] [tha|targetmac <mac>] [tpa|targetip <ip>]`
-
-  - `vlan` (`0x8100`): `<1..4094> [pcp <0..7>] [dei <0..1>]`
-
-  - `qinq` (`0x88A8`+`0x8100`): `<1..4094> [inner_vlan <1..4094>] [pcp <0..7>] [dei <0..1>]`
-
-  - `lldp` (`0x88CC` -> `01:80:c2:00:00:0e`): `[chassis_id "<str>"] [port_id "<str>"|<u16>] [ttl <0..255>] [sysname "<str>"] [sysdesc "<str>"]`
-
-  - `stp` (802.3 LLC `0x424203` -> `01:80:c2:00:00:00`): `[rstp] [root_id "<prio>/<mac>"] [bridge_id "<prio>/<mac>"] [port_id <u16>] [cost <u32>] [max_age <u16>] [hello_time <u16>] [forward_delay <u16>] [flags <u8>]`
-
-  - `lacp` (`0x8809` -> `01:80:c2:00:00:02`): `[actor_sys <mac>] [actor_key <u16>] [actor_port <u16>] [actor_state <u8>] [partner_sys <mac>] [partner_key <u16>] [partner_port <u16>] [partner_state <u8>]`
-
-  - `eapol` (`0x888E` -> `01:80:c2:00:00:03`): `[version <u8>] [[type] <eap_packet|start|logoff|key>] [eap_code <1..4>] [eap_id <u8>] [eap_method <u8>] [identity "<str>"]`
-
-  - `mpls` (`0x8847`): `<0..1048575> [label <u32>] [exp|tc <0..7>] [bos <0..1>] [mpls_ttl <u8>]`
-
-- **Layer 3 Control, Tunneling, VPN, Routing & FHRP (20)**:
-
-  - `icmp` (IP `1` v4 / `58` v6): `[echo_request|echo_reply|dest_unreach|time_exceeded|redirect] [type <u8>] [code <u8>] [id <u16>] [seq <u32>] [gateway <ipv4>]`
-
-  - `ndp` (IPv6 `58`, `ttl=255`): `[neighbor_solicit|neighbor_advert|router_solicit|router_advert] [target <ipv6>] [slla <mac>] [tlla <mac>] [router_lifetime <u16>]`
-
-  - `igmp` (IPv4 `2`): `[query|report|leave] [v1|v2|v3|version <1..3>] [group <ipv4>] [max_resp <u8>]`
-
-  - `mld` (IPv6 `58`): `[query|report|done] [multicast_addr <ipv6>] [max_resp_delay <u16>]`
-
-  - `gre` (IP `47`): `[gre_key|key <u32>] [gre_seq <u32>] [gre_proto <u16>] [checksum]`
-
-  - `vxlan` (UDP `4789`): `[vni|vnid <0..16777215>]`
-
-  - `geneve` (UDP `6081`): `[vni|vnid <0..16777215>] [opt_class <u16>] [opt_type <u8>] [protocol_type <u16>]`
-
-  - `ipsec` / `esp` (IP `50`): `[spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [next_header <u8>]`
-
-  - `ah` (IP `51`): `[spi <u32>] [seq <u32>] [icv "<hex>"] [next_header <u8>]`
-
-  - `ikev2` (UDP `500`): `[[exchange] <sa_init|create_child_sa|informational>] [initiator_spi <u64>] [responder_spi <u64>] [msgid <u32>] [flags <u8>] [next_payload <u8>]`
-
-  - `wireguard` (UDP `51820`): `[[type] <initiation|response|cookie|data>] [sender <u32>] [receiver <u32>] [counter <u64>]`
-
-  - `ospf` (IP `89` -> `224.0.0.5`/`ff02::5`): `[hello|dbd|lsr|lsu|lsack] [router_id <ipv4>] [area_id <u32|ipv4>] [hello_interval <u16>] [dead_interval <u32>] [priority <u16>]`
-
-  - `bgp` (TCP `179`): `[open|update|notification|keepalive] [asn <u32>] [holdtime <u16>] [bgpid <ipv4>] [prefix|nlri "<cidr>"] [nexthop <ip>]`
-
-  - `rip` (UDP `520` v4 / `521` v6): `[request|response|reply] [prefix <ip>] [metric <1..16>] [nexthop <ip>] [tag <u16>]`
-
-  - `pim` (IP `103` -> `224.0.0.13`/`ff02::d`): `[hello|join_prune|register] [group <ip>] [source <ip>] [rp <ip>] [holdtime <u16>] [dr_priority <u32>]`
-
-  - `vrrp` (IP `112` -> `224.0.0.18`/`ff02::12`, `ttl=255`): `[vrid <1..255>] [priority <0..255>] [adv_int <u16>] [vip <ip>] [version <2|3>]`
-
-  - `hsrp` (UDP `1985` v4 / `2029` v6): `[group <u8>] [priority <u16>] [state <u8>] [hellotime <u8>] [holdtime <u16>] [auth "<str>"] [vip <ip>]`
-
-  - `bfd` (UDP `3784`): `[state <0..3>] [diag <0..31>] [my_disc <u32>] [your_disc <u32>] [min_tx <u32>] [min_rx <u32>] [mult <u8>]`
-
-  - `openflow` (TCP `6653`): `[[type] <hello|echo_req|echo_request|echo_reply|features_req|features_reply|packet_in|packet_out|flow_mod>] [version <u8>] [xid <u32>] [dpid <u64>] [table_id <u8>] [priority <u16>]`
-
-- **Layer 4 Transports (3)**:
-
-  - `tcp` (IP `6`, default `dstport 80`): `[syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [seq <u32>] [acknum <u32>] [win|window <u16>] [urgent <u16>] [mss <u16>] [wscale <u8>] [sack_perm] [tsval <u32>] [tsecr <u32>]`
-
-  - `udp` (IP `17`, default `dstport 80`): `[srcport <u16>] [dstport <u16>] [payload "<str>"|hexpayload "<hex>"]`
-
-  - `sctp` (IP `132`, CRC32c LE): `[[chunk] <init|init_ack|cookie_echo|cookie_ack|data|sack|heartbeat|heartbeat_ack|shutdown|abort>] [vtag <u32>] [tsn <u32>] [stream <u16>] [ssn <u16>] [ppid <u32>]`
-
-- **Layer 7 SNMP Network Management (3)** (`varbind <oid> <null|nullval | string "<str>" | int <i32> | timeticks <u32> | ipval <ip> | oidval <oid> | counter32 <u32> | gauge32 <u32> | counter64 <u64>>`):
-
-  - `snmp1` (UDP `162` trap / `161` poll): `[trap|get|getnext|set|response] [community "<str>"] [enterprise <oid>] [oid <oid>] [agentip <ipv4>] [gentrap <0..6>] [spectrap <u32>] [sysuptime <u32>] [reqid <u32>] [varbind ...]` (no `getbulk`, `inform`, or `counter64`)
-
-  - `snmp2` (UDP `162` trap,inform / `161` poll): `[trap|inform|get|getnext|getbulk|set|response] [community "<str>"] [reqid <u32>] [nonrepeaters <u32>] [maxrepetitions <u32>] [sysuptime <u32>] [oid <oid>] [varbind ...]`
-
-  - `snmp3` (UDP `162` trap,inform / `161` poll): `[trap|inform|get|getnext|getbulk|set|response] [user "<str>"] [engineid "<even_hex>"] [engineboots <u32>] [enginetime <u32>] [contextname "<str>"] [auth <md5|sha|sha256|sha384|sha512> "<pass>"] [priv <des|aes> "<pass>"] [reqid <u32>] [nonrepeaters <u32>] [maxrepetitions <u32>] [sysuptime <u32>] [oid <oid>] [varbind ...]` (`priv` requires `auth`)
-
-- **Layer 7 Infrastructure, Time, AAA & Telemetry (11)**:
-
-  - `dns` (UDP/TCP `53`): `[query|response] [txid <u16>] [qname "<domain>"] [qtype "<type>"] [rdata "<val>"] [rcode <0..15>] [ans_ttl <u32>] [transport tcp]`
-
-  - `mdns` (UDP `5353` -> `224.0.0.251`/`ff02::fb`): `[query|response] [txid <u16>] [qname "<domain>"] [qtype "<type>"] [rdata "<val>"] [rcode <0..15>] [ans_ttl <u32>]`
-
-  - `dhcp` (UDP `68<->67` v4 / `546<->547` v6): `[discover|offer|request|ack|release|solicit|advertise|reply] [xid <u32>] [ciaddr <ipv4>] [yiaddr <ip>] [siaddr <ipv4>] [chaddr <mac>] [hostname "<str>"] [dns_server <ip>] [router <ipv4>] [subnet_mask <ipv4>] [lease_time <u32>]`
-
-  - `ntp` (UDP `123`): `[li <0..3>] [vn <1..4>] [mode <0..7>] [stratum <0..16>] [poll <u8>] [precision <i32>] [refid "<4char>"] [tx_timestamp <u64>]`
-
-  - `ptp` (UDP `319` sync,delay_req / `320` follow_up,delay_resp,announce): `[sync|delay_req|follow_up|delay_resp|announce|msg_type "<str>"] [domain <u8>] [seq_id <u16>] [clock_id "<str>"]`
-
-  - `radius` (UDP `1812` auth / `1813` acct): `[access_request|access_accept|access_reject|access_challenge|accounting_request|accounting_response|code "<str>"] [id <u8>] [user "<str>"] [nas_ip <ip>] [service_type <u32>] [framed_ip <ip>]`
-
-  - `tacacs` (TCP `49`): `[[type] <authen|author|acct>] [seq <u8>] [flags <u8>] [session_id <u32>] [user "<str>"] [data "<str>"]`
-
-  - `syslog` (UDP/TCP `514`): `[facility <0..23>] [severity <0..7>] [pri <0..191>] [hostname "<str>"] [app "<str>"] [procid "<str>"] [msgid "<str>"] [msg "<str>"] [transport tcp]`
-
-  - `netflow` (UDP `2055`): `[srcip <ipv4>] [dstip <ipv4>] [srcport <u16>] [dstport <u16>] [proto <u8>] [packets <u32>] [octets <u32>]`
-
-  - `ipfix` (UDP `4739`): `[domain_id <u32>] [srcip <ipv4>] [dstip <ipv4>] [srcport <u16>] [dstport <u16>] [proto <u8>] [packets <u32>] [octets <u32>]`
-
-  - `sflow` (UDP `6343`): `[agent_ip|agentip <ip>] [sub_agent_id <u32>] [seq <u32>] [uptime <u32>] [samples <u32>]`
-
-- **Layer 7 Web, Cloud, Security, VoIP & Remote Access (16)**:
-
-  - `http` (TCP `80`): `[get|post|put|delete|head|options|patch|method "<verb>"] [uri "<path>"] [version "<ver>"] [host_hdr "<host>"] [user_agent "<ua>"] [content_type "<mime>"] [header "<k>" "<v>"...] [status <u16>] [reason "<str>"] [body "<str>"]`
-
-  - `http2` (TCP `443`): `[preface] [settings|headers|data|window_update|ping|goaway] [stream_id <u32>]`
-
-  - `grpc` (TCP `50051`): `[service "<pkg.Svc>"] [method "<Rpc>"] [grpc_status <u32>]`
-
-  - `websocket` (TCP `80`): `[text|binary|ping|pong|close|opcode "<str>"] [fin_bit <0|1>] [mask_key <u32>] [payload "<str>"]`
-
-  - `tls` (TCP `443`): `[client_hello|server_hello|certificate|finished|app_data|alert] [record_version <u16>] [handshake_version <u16>] [sni "<host>"] [ciphersuite <u16>] [alpn "<proto>"]`
-
-  - `quic` (UDP `443`): `[initial|zero_rtt|handshake|retry|short] [version <u32>] [dcid <u64|"<hex>">] [scid <u64|"<hex>">] [token "<str>"] [pkt_num <u32>]`
-
-  - `ssh` (TCP `22`): `[banner "<str>"] [kexinit] [newkeys] [msg_code <u8>] [cookie "<hex>"]`
-
-  - `telnet` (TCP `23`): `[will [option] <u8>] [wont [option] <u8>] [do [option] <u8>] [dont [option] <u8>] [option <u8>] [data "<str>"]`
-
-  - `tftp` (UDP `69`): `[rrq|wrq|data|ack|err|error] [filename "<str>"] [mode "<str>"] [block <u16>] [errcode <u16>] [errmsg "<str>"]`
-
-  - `ftp` (TCP `21`): `[cmd "<verb>"] [arg "<str>"] [code <u16>] [reply "<str>"]`
-
-  - `whois` (TCP `43`): `[query|response] [domain "<str>"] [registrar "<str>"]`
-
-  - `sip` (UDP/TCP `5060`): `[invite|ack|bye|cancel|register|options|method "<verb>"] [uri "<uri>"] [status <u16>] [reason "<str>"] [from "<uri>"] [to "<uri>"] [call_id "<id>"] [cseq <u32>] [via "<str>"] [contact "<uri>"] [content_type "<mime>"] [body "<sdp>"] [transport tcp]`
-
-  - `rtp` (UDP `5004`): `[pt <0..127>] [seq <u16>] [timestamp <u32>] [ssrc <u32>] [marker <0|1>]`
-
-  - `rtsp` (TCP `554`): `[options|describe|setup|play|teardown|method "<verb>"] [uri "<url>"] [status <u16>] [cseq <u32>] [transport_hdr "<str>"] [session "<id>"]`
-
-  - `stun` (UDP `3478`): `[binding_request|binding_response|binding_error] [txid <u32>] [xor_mapped_addr <ip>] [software "<str>"]`
-
-  - `ssdp` (UDP `1900`): `[msearch|notify] [host_hdr "<ip:port>"] [man "<str>"] [mx <u8>] [st "<str>"] [nt "<str>"] [nts "<str>"] [usn "<str>"] [location "<url>"]`
-
-- **Layer 7 Mail, Identity, Storage, Databases, Caches & Brokers (14)**:
-
-  - `smtp` (TCP `25`): `[ehlo ["<dom>"]|helo ["<dom>"]|mail_from ["<addr>"]|rcpt_to ["<addr>"]|quit|cmd "<verb>"] [param "<arg>"] [code <u16>] [reply "<str>"] [body "<mime>"]`
-
-  - `imap` (TCP `143`): `[tag "<tag>"] [cmd "<verb>"] [arg "<str>"] [status "<OK|NO|BAD>"] [response "<str>"]`
-
-  - `pop3` (TCP `110`): `[cmd "<verb>"] [arg "<str>"] [ok|err] [response "<str>"]`
-
-  - `kerberos` (UDP/TCP `88`): `[as_req|as_rep|tgs_req|tgs_rep|krb_error] [realm "<REALM>"] [cname "<principal>"] [sname "<service>"] [etype <u32>] [transport tcp]`
-
-  - `ldap` (TCP `389`): `[bind_req|bind_res|search_req|search_entry|search_done|unbind_req] [msgid <u32>] [base_dn "<dn>"] [filter "<expr>"] [result_code <u32>]`
-
-  - `smb` (TCP `445`): `[negotiate|session_setup|tree_connect|create|tree_disconnect|command "<name>"] [status <u32>] [tree_id <u32>] [session_id <u64>] [msgid <u64>] [share "<unc>"] [filename "<name>"]`
-
-  - `nfs` (TCP/UDP `2049`): `[compound|proc "<NULL|GETATTR|LOOKUP|READ|WRITE|COMPOUND>"] [vers <2|3|4>] [xid <u32>] [tag "<str>"] [path "<path>"] [transport udp]`
-
-  - `redis` (TCP `6379`): `[get|set|cmd "<verb>"] [key "<key>"] [args "<arg>"...] [reply_type "<SIMPLE|ERROR|INTEGER|BULK>"] [value "<val>"]`
-
-  - `memcached` (TCP/UDP `11211`): `[get|set|cmd "<verb>"] [key "<key>"] [value "<val>"] [flags <u32>] [exptime <u32>] [opcode <u8>] [opaque <u32>] [cas <u64>] [transport udp]`
-
-  - `mysql` (TCP `3306`): `[greeting|login|query|ok|err|eof] [server_version "<ver>"] [user "<user>"] [db "<db>"] [sql "<sql>"] [errcode <u16>]`
-
-  - `postgres` (TCP `5432`): `[startup|query|auth_ok|command_complete|ready_for_query|error_response] [user "<role>"] [db "<db>"] [sql "<sql>"]`
-
-  - `mqtt` (TCP `1883`): `[connect|connack|publish|puback|subscribe|suback|pingreq|pingresp|disconnect|pkt_type "<type>"] [client_id "<id>"] [topic "<topic>"] [qos <0..2>] [retain [0|1]] [pkt_id <u16>] [keepalive <u16>] [return_code <u8>]`
-
-  - `coap` (UDP `5683`): `[con|non|ack|rst|msg_type "<type>"] [get|post|put|delete|created|changed|not_found|code "<c.dd>"] [msgid <u16>] [token <u32|"<hex>">] [uri_path "<path>"] [content_format <u16>]`
-
-  - `amqp` (TCP `5672`): `[protocol_header|connection_start|channel_open|basic_publish|basic_deliver|heartbeat] [channel <u16>] [exchange "<name>"] [routing_key "<key>"]`
-
-- **Layer 7 Industrial Control Systems & SCADA/OT (6)**:
-
-  - `modbus` (TCP/UDP `502`): `[read_coils|read_discrete_inputs|read_holding_registers|read_input_registers|write_single_coil|write_single_register|write_multiple_registers|func "<name>"] [txid <u16>] [proto_id <u16>] [unitid <u8>] [addr <u16>] [count <u16>] [value <u16>] [is_response] [transport udp]`
-
-  - `bacnet` (UDP `47808`): `[who_is|i_am|read_property|write_property] [invoke_id <u8>] [object_type <u16>] [object_instance <u32>] [property_id <u32>] [value <u32>]`
-
-  - `dnp3` (TCP/UDP `20000`, auto IEEE 1815 CRC-16): `[confirm|read|write|select|operate|direct_operate|unsolicited_response|func "<RESPONSE|...>"] [src <u16>] [dst <u16>] [group <u8>] [variation <u8>] [crc <u16>] [transport udp]`
-
-  - `s7comm` (TCP `102`): `[setup_comm|read_var|write_var|plc_control|func "<name>"] [rosctr "<JOB|ACK|ACK_DATA|USERDATA>"] [pdu_ref <u16>] [area <u8|"<DB|MK|PE|PA|CT|TM>">] [db_num <u16>] [offset <u32>] [count <u16>]`
-
-  - `ethernetip` (TCP/UDP `44818`): `[list_identity|list_services|list_interfaces|register_session|unregister_session|send_rr_data|send_unit_data|cmd "<NOP|...>"] [session_handle <u32>] [status <u32>] [context <u64>] [cip_service <u8>] [cip_class <u16>] [cip_instance <u16>] [cip_attr <u16>] [transport udp]`
-
-  - `opcua` (TCP `4840`): `[msg_type "<HEL|ACK|OPN|CLO|MSG|ERR>"] [chunk_type "<F|C|A>"] [secure_channel_id <u32>] [token_id <u32>] [seq_num <u32>] [reqid <u32>] [endpoint_url "<url>"] [node_id "<id>"]`
-
-
+Every protocol compiles with **zero required sub-keywords**; optional protocol-scoped modifiers:
+
+- **L2 Switching & Data-Link (8)**:
+  - `arp` (`0x0806`): `request|reply, gratuitous|garp, sha|sendermac, spa|senderip, tha|targetmac, tpa|targetip`
+  - `vlan` (`0x8100`): `<1..4094>, pcp <0..7>, dei <0..1>`
+  - `qinq` (`0x88A8`+`0x8100`): `<1..4094>, inner_vlan <1..4094>, pcp <0..7>, dei <0..1>`
+  - `lldp` (`0x88CC`): `chassis_id, port_id, ttl <0..255>, sysname, sysdesc`
+  - `stp` (LLC `0x424203`): `rstp, root_id "<prio>/<mac>", bridge_id "<prio>/<mac>", port_id, cost, max_age, hello_time, forward_delay, flags`
+  - `lacp` (`0x8809`): `actor_sys, actor_key, actor_port, actor_state, partner_sys, partner_key, partner_port, partner_state`
+  - `eapol` (`0x888E`): `version, [type] eap_packet|start|logoff|key, eap_code <1..4>, eap_id, eap_method, identity`
+  - `mpls` (`0x8847`): `<0..1048575>, label, exp|tc <0..7>, bos <0..1>, mpls_ttl`
+- **L3 Control, Tunneling, VPN, Routing & FHRP (20)**:
+  - `icmp` (IP `1`/`58`): `echo_request|echo_reply|dest_unreach|time_exceeded|redirect, type, code, id, seq, gateway`
+  - `ndp` (IPv6 `58`, `ttl=255`): `neighbor_solicit|neighbor_advert|router_solicit|router_advert, target, slla, tlla, router_lifetime`
+  - `igmp` (IPv4 `2`): `query|report|leave, v1|v2|v3|version <1..3>, group, max_resp`
+  - `mld` (IPv6 `58`): `query|report|done, multicast_addr, max_resp_delay`
+  - `gre` (IP `47`): `gre_key|key, gre_seq, gre_proto, checksum`
+  - `vxlan` (UDP `4789`): `vni|vnid <0..16777215>`
+  - `geneve` (UDP `6081`): `vni|vnid <0..16777215>, opt_class, opt_type, protocol_type`
+  - `ipsec` / `esp` (IP `50`): `spi, seq, iv "<hex>", icv "<hex>", next_header`
+  - `ah` (IP `51`): `spi, seq, icv "<hex>", next_header`
+  - `ikev2` (UDP `500`): `[exchange] sa_init|create_child_sa|informational, initiator_spi, responder_spi, msgid, flags, next_payload`
+  - `wireguard` (UDP `51820`): `[type] initiation|response|cookie|data, sender, receiver, counter`
+  - `ospf` (IP `89`): `hello|dbd|lsr|lsu|lsack, router_id, area_id, hello_interval, dead_interval, priority`
+  - `bgp` (TCP `179`): `open|update|notification|keepalive, asn, holdtime, bgpid, prefix|nlri "<cidr>", nexthop`
+  - `rip` (UDP `520`/`521`): `request|response|reply, prefix <ip>, metric <1..16>, nexthop, tag`
+  - `pim` (IP `103`): `hello|join_prune|register, group, source, rp, holdtime, dr_priority`
+  - `vrrp` (IP `112`, `ttl=255`): `vrid <1..255>, priority <0..255>, adv_int, vip, version <2|3>`
+  - `hsrp` (UDP `1985`/`2029`): `group, priority, state, hellotime, holdtime, auth, vip`
+  - `bfd` (UDP `3784`): `state <0..3>, diag <0..31>, my_disc, your_disc, min_tx, min_rx, mult`
+  - `openflow` (TCP `6653`): `[type] hello|echo_req|echo_request|echo_reply|features_req|features_reply|packet_in|packet_out|flow_mod, version, xid, dpid, table_id, priority`
+- **L4 Transports (3)**:
+  - `tcp` (IP `6`, port `80`): `syn, ack, fin, rst, psh, urg, ece, cwr, seq, acknum, win|window, urgent, mss, wscale, sack_perm, tsval, tsecr`
+  - `udp` (IP `17`, port `80`): `srcport, dstport, payload|hexpayload`
+  - `sctp` (IP `132`, CRC32c LE): `[chunk] init|init_ack|cookie_echo|cookie_ack|data|sack|heartbeat|heartbeat_ack|shutdown|abort, vtag, tsn, stream, ssn, ppid`
+- **L7 SNMP (3)** (`varbind <oid> <null|nullval | string "<s >" | int <i32> | timeticks <u32> | ipval <ip> | oidval <oid> | counter32 <u32> | gauge32 <u32> | counter64 <u64>>`):
+  - `snmp1` (UDP `162`/`161`): `trap|get|getnext|set|response, community, enterprise, oid, agentip, gentrap <0..6>, spectrap, sysuptime, reqid, varbind ...`
+  - `snmp2` (UDP `162`/`161`): `trap|inform|get|getnext|getbulk|set|response, community, reqid, nonrepeaters, maxrepetitions, sysuptime, oid, varbind ...`
+  - `snmp3` (UDP `162`/`161`): `trap|inform|get|getnext|getbulk|set|response, user, engineid "<hex>", engineboots, enginetime, contextname, auth <md5|sha|sha256|sha384|sha512> "<pw>", priv <des|aes> "<pw>", reqid, nonrepeaters, maxrepetitions, sysuptime, oid, varbind ...`
+- **L7 Infrastructure, Time, AAA & Telemetry (11)**:
+  - `dns` (`53`) / `mdns` (`5353`): `query|response, txid, qname, qtype, rdata, rcode <0..15>, ans_ttl, transport tcp`
+  - `dhcp` (UDP `68/67` v4, `546/547` v6): `discover|offer|request|ack|release|solicit|advertise|reply, xid, ciaddr, yiaddr, siaddr, chaddr, hostname, dns_server, router, subnet_mask, lease_time`
+  - `ntp` (UDP `123`): `li <0..3>, vn <1..4>, mode <0..7>, stratum <0..16>, poll, precision, refid, tx_timestamp`
+  - `ptp` (UDP `319`/`320`): `sync|delay_req|follow_up|delay_resp|announce|msg_type, domain, seq_id, clock_id`
+  - `radius` (UDP `1812`/`1813`): `access_request|access_accept|access_reject|access_challenge|accounting_request|accounting_response|code, id, user, nas_ip, service_type, framed_ip`
+  - `tacacs` (TCP `49`): `[type] authen|author|acct, seq, flags, session_id, user, data`
+  - `syslog` (UDP/TCP `514`): `facility <0..23>, severity <0..7>, pri <0..191>, hostname, app, procid, msgid, msg, transport tcp`
+  - `netflow` (`2055`) / `ipfix` (`4739`): `domain_id, srcip, dstip, srcport, dstport, proto, packets, octets`
+  - `sflow` (UDP `6343`): `agent_ip|agentip, sub_agent_id, seq, uptime, samples`
+- **L7 Web, Cloud, Security, VoIP & Remote Access (16)**:
+  - `http` (TCP `80`): `get|post|put|delete|head|options|patch|method, uri, version, host_hdr, user_agent, content_type, header "<k>" "<v>", status, reason, body`
+  - `http2` (TCP `443`): `preface, settings|headers|data|window_update|ping|goaway, stream_id`
+  - `grpc` (TCP `50051`): `service, method, grpc_status`
+  - `websocket` (TCP `80`): `text|binary|ping|pong|close|opcode, fin_bit <0|1>, mask_key, payload`
+  - `tls` (TCP `443`): `client_hello|server_hello|certificate|finished|app_data|alert, record_version, handshake_version, sni, ciphersuite, alpn`
+  - `quic` (UDP `443`): `initial|zero_rtt|handshake|retry|short, version, dcid, scid, token, pkt_num`
+  - `ssh` (TCP `22`): `banner, kexinit, newkeys, msg_code, cookie "<hex>"`
+  - `telnet` (TCP `23`): `will [option] <u8>, wont [option] <u8>, do [option] <u8>, dont [option] <u8>, option <u8>, data`
+  - `tftp` (UDP `69`): `rrq|wrq|data|ack|err|error, filename, mode, block, errcode, errmsg`
+  - `ftp` (TCP `21`): `cmd, arg, code, reply`
+  - `whois` (TCP `43`): `query|response, domain, registrar`
+  - `sip` (UDP/TCP `5060`): `invite|ack|bye|cancel|register|options|method, uri, status, reason, from, to, call_id, cseq, via, contact, content_type, body, transport tcp`
+  - `rtp` (UDP `5004`): `pt <0..127>, seq, timestamp, ssrc, marker <0|1>`
+  - `rtsp` (TCP `554`): `options|describe|setup|play|teardown|method, uri, status, cseq, transport_hdr, session`
+  - `stun` (UDP `3478`): `binding_request|binding_response|binding_error, txid, xor_mapped_addr, software`
+  - `ssdp` (UDP `1900`): `msearch|notify, host_hdr, man, mx, st, nt, nts, usn, location`
+- **L7 Mail, Identity, Storage, Databases, Caches & Brokers (14)**:
+  - `smtp` (TCP `25`): `ehlo|helo|mail_from|rcpt_to|quit|cmd, param, code, reply, body`
+  - `imap` (TCP `143`): `tag, cmd, arg, status, response`
+  - `pop3` (TCP `110`): `cmd, arg, ok|err, response`
+  - `kerberos` (UDP/TCP `88`): `as_req|as_rep|tgs_req|tgs_rep|krb_error, realm, cname, sname, etype, transport tcp`
+  - `ldap` (TCP `389`): `bind_req|bind_res|search_req|search_entry|search_done|unbind_req, msgid, base_dn, filter, result_code`
+  - `smb` (TCP `445`): `negotiate|session_setup|tree_connect|create|tree_disconnect|command, status, tree_id, session_id, msgid, share, filename`
+  - `nfs` (TCP/UDP `2049`): `compound|proc, vers <2|3|4>, xid, tag, path, transport udp`
+  - `redis` (TCP `6379`): `get|set|cmd, key, args, reply_type, value`
+  - `memcached` (TCP/UDP `11211`): `get|set|cmd, key, value, flags, exptime, opcode, opaque, cas, transport udp`
+  - `mysql` (TCP `3306`): `greeting|login|query|ok|err|eof, server_version, user, db, sql, errcode`
+  - `postgres` (TCP `5432`): `startup|query|auth_ok|command_complete|ready_for_query|error_response, user, db, sql`
+  - `mqtt` (TCP `1883`): `connect|connack|publish|puback|subscribe|suback|pingreq|pingresp|disconnect|pkt_type, client_id, topic, qos <0..2>, retain [0|1], pkt_id, keepalive, return_code`
+  - `coap` (UDP `5683`): `con|non|ack|rst|msg_type, get|post|put|delete|created|changed|not_found|code, msgid, token, uri_path, content_format`
+  - `amqp` (TCP `5672`): `protocol_header|connection_start|channel_open|basic_publish|basic_deliver|heartbeat, channel, exchange, routing_key`
+- **L7 Industrial Control Systems & SCADA/OT (6)**:
+  - `modbus` (TCP/UDP `502`): `read_coils|read_discrete_inputs|read_holding_registers|read_input_registers|write_single_coil|write_single_register|write_multiple_registers|func, txid, proto_id, unitid, addr, count, value, is_response, transport udp`
+  - `bacnet` (UDP `47808`): `who_is|i_am|read_property|write_property, invoke_id, object_type, object_instance, property_id, value`
+  - `dnp3` (TCP/UDP `20000`, CRC-16): `confirm|read|write|select|operate|direct_operate|unsolicited_response|func, src, dst, group, variation, crc, transport udp`
+  - `s7comm` (TCP `102`): `setup_comm|read_var|write_var|plc_control|func, rosctr, pdu_ref, area, db_num, offset, count`
+  - `ethernetip` (TCP/UDP `44818`): `list_identity|list_services|list_interfaces|register_session|unregister_session|send_rr_data|send_unit_data|cmd, session_handle, status, context, cip_service, cip_class, cip_instance, cip_attr, transport udp`
+  - `opcua` (TCP `4840`): `msg_type, chunk_type, secure_channel_id, token_id, seq_num, reqid, endpoint_url, node_id`
 
 **Canonical Compilable `.fasm` Template, CLI & Rust Library API**
 
-
-
 ```frameassembly
-
 // Stateful TCP 3-way handshake, HTTP/1.1 health check, and encrypted SNMPv3 USM trap
-
 host client { ip 10.0.0.10 mac 00:11:22:33:44:55 }
-
 host server { ip 10.0.0.80 mac aa:bb:cc:dd:ee:ff }
 
-
-
 flow demo_flow(c, s) {
-
     c -> s tcp syn srcport 51234 dstport 80 win 65535 mss 1460
-
     c <- s tcp syn ack win 65535 mss 1460 wait 1ms
-
     c -> s tcp ack wait 1ms
-
     c -> s http get uri "/health" host_hdr "api.internal" wait 5ms
-
     c <- s http status 200 reason "OK" body "{\"ok\":true}" wait 2ms
-
     s -> c vlan 100 snmp3 trap user "admin" engineid "80001f8880112233" auth sha256 "authpass123" priv aes "privpass123" oid 1.3.6.1.6.3.1.1.5.4 varbind 1.3.6.1.2.1.1.5.0 string "srv01" wait 5ms
-
 }
-
-
 
 compile {
-
     demo_flow(client, server)
-
 }
-
 ```
 
-
-
-- **CLI, Dissection & Replay**:
-
-  - Preview terminal packet ladder without writing a file: `frameassembly show demo.fasm`
-
-  - Compile to `.pcap` / `.pcapng`: `frameassembly demo.fasm -o demo.pcap`
-
+- **CLI, Dissection, Decompilation & Replay**:
+  - Preview: `frameassembly show demo.fasm` | Compile: `frameassembly demo.fasm [-o demo.pcap]`
+  - Decompile: `frameassembly reverse demo.pcap [-o demo.fasm]`
   - Inspect & replay: `tshark -r demo.pcap -V` / `sudo tcpreplay -i eth0 demo.pcap` / `suricata -r demo.pcap -k none` / `zeek -C -r demo.pcap`
-
 - **Installation**:
-
-  - Linux / macOS bootstrap: `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
-
-  - Homebrew: `brew install SteveWinschel/tap-FrameAssembly/frameassembly`
-
-  - WinGet / Scoop: `winget install SteveWinschel.FrameAssembly` / `scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly && scoop install frameassembly`
-
-  - Cargo / NPM WASM / VS Code: `cargo install frameassembly` / `npm install frameassembly-wasm` / `code --install-extension SteveWinschel.frameassembly-vscode`
-
-- **Public Rust Library Signatures (`frameassembly` v1.4.6)**:
-
-  - `frameassembly::lexer::lex<'a>(input: &'a str) -> Result<Vec<(Token<'a>, std::ops::Range<usize>)>, CompilerError>`
-
-  - `frameassembly::parser::parse_program<'a>(input_str: &'a str) -> Result<Program<'a>, CompilerError>` (lexes, parses, and runs `validate_semantics`)
-
-  - `frameassembly::parser::validate_semantics(program: &Program, src: &str) -> Result<(), CompilerError>`
-
-  - `frameassembly::backend::compile_program(program: &Program) -> Result<Vec<(Vec<u8>, u64)>, String>` (returns `(ethernet_frame_bytes, timestamp_ns)`)
-
-  - `frameassembly::backend::generate_pcap(program: &Program, output_path: &str) -> Result<(), String>`
-
-  - `frameassembly::error::CompilerError`: `LexError { src: String, span: (usize, usize) }`, `ParseError { message: String, src: String, span: (usize, usize) }`, `SemanticError { message: String, src: String, span: (usize, usize) }`, `BackendError(String)`
-
-
+  - Cargo (recommended — re-run to update): `cargo install frameassembly`
+  - Bootstrap: `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
+  - Packages: `brew install SteveWinschel/tap-FrameAssembly/frameassembly` / `winget install SteveWinschel.FrameAssembly` / `scoop install frameassembly`
+  - Web & IDE: `npm install frameassembly-wasm` / `code --install-extension SteveWinschel.frameassembly-vscode`
+- **Public Rust API (`frameassembly` v1.5.0)**:
+  - `lexer::lex<'a>(input: &'a str) -> Result<Vec<(Token<'a>, Range<usize>)>, CompilerError>`
+  - `parser::parse_program<'a>(input_str: &'a str) -> Result<Program<'a>, CompilerError>`
+  - `parser::validate_semantics(program: &Program, src: &str) -> Result<(), CompilerError>`
+  - `backend::compile_program(program: &Program) -> Result<Vec<(Vec<u8>, u64)>, String>`
+  - `backend::generate_pcap(program: &Program, output_path: &str) -> Result<(), String>`
+  - `reverse::{reverse_pcap_reader(reader), reverse_pcap_bytes(bytes), reverse_pcap_file(path)} -> Result<ReverseOutput, CompilerError>`
+  - `error::CompilerError`: `LexError`, `ParseError`, `SemanticError`, `BackendError`
 
 ## Core Documentation
 
-
-
-- [README — Overview, Use Cases & Comparison](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Problems solved, SNMPv3/IDS/firewall examples, comparison vs Scapy/text2pcap/Ostinato, and CLI quickstart.
-
-- [Getting Started Guide](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/getting_started.md): Beginner walkthrough of `host`/`flow`/`compile`, defaults vs overrides, stateful TCP tracking, MAC notations, and Wireshark cheat sheet.
-
-- [Practical Use-Case Cookbook](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/use_cases.md): Copy-paste `.fasm` recipes for SNMPv1/v2c/v3 traps, DMZ firewall audits, PMTUD/fragmentation, VLAN/QinQ/MPLS QoS, SIEM/IDS ingest, and OT conduits.
-
-- [Layer 2 Switching & Data-Link Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l2_protocols.md): Wire framing, bitmasks, and examples for `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, and `mpls`.
-
-- [Layer 3 Control, Tunneling, VPN & Routing Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l3_protocols.md): Reference for IPv4/IPv6 modifiers, `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ikev2`, `ipsec`/`esp`/`ah`, `wireguard`, `ospf`, `bgp`, `rip`, `pim`, `vrrp`, `hsrp`, `bfd`, and `openflow`.
-
-- [Layer 4 Transport Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l4_transports.md): 4-tuple state tracking, RFC 7323 TCP options, UDP checksum rules, dual-transport switching, and SCTP CRC32c / telecom `PPID` reference.
-
-- [Layer 7 SNMPv1, SNMPv2c & SNMPv3 USM](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_snmp.md): ASN.1 BER encoding, `snmp1`/`snmp2`/`snmp3`, all 9 `varbind` types, MIB-II OIDs, USM `SHA-2`/`AES`/`DES` crypto, and `tshark` decryption.
-
-- [Layer 7 Infrastructure, Time, AAA & Flow Telemetry](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_infra_and_telemetry.md): Reference for `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, and `sflow`.
-
-- [Layer 7 Web, Cloud-Native, Security, VoIP & Remote Access](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_web_and_cloud.md): Reference for `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `ssh`, `telnet`, `tftp`, `ftp`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, and `ssdp`.
-
-- [Layer 7 Mail, Directory, Storage, Databases & Brokers](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_mail_auth_storage_db.md): Reference for `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, and `amqp`.
-
-- [Layer 7 Industrial Control Systems (ICS) & SCADA/OT](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_industrial_ot.md): Reference for `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, and `opcua`.
-
-- [Multi-Host Topologies & Dual-Stack Architectures](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/topologies_and_dual_stack.md): EVPN-VXLAN Leaf-Spine, Campus 802.1X NAC, Dual-Stack Kubernetes Service Mesh, Carrier MPLS/IPsec WAN, and IEC 62443 OT conduits.
-
-- [`.fasm` File Format & Media Type Specification](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/fasm-specification.md): Normative RFC 6838 specification for `text/vnd.frameassembly`, UTF-8 rules, magic sniffing, and three-way `.fasm` disambiguation.
-
-- [For Nerds: Compiler Pipeline, Rust API & Formal Grammars](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/for_nerds.md): Six-stage zero-copy Rust compiler internals, public Rust library API, EBNF/GBNF/Lark constrained decoding, and RLVR reward design.
-
-
+- [README](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Overview, SNMPv3/IDS/firewall examples, and CLI quickstart.
+- [Getting Started](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/getting_started.md): `host`/`flow`/`compile`, defaults, TCP tracking, and `reverse`.
+- [Use-Case Cookbook](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/use_cases.md): SNMPv1/v2c/v3 traps, firewall audits, QoS, IDS, and OT recipes.
+- [Layer 2 Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l2_protocols.md): `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, and `mpls`.
+- [Layer 3 Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l3_protocols.md): `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ikev2`, `ipsec`/`esp`/`ah`, `wireguard`, `ospf`, `bgp`, `rip`, `pim`, `vrrp`, `hsrp`, `bfd`, and `openflow`.
+- [Layer 4 Transports](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l4_transports.md): 4-tuple state, RFC 7323 TCP options, UDP, and SCTP CRC32c.
+- [Layer 7 SNMP](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_snmp.md): `snmp1`/`snmp2`/`snmp3`, all 9 `varbind` types, and USM crypto.
+- [Layer 7 Infrastructure & Telemetry](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_infra_and_telemetry.md): `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, and `sflow`.
+- [Layer 7 Web, Cloud, Security & VoIP](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_web_and_cloud.md): `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `ssh`, `telnet`, `tftp`, `ftp`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, and `ssdp`.
+- [Layer 7 Mail, Auth, Storage & DBs](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_mail_auth_storage_db.md): `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, and `amqp`.
+- [Layer 7 Industrial OT](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/l7_industrial_ot.md): `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, and `opcua`.
+- [Topologies & Dual-Stack](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/topologies_and_dual_stack.md): EVPN-VXLAN, 802.1X NAC, Service Mesh, MPLS/IPsec, and OT conduits.
+- [`.fasm` Format Specification](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/fasm-specification.md): RFC 6838 `text/vnd.frameassembly` spec and disambiguation.
+- [For Nerds](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/for_nerds.md): Compiler & decompiler internals, Rust API, grammars, and RLVR rewards.
 
 ## Formal Grammars & Full LLM Context
 
-
-
-- [Full Single-Fetch LLM Context Reference (`llms-full.txt`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Deduplicated, KV-cache-optimized complete technical reference covering all 81 protocols, Rust APIs, formal EBNF grammar, and production topologies.
-
-- [ISO/IEC 14977 EBNF Grammar (`grammar.ebnf`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Canonical context-free grammar covering all 81 protocols and 640+ lexer keywords.
-
-- [GGML BNF Constrained Decoding Grammar (`frameassembly.gbnf`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.gbnf): Constrained decoding grammar (`root ::= ...`) for `llama.cpp`, `MLC-LLM`, and `XGrammar`.
-
-- [Lark Earley/LALR Grammar (`frameassembly.lark`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.lark): Context-free grammar (`start: ...`) for `Outlines`, `vLLM`, `SGLang`, `Guidance`, and `llguidance`.
-
-
+- [Full LLM Context (`llms-full.txt`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Complete 81-protocol, Rust API, and EBNF reference.
+- [EBNF Grammar (`grammar.ebnf`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): ISO/IEC 14977 grammar for all 81 protocols.
+- [GBNF Grammar (`frameassembly.gbnf`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.gbnf): Constrained decoding (`root ::= ...`) for `llama.cpp` and `XGrammar`.
+- [Lark Grammar (`frameassembly.lark`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.lark): Grammar (`start: ...`) for `Outlines`, `vLLM`, `SGLang`, `Guidance`, and `llguidance`.
 
 ## Rust Compiler & Ecosystem Packages
 
-
-
-- [Crate Root (`src/lib.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lib.rs): Public Rust API exports, 81-protocol matrix, and in-memory compilation quickstart.
-
-- [Compiler Diagnostics (`src/error.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/error.rs): `CompilerError` (`LexError`, `ParseError`, `SemanticError`, `BackendError`), plain-English hints, and foreign `.fasm` detection.
-
-- [Zero-Copy Lexer (`src/lexer/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lexer/mod.rs): `logos 0.14` DFA tokenizer for all 640+ case-insensitive keywords, time units, IPs, MACs, and OIDs.
-
-- [AST Specifications (`src/ast/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/ast/mod.rs): Zero-copy `Program`, `HostDef`, `FlowDef`, `FrameStatement`, and `src/ast/{l2,l3,l4,l7}/` `*Spec` types.
-
-- [Combinator Parser & Validator (`src/parser/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/parser/mod.rs): `winnow 1.0` token-slice parser, protocol-scoped modifier dispatch (`fields.rs`), and `validate_semantics` (`validation.rs`).
-
-- [Stateful 4-Tuple Backend (`src/backend/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/backend/mod.rs): Flow evaluation, `loop` unrolling, two-stage port inheritance, 4-tuple TCP state machine, and multicast MAC derivation.
-
-- [Wire Framing & Checksums (`src/packet.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/packet.rs): Ethernet/VLAN/QinQ/MPLS, IPv4/IPv6, TCP/UDP wire builders, and disjoint-slice RFC 1071 checksums.
-
-- [PCAPNG Writer (`src/pcap.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/pcap.rs): Nanosecond-resolution `PcapWriter` (`LINKTYPE_ETHERNET`, `IfTsResol(9)`) over `pcap-file 2.0`.
-
-- [API Documentation (`docs.rs/frameassembly`)](https://docs.rs/frameassembly): Hosted Rustdoc documentation for all public modules and `*Spec` AST structures.
-
-- [WebAssembly Package (`npmjs.com/package/frameassembly-wasm`)](https://www.npmjs.com/package/frameassembly-wasm): Browser and Node.js WebAssembly bindings for `.fasm` validation and `.pcap` synthesis.
-
-
+- [Crate Root (`src/lib.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lib.rs): Public Rust API exports and 81-protocol matrix.
+- [Diagnostics (`src/error.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/error.rs): `CompilerError` diagnostics and foreign `.fasm` detection.
+- [Lexer (`src/lexer/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lexer/mod.rs): `logos 0.14` DFA tokenizer for 640+ keywords and literals.
+- [AST (`src/ast/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/ast/mod.rs): `Program`, `HostDef`, `FlowDef`, `FrameStatement`, and `src/ast/{l2,l3,l4,l7}/` `*Spec` types.
+- [Parser (`src/parser/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/parser/mod.rs): `winnow 1.0` parser, protocol-scoped dispatch, and `validate_semantics`.
+- [Backend (`src/backend/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/backend/mod.rs): Flow evaluation, `loop` unrolling, port inheritance, and 4-tuple TCP state.
+- [Wire Framing (`src/packet.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/packet.rs): L2–L4 framing and RFC 1071 checksums.
+- [PCAPNG Writer (`src/pcap.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/pcap.rs): Nanosecond `PcapWriter` (`LINKTYPE_ETHERNET`, `IfTsResol(9)`).
+- [PCAP Decompiler (`src/reverse/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/reverse/mod.rs): Five-stage PCAP/PCAPNG-to-`.fasm` decompiler (`container.rs`, `topology.rs`, `oracle.rs`, `shadow_emit.rs`, `src/reverse/{l2,l3,l4,l7}/<protocol>.rs` with `l3/{ip,ipv6,icmpv6}.rs` and `l7/{snmp1,snmp2,snmp3}.rs`).
+- [API Docs (`docs.rs/frameassembly`)](https://docs.rs/frameassembly): Hosted Rustdoc documentation.
+- [WASM Package (`npmjs.com/package/frameassembly-wasm`)](https://www.npmjs.com/package/frameassembly-wasm): Browser/Node.js WASM bindings.
 
 ## Verified Reference Examples
 
-
-
-- [Canonical Showcase (`demo.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/demo.fasm): End-to-end TCP handshake, HTTP/1.1 transaction, and SNMPv3 USM `SHA-256` + `AES-128` trap.
-
-- [Omnibus Token Reference (`complete_dsl_omnibus_reference.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/complete_dsl_omnibus_reference.fasm): Topology exercising TCP flags, UDP, and SNMPv1/v2c/v3 USM authentication/privacy algorithms.
-
-- [Dual-Stack Polymorphic Flow (`dual_stack_polymorphic_flow_basic.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/dual_stack_polymorphic_flow_basic.fasm): Single parameterized flow compiled across both IPv4 and IPv6 endpoint pairs.
-
-
+- [Enterprise SNMPv3 & TLS (`enterprise_snmpv3_and_tls.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/linguist/samples/enterprise_snmpv3_and_tls.fasm): TCP handshake, TLS 1.3, and SNMPv3 USM trap.
+- [Omnibus (`complete_dsl_omnibus_reference.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/complete_dsl_omnibus_reference.fasm): TCP flags, UDP, and SNMPv1/v2c/v3 USM.
+- [Dual-Stack (`dual_stack_polymorphic_flow_basic.fasm`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/dual_stack_polymorphic_flow_basic.fasm): Parameterized flow across IPv4 and IPv6.
 
 ## Optional
 
-
-
-- [IANA Media Type & Wikidata Registration (`contrib/iana/text-vnd.frameassembly.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/iana/text-vnd.frameassembly.md): RFC 6838 `text/vnd.frameassembly` registration template and Wikidata entity mappings.
-
-- [Freedesktop Shared MIME Info (`contrib/mime/text-vnd.frameassembly.xml`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/mime/text-vnd.frameassembly.xml): Linux/BSD MIME XML definition (`*.fasm` glob and `<magic>` token rules).
-
-- [GitHub Linguist Heuristics (`contrib/linguist/README.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/linguist/README.md): Regular expression disambiguation rules separating FrameAssembly from Flat Assembler and FPGA FASM.
-
-- [POSIX Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Cross-platform shell installer for Linux, macOS, and BSDs.
-
-- [Academic Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 citation metadata for FrameAssembly v1.4.6.
+- [IANA & Wikidata (`contrib/iana/text-vnd.frameassembly.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/iana/text-vnd.frameassembly.md): RFC 6838 `text/vnd.frameassembly` registration.
+- [Shared MIME Info (`contrib/mime/text-vnd.frameassembly.xml`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/mime/text-vnd.frameassembly.xml): MIME XML definition (`*.fasm` glob and `<magic>`).
+- [Linguist Heuristics (`contrib/linguist/README.md`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/linguist/README.md): Linguist disambiguation rules.
+- [Bootstrap Installer (`install.sh`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Cross-platform shell installer.
+- [Citation Metadata (`CITATION.cff`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 metadata (v1.5.0).

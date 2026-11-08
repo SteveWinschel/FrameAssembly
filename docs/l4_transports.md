@@ -248,7 +248,7 @@ Every `sctp` frame specifies a `chunk` type (or defaults to `init` on a bare `a 
 | **3G/4G Small-Cell `Iuh` (`RUA`/`HNBAP`)**| `29169` | `19` / `20` | `sctp chunk data vtag 100 stream 0 ssn 0 ppid 20 srcport 29169 dstport 29169` |
 | **WebRTC DataChannel (`DCEP` / UTF-8)**| `5000` | `50` / `51` | `sctp chunk data vtag 100 stream 1 ssn 1 ppid 51 srcport 5000 dstport 5000` |
 
-## Inspecting and Replaying Layer 4 Captures
+## Inspecting, Reversing and Replaying Layer 4 Captures
 
 ```console
 # Verify TCP SEQ/ACK progression, window sizes, and ZeroWindow / Fast Retransmission analysis flags
@@ -256,6 +256,9 @@ $ tshark -r tcp_anomalies.pcap -T fields -e frame.number -e tcp.seq -e tcp.ack -
 
 # Inspect SCTP chunk types, Verification Tags, Stream IDs, PPIDs, and CRC-32c validation
 $ tshark -r sctp_5g.pcap -Y "sctp" -T fields -e frame.number -e sctp.verif_tag -e sctp.chunk_type -e sctp.data_sid -e sctp.payload_proto_id
+
+# Reverse an existing TCP, UDP, or SCTP capture into editable .fasm code (defaults to <input_stem>.fasm)
+$ frameassembly reverse tcp_anomalies.pcap -o edited_tcp.fasm
 
 # Test stateful firewall / Suricata IDS detection on custom TCP scans or UDP tunnels
 $ suricata -r syn_proxy_and_scan_audit.pcap -k none

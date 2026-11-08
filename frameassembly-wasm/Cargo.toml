@@ -1,9 +1,9 @@
 [package]
 name = "frameassembly-wasm"
-version = "1.4.6"
+version = "1.5.0"
 edition = "2024"
 authors = ["Steve Winschel"]
-description = "WebAssembly compiler, packet inspector, and IDE diagnostics for the FrameAssembly (.fasm) network packet synthesis DSL"
+description = "WebAssembly compiler, PCAP/PCAPNG decompiler, packet inspector, and IDE diagnostics for the FrameAssembly (.fasm) network packet synthesis DSL"
 license = "MIT"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
 homepage = "https://github.com/SteveWinschel/FrameAssembly"
@@ -13,18 +13,34 @@ keywords = ["frameassembly", "pcap", "pcapng", "wireshark", "wasm"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-frameassembly = { path = "..", version = "1.4.6" }
+frameassembly = { path = "..", version = "1.5.0" }
 miette = { version = "7.6.0", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
-wasm-bindgen = "0.2.129"
+wasm-bindgen = "0.2.130"
 
 [profile.release]
 opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"
-strip = "symbols"
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
+
+[lints.rust]
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "warn"
+
+[lints.rustdoc]
+broken_intra_doc_links = "warn"
+private_intra_doc_links = "warn"
+bare_urls = "warn"
+invalid_html_tags = "warn"
+invalid_rust_codeblocks = "warn"
+unescaped_backticks = "warn"
+
+[lints.clippy]
+missing_docs_in_private_items = "warn"
+undocumented_unsafe_blocks = "warn"
+incompatible_msrv = "allow"

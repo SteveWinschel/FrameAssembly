@@ -8,15 +8,15 @@
 * **IANA Vendor Tree Registration Template:** [`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md)
 * **GitHub Linguist Grammar & Heuristics:** [`contrib/linguist/languages.yml`](../contrib/linguist/languages.yml), [`contrib/linguist/heuristics.yml`](../contrib/linguist/heuristics.yml) • [`contrib/linguist/README.md`](../contrib/linguist/README.md)
 * **Formal Context-Free Grammars:** [`grammar.ebnf`](../grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](../frameassembly.gbnf) (`llama.cpp` / `XGrammar` GBNF), [`frameassembly.lark`](../frameassembly.lark) (Earley/LALR Lark)
-* **Reference Compiler & Repository:** `frameassembly` v1.4.4 • [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
+* **Reference Compiler & Repository:** `frameassembly` v1.5.0 • [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
 
 ---
 
 ## 1. Abstract & Scope
 
-The **FrameAssembly** file format (`.fasm`, media type `text/vnd.frameassembly`) is a declarative, human-readable Domain-Specific Language (DSL) for specifying deterministic network packet captures ("Packets as Code" / "PCAP as Code").
+The **FrameAssembly** file format (`.fasm`, media type `text/vnd.frameassembly`) is a network packet specification code format ("Packets as Code" / "PCAP as Code") for building network packet captures.
 
-A `.fasm` document declares network endpoints (`HOST`), parameterized multi-packet traffic sequences (`FLOW`), and compilation targets (`COMPILE`). The `frameassembly` reference compiler translates `.fasm` source files entirely offline in unprivileged user space—requiring no root privileges (`CAP_NET_RAW`), no live network sockets, and no `libpcap` library—into deterministic, nanosecond-resolution `.pcap` / `.pcapng` packet capture files across **81 native Layer 2 through Layer 7 network protocols**.
+A `.fasm` document declares network endpoints (`HOST` / `host`), optional parameterized multi-packet traffic sequences (`FLOW` / `flow`), and compilation targets (`COMPILE` / `compile`). The `frameassembly` reference compiler translates `.fasm` files into nanosecond-resolution `.pcap` / `.pcapng` packet capture files across **81 native Layer 2 through Layer 7 network protocols**, and decompiles existing `.pcap` / `.pcapng` captures back into `.fasm` code via `frameassembly reverse`. Encrypted payloads (such as SNMPv3 `authPriv`, TLS application data, SSH, or IPsec `ESP`) are not decrypted during decompilation and are emitted as `tcp` or `udp` statements with `payload` / `hexpayload`.
 
 Generated captures are designed for downstream inspection in **Wireshark** and **`tshark`**, wire-speed packet injection via **`tcpreplay`**, and automated rule validation in intrusion detection systems (**Suricata**, **Zeek**, **Snort**), firewalls, network management systems, and CI/CD pipelines.
 
@@ -66,40 +66,42 @@ This section defines the formal media type registration parameters for `text/vnd
 
 ### 4.2 Three-Block Program Model
 
-Every compilable `.fasm` specification consists of three top-level block types:
+Every compilable `.fasm` specification consists of up to three top-level block types:
 
 1. **Endpoint Declarations (`HOST`)**:
    ```text
    HOST <identifier> {
-       IP <ipv4-or-ipv6-address>
+       [IP <ipv4-or-ipv6-address>]
        [MAC <mac-address>]
    }
    ```
-   - `IP`: Standard IPv4 dotted-quad (`10.0.0.1`) or IPv6 address (`2001:db8::1`, `fe80::1`, `ff02::fb`).
-   - `MAC` *(optional)*: 48-bit Ethernet MAC address in IEEE colon notation (`00:1a:2b:3c:4d:5e`), hyphen notation (`00-1A-2B-3C-4D-5E`), or Cisco dotted-quad notation (`001a.2b3c.4d5e`). When omitted, FrameAssembly derives a deterministic unicast MAC or the standard multicast MAC per RFC 1112 (`01:00:5e:xx:xx:xx` for IPv4 `224.0.0.0/4`) and RFC 2464 (`33:33:xx:xx:xx:xx` for IPv6 `ff00::/8`).
+   - At least one of `IP` or `MAC` MUST be present (for example, `host sw1 { mac 00:1c:73:00:00:01 }` or `HOST sw1 { MAC 00:1c:73:00:00:01 }` for a MAC-only Layer 2 switch).
+   - `IP` *(required for Layer 3–7 protocols; optional for pure Layer 2 switching protocols `LLDP`, `STP`, `LACP`, `EAPOL`, `VLAN`, `QINQ`, `MPLS`, `ARP`)*: Standard IPv4 dotted-quad (`10.0.0.1`) or IPv6 address (`2001:db8::1`, `fe80::1`, `ff02::fb`).
+   - `MAC` *(optional when `IP` is present)*: 48-bit Ethernet MAC address in IEEE colon notation (`00:1a:2b:3c:4d:5e`), hyphen notation (`00-1A-2B-3C-4D-5E`), or Cisco dotted-quad notation (`001a.2b3c.4d5e`). When omitted on an IP host, FrameAssembly derives a direction-aware unicast MAC or the standard multicast MAC per RFC 1112 (`01:00:5e:xx:xx:xx` for IPv4 `224.0.0.0/4`) and RFC 2464 (`33:33:xx:xx:xx:xx` for IPv6 `ff00::/8`).
 
-2. **Parameterized Traffic Flows (`FLOW`)**:
+2. **Parameterized Traffic Flows (`FLOW` — Optional When Using Inline `COMPILE` Statements)**:
    ```text
    FLOW <identifier>(<param1>, <param2>, ...) {
        <endpoint_a> -> <endpoint_b> [modifiers...] <PROTOCOL> [protocol_fields...] [WAIT <duration>]
        <endpoint_a> <- <endpoint_b> [modifiers...] <PROTOCOL> [protocol_fields...] [WAIT <duration>]
    }
    ```
-   - **1 Statement = 1 Frame**: Each statement inside a `FLOW` block emits exactly one Ethernet frame.
+   - **1 Statement = 1 Frame**: Each statement inside a `FLOW` (or inline inside `COMPILE`) emits exactly one Ethernet frame.
    - **Directional Arrows**: `a -> b` transmits from `a` (source) to `b` (destination); `a <- b` transmits from `b` (source) back to `a` (destination), automatically reversing source and destination ports on reply packets.
    - **Shared 4-Tuple TCP State**: TCP-based Layer 7 statements automatically emit a `PSH ACK` segment on that protocol's default port and share sequence (`SEQ`) and acknowledgment (`ACKNUM`) counters with raw `TCP` statements on the same 4-tuple connection.
-   - **Dual-Stack Polymorphism**: A `FLOW` definition is protocol-version agnostic and executes over both IPv4 host pairs and IPv6 host pairs. Mixing an IPv4 endpoint and an IPv6 endpoint in the same statement is rejected at semantic validation time.
+   - **Dual-Stack IPv4 and IPv6 Reuse**: A `FLOW` definition is protocol-version agnostic and executes over both IPv4 host pairs and IPv6 host pairs. Mixing an IPv4 endpoint and an IPv6 endpoint in the same statement is rejected at semantic validation time.
 
-3. **Compilation & Loop Execution (`COMPILE`)**:
+3. **Compilation, Inline Statements & Loop Execution (`COMPILE`)**:
    ```text
    COMPILE {
        <flow_identifier>(<host1>, <host2>, ...)
+       <host1> -> <host2> [modifiers...] <PROTOCOL> [protocol_fields...] [WAIT <duration>]
        LOOP <positive_integer> {
            <flow_identifier>(<host1>, <host2>, ...)
        }
    }
    ```
-   - Exactly one `COMPILE` block defines the ordered sequence of flow invocations and bounded `LOOP` repetitions written to the output capture.
+   - Exactly one `COMPILE` / `compile` block defines the ordered sequence of flow invocations, inline packet statements (without requiring a `FLOW` block), and bounded `LOOP` repetitions written to the output capture.
 
 ### 4.3 Lexical Token Classes
 
@@ -144,12 +146,12 @@ The table below provides the authoritative technical disambiguation across all e
 
 | Architectural Dimension | **FrameAssembly (`.fasm`)** | **Flat Assembler x86 (`.asm`, `.fasm`)** | **FPGA Bitstream Assembly (`FASM`, `.fasm`)** |
 | :--- | :--- | :--- | :--- |
-| **Primary Domain** | Declarative network packet capture specification ("Packets as Code" / "PCAP as Code") | Low-level x86 / x86-64 machine assembly language | FPGA hardware tile and interconnect feature configuration (SymbiFlow / F4PGA) |
+| **Primary Domain** | Network packet capture specification code ("Packets as Code" / "PCAP as Code") | Low-level x86 / x86-64 machine assembly language | FPGA hardware tile and interconnect feature configuration (SymbiFlow / F4PGA) |
 | **Canonical Media Type** | `text/vnd.frameassembly` (RFC 6838 Vendor Tree candidate) | Unregistered (`text/x-asm`) | Unregistered (`text/plain`) |
 | **Comment Delimiters** | `// single-line comment` (C/C++/Rust style) | `; single-line comment` (standard assembly style) | `# single-line comment` (Python/Tcl/sh style) |
-| **Top-Level Block Syntax** | `HOST <id> { IP ... }`<br>`FLOW <id>(...) { ... }`<br>`COMPILE { ... }` | Directives: `format PE/ELF`, `section '.text'`, `segment`, `org`, `use32`/`use64` | Hierarchical dot-separated hardware tile paths: `CLBLL_L_X10Y100.SLICEL_X0...` |
+| **Top-Level Block Syntax** | `HOST <id> { [IP ...] [MAC ...] }`, `FLOW <id>(...) { ... }`, `COMPILE { ... }` | Directives: `format PE/ELF`, `section '.text'`, `segment`, `org`, `use32`/`use64` | Hierarchical dot-separated hardware tile paths: `CLBLL_L_X10Y100.SLICEL_X0...` |
 | **Statement Syntax & Operators** | Directional arrows `->` and `<-` paired with Layer 2–7 protocol keywords (`TCP`, `HTTP`, `SNMP3`) | x86 CPU mnemonics: `mov`, `eax`, `xor`, `call`, `int 80h`, `push`, `pop`, `db`, `dd` | Bit-slice assignments (`ALUT.INIT[63:0] = 64'h...`) or bare feature strings |
-| **Target Output Artifact** | Deterministic `.pcap` / `.pcapng` packet capture file | Native machine code binary (`.bin`, `.obj`, `.o`, `.exe`, `.elf`) | FPGA configuration bitstream (`.bit`, `.frames`) |
+| **Target Output Artifact** | Standard `.pcap` / `.pcapng` packet capture file | Native machine code binary (`.bin`, `.obj`, `.o`, `.exe`, `.elf`) | FPGA configuration bitstream (`.bit`, `.frames`) |
 | **Reference Tool / Compiler** | `frameassembly` compiler & CLI (offline userspace, rootless, zero raw sockets) | Flat Assembler (`fasm`) assembler & linker | `fasm2frames` / `xc7frames2bit` (SymbiFlow / F4PGA architecture tooling) |
 | **Downstream Consumers** | **Wireshark**, **`tshark`**, **`tcpreplay`**, **Suricata**, **Zeek**, Snort, test harnesses | Operating system loader, CPU execution, static linkers (`ld`, `link.exe`) | Xilinx 7-Series / Lattice iCE40 FPGA programming hardware |
 | **Registry Authority** | Candidate IANA Vendor Tree (`text/vnd.frameassembly`), Freedesktop XML, Wikidata | Unregistered informal convention (`.asm` primary, `.fasm` secondary) | Unregistered informal convention (`.fasm` tile configuration) |
@@ -173,7 +175,7 @@ Because each format operates in a distinct technological problem domain, their l
    - Flat Assembler statements consist of x86 opcodes and registers (`mov eax, 1`).
    - FPGA FASM statements consist of tile coordinates and bit-slices (`HCLK_L_X0Y130.ENABLE_BUFFER`).
 
-### 5.3 Deterministic Content-Sniffing & Linguist Heuristics
+### 5.3 Content-Sniffing & Linguist Heuristics
 
 GitHub Linguist, `bat`, `Chroma`, and Pygments identify FrameAssembly `.fasm` documents with zero false positives using the regular expression heuristics published in [`contrib/linguist/heuristics.yml`](../contrib/linguist/heuristics.yml):
 
@@ -219,7 +221,7 @@ Running `file -i <file.fasm>` returns `text/vnd.frameassembly; charset=us-ascii`
 ### 5.6 FAQ: What is a `.fasm` File? (FrameAssembly vs. Flat Assembler vs. FPGA FASM)
 
 #### Q1: What is a `.fasm` file in FrameAssembly?
-A `.fasm` file is a declarative network traffic specification written in the FrameAssembly Domain-Specific Language ("Packets as Code"). It defines network endpoints (`HOST`), directional packet exchanges across OSI Layers 2 through 7 (`FLOW`), and execution schedules (`COMPILE`). The `frameassembly` compiler compiles `.fasm` specifications offline into deterministic `.pcap` or `.pcapng` capture files for Wireshark, `tshark`, `tcpreplay`, Suricata, and Zeek.
+A `.fasm` file is a network traffic specification written in FrameAssembly `.fasm` code ("Packets as Code"). It defines network endpoints (`HOST`), optional directional packet exchanges across OSI Layers 2 through 7 (`FLOW`), and compilation schedules (`COMPILE`). The `frameassembly` compiler compiles `.fasm` specifications offline into repeatable `.pcap` or `.pcapng` capture files for Wireshark, `tshark`, `tcpreplay`, Suricata, and Zeek, and decompiles `.pcap` / `.pcapng` captures back into `.fasm` code via `frameassembly reverse`.
 
 #### Q2: How does a FrameAssembly `.fasm` file differ from an x86 Flat Assembler file?
 Flat Assembler (traditionally abbreviated FASM) is a machine-code assembler that translates low-level x86/x86-64 assembly instructions into binary executables (`.exe`, `.elf`, `.bin`). Flat Assembler files use semicolon (`;`) comments, format directives (`format PE`, `section '.text'`), and CPU mnemonics (`mov`, `jmp`, `xor`). In contrast, FrameAssembly files use slash (`//`) comments, structural blocks (`HOST`, `FLOW`, `COMPILE`), and networking directives (`client -> server TCP SYN`).
@@ -251,8 +253,8 @@ The `.fasm` file extension and `text/vnd.frameassembly` media type maintain acti
 
 ## 6. Security Considerations (RFC 6838 §4.6 & RFC 3552)
 
-1. **Declarative, Non-Executable Format**:
-   - A `.fasm` file is a passive, declarative data specification describing network endpoints and packet header fields. It contains no executable code, macros, shell invocations, or system calls.
+1. **Passive, Non-Executable Format**:
+   - A `.fasm` file is a passive network packet specification describing network endpoints and packet header fields. It contains no general-purpose executable code, macros, shell invocations, or system calls.
 2. **Bounded, Side-Effect-Free Compilation**:
    - The `frameassembly` language is intentionally non-Turing-complete: there is no unbounded recursion, dynamic memory allocation expression, or conditional branching. `LOOP <count> { ... }` blocks require a compile-time positive integer literal.
    - The language includes no file-inclusion directives (`include` or `import`) and performs no network I/O or DNS resolution during compilation, eliminating Server-Side Request Forgery (SSRF) and local file inclusion vectors when compiling untrusted `.fasm` inputs.
@@ -274,7 +276,7 @@ For knowledge graphs, digital preservation registries (Wikidata, PRONOM, Softwar
 | **Freedesktop MIME** | Shared MIME-Info XML | `text/vnd.frameassembly` ([`contrib/mime/text-vnd.frameassembly.xml`](../contrib/mime/text-vnd.frameassembly.xml)) |
 | **Unix `file(1)` / `libmagic`** | Magdir Rule | `text/vnd.frameassembly` ([`contrib/magic/frameassembly.magic`](../contrib/magic/frameassembly.magic)) |
 | **UK National Archives PRONOM** | Technical Registry | `FrameAssembly Network Packet Specification` (`text/vnd.frameassembly`) ([`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md)) |
-| **Wikidata: instance of** | `P31` | `Q235557` (file format), `Q1262091` (domain-specific language), `Q9143` (programming language) |
+| **Wikidata: instance of** | `P31` | `Q235557` (file format), `Q1262091` (packet specification format), `Q9143` (computer language) |
 | **Wikidata: file extension** | `P1195` | `fasm` |
 | **Wikidata: media type** | `P1163` | `text/vnd.frameassembly` |
 | **Wikidata: described at URL** | `P973` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` |
@@ -350,6 +352,18 @@ FLOW substation_poll(master, rtu) {
 
 COMPILE {
     substation_poll(scada_master, substation_rtu)
+}
+```
+
+### Example 4: Pure Layer 2 MAC-Only Switches & Inline `COMPILE` Packet Statements
+
+```frameassembly
+HOST sw1 { MAC 00:1c:73:00:00:01 }
+HOST sw2 { MAC 00:1c:73:00:00:02 }
+
+COMPILE {
+    sw1 -> sw2 LLDP CHASSIS_ID "00:1c:73:00:00:01" PORT_ID "Ethernet1/1" TTL 120 SYSNAME "spine-01" WAIT 2ms
+    sw1 <- sw2 STP RSTP ROOT_ID "4096/00:1c:73:00:00:02" BRIDGE_ID "4096/00:1c:73:00:00:02" PORT_ID 0x8001 COST 0 FLAGS 0x3c
 }
 ```
 

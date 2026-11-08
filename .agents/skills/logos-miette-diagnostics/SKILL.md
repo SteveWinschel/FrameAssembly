@@ -1,33 +1,35 @@
 ---
 name: logos-miette-diagnostics
-description: Comprehensive guide, API selection matrix, and production code templates for high-performance lexing, parsing, and rich diagnostic error reporting in Rust with logos 0.14+, miette 7.6+, and winnow 1.0+ (including two-phase TokenSlice bridge, subpatterns, morphing, GraphicalReportHandler, and multi-span diagnostics).
+description: Comprehensive guide, API selection matrix, and production code templates for high-performance lexing, parsing, and rich diagnostic error reporting in Rust with logos 0.14.4 / 0.16.1+, miette 7.6.0, and winnow 1.0.5+ (including 6-tier priority disambiguation, expand_lex_error_span, detect_foreign_fasm, two-phase TokenSlice/3-tuple Stream bridges, subpatterns, morphing, GraphicalReportHandler, and multi-span diagnostics).
 ---
 
-# Logos 0.14.4 & Miette 7.6.0 Diagnostics Engineering Skill
+# Logos (`0.14.4` -> `0.16.1`) & Miette `7.6.0` Diagnostics Engineering Skill
 
-Use this skill when designing, implementing, debugging, or optimizing lexers, parsers, and diagnostic error reporters using `logos` (`0.14.4`), `miette` (`7.6.0`), and their two-phase integration with `winnow` (`1.0.4+`) in Rust.
+Use this skill when designing, implementing, debugging, or optimizing lexers, parsers, and diagnostic error reporters using `logos` (`0.14.4` with `0.16.1` forward compatibility), `miette` (`7.6.0`), and their two-phase integration with `winnow` (`1.0.5+`) in Rust.
 
 ## 1. Quick API Selection Matrix
 
-| Lexing / Diagnostic Goal | Idiomatic Modern API (`logos 0.14.4` / `miette 7.6.0`) | Avoid (Legacy / Suboptimal / Anti-Pattern) |
+| Lexing / Diagnostic Goal | Idiomatic Modern API (`logos 0.14.4` / `0.16.1` & `miette 7.6.0`) | Avoid (Legacy / Suboptimal / Anti-Pattern) |
 | :--- | :--- | :--- |
 | Token definition & zero-copy slices | `#[derive(Logos)]` with `&'a str` fields (`lex.slice()`) | Allocating `String` inside token variants |
-| Disambiguate `Ident` vs 1-char tokens (`"s"`, `"m"`) | Explicit `priority = 1` on `Ident` (default is `2`, tying `"s"`) | Assuming `[a-zA-Z_]` has priority `1` (`Mir::Class` = `2`!) |
-| Disambiguate `OidStr` vs `IntLit` (`[0-9]+`) | Explicit `priority = 3` on `OidStr` (`\.?[0-9]+(\.[0-9]+)*`) | Leaving both at default priority `2` (compile-time DFA conflict) |
-| Cross-platform whitespace skipping | `#[logos(skip r"[ \t\r\n\f]+")]` (includes `\r` for CRLF) | `#[logos(skip r"[ \t\n\f]+")]` (rejects CRLF files!) |
+| Disambiguate `Ident` vs 1-char tokens (`"s"`, `"m"`) | Explicit `priority = 1` on `Ident` + `priority = 2` on `"s"`, `"m"` | Assuming `[a-zA-Z_]` has priority `1` (`Mir::Class` = `2`!) |
+| Disambiguate `Mac`, `IPv4`, `Number`, `OidStr`, `IPv6`, `Ident` | Explicit 6-tier priority ladder (`6` down to `1` in `src/lexer/mod.rs`) | Leaving overlapping regexes at default priorities (compile-time DFA conflict) |
+| Cross-platform whitespace & comment skipping | `#[logos(skip r"[ \t\r\n\f]+")]` + `#[logos(skip r"//[^\r\n]*")]` | `#[logos(skip r"//.*")]` (rejected in `logos 0.15+`/`0.16.1` without `allow_greedy = true`!) |
+| Multi-char lex error span expansion | `expand_lex_error_span(input, lexer.span())` (`/*`, `*/`, `/24`, `'...'`) | Underlining only a single byte on CIDR `/24` or `'single-quoted'` strings |
+| Foreign `.fasm` dialect disambiguation | `detect_foreign_fasm(src)` (`;` x86 Flat Assembler vs `#` FPGA FASM) | Generic syntax errors when a user passes an x86 or FPGA `.fasm` file |
 | Reusable regex fragments | `#[logos(subpattern name = r"...")]` + `(?&name)` | Duplicating complex hex/IP/OID regexes across variants |
 | Case-insensitive protocol keywords | `#[token("...", ignore(ascii_case))]` | `ignore(case)` (unneeded full Unicode table overhead) |
 | Stateful lexing context | `#[logos(extras = S)]` via `lexer.extras` | `RefCell` or global/thread-local mutable state |
 | Switching grammar dialects / modes | `lexer.morph::<SubToken>()` | Giant monolithic enum with boolean mode flags |
 | Custom lex error with byte spans | `#[logos(error = E)]` + `lexer.spanned()` | Default unit error `()` discarding failure reasons |
-| Pre-lexed stream for winnow | `TokenSlice<'t, SpannedToken<'a>>` | Converting tokens back to text or manual cursors |
+| Pre-lexed stream for winnow | `Stream<'i, 'a> = &'i [(Token<'a>, Range<usize>, &'a str)]` or `TokenSlice<'t, SpannedToken<'a>>` | Converting tokens back to text or manual cursors |
 | Automatic span tracking across tokens | `impl Location for SpannedToken` | Manual span arithmetic across token indices |
 | Winnow keyword & set matching | `PartialEq<Token>` + `ContainsToken` (`literal`, `one_of`) | Verbose `any.verify(\|t\| t.kind == Token::X)` |
-| Translating parser error to source span | `tokens[err.offset()].span` with `offset < tokens.len()` guard | Unbounded `tokens[err.offset()]` (panics on EOF!) |
+| Translating parser error to source span | `tokens[err_idx]` with `err_idx < tokens.len()` EOF guard | Unbounded `tokens[err_idx]` (panics on EOF!) |
 | Deriving rich compiler errors | `#[derive(Diagnostic)]` with `#[diagnostic(code(...), url(docsrs))]` | Hand-rolling error formatting strings |
 | Delegating diagnostic to inner field | `#[diagnostic(transparent)]` or `#[diagnostic(forward(field))]` | Manual `Diagnostic` trait boilerplate |
-| Attaching source code & file context | `#[source_code] src: NamedSource<String>` (`.with_language(...)`) | Raw unnamed string slices without filename |
-| Span constructor from `Range<usize>` | `SourceSpan::from(start..end)` | `SourceSpan::from((start, end))` (treats `end` as length!) |
+| Attaching source code & file context | `NamedSource::new(filename, code).with_language("frameassembly")` | Using `.with_language("fasm")` or unnamed string slices |
+| Span constructor from `Range<usize>` or `(start, len)` | `SourceSpan::from(start..end)` or `SourceSpan::from((start, end - start))` | `SourceSpan::from((start, end))` (treats `end` as byte **length**!) |
 | Zero-length / EOF caret span | `LabeledSpan::at_offset(byte_offset, "unexpected EOF")` | Out-of-bounds byte offset past `source.len()` |
 | Highlighting primary & secondary spans | `#[label(primary, "...")]` + `#[label("...")]` | Unmarked labels without visual caret hierarchy |
 | Highlighting dynamic span collections | `#[label(collection, "...")] Vec<SourceSpan>` | Flattening multiple error locations to a single span |
@@ -37,7 +39,7 @@ Use this skill when designing, implementing, debugging, or optimizing lexers, pa
 
 ---
 
-## 2. Exact `logos-codegen 0.14.4` Priority Calculation Rules
+## 2. Exact `logos-codegen 0.14.4` Priority Formula & FrameAssembly's 6-Tier Ladder
 
 `logos-codegen` computes a compile-time specificity score (`Mir::priority`) for every token variant when no explicit `priority = N` is provided. If two patterns can match the same input and have the same priority, compilation fails with a DFA disambiguation error.
 
@@ -51,35 +53,34 @@ Use this skill when designing, implementing, debugging, or optimizing lexers, pa
 | `Mir::Concat(items)` | $\sum \text{priority}(item)$ | `r"[a-zA-Z_][a-zA-Z0-9_]*"` = **2 + 0 = 2** |
 | `Mir::Alternation(branches)` | $\min(\text{priority}(branch))$ | `r"([0-9]+\.[0-9]+)\|([a-z]+)"` = $\min(6, 2) =$ **2** |
 
-### Why Explicit Priorities Are Required in `frameassembly`:
-1. **`Ident` vs 1-Character Unit Tokens (`"s"`, `"m"`)**:
-   - `#[token("s")]` (seconds) and `#[token("m")]` (minutes) have priority $2 \times 1 = 2$.
-   - `#[regex(r"[a-zA-Z_][a-zA-Z0-9_]*")]` (`Ident`) has `Class` ($2$) + `Loop` ($0$) = $2$.
-   - Setting `priority = 1` on `Ident` ensures `"s"` and `"m"` lex as time units (`2 > 1`), while `"sec"` or `"my_var"` lex as `Ident` via longest-match!
-2. **`OidStr` vs `IntLit`**:
-   - `#[regex(r"[0-9]+")]` (`IntLit`) has priority $2$.
-   - `#[regex(r"\.?[0-9]+(\.[0-9]+)*")]` (`OidStr`) has `Maybe(\.)` ($0$) + `Class([0-9])` ($2$) + `Loop` ($0$) = $2$.
-   - Setting `priority = 3` on `OidStr` resolves the tie cleanly while keeping it below `Ipv4` (priority $14$) and `Mac` (priority $34$).
+### FrameAssembly's Mandatory 6-Tier Explicit Priority Ladder (`src/lexer/mod.rs`)
+1. **`priority = 6` — `MacAddress(&'a str)`**: IEEE colon (`([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}`), hyphen (`([0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2}`), and Cisco dotted-quad (`[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}`).
+2. **`priority = 5` — IPv4 `IpAddress(&'a str)`**: `[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+` (outranks 4-arc `OidStr`).
+3. **`priority = 4` — `Number(&'a str)`**: `-?[0-9]+|0[xX][0-9a-fA-F]+` (outranks single-arc `OidStr`).
+4. **`priority = 3` — `OidStr(&'a str)`**: `\.?[0-9]+(\.[0-9]+)*`.
+5. **`priority = 2` — IPv6 `IpAddress(&'a str)` & Time Units (`ns`, `us`, `ms`, `s`, `m`)**: Ensures 1-char units `"s"` and `"m"` outrank `Ident` (`2 > 1`) while `"sec"` or `"my_var"` lex as `Ident` via longest-match.
+6. **`priority = 1` — `Ident(&'a str)`**: `[a-zA-Z_][a-zA-Z0-9_]*`.
 
 ---
 
 ## 3. Architecture Decision Guide
 
-### 3.1 Two-Phase Bridge Invariants (`logos 0.14.4` -> `winnow 1.0.4 TokenSlice`)
-1. **CRLF-Safe Trivia Skipping**: Always use `#[logos(skip r"[ \t\r\n\f]+")]` and `#[logos(skip r"//[^\r\n]*")]`. Omitting `\r` causes CRLF files to fail with an unrecognized token error at line endings.
-2. **Span-Aware `Location` Trait**: Implement `winnow::stream::Location` on your spanned token (`previous_token_end -> self.span.end`, `current_token_start -> self.span.start`) so `parser.span()` and `parser.with_span()` compute exact byte ranges across multi-token grammar productions.
-3. **EOF Token Index Clamping**: `ParseError::offset()` on `TokenSlice` returns a **token index** (`0..=tokens.len()`). Always check `if idx < tokens.len() { tokens[idx].span.clone() } else { tokens.last().map(|t| t.span.end..t.span.end).unwrap_or(0..0) }`.
+### 3.1 Two-Phase Bridge Invariants (`logos 0.14.4` / `0.16.1` -> `winnow 1.0.5+`)
+1. **CRLF-Safe & `logos 0.16.1`-Ready Trivia Skipping**: Always use `#[logos(skip r"[ \t\r\n\f]+")]` and `#[logos(skip r"//[^\r\n]*")]`. In `logos 0.15+` / `0.16.1`, unbounded greedy dot repetitions (`//.*`) are rejected at compile time unless `allow_greedy = true` is specified; `r"//[^\r\n]*"` is non-backtracking and compiles cleanly on both `0.14.4` and `0.16.1`.
+2. **Multi-Char Lex Error Span Expansion (`expand_lex_error_span`)**: When `Token::lexer` returns `Err(())` on a single byte, expand the `(start, len)` span across `/*`, `*/`, `/24` CIDR suffixes, and `'single-quoted'` strings so `miette` underlines the full offending token.
+3. **EOF Token Index Clamping**: `err_idx = tokens.len() - stream.len()` (or `ParseError::offset()` on `TokenSlice`) is a **token index** (`0..=tokens.len()`), never a byte offset. Always guard `err_idx >= tokens.len()` and map EOF to `(last_end, 0)`.
 
-### 3.2 Diagnostic Architecture (`miette 7.6.0`)
-1. **`SourceSpan` `(offset, length)` Guardrail**: Never pass `(span.start, span.end)` to `SourceSpan::from((usize, usize))`—tuple conversion interprets the second element as **length**, not end offset! Always pass a `Range<usize>` (`SourceSpan::from(span.start..span.end)`).
-2. **Deterministic Snapshot Testing**: In tests, construct `GraphicalReportHandler::new_themed(GraphicalTheme::unicode_nocolor()).with_width(80).with_links(false).with_context_lines(2)` so rendered box-drawing diagnostics are 100% identical across developer machines and CI environments.
+### 3.2 Diagnostic Architecture (`miette 7.6.0` & `src/error.rs`)
+1. **`SourceSpan` `(byte_offset, byte_length)` Guardrail**: Never pass `(span.start, span.end)` to `SourceSpan::from((usize, usize))`—tuple conversion interprets the second element as **`byte_length`**, not `end_offset`! Always pass `(span.start, span.end - span.start)` or `SourceSpan::from(span.start..span.end)`.
+2. **Foreign `.fasm` Detection (`detect_foreign_fasm`)**: Inspect input lacking `COMPILE` + (`FLOW` or `HOST`) for x86 Flat Assembler signatures (`;` comments, `format PE`/`ELF`, `section`, `use32`/`use64`, `org`) and SymbiFlow/F4PGA FPGA FASM signatures (`#` comments, `CLB`/`LUT`/`IOB`/`SLICE` tile features) to return actionable disambiguation guidance in `lex_error_help` and `parse_error_help`.
+3. **Deterministic Snapshot Testing**: In tests, construct `GraphicalReportHandler::new_themed(GraphicalTheme::unicode_nocolor()).with_width(80).with_links(false).with_context_lines(2)` so rendered box-drawing diagnostics are 100% identical across developer machines and CI environments.
 
 ---
 
 ## 4. Production Reference Templates
 
 Read [references/patterns.md](references/patterns.md) for complete, copy-pasteable production implementations with complete rustdoc documentation:
-1. **Two-Phase Lexing & Diagnostic Pipeline**: Complete `logos` -> `TokenSlice` -> `winnow` -> `miette` compilation pipeline with exact priority disambiguation, `Location`, `ContainsToken`, `NamedSource`, `SourceSpan`, and deterministic CI `GraphicalReportHandler`.
+1. **Two-Phase Lexing & Diagnostic Pipeline**: Complete `logos` (6-tier priority ladder + `expand_lex_error_span`) -> `winnow` -> `miette` (`detect_foreign_fasm` + `(start, len)` `SourceSpan`) compilation pipeline.
 2. **Advanced Logos State, Extras, Subpatterns & Lexer Morphing**: Subpattern interpolation `(?&name)`, stateful lexer extras, `FilterResult`, and dialect switching via `lexer.morph::<SubToken>()`.
 3. **Rich Multi-Span Diagnostics, Collections, Forwarding & Deterministic CI Snapshot Testing**: `#[derive(Diagnostic)]` with `#[label(primary)]`, `#[label(collection)]`, `#[diagnostic(forward(...))]`, `LabeledSpan::at_offset`, `JSONReportHandler`, and deterministic `unicode_nocolor` snapshot testing.
 4. **Byte-Stream & Binary Protocol Lexing with Spanned Diagnostics**: Zero-copy packet lexing over `&[u8]` using `#[logos(source = [u8])]` and binary byte-offset diagnostics.

@@ -71,7 +71,7 @@ fn lex_error_summary(src: &str, span: (usize, usize)) -> String {
 /// Returns `Some("an x86 Flat Assembler")` or `Some("an FPGA FASM")` if foreign signatures
 /// are identified and the input lacks canonical FrameAssembly `FLOW` and `COMPILE` structure.
 pub fn detect_foreign_fasm(src: &str) -> Option<&'static str> {
-    // If the file already contains clear FrameAssembly flow and compile constructs, it is not foreign.
+    // If the file already contains clear FrameAssembly host/flow and compile constructs, it is not foreign.
     let has_compile = src.lines().any(|l| {
         let trimmed = l.trim();
         trimmed.to_ascii_uppercase().starts_with("COMPILE")
@@ -80,7 +80,11 @@ pub fn detect_foreign_fasm(src: &str) -> Option<&'static str> {
         let trimmed = l.trim();
         trimmed.to_ascii_uppercase().starts_with("FLOW")
     });
-    if has_compile && has_flow {
+    let has_host = src.lines().any(|l| {
+        let trimmed = l.trim();
+        trimmed.to_ascii_uppercase().starts_with("HOST")
+    });
+    if has_compile && (has_flow || has_host) {
         return None;
     }
 
@@ -129,11 +133,16 @@ pub fn detect_foreign_fasm(src: &str) -> Option<&'static str> {
         }
     }
 
-    if has_x86_directive || (has_semicolon_comment && !has_flow && !has_compile) {
+    if has_x86_directive || (has_semicolon_comment && !has_flow && !has_compile && !has_host) {
         return Some("an x86 Flat Assembler");
     }
 
-    if has_fpga_tile && (has_hash_comment || has_dot_tile_feature) && !has_flow && !has_compile {
+    if has_fpga_tile
+        && (has_hash_comment || has_dot_tile_feature)
+        && !has_flow
+        && !has_compile
+        && !has_host
+    {
         return Some("an FPGA FASM");
     }
 
@@ -213,14 +222,16 @@ fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
         "Use 'VLAN 100' for single 802.1Q tagging, or 'QINQ 100 INNER_VLAN 200' for 802.1ad double tagging.".to_string()
     } else if message.contains("HOST_HDR") {
         "Inside an HTTP statement, use 'HOST_HDR \"example.com\"' to set the HTTP Host header ('HOST' is reserved for declaring network endpoints).".to_string()
-    } else if message.contains("missing a required 'IP") {
-        "Add 'IP <address>' inside the HOST block — for example: HOST client { IP 10.0.0.1 MAC 00:11:22:33:44:55 }.".to_string()
+    } else if message.contains("missing a required 'IP")
+        || message.contains("must specify at least an 'IP <address>' or 'MAC <address>'")
+    {
+        "Add 'IP <address>' and/or 'MAC <address>' inside the HOST block — for example: HOST client { IP 10.0.0.1 MAC 00:11:22:33:44:55 }.".to_string()
     } else if message.contains("missing its endpoint parameter list") {
         "Add endpoint parameter names in parentheses after the flow name — for example: FLOW my_flow(c, s) { c -> s TCP SYN }.".to_string()
     } else if message.contains("missing 'COMPILE") || message.contains("duplicate 'COMPILE'") {
         "Every .fasm file must contain exactly one COMPILE { ... } block at the end that calls your flows — for example: COMPILE { my_flow(client, server) }.".to_string()
     } else if message.contains("outside a FLOW block") {
-        "Move packet statements ('a -> b ...') inside a FLOW name(a, b) { ... } block, then call name(host1, host2) inside COMPILE { ... }.".to_string()
+        "Move packet statements ('a -> b ...') inside a FLOW name(a, b) { ... } block (then call name(host1, host2) inside COMPILE { ... }) or place inline packet statements directly inside COMPILE { ... }.".to_string()
     } else {
         "Ensure the syntax matches the expected grammar. See docs/getting_started.md for ready-to-use .fasm examples.".to_string()
     }
@@ -230,6 +241,8 @@ fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
 fn semantic_error_help(message: &str) -> String {
     if message.contains("Mixed IPv4 and IPv6") {
         "Use either two IPv4 hosts or two IPv6 hosts in the same flow call — a single packet cannot have an IPv4 source and an IPv6 destination.".to_string()
+    } else if message.contains("requires an 'IP <address>'") {
+        "Add 'IP <address>' to the HOST declaration (for example: HOST r1 { IP 10.0.0.1 MAC 00:11:22:33:44:55 }), or use a pure Layer 2 protocol (ARP, VLAN, QINQ, MPLS, LLDP, STP, LACP, EAPOL).".to_string()
     } else if message.contains("Undefined host") {
         "Declare the host at the top of the file with 'HOST <name> { IP <address> }' before passing it into a flow call in COMPILE.".to_string()
     } else if message.contains("Undefined flow") {

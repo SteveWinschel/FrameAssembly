@@ -1,13 +1,14 @@
 # Practical Use Cases & Cookbook for Network Engineers
 
-Testing a new firewall ACL, an encrypted SNMPv3 trap alert, an 802.1ad QinQ / MPLS trunk, or a Suricata IDS rule usually means hours of lab cabling, MIB hunting, or fighting `root` raw-socket scripts. Every recipe in this cookbook replaces that setup with a **complete, ready-to-copy `.fasm` file** ("Packets as Code") built from three simple sections—no programming experience required:
-- **`host` blocks** declare the devices on your network diagram (`ip` and optional `mac`).
-- **`flow(a, b)` blocks** script the packet-by-packet sequence between role labels (`a -> b` sends forward; `a <- b` sends a reply from `b` back to `a`).
-- **`compile` block** plugs your `host` devices into those flow roles in left-to-right order (or repeats them inside `loop <count> { ... }`) to emit the `.pcap`.
+Testing a new firewall ACL, an encrypted SNMPv3 trap alert, an 802.1ad QinQ / MPLS trunk, or a Suricata IDS rule usually means hours of lab cabling, MIB hunting, or fighting raw-socket scripts. Every recipe in this cookbook replaces that setup with a **ready-to-copy `.fasm` file** built from up to three sections:
+- **`host` blocks** declare the devices on your network diagram (`ip` and optional `mac`, or a MAC-only `host sw1 { mac 00:1c:73:00:00:01 }` for Layer 2 switching protocols).
+- **`flow(a, b)` blocks** *(optional)* script reusable packet-by-packet sequences between role labels (`a -> b` sends forward; `a <- b` sends a reply from `b` back to `a`).
+- **`compile` block** plugs your `host` devices into those flow roles in left-to-right order (optionally inside `loop <count> { ... }`)—or lets you write packet statements directly inside `compile { ... }` without a `flow` block—to emit the `.pcap`.
 
 To run any recipe below:
-1. Save the `.fasm` code to a file (for example, `scenario.fasm`) and compile it to `.pcap`: `frameassembly scenario.fasm -o scenario.pcap` (or preview in your terminal with `frameassembly show scenario.fasm`—no `sudo` required).
+1. Save the `.fasm` code to a file (for example, `scenario.fasm`) and run `frameassembly scenario.fasm` (which writes `scenario.pcap` by default, or pass `-o custom.pcapng`; preview in your terminal with `frameassembly show scenario.fasm`).
 2. Replay or inspect `scenario.pcap` with **`tcpreplay`**, **Wireshark** / **`tshark`**, or **Suricata** / **Zeek**.
+3. Need to turn an existing `.pcap` or `.pcapng` capture into `.fasm` code so you can sanitize IPs or tweak headers? Run `frameassembly reverse trace.pcap` (writes `trace.fasm` by default, or pass `-o sanitized.fasm`).
 
 ---
 
@@ -665,10 +666,37 @@ compile {
 
 #### Compile & Inspect Control-Plane Convergence:
 ```bash
-frameassembly routing_ha_failover.fasm -o routing_ha_failover.pcap
+frameassembly routing_ha_failover.fasm
 
 # View the full sequence of BFD, OSPF, BGP, VRRP, HSRP, and Gratuitous ARP frames
 tshark -r routing_ha_failover.pcap
+```
+
+### Recipe 6C — Sanitize a `.pcap` Capture (`frameassembly reverse`) & Write Inline Layer 2 Switch Captures
+
+When you capture a live trace with `tcpdump` or Wireshark and want to strip customer IPs, edit a VLAN ID, or commit a reproducer to Git, convert the `.pcap` / `.pcapng` file into `.fasm` code with `frameassembly reverse`. Encrypted traffic (such as SNMPv3 `authPriv`, TLS application data, SSH, or IPsec `ESP`) is not decrypted; `reverse` keeps those packets as `tcp` or `udp` statements with `payload` / `hexpayload` so recompiling preserves the exact wire payload:
+
+```bash
+# Convert trace.pcap -> trace.fasm (or pass -o sanitized.fasm)
+frameassembly reverse trace.pcap
+frameassembly reverse trace.pcap -o sanitized.fasm
+
+# Edit sanitized.fasm in your editor, preview the packet ladder, and recompile to sanitized.pcap
+frameassembly show sanitized.fasm
+frameassembly sanitized.fasm
+```
+
+For quick Layer 2 switching reproducers (`LLDP`, `STP`, `LACP`, `EAPOL`, `VLAN`, `QINQ`, `MPLS`, `ARP`), you can also declare MAC-only `host` blocks without `ip` and write packet statements directly inside `compile { ... }` without a `flow` block:
+
+```frameassembly
+host sw1 { mac 00:1c:73:00:00:01 }
+host sw2 { mac 00:1c:73:00:00:02 }
+
+compile {
+    sw1 -> sw2 lldp chassis_id "00:1c:73:00:00:01" port_id "Ethernet1/1" ttl 120 sysname "core-sw1" wait 2ms
+    sw1 <- sw2 lacp actor_sys 00:1c:73:00:00:02 actor_key 10 actor_port 1 actor_state 0x3f partner_sys 00:1c:73:00:00:01 partner_key 10 partner_port 1 partner_state 0x3f wait 2ms
+    sw1 -> sw2 stp rstp root_id "4096/00:1c:73:00:00:01" bridge_id "4096/00:1c:73:00:00:01" port_id 0x8001 cost 0 flags 0x3c
+}
 ```
 
 ---

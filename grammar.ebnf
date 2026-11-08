@@ -11,14 +11,15 @@ program                 = { top_level_decl } , compile_block , { top_level_decl 
 top_level_decl          = host_declaration | flow_declaration ;
 
 (* ------------------------------------------------------------------------- *)
-(* 1. Host Declarations                                                      *)
+(* 1. Host Declarations (at least one IP or MAC property in any order)       *)
 (* ------------------------------------------------------------------------- *)
-host_declaration        = "HOST" , identifier , "{" , { host_property } , "}" ;
+host_declaration        = "HOST" , identifier , "{" , host_property , { host_property } , "}" ;
 host_property           = ( "IP" , ip_address )
                         | ( "MAC" , mac_address ) ;
 
 (* ------------------------------------------------------------------------- *)
-(* 2. Flow Declarations & Frame Statements                                   *)
+(* 2. Flow Declarations & Frame Statements (FLOW blocks are optional when    *)
+(*    COMPILE contains inline frame_statement entries)                       *)
 (* ------------------------------------------------------------------------- *)
 flow_declaration        = "FLOW" , identifier , "(" , [ param_list ] , ")" ,
                           "{" , { frame_statement } , "}" ;
@@ -29,10 +30,10 @@ endpoint                = identifier ;
 direction               = "->" | "<-" ;
 
 (* ------------------------------------------------------------------------- *)
-(* 3. Compilation Block & Execution Loops                                    *)
+(* 3. Compilation Block, Execution Loops & Inline Frame Statements           *)
 (* ------------------------------------------------------------------------- *)
 compile_block           = "COMPILE" , "{" , { run_statement } , "}" ;
-run_statement           = flow_invocation | loop_block ;
+run_statement           = flow_invocation | loop_block | frame_statement ;
 loop_block              = "LOOP" , unsigned_int , "{" , { flow_invocation } , "}" ;
 flow_invocation         = identifier , "(" , [ arg_list ] , ")" ;
 arg_list                = identifier , { "," , identifier } ;
@@ -501,8 +502,8 @@ l7_tls_quic_voip_field  = "CLIENT_HELLO" | "SERVER_HELLO" | "CERTIFICATE"
 
 l7_mail_auth_dir_field  = ( "EHLO" , [ str_or_ident ] )
                         | ( "HELO" , [ str_or_ident ] )
-                        | ( "MAIL_FROM" , str_or_ident )
-                        | ( "RCPT_TO" , str_or_ident )
+                        | ( "MAIL_FROM" , [ str_or_ident ] )
+                        | ( "RCPT_TO" , [ str_or_ident ] )
                         | "QUIT"
                         | ( "PARAM" , str_or_ident )
                         | "OK" | "ERR"

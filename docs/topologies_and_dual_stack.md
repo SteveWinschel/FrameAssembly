@@ -4,11 +4,11 @@ Real production incidents rarely happen between just two hosts speaking a single
 
 Reproducing that kind of multi-hop sequence in a physical lab or a virtual network emulator (GNS3, EVE-NG, Containerlab) just to get a clean test capture takes hours: you have to boot half a dozen router and server images, wire up VLAN trunks and VRFs, configure routing protocols and AAA daemons, and then coordinate `tcpdump` across multiple interfaces while manually triggering the event.
 
-FrameAssembly lets you express the entire multi-device conversation in a single `.fasm` file ("Packets as Code") and run it with two CLI commands (`frameassembly topology.fasm -o topology.pcap` to compile + `tcpreplay`, **Wireshark**, or **Suricata** to replay or inspect) using three core capabilities:
+FrameAssembly lets you express the entire multi-device conversation in a single `.fasm` file and run it with two CLI commands (`frameassembly topology.fasm` to compile `topology.pcap` + `tcpreplay`, **Wireshark**, or **Suricata** to replay or inspect, or `frameassembly reverse trace.pcap` to convert an existing capture into `.fasm` code) using three core capabilities:
 
 1. **Multi-Host Flows:** Pass 3, 4, or 8+ endpoints into a single `flow(client, switch, radius, firewall, server, siem)` to interleave north-south client traffic, east-west service calls, and out-of-band telemetry in exact chronological order.
 2. **Reusable Dual-Stack IPv4 & IPv6 Flows:** Write a `flow` once and run it inside `compile` first with IPv4 `host` definitions and then with IPv6 `host` definitions—automatically switching between IPv4 (`EtherType 0x0800`) and IPv6 (`EtherType 0x86DD`), recomputing IPv4/IPv6 pseudo-header checksums, and deriving multicast MAC addresses per RFC 1112 (`01:00:5e:xx:xx:xx`) and RFC 2464 (`33:33:xx:xx:xx:xx`).
-3. **Deterministic `wait` Timers & `loop` Traffic Bursts:** Combine nanosecond-to-minute inter-packet delays (`ns`, `us`, `ms`, `s`, `m`) with `loop <count> { ... }` blocks inside `compile` to generate realistic keepalive cadences, VXLAN/IPsec bursts, and RTP media streams.
+3. **Precise `wait` Timers & `loop` Traffic Bursts:** Combine nanosecond-to-minute inter-packet delays (`ns`, `us`, `ms`, `s`, `m`) with `loop <count> { ... }` blocks inside `compile` to generate realistic keepalive cadences, VXLAN/IPsec bursts, and RTP media streams.
 
 > **104 Ready-to-Compile Topologies in `examples/topologies/`:**
 > In addition to the 5 reference architectures below, you can browse **104 full-stack `.fasm` scenarios** in [`examples/topologies/`](../examples/topologies/).
@@ -138,10 +138,10 @@ flow campus_dot1x_onboarding(ws, sw, aaa, nms) {
     ws <- sw eapol version 2 type eap_packet eap_code 3 eap_id 1 wait 5ms
 
     // 3. DHCPv4 DORA lease acquisition (Discover -> Offer -> Request -> Ack)
-    ws -> sw dhcp discover txid 0xabcdef01 chaddr 00:22:44:66:88:aa wait 5ms
-    ws <- sw dhcp offer txid 0xabcdef01 chaddr 00:22:44:66:88:aa yiaddr 10.10.50.100 router 10.10.50.1 dns_server 10.10.1.53 subnet_mask 255.255.255.0 lease_time 43200 wait 5ms
-    ws -> sw dhcp request txid 0xabcdef01 chaddr 00:22:44:66:88:aa yiaddr 10.10.50.100 wait 5ms
-    ws <- sw dhcp ack txid 0xabcdef01 chaddr 00:22:44:66:88:aa yiaddr 10.10.50.100 router 10.10.50.1 dns_server 10.10.1.53 subnet_mask 255.255.255.0 lease_time 43200 wait 5ms
+    ws -> sw dhcp discover xid 0xabcdef01 chaddr 00:22:44:66:88:aa wait 5ms
+    ws <- sw dhcp offer xid 0xabcdef01 chaddr 00:22:44:66:88:aa yiaddr 10.10.50.100 router 10.10.50.1 dns_server 10.10.1.53 subnet_mask 255.255.255.0 lease_time 43200 wait 5ms
+    ws -> sw dhcp request xid 0xabcdef01 chaddr 00:22:44:66:88:aa yiaddr 10.10.50.100 wait 5ms
+    ws <- sw dhcp ack xid 0xabcdef01 chaddr 00:22:44:66:88:aa yiaddr 10.10.50.100 router 10.10.50.1 dns_server 10.10.1.53 subnet_mask 255.255.255.0 lease_time 43200 wait 5ms
 
     // 4. RFC 5227 Gratuitous ARP announcement
     ws -> sw arp gratuitous sha 00:22:44:66:88:aa spa 10.10.50.100 tpa 10.10.50.100 wait 2ms
@@ -198,9 +198,11 @@ flow service_mesh_checkout(gw, dns, svc, db) {
     svc -> db redis get key "inventory:NVME-4TB" wait 1ms
     svc <- db redis reply_type "BULK" value "42" wait 1ms
     svc -> db postgres startup user "orders_app" db "commerce" wait 1ms
-    svc <- db postgres auth_ok ready_for_query wait 1ms
+    svc <- db postgres auth_ok wait 1ms
+    svc <- db postgres ready_for_query wait 1ms
     svc -> db postgres query sql "INSERT INTO orders (sku, qty) VALUES ('NVME-4TB', 2);" wait 2ms
-    svc <- db postgres command_complete ready_for_query payload "INSERT 0 1" wait 2ms
+    svc <- db postgres command_complete sql "INSERT 0 1" wait 1ms
+    svc <- db postgres ready_for_query wait 2ms
 
     // 4. gRPC OK response returned to the ingress gateway
     gw <- svc grpc service "commerce.OrderService" method "CreateOrder" grpc_status 0 payload "order_id=90042" wait 5ms

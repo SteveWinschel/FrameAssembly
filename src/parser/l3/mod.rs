@@ -13,45 +13,25 @@ use winnow::prelude::*;
 use crate::lexer::Token;
 use crate::parser::{ParsedField, Stream, parse_u8, parse_u16, parse_u32, tag};
 
-/// AH protocol parser.
 pub(crate) mod ah;
-/// BFD protocol parser.
 pub(crate) mod bfd;
-/// BGP protocol parser.
 pub(crate) mod bgp;
-/// ESP protocol parser.
 pub(crate) mod esp;
-/// GENEVE protocol parser.
 pub(crate) mod geneve;
-/// GRE protocol parser.
 pub(crate) mod gre;
-/// HSRP protocol parser.
 pub(crate) mod hsrp;
-/// ICMP protocol parser.
 pub(crate) mod icmp;
-/// IGMP protocol parser.
 pub(crate) mod igmp;
-/// IKEV2 protocol parser.
 pub(crate) mod ikev2;
-/// IPSEC protocol parser.
 pub(crate) mod ipsec;
-/// MLD protocol parser.
 pub(crate) mod mld;
-/// NDP protocol parser.
 pub(crate) mod ndp;
-/// OPENFLOW protocol parser.
 pub(crate) mod openflow;
-/// OSPF protocol parser.
 pub(crate) mod ospf;
-/// PIM protocol parser.
 pub(crate) mod pim;
-/// RIP protocol parser.
 pub(crate) mod rip;
-/// VRRP protocol parser.
 pub(crate) mod vrrp;
-/// VXLAN protocol parser.
 pub(crate) mod vxlan;
-/// WIREGUARD protocol parser.
 pub(crate) mod wireguard;
 
 pub(crate) use ah::*;

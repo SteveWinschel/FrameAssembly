@@ -1,26 +1,26 @@
 class Frameassembly < Formula
   desc "Rootless Packets-as-Code DSL & compiler for deterministic PCAP/PCAPNG traffic"
   homepage "https://github.com/SteveWinschel/FrameAssembly"
-  version "1.5.0"
+  version "1.5.1"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.6/frameassembly-v1.4.6-aarch64-apple-darwin.tar.gz"
-      sha256 "132d7d36517ef4fb6ea0a5459604015bb3bdffbb04ec038f45ceee217637f9a2"
+      sha256 "3c1a73c361d075280cdb98130d4e7b42ad87a75735ba17e03e6f1f455a9672f2"
     else
       url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.6/frameassembly-v1.4.6-x86_64-apple-darwin.tar.gz"
-      sha256 "6497c3aacf7eaece87a97bb53024ad9042ed10a738454c8aaa626892142f3fdb"
+      sha256 "c1b335ec79820e81363982027758a2eed0ae0e2850059e49df32e6e5350b6a40"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
       url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.6/frameassembly-v1.4.6-aarch64-unknown-linux-musl.tar.gz"
-      sha256 "31a7f286ff9fc6b217286ee3f4bb5946e8ba591dd678b1b6162de3de91e1cacb"
+      sha256 "a4472628274aad6400364d21b34905654422ce453849b53ccc1d9556eadac576"
     else
       url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v1.4.6/frameassembly-v1.4.6-x86_64-unknown-linux-musl.tar.gz"
-      sha256 "8dce0bfcf0c7a5e384c507fb7220b52b332e818bd2441025de3dd1db2bd1de7f"
+      sha256 "1d0a47e1df66deea8f5a7e4f6dde94446504a864c68de397a81309cc3581efd7"
     end
   end
 

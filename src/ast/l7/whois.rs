@@ -6,18 +6,18 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b WHOIS [QUERY | RESPONSE] [DOMAIN <str>] [REGISTRAR <str>]`
+//! `a -> b whois [query | response] [domain <str>] [registrar <str>]`
 
 /// RFC 3912 WHOIS Protocol specification.
 ///
-/// Syntax mapping: `WHOIS [QUERY | RESPONSE] [DOMAIN <str>] [REGISTRAR <str>]`
-#[doc(alias = "WHOIS")]
+/// Syntax mapping: `whois [query | response] [domain <str>] [registrar <str>]`
+#[doc(alias = "whois")]
 #[doc(alias = "RFC 3912")]
 #[doc(alias = "RFC3912")]
-#[doc(alias = "QUERY")]
-#[doc(alias = "RESPONSE")]
-#[doc(alias = "DOMAIN")]
-#[doc(alias = "REGISTRAR")]
+#[doc(alias = "query")]
+#[doc(alias = "response")]
+#[doc(alias = "domain")]
+#[doc(alias = "registrar")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct WhoisSpec<'a> {
     /// Query flag.

@@ -1,9 +1,9 @@
-//! IEEE 802.1D Spanning Tree (`STP`) and IEEE 802.1w Rapid Spanning Tree (`RSTP`) BPDU parser.
+//! IEEE 802.1D Spanning Tree (`stp`) and IEEE 802.1w Rapid Spanning Tree (`rstp`) BPDU parser.
 //!
 //! This module implements the winnow parser combinator for Spanning Tree Protocol Bridge Protocol
-//! Data Units (BPDUs). It supports root bridge identifier (`ROOT_ID`), designated bridge identifier
-//! (`BRIDGE_ID`), port identifier (`PORT_ID`), root path cost (`COST`), timer parameters (`MAX_AGE`,
-//! `HELLO_TIME`, `FORWARD_DELAY`), topology change flags (`FLAGS`), and Rapid Spanning Tree mode (`RSTP`).
+//! Data Units (BPDUs). It supports root bridge identifier (`rootid`), designated bridge identifier
+//! (`bridgeid`), port identifier (`portid`), root path cost (`cost`), timer parameters (`maxage`,
+//! `hellotime`, `forwarddelay`), topology change flags (`flags`), and Rapid Spanning Tree mode (`rstp`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

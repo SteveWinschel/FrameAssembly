@@ -1,26 +1,26 @@
 // PROMPT: Multi-homed SCTP failover switching active Diameter Gy charging traffic from primary subnet to secondary subnet after Heartbeat timeout.
-// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, HEARTBEAT, VTAG, SRCPORT, DSTPORT, PAYLOAD, DATA, STREAM, SSN, PPID, WAIT, SACK, COMPILE
+// TOKENS: host, ip, flow, sctp, chunk, heartbeat, vtag, srcport, dstport, payload, data, stream, ssn, ppid, wait, s, sack, ms, compile
 
 // INSTRUCTION: Define Online Charging System (OCS) primary IP interface.
-HOST ocs_primary_ip { IP 10.71.1.10 }
+host ocs_primary_ip { ip 10.71.1.10 }
 
 // INSTRUCTION: Define Online Charging System (OCS) secondary IP interface.
-HOST ocs_secondary_ip { IP 10.71.2.10 }
+host ocs_secondary_ip { ip 10.71.2.10 }
 
 // INSTRUCTION: Define Packet Gateway (PGW) primary IP interface.
-HOST pgw_primary_ip { IP 10.71.1.1 }
+host pgw_primary_ip { ip 10.71.1.1 }
 
 // INSTRUCTION: Define Packet Gateway (PGW) secondary IP interface.
-HOST pgw_secondary_ip { IP 10.71.2.1 }
+host pgw_secondary_ip { ip 10.71.2.1 }
 
 // INSTRUCTION: Define unanswered SCTP Heartbeat on primary path followed by DATA failover to secondary path.
-FLOW sctp_multihomed_failover(pgw1, ocs1, pgw2, ocs2) {
-    pgw1 -> ocs1 SCTP CHUNK HEARTBEAT VTAG 710001 SRCPORT 3868 DSTPORT 3868 PAYLOAD "hb_primary_path_probe"
-    pgw2 -> ocs2 SCTP CHUNK DATA VTAG 710001 STREAM 1 SSN 10 PPID 46 SRCPORT 3868 DSTPORT 3868 PAYLOAD "diameter_ccr_failover_secondary_path" WAIT 1s
-    pgw2 <- ocs2 SCTP CHUNK SACK VTAG 710001 SRCPORT 3868 DSTPORT 3868 WAIT 2ms
+flow sctp_multihomed_failover(pgw1, ocs1, pgw2, ocs2) {
+    pgw1 -> ocs1 sctp chunk heartbeat vtag 710001 srcport 3868 dstport 3868 payload "hb_primary_path_probe"
+    pgw2 -> ocs2 sctp chunk data vtag 710001 stream 1 ssn 10 ppid 46 srcport 3868 dstport 3868 payload "diameter_ccr_failover_secondary_path" wait 1s
+    pgw2 <- ocs2 sctp chunk sack vtag 710001 srcport 3868 dstport 3868 wait 2ms
 }
 
 // INSTRUCTION: Compile block executing multi-homed SCTP path failover.
-COMPILE {
+compile {
     sctp_multihomed_failover(pgw_primary_ip, ocs_primary_ip, pgw_secondary_ip, ocs_secondary_ip)
 }

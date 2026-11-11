@@ -1,31 +1,31 @@
 // PROMPT: Simulate an OpenSSH AuthorizedKeysCommand querying an IPv6 LDAP directory for a user sshPublicKey attribute.
-// TOKENS: HOST, IP, MAC, FLOW, LDAP, MSGID, BIND_REQ, BASE_DN, FLOWLABEL, TTL, WAIT, BIND_RES, RESULT_CODE, SEARCH_REQ, FILTER, SEARCH_ENTRY, PAYLOAD, SEARCH_DONE, UNBIND_REQ, COMPILE
+// TOKENS: host, ip, mac, flow, s, ldap, msgid, bindreq, basedn, flowlabel, ttl, wait, ms, bindres, resultcode, searchreq, filter, searchentry, payload, searchdone, unbindreq, compile
 
 // INSTRUCTION: Define the IPv6 SSH bastion host looking up user public keys in LDAP.
-HOST ssh_bastion_v6 {
-    IP 2001:db8:389:1::20
-    MAC 00:16:3e:38:91:14
+host ssh_bastion_v6 {
+    ip 2001:db8:389:1::20
+    mac 00:16:3e:38:91:14
 }
 
 // INSTRUCTION: Define the IPv6 OpenLDAP identity provider server.
-HOST openldap_v6 {
-    IP 2001:db8:389:1::5
-    MAC 00:16:3e:38:91:05
+host openldap_v6 {
+    ip 2001:db8:389:1::5
+    mac 00:16:3e:38:91:05
 }
 
 // INSTRUCTION: Bind, query the posixAccount and ldapPublicKey entry for uid=devops, and unbind over IPv6.
-FLOW ldap_ssh_pubkey_v6(c, s) {
-    c -> s LDAP MSGID 1 BIND_REQ BASE_DN "cn=sshd,ou=daemons,dc=cloud,dc=io" FLOWLABEL 0x38901 TTL 64 WAIT 2ms
-    c <- s LDAP MSGID 1 BIND_RES RESULT_CODE 0 FLOWLABEL 0x38901 TTL 64 WAIT 2ms
-    c -> s LDAP MSGID 2 SEARCH_REQ BASE_DN "ou=people,dc=cloud,dc=io" FILTER "(&(objectClass=ldapPublicKey)(uid=devops))"
-        FLOWLABEL 0x38901 TTL 64 WAIT 3ms
-    c <- s LDAP MSGID 2 SEARCH_ENTRY BASE_DN "uid=devops,ou=people,dc=cloud,dc=io"
-        PAYLOAD "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI" FLOWLABEL 0x38901 TTL 64 WAIT 1ms
-    c <- s LDAP MSGID 2 SEARCH_DONE RESULT_CODE 0 FLOWLABEL 0x38901 TTL 64 WAIT 1ms
-    c -> s LDAP MSGID 3 UNBIND_REQ FLOWLABEL 0x38901 TTL 64
+flow ldap_ssh_pubkey_v6(c, s) {
+    c -> s ldap msgid 1 bindreq basedn "cn=sshd,ou=daemons,dc=cloud,dc=io" flowlabel 0x38901 ttl 64 wait 2ms
+    c <- s ldap msgid 1 bindres resultcode 0 flowlabel 0x38901 ttl 64 wait 2ms
+    c -> s ldap msgid 2 searchreq basedn "ou=people,dc=cloud,dc=io" filter "(&(objectClass=ldapPublicKey)(uid=devops))"
+        flowlabel 0x38901 ttl 64 wait 3ms
+    c <- s ldap msgid 2 searchentry basedn "uid=devops,ou=people,dc=cloud,dc=io"
+        payload "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI" flowlabel 0x38901 ttl 64 wait 1ms
+    c <- s ldap msgid 2 searchdone resultcode 0 flowlabel 0x38901 ttl 64 wait 1ms
+    c -> s ldap msgid 3 unbindreq flowlabel 0x38901 ttl 64
 }
 
 // INSTRUCTION: Compile the IPv6 LDAP SSH public key lookup flow.
-COMPILE {
+compile {
     ldap_ssh_pubkey_v6(ssh_bastion_v6, openldap_v6)
 }

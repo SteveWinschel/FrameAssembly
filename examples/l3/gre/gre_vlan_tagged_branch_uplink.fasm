@@ -1,19 +1,19 @@
 // PROMPT: 802.1Q VLAN-tagged GRE tunnel packets traversing a branch WAN handoff VLAN.
-// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, VLAN, PCP, DEI, COMPILE
+// TOKENS: host, ip, mac, flow, gre, grekey, greseq, vlan, pcp, dei, compile
 
 // INSTRUCTION: Define retail branch CPE router.
-HOST retail_cpe_gre { IP 10.47.1.1 MAC 00:19:aa:47:01:01 }
+host retail_cpe_gre { ip 10.47.1.1 mac 00:19:aa:47:01:01 }
 
 // INSTRUCTION: Define regional aggregation hub router.
-HOST regional_hub_gre { IP 10.47.1.2 MAC 00:19:aa:47:01:02 }
+host regional_hub_gre { ip 10.47.1.2 mac 00:19:aa:47:01:02 }
 
 // INSTRUCTION: Define VLAN 470 tagged GRE tunnel exchange with PCP 3.
-FLOW gre_vlan_uplink_flow(cpe, hub) {
-    cpe -> hub GRE GRE_KEY 4700 GRE_SEQ 10 VLAN 470 PCP 3 DEI 0
-    cpe <- hub GRE GRE_KEY 4700 GRE_SEQ 10 VLAN 470 PCP 3 DEI 0
+flow gre_vlan_uplink_flow(cpe, hub) {
+    cpe -> hub gre grekey 4700 greseq 10 vlan 470 pcp 3 dei 0
+    cpe <- hub gre grekey 4700 greseq 10 vlan 470 pcp 3 dei 0
 }
 
 // INSTRUCTION: Compile the VLAN-tagged GRE branch uplink flow.
-COMPILE {
+compile {
     gre_vlan_uplink_flow(retail_cpe_gre, regional_hub_gre)
 }

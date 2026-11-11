@@ -1,6 +1,6 @@
-//! Telnet Protocol (`TELNET`, RFC 854) Layer 7 option negotiation and NVT PCAP-to-`.fasm` decompiler.
+//! Telnet Protocol (`telnet`, RFC 854) Layer 7 option negotiation and NVT PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for RFC 854 `TELNET` Interpret As
+//! This module implements the fuzz-safe reverse dissector for RFC 854 `telnet` Interpret As
 //! Command (`0xFF` IAC) option negotiation sequences (`will`, `wont`, `do`, `dont`) and Network
 //! Virtual Terminal (`NVT`) ASCII data streams carried over TCP ports `23`, `2323`, `2001`, and
 //! `4000`. Printable UTF-8 text is emitted via the `data` modifier, while non-ASCII or binary

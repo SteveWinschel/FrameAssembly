@@ -1,25 +1,25 @@
 // PROMPT: Dual-homed enterprise WAN routers running VRRPv3 virtual router redundancy inside carrier QinQ S-VLAN 1400 C-VLAN 140.
-// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSCP, TTL, VRRP, VRID, PRIORITY, VIP, DSTMAC, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, qinq, innervlan, dscp, ttl, vrrp, vrid, priority, vip, dstmac, wait, ms, compile
 
 // INSTRUCTION: Define master enterprise WAN edge router on QinQ subinterface S-VLAN 1400 C-VLAN 140.
-HOST wan_vrrp_master {
-    IP 192.168.140.2
-    MAC 00:00:5e:00:01:8c
+host wan_vrrp_master {
+    ip 192.168.140.2
+    mac 00:00:5e:00:01:8c
 }
 
 // INSTRUCTION: Define backup enterprise WAN edge router monitoring VRRP advertisements across carrier E-LAN.
-HOST wan_vrrp_backup {
-    IP 192.168.140.3
-    MAC 00:1c:73:8c:00:03
+host wan_vrrp_backup {
+    ip 192.168.140.3
+    mac 00:1c:73:8c:00:03
 }
 
 // INSTRUCTION: Send VRRP VRID 140 priority 200 advertisements with TTL 255 inside QinQ S-VLAN 1400 C-VLAN 140.
-FLOW qinq_vrrp_subinterface(master, backup) {
-    master -> backup QINQ 1400 INNER_VLAN 140 DSCP 48 TTL 255 VRRP VRID 140 PRIORITY 200 VIP 192.168.140.1 DSTMAC 01:00:5e:00:00:12 WAIT 10ms
-    master -> backup QINQ 1400 INNER_VLAN 140 DSCP 48 TTL 255 VRRP VRID 140 PRIORITY 200 VIP 192.168.140.1 DSTMAC 01:00:5e:00:00:12
+flow qinq_vrrp_subinterface(master, backup) {
+    master -> backup qinq 1400 innervlan 140 dscp 48 ttl 255 vrrp vrid 140 priority 200 vip 192.168.140.1 dstmac 01:00:5e:00:00:12 wait 10ms
+    master -> backup qinq 1400 innervlan 140 dscp 48 ttl 255 vrrp vrid 140 priority 200 vip 192.168.140.1 dstmac 01:00:5e:00:00:12
 }
 
 // INSTRUCTION: Compile the QinQ S-VLAN 1400 C-VLAN 140 VRRP subinterface high-availability trace.
-COMPILE {
+compile {
     qinq_vrrp_subinterface(wan_vrrp_master, wan_vrrp_backup)
 }

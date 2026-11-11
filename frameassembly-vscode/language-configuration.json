@@ -18,7 +18,7 @@
     ],
     "folding": {
         "markers": {
-            "start": "^\\s*(?i:HOST|FLOW|COMPILE|LOOP)\\b.*\\{\\s*$",
+            "start": "^\\s*(?:host|flow|compile)\\b.*\\{\\s*$",
             "end": "^\\s*\\}"
         }
     }

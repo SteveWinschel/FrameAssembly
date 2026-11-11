@@ -1,9 +1,9 @@
-//! Border Gateway Protocol v4 (`BGP`, RFC 4271) exterior routing protocol parser.
+//! Border Gateway Protocol v4 (`bgp`, RFC 4271) exterior routing protocol parser.
 //!
-//! This module implements the winnow parser combinator for `BGP` inter-domain routing messages
-//! over TCP port 179. It parses BGP message types (`OPEN`, `UPDATE`, `NOTIFICATION`, `KEEPALIVE`),
-//! Autonomous System Numbers (`ASN`), hold timers (`HOLDTIME`), router identifiers (`BGPID`),
-//! Network Layer Reachability Information prefixes (`PREFIX` or `NLRI`), and `NEXTHOP` addresses.
+//! This module implements the winnow parser combinator for `bgp` inter-domain routing messages
+//! over TCP port 179. It parses BGP message types (`open`, `update`, `notification`, `keepalive`),
+//! Autonomous System Numbers (`asn`), hold timers (`holdtime`), router identifiers (`bgpid`),
+//! Network Layer Reachability Information prefixes (`prefix` or `nlri`), and `nexthop` addresses.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

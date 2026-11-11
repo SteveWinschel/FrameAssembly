@@ -33,4 +33,6 @@ description: "Token-budget conservation, 20k rules budget discipline, 3-layer pa
 - **No Orchestrator Bulk Reads**: Keep bulk `read_file` and `edit_file` calls inside subagent contexts so intermediate file contents never accumulate in the parent orchestrator's context window. Instruct subagents to return compact bulleted summaries (`<= 60` lines) rather than raw diffs.
 - **Targeted Line-Range Reads & Scripted Concatenation**: Always use `StartLine`/`EndLine` slices when inspecting large files (`30–50 KB`), and regenerate composite bundles (`llms-full.txt`) using deterministic shell scripts rather than LLM tool arguments.
 - **Staged Wave Checkpoints & `/compact` Persistence**: For multi-wave tasks, persist progress in a workspace artifact and pause between waves so the user can review or run `/compact` to reclaim context window capacity.
+- **Grounded Clarification Questions (Zero Premature Bundling)**: When interviewing the user about changing an existing file or CLI interface, strictly separate **what currently exists in the codebase** from **proposed new additions**. Never embed unapproved subcommands or features into multiple-choice options as if they already exist or were already decided.
+
 

@@ -1,26 +1,26 @@
 // PROMPT: Branch router downloading a maintenance OS patch via TFTP across an MPLS L3VPN service provider core.
-// TOKENS: HOST, IP, MAC, FLOW, TFTP, RRQ, FILENAME, MODE, MPLS, EXP, BOS, MPLS_TTL, DATA, BLOCK, PAYLOAD, ACK, COMPILE
+// TOKENS: host, ip, mac, flow, tftp, rrq, filename, mode, mpls, exp, bos, mplsttl, data, block, payload, ack, compile
 
 // INSTRUCTION: Define remote branch CPE router.
-HOST branch_cpe {
-    IP 10.175.20.1
-    MAC 00:1e:14:af:14:01
+host branch_cpe {
+    ip 10.175.20.1
+    mac 00:1e:14:af:14:01
 }
 
 // INSTRUCTION: Define central NOC TFTP depot server.
-HOST noc_tftp_depot {
-    IP 10.175.0.10
-    MAC 00:1e:14:af:00:0a
+host noc_tftp_depot {
+    ip 10.175.0.10
+    mac 00:1e:14:af:00:0a
 }
 
 // INSTRUCTION: Request router OS image and receive block 1 over MPLS label 4020.
-FLOW tftp_mpls_upgrade(cpe, noc) {
-    cpe -> noc TFTP RRQ FILENAME "isr4300-universalk9.bin" MODE "octet" MPLS 4020 EXP 3 BOS 1 MPLS_TTL 60
-    cpe <- noc TFTP DATA BLOCK 1 MPLS 4020 EXP 3 BOS 1 MPLS_TTL 60 PAYLOAD "IOS-XE-IMAGE-BLOCK-1"
-    cpe -> noc TFTP ACK BLOCK 1 MPLS 4020 EXP 3 BOS 1 MPLS_TTL 60
+flow tftp_mpls_upgrade(cpe, noc) {
+    cpe -> noc tftp rrq filename "isr4300-universalk9.bin" mode "octet" mpls 4020 exp 3 bos 1 mplsttl 60
+    cpe <- noc tftp data block 1 mpls 4020 exp 3 bos 1 mplsttl 60 payload "IOS-XE-IMAGE-BLOCK-1"
+    cpe -> noc tftp ack block 1 mpls 4020 exp 3 bos 1 mplsttl 60
 }
 
 // INSTRUCTION: Compile the MPLS L3VPN branch router TFTP upgrade scenario.
-COMPILE {
+compile {
     tftp_mpls_upgrade(branch_cpe, noc_tftp_depot)
 }

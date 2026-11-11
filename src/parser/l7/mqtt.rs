@@ -1,11 +1,11 @@
 //! Message Queuing Telemetry Transport (MQTT v3.1.1) Layer 7 IoT protocol field parser.
 //!
-//! This module implements the `winnow` parser combinator for OASIS `MQTT` v3.1.1 publish/subscribe
-//! control packets in FrameAssembly `.fasm` specifications. It recognizes the `MQTT` protocol
-//! keyword, control packet types (`CONNECT`, `CONNACK`, `PUBLISH`, `PUBACK`, `SUBSCRIBE`,
-//! `SUBACK`, `PINGREQ`, `PINGRESP`, `DISCONNECT` or explicit `PKT_TYPE`), client identifiers
-//! (`CLIENT_ID`), topic strings (`TOPIC`), QoS levels (`QOS`), `RETAIN` flags, packet IDs
-//! (`PKT_ID`), `KEEPALIVE` timers, and `RETURN_CODE` values.
+//! This module implements the `winnow` parser combinator for OASIS `mqtt` v3.1.1 publish/subscribe
+//! control packets in FrameAssembly `.fasm` specifications. It recognizes the `mqtt` protocol
+//! keyword, control packet types (`connect`, `connack`, `publish`, `puback`, `subscribe`,
+//! `suback`, `pingreq`, `pingresp`, `disconnect` or explicit `pkttype`), client identifiers
+//! (`clientid`), topic strings (`topic`), QoS levels (`qos`), `retain` flags, packet IDs
+//! (`pktid`), `keepalive` timers, and `returncode` values.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err, opt};
@@ -44,7 +44,7 @@ pub(crate) fn parse_mqtt_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pa
             tag(Token::Disconnect).map(|(_, s)| {
                 ParsedField::L7StringField("PKT_TYPE", "DISCONNECT", (s.start, s.len()))
             }),
-            (tag(Token::Ident("PKT_TYPE")), cut_err(parse_any_str)).map(|((_, s), v)| {
+            (tag(Token::PktType), cut_err(parse_any_str)).map(|((_, s), v)| {
                 ParsedField::L7StringField("PKT_TYPE", v, (s.start, s.end - s.start))
             }),
         )),

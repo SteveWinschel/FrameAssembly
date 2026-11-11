@@ -1,35 +1,35 @@
 // PROMPT: Dual-stack HTTP client performing REST API transactions over both IPv4 and IPv6 endpoints.
-// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, WAIT, STATUS, REASON, COMPILE
+// TOKENS: host, ip, flow, s, http, method, uri, hosthdr, wait, ms, status, reason, compile
 
 // INSTRUCTION: Define IPv4 client node.
-HOST client_v4 {
-    IP 192.168.222.10
+host client_v4 {
+    ip 192.168.222.10
 }
 
 // INSTRUCTION: Define IPv4 web server node.
-HOST server_v4 {
-    IP 192.168.222.1
+host server_v4 {
+    ip 192.168.222.1
 }
 
 // INSTRUCTION: Define IPv6 client node.
-HOST client_v6 {
-    IP 2001:db8:feed::10
+host client_v6 {
+    ip 2001:db8:feed::10
 }
 
 // INSTRUCTION: Define IPv6 web server node.
-HOST server_v6 {
-    IP 2001:db8:feed::1
+host server_v6 {
+    ip 2001:db8:feed::1
 }
 
 // INSTRUCTION: Polymorphic HTTP GET request and 200 OK response flow.
-FLOW http_dual_flow(c, s) {
-    c -> s HTTP METHOD "GET" URI "/v1/status"
-           HOST_HDR "node.cloud.lan" WAIT 5ms
-    c <- s HTTP STATUS 200 REASON "OK" WAIT 5ms
+flow http_dual_flow(c, s) {
+    c -> s http method "GET" uri "/v1/status"
+           hosthdr "node.cloud.lan" wait 5ms
+    c <- s http status 200 reason "OK" wait 5ms
 }
 
 // INSTRUCTION: Compile HTTP flow across IPv4 and IPv6 pairs.
-COMPILE {
+compile {
     http_dual_flow(client_v4, server_v4)
     http_dual_flow(client_v6, server_v6)
 }

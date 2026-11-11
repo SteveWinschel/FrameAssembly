@@ -1,18 +1,18 @@
 // PROMPT: BACnet/IP Binary Input occupancy sensor polling with custom Ethernet MAC overrides and DF flag.
-// TOKENS: HOST, IP, FLOW, BACNET, READ_PROPERTY, INVOKE_ID, OBJECT_TYPE, OBJECT_INSTANCE, PROPERTY_ID, SRCMAC, DSTMAC, DF, IPID, COMPILE
+// TOKENS: host, ip, flow, s, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, srcmac, dstmac, df, ipid, compile
 
 // INSTRUCTION: Define room automation controller.
-HOST room_ctrl { IP 192.168.15.10 }
+host room_ctrl { ip 192.168.15.10 }
 
 // INSTRUCTION: Define ceiling occupancy sensor node.
-HOST occ_sensor { IP 192.168.15.90 }
+host occ_sensor { ip 192.168.15.90 }
 
 // INSTRUCTION: Read Binary Input (ObjectType 3) Instance 5 with explicit MAC addresses and IPv4 DF flag.
-FLOW bacnet_occupancy_read(c, s) {
-    c -> s BACNET READ_PROPERTY INVOKE_ID 15 OBJECT_TYPE 3 OBJECT_INSTANCE 5 PROPERTY_ID 85 SRCMAC 00:11:22:aa:bb:01 DSTMAC 00:11:22:aa:bb:02 DF IPID 0x1020
+flow bacnet_occupancy_read(c, s) {
+    c -> s bacnet readproperty invokeid 15 objecttype 3 objectinstance 5 propertyid 85 srcmac 00:11:22:aa:bb:01 dstmac 00:11:22:aa:bb:02 df ipid 0x1020
 }
 
 // INSTRUCTION: Compile the BACnet occupancy sensor query.
-COMPILE {
+compile {
     bacnet_occupancy_read(room_ctrl, occ_sensor)
 }

@@ -1,27 +1,27 @@
 // PROMPT: Model a Telnet Authentication Option (Option 37, RFC 2941) negotiation between an admin terminal and bastion host.
-// TOKENS: HOST, IP, MAC, FLOW, TELNET, DO, VLAN, PCP, WAIT, WILL, OPTION, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, telnet, do, vlan, pcp, wait, ms, will, option, payload, compile
 
 // INSTRUCTION: Define the Kerberos-enabled Telnet client on VLAN 37.
-HOST krb_term_client {
-    IP 172.16.37.22
-    MAC 00:1b:21:25:00:16
+host krb_term_client {
+    ip 172.16.37.22
+    mac 00:1b:21:25:00:16
 }
 
 // INSTRUCTION: Define the enterprise Telnet gateway requiring Option 37 authentication.
-HOST krb_telnet_gw {
-    IP 172.16.37.1
-    MAC 00:1b:21:25:00:01
+host krb_telnet_gw {
+    ip 172.16.37.1
+    mac 00:1b:21:25:00:01
 }
 
 // INSTRUCTION: Negotiate DO 37 and WILL 37 over VLAN 37 followed by subnegotiation OPTION 37.
-FLOW telnet_rfc2941_auth_opt37(c, s) {
-    c <- s TELNET DO 37 VLAN 37 PCP 3 WAIT 3ms
-    c -> s TELNET WILL 37 VLAN 37 PCP 3 WAIT 3ms
-    c -> s TELNET OPTION 37 PAYLOAD "KRB5-AP-REQ-TICKET-BLOB" VLAN 37 PCP 3 WAIT 5ms
-    c <- s TELNET PAYLOAD "[Kerberos V5 accepts you as admin@CORP.LOCAL]\r\n# " VLAN 37 PCP 3
+flow telnet_rfc2941_auth_opt37(c, s) {
+    c <- s telnet do 37 vlan 37 pcp 3 wait 3ms
+    c -> s telnet will 37 vlan 37 pcp 3 wait 3ms
+    c -> s telnet option 37 payload "KRB5-AP-REQ-TICKET-BLOB" vlan 37 pcp 3 wait 5ms
+    c <- s telnet payload "[Kerberos V5 accepts you as admin@CORP.LOCAL]\r\n# " vlan 37 pcp 3
 }
 
 // INSTRUCTION: Compile the Telnet Option 37 RFC 2941 authentication flow.
-COMPILE {
+compile {
     telnet_rfc2941_auth_opt37(krb_term_client, krb_telnet_gw)
 }

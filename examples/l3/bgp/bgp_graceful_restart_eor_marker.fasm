@@ -1,27 +1,27 @@
 // PROMPT: RFC 4724 BGP Graceful Restart exchanging route updates followed by an empty UPDATE End-of-RIB (EoR) marker.
-// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, DSCP, TTL, WAIT, UPDATE, PREFIX, NEXTHOP, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, bgp, open, asn, holdtime, bgpid, dscp, ttl, wait, ms, update, prefix, nexthop, payload, compile
 
 // INSTRUCTION: Define restarting BGP speaker advertising preserved Forwarding State.
-HOST bgp_gr_restarting {
-    IP 10.47.24.1
-    MAC 00:1a:64:47:24:01
+host bgp_gr_restarting {
+    ip 10.47.24.1
+    mac 00:1a:64:47:24:01
 }
 
 // INSTRUCTION: Define helper BGP speaker retaining stale routes until End-of-RIB receipt.
-HOST bgp_gr_helper {
-    IP 10.47.24.2
-    MAC 00:1a:64:47:24:02
+host bgp_gr_helper {
+    ip 10.47.24.2
+    mac 00:1a:64:47:24:02
 }
 
 // INSTRUCTION: Define BGP OPEN, initial table refresh UPDATE, and End-of-RIB empty UPDATE marker.
-FLOW bgp_graceful_restart_eor(restarting, helper) {
-    restarting -> helper BGP OPEN ASN 65047 HOLDTIME 120 BGPID 10.47.24.1 DSCP 48 TTL 1 WAIT 5ms
-    restarting <- helper BGP OPEN ASN 65048 HOLDTIME 120 BGPID 10.47.24.2 DSCP 48 TTL 1 WAIT 5ms
-    restarting -> helper BGP UPDATE ASN 65047 PREFIX "10.100.0.0/16" NEXTHOP 10.47.24.1 DSCP 48 TTL 1 WAIT 5ms
-    restarting -> helper BGP UPDATE ASN 65047 DSCP 48 TTL 1 PAYLOAD "BGP_END_OF_RIB_IPV4_UNICAST"
+flow bgp_graceful_restart_eor(restarting, helper) {
+    restarting -> helper bgp open asn 65047 holdtime 120 bgpid 10.47.24.1 dscp 48 ttl 1 wait 5ms
+    restarting <- helper bgp open asn 65048 holdtime 120 bgpid 10.47.24.2 dscp 48 ttl 1 wait 5ms
+    restarting -> helper bgp update asn 65047 prefix "10.100.0.0/16" nexthop 10.47.24.1 dscp 48 ttl 1 wait 5ms
+    restarting -> helper bgp update asn 65047 dscp 48 ttl 1 payload "BGP_END_OF_RIB_IPV4_UNICAST"
 }
 
 // INSTRUCTION: Compile the RFC 4724 BGP Graceful Restart and End-of-RIB flow.
-COMPILE {
+compile {
     bgp_graceful_restart_eor(bgp_gr_restarting, bgp_gr_helper)
 }

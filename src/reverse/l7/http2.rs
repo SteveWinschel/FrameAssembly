@@ -1,10 +1,10 @@
-//! HTTP/2 (`HTTP2`, RFC 9113) Layer 7 binary framing PCAP-to-`.fasm` decompiler.
+//! HTTP/2 (`http2`, RFC 9113) Layer 7 binary framing PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 9113 HTTP/2 connection preface
 //! strings (`PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n`) and 9-byte binary frame headers carried over TCP
 //! ports `80`, `443`, `8080`, and `8443`. It validates the 24-bit big-endian payload length against
 //! the enclosing TCP segment, decodes canonical frame types (`preface`, `data`, `headers`,
-//! `settings`, `ping`, `goaway`, `window_update`) and 31-bit stream identifiers (`stream_id`), and
+//! `settings`, `ping`, `goaway`, `windowupdate`) and 31-bit stream identifiers (`streamid`), and
 //! preserves frame payload bytes via residual payload or returns `None` to step down cleanly.
 
 use alloc::format;
@@ -41,13 +41,13 @@ pub(crate) fn dissect_http2(payload: &[u8]) -> Option<ProtocolDissection> {
         4 => "settings",
         6 => "ping",
         7 => "goaway",
-        8 => "window_update",
+        8 => "windowupdate",
         _ => return None,
     };
     let stream_id = checked_be_u32(payload, 5)? & 0x7FFFFFFF;
     let mut tokens = format!("http2 {type_kw}");
     if stream_id != 0 {
-        let _ = write!(tokens, " stream_id {stream_id}");
+        let _ = write!(tokens, " streamid {stream_id}");
     }
     Some(sd(Protocol::Http2, tokens, payload.get(9..)?.to_vec()))
 }

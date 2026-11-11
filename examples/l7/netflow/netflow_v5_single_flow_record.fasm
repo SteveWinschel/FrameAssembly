@@ -1,18 +1,18 @@
 // PROMPT: Cisco NetFlow v5 telemetry export datagram reporting IP traffic metrics.
-// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
+// TOKENS: host, ip, flow, s, netflow, srcip, dstip, proto, packets, octets, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 10.0.0.1 }
+host client { ip 10.0.0.1 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 10.0.0.254 }
+host server { ip 10.0.0.254 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW netflow_export(c, s) {
-    c -> s NETFLOW SRCIP 192.168.1.100 DSTIP 8.8.8.8 PROTO 6 PACKETS 150 OCTETS 96000
+flow netflow_export(c, s) {
+    c -> s netflow srcip 192.168.1.100 dstip 8.8.8.8 proto 6 packets 150 octets 96000
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     netflow_export(client, server)
 }

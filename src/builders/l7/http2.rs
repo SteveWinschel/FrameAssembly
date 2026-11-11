@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b HTTP2 [PREFACE | SETTINGS | HEADERS | DATA | WINDOW_UPDATE | PING | GOAWAY] [STREAM_ID <u32>]`
+//! `a -> b http2 [preface | settings | headers | data | windowupdate | ping | goaway] [streamid <u32>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 9113 HTTP/2 connection preface or binary frame.
-/// Syntax mapping: `HTTP2 [PREFACE | SETTINGS | HEADERS | DATA | WINDOW_UPDATE | PING | GOAWAY] [STREAM_ID <u32>]`
+/// Syntax mapping: `http2 [preface | settings | headers | data | windowupdate | ping | goaway] [streamid <u32>]`
 #[doc(alias = "HTTP2")]
 #[doc(alias = "H2")]
 #[doc(alias = "RFC9113")]

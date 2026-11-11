@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b WHOIS [QUERY | RESPONSE] [DOMAIN <str>] [REGISTRAR <str>]`
+//! `a -> b whois [query | response] [domain <str>] [registrar <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 3912 WHOIS query or response string.
-/// Syntax mapping: `WHOIS [QUERY | RESPONSE] [DOMAIN <str>] [REGISTRAR <str>]`
+/// Syntax mapping: `whois [query | response] [domain <str>] [registrar <str>]`
 #[doc(alias = "WHOIS")]
 #[doc(alias = "RFC3912")]
 #[doc(alias = "REGISTRAR")]

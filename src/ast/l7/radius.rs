@@ -6,29 +6,29 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b RADIUS [ACCESS_REQUEST | ACCESS_ACCEPT | ACCESS_REJECT | ACCESS_CHALLENGE | ACCOUNTING_REQUEST | ACCOUNTING_RESPONSE | CODE <str>] [ID <u8>] [USER <str>] [NAS_IP <ip>] [SERVICE_TYPE <u32>] [FRAMED_IP <ip>]`
+//! `a -> b radius [accessrequest | accessaccept | accessreject | accesschallenge | accountingrequest | accountingresponse | code <str>] [id <u8>] [user <str>] [nasip <ip>] [servicetype <u32>] [framedip <ip>]`
 
 use core::net::IpAddr;
 /// RFC 2865 RADIUS authentication & accounting specification.
 ///
-/// Syntax mapping: `RADIUS [ACCESS_REQUEST | ACCESS_ACCEPT | ACCESS_REJECT | ACCESS_CHALLENGE | ACCOUNTING_REQUEST | ACCOUNTING_RESPONSE | CODE <str>] [ID <u8>] [USER <str>] [NAS_IP <ip>] [SERVICE_TYPE <u32>] [FRAMED_IP <ip>]`
-#[doc(alias = "RADIUS")]
+/// Syntax mapping: `radius [accessrequest | accessaccept | accessreject | accesschallenge | accountingrequest | accountingresponse | code <str>] [id <u8>] [user <str>] [nasip <ip>] [servicetype <u32>] [framedip <ip>]`
+#[doc(alias = "radius")]
 #[doc(alias = "RFC 2865")]
 #[doc(alias = "RFC2865")]
 #[doc(alias = "RFC 2866")]
 #[doc(alias = "RFC2866")]
-#[doc(alias = "ACCESS_REQUEST")]
-#[doc(alias = "ACCESS_ACCEPT")]
-#[doc(alias = "ACCESS_REJECT")]
-#[doc(alias = "ACCESS_CHALLENGE")]
-#[doc(alias = "ACCOUNTING_REQUEST")]
-#[doc(alias = "ACCOUNTING_RESPONSE")]
-#[doc(alias = "CODE")]
-#[doc(alias = "ID")]
-#[doc(alias = "USER")]
-#[doc(alias = "NAS_IP")]
-#[doc(alias = "SERVICE_TYPE")]
-#[doc(alias = "FRAMED_IP")]
+#[doc(alias = "accessrequest")]
+#[doc(alias = "accessaccept")]
+#[doc(alias = "accessreject")]
+#[doc(alias = "accesschallenge")]
+#[doc(alias = "accountingrequest")]
+#[doc(alias = "accountingresponse")]
+#[doc(alias = "code")]
+#[doc(alias = "id")]
+#[doc(alias = "user")]
+#[doc(alias = "nasip")]
+#[doc(alias = "servicetype")]
+#[doc(alias = "framedip")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RadiusSpec<'a> {
     /// Packet code (e.g. ACCESS_REQUEST, ACCESS_ACCEPT).

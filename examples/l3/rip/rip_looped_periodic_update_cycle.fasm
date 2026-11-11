@@ -1,20 +1,21 @@
 // PROMPT: Periodic 30-second RIP update broadcast burst inside a COMPILE LOOP.
-// TOKENS: HOST, IP, FLOW, RIP, RESPONSE, PREFIX, METRIC, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, flow, dst, rip, response, prefix, metric, wait, ms, compile
 
 // INSTRUCTION: Define steady-state branch router broadcasting periodic updates.
-HOST periodic_branch_rtr { IP 172.16.5.1 }
+host periodic_branch_rtr { ip 172.16.5.1 }
 
 // INSTRUCTION: Define standard RIPv2 multicast destination.
-HOST rip_mcast_target { IP 224.0.0.9 }
+host rip_mcast_target { ip 224.0.0.9 }
 
 // INSTRUCTION: Define periodic route update flow.
-FLOW rip_periodic_burst(br, dst) {
-    br -> dst RIP RESPONSE PREFIX 172.16.50.0 METRIC 2 WAIT 30ms
+flow rip_periodic_burst(br, dst) {
+    br -> dst rip response prefix 172.16.50.0 metric 2 wait 30ms
 }
 
 // INSTRUCTION: Compile loop executing 4 periodic RIP updates.
-COMPILE {
-    LOOP 4 {
-        rip_periodic_burst(periodic_branch_rtr, rip_mcast_target)
-    }
+compile {
+    rip_periodic_burst(periodic_branch_rtr, rip_mcast_target) // cycle 1
+    rip_periodic_burst(periodic_branch_rtr, rip_mcast_target) // cycle 2
+    rip_periodic_burst(periodic_branch_rtr, rip_mcast_target) // cycle 3
+    rip_periodic_burst(periodic_branch_rtr, rip_mcast_target) // cycle 4
 }

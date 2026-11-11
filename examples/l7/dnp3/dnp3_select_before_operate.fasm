@@ -1,22 +1,22 @@
 // PROMPT: DNP3 Select-Before-Operate (SBO) two-step breaker trip sequence with application confirm.
-// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, WAIT, COMPILE
+// TOKENS: host, ip, flow, m, dnp3, func, src, dst, group, variation, wait, ms, compile
 
 // INSTRUCTION: Define transmission substation master controller.
-HOST sub_master { IP 172.24.10.1 }
+host sub_master { ip 172.24.10.1 }
 
 // INSTRUCTION: Define 138kV feeder relay outstation.
-HOST feeder_relay { IP 172.24.10.15 }
+host feeder_relay { ip 172.24.10.15 }
 
 // INSTRUCTION: Execute Select (Group 12 Var 1), receive Response, then Operate and Confirm.
-FLOW dnp3_sbo_breaker(m, r) {
-    m -> r DNP3 FUNC "SELECT" SRC 1 DST 15 GROUP 12 VARIATION 1 WAIT 10ms
-    m <- r DNP3 FUNC "RESPONSE" SRC 15 DST 1 GROUP 12 VARIATION 1 WAIT 10ms
-    m -> r DNP3 FUNC "OPERATE" SRC 1 DST 15 GROUP 12 VARIATION 1 WAIT 10ms
-    m <- r DNP3 FUNC "RESPONSE" SRC 15 DST 1 GROUP 12 VARIATION 1 WAIT 10ms
-    m -> r DNP3 FUNC "CONFIRM" SRC 1 DST 15
+flow dnp3_sbo_breaker(m, r) {
+    m -> r dnp3 func "select" src 1 dst 15 group 12 variation 1 wait 10ms
+    m <- r dnp3 func "response" src 15 dst 1 group 12 variation 1 wait 10ms
+    m -> r dnp3 func "operate" src 1 dst 15 group 12 variation 1 wait 10ms
+    m <- r dnp3 func "response" src 15 dst 1 group 12 variation 1 wait 10ms
+    m -> r dnp3 func "confirm" src 1 dst 15
 }
 
 // INSTRUCTION: Compile the DNP3 Select-Before-Operate sequence.
-COMPILE {
+compile {
     dnp3_sbo_breaker(sub_master, feeder_relay)
 }

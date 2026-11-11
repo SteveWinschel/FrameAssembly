@@ -1,20 +1,20 @@
 // PROMPT: Secure authentication facility event reporting successful admin login.
-// TOKENS: HOST, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, COMPILE
+// TOKENS: host, ip, flow, s, syslog, facility, severity, hostname, app, procid, msg, compile
 
 // INSTRUCTION: Define secure server node.
-HOST sec_server { IP 10.10.0.15 }
+host sec_server { ip 10.10.0.15 }
 
 // INSTRUCTION: Define enterprise syslog collector.
-HOST siem_collector { IP 10.10.0.50 }
+host siem_collector { ip 10.10.0.50 }
 
 // INSTRUCTION: Define authentication success log flow.
-FLOW syslog_auth_flow(c, s) {
-    c -> s SYSLOG FACILITY 10 SEVERITY 6
-        HOSTNAME "sec-svr-01" APP "sshd" PROCID "2819"
-        MSG "Accepted publickey for admin from 192.168.1.55 port 51234"
+flow syslog_auth_flow(c, s) {
+    c -> s syslog facility 10 severity 6
+        hostname "sec-svr-01" app "sshd" procid "2819"
+        msg "Accepted publickey for admin from 192.168.1.55 port 51234"
 }
 
 // INSTRUCTION: Compile block executing auth logging.
-COMPILE {
+compile {
     syslog_auth_flow(sec_server, siem_collector)
 }

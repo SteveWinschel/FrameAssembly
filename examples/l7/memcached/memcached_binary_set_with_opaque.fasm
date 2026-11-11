@@ -1,18 +1,18 @@
 // PROMPT: Memcached binary protocol Set operation carrying opaque request transaction identifier.
-// TOKENS: HOST, IP, FLOW, MEMCACHED, CMD, KEY, OPAQUE, COMPILE
+// TOKENS: host, ip, flow, memcached, cmd, key, opaque, compile
 
 // INSTRUCTION: Define microservice caching client.
-HOST microservice_client { IP 172.19.4.50 }
+host microservice_client { ip 172.19.4.50 }
 
 // INSTRUCTION: Define Memcached binary server.
-HOST binary_memcached { IP 172.19.4.1 }
+host binary_memcached { ip 172.19.4.1 }
 
 // INSTRUCTION: Define binary set command flow with opaque ID.
-FLOW binary_set_flow(cli, srv) {
-    cli -> srv MEMCACHED CMD "Set" KEY "user:session:99" OPAQUE 887766
+flow binary_set_flow(cli, srv) {
+    cli -> srv memcached cmd "set" key "user:session:99" opaque 887766
 }
 
 // INSTRUCTION: Compile binary set scenario.
-COMPILE {
+compile {
     binary_set_flow(microservice_client, binary_memcached)
 }

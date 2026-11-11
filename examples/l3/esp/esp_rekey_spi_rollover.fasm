@@ -1,21 +1,21 @@
 // PROMPT: Child SA rekey rollover transitioning traffic from an old ESP SPI to a newly negotiated SPI.
-// TOKENS: HOST, IP, FLOW, ESP, SPI, SEQ, WAIT, COMPILE
+// TOKENS: host, ip, flow, esp, spi, seq, wait, ms, compile
 
 // INSTRUCTION: Define enterprise VPN hub.
-HOST rekey_vpn_hub { IP 172.28.0.1 }
+host rekey_vpn_hub { ip 172.28.0.1 }
 
 // INSTRUCTION: Define enterprise VPN spoke.
-HOST rekey_vpn_spoke { IP 172.28.0.2 }
+host rekey_vpn_spoke { ip 172.28.0.2 }
 
 // INSTRUCTION: Define ESP traffic transitioning from SPI 11000/11001 to rekeyed SPI 22000/22001.
-FLOW esp_spi_rollover(hub, spoke) {
-    hub -> spoke ESP SPI 11000 SEQ 999
-    hub <- spoke ESP SPI 11001 SEQ 999 WAIT 10ms
-    hub -> spoke ESP SPI 22000 SEQ 1 WAIT 20ms
-    hub <- spoke ESP SPI 22001 SEQ 1 WAIT 10ms
+flow esp_spi_rollover(hub, spoke) {
+    hub -> spoke esp spi 11000 seq 999
+    hub <- spoke esp spi 11001 seq 999 wait 10ms
+    hub -> spoke esp spi 22000 seq 1 wait 20ms
+    hub <- spoke esp spi 22001 seq 1 wait 10ms
 }
 
 // INSTRUCTION: Compile the ESP SPI rekey rollover flow.
-COMPILE {
+compile {
     esp_spi_rollover(rekey_vpn_hub, rekey_vpn_spoke)
 }

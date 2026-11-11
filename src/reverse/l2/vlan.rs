@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 use crate::ast::{L2Modifiers, Protocol, QinqSpec, VlanSpec};
 use crate::reverse::{ProtocolDissection, be_u16, push_if, sd};
 
-/// Peels outer IEEE 802.1ad `QINQ` or single 802.1Q `VLAN` tags from `b` at `*off`, updating `*et`
+/// Peels outer IEEE 802.1ad `qinq` or single 802.1Q `vlan` tags from `b` at `*off`, updating `*et`
 /// and `*l2`, and returning `(qinq_pcp, qinq_dei)`.
 pub(crate) fn peel_vlan_or_qinq(
     b: &[u8],

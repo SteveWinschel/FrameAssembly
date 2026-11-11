@@ -1,18 +1,18 @@
 // PROMPT: MySQL client querying table column definitions using DESCRIBE schema statement.
-// TOKENS: HOST, IP, FLOW, MYSQL, SQL, COMPILE
+// TOKENS: host, ip, flow, con, db, mysql, sql, compile
 
 // INSTRUCTION: Define database management console.
-HOST db_console { IP 172.16.1.14 }
+host db_console { ip 172.16.1.14 }
 
 // INSTRUCTION: Define MySQL schema repository.
-HOST schema_repo { IP 172.16.1.2 }
+host schema_repo { ip 172.16.1.2 }
 
 // INSTRUCTION: Define schema inspection query flow.
-FLOW describe_table_flow(con, db) {
-    con -> db MYSQL SQL "DESCRIBE user_credentials"
+flow describe_table_flow(con, db) {
+    con -> db mysql sql "DESCRIBE user_credentials"
 }
 
 // INSTRUCTION: Compile table schema describe scenario.
-COMPILE {
+compile {
     describe_table_flow(db_console, schema_repo)
 }

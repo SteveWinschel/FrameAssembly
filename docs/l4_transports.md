@@ -1,14 +1,14 @@
 # Layer 4 — Stateful TCP, UDP & Telecom SCTP (`docs/l4_transports.md`)
 
-[**Use Cases**](#layer-4-testing-and-security-use-cases) • [**Auto-SEQ & Checksums**](#what-frameassembly-handles-at-layer-4) • [**TCP Reference**](#1-tcp--stateful-streams-flags-and-rfc-7323-options) • [**UDP Reference**](#2-udp--stateless-datagrams-tunnels-and-broadcasts) • [**SCTP & Telecom PPIDs**](#3-sctp--multi-stream-associations-and-5gtelecom-ppids) • [**Inspect & Replay**](#inspecting-and-replaying-layer-4-captures)
+[**Use Cases**](#layer-4-testing-and-security-use-cases) • [**Auto-SEQ & Checksums**](#what-frameassembly-handles-at-layer-4) • [**TCP Reference**](#1-tcp--stateful-streams-flags-and-rfc-7323-options) • [**UDP Reference**](#2-udp--stateless-datagrams-tunnels-and-broadcasts) • [**SCTP & Telecom PPIDs**](#3-sctp--multi-stream-associations-and-5gtelecom-ppids) • [**Inspect & Replay**](#inspecting-reversing-and-replaying-layer-4-captures)
 
 ## Why Use FrameAssembly for Layer 4?
 
 Testing Layer 4 transport edge cases is where manual packet crafting usually falls apart.
 
-Fire a single spoofed `PSH ACK` payload at a stateful firewall and it silently drops it because there was no 3-way handshake. Try to hand-craft a `TCP ZeroWindow` stall, a 3x Duplicate-ACK fast retransmit, or a 5G `NGAP` multi-stream `SCTP` association, and you are suddenly stuck computing TCP `SEQ`/`ACK` byte offsets on a notepad or debugging RFC 9260 Castagnoli `CRC-32c` checksums in Python :)
+Fire a single spoofed `psh ack` payload at a stateful firewall and it silently drops it because there was no 3-way handshake. Try to hand-craft a TCP ZeroWindow stall, a 3x Duplicate-ACK fast retransmit, or a 5G NGAP multi-stream `sctp` association, and you are suddenly stuck computing TCP `SEQ`/`ACK` byte offsets on a notepad or debugging RFC 9260 Castagnoli `CRC-32c` checksums in Python :)
 
-With **FrameAssembly**, the compiler tracks TCP ports and sequence numbers for you when you want clean streams—and steps out of the way the instant you want broken windows, stealth flag combinations, fragmented UDP bursts, or multi-homed `SCTP` failovers:
+With **FrameAssembly**, the compiler tracks TCP ports and sequence numbers for you when you want valid streams—and steps out of the way the instant you want broken windows, stealth flag combinations, fragmented UDP bursts, or multi-homed `sctp` failovers:
 
 ```frameassembly
 host app_node { ip 10.20.1.10 mac 00:1b:21:aa:00:0a }
@@ -16,8 +16,8 @@ host db_srv   { ip 10.20.1.54 mac 00:1b:21:aa:00:36 }
 
 flow quick_l4_demo(c, s) {
     // Stateful TCP: set ports once on SYN -> auto-swapped ports & exact SEQ/ACK math
-    c -> s tcp syn srcport 52400 dstport 5432 win 64240 mss 1460 wscale 7 sack_perm wait 1ms
-    c <- s tcp syn ack win 65535 mss 1460 wscale 7 sack_perm wait 1ms
+    c -> s tcp syn srcport 52400 dstport 5432 win 64240 mss 1460 wscale 7 sackperm wait 1ms
+    c <- s tcp syn ack win 65535 mss 1460 wscale 7 sackperm wait 1ms
     c -> s tcp ack wait 1ms
     c -> s tcp psh ack payload "SELECT 1;" wait 2ms
     c <- s tcp psh ack payload "ROW 1" wait 2ms
@@ -31,27 +31,27 @@ compile { quick_l4_demo(app_node, db_srv) }
 
 ```console
 $ frameassembly show l4_demo.fasm
-$ frameassembly l4_demo.fasm -o l4_demo.pcap && sudo tcpreplay -i eth0 l4_demo.pcap
+$ frameassembly l4_demo.fasm l4_demo.pcap && sudo tcpreplay -i eth0 l4_demo.pcap
 ```
 
 | Protocol | Keyword | IP Proto | Checksum Engine | Best For |
 | :--- | :--- | :---: | :--- | :--- |
-| **TCP** | `tcp` | `6` | Auto IPv4/IPv6 Pseudo-Header | Stateful firewall rules, `ZeroWindow` stalls, fast retransmits, `ECN`, `PAWS`, stealth scans |
-| **UDP** | `udp` | `17` | Auto IPv4/IPv6 Pseudo-Header | `RoCEv2` RDMA, `GTP-U` 5G bearers, `IPsec NAT-T`, `DTLS`, Paris Traceroute, `WoL` broadcasts |
-| **SCTP** | `sctp` | `132` | Auto Castagnoli `CRC-32c` | 5G `NGAP`/`XnAP`/`F1AP`, 4G `S1AP`, `Diameter` `S6a`/`Gy`, `SIGTRAN` SS7, `WebRTC` DataChannels |
+| **TCP** | `tcp` | `6` | Auto IPv4/IPv6 Pseudo-Header | Stateful firewall rules, ZeroWindow stalls, fast retransmits, ECN, PAWS, stealth scans |
+| **UDP** | `udp` | `17` | Auto IPv4/IPv6 Pseudo-Header | RoCEv2 RDMA, GTP-U 5G bearers, IPsec NAT-T, DTLS, Paris Traceroute, WoL broadcasts |
+| **SCTP** | `sctp` | `132` | Auto Castagnoli `CRC-32c` | 5G NGAP/XnAP/F1AP, 4G S1AP, Diameter S6a/Gy, SIGTRAN SS7, WebRTC DataChannels |
 
 ## Layer 4 Testing and Security Use Cases
 
-### 1. Reproduce `TCP ZeroWindow` Stalls, 3x Dup-ACK Fast Retransmits & `PAWS` Wraparounds
-Waiting for a production storage target to choke just to verify your packet broker or APM alerts on `TCP ZeroWindow` and `TCP Fast Retransmission` is no fun. Override `seq`, `acknum`, `win 0`, or 32-bit `tsval` timestamps (`2^32 - 1 -> 10`) to trigger Wireshark's TCP analysis flags on demand:
+### 1. Reproduce TCP ZeroWindow Stalls, 3x Dup-ACK Fast Retransmits & PAWS Wraparounds
+Waiting for a production storage target to choke just to verify your packet broker or APM alerts on TCP ZeroWindow and TCP Fast Retransmission is no fun. Override `seq`, `acknum`, `win 0`, or 32-bit `tsval` timestamps (`2^32 - 1 -> 10`) to trigger Wireshark's TCP analysis flags on demand:
 
 ```frameassembly
 host sender   { ip 10.20.0.10 mac 00:1b:21:aa:00:01 }
 host receiver { ip 10.20.0.20 mac 00:1b:21:aa:00:02 }
 
 flow tcp_anomalies(tx, rx) {
-    tx -> rx tcp syn srcport 42000 dstport 9100 seq 1000 win 64240 mss 1460 wscale 7 sack_perm tsval 4294967294 tsecr 0 wait 1ms
-    tx <- rx tcp syn ack seq 5000 acknum 1001 win 4096 mss 1460 wscale 7 sack_perm tsval 900000 tsecr 4294967294 wait 1ms
+    tx -> rx tcp syn srcport 42000 dstport 9100 seq 1000 win 64240 mss 1460 wscale 7 sackperm tsval 4294967294 tsecr 0 wait 1ms
+    tx <- rx tcp syn ack seq 5000 acknum 1001 win 4096 mss 1460 wscale 7 sackperm tsval 900000 tsecr 4294967294 wait 1ms
     tx -> rx tcp ack seq 1001 acknum 5001 win 64240 tsval 4294967295 tsecr 900000 wait 1ms
 
     // 1. Buffer fills -> receiver advertises ZeroWindow (win 0) -> 1-byte ZeroWindow probe -> recovery
@@ -70,8 +70,8 @@ flow tcp_anomalies(tx, rx) {
 compile { tcp_anomalies(sender, receiver) }
 ```
 
-### 2. Test DDoS `SYN` Proxies, Stateful Firewall `ACK` Rules & Stealth Flag Scans
-Verify that inline DDoS scrubbers splice `SYN`-cookie sequence numbers properly and that **Suricata**, **Zeek**, or perimeter firewalls catch unsolicited `ACK` rule-mapping probes, Nmap `Xmas` scans (`fin psh urg`), and all-8-flag "Kamikaze" packets:
+### 2. Test DDoS `syn` Proxies, Stateful Firewall `ack` Rules & Stealth Flag Scans
+Verify that inline DDoS scrubbers splice `syn`-cookie sequence numbers properly and that **Suricata**, **Zeek**, or perimeter firewalls catch unsolicited `ack` rule-mapping probes, Nmap Xmas scans (`fin psh urg`), and all-8-flag "Kamikaze" packets:
 
 ```frameassembly
 host client  { ip 198.51.100.88 mac 00:16:3e:10:20:30 }
@@ -97,8 +97,8 @@ flow syn_proxy_and_scan_audit(cli, proxy, srv) {
 compile { syn_proxy_and_scan_audit(client, mitigator, origin) }
 ```
 
-### 3. Simulate 5G `NGAP`, `Diameter` Charging & Multi-Homed `SCTP` Failovers
-Spinning up a 5G Core (`Open5GS` / `free5GC`) or SS7 `SIGTRAN` stack just to test a firewall SCTP inspection policy or Wireshark dissector is overkill. FrameAssembly builds the 4-way `INIT` -> `COOKIE_ACK` handshake, multiplexes independent `stream` IDs with exact `ppid` codes, and computes Castagnoli `CRC-32c` checksums automatically:
+### 3. Simulate 5G NGAP, Diameter Charging & Multi-Homed `sctp` Failovers
+Spinning up a 5G Core (`Open5GS` / `free5GC`) or SS7 SIGTRAN stack just to test a firewall SCTP inspection policy or Wireshark dissector is overkill. FrameAssembly builds the 4-way `init` -> `cookieack` handshake, multiplexes independent `stream` IDs with exact `ppid` codes, and computes Castagnoli `CRC-32c` checksums automatically:
 
 ```frameassembly
 host gnb_n2  { ip 2001:db8:5000:a2::10 }
@@ -111,9 +111,9 @@ host ocs_sec { ip 10.71.2.10 }
 flow sctp_5g_n2_setup(gnb, amf) {
     // 4-way SCTP Cookie handshake + 5G NGAP Setup on UDP-like message stream 0 (Port 38412, PPID 60)
     gnb -> amf dscp 46 sctp chunk init vtag 0 srcport 38412 dstport 38412 wait 1ms
-    gnb <- amf dscp 46 sctp chunk init_ack vtag 384120 srcport 38412 dstport 38412 wait 1ms
-    gnb -> amf dscp 46 sctp chunk cookie_echo vtag 384120 srcport 38412 dstport 38412 payload "state_cookie_n2" wait 1ms
-    gnb <- amf dscp 46 sctp chunk cookie_ack vtag 384120 srcport 38412 dstport 38412 wait 1ms
+    gnb <- amf dscp 46 sctp chunk initack vtag 384120 srcport 38412 dstport 38412 wait 1ms
+    gnb -> amf dscp 46 sctp chunk cookieecho vtag 384120 srcport 38412 dstport 38412 payload "state_cookie_n2" wait 1ms
+    gnb <- amf dscp 46 sctp chunk cookieack vtag 384120 srcport 38412 dstport 38412 wait 1ms
     gnb -> amf dscp 46 sctp chunk data vtag 384120 stream 0 ssn 0 ppid 60 srcport 38412 dstport 38412 payload "ngap_ng_setup_request_gnb_001" wait 2ms
     gnb <- amf dscp 46 sctp chunk sack vtag 384120 srcport 38412 dstport 38412
 }
@@ -131,8 +131,8 @@ compile {
 }
 ```
 
-### 4. Craft Lossless AI `RoCEv2` (`ECN`/`CNP`), 5G `GTP-U` & `IPsec NAT-T` Over `UDP`
-Many high-speed fabric and mobile user-plane protocols ride directly inside `UDP` (`4791` RoCEv2, `2152` GTPv1-U, `4500` IPsec NAT-T, `6635` MPLS-in-UDP). Combine outer `vlan`, `pcp`, `dscp`, `ecn`, and `df` modifiers with `hexpayload` to test switch QoS queues and tunnel middleboxes:
+### 4. Craft Lossless AI RoCEv2 (`ecn`/CNP), 5G GTP-U & IPsec NAT-T Over `udp`
+Many high-speed fabric and mobile user-plane protocols ride directly inside `udp` (`4791` RoCEv2, `2152` GTPv1-U, `4500` IPsec NAT-T, `6635` MPLS-in-UDP). Combine outer `vlan`, `pcp`, `dscp`, `ecn`, and `df` modifiers with `hexpayload` to test switch QoS queues and tunnel middleboxes:
 
 ```frameassembly
 host gpu_tx { ip 10.200.47.11 mac 0c:42:a1:2f:00:0b }
@@ -155,8 +155,8 @@ flow rocev2_gtpu_and_natt(a, b) {
 compile { rocev2_gtpu_and_natt(gpu_tx, gpu_rx) }
 ```
 
-### 5. Build Paris Traceroutes (`TTL` Expiry), Fragmented `UDP` & `Wake-on-LAN` Broadcasts
-Test how routers, NAT gateways, and SIEMs handle incrementing `TTL` UDP traceroute probes (`33434..33435`), multi-fragment `UDP` telemetry batches (`mf` + `fragoffset`), and directed `Wake-on-LAN` magic broadcasts (`UDP 9`):
+### 5. Build Paris Traceroutes (`ttl` Expiry), Fragmented `udp` & Wake-on-LAN Broadcasts
+Test how routers, NAT gateways, and SIEMs handle incrementing `ttl` UDP traceroute probes (`33434..33435`), multi-fragment `udp` telemetry batches (`mf` + `fragoffset`), and directed Wake-on-LAN magic broadcasts (`UDP 9`):
 
 ```frameassembly
 host workstation { ip 10.88.1.10  mac 00:50:56:88:01:0a }
@@ -167,9 +167,9 @@ host lan_bcast   { ip 10.88.1.255 mac ff:ff:ff:ff:ff:ff }
 flow udp_diagnostics_and_wol(src, rtr, dst, bcast) {
     // 1. Paris Traceroute: TTL 1 -> ICMP Time Exceeded; TTL 2 -> ICMP Port Unreachable (Code 3)
     src -> rtr ttl 1 udp srcport 54321 dstport 33434 payload "paris_probe_hop1" wait 1ms
-    src <- rtr icmp time_exceeded code 0 wait 2ms
+    src <- rtr icmp timeexceeded code 0 wait 2ms
     src -> dst ttl 2 udp srcport 54321 dstport 33435 payload "paris_probe_hop2" wait 1ms
-    src <- dst icmp dest_unreach code 3 wait 5ms
+    src <- dst icmp destunreach code 3 wait 5ms
 
     // 2. Fragmented IPv4 StatsD UDP batch sharing IPID 4242
     src -> dst ipid 4242 mf fragoffset 0 udp srcport 51000 dstport 8125 payload "statsd.batch.part_a:1|c" wait 500us
@@ -191,9 +191,9 @@ compile { udp_diagnostics_and_wol(workstation, hop1_rtr, target_srv, lan_bcast) 
 
 ## Layer 4 Protocol Reference & Cheat Sheets
 
-### 1. `TCP` — Stateful Streams, Flags and RFC 7323 Options
+### 1. `tcp` — Stateful Streams, Flags and RFC 7323 Options
 
-A bare `c -> s tcp` compiles into a valid RFC 793 `SYN` segment to `dstport 80`. Combine any of the **8 TCP flags** on a single statement (`syn`, `ack`, `fin`, `rst`, `psh`, `urg`, `ece`, `cwr`):
+A bare `c -> s tcp` compiles into a valid RFC 793 `syn` segment to `dstport 80`. Combine any of the **8 TCP flags** on a single statement (`syn`, `ack`, `fin`, `rst`, `psh`, `urg`, `ece`, `cwr`):
 
 | Category | Modifier / Flag | Range / Example | Wire Behavior |
 | :--- | :--- | :--- | :--- |
@@ -201,16 +201,16 @@ A bare `c -> s tcp` compiles into a valid RFC 793 `SYN` segment to `dstport 80`.
 | **Control Flags** | `syn`, `ack`, `fin`, `rst`, `psh`, `urg` | `tcp fin psh urg` | Classic RFC 793 control bits (combinable in any order) |
 | **ECN Flags** | `ece`, `cwr` | `tcp syn ece cwr` | RFC 3168 ECN-Echo & Congestion Window Reduced bits |
 | **Sequence / Ack**| `seq <u32>` / `acknum <u32>` | `seq 1000 acknum 5001` | Overrides automatic TCP state-machine sequence/ack numbers |
-| **Window Size** | `win <u16>` | `win 64240` / `win 0` | 16-bit receive window (`win 0` for `ZeroWindow` or `RST`) |
+| **Window Size** | `win <u16>` | `win 64240` / `win 0` | 16-bit receive window (`win 0` for ZeroWindow or `rst`) |
 | **MSS Option** | `mss <u16>` | `mss 1460` / `mss 8960` | Option Kind `2`: Max Segment Size (`8960` for 9000B HPC jumbo) |
 | **Window Scale** | `wscale <0..14>` | `wscale 7` / `wscale 14` | Option Kind `3`: RFC 7323 Window Scale shift count |
-| **Selective ACK** | `sack_perm` | `sack_perm` | Option Kind `4`: RFC 2018 SACK Permitted negotiation flag |
+| **Selective ACK** | `sackperm` | `sackperm` | Option Kind `4`: RFC 2018 SACK Permitted negotiation flag |
 | **Timestamps** | `tsval <u32>` / `tsecr <u32>` | `tsval 1000 tsecr 0` | Option Kind `8`: RFC 7323 RTTM & PAWS 32-bit timestamps |
-| **Payload** | `payload "<str>"` / `hexpayload "<hex>"`| `payload "SELECT 1;"` | Raw ASCII or hex segment body (advances auto-`SEQ` by length) |
+| **Payload** | `payload "<str>"` / `hexpayload "<hex>"`| `payload "SELECT 1;"` | Raw ASCII or hex segment body (advances auto-`seq` by length) |
 
 > **Quick Syntax Check (`ack` vs. `acknum`):** Bare `ack` sets the 1-bit TCP ACK flag, while `acknum <u32>` sets the 32-bit acknowledgment number (`c <- s tcp syn ack seq 5000 acknum 1001`). Likewise, always write `srcport` and `dstport` rather than `sport` / `dport`.
 
-### 2. `UDP` — Stateless Datagrams, Tunnels and Broadcasts
+### 2. `udp` — Stateless Datagrams, Tunnels and Broadcasts
 
 A bare `tx -> rx udp` emits an empty RFC 768 datagram to `dstport 80` (handy for quick firewall or traceroute probes).
 
@@ -218,22 +218,22 @@ A bare `tx -> rx udp` emits an empty RFC 768 datagram to `dstport 80` (handy for
 | :--- | :--- | :--- |
 | `srcport <0..65535>` | `srcport 53111` | Vary `srcport` across packets to test ECMP / NIC RSS hashing |
 | `dstport <0..65535>` | `dstport 4791` | `7` Echo, `9` WoL, `53` DNS, `67`/`68` DHCP, `319`/`320` PTP, `500`/`4500` IPsec, `2152` GTP-U, `3784`/`3785` BFD, `4789` VXLAN, `4791` RoCEv2, `5246`/`5247` CAPWAP, `5684` DTLS, `6081` GENEVE, `6635` MPLS-in-UDP, `8125` StatsD, `33434+` Traceroute |
-| `payload` / `hexpayload` | `hexpayload "ff"` | Binary tunnel headers (`GTP-U`, `RoCEv2` BTH, `DTLS` records, `NAT-T` keepalives) |
+| `payload` / `hexpayload` | `hexpayload "ff"` | Binary tunnel headers (GTP-U, RoCEv2 BTH, DTLS records, NAT-T keepalives) |
 
-### 3. `SCTP` — Multi-Stream Associations and 5G/Telecom PPIDs
+### 3. `sctp` — Multi-Stream Associations and 5G/Telecom PPIDs
 
 Every `sctp` frame specifies a `chunk` type (or defaults to `init` on a bare `a -> b sctp`) and automatically writes a valid 32-bit Castagnoli `CRC-32c` checksum.
 
 | Modifier | Applies To | Default | What It Controls |
 | :--- | :--- | :--- | :--- |
-| `chunk <type>` | All `sctp` | `init` | `init`, `init_ack`, `cookie_echo`, `cookie_ack`, `data`, `sack`, `heartbeat`, `heartbeat_ack`, `shutdown`, `shutdown_ack`, `abort` |
+| `chunk <type>` | All `sctp` | `init` | `init`, `initack`, `cookieecho`, `cookieack`, `data`, `sack`, `heartbeat`, `heartbeatack`, `shutdown`, `shutdownack`, `abort` |
 | `vtag <u32>` | All `sctp` | `0` (`init`) | 32-bit Verification Tag (`0` on `init`; peer's tag on established/teardown chunks) |
 | `stream <u16>` | `chunk data` | `0` | Independent Stream ID (`0..65535`) preventing Head-of-Line blocking |
 | `ssn <u16>` | `chunk data` | `0` | Per-stream sequence number (`0, 1, 2...`) |
 | `ppid <u32>` | `chunk data` | `0` | Payload Protocol ID—tells Wireshark and middleboxes which L7 dissector to run |
 | `srcport` / `dstport`| All `sctp` | Ephemeral / `80` | 16-bit SCTP source and destination port numbers |
 
-#### Handy 5G, Telecom & WebRTC `SCTP` Ports and `PPID`s
+#### Handy 5G, Telecom & WebRTC `sctp` Ports and `ppid`s
 
 | Interface / Protocol | Typical Port | `ppid` | Example `.fasm` Snippet |
 | :--- | :---: | :---: | :--- |
@@ -243,10 +243,10 @@ Every `sctp` frame specifies a `chunk` type (or defaults to `init` on a bare `a 
 | **5G O-RAN E1AP (`CU-CP` <-> `CU-UP`)**| `38462` | `64` | `sctp chunk data vtag 100 stream 1 ssn 0 ppid 64 srcport 38462 dstport 38462` |
 | **4G LTE S1AP / X2AP** | `36412` / `36422` | `18` / `27` | `sctp chunk data vtag 100 stream 0 ssn 0 ppid 18 srcport 36412 dstport 36412` |
 | **Diameter (`S6a` / `Gy` / `Rx`)** | `3868` | `46` | `sctp chunk data vtag 100 stream 1 ssn 0 ppid 46 srcport 3868 dstport 3868` |
-| **SIGTRAN `M2UA` / `M3UA` / `M2PA`** | `2904` / `2905` / `3565`| `2` / `3` / `5` | `sctp chunk data vtag 100 stream 0 ssn 0 ppid 3 srcport 2905 dstport 2905` |
-| **SIGTRAN `SUA` / `H.248` Megaco** | `14001` / `2944` | `4` / `7` | `sctp chunk data vtag 100 stream 1 ssn 0 ppid 4 srcport 14001 dstport 14001` |
-| **3G/4G Small-Cell `Iuh` (`RUA`/`HNBAP`)**| `29169` | `19` / `20` | `sctp chunk data vtag 100 stream 0 ssn 0 ppid 20 srcport 29169 dstport 29169` |
-| **WebRTC DataChannel (`DCEP` / UTF-8)**| `5000` | `50` / `51` | `sctp chunk data vtag 100 stream 1 ssn 1 ppid 51 srcport 5000 dstport 5000` |
+| **SIGTRAN M2UA / M3UA / M2PA** | `2904` / `2905` / `3565`| `2` / `3` / `5` | `sctp chunk data vtag 100 stream 0 ssn 0 ppid 3 srcport 2905 dstport 2905` |
+| **SIGTRAN SUA / H.248 Megaco** | `14001` / `2944` | `4` / `7` | `sctp chunk data vtag 100 stream 1 ssn 0 ppid 4 srcport 14001 dstport 14001` |
+| **3G/4G Small-Cell Iuh (RUA/HNBAP)**| `29169` | `19` / `20` | `sctp chunk data vtag 100 stream 0 ssn 0 ppid 20 srcport 29169 dstport 29169` |
+| **WebRTC DataChannel (DCEP / UTF-8)**| `5000` | `50` / `51` | `sctp chunk data vtag 100 stream 1 ssn 1 ppid 51 srcport 5000 dstport 5000` |
 
 ## Inspecting, Reversing and Replaying Layer 4 Captures
 
@@ -257,8 +257,8 @@ $ tshark -r tcp_anomalies.pcap -T fields -e frame.number -e tcp.seq -e tcp.ack -
 # Inspect SCTP chunk types, Verification Tags, Stream IDs, PPIDs, and CRC-32c validation
 $ tshark -r sctp_5g.pcap -Y "sctp" -T fields -e frame.number -e sctp.verif_tag -e sctp.chunk_type -e sctp.data_sid -e sctp.payload_proto_id
 
-# Reverse an existing TCP, UDP, or SCTP capture into editable .fasm code (defaults to <input_stem>.fasm)
-$ frameassembly reverse tcp_anomalies.pcap -o edited_tcp.fasm
+# Reverse an existing TCP, UDP, or SCTP capture into .fasm code (defaults to <input_stem>.fasm)
+$ frameassembly reverse tcp_anomalies.pcap edited_tcp.fasm
 
 # Test stateful firewall / Suricata IDS detection on custom TCP scans or UDP tunnels
 $ suricata -r syn_proxy_and_scan_audit.pcap -k none
@@ -267,7 +267,7 @@ $ sudo tcpreplay -i eth0 l4_demo.pcap
 
 ## Related Documentation
 
-* [**Getting Started (`getting_started.md`)**](getting_started.md) — Core `host` / `flow` / `compile` mechanics, `wait` intervals, and `loop` blocks.
+* [**Getting Started (`getting_started.md`)**](getting_started.md) — Core `host` / `flow` / `compile` mechanics, `wait` intervals, and `frameassembly show`.
 * [**Real-World Use Cases (`use_cases.md`)**](use_cases.md) — Copy-paste recipes for stateful firewall audits, QoS trunks, SNMPv3 alerts, and SIEM testing.
 * [**Layer 2 — Switching & Data Link (`l2_protocols.md`)**](l2_protocols.md) — Wrap TCP, UDP, and SCTP flows in `vlan`, `qinq`, and `mpls` tags.
 * [**Layer 3 — Network, Routing & Tunnels (`l3_protocols.md`)**](l3_protocols.md) — Native keywords for `vxlan`, `geneve`, `bfd`, `ikev2`, `esp`, and `wireguard`.

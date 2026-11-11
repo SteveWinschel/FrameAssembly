@@ -1,25 +1,25 @@
 // PROMPT: Inter-AS MPLS VPN Option C ASBRs exchanging RFC 8277 BGP Labeled Unicast (BGP-LU) transport labels.
-// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, TCP, PSH, ACK, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, BGP, KEEPALIVE, COMPILE
+// TOKENS: host, ip, mac, flow, mpls, exp, bos, mplsttl, tcp, psh, ack, srcport, dstport, seq, acknum, win, payload, wait, ms, bgp, keepalive, compile
 
 // INSTRUCTION: Define AS 65001 autonomous system border router (ASBR-1).
-HOST asbr_optc_as65001 {
-    IP 198.18.1.1
-    MAC 00:1c:73:12:01:01
+host asbr_optc_as65001 {
+    ip 198.18.1.1
+    mac 00:1c:73:12:01:01
 }
 
 // INSTRUCTION: Define AS 65002 autonomous system border router (ASBR-2).
-HOST asbr_optc_as65002 {
-    IP 198.18.1.2
-    MAC 00:1c:73:12:01:02
+host asbr_optc_as65002 {
+    ip 198.18.1.2
+    mac 00:1c:73:12:01:02
 }
 
 // INSTRUCTION: Transport inter-AS VPN traffic over BGP-LU label 29901 and exchange MP-BGP KEEPALIVE.
-FLOW mpls_inter_as_option_c(as1, as2) {
-    as1 -> as2 MPLS 29901 EXP 4 BOS 1 MPLS_TTL 62 TCP PSH ACK SRCPORT 54321 DSTPORT 443 SEQ 100 ACKNUM 1 WIN 65535 PAYLOAD "inter_as_opt_c_vpn_workload" WAIT 5ms
-    as1 <- as2 MPLS 29902 EXP 6 BOS 1 MPLS_TTL 64 BGP KEEPALIVE
+flow mpls_inter_as_option_c(as1, as2) {
+    as1 -> as2 mpls 29901 exp 4 bos 1 mplsttl 62 tcp psh ack srcport 54321 dstport 443 seq 100 acknum 1 win 65535 payload "inter_as_opt_c_vpn_workload" wait 5ms
+    as1 <- as2 mpls 29902 exp 6 bos 1 mplsttl 64 bgp keepalive
 }
 
 // INSTRUCTION: Compile the Inter-AS MPLS Option C BGP-LU transport trace.
-COMPILE {
+compile {
     mpls_inter_as_option_c(asbr_optc_as65001, asbr_optc_as65002)
 }

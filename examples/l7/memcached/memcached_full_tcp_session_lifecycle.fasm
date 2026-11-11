@@ -1,33 +1,33 @@
 // PROMPT: Create a full TCP-connected Memcached session establishing a connection, setting a session key, fetching it, and closing.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SRCPORT, DSTPORT, SYN, SEQ, WIN, WAIT, ACK, ACKNUM, MEMCACHED, SET, KEY, EXPTIME, OPAQUE, CAS, PAYLOAD, GET, FIN, COMPILE
+// TOKENS: host, ip, mac, flow, s, tcp, srcport, dstport, syn, seq, win, wait, ms, ack, acknum, memcached, set, key, exptime, opaque, cas, payload, get, fin, compile
 
 // INSTRUCTION: Define the backend microservice caching user profile objects.
-HOST profile_svc {
-    IP 10.20.15.30
-    MAC 00:50:56:20:15:30
+host profile_svc {
+    ip 10.20.15.30
+    mac 00:50:56:20:15:30
 }
 
 // INSTRUCTION: Define the Memcached server listening on TCP port 11211.
-HOST memcached_srv {
-    IP 10.20.15.10
-    MAC 00:50:56:20:15:10
+host memcached_srv {
+    ip 10.20.15.10
+    mac 00:50:56:20:15:10
 }
 
 // INSTRUCTION: Perform a TCP handshake on port 11211, execute SET and GET operations, and close cleanly with FIN.
-FLOW tcp_memcached_lifecycle(c, s) {
-    c -> s TCP SRCPORT 51400 DSTPORT 11211 SYN SEQ 300000 WIN 64240 WAIT 1ms
-    c <- s TCP SRCPORT 11211 DSTPORT 51400 SYN ACK SEQ 400000 ACKNUM 300001 WIN 65535 WAIT 1ms
-    c -> s TCP SRCPORT 51400 DSTPORT 11211 ACK SEQ 300001 ACKNUM 400001 WIN 64240 WAIT 2ms
-    c -> s MEMCACHED SRCPORT 51400 DSTPORT 11211 SEQ 300001 ACKNUM 400001 SET KEY "user:profile:9001" EXPTIME 3600 OPAQUE 101 CAS 1 PAYLOAD "{\"tier\":\"platinum\"}" WAIT 2ms
-    c <- s MEMCACHED SRCPORT 11211 DSTPORT 51400 SEQ 400001 ACKNUM 300065 SET KEY "user:profile:9001" OPAQUE 101 CAS 1 WAIT 5ms
-    c -> s MEMCACHED SRCPORT 51400 DSTPORT 11211 SEQ 300065 ACKNUM 400045 GET KEY "user:profile:9001" OPAQUE 102 WAIT 2ms
-    c <- s MEMCACHED SRCPORT 11211 DSTPORT 51400 SEQ 400045 ACKNUM 300106 GET KEY "user:profile:9001" OPAQUE 102 CAS 1 PAYLOAD "{\"tier\":\"platinum\"}" WAIT 2ms
-    c -> s TCP SRCPORT 51400 DSTPORT 11211 FIN ACK SEQ 300106 ACKNUM 400110 WIN 64240 WAIT 1ms
-    c <- s TCP SRCPORT 11211 DSTPORT 51400 FIN ACK SEQ 400110 ACKNUM 300107 WIN 65535 WAIT 1ms
-    c -> s TCP SRCPORT 51400 DSTPORT 11211 ACK SEQ 300107 ACKNUM 400111 WIN 64240
+flow tcp_memcached_lifecycle(c, s) {
+    c -> s tcp srcport 51400 dstport 11211 syn seq 300000 win 64240 wait 1ms
+    c <- s tcp srcport 11211 dstport 51400 syn ack seq 400000 acknum 300001 win 65535 wait 1ms
+    c -> s tcp srcport 51400 dstport 11211 ack seq 300001 acknum 400001 win 64240 wait 2ms
+    c -> s memcached srcport 51400 dstport 11211 seq 300001 acknum 400001 set key "user:profile:9001" exptime 3600 opaque 101 cas 1 payload "{\"tier\":\"platinum\"}" wait 2ms
+    c <- s memcached srcport 11211 dstport 51400 seq 400001 acknum 300065 set key "user:profile:9001" opaque 101 cas 1 wait 5ms
+    c -> s memcached srcport 51400 dstport 11211 seq 300065 acknum 400045 get key "user:profile:9001" opaque 102 wait 2ms
+    c <- s memcached srcport 11211 dstport 51400 seq 400045 acknum 300106 get key "user:profile:9001" opaque 102 cas 1 payload "{\"tier\":\"platinum\"}" wait 2ms
+    c -> s tcp srcport 51400 dstport 11211 fin ack seq 300106 acknum 400110 win 64240 wait 1ms
+    c <- s tcp srcport 11211 dstport 51400 fin ack seq 400110 acknum 300107 win 65535 wait 1ms
+    c -> s tcp srcport 51400 dstport 11211 ack seq 300107 acknum 400111 win 64240
 }
 
 // INSTRUCTION: Compile the full TCP Memcached session lifecycle into a PCAP file.
-COMPILE {
+compile {
     tcp_memcached_lifecycle(profile_svc, memcached_srv)
 }

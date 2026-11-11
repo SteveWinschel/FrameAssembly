@@ -4,10 +4,10 @@
 //! protocol `103` (`0x67`) and addressed to All-PIM-Routers (`224.0.0.13` for IPv4, `ff02::d` for
 //! IPv6). The 4-byte PIMv2 header encodes `PIM Ver = 2` and `Type = 0` (`0x20`), an 8-bit `Reserved`
 //! zero byte, and a 16-bit ones'-complement Internet Checksum, followed by Option `1` (`Holdtime`,
-//! Length `2`, `HOLDTIME` default `105`s) and Option `19` (`DR Priority`, Length `4`, `DR_PRIORITY` default `1`).
+//! Length `2`, `holdtime` default `105`s) and Option `19` (`DR Priority`, Length `4`, `drpriority` default `1`).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b PIM [HELLO | JOIN_PRUNE | REGISTER] [HOLDTIME <u16>] [DR_PRIORITY <u32>] [GROUP <ip>] [SOURCE <ip>] [RP <ip>]`
+//! `a -> b pim [hello | joinprune | register] [holdtime <u16>] [drpriority <u32>] [group <ip>] [source <ip>] [rp <ip>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

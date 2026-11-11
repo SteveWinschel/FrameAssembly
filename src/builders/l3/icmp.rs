@@ -2,13 +2,13 @@
 //!
 //! Serializes an [`IcmpSpec`] into either an RFC 792 ICMPv4 packet (IP protocol `1`) when both
 //! endpoints are IPv4 or an RFC 4443 ICMPv6 packet (Next Header `58`) when both endpoints are IPv6.
-//! The builder automatically maps symbolic types (`ECHO_REQUEST`, `ECHO_REPLY`, `DEST_UNREACH`,
-//! `TIME_EXCEEDED`, `REDIRECT`) to their address-family-specific wire codes (`8`/`0`/`3`/`11`/`5` for
-//! IPv4; `128`/`129`/`1`/`3`/`137` for IPv6), populates `ID`, `SEQ`, or `GATEWAY`, and computes the
+//! The builder automatically maps symbolic types (`echorequest`, `echoreply`, `destunreach`,
+//! `timeexceeded`, `redirect`) to their address-family-specific wire codes (`8`/`0`/`3`/`11`/`5` for
+//! IPv4; `128`/`129`/`1`/`3`/`137` for IPv6), populates `id`, `seq`, or `gateway`, and computes the
 //! ones'-complement Internet checksum (including the 40-byte IPv6 pseudo-header for ICMPv6).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b ICMP [ECHO_REQUEST | ECHO_REPLY | DEST_UNREACH | TIME_EXCEEDED | REDIRECT] [TYPE <u8>] [CODE <u8>] [ID <u16>] [SEQ <u16>] [GATEWAY <ipv4>]`
+//! `a -> b icmp [echorequest | echoreply | destunreach | timeexceeded | redirect] [type <u8>] [code <u8>] [id <u16>] [seq <u16>] [gateway <ipv4>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

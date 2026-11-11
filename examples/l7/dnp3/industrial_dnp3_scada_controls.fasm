@@ -1,19 +1,19 @@
 // PROMPT: Electric utility substation telemetry using Distributed Network Protocol DNP3 on TCP 20000.
-// TOKENS: HOST, IP, FLOW, DNP3, FUNC, OPERATE, COMPILE
+// TOKENS: host, ip, flow, m, dnp3, func, read, operate, compile
 
 // INSTRUCTION: Define substation control center master.
-HOST substation_master { IP 10.10.100.1 }
+host substation_master { ip 10.10.100.1 }
 
 // INSTRUCTION: Define remote terminal unit outstation.
-HOST outstation_rtu { IP 10.10.100.2 }
+host outstation_rtu { ip 10.10.100.2 }
 
 // INSTRUCTION: Define DNP3 read and operate command flow.
-FLOW dnp3_flow(m, r) {
-    m -> r DNP3 FUNC READ
-    m -> r DNP3 FUNC OPERATE
+flow dnp3_flow(m, r) {
+    m -> r dnp3 func read
+    m -> r dnp3 func operate
 }
 
 // INSTRUCTION: Compile block executing DNP3 supervisory commands.
-COMPILE {
+compile {
     dnp3_flow(substation_master, outstation_rtu)
 }

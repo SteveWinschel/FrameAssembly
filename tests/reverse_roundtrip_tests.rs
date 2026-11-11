@@ -1,13 +1,14 @@
 //! Comprehensive end-to-end round-trip verification suite (`fasm -> pcap -> reverse -> fasm -> pcap`)
-//! for FrameAssembly's 5-stage PCAP and PCAPNG to `.fasm` reverse decompiler across all 81 native
-//! Layer 2 through Layer 7 protocols.
+//! for FrameAssembly v2.0.0's 5-stage PCAP and PCAPNG to `.fasm` reverse decompiler across all 81
+//! native Layer 2 through Layer 7 protocols.
 //!
 //! This integration test suite verifies that every protocol supported by FrameAssembly compiles to
 //! binary PCAPNG frames, decompiles via [`frameassembly::reverse::reverse_pcap_bytes`],
 //! [`frameassembly::reverse::reverse_pcap_reader`], and [`frameassembly::reverse::reverse_pcap_file`]
-//! into canonical lowercase `.fasm` code (with zero `//` diagnostic comments, sequential `host_1` /
-//! `host_2` topology discovery, and inline `compile { ... }` statements), and recompiles to
-//! byte-for-byte identical Ethernet II wire frames with identical relative nanosecond timestamps.
+//! into strict-lowercase v2.0.0 `.fasm` code (with zero `//` diagnostic comments, sequential
+//! `host1` / `host2` topology discovery, native protocol keywords without stepping down to
+//! `hexpayload`, and inline `compile { ... }` statements), and recompiles to byte-for-byte
+//! identical Ethernet II wire frames with identical relative nanosecond timestamps.
 
 use std::borrow::Cow;
 use std::fs;
@@ -54,9 +55,9 @@ fn frames_to_pcapng(frames: &[(Vec<u8>, u64)]) -> Vec<u8> {
     buf
 }
 
-/// Compiles `fasm_src`, decompiles the emitted PCAPNG via `reverse_pcap_bytes`, verifies canonical
-/// formatting and presence of `expected_kw`, recompiles the decompiled `.fasm`, and asserts
-/// byte-for-byte frame equality and relative timestamp preservation.
+/// Compiles `fasm_src`, decompiles the emitted PCAPNG via `reverse_pcap_bytes`, verifies v2.0.0
+/// strict-lowercase formatting (`host1`, `host2`, zero `hexpayload`, presence of `expected_kw`),
+/// recompiles the decompiled `.fasm`, and asserts byte-for-byte frame and timestamp equality.
 fn assert_protocol_roundtrip(label: &str, fasm_src: &str, expected_kw: &str) -> String {
     let prog = parse_program(fasm_src)
         .unwrap_or_else(|e| panic!("[{label}] failed to parse original .fasm: {e:?}"));
@@ -89,13 +90,13 @@ fn assert_protocol_roundtrip(label: &str, fasm_src: &str, expected_kw: &str) -> 
         rev.fasm
     );
     assert!(
-        rev.fasm.contains("host host_1") && rev.fasm.contains("host host_2"),
-        "[{label}] reversed .fasm must declare host_1 and host_2:\n{}",
+        rev.fasm.contains("host host1") && rev.fasm.contains("host host2"),
+        "[{label}] reversed .fasm must declare host1 and host2:\n{}",
         rev.fasm
     );
     assert!(
-        !rev.fasm.contains("\nflow "),
-        "[{label}] reversed .fasm must not emit flow blocks:\n{}",
+        !rev.fasm.contains("\nflow ") && !rev.fasm.contains("loop "),
+        "[{label}] reversed .fasm must not emit flow or loop blocks:\n{}",
         rev.fasm
     );
     assert!(
@@ -103,6 +104,19 @@ fn assert_protocol_roundtrip(label: &str, fasm_src: &str, expected_kw: &str) -> 
         "[{label}] reversed .fasm must contain inline compile block:\n{}",
         rev.fasm
     );
+    if matches!(expected_kw, "vxlan" | "geneve") {
+        assert!(
+            rev.fasm.contains(&format!("-> host2 {expected_kw}")),
+            "[{label}] overlay protocol '{expected_kw}' stepped down to raw UDP fallback:\n{}",
+            rev.fasm
+        );
+    } else {
+        assert!(
+            !rev.fasm.contains("hexpayload"),
+            "[{label}] native protocol dissector stepped down to hexpayload:\n{}",
+            rev.fasm
+        );
+    }
     assert!(
         rev.fasm.contains(expected_kw),
         "[{label}] expected keyword '{expected_kw}' in reversed .fasm:\n{}",
@@ -160,310 +174,390 @@ fn assert_protocol_roundtrip(label: &str, fasm_src: &str, expected_kw: &str) -> 
 /// Runs a dual-stack (IPv4 and IPv6) round-trip test for a protocol statement body.
 fn assert_dual_stack_roundtrip(label: &str, stmt_body: &str, expected_kw: &str) {
     let v4_src = format!(
-        "HOST h1 {{ IP 10.10.1.1 MAC 00:11:22:33:44:01 }}\n\
-         HOST h2 {{ IP 10.10.1.2 MAC 00:11:22:33:44:02 }}\n\
-         FLOW f(a, b) {{ a -> b {stmt_body} }}\n\
-         COMPILE {{ f(h1, h2) }}\n"
+        "host h1 {{ ip 10.10.1.1 mac 00:11:22:33:44:01 }}\n\
+         host h2 {{ ip 10.10.1.2 mac 00:11:22:33:44:02 }}\n\
+         flow f(a, b) {{ a -> b {stmt_body} }}\n\
+         compile {{ f(h1, h2) }}\n"
     );
     assert_protocol_roundtrip(&format!("{label}_ipv4"), &v4_src, expected_kw);
 
     let v6_src = format!(
-        "HOST h1 {{ IP 2001:db8:10::1 MAC 00:11:22:33:44:01 }}\n\
-         HOST h2 {{ IP 2001:db8:10::2 MAC 00:11:22:33:44:02 }}\n\
-         FLOW f(a, b) {{ a -> b {stmt_body} }}\n\
-         COMPILE {{ f(h1, h2) }}\n"
+        "host h1 {{ ip 2001:db8:10::1 mac 00:11:22:33:44:01 }}\n\
+         host h2 {{ ip 2001:db8:10::2 mac 00:11:22:33:44:02 }}\n\
+         flow f(a, b) {{ a -> b {stmt_body} }}\n\
+         compile {{ f(h1, h2) }}\n"
     );
     assert_protocol_roundtrip(&format!("{label}_ipv6"), &v6_src, expected_kw);
 }
 
-/// Verifies round-trip decompilation and byte-identical recompilation across all 8 Layer 2 protocols
-/// (`arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`).
+/// Verifies in one exhaustive pass that all 81 zero-keyword RFC-default protocol statements
+/// round-trip through `reverse_pcap_bytes` emitting protocol-specific keywords rather than
+/// stepping down to `hexpayload`.
+#[test]
+fn test_all_81_protocols_zero_keyword_roundtrip_without_hexpayload() {
+    let ipv4_79: &[(&str, &str)] = &[
+        // L2 (8 — note vlan/qinq/mpls over IP hosts carry default IPv4 ICMP/UDP or L2 ethertype)
+        ("arp", "arp"),
+        ("vlan 100 icmp", "vlan 100"),
+        ("qinq 200 innervlan 50 icmp", "qinq 200 innervlan 50"),
+        ("lldp", "lldp"),
+        ("stp", "stp"),
+        ("lacp", "lacp"),
+        ("eapol", "eapol"),
+        ("mpls 1000 icmp", "mpls 1000"),
+        // L3 IPv4-capable (18 of 20; ndp & mld are IPv6-only)
+        ("icmp", "icmp"),
+        ("igmp", "igmp"),
+        ("gre", "gre"),
+        ("vxlan", "vxlan"),
+        ("geneve", "geneve"),
+        ("ipsec", "esp"),
+        ("esp", "esp"),
+        ("ah", "ah"),
+        ("ikev2", "ikev2"),
+        ("wireguard", "wireguard"),
+        ("ospf", "ospf"),
+        ("bgp", "bgp"),
+        ("rip", "rip"),
+        ("vrrp", "vrrp"),
+        ("hsrp", "hsrp"),
+        ("pim", "pim"),
+        ("bfd", "bfd"),
+        ("openflow", "openflow"),
+        // L4 (3)
+        ("tcp", "tcp"),
+        ("udp", "udp"),
+        ("sctp", "sctp"),
+        // L7 (50)
+        ("snmp1", "snmp1"),
+        ("snmp2", "snmp2"),
+        ("snmp3", "snmp3"),
+        ("dns", "dns"),
+        ("mdns", "mdns"),
+        ("dhcp", "dhcp"),
+        ("ntp", "ntp"),
+        ("ptp", "ptp"),
+        ("radius", "radius"),
+        ("tacacs", "tacacs"),
+        ("syslog", "syslog"),
+        ("netflow", "netflow"),
+        ("ipfix", "ipfix"),
+        ("sflow", "sflow"),
+        ("tftp", "tftp"),
+        ("ftp", "ftp"),
+        ("ssh", "ssh"),
+        ("telnet", "telnet"),
+        ("http", "http"),
+        ("http2", "http2"),
+        ("grpc", "grpc"),
+        ("websocket", "websocket"),
+        ("tls", "tls"),
+        ("quic", "quic"),
+        ("stun", "stun"),
+        ("sip", "sip"),
+        ("rtp", "rtp"),
+        ("rtsp", "rtsp"),
+        ("smtp", "smtp"),
+        ("imap", "imap"),
+        ("pop3", "pop3"),
+        ("kerberos", "kerberos"),
+        ("ldap", "ldap"),
+        ("smb", "smb"),
+        ("nfs", "nfs"),
+        ("redis", "redis"),
+        ("memcached", "memcached"),
+        ("mysql", "mysql"),
+        ("postgres", "postgres"),
+        ("mqtt", "mqtt"),
+        ("coap", "coap"),
+        ("amqp", "amqp"),
+        ("ssdp", "ssdp"),
+        ("whois", "whois"),
+        ("modbus", "modbus"),
+        ("bacnet", "bacnet"),
+        ("dnp3", "dnp3"),
+        ("s7comm", "s7comm"),
+        ("ethernetip", "ethernetip"),
+        ("opcua", "opcua"),
+    ];
+    assert_eq!(ipv4_79.len(), 79);
+
+    let mut stepped_down_or_hex = Vec::new();
+    for &(stmt, expected_kw) in ipv4_79 {
+        let src = format!(
+            "host h1 {{ ip 10.99.0.1 mac 00:11:22:33:44:01 }}\n\
+             host h2 {{ ip 10.99.0.2 mac 00:11:22:33:44:02 }}\n\
+             compile {{ h1 -> h2 {stmt} }}\n"
+        );
+        let fasm = assert_protocol_roundtrip(&format!("zero_kw_{stmt}"), &src, expected_kw);
+        if !matches!(stmt, "vxlan" | "geneve") && fasm.contains("hexpayload") {
+            stepped_down_or_hex.push((stmt, fasm));
+        }
+    }
+
+    for &(stmt, expected_kw) in &[("ndp", "ndp"), ("mld", "mld")] {
+        let src = format!(
+            "host h1 {{ ip 2001:db8:99::1 mac 00:11:22:33:44:01 }}\n\
+             host h2 {{ ip 2001:db8:99::2 mac 00:11:22:33:44:02 }}\n\
+             compile {{ h1 -> h2 {stmt} }}\n"
+        );
+        let fasm = assert_protocol_roundtrip(&format!("zero_kw_{stmt}"), &src, expected_kw);
+        if !matches!(stmt, "vxlan" | "geneve") && fasm.contains("hexpayload") {
+            stepped_down_or_hex.push((stmt, fasm));
+        }
+    }
+
+    assert!(
+        stepped_down_or_hex.is_empty(),
+        "Zero-keyword protocols unexpectedly emitted hexpayload:\n{:#?}",
+        stepped_down_or_hex
+    );
+}
+
+/// Verifies round-trip decompilation and byte-identical recompilation across all 8 Layer 2 protocols.
 #[test]
 fn test_roundtrip_all_8_l2_protocols() {
-    // 1. ARP (IPv4 Request + Reply, and Gratuitous ARP)
     let arp_v4 = r#"
-        HOST a { IP 192.168.1.10 MAC 00:11:22:33:44:01 }
-        HOST b { IP 192.168.1.20 MAC 00:11:22:33:44:02 }
-        FLOW f(x, y) {
-            x -> y ARP REQUEST WAIT 5ms
-            x <- y ARP REPLY WAIT 5ms
-            x -> y ARP REQUEST GRATUITOUS WAIT 5ms
+        host a { ip 192.168.1.10 mac 00:11:22:33:44:01 }
+        host b { ip 192.168.1.20 mac 00:11:22:33:44:02 }
+        flow f(x, y) {
+            x -> y arp request wait 5ms
+            x <- y arp reply wait 5ms
+            x -> y arp request gratuitous wait 5ms
         }
-        COMPILE { f(a, b) }
+        compile { f(a, b) }
     "#;
     let fasm = assert_protocol_roundtrip("l2_arp_ipv4", arp_v4, "arp request");
     assert!(fasm.contains("arp reply") && fasm.contains("gratuitous"));
 
-    // 2. Standalone pure-L2 protocols (`vlan`, `qinq`, `mpls`, `lldp`, `stp`, `lacp`, `eapol`)
     let l2_cases: &[(&str, &str, &str)] = &[
         (
             "l2_vlan",
-            "VLAN 150 PCP 5 DEI 1 ETHERTYPE 0x88b5 PAYLOAD \"vlan-l2\"",
+            "vlan 150 pcp 5 dei 1 ethertype 0x88b5 payload \"vlan-l2\"",
             "vlan 150",
         ),
         (
             "l2_qinq",
-            "QINQ 200 INNER_VLAN 50 PCP 3 ETHERTYPE 0x88b5 PAYLOAD \"qinq-l2\"",
-            "qinq 200 inner_vlan 50",
+            "qinq 200 innervlan 50 pcp 3 ethertype 0x88b5 payload \"qinq-l2\"",
+            "qinq 200 innervlan 50",
         ),
         (
             "l2_mpls",
-            "MPLS 1048 EXP 4 BOS 1 MPLS_TTL 32 PAYLOAD \"mpls-l2\"",
+            "mpls 1048 exp 4 bos 1 mplsttl 32 payload \"mpls-l2\"",
             "mpls 1048",
         ),
         (
             "l2_lldp",
-            "LLDP CHASSIS_ID \"core-01\" PORT_ID \"Gi0/1\" SYSNAME \"core01.local\" SYSDESC \"FrameAssembly Switch\"",
+            "lldp chassisid \"core-01\" portid \"Gi0/1\" sysname \"core01.local\" sysdesc \"FrameAssembly Switch\"",
             "lldp",
         ),
-        (
-            "l2_stp",
-            "STP RSTP",
-            "stp",
-        ),
-        (
-            "l2_lacp",
-            "LACP ACTOR_KEY 10 PARTNER_KEY 10",
-            "lacp",
-        ),
-        (
-            "l2_eapol",
-            "EAPOL TYPE START",
-            "eapol",
-        ),
+        ("l2_stp", "stp rstp", "stp"),
+        ("l2_lacp", "lacp actorkey 10 partnerkey 10", "lacp"),
+        ("l2_eapol", "eapol type start", "eapol"),
     ];
 
     for &(label, stmt, kw) in l2_cases {
         let src = format!(
-            "HOST s1 {{ MAC 00:11:22:33:44:01 }}\n\
-             HOST s2 {{ MAC 00:11:22:33:44:02 }}\n\
-             FLOW f(a, b) {{ a -> b {stmt} }}\n\
-             COMPILE {{ f(s1, s2) }}\n"
+            "host s1 {{ mac 00:11:22:33:44:01 }}\n\
+             host s2 {{ mac 00:11:22:33:44:02 }}\n\
+             flow f(a, b) {{ a -> b {stmt} }}\n\
+             compile {{ f(s1, s2) }}\n"
         );
         assert_protocol_roundtrip(label, &src, kw);
     }
 }
 
-/// Verifies round-trip decompilation and byte-identical recompilation across all 20 Layer 3 protocols
-/// (`icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`,
-/// `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, `openflow`) over IPv4 and IPv6.
+/// Verifies round-trip decompilation and byte-identical recompilation across all 20 Layer 3 protocols.
 #[test]
 fn test_roundtrip_all_20_l3_protocols() {
-    // Dual-stack Layer 3 protocols (17 protocols working over both IPv4 and IPv6)
     let dual_stack_l3: &[(&str, &str, &str)] = &[
         (
             "l3_icmp",
-            "ICMP ECHO_REQUEST ID 0x4321 SEQ 9 PAYLOAD \"ping-data\"",
-            "icmp echo_request",
+            "icmp echorequest id 0x4321 seq 9 payload \"ping-data\"",
+            "icmp echorequest",
         ),
-        ("l3_gre", "GRE GRE_KEY 1234 PAYLOAD \"inner_ip\"", "gre"),
-        ("l3_vxlan", "VXLAN VNI 50010", "vxlan"),
-        ("l3_geneve", "GENEVE VNI 60020", "geneve"),
+        ("l3_gre", "gre grekey 1234 payload \"inner_ip\"", "gre"),
+        ("l3_vxlan", "vxlan vni 50010", "vxlan"),
+        ("l3_geneve", "geneve vni 60020", "geneve"),
         (
             "l3_ipsec",
-            "IPSEC SPI 0x2000 SEQ 5 PAYLOAD \"ciphertext\"",
+            "ipsec spi 0x2000 seq 5 payload \"ciphertext\"",
             "esp spi 0x2000 seq 5",
         ),
         (
             "l3_esp",
-            "ESP SPI 0x3000 SEQ 7 PAYLOAD \"ciphertext\"",
+            "esp spi 0x3000 seq 7 payload \"ciphertext\"",
             "esp spi 0x3000 seq 7",
         ),
         (
             "l3_ah",
-            "AH SPI 0x4000 SEQ 11 PAYLOAD \"ah_payload\"",
+            "ah spi 0x4000 seq 11 payload \"ah_payload\"",
             "ah spi 0x4000 seq 11",
         ),
-        (
-            "l3_ikev2",
-            "IKEV2 EXCHANGE SA_INIT MSGID 0",
-            "ikev2",
-        ),
+        ("l3_ikev2", "ikev2 exchange sainit msgid 0", "ikev2"),
         (
             "l3_wireguard",
-            "WIREGUARD TYPE INITIATION SENDER 0x01020304",
+            "wireguard type initiation sender 0x01020304",
             "wireguard",
         ),
         (
             "l3_ospf",
-            "OSPF HELLO ROUTER_ID 10.0.0.1 AREA_ID 0",
+            "ospf hello routerid 10.0.0.1 areaid 0",
             "ospf hello",
         ),
         (
             "l3_bgp",
-            "BGP OPEN ASN 65001 HOLDTIME 180 BGPID 10.0.0.1",
+            "bgp open asn 65001 holdtime 180 bgpid 10.0.0.1",
             "bgp open",
         ),
         (
             "l3_rip",
-            "RIP RESPONSE PREFIX 10.0.0.0 METRIC 2",
+            "rip response prefix 10.0.0.0 metric 2",
             "rip reply",
         ),
-        (
-            "l3_vrrp",
-            "VRRP VRID 10 PRIORITY 120",
-            "vrrp",
-        ),
+        ("l3_vrrp", "vrrp vrid 10 priority 120", "vrrp"),
         (
             "l3_hsrp",
-            "HSRP GROUP 10 PRIORITY 110 VIP 10.10.1.254",
+            "hsrp group 10 priority 110 vip 10.10.1.254",
             "hsrp",
         ),
-        ("l3_pim", "PIM HELLO", "pim hello"),
-        (
-            "l3_bfd",
-            "BFD STATE 3 MY_DISC 100 YOUR_DISC 200",
-            "bfd",
-        ),
-        (
-            "l3_openflow",
-            "OPENFLOW TYPE HELLO XID 0x00000010",
-            "openflow",
-        ),
+        ("l3_pim", "pim hello", "pim hello"),
+        ("l3_bfd", "bfd state 3 mydisc 100 yourdisc 200", "bfd"),
+        ("l3_openflow", "openflow type hello xid 0x00000010", "openflow"),
     ];
 
     for &(label, stmt, kw) in dual_stack_l3 {
         assert_dual_stack_roundtrip(label, stmt, kw);
     }
 
-    // IPv4-specific L3 multicast protocol: IGMP
     let igmp_src = r#"
-        HOST h1 { IP 10.10.1.1 MAC 00:11:22:33:44:01 }
-        HOST h2 { IP 10.10.1.2 MAC 00:11:22:33:44:02 }
-        FLOW f(a, b) {
-            a -> b IGMP QUERY GROUP 224.0.0.1
-            a <- b IGMP REPORT GROUP 239.1.2.3
+        host h1 { ip 10.10.1.1 mac 00:11:22:33:44:01 }
+        host h2 { ip 10.10.1.2 mac 00:11:22:33:44:02 }
+        flow f(a, b) {
+            a -> b igmp query group 224.0.0.1
+            a <- b igmp report group 239.1.2.3
         }
-        COMPILE { f(h1, h2) }
+        compile { f(h1, h2) }
     "#;
     assert_protocol_roundtrip("l3_igmp_ipv4", igmp_src, "igmp query");
 
-    // IPv6-specific L3 control protocols: NDP and MLD
     let ndp_src = r#"
-        HOST h1 { IP 2001:db8:10::1 MAC 00:11:22:33:44:01 }
-        HOST h2 { IP 2001:db8:10::2 MAC 00:11:22:33:44:02 }
-        FLOW f(a, b) {
-            a -> b NDP NEIGHBOR_SOLICIT TARGET 2001:db8:10::2
-            a <- b NDP NEIGHBOR_ADVERT TARGET 2001:db8:10::2
+        host h1 { ip 2001:db8:10::1 mac 00:11:22:33:44:01 }
+        host h2 { ip 2001:db8:10::2 mac 00:11:22:33:44:02 }
+        flow f(a, b) {
+            a -> b ndp neighborsolicit target 2001:db8:10::2
+            a <- b ndp neighboradvert target 2001:db8:10::2
         }
-        COMPILE { f(h1, h2) }
+        compile { f(h1, h2) }
     "#;
-    assert_protocol_roundtrip("l3_ndp_ipv6", ndp_src, "ndp neighbor_solicit");
+    assert_protocol_roundtrip("l3_ndp_ipv6", ndp_src, "ndp neighborsolicit");
 
     let mld_src = r#"
-        HOST h1 { IP 2001:db8:10::1 MAC 00:11:22:33:44:01 }
-        HOST h2 { IP 2001:db8:10::2 MAC 00:11:22:33:44:02 }
-        FLOW f(a, b) {
-            a -> b MLD QUERY MULTICAST_ADDR ff02::1
-            a <- b MLD REPORT MULTICAST_ADDR ff02::1:ff00:1
+        host h1 { ip 2001:db8:10::1 mac 00:11:22:33:44:01 }
+        host h2 { ip 2001:db8:10::2 mac 00:11:22:33:44:02 }
+        flow f(a, b) {
+            a -> b mld query multicastaddr ff02::1
+            a <- b mld report multicastaddr ff02::1:ff00:1
         }
-        COMPILE { f(h1, h2) }
+        compile { f(h1, h2) }
     "#;
     assert_protocol_roundtrip("l3_mld_ipv6", mld_src, "mld query");
 }
 
-/// Verifies round-trip decompilation and byte-identical recompilation across all 3 Layer 4
-/// transport protocols (`tcp`, `udp`, `sctp`) over both IPv4 and IPv6, including RFC 7323 TCP
-/// options and SCTP chunk parameters.
+/// Verifies round-trip decompilation and byte-identical recompilation across all 3 Layer 4 protocols.
 #[test]
 fn test_roundtrip_all_3_l4_protocols() {
     assert_dual_stack_roundtrip(
         "l4_tcp",
-        "TCP SYN SEQ 2500 SRCPORT 54321 DSTPORT 8080 WIN 65535 MSS 1460 WSCALE 7 SACK_PERM TSVAL 1000 TSECR 0",
+        "tcp syn seq 2500 srcport 54321 dstport 8080 win 65535 mss 1460 wscale 7 sackperm tsval 1000 tsecr 0",
         "tcp syn",
     );
     assert_dual_stack_roundtrip(
         "l4_udp",
-        "UDP SRCPORT 53000 DSTPORT 9999 PAYLOAD \"udp-datagram\"",
+        "udp srcport 53000 dstport 9999 payload \"udp-datagram\"",
         "udp",
     );
     assert_dual_stack_roundtrip(
         "l4_sctp",
-        "SCTP CHUNK DATA SRCPORT 2905 DSTPORT 2905 VTAG 0x12345678 TSN 100 STREAM 1 SSN 0 PPID 60 PAYLOAD \"sigtran\"",
+        "sctp chunk data srcport 2905 dstport 2905 vtag 0x12345678 tsn 100 stream 1 ssn 0 ppid 60 payload \"sigtran\"",
         "sctp",
     );
 }
 
-/// Verifies round-trip decompilation and byte-identical recompilation across Layer 7
-/// infrastructure, SNMP (`snmp1`, `snmp2`, `snmp3`), naming (`dns`, `mdns`), configuration
-/// (`dhcp`), time (`ntp`, `ptp`), AAA (`radius`, `tacacs`), logging (`syslog`), and flow telemetry
-/// (`netflow`, `ipfix`, `sflow`) protocols (14 protocols).
+/// Verifies round-trip decompilation across Layer 7 infrastructure, SNMP, naming, DHCP, time,
+/// AAA, logging, and flow telemetry protocols (14 protocols).
 #[test]
 fn test_roundtrip_l7_infra_snmp_and_telemetry_protocols() {
     let dual_stack_infra: &[(&str, &str, &str)] = &[
         (
             "l7_snmp1",
-            "SNMP1 GET COMMUNITY \"public\" REQID 10 OID 1.3.6.1.2.1.1.1.0",
+            "snmp1 get community \"public\" reqid 10 oid 1.3.6.1.2.1.1.1.0",
             "snmp1 get",
         ),
         (
             "l7_snmp2",
-            "SNMP2 TRAP COMMUNITY \"public\" REQID 20 OID 1.3.6.1.6.3.1.1.5.3 VARBIND 1.3.6.1.2.1.1.5.0 STRING \"core-rtr\"",
+            "snmp2 trap community \"public\" reqid 20 oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.1.5.0 string \"core-rtr\"",
             "snmp2 trap",
         ),
         (
             "l7_snmp3_cleartext",
-            "SNMP3 GET USER \"admin\" ENGINEID \"8000000001\" ENGINEBOOTS 2 ENGINETIME 500 REQID 30 OID 1.3.6.1.2.1.1.1.0",
+            "snmp3 get user \"admin\" engineid \"8000000001\" engineboots 2 enginetime 500 reqid 30 oid 1.3.6.1.2.1.1.1.0",
             "snmp3 get",
         ),
         (
             "l7_dns_udp",
-            "DNS QUERY TXID 0x1a2b QNAME \"example.com\" QTYPE \"A\"",
+            "dns query txid 0x1a2b qname \"example.com\" qtype \"a\"",
             "dns query",
         ),
         (
             "l7_dns_tcp",
-            "DNS QUERY TRANSPORT TCP TXID 0x2b3c QNAME \"example.com\" QTYPE \"AAAA\"",
+            "dns query transport tcp txid 0x2b3c qname \"example.com\" qtype \"aaaa\"",
             "dns query",
         ),
         (
             "l7_mdns",
-            "MDNS QUERY QNAME \"printer.local\" QTYPE \"A\"",
+            "mdns query qname \"printer.local\" qtype \"a\"",
             "mdns query",
         ),
         (
             "l7_ntp",
-            "NTP VN 4 MODE 3 STRATUM 2 POLL 6 PRECISION -20 REFID \"GPS\"",
+            "ntp vn 4 mode 3 stratum 2 poll 6 precision -20 refid \"GPS\"",
             "ntp",
         ),
-        (
-            "l7_ptp",
-            "PTP SYNC DOMAIN 0 SEQ_ID 42",
-            "ptp sync",
-        ),
+        ("l7_ptp", "ptp sync domain 0 seqid 42", "ptp sync"),
         (
             "l7_radius",
-            "RADIUS ACCESS_REQUEST ID 5 USER \"alice\" SERVICE_TYPE 2",
-            "radius access_request",
+            "radius accessrequest id 5 user \"alice\" servicetype 2",
+            "radius accessrequest",
         ),
         (
             "l7_tacacs",
-            "TACACS AUTHEN SEQ 1 SESSION_ID 0x11223344 USER \"netadmin\"",
+            "tacacs authen seq 1 sessionid 0x11223344 user \"netadmin\"",
             "tacacs",
         ),
         (
             "l7_syslog_udp",
-            "SYSLOG FACILITY 4 SEVERITY 2 HOSTNAME \"fw01\" APP \"sshd\" MSG \"Accepted publickey\"",
+            "syslog facility 4 severity 2 hostname \"fw01\" app \"sshd\" msg \"Accepted publickey\"",
             "syslog",
         ),
         (
             "l7_syslog_tcp",
-            "SYSLOG TRANSPORT TCP FACILITY 1 SEVERITY 6 HOSTNAME \"web01\" APP \"nginx\" MSG \"GET /ok\"",
+            "syslog transport tcp facility 1 severity 6 hostname \"web01\" app \"nginx\" msg \"GET /ok\"",
             "syslog",
         ),
         (
             "l7_netflow",
-            "NETFLOW SRCIP 10.0.0.10 DSTIP 10.0.0.20 PROTO 6 PACKETS 12 OCTETS 1440",
+            "netflow srcip 10.0.0.10 dstip 10.0.0.20 proto 6 packets 12 octets 1440",
             "netflow",
         ),
         (
             "l7_ipfix",
-            "IPFIX DOMAIN_ID 100 SRCIP 10.0.0.10 DSTIP 10.0.0.20 PROTO 6 PACKETS 5 OCTETS 500",
+            "ipfix domainid 100 srcip 10.0.0.10 dstip 10.0.0.20 proto 6 packets 5 octets 500",
             "ipfix",
         ),
         (
             "l7_sflow",
-            "SFLOW SUB_AGENT_ID 1 SEQ 10 UPTIME 5000 SAMPLES 1",
+            "sflow subagentid 1 seq 10 uptime 5000 samples 1",
             "sflow",
         ),
     ];
@@ -472,122 +566,91 @@ fn test_roundtrip_l7_infra_snmp_and_telemetry_protocols() {
         assert_dual_stack_roundtrip(label, stmt, kw);
     }
 
-    // DHCPv4 (DISCOVER + OFFER) and DHCPv6 (SOLICIT + ADVERTISE)
     let dhcpv4_src = r#"
-        HOST client { IP 10.10.1.10 MAC 00:11:22:33:44:01 }
-        HOST server { IP 10.10.1.1  MAC 00:11:22:33:44:02 }
-        FLOW f(c, s) {
-            c -> s DHCP DISCOVER XID 0x11223344 HOSTNAME "laptop01"
-            c <- s DHCP OFFER XID 0x11223344 YIADDR 10.10.1.50 SIADDR 10.10.1.1 SUBNET_MASK 255.255.255.0 ROUTER 10.10.1.1 DNS_SERVER 8.8.8.8 LEASE_TIME 3600
+        host client { ip 10.10.1.10 mac 00:11:22:33:44:01 }
+        host server { ip 10.10.1.1  mac 00:11:22:33:44:02 }
+        flow f(c, s) {
+            c -> s dhcp discover xid 0x11223344 hostname "laptop01"
+            c <- s dhcp offer xid 0x11223344 yiaddr 10.10.1.50 siaddr 10.10.1.1 subnetmask 255.255.255.0 router 10.10.1.1 dnsserver 8.8.8.8 leasetime 3600
         }
-        COMPILE { f(client, server) }
+        compile { f(client, server) }
     "#;
     assert_protocol_roundtrip("l7_dhcp_ipv4", dhcpv4_src, "dhcp discover");
 
     let dhcpv6_src = r#"
-        HOST client { IP 2001:db8:10::10 MAC 00:11:22:33:44:01 }
-        HOST server { IP 2001:db8:10::1  MAC 00:11:22:33:44:02 }
-        FLOW f(c, s) {
-            c -> s DHCP SOLICIT XID 0x123456
-            c <- s DHCP ADVERTISE XID 0x123456
+        host client { ip 2001:db8:10::10 mac 00:11:22:33:44:01 }
+        host server { ip 2001:db8:10::1  mac 00:11:22:33:44:02 }
+        flow f(c, s) {
+            c -> s dhcp solicit xid 0x123456
+            c <- s dhcp advertise xid 0x123456
         }
-        COMPILE { f(client, server) }
+        compile { f(client, server) }
     "#;
     assert_protocol_roundtrip("l7_dhcp_ipv6", dhcpv6_src, "dhcp solicit");
 }
 
-/// Verifies round-trip decompilation and byte-identical recompilation across Layer 7 web,
-/// cloud-native, transport security, VoIP, and remote access protocols (`http`, `http2`, `grpc`,
-/// `websocket`, `tls`, `quic`, `tftp`, `ftp`, `ssh`, `telnet`, `whois`, `sip`, `rtp`, `rtsp`,
-/// `stun`, `ssdp` — 16 protocols) over IPv4 and IPv6.
+/// Verifies round-trip decompilation across Layer 7 web, cloud-native, transport security, VoIP,
+/// and remote access protocols (16 protocols).
 #[test]
 fn test_roundtrip_l7_web_cloud_voip_and_access_protocols() {
     let cases: &[(&str, &str, &str)] = &[
         (
             "l7_http",
-            "HTTP GET URI \"/api/v1/status\" HOST_HDR \"example.local\" USER_AGENT \"FrameAssembly/1.5\"",
+            "http get uri \"/api/v1/status\" hosthdr \"example.local\" useragent \"FrameAssembly/2.0\"",
             "http get",
         ),
-        (
-            "l7_http2",
-            "HTTP2 SETTINGS",
-            "http2",
-        ),
+        ("l7_http2", "http2 settings", "http2"),
         (
             "l7_grpc",
-            "GRPC SERVICE \"OrderService\" METHOD \"GetOrder\"",
+            "grpc service \"OrderService\" method \"GetOrder\"",
             "grpc",
         ),
         (
             "l7_websocket",
-            "WEBSOCKET OPCODE TEXT PAYLOAD \"ping\"",
+            "websocket opcode text payload \"ping\"",
             "websocket",
         ),
         (
             "l7_tls",
-            "TLS CLIENT_HELLO SNI \"secure.example.com\"",
-            "tls client_hello",
+            "tls clienthello sni \"secure.example.com\"",
+            "tls clienthello",
         ),
         (
             "l7_quic",
-            "QUIC INITIAL DCID 0x01020304 SCID 0x05060708",
+            "quic initial dcid 0x01020304 scid 0x05060708",
             "quic initial",
         ),
         (
             "l7_tftp",
-            "TFTP RRQ FILENAME \"boot.img\" MODE \"octet\"",
+            "tftp rrq filename \"boot.img\" mode \"octet\"",
             "tftp rrq",
         ),
-        (
-            "l7_ftp",
-            "FTP CMD \"USER\" ARG \"anonymous\"",
-            "ftp",
-        ),
-        (
-            "l7_ssh",
-            "SSH BANNER \"SSH-2.0-OpenSSH_9.0\"",
-            "ssh",
-        ),
-        (
-            "l7_telnet",
-            "TELNET DO 1",
-            "telnet",
-        ),
-        (
-            "l7_whois",
-            "WHOIS QUERY DOMAIN \"example.com\"",
-            "whois",
-        ),
+        ("l7_ftp", "ftp cmd \"USER\" arg \"anonymous\"", "ftp"),
+        ("l7_ssh", "ssh banner \"SSH-2.0-OpenSSH_9.0\"", "ssh"),
+        ("l7_telnet", "telnet do 1", "telnet"),
+        ("l7_whois", "whois query domain \"example.com\"", "whois"),
         (
             "l7_sip_udp",
-            "SIP INVITE FROM \"sip:alice@pbx\" TO \"sip:bob@pbx\" CALL_ID \"call123\"",
+            "sip invite from \"sip:alice@pbx\" to \"sip:bob@pbx\" callid \"call123\"",
             "sip invite",
         ),
         (
             "l7_sip_tcp",
-            "SIP INVITE TRANSPORT TCP FROM \"sip:alice@pbx\" TO \"sip:bob@pbx\" CALL_ID \"call123\"",
+            "sip invite transport tcp from \"sip:alice@pbx\" to \"sip:bob@pbx\" callid \"call123\"",
             "sip invite",
         ),
-        (
-            "l7_rtp",
-            "RTP PT 0 SEQ 100 SSRC 0x12345678",
-            "rtp",
-        ),
+        ("l7_rtp", "rtp pt 0 seq 100 ssrc 0x12345678", "rtp"),
         (
             "l7_rtsp",
-            "RTSP OPTIONS URI \"rtsp://cam/live\" CSEQ 1",
+            "rtsp options uri \"rtsp://cam/live\" cseq 1",
             "rtsp options",
         ),
         (
             "l7_stun",
-            "STUN BINDING_REQUEST TXID 0x11223344",
+            "stun bindingrequest txid 0x11223344",
             "stun",
         ),
-        (
-            "l7_ssdp",
-            "SSDP MSEARCH ST \"upnp:rootdevice\"",
-            "ssdp",
-        ),
+        ("l7_ssdp", "ssdp msearch st \"upnp:rootdevice\"", "ssdp"),
     ];
 
     for &(label, stmt, kw) in cases {
@@ -595,144 +658,73 @@ fn test_roundtrip_l7_web_cloud_voip_and_access_protocols() {
     }
 }
 
-/// Verifies round-trip decompilation and byte-identical recompilation across Layer 7 mail,
-/// authentication, directory, storage, database, cache, messaging, and industrial OT protocols
-/// (`smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`,
-/// `postgres`, `mqtt`, `coap`, `amqp`, `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`,
-/// `opcua` — 20 protocols) over IPv4 and IPv6.
+/// Verifies round-trip decompilation across Layer 7 mail, auth, directory, storage, database,
+/// cache, messaging, and industrial OT protocols (20 protocols).
 #[test]
 fn test_roundtrip_l7_data_storage_messaging_and_ot_protocols() {
     let cases: &[(&str, &str, &str)] = &[
-        (
-            "l7_smtp",
-            "SMTP EHLO \"mail.source.org\"",
-            "smtp",
-        ),
+        ("l7_smtp", "smtp ehlo \"mail.source.org\"", "smtp"),
         (
             "l7_imap",
-            "IMAP TAG \"A01\" CMD \"LOGIN\" ARG \"user pass\"",
+            "imap tag \"A01\" cmd \"LOGIN\" arg \"user pass\"",
             "imap",
         ),
-        (
-            "l7_pop3",
-            "POP3 CMD \"USER\" ARG \"bob\"",
-            "pop3",
-        ),
-        (
-            "l7_kerberos_udp",
-            "KERBEROS AS_REQ REALM \"CORP.LOCAL\"",
-            "kerberos",
-        ),
+        ("l7_pop3", "pop3 cmd \"USER\" arg \"bob\"", "pop3"),
+        ("l7_kerberos_udp", "kerberos asreq realm \"CORP.LOCAL\"", "kerberos"),
         (
             "l7_kerberos_tcp",
-            "KERBEROS AS_REQ TRANSPORT TCP REALM \"CORP.LOCAL\"",
+            "kerberos asreq transport tcp realm \"CORP.LOCAL\"",
             "kerberos",
         ),
         (
             "l7_ldap",
-            "LDAP BIND_REQ MSGID 1 BASE_DN \"dc=corp,dc=local\"",
+            "ldap bindreq msgid 1 basedn \"dc=corp,dc=local\"",
             "ldap",
         ),
-        (
-            "l7_smb",
-            "SMB COMMAND NEGOTIATE",
-            "smb",
-        ),
-        (
-            "l7_nfs_tcp",
-            "NFS PROC LOOKUP PATH \"/exports/data\"",
-            "nfs",
-        ),
+        ("l7_smb", "smb command negotiate", "smb"),
+        ("l7_nfs_tcp", "nfs proc lookup path \"/exports/data\"", "nfs"),
         (
             "l7_nfs_udp",
-            "NFS TRANSPORT UDP PROC LOOKUP PATH \"/exports/data\"",
+            "nfs transport udp proc lookup path \"/exports/data\"",
             "nfs",
         ),
-        (
-            "l7_redis",
-            "REDIS CMD \"PING\"",
-            "redis",
-        ),
-        (
-            "l7_memcached_tcp",
-            "MEMCACHED GET KEY \"session:123\"",
-            "memcached",
-        ),
+        ("l7_redis", "redis cmd \"PING\"", "redis"),
+        ("l7_memcached_tcp", "memcached get key \"session:123\"", "memcached"),
         (
             "l7_memcached_udp",
-            "MEMCACHED GET TRANSPORT UDP KEY \"session:123\"",
+            "memcached get transport udp key \"session:123\"",
             "memcached",
         ),
-        (
-            "l7_mysql",
-            "MYSQL QUERY SQL \"SELECT 1\"",
-            "mysql",
-        ),
+        ("l7_mysql", "mysql query sql \"SELECT 1\"", "mysql"),
         (
             "l7_postgres",
-            "POSTGRES QUERY SQL \"SELECT version()\"",
+            "postgres query sql \"SELECT version()\"",
             "postgres",
         ),
-        (
-            "l7_mqtt",
-            "MQTT CONNECT CLIENT_ID \"sensor-01\"",
-            "mqtt",
-        ),
-        (
-            "l7_coap",
-            "COAP CON GET URI_PATH \"/telemetry\"",
-            "coap",
-        ),
-        (
-            "l7_amqp",
-            "AMQP PROTOCOL_HEADER",
-            "amqp",
-        ),
+        ("l7_mqtt", "mqtt connect clientid \"sensor-01\"", "mqtt"),
+        ("l7_coap", "coap con get uripath \"/telemetry\"", "coap"),
+        ("l7_amqp", "amqp protocolheader", "amqp"),
         (
             "l7_modbus_tcp",
-            "MODBUS FUNC READ_HOLDING_REGISTERS ADDR 100 COUNT 5",
+            "modbus func readholdingregisters addr 100 count 5",
             "modbus",
         ),
         (
             "l7_modbus_udp",
-            "MODBUS TRANSPORT UDP FUNC READ_HOLDING_REGISTERS ADDR 100 COUNT 5",
+            "modbus transport udp func readholdingregisters addr 100 count 5",
             "modbus",
         ),
-        (
-            "l7_bacnet",
-            "BACNET WHO_IS",
-            "bacnet",
-        ),
-        (
-            "l7_dnp3_tcp",
-            "DNP3 FUNC READ",
-            "dnp3",
-        ),
-        (
-            "l7_dnp3_udp",
-            "DNP3 TRANSPORT UDP FUNC READ",
-            "dnp3",
-        ),
-        (
-            "l7_s7comm",
-            "S7COMM FUNC READ_VAR",
-            "s7comm",
-        ),
-        (
-            "l7_ethernetip_tcp",
-            "ETHERNETIP CMD LIST_IDENTITY",
-            "ethernetip",
-        ),
+        ("l7_bacnet", "bacnet whois", "bacnet"),
+        ("l7_dnp3_tcp", "dnp3 func read", "dnp3"),
+        ("l7_dnp3_udp", "dnp3 transport udp func read", "dnp3"),
+        ("l7_s7comm", "s7comm func readvar", "s7comm"),
+        ("l7_ethernetip_tcp", "ethernetip cmd listidentity", "ethernetip"),
         (
             "l7_ethernetip_udp",
-            "ETHERNETIP TRANSPORT UDP CMD LIST_IDENTITY",
+            "ethernetip transport udp cmd listidentity",
             "ethernetip",
         ),
-        (
-            "l7_opcua",
-            "OPCUA MSG_TYPE HEL",
-            "opcua",
-        ),
+        ("l7_opcua", "opcua msgtype hel", "opcua"),
     ];
 
     for &(label, stmt, kw) in cases {
@@ -741,67 +733,55 @@ fn test_roundtrip_l7_data_storage_messaging_and_ot_protocols() {
 }
 
 /// Verifies shadow-state elision across a multi-packet TCP 3-way handshake + HTTP request/response
-/// + FIN teardown, checking:
-/// 1. Explicit `seq` emission on initial `syn` and `syn ack` when non-default ISNs are used.
-/// 2. Elision of redundant `seq`, `acknum`, `srcport`, `dstport`, `ttl`, and `win` on subsequent
-///    handshake, L7 HTTP, and teardown packets.
-/// 3. Directional arrow locking (`host_1 -> host_2` vs `host_1 <- host_2`).
-/// 4. Exact quantization of `wait` units (`ns`, `us`, `ms`, `s`, `m`) and elision of default `10ms`.
+/// + FIN teardown using `host1`/`host2` and v2.0.0 `hosthdr`.
 #[test]
 fn test_shadow_state_elision_and_wait_quantization_tcp_http_session() {
     let session_src = r#"
-        HOST client { IP 192.168.50.10 MAC 00:11:22:33:44:10 }
-        HOST server { IP 192.168.50.80 MAC 00:11:22:33:44:80 }
-        FLOW web_lifecycle(c, s) {
-            c -> s TCP SYN SEQ 5000 SRCPORT 51234 DSTPORT 80
-            c <- s TCP SYN ACK SEQ 9000 WAIT 500ns
-            c -> s TCP ACK WAIT 250us
-            c -> s HTTP GET URI "/api/status" HOST_HDR "status.local" WAIT 5ms
-            c <- s HTTP STATUS 200 REASON "OK" BODY "healthy" WAIT 2s
-            c -> s TCP FIN ACK WAIT 1m
-            c <- s TCP FIN ACK WAIT 10ms
+        host client { ip 192.168.50.10 mac 00:11:22:33:44:10 }
+        host server { ip 192.168.50.80 mac 00:11:22:33:44:80 }
+        flow web_lifecycle(c, s) {
+            c -> s tcp syn seq 5000 srcport 51234 dstport 80
+            c <- s tcp syn ack seq 9000 wait 500ns
+            c -> s tcp ack wait 250us
+            c -> s http get uri "/api/status" hosthdr "status.local" wait 5ms
+            c <- s http status 200 reason "OK" body "healthy" wait 2s
+            c -> s tcp fin ack wait 1m
+            c <- s tcp fin ack wait 10ms
         }
-        COMPILE { web_lifecycle(client, server) }
+        compile { web_lifecycle(client, server) }
     "#;
 
     let fasm = assert_protocol_roundtrip("tcp_http_shadow_session", session_src, "http get");
     let stmt_lines: Vec<&str> = fasm
         .lines()
         .map(str::trim)
-        .filter(|l| l.starts_with("host_1 "))
+        .filter(|l| l.starts_with("host1 "))
         .collect();
     assert_eq!(
         stmt_lines.len(),
         7,
-        "all 7 statements must lock host_1 on the left:\n{fasm}"
+        "all 7 statements must lock host1 on the left:\n{fasm}"
     );
 
-    // Frame 1: Initial SYN emits explicit `seq 5000` and `srcport 51234` (dstport 80 is default)
     assert_eq!(
         stmt_lines[0],
-        "host_1 -> host_2 tcp syn srcport 51234 seq 5000"
+        "host1 -> host2 tcp syn srcport 51234 seq 5000"
     );
-    // Frame 2: SYN ACK uses `<-`, emits explicit `seq 9000`, elides `acknum 5001` & ports, quantizes `wait 500ns`
     assert_eq!(
         stmt_lines[1],
-        "host_1 <- host_2 tcp syn ack seq 9000 wait 500ns"
+        "host1 <- host2 tcp syn ack seq 9000 wait 500ns"
     );
-    // Frame 3: Third-leg ACK elides `seq`, `acknum`, `srcport`, `dstport`, `ttl`, `win`, quantizes `wait 250us`
-    assert_eq!(stmt_lines[2], "host_1 -> host_2 tcp ack wait 250us");
-    // Frame 4: HTTP GET elides `psh ack`, `seq`, `acknum`, `srcport`, `dstport`, quantizes `wait 5ms`
+    assert_eq!(stmt_lines[2], "host1 -> host2 tcp ack wait 250us");
     assert_eq!(
         stmt_lines[3],
-        "host_1 -> host_2 http get uri \"/api/status\" host_hdr \"status.local\" wait 5ms"
+        "host1 -> host2 http get uri \"/api/status\" hosthdr \"status.local\" wait 5ms"
     );
-    // Frame 5: HTTP 200 response uses `<-`, elides `seq`/`acknum`/ports, quantizes `wait 2s`
     assert_eq!(
         stmt_lines[4],
-        "host_1 <- host_2 http status 200 body \"healthy\" wait 2s"
+        "host1 <- host2 http status 200 body \"healthy\" wait 2s"
     );
-    // Frame 6: Client FIN ACK elides `seq`/`acknum`/ports, quantizes `wait 1m`
-    assert_eq!(stmt_lines[5], "host_1 -> host_2 tcp fin ack wait 1m");
-    // Frame 7: Server FIN ACK elides `seq`/`acknum`/ports and elides default `10ms` wait!
-    assert_eq!(stmt_lines[6], "host_1 <- host_2 tcp fin ack");
+    assert_eq!(stmt_lines[5], "host1 -> host2 tcp fin ack wait 1m");
+    assert_eq!(stmt_lines[6], "host1 <- host2 tcp fin ack");
 }
 
 /// Verifies `reverse_pcap_reader` and `reverse_pcap_file` entry points with RAII temporary file cleanup.
@@ -816,13 +796,13 @@ fn test_reverse_pcap_reader_and_file_entrypoints() {
     ));
 
     let src = r#"
-        HOST a { IP 10.20.30.1 MAC 00:11:22:33:44:01 }
-        HOST b { IP 10.20.30.2 MAC 00:11:22:33:44:02 }
-        FLOW f(x, y) {
-            x -> y DNS QUERY TXID 0x1234 QNAME "example.org" QTYPE "A" WAIT 5ms
-            x <- y DNS RESPONSE TXID 0x1234 QNAME "example.org" QTYPE "A" RDATA "93.184.216.34" WAIT 5ms
+        host a { ip 10.20.30.1 mac 00:11:22:33:44:01 }
+        host b { ip 10.20.30.2 mac 00:11:22:33:44:02 }
+        flow f(x, y) {
+            x -> y dns query txid 0x1234 qname "example.org" qtype "a" wait 5ms
+            x <- y dns response txid 0x1234 qname "example.org" qtype "a" rdata "93.184.216.34" wait 5ms
         }
-        COMPILE { f(a, b) }
+        compile { f(a, b) }
     "#;
     let prog = parse_program(src).expect("parse program");
     let orig_frames = compile_program(&prog).expect("compile program");
@@ -842,4 +822,3 @@ fn test_reverse_pcap_reader_and_file_entrypoints() {
     assert_eq!(from_file.packet_count, 2);
     assert_eq!(from_file.host_count, 2);
 }
-

@@ -1,8 +1,8 @@
 //! MySQL Client/Server Wire Protocol v10 Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `MYSQL` 4-byte framed packets
+//! This module implements fuzz-safe wire-to-AST dissection for `mysql` 4-byte framed packets
 //! (3-byte little-endian payload length + 1-byte sequence number) over TCP ports `3306`, `6033`
-//! (ProxySQL), and `15306` (Vitess VTGate). It decodes `HandshakeV10` (`greeting`, `server_version`),
+//! (ProxySQL), and `15306` (Vitess VTGate). It decodes `HandshakeV10` (`greeting`, `serverversion`),
 //! `HandshakeResponse41` (`login`, `user`, `db`), `COM_QUERY` (`sql`), `OK_Packet` (`ok`),
 //! `ERR_Packet` (`err`, `errcode`), and `EOF_Packet` (`eof`).
 
@@ -30,7 +30,7 @@ fn le_u32(b: &[u8], off: usize) -> u32 {
     u32::from_le_bytes([b[off], b[off + 1], b[off + 2], b[off + 3]])
 }
 
-/// Dissects a `MYSQL` 4-byte framed wire packet (`GREETING`, `LOGIN`, `QUERY`, `OK`, `ERR`, `EOF`).
+/// Dissects a `mysql` 4-byte framed wire packet (`greeting`, `login`, `query`, `ok`, `err`, `eof`).
 pub(crate) fn dissect_mysql(
     transport: TransportProto,
     src_port: u16,
@@ -71,7 +71,7 @@ pub(crate) fn dissect_mysql(
         }
         tokens.push_str(" greeting");
         if ver != "8.0.35" {
-            tokens.push_str(&format!(" server_version \"{ver}\""));
+            tokens.push_str(&format!(" serverversion \"{ver}\""));
         }
     } else if body[0] == 0x03 {
         let sql = core::str::from_utf8(&body[1..]).ok()?;

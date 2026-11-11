@@ -1,9 +1,9 @@
-//! Virtual Router Redundancy Protocol (`VRRP`, RFC 5798) first-hop redundancy parser.
+//! Virtual Router Redundancy Protocol (`vrrp`, RFC 5798) first-hop redundancy parser.
 //!
-//! This module implements the winnow parser combinator for `VRRP` router redundancy advertisements
-//! (IP protocol 112). It parses Virtual Router Identifiers (`VRID <u8>`), election priorities
-//! (`PRIORITY <u16>`), advertisement intervals (`ADV_INT <u16>`), Virtual IP addresses (`VIP <ip>`),
-//! and protocol versions (`VERSION <2|3>`).
+//! This module implements the winnow parser combinator for `vrrp` router redundancy advertisements
+//! (IP protocol 112). It parses Virtual Router Identifiers (`vrid <u8>`), election priorities
+//! (`priority <u16>`), advertisement intervals (`advint <u16>`), Virtual IP addresses (`vip <ip>`),
+//! and protocol versions (`version <2|3>`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

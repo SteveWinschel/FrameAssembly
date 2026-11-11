@@ -1,25 +1,25 @@
 // PROMPT: Model a telecom Stratum 1 Rubidium atomic oscillator time server answering NTPv4 queries with REFID RB.
-// TOKENS: HOST, IP, MAC, FLOW, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, TX_TIMESTAMP, VLAN, PCP, WAIT, REFID, COMPILE
+// TOKENS: host, ip, mac, flow, s, ntp, li, vn, mode, stratum, poll, precision, txtimestamp, vlan, pcp, wait, ms, refid, compile
 
 // INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
-HOST ntp_client {
-    IP 172.16.123.22
-    MAC 00:1b:21:7b:01:0a
+host ntp_client {
+    ip 172.16.123.22
+    mac 00:1b:21:7b:01:0a
 }
 
 // INSTRUCTION: Define the NTP reference server or peer endpoint.
-HOST ntp_server {
-    IP 172.16.123.1
-    MAC 00:1b:21:7b:01:01
+host ntp_server {
+    ip 172.16.123.1
+    mac 00:1b:21:7b:01:01
 }
 
 // INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
-FLOW ntp_scenario_flow(c, s) {
-    c -> s NTP LI 0 VN 4 MODE 3 STRATUM 2 POLL 4 PRECISION -18 TX_TIMESTAMP 0xe9b4c20000000000 VLAN 123 PCP 6 WAIT 2ms
-    c <- s NTP LI 0 VN 4 MODE 4 STRATUM 1 POLL 4 PRECISION -25 REFID "RB" TX_TIMESTAMP 0xe9b4c2000020c49b VLAN 123 PCP 6
+flow ntp_scenario_flow(c, s) {
+    c -> s ntp li 0 vn 4 mode 3 stratum 2 poll 4 precision -18 txtimestamp 0xe9b4c20000000000 vlan 123 pcp 6 wait 2ms
+    c <- s ntp li 0 vn 4 mode 4 stratum 1 poll 4 precision -25 refid "RB" txtimestamp 0xe9b4c2000020c49b vlan 123 pcp 6
 }
 
 // INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
-COMPILE {
+compile {
     ntp_scenario_flow(ntp_client, ntp_server)
 }

@@ -6,24 +6,24 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b MDNS [QUERY | RESPONSE] [TXID <u16>] [QNAME <str>] [QTYPE <str>] [RDATA <str>] [RCODE <u8>] [ANS_TTL <u32>]`
+//! `a -> b mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>]`
 
 /// Multicast DNS (mDNS) (RFC 6762 / RFC 6763 (DNS-SD)) specification.
 ///
-/// Syntax mapping: `MDNS [QUERY | RESPONSE] [TXID <u16>] [QNAME <str>] [QTYPE <str>] [RDATA <str>] [RCODE <u8>] [ANS_TTL <u32>]`
-#[doc(alias = "MDNS")]
+/// Syntax mapping: `mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>]`
+#[doc(alias = "mdns")]
 #[doc(alias = "RFC 6762")]
 #[doc(alias = "RFC6762")]
 #[doc(alias = "RFC 6763")]
 #[doc(alias = "RFC6763")]
 #[doc(alias = "BONJOUR")]
 #[doc(alias = "DNSSD")]
-#[doc(alias = "QUERY")]
-#[doc(alias = "RESPONSE")]
-#[doc(alias = "TXID")]
-#[doc(alias = "QNAME")]
-#[doc(alias = "QTYPE")]
-#[doc(alias = "RDATA")]
-#[doc(alias = "RCODE")]
-#[doc(alias = "ANS_TTL")]
+#[doc(alias = "query")]
+#[doc(alias = "response")]
+#[doc(alias = "txid")]
+#[doc(alias = "qname")]
+#[doc(alias = "qtype")]
+#[doc(alias = "rdata")]
+#[doc(alias = "rcode")]
+#[doc(alias = "ansttl")]
 pub use super::dns::MdnsSpec;

@@ -1,27 +1,27 @@
 // PROMPT: Simulate an SNMPv2c multi-varbind SET request updating sysContact.0, sysName.0, and sysLocation.0 MIB-II scalars simultaneously.
-// TOKENS: HOST, IP, MAC, FLOW, SNMP2, SET, COMMUNITY, REQID, VARBIND, STRING, WAIT, RESPONSE, COMPILE
+// TOKENS: host, ip, mac, flow, snmp2, set, community, reqid, varbind, string, wait, ms, response, compile
 
 // INSTRUCTION: Define a configuration management server with IP 10.134.0.100.
-HOST config_mgr { IP 10.134.0.100 MAC 00:1b:21:34:00:64 }
+host config_mgr { ip 10.134.0.100 mac 00:1b:21:34:00:64 }
 
 // INSTRUCTION: Define a newly provisioned branch switch with IP 10.134.0.25.
-HOST new_branch_sw { IP 10.134.0.25 MAC 00:1b:21:34:00:19 }
+host new_branch_sw { ip 10.134.0.25 mac 00:1b:21:34:00:19 }
 
 // INSTRUCTION: Define a flow sending an SNMPv2c SET with three STRING varbinds and receiving the confirmation RESPONSE.
-FLOW snmpv2c_set_system_scalars(mgr, sw) {
-    mgr -> sw SNMP2 SET COMMUNITY "prov_rw" REQID 8701
-        VARBIND 1.3.6.1.2.1.1.4.0 STRING "netops@example.org"
-        VARBIND 1.3.6.1.2.1.1.5.0 STRING "br-sw-austin-01"
-        VARBIND 1.3.6.1.2.1.1.6.0 STRING "Closet 3B Rack 2"
-        WAIT 15ms
-    mgr <- sw SNMP2 RESPONSE COMMUNITY "prov_rw" REQID 8701
-        VARBIND 1.3.6.1.2.1.1.4.0 STRING "netops@example.org"
-        VARBIND 1.3.6.1.2.1.1.5.0 STRING "br-sw-austin-01"
-        VARBIND 1.3.6.1.2.1.1.6.0 STRING "Closet 3B Rack 2"
-        WAIT 10ms
+flow snmpv2c_set_system_scalars(mgr, sw) {
+    mgr -> sw snmp2 set community "prov_rw" reqid 8701
+        varbind 1.3.6.1.2.1.1.4.0 string "netops@example.org"
+        varbind 1.3.6.1.2.1.1.5.0 string "br-sw-austin-01"
+        varbind 1.3.6.1.2.1.1.6.0 string "Closet 3B Rack 2"
+        wait 15ms
+    mgr <- sw snmp2 response community "prov_rw" reqid 8701
+        varbind 1.3.6.1.2.1.1.4.0 string "netops@example.org"
+        varbind 1.3.6.1.2.1.1.5.0 string "br-sw-austin-01"
+        varbind 1.3.6.1.2.1.1.6.0 string "Closet 3B Rack 2"
+        wait 10ms
 }
 
 // INSTRUCTION: Compile block to run the multi-varbind SNMPv2c SET flow.
-COMPILE {
+compile {
     snmpv2c_set_system_scalars(config_mgr, new_branch_sw)
 }

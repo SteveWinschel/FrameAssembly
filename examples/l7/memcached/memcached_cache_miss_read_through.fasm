@@ -1,29 +1,29 @@
 // PROMPT: Create a Memcached cache miss and read-through population pattern (GET miss -> SET -> GET hit).
-// TOKENS: HOST, IP, MAC, FLOW, MEMCACHED, GET, KEY, OPAQUE, WAIT, CMD, SET, EXPTIME, CAS, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, memcached, get, key, opaque, wait, ms, cmd, set, exptime, cas, payload, compile
 
 // INSTRUCTION: Define the catalog service implementing a read-through cache pattern.
-HOST catalog_svc {
-    IP 10.42.5.25
-    MAC 00:15:5d:42:05:19
+host catalog_svc {
+    ip 10.42.5.25
+    mac 00:15:5d:42:05:19
 }
 
 // INSTRUCTION: Define the Memcached cache node.
-HOST catalog_cache {
-    IP 10.42.5.10
-    MAC 00:15:5d:42:05:0a
+host catalog_cache {
+    ip 10.42.5.10
+    mac 00:15:5d:42:05:0a
 }
 
 // INSTRUCTION: Experience a cache miss on GET, populate the key with SET after DB lookup, and verify the subsequent GET hit.
-FLOW read_through_cache_miss(c, s) {
-    c -> s MEMCACHED GET KEY "product:price:7730" OPAQUE 1 WAIT 1ms
-    c <- s MEMCACHED CMD "END" KEY "product:price:7730" OPAQUE 1 WAIT 12ms
-    c -> s MEMCACHED SET KEY "product:price:7730" EXPTIME 300 OPAQUE 2 CAS 100 PAYLOAD "2999" WAIT 2ms
-    c <- s MEMCACHED CMD "STORED" KEY "product:price:7730" OPAQUE 2 CAS 100 WAIT 5ms
-    c -> s MEMCACHED GET KEY "product:price:7730" OPAQUE 3 WAIT 1ms
-    c <- s MEMCACHED GET KEY "product:price:7730" OPAQUE 3 CAS 100 PAYLOAD "2999"
+flow read_through_cache_miss(c, s) {
+    c -> s memcached get key "product:price:7730" opaque 1 wait 1ms
+    c <- s memcached cmd "end" key "product:price:7730" opaque 1 wait 12ms
+    c -> s memcached set key "product:price:7730" exptime 300 opaque 2 cas 100 payload "2999" wait 2ms
+    c <- s memcached cmd "stored" key "product:price:7730" opaque 2 cas 100 wait 5ms
+    c -> s memcached get key "product:price:7730" opaque 3 wait 1ms
+    c <- s memcached get key "product:price:7730" opaque 3 cas 100 payload "2999"
 }
 
 // INSTRUCTION: Compile the Memcached cache-miss and read-through population trace into a PCAP file.
-COMPILE {
+compile {
     read_through_cache_miss(catalog_svc, catalog_cache)
 }

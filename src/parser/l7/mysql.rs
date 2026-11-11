@@ -1,11 +1,11 @@
 //! MySQL Client/Server Wire Protocol Layer 7 database field parser.
 //!
-//! This module implements the `winnow` parser combinator for `MYSQL` connection handshakes,
+//! This module implements the `winnow` parser combinator for `mysql` connection handshakes,
 //! authentication packets, SQL command queries, and server result packets in FrameAssembly `.fasm`
-//! specifications. It recognizes the `MYSQL` protocol keyword, packet type flags (`GREETING`,
-//! `LOGIN`, `QUERY`, `OK`, `ERR`, `EOF`), SQL query strings (`SQL`), server version banners
-//! (`SERVER_VERSION`), login usernames (`USER`), database schemas (`DB`), and numeric error codes
-//! (`ERRCODE`).
+//! specifications. It recognizes the `mysql` protocol keyword, packet type flags (`greeting`,
+//! `login`, `query`, `ok`, `err`, `eof`), SQL query strings (`sql`), server version banners
+//! (`serverversion`), login usernames (`user`), database schemas (`db`), and numeric error codes
+//! (`errcode`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

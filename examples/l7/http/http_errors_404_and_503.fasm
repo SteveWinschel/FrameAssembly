@@ -1,21 +1,21 @@
 // PROMPT: HTTP 404 Not Found and 503 Service Unavailable error responses with Retry-After header.
-// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, STATUS, REASON, BODY, HEADER, COMPILE
+// TOKENS: host, ip, flow, http, method, uri, hosthdr, status, reason, body, header, compile
 
 // INSTRUCTION: Define synthetic monitoring probe.
-HOST synth_probe { IP 10.75.1.10 }
+host synth_probe { ip 10.75.1.10 }
 
 // INSTRUCTION: Define overloaded origin server.
-HOST origin_srv { IP 10.75.1.100 }
+host origin_srv { ip 10.75.1.100 }
 
 // INSTRUCTION: Probe missing route (404) and overloaded health endpoint (503 Retry-After).
-FLOW http_404_and_503(p, o) {
-    p -> o HTTP METHOD "GET" URI "/missing.js" HOST_HDR "cdn.example.com"
-    p <- o HTTP STATUS 404 REASON "Not Found" BODY "Not Found"
-    p -> o HTTP METHOD "GET" URI "/checkout" HOST_HDR "cdn.example.com"
-    p <- o HTTP STATUS 503 REASON "Service Unavailable" HEADER "Retry-After" "30" BODY "Overloaded"
+flow http_404_and_503(p, o) {
+    p -> o http method "GET" uri "/missing.js" hosthdr "cdn.example.com"
+    p <- o http status 404 reason "Not Found" body "Not Found"
+    p -> o http method "GET" uri "/checkout" hosthdr "cdn.example.com"
+    p <- o http status 503 reason "Service Unavailable" header "Retry-After" "30" body "Overloaded"
 }
 
 // INSTRUCTION: Compile the HTTP 404 and 503 error response flow.
-COMPILE {
+compile {
     http_404_and_503(synth_probe, origin_srv)
 }

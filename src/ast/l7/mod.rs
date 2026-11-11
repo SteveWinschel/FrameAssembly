@@ -8,7 +8,7 @@
 //! `kerberos`, `ldap`, `radius`, `tacacs`), distributed storage and databases (`smb`, `nfs`,
 //! `redis`, `memcached`, `mysql`, `postgres`), message brokers (`mqtt`, `coap`, `amqp`), industrial
 //! operational technology (`modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, `opcua`), and
-//! network management (`snmp` v1/v2c/v3: `SNMP1`, `SNMP2`, `SNMP3`).
+//! network management (`snmp` v1/v2c/v3: `snmp1`, `snmp2`, `snmp3`).
 
 pub mod amqp;
 pub mod bacnet;

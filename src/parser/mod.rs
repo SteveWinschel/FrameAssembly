@@ -53,17 +53,13 @@ pub use validation::{protocol_requires_ip, validate_semantics};
 /// Used extensively throughout the parser combinators.
 pub type Stream<'i, 'a> = &'i [(Token<'a>, core::ops::Range<usize>, &'a str)];
 
-/// Helper to match a specific token (case-insensitively for identifier tags), returning the token and its source span.
+/// Helper to match a specific token, returning the token and its source span.
 pub(crate) fn tag<'i, 'a: 'i>(
     expected: Token<'a>,
 ) -> impl Parser<Stream<'i, 'a>, (Token<'a>, core::ops::Range<usize>), ErrMode<ContextError>> {
     any.verify_map(
         move |(t, span, _): (Token<'a>, core::ops::Range<usize>, &'a str)| {
-            let matches = match (&t, &expected) {
-                (Token::Ident(a), Token::Ident(b)) => a.eq_ignore_ascii_case(b),
-                _ => t == expected,
-            };
-            if matches { Some((t, span)) } else { None }
+            if t == expected { Some((t, span)) } else { None }
         },
     )
 }
@@ -367,29 +363,18 @@ pub(crate) fn parse_template_invocation<'i, 'a>(
     })
 }
 
-/// Parses a statement inside the `COMPILE` block (loop, inline frame statement, or single invocation) with precision `cut_err`.
+/// Parses a statement inside the `compile` block (inline frame statement or single flow invocation) with precision `cut_err`.
 pub(crate) fn parse_run_statement<'i, 'a>(
     input: &mut Stream<'i, 'a>,
 ) -> PResult<RunStatement<'a>> {
-    if !input.is_empty()
-        && matches!(input[0].0, Token::Loop)
-        && input.get(1).is_some_and(|t| matches!(t.0, Token::Number(_)))
-    {
-        let _ = tag(Token::Loop).parse_next(input)?;
-        let count = cut_err(parse_u32).parse_next(input)?;
-        let _ = cut_err(tag(Token::LBrace)).parse_next(input)?;
-        let invocations: Vec<TemplateInvocation<'a>> =
-            cut_err(repeat(0.., parse_template_invocation)).parse_next(input)?;
-        let _ = cut_err(tag(Token::RBrace)).parse_next(input)?;
-        Ok(RunStatement::Loop(count, invocations))
-    } else if input.len() >= 2 && matches!(input[1].0, Token::RightArrow | Token::LeftArrow) {
+    if input.len() >= 2 && matches!(input[1].0, Token::RightArrow | Token::LeftArrow) {
         parse_frame_statement(input).map(|f| RunStatement::Frame(alloc::boxed::Box::new(f)))
     } else {
         parse_template_invocation(input).map(RunStatement::Invocation)
     }
 }
 
-/// Parses the entire `COMPILE` block with precision `cut_err`.
+/// Parses the entire `compile` block with precision `cut_err`.
 pub(crate) fn parse_compile_block<'i, 'a>(
     input: &mut Stream<'i, 'a>,
 ) -> PResult<Vec<RunStatement<'a>>> {
@@ -459,78 +444,71 @@ pub(crate) fn parse_all<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Program<'
 enum EnclosingBlock<'a> {
     /// Outside any top-level block.
     None,
-    /// Inside `HOST <name> { ... }`.
+    /// Inside `host <name> { ... }`.
     Host {
         /// Declared host name.
         name: &'a str,
-        /// Whether an `IP` or `MAC` field has been seen inside this `HOST` block.
+        /// Whether an `ip` or `mac` field has been seen inside this `host` block.
         has_ip_or_mac: bool,
     },
-    /// Inside `FLOW <name>(...) { ... }`.
+    /// Inside `flow <name>(...) { ... }`.
     Flow,
-    /// Inside `COMPILE { ... }`.
+    /// Inside `compile { ... }`.
     Compile,
 }
 
-/// Suggests a canonical `.fasm` keyword for common typos or muscle-memory aliases.
+/// Suggests a canonical v2.0.0 strict-lowercase `.fasm` keyword for common typos or muscle-memory aliases.
 fn suggest_canonical_keyword(raw: &str) -> Option<&'static str> {
-    let upper = raw.to_ascii_uppercase();
-    match upper.as_str() {
-        "SPORT" | "SRC_PORT" | "SOURCE_PORT" | "SRCPROT" => return Some("SRCPORT"),
-        "DPORT" | "DST_PORT" | "DEST_PORT" | "DESTINATION_PORT" | "DSTPROT" => {
-            return Some("DSTPORT");
+    let lower = raw.to_ascii_lowercase();
+    match lower.as_str() {
+        "sport" | "source_port" | "sourceport" | "srcprot" => return Some("srcport"),
+        "dport" | "dest_port" | "destport" | "destination_port" | "dstprot" => {
+            return Some("dstport");
         }
-        "ACK_NUM" | "ACKNO" | "ACK_NUMBER" | "ACKNOWLEDGMENT" => return Some("ACKNUM"),
-        "SEQ_NUM" | "SEQNO" | "SEQUENCE_NUMBER" => return Some("SEQ"),
-        "HOPLIMIT" | "HOP_LIMIT" | "HLIM" => return Some("TTL"),
-        "TOS" | "TRAFFIC_CLASS" | "TRAFFICCLASS" | "TCLASS" => return Some("DSCP"),
-        "COS" | "DOT1P" => return Some("PCP"),
-        "VLAN_ID" | "VLANID" | "VID" => return Some("VLAN"),
-        "SVLAN" | "OUTER_VLAN" => return Some("QINQ"),
-        "CVLAN" | "INNER_VLAN_ID" => return Some("INNER_VLAN"),
-        "SNMP" | "SNMPV2" | "SNMPV2C" => return Some("SNMP2"),
-        "SNMPV1" => return Some("SNMP1"),
-        "SNMPV3" => return Some("SNMP3"),
-        "ICMPV6" | "PING" => return Some("ICMP"),
-        "DHCPV6" | "DHCPV4" => return Some("DHCP"),
-        "REQ_ID" | "REQUEST_ID" => return Some("REQID"),
-        "ENGINE_ID" => return Some("ENGINEID"),
-        "ENGINE_BOOTS" | "BOOTS" => return Some("ENGINEBOOTS"),
-        "ENGINE_TIME" => return Some("ENGINETIME"),
-        "SYS_UP_TIME" | "SYS_UPTIME" => return Some("SYSUPTIME"),
-        "VAR_BIND" => return Some("VARBIND"),
-        "SRC_MAC" => return Some("SRCMAC"),
-        "DST_MAC" | "DEST_MAC" => return Some("DSTMAC"),
-        "SRC_IP" => return Some("SRCIP"),
-        "DST_IP" | "DEST_IP" => return Some("DSTIP"),
-        "PAYLAOD" | "PAYLOD" => return Some("PAYLOAD"),
-        "HEX_PAYLOAD" => return Some("HEXPAYLOAD"),
-        "COMPLIE" | "COMPIL" | "RUN" => return Some("COMPILE"),
-        "HOTS" | "HSOT" | "ENDPOINT" | "NODE" => return Some("HOST"),
-        "FLWO" | "FOLW" => return Some("FLOW"),
+        "ackno" | "ack_number" | "acknumber" | "acknowledgment" => return Some("acknum"),
+        "seq_num" | "seqnum" | "seqno" | "sequence_number" => return Some("seq"),
+        "hoplimit" | "hop_limit" | "hlim" => return Some("ttl"),
+        "tos" | "traffic_class" | "trafficclass" | "tclass" => return Some("dscp"),
+        "cos" | "dot1p" => return Some("pcp"),
+        "vlan_id" | "vlanid" | "vid" => return Some("vlan"),
+        "svlan" | "outer_vlan" | "outervlan" => return Some("qinq"),
+        "cvlan" | "inner_vlan_id" | "innervlanid" => return Some("innervlan"),
+        "snmp" | "snmpv2" | "snmpv2c" => return Some("snmp2"),
+        "snmpv1" => return Some("snmp1"),
+        "snmpv3" => return Some("snmp3"),
+        "icmpv6" | "ping" => return Some("icmp"),
+        "dhcpv6" | "dhcpv4" => return Some("dhcp"),
+        "request_id" | "requestid" => return Some("reqid"),
+        "boots" => return Some("engineboots"),
+        "dest_mac" | "destmac" => return Some("dstmac"),
+        "dest_ip" | "destip" => return Some("dstip"),
+        "paylaod" | "paylod" => return Some("payload"),
+        "complie" | "compil" | "run" => return Some("compile"),
+        "hots" | "hsot" | "endpoint" | "node" => return Some("host"),
+        "flwo" | "folw" => return Some("flow"),
         _ => {}
     }
 
     const CANDIDATES: &[&str] = &[
-        "HOST", "FLOW", "COMPILE", "LOOP", "IP", "MAC", "WAIT", "PAYLOAD", "HEXPAYLOAD",
-        "SRCPORT", "DSTPORT", "SRCMAC", "DSTMAC", "TTL", "DSCP", "ECN", "VLAN", "PCP", "DEI",
-        "QINQ", "INNER_VLAN", "MPLS", "SEQ", "ACKNUM", "WIN", "MSS", "WSCALE", "SACK_PERM",
-        "TSVAL", "TSECR", "URGENT", "SYN", "ACK", "FIN", "RST", "PSH", "URG", "ECE", "CWR",
-        "TCP", "UDP", "SCTP", "ICMP", "NDP", "ARP", "DNS", "MDNS", "DHCP", "HTTP", "HTTP2",
-        "TLS", "QUIC", "SNMP1", "SNMP2", "SNMP3", "VARBIND", "ENGINEID", "ENGINEBOOTS",
-        "ENGINETIME", "REQID", "HOST_HDR", "MODBUS", "BGP", "OSPF", "VXLAN", "WIREGUARD",
+        "host", "flow", "compile", "ip", "mac", "wait", "payload", "hexpayload", "srcport",
+        "dstport", "srcmac", "dstmac", "ttl", "dscp", "ecn", "vlan", "pcp", "dei", "qinq",
+        "innervlan", "mpls", "seq", "acknum", "win", "mss", "wscale", "sackperm", "tsval",
+        "tsecr", "urgent", "syn", "ack", "fin", "rst", "psh", "urg", "ece", "cwr", "tcp", "udp",
+        "sctp", "icmp", "ndp", "arp", "dns", "mdns", "dhcp", "http", "http2", "tls", "quic",
+        "snmp1", "snmp2", "snmp3", "varbind", "engineid", "engineboots", "enginetime", "reqid",
+        "hosthdr", "modbus", "bgp", "ospf", "vxlan", "wireguard",
     ];
 
-    if upper.len() < 3 {
+    if lower.len() < 3 {
         return None;
     }
 
     let mut best: Option<(&'static str, usize)> = None;
     for &cand in CANDIDATES {
-        if cand.len().abs_diff(upper.len()) > 2 {
+        if cand.len().abs_diff(lower.len()) > 2 {
             continue;
         }
-        let dist = edit_distance(&upper, cand);
+        let dist = edit_distance(&lower, cand);
         if dist > 0 && dist <= 2 && best.is_none_or(|(_, d)| dist < d) {
             best = Some((cand, dist));
         }
@@ -611,7 +589,7 @@ fn diagnose_parse_error<'a>(
     if err_idx >= tokens.len() {
         let eof_pos = tokens.last().map_or(input_str.len(), |t| t.1.end);
         let msg = if enclosing == EnclosingBlock::None && compile_count == 0 {
-            "Syntax error: missing 'COMPILE { ... }' block at the end of the file. Every .fasm file must include a COMPILE block to generate packets (for example: COMPILE { my_flow(client, server) })".to_string()
+            "Syntax error: missing 'compile { ... }' block at the end of the file. Every .fasm file must include a compile block to generate packets (for example: compile { my_flow(client, server) })".to_string()
         } else {
             "Syntax error: unexpected end of file (check for a missing closing '}' or incomplete packet statement)".to_string()
         };
@@ -623,15 +601,15 @@ fn diagnose_parse_error<'a>(
     let span = (span_range.start, span_range.end - span_range.start);
     let lower = raw_slice.to_ascii_lowercase();
 
-    // 1. Duplicate COMPILE block
+    // 1. Duplicate compile block
     if *tok == Token::Compile && brace_depth == 0 && compile_count >= 1 {
         return (
-            "Syntax error: duplicate 'COMPILE' block. A .fasm file can only have one COMPILE { ... } block — place all flow calls inside a single COMPILE block".to_string(),
+            "Syntax error: duplicate 'compile' block. A .fasm file can only have one compile { ... } block — place all flow calls inside a single compile block".to_string(),
             span,
         );
     }
 
-    // 2. Packet statement written outside a FLOW or COMPILE block
+    // 2. Packet statement written outside a flow or compile block
     let next_is_arrow = tokens
         .get(err_idx + 1)
         .is_some_and(|t| matches!(t.0, Token::RightArrow | Token::LeftArrow));
@@ -641,19 +619,19 @@ fn diagnose_parse_error<'a>(
     {
         return (
             alloc::format!(
-                "Syntax error: packet statement starting at '{}' is outside a FLOW block. Wrap packet lines inside 'FLOW my_flow(a, b) {{ ... }}' and call the flow inside 'COMPILE {{ my_flow(host1, host2) }}'",
+                "Syntax error: packet statement starting at '{}' is outside a flow block. Wrap packet lines inside 'flow my_flow(a, b) {{ ... }}' and call the flow inside 'compile {{ my_flow(host1, host2) }}'",
                 raw_slice
             ),
             span,
         );
     }
 
-    // 3. FLOW missing parameter list `(a, b)`
+    // 3. flow missing parameter list `(a, b)`
     if *tok == Token::LBrace && err_idx >= 2 && tokens[err_idx - 2].0 == Token::Flow {
         let flow_name = tokens[err_idx - 1].2;
         return (
             alloc::format!(
-                "Syntax error: FLOW '{}' is missing its endpoint parameter list '(a, b)' before '{{'. Write: FLOW {}(c, s) {{ ... }}",
+                "Syntax error: flow '{}' is missing its endpoint parameter list '(a, b)' before '{{'. Write: flow {}(c, s) {{ ... }}",
                 flow_name,
                 flow_name
             ),
@@ -661,7 +639,7 @@ fn diagnose_parse_error<'a>(
         );
     }
 
-    // 4. Inside a HOST block
+    // 4. Inside a host block
     if let EnclosingBlock::Host {
         name,
         has_ip_or_mac,
@@ -670,7 +648,7 @@ fn diagnose_parse_error<'a>(
         if *tok == Token::RBrace && !has_ip_or_mac {
             return (
                 alloc::format!(
-                    "Syntax error: HOST '{}' must specify at least an 'IP <address>' or 'MAC <address>' field. Example: HOST {} {{ IP 10.0.0.1 }} or HOST {} {{ MAC 00:11:22:33:44:55 }}",
+                    "Syntax error: host '{}' must specify at least an 'IP <address>' or 'MAC <address>' field. Example: host {} {{ ip 10.0.0.1 }} or host {} {{ mac 00:11:22:33:44:55 }}",
                     name,
                     name,
                     name
@@ -684,7 +662,7 @@ fn diagnose_parse_error<'a>(
         ) {
             return (
                 alloc::format!(
-                    "Syntax error: unexpected '{}' in HOST '{}'. FrameAssembly uses 'IP' for both IPv4 and IPv6 addresses (for example: IP 10.0.0.1 or IP 2001:db8::1)",
+                    "Syntax error: unexpected '{}' in host '{}'. FrameAssembly uses 'ip' for both IPv4 and IPv6 addresses (for example: ip 10.0.0.1 or ip 2001:db8::1)",
                     raw_slice,
                     name
                 ),
@@ -697,7 +675,7 @@ fn diagnose_parse_error<'a>(
         ) {
             return (
                 alloc::format!(
-                    "Syntax error: unexpected '{}' in HOST '{}'. Subnet masks are not used in HOST blocks (only 'IP <address>' and optional 'MAC <address>')",
+                    "Syntax error: unexpected '{}' in host '{}'. Subnet masks are not used in host blocks (only 'ip <address>' and optional 'mac <address>')",
                     raw_slice,
                     name
                 ),
@@ -707,7 +685,7 @@ fn diagnose_parse_error<'a>(
         if err_idx >= 1 && tokens[err_idx - 1].0 == Token::Ip {
             return (
                 alloc::format!(
-                    "Syntax error: invalid IP address '{}' after 'IP'. Expected a valid IPv4 (e.g. 10.0.0.1) or IPv6 (e.g. 2001:db8::1) address",
+                    "Syntax error: invalid IP address '{}' after 'ip'. Expected a valid IPv4 (e.g. 10.0.0.1) or IPv6 (e.g. 2001:db8::1) address",
                     raw_slice
                 ),
                 span,
@@ -716,7 +694,7 @@ fn diagnose_parse_error<'a>(
         if err_idx >= 1 && tokens[err_idx - 1].0 == Token::Mac {
             return (
                 alloc::format!(
-                    "Syntax error: invalid MAC address '{}' after 'MAC'. Expected colon (00:1a:2b:3c:4d:5e), hyphen (00-1A-2B-3C-4D-5E), or Cisco dotted (001a.2b3c.4d5e) format",
+                    "Syntax error: invalid MAC address '{}' after 'mac'. Expected colon (00:1a:2b:3c:4d:5e), hyphen (00-1A-2B-3C-4D-5E), or Cisco dotted (001a.2b3c.4d5e) format",
                     raw_slice
                 ),
                 span,
@@ -724,7 +702,31 @@ fn diagnose_parse_error<'a>(
         }
     }
 
-    // 5. Inside a COMPILE block (e.g. bare flow name without arguments)
+    // 5. v2.0.0 self-healing diagnostics for removed `loop` and non-lowercase / `_` / `-` keywords
+    if matches!(tok, Token::Ident(_)) {
+        if raw_slice.eq_ignore_ascii_case("loop") {
+            return (
+                alloc::format!(
+                    "Syntax error: unexpected '{}'. The 'loop' block was removed in FrameAssembly 2.0; invoke flows or frame statements directly inside 'compile {{ ... }}'.",
+                    raw_slice
+                ),
+                span,
+            );
+        }
+        if let Some(kw) = crate::lexer::suggest_v2_lowercase_keyword(raw_slice) {
+            return (
+                alloc::format!(
+                    "Syntax error: unexpected '{}'. Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace '{}' with '{}'.",
+                    raw_slice,
+                    raw_slice,
+                    kw
+                ),
+                span,
+            );
+        }
+    }
+
+    // 6. Inside a compile block (e.g. bare flow name without arguments)
     if enclosing == EnclosingBlock::Compile && err_idx >= 1 {
         let prev = &tokens[err_idx - 1];
         if *tok == Token::RBrace
@@ -732,7 +734,7 @@ fn diagnose_parse_error<'a>(
         {
             return (
                 alloc::format!(
-                    "Syntax error: flow call '{}' inside COMPILE is missing its host arguments in parentheses — for example: {}(client, server)",
+                    "Syntax error: flow call '{}' inside compile is missing its host arguments in parentheses — for example: {}(client, server)",
                     prev.2,
                     prev.2
                 ),
@@ -741,11 +743,11 @@ fn diagnose_parse_error<'a>(
         }
     }
 
-    // 6. Common networking aliases and muscle-memory mistakes
-    if matches!(lower.as_str(), "sport" | "src_port" | "source_port") {
+    // 7. Common networking aliases and muscle-memory mistakes
+    if matches!(lower.as_str(), "sport" | "source_port" | "sourceport") {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier (such as SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, or TCP flags). Did you mean 'SRCPORT'?",
+                "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier (such as srcport, dstport, seq, acknum, win, or tcp flags). Did you mean 'srcport'?",
                 raw_slice
             ),
             span,
@@ -753,11 +755,11 @@ fn diagnose_parse_error<'a>(
     }
     if matches!(
         lower.as_str(),
-        "dport" | "dst_port" | "dest_port" | "destination_port"
+        "dport" | "dest_port" | "destport" | "destination_port"
     ) {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier (such as SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, or TCP flags). Did you mean 'DSTPORT'?",
+                "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier (such as srcport, dstport, seq, acknum, win, or tcp flags). Did you mean 'dstport'?",
                 raw_slice
             ),
             span,
@@ -766,7 +768,7 @@ fn diagnose_parse_error<'a>(
     if matches!(tok, Token::Number(_)) && err_idx >= 1 && tokens[err_idx - 1].0 == Token::Ack {
         return (
             alloc::format!(
-                "Syntax error: unexpected number '{}' after 'ACK'. In .fasm, 'ACK' alone is a TCP flag; did you mean 'ACKNUM {}' to set the acknowledgment number?",
+                "Syntax error: unexpected number '{}' after 'ack'. In .fasm, 'ack' alone is a TCP flag; did you mean 'acknum {}' to set the acknowledgment number?",
                 raw_slice,
                 raw_slice
             ),
@@ -775,11 +777,11 @@ fn diagnose_parse_error<'a>(
     }
     if matches!(
         lower.as_str(),
-        "ack_num" | "ackno" | "ack_number" | "acknowledgment"
+        "ackno" | "ack_number" | "acknumber" | "acknowledgment"
     ) {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}'. Did you mean 'ACKNUM <number>'?",
+                "Syntax error: unexpected token '{}'. Did you mean 'acknum <number>'?",
                 raw_slice
             ),
             span,
@@ -788,7 +790,7 @@ fn diagnose_parse_error<'a>(
     if matches!(lower.as_str(), "hoplimit" | "hop_limit" | "hlim") {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}'. FrameAssembly uses 'TTL' for both IPv4 Time-to-Live and IPv6 Hop Limit (for example: TTL 64 or TTL 255)",
+                "Syntax error: unexpected token '{}'. FrameAssembly uses 'ttl' for both IPv4 Time-to-Live and IPv6 Hop Limit (for example: ttl 64 or ttl 255)",
                 raw_slice
             ),
             span,
@@ -800,7 +802,7 @@ fn diagnose_parse_error<'a>(
     ) {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}'. Did you mean 'DSCP <0..63>' (or 'ECN <0..3>')?",
+                "Syntax error: unexpected token '{}'. Did you mean 'dscp <0..63>' (or 'ecn <0..3>')?",
                 raw_slice
             ),
             span,
@@ -809,7 +811,7 @@ fn diagnose_parse_error<'a>(
     if matches!(lower.as_str(), "cos" | "dot1p") {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}'. Did you mean 'PCP <0..7>' (with 'VLAN <id>') for 802.1p Class of Service?",
+                "Syntax error: unexpected token '{}'. Did you mean 'pcp <0..7>' (with 'vlan <id>') for 802.1p Class of Service?",
                 raw_slice
             ),
             span,
@@ -817,11 +819,11 @@ fn diagnose_parse_error<'a>(
     }
     if matches!(
         lower.as_str(),
-        "vlan_id" | "vlanid" | "vid" | "svlan" | "cvlan" | "outer_vlan"
+        "vlan_id" | "vlanid" | "vid" | "svlan" | "cvlan" | "outer_vlan" | "outervlan"
     ) {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}'. Did you mean 'VLAN <id>' or 'QINQ <outer> INNER_VLAN <inner>'?",
+                "Syntax error: unexpected token '{}'. Did you mean 'vlan <id>' or 'qinq <outer> innervlan <inner>'?",
                 raw_slice
             ),
             span,
@@ -830,7 +832,7 @@ fn diagnose_parse_error<'a>(
     if matches!(tok, Token::Number(_)) && err_idx >= 2 && tokens[err_idx - 2].0 == Token::Qinq {
         return (
             alloc::format!(
-                "Syntax error: missing 'INNER_VLAN' keyword before inner VLAN ID '{}'. Write: QINQ {} INNER_VLAN {}",
+                "Syntax error: missing 'innervlan' keyword before inner VLAN ID '{}'. Write: qinq {} innervlan {}",
                 raw_slice,
                 tokens[err_idx - 1].2,
                 raw_slice
@@ -842,7 +844,7 @@ fn diagnose_parse_error<'a>(
         && matches!(enclosing, EnclosingBlock::Flow | EnclosingBlock::Compile)
     {
         return (
-            "Syntax error: unexpected 'HOST' inside a FLOW packet statement. Did you mean 'HOST_HDR \"<hostname>\"' for the HTTP Host header?".to_string(),
+            "Syntax error: unexpected 'host' inside a flow packet statement. Did you mean 'hosthdr \"<hostname>\"' for the HTTP Host header?".to_string(),
             span,
         );
     }
@@ -850,7 +852,7 @@ fn diagnose_parse_error<'a>(
         && matches!(enclosing, EnclosingBlock::Flow | EnclosingBlock::Compile)
     {
         return (
-            "Syntax error: standalone 'WAIT' line is not supported. Place 'WAIT <duration>' at the end of a packet statement (for example: c -> s TCP SYN WAIT 5ms)".to_string(),
+            "Syntax error: standalone 'wait' line is not supported. Place 'wait <duration>' at the end of a packet statement (for example: c -> s tcp syn wait 5ms)".to_string(),
             span,
         );
     }
@@ -885,7 +887,7 @@ fn diagnose_parse_error<'a>(
 
     (
         alloc::format!(
-            "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier (such as SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, or TCP flags)",
+            "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier (such as srcport, dstport, seq, acknum, win, or tcp flags)",
             raw_slice
         ),
         span,
@@ -898,7 +900,7 @@ fn diagnose_parse_error<'a>(
 /// ```
 /// use frameassembly::parser::parse_program;
 ///
-/// let input = "HOST client { IP 10.0.0.1 }\nCOMPILE {}";
+/// let input = "host client { ip 10.0.0.1 }\ncompile {}";
 /// let program = parse_program(input).unwrap();
 /// assert_eq!(program.hosts.len(), 1);
 /// ```

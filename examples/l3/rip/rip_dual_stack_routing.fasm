@@ -1,18 +1,18 @@
 // PROMPT: RIP route request query sent to broadcast and multicast routing destinations.
-// TOKENS: HOST, IP, FLOW, RIP, REQUEST, COMPILE
+// TOKENS: host, ip, flow, src, dst, rip, request, compile
 
 // INSTRUCTION: Define edge router inquiring routing updates.
-HOST edge_router { IP 172.16.0.10 }
+host edge_router { ip 172.16.0.10 }
 
 // INSTRUCTION: Define standard RIP multicast destination.
-HOST rip_all_routers { IP 224.0.0.9 }
+host rip_all_routers { ip 224.0.0.9 }
 
 // INSTRUCTION: Define RIP route request inquiry flow.
-FLOW rip_inquiry_flow(src, dst) {
-    src -> dst RIP REQUEST
+flow rip_inquiry_flow(src, dst) {
+    src -> dst rip request
 }
 
 // INSTRUCTION: Compile block executing RIP routing query.
-COMPILE {
+compile {
     rip_inquiry_flow(edge_router, rip_all_routers)
 }

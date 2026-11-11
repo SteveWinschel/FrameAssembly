@@ -1,10 +1,10 @@
 //! Layer 4 transport-layer protocol and header modifier parsers for FrameAssembly.
 //!
 //! This module coordinates syntactic combinators for Layer 4 transport protocols and shared
-//! transport modifiers, including Transmission Control Protocol (`TCP`), User Datagram Protocol
-//! (`UDP`), and Stream Control Transmission Protocol (`SCTP`). It also parses universal transport
-//! overrides such as source port (`SRCPORT`), destination port (`DSTPORT`), sequence and
-//! acknowledgment numbers (`SEQ`, `ACKNUM`), and explicit transport selection (`TRANSPORT`).
+//! transport modifiers, including Transmission Control Protocol (`tcp`), User Datagram Protocol
+//! (`udp`), and Stream Control Transmission Protocol (`sctp`). It also parses universal transport
+//! overrides such as source port (`srcport`), destination port (`dstport`), sequence and
+//! acknowledgment numbers (`seq`, `acknum`), and explicit transport selection (`transport`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

@@ -1,27 +1,27 @@
 // PROMPT: RTSP server rejecting UDP unicast transport with 461 Unsupported Transport, client falling back to TCP interleaved.
-// TOKENS: HOST, IP, FLOW, RTSP, SETUP, URI, CSEQ, TRANSPORT_HDR, WAIT, STATUS, SESSION, PLAY, COMPILE
+// TOKENS: host, ip, flow, s, rtsp, setup, uri, cseq, transporthdr, wait, ms, status, session, play, compile
 
 // INSTRUCTION: Define firewall-restricted RTSP player client.
-HOST fw_client {
-    IP 172.24.18.90
+host fw_client {
+    ip 172.24.18.90
 }
 
 // INSTRUCTION: Define TCP-only RTSP camera server.
-HOST tcp_cam_srv {
-    IP 172.24.18.10
+host tcp_cam_srv {
+    ip 172.24.18.10
 }
 
 // INSTRUCTION: Define UDP SETUP rejected with 461 followed by successful RTP/AVP/TCP SETUP.
-FLOW rtsp_461_fallback(c, s) {
-    c -> s RTSP SETUP URI "rtsp://172.24.18.10/cam1/video" CSEQ 1 TRANSPORT_HDR "RTP/AVP;unicast;client_port=5004-5005" WAIT 4ms
-    c <- s RTSP STATUS 461 CSEQ 1 WAIT 4ms
-    c -> s RTSP SETUP URI "rtsp://172.24.18.10/cam1/video" CSEQ 2 TRANSPORT_HDR "RTP/AVP/TCP;unicast;interleaved=0-1" WAIT 4ms
-    c <- s RTSP STATUS 200 CSEQ 2 SESSION "tcp_fallback_77" WAIT 4ms
-    c -> s RTSP PLAY URI "rtsp://172.24.18.10/cam1" CSEQ 3 SESSION "tcp_fallback_77" WAIT 4ms
-    c <- s RTSP STATUS 200 CSEQ 3 SESSION "tcp_fallback_77"
+flow rtsp_461_fallback(c, s) {
+    c -> s rtsp setup uri "rtsp://172.24.18.10/cam1/video" cseq 1 transporthdr "RTP/AVP;unicast;client_port=5004-5005" wait 4ms
+    c <- s rtsp status 461 cseq 1 wait 4ms
+    c -> s rtsp setup uri "rtsp://172.24.18.10/cam1/video" cseq 2 transporthdr "RTP/AVP/TCP;unicast;interleaved=0-1" wait 4ms
+    c <- s rtsp status 200 cseq 2 session "tcp_fallback_77" wait 4ms
+    c -> s rtsp play uri "rtsp://172.24.18.10/cam1" cseq 3 session "tcp_fallback_77" wait 4ms
+    c <- s rtsp status 200 cseq 3 session "tcp_fallback_77"
 }
 
 // INSTRUCTION: Compile the RTSP 461 transport fallback flow.
-COMPILE {
+compile {
     rtsp_461_fallback(fw_client, tcp_cam_srv)
 }

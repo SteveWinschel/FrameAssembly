@@ -6,25 +6,25 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b QUIC [INITIAL | ZERO_RTT | HANDSHAKE | RETRY | SHORT] [VERSION <u32>] [DCID <u64>] [SCID <u64>] [TOKEN <str>] [PKT_NUM <u32>]`
+//! `a -> b quic [initial | zerortt | handshake | retry | short] [version <u32>] [dcid <u64>] [scid <u64>] [token <str>] [pktnum <u32>]`
 
 /// RFC 9000 QUIC Transport Protocol specification.
 ///
-/// Syntax mapping: `QUIC [INITIAL | ZERO_RTT | HANDSHAKE | RETRY | SHORT] [VERSION <u32>] [DCID <u64>] [SCID <u64>] [TOKEN <str>] [PKT_NUM <u32>]`
-#[doc(alias = "QUIC")]
+/// Syntax mapping: `quic [initial | zerortt | handshake | retry | short] [version <u32>] [dcid <u64>] [scid <u64>] [token <str>] [pktnum <u32>]`
+#[doc(alias = "quic")]
 #[doc(alias = "HTTP3")]
 #[doc(alias = "RFC 9000")]
 #[doc(alias = "RFC9000")]
-#[doc(alias = "INITIAL")]
-#[doc(alias = "ZERO_RTT")]
-#[doc(alias = "HANDSHAKE")]
-#[doc(alias = "RETRY")]
-#[doc(alias = "SHORT")]
-#[doc(alias = "VERSION")]
-#[doc(alias = "DCID")]
-#[doc(alias = "SCID")]
-#[doc(alias = "TOKEN")]
-#[doc(alias = "PKT_NUM")]
+#[doc(alias = "initial")]
+#[doc(alias = "zerortt")]
+#[doc(alias = "handshake")]
+#[doc(alias = "retry")]
+#[doc(alias = "short")]
+#[doc(alias = "version")]
+#[doc(alias = "dcid")]
+#[doc(alias = "scid")]
+#[doc(alias = "token")]
+#[doc(alias = "pktnum")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct QuicSpec<'a> {
     /// Initial packet flag.

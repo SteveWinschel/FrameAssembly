@@ -1,9 +1,9 @@
-//! Internet Group Management Protocol (`IGMP`, RFC 1112 / RFC 2236 / RFC 3376) parser.
+//! Internet Group Management Protocol (`igmp`, RFC 1112 / RFC 2236 / RFC 3376) parser.
 //!
-//! This module implements the winnow parser combinator for IPv4 `IGMP` multicast group membership
-//! statements. It supports membership operations (`QUERY`, `REPORT`, `LEAVE`), protocol version
-//! shorthands (`V1`, `V2`, `V3`, or `VERSION <1..3>`), multicast group addresses (`GROUP <ipv4>`),
-//! and maximum response time intervals (`MAX_RESP <u8>`).
+//! This module implements the winnow parser combinator for IPv4 `igmp` multicast group membership
+//! statements. It supports membership operations (`query`, `report`, `leave`), protocol version
+//! shorthands (`v1`, `v2`, `v3`, or `version <1..3>`), multicast group addresses (`group <ipv4>`),
+//! and maximum response time intervals (`maxresp <u8>`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

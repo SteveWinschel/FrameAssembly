@@ -1,18 +1,18 @@
 // PROMPT: EtherNet/IP encapsulation command 0x0065 RegisterSession establishing session.
-// TOKENS: HOST, IP, FLOW, ETHERNETIP, CMD, STATUS, COMPILE
+// TOKENS: host, ip, flow, s, ethernetip, cmd, status, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.10 }
+host client { ip 192.168.1.10 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.168.1.2 }
+host server { ip 192.168.1.2 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW enip_register(c, s) {
-    c -> s ETHERNETIP CMD "RegisterSession" STATUS 0
+flow enip_register(c, s) {
+    c -> s ethernetip cmd "registersession" status 0
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     enip_register(client, server)
 }

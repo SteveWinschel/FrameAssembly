@@ -252,7 +252,7 @@ pub fn to_snmpv2_varbind(name: ObjectIdentifier, val: &SnmpTypedValue) -> snmpv2
 Demonstrates:
 - Distinct RFC 1157 context tags: `GetRequest` (`0xa0`), `GetNextRequest` (`0xa1`), `GetResponse` (`0xa2`), `SetRequest` (`0xa3`), and `Trap` (`0xa4`), where `v1::Pdu` uses `Integer` fields (`request_id`, `error_status`, `error_index`) and `u64` `ERROR_STATUS_*` constants (`0..=5`).
 - Automatic mapping of standard RFC 1157 / RFC 3418 generic trap OIDs (`1.3.6.1.6.3.1.1.5.1` through `.6`) to `generic_trap` `0..=5` (`coldStart`..=`egpNeighborLoss`) with `specific_trap = 0`, while enterprise OIDs map to `generic_trap = 6` (`enterpriseSpecific`) with `specific_trap = 1`.
-- RFC 3584 §3.2 dual-stack IPv6 handling: `agent_addr` defaults to `0.0.0.0` (`[0, 0, 0, 0]`) when the emitting host is IPv6, unless overridden by an explicit `AGENTIP`.
+- RFC 3584 §3.2 dual-stack IPv6 handling: `agent_addr` defaults to `0.0.0.0` (`[0, 0, 0, 0]`) when the emitting host is IPv6, unless overridden by an explicit `agentip`.
 
 ```rust
 //! Pattern 3: SNMPv1 PDU construction, generic trap auto-mapping, and RFC 3584 IPv6 adaptation.
@@ -449,7 +449,7 @@ pub fn build_snmpv2c_getbulk(
 Demonstrates:
 1. **Password & Security Level Validation**: Rejects empty passwords (`""`) to prevent division-by-zero in the 1MB key localization loop, and rejects `noAuthPriv` (`0x02`).
 2. **Pre-Sized Zero MAC Placeholder & `encode_security_parameters`**: Populates `USMSecurityParameters.authentication_parameters` with `vec![0u8; auth_len]` (`12`/`24`/`32`/`48`) before the first BER encode and uses `message.encode_security_parameters(rasn::Codec::Ber, &usm_params)` / `message.decode_security_parameters::<snmpv3::USMSecurityParameters>(rasn::Codec::Ber)`.
-3. **DES-CBC `NoPadding` BER Decryption Invariant**: Encrypts with `ZeroPadding`, and decrypts with `NoPadding` before calling `rasn::ber::decode::<snmpv3::ScopedPdu>` so that an 8-byte-aligned `ScopedPdu` ending in `0x00` (`INT 0` or `NULLVAL`) never has its trailing BER byte stripped!
+3. **DES-CBC `NoPadding` BER Decryption Invariant**: Encrypts with `ZeroPadding`, and decrypts with `NoPadding` before calling `rasn::ber::decode::<snmpv3::ScopedPdu>` so that an 8-byte-aligned `ScopedPdu` ending in `0x00` (`int 0` or `nullval`) never has its trailing BER byte stripped!
 
 ```rust
 //! Pattern 5: End-to-end SNMPv3 USM key localization, encryption, signing, and NoPadding BER decryption.

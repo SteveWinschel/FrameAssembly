@@ -1,23 +1,23 @@
 // PROMPT: FTP explicit TLS upgrade negotiation using AUTH TLS, PBSZ 0, and PROT P commands.
-// TOKENS: HOST, IP, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
+// TOKENS: host, ip, flow, s, ftp, cmd, arg, code, reply, compile
 
 // INSTRUCTION: Define FTPS client host.
-HOST ftps_client { IP 10.40.21.15 }
+host ftps_client { ip 10.40.21.15 }
 
 // INSTRUCTION: Define FTPS server supporting RFC 4217 AUTH TLS.
-HOST ftps_server { IP 10.40.21.1 }
+host ftps_server { ip 10.40.21.1 }
 
 // INSTRUCTION: Negotiate AUTH TLS, protection buffer size PBSZ 0, and private data channel PROT P.
-FLOW ftp_auth_tls_upgrade(c, s) {
-    c -> s FTP CMD "AUTH" ARG "TLS"
-    c <- s FTP CODE 234 REPLY "Proceed with negotiation"
-    c -> s FTP CMD "PBSZ" ARG "0"
-    c <- s FTP CODE 200 REPLY "PBSZ set to 0"
-    c -> s FTP CMD "PROT" ARG "P"
-    c <- s FTP CODE 200 REPLY "PROT now Private"
+flow ftp_auth_tls_upgrade(c, s) {
+    c -> s ftp cmd "AUTH" arg "TLS"
+    c <- s ftp code 234 reply "Proceed with negotiation"
+    c -> s ftp cmd "PBSZ" arg "0"
+    c <- s ftp code 200 reply "PBSZ set to 0"
+    c -> s ftp cmd "PROT" arg "P"
+    c <- s ftp code 200 reply "PROT now Private"
 }
 
 // INSTRUCTION: Compile the FTPS RFC 4217 negotiation sequence.
-COMPILE {
+compile {
     ftp_auth_tls_upgrade(ftps_client, ftps_server)
 }

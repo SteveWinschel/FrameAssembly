@@ -1,27 +1,27 @@
 // PROMPT: Simulate an OSPF Link State Request (LSR), Link State Update (LSU) retransmission, and explicit LSAck confirmation
-// TOKENS: HOST, IP, MAC, FLOW, OSPF, LSR, ROUTER_ID, AREA_ID, TTL, PAYLOAD, WAIT, LSU, LSACK, COMPILE
+// TOKENS: host, ip, mac, flow, ospf, lsr, routerid, areaid, ttl, payload, wait, ms, lsu, lsack, compile
 
 // INSTRUCTION: Define the requesting OSPF router in Loading state
-HOST loading_rtr {
-    IP 10.88.1.1
-    MAC 00:16:3e:f9:88:01
+host loading_rtr {
+    ip 10.88.1.1
+    mac 00:16:3e:f9:88:01
 }
 
 // INSTRUCTION: Define the responding OSPF neighbor holding the latest LSDB
-HOST database_rtr {
-    IP 10.88.1.2
-    MAC 00:16:3e:f9:88:02
+host database_rtr {
+    ip 10.88.1.2
+    mac 00:16:3e:f9:88:02
 }
 
 // INSTRUCTION: Request missing LSAs via LSR, retransmit LSU after timeout, and acknowledge with LSACK
-FLOW ospf_lsr_lsu_retransmit(requester, responder) {
-    requester -> responder OSPF LSR ROUTER_ID 10.88.0.1 AREA_ID 88 TTL 1 PAYLOAD "lsr-type1-router-lsa-10.88.0.2" WAIT 10ms
-    responder -> requester OSPF LSU ROUTER_ID 10.88.0.2 AREA_ID 88 TTL 1 PAYLOAD "lsu-type1-router-lsa-seq-0x80000005" WAIT 50ms
-    responder -> requester OSPF LSU ROUTER_ID 10.88.0.2 AREA_ID 88 TTL 1 PAYLOAD "lsu-type1-router-lsa-seq-0x80000005-retransmit" WAIT 10ms
-    requester -> responder OSPF LSACK ROUTER_ID 10.88.0.1 AREA_ID 88 TTL 1 PAYLOAD "lsack-type1-router-lsa-seq-0x80000005"
+flow ospf_lsr_lsu_retransmit(requester, responder) {
+    requester -> responder ospf lsr routerid 10.88.0.1 areaid 88 ttl 1 payload "lsr-type1-router-lsa-10.88.0.2" wait 10ms
+    responder -> requester ospf lsu routerid 10.88.0.2 areaid 88 ttl 1 payload "lsu-type1-router-lsa-seq-0x80000005" wait 50ms
+    responder -> requester ospf lsu routerid 10.88.0.2 areaid 88 ttl 1 payload "lsu-type1-router-lsa-seq-0x80000005-retransmit" wait 10ms
+    requester -> responder ospf lsack routerid 10.88.0.1 areaid 88 ttl 1 payload "lsack-type1-router-lsa-seq-0x80000005"
 }
 
 // INSTRUCTION: Compile the OSPF LSR/LSU retransmission and acknowledgment trace
-COMPILE {
+compile {
     ospf_lsr_lsu_retransmit(loading_rtr, database_rtr)
 }

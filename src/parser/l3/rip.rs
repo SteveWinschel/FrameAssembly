@@ -1,9 +1,9 @@
-//! Routing Information Protocol v2 (`RIP`, RFC 2453) distance-vector routing parser.
+//! Routing Information Protocol v2 (`rip`, RFC 2453) distance-vector routing parser.
 //!
-//! This module implements the winnow parser combinator for `RIP` distance-vector routing updates
-//! over UDP port 520. It parses command types (`REQUEST`, `REPLY`, `RESPONSE`), route table entry
-//! destination addresses (`PREFIX <ipv4>`), hop-count metrics (`METRIC <1..16>`), next-hop router
-//! addresses (`NEXTHOP <ipv4>`), and external route tags (`TAG <u16>`).
+//! This module implements the winnow parser combinator for `rip` distance-vector routing updates
+//! over UDP port 520. It parses command types (`request`, `reply`, `response`), route table entry
+//! destination addresses (`prefix <ipv4>`), hop-count metrics (`metric <1..16>`), next-hop router
+//! addresses (`nexthop <ipv4>`), and external route tags (`tag <u16>`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

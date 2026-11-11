@@ -1,33 +1,33 @@
 // PROMPT: Simulate an OpenFlow controller communicating with switches on both IANA TCP port 6653 and legacy TCP port 6633
-// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, FEATURES_REQ, VERSION, XID, SRCPORT, DSTPORT, WAIT, FEATURES_REPLY, DPID, COMPILE
+// TOKENS: host, ip, mac, flow, openflow, featuresreq, version, xid, srcport, dstport, wait, ms, featuresreply, dpid, compile
 
 // INSTRUCTION: Define the multi-version SDN controller
-HOST multi_port_ctrl {
-    IP 10.150.10.1
-    MAC 00:25:90:e8:10:01
+host multi_port_ctrl {
+    ip 10.150.10.1
+    mac 00:25:90:e8:10:01
 }
 
 // INSTRUCTION: Define the modern switch listening on TCP port 6653
-HOST modern_sw {
-    IP 10.150.10.11
-    MAC 00:25:90:e8:10:11
+host modern_sw {
+    ip 10.150.10.11
+    mac 00:25:90:e8:10:11
 }
 
 // INSTRUCTION: Define the legacy switch listening on TCP port 6633
-HOST legacy_sw {
-    IP 10.150.10.12
-    MAC 00:25:90:e8:10:12
+host legacy_sw {
+    ip 10.150.10.12
+    mac 00:25:90:e8:10:12
 }
 
 // INSTRUCTION: Poll the modern switch on port 6653 and the legacy switch on port 6633
-FLOW openflow_custom_ports_poll(ctrl, sw_new, sw_old) {
-    ctrl -> sw_new OPENFLOW FEATURES_REQ VERSION 4 XID 101 SRCPORT 52100 DSTPORT 6653 WAIT 10ms
-    sw_new -> ctrl OPENFLOW FEATURES_REPLY VERSION 4 XID 101 DPID 1001 SRCPORT 6653 DSTPORT 52100 WAIT 15ms
-    ctrl -> sw_old OPENFLOW FEATURES_REQ VERSION 1 XID 201 SRCPORT 52101 DSTPORT 6633 WAIT 10ms
-    sw_old -> ctrl OPENFLOW FEATURES_REPLY VERSION 1 XID 201 DPID 2002 SRCPORT 6633 DSTPORT 52101
+flow openflow_custom_ports_poll(ctrl, sw_new, sw_old) {
+    ctrl -> sw_new openflow featuresreq version 4 xid 101 srcport 52100 dstport 6653 wait 10ms
+    sw_new -> ctrl openflow featuresreply version 4 xid 101 dpid 1001 srcport 6653 dstport 52100 wait 15ms
+    ctrl -> sw_old openflow featuresreq version 1 xid 201 srcport 52101 dstport 6633 wait 10ms
+    sw_old -> ctrl openflow featuresreply version 1 xid 201 dpid 2002 srcport 6633 dstport 52101
 }
 
 // INSTRUCTION: Compile the dual-port OpenFlow discovery sequence
-COMPILE {
+compile {
     openflow_custom_ports_poll(multi_port_ctrl, modern_sw, legacy_sw)
 }

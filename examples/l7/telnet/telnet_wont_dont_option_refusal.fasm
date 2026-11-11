@@ -1,31 +1,31 @@
 // PROMPT: Simulate a Telnet client rejecting server authentication (Option 37) and encryption (Option 38) using WONT and DONT.
-// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TELNET, DO, WONT, WILL, DONT, PAYLOAD, COMPILE
+// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, telnet, do, wont, will, dont, payload, compile
 
 // INSTRUCTION: Define host endpoint minimal_client.
-HOST minimal_client {
-    MAC 00:25:90:00:23:15
-    IP 10.23.1.15
+host minimal_client {
+    mac 00:25:90:00:23:15
+    ip 10.23.1.15
 }
 
 // INSTRUCTION: Define host endpoint krb_telnetd.
-HOST krb_telnetd {
-    MAC 00:25:90:00:23:01
-    IP 10.23.1.1
+host krb_telnetd {
+    mac 00:25:90:00:23:01
+    ip 10.23.1.1
 }
 
 // INSTRUCTION: Server requests Option 37 (Auth) and Option 38 (Encrypt); client refuses with WONT 37 and DONT 38.
-FLOW telnet_option_refusal_wont_dont(minimal_client, krb_telnetd) {
-    minimal_client -> krb_telnetd TCP SYN SRCPORT 53023 DSTPORT 23
-    krb_telnetd -> minimal_client TCP SYN ACK
-    minimal_client -> krb_telnetd TCP ACK
-    krb_telnetd -> minimal_client TELNET DO 37
-    minimal_client -> krb_telnetd TELNET WONT 37
-    krb_telnetd -> minimal_client TELNET WILL 38
-    minimal_client -> krb_telnetd TELNET DONT 38
-    krb_telnetd -> minimal_client TELNET PAYLOAD "Unencrypted fallback login: "
+flow telnet_option_refusal_wont_dont(minimal_client, krb_telnetd) {
+    minimal_client -> krb_telnetd tcp syn srcport 53023 dstport 23
+    krb_telnetd -> minimal_client tcp syn ack
+    minimal_client -> krb_telnetd tcp ack
+    krb_telnetd -> minimal_client telnet do 37
+    minimal_client -> krb_telnetd telnet wont 37
+    krb_telnetd -> minimal_client telnet will 38
+    minimal_client -> krb_telnetd telnet dont 38
+    krb_telnetd -> minimal_client telnet payload "Unencrypted fallback login: "
 }
 
 // INSTRUCTION: Compile the Telnet WONT/DONT option refusal flow.
-COMPILE {
+compile {
     telnet_option_refusal_wont_dont(minimal_client, krb_telnetd)
 }

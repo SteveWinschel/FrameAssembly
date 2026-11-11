@@ -24,19 +24,24 @@ pub fn build_ethernetip_payload(
         || spec.cip_attr.is_some();
 
     let default_cmd = if has_cip {
-        "SEND_RR_DATA"
+        "sendrrdata"
     } else {
-        "LIST_IDENTITY"
+        "listidentity"
     };
-    let cmd_code: u16 = match spec.cmd.unwrap_or(default_cmd).to_ascii_uppercase().as_str() {
+    let cmd_norm = spec
+        .cmd
+        .unwrap_or(default_cmd)
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    let cmd_code: u16 = match cmd_norm.as_str() {
         "NOP" => 0x0000,
-        "LIST_SERVICES" => 0x0004,
-        "LIST_IDENTITY" => 0x0063,
-        "LIST_INTERFACES" => 0x0064,
-        "REGISTER_SESSION" => 0x0065,
-        "UNREGISTER_SESSION" => 0x0066,
-        "SEND_RR_DATA" => 0x006F,
-        "SEND_UNIT_DATA" => 0x0070,
+        "LISTSERVICES" => 0x0004,
+        "LISTIDENTITY" => 0x0063,
+        "LISTINTERFACES" => 0x0064,
+        "REGISTERSESSION" => 0x0065,
+        "UNREGISTERSESSION" => 0x0066,
+        "SENDRRDATA" => 0x006F,
+        "SENDUNITDATA" => 0x0070,
         _ => 0x0063,
     };
 

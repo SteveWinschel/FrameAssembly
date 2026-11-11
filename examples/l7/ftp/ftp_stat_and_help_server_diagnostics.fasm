@@ -1,27 +1,27 @@
 // PROMPT: FTP administrative diagnostics session issuing HELP and STAT commands to inspect daemon status.
-// TOKENS: HOST, IP, MAC, FLOW, FTP, CMD, CODE, REPLY, COMPILE
+// TOKENS: host, ip, mac, flow, s, ftp, cmd, code, reply, compile
 
 // INSTRUCTION: Define operations monitoring probe host.
-HOST ops_probe {
-    IP 10.99.21.5
-    MAC 00:1b:78:63:15:05
+host ops_probe {
+    ip 10.99.21.5
+    mac 00:1b:78:63:15:05
 }
 
 // INSTRUCTION: Define production FTP server responder.
-HOST prod_ftp_daemon {
-    IP 10.99.21.1
-    MAC 00:1b:78:63:15:01
+host prod_ftp_daemon {
+    ip 10.99.21.1
+    mac 00:1b:78:63:15:01
 }
 
 // INSTRUCTION: Query supported server commands via HELP and connection status via STAT.
-FLOW ftp_stat_help_diag(c, s) {
-    c -> s FTP CMD "HELP"
-    c <- s FTP CODE 214 REPLY "The following commands are recognized"
-    c -> s FTP CMD "STAT"
-    c <- s FTP CODE 211 REPLY "FTP server status: Connected to 10.99.21.5"
+flow ftp_stat_help_diag(c, s) {
+    c -> s ftp cmd "HELP"
+    c <- s ftp code 214 reply "The following commands are recognized"
+    c -> s ftp cmd "STAT"
+    c <- s ftp code 211 reply "FTP server status: Connected to 10.99.21.5"
 }
 
 // INSTRUCTION: Compile the FTP HELP and STAT server diagnostics scenario.
-COMPILE {
+compile {
     ftp_stat_help_diag(ops_probe, prod_ftp_daemon)
 }

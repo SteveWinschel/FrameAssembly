@@ -1,30 +1,30 @@
 // PROMPT: Model a Telnet Negotiate About Window Size (NAWS, Option 31, RFC 1073) negotiation between a terminal and router.
-// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TELNET, DO, WILL, PAYLOAD, COMPILE
+// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, telnet, do, will, payload, compile
 
 // INSTRUCTION: Define host endpoint admin_pc.
-HOST admin_pc {
-    MAC 00:1c:42:00:23:10
-    IP 192.168.23.10
+host admin_pc {
+    mac 00:1c:42:00:23:10
+    ip 192.168.23.10
 }
 
 // INSTRUCTION: Define host endpoint managed_rtr.
-HOST managed_rtr {
-    MAC 00:1c:42:00:23:01
-    IP 192.168.23.1
+host managed_rtr {
+    mac 00:1c:42:00:23:01
+    ip 192.168.23.1
 }
 
 // INSTRUCTION: Negotiate NAWS Option 31 (DO 31 / WILL 31) and exchange terminal prompt data.
-FLOW telnet_naws_window_size_rfc1073(admin_pc, managed_rtr) {
-    admin_pc -> managed_rtr TCP SYN SRCPORT 52023 DSTPORT 23
-    managed_rtr -> admin_pc TCP SYN ACK
-    admin_pc -> managed_rtr TCP ACK
-    managed_rtr -> admin_pc TELNET DO 31
-    admin_pc -> managed_rtr TELNET WILL 31
-    admin_pc -> managed_rtr TELNET PAYLOAD "NAWS-132x43"
-    managed_rtr -> admin_pc TELNET PAYLOAD "Router# terminal width 132\r\nRouter# "
+flow telnet_naws_window_size_rfc1073(admin_pc, managed_rtr) {
+    admin_pc -> managed_rtr tcp syn srcport 52023 dstport 23
+    managed_rtr -> admin_pc tcp syn ack
+    admin_pc -> managed_rtr tcp ack
+    managed_rtr -> admin_pc telnet do 31
+    admin_pc -> managed_rtr telnet will 31
+    admin_pc -> managed_rtr telnet payload "NAWS-132x43"
+    managed_rtr -> admin_pc telnet payload "Router# terminal width 132\r\nRouter# "
 }
 
 // INSTRUCTION: Compile the Telnet NAWS Option 31 flow.
-COMPILE {
+compile {
     telnet_naws_window_size_rfc1073(admin_pc, managed_rtr)
 }

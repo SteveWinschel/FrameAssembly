@@ -301,7 +301,7 @@ pub fn decrypt_usm_aes128_cfb(
 Demonstrates:
 - RFC 3414 §8.1.1.1 DES key (`kul[0..8]`) and `pre_iv` (`kul[8..16]`) extraction, XORing `pre_iv ^ salt` to form the 8-byte CBC IV, and `ZeroPadding` encryption (`encrypt_padded::<ZeroPadding>`).
 - **The `NoPadding` vs. `ZeroPadding` BER Decryption Invariant (`tests/snmp_spec_tests.rs:194`)**:
-  - When decrypting an ASN.1 BER `ScopedPdu` encrypted with `ZeroPadding`, if the final VarBind ends in `0x00` (e.g., `INT 0` = `02 01 00` or `NULLVAL` = `05 00`) and the `ScopedPdu` length is an exact multiple of 8 bytes, `decrypt_padded::<ZeroPadding>` strips the valid trailing `0x00` of the BER TLV from the returned slice!
+  - When decrypting an ASN.1 BER `ScopedPdu` encrypted with `ZeroPadding`, if the final VarBind ends in `0x00` (e.g., `int 0` = `02 01 00` or `nullval` = `05 00`) and the `ScopedPdu` length is an exact multiple of 8 bytes, `decrypt_padded::<ZeroPadding>` strips the valid trailing `0x00` of the BER TLV from the returned slice!
   - Because an ASN.1 BER `ScopedPdu` (`0x30`) is self-delimiting via its outer TLV length, decrypting with `decrypt_padded::<NoPadding>` leaves all decrypted bytes intact for `rasn::ber::decode`.
 
 ```rust
@@ -356,7 +356,7 @@ pub fn encrypt_usm_des_cbc(
 }
 
 /// Decrypts a DES-CBC `EncryptedPdu` using `NoPadding` (NOT `ZeroPadding`!) so that an
-/// 8-byte-aligned BER `ScopedPdu` ending in `0x00` (`INT 0` = `02 01 00` or `NULLVAL` = `05 00`)
+/// 8-byte-aligned BER `ScopedPdu` ending in `0x00` (`int 0` = `02 01 00` or `nullval` = `05 00`)
 /// never has its final BER TLV byte stripped before `rasn::ber::decode`.
 pub fn decrypt_usm_des_cbc_raw_blocks(
     priv_kul: &[u8],

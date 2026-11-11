@@ -1,18 +1,18 @@
 // PROMPT: IGMP leave group message sent to all-routers multicast address 224.0.0.2.
-// TOKENS: HOST, IP, FLOW, IGMP, LEAVE, GROUP, COMPILE
+// TOKENS: host, ip, flow, src, dst, igmp, leave, group, compile
 
 // INSTRUCTION: Define client leaving multicast stream.
-HOST departing_host { IP 192.168.1.50 }
+host departing_host { ip 192.168.1.50 }
 
 // INSTRUCTION: Define all-routers multicast destination.
-HOST all_routers { IP 224.0.0.2 }
+host all_routers { ip 224.0.0.2 }
 
 // INSTRUCTION: Define IGMP leave flow signaling departure from group 239.1.1.100.
-FLOW igmp_leave_flow(src, dst) {
-    src -> dst IGMP LEAVE GROUP 239.1.1.100
+flow igmp_leave_flow(src, dst) {
+    src -> dst igmp leave group 239.1.1.100
 }
 
 // INSTRUCTION: Compile block executing IGMP leave notification.
-COMPILE {
+compile {
     igmp_leave_flow(departing_host, all_routers)
 }

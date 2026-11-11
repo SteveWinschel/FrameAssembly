@@ -411,6 +411,8 @@ impl<'a> FrameBuilder<'a> {
             ParsedField::HelloTime(v, span) => {
                 self.record_mod("HELLO_TIME", *span);
                 self.hello_time = Some(*v);
+                self.hsrp_hellotime = Some((*v).min(255) as u8);
+                self.raw_hellotime = Some((*v, *span));
                 self.stmt_end_offset = self.stmt_end_offset.max(span.0 + span.1);
             }
             ParsedField::ForwardDelay(v, span) => {
@@ -799,11 +801,6 @@ impl<'a> FrameBuilder<'a> {
                 self.record_mod("STATE", *span);
                 self.hsrp_state = Some(*v);
                 self.bfd_state = Some(*v);
-                self.stmt_end_offset = self.stmt_end_offset.max(span.0 + span.1);
-            }
-            ParsedField::HelloTimeHsrp(v, span) => {
-                self.record_mod("HELLO_TIME_HSRP", *span);
-                self.hsrp_hellotime = Some(*v);
                 self.stmt_end_offset = self.stmt_end_offset.max(span.0 + span.1);
             }
             ParsedField::PimJoinPrune(span) => {

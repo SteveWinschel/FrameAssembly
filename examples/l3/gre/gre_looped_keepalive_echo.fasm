@@ -1,21 +1,22 @@
-// PROMPT: Periodic GRE tunnel keepalive probes executed inside a COMPILE LOOP block.
-// TOKENS: HOST, IP, FLOW, GRE, GRE_KEY, GRE_SEQ, CHECKSUM, WAIT, COMPILE, LOOP
+// PROMPT: Periodic GRE tunnel keepalive probes executed inside a COMPILE repeated flow calls.
+// TOKENS: host, ip, flow, s, gre, grekey, greseq, checksum, wait, ms, compile
 
 // INSTRUCTION: Define primary WAN GRE endpoint.
-HOST gre_ka_primary { IP 10.210.1.1 }
+host gre_ka_primary { ip 10.210.1.1 }
 
 // INSTRUCTION: Define secondary WAN GRE endpoint.
-HOST gre_ka_secondary { IP 10.210.1.2 }
+host gre_ka_secondary { ip 10.210.1.2 }
 
 // INSTRUCTION: Define bidirectional GRE keepalive exchange with 25ms delay.
-FLOW gre_keepalive_cycle(p, s) {
-    p -> s GRE GRE_KEY 1010 GRE_SEQ 1 CHECKSUM WAIT 25ms
-    p <- s GRE GRE_KEY 1010 GRE_SEQ 1 CHECKSUM WAIT 25ms
+flow gre_keepalive_cycle(p, s) {
+    p -> s gre grekey 1010 greseq 1 checksum wait 25ms
+    p <- s gre grekey 1010 greseq 1 checksum wait 25ms
 }
 
 // INSTRUCTION: Compile 4 iterations of the GRE keepalive probe cycle.
-COMPILE {
-    LOOP 4 {
-        gre_keepalive_cycle(gre_ka_primary, gre_ka_secondary)
-    }
+compile {
+    gre_keepalive_cycle(gre_ka_primary, gre_ka_secondary) // cycle 1
+    gre_keepalive_cycle(gre_ka_primary, gre_ka_secondary) // cycle 2
+    gre_keepalive_cycle(gre_ka_primary, gre_ka_secondary) // cycle 3
+    gre_keepalive_cycle(gre_ka_primary, gre_ka_secondary) // cycle 4
 }

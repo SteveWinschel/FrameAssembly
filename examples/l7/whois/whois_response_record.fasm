@@ -1,18 +1,18 @@
 // PROMPT: WHOIS server response returning registrar details.
-// TOKENS: HOST, IP, FLOW, WHOIS, RESPONSE, DOMAIN, REGISTRAR, COMPILE
+// TOKENS: host, ip, flow, s, whois, response, domain, registrar, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.50 }
+host client { ip 192.168.1.50 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.0.47.59 }
+host server { ip 192.0.47.59 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW whois_resp(c, s) {
-    c <- s WHOIS RESPONSE DOMAIN "example.com" REGISTRAR "IANA Registrar"
+flow whois_resp(c, s) {
+    c <- s whois response domain "example.com" registrar "IANA Registrar"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     whois_resp(client, server)
 }

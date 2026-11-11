@@ -1,16 +1,16 @@
 //! Documentation integrity gate for FrameAssembly's human-facing and agent-facing Markdown.
 //!
-//! Network engineers who do not program read `README.md` and the guides in `docs/`, while AI
-//! agents read `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, and `llms.txt`. This
-//! suite keeps both audiences safe from stale documentation by enforcing these invariants:
+//! Network engineers read `README.md` and the guides in `docs/`, while AI agents read `AGENTS.md`,
+//! `CLAUDE.md`, `.github/copilot-instructions.md`, and `llms.txt`. This suite keeps both audiences
+//! safe from stale documentation by enforcing three core invariants:
 //! 1. **No training metadata in human docs**: the corpus-only `// PROMPT:`, `// TOKENS:`, and
 //!    `// INSTRUCTION:` header comments never appear in `README.md` or `docs/*.md`, except in
 //!    `docs/for_nerds.md`, which documents the `examples/` corpus format for AI engineers.
 //! 2. **MIME, Linguist & SEO hygiene**: the `.fasm` MIME XML, GitHub Linguist samples, and
-//!    `Cargo.toml` metadata stay consistent with FrameAssembly branding and terminology.
-//! 3. **Four-Way Ecosystem Version Lockstep (`1.5.1`)**: `Cargo.toml`, `src/lib.rs`, `llms.txt`,
+//!    `Cargo.toml` metadata stay consistent with FrameAssembly v2.0.0 strict-lowercase syntax.
+//! 3. **Four-Way Ecosystem Version Lockstep (`2.0.0`)**: `Cargo.toml`, `src/lib.rs`, `llms.txt`,
 //!    `llms-full.txt`, `frameassembly-wasm`, `frameassembly-vscode`, `install.sh`, `CITATION.cff`,
-//!    and `codemeta.json` remain synchronized on `1.5.1` and `https://frameassembly.ai.studio/`.
+//!    and `codemeta.json` remain synchronized on `2.0.0` and `https://frameassembly.ai.studio/`.
 
 use std::fs;
 use std::path::PathBuf;
@@ -58,8 +58,8 @@ fn test_human_docs_have_no_training_metadata_comments() {
 
 /// Verifies `contrib/mime/text-vnd.frameassembly.xml` XML schema (`<mime-info>` root), `<magic>`
 /// lexer token validity, live `update-mime-database` + `gio info` classification (including
-/// `> 600` byte comment headers and zero false positives on ordinary plain text), `languages.yml`
-/// schema, `heuristics.yml` disambiguation, and compilation of `contrib/linguist/samples/*.fasm`.
+/// `> 600` byte comment headers, MAC-only L2 hosts, and zero false positives on ordinary text),
+/// `languages.yml` schema, `heuristics.yml` disambiguation, and `contrib/linguist/samples/*.fasm`.
 #[test]
 fn test_fasm_mime_xml_and_linguist_samples() {
     let xml_path = "contrib/mime/text-vnd.frameassembly.xml";
@@ -98,13 +98,19 @@ if shutil.which("update-mime-database") and shutil.which("gio"):
 
         long_hdr = os.path.join(tmp, "long_comment_spec")
         with open(long_hdr, "w") as f:
-            f.write("// " + ("A" * 320) + "\n// " + ("B" * 320) + "\nHOST\tgw { IP 10.0.0.1 }\nFLOW f(a, b) { a -> b ICMP }\nCOMPILE { f(gw, gw) }\n")
+            f.write("// " + ("A" * 320) + "\n// " + ("B" * 320) + "\nhost\tgw { ip 10.0.0.1 }\nflow f(a, b) { a -> b icmp }\ncompile { f(gw, gw) }\n")
         r_long = subprocess.check_output(["gio", "info", "-a", "standard::content-type", long_hdr], env=env, text=True)
         assert "standard::content-type: text/vnd.frameassembly" in r_long, r_long
 
+        mac_only = os.path.join(tmp, "mac_only_spec")
+        with open(mac_only, "w") as f:
+            f.write("host sw1 { mac 00:1c:73:aa:bb:01 }\nhost sw2 { mac 00:1c:73:aa:bb:02 }\nflow f(a, b) { a -> b lldp }\ncompile { f(sw1, sw2) }\n")
+        r_mac = subprocess.check_output(["gio", "info", "-a", "standard::content-type", mac_only], env=env, text=True)
+        assert "standard::content-type: text/vnd.frameassembly" in r_mac, r_mac
+
         for name, body in [
             ("NOTES", "How to compile this project on localhost:\nRun make all.\n"),
-            ("DocFile", "This script runs on localhost port 8080.\n"),
+            ("DocFile", "This host script runs on localhost port 8080.\n"),
         ]:
             p = os.path.join(tmp, name)
             with open(p, "w") as f:
@@ -127,9 +133,10 @@ def classify(text):
         return "Assembly"
     return "Unknown"
 
-assert classify("HOST gw { MAC 00:11:22:33:44:55 IP 10.0.0.1 }") == "FrameAssembly"
-assert classify("c -> s DSCP 46 TTL 64 SRCPORT 50000 TCP SYN") == "FrameAssembly"
-assert classify("; HOST IP comment in x86 fasm\nformat ELF64 executable\nmacro compile {\n  mov eax, 1\n}\n") == "Assembly"
+assert classify("host gw { mac 00:11:22:33:44:55 ip 10.0.0.1 }") == "FrameAssembly"
+assert classify("host sw { mac 00:11:22:33:44:55 }") == "FrameAssembly"
+assert classify("c -> s dscp 46 ttl 64 srcport 50000 tcp syn sackperm") == "FrameAssembly"
+assert classify("; host ip comment in x86 fasm\nformat ELF64 executable\nmacro compile {\n  mov eax, 1\n}\n") == "Assembly"
 "#;
 
     let status = std::process::Command::new("python3")
@@ -157,6 +164,10 @@ assert classify("; HOST IP comment in x86 fasm\nformat ELF64 executable\nmacro c
                     1,
                     "MIME magic value {token_str:?} must lex to a single keyword token"
                 );
+                assert!(
+                    !matches!(lexed[0].0, frameassembly::lexer::Token::Ident(_)),
+                    "MIME magic value {token_str:?} must be a built-in v2.0.0 keyword, not Ident"
+                );
                 matched_tokens += 1;
             }
         }
@@ -171,6 +182,11 @@ assert classify("; HOST IP comment in x86 fasm\nformat ELF64 executable\nmacro c
         let path = entry.expect("Invalid directory entry").path();
         if path.extension().is_some_and(|ext| ext == "fasm") {
             let src = fs::read_to_string(&path).expect("Failed to read Linguist sample");
+            assert!(
+                !src.to_ascii_lowercase().contains("loop "),
+                "Linguist sample {} must not use removed loop syntax",
+                path.display()
+            );
             let prog = frameassembly::parser::parse_program(&src)
                 .unwrap_or_else(|e| panic!("Failed to parse {}: {e:?}", path.display()));
             frameassembly::parser::validate_semantics(&prog, &src)
@@ -256,104 +272,104 @@ fn test_cargo_toml_seo_and_brand_terminology_invariants() {
 
 /// Verifies that all four ecosystem publishing and metadata surfaces (`Cargo.toml`, `src/lib.rs`,
 /// `frameassembly-wasm`, `frameassembly-vscode`, `install.sh`, `CITATION.cff`, `codemeta.json`,
-/// `llms.txt`, and `llms-full.txt`) are synchronized at version `1.5.1` and link the official
-/// website (`https://frameassembly.ai.studio/`).
+/// `llms.txt`, and `llms-full.txt`) are synchronized at version `2.0.0`, link the official
+/// website (`https://frameassembly.ai.studio/`), and omit removed distribution channels.
 #[test]
-fn test_ecosystem_v1_5_1_version_and_metadata_lockstep() {
+fn test_ecosystem_v2_0_0_version_and_metadata_lockstep() {
     let cargo_toml = fs::read_to_string("Cargo.toml").expect("Missing Cargo.toml");
     assert!(
-        cargo_toml.contains("version = \"1.5.1\"")
+        cargo_toml.contains("version = \"2.0.0\"")
             && cargo_toml.contains("homepage = \"https://frameassembly.ai.studio/\""),
-        "Cargo.toml must declare version = \"1.5.1\" and homepage = \"https://frameassembly.ai.studio/\""
+        "Cargo.toml must declare version = \"2.0.0\" and homepage = \"https://frameassembly.ai.studio/\""
     );
 
     let lib_rs = fs::read_to_string("src/lib.rs").expect("Missing src/lib.rs");
     assert!(
-        lib_rs.contains("1.5.1") && lib_rs.contains("https://frameassembly.ai.studio/"),
-        "src/lib.rs must reference version 1.5.1 and https://frameassembly.ai.studio/"
+        lib_rs.contains("2.0.0") && lib_rs.contains("https://frameassembly.ai.studio/"),
+        "src/lib.rs must reference version 2.0.0 and https://frameassembly.ai.studio/"
     );
 
     let wasm_cargo = fs::read_to_string("frameassembly-wasm/Cargo.toml")
         .expect("Missing frameassembly-wasm/Cargo.toml");
     assert!(
-        wasm_cargo.contains("version = \"1.5.1\"")
-            && wasm_cargo.contains("frameassembly = { path = \"..\", version = \"1.5.1\" }")
+        wasm_cargo.contains("version = \"2.0.0\"")
+            && wasm_cargo.contains("frameassembly = { path = \"..\", version = \"2.0.0\" }")
             && wasm_cargo.contains("homepage = \"https://frameassembly.ai.studio/\""),
-        "frameassembly-wasm/Cargo.toml must declare version 1.5.1, pin frameassembly 1.5.1, and set homepage"
+        "frameassembly-wasm/Cargo.toml must declare version 2.0.0, pin frameassembly 2.0.0, and set homepage"
     );
 
     let wasm_pkg = fs::read_to_string("frameassembly-wasm/package.json")
         .expect("Missing frameassembly-wasm/package.json");
     assert!(
-        wasm_pkg.contains("\"version\": \"1.5.1\"")
+        wasm_pkg.contains("\"version\": \"2.0.0\"")
             && wasm_pkg.contains("\"homepage\": \"https://frameassembly.ai.studio/\""),
-        "frameassembly-wasm/package.json must declare version 1.5.1 and homepage"
+        "frameassembly-wasm/package.json must declare version 2.0.0 and homepage"
     );
 
     let vscode_pkg = fs::read_to_string("frameassembly-vscode/package.json")
         .expect("Missing frameassembly-vscode/package.json");
     assert!(
-        vscode_pkg.contains("\"version\": \"1.5.1\"")
+        vscode_pkg.contains("\"version\": \"2.0.0\"")
             && vscode_pkg.contains("\"homepage\": \"https://frameassembly.ai.studio/\""),
-        "frameassembly-vscode/package.json must declare version 1.5.1 and homepage"
+        "frameassembly-vscode/package.json must declare version 2.0.0 and homepage"
     );
 
     let install_sh = fs::read_to_string("install.sh").expect("Missing install.sh");
     assert!(
-        install_sh.contains("VSIX_VERSION=\"1.5.1\"")
-            && install_sh.contains("RELEASE_VERSION=\"1.5.1\""),
-        "install.sh must declare VSIX_VERSION=\"1.5.1\" and RELEASE_VERSION=\"1.5.1\""
+        install_sh.contains("VSIX_VERSION=\"2.0.0\"")
+            && install_sh.contains("RELEASE_VERSION=\"2.0.0\""),
+        "install.sh must declare VSIX_VERSION=\"2.0.0\" and RELEASE_VERSION=\"2.0.0\""
     );
 
     let citation_cff = fs::read_to_string("CITATION.cff").expect("Missing CITATION.cff");
     assert!(
-        (citation_cff.contains("version: 1.5.1") || citation_cff.contains("version: \"1.5.1\""))
+        (citation_cff.contains("version: 2.0.0") || citation_cff.contains("version: \"2.0.0\""))
             && citation_cff.contains("url: \"https://frameassembly.ai.studio/\""),
-        "CITATION.cff must declare version 1.5.1 and url https://frameassembly.ai.studio/"
+        "CITATION.cff must declare version 2.0.0 and url https://frameassembly.ai.studio/"
     );
 
     let codemeta_json = fs::read_to_string("codemeta.json").expect("Missing codemeta.json");
     assert!(
-        codemeta_json.contains("\"version\": \"1.5.1\"")
+        codemeta_json.contains("\"version\": \"2.0.0\"")
             && codemeta_json.contains("\"url\": \"https://frameassembly.ai.studio/\""),
-        "codemeta.json must declare version 1.5.1 and url https://frameassembly.ai.studio/"
+        "codemeta.json must declare version 2.0.0 and url https://frameassembly.ai.studio/"
     );
 
     let llms_txt = fs::read_to_string("llms.txt").expect("Missing llms.txt");
     assert!(
-        llms_txt.contains("1.5.1")
+        llms_txt.contains("2.0.0")
             && llms_txt.contains("https://frameassembly.ai.studio/")
             && llms_txt.lines().count() < 512
             && llms_txt.len() < 25_000,
-        "llms.txt must reference 1.5.1 and https://frameassembly.ai.studio/ and remain < 512 lines and < 25,000 bytes"
+        "llms.txt must reference 2.0.0 and https://frameassembly.ai.studio/ and remain < 512 lines and < 25,000 bytes"
     );
 
     let llms_full = fs::read_to_string("llms-full.txt").expect("Missing llms-full.txt");
     assert!(
-        llms_full.contains("1.5.1")
+        llms_full.contains("2.0.0")
             && llms_full.contains("https://frameassembly.ai.studio/")
             && llms_full.len() < 1_500_000
             && !llms_full.as_bytes().contains(&0),
-        "llms-full.txt must reference 1.5.1, remain < 1,500,000 bytes, and contain zero NUL bytes"
+        "llms-full.txt must reference 2.0.0, remain < 1,500,000 bytes, and contain zero NUL bytes"
     );
 
     let context7 = fs::read_to_string("context7.json").expect("Missing context7.json");
     assert!(
-        context7.contains("\"version\": \"1.5.1\"")
+        context7.contains("\"version\": \"2.0.0\"")
             && context7.contains("https://frameassembly.ai.studio/"),
-        "context7.json must declare version 1.5.1 and https://frameassembly.ai.studio/"
+        "context7.json must declare version 2.0.0 and https://frameassembly.ai.studio/"
     );
 
-    for (doc_path, require_try_in_browser) in [
-        ("README.md", true),
-        ("docs/getting_started.md", true),
-        ("frameassembly-vscode/README.md", true),
-        ("frameassembly-wasm/README.md", false),
-        ("contrib/linguist/README.md", false),
-        ("contrib/packaging/README.md", false),
-        ("AGENTS.md", false),
-        ("CLAUDE.md", false),
-        (".github/copilot-instructions.md", false),
+    for (doc_path, require_browser_link, check_removed_channels) in [
+        ("README.md", true, true),
+        ("docs/getting_started.md", true, true),
+        ("frameassembly-vscode/README.md", true, true),
+        ("frameassembly-wasm/README.md", false, false),
+        ("contrib/linguist/README.md", false, false),
+        ("contrib/packaging/README.md", false, true),
+        ("AGENTS.md", false, false),
+        ("CLAUDE.md", false, false),
+        (".github/copilot-instructions.md", false, false),
     ] {
         let doc = fs::read_to_string(doc_path).unwrap_or_else(|_| panic!("Missing {}", doc_path));
         assert!(
@@ -361,14 +377,28 @@ fn test_ecosystem_v1_5_1_version_and_metadata_lockstep() {
             "{} must link https://frameassembly.ai.studio/",
             doc_path
         );
-        if require_try_in_browser {
+        if require_browser_link {
             assert!(
-                doc.contains("Try in Browser (No Install Required)"),
-                "{} must include 'Try in Browser (No Install Required)'",
+                doc.contains("Try in Browser") || doc.contains("frameassembly.ai.studio"),
+                "{} must highlight browser playground access",
                 doc_path
             );
         }
+        if check_removed_channels {
+            let doc_lower = doc.to_ascii_lowercase();
+            for removed in [
+                concat!("win", "get install"),
+                concat!("au", "r.archlinux.org"),
+                concat!("yay -s ", "frameassembly"),
+                concat!("open-", "vsx.org"),
+            ] {
+                assert!(
+                    !doc_lower.contains(removed),
+                    "{} must not reference removed channel '{}'",
+                    doc_path,
+                    removed
+                );
+            }
+        }
     }
 }
-
-

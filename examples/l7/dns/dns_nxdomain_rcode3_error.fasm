@@ -1,19 +1,19 @@
 // PROMPT: DNS NXDOMAIN (RCODE 3) negative response for a non-existent domain lookup.
-// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, RESPONSE, RCODE, ANS_TTL, COMPILE
+// TOKENS: host, ip, flow, s, dns, query, txid, qname, qtype, response, rcode, ansttl, compile
 
 // INSTRUCTION: Define enterprise client host.
-HOST corp_ws { IP 10.15.20.45 }
+host corp_ws { ip 10.15.20.45 }
 
 // INSTRUCTION: Define internal authoritative DNS server.
-HOST auth_dns { IP 10.15.20.2 }
+host auth_dns { ip 10.15.20.2 }
 
 // INSTRUCTION: Query unknown hostname and return RCODE 3 (NXDOMAIN).
-FLOW dns_nxdomain_flow(c, s) {
-    c -> s DNS QUERY TXID 0x4f12 QNAME "missing-host.corp.internal" QTYPE "A"
-    c <- s DNS RESPONSE TXID 0x4f12 QNAME "missing-host.corp.internal" QTYPE "A" RCODE 3 ANS_TTL 300
+flow dns_nxdomain_flow(c, s) {
+    c -> s dns query txid 0x4f12 qname "missing-host.corp.internal" qtype "a"
+    c <- s dns response txid 0x4f12 qname "missing-host.corp.internal" qtype "a" rcode 3 ansttl 300
 }
 
 // INSTRUCTION: Compile the DNS NXDOMAIN negative response flow.
-COMPILE {
+compile {
     dns_nxdomain_flow(corp_ws, auth_dns)
 }

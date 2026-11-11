@@ -1,20 +1,20 @@
 // PROMPT: SMB2 unauthorized share connection attempt returning NT status STATUS_ACCESS_DENIED.
-// TOKENS: HOST, IP, FLOW, SMB, COMMAND, SESSION_ID, MSGID, SHARE, WAIT, STATUS, COMPILE
+// TOKENS: host, ip, flow, s, smb, command, sessionid, msgid, share, wait, ms, status, compile
 
 // INSTRUCTION: Define guest workstation attempting restricted share access.
-HOST guest_pc { IP 192.168.99.77 }
+host guest_pc { ip 192.168.99.77 }
 
 // INSTRUCTION: Define secure payroll storage vault.
-HOST payroll_srv { IP 192.168.99.1 }
+host payroll_srv { ip 192.168.99.1 }
 
 // INSTRUCTION: Define Tree Connect returning STATUS 3221225506 (0xC0000022 ACCESS_DENIED).
-FLOW smb_access_denied(c, s) {
-    c -> s SMB COMMAND "TREE_CONNECT" SESSION_ID 0x9000 MSGID 5 SHARE "\vault
-estricted$" WAIT 5ms
-    c <- s SMB COMMAND "TREE_CONNECT" STATUS 3221225506 SESSION_ID 0x9000 MSGID 5
+flow smb_access_denied(c, s) {
+    c -> s smb command "treeconnect" sessionid 0x9000 msgid 5 share "\vault
+estricted$" wait 5ms
+    c <- s smb command "treeconnect" status 3221225506 sessionid 0x9000 msgid 5
 }
 
 // INSTRUCTION: Compile SMB2 access denied error rejection flow.
-COMPILE {
+compile {
     smb_access_denied(guest_pc, payroll_srv)
 }

@@ -1,11 +1,12 @@
 //! Identifier, contextual keyword, and string escape parsing utilities for FrameAssembly.
 //!
-//! Because FrameAssembly defines over 640 case-insensitive protocol names and modifier keywords,
-//! users may freely choose any casing or contextual names (such as `dns`, `ms`, `get`, or `server`)
-//! for `HOST` and `FLOW` identifiers and unquoted barewords. This module provides
-//! [`parse_spanned_ident`], [`parse_ident`], [`parse_any_str`], and [`unescape_string`] to resolve
-//! zero-copy source-spanned identifiers, string-like arguments, and C-style hex/Unicode escape
-//! sequences (`\r`, `\n`, `\t`, `\\`, `\"`, `\'`, `\xHH`, `\uXXXX`).
+//! Because FrameAssembly defines over 640 strict-lowercase protocol names and modifier keywords,
+//! users may freely choose uppercase, snake_case, hyphenated, or contextual names (such as
+//! `fw-dmz-01`, `core_sw`, `dns`, `ms`, `get`, or `server`) for `host` and `flow` identifiers and
+//! unquoted barewords. This module provides [`parse_spanned_ident`], [`parse_ident`],
+//! [`parse_any_str`], and [`unescape_string`] to resolve zero-copy source-spanned identifiers,
+//! string-like arguments, and C-style hex/Unicode escape sequences (`\r`, `\n`, `\t`, `\\`, `\"`,
+//! `\'`, `\xHH`, `\uXXXX`).
 
 use alloc::string::{String, ToString};
 use winnow::ModalResult as PResult;

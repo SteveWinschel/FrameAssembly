@@ -1,20 +1,20 @@
 // PROMPT: WebRTC Opus dynamic payload type (PT 111) audio stream with talkspurt marker bit.
-// TOKENS: HOST, IP, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, flow, rtp, pt, timestamp, ssrc, marker, srcport, dstport, payload, wait, ms, compile
 
 // INSTRUCTION: Define WebRTC browser peer A.
-HOST webrtc_peer_a { IP 172.16.111.10 }
+host webrtc_peer_a { ip 172.16.111.10 }
 
 // INSTRUCTION: Define WebRTC SFU media router.
-HOST sfu_router { IP 172.16.111.1 }
+host sfu_router { ip 172.16.111.1 }
 
 // INSTRUCTION: Define Opus 48kHz RTP frames (960 timestamp ticks per 20ms frame).
-FLOW rtp_opus_stream(peer, sfu) {
-    peer -> sfu RTP PT 111 TIMESTAMP 960 SSRC 0xdeadbeef MARKER 1 SRCPORT 52000 DSTPORT 50004 PAYLOAD "OPUS_FRAME_1" WAIT 20ms
-    peer -> sfu RTP PT 111 TIMESTAMP 1920 SSRC 0xdeadbeef MARKER 0 SRCPORT 52000 DSTPORT 50004 PAYLOAD "OPUS_FRAME_2" WAIT 20ms
-    peer -> sfu RTP PT 111 TIMESTAMP 2880 SSRC 0xdeadbeef MARKER 0 SRCPORT 52000 DSTPORT 50004 PAYLOAD "OPUS_FRAME_3"
+flow rtp_opus_stream(peer, sfu) {
+    peer -> sfu rtp pt 111 timestamp 960 ssrc 0xdeadbeef marker 1 srcport 52000 dstport 50004 payload "OPUS_FRAME_1" wait 20ms
+    peer -> sfu rtp pt 111 timestamp 1920 ssrc 0xdeadbeef marker 0 srcport 52000 dstport 50004 payload "OPUS_FRAME_2" wait 20ms
+    peer -> sfu rtp pt 111 timestamp 2880 ssrc 0xdeadbeef marker 0 srcport 52000 dstport 50004 payload "OPUS_FRAME_3"
 }
 
 // INSTRUCTION: Compile WebRTC Opus RTP audio stream.
-COMPILE {
+compile {
     rtp_opus_stream(webrtc_peer_a, sfu_router)
 }

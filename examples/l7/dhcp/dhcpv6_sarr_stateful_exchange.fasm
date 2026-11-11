@@ -1,21 +1,21 @@
 // PROMPT: Complete 4-message DHCPv6 SARR (Solicit, Advertise, Request, Reply) stateful configuration.
-// TOKENS: HOST, IP, FLOW, DHCP, SOLICIT, WAIT, ADVERTISE, REQUEST, REPLY, COMPILE
+// TOKENS: host, ip, flow, s, dhcp, solicit, wait, ms, advertise, request, reply, compile
 
 // INSTRUCTION: Define link-local IPv6 host requesting stateful address assignment.
-HOST v6_host { IP fe80::216:3eff:fe11:2233 }
+host v6_host { ip fe80::216:3eff:fe11:2233 }
 
 // INSTRUCTION: Define DHCPv6 stateful server endpoint.
-HOST v6_dhcp_srv { IP fe80::1 }
+host v6_dhcp_srv { ip fe80::1 }
 
 // INSTRUCTION: Exchange Solicit, Advertise, Request, and Reply on UDP 546/547.
-FLOW dhcpv6_sarr_flow(c, s) {
-    c -> s DHCP SOLICIT WAIT 10ms
-    c <- s DHCP ADVERTISE WAIT 10ms
-    c -> s DHCP REQUEST WAIT 10ms
-    c <- s DHCP REPLY WAIT 10ms
+flow dhcpv6_sarr_flow(c, s) {
+    c -> s dhcp solicit wait 10ms
+    c <- s dhcp advertise wait 10ms
+    c -> s dhcp request wait 10ms
+    c <- s dhcp reply wait 10ms
 }
 
 // INSTRUCTION: Compile the 4-way DHCPv6 SARR stateful negotiation.
-COMPILE {
+compile {
     dhcpv6_sarr_flow(v6_host, v6_dhcp_srv)
 }

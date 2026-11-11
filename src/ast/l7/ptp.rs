@@ -6,25 +6,25 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b PTP [SYNC | DELAY_REQ | FOLLOW_UP | DELAY_RESP | ANNOUNCE | MSG_TYPE <str>] [DOMAIN <u8>] [SEQ_ID <u16>] [CLOCK_ID <str>]`
+//! `a -> b ptp [sync | delayreq | followup | delayresp | announce | msgtype <str>] [domain <u8>] [seqid <u16>] [clockid <str>]`
 
 /// IEEE 1588 Precision Time Protocol specification.
 ///
-/// Syntax mapping: `PTP [SYNC | DELAY_REQ | FOLLOW_UP | DELAY_RESP | ANNOUNCE | MSG_TYPE <str>] [DOMAIN <u8>] [SEQ_ID <u16>] [CLOCK_ID <str>]`
-#[doc(alias = "PTP")]
+/// Syntax mapping: `ptp [sync | delayreq | followup | delayresp | announce | msgtype <str>] [domain <u8>] [seqid <u16>] [clockid <str>]`
+#[doc(alias = "ptp")]
 #[doc(alias = "IEEE 1588")]
 #[doc(alias = "IEEE1588")]
 #[doc(alias = "RFC 8173")]
 #[doc(alias = "PTPV2")]
-#[doc(alias = "SYNC")]
-#[doc(alias = "DELAY_REQ")]
-#[doc(alias = "FOLLOW_UP")]
-#[doc(alias = "DELAY_RESP")]
-#[doc(alias = "ANNOUNCE")]
-#[doc(alias = "MSG_TYPE")]
-#[doc(alias = "DOMAIN")]
-#[doc(alias = "SEQ_ID")]
-#[doc(alias = "CLOCK_ID")]
+#[doc(alias = "sync")]
+#[doc(alias = "delayreq")]
+#[doc(alias = "followup")]
+#[doc(alias = "delayresp")]
+#[doc(alias = "announce")]
+#[doc(alias = "msgtype")]
+#[doc(alias = "domain")]
+#[doc(alias = "seqid")]
+#[doc(alias = "clockid")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PtpSpec<'a> {
     /// Message type name (e.g. SYNC, DELAY_REQ).

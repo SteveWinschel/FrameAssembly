@@ -1,20 +1,20 @@
 // PROMPT: HTTP/2 client connection preface and initial SETTINGS frame exchange.
-// TOKENS: HOST, IP, FLOW, HTTP2, PREFACE, SETTINGS, COMPILE
+// TOKENS: host, ip, flow, s, http2, preface, settings, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.100 }
+host client { ip 192.168.1.100 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.168.1.1 }
+host server { ip 192.168.1.1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW http2_init(c, s) {
-    c -> s HTTP2 PREFACE
-    c -> s HTTP2 SETTINGS
-    c <- s HTTP2 SETTINGS
+flow http2_init(c, s) {
+    c -> s http2 preface
+    c -> s http2 settings
+    c <- s http2 settings
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     http2_init(client, server)
 }

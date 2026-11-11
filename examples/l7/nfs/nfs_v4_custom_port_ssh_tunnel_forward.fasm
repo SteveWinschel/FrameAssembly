@@ -1,27 +1,27 @@
 // PROMPT: NFSv4 COMPOUND and READ operations forwarded through a local port 12049 gateway relay.
-// TOKENS: HOST, IP, MAC, FLOW, SRCPORT, DSTPORT, NFS, VERS, PROC, TAG, PATH, WAIT, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, srcport, dstport, nfs, vers, proc, tag, path, wait, ms, payload, compile
 
 // INSTRUCTION: Define the developer workstation mounting an NFSv4 share via a custom relay port.
-HOST dev_laptop {
-    IP 172.16.70.55
-    MAC 00:1a:2b:16:70:55
+host dev_laptop {
+    ip 172.16.70.55
+    mac 00:1a:2b:16:70:55
 }
 
 // INSTRUCTION: Define the bastion relay host listening on TCP port 12049.
-HOST nfs_relay {
-    IP 172.16.70.1
-    MAC 00:1a:2b:16:70:01
+host nfs_relay {
+    ip 172.16.70.1
+    mac 00:1a:2b:16:70:01
 }
 
 // INSTRUCTION: Traverse path and read source file over custom destination port 12049.
-FLOW nfs_custom_port(c, s) {
-    c -> s SRCPORT 54120 DSTPORT 12049 NFS VERS 4 PROC "COMPOUND" TAG "tunnel_lookup" PATH "/src/kernel/sched/core.c"
-    c <- s SRCPORT 12049 DSTPORT 54120 NFS VERS 4 PROC "COMPOUND" TAG "tunnel_lookup" WAIT 5ms
-    c -> s SRCPORT 54120 DSTPORT 12049 NFS VERS 4 PROC "READ" TAG "tunnel_read" PATH "/src/kernel/sched/core.c"
-    c <- s SRCPORT 12049 DSTPORT 54120 NFS VERS 4 PROC "READ" TAG "tunnel_read" PAYLOAD "/* Linux kernel scheduler core */"
+flow nfs_custom_port(c, s) {
+    c -> s srcport 54120 dstport 12049 nfs vers 4 proc "compound" tag "tunnel_lookup" path "/src/kernel/sched/core.c"
+    c <- s srcport 12049 dstport 54120 nfs vers 4 proc "compound" tag "tunnel_lookup" wait 5ms
+    c -> s srcport 54120 dstport 12049 nfs vers 4 proc "read" tag "tunnel_read" path "/src/kernel/sched/core.c"
+    c <- s srcport 12049 dstport 54120 nfs vers 4 proc "read" tag "tunnel_read" payload "/* Linux kernel scheduler core */"
 }
 
 // INSTRUCTION: Compile the custom port NFSv4 relay flow.
-COMPILE {
+compile {
     nfs_custom_port(dev_laptop, nfs_relay)
 }

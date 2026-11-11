@@ -1,20 +1,20 @@
 // PROMPT: Local4 VPN gateway informational log reporting IPSec tunnel establishment.
-// TOKENS: HOST, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, MSG, COMPILE
+// TOKENS: host, ip, flow, s, syslog, facility, severity, hostname, app, msg, compile
 
 // INSTRUCTION: Define VPN concentration gateway.
-HOST vpn_concentrator { IP 10.80.1.1 }
+host vpn_concentrator { ip 10.80.1.1 }
 
 // INSTRUCTION: Define telemetry SIEM system.
-HOST tele_siem { IP 10.80.1.200 }
+host tele_siem { ip 10.80.1.200 }
 
 // INSTRUCTION: Define VPN tunnel up notification flow.
-FLOW syslog_vpn_flow(c, s) {
-    c -> s SYSLOG FACILITY 20 SEVERITY 6
-        HOSTNAME "vpn-gw-primary" APP "charon"
-        MSG "IPsec SA established between 198.51.100.1 and 203.0.113.80"
+flow syslog_vpn_flow(c, s) {
+    c -> s syslog facility 20 severity 6
+        hostname "vpn-gw-primary" app "charon"
+        msg "IPsec SA established between 198.51.100.1 and 203.0.113.80"
 }
 
 // INSTRUCTION: Compile block executing VPN tunnel log event.
-COMPILE {
+compile {
     syslog_vpn_flow(vpn_concentrator, tele_siem)
 }

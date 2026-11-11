@@ -1,32 +1,32 @@
 // PROMPT: Single AMQP TCP connection multiplexing three isolated channels (10, 20, 30) for separate worker threads.
-// TOKENS: HOST, IP, MAC, FLOW, AMQP, CHANNEL_OPEN, CHANNEL, WAIT, BASIC_PUBLISH, EXCHANGE, ROUTING_KEY, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, amqp, channelopen, channel, wait, ms, basicpublish, exchange, routingkey, payload, compile
 
 // INSTRUCTION: Define the multi-threaded Go worker service.
-HOST go_worker {
-    IP 10.115.110.18
-    MAC 00:1a:2b:73:b0:18
+host go_worker {
+    ip 10.115.110.18
+    mac 00:1a:2b:73:b0:18
 }
 
 // INSTRUCTION: Define the shared RabbitMQ broker.
-HOST shared_rmq {
-    IP 10.115.110.1
-    MAC 00:1a:2b:73:b0:01
+host shared_rmq {
+    ip 10.115.110.1
+    mac 00:1a:2b:73:b0:01
 }
 
 // INSTRUCTION: Open channels 10, 20, and 30 and publish domain events on each channel.
-FLOW amqp_three_channels(c, b) {
-    c -> b AMQP CHANNEL_OPEN CHANNEL 10
-    c <- b AMQP CHANNEL_OPEN CHANNEL 10 WAIT 1ms
-    c -> b AMQP CHANNEL_OPEN CHANNEL 20
-    c <- b AMQP CHANNEL_OPEN CHANNEL 20 WAIT 1ms
-    c -> b AMQP CHANNEL_OPEN CHANNEL 30
-    c <- b AMQP CHANNEL_OPEN CHANNEL 30 WAIT 1ms
-    c -> b AMQP BASIC_PUBLISH CHANNEL 10 EXCHANGE "events" ROUTING_KEY "ch10.evt" PAYLOAD "THREAD_10_OK"
-    c -> b AMQP BASIC_PUBLISH CHANNEL 20 EXCHANGE "events" ROUTING_KEY "ch20.evt" PAYLOAD "THREAD_20_OK"
-    c -> b AMQP BASIC_PUBLISH CHANNEL 30 EXCHANGE "events" ROUTING_KEY "ch30.evt" PAYLOAD "THREAD_30_OK"
+flow amqp_three_channels(c, b) {
+    c -> b amqp channelopen channel 10
+    c <- b amqp channelopen channel 10 wait 1ms
+    c -> b amqp channelopen channel 20
+    c <- b amqp channelopen channel 20 wait 1ms
+    c -> b amqp channelopen channel 30
+    c <- b amqp channelopen channel 30 wait 1ms
+    c -> b amqp basicpublish channel 10 exchange "events" routingkey "ch10.evt" payload "THREAD_10_OK"
+    c -> b amqp basicpublish channel 20 exchange "events" routingkey "ch20.evt" payload "THREAD_20_OK"
+    c -> b amqp basicpublish channel 30 exchange "events" routingkey "ch30.evt" payload "THREAD_30_OK"
 }
 
 // INSTRUCTION: Compile the three-channel multiplexed AMQP flow.
-COMPILE {
+compile {
     amqp_three_channels(go_worker, shared_rmq)
 }

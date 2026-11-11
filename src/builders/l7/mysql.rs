@@ -3,7 +3,7 @@
 //! This module implements [`build_mysql_payload`], which serializes a [`MysqlSpec`]
 //! AST specification into a MySQL wire packet over TCP port 3306. Every packet is prefixed with a
 //! 3-byte little-endian payload length and 1-byte sequence number, encapsulating a Protocol v10
-//! `HandshakeV10` greeting (`GREETING`), a `HandshakeResponse41` login (`LOGIN`), an `OK_Packet`
+//! `HandshakeV10` greeting (`greeting`), a `HandshakeResponse41` login (`login`), an `OK_Packet`
 //! (`0x00`), an `EOF_Packet` (`0xFE`), an `ERR_Packet` (`0xFF` with 16-bit error code and SQLSTATE
 //! `#28000`), or a `COM_QUERY` (`0x03`) SQL statement.
 

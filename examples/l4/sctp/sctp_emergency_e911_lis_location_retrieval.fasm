@@ -1,27 +1,27 @@
 // PROMPT: Emergency Services IP Network (ESInet) Call Routing Function querying Location Information Server over SCTP.
-// TOKENS: HOST, IP, MAC, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+// TOKENS: host, ip, mac, flow, dscp, sctp, chunk, data, vtag, stream, ssn, ppid, srcport, dstport, payload, wait, ms, sack, compile
 
 // INSTRUCTION: Define Next-Generation 911 Emergency Call Routing Function (ECRF).
-HOST ng911_ecrf_node {
-    IP 192.168.91.10
-    MAC 00:25:90:5b:00:0a
+host ng911_ecrf_node {
+    ip 192.168.91.10
+    mac 00:25:90:5b:00:0a
 }
 
 // INSTRUCTION: Define carrier Location Information Server (LIS) returning civic/geodetic coordinates.
-HOST carrier_lis_srv {
-    IP 192.168.91.1
-    MAC 00:25:90:5b:00:01
+host carrier_lis_srv {
+    ip 192.168.91.1
+    mac 00:25:90:5b:00:01
 }
 
 // INSTRUCTION: Query emergency caller location over high-priority DSCP EF SCTP Stream 0 and acknowledge via SACK.
-FLOW sctp_ng911_location_query(ecrf, lis) {
-    ecrf -> lis DSCP 46 SCTP CHUNK DATA VTAG 911911 STREAM 0 SSN 1 PPID 0 SRCPORT 5060 DSTPORT 5060 PAYLOAD "HELD_LOCATION_REQ_ANI_12125550199" WAIT 2ms
-    ecrf <- lis DSCP 46 SCTP CHUNK SACK VTAG 911911 SRCPORT 5060 DSTPORT 5060 WAIT 2ms
-    ecrf <- lis DSCP 46 SCTP CHUNK DATA VTAG 911911 STREAM 0 SSN 1 PPID 0 SRCPORT 5060 DSTPORT 5060 PAYLOAD "PIDF_LO_LAT_40_7128_LON_74_0060_PSAP_NYC" WAIT 2ms
-    ecrf -> lis DSCP 46 SCTP CHUNK SACK VTAG 911911 SRCPORT 5060 DSTPORT 5060
+flow sctp_ng911_location_query(ecrf, lis) {
+    ecrf -> lis dscp 46 sctp chunk data vtag 911911 stream 0 ssn 1 ppid 0 srcport 5060 dstport 5060 payload "HELD_LOCATION_REQ_ANI_12125550199" wait 2ms
+    ecrf <- lis dscp 46 sctp chunk sack vtag 911911 srcport 5060 dstport 5060 wait 2ms
+    ecrf <- lis dscp 46 sctp chunk data vtag 911911 stream 0 ssn 1 ppid 0 srcport 5060 dstport 5060 payload "PIDF_LO_LAT_40_7128_LON_74_0060_PSAP_NYC" wait 2ms
+    ecrf -> lis dscp 46 sctp chunk sack vtag 911911 srcport 5060 dstport 5060
 }
 
 // INSTRUCTION: Compile the NG911 emergency location retrieval SCTP trace.
-COMPILE {
+compile {
     sctp_ng911_location_query(ng911_ecrf_node, carrier_lis_srv)
 }

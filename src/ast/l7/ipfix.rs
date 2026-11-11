@@ -6,27 +6,27 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b IPFIX [DOMAIN_ID <u32>] [SRCIP <ip>] [DSTIP <ip>] [SRCPORT <u16>] [DSTPORT <u16>] [PROTO <u8>] [PACKETS <u32>] [OCTETS <u32>]`
+//! `a -> b ipfix [domainid <u32>] [srcip <ip>] [dstip <ip>] [srcport <u16>] [dstport <u16>] [proto <u8>] [packets <u32>] [octets <u32>]`
 
 use core::marker::PhantomData;
 use core::net::IpAddr;
 
 /// RFC 7011 IP Flow Information Export specification.
 ///
-/// Syntax mapping: `IPFIX [DOMAIN_ID <u32>] [SRCIP <ip>] [DSTIP <ip>] [SRCPORT <u16>] [DSTPORT <u16>] [PROTO <u8>] [PACKETS <u32>] [OCTETS <u32>]`
-#[doc(alias = "IPFIX")]
+/// Syntax mapping: `ipfix [domainid <u32>] [srcip <ip>] [dstip <ip>] [srcport <u16>] [dstport <u16>] [proto <u8>] [packets <u32>] [octets <u32>]`
+#[doc(alias = "ipfix")]
 #[doc(alias = "RFC 7011")]
 #[doc(alias = "RFC7011")]
 #[doc(alias = "RFC 7012")]
 #[doc(alias = "RFC7012")]
-#[doc(alias = "DOMAIN_ID")]
-#[doc(alias = "SRCIP")]
-#[doc(alias = "DSTIP")]
-#[doc(alias = "SRCPORT")]
-#[doc(alias = "DSTPORT")]
-#[doc(alias = "PROTO")]
-#[doc(alias = "PACKETS")]
-#[doc(alias = "OCTETS")]
+#[doc(alias = "domainid")]
+#[doc(alias = "srcip")]
+#[doc(alias = "dstip")]
+#[doc(alias = "srcport")]
+#[doc(alias = "dstport")]
+#[doc(alias = "proto")]
+#[doc(alias = "packets")]
+#[doc(alias = "octets")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct IpfixSpec<'a> {
     /// Source IP address in flow record.

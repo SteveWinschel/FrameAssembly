@@ -2,7 +2,7 @@
 //!
 //! This module implements Stage 3 of the FrameAssembly reverse decompiler pipeline. Given a slice
 //! of [`DissectedPacket`] frames, [`build_topology`] discovers all unique network endpoints in
-//! deterministic order of first appearance, assigns sequential `host_1`, `host_2`, ... identifiers,
+//! deterministic order of first appearance, assigns sequential `host1`, `host2`, ... identifiers,
 //! tracks dominant unicast MAC addresses per IP endpoint, pairs broadcast/multicast/unspecified
 //! frames with same-family peer hosts without polluting the `host` table with multicast/broadcast
 //! addresses, locks directional arrows (`->` vs `<-`) per unordered host pair, and computes
@@ -22,7 +22,7 @@ use super::DissectedPacket;
 /// A single network endpoint discovered from the packet capture and emitted as a `host` block.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DiscoveredHost {
-    /// Canonical lowercase identifier (`"host_1"`, `"host_2"`, ...).
+    /// Canonical lowercase identifier (`"host1"`, `"host2"`, ...).
     pub name: String,
     /// Unicast IPv4 or IPv6 address for IP-capable hosts, or `None` for pure-L2 MAC-only hosts.
     pub ip: Option<IpAddr>,
@@ -48,7 +48,7 @@ pub(crate) struct ResolvedFrameEndpoints {
 /// Complete host table and per-frame endpoint resolution produced by [`build_topology`].
 #[derive(Debug, Clone)]
 pub(crate) struct CaptureTopology {
-    /// Ordered list of discovered `host_1`, `host_2`, ... definitions.
+    /// Ordered list of discovered `host1`, `host2`, ... definitions.
     pub hosts: Vec<DiscoveredHost>,
     /// Per-packet resolved endpoints (1-to-1 with the input `packets` slice).
     pub frame_endpoints: Vec<ResolvedFrameEndpoints>,
@@ -246,7 +246,7 @@ pub(crate) fn build_topology(packets: &[DissectedPacket]) -> CaptureTopology {
                 let idx = *ip_to_host.entry(sip).or_insert_with(|| {
                     let new_idx = hosts.len();
                     hosts.push(DiscoveredHost {
-                        name: format!("host_{}", new_idx + 1),
+                        name: format!("host{}", new_idx + 1),
                         ip: Some(sip),
                         mac: None,
                     });
@@ -263,7 +263,7 @@ pub(crate) fn build_topology(packets: &[DissectedPacket]) -> CaptureTopology {
                 let idx = *ip_to_host.entry(dip).or_insert_with(|| {
                     let new_idx = hosts.len();
                     hosts.push(DiscoveredHost {
-                        name: format!("host_{}", new_idx + 1),
+                        name: format!("host{}", new_idx + 1),
                         ip: Some(dip),
                         mac: None,
                     });
@@ -279,7 +279,7 @@ pub(crate) fn build_topology(packets: &[DissectedPacket]) -> CaptureTopology {
                 mac_to_l2_host.entry(pkt.src_mac).or_insert_with(|| {
                     let new_idx = hosts.len();
                     hosts.push(DiscoveredHost {
-                        name: format!("host_{}", new_idx + 1),
+                        name: format!("host{}", new_idx + 1),
                         ip: None,
                         mac: Some(pkt.src_mac),
                     });
@@ -290,7 +290,7 @@ pub(crate) fn build_topology(packets: &[DissectedPacket]) -> CaptureTopology {
                 mac_to_l2_host.entry(pkt.dst_mac).or_insert_with(|| {
                     let new_idx = hosts.len();
                     hosts.push(DiscoveredHost {
-                        name: format!("host_{}", new_idx + 1),
+                        name: format!("host{}", new_idx + 1),
                         ip: None,
                         mac: Some(pkt.dst_mac),
                     });
@@ -485,7 +485,7 @@ fn find_or_create_ip_peer(
         Some([0x00, 0x00, 0x00, 0x00, 0x00, 0x02])
     };
     hosts.push(DiscoveredHost {
-        name: format!("host_{}", new_idx + 1),
+        name: format!("host{}", new_idx + 1),
         ip: Some(new_ip),
         mac,
     });
@@ -520,7 +520,7 @@ fn find_or_create_l2_peer(
 
     let new_idx = hosts.len();
     hosts.push(DiscoveredHost {
-        name: format!("host_{}", new_idx + 1),
+        name: format!("host{}", new_idx + 1),
         ip: None,
         mac: Some(mac),
     });

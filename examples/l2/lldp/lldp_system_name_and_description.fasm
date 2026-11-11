@@ -1,18 +1,18 @@
 // PROMPT: Data center Link Layer Discovery Protocol frame advertising system name and port parameters.
-// TOKENS: HOST, IP, FLOW, LLDP, SYSNAME, COMPILE
+// TOKENS: host, ip, flow, s, lldp, sysname, compile
 
 // INSTRUCTION: Define core switch port.
-HOST switch_core { IP 10.0.0.1 }
+host switch_core { ip 10.0.0.1 }
 
 // INSTRUCTION: Define leaf switch port.
-HOST switch_leaf { IP 10.0.0.2 }
+host switch_leaf { ip 10.0.0.2 }
 
 // INSTRUCTION: Define Layer 2 LLDP discovery flow.
-FLOW lldp_discovery(s, l) {
-    s -> l LLDP SYSNAME "core-sw01"
+flow lldp_discovery(s, l) {
+    s -> l lldp sysname "core-sw01"
 }
 
 // INSTRUCTION: Compile block executing LLDP advertisement.
-COMPILE {
+compile {
     lldp_discovery(switch_core, switch_leaf)
 }

@@ -1,19 +1,19 @@
 // PROMPT: 5G Service-Based Architecture (SBA) Nnrf NFDiscovery HTTP/2 exchange over MPLS.
-// TOKENS: HOST, IP, FLOW, HTTP2, HEADERS, STREAM_ID, MPLS, EXP, BOS, MPLS_TTL, DSCP, PAYLOAD, COMPILE
+// TOKENS: host, ip, flow, http2, headers, streamid, mpls, exp, bos, mplsttl, dscp, payload, compile
 
 // INSTRUCTION: Define 5G AMF network function consumer.
-HOST nf_amf { IP 172.31.50.10 }
+host nf_amf { ip 172.31.50.10 }
 
 // INSTRUCTION: Define 5G NRF Network Repository Function producer.
-HOST nf_nrf { IP 172.31.50.1 }
+host nf_nrf { ip 172.31.50.1 }
 
 // INSTRUCTION: Query 3GPP Nnrf_NFDiscovery over HTTP/2 Stream 9 encapsulated in MPLS label 5000.
-FLOW http2_5g_sba_nrf(amf, nrf) {
-    amf -> nrf HTTP2 HEADERS STREAM_ID 9 MPLS 5000 EXP 5 BOS 1 MPLS_TTL 64 DSCP 34 PAYLOAD "target-nf-type=SMF"
-    amf <- nrf HTTP2 HEADERS STREAM_ID 9 MPLS 5000 EXP 5 BOS 1 MPLS_TTL 64 DSCP 34 PAYLOAD "{\"nfInstances\":[]}"
+flow http2_5g_sba_nrf(amf, nrf) {
+    amf -> nrf http2 headers streamid 9 mpls 5000 exp 5 bos 1 mplsttl 64 dscp 34 payload "target-nf-type=SMF"
+    amf <- nrf http2 headers streamid 9 mpls 5000 exp 5 bos 1 mplsttl 64 dscp 34 payload "{\"nfInstances\":[]}"
 }
 
 // INSTRUCTION: Compile the 5G SBA HTTP/2 over MPLS scenario.
-COMPILE {
+compile {
     http2_5g_sba_nrf(nf_amf, nf_nrf)
 }

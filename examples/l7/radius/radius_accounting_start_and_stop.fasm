@@ -1,19 +1,19 @@
 // PROMPT: RADIUS session accounting request with Service-Type attribute over IPv6.
-// TOKENS: HOST, IP, FLOW, RADIUS, ACCOUNTING_REQUEST, USER, SERVICE_TYPE, ACCOUNTING_RESPONSE, COMPILE
+// TOKENS: host, ip, flow, s, radius, accountingrequest, user, servicetype, accountingresponse, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 2001:db8::10 }
+host client { ip 2001:db8::10 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 2001:db8::1 }
+host server { ip 2001:db8::1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW radius_acct(c, s) {
-    c -> s RADIUS ACCOUNTING_REQUEST USER "bob" SERVICE_TYPE 2
-    c <- s RADIUS ACCOUNTING_RESPONSE
+flow radius_acct(c, s) {
+    c -> s radius accountingrequest user "bob" servicetype 2
+    c <- s radius accountingresponse
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     radius_acct(client, server)
 }

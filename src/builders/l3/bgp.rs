@@ -3,15 +3,15 @@
 //! Serializes a [`BgpSpec`] into an RFC 4271 BGP-4 protocol data unit encapsulated over TCP port
 //! `179`. All BGP-4 messages begin with a 16-byte all-ones synchronization `Marker` (`0xFF..0xFF`),
 //! a 16-bit big-endian total `Length`, and an 8-bit `Type` code:
-//! - `OPEN` (`Type = 1`, 29 bytes): Encodes Version `4`, 16-bit `My Autonomous System` (`ASN`),
-//!   16-bit `Hold Time` (`HOLDTIME`), 32-bit IPv4 `BGP Identifier` (`BGPID`), and `Opt Parm Len = 0`.
-//! - `UPDATE` (`Type = 2`, `23 + payload` bytes): Encodes Withdrawn Routes Length, Total Path
+//! - `open` (`Type = 1`, 29 bytes): Encodes Version `4`, 16-bit `My Autonomous System` (`asn`),
+//!   16-bit `Hold Time` (`holdtime`), 32-bit IPv4 `BGP Identifier` (`bgpid`), and `Opt Parm Len = 0`.
+//! - `update` (`Type = 2`, `23 + payload` bytes): Encodes Withdrawn Routes Length, Total Path
 //!   Attribute Length, and NLRI payload bytes.
-//! - `NOTIFICATION` (`Type = 3`, `21 + payload` bytes): Encodes Error Code `6` (`Cease`), Subcode `0`.
-//! - `KEEPALIVE` (`Type = 4`, 19 bytes): Fixed 19-byte header-only heartbeat.
+//! - `notification` (`Type = 3`, `21 + payload` bytes): Encodes Error Code `6` (`Cease`), Subcode `0`.
+//! - `keepalive` (`Type = 4`, 19 bytes): Fixed 19-byte header-only heartbeat.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b BGP [OPEN | UPDATE | NOTIFICATION | KEEPALIVE] [ASN <u32>] [HOLDTIME <u16>] [BGPID <ipv4>] [PREFIX "<cidr>"] [NEXTHOP <ip>]`
+//! `a -> b bgp [open | update | notification | keepalive] [asn <u32>] [holdtime <u16>] [bgpid <ipv4>] [prefix "<cidr>"] [nexthop <ip>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

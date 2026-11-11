@@ -1,30 +1,30 @@
 // PROMPT: Simulate a POP3 -ERR [IN-USE] response when a second client attempts to lock an already active maildrop.
-// TOKENS: HOST, IP, MAC, FLOW, POP3, OK, RESPONSE, WAIT, CMD, ARG, ERR, COMPILE
+// TOKENS: host, ip, mac, flow, s, pop3, ok, response, wait, ms, cmd, arg, err, compile
 
 // INSTRUCTION: Define the secondary mobile client attempting concurrent POP3 login.
-HOST concurrent_mua {
-    IP 192.168.110.45
-    MAC 00:50:56:6e:00:2d
+host concurrent_mua {
+    ip 192.168.110.45
+    mac 00:50:56:6e:00:2d
 }
 
 // INSTRUCTION: Define the POP3 server enforcing exclusive maildrop locking per RFC 1939.
-HOST locked_pop3_srv {
-    IP 192.168.110.10
-    MAC 00:50:56:6e:00:0a
+host locked_pop3_srv {
+    ip 192.168.110.10
+    mac 00:50:56:6e:00:0a
 }
 
 // INSTRUCTION: Send USER and PASS and receive -ERR [IN-USE] exclusive lock failure.
-FLOW pop3_maildrop_locked(c, s) {
-    c <- s POP3 OK RESPONSE "Dovecot POP3 ready." WAIT 2ms
-    c -> s POP3 CMD "USER" ARG "jdoe@corp.local" WAIT 2ms
-    c <- s POP3 OK RESPONSE "send PASS" WAIT 2ms
-    c -> s POP3 CMD "PASS" ARG "Summer2025!" WAIT 4ms
-    c <- s POP3 ERR RESPONSE "[IN-USE] Mailbox is locked by another POP3 session" WAIT 1ms
-    c -> s POP3 CMD "QUIT" WAIT 1ms
-    c <- s POP3 OK RESPONSE "Logging out"
+flow pop3_maildrop_locked(c, s) {
+    c <- s pop3 ok response "Dovecot POP3 ready." wait 2ms
+    c -> s pop3 cmd "USER" arg "jdoe@corp.local" wait 2ms
+    c <- s pop3 ok response "send PASS" wait 2ms
+    c -> s pop3 cmd "PASS" arg "Summer2025!" wait 4ms
+    c <- s pop3 err response "[IN-USE] Mailbox is locked by another POP3 session" wait 1ms
+    c -> s pop3 cmd "QUIT" wait 1ms
+    c <- s pop3 ok response "Logging out"
 }
 
 // INSTRUCTION: Compile the POP3 exclusive lock contention error scenario.
-COMPILE {
+compile {
     pop3_maildrop_locked(concurrent_mua, locked_pop3_srv)
 }

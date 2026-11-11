@@ -1,25 +1,25 @@
 // PROMPT: Simulate a mesh VPN node probing a STUN server on UDP port 3478 to discover its public reflexive endpoint before WireGuard peering.
-// TOKENS: HOST, IP, MAC, FLOW, STUN, BINDING_REQUEST, TXID, SOFTWARE, DSCP, WAIT, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+// TOKENS: host, ip, mac, flow, stun, bindingrequest, txid, software, dscp, wait, ms, bindingresponse, xormappedaddr, compile
 
 // INSTRUCTION: Define the mesh VPN client behind a symmetric corporate NAT firewall.
-HOST mesh_vpn_node {
-    IP 10.64.20.18
-    MAC 00:1c:42:40:14:12
+host mesh_vpn_node {
+    ip 10.64.20.18
+    mac 00:1c:42:40:14:12
 }
 
 // INSTRUCTION: Define the global DERP/STUN coordination server.
-HOST derp_stun_srv {
-    IP 198.51.100.210
-    MAC 00:1c:42:40:14:d2
+host derp_stun_srv {
+    ip 198.51.100.210
+    mac 00:1c:42:40:14:d2
 }
 
 // INSTRUCTION: Send a STUN Binding Request with Tailscale software tag and receive the public XOR-MAPPED-ADDRESS.
-FLOW stun_mesh_vpn_discovery(node, stun_srv) {
-    node -> stun_srv STUN BINDING_REQUEST TXID 0x77889901 SOFTWARE "tailscale-magicsock/1.64" DSCP 46 WAIT 8ms
-    node <- stun_srv STUN BINDING_RESPONSE TXID 0x77889901 XOR_MAPPED_ADDR 203.0.113.188 SOFTWARE "derper-stun/1.64" DSCP 46
+flow stun_mesh_vpn_discovery(node, stun_srv) {
+    node -> stun_srv stun bindingrequest txid 0x77889901 software "tailscale-magicsock/1.64" dscp 46 wait 8ms
+    node <- stun_srv stun bindingresponse txid 0x77889901 xormappedaddr 203.0.113.188 software "derper-stun/1.64" dscp 46
 }
 
 // INSTRUCTION: Compile the mesh VPN STUN reflexive address discovery flow.
-COMPILE {
+compile {
     stun_mesh_vpn_discovery(mesh_vpn_node, derp_stun_srv)
 }

@@ -1,32 +1,33 @@
-# FrameAssembly Production Reference Patterns
+# FrameAssembly v2.0.0 Production Reference Patterns
 
-This reference document provides production-ready, fully-documented, and compiler-verified Rust code templates and canonical `.fasm` scenarios for FrameAssembly, covering forward and reverse compiler pipeline invocation, AST representation with `/// Syntax mapping:`, 3-tier protocol-scoped sub-keyword parser dispatch, wire invariants, 4-tuple TCP state tracking, and enterprise DSL archetypes.
+This reference document provides production-ready, fully-documented, and compiler-verified Rust code templates and canonical v2.0.0 `.fasm` scenarios for FrameAssembly, covering forward and reverse compiler pipeline invocation, AST representation with strict-lowercase `/// Syntax mapping:`, protocol-first + 3-tier protocol-scoped sub-keyword parser dispatch, wire invariants, 4-tuple TCP state tracking, and enterprise `.fasm` archetypes.
 
 ---
 
 ## 1. Programmatic Forward & Reverse Compiler Pipeline Invocation
 
-Demonstrates how to invoke FrameAssembly's two-phase forward compiler pipeline (`parse_program` $\rightarrow$ `validate_semantics(&program, source)` $\rightarrow$ `compile_program` / `generate_pcap`) and the 6-stage reverse PCAP/PCAPNG decompiler (`reverse_pcap_bytes` / `reverse_pcap_file`) without temporary file leaks or unchecked errors.
+Demonstrates how to invoke FrameAssembly v2.0.0's two-phase forward compiler pipeline (`parse_program` $\rightarrow$ `validate_semantics(&program, source)` $\rightarrow$ `compile_program` / `generate_pcap`) and the 5-stage reverse PCAP/PCAPNG decompiler (`reverse_pcap_bytes` / `reverse_pcap_file`) without temporary file leaks or unchecked errors.
 
 ```rust
-//! Programmatic entry points for forward compilation and reverse PCAP decompilation in FrameAssembly.
+//! Programmatic entry points for forward compilation and reverse PCAP decompilation in FrameAssembly v2.0.0.
 
 use std::fs;
 use std::path::Path;
 use frameassembly::ast::Program;
 use frameassembly::backend::{compile_program, generate_pcap};
 use frameassembly::parser::{parse_program, validate_semantics};
+use frameassembly::reverse::{ReversedCapture, reverse_pcap_bytes};
 
-/// Parses, semantically validates, and compiles `.fasm` source code in-memory into `(wire_bytes, timestamp_ns)` frames.
+/// Parses, semantically validates, and compiles v2.0.0 `.fasm` code in-memory into `(wire_bytes, timestamp_ns)` frames.
 ///
 /// # Arguments
-/// * `source` - Raw UTF-8 string containing canonical FrameAssembly `.fasm` code.
+/// * `source` - Raw UTF-8 string containing canonical FrameAssembly v2.0.0 `.fasm` code.
 ///
 /// # Errors
 /// Returns a descriptive error string if lexing, syntax parsing, semantic validation,
 /// or wire packet assembly fails.
 pub fn compile_fasm_str(source: &str) -> Result<Vec<(Vec<u8>, u64)>, String> {
-    // 1. Two-phase lexing (logos 0.14.4) + combinator parsing (winnow 1.0.5)
+    // 1. Two-phase strict-lowercase lexing (logos 0.14.4) + combinator parsing (winnow 1.0.5)
     let program: Program<'_> = parse_program(source)
         .map_err(|e| format!("Syntax/Semantic error: {e:?}"))?;
 
@@ -38,10 +39,11 @@ pub fn compile_fasm_str(source: &str) -> Result<Vec<(Vec<u8>, u64)>, String> {
     compile_program(&program)
 }
 
-/// Compiles a `.fasm` file on disk directly into a deterministic `.pcapng` capture file.
+/// Compiles a `.fasm` file on disk directly into a deterministic `.pcapng` capture file
+/// (mirroring `frameassembly <input.fasm> [output.pcap]`).
 ///
 /// # Arguments
-/// * `input_path` - Path to the input `.fasm` DSL specification.
+/// * `input_path` - Path to the input `.fasm` specification.
 /// * `output_path` - Destination path for the generated `.pcap` / `.pcapng` capture.
 pub fn compile_fasm_file<P: AsRef<Path>>(input_path: P, output_path: &str) -> Result<(), String> {
     let source = fs::read_to_string(input_path.as_ref())
@@ -55,16 +57,22 @@ pub fn compile_fasm_file<P: AsRef<Path>>(input_path: P, output_path: &str) -> Re
 
     generate_pcap(&program, output_path)
 }
+
+/// Decompiles raw `.pcap` or `.pcapng` capture bytes into canonical v2.0.0 `.fasm` code
+/// (`host1`, `host2`, strict-lowercase keywords without `_`, direct `compile { ... }` statements).
+pub fn decompile_capture_bytes(pcap_bytes: &[u8]) -> Result<ReversedCapture, String> {
+    reverse_pcap_bytes(pcap_bytes)
+}
 ```
 
 ---
 
-## 2. Canonical AST Structures & `/// Syntax mapping:` Docstring Pattern
+## 2. Canonical v2.0.0 AST Structures & `/// Syntax mapping:` Docstring Pattern
 
-Every AST struct in `src/ast/mod.rs` (`HostDef<'a>`, `FlowDef<'a>`, `RunStatement<'a>`, `FrameStatement<'a>`) and every protocol `*Spec` struct in `src/ast/{l2,l3,l4,l7}/<protocol>.rs` must include a `/// Syntax mapping: \`...\`` docstring and `#[doc(alias = "...")]` attributes binding the Rust type to its canonical `.fasm` surface syntax and RFC standard.
+Every AST struct in `src/ast/mod.rs` (`HostDef<'a>`, `FlowDef<'a>`, `RunStatement<'a>`, `FrameStatement<'a>`) and every protocol `*Spec` struct in `src/ast/{l2,l3,l4,l7}/<protocol>.rs` must include a `/// Syntax mapping: \`...\`` docstring in v2.0.0 strict-lowercase syntax and `#[doc(alias = "...")]` attributes binding the Rust type to its `.fasm` surface syntax and RFC standard. Note that `RunStatement::Loop` was removed in FrameAssembly v2.0.0 (`RunStatement::{Invocation, Frame}`).
 
 ```rust
-//! Canonical AST definitions with Syntax Mapping and docs.rs search aliases.
+//! Canonical v2.0.0 AST definitions with Syntax Mapping and docs.rs search aliases.
 
 use core::marker::PhantomData;
 use core::net::IpAddr;
@@ -75,46 +83,46 @@ use frameassembly::ast::{
 
 /// Host definition declaring network endpoint addressing parameters.
 ///
-/// Syntax mapping: `HOST <name> { [IP <ip_addr>] [MAC <mac_addr>] }`
+/// Syntax mapping: `host <name> { [ip <ip_addr>] [mac <mac_addr>] }`
 ///
-/// At least one of `IP` or `MAC` is required. Pure Layer 2 protocols (`LLDP`, `STP`, `LACP`,
-/// `EAPOL`, `VLAN`, `QINQ`, `MPLS`, `ARP`) allow MAC-only endpoints via `protocol_requires_ip`.
+/// At least one of `ip` or `mac` is required. Pure Layer 2 protocols (`lldp`, `stp`, `lacp`,
+/// `eapol`, `vlan`, `qinq`, `mpls`, `arp`) allow MAC-only endpoints via `protocol_requires_ip`.
 ///
 /// # Examples
 /// ```frameassembly
 /// // PROMPT: Declare IPv4 endpoints with explicit MAC addresses and execute an ICMP Echo Request.
-/// // TOKENS: HOST, IP, MAC, FLOW, ICMP, ECHO_REQUEST, COMPILE
+/// // TOKENS: host, ip, mac, flow, icmp, echorequest, compile
 /// // INSTRUCTION: Declare two IPv4 hosts.
-/// HOST client { IP 10.0.0.1 MAC 00:11:22:33:44:55 }
-/// HOST server { IP 10.0.0.2 MAC 00:aa:bb:cc:dd:ee }
+/// host client { ip 10.0.0.1 mac 00:11:22:33:44:55 }
+/// host server { ip 10.0.0.2 mac 00:aa:bb:cc:dd:ee }
 /// // INSTRUCTION: Define a minimal ICMP flow.
-/// FLOW ping(a, b) {
-///     a -> b ICMP ECHO_REQUEST
+/// flow ping(a, b) {
+///     a -> b icmp echorequest
 /// }
 /// // INSTRUCTION: Compile the flow.
-/// COMPILE {
+/// compile {
 ///     ping(client, server)
 /// }
 /// ```
-#[doc(alias = "HOST")]
-#[doc(alias = "IP")]
-#[doc(alias = "MAC")]
+#[doc(alias = "host")]
+#[doc(alias = "ip")]
+#[doc(alias = "mac")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HostDef<'a> {
-    /// Zero-copy borrowed host identifier name (e.g., `client`, `server`).
+    /// Zero-copy borrowed host identifier name (e.g., `client`, `fw-dmz-01`, `core_sw`).
     pub name: &'a str,
     /// Optional IPv4 or IPv6 address (omitted for pure Layer 2 MAC-only endpoints).
     pub ip: Option<IpAddr>,
     /// Optional IEEE 802.3 6-byte MAC address.
     pub mac: Option<[u8; 6]>,
-    /// Source span `(start_byte_offset, byte_length)` of the `HOST` block.
+    /// Source span `(start_byte_offset, byte_length)` of the `host` block.
     pub span: (usize, usize),
 }
 
 /// Parameterized flow definition containing ordered frame statements.
 ///
-/// Syntax mapping: `FLOW <name>(<param1>, <param2>) { <statements> }`
-#[doc(alias = "FLOW")]
+/// Syntax mapping: `flow <name>(<param1>, <param2>) { <statements> }`
+#[doc(alias = "flow")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FlowDef<'a> {
     /// Zero-copy borrowed flow identifier name.
@@ -123,28 +131,25 @@ pub struct FlowDef<'a> {
     pub params: Vec<&'a str>,
     /// Ordered directional frame statements inside the flow body.
     pub statements: Vec<FrameStatement<'a>>,
-    /// Source span `(start_byte_offset, byte_length)` of the `FLOW` block.
+    /// Source span `(start_byte_offset, byte_length)` of the `flow` block.
     pub span: (usize, usize),
 }
 
-/// Statement inside the `COMPILE { ... }` block (`RunStatement`).
+/// Statement inside the `compile { ... }` block (`RunStatement` in FrameAssembly v2.0.0).
 ///
-/// Syntax mapping: `COMPILE { <flow>(<args>) | <caller> -> <callee> <PROTO> ... | LOOP <n> { <flow>(<args>) } }`
-#[doc(alias = "COMPILE")]
-#[doc(alias = "LOOP")]
+/// Syntax mapping: `compile { <flow>(<args>) | <caller> -> <callee> <proto> ... }`
+#[doc(alias = "compile")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RunStatement<'a> {
     /// A single flow invocation (`my_flow(client, server)`).
     Invocation(TemplateInvocation<'a>),
-    /// An inline directional frame statement directly inside `COMPILE`.
+    /// An inline directional frame statement directly inside `compile`.
     Frame(Box<FrameStatement<'a>>),
-    /// A loop block containing an iteration count and inner flow invocations.
-    Loop(u32, Vec<TemplateInvocation<'a>>),
 }
 
-/// Directional packet transmission statement inside a [`FlowDef`] or inline in `COMPILE`.
+/// Directional packet transmission statement inside a [`FlowDef`] or inline in `compile`.
 ///
-/// Syntax mapping: `<caller> ->|<- <callee> [L2/L3/L4 modifiers] <Protocol> [ProtocolSpec] [WAIT <duration>]`
+/// Syntax mapping: `<caller> ->|<- <callee> [L2/L3/L4 modifiers] <protocol> [ProtocolSpec] [wait <duration>]`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FrameStatement<'a> {
     /// Source endpoint parameter reference.
@@ -157,34 +162,33 @@ pub struct FrameStatement<'a> {
     pub protocol: Protocol,
     /// Strongly-typed protocol-specific AST specification (`ProtocolSpec<'a>`).
     pub protocol_spec: Option<ProtocolSpec<'a>>,
-    /// Layer 2 framing modifiers (`VLAN`, `QINQ`, `MPLS`, `SRCMAC`, `DSTMAC`, `ETHERTYPE`).
+    /// Layer 2 framing modifiers (`vlan`, `qinq`, `innervlan`, `mpls`, `srcmac`, `dstmac`, `ethertype`).
     pub l2: L2Modifiers,
-    /// Layer 3 header modifiers (`TTL`, `DSCP`, `ECN`, `IPID`, `DF`, `MF`, `FRAGOFFSET`, `FLOWLABEL`).
+    /// Layer 3 header modifiers (`ttl`, `dscp`, `ecn`, `ipid`, `df`, `mf`, `fragoffset`, `flowlabel`).
     pub l3: L3Modifiers,
-    /// Layer 4 transport modifiers (`SRCPORT`, `DSTPORT`, `SEQ`, `ACKNUM`, `WINDOW`, TCP options, SCTP fields).
+    /// Layer 4 transport modifiers (`srcport`, `dstport`, `seq`, `acknum`, `window`, `sackperm`, TCP/SCTP fields).
     pub l4: L4Modifiers,
-    /// Optional inter-frame delay in nanoseconds (`WAIT <int><ns|us|ms|s|m>`).
+    /// Optional inter-frame delay in nanoseconds (`wait <int><ns|us|ms|s|m>`).
     pub wait: Option<u64>,
 }
 
 /// Layer 2 Address Resolution Protocol (ARP, RFC 826 / RFC 5227) AST specification.
 ///
-/// Syntax mapping: `ARP [REQUEST | REPLY | OP <u16>] [SHA <mac>] [SPA <ip>] [THA <mac>] [TPA <ip>]`
-/// (Canonical tokens in `src/ast/l2/arp.rs`: `ARP [REQUEST | REPLY] [GRATUITOUS] [SENDERMAC <mac>] [SENDERIP <ip>] [TARGETMAC <mac>] [TARGETIP <ip>]` — never `HWTYPE` or `PROTOTYPE`.)
-#[doc(alias = "ARP")]
+/// Syntax mapping: `arp [request | reply] [gratuitous] [sendermac <mac>] [senderip <ip>] [targetmac <mac>] [targetip <ip>]`
+#[doc(alias = "arp")]
 #[doc(alias = "RFC 826")]
 #[doc(alias = "RFC 5227")]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ArpSpec<'a> {
     /// ARP operation code (`1` = Request, `2` = Reply).
     pub op: Option<u16>,
-    /// Sender 48-bit hardware address override (`SHA` / `SENDERMAC`).
+    /// Sender 48-bit hardware address override (`sendermac`).
     pub sha: Option<[u8; 6]>,
-    /// Sender protocol address override (`SPA` / `SENDERIP`).
+    /// Sender protocol address override (`senderip`).
     pub spa: Option<IpAddr>,
-    /// Target 48-bit hardware address override (`THA` / `TARGETMAC`).
+    /// Target 48-bit hardware address override (`targetmac`).
     pub tha: Option<[u8; 6]>,
-    /// Target protocol address override (`TPA` / `TARGETIP`).
+    /// Target protocol address override (`targetip`).
     pub tpa: Option<IpAddr>,
     /// Zero-copy lifetime marker.
     pub _marker: PhantomData<&'a ()>,
@@ -193,18 +197,35 @@ pub struct ArpSpec<'a> {
 
 ---
 
-## 3. Protocol-Scoped Field Parser Dispatch Pattern (`src/parser/fields.rs`)
+## 3. Protocol-First Guard & 3-Tier Protocol-Scoped Field Parser Dispatch (`src/parser/`)
 
-When multiple protocols share a keyword token (`Token::Value`, `Token::Version`, `Token::Status`, `Token::Token`, `Token::MsgId`, `Token::Group`, `Token::Data`, `Token::Cookie`, `Token::Response`, `Token::Reply`, `Token::Keepalive`, `Token::Ack`, `Token::Rst`) with different value types (`u8` vs `u32` vs `&str` vs 0-arg flag), statement parsing runs a 3-tier loop (`parse_universal_field` $\rightarrow$ `dispatch_protocol_field` $\rightarrow$ `parse_fallback_field`) rather than a flat protocol-agnostic `alt((...))` loop with `cut_err`.
+In FrameAssembly v2.0.0:
+1. Because `#[token("whois")] Token::Whois` serves both the L7 `whois` protocol and BACnet's `whois` Unconfirmed-Request service, `parse_frame_statement` checks an explicit protocol-keyword matcher **before** `parse_fallback_field` whenever `current_protocol.is_none()`. That ensures `a -> b whois domain "example.com"` sets `Protocol::Whois` instead of being intercepted alphabetically by `parse_bacnet_field`.
+2. When multiple protocols share a modifier token (`value`, `version`, `status`, `token`, `msgid`, `group`, `data`, `cookie`, `response`, `reply`, `keepalive`, `hellotime`, `ack`, `rst`), statement parsing runs a 3-tier loop (`parse_universal_field` $\rightarrow$ `dispatch_protocol_field` $\rightarrow$ `parse_fallback_field`).
 
 ```rust
-//! Protocol-scoped field dispatch preventing cross-protocol keyword shadowing (`src/parser/fields.rs`).
+//! Protocol-first guard and 3-tier protocol-scoped field dispatch (`src/parser/fields.rs`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::alt;
 use winnow::prelude::*;
 use crate::ast::Protocol;
-use crate::parser::{ParsedField, Stream, l2, l3, l4, l7, snmp};
+use crate::lexer::Token;
+use crate::parser::{ParsedField, Stream, l2, l3, l4, l7, snmp, tag};
+
+/// Matches an explicit protocol keyword when `current_protocol.is_none()` before `parse_fallback_field`
+/// so shared tokens like `Token::Whois` (`whois`) resolve to `Protocol::Whois` rather than BACnet `whois`.
+pub(crate) fn parse_explicit_protocol_kw<'i, 'a>(
+    input: &mut Stream<'i, 'a>,
+) -> PResult<ParsedField<'a>> {
+    alt((
+        tag(Token::Whois).map(|(_, s)| ParsedField::Protocol(Protocol::Whois, (s.start, s.len()))),
+        tag(Token::Bacnet).map(|(_, s)| ParsedField::Protocol(Protocol::Bacnet, (s.start, s.len()))),
+        tag(Token::Stp).map(|(_, s)| ParsedField::Protocol(Protocol::Stp, (s.start, s.len()))),
+        tag(Token::Hsrp).map(|(_, s)| ParsedField::Protocol(Protocol::Hsrp, (s.start, s.len()))),
+    ))
+    .parse_next(input)
+}
 
 /// Dispatches directly to the active protocol's combinator parser to prevent cross-protocol `cut_err` shadowing.
 pub(crate) fn dispatch_protocol_field<'i, 'a>(
@@ -218,6 +239,7 @@ pub(crate) fn dispatch_protocol_field<'i, 'a>(
         Protocol::Gre => l3::parse_gre_field(input),
         Protocol::Geneve => l3::parse_geneve_field(input),
         Protocol::Vrrp => l3::parse_vrrp_field(input),
+        Protocol::Hsrp => l3::parse_hsrp_field(input),
         Protocol::Wireguard => l3::parse_wireguard_field(input),
         Protocol::Tcp => l4::parse_tcp_field(input),
         Protocol::Udp => l4::parse_udp_field(input),
@@ -227,6 +249,7 @@ pub(crate) fn dispatch_protocol_field<'i, 'a>(
         Protocol::Redis => l7::parse_redis_field(input),
         Protocol::Memcached => l7::parse_memcached_field(input),
         Protocol::Bacnet => l7::parse_bacnet_field(input),
+        Protocol::Whois => l7::parse_whois_field(input),
         Protocol::Http => l7::parse_http_field(input),
         Protocol::Quic => l7::parse_quic_field(input),
         Protocol::Modbus => l7::parse_modbus_field(input),
@@ -248,37 +271,37 @@ pub(crate) fn dispatch_protocol_field<'i, 'a>(
 
 ---
 
-## 4. Production `.fasm` Scenario Archetypes (100% Compiler-Verified)
+## 4. Production v2.0.0 `.fasm` Scenario Archetypes (100% Compiler-Verified)
 
-Complete, copy-pasteable DSL scenarios using strictly canonical FrameAssembly syntax.
+Complete, copy-pasteable scenarios using strictly canonical FrameAssembly v2.0.0 lowercase syntax (zero `_` or `-` in keywords, flexible user-defined host/flow identifiers, and direct flow invocations in `compile`).
 
 ### Scenario 1: Enterprise SNMPv3 USM Encrypted Telemetry over IPv6 (`examples/l7/snmp/snmpv3/`)
 
 ```frameassembly
 // PROMPT: Synthesize an SNMPv3 USM GetRequest and Response exchange with SHA-256 authentication and AES-128 privacy encryption over IPv6.
-// TOKENS: HOST, IP, MAC, FLOW, SNMP3, GET, REQID, USER, AUTH, SHA256, PRIV, AES, ENGINEID, ENGINEBOOTS, ENGINETIME, VARBIND, NULLVAL, RESPONSE, TIMETICKS, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, snmp3, get, reqid, user, auth, sha256, priv, aes, engineid, engineboots, enginetime, varbind, nullval, response, timeticks, wait, compile
 
-// INSTRUCTION: Declare the IPv6 Network Management Station (NMS) and managed core switch endpoints.
-HOST nms_core {
-    IP 2001:db8:100::10
-    MAC 00:11:22:33:44:55
+// INSTRUCTION: Declare the IPv6 Network Management Station (NMS) endpoint.
+host nms_core {
+    ip 2001:db8:100::10
+    mac 00:11:22:33:44:55
 }
 
-// INSTRUCTION: Declare the managed switch endpoint.
-HOST core_switch {
-    IP 2001:db8:100::20
-    MAC 00:66:77:88:99:aa
+// INSTRUCTION: Declare the managed core switch endpoint.
+host core-switch-01 {
+    ip 2001:db8:100::20
+    mac 00:66:77:88:99:aa
 }
 
-// INSTRUCTION: Define the SNMPv3 USM authPriv polling flow for sysUpTime.0 and sysDescr.0.
-FLOW snmpv3_usm_poll(mgr, agent) {
-    mgr -> agent SNMP3 GET REQID 5001 USER "secadmin" AUTH SHA256 "AuthSecretKey2026!" PRIV AES "PrivAesSecretKey!" ENGINEID "80001f888001020304" ENGINEBOOTS 12 ENGINETIME 86400 VARBIND 1.3.6.1.2.1.1.3.0 NULLVAL
-    mgr <- agent SNMP3 RESPONSE REQID 5001 USER "secadmin" AUTH SHA256 "AuthSecretKey2026!" PRIV AES "PrivAesSecretKey!" ENGINEID "80001f888001020304" ENGINEBOOTS 12 ENGINETIME 86400 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 8640000 WAIT 5ms
+// INSTRUCTION: Define the SNMPv3 USM authPriv polling flow for sysUpTime.0.
+flow snmpv3_usm_poll(mgr, agent) {
+    mgr -> agent snmp3 get reqid 5001 user "secadmin" auth sha256 "AuthSecretKey2026!" priv aes "PrivAesSecretKey!" engineid "80001f888001020304" engineboots 12 enginetime 86400 varbind 1.3.6.1.2.1.1.3.0 nullval
+    mgr <- agent snmp3 response reqid 5001 user "secadmin" auth sha256 "AuthSecretKey2026!" priv aes "PrivAesSecretKey!" engineid "80001f888001020304" engineboots 12 enginetime 86400 varbind 1.3.6.1.2.1.1.3.0 timeticks 8640000 wait 5ms
 }
 
 // INSTRUCTION: Compile the SNMPv3 USM telemetry flow into the output capture.
-COMPILE {
-    snmpv3_usm_poll(nms_core, core_switch)
+compile {
+    snmpv3_usm_poll(nms_core, core-switch-01)
 }
 ```
 
@@ -286,58 +309,58 @@ COMPILE {
 
 ```frameassembly
 // PROMPT: Synthesize a Modbus TCP holding register read poll and response over double-tagged IEEE 802.1ad QinQ Ethernet frames.
-// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, MODBUS, TXID, UNITID, FUNC, ADDR, COUNT, VALUE, IS_RESPONSE, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, mac, flow, qinq, innervlan, modbus, txid, unitid, func, addr, count, value, isresponse, wait, compile
 
-// INSTRUCTION: Declare the SCADA HMI master station and industrial PLC endpoints.
-HOST scada_hmi {
-    IP 192.168.100.10
-    MAC 00:a0:c9:11:22:33
+// INSTRUCTION: Declare the SCADA HMI master station endpoint.
+host scada_hmi {
+    ip 192.168.100.10
+    mac 00:a0:c9:11:22:33
 }
 
 // INSTRUCTION: Declare the industrial PLC endpoint.
-HOST plc_rtu {
-    IP 192.168.100.50
-    MAC 00:1d:9c:44:55:66
+host plc-rtu-01 {
+    ip 192.168.100.50
+    mac 00:1d:9c:44:55:66
 }
 
 // INSTRUCTION: Define the QinQ-encapsulated Modbus TCP Function Code 3 (Read Holding Registers) exchange.
-FLOW modbus_qinq_poll(master, plc) {
-    master -> plc QINQ 100 INNER_VLAN 20 MODBUS TXID 1 UNITID 1 FUNC "READ_HOLDING_REGISTERS" ADDR 40001 COUNT 4
-    master <- plc QINQ 100 INNER_VLAN 20 MODBUS TXID 1 UNITID 1 FUNC "READ_HOLDING_REGISTERS" ADDR 40001 COUNT 4 VALUE 1500 IS_RESPONSE WAIT 10ms
+flow modbus_qinq_poll(master, plc) {
+    master -> plc qinq 100 innervlan 20 modbus txid 1 unitid 1 func "readholdingregisters" addr 40001 count 4
+    master <- plc qinq 100 innervlan 20 modbus txid 1 unitid 1 func "readholdingregisters" addr 40001 count 4 value 1500 isresponse wait 10ms
 }
 
-// INSTRUCTION: Execute 5 polling cycles in the COMPILE block.
-COMPILE {
-    LOOP 5 {
-        modbus_qinq_poll(scada_hmi, plc_rtu)
-    }
+// INSTRUCTION: Execute three consecutive polling cycles in the compile block.
+compile {
+    modbus_qinq_poll(scada_hmi, plc-rtu-01)
+    modbus_qinq_poll(scada_hmi, plc-rtu-01)
+    modbus_qinq_poll(scada_hmi, plc-rtu-01)
 }
 ```
 
-### Scenario 3: Pure Layer 2 MAC-Only Endpoints (`LLDP`) & Inline `COMPILE` Frame Statements
+### Scenario 3: Pure Layer 2 MAC-Only Endpoints (`lldp`) & Inline `compile` Frame Statements
 
 ```frameassembly
 // PROMPT: Synthesize an IEEE 802.1AB LLDP neighbor advertisement between MAC-only switch endpoints.
-// TOKENS: HOST, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, WAIT, COMPILE
+// TOKENS: host, mac, flow, lldp, chassisid, portid, sysname, wait, compile
 
-// INSTRUCTION: Declare two pure Layer 2 switch endpoints with MAC addresses only (no IP required for LLDP).
-HOST spine_sw {
-    MAC 00:1c:73:aa:bb:01
+// INSTRUCTION: Declare the pure Layer 2 spine switch endpoint with MAC address only (no IP required for LLDP).
+host spine_sw {
+    mac 00:1c:73:aa:bb:01
 }
 
 // INSTRUCTION: Declare the leaf switch MAC-only endpoint.
-HOST leaf_sw {
-    MAC 00:1c:73:aa:bb:02
+host leaf_sw {
+    mac 00:1c:73:aa:bb:02
 }
 
 // INSTRUCTION: Define a reusable LLDP discovery flow.
-FLOW lldp_announce(a, b) {
-    a -> b LLDP CHASSIS_ID "spine-01" PORT_ID "Ethernet1/1" SYSNAME "spine-01.dc.local" WAIT 5ms
+flow lldp_announce(a, b) {
+    a -> b lldp chassisid "spine-01" portid "Ethernet1/1" sysname "spine-01.dc.local" wait 5ms
 }
 
-// INSTRUCTION: Invoke the flow and emit an inline reply frame statement inside COMPILE.
-COMPILE {
+// INSTRUCTION: Invoke the flow and emit an inline reply frame statement inside compile.
+compile {
     lldp_announce(spine_sw, leaf_sw)
-    leaf_sw -> spine_sw LLDP CHASSIS_ID "leaf-01" PORT_ID "Ethernet49/1" SYSNAME "leaf-01.dc.local" WAIT 5ms
+    leaf_sw -> spine_sw lldp chassisid "leaf-01" portid "Ethernet49/1" sysname "leaf-01.dc.local" wait 5ms
 }
 ```

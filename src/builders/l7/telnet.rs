@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b TELNET [DO <u8>] [DONT <u8>] [WILL <u8>] [WONT <u8>] [OPTION <u8>] [PAYLOAD <str>]`
+//! `a -> b telnet [do <u8>] [dont <u8>] [will <u8>] [wont <u8>] [option <u8>] [payload <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 854 Telnet command sequence or data payload.
-/// Syntax mapping: `TELNET [DO <u8>] [DONT <u8>] [WILL <u8>] [WONT <u8>] [OPTION <u8>] [PAYLOAD <str>]`
+/// Syntax mapping: `telnet [do <u8>] [dont <u8>] [will <u8>] [wont <u8>] [option <u8>] [payload <str>]`
 #[doc(alias = "TELNET")]
 #[doc(alias = "RFC854")]
 #[doc(alias = "RFC855")]

@@ -1,9 +1,9 @@
-//! sFlow v5 (`SFLOW`, RFC 3176) Layer 7 sampled network telemetry PCAP-to-`.fasm` decompiler.
+//! sFlow v5 (`sflow`, RFC 3176) Layer 7 sampled network telemetry PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for sFlow Version 5 datagrams carried
 //! over UDP ports `6343` and `16343`. It decodes both IPv4 (`address_type == 1`, 28-byte header)
-//! and IPv6 (`address_type == 2`, 40-byte header) exporter agent addresses (`agent_ip`), sub-agent
-//! identifiers (`sub_agent_id`), sequence numbers (`seq`), switch uptime (`uptime`), and sample
+//! and IPv6 (`address_type == 2`, 40-byte header) exporter agent addresses (`agentip`), sub-agent
+//! identifiers (`subagentid`), sequence numbers (`seq`), switch uptime (`uptime`), and sample
 //! counts (`samples`).
 
 use alloc::string::String;
@@ -37,8 +37,8 @@ pub(crate) fn dissect_sflow(payload: &[u8], sp: u16, dp: u16) -> Option<Protocol
     };
 
     let mut tokens = String::from("sflow");
-    let _ = write!(tokens, " agent_ip {agent_ip}");
-    push_if(&mut tokens, "sub_agent_id", be_u32(payload, base), 0);
+    let _ = write!(tokens, " agentip {agent_ip}");
+    push_if(&mut tokens, "subagentid", be_u32(payload, base), 0);
     push_if(&mut tokens, "seq", be_u32(payload, base + 4), 1);
     push_if(&mut tokens, "uptime", be_u32(payload, base + 8), 1000);
     push_if(&mut tokens, "samples", be_u32(payload, base + 12), 1);

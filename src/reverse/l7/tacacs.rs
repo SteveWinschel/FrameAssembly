@@ -1,9 +1,9 @@
-//! Terminal Access Controller Access-Control System Plus (`TACACS`, RFC 8907) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Terminal Access Controller Access-Control System Plus (`tacacs`, RFC 8907) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for RFC 8907 `TACACS` (`TACACS+`) AAA
+//! This module implements the fuzz-safe reverse dissector for RFC 8907 `tacacs` (`TACACS+`) AAA
 //! packets carried over TCP port `49`. It validates the 12-byte TACACS+ common header (`0xC0`
 //! major version nibble) and decodes authentication (`authen`), authorization (`author`), and
-//! accounting (`acct`) bodies along with `seq`, `flags`, `session_id`, `user`, and `data`
+//! accounting (`acct`) bodies along with `seq`, `flags`, `sessionid`, `user`, and `data`
 //! modifiers.
 
 use alloc::format;
@@ -14,7 +14,7 @@ use crate::reverse::{ProtocolDissection, be_u32, push_if};
 
 use super::{is_printable_ascii_str, ok_dissect, push_str_if};
 
-/// Dissects an RFC 8907 `TACACS` packet over TCP port `49`.
+/// Dissects an RFC 8907 `tacacs` packet over TCP port `49`.
 pub(crate) fn dissect_tacacs(payload: &[u8]) -> Option<ProtocolDissection> {
     if payload.len() < 12 || (payload[0] & 0xF0) != 0xC0 {
         return None;
@@ -61,7 +61,7 @@ pub(crate) fn dissect_tacacs(payload: &[u8]) -> Option<ProtocolDissection> {
         let _ = write!(tokens, " flags 0x{flags:02x}");
     }
     if session_id != 0x1234_5678 {
-        let _ = write!(tokens, " session_id 0x{session_id:08x}");
+        let _ = write!(tokens, " sessionid 0x{session_id:08x}");
     }
     push_str_if(&mut tokens, "user", user_str, "admin");
     push_str_if(&mut tokens, "data", data_str, "");

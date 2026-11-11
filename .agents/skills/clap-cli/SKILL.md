@@ -1,6 +1,6 @@
 ---
 name: clap-cli
-description: Comprehensive guide, API selection matrix, and production code templates for building modern, type-safe, and scalable command-line interfaces in Rust with clap 4.6.7+, clap_builder 4.6.7, clap_lex 1.1.1, anstyle 1.0.14, and anstream 1.0.0 (covering Derive and Builder APIs, hybrid positional + subcommand routing, lazy deferred subcommands, anstyle terminal styling, TypedValueParser validation, and ValueSource layered configuration).
+description: Comprehensive guide, API selection matrix, and production code templates for building modern, type-safe, and scalable command-line interfaces in Rust with clap 4.6.7+, clap_builder 4.6.7, clap_lex 1.1.1, anstyle 1.0.14, and anstream 1.0.0 (covering Derive and Builder APIs, v2.0.0 default-compile + 4-subcommand routing, hidden legacy flags, static shell Tab completions, lazy deferred subcommands, anstyle terminal styling, TypedValueParser validation, and ValueSource layered configuration).
 ---
 
 # Clap 4.6.7+ CLI Engineering Skill
@@ -13,7 +13,9 @@ Use this skill when designing, implementing, refactoring, or testing command-lin
 | :--- | :--- | :--- |
 | Top-level CLI entry point (Derive) | `#[derive(Parser)]` (requires `features = ["derive"]`) | `structopt` / `#[clap(...)]` |
 | Top-level CLI entry point (Builder) | `pub fn build_cli() -> Command` + `build_cli().debug_assert()` | Inlining `App::new` in `main()` without `debug_assert()` |
-| Hybrid root positional + subcommands | `.args_conflicts_with_subcommands(true)` (`<input.fasm>`, `show`, `reverse`) | Setting `.subcommand_required(true)` when root positional args exist |
+| Default-compile + 4-subcommand v2.0.0 routing (`frameassembly`) | Root `input`/`output` positionals + `.subcommand_negates_reqs(true).args_conflicts_with_subcommands(true).arg_required_else_help(true)` + 4 subcommands (`show`, `reverse`, `help`, `version`) | Adding a `compile` subcommand, `.subcommand_required(true)`, or `-o`/`--output` flags |
+| Hide `-h`/`--help` & `-V`/`--version` while keeping script exit `0` | `.disable_help_flag(true).disable_version_flag(true)` + hidden global `ArgAction::Help` (`.global(true).hide(true)`) & hidden `ArgAction::Version` (`.hide(true)`) | Dropping `ArgAction::Help`/`ArgAction::Version` completely (breaks CI/shell scripts invoking `--help` or `--version`) |
+| Legacy CLI & typo guards (`check_legacy_cli_args`) | Pre-inspect `std::env::args_os()` before `try_get_matches_from_mut` to reject `-o`/`--output`, `--show`/`--reverse`, bare `.pcap` at arg 1, accidental `"compile"` as arg 1, and `.fasm` as `OUTPUT.pcap` | Letting an accidental `"compile"` arg 1 treat `demo.fasm` as `OUTPUT.pcap` or allowing `frameassembly a.fasm b.fasm` to overwrite source |
 | Lazy subcommand tree initialization (`4.6+`) | `#[command(defer = true)]` / `Command::defer` | Eagerly building massive subcommand trees on startup |
 | Inspect custom usage override (`4.6+`) | `cmd.get_overridden_usage()` | Scraping rendered `--help` strings |
 | No-arg / uninhabited trait composition (`4.6+`) | `Args` / `FromArgMatches` impls for `()` and `core::convert::Infallible` | Custom empty dummy structs for generic CLI wrappers |
@@ -60,10 +62,20 @@ Before choosing between Builder and Derive patterns in a crate, check `Cargo.tom
 
 ## 3. Architecture Decision Guide
 
-1. **Derive vs. Builder vs. Trait-Based Hybrid & FrameAssembly Tri-Modal Routing**:
+1. **Derive vs. Builder vs. Trait-Based Hybrid & FrameAssembly v2.0.0 Default-Compile + 4-Subcommand Routing (`src/main.rs`)**:
    - **Declarative Derive (`#[derive(Parser, Subcommand, Args, ValueEnum)]`)**: Best when `features = ["derive"]` is enabled. Use `#[command(defer = true)]` on heavy subcommands to defer command-tree construction until that subcommand is actually selected.
-   - **Imperative Builder (`Command`, `Arg`, `ArgGroup`)**: Best for zero-proc-macro builds (like `frameassembly`'s default dependency graph). In `frameassembly`, the root `Command` uses `.args_conflicts_with_subcommands(true)` so direct compilation (`frameassembly <input.fasm> [-o <output.pcap>]`), packet-ladder inspection (`frameassembly show <input.fasm>`), and reverse PCAP decompilation (`frameassembly reverse <input.pcap> [-o <output.fasm>]`) coexist cleanly without subcommand-vs-positional collisions.
-   - **Trait-Based Hybrid (`CommandFactory` + `FromArgMatches` + `Parser` + `Args`)**: Implement `CommandFactory` and `FromArgMatches` manually (with `impl Parser for Cli {}`) to enjoy strongly-typed struct parsing (`Cli::parse()`, `Cli::try_parse_from(...)`) without pulling in `clap_derive`. Note that `()` and `core::convert::Infallible` implement `Args` and `FromArgMatches` in `clap 4.6+` for generic CLI wrappers.
+   - **Imperative Builder (`Command`, `Arg`) — FrameAssembly v2.0.0 Architecture**: Ideal for zero-proc-macro builds (`frameassembly` v2.0.0). The root `Command` sets `.subcommand_negates_reqs(true)`, `.args_conflicts_with_subcommands(true)`, and `.arg_required_else_help(true)`, making `.fasm` $\rightarrow$ `.pcap` compilation the default root command (there is **no** `compile` CLI subcommand) alongside strictly 4 subcommands (`SUBCOMMANDS = ["show", "reverse", "version", "help"]`, zero `-o`/`--output` flags):
+     - `frameassembly <input.fasm> [output.pcap]` (default root command: `index(1)` required, `index(2)` optional defaulting via `derive_default_output_path(input, "pcap")`)
+     - `frameassembly show <input.fasm>` (`index(1)` required; prints relative-timestamp packet ladder table without writing disk files)
+     - `frameassembly reverse <input.pcap> [output.fasm]` (`index(1)` required, `index(2)` optional defaulting via `derive_default_output_path(input, "fasm")`)
+     - `frameassembly version` (`Command::new("version")`, printing `frameassembly <CARGO_PKG_VERSION>`)
+     - `frameassembly help [subcommand]` (`clap`'s built-in `help` subcommand)
+   - **Hidden Script-Compatible Flags & Legacy/Safety Guards**:
+     - Pair `.disable_help_flag(true)` and `.disable_version_flag(true)` (plus `.disable_help_flag(true)` on subcommands) with hidden `Arg::new("help")` (`-h`/`--help`, `ArgAction::Help`, `.global(true)`, `.hide(true)`) and `Arg::new("version")` (`-V`/`--version`, `ArgAction::Version`, `.hide(true)`) so human help output focuses cleanly on `frameassembly help` and `frameassembly version` while automated CI/shell scripts calling `--help` or `--version` still succeed with exit code `0`.
+     - Run `check_legacy_cli_args` on `std::env::args_os()` before `clap` matching to reject `-o`/`--output` flags (hinting `frameassembly <in.fasm> [out.pcap]` and `frameassembly reverse <in.pcap> [out.fasm]`), legacy `--show`/`--reverse` flags, bare `.pcap`/`.pcapng` at arg 1 (hinting `frameassembly reverse <arg1>`), accidental `arg1 == "compile"` when `!Path::new("compile").is_file()`, and `OUTPUT.pcap` ending in `.fasm` (preventing `frameassembly a.fasm b.fasm` from overwriting `.fasm` source with PCAP bytes).
+   - **Extension-Aware Shell Tab Completions (`contrib/completions/`)**:
+     - Ship static shell completion scripts (`frameassembly.bash`, `_frameassembly` for zsh, `frameassembly.fish`, `frameassembly.ps1` for PowerShell) completing both the 4 subcommands (`show`, `reverse`, `version`, `help`) and `.fasm` files at position 1, `.pcap`/`.pcapng` files at position 2 when arg 1 is a `.fasm` path, `.fasm` files after `show` (and arg 3 of `reverse`), `.pcap`/`.pcapng` files at arg 2 of `reverse`, and subcommand names after `help`.
+   - **Trait-Based Hybrid (`CommandFactory` + `FromArgMatches` + `Parser` + `Args`)**: Implement `CommandFactory` and `FromArgMatches` manually (with `impl Parser for Cli {}`) for strongly-typed struct parsing without `clap_derive`.
 
 2. **Mandatory CLI Verification Gate (`Command::debug_assert()`)**:
    - Always factor `Command` construction out of `fn main()` into `pub fn build_cli() -> Command` (or `Cli::command()`).
@@ -84,7 +96,7 @@ Before choosing between Builder and Derive patterns in a crate, check `Cargo.tom
 ## 4. Production Reference Templates
 
 Read [references/patterns.md](references/patterns.md) for complete, copy-pasteable production implementations with complete rustdoc comments:
-1. **Hybrid Positional + Subcommand CLI (`args_conflicts_with_subcommands(true)` for `<input.fasm>`, `show`, and `reverse` + `anstyle` 9-Role Styling + `debug_assert()` QA)**
+1. **FrameAssembly v2.0.0 Default-Compile + 4-Subcommand CLI (`<input.fasm> [output.pcap]` + `show`, `reverse`, `version`, `help` + Positional Output Derivation + Hidden `--help`/`--version` + `check_legacy_cli_args` Safety Guards + `contrib/completions/` + `debug_assert()`)**
 2. **Custom Strongly-Typed Value Validation (`TypedValueParser` + `.try_map()` + `NonEmptyStringValueParser` + Rich `clap::Error` Diagnostics)**
 3. **Advanced Argument Relationships & Flag Constraints (`ArgGroup` + Negatable Flags + `requires_if` + `conflicts_with`)**
 4. **Trait-Based Derive/Builder Interoperability (`CommandFactory` + `FromArgMatches` + `Args` + `Parser` Implementation)**

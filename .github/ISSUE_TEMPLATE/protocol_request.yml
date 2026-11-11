@@ -1,0 +1,59 @@
+name: Protocol or Field Request
+description: Request native support for a new network protocol or additional header modifiers on an existing protocol
+title: "[Protocol]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping expand **FrameAssembly**! Please share the protocol specification and the testing workflow you want to unlock.
+
+  - type: input
+    id: protocol_name
+    attributes:
+      label: Protocol Name & RFC / Standard
+      description: Name of the protocol or extension and its governing RFC, IEEE, ITU, or vendor specification.
+      placeholder: "e.g. IS-IS (ISO/IEC 10589 / RFC 1195) or GTPv1-U (3GPP TS 29.281)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: osi_layer
+    attributes:
+      label: Network Layer
+      options:
+        - Layer 2 (Data Link / Switching)
+        - Layer 3 (Network / Routing / Tunneling / VPN)
+        - Layer 4 (Transport)
+        - Layer 7 (Application / Telemetry / Industrial OT)
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Target Testing or Security Use Case
+      description: How will you use these generated packets (e.g., Wireshark dissector validation, Suricata/Zeek IDS rules, Checkmk/Zabbix monitoring, firewall ACLs, OT lab replay)?
+      placeholder: "e.g. Testing Suricata rules for 5G user-plane GTP-U encapsulated HTTP flows via tcpreplay."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_syntax
+    attributes:
+      label: Proposed .fasm Code Example
+      description: Sketch how you would expect to write a packet statement in FrameAssembly 2.0 lowercase syntax (optional).
+      render: text
+      placeholder: |
+        host sgw { ip 10.10.0.1 }
+        host enb { ip 10.10.0.2 }
+        compile {
+            sgw -> enb gtpu teid 0x00001234 payload "hello"
+        }
+
+  - type: textarea
+    id: wire_sample
+    attributes:
+      label: Reference Packet Hex Dump or Wireshark Decode
+      description: Optional sanitized hex bytes or tshark/Wireshark field breakdown for wire-level verification.
+      render: text

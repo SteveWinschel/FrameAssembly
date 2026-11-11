@@ -1,9 +1,9 @@
-//! Protocol Independent Multicast - Sparse Mode (`PIM`, RFC 7761) routing parser.
+//! Protocol Independent Multicast - Sparse Mode (`pim`, RFC 7761) routing parser.
 //!
-//! This module implements the winnow parser combinator for `PIM` multicast routing control messages
-//! (IP protocol 103). It parses PIM message types (`HELLO`, `JOIN_PRUNE`, `REGISTER`), multicast
-//! group addresses (`GROUP <ip>`), multicast source addresses (`SOURCE <ip>`), Rendezvous Point
-//! addresses (`RP <ip>`), neighbor holdtimes (`HOLDTIME <u16>`), and DR priorities (`DR_PRIORITY <u32>`).
+//! This module implements the winnow parser combinator for `pim` multicast routing control messages
+//! (IP protocol 103). It parses PIM message types (`hello`, `joinprune`, `register`), multicast
+//! group addresses (`group <ip>`), multicast source addresses (`source <ip>`), Rendezvous Point
+//! addresses (`rp <ip>`), neighbor holdtimes (`holdtime <u16>`), and DR priorities (`drpriority <u32>`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

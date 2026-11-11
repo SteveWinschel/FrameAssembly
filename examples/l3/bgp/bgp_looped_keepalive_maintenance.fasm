@@ -1,21 +1,22 @@
-// PROMPT: Periodic BGP KEEPALIVE heartbeat exchange executed inside a COMPILE LOOP block.
-// TOKENS: HOST, IP, FLOW, BGP, KEEPALIVE, WAIT, COMPILE, LOOP
+// PROMPT: Periodic BGP KEEPALIVE heartbeat exchange executed inside a COMPILE repeated flow calls.
+// TOKENS: host, ip, flow, bgp, keepalive, wait, ms, compile
 
 // INSTRUCTION: Define long-haul BGP peer West.
-HOST lh_bgp_west { IP 198.51.100.77 }
+host lh_bgp_west { ip 198.51.100.77 }
 
 // INSTRUCTION: Define long-haul BGP peer East.
-HOST lh_bgp_east { IP 198.51.100.78 }
+host lh_bgp_east { ip 198.51.100.78 }
 
 // INSTRUCTION: Define bidirectional BGP KEEPALIVE exchange with 30ms interval.
-FLOW bgp_keepalive_tick(w, e) {
-    w -> e BGP KEEPALIVE WAIT 30ms
-    w <- e BGP KEEPALIVE WAIT 30ms
+flow bgp_keepalive_tick(w, e) {
+    w -> e bgp keepalive wait 30ms
+    w <- e bgp keepalive wait 30ms
 }
 
 // INSTRUCTION: Compile 4 consecutive BGP keepalive intervals.
-COMPILE {
-    LOOP 4 {
-        bgp_keepalive_tick(lh_bgp_west, lh_bgp_east)
-    }
+compile {
+    bgp_keepalive_tick(lh_bgp_west, lh_bgp_east) // cycle 1
+    bgp_keepalive_tick(lh_bgp_west, lh_bgp_east) // cycle 2
+    bgp_keepalive_tick(lh_bgp_west, lh_bgp_east) // cycle 3
+    bgp_keepalive_tick(lh_bgp_west, lh_bgp_east) // cycle 4
 }

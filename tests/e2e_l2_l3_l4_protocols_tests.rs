@@ -9,7 +9,7 @@
 //! - Tier 2: Boundary values (VLAN PCP/DEI, TTL, DSCP/ECN, 20-bit IPv6 Flow Labels, string escapes,
 //!   contextual identifiers, and 4-tuple TCP sequence/port state tracking).
 //! - Tier 3: Cross-feature combinations (dual-stack polymorphism, stacked VLANs, RFC 1112 / RFC 2464
-//!   multicast MAC derivation, RFC 7323 TCP options, `WAIT` timing units, and `LOOP` blocks).
+//!   multicast MAC derivation, RFC 7323 TCP options, `wait` timing units, and repeated flow calls).
 //! - CLI & Corpus Backwards Compatibility: default and custom output paths plus corpus compilation.
 
 use std::fs;
@@ -107,12 +107,12 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l2_arp() {
         let arp_script = r#"
-            HOST arp_host_a { IP 192.168.10.1 MAC 00:11:22:33:44:01 }
-            HOST arp_host_b { IP 192.168.10.2 MAC 00:11:22:33:44:02 }
-            FLOW arp_resolution(requester, responder) {
-                requester -> responder ARP
-                requester <- responder ARP REPLY
-            } COMPILE { arp_resolution(arp_host_a, arp_host_b) }"#;
+            host arp_host_a { ip 192.168.10.1 mac 00:11:22:33:44:01 }
+            host arp_host_b { ip 192.168.10.2 mac 00:11:22:33:44:02 }
+            flow arp_resolution(requester, responder) {
+                requester -> responder arp
+                requester <- responder arp reply
+            } compile { arp_resolution(arp_host_a, arp_host_b) }"#;
         run_e2e_test(arp_script, |arp_pkts| assert_eq!((arp_pkts.len(), arp_pkts[0].ethertype(), arp_pkts[1].ethertype()), (2, Some(0x0806), Some(0x0806))));
     }
 
@@ -120,11 +120,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l2_vlan() {
         let vlan_script = r#"
-            HOST vlan_node_1 { IP 10.10.1.1 }
-            HOST vlan_node_2 { IP 10.10.1.2 }
-            FLOW vlan_tagged_flow(access_sw, trunk_sw) {
-                access_sw -> trunk_sw VLAN 100 UDP PAYLOAD "vlan100"
-            } COMPILE { vlan_tagged_flow(vlan_node_1, vlan_node_2) }"#;
+            host vlan_node_1 { ip 10.10.1.1 }
+            host vlan_node_2 { ip 10.10.1.2 }
+            flow vlan_tagged_flow(access_sw, trunk_sw) {
+                access_sw -> trunk_sw vlan 100 udp payload "vlan100"
+            } compile { vlan_tagged_flow(vlan_node_1, vlan_node_2) }"#;
         run_e2e_test(vlan_script, |vlan_pkts| assert_eq!((vlan_pkts.len(), vlan_pkts[0].ethertype()), (1, Some(0x8100))));
     }
 
@@ -132,11 +132,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l2_qinq() {
         let qinq_script = r#"
-            HOST metro_pe_1 { IP 10.10.2.1 }
-            HOST metro_pe_2 { IP 10.10.2.2 }
-            FLOW qinq_tunnel_flow(pe_ingress, pe_egress) {
-                pe_ingress -> pe_egress QINQ 200 INNER_VLAN 10 UDP PAYLOAD "qinq"
-            } COMPILE { qinq_tunnel_flow(metro_pe_1, metro_pe_2) }"#;
+            host metro_pe_1 { ip 10.10.2.1 }
+            host metro_pe_2 { ip 10.10.2.2 }
+            flow qinq_tunnel_flow(pe_ingress, pe_egress) {
+                pe_ingress -> pe_egress qinq 200 innervlan 10 udp payload "qinq"
+            } compile { qinq_tunnel_flow(metro_pe_1, metro_pe_2) }"#;
         run_e2e_test(qinq_script, |qinq_pkts| assert_eq!((qinq_pkts.len(), qinq_pkts[0].ethertype()), (1, Some(0x88A8))));
     }
 
@@ -144,11 +144,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l2_lldp() {
         let lldp_script = r#"
-            HOST leaf_sw_1 { IP 10.10.3.1 }
-            HOST spine_sw_2 { IP 10.10.3.2 }
-            FLOW lldp_announce(leaf_node, spine_node) {
-                leaf_node -> spine_node LLDP SYSNAME "switch-leaf1"
-            } COMPILE { lldp_announce(leaf_sw_1, spine_sw_2) }"#;
+            host leaf_sw_1 { ip 10.10.3.1 }
+            host spine_sw_2 { ip 10.10.3.2 }
+            flow lldp_announce(leaf_node, spine_node) {
+                leaf_node -> spine_node lldp sysname "switch-leaf1"
+            } compile { lldp_announce(leaf_sw_1, spine_sw_2) }"#;
         run_e2e_test(lldp_script, |lldp_pkts| assert_eq!((lldp_pkts.len(), lldp_pkts[0].ethertype()), (1, Some(0x88CC))));
     }
 
@@ -156,11 +156,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l2_stp() {
         let stp_script = r#"
-            HOST root_bridge { IP 10.10.4.1 }
-            HOST desig_bridge { IP 10.10.4.2 }
-            FLOW stp_bpdu_flow(root_br, desig_br) {
-                root_br -> desig_br STP
-            } COMPILE { stp_bpdu_flow(root_bridge, desig_bridge) }"#;
+            host root_bridge { ip 10.10.4.1 }
+            host desig_bridge { ip 10.10.4.2 }
+            flow stp_bpdu_flow(root_br, desig_br) {
+                root_br -> desig_br stp
+            } compile { stp_bpdu_flow(root_bridge, desig_bridge) }"#;
         run_e2e_test(stp_script, |stp_pkts| assert_eq!((stp_pkts.len(), stp_pkts[0].dst_mac()), (1, Some([0x01, 0x80, 0xc2, 0x00, 0x00, 0x00]))));
     }
 
@@ -168,11 +168,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l2_lacp() {
         let lacp_script = r#"
-            HOST lag_actor { IP 10.10.5.1 }
-            HOST lag_partner { IP 10.10.5.2 }
-            FLOW lacp_pdu_flow(actor_port, partner_port) {
-                actor_port -> partner_port LACP
-            } COMPILE { lacp_pdu_flow(lag_actor, lag_partner) }"#;
+            host lag_actor { ip 10.10.5.1 }
+            host lag_partner { ip 10.10.5.2 }
+            flow lacp_pdu_flow(actor_port, partner_port) {
+                actor_port -> partner_port lacp
+            } compile { lacp_pdu_flow(lag_actor, lag_partner) }"#;
         run_e2e_test(lacp_script, |lacp_pkts| assert_eq!((lacp_pkts.len(), lacp_pkts[0].dst_mac()), (1, Some([0x01, 0x80, 0xc2, 0x00, 0x00, 0x02]))));
     }
 
@@ -180,11 +180,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l2_eapol() {
         let eapol_script = r#"
-            HOST supplicant_pc { IP 10.10.6.1 }
-            HOST auth_switch { IP 10.10.6.2 }
-            FLOW eapol_start_flow(supp, auth_sw) {
-                supp -> auth_sw EAPOL TYPE START
-            } COMPILE { eapol_start_flow(supplicant_pc, auth_switch) }"#;
+            host supplicant_pc { ip 10.10.6.1 }
+            host auth_switch { ip 10.10.6.2 }
+            flow eapol_start_flow(supp, auth_sw) {
+                supp -> auth_sw eapol type start
+            } compile { eapol_start_flow(supplicant_pc, auth_switch) }"#;
         run_e2e_test(eapol_script, |eapol_pkts| assert_eq!((eapol_pkts.len(), eapol_pkts[0].ethertype()), (1, Some(0x888E))));
     }
 
@@ -192,11 +192,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l2_mpls() {
         let mpls_script = r#"
-            HOST lsr_ingress { IP 10.10.7.1 }
-            HOST lsr_egress { IP 10.10.7.2 }
-            FLOW mpls_lsp_flow(ler_in, ler_out) {
-                ler_in -> ler_out MPLS 10001 EXP 3 BOS 1 MPLS_TTL 64 UDP PAYLOAD "mpls"
-            } COMPILE { mpls_lsp_flow(lsr_ingress, lsr_egress) }"#;
+            host lsr_ingress { ip 10.10.7.1 }
+            host lsr_egress { ip 10.10.7.2 }
+            flow mpls_lsp_flow(ler_in, ler_out) {
+                ler_in -> ler_out mpls 10001 exp 3 bos 1 mplsttl 64 udp payload "mpls"
+            } compile { mpls_lsp_flow(lsr_ingress, lsr_egress) }"#;
         run_e2e_test(mpls_script, |mpls_pkts| assert_eq!((mpls_pkts.len(), mpls_pkts[0].ethertype()), (1, Some(0x8847))));
     }
 
@@ -204,12 +204,12 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_icmp() {
         let icmp_script = r#"
-            HOST ping_src_v4 { IP 192.168.11.1 }
-            HOST ping_dst_v4 { IP 192.168.11.2 }
-            FLOW icmp_echo_pair(pinger, responder) {
-                pinger -> responder ICMP ECHO_REQUEST
-                pinger <- responder ICMP ECHO_REPLY
-            } COMPILE { icmp_echo_pair(ping_src_v4, ping_dst_v4) }"#;
+            host ping_src_v4 { ip 192.168.11.1 }
+            host ping_dst_v4 { ip 192.168.11.2 }
+            flow icmp_echo_pair(pinger, responder) {
+                pinger -> responder icmp echorequest
+                pinger <- responder icmp echoreply
+            } compile { icmp_echo_pair(ping_src_v4, ping_dst_v4) }"#;
         run_e2e_test(icmp_script, |icmp_pkts| assert_eq!((icmp_pkts.len(), icmp_pkts[0].ethertype(), icmp_pkts[0].raw[23]), (2, Some(0x0800), 1)));
     }
 
@@ -217,12 +217,12 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_ndp() {
         let ndp_script = r#"
-            HOST ndp_host_a { IP 2001:db8:10::1 }
-            HOST ndp_host_b { IP 2001:db8:10::2 }
-            FLOW ndp_resolve_flow(solicit_node, target_node) {
-                solicit_node -> target_node NDP NEIGHBOR_SOLICIT TARGET 2001:db8:10::2
-                solicit_node <- target_node NDP NEIGHBOR_ADVERT TARGET 2001:db8:10::2
-            } COMPILE { ndp_resolve_flow(ndp_host_a, ndp_host_b) }"#;
+            host ndp_host_a { ip 2001:db8:10::1 }
+            host ndp_host_b { ip 2001:db8:10::2 }
+            flow ndp_resolve_flow(solicit_node, target_node) {
+                solicit_node -> target_node ndp neighborsolicit target 2001:db8:10::2
+                solicit_node <- target_node ndp neighboradvert target 2001:db8:10::2
+            } compile { ndp_resolve_flow(ndp_host_a, ndp_host_b) }"#;
         run_e2e_test(ndp_script, |ndp_pkts| assert_eq!((ndp_pkts.len(), ndp_pkts[0].ethertype(), ndp_pkts[0].raw[20]), (2, Some(0x86DD), 58)));
     }
 
@@ -230,11 +230,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_igmp() {
         let igmp_script = r#"
-            HOST igmp_member { IP 192.168.12.10 }
-            HOST igmp_all_hosts { IP 224.0.0.1 }
-            FLOW igmp_join_flow(host_member, mcast_grp) {
-                host_member -> mcast_grp IGMP REPORT GROUP 239.1.1.1
-            } COMPILE { igmp_join_flow(igmp_member, igmp_all_hosts) }"#;
+            host igmp_member { ip 192.168.12.10 }
+            host igmp_all_hosts { ip 224.0.0.1 }
+            flow igmp_join_flow(host_member, mcast_grp) {
+                host_member -> mcast_grp igmp report group 239.1.1.1
+            } compile { igmp_join_flow(igmp_member, igmp_all_hosts) }"#;
         run_e2e_test(igmp_script, |igmp_pkts| assert_eq!((igmp_pkts.len(), igmp_pkts[0].ethertype(), igmp_pkts[0].raw[23]), (1, Some(0x0800), 2)));
     }
 
@@ -242,11 +242,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_mld() {
         let mld_script = r#"
-            HOST mld_listener { IP fe80::10 }
-            HOST mld_all_nodes { IP ff02::1 }
-            FLOW mld_report_flow(listener_v6, mcast_v6) {
-                listener_v6 -> mcast_v6 MLD REPORT MULTICAST_ADDR ff02::1:2
-            } COMPILE { mld_report_flow(mld_listener, mld_all_nodes) }"#;
+            host mld_listener { ip fe80::10 }
+            host mld_all_nodes { ip ff02::1 }
+            flow mld_report_flow(listener_v6, mcast_v6) {
+                listener_v6 -> mcast_v6 mld report multicastaddr ff02::1:2
+            } compile { mld_report_flow(mld_listener, mld_all_nodes) }"#;
         run_e2e_test(mld_script, |mld_pkts| assert_eq!((mld_pkts.len(), mld_pkts[0].ethertype()), (1, Some(0x86DD))));
     }
 
@@ -254,11 +254,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_gre() {
         let gre_script = r#"
-            HOST gre_tun_a { IP 10.20.1.1 }
-            HOST gre_tun_b { IP 10.20.1.2 }
-            FLOW gre_tunnel_flow(tun_src, tun_dst) {
-                tun_src -> tun_dst GRE GRE_KEY 1234 PAYLOAD "inner_ip"
-            } COMPILE { gre_tunnel_flow(gre_tun_a, gre_tun_b) }"#;
+            host gre_tun_a { ip 10.20.1.1 }
+            host gre_tun_b { ip 10.20.1.2 }
+            flow gre_tunnel_flow(tun_src, tun_dst) {
+                tun_src -> tun_dst gre grekey 1234 payload "inner_ip"
+            } compile { gre_tunnel_flow(gre_tun_a, gre_tun_b) }"#;
         run_e2e_test(gre_script, |gre_pkts| assert_eq!((gre_pkts.len(), gre_pkts[0].ethertype(), gre_pkts[0].raw[23]), (1, Some(0x0800), 47)));
     }
 
@@ -266,11 +266,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_vxlan() {
         let vxlan_script = r#"
-            HOST vxlan_vtep_1 { IP 192.168.10.1 }
-            HOST vxlan_vtep_2 { IP 192.168.10.2 }
-            FLOW vxlan_overlay_flow(vtep_a, vtep_b) {
-                vtep_a -> vtep_b VXLAN VNI 5000 PAYLOAD "inner_eth"
-            } COMPILE { vxlan_overlay_flow(vxlan_vtep_1, vxlan_vtep_2) }"#;
+            host vxlan_vtep_1 { ip 192.168.10.1 }
+            host vxlan_vtep_2 { ip 192.168.10.2 }
+            flow vxlan_overlay_flow(vtep_a, vtep_b) {
+                vtep_a -> vtep_b vxlan vni 5000 payload "inner_eth"
+            } compile { vxlan_overlay_flow(vxlan_vtep_1, vxlan_vtep_2) }"#;
         run_e2e_test(vxlan_script, |vxlan_pkts| assert_eq!((vxlan_pkts.len(), u16::from_be_bytes([vxlan_pkts[0].raw[36], vxlan_pkts[0].raw[37]])), (1, 4789)));
     }
 
@@ -278,11 +278,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_geneve() {
         let geneve_script = r#"
-            HOST geneve_nve_1 { IP 192.168.20.1 }
-            HOST geneve_nve_2 { IP 192.168.20.2 }
-            FLOW geneve_overlay_flow(nve_a, nve_b) {
-                nve_a -> nve_b GENEVE VNI 10000 PAYLOAD "inner_payload"
-            } COMPILE { geneve_overlay_flow(geneve_nve_1, geneve_nve_2) }"#;
+            host geneve_nve_1 { ip 192.168.20.1 }
+            host geneve_nve_2 { ip 192.168.20.2 }
+            flow geneve_overlay_flow(nve_a, nve_b) {
+                nve_a -> nve_b geneve vni 10000 payload "inner_payload"
+            } compile { geneve_overlay_flow(geneve_nve_1, geneve_nve_2) }"#;
         run_e2e_test(geneve_script, |geneve_pkts| assert_eq!((geneve_pkts.len(), u16::from_be_bytes([geneve_pkts[0].raw[36], geneve_pkts[0].raw[37]])), (1, 6081)));
     }
 
@@ -290,11 +290,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_ipsec_esp() {
         let esp_script = r#"
-            HOST esp_vpn_gw1 { IP 198.51.100.1 }
-            HOST esp_vpn_gw2 { IP 198.51.100.2 }
-            FLOW ipsec_esp_flow(vpn_left, vpn_right) {
-                vpn_left -> vpn_right ESP SPI 0x1000 SEQ 1 PAYLOAD "ciphertext"
-            } COMPILE { ipsec_esp_flow(esp_vpn_gw1, esp_vpn_gw2) }"#;
+            host esp_vpn_gw1 { ip 198.51.100.1 }
+            host esp_vpn_gw2 { ip 198.51.100.2 }
+            flow ipsec_esp_flow(vpn_left, vpn_right) {
+                vpn_left -> vpn_right esp spi 0x1000 seq 1 payload "ciphertext"
+            } compile { ipsec_esp_flow(esp_vpn_gw1, esp_vpn_gw2) }"#;
         run_e2e_test(esp_script, |esp_pkts| assert_eq!((esp_pkts.len(), esp_pkts[0].ethertype(), esp_pkts[0].raw[23]), (1, Some(0x0800), 50)));
     }
 
@@ -302,11 +302,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_ipsec_ah() {
         let ah_script = r#"
-            HOST ah_sec_gw1 { IP 198.51.100.11 }
-            HOST ah_sec_gw2 { IP 198.51.100.12 }
-            FLOW ipsec_ah_flow(ah_left, ah_right) {
-                ah_left -> ah_right AH SPI 0x2000 SEQ 1 PAYLOAD "ah_payload"
-            } COMPILE { ipsec_ah_flow(ah_sec_gw1, ah_sec_gw2) }"#;
+            host ah_sec_gw1 { ip 198.51.100.11 }
+            host ah_sec_gw2 { ip 198.51.100.12 }
+            flow ipsec_ah_flow(ah_left, ah_right) {
+                ah_left -> ah_right ah spi 0x2000 seq 1 payload "ah_payload"
+            } compile { ipsec_ah_flow(ah_sec_gw1, ah_sec_gw2) }"#;
         run_e2e_test(ah_script, |ah_pkts| assert_eq!((ah_pkts.len(), ah_pkts[0].ethertype(), ah_pkts[0].raw[23]), (1, Some(0x0800), 51)));
     }
 
@@ -314,11 +314,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_ikev2() {
         let ike_script = r#"
-            HOST ike_initiator { IP 198.51.100.21 }
-            HOST ike_responder { IP 198.51.100.22 }
-            FLOW ikev2_init_flow(init_gw, resp_gw) {
-                init_gw -> resp_gw IKEV2 EXCHANGE SA_INIT MSGID 0
-            } COMPILE { ikev2_init_flow(ike_initiator, ike_responder) }"#;
+            host ike_initiator { ip 198.51.100.21 }
+            host ike_responder { ip 198.51.100.22 }
+            flow ikev2_init_flow(init_gw, resp_gw) {
+                init_gw -> resp_gw ikev2 exchange sainit msgid 0
+            } compile { ikev2_init_flow(ike_initiator, ike_responder) }"#;
         run_e2e_test(ike_script, |ike_pkts| assert_eq!((ike_pkts.len(), u16::from_be_bytes([ike_pkts[0].raw[36], ike_pkts[0].raw[37]])), (1, 500)));
     }
 
@@ -326,11 +326,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_wireguard() {
         let wg_script = r#"
-            HOST wg_peer_alpha { IP 10.30.0.1 }
-            HOST wg_peer_beta { IP 10.30.0.2 }
-            FLOW wg_handshake_flow(peer_a, peer_b) {
-                peer_a -> peer_b WIREGUARD TYPE INITIATION SENDER 0x11223344
-            } COMPILE { wg_handshake_flow(wg_peer_alpha, wg_peer_beta) }"#;
+            host wg_peer_alpha { ip 10.30.0.1 }
+            host wg_peer_beta { ip 10.30.0.2 }
+            flow wg_handshake_flow(peer_a, peer_b) {
+                peer_a -> peer_b wireguard type initiation sender 0x11223344
+            } compile { wg_handshake_flow(wg_peer_alpha, wg_peer_beta) }"#;
         run_e2e_test(wg_script, |wg_pkts| assert_eq!((wg_pkts.len(), u16::from_be_bytes([wg_pkts[0].raw[36], wg_pkts[0].raw[37]])), (1, 51820)));
     }
 
@@ -338,11 +338,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_ospf() {
         let ospf_script = r#"
-            HOST ospf_rtr_1 { IP 10.40.0.1 }
-            HOST ospf_rtr_2 { IP 10.40.0.2 }
-            FLOW ospf_hello_flow(dr_rtr, bdr_rtr) {
-                dr_rtr -> bdr_rtr OSPF HELLO ROUTER_ID 10.40.0.1 AREA_ID 0
-            } COMPILE { ospf_hello_flow(ospf_rtr_1, ospf_rtr_2) }"#;
+            host ospf_rtr_1 { ip 10.40.0.1 }
+            host ospf_rtr_2 { ip 10.40.0.2 }
+            flow ospf_hello_flow(dr_rtr, bdr_rtr) {
+                dr_rtr -> bdr_rtr ospf hello routerid 10.40.0.1 areaid 0
+            } compile { ospf_hello_flow(ospf_rtr_1, ospf_rtr_2) }"#;
         run_e2e_test(ospf_script, |ospf_pkts| assert_eq!((ospf_pkts.len(), ospf_pkts[0].ethertype(), ospf_pkts[0].raw[23]), (1, Some(0x0800), 89)));
     }
 
@@ -350,12 +350,12 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_bgp() {
         let bgp_script = r#"
-            HOST bgp_ebgp_1 { IP 192.0.2.1 }
-            HOST bgp_ebgp_2 { IP 192.0.2.2 }
-            FLOW bgp_open_flow(as65001, as65002) {
-                as65001 -> as65002 BGP OPEN ASN 65001 HOLDTIME 180 BGPID 192.0.2.1
-                as65001 <- as65002 BGP KEEPALIVE
-            } COMPILE { bgp_open_flow(bgp_ebgp_1, bgp_ebgp_2) }"#;
+            host bgp_ebgp_1 { ip 192.0.2.1 }
+            host bgp_ebgp_2 { ip 192.0.2.2 }
+            flow bgp_open_flow(as65001, as65002) {
+                as65001 -> as65002 bgp open asn 65001 holdtime 180 bgpid 192.0.2.1
+                as65001 <- as65002 bgp keepalive
+            } compile { bgp_open_flow(bgp_ebgp_1, bgp_ebgp_2) }"#;
         run_e2e_test(bgp_script, |bgp_pkts| assert_eq!((bgp_pkts.len(), u16::from_be_bytes([bgp_pkts[0].raw[36], bgp_pkts[0].raw[37]])), (2, 179)));
     }
 
@@ -363,11 +363,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_rip() {
         let rip_script = r#"
-            HOST rip_sender { IP 192.168.13.1 }
-            HOST rip_mcast { IP 224.0.0.9 }
-            FLOW rip_update_flow(rip_rtr, rip_grp) {
-                rip_rtr -> rip_grp RIP RESPONSE PREFIX 10.0.0.0 METRIC 1
-            } COMPILE { rip_update_flow(rip_sender, rip_mcast) }"#;
+            host rip_sender { ip 192.168.13.1 }
+            host rip_mcast { ip 224.0.0.9 }
+            flow rip_update_flow(rip_rtr, rip_grp) {
+                rip_rtr -> rip_grp rip response prefix 10.0.0.0 metric 1
+            } compile { rip_update_flow(rip_sender, rip_mcast) }"#;
         run_e2e_test(rip_script, |rip_pkts| assert_eq!((rip_pkts.len(), u16::from_be_bytes([rip_pkts[0].raw[36], rip_pkts[0].raw[37]])), (1, 520)));
     }
 
@@ -375,11 +375,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_vrrp() {
         let vrrp_script = r#"
-            HOST vrrp_master { IP 192.168.14.254 }
-            HOST vrrp_mcast { IP 224.0.0.18 }
-            FLOW vrrp_advert_flow(master_rtr, vrrp_group) {
-                master_rtr -> vrrp_group VRRP VRID 1 PRIORITY 100 VIP 192.168.14.1
-            } COMPILE { vrrp_advert_flow(vrrp_master, vrrp_mcast) }"#;
+            host vrrp_master { ip 192.168.14.254 }
+            host vrrp_mcast { ip 224.0.0.18 }
+            flow vrrp_advert_flow(master_rtr, vrrp_group) {
+                master_rtr -> vrrp_group vrrp vrid 1 priority 100 vip 192.168.14.1
+            } compile { vrrp_advert_flow(vrrp_master, vrrp_mcast) }"#;
         run_e2e_test(vrrp_script, |vrrp_pkts| assert_eq!((vrrp_pkts.len(), vrrp_pkts[0].ethertype(), vrrp_pkts[0].raw[23]), (1, Some(0x0800), 112)));
     }
 
@@ -387,11 +387,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_hsrp() {
         let hsrp_script = r#"
-            HOST hsrp_active { IP 192.168.15.253 }
-            HOST hsrp_all_rtrs { IP 224.0.0.2 }
-            FLOW hsrp_hello_flow(active_gw, all_routers) {
-                active_gw -> all_routers HSRP GROUP 1 PRIORITY 110 STATE 16 VIP 192.168.15.1
-            } COMPILE { hsrp_hello_flow(hsrp_active, hsrp_all_rtrs) }"#;
+            host hsrp_active { ip 192.168.15.253 }
+            host hsrp_all_rtrs { ip 224.0.0.2 }
+            flow hsrp_hello_flow(active_gw, all_routers) {
+                active_gw -> all_routers hsrp group 1 priority 110 state 16 vip 192.168.15.1
+            } compile { hsrp_hello_flow(hsrp_active, hsrp_all_rtrs) }"#;
         run_e2e_test(hsrp_script, |hsrp_pkts| assert_eq!((hsrp_pkts.len(), u16::from_be_bytes([hsrp_pkts[0].raw[36], hsrp_pkts[0].raw[37]])), (1, 1985)));
     }
 
@@ -399,11 +399,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_pim() {
         let pim_script = r#"
-            HOST pim_dr { IP 192.168.16.1 }
-            HOST pim_routers { IP 224.0.0.13 }
-            FLOW pim_neighbor_flow(dr_node, pim_mcast) {
-                dr_node -> pim_mcast PIM HELLO
-            } COMPILE { pim_neighbor_flow(pim_dr, pim_routers) }"#;
+            host pim_dr { ip 192.168.16.1 }
+            host pim_routers { ip 224.0.0.13 }
+            flow pim_neighbor_flow(dr_node, pim_mcast) {
+                dr_node -> pim_mcast pim hello
+            } compile { pim_neighbor_flow(pim_dr, pim_routers) }"#;
         run_e2e_test(pim_script, |pim_pkts| assert_eq!((pim_pkts.len(), pim_pkts[0].ethertype(), pim_pkts[0].raw[23]), (1, Some(0x0800), 103)));
     }
 
@@ -411,11 +411,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_bfd() {
         let bfd_script = r#"
-            HOST bfd_peer_1 { IP 10.50.0.1 }
-            HOST bfd_peer_2 { IP 10.50.0.2 }
-            FLOW bfd_control_flow(bfd_a, bfd_b) {
-                bfd_a -> bfd_b BFD STATE 3 MY_DISC 100 YOUR_DISC 200
-            } COMPILE { bfd_control_flow(bfd_peer_1, bfd_peer_2) }"#;
+            host bfd_peer_1 { ip 10.50.0.1 }
+            host bfd_peer_2 { ip 10.50.0.2 }
+            flow bfd_control_flow(bfd_a, bfd_b) {
+                bfd_a -> bfd_b bfd state 3 mydisc 100 yourdisc 200
+            } compile { bfd_control_flow(bfd_peer_1, bfd_peer_2) }"#;
         run_e2e_test(bfd_script, |bfd_pkts| assert_eq!((bfd_pkts.len(), u16::from_be_bytes([bfd_pkts[0].raw[36], bfd_pkts[0].raw[37]])), (1, 3784)));
     }
 
@@ -423,11 +423,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l3_openflow() {
         let of_script = r#"
-            HOST sdn_controller { IP 10.60.0.1 }
-            HOST ovs_datapath { IP 10.60.0.2 }
-            FLOW openflow_hello_flow(ctrl, sw_dp) {
-                ctrl -> sw_dp OPENFLOW TYPE HELLO XID 1
-            } COMPILE { openflow_hello_flow(sdn_controller, ovs_datapath) }"#;
+            host sdn_controller { ip 10.60.0.1 }
+            host ovs_datapath { ip 10.60.0.2 }
+            flow openflow_hello_flow(ctrl, sw_dp) {
+                ctrl -> sw_dp openflow type hello xid 1
+            } compile { openflow_hello_flow(sdn_controller, ovs_datapath) }"#;
         run_e2e_test(of_script, |of_pkts| assert_eq!((of_pkts.len(), u16::from_be_bytes([of_pkts[0].raw[36], of_pkts[0].raw[37]])), (1, 6653)));
     }
 
@@ -435,13 +435,13 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l4_tcp() {
         let tcp_script = r#"
-            HOST tcp_cli { IP 10.70.0.1 }
-            HOST tcp_srv { IP 10.70.0.2 }
-            FLOW tcp_3whs_flow(cli_ep, srv_ep) {
-                cli_ep -> srv_ep TCP SYN SRCPORT 49152 DSTPORT 80
-                cli_ep <- srv_ep TCP SYN ACK
-                cli_ep -> srv_ep TCP ACK
-            } COMPILE { tcp_3whs_flow(tcp_cli, tcp_srv) }"#;
+            host tcp_cli { ip 10.70.0.1 }
+            host tcp_srv { ip 10.70.0.2 }
+            flow tcp_3whs_flow(cli_ep, srv_ep) {
+                cli_ep -> srv_ep tcp syn srcport 49152 dstport 80
+                cli_ep <- srv_ep tcp syn ack
+                cli_ep -> srv_ep tcp ack
+            } compile { tcp_3whs_flow(tcp_cli, tcp_srv) }"#;
         run_e2e_test(tcp_script, |tcp_pkts| assert_eq!((tcp_pkts.len(), tcp_pkts[0].ethertype(), tcp_pkts[0].raw[23]), (3, Some(0x0800), 6)));
     }
 
@@ -449,11 +449,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l4_udp() {
         let udp_script = r#"
-            HOST udp_sender { IP 10.71.0.1 }
-            HOST udp_receiver { IP 10.71.0.2 }
-            FLOW udp_datagram_flow(u_src, u_dst) {
-                u_src -> u_dst UDP SRCPORT 5000 DSTPORT 9000 PAYLOAD "hello_udp"
-            } COMPILE { udp_datagram_flow(udp_sender, udp_receiver) }"#;
+            host udp_sender { ip 10.71.0.1 }
+            host udp_receiver { ip 10.71.0.2 }
+            flow udp_datagram_flow(u_src, u_dst) {
+                u_src -> u_dst udp srcport 5000 dstport 9000 payload "hello_udp"
+            } compile { udp_datagram_flow(udp_sender, udp_receiver) }"#;
         run_e2e_test(udp_script, |udp_pkts| assert_eq!((udp_pkts.len(), udp_pkts[0].ethertype(), udp_pkts[0].raw[23]), (1, Some(0x0800), 17)));
     }
 
@@ -461,11 +461,11 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_l4_sctp() {
         let sctp_script = r#"
-            HOST sctp_ep_a { IP 10.72.0.1 }
-            HOST sctp_ep_b { IP 10.72.0.2 }
-            FLOW sctp_init_flow(ep_1, ep_2) {
-                ep_1 -> ep_2 SCTP CHUNK INIT VTAG 0 SRCPORT 2905 DSTPORT 2905
-            } COMPILE { sctp_init_flow(sctp_ep_a, sctp_ep_b) }"#;
+            host sctp_ep_a { ip 10.72.0.1 }
+            host sctp_ep_b { ip 10.72.0.2 }
+            flow sctp_init_flow(ep_1, ep_2) {
+                ep_1 -> ep_2 sctp chunk init vtag 0 srcport 2905 dstport 2905
+            } compile { sctp_init_flow(sctp_ep_a, sctp_ep_b) }"#;
         run_e2e_test(sctp_script, |sctp_pkts| assert_eq!((sctp_pkts.len(), sctp_pkts[0].ethertype(), sctp_pkts[0].raw[23]), (1, Some(0x0800), 132)));
     }
 
@@ -473,13 +473,13 @@ pub mod tier1_feature_coverage {
     #[test]
     pub fn test_tier1_dual_transport_tcp() {
         let dual_tcp_script = r#"
-            HOST dual_cli { IP 10.73.0.1 }
-            HOST dual_srv { IP 10.73.0.2 }
-            FLOW dual_transport_flow(dt_c, dt_s) {
-                dt_c -> dt_s DNS TRANSPORT TCP QUERY TXID 0x4321 QNAME "zone.transfer.org" QTYPE AXFR
-                dt_c -> dt_s SIP TRANSPORT TCP REGISTER FROM "sip:bob@pbx"
-                dt_c -> dt_s SYSLOG TRANSPORT TCP MSG "Audit log over TCP"
-            } COMPILE { dual_transport_flow(dual_cli, dual_srv) }"#;
+            host dual_cli { ip 10.73.0.1 }
+            host dual_srv { ip 10.73.0.2 }
+            flow dual_transport_flow(dt_c, dt_s) {
+                dt_c -> dt_s dns transport tcp query txid 0x4321 qname "zone.transfer.org" qtype axfr
+                dt_c -> dt_s sip transport tcp register from "sip:bob@pbx"
+                dt_c -> dt_s syslog transport tcp msg "Audit log over TCP"
+            } compile { dual_transport_flow(dual_cli, dual_srv) }"#;
         run_e2e_test(dual_tcp_script, |dual_pkts| assert_eq!((dual_pkts.len(), dual_pkts[0].raw[23], dual_pkts[2].raw[23]), (3, 6, 6)));
     }
 }
@@ -492,12 +492,12 @@ pub mod tier2_boundary_and_corner_cases {
     #[test]
     pub fn test_tier2_l2_vlan_pcp_dei_boundaries() {
         let vlan_bounds_script = r#"
-            HOST vb_h1 { IP 10.80.1.1 }
-            HOST vb_h2 { IP 10.80.1.2 }
-            FLOW vlan_bounds_flow(v_src, v_dst) {
-                v_src -> v_dst VLAN 1 PCP 0 DEI 0 UDP PAYLOAD "vlan_min"
-                v_src -> v_dst VLAN 4094 PCP 7 DEI 1 UDP PAYLOAD "vlan_max"
-            } COMPILE { vlan_bounds_flow(vb_h1, vb_h2) }"#;
+            host vb_h1 { ip 10.80.1.1 }
+            host vb_h2 { ip 10.80.1.2 }
+            flow vlan_bounds_flow(v_src, v_dst) {
+                v_src -> v_dst vlan 1 pcp 0 dei 0 udp payload "vlan_min"
+                v_src -> v_dst vlan 4094 pcp 7 dei 1 udp payload "vlan_max"
+            } compile { vlan_bounds_flow(vb_h1, vb_h2) }"#;
         run_e2e_test(vlan_bounds_script, |vb_pkts| assert_eq!((vb_pkts.len(), vb_pkts[0].ethertype(), vb_pkts[1].ethertype()), (2, Some(0x8100), Some(0x8100))));
     }
 
@@ -505,13 +505,13 @@ pub mod tier2_boundary_and_corner_cases {
     #[test]
     pub fn test_tier2_l3_ttl_boundaries() {
         let ttl_bounds_script = r#"
-            HOST ttl_h1 { IP 10.80.2.1 }
-            HOST ttl_h2 { IP 10.80.2.2 }
-            FLOW ttl_bounds_flow(t_src, t_dst) {
-                t_src -> t_dst TTL 0 UDP PAYLOAD "ttl0"
-                t_src -> t_dst TTL 1 UDP PAYLOAD "ttl1"
-                t_src -> t_dst TTL 255 UDP PAYLOAD "ttl255"
-            } COMPILE { ttl_bounds_flow(ttl_h1, ttl_h2) }"#;
+            host ttl_h1 { ip 10.80.2.1 }
+            host ttl_h2 { ip 10.80.2.2 }
+            flow ttl_bounds_flow(t_src, t_dst) {
+                t_src -> t_dst ttl 0 udp payload "ttl0"
+                t_src -> t_dst ttl 1 udp payload "ttl1"
+                t_src -> t_dst ttl 255 udp payload "ttl255"
+            } compile { ttl_bounds_flow(ttl_h1, ttl_h2) }"#;
         run_e2e_test(ttl_bounds_script, |ttl_pkts| assert_eq!((ttl_pkts.len(), ttl_pkts[0].raw[22], ttl_pkts[2].raw[22]), (3, 0, 255)));
     }
 
@@ -519,12 +519,12 @@ pub mod tier2_boundary_and_corner_cases {
     #[test]
     pub fn test_tier2_l3_dscp_and_ecn_boundaries() {
         let qos_bounds_script = r#"
-            HOST qos_h1 { IP 10.80.3.1 }
-            HOST qos_h2 { IP 10.80.3.2 }
-            FLOW qos_bounds_flow(q_src, q_dst) {
-                q_src -> q_dst DSCP 0 ECN 0 UDP PAYLOAD "dscp_min"
-                q_src -> q_dst DSCP 63 ECN 3 UDP PAYLOAD "dscp_max"
-            } COMPILE { qos_bounds_flow(qos_h1, qos_h2) }"#;
+            host qos_h1 { ip 10.80.3.1 }
+            host qos_h2 { ip 10.80.3.2 }
+            flow qos_bounds_flow(q_src, q_dst) {
+                q_src -> q_dst dscp 0 ecn 0 udp payload "dscp_min"
+                q_src -> q_dst dscp 63 ecn 3 udp payload "dscp_max"
+            } compile { qos_bounds_flow(qos_h1, qos_h2) }"#;
         run_e2e_test(qos_bounds_script, |qos_pkts| assert_eq!((qos_pkts.len(), qos_pkts[0].raw[15], qos_pkts[1].raw[15]), (2, 0x00, 0xFF)));
     }
 
@@ -532,12 +532,12 @@ pub mod tier2_boundary_and_corner_cases {
     #[test]
     pub fn test_tier2_l3_flowlabel_boundaries() {
         let fl_bounds_script = r#"
-            HOST fl_v6_a { IP 2001:db8:80::1 }
-            HOST fl_v6_b { IP 2001:db8:80::2 }
-            FLOW flowlabel_bounds(fl_src, fl_dst) {
-                fl_src -> fl_dst FLOWLABEL 0 UDP PAYLOAD "flowlabel_0"
-                fl_src -> fl_dst FLOWLABEL 1048575 UDP PAYLOAD "flowlabel_max"
-            } COMPILE { flowlabel_bounds(fl_v6_a, fl_v6_b) }"#;
+            host fl_v6_a { ip 2001:db8:80::1 }
+            host fl_v6_b { ip 2001:db8:80::2 }
+            flow flowlabel_bounds(fl_src, fl_dst) {
+                fl_src -> fl_dst flowlabel 0 udp payload "flowlabel_0"
+                fl_src -> fl_dst flowlabel 1048575 udp payload "flowlabel_max"
+            } compile { flowlabel_bounds(fl_v6_a, fl_v6_b) }"#;
         run_e2e_test(fl_bounds_script, |fl_pkts| assert_eq!((fl_pkts.len(), fl_pkts[0].ethertype()), (2, Some(0x86DD))));
     }
 
@@ -545,11 +545,11 @@ pub mod tier2_boundary_and_corner_cases {
     #[test]
     pub fn test_tier2_l3_flowlabel_ipv4_silently_ignored() {
         let fl_v4_script = r#"
-            HOST fl_v4_a { IP 10.80.4.1 }
-            HOST fl_v4_b { IP 10.80.4.2 }
-            FLOW flowlabel_ipv4_ignore(v4_s, v4_d) {
-                v4_s -> v4_d FLOWLABEL 99999 UDP PAYLOAD "v4_flowlabel"
-            } COMPILE { flowlabel_ipv4_ignore(fl_v4_a, fl_v4_b) }"#;
+            host fl_v4_a { ip 10.80.4.1 }
+            host fl_v4_b { ip 10.80.4.2 }
+            flow flowlabel_ipv4_ignore(v4_s, v4_d) {
+                v4_s -> v4_d flowlabel 99999 udp payload "v4_flowlabel"
+            } compile { flowlabel_ipv4_ignore(fl_v4_a, fl_v4_b) }"#;
         run_e2e_test(fl_v4_script, |fl_v4_pkts| assert_eq!((fl_v4_pkts.len(), fl_v4_pkts[0].ethertype()), (1, Some(0x0800))));
     }
 
@@ -557,12 +557,12 @@ pub mod tier2_boundary_and_corner_cases {
     #[test]
     pub fn test_tier2_payload_escape_sequences_and_hex() {
         let esc_script = r#"
-            HOST esc_h1 { IP 10.80.5.1 }
-            HOST esc_h2 { IP 10.80.5.2 }
-            FLOW escape_and_hex_flow(e_src, e_dst) {
-                e_src -> e_dst UDP PAYLOAD "line1\r\nline2\t\"quoted\""
-                e_src -> e_dst UDP HEXPAYLOAD "deadbeefcafebabe01020304"
-            } COMPILE { escape_and_hex_flow(esc_h1, esc_h2) }"#;
+            host esc_h1 { ip 10.80.5.1 }
+            host esc_h2 { ip 10.80.5.2 }
+            flow escape_and_hex_flow(e_src, e_dst) {
+                e_src -> e_dst udp payload "line1\r\nline2\t\"quoted\""
+                e_src -> e_dst udp hexpayload "deadbeefcafebabe01020304"
+            } compile { escape_and_hex_flow(esc_h1, esc_h2) }"#;
         run_e2e_test(esc_script, |esc_pkts| assert_eq!((esc_pkts.len(), &esc_pkts[1].raw[42..46]), (2, &[0xde, 0xad, 0xbe, 0xef][..])));
     }
 
@@ -570,11 +570,11 @@ pub mod tier2_boundary_and_corner_cases {
     #[test]
     pub fn test_tier2_contextual_keywords_as_identifiers() {
         let ctx_ident_script = r#"
-            HOST dns { IP 10.80.6.1 }
-            HOST tcp { IP 10.80.6.2 }
-            FLOW query(ms, s) {
-                ms -> s UDP PAYLOAD "contextual_idents"
-            } COMPILE { query(dns, tcp) }"#;
+            host dns { ip 10.80.6.1 }
+            host tcp { ip 10.80.6.2 }
+            flow query(ms, s) {
+                ms -> s udp payload "contextual_idents"
+            } compile { query(dns, tcp) }"#;
         run_e2e_test(ctx_ident_script, |ctx_pkts| assert_eq!((ctx_pkts.len(), ctx_pkts[0].ethertype()), (1, Some(0x0800))));
     }
 
@@ -582,13 +582,13 @@ pub mod tier2_boundary_and_corner_cases {
     #[test]
     pub fn test_tier2_two_stage_tcp_port_inheritance() {
         let port_inh_script = r#"
-            HOST pi_cli { IP 10.80.7.1 }
-            HOST pi_srv { IP 10.80.7.2 }
-            FLOW port_inherit_flow(p_c, p_s) {
-                p_c -> p_s TCP SYN SRCPORT 54321 DSTPORT 8080
-                p_c <- p_s TCP SYN ACK
-                p_c -> p_s TCP ACK
-            } COMPILE { port_inherit_flow(pi_cli, pi_srv) }"#;
+            host pi_cli { ip 10.80.7.1 }
+            host pi_srv { ip 10.80.7.2 }
+            flow port_inherit_flow(p_c, p_s) {
+                p_c -> p_s tcp syn srcport 54321 dstport 8080
+                p_c <- p_s tcp syn ack
+                p_c -> p_s tcp ack
+            } compile { port_inherit_flow(pi_cli, pi_srv) }"#;
         run_e2e_test(port_inh_script, |pi_pkts| assert_eq!((pi_pkts.len(), u16::from_be_bytes([pi_pkts[1].raw[34], pi_pkts[1].raw[35]])), (3, 8080)));
     }
 
@@ -596,12 +596,12 @@ pub mod tier2_boundary_and_corner_cases {
     #[test]
     pub fn test_tier2_loopback_4tuple_tcp_tracking() {
         let loop_script = r#"
-            HOST loop_v4 { IP 127.0.0.1 }
-            FLOW loopback_tcp_flow(lo_a, lo_b) {
-                lo_a -> lo_b TCP SYN SRCPORT 10001 DSTPORT 10002
-                lo_a <- lo_b TCP SYN ACK
-                lo_a -> lo_b TCP ACK
-            } COMPILE { loopback_tcp_flow(loop_v4, loop_v4) }"#;
+            host loop_v4 { ip 127.0.0.1 }
+            flow loopback_tcp_flow(lo_a, lo_b) {
+                lo_a -> lo_b tcp syn srcport 10001 dstport 10002
+                lo_a <- lo_b tcp syn ack
+                lo_a -> lo_b tcp ack
+            } compile { loopback_tcp_flow(loop_v4, loop_v4) }"#;
         run_e2e_test(loop_script, |lo_pkts| assert_eq!((lo_pkts.len(), u16::from_be_bytes([lo_pkts[1].raw[34], lo_pkts[1].raw[35]])), (3, 10002)));
     }
 
@@ -609,11 +609,11 @@ pub mod tier2_boundary_and_corner_cases {
     #[test]
     pub fn test_tier2_concurrent_multi_port_connections() {
         let multi_conn_script = r#"
-            HOST mp_cli { IP 10.80.8.1 }
-            HOST mp_srv { IP 10.80.8.2 }
-            FLOW conn_a(ca, sa) { ca -> sa TCP SYN SRCPORT 40001 DSTPORT 80 }
-            FLOW conn_b(cb, sb) { cb -> sb TCP SYN SRCPORT 40002 DSTPORT 443 }
-            COMPILE {
+            host mp_cli { ip 10.80.8.1 }
+            host mp_srv { ip 10.80.8.2 }
+            flow conn_a(ca, sa) { ca -> sa tcp syn srcport 40001 dstport 80 }
+            flow conn_b(cb, sb) { cb -> sb tcp syn srcport 40002 dstport 443 }
+            compile {
                 conn_a(mp_cli, mp_srv)
                 conn_b(mp_cli, mp_srv)
             }"#;
@@ -624,12 +624,12 @@ pub mod tier2_boundary_and_corner_cases {
     #[test]
     pub fn test_tier2_tcp_l7_strict_one_statement_one_frame() {
         let one_to_one_script = r#"
-            HOST http_c { IP 10.80.9.1 }
-            HOST http_s { IP 10.80.9.2 }
-            FLOW strict_http_frames(hc, hs) {
-                hc -> hs HTTP GET URI "/"
-                hc <- hs HTTP STATUS 200
-            } COMPILE { strict_http_frames(http_c, http_s) }"#;
+            host http_c { ip 10.80.9.1 }
+            host http_s { ip 10.80.9.2 }
+            flow strict_http_frames(hc, hs) {
+                hc -> hs http get uri "/"
+                hc <- hs http status 200
+            } compile { strict_http_frames(http_c, http_s) }"#;
         run_e2e_test(one_to_one_script, |http_pkts| assert_eq!(http_pkts.len(), 2, "2 statements must emit 2 frames"));
     }
 }
@@ -642,14 +642,14 @@ pub mod tier3_cross_feature_combinations {
     #[test]
     pub fn test_tier3_dual_stack_polymorphic_flow() {
         let poly_script = r#"
-            HOST client_v4 { IP 192.168.90.1 }
-            HOST server_v4 { IP 192.168.90.2 }
-            HOST client_v6 { IP 2001:db8:90::1 }
-            HOST server_v6 { IP 2001:db8:90::2 }
-            FLOW dual_ping_flow(ep_c, ep_s) {
-                ep_c -> ep_s ICMP ECHO_REQUEST
-                ep_c <- ep_s ICMP ECHO_REPLY
-            } COMPILE {
+            host client_v4 { ip 192.168.90.1 }
+            host server_v4 { ip 192.168.90.2 }
+            host client_v6 { ip 2001:db8:90::1 }
+            host server_v6 { ip 2001:db8:90::2 }
+            flow dual_ping_flow(ep_c, ep_s) {
+                ep_c -> ep_s icmp echorequest
+                ep_c <- ep_s icmp echoreply
+            } compile {
                 dual_ping_flow(client_v4, server_v4)
                 dual_ping_flow(client_v6, server_v6)
             }"#;
@@ -660,12 +660,12 @@ pub mod tier3_cross_feature_combinations {
     #[test]
     pub fn test_tier3_vlan_stacked_with_transports() {
         let stacked_script = r#"
-            HOST st_cli { IP 10.90.1.1 }
-            HOST st_srv { IP 10.90.1.2 }
-            FLOW stacked_vlan_l4(sc, ss) {
-                sc -> ss VLAN 100 TCP SYN SRCPORT 12345 DSTPORT 80
-                sc -> ss QINQ 200 INNER_VLAN 10 UDP SRCPORT 53 DSTPORT 53 PAYLOAD "dns"
-            } COMPILE { stacked_vlan_l4(st_cli, st_srv) }"#;
+            host st_cli { ip 10.90.1.1 }
+            host st_srv { ip 10.90.1.2 }
+            flow stacked_vlan_l4(sc, ss) {
+                sc -> ss vlan 100 tcp syn srcport 12345 dstport 80
+                sc -> ss qinq 200 innervlan 10 udp srcport 53 dstport 53 payload "dns"
+            } compile { stacked_vlan_l4(st_cli, st_srv) }"#;
         run_e2e_test(stacked_script, |st_pkts| assert_eq!((st_pkts.len(), st_pkts[0].ethertype(), st_pkts[1].ethertype()), (2, Some(0x8100), Some(0x88A8))));
     }
 
@@ -673,14 +673,14 @@ pub mod tier3_cross_feature_combinations {
     #[test]
     pub fn test_tier3_multicast_mac_auto_derivation() {
         let mcast_auto_script = r#"
-            HOST uni_v4 { IP 192.168.91.1 }
-            HOST grp_v4 { IP 224.0.0.1 }
-            HOST uni_v6 { IP fe80::91 }
-            HOST grp_v6 { IP ff02::1 }
-            FLOW mcast_derive_flow(src4, dst4, src6, dst6) {
-                src4 -> dst4 UDP PAYLOAD "mcast_v4"
-                src6 -> dst6 UDP PAYLOAD "mcast_v6"
-            } COMPILE { mcast_derive_flow(uni_v4, grp_v4, uni_v6, grp_v6) }"#;
+            host uni_v4 { ip 192.168.91.1 }
+            host grp_v4 { ip 224.0.0.1 }
+            host uni_v6 { ip fe80::91 }
+            host grp_v6 { ip ff02::1 }
+            flow mcast_derive_flow(src4, dst4, src6, dst6) {
+                src4 -> dst4 udp payload "mcast_v4"
+                src6 -> dst6 udp payload "mcast_v6"
+            } compile { mcast_derive_flow(uni_v4, grp_v4, uni_v6, grp_v6) }"#;
         run_e2e_test(mcast_auto_script, |mc_pkts| assert_eq!((mc_pkts.len(), mc_pkts[0].dst_mac(), mc_pkts[1].dst_mac()), (2, Some([0x01, 0x00, 0x5e, 0x00, 0x00, 0x01]), Some([0x33, 0x33, 0x00, 0x00, 0x00, 0x01]))));
     }
 
@@ -688,11 +688,11 @@ pub mod tier3_cross_feature_combinations {
     #[test]
     pub fn test_tier3_multicast_mac_explicit_override() {
         let mcast_ovr_script = r#"
-            HOST ovr_src { IP 192.168.92.1 }
-            HOST ovr_mcast { IP 224.0.0.1 MAC 00:AA:BB:CC:DD:EE }
-            FLOW mcast_override_flow(os, om) {
-                os -> om UDP PAYLOAD "override_mac"
-            } COMPILE { mcast_override_flow(ovr_src, ovr_mcast) }"#;
+            host ovr_src { ip 192.168.92.1 }
+            host ovr_mcast { ip 224.0.0.1 mac 00:AA:BB:CC:DD:EE }
+            flow mcast_override_flow(os, om) {
+                os -> om udp payload "override_mac"
+            } compile { mcast_override_flow(ovr_src, ovr_mcast) }"#;
         run_e2e_test(mcast_ovr_script, |ovr_pkts| assert_eq!((ovr_pkts.len(), ovr_pkts[0].dst_mac()), (1, Some([0x00, 0xaa, 0xbb, 0xcc, 0xdd, 0xee]))));
     }
 
@@ -700,11 +700,11 @@ pub mod tier3_cross_feature_combinations {
     #[test]
     pub fn test_tier3_tcp_options_matrix() {
         let tcp_opt_script = r#"
-            HOST opt_cli { IP 10.90.2.1 }
-            HOST opt_srv { IP 10.90.2.2 }
-            FLOW tcp_opts_flow(oc, os) {
-                oc -> os TCP SYN SRCPORT 12345 DSTPORT 80 MSS 1460 WSCALE 7 SACK_PERM TSVAL 100 TSECR 0
-            } COMPILE { tcp_opts_flow(opt_cli, opt_srv) }"#;
+            host opt_cli { ip 10.90.2.1 }
+            host opt_srv { ip 10.90.2.2 }
+            flow tcp_opts_flow(oc, os) {
+                oc -> os tcp syn srcport 12345 dstport 80 mss 1460 wscale 7 sackperm tsval 100 tsecr 0
+            } compile { tcp_opts_flow(opt_cli, opt_srv) }"#;
         run_e2e_test(tcp_opt_script, |opt_pkts| assert!(opt_pkts[0].raw.len() > 54, "TCP options must extend header beyond 20B"));
     }
 
@@ -712,28 +712,37 @@ pub mod tier3_cross_feature_combinations {
     #[test]
     pub fn test_tier3_timing_wait_units() {
         let wait_script = r#"
-            HOST tm_h1 { IP 10.90.3.1 }
-            HOST tm_h2 { IP 10.90.3.2 }
-            FLOW wait_units_flow(ts, td) {
-                ts -> td UDP PAYLOAD "p1" WAIT 500ns
-                ts -> td UDP PAYLOAD "p2" WAIT 10us
-                ts -> td UDP PAYLOAD "p3" WAIT 5ms
-                ts -> td UDP PAYLOAD "p4" WAIT 1s
-                ts -> td UDP PAYLOAD "p5" WAIT 1m
-            } COMPILE { wait_units_flow(tm_h1, tm_h2) }"#;
+            host tm_h1 { ip 10.90.3.1 }
+            host tm_h2 { ip 10.90.3.2 }
+            flow wait_units_flow(ts, td) {
+                ts -> td udp payload "p1" wait 500ns
+                ts -> td udp payload "p2" wait 10us
+                ts -> td udp payload "p3" wait 5ms
+                ts -> td udp payload "p4" wait 1s
+                ts -> td udp payload "p5" wait 1m
+            } compile { wait_units_flow(tm_h1, tm_h2) }"#;
         run_e2e_test(wait_script, |wait_pkts| assert_eq!(wait_pkts.len(), 5));
     }
 
-    /// Tests stress execution of bidirectional statements inside a `LOOP 10` block.
+    /// Tests stress execution of bidirectional statements across 10 repeated flow calls in `compile`.
     #[test]
-    pub fn test_tier3_loop_block_multi_protocol_stress() {
+    pub fn test_tier3_repeated_flow_multi_protocol_stress() {
         let loop_stress_script = r#"
-            HOST lp_c { IP 10.90.4.1 }
-            HOST lp_s { IP 10.90.4.2 }
-            FLOW ping_pong_loop(l_cli, l_srv) {
-                l_cli -> l_srv UDP PAYLOAD "ping"
-                l_cli <- l_srv UDP PAYLOAD "pong"
-            } COMPILE { LOOP 10 { ping_pong_loop(lp_c, lp_s) } }"#;
+            host lp_c { ip 10.90.4.1 }
+            host lp_s { ip 10.90.4.2 }
+            flow ping_pong_loop(l_cli, l_srv) {
+                l_cli -> l_srv udp payload "ping"
+                l_cli <- l_srv udp payload "pong"
+            } compile { ping_pong_loop(lp_c, lp_s)
+                ping_pong_loop(lp_c, lp_s)
+                ping_pong_loop(lp_c, lp_s)
+                ping_pong_loop(lp_c, lp_s)
+                ping_pong_loop(lp_c, lp_s)
+                ping_pong_loop(lp_c, lp_s)
+                ping_pong_loop(lp_c, lp_s)
+                ping_pong_loop(lp_c, lp_s)
+                ping_pong_loop(lp_c, lp_s)
+                ping_pong_loop(lp_c, lp_s) }"#;
         run_e2e_test(loop_stress_script, |lp_pkts| assert_eq!(lp_pkts.len(), 20));
     }
 }
@@ -748,10 +757,10 @@ pub mod cli_and_backwards_compatibility {
         let temp_dir = std::env::temp_dir();
         let input_path = temp_dir.join(format!("cli_in_default_{}.fasm", std::process::id()));
         let default_script = r#"
-            HOST def_a { IP 10.99.0.1 }
-            HOST def_b { IP 10.99.0.2 }
-            FLOW def_f(dx, dy) { dx -> dy UDP PAYLOAD "cli_test" }
-            COMPILE { def_f(def_a, def_b) }"#;
+            host def_a { ip 10.99.0.1 }
+            host def_b { ip 10.99.0.2 }
+            flow def_f(dx, dy) { dx -> dy udp payload "cli_test" }
+            compile { def_f(def_a, def_b) }"#;
         fs::write(&input_path, default_script).expect("write fasm input");
 
         let prog = frameassembly::parser::parse_program(default_script).expect("parsed default");
@@ -768,10 +777,10 @@ pub mod cli_and_backwards_compatibility {
         let temp_dir = std::env::temp_dir();
         let custom_out = temp_dir.join(format!("custom_{}.pcap", std::process::id()));
         let custom_script = r#"
-            HOST cust_a { IP 10.99.1.1 }
-            HOST cust_b { IP 10.99.1.2 }
-            FLOW cust_f(cx, cy) { cx -> cy UDP PAYLOAD "custom_path" }
-            COMPILE { cust_f(cust_a, cust_b) }"#;
+            host cust_a { ip 10.99.1.1 }
+            host cust_b { ip 10.99.1.2 }
+            flow cust_f(cx, cy) { cx -> cy udp payload "custom_path" }
+            compile { cust_f(cust_a, cust_b) }"#;
         let prog = frameassembly::parser::parse_program(custom_script).expect("parsed custom");
         let gen_res = frameassembly::backend::generate_pcap(&prog, custom_out.to_str().unwrap());
         assert!(gen_res.is_ok() && fs::metadata(&custom_out).unwrap().len() > 0);

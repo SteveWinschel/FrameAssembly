@@ -1,20 +1,20 @@
 // PROMPT: Periodic LDAP directory sync queries executed over IPv6 in a compile loop.
-// TOKENS: HOST, IP, FLOW, LDAP, SEARCH_REQ, MSGID, BASE_DN, FILTER, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, flow, s, ldap, searchreq, msgid, basedn, filter, wait, ms, compile
 
 // INSTRUCTION: Define IPv6 directory synchronization daemon.
-HOST sync_daemon { IP 2001:db8:dc::50 }
+host sync_daemon { ip 2001:db8:dc::50 }
 
 // INSTRUCTION: Define primary IPv6 directory controller.
-HOST v6_ldap_master { IP 2001:db8:dc::1 }
+host v6_ldap_master { ip 2001:db8:dc::1 }
 
 // INSTRUCTION: Define periodic LDAP search poll flow.
-FLOW v6_sync_poll(c, s) {
-    c -> s LDAP SEARCH_REQ MSGID 101 BASE_DN "ou=inventory,dc=corp6,dc=net" FILTER "(objectClass=device)" WAIT 20ms
+flow v6_sync_poll(c, s) {
+    c -> s ldap searchreq msgid 101 basedn "ou=inventory,dc=corp6,dc=net" filter "(objectClass=device)" wait 20ms
 }
 
 // INSTRUCTION: Compile IPv6 directory poll in loop.
-COMPILE {
-    LOOP 3 {
-        v6_sync_poll(sync_daemon, v6_ldap_master)
-    }
+compile {
+    v6_sync_poll(sync_daemon, v6_ldap_master) // cycle 1
+    v6_sync_poll(sync_daemon, v6_ldap_master) // cycle 2
+    v6_sync_poll(sync_daemon, v6_ldap_master) // cycle 3
 }

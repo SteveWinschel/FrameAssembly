@@ -1,19 +1,19 @@
 // PROMPT: CoAP over custom UDP port 5684 with SenML JSON payload and DSCP Expedited Forwarding.
-// TOKENS: HOST, IP, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, SRCPORT, DSTPORT, DSCP, DF, PAYLOAD, ACK, COMPILE
+// TOKENS: host, ip, flow, m, coap, con, code, msgid, token, uripath, contentformat, srcport, dstport, dscp, df, payload, ack, compile
 
 // INSTRUCTION: Define medical wearable CoAP monitor.
-HOST med_monitor { IP 172.28.4.12 }
+host med_monitor { ip 172.28.4.12 }
 
 // INSTRUCTION: Define hospital ward CoAP gateway.
-HOST ward_gw { IP 172.28.4.1 }
+host ward_gw { ip 172.28.4.1 }
 
 // INSTRUCTION: Send high-priority SenML JSON vital signs (Content-Format 110) with DSCP 46.
-FLOW coap_medical_vitals(m, g) {
-    m -> g COAP CON CODE "0.02" MSGID 999 TOKEN 0xbeef URI_PATH "vitals/hr" CONTENT_FORMAT 110 SRCPORT 49200 DSTPORT 5684 DSCP 46 DF PAYLOAD "[{\"n\":\"hr\",\"v\":72}]"
-    m <- g COAP ACK CODE "2.01" MSGID 999 TOKEN 0xbeef SRCPORT 5684 DSTPORT 49200 DSCP 46 DF
+flow coap_medical_vitals(m, g) {
+    m -> g coap con code "0.02" msgid 999 token 0xbeef uripath "vitals/hr" contentformat 110 srcport 49200 dstport 5684 dscp 46 df payload "[{\"n\":\"hr\",\"v\":72}]"
+    m <- g coap ack code "2.01" msgid 999 token 0xbeef srcport 5684 dstport 49200 dscp 46 df
 }
 
 // INSTRUCTION: Compile the medical telemetry CoAP exchange.
-COMPILE {
+compile {
     coap_medical_vitals(med_monitor, ward_gw)
 }

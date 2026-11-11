@@ -4,8 +4,8 @@
   "collaborators": [
     "Steve Winschel"
   ],
-  "description": "WebAssembly compiler, PCAP/PCAPNG decompiler, packet inspector, and IDE diagnostics for the FrameAssembly (.fasm) network packet synthesis DSL",
-  "version": "1.5.1",
+  "description": "Compile .fasm network traffic code to .pcapng and decompile .pcap/.pcapng packet captures in WebAssembly across 81 L2-L7 protocols with live IDE diagnostics and frame inspection.",
+  "version": "2.0.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -24,9 +24,24 @@
   ],
   "keywords": [
     "frameassembly",
+    "fasm",
     "pcap",
     "pcapng",
+    "wasm",
+    "webassembly",
     "wireshark",
-    "wasm"
+    "packet-generator",
+    "pcap-decompiler",
+    "pcap-parser",
+    "tcpreplay",
+    "suricata",
+    "zeek",
+    "snmpv3",
+    "firewall-testing",
+    "network-testing",
+    "cybersecurity",
+    "pentesting",
+    "packets-as-code",
+    "modbus"
   ]
 }

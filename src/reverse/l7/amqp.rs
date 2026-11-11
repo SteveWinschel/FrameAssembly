@@ -1,10 +1,10 @@
 //! Advanced Message Queuing Protocol v0-9-1 (AMQP) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `AMQP` 0-9-1 frames over TCP
+//! This module implements fuzz-safe wire-to-AST dissection for `amqp` 0-9-1 frames over TCP
 //! (ports `5672`, `5671`, `15672`, and custom ports matching the `AMQP\x00\x00\x09\x01` protocol
-//! header or `0xCE`-terminated method/heartbeat frame envelope). It decodes `protocol_header`,
-//! `heartbeat`, `connection_start`, `channel_open`, `basic_publish`, and `basic_deliver` frames
-//! along with `channel`, `exchange`, and `routing_key` fields.
+//! header or `0xCE`-terminated method/heartbeat frame envelope). It decodes `protocolheader`,
+//! `heartbeat`, `connectionstart`, `channelopen`, `basicpublish`, and `basicdeliver` frames
+//! along with `channel`, `exchange`, and `routingkey` fields.
 
 use alloc::format;
 use alloc::string::String;
@@ -33,7 +33,7 @@ fn parse_amqp_shortstr(input: &[u8]) -> Option<(&str, &[u8])> {
     Some((s, &input[1 + len..]))
 }
 
-/// Dissects an `AMQP` 0-9-1 protocol header, heartbeat, or method frame over TCP.
+/// Dissects an `amqp` 0-9-1 protocol header, heartbeat, or method frame over TCP.
 pub(crate) fn dissect_amqp(
     transport: TransportProto,
     _src_port: u16,
@@ -47,7 +47,7 @@ pub(crate) fn dissect_amqp(
     if let Some(rem) = payload.strip_prefix(b"AMQP\x00\x00\x09\x01") {
         return Some(ProtocolDissection {
             protocol: Protocol::Amqp,
-            tokens: String::from("amqp protocol_header"),
+            tokens: String::from("amqp protocolheader"),
             residual_payload: rem.to_vec(),
             explicit_transport: None,
         });
@@ -90,7 +90,7 @@ pub(crate) fn dissect_amqp(
         (10, 10) => {
             let fixed = b"\x00\x09\x00\x00\x00\x00\x00\x00\x00\x05PLAIN\x00\x00\x00\x05en_US";
             let rem = args.strip_prefix(fixed.as_slice())?;
-            tokens.push_str(" connection_start");
+            tokens.push_str(" connectionstart");
             if channel != 0 {
                 tokens.push_str(&format!(" channel {channel}"));
             }
@@ -100,7 +100,7 @@ pub(crate) fn dissect_amqp(
             if args.first() != Some(&0) {
                 return None;
             }
-            tokens.push_str(" channel_open");
+            tokens.push_str(" channelopen");
             if channel != 1 {
                 tokens.push_str(&format!(" channel {channel}"));
             }
@@ -113,7 +113,7 @@ pub(crate) fn dissect_amqp(
                     tokens.push_str(&format!(" exchange \"{ex}\""));
                 }
                 if !rk.is_empty() {
-                    tokens.push_str(&format!(" routing_key \"{rk}\""));
+                    tokens.push_str(&format!(" routingkey \"{rk}\""));
                 }
                 residual = after_rk;
             } else {
@@ -124,7 +124,7 @@ pub(crate) fn dissect_amqp(
             if args.len() < 3 || &args[0..2] != b"\x00\x00" {
                 return None;
             }
-            tokens.push_str(" basic_publish");
+            tokens.push_str(" basicpublish");
             if channel != 1 {
                 tokens.push_str(&format!(" channel {channel}"));
             }
@@ -137,14 +137,14 @@ pub(crate) fn dissect_amqp(
                 tokens.push_str(&format!(" exchange \"{ex}\""));
             }
             if !rk.is_empty() {
-                tokens.push_str(&format!(" routing_key \"{rk}\""));
+                tokens.push_str(&format!(" routingkey \"{rk}\""));
             }
             residual = &after_rk[1..];
         }
         (60, 60) => {
             let prefix = b"\x04ctag\x00\x00\x00\x00\x00\x00\x00\x01\x00";
             let after_prefix = args.strip_prefix(prefix.as_slice())?;
-            tokens.push_str(" basic_deliver");
+            tokens.push_str(" basicdeliver");
             if channel != 1 {
                 tokens.push_str(&format!(" channel {channel}"));
             }
@@ -154,7 +154,7 @@ pub(crate) fn dissect_amqp(
                 tokens.push_str(&format!(" exchange \"{ex}\""));
             }
             if !rk.is_empty() {
-                tokens.push_str(&format!(" routing_key \"{rk}\""));
+                tokens.push_str(&format!(" routingkey \"{rk}\""));
             }
             residual = after_rk;
         }

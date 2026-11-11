@@ -1,18 +1,18 @@
 // PROMPT: IPv4 mDNS link-local multicast transmission to 224.0.0.251 deriving RFC 1112 MAC 01:00:5e:00:00:fb.
-// TOKENS: HOST, IP, FLOW, UDP, DSTPORT, PAYLOAD, COMPILE
+// TOKENS: host, ip, flow, src, dst, udp, dstport, payload, compile
 
 // INSTRUCTION: Define client advertising zero-conf service.
-HOST mdns_client { IP 192.168.1.50 }
+host mdns_client { ip 192.168.1.50 }
 
 // INSTRUCTION: Define standard mDNS multicast address.
-HOST mdns_mcast { IP 224.0.0.251 }
+host mdns_mcast { ip 224.0.0.251 }
 
 // INSTRUCTION: Define service announcement flow on UDP 5353.
-FLOW mdns_announce_flow(src, dst) {
-    src -> dst UDP DSTPORT 5353 PAYLOAD "printer.local"
+flow mdns_announce_flow(src, dst) {
+    src -> dst udp dstport 5353 payload "printer.local"
 }
 
 // INSTRUCTION: Compile block executing mDNS announcement.
-COMPILE {
+compile {
     mdns_announce_flow(mdns_client, mdns_mcast)
 }

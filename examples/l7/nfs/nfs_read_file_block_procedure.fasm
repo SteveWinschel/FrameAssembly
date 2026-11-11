@@ -1,18 +1,18 @@
 // PROMPT: NFS RPC READ procedure request retrieving 64KB data block from network storage.
-// TOKENS: HOST, IP, FLOW, NFS, VERS, PROC, PATH, COMPILE
+// TOKENS: host, ip, flow, nfs, vers, proc, path, compile
 
 // INSTRUCTION: Define compute cluster node client.
-HOST compute_node { IP 10.0.4.15 }
+host compute_node { ip 10.0.4.15 }
 
 // INSTRUCTION: Define high-performance NFS storage server.
-HOST nfs_storage_node { IP 10.0.4.1 }
+host nfs_storage_node { ip 10.0.4.1 }
 
 // INSTRUCTION: Define NFS READ procedure request flow.
-FLOW nfs_read_data_flow(cli, srv) {
-    cli -> srv NFS VERS 4 PROC "READ" PATH "/data/simulations/run_01.dat"
+flow nfs_read_data_flow(cli, srv) {
+    cli -> srv nfs vers 4 proc "read" path "/data/simulations/run_01.dat"
 }
 
 // INSTRUCTION: Compile NFS READ procedure scenario.
-COMPILE {
+compile {
     nfs_read_data_flow(compute_node, nfs_storage_node)
 }

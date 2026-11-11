@@ -6,25 +6,25 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b STUN [BINDING_REQUEST | BINDING_RESPONSE | BINDING_ERROR] [TXID <u32>] [XOR_MAPPED_ADDR <ip>] [SOFTWARE <str>]`
+//! `a -> b stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip>] [software <str>]`
 
 use core::net::IpAddr;
 /// RFC 8489 Session Traversal Utilities for NAT specification.
 ///
-/// Syntax mapping: `STUN [BINDING_REQUEST | BINDING_RESPONSE | BINDING_ERROR] [TXID <u32>] [XOR_MAPPED_ADDR <ip>] [SOFTWARE <str>]`
-#[doc(alias = "STUN")]
+/// Syntax mapping: `stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip>] [software <str>]`
+#[doc(alias = "stun")]
 #[doc(alias = "TURN")]
 #[doc(alias = "ICE")]
 #[doc(alias = "RFC 8489")]
 #[doc(alias = "RFC8489")]
 #[doc(alias = "RFC 5389")]
 #[doc(alias = "RFC5389")]
-#[doc(alias = "BINDING_REQUEST")]
-#[doc(alias = "BINDING_RESPONSE")]
-#[doc(alias = "BINDING_ERROR")]
-#[doc(alias = "TXID")]
-#[doc(alias = "XOR_MAPPED_ADDR")]
-#[doc(alias = "SOFTWARE")]
+#[doc(alias = "bindingrequest")]
+#[doc(alias = "bindingresponse")]
+#[doc(alias = "bindingerror")]
+#[doc(alias = "txid")]
+#[doc(alias = "xormappedaddr")]
+#[doc(alias = "software")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct StunSpec<'a> {
     /// Binding Request flag.

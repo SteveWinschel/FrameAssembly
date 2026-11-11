@@ -1,20 +1,20 @@
 // PROMPT: Cross-region Redis Enterprise active-active replication over QinQ and MPLS.
-// TOKENS: HOST, IP, FLOW, REDIS, CMD, ARGS, QINQ, INNER_VLAN, MPLS, EXP, BOS, MPLS_TTL, WAIT, COMPILE
+// TOKENS: host, ip, flow, redis, cmd, args, qinq, innervlan, mpls, exp, bos, mplsttl, wait, ms, compile
 
 // INSTRUCTION: Define Region A Redis replica initiator.
-HOST redis_reg_a { IP 10.163.1.10 }
+host redis_reg_a { ip 10.163.1.10 }
 
 // INSTRUCTION: Define Region B Redis master endpoint.
-HOST redis_reg_b { IP 10.163.2.10 }
+host redis_reg_b { ip 10.163.2.10 }
 
 // INSTRUCTION: Define REPLCONF and PSYNC replication handshake over QinQ + MPLS.
-FLOW redis_wan_repl(r1, r2) {
-    r1 -> r2 REDIS CMD "REPLCONF" ARGS "listening-port 6379" QINQ 1200 INNER_VLAN 637 MPLS 63790 EXP 4 BOS 1 MPLS_TTL 64 WAIT 5ms
-    r1 -> r2 REDIS CMD "PSYNC" ARGS "8391a2b3c4d5e6f7 1048576" QINQ 1200 INNER_VLAN 637 MPLS 63790 EXP 4 BOS 1 MPLS_TTL 64 WAIT 5ms
-    r1 <- r2 REDIS CMD "CONTINUE" QINQ 1200 INNER_VLAN 637 MPLS 63791 EXP 4 BOS 1 MPLS_TTL 63
+flow redis_wan_repl(r1, r2) {
+    r1 -> r2 redis cmd "REPLCONF" args "listening-port 6379" qinq 1200 innervlan 637 mpls 63790 exp 4 bos 1 mplsttl 64 wait 5ms
+    r1 -> r2 redis cmd "PSYNC" args "8391a2b3c4d5e6f7 1048576" qinq 1200 innervlan 637 mpls 63790 exp 4 bos 1 mplsttl 64 wait 5ms
+    r1 <- r2 redis cmd "CONTINUE" qinq 1200 innervlan 637 mpls 63791 exp 4 bos 1 mplsttl 63
 }
 
 // INSTRUCTION: Compile WAN MPLS Redis PSYNC replication flow.
-COMPILE {
+compile {
     redis_wan_repl(redis_reg_a, redis_reg_b)
 }

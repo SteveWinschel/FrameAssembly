@@ -1,10 +1,10 @@
 //! Real-time Transport Protocol (RTP) Layer 7 media streaming header field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 3550 `RTP` real-time audio and
-//! video transport packets in FrameAssembly `.fasm` specifications. It recognizes the `RTP`
-//! protocol keyword, payload type codes (`PT`), media sampling timestamps (`TIMESTAMP`),
-//! synchronization source identifiers (`SSRC`), marker bits (`MARKER`), and sequence numbers
-//! (`SEQ`).
+//! This module implements the `winnow` parser combinator for RFC 3550 `rtp` real-time audio and
+//! video transport packets in FrameAssembly `.fasm` specifications. It recognizes the `rtp`
+//! protocol keyword, payload type codes (`pt`), media sampling timestamps (`timestamp`),
+//! synchronization source identifiers (`ssrc`), marker bits (`marker`), and sequence numbers
+//! (`seq`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

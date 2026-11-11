@@ -1,224 +1,261 @@
 # Clap 4.6.7+ Production Reference Patterns
 
-## 1. Hybrid Positional + Subcommand CLI (`args_conflicts_with_subcommands(true)` + `show` + `reverse` + `anstyle` 9-Role Styling + `debug_assert()`)
+## 1. FrameAssembly v2.0.0 Default-Compile + 4-Subcommand CLI (`<input.fasm> [output.pcap]` + `show`, `reverse`, `version`, `help` + Optional 2nd Positional Output + Hidden `--help`/`--version` + Legacy/Safety Guards + `debug_assert()`)
 
-When designing a CLI like `frameassembly` that supports both direct positional compilation (`frameassembly <input.fasm> [-o <output.pcap>]`) and subcommands (`frameassembly show <input.fasm>`, `frameassembly reverse <input.pcap> [-o <output.fasm>]`), set `.args_conflicts_with_subcommands(true)` on the root `Command`, configure all 9 `anstyle` roles, use `Command::defer` (`4.6+`) when lazy subcommand construction is desired, and verify invariants with `build_cli().debug_assert()`:
+In FrameAssembly v2.0.0 (`src/main.rs`), compiling `.fasm` to `.pcap` is the default root command (`frameassembly <input.fasm> [output.pcap]`) configured with `.subcommand_negates_reqs(true)`, `.args_conflicts_with_subcommands(true)`, and `.arg_required_else_help(true)` alongside 4 subcommands (`show <input.fasm>`, `reverse <input.pcap> [output.fasm]`, `version`, and `help [subcommand]`). It replaces legacy `-o`/`--output` flags with an optional 2nd positional output path (`derive_default_output_path`), hides `-h`/`--help` and `-V`/`--version` via `.disable_help_flag(true)` / `.disable_version_flag(true)` paired with hidden `ArgAction::Help` / `ArgAction::Version` so scripts still exit `0`, intercepts legacy flags and accidental typos (`check_legacy_cli_args`), pairs with static extension-aware shell completions in `contrib/completions/` (`bash`, `zsh`, `fish`, `powershell`), and verifies invariants via `build_cli().debug_assert()`:
 
 ```rust
-//! Hybrid positional + subcommand CLI architecture demonstrating `args_conflicts_with_subcommands(true)`,
-//! 9-role `anstyle` terminal styling, `show` / `reverse` subcommand dispatch, `Command::defer`,
-//! and `debug_assert()` QA in `clap` 4.6.7+.
+//! FrameAssembly v2.0.0 default-compile + 4-subcommand CLI architecture (`show`, `reverse`, `version`, `help`)
+//! with optional 2nd positional output derivation, hidden script-compatible `--help`/`--version`,
+//! pre-match legacy and typo safety guards, 9-role `anstyle` styling, and `debug_assert()` QA in `clap` 4.6.7+.
 
+use clap::builder::PathBufValueParser;
 use clap::builder::styling::{AnsiColor, Effects, Styles};
 use clap::{Arg, ArgAction, ArgMatches, Command, ValueHint};
-use std::path::PathBuf;
+use std::ffi::{OsStr, OsString};
+use std::path::{Path, PathBuf};
 
-/// Terminal styling configuration for the CLI help output.
-///
-/// Configures all 9 high-contrast `anstyle 1.0.14` roles for headers, usage lines, literals,
-/// placeholders, error messages, and context hints (`[default: ...]`, `[possible values: ...]`).
-pub const fn cli_styles() -> Styles {
-    Styles::styled()
-        .header(AnsiColor::Yellow.on_default().effects(Effects::BOLD))
-        .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
-        .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
-        .placeholder(AnsiColor::Blue.on_default())
-        .error(AnsiColor::Red.on_default().effects(Effects::BOLD))
-        .valid(AnsiColor::Green.on_default().effects(Effects::BOLD))
-        .invalid(AnsiColor::Yellow.on_default().effects(Effects::BOLD))
-        .context(AnsiColor::White.on_default().effects(Effects::DIMMED))
-        .context_value(AnsiColor::Cyan.on_default().effects(Effects::ITALIC))
-}
+/// Nine-role `anstyle 1.0.14` terminal color palette used by `clap` help and usage diagnostics.
+pub const CLI_STYLES: Styles = Styles::styled()
+    .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .placeholder(AnsiColor::Cyan.on_default())
+    .error(AnsiColor::Red.on_default().effects(Effects::BOLD))
+    .valid(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .invalid(AnsiColor::Yellow.on_default().effects(Effects::BOLD))
+    .context(AnsiColor::BrightBlack.on_default())
+    .context_value(AnsiColor::Cyan.on_default());
 
-/// Global CLI options applicable across all subcommands.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GlobalOptions {
-    /// Verbosity level incremented by `-v`, `-vv`, `-vvv`.
-    pub verbosity: u8,
-    /// Flag indicating whether console output should be suppressed.
-    pub quiet: bool,
-    /// Optional custom path to a configuration file.
-    pub config_path: Option<PathBuf>,
-}
+/// Canonical top-level subcommands exposed by FrameAssembly 2.0 (compilation is the root default).
+pub const SUBCOMMANDS: [&str; 4] = ["show", "reverse", "version", "help"];
 
-/// Supported packet capture serialization formats.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CaptureFormat {
-    /// Classic libpcap 24-byte header capture format.
-    Pcap,
-    /// Modern extensible PCAPNG block format.
-    PcapNg,
-}
-
-/// Strongly-typed parameters for root compilation (`frameassembly <input.fasm> [-o <output.pcap>]`).
+/// Strongly-typed parameters for default root invocation `frameassembly <input.fasm> [output.pcap]`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompileArgs {
-    /// Input FrameAssembly source file path.
+    /// Input `.fasm` file path (`index(1)`).
     pub input_file: PathBuf,
-    /// Destination capture output path.
+    /// Resolved output `.pcap`/`.pcapng` path (`index(2)` or derived `<input_stem>.pcap`).
     pub output_file: PathBuf,
-    /// Target packet capture format.
-    pub format: CaptureFormat,
-    /// Dry run flag indicating validation without file emission.
-    pub dry_run: bool,
 }
 
-/// Strongly-typed parameters for the `show` subcommand (`frameassembly show <input.fasm>`).
+/// Strongly-typed parameters for `frameassembly show <input.fasm>`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShowArgs {
-    /// Input `.fasm` file path to validate and render as a packet ladder.
+    /// Input `.fasm` file path (`index(1)`) to validate and render as a packet ladder.
     pub input_file: PathBuf,
 }
 
-/// Strongly-typed parameters for the `reverse` subcommand (`frameassembly reverse <input.pcap>`).
+/// Strongly-typed parameters for `frameassembly reverse <input.pcap> [output.fasm]`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReverseArgs {
-    /// Input `.pcap` or `.pcapng` capture path to decompile into `.fasm`.
+    /// Input `.pcap` or `.pcapng` capture path (`index(1)`).
     pub input_pcap: PathBuf,
-    /// Optional destination `.fasm` file path (`None` prints to stdout).
-    pub output_fasm: Option<PathBuf>,
+    /// Resolved output `.fasm` file path (`index(2)` or derived `<input_stem>.fasm`).
+    pub output_fasm: PathBuf,
 }
 
-/// Discriminated CLI operations across root positional compilation and subcommands.
+/// Discriminated CLI operations across FrameAssembly 2.0 root compile and subcommands.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CliCommand {
-    /// Compile a FrameAssembly `.fasm` source file into a PCAP/PCAPNG capture.
+    /// Compile `.fasm` code into a `.pcap`/`.pcapng` capture (default root command).
     Compile(CompileArgs),
-    /// Validate a `.fasm` file and print a terminal packet ladder without writing disk files.
+    /// Validate `.fasm` code and print a packet ladder table without writing disk files.
     Show(ShowArgs),
-    /// Decompile a binary `.pcap` / `.pcapng` capture into canonical `.fasm` code.
+    /// Reverse a `.pcap` / `.pcapng` capture into `.fasm` code.
     Reverse(ReverseArgs),
+    /// Print `frameassembly <CARGO_PKG_VERSION>`.
+    Version,
 }
 
-/// Parsed CLI execution intent containing global options and the selected operation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CliInvocation {
-    /// Global options extracted from top-level flags.
-    pub global: GlobalOptions,
-    /// Operation selected by the user.
-    pub command: CliCommand,
+/// Derives the default output path from `input` by replacing its extension with `default_ext`,
+/// or appending `.default_ext` when `input` already ends with `default_ext` so input is never overwritten.
+pub fn derive_default_output_path(input: &Path, default_ext: &str) -> PathBuf {
+    let has_same_ext = input
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case(default_ext));
+    if has_same_ext {
+        let mut os = input.as_os_str().to_os_string();
+        os.push(".");
+        os.push(default_ext);
+        PathBuf::from(os)
+    } else {
+        let candidate = input.with_extension(default_ext);
+        if candidate == input {
+            let mut os = input.as_os_str().to_os_string();
+            os.push(".");
+            os.push(default_ext);
+            PathBuf::from(os)
+        } else {
+            candidate
+        }
+    }
 }
 
-/// Constructs the top-level `clap::Command` definition supporting hybrid positional + subcommand routing.
+/// Checks raw CLI arguments for legacy invocation flags (`-o`/`--output`, `--show`, `--reverse`),
+/// bare `.pcap`/`.pcapng` captures at arg 1, accidental `"compile"` at arg 1, or `.fasm` passed as
+/// `OUTPUT.pcap`, returning an actionable error hint.
+pub fn check_legacy_cli_args<I, T>(args: I) -> Result<(), String>
+where
+    I: IntoIterator<Item = T>,
+    T: AsRef<OsStr>,
+{
+    let collected: Vec<OsString> = args
+        .into_iter()
+        .map(|a| a.as_ref().to_os_string())
+        .collect();
+    if collected.len() <= 1 {
+        return Ok(());
+    }
+
+    for arg in &collected[1..] {
+        let s = arg.to_string_lossy();
+        if s == "--" {
+            break;
+        }
+        if s == "-o"
+            || s == "--output"
+            || s.starts_with("--output=")
+            || (s.starts_with("-o") && s.len() > 2 && !s.starts_with("--"))
+        {
+            return Err(
+                "The '-o' / '--output' flag was replaced by an optional second positional path in FrameAssembly 2.0.\n  Compile: frameassembly <in.fasm> [out.pcap]\n  Reverse: frameassembly reverse <in.pcap> [out.fasm]"
+                    .to_string(),
+            );
+        }
+        if s == "--show" {
+            return Err(
+                "The '--show' flag was replaced by the 'show' subcommand in FrameAssembly 2.0:\n  frameassembly show <in.fasm>"
+                    .to_string(),
+            );
+        }
+        if s == "--reverse" {
+            return Err(
+                "The '--reverse' flag was replaced by the 'reverse' subcommand in FrameAssembly 2.0:\n  frameassembly reverse <in.pcap> [out.fasm]"
+                    .to_string(),
+            );
+        }
+    }
+
+    let arg1 = collected[1].to_string_lossy();
+    if arg1 == "compile" && !Path::new("compile").is_file() {
+        return Err(
+            "Compiling is the default command in FrameAssembly 2.0 (there is no 'compile' subcommand); run:\n  frameassembly <in.fasm> [out.pcap]"
+                .to_string(),
+        );
+    }
+
+    if !arg1.starts_with('-') && !SUBCOMMANDS.contains(&arg1.as_ref()) {
+        let lower = arg1.to_ascii_lowercase();
+        if lower.ends_with(".pcap") || lower.ends_with(".pcapng") {
+            return Err(format!(
+                "Direct capture invocation is not supported; use the 'reverse' subcommand instead:\n  frameassembly reverse {arg1}"
+            ));
+        }
+        if let Some(arg2) = collected.get(2) {
+            let s2 = arg2.to_string_lossy();
+            if !s2.starts_with('-') && s2.to_ascii_lowercase().ends_with(".fasm") {
+                return Err(format!(
+                    "Refusing to write PCAP capture bytes to a '.fasm' source path ('{s2}'); specify a '.pcap' or '.pcapng' output path:\n  frameassembly {arg1} <out.pcap>"
+                ));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Constructs the `clap::Command` definition for FrameAssembly 2.0 (default root compile + `show`, `reverse`, `version`, `help`).
 pub fn build_cli() -> Command {
     Command::new("frameassembly")
         .version(env!("CARGO_PKG_VERSION"))
-        .about("Declarative network packet crafting tool generating deterministic .pcap/.pcapng captures across 81 L2-L7 protocols")
-        .styles(cli_styles())
-        .arg_required_else_help(true)
+        .about("Compile .fasm network traffic code to .pcap/.pcapng and reverse captures back to .fasm")
+        .after_help("Feedback & protocol requests: https://github.com/SteveWinschel/FrameAssembly/issues")
+        .styles(CLI_STYLES)
+        .subcommand_negates_reqs(true)
         .args_conflicts_with_subcommands(true)
+        .arg_required_else_help(true)
+        .disable_help_flag(true)
+        .disable_version_flag(true)
         .arg(
-            Arg::new("verbose")
-                .short('v')
-                .long("verbose")
-                .help("Increase diagnostic verbosity (-v, -vv, -vvv)")
-                .action(ArgAction::Count)
-                .global(true),
-        )
-        .arg(
-            Arg::new("quiet")
-                .short('q')
-                .long("quiet")
-                .help("Suppress all console output")
-                .action(ArgAction::SetTrue)
+            Arg::new("help")
+                .short('h')
+                .long("help")
+                .action(ArgAction::Help)
                 .global(true)
-                .conflicts_with("verbose"),
+                .hide(true),
         )
         .arg(
-            Arg::new("config")
-                .short('c')
-                .long("config")
-                .help("Path to optional configuration file")
-                .value_name("FILE")
-                .value_hint(ValueHint::FilePath)
-                .value_parser(clap::builder::PathBufValueParser::new())
-                .global(true),
+            Arg::new("version")
+                .short('V')
+                .long("version")
+                .action(ArgAction::Version)
+                .hide(true),
         )
         .arg(
             Arg::new("input")
-                .help("Path to the .fasm source file")
+                .value_name("INPUT.fasm")
+                .help("Path to the input .fasm file")
                 .required(true)
                 .index(1)
-                .value_name("INPUT")
                 .value_hint(ValueHint::FilePath)
-                .value_parser(clap::builder::PathBufValueParser::new()),
+                .value_parser(PathBufValueParser::new()),
         )
         .arg(
             Arg::new("output")
-                .short('o')
-                .long("output")
-                .help("Path to the output PCAP file")
-                .value_name("PCAP")
-                .default_value("output.pcap")
+                .value_name("OUTPUT.pcap")
+                .help("Optional output .pcap/.pcapng path (defaults to <input_stem>.pcap)")
+                .index(2)
                 .value_hint(ValueHint::FilePath)
-                .value_parser(clap::builder::PathBufValueParser::new()),
-        )
-        .arg(
-            Arg::new("format")
-                .short('f')
-                .long("format")
-                .help("Target capture file format")
-                .value_name("FORMAT")
-                .default_value("pcapng")
-                .value_parser(clap::builder::PossibleValuesParser::new(["pcap", "pcapng"])),
-        )
-        .arg(
-            Arg::new("dry-run")
-                .long("dry-run")
-                .help("Validate DSL and layout without writing capture to disk")
-                .action(ArgAction::SetTrue),
+                .value_parser(PathBufValueParser::new()),
         )
         .subcommand(
             Command::new("show")
-                .about("Validate a .fasm file and print a terminal packet ladder table without writing a .pcap file")
+                .about("Validate a .fasm file and print a packet ladder table without writing a capture file")
+                .disable_help_flag(true)
                 .arg(
                     Arg::new("input")
-                        .help("Path to the .fasm source file")
+                        .value_name("INPUT.fasm")
+                        .help("Path to the input .fasm file")
                         .required(true)
                         .index(1)
                         .value_hint(ValueHint::FilePath)
-                        .value_parser(clap::builder::PathBufValueParser::new()),
+                        .value_parser(PathBufValueParser::new()),
                 ),
         )
         .subcommand(
-            Command::new("reverse").defer(|cmd| {
-                cmd.about("Decompile a binary .pcap or .pcapng capture into canonical .fasm code")
-                    .arg(
-                        Arg::new("input")
-                            .help("Path to the input .pcap or .pcapng file")
-                            .required(true)
-                            .index(1)
-                            .value_hint(ValueHint::FilePath)
-                            .value_parser(clap::builder::PathBufValueParser::new()),
-                    )
-                    .arg(
-                        Arg::new("output")
-                            .short('o')
-                            .long("output")
-                            .help("Optional destination .fasm file path (writes to stdout if omitted)")
-                            .value_hint(ValueHint::FilePath)
-                            .value_parser(clap::builder::PathBufValueParser::new()),
-                    )
-            }),
+            Command::new("reverse")
+                .about("Reverse a .pcap or .pcapng capture file into .fasm code")
+                .disable_help_flag(true)
+                .arg(
+                    Arg::new("input")
+                        .value_name("INPUT.pcap")
+                        .help("Path to the input .pcap or .pcapng capture file")
+                        .required(true)
+                        .index(1)
+                        .value_hint(ValueHint::FilePath)
+                        .value_parser(PathBufValueParser::new()),
+                )
+                .arg(
+                    Arg::new("output")
+                        .value_name("OUTPUT.fasm")
+                        .help("Optional output .fasm path (defaults to <input_stem>.fasm)")
+                        .index(2)
+                        .value_hint(ValueHint::FilePath)
+                        .value_parser(PathBufValueParser::new()),
+                ),
+        )
+        .subcommand(
+            Command::new("version")
+                .about("Print the FrameAssembly version")
+                .disable_help_flag(true),
         )
 }
 
-/// Parses raw command-line matches into a strongly-typed `CliInvocation`.
-///
-/// # Errors
-/// Returns a `clap::Error` if required arguments are missing or malformed.
-pub fn parse_invocation(matches: &ArgMatches) -> Result<CliInvocation, clap::Error> {
-    let verbosity = matches.get_count("verbose");
-    let quiet = matches.get_flag("quiet");
-    let config_path = matches.get_one::<PathBuf>("config").cloned();
-
-    let global = GlobalOptions {
-        verbosity,
-        quiet,
-        config_path,
-    };
-
-    let command = match matches.subcommand() {
+/// Extracts a strongly-typed `CliCommand` from validated `ArgMatches`.
+pub fn parse_command(matches: &ArgMatches) -> CliCommand {
+    match matches.subcommand() {
         Some(("show", sub_m)) => {
             let input_file = sub_m
                 .get_one::<PathBuf>("input")
@@ -231,54 +268,62 @@ pub fn parse_invocation(matches: &ArgMatches) -> Result<CliInvocation, clap::Err
                 .get_one::<PathBuf>("input")
                 .cloned()
                 .expect("input is required for reverse");
-            let output_fasm = sub_m.get_one::<PathBuf>("output").cloned();
+            let output_fasm = sub_m
+                .get_one::<PathBuf>("output")
+                .cloned()
+                .unwrap_or_else(|| derive_default_output_path(&input_pcap, "fasm"));
             CliCommand::Reverse(ReverseArgs {
                 input_pcap,
                 output_fasm,
             })
         }
+        Some(("version", _)) => CliCommand::Version,
         None => {
             let input_file = matches
                 .get_one::<PathBuf>("input")
                 .cloned()
-                .expect("input is a required positional argument when no subcommand is used");
+                .expect("root input is required when no subcommand is matched");
             let output_file = matches
                 .get_one::<PathBuf>("output")
                 .cloned()
-                .expect("output has a default value");
-            let format_str = matches
-                .get_one::<String>("format")
-                .map(|s| s.as_str())
-                .unwrap_or("pcapng");
-            let format = match format_str {
-                "pcap" => CaptureFormat::Pcap,
-                _ => CaptureFormat::PcapNg,
-            };
-            let dry_run = matches.get_flag("dry-run");
-
+                .unwrap_or_else(|| derive_default_output_path(&input_file, "pcap"));
             CliCommand::Compile(CompileArgs {
                 input_file,
                 output_file,
-                format,
-                dry_run,
             })
         }
-        _ => unreachable!("only show and reverse subcommands are registered"),
-    };
-
-    Ok(CliInvocation { global, command })
+        Some((other, _)) => unreachable!("unexpected subcommand: {other}"),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// Mandatory clap QA gate verifying all Command/Arg/ArgGroup invariants.
+    /// Mandatory clap QA gate verifying all Command/Arg invariants and hidden script flags.
     #[test]
     fn verify_cli_invariants() {
         let cmd = build_cli();
         assert!(cmd.get_overridden_usage().is_none());
         cmd.debug_assert();
+    }
+
+    /// Verifies root default compilation and rejection of legacy flags and accidental typos.
+    #[test]
+    fn verify_default_compile_and_legacy_guards() {
+        let matches = build_cli()
+            .try_get_matches_from(["frameassembly", "demo.fasm"])
+            .expect("default root compile should parse");
+        assert_eq!(
+            parse_command(&matches),
+            CliCommand::Compile(CompileArgs {
+                input_file: PathBuf::from("demo.fasm"),
+                output_file: PathBuf::from("demo.pcap"),
+            })
+        );
+        assert!(check_legacy_cli_args(["frameassembly", "compile", "demo.fasm"]).is_err());
+        assert!(check_legacy_cli_args(["frameassembly", "a.fasm", "b.fasm"]).is_err());
+        assert!(check_legacy_cli_args(["frameassembly", "capture.pcap"]).is_err());
     }
 }
 ```
@@ -688,7 +733,7 @@ pub struct AppConfig {
 impl CommandFactory for AppConfig {
     fn command() -> Command {
         let cmd = Command::new("packet-crafter")
-            .version("0.12.2")
+            .version("2.0.0")
             .about("Type-safe network traffic synthesizer")
             .arg(
                 Arg::new("output")

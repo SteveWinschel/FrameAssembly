@@ -1,10 +1,10 @@
-//! Network Time Protocol v4 (`NTP`, RFC 5905) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Network Time Protocol v4 (`ntp`, RFC 5905) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 5905 Network Time Protocol
-//! (`NTP`) 48-byte packets carried over UDP port `123`. It extracts leap indicator (`li`), version
+//! (`ntp`) 48-byte packets carried over UDP port `123`. It extracts leap indicator (`li`), version
 //! number (`vn`), association mode (`mode`), clock stratum (`stratum`), poll exponent (`poll`),
 //! precision (`precision`), ASCII reference identifier (`refid`), and 64-bit transmit timestamp
-//! (`tx_timestamp`), preserving any trailing extension fields or MACs as residual payload.
+//! (`txtimestamp`), preserving any trailing extension fields or MACs as residual payload.
 
 use alloc::string::String;
 use core::fmt::Write as _;
@@ -14,7 +14,7 @@ use crate::reverse::{ProtocolDissection, be_u64, push_if};
 
 use super::{is_printable_ascii_str, ok_dissect, push_str_if};
 
-/// Dissects an RFC 5905 `NTP` 48-byte header and optional extension bytes over UDP port `123`.
+/// Dissects an RFC 5905 `ntp` 48-byte header and optional extension bytes over UDP port `123`.
 pub(crate) fn dissect_ntp(payload: &[u8]) -> Option<ProtocolDissection> {
     if payload.len() < 48 {
         return None;
@@ -42,7 +42,7 @@ pub(crate) fn dissect_ntp(payload: &[u8]) -> Option<ProtocolDissection> {
         push_str_if(&mut tokens, "refid", refid, "");
     }
     if tx_ts != 0xE500_0000_0000_0000 {
-        let _ = write!(tokens, " tx_timestamp 0x{tx_ts:016x}");
+        let _ = write!(tokens, " txtimestamp 0x{tx_ts:016x}");
     }
 
     ok_dissect(Protocol::Ntp, tokens, payload[48..].to_vec())

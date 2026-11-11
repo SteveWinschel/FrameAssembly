@@ -1,26 +1,26 @@
 // PROMPT: FTP STOU (Store Unique) command generating a server-assigned collision-free filename on VLAN 210.
-// TOKENS: HOST, IP, MAC, FLOW, FTP, CMD, ARG, VLAN, PCP, DSCP, CODE, REPLY, COMPILE
+// TOKENS: host, ip, mac, flow, s, ftp, cmd, arg, vlan, pcp, dscp, code, reply, compile
 
 // INSTRUCTION: Define medical imaging scanner uploading DICOM spool files over VLAN 210.
-HOST dicom_scanner {
-    IP 10.210.21.40
-    MAC 00:0f:fe:d2:15:28
+host dicom_scanner {
+    ip 10.210.21.40
+    mac 00:0f:fe:d2:15:28
 }
 
 // INSTRUCTION: Define hospital PACS staging FTP server.
-HOST pacs_ftp_srv {
-    IP 10.210.21.1
-    MAC 00:0f:fe:d2:15:01
+host pacs_ftp_srv {
+    ip 10.210.21.1
+    mac 00:0f:fe:d2:15:01
 }
 
 // INSTRUCTION: Request unique file creation via STOU over VLAN 210 with DSCP 18.
-FLOW ftp_stou_unique(c, s) {
-    c -> s FTP CMD "STOU" ARG "scan_spool.dcm" VLAN 210 PCP 3 DSCP 18
-    c <- s FTP CODE 150 REPLY "FILE: scan_spool.dcm.88412" VLAN 210 PCP 3 DSCP 18
-    c <- s FTP CODE 226 REPLY "Transfer complete" VLAN 210 PCP 3 DSCP 18
+flow ftp_stou_unique(c, s) {
+    c -> s ftp cmd "STOU" arg "scan_spool.dcm" vlan 210 pcp 3 dscp 18
+    c <- s ftp code 150 reply "FILE: scan_spool.dcm.88412" vlan 210 pcp 3 dscp 18
+    c <- s ftp code 226 reply "Transfer complete" vlan 210 pcp 3 dscp 18
 }
 
 // INSTRUCTION: Compile the FTP STOU unique file upload over VLAN 210 scenario.
-COMPILE {
+compile {
     ftp_stou_unique(dicom_scanner, pacs_ftp_srv)
 }

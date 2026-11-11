@@ -1,18 +1,18 @@
 // PROMPT: Verification of varied IPv6 zero compression positions including leading, middle, and trailing zeros.
-// TOKENS: HOST, IP, FLOW, UDP, PAYLOAD, COMPILE
+// TOKENS: host, ip, flow, src, dst, udp, payload, compile
 
 // INSTRUCTION: Define host with middle zero compression.
-HOST comp_mid { IP 2001:db8:0:0:1::1 }
+host comp_mid { ip 2001:db8:0:0:1::1 }
 
 // INSTRUCTION: Define host with trailing zero sequences.
-HOST comp_trail { IP fe80:1:2:3:4:5:0:0 }
+host comp_trail { ip fe80:1:2:3:4:5:0:0 }
 
 // INSTRUCTION: Define UDP flow between varied zero compression forms.
-FLOW comp_flow(src, dst) {
-    src -> dst UDP PAYLOAD "zero_compression_check"
+flow comp_flow(src, dst) {
+    src -> dst udp payload "zero_compression_check"
 }
 
 // INSTRUCTION: Compile block executing compression test flow.
-COMPILE {
+compile {
     comp_flow(comp_mid, comp_trail)
 }

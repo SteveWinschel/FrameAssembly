@@ -35,14 +35,14 @@ pub fn tag_tuple<'i, 'a: 'i>(
     })
 }
 
-/// Lexical token kinds emitted by the tokenizer.
+/// Lexical token kinds emitted by the strict-lowercase v2.0.0 tokenizer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TokenKind<'a> {
-    /// The `HOST` keyword starting a host definition.
+    /// The `host` keyword starting a host definition.
     Host,
-    /// The `FLOW` keyword starting a flow definition.
+    /// The `flow` keyword starting a flow definition.
     Flow,
-    /// The `COMPILE` keyword starting a compilation block.
+    /// The `compile` keyword starting a compilation block.
     Compile,
     /// Identifier token holding a borrowed string slice.
     Ident(&'a str),
@@ -72,7 +72,7 @@ pub enum TokenKind<'a> {
     ArrowRight,
     /// Left arrow `<-` for reverse flow direction.
     ArrowLeft,
-    /// Protocol name token (e.g., `TCP`, `UDP`, `SNMP3`).
+    /// Protocol name token (e.g., `tcp`, `udp`, `snmp3`).
     Protocol(&'a str),
 }
 
@@ -165,12 +165,12 @@ pub fn parse_integer<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult<u64
 
 ---
 
-## 2. High-Performance Declarative DSL AST Parsing (`HOST`, `FLOW`, `COMPILE`)
+## 2. High-Performance v2.0.0 DSL AST Parsing (`host`, `flow`, `compile`)
 
-Production grammar rules using `seq!`, `cut_err`, `repeat`, and `opt` to construct validated AST nodes with full source byte spans for canonical FrameAssembly syntax (`HOST <id> { [IP <ip>] [MAC <mac>] }` and `FLOW <id>(<params>) { <src> -> <dst> <PROTO> ... }`).
+Production grammar rules using `seq!`, `cut_err`, `repeat`, and `opt` to construct validated AST nodes with full source byte spans for canonical FrameAssembly v2.0.0 lowercase syntax (`host <id> { [ip <ip>] [mac <mac>] }` and `flow <id>(<params>) { <src> -> <dst> <proto> ... }`).
 
 ```rust
-//! Declarative AST parser for canonical FrameAssembly structural blocks.
+//! Declarative AST parser for canonical FrameAssembly v2.0.0 structural blocks.
 
 use core::ops::Range;
 use winnow::combinator::{alt, cut_err, opt, repeat, separated, seq};
@@ -182,7 +182,7 @@ use super::{parse_ident, SpannedToken, TokenKind, TokenStream};
 
 /// AST node representing an evaluated host endpoint definition.
 ///
-/// Syntax mapping: `HOST <name> { [IP <ip>] [MAC <mac>] }`
+/// Syntax mapping: `host <name> { [ip <ip>] [mac <mac>] }`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HostDef<'a> {
     /// Host name identifier.
@@ -197,7 +197,7 @@ pub struct HostDef<'a> {
 
 /// AST node representing a parameterized traffic flow block.
 ///
-/// Syntax mapping: `FLOW <name>(<param1>, <param2>) { <statements> }`
+/// Syntax mapping: `flow <name>(<param1>, <param2>) { <statements> }`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FlowDef<'a> {
     /// Flow name identifier.
@@ -228,7 +228,7 @@ pub struct PacketStmt<'a> {
     pub dst_host: &'a str,
     /// Transmission direction (`->` or `<-`).
     pub direction: FlowDirection,
-    /// Protocol name (e.g., `TCP`, `DNS`, `SNMP3`).
+    /// Protocol name (e.g., `tcp`, `dns`, `snmp3`).
     pub protocol: &'a str,
     /// Raw payload string if defined.
     pub payload: Option<&'a str>,
@@ -236,7 +236,7 @@ pub struct PacketStmt<'a> {
     pub span: Range<usize>,
 }
 
-/// Parses a space-separated host attribute (`IP <ip>` or `MAC <mac>`).
+/// Parses a space-separated host attribute (`ip <ip>` or `mac <mac>`).
 enum HostAttr<'a> {
     /// IP address setting.
     Ip(&'a str),
@@ -244,17 +244,17 @@ enum HostAttr<'a> {
     Mac(&'a str),
 }
 
-/// Parses an individual host attribute (`IP <ip>` or `MAC <mac>`).
+/// Parses an individual host attribute (`ip <ip>` or `mac <mac>`).
 fn parse_host_attr<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult<HostAttr<'a>> {
     let key = parse_ident.parse_next(input)?;
     match key {
-        "IP" => {
+        "ip" => {
             let ip_str = cut_err(parse_ident)
                 .context(StrContext::Expected(StrContextValue::Description("IPv4 or IPv6 address")))
                 .parse_next(input)?;
             Ok(HostAttr::Ip(ip_str))
         }
-        "MAC" => {
+        "mac" => {
             let mac_str = cut_err(parse_ident)
                 .context(StrContext::Expected(StrContextValue::Description("MAC address")))
                 .parse_next(input)?;
@@ -264,7 +264,7 @@ fn parse_host_attr<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult<HostA
     }
 }
 
-/// Parses a complete `HOST <name> { IP <ip> [MAC <mac>] }` definition block.
+/// Parses a complete `host <name> { ip <ip> [mac <mac>] }` definition block.
 pub fn parse_host_def<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult<HostDef<'a>> {
     seq!(
         _: literal(TokenKind::Host),
@@ -298,7 +298,7 @@ fn parse_direction<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult<FlowD
     .parse_next(input)
 }
 
-/// Parses a single packet statement: `client -> server TCP [PAYLOAD "data"]`.
+/// Parses a single packet statement: `client -> server tcp [payload "data"]`.
 pub fn parse_packet_stmt<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult<PacketStmt<'a>> {
     seq!(
         parse_ident,
@@ -320,7 +320,7 @@ pub fn parse_packet_stmt<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult
     .parse_next(input)
 }
 
-/// Parses a complete `FLOW <name>(<params>) { <statement>... }` definition block.
+/// Parses a complete `flow <name>(<params>) { <statement>... }` definition block.
 pub fn parse_flow_def<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult<FlowDef<'a>> {
     seq!(
         _: literal(TokenKind::Flow),
@@ -348,10 +348,10 @@ pub fn parse_flow_def<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult<Fl
 
 ## 3. Canonical Space-Separated L3 Modifier Extraction & Shared-Keyword `cut_err` Dispatch
 
-In FrameAssembly's canonical space-separated syntax (`TTL 64 DSCP 46 ECN 2 DF MF FLOWLABEL 0x12345`), modifiers are never separated by `=` or `:`. This pattern demonstrates:
-1. Canonical space-separated `<KEYWORD> <VALUE>` and 0-argument flag (`DF`, `MF`) extraction with checkpoint rewind on non-L3 tokens.
+In FrameAssembly v2.0.0's canonical space-separated lowercase syntax (`ttl 64 dscp 46 ecn 2 df mf flowlabel 0x12345`), modifiers are never separated by `=` or `:`. This pattern demonstrates:
+1. Canonical space-separated `<keyword> <value>` and 0-argument flag (`df`, `mf`) extraction with checkpoint rewind on non-L3 tokens.
 2. Zero-allocation `let (): () = repeat(0.., ...).parse_next(input)?;` accumulation into unit `()` rather than `Vec<()>`.
-3. Safe shared-keyword `cut_err(alt((...)))` dispatch when a keyword (such as `VERSION` or `TOKEN`) accepts either an integer or a string literal.
+3. Safe shared-keyword `cut_err(alt((...)))` dispatch when a keyword (such as `version` or `token`) accepts either an integer or a string literal.
 
 ```rust
 //! Canonical space-separated field parsing, zero-allocation `()` repeat sinks,
@@ -365,24 +365,24 @@ use winnow::token::any;
 
 use super::{parse_ident, parse_integer, SpannedToken, TokenKind, TokenStream};
 
-/// Evaluated Layer 3 IP header modifiers (`TTL 64 DSCP 46 ECN 2 DF MF FLOWLABEL 0x12345`).
+/// Evaluated Layer 3 IP header modifiers (`ttl 64 dscp 46 ecn 2 df mf flowlabel 0x12345`).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct L3Modifiers {
-    /// IPv4 / IPv6 Time-To-Live / Hop Limit (`TTL <u8>`).
+    /// IPv4 / IPv6 Time-To-Live / Hop Limit (`ttl <u8>`).
     pub ttl: Option<u8>,
-    /// Differentiated Services Code Point (`DSCP <u8>`, 6 bits).
+    /// Differentiated Services Code Point (`dscp <u8>`, 6 bits).
     pub dscp: Option<u8>,
-    /// Explicit Congestion Notification (`ECN <u8>`, 2 bits).
+    /// Explicit Congestion Notification (`ecn <u8>`, 2 bits).
     pub ecn: Option<u8>,
-    /// IPv4 Don't Fragment 0-argument bit flag (`DF`).
+    /// IPv4 Don't Fragment 0-argument bit flag (`df`).
     pub df: bool,
-    /// IPv4 More Fragments 0-argument bit flag (`MF`).
+    /// IPv4 More Fragments 0-argument bit flag (`mf`).
     pub mf: bool,
-    /// 20-bit IPv6 Flow Label (`FLOWLABEL <u32>`).
+    /// 20-bit IPv6 Flow Label (`flowlabel <u32>`).
     pub flow_label: Option<u32>,
 }
 
-/// Polymorphic value for a shared keyword (e.g., `TOKEN <u64>` vs `TOKEN "<str>"`).
+/// Polymorphic value for a shared keyword (e.g., `token <u64>` vs `token "<str>"`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SharedTokenValue<'a> {
     /// Numeric token ID (e.g., CoAP 32-bit token).
@@ -391,10 +391,10 @@ pub enum SharedTokenValue<'a> {
     Bearer(&'a str),
 }
 
-/// Parses a single canonical space-separated L3 modifier (`<KEYWORD> [<VALUE>]`).
+/// Parses a single canonical space-separated L3 modifier (`<keyword> [<value>]`).
 ///
 /// Rewinds the `TokenStream` checkpoint if the identifier is not an L3 modifier
-/// (such as the protocol token `TCP` or `UDP` that follows L3 modifiers).
+/// (such as the protocol token `tcp` or `udp` that follows L3 modifiers).
 fn parse_l3_field<'t, 'a>(
     input: &mut TokenStream<'t, 'a>,
     mods: &mut L3Modifiers,
@@ -403,36 +403,36 @@ fn parse_l3_field<'t, 'a>(
     let field_name = parse_ident.parse_next(input)?;
 
     match field_name {
-        "TTL" => {
+        "ttl" => {
             let val = cut_err(parse_integer)
                 .context(StrContext::Expected(StrContextValue::Description("8-bit TTL (0..=255)")))
                 .parse_next(input)?;
             mods.ttl = Some(val as u8);
             Ok(())
         }
-        "DSCP" => {
+        "dscp" => {
             let val = cut_err(parse_integer)
                 .context(StrContext::Expected(StrContextValue::Description("6-bit DSCP (0..=63)")))
                 .parse_next(input)?;
             mods.dscp = Some((val & 0x3F) as u8);
             Ok(())
         }
-        "ECN" => {
+        "ecn" => {
             let val = cut_err(parse_integer)
                 .context(StrContext::Expected(StrContextValue::Description("2-bit ECN (0..=3)")))
                 .parse_next(input)?;
             mods.ecn = Some((val & 0x03) as u8);
             Ok(())
         }
-        "DF" => {
+        "df" => {
             mods.df = true;
             Ok(())
         }
-        "MF" => {
+        "mf" => {
             mods.mf = true;
             Ok(())
         }
-        "FLOWLABEL" => {
+        "flowlabel" => {
             let val = cut_err(parse_integer)
                 .context(StrContext::Expected(StrContextValue::Description("20-bit Flow Label")))
                 .parse_next(input)?;
@@ -455,14 +455,14 @@ pub fn parse_l3_modifiers<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResul
     Ok(mods)
 }
 
-/// Parses a shared keyword (`TOKEN <int>` or `TOKEN "<str>"`) safely by placing `alt`
+/// Parses a shared keyword (`token <int>` or `token "<str>"`) safely by placing `alt`
 /// *inside* a single `cut_err` after consuming the keyword token once.
 pub fn parse_shared_token_modifier<'t, 'a>(
     input: &mut TokenStream<'t, 'a>,
 ) -> ModalResult<SharedTokenValue<'a>> {
     let start = input.checkpoint();
     let kw = parse_ident.parse_next(input)?;
-    if kw != "TOKEN" {
+    if kw != "token" {
         input.reset(&start);
         return Err(ErrMode::from_input(input));
     }
@@ -476,7 +476,7 @@ pub fn parse_shared_token_modifier<'t, 'a>(
         parse_integer.map(SharedTokenValue::Numeric),
         parse_str_lit,
     )))
-    .context(StrContext::Label("TOKEN modifier"))
+    .context(StrContext::Label("token modifier"))
     .context(StrContext::Expected(StrContextValue::Description(
         "integer token ID or quoted string token",
     )))

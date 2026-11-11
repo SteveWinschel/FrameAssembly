@@ -1,18 +1,18 @@
 // PROMPT: Router pruning unneeded multicast distribution tree branch via PIM JOIN_PRUNE message.
-// TOKENS: HOST, IP, FLOW, PIM, JOIN_PRUNE, GROUP, SOURCE, COMPILE
+// TOKENS: host, ip, flow, pim, joinprune, group, source, compile
 
 // INSTRUCTION: Define leaf distribution router with no active receivers.
-HOST leaf_dist_router { IP 10.14.0.2 }
+host leaf_dist_router { ip 10.14.0.2 }
 
 // INSTRUCTION: Define upstream multicast transit router.
-HOST upstream_transit_rtr { IP 10.14.0.1 }
+host upstream_transit_rtr { ip 10.14.0.1 }
 
 // INSTRUCTION: Define PIM prune signaling flow removing branch for group 239.10.10.1.
-FLOW pim_prune_branch_flow(leaf, up) {
-    leaf -> up PIM JOIN_PRUNE GROUP 239.10.10.1 SOURCE 10.14.100.5
+flow pim_prune_branch_flow(leaf, up) {
+    leaf -> up pim joinprune group 239.10.10.1 source 10.14.100.5
 }
 
 // INSTRUCTION: Compile block executing PIM Prune signal.
-COMPILE {
+compile {
     pim_prune_branch_flow(leaf_dist_router, upstream_transit_rtr)
 }

@@ -1,10 +1,10 @@
-//! IEEE 802.1X Extensible Authentication Protocol over LAN (`EAPOL`) parser for FrameAssembly.
+//! IEEE 802.1X Extensible Authentication Protocol over LAN (`eapol`) parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `EAPOL` port-based network access
-//! control frames. It supports both explicit (`TYPE START`, `TYPE LOGOFF`, `TYPE KEY`,
-//! `TYPE EAP_PACKET`) and bare shorthand packet types (`START`, `LOGOFF`, `KEY`, `EAP_PACKET`),
-//! alongside protocol version (`VERSION`), EAP code (`EAP_CODE`), identifier (`EAP_ID`), method
-//! (`EAP_METHOD`), and user identity string (`IDENTITY`).
+//! This module implements the winnow parser combinator for `eapol` port-based network access
+//! control frames. It supports both explicit (`type start`, `type logoff`, `type key`,
+//! `type eappacket`) and bare shorthand packet types (`start`, `logoff`, `key`, `eappacket`),
+//! alongside protocol version (`version`), EAP code (`eapcode`), identifier (`eapid`), method
+//! (`eapmethod`), and user identity string (`identity`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err, opt};

@@ -1,26 +1,26 @@
 // PROMPT: Live VM migration MAC mobility announcement using looped Gratuitous ARP broadcasts.
-// TOKENS: HOST, IP, MAC, FLOW, VLAN, ARP, GRATUITOUS, SHA, SPA, COMPILE, LOOP
+// TOKENS: host, ip, mac, flow, vlan, arp, gratuitous, sha, spa, compile
 
 // INSTRUCTION: Define migrated virtual machine on destination hypervisor host.
-HOST migrated_vm {
-    IP 10.88.12.40
-    MAC 52:54:00:88:12:40
+host migrated_vm {
+    ip 10.88.12.40
+    mac 52:54:00:88:12:40
 }
 
 // INSTRUCTION: Define top-of-rack leaf switch receiving VM mobility frames.
-HOST tor_leaf_sw {
-    IP 10.88.12.1
-    MAC 00:02:c9:11:22:01
+host tor_leaf_sw {
+    ip 10.88.12.1
+    mac 00:02:c9:11:22:01
 }
 
 // INSTRUCTION: Define Gratuitous ARP frame announcing new switch port attachment.
-FLOW vm_mobility_garp(vm, tor) {
-    vm -> tor VLAN 88 ARP GRATUITOUS SHA 52:54:00:88:12:40 SPA 10.88.12.40
+flow vm_mobility_garp(vm, tor) {
+    vm -> tor vlan 88 arp gratuitous sha 52:54:00:88:12:40 spa 10.88.12.40
 }
 
 // INSTRUCTION: Compile block broadcasting 3 consecutive GARP announcements in a loop.
-COMPILE {
-    LOOP 3 {
-        vm_mobility_garp(migrated_vm, tor_leaf_sw)
-    }
+compile {
+    vm_mobility_garp(migrated_vm, tor_leaf_sw) // cycle 1
+    vm_mobility_garp(migrated_vm, tor_leaf_sw) // cycle 2
+    vm_mobility_garp(migrated_vm, tor_leaf_sw) // cycle 3
 }

@@ -180,35 +180,35 @@ fn compile_and_dissect_tcp(script: &str) -> Vec<DissectedTcpPacket> {
 #[test]
 pub fn test_adversarial_concurrent_multi_port_interleaved_streams() {
     let script = r#"
-        HOST client { IP 192.168.1.10 }
-        HOST server { IP 192.168.1.20 }
+        host client { ip 192.168.1.10 }
+        host server { ip 192.168.1.20 }
 
-        FLOW stream_a_syn(c, s) {
-            c -> s TCP SYN SRCPORT 40001 DSTPORT 80
+        flow stream_a_syn(c, s) {
+            c -> s tcp syn srcport 40001 dstport 80
         }
-        FLOW stream_b_syn(c, s) {
-            c -> s TCP SYN SRCPORT 40002 DSTPORT 443
+        flow stream_b_syn(c, s) {
+            c -> s tcp syn srcport 40002 dstport 443
         }
-        FLOW stream_a_synack(c, s) {
-            c <- s TCP SYN ACK SRCPORT 80 DSTPORT 40001
+        flow stream_a_synack(c, s) {
+            c <- s tcp syn ack srcport 80 dstport 40001
         }
-        FLOW stream_b_synack(c, s) {
-            c <- s TCP SYN ACK SRCPORT 443 DSTPORT 40002
+        flow stream_b_synack(c, s) {
+            c <- s tcp syn ack srcport 443 dstport 40002
         }
-        FLOW stream_a_data(c, s) {
-            c -> s TCP PSH ACK SRCPORT 40001 DSTPORT 80 PAYLOAD "StreamA-Data-1"
+        flow stream_a_data(c, s) {
+            c -> s tcp psh ack srcport 40001 dstport 80 payload "StreamA-Data-1"
         }
-        FLOW stream_b_data(c, s) {
-            c -> s TCP PSH ACK SRCPORT 40002 DSTPORT 443 PAYLOAD "StreamB-Data-ABCDE"
+        flow stream_b_data(c, s) {
+            c -> s tcp psh ack srcport 40002 dstport 443 payload "StreamB-Data-ABCDE"
         }
-        FLOW stream_a_ack(c, s) {
-            c <- s TCP ACK SRCPORT 80 DSTPORT 40001
+        flow stream_a_ack(c, s) {
+            c <- s tcp ack srcport 80 dstport 40001
         }
-        FLOW stream_b_ack(c, s) {
-            c <- s TCP ACK SRCPORT 443 DSTPORT 40002
+        flow stream_b_ack(c, s) {
+            c <- s tcp ack srcport 443 dstport 40002
         }
 
-        COMPILE {
+        compile {
             stream_a_syn(client, server)
             stream_b_syn(client, server)
             stream_a_synack(client, server)
@@ -283,21 +283,21 @@ pub fn test_adversarial_concurrent_multi_port_interleaved_streams() {
 #[test]
 pub fn test_adversarial_arrow_direction_reversals_ports_and_sequence() {
     let script = r#"
-        HOST client { IP 10.1.1.5 }
-        HOST server { IP 10.2.2.8 }
+        host client { ip 10.1.1.5 }
+        host server { ip 10.2.2.8 }
 
-        FLOW full_conversation(c, s) {
-            c -> s TCP SYN SRCPORT 49152 DSTPORT 8080
-            c <- s TCP SYN ACK
-            c -> s TCP ACK
-            c -> s TCP PSH ACK PAYLOAD "RequestPayload"
-            c <- s TCP PSH ACK PAYLOAD "ResponsePayload12345"
-            c -> s TCP ACK
-            c <- s TCP FIN ACK
-            c -> s TCP ACK
+        flow full_conversation(c, s) {
+            c -> s tcp syn srcport 49152 dstport 8080
+            c <- s tcp syn ack
+            c -> s tcp ack
+            c -> s tcp psh ack payload "RequestPayload"
+            c <- s tcp psh ack payload "ResponsePayload12345"
+            c -> s tcp ack
+            c <- s tcp fin ack
+            c -> s tcp ack
         }
 
-        COMPILE {
+        compile {
             full_conversation(client, server)
         }
     "#;
@@ -377,29 +377,29 @@ pub fn test_adversarial_arrow_direction_reversals_ports_and_sequence() {
 #[test]
 pub fn test_adversarial_loopback_isolation_v4_and_v6() {
     let script = r#"
-        HOST loop_v4 { IP 127.0.0.1 }
-        HOST loop_v6 { IP ::1 }
+        host loop_v4 { ip 127.0.0.1 }
+        host loop_v6 { ip ::1 }
 
-        FLOW loop4_conn1(node) {
-            node -> node TCP SYN SRCPORT 30001 DSTPORT 30002
-            node <- node TCP SYN ACK
-            node -> node TCP PSH ACK PAYLOAD "Loop4-Conn1-Msg"
+        flow loop4_conn1(node) {
+            node -> node tcp syn srcport 30001 dstport 30002
+            node <- node tcp syn ack
+            node -> node tcp psh ack payload "Loop4-Conn1-Msg"
         }
-        FLOW loop4_conn2(node) {
-            node -> node TCP SYN SRCPORT 30003 DSTPORT 30004
-            node <- node TCP SYN ACK
+        flow loop4_conn2(node) {
+            node -> node tcp syn srcport 30003 dstport 30004
+            node <- node tcp syn ack
         }
-        FLOW loop6_conn1(node) {
-            node -> node TCP SYN SRCPORT 50001 DSTPORT 50002
-            node <- node TCP SYN ACK
-            node -> node TCP PSH ACK PAYLOAD "Loop6-Conn1-Msg"
+        flow loop6_conn1(node) {
+            node -> node tcp syn srcport 50001 dstport 50002
+            node <- node tcp syn ack
+            node -> node tcp psh ack payload "Loop6-Conn1-Msg"
         }
-        FLOW loop6_conn2(node) {
-            node -> node TCP SYN SRCPORT 50003 DSTPORT 50004
-            node <- node TCP SYN ACK
+        flow loop6_conn2(node) {
+            node -> node tcp syn srcport 50003 dstport 50004
+            node <- node tcp syn ack
         }
 
-        COMPILE {
+        compile {
             loop4_conn1(loop_v4)
             loop4_conn2(loop_v4)
             loop6_conn1(loop_v6)
@@ -487,16 +487,16 @@ pub fn test_adversarial_loopback_isolation_v4_and_v6() {
 #[test]
 pub fn test_adversarial_l7_tcp_auto_emit_psh_ack_and_seq_advance() {
     let script = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST server { IP 10.0.0.2 }
+        host client { ip 10.0.0.1 }
+        host server { ip 10.0.0.2 }
 
-        FLOW http_exchange(c, s) {
-            c -> s HTTP GET URI "/api/v1/status"
-            c <- s HTTP STATUS 200 BODY "OK"
-            c -> s HTTP GET URI "/api/v1/data"
+        flow http_exchange(c, s) {
+            c -> s http get uri "/api/v1/status"
+            c <- s http status 200 body "OK"
+            c -> s http get uri "/api/v1/data"
         }
 
-        COMPILE {
+        compile {
             http_exchange(client, server)
         }
     "#;
@@ -561,17 +561,17 @@ fn assert_semantic_error(script: &str, expected_substring: &str) {
 #[test]
 pub fn test_adversarial_semantic_mixed_ipv4_ipv6() {
     let script_forward = r#"
-        HOST mix_v4_a { IP 192.168.1.1 }
-        HOST mix_v6_b { IP 2001:db8::1 }
-        FLOW mix_fwd(ma, mb) { ma -> mb TCP SYN }
-        COMPILE { mix_fwd(mix_v4_a, mix_v6_b) }"#;
+        host mix_v4_a { ip 192.168.1.1 }
+        host mix_v6_b { ip 2001:db8::1 }
+        flow mix_fwd(ma, mb) { ma -> mb tcp syn }
+        compile { mix_fwd(mix_v4_a, mix_v6_b) }"#;
     assert_semantic_error(script_forward, "Mixed IPv4 and IPv6");
 
     let script_reverse = r#"
-        HOST mix_v6_c { IP 2001:db8::2 }
-        HOST mix_v4_d { IP 192.168.1.2 }
-        FLOW mix_rev(mc, md) { mc <- md UDP }
-        COMPILE { mix_rev(mix_v6_c, mix_v4_d) }"#;
+        host mix_v6_c { ip 2001:db8::2 }
+        host mix_v4_d { ip 192.168.1.2 }
+        flow mix_rev(mc, md) { mc <- md udp }
+        compile { mix_rev(mix_v6_c, mix_v4_d) }"#;
     assert_semantic_error(script_reverse, "Mixed IPv4 and IPv6");
 }
 
@@ -579,17 +579,17 @@ pub fn test_adversarial_semantic_mixed_ipv4_ipv6() {
 #[test]
 pub fn test_adversarial_semantic_out_of_range_vlan() {
     let script_zero = r#"
-        HOST v0_cli { IP 10.11.0.1 }
-        HOST v0_srv { IP 10.11.0.2 }
-        FLOW vlan_zero_f(vc0, vs0) { vc0 -> vs0 TCP SYN VLAN 0 }
-        COMPILE { vlan_zero_f(v0_cli, v0_srv) }"#;
+        host v0_cli { ip 10.11.0.1 }
+        host v0_srv { ip 10.11.0.2 }
+        flow vlan_zero_f(vc0, vs0) { vc0 -> vs0 tcp syn vlan 0 }
+        compile { vlan_zero_f(v0_cli, v0_srv) }"#;
     assert_semantic_error(script_zero, "VLAN ID 0 out of range");
 
     let script_4095 = r#"
-        HOST v_max_cli { IP 10.11.1.1 }
-        HOST v_max_srv { IP 10.11.1.2 }
-        FLOW vlan_4095_f(vcm, vsm) { vcm -> vsm TCP SYN VLAN 4095 }
-        COMPILE { vlan_4095_f(v_max_cli, v_max_srv) }"#;
+        host v_max_cli { ip 10.11.1.1 }
+        host v_max_srv { ip 10.11.1.2 }
+        flow vlan_4095_f(vcm, vsm) { vcm -> vsm tcp syn vlan 4095 }
+        compile { vlan_4095_f(v_max_cli, v_max_srv) }"#;
     assert_semantic_error(script_4095, "VLAN ID 4095 out of range");
 }
 
@@ -597,10 +597,10 @@ pub fn test_adversarial_semantic_out_of_range_vlan() {
 #[test]
 pub fn test_adversarial_semantic_out_of_range_dscp() {
     let dscp_bad_script = r#"
-        HOST dscp_c { IP 10.12.0.1 }
-        HOST dscp_s { IP 10.12.0.2 }
-        FLOW dscp_bad_f(dc, ds) { dc -> ds UDP DSCP 64 }
-        COMPILE { dscp_bad_f(dscp_c, dscp_s) }"#;
+        host dscp_c { ip 10.12.0.1 }
+        host dscp_s { ip 10.12.0.2 }
+        flow dscp_bad_f(dc, ds) { dc -> ds udp dscp 64 }
+        compile { dscp_bad_f(dscp_c, dscp_s) }"#;
     assert_semantic_error(dscp_bad_script, "DSCP 64 out of range");
 }
 
@@ -608,10 +608,10 @@ pub fn test_adversarial_semantic_out_of_range_dscp() {
 #[test]
 pub fn test_adversarial_semantic_out_of_range_ecn() {
     let ecn_bad_script = r#"
-        HOST ecn_c { IP 10.13.0.1 }
-        HOST ecn_s { IP 10.13.0.2 }
-        FLOW ecn_bad_f(ec, es) { ec -> es UDP ECN 4 }
-        COMPILE { ecn_bad_f(ecn_c, ecn_s) }"#;
+        host ecn_c { ip 10.13.0.1 }
+        host ecn_s { ip 10.13.0.2 }
+        flow ecn_bad_f(ec, es) { ec -> es udp ecn 4 }
+        compile { ecn_bad_f(ecn_c, ecn_s) }"#;
     assert_semantic_error(ecn_bad_script, "ECN 4 out of range");
 }
 
@@ -619,10 +619,10 @@ pub fn test_adversarial_semantic_out_of_range_ecn() {
 #[test]
 pub fn test_adversarial_semantic_out_of_range_ttl() {
     let ttl_bad_script = r#"
-        HOST ttl_c { IP 10.14.0.1 }
-        HOST ttl_s { IP 10.14.0.2 }
-        FLOW ttl_bad_f(tc, ts) { tc -> ts UDP TTL 256 }
-        COMPILE { ttl_bad_f(ttl_c, ttl_s) }"#;
+        host ttl_c { ip 10.14.0.1 }
+        host ttl_s { ip 10.14.0.2 }
+        flow ttl_bad_f(tc, ts) { tc -> ts udp ttl 256 }
+        compile { ttl_bad_f(ttl_c, ttl_s) }"#;
     assert_semantic_error(ttl_bad_script, "TTL 256 out of range");
 }
 
@@ -630,10 +630,10 @@ pub fn test_adversarial_semantic_out_of_range_ttl() {
 #[test]
 pub fn test_adversarial_semantic_out_of_range_flowlabel() {
     let fl_bad_script = r#"
-        HOST fl_c6 { IP fe80::11 }
-        HOST fl_s6 { IP fe80::12 }
-        FLOW fl_bad_f(fc, fs) { fc -> fs TCP SYN FLOWLABEL 1048576 }
-        COMPILE { fl_bad_f(fl_c6, fl_s6) }"#;
+        host fl_c6 { ip fe80::11 }
+        host fl_s6 { ip fe80::12 }
+        flow fl_bad_f(fc, fs) { fc -> fs tcp syn flowlabel 1048576 }
+        compile { fl_bad_f(fl_c6, fl_s6) }"#;
     assert_semantic_error(fl_bad_script, "FLOWLABEL 1048576 out of range");
 }
 
@@ -641,10 +641,10 @@ pub fn test_adversarial_semantic_out_of_range_flowlabel() {
 #[test]
 pub fn test_adversarial_semantic_out_of_range_gentrap() {
     let gt_bad_script = r#"
-        HOST gt_c { IP 10.15.0.1 }
-        HOST gt_s { IP 10.15.0.2 }
-        FLOW gt_bad_f(gc, gs) { gc -> gs SNMP1 GENTRAP 7 }
-        COMPILE { gt_bad_f(gt_c, gt_s) }"#;
+        host gt_c { ip 10.15.0.1 }
+        host gt_s { ip 10.15.0.2 }
+        flow gt_bad_f(gc, gs) { gc -> gs snmp1 gentrap 7 }
+        compile { gt_bad_f(gt_c, gt_s) }"#;
     assert_semantic_error(gt_bad_script, "GENTRAP 7 out of range");
 }
 
@@ -652,9 +652,9 @@ pub fn test_adversarial_semantic_out_of_range_gentrap() {
 #[test]
 pub fn test_adversarial_semantic_duplicate_host() {
     let dup_host_script = r#"
-        HOST my_host { IP 10.16.0.1 }
-        HOST my_host { IP 10.16.0.2 }
-        COMPILE {}"#;
+        host my_host { ip 10.16.0.1 }
+        host my_host { ip 10.16.0.2 }
+        compile {}"#;
     assert_semantic_error(dup_host_script, "Duplicate HOST declaration: 'my_host'");
 }
 
@@ -662,11 +662,11 @@ pub fn test_adversarial_semantic_duplicate_host() {
 #[test]
 pub fn test_adversarial_semantic_duplicate_flow() {
     let dup_flow_script = r#"
-        HOST df_h1 { IP 10.17.0.1 }
-        HOST df_h2 { IP 10.17.0.2 }
-        FLOW my_flow(a, b) { a -> b UDP }
-        FLOW my_flow(x, y) { x -> y TCP SYN }
-        COMPILE { my_flow(df_h1, df_h2) }"#;
+        host df_h1 { ip 10.17.0.1 }
+        host df_h2 { ip 10.17.0.2 }
+        flow my_flow(a, b) { a -> b udp }
+        flow my_flow(x, y) { x -> y tcp syn }
+        compile { my_flow(df_h1, df_h2) }"#;
     assert_semantic_error(dup_flow_script, "Duplicate FLOW declaration: 'my_flow'");
 }
 
@@ -674,9 +674,9 @@ pub fn test_adversarial_semantic_duplicate_flow() {
 #[test]
 pub fn test_adversarial_semantic_duplicate_flow_params() {
     let dup_param_script = r#"
-        HOST dp_h1 { IP 10.18.0.1 }
-        FLOW f(dup, dup) { dup -> dup UDP }
-        COMPILE { f(dp_h1, dp_h1) }"#;
+        host dp_h1 { ip 10.18.0.1 }
+        flow f(dup, dup) { dup -> dup udp }
+        compile { f(dp_h1, dp_h1) }"#;
     assert_semantic_error(dup_param_script, "Duplicate parameter 'dup' in FLOW 'f'");
 }
 
@@ -684,24 +684,24 @@ pub fn test_adversarial_semantic_duplicate_flow_params() {
 #[test]
 pub fn test_adversarial_semantic_duplicate_statement_modifier_keys() {
     let script_ttl = r#"
-        HOST dm_c1 { IP 10.19.1.1 }
-        HOST dm_s1 { IP 10.19.1.2 }
-        FLOW dm_f1(c1, s1) { c1 -> s1 UDP TTL 10 TTL 20 }
-        COMPILE { dm_f1(dm_c1, dm_s1) }"#;
+        host dm_c1 { ip 10.19.1.1 }
+        host dm_s1 { ip 10.19.1.2 }
+        flow dm_f1(c1, s1) { c1 -> s1 udp ttl 10 ttl 20 }
+        compile { dm_f1(dm_c1, dm_s1) }"#;
     assert_semantic_error(script_ttl, "Duplicate statement modifier 'TTL'");
 
     let script_vlan = r#"
-        HOST dm_c2 { IP 10.19.2.1 }
-        HOST dm_s2 { IP 10.19.2.2 }
-        FLOW dm_f2(c2, s2) { c2 -> s2 UDP VLAN 100 VLAN 200 }
-        COMPILE { dm_f2(dm_c2, dm_s2) }"#;
+        host dm_c2 { ip 10.19.2.1 }
+        host dm_s2 { ip 10.19.2.2 }
+        flow dm_f2(c2, s2) { c2 -> s2 udp vlan 100 vlan 200 }
+        compile { dm_f2(dm_c2, dm_s2) }"#;
     assert_semantic_error(script_vlan, "Duplicate statement modifier 'VLAN'");
 
     let script_srcport = r#"
-        HOST dm_c3 { IP 10.19.3.1 }
-        HOST dm_s3 { IP 10.19.3.2 }
-        FLOW dm_f3(c3, s3) { c3 -> s3 TCP SYN SRCPORT 1000 SRCPORT 2000 }
-        COMPILE { dm_f3(dm_c3, dm_s3) }"#;
+        host dm_c3 { ip 10.19.3.1 }
+        host dm_s3 { ip 10.19.3.2 }
+        flow dm_f3(c3, s3) { c3 -> s3 tcp syn srcport 1000 srcport 2000 }
+        compile { dm_f3(dm_c3, dm_s3) }"#;
     assert_semantic_error(script_srcport, "Duplicate statement modifier 'SRCPORT'");
 }
 
@@ -709,10 +709,10 @@ pub fn test_adversarial_semantic_duplicate_statement_modifier_keys() {
 #[test]
 pub fn test_adversarial_semantic_duplicate_tcp_flags() {
     let dup_flag_script = r#"
-        HOST tf_c { IP 10.20.0.1 }
-        HOST tf_s { IP 10.20.0.2 }
-        FLOW tf_f(tc, ts) { tc -> ts TCP SYN SYN }
-        COMPILE { tf_f(tf_c, tf_s) }"#;
+        host tf_c { ip 10.20.0.1 }
+        host tf_s { ip 10.20.0.2 }
+        flow tf_f(tc, ts) { tc -> ts tcp syn syn }
+        compile { tf_f(tf_c, tf_s) }"#;
     assert_semantic_error(dup_flag_script, "Duplicate statement modifier: TCP flag 'Syn' specified multiple times");
 }
 
@@ -720,10 +720,10 @@ pub fn test_adversarial_semantic_duplicate_tcp_flags() {
 #[test]
 pub fn test_adversarial_semantic_duplicate_conflicting_payloads() {
     let both_pay_script = r#"
-        HOST bp_c { IP 10.21.0.1 }
-        HOST bp_s { IP 10.21.0.2 }
-        FLOW bp_f(bc, bs) { bc -> bs UDP PAYLOAD "hello" HEXPAYLOAD "68656c6c6f" }
-        COMPILE { bp_f(bp_c, bp_s) }"#;
+        host bp_c { ip 10.21.0.1 }
+        host bp_s { ip 10.21.0.2 }
+        flow bp_f(bc, bs) { bc -> bs udp payload "hello" hexpayload "68656c6c6f" }
+        compile { bp_f(bp_c, bp_s) }"#;
     assert_semantic_error(both_pay_script, "cannot specify both PAYLOAD and HEXPAYLOAD");
 }
 
@@ -731,66 +731,66 @@ pub fn test_adversarial_semantic_duplicate_conflicting_payloads() {
 #[test]
 pub fn test_adversarial_semantic_invalid_cross_protocol_modifiers() {
     let script_udp_flags = r#"
-        HOST xp_c1 { IP 10.22.1.1 }
-        HOST xp_s1 { IP 10.22.1.2 }
-        FLOW xp_f1(a1, b1) { a1 -> b1 UDP SYN }
-        COMPILE { xp_f1(xp_c1, xp_s1) }"#;
+        host xp_c1 { ip 10.22.1.1 }
+        host xp_s1 { ip 10.22.1.2 }
+        flow xp_f1(a1, b1) { a1 -> b1 udp syn }
+        compile { xp_f1(xp_c1, xp_s1) }"#;
     assert_semantic_error(script_udp_flags, "TCP flags cannot be used with UDP");
 
     let script_udp_seq = r#"
-        HOST xp_c2 { IP 10.22.2.1 }
-        HOST xp_s2 { IP 10.22.2.2 }
-        FLOW xp_f2(a2, b2) { a2 -> b2 UDP SEQ 1000 }
-        COMPILE { xp_f2(xp_c2, xp_s2) }"#;
+        host xp_c2 { ip 10.22.2.1 }
+        host xp_s2 { ip 10.22.2.2 }
+        flow xp_f2(a2, b2) { a2 -> b2 udp seq 1000 }
+        compile { xp_f2(xp_c2, xp_s2) }"#;
     assert_semantic_error(script_udp_seq, "SEQ/ACKNUM/WIN cannot be used with UDP");
 
     let script_udp_snmp = r#"
-        HOST xp_c3 { IP 10.22.3.1 }
-        HOST xp_s3 { IP 10.22.3.2 }
-        FLOW xp_f3(a3, b3) { a3 -> b3 UDP COMMUNITY "public" }
-        COMPILE { xp_f3(xp_c3, xp_s3) }"#;
+        host xp_c3 { ip 10.22.3.1 }
+        host xp_s3 { ip 10.22.3.2 }
+        flow xp_f3(a3, b3) { a3 -> b3 udp community "public" }
+        compile { xp_f3(xp_c3, xp_s3) }"#;
     assert_semantic_error(script_udp_snmp, "SNMP fields cannot be used with UDP");
 
     let script_tcp_snmp = r#"
-        HOST xp_c4 { IP 10.22.4.1 }
-        HOST xp_s4 { IP 10.22.4.2 }
-        FLOW xp_f4(a4, b4) { a4 -> b4 TCP SYN COMMUNITY "public" }
-        COMPILE { xp_f4(xp_c4, xp_s4) }"#;
+        host xp_c4 { ip 10.22.4.1 }
+        host xp_s4 { ip 10.22.4.2 }
+        flow xp_f4(a4, b4) { a4 -> b4 tcp syn community "public" }
+        compile { xp_f4(xp_c4, xp_s4) }"#;
     assert_semantic_error(script_tcp_snmp, "SNMP fields cannot be used with TCP");
 
     let script_snmp1_flags = r#"
-        HOST xp_c5 { IP 10.22.5.1 }
-        HOST xp_s5 { IP 10.22.5.2 }
-        FLOW xp_f5(a5, b5) { a5 -> b5 SNMP1 SYN }
-        COMPILE { xp_f5(xp_c5, xp_s5) }"#;
+        host xp_c5 { ip 10.22.5.1 }
+        host xp_s5 { ip 10.22.5.2 }
+        flow xp_f5(a5, b5) { a5 -> b5 snmp1 syn }
+        compile { xp_f5(xp_c5, xp_s5) }"#;
     assert_semantic_error(script_snmp1_flags, "TCP flags cannot be used with SNMP1");
 
     let script_snmp1_usm = r#"
-        HOST xp_c6 { IP 10.22.6.1 }
-        HOST xp_s6 { IP 10.22.6.2 }
-        FLOW xp_f6(a6, b6) { a6 -> b6 SNMP1 USER "alice" }
-        COMPILE { xp_f6(xp_c6, xp_s6) }"#;
+        host xp_c6 { ip 10.22.6.1 }
+        host xp_s6 { ip 10.22.6.2 }
+        flow xp_f6(a6, b6) { a6 -> b6 snmp1 user "alice" }
+        compile { xp_f6(xp_c6, xp_s6) }"#;
     assert_semantic_error(script_snmp1_usm, "SNMPv3 USM fields cannot be used with SNMP1");
 
     let script_snmp1_getbulk = r#"
-        HOST xp_c7 { IP 10.22.7.1 }
-        HOST xp_s7 { IP 10.22.7.2 }
-        FLOW xp_f7(a7, b7) { a7 -> b7 SNMP1 GETBULK }
-        COMPILE { xp_f7(xp_c7, xp_s7) }"#;
+        host xp_c7 { ip 10.22.7.1 }
+        host xp_s7 { ip 10.22.7.2 }
+        flow xp_f7(a7, b7) { a7 -> b7 snmp1 getbulk }
+        compile { xp_f7(xp_c7, xp_s7) }"#;
     assert_semantic_error(script_snmp1_getbulk, "GETBULK and INFORM are not supported in SNMP1");
 
     let script_snmp2_trap = r#"
-        HOST xp_c8 { IP 10.22.8.1 }
-        HOST xp_s8 { IP 10.22.8.2 }
-        FLOW xp_f8(a8, b8) { a8 -> b8 SNMP2 ENTERPRISE "1.3.6.1.4.1" }
-        COMPILE { xp_f8(xp_c8, xp_s8) }"#;
+        host xp_c8 { ip 10.22.8.1 }
+        host xp_s8 { ip 10.22.8.2 }
+        flow xp_f8(a8, b8) { a8 -> b8 snmp2 enterprise "1.3.6.1.4.1" }
+        compile { xp_f8(xp_c8, xp_s8) }"#;
     assert_semantic_error(script_snmp2_trap, "SNMPv1 trap fields cannot be used with SNMP2");
 
     let script_snmp3_comm = r#"
-        HOST xp_c9 { IP 10.22.9.1 }
-        HOST xp_s9 { IP 10.22.9.2 }
-        FLOW xp_f9(a9, b9) { a9 -> b9 SNMP3 COMMUNITY "public" }
-        COMPILE { xp_f9(xp_c9, xp_s9) }"#;
+        host xp_c9 { ip 10.22.9.1 }
+        host xp_s9 { ip 10.22.9.2 }
+        flow xp_f9(a9, b9) { a9 -> b9 snmp3 community "public" }
+        compile { xp_f9(xp_c9, xp_s9) }"#;
     assert_semantic_error(script_snmp3_comm, "COMMUNITY cannot be used with SNMP3");
 }
 
@@ -813,10 +813,10 @@ pub fn test_adversarial_delayed_pcap_not_created_on_syntax_error() {
 #[test]
 pub fn test_adversarial_delayed_pcap_not_created_on_semantic_error() {
     let sem_err_script = r#"
-        HOST sem_c4 { IP 10.23.0.1 }
-        HOST sem_s6 { IP 2001:db8::99 }
-        FLOW sem_f(sc4, ss6) { sc4 -> ss6 TCP SYN }
-        COMPILE { sem_f(sem_c4, sem_s6) }"#;
+        host sem_c4 { ip 10.23.0.1 }
+        host sem_s6 { ip 2001:db8::99 }
+        flow sem_f(sc4, ss6) { sc4 -> ss6 tcp syn }
+        compile { sem_f(sem_c4, sem_s6) }"#;
     let sem_err_path = get_unique_temp_pcap_path();
 
     assert!(parse_program(sem_err_script).is_err(), "Mixed endpoints must produce SemanticError");
@@ -835,9 +835,9 @@ pub fn test_adversarial_delayed_pcap_preserves_preexisting_file_on_error() {
     assert!(sentinel_path.exists());
 
     let dup_script = r#"
-        HOST sentinel_h { IP 10.24.0.1 }
-        HOST sentinel_h { IP 10.24.0.2 }
-        COMPILE {}"#;
+        host sentinel_h { ip 10.24.0.1 }
+        host sentinel_h { ip 10.24.0.2 }
+        compile {}"#;
     assert!(parse_program(dup_script).is_err(), "Duplicate host must fail validation");
 
     let current_content = fs::read(&sentinel_path).expect("Read existing file content");
@@ -853,10 +853,10 @@ pub fn test_adversarial_delayed_pcap_created_on_success() {
     assert!(!ok_path.exists());
 
     let valid_fasm = r#"
-        HOST ok_cli { IP 10.25.0.1 }
-        HOST ok_srv { IP 10.25.0.2 }
-        FLOW ok_flow(oc, os) { oc -> os UDP PAYLOAD "ValidPayload" }
-        COMPILE { ok_flow(ok_cli, ok_srv) }"#;
+        host ok_cli { ip 10.25.0.1 }
+        host ok_srv { ip 10.25.0.2 }
+        flow ok_flow(oc, os) { oc -> os udp payload "ValidPayload" }
+        compile { ok_flow(ok_cli, ok_srv) }"#;
 
     let program = parse_program(valid_fasm).expect("Parse valid script");
     generate_pcap(&program, ok_str).expect("PCAP generation should succeed");
@@ -872,17 +872,17 @@ pub fn test_adversarial_delayed_pcap_created_on_success() {
 #[test]
 pub fn test_adversarial_explicit_port_override_updates_remembered_state() {
     let script = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST server { IP 10.0.0.2 }
+        host client { ip 10.0.0.1 }
+        host server { ip 10.0.0.2 }
 
-        FLOW dynamic_ports(c, s) {
-            c -> s TCP SYN SRCPORT 12345 DSTPORT 80
-            c <- s TCP SYN ACK
-            c -> s TCP PSH ACK SRCPORT 23456 PAYLOAD "NewPortData"
-            c <- s TCP ACK
+        flow dynamic_ports(c, s) {
+            c -> s tcp syn srcport 12345 dstport 80
+            c <- s tcp syn ack
+            c -> s tcp psh ack srcport 23456 payload "NewPortData"
+            c <- s tcp ack
         }
 
-        COMPILE {
+        compile {
             dynamic_ports(client, server)
         }
     "#;
@@ -913,18 +913,18 @@ pub fn test_adversarial_explicit_port_override_updates_remembered_state() {
 #[test]
 pub fn test_adversarial_extended_five_turn_conversation_sequence_integrity() {
     let script = r#"
-        HOST c { IP 10.10.10.1 }
-        HOST s { IP 10.10.10.2 }
+        host c { ip 10.10.10.1 }
+        host s { ip 10.10.10.2 }
 
-        FLOW chat(client, server) {
-            client -> server TCP SYN SRCPORT 50000 DSTPORT 9000
-            client <- server TCP SYN ACK
-            client -> server TCP PSH ACK PAYLOAD "Msg1_From_Client_10B"
-            client <- server TCP PSH ACK PAYLOAD "Msg2_From_Server_20Bytes"
-            client -> server TCP PSH ACK PAYLOAD "Msg3_Final_Client_15B"
+        flow chat(client, server) {
+            client -> server tcp syn srcport 50000 dstport 9000
+            client <- server tcp syn ack
+            client -> server tcp psh ack payload "Msg1_From_Client_10B"
+            client <- server tcp psh ack payload "Msg2_From_Server_20Bytes"
+            client -> server tcp psh ack payload "Msg3_Final_Client_15B"
         }
 
-        COMPILE {
+        compile {
             chat(c, s)
         }
     "#;

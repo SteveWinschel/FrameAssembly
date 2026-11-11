@@ -1,20 +1,20 @@
 // PROMPT: IGMPv2 Leave Group message triggering a Group-Specific Query with short MAX_RESP 10 (1.0s).
-// TOKENS: HOST, IP, FLOW, IGMP, LEAVE, GROUP, TTL, QUERY, MAX_RESP, WAIT, REPORT, COMPILE
+// TOKENS: host, ip, flow, igmp, leave, group, ttl, query, maxresp, wait, ms, report, compile
 
 // INSTRUCTION: Define departing multicast host.
-HOST igmp_leaving_host { IP 10.20.1.101 }
+host igmp_leaving_host { ip 10.20.1.101 }
 
 // INSTRUCTION: Define local IGMPv2 querier router verifying remaining group members.
-HOST igmp_local_querier { IP 10.20.1.1 }
+host igmp_local_querier { ip 10.20.1.1 }
 
 // INSTRUCTION: Define Leave Group followed by Group-Specific Query and remaining member Report.
-FLOW igmp_fast_leave_verify(host, q) {
-    host -> q IGMP LEAVE GROUP 239.255.1.10 TTL 1
-    host <- q IGMP QUERY GROUP 239.255.1.10 MAX_RESP 10 TTL 1 WAIT 5ms
-    host -> q IGMP REPORT GROUP 239.255.1.10 TTL 1 WAIT 15ms
+flow igmp_fast_leave_verify(host, q) {
+    host -> q igmp leave group 239.255.1.10 ttl 1
+    host <- q igmp query group 239.255.1.10 maxresp 10 ttl 1 wait 5ms
+    host -> q igmp report group 239.255.1.10 ttl 1 wait 15ms
 }
 
 // INSTRUCTION: Compile the IGMPv2 Group-Specific Query fast-leave flow.
-COMPILE {
+compile {
     igmp_fast_leave_verify(igmp_leaving_host, igmp_local_querier)
 }

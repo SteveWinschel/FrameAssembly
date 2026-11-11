@@ -1,14 +1,14 @@
-//! Seven-gate corpus, lexer-bijection, Markdown/Rustdoc block compilation, five-way grammar
+//! Seven-gate corpus, lexer-bijection, Markdown/Rustdoc block compilation, six-way grammar/parser
 //! lockstep, AI pre-training chunk filter, AST-to-builder field wiring, and reverse PCAP
-//! decompiler symmetry suite for FrameAssembly:
+//! decompiler symmetry suite for FrameAssembly v2.0.0:
 //! 1. **Gate 1**: All 2,611 `.fasm` files satisfy header/metric rules and compile to PCAPNG (`0x0A0D0D0A`).
-//! 2. **Gate 2**: `// TOKENS:` matches `src/lexer/mod.rs` keywords in first-appearance order.
-//! 3. **Gate 3**: All ````frameassembly` and ````fasm` blocks across docs and `src/**/*.rs` compile.
-//! 4. **Gate 4**: Five-way grammar lockstep (`grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, TextMate).
+//! 2. **Gate 2**: `// TOKENS:` matches `src/lexer/mod.rs` lowercase keywords in exact first-appearance order.
+//! 3. **Gate 3**: All ````frameassembly` and ````fasm` blocks across docs, skills, and `src/**/*.rs` compile.
+//! 4. **Gate 4**: Six-way lockstep (`src/lexer/mod.rs`, `src/parser/`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, TextMate).
 //! 5. **Gate 5**: `< 50 KB` Rust/corpus ceiling, `//!` docstrings (`>= 50` words), zero NUL bytes, 13 docs.
 //! 6. **Gate 6**: AST `*Spec` fields wired to builders and 1:1 reverse decompiler file symmetry.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -39,9 +39,16 @@ fn get_sorted_example_paths() -> Vec<PathBuf> {
     paths
 }
 
-/// Extracts all uppercase `#[token("...")]` keyword literals from `src/lexer/mod.rs`.
-fn extract_lexer_uppercase_keywords() -> HashSet<String> {
+/// Extracts all built-in `#[token("...")]` keyword literals from `src/lexer/mod.rs`, asserting
+/// FrameAssembly v2.0.0 strict-lowercase `[a-z0-9]+` invariants (zero uppercase, zero `_`, zero `-`,
+/// zero `ignore(ascii_case)`, and zero `loop`).
+fn extract_lexer_lowercase_keywords() -> HashSet<String> {
     let lexer_src = fs::read_to_string("src/lexer/mod.rs").expect("Failed to read src/lexer/mod.rs");
+    assert!(
+        !lexer_src.contains("ignore(ascii_case)"),
+        "src/lexer/mod.rs must not use ignore(ascii_case) in FrameAssembly v2.0.0"
+    );
+    let punct: HashSet<&str> = ["{", "}", "(", ")", "->", "<-", ","].into_iter().collect();
     let mut keywords = HashSet::new();
     for line in lexer_src.lines() {
         let trimmed = line.trim();
@@ -49,15 +56,85 @@ fn extract_lexer_uppercase_keywords() -> HashSet<String> {
             && let Some(end_idx) = rest.find('"')
         {
             let tok = &rest[..end_idx];
-            if !tok.is_empty()
-                && tok.chars().next().unwrap().is_ascii_uppercase()
-                && tok.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
-            {
-                keywords.insert(tok.to_string());
+            if punct.contains(tok) {
+                continue;
             }
+            assert!(
+                !tok.is_empty()
+                    && tok.chars().next().unwrap().is_ascii_lowercase()
+                    && tok.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()),
+                "Every built-in keyword in src/lexer/mod.rs must be strict [a-z0-9]+ without '_' or '-', found: '{}'",
+                tok
+            );
+            assert_ne!(
+                tok, "loop",
+                "Removed 'loop' token must not exist in src/lexer/mod.rs"
+            );
+            keywords.insert(tok.to_string());
         }
     }
     keywords
+}
+
+/// Extracts all `Token` enum variant identifiers from `src/lexer/mod.rs`.
+fn extract_lexer_token_variants() -> HashSet<String> {
+    let lexer_src = fs::read_to_string("src/lexer/mod.rs").expect("Failed to read src/lexer/mod.rs");
+    let mut variants = HashSet::new();
+    let mut in_enum = false;
+    for line in lexer_src.lines() {
+        let s = line.trim();
+        if s.starts_with("pub enum Token") {
+            in_enum = true;
+            continue;
+        }
+        if in_enum && s == "}" {
+            break;
+        }
+        if !in_enum || s.starts_with("//") {
+            continue;
+        }
+        let after_attr = if let Some((_, rhs)) = s.rsplit_once(']') {
+            rhs.trim()
+        } else {
+            s
+        };
+        let name = after_attr
+            .split('(')
+            .next()
+            .unwrap_or("")
+            .trim_end_matches(',')
+            .trim();
+        if !name.is_empty() && name.chars().next().unwrap().is_ascii_uppercase() {
+            variants.insert(name.to_string());
+        }
+    }
+    variants
+}
+
+/// Computes the expected `// TOKENS:` list from the ordered unique keyword slices emitted by `Token::lexer`,
+/// respecting the 200-character line-length cap on multi-protocol omnibus files.
+fn expected_tokens_for_file(ordered_keywords: &[String]) -> Vec<String> {
+    let full = format!("// TOKENS: {}", ordered_keywords.join(", "));
+    if full.len() <= 200 {
+        return ordered_keywords.to_vec();
+    }
+    let tail = ordered_keywords
+        .last()
+        .cloned()
+        .unwrap_or_else(|| "compile".to_string());
+    let mut prefix = Vec::new();
+    for tok in &ordered_keywords[..ordered_keywords.len().saturating_sub(1)] {
+        let mut candidate = prefix.clone();
+        candidate.push(tok.clone());
+        candidate.push(tail.clone());
+        if format!("// TOKENS: {}", candidate.join(", ")).len() <= 200 {
+            prefix.push(tok.clone());
+        } else {
+            break;
+        }
+    }
+    prefix.push(tail);
+    prefix
 }
 
 /// Inspects and verifies a single `.fasm` example file for Gate 1 and Gate 2.
@@ -87,6 +164,29 @@ fn verify_example_file(path: &Path, valid_keywords: &HashSet<String>) -> Result<
         return Err(format!("{}: Max line length {} exceeds 200 chars", path.display(), max_line_len));
     }
 
+    // OpenCoder duplicate non-blank line ratio (< 0.25)
+    let mut line_counts: HashMap<&str, usize> = HashMap::new();
+    let mut non_blank_chars = 0usize;
+    for &ln in &lines {
+        if !ln.trim().is_empty() {
+            *line_counts.entry(ln).or_insert(0) += 1;
+            non_blank_chars += ln.len();
+        }
+    }
+    let dupe_chars: usize = line_counts
+        .iter()
+        .filter(|(_, c)| **c > 1)
+        .map(|(ln, c)| ln.len() * (*c - 1))
+        .sum();
+    let dupe_ratio = dupe_chars as f64 / (non_blank_chars.max(1) as f64);
+    if dupe_ratio >= 0.25 {
+        return Err(format!(
+            "{}: Duplicate line character ratio {:.3} >= 0.25",
+            path.display(),
+            dupe_ratio
+        ));
+    }
+
     if !lines[0].starts_with("// PROMPT: ") {
         return Err(format!("{}: Line 1 must begin with '// PROMPT: ', got: '{}'", path.display(), lines[0]));
     }
@@ -102,7 +202,14 @@ fn verify_example_file(path: &Path, valid_keywords: &HashSet<String>) -> Result<
         return Err(format!("{}: TOKENS comment body cannot be empty", path.display()));
     }
 
-    for raw_tok in tokens_body.split(',').map(str::trim).filter(|s| !s.is_empty()) {
+    let header_tokens: Vec<String> = tokens_body
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(ToString::to_string)
+        .collect();
+
+    for raw_tok in &header_tokens {
         if !valid_keywords.contains(raw_tok) {
             return Err(format!("{}: Non-canonical or unknown token '{}' in // TOKENS: header", path.display(), raw_tok));
         }
@@ -110,6 +217,38 @@ fn verify_example_file(path: &Path, valid_keywords: &HashSet<String>) -> Result<
         if let Some(Ok(Token::Ident(id))) = lex.next() {
             return Err(format!("{}: Hallucinated identifier '{}' in // TOKENS: header", path.display(), id));
         }
+    }
+
+    // Gate 2 exact ordered lexer bijection check on the code body
+    let mut ordered_body_keywords = Vec::new();
+    let mut seen_kw = HashSet::new();
+    let mut body_lex = Token::lexer(&content);
+    while let Some(res) = body_lex.next() {
+        let tok = res.map_err(|_| format!("{}: Lexer error in code body", path.display()))?;
+        let slice = body_lex.slice();
+        if valid_keywords.contains(slice)
+            && !matches!(
+                tok,
+                Token::Ident(_)
+                    | Token::StringLit(_)
+                    | Token::IpAddress(_)
+                    | Token::MacAddress(_)
+                    | Token::OidStr(_)
+                    | Token::Number(_)
+            )
+            && seen_kw.insert(slice.to_string())
+        {
+            ordered_body_keywords.push(slice.to_string());
+        }
+    }
+    let expected_header = expected_tokens_for_file(&ordered_body_keywords);
+    if header_tokens != expected_header {
+        return Err(format!(
+            "{}: // TOKENS: bijection mismatch\n  header:   {:?}\n  expected: {:?}",
+            path.display(),
+            header_tokens,
+            expected_header
+        ));
     }
 
     if !content.contains("// INSTRUCTION:") {
@@ -250,7 +389,7 @@ fn test_corpus_protocol_folder_coverage() {
 #[test]
 fn test_corpus_all_examples_headers_and_compilation() {
     let paths = get_sorted_example_paths();
-    let valid_keywords = extract_lexer_uppercase_keywords();
+    let valid_keywords = extract_lexer_lowercase_keywords();
     assert_eq!(
         paths.len(),
         2611,
@@ -314,8 +453,8 @@ fn verify_fasm_blocks_in_file(path: &Path) -> Result<usize, String> {
         } else if in_block && trimmed.starts_with("```") {
             in_block = false;
             let snippet = current_block.trim();
-            let snippet_upper = snippet.to_ascii_uppercase();
-            if snippet_upper.contains("HOST ") && snippet_upper.contains("COMPILE") {
+            let snippet_lower = snippet.to_ascii_lowercase();
+            if snippet_lower.contains("host ") && snippet_lower.contains("compile") {
                 let prog = parse_program(snippet)
                     .map_err(|e| format!("{}:{}: Fenced .fasm block failed to parse: {:?}", path.display(), block_start_line, e))?;
                 validate_semantics(&prog, snippet)
@@ -376,7 +515,6 @@ fn test_gate3_all_markdown_and_rustdoc_fasm_blocks_compile() {
 
 /// Verifies that every RHS non-terminal referenced in `grammar.ebnf` is defined on the LHS.
 fn verify_ebnf_non_terminal_resolution(ebnf: &str) {
-    // Strip (* ... *) comments
     let chars: Vec<char> = ebnf.chars().collect();
     let mut no_comments = String::with_capacity(ebnf.len());
     let mut idx = 0;
@@ -396,7 +534,6 @@ fn verify_ebnf_non_terminal_resolution(ebnf: &str) {
         }
     }
 
-    // Split into rules on ';' outside "...", '...', and ?...?
     let mut stmts = Vec::new();
     let mut cur = String::new();
     let mut in_dq = false;
@@ -458,16 +595,9 @@ fn verify_ebnf_non_terminal_resolution(ebnf: &str) {
         }
     }
 
-    assert!(
-        defined_lhs.contains("program"),
-        "grammar.ebnf must define 'program' entrypoint"
-    );
+    assert!(defined_lhs.contains("program"), "grammar.ebnf must define 'program' entrypoint");
     for referenced in &rhs_non_terminals {
-        assert!(
-            defined_lhs.contains(referenced),
-            "Undefined EBNF non-terminal '{}' referenced on RHS in grammar.ebnf",
-            referenced
-        );
+        assert!(defined_lhs.contains(referenced), "Undefined EBNF non-terminal '{referenced}' in grammar.ebnf");
     }
 }
 
@@ -475,7 +605,6 @@ fn verify_ebnf_non_terminal_resolution(ebnf: &str) {
 fn verify_gbnf_non_terminal_resolution(gbnf: &str) {
     let mut defined_lhs = HashSet::new();
     let mut rhs_non_terminals = Vec::new();
-
     for line in gbnf.lines() {
         let trimmed = line.trim();
         if trimmed.is_empty() || trimmed.starts_with('#') {
@@ -487,23 +616,16 @@ fn verify_gbnf_non_terminal_resolution(gbnf: &str) {
         } else {
             trimmed
         };
-
-        let mut in_quotes = false;
-        let mut in_brackets = false;
-        let mut escaped = false;
+        let (mut in_quotes, mut in_brackets, mut escaped) = (false, false, false);
         let mut cleaned = String::new();
         for ch in rhs.chars() {
             if escaped {
                 escaped = false;
                 cleaned.push(' ');
-                continue;
-            }
-            if ch == '\\' && (in_quotes || in_brackets) {
+            } else if ch == '\\' && (in_quotes || in_brackets) {
                 escaped = true;
                 cleaned.push(' ');
-                continue;
-            }
-            if ch == '"' && !in_brackets {
+            } else if ch == '"' && !in_brackets {
                 in_quotes = !in_quotes;
                 cleaned.push(' ');
             } else if !in_quotes && ch == '[' {
@@ -512,12 +634,10 @@ fn verify_gbnf_non_terminal_resolution(gbnf: &str) {
             } else if !in_quotes && ch == ']' {
                 in_brackets = false;
                 cleaned.push(' ');
-            } else if !in_quotes && !in_brackets {
-                if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
-                    cleaned.push(ch);
-                } else {
-                    cleaned.push(' ');
-                }
+            } else if !in_quotes && !in_brackets && (ch.is_ascii_alphanumeric() || ch == '-' || ch == '_') {
+                cleaned.push(ch);
+            } else {
+                cleaned.push(' ');
             }
         }
         for word in cleaned.split_whitespace() {
@@ -526,29 +646,21 @@ fn verify_gbnf_non_terminal_resolution(gbnf: &str) {
             }
         }
     }
-
-    assert!(
-        defined_lhs.contains("root"),
-        "frameassembly.gbnf must define 'root' entrypoint"
-    );
+    assert!(defined_lhs.contains("root"), "frameassembly.gbnf must define 'root' entrypoint");
     for referenced in &rhs_non_terminals {
-        assert!(
-            defined_lhs.contains(referenced),
-            "Undefined GBNF non-terminal '{}' referenced on RHS in frameassembly.gbnf",
-            referenced
-        );
+        assert!(defined_lhs.contains(referenced), "Undefined GBNF non-terminal '{referenced}' in frameassembly.gbnf");
     }
 }
 
-/// Gate 4: Verifies 5-way grammar lockstep across `src/lexer/mod.rs`, `grammar.ebnf`,
-/// `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly.tmLanguage.json`, plus
-/// automated RHS non-terminal resolution in `grammar.ebnf` and `frameassembly.gbnf`.
+/// Gate 4: Verifies 6-way grammar and parser lockstep across `src/lexer/mod.rs`, `src/parser/`,
+/// `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly.tmLanguage.json`,
+/// plus automated RHS non-terminal resolution in `grammar.ebnf` and `frameassembly.gbnf`.
 #[test]
 fn test_gate4_constrained_decoding_grammar_lockstep() {
-    let keywords = extract_lexer_uppercase_keywords();
+    let keywords = extract_lexer_lowercase_keywords();
     assert!(
         keywords.len() >= 640,
-        "Expected at least 640 uppercase lexer tokens, found {}",
+        "Expected at least 640 strict-lowercase lexer tokens, found {}",
         keywords.len()
     );
 
@@ -558,7 +670,38 @@ fn test_gate4_constrained_decoding_grammar_lockstep() {
     let tm_json = fs::read_to_string("frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json")
         .expect("Missing frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json");
 
+    for (g_name, g_src) in [
+        ("grammar.ebnf", &ebnf),
+        ("frameassembly.gbnf", &gbnf),
+        ("frameassembly.lark", &lark),
+    ] {
+        assert!(
+            !g_src.contains("\"loop\"") && !g_src.contains("\"LOOP\""),
+            "{} must not contain removed loop keyword",
+            g_name
+        );
+    }
+    assert!(
+        lark.contains("str_or_ident:") && lark.contains("contextual_keyword"),
+        "frameassembly.lark str_or_ident must union contextual_keyword so unquoted values parse cleanly"
+    );
+
+    let mut parser_files = Vec::new();
+    collect_files_with_ext(Path::new("src/parser"), "rs", &mut parser_files);
+    let mut all_parser_src = String::new();
+    for pf in &parser_files {
+        all_parser_src.push_str(&fs::read_to_string(pf).expect("Failed to read parser file"));
+        all_parser_src.push('\n');
+    }
+
     let mut missing = Vec::new();
+    for variant in extract_lexer_token_variants() {
+        let pat = format!("Token::{}", variant);
+        if !all_parser_src.contains(&pat) {
+            missing.push(format!("src/parser/ missing wiring for {}", pat));
+        }
+    }
+
     for kw in &keywords {
         let quoted = format!("\"{}\"", kw);
         if !ebnf.contains(&quoted) {
@@ -573,15 +716,11 @@ fn test_gate4_constrained_decoding_grammar_lockstep() {
         if !tm_json.contains(kw.as_str()) {
             missing.push(format!("frameassembly.tmLanguage.json missing {}", kw));
         }
-        let kw_lower = kw.to_ascii_lowercase();
-        if !tm_json.contains(&kw_lower) {
-            missing.push(format!("frameassembly.tmLanguage.json missing {}", kw_lower));
-        }
     }
 
     assert!(
         missing.is_empty(),
-        "Five-way grammar lockstep violations:\n{}",
+        "Six-way grammar & parser lockstep violations:\n{}",
         missing.join("\n")
     );
 
@@ -747,7 +886,6 @@ fn test_gate6_ast_spec_fields_wired_to_builders() {
             .and_then(|s| s.to_str())
             .expect("AST file must reside under src/ast/<layer>/");
 
-        // Load corresponding builder/packet/backend sources for this protocol
         let mut target_paths = vec![
             PathBuf::from("src/backend/mod.rs"),
             PathBuf::from("src/backend/l7_dispatch.rs"),
@@ -880,9 +1018,9 @@ fn test_reverse_decompiler_per_protocol_file_symmetry() {
     }
 }
 
-/// Gate 7: Verifies v1.5.1 release packaging hygiene (no stray `output.pcap`, `vsc-extension-quickstart.md`,
-/// or old `.vsix`), ensures `frameassembly-vscode/frameassembly-vscode-1.5.1.vsix`
-/// is packaged with v1.5.1 manifest, syntax, and snippets, checks `llms.txt` (`< 512` lines, `< 25 KB`),
+/// Gate 7: Verifies v2.0.0 release packaging hygiene (no stray `output.pcap` or legacy `.vsix`
+/// files), verifies `frameassembly-vscode/frameassembly-vscode-2.0.0.vsix` bundles the WASM-powered
+/// Packet Studio assets without overwriting it, checks `llms.txt` (`< 512` lines, `< 25 KB`),
 /// and synchronizes/verifies `llms-full.txt` against `llms.txt`, `README.md`, `AGENTS.md`,
 /// `docs/*.md`, `grammar.ebnf`, `frameassembly.gbnf`, and `frameassembly.lark`.
 #[test]
@@ -895,184 +1033,88 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
         "frameassembly-vscode/frameassembly-vscode-1.4.5.vsix",
         "frameassembly-vscode/frameassembly-vscode-1.4.6.vsix",
         "frameassembly-vscode/frameassembly-vscode-1.5.0.vsix",
+        "frameassembly-vscode/frameassembly-vscode-1.5.1.vsix",
     ] {
-        let p = Path::new(stray);
-        if p.exists() {
-            fs::remove_file(p).unwrap_or_else(|e| panic!("Failed to remove {}: {}", stray, e));
-        }
-        assert!(!p.exists(), "Stray file {} must not exist", stray);
+        assert!(
+            !Path::new(stray).exists(),
+            "Stray or legacy artifact {} must not exist in v2.0.0",
+            stray
+        );
     }
 
-    let py_vsix_script = r#"
-import os, zipfile
-
-vsix_new = "frameassembly-vscode/frameassembly-vscode-1.5.1.vsix"
-content_types = '''<?xml version="1.0" encoding="utf-8"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-\t<Default Extension="json" ContentType="application/json"/>
-\t<Default Extension="md" ContentType="text/markdown"/>
-\t<Default Extension="vsixmanifest" ContentType="text/xml"/>
-\t<Default Extension="png" ContentType="image/png"/>
-\t<Default Extension="code-snippets" ContentType="application/json"/>
-</Types>'''
-
-vsixmanifest = '''<?xml version="1.0" encoding="utf-8"?>
-<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
-\t<Metadata>
-\t\t<Identity Language="en-US" Id="frameassembly-vscode" Version="1.5.1" Publisher="SteveWinschel" />
-\t\t<DisplayName>FrameAssembly (.fasm Packet Crafting DSL)</DisplayName>
-\t\t<Description xml:space="preserve">Syntax highlighting and language support for FrameAssembly (.fasm), the declarative DSL for deterministic .pcap/.pcapng network packet generation across 81 L2-L7 protocols.</Description>
-\t\t<Tags>frameassembly,fasm,pcap,pcapng,wireshark,packet-crafting,networking,security,dsl</Tags>
-\t\t<Categories>Programming Languages</Categories>
-\t\t<GalleryFlags>Public</GalleryFlags>
-\t\t<Icon>extension/icon.png</Icon>
-\t\t<Properties>
-\t\t\t<Property Id="Microsoft.VisualStudio.Code.Engine" Value="^1.75.0" />
-\t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.Source" Value="https://github.com/SteveWinschel/FrameAssembly.git" />
-\t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.Getstarted" Value="https://frameassembly.ai.studio/" />
-\t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.GitHub" Value="https://github.com/SteveWinschel/FrameAssembly.git" />
-\t\t\t<Property Id="Microsoft.VisualStudio.Services.Links.Learn" Value="https://frameassembly.ai.studio/" />
-\t\t\t<Property Id="Microsoft.VisualStudio.Services.GitHubFlavoredMarkdown" Value="true" />
-\t\t</Properties>
-\t\t<License>extension/LICENSE.txt</License>
-\t</Metadata>
-\t<Installation><InstallationTarget Id="Microsoft.VisualStudio.Code"/></Installation>
-\t<Dependencies/>
-\t<Assets>
-\t\t<Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
-\t\t<Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" />
-\t\t<Asset Type="Microsoft.VisualStudio.Services.Content.Changelog" Path="extension/CHANGELOG.md" Addressable="true" />
-\t\t<Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE.txt" Addressable="true" />
-\t\t<Asset Type="Microsoft.VisualStudio.Services.Icons.Default" Path="extension/icon.png" Addressable="true" />
-\t</Assets>
-</PackageManifest>'''
-
-files = [
-    ("package.json", "extension/package.json"),
-    ("README.md", "extension/README.md"),
-    ("CHANGELOG.md", "extension/CHANGELOG.md"),
-    ("language-configuration.json", "extension/language-configuration.json"),
-    ("syntaxes/frameassembly.tmLanguage.json", "extension/syntaxes/frameassembly.tmLanguage.json"),
-    ("syntaxes/frameassembly.markdown.tmLanguage.json", "extension/syntaxes/frameassembly.markdown.tmLanguage.json"),
-    ("snippets/frameassembly.code-snippets", "extension/snippets/frameassembly.code-snippets"),
-]
-with zipfile.ZipFile(vsix_new, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-    zf.writestr("[Content_Types].xml", content_types)
-    zf.writestr("extension.vsixmanifest", vsixmanifest)
-    for src, arc in files:
-        zf.write(os.path.join("frameassembly-vscode", src), arc)
-    if os.path.exists("frameassembly-vscode/icon.png"):
-        zf.write("frameassembly-vscode/icon.png", "extension/icon.png")
-    if os.path.exists("LICENSE"):
-        zf.write("LICENSE", "extension/LICENSE.txt")
+    let vsix_v2 = Path::new("frameassembly-vscode/frameassembly-vscode-2.0.0.vsix");
+    assert!(
+        vsix_v2.exists(),
+        "Bundled frameassembly-vscode/frameassembly-vscode-2.0.0.vsix must exist"
+    );
+    let py_check_vsix = r#"
+import zipfile
+with zipfile.ZipFile("frameassembly-vscode/frameassembly-vscode-2.0.0.vsix", "r") as zf:
+    names = set(zf.namelist())
+for req in [
+    "extension/package.json",
+    "extension/extension.js",
+    "extension/protocol_schema.json",
+    "extension/wasm/frameassembly_wasm_bg.wasm",
+    "extension/readme.md",
+]:
+    assert req in names, f"Missing {req} in frameassembly-vscode-2.0.0.vsix"
 "#;
-
     let status = std::process::Command::new("python3")
         .arg("-c")
-        .arg(py_vsix_script)
+        .arg(py_check_vsix)
         .status()
-        .expect("Failed to execute python3 for VSIX packaging");
-    assert!(status.success(), "VSIX packaging script failed");
-    assert!(
-        Path::new("frameassembly-vscode/frameassembly-vscode-1.5.1.vsix").exists(),
-        "New frameassembly-vscode-1.5.1.vsix must exist"
-    );
+        .expect("Failed to execute python3 for read-only VSIX verification");
+    assert!(status.success(), "Read-only VSIX v2.0.0 inspection failed");
 
     let llms_txt = fs::read_to_string("llms.txt").expect("Missing llms.txt");
     let llms_lines = llms_txt.lines().count();
     assert!(
-        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("1.5.1"),
-        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 1.5.1 (got {} lines, {} bytes)",
+        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("2.0.0"),
+        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 2.0.0 (got {} lines, {} bytes)",
         llms_lines,
         llms_txt.len()
     );
 
-    let existing_full = fs::read_to_string("llms-full.txt").unwrap_or_default();
-    let readme = fs::read_to_string("README.md").expect("Missing README.md");
-    let agents = fs::read_to_string("AGENTS.md").expect("Missing AGENTS.md");
-    let mut rebuilt = String::with_capacity(750_000);
-    rebuilt.push_str("# FrameAssembly (`frameassembly`)\n\n");
-    rebuilt.push_str("> Rootless \"Packets as Code\" / \"PCAP as Code\" DSL & Rust compiler (v1.5.1) that compiles declarative `.fasm` (`text/vnd.frameassembly`) packet definitions into deterministic, nanosecond-accurate `.pcap` / `.pcapng` captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.fasm` code—across 81 native Layer 2 through Layer 7 protocols, with IPv4/IPv6 flow reuse, automatic TCP SEQ/ACK and reply-port tracking, and SNMPv3 USM (RFC 3414/3826/7860) cryptography. Built as the upstream companion compiler to Wireshark/`tshark` (inspection), `tcpreplay` (wire injection), and Suricata/Zeek (IDS/IPS testing).\n\n");
-    rebuilt.push_str("FrameAssembly (`https://frameassembly.ai.studio/`, `https://github.com/SteveWinschel/FrameAssembly`, `https://crates.io/crates/frameassembly`, `https://docs.rs/frameassembly`) synthesizes bit-exact, reproducible `.pcap` / `.pcapng` captures offline in userspace with no `libpcap` or raw sockets required, and provides an interactive browser playground at `https://frameassembly.ai.studio/`. Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports) and supports explicit field and payload overrides via `frameassembly <input.fasm> [-o <output.pcap>]`, `frameassembly show <input.fasm>`, and `frameassembly reverse <input.pcap> [-o <output.fasm>]`.\n\n");
-    rebuilt.push_str("## Section Manifest & Bundle Table of Contents\n\n");
-    rebuilt.push_str("1. **Zero-Shot `.fasm` Grammar, Anti-Hallucination Table & `llms.txt` Index**\n");
-    rebuilt.push_str("2. **Public Rust Library API, 4-Stage RLVR Reward & Compiler Diagnostics (`src/lib.rs`, `src/reverse/mod.rs` & `src/error.rs`)**\n");
-    rebuilt.push_str("3. **Repository Overview & 81-Protocol Default Reference (`README.md`)**\n");
-    rebuilt.push_str("4. **Repository Agent Guide (`AGENTS.md`)**\n");
-    for (i, doc_name) in CANONICAL_DOCS.iter().enumerate() {
-        rebuilt.push_str(&format!("{}. **Documentation Guide (`docs/{}`)**\n", i + 5, doc_name));
+    // Read-only verification of `llms-full.txt` (generated by docs/AI-map pipeline; never overwrite from tests).
+    let full_bytes = fs::read("llms-full.txt").expect("Missing llms-full.txt");
+    assert!(
+        !full_bytes.contains(&0),
+        "llms-full.txt must contain zero 0x00 NUL bytes"
+    );
+    assert!(
+        (100_000..900_000).contains(&full_bytes.len()),
+        "llms-full.txt must be between 100 KB and 900 KB (got {} bytes)",
+        full_bytes.len()
+    );
+    let full_txt = String::from_utf8(full_bytes).expect("llms-full.txt must be valid UTF-8");
+    assert!(
+        full_txt.contains("frameassembly demo.fasm") || full_txt.contains("frameassembly test.fasm"),
+        "llms-full.txt missing default root CLI invocation (`frameassembly <input.fasm>`)"
+    );
+    for required_marker in [
+        "2.0.0",
+        "frameassembly show",
+        "frameassembly reverse",
+        "README.md",
+        "AGENTS.md",
+        "grammar.ebnf",
+        "frameassembly.gbnf",
+        "frameassembly.lark",
+    ] {
+        assert!(
+            full_txt.contains(required_marker),
+            "llms-full.txt missing required v2.0.0 marker `{required_marker}`"
+        );
     }
-    rebuilt.push_str("18. **Formal ISO/IEC 14977 EBNF Grammar (`grammar.ebnf`)**\n");
-    rebuilt.push_str("19. **Formal GBNF Constrained Decoding Grammar (`frameassembly.gbnf`)**\n");
-    rebuilt.push_str("20. **Formal Lark Earley/LALR Constrained Decoding Grammar (`frameassembly.lark`)**\n");
-    rebuilt.push_str("21. **Complete AST `*Spec` Syntax Mapping Reference (`src/ast/{l2,l3,l4,l7}/*.rs`)**\n");
-    rebuilt.push_str("22. **Representative `.fasm` Corpus Scenarios (`examples/{l2,l3,l4,l7,topologies}/`)**\n\n");
-    rebuilt.push_str("### Zero-Shot `.fasm` Grammar & Anti-Hallucination Reference\n\n");
-    rebuilt.push_str(llms_txt.trim_end());
-    rebuilt.push_str("\n\n---\n\n");
-    rebuilt.push_str("# Public Rust Library API, 4-Stage RLVR Reward & Compiler Diagnostics (`src/lib.rs`, `src/reverse/mod.rs` & `src/error.rs`)\n\n");
-    rebuilt.push_str("- `frameassembly::lexer::lex<'a>(input: &'a str) -> Result<Vec<(Token<'a>, Range<usize>)>, CompilerError>`\n");
-    rebuilt.push_str("- `frameassembly::parser::parse_program<'a>(input_str: &'a str) -> Result<Program<'a>, CompilerError>` (automatically runs `validate_semantics`)\n");
-    rebuilt.push_str("- `frameassembly::parser::validate_semantics(program: &Program, src: &str) -> Result<(), CompilerError>`\n");
-    rebuilt.push_str("- `frameassembly::backend::compile_program(program: &Program) -> Result<Vec<(Vec<u8>, u64)>, String>` (returns `(raw_ethernet_frame_bytes, timestamp_ns)`)\n");
-    rebuilt.push_str("- `frameassembly::backend::generate_pcap(program: &Program, output_path: &str) -> Result<(), String>`\n");
-    rebuilt.push_str("- `frameassembly::reverse::reverse_pcap_reader<R: std::io::Read>(reader: R) -> Result<ReverseOutput, CompilerError>`\n");
-    rebuilt.push_str("- `frameassembly::reverse::reverse_pcap_bytes(bytes: &[u8]) -> Result<ReverseOutput, CompilerError>`\n");
-    rebuilt.push_str("- `frameassembly::reverse::reverse_pcap_file(path: impl AsRef<std::path::Path>) -> Result<ReverseOutput, CompilerError>`\n");
-    rebuilt.push_str("- `frameassembly::reverse::ReverseOutput { pub fasm: String, pub packet_count: usize, pub host_count: usize }`\n");
-    rebuilt.push_str("- **4-Stage Additive RLVR Compiler & Reverse Oracle Reward ($R \\in [0.0, 1.0]$)**: `+0.15` Stage 1 Lex (`0.15`), `+0.25` Stage 2 Parse (`0.40`), `+0.30` Stage 3 Semantics (`0.70`), `+0.30` Stage 4 Wire Compile + `reverse_pcap_bytes` Oracle (`1.00`)\n");
-    rebuilt.push_str("- `frameassembly::error::CompilerError`:\n");
-    rebuilt.push_str("  - `CompilerError::LexError { src: String, span: (usize, usize) }` (`frameassembly::lex_error`)\n");
-    rebuilt.push_str("  - `CompilerError::ParseError { message: String, src: String, span: (usize, usize) }` (`frameassembly::parse_error`)\n");
-    rebuilt.push_str("  - `CompilerError::SemanticError { message: String, src: String, span: (usize, usize) }` (`frameassembly::semantic_error`)\n");
-    rebuilt.push_str("  - `CompilerError::BackendError(String)` (`frameassembly::backend_error`)\n\n---\n\n");
-    rebuilt.push_str("# Repository Overview (`README.md`)\n\n");
-    rebuilt.push_str(readme.trim_end());
-    rebuilt.push_str("\n\n---\n\n# Repository Agent Guide (`AGENTS.md`)\n\n");
-    rebuilt.push_str(agents.trim_end());
-    rebuilt.push_str("\n\n---\n\n");
     for doc_name in CANONICAL_DOCS {
-        let doc_content = fs::read_to_string(Path::new("docs").join(doc_name)).expect("Missing doc file");
-        rebuilt.push_str(&format!("# Documentation Bundle: `docs/{}`\n\n{}\n\n---\n\n", doc_name, doc_content.trim_end()));
-    }
-    for (title, file, lang) in [
-        ("Formal ISO/IEC 14977 EBNF Grammar (`grammar.ebnf`)", "grammar.ebnf", "ebnf"),
-        ("Formal GBNF Constrained Decoding Grammar (`frameassembly.gbnf`)", "frameassembly.gbnf", "gbnf"),
-        ("Formal Lark Earley/LALR Constrained Decoding Grammar (`frameassembly.lark`)", "frameassembly.lark", "lark"),
-    ] {
-        let g_src = fs::read_to_string(file).expect("Missing grammar file");
-        rebuilt.push_str(&format!("# {}\n\n```{}\n{}\n```\n\n---\n\n", title, lang, g_src.trim_end()));
-    }
-    rebuilt.push_str("# Rust AST Protocol Specifications & Syntax Mappings (`src/ast/`)\n\n");
-    let mut ast_files = Vec::new();
-    for layer in ["l2", "l3", "l4", "l7"] {
-        collect_files_with_ext(&Path::new("src/ast").join(layer), "rs", &mut ast_files);
-    }
-    ast_files.sort();
-    for ast_path in &ast_files {
-        if ast_path.file_stem().and_then(|s| s.to_str()) == Some("mod") {
-            continue;
-        }
-        let ast_src = fs::read_to_string(ast_path).expect("Missing AST file");
-        rebuilt.push_str(&format!("## `{}`\n\n```rust\n{}\n```\n\n", ast_path.display(), ast_src.trim_end()));
-    }
-    rebuilt.push_str("---\n\n# Representative `.fasm` Corpus Scenarios (`examples/`)\n\n");
-    for sample_path in [
-        "contrib/linguist/samples/enterprise_snmpv3_and_tls.fasm",
-        "examples/topologies/complete_dsl_omnibus_reference.fasm",
-        "examples/topologies/dual_stack_polymorphic_flow_basic.fasm",
-    ] {
-        let sample_src = fs::read_to_string(sample_path).expect("Missing sample .fasm file");
-        rebuilt.push_str(&format!("## `{}`\n\n```frameassembly\n{}\n```\n\n", sample_path, sample_src.trim_end()));
-    }
-    if rebuilt != existing_full {
-        fs::write("llms-full.txt", &rebuilt).expect("Failed to write synchronized llms-full.txt");
+        assert!(
+            full_txt.contains(doc_name),
+            "llms-full.txt missing canonical doc reference `{doc_name}`"
+        );
     }
     assert!(
-        rebuilt.len() < 900_000 && !rebuilt.as_bytes().contains(&0) && rebuilt.contains("1.5.1"),
-        "llms-full.txt must be < 900,000 bytes with zero NUL bytes and reference 1.5.1 (got {} bytes)",
-        rebuilt.len()
+        !full_txt.contains("\n  LOOP ") && !full_txt.contains("\nLOOP "),
+        "llms-full.txt must not contain legacy v1 LOOP blocks"
     );
 }
-
-

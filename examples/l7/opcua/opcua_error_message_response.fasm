@@ -1,19 +1,19 @@
 // PROMPT: OPC UA Error (ERR) response returned when requesting an invalid endpoint URL.
-// TOKENS: HOST, IP, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, ENDPOINT_URL, WAIT, HEXPAYLOAD, COMPILE
+// TOKENS: host, ip, flow, s, opcua, msgtype, chunktype, endpointurl, wait, ms, hexpayload, compile
 
 // INSTRUCTION: Define diagnostic laptop host.
-HOST diag_client { IP 192.168.120.88 }
+host diag_client { ip 192.168.120.88 }
 
 // INSTRUCTION: Define gateway OPC UA server host.
-HOST opc_gateway { IP 192.168.120.1 }
+host opc_gateway { ip 192.168.120.1 }
 
 // INSTRUCTION: Define HEL request to unknown endpoint and ERR response with status code.
-FLOW opcua_error_reply(c, s) {
-    c -> s OPCUA MSG_TYPE "HEL" CHUNK_TYPE "F" ENDPOINT_URL "opc.tcp://192.168.120.1:4840/unknown" WAIT 8ms
-    c <- s OPCUA MSG_TYPE "ERR" CHUNK_TYPE "F" HEXPAYLOAD "00003f8000000000"
+flow opcua_error_reply(c, s) {
+    c -> s opcua msgtype "hel" chunktype "f" endpointurl "opc.tcp://192.168.120.1:4840/unknown" wait 8ms
+    c <- s opcua msgtype "err" chunktype "f" hexpayload "00003f8000000000"
 }
 
 // INSTRUCTION: Compile the OPC UA error scenario.
-COMPILE {
+compile {
     opcua_error_reply(diag_client, opc_gateway)
 }

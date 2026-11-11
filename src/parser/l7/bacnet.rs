@@ -1,11 +1,11 @@
 //! Building Automation and Control Networks (BACnet/IP) Layer 7 protocol field parser.
 //!
-//! This module implements the `winnow` parser combinator for ASHRAE 135 `BACNET` BVLL/NPDU/APDU
-//! frames over UDP port 47808 in FrameAssembly `.fasm` specifications. It recognizes the `BACNET`
-//! protocol keyword, unconfirmed and confirmed service flags (`WHO_IS`, `I_AM`, `READ_PROPERTY`,
-//! `WRITE_PROPERTY`), APDU invoke IDs (`INVOKE_ID`), object types (`OBJECT_TYPE`), object
-//! instances (`OBJECT_INSTANCE`), property identifiers (`PROPERTY_ID`), and property values
-//! (`VALUE`).
+//! This module implements the `winnow` parser combinator for ASHRAE 135 `bacnet` BVLL/NPDU/APDU
+//! frames over UDP port 47808 in FrameAssembly `.fasm` specifications. It recognizes the `bacnet`
+//! protocol keyword, unconfirmed and confirmed service flags (`whois`, `iam`, `readproperty`,
+//! `writeproperty`), APDU invoke IDs (`invokeid`), object types (`objecttype`), object
+//! instances (`objectinstance`), property identifiers (`propertyid`), and property values
+//! (`value`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
@@ -21,7 +21,7 @@ pub(crate) fn parse_bacnet_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<
         alt((
             tag(Token::Bacnet)
                 .map(|(_, s)| ParsedField::Protocol(Protocol::Bacnet, (s.start, s.len()))),
-            tag(Token::WhoIs).map(|(_, s)| ParsedField::L7Flag("WHO_IS", (s.start, s.len()))),
+            tag(Token::Whois).map(|(_, s)| ParsedField::L7Flag("WHO_IS", (s.start, s.len()))),
             tag(Token::IAm).map(|(_, s)| ParsedField::L7Flag("I_AM", (s.start, s.len()))),
             tag(Token::ReadProperty)
                 .map(|(_, s)| ParsedField::L7Flag("READ_PROPERTY", (s.start, s.len()))),

@@ -1,7 +1,7 @@
 //! Memcached Binary and ASCII Caching Protocol wire payload builder.
 //!
 //! This module implements [`build_memcached_payload`], which serializes a [`MemcachedSpec`]
-//! AST node into a Memcached wire frame over TCP or UDP port 11211. When `OPAQUE` or `CAS` is
+//! AST node into a Memcached wire frame over TCP or UDP port 11211. When `opaque` or `cas` is
 //! specified, it emits a 24-byte Memcached Binary Protocol request header (`0x80` magic, opcode,
 //! key length, extras length, total body length, opaque token, and 64-bit CAS) followed by extras,
 //! key, and value bytes; otherwise it formats a human-readable ASCII storage or retrieval command
@@ -18,8 +18,12 @@ pub fn build_memcached_payload(
     payload_bytes: &[u8],
 ) -> Vec<u8> {
     if spec.opcode.is_some() || spec.opaque.is_some() || spec.cas.is_some() {
-        let cmd_upper = spec.cmd.unwrap_or("GET").to_ascii_uppercase();
-        let opcode = spec.opcode.unwrap_or(match cmd_upper.as_str() {
+        let cmd_norm = spec
+            .cmd
+            .unwrap_or("get")
+            .to_ascii_uppercase()
+            .replace(['_', '-'], "");
+        let opcode = spec.opcode.unwrap_or(match cmd_norm.as_str() {
             "GET" => 0x00,
             "SET" => 0x01,
             "ADD" => 0x02,
@@ -28,7 +32,7 @@ pub fn build_memcached_payload(
             "INCREMENT" | "INCR" => 0x05,
             "DECREMENT" | "DECR" => 0x06,
             "QUIT" => 0x07,
-            "FLUSH" | "FLUSH_ALL" => 0x08,
+            "FLUSH" | "FLUSHALL" => 0x08,
             "NOOP" => 0x0A,
             "VERSION" => 0x0B,
             "APPEND" => 0x0E,
@@ -80,10 +84,15 @@ pub fn build_memcached_payload(
 
     let is_storage_fields =
         spec.flags.is_some() || spec.exptime.is_some() || spec.value.is_some();
-    let cmd_lower = spec
+    let raw_cmd = spec
         .cmd
-        .unwrap_or(if is_storage_fields { "set" } else { "get" })
-        .to_ascii_lowercase();
+        .unwrap_or(if is_storage_fields { "set" } else { "get" });
+    let cmd_norm = raw_cmd.to_ascii_uppercase().replace(['_', '-'], "");
+    let cmd_lower = if cmd_norm == "FLUSHALL" {
+        alloc::string::String::from("flush_all")
+    } else {
+        raw_cmd.to_ascii_lowercase()
+    };
 
     if matches!(
         cmd_lower.as_str(),

@@ -6,27 +6,27 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b TLS [CLIENT_HELLO | SERVER_HELLO | CERTIFICATE | FINISHED | APP_DATA | ALERT] [RECORD_VERSION <u16>] [HANDSHAKE_VERSION <u16>] [SNI <str>] [CIPHERSUITE <u16>] [ALPN <str>]`
+//! `a -> b tls [clienthello | serverhello | certificate | finished | appdata | alert] [recordversion <u16>] [handshakeversion <u16>] [sni <str>] [ciphersuite <u16>] [alpn <str>]`
 
 /// RFC 8446 Transport Layer Security specification.
 ///
-/// Syntax mapping: `TLS [CLIENT_HELLO | SERVER_HELLO | CERTIFICATE | FINISHED | APP_DATA | ALERT] [RECORD_VERSION <u16>] [HANDSHAKE_VERSION <u16>] [SNI <str>] [CIPHERSUITE <u16>] [ALPN <str>]`
-#[doc(alias = "TLS")]
+/// Syntax mapping: `tls [clienthello | serverhello | certificate | finished | appdata | alert] [recordversion <u16>] [handshakeversion <u16>] [sni <str>] [ciphersuite <u16>] [alpn <str>]`
+#[doc(alias = "tls")]
 #[doc(alias = "TLS13")]
 #[doc(alias = "RFC 8446")]
 #[doc(alias = "RFC8446")]
 #[doc(alias = "RFC 5246")]
-#[doc(alias = "CLIENT_HELLO")]
-#[doc(alias = "SERVER_HELLO")]
-#[doc(alias = "CERTIFICATE")]
-#[doc(alias = "FINISHED")]
-#[doc(alias = "APP_DATA")]
-#[doc(alias = "ALERT")]
-#[doc(alias = "RECORD_VERSION")]
-#[doc(alias = "HANDSHAKE_VERSION")]
-#[doc(alias = "SNI")]
-#[doc(alias = "ALPN")]
-#[doc(alias = "CIPHERSUITE")]
+#[doc(alias = "clienthello")]
+#[doc(alias = "serverhello")]
+#[doc(alias = "certificate")]
+#[doc(alias = "finished")]
+#[doc(alias = "appdata")]
+#[doc(alias = "alert")]
+#[doc(alias = "recordversion")]
+#[doc(alias = "handshakeversion")]
+#[doc(alias = "sni")]
+#[doc(alias = "alpn")]
+#[doc(alias = "ciphersuite")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TlsSpec<'a> {
     /// ClientHello handshake flag.

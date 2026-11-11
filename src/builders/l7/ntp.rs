@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b NTP [LI <u8>] [VN <u8>] [MODE <u8>] [STRATUM <u8>] [POLL <u8>] [PRECISION <i8>] [REFID <str>] [TX_TIMESTAMP <u64>]`
+//! `a -> b ntp [li <u8>] [vn <u8>] [mode <u8>] [stratum <u8>] [poll <u8>] [precision <i8>] [refid <str>] [txtimestamp <u64>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 5905 NTPv4 packet payload.
-/// Syntax mapping: `NTP [LI <u8>] [VN <u8>] [MODE <u8>] [STRATUM <u8>] [POLL <u8>] [PRECISION <i8>] [REFID <str>] [TX_TIMESTAMP <u64>]`
+/// Syntax mapping: `ntp [li <u8>] [vn <u8>] [mode <u8>] [stratum <u8>] [poll <u8>] [precision <i8>] [refid <str>] [txtimestamp <u64>]`
 #[doc(alias = "NTP")]
 #[doc(alias = "SNTP")]
 #[doc(alias = "RFC5905")]

@@ -1,18 +1,18 @@
 // PROMPT: TFTP Read Request (RRQ) querying remote boot image file in octet mode.
-// TOKENS: HOST, IP, FLOW, TFTP, RRQ, FILENAME, MODE, COMPILE
+// TOKENS: host, ip, flow, s, tftp, rrq, filename, mode, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.15 }
+host client { ip 192.168.1.15 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.168.1.1 }
+host server { ip 192.168.1.1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW tftp_read(c, s) {
-    c -> s TFTP RRQ FILENAME "pxelinux.0" MODE "octet"
+flow tftp_read(c, s) {
+    c -> s tftp rrq filename "pxelinux.0" mode "octet"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     tftp_read(client, server)
 }

@@ -1,6 +1,6 @@
 //! Internet Message Access Protocol v4rev1 (IMAP4, RFC 3501 / RFC 9051) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `IMAP` client command and server
+//! This module implements fuzz-safe wire-to-AST dissection for `imap` client command and server
 //! response frames over TCP ports `143` and `993`. It parses CRLF-delimited tagged (`A01` and
 //! custom tags) and untagged (`*`) lines, distinguishing completion status responses (`OK`, `NO`,
 //! `BAD` with `status` and `response` modifiers) from command invocations (`cmd`, `arg`) while
@@ -31,7 +31,7 @@ fn split_crlf_line(bytes: &[u8]) -> Option<(&str, &[u8])> {
     Some((line, &bytes[pos + 2..]))
 }
 
-/// Dissects an `IMAP` tagged or untagged command or response line over TCP ports `143` or `993`.
+/// Dissects an `imap` tagged or untagged command or response line over TCP ports `143` or `993`.
 pub(crate) fn dissect_imap(
     transport: TransportProto,
     src_port: u16,

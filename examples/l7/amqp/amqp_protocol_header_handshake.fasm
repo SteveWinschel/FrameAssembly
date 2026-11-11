@@ -1,18 +1,18 @@
 // PROMPT: AMQP 0-9-1 connection initialization protocol header handshake.
-// TOKENS: HOST, IP, FLOW, AMQP, PROTOCOL_HEADER, COMPILE
+// TOKENS: host, ip, flow, s, amqp, protocolheader, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 10.0.0.10 }
+host client { ip 10.0.0.10 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 10.0.0.1 }
+host server { ip 10.0.0.1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW amqp_hdr(c, s) {
-    c -> s AMQP PROTOCOL_HEADER
+flow amqp_hdr(c, s) {
+    c -> s amqp protocolheader
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     amqp_hdr(client, server)
 }

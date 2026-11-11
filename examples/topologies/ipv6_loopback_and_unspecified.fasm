@@ -1,18 +1,18 @@
 // PROMPT: Communication between IPv6 loopback and unspecified addresses to test zero-compression and host resolution.
-// TOKENS: HOST, IP, FLOW, UDP, PAYLOAD, COMPILE
+// TOKENS: host, ip, flow, src, dst, udp, payload, compile
 
 // INSTRUCTION: Define loopback host with ::1.
-HOST loop_host { IP ::1 }
+host loop_host { ip ::1 }
 
 // INSTRUCTION: Define remote host with unspecified address ::.
-HOST unspec_host { IP :: }
+host unspec_host { ip :: }
 
 // INSTRUCTION: Define UDP flow between loopback and unspecified endpoints.
-FLOW unspec_flow(src, dst) {
-    src -> dst UDP PAYLOAD "loop_to_unspec"
+flow unspec_flow(src, dst) {
+    src -> dst udp payload "loop_to_unspec"
 }
 
 // INSTRUCTION: Compile block executing the flow.
-COMPILE {
+compile {
     unspec_flow(loop_host, unspec_host)
 }

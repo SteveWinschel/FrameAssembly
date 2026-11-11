@@ -1,47 +1,47 @@
 // PROMPT: Simulate a multi-device SSDP discovery where a single M-SEARCH for ssdp:all elicits responses from three LAN appliances.
-// TOKENS: HOST, MAC, IP, FLOW, SSDP, MSEARCH, HOST_HDR, MAN, MX, ST, WAIT, NOTIFY, NT, NTS, USN, LOCATION, COMPILE
+// TOKENS: host, mac, ip, flow, ssdp, msearch, hosthdr, man, mx, st, wait, ms, notify, nt, nts, usn, location, compile
 
 // INSTRUCTION: Define host endpoint scanner_pc.
-HOST scanner_pc {
-    MAC 00:50:56:01:19:00
-    IP 192.168.100.10
+host scanner_pc {
+    mac 00:50:56:01:19:00
+    ip 192.168.100.10
 }
 
 // INSTRUCTION: Define host endpoint iot_gw.
-HOST iot_gw {
-    MAC 00:50:56:01:19:01
-    IP 192.168.100.1
+host iot_gw {
+    mac 00:50:56:01:19:01
+    ip 192.168.100.1
 }
 
 // INSTRUCTION: Define host endpoint iot_nas.
-HOST iot_nas {
-    MAC 00:50:56:01:19:02
-    IP 192.168.100.20
+host iot_nas {
+    mac 00:50:56:01:19:02
+    ip 192.168.100.20
 }
 
 // INSTRUCTION: Define host endpoint iot_tv.
-HOST iot_tv {
-    MAC 00:50:56:01:19:03
-    IP 192.168.100.30
+host iot_tv {
+    mac 00:50:56:01:19:03
+    ip 192.168.100.30
 }
 
 // INSTRUCTION: Define host endpoint ssdp_lan_mcast.
-HOST ssdp_lan_mcast {
-    MAC 01:00:5e:7f:ff:fa
-    IP 239.255.255.250
+host ssdp_lan_mcast {
+    mac 01:00:5e:7f:ff:fa
+    ip 239.255.255.250
 }
 
 // INSTRUCTION: Send one M-SEARCH for ssdp:all and collect staggered announcements from all three devices.
-FLOW ssdp_multi_device_sweep(scanner_pc, iot_gw, iot_nas, iot_tv, ssdp_lan_mcast) {
-    scanner_pc -> ssdp_lan_mcast SSDP MSEARCH HOST_HDR "239.255.255.250:1900" MAN "\"ssdp:discover\"" MX 5 ST "ssdp:all" WAIT 10ms
-    iot_gw -> scanner_pc SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "upnp:rootdevice" NTS "ssdp:alive" USN "uuid:gw-01::upnp:rootdevice"
-        LOCATION "http://192.168.100.1:1900/igd.xml" WAIT 10ms
-    iot_nas -> scanner_pc SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "upnp:rootdevice" NTS "ssdp:alive" USN "uuid:nas-02::upnp:rootdevice"
-        LOCATION "http://192.168.100.20:5000/desc.xml" WAIT 10ms
-    iot_tv -> scanner_pc SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "upnp:rootdevice" NTS "ssdp:alive" USN "uuid:tv-03::upnp:rootdevice" LOCATION "http://192.168.100.30:7676/smp_2_"
+flow ssdp_multi_device_sweep(scanner_pc, iot_gw, iot_nas, iot_tv, ssdp_lan_mcast) {
+    scanner_pc -> ssdp_lan_mcast ssdp msearch hosthdr "239.255.255.250:1900" man "\"ssdp:discover\"" mx 5 st "ssdp:all" wait 10ms
+    iot_gw -> scanner_pc ssdp notify hosthdr "239.255.255.250:1900" nt "upnp:rootdevice" nts "ssdp:alive" usn "uuid:gw-01::upnp:rootdevice"
+        location "http://192.168.100.1:1900/igd.xml" wait 10ms
+    iot_nas -> scanner_pc ssdp notify hosthdr "239.255.255.250:1900" nt "upnp:rootdevice" nts "ssdp:alive" usn "uuid:nas-02::upnp:rootdevice"
+        location "http://192.168.100.20:5000/desc.xml" wait 10ms
+    iot_tv -> scanner_pc ssdp notify hosthdr "239.255.255.250:1900" nt "upnp:rootdevice" nts "ssdp:alive" usn "uuid:tv-03::upnp:rootdevice" location "http://192.168.100.30:7676/smp_2_"
 }
 
 // INSTRUCTION: Compile the multi-device SSDP sweep flow.
-COMPILE {
+compile {
     ssdp_multi_device_sweep(scanner_pc, iot_gw, iot_nas, iot_tv, ssdp_lan_mcast)
 }

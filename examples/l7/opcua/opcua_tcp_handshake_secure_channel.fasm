@@ -1,24 +1,24 @@
 // PROMPT: Full TCP three-way handshake followed by OPC UA HEL, ACK, and OPN negotiation.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, DSTPORT, ACK, WAIT, OPCUA, MSG_TYPE, CHUNK_TYPE, ENDPOINT_URL, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, COMPILE
+// TOKENS: host, ip, mac, flow, tcp, syn, dstport, ack, wait, ms, opcua, msgtype, chunktype, endpointurl, securechannelid, tokenid, seqnum, reqid, compile
 
 // INSTRUCTION: Define HMI operator station endpoint.
-HOST hmi_station { IP 192.168.50.15 MAC 00:0e:8c:50:00:0f }
+host hmi_station { ip 192.168.50.15 mac 00:0e:8c:50:00:0f }
 
 // INSTRUCTION: Define industrial robotics controller endpoint.
-HOST robot_ctrl { IP 192.168.50.1 MAC 00:0e:8c:50:00:01 }
+host robot_ctrl { ip 192.168.50.1 mac 00:0e:8c:50:00:01 }
 
 // INSTRUCTION: Define flow with TCP handshake on port 4840 and OPC UA channel open.
-FLOW opcua_tcp_session(hmi, ctrl) {
-    hmi -> ctrl TCP SYN DSTPORT 4840
-    hmi <- ctrl TCP SYN ACK
-    hmi -> ctrl TCP ACK WAIT 2ms
-    hmi -> ctrl OPCUA MSG_TYPE "HEL" CHUNK_TYPE "F" ENDPOINT_URL "opc.tcp://192.168.50.1:4840" WAIT 5ms
-    hmi <- ctrl OPCUA MSG_TYPE "ACK" CHUNK_TYPE "F" WAIT 5ms
-    hmi -> ctrl OPCUA MSG_TYPE "OPN" CHUNK_TYPE "F" SECURE_CHANNEL_ID 101 TOKEN_ID 1 SEQ_NUM 1 REQID 1 WAIT 5ms
-    hmi <- ctrl OPCUA MSG_TYPE "OPN" CHUNK_TYPE "F" SECURE_CHANNEL_ID 101 TOKEN_ID 1 SEQ_NUM 1 REQID 1
+flow opcua_tcp_session(hmi, ctrl) {
+    hmi -> ctrl tcp syn dstport 4840
+    hmi <- ctrl tcp syn ack
+    hmi -> ctrl tcp ack wait 2ms
+    hmi -> ctrl opcua msgtype "hel" chunktype "f" endpointurl "opc.tcp://192.168.50.1:4840" wait 5ms
+    hmi <- ctrl opcua msgtype "ack" chunktype "f" wait 5ms
+    hmi -> ctrl opcua msgtype "opn" chunktype "f" securechannelid 101 tokenid 1 seqnum 1 reqid 1 wait 5ms
+    hmi <- ctrl opcua msgtype "opn" chunktype "f" securechannelid 101 tokenid 1 seqnum 1 reqid 1
 }
 
 // INSTRUCTION: Compile the OPC UA TCP session handshake flow.
-COMPILE {
+compile {
     opcua_tcp_session(hmi_station, robot_ctrl)
 }

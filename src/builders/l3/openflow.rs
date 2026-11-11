@@ -1,13 +1,13 @@
 //! OpenFlow Switch Protocol (ONF OpenFlow v1.0–v1.5) Layer 3 wire builder.
 //!
 //! Serializes an [`OpenflowSpec`] into an 8-byte `ofp_header` (plus optional message body octets)
-//! carried over TCP destination port `6653`. The header writes the 8-bit `version` (`VERSION`,
-//! default `4` for OpenFlow 1.3), 8-bit `type` (`0` `HELLO`, `2` `ECHO_REQ`, `3` `ECHO_REPLY`,
-//! `5` `FEATURES_REQ`, `6` `FEATURES_REPLY`, `10` `PACKET_IN`, `13` `PACKET_OUT`, `14` `FLOW_MOD`),
-//! 16-bit big-endian total `length` (`8 + payload.len()`), and 32-bit big-endian transaction ID (`XID`).
+//! carried over TCP destination port `6653`. The header writes the 8-bit `version` (`version`,
+//! default `4` for OpenFlow 1.3), 8-bit `type` (`0` `hello`, `2` `echoreq`, `3` `echoreply`,
+//! `5` `featuresreq`, `6` `featuresreply`, `10` `packetin`, `13` `packetout`, `14` `flowmod`),
+//! 16-bit big-endian total `length` (`8 + payload.len()`), and 32-bit big-endian transaction ID (`xid`).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b OPENFLOW [HELLO | ECHO_REQ | ECHO_REPLY | FEATURES_REQ | FEATURES_REPLY | PACKET_IN | PACKET_OUT | FLOW_MOD] [VERSION <u8>] [XID <u32>] [DPID <u64>] [TABLE_ID <u8>] [PRIORITY <u16>]`
+//! `a -> b openflow [hello | echoreq | echoreply | featuresreq | featuresreply | packetin | packetout | flowmod] [version <u8>] [xid <u32>] [dpid <u64>] [tableid <u8>] [priority <u16>]`
 
 use crate::ast::*;
 use alloc::vec::Vec;

@@ -1,11 +1,11 @@
 //! Dynamic Host Configuration Protocol (DHCPv4 and DHCPv6) Layer 7 field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 2131 DHCPv4 and RFC 8415 DHCPv6
-//! (`DHCP`) frames in FrameAssembly `.fasm` specifications. It recognizes the `DHCP` protocol
-//! keyword, message type flags (`DISCOVER`, `SOLICIT`, `OFFER`, `ADVERTISE`, `REQUEST`, `ACK`,
-//! `REPLY`, `RELEASE`), transaction IDs (`XID`), client/your/server IP addresses (`CIADDR`,
-//! `YIADDR`, `SIADDR`), client hardware MACs (`CHADDR`), and DHCP options (`HOSTNAME`,
-//! `DNS_SERVER`, `ROUTER`, `SUBNET_MASK`, `LEASE_TIME`).
+//! (`dhcp`) frames in FrameAssembly `.fasm` specifications. It recognizes the `dhcp` protocol
+//! keyword, message type flags (`discover`, `solicit`, `offer`, `advertise`, `request`, `ack`,
+//! `reply`, `release`), transaction IDs (`xid`), client/your/server IP addresses (`ciaddr`,
+//! `yiaddr`, `siaddr`), client hardware MACs (`chaddr`), and DHCP options (`hostname`,
+//! `dnsserver`, `router`, `subnetmask`, `leasetime`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

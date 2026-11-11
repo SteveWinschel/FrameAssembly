@@ -1,10 +1,10 @@
-//! Internet Key Exchange v2 (`IKEV2`, RFC 7296) key management parser for FrameAssembly.
+//! Internet Key Exchange v2 (`ikev2`, RFC 7296) key management parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `IKEV2` security association negotiation
-//! packets over UDP port 500/4500. It supports both explicit (`EXCHANGE SA_INIT`,
-//! `EXCHANGE CREATE_CHILD_SA`, `EXCHANGE INFORMATIONAL`) and shorthand exchange types (`SA_INIT`,
-//! `CREATE_CHILD_SA`, `INFORMATIONAL`), alongside `INITIATOR_SPI`, `RESPONDER_SPI`, `MSGID`,
-//! `FLAGS`, and `NEXT_PAYLOAD`.
+//! This module implements the winnow parser combinator for `ikev2` security association negotiation
+//! packets over UDP port 500/4500. It supports both explicit (`exchange sainit`,
+//! `exchange createchildsa`, `exchange informational`) and shorthand exchange types (`sainit`,
+//! `createchildsa`, `informational`), alongside `initiatorspi`, `responderspi`, `msgid`,
+//! `flags`, and `nextpayload`.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err, opt};

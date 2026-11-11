@@ -3,12 +3,12 @@
 //! Serializes a [`VxlanSpec`] into an 8-byte RFC 7348 VXLAN header followed by an inner IEEE 802.3
 //! Ethernet frame encapsulated over UDP destination port `4789`. Byte 0 sets the mandatory `I` flag
 //! (`0x08`) indicating a valid 24-bit VXLAN Network Identifier, followed by 24 bits of zeroed
-//! `Reserved` octets, the 24-bit big-endian `VNI` (`VNI`, default `4096`), and a trailing 8-bit
-//! `Reserved` zero byte. When no explicit `PAYLOAD` or `HEXPAYLOAD` is supplied, a sensible default
+//! `Reserved` octets, the 24-bit big-endian `VNI` (`vni`, default `4096`), and a trailing 8-bit
+//! `Reserved` zero byte. When no explicit `payload` or `hexpayload` is supplied, a sensible default
 //! inner Ethernet frame (`00:00:00:00:00:02 <- 00:00:00:00:00:01`, EtherType `0x0800`) is synthesized.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b VXLAN [VNI <u24>] [SRCPORT <u16>] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
+//! `a -> b vxlan [vni <u24>] [srcport <u16>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;
 use alloc::vec::Vec;

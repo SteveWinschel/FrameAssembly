@@ -1,29 +1,29 @@
 // PROMPT: RTSP client encountering 500 Internal Server Error and 503 Service Unavailable before retry succeeds.
-// TOKENS: HOST, IP, FLOW, RTSP, DESCRIBE, URI, CSEQ, WAIT, STATUS, SETUP, TRANSPORT_HDR, SESSION, COMPILE
+// TOKENS: host, ip, flow, s, rtsp, describe, uri, cseq, wait, ms, status, setup, transporthdr, session, compile
 
 // INSTRUCTION: Define automated stream health checker client.
-HOST stream_prober {
-    IP 10.190.4.12
+host stream_prober {
+    ip 10.190.4.12
 }
 
 // INSTRUCTION: Define recovering RTSP origin server.
-HOST origin_rtsp {
-    IP 10.190.4.1
+host origin_rtsp {
+    ip 10.190.4.1
 }
 
 // INSTRUCTION: Define DESCRIBE retries across 500 and 503 errors until 200 OK and SETUP.
-FLOW rtsp_5xx_recovery(c, s) {
-    c -> s RTSP DESCRIBE URI "rtsp://10.190.4.1/live/news" CSEQ 1 WAIT 5ms
-    c <- s RTSP STATUS 500 CSEQ 1 WAIT 10ms
-    c -> s RTSP DESCRIBE URI "rtsp://10.190.4.1/live/news" CSEQ 2 WAIT 5ms
-    c <- s RTSP STATUS 503 CSEQ 2 WAIT 10ms
-    c -> s RTSP DESCRIBE URI "rtsp://10.190.4.1/live/news" CSEQ 3 WAIT 5ms
-    c <- s RTSP STATUS 200 CSEQ 3 WAIT 5ms
-    c -> s RTSP SETUP URI "rtsp://10.190.4.1/live/news/track1" CSEQ 4 TRANSPORT_HDR "RTP/AVP;unicast;client_port=5200-5201" WAIT 5ms
-    c <- s RTSP STATUS 200 CSEQ 4 SESSION "recovered_5xx"
+flow rtsp_5xx_recovery(c, s) {
+    c -> s rtsp describe uri "rtsp://10.190.4.1/live/news" cseq 1 wait 5ms
+    c <- s rtsp status 500 cseq 1 wait 10ms
+    c -> s rtsp describe uri "rtsp://10.190.4.1/live/news" cseq 2 wait 5ms
+    c <- s rtsp status 503 cseq 2 wait 10ms
+    c -> s rtsp describe uri "rtsp://10.190.4.1/live/news" cseq 3 wait 5ms
+    c <- s rtsp status 200 cseq 3 wait 5ms
+    c -> s rtsp setup uri "rtsp://10.190.4.1/live/news/track1" cseq 4 transporthdr "RTP/AVP;unicast;client_port=5200-5201" wait 5ms
+    c <- s rtsp status 200 cseq 4 session "recovered_5xx"
 }
 
 // INSTRUCTION: Compile the RTSP 5xx server error recovery scenario.
-COMPILE {
+compile {
     rtsp_5xx_recovery(stream_prober, origin_rtsp)
 }

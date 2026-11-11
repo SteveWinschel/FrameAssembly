@@ -1,6 +1,6 @@
 //! Layer 7 (Application, Infrastructure, Industrial OT, and Network Management) wire builders.
 //!
-//! This module aggregates the wire packet synthesis functions for all 45 Layer 7 protocols
+//! This module aggregates the wire packet synthesis functions for all 50 Layer 7 protocols
 //! supported by FrameAssembly. Each submodule translates a protocol-specific zero-copy AST
 //! specification from [`crate::ast::l7`] and a [`crate::builders::WireContext`] into a
 //! deterministic, standards-compliant Layer 7 byte vector ready for encapsulation inside TCP, UDP,

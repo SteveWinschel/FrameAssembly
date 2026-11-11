@@ -1,19 +1,19 @@
 // PROMPT: MQTT topic subscription request and broker acknowledgment over IPv6.
-// TOKENS: HOST, IP, FLOW, MQTT, SUBSCRIBE, TOPIC, QOS, PKT_ID, SUBACK, COMPILE
+// TOKENS: host, ip, flow, s, mqtt, subscribe, topic, qos, pktid, suback, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 2001:db8::10 }
+host client { ip 2001:db8::10 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 2001:db8::2 }
+host server { ip 2001:db8::2 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW mqtt_sub(c, s) {
-    c -> s MQTT SUBSCRIBE TOPIC "sensors/temp" QOS 1 PKT_ID 100
-    c <- s MQTT SUBACK PKT_ID 100
+flow mqtt_sub(c, s) {
+    c -> s mqtt subscribe topic "sensors/temp" qos 1 pktid 100
+    c <- s mqtt suback pktid 100
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     mqtt_sub(client, server)
 }

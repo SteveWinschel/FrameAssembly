@@ -1,31 +1,31 @@
 // PROMPT: IEEE 802.1s Multiple Spanning Tree Protocol (MSTP) CIST and MSTI payload advertisement over a trunk link.
-// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, MAX_AGE, HELLO_TIME, FORWARD_DELAY, FLAGS, HEXPAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, maxage, hellotime, forwarddelay, flags, hexpayload, wait, s, compile
 
 // INSTRUCTION: Define MSTP regional root switch A.
-HOST mstp_region_root {
-    IP 172.20.1.1
-    MAC 00:1b:54:20:01:01
+host mstp_region_root {
+    ip 172.20.1.1
+    mac 00:1b:54:20:01:01
 }
 
 // INSTRUCTION: Define MSTP regional member switch B.
-HOST mstp_region_member {
-    IP 172.20.1.2
-    MAC 00:1b:54:20:01:02
+host mstp_region_member {
+    ip 172.20.1.2
+    mac 00:1b:54:20:01:02
 }
 
 // INSTRUCTION: Define MSTP BPDU carrying Version 3 MST Configuration Identifier and MSTI 1 record in hex payload.
-FLOW mstp_region_bpdu(rtr_a, rtr_b) {
-    rtr_a -> rtr_b STP RSTP ROOT_ID "4096:00:1b:54:20:01:01"
-        BRIDGE_ID "4096:00:1b:54:20:01:01" COST 0 PORT_ID 32769
-        MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 60
-        HEXPAYLOAD "0040006d73742d726567696f6e2d30310000"
-    rtr_a <- rtr_b STP RSTP ROOT_ID "4096:00:1b:54:20:01:01"
-        BRIDGE_ID "32768:00:1b:54:20:01:02" COST 2000 PORT_ID 32770
-        MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 60
-        HEXPAYLOAD "0040006d73742d726567696f6e2d30310000" WAIT 2s
+flow mstp_region_bpdu(rtr_a, rtr_b) {
+    rtr_a -> rtr_b stp rstp rootid "4096:00:1b:54:20:01:01"
+        bridgeid "4096:00:1b:54:20:01:01" cost 0 portid 32769
+        maxage 20 hellotime 2 forwarddelay 15 flags 60
+        hexpayload "0040006d73742d726567696f6e2d30310000"
+    rtr_a <- rtr_b stp rstp rootid "4096:00:1b:54:20:01:01"
+        bridgeid "32768:00:1b:54:20:01:02" cost 2000 portid 32770
+        maxage 20 hellotime 2 forwarddelay 15 flags 60
+        hexpayload "0040006d73742d726567696f6e2d30310000" wait 2s
 }
 
 // INSTRUCTION: Compile block executing MSTP regional BPDU exchange.
-COMPILE {
+compile {
     mstp_region_bpdu(mstp_region_root, mstp_region_member)
 }

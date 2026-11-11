@@ -1,35 +1,35 @@
 // PROMPT: Model a POP3 server advertising RFC 2449 EXPIRE 30 retention policy and IMPLEMENTATION string in CAPA.
-// TOKENS: HOST, IP, MAC, FLOW, POP3, OK, RESPONSE, WAIT, CMD, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, pop3, ok, response, wait, ms, cmd, payload, compile
 
 // INSTRUCTION: Define the corporate workstation checking server retention policies.
-HOST corp_mua {
-    IP 10.110.75.30
-    MAC 00:16:3e:6e:4b:1e
+host corp_mua {
+    ip 10.110.75.30
+    mac 00:16:3e:6e:4b:1e
 }
 
 // INSTRUCTION: Define the enterprise POP3 server enforcing 30-day server-side message expiration.
-HOST retention_pop3 {
-    IP 10.110.75.1
-    MAC 00:16:3e:6e:4b:01
+host retention_pop3 {
+    ip 10.110.75.1
+    mac 00:16:3e:6e:4b:01
 }
 
 // INSTRUCTION: Query CAPA and inspect EXPIRE 30 and RESP-CODES capabilities.
-FLOW pop3_expire_capa_check(c, s) {
-    c <- s POP3 OK RESPONSE "POP3 service ready" WAIT 2ms
-    c -> s POP3 CMD "CAPA" WAIT 2ms
-    c <- s POP3 OK RESPONSE "Capability list follows" PAYLOAD "TOP
+flow pop3_expire_capa_check(c, s) {
+    c <- s pop3 ok response "POP3 service ready" wait 2ms
+    c -> s pop3 cmd "CAPA" wait 2ms
+    c <- s pop3 ok response "Capability list follows" payload "TOP
 USER
 UIDL
 EXPIRE 30
 RESP-CODES
 IMPLEMENTATION FramePop3d
 .
-" WAIT 2ms
-    c -> s POP3 CMD "QUIT" WAIT 1ms
-    c <- s POP3 OK RESPONSE "Bye"
+" wait 2ms
+    c -> s pop3 cmd "QUIT" wait 1ms
+    c <- s pop3 ok response "Bye"
 }
 
 // INSTRUCTION: Compile the POP3 EXPIRE retention capability discovery scenario.
-COMPILE {
+compile {
     pop3_expire_capa_check(corp_mua, retention_pop3)
 }

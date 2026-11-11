@@ -1,9 +1,9 @@
 //! sFlow v5 Layer 7 switched network packet sampling protocol field parser.
 //!
-//! This module implements the `winnow` parser combinator for sFlow v5 (`SFLOW`) datagrams in
-//! FrameAssembly `.fasm` specifications. It recognizes the `SFLOW` protocol keyword, exporter
-//! agent IP addresses (`AGENT_IP` and `AGENTIP`), sub-agent identifiers (`SUB_AGENT_ID`), switch
-//! uptime values (`UPTIME`), sample counts (`SAMPLES`), and datagram sequence numbers (`SEQ`).
+//! This module implements the `winnow` parser combinator for sFlow v5 (`sflow`) datagrams in
+//! FrameAssembly `.fasm` specifications. It recognizes the `sflow` protocol keyword, exporter
+//! agent IP addresses (`agentip`), sub-agent identifiers (`subagentid`), switch uptime values
+//! (`uptime`), sample counts (`samples`), and datagram sequence numbers (`seq`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
@@ -18,8 +18,6 @@ pub(crate) fn parse_sflow_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<P
     alt((
         tag(Token::Sflow)
             .map(|(_, s)| ParsedField::Protocol(Protocol::Sflow, (s.start, s.len()))),
-        (tag(Token::AgentIpSflow), cut_err(parse_ip))
-            .map(|((_, s), v)| ParsedField::L7IpField("AGENT_IP", v, (s.start, s.end - s.start))),
         (tag(Token::AgentIp), cut_err(parse_ip))
             .map(|((_, s), v)| ParsedField::L7IpField("AGENT_IP", v, (s.start, s.end - s.start))),
         (tag(Token::SubAgentId), cut_err(parse_u32)).map(|((_, s), v)| {

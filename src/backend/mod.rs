@@ -1,10 +1,10 @@
 //! Deterministic backend evaluation and PCAPNG wire packet emission engine.
 //!
 //! This module evaluates a validated [`Program`] AST, resolves host endpoints across flow
-//! invocations and `LOOP` blocks, maintains two-stage TCP/UDP port inheritance and canonical
-//! 4-tuple TCP sequence/acknowledgment state machines, derives RFC 1112 IPv4 and RFC 2464 IPv6
-//! multicast MAC addresses, and emits nanosecond-precision wire frames via [`compile_program`]
-//! and [`generate_pcap`].
+//! invocations and inline `compile` frame statements, maintains two-stage TCP/UDP port inheritance
+//! and canonical 4-tuple TCP sequence/acknowledgment state machines, derives RFC 1112 IPv4 and
+//! RFC 2464 IPv6 multicast MAC addresses, and emits nanosecond-precision wire frames via
+//! [`compile_program`] and [`generate_pcap`].
 
 use crate::ast::*;
 use crate::packet::build_wire_packet;
@@ -1059,7 +1059,7 @@ fn execute_statement(
 /// use frameassembly::parser::parse_program;
 /// use frameassembly::backend::compile_program;
 ///
-/// let src = "HOST a { IP 10.0.0.1 }\nHOST b { IP 10.0.0.2 }\nFLOW f(c, s) { c -> s ICMP ECHO_REQUEST }\nCOMPILE { f(a, b) }";
+/// let src = "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\nflow f(c, s) { c -> s icmp echorequest }\ncompile { f(a, b) }";
 /// let program = parse_program(src).unwrap();
 /// let packets = compile_program(&program).unwrap();
 /// assert_eq!(packets.len(), 1);
@@ -1161,19 +1161,6 @@ pub fn compile_program(program: &Program) -> Result<Vec<(Vec<u8>, u64)>, String>
                     &mut tcp_connections,
                     &mut packet_buffer,
                 )?;
-            }
-            RunStatement::Loop(count, invocations) => {
-                for _ in 0..*count {
-                    for inv in invocations {
-                        execute_invocation(
-                            inv,
-                            &mut current_time_ns,
-                            &mut endpoint_ports,
-                            &mut tcp_connections,
-                            &mut packet_buffer,
-                        )?;
-                    }
-                }
             }
         }
     }

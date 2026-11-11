@@ -1,8 +1,8 @@
 {
   "name": "frameassembly-vscode",
-  "displayName": "FrameAssembly (.fasm Packet Crafting DSL)",
-  "description": "Syntax highlighting and language support for FrameAssembly (.fasm), the declarative DSL for deterministic .pcap/.pcapng network packet generation across 81 L2-L7 protocols.",
-  "version": "1.5.1",
+  "displayName": "FrameAssembly — PCAP & Network Packet Studio (.fasm)",
+  "description": "Compile, inspect, and reverse .pcap / .pcapng network packet captures as .fasm code across 81 L2-L7 protocols with live diagnostics, autocomplete, and packet ladder preview.",
+  "version": "2.0.0",
   "publisher": "SteveWinschel",
   "icon": "icon.png",
   "galleryBanner": {
@@ -21,9 +21,17 @@
   "engines": {
     "vscode": "^1.75.0"
   },
+  "main": "./extension.js",
+  "browser": "./extension.js",
+  "activationEvents": [
+    "onLanguage:frameassembly",
+    "onCommand:frameassembly.reversePcap"
+  ],
   "categories": [
     "Programming Languages",
-    "Snippets"
+    "Snippets",
+    "Linters",
+    "Other"
   ],
   "keywords": [
     "frameassembly",
@@ -31,11 +39,31 @@
     "pcap",
     "pcapng",
     "wireshark",
+    "tshark",
+    "tcpreplay",
     "packet-crafting",
+    "packet-generator",
+    "pcap-editor",
+    "pcap-decompiler",
+    "packets-as-code",
     "networking",
+    "network-testing",
+    "firewall",
     "security",
+    "cybersecurity",
+    "pentesting",
+    "suricata",
+    "zeek",
+    "siem",
+    "ids",
+    "shadow-it",
     "snmp",
-    "dsl"
+    "snmpv3",
+    "checkmk",
+    "zabbix",
+    "modbus",
+    "scada",
+    "vlan"
   ],
   "contributes": {
     "languages": [
@@ -51,7 +79,7 @@
         "mimetypes": [
           "text/vnd.frameassembly"
         ],
-        "firstLine": "^(?:HOST|FLOW|COMPILE|host|flow|compile|//)",
+        "firstLine": "^(?:host|flow|compile|//)",
         "configuration": "./language-configuration.json"
       }
     ],
@@ -77,6 +105,43 @@
         "language": "frameassembly",
         "path": "./snippets/frameassembly.code-snippets"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "frameassembly.compileToPcap",
+        "title": "FrameAssembly: Compile .fasm to .pcapng",
+        "icon": "$(package)"
+      },
+      {
+        "command": "frameassembly.showPacketLadder",
+        "title": "FrameAssembly: Show Live Packet Ladder Preview",
+        "icon": "$(split-horizontal)"
+      },
+      {
+        "command": "frameassembly.reversePcap",
+        "title": "FrameAssembly: Reverse Capture (.pcap/.pcapng) to .fasm"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "frameassembly.showPacketLadder",
+          "when": "editorLangId == frameassembly",
+          "group": "navigation@1"
+        },
+        {
+          "command": "frameassembly.compileToPcap",
+          "when": "editorLangId == frameassembly",
+          "group": "navigation@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "frameassembly.reversePcap",
+          "when": "resourceExtname == .pcap || resourceExtname == .pcapng",
+          "group": "navigation@1"
+        }
+      ]
+    }
   }
 }

@@ -1,8 +1,8 @@
 //! Link Layer Discovery Protocol (LLDP, IEEE 802.1AB) Layer 2 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IEEE 802.1AB Link Layer
-//! Discovery Protocol (`LLDP`, EtherType `0x88CC`) frames in FrameAssembly. It walks the TLV chain
-//! to extract Chassis ID (`chassis_id`), Port ID (`port_id`), Time-to-Live (`ttl`), System Name
+//! Discovery Protocol (`lldp`, EtherType `0x88CC`) frames in FrameAssembly. It walks the TLV chain
+//! to extract Chassis ID (`chassisid`), Port ID (`portid`), Time-to-Live (`ttl`), System Name
 //! (`sysname`), and System Description (`sysdesc`) attributes while preserving unknown or
 //! vendor-specific TLVs in the residual payload slice.
 
@@ -15,7 +15,7 @@ use crate::reverse::{
     ProtocolDissection, be_u16, escape_fasm_string, format_mac_lower, mac_at, push_if, sd,
 };
 
-/// Decompiles an IEEE 802.1AB `LLDP` frame (`0x88CC`) into a [`ProtocolDissection`].
+/// Decompiles an IEEE 802.1AB `lldp` frame (`0x88CC`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_lldp(b: &[u8], src_mac: [u8; 6]) -> ProtocolDissection {
     let b = b.strip_suffix(&[0, 0]).unwrap_or(b);
     let (mut t, mut pos, mut ext) = (String::from("lldp"), 0usize, Vec::new());
@@ -44,7 +44,7 @@ pub(crate) fn dissect_lldp(b: &[u8], src_mac: [u8; 6]) -> ProtocolDissection {
                         core::str::from_utf8(&val[1..]).unwrap_or("").to_string()
                     };
                     if !cid.is_empty() {
-                        let _ = write!(t, " chassis_id \"{}\"", escape_fasm_string(&cid));
+                        let _ = write!(t, " chassisid \"{}\"", escape_fasm_string(&cid));
                     }
                 }
             }
@@ -52,7 +52,7 @@ pub(crate) fn dissect_lldp(b: &[u8], src_mac: [u8; 6]) -> ProtocolDissection {
                 if let Ok(s) = core::str::from_utf8(&val[1..])
                     && s != "eth0"
                 {
-                    let _ = write!(t, " port_id \"{}\"", escape_fasm_string(s));
+                    let _ = write!(t, " portid \"{}\"", escape_fasm_string(s));
                 }
             }
             3 if val.len() == 2 => push_if(&mut t, "ttl", be_u16(val, 0), 120),

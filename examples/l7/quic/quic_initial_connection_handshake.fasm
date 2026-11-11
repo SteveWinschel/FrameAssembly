@@ -1,18 +1,18 @@
 // PROMPT: RFC 9000 QUIC Initial packet establishing connection state with DCID and SCID.
-// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, DCID, SCID, COMPILE
+// TOKENS: host, ip, flow, s, quic, initial, dcid, scid, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.100 }
+host client { ip 192.168.1.100 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 198.51.100.1 }
+host server { ip 198.51.100.1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW quic_init(c, s) {
-    c -> s QUIC INITIAL DCID 0x01020304 SCID 0x05060708
+flow quic_init(c, s) {
+    c -> s quic initial dcid 0x01020304 scid 0x05060708
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     quic_init(client, server)
 }

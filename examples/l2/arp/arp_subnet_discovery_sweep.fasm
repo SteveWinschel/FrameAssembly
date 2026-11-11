@@ -1,27 +1,27 @@
 // PROMPT: Subnet-wide ARP discovery sweep probing sequential host IP addresses from a network scanner.
-// TOKENS: HOST, IP, MAC, FLOW, ARP, REQUEST, SHA, SPA, TPA, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, arp, request, sha, spa, tpa, wait, ms, compile
 
 // INSTRUCTION: Define network inventory scanner host.
-HOST net_scanner {
-    IP 10.15.0.5
-    MAC 00:16:3e:77:88:99
+host net_scanner {
+    ip 10.15.0.5
+    mac 00:16:3e:77:88:99
 }
 
 // INSTRUCTION: Define target broadcast domain placeholder endpoint.
-HOST subnet_target {
-    IP 10.15.0.254
-    MAC ff:ff:ff:ff:ff:ff
+host subnet_target {
+    ip 10.15.0.254
+    mac ff:ff:ff:ff:ff:ff
 }
 
 // INSTRUCTION: Define sequential ARP discovery requests across multiple target IPs.
-FLOW arp_subnet_sweep(scanner, broadcast) {
-    scanner -> broadcast ARP REQUEST SHA 00:16:3e:77:88:99 SPA 10.15.0.5 TPA 10.15.0.10
-    scanner -> broadcast ARP REQUEST SHA 00:16:3e:77:88:99 SPA 10.15.0.5 TPA 10.15.0.11 WAIT 5ms
-    scanner -> broadcast ARP REQUEST SHA 00:16:3e:77:88:99 SPA 10.15.0.5 TPA 10.15.0.12 WAIT 5ms
-    scanner -> broadcast ARP REQUEST SHA 00:16:3e:77:88:99 SPA 10.15.0.5 TPA 10.15.0.13 WAIT 5ms
+flow arp_subnet_sweep(scanner, broadcast) {
+    scanner -> broadcast arp request sha 00:16:3e:77:88:99 spa 10.15.0.5 tpa 10.15.0.10
+    scanner -> broadcast arp request sha 00:16:3e:77:88:99 spa 10.15.0.5 tpa 10.15.0.11 wait 5ms
+    scanner -> broadcast arp request sha 00:16:3e:77:88:99 spa 10.15.0.5 tpa 10.15.0.12 wait 5ms
+    scanner -> broadcast arp request sha 00:16:3e:77:88:99 spa 10.15.0.5 tpa 10.15.0.13 wait 5ms
 }
 
 // INSTRUCTION: Compile block executing sequential ARP discovery sweep.
-COMPILE {
+compile {
     arp_subnet_sweep(net_scanner, subnet_target)
 }

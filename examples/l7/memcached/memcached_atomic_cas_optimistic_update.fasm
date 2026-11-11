@@ -1,18 +1,18 @@
 // PROMPT: Memcached Compare-And-Swap atomic update with CAS token validation.
-// TOKENS: HOST, IP, FLOW, MEMCACHED, CMD, KEY, CAS, COMPILE
+// TOKENS: host, ip, flow, memcached, cmd, key, cas, compile
 
 // INSTRUCTION: Define inventory transaction worker.
-HOST inventory_worker { IP 192.168.15.22 }
+host inventory_worker { ip 192.168.15.22 }
 
 // INSTRUCTION: Define centralized Memcached host.
-HOST central_memcached { IP 192.168.15.10 }
+host central_memcached { ip 192.168.15.10 }
 
 // INSTRUCTION: Define atomic CAS update flow.
-FLOW atomic_cas_flow(wrk, srv) {
-    wrk -> srv MEMCACHED CMD "cas" KEY "item:stock:4002" CAS 1234567890
+flow atomic_cas_flow(wrk, srv) {
+    wrk -> srv memcached cmd "cas" key "item:stock:4002" cas 1234567890
 }
 
 // INSTRUCTION: Compile atomic CAS update scenario.
-COMPILE {
+compile {
     atomic_cas_flow(inventory_worker, central_memcached)
 }

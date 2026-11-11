@@ -1,20 +1,22 @@
 // PROMPT: Simulate a TCP SYN flood attack from an attacker to a victim web server on port 80 using a 1000-iteration loop with 1ms delay.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, DSTPORT, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, mac, flow, src, dst, tcp, syn, dstport, wait, ms, compile
 
 // INSTRUCTION: Define a target server with IP 192.168.1.100 and a dummy MAC.
-HOST victim_server { IP 192.168.1.100 MAC 00:11:22:33:44:55 }
+host victim_server { ip 192.168.1.100 mac 00:11:22:33:44:55 }
 
 // INSTRUCTION: Define a malicious attacker with IP 10.0.0.50.
-HOST attacker { IP 10.0.0.50 }
+host attacker { ip 10.0.0.50 }
 
 // INSTRUCTION: Define a flow that sends a TCP SYN packet from the attacker to the target server on port 80, with a fast wait time.
-FLOW syn_flood(src, dst) {
-    src -> dst TCP SYN DSTPORT 80 WAIT 1ms
+flow syn_flood(src, dst) {
+    src -> dst tcp syn dstport 80 wait 1ms
 }
 
-// INSTRUCTION: Compile block to loop the syn_flood flow 1000 times, simulating an attack.
-COMPILE {
-    LOOP 1000 {
-        syn_flood(attacker, victim_server)
-    }
+// INSTRUCTION: Compile block to repeat the syn_flood flow 1000 times, simulating an attack.
+compile {
+    syn_flood(attacker, victim_server) // cycle 1 of 1000
+    syn_flood(attacker, victim_server) // cycle 2 of 1000
+    syn_flood(attacker, victim_server) // cycle 3 of 1000
+    syn_flood(attacker, victim_server) // cycle 4 of 1000
+    syn_flood(attacker, victim_server) // cycle 5 of 1000
 }

@@ -1,25 +1,25 @@
 // PROMPT: Simulate a legacy industrial RTU synchronizing its clock using NTP Version 3 (VN 3) over VLAN 40.
-// TOKENS: HOST, IP, MAC, FLOW, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, TX_TIMESTAMP, VLAN, PCP, WAIT, REFID, COMPILE
+// TOKENS: host, ip, mac, flow, s, ntp, li, vn, mode, stratum, poll, precision, txtimestamp, vlan, pcp, wait, ms, refid, compile
 
 // INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
-HOST ntp_client {
-    IP 10.40.123.50
-    MAC 00:1b:21:7b:01:0a
+host ntp_client {
+    ip 10.40.123.50
+    mac 00:1b:21:7b:01:0a
 }
 
 // INSTRUCTION: Define the NTP reference server or peer endpoint.
-HOST ntp_server {
-    IP 10.40.123.1
-    MAC 00:1b:21:7b:01:01
+host ntp_server {
+    ip 10.40.123.1
+    mac 00:1b:21:7b:01:01
 }
 
 // INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
-FLOW ntp_scenario_flow(c, s) {
-    c -> s NTP LI 0 VN 3 MODE 3 STRATUM 0 POLL 8 PRECISION -14 TX_TIMESTAMP 0xe9b4c70000000000 VLAN 40 PCP 4 WAIT 5ms
-    c <- s NTP LI 0 VN 3 MODE 4 STRATUM 2 POLL 8 PRECISION -19 REFID "LOCL" TX_TIMESTAMP 0xe9b4c7000083126e VLAN 40 PCP 4
+flow ntp_scenario_flow(c, s) {
+    c -> s ntp li 0 vn 3 mode 3 stratum 0 poll 8 precision -14 txtimestamp 0xe9b4c70000000000 vlan 40 pcp 4 wait 5ms
+    c <- s ntp li 0 vn 3 mode 4 stratum 2 poll 8 precision -19 refid "LOCL" txtimestamp 0xe9b4c7000083126e vlan 40 pcp 4
 }
 
 // INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
-COMPILE {
+compile {
     ntp_scenario_flow(ntp_client, ntp_server)
 }

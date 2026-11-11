@@ -1,35 +1,35 @@
 // PROMPT: Simulate a TACACS+ single-connection multiplexing multiple sequential command accounting (ACCT) records in a LOOP.
-// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TACACS, TYPE, ACCT, SESSION_ID, USER, PAYLOAD, WAIT, COMPILE, LOOP
+// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, tacacs, type, acct, sessionid, user, payload, wait, ms, compile
 
 // INSTRUCTION: Define host endpoint mux_router.
-HOST mux_router {
-    MAC 00:21:5a:49:10:01
-    IP 10.149.1.10
+host mux_router {
+    mac 00:21:5a:49:10:01
+    ip 10.149.1.10
 }
 
 // INSTRUCTION: Define host endpoint mux_tacacs.
-HOST mux_tacacs {
-    MAC 00:21:5a:49:10:02
-    IP 10.149.1.20
+host mux_tacacs {
+    mac 00:21:5a:49:10:02
+    ip 10.149.1.20
 }
 
 // INSTRUCTION: Initialize session before loop for tacacs_single_conn_acct_loop.
-FLOW tacacs_single_conn_acct_loop_init(mux_router, mux_tacacs) {
-    mux_router -> mux_tacacs TCP SYN SRCPORT 57049 DSTPORT 49
-    mux_tacacs -> mux_router TCP SYN ACK
-    mux_router -> mux_tacacs TCP ACK
+flow tacacs_single_conn_acct_loop_init(mux_router, mux_tacacs) {
+    mux_router -> mux_tacacs tcp syn srcport 57049 dstport 49
+    mux_tacacs -> mux_router tcp syn ack
+    mux_router -> mux_tacacs tcp ack
 }
 
 // INSTRUCTION: Reuse a single TCP port 49 connection to log 3 consecutive CLI commands via LOOP.
-FLOW tacacs_single_conn_acct_loop(mux_router, mux_tacacs) {
-    mux_router -> mux_tacacs TACACS TYPE ACCT SESSION_ID 82000 USER "automation_bot" PAYLOAD "cmd=show ip bgp summary"
-    mux_tacacs -> mux_router TACACS TYPE ACCT SESSION_ID 82000 PAYLOAD "ACCT_STATUS_SUCCESS" WAIT 15ms
+flow tacacs_single_conn_acct_loop(mux_router, mux_tacacs) {
+    mux_router -> mux_tacacs tacacs type acct sessionid 82000 user "automation_bot" payload "cmd=show ip bgp summary"
+    mux_tacacs -> mux_router tacacs type acct sessionid 82000 payload "ACCT_STATUS_SUCCESS" wait 15ms
 }
 
 // INSTRUCTION: Compile the multiplexed TACACS+ accounting loop flow.
-COMPILE {
+compile {
     tacacs_single_conn_acct_loop_init(mux_router, mux_tacacs)
-    LOOP 3 {
-        tacacs_single_conn_acct_loop(mux_router, mux_tacacs)
-    }
+    tacacs_single_conn_acct_loop(mux_router, mux_tacacs) // cycle 1
+    tacacs_single_conn_acct_loop(mux_router, mux_tacacs) // cycle 2
+    tacacs_single_conn_acct_loop(mux_router, mux_tacacs) // cycle 3
 }

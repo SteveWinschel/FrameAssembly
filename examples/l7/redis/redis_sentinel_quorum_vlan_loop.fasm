@@ -1,21 +1,22 @@
 // PROMPT: Redis Sentinel master discovery and health ping loop on port 26379 over VLAN 637.
-// TOKENS: HOST, IP, FLOW, REDIS, CMD, ARGS, VLAN, PCP, DEI, SRCPORT, DSTPORT, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, flow, redis, cmd, args, vlan, pcp, dei, srcport, dstport, wait, ms, compile
 
 // INSTRUCTION: Define Redis Sentinel monitor node on VLAN 637.
-HOST sentinel_mon { IP 192.168.163.11 }
+host sentinel_mon { ip 192.168.163.11 }
 
 // INSTRUCTION: Define Redis Sentinel peer on port 26379.
-HOST sentinel_peer { IP 192.168.163.12 }
+host sentinel_peer { ip 192.168.163.12 }
 
 // INSTRUCTION: Define Sentinel master-addr query on port 26379.
-FLOW redis_sentinel_check(s1, s2) {
-    s1 -> s2 REDIS CMD "SENTINEL" ARGS "get-master-addr-by-name mymaster" VLAN 637 PCP 5 DEI 0 SRCPORT 56379 DSTPORT 26379 WAIT 50ms
-    s1 <- s2 REDIS CMD "ARRAY" ARGS "192.168.163.1:6379" VLAN 637 PCP 5 DEI 0 SRCPORT 26379 DSTPORT 56379 WAIT 50ms
+flow redis_sentinel_check(s1, s2) {
+    s1 -> s2 redis cmd "SENTINEL" args "get-master-addr-by-name mymaster" vlan 637 pcp 5 dei 0 srcport 56379 dstport 26379 wait 50ms
+    s1 <- s2 redis cmd "ARRAY" args "192.168.163.1:6379" vlan 637 pcp 5 dei 0 srcport 26379 dstport 56379 wait 50ms
 }
 
 // INSTRUCTION: Execute 4 Sentinel quorum checks in COMPILE LOOP.
-COMPILE {
-    LOOP 4 {
-        redis_sentinel_check(sentinel_mon, sentinel_peer)
-    }
+compile {
+    redis_sentinel_check(sentinel_mon, sentinel_peer) // cycle 1
+    redis_sentinel_check(sentinel_mon, sentinel_peer) // cycle 2
+    redis_sentinel_check(sentinel_mon, sentinel_peer) // cycle 3
+    redis_sentinel_check(sentinel_mon, sentinel_peer) // cycle 4
 }

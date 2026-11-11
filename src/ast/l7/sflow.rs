@@ -6,22 +6,22 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b SFLOW [AGENT_IP <ip>] [SUB_AGENT_ID <u32>] [SEQ <u32>] [UPTIME <u32>] [SAMPLES <u32>]`
+//! `a -> b sflow [agentip <ip>] [subagentid <u32>] [seq <u32>] [uptime <u32>] [samples <u32>]`
 
 use core::marker::PhantomData;
 use core::net::IpAddr;
 /// sFlow v5 network monitoring datagram specification.
 ///
-/// Syntax mapping: `SFLOW [AGENT_IP <ip>] [SUB_AGENT_ID <u32>] [SEQ <u32>] [UPTIME <u32>] [SAMPLES <u32>]`
-#[doc(alias = "SFLOW")]
+/// Syntax mapping: `sflow [agentip <ip>] [subagentid <u32>] [seq <u32>] [uptime <u32>] [samples <u32>]`
+#[doc(alias = "sflow")]
 #[doc(alias = "RFC 3176")]
 #[doc(alias = "RFC3176")]
 #[doc(alias = "SFLOWV5")]
-#[doc(alias = "AGENT_IP")]
-#[doc(alias = "SUB_AGENT_ID")]
-#[doc(alias = "SEQ")]
-#[doc(alias = "UPTIME")]
-#[doc(alias = "SAMPLES")]
+#[doc(alias = "agentip")]
+#[doc(alias = "subagentid")]
+#[doc(alias = "seq")]
+#[doc(alias = "uptime")]
+#[doc(alias = "samples")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SflowSpec<'a> {
     /// Agent IP address.

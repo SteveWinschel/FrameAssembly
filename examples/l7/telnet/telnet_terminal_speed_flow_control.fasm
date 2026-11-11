@@ -1,31 +1,31 @@
 // PROMPT: Generate a Telnet Terminal Speed (Option 32) and Remote Flow Control (Option 33) negotiation over VLAN 23.
-// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, VLAN, ACK, TELNET, DO, WILL, PAYLOAD, COMPILE
+// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, vlan, ack, telnet, do, will, payload, compile
 
 // INSTRUCTION: Define host endpoint serial_client.
-HOST serial_client {
-    MAC 00:0c:29:00:23:20
-    IP 172.16.23.20
+host serial_client {
+    mac 00:0c:29:00:23:20
+    ip 172.16.23.20
 }
 
 // INSTRUCTION: Define host endpoint fep_host.
-HOST fep_host {
-    MAC 00:0c:29:00:23:01
-    IP 172.16.23.1
+host fep_host {
+    mac 00:0c:29:00:23:01
+    ip 172.16.23.1
 }
 
 // INSTRUCTION: Negotiate Terminal Speed (32) and Remote Flow Control (33) on VLAN 23.
-FLOW telnet_speed_and_flow_control(serial_client, fep_host) {
-    serial_client -> fep_host TCP SYN SRCPORT 54023 DSTPORT 23 VLAN 23
-    fep_host -> serial_client TCP SYN ACK VLAN 23
-    serial_client -> fep_host TCP ACK VLAN 23
-    fep_host -> serial_client TELNET DO 32 VLAN 23
-    serial_client -> fep_host TELNET WILL 32 VLAN 23
-    fep_host -> serial_client TELNET DO 33 VLAN 23
-    serial_client -> fep_host TELNET WILL 33 VLAN 23
-    serial_client -> fep_host TELNET PAYLOAD "38400,38400" VLAN 23
+flow telnet_speed_and_flow_control(serial_client, fep_host) {
+    serial_client -> fep_host tcp syn srcport 54023 dstport 23 vlan 23
+    fep_host -> serial_client tcp syn ack vlan 23
+    serial_client -> fep_host tcp ack vlan 23
+    fep_host -> serial_client telnet do 32 vlan 23
+    serial_client -> fep_host telnet will 32 vlan 23
+    fep_host -> serial_client telnet do 33 vlan 23
+    serial_client -> fep_host telnet will 33 vlan 23
+    serial_client -> fep_host telnet payload "38400,38400" vlan 23
 }
 
 // INSTRUCTION: Compile the Telnet speed and flow control negotiation flow.
-COMPILE {
+compile {
     telnet_speed_and_flow_control(serial_client, fep_host)
 }

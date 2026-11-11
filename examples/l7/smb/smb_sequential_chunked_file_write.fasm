@@ -1,30 +1,30 @@
 // PROMPT: Sequential multi-chunk SMB2 WRITE transfer uploading backup archive blocks with incrementing MSGIDs.
-// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, FILENAME, STATUS, WAIT, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, smb, command, treeid, sessionid, msgid, filename, status, wait, ms, payload, compile
 
 // INSTRUCTION: Define the backup agent host streaming archive blocks.
-HOST backup_agent {
-    IP 10.60.70.20
-    MAC 00:1a:2b:60:70:20
+host backup_agent {
+    ip 10.60.70.20
+    mac 00:1a:2b:60:70:20
 }
 
 // INSTRUCTION: Define the archival SMB vault appliance.
-HOST backup_vault {
-    IP 10.60.70.100
-    MAC 00:1a:2b:60:70:99
+host backup_vault {
+    ip 10.60.70.100
+    mac 00:1a:2b:60:70:99
 }
 
 // INSTRUCTION: Create backup file and write two consecutive payload chunks before closing.
-FLOW smb_chunked_write(c, s) {
-    c -> s SMB COMMAND "CREATE" TREE_ID 8 SESSION_ID 9900 MSGID 100 FILENAME "db_full_20261025.bak"
-    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 8 SESSION_ID 9900 MSGID 100 WAIT 1ms
-    c -> s SMB COMMAND "WRITE" TREE_ID 8 SESSION_ID 9900 MSGID 101 PAYLOAD "CHUNK_01_HEADER_AND_SCHEMA"
-    c <- s SMB COMMAND "WRITE" STATUS 0 TREE_ID 8 SESSION_ID 9900 MSGID 101 WAIT 1ms
-    c -> s SMB COMMAND "WRITE" TREE_ID 8 SESSION_ID 9900 MSGID 102 PAYLOAD "CHUNK_02_TABLE_EXTENTS_EOF"
-    c <- s SMB COMMAND "WRITE" STATUS 0 TREE_ID 8 SESSION_ID 9900 MSGID 102 WAIT 1ms
-    c -> s SMB COMMAND "CLOSE" TREE_ID 8 SESSION_ID 9900 MSGID 103
+flow smb_chunked_write(c, s) {
+    c -> s smb command "create" treeid 8 sessionid 9900 msgid 100 filename "db_full_20261025.bak"
+    c <- s smb command "create" status 0 treeid 8 sessionid 9900 msgid 100 wait 1ms
+    c -> s smb command "write" treeid 8 sessionid 9900 msgid 101 payload "CHUNK_01_HEADER_AND_SCHEMA"
+    c <- s smb command "write" status 0 treeid 8 sessionid 9900 msgid 101 wait 1ms
+    c -> s smb command "write" treeid 8 sessionid 9900 msgid 102 payload "CHUNK_02_TABLE_EXTENTS_EOF"
+    c <- s smb command "write" status 0 treeid 8 sessionid 9900 msgid 102 wait 1ms
+    c -> s smb command "close" treeid 8 sessionid 9900 msgid 103
 }
 
 // INSTRUCTION: Compile the sequential multi-chunk SMB2 write flow.
-COMPILE {
+compile {
     smb_chunked_write(backup_agent, backup_vault)
 }

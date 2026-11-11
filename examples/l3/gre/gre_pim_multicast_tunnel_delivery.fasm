@@ -1,25 +1,25 @@
 // PROMPT: Unicast GRE tunnel transporting PIM-SM and IPv4 multicast streams across a non-multicast-enabled ISP WAN.
-// TOKENS: HOST, IP, MAC, FLOW, GRE, GRE_KEY, GRE_SEQ, GRE_PROTO, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, head, gre, grekey, greseq, greproto, dscp, ttl, payload, wait, ms, compile
 
 // INSTRUCTION: Define multicast source site border router encapsulating 239.1.1.1 stream in GRE.
-HOST mcast_gre_headend {
-    IP 192.0.2.47
-    MAC 00:19:e8:47:00:2f
+host mcast_gre_headend {
+    ip 192.0.2.47
+    mac 00:19:e8:47:00:2f
 }
 
 // INSTRUCTION: Define receiver branch router decapsulating multicast packets from the GRE tunnel.
-HOST mcast_gre_tailend {
-    IP 198.51.100.47
-    MAC 00:19:e8:47:64:2f
+host mcast_gre_tailend {
+    ip 198.51.100.47
+    mac 00:19:e8:47:64:2f
 }
 
 // INSTRUCTION: Define GRE tunnel carrying inner multicast data with DSCP AF41 (34) and GRE_KEY 2391.
-FLOW gre_multicast_transit_flow(head, tail) {
-    head -> tail GRE GRE_KEY 2391 GRE_SEQ 1 GRE_PROTO 2048 DSCP 34 TTL 60 PAYLOAD "INNER_PIM_HELLO_AND_MCAST_GROUP_239_1_1_1" WAIT 5ms
-    head <- tail GRE GRE_KEY 2391 GRE_SEQ 1 GRE_PROTO 2048 DSCP 48 TTL 60 PAYLOAD "INNER_PIM_JOIN_S_G_239_1_1_1"
+flow gre_multicast_transit_flow(head, tail) {
+    head -> tail gre grekey 2391 greseq 1 greproto 2048 dscp 34 ttl 60 payload "INNER_PIM_HELLO_AND_MCAST_GROUP_239_1_1_1" wait 5ms
+    head <- tail gre grekey 2391 greseq 1 greproto 2048 dscp 48 ttl 60 payload "INNER_PIM_JOIN_S_G_239_1_1_1"
 }
 
 // INSTRUCTION: Compile the multicast-over-GRE WAN tunnel flow.
-COMPILE {
+compile {
     gre_multicast_transit_flow(mcast_gre_headend, mcast_gre_tailend)
 }

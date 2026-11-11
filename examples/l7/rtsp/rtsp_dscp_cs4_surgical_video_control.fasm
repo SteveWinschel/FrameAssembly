@@ -1,29 +1,29 @@
 // PROMPT: Hospital operating room surgical video RTSP control session marked with DSCP CS4 (32) and VLAN 300.
-// TOKENS: HOST, IP, MAC, FLOW, RTSP, DESCRIBE, URI, CSEQ, VLAN, PCP, DSCP, DF, WAIT, STATUS, SETUP, TRANSPORT_HDR, SESSION, PLAY, COMPILE
+// TOKENS: host, ip, mac, flow, s, rtsp, describe, uri, cseq, vlan, pcp, dscp, df, wait, ms, status, setup, transporthdr, session, play, compile
 
 // INSTRUCTION: Define surgical display workstation in theater 4.
-HOST theater_display {
-    IP 10.30.30.40
-    MAC 00:1b:21:30:30:28
+host theater_display {
+    ip 10.30.30.40
+    mac 00:1b:21:30:30:28
 }
 
 // INSTRUCTION: Define endoscopy 4K medical RTSP encoder.
-HOST endo_encoder {
-    IP 10.30.30.10
-    MAC 00:1b:21:30:30:0a
+host endo_encoder {
+    ip 10.30.30.10
+    mac 00:1b:21:30:30:0a
 }
 
 // INSTRUCTION: Define low-latency VLAN 300 PCP 4 DSCP 32 RTSP setup and playback.
-FLOW rtsp_surgical_video(c, s) {
-    c -> s RTSP DESCRIBE URI "rtsp://10.30.30.10/endo4k" CSEQ 1 VLAN 300 PCP 4 DSCP 32 DF WAIT 2ms
-    c <- s RTSP STATUS 200 CSEQ 1 VLAN 300 PCP 4 DSCP 32 DF WAIT 2ms
-    c -> s RTSP SETUP URI "rtsp://10.30.30.10/endo4k/track1" CSEQ 2 TRANSPORT_HDR "RTP/AVP;unicast;client_port=5004-5005" VLAN 300 PCP 4 DSCP 32 DF WAIT 2ms
-    c <- s RTSP STATUS 200 CSEQ 2 SESSION "or4_endo_88" VLAN 300 PCP 4 DSCP 32 DF WAIT 2ms
-    c -> s RTSP PLAY URI "rtsp://10.30.30.10/endo4k" CSEQ 3 SESSION "or4_endo_88" VLAN 300 PCP 4 DSCP 32 DF WAIT 2ms
-    c <- s RTSP STATUS 200 CSEQ 3 SESSION "or4_endo_88" VLAN 300 PCP 4 DSCP 32 DF
+flow rtsp_surgical_video(c, s) {
+    c -> s rtsp describe uri "rtsp://10.30.30.10/endo4k" cseq 1 vlan 300 pcp 4 dscp 32 df wait 2ms
+    c <- s rtsp status 200 cseq 1 vlan 300 pcp 4 dscp 32 df wait 2ms
+    c -> s rtsp setup uri "rtsp://10.30.30.10/endo4k/track1" cseq 2 transporthdr "RTP/AVP;unicast;client_port=5004-5005" vlan 300 pcp 4 dscp 32 df wait 2ms
+    c <- s rtsp status 200 cseq 2 session "or4_endo_88" vlan 300 pcp 4 dscp 32 df wait 2ms
+    c -> s rtsp play uri "rtsp://10.30.30.10/endo4k" cseq 3 session "or4_endo_88" vlan 300 pcp 4 dscp 32 df wait 2ms
+    c <- s rtsp status 200 cseq 3 session "or4_endo_88" vlan 300 pcp 4 dscp 32 df
 }
 
 // INSTRUCTION: Compile the surgical video QoS RTSP control scenario.
-COMPILE {
+compile {
     rtsp_surgical_video(theater_display, endo_encoder)
 }

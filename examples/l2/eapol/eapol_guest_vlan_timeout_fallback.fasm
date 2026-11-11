@@ -1,27 +1,27 @@
 // PROMPT: Guest VLAN fallback remediation after IEEE 802.1X EAP-Identity timeout and DHCP quarantine assignment.
-// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, WAIT, VLAN, DHCP, DISCOVER, OFFER, YIADDR, COMPILE
+// TOKENS: host, ip, mac, flow, eapol, version, type, eappacket, eapcode, eapid, eapmethod, wait, s, vlan, dhcp, discover, offer, yiaddr, ms, compile
 
 // INSTRUCTION: Define IoT printer lacking an 802.1X supplicant.
-HOST non_dot1x_printer {
-    IP 192.168.254.80
-    MAC 00:17:c8:fe:00:50
+host non_dot1x_printer {
+    ip 192.168.254.80
+    mac 00:17:c8:fe:00:50
 }
 
 // INSTRUCTION: Define campus access switch timing out EAP-Identity and moving port to Guest VLAN 254.
-HOST guest_fallback_sw {
-    IP 192.168.254.1
-    MAC 00:1c:73:fe:00:01
+host guest_fallback_sw {
+    ip 192.168.254.1
+    mac 00:1c:73:fe:00:01
 }
 
 // INSTRUCTION: Define unanswered EAP-Identity requests followed by Guest VLAN 254 DHCP fallback.
-FLOW dot1x_guest_vlan_fallback(prt, sw) {
-    prt <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 1 EAP_METHOD 1
-    prt <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 2 EAP_METHOD 1 WAIT 30s
-    prt -> sw VLAN 254 DHCP DISCOVER WAIT 5s
-    prt <- sw VLAN 254 DHCP OFFER YIADDR 192.168.254.80 WAIT 5ms
+flow dot1x_guest_vlan_fallback(prt, sw) {
+    prt <- sw eapol version 2 type eappacket eapcode 1 eapid 1 eapmethod 1
+    prt <- sw eapol version 2 type eappacket eapcode 1 eapid 2 eapmethod 1 wait 30s
+    prt -> sw vlan 254 dhcp discover wait 5s
+    prt <- sw vlan 254 dhcp offer yiaddr 192.168.254.80 wait 5ms
 }
 
 // INSTRUCTION: Compile block executing 802.1X Guest VLAN fallback sequence.
-COMPILE {
+compile {
     dot1x_guest_vlan_fallback(non_dot1x_printer, guest_fallback_sw)
 }

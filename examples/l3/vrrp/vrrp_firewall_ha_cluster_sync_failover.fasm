@@ -1,26 +1,26 @@
 // PROMPT: Active-Standby enterprise firewall cluster synchronizing state and executing VRRP VRID 75 failover across DMZ VLAN 75.
-// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, VLAN, PCP, DSCP, TTL, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, vrrp, vrid, priority, advint, vip, version, vlan, pcp, dscp, ttl, wait, ms, compile
 
 // INSTRUCTION: Define Active Firewall Node 1 on DMZ VLAN 75.
-HOST fw_ha_node_1 {
-    IP 172.20.75.2
-    MAC 00:00:5e:00:01:4b
+host fw_ha_node_1 {
+    ip 172.20.75.2
+    mac 00:00:5e:00:01:4b
 }
 
 // INSTRUCTION: Define Standby Firewall Node 2 assuming DMZ VIP 172.20.75.1 during failover test.
-HOST fw_ha_node_2 {
-    IP 172.20.75.3
-    MAC 00:00:5e:00:01:4b
+host fw_ha_node_2 {
+    ip 172.20.75.3
+    mac 00:00:5e:00:01:4b
 }
 
 // INSTRUCTION: Define VLAN 75 VRRP failover from Node 1 (PRIORITY 0) to Node 2 (PRIORITY 190).
-FLOW vrrp_fw_cluster_failover(fw1, fw2) {
-    fw1 -> fw2 VRRP VRID 75 PRIORITY 200 ADV_INT 20 VIP 172.20.75.1 VERSION 3 VLAN 75 PCP 6 DSCP 48 TTL 255 WAIT 20ms
-    fw1 -> fw2 VRRP VRID 75 PRIORITY 0 ADV_INT 20 VIP 172.20.75.1 VERSION 3 VLAN 75 PCP 6 DSCP 48 TTL 255 WAIT 5ms
-    fw1 <- fw2 VRRP VRID 75 PRIORITY 190 ADV_INT 20 VIP 172.20.75.1 VERSION 3 VLAN 75 PCP 6 DSCP 48 TTL 255
+flow vrrp_fw_cluster_failover(fw1, fw2) {
+    fw1 -> fw2 vrrp vrid 75 priority 200 advint 20 vip 172.20.75.1 version 3 vlan 75 pcp 6 dscp 48 ttl 255 wait 20ms
+    fw1 -> fw2 vrrp vrid 75 priority 0 advint 20 vip 172.20.75.1 version 3 vlan 75 pcp 6 dscp 48 ttl 255 wait 5ms
+    fw1 <- fw2 vrrp vrid 75 priority 190 advint 20 vip 172.20.75.1 version 3 vlan 75 pcp 6 dscp 48 ttl 255
 }
 
 // INSTRUCTION: Compile the enterprise firewall HA cluster VRRP failover flow.
-COMPILE {
+compile {
     vrrp_fw_cluster_failover(fw_ha_node_1, fw_ha_node_2)
 }

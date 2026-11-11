@@ -1,10 +1,10 @@
 //! Siemens S7 Communication (S7comm over RFC 1006 TPKT + ISO 8073 COTP) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `S7COMM` frames encapsulated in
+//! This module implements fuzz-safe wire-to-AST dissection for `s7comm` frames encapsulated in
 //! RFC 1006 TPKT (`\x03\x00`), ISO 8073 COTP DT (`\x02\xF0\x80`), and the `0x32` S7 protocol magic
-//! byte over TCP (port `102` and NAT gateway custom ports). It decodes `rosctr` (`JOB`, `ACK`,
-//! `ACK_DATA`, `USERDATA`), `pdu_ref`, `setup_comm`, `plc_control`, `read_var`, and `write_var`
-//! (with `area`, `db_num`, byte `offset`, and `count`).
+//! byte over TCP (port `102` and NAT gateway custom ports). It decodes `rosctr` (`"job"`, `"ack"`,
+//! `"ackdata"`, `"userdata"`), `pduref`, `setupcomm`, `plccontrol`, `readvar`, and `writevar`
+//! (with `area`, `dbnum`, byte `offset`, and `count`).
 
 use alloc::format;
 use alloc::string::String;
@@ -12,7 +12,7 @@ use alloc::string::String;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Dissects a Siemens `S7COMM` TPKT + COTP + `0x32` PDU frame over TCP.
+/// Dissects a Siemens `s7comm` TPKT + COTP + `0x32` PDU frame over TCP.
 pub(crate) fn dissect_s7comm(
     transport: TransportProto,
     _src_port: u16,
@@ -48,27 +48,27 @@ pub(crate) fn dissect_s7comm(
     let mut tokens = String::from("s7comm");
     match rosctr {
         1 => {}
-        2 => tokens.push_str(" rosctr \"ACK\""),
-        3 => tokens.push_str(" rosctr \"ACK_DATA\""),
-        7 => tokens.push_str(" rosctr \"USERDATA\""),
+        2 => tokens.push_str(" rosctr \"ack\""),
+        3 => tokens.push_str(" rosctr \"ackdata\""),
+        7 => tokens.push_str(" rosctr \"userdata\""),
         _ => return None,
     }
     if pdu_ref != 1 {
-        tokens.push_str(&format!(" pdu_ref {pdu_ref}"));
+        tokens.push_str(&format!(" pduref {pdu_ref}"));
     }
 
     if param == [0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x01, 0xE0] {
-        tokens.push_str(" setup_comm");
+        tokens.push_str(" setupcomm");
     } else if param == [0x28, 0x00] {
-        tokens.push_str(" plc_control");
+        tokens.push_str(" plccontrol");
     } else if param.len() == 14
         && matches!(param[0], 0x04 | 0x05)
         && &param[1..6] == b"\x01\x12\x0A\x10\x02"
     {
         if param[0] == 0x04 {
-            tokens.push_str(" read_var");
+            tokens.push_str(" readvar");
         } else {
-            tokens.push_str(" write_var");
+            tokens.push_str(" writevar");
         }
         let count = u16::from_be_bytes([param[6], param[7]]);
         let db_num = u16::from_be_bytes([param[8], param[9]]);
@@ -82,7 +82,7 @@ pub(crate) fn dissect_s7comm(
             tokens.push_str(&format!(" area 0x{area:02x}"));
         }
         if db_num != 1 {
-            tokens.push_str(&format!(" db_num {db_num}"));
+            tokens.push_str(&format!(" dbnum {db_num}"));
         }
         if offset != 0 {
             tokens.push_str(&format!(" offset {offset}"));

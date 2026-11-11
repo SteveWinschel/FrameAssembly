@@ -1,11 +1,11 @@
 //! Simple Network Management Protocol (SNMPv1, SNMPv2c, and SNMPv3) field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 1157 (`SNMP1`), RFC 3416
-//! (`SNMP2`), and RFC 3414 User-based Security Model (`SNMP3`) protocol data units in FrameAssembly
-//! `.fasm` specifications. It recognizes community strings (`COMMUNITY`), USM security parameters
-//! (`USER`, `ENGINEID`, `ENGINEBOOTS`, `ENGINETIME`, `CONTEXTNAME`, `AUTH`, `PRIV`), trap headers
-//! (`ENTERPRISE`, `AGENTIP`, `GENTRAP`, `SPECTRAP`, `SYSUPTIME`), PDU types (`GET`, `SET`,
-//! `RESPONSE`, `TRAP`, `INFORM`, `GETNEXT`, `GETBULK`), and typed ASN.1 `VARBIND` entries.
+//! This module implements the `winnow` parser combinator for RFC 1157 (`snmp1`), RFC 3416
+//! (`snmp2`), and RFC 3414 User-based Security Model (`snmp3`) protocol data units in FrameAssembly
+//! `.fasm` specifications. It recognizes community strings (`community`), USM security parameters
+//! (`user`, `engineid`, `engineboots`, `enginetime`, `contextname`, `auth`, `priv`), trap headers
+//! (`enterprise`, `agentip`, `gentrap`, `spectrap`, `sysuptime`), PDU types (`get`, `set`,
+//! `response`, `trap`, `inform`, `getnext`, `getbulk`), and typed ASN.1 `varbind` entries.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

@@ -1,23 +1,23 @@
 // PROMPT: SIP UPDATE method (RFC 3311) modifying media session parameters before call answer.
-// TOKENS: HOST, IP, FLOW, SIP, METHOD, URI, FROM, TO, CALL_ID, CSEQ, CONTACT, CONTENT_TYPE, BODY, WAIT, STATUS, REASON, COMPILE
+// TOKENS: host, ip, flow, s, sip, method, uri, from, to, callid, cseq, contact, contenttype, body, wait, ms, status, reason, compile
 // INSTRUCTION: Define SBC border element upgrading audio codec to Opus.
-HOST sbc_edge {
-    IP 10.110.8.15
+host sbc_edge {
+    ip 10.110.8.15
 }
 // INSTRUCTION: Define core IMS P-CSCF call server.
-HOST ims_pcscf {
-    IP 10.110.8.1
+host ims_pcscf {
+    ip 10.110.8.1
 }
 // INSTRUCTION: Define SIP UPDATE request with updated SDP offer and 200 OK SDP answer.
-FLOW sip_update_media(c, s) {
-    c -> s SIP METHOD "UPDATE" URI "sip:core@10.110.8.1" FROM "sip:sbc@10.110.8.15" TO "sip:core@10.110.8.1"
-        CALL_ID "upd-3311" CSEQ 3 CONTACT "sip:sbc@10.110.8.15"
-        CONTENT_TYPE "application/sdp" BODY "v=0
-m=audio 6000 RTP/AVP 111" WAIT 4ms
-    c <- s SIP STATUS 200 REASON "OK" CALL_ID "upd-3311" CSEQ 3 CONTENT_TYPE "application/sdp" BODY "v=0
+flow sip_update_media(c, s) {
+    c -> s sip method "UPDATE" uri "sip:core@10.110.8.1" from "sip:sbc@10.110.8.15" to "sip:core@10.110.8.1"
+        callid "upd-3311" cseq 3 contact "sip:sbc@10.110.8.15"
+        contenttype "application/sdp" body "v=0
+m=audio 6000 RTP/AVP 111" wait 4ms
+    c <- s sip status 200 reason "OK" callid "upd-3311" cseq 3 contenttype "application/sdp" body "v=0
 m=audio 7000 RTP/AVP 111"
 }
 // INSTRUCTION: Compile the SIP UPDATE codec renegotiation flow.
-COMPILE {
+compile {
     sip_update_media(sbc_edge, ims_pcscf)
 }

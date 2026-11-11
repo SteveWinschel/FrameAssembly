@@ -1,18 +1,18 @@
 // PROMPT: IPFIX DNS amplification DDoS anomaly telemetry reporting high-octet UDP responses.
-// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, DSCP, ECN, TTL, COMPILE
+// TOKENS: host, ip, flow, m, ipfix, domainid, srcip, dstip, proto, packets, octets, dscp, ecn, ttl, compile
 
 // INSTRUCTION: Define DDoS scrubbing center border router.
-HOST scrubber_rtr { IP 198.19.47.1 }
+host scrubber_rtr { ip 198.19.47.1 }
 
 // INSTRUCTION: Define DDoS mitigation controller.
-HOST mitigation_ctrl { IP 198.19.47.10 }
+host mitigation_ctrl { ip 198.19.47.10 }
 
 // INSTRUCTION: Export high-volume UDP (Proto 17) amplification flow record with DSCP 46.
-FLOW ipfix_ddos_telemetry(r, m) {
-    r -> m IPFIX DOMAIN_ID 911 SRCIP 8.8.8.8 DSTIP 198.51.100.50 PROTO 17 PACKETS 95000 OCTETS 133000000 DSCP 46 ECN 1 TTL 255
+flow ipfix_ddos_telemetry(r, m) {
+    r -> m ipfix domainid 911 srcip 8.8.8.8 dstip 198.51.100.50 proto 17 packets 95000 octets 133000000 dscp 46 ecn 1 ttl 255
 }
 
 // INSTRUCTION: Compile the IPFIX DDoS anomaly export scenario.
-COMPILE {
+compile {
     ipfix_ddos_telemetry(scrubber_rtr, mitigation_ctrl)
 }

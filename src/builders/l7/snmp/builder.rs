@@ -7,7 +7,7 @@
 //! and [`Snmp3Spec`] AST specifications into deterministic wire
 //! bytes, supporting all 7 SNMP PDU types (`Trap`, `GetRequest`, `GetNextRequest`, `Response`,
 //! `SetRequest`, `InformRequest`, `GetBulkRequest`) and all 9 SMIv1/SMIv2 VarBind value types
-//! (`NULLVAL`, `STRING`, `INT`, `TIMETICKS`, `IPVAL`, `OIDVAL`, `COUNTER32`, `GAUGE32`, `COUNTER64`).
+//! (`nullval`, `string`, `int`, `timeticks`, `ipval`, `oidval`, `counter32`, `gauge32`, `counter64`).
 
 use super::crypto::*;
 use crate::ast::*;
@@ -23,8 +23,8 @@ use rasn_snmp::v2::{BulkPdu, Pdu, Pdus as PdusV2, VarBind, VarBindValue};
 ///
 /// Implements RFC 1157 PDU construction for `Trap`, `Get`, `GetNext`, `Response`, and `Set` PDUs,
 /// mapping generic trap OIDs (`1.3.6.1.6.3.1.1.5.1` through `.6`) to `generic_trap` `0..=5`,
-/// falling back IPv6 `agent-addr` to `0.0.0.0` per RFC 3584 §3.2 unless overridden by `AGENTIP`,
-/// and rejecting SNMPv2-only PDUs (`GETBULK` and `INFORM`).
+/// falling back IPv6 `agent-addr` to `0.0.0.0` per RFC 3584 §3.2 unless overridden by `agentip`,
+/// and rejecting SNMPv2-only PDUs (`getbulk` and `inform`).
 pub fn build_snmp1_payload(stmt: &FrameStatement, src_ip: IpAddr) -> Result<Vec<u8>, String> {
     use rasn_snmp::v1::{Message, Pdus, Trap};
 

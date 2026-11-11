@@ -1,23 +1,23 @@
 // PROMPT: SIP user agent graceful sign-off sending REGISTER with wildcard Contact to clear bindings.
-// TOKENS: HOST, IP, FLOW, SIP, REGISTER, URI, FROM, TO, CALL_ID, CSEQ, VIA, CONTACT, WAIT, STATUS, REASON, COMPILE
+// TOKENS: host, ip, flow, s, sip, register, uri, from, to, callid, cseq, via, contact, wait, ms, status, reason, compile
 
 // INSTRUCTION: Define hot-desking VoIP phone logging out at end of shift.
-HOST hotdesk_ua {
-    IP 192.168.66.45
+host hotdesk_ua {
+    ip 192.168.66.45
 }
 
 // INSTRUCTION: Define enterprise SIP registrar server.
-HOST registrar_srv {
-    IP 192.168.66.1
+host registrar_srv {
+    ip 192.168.66.1
 }
 
 // INSTRUCTION: Define SIP REGISTER de-registration request and 200 OK confirmation.
-FLOW sip_deregister(c, s) {
-    c -> s SIP REGISTER URI "sip:192.168.66.1" FROM "sip:agent45@192.168.66.1" TO "sip:agent45@192.168.66.1" CALL_ID "dereg-6645" CSEQ 99 VIA "SIP/2.0/UDP 192.168.66.45:5060" CONTACT "*" WAIT 4ms
-    c <- s SIP STATUS 200 REASON "OK" CALL_ID "dereg-6645" CSEQ 99
+flow sip_deregister(c, s) {
+    c -> s sip register uri "sip:192.168.66.1" from "sip:agent45@192.168.66.1" to "sip:agent45@192.168.66.1" callid "dereg-6645" cseq 99 via "SIP/2.0/UDP 192.168.66.45:5060" contact "*" wait 4ms
+    c <- s sip status 200 reason "OK" callid "dereg-6645" cseq 99
 }
 
 // INSTRUCTION: Compile the SIP de-registration scenario.
-COMPILE {
+compile {
     sip_deregister(hotdesk_ua, registrar_srv)
 }

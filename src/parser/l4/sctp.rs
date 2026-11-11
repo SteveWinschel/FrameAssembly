@@ -1,10 +1,11 @@
-//! Stream Control Transmission Protocol (`SCTP`, RFC 4960) field parser for FrameAssembly.
+//! Stream Control Transmission Protocol (`sctp`, RFC 4960) field parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `SCTP` association and chunk modifiers.
-//! It supports Verification Tag (`VTAG`), Stream Identifier (`STREAM`), Stream Sequence Number
-//! (`SSN`), Payload Protocol Identifier (`PPID`), Transmission Sequence Number (`TSN`), explicit
-//! chunk type (`CHUNK <type>`), and bare shorthand chunk keywords (`DATA`, `INIT`, `INIT_ACK`,
-//! `SACK`, `HEARTBEAT`, `HEARTBEAT_ACK`, `ABORT`, `SHUTDOWN`, `COOKIE_ECHO`, `COOKIE_ACK`).
+//! This module implements the winnow parser combinator for `sctp` association and chunk modifiers.
+//! It supports Verification Tag (`vtag`), Stream Identifier (`stream`), Stream Sequence Number
+//! (`ssn`), Payload Protocol Identifier (`ppid`), Transmission Sequence Number (`tsn`), explicit
+//! chunk type (`chunk <type>`), and bare shorthand chunk keywords (`data`, `init`, `initack`,
+//! `sack`, `heartbeat`, `heartbeatack`, `abort`, `shutdown`, `shutdownack`, `cookieecho`,
+//! `cookieack`).
 
 use alloc::string::ToString;
 use winnow::ModalResult as PResult;
@@ -47,6 +48,8 @@ pub(crate) fn parse_sctp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pa
                 .map(|(_, s)| ParsedField::Chunk("ABORT".to_string(), (s.start, s.len()))),
             tag(Token::Shutdown)
                 .map(|(_, s)| ParsedField::Chunk("SHUTDOWN".to_string(), (s.start, s.len()))),
+            tag(Token::ShutdownAck)
+                .map(|(_, s)| ParsedField::Chunk("SHUTDOWN_ACK".to_string(), (s.start, s.len()))),
             tag(Token::CookieEcho)
                 .map(|(_, s)| ParsedField::Chunk("COOKIE_ECHO".to_string(), (s.start, s.len()))),
             tag(Token::CookieAck)

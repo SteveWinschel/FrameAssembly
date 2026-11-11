@@ -1,19 +1,19 @@
 // PROMPT: Pure IPv6 WireGuard transport carrying sequenced encrypted data packets.
-// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, COMPILE
+// TOKENS: host, ip, flow, wireguard, type, data, receiver, counter, compile
 
 // INSTRUCTION: Define IPv6 WireGuard host alpha.
-HOST wg_v6_host_alpha { IP 2001:db8:beef:2::10 }
+host wg_v6_host_alpha { ip 2001:db8:beef:2::10 }
 
 // INSTRUCTION: Define IPv6 WireGuard host beta.
-HOST wg_v6_host_beta { IP 2001:db8:beef:2::20 }
+host wg_v6_host_beta { ip 2001:db8:beef:2::20 }
 
 // INSTRUCTION: Define bidirectional IPv6 WireGuard data transmission flow.
-FLOW wg_v6_data_exchange(a, b) {
-    a -> b WIREGUARD TYPE DATA RECEIVER 2001 COUNTER 100
-    a <- b WIREGUARD TYPE DATA RECEIVER 1001 COUNTER 50
+flow wg_v6_data_exchange(a, b) {
+    a -> b wireguard type data receiver 2001 counter 100
+    a <- b wireguard type data receiver 1001 counter 50
 }
 
 // INSTRUCTION: Compile block executing IPv6 WireGuard data exchange.
-COMPILE {
+compile {
     wg_v6_data_exchange(wg_v6_host_alpha, wg_v6_host_beta)
 }

@@ -1,19 +1,19 @@
 // PROMPT: DNP3 Internal Indications (Group 80 Variation 1) restart bit clear over custom TCP port 20001.
-// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, SRCPORT, DSTPORT, DF, TTL, COMPILE
+// TOKENS: host, ip, flow, dnp3, func, src, dst, group, variation, srcport, dstport, df, ttl, compile
 
 // INSTRUCTION: Define substation engineering laptop.
-HOST eng_laptop { IP 192.168.250.5 }
+host eng_laptop { ip 192.168.250.5 }
 
 // INSTRUCTION: Define newly restarted protection IED on port 20001.
-HOST prot_ied { IP 192.168.250.90 }
+host prot_ied { ip 192.168.250.90 }
 
 // INSTRUCTION: Clear Device Restart IIN bit by writing Group 80 Variation 1 on TCP port 20001.
-FLOW dnp3_clear_restart_iin(l, i) {
-    l -> i DNP3 FUNC "WRITE" SRC 5 DST 90 GROUP 80 VARIATION 1 SRCPORT 50123 DSTPORT 20001 DF TTL 128
-    l <- i DNP3 FUNC "RESPONSE" SRC 90 DST 5 GROUP 80 VARIATION 1 SRCPORT 20001 DSTPORT 50123 DF TTL 128
+flow dnp3_clear_restart_iin(l, i) {
+    l -> i dnp3 func "write" src 5 dst 90 group 80 variation 1 srcport 50123 dstport 20001 df ttl 128
+    l <- i dnp3 func "response" src 90 dst 5 group 80 variation 1 srcport 20001 dstport 50123 df ttl 128
 }
 
 // INSTRUCTION: Compile the DNP3 IIN restart bit clear flow.
-COMPILE {
+compile {
     dnp3_clear_restart_iin(eng_laptop, prot_ied)
 }

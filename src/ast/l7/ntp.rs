@@ -6,23 +6,23 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b NTP [LI <u8>] [VN <u8>] [MODE <u8>] [STRATUM <u8>] [POLL <u8>] [PRECISION <i8>] [REFID <str>] [TX_TIMESTAMP <u64>]`
+//! `a -> b ntp [li <u8>] [vn <u8>] [mode <u8>] [stratum <u8>] [poll <u8>] [precision <i8>] [refid <str>] [txtimestamp <u64>]`
 
 /// RFC 5905 Network Time Protocol specification.
 ///
-/// Syntax mapping: `NTP [LI <u8>] [VN <u8>] [MODE <u8>] [STRATUM <u8>] [POLL <u8>] [PRECISION <i8>] [REFID <str>] [TX_TIMESTAMP <u64>]`
-#[doc(alias = "NTP")]
+/// Syntax mapping: `ntp [li <u8>] [vn <u8>] [mode <u8>] [stratum <u8>] [poll <u8>] [precision <i8>] [refid <str>] [txtimestamp <u64>]`
+#[doc(alias = "ntp")]
 #[doc(alias = "SNTP")]
 #[doc(alias = "RFC 5905")]
 #[doc(alias = "RFC5905")]
-#[doc(alias = "LI")]
-#[doc(alias = "VN")]
-#[doc(alias = "MODE")]
-#[doc(alias = "STRATUM")]
-#[doc(alias = "POLL")]
-#[doc(alias = "PRECISION")]
-#[doc(alias = "REFID")]
-#[doc(alias = "TX_TIMESTAMP")]
+#[doc(alias = "li")]
+#[doc(alias = "vn")]
+#[doc(alias = "mode")]
+#[doc(alias = "stratum")]
+#[doc(alias = "poll")]
+#[doc(alias = "precision")]
+#[doc(alias = "refid")]
+#[doc(alias = "txtimestamp")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct NtpSpec<'a> {
     /// Leap Indicator (0..=3).

@@ -1,25 +1,25 @@
 // PROMPT: MPLS over 802.1Q VLAN subinterface carrying MP-BGP VPNv4 route updates between Route Reflectors.
-// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, MPLS, EXP, BOS, MPLS_TTL, BGP, UPDATE, PREFIX, NEXTHOP, KEEPALIVE, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, vlan, pcp, mpls, exp, bos, mplsttl, bgp, update, prefix, nexthop, keepalive, wait, ms, compile
 
 // INSTRUCTION: Define MPLS VPN Route Reflector cluster node A.
-HOST vpn_rr_west {
-    IP 10.255.0.11
-    MAC 00:05:85:ff:00:0b
+host vpn_rr_west {
+    ip 10.255.0.11
+    mac 00:05:85:ff:00:0b
 }
 
 // INSTRUCTION: Define MPLS VPN Route Reflector cluster node B.
-HOST vpn_rr_east {
-    IP 10.255.0.12
-    MAC 00:05:85:ff:00:0c
+host vpn_rr_east {
+    ip 10.255.0.12
+    mac 00:05:85:ff:00:0c
 }
 
 // INSTRUCTION: Define VLAN 400 subinterface MPLS transport carrying BGP UPDATE and KEEPALIVE messages.
-FLOW vlan_mpls_bgp_rr(rr_w, rr_e) {
-    rr_w -> rr_e VLAN 400 PCP 6 MPLS 24011 EXP 6 BOS 1 MPLS_TTL 64 BGP UPDATE PREFIX "10.120.0.0/16" NEXTHOP 10.255.0.11
-    rr_w <- rr_e VLAN 400 PCP 6 MPLS 24012 EXP 6 BOS 1 MPLS_TTL 64 BGP KEEPALIVE WAIT 2ms
+flow vlan_mpls_bgp_rr(rr_w, rr_e) {
+    rr_w -> rr_e vlan 400 pcp 6 mpls 24011 exp 6 bos 1 mplsttl 64 bgp update prefix "10.120.0.0/16" nexthop 10.255.0.11
+    rr_w <- rr_e vlan 400 pcp 6 mpls 24012 exp 6 bos 1 mplsttl 64 bgp keepalive wait 2ms
 }
 
 // INSTRUCTION: Compile block executing MPLS over VLAN MP-BGP route reflection.
-COMPILE {
+compile {
     vlan_mpls_bgp_rr(vpn_rr_west, vpn_rr_east)
 }

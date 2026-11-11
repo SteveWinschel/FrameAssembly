@@ -2,8 +2,8 @@
 //!
 //! This module implements [`build_smtp_payload`], which serializes an [`SmtpSpec`]
 //! AST specification into a standards-compliant RFC 5321 SMTP command or server reply over TCP
-//! ports 25 (MTA relay), 465 (SMTPS), and 587 (MSA submission). When `CODE` or `REPLY` is
-//! specified, it emits a 3-digit status line (`<code> <reply>\r\n`); when `BODY` is present, it
+//! ports 25 (MTA relay), 465 (SMTPS), and 587 (MSA submission). When `code` or `reply` is
+//! specified, it emits a 3-digit status line (`<code> <reply>\r\n`); when `body` is present, it
 //! appends `<body_text>\r\n.\r\n`; otherwise it formats client commands (`EHLO`, `MAIL FROM:<...>`,
 //! `RCPT TO:<...>`, `DATA`, `QUIT`) terminated by CRLF (`\r\n`).
 
@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 
 /// Builds an RFC 5321 SMTP email transaction message.
 ///
-/// Syntax mapping: `SMTP [EHLO [str]] [HELO [str]] [MAIL_FROM <str>] [RCPT_TO <str>] [QUIT] [CMD <str>] [PARAM <str>] [CODE <u16>] [REPLY <str>] [BODY <str>]`
+/// Syntax mapping: `smtp [ehlo [<str>]] [helo [<str>]] [mailfrom <str>] [rcptto <str>] [quit] [cmd <str>] [param <str>] [code <u16>] [reply <str>] [body <str>]`
 #[doc(alias = "SMTP")]
 #[doc(alias = "RFC5321")]
 #[doc(alias = "EHLO")]

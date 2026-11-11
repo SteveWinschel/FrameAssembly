@@ -1,19 +1,19 @@
 // PROMPT: HTTP 101 Switching Protocols upgrade handshake over IEEE 802.1ad QinQ double VLAN tags.
-// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, HEADER, QINQ, INNER_VLAN, STATUS, REASON, COMPILE
+// TOKENS: host, ip, flow, s, http, method, uri, hosthdr, header, qinq, innervlan, status, reason, compile
 
 // INSTRUCTION: Define realtime dashboard client.
-HOST rt_client { IP 10.65.1.20 }
+host rt_client { ip 10.65.1.20 }
 
 // INSTRUCTION: Define event streaming server.
-HOST stream_srv { IP 10.65.1.1 }
+host stream_srv { ip 10.65.1.1 }
 
 // INSTRUCTION: Request Connection Upgrade to websocket and receive HTTP 101 Switching Protocols over QinQ.
-FLOW http_upgrade_101_qinq(c, s) {
-    c -> s HTTP METHOD "GET" URI "/realtime" HOST_HDR "ws.example.com" HEADER "Connection" "Upgrade" HEADER "Upgrade" "websocket" QINQ 1800 INNER_VLAN 80
-    c <- s HTTP STATUS 101 REASON "Switching Protocols" HEADER "Connection" "Upgrade" HEADER "Upgrade" "websocket" QINQ 1800 INNER_VLAN 80
+flow http_upgrade_101_qinq(c, s) {
+    c -> s http method "GET" uri "/realtime" hosthdr "ws.example.com" header "Connection" "Upgrade" header "Upgrade" "websocket" qinq 1800 innervlan 80
+    c <- s http status 101 reason "Switching Protocols" header "Connection" "Upgrade" header "Upgrade" "websocket" qinq 1800 innervlan 80
 }
 
 // INSTRUCTION: Compile the QinQ HTTP 101 protocol upgrade scenario.
-COMPILE {
+compile {
     http_upgrade_101_qinq(rt_client, stream_srv)
 }

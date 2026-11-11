@@ -1,27 +1,27 @@
 // PROMPT: Kubernetes worker node running Cilium / MetalLB BGP Speaker advertising LoadBalancer Service VIPs to ToR switch.
-// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, VLAN, PCP, DSCP, TTL, WAIT, UPDATE, PREFIX, NEXTHOP, KEEPALIVE, COMPILE
+// TOKENS: host, ip, mac, flow, bgp, open, asn, holdtime, bgpid, vlan, pcp, dscp, ttl, wait, ms, update, prefix, nexthop, keepalive, compile
 
 // INSTRUCTION: Define Kubernetes worker node advertising /32 Service LoadBalancer VIP.
-HOST k8s_worker_bgp {
-    IP 10.240.0.15
-    MAC 00:16:3e:f0:00:0f
+host k8s_worker_bgp {
+    ip 10.240.0.15
+    mac 00:16:3e:f0:00:0f
 }
 
 // INSTRUCTION: Define Top-of-Rack leaf switch aggregating Kubernetes Service VIP routes via ECMP.
-HOST tor_leaf_router {
-    IP 10.240.0.1
-    MAC 00:1c:73:f0:00:01
+host tor_leaf_router {
+    ip 10.240.0.1
+    mac 00:1c:73:f0:00:01
 }
 
 // INSTRUCTION: Define short-holdtime eBGP session advertising LoadBalancer VIP 198.51.100.80/32.
-FLOW k8s_service_vip_bgp(node, tor) {
-    node -> tor BGP OPEN ASN 64512 HOLDTIME 15 BGPID 10.240.0.15 VLAN 240 PCP 6 DSCP 48 TTL 1 WAIT 3ms
-    node <- tor BGP OPEN ASN 65001 HOLDTIME 15 BGPID 10.240.0.1 VLAN 240 PCP 6 DSCP 48 TTL 1 WAIT 3ms
-    node -> tor BGP UPDATE ASN 64512 PREFIX "198.51.100.80/32" NEXTHOP 10.240.0.15 VLAN 240 PCP 6 DSCP 48 TTL 1 WAIT 3ms
-    node <- tor BGP KEEPALIVE VLAN 240 PCP 6 DSCP 48 TTL 1
+flow k8s_service_vip_bgp(node, tor) {
+    node -> tor bgp open asn 64512 holdtime 15 bgpid 10.240.0.15 vlan 240 pcp 6 dscp 48 ttl 1 wait 3ms
+    node <- tor bgp open asn 65001 holdtime 15 bgpid 10.240.0.1 vlan 240 pcp 6 dscp 48 ttl 1 wait 3ms
+    node -> tor bgp update asn 64512 prefix "198.51.100.80/32" nexthop 10.240.0.15 vlan 240 pcp 6 dscp 48 ttl 1 wait 3ms
+    node <- tor bgp keepalive vlan 240 pcp 6 dscp 48 ttl 1
 }
 
 // INSTRUCTION: Compile the Kubernetes MetalLB/Cilium BGP LoadBalancer VIP advertisement flow.
-COMPILE {
+compile {
     k8s_service_vip_bgp(k8s_worker_bgp, tor_leaf_router)
 }

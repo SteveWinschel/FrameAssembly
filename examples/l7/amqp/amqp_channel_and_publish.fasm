@@ -1,19 +1,19 @@
 // PROMPT: AMQP channel opening and basic message publish routing over IPv6.
-// TOKENS: HOST, IP, FLOW, AMQP, CHANNEL_OPEN, CHANNEL, BASIC_PUBLISH, EXCHANGE, ROUTING_KEY, COMPILE
+// TOKENS: host, ip, flow, s, amqp, channelopen, channel, basicpublish, exchange, routingkey, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 2001:db8::10 }
+host client { ip 2001:db8::10 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 2001:db8::1 }
+host server { ip 2001:db8::1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW amqp_pub(c, s) {
-    c -> s AMQP CHANNEL_OPEN CHANNEL 1
-    c -> s AMQP BASIC_PUBLISH CHANNEL 1 EXCHANGE "amq.direct" ROUTING_KEY "task_queue"
+flow amqp_pub(c, s) {
+    c -> s amqp channelopen channel 1
+    c -> s amqp basicpublish channel 1 exchange "amq.direct" routingkey "task_queue"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     amqp_pub(client, server)
 }

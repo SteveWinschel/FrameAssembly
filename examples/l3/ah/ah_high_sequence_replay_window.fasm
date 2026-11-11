@@ -1,20 +1,20 @@
 // PROMPT: IPsec AH anti-replay window validation with high sequence numbers and custom ICVs.
-// TOKENS: HOST, IP, FLOW, AH, SPI, SEQ, ICV, WAIT, COMPILE
+// TOKENS: host, ip, flow, s, ah, spi, seq, icv, wait, ms, compile
 
 // INSTRUCTION: Define sender testing anti-replay sliding window boundary.
-HOST replay_test_src { IP 172.30.100.10 }
+host replay_test_src { ip 172.30.100.10 }
 
 // INSTRUCTION: Define receiver validating sequence numbers against its replay bitmap.
-HOST replay_test_dst { IP 172.30.100.20 }
+host replay_test_dst { ip 172.30.100.20 }
 
 // INSTRUCTION: Define AH sequence progression across high sequence numbers.
-FLOW ah_replay_window_flow(s, d) {
-    s -> d AH SPI 999001 SEQ 65534 ICV "11223344556677889900aabb"
-    s -> d AH SPI 999001 SEQ 65535 ICV "223344556677889900aabbcc" WAIT 5ms
-    s -> d AH SPI 999001 SEQ 65536 ICV "3344556677889900aabbccdd" WAIT 5ms
+flow ah_replay_window_flow(s, d) {
+    s -> d ah spi 999001 seq 65534 icv "11223344556677889900aabb"
+    s -> d ah spi 999001 seq 65535 icv "223344556677889900aabbcc" wait 5ms
+    s -> d ah spi 999001 seq 65536 icv "3344556677889900aabbccdd" wait 5ms
 }
 
 // INSTRUCTION: Compile the AH anti-replay sequence test.
-COMPILE {
+compile {
     ah_replay_window_flow(replay_test_src, replay_test_dst)
 }

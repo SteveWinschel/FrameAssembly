@@ -1,18 +1,18 @@
 // PROMPT: OSPF Area Border Router advertising adjacency on Not-So-Stubby Area (NSSA) Area 10.
-// TOKENS: HOST, IP, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, COMPILE
+// TOKENS: host, ip, flow, ospf, hello, routerid, areaid, hellointerval, deadinterval, compile
 
 // INSTRUCTION: Define Area Border Router in NSSA area.
-HOST abr_nssa_router { IP 172.19.10.1 }
+host abr_nssa_router { ip 172.19.10.1 }
 
 // INSTRUCTION: Define All-OSPF-Routers multicast group.
-HOST ospf_all_routers_grp { IP 224.0.0.5 }
+host ospf_all_routers_grp { ip 224.0.0.5 }
 
 // INSTRUCTION: Define NSSA Area 10 Hello advertisement with standard 10s/40s intervals.
-FLOW ospf_nssa_hello(abr, mcast) {
-    abr -> mcast OSPF HELLO ROUTER_ID 172.19.10.1 AREA_ID 10 HELLO_INTERVAL 10 DEAD_INTERVAL 40
+flow ospf_nssa_hello(abr, mcast) {
+    abr -> mcast ospf hello routerid 172.19.10.1 areaid 10 hellointerval 10 deadinterval 40
 }
 
 // INSTRUCTION: Compile block executing NSSA Area border Hello transmission.
-COMPILE {
+compile {
     ospf_nssa_hello(abr_nssa_router, ospf_all_routers_grp)
 }

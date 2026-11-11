@@ -5,7 +5,7 @@
 //! (or port 139). It populates the 64-byte little-endian SMB2 header (`\xFESMB` protocol magic,
 //! `StructureSize = 64`, `Status`, `Command` opcode `0x0000..=0x0009`, `Flags`, `MessageId`,
 //! `TreeId`, and `SessionId`) and appends command-specific request/response structures plus UTF-16LE
-//! encoded `SHARE` or `FILENAME` buffers.
+//! encoded `share` or `filename` buffers.
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -18,18 +18,23 @@ pub fn build_smb_payload(
     payload_bytes: &[u8],
 ) -> Vec<u8> {
     let default_cmd = if spec.share.is_some() {
-        "TREE_CONNECT"
+        "treeconnect"
     } else if spec.filename.is_some() {
-        "CREATE"
+        "create"
     } else {
-        "NEGOTIATE"
+        "negotiate"
     };
-    let cmd_code: u16 = match spec.command.unwrap_or(default_cmd).to_ascii_uppercase().as_str() {
+    let cmd_norm = spec
+        .command
+        .unwrap_or(default_cmd)
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    let cmd_code: u16 = match cmd_norm.as_str() {
         "NEGOTIATE" => 0x0000,
-        "SESSION_SETUP" => 0x0001,
+        "SESSIONSETUP" => 0x0001,
         "LOGOFF" => 0x0002,
-        "TREE_CONNECT" => 0x0003,
-        "TREE_DISCONNECT" => 0x0004,
+        "TREECONNECT" => 0x0003,
+        "TREEDISCONNECT" => 0x0004,
         "CREATE" => 0x0005,
         "CLOSE" => 0x0006,
         "READ" => 0x0008,

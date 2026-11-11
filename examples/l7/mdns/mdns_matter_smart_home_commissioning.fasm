@@ -1,27 +1,27 @@
 // PROMPT: Create an mDNS Matter smart home commissioner discovery flow for _matterc._udp.local and _matter._tcp.local.
-// TOKENS: HOST, IP, MAC, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, FLOWLABEL, TTL, WAIT, RESPONSE, RDATA, ANS_TTL, COMPILE
+// TOKENS: host, ip, mac, flow, mdns, query, txid, qname, qtype, flowlabel, ttl, wait, ms, response, rdata, ansttl, compile
 
 // INSTRUCTION: Define the Matter controller hub commissioning and operating Thread/Wi-Fi smart home accessories.
-HOST matter_hub {
-    IP fd00:1234:5678::1
-    MAC 00:17:88:12:34:01
+host matter_hub {
+    ip fd00:1234:5678::1
+    mac 00:17:88:12:34:01
 }
 
 // INSTRUCTION: Define the Matter smart lock accessory advertising its operational service over IPv6.
-HOST smart_lock {
-    IP fd00:1234:5678::42
-    MAC 00:17:88:12:34:42
+host smart_lock {
+    ip fd00:1234:5678::42
+    mac 00:17:88:12:34:42
 }
 
 // INSTRUCTION: Discover the commissionable node via _matterc._udp.local and then query its operational _matter._tcp.local TXT record.
-FLOW matter_commissioning_mdns(hub, lock) {
-    hub -> lock MDNS QUERY TXID 0 QNAME "_matterc._udp.local" QTYPE "PTR" FLOWLABEL 0x11200 TTL 255 WAIT 4ms
-    hub <- lock MDNS RESPONSE TXID 0 QNAME "_matterc._udp.local" QTYPE "PTR" RDATA "CA92F01188._matterc._udp.local" ANS_TTL 120 FLOWLABEL 0x11200 TTL 255 WAIT 15ms
-    hub -> lock MDNS QUERY TXID 0 QNAME "_matter._tcp.local" QTYPE "TXT" FLOWLABEL 0x11200 TTL 255 WAIT 3ms
-    hub <- lock MDNS RESPONSE TXID 0 QNAME "_matter._tcp.local" QTYPE "TXT" RDATA "SII=5000 SAI=300 T=1" ANS_TTL 4500 FLOWLABEL 0x11200 TTL 255
+flow matter_commissioning_mdns(hub, lock) {
+    hub -> lock mdns query txid 0 qname "_matterc._udp.local" qtype "ptr" flowlabel 0x11200 ttl 255 wait 4ms
+    hub <- lock mdns response txid 0 qname "_matterc._udp.local" qtype "ptr" rdata "CA92F01188._matterc._udp.local" ansttl 120 flowlabel 0x11200 ttl 255 wait 15ms
+    hub -> lock mdns query txid 0 qname "_matter._tcp.local" qtype "txt" flowlabel 0x11200 ttl 255 wait 3ms
+    hub <- lock mdns response txid 0 qname "_matter._tcp.local" qtype "txt" rdata "SII=5000 SAI=300 T=1" ansttl 4500 flowlabel 0x11200 ttl 255
 }
 
 // INSTRUCTION: Compile the Matter smart home mDNS commissioning discovery trace into a PCAP file.
-COMPILE {
+compile {
     matter_commissioning_mdns(matter_hub, smart_lock)
 }

@@ -1,9 +1,9 @@
 //! WHOIS (RFC 3912) Layer 7 domain and IP registry lookup protocol field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 3912 `WHOIS` directory lookup
+//! This module implements the `winnow` parser combinator for RFC 3912 `whois` directory lookup
 //! queries and registry responses in FrameAssembly `.fasm` specifications. It recognizes the
-//! `WHOIS` protocol keyword, direction flags (`QUERY`, `RESPONSE`), queried domain names or IP
-//! prefixes (`DOMAIN`), and sponsoring registrar names (`REGISTRAR`).
+//! `whois` protocol keyword, direction flags (`query`, `response`), queried domain names or IP
+//! prefixes (`domain`), and sponsoring registrar names (`registrar`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

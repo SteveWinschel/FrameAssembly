@@ -1,25 +1,25 @@
 // PROMPT: RSTP operating over a 2x100GbE LACP port-channel advertising halved IEEE 802.1t long path cost (100).
-// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, MAX_AGE, HELLO_TIME, FORWARD_DELAY, FLAGS, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, maxage, hellotime, forwarddelay, flags, wait, ms, compile
 
 // INSTRUCTION: Define core switch port-channel Po1 master bridge.
-HOST core_po1_bridge {
-    IP 10.100.1.1
-    MAC 00:1c:73:64:01:01
+host core_po1_bridge {
+    ip 10.100.1.1
+    mac 00:1c:73:64:01:01
 }
 
 // INSTRUCTION: Define aggregation switch port-channel Po1 downstream bridge.
-HOST agg_po1_bridge {
-    IP 10.100.1.2
-    MAC 00:1c:73:64:01:02
+host agg_po1_bridge {
+    ip 10.100.1.2
+    mac 00:1c:73:64:01:02
 }
 
 // INSTRUCTION: Advertise RSTP root path cost 0 from core and aggregated 200GbE path cost 100 from downstream switch.
-FLOW stp_port_channel_cost(core, agg) {
-    core -> agg STP RSTP ROOT_ID "4096:00:1c:73:64:01:01" BRIDGE_ID "4096:00:1c:73:64:01:01" COST 0 PORT_ID 36865 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 60 WAIT 5ms
-    core <- agg STP RSTP ROOT_ID "4096:00:1c:73:64:01:01" BRIDGE_ID "8192:00:1c:73:64:01:02" COST 100 PORT_ID 36865 MAX_AGE 20 HELLO_TIME 2 FORWARD_DELAY 15 FLAGS 60
+flow stp_port_channel_cost(core, agg) {
+    core -> agg stp rstp rootid "4096:00:1c:73:64:01:01" bridgeid "4096:00:1c:73:64:01:01" cost 0 portid 36865 maxage 20 hellotime 2 forwarddelay 15 flags 60 wait 5ms
+    core <- agg stp rstp rootid "4096:00:1c:73:64:01:01" bridgeid "8192:00:1c:73:64:01:02" cost 100 portid 36865 maxage 20 hellotime 2 forwarddelay 15 flags 60
 }
 
 // INSTRUCTION: Compile the 200GbE port-channel RSTP path cost exchange.
-COMPILE {
+compile {
     stp_port_channel_cost(core_po1_bridge, agg_po1_bridge)
 }

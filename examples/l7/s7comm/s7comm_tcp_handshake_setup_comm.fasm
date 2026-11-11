@@ -1,22 +1,22 @@
 // PROMPT: Full TCP 3-way handshake on port 102 followed by S7comm SETUP_COMM job and ACK_DATA reply.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, DSTPORT, ACK, WAIT, S7COMM, ROSCTR, FUNC, PDU_REF, COMPILE
+// TOKENS: host, ip, mac, flow, tcp, syn, dstport, ack, wait, ms, s7comm, rosctr, func, pduref, compile
 
 // INSTRUCTION: Define WinCC SCADA master station.
-HOST wincc_scada { IP 10.102.0.10 MAC 00:0e:8c:66:00:0a }
+host wincc_scada { ip 10.102.0.10 mac 00:0e:8c:66:00:0a }
 
 // INSTRUCTION: Define Simatic S7-300 CPU PLC.
-HOST s7_300_cpu { IP 10.102.0.1 MAC 00:0e:8c:66:00:01 }
+host s7_300_cpu { ip 10.102.0.1 mac 00:0e:8c:66:00:01 }
 
 // INSTRUCTION: Define TCP handshake on port 102 and S7comm SETUP_COMM negotiation.
-FLOW s7comm_tcp_setup(hmi, plc) {
-    hmi -> plc TCP SYN DSTPORT 102
-    hmi <- plc TCP SYN ACK
-    hmi -> plc TCP ACK WAIT 2ms
-    hmi -> plc S7COMM ROSCTR "JOB" FUNC "SETUP_COMM" PDU_REF 1 WAIT 5ms
-    hmi <- plc S7COMM ROSCTR "ACK_DATA" FUNC "SETUP_COMM" PDU_REF 1
+flow s7comm_tcp_setup(hmi, plc) {
+    hmi -> plc tcp syn dstport 102
+    hmi <- plc tcp syn ack
+    hmi -> plc tcp ack wait 2ms
+    hmi -> plc s7comm rosctr "job" func "setupcomm" pduref 1 wait 5ms
+    hmi <- plc s7comm rosctr "ackdata" func "setupcomm" pduref 1
 }
 
 // INSTRUCTION: Compile S7comm TCP handshake and SETUP_COMM flow.
-COMPILE {
+compile {
     s7comm_tcp_setup(wincc_scada, s7_300_cpu)
 }

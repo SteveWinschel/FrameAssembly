@@ -1,10 +1,10 @@
 //! PostgreSQL v3.0 Wire Protocol Layer 7 database frontend/backend field parser.
 //!
-//! This module implements the `winnow` parser combinator for `POSTGRES` startup packets, simple
+//! This module implements the `winnow` parser combinator for `postgres` startup packets, simple
 //! query messages, authentication responses, and backend status frames in FrameAssembly `.fasm`
-//! specifications. It recognizes the `POSTGRES` protocol keyword, message type flags (`STARTUP`,
-//! `QUERY`, `READY_FOR_QUERY`, `COMMAND_COMPLETE`, `ERROR_RESPONSE`, `AUTH_OK`), SQL query strings
-//! (`SQL`), database role usernames (`USER`), and target database names (`DB`).
+//! specifications. It recognizes the `postgres` protocol keyword, message type flags (`startup`,
+//! `query`, `readyforquery`, `commandcomplete`, `errorresponse`, `authok`), SQL query strings
+//! (`sql`), database role usernames (`user`), and target database names (`db`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

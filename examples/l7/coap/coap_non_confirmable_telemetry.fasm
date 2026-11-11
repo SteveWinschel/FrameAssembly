@@ -1,18 +1,18 @@
 // PROMPT: CoAP Non-confirmable (NON) fire-and-forget sensor telemetry push with JSON content format.
-// TOKENS: HOST, IP, FLOW, COAP, NON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, PAYLOAD, COMPILE
+// TOKENS: host, ip, flow, s, coap, non, code, msgid, token, uripath, contentformat, payload, compile
 
 // INSTRUCTION: Define battery-powered soil moisture sensor.
-HOST soil_sensor { IP 10.66.1.45 }
+host soil_sensor { ip 10.66.1.45 }
 
 // INSTRUCTION: Define agricultural telemetry collector.
-HOST ag_collector { IP 10.66.1.1 }
+host ag_collector { ip 10.66.1.1 }
 
 // INSTRUCTION: Send NON POST (Code 0.02) with Content-Format 50 (application/json).
-FLOW coap_non_push(s, c) {
-    s -> c COAP NON CODE "0.02" MSGID 4010 TOKEN 0x99a1 URI_PATH "sensors/moisture" CONTENT_FORMAT 50 PAYLOAD "{\"moisture\":41.2}"
+flow coap_non_push(s, c) {
+    s -> c coap non code "0.02" msgid 4010 token 0x99a1 uripath "sensors/moisture" contentformat 50 payload "{\"moisture\":41.2}"
 }
 
 // INSTRUCTION: Compile the CoAP NON telemetry flow.
-COMPILE {
+compile {
     coap_non_push(soil_sensor, ag_collector)
 }

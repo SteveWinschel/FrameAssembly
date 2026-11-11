@@ -1,27 +1,27 @@
 // PROMPT: IEEE 802.1AB LLDP-MED fast-start mechanism transmitting three rapid 1-second LLDPDUs upon link-up detection.
-// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, mac, flow, lldp, chassisid, portid, sysname, sysdesc, ttl, wait, ms, compile
 
 // INSTRUCTION: Define newly connected enterprise desk switch port entering LLDP fast-start state.
-HOST desk_access_port {
-    IP 10.14.2.1
-    MAC 00:26:cb:0e:02:01
+host desk_access_port {
+    ip 10.14.2.1
+    mac 00:26:cb:0e:02:01
 }
 
 // INSTRUCTION: Define newly powered-on executive workstation triggering link-up fast-start.
-HOST exec_workstation {
-    IP 10.14.2.50
-    MAC 00:21:70:0e:02:32
+host exec_workstation {
+    ip 10.14.2.50
+    mac 00:21:70:0e:02:32
 }
 
 // INSTRUCTION: Emit LLDP fast-start advertisement with 20s TTL inside a 3-iteration rapid loop.
-FLOW lldp_fast_start_burst(sw, ws) {
-    sw -> ws LLDP CHASSIS_ID "fl2-sw04" PORT_ID "Gi0/15" SYSNAME "fl2-access-sw04" SYSDESC "LLDP-MED Fast-Start Enabled" TTL 20 WAIT 10ms
-    sw <- ws LLDP CHASSIS_ID "ws-exec-09" PORT_ID "enp3s0" SYSNAME "ws-exec-09.corp" SYSDESC "Linux Workstation 6.8" TTL 20
+flow lldp_fast_start_burst(sw, ws) {
+    sw -> ws lldp chassisid "fl2-sw04" portid "Gi0/15" sysname "fl2-access-sw04" sysdesc "LLDP-MED Fast-Start Enabled" ttl 20 wait 10ms
+    sw <- ws lldp chassisid "ws-exec-09" portid "enp3s0" sysname "ws-exec-09.corp" sysdesc "Linux Workstation 6.8" ttl 20
 }
 
 // INSTRUCTION: Compile 3 rapid LLDP fast-start burst iterations.
-COMPILE {
-    LOOP 3 {
-        lldp_fast_start_burst(desk_access_port, exec_workstation)
-    }
+compile {
+    lldp_fast_start_burst(desk_access_port, exec_workstation) // cycle 1
+    lldp_fast_start_burst(desk_access_port, exec_workstation) // cycle 2
+    lldp_fast_start_burst(desk_access_port, exec_workstation) // cycle 3
 }

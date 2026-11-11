@@ -1,23 +1,23 @@
 // PROMPT: DNP3 Class 1, Class 2, and Class 3 event buffer polling loop with 200ms intervals.
-// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, flow, m, dnp3, func, src, dst, group, variation, wait, ms, compile
 
 // INSTRUCTION: Define distribution SCADA poller.
-HOST dms_poller { IP 10.140.1.1 }
+host dms_poller { ip 10.140.1.1 }
 
 // INSTRUCTION: Define pole-top recloser outstation.
-HOST recloser_rtu { IP 10.140.1.40 }
+host recloser_rtu { ip 10.140.1.40 }
 
 // INSTRUCTION: Poll Class 1 (Var 2), Class 2 (Var 3), and Class 3 (Var 4) event objects under Group 60.
-FLOW dnp3_event_classes(m, r) {
-    m -> r DNP3 FUNC "READ" SRC 1 DST 40 GROUP 60 VARIATION 2 WAIT 200ms
-    m <- r DNP3 FUNC "RESPONSE" SRC 40 DST 1 GROUP 2 VARIATION 1
-    m -> r DNP3 FUNC "READ" SRC 1 DST 40 GROUP 60 VARIATION 3 WAIT 200ms
-    m -> r DNP3 FUNC "READ" SRC 1 DST 40 GROUP 60 VARIATION 4 WAIT 200ms
+flow dnp3_event_classes(m, r) {
+    m -> r dnp3 func "read" src 1 dst 40 group 60 variation 2 wait 200ms
+    m <- r dnp3 func "response" src 40 dst 1 group 2 variation 1
+    m -> r dnp3 func "read" src 1 dst 40 group 60 variation 3 wait 200ms
+    m -> r dnp3 func "read" src 1 dst 40 group 60 variation 4 wait 200ms
 }
 
 // INSTRUCTION: Execute 3 consecutive DNP3 event class polling cycles.
-COMPILE {
-    LOOP 3 {
-        dnp3_event_classes(dms_poller, recloser_rtu)
-    }
+compile {
+    dnp3_event_classes(dms_poller, recloser_rtu) // cycle 1
+    dnp3_event_classes(dms_poller, recloser_rtu) // cycle 2
+    dnp3_event_classes(dms_poller, recloser_rtu) // cycle 3
 }

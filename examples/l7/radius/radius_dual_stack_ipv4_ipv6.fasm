@@ -1,24 +1,24 @@
 // PROMPT: Dual-stack IPv4 and IPv6 RADIUS authentication and Framed-IP assignment.
-// TOKENS: HOST, IP, FLOW, RADIUS, ACCESS_REQUEST, USER, NAS_IP, SERVICE_TYPE, DSCP, TTL, FLOWLABEL, ACCESS_ACCEPT, FRAMED_IP, COMPILE
+// TOKENS: host, ip, flow, radius, accessrequest, user, nasip, servicetype, dscp, ttl, flowlabel, accessaccept, framedip, compile
 
 // INSTRUCTION: Define IPv4 NAS and RADIUS server.
-HOST nas_v4 { IP 10.181.2.10 }
+host nas_v4 { ip 10.181.2.10 }
 // INSTRUCTION: Define IPv4 RADIUS AAA endpoint.
-HOST rad_v4 { IP 10.181.2.1 }
+host rad_v4 { ip 10.181.2.1 }
 
 // INSTRUCTION: Define IPv6 NAS and RADIUS server.
-HOST nas_v6 { IP 2001:db8:1812::10 }
+host nas_v6 { ip 2001:db8:1812::10 }
 // INSTRUCTION: Define IPv6 RADIUS AAA endpoint.
-HOST rad_v6 { IP 2001:db8:1812::1 }
+host rad_v6 { ip 2001:db8:1812::1 }
 
 // INSTRUCTION: Define polymorphic RADIUS authentication exchange.
-FLOW radius_dual_stack(nas, aaa) {
-    nas -> aaa RADIUS ACCESS_REQUEST USER "netops_dual" NAS_IP 10.181.2.10 SERVICE_TYPE 6 DSCP 48 TTL 64 FLOWLABEL 0x18120
-    nas <- aaa RADIUS ACCESS_ACCEPT USER "netops_dual" FRAMED_IP 10.181.99.50 SERVICE_TYPE 6 DSCP 48 TTL 64 FLOWLABEL 0x18120
+flow radius_dual_stack(nas, aaa) {
+    nas -> aaa radius accessrequest user "netops_dual" nasip 10.181.2.10 servicetype 6 dscp 48 ttl 64 flowlabel 0x18120
+    nas <- aaa radius accessaccept user "netops_dual" framedip 10.181.99.50 servicetype 6 dscp 48 ttl 64 flowlabel 0x18120
 }
 
 // INSTRUCTION: Compile dual-stack RADIUS flow over IPv4 and IPv6.
-COMPILE {
+compile {
     radius_dual_stack(nas_v4, rad_v4)
     radius_dual_stack(nas_v6, rad_v6)
 }

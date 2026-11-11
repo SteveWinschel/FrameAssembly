@@ -1,31 +1,31 @@
 // PROMPT: Redis key lifecycle management using SETEX, TTL inspection, PERSIST, and atomic RENAME.
-// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, s, redis, cmd, args, replytype, value, wait, ms, compile
 
 // INSTRUCTION: Define the checkout cart service managing temporary order holds.
-HOST cart_service {
-    IP 10.80.90.25
-    MAC 00:1a:2b:80:90:25
+host cart_service {
+    ip 10.80.90.25
+    mac 00:1a:2b:80:90:25
 }
 
 // INSTRUCTION: Define the checkout Redis node.
-HOST checkout_redis {
-    IP 10.80.90.5
-    MAC 00:1a:2b:80:90:05
+host checkout_redis {
+    ip 10.80.90.5
+    mac 00:1a:2b:80:90:05
 }
 
 // INSTRUCTION: Create expiring hold key, inspect TTL, remove expiration with PERSIST, and RENAME to confirmed order.
-FLOW redis_key_lifecycle(c, s) {
-    c -> s REDIS CMD "SETEX" ARGS "hold:ord_701 300 pending_payment"
-    c <- s REDIS REPLY_TYPE "STATUS" VALUE "OK" WAIT 1ms
-    c -> s REDIS CMD "TTL" ARGS "hold:ord_701"
-    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "299" WAIT 1ms
-    c -> s REDIS CMD "PERSIST" ARGS "hold:ord_701"
-    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "1" WAIT 1ms
-    c -> s REDIS CMD "RENAME" ARGS "hold:ord_701 confirmed:ord_701"
-    c <- s REDIS REPLY_TYPE "STATUS" VALUE "OK"
+flow redis_key_lifecycle(c, s) {
+    c -> s redis cmd "SETEX" args "hold:ord_701 300 pending_payment"
+    c <- s redis replytype "status" value "OK" wait 1ms
+    c -> s redis cmd "TTL" args "hold:ord_701"
+    c <- s redis replytype "integer" value "299" wait 1ms
+    c -> s redis cmd "PERSIST" args "hold:ord_701"
+    c <- s redis replytype "integer" value "1" wait 1ms
+    c -> s redis cmd "RENAME" args "hold:ord_701 confirmed:ord_701"
+    c <- s redis replytype "status" value "OK"
 }
 
 // INSTRUCTION: Compile the Redis key lifecycle management flow.
-COMPILE {
+compile {
     redis_key_lifecycle(cart_service, checkout_redis)
 }

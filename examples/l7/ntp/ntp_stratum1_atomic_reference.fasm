@@ -1,18 +1,18 @@
 // PROMPT: NTP Stratum 1 server response referencing GPS synchronized reference clock over IPv6.
-// TOKENS: HOST, IP, FLOW, NTP, MODE, VN, STRATUM, REFID, COMPILE
+// TOKENS: host, ip, flow, s, ntp, mode, vn, stratum, refid, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 2001:db8::10 }
+host client { ip 2001:db8::10 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 2001:db8::1 }
+host server { ip 2001:db8::1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW ntp_gps(c, s) {
-    c <- s NTP MODE 4 VN 4 STRATUM 1 REFID "GPS"
+flow ntp_gps(c, s) {
+    c <- s ntp mode 4 vn 4 stratum 1 refid "GPS"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     ntp_gps(client, server)
 }

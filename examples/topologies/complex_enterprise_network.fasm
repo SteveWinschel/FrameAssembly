@@ -1,32 +1,34 @@
 // PROMPT: Simulate an enterprise network combining looped HTTP TCP sessions between a router and web server with an SNMPv3 trap to a monitoring server.
-// TOKENS: HOST, IP, FLOW, TCP, SYN, DSTPORT, ACK, SRCPORT, PAYLOAD, SNMP3, TRAP, USER, OID, SYSUPTIME, COMPILE, LOOP
+// TOKENS: host, ip, flow, tcp, syn, dstport, ack, srcport, payload, snmp3, trap, user, oid, sysuptime, compile
 
 // INSTRUCTION: Define the core router with IP 10.0.0.1.
-HOST core_router { IP 10.0.0.1 }
+host core_router { ip 10.0.0.1 }
 
 // INSTRUCTION: Define a web server with IP 172.16.0.80.
-HOST web_server { IP 172.16.0.80 }
+host web_server { ip 172.16.0.80 }
 
 // INSTRUCTION: Define a monitoring server with IP 192.168.100.100.
-HOST monitoring_server { IP 192.168.100.100 }
+host monitoring_server { ip 192.168.100.100 }
 
 // INSTRUCTION: Define a flow for standard web traffic containing a GET request and a response.
-FLOW web_traffic(client, server) {
-    client -> server TCP SYN DSTPORT 80
-    client <- server TCP SYN ACK SRCPORT 80
-    client -> server TCP ACK DSTPORT 80 PAYLOAD "GET / HTTP/1.1"
-    client <- server TCP ACK SRCPORT 80 PAYLOAD "HTTP/1.1 200 OK"
+flow web_traffic(client, server) {
+    client -> server tcp syn dstport 80
+    client <- server tcp syn ack srcport 80
+    client -> server tcp ack dstport 80 payload "GET / HTTP/1.1"
+    client <- server tcp ack srcport 80 payload "HTTP/1.1 200 OK"
 }
 
 // INSTRUCTION: Define a flow for SNMPv3 monitoring with authentication.
-FLOW secure_monitoring(agent, nms) {
-    agent -> nms SNMP3 TRAP USER "admin_user" OID 1.3.6.1.4.1 SYSUPTIME 50000
+flow secure_monitoring(agent, nms) {
+    agent -> nms snmp3 trap user "admin_user" oid 1.3.6.1.4.1 sysuptime 50000
 }
 
 // INSTRUCTION: Compile block to simulate traffic between the router, web server, and monitoring server.
-COMPILE {
-    LOOP 5 {
-        web_traffic(core_router, web_server)
-    }
+compile {
+    web_traffic(core_router, web_server) // cycle 1
+    web_traffic(core_router, web_server) // cycle 2
+    web_traffic(core_router, web_server) // cycle 3
+    web_traffic(core_router, web_server) // cycle 4
+    web_traffic(core_router, web_server) // cycle 5
     secure_monitoring(web_server, monitoring_server)
 }

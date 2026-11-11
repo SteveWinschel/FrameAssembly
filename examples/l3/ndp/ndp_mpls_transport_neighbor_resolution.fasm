@@ -1,18 +1,18 @@
 // PROMPT: NDP resolution packet encapsulated across MPLS label switched path with label 300.
-// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_SOLICIT, TARGET, SLLA, MPLS, COMPILE
+// TOKENS: host, ip, mac, flow, dst, ndp, neighborsolicit, target, slla, mpls, compile
 
 // INSTRUCTION: Define ingress label edge router.
-HOST mpls_ler_node { IP fe80::101 MAC 00:1f:6d:10:01:01 }
+host mpls_ler_node { ip fe80::101 mac 00:1f:6d:10:01:01 }
 
 // INSTRUCTION: Define egress router destination.
-HOST mpls_egress_dst { IP ff02::1:ff00:2 MAC 33:33:ff:00:00:02 }
+host mpls_egress_dst { ip ff02::1:ff00:2 mac 33:33:ff:00:00:02 }
 
 // INSTRUCTION: Define MPLS encapsulated Neighbor Solicitation flow.
-FLOW mpls_ndp_flow(ler, dst) {
-    ler -> dst NDP NEIGHBOR_SOLICIT TARGET 2001:db8:99::2 SLLA 00:1f:6d:10:01:01 MPLS 300
+flow mpls_ndp_flow(ler, dst) {
+    ler -> dst ndp neighborsolicit target 2001:db8:99::2 slla 00:1f:6d:10:01:01 mpls 300
 }
 
 // INSTRUCTION: Compile block executing MPLS transported NDP discovery.
-COMPILE {
+compile {
     mpls_ndp_flow(mpls_ler_node, mpls_egress_dst)
 }

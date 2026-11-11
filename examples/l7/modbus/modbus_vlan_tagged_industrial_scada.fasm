@@ -1,18 +1,18 @@
 // PROMPT: Critical infrastructure Modbus control traffic isolated on 802.1Q SCADA VLAN.
-// TOKENS: HOST, IP, FLOW, MODBUS, FUNC, ADDR, COUNT, UNITID, VLAN, PCP, DEI, COMPILE
+// TOKENS: host, ip, flow, modbus, func, addr, count, unitid, vlan, pcp, dei, compile
 
 // INSTRUCTION: Define operations control center HMI.
-HOST occ_hmi { IP 10.200.5.12 }
+host occ_hmi { ip 10.200.5.12 }
 
 // INSTRUCTION: Define generator protection relay PLC.
-HOST generator_relay { IP 10.200.5.80 }
+host generator_relay { ip 10.200.5.80 }
 
 // INSTRUCTION: Define tagged VLAN Modbus interrogation flow.
-FLOW vlan_modbus_flow(hmi, rly) {
-    hmi -> rly MODBUS FUNC "READ_HOLDING_REGISTERS" ADDR 200 COUNT 6 UNITID 1 VLAN 502 PCP 6 DEI 0
+flow vlan_modbus_flow(hmi, rly) {
+    hmi -> rly modbus func "readholdingregisters" addr 200 count 6 unitid 1 vlan 502 pcp 6 dei 0
 }
 
 // INSTRUCTION: Compile VLAN tagged industrial SCADA scenario.
-COMPILE {
+compile {
     vlan_modbus_flow(occ_hmi, generator_relay)
 }

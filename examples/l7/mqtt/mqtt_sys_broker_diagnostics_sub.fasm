@@ -1,29 +1,29 @@
 // PROMPT: Create an MQTT $SYS broker internal metrics subscription monitoring active clients and message rates.
-// TOKENS: HOST, IP, MAC, FLOW, MQTT, CONNECT, CLIENT_ID, WAIT, CONNACK, RETURN_CODE, SUBSCRIBE, TOPIC, QOS, PKT_ID, SUBACK, PUBLISH, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, mqtt, connect, clientid, wait, ms, connack, returncode, subscribe, topic, qos, pktid, suback, publish, payload, compile
 
 // INSTRUCTION: Define the NOC monitoring agent subscribing to Mosquitto $SYS/broker/# statistics.
-HOST noc_monitor {
-    IP 10.15.30.80
-    MAC 00:16:3e:0f:1e:50
+host noc_monitor {
+    ip 10.15.30.80
+    mac 00:16:3e:0f:1e:50
 }
 
 // INSTRUCTION: Define the production Mosquitto broker publishing internal $SYS metrics.
-HOST prod_mosquitto {
-    IP 10.15.30.10
-    MAC 00:16:3e:0f:1e:0a
+host prod_mosquitto {
+    ip 10.15.30.10
+    mac 00:16:3e:0f:1e:0a
 }
 
 // INSTRUCTION: Connect, subscribe to $SYS/broker/clients/connected and $SYS/broker/load/messages/received/1min, and receive both updates.
-FLOW sys_broker_metrics(c, s) {
-    c -> s MQTT CONNECT CLIENT_ID "noc-sys-collector" WAIT 2ms
-    c <- s MQTT CONNACK RETURN_CODE 0 WAIT 2ms
-    c -> s MQTT SUBSCRIBE TOPIC "$SYS/broker/#" QOS 0 PKT_ID 1 WAIT 2ms
-    c <- s MQTT SUBACK PKT_ID 1 QOS 0 WAIT 5ms
-    c <- s MQTT PUBLISH TOPIC "$SYS/broker/clients/connected" QOS 0 PAYLOAD "1428" WAIT 2ms
-    c <- s MQTT PUBLISH TOPIC "$SYS/broker/load/messages/received/1min" QOS 0 PAYLOAD "98450.25"
+flow sys_broker_metrics(c, s) {
+    c -> s mqtt connect clientid "noc-sys-collector" wait 2ms
+    c <- s mqtt connack returncode 0 wait 2ms
+    c -> s mqtt subscribe topic "$SYS/broker/#" qos 0 pktid 1 wait 2ms
+    c <- s mqtt suback pktid 1 qos 0 wait 5ms
+    c <- s mqtt publish topic "$SYS/broker/clients/connected" qos 0 payload "1428" wait 2ms
+    c <- s mqtt publish topic "$SYS/broker/load/messages/received/1min" qos 0 payload "98450.25"
 }
 
 // INSTRUCTION: Compile the MQTT $SYS broker diagnostics subscription trace into a PCAP file.
-COMPILE {
+compile {
     sys_broker_metrics(noc_monitor, prod_mosquitto)
 }

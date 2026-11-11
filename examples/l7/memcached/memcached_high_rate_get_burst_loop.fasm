@@ -1,20 +1,21 @@
 // PROMPT: High-throughput Memcached cache read benchmark executed inside compile loop.
-// TOKENS: HOST, IP, FLOW, MEMCACHED, CMD, KEY, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, flow, memcached, cmd, key, wait, ms, compile
 
 // INSTRUCTION: Define performance benchmark runner.
-HOST benchmark_runner { IP 172.30.1.100 }
+host benchmark_runner { ip 172.30.1.100 }
 
 // INSTRUCTION: Define high-concurrency Memcached target.
-HOST cache_target { IP 172.30.1.1 }
+host cache_target { ip 172.30.1.1 }
 
 // INSTRUCTION: Define rapid get request burst flow.
-FLOW burst_get_flow(cli, srv) {
-    cli -> srv MEMCACHED CMD "get" KEY "hot:item:key" WAIT 5ms
+flow burst_get_flow(cli, srv) {
+    cli -> srv memcached cmd "get" key "hot:item:key" wait 5ms
 }
 
 // INSTRUCTION: Compile high rate get burst in loop.
-COMPILE {
-    LOOP 4 {
-        burst_get_flow(benchmark_runner, cache_target)
-    }
+compile {
+    burst_get_flow(benchmark_runner, cache_target) // cycle 1
+    burst_get_flow(benchmark_runner, cache_target) // cycle 2
+    burst_get_flow(benchmark_runner, cache_target) // cycle 3
+    burst_get_flow(benchmark_runner, cache_target) // cycle 4
 }

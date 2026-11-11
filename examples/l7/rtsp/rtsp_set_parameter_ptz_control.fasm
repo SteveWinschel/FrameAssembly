@@ -1,19 +1,19 @@
 // PROMPT: RTSP SET_PARAMETER PTZ camera pan/tilt preset command over active session.
-// TOKENS: HOST, IP, FLOW, RTSP, METHOD, URI, CSEQ, SESSION, PAYLOAD, WAIT, STATUS, COMPILE
+// TOKENS: host, ip, flow, s, rtsp, method, uri, cseq, session, payload, wait, ms, status, compile
 
 // INSTRUCTION: Define guard station PTZ controller.
-HOST guard_ptz { IP 172.20.55.10 }
+host guard_ptz { ip 172.20.55.10 }
 
 // INSTRUCTION: Define dome camera RTSP server.
-HOST dome_cam { IP 172.20.55.200 }
+host dome_cam { ip 172.20.55.200 }
 
 // INSTRUCTION: Define SET_PARAMETER request adjusting camera preset position.
-FLOW rtsp_set_parameter(c, s) {
-    c -> s RTSP METHOD "SET_PARAMETER" URI "rtsp://172.20.55.200/ptz" CSEQ 9 SESSION "ptz_sess_1" PAYLOAD "ptz_preset: gate_north\r\n" WAIT 5ms
-    c <- s RTSP STATUS 200 CSEQ 9
+flow rtsp_set_parameter(c, s) {
+    c -> s rtsp method "SET_PARAMETER" uri "rtsp://172.20.55.200/ptz" cseq 9 session "ptz_sess_1" payload "ptz_preset: gate_north\r\n" wait 5ms
+    c <- s rtsp status 200 cseq 9
 }
 
 // INSTRUCTION: Compile RTSP SET_PARAMETER flow.
-COMPILE {
+compile {
     rtsp_set_parameter(guard_ptz, dome_cam)
 }

@@ -1,19 +1,19 @@
 // PROMPT: SIP user agent registration exchange using REGISTER method and 200 OK response.
-// TOKENS: HOST, IP, FLOW, SIP, METHOD, URI, FROM, TO, CALL_ID, CSEQ, WAIT, STATUS, REASON, COMPILE
+// TOKENS: host, ip, flow, s, sip, method, uri, from, to, callid, cseq, wait, ms, status, reason, compile
 
 // INSTRUCTION: Define SIP desktop phone endpoint.
-HOST desk_phone { IP 192.168.10.50 }
+host desk_phone { ip 192.168.10.50 }
 
 // INSTRUCTION: Define SIP registrar server.
-HOST sip_registrar { IP 192.168.10.1 }
+host sip_registrar { ip 192.168.10.1 }
 
 // INSTRUCTION: Define registration request and 200 OK response flow.
-FLOW sip_register(c, s) {
-    c -> s SIP METHOD "REGISTER" URI "sip:pbx.enterprise.com" FROM "sip:alice@pbx.enterprise.com" TO "sip:alice@pbx.enterprise.com" CALL_ID "reg-44819-ax9" CSEQ 1 WAIT 5ms
-    c <- s SIP STATUS 200 REASON "OK" CALL_ID "reg-44819-ax9" CSEQ 1
+flow sip_register(c, s) {
+    c -> s sip method "REGISTER" uri "sip:pbx.enterprise.com" from "sip:alice@pbx.enterprise.com" to "sip:alice@pbx.enterprise.com" callid "reg-44819-ax9" cseq 1 wait 5ms
+    c <- s sip status 200 reason "OK" callid "reg-44819-ax9" cseq 1
 }
 
 // INSTRUCTION: Compile SIP registration flow.
-COMPILE {
+compile {
     sip_register(desk_phone, sip_registrar)
 }

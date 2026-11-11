@@ -1,28 +1,28 @@
 // PROMPT: NFSv4 final attribute check followed by graceful TCP FIN/ACK connection teardown during umount.
-// TOKENS: HOST, IP, MAC, FLOW, SRCPORT, DSTPORT, NFS, VERS, PROC, TAG, PATH, WAIT, TCP, FIN, ACK, SEQ, ACKNUM, COMPILE
+// TOKENS: host, ip, mac, flow, s, srcport, dstport, nfs, vers, proc, tag, path, wait, ms, tcp, fin, ack, seq, acknum, compile
 
 // INSTRUCTION: Define the batch compute host unmounting its temporary NFS workspace.
-HOST batch_host {
-    IP 10.70.90.40
-    MAC 00:1a:2b:70:90:40
+host batch_host {
+    ip 10.70.90.40
+    mac 00:1a:2b:70:90:40
 }
 
 // INSTRUCTION: Define the workspace NFSv4 server.
-HOST workspace_nfs {
-    IP 10.70.90.10
-    MAC 00:1a:2b:70:90:10
+host workspace_nfs {
+    ip 10.70.90.10
+    mac 00:1a:2b:70:90:10
 }
 
 // INSTRUCTION: Flush final GETATTR check and close TCP port 2049 with FIN/ACK handshake.
-FLOW nfs_unmount_fin(c, s) {
-    c -> s SRCPORT 784 DSTPORT 2049 NFS VERS 4 PROC "GETATTR" TAG "umount_sync" PATH "/mnt/job_8812"
-    c <- s SRCPORT 2049 DSTPORT 784 NFS VERS 4 PROC "GETATTR" TAG "umount_sync" WAIT 1ms
-    c -> s TCP SRCPORT 784 DSTPORT 2049 FIN ACK SEQ 5000 ACKNUM 9000
-    c <- s TCP SRCPORT 2049 DSTPORT 784 FIN ACK SEQ 9000 ACKNUM 5001
-    c -> s TCP SRCPORT 784 DSTPORT 2049 ACK SEQ 5001 ACKNUM 9001
+flow nfs_unmount_fin(c, s) {
+    c -> s srcport 784 dstport 2049 nfs vers 4 proc "getattr" tag "umount_sync" path "/mnt/job_8812"
+    c <- s srcport 2049 dstport 784 nfs vers 4 proc "getattr" tag "umount_sync" wait 1ms
+    c -> s tcp srcport 784 dstport 2049 fin ack seq 5000 acknum 9000
+    c <- s tcp srcport 2049 dstport 784 fin ack seq 9000 acknum 5001
+    c -> s tcp srcport 784 dstport 2049 ack seq 5001 acknum 9001
 }
 
 // INSTRUCTION: Compile the NFSv4 unmount and TCP teardown flow.
-COMPILE {
+compile {
     nfs_unmount_fin(batch_host, workspace_nfs)
 }

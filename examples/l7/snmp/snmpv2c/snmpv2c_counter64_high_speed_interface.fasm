@@ -1,30 +1,30 @@
 // PROMPT: Poll and report 64-bit high-capacity interface counters (ifHCInOctets and ifHCOutOctets) using SMIv2 COUNTER64 varbinds in SNMPv2c GET, RESPONSE, and TRAP PDUs.
-// TOKENS: HOST, IP, MAC, FLOW, SNMP2, GET, COMMUNITY, REQID, VARBIND, NULLVAL, WAIT, RESPONSE, COUNTER64, TRAP, OID, SYSUPTIME, STRING, COMPILE
+// TOKENS: host, ip, mac, flow, snmp2, get, community, reqid, varbind, nullval, wait, ms, response, counter64, trap, oid, sysuptime, string, compile
 
 // INSTRUCTION: Define a 400GbE spine switch agent with IP 10.126.0.1.
-HOST spine_400g { IP 10.126.0.1 MAC 00:02:c9:26:00:01 }
+host spine_400g { ip 10.126.0.1 mac 00:02:c9:26:00:01 }
 
 // INSTRUCTION: Define a telemetry collector host with IP 10.126.0.100.
-HOST telemetry_nms { IP 10.126.0.100 MAC 00:02:c9:26:00:64 }
+host telemetry_nms { ip 10.126.0.100 mac 00:02:c9:26:00:64 }
 
 // INSTRUCTION: Define a flow querying and receiving 64-bit COUNTER64 octet counters exceeding 32-bit limits.
-FLOW snmpv2c_hc_counters(nms, spine) {
-    nms -> spine SNMP2 GET COMMUNITY "hc_poll" REQID 7001
-        VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 NULLVAL
-        VARBIND 1.3.6.1.2.1.31.1.1.1.10.1 NULLVAL
-        WAIT 10ms
-    nms <- spine SNMP2 RESPONSE COMMUNITY "hc_poll" REQID 7001
-        VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 1099511627776
-        VARBIND 1.3.6.1.2.1.31.1.1.1.10.1 COUNTER64 2199023255552
-        WAIT 10ms
-    nms <- spine SNMP2 TRAP COMMUNITY "hc_poll" REQID 7002 OID 1.3.6.1.4.1.30065.3.1
-        SYSUPTIME 500000
-        VARBIND 1.3.6.1.2.1.31.1.1.1.1.1 STRING "Ethernet1/1"
-        VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 1099511627776
-        WAIT 10ms
+flow snmpv2c_hc_counters(nms, spine) {
+    nms -> spine snmp2 get community "hc_poll" reqid 7001
+        varbind 1.3.6.1.2.1.31.1.1.1.6.1 nullval
+        varbind 1.3.6.1.2.1.31.1.1.1.10.1 nullval
+        wait 10ms
+    nms <- spine snmp2 response community "hc_poll" reqid 7001
+        varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 1099511627776
+        varbind 1.3.6.1.2.1.31.1.1.1.10.1 counter64 2199023255552
+        wait 10ms
+    nms <- spine snmp2 trap community "hc_poll" reqid 7002 oid 1.3.6.1.4.1.30065.3.1
+        sysuptime 500000
+        varbind 1.3.6.1.2.1.31.1.1.1.1.1 string "Ethernet1/1"
+        varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 1099511627776
+        wait 10ms
 }
 
 // INSTRUCTION: Compile block to run the high-capacity COUNTER64 SNMPv2c flow.
-COMPILE {
+compile {
     snmpv2c_hc_counters(telemetry_nms, spine_400g)
 }

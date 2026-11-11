@@ -1,31 +1,31 @@
 // PROMPT: Simulate an encrypted SNMPv3 GETBULK request and RESPONSE using HMAC-SHA-384 authentication (AUTH SHA384) and AES-128-CFB encryption (PRIV AES).
-// TOKENS: HOST, IP, FLOW, SNMP3, GETBULK, USER, ENGINEID, AUTH, SHA384, PRIV, AES, REQID, NONREPEATERS, MAXREPETITIONS, VARBIND, NULLVAL, WAIT, RESPONSE, TIMETICKS, COUNTER64, GAUGE32, COMPILE
+// TOKENS: host, ip, flow, snmp3, getbulk, user, engineid, auth, sha384, priv, aes, reqid, nonrepeaters, maxrepetitions, varbind, nullval, wait, ms, response, timeticks, counter64, gauge32, compile
 
 // INSTRUCTION: Define a high-security telemetry collector with IP 10.153.0.10.
-HOST v3_sha384_aes_col { IP 10.153.0.10 }
+host v3_sha384_aes_col { ip 10.153.0.10 }
 
 // INSTRUCTION: Define a core router agent with IP 10.153.0.1.
-HOST v3_sha384_aes_rtr { IP 10.153.0.1 }
+host v3_sha384_aes_rtr { ip 10.153.0.1 }
 
 // INSTRUCTION: Define a flow performing an SNMPv3 GETBULK operation secured with AUTH SHA384 and PRIV AES.
-FLOW snmpv3_sha384_aes_getbulk(col, rtr) {
-    col -> rtr SNMP3 GETBULK USER "usm_sha384_aes" ENGINEID "80001f8880530001"
-        AUTH SHA384 "sha384_bulk_auth_pass" PRIV AES "aes128_bulk_priv_pass"
-        REQID 9901 NONREPEATERS 1 MAXREPETITIONS 15
-        VARBIND 1.3.6.1.2.1.1.3.0 NULLVAL
-        VARBIND 1.3.6.1.2.1.31.1.1.1.6 NULLVAL
-        VARBIND 1.3.6.1.2.1.31.1.1.1.15 NULLVAL
-        WAIT 10ms
-    col <- rtr SNMP3 RESPONSE USER "usm_sha384_aes" ENGINEID "80001f8880530001"
-        AUTH SHA384 "sha384_bulk_auth_pass" PRIV AES "aes128_bulk_priv_pass"
-        REQID 9901
-        VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 12800000
-        VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 900010002000
-        VARBIND 1.3.6.1.2.1.31.1.1.1.15.1 GAUGE32 100000
-        WAIT 10ms
+flow snmpv3_sha384_aes_getbulk(col, rtr) {
+    col -> rtr snmp3 getbulk user "usm_sha384_aes" engineid "80001f8880530001"
+        auth sha384 "sha384_bulk_auth_pass" priv aes "aes128_bulk_priv_pass"
+        reqid 9901 nonrepeaters 1 maxrepetitions 15
+        varbind 1.3.6.1.2.1.1.3.0 nullval
+        varbind 1.3.6.1.2.1.31.1.1.1.6 nullval
+        varbind 1.3.6.1.2.1.31.1.1.1.15 nullval
+        wait 10ms
+    col <- rtr snmp3 response user "usm_sha384_aes" engineid "80001f8880530001"
+        auth sha384 "sha384_bulk_auth_pass" priv aes "aes128_bulk_priv_pass"
+        reqid 9901
+        varbind 1.3.6.1.2.1.1.3.0 timeticks 12800000
+        varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 900010002000
+        varbind 1.3.6.1.2.1.31.1.1.1.15.1 gauge32 100000
+        wait 10ms
 }
 
 // INSTRUCTION: Compile block to execute the SHA384 + AES SNMPv3 GETBULK flow.
-COMPILE {
+compile {
     snmpv3_sha384_aes_getbulk(v3_sha384_aes_col, v3_sha384_aes_rtr)
 }

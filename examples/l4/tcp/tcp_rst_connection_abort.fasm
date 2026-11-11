@@ -1,21 +1,21 @@
 // PROMPT: Simulate an abrupt TCP connection abort where a server rejects a client request mid-session using a TCP RST flag and zero window.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ACK, ACKNUM, PSH, PAYLOAD, RST, COMPILE
+// TOKENS: host, ip, mac, flow, gateway, tcp, syn, srcport, dstport, seq, win, wait, ms, ack, acknum, psh, payload, rst, compile
 
 // INSTRUCTION: Define an API client host with IP 10.1.20.11.
-HOST api_client { IP 10.1.20.11 MAC 02:00:00:00:01:01 }
+host api_client { ip 10.1.20.11 mac 02:00:00:00:01:01 }
 
 // INSTRUCTION: Define a hardened gateway host with IP 10.1.20.1.
-HOST hardened_gateway { IP 10.1.20.1 MAC 02:00:00:00:01:fe }
+host hardened_gateway { ip 10.1.20.1 mac 02:00:00:00:01:fe }
 
 // INSTRUCTION: Define a flow that opens a TCP session, sends an unauthorized payload, and receives an immediate RST ACK abort.
-FLOW rst_connection_abort(client, gateway) {
-    client -> gateway TCP SYN SRCPORT 49152 DSTPORT 8443 SEQ 500 WIN 32768 WAIT 2ms
-    client <- gateway TCP SYN ACK SRCPORT 8443 DSTPORT 49152 SEQ 9000 ACKNUM 501 WIN 32768 WAIT 2ms
-    client -> gateway TCP PSH ACK SRCPORT 49152 DSTPORT 8443 SEQ 501 ACKNUM 9001 PAYLOAD "ADMIN EXEC /bin/sh" WAIT 2ms
-    client <- gateway TCP RST ACK SRCPORT 8443 DSTPORT 49152 SEQ 9001 ACKNUM 519 WIN 0 WAIT 1ms
+flow rst_connection_abort(client, gateway) {
+    client -> gateway tcp syn srcport 49152 dstport 8443 seq 500 win 32768 wait 2ms
+    client <- gateway tcp syn ack srcport 8443 dstport 49152 seq 9000 acknum 501 win 32768 wait 2ms
+    client -> gateway tcp psh ack srcport 49152 dstport 8443 seq 501 acknum 9001 payload "ADMIN EXEC /bin/sh" wait 2ms
+    client <- gateway tcp rst ack srcport 8443 dstport 49152 seq 9001 acknum 519 win 0 wait 1ms
 }
 
 // INSTRUCTION: Compile block to run the TCP RST connection abort scenario.
-COMPILE {
+compile {
     rst_connection_abort(api_client, hardened_gateway)
 }

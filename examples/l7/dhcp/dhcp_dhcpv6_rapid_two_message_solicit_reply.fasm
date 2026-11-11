@@ -1,25 +1,25 @@
 // PROMPT: Simulate an IPv6 DHCPv6 Rapid Commit two-message SOLICIT and immediate REPLY exchange on link-local addresses.
-// TOKENS: HOST, IP, MAC, FLOW, DHCP, SOLICIT, XID, HOSTNAME, FLOWLABEL, TTL, WAIT, REPLY, YIADDR, DNS_SERVER, LEASE_TIME, COMPILE
+// TOKENS: host, ip, mac, flow, s, dhcp, solicit, xid, hostname, flowlabel, ttl, wait, ms, reply, yiaddr, dnsserver, leasetime, compile
 
 // INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
-HOST dhcp_client {
-    IP fe80::216:3eff:fe67:1001
-    MAC 00:25:90:67:01:0a
+host dhcp_client {
+    ip fe80::216:3eff:fe67:1001
+    mac 00:25:90:67:01:0a
 }
 
 // INSTRUCTION: Define the DHCP server or relay agent endpoint.
-HOST dhcp_server {
-    IP fe80::216:3eff:fe67:1
-    MAC 00:25:90:67:01:01
+host dhcp_server {
+    ip fe80::216:3eff:fe67:1
+    mac 00:25:90:67:01:01
 }
 
 // INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
-FLOW dhcp_scenario_flow(c, s) {
-    c -> s DHCP SOLICIT XID 0x00445501 HOSTNAME "k8s-node-v6-01" FLOWLABEL 0x54600 TTL 64 WAIT 4ms
-    c <- s DHCP REPLY XID 0x00445501 YIADDR 2001:db8:67:1::101 DNS_SERVER 2001:db8:67:1::53 LEASE_TIME 7200 FLOWLABEL 0x54600 TTL 64
+flow dhcp_scenario_flow(c, s) {
+    c -> s dhcp solicit xid 0x00445501 hostname "k8s-node-v6-01" flowlabel 0x54600 ttl 64 wait 4ms
+    c <- s dhcp reply xid 0x00445501 yiaddr 2001:db8:67:1::101 dnsserver 2001:db8:67:1::53 leasetime 7200 flowlabel 0x54600 ttl 64
 }
 
 // INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
-COMPILE {
+compile {
     dhcp_scenario_flow(dhcp_client, dhcp_server)
 }

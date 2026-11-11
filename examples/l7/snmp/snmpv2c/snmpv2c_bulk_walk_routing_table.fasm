@@ -1,29 +1,29 @@
 // PROMPT: Simulate an SNMPv2c GETBULK request (NONREPEATERS 0, MAXREPETITIONS 50) retrieving IPv4 routing table next-hop addresses using IPVAL varbinds.
-// TOKENS: HOST, IP, MAC, FLOW, SNMP2, GETBULK, COMMUNITY, REQID, NONREPEATERS, MAXREPETITIONS, VARBIND, NULLVAL, WAIT, RESPONSE, IPVAL, INT, COMPILE
+// TOKENS: host, ip, mac, flow, router, snmp2, getbulk, community, reqid, nonrepeaters, maxrepetitions, varbind, nullval, wait, ms, response, ipval, int, compile
 
 // INSTRUCTION: Define a network topology discovery host with IP 10.131.0.10.
-HOST topo_mapper { IP 10.131.0.10 MAC 00:22:19:31:00:10 }
+host topo_mapper { ip 10.131.0.10 mac 00:22:19:31:00:10 }
 
 // INSTRUCTION: Define a core L3 router with IP 10.131.0.1.
-HOST core_l3_router { IP 10.131.0.1 MAC 00:22:19:31:00:01 }
+host core_l3_router { ip 10.131.0.1 mac 00:22:19:31:00:01 }
 
 // INSTRUCTION: Define a flow querying ipRouteNextHop via GETBULK with NONREPEATERS 0 and MAXREPETITIONS 50.
-FLOW bulk_walk_routing_table(mapper, router) {
-    mapper -> router SNMP2 GETBULK COMMUNITY "route_ro" REQID 8400
-        NONREPEATERS 0 MAXREPETITIONS 50
-        VARBIND 1.3.6.1.2.1.4.21.1.1 NULLVAL
-        VARBIND 1.3.6.1.2.1.4.21.1.7 NULLVAL
-        WAIT 10ms
-    mapper <- router SNMP2 RESPONSE COMMUNITY "route_ro" REQID 8400
-        VARBIND 1.3.6.1.2.1.4.21.1.1.10.1.0.0 IPVAL 10.1.0.0
-        VARBIND 1.3.6.1.2.1.4.21.1.7.10.1.0.0 IPVAL 10.131.0.254
-        VARBIND 1.3.6.1.2.1.4.21.1.1.10.2.0.0 IPVAL 10.2.0.0
-        VARBIND 1.3.6.1.2.1.4.21.1.7.10.2.0.0 IPVAL 10.131.0.253
-        VARBIND 1.3.6.1.2.1.4.21.1.8.10.2.0.0 INT 4
-        WAIT 10ms
+flow bulk_walk_routing_table(mapper, router) {
+    mapper -> router snmp2 getbulk community "route_ro" reqid 8400
+        nonrepeaters 0 maxrepetitions 50
+        varbind 1.3.6.1.2.1.4.21.1.1 nullval
+        varbind 1.3.6.1.2.1.4.21.1.7 nullval
+        wait 10ms
+    mapper <- router snmp2 response community "route_ro" reqid 8400
+        varbind 1.3.6.1.2.1.4.21.1.1.10.1.0.0 ipval 10.1.0.0
+        varbind 1.3.6.1.2.1.4.21.1.7.10.1.0.0 ipval 10.131.0.254
+        varbind 1.3.6.1.2.1.4.21.1.1.10.2.0.0 ipval 10.2.0.0
+        varbind 1.3.6.1.2.1.4.21.1.7.10.2.0.0 ipval 10.131.0.253
+        varbind 1.3.6.1.2.1.4.21.1.8.10.2.0.0 int 4
+        wait 10ms
 }
 
 // INSTRUCTION: Compile block to execute the routing table GETBULK flow.
-COMPILE {
+compile {
     bulk_walk_routing_table(topo_mapper, core_l3_router)
 }

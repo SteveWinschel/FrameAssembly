@@ -1,11 +1,11 @@
 //! PostgreSQL Frontend/Backend Wire Protocol v3.0 Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `POSTGRES` v3.0 messages over TCP
+//! This module implements fuzz-safe wire-to-AST dissection for `postgres` v3.0 messages over TCP
 //! ports `5432`, `6432` (PgBouncer), and `9999` (Pgpool-II), as well as custom-port `StartupMessage`
 //! frames identified by protocol version `0x0003_0000`. It decodes `StartupMessage` (`startup`,
-//! `user`, `db`), `Query` (`'Q'`, `sql`), `AuthenticationOk` (`'R'`, `auth_ok`), `CommandComplete`
-//! (`'C'`, `command_complete`), `ReadyForQuery` (`'Z'`, `ready_for_query`), and `ErrorResponse`
-//! (`'E'`, `error_response`).
+//! `user`, `db`), `Query` (`'Q'`, `sql`), `AuthenticationOk` (`'R'`, `authok`), `CommandComplete`
+//! (`'C'`, `commandcomplete`), `ReadyForQuery` (`'Z'`, `readyforquery`), and `ErrorResponse`
+//! (`'E'`, `errorresponse`).
 
 use alloc::format;
 use alloc::string::String;
@@ -27,7 +27,7 @@ fn be_u32(b: &[u8], off: usize) -> u32 {
     u32::from_be_bytes([b[off], b[off + 1], b[off + 2], b[off + 3]])
 }
 
-/// Dissects a `POSTGRES` v3 wire message (`StartupMessage`, `'Q'`, `'R'`, `'C'`, `'Z'`, `'E'`).
+/// Dissects a `postgres` v3 wire message (`StartupMessage`, `'Q'`, `'R'`, `'C'`, `'Z'`, `'E'`).
 pub(crate) fn dissect_postgres(
     transport: TransportProto,
     src_port: u16,
@@ -84,17 +84,17 @@ pub(crate) fn dissect_postgres(
 
     match tag {
         b'Z' if body == b"I" => {
-            tokens.push_str(" ready_for_query");
+            tokens.push_str(" readyforquery");
         }
         b'R' if body == [0, 0, 0, 0] => {
-            tokens.push_str(" auth_ok");
+            tokens.push_str(" authok");
         }
         b'C' if body.ends_with(&[0]) => {
             let s = core::str::from_utf8(&body[..body.len() - 1]).ok()?;
             if !is_valid_raw_str(s) {
                 return None;
             }
-            tokens.push_str(" command_complete");
+            tokens.push_str(" commandcomplete");
             if s != "SELECT 1" {
                 tokens.push_str(&format!(" sql \"{s}\""));
             }
@@ -105,7 +105,7 @@ pub(crate) fn dissect_postgres(
             if !is_valid_raw_str(s) {
                 return None;
             }
-            tokens.push_str(" error_response");
+            tokens.push_str(" errorresponse");
             if s != "authentication failed" {
                 tokens.push_str(&format!(" sql \"{s}\""));
             }

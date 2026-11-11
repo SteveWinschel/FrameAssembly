@@ -1,25 +1,25 @@
 // PROMPT: CoAP DELETE request against a read-only temperature sensor URI returning 4.05 Method Not Allowed.
-// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, ACK, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, coap, con, code, msgid, token, uripath, ack, payload, compile
 
 // INSTRUCTION: Define the diagnostic CLI tool testing CoAP endpoint permissions.
-HOST diag_cli {
-    IP 10.110.20.30
-    MAC 00:1a:2b:6e:20:30
+host diag_cli {
+    ip 10.110.20.30
+    mac 00:1a:2b:6e:20:30
 }
 
 // INSTRUCTION: Define the read-only environmental sensor node.
-HOST temp_sensor {
-    IP 10.110.20.5
-    MAC 00:1a:2b:6e:20:05
+host temp_sensor {
+    ip 10.110.20.5
+    mac 00:1a:2b:6e:20:05
 }
 
 // INSTRUCTION: Send CON DELETE (0.04) to /sensors/ambient and receive 4.05 Method Not Allowed.
-FLOW coap_405_reject(c, s) {
-    c -> s COAP CON CODE "0.04" MSGID 3300 TOKEN 77 URI_PATH "sensors/ambient"
-    c <- s COAP ACK CODE "4.05" MSGID 3300 TOKEN 77 PAYLOAD "Read-only sensor resource"
+flow coap_405_reject(c, s) {
+    c -> s coap con code "0.04" msgid 3300 token 77 uripath "sensors/ambient"
+    c <- s coap ack code "4.05" msgid 3300 token 77 payload "Read-only sensor resource"
 }
 
 // INSTRUCTION: Compile the CoAP 4.05 Method Not Allowed flow.
-COMPILE {
+compile {
     coap_405_reject(diag_cli, temp_sensor)
 }

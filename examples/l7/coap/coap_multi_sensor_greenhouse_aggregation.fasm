@@ -1,36 +1,36 @@
 // PROMPT: Two greenhouse agricultural soil sensors reporting Non-Confirmable moisture readings to a central gateway.
-// TOKENS: HOST, IP, MAC, FLOW, COAP, NON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, coap, non, code, msgid, token, uripath, contentformat, payload, compile
 
 // INSTRUCTION: Define soil moisture probe 1 in Bed A.
-HOST soil_probe_a {
-    IP 10.110.90.11
-    MAC 00:1a:2b:6e:90:11
+host soil_probe_a {
+    ip 10.110.90.11
+    mac 00:1a:2b:6e:90:11
 }
 
 // INSTRUCTION: Define soil moisture probe 2 in Bed B.
-HOST soil_probe_b {
-    IP 10.110.90.12
-    MAC 00:1a:2b:6e:90:12
+host soil_probe_b {
+    ip 10.110.90.12
+    mac 00:1a:2b:6e:90:12
 }
 
 // INSTRUCTION: Define the greenhouse irrigation CoAP gateway.
-HOST irrigation_gw {
-    IP 10.110.90.1
-    MAC 00:1a:2b:6e:90:01
+host irrigation_gw {
+    ip 10.110.90.1
+    mac 00:1a:2b:6e:90:01
 }
 
 // INSTRUCTION: Report Bed A soil moisture via NON POST.
-FLOW report_bed_a(p, g) {
-    p -> g COAP NON CODE "0.02" MSGID 1101 TOKEN 11 URI_PATH "soil/bed_a" CONTENT_FORMAT 0 PAYLOAD "vwc=34.2"
+flow report_bed_a(p, g) {
+    p -> g coap non code "0.02" msgid 1101 token 11 uripath "soil/bed_a" contentformat 0 payload "vwc=34.2"
 }
 
 // INSTRUCTION: Report Bed B soil moisture via NON POST.
-FLOW report_bed_b(p, g) {
-    p -> g COAP NON CODE "0.02" MSGID 2201 TOKEN 22 URI_PATH "soil/bed_b" CONTENT_FORMAT 0 PAYLOAD "vwc=28.9"
+flow report_bed_b(p, g) {
+    p -> g coap non code "0.02" msgid 2201 token 22 uripath "soil/bed_b" contentformat 0 payload "vwc=28.9"
 }
 
 // INSTRUCTION: Compile both greenhouse soil sensor CoAP flows.
-COMPILE {
+compile {
     report_bed_a(soil_probe_a, irrigation_gw)
     report_bed_b(soil_probe_b, irrigation_gw)
 }

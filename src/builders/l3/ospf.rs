@@ -2,13 +2,13 @@
 //!
 //! Serializes an [`OspfSpec`] into a 44-byte RFC 2328 OSPF Hello packet encapsulated directly over
 //! IP protocol `89` (`0x59`) and addressed to AllSPFRouters (`224.0.0.5` for IPv4, `ff02::5` for
-//! IPv6). The 24-byte OSPF header encodes Version `2`, Type `1` (`HELLO`), 16-bit `Packet Length`,
-//! 32-bit `Router ID` (`ROUTER_ID`), 32-bit `Area ID` (`AREA_ID`, default `0`), 16-bit Internet
+//! IPv6). The 24-byte OSPF header encodes Version `2`, Type `1` (`hello`), 16-bit `Packet Length`,
+//! 32-bit `Router ID` (`routerid`), 32-bit `Area ID` (`areaid`, default `0`), 16-bit Internet
 //! Checksum, `AuType = 0`, and 8-byte zeroed Authentication, followed by a 20-byte Hello body with
-//! `255.255.255.0` mask, `HELLO_INTERVAL` (`10`s), `Options = 0x02` (E-bit), `PRIORITY` (`1`), and `DEAD_INTERVAL` (`40`s).
+//! `255.255.255.0` mask, `hellointerval` (`10`s), `Options = 0x02` (E-bit), `priority` (`1`), and `deadinterval` (`40`s).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b OSPF [HELLO | DBD | LSR | LSU | LSACK] [ROUTER_ID <ipv4>] [AREA_ID <u32>] [HELLO_INTERVAL <u16>] [DEAD_INTERVAL <u32>] [PRIORITY <u8>]`
+//! `a -> b ospf [hello | dbd | lsr | lsu | lsack] [routerid <ipv4>] [areaid <u32>] [hellointerval <u16>] [deadinterval <u32>] [priority <u8>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

@@ -1,26 +1,26 @@
 // PROMPT: Industrial IoT sensor gateway establishing MQTTS session on TCP port 8883 with ALPN mqtt.
-// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, ALPN, SRCPORT, DSTPORT, WAIT, SERVER_HELLO, CIPHERSUITE, CERTIFICATE, FINISHED, APP_DATA, COMPILE
+// TOKENS: host, ip, flow, s, tls, clienthello, sni, alpn, srcport, dstport, wait, ms, serverhello, ciphersuite, certificate, finished, appdata, compile
 
 // INSTRUCTION: Define factory floor PLC telemetry gateway.
-HOST plc_gateway {
-    IP 10.60.5.88
+host plc_gateway {
+    ip 10.60.5.88
 }
 
 // INSTRUCTION: Define cloud IoT Core MQTTS broker endpoint.
-HOST mqtts_broker {
-    IP 10.60.5.1
+host mqtts_broker {
+    ip 10.60.5.1
 }
 
 // INSTRUCTION: Define MQTTS port 8883 handshake and encrypted telemetry publish.
-FLOW tls_mqtts_8883(c, s) {
-    c -> s TLS CLIENT_HELLO SNI "iot.cloud.example.com" ALPN "mqtt" SRCPORT 50883 DSTPORT 8883 WAIT 8ms
-    c <- s TLS SERVER_HELLO CIPHERSUITE 0x1301 ALPN "mqtt" SRCPORT 8883 DSTPORT 50883 WAIT 8ms
-    c <- s TLS CERTIFICATE SRCPORT 8883 DSTPORT 50883 WAIT 8ms
-    c -> s TLS FINISHED SRCPORT 50883 DSTPORT 8883 WAIT 8ms
-    c -> s TLS APP_DATA SRCPORT 50883 DSTPORT 8883
+flow tls_mqtts_8883(c, s) {
+    c -> s tls clienthello sni "iot.cloud.example.com" alpn "mqtt" srcport 50883 dstport 8883 wait 8ms
+    c <- s tls serverhello ciphersuite 0x1301 alpn "mqtt" srcport 8883 dstport 50883 wait 8ms
+    c <- s tls certificate srcport 8883 dstport 50883 wait 8ms
+    c -> s tls finished srcport 50883 dstport 8883 wait 8ms
+    c -> s tls appdata srcport 50883 dstport 8883
 }
 
 // INSTRUCTION: Compile the MQTTS port 8883 TLS scenario.
-COMPILE {
+compile {
     tls_mqtts_8883(plc_gateway, mqtts_broker)
 }

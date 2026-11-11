@@ -6,32 +6,32 @@
 //! bit `0x80000000`), an ONC RPC Call header (XID, Message Type `0`, RPC Version `2`, Program
 //! `100003`, NFS Version, Procedure number, and `AUTH_NULL` credentials/verifier), and XDR-encoded
 //! compound tags or filehandle paths. Canonical `.fasm` syntax:
-//! `NFS [VERS <u32>] [PROC <str>] [TAG <str>] [PATH <str>] [XID <u32>]`.
+//! `nfs [vers <u32>] [proc <str>] [tag <str>] [path <str>] [xid <u32>]`.
 
 /// RFC 1813 / RFC 7530 Network File System (NFS) over ONC RPC specification.
 ///
-/// Syntax mapping: `NFS [VERS <u32>] [PROC <str>] [TAG <str>] [PATH <str>] [XID <u32>]`
-#[doc(alias = "NFS")]
+/// Syntax mapping: `nfs [vers <u32>] [proc <str>] [tag <str>] [path <str>] [xid <u32>]`
+#[doc(alias = "nfs")]
 #[doc(alias = "RFC 7530")]
 #[doc(alias = "RFC7530")]
 #[doc(alias = "RFC 8881")]
 #[doc(alias = "RFC 1813")]
 #[doc(alias = "RFC 5531")]
-#[doc(alias = "VERS")]
-#[doc(alias = "PROC")]
-#[doc(alias = "TAG")]
-#[doc(alias = "PATH")]
-#[doc(alias = "XID")]
+#[doc(alias = "vers")]
+#[doc(alias = "proc")]
+#[doc(alias = "tag")]
+#[doc(alias = "path")]
+#[doc(alias = "xid")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct NfsSpec<'a> {
-    /// NFS protocol version number (`VERS <u32>`, e.g., `2`, `3`, or `4`, default `4`).
+    /// NFS protocol version number (`vers <u32>`, e.g., `2`, `3`, or `4`, default `4`).
     pub vers: Option<u32>,
-    /// NFS RPC procedure name (`PROC <str>`, e.g., `"NULL"`, `"GETATTR"`, `"LOOKUP"`, `"READ"`, `"WRITE"`, `"COMPOUND"`).
+    /// NFS RPC procedure name (`proc <str>`, e.g., `"NULL"`, `"GETATTR"`, `"LOOKUP"`, `"READ"`, `"WRITE"`, `"COMPOUND"`).
     pub proc_name: Option<&'a str>,
-    /// NFSv4 compound operation UTF-8 tag string (`TAG <str>`).
+    /// NFSv4 compound operation UTF-8 tag string (`tag <str>`).
     pub tag: Option<&'a str>,
-    /// Export or file path encoded into the XDR call body (`PATH <str>`).
+    /// Export or file path encoded into the XDR call body (`path <str>`).
     pub path: Option<&'a str>,
-    /// ONC RPC transaction identifier (`XID <u32>`, default `0x12345678`).
+    /// ONC RPC transaction identifier (`xid <u32>`, default `0x12345678`).
     pub xid: Option<u32>,
 }

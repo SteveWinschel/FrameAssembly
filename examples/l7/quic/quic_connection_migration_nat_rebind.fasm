@@ -1,20 +1,20 @@
 // PROMPT: QUIC connection migration across client NAT rebinding with updated source port.
-// TOKENS: HOST, IP, FLOW, QUIC, SHORT, DCID, PKT_NUM, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, flow, s, quic, short, dcid, pktnum, srcport, dstport, payload, wait, ms, compile
 
 // INSTRUCTION: Define mobile QUIC endpoint migrating UDP source port.
-HOST roaming_ep { IP 192.168.60.25 }
+host roaming_ep { ip 192.168.60.25 }
 
 // INSTRUCTION: Define media streaming QUIC server.
-HOST stream_srv { IP 192.168.60.1 }
+host stream_srv { ip 192.168.60.1 }
 
 // INSTRUCTION: Define Short header packets before and after NAT port rebinding.
-FLOW quic_port_migration(c, s) {
-    c -> s QUIC SHORT DCID 0xdeadbeef PKT_NUM 10 SRCPORT 51000 DSTPORT 443 PAYLOAD "PATH_ACTIVE" WAIT 5ms
-    c -> s QUIC SHORT DCID 0xdeadbeef PKT_NUM 11 SRCPORT 62000 DSTPORT 443 PAYLOAD "PATH_CHALLENGE" WAIT 5ms
-    c <- s QUIC SHORT DCID 0xcafebabe PKT_NUM 20 SRCPORT 443 DSTPORT 62000 PAYLOAD "PATH_RESPONSE"
+flow quic_port_migration(c, s) {
+    c -> s quic short dcid 0xdeadbeef pktnum 10 srcport 51000 dstport 443 payload "PATH_ACTIVE" wait 5ms
+    c -> s quic short dcid 0xdeadbeef pktnum 11 srcport 62000 dstport 443 payload "PATH_CHALLENGE" wait 5ms
+    c <- s quic short dcid 0xcafebabe pktnum 20 srcport 443 dstport 62000 payload "PATH_RESPONSE"
 }
 
 // INSTRUCTION: Compile QUIC NAT port migration scenario.
-COMPILE {
+compile {
     quic_port_migration(roaming_ep, stream_srv)
 }

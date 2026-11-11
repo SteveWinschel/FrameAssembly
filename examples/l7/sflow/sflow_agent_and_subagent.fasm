@@ -1,18 +1,18 @@
 // PROMPT: sFlow v5 sample datagram with explicit agent IP and sub-agent ID.
-// TOKENS: HOST, IP, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, SAMPLES, COMPILE
+// TOKENS: host, ip, flow, s, sflow, agentip, subagentid, samples, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 10.0.0.1 }
+host client { ip 10.0.0.1 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 10.0.0.250 }
+host server { ip 10.0.0.250 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW sflow_subagent(c, s) {
-    c -> s SFLOW AGENT_IP 10.0.0.1 SUB_AGENT_ID 5 SAMPLES 25
+flow sflow_subagent(c, s) {
+    c -> s sflow agentip 10.0.0.1 subagentid 5 samples 25
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     sflow_subagent(client, server)
 }

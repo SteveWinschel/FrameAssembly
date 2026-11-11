@@ -1,26 +1,26 @@
 // PROMPT: Utility smart grid backhaul aggregating substation C-VLANs into a regional S-VLAN carrying DNP3 telemetry.
-// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DNP3, FUNC, SRC, DST, WAIT, DIRECT_OPERATE, COMPILE
+// TOKENS: host, ip, mac, flow, qinq, innervlan, dnp3, func, read, src, dst, wait, ms, directoperate, compile
 
 // INSTRUCTION: Define regional utility distribution management system (DMS) headend.
-HOST utility_dms_headend {
-    IP 10.140.0.10
-    MAC 00:a0:c9:8c:00:0a
+host utility_dms_headend {
+    ip 10.140.0.10
+    mac 00:a0:c9:8c:00:0a
 }
 
 // INSTRUCTION: Define remote substation RTU gateway over utility metro ring.
-HOST substation_rtu_gw {
-    IP 10.140.0.55
-    MAC 00:a0:c9:8c:00:37
+host substation_rtu_gw {
+    ip 10.140.0.55
+    mac 00:a0:c9:8c:00:37
 }
 
 // INSTRUCTION: Define QinQ S-VLAN 1400 C-VLAN 22 DNP3 integrity read and breaker direct operate command.
-FLOW utility_qinq_dnp3(dms, rtu) {
-    dms -> rtu QINQ 1400 INNER_VLAN 22 DNP3 FUNC READ SRC 1 DST 55
-    dms <- rtu QINQ 1400 INNER_VLAN 22 DNP3 FUNC READ SRC 55 DST 1 WAIT 8ms
-    dms -> rtu QINQ 1400 INNER_VLAN 22 DNP3 FUNC DIRECT_OPERATE SRC 1 DST 55 WAIT 5ms
+flow utility_qinq_dnp3(dms, rtu) {
+    dms -> rtu qinq 1400 innervlan 22 dnp3 func read src 1 dst 55
+    dms <- rtu qinq 1400 innervlan 22 dnp3 func read src 55 dst 1 wait 8ms
+    dms -> rtu qinq 1400 innervlan 22 dnp3 func directoperate src 1 dst 55 wait 5ms
 }
 
 // INSTRUCTION: Compile block executing utility smart grid QinQ DNP3 backhaul.
-COMPILE {
+compile {
     utility_qinq_dnp3(utility_dms_headend, substation_rtu_gw)
 }

@@ -1,26 +1,26 @@
 // PROMPT: RFC 4302 IPsec AH authenticating an inter-domain eBGP control plane session (Next Header 6 TCP).
-// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, ah, spi, seq, nextheader, icv, dscp, ttl, payload, wait, ms, compile
 
 // INSTRUCTION: Define autonomous system border router A with IPv4 and MAC address.
-HOST asbr_router_a {
-    IP 192.0.2.10
-    MAC 00:1b:21:aa:10:01
+host asbr_router_a {
+    ip 192.0.2.10
+    mac 00:1b:21:aa:10:01
 }
 
 // INSTRUCTION: Define autonomous system border router B validating AH-protected BGP packets.
-HOST asbr_router_b {
-    IP 192.0.2.11
-    MAC 00:1b:21:aa:10:02
+host asbr_router_b {
+    ip 192.0.2.11
+    mac 00:1b:21:aa:10:02
 }
 
 // INSTRUCTION: Define bidirectional AH flow protecting TCP Next Header 6 with CS6 DSCP marking.
-FLOW ah_bgp_auth_flow(rtr_a, rtr_b) {
-    rtr_a -> rtr_b AH SPI 40100 SEQ 1 NEXT_HEADER 6 ICV "112233445566778899aabbcc" DSCP 48 TTL 255 PAYLOAD "BGP_OPEN_AS65001" WAIT 5ms
-    rtr_a <- rtr_b AH SPI 40101 SEQ 1 NEXT_HEADER 6 ICV "ccbbaa998877665544332211" DSCP 48 TTL 255 PAYLOAD "BGP_OPEN_AS65002" WAIT 5ms
-    rtr_a -> rtr_b AH SPI 40100 SEQ 2 NEXT_HEADER 6 ICV "aabbccddeeff001122334455" DSCP 48 TTL 255 PAYLOAD "BGP_KEEPALIVE_ACK"
+flow ah_bgp_auth_flow(rtr_a, rtr_b) {
+    rtr_a -> rtr_b ah spi 40100 seq 1 nextheader 6 icv "112233445566778899aabbcc" dscp 48 ttl 255 payload "BGP_OPEN_AS65001" wait 5ms
+    rtr_a <- rtr_b ah spi 40101 seq 1 nextheader 6 icv "ccbbaa998877665544332211" dscp 48 ttl 255 payload "BGP_OPEN_AS65002" wait 5ms
+    rtr_a -> rtr_b ah spi 40100 seq 2 nextheader 6 icv "aabbccddeeff001122334455" dscp 48 ttl 255 payload "BGP_KEEPALIVE_ACK"
 }
 
 // INSTRUCTION: Compile the AH-authenticated eBGP routing session flow.
-COMPILE {
+compile {
     ah_bgp_auth_flow(asbr_router_a, asbr_router_b)
 }

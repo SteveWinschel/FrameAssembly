@@ -1,18 +1,18 @@
 // PROMPT: Embedded device advertising internal HTTP web management server via mDNS response.
-// TOKENS: HOST, IP, FLOW, MDNS, RESPONSE, TXID, QNAME, QTYPE, RDATA, ANS_TTL, COMPILE
+// TOKENS: host, ip, flow, mdns, response, txid, qname, qtype, rdata, ansttl, compile
 
 // INSTRUCTION: Define smart router embedded device.
-HOST embedded_router { IP 192.168.1.1 }
+host embedded_router { ip 192.168.1.1 }
 
 // INSTRUCTION: Define local link multicast target.
-HOST mcast_target { IP 224.0.0.251 }
+host mcast_target { ip 224.0.0.251 }
 
 // INSTRUCTION: Define HTTP web server advertisement flow.
-FLOW http_advertisement(rtr, tgt) {
-    rtr -> tgt MDNS RESPONSE TXID 0 QNAME "router-ui._http._tcp.local" QTYPE "SRV" RDATA "router.local:80" ANS_TTL 300
+flow http_advertisement(rtr, tgt) {
+    rtr -> tgt mdns response txid 0 qname "router-ui._http._tcp.local" qtype "srv" rdata "router.local:80" ansttl 300
 }
 
 // INSTRUCTION: Compile web server advertisement scenario.
-COMPILE {
+compile {
     http_advertisement(embedded_router, mcast_target)
 }

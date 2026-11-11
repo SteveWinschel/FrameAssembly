@@ -1,32 +1,32 @@
 // PROMPT: Simulate RFC 3414 SNMPv3 authoritative EngineID discovery and EngineBoots/EngineTime synchronization followed by an authenticated GET/RESPONSE.
-// TOKENS: HOST, IP, MAC, FLOW, SNMP3, GET, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, REQID, WAIT, RESPONSE, VARBIND, COUNTER32, AUTH, SHA256, PRIV, AES, NULLVAL, STRING, COMPILE
+// TOKENS: host, ip, mac, flow, snmp3, get, user, engineid, engineboots, enginetime, reqid, wait, ms, response, varbind, counter32, auth, sha256, priv, aes, nullval, string, compile
 
 // INSTRUCTION: Define an NMS discovering a new SNMPv3 agent with IP 10.157.0.10.
-HOST discovery_mgr { IP 10.157.0.10 MAC 00:16:3e:57:00:10 }
+host discovery_mgr { ip 10.157.0.10 mac 00:16:3e:57:00:10 }
 
 // INSTRUCTION: Define a newly onboarded SNMPv3 router with IP 10.157.0.1.
-HOST onboarded_rtr { IP 10.157.0.1 MAC 00:16:3e:57:00:01 }
+host onboarded_rtr { ip 10.157.0.1 mac 00:16:3e:57:00:01 }
 
 // INSTRUCTION: Define a flow showing unauthenticated EngineID probe (ENGINEBOOTS 0, ENGINETIME 0), Report response, and synchronized authPriv poll.
-FLOW snmpv3_engine_discovery(mgr, rtr) {
-    mgr -> rtr SNMP3 GET USER "" ENGINEID "0000000000" ENGINEBOOTS 0 ENGINETIME 0
-        REQID 10200
-        WAIT 10ms
-    mgr <- rtr SNMP3 RESPONSE USER "" ENGINEID "80001f8880570001" ENGINEBOOTS 0 ENGINETIME 0
-        REQID 10200
-        VARBIND 1.3.6.1.6.3.15.1.1.4.0 COUNTER32 1
-        WAIT 10ms
-    mgr -> rtr SNMP3 GET USER "onboard_admin" ENGINEID "80001f8880570001" ENGINEBOOTS 4 ENGINETIME 9200
-        REQID 10201 AUTH SHA256 "onboard_auth_pass" PRIV AES "onboard_priv_pass"
-        VARBIND 1.3.6.1.2.1.1.5.0 NULLVAL
-        WAIT 10ms
-    mgr <- rtr SNMP3 RESPONSE USER "onboard_admin" ENGINEID "80001f8880570001" ENGINEBOOTS 4 ENGINETIME 9200
-        REQID 10201 AUTH SHA256 "onboard_auth_pass" PRIV AES "onboard_priv_pass"
-        VARBIND 1.3.6.1.2.1.1.5.0 STRING "rtr-onboarded-01"
-        WAIT 10ms
+flow snmpv3_engine_discovery(mgr, rtr) {
+    mgr -> rtr snmp3 get user "" engineid "0000000000" engineboots 0 enginetime 0
+        reqid 10200
+        wait 10ms
+    mgr <- rtr snmp3 response user "" engineid "80001f8880570001" engineboots 0 enginetime 0
+        reqid 10200
+        varbind 1.3.6.1.6.3.15.1.1.4.0 counter32 1
+        wait 10ms
+    mgr -> rtr snmp3 get user "onboard_admin" engineid "80001f8880570001" engineboots 4 enginetime 9200
+        reqid 10201 auth sha256 "onboard_auth_pass" priv aes "onboard_priv_pass"
+        varbind 1.3.6.1.2.1.1.5.0 nullval
+        wait 10ms
+    mgr <- rtr snmp3 response user "onboard_admin" engineid "80001f8880570001" engineboots 4 enginetime 9200
+        reqid 10201 auth sha256 "onboard_auth_pass" priv aes "onboard_priv_pass"
+        varbind 1.3.6.1.2.1.1.5.0 string "rtr-onboarded-01"
+        wait 10ms
 }
 
 // INSTRUCTION: Compile block to run the SNMPv3 engine discovery and synchronization flow.
-COMPILE {
+compile {
     snmpv3_engine_discovery(discovery_mgr, onboarded_rtr)
 }

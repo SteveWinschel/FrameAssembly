@@ -1,10 +1,10 @@
 //! IP Flow Information Export (IPFIX / NetFlow v10) Layer 7 telemetry field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 7011 `IPFIX` flow telemetry
-//! messages in FrameAssembly `.fasm` specifications. It recognizes the `IPFIX` protocol keyword,
-//! observation domain identifiers (`DOMAIN_ID`), flow source and destination IP addresses
-//! (`SRCIP`, `DSTIP`), encapsulated transport protocol numbers (`PROTO`), packet counts
-//! (`PACKETS`), and octet counts (`OCTETS`).
+//! This module implements the `winnow` parser combinator for RFC 7011 `ipfix` flow telemetry
+//! messages in FrameAssembly `.fasm` specifications. It recognizes the `ipfix` protocol keyword,
+//! observation domain identifiers (`domainid`), flow source and destination IP addresses
+//! (`srcip`, `dstip`), encapsulated transport protocol numbers (`proto`), packet counts
+//! (`packets`), and octet counts (`octets`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

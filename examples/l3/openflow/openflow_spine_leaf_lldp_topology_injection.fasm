@@ -1,26 +1,26 @@
 // PROMPT: SDN fabric controller injecting LLDP discovery probes via PACKET_OUT and receiving neighbor reports via PACKET_IN.
-// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, TYPE, PACKET_OUT, VERSION, XID, PAYLOAD, WAIT, PACKET_IN, FLOW_MOD, TABLE_ID, PRIORITY, COMPILE
+// TOKENS: host, ip, mac, flow, openflow, type, packetout, version, xid, payload, wait, ms, packetin, flowmod, tableid, priority, compile
 
 // INSTRUCTION: Define data center fabric SDN controller running link-discovery topology service.
-HOST fabric_topo_ctrl {
-    IP 10.100.250.1
-    MAC 00:16:3e:64:fa:01
+host fabric_topo_ctrl {
+    ip 10.100.250.1
+    mac 00:16:3e:64:fa:01
 }
 
 // INSTRUCTION: Define top-of-rack OpenFlow leaf switch executing controller-directed port operations.
-HOST tor_leaf_ofs {
-    IP 10.100.250.12
-    MAC 00:16:3e:64:fa:0c
+host tor_leaf_ofs {
+    ip 10.100.250.12
+    mac 00:16:3e:64:fa:0c
 }
 
 // INSTRUCTION: Inject synthetic LLDP frame via PACKET_OUT on port uplink and receive neighbor LLDP via PACKET_IN.
-FLOW openflow_topo_discovery(ctrl, leaf) {
-    ctrl -> leaf OPENFLOW TYPE PACKET_OUT VERSION 4 XID 510 PAYLOAD "lldp_chassis_spine01_port_eth1" WAIT 10ms
-    leaf -> ctrl OPENFLOW TYPE PACKET_IN VERSION 4 XID 511 PAYLOAD "lldp_chassis_spine02_port_eth4" WAIT 10ms
-    ctrl -> leaf OPENFLOW TYPE FLOW_MOD VERSION 4 XID 512 TABLE_ID 0 PRIORITY 50000
+flow openflow_topo_discovery(ctrl, leaf) {
+    ctrl -> leaf openflow type packetout version 4 xid 510 payload "lldp_chassis_spine01_port_eth1" wait 10ms
+    leaf -> ctrl openflow type packetin version 4 xid 511 payload "lldp_chassis_spine02_port_eth4" wait 10ms
+    ctrl -> leaf openflow type flowmod version 4 xid 512 tableid 0 priority 50000
 }
 
 // INSTRUCTION: Compile the OpenFlow PACKET_OUT / PACKET_IN fabric topology discovery trace.
-COMPILE {
+compile {
     openflow_topo_discovery(fabric_topo_ctrl, tor_leaf_ofs)
 }

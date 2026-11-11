@@ -1,24 +1,24 @@
 // PROMPT: European E1 PSTN gateway streaming ITU-T G.711 A-law (PCMA payload type 8) RTP audio frames.
-// TOKENS: HOST, IP, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, flow, rtp, pt, seq, timestamp, ssrc, marker, payload, wait, ms, compile
 
 // INSTRUCTION: Define Frankfurt E1 media gateway endpoint.
-HOST e1_gateway {
-    IP 10.49.8.10
+host e1_gateway {
+    ip 10.49.8.10
 }
 
 // INSTRUCTION: Define Munich IP-PBX media termination endpoint.
-HOST munich_pbx {
-    IP 10.49.8.20
+host munich_pbx {
+    ip 10.49.8.20
 }
 
 // INSTRUCTION: Define bidirectional G.711 PCMA (PT 8) 20ms audio frames (160 timestamp ticks).
-FLOW rtp_pcma_trunk(a, b) {
-    a -> b RTP PT 8 SEQ 100 TIMESTAMP 16000 SSRC 0x49000001 MARKER 1 PAYLOAD "PCMA_FRAME_01" WAIT 20ms
-    a -> b RTP PT 8 SEQ 101 TIMESTAMP 16160 SSRC 0x49000001 MARKER 0 PAYLOAD "PCMA_FRAME_02" WAIT 20ms
-    a <- b RTP PT 8 SEQ 500 TIMESTAMP 32000 SSRC 0x49000002 MARKER 1 PAYLOAD "PCMA_RETURN_01"
+flow rtp_pcma_trunk(a, b) {
+    a -> b rtp pt 8 seq 100 timestamp 16000 ssrc 0x49000001 marker 1 payload "PCMA_FRAME_01" wait 20ms
+    a -> b rtp pt 8 seq 101 timestamp 16160 ssrc 0x49000001 marker 0 payload "PCMA_FRAME_02" wait 20ms
+    a <- b rtp pt 8 seq 500 timestamp 32000 ssrc 0x49000002 marker 1 payload "PCMA_RETURN_01"
 }
 
 // INSTRUCTION: Compile the G.711 A-law European trunk RTP scenario.
-COMPILE {
+compile {
     rtp_pcma_trunk(e1_gateway, munich_pbx)
 }

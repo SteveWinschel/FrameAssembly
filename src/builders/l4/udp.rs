@@ -2,12 +2,12 @@
 //!
 //! Documents the wire-level framing rules for RFC 768 connectionless UDP datagrams over IPv4
 //! (`0x0800`) and IPv6 (`0x86DD`) using IP Protocol number `17` (`0x11`). The 8-byte UDP
-//! header encodes 16-bit `SRCPORT` (bits 0..15), 16-bit `DSTPORT` (bits 16..31), 16-bit Total
+//! header encodes 16-bit `srcport` (bits 0..15), 16-bit `dstport` (bits 16..31), 16-bit Total
 //! Length in bytes (bits 32..47, minimum `8`), and a 16-bit one's complement Checksum
 //! (bits 48..63) computed over the IPv4/IPv6 pseudo-header, 8-byte UDP header, and payload.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b UDP [SRCPORT <u16>] [DSTPORT <u16>] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
+//! `a -> b udp [srcport <u16>] [dstport <u16>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::UdpSpec;
 use crate::builders::WireContext;

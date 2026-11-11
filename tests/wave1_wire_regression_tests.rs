@@ -52,19 +52,19 @@ fn contains_subslice(haystack: &[u8], needle: &[u8]) -> bool {
 #[test]
 fn test_dhcpv6_solicit_advertise_ports_and_duid_ll() {
     let dhcp_frames = compile_frames(r#"
-        HOST v6_cli { IP 2001:db8:10::c1 MAC 00:11:22:33:44:55 }
-        HOST v6_srv { IP 2001:db8:10::a1 MAC 00:11:22:33:44:66 }
-        HOST v4_cli { IP 10.10.1.50 MAC 00:aa:bb:cc:dd:01 }
-        HOST v4_srv { IP 10.10.1.1  MAC 00:aa:bb:cc:dd:02 }
-        FLOW dhcp6_exchange(c, s) {
-            c -> s DHCP SOLICIT XID 0x112233 CHADDR 00:11:22:33:44:55 WAIT 1ms
-            c <- s DHCP ADVERTISE XID 0x112233 WAIT 1ms
+        host v6_cli { ip 2001:db8:10::c1 mac 00:11:22:33:44:55 }
+        host v6_srv { ip 2001:db8:10::a1 mac 00:11:22:33:44:66 }
+        host v4_cli { ip 10.10.1.50 mac 00:aa:bb:cc:dd:01 }
+        host v4_srv { ip 10.10.1.1  mac 00:aa:bb:cc:dd:02 }
+        flow dhcp6_exchange(c, s) {
+            c -> s dhcp solicit xid 0x112233 chaddr 00:11:22:33:44:55 wait 1ms
+            c <- s dhcp advertise xid 0x112233 wait 1ms
         }
-        FLOW dhcp4_exchange(c, s) {
-            c -> s DHCP DISCOVER XID 0x44556677 CHADDR 00:aa:bb:cc:dd:01 WAIT 1ms
-            c <- s DHCP OFFER XID 0x44556677 YIADDR 10.10.1.50 WAIT 1ms
+        flow dhcp4_exchange(c, s) {
+            c -> s dhcp discover xid 0x44556677 chaddr 00:aa:bb:cc:dd:01 wait 1ms
+            c <- s dhcp offer xid 0x44556677 yiaddr 10.10.1.50 wait 1ms
         }
-        COMPILE {
+        compile {
             dhcp6_exchange(v6_cli, v6_srv)
             dhcp4_exchange(v4_cli, v4_srv)
         }
@@ -89,15 +89,15 @@ fn test_dhcpv6_solicit_advertise_ports_and_duid_ll() {
 #[test]
 fn test_mdns_multicast_ipv4_and_ipv6_dest_and_mac() {
     let mdns_frames = compile_frames(r#"
-        HOST apple_v4 { IP 192.168.50.10 MAC 00:1c:42:aa:bb:01 }
-        HOST peer_v4  { IP 192.168.50.20 MAC 00:1c:42:aa:bb:02 }
-        HOST apple_v6 { IP fe80::10      MAC 00:1c:42:aa:bb:03 }
-        HOST peer_v6  { IP fe80::20      MAC 00:1c:42:aa:bb:04 }
-        FLOW mdns_cast(a, b) {
-            a -> b MDNS QUERY QNAME "_http._tcp.local" WAIT 1ms
-            a <- b MDNS RESPONSE QNAME "_http._tcp.local" RDATA "192.168.50.10" WAIT 1ms
+        host apple_v4 { ip 192.168.50.10 mac 00:1c:42:aa:bb:01 }
+        host peer_v4  { ip 192.168.50.20 mac 00:1c:42:aa:bb:02 }
+        host apple_v6 { ip fe80::10      mac 00:1c:42:aa:bb:03 }
+        host peer_v6  { ip fe80::20      mac 00:1c:42:aa:bb:04 }
+        flow mdns_cast(a, b) {
+            a -> b mdns query qname "_http._tcp.local" wait 1ms
+            a <- b mdns response qname "_http._tcp.local" rdata "192.168.50.10" wait 1ms
         }
-        COMPILE {
+        compile {
             mdns_cast(apple_v4, peer_v4)
             mdns_cast(apple_v6, peer_v6)
         }
@@ -123,16 +123,16 @@ fn test_mdns_multicast_ipv4_and_ipv6_dest_and_mac() {
 #[test]
 fn test_ptp_event_vs_general_sequential_port_routing_and_payload_len() {
     let ptp_frames = compile_frames(r#"
-        HOST gm_clock    { IP 172.16.80.1 MAC 00:50:c2:11:22:01 }
-        HOST slave_clock { IP 172.16.80.2 MAC 00:50:c2:11:22:02 }
-        FLOW ptp_sync_cycle(m, s) {
-            m -> s PTP SYNC DOMAIN 1 SEQ_ID 10 WAIT 1ms
-            m -> s PTP FOLLOW_UP DOMAIN 1 SEQ_ID 10 WAIT 1ms
-            s -> m PTP DELAY_REQ DOMAIN 1 SEQ_ID 11 WAIT 1ms
-            m -> s PTP DELAY_RESP DOMAIN 1 SEQ_ID 11 WAIT 1ms
-            m -> s PTP ANNOUNCE DOMAIN 1 SEQ_ID 12 PAYLOAD "ptp_ext" WAIT 1ms
+        host gm_clock    { ip 172.16.80.1 mac 00:50:c2:11:22:01 }
+        host slave_clock { ip 172.16.80.2 mac 00:50:c2:11:22:02 }
+        flow ptp_sync_cycle(m, s) {
+            m -> s ptp sync domain 1 seqid 10 wait 1ms
+            m -> s ptp followup domain 1 seqid 10 wait 1ms
+            s -> m ptp delayreq domain 1 seqid 11 wait 1ms
+            m -> s ptp delayresp domain 1 seqid 11 wait 1ms
+            m -> s ptp announce domain 1 seqid 12 payload "ptp_ext" wait 1ms
         }
-        COMPILE { ptp_sync_cycle(gm_clock, slave_clock) }
+        compile { ptp_sync_cycle(gm_clock, slave_clock) }
     "#);
     assert_eq!(ptp_frames.len(), 5, "expected 5 PTP frames");
     let (_, dport0, l7_0) = ipv4_udp_parts(&ptp_frames[0]);
@@ -153,20 +153,20 @@ fn test_ptp_event_vs_general_sequential_port_routing_and_payload_len() {
 #[test]
 fn test_radius_auth_vs_accounting_sequential_ports_and_ipv6_avps() {
     let rad_frames = compile_frames(r#"
-        HOST nas_v4 { IP 10.200.1.10 MAC 00:21:55:00:01:01 }
-        HOST aaa_v4 { IP 10.200.1.20 MAC 00:21:55:00:01:02 }
-        HOST nas_v6 { IP 2001:db8:aaa::10 MAC 00:21:55:00:02:01 }
-        HOST aaa_v6 { IP 2001:db8:aaa::20 MAC 00:21:55:00:02:02 }
-        FLOW radius_v4_flow(c, s) {
-            c -> s RADIUS ACCESS_REQUEST ID 10 USER "alice" WAIT 1ms
-            c <- s RADIUS ACCESS_ACCEPT ID 10 WAIT 1ms
-            c -> s RADIUS ACCOUNTING_REQUEST ID 11 USER "alice" WAIT 1ms
-            c <- s RADIUS ACCOUNTING_RESPONSE ID 11 WAIT 1ms
+        host nas_v4 { ip 10.200.1.10 mac 00:21:55:00:01:01 }
+        host aaa_v4 { ip 10.200.1.20 mac 00:21:55:00:01:02 }
+        host nas_v6 { ip 2001:db8:aaa::10 mac 00:21:55:00:02:01 }
+        host aaa_v6 { ip 2001:db8:aaa::20 mac 00:21:55:00:02:02 }
+        flow radius_v4_flow(c, s) {
+            c -> s radius accessrequest id 10 user "alice" wait 1ms
+            c <- s radius accessaccept id 10 wait 1ms
+            c -> s radius accountingrequest id 11 user "alice" wait 1ms
+            c <- s radius accountingresponse id 11 wait 1ms
         }
-        FLOW radius_v6_flow(c, s) {
-            c -> s RADIUS ACCESS_REQUEST ID 20 USER "bob" NAS_IP 2001:db8::1 FRAMED_IP 2001:db8::2 WAIT 1ms
+        flow radius_v6_flow(c, s) {
+            c -> s radius accessrequest id 20 user "bob" nasip 2001:db8::1 framedip 2001:db8::2 wait 1ms
         }
-        COMPILE {
+        compile {
             radius_v4_flow(nas_v4, aaa_v4)
             radius_v6_flow(nas_v6, aaa_v6)
         }
@@ -197,20 +197,20 @@ fn test_radius_auth_vs_accounting_sequential_ports_and_ipv6_avps() {
 #[test]
 fn test_default_hop_limit_and_ttl_255_for_ndp_vrrp_and_ipv6_arp() {
     let hop_frames = compile_frames(r#"
-        HOST rtr_v6_a { IP fe80::a1 MAC 00:10:94:00:01:01 }
-        HOST rtr_v6_b { IP fe80::b2 MAC 00:10:94:00:01:02 }
-        HOST rtr_v4_a { IP 192.168.100.2 MAC 00:10:94:00:02:01 }
-        HOST rtr_v4_b { IP 192.168.100.3 MAC 00:10:94:00:02:02 }
-        FLOW l3_hop255_v6(a, b) {
-            a -> b NDP NEIGHBOR_SOLICIT TARGET fe80::b2 WAIT 1ms
-            a -> b VRRP VRID 10 PRIORITY 150 VIP fe80::1 WAIT 1ms
-            a -> b ARP REQUEST WAIT 1ms
-            a <- b ARP REPLY WAIT 1ms
+        host rtr_v6_a { ip fe80::a1 mac 00:10:94:00:01:01 }
+        host rtr_v6_b { ip fe80::b2 mac 00:10:94:00:01:02 }
+        host rtr_v4_a { ip 192.168.100.2 mac 00:10:94:00:02:01 }
+        host rtr_v4_b { ip 192.168.100.3 mac 00:10:94:00:02:02 }
+        flow l3_hop255_v6(a, b) {
+            a -> b ndp neighborsolicit target fe80::b2 wait 1ms
+            a -> b vrrp vrid 10 priority 150 vip fe80::1 wait 1ms
+            a -> b arp request wait 1ms
+            a <- b arp reply wait 1ms
         }
-        FLOW l3_ttl255_v4(a, b) {
-            a -> b VRRP VRID 10 PRIORITY 150 VIP 192.168.100.1 WAIT 1ms
+        flow l3_ttl255_v4(a, b) {
+            a -> b vrrp vrid 10 priority 150 vip 192.168.100.1 wait 1ms
         }
-        COMPILE {
+        compile {
             l3_hop255_v6(rtr_v6_a, rtr_v6_b)
             l3_ttl255_v4(rtr_v4_a, rtr_v4_b)
         }
@@ -229,13 +229,13 @@ fn test_default_hop_limit_and_ttl_255_for_ndp_vrrp_and_ipv6_arp() {
 #[test]
 fn test_gre_checksum_and_sequence_number_wire_encoding() {
     let gre_frames = compile_frames(r#"
-        HOST tun_left  { IP 172.31.0.1 MAC 00:16:3e:10:01:01 }
-        HOST tun_right { IP 172.31.0.2 MAC 00:16:3e:10:01:02 }
-        FLOW gre_tunnel(a, b) {
-            a -> b GRE CHECKSUM GRE_SEQ 99 PAYLOAD "inner1" WAIT 1ms
-            b -> a GRE CHECKSUM KEY 0xAABBCCDD SEQ 77 PAYLOAD "inner2" WAIT 1ms
+        host tun_left  { ip 172.31.0.1 mac 00:16:3e:10:01:01 }
+        host tun_right { ip 172.31.0.2 mac 00:16:3e:10:01:02 }
+        flow gre_tunnel(a, b) {
+            a -> b gre checksum greseq 99 payload "inner1" wait 1ms
+            b -> a gre checksum key 0xAABBCCDD seq 77 payload "inner2" wait 1ms
         }
-        COMPILE { gre_tunnel(tun_left, tun_right) }
+        compile { gre_tunnel(tun_left, tun_right) }
     "#);
     assert_eq!(gre_frames.len(), 2, "expected 2 GRE frames");
     // Frame 0: C (0x8000) | S (0x1000) => 0x9000, proto 0x0800, 4B checksum+res1, 4B seq=99
@@ -258,18 +258,18 @@ fn test_gre_checksum_and_sequence_number_wire_encoding() {
 #[test]
 fn test_vrrp_v3_and_v2_checksums_and_multicast_headers() {
     let vrrp_frames = compile_frames(r#"
-        HOST gw4_pri { IP 10.55.0.2 MAC 00:00:5e:00:01:05 }
-        HOST gw4_bak { IP 10.55.0.3 MAC 00:00:5e:00:01:06 }
-        HOST gw6_pri { IP fe80::55:2 MAC 00:00:5e:00:02:05 }
-        HOST gw6_bak { IP fe80::55:3 MAC 00:00:5e:00:02:06 }
-        FLOW vrrp4_flow(a, b) {
-            a -> b VRRP VERSION 3 VRID 5 PRIORITY 120 VIP 10.55.0.1 WAIT 1ms
-            a -> b VRRP VERSION 2 VRID 5 PRIORITY 120 VIP 10.55.0.1 WAIT 1ms
+        host gw4_pri { ip 10.55.0.2 mac 00:00:5e:00:01:05 }
+        host gw4_bak { ip 10.55.0.3 mac 00:00:5e:00:01:06 }
+        host gw6_pri { ip fe80::55:2 mac 00:00:5e:00:02:05 }
+        host gw6_bak { ip fe80::55:3 mac 00:00:5e:00:02:06 }
+        flow vrrp4_flow(a, b) {
+            a -> b vrrp version 3 vrid 5 priority 120 vip 10.55.0.1 wait 1ms
+            a -> b vrrp version 2 vrid 5 priority 120 vip 10.55.0.1 wait 1ms
         }
-        FLOW vrrp6_flow(a, b) {
-            a -> b VRRP VERSION 3 VRID 5 PRIORITY 120 VIP fe80::55:1 WAIT 1ms
+        flow vrrp6_flow(a, b) {
+            a -> b vrrp version 3 vrid 5 priority 120 vip fe80::55:1 wait 1ms
         }
-        COMPILE {
+        compile {
             vrrp4_flow(gw4_pri, gw4_bak)
             vrrp6_flow(gw6_pri, gw6_bak)
         }
@@ -303,13 +303,13 @@ fn test_vrrp_v3_and_v2_checksums_and_multicast_headers() {
 #[test]
 fn test_geneve_and_wireguard_minimum_wire_envelopes() {
     let tun_frames = compile_frames(r#"
-        HOST nve_a { IP 10.77.0.1 MAC 00:1b:21:77:00:01 }
-        HOST nve_b { IP 10.77.0.2 MAC 00:1b:21:77:00:02 }
-        FLOW overlay_flow(a, b) {
-            a -> b GENEVE VNI 5000 WAIT 1ms
-            a -> b WIREGUARD DATA RECEIVER 7 COUNTER 42 WAIT 1ms
+        host nve_a { ip 10.77.0.1 mac 00:1b:21:77:00:01 }
+        host nve_b { ip 10.77.0.2 mac 00:1b:21:77:00:02 }
+        flow overlay_flow(a, b) {
+            a -> b geneve vni 5000 wait 1ms
+            a -> b wireguard data receiver 7 counter 42 wait 1ms
         }
-        COMPILE { overlay_flow(nve_a, nve_b) }
+        compile { overlay_flow(nve_a, nve_b) }
     "#);
     assert_eq!(tun_frames.len(), 2, "expected 2 overlay frames");
     // GENEVE: 8B GENEVE header (proto 0x6558, VNI 5000) + 42B inner frame = 50 bytes
@@ -329,12 +329,12 @@ fn test_geneve_and_wireguard_minimum_wire_envelopes() {
 #[test]
 fn test_stp_rstp_36_byte_bpdu_and_bridge_id_parsing() {
     let rstp_frames = compile_frames(r#"
-        HOST sw_root { IP 10.88.0.1 MAC 00:11:22:33:44:55 }
-        HOST sw_edge { IP 10.88.0.2 MAC 00:aa:bb:cc:dd:ee }
-        FLOW rstp_flow(a, b) {
-            a -> b STP RSTP ROOT_ID "4096/00:11:22:33:44:55" BRIDGE_ID "32768/00:aa:bb:cc:dd:ee" PORT_ID 0x8002 COST 2000 WAIT 1ms
+        host sw_root { ip 10.88.0.1 mac 00:11:22:33:44:55 }
+        host sw_edge { ip 10.88.0.2 mac 00:aa:bb:cc:dd:ee }
+        flow rstp_flow(a, b) {
+            a -> b stp rstp rootid "4096/00:11:22:33:44:55" bridgeid "32768/00:aa:bb:cc:dd:ee" portid 0x8002 cost 2000 wait 1ms
         }
-        COMPILE { rstp_flow(sw_root, sw_edge) }
+        compile { rstp_flow(sw_root, sw_edge) }
     "#);
     let pkt = &rstp_frames[0];
     assert_eq!(&pkt[0..6], &[0x01, 0x80, 0xc2, 0x00, 0x00, 0x00]);
@@ -350,13 +350,13 @@ fn test_stp_rstp_36_byte_bpdu_and_bridge_id_parsing() {
 #[test]
 fn test_eapol_success_and_failure_4_byte_eap_body() {
     let eapol_frames = compile_frames(r#"
-        HOST auth_sw { IP 10.89.0.1 MAC 00:1d:71:00:01:01 }
-        HOST supp_pc { IP 10.89.0.2 MAC 00:1d:71:00:01:02 }
-        FLOW dot1x_result(s, c) {
-            s -> c EAPOL EAP_CODE 3 EAP_ID 7 WAIT 1ms
-            s -> c EAPOL EAP_CODE 4 EAP_ID 8 WAIT 1ms
+        host auth_sw { ip 10.89.0.1 mac 00:1d:71:00:01:01 }
+        host supp_pc { ip 10.89.0.2 mac 00:1d:71:00:01:02 }
+        flow dot1x_result(s, c) {
+            s -> c eapol eapcode 3 eapid 7 wait 1ms
+            s -> c eapol eapcode 4 eapid 8 wait 1ms
         }
-        COMPILE { dot1x_result(auth_sw, supp_pc) }
+        compile { dot1x_result(auth_sw, supp_pc) }
     "#);
     for (idx, (code, id)) in [(3u8, 7u8), (4u8, 8u8)].into_iter().enumerate() {
         assert_eq!(&eapol_frames[idx][12..14], &[0x88, 0x8e]);
@@ -370,16 +370,16 @@ fn test_eapol_success_and_failure_4_byte_eap_body() {
 #[test]
 fn test_quic_long_and_short_headers_token_and_2byte_varint_len() {
     let quic_frames = compile_frames(r#"
-        HOST q_cli { IP 10.90.0.10 MAC 00:22:44:66:88:01 }
-        HOST q_srv { IP 10.90.0.20 MAC 00:22:44:66:88:02 }
-        FLOW quic_all(c, s) {
-            c -> s QUIC INITIAL VERSION 1 DCID 0x11223344 SCID 0x55667788 TOKEN "retry_tok" PKT_NUM 5 PAYLOAD "hello" WAIT 1ms
-            c -> s QUIC ZERO_RTT VERSION 1 DCID 0x11223344 SCID 0x55667788 PKT_NUM 6 PAYLOAD "early" WAIT 1ms
-            s -> c QUIC HANDSHAKE VERSION 1 DCID 0x55667788 SCID 0x11223344 PKT_NUM 7 PAYLOAD "hs" WAIT 1ms
-            s -> c QUIC RETRY VERSION 1 DCID 0x55667788 SCID 0x11223344 TOKEN "srv_tok" WAIT 1ms
-            c -> s QUIC SHORT DCID 0x11223344 PKT_NUM 8 PAYLOAD "1rtt" WAIT 1ms
+        host q_cli { ip 10.90.0.10 mac 00:22:44:66:88:01 }
+        host q_srv { ip 10.90.0.20 mac 00:22:44:66:88:02 }
+        flow quic_all(c, s) {
+            c -> s quic initial version 1 dcid 0x11223344 scid 0x55667788 token "retry_tok" pktnum 5 payload "hello" wait 1ms
+            c -> s quic zerortt version 1 dcid 0x11223344 scid 0x55667788 pktnum 6 payload "early" wait 1ms
+            s -> c quic handshake version 1 dcid 0x55667788 scid 0x11223344 pktnum 7 payload "hs" wait 1ms
+            s -> c quic retry version 1 dcid 0x55667788 scid 0x11223344 token "srv_tok" wait 1ms
+            c -> s quic short dcid 0x11223344 pktnum 8 payload "1rtt" wait 1ms
         }
-        COMPILE { quic_all(q_cli, q_srv) }
+        compile { quic_all(q_cli, q_srv) }
     "#);
     assert_eq!(quic_frames.len(), 5, "expected 5 QUIC frames");
     let (_, d0, q_init) = ipv4_udp_parts(&quic_frames[0]);
@@ -401,13 +401,13 @@ fn test_quic_long_and_short_headers_token_and_2byte_varint_len() {
 #[test]
 fn test_ipfix_and_sflow_datagram_lengths_and_headers() {
     let tel_frames = compile_frames(r#"
-        HOST exporter  { IP 10.91.0.1 MAC 00:25:90:01:01:01 }
-        HOST collector { IP 10.91.0.2 MAC 00:25:90:01:01:02 }
-        FLOW telemetry_flow(e, c) {
-            e -> c IPFIX DOMAIN_ID 100 PACKETS 5 OCTETS 500 PAYLOAD "extra_ie" WAIT 1ms
-            e -> c SFLOW AGENT_IP 10.20.30.40 SUB_AGENT_ID 3 SEQ 12 UPTIME 9000 SAMPLES 1 WAIT 1ms
+        host exporter  { ip 10.91.0.1 mac 00:25:90:01:01:01 }
+        host collector { ip 10.91.0.2 mac 00:25:90:01:01:02 }
+        flow telemetry_flow(e, c) {
+            e -> c ipfix domainid 100 packets 5 octets 500 payload "extra_ie" wait 1ms
+            e -> c sflow agentip 10.20.30.40 subagentid 3 seq 12 uptime 9000 samples 1 wait 1ms
         }
-        COMPILE { telemetry_flow(exporter, collector) }
+        compile { telemetry_flow(exporter, collector) }
     "#);
     let (_, dport_ipfix, ipfix) = ipv4_udp_parts(&tel_frames[0]);
     assert_eq!((dport_ipfix, u16::from_be_bytes([ipfix[0], ipfix[1]])), (4739, 10));
@@ -427,26 +427,26 @@ fn test_ipfix_and_sflow_datagram_lengths_and_headers() {
 #[test]
 fn test_ldap_kerberos_nfs_and_s7comm_wire_structures() {
     let ent_frames = compile_frames(r#"
-        HOST app_cli { IP 10.92.0.10 MAC 00:30:48:11:01:01 }
-        HOST app_srv { IP 10.92.0.20 MAC 00:30:48:11:01:02 }
-        FLOW enterprise_flow(c, s) {
-            c -> s LDAP MSGID 2 SEARCH_REQ BASE_DN "dc=example,dc=org" FILTER "(cn=*)" WAIT 1ms
-            c -> s LDAP MSGID 3 BIND_REQ BASE_DN "cn=admin" WAIT 1ms
-            s -> c LDAP MSGID 3 BIND_RES RESULT_CODE 49 WAIT 1ms
-            s -> c LDAP MSGID 2 SEARCH_ENTRY BASE_DN "cn=alice,dc=example,dc=org" WAIT 1ms
-            s -> c LDAP MSGID 2 SEARCH_DONE RESULT_CODE 0 WAIT 1ms
-            c -> s LDAP MSGID 4 UNBIND_REQ WAIT 1ms
-            c -> s KERBEROS AS_REQ REALM "ATHENA.MIT.EDU" CNAME "alice" SNAME "krbtgt" ETYPE 18 WAIT 1ms
-            s -> c KERBEROS AS_REP REALM "ATHENA.MIT.EDU" CNAME "alice" ETYPE 18 WAIT 1ms
-            c -> s KERBEROS TGS_REQ REALM "ATHENA.MIT.EDU" CNAME "alice" SNAME "ldap" ETYPE 18 WAIT 1ms
-            s -> c KERBEROS TGS_REP REALM "ATHENA.MIT.EDU" CNAME "alice" ETYPE 18 WAIT 1ms
-            s -> c KERBEROS KRB_ERROR REALM "ATHENA.MIT.EDU" SNAME "krbtgt" WAIT 1ms
-            c -> s NFS COMPOUND XID 0x11223344 VERS 4 TAG "nfs_tag" PATH "/export/vol" WAIT 1ms
-            c -> s S7COMM ROSCTR "JOB" PDU_REF 4 WAIT 1ms
-            s -> c S7COMM ROSCTR "ACK" PDU_REF 5 WAIT 1ms
-            s -> c S7COMM ROSCTR "ACK_DATA" PDU_REF 6 WAIT 1ms
+        host app_cli { ip 10.92.0.10 mac 00:30:48:11:01:01 }
+        host app_srv { ip 10.92.0.20 mac 00:30:48:11:01:02 }
+        flow enterprise_flow(c, s) {
+            c -> s ldap msgid 2 searchreq basedn "dc=example,dc=org" filter "(cn=*)" wait 1ms
+            c -> s ldap msgid 3 bindreq basedn "cn=admin" wait 1ms
+            s -> c ldap msgid 3 bindres resultcode 49 wait 1ms
+            s -> c ldap msgid 2 searchentry basedn "cn=alice,dc=example,dc=org" wait 1ms
+            s -> c ldap msgid 2 searchdone resultcode 0 wait 1ms
+            c -> s ldap msgid 4 unbindreq wait 1ms
+            c -> s kerberos asreq realm "ATHENA.MIT.EDU" cname "alice" sname "krbtgt" etype 18 wait 1ms
+            s -> c kerberos asrep realm "ATHENA.MIT.EDU" cname "alice" etype 18 wait 1ms
+            c -> s kerberos tgsreq realm "ATHENA.MIT.EDU" cname "alice" sname "ldap" etype 18 wait 1ms
+            s -> c kerberos tgsrep realm "ATHENA.MIT.EDU" cname "alice" etype 18 wait 1ms
+            s -> c kerberos krberror realm "ATHENA.MIT.EDU" sname "krbtgt" wait 1ms
+            c -> s nfs compound xid 0x11223344 vers 4 tag "nfs_tag" path "/export/vol" wait 1ms
+            c -> s s7comm rosctr "job" pduref 4 wait 1ms
+            s -> c s7comm rosctr "ack" pduref 5 wait 1ms
+            s -> c s7comm rosctr "ackdata" pduref 6 wait 1ms
         }
-        COMPILE { enterprise_flow(app_cli, app_srv) }
+        compile { enterprise_flow(app_cli, app_srv) }
     "#);
     assert_eq!(ent_frames.len(), 15, "expected 15 enterprise frames");
     let (_, d_ldap, ldap_sr) = ipv4_tcp_parts(&ent_frames[0]);
@@ -486,7 +486,7 @@ fn test_ldap_kerberos_nfs_and_s7comm_wire_structures() {
 fn test_snmp_rejects_invalid_single_arc_and_bad_root_oids() {
     for bad_oid in ["1", "3.1", "1.45"] {
         let fasm = format!(
-            "HOST mgr {{ IP 10.93.0.1 MAC 00:11:22:00:93:01 }}\nHOST agt {{ IP 10.93.0.2 MAC 00:11:22:00:93:02 }}\nFLOW bad_snmp(a, b) {{ a -> b SNMP2 GET OID {bad_oid} WAIT 1ms }}\nCOMPILE {{ bad_snmp(mgr, agt) }}"
+            "host mgr {{ ip 10.93.0.1 mac 00:11:22:00:93:01 }}\nhost agt {{ ip 10.93.0.2 mac 00:11:22:00:93:02 }}\nflow bad_snmp(a, b) {{ a -> b snmp2 get oid {bad_oid} wait 1ms }}\ncompile {{ bad_snmp(mgr, agt) }}"
         );
         let rejected = parse_program(&fasm).map_or(true, |prog| compile_program(&prog).is_err());
         assert!(rejected, "OID {bad_oid} must be rejected without panicking");
@@ -499,28 +499,28 @@ fn test_snmp_rejects_invalid_single_arc_and_bad_root_oids() {
 #[test]
 fn test_l3_routing_multicast_ipsec_and_openflow_wired_fields() {
     let l3_frames = compile_frames(r#"
-        HOST r_left  { IP 10.94.0.1 MAC 00:1e:67:94:00:01 }
-        HOST r_right { IP 10.94.0.2 MAC 00:1e:67:94:00:02 }
-        FLOW l3_matrix(a, b) {
-            a -> b BGP UPDATE ASN 65010 NEXTHOP 10.0.0.254 PREFIX "192.168.10.0/24" WAIT 1ms
-            a -> b IGMP REPORT V1 GROUP 239.1.1.1 WAIT 1ms
-            a -> b IGMP REPORT V2 GROUP 239.2.2.2 WAIT 1ms
-            a -> b IGMP REPORT V3 GROUP 239.3.3.3 WAIT 1ms
-            a -> b IPSEC SPI 0x11112222 SEQ 5 IV "0102030405060708" ICV "aabbccddeeff001122334455" NEXT_HEADER 6 WAIT 1ms
-            a -> b ESP SPI 0x33334444 SEQ 6 WAIT 1ms
-            a -> b AH SPI 0x55556666 SEQ 7 ICV "11223344556677889900aabb" NEXT_HEADER 17 WAIT 1ms
-            a -> b OPENFLOW FEATURES_REPLY DPID 0x0000000000000099 TABLE_ID 128 PRIORITY 50 WAIT 1ms
-            a -> b OPENFLOW FLOW_MOD DPID 0x1234 TABLE_ID 3 PRIORITY 500 WAIT 1ms
-            a -> b OSPF HELLO AREA 0.0.0.1 ROUTER_ID 1.1.1.1 WAIT 1ms
-            a -> b OSPF DBD AREA 0.0.0.1 ROUTER_ID 1.1.1.1 WAIT 1ms
-            a -> b OSPF LSR AREA 0.0.0.1 ROUTER_ID 1.1.1.1 WAIT 1ms
-            a -> b OSPF LSU AREA 0.0.0.1 ROUTER_ID 1.1.1.1 WAIT 1ms
-            a -> b OSPF LSACK AREA 0.0.0.1 ROUTER_ID 1.1.1.1 WAIT 1ms
-            a -> b PIM HELLO HOLDTIME 90 DR_PRIORITY 10 WAIT 1ms
-            a -> b PIM JOIN_PRUNE GROUP 239.5.5.5 SOURCE 10.5.5.1 RP 10.5.5.254 WAIT 1ms
-            a -> b PIM REGISTER GROUP 239.6.6.6 SOURCE 10.6.6.1 RP 10.6.6.254 WAIT 1ms
+        host r_left  { ip 10.94.0.1 mac 00:1e:67:94:00:01 }
+        host r_right { ip 10.94.0.2 mac 00:1e:67:94:00:02 }
+        flow l3_matrix(a, b) {
+            a -> b bgp update asn 65010 nexthop 10.0.0.254 prefix "192.168.10.0/24" wait 1ms
+            a -> b igmp report v1 group 239.1.1.1 wait 1ms
+            a -> b igmp report v2 group 239.2.2.2 wait 1ms
+            a -> b igmp report v3 group 239.3.3.3 wait 1ms
+            a -> b ipsec spi 0x11112222 seq 5 iv "0102030405060708" icv "aabbccddeeff001122334455" nextheader 6 wait 1ms
+            a -> b esp spi 0x33334444 seq 6 wait 1ms
+            a -> b ah spi 0x55556666 seq 7 icv "11223344556677889900aabb" nextheader 17 wait 1ms
+            a -> b openflow featuresreply dpid 0x0000000000000099 tableid 128 priority 50 wait 1ms
+            a -> b openflow flowmod dpid 0x1234 tableid 3 priority 500 wait 1ms
+            a -> b ospf hello area 0.0.0.1 routerid 1.1.1.1 wait 1ms
+            a -> b ospf dbd area 0.0.0.1 routerid 1.1.1.1 wait 1ms
+            a -> b ospf lsr area 0.0.0.1 routerid 1.1.1.1 wait 1ms
+            a -> b ospf lsu area 0.0.0.1 routerid 1.1.1.1 wait 1ms
+            a -> b ospf lsack area 0.0.0.1 routerid 1.1.1.1 wait 1ms
+            a -> b pim hello holdtime 90 drpriority 10 wait 1ms
+            a -> b pim joinprune group 239.5.5.5 source 10.5.5.1 rp 10.5.5.254 wait 1ms
+            a -> b pim register group 239.6.6.6 source 10.6.6.1 rp 10.6.6.254 wait 1ms
         }
-        COMPILE { l3_matrix(r_left, r_right) }
+        compile { l3_matrix(r_left, r_right) }
     "#);
     assert_eq!(l3_frames.len(), 17, "expected 17 L3 protocol frames");
     let (_, d_bgp, bgp) = ipv4_tcp_parts(&l3_frames[0]);
@@ -558,31 +558,31 @@ fn test_l3_routing_multicast_ipsec_and_openflow_wired_fields() {
 #[test]
 fn test_l7_web_voip_remote_and_security_wired_fields() {
     let web_frames = compile_frames(r#"
-        HOST web_c { IP 10.95.0.10 MAC 00:50:56:95:00:01 }
-        HOST web_s { IP 10.95.0.20 MAC 00:50:56:95:00:02 }
-        FLOW web_sec_flow(c, s) {
-            c -> s DNS QUERY TXID 0x1111 QNAME "api.example.com" WAIT 1ms
-            s -> c DNS RESPONSE TXID 0x1111 QNAME "api.example.com" RDATA "93.184.216.34" WAIT 1ms
-            c -> s GRPC SERVICE "pkg.Health" METHOD "Check" GRPC_STATUS 0 WAIT 1ms
-            c -> s HTTP2 SETTINGS STREAM_ID 0 WAIT 1ms
-            c -> s SIP INVITE URI "sip:bob@example.com" CONTACT "sip:alice@10.0.0.1" CONTENT_TYPE "application/sdp" WAIT 1ms
-            c -> s SSDP MSEARCH HOST_HDR "239.255.255.250:1900" MAN "\"ssdp:discover\"" MX 5 ST "urn:schemas-upnp-org:device:Basic:1" USN "uuid:dev-1" LOCATION "http://10.0.0.1:8080/desc.xml" WAIT 1ms
-            s -> c SSDP NOTIFY NT "upnp:rootdevice" NTS "ssdp:alive" USN "uuid:dev-2" LOCATION "http://10.0.0.1:8080/root.xml" WAIT 1ms
-            c -> s SSH KEXINIT COOKIE "00112233445566778899aabbccddeeff" WAIT 1ms
-            c -> s SSH NEWKEYS WAIT 1ms
-            c -> s SSH MSG_CODE 50 WAIT 1ms
-            c -> s STUN BINDING_REQUEST TXID 0x12345678 SOFTWARE "FrameAssembly-STUN" WAIT 1ms
-            c -> s TELNET OPTION 31 WAIT 1ms
-            c -> s TLS CLIENT_HELLO HANDSHAKE_VERSION 0x0303 CIPHERSUITE 0x1302 SNI "tls.example.com" ALPN "h2" WAIT 1ms
-            s -> c TLS SERVER_HELLO CIPHERSUITE 0x1302 ALPN "h2" WAIT 1ms
-            s -> c TLS CERTIFICATE WAIT 1ms
-            s -> c TLS FINISHED WAIT 1ms
-            c -> s TLS APP_DATA PAYLOAD "enc_app" WAIT 1ms
-            s -> c TLS ALERT WAIT 1ms
-            c -> s WHOIS QUERY DOMAIN "example.org" WAIT 1ms
-            s -> c WHOIS RESPONSE DOMAIN "example.org" REGISTRAR "ICANN-Reg" WAIT 1ms
+        host web_c { ip 10.95.0.10 mac 00:50:56:95:00:01 }
+        host web_s { ip 10.95.0.20 mac 00:50:56:95:00:02 }
+        flow web_sec_flow(c, s) {
+            c -> s dns query txid 0x1111 qname "api.example.com" wait 1ms
+            s -> c dns response txid 0x1111 qname "api.example.com" rdata "93.184.216.34" wait 1ms
+            c -> s grpc service "pkg.Health" method "Check" grpcstatus 0 wait 1ms
+            c -> s http2 settings streamid 0 wait 1ms
+            c -> s sip invite uri "sip:bob@example.com" contact "sip:alice@10.0.0.1" contenttype "application/sdp" wait 1ms
+            c -> s ssdp msearch hosthdr "239.255.255.250:1900" man "\"ssdp:discover\"" mx 5 st "urn:schemas-upnp-org:device:Basic:1" usn "uuid:dev-1" location "http://10.0.0.1:8080/desc.xml" wait 1ms
+            s -> c ssdp notify nt "upnp:rootdevice" nts "ssdp:alive" usn "uuid:dev-2" location "http://10.0.0.1:8080/root.xml" wait 1ms
+            c -> s ssh kexinit cookie "00112233445566778899aabbccddeeff" wait 1ms
+            c -> s ssh newkeys wait 1ms
+            c -> s ssh msgcode 50 wait 1ms
+            c -> s stun bindingrequest txid 0x12345678 software "FrameAssembly-STUN" wait 1ms
+            c -> s telnet option 31 wait 1ms
+            c -> s tls clienthello handshakeversion 0x0303 ciphersuite 0x1302 sni "tls.example.com" alpn "h2" wait 1ms
+            s -> c tls serverhello ciphersuite 0x1302 alpn "h2" wait 1ms
+            s -> c tls certificate wait 1ms
+            s -> c tls finished wait 1ms
+            c -> s tls appdata payload "enc_app" wait 1ms
+            s -> c tls alert wait 1ms
+            c -> s whois query domain "example.org" wait 1ms
+            s -> c whois response domain "example.org" registrar "ICANN-Reg" wait 1ms
         }
-        COMPILE { web_sec_flow(web_c, web_s) }
+        compile { web_sec_flow(web_c, web_s) }
     "#);
     assert_eq!(web_frames.len(), 20, "expected 20 web/VoIP/security frames");
     assert_eq!(&ipv4_udp_parts(&web_frames[0]).2[2..4], &[0x01, 0x00]);
@@ -624,44 +624,44 @@ fn test_l7_web_voip_remote_and_security_wired_fields() {
 #[test]
 fn test_l7_messaging_industrial_and_database_wired_fields() {
     let ot_frames = compile_frames(r#"
-        HOST ot_cli { IP 10.96.0.10 MAC 00:60:52:96:00:01 }
-        HOST ot_srv { IP 10.96.0.20 MAC 00:60:52:96:00:02 }
-        FLOW ot_db_flow(c, s) {
-            c -> s AMQP PROTOCOL_HEADER WAIT 1ms
-            s -> c AMQP CONNECTION_START WAIT 1ms
-            c -> s AMQP CHANNEL_OPEN CHANNEL 2 WAIT 1ms
-            c -> s AMQP BASIC_PUBLISH CHANNEL 3 EXCHANGE "logs" ROUTING_KEY "info" WAIT 1ms
-            s -> c AMQP BASIC_DELIVER CHANNEL 4 EXCHANGE "logs" ROUTING_KEY "warn" WAIT 1ms
-            c -> s AMQP HEARTBEAT CHANNEL 0 WAIT 1ms
-            c -> s BACNET WRITE_PROPERTY OBJECT_TYPE 2 OBJECT_INSTANCE 10 PROPERTY_ID 85 VALUE 420 WAIT 1ms
-            c -> s BACNET WHO_IS VALUE 100 WAIT 1ms
-            c -> s COAP CON CODE "2.05" MSGID 0x2222 TOKEN 0xAABBCCDD URI_PATH "sensors/temp" CONTENT_FORMAT 50 WAIT 1ms
-            c -> s DNP3 READ SRC 1 DST 2 GROUP 30 VARIATION 1 CRC 0xBEEF WAIT 1ms
-            c -> s ETHERNETIP SEND_RR_DATA SESSION_HANDLE 0x100 CIP_SERVICE 0x0E CIP_CLASS 0x04 CIP_INSTANCE 0x64 CIP_ATTR 0x03 WAIT 1ms
-            c -> s MEMCACHED SET KEY "k_ascii" FLAGS 11 EXPTIME 3600 VALUE "val_ascii" WAIT 1ms
-            c -> s MEMCACHED SET KEY "k_bin" FLAGS 22 EXPTIME 1800 VALUE "val_bin" OPAQUE 0x12345678 CAS 987654321 WAIT 1ms
-            c -> s MQTT PUBLISH TOPIC "factory/temp" QOS 1 RETAIN PKT_ID 42 PAYLOAD "23.5" WAIT 1ms
-            s -> c MYSQL GREETING SERVER_VERSION "8.4.0" WAIT 1ms
-            c -> s MYSQL LOGIN USER "dbadmin" DB "prod" WAIT 1ms
-            c -> s MYSQL QUERY SQL "SELECT 42" WAIT 1ms
-            s -> c MYSQL OK WAIT 1ms
-            s -> c MYSQL ERR ERRCODE 1062 WAIT 1ms
-            s -> c MYSQL EOF WAIT 1ms
-            c -> s OPCUA MSG_TYPE "HEL" ENDPOINT_URL "opc.tcp://plc.local:4840" WAIT 1ms
-            c -> s OPCUA MSG_TYPE "MSG" NODE_ID "ns=2;s=Temperature" WAIT 1ms
-            c -> s POSTGRES STARTUP USER "pgadmin" DB "analytics" WAIT 1ms
-            c -> s POSTGRES QUERY SQL "SELECT 1" WAIT 1ms
-            s -> c POSTGRES READY_FOR_QUERY WAIT 1ms
-            s -> c POSTGRES COMMAND_COMPLETE SQL "INSERT 0 1" WAIT 1ms
-            s -> c POSTGRES ERROR_RESPONSE SQL "syntax error" WAIT 1ms
-            s -> c POSTGRES AUTH_OK WAIT 1ms
-            s -> c REDIS REPLY_TYPE "SIMPLE" VALUE "PONG" WAIT 1ms
-            s -> c REDIS REPLY_TYPE "BULK" VALUE "hello" WAIT 1ms
-            c -> s REDIS CMD "SET" KEY "mykey" VALUE "myval" WAIT 1ms
-            c -> s SMB STATUS 0xC0000022 SHARE "\\\\filesrv\\public" WAIT 1ms
-            c -> s SMB STATUS 0 FILENAME "report.pdf" WAIT 1ms
+        host ot_cli { ip 10.96.0.10 mac 00:60:52:96:00:01 }
+        host ot_srv { ip 10.96.0.20 mac 00:60:52:96:00:02 }
+        flow ot_db_flow(c, s) {
+            c -> s amqp protocolheader wait 1ms
+            s -> c amqp connectionstart wait 1ms
+            c -> s amqp channelopen channel 2 wait 1ms
+            c -> s amqp basicpublish channel 3 exchange "logs" routingkey "info" wait 1ms
+            s -> c amqp basicdeliver channel 4 exchange "logs" routingkey "warn" wait 1ms
+            c -> s amqp heartbeat channel 0 wait 1ms
+            c -> s bacnet writeproperty objecttype 2 objectinstance 10 propertyid 85 value 420 wait 1ms
+            c -> s bacnet whois value 100 wait 1ms
+            c -> s coap con code "2.05" msgid 0x2222 token 0xAABBCCDD uripath "sensors/temp" contentformat 50 wait 1ms
+            c -> s dnp3 read src 1 dst 2 group 30 variation 1 crc 0xBEEF wait 1ms
+            c -> s ethernetip sendrrdata sessionhandle 0x100 cipservice 0x0E cipclass 0x04 cipinstance 0x64 cipattr 0x03 wait 1ms
+            c -> s memcached set key "k_ascii" flags 11 exptime 3600 value "val_ascii" wait 1ms
+            c -> s memcached set key "k_bin" flags 22 exptime 1800 value "val_bin" opaque 0x12345678 cas 987654321 wait 1ms
+            c -> s mqtt publish topic "factory/temp" qos 1 retain pktid 42 payload "23.5" wait 1ms
+            s -> c mysql greeting serverversion "8.4.0" wait 1ms
+            c -> s mysql login user "dbadmin" db "prod" wait 1ms
+            c -> s mysql query sql "SELECT 42" wait 1ms
+            s -> c mysql ok wait 1ms
+            s -> c mysql err errcode 1062 wait 1ms
+            s -> c mysql eof wait 1ms
+            c -> s opcua msgtype "hel" endpointurl "opc.tcp://plc.local:4840" wait 1ms
+            c -> s opcua msgtype "msg" nodeid "ns=2;s=Temperature" wait 1ms
+            c -> s postgres startup user "pgadmin" db "analytics" wait 1ms
+            c -> s postgres query sql "SELECT 1" wait 1ms
+            s -> c postgres readyforquery wait 1ms
+            s -> c postgres commandcomplete sql "INSERT 0 1" wait 1ms
+            s -> c postgres errorresponse sql "syntax error" wait 1ms
+            s -> c postgres authok wait 1ms
+            s -> c redis replytype "simple" value "PONG" wait 1ms
+            s -> c redis replytype "bulk" value "hello" wait 1ms
+            c -> s redis cmd "SET" key "mykey" value "myval" wait 1ms
+            c -> s smb status 0xC0000022 share "\\\\filesrv\\public" wait 1ms
+            c -> s smb status 0 filename "report.pdf" wait 1ms
         }
-        COMPILE { ot_db_flow(ot_cli, ot_srv) }
+        compile { ot_db_flow(ot_cli, ot_srv) }
     "#);
     assert_eq!(ot_frames.len(), 33, "expected 33 OT/DB frames");
     assert_eq!(ipv4_tcp_parts(&ot_frames[0]).2, b"AMQP\x00\x00\x09\x01");
@@ -686,7 +686,7 @@ fn test_l7_messaging_industrial_and_database_wired_fields() {
     assert_eq!(&mc_bin[12..16], &0x1234_5678u32.to_be_bytes());
     assert_eq!(&mc_bin[16..24], &987_654_321u64.to_be_bytes());
     let mc_opcode_frames = compile_frames(
-        "HOST mc_c { IP 10.96.1.1 }\nHOST mc_s { IP 10.96.1.2 }\nFLOW mc_f(a, b) { a -> b MEMCACHED OPCODE 2 KEY \"k_op\" }\nCOMPILE { mc_f(mc_c, mc_s) }",
+        "host mc_c { ip 10.96.1.1 }\nhost mc_s { ip 10.96.1.2 }\nflow mc_f(a, b) { a -> b memcached opcode 2 key \"k_op\" }\ncompile { mc_f(mc_c, mc_s) }",
     );
     assert_eq!(&ipv4_tcp_parts(&mc_opcode_frames[0]).2[0..2], &[0x80, 0x02]);
     let (_, _, mqtt) = ipv4_tcp_parts(&ot_frames[13]);

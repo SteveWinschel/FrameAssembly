@@ -1,9 +1,10 @@
 //! Unit tests for the FrameAssembly syntactic parser and semantic validation passes.
 //!
 //! This module verifies string escape sequence decoding (`\r`, `\n`, `\t`, `\xHH`, `\uXXXX`),
-//! raw hexadecimal payload parsing (`HEXPAYLOAD`), top-level `HOST`, `FLOW`, and `COMPILE` block
-//! parsing, protocol-scoped modifier disambiguation, and spanned semantic diagnostic reporting
-//! across out-of-range fields, mixed IPv4/IPv6 endpoints, and duplicate symbol declarations.
+//! raw hexadecimal payload parsing (`hexpayload`), top-level `host`, `flow`, and `compile` block
+//! parsing, protocol-scoped modifier disambiguation (`whois`, `hellotime`, promoted sub-keywords),
+//! self-healing v2.0.0 diagnostics, and spanned semantic diagnostic reporting across out-of-range
+//! fields, mixed IPv4/IPv6 endpoints, and duplicate symbol declarations.
 
 use super::*;
 use crate::error::CompilerError;
@@ -16,16 +17,16 @@ fn test_unescape_string() {
     assert_eq!(unescaped, "hello\r\n\t\"world\"\\ AB C");
 }
 
-/// Tests parsing of HEXPAYLOAD fields into byte vectors.
+/// Tests parsing of `hexpayload` fields into byte vectors.
 #[test]
 fn test_hex_payload_parsing() {
     let input = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST server { IP 10.0.0.2 }
-        FLOW f(c, s) {
-            c -> s UDP HEXPAYLOAD "deadbeef 0102"
+        host client { ip 10.0.0.1 }
+        host server { ip 10.0.0.2 }
+        flow f(c, s) {
+            c -> s udp hexpayload "deadbeef 0102"
         }
-        COMPILE { f(client, server) }
+        compile { f(client, server) }
     "#;
     let prog = parse_program(input).unwrap();
     let stmt = &prog.flows[0].statements[0];
@@ -39,30 +40,38 @@ fn test_hex_payload_parsing() {
     );
 }
 
-/// Tests that contextual keywords can be used as identifiers for hosts and flows.
+/// Tests that contextual keywords (including newly promoted v2.0.0 sub-keywords) and hyphenated
+/// names can be used as identifiers for hosts, flows, and parameters.
 #[test]
-fn test_contextual_keywords_as_identifiers() {
+fn test_contextual_keywords_and_hyphenated_identifiers() {
     let input = r#"
-        HOST dns { IP 10.0.0.1 }
-        HOST ms { IP 10.0.0.2 }
-        FLOW get(s, m) {
-            s -> m UDP PAYLOAD "query"
+        host dns { ip 10.0.0.1 }
+        host fw-dmz-01 { ip 10.0.0.2 }
+        host read { ip 10.0.0.3 }
+        flow pkttype(nop, shutdownack) {
+            nop->shutdownack udp payload "query"
         }
-        COMPILE { get(dns, ms) }
+        compile {
+            pkttype(dns, fw-dmz-01)
+            fw-dmz-01->read icmp echorequest
+        }
     "#;
     let prog = parse_program(input).unwrap();
     assert_eq!(prog.hosts[0].name, "dns");
-    assert_eq!(prog.hosts[1].name, "ms");
-    assert_eq!(prog.flows[0].name, "get");
+    assert_eq!(prog.hosts[1].name, "fw-dmz-01");
+    assert_eq!(prog.hosts[2].name, "read");
+    assert_eq!(prog.flows[0].name, "pkttype");
+    let packets = crate::backend::compile_program(&prog).unwrap();
+    assert_eq!(packets.len(), 2);
 }
 
-/// Tests that duplicate HOST definitions result in a semantic error.
+/// Tests that duplicate `host` definitions result in a semantic error.
 #[test]
 fn test_semantic_error_duplicate_host() {
     let input = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST client { IP 10.0.0.2 }
-        COMPILE {}
+        host client { ip 10.0.0.1 }
+        host client { ip 10.0.0.2 }
+        compile {}
     "#;
     let err = parse_program(input).unwrap_err();
     match err {
@@ -73,16 +82,16 @@ fn test_semantic_error_duplicate_host() {
     }
 }
 
-/// Tests that TTL values out of u8 range result in a semantic error.
+/// Tests that `ttl` values out of `u8` range result in a semantic error.
 #[test]
 fn test_semantic_error_out_of_range_ttl() {
     let input = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST server { IP 10.0.0.2 }
-        FLOW f(c, s) {
-            c -> s UDP TTL 300
+        host client { ip 10.0.0.1 }
+        host server { ip 10.0.0.2 }
+        flow f(c, s) {
+            c -> s udp ttl 300
         }
-        COMPILE { f(client, server) }
+        compile { f(client, server) }
     "#;
     let err = parse_program(input).unwrap_err();
     match err {
@@ -97,12 +106,12 @@ fn test_semantic_error_out_of_range_ttl() {
 #[test]
 fn test_semantic_error_mixed_ipv4_ipv6() {
     let input = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST server { IP fe80::1 }
-        FLOW f(c, s) {
-            c -> s UDP PAYLOAD "hello"
+        host client { ip 10.0.0.1 }
+        host server { ip fe80::1 }
+        flow f(c, s) {
+            c -> s udp payload "hello"
         }
-        COMPILE { f(client, server) }
+        compile { f(client, server) }
     "#;
     let err = parse_program(input).unwrap_err();
     match err {
@@ -117,12 +126,12 @@ fn test_semantic_error_mixed_ipv4_ipv6() {
 #[test]
 fn test_semantic_error_invalid_cross_protocol() {
     let input = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST server { IP 10.0.0.2 }
-        FLOW f(c, s) {
-            c -> s UDP SYN
+        host client { ip 10.0.0.1 }
+        host server { ip 10.0.0.2 }
+        flow f(c, s) {
+            c -> s udp syn
         }
-        COMPILE { f(client, server) }
+        compile { f(client, server) }
     "#;
     let err = parse_program(input).unwrap_err();
     match err {
@@ -137,45 +146,148 @@ fn test_semantic_error_invalid_cross_protocol() {
 #[test]
 fn test_no_cross_protocol_shadowing() {
     let input = r#"
-        HOST client { IP 10.0.0.1 }
-        HOST server { IP 10.0.0.2 }
-        FLOW f(c, s) {
-            c -> s SSH KEXINIT COOKIE "00112233445566778899aabbccddeeff"
-            c -> s TACACS AUTHEN SEQ 1 DATA "secret"
-            c -> s TELNET WILL OPTION 1 DATA "login: "
-            c -> s REDIS GET KEY "session:1" VALUE "active"
-            c -> s MEMCACHED SET KEY "k1" FLAGS 0 EXPTIME 60 VALUE "v1"
-            c -> s MODBUS READ_HOLDING_REGISTERS TXID 1 UNITID 1 ADDR 100 COUNT 2 VALUE 42
-            c -> s HTTP GET URI "/index.html" VERSION "1.1" STATUS 200
-            c -> s QUIC INITIAL VERSION 1 DCID 0x1122334455667788 SCID "8877665544332211" TOKEN "deadbeef"
-            c -> s COAP CON GET MSGID 42 TOKEN 0x1234 URI_PATH "sensors/temp"
-            c -> s SYSLOG PRI 34 HOSTNAME "gw1" APP "sshd" MSGID "ID47" MSG "Accepted"
-            c -> s SMB NEGOTIATE STATUS 0 SESSION_ID 100 MSGID 1
-            c -> s LDAP MSGID 7 BIND_REQ BASE_DN "dc=example,dc=com"
-            c -> s IMAP TAG "A001" CMD "LOGIN" STATUS "OK" RESPONSE "Logged in"
-            c -> s OPCUA MSG_TYPE "OPN" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1 REQID 99
-            c -> s OPENFLOW VERSION 4 ECHO_REPLY XID 123
-            c -> s DNS QUERY TXID 101 QNAME "example.com" QTYPE "A"
-            c -> s WHOIS QUERY DOMAIN "example.com"
-            c -> s MYSQL QUERY USER "root" SQL "SELECT 1"
-            c -> s POSTGRES QUERY USER "postgres" SQL "SELECT 1"
-            c -> s DHCP DISCOVER XID 0x12345678
-            c -> s RIP REQUEST PREFIX 10.1.0.0 METRIC 1 TAG 10
-            c -> s MQTT CONNECT CLIENT_ID "iot-1" KEEPALIVE 60
-            c -> s S7COMM READ_VAR AREA "DB" DB_NUM 1 OFFSET 0
-            c -> s DNP3 DIRECT_OPERATE SRC 1 DST 2 GROUP 12 VARIATION 1
-            c -> s ETHERNETIP REGISTER_SESSION SESSION_HANDLE 1 STATUS 0
+        host client { ip 10.0.0.1 }
+        host server { ip 10.0.0.2 }
+        flow f(c, s) {
+            c -> s ssh kexinit cookie "00112233445566778899aabbccddeeff"
+            c -> s tacacs authen seq 1 data "secret"
+            c -> s telnet will option 1 data "login: "
+            c -> s redis get key "session:1" value "active"
+            c -> s memcached set key "k1" flags 0 exptime 60 value "v1"
+            c -> s modbus readholdingregisters txid 1 unitid 1 addr 100 count 2 value 42
+            c -> s http get uri "/index.html" version "1.1" status 200
+            c -> s quic initial version 1 dcid 0x1122334455667788 scid "8877665544332211" token "deadbeef"
+            c -> s coap con get msgid 42 token 0x1234 uripath "sensors/temp"
+            c -> s syslog pri 34 hostname "gw1" app "sshd" msgid "ID47" msg "Accepted"
+            c -> s smb negotiate status 0 sessionid 100 msgid 1
+            c -> s ldap msgid 7 bindreq basedn "dc=example,dc=com"
+            c -> s imap tag "A001" cmd "LOGIN" status "OK" response "Logged in"
+            c -> s opcua msgtype "OPN" chunktype "F" securechannelid 1 reqid 99
+            c -> s openflow version 4 echoreply xid 123
+            c -> s dns query txid 101 qname "example.com" qtype "A"
+            c -> s whois query domain "example.com"
+            c -> s mysql query user "root" sql "SELECT 1"
+            c -> s postgres query user "postgres" sql "SELECT 1"
+            c -> s dhcp discover xid 0x12345678
+            c -> s rip request prefix 10.1.0.0 metric 1 tag 10
+            c -> s mqtt connect clientid "iot-1" keepalive 60
+            c -> s s7comm readvar area "DB" dbnum 1 offset 0
+            c -> s dnp3 directoperate src 1 dst 2 group 12 variation 1
+            c -> s ethernetip registersession sessionhandle 1 status 0
         }
-        COMPILE { f(client, server) }
+        compile { f(client, server) }
     "#;
     let prog = parse_program(input).unwrap();
     assert_eq!(prog.flows[0].statements.len(), 25);
 }
 
-/// Tests CRLF line endings and GRE sequence number (`SEQ`) field population.
+/// Verifies Critical Bugfix 1 (`whois` protocol vs `bacnet whois` disambiguation) and
+/// Critical Bugfix 2 (`hellotime` unification across `stp` u16 and `hsrp` u8 `0..=255`),
+/// plus promoted sub-keywords (`pkttype`, `read`, `write`, `nop`, `error`, `shutdownack`).
+#[test]
+fn test_v2_whois_hellotime_and_promoted_subkeywords() {
+    let input = r#"
+        host a { ip 10.0.0.1 }
+        host b { ip 10.0.0.2 }
+        flow f(x, y) {
+            x -> y whois domain "example.com"
+            x -> y vlan 100 whois domain "iana.org"
+            x -> y bacnet whois
+            x -> y hsrp group 1 hellotime 3 holdtime 10 vip 10.0.0.254
+            x -> y hellotime 5 hsrp group 2
+            x -> y stp hellotime 512
+            x -> y mqtt pkttype "CONNECT" clientid "dev-1"
+            x -> y dnp3 read src 1 dst 2
+            x -> y dnp3 write src 1 dst 2
+            x -> y ethernetip nop
+            x -> y tftp error errcode 1 errmsg "File not found"
+            x -> y sctp shutdownack vtag 0x1234
+            x -> y sflow agentip 10.0.0.1 samples 1
+            x -> y tcp syn sackperm
+        }
+        compile { f(a, b) }
+    "#;
+    let prog = parse_program(input).unwrap();
+    let stmts = &prog.flows[0].statements;
+    assert_eq!(stmts[0].protocol, Protocol::Whois);
+    assert_eq!(stmts[1].protocol, Protocol::Whois);
+    assert_eq!(stmts[2].protocol, Protocol::Bacnet);
+    match &stmts[2].protocol_spec {
+        Some(ProtocolSpec::Bacnet(b)) => assert!(b.is_who_is),
+        other => panic!("Expected BacnetSpec, got {:?}", other),
+    }
+    match &stmts[3].protocol_spec {
+        Some(ProtocolSpec::Hsrp(h)) => assert_eq!(h.hellotime, Some(3)),
+        other => panic!("Expected HsrpSpec, got {:?}", other),
+    }
+    match &stmts[4].protocol_spec {
+        Some(ProtocolSpec::Hsrp(h)) => assert_eq!(h.hellotime, Some(5)),
+        other => panic!("Expected HsrpSpec, got {:?}", other),
+    }
+    match &stmts[5].protocol_spec {
+        Some(ProtocolSpec::Stp(s)) => assert_eq!(s.hello_time, Some(512)),
+        other => panic!("Expected StpSpec, got {:?}", other),
+    }
+    match &stmts[11].protocol_spec {
+        Some(ProtocolSpec::Sctp(s)) => assert_eq!(s.chunk.as_deref(), Some("SHUTDOWN_ACK")),
+        other => panic!("Expected SctpParams, got {:?}", other),
+    }
+    assert!(crate::backend::compile_program(&prog).is_ok());
+
+    let bad_hsrp = r#"
+        host a { ip 10.0.0.1 }
+        host b { ip 10.0.0.2 }
+        compile {
+            a -> b hellotime 300 hsrp
+        }
+    "#;
+    match parse_program(bad_hsrp).unwrap_err() {
+        CompilerError::SemanticError { message, .. } => {
+            assert!(message.contains("HSRP hellotime 300 out of range (0..=255)"));
+        }
+        other => panic!("Expected SemanticError for HSRP hellotime > 255, got {:?}", other),
+    }
+}
+
+/// Verifies v2.0.0 self-healing diagnostics for removed `loop` and uppercase/snake_case/kebab-case keywords.
+#[test]
+fn test_v2_self_healing_diagnostics() {
+    use miette::Diagnostic;
+
+    let cases = [
+        (
+            "HOST a { ip 10.0.0.1 }\ncompile {}",
+            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'HOST' with 'host'.",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\ncompile { a -> a icmp echo_request }",
+            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'echo_request' with 'echorequest'.",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\ncompile { a -> a tls client-hello }",
+            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'client-hello' with 'clienthello'.",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\ncompile { a -> a tcp syn wait 5MS }",
+            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'MS' with 'ms'.",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\nflow f(x, y) { x -> y icmp }\ncompile { loop 2 { f(a, a) } }",
+            "The 'loop' block was removed in FrameAssembly 2.0; invoke flows or frame statements directly inside 'compile { ... }'.",
+        ),
+    ];
+
+    for (src, expected_help) in cases {
+        let err = parse_program(src).unwrap_err();
+        let help = err.help().expect("expected help string").to_string();
+        assert_eq!(help, expected_help, "unexpected help for `{src}`");
+    }
+}
+
+/// Tests CRLF line endings and GRE sequence number (`seq`) field population.
 #[test]
 fn test_crlf_and_gre_seq_parsing() {
-    let input = "HOST r1 { IP 10.0.0.1 }\r\nHOST r2 { IP 10.0.0.2 }\r\nFLOW f(a, b) {\r\n    a -> b GRE KEY 100 SEQ 5 CHECKSUM\r\n}\r\nCOMPILE { f(r1, r2) }\r\n";
+    let input = "host r1 { ip 10.0.0.1 }\r\nhost r2 { ip 10.0.0.2 }\r\nflow f(a, b) {\r\n    a -> b gre key 100 seq 5 checksum\r\n}\r\ncompile { f(r1, r2) }\r\n";
     let prog = parse_program(input).unwrap();
     let stmt = &prog.flows[0].statements[0];
     match &stmt.protocol_spec {
@@ -188,83 +300,60 @@ fn test_crlf_and_gre_seq_parsing() {
     }
 }
 
-/// Verifies that uppercase, lowercase, and mixed-case `.fasm` specifications compile to
-/// byte-for-byte identical PCAPNG wire output while preserving string literal casing.
+/// Verifies that user-defined host, flow, and parameter identifiers resolve case-insensitively
+/// while preserving string literal casing in wire output.
 #[test]
-fn test_case_insensitive_pcap_wire_equivalence() {
-    let upper = r#"
-        HOST client { IP 10.0.0.1 MAC 00:11:22:33:44:01 }
-        HOST server { IP 10.0.0.2 MAC 00:11:22:33:44:02 }
-        FLOW session(c, s) {
-            c -> s TCP SYN SRCPORT 50000 DSTPORT 80 WINDOW 64240 MSS 1460
-            s -> c TCP SYN ACK WINDOW 65535 WAIT 1MS
-            c -> s TCP ACK WAIT 500US
-            c -> s HTTP GET URI "/Api/V1/Status" HOST_HDR "Example.COM" WAIT 2MS
-            s -> c HTTP STATUS 200 REASON "OK" BODY "{\"Status\":\"Healthy\"}" WAIT 1S
-            c -> s DNS QUERY TXID 0x1a2b QNAME "api.example.com" QTYPE "AAAA"
-        }
-        COMPILE {
-            LOOP 2 {
-                session(client, server)
-            }
-        }
-    "#;
-
-    let lower = r#"
+fn test_user_identifier_case_insensitivity_and_wire_equivalence() {
+    let lower_ids = r#"
         host client { ip 10.0.0.1 mac 00:11:22:33:44:01 }
         host server { ip 10.0.0.2 mac 00:11:22:33:44:02 }
         flow session(c, s) {
             c -> s tcp syn srcport 50000 dstport 80 window 64240 mss 1460
             s -> c tcp syn ack window 65535 wait 1ms
             c -> s tcp ack wait 500us
-            c -> s http get uri "/Api/V1/Status" host_hdr "Example.COM" wait 2ms
+            c -> s http get uri "/Api/V1/Status" hosthdr "Example.COM" wait 2ms
             s -> c http status 200 reason "OK" body "{\"Status\":\"Healthy\"}" wait 1s
-            c -> s dns query txid 0x1a2b qname "api.example.com" qtype "aaaa"
+            c -> s dns query txid 0x1a2b qname "api.example.com" qtype "AAAA"
         }
         compile {
-            loop 2 {
-                session(client, server)
-            }
+            session(client, server)
+            session(client, server)
         }
     "#;
 
-    let mixed = r#"
-        Host Client { Ip 10.0.0.1 Mac 00:11:22:33:44:01 }
-        hOsT sErVeR { iP 10.0.0.2 mAc 00:11:22:33:44:02 }
-        Flow Session(C, S) {
-            c -> S Tcp Syn SrcPort 50000 DstPort 80 Window 64240 Mss 1460
-            S -> C tCp sYn aCk wInDoW 65535 Wait 1Ms
-            C -> s TCP Ack wAiT 500uS
-            c -> s Http Get Uri "/Api/V1/Status" Host_Hdr "Example.COM" Wait 2mS
-            s -> c hTtP sTaTuS 200 Reason "OK" Body "{\"Status\":\"Healthy\"}" Wait 1s
-            C -> S Dns Query TxId 0x1a2b Qname "api.example.com" Qtype "AaAa"
+    let mixed_ids = r#"
+        host Client { ip 10.0.0.1 mac 00:11:22:33:44:01 }
+        host sErVeR { ip 10.0.0.2 mac 00:11:22:33:44:02 }
+        flow Session(C, S) {
+            c -> S tcp syn srcport 50000 dstport 80 window 64240 mss 1460
+            S -> C tcp syn ack window 65535 wait 1ms
+            C -> s tcp ack wait 500us
+            c -> s http get uri "/Api/V1/Status" hosthdr "Example.COM" wait 2ms
+            s -> c http status 200 reason "OK" body "{\"Status\":\"Healthy\"}" wait 1s
+            C -> S dns query txid 0x1a2b qname "api.example.com" qtype "AaAa"
         }
-        Compile {
-            Loop 2 {
-                sEsSiOn(cLiEnT, SeRvEr)
-            }
+        compile {
+            sEsSiOn(cLiEnT, SeRvEr)
+            Session(CLIENT, server)
         }
     "#;
 
-    let prog_upper = parse_program(upper).unwrap();
-    let prog_lower = parse_program(lower).unwrap();
-    let prog_mixed = parse_program(mixed).unwrap();
+    let prog_lower = parse_program(lower_ids).unwrap();
+    let prog_mixed = parse_program(mixed_ids).unwrap();
 
-    let packets_upper = crate::backend::compile_program(&prog_upper).unwrap();
     let packets_lower = crate::backend::compile_program(&prog_lower).unwrap();
     let packets_mixed = crate::backend::compile_program(&prog_mixed).unwrap();
 
-    assert_eq!(packets_upper.len(), 12);
-    assert_eq!(packets_upper, packets_lower);
-    assert_eq!(packets_upper, packets_mixed);
+    assert_eq!(packets_lower.len(), 12);
+    assert_eq!(packets_lower, packets_mixed);
 }
 
-/// Verifies case-insensitive duplicate `HOST`, `FLOW`, and flow parameter semantic errors.
+/// Verifies case-insensitive duplicate `host`, `flow`, and flow parameter semantic errors.
 #[test]
 fn test_case_insensitive_duplicate_symbol_errors() {
     let dup_host = r#"
         host Client { ip 10.0.0.1 }
-        HOST cLiEnT { ip 10.0.0.2 }
+        host cLiEnT { ip 10.0.0.2 }
         compile {}
     "#;
     match parse_program(dup_host).unwrap_err() {
@@ -278,7 +367,7 @@ fn test_case_insensitive_duplicate_symbol_errors() {
         host a { ip 10.0.0.1 }
         host b { ip 10.0.0.2 }
         flow WebTraffic(x, y) { x -> y tcp syn }
-        FLOW webtraffic(x, y) { x -> y tcp ack }
+        flow webtraffic(x, y) { x -> y tcp ack }
         compile { WebTraffic(a, b) }
     "#;
     match parse_program(dup_flow).unwrap_err() {
@@ -290,7 +379,7 @@ fn test_case_insensitive_duplicate_symbol_errors() {
 
     let dup_param = r#"
         host a { ip 10.0.0.1 }
-        flow ping(Node, node) { Node -> node icmp echo_request }
+        flow ping(Node, node) { Node -> node icmp echorequest }
         compile { ping(a, a) }
     "#;
     match parse_program(dup_param).unwrap_err() {
@@ -308,33 +397,33 @@ fn test_case_insensitive_duplicate_symbol_errors() {
 #[test]
 fn test_multi_format_mac_wire_equivalence() {
     let colon_fasm = r#"
-        HOST sw1 { IP 10.0.0.1 MAC 00:1a:2b:3c:4d:5e }
-        HOST sw2 { IP 10.0.0.2 MAC aabb.ccdd.eeff }
-        FLOW check(a, b) {
-            a -> b SRCMAC 00:1a:2b:3c:4d:5e DSTMAC aa:bb:cc:dd:ee:ff ARP REQUEST SENDERMAC 00:1a:2b:3c:4d:5e TARGETMAC aa:bb:cc:dd:ee:ff TARGETIP 10.0.0.2
-            a -> b STP ROOT_ID "00:1a:2b:3c:4d:5e" BRIDGE_ID "aa:bb:cc:dd:ee:ff"
+        host sw1 { ip 10.0.0.1 mac 00:1a:2b:3c:4d:5e }
+        host sw2 { ip 10.0.0.2 mac aabb.ccdd.eeff }
+        flow check(a, b) {
+            a -> b srcmac 00:1a:2b:3c:4d:5e dstmac aa:bb:cc:dd:ee:ff arp request sendermac 00:1a:2b:3c:4d:5e targetmac aa:bb:cc:dd:ee:ff targetip 10.0.0.2
+            a -> b stp rootid "00:1a:2b:3c:4d:5e" bridgeid "aa:bb:cc:dd:ee:ff"
         }
-        COMPILE { check(sw1, sw2) }
+        compile { check(sw1, sw2) }
     "#;
 
     let hyphen_fasm = r#"
-        HOST sw1 { IP 10.0.0.1 MAC 00-1A-2B-3C-4D-5E }
-        HOST sw2 { IP 10.0.0.2 MAC AA-BB-CC-DD-EE-FF }
-        FLOW check(a, b) {
-            a -> b SRCMAC 00-1A-2B-3C-4D-5E DSTMAC AA-BB-CC-DD-EE-FF ARP REQUEST SENDERMAC 00-1A-2B-3C-4D-5E TARGETMAC AA-BB-CC-DD-EE-FF TARGETIP 10.0.0.2
-            a -> b STP ROOT_ID "00-1A-2B-3C-4D-5E" BRIDGE_ID "AA-BB-CC-DD-EE-FF"
+        host sw1 { ip 10.0.0.1 mac 00-1A-2B-3C-4D-5E }
+        host sw2 { ip 10.0.0.2 mac AA-BB-CC-DD-EE-FF }
+        flow check(a, b) {
+            a -> b srcmac 00-1A-2B-3C-4D-5E dstmac AA-BB-CC-DD-EE-FF arp request sendermac 00-1A-2B-3C-4D-5E targetmac AA-BB-CC-DD-EE-FF targetip 10.0.0.2
+            a -> b stp rootid "00-1A-2B-3C-4D-5E" bridgeid "AA-BB-CC-DD-EE-FF"
         }
-        COMPILE { check(sw1, sw2) }
+        compile { check(sw1, sw2) }
     "#;
 
     let cisco_fasm = r#"
-        HOST sw1 { IP 10.0.0.1 MAC 001a.2b3c.4d5e }
-        HOST sw2 { IP 10.0.0.2 MAC aabb.ccdd.eeff }
-        FLOW check(a, b) {
-            a -> b SRCMAC 001a.2b3c.4d5e DSTMAC aabb.ccdd.eeff ARP REQUEST SENDERMAC 001a.2b3c.4d5e TARGETMAC aabb.ccdd.eeff TARGETIP 10.0.0.2
-            a -> b STP ROOT_ID "001a.2b3c.4d5e" BRIDGE_ID "aabb.ccdd.eeff"
+        host sw1 { ip 10.0.0.1 mac 001a.2b3c.4d5e }
+        host sw2 { ip 10.0.0.2 mac aabb.ccdd.eeff }
+        flow check(a, b) {
+            a -> b srcmac 001a.2b3c.4d5e dstmac aabb.ccdd.eeff arp request sendermac 001a.2b3c.4d5e targetmac aabb.ccdd.eeff targetip 10.0.0.2
+            a -> b stp rootid "001a.2b3c.4d5e" bridgeid "aabb.ccdd.eeff"
         }
-        COMPILE { check(sw1, sw2) }
+        compile { check(sw1, sw2) }
     "#;
 
     let frames_colon =
@@ -355,60 +444,60 @@ fn test_plain_english_parser_structural_and_networking_hints() {
 
     let cases = [
         (
-            "HOST r1 { MAC 00:11:22:33:44:55 } FLOW f(a, b) { a -> b ICMP } COMPILE { f(r1, r1) }",
+            "host r1 { mac 00:11:22:33:44:55 } flow f(a, b) { a -> b icmp } compile { f(r1, r1) }",
             "requires an 'IP <address>' field",
         ),
         (
-            "HOST r1 {} FLOW f(a, b) { a -> b ICMP } COMPILE { f(r1, r1) }",
+            "host r1 {} flow f(a, b) { a -> b icmp } compile { f(r1, r1) }",
             "must specify at least an 'IP <address>' or 'MAC <address>' field",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } FLOW f { r1 -> r1 ICMP } COMPILE { f(r1) }",
+            "host r1 { ip 10.0.0.1 } flow f { r1 -> r1 icmp } compile { f(r1) }",
             "is missing its endpoint parameter list '(a, b)'",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b ICMP }",
-            "missing 'COMPILE { ... }' block",
+            "host r1 { ip 10.0.0.1 } flow f(a, b) { a -> b icmp }",
+            "missing 'compile { ... }' block",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } r1 -> r1 ICMP COMPILE {}",
-            "is outside a FLOW block",
+            "host r1 { ip 10.0.0.1 } r1 -> r1 icmp compile {}",
+            "is outside a flow block",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b TCP sport 80 } COMPILE { f(r1, r1) }",
-            "SRCPORT <port>",
+            "host r1 { ip 10.0.0.1 } flow f(a, b) { a -> b tcp sport 80 } compile { f(r1, r1) }",
+            "srcport <port>",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b TCP dport 443 } COMPILE { f(r1, r1) }",
-            "DSTPORT <port>",
+            "host r1 { ip 10.0.0.1 } flow f(a, b) { a -> b tcp dport 443 } compile { f(r1, r1) }",
+            "dstport <port>",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b TCP ACK 100 } COMPILE { f(r1, r1) }",
-            "ACKNUM 100",
+            "host r1 { ip 10.0.0.1 } flow f(a, b) { a -> b tcp ack 100 } compile { f(r1, r1) }",
+            "acknum 100",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b hoplimit 64 ICMP } COMPILE { f(r1, r1) }",
-            "Use 'TTL <value>'",
+            "host r1 { ip 10.0.0.1 } flow f(a, b) { a -> b hoplimit 64 icmp } compile { f(r1, r1) }",
+            "Use 'ttl <value>'",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b tos 46 ICMP } COMPILE { f(r1, r1) }",
-            "DSCP <0..63>",
+            "host r1 { ip 10.0.0.1 } flow f(a, b) { a -> b tos 46 icmp } compile { f(r1, r1) }",
+            "dscp <0..63>",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b vlan_id 100 ICMP } COMPILE { f(r1, r1) }",
-            "VLAN 100",
+            "host r1 { ip 10.0.0.1 } flow f(a, b) { a -> b vlan_id 100 icmp } compile { f(r1, r1) }",
+            "vlan 100",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b QINQ 100 200 ICMP } COMPILE { f(r1, r1) }",
-            "INNER_VLAN",
+            "host r1 { ip 10.0.0.1 } flow f(a, b) { a -> b qinq 100 200 icmp } compile { f(r1, r1) }",
+            "innervlan",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b HTTP GET URI \"/\" HOST \"example.com\" } COMPILE { f(r1, r1) }",
-            "HOST_HDR",
+            "host r1 { ip 10.0.0.1 } flow f(a, b) { a -> b http get uri \"/\" host \"example.com\" } compile { f(r1, r1) }",
+            "hosthdr",
         ),
         (
-            "HOST r1 { IP 10.0.0.1 } FLOW f(a, b) { a -> b TCP SRCPROT 80 } COMPILE { f(r1, r1) }",
-            "Did you mean 'SRCPORT'?",
+            "host r1 { ip 10.0.0.1 } flow f(a, b) { a -> b tcp srcprot 80 } compile { f(r1, r1) }",
+            "Did you mean 'srcport'?",
         ),
     ];
 
@@ -429,15 +518,15 @@ fn test_plain_english_parser_structural_and_networking_hints() {
     }
 }
 
-/// Verifies MAC-only `HOST` definitions and inline frame statements inside `COMPILE`.
+/// Verifies MAC-only `host` definitions and inline frame statements inside `compile`.
 #[test]
 fn test_mac_only_hosts_and_inline_compile_statements() {
     let input = r#"
-        HOST sw1 { MAC 00:11:22:33:44:01 }
-        HOST sw2 { MAC 00:11:22:33:44:02 }
-        COMPILE {
-            sw1 -> sw2 LLDP CHASSIS_ID "sw1" PORT_ID "Gi0/1" TTL 120
-            sw1 -> sw2 VLAN 100 PAYLOAD "l2-frame"
+        host sw1 { mac 00:11:22:33:44:01 }
+        host sw2 { mac 00:11:22:33:44:02 }
+        compile {
+            sw1 -> sw2 lldp chassisid "sw1" portid "Gi0/1" ttl 120
+            sw1 -> sw2 vlan 100 payload "l2-frame"
         }
     "#;
     let prog = parse_program(input).unwrap();

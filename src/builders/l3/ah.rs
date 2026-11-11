@@ -2,18 +2,18 @@
 //!
 //! Serializes an [`AhSpec`] into an RFC 4302 IPsec Authentication Header payload encapsulated
 //! directly inside IPv4 or IPv6 with protocol / Next Header number `51` (`0x33`). The wire builder
-//! constructs a 24-byte base AH header containing the 8-bit `Next Header` (`NEXT_HEADER`, default
+//! constructs a 24-byte base AH header containing the 8-bit `Next Header` (`nextheader`, default
 //! `59`), 8-bit `Payload Len` (`4` in 32-bit words minus 2), 16-bit zeroed `Reserved` field, 32-bit
-//! big-endian `SPI` (default `0x2000`), 32-bit big-endian `Sequence Number` (`SEQ`, default `1`),
-//! and 96-bit (or user-supplied) Integrity Check Value (`ICV`), followed by the authenticated payload.
+//! big-endian `spi` (default `0x2000`), 32-bit big-endian `Sequence Number` (`seq`, default `1`),
+//! and 96-bit (or user-supplied) Integrity Check Value (`icv`), followed by the authenticated payload.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b AH [SPI <u32>] [SEQ <u32>] [ICV "<hex>"] [NEXT_HEADER <u8>] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
+//! `a -> b ah [spi <u32>] [seq <u32>] [icv "<hex>"] [nextheader <u8>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;
 use alloc::vec::Vec;
 
-/// Builds an RFC 4302 IPsec Authentication Header (`AH`) packet body and returns `(bytes, 51)`.
+/// Builds an RFC 4302 IPsec Authentication Header (`ah`) packet body and returns `(bytes, 51)`.
 pub fn build_ipsec_ah_payload(spec: &AhSpec, payload: &[u8]) -> (Vec<u8>, u8) {
     let spi = spec.spi.unwrap_or(0x2000);
     let seq = spec.seq.unwrap_or(1);

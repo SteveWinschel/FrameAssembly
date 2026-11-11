@@ -1,20 +1,20 @@
 // PROMPT: S7comm communication through an industrial NAT router on custom TCP port 10102.
-// TOKENS: HOST, IP, FLOW, S7COMM, ROSCTR, FUNC, PDU_REF, SRCPORT, DSTPORT, WAIT, AREA, DB_NUM, OFFSET, COUNT, COMPILE
+// TOKENS: host, ip, flow, s7comm, rosctr, func, pduref, srcport, dstport, wait, ms, area, dbnum, offset, count, compile
 
 // INSTRUCTION: Define remote vendor support client.
-HOST vendor_client { IP 192.168.222.10 }
+host vendor_client { ip 192.168.222.10 }
 
 // INSTRUCTION: Define NAT gateway forwarding port 10102 to PLC port 102.
-HOST nat_plc_gw { IP 192.168.222.1 }
+host nat_plc_gw { ip 192.168.222.1 }
 
 // INSTRUCTION: Define SETUP_COMM and READ_VAR on port 10102.
-FLOW s7comm_nat_port(c, gw) {
-    c -> gw S7COMM ROSCTR "JOB" FUNC "SETUP_COMM" PDU_REF 1 SRCPORT 50102 DSTPORT 10102 WAIT 5ms
-    c <- gw S7COMM ROSCTR "ACK_DATA" FUNC "SETUP_COMM" PDU_REF 1 SRCPORT 10102 DSTPORT 50102 WAIT 5ms
-    c -> gw S7COMM ROSCTR "JOB" FUNC "READ_VAR" PDU_REF 2 AREA 0x84 DB_NUM 1 OFFSET 0 COUNT 4 SRCPORT 50102 DSTPORT 10102
+flow s7comm_nat_port(c, gw) {
+    c -> gw s7comm rosctr "job" func "setupcomm" pduref 1 srcport 50102 dstport 10102 wait 5ms
+    c <- gw s7comm rosctr "ackdata" func "setupcomm" pduref 1 srcport 10102 dstport 50102 wait 5ms
+    c -> gw s7comm rosctr "job" func "readvar" pduref 2 area 0x84 dbnum 1 offset 0 count 4 srcport 50102 dstport 10102
 }
 
 // INSTRUCTION: Compile NAT custom-port S7comm flow.
-COMPILE {
+compile {
     s7comm_nat_port(vendor_client, nat_plc_gw)
 }

@@ -1,9 +1,9 @@
 //! Internet Group Management Protocol (IGMPv1/v2/v3, RFC 1112 / 2236 / 3376) Layer 3 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IPv4 Internet Group
-//! Management Protocol (`IGMP`, IP protocol `2`) multicast group membership packets. It decodes
+//! Management Protocol (`igmp`, IP protocol `2`) multicast group membership packets. It decodes
 //! `query` (`0x11`), `v1 report` (`0x12`), `report` (`0x16`), `leave` (`0x17`), and `v3 report`
-//! (`0x22`) messages along with `max_resp` and multicast `group` overrides into canonical `.fasm`
+//! (`0x22`) messages along with `maxresp` and multicast `group` overrides into canonical `.fasm`
 //! statements.
 
 use alloc::string::String;
@@ -12,7 +12,7 @@ use core::net::Ipv4Addr;
 use crate::ast::Protocol;
 use crate::reverse::{ProtocolDissection, ipv4_at, push_if, sd};
 
-/// Decompiles an RFC 1112 / RFC 2236 / RFC 3376 `IGMP` message (`ip_proto == 2`) into a [`ProtocolDissection`].
+/// Decompiles an RFC 1112 / RFC 2236 / RFC 3376 `igmp` message (`ip_proto == 2`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_igmp(b: &[u8]) -> ProtocolDissection {
     if b.len() < 8 {
         return sd(Protocol::Igmp, String::from("igmp"), b.to_vec());
@@ -27,7 +27,7 @@ pub(crate) fn dissect_igmp(b: &[u8]) -> ProtocolDissection {
     };
     t.push_str(kw);
     if mt == 0x11 {
-        push_if(&mut t, "max_resp", mr, 100);
+        push_if(&mut t, "maxresp", mr, 100);
     }
     push_if(&mut t, "group", grp, Ipv4Addr::from(dg));
     sd(Protocol::Igmp, t, b[8..].to_vec())

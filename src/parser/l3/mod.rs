@@ -1,10 +1,10 @@
 //! Layer 3 network-layer, routing, tunneling, and control-plane field parsers for FrameAssembly.
 //!
-//! This module coordinates syntactic combinators for Layer 3 network headers (`DSCP`, `ECN`,
-//! `TTL`, `FLOWLABEL`, `IPID`, `DF`, `MF`, `FRAGOFFSET`, `NEXT_HEADER`) and 19 network-layer,
-//! tunneling, security, and routing protocols: `ICMP`, `NDP`, `IGMP`, `MLD`, `GRE`, `VXLAN`,
-//! `GENEVE`, `IPSEC`, `ESP`, `AH`, `IKEV2`, `WIREGUARD`, `OSPF`, `BGP`, `RIP`, `VRRP`, `HSRP`,
-//! `PIM`, `BFD`, and `OPENFLOW`.
+//! This module coordinates syntactic combinators for Layer 3 network headers (`dscp`, `ecn`,
+//! `ttl`, `flowlabel`, `ipid`, `df`, `mf`, `fragoffset`, `nextheader`) and 19 network-layer,
+//! tunneling, security, and routing protocols: `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`,
+//! `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`,
+//! `pim`, `bfd`, and `openflow`.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

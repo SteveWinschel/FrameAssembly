@@ -1,19 +1,19 @@
 // PROMPT: Client hello specifying enterprise internal portal SNI host indicator.
-// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, COMPILE
+// TOKENS: host, ip, flow, s, tls, clienthello, sni, compile
 
 // INSTRUCTION: Define corporate employee laptop.
-HOST corp_laptop { IP 10.200.5.40 }
+host corp_laptop { ip 10.200.5.40 }
 
 // INSTRUCTION: Define internal portal load balancer.
-HOST portal_lb { IP 10.200.5.1 }
+host portal_lb { ip 10.200.5.1 }
 
 // INSTRUCTION: Define multi-domain portal SNI flow.
-FLOW tls_portal_sni_flow(c, s) {
-    c -> s TLS CLIENT_HELLO
-        SNI "portal.corp.internal.net"
+flow tls_portal_sni_flow(c, s) {
+    c -> s tls clienthello
+        sni "portal.corp.internal.net"
 }
 
 // INSTRUCTION: Compile block executing internal portal SNI request.
-COMPILE {
+compile {
     tls_portal_sni_flow(corp_laptop, portal_lb)
 }

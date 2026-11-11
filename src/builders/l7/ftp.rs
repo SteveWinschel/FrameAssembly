@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b FTP [CMD <str>] [ARG <str>] [CODE <u16>] [REPLY <str>]`
+//! `a -> b ftp [cmd <str>] [arg <str>] [code <u16>] [reply <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 959 FTP command or reply string.
-/// Syntax mapping: `FTP [CMD <str>] [ARG <str>] [CODE <u16>] [REPLY <str>]`
+/// Syntax mapping: `ftp [cmd <str>] [arg <str>] [code <u16>] [reply <str>]`
 #[doc(alias = "FTP")]
 #[doc(alias = "RFC959")]
 #[doc(alias = "RFC2428")]

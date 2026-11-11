@@ -1,7 +1,7 @@
 //! Address Resolution Protocol (ARP, RFC 826 / RFC 5227) Layer 2 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IPv4-over-Ethernet Address
-//! Resolution Protocol (`ARP`, EtherType `0x0806`) frames in FrameAssembly. It extracts the 16-bit
+//! Resolution Protocol (`arp`, EtherType `0x0806`) frames in FrameAssembly. It extracts the 16-bit
 //! operation code (`request` vs `reply`), sender and target hardware MAC addresses (`sendermac`,
 //! `targetmac`), and sender and target IPv4 protocol addresses (`senderip`, `targetip`), detecting
 //! RFC 5227 gratuitous ARP announcements (`gratuitous`) and populating host discovery IP hints.
@@ -14,7 +14,7 @@ use crate::ast::Protocol;
 use crate::reverse::topology::is_unicast_mac;
 use crate::reverse::{ProtocolDissection, be_u16, ipv4_at, mac_at, push_mac_if, sd};
 
-/// Decompiles an RFC 826 / RFC 5227 `ARP` frame (`0x0806`) into a [`ProtocolDissection`].
+/// Decompiles an RFC 826 / RFC 5227 `arp` frame (`0x0806`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_arp(
     b: &[u8],
     src_mac: [u8; 6],

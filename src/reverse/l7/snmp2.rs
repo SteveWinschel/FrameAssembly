@@ -1,7 +1,7 @@
-//! Simple Network Management Protocol v2c (`SNMP2`, RFC 3416) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Simple Network Management Protocol v2c (`snmp2`, RFC 3416) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe ASN.1 Basic Encoding Rules (BER) reverse dissector for
-//! RFC 3416 and RFC 1901 community-based `SNMP2` (SNMPv2c) messages carried over UDP ports `161`,
+//! RFC 3416 and RFC 1901 community-based `snmp2` (SNMPv2c) messages carried over UDP ports `161`,
 //! `162`, `10161`, and `10162`. It decodes `SNMPv2-Trap`, `InformRequest`, `GetRequest`,
 //! `GetNextRequest`, `GetBulkRequest` (`nonrepeaters`, `maxrepetitions`), `Response`, and
 //! `SetRequest` PDUs along with SMIv2 (RFC 2578) `VarBind` values (`counter64`, `counter32`,
@@ -18,7 +18,7 @@ use crate::reverse::{ProtocolDissection, ipv4_at, push_if};
 use super::snmp1::{format_octet_vb_body, format_oid, int_val};
 use super::{ok_dissect, push_str_if};
 
-/// Dissects an RFC 3416 `SNMP2` (SNMPv2c) ASN.1 BER payload.
+/// Dissects an RFC 3416 `snmp2` (SNMPv2c) ASN.1 BER payload.
 pub(crate) fn dissect_snmp2(payload: &[u8]) -> Option<ProtocolDissection> {
     use rasn_snmp::v2::Pdus as PdusV2;
     use rasn_snmp::v2c::Message;

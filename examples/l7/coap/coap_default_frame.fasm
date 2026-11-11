@@ -1,24 +1,24 @@
 // PROMPT: Default CoAP frame over UDP port 5683 with automatic RFC 7252 wire defaults.
-// TOKENS: HOST, IP, MAC, FLOW, COAP, COMPILE
+// TOKENS: host, ip, mac, flow, coap, compile
 
 // INSTRUCTION: Define constrained IoT sensor endpoint.
-HOST iot_mote {
-    IP 192.168.60.15
-    MAC 00:12:4b:00:01:01
+host iot_mote {
+    ip 192.168.60.15
+    mac 00:12:4b:00:01:01
 }
 
 // INSTRUCTION: Define CoAP border router endpoint.
-HOST border_router {
-    IP 192.168.60.1
-    MAC 00:12:4b:00:01:fe
+host border_router {
+    ip 192.168.60.1
+    mac 00:12:4b:00:01:fe
 }
 
 // INSTRUCTION: Emit a default CoAP datagram using protocol defaults.
-FLOW coap_default(mote, rtr) {
-    mote -> rtr COAP
+flow coap_default(mote, rtr) {
+    mote -> rtr coap
 }
 
 // INSTRUCTION: Compile the default CoAP flow.
-COMPILE {
+compile {
     coap_default(iot_mote, border_router)
 }

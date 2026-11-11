@@ -1,21 +1,21 @@
 // PROMPT: SS7 SIGTRAN M3UA (MTP3 User Adaptation Layer, PPID 3, Port 2905) signaling between Signaling Gateway and IP Softswitch.
-// TOKENS: HOST, IP, FLOW, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, SACK, COMPILE
+// TOKENS: host, ip, flow, dscp, sctp, chunk, data, vtag, stream, ssn, ppid, srcport, dstport, hexpayload, wait, ms, sack, compile
 
 // INSTRUCTION: Define SS7 Signaling Gateway (SGW) terminating TDM links.
-HOST ss7_sgw_node { IP 10.65.29.1 }
+host ss7_sgw_node { ip 10.65.29.1 }
 
 // INSTRUCTION: Define Media Gateway Controller (MGC) IP softswitch.
-HOST mgc_softswitch { IP 10.65.29.2 }
+host mgc_softswitch { ip 10.65.29.2 }
 
 // INSTRUCTION: Define SIGTRAN M3UA ASP Up, ASP Active, and ISUP IAM Payload Data over SCTP PPID 3.
-FLOW sigtran_m3ua_sctp(sgw, mgc) {
-    sgw <- mgc DSCP 46 SCTP CHUNK DATA VTAG 290501 STREAM 0 SSN 0 PPID 3 SRCPORT 2905 DSTPORT 2905 HEXPAYLOAD "0100030100000008"
-    sgw -> mgc DSCP 46 SCTP CHUNK DATA VTAG 290501 STREAM 0 SSN 0 PPID 3 SRCPORT 2905 DSTPORT 2905 HEXPAYLOAD "0100030400000008" WAIT 2ms
-    sgw -> mgc DSCP 46 SCTP CHUNK DATA VTAG 290501 STREAM 1 SSN 0 PPID 3 SRCPORT 2905 DSTPORT 2905 HEXPAYLOAD "01000101000000180210001000000101" WAIT 2ms
-    sgw <- mgc DSCP 46 SCTP CHUNK SACK VTAG 290501 SRCPORT 2905 DSTPORT 2905 WAIT 1ms
+flow sigtran_m3ua_sctp(sgw, mgc) {
+    sgw <- mgc dscp 46 sctp chunk data vtag 290501 stream 0 ssn 0 ppid 3 srcport 2905 dstport 2905 hexpayload "0100030100000008"
+    sgw -> mgc dscp 46 sctp chunk data vtag 290501 stream 0 ssn 0 ppid 3 srcport 2905 dstport 2905 hexpayload "0100030400000008" wait 2ms
+    sgw -> mgc dscp 46 sctp chunk data vtag 290501 stream 1 ssn 0 ppid 3 srcport 2905 dstport 2905 hexpayload "01000101000000180210001000000101" wait 2ms
+    sgw <- mgc dscp 46 sctp chunk sack vtag 290501 srcport 2905 dstport 2905 wait 1ms
 }
 
 // INSTRUCTION: Compile block executing SS7 SIGTRAN M3UA over SCTP.
-COMPILE {
+compile {
     sigtran_m3ua_sctp(ss7_sgw_node, mgc_softswitch)
 }

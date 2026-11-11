@@ -1,25 +1,25 @@
 // PROMPT: Data Center Interconnect (DCI) carrying VXLAN overlay network traffic over a QinQ provider dark fiber trunk.
-// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, VXLAN, VNI, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, qinq, innervlan, vxlan, vni, srcport, dstport, payload, wait, ms, compile
 
 // INSTRUCTION: Define border leaf VTEP in data center West.
-HOST dci_vtep_west {
-    IP 10.250.1.1
-    MAC 00:1c:73:fa:01:01
+host dci_vtep_west {
+    ip 10.250.1.1
+    mac 00:1c:73:fa:01:01
 }
 
 // INSTRUCTION: Define border leaf VTEP in data center East.
-HOST dci_vtep_east {
-    IP 10.250.1.2
-    MAC 00:1c:73:fa:01:02
+host dci_vtep_east {
+    ip 10.250.1.2
+    mac 00:1c:73:fa:01:02
 }
 
 // INSTRUCTION: Define QinQ S-VLAN 3500 C-VLAN 1000 encapsulating VXLAN VNI 100500 across DCI link.
-FLOW dci_qinq_vxlan(west, east) {
-    west -> east QINQ 3500 INNER_VLAN 1000 VXLAN VNI 100500 SRCPORT 54321 DSTPORT 4789 PAYLOAD "dci_east_west_vxlan_frame_1"
-    west <- east QINQ 3500 INNER_VLAN 1000 VXLAN VNI 100500 SRCPORT 51234 DSTPORT 4789 PAYLOAD "dci_east_west_vxlan_frame_2" WAIT 2ms
+flow dci_qinq_vxlan(west, east) {
+    west -> east qinq 3500 innervlan 1000 vxlan vni 100500 srcport 54321 dstport 4789 payload "dci_east_west_vxlan_frame_1"
+    west <- east qinq 3500 innervlan 1000 vxlan vni 100500 srcport 51234 dstport 4789 payload "dci_east_west_vxlan_frame_2" wait 2ms
 }
 
 // INSTRUCTION: Compile block executing DCI VXLAN over QinQ transport.
-COMPILE {
+compile {
     dci_qinq_vxlan(dci_vtep_west, dci_vtep_east)
 }

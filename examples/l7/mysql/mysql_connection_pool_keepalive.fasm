@@ -1,18 +1,18 @@
 // PROMPT: Application connection pool executing lightweight SELECT 1 keepalive query on MySQL.
-// TOKENS: HOST, IP, FLOW, MYSQL, SQL, COMPILE
+// TOKENS: host, ip, flow, mysql, sql, compile
 
 // INSTRUCTION: Define HikariCP connection pool host.
-HOST connection_pool_mgr { IP 192.168.4.88 }
+host connection_pool_mgr { ip 192.168.4.88 }
 
 // INSTRUCTION: Define pooled MySQL database server.
-HOST pooled_mysql_server { IP 192.168.4.1 }
+host pooled_mysql_server { ip 192.168.4.1 }
 
 // INSTRUCTION: Define pool validation keepalive flow.
-FLOW pool_keepalive_flow(mgr, srv) {
-    mgr -> srv MYSQL SQL "SELECT 1"
+flow pool_keepalive_flow(mgr, srv) {
+    mgr -> srv mysql sql "SELECT 1"
 }
 
 // INSTRUCTION: Compile connection pool keepalive scenario.
-COMPILE {
+compile {
     pool_keepalive_flow(connection_pool_mgr, pooled_mysql_server)
 }

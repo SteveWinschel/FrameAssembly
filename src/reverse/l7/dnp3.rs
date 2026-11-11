@@ -1,10 +1,10 @@
 //! Distributed Network Protocol 3 (DNP3, IEEE 1815) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `DNP3` IEEE 1815 frames (`0x05 0x64`
+//! This module implements fuzz-safe wire-to-AST dissection for `dnp3` IEEE 1815 frames (`0x05 0x64`
 //! start bytes + `0xC4` control byte) over TCP and UDP transports (port `20000` and custom serial
 //! terminal server ports). It strips per-16-byte block CRC-16 trailers, verifies the link-header
 //! CRC-16 (`calculate_dnp3_crc`), and decodes application function codes (`confirm`, `read`,
-//! `write`, `select`, `operate`, `direct_operate`, `RESPONSE`, `unsolicited_response`), `src`,
+//! `write`, `select`, `operate`, `directoperate`, `"response"`, `unsolicitedresponse`), `src`,
 //! `dst`, `group`, and `variation`.
 
 use alloc::format;
@@ -14,7 +14,7 @@ use alloc::vec::Vec;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Dissects a `DNP3` IEEE 1815 frame (`0x05 0x64`), stripping per-16B block CRC-16s.
+/// Dissects a `dnp3` IEEE 1815 frame (`0x05 0x64`), stripping per-16B block CRC-16s.
 pub(crate) fn dissect_dnp3(
     transport: TransportProto,
     _src_port: u16,
@@ -63,9 +63,9 @@ pub(crate) fn dissect_dnp3(
         2 => tokens.push_str(" write"),
         3 => tokens.push_str(" select"),
         4 => tokens.push_str(" operate"),
-        5 => tokens.push_str(" direct_operate"),
-        129 => tokens.push_str(" func \"RESPONSE\""),
-        130 => tokens.push_str(" unsolicited_response"),
+        5 => tokens.push_str(" directoperate"),
+        129 => tokens.push_str(" func \"response\""),
+        130 => tokens.push_str(" unsolicitedresponse"),
         _ => return None,
     }
     if src != 100 {

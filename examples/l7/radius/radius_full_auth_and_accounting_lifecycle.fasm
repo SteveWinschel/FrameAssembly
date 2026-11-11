@@ -1,23 +1,23 @@
 // PROMPT: Complete subscriber lifecycle combining Access-Request, Access-Accept, Accounting-Request, and Accounting-Response.
-// TOKENS: HOST, IP, FLOW, RADIUS, ACCESS_REQUEST, USER, NAS_IP, SERVICE_TYPE, WAIT, ACCESS_ACCEPT, FRAMED_IP, ACCOUNTING_REQUEST, PAYLOAD, ACCOUNTING_RESPONSE, COMPILE
+// TOKENS: host, ip, flow, radius, accessrequest, user, nasip, servicetype, wait, ms, accessaccept, framedip, accountingrequest, payload, accountingresponse, compile
 
 // INSTRUCTION: Define FTTH access concentrator NAS.
-HOST ftth_nas { IP 10.66.0.5 }
+host ftth_nas { ip 10.66.0.5 }
 
 // INSTRUCTION: Define subscriber AAA server.
-HOST sub_aaa { IP 10.66.0.1 }
+host sub_aaa { ip 10.66.0.1 }
 
 // INSTRUCTION: Define full auth + accounting start + accounting stop lifecycle.
-FLOW radius_full_lifecycle(nas, aaa) {
-    nas -> aaa RADIUS ACCESS_REQUEST USER "fiber_user_101" NAS_IP 10.66.0.5 SERVICE_TYPE 2 WAIT 4ms
-    nas <- aaa RADIUS ACCESS_ACCEPT USER "fiber_user_101" FRAMED_IP 100.64.101.10 SERVICE_TYPE 2 WAIT 4ms
-    nas -> aaa RADIUS ACCOUNTING_REQUEST USER "fiber_user_101" NAS_IP 10.66.0.5 FRAMED_IP 100.64.101.10 PAYLOAD "Acct-Status-Type=Start" WAIT 4ms
-    nas <- aaa RADIUS ACCOUNTING_RESPONSE USER "fiber_user_101" WAIT 20ms
-    nas -> aaa RADIUS ACCOUNTING_REQUEST USER "fiber_user_101" NAS_IP 10.66.0.5 FRAMED_IP 100.64.101.10 PAYLOAD "Acct-Status-Type=Stop" WAIT 4ms
-    nas <- aaa RADIUS ACCOUNTING_RESPONSE USER "fiber_user_101"
+flow radius_full_lifecycle(nas, aaa) {
+    nas -> aaa radius accessrequest user "fiber_user_101" nasip 10.66.0.5 servicetype 2 wait 4ms
+    nas <- aaa radius accessaccept user "fiber_user_101" framedip 100.64.101.10 servicetype 2 wait 4ms
+    nas -> aaa radius accountingrequest user "fiber_user_101" nasip 10.66.0.5 framedip 100.64.101.10 payload "Acct-Status-Type=Start" wait 4ms
+    nas <- aaa radius accountingresponse user "fiber_user_101" wait 20ms
+    nas -> aaa radius accountingrequest user "fiber_user_101" nasip 10.66.0.5 framedip 100.64.101.10 payload "Acct-Status-Type=Stop" wait 4ms
+    nas <- aaa radius accountingresponse user "fiber_user_101"
 }
 
 // INSTRUCTION: Compile full subscriber RADIUS lifecycle.
-COMPILE {
+compile {
     radius_full_lifecycle(ftth_nas, sub_aaa)
 }

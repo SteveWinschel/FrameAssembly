@@ -36,7 +36,7 @@ fn lex_error_summary(src: &str, span: (usize, usize)) -> String {
         && rest.as_bytes().get(1).is_some_and(|b| b.is_ascii_digit())
     {
         alloc::format!(
-            "Failed to parse token '{}': subnet masks (CIDR notation) are not used in HOST or IP declarations",
+            "Failed to parse token '{}': subnet masks (CIDR notation) are not used in host or ip declarations",
             snippet
         )
     } else if rest.starts_with('=') || rest.starts_with(':') {
@@ -69,20 +69,20 @@ fn lex_error_summary(src: &str, span: (usize, usize)) -> String {
 /// or FPGA FASM bitstream configuration) rather than a FrameAssembly network packet specification.
 ///
 /// Returns `Some("an x86 Flat Assembler")` or `Some("an FPGA FASM")` if foreign signatures
-/// are identified and the input lacks canonical FrameAssembly `FLOW` and `COMPILE` structure.
+/// are identified and the input lacks canonical FrameAssembly `flow` and `compile` structure.
 pub fn detect_foreign_fasm(src: &str) -> Option<&'static str> {
     // If the file already contains clear FrameAssembly host/flow and compile constructs, it is not foreign.
     let has_compile = src.lines().any(|l| {
         let trimmed = l.trim();
-        trimmed.to_ascii_uppercase().starts_with("COMPILE")
+        trimmed.to_ascii_lowercase().starts_with("compile")
     });
     let has_flow = src.lines().any(|l| {
         let trimmed = l.trim();
-        trimmed.to_ascii_uppercase().starts_with("FLOW")
+        trimmed.to_ascii_lowercase().starts_with("flow")
     });
     let has_host = src.lines().any(|l| {
         let trimmed = l.trim();
-        trimmed.to_ascii_uppercase().starts_with("HOST")
+        trimmed.to_ascii_lowercase().starts_with("host")
     });
     if has_compile && (has_flow || has_host) {
         return None;
@@ -153,7 +153,7 @@ pub fn detect_foreign_fasm(src: &str) -> Option<&'static str> {
 fn lex_error_help(src: &str, span: (usize, usize)) -> String {
     if let Some(kind) = detect_foreign_fasm(src) {
         return alloc::format!(
-            "This file appears to be {} file, not a FrameAssembly network packet specification. FrameAssembly files declare HOST {{ IP ... }}, FLOW(...), and COMPILE {{ ... }} blocks to compile network traffic into .pcap/.pcapng captures. See https://github.com/SteveWinschel/FrameAssembly for syntax and examples.",
+            "This file appears to be {} file, not a FrameAssembly network packet specification. FrameAssembly files declare host {{ ip ... }}, flow(...), and compile {{ ... }} blocks to compile network traffic into .pcap/.pcapng captures. See https://github.com/SteveWinschel/FrameAssembly for syntax and examples.",
             kind
         );
     }
@@ -165,20 +165,20 @@ fn lex_error_help(src: &str, span: (usize, usize)) -> String {
     } else if rest.starts_with("/*") || rest.starts_with("*/") {
         "Start each comment line with '//' instead of wrapping comments in '/* ... */'.".to_string()
     } else if rest.starts_with('\'') {
-        "Wrap text strings in double quotes instead of single quotes (for example: URI \"/index.html\" or USER \"admin\").".to_string()
+        "Wrap text strings in double quotes instead of single quotes (for example: uri \"/index.html\" or user \"admin\").".to_string()
     } else if rest.starts_with('/')
         && rest.as_bytes().get(1).is_some_and(|b| b.is_ascii_digit())
     {
-        "Remove the CIDR prefix length and write a plain IP address (for example: IP 10.0.0.1 instead of IP 10.0.0.1/24).".to_string()
+        "Remove the CIDR prefix length and write a plain IP address (for example: ip 10.0.0.1 instead of ip 10.0.0.1/24).".to_string()
     } else if rest.starts_with('=') || rest.starts_with(':') {
-        "Separate keywords and values with a space instead of '=' or ':' (for example: IP 10.0.0.1 or DSTPORT 443).".to_string()
+        "Separate keywords and values with a space instead of '=' or ':' (for example: ip 10.0.0.1 or dstport 443).".to_string()
     } else if rest.starts_with('[') || rest.starts_with(']') {
-        "Write TCP flags as space-separated words without brackets (for example: TCP SYN ACK) and place delays at the end of the line (WAIT 5ms).".to_string()
+        "Write TCP flags as space-separated words without brackets (for example: tcp syn ack) and place delays at the end of the line (wait 5ms).".to_string()
     } else if rest.starts_with(';') {
         "Remove the ';' at the end of the line — statements end automatically at the newline."
             .to_string()
     } else if rest.starts_with('+') {
-        "Put 'WAIT <duration>' at the end of the packet statement instead (for example: c -> s TCP SYN ACK WAIT 5ms).".to_string()
+        "Put 'wait <duration>' at the end of the packet statement instead (for example: c -> s tcp syn ack wait 5ms).".to_string()
     } else {
         "Check for unsupported punctuation or typos. See docs/getting_started.md for valid .fasm syntax and examples.".to_string()
     }
@@ -188,50 +188,62 @@ fn lex_error_help(src: &str, span: (usize, usize)) -> String {
 fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
     if let Some(kind) = detect_foreign_fasm(src) {
         return alloc::format!(
-            "This file appears to be {} file, not a FrameAssembly network packet specification. FrameAssembly files declare HOST {{ IP ... }}, FLOW(...), and COMPILE {{ ... }} blocks to compile network traffic into .pcap/.pcapng captures. See https://github.com/SteveWinschel/FrameAssembly for syntax and examples.",
+            "This file appears to be {} file, not a FrameAssembly network packet specification. FrameAssembly files declare host {{ ip ... }}, flow(...), and compile {{ ... }} blocks to compile network traffic into .pcap/.pcapng captures. See https://github.com/SteveWinschel/FrameAssembly for syntax and examples.",
             kind
         );
     }
 
-    let snippet = slice_at_span(src, span).to_ascii_lowercase();
-    if matches!(snippet.as_str(), "sport" | "src_port" | "source_port") {
-        "Replace 'sport' with 'SRCPORT <port>' (for example: SRCPORT 51234).".to_string()
+    let raw = slice_at_span(src, span);
+    if raw.eq_ignore_ascii_case("loop") {
+        return "The 'loop' block was removed in FrameAssembly 2.0; invoke flows or frame statements directly inside 'compile { ... }'.".to_string();
+    }
+    if let Some(kw) = crate::lexer::suggest_v2_lowercase_keyword(raw) {
+        return alloc::format!(
+            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace '{}' with '{}'.",
+            raw,
+            kw
+        );
+    }
+
+    let snippet = raw.to_ascii_lowercase();
+    if matches!(snippet.as_str(), "sport" | "source_port" | "sourceport") {
+        "Replace 'sport' with 'srcport <port>' (for example: srcport 51234).".to_string()
     } else if matches!(
         snippet.as_str(),
-        "dport" | "dst_port" | "dest_port" | "destination_port"
+        "dport" | "dest_port" | "destport" | "destination_port"
     ) {
-        "Replace 'dport' with 'DSTPORT <port>' (for example: DSTPORT 443).".to_string()
-    } else if message.contains("ACKNUM") {
-        "Use 'ACK' alone as a TCP flag, and use 'ACKNUM <number>' to set the TCP acknowledgment number (for example: TCP ACK ACKNUM 100).".to_string()
+        "Replace 'dport' with 'dstport <port>' (for example: dstport 443).".to_string()
+    } else if message.contains("acknum") {
+        "Use 'ack' alone as a TCP flag, and use 'acknum <number>' to set the TCP acknowledgment number (for example: tcp ack acknum 100).".to_string()
     } else if matches!(snippet.as_str(), "hoplimit" | "hop_limit" | "hlim")
         || message.contains("Hop Limit")
     {
-        "Use 'TTL <value>' for both IPv4 Time-to-Live and IPv6 Hop Limit (for example: TTL 64 or TTL 255).".to_string()
+        "Use 'ttl <value>' for both IPv4 Time-to-Live and IPv6 Hop Limit (for example: ttl 64 or ttl 255).".to_string()
     } else if matches!(
         snippet.as_str(),
         "tos" | "traffic_class" | "trafficclass" | "tclass"
     ) {
-        "Use 'DSCP <0..63>' and optional 'ECN <0..3>' to set IPv4 TOS / IPv6 Traffic Class bits (for example: DSCP 46).".to_string()
+        "Use 'dscp <0..63>' and optional 'ecn <0..3>' to set IPv4 TOS / IPv6 Traffic Class bits (for example: dscp 46).".to_string()
     } else if matches!(snippet.as_str(), "cos" | "dot1p") {
-        "Use 'VLAN <id> PCP <0..7>' to set the Layer 2 802.1p Class of Service priority.".to_string()
+        "Use 'vlan <id> pcp <0..7>' to set the Layer 2 802.1p Class of Service priority.".to_string()
     } else if matches!(
         snippet.as_str(),
-        "vlan_id" | "vlanid" | "vid" | "svlan" | "cvlan" | "outer_vlan"
-    ) || message.contains("INNER_VLAN")
+        "vlan_id" | "vlanid" | "vid" | "svlan" | "cvlan" | "outer_vlan" | "outervlan"
+    ) || message.contains("innervlan")
     {
-        "Use 'VLAN 100' for single 802.1Q tagging, or 'QINQ 100 INNER_VLAN 200' for 802.1ad double tagging.".to_string()
-    } else if message.contains("HOST_HDR") {
-        "Inside an HTTP statement, use 'HOST_HDR \"example.com\"' to set the HTTP Host header ('HOST' is reserved for declaring network endpoints).".to_string()
-    } else if message.contains("missing a required 'IP")
+        "Use 'vlan 100' for single 802.1Q tagging, or 'qinq 100 innervlan 200' for 802.1ad double tagging.".to_string()
+    } else if message.contains("hosthdr") {
+        "Inside an http statement, use 'hosthdr \"example.com\"' to set the HTTP Host header ('host' is reserved for declaring network endpoints).".to_string()
+    } else if message.contains("missing a required 'ip")
         || message.contains("must specify at least an 'IP <address>' or 'MAC <address>'")
     {
-        "Add 'IP <address>' and/or 'MAC <address>' inside the HOST block — for example: HOST client { IP 10.0.0.1 MAC 00:11:22:33:44:55 }.".to_string()
+        "Add 'ip <address>' and/or 'mac <address>' inside the host block — for example: host client { ip 10.0.0.1 mac 00:11:22:33:44:55 }.".to_string()
     } else if message.contains("missing its endpoint parameter list") {
-        "Add endpoint parameter names in parentheses after the flow name — for example: FLOW my_flow(c, s) { c -> s TCP SYN }.".to_string()
-    } else if message.contains("missing 'COMPILE") || message.contains("duplicate 'COMPILE'") {
-        "Every .fasm file must contain exactly one COMPILE { ... } block at the end that calls your flows — for example: COMPILE { my_flow(client, server) }.".to_string()
-    } else if message.contains("outside a FLOW block") {
-        "Move packet statements ('a -> b ...') inside a FLOW name(a, b) { ... } block (then call name(host1, host2) inside COMPILE { ... }) or place inline packet statements directly inside COMPILE { ... }.".to_string()
+        "Add endpoint parameter names in parentheses after the flow name — for example: flow my_flow(c, s) { c -> s tcp syn }.".to_string()
+    } else if message.contains("missing 'compile") || message.contains("duplicate 'compile'") {
+        "Every .fasm file must contain exactly one compile { ... } block at the end that calls your flows — for example: compile { my_flow(client, server) }.".to_string()
+    } else if message.contains("outside a flow block") {
+        "Move packet statements ('a -> b ...') inside a flow name(a, b) { ... } block (then call name(host1, host2) inside compile { ... }) or place inline packet statements directly inside compile { ... }.".to_string()
     } else {
         "Ensure the syntax matches the expected grammar. See docs/getting_started.md for ready-to-use .fasm examples.".to_string()
     }
@@ -242,15 +254,15 @@ fn semantic_error_help(message: &str) -> String {
     if message.contains("Mixed IPv4 and IPv6") {
         "Use either two IPv4 hosts or two IPv6 hosts in the same flow call — a single packet cannot have an IPv4 source and an IPv6 destination.".to_string()
     } else if message.contains("requires an 'IP <address>'") {
-        "Add 'IP <address>' to the HOST declaration (for example: HOST r1 { IP 10.0.0.1 MAC 00:11:22:33:44:55 }), or use a pure Layer 2 protocol (ARP, VLAN, QINQ, MPLS, LLDP, STP, LACP, EAPOL).".to_string()
+        "Add 'ip <address>' to the host declaration (for example: host r1 { ip 10.0.0.1 mac 00:11:22:33:44:55 }), or use a pure Layer 2 protocol (arp, vlan, qinq, mpls, lldp, stp, lacp, eapol).".to_string()
     } else if message.contains("Undefined host") {
-        "Declare the host at the top of the file with 'HOST <name> { IP <address> }' before passing it into a flow call in COMPILE.".to_string()
+        "Declare the host at the top of the file with 'host <name> { ip <address> }' before passing it into a flow call in compile.".to_string()
     } else if message.contains("Undefined flow") {
-        "Declare the flow with 'FLOW <name>(a, b) { ... }' before calling it inside COMPILE.".to_string()
-    } else if message.contains("Undefined endpoint") {
-        "Make sure the endpoint name on the packet line matches one of the parameter names listed in 'FLOW name(param1, param2)'.".to_string()
+        "Declare the flow with 'flow <name>(a, b) { ... }' before calling it inside compile.".to_string()
+    } else if message.contains("Undefined endpoint") || message.contains("Unknown caller") || message.contains("Unknown callee") {
+        "Make sure the endpoint name on the packet line matches one of the parameter names listed in 'flow name(param1, param2)'.".to_string()
     } else if message.contains("expects") && message.contains("arguments") {
-        "Pass the exact number of host names in 'COMPILE { flow_name(host1, host2) }' to match the parameters in 'FLOW flow_name(a, b)'.".to_string()
+        "Pass the exact number of host names in 'compile { flow_name(host1, host2) }' to match the parameters in 'flow flow_name(a, b)'.".to_string()
     } else {
         "Check the highlighted field value or endpoint name against protocol limits.".to_string()
     }
@@ -378,7 +390,7 @@ mod tests {
 
     #[test]
     fn test_valid_frameassembly_is_not_foreign() {
-        let sample = "HOST client { IP 10.0.0.1 }\nFLOW ping(c, s) { c -> s ICMP }\nCOMPILE { ping(client, client) }\n";
+        let sample = "host client { ip 10.0.0.1 }\nflow ping(c, s) { c -> s icmp }\ncompile { ping(client, client) }\n";
         assert_eq!(detect_foreign_fasm(sample), None);
     }
 
@@ -387,7 +399,7 @@ mod tests {
         let sample = "; x86 assembly file\nformat PE\n";
         let help = lex_error_help(sample, (0, 1));
         assert!(help.contains("x86 Flat Assembler"));
-        assert!(help.contains("FrameAssembly files declare HOST { IP ... }, FLOW(...), and COMPILE { ... } blocks"));
+        assert!(help.contains("FrameAssembly files declare host { ip ... }, flow(...), and compile { ... } blocks"));
         assert!(help.contains("https://github.com/SteveWinschel/FrameAssembly"));
 
         let fpga_sample = "# FPGA bitstream\nCLBLL_L_X0Y0.ENABLE 1\n";
@@ -400,6 +412,30 @@ mod tests {
         let sample = "format PE GUI 4.0\nentry start\n";
         let help = parse_error_help("unexpected token", sample, (0, 6));
         assert!(help.contains("x86 Flat Assembler"));
+    }
+
+    #[test]
+    fn test_v2_self_healing_parse_error_help() {
+        let loop_src = "host a { ip 10.0.0.1 }\ncompile { loop 2 {} }\n";
+        let loop_help = parse_error_help("unexpected 'loop'", loop_src, (33, 4));
+        assert_eq!(
+            loop_help,
+            "The 'loop' block was removed in FrameAssembly 2.0; invoke flows or frame statements directly inside 'compile { ... }'."
+        );
+
+        let upper_src = "HOST a { ip 10.0.0.1 }\ncompile {}\n";
+        let upper_help = parse_error_help("unexpected 'HOST'", upper_src, (0, 4));
+        assert_eq!(
+            upper_help,
+            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'HOST' with 'host'."
+        );
+
+        let snake_src = "host a { ip 10.0.0.1 }\ncompile { a -> a icmp echo_request }\n";
+        let snake_help = parse_error_help("unexpected 'echo_request'", snake_src, (45, 12));
+        assert_eq!(
+            snake_help,
+            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'echo_request' with 'echorequest'."
+        );
     }
 }
 

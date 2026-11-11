@@ -1,6 +1,6 @@
-//! Cisco NetFlow v5 (`NETFLOW`) Layer 7 network flow telemetry PCAP-to-`.fasm` decompiler.
+//! Cisco NetFlow v5 (`netflow`) Layer 7 network flow telemetry PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for Cisco `NETFLOW` Version 5 export
+//! This module implements the fuzz-safe reverse dissector for Cisco `netflow` Version 5 export
 //! datagrams (24-byte header + 48-byte flow record) carried over UDP port `2055` or matching the
 //! deterministic FrameAssembly NetFlow v5 header signature. It extracts flow source and
 //! destination IPv4 addresses (`srcip`, `dstip`), inner IP protocol (`proto`), packet count
@@ -13,7 +13,7 @@ use crate::reverse::{ProtocolDissection, be_u16, be_u32, ipv4_at};
 
 use super::{append_flow_record_tokens, ok_dissect};
 
-/// Dissects a Cisco `NETFLOW` v5 telemetry datagram (24B header + 48B flow record).
+/// Dissects a Cisco `netflow` v5 telemetry datagram (24B header + 48B flow record).
 pub(crate) fn dissect_netflow(payload: &[u8], sp: u16, dp: u16) -> Option<ProtocolDissection> {
     if payload.len() < 72
         || be_u16(payload, 0) != 5

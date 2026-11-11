@@ -57,14 +57,14 @@ For the normative technical specification referenced by all submissions, see [`d
 
 * **Encoding considerations:**
   ```text
-  8bit (UTF-8 text; 7bit when comments and string literals contain only US-ASCII characters). Both LF (0x0A, canonical) and CRLF (0x0D 0x0A) line endings are permitted per RFC 6838 Section 4.8. Literal NUL bytes (0x00) are strictly prohibited; arbitrary binary packet payloads are represented in ASCII text using "\xHH" escape sequences in PAYLOAD strings or hexadecimal byte strings in HEXPAYLOAD fields.
+  8bit (UTF-8 text; 7bit when comments and string literals contain only US-ASCII characters). Both LF (0x0A, canonical) and CRLF (0x0D 0x0A) line endings are permitted per RFC 6838 Section 4.8. Literal NUL bytes (0x00) are strictly prohibited; arbitrary binary packet payloads are represented in ASCII text using "\xHH" escape sequences in payload strings or hexadecimal byte strings in hexpayload fields.
   ```
 
 * **Security considerations:**
   ```text
-  FrameAssembly (.fasm) files are purely declarative, non-executable UTF-8 source specifications that describe network endpoints (HOST), protocol packet sequences (FLOW), and capture compilation targets (COMPILE).
+  FrameAssembly (.fasm) files are purely declarative, non-executable UTF-8 source specifications that describe network endpoints (host), protocol packet sequences (flow), and capture compilation targets (compile).
 
-  1. No Active or Turing-Complete Execution: The language contains no executable macros, shell invocations, conditional branches, unbounded loops (LOOP requires a fixed positive integer count), file-inclusion directives, or network I/O primitives. Compiling an untrusted .fasm file does not open network sockets, perform DNS lookups, or read arbitrary local files.
+  1. No Active or Turing-Complete Execution: The language contains no executable macros, shell invocations, conditional branches, loops, file-inclusion directives, or network I/O primitives. Compiling an untrusted .fasm file does not open network sockets, perform DNS lookups, or read arbitrary local files.
   2. Unprivileged Offline Compilation: The reference compiler (frameassembly) runs entirely offline in unprivileged user space without root privileges (CAP_NET_RAW), kernel packet sockets, or libpcap dependencies, and performs strict lexical, syntactic, and semantic bounds checks before writing passive .pcap / .pcapng capture files.
   3. Downstream Capture Consumers: Because FrameAssembly is used to synthesize deterministic packet captures for testing firewalls, intrusion detection systems (Suricata, Zeek, Snort), and protocol dissectors (Wireshark, tshark), the resulting .pcap / .pcapng files may intentionally contain crafted protocol header values, IPv4 fragments, or IDS signature test payloads. Replaying generated .pcap files onto a live network requires explicit invocation of an external tool such as tcpreplay by an authorized administrator.
   4. Confidentiality & Integrity: .fasm files are unencrypted source code and provide no built-in transport encryption or digital signature container; when SNMPv3 USM (RFC 3414 / 3826 / 7860) test passphrases or network topologies are sensitive, standard transport security (TLS/SSH) and repository access controls should be applied.
@@ -76,7 +76,7 @@ For the normative technical specification referenced by all submissions, see [`d
   1. Flat Assembler (x86/x86-64 machine assembly), which uses ";" comments, "format PE/ELF", "section", "org", and x86 CPU mnemonics.
   2. SymbiFlow / F4PGA FPGA Assembly (FASM), which uses "#" comments and dot-separated hardware tile feature paths (e.g., "CLBLL_L_X10Y100.SLICEL_X0...").
 
-  FrameAssembly (text/vnd.frameassembly) documents are unambiguously distinguished by "//" single-line comments, top-level "HOST <id> { IP ... }", "FLOW <id>(...) { ... }", and "COMPILE { ... }" blocks, and directional packet operators ("->" and "<-") paired with OSI Layer 2 through Layer 7 protocol identifiers. Complete content-sniffing magic rules and regular expression heuristics are published in the specification and in the repository's Freedesktop shared-mime-info and GitHub Linguist definitions.
+  FrameAssembly (text/vnd.frameassembly) documents are unambiguously distinguished by "//" single-line comments, strict-lowercase top-level "host <id> { ip|mac ... }", "flow <id>(...) { ... }", and "compile { ... }" blocks, and directional packet operators ("->" and "<-") paired with OSI Layer 2 through Layer 7 protocol identifiers. Complete content-sniffing magic rules and regular expression heuristics are published in the specification and in the repository's Freedesktop shared-mime-info and GitHub Linguist definitions.
   ```
 
 * **Published specification:**
@@ -106,7 +106,7 @@ For the normative technical specification referenced by all submissions, see [`d
 
 * **Additional information:**
   - **Deprecated alias names for this type:** `N/A`
-  - **Magic number(s):** Top-level ASCII case-insensitive keywords `HOST`, `FLOW`, and `COMPILE` within the initial UTF-8 text stream; see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml).
+  - **Magic number(s):** Top-level strict-lowercase ASCII keywords `host`, `ip` / `mac`, `flow`, and `compile` within the initial UTF-8 text stream; see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml).
   - **File extension(s):** `.fasm`
   - **Macintosh file type code(s):** `TEXT`
   - **Uniform Type Identifier (UTI):** `io.github.stevewinschel.frameassembly` conforms to `public.plain-text` and `public.source-code`
@@ -261,20 +261,22 @@ Short Description (1-2 sentences):
 A .fasm file is a declarative network traffic specification written in the FrameAssembly Domain-Specific Language. It defines network hosts, directional packet flows, and compilation targets compiled into deterministic .pcap and .pcapng packet captures.
 
 Long Description:
-FrameAssembly (.fasm) is a declarative, human-readable language designed for network engineers, security researchers, and test engineers. Instead of writing complex Python scripts or using raw sockets, users declare network endpoints (HOST), protocol sequences (FLOW), and output schedules (COMPILE). The frameassembly compiler parses .fasm files offline in userspace and emits bit-exact .pcap or .pcapng captures across 81 native Layer 2 through Layer 7 protocols (including Ethernet, VLAN, QinQ, MPLS, IPv4, IPv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, DNS, DHCP, TLS, HTTP/2, Modbus, DNP3, and BGP).
+FrameAssembly (.fasm) is a human-readable language designed for network engineers, security researchers, and test engineers. Instead of writing complex Python scripts or using raw sockets, users declare network endpoints (host), protocol sequences (flow), and output schedules (compile). The FrameAssembly compiler (frameassembly) parses .fasm files offline in userspace and emits bit-exact .pcap or .pcapng captures across 81 native Layer 2 through Layer 7 protocols (including Ethernet, VLAN, QinQ, MPLS, IPv4, IPv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, DNS, DHCP, TLS, HTTP/2, Modbus, DNP3, and BGP).
 
 Format Disambiguation:
 The .fasm extension is also used historically by two unrelated formats:
 1. Flat Assembler (x86 assembly language source code, using ';' comments and x86 CPU mnemonics).
 2. SymbiFlow / F4PGA FPGA FASM (hardware tile bitstream configuration, using '#' comments and dot-separated hardware paths).
-FrameAssembly files are distinguished by '//' comments, 'HOST { IP ... }', 'FLOW(...) { ... }', 'COMPILE { ... }' blocks, and directional packet operators ('->' and '<-').
+FrameAssembly files are distinguished by '//' comments, 'host { ip|mac ... }', 'flow(...) { ... }', 'compile { ... }' blocks, and directional packet operators ('->' and '<-').
 
 How to Open / Compile:
 Install via cargo (cargo install frameassembly) or download the prebuilt binary.
 To preview packet sequences in the terminal:
 frameassembly show input.fasm
 To compile to a PCAP packet capture:
-frameassembly input.fasm -o output.pcap
+frameassembly input.fasm output.pcap
+To decompile a PCAP packet capture back to .fasm:
+frameassembly reverse output.pcap reversed.fasm
 ```
 
 ### 4.2 `FileInfo.com` Submission Template
@@ -291,12 +293,12 @@ Format: Text
 Category: Developer Files
 
 Description:
-A .fasm file is a declarative source specification created in FrameAssembly, a domain-specific language used by network engineers to synthesize deterministic network traffic packet captures (.pcap and .pcapng files). It contains declarations for network endpoints (HOST blocks specifying IP and MAC addresses), traffic sequences (FLOW blocks specifying directional packet transmissions across Layer 2 through Layer 7 protocols), and capture schedules (COMPILE blocks).
+A .fasm file is a source specification created in FrameAssembly, a language used by network engineers to synthesize deterministic network traffic packet captures (.pcap and .pcapng files). It contains declarations for network endpoints (host blocks specifying ip and mac addresses), traffic sequences (flow blocks specifying directional packet transmissions across Layer 2 through Layer 7 protocols), and capture schedules (compile blocks).
 
-Unlike binary packet captures, .fasm files are human-readable and can be version-controlled in Git. The frameassembly compiler processes .fasm files offline without root privileges, generating packet captures for analysis in Wireshark, tcpreplay, Suricata, and Zeek.
+Unlike binary packet captures, .fasm files are human-readable code and can be version-controlled in Git. The FrameAssembly compiler (frameassembly) processes .fasm files offline without root privileges, generating packet captures for analysis in Wireshark, tcpreplay, Suricata, and Zeek.
 
 Disambiguation:
-The .fasm file extension is also used by Flat Assembler (an x86 assembly tool) and SymbiFlow FPGA FASM (FPGA bitstream tooling). FrameAssembly files are distinct in that they exclusively use '//' comments, 'HOST', 'FLOW', and 'COMPILE' blocks, and directional arrows ('->' and '<-').
+The .fasm file extension is also used by Flat Assembler (an x86 assembly tool) and SymbiFlow FPGA FASM (FPGA bitstream tooling). FrameAssembly files are distinct in that they exclusively use '//' comments, strict-lowercase 'host', 'flow', and 'compile' blocks, and directional arrows ('->' and '<-').
 
 Programs that open .fasm files:
 - Windows: FrameAssembly (CLI), Microsoft Visual Studio Code with FrameAssembly extension
@@ -317,10 +319,10 @@ Developer: Steve Winschel / FrameAssembly
 File Category: Source Code / Network Data
 
 Overview:
-FrameAssembly specification (.fasm) is a declarative source code file used to generate deterministic .pcap and .pcapng network packet captures across 81 protocols (Ethernet, IPv4/IPv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, TLS, HTTP/2, Modbus, DNP3, etc.).
+FrameAssembly specification (.fasm) is a source code file used to generate deterministic .pcap and .pcapng network packet captures across 81 protocols (Ethernet, IPv4/IPv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, TLS, HTTP/2, Modbus, DNP3, etc.).
 
 Distinction from other .fasm files:
-- FrameAssembly: Uses '//' comments, 'HOST { IP ... }', 'FLOW(...) { ... }', 'COMPILE { ... }' keywords.
+- FrameAssembly: Uses '//' comments, 'host { ip|mac ... }', 'flow(...) { ... }', 'compile { ... }' keywords.
 - Flat Assembler: Uses ';' comments, 'format PE/ELF', and x86 CPU opcodes.
 - FPGA FASM: Uses '#' comments and dot-separated hardware tile strings.
 
@@ -338,7 +340,7 @@ FrameAssembly CLI (https://github.com/SteveWinschel/FrameAssembly)
 ```text
 Format Name: FrameAssembly Network Packet Specification
 Acronym: FASM
-Version: 1.5.1
+Version: 2.0.0
 Format Type: Text (Source Code) / Network Data Specification
 Disclosure: Full (Open Source, MIT License, RFC 6838 Vendor Tree Candidate)
 Developer / Organisation: Steve Winschel (steve.winschel@gmail.com) / FrameAssembly Project
@@ -352,12 +354,12 @@ Line Termination: LF (canonical) or CRLF
 
 Internal Byte Signatures:
 Signature 1 (Beginning of file, offset 0:1024):
-  Hex: 484F535420 (ASCII "HOST ")
-  Subsequence 1 (offset 0:1536): 495020 (ASCII "IP ")
-  Subsequence 2 (offset 0:8192): 434F4D50494C45 (ASCII "COMPILE")
+  Hex: 686F737420 (ASCII "host ")
+  Subsequence 1 (offset 0:1536): 697020 (ASCII "ip ") or 6D616320 (ASCII "mac ")
+  Subsequence 2 (offset 0:8192): 636F6D70696C65 (ASCII "compile")
 Signature 2 (Beginning of file, offset 0:2048):
-  Hex: 464C4F5720 (ASCII "FLOW ")
-  Subsequence 1 (offset 0:8192): 434F4D50494C45 (ASCII "COMPILE")
+  Hex: 666C6F7720 (ASCII "flow ")
+  Subsequence 1 (offset 0:8192): 636F6D70696C65 (ASCII "compile")
 
 Format Purpose:
 Declarative DSL allowing network engineers and archivists to define reproducible, deterministic network packet captures. Files are compiled offline into standard PCAP / PCAPNG files without requiring live network interfaces.
@@ -421,19 +423,19 @@ This checklist outlines the exact sequence of manual submission steps required b
 ## 6. Canonical `.fasm` Media Type Verification Sample
 
 ```frameassembly
-HOST branch_gw { IP 10.20.0.1 MAC 00:1a:2b:3c:4d:01 }
-HOST core_peer { IP 10.20.0.2 MAC 00:1a:2b:3c:4d:02 }
+host branch_gw { ip 10.20.0.1 mac 00:1a:2b:3c:4d:01 }
+host core_peer { ip 10.20.0.2 mac 00:1a:2b:3c:4d:02 }
 
-FLOW bgp_and_bfd_check(a, b) {
-    a -> b BFD STATE 3 DIAG 0 MY_DISC 101 YOUR_DISC 202 MIN_TX 50000 MIN_RX 50000 MULT 3 WAIT 1ms
-    a -> b TCP SYN SRCPORT 52179 DSTPORT 179 WIN 65535 MSS 1460 WAIT 1ms
-    a <- b TCP SYN ACK WIN 65535 MSS 1460 WAIT 1ms
-    a -> b TCP ACK WAIT 1ms
-    a -> b BGP OPEN ASN 65001 HOLDTIME 90 BGPID 10.20.0.1 WAIT 2ms
-    a <- b BGP KEEPALIVE WAIT 2ms
+flow bgp_and_bfd_check(a, b) {
+    a -> b bfd state 3 diag 0 mydisc 101 yourdisc 202 mintx 50000 minrx 50000 mult 3 wait 1ms
+    a -> b tcp syn srcport 52179 dstport 179 win 65535 mss 1460 wait 1ms
+    a <- b tcp syn ack win 65535 mss 1460 wait 1ms
+    a -> b tcp ack wait 1ms
+    a -> b bgp open asn 65001 holdtime 90 bgpid 10.20.0.1 wait 2ms
+    a <- b bgp keepalive wait 2ms
 }
 
-COMPILE {
+compile {
     bgp_and_bfd_check(branch_gw, core_peer)
 }
 ```

@@ -1,25 +1,25 @@
 // PROMPT: Simulate a wholesale L2TP LNS authenticating a bitstream subscriber over QinQ 600/181.
-// TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, ID, USER, NAS_IP, SERVICE_TYPE, QINQ, INNER_VLAN, WAIT, ACCESS_ACCEPT, FRAMED_IP, COMPILE
+// TOKENS: host, ip, mac, flow, radius, accessrequest, id, user, nasip, servicetype, qinq, innervlan, wait, ms, accessaccept, framedip, compile
 
 // INSTRUCTION: Define the Network Access Server (NAS) client initiating RADIUS requests.
-HOST radius_nas {
-    IP 172.26.18.5
-    MAC 00:1b:21:18:12:05
+host radius_nas {
+    ip 172.26.18.5
+    mac 00:1b:21:18:12:05
 }
 
 // INSTRUCTION: Define the central RADIUS authentication and accounting server.
-HOST radius_server {
-    IP 172.26.18.50
-    MAC 00:1b:21:18:12:64
+host radius_server {
+    ip 172.26.18.50
+    mac 00:1b:21:18:12:64
 }
 
 // INSTRUCTION: Execute the RFC 2865 / RFC 2866 RADIUS transaction flow.
-FLOW radius_scenario_flow(nas, srv) {
-    nas -> srv RADIUS ACCESS_REQUEST ID 108 USER "dsl_line_4410@partner-isp.co.uk" NAS_IP 172.26.18.5 SERVICE_TYPE 2 QINQ 600 INNER_VLAN 181 WAIT 5ms
-    nas <- srv RADIUS ACCESS_ACCEPT ID 108 USER "dsl_line_4410@partner-isp.co.uk" NAS_IP 172.26.18.5 SERVICE_TYPE 2 FRAMED_IP 198.51.100.144 QINQ 600 INNER_VLAN 181
+flow radius_scenario_flow(nas, srv) {
+    nas -> srv radius accessrequest id 108 user "dsl_line_4410@partner-isp.co.uk" nasip 172.26.18.5 servicetype 2 qinq 600 innervlan 181 wait 5ms
+    nas <- srv radius accessaccept id 108 user "dsl_line_4410@partner-isp.co.uk" nasip 172.26.18.5 servicetype 2 framedip 198.51.100.144 qinq 600 innervlan 181
 }
 
 // INSTRUCTION: Compile the RADIUS AAA exchange into a PCAP trace.
-COMPILE {
+compile {
     radius_scenario_flow(radius_nas, radius_server)
 }

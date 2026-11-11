@@ -1,25 +1,25 @@
 // PROMPT: RFC 5880 BFD signaling Diagnostic Code 8 (Reverse Concatenated Path Down) on a bidirectional transport LSP.
-// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, MPLS, EXP, BOS, MPLS_TTL, DSCP, TTL, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, mpls, exp, bos, mplsttl, dscp, ttl, wait, ms, compile
 
 // INSTRUCTION: Define MPLS-TP egress LSR detecting reverse path defect.
-HOST mpls_tp_egress {
-    IP 10.58.80.10
-    MAC 00:19:aa:58:80:0a
+host mpls_tp_egress {
+    ip 10.58.80.10
+    mac 00:19:aa:58:80:0a
 }
 
 // INSTRUCTION: Define MPLS-TP ingress LSR receiving DIAG 8 reverse path alarm.
-HOST mpls_tp_ingress {
-    IP 10.58.80.20
-    MAC 00:19:aa:58:80:14
+host mpls_tp_ingress {
+    ip 10.58.80.20
+    mac 00:19:aa:58:80:14
 }
 
 // INSTRUCTION: Define BFD transition to DIAG 8 (Reverse Concatenated Path Down) over MPLS label 18080.
-FLOW bfd_reverse_concat_diag8(egr, ing) {
-    egr -> ing BFD STATE 3 DIAG 8 MY_DISC 58801 YOUR_DISC 58802 MIN_TX 10000 MIN_RX 10000 MULT 3 MPLS 18080 EXP 6 BOS 1 MPLS_TTL 255 DSCP 48 TTL 255 WAIT 10ms
-    egr <- ing BFD STATE 3 DIAG 0 MY_DISC 58802 YOUR_DISC 58801 MIN_TX 10000 MIN_RX 10000 MULT 3 MPLS 18081 EXP 6 BOS 1 MPLS_TTL 255 DSCP 48 TTL 255
+flow bfd_reverse_concat_diag8(egr, ing) {
+    egr -> ing bfd state 3 diag 8 mydisc 58801 yourdisc 58802 mintx 10000 minrx 10000 mult 3 mpls 18080 exp 6 bos 1 mplsttl 255 dscp 48 ttl 255 wait 10ms
+    egr <- ing bfd state 3 diag 0 mydisc 58802 yourdisc 58801 mintx 10000 minrx 10000 mult 3 mpls 18081 exp 6 bos 1 mplsttl 255 dscp 48 ttl 255
 }
 
 // INSTRUCTION: Compile the BFD Reverse Concatenated Path Down (DIAG 8) flow.
-COMPILE {
+compile {
     bfd_reverse_concat_diag8(mpls_tp_egress, mpls_tp_ingress)
 }

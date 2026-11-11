@@ -6,24 +6,24 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b NETFLOW [SRCIP <ip>] [DSTIP <ip>] [SRCPORT <u16>] [DSTPORT <u16>] [PROTO <u8>] [PACKETS <u32>] [OCTETS <u32>]`
+//! `a -> b netflow [srcip <ip>] [dstip <ip>] [srcport <u16>] [dstport <u16>] [proto <u8>] [packets <u32>] [octets <u32>]`
 
 use core::marker::PhantomData;
 use core::net::IpAddr;
 /// Cisco NetFlow v5/v9 telemetry export specification.
 ///
-/// Syntax mapping: `NETFLOW [SRCIP <ip>] [DSTIP <ip>] [SRCPORT <u16>] [DSTPORT <u16>] [PROTO <u8>] [PACKETS <u32>] [OCTETS <u32>]`
-#[doc(alias = "NETFLOW")]
+/// Syntax mapping: `netflow [srcip <ip>] [dstip <ip>] [srcport <u16>] [dstport <u16>] [proto <u8>] [packets <u32>] [octets <u32>]`
+#[doc(alias = "netflow")]
 #[doc(alias = "RFC 3954")]
 #[doc(alias = "RFC3954")]
 #[doc(alias = "NETFLOWV5")]
-#[doc(alias = "SRCIP")]
-#[doc(alias = "DSTIP")]
-#[doc(alias = "SRCPORT")]
-#[doc(alias = "DSTPORT")]
-#[doc(alias = "PROTO")]
-#[doc(alias = "PACKETS")]
-#[doc(alias = "OCTETS")]
+#[doc(alias = "srcip")]
+#[doc(alias = "dstip")]
+#[doc(alias = "srcport")]
+#[doc(alias = "dstport")]
+#[doc(alias = "proto")]
+#[doc(alias = "packets")]
+#[doc(alias = "octets")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct NetflowSpec<'a> {
     /// Source IP address in flow record.

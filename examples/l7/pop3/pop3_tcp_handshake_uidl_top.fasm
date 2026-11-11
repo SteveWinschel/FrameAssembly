@@ -1,25 +1,25 @@
 // PROMPT: Complete TCP 3-way handshake followed by POP3 UIDL and TOP message header preview.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, DSTPORT, ACK, WAIT, POP3, OK, CMD, ARG, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, tcp, syn, dstport, ack, wait, ms, pop3, ok, cmd, arg, payload, compile
 
 // INSTRUCTION: Define desktop email client.
-HOST mua_client { IP 172.16.12.55 MAC 00:24:e8:12:00:37 }
+host mua_client { ip 172.16.12.55 mac 00:24:e8:12:00:37 }
 
 // INSTRUCTION: Define POP3 mailbox server.
-HOST pop_store { IP 172.16.12.10 MAC 00:24:e8:12:00:0a }
+host pop_store { ip 172.16.12.10 mac 00:24:e8:12:00:0a }
 
 // INSTRUCTION: Define TCP handshake on port 110 and POP3 UIDL + TOP commands.
-FLOW pop3_uidl_top(c, s) {
-    c -> s TCP SYN DSTPORT 110
-    c <- s TCP SYN ACK
-    c -> s TCP ACK WAIT 2ms
-    c <- s POP3 OK WAIT 5ms
-    c -> s POP3 CMD "UIDL" ARG "1" WAIT 5ms
-    c <- s POP3 OK WAIT 5ms
-    c -> s POP3 CMD "TOP" ARG "1 10" WAIT 5ms
-    c <- s POP3 OK PAYLOAD "Subject: Invoice #402\r\nFrom: billing@corp.net\r\n.\r\n"
+flow pop3_uidl_top(c, s) {
+    c -> s tcp syn dstport 110
+    c <- s tcp syn ack
+    c -> s tcp ack wait 2ms
+    c <- s pop3 ok wait 5ms
+    c -> s pop3 cmd "UIDL" arg "1" wait 5ms
+    c <- s pop3 ok wait 5ms
+    c -> s pop3 cmd "TOP" arg "1 10" wait 5ms
+    c <- s pop3 ok payload "Subject: Invoice #402\r\nFrom: billing@corp.net\r\n.\r\n"
 }
 
 // INSTRUCTION: Compile TCP + POP3 UIDL and TOP flow.
-COMPILE {
+compile {
     pop3_uidl_top(mua_client, pop_store)
 }

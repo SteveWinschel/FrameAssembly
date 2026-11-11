@@ -1,19 +1,19 @@
 // PROMPT: Single-hop IPv6 link-local BFD session enforcing RFC 5082 GTSM Hop Limit 255.
-// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, TTL, DSCP, FLOWLABEL, COMPILE
+// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, ttl, dscp, flowlabel, compile
 
 // INSTRUCTION: Define IPv6 link-local neighbor A.
-HOST ll_bfd_peer_a { IP fe80::10:1 MAC 52:54:00:bf:d0:01 }
+host ll_bfd_peer_a { ip fe80::10:1 mac 52:54:00:bf:d0:01 }
 
 // INSTRUCTION: Define IPv6 link-local neighbor B.
-HOST ll_bfd_peer_b { IP fe80::10:2 MAC 52:54:00:bf:d0:02 }
+host ll_bfd_peer_b { ip fe80::10:2 mac 52:54:00:bf:d0:02 }
 
 // INSTRUCTION: Define IPv6 link-local BFD exchange with Hop Limit 255 and DSCP 48.
-FLOW bfd_ipv6_link_local(a, b) {
-    a -> b BFD STATE 3 DIAG 0 MY_DISC 33001 YOUR_DISC 33002 MIN_TX 50000 MIN_RX 50000 MULT 3 TTL 255 DSCP 48 FLOWLABEL 99001
-    a <- b BFD STATE 3 DIAG 0 MY_DISC 33002 YOUR_DISC 33001 MIN_TX 50000 MIN_RX 50000 MULT 3 TTL 255 DSCP 48 FLOWLABEL 99002
+flow bfd_ipv6_link_local(a, b) {
+    a -> b bfd state 3 diag 0 mydisc 33001 yourdisc 33002 mintx 50000 minrx 50000 mult 3 ttl 255 dscp 48 flowlabel 99001
+    a <- b bfd state 3 diag 0 mydisc 33002 yourdisc 33001 mintx 50000 minrx 50000 mult 3 ttl 255 dscp 48 flowlabel 99002
 }
 
 // INSTRUCTION: Compile the IPv6 link-local GTSM BFD flow.
-COMPILE {
+compile {
     bfd_ipv6_link_local(ll_bfd_peer_a, ll_bfd_peer_b)
 }

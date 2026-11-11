@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b HTTP [METHOD <str>] [URI <str>] [VERSION <str>] [HOST_HDR <str>] [USER_AGENT <str>] [CONTENT_TYPE <str>] [STATUS <u16>] [REASON <str>] [HEADER <key> <val>] [BODY <str>]`
+//! `a -> b http [method <str>] [uri <str>] [version <str>] [hosthdr <str>] [useragent <str>] [contenttype <str>] [status <u16>] [reason <str>] [header <key> <val>] [body <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 9110 HTTP/1.1 request or response payload.
-/// Syntax mapping: `HTTP [METHOD <str>] [URI <str>] [VERSION <str>] [HOST_HDR <str>] [USER_AGENT <str>] [CONTENT_TYPE <str>] [STATUS <u16>] [REASON <str>] [HEADER <key> <val>] [BODY <str>]`
+/// Syntax mapping: `http [method <str>] [uri <str>] [version <str>] [hosthdr <str>] [useragent <str>] [contenttype <str>] [status <u16>] [reason <str>] [header <key> <val>] [body <str>]`
 #[doc(alias = "HTTP")]
 #[doc(alias = "HTTP11")]
 #[doc(alias = "RFC9110")]

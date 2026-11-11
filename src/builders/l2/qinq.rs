@@ -7,7 +7,7 @@
 //! or `0x88B5` for MAC-only Layer 2 hosts) and payload bytes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b QINQ <outer_vid> [INNER_VLAN <inner_vid>] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
+//! `a -> b qinq <outer_vid> [innervlan <inner_vid>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

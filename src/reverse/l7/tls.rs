@@ -1,11 +1,11 @@
-//! Transport Layer Security (`TLS`, RFC 8446 / RFC 5246) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Transport Layer Security (`tls`, RFC 8446 / RFC 5246) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for unencrypted outer RFC 8446 (TLS 1.3)
-//! and RFC 5246 (TLS 1.2) record and handshake messages (`client_hello`, `server_hello`,
-//! `certificate`, `finished`, `alert`, `app_data`). It decodes `record_version`,
-//! `handshake_version`, cipher suites (`ciphersuite`), Server Name Indication (`sni` extension
+//! and RFC 5246 (TLS 1.2) record and handshake messages (`clienthello`, `serverhello`,
+//! `certificate`, `finished`, `alert`, `appdata`). It decodes `recordversion`,
+//! `handshakeversion`, cipher suites (`ciphersuite`), Server Name Indication (`sni` extension
 //! `0x0000`), and Application-Layer Protocol Negotiation (`alpn` extension `0x0010`). It never
-//! attempts cryptographic decryption: opaque `app_data` or `alert` bodies are preserved via
+//! attempts cryptographic decryption: opaque `appdata` or `alert` bodies are preserved via
 //! residual payload, and unsupported or encrypted multi-record segments return `None` to step down
 //! cleanly to `tcp` with `payload` or `hexpayload`.
 
@@ -41,10 +41,10 @@ pub(crate) fn dissect_tls(payload: &[u8]) -> Option<ProtocolDissection> {
         let mut tokens = String::from(if content_type == 21 {
             "tls alert"
         } else {
-            "tls app_data"
+            "tls appdata"
         });
         if rec_version != 0x0303 {
-            let _ = write!(tokens, " record_version 0x{rec_version:04x}");
+            let _ = write!(tokens, " recordversion 0x{rec_version:04x}");
         }
         let is_default_body = (content_type == 21 && body == [2, 40])
             || (content_type == 23 && body == b"\x00\x01\x02\x03\x04\x05\x06\x07");
@@ -81,7 +81,7 @@ pub(crate) fn dissect_tls(payload: &[u8]) -> Option<ProtocolDissection> {
                 " finished"
             });
             if rec_version != 0x0303 {
-                let _ = write!(tokens, " record_version 0x{rec_version:04x}");
+                let _ = write!(tokens, " recordversion 0x{rec_version:04x}");
             }
             let is_default = (hs_type == 11 && hs_body == [0x00, 0x00, 0x00])
                 || (hs_type == 20 && hs_body == [0xdd; 32]);
@@ -91,19 +91,19 @@ pub(crate) fn dissect_tls(payload: &[u8]) -> Option<ProtocolDissection> {
         }
         1 | 2 => {
             tokens.push_str(if hs_type == 1 {
-                " client_hello"
+                " clienthello"
             } else {
-                " server_hello"
+                " serverhello"
             });
             if rec_version != 0x0303 {
-                let _ = write!(tokens, " record_version 0x{rec_version:04x}");
+                let _ = write!(tokens, " recordversion 0x{rec_version:04x}");
             }
             if hs_body.len() < 35 {
                 return None;
             }
             let hs_version = checked_be_u16(hs_body, 0)?;
             if hs_version != rec_version {
-                let _ = write!(tokens, " handshake_version 0x{hs_version:04x}");
+                let _ = write!(tokens, " handshakeversion 0x{hs_version:04x}");
             }
 
             let mut pos = 35usize.checked_add(hs_body[34] as usize)?;

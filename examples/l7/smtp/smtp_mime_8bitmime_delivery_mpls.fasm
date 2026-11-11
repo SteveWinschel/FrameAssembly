@@ -1,39 +1,39 @@
 // PROMPT: Simulate an SMTP multipart MIME email delivery carrying an HTML body over MPLS label 2025.
-// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, MPLS, ACK, SMTP, CODE, REPLY, EHLO, MAIL_FROM, PARAM, RCPT_TO, CMD, BODY, QUIT, COMPILE
+// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, mpls, ack, smtp, code, reply, ehlo, mailfrom, param, rcptto, cmd, body, quit, compile
 
 // INSTRUCTION: Define the marketing mailer and WAN SMTP relay over MPLS 2025.
-HOST mailer_app {
-    MAC 00:50:56:70:25:10
-    IP 10.125.1.10
+host mailer_app {
+    mac 00:50:56:70:25:10
+    ip 10.125.1.10
 }
 
 // INSTRUCTION: Define the wan_relay mail endpoint.
-HOST wan_relay {
-    MAC 00:50:56:70:25:01
-    IP 10.125.2.1
+host wan_relay {
+    mac 00:50:56:70:25:01
+    ip 10.125.2.1
 }
 
 // INSTRUCTION: Deliver a MIME-formatted message body over MPLS label 2025.
-FLOW smtp_mime_multipart_flow(mailer_app, wan_relay) {
-    mailer_app -> wan_relay TCP SYN SRCPORT 60025 DSTPORT 25 MPLS 2025
-    wan_relay -> mailer_app TCP SYN ACK MPLS 2025
-    mailer_app -> wan_relay TCP ACK MPLS 2025
-    wan_relay -> mailer_app SMTP CODE 220 REPLY "wan-mx.corp.local ESMTP" MPLS 2025
-    mailer_app -> wan_relay SMTP EHLO "mailer.corp.local" MPLS 2025
-    wan_relay -> mailer_app SMTP CODE 250 REPLY "8BITMIME" MPLS 2025
-    mailer_app -> wan_relay SMTP MAIL_FROM PARAM "<digest@corp.local> BODY=8BITMIME" MPLS 2025
-    wan_relay -> mailer_app SMTP CODE 250 REPLY "2.1.0 Ok" MPLS 2025
-    mailer_app -> wan_relay SMTP RCPT_TO PARAM "<team@corp.local>" MPLS 2025
-    wan_relay -> mailer_app SMTP CODE 250 REPLY "2.1.5 Ok" MPLS 2025
-    mailer_app -> wan_relay SMTP CMD "DATA" MPLS 2025
-    wan_relay -> mailer_app SMTP CODE 354 REPLY "Start mail input" MPLS 2025
-    mailer_app -> wan_relay SMTP BODY "MIME-Version: 1.0\r\nContent-Type: text/html\r\n\r\n<h1>Weekly Digest</h1>\r\n." MPLS 2025
-    wan_relay -> mailer_app SMTP CODE 250 REPLY "2.0.0 Queued" MPLS 2025
-    mailer_app -> wan_relay SMTP QUIT MPLS 2025
-    wan_relay -> mailer_app SMTP CODE 221 REPLY "2.0.0 Bye" MPLS 2025
+flow smtp_mime_multipart_flow(mailer_app, wan_relay) {
+    mailer_app -> wan_relay tcp syn srcport 60025 dstport 25 mpls 2025
+    wan_relay -> mailer_app tcp syn ack mpls 2025
+    mailer_app -> wan_relay tcp ack mpls 2025
+    wan_relay -> mailer_app smtp code 220 reply "wan-mx.corp.local ESMTP" mpls 2025
+    mailer_app -> wan_relay smtp ehlo "mailer.corp.local" mpls 2025
+    wan_relay -> mailer_app smtp code 250 reply "8BITMIME" mpls 2025
+    mailer_app -> wan_relay smtp mailfrom param "<digest@corp.local> BODY=8BITMIME" mpls 2025
+    wan_relay -> mailer_app smtp code 250 reply "2.1.0 Ok" mpls 2025
+    mailer_app -> wan_relay smtp rcptto param "<team@corp.local>" mpls 2025
+    wan_relay -> mailer_app smtp code 250 reply "2.1.5 Ok" mpls 2025
+    mailer_app -> wan_relay smtp cmd "DATA" mpls 2025
+    wan_relay -> mailer_app smtp code 354 reply "Start mail input" mpls 2025
+    mailer_app -> wan_relay smtp body "MIME-Version: 1.0\r\nContent-Type: text/html\r\n\r\n<h1>Weekly Digest</h1>\r\n." mpls 2025
+    wan_relay -> mailer_app smtp code 250 reply "2.0.0 Queued" mpls 2025
+    mailer_app -> wan_relay smtp quit mpls 2025
+    wan_relay -> mailer_app smtp code 221 reply "2.0.0 Bye" mpls 2025
 }
 
 // INSTRUCTION: Compile the SMTP MIME delivery over MPLS flow.
-COMPILE {
+compile {
     smtp_mime_multipart_flow(mailer_app, wan_relay)
 }

@@ -1,28 +1,28 @@
 // PROMPT: Simulate a TACACS+ authorization session assigning a BGP VRF and read-only role over QinQ (S-VLAN 700, C-VLAN 49).
-// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, QINQ, INNER_VLAN, ACK, TACACS, AUTHOR, SESSION_ID, USER, PAYLOAD, COMPILE
+// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, qinq, innervlan, ack, tacacs, author, sessionid, user, payload, compile
 
 // INSTRUCTION: Define host endpoint metro_rtr.
-HOST metro_rtr {
-    MAC 00:26:b9:49:70:01
-    IP 10.79.49.10
+host metro_rtr {
+    mac 00:26:b9:49:70:01
+    ip 10.79.49.10
 }
 
 // INSTRUCTION: Define host endpoint metro_aaa.
-HOST metro_aaa {
-    MAC 00:26:b9:49:70:02
-    IP 10.79.49.1
+host metro_aaa {
+    mac 00:26:b9:49:70:02
+    ip 10.79.49.1
 }
 
 // INSTRUCTION: Request VRF shell authorization over QinQ 700/49 and receive AV-pair attributes.
-FLOW tacacs_qinq_vrf_authorization(metro_rtr, metro_aaa) {
-    metro_rtr -> metro_aaa TCP SYN SRCPORT 63049 DSTPORT 49 QINQ 700 INNER_VLAN 49
-    metro_aaa -> metro_rtr TCP SYN ACK QINQ 700 INNER_VLAN 49
-    metro_rtr -> metro_aaa TCP ACK QINQ 700 INNER_VLAN 49
-    metro_rtr -> metro_aaa TACACS AUTHOR SESSION_ID 44800 USER "peering_ops" PAYLOAD "service=shell:cmd=*" QINQ 700 INNER_VLAN 49
-    metro_aaa -> metro_rtr TACACS AUTHOR SESSION_ID 44800 PAYLOAD "AUTHOR_STATUS_PASS_ADD:priv-lvl=7:vrf=PEERING-VRF" QINQ 700 INNER_VLAN 49
+flow tacacs_qinq_vrf_authorization(metro_rtr, metro_aaa) {
+    metro_rtr -> metro_aaa tcp syn srcport 63049 dstport 49 qinq 700 innervlan 49
+    metro_aaa -> metro_rtr tcp syn ack qinq 700 innervlan 49
+    metro_rtr -> metro_aaa tcp ack qinq 700 innervlan 49
+    metro_rtr -> metro_aaa tacacs author sessionid 44800 user "peering_ops" payload "service=shell:cmd=*" qinq 700 innervlan 49
+    metro_aaa -> metro_rtr tacacs author sessionid 44800 payload "AUTHOR_STATUS_PASS_ADD:priv-lvl=7:vrf=PEERING-VRF" qinq 700 innervlan 49
 }
 
 // INSTRUCTION: Compile the QinQ TACACS+ VRF authorization flow.
-COMPILE {
+compile {
     tacacs_qinq_vrf_authorization(metro_rtr, metro_aaa)
 }

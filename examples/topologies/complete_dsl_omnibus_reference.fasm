@@ -1,64 +1,63 @@
 // PROMPT: Omnibus reference script exercising 100% of all FrameAssembly DSL lexical tokens, protocols, TCP flags, SNMP versions, PDU types, and USM auth/priv algorithms.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, ECE, CWR, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, PAYLOAD, WAIT, ACK, PSH, URG, FIN, RST, UDP, SNMP1, TRAP, COMMUNITY, OID, ENTERPRISE, AGENTIP, COMPILE
+// TOKENS: host, ip, mac, flow, tcp, syn, ece, cwr, srcport, dstport, seq, acknum, win, payload, wait, ms, ack, s, psh, urg, fin, rst, m, udp, snmp1, trap, community, oid, enterprise, agentip, compile
 
 // INSTRUCTION: Define omnibus host alpha with IP 10.254.0.1 and MAC 00:11:22:33:44:01.
-HOST omni_alpha { IP 10.254.0.1 MAC 00:11:22:33:44:01 }
+host omni_alpha { ip 10.254.0.1 mac 00:11:22:33:44:01 }
 
 // INSTRUCTION: Define omnibus host beta with IP 10.254.0.2 and default MAC.
-HOST omni_beta { IP 10.254.0.2 }
+host omni_beta { ip 10.254.0.2 }
 
 // INSTRUCTION: Define a flow exercising TCP with all 8 flags, explicit SEQ/ACKNUM/WIN/PORTS, PAYLOAD, and WAIT suffixes ms, s, and m.
-FLOW omnibus_tcp_udp(a, b) {
-    a -> b TCP SYN ECE CWR SRCPORT 50000 DSTPORT 443 SEQ 1000 ACKNUM 0 WIN 65535 PAYLOAD "SYN_INIT"
-        WAIT 5ms
-    a <- b TCP SYN ACK ECE SRCPORT 443 DSTPORT 50000 SEQ 2000 ACKNUM 1009 WIN 32768 PAYLOAD "SYN_ACK"
-        WAIT 1s
-    a -> b TCP PSH URG ACK FIN RST SRCPORT 50000 DSTPORT 443 SEQ 1009 ACKNUM 2008 WIN 16384 PAYLOAD "OMNI_TCP"
-        WAIT 1m
-    a -> b UDP SRCPORT 53000 DSTPORT 53 PAYLOAD "OMNI_UDP_QUERY" WAIT 10ms
-    a <- b UDP SRCPORT 53 DSTPORT 53000 PAYLOAD "OMNI_UDP_REPLY" WAIT 10ms
+flow omnibus_tcp_udp(a, b) {
+    a -> b tcp syn ece cwr srcport 50000 dstport 443 seq 1000 acknum 0 win 65535 payload "SYN_INIT"
+        wait 5ms
+    a <- b tcp syn ack ece srcport 443 dstport 50000 seq 2000 acknum 1009 win 32768 payload "SYN_ACK"
+        wait 1s
+    a -> b tcp psh urg ack fin rst srcport 50000 dstport 443 seq 1009 acknum 2008 win 16384 payload "OMNI_TCP"
+        wait 1m
+    a -> b udp srcport 53000 dstport 53 payload "OMNI_UDP_QUERY" wait 10ms
+    a <- b udp srcport 53 dstport 53000 payload "OMNI_UDP_REPLY" wait 10ms
 }
 
 // INSTRUCTION: Define a flow exercising SNMP1, SNMP2, and SNMP3 across all 7 PDU types, all 9 VarBind types, and all 5 AUTH and 2 PRIV algorithms.
-FLOW omnibus_snmp(agent, nms) {
-    agent -> nms SNMP1 TRAP COMMUNITY "public" OID 1.3.6.1.4.1.8072
-        ENTERPRISE 1.3.6.1.4.1.8072 AGENTIP 10.254.0.1 GENTRAP 6 SPECTRAP 1
-        SYSUPTIME 100
-        VARBIND 1.3.6.1.2.1.1.5.0 STRING "omni"
-        VARBIND 1.3.6.1.2.1.2.1.0 INT -5
-    agent -> nms SNMP2 GET COMMUNITY "public" REQID 101
-        VARBIND 1.3.6.1.2.1.1.1.0 NULLVAL
-    agent <- nms SNMP2 RESPONSE COMMUNITY "public" REQID 101
-        VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 500
-        VARBIND 1.3.6.1.2.1.4.20.1.1.10.254.0.1 IPVAL 10.254.0.1
-        VARBIND 1.3.6.1.2.1.1.2.0 OIDVAL 1.3.6.1.4.1.8072
-    agent -> nms SNMP2 GETNEXT COMMUNITY "public" REQID 102
-        VARBIND 1.3.6.1.2.1.1 NULLVAL
-    agent -> nms SNMP2 GETBULK COMMUNITY "public" REQID 103 NONREPEATERS 1
-        MAXREPETITIONS 5
-        VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 100
-        VARBIND 1.3.6.1.2.1.2.2.1.5.1 GAUGE32 1000
-        VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 999999999
-    agent -> nms SNMP2 SET COMMUNITY "private" REQID 104
-        VARBIND 1.3.6.1.2.1.1.5.0 STRING "set-omni"
-    agent -> nms SNMP2 INFORM COMMUNITY "public" REQID 105 OID "1.3.6.1.6.3.1.1.5.3"
-        SYSUPTIME 200
-    agent -> nms SNMP3 TRAP USER "u1" ENGINEID "8000000001" ENGINEBOOTS 1 ENGINETIME 10 CONTEXTNAME "ctx"
-        AUTH MD5 "pass_md5_123" PRIV DES "priv_des_123" OID 1.3.6.1.6.3.1.1.5.1
-    agent -> nms SNMP3 TRAP USER "u2" ENGINEID "8000000002" ENGINEBOOTS 1 ENGINETIME 20
-        AUTH SHA "pass_sha_123" PRIV AES "priv_aes_123" OID 1.3.6.1.6.3.1.1.5.2
-    agent -> nms SNMP3 TRAP USER "u3" ENGINEID "8000000003" ENGINEBOOTS 1 ENGINETIME 30
-        AUTH SHA256 "pass_256_123" PRIV AES "priv_aes_123" OID 1.3.6.1.6.3.1.1.5.3
-    agent -> nms SNMP3 TRAP USER "u4" ENGINEID "8000000004" ENGINEBOOTS 1 ENGINETIME 40
-        AUTH SHA384 "pass_384_123" PRIV DES "priv_des_123" OID 1.3.6.1.6.3.1.1.5.4
-    agent -> nms SNMP3 TRAP USER "u5" ENGINEID "8000000005" ENGINEBOOTS 1 ENGINETIME 50
-        AUTH SHA512 "pass_512_123" PRIV AES "priv_aes_123" OID 1.3.6.1.6.3.1.1.5.5
+flow omnibus_snmp(agent, nms) {
+    agent -> nms snmp1 trap community "public" oid 1.3.6.1.4.1.8072
+        enterprise 1.3.6.1.4.1.8072 agentip 10.254.0.1 gentrap 6 spectrap 1
+        sysuptime 100
+        varbind 1.3.6.1.2.1.1.5.0 string "omni"
+        varbind 1.3.6.1.2.1.2.1.0 int -5
+    agent -> nms snmp2 get community "public" reqid 101
+        varbind 1.3.6.1.2.1.1.1.0 nullval
+    agent <- nms snmp2 response community "public" reqid 101
+        varbind 1.3.6.1.2.1.1.3.0 timeticks 500
+        varbind 1.3.6.1.2.1.4.20.1.1.10.254.0.1 ipval 10.254.0.1
+        varbind 1.3.6.1.2.1.1.2.0 oidval 1.3.6.1.4.1.8072
+    agent -> nms snmp2 getnext community "public" reqid 102
+        varbind 1.3.6.1.2.1.1 nullval
+    agent -> nms snmp2 getbulk community "public" reqid 103 nonrepeaters 1
+        maxrepetitions 5
+        varbind 1.3.6.1.2.1.2.2.1.10.1 counter32 100
+        varbind 1.3.6.1.2.1.2.2.1.5.1 gauge32 1000
+        varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 999999999
+    agent -> nms snmp2 set community "private" reqid 104
+        varbind 1.3.6.1.2.1.1.5.0 string "set-omni"
+    agent -> nms snmp2 inform community "public" reqid 105 oid "1.3.6.1.6.3.1.1.5.3"
+        sysuptime 200
+    agent -> nms snmp3 trap user "u1" engineid "8000000001" engineboots 1 enginetime 10 contextname "ctx"
+        auth md5 "pass_md5_123" priv des "priv_des_123" oid 1.3.6.1.6.3.1.1.5.1
+    agent -> nms snmp3 trap user "u2" engineid "8000000002" engineboots 1 enginetime 20
+        auth sha "pass_sha_123" priv aes "priv_aes_123" oid 1.3.6.1.6.3.1.1.5.2
+    agent -> nms snmp3 trap user "u3" engineid "8000000003" engineboots 1 enginetime 30
+        auth sha256 "pass_256_123" priv aes "priv_aes_123" oid 1.3.6.1.6.3.1.1.5.3
+    agent -> nms snmp3 trap user "u4" engineid "8000000004" engineboots 1 enginetime 40
+        auth sha384 "pass_384_123" priv des "priv_des_123" oid 1.3.6.1.6.3.1.1.5.4
+    agent -> nms snmp3 trap user "u5" engineid "8000000005" engineboots 1 enginetime 50
+        auth sha512 "pass_512_123" priv aes "priv_aes_123" oid 1.3.6.1.6.3.1.1.5.5
 }
 
-// INSTRUCTION: Compile block executing both omnibus flows directly and inside a loop.
-COMPILE {
+// INSTRUCTION: Compile block executing both omnibus flows directly and across repeated cycles.
+compile {
     omnibus_tcp_udp(omni_alpha, omni_beta)
-    LOOP 2 {
-        omnibus_snmp(omni_alpha, omni_beta)
-    }
+    omnibus_snmp(omni_alpha, omni_beta) // cycle 1
+    omnibus_snmp(omni_alpha, omni_beta) // cycle 2
 }

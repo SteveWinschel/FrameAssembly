@@ -1,20 +1,20 @@
 // PROMPT: PTP unicast negotiation over non-standard NAT UDP ports using SRCPORT and DSTPORT.
-// TOKENS: HOST, IP, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, SRCPORT, DSTPORT, WAIT, DELAY_REQ, DELAY_RESP, COMPILE
+// TOKENS: host, ip, flow, s, ptp, sync, domain, seqid, srcport, dstport, wait, ms, delayreq, delayresp, compile
 
 // INSTRUCTION: Define cloud VM time client behind NAT.
-HOST nat_ptp_client { IP 10.199.1.50 }
+host nat_ptp_client { ip 10.199.1.50 }
 
 // INSTRUCTION: Define enterprise time server.
-HOST ent_ptp_srv { IP 10.199.1.1 }
+host ent_ptp_srv { ip 10.199.1.1 }
 
 // INSTRUCTION: Define PTP exchange with custom source and destination UDP ports.
-FLOW ptp_custom_ports(c, s) {
-    c <- s PTP SYNC DOMAIN 0 SEQ_ID 55 SRCPORT 319 DSTPORT 40319 WAIT 2ms
-    c -> s PTP DELAY_REQ DOMAIN 0 SEQ_ID 55 SRCPORT 40319 DSTPORT 319 WAIT 2ms
-    c <- s PTP DELAY_RESP DOMAIN 0 SEQ_ID 55 SRCPORT 320 DSTPORT 40320
+flow ptp_custom_ports(c, s) {
+    c <- s ptp sync domain 0 seqid 55 srcport 319 dstport 40319 wait 2ms
+    c -> s ptp delayreq domain 0 seqid 55 srcport 40319 dstport 319 wait 2ms
+    c <- s ptp delayresp domain 0 seqid 55 srcport 320 dstport 40320
 }
 
 // INSTRUCTION: Compile custom-port PTP exchange.
-COMPILE {
+compile {
     ptp_custom_ports(nat_ptp_client, ent_ptp_srv)
 }

@@ -1,19 +1,19 @@
 // PROMPT: IEEE 1588 PTP link propagation delay measurement with Delay_Req and Delay_Resp.
-// TOKENS: HOST, IP, FLOW, PTP, DELAY_REQ, SEQ_ID, DOMAIN, DELAY_RESP, COMPILE
+// TOKENS: host, ip, flow, s, ptp, delayreq, seqid, domain, delayresp, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 10.0.0.2 }
+host client { ip 10.0.0.2 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 10.0.0.1 }
+host server { ip 10.0.0.1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW ptp_delay(c, s) {
-    c -> s PTP DELAY_REQ SEQ_ID 101 DOMAIN 0
-    c <- s PTP DELAY_RESP SEQ_ID 101 DOMAIN 0
+flow ptp_delay(c, s) {
+    c -> s ptp delayreq seqid 101 domain 0
+    c <- s ptp delayresp seqid 101 domain 0
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     ptp_delay(client, server)
 }

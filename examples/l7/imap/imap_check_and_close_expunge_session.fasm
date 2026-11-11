@@ -1,31 +1,31 @@
 // PROMPT: Simulate an IMAP session marking deleted messages, issuing CHECK, and calling CLOSE to silently expunge and deselect.
-// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, ARG, WAIT, STATUS, RESPONSE, COMPILE
+// TOKENS: host, ip, mac, flow, s, imap, tag, cmd, arg, wait, ms, status, response, compile
 
 // INSTRUCTION: Define the workstation mail client cleaning up a project folder.
-HOST cleanup_client {
-    IP 10.143.95.40
-    MAC 00:1b:21:8f:5f:28
+host cleanup_client {
+    ip 10.143.95.40
+    mac 00:1b:21:8f:5f:28
 }
 
 // INSTRUCTION: Define the department IMAP server.
-HOST dept_imap {
-    IP 10.143.95.1
-    MAC 00:1b:21:8f:5f:01
+host dept_imap {
+    ip 10.143.95.1
+    mac 00:1b:21:8f:5f:01
 }
 
 // INSTRUCTION: Store \Deleted flag, flush mailbox state with CHECK, Close to expunge, and LOGOUT.
-FLOW imap_check_and_close(c, s) {
-    c -> s IMAP TAG "K01" CMD "STORE" ARG "1:10 +FLAGS.SILENT (\Deleted)" WAIT 2ms
-    c <- s IMAP TAG "K01" STATUS "OK" RESPONSE "Store completed" WAIT 2ms
-    c -> s IMAP TAG "K02" CMD "CHECK" WAIT 3ms
-    c <- s IMAP TAG "K02" STATUS "OK" RESPONSE "Check completed" WAIT 2ms
-    c -> s IMAP TAG "K03" CMD "CLOSE" WAIT 3ms
-    c <- s IMAP TAG "K03" STATUS "OK" RESPONSE "Close completed" WAIT 1ms
-    c -> s IMAP TAG "K04" CMD "LOGOUT" WAIT 1ms
-    c <- s IMAP TAG "*" STATUS "BYE" RESPONSE "Logging out"
+flow imap_check_and_close(c, s) {
+    c -> s imap tag "K01" cmd "STORE" arg "1:10 +FLAGS.SILENT (\Deleted)" wait 2ms
+    c <- s imap tag "K01" status "OK" response "Store completed" wait 2ms
+    c -> s imap tag "K02" cmd "CHECK" wait 3ms
+    c <- s imap tag "K02" status "OK" response "Check completed" wait 2ms
+    c -> s imap tag "K03" cmd "CLOSE" wait 3ms
+    c <- s imap tag "K03" status "OK" response "Close completed" wait 1ms
+    c -> s imap tag "K04" cmd "LOGOUT" wait 1ms
+    c <- s imap tag "*" status "BYE" response "Logging out"
 }
 
 // INSTRUCTION: Compile the IMAP CHECK, CLOSE, and LOGOUT session.
-COMPILE {
+compile {
     imap_check_and_close(cleanup_client, dept_imap)
 }

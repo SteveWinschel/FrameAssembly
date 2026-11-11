@@ -1,7 +1,7 @@
 //! Routing Information Protocol (RIPv2 RFC 2453 & RIPng RFC 2080) Layer 3 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for Routing Information
-//! Protocol (`RIP`, RFC 2453 / RFC 2080) messages carried over UDP ports `520` and `521`. It
+//! Protocol (`rip`, RFC 2453 / RFC 2080) messages carried over UDP ports `520` and `521`. It
 //! validates the 24-byte RIPv2 header + Route Table Entry (RTE) and decodes `request` (`1`) and
 //! `reply` (`2`) commands along with route `prefix`, `nexthop`, route `tag`, and hop `metric`.
 

@@ -1,8 +1,8 @@
 //! Protocol Independent Multicast - Sparse Mode (PIM-SM, RFC 7761) Layer 3 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 7761 Protocol
-//! Independent Multicast (`PIM`, IP protocol `103`) packets. It inspects the 4-byte PIM common
-//! header and decodes `hello` (Holdtime option `1` and DR Priority option `19`), `join_prune`
+//! Independent Multicast (`pim`, IP protocol `103`) packets. It inspects the 4-byte PIM common
+//! header and decodes `hello` (Holdtime option `1` and DR Priority option `19`), `joinprune`
 //! (`rp`, `holdtime`, `group`, `source`), and `register` (`source`, `group`) messages into
 //! canonical `.fasm` statements.
 
@@ -13,7 +13,7 @@ use core::net::{IpAddr, Ipv4Addr};
 use crate::ast::Protocol;
 use crate::reverse::{ProtocolDissection, be_u16, be_u32, ipv4_at, push_if, sd, src_v4_or};
 
-/// Decompiles an RFC 7761 `PIM` packet (`ip_proto == 103`) into a [`ProtocolDissection`].
+/// Decompiles an RFC 7761 `pim` packet (`ip_proto == 103`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_pim(b: &[u8], src_ip: Option<IpAddr>) -> ProtocolDissection {
     if b.len() < 4 {
         return sd(Protocol::Pim, String::from("pim"), b.to_vec());
@@ -30,7 +30,7 @@ pub(crate) fn dissect_pim(b: &[u8], src_ip: Option<IpAddr>) -> ProtocolDissectio
                 }
                 match (ot, ol) {
                     (1, 2) => push_if(&mut t, "holdtime", be_u16(body, pos + 4), 105),
-                    (19, 4) => push_if(&mut t, "dr_priority", be_u32(body, pos + 4), 1),
+                    (19, 4) => push_if(&mut t, "drpriority", be_u32(body, pos + 4), 1),
                     (20, 4) => {}
                     _ => res.extend_from_slice(&body[pos..pos + 4 + ol]),
                 }
@@ -39,7 +39,7 @@ pub(crate) fn dissect_pim(b: &[u8], src_ip: Option<IpAddr>) -> ProtocolDissectio
             res.extend_from_slice(&body[pos..]);
         }
         3 if body.len() >= 30 => {
-            t.push_str(" join_prune");
+            t.push_str(" joinprune");
             let dup = src_v4_or(src_ip, Ipv4Addr::new(10, 0, 0, 1));
             push_if(&mut t, "rp", ipv4_at(body, 2), dup);
             push_if(&mut t, "holdtime", be_u16(body, 8), 210);

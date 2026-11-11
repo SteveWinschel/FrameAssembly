@@ -5,7 +5,7 @@
 //! port 389 (or TCP 636 for LDAPS). Each message encodes the integer `messageID` followed by the
 //! selected protocol operation (`BindRequest` `0x60`, `BindResponse` `0x61`, `SearchRequest`
 //! `0x63`, `SearchResultEntry` `0x64`, `SearchResultDone` `0x65`, or `UnbindRequest` `0x42`),
-//! Distinguished Name (`BASE_DN`), filter string (`FILTER`), and result code (`RESULT_CODE`).
+//! Distinguished Name (`basedn`), filter string (`filter`), and result code (`resultcode`).
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -53,7 +53,7 @@ fn push_ber_int_with_tag(out: &mut Vec<u8>, tag: u8, val: i64) {
 
 /// Builds an RFC 4511 LDAP directory protocol message payload.
 ///
-/// Syntax mapping: `LDAP [MSGID <i32>] [BIND_REQ | BIND_RES | SEARCH_REQ | SEARCH_ENTRY | SEARCH_DONE | UNBIND_REQ] [BASE_DN <str>] [FILTER <str>] [RESULT_CODE <u32>]`
+/// Syntax mapping: `ldap [msgid <i32>] [bindreq | bindres | searchreq | searchentry | searchdone | unbindreq] [basedn <str>] [filter <str>] [resultcode <u32>]`
 #[doc(alias = "LDAP")]
 #[doc(alias = "RFC4511")]
 #[doc(alias = "MSGID")]

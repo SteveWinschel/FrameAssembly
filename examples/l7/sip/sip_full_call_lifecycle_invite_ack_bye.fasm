@@ -1,25 +1,25 @@
 // PROMPT: Complete VoIP SIP call lifecycle from INVITE, 180 Ringing, 200 OK, ACK, to BYE teardown.
-// TOKENS: HOST, IP, FLOW, SIP, INVITE, URI, FROM, TO, CALL_ID, CSEQ, VIA, CONTACT, CONTENT_TYPE, BODY, WAIT, STATUS, REASON, ACK, BYE, COMPILE
+// TOKENS: host, ip, flow, sip, invite, uri, from, to, callid, cseq, via, contact, contenttype, body, wait, ms, status, reason, ack, bye, compile
 // INSTRUCTION: Define caller SIP desk phone endpoint.
-HOST caller_ua {
-    IP 10.50.1.101
+host caller_ua {
+    ip 10.50.1.101
 }
 // INSTRUCTION: Define callee SIP IP PBX server endpoint.
-HOST pbx_srv {
-    IP 10.50.1.1
+host pbx_srv {
+    ip 10.50.1.1
 }
 // INSTRUCTION: Define full RFC 3261 SIP call setup, media confirmation ACK, and BYE hangup.
-FLOW sip_full_call(uac, uas) {
-    uac -> uas SIP INVITE URI "sip:2002@10.50.1.1" FROM "sip:1001@10.50.1.101" TO "sip:2002@10.50.1.1"
-        CALL_ID "call-1001-2002" CSEQ 1 VIA "SIP/2.0/UDP 10.50.1.101:5060" CONTACT "sip:1001@10.50.1.101"
-        CONTENT_TYPE "application/sdp" BODY "v=0" WAIT 5ms
-    uac <- uas SIP STATUS 180 REASON "Ringing" CALL_ID "call-1001-2002" CSEQ 1 WAIT 10ms
-    uac <- uas SIP STATUS 200 REASON "OK" CALL_ID "call-1001-2002" CSEQ 1 CONTACT "sip:2002@10.50.1.1" CONTENT_TYPE "application/sdp" BODY "v=0" WAIT 5ms
-    uac -> uas SIP ACK URI "sip:2002@10.50.1.1" CALL_ID "call-1001-2002" CSEQ 1 WAIT 20ms
-    uac -> uas SIP BYE URI "sip:2002@10.50.1.1" CALL_ID "call-1001-2002" CSEQ 2 WAIT 5ms
-    uac <- uas SIP STATUS 200 REASON "OK" CALL_ID "call-1001-2002" CSEQ 2
+flow sip_full_call(uac, uas) {
+    uac -> uas sip invite uri "sip:2002@10.50.1.1" from "sip:1001@10.50.1.101" to "sip:2002@10.50.1.1"
+        callid "call-1001-2002" cseq 1 via "SIP/2.0/UDP 10.50.1.101:5060" contact "sip:1001@10.50.1.101"
+        contenttype "application/sdp" body "v=0" wait 5ms
+    uac <- uas sip status 180 reason "Ringing" callid "call-1001-2002" cseq 1 wait 10ms
+    uac <- uas sip status 200 reason "OK" callid "call-1001-2002" cseq 1 contact "sip:2002@10.50.1.1" contenttype "application/sdp" body "v=0" wait 5ms
+    uac -> uas sip ack uri "sip:2002@10.50.1.1" callid "call-1001-2002" cseq 1 wait 20ms
+    uac -> uas sip bye uri "sip:2002@10.50.1.1" callid "call-1001-2002" cseq 2 wait 5ms
+    uac <- uas sip status 200 reason "OK" callid "call-1001-2002" cseq 2
 }
 // INSTRUCTION: Compile the complete SIP call lifecycle scenario.
-COMPILE {
+compile {
     sip_full_call(caller_ua, pbx_srv)
 }

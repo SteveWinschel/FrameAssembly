@@ -1,10 +1,10 @@
 //! Modbus Application Protocol v1.1b3 (MBAP + PDU) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `MODBUS` TCP and UDP frames on port
-//! `502`. It validates the 7-byte MBAP header (`txid`, `proto_id`, `mbap_len`, `unitid`) and decodes
-//! function codes `1` (`read_coils`), `2` (`read_discrete_inputs`), `3` (`read_holding_registers`),
-//! `4` (`read_input_registers`), `5` (`write_single_coil`), `6` (`write_single_register`), and `16`
-//! (`write_multiple_registers`) across request and `is_response` PDUs.
+//! This module implements fuzz-safe wire-to-AST dissection for `modbus` TCP and UDP frames on port
+//! `502`. It validates the 7-byte MBAP header (`txid`, `protoid`, `mbap_len`, `unitid`) and decodes
+//! function codes `1` (`readcoils`), `2` (`readdiscreteinputs`), `3` (`readholdingregisters`),
+//! `4` (`readinputregisters`), `5` (`writesinglecoil`), `6` (`writesingleregister`), and `16`
+//! (`writemultipleregisters`) across request and `isresponse` PDUs.
 
 use alloc::format;
 use alloc::string::String;
@@ -12,7 +12,7 @@ use alloc::string::String;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Dissects a `MODBUS` TCP/UDP MBAP + PDU packet on port `502`.
+/// Dissects a `modbus` TCP/UDP MBAP + PDU packet on port `502`.
 pub(crate) fn dissect_modbus(
     transport: TransportProto,
     src_port: u16,
@@ -39,20 +39,20 @@ pub(crate) fn dissect_modbus(
     let mut tokens = String::from("modbus");
 
     match func {
-        1 => tokens.push_str(" read_coils"),
-        2 => tokens.push_str(" read_discrete_inputs"),
+        1 => tokens.push_str(" readcoils"),
+        2 => tokens.push_str(" readdiscreteinputs"),
         3 => {}
-        4 => tokens.push_str(" read_input_registers"),
-        5 => tokens.push_str(" write_single_coil"),
-        6 => tokens.push_str(" write_single_register"),
-        16 => tokens.push_str(" write_multiple_registers"),
+        4 => tokens.push_str(" readinputregisters"),
+        5 => tokens.push_str(" writesinglecoil"),
+        6 => tokens.push_str(" writesingleregister"),
+        16 => tokens.push_str(" writemultipleregisters"),
         _ => return None,
     }
     if txid != 1 {
         tokens.push_str(&format!(" txid {txid}"));
     }
     if proto_id != 0 {
-        tokens.push_str(&format!(" proto_id {proto_id}"));
+        tokens.push_str(&format!(" protoid {proto_id}"));
     }
     if unit_id != 1 {
         tokens.push_str(&format!(" unitid {unit_id}"));
@@ -67,7 +67,7 @@ pub(crate) fn dissect_modbus(
                 .chunks_exact(2)
                 .all(|c| u16::from_be_bytes([c[0], c[1]]) == val);
             if all_same {
-                tokens.push_str(" is_response");
+                tokens.push_str(" isresponse");
                 if count != 1 {
                     tokens.push_str(&format!(" count {count}"));
                 }

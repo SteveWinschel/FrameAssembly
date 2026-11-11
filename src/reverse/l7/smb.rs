@@ -1,10 +1,10 @@
 //! Server Message Block v2/v3 (SMB2, MS-SMB2) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `SMB2` packets encapsulated inside
+//! This module implements fuzz-safe wire-to-AST dissection for `smb` packets encapsulated inside
 //! 4-byte NetBIOS Session Service headers (`\x00...\xFESMB`) over TCP (ports `445`, `139`, and
-//! custom ports matching the 64-byte SMB2 header signature). It decodes `NEGOTIATE`,
-//! `SESSION_SETUP`, `LOGOFF`, `TREE_CONNECT` (with UTF-16LE `share`), `TREE_DISCONNECT`, `CREATE`
-//! (with UTF-16LE `filename`), `CLOSE`, `READ`, and `WRITE` commands into canonical `.fasm` tokens.
+//! custom ports matching the 64-byte SMB2 header signature). It decodes `negotiate`,
+//! `sessionsetup`, `"logoff"`, `treeconnect` (with UTF-16LE `share`), `treedisconnect`, `create`
+//! (with UTF-16LE `filename`), `"close"`, `"read"`, and `"write"` commands into canonical `.fasm` tokens.
 
 use alloc::format;
 use alloc::string::String;
@@ -95,18 +95,18 @@ pub(crate) fn dissect_smb(
             residual = &body[38..];
         }
         0x0001 => {
-            tokens.push_str(" session_setup");
+            tokens.push_str(" sessionsetup");
             residual = body;
         }
         0x0002 => {
-            tokens.push_str(" command \"LOGOFF\"");
+            tokens.push_str(" command \"logoff\"");
             residual = body;
         }
         0x0003 => {
             if body.len() < 8 || le_u16(body, 0) != 9 {
                 return None;
             }
-            tokens.push_str(" tree_connect");
+            tokens.push_str(" treeconnect");
             let path_len = le_u16(body, 6) as usize;
             let consumed = if path_len == 0 { 2usize } else { path_len };
             if body.len() < 8 + consumed {
@@ -124,7 +124,7 @@ pub(crate) fn dissect_smb(
             residual = &body[8 + consumed..];
         }
         0x0004 => {
-            tokens.push_str(" tree_disconnect");
+            tokens.push_str(" treedisconnect");
             residual = body;
         }
         0x0005 => {
@@ -149,15 +149,15 @@ pub(crate) fn dissect_smb(
             residual = &body[56 + consumed..];
         }
         0x0006 => {
-            tokens.push_str(" command \"CLOSE\"");
+            tokens.push_str(" command \"close\"");
             residual = body;
         }
         0x0008 => {
-            tokens.push_str(" command \"READ\"");
+            tokens.push_str(" command \"read\"");
             residual = body;
         }
         0x0009 => {
-            tokens.push_str(" command \"WRITE\"");
+            tokens.push_str(" command \"write\"");
             residual = body;
         }
         _ => return None,
@@ -167,10 +167,10 @@ pub(crate) fn dissect_smb(
         tokens.push_str(&format!(" status 0x{status:08x}"));
     }
     if session_id != 0 {
-        tokens.push_str(&format!(" session_id 0x{session_id:x}"));
+        tokens.push_str(&format!(" sessionid 0x{session_id:x}"));
     }
     if tree_id != 0 {
-        tokens.push_str(&format!(" tree_id {tree_id}"));
+        tokens.push_str(&format!(" treeid {tree_id}"));
     }
     if msgid != 0 {
         tokens.push_str(&format!(" msgid {msgid}"));

@@ -6,58 +6,58 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b DNS [QUERY | RESPONSE] [TXID <u16>] [QNAME <str>] [QTYPE <str>] [RDATA <str>] [RCODE <u8>] [ANS_TTL <u32>] [TRANSPORT TCP]`
+//! `a -> b dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>] [transport tcp]`
 
 /// RFC 1035 / RFC 6762 Domain Name System specification.
 ///
-/// Syntax mapping: `DNS [QUERY | RESPONSE] [TXID <u16>] [QNAME <str>] [QTYPE <str>] [RDATA <str>] [RCODE <u8>] [ANS_TTL <u32>] [TRANSPORT TCP]`
-#[doc(alias = "DNS")]
+/// Syntax mapping: `dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>] [transport tcp]`
+#[doc(alias = "dns")]
 #[doc(alias = "RFC 1035")]
 #[doc(alias = "RFC1035")]
 #[doc(alias = "RFC 3596")]
 #[doc(alias = "RFC3596")]
 #[doc(alias = "RFC 6891")]
-#[doc(alias = "QUERY")]
-#[doc(alias = "RESPONSE")]
-#[doc(alias = "TXID")]
-#[doc(alias = "QNAME")]
-#[doc(alias = "QTYPE")]
-#[doc(alias = "RDATA")]
-#[doc(alias = "RCODE")]
-#[doc(alias = "ANS_TTL")]
+#[doc(alias = "query")]
+#[doc(alias = "response")]
+#[doc(alias = "txid")]
+#[doc(alias = "qname")]
+#[doc(alias = "qtype")]
+#[doc(alias = "rdata")]
+#[doc(alias = "rcode")]
+#[doc(alias = "ansttl")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct DnsSpec<'a> {
-    /// Query flag (`QUERY`).
+    /// Query flag (`query`).
     pub is_query: bool,
-    /// Response flag (`RESPONSE`).
+    /// Response flag (`response`).
     pub is_response: bool,
-    /// Transaction ID (`TXID <u16>`).
+    /// Transaction ID (`txid <u16>`).
     pub txid: Option<u16>,
-    /// Question domain name (`QNAME <str>`).
+    /// Question domain name (`qname <str>`).
     pub qname: Option<&'a str>,
-    /// Question record type (`QTYPE <str>`).
+    /// Question record type (`qtype <str>`).
     pub qtype: Option<&'a str>,
-    /// Answer resource data (`RDATA <str>`).
+    /// Answer resource data (`rdata <str>`).
     pub rdata: Option<&'a str>,
-    /// Response return code (`RCODE <u8>`).
+    /// Response return code (`rcode <u8>`).
     pub rcode: Option<u8>,
-    /// Answer time-to-live in seconds (`ANS_TTL <u32>`).
+    /// Answer time-to-live in seconds (`ansttl <u32>`).
     pub ans_ttl: Option<u32>,
 }
 
 /// Type alias for Multicast DNS specification (RFC 6762).
 ///
-/// Syntax mapping: `MDNS [QUERY | RESPONSE] [TXID <u16>] [QNAME <str>] [QTYPE <str>] [RDATA <str>] [RCODE <u8>] [ANS_TTL <u32>]`
-#[doc(alias = "MDNS")]
+/// Syntax mapping: `mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>]`
+#[doc(alias = "mdns")]
 #[doc(alias = "RFC 6762")]
 #[doc(alias = "RFC6762")]
 #[doc(alias = "RFC 6763")]
-#[doc(alias = "QUERY")]
-#[doc(alias = "RESPONSE")]
-#[doc(alias = "TXID")]
-#[doc(alias = "QNAME")]
-#[doc(alias = "QTYPE")]
-#[doc(alias = "RDATA")]
-#[doc(alias = "RCODE")]
-#[doc(alias = "ANS_TTL")]
+#[doc(alias = "query")]
+#[doc(alias = "response")]
+#[doc(alias = "txid")]
+#[doc(alias = "qname")]
+#[doc(alias = "qtype")]
+#[doc(alias = "rdata")]
+#[doc(alias = "rcode")]
+#[doc(alias = "ansttl")]
 pub type MdnsSpec<'a> = DnsSpec<'a>;

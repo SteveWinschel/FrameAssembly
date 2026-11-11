@@ -4,11 +4,11 @@
 //! over EtherType `0x0806`. The 28-byte ARP payload consists of Hardware Type (`HTYPE = 0x0001`
 //! for Ethernet), Protocol Type (`PTYPE = 0x0800` for IPv4), Hardware Address Length (`HLEN = 6`),
 //! Protocol Address Length (`PLEN = 4`), 16-bit Operation Code (`OPER = 1` Request, `2` Reply),
-//! 48-bit Sender Hardware Address (`SHA`), 32-bit Sender Protocol Address (`SPA`), 48-bit Target
-//! Hardware Address (`THA`), and 32-bit Target Protocol Address (`TPA`).
+//! 48-bit Sender Hardware Address (`sha`), 32-bit Sender Protocol Address (`spa`), 48-bit Target
+//! Hardware Address (`tha`), and 32-bit Target Protocol Address (`tpa`).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b ARP [REQUEST | REPLY] [GRATUITOUS] [SENDERMAC <mac>] [SENDERIP <ip>] [TARGETMAC <mac>] [TARGETIP <ip>]`
+//! `a -> b arp [request | reply] [gratuitous] [sendermac <mac>] [senderip <ip>] [targetmac <mac>] [targetip <ip>]`
 
 use core::marker::PhantomData;
 use core::net::IpAddr;
@@ -26,31 +26,31 @@ pub enum ArpOpcode {
 
 /// Address Resolution Protocol (RFC 826 / RFC 5227) frame specification.
 ///
-/// Syntax mapping: `ARP [REQUEST | REPLY] [GRATUITOUS] [SENDERMAC <mac>] [SENDERIP <ip>] [TARGETMAC <mac>] [TARGETIP <ip>]`
-#[doc(alias = "ARP")]
+/// Syntax mapping: `arp [request | reply] [gratuitous] [sendermac <mac>] [senderip <ip>] [targetmac <mac>] [targetip <ip>]`
+#[doc(alias = "arp")]
 #[doc(alias = "RFC 826")]
 #[doc(alias = "RFC 5227")]
 #[doc(alias = "0x0806")]
-#[doc(alias = "REQUEST")]
-#[doc(alias = "REPLY")]
-#[doc(alias = "GRATUITOUS")]
-#[doc(alias = "SENDERMAC")]
-#[doc(alias = "SENDERIP")]
-#[doc(alias = "TARGETMAC")]
-#[doc(alias = "TARGETIP")]
+#[doc(alias = "request")]
+#[doc(alias = "reply")]
+#[doc(alias = "gratuitous")]
+#[doc(alias = "sendermac")]
+#[doc(alias = "senderip")]
+#[doc(alias = "targetmac")]
+#[doc(alias = "targetip")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ArpSpec<'a> {
-    /// Operation code (`REQUEST` = 1 or `REPLY` = 2).
+    /// Operation code (`request` = 1 or `reply` = 2).
     pub opcode: Option<ArpOpcode>,
-    /// Gratuitous ARP announcement flag (`GRATUITOUS`, sets `TPA = SPA` and `THA = 00:00:00:00:00:00`).
+    /// Gratuitous ARP announcement flag (`gratuitous`, sets `TPA = SPA` and `THA = 00:00:00:00:00:00`).
     pub is_gratuitous: bool,
-    /// Sender 48-bit Hardware Address override (`SENDERMAC <mac>`).
+    /// Sender 48-bit Hardware Address override (`sendermac <mac>`).
     pub sha: Option<[u8; 6]>,
-    /// Sender 32-bit Protocol Address override (`SENDERIP <ipv4>`).
+    /// Sender 32-bit Protocol Address override (`senderip <ipv4>`).
     pub spa: Option<IpAddr>,
-    /// Target 48-bit Hardware Address override (`TARGETMAC <mac>`).
+    /// Target 48-bit Hardware Address override (`targetmac <mac>`).
     pub tha: Option<[u8; 6]>,
-    /// Target 32-bit Protocol Address override (`TARGETIP <ipv4>`).
+    /// Target 32-bit Protocol Address override (`targetip <ipv4>`).
     pub tpa: Option<IpAddr>,
     /// Optional lifetime marker for zero-copy AST borrowing.
     pub _marker: PhantomData<&'a ()>,

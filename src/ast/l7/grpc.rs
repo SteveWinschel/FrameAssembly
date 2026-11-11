@@ -6,25 +6,25 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b GRPC [SERVICE <str>] [METHOD <str>] [GRPC_STATUS <u32>]`
+//! `a -> b grpc [service <str>] [method <str>] [grpcstatus <u32>]`
 
 /// gRPC remote procedure call framing specification.
 ///
-/// Syntax mapping: `GRPC [SERVICE <str>] [METHOD <str>] [GRPC_STATUS <u32>]`
-#[doc(alias = "GRPC")]
+/// Syntax mapping: `grpc [service <str>] [method <str>] [grpcstatus <u32>]`
+#[doc(alias = "grpc")]
 #[doc(alias = "gRPC")]
 #[doc(alias = "RFC 9113")]
 #[doc(alias = "RFC9113")]
 #[doc(alias = "PROTOBUF")]
-#[doc(alias = "SERVICE")]
-#[doc(alias = "METHOD")]
-#[doc(alias = "GRPC_STATUS")]
+#[doc(alias = "service")]
+#[doc(alias = "method")]
+#[doc(alias = "grpcstatus")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GrpcSpec<'a> {
-    /// Service name string (`SERVICE <str>`).
+    /// Service name string (`service <str>`).
     pub service: Option<&'a str>,
-    /// Method name string (`METHOD <str>`).
+    /// Method name string (`method <str>`).
     pub method: Option<&'a str>,
-    /// Status code (`GRPC_STATUS <u32>`).
+    /// Status code (`grpcstatus <u32>`).
     pub grpc_status: Option<u32>,
 }

@@ -1,19 +1,19 @@
 // PROMPT: IPsec AH packet with explicit Integrity Check Value digest and SPI over IPv4.
-// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, ICV, COMPILE
+// TOKENS: host, ip, mac, flow, ah, spi, seq, icv, compile
 
 // INSTRUCTION: Define primary security gateway with static IPv4 and MAC address.
-HOST sec_gw_west { IP 172.16.10.1 MAC 00:1a:2b:3c:4d:01 }
+host sec_gw_west { ip 172.16.10.1 mac 00:1a:2b:3c:4d:01 }
 
 // INSTRUCTION: Define peer security gateway validating AH HMAC digest.
-HOST sec_gw_east { IP 172.16.10.2 MAC 00:1a:2b:3c:4d:02 }
+host sec_gw_east { ip 172.16.10.2 mac 00:1a:2b:3c:4d:02 }
 
 // INSTRUCTION: Define bidirectional AH exchange carrying explicit ICV digests.
-FLOW ah_icv_exchange(west, east) {
-    west -> east AH SPI 305419896 SEQ 10 ICV "a1b2c3d4e5f60718293a4b5c"
-    west <- east AH SPI 305419897 SEQ 10 ICV "ffeeddccbbaa998877665544"
+flow ah_icv_exchange(west, east) {
+    west -> east ah spi 305419896 seq 10 icv "a1b2c3d4e5f60718293a4b5c"
+    west <- east ah spi 305419897 seq 10 icv "ffeeddccbbaa998877665544"
 }
 
 // INSTRUCTION: Compile the AH custom ICV verification flow.
-COMPILE {
+compile {
     ah_icv_exchange(sec_gw_west, sec_gw_east)
 }

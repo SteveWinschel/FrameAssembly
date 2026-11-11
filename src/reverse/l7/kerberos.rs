@@ -1,7 +1,7 @@
 //! Kerberos Network Authentication Service v5 (RFC 4120) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe ASN.1 DER wire-to-AST dissection for `KERBEROS` v5 messages
-//! (`AS-REQ`, `AS-REP`, `TGS-REQ`, `TGS-REP`, and `KRB-ERROR`) over UDP and 4-byte record-marked
+//! This module implements fuzz-safe ASN.1 DER wire-to-AST dissection for `kerberos` v5 messages
+//! (`asreq`, `asrep`, `tgsreq`, `tgsrep`, and `krberror`) over UDP and 4-byte record-marked
 //! TCP transports (port `88` and custom ports with valid ASN.1 APPLICATION tags `0x6A..=0x6D` or
 //! `0x7E`). It dissects outer unencrypted ASN.1 DER fields (`realm`, `cname`, `sname`, and
 //! `etype`) into canonical `.fasm` tokens without attempting to decrypt encrypted ticket or
@@ -93,7 +93,7 @@ fn parse_krb_principal(input: &[u8]) -> Option<String> {
     None
 }
 
-/// Dissects a `KERBEROS` v5 ASN.1 DER message (`AS-REQ`, `AS-REP`, `TGS-REQ`, `TGS-REP`, `KRB-ERROR`).
+/// Dissects a `kerberos` v5 ASN.1 DER message (`AS-REQ`, `AS-REP`, `TGS-REQ`, `TGS-REP`, `KRB-ERROR`).
 pub(crate) fn dissect_kerberos(
     transport: TransportProto,
     _src_port: u16,
@@ -229,10 +229,10 @@ pub(crate) fn dissect_kerberos(
     let mut tokens = String::from("kerberos");
     match msg_type {
         10 => {}
-        11 => tokens.push_str(" as_rep"),
-        12 => tokens.push_str(" tgs_req"),
-        13 => tokens.push_str(" tgs_rep"),
-        30 => tokens.push_str(" krb_error"),
+        11 => tokens.push_str(" asrep"),
+        12 => tokens.push_str(" tgsreq"),
+        13 => tokens.push_str(" tgsrep"),
+        30 => tokens.push_str(" krberror"),
         _ => {}
     }
     if let Some(r) = realm.as_deref()

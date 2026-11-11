@@ -1,18 +1,18 @@
 // PROMPT: Default RFC 3550 RTP audio packet with zero sub-keywords on UDP port 5004.
-// TOKENS: HOST, IP, MAC, FLOW, RTP, COMPILE
+// TOKENS: host, ip, mac, flow, rtp, compile
 
 // INSTRUCTION: Define VoIP desk phone endpoint A.
-HOST phone_a { IP 10.50.4.10 MAC 00:04:f2:50:04:0a }
+host phone_a { ip 10.50.4.10 mac 00:04:f2:50:04:0a }
 
 // INSTRUCTION: Define VoIP desk phone endpoint B.
-HOST phone_b { IP 10.50.4.20 MAC 00:04:f2:50:04:14 }
+host phone_b { ip 10.50.4.20 mac 00:04:f2:50:04:14 }
 
 // INSTRUCTION: Define flow sending default RTP G.711 PCMU frame.
-FLOW rtp_default(a, b) {
-    a -> b RTP
+flow rtp_default(a, b) {
+    a -> b rtp
 }
 
 // INSTRUCTION: Compile default RTP scenario.
-COMPILE {
+compile {
     rtp_default(phone_a, phone_b)
 }

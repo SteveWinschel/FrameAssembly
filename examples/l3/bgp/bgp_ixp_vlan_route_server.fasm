@@ -1,20 +1,20 @@
 // PROMPT: Internet Exchange Point (IXP) route server BGP peering over an 802.1Q VLAN fabric.
-// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, VLAN, PCP, UPDATE, PREFIX, NEXTHOP, COMPILE
+// TOKENS: host, ip, mac, flow, bgp, open, asn, holdtime, bgpid, vlan, pcp, update, prefix, nexthop, compile
 
 // INSTRUCTION: Define IXP route server in peering LAN VLAN 900.
-HOST ixp_route_server { IP 198.32.160.1 MAC 00:0f:53:90:00:01 }
+host ixp_route_server { ip 198.32.160.1 mac 00:0f:53:90:00:01 }
 
 // INSTRUCTION: Define member CDN router on IXP peering VLAN 900.
-HOST ixp_cdn_member { IP 198.32.160.45 MAC 00:0f:53:90:00:45 }
+host ixp_cdn_member { ip 198.32.160.45 mac 00:0f:53:90:00:45 }
 
 // INSTRUCTION: Define VLAN-tagged IXP BGP OPEN and UPDATE exchange.
-FLOW ixp_vlan_peering(rs, member) {
-    rs <- member BGP OPEN ASN 65333 HOLDTIME 90 BGPID 198.32.160.45 VLAN 900 PCP 6
-    rs -> member BGP OPEN ASN 65000 HOLDTIME 90 BGPID 198.32.160.1 VLAN 900 PCP 6
-    rs <- member BGP UPDATE ASN 65333 PREFIX "203.0.113.0/24" NEXTHOP 198.32.160.45 VLAN 900 PCP 6
+flow ixp_vlan_peering(rs, member) {
+    rs <- member bgp open asn 65333 holdtime 90 bgpid 198.32.160.45 vlan 900 pcp 6
+    rs -> member bgp open asn 65000 holdtime 90 bgpid 198.32.160.1 vlan 900 pcp 6
+    rs <- member bgp update asn 65333 prefix "203.0.113.0/24" nexthop 198.32.160.45 vlan 900 pcp 6
 }
 
 // INSTRUCTION: Compile the IXP route server VLAN BGP flow.
-COMPILE {
+compile {
     ixp_vlan_peering(ixp_route_server, ixp_cdn_member)
 }

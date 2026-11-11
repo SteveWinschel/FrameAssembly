@@ -1,7 +1,7 @@
-//! Simple Network Management Protocol v3 (`SNMP3`, RFC 3414 / RFC 3826 / RFC 7860) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Simple Network Management Protocol v3 (`snmp3`, RFC 3414 / RFC 3826 / RFC 7860) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe ASN.1 Basic Encoding Rules (BER) reverse dissector for
-//! RFC 3414 User-based Security Model (USM) `SNMP3` messages over UDP ports `161`, `162`, `10161`,
+//! RFC 3414 User-based Security Model (USM) `snmp3` messages over UDP ports `161`, `162`, `10161`,
 //! and `10162`. It decodes `USMSecurityParameters` (`user`, `engineid`, `engineboots`,
 //! `enginetime`) and cleartext `ScopedPdu` bodies (`contextname`, `reqid`, `oid`, and SMIv2
 //! `varbind` entries). Encrypted `ScopedPduData::EncryptedPdu` payloads (`priv` flag `0x02`)
@@ -18,7 +18,7 @@ use super::snmp1::int_val;
 use super::snmp2::{append_v2_pdu_body_tokens, v2_pdu_keyword};
 use super::{ok_dissect, push_str_if};
 
-/// Dissects an RFC 3414 `SNMP3` (USM) ASN.1 BER payload.
+/// Dissects an RFC 3414 `snmp3` (USM) ASN.1 BER payload.
 ///
 /// When `msg.scoped_data` is `ScopedPduData::EncryptedPdu(_)` or the privacy bit (`0x02`) is set
 /// in `msg.global_data.flags`, this function returns `None` so the decompiler steps down cleanly

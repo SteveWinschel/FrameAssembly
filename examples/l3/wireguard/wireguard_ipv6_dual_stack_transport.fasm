@@ -1,20 +1,20 @@
 // PROMPT: WireGuard VPN session running over IPv6 transport exchanging Handshake Initiation and Response packets.
-// TOKENS: HOST, IP, FLOW, WIREGUARD, TYPE, INITIATION, SENDER, RESPONSE, RECEIVER, DATA, COUNTER, COMPILE
+// TOKENS: host, ip, flow, wireguard, type, initiation, sender, response, receiver, data, counter, compile
 
 // INSTRUCTION: Define IPv6 WireGuard client peer.
-HOST wg_v6_client { IP 2001:db8:beef:1::10 }
+host wg_v6_client { ip 2001:db8:beef:1::10 }
 
 // INSTRUCTION: Define IPv6 WireGuard gateway peer.
-HOST wg_v6_gateway { IP 2001:db8:beef:1::1 }
+host wg_v6_gateway { ip 2001:db8:beef:1::1 }
 
 // INSTRUCTION: Define IPv6 WireGuard secure data exchange flow with 64-bit transmission counter.
-FLOW wireguard_v6_flow(cli, gw) {
-    cli -> gw WIREGUARD TYPE INITIATION SENDER 1000
-    cli <- gw WIREGUARD TYPE RESPONSE SENDER 2000 RECEIVER 1000
-    cli -> gw WIREGUARD TYPE DATA RECEIVER 2000 COUNTER 1
+flow wireguard_v6_flow(cli, gw) {
+    cli -> gw wireguard type initiation sender 1000
+    cli <- gw wireguard type response sender 2000 receiver 1000
+    cli -> gw wireguard type data receiver 2000 counter 1
 }
 
 // INSTRUCTION: Compile block executing IPv6 WireGuard session.
-COMPILE {
+compile {
     wireguard_v6_flow(wg_v6_client, wg_v6_gateway)
 }

@@ -1,9 +1,9 @@
-//! IEEE 802.3ad Link Aggregation Control Protocol (`LACP`) PDU parser for FrameAssembly.
+//! IEEE 802.3ad Link Aggregation Control Protocol (`lacp`) PDU parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `LACP` link aggregation control frames.
-//! It parses actor and partner system MAC addresses (`ACTOR_SYS`, `PARTNER_SYS`), operational keys
-//! (`ACTOR_KEY`, `PARTNER_KEY`), port identifiers (`ACTOR_PORT`, `PARTNER_PORT`), and state bitmask
-//! bytes (`ACTOR_STATE`, `PARTNER_STATE`) into spanned [`ParsedField`] nodes.
+//! This module implements the winnow parser combinator for `lacp` link aggregation control frames.
+//! It parses actor and partner system MAC addresses (`actorsys`, `partnersys`), operational keys
+//! (`actorkey`, `partnerkey`), port identifiers (`actorport`, `partnerport`), and state bitmask
+//! bytes (`actorstate`, `partnerstate`) into spanned [`ParsedField`] nodes.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

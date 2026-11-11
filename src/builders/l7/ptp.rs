@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b PTP [SYNC | DELAY_REQ | FOLLOW_UP | DELAY_RESP | ANNOUNCE | MSG_TYPE <str>] [DOMAIN <u8>] [SEQ_ID <u16>] [CLOCK_ID <str>]`
+//! `a -> b ptp [sync | delayreq | followup | delayresp | announce | msgtype <str>] [domain <u8>] [seqid <u16>] [clockid <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an IEEE 1588v2 PTP packet payload and returns payload and UDP port (319 or 320).
-/// Syntax mapping: `PTP [SYNC | DELAY_REQ | FOLLOW_UP | DELAY_RESP | ANNOUNCE | MSG_TYPE <str>] [DOMAIN <u8>] [SEQ_ID <u16>] [CLOCK_ID <str>]`
+/// Syntax mapping: `ptp [sync | delayreq | followup | delayresp | announce | msgtype <str>] [domain <u8>] [seqid <u16>] [clockid <str>]`
 #[doc(alias = "PTP")]
 #[doc(alias = "IEEE1588")]
 #[doc(alias = "PTPV2")]
@@ -22,12 +22,16 @@ pub fn build_ptp_payload(
     spec: &PtpSpec,
     payload_bytes: &[u8],
 ) -> (Vec<u8>, u16) {
-    let msg_type_str = spec.msg_type.unwrap_or("SYNC");
-    let (msg_type_code, dport, control_field) = match msg_type_str.to_ascii_uppercase().as_str() {
+    let msg_type_norm = spec
+        .msg_type
+        .unwrap_or("sync")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    let (msg_type_code, dport, control_field) = match msg_type_norm.as_str() {
         "SYNC" => (0x00u8, 319u16, 0x00u8),
-        "DELAY_REQ" => (0x01u8, 319u16, 0x01u8),
-        "FOLLOW_UP" => (0x08u8, 320u16, 0x02u8),
-        "DELAY_RESP" => (0x09u8, 320u16, 0x03u8),
+        "DELAYREQ" => (0x01u8, 319u16, 0x01u8),
+        "FOLLOWUP" => (0x08u8, 320u16, 0x02u8),
+        "DELAYRESP" => (0x09u8, 320u16, 0x03u8),
         "ANNOUNCE" => (0x0Bu8, 320u16, 0x05u8),
         _ => (0x00u8, 319u16, 0x00u8),
     };

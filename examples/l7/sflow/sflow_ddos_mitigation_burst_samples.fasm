@@ -1,20 +1,20 @@
 // PROMPT: DDoS mitigation scrubbing trigger driven by high-sample-count sFlow burst datagrams.
-// TOKENS: HOST, IP, FLOW, SFLOW, AGENT_IP, SUB_AGENT_ID, UPTIME, SAMPLES, DSCP, TTL, WAIT, COMPILE
+// TOKENS: host, ip, flow, sflow, agentip, subagentid, uptime, samples, dscp, ttl, wait, ms, compile
 
 // INSTRUCTION: Define border router detecting volumetric anomaly.
-HOST border_rtr { IP 10.99.63.1 }
+host border_rtr { ip 10.99.63.1 }
 
 // INSTRUCTION: Define DDoS mitigation analyzer.
-HOST ddos_detector { IP 10.99.63.10 }
+host ddos_detector { ip 10.99.63.10 }
 
 // INSTRUCTION: Define rapid burst of high-sample-count sFlow datagrams.
-FLOW sflow_ddos_burst(rtr, det) {
-    rtr -> det SFLOW AGENT_IP 10.99.63.1 SUB_AGENT_ID 1 UPTIME 900100 SAMPLES 32 DSCP 48 TTL 64 WAIT 2ms
-    rtr -> det SFLOW AGENT_IP 10.99.63.1 SUB_AGENT_ID 1 UPTIME 900102 SAMPLES 64 DSCP 48 TTL 64 WAIT 2ms
-    rtr -> det SFLOW AGENT_IP 10.99.63.1 SUB_AGENT_ID 1 UPTIME 900104 SAMPLES 128 DSCP 48 TTL 64
+flow sflow_ddos_burst(rtr, det) {
+    rtr -> det sflow agentip 10.99.63.1 subagentid 1 uptime 900100 samples 32 dscp 48 ttl 64 wait 2ms
+    rtr -> det sflow agentip 10.99.63.1 subagentid 1 uptime 900102 samples 64 dscp 48 ttl 64 wait 2ms
+    rtr -> det sflow agentip 10.99.63.1 subagentid 1 uptime 900104 samples 128 dscp 48 ttl 64
 }
 
 // INSTRUCTION: Compile DDoS anomaly sFlow burst scenario.
-COMPILE {
+compile {
     sflow_ddos_burst(border_rtr, ddos_detector)
 }

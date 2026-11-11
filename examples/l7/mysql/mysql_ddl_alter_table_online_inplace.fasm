@@ -1,27 +1,27 @@
 // PROMPT: MySQL online DDL ALTER TABLE execution using ALGORITHM=INPLACE and LOCK=NONE.
-// TOKENS: HOST, IP, MAC, FLOW, MYSQL, LOGIN, USER, DB, OK, WAIT, SQL, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, mysql, login, user, db, ok, wait, ms, sql, payload, compile
 
 // INSTRUCTION: Define the schema migration runner (gh-ost / Flyway).
-HOST migration_runner {
-    IP 10.90.60.15
-    MAC 00:1a:2b:90:60:15
+host migration_runner {
+    ip 10.90.60.15
+    mac 00:1a:2b:90:60:15
 }
 
 // INSTRUCTION: Define the production MySQL master node.
-HOST prod_mysql {
-    IP 10.90.60.1
-    MAC 00:1a:2b:90:60:01
+host prod_mysql {
+    ip 10.90.60.1
+    mac 00:1a:2b:90:60:01
 }
 
 // INSTRUCTION: Authenticate as schema_migrator and run an online non-blocking index addition.
-FLOW mysql_online_ddl(c, s) {
-    c -> s MYSQL LOGIN USER "schema_migrator" DB "commerce"
-    c <- s MYSQL OK WAIT 1ms
-    c -> s MYSQL SQL "ALTER TABLE shipments ADD INDEX idx_tracking_no (tracking_no), ALGORITHM=INPLACE, LOCK=NONE"
-    c <- s MYSQL OK PAYLOAD "Records: 0  Duplicates: 0  Warnings: 0"
+flow mysql_online_ddl(c, s) {
+    c -> s mysql login user "schema_migrator" db "commerce"
+    c <- s mysql ok wait 1ms
+    c -> s mysql sql "ALTER TABLE shipments ADD INDEX idx_tracking_no (tracking_no), ALGORITHM=INPLACE, LOCK=NONE"
+    c <- s mysql ok payload "Records: 0  Duplicates: 0  Warnings: 0"
 }
 
 // INSTRUCTION: Compile the MySQL online DDL migration flow.
-COMPILE {
+compile {
     mysql_online_ddl(migration_runner, prod_mysql)
 }

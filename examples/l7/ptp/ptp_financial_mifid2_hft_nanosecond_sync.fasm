@@ -1,27 +1,27 @@
 // PROMPT: Model a MiFID II high-frequency trading exchange PTPv2 grandmaster feeding an execution engine on Domain 10.
-// TOKENS: HOST, IP, MAC, FLOW, PTP, ANNOUNCE, DOMAIN, SEQ_ID, CLOCK_ID, DSCP, WAIT, SYNC, DELAY_REQ, DELAY_RESP, COMPILE
+// TOKENS: host, ip, mac, flow, ptp, announce, domain, seqid, clockid, dscp, wait, ms, sync, delayreq, delayresp, compile
 
 // INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
-HOST ptp_grandmaster {
-    IP 10.31.10.1
-    MAC 00:1b:21:31:90:01
+host ptp_grandmaster {
+    ip 10.31.10.1
+    mac 00:1b:21:31:90:01
 }
 
 // INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
-HOST ptp_slave_clock {
-    IP 10.31.10.99
-    MAC 00:1b:21:31:90:25
+host ptp_slave_clock {
+    ip 10.31.10.99
+    mac 00:1b:21:31:90:25
 }
 
 // INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
-FLOW ptp_scenario_flow(gm, slv) {
-    gm -> slv PTP ANNOUNCE DOMAIN 10 SEQ_ID 9001 CLOCK_ID "000f53fffe100001" DSCP 46 WAIT 1ms
-    gm -> slv PTP SYNC DOMAIN 10 SEQ_ID 9001 CLOCK_ID "000f53fffe100001" DSCP 46 WAIT 1ms
-    gm <- slv PTP DELAY_REQ DOMAIN 10 SEQ_ID 9001 CLOCK_ID "000f53fffe100099" DSCP 46 WAIT 1ms
-    gm -> slv PTP DELAY_RESP DOMAIN 10 SEQ_ID 9001 CLOCK_ID "000f53fffe100001" DSCP 46
+flow ptp_scenario_flow(gm, slv) {
+    gm -> slv ptp announce domain 10 seqid 9001 clockid "000f53fffe100001" dscp 46 wait 1ms
+    gm -> slv ptp sync domain 10 seqid 9001 clockid "000f53fffe100001" dscp 46 wait 1ms
+    gm <- slv ptp delayreq domain 10 seqid 9001 clockid "000f53fffe100099" dscp 46 wait 1ms
+    gm -> slv ptp delayresp domain 10 seqid 9001 clockid "000f53fffe100001" dscp 46
 }
 
 // INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
-COMPILE {
+compile {
     ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
 }

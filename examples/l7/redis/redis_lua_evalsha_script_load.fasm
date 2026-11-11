@@ -1,21 +1,21 @@
 // PROMPT: Redis Lua script evaluation using EVALSHA and fallback SCRIPT LOAD on cache miss.
-// TOKENS: HOST, IP, FLOW, REDIS, CMD, ARGS, WAIT, COMPILE
+// TOKENS: host, ip, flow, s, redis, cmd, args, wait, ms, compile
 
 // INSTRUCTION: Define checkout service client.
-HOST checkout_svc { IP 172.24.0.15 }
+host checkout_svc { ip 172.24.0.15 }
 
 // INSTRUCTION: Define inventory Redis node.
-HOST inv_redis { IP 172.24.0.2 }
+host inv_redis { ip 172.24.0.2 }
 
 // INSTRUCTION: Define EVALSHA NOSCRIPT error followed by SCRIPT LOAD and EVALSHA success.
-FLOW redis_lua_evalsha(c, s) {
-    c -> s REDIS CMD "EVALSHA" ARGS "a42059b356c875f0717db19a51f6aaca9ae659ea 1 stock:sku99 1" WAIT 2ms
-    c <- s REDIS CMD "ERR" ARGS "NOSCRIPT No matching script" WAIT 2ms
-    c -> s REDIS CMD "SCRIPT" ARGS "LOAD return redis.call('decr', KEYS[1])" WAIT 2ms
-    c -> s REDIS CMD "EVALSHA" ARGS "a42059b356c875f0717db19a51f6aaca9ae659ea 1 stock:sku99 1"
+flow redis_lua_evalsha(c, s) {
+    c -> s redis cmd "EVALSHA" args "a42059b356c875f0717db19a51f6aaca9ae659ea 1 stock:sku99 1" wait 2ms
+    c <- s redis cmd "ERR" args "NOSCRIPT No matching script" wait 2ms
+    c -> s redis cmd "SCRIPT" args "LOAD return redis.call('decr', KEYS[1])" wait 2ms
+    c -> s redis cmd "EVALSHA" args "a42059b356c875f0717db19a51f6aaca9ae659ea 1 stock:sku99 1"
 }
 
 // INSTRUCTION: Compile Redis Lua EVALSHA script flow.
-COMPILE {
+compile {
     redis_lua_evalsha(checkout_svc, inv_redis)
 }

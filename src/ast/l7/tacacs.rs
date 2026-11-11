@@ -6,35 +6,35 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b TACACS [TYPE AUTHEN | TYPE AUTHOR | TYPE ACCT | AUTHEN | AUTHOR | ACCT] [SEQ <u8>] [FLAGS <u8>] [SESSION_ID <u32>] [USER <str>] [DATA <str>] [PAYLOAD <str>]`
+//! `a -> b tacacs [type authen | type author | type acct | authen | author | acct] [seq <u8>] [flags <u8>] [sessionid <u32>] [user <str>] [data <str>] [payload <str>]`
 
 /// RFC 8907 TACACS+ authentication & authorization specification.
 ///
-/// Syntax mapping: `TACACS [TYPE AUTHEN | TYPE AUTHOR | TYPE ACCT | AUTHEN | AUTHOR | ACCT] [SEQ <u8>] [FLAGS <u8>] [SESSION_ID <u32>] [USER <str>] [DATA <str>] [PAYLOAD <str>]`
-#[doc(alias = "TACACS")]
+/// Syntax mapping: `tacacs [type authen | type author | type acct | authen | author | acct] [seq <u8>] [flags <u8>] [sessionid <u32>] [user <str>] [data <str>] [payload <str>]`
+#[doc(alias = "tacacs")]
 #[doc(alias = "TACACS_PLUS")]
 #[doc(alias = "RFC 8907")]
 #[doc(alias = "RFC8907")]
-#[doc(alias = "AUTHEN")]
-#[doc(alias = "AUTHOR")]
-#[doc(alias = "ACCT")]
-#[doc(alias = "SEQ")]
-#[doc(alias = "FLAGS")]
-#[doc(alias = "SESSION_ID")]
-#[doc(alias = "USER")]
-#[doc(alias = "DATA")]
+#[doc(alias = "authen")]
+#[doc(alias = "author")]
+#[doc(alias = "acct")]
+#[doc(alias = "seq")]
+#[doc(alias = "flags")]
+#[doc(alias = "sessionid")]
+#[doc(alias = "user")]
+#[doc(alias = "data")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TacacsSpec<'a> {
-    /// TACACS+ type (`AUTHEN`, `AUTHOR`, `ACCT`).
+    /// TACACS+ type (`authen`, `author`, `acct`).
     pub tacacs_type: Option<&'a str>,
-    /// Sequence number (`SEQ <u8>`).
+    /// Sequence number (`seq <u8>`).
     pub seq: Option<u8>,
-    /// Flags byte (`FLAGS <u8>`).
+    /// Flags byte (`flags <u8>`).
     pub flags: Option<u8>,
-    /// Session identifier (`SESSION_ID <u32>`).
+    /// Session identifier (`sessionid <u32>`).
     pub session_id: Option<u32>,
-    /// User name string (`USER <str>`).
+    /// User name string (`user <str>`).
     pub user: Option<&'a str>,
-    /// Optional data payload (`DATA <str>`).
+    /// Optional data payload (`data <str>`).
     pub data: Option<&'a str>,
 }

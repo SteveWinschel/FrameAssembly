@@ -1,25 +1,25 @@
 // PROMPT: RFC 6428 MPLS-TP BFD session reporting Diagnostic Code 9 (Misconnectivity Defect) when receiving unexpected discriminator.
-// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, MPLS, EXP, BOS, MPLS_TTL, DSCP, TTL, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, mpls, exp, bos, mplsttl, dscp, ttl, wait, ms, compile
 
 // INSTRUCTION: Define MPLS-TP transport node A detecting cross-connected LSP discriminator.
-HOST tp_node_alpha {
-    IP 10.64.28.1
-    MAC 00:1c:0e:64:28:01
+host tp_node_alpha {
+    ip 10.64.28.1
+    mac 00:1c:0e:64:28:01
 }
 
 // INSTRUCTION: Define MPLS-TP transport node B receiving STATE 1 Down with DIAG 9.
-HOST tp_node_beta {
-    IP 10.64.28.2
-    MAC 00:1c:0e:64:28:02
+host tp_node_beta {
+    ip 10.64.28.2
+    mac 00:1c:0e:64:28:02
 }
 
 // INSTRUCTION: Define BFD Down frame reporting DIAG 9 (Misconnectivity Defect) over MPLS.
-FLOW bfd_misconnectivity_diag9(alpha, beta) {
-    alpha -> beta BFD STATE 1 DIAG 9 MY_DISC 64281 YOUR_DISC 99999 MIN_TX 1000000 MIN_RX 1000000 MULT 3 MPLS 64280 EXP 7 BOS 1 MPLS_TTL 255 DSCP 56 TTL 255 WAIT 10ms
-    alpha <- beta BFD STATE 1 DIAG 3 MY_DISC 64282 YOUR_DISC 0 MIN_TX 1000000 MIN_RX 1000000 MULT 3 MPLS 64281 EXP 7 BOS 1 MPLS_TTL 255 DSCP 56 TTL 255
+flow bfd_misconnectivity_diag9(alpha, beta) {
+    alpha -> beta bfd state 1 diag 9 mydisc 64281 yourdisc 99999 mintx 1000000 minrx 1000000 mult 3 mpls 64280 exp 7 bos 1 mplsttl 255 dscp 56 ttl 255 wait 10ms
+    alpha <- beta bfd state 1 diag 3 mydisc 64282 yourdisc 0 mintx 1000000 minrx 1000000 mult 3 mpls 64281 exp 7 bos 1 mplsttl 255 dscp 56 ttl 255
 }
 
 // INSTRUCTION: Compile the RFC 6428 BFD Misconnectivity Defect (DIAG 9) scenario.
-COMPILE {
+compile {
     bfd_misconnectivity_diag9(tp_node_alpha, tp_node_beta)
 }

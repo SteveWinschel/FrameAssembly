@@ -1,25 +1,25 @@
 // PROMPT: SIP 183 Session Progress early media acknowledged via RFC 3262 PRACK and 200 OK.
-// TOKENS: HOST, IP, FLOW, SIP, INVITE, URI, FROM, TO, CALL_ID, CSEQ, WAIT, STATUS, REASON, CONTENT_TYPE, BODY, METHOD, COMPILE
+// TOKENS: host, ip, flow, s, sip, invite, uri, from, to, callid, cseq, wait, ms, status, reason, contenttype, body, method, compile
 
 // INSTRUCTION: Define VoLTE mobile gateway initiating PSTN call.
-HOST volte_gw {
-    IP 172.30.10.20
+host volte_gw {
+    ip 172.30.10.20
 }
 
 // INSTRUCTION: Define PSTN media gateway controller returning early ringback tone.
-HOST pstn_mgc {
-    IP 172.30.10.1
+host pstn_mgc {
+    ip 172.30.10.1
 }
 
 // INSTRUCTION: Define INVITE, reliable 183 Session Progress with SDP, PRACK, and 200 OK.
-FLOW sip_early_media_prack(c, s) {
-    c -> s SIP INVITE URI "sip:+18005550199@172.30.10.1" FROM "sip:+14155550100@172.30.10.20" TO "sip:+18005550199@172.30.10.1" CALL_ID "prack-771" CSEQ 1 WAIT 5ms
-    c <- s SIP STATUS 183 REASON "Session Progress" CALL_ID "prack-771" CSEQ 1 CONTENT_TYPE "application/sdp" BODY "v=0" WAIT 5ms
-    c -> s SIP METHOD "PRACK" URI "sip:+18005550199@172.30.10.1" CALL_ID "prack-771" CSEQ 2 WAIT 5ms
-    c <- s SIP STATUS 200 REASON "OK" CALL_ID "prack-771" CSEQ 2
+flow sip_early_media_prack(c, s) {
+    c -> s sip invite uri "sip:+18005550199@172.30.10.1" from "sip:+14155550100@172.30.10.20" to "sip:+18005550199@172.30.10.1" callid "prack-771" cseq 1 wait 5ms
+    c <- s sip status 183 reason "Session Progress" callid "prack-771" cseq 1 contenttype "application/sdp" body "v=0" wait 5ms
+    c -> s sip method "PRACK" uri "sip:+18005550199@172.30.10.1" callid "prack-771" cseq 2 wait 5ms
+    c <- s sip status 200 reason "OK" callid "prack-771" cseq 2
 }
 
 // INSTRUCTION: Compile the SIP 183 Session Progress and PRACK flow.
-COMPILE {
+compile {
     sip_early_media_prack(volte_gw, pstn_mgc)
 }

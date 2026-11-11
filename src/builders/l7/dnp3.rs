@@ -37,15 +37,20 @@ pub fn build_dnp3_payload(
     spec: &Dnp3Spec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
-    let func_code: u8 = match spec.func.unwrap_or("READ").to_ascii_uppercase().as_str() {
+    let func_norm = spec
+        .func
+        .unwrap_or("read")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    let func_code: u8 = match func_norm.as_str() {
         "CONFIRM" => 0,
         "READ" => 1,
         "WRITE" => 2,
         "SELECT" => 3,
         "OPERATE" => 4,
-        "DIRECT_OPERATE" => 5,
+        "DIRECTOPERATE" => 5,
         "RESPONSE" => 129,
-        "UNSOLICITED_RESPONSE" => 130,
+        "UNSOLICITEDRESPONSE" => 130,
         _ => 1,
     };
 

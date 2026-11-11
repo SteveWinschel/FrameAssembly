@@ -5,7 +5,7 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b RADIUS [ACCESS_REQUEST | ACCESS_ACCEPT | ACCESS_REJECT | ACCESS_CHALLENGE | ACCOUNTING_REQUEST | ACCOUNTING_RESPONSE | CODE <str>] [ID <u8>] [USER <str>] [NAS_IP <ip>] [SERVICE_TYPE <u32>] [FRAMED_IP <ip>]`
+//! `a -> b radius [accessrequest | accessaccept | accessreject | accesschallenge | accountingrequest | accountingresponse | code <str>] [id <u8>] [user <str>] [nasip <ip>] [servicetype <u32>] [framedip <ip>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 use core::net::IpAddr;
 
 /// Builds an RFC 2865 RADIUS packet payload and returns payload and UDP port (1812 or 1813).
-/// Syntax mapping: `RADIUS [ACCESS_REQUEST | ACCESS_ACCEPT | ACCESS_REJECT | ACCESS_CHALLENGE | ACCOUNTING_REQUEST | ACCOUNTING_RESPONSE | CODE <str>] [ID <u8>] [USER <str>] [NAS_IP <ip>] [SERVICE_TYPE <u32>] [FRAMED_IP <ip>]`
+/// Syntax mapping: `radius [accessrequest | accessaccept | accessreject | accesschallenge | accountingrequest | accountingresponse | code <str>] [id <u8>] [user <str>] [nasip <ip>] [servicetype <u32>] [framedip <ip>]`
 #[doc(alias = "RADIUS")]
 #[doc(alias = "RFC2865")]
 #[doc(alias = "RFC2866")]
@@ -24,13 +24,18 @@ pub fn build_radius_payload(
     spec: &RadiusSpec,
     payload_bytes: &[u8],
 ) -> (Vec<u8>, u16) {
-    let (code, dport) = match spec.code.unwrap_or("ACCESS_REQUEST").to_ascii_uppercase().as_str() {
-        "ACCESS_REQUEST" => (1u8, 1812u16),
-        "ACCESS_ACCEPT" => (2u8, 1812u16),
-        "ACCESS_REJECT" => (3u8, 1812u16),
-        "ACCOUNTING_REQUEST" => (4u8, 1813u16),
-        "ACCOUNTING_RESPONSE" => (5u8, 1813u16),
-        "ACCESS_CHALLENGE" => (11u8, 1812u16),
+    let code_norm = spec
+        .code
+        .unwrap_or("accessrequest")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    let (code, dport) = match code_norm.as_str() {
+        "ACCESSREQUEST" => (1u8, 1812u16),
+        "ACCESSACCEPT" => (2u8, 1812u16),
+        "ACCESSREJECT" => (3u8, 1812u16),
+        "ACCOUNTINGREQUEST" => (4u8, 1813u16),
+        "ACCOUNTINGRESPONSE" => (5u8, 1813u16),
+        "ACCESSCHALLENGE" => (11u8, 1812u16),
         _ => (1u8, 1812u16),
     };
 

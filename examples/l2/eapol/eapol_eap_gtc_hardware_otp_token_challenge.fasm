@@ -1,29 +1,29 @@
 // PROMPT: High-security laboratory terminal authenticating via EAP-GTC (Generic Token Card, EAP_METHOD 6) one-time password challenge.
-// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, START, WAIT, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, eapol, version, type, start, wait, ms, eappacket, eapcode, eapid, eapmethod, identity, payload, compile
 
 // INSTRUCTION: Define air-gapped lab terminal supplicant responding with hardware OTP token code.
-HOST lab_terminal_supp {
-    IP 172.29.10.50
-    MAC 00:21:70:1d:0a:32
+host lab_terminal_supp {
+    ip 172.29.10.50
+    mac 00:21:70:1d:0a:32
 }
 
 // INSTRUCTION: Define lab security switch port enforcing EAP-GTC token verification.
-HOST lab_sec_switch {
-    IP 172.29.10.1
-    MAC 00:1c:73:1d:0a:01
+host lab_sec_switch {
+    ip 172.29.10.1
+    mac 00:1c:73:1d:0a:01
 }
 
 // INSTRUCTION: Exchange EAP-Identity and EAP-GTC (Method 6) ASCII OTP challenge/response followed by EAP-Success.
-FLOW eapol_gtc_otp_auth(term, sw) {
-    term -> sw EAPOL VERSION 2 TYPE START WAIT 2ms
-    term <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 20 EAP_METHOD 1 WAIT 2ms
-    term -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 20 EAP_METHOD 1 IDENTITY "dr.chen@quantum-lab.internal" WAIT 5ms
-    term <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 21 EAP_METHOD 6 PAYLOAD "Challenge: Enter Hardware YubiKey OTP:" WAIT 10ms
-    term -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 21 EAP_METHOD 6 PAYLOAD "ccccccbcgujhingjrdejhgfnuetrgigvejhh" WAIT 5ms
-    term <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 21 EAP_METHOD 6
+flow eapol_gtc_otp_auth(term, sw) {
+    term -> sw eapol version 2 type start wait 2ms
+    term <- sw eapol version 2 type eappacket eapcode 1 eapid 20 eapmethod 1 wait 2ms
+    term -> sw eapol version 2 type eappacket eapcode 2 eapid 20 eapmethod 1 identity "dr.chen@quantum-lab.internal" wait 5ms
+    term <- sw eapol version 2 type eappacket eapcode 1 eapid 21 eapmethod 6 payload "Challenge: Enter Hardware YubiKey OTP:" wait 10ms
+    term -> sw eapol version 2 type eappacket eapcode 2 eapid 21 eapmethod 6 payload "ccccccbcgujhingjrdejhgfnuetrgigvejhh" wait 5ms
+    term <- sw eapol version 2 type eappacket eapcode 3 eapid 21 eapmethod 6
 }
 
 // INSTRUCTION: Compile the EAP-GTC hardware OTP token authentication trace.
-COMPILE {
+compile {
     eapol_gtc_otp_auth(lab_terminal_supp, lab_sec_switch)
 }

@@ -1,18 +1,18 @@
 // PROMPT: WebSocket HTTP connection upgrade handshake establishing bi-directional framing.
-// TOKENS: HOST, IP, FLOW, WEBSOCKET, COMPILE
+// TOKENS: host, ip, flow, s, websocket, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.100 }
+host client { ip 192.168.1.100 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.168.1.1 }
+host server { ip 192.168.1.1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW ws_upgrade(c, s) {
-    c -> s WEBSOCKET
+flow ws_upgrade(c, s) {
+    c -> s websocket
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     ws_upgrade(client, server)
 }

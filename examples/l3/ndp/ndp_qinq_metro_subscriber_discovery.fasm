@@ -1,18 +1,18 @@
 // PROMPT: Dual-tagged QinQ Neighbor Advertisement traversing broadband metro access ring.
-// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_ADVERT, TARGET, TLLA, QINQ, INNER_VLAN, COMPILE
+// TOKENS: host, ip, mac, flow, ndp, neighboradvert, target, tlla, qinq, innervlan, compile
 
 // INSTRUCTION: Define metro subscriber optical network unit (ONU).
-HOST metro_subscriber_onu { IP fe80::0001 MAC 00:1e:67:aa:bb:cc }
+host metro_subscriber_onu { ip fe80::0001 mac 00:1e:67:aa:bb:cc }
 
 // INSTRUCTION: Define provider broadband network gateway.
-HOST provider_bng_gw { IP ff02::1 MAC 33:33:00:00:00:01 }
+host provider_bng_gw { ip ff02::1 mac 33:33:00:00:00:01 }
 
 // INSTRUCTION: Define QinQ encapsulated Neighbor Advertisement flow.
-FLOW qinq_ndp_flow(onu, bng) {
-    onu -> bng NDP NEIGHBOR_ADVERT TARGET 2001:db8:cafe::10 TLLA 00:1e:67:aa:bb:cc QINQ 500 INNER_VLAN 102
+flow qinq_ndp_flow(onu, bng) {
+    onu -> bng ndp neighboradvert target 2001:db8:cafe::10 tlla 00:1e:67:aa:bb:cc qinq 500 innervlan 102
 }
 
 // INSTRUCTION: Compile block executing QinQ Neighbor Advertisement.
-COMPILE {
+compile {
     qinq_ndp_flow(metro_subscriber_onu, provider_bng_gw)
 }

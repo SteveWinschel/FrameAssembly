@@ -2,12 +2,12 @@
 //!
 //! Synthesizes RFC 9260 SCTP packets over IP Protocol `132` (`0x84`). Constructs the 12-byte
 //! SCTP Common Header (16-bit Source Port, 16-bit Destination Port, 32-bit Verification Tag
-//! `VTAG`, and 32-bit little-endian Castagnoli CRC32c checksum) followed by 32-bit padded
-//! control or data chunks (`DATA`, `INIT`, `INIT_ACK`, `SACK`, `HEARTBEAT`, `HEARTBEAT_ACK`,
-//! `ABORT`, `SHUTDOWN`, `COOKIE_ECHO`, `COOKIE_ACK`).
+//! `vtag`, and 32-bit little-endian Castagnoli CRC32c checksum) followed by 32-bit padded
+//! control or data chunks (`data`, `init`, `initack`, `sack`, `heartbeat`, `heartbeatack`,
+//! `abort`, `shutdown`, `shutdownack`, `cookieecho`, `cookieack`).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b SCTP [CHUNK <type>] [VTAG <u32>] [STREAM <u16>] [SSN <u16>] [PPID <u32>] [SRCPORT <u16>] [DSTPORT <u16>]`
+//! `a -> b sctp [chunk <type>] [vtag <u32>] [stream <u16>] [ssn <u16>] [ppid <u32>] [srcport <u16>] [dstport <u16>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -77,8 +77,13 @@ pub fn build_sctp_payload(
     sctp_packet.extend_from_slice(&0_u32.to_be_bytes()); // Checksum placeholder
 
     // Build Chunk
-    let chunk_type = params.chunk.as_deref().unwrap_or("INIT");
-    match chunk_type.to_ascii_uppercase().as_str() {
+    let chunk_type = params
+        .chunk
+        .as_deref()
+        .unwrap_or("init")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    match chunk_type.as_str() {
         "DATA" => {
             let stream = params.stream.unwrap_or(0);
             let ssn = params.ssn.unwrap_or(0);
@@ -99,7 +104,7 @@ pub fn build_sctp_payload(
                 sctp_packet.push(0);
             }
         }
-        "INIT_ACK" => {
+        "INITACK" => {
             sctp_packet.push(2); // Type 2: INIT_ACK
             sctp_packet.push(0);
             sctp_packet.extend_from_slice(&20_u16.to_be_bytes());
@@ -128,7 +133,7 @@ pub fn build_sctp_payload(
                 sctp_packet.push(0);
             }
         }
-        "HEARTBEAT_ACK" => {
+        "HEARTBEATACK" => {
             let chunk_len = (4 + payload.len()) as u16;
             sctp_packet.push(5);
             sctp_packet.push(0);
@@ -149,7 +154,12 @@ pub fn build_sctp_payload(
             sctp_packet.extend_from_slice(&8_u16.to_be_bytes());
             sctp_packet.extend_from_slice(&1000_u32.to_be_bytes()); // Cumulative TSN Ack
         }
-        "COOKIE_ECHO" => {
+        "SHUTDOWNACK" => {
+            sctp_packet.push(8); // Type 8: SHUTDOWN_ACK (RFC 9260 §3.3.9)
+            sctp_packet.push(0);
+            sctp_packet.extend_from_slice(&4_u16.to_be_bytes());
+        }
+        "COOKIEECHO" => {
             let chunk_len = (4 + payload.len()) as u16;
             sctp_packet.push(10);
             sctp_packet.push(0);
@@ -159,7 +169,7 @@ pub fn build_sctp_payload(
                 sctp_packet.push(0);
             }
         }
-        "COOKIE_ACK" => {
+        "COOKIEACK" => {
             sctp_packet.push(11);
             sctp_packet.push(0);
             sctp_packet.extend_from_slice(&4_u16.to_be_bytes());
@@ -219,6 +229,59 @@ mod tests {
         assert_eq!(&pkt[0..2], &2905_u16.to_be_bytes());
         assert_eq!(&pkt[2..4], &2905_u16.to_be_bytes());
         assert_eq!(pkt[12], 1); // INIT chunk type
+    }
+
+    #[test]
+    fn test_sctp_shutdownack_and_normalized_chunks() {
+        let l2 = L2Modifiers::default();
+        let l3 = L3Modifiers::default();
+        let l4 = L4Modifiers::default();
+        let ctx = WireContext {
+            src_ip: "10.0.0.1".parse().unwrap(),
+            dst_ip: "10.0.0.2".parse().unwrap(),
+            src_mac: [0; 6],
+            dst_mac: [0; 6],
+            transport: None,
+            src_port: 38412,
+            dst_port: 38412,
+            seq: None,
+            ack: None,
+            l2: &l2,
+            l3: &l3,
+            l4: &l4,
+        };
+        let p_v2 = SctpParams {
+            chunk: Some(alloc::string::String::from("shutdownack")),
+            ..SctpParams::default()
+        };
+        let p_legacy = SctpParams {
+            chunk: Some(alloc::string::String::from("SHUTDOWN_ACK")),
+            ..SctpParams::default()
+        };
+        let (pkt_v2, _) = build_sctp_payload(&ctx, &p_v2, &[]).unwrap();
+        let (pkt_legacy, _) = build_sctp_payload(&ctx, &p_legacy, &[]).unwrap();
+        assert_eq!(pkt_v2, pkt_legacy);
+        assert_eq!(&pkt_v2[12..16], &[8, 0, 0, 4]);
+
+        for (lower, upper, expected_type) in [
+            ("initack", "INIT_ACK", 2u8),
+            ("heartbeatack", "HEARTBEAT_ACK", 5u8),
+            ("cookieecho", "COOKIE_ECHO", 10u8),
+            ("cookieack", "COOKIE_ACK", 11u8),
+        ] {
+            let a = SctpParams {
+                chunk: Some(alloc::string::String::from(lower)),
+                ..SctpParams::default()
+            };
+            let b = SctpParams {
+                chunk: Some(alloc::string::String::from(upper)),
+                ..SctpParams::default()
+            };
+            let (pa, _) = build_sctp_payload(&ctx, &a, &[]).unwrap();
+            let (pb, _) = build_sctp_payload(&ctx, &b, &[]).unwrap();
+            assert_eq!(pa, pb);
+            assert_eq!(pa[12], expected_type);
+        }
     }
 }
 

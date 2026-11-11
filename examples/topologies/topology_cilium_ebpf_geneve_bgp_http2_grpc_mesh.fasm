@@ -1,27 +1,27 @@
 // PROMPT: Kubernetes Cilium eBPF service mesh topology combining BGP Pod CIDR peering, GENEVE overlay encapsulation, HTTP/2 ingress, and gRPC pod-to-pod RPC.
-// TOKENS: HOST, IP, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, UPDATE, PREFIX, NEXTHOP, WAIT, GENEVE, VNI, PROTOCOL_TYPE, PAYLOAD, HTTP2, PREFACE, SETTINGS, HEADERS, STREAM_ID, GRPC, COMPILE
+// TOKENS: host, ip, flow, bgp, open, asn, holdtime, bgpid, update, prefix, nexthop, wait, ms, geneve, vni, protocoltype, payload, http2, preface, settings, headers, streamid, grpc, service, compile
 
 // INSTRUCTION: Define Top-of-Rack leaf router peering with Cilium nodes.
-HOST tor_bgp_leaf { IP 10.220.0.1 }
+host tor_bgp_leaf { ip 10.220.0.1 }
 
 // INSTRUCTION: Define Kubernetes worker node 1 running Cilium eBPF agent and ingress gateway.
-HOST k8s_cilium_node1 { IP 10.220.0.11 }
+host k8s_cilium_node1 { ip 10.220.0.11 }
 
 // INSTRUCTION: Define Kubernetes worker node 2 running backend gRPC microservice pods.
-HOST k8s_cilium_node2 { IP 10.220.0.12 }
+host k8s_cilium_node2 { ip 10.220.0.12 }
 
 // INSTRUCTION: Define BGP Pod CIDR advertisement, GENEVE tunnel encapsulation, HTTP/2 ingress, and gRPC service mesh call.
-FLOW cilium_ebpf_mesh_flow(tor, node1, node2) {
-    node1 -> tor BGP OPEN ASN 65101 HOLDTIME 90 BGPID 10.220.0.11
-    node1 -> tor BGP UPDATE PREFIX "10.244.1.0/24" NEXTHOP 10.220.0.11 WAIT 1ms
-    node2 -> tor BGP UPDATE PREFIX "10.244.2.0/24" NEXTHOP 10.220.0.12 WAIT 1ms
-    node1 -> node2 GENEVE VNI 12001 PROTOCOL_TYPE 0x6558 PAYLOAD "CILIUM_EBPF_IDENTITY_4096" WAIT 1ms
-    node1 -> node2 HTTP2 PREFACE SETTINGS WAIT 1ms
-    node1 -> node2 HTTP2 HEADERS STREAM_ID 3 PAYLOAD "POST /mesh.v1.Catalog/GetItem" WAIT 1ms
-    node1 <- node2 GRPC SERVICE "mesh.v1.Catalog" METHOD "GetItem" GRPC_STATUS 0 PAYLOAD "{\"sku\":\"NV-B200\"}" WAIT 1ms
+flow cilium_ebpf_mesh_flow(tor, node1, node2) {
+    node1 -> tor bgp open asn 65101 holdtime 90 bgpid 10.220.0.11
+    node1 -> tor bgp update prefix "10.244.1.0/24" nexthop 10.220.0.11 wait 1ms
+    node2 -> tor bgp update prefix "10.244.2.0/24" nexthop 10.220.0.12 wait 1ms
+    node1 -> node2 geneve vni 12001 protocoltype 0x6558 payload "CILIUM_EBPF_IDENTITY_4096" wait 1ms
+    node1 -> node2 http2 preface settings wait 1ms
+    node1 -> node2 http2 headers streamid 3 payload "POST /mesh.v1.Catalog/GetItem" wait 1ms
+    node1 <- node2 grpc service "mesh.v1.Catalog" method "GetItem" grpcstatus 0 payload "{\"sku\":\"NV-B200\"}" wait 1ms
 }
 
 // INSTRUCTION: Compile block executing Kubernetes Cilium eBPF service mesh topology.
-COMPILE {
+compile {
     cilium_ebpf_mesh_flow(tor_bgp_leaf, k8s_cilium_node1, k8s_cilium_node2)
 }

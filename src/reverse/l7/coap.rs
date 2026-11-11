@@ -1,9 +1,9 @@
 //! Constrained Application Protocol (CoAP, RFC 7252) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `COAP` v1 messages over UDP ports
-//! `5683` and `5684`. It decodes message types (`CON`, `NON`, `ACK`, `RST`), `"c.dd"` method and
+//! This module implements fuzz-safe wire-to-AST dissection for `coap` v1 messages over UDP ports
+//! `5683` and `5684`. It decodes message types (`con`, `non`, `ack`, `rst`), `"c.dd"` method and
 //! response codes (`code`), 16-bit message IDs (`msgid`), 4-byte tokens (`token`), delta-encoded
-//! `Uri-Path` (`11`, `uri_path`) and `Content-Format` (`12`, `content_format`) options, and the
+//! `Uri-Path` (`11`, `uripath`) and `Content-Format` (`12`, `contentformat`) options, and the
 //! `0xFF` payload marker.
 
 use alloc::format;
@@ -21,7 +21,7 @@ fn is_valid_raw_str(s: &str) -> bool {
         && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
 }
 
-/// Dissects a `COAP` RFC 7252 UDP message over ports `5683` or `5684`.
+/// Dissects a `coap` RFC 7252 UDP message over ports `5683` or `5684`.
 pub(crate) fn dissect_coap(
     transport: TransportProto,
     src_port: u16,
@@ -119,10 +119,10 @@ pub(crate) fn dissect_coap(
 
     if !path_segs.is_empty() {
         let joined = path_segs.join("/");
-        tokens.push_str(&format!(" uri_path \"{joined}\""));
+        tokens.push_str(&format!(" uripath \"{joined}\""));
     }
     if let Some(cf) = content_format {
-        tokens.push_str(&format!(" content_format {cf}"));
+        tokens.push_str(&format!(" contentformat {cf}"));
     }
 
     Some(ProtocolDissection {

@@ -1,22 +1,22 @@
 // PROMPT: POP3 invalid password authentication rejection returning -ERR response.
-// TOKENS: HOST, IP, FLOW, POP3, OK, WAIT, CMD, ARG, ERR, COMPILE
+// TOKENS: host, ip, flow, s, pop3, ok, wait, ms, cmd, arg, err, compile
 
 // INSTRUCTION: Define mail client attempting login.
-HOST client_host { IP 10.10.5.40 }
+host client_host { ip 10.10.5.40 }
 
 // INSTRUCTION: Define POP3 mail server.
-HOST mail_host { IP 10.10.5.10 }
+host mail_host { ip 10.10.5.10 }
 
 // INSTRUCTION: Define POP3 login attempt where PASS fails with -ERR.
-FLOW pop3_auth_fail(c, s) {
-    c <- s POP3 OK WAIT 5ms
-    c -> s POP3 CMD "USER" ARG "jdoe@corp.example" WAIT 5ms
-    c <- s POP3 OK WAIT 5ms
-    c -> s POP3 CMD "PASS" ARG "wrong_password_123" WAIT 10ms
-    c <- s POP3 ERR
+flow pop3_auth_fail(c, s) {
+    c <- s pop3 ok wait 5ms
+    c -> s pop3 cmd "USER" arg "jdoe@corp.example" wait 5ms
+    c <- s pop3 ok wait 5ms
+    c -> s pop3 cmd "PASS" arg "wrong_password_123" wait 10ms
+    c <- s pop3 err
 }
 
 // INSTRUCTION: Compile failed POP3 login scenario.
-COMPILE {
+compile {
     pop3_auth_fail(client_host, mail_host)
 }

@@ -1,12 +1,12 @@
 //! Modbus TCP Layer 7 industrial automation and SCADA register field parser.
 //!
-//! This module implements the `winnow` parser combinator for `MODBUS` Application Protocol (`MBAP`)
-//! frames over TCP port 502 in FrameAssembly `.fasm` specifications. It recognizes the `MODBUS`
-//! protocol keyword, MBAP transaction IDs (`TXID`), protocol IDs (`PROTO_ID`), slave unit IDs
-//! (`UNITID`), explicit `FUNC` names, shorthand function keywords (`READ_COILS`,
-//! `READ_DISCRETE_INPUTS`, `READ_HOLDING_REGISTERS`, `READ_INPUT_REGISTERS`, `WRITE_SINGLE_COIL`,
-//! `WRITE_SINGLE_REGISTER`, `WRITE_MULTIPLE_REGISTERS`), starting addresses (`ADDR`), register
-//! counts (`COUNT`), register values (`VALUE`), and `IS_RESPONSE` flags.
+//! This module implements the `winnow` parser combinator for `modbus` Application Protocol (`MBAP`)
+//! frames over TCP port 502 in FrameAssembly `.fasm` specifications. It recognizes the `modbus`
+//! protocol keyword, MBAP transaction IDs (`txid`), protocol IDs (`protoid`), slave unit IDs
+//! (`unitid`), explicit `func` names, shorthand function keywords (`readcoils`,
+//! `readdiscreteinputs`, `readholdingregisters`, `readinputregisters`, `writesinglecoil`,
+//! `writesingleregister`, `writemultipleregisters`), starting addresses (`addr`), register
+//! counts (`count`), register values (`value`), and `isresponse` flags.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

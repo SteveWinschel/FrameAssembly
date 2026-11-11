@@ -1,18 +1,18 @@
 // PROMPT: WHOIS IP address allocation query over IPv6.
-// TOKENS: HOST, IP, FLOW, WHOIS, QUERY, DOMAIN, COMPILE
+// TOKENS: host, ip, flow, s, whois, query, domain, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 2001:db8::50 }
+host client { ip 2001:db8::50 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 2001:db8::1 }
+host server { ip 2001:db8::1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW whois_v6(c, s) {
-    c -> s WHOIS QUERY DOMAIN "2001:db8::/32"
+flow whois_v6(c, s) {
+    c -> s whois query domain "2001:db8::/32"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     whois_v6(client, server)
 }

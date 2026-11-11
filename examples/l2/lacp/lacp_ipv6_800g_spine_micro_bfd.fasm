@@ -1,27 +1,27 @@
 // PROMPT: IPv6 data center spine-to-super-spine 800GbE port-channel LACP negotiation and BFD micro-session verification.
-// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, BFD, STATE, MY_DISC, YOUR_DISC, COMPILE
+// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, bfd, state, mydisc, yourdisc, compile
 
 // INSTRUCTION: Define IPv6 spine switch 800GbE LAG member.
-HOST spine_800g_v6 {
-    IP 2001:db8:800:1::1
-    MAC 2c:60:0c:08:00:01
+host spine_800g_v6 {
+    ip 2001:db8:800:1::1
+    mac 2c:60:0c:08:00:01
 }
 
 // INSTRUCTION: Define IPv6 super-spine switch 800GbE LAG member.
-HOST superspine_800g_v6 {
-    IP 2001:db8:800:1::2
-    MAC 2c:60:0c:08:00:02
+host superspine_800g_v6 {
+    ip 2001:db8:800:1::2
+    mac 2c:60:0c:08:00:02
 }
 
 // INSTRUCTION: Define LACP synchronization followed by RFC 7130 BFD-over-LAG micro-session health check.
-FLOW ipv6_800g_lacp_and_bfd(spine, sspine) {
-    spine -> sspine LACP ACTOR_SYS 2c:60:0c:08:00:01 ACTOR_KEY 800 ACTOR_PORT 1 ACTOR_STATE 63 PARTNER_SYS 2c:60:0c:08:00:02 PARTNER_KEY 800 PARTNER_PORT 1 PARTNER_STATE 63
-    spine <- sspine LACP ACTOR_SYS 2c:60:0c:08:00:02 ACTOR_KEY 800 ACTOR_PORT 1 ACTOR_STATE 63 PARTNER_SYS 2c:60:0c:08:00:01 PARTNER_KEY 800 PARTNER_PORT 1 PARTNER_STATE 63 WAIT 2ms
-    spine -> sspine BFD STATE 3 MY_DISC 8001 YOUR_DISC 8002 WAIT 1ms
-    spine <- sspine BFD STATE 3 MY_DISC 8002 YOUR_DISC 8001 WAIT 1ms
+flow ipv6_800g_lacp_and_bfd(spine, sspine) {
+    spine -> sspine lacp actorsys 2c:60:0c:08:00:01 actorkey 800 actorport 1 actorstate 63 partnersys 2c:60:0c:08:00:02 partnerkey 800 partnerport 1 partnerstate 63
+    spine <- sspine lacp actorsys 2c:60:0c:08:00:02 actorkey 800 actorport 1 actorstate 63 partnersys 2c:60:0c:08:00:01 partnerkey 800 partnerport 1 partnerstate 63 wait 2ms
+    spine -> sspine bfd state 3 mydisc 8001 yourdisc 8002 wait 1ms
+    spine <- sspine bfd state 3 mydisc 8002 yourdisc 8001 wait 1ms
 }
 
 // INSTRUCTION: Compile block executing IPv6 800GbE LACP and micro-BFD verification.
-COMPILE {
+compile {
     ipv6_800g_lacp_and_bfd(spine_800g_v6, superspine_800g_v6)
 }

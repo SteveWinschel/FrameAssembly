@@ -1,25 +1,25 @@
 // PROMPT: RFC 7130 micro-BFD session running per Link Aggregation Group (LAG) member link to verify individual port forwarding.
-// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, SRCPORT, DSTPORT, DSCP, TTL, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, srcport, dstport, dscp, ttl, wait, ms, compile
 
 // INSTRUCTION: Define LAG member link 1 on switch A with dedicated source MAC.
-HOST lag_member1_sw_a {
-    IP 10.71.30.1
-    MAC 00:1c:73:71:30:01
+host lag_member1_sw_a {
+    ip 10.71.30.1
+    mac 00:1c:73:71:30:01
 }
 
 // INSTRUCTION: Define LAG member link 1 on switch B with dedicated peer MAC.
-HOST lag_member1_sw_b {
-    IP 10.71.30.2
-    MAC 00:1c:73:71:30:02
+host lag_member1_sw_b {
+    ip 10.71.30.2
+    mac 00:1c:73:71:30:02
 }
 
 // INSTRUCTION: Define RFC 7130 micro-BFD control exchange at 10ms TX/RX intervals with TTL 255.
-FLOW micro_bfd_lag_member(sw_a, sw_b) {
-    sw_a -> sw_b BFD STATE 3 DIAG 0 MY_DISC 71301 YOUR_DISC 71302 MIN_TX 10000 MIN_RX 10000 MULT 3 SRCPORT 49152 DSTPORT 3784 DSCP 48 TTL 255 WAIT 10ms
-    sw_a <- sw_b BFD STATE 3 DIAG 0 MY_DISC 71302 YOUR_DISC 71301 MIN_TX 10000 MIN_RX 10000 MULT 3 SRCPORT 49153 DSTPORT 3784 DSCP 48 TTL 255
+flow micro_bfd_lag_member(sw_a, sw_b) {
+    sw_a -> sw_b bfd state 3 diag 0 mydisc 71301 yourdisc 71302 mintx 10000 minrx 10000 mult 3 srcport 49152 dstport 3784 dscp 48 ttl 255 wait 10ms
+    sw_a <- sw_b bfd state 3 diag 0 mydisc 71302 yourdisc 71301 mintx 10000 minrx 10000 mult 3 srcport 49153 dstport 3784 dscp 48 ttl 255
 }
 
 // INSTRUCTION: Compile the RFC 7130 micro-BFD LAG member verification flow.
-COMPILE {
+compile {
     micro_bfd_lag_member(lag_member1_sw_a, lag_member1_sw_b)
 }

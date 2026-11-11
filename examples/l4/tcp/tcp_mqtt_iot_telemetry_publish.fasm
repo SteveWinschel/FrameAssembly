@@ -1,31 +1,33 @@
 // PROMPT: Simulate an IoT sensor publishing telemetry topics to an MQTT broker over TCP port 1883 with QoS 1 PUBACK acknowledgments.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, COMPILE, LOOP
+// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, win, wait, ms, ack, psh, payload, compile
 
 // INSTRUCTION: Define an IoT environmental sensor with IP 192.168.40.101.
-HOST iot_sensor { IP 192.168.40.101 MAC b8:27:eb:10:20:30 }
+host iot_sensor { ip 192.168.40.101 mac b8:27:eb:10:20:30 }
 
 // INSTRUCTION: Define an MQTT message broker with IP 192.168.40.10.
-HOST mqtt_broker { IP 192.168.40.10 MAC b8:27:eb:00:00:01 }
+host mqtt_broker { ip 192.168.40.10 mac b8:27:eb:00:00:01 }
 
 // INSTRUCTION: Define a flow for the initial MQTT TCP handshake and CONNECT/CONNACK exchange on port 1883.
-FLOW mqtt_connect(sensor, broker) {
-    sensor -> broker TCP SYN SRCPORT 41883 DSTPORT 1883 WIN 8192 WAIT 10ms
-    sensor <- broker TCP SYN ACK SRCPORT 1883 DSTPORT 41883 WIN 32768 WAIT 10ms
-    sensor -> broker TCP ACK SRCPORT 41883 DSTPORT 1883 WIN 8192 WAIT 5ms
-    sensor -> broker TCP PSH ACK SRCPORT 41883 DSTPORT 1883 PAYLOAD "MQTT_CONNECT_sensor_101" WAIT 10ms
-    sensor <- broker TCP PSH ACK SRCPORT 1883 DSTPORT 41883 PAYLOAD "MQTT_CONNACK_0" WAIT 10ms
+flow mqtt_connect(sensor, broker) {
+    sensor -> broker tcp syn srcport 41883 dstport 1883 win 8192 wait 10ms
+    sensor <- broker tcp syn ack srcport 1883 dstport 41883 win 32768 wait 10ms
+    sensor -> broker tcp ack srcport 41883 dstport 1883 win 8192 wait 5ms
+    sensor -> broker tcp psh ack srcport 41883 dstport 1883 payload "MQTT_CONNECT_sensor_101" wait 10ms
+    sensor <- broker tcp psh ack srcport 1883 dstport 41883 payload "MQTT_CONNACK_0" wait 10ms
 }
 
 // INSTRUCTION: Define a flow for publishing QoS 1 sensor telemetry and receiving PUBACK.
-FLOW mqtt_publish_telemetry(sensor, broker) {
-    sensor -> broker TCP PSH ACK SRCPORT 41883 DSTPORT 1883 PAYLOAD "MQTT_PUBLISH_factory/temp_23.4C" WAIT 50ms
-    sensor <- broker TCP PSH ACK SRCPORT 1883 DSTPORT 41883 PAYLOAD "MQTT_PUBACK_MSGID_1" WAIT 10ms
+flow mqtt_publish_telemetry(sensor, broker) {
+    sensor -> broker tcp psh ack srcport 41883 dstport 1883 payload "MQTT_PUBLISH_factory/temp_23.4C" wait 50ms
+    sensor <- broker tcp psh ack srcport 1883 dstport 41883 payload "MQTT_PUBACK_MSGID_1" wait 10ms
 }
 
 // INSTRUCTION: Compile block to connect once and publish telemetry 10 times in a loop.
-COMPILE {
+compile {
     mqtt_connect(iot_sensor, mqtt_broker)
-    LOOP 10 {
-        mqtt_publish_telemetry(iot_sensor, mqtt_broker)
-    }
+    mqtt_publish_telemetry(iot_sensor, mqtt_broker) // cycle 1 of 10
+    mqtt_publish_telemetry(iot_sensor, mqtt_broker) // cycle 2 of 10
+    mqtt_publish_telemetry(iot_sensor, mqtt_broker) // cycle 3 of 10
+    mqtt_publish_telemetry(iot_sensor, mqtt_broker) // cycle 4 of 10
+    mqtt_publish_telemetry(iot_sensor, mqtt_broker) // cycle 5 of 10
 }

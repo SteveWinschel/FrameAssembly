@@ -1,31 +1,31 @@
 // PROMPT: SMB2 client mounting two distinct shares (staging and production) on the same session to copy a release artifact.
-// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, SESSION_ID, MSGID, SHARE, STATUS, TREE_ID, WAIT, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, smb, command, sessionid, msgid, share, status, treeid, wait, ms, payload, compile
 
 // INSTRUCTION: Define the release automation worker host.
-HOST release_worker {
-    IP 10.60.110.18
-    MAC 00:1a:2b:60:aa:18
+host release_worker {
+    ip 10.60.110.18
+    mac 00:1a:2b:60:aa:18
 }
 
 // INSTRUCTION: Define the artifact repository SMB server.
-HOST artifact_srv {
-    IP 10.60.110.2
-    MAC 00:1a:2b:60:aa:02
+host artifact_srv {
+    ip 10.60.110.2
+    mac 00:1a:2b:60:aa:02
 }
 
 // INSTRUCTION: Connect to both staging and prod shares under SESSION_ID 8800, read from TREE_ID 1, and write to TREE_ID 2.
-FLOW smb_cross_share_copy(c, s) {
-    c -> s SMB COMMAND "TREE_CONNECT" SESSION_ID 8800 MSGID 1 SHARE "\\repo\staging"
-    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 1 SESSION_ID 8800 MSGID 1 WAIT 1ms
-    c -> s SMB COMMAND "TREE_CONNECT" SESSION_ID 8800 MSGID 2 SHARE "\\repo\production"
-    c <- s SMB COMMAND "TREE_CONNECT" STATUS 0 TREE_ID 2 SESSION_ID 8800 MSGID 2 WAIT 1ms
-    c -> s SMB COMMAND "READ" TREE_ID 1 SESSION_ID 8800 MSGID 3
-    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 1 SESSION_ID 8800 MSGID 3 PAYLOAD "BINARY_RELEASE_TAR_ZST" WAIT 1ms
-    c -> s SMB COMMAND "WRITE" TREE_ID 2 SESSION_ID 8800 MSGID 4 PAYLOAD "BINARY_RELEASE_TAR_ZST"
-    c <- s SMB COMMAND "WRITE" STATUS 0 TREE_ID 2 SESSION_ID 8800 MSGID 4
+flow smb_cross_share_copy(c, s) {
+    c -> s smb command "treeconnect" sessionid 8800 msgid 1 share "\\repo\staging"
+    c <- s smb command "treeconnect" status 0 treeid 1 sessionid 8800 msgid 1 wait 1ms
+    c -> s smb command "treeconnect" sessionid 8800 msgid 2 share "\\repo\production"
+    c <- s smb command "treeconnect" status 0 treeid 2 sessionid 8800 msgid 2 wait 1ms
+    c -> s smb command "read" treeid 1 sessionid 8800 msgid 3
+    c <- s smb command "read" status 0 treeid 1 sessionid 8800 msgid 3 payload "BINARY_RELEASE_TAR_ZST" wait 1ms
+    c -> s smb command "write" treeid 2 sessionid 8800 msgid 4 payload "BINARY_RELEASE_TAR_ZST"
+    c <- s smb command "write" status 0 treeid 2 sessionid 8800 msgid 4
 }
 
 // INSTRUCTION: Compile the multi-share cross-copy SMB2 flow.
-COMPILE {
+compile {
     smb_cross_share_copy(release_worker, artifact_srv)
 }

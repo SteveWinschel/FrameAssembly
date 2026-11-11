@@ -1,18 +1,18 @@
 // PROMPT: Carrier core router IPFIX export encapsulated in MPLS and IEEE 802.1ad QinQ tags.
-// TOKENS: HOST, IP, FLOW, IPFIX, DOMAIN_ID, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, QINQ, INNER_VLAN, MPLS, EXP, BOS, MPLS_TTL, COMPILE
+// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, proto, packets, octets, qinq, innervlan, mpls, exp, bos, mplsttl, compile
 
 // INSTRUCTION: Define provider edge (PE) router exporter.
-HOST pe_router { IP 100.64.47.1 }
+host pe_router { ip 100.64.47.1 }
 
 // INSTRUCTION: Define central traffic engineering IPFIX collector.
-HOST te_collector { IP 100.64.47.99 }
+host te_collector { ip 100.64.47.99 }
 
 // INSTRUCTION: Export BGP peer traffic statistics over QinQ and MPLS label 4739.
-FLOW ipfix_carrier_mpls_qinq(pe, te) {
-    pe -> te IPFIX DOMAIN_ID 1001 SRCIP 198.18.1.1 DSTIP 198.18.2.1 PROTO 6 PACKETS 45000 OCTETS 64000000 QINQ 2500 INNER_VLAN 47 MPLS 4739 EXP 3 BOS 1 MPLS_TTL 64
+flow ipfix_carrier_mpls_qinq(pe, te) {
+    pe -> te ipfix domainid 1001 srcip 198.18.1.1 dstip 198.18.2.1 proto 6 packets 45000 octets 64000000 qinq 2500 innervlan 47 mpls 4739 exp 3 bos 1 mplsttl 64
 }
 
 // INSTRUCTION: Compile the QinQ and MPLS IPFIX carrier export flow.
-COMPILE {
+compile {
     ipfix_carrier_mpls_qinq(pe_router, te_collector)
 }

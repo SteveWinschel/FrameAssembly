@@ -1,9 +1,9 @@
-//! IP Security (`IPSEC`, RFC 4301 / RFC 4303) Security Association field parser.
+//! IP Security (`ipsec`, RFC 4301 / RFC 4303) Security Association field parser.
 //!
-//! This module implements the winnow parser combinator for `IPSEC` security headers and parameters
-//! shared across Encapsulating Security Payload (`ESP`) and Authentication Header (`AH`) frames.
-//! It parses 32-bit Security Parameters Index values (`SPI`), Initialization Vectors (`IV`),
-//! Integrity Check Values (`ICV`), sequence numbers (`SEQ`), and `NEXT_HEADER` protocol numbers.
+//! This module implements the winnow parser combinator for `ipsec` security headers and parameters
+//! shared across Encapsulating Security Payload (`esp`) and Authentication Header (`ah`) frames.
+//! It parses 32-bit Security Parameters Index values (`spi`), Initialization Vectors (`iv`),
+//! Integrity Check Values (`icv`), sequence numbers (`seq`), and `nextheader` protocol numbers.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

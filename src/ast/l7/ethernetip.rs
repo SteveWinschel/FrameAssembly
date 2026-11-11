@@ -7,40 +7,41 @@
 //! `SendRRData`, 16-bit data length, 32-bit Session Handle, 32-bit Status code, 64-bit Sender
 //! Context, and 32-bit Options) followed by Common Packet Format (CPF) items and a CIP request/reply
 //! path (Service, Class, Instance, and Attribute). Canonical `.fasm` syntax:
-//! `ETHERNETIP [CMD <str>] [SESSION_HANDLE <u32>] [STATUS <u32>] [CONTEXT <u64>] [CIP_SERVICE <u8>] [CIP_CLASS <u16>] [CIP_INSTANCE <u16>] [CIP_ATTR <u16>]`.
+//! `ethernetip [nop | listidentity | registersession | sendrrdata | sendunitdata | cmd <str>] [sessionhandle <u32>] [status <u32>] [context <u64>] [cipservice <u8>] [cipclass <u16>] [cipinstance <u16>] [cipattr <u16>]`.
 
 /// ODVA EtherNet/IP encapsulation and Common Industrial Protocol (CIP) specification.
 ///
-/// Syntax mapping: `ETHERNETIP [CMD <str>] [SESSION_HANDLE <u32>] [STATUS <u32>] [CONTEXT <u64>] [CIP_SERVICE <u8>] [CIP_CLASS <u16>] [CIP_INSTANCE <u16>] [CIP_ATTR <u16>]`
-#[doc(alias = "ETHERNETIP")]
+/// Syntax mapping: `ethernetip [nop | listidentity | registersession | sendrrdata | sendunitdata | cmd <str>] [sessionhandle <u32>] [status <u32>] [context <u64>] [cipservice <u8>] [cipclass <u16>] [cipinstance <u16>] [cipattr <u16>]`
+#[doc(alias = "ethernetip")]
 #[doc(alias = "EtherNet/IP")]
 #[doc(alias = "ODVA")]
 #[doc(alias = "CIP")]
 #[doc(alias = "44818")]
-#[doc(alias = "CMD")]
-#[doc(alias = "SESSION_HANDLE")]
-#[doc(alias = "STATUS")]
-#[doc(alias = "CONTEXT")]
-#[doc(alias = "CIP_SERVICE")]
-#[doc(alias = "CIP_CLASS")]
-#[doc(alias = "CIP_INSTANCE")]
-#[doc(alias = "CIP_ATTR")]
+#[doc(alias = "nop")]
+#[doc(alias = "cmd")]
+#[doc(alias = "sessionhandle")]
+#[doc(alias = "status")]
+#[doc(alias = "context")]
+#[doc(alias = "cipservice")]
+#[doc(alias = "cipclass")]
+#[doc(alias = "cipinstance")]
+#[doc(alias = "cipattr")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct EthernetipSpec<'a> {
-    /// EtherNet/IP encapsulation command (`CMD <str>`, e.g., `"LIST_IDENTITY"`, `"REGISTER_SESSION"`, `"SEND_RR_DATA"`, `"SEND_UNIT_DATA"`).
+    /// EtherNet/IP encapsulation command (`cmd <str>`, e.g., `"LIST_IDENTITY"`, `"REGISTER_SESSION"`, `"SEND_RR_DATA"`, `"SEND_UNIT_DATA"`).
     pub cmd: Option<&'a str>,
-    /// 32-bit encapsulation Session Handle (`SESSION_HANDLE <u32>`, default `0`).
+    /// 32-bit encapsulation Session Handle (`sessionhandle <u32>`, default `0`).
     pub session_handle: Option<u32>,
-    /// 32-bit encapsulation Status code (`STATUS <u32>`, default `0`).
+    /// 32-bit encapsulation Status code (`status <u32>`, default `0`).
     pub status: Option<u32>,
-    /// 64-bit Sender Context correlation value (`CONTEXT <u64>`, default `0`).
+    /// 64-bit Sender Context correlation value (`context <u64>`, default `0`).
     pub context: Option<u64>,
-    /// 8-bit CIP Service code (`CIP_SERVICE <u8>`, default `0x0E` for `Get_Attribute_Single`).
+    /// 8-bit CIP Service code (`cipservice <u8>`, default `0x0E` for `Get_Attribute_Single`).
     pub cip_service: Option<u8>,
-    /// 16-bit CIP Object Class ID (`CIP_CLASS <u16>`, default `1` for Identity Object).
+    /// 16-bit CIP Object Class ID (`cipclass <u16>`, default `1` for Identity Object).
     pub cip_class: Option<u16>,
-    /// 16-bit CIP Object Instance ID (`CIP_INSTANCE <u16>`, default `1`).
+    /// 16-bit CIP Object Instance ID (`cipinstance <u16>`, default `1`).
     pub cip_instance: Option<u16>,
-    /// Optional 16-bit CIP Attribute ID (`CIP_ATTR <u16>`).
+    /// Optional 16-bit CIP Attribute ID (`cipattr <u16>`).
     pub cip_attr: Option<u16>,
 }

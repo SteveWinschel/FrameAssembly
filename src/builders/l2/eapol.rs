@@ -7,7 +7,7 @@
 //! `Identifier`, 16-bit `Length`, `Type/Method`, and optional identity or method data).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b EAPOL [VERSION <u8>] [TYPE <EAP_PACKET|START|LOGOFF|KEY>] [EAP_CODE <u8>] [EAP_ID <u8>] [EAP_METHOD <u8>] [IDENTITY "<str>"]`
+//! `a -> b eapol [version <u8>] [type <eappacket|start|logoff|key>] [eapcode <u8>] [eapid <u8>] [eapmethod <u8>] [identity "<str>"]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

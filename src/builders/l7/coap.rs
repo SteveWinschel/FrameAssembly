@@ -2,7 +2,7 @@
 //!
 //! This module implements [`build_coap_payload`], which serializes a [`CoapSpec`]
 //! AST specification into an RFC 7252 CoAP binary frame over UDP port 5683 (or 5684 for CoAPS).
-//! It packs the 4-byte CoAP header (Version `1`, 2-bit Type `CON`/`NON`/`ACK`/`RST`, Token Length,
+//! It packs the 4-byte CoAP header (Version `1`, 2-bit Type `con`/`non`/`ack`/`rst`, Token Length,
 //! `c.dd` Code byte `(class << 5) | detail`, and 16-bit Message ID), appends the optional 32-bit
 //! Token, delta-encodes `Uri-Path` (Option 11) and `Content-Format` (Option 12), and appends the
 //! `0xFF` payload marker when payload bytes are present.
@@ -18,7 +18,12 @@ pub fn build_coap_payload(
     payload_bytes: &[u8],
 ) -> Vec<u8> {
     let mut pkt = Vec::new();
-    let type_val = match spec.msg_type.unwrap_or("CON").to_ascii_uppercase().as_str() {
+    let type_norm = spec
+        .msg_type
+        .unwrap_or("con")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    let type_val = match type_norm.as_str() {
         "CON" => 0u8,
         "NON" => 1u8,
         "ACK" => 2u8,
@@ -27,20 +32,27 @@ pub fn build_coap_payload(
     };
 
     let code_byte = if let Some(code_str) = spec.code {
-        let upper = code_str.trim().to_ascii_uppercase();
-        if let Some((c_str, d_str)) = upper.split_once('.') {
+        let trimmed = code_str.trim();
+        if let Some((c_str, d_str)) = trimmed.split_once('.') {
             let c = c_str.parse::<u8>().unwrap_or(0) & 0x07;
             let d = d_str.parse::<u8>().unwrap_or(1) & 0x1F;
             (c << 5) | d
         } else {
-            match upper.as_str() {
+            let norm = trimmed.to_ascii_uppercase().replace(['_', '-'], "");
+            match norm.as_str() {
                 "EMPTY" => 0x00,
                 "GET" => 0x01,
                 "POST" => 0x02,
                 "PUT" => 0x03,
                 "DELETE" => 0x04,
+                "CREATED" => 0x41,
+                "DELETED" => 0x42,
+                "VALID" => 0x43,
+                "CHANGED" => 0x44,
+                "CONTENT" => 0x45,
+                "NOTFOUND" => 0x84,
                 _ => {
-                    if let Ok(n) = upper.parse::<u16>() {
+                    if let Ok(n) = norm.parse::<u16>() {
                         if n >= 100 {
                             let c = ((n / 100) as u8) & 0x07;
                             let d = ((n % 100) as u8) & 0x1F;

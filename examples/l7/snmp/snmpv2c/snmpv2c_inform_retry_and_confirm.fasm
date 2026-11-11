@@ -1,32 +1,32 @@
 // PROMPT: Simulate an SNMPv2c INFORM notification timeout and retransmission with the same REQID before the NMS returns a RESPONSE acknowledgment.
-// TOKENS: HOST, IP, MAC, FLOW, SNMP2, INFORM, SRCPORT, DSTPORT, COMMUNITY, REQID, OID, SYSUPTIME, VARBIND, INT, STRING, WAIT, RESPONSE, COMPILE
+// TOKENS: host, ip, mac, flow, router, snmp2, inform, srcport, dstport, community, reqid, oid, sysuptime, varbind, int, string, wait, s, ms, response, compile
 
 // INSTRUCTION: Define a remote WAN router sending INFORM alerts with IP 10.136.0.1.
-HOST wan_edge_rtr { IP 10.136.0.1 MAC 00:0c:86:36:00:01 }
+host wan_edge_rtr { ip 10.136.0.1 mac 00:0c:86:36:00:01 }
 
 // INSTRUCTION: Define the primary NMS trap/inform receiver with IP 10.136.0.200.
-HOST primary_nms { IP 10.136.0.200 MAC 00:0c:86:36:00:c8 }
+host primary_nms { ip 10.136.0.200 mac 00:0c:86:36:00:c8 }
 
 // INSTRUCTION: Define a flow where an INFORM is sent, retried after 2s with identical REQID 8905, and then acknowledged via RESPONSE.
-FLOW snmpv2c_inform_retry(router, nms) {
-    router -> nms SNMP2 INFORM SRCPORT 58162 DSTPORT 162 COMMUNITY "wan_inform"
-        REQID 8905 OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 410000
-        VARBIND 1.3.6.1.2.1.2.2.1.1.8 INT 8
-        VARBIND 1.3.6.1.2.1.2.2.1.2.8 STRING "Serial0/1/0"
-        WAIT 2s
-    router -> nms SNMP2 INFORM SRCPORT 58162 DSTPORT 162 COMMUNITY "wan_inform"
-        REQID 8905 OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 410200
-        VARBIND 1.3.6.1.2.1.2.2.1.1.8 INT 8
-        VARBIND 1.3.6.1.2.1.2.2.1.2.8 STRING "Serial0/1/0"
-        WAIT 20ms
-    router <- nms SNMP2 RESPONSE SRCPORT 162 DSTPORT 58162 COMMUNITY "wan_inform"
-        REQID 8905
-        VARBIND 1.3.6.1.2.1.2.2.1.1.8 INT 8
-        VARBIND 1.3.6.1.2.1.2.2.1.2.8 STRING "Serial0/1/0"
-        WAIT 10ms
+flow snmpv2c_inform_retry(router, nms) {
+    router -> nms snmp2 inform srcport 58162 dstport 162 community "wan_inform"
+        reqid 8905 oid 1.3.6.1.6.3.1.1.5.3 sysuptime 410000
+        varbind 1.3.6.1.2.1.2.2.1.1.8 int 8
+        varbind 1.3.6.1.2.1.2.2.1.2.8 string "Serial0/1/0"
+        wait 2s
+    router -> nms snmp2 inform srcport 58162 dstport 162 community "wan_inform"
+        reqid 8905 oid 1.3.6.1.6.3.1.1.5.3 sysuptime 410200
+        varbind 1.3.6.1.2.1.2.2.1.1.8 int 8
+        varbind 1.3.6.1.2.1.2.2.1.2.8 string "Serial0/1/0"
+        wait 20ms
+    router <- nms snmp2 response srcport 162 dstport 58162 community "wan_inform"
+        reqid 8905
+        varbind 1.3.6.1.2.1.2.2.1.1.8 int 8
+        varbind 1.3.6.1.2.1.2.2.1.2.8 string "Serial0/1/0"
+        wait 10ms
 }
 
 // INSTRUCTION: Compile block to run the SNMPv2c INFORM retry and confirmation flow.
-COMPILE {
+compile {
     snmpv2c_inform_retry(wan_edge_rtr, primary_nms)
 }

@@ -1,25 +1,25 @@
 // PROMPT: Generate an IPv6 Neighbor Solicitation and Advertisement sequence with explicit IPv6 Flow Labels
-// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_SOLICIT, TARGET, SLLA, FLOWLABEL, TTL, WAIT, NEIGHBOR_ADVERT, TLLA, COMPILE
+// TOKENS: host, ip, mac, flow, ndp, neighborsolicit, target, slla, flowlabel, ttl, wait, ms, neighboradvert, tlla, compile
 
 // INSTRUCTION: Define the primary IPv6 storage node
-HOST storage_v6_a {
-    IP 2001:db8:810::10
-    MAC 00:25:90:d8:08:10
+host storage_v6_a {
+    ip 2001:db8:810::10
+    mac 00:25:90:d8:08:10
 }
 
 // INSTRUCTION: Define the secondary IPv6 storage node
-HOST storage_v6_b {
-    IP 2001:db8:810::20
-    MAC 00:25:90:d8:08:20
+host storage_v6_b {
+    ip 2001:db8:810::20
+    mac 00:25:90:d8:08:20
 }
 
 // INSTRUCTION: Exchange Neighbor Discovery messages carrying non-zero IPv6 Flow Labels
-FLOW ndp_flowlabel_resolution(node_a, node_b) {
-    node_a -> node_b NDP NEIGHBOR_SOLICIT TARGET 2001:db8:810::20 SLLA 00:25:90:d8:08:10 FLOWLABEL 65535 TTL 255 WAIT 10ms
-    node_b -> node_a NDP NEIGHBOR_ADVERT TARGET 2001:db8:810::20 TLLA 00:25:90:d8:08:20 FLOWLABEL 65535 TTL 255
+flow ndp_flowlabel_resolution(node_a, node_b) {
+    node_a -> node_b ndp neighborsolicit target 2001:db8:810::20 slla 00:25:90:d8:08:10 flowlabel 65535 ttl 255 wait 10ms
+    node_b -> node_a ndp neighboradvert target 2001:db8:810::20 tlla 00:25:90:d8:08:20 flowlabel 65535 ttl 255
 }
 
 // INSTRUCTION: Compile the Flow Label NDP neighbor resolution flow
-COMPILE {
+compile {
     ndp_flowlabel_resolution(storage_v6_a, storage_v6_b)
 }

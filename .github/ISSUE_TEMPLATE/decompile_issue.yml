@@ -1,0 +1,66 @@
+name: PCAP Reverse / Decompile Issue
+description: Report a .pcap or .pcapng capture that fails to reverse, drops fields, or falls back to hexpayload
+title: "[Reverse]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report an accuracy or parsing issue with `frameassembly reverse <input.pcap> [output.fasm]`, the VS Code **Reverse Capture to .fasm** command, or the browser playground decompiler.
+        **Important:** Please sanitize any sensitive IP addresses, credentials, or internal hostnames before pasting packet captures or hex bytes.
+
+  - type: input
+    id: version
+    attributes:
+      label: FrameAssembly Version
+      description: Output of `frameassembly version` (or VS Code extension / playground version).
+      placeholder: "frameassembly 2.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: container_format
+    attributes:
+      label: Capture Container & Link Type
+      options:
+        - PCAPNG (.pcapng) — Ethernet (LinkType 1)
+        - Legacy PCAP (.pcap) — Ethernet (LinkType 1)
+        - Linux Cooked Capture SLL / SLL2 (LinkType 113 / 276)
+        - Raw IPv4 / IPv6 (LinkType 101 / 228 / 229)
+        - BSD Loopback / Null (LinkType 0)
+        - Other / Unsure
+    validations:
+      required: true
+
+  - type: input
+    id: protocols
+    attributes:
+      label: Protocols Present in Capture
+      description: Which L2-L7 protocols are inside the affected packet(s)?
+      placeholder: "e.g. VLAN + IPv6 + UDP + SNMPv3 trap"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_output
+    attributes:
+      label: Actual Output or Error
+      description: Paste the `.fasm` output or error message produced by `frameassembly reverse`.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_output
+    attributes:
+      label: Expected .fasm Output
+      description: Describe which protocol keywords or header modifiers you expected to see instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: hex_reproducer
+    attributes:
+      label: Sanitized Frame Hex Dump (Optional)
+      description: Output of `tshark -r sample.pcap -x` for a single sanitized packet so we can add a regression test.
+      render: text

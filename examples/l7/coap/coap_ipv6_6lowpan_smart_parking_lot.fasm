@@ -1,25 +1,25 @@
 // PROMPT: IPv6 CoAP smart parking bay occupancy updates with DSCP CS2 and hop limit 64.
-// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, DSCP, TTL, PAYLOAD, ACK, COMPILE
+// TOKENS: host, ip, mac, flow, s, coap, con, code, msgid, token, uripath, contentformat, dscp, ttl, payload, ack, compile
 
 // INSTRUCTION: Define the underground magnetic parking bay sensor over IPv6.
-HOST bay_sensor_42 {
-    IP 2001:db8:110:120::42
-    MAC 00:1a:2b:6e:c0:42
+host bay_sensor_42 {
+    ip 2001:db8:110:120::42
+    mac 00:1a:2b:6e:c0:42
 }
 
 // INSTRUCTION: Define the parking garage signage controller over IPv6.
-HOST garage_controller {
-    IP 2001:db8:110:120::1
-    MAC 00:1a:2b:6e:c0:01
+host garage_controller {
+    ip 2001:db8:110:120::1
+    mac 00:1a:2b:6e:c0:01
 }
 
 // INSTRUCTION: Send Confirmable PUT occupancy state transition and receive 2.04 Changed over IPv6.
-FLOW coap_parking_update(s, c) {
-    s -> c COAP CON CODE "0.03" MSGID 12400 TOKEN 420 URI_PATH "lot/level2/bay42" CONTENT_FORMAT 50 DSCP 16 TTL 64 PAYLOAD "{'occupied':true}"
-    s <- c COAP ACK CODE "2.04" MSGID 12400 TOKEN 420 DSCP 16 TTL 64
+flow coap_parking_update(s, c) {
+    s -> c coap con code "0.03" msgid 12400 token 420 uripath "lot/level2/bay42" contentformat 50 dscp 16 ttl 64 payload "{'occupied':true}"
+    s <- c coap ack code "2.04" msgid 12400 token 420 dscp 16 ttl 64
 }
 
 // INSTRUCTION: Compile the IPv6 smart parking CoAP update flow.
-COMPILE {
+compile {
     coap_parking_update(bay_sensor_42, garage_controller)
 }

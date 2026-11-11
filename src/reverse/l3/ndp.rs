@@ -1,9 +1,9 @@
 //! IPv6 Neighbor Discovery Protocol (NDP, RFC 4861) Layer 3 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 4861 IPv6 Neighbor
-//! Discovery Protocol (`NDP`, carried over ICMPv6 Next Header `58` with message types `133..=137`).
-//! It decodes `router_solicit` (`133`), `router_advert` (`134`, `router_lifetime`),
-//! `neighbor_solicit` (`135`, `target`), and `neighbor_advert` (`136`, `target`), as well as
+//! Discovery Protocol (`ndp`, carried over ICMPv6 Next Header `58` with message types `133..=137`).
+//! It decodes `routersolicit` (`133`), `routeradvert` (`134`, `routerlifetime`),
+//! `neighborsolicit` (`135`, `target`), and `neighboradvert` (`136`, `target`), as well as
 //! Source and Target Link-Layer Address options (`slla` and `tlla`).
 
 use alloc::string::String;
@@ -16,7 +16,7 @@ use crate::reverse::{
     ProtocolDissection, be_u16, format_mac_lower, ipv6_at, mac_at, push_if, push_mac_if, sd,
 };
 
-/// Decompiles an RFC 4861 IPv6 `NDP` message (`133..=137`) into a [`ProtocolDissection`].
+/// Decompiles an RFC 4861 IPv6 `ndp` message (`133..=137`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_ndp(b: &[u8], src_mac: [u8; 6], dst_ip: Option<IpAddr>) -> ProtocolDissection {
     let (tp, mut t) = (b[0], String::from("ndp"));
     let dtgt = match dst_ip {
@@ -25,19 +25,19 @@ pub(crate) fn dissect_ndp(b: &[u8], src_mac: [u8; 6], dst_ip: Option<IpAddr>) ->
     };
     let opt_off = match tp {
         133 if b.len() >= 8 => {
-            t.push_str(" router_solicit");
+            t.push_str(" routersolicit");
             8
         }
         134 if b.len() >= 16 => {
-            t.push_str(" router_advert");
-            push_if(&mut t, "router_lifetime", be_u16(b, 6), 1800);
+            t.push_str(" routeradvert");
+            push_if(&mut t, "routerlifetime", be_u16(b, 6), 1800);
             16
         }
         135 | 136 if b.len() >= 24 => {
             t.push_str(if tp == 135 {
-                " neighbor_solicit"
+                " neighborsolicit"
             } else {
-                " neighbor_advert"
+                " neighboradvert"
             });
             push_if(&mut t, "target", IpAddr::V6(ipv6_at(b, 8)), dtgt);
             24

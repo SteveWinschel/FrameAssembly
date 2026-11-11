@@ -1,9 +1,9 @@
 //! Multicast Listener Discovery (MLDv1 RFC 2710 & MLDv2 RFC 3810) Layer 3 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IPv6 Multicast Listener
-//! Discovery (`MLD`, carried over ICMPv6 Next Header `58` with message types `130..=132` and
+//! Discovery (`mld`, carried over ICMPv6 Next Header `58` with message types `130..=132` and
 //! `143`). It decodes `query` (`130`), `report` (`131` and MLDv2 `143`), and `done` (`132`)
-//! messages along with the target IPv6 `multicast_addr` and `max_resp_delay` into canonical `.fasm`
+//! messages along with the target IPv6 `multicastaddr` and `maxrespdelay` into canonical `.fasm`
 //! statements while preserving any trailing options or group records as residual payload.
 
 use alloc::string::String;
@@ -12,7 +12,7 @@ use core::net::Ipv6Addr;
 use crate::ast::Protocol;
 use crate::reverse::{ProtocolDissection, be_u16, ipv6_at, push_if, sd};
 
-/// Decompiles an RFC 2710 / RFC 3810 IPv6 `MLD` message (`130..=132`, `143`) into a [`ProtocolDissection`].
+/// Decompiles an RFC 2710 / RFC 3810 IPv6 `mld` message (`130..=132`, `143`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_mld(b: &[u8]) -> ProtocolDissection {
     if b.len() < 24 {
         return sd(Protocol::Mld, String::from("mld"), b.to_vec());
@@ -28,9 +28,9 @@ pub(crate) fn dissect_mld(b: &[u8]) -> ProtocolDissection {
     } else if b[0] == 143 {
         t.push_str(" report");
     }
-    push_if(&mut t, "multicast_addr", maddr, dm);
+    push_if(&mut t, "multicastaddr", maddr, dm);
     if b[0] != 143 {
-        push_if(&mut t, "max_resp_delay", be_u16(b, 4), 0);
+        push_if(&mut t, "maxrespdelay", be_u16(b, 4), 0);
     }
     let hdr_len = if is_v2_report { 28 } else { 24 };
     sd(Protocol::Mld, t, b[hdr_len..].to_vec())

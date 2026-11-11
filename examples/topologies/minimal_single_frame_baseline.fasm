@@ -1,18 +1,18 @@
 // PROMPT: Minimalist baseline FrameAssembly program defining two hosts, a single-statement TCP SYN flow using all default field values, and a single compile invocation.
-// TOKENS: HOST, IP, FLOW, TCP, SYN, COMPILE
+// TOKENS: host, ip, flow, src, dst, tcp, syn, compile
 
 // INSTRUCTION: Define minimal host A with IP 10.0.0.1.
-HOST host_a { IP 10.0.0.1 }
+host host_a { ip 10.0.0.1 }
 
 // INSTRUCTION: Define minimal host B with IP 10.0.0.2.
-HOST host_b { IP 10.0.0.2 }
+host host_b { ip 10.0.0.2 }
 
 // INSTRUCTION: Define the smallest valid TCP flow sending a single SYN frame with default ports and timing.
-FLOW minimal_syn(src, dst) {
-    src -> dst TCP SYN
+flow minimal_syn(src, dst) {
+    src -> dst tcp syn
 }
 
 // INSTRUCTION: Compile block to invoke the minimal flow once.
-COMPILE {
+compile {
     minimal_syn(host_a, host_b)
 }

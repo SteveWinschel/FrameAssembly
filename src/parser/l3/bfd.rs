@@ -1,9 +1,9 @@
-//! Bidirectional Forwarding Detection (`BFD`, RFC 5880) fault detection parser for FrameAssembly.
+//! Bidirectional Forwarding Detection (`bfd`, RFC 5880) fault detection parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `BFD` rapid forwarding-plane failure
-//! detection packets over UDP port 3784. It parses session state (`STATE <0..3>`), diagnostic code
-//! (`DIAG <u8>`), local and remote session discriminators (`MY_DISC`, `YOUR_DISC`), minimum TX/RX
-//! intervals (`MIN_TX`, `MIN_RX`), and detection time multipliers (`MULT <u8>`).
+//! This module implements the winnow parser combinator for `bfd` rapid forwarding-plane failure
+//! detection packets over UDP port 3784. It parses session state (`state <0..3>`), diagnostic code
+//! (`diag <u8>`), local and remote session discriminators (`mydisc`, `yourdisc`), minimum TX/RX
+//! intervals (`mintx`, `minrx`), and detection time multipliers (`mult <u8>`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

@@ -1,10 +1,10 @@
 //! Layer 2 data-link protocol and Ethernet frame modifier parsers for FrameAssembly.
 //!
 //! This module coordinates syntactic combinators for Layer 2 Ethernet headers and data-link
-//! protocols, including Address Resolution Protocol (`ARP`), IEEE 802.1Q Virtual LAN (`VLAN`),
-//! IEEE 802.1ad Provider Bridging (`QINQ`), RFC 3032 Multi-Protocol Label Switching (`MPLS`),
-//! Link Layer Discovery Protocol (`LLDP`), Spanning Tree Protocol (`STP`/`RSTP`), Link
-//! Aggregation Control Protocol (`LACP`), and IEEE 802.1X Port-Based Network Access Control (`EAPOL`).
+//! protocols, including Address Resolution Protocol (`arp`), IEEE 802.1Q Virtual LAN (`vlan`),
+//! IEEE 802.1ad Provider Bridging (`qinq`), RFC 3032 Multi-Protocol Label Switching (`mpls`),
+//! Link Layer Discovery Protocol (`lldp`), Spanning Tree Protocol (`stp`/`rstp`), Link
+//! Aggregation Control Protocol (`lacp`), and IEEE 802.1X Port-Based Network Access Control (`eapol`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

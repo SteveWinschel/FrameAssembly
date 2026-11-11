@@ -1,25 +1,25 @@
 // PROMPT: Create a SIP registrar verifying subscriber digest credentials against a backend RADIUS server.
-// TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, ID, USER, NAS_IP, SERVICE_TYPE, DSCP, WAIT, ACCESS_ACCEPT, COMPILE
+// TOKENS: host, ip, mac, flow, radius, accessrequest, id, user, nasip, servicetype, dscp, wait, ms, accessaccept, compile
 
 // INSTRUCTION: Define the Network Access Server (NAS) client initiating RADIUS requests.
-HOST radius_nas {
-    IP 10.60.18.20
-    MAC 00:1b:21:18:12:05
+host radius_nas {
+    ip 10.60.18.20
+    mac 00:1b:21:18:12:05
 }
 
 // INSTRUCTION: Define the central RADIUS authentication and accounting server.
-HOST radius_server {
-    IP 10.60.18.100
-    MAC 00:1b:21:18:12:64
+host radius_server {
+    ip 10.60.18.100
+    mac 00:1b:21:18:12:64
 }
 
 // INSTRUCTION: Execute the RFC 2865 / RFC 2866 RADIUS transaction flow.
-FLOW radius_scenario_flow(nas, srv) {
-    nas -> srv RADIUS ACCESS_REQUEST ID 112 USER "ext4401@voip.example.com" NAS_IP 10.60.18.20 SERVICE_TYPE 12 DSCP 24 WAIT 3ms
-    nas <- srv RADIUS ACCESS_ACCEPT ID 112 USER "ext4401@voip.example.com" NAS_IP 10.60.18.20 SERVICE_TYPE 12 DSCP 24
+flow radius_scenario_flow(nas, srv) {
+    nas -> srv radius accessrequest id 112 user "ext4401@voip.example.com" nasip 10.60.18.20 servicetype 12 dscp 24 wait 3ms
+    nas <- srv radius accessaccept id 112 user "ext4401@voip.example.com" nasip 10.60.18.20 servicetype 12 dscp 24
 }
 
 // INSTRUCTION: Compile the RADIUS AAA exchange into a PCAP trace.
-COMPILE {
+compile {
     radius_scenario_flow(radius_nas, radius_server)
 }

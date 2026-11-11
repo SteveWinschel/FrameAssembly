@@ -7,7 +7,7 @@
 //! 2-byte Terminator TLV (`Type = 0x00`), and 50 bytes of reserved zero padding.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b LACP [ACTOR_SYS <mac>] [ACTOR_KEY <u16>] [ACTOR_PORT <u16>] [ACTOR_STATE <u8>] [PARTNER_SYS <mac>] [PARTNER_KEY <u16>] [PARTNER_PORT <u16>] [PARTNER_STATE <u8>]`
+//! `a -> b lacp [actorsys <mac>] [actorkey <u16>] [actorport <u16>] [actorstate <u8>] [partnersys <mac>] [partnerkey <u16>] [partnerport <u16>] [partnerstate <u8>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

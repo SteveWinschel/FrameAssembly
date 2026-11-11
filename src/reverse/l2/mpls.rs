@@ -4,7 +4,7 @@
 //! `mpls` frame decompilation ([`dissect_mpls`]) for FrameAssembly's PCAP and PCAPNG reverse
 //! decompiler (`EtherType 0x8847` unicast and `0x8848` multicast). It extracts the 20-bit label
 //! (`mpls`), 3-bit traffic class / experimental bits (`exp`), 1-bit bottom-of-stack indicator
-//! (`bos`), and 8-bit time-to-live (`mpls_ttl`) while inferring inner L2/L3 protocol framing.
+//! (`bos`), and 8-bit time-to-live (`mplsttl`) while inferring inner L2/L3 protocol framing.
 
 use alloc::format;
 use alloc::vec::Vec;
@@ -63,6 +63,6 @@ pub(crate) fn dissect_mpls(m: &MplsSpec, res: Vec<u8>) -> ProtocolDissection {
     let mut t = format!("mpls {}", m.label);
     push_if(&mut t, "exp", m.exp.unwrap_or(0), 0);
     push_if(&mut t, "bos", m.bos.unwrap_or(1), 1);
-    push_if(&mut t, "mpls_ttl", m.ttl.unwrap_or(64), 64);
+    push_if(&mut t, "mplsttl", m.ttl.unwrap_or(64), 64);
     sd(Protocol::Mpls, t, res)
 }

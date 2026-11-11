@@ -1,9 +1,9 @@
-//! Open Shortest Path First (`OSPF`, RFC 2328) link-state routing protocol parser.
+//! Open Shortest Path First (`ospf`, RFC 2328) link-state routing protocol parser.
 //!
-//! This module implements the winnow parser combinator for `OSPF` link-state routing packets
-//! (IP protocol 89). It parses OSPF packet types (`HELLO`, `DBD`, `LSR`, `LSU`, `LSACK`), router
-//! identifiers (`ROUTER_ID <ipv4>`), 32-bit or dotted-quad area identifiers (`AREA_ID`), timer
-//! intervals (`HELLO_INTERVAL`, `DEAD_INTERVAL`), and designated router priority (`PRIORITY`).
+//! This module implements the winnow parser combinator for `ospf` link-state routing packets
+//! (IP protocol 89). It parses OSPF packet types (`hello`, `dbd`, `lsr`, `lsu`, `lsack`), router
+//! identifiers (`routerid <ipv4>`), 32-bit or dotted-quad area identifiers (`areaid`), timer
+//! intervals (`hellointerval`, `deadinterval`), and designated router priority (`priority`).
 
 use core::net::IpAddr;
 use winnow::ModalResult as PResult;

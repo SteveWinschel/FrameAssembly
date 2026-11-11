@@ -1,8 +1,8 @@
 # Logos (`0.14.4` -> `0.16.1`) & Miette `7.6.0` Production Reference Patterns
 
-## 1. Two-Phase Lexing & Diagnostic Pipeline (6-Tier Priority Ladder + `expand_lex_error_span` + `detect_foreign_fasm` + `TokenSlice` + `miette`)
+## 1. Two-Phase Lexing & Self-Healing Diagnostic Pipeline (Strict-Lowercase `[a-z0-9]+` Tokens + 6-Tier Priority Ladder + `expand_lex_error_span` + `detect_foreign_fasm` + `suggest_v2_keyword_fix` + `miette`)
 
-When building compilers, language frontends, or network DSLs, combine `logos` (`0.14.4` / `0.16.1`-ready) for $O(1)$ SIMD lexing and `winnow 1.0.5+` for grammar parsing. Preserve the 6-tier priority ladder, expand multi-char lex failure spans (`expand_lex_error_span`), detect foreign `.fasm` dialects (`detect_foreign_fasm`), and map token offsets directly into `miette::Diagnostic` error frames with `NamedSource::new(...).with_language("frameassembly")` and `(start_byte_offset, byte_length)` `SourceSpan` tuples.
+When building compilers, language frontends, or network DSLs like FrameAssembly v2.0.0, combine `logos` (`0.14.4` / `0.16.1`-ready) for $O(1)$ SIMD lexing and `winnow 1.0.5+` for grammar parsing. Enforce strict-lowercase `[a-z0-9]+` built-in keywords without `ignore(ascii_case)`, preserve the 6-tier priority ladder (with `Ident` allowing uppercase, `_`, and internal `-`), expand multi-char lex failure spans (`expand_lex_error_span`), detect foreign `.fasm` dialects (`detect_foreign_fasm`), emit self-healing v2.0.0 keyword/`loop` diagnostics, and map token offsets directly into `miette::Diagnostic` error frames with `NamedSource::new(...).with_language("frameassembly")` and `(start_byte_offset, byte_length)` `SourceSpan` tuples.
 
 ```rust
 //! Complete two-phase compiler pipeline: `logos 0.14.4` -> `winnow 1.0.5` -> `miette 7.6.0`.
@@ -18,25 +18,37 @@ use winnow::token::{any, literal};
 
 /// Lexer token kinds recognized by `logos 0.14.4` (and `0.16.1`-ready via non-greedy `//[^\r\n]*`).
 ///
-/// Mandatory 6-tier priority ladder (`src/lexer/mod.rs`):
+/// Mandatory 6-tier priority ladder (`src/lexer/mod.rs` in FrameAssembly v2.0.0):
 /// 1. `priority = 6` — `MacAddress` (colon, hyphen, Cisco dotted-quad)
 /// 2. `priority = 5` — IPv4 `IpAddress` (outranks 4-arc `OidStr`)
 /// 3. `priority = 4` — `Number` / `Int` (outranks single-arc `OidStr`)
 /// 4. `priority = 3` — `OidStr` (`\.?[0-9]+(\.[0-9]+)*`)
-/// 5. `priority = 2` — IPv6 `IpAddress` & 1-char/2-char Time Units (`ns`, `us`, `ms`, `s`, `m`)
-/// 6. `priority = 1` — `Ident` (`[a-zA-Z_][a-zA-Z0-9_]*`)
+/// 5. `priority = 2` — IPv6 `IpAddress` & strict-lowercase Time Units (`ns`, `us`, `ms`, `s`, `m`)
+/// 6. `priority = 1` — `Ident` (`[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*`)
+///
+/// Built-in keywords (`host`, `echorequest`, `arp`, `let`, `mut`, etc.) are strict lowercase
+/// `[a-z0-9]+` without `ignore(ascii_case)`.
 #[derive(Logos, Clone, Copy, Debug, PartialEq, Eq)]
 #[logos(skip r"[ \t\r\n\f]+")]
 #[logos(skip r"//[^\r\n]*")]
 pub enum TokenKind<'s> {
-    /// Keyword `let` (default priority = 6)
+    /// Keyword `let` (strict lowercase, no `ignore(ascii_case)`, default priority = 6)
     #[token("let")]
     Let,
-    /// Keyword `mut` (default priority = 6)
+    /// Keyword `mut` (strict lowercase, no `ignore(ascii_case)`, default priority = 6)
     #[token("mut")]
     Mut,
-    /// Single-character unit token `s` (explicit `priority = 2` outranks `Ident` priority = 1)
-    #[token("s", priority = 2, ignore(ascii_case))]
+    /// Keyword `host` (`#[token("host")]`, strict lowercase)
+    #[token("host")]
+    Host,
+    /// Keyword `echorequest` (`#[token("echorequest")]`, `_` stripped, strict lowercase)
+    #[token("echorequest")]
+    EchoRequest,
+    /// Keyword `arp` (`#[token("arp")]`, strict lowercase)
+    #[token("arp")]
+    Arp,
+    /// Single-character unit token `s` (strict lowercase, explicit `priority = 2` outranks `Ident` priority = 1)
+    #[token("s", priority = 2)]
     UnitSeconds,
     /// Equals sign `=`
     #[token("=")]
@@ -65,9 +77,27 @@ pub enum TokenKind<'s> {
     /// Dotted ASN.1 OID literal (`priority = 3`)
     #[regex(r"\.?[0-9]+(\.[0-9]+)*", priority = 3)]
     OidStr(&'s str),
-    /// Generic identifier (`priority = 1` yields to 1-char time units like `"s"`)
-    #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", priority = 1)]
+    /// Flexible user identifier (`priority = 1`; allows uppercase, `_`, and internal `-`, stopping cleanly before `->`)
+    #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*", priority = 1)]
     Ident(&'s str),
+}
+
+/// Produces FrameAssembly v2.0.0 self-healing diagnostic hints when `raw` is a removed `loop`
+/// keyword or an uppercase/underscored/hyphenated spelling of a valid v2.0.0 keyword.
+pub fn suggest_v2_keyword_fix(raw: &str, valid_keywords: &[&str]) -> Option<String> {
+    if raw.eq_ignore_ascii_case("loop") {
+        return Some(
+            "The 'loop' block was removed in FrameAssembly 2.0; invoke flows or frame statements directly inside 'compile { ... }'."
+                .to_string(),
+        );
+    }
+    let normalized = raw.to_ascii_lowercase().replace(['_', '-'], "");
+    if normalized != raw && valid_keywords.contains(&normalized.as_str()) {
+        return Some(format!(
+            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace '{raw}' with '{normalized}'."
+        ));
+    }
+    None
 }
 
 /// Expands a single-byte lexer failure span across multi-character constructs (`/*`, `*/`, `/24`, `'...'`).

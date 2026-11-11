@@ -2,11 +2,12 @@
 //!
 //! This module defines the [`ParsedField`] intermediate representation produced by all Layer 2
 //! through Layer 7 combinator parsers, along with [`parse_universal_field`],
-//! [`dispatch_protocol_field`], and [`parse_fallback_field`]. By dispatching to the active
-//! protocol's field parser before falling back to cross-layer combinators, shared keywords
-//! (`COOKIE`, `DATA`, `VALUE`, `VERSION`, `STATUS`, `TOKEN`, `MSGID`, `GET`, `SET`, `RESPONSE`,
-//! `REQID`, `ECHO_REPLY`, `QUERY`, `REPORT`, `REQUEST`, `REPLY`, `KEEPALIVE`) never shadow one
-//! another across protocol boundaries.
+//! [`parse_protocol_keyword`], [`dispatch_protocol_field`], and [`parse_fallback_field`]. By
+//! matching explicit protocol keywords when no protocol has been selected yet and dispatching to
+//! the active protocol's field parser before falling back to cross-layer combinators, shared
+//! keywords (`whois`, `hellotime`, `cookie`, `data`, `value`, `version`, `status`, `token`,
+//! `msgid`, `get`, `set`, `response`, `reqid`, `echoreply`, `query`, `report`, `request`,
+//! `reply`, `keepalive`) never shadow one another across protocol boundaries.
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -15,6 +16,7 @@ use core::net::IpAddr;
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err, opt};
 use winnow::prelude::*;
+use winnow::token::any;
 
 use crate::ast::*;
 use crate::lexer::Token;
@@ -321,8 +323,6 @@ pub(crate) enum ParsedField<'a> {
     Vip(IpAddr, (usize, usize)),
     /// HSRP State.
     HsrpState(u8, (usize, usize)),
-    /// HSRP Hello time.
-    HelloTimeHsrp(u8, (usize, usize)),
     /// PIM Join/Prune flag.
     PimJoinPrune((usize, usize)),
     /// PIM Register flag.
@@ -518,6 +518,97 @@ pub(crate) fn parse_universal_field<'i, 'a>(
             tag(Token::Cwr).map(|(_, s)| ParsedField::Flag(TcpFlag::Cwr, (s.start, s.len()))),
         )),
     ))
+    .parse_next(input)
+}
+
+/// Matches an explicit protocol keyword token (excluding L2 wrapper tags `vlan`, `qinq`, `mpls`
+/// handled in [`parse_universal_field`]) so protocol declarations are never shadowed by
+/// identically named sub-keywords of earlier protocols (such as `bacnet` `whois`).
+pub(crate) fn parse_protocol_keyword<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
+    any.verify_map(|(t, s, _): (Token<'a>, core::ops::Range<usize>, &'a str)| {
+        let proto = match t {
+            Token::Arp => Protocol::Arp,
+            Token::Lldp => Protocol::Lldp,
+            Token::Stp => Protocol::Stp,
+            Token::Lacp => Protocol::Lacp,
+            Token::Eapol => Protocol::Eapol,
+            Token::Icmp => Protocol::Icmp,
+            Token::Ndp => Protocol::Ndp,
+            Token::Igmp => Protocol::Igmp,
+            Token::Mld => Protocol::Mld,
+            Token::Gre => Protocol::Gre,
+            Token::Vxlan => Protocol::Vxlan,
+            Token::Geneve => Protocol::Geneve,
+            Token::Ipsec => Protocol::Ipsec,
+            Token::Esp => Protocol::Esp,
+            Token::Ah => Protocol::Ah,
+            Token::Ikev2 => Protocol::Ikev2,
+            Token::Wireguard => Protocol::Wireguard,
+            Token::Ospf => Protocol::Ospf,
+            Token::Bgp => Protocol::Bgp,
+            Token::Rip => Protocol::Rip,
+            Token::Vrrp => Protocol::Vrrp,
+            Token::Hsrp => Protocol::Hsrp,
+            Token::Pim => Protocol::Pim,
+            Token::Bfd => Protocol::Bfd,
+            Token::Openflow => Protocol::Openflow,
+            Token::Tcp => Protocol::Tcp,
+            Token::Udp => Protocol::Udp,
+            Token::Sctp => Protocol::Sctp,
+            Token::Snmp1 => Protocol::Snmp1,
+            Token::Snmp2 => Protocol::Snmp2,
+            Token::Snmp3 => Protocol::Snmp3,
+            Token::Dns => Protocol::Dns,
+            Token::Mdns => Protocol::Mdns,
+            Token::Dhcp => Protocol::Dhcp,
+            Token::Ntp => Protocol::Ntp,
+            Token::Ptp => Protocol::Ptp,
+            Token::Radius => Protocol::Radius,
+            Token::Tacacs => Protocol::Tacacs,
+            Token::Syslog => Protocol::Syslog,
+            Token::Netflow => Protocol::Netflow,
+            Token::Ipfix => Protocol::Ipfix,
+            Token::Sflow => Protocol::Sflow,
+            Token::Tftp => Protocol::Tftp,
+            Token::Ftp => Protocol::Ftp,
+            Token::Ssh => Protocol::Ssh,
+            Token::Telnet => Protocol::Telnet,
+            Token::Http => Protocol::Http,
+            Token::Http2 => Protocol::Http2,
+            Token::Grpc => Protocol::Grpc,
+            Token::Websocket => Protocol::Websocket,
+            Token::Tls => Protocol::Tls,
+            Token::Quic => Protocol::Quic,
+            Token::Stun => Protocol::Stun,
+            Token::Sip => Protocol::Sip,
+            Token::Rtp => Protocol::Rtp,
+            Token::Rtsp => Protocol::Rtsp,
+            Token::Smtp => Protocol::Smtp,
+            Token::Imap => Protocol::Imap,
+            Token::Pop3 => Protocol::Pop3,
+            Token::Kerberos => Protocol::Kerberos,
+            Token::Ldap => Protocol::Ldap,
+            Token::Smb => Protocol::Smb,
+            Token::Nfs => Protocol::Nfs,
+            Token::Redis => Protocol::Redis,
+            Token::Memcached => Protocol::Memcached,
+            Token::Mysql => Protocol::Mysql,
+            Token::Postgres => Protocol::Postgres,
+            Token::Mqtt => Protocol::Mqtt,
+            Token::Coap => Protocol::Coap,
+            Token::Amqp => Protocol::Amqp,
+            Token::Ssdp => Protocol::Ssdp,
+            Token::Whois => Protocol::Whois,
+            Token::Modbus => Protocol::Modbus,
+            Token::Bacnet => Protocol::Bacnet,
+            Token::Dnp3 => Protocol::Dnp3,
+            Token::S7comm => Protocol::S7comm,
+            Token::Ethernetip => Protocol::Ethernetip,
+            Token::Opcua => Protocol::Opcua,
+            _ => return None,
+        };
+        Some(ParsedField::Protocol(proto, (s.start, s.len())))
+    })
     .parse_next(input)
 }
 

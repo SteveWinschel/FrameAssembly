@@ -1,21 +1,21 @@
 // PROMPT: IMAPS session commands over custom port 993 with RFC 2971 ID client/server identification.
-// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, SRCPORT, DSTPORT, DF, TTL, COMPILE
+// TOKENS: host, ip, flow, s, imap, tag, cmd, arg, srcport, dstport, df, ttl, compile
 
 // INSTRUCTION: Define mobile mail client connecting on port 993.
-HOST imaps_client { IP 192.168.99.30 }
+host imaps_client { ip 192.168.99.30 }
 
 // INSTRUCTION: Define IMAPS server on port 993.
-HOST imaps_server { IP 192.168.99.1 }
+host imaps_server { ip 192.168.99.1 }
 
 // INSTRUCTION: Exchange RFC 2971 ID command and NAMESPACE query on port 993.
-FLOW imap_id_namespace_993(c, s) {
-    c -> s IMAP TAG "K01" CMD "ID" ARG "(\"name\" \"FrameMail\" \"version\" \"1.0\")" SRCPORT 54993 DSTPORT 993 DF TTL 64
-    c <- s IMAP TAG "K01" CMD "OK" ARG "ID completed" SRCPORT 993 DSTPORT 54993 DF TTL 64
-    c -> s IMAP TAG "K02" CMD "NAMESPACE" SRCPORT 54993 DSTPORT 993 DF TTL 64
-    c <- s IMAP TAG "K02" CMD "OK" ARG "NAMESPACE completed" SRCPORT 993 DSTPORT 54993 DF TTL 64
+flow imap_id_namespace_993(c, s) {
+    c -> s imap tag "K01" cmd "ID" arg "(\"name\" \"FrameMail\" \"version\" \"1.0\")" srcport 54993 dstport 993 df ttl 64
+    c <- s imap tag "K01" cmd "OK" arg "ID completed" srcport 993 dstport 54993 df ttl 64
+    c -> s imap tag "K02" cmd "NAMESPACE" srcport 54993 dstport 993 df ttl 64
+    c <- s imap tag "K02" cmd "OK" arg "NAMESPACE completed" srcport 993 dstport 54993 df ttl 64
 }
 
 // INSTRUCTION: Compile the port 993 IMAP ID and NAMESPACE scenario.
-COMPILE {
+compile {
     imap_id_namespace_993(imaps_client, imaps_server)
 }

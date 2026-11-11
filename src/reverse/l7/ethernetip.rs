@@ -1,11 +1,11 @@
 //! EtherNet/IP and Common Industrial Protocol (ODVA CIP) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `ETHERNETIP` 24-byte encapsulation
+//! This module implements fuzz-safe wire-to-AST dissection for `ethernetip` 24-byte encapsulation
 //! headers and Common Packet Format (CPF) / CIP bodies over TCP and UDP transports (ports `44818`
 //! and `2222`, plus custom ports matching valid encapsulation command codes). It decodes `nop`,
-//! `list_services`, `list_interfaces`, `list_identity`, `register_session`, `unregister_session`,
-//! `send_rr_data`, and `send_unit_data` along with `session_handle`, `status`, `context`, and CIP
-//! EPATH (`cip_service`, `cip_class`, `cip_instance`, `cip_attr`) modifiers.
+//! `listservices`, `listinterfaces`, `listidentity`, `registersession`, `unregistersession`,
+//! `sendrrdata`, and `sendunitdata` along with `sessionhandle`, `status`, `context`, and CIP
+//! EPATH (`cipservice`, `cipclass`, `cipinstance`, `cipattr`) modifiers.
 
 use alloc::format;
 use alloc::string::String;
@@ -13,7 +13,7 @@ use alloc::string::String;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Dissects an `ETHERNETIP` 24-byte encapsulation header + CPF/CIP body over TCP or UDP.
+/// Dissects an `ethernetip` 24-byte encapsulation header + CPF/CIP body over TCP or UDP.
 pub(crate) fn dissect_ethernetip(
     transport: TransportProto,
     src_port: u16,
@@ -59,31 +59,31 @@ pub(crate) fn dissect_ethernetip(
             residual = body;
         }
         0x0004 => {
-            tokens.push_str(" list_services");
+            tokens.push_str(" listservices");
             residual = body;
         }
         0x0064 => {
-            tokens.push_str(" list_interfaces");
+            tokens.push_str(" listinterfaces");
             residual = body;
         }
         0x0065 => {
             let rem = body.strip_prefix(&[0x01, 0x00, 0x00, 0x00])?;
-            tokens.push_str(" register_session");
+            tokens.push_str(" registersession");
             residual = rem;
         }
         0x0066 => {
-            tokens.push_str(" unregister_session");
+            tokens.push_str(" unregistersession");
             residual = body;
         }
         0x0063 => {
-            tokens.push_str(" list_identity");
+            tokens.push_str(" listidentity");
             residual = body;
         }
         0x006F | 0x0070 => {
             if cmd_code == 0x0070 {
-                tokens.push_str(" send_unit_data");
+                tokens.push_str(" sendunitdata");
             } else {
-                tokens.push_str(" send_rr_data");
+                tokens.push_str(" sendrrdata");
             }
             if body.len() >= 16
                 && &body[0..14] == b"\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\xB2\x00"
@@ -95,13 +95,13 @@ pub(crate) fn dissect_ethernetip(
                     let cls = cip[3];
                     let inst = cip[5];
                     if svc != 0x0E {
-                        tokens.push_str(&format!(" cip_service 0x{svc:02x}"));
+                        tokens.push_str(&format!(" cipservice 0x{svc:02x}"));
                     }
                     if cls != 0x01 {
-                        tokens.push_str(&format!(" cip_class 0x{cls:02x}"));
+                        tokens.push_str(&format!(" cipclass 0x{cls:02x}"));
                     }
                     if inst != 0x01 {
-                        tokens.push_str(&format!(" cip_instance {inst}"));
+                        tokens.push_str(&format!(" cipinstance {inst}"));
                     }
                     residual = &[];
                 } else if cip.len() == 8
@@ -115,15 +115,15 @@ pub(crate) fn dissect_ethernetip(
                     let inst = cip[5];
                     let attr = cip[7];
                     if svc != 0x0E {
-                        tokens.push_str(&format!(" cip_service 0x{svc:02x}"));
+                        tokens.push_str(&format!(" cipservice 0x{svc:02x}"));
                     }
                     if cls != 0x01 {
-                        tokens.push_str(&format!(" cip_class 0x{cls:02x}"));
+                        tokens.push_str(&format!(" cipclass 0x{cls:02x}"));
                     }
                     if inst != 0x01 {
-                        tokens.push_str(&format!(" cip_instance {inst}"));
+                        tokens.push_str(&format!(" cipinstance {inst}"));
                     }
-                    tokens.push_str(&format!(" cip_attr {attr}"));
+                    tokens.push_str(&format!(" cipattr {attr}"));
                     residual = &[];
                 } else {
                     residual = body;
@@ -136,7 +136,7 @@ pub(crate) fn dissect_ethernetip(
     }
 
     if session != 0 {
-        tokens.push_str(&format!(" session_handle 0x{session:08x}"));
+        tokens.push_str(&format!(" sessionhandle 0x{session:08x}"));
     }
     if status != 0 {
         tokens.push_str(&format!(" status {status}"));

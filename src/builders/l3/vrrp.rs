@@ -3,12 +3,12 @@
 //! Serializes a [`VrrpSpec`] into an RFC 5798 VRRPv3 Advertisement packet carried over IP protocol
 //! `112` (`0x70`) and addressed to the VRRP multicast group (`224.0.0.18` for IPv4, `ff02::12` for
 //! IPv6). The wire header encodes `Version = 3` and `Type = 1` (`0x31`), 8-bit `Virtual Rtr ID`
-//! (`VRID`, default `1`), 8-bit `Priority` (`PRIORITY`, default `100`), `Count IPvX Addr = 1`,
-//! 16-bit `Max Adver Int` in centiseconds (`ADV_INT`, default `100`), 16-bit Checksum, and the
-//! 4-byte IPv4 or 16-byte IPv6 Virtual IP address (`VIP`).
+//! (`vrid`, default `1`), 8-bit `Priority` (`priority`, default `100`), `Count IPvX Addr = 1`,
+//! 16-bit `Max Adver Int` in centiseconds (`advint`, default `100`), 16-bit Checksum, and the
+//! 4-byte IPv4 or 16-byte IPv6 Virtual IP address (`vip`).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b VRRP [VRID <1..255>] [PRIORITY <0..255>] [ADV_INT <u16>] [VIP <ip>] [VERSION <2|3>]`
+//! `a -> b vrrp [vrid <1..255>] [priority <0..255>] [advint <u16>] [vip <ip>] [version <2|3>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

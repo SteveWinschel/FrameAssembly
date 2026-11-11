@@ -29,13 +29,13 @@ Enforce these version-exact ASN.1 and SNMP codec rules across `src/builders/l7/s
   - **NULL**: `v1::ObjectSyntax::Simple(v1::SimpleSyntax::Empty)` vs. `v2::VarBindValue::Unspecified` (`0x05 0x00`).
   - **Integer / OID / Gauge / IPv4**: `v1` uses `SimpleSyntax::{Number, Object}`, `ApplicationSyntax::Gauge`, and wraps `IpAddress` in `NetworkAddress::Internet(...)`; `v2` uses `SimpleSyntax::{Integer, ObjectId}`, `ApplicationSyntax::Unsigned`, and passes `v1::IpAddress` directly.
   - **PDU Fields**: `v1::Pdu` uses `Integer` for `request_id`/`error_status`/`error_index`; `v2::Pdu` uses `request_id: i32`, `error_status: u32`, `error_index: u32`.
-  - **SNMPv1 Rejections & IPv6 Fallback**: Reject `Counter64` (`0x46`), `GETBULK`, and `INFORM` in `SNMP1`. Auto-map `1.3.6.1.6.3.1.1.5.1`..=`.6` to `generic_trap` `0..=5` (`specific_trap = 0`), default IPv6 `agent-addr` to `0.0.0.0` (RFC 3584 §3.2), and encode IPv6 `IPVAL` varbinds as 16-byte `OctetString` (RFC 4001).
+  - **SNMPv1 Rejections & IPv6 Fallback**: Reject `counter64` (`0x46`), `getbulkrequest`, and `informrequest` in `snmp1`. Auto-map `1.3.6.1.6.3.1.1.5.1`..=`.6` to `generic_trap` `0..=5` (`specific_trap = 0`), default IPv6 `agent-addr` to `0.0.0.0` (RFC 3584 §3.2), and encode IPv6 `ipval` varbinds as 16-byte `OctetString` (RFC 4001).
 - **Mandatory SNMPv2c/v3 Notification Prepending (Exact `snmpTrapOID.0`!)**:
-  - Every `SNMP2` or `SNMP3` `Trap` (`0xa7`) or `InformRequest` (`0xa6`) MUST prepend in exact order:
+  - Every `snmp2` or `snmp3` `trap` (`0xa7`) or `informrequest` (`0xa6`) MUST prepend in exact order:
     1. Index 0: `sysUpTime.0` (`1.3.6.1.2.1.1.3.0`) -> `TimeTicks`.
     2. Index 1: `snmpTrapOID.0` (**`1.3.6.1.6.3.1.1.4.1.0`**, RFC 3418—**never** `.4.2.0`!) -> `ObjectId(trap_oid)` (defaulting `trap_oid` to `1.3.6.1.6.3.1.1.5.3` `linkDown`).
   - Non-notification PDUs (`Get`, `GetNext`, `GetBulk`, `Set`, `Response`) MUST NOT prepend these two bindings.
-- **SNMPv3 USM**: Reject `noAuthPriv` (`0x02`) and empty passwords; set `reportableFlag` (`0x04`) on confirmed PDUs (`Get`, `GetNext`, `GetBulk`, `Set`, `Inform`); pre-fill `authentication_parameters` with `vec![0u8; auth_len]` (`12`/`24`/`32`/`48`) before computing the outer `Message` HMAC.
+- **SNMPv3 USM**: Reject `noauthpriv` (`0x02`) and empty passwords; set `reportableFlag` (`0x04`) on confirmed PDUs (`Get`, `GetNext`, `GetBulk`, `Set`, `Inform`); pre-fill `authentication_parameters` with `vec![0u8; auth_len]` (`12`/`24`/`32`/`48`) before computing the outer `Message` HMAC.
 
 ## 4. RFC 4511 LDAPv3 BER & RFC 4120 Kerberos v5 DER Wire Verification
 - **`src/builders/l7/ldap.rs`**: Encodes full RFC 4511 `LDAPMessage` (`0x30`) across all 6 operations (`BindRequest` `0x60`, `BindResponse` `0x61`, `UnbindRequest` `0x42`, 8-field `SearchRequest` `0x63` with `[7] Present` filter `0x87`, `SearchResultEntry` `0x64`, `SearchResultDone` `0x65`). Verify wire output against `#[derive(AsnType, Decode, Encode)]` `LdapMessage` schemas via `rasn::ber::decode_with_remainder`.

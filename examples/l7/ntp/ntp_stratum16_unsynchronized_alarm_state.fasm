@@ -1,25 +1,25 @@
 // PROMPT: Generate an NTPv4 server response with LI 3 (alarm condition) and STRATUM 16 indicating loss of upstream reference.
-// TOKENS: HOST, IP, MAC, FLOW, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, TX_TIMESTAMP, WAIT, REFID, COMPILE
+// TOKENS: host, ip, mac, flow, s, ntp, li, vn, mode, stratum, poll, precision, txtimestamp, wait, ms, refid, compile
 
 // INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
-HOST ntp_client {
-    IP 10.123.55.20
-    MAC 00:1b:21:7b:01:0a
+host ntp_client {
+    ip 10.123.55.20
+    mac 00:1b:21:7b:01:0a
 }
 
 // INSTRUCTION: Define the NTP reference server or peer endpoint.
-HOST ntp_server {
-    IP 10.123.55.1
-    MAC 00:1b:21:7b:01:01
+host ntp_server {
+    ip 10.123.55.1
+    mac 00:1b:21:7b:01:01
 }
 
 // INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
-FLOW ntp_scenario_flow(c, s) {
-    c -> s NTP LI 0 VN 4 MODE 3 STRATUM 3 POLL 6 PRECISION -19 TX_TIMESTAMP 0xe9b4cd0000000000 WAIT 3ms
-    c <- s NTP LI 3 VN 4 MODE 4 STRATUM 16 POLL 6 PRECISION -19 REFID "INIT" TX_TIMESTAMP 0xe9b4cd0000300000
+flow ntp_scenario_flow(c, s) {
+    c -> s ntp li 0 vn 4 mode 3 stratum 3 poll 6 precision -19 txtimestamp 0xe9b4cd0000000000 wait 3ms
+    c <- s ntp li 3 vn 4 mode 4 stratum 16 poll 6 precision -19 refid "INIT" txtimestamp 0xe9b4cd0000300000
 }
 
 // INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
-COMPILE {
+compile {
     ntp_scenario_flow(ntp_client, ntp_server)
 }

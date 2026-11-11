@@ -1,19 +1,19 @@
 // PROMPT: gRPC Unavailable error returning GRPC_STATUS 14 during rolling pod restart.
-// TOKENS: HOST, IP, FLOW, GRPC, SERVICE, METHOD, ECN, TTL, GRPC_STATUS, COMPILE
+// TOKENS: host, ip, flow, grpc, service, method, ecn, ttl, grpcstatus, compile
 
 // INSTRUCTION: Define order router service.
-HOST order_router { IP 10.85.1.5 }
+host order_router { ip 10.85.1.5 }
 
 // INSTRUCTION: Define draining backend gRPC pod.
-HOST draining_pod { IP 10.85.1.80 }
+host draining_pod { ip 10.85.1.80 }
 
 // INSTRUCTION: Call SubmitOrder and receive GRPC_STATUS 14 (UNAVAILABLE).
-FLOW grpc_unavailable_14(r, p) {
-    r -> p GRPC SERVICE "orders.v1.OrderService" METHOD "SubmitOrder" ECN 2 TTL 64
-    r <- p GRPC SERVICE "orders.v1.OrderService" METHOD "SubmitOrder" GRPC_STATUS 14 ECN 2 TTL 64
+flow grpc_unavailable_14(r, p) {
+    r -> p grpc service "orders.v1.OrderService" method "SubmitOrder" ecn 2 ttl 64
+    r <- p grpc service "orders.v1.OrderService" method "SubmitOrder" grpcstatus 14 ecn 2 ttl 64
 }
 
 // INSTRUCTION: Compile the gRPC status 14 UNAVAILABLE scenario.
-COMPILE {
+compile {
     grpc_unavailable_14(order_router, draining_pod)
 }

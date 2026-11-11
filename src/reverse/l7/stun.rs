@@ -1,10 +1,10 @@
-//! Session Traversal Utilities for NAT (`STUN`, RFC 8489) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Session Traversal Utilities for NAT (`stun`, RFC 8489) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for RFC 8489 `STUN` messages carried
+//! This module implements the fuzz-safe reverse dissector for RFC 8489 `stun` messages carried
 //! over UDP ports `3478` and `19302` or identified by the 32-bit magic cookie `0x2112A442`. It
-//! validates the 20-byte header and attribute length, decodes `binding_request`,
-//! `binding_response`, and `binding_error` message types, `txid`, `XOR-MAPPED-ADDRESS` (`0x0020`
-//! -> `xor_mapped_addr` for IPv4 and IPv6), and `SOFTWARE` (`0x8022` -> `software`), and preserves
+//! validates the 20-byte header and attribute length, decodes `bindingrequest`,
+//! `bindingresponse`, and `bindingerror` message types, `txid`, `XOR-MAPPED-ADDRESS` (`0x0020`
+//! -> `xormappedaddr` for IPv4 and IPv6), and `SOFTWARE` (`0x8022` -> `software`), and preserves
 //! any remaining TLV attributes losslessly in `residual_payload`.
 
 use alloc::format;
@@ -29,9 +29,9 @@ pub(crate) fn dissect_stun(payload: &[u8]) -> Option<ProtocolDissection> {
     }
 
     let type_kw = match msg_type {
-        0x0001 => "binding_request",
-        0x0101 => "binding_response",
-        0x0111 => "binding_error",
+        0x0001 => "bindingrequest",
+        0x0101 => "bindingresponse",
+        0x0111 => "bindingerror",
         _ => return None,
     };
 
@@ -69,7 +69,7 @@ pub(crate) fn dissect_stun(payload: &[u8]) -> Option<ProtocolDissection> {
                 residual = attrs.get(pos..)?.to_vec();
                 break;
             };
-            let _ = write!(tokens, " xor_mapped_addr {ip}");
+            let _ = write!(tokens, " xormappedaddr {ip}");
             seen_xma = true;
         } else if atype == 0x8022
             && !seen_sw

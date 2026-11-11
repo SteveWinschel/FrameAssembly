@@ -1,23 +1,23 @@
 // PROMPT: S7comm WRITE_VAR setpoint update across multiple S7 PLCs in a water treatment plant.
-// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, FUNC, PDU_REF, AREA, DB_NUM, OFFSET, COUNT, HEXPAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, s7comm, rosctr, func, pduref, area, dbnum, offset, count, hexpayload, wait, ms, compile
 
 // INSTRUCTION: Define water plant supervisory server.
-HOST water_scada { IP 172.19.102.1 MAC 00:1b:1b:13:66:01 }
+host water_scada { ip 172.19.102.1 mac 00:1b:1b:13:66:01 }
 
 // INSTRUCTION: Define filtration pump S7 PLC 1.
-HOST pump_plc_1 { IP 172.19.102.11 MAC 00:1b:1b:13:66:0b }
+host pump_plc_1 { ip 172.19.102.11 mac 00:1b:1b:13:66:0b }
 
 // INSTRUCTION: Define filtration pump S7 PLC 2.
-HOST pump_plc_2 { IP 172.19.102.12 MAC 00:1b:1b:13:66:0c }
+host pump_plc_2 { ip 172.19.102.12 mac 00:1b:1b:13:66:0c }
 
 // INSTRUCTION: Define WRITE_VAR updating DB20 flow rate setpoint.
-FLOW s7comm_write_setpoint(scada, plc) {
-    scada -> plc S7COMM ROSCTR "JOB" FUNC "WRITE_VAR" PDU_REF 400 AREA 0x84 DB_NUM 20 OFFSET 8 COUNT 2 HEXPAYLOAD "0004001003e8" WAIT 5ms
-    scada <- plc S7COMM ROSCTR "ACK_DATA" FUNC "WRITE_VAR" PDU_REF 400 HEXPAYLOAD "ff"
+flow s7comm_write_setpoint(scada, plc) {
+    scada -> plc s7comm rosctr "job" func "writevar" pduref 400 area 0x84 dbnum 20 offset 8 count 2 hexpayload "0004001003e8" wait 5ms
+    scada <- plc s7comm rosctr "ackdata" func "writevar" pduref 400 hexpayload "ff"
 }
 
 // INSTRUCTION: Compile setpoint write to both filtration pump PLCs.
-COMPILE {
+compile {
     s7comm_write_setpoint(water_scada, pump_plc_1)
     s7comm_write_setpoint(water_scada, pump_plc_2)
 }

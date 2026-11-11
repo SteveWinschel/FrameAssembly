@@ -1,21 +1,21 @@
 // PROMPT: Edge load balancer TLS ClientHello health probe in a COMPILE LOOP.
-// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, SERVER_HELLO, COMPILE, LOOP
+// TOKENS: host, ip, flow, s, tls, clienthello, sni, serverhello, compile
 
 // INSTRUCTION: Define edge load balancer node.
-HOST lb_probe_node { IP 192.168.220.10 }
+host lb_probe_node { ip 192.168.220.10 }
 
 // INSTRUCTION: Define upstream web backend.
-HOST web_backend { IP 192.168.220.1 }
+host web_backend { ip 192.168.220.1 }
 
 // INSTRUCTION: Define repeated TLS health probe flow.
-FLOW tls_health_probe(c, s) {
-    c -> s TLS CLIENT_HELLO SNI "healthcheck.backend.local"
-    c <- s TLS SERVER_HELLO
+flow tls_health_probe(c, s) {
+    c -> s tls clienthello sni "healthcheck.backend.local"
+    c <- s tls serverhello
 }
 
 // INSTRUCTION: Compile block executing 3 repeated health probe checks.
-COMPILE {
-    LOOP 3 {
-        tls_health_probe(lb_probe_node, web_backend)
-    }
+compile {
+    tls_health_probe(lb_probe_node, web_backend) // cycle 1
+    tls_health_probe(lb_probe_node, web_backend) // cycle 2
+    tls_health_probe(lb_probe_node, web_backend) // cycle 3
 }

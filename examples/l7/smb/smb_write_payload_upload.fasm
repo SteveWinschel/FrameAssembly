@@ -1,19 +1,19 @@
 // PROMPT: SMB2 write data transfer uploading file content payload to shared storage volume.
-// TOKENS: HOST, IP, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, PAYLOAD, WAIT, STATUS, COMPILE
+// TOKENS: host, ip, flow, s, smb, command, treeid, sessionid, msgid, payload, wait, ms, status, compile
 
 // INSTRUCTION: Define telemetry log collector.
-HOST log_collector { IP 10.88.3.14 }
+host log_collector { ip 10.88.3.14 }
 
 // INSTRUCTION: Define audit archive storage server.
-HOST audit_storage { IP 10.88.3.2 }
+host audit_storage { ip 10.88.3.2 }
 
 // INSTRUCTION: Define SMB2 WRITE transfer with binary block payload.
-FLOW smb_write_data(c, s) {
-    c -> s SMB COMMAND "WRITE" TREE_ID 3 SESSION_ID 0x5000 MSGID 201 PAYLOAD "SYSTEM_AUDIT_LOG_ENTRY_HEX449102" WAIT 5ms
-    c <- s SMB COMMAND "WRITE" STATUS 0 TREE_ID 3 SESSION_ID 0x5000 MSGID 201
+flow smb_write_data(c, s) {
+    c -> s smb command "write" treeid 3 sessionid 0x5000 msgid 201 payload "SYSTEM_AUDIT_LOG_ENTRY_HEX449102" wait 5ms
+    c <- s smb command "write" status 0 treeid 3 sessionid 0x5000 msgid 201
 }
 
 // INSTRUCTION: Compile SMB2 WRITE block upload flow.
-COMPILE {
+compile {
     smb_write_data(log_collector, audit_storage)
 }

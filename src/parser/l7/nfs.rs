@@ -1,10 +1,10 @@
 //! Network File System (NFSv3 and NFSv4) Layer 7 ONC RPC file system field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 1813 (`NFS` v3) and RFC 7530
-//! (`NFS` v4) remote procedure call frames in FrameAssembly `.fasm` specifications. It recognizes
-//! the `NFS` protocol keyword, RPC transaction IDs (`XID`), NFS protocol versions (`VERS`),
-//! procedure names (`PROC` and shorthand `COMPOUND`), NFSv4 compound tags (`TAG`), and exported
-//! file system paths (`PATH`).
+//! This module implements the `winnow` parser combinator for RFC 1813 (`nfs` v3) and RFC 7530
+//! (`nfs` v4) remote procedure call frames in FrameAssembly `.fasm` specifications. It recognizes
+//! the `nfs` protocol keyword, RPC transaction IDs (`xid`), NFS protocol versions (`vers`),
+//! procedure names (`proc` and shorthand `compound`), NFSv4 compound tags (`tag`), and exported
+//! file system paths (`path`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

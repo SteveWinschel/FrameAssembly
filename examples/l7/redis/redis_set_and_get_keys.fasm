@@ -1,19 +1,19 @@
 // PROMPT: Redis RESP key-value cache operations executing SET and GET over IPv6.
-// TOKENS: HOST, IP, FLOW, REDIS, CMD, ARGS, COMPILE
+// TOKENS: host, ip, flow, s, redis, cmd, args, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 2001:db8::10 }
+host client { ip 2001:db8::10 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 2001:db8::1 }
+host server { ip 2001:db8::1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW redis_kv(c, s) {
-    c -> s REDIS CMD "SET" ARGS "session_token val_9876"
-    c -> s REDIS CMD "GET" ARGS "session_token"
+flow redis_kv(c, s) {
+    c -> s redis cmd "SET" args "session_token val_9876"
+    c -> s redis cmd "GET" args "session_token"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     redis_kv(client, server)
 }

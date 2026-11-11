@@ -1,27 +1,27 @@
 // PROMPT: Wholesale carrier Ethernet NNI handoff using QinQ double tagging to establish eBGP peering and route exchange.
-// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, BGP, OPEN, ASN, HOLDTIME, BGPID, WAIT, KEEPALIVE, UPDATE, PREFIX, NEXTHOP, COMPILE
+// TOKENS: host, ip, mac, flow, qinq, innervlan, bgp, open, asn, holdtime, bgpid, wait, ms, keepalive, update, prefix, nexthop, compile
 
 // INSTRUCTION: Define wholesale transit provider NNI router.
-HOST carrier_nni_pe {
-    IP 198.18.100.1
-    MAC 00:05:85:18:64:01
+host carrier_nni_pe {
+    ip 198.18.100.1
+    mac 00:05:85:18:64:01
 }
 
 // INSTRUCTION: Define regional ISP downstream customer router on NNI trunk.
-HOST regional_isp_ce {
-    IP 198.18.100.2
-    MAC 00:05:85:18:64:02
+host regional_isp_ce {
+    ip 198.18.100.2
+    mac 00:05:85:18:64:02
 }
 
 // INSTRUCTION: Define QinQ S-VLAN 3100 C-VLAN 700 eBGP session and prefix announcement.
-FLOW nni_qinq_ebgp(pe, ce) {
-    pe -> ce QINQ 3100 INNER_VLAN 700 BGP OPEN ASN 65100 HOLDTIME 180 BGPID 198.18.100.1
-    pe <- ce QINQ 3100 INNER_VLAN 700 BGP OPEN ASN 65200 HOLDTIME 180 BGPID 198.18.100.2 WAIT 2ms
-    pe -> ce QINQ 3100 INNER_VLAN 700 BGP KEEPALIVE WAIT 1ms
-    pe -> ce QINQ 3100 INNER_VLAN 700 BGP UPDATE PREFIX "203.0.113.0/24" NEXTHOP 198.18.100.1 WAIT 2ms
+flow nni_qinq_ebgp(pe, ce) {
+    pe -> ce qinq 3100 innervlan 700 bgp open asn 65100 holdtime 180 bgpid 198.18.100.1
+    pe <- ce qinq 3100 innervlan 700 bgp open asn 65200 holdtime 180 bgpid 198.18.100.2 wait 2ms
+    pe -> ce qinq 3100 innervlan 700 bgp keepalive wait 1ms
+    pe -> ce qinq 3100 innervlan 700 bgp update prefix "203.0.113.0/24" nexthop 198.18.100.1 wait 2ms
 }
 
 // INSTRUCTION: Compile block executing wholesale NNI QinQ eBGP peering.
-COMPILE {
+compile {
     nni_qinq_ebgp(carrier_nni_pe, regional_isp_ce)
 }

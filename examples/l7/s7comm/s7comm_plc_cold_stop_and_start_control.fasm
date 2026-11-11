@@ -1,27 +1,27 @@
 // PROMPT: Siemens S7comm PLC_CONTROL (0x28) job stopping and restarting an S7-300 CPU during maintenance.
-// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, s7comm, rosctr, pduref, func, payload, wait, ms, compile
 
 // INSTRUCTION: Define the SIMATIC STEP 7 engineering station.
-HOST step7_pg {
-    IP 10.130.1.50
-    MAC 00:1a:2b:82:01:50
+host step7_pg {
+    ip 10.130.1.50
+    mac 00:1a:2b:82:01:50
 }
 
 // INSTRUCTION: Define the Siemens S7-300 CPU 315-2 PN/DP controller.
-HOST s7_300_cpu {
-    IP 10.130.1.1
-    MAC 00:1a:2b:82:01:01
+host s7_300_cpu {
+    ip 10.130.1.1
+    mac 00:1a:2b:82:01:01
 }
 
 // INSTRUCTION: Send PLC_CONTROL JOB with PDU_REF 10 to transition the PLC run mode and receive ACK_DATA.
-FLOW s7_cpu_mode_ctrl(pg, plc) {
-    pg -> plc S7COMM ROSCTR "JOB" PDU_REF 10 FUNC "PLC_CONTROL" PAYLOAD "P_PROGRAM"
-    pg <- plc S7COMM ROSCTR "ACK_DATA" PDU_REF 10 FUNC "PLC_CONTROL" WAIT 5ms
-    pg -> plc S7COMM ROSCTR "JOB" PDU_REF 11 FUNC "PLC_CONTROL" PAYLOAD "P_PROGRAM"
-    pg <- plc S7COMM ROSCTR "ACK_DATA" PDU_REF 11 FUNC "PLC_CONTROL"
+flow s7_cpu_mode_ctrl(pg, plc) {
+    pg -> plc s7comm rosctr "job" pduref 10 func "plccontrol" payload "P_PROGRAM"
+    pg <- plc s7comm rosctr "ackdata" pduref 10 func "plccontrol" wait 5ms
+    pg -> plc s7comm rosctr "job" pduref 11 func "plccontrol" payload "P_PROGRAM"
+    pg <- plc s7comm rosctr "ackdata" pduref 11 func "plccontrol"
 }
 
 // INSTRUCTION: Compile the S7comm PLC_CONTROL mode transition flow.
-COMPILE {
+compile {
     s7_cpu_mode_ctrl(step7_pg, s7_300_cpu)
 }

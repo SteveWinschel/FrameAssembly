@@ -1,27 +1,28 @@
 // PROMPT: Industrial historian high-frequency 4-iteration loop polling turbine vibration samples from DB200.
-// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, AREA, DB_NUM, OFFSET, COUNT, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, mac, flow, s7comm, rosctr, pduref, func, area, dbnum, offset, count, wait, ms, compile
 
 // INSTRUCTION: Define the OSIsoft PI / Timescale historian collector node.
-HOST historian_node {
-    IP 10.130.100.15
-    MAC 00:1a:2b:82:a0:15
+host historian_node {
+    ip 10.130.100.15
+    mac 00:1a:2b:82:a0:15
 }
 
 // INSTRUCTION: Define the steam turbine monitoring S7-400 PLC.
-HOST turbine_s7 {
-    IP 10.130.100.1
-    MAC 00:1a:2b:82:a0:01
+host turbine_s7 {
+    ip 10.130.100.1
+    mac 00:1a:2b:82:a0:01
 }
 
 // INSTRUCTION: Poll 16 bytes of shaft vibration floats from DB200 (AREA 132, DB_NUM 200, OFFSET 0).
-FLOW s7_vib_sample(h, p) {
-    h -> p S7COMM ROSCTR "JOB" PDU_REF 1001 FUNC "READ_VAR" AREA 132 DB_NUM 200 OFFSET 0 COUNT 16
-    h <- p S7COMM ROSCTR "ACK_DATA" PDU_REF 1001 FUNC "READ_VAR" WAIT 5ms
+flow s7_vib_sample(h, p) {
+    h -> p s7comm rosctr "job" pduref 1001 func "readvar" area 132 dbnum 200 offset 0 count 16
+    h <- p s7comm rosctr "ackdata" pduref 1001 func "readvar" wait 5ms
 }
 
 // INSTRUCTION: Execute the high-frequency historian poll across 4 loop iterations.
-COMPILE {
-    LOOP 4 {
-        s7_vib_sample(historian_node, turbine_s7)
-    }
+compile {
+    s7_vib_sample(historian_node, turbine_s7) // cycle 1
+    s7_vib_sample(historian_node, turbine_s7) // cycle 2
+    s7_vib_sample(historian_node, turbine_s7) // cycle 3
+    s7_vib_sample(historian_node, turbine_s7) // cycle 4
 }

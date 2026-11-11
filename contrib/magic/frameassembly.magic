@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# $File: frameassembly,v 1.0 2026/11/01 18:00:00 steve Exp $
+# $File: frameassembly,v 2.0 2026/11/10 18:00:00 steve Exp $
 # FrameAssembly network packet specification (.fasm)
 # URL: https://github.com/SteveWinschel/FrameAssembly
 # Reference: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
@@ -18,19 +18,35 @@
 #           file -i -m contrib/magic/frameassembly.magic demo.fasm
 #------------------------------------------------------------------------------
 
-# FrameAssembly documents contain top-level HOST { IP ... }, FLOW(...) { ... }, and COMPILE { ... } blocks.
+# FrameAssembly v2.0.0 documents contain strict-lowercase top-level host { ip|mac ... },
+# optional flow(...) { ... }, and compile { ... } blocks.
 # The rules below match within initial byte search windows to tolerate license banners and comments.
 
-0	search/2048/cC	HOST
->0	search/1024/cC	IP
->>0	search/4096/cC	FLOW
->>>0	search/8192/cC	COMPILE	FrameAssembly network packet specification
+0	search/2048	host\ 
+>0	search/1536	ip\ 
+>>0	search/8192	compile	FrameAssembly network packet specification
 !:mime	text/vnd.frameassembly
 !:ext	fasm
 
-0	search/2048/cC	FLOW
->0	search/4096/cC	HOST
->>0	search/1024/cC	IP
->>>0	search/8192/cC	COMPILE	FrameAssembly network packet specification
+0	search/2048	host\t
+>0	search/1536	ip\ 
+>>0	search/8192	compile	FrameAssembly network packet specification
+!:mime	text/vnd.frameassembly
+!:ext	fasm
+
+0	search/2048	host\ 
+>0	search/1536	mac\ 
+>>0	search/8192	compile	FrameAssembly network packet specification
+!:mime	text/vnd.frameassembly
+!:ext	fasm
+
+0	search/2048	host\t
+>0	search/1536	mac\ 
+>>0	search/8192	compile	FrameAssembly network packet specification
+!:mime	text/vnd.frameassembly
+!:ext	fasm
+
+0	search/2048	flow\ 
+>0	search/8192	compile	FrameAssembly network packet specification
 !:mime	text/vnd.frameassembly
 !:ext	fasm

@@ -1,19 +1,19 @@
 // PROMPT: Accounting STOP record logging completed configuration change execution.
-// TOKENS: HOST, IP, FLOW, TACACS, TYPE, ACCT, USER, SESSION_ID, COMPILE
+// TOKENS: host, ip, flow, s, tacacs, type, acct, user, sessionid, compile
 
 // INSTRUCTION: Define spine switch NAS.
-HOST spine_nas { IP 10.70.1.1 }
+host spine_nas { ip 10.70.1.1 }
 
 // INSTRUCTION: Define audit logger endpoint.
-HOST audit_logger { IP 10.70.1.250 }
+host audit_logger { ip 10.70.1.250 }
 
 // INSTRUCTION: Define accounting STOP record flow.
-FLOW tacacs_acct_stop_flow(c, s) {
-    c -> s TACACS TYPE ACCT USER "net_architect" SESSION_ID 12080
-    c <- s TACACS TYPE ACCT USER "net_architect" SESSION_ID 12080
+flow tacacs_acct_stop_flow(c, s) {
+    c -> s tacacs type acct user "net_architect" sessionid 12080
+    c <- s tacacs type acct user "net_architect" sessionid 12080
 }
 
 // INSTRUCTION: Compile block executing accounting STOP.
-COMPILE {
+compile {
     tacacs_acct_stop_flow(spine_nas, audit_logger)
 }

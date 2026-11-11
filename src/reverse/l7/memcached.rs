@@ -1,6 +1,6 @@
 //! Memcached Binary (`0x80`) and ASCII Protocol Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `MEMCACHED` binary protocol frames
+//! This module implements fuzz-safe wire-to-AST dissection for `memcached` binary protocol frames
 //! (24-byte `0x80` request header with `opcode`, `flags`, `exptime`, `key`, `value`, `opaque`, and
 //! `cas`) and CRLF-delimited ASCII commands (`get`, `set`, `add`, `replace`, `append`, `prepend`,
 //! `delete`) over TCP and UDP transports on ports `11211`, `11212`, or custom ports carrying the
@@ -36,7 +36,7 @@ fn be_u32(b: &[u8], off: usize) -> u32 {
     u32::from_be_bytes([b[off], b[off + 1], b[off + 2], b[off + 3]])
 }
 
-/// Dissects a `MEMCACHED` binary (`0x80`) or ASCII command frame over TCP or UDP.
+/// Dissects a `memcached` binary (`0x80`) or ASCII command frame over TCP or UDP.
 pub(crate) fn dissect_memcached(
     transport: TransportProto,
     src_port: u16,
@@ -171,11 +171,12 @@ pub(crate) fn dissect_memcached(
         });
     }
 
+    let emit_cmd = if cmd == "flush_all" { "flushall" } else { cmd };
     if parts.len() == 1 {
         if cmd == "get" {
             tokens.push_str(" key \"\"");
         } else {
-            tokens.push_str(&format!(" cmd \"{cmd}\""));
+            tokens.push_str(&format!(" cmd \"{emit_cmd}\""));
         }
     } else if parts.len() == 2 {
         let key = parts[1];
@@ -183,7 +184,7 @@ pub(crate) fn dissect_memcached(
             return None;
         }
         if cmd != "get" {
-            tokens.push_str(&format!(" cmd \"{cmd}\""));
+            tokens.push_str(&format!(" cmd \"{emit_cmd}\""));
         }
         if key != "key" {
             tokens.push_str(&format!(" key \"{key}\""));

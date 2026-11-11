@@ -1,25 +1,25 @@
 // PROMPT: Simulate an IPv6 reverse DNS lookup under ip6.arpa resolving an IPv6 server address to its canonical hostname.
-// TOKENS: HOST, IP, MAC, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, FLOWLABEL, TTL, WAIT, RESPONSE, RCODE, RDATA, ANS_TTL, COMPILE
+// TOKENS: host, ip, mac, flow, s, dns, query, txid, qname, qtype, flowlabel, ttl, wait, ms, response, rcode, rdata, ansttl, compile
 
 // INSTRUCTION: Define the DNS stub resolver client endpoint.
-HOST dns_client {
-    IP 2001:db8:53:1::10
-    MAC 00:1b:21:53:01:0a
+host dns_client {
+    ip 2001:db8:53:1::10
+    mac 00:1b:21:53:01:0a
 }
 
 // INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
-HOST dns_server {
-    IP 2001:db8:53:1::53
-    MAC 00:1b:21:53:01:35
+host dns_server {
+    ip 2001:db8:53:1::53
+    mac 00:1b:21:53:01:35
 }
 
 // INSTRUCTION: Execute the DNS query and authoritative response transaction.
-FLOW dns_scenario_flow(c, s) {
-    c -> s DNS QUERY TXID 2114 QNAME "1.0.0.0.0.0.0.0.1.0.0.0.3.5.0.0.8.b.d.0.1.0.0.2.ip6.arpa" QTYPE "PTR" FLOWLABEL 0x53001 TTL 64 WAIT 3ms
-    c <- s DNS RESPONSE TXID 2114 RCODE 0 QNAME "1.0.0.0.0.0.0.0.1.0.0.0.3.5.0.0.8.b.d.0.1.0.0.2.ip6.arpa" QTYPE "PTR" RDATA "core-gw.ipv6.example.com" ANS_TTL 3600 FLOWLABEL 0x53001 TTL 64
+flow dns_scenario_flow(c, s) {
+    c -> s dns query txid 2114 qname "1.0.0.0.0.0.0.0.1.0.0.0.3.5.0.0.8.b.d.0.1.0.0.2.ip6.arpa" qtype "ptr" flowlabel 0x53001 ttl 64 wait 3ms
+    c <- s dns response txid 2114 rcode 0 qname "1.0.0.0.0.0.0.0.1.0.0.0.3.5.0.0.8.b.d.0.1.0.0.2.ip6.arpa" qtype "ptr" rdata "core-gw.ipv6.example.com" ansttl 3600 flowlabel 0x53001 ttl 64
 }
 
 // INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
-COMPILE {
+compile {
     dns_scenario_flow(dns_client, dns_server)
 }

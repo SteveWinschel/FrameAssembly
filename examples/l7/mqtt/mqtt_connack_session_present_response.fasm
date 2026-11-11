@@ -1,18 +1,18 @@
 // PROMPT: MQTT broker CONNACK packet confirming successful connection and session acknowledgment.
-// TOKENS: HOST, IP, FLOW, MQTT, CONNACK, RETURN_CODE, COMPILE
+// TOKENS: host, ip, flow, mqtt, connack, returncode, compile
 
 // INSTRUCTION: Define connecting IoT edge client.
-HOST edge_client_device { IP 10.12.0.40 }
+host edge_client_device { ip 10.12.0.40 }
 
 // INSTRUCTION: Define enterprise message broker.
-HOST enterprise_broker { IP 10.12.0.1 }
+host enterprise_broker { ip 10.12.0.1 }
 
 // INSTRUCTION: Define CONNACK acknowledgment response flow.
-FLOW connack_response_flow(dev, brk) {
-    dev <- brk MQTT CONNACK RETURN_CODE 0
+flow connack_response_flow(dev, brk) {
+    dev <- brk mqtt connack returncode 0
 }
 
 // INSTRUCTION: Compile MQTT CONNACK response scenario.
-COMPILE {
+compile {
     connack_response_flow(edge_client_device, enterprise_broker)
 }

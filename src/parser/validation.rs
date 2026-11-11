@@ -2,10 +2,10 @@
 //!
 //! This module implements [`validate_semantics`], the second stage of the FrameAssembly front-end
 //! compiler pipeline. After lexical analysis and syntactic parsing produce a [`Program`], this
-//! pass verifies structural and domain invariants across `HOST`, `FLOW`, and `COMPILE` blocks,
-//! including duplicate symbol detection, numeric field bounds (`VLAN`, `DSCP`, `ECN`, `TTL`,
-//! `FLOWLABEL`, `GENTRAP`), cross-protocol modifier compatibility, flow parameter arity, and
-//! homogeneous IPv4/IPv6 or pure-L2 endpoint addressing.
+//! pass verifies structural and domain invariants across `host`, `flow`, and `compile` blocks,
+//! including duplicate symbol detection, numeric field bounds (`vlan`, `dscp`, `ecn`, `ttl`,
+//! `flowlabel`, `gentrap`, `hellotime`), cross-protocol modifier compatibility, flow parameter
+//! arity, and homogeneous IPv4/IPv6 or pure-L2 endpoint addressing.
 
 use alloc::string::{String, ToString};
 use core::net::IpAddr;
@@ -14,9 +14,9 @@ use std::collections::{HashMap, HashSet};
 use crate::ast::*;
 use crate::error::CompilerError;
 
-/// Returns `true` if `protocol` requires both endpoints to declare an `IP` address in `HOST`,
-/// or `false` for Layer 2 protocols that can operate over MAC-only endpoints (`LLDP`, `STP`,
-/// `LACP`, `EAPOL`, `VLAN`, `QINQ`, `MPLS`, `ARP`).
+/// Returns `true` if `protocol` requires both endpoints to declare an `ip` address in `host`,
+/// or `false` for Layer 2 protocols that can operate over MAC-only endpoints (`lldp`, `stp`,
+/// `lacp`, `eapol`, `vlan`, `qinq`, `mpls`, `arp`).
 pub fn protocol_requires_ip(protocol: &Protocol) -> bool {
     !matches!(
         protocol,
@@ -102,6 +102,17 @@ fn validate_frame_statement(stmt: &FrameStatement, src: &str) -> Result<(), Comp
         let span = stmt.raw_gentrap_span.unwrap_or(stmt.span);
         return Err(CompilerError::SemanticError {
             message: alloc::format!("GENTRAP {} out of range (0..=6)", gt),
+            src: src.to_string(),
+            span,
+        });
+    }
+
+    if stmt.protocol == Protocol::Hsrp
+        && let Some((ht, span)) = stmt.raw_hellotime
+        && ht > 255
+    {
+        return Err(CompilerError::SemanticError {
+            message: alloc::format!("HSRP hellotime {} out of range (0..=255)", ht),
             src: src.to_string(),
             span,
         });
@@ -513,11 +524,6 @@ pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerEr
                         span: stmt.callee.span,
                     })?;
                 validate_statement_endpoints(stmt, caller_host, callee_host, src)?;
-            }
-            RunStatement::Loop(_, invocations) => {
-                for inv in invocations {
-                    check_invocation(inv)?;
-                }
             }
         }
     }

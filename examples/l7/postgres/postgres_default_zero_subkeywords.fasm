@@ -1,18 +1,18 @@
 // PROMPT: Default PostgreSQL wire protocol query frame with zero sub-keywords on TCP port 5432.
-// TOKENS: HOST, IP, MAC, FLOW, POSTGRES, COMPILE
+// TOKENS: host, ip, mac, flow, s, postgres, compile
 
 // INSTRUCTION: Define backend microservice host.
-HOST app_node { IP 10.30.1.15 MAC 00:16:3e:30:01:0f }
+host app_node { ip 10.30.1.15 mac 00:16:3e:30:01:0f }
 
 // INSTRUCTION: Define PostgreSQL primary database server.
-HOST pg_primary { IP 10.30.1.5 MAC 00:16:3e:30:01:05 }
+host pg_primary { ip 10.30.1.5 mac 00:16:3e:30:01:05 }
 
 // INSTRUCTION: Define flow sending default POSTGRES query frame.
-FLOW pg_default(c, s) {
-    c -> s POSTGRES
+flow pg_default(c, s) {
+    c -> s postgres
 }
 
 // INSTRUCTION: Compile default PostgreSQL query scenario.
-COMPILE {
+compile {
     pg_default(app_node, pg_primary)
 }

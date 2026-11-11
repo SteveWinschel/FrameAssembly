@@ -20,7 +20,7 @@ Use this skill when designing, implementing, debugging, or verifying network pro
 | **Full L2–L4 wire packet synthesis** | `frameassembly::packet::build_wire_packet(...)` | External crate builders (`etherparse::PacketBuilder`) or unvalidated byte concatenation |
 | **L2 Ethernet + VLAN/QinQ/MPLS framing** | `build_ethernet_and_l2(src_mac, dst_mac, &l2, ip_ethertype, &inner)` | Hardcoding 14-byte Ethernet offsets when 802.1Q/QinQ/MPLS tags are active |
 | **802.1ad QinQ double VLAN tagging** | Outer TPID `0x88A8` (S-VLAN) + Inner TPID `0x8100` (C-VLAN) | Emitting `0x8100` for outer S-VLAN tag (violates IEEE 802.1ad) |
-| **Pure L2 MAC-only `VLAN` / `QINQ` EtherType** | Default inner EtherType to `0x88B5` (IEEE 802.1 Local Experimental) when `src_ip`/`dst_ip` are unspecified | Synthesizing a dummy `0.0.0.0` IPv4/UDP header inside MAC-only L2 `VLAN`/`QINQ` frames |
+| **Pure L2 MAC-only `vlan` / `qinq` EtherType** | Default inner EtherType to `0x88B5` (IEEE 802.1 Local Experimental) when `src_ip`/`dst_ip` are unspecified | Synthesizing a dummy `0.0.0.0` IPv4/UDP header inside MAC-only L2 `vlan`/`qinq` frames |
 | **RFC 3032 MPLS label stack entry** | EtherType `0x8847` + `((label & 0xFFFFF) << 12) \| ((exp & 7) << 9) \| ((bos & 1) << 8) \| ttl` | Appending an extra 2-byte EtherType after the MPLS shim header |
 | **Multicast MAC auto-derivation** | RFC 1112 IPv4 (`01:00:5e:(b1 & 0x7f):b2:b3`) & RFC 2464 IPv6 (`33:33:b12:b13:b14:b15`) | Using unicast default MACs (`00:00:00:00:00:02`) for multicast destinations |
 | **Dual-stack ARP over IPv6** | Polymorphic adaptation in `build_arp_frame` to ICMPv6 NDP NS (Type 135) / NA (Type 136) with Hop Limit `255` | Emitting EtherType `0x0806` ARP frames with 16-byte IPv6 addresses |
@@ -31,7 +31,8 @@ Use this skill when designing, implementing, debugging, or verifying network pro
 | **ICMPv4 vs. ICMPv6 / NDP / MLD / VRRPv3** | ICMPv4/IGMP/OSPF/GRE: no pseudo-header; ICMPv6/NDP/MLD: 40B IPv6 pseudo-header (`58`); VRRPv3: 12B/40B pseudo-header (`112`) + TTL `255` | Omitting pseudo-header on ICMPv6/NDP/MLD/VRRPv3 or using unicast IP instead of Solicited-Node multicast |
 | **RFC 9260 SCTP CRC32c checksum** | `crc32c(&[&sctp_packet])` stored in **little-endian** (`cksum.to_le_bytes()`) at bytes `8..12` | Using RFC 1071 checksum or big-endian byte order for SCTP CRC32c |
 | **IEEE 1815 DNP3 link/chunk CRC-16** | `calculate_dnp3_crc(chunk)` (poly `0xA653` reflected) in **little-endian** every 16 bytes | Computing a single trailing CRC over the entire DNP3 payload |
-| **L7 builder return-tuple ports/IPs** | Preserve `(payload, sport, dport)` / `target_ip` from `DHCP` (`546/547`), `MDNS` (`5353`), `PTP` (`319/320`), `RADIUS` (`1812/1813`) | Overwriting builder-returned ports with hardcoded defaults (e.g., forcing DHCPv6 onto port `67`) |
+| **L7 builder return-tuple ports/IPs** | Preserve `(payload, sport, dport)` / `target_ip` from `dhcp` (`546/547`), `mdns` (`5353`), `ptp` (`319/320`), `radius` (`1812/1813`) | Overwriting builder-returned ports with hardcoded defaults (e.g., forcing DHCPv6 onto port `67`) |
+| **Quoted enum string normalization** | Normalize `_` and `-` case-insensitively on quoted string enum arguments (e.g., `qtype "a"` or `"A"`), while `.fasm` keywords are strict `[a-z0-9]+` | Requiring exact uppercase or `_` inside quoted string parameters in L7 wire builders |
 | **Modern packet capture output** | `pcap_file::pcapng::PcapNgWriter::new(file)` (`frameassembly::pcap::PcapWriter`) | Legacy flat `pcap_file::pcap::PcapWriter` lacking interface options |
 | **Nanosecond timestamp fidelity** | `InterfaceDescriptionOption::IfTsResol(9)` in `InterfaceDescriptionBlock` (never emit `IfTzone`) | Omitting `IfTsResol` (Wireshark defaults to $10^{-6}\text{s}$) or emitting `IfTzone` (triggers `pcap-file` read bug) |
 | **PCAPNG block emission** | `writer.write_block(&idb.into_block())` (`PcapNgBlock` trait) before any `EnhancedPacketBlock` | Writing `EnhancedPacketBlock` before registering `InterfaceDescriptionBlock` (`InvalidInterfaceId`) |
@@ -61,7 +62,7 @@ Use this skill when designing, implementing, debugging, or verifying network pro
   - Standard Ethernet II: `[dst_mac (6B), src_mac (6B), ethertype (2B), inner_packet]`.
   - Single 802.1Q VLAN: `[dst_mac, src_mac, 0x81, 0x00, TCI (2B), next_ethertype (2B), inner_packet]`.
   - 802.1ad QinQ: `[dst_mac, src_mac, 0x88, 0xA8, outer_TCI (2B), 0x81, 0x00, inner_TCI (2B), next_ethertype (2B), inner_packet]`.
-  - Pure L2 MAC-only `VLAN` / `QINQ` (`src/builders/l2/vlan.rs`, `qinq.rs`): When either endpoint has no IP (`ctx.src_ip.is_unspecified() || ctx.dst_ip.is_unspecified()`), `next_ethertype` defaults to `l2.ethertype.unwrap_or(0x88B5)` (IEEE 802.1 Local Experimental) and wraps `payload` directly without an IP/UDP header.
+  - Pure L2 MAC-only `vlan` / `qinq` (`src/builders/l2/vlan.rs`, `qinq.rs`): When either endpoint has no IP (`ctx.src_ip.is_unspecified() || ctx.dst_ip.is_unspecified()`), `next_ethertype` defaults to `l2.ethertype.unwrap_or(0x88B5)` (IEEE 802.1 Local Experimental) and wraps `payload` directly without an IP/UDP header.
   - RFC 3032 MPLS (standalone or inside VLAN/QinQ): Replaces `next_ethertype` with `0x8847` followed by the 4-byte MPLS label stack entry `[label(20b) | exp(3b) | bos(1b) | ttl(8b)]` and `inner_packet`.
 - **Two-Stage Port Inheritance & Canonical 4-Tuple TCP State**:
   - Stage 1 (`EndpointPairPorts`): Remembers `(caller_port, callee_port)` across forward (`->`) and reverse (`<-`) arrows so reply packets automatically mirror the request's ephemeral and service ports.
@@ -93,45 +94,45 @@ Use this skill when designing, implementing, debugging, or verifying network pro
 ## 3. Comprehensive 81-Protocol Wire & Wireshark (`tshark`) Dissector QA Invariant Checklist
 
 ### 3.1 `src/backend/l7_dispatch.rs` Builder Return-Tuple Preservation
-- **`DHCP` (`l7_dispatch.rs`)**: `build_dhcp_payload` returns `(pkt, sport, dport)` — `(68, 67)` / `(67, 68)` for DHCPv4 and `(546, 547)` / `(547, 546)` for DHCPv6. Never discard `sport`/`dport` in favor of hardcoded UDP port `67` (BOOTPS)!
-- **`MDNS` (`l7_dispatch.rs`)**: `build_mdns_payload` returns `(payload, target_ip, 5353)` (`224.0.0.251` for IPv4 / `ff02::fb` for IPv6). Both `target_ip` and port `5353` must be preserved.
-- **`PTP` (`l7_dispatch.rs`)**: `build_ptp_payload` returns `(result, dport)` (`319` Event port for `SYNC`/`DELAY_REQ` vs `320` General port for `FOLLOW_UP`/`DELAY_RESP`/`ANNOUNCE`).
-- **`RADIUS` (`l7_dispatch.rs`)**: `build_radius_payload` returns `(pkt, dport)` (`1812` Authentication vs `1813` Accounting for codes `4, 5`).
+- **`dhcp` (`l7_dispatch.rs`)**: `build_dhcp_payload` returns `(pkt, sport, dport)` — `(68, 67)` / `(67, 68)` for DHCPv4 and `(546, 547)` / `(547, 546)` for DHCPv6. Never discard `sport`/`dport` in favor of hardcoded UDP port `67` (BOOTPS)!
+- **`mdns` (`l7_dispatch.rs`)**: `build_mdns_payload` returns `(payload, target_ip, 5353)` (`224.0.0.251` for IPv4 / `ff02::fb` for IPv6). Both `target_ip` and port `5353` must be preserved.
+- **`ptp` (`l7_dispatch.rs`)**: `build_ptp_payload` returns `(result, dport)` (`319` Event port for `sync`/`delayreq` vs `320` General port for `followup`/`delayresp`/`announce`).
+- **`radius` (`l7_dispatch.rs`)**: `build_radius_payload` returns `(pkt, dport)` (`1812` Authentication vs `1813` Accounting for codes `4, 5`).
 
 ### 3.2 L2/L3 Checksum, TTL & Inner Frame Invariants
-- **`GRE` (`src/builders/l3/gre.rs`)**: When `CHECKSUM` (`0x8000`) is set, compute `internet_checksum(&[&gre])` over the entire GRE packet and write it into `gre[4..6]` (never leave `0x0000`).
-- **`VRRP` (`src/builders/l3/vrrp.rs`)**: VRRPv3 (`0x31`, RFC 5798 §5.2.8) requires the **IPv4 or IPv6 pseudo-header** (Protocol / Next Header = `112`) in its checksum calculation and requires IP TTL / Hop Limit = **`255`**.
-- **`NDP` (`src/builders/l3/ndp.rs` & `l2/arp.rs`)**: RFC 4861 requires IPv6 Hop Limit = **`255`** for all NDP messages (`133..=137`).
-- **`GENEVE` (`src/builders/l3/geneve.rs`)**: Default `proto = 0x6558` (Transparent Ethernet Bridging) requires a valid 14B inner Ethernet + 20B IPv4 frame (like `vxlan.rs`), not raw ASCII text.
-- **`WIREGUARD` (`src/builders/l3/wireguard.rs`)**: Type `4` (`DATA`) requires a 16B header + encrypted payload + **16B Poly1305 AEAD tag** ($\ge 32$ bytes total).
-- **`STP` & `EAPOL` (`src/builders/l2/stp.rs`, `eapol.rs`)**: RSTP (`Version = 2`, `BPDU Type = 0x02`) requires the 36th byte `Version 1 Length = 0x00` (IEEE 802.1D-2004 §9.3.3); EAP Success/Failure (`Code 3/4`) in `EAPOL` are 4 bytes (`[Code, Id, 0x00, 0x04]`, no `Type` byte).
+- **`gre` (`src/builders/l3/gre.rs`)**: When `checksum` (`0x8000`) is set, compute `internet_checksum(&[&gre])` over the entire GRE packet and write it into `gre[4..6]` (never leave `0x0000`).
+- **`vrrp` (`src/builders/l3/vrrp.rs`)**: VRRPv3 (`0x31`, RFC 5798 §5.2.8) requires the **IPv4 or IPv6 pseudo-header** (Protocol / Next Header = `112`) in its checksum calculation and requires IP TTL / Hop Limit = **`255`**.
+- **`ndp` (`src/builders/l3/ndp.rs` & `l2/arp.rs`)**: RFC 4861 requires IPv6 Hop Limit = **`255`** for all NDP messages (`133..=137`).
+- **`geneve` (`src/builders/l3/geneve.rs`)**: Default `proto = 0x6558` (Transparent Ethernet Bridging) requires a valid 14B inner Ethernet + 20B IPv4 frame (like `vxlan.rs`), not raw ASCII text.
+- **`wireguard` (`src/builders/l3/wireguard.rs`)**: Type `4` (`data`) requires a 16B header + encrypted payload + **16B Poly1305 AEAD tag** ($\ge 32$ bytes total).
+- **`stp` & `eapol` (`src/builders/l2/stp.rs`, `eapol.rs`)**: RSTP (`Version = 2`, `BPDU Type = 0x02`) requires the 36th byte `Version 1 Length = 0x00` (IEEE 802.1D-2004 §9.3.3); EAP Success/Failure (`Code 3/4`) in `eapol` are 4 bytes (`[Code, Id, 0x00, 0x04]`, no `Type` byte).
 
 ### 3.3 L7 Length, Varint, ASN.1 & Byte-Order Invariants
-- **`QUIC` (`src/builders/l7/quic.rs`)**: Long Header `Length` is an RFC 9000 §16 2-byte variable-length integer requiring the `0x4000` prefix (`(0x4000 | inner_len).to_be_bytes()`).
-- **`IPFIX` (`src/builders/l7/ipfix.rs`)**: `total_len` (`16 + set_len`) and `set_len` (`4 + record.len() + payload_bytes.len()`) must include `payload_bytes.len()`.
-- **`SFLOW` (`src/builders/l7/sflow.rs`)**: sFlow v5 Flow Sample (`sample_type = 1`) header has **8 `u32` fields (32 bytes)** (`seq_num`, `source_id`, `sampling_rate`, `sample_pool`, `drops`, `input_if`, `output_if`, `num_flow_records`), not 4 `u32`s (16 bytes).
-- **`LDAP` (`src/builders/l7/ldap.rs`)**: `SearchRequest` (`0x63`) requires all 8 RFC 4511 §4.5.1 elements (`baseObject`, `scope`, `derefAliases`, `sizeLimit`, `timeLimit`, `typesOnly`, `filter`, `attributes`).
-- **`KERBEROS` (`src/builders/l7/kerberos.rs`)**: RFC 4120 `KDC-REQ-BODY` requires `[7] till (GeneralizedTime)` and `[8] nonce (UInt32)` after `[3] sname`.
+- **`quic` (`src/builders/l7/quic.rs`)**: Long Header `Length` is an RFC 9000 §16 2-byte variable-length integer requiring the `0x4000` prefix (`(0x4000 | inner_len).to_be_bytes()`).
+- **`ipfix` (`src/builders/l7/ipfix.rs`)**: `total_len` (`16 + set_len`) and `set_len` (`4 + record.len() + payload_bytes.len()`) must include `payload_bytes.len()`.
+- **`sflow` (`src/builders/l7/sflow.rs`)**: sFlow v5 Flow Sample (`sample_type = 1`) header has **8 `u32` fields (32 bytes)** (`seq_num`, `source_id`, `sampling_rate`, `sample_pool`, `drops`, `input_if`, `output_if`, `num_flow_records`), not 4 `u32`s (16 bytes).
+- **`ldap` (`src/builders/l7/ldap.rs`)**: `SearchRequest` (`0x63`) requires all 8 RFC 4511 §4.5.1 elements (`baseObject`, `scope`, `derefAliases`, `sizeLimit`, `timeLimit`, `typesOnly`, `filter`, `attributes`).
+- **`kerberos` (`src/builders/l7/kerberos.rs`)**: RFC 4120 `KDC-REQ-BODY` requires `[7] till (GeneralizedTime)` and `[8] nonce (UInt32)` after `[3] sname`.
 - **L7 Byte-Order & Framing Rules**:
-  - `MYSQL`: 3B **little-endian** payload length + 1B `seq_id`.
-  - `POSTGRES`: `'Q'` + 4B **big-endian** length **including self** (`4 + query.len() + 1`).
-  - `SMB`: 4B NetBIOS (`0x00` + 24-bit BE length) + 64B **little-endian** `\xFESMB` header.
-  - `NFS`: 4B **big-endian** RPC record marker (`0x80000000 | frag_len`) + 4B XDR string pad.
-  - `MODBUS`: 7B MBAP header with `len = 1 + pdu.len()`.
-  - `DNP3`: `0x0564` start bytes + **little-endian** CRC-16 every $\le 16$B.
-  - `S7COMM`: 4B TPKT + 3B COTP + S7 Header (`0x32`, **10B** Job `0x01` / **12B** Ack_Data `0x03`).
-  - `ETHERNETIP`: 24B **little-endian** encapsulation header.
-  - `OPCUA`: 8B **little-endian** UACP header (`total_size` includes the 8B header).
+  - `mysql`: 3B **little-endian** payload length + 1B `seq_id`.
+  - `postgres`: `'Q'` + 4B **big-endian** length **including self** (`4 + query.len() + 1`).
+  - `smb`: 4B NetBIOS (`0x00` + 24-bit BE length) + 64B **little-endian** `\xFESMB` header.
+  - `nfs`: 4B **big-endian** RPC record marker (`0x80000000 | frag_len`) + 4B XDR string pad.
+  - `modbus`: 7B MBAP header with `len = 1 + pdu.len()`.
+  - `dnp3`: `0x0564` start bytes + **little-endian** CRC-16 every $\le 16$B.
+  - `s7comm`: 4B TPKT + 3B COTP + S7 Header (`0x32`, **10B** Job `0x01` / **12B** Ack_Data `0x03`).
+  - `ethernetip`: 24B **little-endian** encapsulation header.
+  - `opcua`: 8B **little-endian** UACP header (`total_size` includes the 8B header).
 
 ---
 
 ## 4. Production Reference Templates
 
-Read [references/patterns.md](references/patterns.md) for complete, copy-pasteable production implementations verified against `frameassembly` and `pcap-file 2.0.0`:
+Read [references/patterns.md](references/patterns.md) for complete, copy-pasteable production implementations verified against `frameassembly` v2.0.0 and `pcap-file 2.0.0`:
 1. **Native RFC 1071, RFC 768 Zero-Mapping, RFC 9260 CRC32c & DNP3 CRC-16 Checksum Engines**: Disjoint-slice one's complement checksums, adversarial `0x0000 -> 0xFFFF` UDP verification, `const` Castagnoli CRC32c, and IEEE 1815 CRC-16.
 2. **Native L3/L4 Dual-Stack Wire Builders (IPv4, IPv6, TCP with Options, UDP, SCTP)**: Complete header synthesis with DSCP/ECN, IPv4 DF/MF/Fragment Offset, IPv6 Flow Labels, and 32-bit aligned TCP options.
 3. **Native L2 Encapsulation (Ethernet II, 802.1Q VLAN, 802.1ad QinQ, RFC 3032 MPLS) & Multicast MAC Derivation**: Tag stacking, RFC 1112 / RFC 2464 multicast MAC derivation, and polymorphic IPv6 ARP-to-NDP adaptation.
 4. **Canonical 4-Tuple TCP Stream State Machine & Two-Stage Port Inheritance**: Stateful sequence/acknowledgment progression and bidirectional port mirroring.
 5. **Transactional PCAPNG Writer with Nanosecond Fidelity & `pcap-file 2.0.0` Quirks**: `PcapNgWriter`, `PcapNgBlock::into_block()`, `IfTsResol(9)` mandate, `IfTzone` avoidance, exact 6 `PcapError` & 9 `Block<'a>` handling, and delayed file creation.
 6. **Zero-Copy Streaming PCAPNG Dissector (`PcapNgReader` + Native Wire Slicing)**: Incremental block iteration, `.into_owned()` lifetime promotion, and native L2–L4 wire offset verification without external parser crates.
-7. **81-Protocol Wire & Wireshark (`tshark`) Dissector QA Invariant Verification Suite**: Concrete wire assertions for L7 return tuples (`DHCP`, `MDNS`, `PTP`, `RADIUS`), L2/L3 checksums/TTLs (`GRE`, `VRRP`, `NDP`, `GENEVE`, `WIREGUARD`, `STP`), and L7 varints/lengths (`QUIC`, `IPFIX`, `SFLOW`, `LDAP`, `KERBEROS`, `MYSQL`, `POSTGRES`, `MODBUS`, `S7COMM`, `OPCUA`).
+7. **81-Protocol Wire & Wireshark (`tshark`) Dissector QA Invariant Verification Suite**: Concrete wire assertions for L7 return tuples (`dhcp`, `mdns`, `ptp`, `radius`), L2/L3 checksums/TTLs (`gre`, `vrrp`, `ndp`, `geneve`, `wireguard`, `stp`), and L7 varints/lengths (`quic`, `ipfix`, `sflow`, `ldap`, `kerberos`, `mysql`, `postgres`, `modbus`, `s7comm`, `opcua`).

@@ -1,24 +1,24 @@
 // PROMPT: Default Kerberos v5 authentication frame over UDP port 88 using RFC 4120 defaults.
-// TOKENS: HOST, IP, MAC, FLOW, KERBEROS, COMPILE
+// TOKENS: host, ip, mac, flow, kerberos, compile
 
 // INSTRUCTION: Define Active Directory domain workstation.
-HOST ad_workstation {
-    IP 10.88.0.25
-    MAC 00:15:5d:88:00:19
+host ad_workstation {
+    ip 10.88.0.25
+    mac 00:15:5d:88:00:19
 }
 
 // INSTRUCTION: Define Key Distribution Center (KDC) domain controller.
-HOST kdc_server {
-    IP 10.88.0.1
-    MAC 00:15:5d:88:00:01
+host kdc_server {
+    ip 10.88.0.1
+    mac 00:15:5d:88:00:01
 }
 
 // INSTRUCTION: Emit a default Kerberos v5 frame without explicit sub-keywords.
-FLOW kerberos_default(w, k) {
-    w -> k KERBEROS
+flow kerberos_default(w, k) {
+    w -> k kerberos
 }
 
 // INSTRUCTION: Compile the default Kerberos v5 scenario.
-COMPILE {
+compile {
     kerberos_default(ad_workstation, kdc_server)
 }

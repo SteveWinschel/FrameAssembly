@@ -1,10 +1,10 @@
 //! Precision Time Protocol (IEEE 1588 PTPv2) Layer 7 field parser.
 //!
 //! This module implements the `winnow` parser combinator for IEEE 1588 Precision Time Protocol
-//! (`PTP`) packets in FrameAssembly `.fasm` specifications. It recognizes the `PTP` protocol
-//! keyword, explicit message types (`MSG_TYPE`), shorthand message flags (`SYNC`, `DELAY_REQ`,
-//! `FOLLOW_UP`, `DELAY_RESP`, `ANNOUNCE`), PTP domain numbers (`DOMAIN`), sequence identifiers
-//! (`SEQ_ID`), and 8-byte grandmaster/port clock identities (`CLOCK_ID`).
+//! (`ptp`) packets in FrameAssembly `.fasm` specifications. It recognizes the `ptp` protocol
+//! keyword, explicit message types (`msgtype`), shorthand message flags (`sync`, `delayreq`,
+//! `followup`, `delayresp`, `announce`), PTP domain numbers (`domain`), sequence identifiers
+//! (`seqid`), and 8-byte grandmaster/port clock identities (`clockid`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

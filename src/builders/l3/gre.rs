@@ -2,13 +2,13 @@
 //!
 //! Serializes a [`GreSpec`] into an RFC 2784 and RFC 2890 compliant GRE tunnel header encapsulated
 //! directly over IPv4 or IPv6 using IP protocol number `47` (`0x2F`). The builder dynamically sets
-//! the 16-bit GRE Flags word (`0x8000` Checksum Present `C` bit when `CHECKSUM` is specified,
-//! `0x2000` Key Present `K` bit when `GRE_KEY` is present, and `0x1000` Sequence Number Present `S`
-//! bit when `GRE_SEQ` is present), appends the 16-bit EtherType `Protocol Type` (`GRE_PROTO`,
+//! the 16-bit GRE Flags word (`0x8000` Checksum Present `C` bit when `checksum` is specified,
+//! `0x2000` Key Present `K` bit when `grekey` is present, and `0x1000` Sequence Number Present `S`
+//! bit when `greseq` is present), appends the 16-bit EtherType `Protocol Type` (`greproto`,
 //! default `0x0800`), optional 32-bit Checksum/Reserved, Key, and Sequence words, and the inner packet.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b GRE [GRE_KEY <u32>] [GRE_SEQ <u32>] [GRE_PROTO <u16>] [CHECKSUM] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
+//! `a -> b gre [grekey <u32>] [greseq <u32>] [greproto <u16>] [checksum] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

@@ -4,7 +4,7 @@
 //! AST node into a Modbus TCP Application Data Unit (ADU) over TCP or UDP port 502. It constructs
 //! the 7-byte MBAP header (16-bit Transaction ID, 16-bit Protocol ID `0x0000`, 16-bit Length, and
 //! 8-bit Unit ID) followed by the 1-byte Function Code (`0x01..=0x06`, `0x10`) and either a 4-byte
-//! request body (`addr`, `count_or_val`) or a byte-counted response body when `IS_RESPONSE` is set.
+//! request body (`addr`, `count_or_val`) or a byte-counted response body when `isresponse` is set.
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -20,14 +20,19 @@ pub fn build_modbus_payload(
     let proto_id = spec.proto_id.unwrap_or(0);
     let unit_id = spec.unitid.unwrap_or(1);
 
-    let func_code: u8 = match spec.func.unwrap_or("READ_HOLDING_REGISTERS").to_ascii_uppercase().as_str() {
-        "READ_COILS" => 1,
-        "READ_DISCRETE_INPUTS" => 2,
-        "READ_HOLDING_REGISTERS" => 3,
-        "READ_INPUT_REGISTERS" => 4,
-        "WRITE_SINGLE_COIL" => 5,
-        "WRITE_SINGLE_REGISTER" => 6,
-        "WRITE_MULTIPLE_REGISTERS" => 16,
+    let func_norm = spec
+        .func
+        .unwrap_or("readholdingregisters")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    let func_code: u8 = match func_norm.as_str() {
+        "READCOILS" => 1,
+        "READDISCRETEINPUTS" => 2,
+        "READHOLDINGREGISTERS" => 3,
+        "READINPUTREGISTERS" => 4,
+        "WRITESINGLECOIL" => 5,
+        "WRITESINGLEREGISTER" => 6,
+        "WRITEMULTIPLEREGISTERS" => 16,
         _ => 3,
     };
 

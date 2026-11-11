@@ -1,19 +1,19 @@
 // PROMPT: Authorization check for interface configuration command parameters.
-// TOKENS: HOST, IP, FLOW, TACACS, TYPE, AUTHOR, USER, SESSION_ID, COMPILE
+// TOKENS: host, ip, flow, s, tacacs, type, author, user, sessionid, compile
 
 // INSTRUCTION: Define perimeter router NAS.
-HOST perim_rtr { IP 172.24.10.1 }
+host perim_rtr { ip 172.24.10.1 }
 
 // INSTRUCTION: Define policy enforcement host.
-HOST policy_host { IP 172.24.10.200 }
+host policy_host { ip 172.24.10.200 }
 
 // INSTRUCTION: Define configuration argument authorization flow.
-FLOW tacacs_iface_flow(c, s) {
-    c -> s TACACS TYPE AUTHOR USER "secops_eng" SESSION_ID 10060
-    c <- s TACACS TYPE AUTHOR USER "secops_eng" SESSION_ID 10060
+flow tacacs_iface_flow(c, s) {
+    c -> s tacacs type author user "secops_eng" sessionid 10060
+    c <- s tacacs type author user "secops_eng" sessionid 10060
 }
 
 // INSTRUCTION: Compile block executing argument authorization.
-COMPILE {
+compile {
     tacacs_iface_flow(perim_rtr, policy_host)
 }

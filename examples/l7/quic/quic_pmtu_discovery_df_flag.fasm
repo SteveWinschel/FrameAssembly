@@ -1,19 +1,19 @@
 // PROMPT: QUIC Initial datagram with IPv4 Don't Fragment (DF) flag for PMTU discovery.
-// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, DCID, SCID, PKT_NUM, DF, IPID, TTL, PAYLOAD, WAIT, SHORT, COMPILE
+// TOKENS: host, ip, flow, s, quic, initial, dcid, scid, pktnum, df, ipid, ttl, payload, wait, ms, short, compile
 
 // INSTRUCTION: Define QUIC client probing path MTU.
-HOST pmtu_client { IP 10.140.0.10 }
+host pmtu_client { ip 10.140.0.10 }
 
 // INSTRUCTION: Define QUIC origin server.
-HOST origin_srv { IP 10.140.0.1 }
+host origin_srv { ip 10.140.0.1 }
 
 // INSTRUCTION: Define QUIC frames with DF bit set and explicit IPID values.
-FLOW quic_pmtu_df(c, s) {
-    c -> s QUIC INITIAL DCID 0x44556677 SCID 0x8899aabb PKT_NUM 1 DF IPID 1001 TTL 64 PAYLOAD "PADDING_1200_CHECK" WAIT 5ms
-    c <- s QUIC SHORT DCID 0x8899aabb PKT_NUM 1 DF IPID 2001 TTL 64 PAYLOAD "PMTU_ACK_OK"
+flow quic_pmtu_df(c, s) {
+    c -> s quic initial dcid 0x44556677 scid 0x8899aabb pktnum 1 df ipid 1001 ttl 64 payload "PADDING_1200_CHECK" wait 5ms
+    c <- s quic short dcid 0x8899aabb pktnum 1 df ipid 2001 ttl 64 payload "PMTU_ACK_OK"
 }
 
 // INSTRUCTION: Compile QUIC PMTU discovery with DF flag.
-COMPILE {
+compile {
     quic_pmtu_df(pmtu_client, origin_srv)
 }

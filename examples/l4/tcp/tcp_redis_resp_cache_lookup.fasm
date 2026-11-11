@@ -1,26 +1,28 @@
 // PROMPT: Simulate a low-latency Redis RESP cache SET and GET pipeline over TCP port 6379.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, COMPILE, LOOP
+// TOKENS: host, ip, mac, flow, app, tcp, syn, srcport, dstport, win, wait, ms, ack, psh, payload, compile
 
 // INSTRUCTION: Define a web backend worker with IP 10.8.0.12.
-HOST backend_worker { IP 10.8.0.12 MAC 02:42:0a:08:00:0c }
+host backend_worker { ip 10.8.0.12 mac 02:42:0a:08:00:0c }
 
 // INSTRUCTION: Define a Redis in-memory cache node with IP 10.8.0.63.
-HOST redis_cache { IP 10.8.0.63 MAC 02:42:0a:08:00:3f }
+host redis_cache { ip 10.8.0.63 mac 02:42:0a:08:00:3f }
 
 // INSTRUCTION: Define a flow that connects to Redis port 6379 and executes RESP SET and GET commands.
-FLOW redis_cache_pipeline(app, cache) {
-    app -> cache TCP SYN SRCPORT 56379 DSTPORT 6379 WIN 65535 WAIT 1ms
-    app <- cache TCP SYN ACK SRCPORT 6379 DSTPORT 56379 WIN 65535 WAIT 1ms
-    app -> cache TCP ACK SRCPORT 56379 DSTPORT 6379 WIN 65535 WAIT 1ms
-    app -> cache TCP PSH ACK SRCPORT 56379 DSTPORT 6379 PAYLOAD "SET session:1001 active" WAIT 1ms
-    app <- cache TCP PSH ACK SRCPORT 6379 DSTPORT 56379 PAYLOAD "+OK" WAIT 1ms
-    app -> cache TCP PSH ACK SRCPORT 56379 DSTPORT 6379 PAYLOAD "GET session:1001" WAIT 1ms
-    app <- cache TCP PSH ACK SRCPORT 6379 DSTPORT 56379 PAYLOAD "$6 active" WAIT 1ms
+flow redis_cache_pipeline(app, cache) {
+    app -> cache tcp syn srcport 56379 dstport 6379 win 65535 wait 1ms
+    app <- cache tcp syn ack srcport 6379 dstport 56379 win 65535 wait 1ms
+    app -> cache tcp ack srcport 56379 dstport 6379 win 65535 wait 1ms
+    app -> cache tcp psh ack srcport 56379 dstport 6379 payload "SET session:1001 active" wait 1ms
+    app <- cache tcp psh ack srcport 6379 dstport 56379 payload "+OK" wait 1ms
+    app -> cache tcp psh ack srcport 56379 dstport 6379 payload "GET session:1001" wait 1ms
+    app <- cache tcp psh ack srcport 6379 dstport 56379 payload "$6 active" wait 1ms
 }
 
 // INSTRUCTION: Compile block to execute the Redis cache lookup flow 5 times.
-COMPILE {
-    LOOP 5 {
-        redis_cache_pipeline(backend_worker, redis_cache)
-    }
+compile {
+    redis_cache_pipeline(backend_worker, redis_cache) // cycle 1
+    redis_cache_pipeline(backend_worker, redis_cache) // cycle 2
+    redis_cache_pipeline(backend_worker, redis_cache) // cycle 3
+    redis_cache_pipeline(backend_worker, redis_cache) // cycle 4
+    redis_cache_pipeline(backend_worker, redis_cache) // cycle 5
 }

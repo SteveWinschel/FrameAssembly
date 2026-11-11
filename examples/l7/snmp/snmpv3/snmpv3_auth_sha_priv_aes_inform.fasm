@@ -1,29 +1,29 @@
 // PROMPT: Simulate an RFC 3826 SNMPv3 authPriv INFORM and RESPONSE exchange using HMAC-SHA-96 authentication (AUTH SHA) and AES-128-CFB privacy (PRIV AES).
-// TOKENS: HOST, IP, MAC, FLOW, SNMP3, INFORM, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA, PRIV, AES, REQID, OID, SYSUPTIME, VARBIND, STRING, COUNTER32, WAIT, RESPONSE, COMPILE
+// TOKENS: host, ip, mac, flow, snmp3, inform, user, engineid, engineboots, enginetime, auth, sha, priv, aes, reqid, oid, sysuptime, varbind, string, counter32, wait, ms, response, compile
 
 // INSTRUCTION: Define an enterprise core switch sending encrypted INFORMs with IP 10.149.0.1.
-HOST v3_sha_aes_switch { IP 10.149.0.1 MAC 00:1c:73:49:00:01 }
+host v3_sha_aes_switch { ip 10.149.0.1 mac 00:1c:73:49:00:01 }
 
 // INSTRUCTION: Define the enterprise NMS server with IP 10.149.0.200.
-HOST v3_sha_aes_nms { IP 10.149.0.200 MAC 00:1c:73:49:00:c8 }
+host v3_sha_aes_nms { ip 10.149.0.200 mac 00:1c:73:49:00:c8 }
 
 // INSTRUCTION: Define a flow sending an SNMPv3 INFORM with AUTH SHA and PRIV AES and receiving an encrypted RESPONSE.
-FLOW snmpv3_sha_aes_inform(sw, nms) {
-    sw -> nms SNMP3 INFORM USER "usm_sha_aes" ENGINEID "80007571010a950001" ENGINEBOOTS 21 ENGINETIME 105000
-        AUTH SHA "sha_enterprise_auth" PRIV AES "aes_enterprise_priv"
-        REQID 9501 OID 1.3.6.1.6.3.1.1.5.3 SYSUPTIME 10500000
-        VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "FortyGigE1/0/1"
-        VARBIND 1.3.6.1.2.1.2.2.1.14.1 COUNTER32 29
-        WAIT 15ms
-    sw <- nms SNMP3 RESPONSE USER "usm_sha_aes" ENGINEID "80007571010a950001" ENGINEBOOTS 21 ENGINETIME 105000
-        AUTH SHA "sha_enterprise_auth" PRIV AES "aes_enterprise_priv"
-        REQID 9501
-        VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "FortyGigE1/0/1"
-        VARBIND 1.3.6.1.2.1.2.2.1.14.1 COUNTER32 29
-        WAIT 10ms
+flow snmpv3_sha_aes_inform(sw, nms) {
+    sw -> nms snmp3 inform user "usm_sha_aes" engineid "80007571010a950001" engineboots 21 enginetime 105000
+        auth sha "sha_enterprise_auth" priv aes "aes_enterprise_priv"
+        reqid 9501 oid 1.3.6.1.6.3.1.1.5.3 sysuptime 10500000
+        varbind 1.3.6.1.2.1.2.2.1.2.1 string "FortyGigE1/0/1"
+        varbind 1.3.6.1.2.1.2.2.1.14.1 counter32 29
+        wait 15ms
+    sw <- nms snmp3 response user "usm_sha_aes" engineid "80007571010a950001" engineboots 21 enginetime 105000
+        auth sha "sha_enterprise_auth" priv aes "aes_enterprise_priv"
+        reqid 9501
+        varbind 1.3.6.1.2.1.2.2.1.2.1 string "FortyGigE1/0/1"
+        varbind 1.3.6.1.2.1.2.2.1.14.1 counter32 29
+        wait 10ms
 }
 
 // INSTRUCTION: Compile block to execute the SHA + AES SNMPv3 INFORM exchange.
-COMPILE {
+compile {
     snmpv3_sha_aes_inform(v3_sha_aes_switch, v3_sha_aes_nms)
 }

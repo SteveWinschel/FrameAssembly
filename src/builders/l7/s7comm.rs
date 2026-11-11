@@ -4,7 +4,7 @@
 //! AST specification into a Siemens SIMATIC S7comm frame encapsulated in ISO-on-TCP (RFC 1006) over
 //! TCP port 102. It builds the S7 parameter and data blocks for `Setup_Communication` (`0xF0`),
 //! `Read_Var` (`0x04` with `S7ANY` 10-byte item address specification), `Write_Var` (`0x05`), or
-//! `PLC_Control` (`0x28`), prepends the 10-byte S7 header (`0x32` magic, `ROSCTR`, `PDU_REF`,
+//! `PLC_Control` (`0x28`), prepends the 10-byte S7 header (`0x32` magic, `rosctr`, `pduref`,
 //! parameter/data lengths), and wraps the result in a 3-byte COTP DT Data PDU and 4-byte TPKT header.
 
 use crate::ast::*;
@@ -17,19 +17,29 @@ pub fn build_s7comm_payload(
     spec: &S7commSpec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
-    let rosctr = match spec.rosctr.unwrap_or("JOB").to_ascii_uppercase().as_str() {
+    let rosctr_norm = spec
+        .rosctr
+        .unwrap_or("job")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    let rosctr = match rosctr_norm.as_str() {
         "JOB" => 0x01u8,
         "ACK" => 0x02u8,
-        "ACK_DATA" => 0x03u8,
+        "ACKDATA" => 0x03u8,
         "USERDATA" => 0x07u8,
         _ => 0x01u8,
     };
 
-    let func_code = match spec.func.unwrap_or("SETUP_COMM").to_ascii_uppercase().as_str() {
-        "SETUP_COMM" => 0xF0u8,
-        "READ_VAR" => 0x04u8,
-        "WRITE_VAR" => 0x05u8,
-        "PLC_CONTROL" => 0x28u8,
+    let func_norm = spec
+        .func
+        .unwrap_or("setupcomm")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    let func_code = match func_norm.as_str() {
+        "SETUPCOMM" => 0xF0u8,
+        "READVAR" => 0x04u8,
+        "WRITEVAR" => 0x05u8,
+        "PLCCONTROL" => 0x28u8,
         _ => 0xF0u8,
     };
 

@@ -1,21 +1,21 @@
 // PROMPT: RTSP 401 Unauthorized challenge and retry for protected surveillance stream.
-// TOKENS: HOST, IP, FLOW, RTSP, METHOD, URI, CSEQ, WAIT, STATUS, COMPILE
+// TOKENS: host, ip, flow, s, rtsp, method, uri, cseq, wait, ms, status, compile
 
 // INSTRUCTION: Define security operator console client.
-HOST sec_console { IP 192.168.12.30 }
+host sec_console { ip 192.168.12.30 }
 
 // INSTRUCTION: Define digest-protected RTSP camera.
-HOST auth_camera { IP 192.168.12.100 }
+host auth_camera { ip 192.168.12.100 }
 
 // INSTRUCTION: Define initial DESCRIBE rejected with 401 followed by authenticated CSeq 2.
-FLOW rtsp_401_challenge(c, s) {
-    c -> s RTSP METHOD "DESCRIBE" URI "rtsp://192.168.12.100/secure" CSEQ 1 WAIT 4ms
-    c <- s RTSP STATUS 401 CSEQ 1 WAIT 4ms
-    c -> s RTSP METHOD "DESCRIBE" URI "rtsp://192.168.12.100/secure" CSEQ 2 WAIT 4ms
-    c <- s RTSP STATUS 200 CSEQ 2
+flow rtsp_401_challenge(c, s) {
+    c -> s rtsp method "DESCRIBE" uri "rtsp://192.168.12.100/secure" cseq 1 wait 4ms
+    c <- s rtsp status 401 cseq 1 wait 4ms
+    c -> s rtsp method "DESCRIBE" uri "rtsp://192.168.12.100/secure" cseq 2 wait 4ms
+    c <- s rtsp status 200 cseq 2
 }
 
 // INSTRUCTION: Compile RTSP 401 challenge-response flow.
-COMPILE {
+compile {
     rtsp_401_challenge(sec_console, auth_camera)
 }

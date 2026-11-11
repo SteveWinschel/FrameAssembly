@@ -1,21 +1,21 @@
 // PROMPT: Kerberos KRB_ERROR pre-authentication required challenge followed by retry AS_REQ.
-// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REQ, REALM, CNAME, SNAME, ETYPE, KRB_ERROR, WAIT, AS_REP, COMPILE
+// TOKENS: host, ip, flow, kerberos, asreq, realm, cname, sname, etype, krberror, wait, ms, asrep, compile
 
 // INSTRUCTION: Define domain client initiating login.
-HOST login_client { IP 172.16.88.40 }
+host login_client { ip 172.16.88.40 }
 
 // INSTRUCTION: Define KDC requiring PA-ENC-TIMESTAMP pre-authentication.
-HOST preauth_kdc { IP 172.16.88.1 }
+host preauth_kdc { ip 172.16.88.1 }
 
 // INSTRUCTION: Send initial AS_REQ, receive KRB_ERROR challenge, retry AS_REQ, and receive AS_REP.
-FLOW krb5_preauth_challenge(c, k) {
-    c -> k KERBEROS AS_REQ REALM "CORP.LOCAL" CNAME "admin" SNAME "krbtgt/CORP.LOCAL" ETYPE 18
-    c <- k KERBEROS KRB_ERROR REALM "CORP.LOCAL" CNAME "admin" SNAME "krbtgt/CORP.LOCAL" WAIT 10ms
-    c -> k KERBEROS AS_REQ REALM "CORP.LOCAL" CNAME "admin" SNAME "krbtgt/CORP.LOCAL" ETYPE 18 WAIT 15ms
-    c <- k KERBEROS AS_REP REALM "CORP.LOCAL" CNAME "admin" SNAME "krbtgt/CORP.LOCAL" ETYPE 18
+flow krb5_preauth_challenge(c, k) {
+    c -> k kerberos asreq realm "CORP.LOCAL" cname "admin" sname "krbtgt/CORP.LOCAL" etype 18
+    c <- k kerberos krberror realm "CORP.LOCAL" cname "admin" sname "krbtgt/CORP.LOCAL" wait 10ms
+    c -> k kerberos asreq realm "CORP.LOCAL" cname "admin" sname "krbtgt/CORP.LOCAL" etype 18 wait 15ms
+    c <- k kerberos asrep realm "CORP.LOCAL" cname "admin" sname "krbtgt/CORP.LOCAL" etype 18
 }
 
 // INSTRUCTION: Compile the Kerberos pre-authentication error and retry sequence.
-COMPILE {
+compile {
     krb5_preauth_challenge(login_client, preauth_kdc)
 }

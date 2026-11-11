@@ -1,25 +1,25 @@
 // PROMPT: RFC 3768 VRRPv2 legacy advertisement (VERSION 2) interoperating on a mixed campus gateway subnet.
-// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, DSCP, TTL, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, vrrp, vrid, priority, advint, vip, version, dscp, ttl, wait, ms, compile
 
 // INSTRUCTION: Define legacy distribution router running RFC 3768 VRRPv2 (VERSION 2) on VRID 12.
-HOST vrrpv2_legacy_gw {
-    IP 172.16.12.2
-    MAC 00:00:5e:00:01:0c
+host vrrpv2_legacy_gw {
+    ip 172.16.12.2
+    mac 00:00:5e:00:01:0c
 }
 
 // INSTRUCTION: Define VRRP multicast address 224.0.0.18.
-HOST vrrpv2_mcast_dst {
-    IP 224.0.0.18
-    MAC 01:00:5e:00:00:12
+host vrrpv2_mcast_dst {
+    ip 224.0.0.18
+    mac 01:00:5e:00:00:12
 }
 
 // INSTRUCTION: Define VRRPv2 (VERSION 2) advertisement with VRID 12, PRIORITY 110, and 1s interval.
-FLOW vrrpv2_legacy_advert_flow(gw, mcast) {
-    gw -> mcast VRRP VRID 12 PRIORITY 110 ADV_INT 1 VIP 172.16.12.1 VERSION 2 DSCP 48 TTL 255 WAIT 50ms
-    gw -> mcast VRRP VRID 12 PRIORITY 110 ADV_INT 1 VIP 172.16.12.1 VERSION 2 DSCP 48 TTL 255
+flow vrrpv2_legacy_advert_flow(gw, mcast) {
+    gw -> mcast vrrp vrid 12 priority 110 advint 1 vip 172.16.12.1 version 2 dscp 48 ttl 255 wait 50ms
+    gw -> mcast vrrp vrid 12 priority 110 advint 1 vip 172.16.12.1 version 2 dscp 48 ttl 255
 }
 
 // INSTRUCTION: Compile the RFC 3768 VRRPv2 backward compatibility advertisement flow.
-COMPILE {
+compile {
     vrrpv2_legacy_advert_flow(vrrpv2_legacy_gw, vrrpv2_mcast_dst)
 }

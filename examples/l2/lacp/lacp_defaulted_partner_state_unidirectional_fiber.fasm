@@ -1,25 +1,25 @@
 // PROMPT: LACP port entering Defaulted state (0x45 = 69) when partner LACPDUs cease arriving due to unidirectional fiber fault.
-// TOKENS: HOST, IP, MAC, FLOW, LACP, ACTOR_SYS, ACTOR_KEY, ACTOR_PORT, ACTOR_STATE, PARTNER_SYS, PARTNER_KEY, PARTNER_PORT, PARTNER_STATE, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, compile
 
 // INSTRUCTION: Define local switch port setting Defaulted bit (0x40) and clearing InSync/Collecting/Distributing.
-HOST local_defaulted_sw {
-    IP 10.45.0.1
-    MAC 00:1c:73:2d:00:01
+host local_defaulted_sw {
+    ip 10.45.0.1
+    mac 00:1c:73:2d:00:01
 }
 
 // INSTRUCTION: Define remote switch port whose Tx fiber is broken.
-HOST remote_silent_sw {
-    IP 10.45.0.2
-    MAC 00:1c:73:2d:00:02
+host remote_silent_sw {
+    ip 10.45.0.2
+    mac 00:1c:73:2d:00:02
 }
 
 // INSTRUCTION: Transmit LACPDU with ACTOR_STATE 69 (Active, Aggregatable, Defaulted) and zeroed partner MAC.
-FLOW lacp_defaulted_transition(loc, rem) {
-    loc -> rem LACP ACTOR_SYS 00:1c:73:2d:00:01 ACTOR_KEY 45 ACTOR_PORT 5 ACTOR_STATE 69 PARTNER_SYS 00:00:00:00:00:00 PARTNER_KEY 0 PARTNER_PORT 0 PARTNER_STATE 64 WAIT 10ms
-    loc -> rem LACP ACTOR_SYS 00:1c:73:2d:00:01 ACTOR_KEY 45 ACTOR_PORT 5 ACTOR_STATE 69 PARTNER_SYS 00:00:00:00:00:00 PARTNER_KEY 0 PARTNER_PORT 0 PARTNER_STATE 64
+flow lacp_defaulted_transition(loc, rem) {
+    loc -> rem lacp actorsys 00:1c:73:2d:00:01 actorkey 45 actorport 5 actorstate 69 partnersys 00:00:00:00:00:00 partnerkey 0 partnerport 0 partnerstate 64 wait 10ms
+    loc -> rem lacp actorsys 00:1c:73:2d:00:01 actorkey 45 actorport 5 actorstate 69 partnersys 00:00:00:00:00:00 partnerkey 0 partnerport 0 partnerstate 64
 }
 
 // INSTRUCTION: Compile the LACP Defaulted state transition trace.
-COMPILE {
+compile {
     lacp_defaulted_transition(local_defaulted_sw, remote_silent_sw)
 }

@@ -1,21 +1,21 @@
 // PROMPT: IMAP STORE command marking messages with \Deleted flag followed by EXPUNGE cleanup.
-// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, COMPILE
+// TOKENS: host, ip, flow, s, imap, tag, cmd, arg, compile
 
 // INSTRUCTION: Define webmail backend worker.
-HOST webmail_worker { IP 10.24.14.12 }
+host webmail_worker { ip 10.24.14.12 }
 
 // INSTRUCTION: Define Cyrus IMAP server.
-HOST cyrus_imap { IP 10.24.14.2 }
+host cyrus_imap { ip 10.24.14.2 }
 
 // INSTRUCTION: Add \Deleted flag via STORE and permanently remove messages via EXPUNGE.
-FLOW imap_store_expunge(c, s) {
-    c -> s IMAP TAG "C01" CMD "STORE" ARG "1:5 +FLAGS (\\Deleted)"
-    c <- s IMAP TAG "C01" CMD "OK" ARG "STORE completed"
-    c -> s IMAP TAG "C02" CMD "EXPUNGE"
-    c <- s IMAP TAG "C02" CMD "OK" ARG "EXPUNGE completed"
+flow imap_store_expunge(c, s) {
+    c -> s imap tag "C01" cmd "STORE" arg "1:5 +FLAGS (\\Deleted)"
+    c <- s imap tag "C01" cmd "OK" arg "STORE completed"
+    c -> s imap tag "C02" cmd "EXPUNGE"
+    c <- s imap tag "C02" cmd "OK" arg "EXPUNGE completed"
 }
 
 // INSTRUCTION: Compile the IMAP STORE and EXPUNGE mailbox cleanup flow.
-COMPILE {
+compile {
     imap_store_expunge(webmail_worker, cyrus_imap)
 }

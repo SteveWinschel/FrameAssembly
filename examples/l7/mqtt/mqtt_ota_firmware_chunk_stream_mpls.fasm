@@ -1,29 +1,29 @@
 // PROMPT: Model an MQTT Over-The-Air (OTA) firmware binary chunk distribution to an IoT gateway over MPLS label 6188.
-// TOKENS: HOST, IP, MAC, FLOW, MQTT, PUBLISH, TOPIC, QOS, PKT_ID, HEXPAYLOAD, MPLS, EXP, BOS, MPLS_TTL, WAIT, PUBACK, COMPILE
+// TOKENS: host, ip, mac, flow, mqtt, publish, topic, qos, pktid, hexpayload, mpls, exp, bos, mplsttl, wait, ms, puback, compile
 
 // INSTRUCTION: Define the cloud OTA deployment server publishing firmware blocks.
-HOST ota_publisher {
-    IP 172.24.18.5
-    MAC 00:50:56:18:12:05
+host ota_publisher {
+    ip 172.24.18.5
+    mac 00:50:56:18:12:05
 }
 
 // INSTRUCTION: Define the regional IoT aggregation broker reachable over MPLS.
-HOST regional_broker {
-    IP 172.24.88.1
-    MAC 00:50:56:18:58:01
+host regional_broker {
+    ip 172.24.88.1
+    mac 00:50:56:18:58:01
 }
 
 // INSTRUCTION: Publish two sequential QoS 1 binary firmware chunks over MPLS label 6188.
-FLOW mqtt_ota_chunk_stream(c, b) {
-    c -> b MQTT PUBLISH TOPIC "ota/gw-fleet/v2.4.1/chunk/0" QOS 1 PKT_ID 501
-        HEXPAYLOAD "7f454c46020101000000000000000000" MPLS 6188 EXP 3 BOS 1 MPLS_TTL 64 WAIT 5ms
-    c <- b MQTT PUBACK PKT_ID 501 MPLS 6188 EXP 3 BOS 1 MPLS_TTL 64 WAIT 3ms
-    c -> b MQTT PUBLISH TOPIC "ota/gw-fleet/v2.4.1/chunk/1" QOS 1 PKT_ID 502
-        HEXPAYLOAD "02003e00010000008010400000000000" MPLS 6188 EXP 3 BOS 1 MPLS_TTL 64 WAIT 5ms
-    c <- b MQTT PUBACK PKT_ID 502 MPLS 6188 EXP 3 BOS 1 MPLS_TTL 64
+flow mqtt_ota_chunk_stream(c, b) {
+    c -> b mqtt publish topic "ota/gw-fleet/v2.4.1/chunk/0" qos 1 pktid 501
+        hexpayload "7f454c46020101000000000000000000" mpls 6188 exp 3 bos 1 mplsttl 64 wait 5ms
+    c <- b mqtt puback pktid 501 mpls 6188 exp 3 bos 1 mplsttl 64 wait 3ms
+    c -> b mqtt publish topic "ota/gw-fleet/v2.4.1/chunk/1" qos 1 pktid 502
+        hexpayload "02003e00010000008010400000000000" mpls 6188 exp 3 bos 1 mplsttl 64 wait 5ms
+    c <- b mqtt puback pktid 502 mpls 6188 exp 3 bos 1 mplsttl 64
 }
 
 // INSTRUCTION: Compile the MPLS-encapsulated MQTT OTA firmware stream.
-COMPILE {
+compile {
     mqtt_ota_chunk_stream(ota_publisher, regional_broker)
 }

@@ -16,10 +16,17 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose
+    - name: Verify CLI commands
+      run: |
+        printf 'host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b icmp echorequest }\n' > /tmp/ci_smoke.fasm
+        ./target/debug/frameassembly version
+        ./target/debug/frameassembly /tmp/ci_smoke.fasm /tmp/ci_smoke.pcap
+        ./target/debug/frameassembly show /tmp/ci_smoke.fasm
+        ./target/debug/frameassembly reverse /tmp/ci_smoke.pcap /tmp/ci_smoke_rev.fasm
+        rm -f /tmp/ci_smoke.fasm /tmp/ci_smoke.pcap /tmp/ci_smoke_rev.fasm
     - name: Run tests
       run: cargo test --verbose
     - name: Run clippy
       run: cargo clippy --all-targets -- -D warnings
     - name: Run documentation check
       run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --verbose
-

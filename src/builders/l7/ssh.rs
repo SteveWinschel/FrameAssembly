@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b SSH [BANNER <str>] [KEXINIT] [NEWKEYS] [MSG_CODE <u8>] [PAYLOAD <str>]`
+//! `a -> b ssh [banner <str>] [kexinit] [newkeys] [msgcode <u8>] [payload <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 4253 SSH banner or binary packet payload.
-/// Syntax mapping: `SSH [BANNER <str>] [KEXINIT] [NEWKEYS] [MSG_CODE <u8>] [PAYLOAD <str>]`
+/// Syntax mapping: `ssh [banner <str>] [kexinit] [newkeys] [msgcode <u8>] [payload <str>]`
 #[doc(alias = "SSH")]
 #[doc(alias = "SSH2")]
 #[doc(alias = "RFC4253")]

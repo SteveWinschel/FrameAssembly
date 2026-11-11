@@ -1,21 +1,21 @@
 // PROMPT: Multigroup HSRP (MHSRP) active/active load sharing across Group 1 and Group 2 on the same subnet.
-// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, STATE, VIP, HELLOTIME, HOLDTIME, COMPILE
+// TOKENS: host, ip, flow, hsrp, group, priority, state, vip, hellotime, holdtime, compile
 
 // INSTRUCTION: Define router A (Active for Group 1, Standby for Group 2).
-HOST mhsrp_router_a { IP 192.168.10.2 }
+host mhsrp_router_a { ip 192.168.10.2 }
 
 // INSTRUCTION: Define router B (Active for Group 2, Standby for Group 1).
-HOST mhsrp_router_b { IP 192.168.10.3 }
+host mhsrp_router_b { ip 192.168.10.3 }
 
 // INSTRUCTION: Define reciprocal MHSRP load-sharing advertisements for VIPs .1 and .254.
-FLOW mhsrp_load_sharing(a, b) {
-    a -> b HSRP GROUP 1 PRIORITY 120 STATE 16 VIP 192.168.10.1 HELLOTIME 3 HOLDTIME 10
-    a <- b HSRP GROUP 1 PRIORITY 90 STATE 8 VIP 192.168.10.1 HELLOTIME 3 HOLDTIME 10
-    a <- b HSRP GROUP 2 PRIORITY 120 STATE 16 VIP 192.168.10.254 HELLOTIME 3 HOLDTIME 10
-    a -> b HSRP GROUP 2 PRIORITY 90 STATE 8 VIP 192.168.10.254 HELLOTIME 3 HOLDTIME 10
+flow mhsrp_load_sharing(a, b) {
+    a -> b hsrp group 1 priority 120 state 16 vip 192.168.10.1 hellotime 3 holdtime 10
+    a <- b hsrp group 1 priority 90 state 8 vip 192.168.10.1 hellotime 3 holdtime 10
+    a <- b hsrp group 2 priority 120 state 16 vip 192.168.10.254 hellotime 3 holdtime 10
+    a -> b hsrp group 2 priority 90 state 8 vip 192.168.10.254 hellotime 3 holdtime 10
 }
 
 // INSTRUCTION: Compile the multigroup HSRP load-sharing flow.
-COMPILE {
+compile {
     mhsrp_load_sharing(mhsrp_router_a, mhsrp_router_b)
 }

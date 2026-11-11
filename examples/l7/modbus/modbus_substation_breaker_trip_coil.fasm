@@ -1,27 +1,27 @@
 // PROMPT: Simulate an urgent Modbus TCP Write Single Coil (Function 05) command tripping a substation protection relay.
-// TOKENS: HOST, IP, MAC, FLOW, MODBUS, TXID, PROTO_ID, UNITID, FUNC, ADDR, VALUE, DSCP, TTL, WAIT, IS_RESPONSE, COUNT, COMPILE
+// TOKENS: host, ip, mac, flow, m, modbus, txid, protoid, unitid, func, addr, value, dscp, ttl, wait, ms, isresponse, count, compile
 
 // INSTRUCTION: Define the substation protection SCADA master.
-HOST prot_master {
-    IP 10.205.1.10
-    MAC 00:1b:1b:cd:01:0a
+host prot_master {
+    ip 10.205.1.10
+    mac 00:1b:1b:cd:01:0a
 }
 
 // INSTRUCTION: Define the feeder breaker intelligent electronic device (IED).
-HOST breaker_ied {
-    IP 10.205.1.52
-    MAC 00:1b:1b:cd:01:34
+host breaker_ied {
+    ip 10.205.1.52
+    mac 00:1b:1b:cd:01:34
 }
 
 // INSTRUCTION: Issue Write Single Coil (0xFF00 = ON) to coil address 10 with DSCP CS6 network control priority.
-FLOW modbus_breaker_trip(m, ied) {
-    m -> ied MODBUS TXID 901 PROTO_ID 0 UNITID 1 FUNC "WRITE_SINGLE_COIL" ADDR 10 VALUE 65280 DSCP 48 TTL 64 WAIT 2ms
-    m <- ied MODBUS TXID 901 PROTO_ID 0 UNITID 1 FUNC "WRITE_SINGLE_COIL" IS_RESPONSE ADDR 10 VALUE 65280 DSCP 48 TTL 64 WAIT 5ms
-    m -> ied MODBUS TXID 902 PROTO_ID 0 UNITID 1 FUNC "READ_DISCRETE_INPUTS" ADDR 10 COUNT 4 DSCP 48 TTL 64 WAIT 2ms
-    m <- ied MODBUS TXID 902 PROTO_ID 0 UNITID 1 FUNC "READ_DISCRETE_INPUTS" IS_RESPONSE VALUE 1 DSCP 48 TTL 64
+flow modbus_breaker_trip(m, ied) {
+    m -> ied modbus txid 901 protoid 0 unitid 1 func "writesinglecoil" addr 10 value 65280 dscp 48 ttl 64 wait 2ms
+    m <- ied modbus txid 901 protoid 0 unitid 1 func "writesinglecoil" isresponse addr 10 value 65280 dscp 48 ttl 64 wait 5ms
+    m -> ied modbus txid 902 protoid 0 unitid 1 func "readdiscreteinputs" addr 10 count 4 dscp 48 ttl 64 wait 2ms
+    m <- ied modbus txid 902 protoid 0 unitid 1 func "readdiscreteinputs" isresponse value 1 dscp 48 ttl 64
 }
 
 // INSTRUCTION: Compile the high-priority Modbus substation breaker trip flow.
-COMPILE {
+compile {
     modbus_breaker_trip(prot_master, breaker_ied)
 }

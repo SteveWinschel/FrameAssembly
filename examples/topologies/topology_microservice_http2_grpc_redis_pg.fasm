@@ -1,29 +1,29 @@
 // PROMPT: Cloud-native e-commerce microservice transaction across HTTP/2 API gateway, gRPC order service, Redis cache, and PostgreSQL database.
-// TOKENS: HOST, IP, FLOW, HTTP2, HEADERS, STREAM_ID, PAYLOAD, REDIS, CMD, ARGS, WAIT, REPLY_TYPE, POSTGRES, SQL, COMMAND_COMPLETE, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+// TOKENS: host, ip, flow, redis, http2, headers, streamid, payload, cmd, args, wait, us, replytype, postgres, sql, ms, commandcomplete, grpc, service, method, grpcstatus, compile
 
 // INSTRUCTION: Define ingress Envoy HTTP/2 API Gateway pod.
-HOST envoy_api_gw { IP 10.244.10.5 }
+host envoy_api_gw { ip 10.244.10.5 }
 
 // INSTRUCTION: Define gRPC Order Processing microservice pod.
-HOST order_grpc_svc { IP 10.244.10.20 }
+host order_grpc_svc { ip 10.244.10.20 }
 
 // INSTRUCTION: Define Redis in-memory inventory cache cluster node.
-HOST redis_inv_cache { IP 10.244.10.50 }
+host redis_inv_cache { ip 10.244.10.50 }
 
 // INSTRUCTION: Define PostgreSQL primary transactional database node.
-HOST pg_ledger_db { IP 10.244.10.100 }
+host pg_ledger_db { ip 10.244.10.100 }
 
 // INSTRUCTION: Define end-to-end checkout distributed trace across HTTP/2, gRPC, Redis, and PostgreSQL.
-FLOW ecommerce_microservice_trace(gw, order, redis, pg) {
-    gw -> order HTTP2 HEADERS STREAM_ID 1 PAYLOAD "POST /checkout.v1.OrderService/CreateOrder"
-    order -> redis REDIS CMD "DECRBY" ARGS "sku:gpu-h200:stock 1" WAIT 500us
-    order <- redis REDIS REPLY_TYPE "INTEGER" PAYLOAD ":41\r\n" WAIT 500us
-    order -> pg POSTGRES SQL "INSERT INTO orders (id, sku, status) VALUES (9001, 'gpu-h200', 'PAID');" WAIT 1ms
-    order <- pg POSTGRES COMMAND_COMPLETE WAIT 1ms
-    gw <- order GRPC SERVICE "checkout.v1.OrderService" METHOD "CreateOrder" GRPC_STATUS 0 PAYLOAD "{\"order_id\":9001}" WAIT 500us
+flow ecommerce_microservice_trace(gw, order, redis, pg) {
+    gw -> order http2 headers streamid 1 payload "POST /checkout.v1.OrderService/CreateOrder"
+    order -> redis redis cmd "DECRBY" args "sku:gpu-h200:stock 1" wait 500us
+    order <- redis redis replytype "integer" payload ":41\r\n" wait 500us
+    order -> pg postgres sql "INSERT INTO orders (id, sku, status) VALUES (9001, 'gpu-h200', 'PAID');" wait 1ms
+    order <- pg postgres commandcomplete wait 1ms
+    gw <- order grpc service "checkout.v1.OrderService" method "CreateOrder" grpcstatus 0 payload "{\"order_id\":9001}" wait 500us
 }
 
 // INSTRUCTION: Compile block executing cloud-native microservice transaction topology.
-COMPILE {
+compile {
     ecommerce_microservice_trace(envoy_api_gw, order_grpc_svc, redis_inv_cache, pg_ledger_db)
 }

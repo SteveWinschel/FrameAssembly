@@ -1,26 +1,26 @@
 // PROMPT: Capture a reactive OpenFlow Packet-In punt followed by a controller Packet-Out injection and Flow-Mod rule installation
-// TOKENS: HOST, IP, MAC, FLOW, OPENFLOW, PACKET_IN, VERSION, XID, TABLE_ID, PAYLOAD, WAIT, FLOW_MOD, PRIORITY, PACKET_OUT, COMPILE
+// TOKENS: host, ip, mac, flow, openflow, packetin, version, xid, tableid, payload, wait, ms, flowmod, priority, packetout, compile
 
 // INSTRUCTION: Define the OpenFlow top-of-rack switch
-HOST tor_of_switch {
-    IP 172.18.10.21
-    MAC 00:25:90:e1:10:21
+host tor_of_switch {
+    ip 172.18.10.21
+    mac 00:25:90:e1:10:21
 }
 
 // INSTRUCTION: Define the reactive SDN controller node
-HOST reactive_ctrl {
-    IP 172.18.10.1
-    MAC 00:25:90:e1:10:01
+host reactive_ctrl {
+    ip 172.18.10.1
+    mac 00:25:90:e1:10:01
 }
 
 // INSTRUCTION: Punt an unmatched frame via PACKET_IN, install a FLOW_MOD rule, and inject PACKET_OUT
-FLOW openflow_reactive_forwarding(sw, ctrl) {
-    sw -> ctrl OPENFLOW PACKET_IN VERSION 4 XID 5001 TABLE_ID 0 PAYLOAD "arp-who-has-10.0.0.1" WAIT 8ms
-    ctrl -> sw OPENFLOW FLOW_MOD VERSION 4 XID 5002 TABLE_ID 0 PRIORITY 40000 PAYLOAD "match-eth-dst-output-port-2" WAIT 4ms
-    ctrl -> sw OPENFLOW PACKET_OUT VERSION 4 XID 5003 PAYLOAD "arp-who-has-10.0.0.1"
+flow openflow_reactive_forwarding(sw, ctrl) {
+    sw -> ctrl openflow packetin version 4 xid 5001 tableid 0 payload "arp-who-has-10.0.0.1" wait 8ms
+    ctrl -> sw openflow flowmod version 4 xid 5002 tableid 0 priority 40000 payload "match-eth-dst-output-port-2" wait 4ms
+    ctrl -> sw openflow packetout version 4 xid 5003 payload "arp-who-has-10.0.0.1"
 }
 
 // INSTRUCTION: Compile the reactive OpenFlow Packet-In and Packet-Out workflow
-COMPILE {
+compile {
     openflow_reactive_forwarding(tor_of_switch, reactive_ctrl)
 }

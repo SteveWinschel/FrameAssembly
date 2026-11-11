@@ -1,19 +1,19 @@
 // PROMPT: Broadband BNG PPPoE subscriber RADIUS accounting over QinQ and MPLS core.
-// TOKENS: HOST, IP, FLOW, RADIUS, ACCOUNTING_REQUEST, USER, NAS_IP, FRAMED_IP, QINQ, INNER_VLAN, MPLS, EXP, BOS, MPLS_TTL, ACCOUNTING_RESPONSE, COMPILE
+// TOKENS: host, ip, flow, acct, radius, accountingrequest, user, nasip, framedip, qinq, innervlan, mpls, exp, bos, mplsttl, accountingresponse, compile
 
 // INSTRUCTION: Define Broadband Network Gateway (BNG) router.
-HOST bng_router { IP 100.64.18.2 }
+host bng_router { ip 100.64.18.2 }
 
 // INSTRUCTION: Define ISP central RADIUS accounting cluster.
-HOST isp_acct { IP 100.64.18.100 }
+host isp_acct { ip 100.64.18.100 }
 
 // INSTRUCTION: Define subscriber interim accounting update over QinQ and MPLS.
-FLOW radius_bng_mpls(bng, acct) {
-    bng -> acct RADIUS ACCOUNTING_REQUEST USER "sub_ftth_9021" NAS_IP 100.64.18.2 FRAMED_IP 198.51.100.88 QINQ 3000 INNER_VLAN 181 MPLS 18130 EXP 5 BOS 1 MPLS_TTL 64
-    bng <- acct RADIUS ACCOUNTING_RESPONSE USER "sub_ftth_9021" QINQ 3000 INNER_VLAN 181 MPLS 18131 EXP 5 BOS 1 MPLS_TTL 63
+flow radius_bng_mpls(bng, acct) {
+    bng -> acct radius accountingrequest user "sub_ftth_9021" nasip 100.64.18.2 framedip 198.51.100.88 qinq 3000 innervlan 181 mpls 18130 exp 5 bos 1 mplsttl 64
+    bng <- acct radius accountingresponse user "sub_ftth_9021" qinq 3000 innervlan 181 mpls 18131 exp 5 bos 1 mplsttl 63
 }
 
 // INSTRUCTION: Compile ISP BNG QinQ + MPLS RADIUS accounting flow.
-COMPILE {
+compile {
     radius_bng_mpls(bng_router, isp_acct)
 }

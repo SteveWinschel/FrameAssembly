@@ -1,33 +1,33 @@
 //! Hypertext Transfer Protocol (HTTP/1.1) (RFC 9110 (HTTP Semantics) / RFC 9112 (HTTP/1.1)) Layer 7 AST definitions.
 //!
 //! This module defines the abstract syntax tree (AST) configuration parameters for synthesizing
-//! Hypertext Transfer Protocol (HTTP/1.1) packets over TCP port 80 (HTTP) or custom ports (8080, 8000, 8443). On the wire, the protocol uses a CRLF-delimited text message starting with a Request-Line (`<METHOD> <URI> HTTP/<VERSION>\r\n`) or Status-Line (`HTTP/<VERSION> <STATUS> <REASON>\r\n`), followed by `Host:`, `User-Agent:`, `Content-Type:`, `Content-Length:`, and custom `Header: Value\r\n` fields, an empty line (`\r\n`), and an optional entity body.
+//! Hypertext Transfer Protocol (HTTP/1.1) packets over TCP port 80 (HTTP) or custom ports (8080, 8000, 8443). On the wire, the protocol uses a CRLF-delimited text message starting with a Request-Line (`<METHOD> <URI> http/<VERSION>\r\n`) or Status-Line (`http/<VERSION> <STATUS> <REASON>\r\n`), followed by `Host:`, `User-Agent:`, `Content-Type:`, `Content-Length:`, and custom `Header: Value\r\n` fields, an empty line (`\r\n`), and an optional entity body.
 //! Every field in [`HttpSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b HTTP [METHOD <str>] [URI <str>] [VERSION <str>] [HOST_HDR <str>] [USER_AGENT <str>] [CONTENT_TYPE <str>] [STATUS <u16>] [REASON <str>] [HEADER <key> <val>] [BODY <str>]`
+//! `a -> b http [method <str>] [uri <str>] [version <str>] [hosthdr <str>] [useragent <str>] [contenttype <str>] [status <u16>] [reason <str>] [header <key> <val>] [body <str>]`
 
 use alloc::vec::Vec;
 /// RFC 9110 / RFC 9112 HTTP/1.1 specification.
 ///
-/// Syntax mapping: `HTTP [METHOD <str>] [URI <str>] [VERSION <str>] [HOST_HDR <str>] [USER_AGENT <str>] [CONTENT_TYPE <str>] [STATUS <u16>] [REASON <str>] [HEADER <key> <val>] [BODY <str>]`
-#[doc(alias = "HTTP")]
+/// Syntax mapping: `http [method <str>] [uri <str>] [version <str>] [hosthdr <str>] [useragent <str>] [contenttype <str>] [status <u16>] [reason <str>] [header <key> <val>] [body <str>]`
+#[doc(alias = "http")]
 #[doc(alias = "HTTP11")]
 #[doc(alias = "RFC 9110")]
 #[doc(alias = "RFC9110")]
 #[doc(alias = "RFC 9112")]
 #[doc(alias = "RFC9112")]
-#[doc(alias = "METHOD")]
-#[doc(alias = "URI")]
-#[doc(alias = "VERSION")]
-#[doc(alias = "HOST_HDR")]
-#[doc(alias = "USER_AGENT")]
-#[doc(alias = "CONTENT_TYPE")]
-#[doc(alias = "STATUS")]
-#[doc(alias = "REASON")]
-#[doc(alias = "HEADER")]
-#[doc(alias = "BODY")]
+#[doc(alias = "method")]
+#[doc(alias = "uri")]
+#[doc(alias = "version")]
+#[doc(alias = "hosthdr")]
+#[doc(alias = "useragent")]
+#[doc(alias = "contenttype")]
+#[doc(alias = "status")]
+#[doc(alias = "reason")]
+#[doc(alias = "header")]
+#[doc(alias = "body")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct HttpSpec<'a> {
     /// HTTP method (GET, POST, etc.).

@@ -1,28 +1,28 @@
 // PROMPT: Full TCP 3-way handshake, FTP SYST and FEAT capability discovery, and TCP FIN teardown.
-// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, FTP, CODE, REPLY, CMD, FIN, COMPILE
+// TOKENS: host, ip, flow, s, tcp, syn, srcport, dstport, ack, ftp, code, reply, cmd, fin, compile
 
 // INSTRUCTION: Define automated FTP scanner client.
-HOST ftp_client { IP 192.168.121.10 }
+host ftp_client { ip 192.168.121.10 }
 
 // INSTRUCTION: Define enterprise FTP server.
-HOST ftp_server { IP 192.168.121.1 }
+host ftp_server { ip 192.168.121.1 }
 
 // INSTRUCTION: Establish TCP session, query server OS type (SYST) and features (FEAT), then close.
-FLOW ftp_tcp_syst_feat(c, s) {
-    c -> s TCP SYN SRCPORT 49800 DSTPORT 21
-    c <- s TCP SYN ACK
-    c -> s TCP ACK
-    c <- s FTP CODE 220 REPLY "ProFTPD Server ready"
-    c -> s FTP CMD "SYST"
-    c <- s FTP CODE 215 REPLY "UNIX Type: L8"
-    c -> s FTP CMD "FEAT"
-    c <- s FTP CODE 211 REPLY "Features: EPRT EPSV UTF8"
-    c -> s TCP FIN ACK
-    c <- s TCP FIN ACK
-    c -> s TCP ACK
+flow ftp_tcp_syst_feat(c, s) {
+    c -> s tcp syn srcport 49800 dstport 21
+    c <- s tcp syn ack
+    c -> s tcp ack
+    c <- s ftp code 220 reply "ProFTPD Server ready"
+    c -> s ftp cmd "SYST"
+    c <- s ftp code 215 reply "UNIX Type: L8"
+    c -> s ftp cmd "FEAT"
+    c <- s ftp code 211 reply "Features: EPRT EPSV UTF8"
+    c -> s tcp fin ack
+    c <- s tcp fin ack
+    c -> s tcp ack
 }
 
 // INSTRUCTION: Compile the complete FTP TCP session and capability check.
-COMPILE {
+compile {
     ftp_tcp_syst_feat(ftp_client, ftp_server)
 }

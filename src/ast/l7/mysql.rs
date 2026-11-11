@@ -6,47 +6,47 @@
 //! encapsulating Protocol v10 `HandshakeV10` greetings, `HandshakeResponse41` logins, `COM_QUERY`
 //! (`0x03`) SQL statements, `OK_Packet` (`0x00`), `EOF_Packet` (`0xFE`), or `ERR_Packet` (`0xFF`).
 //! Canonical FrameAssembly `.fasm` syntax models MySQL frames via
-//! `MYSQL [GREETING | LOGIN | QUERY | OK | ERR | EOF] [SERVER_VERSION <str>] [USER <str>] [DB <str>] [SQL <str>] [ERRCODE <u16>]`.
+//! `mysql [greeting | login | query | ok | err | eof] [serverversion <str>] [user <str>] [db <str>] [sql <str>] [errcode <u16>]`.
 
 /// MySQL / MariaDB Client/Server Wire Protocol v10 specification.
 ///
-/// Syntax mapping: `MYSQL [GREETING | LOGIN | QUERY | OK | ERR | EOF] [SERVER_VERSION <str>] [USER <str>] [DB <str>] [SQL <str>] [ERRCODE <u16>]`
-#[doc(alias = "MYSQL")]
+/// Syntax mapping: `mysql [greeting | login | query | ok | err | eof] [serverversion <str>] [user <str>] [db <str>] [sql <str>] [errcode <u16>]`
+#[doc(alias = "mysql")]
 #[doc(alias = "MySQL v10")]
 #[doc(alias = "3306")]
-#[doc(alias = "GREETING")]
-#[doc(alias = "LOGIN")]
-#[doc(alias = "QUERY")]
-#[doc(alias = "SQL")]
-#[doc(alias = "OK")]
-#[doc(alias = "ERR")]
-#[doc(alias = "EOF")]
-#[doc(alias = "SERVER_VERSION")]
-#[doc(alias = "USER")]
-#[doc(alias = "DB")]
-#[doc(alias = "ERRCODE")]
+#[doc(alias = "greeting")]
+#[doc(alias = "login")]
+#[doc(alias = "query")]
+#[doc(alias = "sql")]
+#[doc(alias = "ok")]
+#[doc(alias = "err")]
+#[doc(alias = "eof")]
+#[doc(alias = "serverversion")]
+#[doc(alias = "user")]
+#[doc(alias = "db")]
+#[doc(alias = "errcode")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct MysqlSpec<'a> {
-    /// Server `HandshakeV10` initial greeting packet flag (`GREETING`).
+    /// Server `HandshakeV10` initial greeting packet flag (`greeting`).
     pub is_greeting: bool,
-    /// Client `HandshakeResponse41` login packet flag (`LOGIN`).
+    /// Client `HandshakeResponse41` login packet flag (`login`).
     pub is_login: bool,
-    /// Client `COM_QUERY` (`0x03`) command flag (`QUERY`).
+    /// Client `COM_QUERY` (`0x03`) command flag (`query`).
     pub is_query: bool,
-    /// Server `OK_Packet` (`0x00`) response flag (`OK`).
+    /// Server `OK_Packet` (`0x00`) response flag (`ok`).
     pub is_ok: bool,
-    /// Server `ERR_Packet` (`0xFF`) response flag (`ERR`).
+    /// Server `ERR_Packet` (`0xFF`) response flag (`err`).
     pub is_err: bool,
-    /// Server `EOF_Packet` (`0xFE`) response flag (`EOF`).
+    /// Server `EOF_Packet` (`0xFE`) response flag (`eof`).
     pub is_eof: bool,
-    /// Server version string in `HandshakeV10` (`SERVER_VERSION <str>`, default `"8.0.35"`).
+    /// Server version string in `HandshakeV10` (`serverversion <str>`, default `"8.0.35"`).
     pub server_version: Option<&'a str>,
-    /// Client username in `HandshakeResponse41` (`USER <str>`, default `"root"`).
+    /// Client username in `HandshakeResponse41` (`user <str>`, default `"root"`).
     pub user: Option<&'a str>,
-    /// Initial database schema name (`DB <str>`).
+    /// Initial database schema name (`db <str>`).
     pub db: Option<&'a str>,
-    /// SQL statement text for `COM_QUERY` (`SQL <str>`).
+    /// SQL statement text for `COM_QUERY` (`sql <str>`).
     pub sql: Option<&'a str>,
-    /// 16-bit MySQL error code in `ERR_Packet` (`ERRCODE <u16>`, default `1045`).
+    /// 16-bit MySQL error code in `ERR_Packet` (`errcode <u16>`, default `1045`).
     pub errcode: Option<u16>,
 }

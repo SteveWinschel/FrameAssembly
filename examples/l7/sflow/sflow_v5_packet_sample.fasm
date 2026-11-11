@@ -1,18 +1,18 @@
 // PROMPT: sFlow v5 network sampling agent datagram exporting packet samples.
-// TOKENS: HOST, IP, FLOW, SFLOW, AGENT_IP, SAMPLES, UPTIME, COMPILE
+// TOKENS: host, ip, flow, s, sflow, agentip, samples, uptime, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 172.16.0.1 }
+host client { ip 172.16.0.1 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 172.16.0.100 }
+host server { ip 172.16.0.100 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW sflow_sample(c, s) {
-    c -> s SFLOW AGENT_IP 172.16.0.1 SAMPLES 10 UPTIME 360000
+flow sflow_sample(c, s) {
+    c -> s sflow agentip 172.16.0.1 samples 10 uptime 360000
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     sflow_sample(client, server)
 }

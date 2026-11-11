@@ -96,7 +96,7 @@ In `block-padding 0.4.2`, `pub trait Padding: 'static` has **zero** type paramet
 
 > **CRITICAL — SNMPv3 DES-CBC `ZeroPadding` vs. `NoPadding` BER Decryption Invariant (`tests/snmp_spec_tests.rs:194`)**:
 > - When **encrypting** an ASN.1 BER `ScopedPdu` with DES-CBC (RFC 3414 §8.1.1.2), always use `encrypt_padded::<ZeroPadding>(&mut buf, pt_len)` and convert the returned slice (`ct.to_vec()`). It appends `0` bytes when `pt_len % 8 == 0` (`PaddedData::NoPad`) and `1..=7` `0x00` bytes when `pt_len % 8 != 0`.
-> - When **decrypting** a DES-CBC `EncryptedPdu`, **do NOT pass the slice returned by `decrypt_padded::<ZeroPadding>` to `rasn::ber::decode`**! If the final VarBind in the `ScopedPdu` ends in `0x00` (for example, `INT 0` = `02 01 00` or `NULLVAL` = `05 00`) and the `ScopedPdu` length is an exact multiple of 8 bytes, `ZeroPadding::unpad` strips the valid trailing `0x00` byte(s) of the BER TLV from the returned slice!
+> - When **decrypting** a DES-CBC `EncryptedPdu`, **do NOT pass the slice returned by `decrypt_padded::<ZeroPadding>` to `rasn::ber::decode`**! If the final VarBind in the `ScopedPdu` ends in `0x00` (for example, `int 0` = `02 01 00` or `nullval` = `05 00`) and the `ScopedPdu` length is an exact multiple of 8 bytes, `ZeroPadding::unpad` strips the valid trailing `0x00` byte(s) of the BER TLV from the returned slice!
 > - Instead, because an ASN.1 BER `ScopedPdu` (`0x30`) is self-delimiting via its outer TLV length header, always decrypt using **`decrypt_padded::<NoPadding>(&mut buf)`** and pass the full decrypted slice to `rasn::ber::decode::<ScopedPdu>`.
 
 ---

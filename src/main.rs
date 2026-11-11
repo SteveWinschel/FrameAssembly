@@ -1,25 +1,47 @@
-//! Command-line interface (CLI) entry point for the FrameAssembly network packet compiler.
+//! Command-line interface entry point for the FrameAssembly network packet compiler.
 //!
-//! This binary reads declarative `.fasm` source files specifying network hosts, protocol flows,
-//! and execution blocks, runs the two-phase lexical/syntactic parser and semantic validator,
-//! and invokes the deterministic backend engine to emit nanosecond-precision `.pcap` / `.pcapng`
-//! packet capture files with rich `miette` terminal diagnostics, a `frameassembly show <file.fasm>`
-//! subcommand that validates `.fasm` specifications and prints a terminal packet ladder table
-//! without writing a `.pcap` file, and a `frameassembly reverse <input.pcap>` subcommand that
-//! decompiles `.pcap` and `.pcapng` captures into canonical `.fasm` code.
+//! Compiling `.fasm` network traffic code to `.pcap` / `.pcapng` is the default root command,
+//! paired with four subcommands across 81 Layer 2 through Layer 7 protocols:
+//! - `frameassembly <input.fasm> [output.pcap]` validates `.fasm` code and writes a
+//!   nanosecond-precision `.pcapng` capture file (defaulting to `<input_stem>.pcap`).
+//! - `frameassembly show <input.fasm>` validates `.fasm` code and prints a relative-timestamp
+//!   packet ladder table to standard output without writing a capture file to disk.
+//! - `frameassembly reverse <input.pcap> [output.fasm]` reverses a `.pcap` or `.pcapng` capture
+//!   file into `.fasm` code (defaulting to `<input_stem>.fasm`).
+//! - `frameassembly version` prints the active `frameassembly` binary version.
+//! - `frameassembly help [subcommand]` displays command usage and subcommand reference text.
+
 use clap::builder::PathBufValueParser;
-use clap::{Arg, Command, ValueHint};
+use clap::builder::styling::{AnsiColor, Effects, Styles};
+use clap::{Arg, ArgAction, Command, ValueHint};
 use frameassembly::backend::{compile_program, generate_pcap};
 use frameassembly::parser::parse_program;
 use frameassembly::reverse::reverse_pcap_file;
 use miette::{IntoDiagnostic, NamedSource, Result};
+use std::ffi::{OsStr, OsString};
 use std::fmt::Write as _;
 use std::fs;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::{Path, PathBuf};
 
+/// Nine-role `anstyle` terminal color palette used by `clap` help and usage diagnostics.
+const CLI_STYLES: Styles = Styles::styled()
+    .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .placeholder(AnsiColor::Cyan.on_default())
+    .error(AnsiColor::Red.on_default().effects(Effects::BOLD))
+    .valid(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .invalid(AnsiColor::Yellow.on_default().effects(Effects::BOLD))
+    .context(AnsiColor::BrightBlack.on_default())
+    .context_value(AnsiColor::Cyan.on_default());
+
+/// Canonical top-level subcommands exposed by FrameAssembly 2.0.
+const SUBCOMMANDS: [&str; 4] = ["show", "reverse", "version", "help"];
+
 /// Derives the default output path from `input` by replacing its extension with `default_ext`,
-/// or appending `.default_ext` if `input` already ends in `default_ext` so the input file is never overwritten.
+/// or appending `.default_ext` when `input` already ends with `default_ext` so the input file
+/// is never overwritten in place.
 fn derive_default_output_path(input: &Path, default_ext: &str) -> PathBuf {
     let has_same_ext = input
         .extension()
@@ -43,18 +65,142 @@ fn derive_default_output_path(input: &Path, default_ext: &str) -> PathBuf {
     }
 }
 
+/// Checks raw CLI arguments for legacy or invalid invocation patterns (`-o` / `--output`,
+/// `--show` / `--reverse`, bare `.pcap` / `.pcapng` paths, removed `compile` subcommand, or
+/// `.fasm` passed as `OUTPUT.pcap`) and returns a clear migration or safety hint.
+fn check_legacy_cli_args<I, T>(args: I) -> std::result::Result<(), String>
+where
+    I: IntoIterator<Item = T>,
+    T: AsRef<OsStr>,
+{
+    let collected: Vec<OsString> = args
+        .into_iter()
+        .map(|a| a.as_ref().to_os_string())
+        .collect();
+    if collected.len() <= 1 {
+        return Ok(());
+    }
+
+    let mut positional: Vec<String> = Vec::new();
+    let mut after_double_dash = false;
+    for arg in &collected[1..] {
+        let s = arg.to_string_lossy();
+        if !after_double_dash {
+            if s == "--" {
+                after_double_dash = true;
+                continue;
+            }
+            if s == "-o"
+                || s == "--output"
+                || s.starts_with("--output=")
+                || (s.starts_with("-o") && s.len() > 2 && !s.starts_with("--"))
+            {
+                return Err(
+                    "The '-o' / '--output' flag was replaced by an optional second positional path in FrameAssembly 2.0.\n  Compile: frameassembly <in.fasm> [out.pcap]\n  Reverse: frameassembly reverse <in.pcap> [out.fasm]"
+                        .to_string(),
+                );
+            }
+            if s == "--show" || s.starts_with("--show=") {
+                return Err(
+                    "The '--show' flag is not supported; use the 'show' subcommand instead:\n  frameassembly show <in.fasm>"
+                        .to_string(),
+                );
+            }
+            if s == "--reverse" || s.starts_with("--reverse=") {
+                return Err(
+                    "The '--reverse' flag is not supported; use the 'reverse' subcommand instead:\n  frameassembly reverse <in.pcap> [out.fasm]"
+                        .to_string(),
+                );
+            }
+            if s.starts_with('-') {
+                continue;
+            }
+        }
+        positional.push(s.into_owned());
+    }
+
+    let Some(arg1) = positional.first() else {
+        return Ok(());
+    };
+
+    if !after_double_dash && arg1 == "compile" && !Path::new("compile").is_file() {
+        return Err(
+            "Compiling is the default command in FrameAssembly 2.0 (there is no 'compile' subcommand); run:\n  frameassembly <in.fasm> [out.pcap]"
+                .to_string(),
+        );
+    }
+
+    if after_double_dash || !SUBCOMMANDS.contains(&arg1.as_str()) {
+        let lower = arg1.to_ascii_lowercase();
+        if lower.ends_with(".pcap") || lower.ends_with(".pcapng") {
+            return Err(format!(
+                "Direct capture invocation is not supported; use the 'reverse' subcommand instead:\n  frameassembly reverse {arg1}"
+            ));
+        }
+        if let Some(arg2) = positional.get(1)
+            && arg2.to_ascii_lowercase().ends_with(".fasm")
+        {
+            return Err(format!(
+                "Refusing to write binary PCAP output to '.fasm' source file '{arg2}'; specify a '.pcap' or '.pcapng' output path instead:\n  frameassembly {arg1} [out.pcap]"
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 /// Constructs the `clap::Command` definition for the `frameassembly` CLI.
 fn build_cli() -> Command {
     Command::new("frameassembly")
         .version(env!("CARGO_PKG_VERSION"))
-        .about("Domain specific language for writing and compiling custom .pcap/.pcapng")
+        .about("Compile .fasm network traffic code to .pcap/.pcapng and reverse captures back to .fasm")
+        .after_help("Feedback & protocol requests: https://github.com/SteveWinschel/FrameAssembly/issues")
+        .styles(CLI_STYLES)
+        .subcommand_negates_reqs(true)
         .args_conflicts_with_subcommands(true)
+        .arg_required_else_help(true)
+        .disable_help_flag(true)
+        .disable_version_flag(true)
+        .arg(
+            Arg::new("help")
+                .short('h')
+                .long("help")
+                .action(ArgAction::Help)
+                .global(true)
+                .hide(true),
+        )
+        .arg(
+            Arg::new("version")
+                .short('V')
+                .long("version")
+                .action(ArgAction::Version)
+                .hide(true),
+        )
+        .arg(
+            Arg::new("input")
+                .value_name("INPUT.fasm")
+                .help("Path to the input .fasm file")
+                .required(true)
+                .index(1)
+                .value_hint(ValueHint::FilePath)
+                .value_parser(PathBufValueParser::new()),
+        )
+        .arg(
+            Arg::new("output")
+                .value_name("OUTPUT.pcap")
+                .help("Optional output .pcap/.pcapng path (defaults to <input_stem>.pcap)")
+                .index(2)
+                .value_hint(ValueHint::FilePath)
+                .value_parser(PathBufValueParser::new()),
+        )
         .subcommand(
             Command::new("show")
-                .about("Validate a .fasm file and print a terminal packet ladder table without writing a .pcap file")
+                .about("Validate a .fasm file and print a packet ladder table without writing a capture file")
+                .disable_help_flag(true)
                 .arg(
                     Arg::new("input")
-                        .help("Path to the .fasm source file")
+                        .value_name("INPUT.fasm")
+                        .help("Path to the input .fasm file")
                         .required(true)
                         .index(1)
                         .value_hint(ValueHint::FilePath)
@@ -63,9 +209,11 @@ fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("reverse")
-                .about("Decompile a .pcap or .pcapng capture file into canonical .fasm code")
+                .about("Reverse a .pcap or .pcapng capture file into .fasm code")
+                .disable_help_flag(true)
                 .arg(
                     Arg::new("input")
+                        .value_name("INPUT.pcap")
                         .help("Path to the input .pcap or .pcapng capture file")
                         .required(true)
                         .index(1)
@@ -74,28 +222,17 @@ fn build_cli() -> Command {
                 )
                 .arg(
                     Arg::new("output")
-                        .short('o')
-                        .long("output")
-                        .help("Path to the output .fasm file (defaults to <input_stem>.fasm)")
+                        .value_name("OUTPUT.fasm")
+                        .help("Optional output .fasm path (defaults to <input_stem>.fasm)")
+                        .index(2)
                         .value_hint(ValueHint::FilePath)
                         .value_parser(PathBufValueParser::new()),
                 ),
         )
-        .arg(
-            Arg::new("input")
-                .help("Path to the .fasm source file")
-                .required(true)
-                .index(1)
-                .value_hint(ValueHint::FilePath)
-                .value_parser(PathBufValueParser::new()),
-        )
-        .arg(
-            Arg::new("output")
-                .short('o')
-                .long("output")
-                .help("Path to the output PCAP file (defaults to <input_stem>.pcap)")
-                .value_hint(ValueHint::FilePath)
-                .value_parser(PathBufValueParser::new()),
+        .subcommand(
+            Command::new("version")
+                .about("Print the FrameAssembly version")
+                .disable_help_flag(true),
         )
 }
 
@@ -125,8 +262,8 @@ fn port_to_l7_name(port: u16, is_tcp: bool) -> Option<&'static str> {
         (443, false) => Some("QUIC"),
         (445, true) => Some("SMB"),
         (500 | 4500, false) => Some("IKEV2"),
-        (502, true) => Some("MODBUS"),
-        (514, false) => Some("SYSLOG"),
+        (502, _) => Some("MODBUS"),
+        (514 | 6514, _) => Some("SYSLOG"),
         (520 | 521, false) => Some("RIP"),
         (554, true) => Some("RTSP"),
         (1812 | 1813, false) => Some("RADIUS"),
@@ -152,8 +289,8 @@ fn port_to_l7_name(port: u16, is_tcp: bool) -> Option<&'static str> {
         (6379, true) => Some("REDIS"),
         (6653, true) => Some("OPENFLOW"),
         (11211, _) => Some("MEMCACHED"),
-        (20000, true) => Some("DNP3"),
-        (44818, true) => Some("ETHERNETIP"),
+        (20000, _) => Some("DNP3"),
+        (2222, false) | (44818, _) => Some("ETHERNETIP"),
         (47808, false) => Some("BACNET"),
         (50051, true) => Some("GRPC"),
         (51820, false) => Some("WIREGUARD"),
@@ -161,15 +298,12 @@ fn port_to_l7_name(port: u16, is_tcp: bool) -> Option<&'static str> {
     }
 }
 
-/// Formats a 6-byte Ethernet MAC address slice as `xx:xx:xx:xx:xx:xx`.
-fn format_mac(b: &[u8]) -> String {
-    if b.len() < 6 {
+/// Formats a 6-byte Ethernet MAC address slice as lowercase colon-hex (`xx:xx:xx:xx:xx:xx`).
+fn format_mac(bytes: &[u8]) -> String {
+    let Some(&[b0, b1, b2, b3, b4, b5]) = bytes.first_chunk::<6>() else {
         return "00:00:00:00:00:00".to_string();
-    }
-    format!(
-        "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
-        b[0], b[1], b[2], b[3], b[4], b[5]
-    )
+    };
+    format!("{b0:02x}:{b1:02x}:{b2:02x}:{b3:02x}:{b4:02x}:{b5:02x}")
 }
 
 /// Dissects a single raw Ethernet frame into `(src_to_dst, proto_label, summary_text)`.
@@ -188,7 +322,7 @@ fn summarize_frame(data: &[u8]) -> (String, String, String) {
     let mut offset = 14usize;
     let mut l2_tags = Vec::new();
 
-    while (etype == 0x8100 || etype == 0x88A8 || etype == 0x9100) && offset + 4 <= data.len() {
+    while matches!(etype, 0x8100 | 0x88A8 | 0x9100) && offset + 4 <= data.len() {
         let tci = u16::from_be_bytes([data[offset], data[offset + 1]]);
         let vid = tci & 0x0FFF;
         let pcp = (tci >> 13) & 0x07;
@@ -205,14 +339,9 @@ fn summarize_frame(data: &[u8]) -> (String, String, String) {
         offset += 4;
     }
 
-    if (etype == 0x8847 || etype == 0x8848) && offset + 4 <= data.len() {
-        while offset + 4 <= data.len() {
-            let entry = u32::from_be_bytes([
-                data[offset],
-                data[offset + 1],
-                data[offset + 2],
-                data[offset + 3],
-            ]);
+    if matches!(etype, 0x8847 | 0x8848) && offset + 4 <= data.len() {
+        while let Some(&[b0, b1, b2, b3]) = data[offset..].first_chunk::<4>() {
+            let entry = u32::from_be_bytes([b0, b1, b2, b3]);
             let label = entry >> 12;
             let bos = (entry >> 8) & 1;
             l2_tags.push(format!("MPLS={label}"));
@@ -221,12 +350,11 @@ fn summarize_frame(data: &[u8]) -> (String, String, String) {
                 break;
             }
         }
-        if offset < data.len() {
-            let first_nibble = data[offset] >> 4;
-            if first_nibble == 4 {
-                etype = 0x0800;
-            } else if first_nibble == 6 {
-                etype = 0x86DD;
+        if let Some(&first_byte) = data.get(offset) {
+            match first_byte >> 4 {
+                4 => etype = 0x0800,
+                6 => etype = 0x86DD,
+                _ => {}
             }
         }
     }
@@ -239,19 +367,10 @@ fn summarize_frame(data: &[u8]) -> (String, String, String) {
 
     match etype {
         0x0806 if offset + 28 <= data.len() => {
-            let oper = u16::from_be_bytes([data[offset + 6], data[offset + 7]]);
-            let spa = Ipv4Addr::new(
-                data[offset + 14],
-                data[offset + 15],
-                data[offset + 16],
-                data[offset + 17],
-            );
-            let tpa = Ipv4Addr::new(
-                data[offset + 24],
-                data[offset + 25],
-                data[offset + 26],
-                data[offset + 27],
-            );
+            let arp = &data[offset..offset + 28];
+            let oper = u16::from_be_bytes([arp[6], arp[7]]);
+            let spa = Ipv4Addr::new(arp[14], arp[15], arp[16], arp[17]);
+            let tpa = Ipv4Addr::new(arp[24], arp[25], arp[26], arp[27]);
             let detail = if oper == 1 {
                 format!("{tag_prefix}Who has {tpa}? Tell {spa}")
             } else {
@@ -260,22 +379,13 @@ fn summarize_frame(data: &[u8]) -> (String, String, String) {
             (format!("{spa} -> {tpa}"), "ARP".to_string(), detail)
         }
         0x0800 if offset + 20 <= data.len() => {
-            let ihl = ((data[offset] & 0x0F) as usize) * 4;
-            let proto = data[offset + 9];
-            let src_ip = Ipv4Addr::new(
-                data[offset + 12],
-                data[offset + 13],
-                data[offset + 14],
-                data[offset + 15],
-            );
-            let dst_ip = Ipv4Addr::new(
-                data[offset + 16],
-                data[offset + 17],
-                data[offset + 18],
-                data[offset + 19],
-            );
-            let l4_slice = if offset + ihl <= data.len() {
-                &data[offset + ihl..]
+            let ip = &data[offset..];
+            let ihl = ((ip[0] & 0x0F) as usize) * 4;
+            let proto = ip[9];
+            let src_ip = Ipv4Addr::new(ip[12], ip[13], ip[14], ip[15]);
+            let dst_ip = Ipv4Addr::new(ip[16], ip[17], ip[18], ip[19]);
+            let l4_slice = if ihl >= 20 && ihl <= ip.len() {
+                &ip[ihl..]
             } else {
                 &[]
             };
@@ -283,26 +393,23 @@ fn summarize_frame(data: &[u8]) -> (String, String, String) {
             (format!("{src_ip} -> {dst_ip}"), p_label, summary)
         }
         0x86DD if offset + 40 <= data.len() => {
-            let mut next_hdr = data[offset + 6];
+            let ip6 = &data[offset..];
+            let mut next_hdr = ip6[6];
             let mut src_bytes = [0u8; 16];
-            src_bytes.copy_from_slice(&data[offset + 8..offset + 24]);
+            src_bytes.copy_from_slice(&ip6[8..24]);
             let mut dst_bytes = [0u8; 16];
-            dst_bytes.copy_from_slice(&data[offset + 24..offset + 40]);
+            dst_bytes.copy_from_slice(&ip6[24..40]);
             let src_ip = Ipv6Addr::from(src_bytes);
             let dst_ip = Ipv6Addr::from(dst_bytes);
-            let mut l4_offset = offset + 40;
-            if next_hdr == 0 && l4_offset + 8 <= data.len() {
-                next_hdr = data[l4_offset];
-                let ext_len = (data[l4_offset + 1] as usize + 1) * 8;
-                if l4_offset + ext_len <= data.len() {
+            let mut l4_offset = 40usize;
+            if next_hdr == 0 && l4_offset + 8 <= ip6.len() {
+                next_hdr = ip6[l4_offset];
+                let ext_len = (ip6[l4_offset + 1] as usize + 1) * 8;
+                if l4_offset + ext_len <= ip6.len() {
                     l4_offset += ext_len;
                 }
             }
-            let l4_slice = if l4_offset <= data.len() {
-                &data[l4_offset..]
-            } else {
-                &[]
-            };
+            let l4_slice = ip6.get(l4_offset..).unwrap_or(&[]);
             let (p_label, summary) = summarize_l4(next_hdr, l4_slice, &tag_prefix);
             (format!("{src_ip} -> {dst_ip}"), p_label, summary)
         }
@@ -342,7 +449,7 @@ fn summarize_frame(data: &[u8]) -> (String, String, String) {
     }
 }
 
-/// Dissects the Layer 4 / Layer 3-control header inside an IPv4 or IPv6 packet.
+/// Dissects the Layer 4 or Layer 3 control header carried inside an IPv4 or IPv6 packet.
 fn summarize_l4(proto: u8, l4: &[u8], tag_prefix: &str) -> (String, String) {
     match proto {
         6 if l4.len() >= 20 => {
@@ -501,99 +608,124 @@ fn format_packet_ladder(frames: &[(Vec<u8>, u64)]) -> String {
     out
 }
 
-/// The main entry point for the `frameassembly` CLI.
+/// Entry point for the `frameassembly` CLI binary.
 ///
 /// # Errors
-/// Returns a `miette::Result` error if CLI arguments are invalid, the input file
-/// cannot be read, parsing/validation/decompilation fails, or writing the output file fails.
+/// Returns a [`miette::Result`] error if legacy 1.x flags are supplied, the input file cannot
+/// be read, parsing/validation/decompilation fails, or writing the output file fails.
 fn main() -> Result<()> {
-    let matches = build_cli().get_matches();
-
-    if let Some(rev_matches) = matches.subcommand_matches("reverse") {
-        let input_path = rev_matches
-            .get_one::<PathBuf>("input")
-            .ok_or_else(|| miette::miette!("Missing input .pcap / .pcapng file"))?;
-        let output_path = rev_matches
-            .get_one::<PathBuf>("output")
-            .cloned()
-            .unwrap_or_else(|| derive_default_output_path(input_path, "fasm"));
-        let res = reverse_pcap_file(input_path)
-            .map_err(|e| miette::miette!("Reverse decompilation error: {}", e))?;
-        fs::write(&output_path, &res.fasm).into_diagnostic()?;
-        println!(
-            "Successfully reversed {} into {} ({} hosts, {} packets)",
-            input_path.display(),
-            output_path.display(),
-            res.host_count,
-            res.packet_count
-        );
-        return Ok(());
+    let raw_args: Vec<OsString> = std::env::args_os().collect();
+    if let Err(hint) = check_legacy_cli_args(&raw_args) {
+        return Err(miette::miette!("{hint}"));
     }
 
-    let (file_path, show_only, output_pcap) =
-        if let Some(show_matches) = matches.subcommand_matches("show") {
-            let input_file = show_matches
-                .get_one::<PathBuf>("input")
+    let mut matches = build_cli().get_matches_from(raw_args);
+    match matches.remove_subcommand() {
+        Some((sub_name, mut sub_matches)) => match sub_name.as_str() {
+            "version" => {
+                println!("frameassembly {}", env!("CARGO_PKG_VERSION"));
+                Ok(())
+            }
+            "reverse" => {
+                let input_path = sub_matches
+                    .remove_one::<PathBuf>("input")
+                    .ok_or_else(|| miette::miette!("Missing input .pcap / .pcapng file"))?;
+                let output_path = sub_matches
+                    .remove_one::<PathBuf>("output")
+                    .unwrap_or_else(|| derive_default_output_path(&input_path, "fasm"));
+                let res = reverse_pcap_file(&input_path)
+                    .map_err(|e| miette::miette!("Reverse decompilation error: {}", e))?;
+                fs::write(&output_path, &res.fasm).into_diagnostic()?;
+                println!(
+                    "Successfully reversed {} into {} ({} hosts, {} packets)",
+                    input_path.display(),
+                    output_path.display(),
+                    res.host_count,
+                    res.packet_count
+                );
+                Ok(())
+            }
+            "show" => {
+                let file_path = sub_matches
+                    .remove_one::<PathBuf>("input")
+                    .ok_or_else(|| miette::miette!("Missing input .fasm file"))?;
+                let file_display = file_path.display().to_string();
+                let code = fs::read_to_string(&file_path).into_diagnostic()?;
+                let program = parse_program(&code).map_err(|e| {
+                    miette::Report::new(e)
+                        .with_source_code(NamedSource::new(file_display, code.clone()))
+                })?;
+                let frames = compile_program(&program)
+                    .map_err(|e| miette::miette!("Backend error: {}", e))?;
+                print!("{}", format_packet_ladder(&frames));
+                Ok(())
+            }
+            _ => unreachable!("clap enforces known subcommands"),
+        },
+        None => {
+            let file_path = matches
+                .remove_one::<PathBuf>("input")
                 .ok_or_else(|| miette::miette!("Missing input .fasm file"))?;
-            (input_file.clone(), true, PathBuf::new())
-        } else {
-            let input_file = matches
-                .get_one::<PathBuf>("input")
-                .ok_or_else(|| miette::miette!("Missing input .fasm file"))?;
-            let out_path = matches
-                .get_one::<PathBuf>("output")
-                .cloned()
-                .unwrap_or_else(|| derive_default_output_path(input_file, "pcap"));
-            (input_file.clone(), false, out_path)
-        };
+            let output_pcap = matches
+                .remove_one::<PathBuf>("output")
+                .unwrap_or_else(|| derive_default_output_path(&file_path, "pcap"));
+            if output_pcap
+                .extension()
+                .and_then(|e| e.to_str())
+                .is_some_and(|e| e.eq_ignore_ascii_case("fasm"))
+            {
+                return Err(miette::miette!(
+                    "Refusing to write binary PCAP output to '.fasm' source file '{}'; specify a '.pcap' or '.pcapng' output path instead",
+                    output_pcap.display()
+                ));
+            }
 
-    let file_display = file_path.display().to_string();
-    let code = fs::read_to_string(&file_path).into_diagnostic()?;
+            let file_display = file_path.display().to_string();
+            let code = fs::read_to_string(&file_path).into_diagnostic()?;
+            let program = parse_program(&code).map_err(|e| {
+                miette::Report::new(e)
+                    .with_source_code(NamedSource::new(file_display, code.clone()))
+            })?;
+            let frames =
+                compile_program(&program).map_err(|e| miette::miette!("Backend error: {}", e))?;
 
-    let program = parse_program(&code).map_err(|e| {
-        miette::Report::new(e)
-            .with_source_code(NamedSource::new(file_display.clone(), code.clone()))
-    })?;
+            println!(
+                "Successfully parsed {} hosts, {} flows",
+                program.hosts.len(),
+                program.flows.len(),
+            );
 
-    let frames = compile_program(&program).map_err(|e| miette::miette!("Backend error: {}", e))?;
+            let total_bytes: usize = frames.iter().map(|(data, _)| data.len()).sum();
+            let first_ts = frames.first().map(|(_, ts)| *ts).unwrap_or(0);
+            let duration_ms = frames
+                .last()
+                .map(|(_, ts_ns)| ts_ns.saturating_sub(first_ts) as f64 / 1_000_000.0)
+                .unwrap_or(0.0);
 
-    if show_only {
-        print!("{}", format_packet_ladder(&frames));
-        return Ok(());
+            let output_pcap_str = output_pcap.to_string_lossy();
+            println!("Starting PCAP compilation...");
+            generate_pcap(&program, &output_pcap_str)
+                .map_err(|e| miette::miette!("Backend error: {}", e))?;
+
+            println!(
+                "Successfully generated {} ({} frames, {} bytes, duration {:.3} ms)",
+                output_pcap_str,
+                frames.len(),
+                total_bytes,
+                duration_ms
+            );
+            Ok(())
+        }
     }
-
-    println!(
-        "Successfully parsed {} hosts, {} flows",
-        program.hosts.len(),
-        program.flows.len(),
-    );
-
-    let total_bytes: usize = frames.iter().map(|(data, _)| data.len()).sum();
-    let first_ts = frames.first().map(|(_, ts)| *ts).unwrap_or(0);
-    let duration_ms = frames
-        .last()
-        .map(|(_, ts_ns)| ts_ns.saturating_sub(first_ts) as f64 / 1_000_000.0)
-        .unwrap_or(0.0);
-
-    let output_pcap_str = output_pcap.to_string_lossy();
-    println!("Starting PCAP compilation...");
-    generate_pcap(&program, &output_pcap_str)
-        .map_err(|e| miette::miette!("Backend error: {}", e))?;
-
-    println!(
-        "Successfully generated {} ({} frames, {} bytes, duration {:.3} ms)",
-        output_pcap_str,
-        frames.len(),
-        total_bytes,
-        duration_ms
-    );
-    Ok(())
 }
 
-/// Unit tests for CLI commands (`frameassembly <input.fasm>`, `frameassembly show <input.fasm>`, and `frameassembly reverse <input.pcap>`) and packet ladder formatting.
+/// Unit tests for FrameAssembly 2.0 default root compilation and four subcommands
+/// (`show`, `reverse`, `version`, `help`), hidden script compatibility flags, legacy migration
+/// hints, safety guards, and packet ladder formatting.
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::error::ErrorKind;
 
     /// Validates that the `clap::Command` configuration has no conflicting flags, duplicate indices, or invalid defaults.
     #[test]
@@ -630,30 +762,93 @@ mod tests {
         );
     }
 
-    /// Verifies that `frameassembly <file.fasm> [-o <output.pcap>]`, `frameassembly show <file.fasm>`, and `frameassembly reverse <file.pcap>` parse cleanly.
+    /// Verifies that default root `.fasm` compilation and the four v2.0 subcommands (`show`,
+    /// `reverse`, `version`, `help`) parse positional arguments cleanly and hide `-h`/`--help`
+    /// and `-V`/`--version` from rendered help text while keeping `--help` and `--version`
+    /// functional for scripts.
     #[test]
-    fn test_cli_compile_show_and_reverse_subcommands() {
-        let compile_matches = build_cli()
-            .try_get_matches_from(["frameassembly", "demo.fasm", "-o", "custom.pcap"])
-            .expect("compile CLI arguments should parse");
-        assert!(compile_matches.subcommand_matches("show").is_none());
+    fn test_cli_default_compile_four_subcommands_and_hidden_flags() {
+        let mut cmd = build_cli();
+        let help_text = cmd.render_help().to_string();
+        assert!(
+            help_text.contains("<INPUT.fasm>") && help_text.contains("[OUTPUT.pcap]"),
+            "root help text should advertise positional <INPUT.fasm> [OUTPUT.pcap]:\n{help_text}"
+        );
+        for sub in SUBCOMMANDS {
+            assert!(
+                help_text.contains(sub),
+                "root help text should list subcommand '{sub}':\n{help_text}"
+            );
+        }
+        for hidden in ["--help", "--version", "-o", "--output", "DSL"] {
+            assert!(
+                !help_text.contains(hidden),
+                "root help text must not expose '{hidden}':\n{help_text}"
+            );
+        }
+        assert!(help_text.contains("https://github.com/SteveWinschel/FrameAssembly/issues"));
+
+        for sub_name in ["show", "reverse", "version"] {
+            let sub_help = cmd
+                .find_subcommand_mut(sub_name)
+                .expect("subcommand exists")
+                .render_help()
+                .to_string();
+            assert!(
+                !sub_help.contains("--help") && !sub_help.contains("--output"),
+                "subcommand '{sub_name}' help must hide --help and omit --output:\n{sub_help}"
+            );
+        }
+
+        // Silent compatibility for shell/CI scripts invoking --help or --version
+        let help_err = build_cli()
+            .try_get_matches_from(["frameassembly", "--help"])
+            .expect_err("--help exits via DisplayHelp");
+        assert_eq!(help_err.kind(), ErrorKind::DisplayHelp);
+
+        let ver_err = build_cli()
+            .try_get_matches_from(["frameassembly", "--version"])
+            .expect_err("--version exits via DisplayVersion");
+        assert_eq!(ver_err.kind(), ErrorKind::DisplayVersion);
+
+        let no_args_err = build_cli()
+            .try_get_matches_from(["frameassembly"])
+            .expect_err("zero args should render help");
         assert_eq!(
-            compile_matches.get_one::<PathBuf>("input"),
+            no_args_err.kind(),
+            ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        );
+
+        let root_default = build_cli()
+            .try_get_matches_from(["frameassembly", "demo.fasm"])
+            .expect("default root compile with 1 arg should parse");
+        assert!(root_default.subcommand_name().is_none());
+        assert_eq!(
+            root_default.get_one::<PathBuf>("input"),
+            Some(&PathBuf::from("demo.fasm"))
+        );
+        assert_eq!(root_default.get_one::<PathBuf>("output"), None);
+
+        let root_explicit = build_cli()
+            .try_get_matches_from(["frameassembly", "demo.fasm", "custom.pcap"])
+            .expect("default root compile with 2 positional args should parse");
+        assert!(root_explicit.subcommand_name().is_none());
+        assert_eq!(
+            root_explicit.get_one::<PathBuf>("input"),
             Some(&PathBuf::from("demo.fasm"))
         );
         assert_eq!(
-            compile_matches.get_one::<PathBuf>("output"),
+            root_explicit.get_one::<PathBuf>("output"),
             Some(&PathBuf::from("custom.pcap"))
         );
 
         let show_matches = build_cli()
             .try_get_matches_from(["frameassembly", "show", "demo.fasm"])
             .expect("show subcommand should parse");
-        let show_sub = show_matches
-            .subcommand_matches("show")
-            .expect("show subcommand should be matched");
         assert_eq!(
-            show_sub.get_one::<PathBuf>("input"),
+            show_matches
+                .subcommand_matches("show")
+                .and_then(|m| m.get_one::<PathBuf>("input")),
             Some(&PathBuf::from("demo.fasm"))
         );
 
@@ -662,13 +857,12 @@ mod tests {
                 "frameassembly",
                 "reverse",
                 "traces/cap.pcapng",
-                "-o",
                 "traces/cap.fasm",
             ])
             .expect("reverse subcommand should parse");
         let rev_sub = rev_matches
             .subcommand_matches("reverse")
-            .expect("reverse subcommand should be matched");
+            .expect("reverse matched");
         assert_eq!(
             rev_sub.get_one::<PathBuf>("input"),
             Some(&PathBuf::from("traces/cap.pcapng"))
@@ -678,7 +872,57 @@ mod tests {
             Some(&PathBuf::from("traces/cap.fasm"))
         );
 
-        let sample = "HOST a { IP 10.0.0.1 }\nHOST b { IP 10.0.0.2 }\nFLOW f(c, s) {\n    c -> s TCP SRCPORT 50000 DSTPORT 443 SYN\n    c <- s TCP SYN ACK WAIT 5ms\n}\nCOMPILE { f(a, b) }";
+        let ver_sub = build_cli()
+            .try_get_matches_from(["frameassembly", "version"])
+            .expect("version subcommand should parse");
+        assert!(ver_sub.subcommand_matches("version").is_some());
+    }
+
+    /// Verifies that legacy CLI flags (`-o`, `--output`, `--show`, `--reverse`), bare `.pcap`
+    /// paths, removed `compile` subcommands, and `.fasm` output typos return clear hints.
+    #[test]
+    fn test_legacy_cli_migration_hints_and_safety_guards() {
+        let dash_o = check_legacy_cli_args(["frameassembly", "demo.fasm", "-o", "a.pcap"])
+            .expect_err("-o should trigger hint");
+        assert!(dash_o.contains("Compile: frameassembly <in.fasm> [out.pcap]"));
+        assert!(dash_o.contains("Reverse: frameassembly reverse <in.pcap> [out.fasm]"));
+
+        let long_out =
+            check_legacy_cli_args(["frameassembly", "reverse", "a.pcap", "--output=a.fasm"])
+                .expect_err("--output should trigger hint");
+        assert!(long_out.contains("frameassembly reverse <in.pcap> [out.fasm]"));
+
+        let flag_show = check_legacy_cli_args(["frameassembly", "--show", "demo.fasm"])
+            .expect_err("--show should trigger hint");
+        assert!(flag_show.contains("frameassembly show <in.fasm>"));
+
+        let flag_rev = check_legacy_cli_args(["frameassembly", "--reverse", "trace.pcap"])
+            .expect_err("--reverse should trigger hint");
+        assert!(flag_rev.contains("frameassembly reverse <in.pcap> [out.fasm]"));
+
+        let bare_pcap = check_legacy_cli_args(["frameassembly", "trace.pcapng"])
+            .expect_err("bare .pcapng should trigger reverse hint");
+        assert!(bare_pcap.contains("frameassembly reverse trace.pcapng"));
+
+        let old_compile_sub = check_legacy_cli_args(["frameassembly", "compile", "demo.fasm"])
+            .expect_err("removed compile subcommand should trigger safety guard");
+        assert!(old_compile_sub.contains("there is no 'compile' subcommand"));
+        assert!(old_compile_sub.contains("frameassembly <in.fasm> [out.pcap]"));
+
+        let fasm_as_output = check_legacy_cli_args(["frameassembly", "a.fasm", "b.fasm"])
+            .expect_err(".fasm second positional arg should be rejected to protect source file");
+        assert!(fasm_as_output.contains("b.fasm"));
+
+        assert!(check_legacy_cli_args(["frameassembly", "demo.fasm"]).is_ok());
+        assert!(check_legacy_cli_args(["frameassembly", "demo.fasm", "out.pcap"]).is_ok());
+        assert!(check_legacy_cli_args(["frameassembly", "reverse", "a.pcap", "a.fasm"]).is_ok());
+        assert!(check_legacy_cli_args(["frameassembly", "--version"]).is_ok());
+    }
+
+    /// Verifies packet ladder rendering on strict-lowercase FrameAssembly 2.0 `.fasm` code.
+    #[test]
+    fn test_packet_ladder_strict_lowercase_fasm() {
+        let sample = "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\nflow f(c, s) {\n    c -> s tcp srcport 50000 dstport 443 syn\n    c <- s tcp syn ack wait 5ms\n}\ncompile { f(a, b) }";
         let program = parse_program(sample).expect("sample should parse");
         let frames = compile_program(&program).expect("sample should compile");
         let ladder = format_packet_ladder(&frames);

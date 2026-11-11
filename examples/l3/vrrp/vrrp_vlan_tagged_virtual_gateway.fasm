@@ -1,18 +1,18 @@
 // PROMPT: 802.1Q tagged VRRP master advertisement transmitting on voice VLAN 120.
-// TOKENS: HOST, IP, FLOW, VRRP, VRID, PRIORITY, VIP, VLAN, PCP, DEI, COMPILE
+// TOKENS: host, ip, flow, dst, vrrp, vrid, priority, vip, vlan, pcp, dei, compile
 
 // INSTRUCTION: Define voice gateway router.
-HOST voice_gw_router { IP 10.120.1.254 }
+host voice_gw_router { ip 10.120.1.254 }
 
 // INSTRUCTION: Define voice VLAN VRRP multicast destination.
-HOST voice_vrrp_mcast { IP 224.0.0.18 }
+host voice_vrrp_mcast { ip 224.0.0.18 }
 
 // INSTRUCTION: Define VLAN 120 tagged VRRP advertisement flow with high priority PCP.
-FLOW vrrp_voice_vlan_flow(gw, dst) {
-    gw -> dst VRRP VRID 12 PRIORITY 180 VIP 10.120.1.1 VLAN 120 PCP 6 DEI 0
+flow vrrp_voice_vlan_flow(gw, dst) {
+    gw -> dst vrrp vrid 12 priority 180 vip 10.120.1.1 vlan 120 pcp 6 dei 0
 }
 
 // INSTRUCTION: Compile block executing VLAN tagged VRRP advertisement.
-COMPILE {
+compile {
     vrrp_voice_vlan_flow(voice_gw_router, voice_vrrp_mcast)
 }

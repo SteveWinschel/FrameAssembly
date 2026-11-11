@@ -1,19 +1,19 @@
 // PROMPT: IPsec ESP tunnel carrying AES-GCM encrypted payload with explicit IV and ICV tags.
-// TOKENS: HOST, IP, MAC, FLOW, IPSEC, SPI, SEQ, IV, ICV, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, ipsec, spi, seq, iv, icv, payload, compile
 
 // INSTRUCTION: Define primary data center IPsec security gateway.
-HOST dc_sec_gw_alpha { IP 198.51.100.21 MAC 00:50:56:a1:00:01 }
+host dc_sec_gw_alpha { ip 198.51.100.21 mac 00:50:56:a1:00:01 }
 
 // INSTRUCTION: Define disaster recovery IPsec security gateway.
-HOST dr_sec_gw_beta { IP 203.0.113.88 MAC 00:50:56:b2:00:02 }
+host dr_sec_gw_beta { ip 203.0.113.88 mac 00:50:56:b2:00:02 }
 
 // INSTRUCTION: Define bidirectional IPsec flow exchanging encrypted blocks.
-FLOW ipsec_aes_gcm_exchange(gw_a, gw_b) {
-    gw_a -> gw_b IPSEC SPI 500101 SEQ 1 IV "1122334455667788" ICV "aabbccddeeff001122334455" PAYLOAD "encrypted_db_replication_block"
-    gw_a <- gw_b IPSEC SPI 500102 SEQ 1 IV "8877665544332211" ICV "ffeeddccbbaa998877665544" PAYLOAD "encrypted_db_replication_ack"
+flow ipsec_aes_gcm_exchange(gw_a, gw_b) {
+    gw_a -> gw_b ipsec spi 500101 seq 1 iv "1122334455667788" icv "aabbccddeeff001122334455" payload "encrypted_db_replication_block"
+    gw_a <- gw_b ipsec spi 500102 seq 1 iv "8877665544332211" icv "ffeeddccbbaa998877665544" payload "encrypted_db_replication_ack"
 }
 
 // INSTRUCTION: Compile block executing AES-GCM protected tunnel transmission.
-COMPILE {
+compile {
     ipsec_aes_gcm_exchange(dc_sec_gw_alpha, dr_sec_gw_beta)
 }

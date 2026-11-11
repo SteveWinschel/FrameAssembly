@@ -1,19 +1,19 @@
 // PROMPT: IPsec security association advancing sequence numbers across tunnel endpoints.
-// TOKENS: HOST, IP, FLOW, IPSEC, SPI, SEQ, COMPILE
+// TOKENS: host, ip, flow, ipsec, spi, seq, compile
 
 // INSTRUCTION: Define secure enterprise client.
-HOST secure_client { IP 10.10.1.5 }
+host secure_client { ip 10.10.1.5 }
 
 // INSTRUCTION: Define secure corporate server.
-HOST secure_server { IP 10.10.1.10 }
+host secure_server { ip 10.10.1.10 }
 
 // INSTRUCTION: Define IPsec security flow advancing sequence numbers on SPI 8192.
-FLOW ipsec_seq_flow(cli, srv) {
-    cli -> srv IPSEC SPI 8192 SEQ 100
-    cli -> srv IPSEC SPI 8192 SEQ 101
+flow ipsec_seq_flow(cli, srv) {
+    cli -> srv ipsec spi 8192 seq 100
+    cli -> srv ipsec spi 8192 seq 101
 }
 
 // INSTRUCTION: Compile block executing sequenced IPsec packets.
-COMPILE {
+compile {
     ipsec_seq_flow(secure_client, secure_server)
 }

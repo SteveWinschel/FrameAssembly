@@ -1,18 +1,18 @@
 // PROMPT: RFC 7011 IPFIX flow information export datagram reporting endpoint flow metrics.
-// TOKENS: HOST, IP, FLOW, IPFIX, SRCIP, DSTIP, PROTO, PACKETS, OCTETS, COMPILE
+// TOKENS: host, ip, flow, s, ipfix, srcip, dstip, proto, packets, octets, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.10.1 }
+host client { ip 192.168.10.1 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.168.10.250 }
+host server { ip 192.168.10.250 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW ipfix_export(c, s) {
-    c -> s IPFIX SRCIP 172.16.1.10 DSTIP 172.16.2.20 PROTO 6 PACKETS 42 OCTETS 28400
+flow ipfix_export(c, s) {
+    c -> s ipfix srcip 172.16.1.10 dstip 172.16.2.20 proto 6 packets 42 octets 28400
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     ipfix_export(client, server)
 }

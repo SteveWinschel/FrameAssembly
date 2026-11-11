@@ -1,31 +1,31 @@
 // PROMPT: Simulate all 8 RFC 5424 Syslog severity levels (0 Emergency through 7 Debug) emitted sequentially from a test harness.
-// TOKENS: HOST, MAC, IP, FLOW, SYSLOG, FACILITY, SEVERITY, HOSTNAME, APP, PROCID, MSG, COMPILE
+// TOKENS: host, mac, ip, flow, syslog, facility, severity, hostname, app, procid, msg, compile
 
 // INSTRUCTION: Define host endpoint qa_harness.
-HOST qa_harness {
-    MAC 00:50:56:51:40:77
-    IP 192.168.51.10
+host qa_harness {
+    mac 00:50:56:51:40:77
+    ip 192.168.51.10
 }
 
 // INSTRUCTION: Define host endpoint syslog_verify.
-HOST syslog_verify {
-    MAC 00:50:56:51:40:88
-    IP 192.168.51.20
+host syslog_verify {
+    mac 00:50:56:51:40:88
+    ip 192.168.51.20
 }
 
 // INSTRUCTION: Emit one Syslog datagram for each severity level 0..7 under Facility 1 (user).
-FLOW syslog_all_eight_severities(qa_harness, syslog_verify) {
-    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 0 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Emergency: system is unusable"
-    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 1 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Alert: action must be taken immediately"
-    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 2 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Critical: critical conditions"
-    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 3 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Error: error conditions"
-    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 4 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Warning: warning conditions"
-    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 5 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Notice: normal but significant condition"
-    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 6 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Informational: informational messages"
-    qa_harness -> syslog_verify SYSLOG FACILITY 1 SEVERITY 7 HOSTNAME "qa-box" APP "sevtest" PROCID "100" MSG "Debug: debug-level messages"
+flow syslog_all_eight_severities(qa_harness, syslog_verify) {
+    qa_harness -> syslog_verify syslog facility 1 severity 0 hostname "qa-box" app "sevtest" procid "100" msg "Emergency: system is unusable"
+    qa_harness -> syslog_verify syslog facility 1 severity 1 hostname "qa-box" app "sevtest" procid "100" msg "Alert: action must be taken immediately"
+    qa_harness -> syslog_verify syslog facility 1 severity 2 hostname "qa-box" app "sevtest" procid "100" msg "Critical: critical conditions"
+    qa_harness -> syslog_verify syslog facility 1 severity 3 hostname "qa-box" app "sevtest" procid "100" msg "Error: error conditions"
+    qa_harness -> syslog_verify syslog facility 1 severity 4 hostname "qa-box" app "sevtest" procid "100" msg "Warning: warning conditions"
+    qa_harness -> syslog_verify syslog facility 1 severity 5 hostname "qa-box" app "sevtest" procid "100" msg "Notice: normal but significant condition"
+    qa_harness -> syslog_verify syslog facility 1 severity 6 hostname "qa-box" app "sevtest" procid "100" msg "Informational: informational messages"
+    qa_harness -> syslog_verify syslog facility 1 severity 7 hostname "qa-box" app "sevtest" procid "100" msg "Debug: debug-level messages"
 }
 
 // INSTRUCTION: Compile the 8-severity Syslog verification flow.
-COMPILE {
+compile {
     syslog_all_eight_severities(qa_harness, syslog_verify)
 }

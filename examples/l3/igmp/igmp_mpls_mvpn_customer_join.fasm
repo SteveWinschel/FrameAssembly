@@ -1,19 +1,19 @@
 // PROMPT: Customer IGMP membership reports transported over an MPLS pseudowire with EXP 6.
-// TOKENS: HOST, IP, FLOW, IGMP, QUERY, GROUP, MAX_RESP, MPLS, EXP, BOS, MPLS_TTL, TTL, REPORT, COMPILE
+// TOKENS: host, ip, flow, igmp, query, group, maxresp, mpls, exp, bos, mplsttl, ttl, report, compile
 
 // INSTRUCTION: Define MVPN provider edge router.
-HOST mvpn_pe_querier { IP 172.16.88.1 }
+host mvpn_pe_querier { ip 172.16.88.1 }
 
 // INSTRUCTION: Define customer site multicast receiver.
-HOST mvpn_ce_receiver { IP 172.16.88.10 }
+host mvpn_ce_receiver { ip 172.16.88.10 }
 
 // INSTRUCTION: Define MPLS-labeled IGMP Query and Report exchange.
-FLOW igmp_mpls_pseudowire(pe, ce) {
-    pe -> ce IGMP QUERY GROUP 239.88.1.1 MAX_RESP 100 MPLS 22400 EXP 6 BOS 1 MPLS_TTL 255 TTL 1
-    pe <- ce IGMP REPORT GROUP 239.88.1.1 MPLS 22401 EXP 6 BOS 1 MPLS_TTL 255 TTL 1
+flow igmp_mpls_pseudowire(pe, ce) {
+    pe -> ce igmp query group 239.88.1.1 maxresp 100 mpls 22400 exp 6 bos 1 mplsttl 255 ttl 1
+    pe <- ce igmp report group 239.88.1.1 mpls 22401 exp 6 bos 1 mplsttl 255 ttl 1
 }
 
 // INSTRUCTION: Compile the MPLS-labeled IGMP membership flow.
-COMPILE {
+compile {
     igmp_mpls_pseudowire(mvpn_pe_querier, mvpn_ce_receiver)
 }

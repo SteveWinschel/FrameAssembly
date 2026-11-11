@@ -1,18 +1,18 @@
 // PROMPT: Minimal zero-keyword SCTP packet using default INIT chunk and RFC 9260 Castagnoli CRC32c checksum.
-// TOKENS: HOST, IP, FLOW, SCTP, COMPILE
+// TOKENS: host, ip, flow, sctp, compile
 
 // INSTRUCTION: Define SCTP signaling endpoint A.
-HOST sctp_min_a { IP 10.32.0.1 }
+host sctp_min_a { ip 10.32.0.1 }
 
 // INSTRUCTION: Define SCTP signaling endpoint B.
-HOST sctp_min_b { IP 10.32.0.2 }
+host sctp_min_b { ip 10.32.0.2 }
 
 // INSTRUCTION: Define zero-argument SCTP frame using RFC-compliant defaults.
-FLOW sctp_minimal_default(a, b) {
-    a -> b SCTP
+flow sctp_minimal_default(a, b) {
+    a -> b sctp
 }
 
 // INSTRUCTION: Compile block executing minimal default SCTP packet generation.
-COMPILE {
+compile {
     sctp_minimal_default(sctp_min_a, sctp_min_b)
 }

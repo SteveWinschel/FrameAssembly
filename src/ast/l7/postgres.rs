@@ -7,42 +7,42 @@
 //! messages start with a 1-byte type tag (`'Q'` Query, `'R'` AuthenticationOk, `'C'`
 //! CommandComplete, `'Z'` ReadyForQuery, `'E'` ErrorResponse) and a 32-bit big-endian length.
 //! Canonical `.fasm` syntax:
-//! `POSTGRES [STARTUP | QUERY | AUTH_OK | COMMAND_COMPLETE | READY_FOR_QUERY | ERROR_RESPONSE] [USER <str>] [DB <str>] [SQL <str>]`.
+//! `postgres [startup | query | authok | commandcomplete | readyforquery | errorresponse] [user <str>] [db <str>] [sql <str>]`.
 
 /// PostgreSQL Frontend/Backend Protocol 3.0 specification.
 ///
-/// Syntax mapping: `POSTGRES [STARTUP | QUERY | AUTH_OK | COMMAND_COMPLETE | READY_FOR_QUERY | ERROR_RESPONSE] [USER <str>] [DB <str>] [SQL <str>]`
-#[doc(alias = "POSTGRES")]
+/// Syntax mapping: `postgres [startup | query | authok | commandcomplete | readyforquery | errorresponse] [user <str>] [db <str>] [sql <str>]`
+#[doc(alias = "postgres")]
 #[doc(alias = "PostgreSQL")]
 #[doc(alias = "FEBE")]
 #[doc(alias = "5432")]
-#[doc(alias = "STARTUP")]
-#[doc(alias = "QUERY")]
-#[doc(alias = "SQL")]
-#[doc(alias = "READY_FOR_QUERY")]
-#[doc(alias = "COMMAND_COMPLETE")]
-#[doc(alias = "ERROR_RESPONSE")]
-#[doc(alias = "AUTH_OK")]
-#[doc(alias = "USER")]
-#[doc(alias = "DB")]
+#[doc(alias = "startup")]
+#[doc(alias = "query")]
+#[doc(alias = "sql")]
+#[doc(alias = "readyforquery")]
+#[doc(alias = "commandcomplete")]
+#[doc(alias = "errorresponse")]
+#[doc(alias = "authok")]
+#[doc(alias = "user")]
+#[doc(alias = "db")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PostgresSpec<'a> {
-    /// Frontend `StartupMessage` (version 3.0) flag (`STARTUP`).
+    /// Frontend `StartupMessage` (version 3.0) flag (`startup`).
     pub is_startup: bool,
-    /// Frontend simple `Query` (`'Q'`) flag (`QUERY`).
+    /// Frontend simple `Query` (`'Q'`) flag (`query`).
     pub is_query: bool,
-    /// Backend `ReadyForQuery` (`'Z'`) message flag (`READY_FOR_QUERY`).
+    /// Backend `ReadyForQuery` (`'Z'`) message flag (`readyforquery`).
     pub is_ready_for_query: bool,
-    /// Backend `CommandComplete` (`'C'`) message flag (`COMMAND_COMPLETE`).
+    /// Backend `CommandComplete` (`'C'`) message flag (`commandcomplete`).
     pub is_command_complete: bool,
-    /// Backend `ErrorResponse` (`'E'`) message flag (`ERROR_RESPONSE`).
+    /// Backend `ErrorResponse` (`'E'`) message flag (`errorresponse`).
     pub is_error_response: bool,
-    /// Backend `AuthenticationOk` (`'R'`, code 0) message flag (`AUTH_OK`).
+    /// Backend `AuthenticationOk` (`'R'`, code 0) message flag (`authok`).
     pub is_auth_ok: bool,
-    /// Database user parameter for `StartupMessage` (`USER <str>`, default `"postgres"`).
+    /// Database user parameter for `StartupMessage` (`user <str>`, default `"postgres"`).
     pub user: Option<&'a str>,
-    /// Database name parameter for `StartupMessage` (`DB <str>`, default `"postgres"`).
+    /// Database name parameter for `StartupMessage` (`db <str>`, default `"postgres"`).
     pub db: Option<&'a str>,
-    /// SQL query string for `'Q'` frontend messages (`SQL <str>`).
+    /// SQL query string for `'Q'` frontend messages (`sql <str>`).
     pub sql: Option<&'a str>,
 }

@@ -1,29 +1,29 @@
 // PROMPT: Wireless audio receiver negotiating RTSP ANNOUNCE, SETUP, and RECORD for live room audio mirroring.
-// TOKENS: HOST, IP, FLOW, RTSP, OPTIONS, URI, CSEQ, WAIT, STATUS, METHOD, SETUP, TRANSPORT_HDR, SESSION, COMPILE
+// TOKENS: host, ip, flow, s, rtsp, options, uri, cseq, wait, ms, status, method, setup, transporthdr, session, compile
 
 // INSTRUCTION: Define tablet sender streaming lossless room audio.
-HOST tablet_sender {
-    IP 192.168.1.45
+host tablet_sender {
+    ip 192.168.1.45
 }
 
 // INSTRUCTION: Define smart speaker RTSP receiver.
-HOST smart_speaker {
-    IP 192.168.1.90
+host smart_speaker {
+    ip 192.168.1.90
 }
 
 // INSTRUCTION: Define OPTIONS, ANNOUNCE, SETUP, and RECORD sequence for wireless audio push.
-FLOW rtsp_audio_mirror(c, s) {
-    c -> s RTSP OPTIONS URI "*" CSEQ 1 WAIT 3ms
-    c <- s RTSP STATUS 200 CSEQ 1 WAIT 3ms
-    c -> s RTSP METHOD "ANNOUNCE" URI "rtsp://192.168.1.45/stream" CSEQ 2 WAIT 3ms
-    c <- s RTSP STATUS 200 CSEQ 2 WAIT 3ms
-    c -> s RTSP SETUP URI "rtsp://192.168.1.45/stream" CSEQ 3 TRANSPORT_HDR "RTP/AVP/UDP;unicast;mode=record;control_port=6001;timing_port=6002" WAIT 3ms
-    c <- s RTSP STATUS 200 CSEQ 3 SESSION "air_sess_1" WAIT 3ms
-    c -> s RTSP METHOD "RECORD" URI "rtsp://192.168.1.45/stream" CSEQ 4 SESSION "air_sess_1" WAIT 3ms
-    c <- s RTSP STATUS 200 CSEQ 4 SESSION "air_sess_1"
+flow rtsp_audio_mirror(c, s) {
+    c -> s rtsp options uri "*" cseq 1 wait 3ms
+    c <- s rtsp status 200 cseq 1 wait 3ms
+    c -> s rtsp method "ANNOUNCE" uri "rtsp://192.168.1.45/stream" cseq 2 wait 3ms
+    c <- s rtsp status 200 cseq 2 wait 3ms
+    c -> s rtsp setup uri "rtsp://192.168.1.45/stream" cseq 3 transporthdr "RTP/AVP/UDP;unicast;mode=record;control_port=6001;timing_port=6002" wait 3ms
+    c <- s rtsp status 200 cseq 3 session "air_sess_1" wait 3ms
+    c -> s rtsp method "RECORD" uri "rtsp://192.168.1.45/stream" cseq 4 session "air_sess_1" wait 3ms
+    c <- s rtsp status 200 cseq 4 session "air_sess_1"
 }
 
 // INSTRUCTION: Compile the wireless audio mirroring RTSP flow.
-COMPILE {
+compile {
     rtsp_audio_mirror(tablet_sender, smart_speaker)
 }

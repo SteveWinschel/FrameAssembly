@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b TFTP [RRQ | WRQ | DATA | ACK | ERROR] [FILENAME <str>] [MODE <str>] [BLOCK <u16>] [ERRCODE <u16>] [ERRMSG <str>]`
+//! `a -> b tftp [rrq | wrq | data | ack | error] [filename <str>] [mode <str>] [block <u16>] [errcode <u16>] [errmsg <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 1350 TFTP packet payload.
-/// Syntax mapping: `TFTP [RRQ | WRQ | DATA | ACK | ERROR] [FILENAME <str>] [MODE <str>] [BLOCK <u16>] [ERRCODE <u16>] [ERRMSG <str>]`
+/// Syntax mapping: `tftp [rrq | wrq | data | ack | error] [filename <str>] [mode <str>] [block <u16>] [errcode <u16>] [errmsg <str>]`
 #[doc(alias = "TFTP")]
 #[doc(alias = "RFC1350")]
 #[doc(alias = "RRQ")]

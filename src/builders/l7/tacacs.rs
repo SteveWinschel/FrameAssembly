@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b TACACS [TYPE AUTHEN | TYPE AUTHOR | TYPE ACCT | AUTHEN | AUTHOR | ACCT] [SEQ <u8>] [FLAGS <u8>] [SESSION_ID <u32>] [USER <str>] [PAYLOAD <str>]`
+//! `a -> b tacacs [type authen | type author | type acct | authen | author | acct] [seq <u8>] [flags <u8>] [sessionid <u32>] [user <str>] [payload <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 8907 TACACS+ packet payload.
-/// Syntax mapping: `TACACS [TYPE AUTHEN | TYPE AUTHOR | TYPE ACCT | AUTHEN | AUTHOR | ACCT] [SEQ <u8>] [FLAGS <u8>] [SESSION_ID <u32>] [USER <str>] [PAYLOAD <str>]`
+/// Syntax mapping: `tacacs [type authen | type author | type acct | authen | author | acct] [seq <u8>] [flags <u8>] [sessionid <u32>] [user <str>] [payload <str>]`
 #[doc(alias = "TACACS")]
 #[doc(alias = "TACACS_PLUS")]
 #[doc(alias = "RFC8907")]
@@ -24,7 +24,12 @@ pub fn build_tacacs_payload(
     spec: &TacacsSpec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
-    let type_code = match spec.tacacs_type.unwrap_or("AUTHEN").to_ascii_uppercase().as_str() {
+    let type_norm = spec
+        .tacacs_type
+        .unwrap_or("authen")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    let type_code = match type_norm.as_str() {
         "AUTHEN" => 1u8,
         "AUTHOR" => 2u8,
         "ACCT" => 3u8,

@@ -1,26 +1,26 @@
 // PROMPT: 4G/5G X2AP and XnAP inter-base-station handover preparation over SCTP port 36422 (PPID 27) with VLAN tagging.
-// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, SACK, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, vlan, pcp, dscp, sctp, chunk, data, vtag, stream, ssn, ppid, srcport, dstport, payload, sack, wait, ms, compile
 
 // INSTRUCTION: Define source eNodeB/gNodeB initiating UE handover.
-HOST source_ran_node {
-    IP 172.26.36.1
-    MAC 00:1e:be:26:36:01
+host source_ran_node {
+    ip 172.26.36.1
+    mac 00:1e:be:26:36:01
 }
 
 // INSTRUCTION: Define target neighbor eNodeB/gNodeB accepting UE handover.
-HOST target_ran_node {
-    IP 172.26.36.2
-    MAC 00:1e:be:26:36:02
+host target_ran_node {
+    ip 172.26.36.2
+    mac 00:1e:be:26:36:02
 }
 
 // INSTRUCTION: Define X2AP Handover Request and Handover Request Acknowledge over SCTP port 36422.
-FLOW sctp_x2ap_handover(src_ran, tgt_ran) {
-    src_ran -> tgt_ran VLAN 364 PCP 5 DSCP 46 SCTP CHUNK DATA VTAG 364220 STREAM 0 SSN 1 PPID 27 SRCPORT 36422 DSTPORT 36422 PAYLOAD "x2ap_handover_request_ue_x2_id_42"
-    src_ran <- tgt_ran VLAN 364 PCP 5 DSCP 46 SCTP CHUNK SACK VTAG 364220 SRCPORT 36422 DSTPORT 36422 WAIT 1ms
-    src_ran <- tgt_ran VLAN 364 PCP 5 DSCP 46 SCTP CHUNK DATA VTAG 364220 STREAM 0 SSN 1 PPID 27 SRCPORT 36422 DSTPORT 36422 PAYLOAD "x2ap_handover_request_ack_gtp_teid" WAIT 1ms
+flow sctp_x2ap_handover(src_ran, tgt_ran) {
+    src_ran -> tgt_ran vlan 364 pcp 5 dscp 46 sctp chunk data vtag 364220 stream 0 ssn 1 ppid 27 srcport 36422 dstport 36422 payload "x2ap_handover_request_ue_x2_id_42"
+    src_ran <- tgt_ran vlan 364 pcp 5 dscp 46 sctp chunk sack vtag 364220 srcport 36422 dstport 36422 wait 1ms
+    src_ran <- tgt_ran vlan 364 pcp 5 dscp 46 sctp chunk data vtag 364220 stream 0 ssn 1 ppid 27 srcport 36422 dstport 36422 payload "x2ap_handover_request_ack_gtp_teid" wait 1ms
 }
 
 // INSTRUCTION: Compile block executing X2AP inter-base-station handover over SCTP.
-COMPILE {
+compile {
     sctp_x2ap_handover(source_ran_node, target_ran_node)
 }

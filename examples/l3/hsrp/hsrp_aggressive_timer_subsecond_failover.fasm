@@ -1,18 +1,18 @@
 // PROMPT: Fast HSRP convergence configuration with 1-second hello and 3-second holdtime.
-// TOKENS: HOST, IP, FLOW, HSRP, GROUP, PRIORITY, HELLOTIME, HOLDTIME, VIP, COMPILE
+// TOKENS: host, ip, flow, dst, hsrp, group, priority, hellotime, holdtime, vip, compile
 
 // INSTRUCTION: Define low-latency datacenter core router.
-HOST fast_core_rtr { IP 10.20.30.254 }
+host fast_core_rtr { ip 10.20.30.254 }
 
 // INSTRUCTION: Define multicast router listener.
-HOST fast_hsrp_mcast { IP 224.0.0.2 }
+host fast_hsrp_mcast { ip 224.0.0.2 }
 
 // INSTRUCTION: Define aggressive timer HSRP flow with 1s hellotime and 3s holdtime.
-FLOW hsrp_fast_timer(rtr, dst) {
-    rtr -> dst HSRP GROUP 30 PRIORITY 140 HELLOTIME 1 HOLDTIME 3 VIP 10.20.30.1
+flow hsrp_fast_timer(rtr, dst) {
+    rtr -> dst hsrp group 30 priority 140 hellotime 1 holdtime 3 vip 10.20.30.1
 }
 
 // INSTRUCTION: Compile block executing subsecond-ready HSRP timer heartbeats.
-COMPILE {
+compile {
     hsrp_fast_timer(fast_core_rtr, fast_hsrp_mcast)
 }

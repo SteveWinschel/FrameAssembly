@@ -1,9 +1,9 @@
 //! Message Queuing Telemetry Transport v3.1.1 (MQTT, OASIS Standard) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `MQTT` v3.1.1 control packets over
-//! TCP ports `1883` and `8883` (as well as custom-port `CONNECT` packets carrying the
-//! `\x00\x04MQTT\x04\x02` variable header signature). It decodes `CONNECT`, `CONNACK`, `PUBLISH`,
-//! `PUBACK`, `SUBSCRIBE`, `SUBACK`, `PINGREQ`, `PINGRESP`, and `DISCONNECT` frames into canonical
+//! This module implements fuzz-safe wire-to-AST dissection for `mqtt` v3.1.1 control packets over
+//! TCP ports `1883` and `8883` (as well as custom-port `connect` packets carrying the
+//! `\x00\x04MQTT\x04\x02` variable header signature). It decodes `connect`, `connack`, `publish`,
+//! `puback`, `subscribe`, `suback`, `pingreq`, `pingresp`, and `disconnect` frames into canonical
 //! `.fasm` statements.
 
 use alloc::format;
@@ -21,7 +21,7 @@ fn is_valid_raw_str(s: &str) -> bool {
         && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
 }
 
-/// Dissects an `MQTT` v3.1.1 control packet over TCP.
+/// Dissects an `mqtt` v3.1.1 control packet over TCP.
 pub(crate) fn dissect_mqtt(
     transport: TransportProto,
     src_port: u16,
@@ -68,7 +68,7 @@ pub(crate) fn dissect_mqtt(
             }
             tokens.push_str(" connect");
             if cid != "client-01" {
-                tokens.push_str(&format!(" client_id \"{cid}\""));
+                tokens.push_str(&format!(" clientid \"{cid}\""));
             }
             if keepalive != 60 {
                 tokens.push_str(&format!(" keepalive {keepalive}"));
@@ -81,7 +81,7 @@ pub(crate) fn dissect_mqtt(
             }
             tokens.push_str(" connack");
             if body[1] != 0 {
-                tokens.push_str(&format!(" return_code {}", body[1]));
+                tokens.push_str(&format!(" returncode {}", body[1]));
             }
         }
         0x30..=0x3F => {
@@ -107,7 +107,7 @@ pub(crate) fn dissect_mqtt(
                 tokens.push_str(&format!(" qos {qos}"));
                 let pid = u16::from_be_bytes([body[2 + tlen], body[3 + tlen]]);
                 if pid != 1 {
-                    tokens.push_str(&format!(" pkt_id {pid}"));
+                    tokens.push_str(&format!(" pktid {pid}"));
                 }
             }
             if retain {
@@ -127,7 +127,7 @@ pub(crate) fn dissect_mqtt(
             let pid = u16::from_be_bytes([body[0], body[1]]);
             tokens.push_str(" puback");
             if pid != 1 {
-                tokens.push_str(&format!(" pkt_id {pid}"));
+                tokens.push_str(&format!(" pktid {pid}"));
             }
         }
         0x82 => {
@@ -146,7 +146,7 @@ pub(crate) fn dissect_mqtt(
             let qos = body[4 + tlen];
             tokens.push_str(" subscribe");
             if pid != 1 {
-                tokens.push_str(&format!(" pkt_id {pid}"));
+                tokens.push_str(&format!(" pktid {pid}"));
             }
             if topic != "test/topic" {
                 tokens.push_str(&format!(" topic \"{topic}\""));
@@ -164,10 +164,10 @@ pub(crate) fn dissect_mqtt(
             let rc = body[2];
             tokens.push_str(" suback");
             if pid != 1 {
-                tokens.push_str(&format!(" pkt_id {pid}"));
+                tokens.push_str(&format!(" pktid {pid}"));
             }
             if rc != 0 {
-                tokens.push_str(&format!(" return_code {rc}"));
+                tokens.push_str(&format!(" returncode {rc}"));
             }
         }
         0xC0 if body.is_empty() => tokens.push_str(" pingreq"),

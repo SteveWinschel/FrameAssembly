@@ -1,9 +1,9 @@
-//! Internet Control Message Protocol (`ICMP`, RFC 792 / RFC 4443) parser for FrameAssembly.
+//! Internet Control Message Protocol (`icmp`, RFC 792 / RFC 4443) parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for IPv4 `ICMP` and IPv6 `ICMPv6` diagnostic
-//! and control messages. It parses symbolic message types (`ECHO_REQUEST`, `ECHO_REPLY`,
-//! `DEST_UNREACH`, `TIME_EXCEEDED`, `REDIRECT`), numeric type and code overrides (`TYPE`, `CODE`),
-//! echo identifier and sequence numbers (`ID`, `SEQ`), and redirect gateway addresses (`GATEWAY`).
+//! This module implements the winnow parser combinator for IPv4 `icmp` and IPv6 `ICMPv6` diagnostic
+//! and control messages. It parses symbolic message types (`echorequest`, `echoreply`,
+//! `destunreach`, `timeexceeded`, `redirect`), numeric type and code overrides (`type`, `code`),
+//! echo identifier and sequence numbers (`id`, `seq`), and redirect gateway addresses (`gateway`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

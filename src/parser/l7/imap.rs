@@ -1,10 +1,10 @@
 //! Internet Message Access Protocol (IMAP4rev1) Layer 7 mailbox access field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 3501 `IMAP` client commands and
-//! server responses in FrameAssembly `.fasm` specifications. It recognizes the `IMAP` protocol
-//! keyword, command correlation tags (`TAG`, e.g., `"A001"` or `"*"`), command verbs (`CMD`),
-//! command arguments (`ARG`), completion status strings (`STATUS`, e.g., `"OK"`, `"NO"`, `"BAD"`),
-//! and server response text (`RESPONSE`).
+//! This module implements the `winnow` parser combinator for RFC 3501 `imap` client commands and
+//! server responses in FrameAssembly `.fasm` specifications. It recognizes the `imap` protocol
+//! keyword, command correlation tags (`tag`, e.g., `"A001"` or `"*"`), command verbs (`cmd`),
+//! command arguments (`arg`), completion status strings (`status`, e.g., `"OK"`, `"NO"`, `"BAD"`),
+//! and server response text (`response`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

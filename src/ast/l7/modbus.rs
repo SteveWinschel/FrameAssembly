@@ -7,39 +7,39 @@
 //! Discrete Inputs, `0x03` Read Holding Registers, `0x04` Read Input Registers, `0x05` Write
 //! Single Coil, `0x06` Write Single Register, `0x10` Write Multiple Registers) and register data.
 //! Canonical `.fasm` syntax:
-//! `MODBUS [TXID <u16>] [PROTO_ID <u16>] [UNITID <u8>] [FUNC <str>] [ADDR <u16>] [COUNT <u16>] [VALUE <u16>] [IS_RESPONSE]`.
+//! `modbus [txid <u16>] [protoid <u16>] [unitid <u8>] [func <str>] [addr <u16>] [count <u16>] [value <u16>] [isresponse]`.
 
 /// Modbus TCP Application Protocol v1.1b3 (MBAP + PDU) specification.
 ///
-/// Syntax mapping: `MODBUS [TXID <u16>] [PROTO_ID <u16>] [UNITID <u8>] [FUNC <str>] [ADDR <u16>] [COUNT <u16>] [VALUE <u16>] [IS_RESPONSE]`
-#[doc(alias = "MODBUS")]
+/// Syntax mapping: `modbus [txid <u16>] [protoid <u16>] [unitid <u8>] [func <str>] [addr <u16>] [count <u16>] [value <u16>] [isresponse]`
+#[doc(alias = "modbus")]
 #[doc(alias = "Modbus TCP")]
 #[doc(alias = "MBAP")]
 #[doc(alias = "502")]
-#[doc(alias = "TXID")]
-#[doc(alias = "PROTO_ID")]
-#[doc(alias = "UNITID")]
-#[doc(alias = "FUNC")]
-#[doc(alias = "ADDR")]
-#[doc(alias = "COUNT")]
-#[doc(alias = "VALUE")]
-#[doc(alias = "IS_RESPONSE")]
+#[doc(alias = "txid")]
+#[doc(alias = "protoid")]
+#[doc(alias = "unitid")]
+#[doc(alias = "func")]
+#[doc(alias = "addr")]
+#[doc(alias = "count")]
+#[doc(alias = "value")]
+#[doc(alias = "isresponse")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ModbusSpec<'a> {
-    /// 16-bit MBAP Transaction Identifier (`TXID <u16>`, default `1`).
+    /// 16-bit MBAP Transaction Identifier (`txid <u16>`, default `1`).
     pub txid: Option<u16>,
-    /// 16-bit MBAP Protocol Identifier (`PROTO_ID <u16>`, default `0`).
+    /// 16-bit MBAP Protocol Identifier (`protoid <u16>`, default `0`).
     pub proto_id: Option<u16>,
-    /// 8-bit MBAP Unit Identifier addressing a slave device (`UNITID <u8>`, default `1`).
+    /// 8-bit MBAP Unit Identifier addressing a slave device (`unitid <u8>`, default `1`).
     pub unitid: Option<u8>,
-    /// Modbus function code name (`FUNC <str>`, default `"READ_HOLDING_REGISTERS"`).
+    /// Modbus function code name (`func <str>`, default `"READ_HOLDING_REGISTERS"`).
     pub func: Option<&'a str>,
-    /// Starting 16-bit register or coil address (`ADDR <u16>`, default `0`).
+    /// Starting 16-bit register or coil address (`addr <u16>`, default `0`).
     pub addr: Option<u16>,
-    /// Quantity of registers or coils to read or write (`COUNT <u16>`, default `1`).
+    /// Quantity of registers or coils to read or write (`count <u16>`, default `1`).
     pub count: Option<u16>,
-    /// Register or coil value for write operations or read responses (`VALUE <u16>`, default `0`).
+    /// Register or coil value for write operations or read responses (`value <u16>`, default `0`).
     pub value: Option<u16>,
-    /// Response direction flag (`IS_RESPONSE`).
+    /// Response direction flag (`isresponse`).
     pub is_response: bool,
 }

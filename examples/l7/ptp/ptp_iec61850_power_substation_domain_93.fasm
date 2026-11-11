@@ -1,27 +1,27 @@
 // PROMPT: Generate an IEC 61850-9-3 power utility substation PTPv2 synchronization flow on Domain 93 over VLAN 93.
-// TOKENS: HOST, IP, MAC, FLOW, PTP, SYNC, DOMAIN, SEQ_ID, CLOCK_ID, VLAN, PCP, WAIT, FOLLOW_UP, DELAY_REQ, DELAY_RESP, COMPILE
+// TOKENS: host, ip, mac, flow, ptp, sync, domain, seqid, clockid, vlan, pcp, wait, ms, followup, delayreq, delayresp, compile
 
 // INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
-HOST ptp_grandmaster {
-    IP 192.168.93.1
-    MAC 00:1b:21:31:90:01
+host ptp_grandmaster {
+    ip 192.168.93.1
+    mac 00:1b:21:31:90:01
 }
 
 // INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
-HOST ptp_slave_clock {
-    IP 192.168.93.12
-    MAC 00:1b:21:31:90:25
+host ptp_slave_clock {
+    ip 192.168.93.12
+    mac 00:1b:21:31:90:25
 }
 
 // INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
-FLOW ptp_scenario_flow(gm, slv) {
-    gm -> slv PTP SYNC DOMAIN 93 SEQ_ID 1200 CLOCK_ID "000e8cfffe930001" VLAN 93 PCP 7 WAIT 1ms
-    gm -> slv PTP FOLLOW_UP DOMAIN 93 SEQ_ID 1200 CLOCK_ID "000e8cfffe930001" VLAN 93 PCP 7 WAIT 1ms
-    gm <- slv PTP DELAY_REQ DOMAIN 93 SEQ_ID 1200 CLOCK_ID "000e8cfffe93000c" VLAN 93 PCP 7 WAIT 1ms
-    gm -> slv PTP DELAY_RESP DOMAIN 93 SEQ_ID 1200 CLOCK_ID "000e8cfffe930001" VLAN 93 PCP 7
+flow ptp_scenario_flow(gm, slv) {
+    gm -> slv ptp sync domain 93 seqid 1200 clockid "000e8cfffe930001" vlan 93 pcp 7 wait 1ms
+    gm -> slv ptp followup domain 93 seqid 1200 clockid "000e8cfffe930001" vlan 93 pcp 7 wait 1ms
+    gm <- slv ptp delayreq domain 93 seqid 1200 clockid "000e8cfffe93000c" vlan 93 pcp 7 wait 1ms
+    gm -> slv ptp delayresp domain 93 seqid 1200 clockid "000e8cfffe930001" vlan 93 pcp 7
 }
 
 // INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
-COMPILE {
+compile {
     ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
 }

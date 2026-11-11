@@ -1,18 +1,18 @@
 // PROMPT: VXLAN packet with customized hash-based UDP source port 54321 for ECMP underlay load balancing.
-// TOKENS: HOST, IP, FLOW, VXLAN, VNI, SRCPORT, COMPILE
+// TOKENS: host, ip, flow, src, dst, vxlan, vni, srcport, compile
 
 // INSTRUCTION: Define leaf switch VTEP generating ECMP entropy source ports.
-HOST ecmp_leaf_vtep { IP 192.168.220.10 }
+host ecmp_leaf_vtep { ip 192.168.220.10 }
 
 // INSTRUCTION: Define destination leaf switch VTEP.
-HOST ecmp_spine_peer { IP 192.168.220.20 }
+host ecmp_spine_peer { ip 192.168.220.20 }
 
 // INSTRUCTION: Define VXLAN transmission flow with entropy source port 54321.
-FLOW vxlan_entropy_flow(src, dst) {
-    src -> dst VXLAN VNI 20000 SRCPORT 54321
+flow vxlan_entropy_flow(src, dst) {
+    src -> dst vxlan vni 20000 srcport 54321
 }
 
 // INSTRUCTION: Compile block executing ECMP hashed VXLAN delivery.
-COMPILE {
+compile {
     vxlan_entropy_flow(ecmp_leaf_vtep, ecmp_spine_peer)
 }

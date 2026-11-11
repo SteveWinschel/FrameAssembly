@@ -1,21 +1,22 @@
-// PROMPT: Continuous IPsec ESP encrypted tunnel traffic generated via a COMPILE LOOP block.
-// TOKENS: HOST, IP, FLOW, ESP, SPI, SEQ, PAYLOAD, WAIT, COMPILE, LOOP
+// PROMPT: Continuous IPsec ESP encrypted tunnel traffic generated via a COMPILE repeated flow calls.
+// TOKENS: host, ip, flow, esp, spi, seq, payload, wait, ms, compile
 
 // INSTRUCTION: Define primary site IPsec peer.
-HOST loop_esp_peer1 { IP 10.66.1.1 }
+host loop_esp_peer1 { ip 10.66.1.1 }
 
 // INSTRUCTION: Define disaster recovery site IPsec peer.
-HOST loop_esp_peer2 { IP 10.66.1.2 }
+host loop_esp_peer2 { ip 10.66.1.2 }
 
 // INSTRUCTION: Define bidirectional ESP replication exchange.
-FLOW esp_replication_cycle(p1, p2) {
-    p1 -> p2 ESP SPI 81000 SEQ 1 PAYLOAD "ENCRYPTED_STORAGE_BLOCK" WAIT 10ms
-    p1 <- p2 ESP SPI 81001 SEQ 1 PAYLOAD "ENCRYPTED_STORAGE_ACK" WAIT 10ms
+flow esp_replication_cycle(p1, p2) {
+    p1 -> p2 esp spi 81000 seq 1 payload "ENCRYPTED_STORAGE_BLOCK" wait 10ms
+    p1 <- p2 esp spi 81001 seq 1 payload "ENCRYPTED_STORAGE_ACK" wait 10ms
 }
 
 // INSTRUCTION: Compile 4 iterations of the ESP replication cycle.
-COMPILE {
-    LOOP 4 {
-        esp_replication_cycle(loop_esp_peer1, loop_esp_peer2)
-    }
+compile {
+    esp_replication_cycle(loop_esp_peer1, loop_esp_peer2) // cycle 1
+    esp_replication_cycle(loop_esp_peer1, loop_esp_peer2) // cycle 2
+    esp_replication_cycle(loop_esp_peer1, loop_esp_peer2) // cycle 3
+    esp_replication_cycle(loop_esp_peer1, loop_esp_peer2) // cycle 4
 }

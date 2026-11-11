@@ -6,13 +6,13 @@ disambiguations:
   - extensions: ['.fasm']
     rules:
       # 1. FrameAssembly network packet specification (text/vnd.frameassembly)
-      # Matches top-level HOST { IP|MAC ... }, FLOW name(...) {, COMPILE { flow(...) }, or directional -> / <- packet lines
+      # Matches strict-lowercase top-level host { ip|mac ... }, flow name(...) {, compile { ... }, or directional -> / <- packet lines
       - language: FrameAssembly
         pattern:
-          - '(?i)^\s*HOST\s+[A-Za-z_][A-Za-z0-9_]*\s*\{\s*(?:IP|MAC)\b'
-          - '(?i)^\s*FLOW\s+[A-Za-z_][A-Za-z0-9_]*\s*\([A-Za-z0-9_,\s]*\)\s*\{'
-          - '(?i)^\s*COMPILE\s*\{\s*(?:LOOP\s+[0-9]+\s*\{|[A-Za-z_][A-Za-z0-9_]*\s*\()'
-          - '(?i)\b[A-Za-z_][A-Za-z0-9_]*\s*(?:->|<-)\s*[A-Za-z_][A-Za-z0-9_]*\s+(?:SRCMAC|DSTMAC|ETHERTYPE|VLAN|QINQ|MPLS|TTL|DSCP|ECN|FLOWLABEL|IPID|DF|MF|FRAGOFFSET|SRCPORT|DSTPORT|TRANSPORT|SEQ|ACKNUM|WIN|MSS|WSCALE|SACK_PERM|TSVAL|TSECR|URGENT|ARP|LLDP|STP|LACP|EAPOL|ICMP|NDP|IGMP|MLD|GRE|VXLAN|GENEVE|IPSEC|ESP|AH|IKEV2|WIREGUARD|OSPF|BGP|RIP|VRRP|HSRP|PIM|BFD|OPENFLOW|TCP|UDP|SCTP|SNMP[123]|DNS|MDNS|DHCP|NTP|PTP|RADIUS|TACACS|SYSLOG|NETFLOW|IPFIX|SFLOW|TFTP|FTP|SSH|TELNET|HTTP|HTTP2|GRPC|WEBSOCKET|TLS|QUIC|STUN|SIP|RTP|RTSP|SMTP|IMAP|POP3|KERBEROS|LDAP|SMB|NFS|REDIS|MEMCACHED|MYSQL|POSTGRES|MQTT|COAP|AMQP|SSDP|WHOIS|MODBUS|BACNET|DNP3|S7COMM|ETHERNETIP|OPCUA)\b'
+          - '^\s*host\s+[A-Za-z_][A-Za-z0-9_-]*\s*\{\s*(?:ip|mac)\b'
+          - '^\s*flow\s+[A-Za-z_][A-Za-z0-9_-]*\s*\([A-Za-z0-9_,\s-]*\)\s*\{'
+          - '^\s*compile\s*\{\s*(?:[A-Za-z_][A-Za-z0-9_-]*\s*\(|[A-Za-z_][A-Za-z0-9_-]*\s*(?:->|<-))'
+          - '\b[A-Za-z_][A-Za-z0-9_-]*\s*(?:->|<-)\s*[A-Za-z_][A-Za-z0-9_-]*\s+(?:srcmac|dstmac|ethertype|vlan|qinq|mpls|ttl|dscp|ecn|flowlabel|ipid|df|mf|fragoffset|srcport|dstport|transport|seq|acknum|win|window|mss|wscale|sackperm|tsval|tsecr|urgent|arp|lldp|stp|lacp|eapol|icmp|ndp|igmp|mld|gre|vxlan|geneve|ipsec|esp|ah|ikev2|wireguard|ospf|bgp|rip|vrrp|hsrp|pim|bfd|openflow|tcp|udp|sctp|snmp[123]|dns|mdns|dhcp|ntp|ptp|radius|tacacs|syslog|netflow|ipfix|sflow|tftp|ftp|ssh|telnet|http|http2|grpc|websocket|tls|quic|stun|sip|rtp|rtsp|smtp|imap|pop3|kerberos|ldap|smb|nfs|redis|memcached|mysql|postgres|mqtt|coap|amqp|ssdp|whois|modbus|bacnet|dnp3|s7comm|ethernetip|opcua)\b'
       # 2. Flat Assembler (x86 / x86-64 machine assembly)
       - language: Assembly
         pattern:

@@ -1,9 +1,9 @@
-//! IEEE 802.1Q Virtual Local Area Network (`VLAN`) tag parser for FrameAssembly.
+//! IEEE 802.1Q Virtual Local Area Network (`vlan`) tag parser for FrameAssembly.
 //!
 //! This module implements the winnow parser combinator for IEEE 802.1Q single-tagged Ethernet
-//! frames and cross-layer VLAN modifiers. It parses 12-bit VLAN identifiers (`VLAN <vid>`),
-//! 3-bit Priority Code Point values (`PCP <0..7>`), and 1-bit Drop Eligible Indicator flags
-//! (`DEI <0..1>`) into spanned [`ParsedField`] variants for semantic range verification.
+//! frames and cross-layer VLAN modifiers. It parses 12-bit VLAN identifiers (`vlan <vid>`),
+//! 3-bit Priority Code Point values (`pcp <0..7>`), and 1-bit Drop Eligible Indicator flags
+//! (`dei <0..1>`) into spanned [`ParsedField`] variants for semantic range verification.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err, opt};

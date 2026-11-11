@@ -14,8 +14,8 @@
       "}",
       "",
       "flow ${7:session}(a, b) {",
-      "    a -> b ${8:icmp echo_request id 1 seq 1}",
-      "    a <- b ${9:icmp echo_reply id 1 seq 1} wait 5ms",
+      "    a -> b ${8:icmp echorequest id 1 seq 1}",
+      "    a <- b ${9:icmp echoreply id 1 seq 1} wait 5ms",
       "}",
       "",
       "compile {",
@@ -35,9 +35,9 @@
   },
   "MAC-Only Layer 2 Host": {
     "prefix": "host-l2",
-    "description": "Declare a MAC-only Layer 2 switch or bridge endpoint without an IP address (for LLDP, STP, LACP, EAPOL)",
+    "description": "Declare a MAC-only Layer 2 switch or bridge endpoint without an IP address (for lldp, stp, lacp, eapol)",
     "body": [
-      "host ${1:switch} {",
+      "host ${1:switch1} {",
       "    mac ${2:00:1a:2b:3c:4d:01}",
       "}"
     ]
@@ -46,19 +46,19 @@
     "prefix": "compile-inline",
     "description": "Inline frame statements directly inside compile { ... } without a flow block (matches frameassembly reverse output)",
     "body": [
-      "host ${1:node_a} {",
+      "host ${1:host1} {",
       "    ip ${2:10.0.0.1}",
       "    mac ${3:00:1a:2b:3c:4d:01}",
       "}",
       "",
-      "host ${4:node_b} {",
+      "host ${4:host2} {",
       "    ip ${5:10.0.0.2}",
       "    mac ${6:00:1a:2b:3c:4d:02}",
       "}",
       "",
       "compile {",
-      "    ${1:node_a} -> ${4:node_b} ${7:icmp echo_request id 1 seq 1}",
-      "    ${1:node_a} <- ${4:node_b} ${8:icmp echo_reply id 1 seq 1} wait 5ms",
+      "    ${1:host1} -> ${4:host2} ${7:icmp echorequest id 1 seq 1}",
+      "    ${1:host1} <- ${4:host2} ${8:icmp echoreply id 1 seq 1} wait 5ms",
       "}"
     ]
   },
@@ -75,7 +75,7 @@
     "prefix": "snmp2-trap",
     "description": "Complete SNMPv2c linkDown trap with sysUpTime and snmpTrapOID varbinds",
     "body": [
-      "host ${1:switch} {",
+      "host ${1:switch1} {",
       "    ip ${2:10.10.1.5}",
       "}",
       "",
@@ -88,7 +88,7 @@
       "}",
       "",
       "compile {",
-      "    ${5:link_down_trap}(${1:switch}, ${3:nms})",
+      "    ${5:link_down_trap}(${1:switch1}, ${3:nms})",
       "}"
     ]
   },
@@ -96,7 +96,7 @@
     "prefix": "snmp3-trap",
     "description": "Complete SNMPv3 USM authPriv trap using HMAC-SHA-256 and AES-128-CFB encryption",
     "body": [
-      "host ${1:router} {",
+      "host ${1:router1} {",
       "    ip ${2:10.20.0.1}",
       "}",
       "",
@@ -109,7 +109,7 @@
       "}",
       "",
       "compile {",
-      "    ${5:snmpv3_alert}(${1:router}, ${3:nms})",
+      "    ${5:snmpv3_alert}(${1:router1}, ${3:nms})",
       "}"
     ]
   },
@@ -120,7 +120,7 @@
       "a -> b tcp srcport ${1:52000} dstport ${2:80} syn",
       "a <- b tcp syn ack wait 2ms",
       "a -> b tcp ack wait 1ms",
-      "a -> b http get uri \"${3:/api/v1/health}\" host_hdr \"${4:api.internal.net}\" wait 2ms",
+      "a -> b http get uri \"${3:/api/v1/health}\" hosthdr \"${4:api.internal.net}\" wait 2ms",
       "a <- b http status 200 reason \"OK\" body \"{\\\"status\\\":\\\"ok\\\"}\" wait 5ms"
     ]
   },
@@ -128,8 +128,8 @@
     "prefix": "dns-query",
     "description": "DNS A record lookup and authoritative answer",
     "body": [
-      "a -> b dns query txid ${1:4096} qname \"${2:db.internal.corp}\" qtype \"A\"",
-      "a <- b dns response txid ${1:4096} qname \"${2:db.internal.corp}\" qtype \"A\" rdata \"${3:10.50.1.25}\" wait 3ms"
+      "a -> b dns query txid ${1:4096} qname \"${2:db.internal.corp}\" qtype \"a\"",
+      "a <- b dns response txid ${1:4096} qname \"${2:db.internal.corp}\" qtype \"a\" rdata \"${3:10.50.1.25}\" wait 3ms"
     ]
   },
   "DHCPv4 DORA 4-Way Handshake": {
@@ -137,9 +137,9 @@
     "description": "Full DHCP Discover, Offer, Request, and Ack lease negotiation",
     "body": [
       "a -> b dhcp discover xid ${1:1001} hostname \"${2:workstation-01}\"",
-      "a <- b dhcp offer xid ${1:1001} yiaddr ${3:192.168.10.50} siaddr ${4:192.168.10.1} lease_time 86400 wait 5ms",
+      "a <- b dhcp offer xid ${1:1001} yiaddr ${3:192.168.10.50} siaddr ${4:192.168.10.1} leasetime 86400 wait 5ms",
       "a -> b dhcp request xid ${1:1001} yiaddr ${3:192.168.10.50} siaddr ${4:192.168.10.1} wait 2ms",
-      "a <- b dhcp ack xid ${1:1001} yiaddr ${3:192.168.10.50} siaddr ${4:192.168.10.1} lease_time 86400 wait 5ms"
+      "a <- b dhcp ack xid ${1:1001} yiaddr ${3:192.168.10.50} siaddr ${4:192.168.10.1} leasetime 86400 wait 5ms"
     ]
   },
   "802.1Q VLAN + QoS DSCP Voice Frame": {
@@ -151,9 +151,9 @@
   },
   "802.1ad QinQ Double-Tagged Carrier Frame": {
     "prefix": "qinq",
-    "description": "802.1ad QinQ outer service VLAN and inner customer VLAN (inner_vlan) frame",
+    "description": "802.1ad QinQ outer service VLAN and inner customer VLAN (innervlan) frame",
     "body": [
-      "a -> b qinq ${1:1000} inner_vlan ${2:200} icmp echo_request id 1 seq 1"
+      "a -> b qinq ${1:1000} innervlan ${2:200} icmp echorequest id 1 seq 1"
     ]
   },
   "BGP-4 Peer Session Open and Keepalive": {
@@ -173,9 +173,9 @@
     "prefix": "ospf-hello",
     "description": "OSPF Hello and Database Description exchange with Router ID and Area ID",
     "body": [
-      "a -> b ospf hello router_id ${1:1.1.1.1} area_id ${2:0}",
-      "a <- b ospf hello router_id ${3:2.2.2.2} area_id ${2:0} wait 5ms",
-      "a -> b ospf dbd router_id ${1:1.1.1.1} area_id ${2:0} wait 5ms"
+      "a -> b ospf hello routerid ${1:1.1.1.1} areaid ${2:0}",
+      "a <- b ospf hello routerid ${3:2.2.2.2} areaid ${2:0} wait 5ms",
+      "a -> b ospf dbd routerid ${1:1.1.1.1} areaid ${2:0} wait 5ms"
     ]
   },
   "Modbus/TCP Read Holding Registers": {
@@ -185,8 +185,8 @@
       "a -> b tcp srcport ${1:54000} dstport 502 syn",
       "a <- b tcp syn ack wait 2ms",
       "a -> b tcp ack wait 1ms",
-      "a -> b modbus txid ${2:1} unitid ${3:1} addr ${4:100} count ${5:2} wait 2ms",
-      "a <- b modbus txid ${2:1} unitid ${3:1} addr ${4:100} count ${5:2} value ${6:42} is_response wait 5ms"
+      "a -> b modbus readholdingregisters txid ${2:1} unitid ${3:1} addr ${4:100} count ${5:2} wait 2ms",
+      "a <- b modbus readholdingregisters txid ${2:1} unitid ${3:1} addr ${4:100} count ${5:2} value ${6:42} isresponse wait 5ms"
     ]
   },
   "Firewall ACL Blocked TCP SYN -> RST ACK": {
@@ -201,8 +201,8 @@
     "prefix": "icmp-ping",
     "description": "ICMP Echo Request and Echo Reply with matching Identifier and Sequence number",
     "body": [
-      "a -> b icmp echo_request id ${1:100} seq ${2:1} payload \"ping-check\"",
-      "a <- b icmp echo_reply id ${1:100} seq ${2:1} payload \"ping-check\" wait 2ms"
+      "a -> b icmp echorequest id ${1:100} seq ${2:1} payload \"ping-check\"",
+      "a <- b icmp echoreply id ${1:100} seq ${2:1} payload \"ping-check\" wait 2ms"
     ]
   },
   "VXLAN Data Center Overlay Frame": {

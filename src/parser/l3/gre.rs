@@ -1,9 +1,9 @@
-//! Generic Routing Encapsulation (`GRE`, RFC 2784 / RFC 2890) tunnel parser for FrameAssembly.
+//! Generic Routing Encapsulation (`gre`, RFC 2784 / RFC 2890) tunnel parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `GRE` IP tunnel headers. It parses
-//! optional RFC 2890 tunnel keys (`GRE_KEY` or `KEY`), sequence numbers (`GRE_SEQ`), inner
-//! EtherType protocol identifiers (`GRE_PROTO`), and optional RFC 2784 header checksum enablement
-//! (`CHECKSUM`) into spanned [`ParsedField`] AST modifiers.
+//! This module implements the winnow parser combinator for `gre` IP tunnel headers. It parses
+//! optional RFC 2890 tunnel keys (`grekey` or `key`), sequence numbers (`greseq`), inner
+//! EtherType protocol identifiers (`greproto`), and optional RFC 2784 header checksum enablement
+//! (`checksum`) into spanned [`ParsedField`] AST modifiers.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

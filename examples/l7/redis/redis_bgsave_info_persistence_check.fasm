@@ -1,30 +1,30 @@
 // PROMPT: Redis RDB snapshot administration using BGSAVE, LASTSAVE, and INFO persistence inspection.
-// TOKENS: HOST, IP, MAC, FLOW, REDIS, CMD, ARGS, REPLY_TYPE, VALUE, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, s, redis, cmd, args, replytype, value, wait, ms, compile
 
 // INSTRUCTION: Define the database administration automation runner.
-HOST dba_runner {
-    IP 10.80.70.50
-    MAC 00:1a:2b:80:70:50
+host dba_runner {
+    ip 10.80.70.50
+    mac 00:1a:2b:80:70:50
 }
 
 // INSTRUCTION: Define the primary Redis master node.
-HOST redis_master {
-    IP 10.80.70.1
-    MAC 00:1a:2b:80:70:01
+host redis_master {
+    ip 10.80.70.1
+    mac 00:1a:2b:80:70:01
 }
 
 // INSTRUCTION: Trigger background RDB save and query last save timestamp and persistence status.
-FLOW redis_bgsave_audit(c, s) {
-    c -> s REDIS CMD "BGSAVE" ARGS "SCHEDULE"
-    c <- s REDIS REPLY_TYPE "STATUS" VALUE "Background saving scheduled" WAIT 2ms
-    c -> s REDIS CMD "LASTSAVE"
-    c <- s REDIS REPLY_TYPE "INTEGER" VALUE "1761396000" WAIT 1ms
-    c -> s REDIS CMD "INFO" ARGS "persistence"
-    c <- s REDIS REPLY_TYPE "BULK" VALUE "# Persistence
+flow redis_bgsave_audit(c, s) {
+    c -> s redis cmd "BGSAVE" args "SCHEDULE"
+    c <- s redis replytype "status" value "Background saving scheduled" wait 2ms
+    c -> s redis cmd "LASTSAVE"
+    c <- s redis replytype "integer" value "1761396000" wait 1ms
+    c -> s redis cmd "INFO" args "persistence"
+    c <- s redis replytype "bulk" value "# Persistence
 rdb_bgsave_in_progress:0"
 }
 
 // INSTRUCTION: Compile the Redis BGSAVE persistence check flow.
-COMPILE {
+compile {
     redis_bgsave_audit(dba_runner, redis_master)
 }

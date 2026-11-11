@@ -1,10 +1,10 @@
-//! Transmission Control Protocol (`TCP`, RFC 9293) header and option parser for FrameAssembly.
+//! Transmission Control Protocol (`tcp`, RFC 9293) header and option parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `TCP` segment modifiers, control flags,
-//! and RFC 7323 / RFC 2018 TCP header options. It parses receive window size (`WIN`/`WINDOW`),
-//! urgent pointer (`URGENT`), Maximum Segment Size (`MSS`), Window Scale (`WSCALE`), Selective
-//! Acknowledgment Permitted (`SACK_PERM`), timestamps (`TSVAL`, `TSECR`), and all 8 control bits
-//! (`SYN`, `ACK`, `FIN`, `RST`, `PSH`, `URG`, `ECE`, `CWR`).
+//! This module implements the winnow parser combinator for `tcp` segment modifiers, control flags,
+//! and RFC 7323 / RFC 2018 TCP header options. It parses receive window size (`win`/`window`),
+//! urgent pointer (`urgent`), Maximum Segment Size (`mss`), Window Scale (`wscale`), Selective
+//! Acknowledgment Permitted (`sackperm`), timestamps (`tsval`, `tsecr`), and all 8 control bits
+//! (`syn`, `ack`, `fin`, `rst`, `psh`, `urg`, `ece`, `cwr`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

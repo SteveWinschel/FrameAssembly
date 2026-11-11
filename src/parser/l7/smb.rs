@@ -1,11 +1,11 @@
 //! Server Message Block (SMB2 and SMB3) Layer 7 file sharing protocol field parser.
 //!
-//! This module implements the `winnow` parser combinator for MS-SMB2 (`SMB`) network file sharing
-//! packets in FrameAssembly `.fasm` specifications. It recognizes the `SMB` protocol keyword,
-//! shorthand command tokens (`NEGOTIATE`, `SESSION_SETUP`, `TREE_CONNECT`, `CREATE`,
-//! `TREE_DISCONNECT`), explicit `COMMAND` names, NTSTATUS codes (`STATUS`), tree IDs (`TREE_ID`),
-//! 64-bit session IDs (`SESSION_ID`), message sequence numbers (`MSGID`), UNC shares (`SHARE`),
-//! and target file names (`FILENAME`).
+//! This module implements the `winnow` parser combinator for MS-SMB2 (`smb`) network file sharing
+//! packets in FrameAssembly `.fasm` specifications. It recognizes the `smb` protocol keyword,
+//! shorthand command tokens (`negotiate`, `sessionsetup`, `treeconnect`, `create`,
+//! `treedisconnect`), explicit `command` names, NTSTATUS codes (`status`), tree IDs (`treeid`),
+//! 64-bit session IDs (`sessionid`), message sequence numbers (`msgid`), UNC shares (`share`),
+//! and target file names (`filename`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

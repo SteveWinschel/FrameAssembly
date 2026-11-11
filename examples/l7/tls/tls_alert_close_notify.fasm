@@ -1,18 +1,18 @@
 // PROMPT: TLS session termination delivering encrypted close_notify alert over IPv6.
-// TOKENS: HOST, IP, FLOW, TLS, ALERT, RECORD_VERSION, COMPILE
+// TOKENS: host, ip, flow, s, tls, alert, recordversion, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 2001:db8::50 }
+host client { ip 2001:db8::50 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 2001:db8::1 }
+host server { ip 2001:db8::1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW tls_close(c, s) {
-    c -> s TLS ALERT RECORD_VERSION 0x0303
+flow tls_close(c, s) {
+    c -> s tls alert recordversion 0x0303
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     tls_close(client, server)
 }

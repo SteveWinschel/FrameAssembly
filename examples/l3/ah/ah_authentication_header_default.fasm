@@ -1,18 +1,18 @@
 // PROMPT: IPsec Authentication Header packet transmission with SPI and sequence number.
-// TOKENS: HOST, IP, FLOW, AH, SPI, SEQ, COMPILE
+// TOKENS: host, ip, flow, ah, spi, seq, compile
 
 // INSTRUCTION: Define IPsec security gateway 1.
-HOST ipsec_gw1 { IP 198.51.100.1 }
+host ipsec_gw1 { ip 198.51.100.1 }
 
 // INSTRUCTION: Define IPsec security gateway 2.
-HOST ipsec_gw2 { IP 198.51.100.2 }
+host ipsec_gw2 { ip 198.51.100.2 }
 
 // INSTRUCTION: Define AH security authentication flow.
-FLOW ah_vpn_flow(gw1, gw2) {
-    gw1 -> gw2 AH SPI 6001 SEQ 1
+flow ah_vpn_flow(gw1, gw2) {
+    gw1 -> gw2 ah spi 6001 seq 1
 }
 
 // INSTRUCTION: Compile block executing AH authentication transmission.
-COMPILE {
+compile {
     ah_vpn_flow(ipsec_gw1, ipsec_gw2)
 }

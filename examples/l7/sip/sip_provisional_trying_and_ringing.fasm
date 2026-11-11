@@ -1,20 +1,20 @@
 // PROMPT: SIP call establishment with 100 Trying and 180 Ringing provisional status responses.
-// TOKENS: HOST, IP, FLOW, SIP, INVITE, FROM, TO, CALL_ID, CSEQ, WAIT, STATUS, REASON, COMPILE
+// TOKENS: host, ip, flow, s, sip, invite, from, to, callid, cseq, wait, ms, status, reason, compile
 
 // INSTRUCTION: Define outbound caller user agent.
-HOST caller_ua { IP 10.22.4.15 }
+host caller_ua { ip 10.22.4.15 }
 
 // INSTRUCTION: Define telephony gateway.
-HOST telco_gw { IP 10.22.4.1 }
+host telco_gw { ip 10.22.4.1 }
 
 // INSTRUCTION: Define INVITE with 100 Trying and 180 Ringing provisional responses.
-FLOW sip_call_progress(c, s) {
-    c -> s SIP INVITE FROM "sip:carol@voice.net" TO "sip:dave@voice.net" CALL_ID "call-88190-bx2" CSEQ 101 WAIT 2ms
-    c <- s SIP STATUS 100 REASON "Trying" CALL_ID "call-88190-bx2" CSEQ 101 WAIT 5ms
-    c <- s SIP STATUS 180 REASON "Ringing" CALL_ID "call-88190-bx2" CSEQ 101
+flow sip_call_progress(c, s) {
+    c -> s sip invite from "sip:carol@voice.net" to "sip:dave@voice.net" callid "call-88190-bx2" cseq 101 wait 2ms
+    c <- s sip status 100 reason "Trying" callid "call-88190-bx2" cseq 101 wait 5ms
+    c <- s sip status 180 reason "Ringing" callid "call-88190-bx2" cseq 101
 }
 
 // INSTRUCTION: Compile SIP call progress flow.
-COMPILE {
+compile {
     sip_call_progress(caller_ua, telco_gw)
 }

@@ -1,27 +1,27 @@
 // PROMPT: Generate Syslog messages using an explicit pre-calculated PRI value (PRI 134 = Local0.Info, PRI 131 = Local0.Error).
-// TOKENS: HOST, MAC, IP, FLOW, SYSLOG, PRI, HOSTNAME, APP, PROCID, MSG, COMPILE
+// TOKENS: host, mac, ip, flow, syslog, pri, hostname, app, procid, msg, compile
 
 // INSTRUCTION: Define host endpoint haproxy_lb.
-HOST haproxy_lb {
-    MAC 00:1e:67:51:40:11
-    IP 10.40.1.11
+host haproxy_lb {
+    mac 00:1e:67:51:40:11
+    ip 10.40.1.11
 }
 
 // INSTRUCTION: Define host endpoint log_collector.
-HOST log_collector {
-    MAC 00:1e:67:51:40:99
-    IP 10.40.1.99
+host log_collector {
+    mac 00:1e:67:51:40:99
+    ip 10.40.1.99
 }
 
 // INSTRUCTION: Send Syslog events using direct PRI overrides 134 and 131.
-FLOW syslog_explicit_pri_override(haproxy_lb, log_collector) {
-    haproxy_lb -> log_collector SYSLOG PRI 134 HOSTNAME "lb-front-01" APP "haproxy" PROCID "2040"
-        MSG "198.51.100.25:54321 [24/Oct/2026:12:00:01] frontend_tls backend_api/srv1 200 1420"
-    haproxy_lb -> log_collector SYSLOG PRI 131 HOSTNAME "lb-front-01" APP "haproxy" PROCID "2040"
-        MSG "Server backend_api/srv2 is DOWN, reason: Layer4 timeout, check duration: 2001ms"
+flow syslog_explicit_pri_override(haproxy_lb, log_collector) {
+    haproxy_lb -> log_collector syslog pri 134 hostname "lb-front-01" app "haproxy" procid "2040"
+        msg "198.51.100.25:54321 [24/Oct/2026:12:00:01] frontend_tls backend_api/srv1 200 1420"
+    haproxy_lb -> log_collector syslog pri 131 hostname "lb-front-01" app "haproxy" procid "2040"
+        msg "Server backend_api/srv2 is DOWN, reason: Layer4 timeout, check duration: 2001ms"
 }
 
 // INSTRUCTION: Compile the explicit PRI override syslog flow.
-COMPILE {
+compile {
     syslog_explicit_pri_override(haproxy_lb, log_collector)
 }

@@ -6,24 +6,24 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b TFTP [RRQ | WRQ | DATA | ACK | ERROR] [FILENAME <str>] [MODE <str>] [BLOCK <u16>] [ERRCODE <u16>] [ERRMSG <str>]`
+//! `a -> b tftp [rrq | wrq | data | ack | error] [filename <str>] [mode <str>] [block <u16>] [errcode <u16>] [errmsg <str>]`
 
 /// RFC 1350 Trivial File Transfer Protocol specification.
 ///
-/// Syntax mapping: `TFTP [RRQ | WRQ | DATA | ACK | ERROR] [FILENAME <str>] [MODE <str>] [BLOCK <u16>] [ERRCODE <u16>] [ERRMSG <str>]`
-#[doc(alias = "TFTP")]
+/// Syntax mapping: `tftp [rrq | wrq | data | ack | error] [filename <str>] [mode <str>] [block <u16>] [errcode <u16>] [errmsg <str>]`
+#[doc(alias = "tftp")]
 #[doc(alias = "RFC 1350")]
 #[doc(alias = "RFC1350")]
-#[doc(alias = "RRQ")]
-#[doc(alias = "WRQ")]
-#[doc(alias = "DATA")]
-#[doc(alias = "ACK")]
-#[doc(alias = "ERROR")]
-#[doc(alias = "FILENAME")]
-#[doc(alias = "MODE")]
-#[doc(alias = "BLOCK")]
-#[doc(alias = "ERRCODE")]
-#[doc(alias = "ERRMSG")]
+#[doc(alias = "rrq")]
+#[doc(alias = "wrq")]
+#[doc(alias = "data")]
+#[doc(alias = "ack")]
+#[doc(alias = "error")]
+#[doc(alias = "filename")]
+#[doc(alias = "mode")]
+#[doc(alias = "block")]
+#[doc(alias = "errcode")]
+#[doc(alias = "errmsg")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TftpSpec<'a> {
     /// Read Request flag.

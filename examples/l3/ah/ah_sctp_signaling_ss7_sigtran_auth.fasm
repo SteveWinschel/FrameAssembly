@@ -1,25 +1,25 @@
 // PROMPT: RFC 4302 IPsec AH protecting SCTP (Next Header 132) telecom SIGTRAN signaling between mobile core nodes.
-// TOKENS: HOST, IP, MAC, FLOW, AH, SPI, SEQ, NEXT_HEADER, ICV, DSCP, ECN, TTL, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, ah, spi, seq, nextheader, icv, dscp, ecn, ttl, payload, wait, ms, compile
 
 // INSTRUCTION: Define Signaling Gateway (SGW) node in telecom core network.
-HOST telecom_sgw_node {
-    IP 172.20.132.10
-    MAC 00:0f:53:84:00:0a
+host telecom_sgw_node {
+    ip 172.20.132.10
+    mac 00:0f:53:84:00:0a
 }
 
 // INSTRUCTION: Define Media Gateway Controller (MGC) peer validating AH integrity.
-HOST telecom_mgc_peer {
-    IP 172.20.132.20
-    MAC 00:0f:53:84:00:14
+host telecom_mgc_peer {
+    ip 172.20.132.20
+    mac 00:0f:53:84:00:14
 }
 
 // INSTRUCTION: Define AH flow protecting Next Header 132 (SCTP) with Expedited Forwarding DSCP 46.
-FLOW ah_sctp_sigtran_flow(sgw, mgc) {
-    sgw -> mgc AH SPI 132001 SEQ 500 NEXT_HEADER 132 ICV "848484841122334455667788" DSCP 46 ECN 2 TTL 64 PAYLOAD "M3UA_PAYLOAD_DATA_ISUP_IAM" WAIT 2ms
-    sgw <- mgc AH SPI 132002 SEQ 500 NEXT_HEADER 132 ICV "887766554433221184848484" DSCP 46 ECN 2 TTL 64 PAYLOAD "M3UA_PAYLOAD_DATA_ISUP_ACM"
+flow ah_sctp_sigtran_flow(sgw, mgc) {
+    sgw -> mgc ah spi 132001 seq 500 nextheader 132 icv "848484841122334455667788" dscp 46 ecn 2 ttl 64 payload "M3UA_PAYLOAD_DATA_ISUP_IAM" wait 2ms
+    sgw <- mgc ah spi 132002 seq 500 nextheader 132 icv "887766554433221184848484" dscp 46 ecn 2 ttl 64 payload "M3UA_PAYLOAD_DATA_ISUP_ACM"
 }
 
 // INSTRUCTION: Compile the AH-protected SCTP SIGTRAN telecom signaling flow.
-COMPILE {
+compile {
     ah_sctp_sigtran_flow(telecom_sgw_node, telecom_mgc_peer)
 }

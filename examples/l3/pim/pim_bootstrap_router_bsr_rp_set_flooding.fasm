@@ -1,25 +1,25 @@
 // PROMPT: RFC 5059 PIM Bootstrap Router (BSR) flooding Candidate-RP-Set mappings hop-by-hop to all PIM routers.
-// TOKENS: HOST, IP, MAC, FLOW, PIM, HELLO, DR_PRIORITY, HOLDTIME, DSCP, TTL, WAIT, GROUP, RP, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, pim, hello, drpriority, holdtime, dscp, ttl, wait, ms, group, rp, payload, compile
 
 // INSTRUCTION: Define elected PIM Bootstrap Router (BSR) originating RP-Set mappings.
-HOST pim_elected_bsr {
-    IP 10.50.59.1
-    MAC 00:24:38:50:59:01
+host pim_elected_bsr {
+    ip 10.50.59.1
+    mac 00:24:38:50:59:01
 }
 
 // INSTRUCTION: Define All-PIM-Routers link-local multicast group 224.0.0.13.
-HOST pim_all_routers_mcast {
-    IP 224.0.0.13
-    MAC 01:00:5e:00:00:0d
+host pim_all_routers_mcast {
+    ip 224.0.0.13
+    mac 01:00:5e:00:00:0d
 }
 
 // INSTRUCTION: Define RFC 5059 BSR message advertising RP 10.50.59.254 for 239.0.0.0/8.
-FLOW pim_bsr_rp_mapping_flood(bsr, mcast) {
-    bsr -> mcast PIM HELLO DR_PRIORITY 255 HOLDTIME 105 DSCP 48 TTL 1 WAIT 5ms
-    bsr -> mcast PIM HELLO GROUP 239.0.0.0 RP 10.50.59.254 DR_PRIORITY 255 HOLDTIME 130 DSCP 48 TTL 1 PAYLOAD "RFC5059_BSR_FRAG_TAG_1024_HASH_MASK_30"
+flow pim_bsr_rp_mapping_flood(bsr, mcast) {
+    bsr -> mcast pim hello drpriority 255 holdtime 105 dscp 48 ttl 1 wait 5ms
+    bsr -> mcast pim hello group 239.0.0.0 rp 10.50.59.254 drpriority 255 holdtime 130 dscp 48 ttl 1 payload "RFC5059_BSR_FRAG_TAG_1024_HASH_MASK_30"
 }
 
 // INSTRUCTION: Compile the RFC 5059 PIM Bootstrap Router RP-Set flooding flow.
-COMPILE {
+compile {
     pim_bsr_rp_mapping_flood(pim_elected_bsr, pim_all_routers_mcast)
 }

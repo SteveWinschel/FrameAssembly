@@ -1,32 +1,32 @@
 // PROMPT: Model a TACACS+ accounting watchdog interim update (ACCT_FLAG_WATCHDOG) reporting elapsed session time and byte counters.
-// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, TACACS, ACCT, SESSION_ID, USER, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, tacacs, acct, sessionid, user, payload, wait, ms, compile
 
 // INSTRUCTION: Define host endpoint ras_gateway.
-HOST ras_gateway {
-    MAC 00:24:e8:49:40:01
-    IP 192.168.49.10
+host ras_gateway {
+    mac 00:24:e8:49:40:01
+    ip 192.168.49.10
 }
 
 // INSTRUCTION: Define host endpoint acct_collector.
-HOST acct_collector {
-    MAC 00:24:e8:49:40:02
-    IP 192.168.49.2
+host acct_collector {
+    mac 00:24:e8:49:40:02
+    ip 192.168.49.2
 }
 
 // INSTRUCTION: Send an ACCT START record followed by a WATCHDOG interim update and ACCT STOP record.
-FLOW tacacs_acct_watchdog_update(ras_gateway, acct_collector) {
-    ras_gateway -> acct_collector TCP SYN SRCPORT 60049 DSTPORT 49
-    acct_collector -> ras_gateway TCP SYN ACK
-    ras_gateway -> acct_collector TCP ACK
-    ras_gateway -> acct_collector TACACS ACCT SESSION_ID 77400 USER "field_tech" PAYLOAD "flags=START:task_id=19:start_time=1729810000"
-    acct_collector -> ras_gateway TACACS ACCT SESSION_ID 77400 PAYLOAD "ACCT_STATUS_SUCCESS" WAIT 50ms
-    ras_gateway -> acct_collector TACACS ACCT SESSION_ID 77400 USER "field_tech" PAYLOAD "flags=WATCHDOG:task_id=19:elapsed_time=300:bytes_in=14200"
-    acct_collector -> ras_gateway TACACS ACCT SESSION_ID 77400 PAYLOAD "ACCT_STATUS_SUCCESS" WAIT 50ms
-    ras_gateway -> acct_collector TACACS ACCT SESSION_ID 77400 USER "field_tech" PAYLOAD "flags=STOP:task_id=19:elapsed_time=600:disc-cause=1"
-    acct_collector -> ras_gateway TACACS ACCT SESSION_ID 77400 PAYLOAD "ACCT_STATUS_SUCCESS"
+flow tacacs_acct_watchdog_update(ras_gateway, acct_collector) {
+    ras_gateway -> acct_collector tcp syn srcport 60049 dstport 49
+    acct_collector -> ras_gateway tcp syn ack
+    ras_gateway -> acct_collector tcp ack
+    ras_gateway -> acct_collector tacacs acct sessionid 77400 user "field_tech" payload "flags=START:task_id=19:start_time=1729810000"
+    acct_collector -> ras_gateway tacacs acct sessionid 77400 payload "ACCT_STATUS_SUCCESS" wait 50ms
+    ras_gateway -> acct_collector tacacs acct sessionid 77400 user "field_tech" payload "flags=WATCHDOG:task_id=19:elapsed_time=300:bytes_in=14200"
+    acct_collector -> ras_gateway tacacs acct sessionid 77400 payload "ACCT_STATUS_SUCCESS" wait 50ms
+    ras_gateway -> acct_collector tacacs acct sessionid 77400 user "field_tech" payload "flags=STOP:task_id=19:elapsed_time=600:disc-cause=1"
+    acct_collector -> ras_gateway tacacs acct sessionid 77400 payload "ACCT_STATUS_SUCCESS"
 }
 
 // INSTRUCTION: Compile the TACACS+ accounting start, watchdog, and stop flow.
-COMPILE {
+compile {
     tacacs_acct_watchdog_update(ras_gateway, acct_collector)
 }

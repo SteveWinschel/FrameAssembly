@@ -1,31 +1,31 @@
 // PROMPT: Simulate an SNMPv2c GETBULK request using NONREPEATERS 1 and MAXREPETITIONS 25 to retrieve sysUpTime and multiple rows of the ifTable in a single round-trip.
-// TOKENS: HOST, IP, MAC, FLOW, SNMP2, GETBULK, SRCPORT, DSTPORT, COMMUNITY, REQID, NONREPEATERS, MAXREPETITIONS, VARBIND, NULLVAL, WAIT, RESPONSE, TIMETICKS, STRING, COUNTER32, COMPILE
+// TOKENS: host, ip, mac, flow, snmp2, getbulk, srcport, dstport, community, reqid, nonrepeaters, maxrepetitions, varbind, nullval, wait, ms, response, timeticks, string, counter32, compile
 
 // INSTRUCTION: Define a high-throughput telemetry poller with IP 10.122.0.10.
-HOST bulk_poller { IP 10.122.0.10 MAC 00:16:3e:22:00:10 }
+host bulk_poller { ip 10.122.0.10 mac 00:16:3e:22:00:10 }
 
 // INSTRUCTION: Define a core switch agent with IP 10.122.0.1.
-HOST core_sw_agent { IP 10.122.0.1 MAC 00:16:3e:22:00:01 }
+host core_sw_agent { ip 10.122.0.1 mac 00:16:3e:22:00:01 }
 
 // INSTRUCTION: Define a flow sending an SNMPv2c GETBULK request with NONREPEATERS 1 and MAXREPETITIONS 25 and receiving a bulk RESPONSE.
-FLOW snmpv2c_getbulk_iftable(poller, agent) {
-    poller -> agent SNMP2 GETBULK SRCPORT 54161 DSTPORT 161 COMMUNITY "bulk_ro"
-        REQID 3050 NONREPEATERS 1 MAXREPETITIONS 25
-        VARBIND 1.3.6.1.2.1.1.3.0 NULLVAL
-        VARBIND 1.3.6.1.2.1.2.2.1.2 NULLVAL
-        VARBIND 1.3.6.1.2.1.2.2.1.10 NULLVAL
-        WAIT 10ms
-    poller <- agent SNMP2 RESPONSE SRCPORT 161 DSTPORT 54161 COMMUNITY "bulk_ro"
-        REQID 3050
-        VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 912345
-        VARBIND 1.3.6.1.2.1.2.2.1.2.1 STRING "eth0"
-        VARBIND 1.3.6.1.2.1.2.2.1.10.1 COUNTER32 10485760
-        VARBIND 1.3.6.1.2.1.2.2.1.2.2 STRING "eth1"
-        VARBIND 1.3.6.1.2.1.2.2.1.10.2 COUNTER32 20971520
-        WAIT 10ms
+flow snmpv2c_getbulk_iftable(poller, agent) {
+    poller -> agent snmp2 getbulk srcport 54161 dstport 161 community "bulk_ro"
+        reqid 3050 nonrepeaters 1 maxrepetitions 25
+        varbind 1.3.6.1.2.1.1.3.0 nullval
+        varbind 1.3.6.1.2.1.2.2.1.2 nullval
+        varbind 1.3.6.1.2.1.2.2.1.10 nullval
+        wait 10ms
+    poller <- agent snmp2 response srcport 161 dstport 54161 community "bulk_ro"
+        reqid 3050
+        varbind 1.3.6.1.2.1.1.3.0 timeticks 912345
+        varbind 1.3.6.1.2.1.2.2.1.2.1 string "eth0"
+        varbind 1.3.6.1.2.1.2.2.1.10.1 counter32 10485760
+        varbind 1.3.6.1.2.1.2.2.1.2.2 string "eth1"
+        varbind 1.3.6.1.2.1.2.2.1.10.2 counter32 20971520
+        wait 10ms
 }
 
 // INSTRUCTION: Compile block to execute the SNMPv2c GETBULK interface table query.
-COMPILE {
+compile {
     snmpv2c_getbulk_iftable(bulk_poller, core_sw_agent)
 }

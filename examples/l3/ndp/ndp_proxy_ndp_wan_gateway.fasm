@@ -1,25 +1,25 @@
 // PROMPT: Simulate an IPv6 Proxy NDP gateway answering Neighbor Solicitations on behalf of an isolated container subnet
-// TOKENS: HOST, IP, MAC, FLOW, NDP, NEIGHBOR_SOLICIT, TARGET, SLLA, DSTMAC, TTL, WAIT, NEIGHBOR_ADVERT, TLLA, COMPILE
+// TOKENS: host, ip, mac, flow, ndp, neighborsolicit, target, slla, dstmac, ttl, wait, ms, neighboradvert, tlla, compile
 
 // INSTRUCTION: Define the upstream WAN IPv6 router querying for a container IPv6 address
-HOST wan_edge_v6 {
-    IP 2001:db8:920::1
-    MAC 00:16:3e:d9:09:01
+host wan_edge_v6 {
+    ip 2001:db8:920::1
+    mac 00:16:3e:d9:09:01
 }
 
 // INSTRUCTION: Define the hypervisor host running Proxy NDP for its hosted containers
-HOST proxy_ndp_host {
-    IP 2001:db8:920::10
-    MAC 00:16:3e:d9:09:10
+host proxy_ndp_host {
+    ip 2001:db8:920::10
+    mac 00:16:3e:d9:09:10
 }
 
 // INSTRUCTION: Query for container address 2001:db8:920::205 and answer with the hypervisor TLLA MAC
-FLOW ndp_proxy_gateway_reply(wan, hypervisor) {
-    wan -> hypervisor NDP NEIGHBOR_SOLICIT TARGET 2001:db8:920::205 SLLA 00:16:3e:d9:09:01 DSTMAC 33:33:ff:00:02:05 TTL 255 WAIT 10ms
-    hypervisor -> wan NDP NEIGHBOR_ADVERT TARGET 2001:db8:920::205 TLLA 00:16:3e:d9:09:10 TTL 255
+flow ndp_proxy_gateway_reply(wan, hypervisor) {
+    wan -> hypervisor ndp neighborsolicit target 2001:db8:920::205 slla 00:16:3e:d9:09:01 dstmac 33:33:ff:00:02:05 ttl 255 wait 10ms
+    hypervisor -> wan ndp neighboradvert target 2001:db8:920::205 tlla 00:16:3e:d9:09:10 ttl 255
 }
 
 // INSTRUCTION: Compile the Proxy NDP gateway response sequence
-COMPILE {
+compile {
     ndp_proxy_gateway_reply(wan_edge_v6, proxy_ndp_host)
 }

@@ -1,9 +1,9 @@
-//! IPv6 Neighbor Discovery Protocol (`NDP`, RFC 4861) field parser for FrameAssembly.
+//! IPv6 Neighbor Discovery Protocol (`ndp`, RFC 4861) field parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `NDP` ICMPv6 neighbor and router
-//! discovery frames. It parses message types (`ROUTER_SOLICIT`, `ROUTER_ADVERT`,
-//! `NEIGHBOR_SOLICIT`, `NEIGHBOR_ADVERT`), target IPv6 addresses (`TARGET`), Source and Target
-//! Link-Layer Address options (`SLLA`, `TLLA`), and router lifetime intervals (`ROUTER_LIFETIME`).
+//! This module implements the winnow parser combinator for `ndp` ICMPv6 neighbor and router
+//! discovery frames. It parses message types (`routersolicit`, `routeradvert`,
+//! `neighborsolicit`, `neighboradvert`), target IPv6 addresses (`target`), Source and Target
+//! Link-Layer Address options (`slla`, `tlla`), and router lifetime intervals (`routerlifetime`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

@@ -1,11 +1,11 @@
-//! Hypertext Transfer Protocol (`HTTP`, RFC 9110 / RFC 9112) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Hypertext Transfer Protocol (`http`, RFC 9110 / RFC 9112) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 9110 and RFC 9112 HTTP/1.x
 //! request and response frames carried over TCP ports `80`, `8080`, `8000`, `443`, `8443`, and
 //! `6443`, or identified dynamically via CRLF request/response line signatures. It decodes HTTP
 //! request methods (`get`, `post`, `put`, `delete`, `head`, `options`, `patch`, or arbitrary
-//! `method`), target `uri`, protocol `version`, numeric `status`, `reason` phrase, `host_hdr`,
-//! `user_agent`, `content_type`, custom `header` pairs, and UTF-8 `body` or binary residual
+//! `method`), target `uri`, protocol `version`, numeric `status`, `reason` phrase, `hosthdr`,
+//! `useragent`, `contenttype`, custom `header` pairs, and UTF-8 `body` or binary residual
 //! payloads while omitting redundant `Content-Length` headers that match the body byte length.
 
 use alloc::string::String;
@@ -64,7 +64,7 @@ pub(crate) fn dissect_http(payload: &[u8]) -> Option<ProtocolDissection> {
                 continue;
             }
             if !custom_started && !content_type_used && k == "Content-Type" {
-                push_str_mod(&mut tokens, "content_type", v);
+                push_str_mod(&mut tokens, "contenttype", v);
                 content_type_used = true;
             } else {
                 custom_started = true;
@@ -103,13 +103,13 @@ pub(crate) fn dissect_http(payload: &[u8]) -> Option<ProtocolDissection> {
                 continue;
             }
             if idx == 0 && !host_seen && k == "Host" {
-                push_str_mod(&mut tokens, "host_hdr", v);
+                push_str_mod(&mut tokens, "hosthdr", v);
                 host_seen = true;
             } else if !custom_started && !ct_seen && !ua_seen && k == "User-Agent" {
-                push_str_mod(&mut tokens, "user_agent", v);
+                push_str_mod(&mut tokens, "useragent", v);
                 ua_seen = true;
             } else if !custom_started && !ct_seen && k == "Content-Type" {
-                push_str_mod(&mut tokens, "content_type", v);
+                push_str_mod(&mut tokens, "contenttype", v);
                 ct_seen = true;
             } else {
                 custom_started = true;

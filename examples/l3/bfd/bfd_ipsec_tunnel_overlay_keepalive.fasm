@@ -1,25 +1,25 @@
 // PROMPT: BFD control packets running across a decrypted VTI tunnel interface with DF bit and custom MTU probing.
-// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, IPID, DF, DSCP, TTL, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, ipid, df, dscp, ttl, wait, ms, compile
 
 // INSTRUCTION: Define Virtual Tunnel Interface (VTI) endpoint A running BFD over IPsec.
-HOST vti_bfd_peer_a {
-    IP 169.254.100.1
-    MAC 00:50:56:a9:fe:01
+host vti_bfd_peer_a {
+    ip 169.254.100.1
+    mac 00:50:56:a9:fe:01
 }
 
 // INSTRUCTION: Define Virtual Tunnel Interface (VTI) endpoint B validating overlay path health.
-HOST vti_bfd_peer_b {
-    IP 169.254.100.2
-    MAC 00:50:56:a9:fe:02
+host vti_bfd_peer_b {
+    ip 169.254.100.2
+    mac 00:50:56:a9:fe:02
 }
 
 // INSTRUCTION: Define BFD overlay session with DF bit and explicit IPID values.
-FLOW bfd_vti_overlay_flow(a, b) {
-    a -> b BFD STATE 3 DIAG 0 MY_DISC 10001 YOUR_DISC 10002 MIN_TX 100000 MIN_RX 100000 MULT 3 IPID 3701 DF DSCP 48 TTL 255 WAIT 25ms
-    a <- b BFD STATE 3 DIAG 0 MY_DISC 10002 YOUR_DISC 10001 MIN_TX 100000 MIN_RX 100000 MULT 3 IPID 3702 DF DSCP 48 TTL 255
+flow bfd_vti_overlay_flow(a, b) {
+    a -> b bfd state 3 diag 0 mydisc 10001 yourdisc 10002 mintx 100000 minrx 100000 mult 3 ipid 3701 df dscp 48 ttl 255 wait 25ms
+    a <- b bfd state 3 diag 0 mydisc 10002 yourdisc 10001 mintx 100000 minrx 100000 mult 3 ipid 3702 df dscp 48 ttl 255
 }
 
 // INSTRUCTION: Compile the VTI overlay BFD liveness verification flow.
-COMPILE {
+compile {
     bfd_vti_overlay_flow(vti_bfd_peer_a, vti_bfd_peer_b)
 }

@@ -1,9 +1,9 @@
 //! Simple Mail Transfer Protocol (SMTP, RFC 5321) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `SMTP` client commands and server
+//! This module implements fuzz-safe wire-to-AST dissection for `smtp` client commands and server
 //! reply frames carried over TCP ports `25`, `465`, `587`, and `2525`. It validates CRLF line
 //! framing, decodes three-digit numeric status replies (`code`, `reply`), standard verbs (`ehlo`,
-//! `helo`, `mail_from`, `rcpt_to`, `quit`, and generic `cmd`/`param` pairs), and optional
+//! `helo`, `mailfrom`, `rcptto`, `quit`, and generic `cmd`/`param` pairs), and optional
 //! `\r\n.\r\n`-terminated message `body` sections while eliding default `EHLO localhost` / `OK`
 //! values and routing unparsed trailing bytes into `residual_payload`.
 
@@ -32,7 +32,7 @@ fn split_crlf_line(bytes: &[u8]) -> Option<(&str, &[u8])> {
     Some((line, &bytes[pos + 2..]))
 }
 
-/// Dissects an `SMTP` command or reply payload over TCP ports `25`, `465`, `587`, or `2525`.
+/// Dissects an `smtp` command or reply payload over TCP ports `25`, `465`, `587`, or `2525`.
 pub(crate) fn dissect_smtp(
     transport: TransportProto,
     src_port: u16,
@@ -92,12 +92,12 @@ pub(crate) fn dissect_smtp(
         if !is_valid_raw_str(addr) {
             return None;
         }
-        tokens.push_str(&format!(" mail_from \"{addr}\""));
+        tokens.push_str(&format!(" mailfrom \"{addr}\""));
     } else if let Some(addr) = line.strip_prefix("RCPT TO ") {
         if !is_valid_raw_str(addr) {
             return None;
         }
-        tokens.push_str(&format!(" rcpt_to \"{addr}\""));
+        tokens.push_str(&format!(" rcptto \"{addr}\""));
     } else if let Some((cmd, param)) = line.split_once(' ') {
         if cmd.is_empty() || !is_valid_raw_str(cmd) || !is_valid_raw_str(param) {
             return None;

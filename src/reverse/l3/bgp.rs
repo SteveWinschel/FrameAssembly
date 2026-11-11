@@ -1,9 +1,9 @@
 //! Border Gateway Protocol v4 (BGP-4, RFC 4271) Layer 3 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 4271 Border Gateway
-//! Protocol (`BGP`) messages carried over TCP port `179`. It verifies the 16-byte all-ones BGP
-//! marker and decodes `OPEN` (`asn`, `holdtime`, `bgpid`), `UPDATE` (`AS_PATH` `asn`, `NEXT_HOP`
-//! `nexthop`, and NLRI `prefix`), `NOTIFICATION`, and `KEEPALIVE` PDUs into canonical `.fasm`
+//! Protocol (`bgp`) messages carried over TCP port `179`. It verifies the 16-byte all-ones BGP
+//! marker and decodes `open` (`asn`, `holdtime`, `bgpid`), `update` (`AS_PATH` `asn`, `NEXT_HOP`
+//! `nexthop`, and NLRI `prefix`), `notification`, and `keepalive` PDUs into canonical `.fasm`
 //! statements while preserving any trailing bytes as residual payload.
 
 use alloc::string::String;
@@ -14,7 +14,7 @@ use core::net::{IpAddr, Ipv4Addr};
 use crate::ast::Protocol;
 use crate::reverse::{ProtocolDissection, be_u16, ipv4_at, push_if, sd, src_v4_or};
 
-/// Decompiles an RFC 4271 `BGP` message over TCP port `179` into a [`ProtocolDissection`].
+/// Decompiles an RFC 4271 `bgp` message over TCP port `179` into a [`ProtocolDissection`].
 pub(crate) fn dissect_bgp(b: &[u8], src_ip: Option<IpAddr>) -> Option<ProtocolDissection> {
     if b.len() < 19 || b[0..16] != [0xFF; 16] {
         return None;

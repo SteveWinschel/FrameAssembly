@@ -1,9 +1,9 @@
-//! Session Initiation Protocol (`SIP`, RFC 3261) Layer 7 VoIP signaling PCAP-to-`.fasm` decompiler.
+//! Session Initiation Protocol (`sip`, RFC 3261) Layer 7 VoIP signaling PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for RFC 3261 `SIP` signaling requests
+//! This module implements the fuzz-safe reverse dissector for RFC 3261 `sip` signaling requests
 //! (`invite`, `ack`, `bye`, `cancel`, `register`, `options`, or `method`) and responses (`status`,
 //! `reason`) carried over UDP or TCP ports `5060` and `5061`. It extracts `uri`, `via`, `from`,
-//! `to`, `call_id`, `cseq`, `contact`, `content_type`, and Session Description Protocol (`SDP`)
+//! `to`, `callid`, `cseq`, `contact`, `contenttype`, and Session Description Protocol (`SDP`)
 //! `body` payloads, elides canonical builder defaults, emits `transport tcp` when dissected over
 //! TCP streams, and preserves any non-text or trailing bytes in `residual_payload`.
 
@@ -108,7 +108,7 @@ pub(crate) fn dissect_sip<'a>(payload: &'a [u8], is_tcp: bool) -> Option<Protoco
     if let Some(cid) = call_id_opt
         && cid != "call123@pbx"
     {
-        push_str_mod(&mut tokens, "call_id", cid);
+        push_str_mod(&mut tokens, "callid", cid);
     }
     if let Some((cseq_num, _)) = cseq_opt
         && cseq_num != 1
@@ -119,7 +119,7 @@ pub(crate) fn dissect_sip<'a>(payload: &'a [u8], is_tcp: bool) -> Option<Protoco
         push_str_mod(&mut tokens, "contact", trim_angle(c, ">"));
     }
     if let Some(ct) = ct_opt {
-        push_str_mod(&mut tokens, "content_type", ct);
+        push_str_mod(&mut tokens, "contenttype", ct);
     }
 
     let residual_payload = attach_text_body(&mut tokens, "body", body_bytes);

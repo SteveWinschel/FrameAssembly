@@ -8,29 +8,29 @@
 //! System Name (Type 5) and System Description (Type 6) TLVs, and ending with End Of LLDPDU (Type 0).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b LLDP [CHASSIS_ID "<str>"] [PORT_ID "<str>"] [TTL <u16>] [SYSNAME "<str>"] [SYSDESC "<str>"]`
+//! `a -> b lldp [chassisid "<str>"] [portid "<str>"] [ttl <u16>] [sysname "<str>"] [sysdesc "<str>"]`
 
 /// Link Layer Discovery Protocol (IEEE 802.1AB) frame specification.
 ///
-/// Syntax mapping: `LLDP [CHASSIS_ID "<str>"] [PORT_ID "<str>"] [TTL <u16>] [SYSNAME "<str>"] [SYSDESC "<str>"]`
-#[doc(alias = "LLDP")]
+/// Syntax mapping: `lldp [chassisid "<str>"] [portid "<str>"] [ttl <u16>] [sysname "<str>"] [sysdesc "<str>"]`
+#[doc(alias = "lldp")]
 #[doc(alias = "802.1AB")]
 #[doc(alias = "0x88CC")]
-#[doc(alias = "CHASSIS_ID")]
-#[doc(alias = "PORT_ID")]
-#[doc(alias = "TTL")]
-#[doc(alias = "SYSNAME")]
-#[doc(alias = "SYSDESC")]
+#[doc(alias = "chassisid")]
+#[doc(alias = "portid")]
+#[doc(alias = "ttl")]
+#[doc(alias = "sysname")]
+#[doc(alias = "sysdesc")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct LldpSpec<'a> {
-    /// Mandatory Chassis ID TLV string (`CHASSIS_ID "<str>"`, Type 1).
+    /// Mandatory Chassis ID TLV string (`chassisid "<str>"`, Type 1).
     pub chassis_id: Option<&'a str>,
-    /// Mandatory Port ID TLV string (`PORT_ID "<str>"`, Type 2).
+    /// Mandatory Port ID TLV string (`portid "<str>"`, Type 2).
     pub port_id: Option<&'a str>,
-    /// Mandatory Time To Live in seconds (`TTL <u16>`, Type 3, default `120`).
+    /// Mandatory Time To Live in seconds (`ttl <u16>`, Type 3, default `120`).
     pub ttl: Option<u16>,
-    /// Optional System Name TLV string (`SYSNAME "<str>"`, Type 5).
+    /// Optional System Name TLV string (`sysname "<str>"`, Type 5).
     pub sysname: Option<&'a str>,
-    /// Optional System Description TLV string (`SYSDESC "<str>"`, Type 6).
+    /// Optional System Description TLV string (`sysdesc "<str>"`, Type 6).
     pub sysdesc: Option<&'a str>,
 }

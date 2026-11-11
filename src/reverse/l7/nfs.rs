@@ -1,9 +1,9 @@
 //! Network File System v3/v4 (NFS, RFC 1813 / RFC 7530 / RFC 8881) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements fuzz-safe ONC-RPC / SunRPC (`prog == 100_003`, `rpc_vers == 2`) wire-to-AST
-//! dissection for `NFS` frames over 4-byte record-marked TCP and raw UDP transports (port `2049`
-//! and custom ports with a valid SunRPC NFS Call header). It decodes `NULL`, `GETATTR`, `COMPOUND`,
-//! `LOOKUP`, `READ`, and `WRITE` procedures along with XDR-padded `tag` and `path` strings.
+//! dissection for `nfs` frames over 4-byte record-marked TCP and raw UDP transports (port `2049`
+//! and custom ports with a valid SunRPC NFS Call header). It decodes `"null"`, `"getattr"`, `compound`,
+//! `lookup`, `"read"`, and `"write"` procedures along with XDR-padded `tag` and `path` strings.
 
 use alloc::format;
 use alloc::string::String;
@@ -42,7 +42,7 @@ fn parse_xdr_str(input: &[u8]) -> Option<(&str, &[u8])> {
     Some((s, &input[total..]))
 }
 
-/// Dissects an `NFS` SunRPC Call message over TCP or UDP.
+/// Dissects an `nfs` SunRPC Call message over TCP or UDP.
 pub(crate) fn dissect_nfs(
     transport: TransportProto,
     _src_port: u16,
@@ -77,17 +77,17 @@ pub(crate) fn dissect_nfs(
     let mut tokens = String::from("nfs");
 
     match proc_num {
-        0 => tokens.push_str(" proc \"NULL\""),
+        0 => tokens.push_str(" proc \"null\""),
         1 => {
             if rest.is_empty() {
-                tokens.push_str(" proc \"GETATTR\"");
+                tokens.push_str(" proc \"getattr\"");
             } else {
                 tokens.push_str(" compound");
             }
         }
         3 => {}
-        6 => tokens.push_str(" proc \"READ\""),
-        7 => tokens.push_str(" proc \"WRITE\""),
+        6 => tokens.push_str(" proc \"read\""),
+        7 => tokens.push_str(" proc \"write\""),
         _ => return None,
     }
 

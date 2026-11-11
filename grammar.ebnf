@@ -2,8 +2,8 @@
 (* FrameAssembly Formal Grammar Specification (ISO/IEC 14977 EBNF)           *)
 (* Covers all 81 native protocols, L2-L7 sub-keywords, modifiers & literals. *)
 (* Synchronized with src/lexer/mod.rs and src/parser/                        *)
-(* Note: All keyword, protocol, modifier, and duration terminals are matched *)
-(* ASCII case-insensitively by the lexer (e.g., "HOST", "host", "Host").     *)
+(* Note: FrameAssembly v2.0.0 enforces strict-lowercase alphanumeric syntax  *)
+(* without '_' or '-' on all built-in keywords, protocols, modifiers & units.*)
 (* ========================================================================= *)
 
 program                 = { top_level_decl } , compile_block , { top_level_decl } ;
@@ -13,15 +13,15 @@ top_level_decl          = host_declaration | flow_declaration ;
 (* ------------------------------------------------------------------------- *)
 (* 1. Host Declarations (at least one IP or MAC property in any order)       *)
 (* ------------------------------------------------------------------------- *)
-host_declaration        = "HOST" , identifier , "{" , host_property , { host_property } , "}" ;
-host_property           = ( "IP" , ip_address )
-                        | ( "MAC" , mac_address ) ;
+host_declaration        = "host" , identifier , "{" , host_property , { host_property } , "}" ;
+host_property           = ( "ip" , ip_address )
+                        | ( "mac" , mac_address ) ;
 
 (* ------------------------------------------------------------------------- *)
 (* 2. Flow Declarations & Frame Statements (FLOW blocks are optional when    *)
 (*    COMPILE contains inline frame_statement entries)                       *)
 (* ------------------------------------------------------------------------- *)
-flow_declaration        = "FLOW" , identifier , "(" , [ param_list ] , ")" ,
+flow_declaration        = "flow" , identifier , "(" , [ param_list ] , ")" ,
                           "{" , { frame_statement } , "}" ;
 param_list              = identifier , { "," , identifier } ;
 
@@ -30,11 +30,10 @@ endpoint                = identifier ;
 direction               = "->" | "<-" ;
 
 (* ------------------------------------------------------------------------- *)
-(* 3. Compilation Block, Execution Loops & Inline Frame Statements           *)
+(* 3. Compilation Block & Inline Frame Statements                            *)
 (* ------------------------------------------------------------------------- *)
-compile_block           = "COMPILE" , "{" , { run_statement } , "}" ;
-run_statement           = flow_invocation | loop_block | frame_statement ;
-loop_block              = "LOOP" , unsigned_int , "{" , { flow_invocation } , "}" ;
+compile_block           = "compile" , "{" , { run_statement } , "}" ;
+run_statement           = flow_invocation | frame_statement ;
 flow_invocation         = identifier , "(" , [ arg_list ] , ")" ;
 arg_list                = identifier , { "," , identifier } ;
 
@@ -64,87 +63,87 @@ protocol_keyword        = l2_protocol
                         | l7_ot_protocol ;
 
 (* Layer 2 Data-Link Protocols (8) *)
-l2_protocol             = "ARP" | "VLAN" | "QINQ" | "LLDP"
-                        | "STP" | "LACP" | "EAPOL" | "MPLS" ;
+l2_protocol             = "arp" | "vlan" | "qinq" | "lldp"
+                        | "stp" | "lacp" | "eapol" | "mpls" ;
 
 (* Layer 3 Network, Tunneling, Security & Routing Protocols (20) *)
-l3_protocol             = "ICMP" | "NDP" | "IGMP" | "MLD"
-                        | "GRE" | "VXLAN" | "GENEVE"
-                        | "IPSEC" | "ESP" | "AH" | "IKEV2" | "WIREGUARD"
-                        | "OSPF" | "BGP" | "RIP" | "VRRP" | "HSRP"
-                        | "PIM" | "BFD" | "OPENFLOW" ;
+l3_protocol             = "icmp" | "ndp" | "igmp" | "mld"
+                        | "gre" | "vxlan" | "geneve"
+                        | "ipsec" | "esp" | "ah" | "ikev2" | "wireguard"
+                        | "ospf" | "bgp" | "rip" | "vrrp" | "hsrp"
+                        | "pim" | "bfd" | "openflow" ;
 
 (* Layer 4 Transport Protocols (3) *)
-l4_protocol             = "TCP" | "UDP" | "SCTP" ;
+l4_protocol             = "tcp" | "udp" | "sctp" ;
 
 (* Layer 7 SNMP Protocols (3) *)
-snmp_protocol           = "SNMP1" | "SNMP2" | "SNMP3" ;
+snmp_protocol           = "snmp1" | "snmp2" | "snmp3" ;
 
 (* Layer 7 Infrastructure, Management & Telemetry Protocols (11) *)
-l7_infra_protocol       = "DNS" | "MDNS" | "DHCP" | "NTP" | "PTP"
-                        | "RADIUS" | "TACACS" | "SYSLOG"
-                        | "NETFLOW" | "IPFIX" | "SFLOW" ;
+l7_infra_protocol       = "dns" | "mdns" | "dhcp" | "ntp" | "ptp"
+                        | "radius" | "tacacs" | "syslog"
+                        | "netflow" | "ipfix" | "sflow" ;
 
 (* Layer 7 Web, Application, Directory, Mail, Storage & Messaging Protocols (30) *)
-l7_app_protocol         = "TFTP" | "FTP" | "SSH" | "TELNET"
-                        | "HTTP" | "HTTP2" | "GRPC" | "WEBSOCKET"
-                        | "TLS" | "QUIC" | "STUN" | "SIP" | "RTP" | "RTSP"
-                        | "SMTP" | "IMAP" | "POP3"
-                        | "KERBEROS" | "LDAP" | "SMB" | "NFS"
-                        | "REDIS" | "MEMCACHED" | "MYSQL" | "POSTGRES"
-                        | "MQTT" | "COAP" | "AMQP" | "SSDP" | "WHOIS" ;
+l7_app_protocol         = "tftp" | "ftp" | "ssh" | "telnet"
+                        | "http" | "http2" | "grpc" | "websocket"
+                        | "tls" | "quic" | "stun" | "sip" | "rtp" | "rtsp"
+                        | "smtp" | "imap" | "pop3"
+                        | "kerberos" | "ldap" | "smb" | "nfs"
+                        | "redis" | "memcached" | "mysql" | "postgres"
+                        | "mqtt" | "coap" | "amqp" | "ssdp" | "whois" ;
 
 (* Layer 7 Industrial / Operational Technology (SCADA/OT) Protocols (6) *)
-l7_ot_protocol          = "MODBUS" | "BACNET" | "DNP3"
-                        | "S7COMM" | "ETHERNETIP" | "OPCUA" ;
+l7_ot_protocol          = "modbus" | "bacnet" | "dnp3"
+                        | "s7comm" | "ethernetip" | "opcua" ;
 
 (* ------------------------------------------------------------------------- *)
 (* 6. Universal, Layer 2, Layer 3 & Layer 4 Frame Modifiers                  *)
 (* ------------------------------------------------------------------------- *)
-universal_modifier      = ( "WAIT" , duration_literal )
-                        | ( "PAYLOAD" , string_literal )
-                        | ( "HEXPAYLOAD" , hex_string_literal ) ;
+universal_modifier      = ( "wait" , duration_literal )
+                        | ( "payload" , string_literal )
+                        | ( "hexpayload" , hex_string_literal ) ;
 
-l2_modifier             = ( "SRCMAC" , mac_address )
-                        | ( "DSTMAC" , mac_address )
-                        | ( "ETHERTYPE" , unsigned_int )
-                        | ( "VLAN" , [ unsigned_int ] )
-                        | ( "PCP" , unsigned_int )
-                        | ( "DEI" , unsigned_int )
-                        | ( "QINQ" , [ unsigned_int ] )
-                        | ( "INNER_VLAN" , unsigned_int )
-                        | ( "MPLS" , [ unsigned_int ] )
-                        | ( "LABEL" , unsigned_int )
-                        | ( ( "EXP" | "TC" ) , unsigned_int )
-                        | ( "BOS" , unsigned_int )
-                        | ( "MPLS_TTL" , unsigned_int ) ;
+l2_modifier             = ( "srcmac" , mac_address )
+                        | ( "dstmac" , mac_address )
+                        | ( "ethertype" , unsigned_int )
+                        | ( "vlan" , [ unsigned_int ] )
+                        | ( "pcp" , unsigned_int )
+                        | ( "dei" , unsigned_int )
+                        | ( "qinq" , [ unsigned_int ] )
+                        | ( "innervlan" , unsigned_int )
+                        | ( "mpls" , [ unsigned_int ] )
+                        | ( "label" , unsigned_int )
+                        | ( ( "exp" | "tc" ) , unsigned_int )
+                        | ( "bos" , unsigned_int )
+                        | ( "mplsttl" , unsigned_int ) ;
 
-l3_modifier             = ( "TTL" , unsigned_int )
-                        | ( "DSCP" , unsigned_int )
-                        | ( "ECN" , unsigned_int )
-                        | ( "FLOWLABEL" , unsigned_int )
-                        | ( "IPID" , unsigned_int )
-                        | "DF"
-                        | "MF"
-                        | ( "FRAGOFFSET" , unsigned_int )
-                        | ( "NEXT_HEADER" , unsigned_int ) ;
+l3_modifier             = ( "ttl" , unsigned_int )
+                        | ( "dscp" , unsigned_int )
+                        | ( "ecn" , unsigned_int )
+                        | ( "flowlabel" , unsigned_int )
+                        | ( "ipid" , unsigned_int )
+                        | "df"
+                        | "mf"
+                        | ( "fragoffset" , unsigned_int )
+                        | ( "nextheader" , unsigned_int ) ;
 
-l4_modifier             = ( "SRCPORT" , unsigned_int )
-                        | ( "DSTPORT" , unsigned_int )
-                        | ( "TRANSPORT" , ( "TCP" | "UDP" ) )
+l4_modifier             = ( "srcport" , unsigned_int )
+                        | ( "dstport" , unsigned_int )
+                        | ( "transport" , ( "tcp" | "udp" ) )
                         | tcp_flag
-                        | ( "SEQ" , unsigned_int )
-                        | ( "ACKNUM" , unsigned_int )
-                        | ( ( "WIN" | "WINDOW" ) , unsigned_int )
-                        | ( "URGENT" , unsigned_int )
-                        | ( "MSS" , unsigned_int )
-                        | ( "WSCALE" , unsigned_int )
-                        | ( "SACK_PERM" | "SACKPERM" )
-                        | ( "TSVAL" , unsigned_int )
-                        | ( "TSECR" , unsigned_int ) ;
+                        | ( "seq" , unsigned_int )
+                        | ( "acknum" , unsigned_int )
+                        | ( ( "win" | "window" ) , unsigned_int )
+                        | ( "urgent" , unsigned_int )
+                        | ( "mss" , unsigned_int )
+                        | ( "wscale" , unsigned_int )
+                        | "sackperm"
+                        | ( "tsval" , unsigned_int )
+                        | ( "tsecr" , unsigned_int ) ;
 
-tcp_flag                = "SYN" | "ACK" | "FIN" | "RST"
-                        | "PSH" | "URG" | "ECE" | "CWR" ;
+tcp_flag                = "syn" | "ack" | "fin" | "rst"
+                        | "psh" | "urg" | "ece" | "cwr" ;
 
 (* ------------------------------------------------------------------------- *)
 (* 7. Layer 2 Protocol Sub-Keywords                                          *)
@@ -152,52 +151,52 @@ tcp_flag                = "SYN" | "ACK" | "FIN" | "RST"
 l2_protocol_field       = arp_field | lldp_field | stp_field
                         | lacp_field | eapol_field ;
 
-arp_field               = "REQUEST"
-                        | ( "REPLY" , [ string_literal ] )
-                        | "GRATUITOUS" | "GARP"
-                        | ( ( "SHA" | "SENDERMAC" ) , mac_address )
-                        | ( ( "SPA" | "SENDERIP" ) , ip_address )
-                        | ( ( "THA" | "TARGETMAC" ) , mac_address )
-                        | ( ( "TPA" | "TARGETIP" ) , ip_address ) ;
+arp_field               = "request"
+                        | ( "reply" , [ string_literal ] )
+                        | "gratuitous" | "garp"
+                        | ( ( "sha" | "sendermac" ) , mac_address )
+                        | ( ( "spa" | "senderip" ) , ip_address )
+                        | ( ( "tha" | "targetmac" ) , mac_address )
+                        | ( ( "tpa" | "targetip" ) , ip_address ) ;
 
-lldp_field              = ( "CHASSIS_ID" , str_or_ident )
-                        | ( "PORT_ID" , ( unsigned_int | str_or_ident ) )
-                        | ( "SYSNAME" , str_or_ident )
-                        | ( "SYSDESC" , str_or_ident ) ;
+lldp_field              = ( "chassisid" , str_or_ident )
+                        | ( "portid" , ( unsigned_int | str_or_ident ) )
+                        | ( "sysname" , str_or_ident )
+                        | ( "sysdesc" , str_or_ident ) ;
 
-stp_field               = ( "ROOT_ID" , str_or_ident )
-                        | ( "BRIDGE_ID" , str_or_ident )
-                        | ( "COST" , unsigned_int )
-                        | ( "MAX_AGE" , unsigned_int )
-                        | ( "HELLO_TIME" , unsigned_int )
-                        | ( "FORWARD_DELAY" , unsigned_int )
-                        | "RSTP"
-                        | ( "FLAGS" , unsigned_int ) ;
+stp_field               = ( "rootid" , str_or_ident )
+                        | ( "bridgeid" , str_or_ident )
+                        | ( "cost" , unsigned_int )
+                        | ( "maxage" , unsigned_int )
+                        | ( "hellotime" , unsigned_int )
+                        | ( "forwarddelay" , unsigned_int )
+                        | "rstp"
+                        | ( "flags" , unsigned_int ) ;
 
-lacp_field              = ( "ACTOR_SYS" , ( mac_address | string_literal ) )
-                        | ( "ACTOR_KEY" , unsigned_int )
-                        | ( "ACTOR_PORT" , unsigned_int )
-                        | ( "PARTNER_SYS" , ( mac_address | string_literal ) )
-                        | ( "PARTNER_KEY" , unsigned_int )
-                        | ( "PARTNER_PORT" , unsigned_int )
-                        | ( "ACTOR_STATE" , unsigned_int )
-                        | ( "PARTNER_STATE" , unsigned_int ) ;
+lacp_field              = ( "actorsys" , ( mac_address | string_literal ) )
+                        | ( "actorkey" , unsigned_int )
+                        | ( "actorport" , unsigned_int )
+                        | ( "partnersys" , ( mac_address | string_literal ) )
+                        | ( "partnerkey" , unsigned_int )
+                        | ( "partnerport" , unsigned_int )
+                        | ( "actorstate" , unsigned_int )
+                        | ( "partnerstate" , unsigned_int ) ;
 
-eapol_field             = ( "VERSION" , ( unsigned_int | str_or_ident ) )
-                        | ( "TYPE" , ( unsigned_int | eapol_pkt_type | wireguard_pkt_type
+eapol_field             = ( "version" , ( unsigned_int | str_or_ident ) )
+                        | ( "type" , ( unsigned_int | eapol_pkt_type | wireguard_pkt_type
                                      | openflow_pkt_type | tacacs_pkt_type | str_or_ident ) )
                         | eapol_pkt_type
-                        | ( "EAP_CODE" , unsigned_int )
-                        | ( "EAP_ID" , unsigned_int )
-                        | ( "EAP_METHOD" , unsigned_int )
-                        | ( "IDENTITY" , str_or_ident ) ;
+                        | ( "eapcode" , unsigned_int )
+                        | ( "eapid" , unsigned_int )
+                        | ( "eapmethod" , unsigned_int )
+                        | ( "identity" , str_or_ident ) ;
 
-eapol_pkt_type          = "START" | "LOGOFF" | "KEY" | "EAP_PACKET" ;
-wireguard_pkt_type      = "INITIATION" | "RESPONSE" | "COOKIE" | "DATA" ;
-openflow_pkt_type       = "HELLO" | "FEATURES_REQ" | "FEATURES_REPLY"
-                        | "PACKET_IN" | "PACKET_OUT" | "FLOW_MOD"
-                        | "ECHO_REQ" | "ECHO_REQUEST" | "ECHO_REPLY" ;
-tacacs_pkt_type         = "AUTHEN" | "AUTHOR" | "ACCT" ;
+eapol_pkt_type          = "start" | "logoff" | "key" | "eappacket" ;
+wireguard_pkt_type      = "initiation" | "response" | "cookie" | "data" ;
+openflow_pkt_type       = "hello" | "featuresreq" | "featuresreply"
+                        | "packetin" | "packetout" | "flowmod"
+                        | "echoreq" | "echorequest" | "echoreply" ;
+tacacs_pkt_type         = "authen" | "author" | "acct" ;
 
 (* ------------------------------------------------------------------------- *)
 (* 8. Layer 3 Protocol Sub-Keywords                                          *)
@@ -208,118 +207,118 @@ l3_protocol_field       = icmp_field | ndp_field | igmp_field | mld_field
                         | bgp_field | rip_field | vrrp_field | hsrp_field
                         | pim_field | bfd_field | openflow_field ;
 
-icmp_field              = "ECHO_REQUEST" | "ECHO_REPLY" | "DEST_UNREACH"
-                        | "TIME_EXCEEDED" | "REDIRECT"
-                        | ( "CODE" , ( unsigned_int | str_or_ident ) )
-                        | ( "ID" , unsigned_int )
-                        | ( "GATEWAY" , ip_address ) ;
+icmp_field              = "echorequest" | "echoreply" | "destunreach"
+                        | "timeexceeded" | "redirect"
+                        | ( "code" , ( unsigned_int | str_or_ident ) )
+                        | ( "id" , unsigned_int )
+                        | ( "gateway" , ip_address ) ;
 
-ndp_field               = "ROUTER_SOLICIT" | "ROUTER_ADVERT"
-                        | "NEIGHBOR_SOLICIT" | "NEIGHBOR_ADVERT"
-                        | ( "TARGET" , ( ip_address | mac_address ) )
-                        | ( "SLLA" , mac_address )
-                        | ( "TLLA" , mac_address )
-                        | ( "ROUTER_LIFETIME" , unsigned_int ) ;
+ndp_field               = "routersolicit" | "routeradvert"
+                        | "neighborsolicit" | "neighboradvert"
+                        | ( "target" , ( ip_address | mac_address ) )
+                        | ( "slla" , mac_address )
+                        | ( "tlla" , mac_address )
+                        | ( "routerlifetime" , unsigned_int ) ;
 
-igmp_field              = "QUERY" | "REPORT" | "LEAVE"
-                        | "V1" | "V2" | "V3"
-                        | ( "GROUP" , ( ip_address | unsigned_int ) )
-                        | ( "MAX_RESP" , unsigned_int ) ;
+igmp_field              = "query" | "report" | "leave"
+                        | "v1" | "v2" | "v3"
+                        | ( "group" , ( ip_address | unsigned_int ) )
+                        | ( "maxresp" , unsigned_int ) ;
 
-mld_field               = "DONE"
-                        | ( "MULTICAST_ADDR" , ip_address )
-                        | ( "MAX_RESP_DELAY" , unsigned_int ) ;
+mld_field               = "done"
+                        | ( "multicastaddr" , ip_address )
+                        | ( "maxrespdelay" , unsigned_int ) ;
 
-gre_field               = "CHECKSUM"
-                        | ( "GRE_KEY" , unsigned_int )
-                        | ( "GRE_SEQ" , unsigned_int )
-                        | ( "GRE_PROTO" , unsigned_int ) ;
+gre_field               = "checksum"
+                        | ( "grekey" , unsigned_int )
+                        | ( "greseq" , unsigned_int )
+                        | ( "greproto" , unsigned_int ) ;
 
-vxlan_geneve_field      = ( ( "VNI" | "VNID" ) , unsigned_int )
-                        | ( "OPT_CLASS" , unsigned_int )
-                        | ( "OPT_TYPE" , unsigned_int )
-                        | ( "PROTOCOL_TYPE" , unsigned_int ) ;
+vxlan_geneve_field      = ( ( "vni" | "vnid" ) , unsigned_int )
+                        | ( "optclass" , unsigned_int )
+                        | ( "opttype" , unsigned_int )
+                        | ( "protocoltype" , unsigned_int ) ;
 
-ipsec_esp_ah_field      = ( "SPI" , unsigned_int )
-                        | ( "IV" , ( hex_string_literal | unsigned_int ) )
-                        | ( "ICV" , ( hex_string_literal | unsigned_int ) ) ;
+ipsec_esp_ah_field      = ( "spi" , unsigned_int )
+                        | ( "iv" , ( hex_string_literal | unsigned_int ) )
+                        | ( "icv" , ( hex_string_literal | unsigned_int ) ) ;
 
-ikev2_field             = ( "INITIATOR_SPI" , ( unsigned_int | hex_string_literal ) )
-                        | ( "RESPONDER_SPI" , ( unsigned_int | hex_string_literal ) )
-                        | ( "EXCHANGE" , ( unsigned_int | ikev2_exchange_mode | str_or_ident ) )
+ikev2_field             = ( "initiatorspi" , ( unsigned_int | hex_string_literal ) )
+                        | ( "responderspi" , ( unsigned_int | hex_string_literal ) )
+                        | ( "exchange" , ( unsigned_int | ikev2_exchange_mode | str_or_ident ) )
                         | ikev2_exchange_mode
-                        | ( "MSGID" , ( unsigned_int | str_or_ident ) )
-                        | ( "NEXT_PAYLOAD" , unsigned_int ) ;
+                        | ( "msgid" , ( unsigned_int | str_or_ident ) )
+                        | ( "nextpayload" , unsigned_int ) ;
 
-ikev2_exchange_mode     = "SA_INIT" | "CREATE_CHILD_SA" | "INFORMATIONAL" ;
+ikev2_exchange_mode     = "sainit" | "createchildsa" | "informational" ;
 
-wireguard_field         = "INITIATION"
-                        | ( "COOKIE" , [ str_or_ident ] )
-                        | ( "DATA" , [ str_or_ident ] )
-                        | ( "SENDER" , unsigned_int )
-                        | ( "RECEIVER" , unsigned_int )
-                        | ( "COUNTER" , unsigned_int ) ;
+wireguard_field         = "initiation"
+                        | ( "cookie" , [ str_or_ident ] )
+                        | ( "data" , [ str_or_ident ] )
+                        | ( "sender" , unsigned_int )
+                        | ( "receiver" , unsigned_int )
+                        | ( "counter" , unsigned_int ) ;
 
-ospf_field              = "HELLO" | "DBD" | "LSR" | "LSU" | "LSACK"
-                        | ( "ROUTER_ID" , ip_address )
-                        | ( "AREA_ID" , ( unsigned_int | ip_address ) )
-                        | ( "HELLO_INTERVAL" , unsigned_int )
-                        | ( "DEAD_INTERVAL" , unsigned_int )
-                        | ( "PRIORITY" , unsigned_int ) ;
+ospf_field              = "hello" | "dbd" | "lsr" | "lsu" | "lsack"
+                        | ( "routerid" , ip_address )
+                        | ( "areaid" , ( unsigned_int | ip_address ) )
+                        | ( "hellointerval" , unsigned_int )
+                        | ( "deadinterval" , unsigned_int )
+                        | ( "priority" , unsigned_int ) ;
 
-bgp_field               = "OPEN" | "UPDATE" | "NOTIFICATION"
-                        | ( "KEEPALIVE" , [ unsigned_int ] )
-                        | ( "ASN" , unsigned_int )
-                        | ( "HOLDTIME" , unsigned_int )
-                        | ( "BGPID" , ip_address )
-                        | ( ( "PREFIX" | "NLRI" ) , ( ip_address | str_or_ident ) )
-                        | ( "NEXTHOP" , ip_address ) ;
+bgp_field               = "open" | "update" | "notification"
+                        | ( "keepalive" , [ unsigned_int ] )
+                        | ( "asn" , unsigned_int )
+                        | ( "holdtime" , unsigned_int )
+                        | ( "bgpid" , ip_address )
+                        | ( ( "prefix" | "nlri" ) , ( ip_address | str_or_ident ) )
+                        | ( "nexthop" , ip_address ) ;
 
-rip_field               = ( "COMMAND" , ( unsigned_int | str_or_ident ) )
-                        | ( "METRIC" , unsigned_int )
-                        | ( "TAG" , ( unsigned_int | str_or_ident ) ) ;
+rip_field               = ( "command" , ( unsigned_int | str_or_ident ) )
+                        | ( "metric" , unsigned_int )
+                        | ( "tag" , ( unsigned_int | str_or_ident ) ) ;
 
-vrrp_field              = ( "VRID" , unsigned_int )
-                        | ( "ADV_INT" , unsigned_int )
-                        | ( "VIP" , ip_address ) ;
+vrrp_field              = ( "vrid" , unsigned_int )
+                        | ( "advint" , unsigned_int )
+                        | ( "vip" , ip_address ) ;
 
-hsrp_field              = ( "HELLOTIME" , unsigned_int )
-                        | ( "STATE" , unsigned_int ) ;
+hsrp_field              = ( "hellotime" , unsigned_int )
+                        | ( "state" , unsigned_int ) ;
 
-pim_field               = "JOIN_PRUNE" | "REGISTER"
-                        | ( "SOURCE" , ip_address )
-                        | ( "RP" , ip_address )
-                        | ( "DR_PRIORITY" , unsigned_int ) ;
+pim_field               = "joinprune" | "register"
+                        | ( "source" , ip_address )
+                        | ( "rp" , ip_address )
+                        | ( "drpriority" , unsigned_int ) ;
 
-bfd_field               = ( "DIAG" , unsigned_int )
-                        | ( "MY_DISC" , unsigned_int )
-                        | ( "YOUR_DISC" , unsigned_int )
-                        | ( "MIN_TX" , unsigned_int )
-                        | ( "MIN_RX" , unsigned_int )
-                        | ( "MULT" , unsigned_int ) ;
+bfd_field               = ( "diag" , unsigned_int )
+                        | ( "mydisc" , unsigned_int )
+                        | ( "yourdisc" , unsigned_int )
+                        | ( "mintx" , unsigned_int )
+                        | ( "minrx" , unsigned_int )
+                        | ( "mult" , unsigned_int ) ;
 
-openflow_field          = "FEATURES_REQ" | "FEATURES_REPLY"
-                        | "PACKET_IN" | "PACKET_OUT"
-                        | "FLOW_MOD" | "ECHO_REQ"
-                        | ( "XID" , unsigned_int )
-                        | ( "DPID" , unsigned_int )
-                        | ( "TABLE_ID" , unsigned_int ) ;
+openflow_field          = "featuresreq" | "featuresreply"
+                        | "packetin" | "packetout"
+                        | "flowmod" | "echoreq"
+                        | ( "xid" , unsigned_int )
+                        | ( "dpid" , unsigned_int )
+                        | ( "tableid" , unsigned_int ) ;
 
 (* ------------------------------------------------------------------------- *)
 (* 9. Layer 4 SCTP Sub-Keywords                                              *)
 (* ------------------------------------------------------------------------- *)
-l4_protocol_field       = ( "VTAG" , unsigned_int )
-                        | ( "STREAM" , unsigned_int )
-                        | ( "SSN" , unsigned_int )
-                        | ( "PPID" , unsigned_int )
-                        | ( "TSN" , unsigned_int )
-                        | ( "CHUNK" , ( sctp_chunk_flag | unsigned_int | str_or_ident ) )
+l4_protocol_field       = ( "vtag" , unsigned_int )
+                        | ( "stream" , unsigned_int )
+                        | ( "ssn" , unsigned_int )
+                        | ( "ppid" , unsigned_int )
+                        | ( "tsn" , unsigned_int )
+                        | ( "chunk" , ( sctp_chunk_flag | unsigned_int | str_or_ident ) )
                         | sctp_chunk_flag ;
 
-sctp_chunk_flag         = "DATA" | "INIT" | "INIT_ACK" | "SACK"
-                        | "HEARTBEAT" | "HEARTBEAT_ACK"
-                        | "ABORT" | "SHUTDOWN"
-                        | "COOKIE_ECHO" | "COOKIE_ACK" ;
+sctp_chunk_flag         = "data" | "init" | "initack" | "sack"
+                        | "heartbeat" | "heartbeatack"
+                        | "abort" | "shutdown" | "shutdownack"
+                        | "cookieecho" | "cookieack" ;
 
 (* ------------------------------------------------------------------------- *)
 (* 10. SNMPv1 / SNMPv2c / SNMPv3 Sub-Keywords                                *)
@@ -330,44 +329,44 @@ snmp_protocol_field     = snmp_pdu_type
                         | snmp_v3_field
                         | snmp_varbind ;
 
-snmp_pdu_type           = "TRAP" | "INFORM" | "GET" | "GETNEXT"
-                        | "GETBULK" | "SET"
-                        | ( "RESPONSE" , [ str_or_ident ] )
-                        | "REPORT" ;
+snmp_pdu_type           = "trap" | "inform" | "get" | "getnext"
+                        | "getbulk" | "set"
+                        | ( "response" , [ str_or_ident ] )
+                        | "report" ;
 
-snmp_common_field       = ( "COMMUNITY" , string_literal )
-                        | ( "OID" , oid_literal )
-                        | ( "SYSUPTIME" , unsigned_int )
-                        | ( "REQID" , unsigned_int )
-                        | ( "NONREPEATERS" , unsigned_int )
-                        | ( "MAXREPETITIONS" , unsigned_int ) ;
+snmp_common_field       = ( "community" , string_literal )
+                        | ( "oid" , oid_literal )
+                        | ( "sysuptime" , unsigned_int )
+                        | ( "reqid" , unsigned_int )
+                        | ( "nonrepeaters" , unsigned_int )
+                        | ( "maxrepetitions" , unsigned_int ) ;
 
-snmp_v1_field           = ( "ENTERPRISE" , oid_literal )
-                        | ( "AGENTIP" , ip_address )
-                        | ( "GENTRAP" , unsigned_int )
-                        | ( "SPECTRAP" , unsigned_int ) ;
+snmp_v1_field           = ( "enterprise" , oid_literal )
+                        | ( "agentip" , ip_address )
+                        | ( "gentrap" , unsigned_int )
+                        | ( "spectrap" , unsigned_int ) ;
 
-snmp_v3_field           = ( "USER" , str_or_ident )
-                        | ( "ENGINEID" , string_literal )
-                        | ( "ENGINEBOOTS" , unsigned_int )
-                        | ( "ENGINETIME" , unsigned_int )
-                        | ( "CONTEXTNAME" , string_literal )
-                        | ( "AUTH" , snmp_auth_proto , string_literal )
-                        | ( "PRIV" , snmp_priv_proto , string_literal ) ;
+snmp_v3_field           = ( "user" , str_or_ident )
+                        | ( "engineid" , string_literal )
+                        | ( "engineboots" , unsigned_int )
+                        | ( "enginetime" , unsigned_int )
+                        | ( "contextname" , string_literal )
+                        | ( "auth" , snmp_auth_proto , string_literal )
+                        | ( "priv" , snmp_priv_proto , string_literal ) ;
 
-snmp_auth_proto         = "MD5" | "SHA" | "SHA256" | "SHA384" | "SHA512" ;
-snmp_priv_proto         = "DES" | "AES" ;
+snmp_auth_proto         = "md5" | "sha" | "sha256" | "sha384" | "sha512" ;
+snmp_priv_proto         = "des" | "aes" ;
 
-snmp_varbind            = "VARBIND" , oid_literal , varbind_type_val ;
-varbind_type_val        = "NULLVAL" | "NULL"
-                        | ( "STRING" , string_literal )
-                        | ( "INT" , signed_int )
-                        | ( "TIMETICKS" , unsigned_int )
-                        | ( "IPVAL" , ip_address )
-                        | ( "OIDVAL" , oid_literal )
-                        | ( "COUNTER32" , unsigned_int )
-                        | ( "GAUGE32" , unsigned_int )
-                        | ( "COUNTER64" , unsigned_int ) ;
+snmp_varbind            = "varbind" , oid_literal , varbind_type_val ;
+varbind_type_val        = "nullval" | "null"
+                        | ( "string" , string_literal )
+                        | ( "int" , signed_int )
+                        | ( "timeticks" , unsigned_int )
+                        | ( "ipval" , ip_address )
+                        | ( "oidval" , oid_literal )
+                        | ( "counter32" , unsigned_int )
+                        | ( "gauge32" , unsigned_int )
+                        | ( "counter64" , unsigned_int ) ;
 
 (* ------------------------------------------------------------------------- *)
 (* 11. Layer 7 Infrastructure, App, Telemetry & OT Protocol Sub-Keywords     *)
@@ -381,238 +380,241 @@ l7_protocol_field       = l7_dns_dhcp_field
                         | l7_db_cache_mq_field
                         | l7_industrial_ot_field ;
 
-l7_dns_dhcp_field       = ( "TXID" , ( unsigned_int | str_or_ident ) )
-                        | ( "QNAME" , str_or_ident )
-                        | ( "QTYPE" , ( unsigned_int | str_or_ident ) )
-                        | ( "RDATA" , str_or_ident )
-                        | ( "RCODE" , unsigned_int )
-                        | ( "ANS_TTL" , unsigned_int )
-                        | "DISCOVER" | "SOLICIT" | "OFFER" | "ADVERTISE" | "RELEASE"
-                        | ( "CIADDR" , ip_address )
-                        | ( "YIADDR" , ip_address )
-                        | ( "SIADDR" , ip_address )
-                        | ( "CHADDR" , mac_address )
-                        | ( "HOSTNAME" , str_or_ident )
-                        | ( "DNS_SERVER" , ip_address )
-                        | ( "ROUTER" , ip_address )
-                        | ( "SUBNET_MASK" , ip_address )
-                        | ( "LEASE_TIME" , unsigned_int ) ;
+l7_dns_dhcp_field       = ( "txid" , ( unsigned_int | str_or_ident ) )
+                        | ( "qname" , str_or_ident )
+                        | ( "qtype" , ( unsigned_int | str_or_ident ) )
+                        | ( "rdata" , str_or_ident )
+                        | ( "rcode" , unsigned_int )
+                        | ( "ansttl" , unsigned_int )
+                        | "discover" | "solicit" | "offer" | "advertise" | "release"
+                        | ( "ciaddr" , ip_address )
+                        | ( "yiaddr" , ip_address )
+                        | ( "siaddr" , ip_address )
+                        | ( "chaddr" , mac_address )
+                        | ( "hostname" , str_or_ident )
+                        | ( "dnsserver" , ip_address )
+                        | ( "router" , ip_address )
+                        | ( "subnetmask" , ip_address )
+                        | ( "leasetime" , unsigned_int ) ;
 
-l7_ntp_ptp_aaa_field    = ( "LI" , unsigned_int )
-                        | ( "VN" , unsigned_int )
-                        | ( "MODE" , ( unsigned_int | str_or_ident ) )
-                        | ( "STRATUM" , unsigned_int )
-                        | ( "POLL" , unsigned_int )
-                        | ( "PRECISION" , signed_int )
-                        | ( "REFID" , str_or_ident )
-                        | ( "TX_TIMESTAMP" , unsigned_int )
-                        | ( "MSG_TYPE" , ( unsigned_int | str_or_ident ) )
-                        | "SYNC" | "DELAY_REQ" | "FOLLOW_UP" | "DELAY_RESP" | "ANNOUNCE"
-                        | ( "DOMAIN" , ( unsigned_int | str_or_ident ) )
-                        | ( "SEQ_ID" , unsigned_int )
-                        | ( "CLOCK_ID" , ( mac_address | str_or_ident ) )
-                        | "ACCESS_REQUEST" | "ACCESS_ACCEPT" | "ACCESS_REJECT"
-                        | "ACCESS_CHALLENGE" | "ACCOUNTING_REQUEST" | "ACCOUNTING_RESPONSE"
-                        | ( "NAS_IP" , ip_address )
-                        | ( "SERVICE_TYPE" , unsigned_int )
-                        | ( "FRAMED_IP" , ip_address )
-                        | "AUTHEN" | "AUTHOR" | "ACCT"
-                        | ( "SESSION_ID" , unsigned_int ) ;
+l7_ntp_ptp_aaa_field    = ( "li" , unsigned_int )
+                        | ( "vn" , unsigned_int )
+                        | ( "mode" , ( unsigned_int | str_or_ident ) )
+                        | ( "stratum" , unsigned_int )
+                        | ( "poll" , unsigned_int )
+                        | ( "precision" , signed_int )
+                        | ( "refid" , str_or_ident )
+                        | ( "txtimestamp" , unsigned_int )
+                        | ( "msgtype" , ( unsigned_int | str_or_ident ) )
+                        | "sync" | "delayreq" | "followup" | "delayresp" | "announce"
+                        | ( "domain" , ( unsigned_int | str_or_ident ) )
+                        | ( "seqid" , unsigned_int )
+                        | ( "clockid" , ( mac_address | str_or_ident ) )
+                        | "accessrequest" | "accessaccept" | "accessreject"
+                        | "accesschallenge" | "accountingrequest" | "accountingresponse"
+                        | ( "nasip" , ip_address )
+                        | ( "servicetype" , unsigned_int )
+                        | ( "framedip" , ip_address )
+                        | "authen" | "author" | "acct"
+                        | ( "sessionid" , unsigned_int ) ;
 
-l7_telemetry_field      = ( "FACILITY" , unsigned_int )
-                        | ( "SEVERITY" , unsigned_int )
-                        | ( "PRI" , unsigned_int )
-                        | ( "APP" , str_or_ident )
-                        | ( "PROCID" , str_or_ident )
-                        | ( "MSG" , str_or_ident )
-                        | ( "SRCIP" , ip_address )
-                        | ( "DSTIP" , ip_address )
-                        | ( "PROTO" , unsigned_int )
-                        | ( "PACKETS" , unsigned_int )
-                        | ( "OCTETS" , unsigned_int )
-                        | ( "DOMAIN_ID" , unsigned_int )
-                        | ( "AGENT_IP" , ip_address )
-                        | ( "SUB_AGENT_ID" , unsigned_int )
-                        | ( "UPTIME" , unsigned_int )
-                        | ( "SAMPLES" , unsigned_int ) ;
+l7_telemetry_field      = ( "facility" , unsigned_int )
+                        | ( "severity" , unsigned_int )
+                        | ( "pri" , unsigned_int )
+                        | ( "app" , str_or_ident )
+                        | ( "procid" , str_or_ident )
+                        | ( "msg" , str_or_ident )
+                        | ( "srcip" , ip_address )
+                        | ( "dstip" , ip_address )
+                        | ( "proto" , unsigned_int )
+                        | ( "packets" , unsigned_int )
+                        | ( "octets" , unsigned_int )
+                        | ( "domainid" , unsigned_int )
+                        | ( "agentip" , ip_address )
+                        | ( "subagentid" , unsigned_int )
+                        | ( "uptime" , unsigned_int )
+                        | ( "samples" , unsigned_int ) ;
 
-l7_web_transfer_field   = "RRQ" | "WRQ"
-                        | ( "FILENAME" , str_or_ident )
-                        | ( "BLOCK" , unsigned_int )
-                        | ( "ERRCODE" , unsigned_int )
-                        | ( "ERRMSG" , str_or_ident )
-                        | ( "CMD" , ( unsigned_int | str_or_ident ) )
-                        | ( "ARG" , str_or_ident )
-                        | ( "BANNER" , str_or_ident )
-                        | "KEXINIT" | "NEWKEYS"
-                        | ( "MSG_CODE" , unsigned_int )
-                        | ( "WILL" , unsigned_int )
-                        | ( "WONT" , unsigned_int )
-                        | ( "DO" , unsigned_int )
-                        | ( "DONT" , unsigned_int )
-                        | ( "OPTION" , unsigned_int )
-                        | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
-                        | ( "URI" , str_or_ident )
-                        | ( "HOST_HDR" , str_or_ident )
-                        | ( "USER_AGENT" , str_or_ident )
-                        | ( "CONTENT_TYPE" , str_or_ident )
-                        | ( "STATUS" , ( unsigned_int | str_or_ident ) )
-                        | ( "REASON" , str_or_ident )
-                        | ( "HEADER" , string_literal , string_literal )
-                        | ( "BODY" , str_or_ident )
-                        | "PREFACE" | "SETTINGS" | "HEADERS" | "WINDOW_UPDATE" | "PING" | "GOAWAY"
-                        | ( "STREAM_ID" , unsigned_int )
-                        | ( "SERVICE" , str_or_ident )
-                        | ( "METHOD" , str_or_ident )
-                        | ( "GRPC_STATUS" , unsigned_int )
-                        | ( "OPCODE" , ( unsigned_int | str_or_ident ) )
-                        | "TEXT" | "BINARY" | "PONG" | "CLOSE"
-                        | ( "FIN_BIT" , unsigned_int )
-                        | ( "MASK_KEY" , unsigned_int ) ;
+l7_web_transfer_field   = "rrq" | "wrq" | "error"
+                        | ( "filename" , str_or_ident )
+                        | ( "block" , unsigned_int )
+                        | ( "errcode" , unsigned_int )
+                        | ( "errmsg" , str_or_ident )
+                        | ( "cmd" , ( unsigned_int | str_or_ident ) )
+                        | ( "arg" , str_or_ident )
+                        | ( "banner" , str_or_ident )
+                        | "kexinit" | "newkeys"
+                        | ( "msgcode" , unsigned_int )
+                        | ( "will" , unsigned_int )
+                        | ( "wont" , unsigned_int )
+                        | ( "do" , unsigned_int )
+                        | ( "dont" , unsigned_int )
+                        | ( "option" , unsigned_int )
+                        | "post" | "put" | "delete" | "head" | "options" | "patch"
+                        | ( "uri" , str_or_ident )
+                        | ( "hosthdr" , str_or_ident )
+                        | ( "useragent" , str_or_ident )
+                        | ( "contenttype" , str_or_ident )
+                        | ( "status" , ( unsigned_int | str_or_ident ) )
+                        | ( "reason" , str_or_ident )
+                        | ( "header" , string_literal , string_literal )
+                        | ( "body" , str_or_ident )
+                        | "preface" | "settings" | "headers" | "windowupdate" | "ping" | "goaway"
+                        | ( "streamid" , unsigned_int )
+                        | ( "service" , str_or_ident )
+                        | ( "method" , str_or_ident )
+                        | ( "grpcstatus" , unsigned_int )
+                        | ( "opcode" , ( unsigned_int | str_or_ident ) )
+                        | "text" | "binary" | "pong" | "close"
+                        | ( "finbit" , unsigned_int )
+                        | ( "maskkey" , unsigned_int ) ;
 
-l7_tls_quic_voip_field  = "CLIENT_HELLO" | "SERVER_HELLO" | "CERTIFICATE"
-                        | "FINISHED" | "APP_DATA" | "ALERT"
-                        | ( "RECORD_VERSION" , unsigned_int )
-                        | ( "HANDSHAKE_VERSION" , unsigned_int )
-                        | ( "SNI" , str_or_ident )
-                        | ( "CIPHERSUITE" , unsigned_int )
-                        | ( "ALPN" , str_or_ident )
-                        | "INITIAL" | "ZERO_RTT" | "HANDSHAKE" | "RETRY" | "SHORT"
-                        | ( "DCID" , ( unsigned_int | str_or_ident ) )
-                        | ( "SCID" , ( unsigned_int | str_or_ident ) )
-                        | ( "TOKEN" , ( unsigned_int | str_or_ident ) )
-                        | ( "PKT_NUM" , unsigned_int )
-                        | "BINDING_REQUEST" | "BINDING_RESPONSE" | "BINDING_ERROR"
-                        | ( "XOR_MAPPED_ADDR" , ip_address , [ unsigned_int ] )
-                        | ( "SOFTWARE" , str_or_ident )
-                        | "INVITE" | "BYE" | "CANCEL"
-                        | ( "FROM" , str_or_ident )
-                        | ( "TO" , str_or_ident )
-                        | ( "CALL_ID" , str_or_ident )
-                        | ( "CSEQ" , unsigned_int )
-                        | ( "VIA" , str_or_ident )
-                        | ( "CONTACT" , str_or_ident )
-                        | ( "PT" , unsigned_int )
-                        | ( "TIMESTAMP" , unsigned_int )
-                        | ( "SSRC" , unsigned_int )
-                        | ( "MARKER" , unsigned_int )
-                        | "DESCRIBE" | "SETUP" | "PLAY" | "TEARDOWN"
-                        | ( "TRANSPORT_HDR" , str_or_ident )
-                        | ( "SESSION" , str_or_ident ) ;
+l7_tls_quic_voip_field  = "clienthello" | "serverhello" | "certificate"
+                        | "finished" | "appdata" | "alert"
+                        | ( "recordversion" , unsigned_int )
+                        | ( "handshakeversion" , unsigned_int )
+                        | ( "sni" , str_or_ident )
+                        | ( "ciphersuite" , unsigned_int )
+                        | ( "alpn" , str_or_ident )
+                        | "initial" | "zerortt" | "handshake" | "retry" | "short"
+                        | ( "dcid" , ( unsigned_int | str_or_ident ) )
+                        | ( "scid" , ( unsigned_int | str_or_ident ) )
+                        | ( "token" , ( unsigned_int | str_or_ident ) )
+                        | ( "pktnum" , unsigned_int )
+                        | "bindingrequest" | "bindingresponse" | "bindingerror"
+                        | ( "xormappedaddr" , ip_address , [ unsigned_int ] )
+                        | ( "software" , str_or_ident )
+                        | "invite" | "bye" | "cancel"
+                        | ( "from" , str_or_ident )
+                        | ( "to" , str_or_ident )
+                        | ( "callid" , str_or_ident )
+                        | ( "cseq" , unsigned_int )
+                        | ( "via" , str_or_ident )
+                        | ( "contact" , str_or_ident )
+                        | ( "pt" , unsigned_int )
+                        | ( "timestamp" , unsigned_int )
+                        | ( "ssrc" , unsigned_int )
+                        | ( "marker" , unsigned_int )
+                        | "describe" | "setup" | "play" | "teardown"
+                        | ( "transporthdr" , str_or_ident )
+                        | ( "session" , str_or_ident ) ;
 
-l7_mail_auth_dir_field  = ( "EHLO" , [ str_or_ident ] )
-                        | ( "HELO" , [ str_or_ident ] )
-                        | ( "MAIL_FROM" , [ str_or_ident ] )
-                        | ( "RCPT_TO" , [ str_or_ident ] )
-                        | "QUIT"
-                        | ( "PARAM" , str_or_ident )
-                        | "OK" | "ERR"
-                        | "AS_REQ" | "AS_REP" | "TGS_REQ" | "TGS_REP" | "KRB_ERROR"
-                        | ( "REALM" , str_or_ident )
-                        | ( "CNAME" , str_or_ident )
-                        | ( "SNAME" , str_or_ident )
-                        | ( "ETYPE" , unsigned_int )
-                        | "BIND_REQ" | "BIND_RES" | "SEARCH_REQ"
-                        | "SEARCH_ENTRY" | "SEARCH_DONE" | "UNBIND_REQ"
-                        | ( "BASE_DN" , str_or_ident )
-                        | ( "FILTER" , str_or_ident )
-                        | ( "RESULT_CODE" , unsigned_int )
-                        | ( "COMMAND" , str_or_ident )
-                        | "NEGOTIATE" | "SESSION_SETUP" | "TREE_CONNECT"
-                        | "CREATE" | "TREE_DISCONNECT"
-                        | ( "TREE_ID" , unsigned_int )
-                        | ( "SHARE" , str_or_ident )
-                        | ( "VERS" , unsigned_int )
-                        | ( "PROC" , ( unsigned_int | str_or_ident ) )
-                        | ( "PATH" , str_or_ident )
-                        | "COMPOUND" ;
+l7_mail_auth_dir_field  = ( "ehlo" , [ str_or_ident ] )
+                        | ( "helo" , [ str_or_ident ] )
+                        | ( "mailfrom" , [ str_or_ident ] )
+                        | ( "rcptto" , [ str_or_ident ] )
+                        | "quit"
+                        | ( "param" , str_or_ident )
+                        | "ok" | "err"
+                        | "asreq" | "asrep" | "tgsreq" | "tgsrep" | "krberror"
+                        | ( "realm" , str_or_ident )
+                        | ( "cname" , str_or_ident )
+                        | ( "sname" , str_or_ident )
+                        | ( "etype" , unsigned_int )
+                        | "bindreq" | "bindres" | "searchreq"
+                        | "searchentry" | "searchdone" | "unbindreq"
+                        | ( "basedn" , str_or_ident )
+                        | ( "filter" , str_or_ident )
+                        | ( "resultcode" , unsigned_int )
+                        | ( "command" , str_or_ident )
+                        | "negotiate" | "sessionsetup" | "treeconnect"
+                        | "create" | "treedisconnect"
+                        | ( "treeid" , unsigned_int )
+                        | ( "share" , str_or_ident )
+                        | ( "vers" , unsigned_int )
+                        | ( "proc" , ( unsigned_int | str_or_ident ) )
+                        | ( "path" , str_or_ident )
+                        | "compound" ;
 
-l7_db_cache_mq_field    = ( "ARGS" , str_or_ident )
-                        | ( "REPLY_TYPE" , str_or_ident )
-                        | ( "KEY" , ( unsigned_int | str_or_ident ) )
-                        | ( "VALUE" , ( unsigned_int | str_or_ident ) )
-                        | ( "EXPTIME" , unsigned_int )
-                        | ( "OPAQUE" , unsigned_int )
-                        | ( "CAS" , unsigned_int )
-                        | "GREETING" | "LOGIN" | "EOF"
-                        | ( "SQL" , str_or_ident )
-                        | ( "SERVER_VERSION" , str_or_ident )
-                        | ( "DB" , str_or_ident )
-                        | "STARTUP" | "READY_FOR_QUERY" | "COMMAND_COMPLETE"
-                        | "ERROR_RESPONSE" | "AUTH_OK"
-                        | "CONNECT" | "CONNACK" | "PUBLISH" | "PUBACK"
-                        | "SUBSCRIBE" | "SUBACK" | "PINGREQ" | "PINGRESP" | "DISCONNECT"
-                        | ( "CLIENT_ID" , str_or_ident )
-                        | ( "TOPIC" , str_or_ident )
-                        | ( "QOS" , unsigned_int )
-                        | ( "RETAIN" , [ unsigned_int ] )
-                        | ( "PKT_ID" , unsigned_int )
-                        | ( "RETURN_CODE" , unsigned_int )
-                        | "CON" | "NON" | "CHANGED" | "CREATED" | "NOT_FOUND"
-                        | ( "URI_PATH" , str_or_ident )
-                        | ( "CONTENT_FORMAT" , unsigned_int )
-                        | "PROTOCOL_HEADER" | "CONNECTION_START" | "CHANNEL_OPEN"
-                        | "BASIC_PUBLISH" | "BASIC_DELIVER"
-                        | ( "CHANNEL" , unsigned_int )
-                        | ( "ROUTING_KEY" , str_or_ident )
-                        | "MSEARCH" | "NOTIFY"
-                        | ( "MAN" , str_or_ident )
-                        | ( "MX" , unsigned_int )
-                        | ( "ST" , str_or_ident )
-                        | ( "NT" , str_or_ident )
-                        | ( "NTS" , str_or_ident )
-                        | ( "USN" , str_or_ident )
-                        | ( "LOCATION" , str_or_ident )
-                        | ( "REGISTRAR" , str_or_ident ) ;
+l7_db_cache_mq_field    = ( "args" , str_or_ident )
+                        | ( "replytype" , str_or_ident )
+                        | ( "key" , ( unsigned_int | str_or_ident ) )
+                        | ( "value" , ( unsigned_int | str_or_ident ) )
+                        | ( "exptime" , unsigned_int )
+                        | ( "opaque" , unsigned_int )
+                        | ( "cas" , unsigned_int )
+                        | "greeting" | "login" | "eof"
+                        | ( "sql" , str_or_ident )
+                        | ( "serverversion" , str_or_ident )
+                        | ( "db" , str_or_ident )
+                        | "startup" | "readyforquery" | "commandcomplete"
+                        | "errorresponse" | "authok"
+                        | "connect" | "connack" | "publish" | "puback"
+                        | "subscribe" | "suback" | "pingreq" | "pingresp" | "disconnect"
+                        | ( "clientid" , str_or_ident )
+                        | ( "topic" , str_or_ident )
+                        | ( "qos" , unsigned_int )
+                        | ( "retain" , [ unsigned_int ] )
+                        | ( "pkttype" , ( unsigned_int | str_or_ident ) )
+                        | ( "pktid" , unsigned_int )
+                        | ( "returncode" , unsigned_int )
+                        | "con" | "non" | "changed" | "created" | "notfound"
+                        | ( "uripath" , str_or_ident )
+                        | ( "contentformat" , unsigned_int )
+                        | "protocolheader" | "connectionstart" | "channelopen"
+                        | "basicpublish" | "basicdeliver"
+                        | ( "channel" , unsigned_int )
+                        | ( "routingkey" , str_or_ident )
+                        | "msearch" | "notify"
+                        | ( "man" , str_or_ident )
+                        | ( "mx" , unsigned_int )
+                        | ( "st" , str_or_ident )
+                        | ( "nt" , str_or_ident )
+                        | ( "nts" , str_or_ident )
+                        | ( "usn" , str_or_ident )
+                        | ( "location" , str_or_ident )
+                        | ( "registrar" , str_or_ident ) ;
 
-l7_industrial_ot_field  = ( "PROTO_ID" , unsigned_int )
-                        | ( "UNITID" , unsigned_int )
-                        | ( "FUNC" , ( unsigned_int | str_or_ident ) )
-                        | "READ_COILS" | "READ_DISCRETE_INPUTS"
-                        | "READ_HOLDING_REGISTERS" | "READ_INPUT_REGISTERS"
-                        | "WRITE_SINGLE_COIL" | "WRITE_SINGLE_REGISTER"
-                        | "WRITE_MULTIPLE_REGISTERS"
-                        | ( "ADDR" , unsigned_int )
-                        | ( "COUNT" , unsigned_int )
-                        | "IS_RESPONSE"
-                        | "WHO_IS" | "I_AM" | "READ_PROPERTY" | "WRITE_PROPERTY"
-                        | ( "INVOKE_ID" , unsigned_int )
-                        | ( "OBJECT_TYPE" , unsigned_int )
-                        | ( "OBJECT_INSTANCE" , unsigned_int )
-                        | ( "PROPERTY_ID" , unsigned_int )
-                        | "CONFIRM" | "SELECT" | "OPERATE"
-                        | "DIRECT_OPERATE" | "UNSOLICITED_RESPONSE"
-                        | ( "VARIATION" , unsigned_int )
-                        | ( "CRC" , unsigned_int )
-                        | ( "SRC" , unsigned_int )
-                        | ( "DST" , unsigned_int )
-                        | ( "ROSCTR" , ( unsigned_int | str_or_ident ) )
-                        | ( "PDU_REF" , unsigned_int )
-                        | "SETUP_COMM" | "READ_VAR" | "WRITE_VAR" | "PLC_CONTROL"
-                        | ( "AREA" , ( unsigned_int | str_or_ident ) )
-                        | ( "DB_NUM" , unsigned_int )
-                        | ( "OFFSET" , unsigned_int )
-                        | "LIST_SERVICES" | "LIST_IDENTITY" | "LIST_INTERFACES"
-                        | "REGISTER_SESSION" | "UNREGISTER_SESSION"
-                        | "SEND_RR_DATA" | "SEND_UNIT_DATA"
-                        | ( "SESSION_HANDLE" , unsigned_int )
-                        | ( "CONTEXT" , ( unsigned_int | str_or_ident ) )
-                        | ( "CIP_SERVICE" , unsigned_int )
-                        | ( "CIP_CLASS" , unsigned_int )
-                        | ( "CIP_INSTANCE" , unsigned_int )
-                        | ( "CIP_ATTR" , unsigned_int )
-                        | ( "CHUNK_TYPE" , str_or_ident )
-                        | ( "SECURE_CHANNEL_ID" , unsigned_int )
-                        | ( "TOKEN_ID" , unsigned_int )
-                        | ( "SEQ_NUM" , unsigned_int )
-                        | ( "ENDPOINT_URL" , str_or_ident )
-                        | ( "NODE_ID" , str_or_ident ) ;
+l7_industrial_ot_field  = ( "protoid" , unsigned_int )
+                        | ( "unitid" , unsigned_int )
+                        | ( "func" , ( unsigned_int | str_or_ident ) )
+                        | "readcoils" | "readdiscreteinputs"
+                        | "readholdingregisters" | "readinputregisters"
+                        | "writesinglecoil" | "writesingleregister"
+                        | "writemultipleregisters"
+                        | ( "addr" , unsigned_int )
+                        | ( "count" , unsigned_int )
+                        | "isresponse"
+                        | "whois" | "iam" | "readproperty" | "writeproperty"
+                        | ( "invokeid" , unsigned_int )
+                        | ( "objecttype" , unsigned_int )
+                        | ( "objectinstance" , unsigned_int )
+                        | ( "propertyid" , unsigned_int )
+                        | "confirm" | "read" | "write" | "select" | "operate"
+                        | "directoperate" | "unsolicitedresponse"
+                        | ( "variation" , unsigned_int )
+                        | ( "crc" , unsigned_int )
+                        | ( "src" , unsigned_int )
+                        | ( "dst" , unsigned_int )
+                        | ( "rosctr" , ( unsigned_int | str_or_ident ) )
+                        | ( "pduref" , unsigned_int )
+                        | "setupcomm" | "readvar" | "writevar" | "plccontrol"
+                        | ( "area" , ( unsigned_int | str_or_ident ) )
+                        | ( "dbnum" , unsigned_int )
+                        | ( "offset" , unsigned_int )
+                        | "nop" | "listservices" | "listidentity" | "listinterfaces"
+                        | "registersession" | "unregistersession"
+                        | "sendrrdata" | "sendunitdata"
+                        | ( "sessionhandle" , unsigned_int )
+                        | ( "context" , ( unsigned_int | str_or_ident ) )
+                        | ( "cipservice" , unsigned_int )
+                        | ( "cipclass" , unsigned_int )
+                        | ( "cipinstance" , unsigned_int )
+                        | ( "cipattr" , unsigned_int )
+                        | ( "chunktype" , str_or_ident )
+                        | ( "securechannelid" , unsigned_int )
+                        | ( "tokenid" , unsigned_int )
+                        | ( "seqnum" , unsigned_int )
+                        | ( "endpointurl" , str_or_ident )
+                        | ( "nodeid" , str_or_ident ) ;
 
 (* ------------------------------------------------------------------------- *)
 (* 12. Lexical Terminals                                                     *)
 (* ------------------------------------------------------------------------- *)
 str_or_ident            = string_literal | identifier ;
-identifier              = ( letter | "_" ) , { letter | digit | "_" } ;
+(* Matches /[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*/ *)
+identifier              = ( letter | "_" ) , { letter | digit | "_" } ,
+                          { "-" , ( letter | digit | "_" ) , { letter | digit | "_" } } ;
 unsigned_int            = decimal_int | hex_int ;
 signed_int              = [ "-" ] , decimal_int | hex_int ;
 decimal_int             = digit , { digit } ;

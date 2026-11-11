@@ -5,7 +5,7 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b STUN [BINDING_REQUEST | BINDING_RESPONSE | BINDING_ERROR] [TXID <u32>] [XOR_MAPPED_ADDR <ip>] [SOFTWARE <str>]`
+//! `a -> b stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip>] [software <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 use core::net::IpAddr;
 
 /// Builds an RFC 8489 STUN NAT traversal packet payload.
-/// Syntax mapping: `STUN [BINDING_REQUEST | BINDING_RESPONSE | BINDING_ERROR] [TXID <u32>] [XOR_MAPPED_ADDR <ip>] [SOFTWARE <str>]`
+/// Syntax mapping: `stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip>] [software <str>]`
 #[doc(alias = "STUN")]
 #[doc(alias = "TURN")]
 #[doc(alias = "ICE")]

@@ -1,25 +1,25 @@
 // PROMPT: RFC 3032 MPLS Explicit Null labels (IPv4 Explicit Null Label 0 and IPv6 Explicit Null Label 2) preserving QoS EXP bits on penultimate hop.
-// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, mpls, exp, bos, mplsttl, payload, wait, ms, compile
 
 // INSTRUCTION: Define penultimate hop provider (P) router.
-HOST php_core_rtr {
-    IP 172.16.250.1
-    MAC 00:1c:73:fa:00:01
+host php_core_rtr {
+    ip 172.16.250.1
+    mac 00:1c:73:fa:00:01
 }
 
 // INSTRUCTION: Define egress provider edge (PE) router receiving Explicit Null labels.
-HOST egress_pe_rtr {
-    IP 172.16.250.2
-    MAC 00:1c:73:fa:00:02
+host egress_pe_rtr {
+    ip 172.16.250.2
+    mac 00:1c:73:fa:00:02
 }
 
 // INSTRUCTION: Define MPLS Explicit Null Label 0 (IPv4) and Label 2 (IPv6) preserving EXP 5 QoS marking.
-FLOW mpls_explicit_null_php(p_rtr, pe_rtr) {
-    p_rtr -> pe_rtr MPLS 0 EXP 5 BOS 1 MPLS_TTL 63 PAYLOAD "ipv4_explicit_null_qos_preserved"
-    p_rtr -> pe_rtr MPLS 2 EXP 5 BOS 1 MPLS_TTL 63 PAYLOAD "ipv6_explicit_null_qos_preserved" WAIT 2ms
+flow mpls_explicit_null_php(p_rtr, pe_rtr) {
+    p_rtr -> pe_rtr mpls 0 exp 5 bos 1 mplsttl 63 payload "ipv4_explicit_null_qos_preserved"
+    p_rtr -> pe_rtr mpls 2 exp 5 bos 1 mplsttl 63 payload "ipv6_explicit_null_qos_preserved" wait 2ms
 }
 
 // INSTRUCTION: Compile block executing MPLS Explicit Null label PHP forwarding.
-COMPILE {
+compile {
     mpls_explicit_null_php(php_core_rtr, egress_pe_rtr)
 }

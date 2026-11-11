@@ -166,7 +166,7 @@ Demonstrates `frameassembly`'s native inner-outward L4 and L3 packet synthesis:
 - **IPv4 Header (`build_ipv4_header`)**: Packs DSCP (6 bits) + ECN (2 bits) into TOS, computes Total Length (`20 + l4_and_payload_len`), packs DF (`0x4000`), MF (`0x2000`), and 13-bit Fragment Offset (`& 0x1FFF`), and populates the RFC 791 header checksum at bytes `10..12`.
 - **IPv6 Header (`build_ipv6_header`)**: Packs Version `6` (bits 28..32), 8-bit Traffic Class `(dscp << 2) | ecn` (bits 20..28), and 20-bit Flow Label (`& 0x000F_FFFF`) into a 32-bit big-endian word, followed by 16-bit Payload Length, Next Header, Hop Limit, and 16-byte Source/Destination addresses.
 - **TCP Segment (`build_tcp_segment`)**: Encodes MSS (Kind 2), Window Scale (Kind 3), SACK Permitted (Kind 4), and Timestamps (Kind 8), pads options with `NOP` (`0x01`) to a 32-bit boundary, sets `data_offset = (tcp_header_len / 4) << 4`, and computes the IPv4 or IPv6 pseudo-header checksum at bytes `16..18`.
-- **SCTP Packet (`build_sctp_datagram`)**: Pads variable-length chunks (`DATA`, `HEARTBEAT`, `COOKIE_ECHO`) with `0x00` to 4-byte boundaries per RFC 9260 §3.3.1, then writes the Castagnoli CRC32c in **little-endian** at bytes `8..12`.
+- **SCTP Packet (`build_sctp_datagram`)**: Pads variable-length chunks (`data`, `heartbeat`, `cookieecho`) with `0x00` to 4-byte boundaries per RFC 9260 §3.3.1, then writes the Castagnoli CRC32c in **little-endian** at bytes `8..12`.
 
 ```rust
 use core::net::IpAddr;
@@ -345,12 +345,12 @@ pub fn build_sctp_data_packet(
 
 Demonstrates `frameassembly`'s Layer 2 framing and address resolution engine:
 - **Deterministic MAC Resolution (`derive_mac`)**:
-  1. Explicit statement-level MAC (`SRCMAC` / `DSTMAC`) takes highest priority.
-  2. Host-level configured MAC (`HOST ... { MAC ... }`) takes second priority.
+  1. Explicit statement-level MAC (`srcmac` / `dstmac`) takes highest priority.
+  2. Host-level configured MAC (`host ... { mac ... }`) takes second priority.
   3. **RFC 1112 IPv4 Multicast (`224.0.0.0/4`)**: Maps lower 23 bits of IPv4 into `01:00:5e:(b1 & 0x7f):b2:b3`.
   4. **RFC 2464 IPv6 Multicast (`ff00::/8`)**: Maps lower 32 bits of IPv6 into `33:33:b12:b13:b14:b15`.
   5. Unicast fallback: `00:00:00:00:00:01` for caller, `00:00:00:00:00:02` for callee.
-- **Tag Stacking (`build_ethernet_and_l2`) & Pure L2 MAC-Only `0x88B5` Fallback**: Supports standalone or combined IEEE 802.1Q VLAN (`0x8100`), IEEE 802.1ad QinQ (`0x88A8` outer + `0x8100` inner), and RFC 3032 MPLS (`0x8847`). When `VLAN` or `QINQ` is used between pure L2 MAC-only hosts with no IP (`src_ip.is_unspecified() || dst_ip.is_unspecified()`), the inner EtherType defaults to `l2.ethertype.unwrap_or(0x88B5)` (IEEE 802.1 Local Experimental) and wraps `payload` directly without an IP/UDP header.
+- **Tag Stacking (`build_ethernet_and_l2`) & Pure L2 MAC-Only `0x88B5` Fallback**: Supports standalone or combined IEEE 802.1Q VLAN (`0x8100`), IEEE 802.1ad QinQ (`0x88A8` outer + `0x8100` inner), and RFC 3032 MPLS (`0x8847`). When `vlan` or `qinq` is used between pure L2 MAC-only hosts with no IP (`src_ip.is_unspecified() || dst_ip.is_unspecified()`), the inner EtherType defaults to `l2.ethertype.unwrap_or(0x88B5)` (IEEE 802.1 Local Experimental) and wraps `payload` directly without an IP/UDP header.
 
 ```rust
 use core::net::IpAddr;
@@ -446,7 +446,7 @@ pub fn derive_mac(
     }
 }
 
-/// Resolves the inner EtherType for standalone `VLAN` / `QINQ` frames (`0x88B5` fallback for MAC-only hosts).
+/// Resolves the inner EtherType for standalone `vlan` / `qinq` frames (`0x88B5` fallback for MAC-only hosts).
 pub fn resolve_l2_vlan_ethertype(src_ip: IpAddr, dst_ip: IpAddr, l2: &L2EncapConfig) -> u16 {
     if src_ip.is_unspecified() || dst_ip.is_unspecified() {
         l2.ethertype.unwrap_or(0x88B5)
@@ -519,7 +519,7 @@ pub fn build_ethernet_and_l2(
 
 ## 4. Canonical 4-Tuple TCP Stream State Machine & Two-Stage Port Inheritance
 
-When synthesizing multi-packet flows (e.g., 3-way TCP handshake `SYN -> SYN|ACK -> ACK` followed by `HTTP` request/response and `FIN`), `frameassembly` maintains two state tables:
+When synthesizing multi-packet flows (e.g., 3-way TCP handshake `syn` -> `syn ack` -> `ack` followed by `http` request/response and `fin`), `frameassembly` maintains two state tables:
 1. **Stage 1 (`EndpointPairPorts`)**: Keyed by `(caller_name, callee_name)`. Stores the resolved `caller_port` and `callee_port` so subsequent statements between the same pair automatically inherit the ephemeral port (`12345`) and service port (`80`, `443`, `502`, etc.) across both `->` and `<-` directions.
 2. **Stage 2 (`TcpStreamState` keyed by `Canonical4Tuple`)**: Keyed by sorted socket endpoints `((ip_a, port_a), (ip_b, port_b))` where `ep1 <= ep2`. Tracks each direction's next sequence number (`seq1`, `seq2`, initialized to `1000`), automatically populates `ack_num` from the peer's sequence counter, and advances the sender's sequence counter by `payload_len + (SYN ? 1 : 0) + (FIN ? 1 : 0)` via `wrapping_add`.
 
@@ -890,10 +890,10 @@ pub fn dissect_pcapng_stream<R: Read>(reader: R) -> Result<Vec<NativeDissectedFr
 
 ## 7. 81-Protocol Wire & Wireshark (`tshark`) Dissector QA Invariant Verification Suite
 
-Demonstrates reusable wire-level verification helpers enforcing the critical L2–L7 dissector invariants across `src/backend/l7_dispatch.rs` and `src/builders/`:
-1. **L7 Return-Tuple Preservation**: `DHCP` (`(546, 547)` / `(547, 546)` over IPv6 vs `(68, 67)` over IPv4), `MDNS` (`224.0.0.251` / `ff02::fb` on UDP `5353`), `PTP` (`319` Event vs `320` General), and `RADIUS` (`1812` Auth vs `1813` Accounting).
-2. **L2/L3 Checksum, TTL & Inner Frame Rules**: `GRE` checksum at `gre[4..6]`, `VRRPv3` IPv4/IPv6 pseudo-header (proto `112`) + TTL/Hop Limit `255`, `NDP` Hop Limit `255`, `GENEVE` `proto = 0x6558` 14B inner Ethernet + 20B IPv4 frame, `WIREGUARD` Type `4` (`DATA`) $\ge 32$B (16B header + payload + 16B Poly1305 tag), `STP` RSTP 36th byte `0x00`, and `EAPOL` EAP Success/Failure (`Code 3/4`) 4-byte length.
-3. **L7 Length, Varint & Framing Rules**: `QUIC` Long Header 2B varint (`0x4000 | len`), `IPFIX` `total_len` & `set_len` including payload, `SFLOW` v5 Flow Sample 8-`u32` (32B) header, `MYSQL` 3B LE length, `POSTGRES` `'Q'` + 4B BE length including self, `MODBUS` MBAP `len = 1 + pdu.len()`, `S7COMM` 10B Job / 12B Ack_Data header, `ETHERNETIP` 24B LE header, and `OPCUA` 8B LE UACP header.
+Demonstrates reusable wire-level verification helpers enforcing the critical L2–L7 dissector invariants across `src/backend/l7_dispatch.rs` and `src/builders/` (where `.fasm` v2.0.0 keywords are strictly lowercase `[a-z0-9]+` without `_` or `-`, while quoted enum strings normalize `_` and `-` case-insensitively):
+1. **L7 Return-Tuple Preservation**: `dhcp` (`(546, 547)` / `(547, 546)` over IPv6 vs `(68, 67)` over IPv4), `mdns` (`224.0.0.251` / `ff02::fb` on UDP `5353`), `ptp` (`319` Event vs `320` General), and `radius` (`1812` Auth vs `1813` Accounting).
+2. **L2/L3 Checksum, TTL & Inner Frame Rules**: `gre` checksum at `gre[4..6]`, `vrrp` v3 IPv4/IPv6 pseudo-header (proto `112`) + TTL/Hop Limit `255`, `ndp` Hop Limit `255`, `geneve` `proto = 0x6558` 14B inner Ethernet + 20B IPv4 frame, `wireguard` Type `4` (`data`) $\ge 32$B (16B header + payload + 16B Poly1305 tag), `stp` RSTP 36th byte `0x00`, and `eapol` EAP Success/Failure (`Code 3/4`) 4-byte length.
+3. **L7 Length, Varint & Framing Rules**: `quic` Long Header 2B varint (`0x4000 | len`), `ipfix` `total_len` & `set_len` including payload, `sflow` v5 Flow Sample 8-`u32` (32B) header, `mysql` 3B LE length, `postgres` `'Q'` + 4B BE length including self, `modbus` MBAP `len = 1 + pdu.len()`, `s7comm` 10B Job / 12B Ack_Data header, `ethernetip` 24B LE header, and `opcua` 8B LE UACP header.
 
 ```rust
 use core::net::{Ipv4Addr, Ipv6Addr};

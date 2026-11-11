@@ -1,27 +1,27 @@
 // PROMPT: Municipal water SCADA DNP3 wet-well level read (Group 30 Var 2) and lift pump start (Group 12 Var 1).
-// TOKENS: HOST, IP, MAC, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, m, s, dnp3, func, src, dst, group, variation, wait, ms, compile
 
 // INSTRUCTION: Define the municipal water operations center SCADA master.
-HOST water_scada {
-    IP 10.125.80.1
-    MAC 00:1a:2b:7d:80:01
+host water_scada {
+    ip 10.125.80.1
+    mac 00:1a:2b:7d:80:01
 }
 
 // INSTRUCTION: Define Lift Station 12 cellular RTU outstation.
-HOST lift_station_12 {
-    IP 10.125.80.12
-    MAC 00:1a:2b:7d:80:12
+host lift_station_12 {
+    ip 10.125.80.12
+    mac 00:1a:2b:7d:80:12
 }
 
 // INSTRUCTION: Read wet-well level (Group 30 Var 2) and issue Direct Operate to start lead pump (Group 12 Var 1).
-FLOW dnp3_lift_station(m, s) {
-    m -> s DNP3 FUNC "READ" SRC 1 DST 12 GROUP 30 VARIATION 2
-    m <- s DNP3 FUNC "RESPONSE" SRC 12 DST 1 GROUP 30 VARIATION 2 WAIT 5ms
-    m -> s DNP3 FUNC "DIRECT_OPERATE" SRC 1 DST 12 GROUP 12 VARIATION 1
-    m <- s DNP3 FUNC "RESPONSE" SRC 12 DST 1 GROUP 12 VARIATION 1
+flow dnp3_lift_station(m, s) {
+    m -> s dnp3 func "read" src 1 dst 12 group 30 variation 2
+    m <- s dnp3 func "response" src 12 dst 1 group 30 variation 2 wait 5ms
+    m -> s dnp3 func "directoperate" src 1 dst 12 group 12 variation 1
+    m <- s dnp3 func "response" src 12 dst 1 group 12 variation 1
 }
 
 // INSTRUCTION: Compile the municipal water lift station DNP3 flow.
-COMPILE {
+compile {
     dnp3_lift_station(water_scada, lift_station_12)
 }

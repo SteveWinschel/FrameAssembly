@@ -1,25 +1,25 @@
 // PROMPT: Demonstrate automatic vs explicit TCP sequence and acknowledgment tracking across bidirectional arrows (-> and <-) when payload sizes vary.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, FIN, COMPILE
+// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, win, wait, ms, ack, psh, payload, fin, compile
 
 // INSTRUCTION: Define a client endpoint relying on auto-calculated TCP sequence numbers with IP 10.203.0.10.
-HOST auto_seq_client { IP 10.203.0.10 MAC 00:1a:2b:cb:00:0a }
+host auto_seq_client { ip 10.203.0.10 mac 00:1a:2b:cb:00:0a }
 
 // INSTRUCTION: Define a server endpoint relying on auto-calculated TCP sequence numbers with IP 10.203.0.20.
-HOST auto_seq_server { IP 10.203.0.20 MAC 00:1a:2b:cb:00:14 }
+host auto_seq_server { ip 10.203.0.20 mac 00:1a:2b:cb:00:14 }
 
 // INSTRUCTION: Define a flow exchanging variable-length payloads without manual SEQ/ACKNUM so the backend state machine computes exact byte advancements.
-FLOW auto_sequence_tracking(client, server) {
-    client -> server TCP SYN SRCPORT 40100 DSTPORT 8080 WIN 64240 WAIT 5ms
-    client <- server TCP SYN ACK SRCPORT 8080 DSTPORT 40100 WIN 64240 WAIT 5ms
-    client -> server TCP ACK SRCPORT 40100 DSTPORT 8080 WIN 64240 WAIT 2ms
-    client -> server TCP PSH ACK SRCPORT 40100 DSTPORT 8080 PAYLOAD "PING_12345" WAIT 5ms
-    client <- server TCP PSH ACK SRCPORT 8080 DSTPORT 40100 PAYLOAD "PONG_ABCDEFGHIJ" WAIT 5ms
-    client -> server TCP PSH ACK SRCPORT 40100 DSTPORT 8080 PAYLOAD "FINAL_BLOCK" WAIT 5ms
-    client <- server TCP FIN ACK SRCPORT 8080 DSTPORT 40100 WAIT 5ms
-    client -> server TCP FIN ACK SRCPORT 40100 DSTPORT 8080 WAIT 5ms
+flow auto_sequence_tracking(client, server) {
+    client -> server tcp syn srcport 40100 dstport 8080 win 64240 wait 5ms
+    client <- server tcp syn ack srcport 8080 dstport 40100 win 64240 wait 5ms
+    client -> server tcp ack srcport 40100 dstport 8080 win 64240 wait 2ms
+    client -> server tcp psh ack srcport 40100 dstport 8080 payload "PING_12345" wait 5ms
+    client <- server tcp psh ack srcport 8080 dstport 40100 payload "PONG_ABCDEFGHIJ" wait 5ms
+    client -> server tcp psh ack srcport 40100 dstport 8080 payload "FINAL_BLOCK" wait 5ms
+    client <- server tcp fin ack srcport 8080 dstport 40100 wait 5ms
+    client -> server tcp fin ack srcport 40100 dstport 8080 wait 5ms
 }
 
 // INSTRUCTION: Compile block to run the automatic TCP sequence tracking flow.
-COMPILE {
+compile {
     auto_sequence_tracking(auto_seq_client, auto_seq_server)
 }

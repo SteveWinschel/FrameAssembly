@@ -1,18 +1,18 @@
 // PROMPT: BACnet/IP building automation unconfirmed Who-Is device discovery broadcast.
-// TOKENS: HOST, IP, FLOW, BACNET, WHO_IS, COMPILE
+// TOKENS: host, ip, flow, s, bacnet, whois, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.10.50 }
+host client { ip 192.168.10.50 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.168.10.255 }
+host server { ip 192.168.10.255 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW bacnet_whois(c, s) {
-    c -> s BACNET WHO_IS
+flow bacnet_whois(c, s) {
+    c -> s bacnet whois
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     bacnet_whois(client, server)
 }

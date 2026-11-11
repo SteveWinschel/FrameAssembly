@@ -1,24 +1,24 @@
 // PROMPT: NetFlow v5 export measuring 95th-percentile CDN HTTPS video streaming egress traffic for billing.
-// TOKENS: HOST, IP, MAC, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+// TOKENS: host, ip, mac, flow, netflow, srcip, dstip, srcport, dstport, proto, packets, octets, compile
 
 // INSTRUCTION: Define CDN edge PoP egress router.
-HOST cdn_pop_rtr {
-    IP 192.0.2.1
-    MAC 00:24:dc:02:00:01
+host cdn_pop_rtr {
+    ip 192.0.2.1
+    mac 00:24:dc:02:00:01
 }
 
 // INSTRUCTION: Define CDN billing and settlement NetFlow collector.
-HOST billing_collector {
-    IP 192.0.2.250
-    MAC 00:24:dc:02:00:fa
+host billing_collector {
+    ip 192.0.2.250
+    mac 00:24:dc:02:00:fa
 }
 
 // INSTRUCTION: Export high-volume TCP port 443 video delivery flow records.
-FLOW netflow_cdn_billing(pop, bill) {
-    pop -> bill NETFLOW SRCIP 192.0.2.100 DSTIP 198.51.100.42 SRCPORT 443 DSTPORT 59120 PROTO 6 PACKETS 210000 OCTETS 304500000
+flow netflow_cdn_billing(pop, bill) {
+    pop -> bill netflow srcip 192.0.2.100 dstip 198.51.100.42 srcport 443 dstport 59120 proto 6 packets 210000 octets 304500000
 }
 
 // INSTRUCTION: Compile the CDN HTTPS video streaming billing NetFlow scenario.
-COMPILE {
+compile {
     netflow_cdn_billing(cdn_pop_rtr, billing_collector)
 }

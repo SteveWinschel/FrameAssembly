@@ -1,18 +1,18 @@
 // PROMPT: PostgreSQL database protocol v3 frontend startup and simple query execution on TCP 5432.
-// TOKENS: HOST, IP, FLOW, POSTGRES, QUERY, SQL, COMPILE
+// TOKENS: host, ip, flow, s, postgres, query, sql, compile
 
 // INSTRUCTION: Define PostgreSQL application client.
-HOST pg_client { IP 10.0.3.10 }
+host pg_client { ip 10.0.3.10 }
 
 // INSTRUCTION: Define PostgreSQL database server.
-HOST pg_server { IP 10.0.3.1 }
+host pg_server { ip 10.0.3.1 }
 
 // INSTRUCTION: Define PostgreSQL database query flow.
-FLOW postgres_flow(c, s) {
-    c -> s POSTGRES QUERY SQL "SELECT version()"
+flow postgres_flow(c, s) {
+    c -> s postgres query sql "SELECT version()"
 }
 
 // INSTRUCTION: Compile block executing PostgreSQL query.
-COMPILE {
+compile {
     postgres_flow(pg_client, pg_server)
 }

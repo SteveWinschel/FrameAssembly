@@ -1,18 +1,18 @@
 // PROMPT: Redis RESP simple PING heartbeat command.
-// TOKENS: HOST, IP, FLOW, REDIS, CMD, COMPILE
+// TOKENS: host, ip, flow, s, redis, cmd, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.10 }
+host client { ip 192.168.1.10 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.168.1.1 }
+host server { ip 192.168.1.1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW redis_ping(c, s) {
-    c -> s REDIS CMD "PING"
+flow redis_ping(c, s) {
+    c -> s redis cmd "PING"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     redis_ping(client, server)
 }

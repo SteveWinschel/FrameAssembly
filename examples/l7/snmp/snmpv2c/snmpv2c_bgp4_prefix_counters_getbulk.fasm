@@ -1,25 +1,25 @@
 // PROMPT: SNMPv2c GetBulkRequest retrieving BGP peer in-updates, out-updates, and state across peering sessions.
-// TOKENS: HOST, IP, MAC, FLOW, SNMP2, GETBULK, COMMUNITY, REQID, NONREPEATERS, MAXREPETITIONS, VARBIND, NULLVAL, RESPONSE, TIMETICKS, COUNTER32, COMPILE
+// TOKENS: host, ip, mac, flow, snmp2, getbulk, community, reqid, nonrepeaters, maxrepetitions, varbind, nullval, response, timeticks, counter32, compile
 
 // INSTRUCTION: Define the looking-glass BGP collector host.
-HOST lg_collector {
-    IP 10.146.60.20
-    MAC 00:1a:2b:92:60:20
+host lg_collector {
+    ip 10.146.60.20
+    mac 00:1a:2b:92:60:20
 }
 
 // INSTRUCTION: Define the route reflector agent.
-HOST route_reflector {
-    IP 10.146.60.1
-    MAC 00:1a:2b:92:60:01
+host route_reflector {
+    ip 10.146.60.1
+    mac 00:1a:2b:92:60:01
 }
 
 // INSTRUCTION: Execute SNMP2 GETBULK with NONREPEATERS 1 MAXREPETITIONS 5 on sysUpTime and bgpPeerInUpdates.
-FLOW snmpv2c_bgp_bulk(c, r) {
-    c -> r SNMP2 GETBULK COMMUNITY "rr_public" REQID 4800 NONREPEATERS 1 MAXREPETITIONS 5 VARBIND 1.3.6.1.2.1.1.3.0 NULLVAL VARBIND 1.3.6.1.2.1.15.3.1.10 NULLVAL
-    c <- r SNMP2 RESPONSE COMMUNITY "rr_public" REQID 4800 VARBIND 1.3.6.1.2.1.1.3.0 TIMETICKS 44192000 VARBIND 1.3.6.1.2.1.15.3.1.10.1 COUNTER32 184920
+flow snmpv2c_bgp_bulk(c, r) {
+    c -> r snmp2 getbulk community "rr_public" reqid 4800 nonrepeaters 1 maxrepetitions 5 varbind 1.3.6.1.2.1.1.3.0 nullval varbind 1.3.6.1.2.1.15.3.1.10 nullval
+    c <- r snmp2 response community "rr_public" reqid 4800 varbind 1.3.6.1.2.1.1.3.0 timeticks 44192000 varbind 1.3.6.1.2.1.15.3.1.10.1 counter32 184920
 }
 
 // INSTRUCTION: Compile the SNMPv2c BGP peer updates GetBulk flow.
-COMPILE {
+compile {
     snmpv2c_bgp_bulk(lg_collector, route_reflector)
 }

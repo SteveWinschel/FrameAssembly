@@ -1,19 +1,19 @@
 // PROMPT: DNP3 Analog Output setpoint command (Group 41 Variation 2) with explicit CRC override.
-// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, CRC, PAYLOAD, COMPILE
+// TOKENS: host, ip, flow, m, dnp3, func, src, dst, group, variation, crc, payload, compile
 
 // INSTRUCTION: Define hydro generation dispatch master.
-HOST hydro_master { IP 172.30.5.1 }
+host hydro_master { ip 172.30.5.1 }
 
 // INSTRUCTION: Define turbine governor PLC outstation.
-HOST turbine_plc { IP 172.30.5.20 }
+host turbine_plc { ip 172.30.5.20 }
 
 // INSTRUCTION: Issue Direct Operate on Analog Output Block (Group 41 Var 2) with custom CRC.
-FLOW dnp3_analog_setpoint(m, p) {
-    m -> p DNP3 FUNC "DIRECT_OPERATE" SRC 10 DST 20 GROUP 41 VARIATION 2 CRC 0xe5a2 PAYLOAD "\x00\x00\x01\xf4\x00"
-    m <- p DNP3 FUNC "RESPONSE" SRC 20 DST 10 GROUP 41 VARIATION 2 CRC 0x91c4
+flow dnp3_analog_setpoint(m, p) {
+    m -> p dnp3 func "directoperate" src 10 dst 20 group 41 variation 2 crc 0xe5a2 payload "\x00\x00\x01\xf4\x00"
+    m <- p dnp3 func "response" src 20 dst 10 group 41 variation 2 crc 0x91c4
 }
 
 // INSTRUCTION: Compile the DNP3 analog output governor setpoint flow.
-COMPILE {
+compile {
     dnp3_analog_setpoint(hydro_master, turbine_plc)
 }

@@ -1,18 +1,18 @@
 // PROMPT: TFTP error notification packet indicating file not found over IPv6.
-// TOKENS: HOST, IP, FLOW, TFTP, ERRCODE, ERRMSG, COMPILE
+// TOKENS: host, ip, flow, s, tftp, errcode, errmsg, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 2001:db8::15 }
+host client { ip 2001:db8::15 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 2001:db8::1 }
+host server { ip 2001:db8::1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW tftp_err(c, s) {
-    c <- s TFTP ERRCODE 1 ERRMSG "File not found"
+flow tftp_err(c, s) {
+    c <- s tftp errcode 1 errmsg "File not found"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     tftp_err(client, server)
 }

@@ -2,13 +2,13 @@
 //!
 //! Serializes an [`Ikev2Spec`] into a 28-byte RFC 7296 IKEv2 header (plus optional payload octets)
 //! encapsulated over UDP destination port `500`. The wire builder writes the 64-bit big-endian
-//! `Initiator SPI` (`INITIATOR_SPI`, default `0x0102030405060708`), 64-bit big-endian `Responder SPI`
-//! (`RESPONDER_SPI`, default `0`), 8-bit `Next Payload` (`NEXT_HEADER`, default `0`), Version byte
-//! `0x20` (v2.0), 8-bit `Exchange Type` (`34` `SA_INIT`, `35` `AUTH`, `36` `CREATE_CHILD_SA`, `37`
-//! `INFORMATIONAL`), 8-bit `Flags` (`0x08` Initiator), 32-bit `Message ID` (`MSGID`), and 32-bit `Length`.
+//! `Initiator SPI` (`initiatorspi`, default `0x0102030405060708`), 64-bit big-endian `Responder SPI`
+//! (`responderspi`, default `0`), 8-bit `Next Payload` (`nextheader`, default `0`), Version byte
+//! `0x20` (v2.0), 8-bit `Exchange Type` (`34` `sainit`, `35` `auth`, `36` `createchildsa`, `37`
+//! `informational`), 8-bit `Flags` (`0x08` Initiator), 32-bit `Message ID` (`msgid`), and 32-bit `Length`.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b IKEV2 [EXCHANGE <SA_INIT|AUTH|CREATE_CHILD_SA|INFORMATIONAL>] [INITIATOR_SPI <u64>] [RESPONDER_SPI <u64>] [MSGID <u32>] [FLAGS <u8>] [NEXT_HEADER <u8>]`
+//! `a -> b ikev2 [exchange <sainit|auth|createchildsa|informational>] [initiatorspi <u64>] [responderspi <u64>] [msgid <u32>] [flags <u8>] [nextheader <u8>]`
 
 use crate::ast::*;
 use alloc::vec::Vec;

@@ -1,6 +1,6 @@
-//! Trivial File Transfer Protocol (`TFTP`, RFC 1350) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Trivial File Transfer Protocol (`tftp`, RFC 1350) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for RFC 1350 `TFTP` datagrams carried
+//! This module implements the fuzz-safe reverse dissector for RFC 1350 `tftp` datagrams carried
 //! over UDP port `69` and ephemeral data-transfer port pairs. It validates 16-bit big-endian
 //! opcodes and NUL-terminated ASCII fields to decode Read Requests (`rrq`), Write Requests
 //! (`wrq`), Data blocks (`data`), Acknowledgments (`ack`), and Error messages (`error`),

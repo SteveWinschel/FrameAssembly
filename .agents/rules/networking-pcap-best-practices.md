@@ -1,7 +1,7 @@
 ---
 trigger: glob
 globs: "src/packet.rs, src/pcap.rs, src/backend/**, src/builders/**, src/reverse/**, tests/**/*.rs"
-description: "Native RFC L2-L7 wire packet crafting, checksums, 4-tuple state machine constants, pcap-file 2.0.0 PCAPNG quirks, etherparse 0.21.0 PCAP-to-.fasm decompilation, and 81-protocol tshark QA invariants."
+description: "Native RFC L2-L7 wire packet crafting, case-insensitive enum string normalization, checksums, 4-tuple state machine constants, pcap-file 2.0.0 PCAPNG quirks, etherparse 0.21.0 PCAP-to-.fasm decompilation, and 81-protocol tshark QA invariants."
 ---
 
 # Networking, Native RFC Wire Crafting, PCAPNG & Decompilation Best Practices
@@ -9,11 +9,11 @@ description: "Native RFC L2-L7 wire packet crafting, checksums, 4-tuple state ma
 Enforce these rootless, offline, wire-exact RFC packet synthesis, `pcap-file 2.0.0`, and `etherparse 0.21.0` PCAP-to-`.fasm` decompilation rules across `src/packet.rs`, `src/pcap.rs`, `src/backend/`, `src/builders/`, and `src/reverse/`:
 
 ## 1. Forward Native Wire Synthesis vs. PCAP-to-`.fasm` Decompilation
-- **Forward Wire Synthesis (`src/packet.rs`, `src/builders/`)**: Uses 100% zero-heap native Rust 2024 slice operations (`etherparse::PacketBuilder` and `libpcap` are never used).
-- **PCAP/PCAPNG-to-`.fasm` Decompilation (`src/reverse/`)**: Uses `etherparse = { version = "0.21.0", default-features = false, features = ["std"] }` for zero-copy L2–L4 header slicing and `pcap-file = "2.0.0"` (`PcapNgReader` and `PcapReader`) for container reading.
+- **Forward Wire Synthesis (`src/packet.rs`, `src/builders/`)**: Uses 100% zero-heap native Rust 2024 slice operations (`etherparse::PacketBuilder` and `libpcap` are never used), normalizing `_` and `-` case-insensitively on quoted protocol enum strings (e.g., `qtype "a"` or `"A"`).
+- **PCAP/PCAPNG-to-`.fasm` Decompilation (`src/reverse/`)**: Uses `etherparse = { version = "0.21.0", default-features = false, features = ["std"] }` for zero-copy L2–L4 header slicing and `pcap-file = "2.0.0"` (`PcapNgReader` and `PcapReader`) for container reading, emitting v2.0.0 strict-lowercase `[a-z0-9]+` keywords without `_` or `-`, `host1`/`host2` host names, and direct flow calls in `compile` (never `loop`).
 - **Inner-Outward Encapsulation Order (`src/packet.rs`)**:
   1. **L7 Payload** (`src/builders/l7/`) -> 2. **L4 Segment/Datagram** (`build_tcp_segment`, `build_udp_datagram`, `build_sctp_payload` with 4-byte padded options/chunks) -> 3. **L3 Packet** (`build_ipv4_header`, `build_ipv6_header` with strict `(V4, V4)` or `(V6, V6)` family homogeneity) -> 4. **L2 Frame** (`build_ethernet_and_l2`: `0x88A8` QinQ S-Tag -> `0x8100` C-Tag/VLAN -> `0x8847` MPLS shim with **no** extra EtherType after MPLS -> inner packet).
-- **Pure L2 MAC-Only EtherType `0x88B5` Fallback**: When `VLAN` (`src/builders/l2/vlan.rs`) or `QINQ` (`src/builders/l2/qinq.rs`) executes between MAC-only hosts with no IP (`ctx.src_ip.is_unspecified() || ctx.dst_ip.is_unspecified()`), default the inner EtherType to `l2.ethertype.unwrap_or(0x88B5)` (IEEE 802.1 Local Experimental) and wrap `payload` directly without synthesizing an IP/UDP header.
+- **Pure L2 MAC-Only EtherType `0x88B5` Fallback**: When `vlan` (`src/builders/l2/vlan.rs`) or `qinq` (`src/builders/l2/qinq.rs`) executes between MAC-only hosts with no IP (`ctx.src_ip.is_unspecified() || ctx.dst_ip.is_unspecified()`), default the inner EtherType to `l2.ethertype.unwrap_or(0x88B5)` (IEEE 802.1 Local Experimental) and wrap `payload` directly without synthesizing an IP/UDP header.
 
 ## 2. Checksum & CRC Engines (Zero Intermediate Heap Concatenation)
 - **Disjoint-Slice RFC 1071 Checksum (`internet_checksum(data: &[&[u8]]) -> u16`)**: Accumulate 16-bit big-endian words via `slice.as_chunks::<2>()` directly over `&[&pseudo, &header, payload]` without allocating a contiguous `Vec<u8>`.
@@ -27,8 +27,8 @@ Enforce these rootless, offline, wire-exact RFC packet synthesis, `pcap-file 2.0
 
 ## 3. Deterministic Backend Constants & 4-Tuple State (`src/backend/mod.rs`)
 - **Clock & Timing**: Base epoch starts at `1_700_000_000_000_000_000` ns; each statement adds `stmt.wait.unwrap_or(10_000_000)` (`10ms`) *before* emitting its frame. `frameassembly show` subtracts frame 1's timestamp so frame 1 displays at `0.000` ms.
-- **MAC & TTL Defaults**: `derive_mac` resolves `stmt_mac` -> protocol group MAC (`LLDP`, `STP`, `LACP`, `EAPOL`, broadcast `ARP` request) -> multicast IP (`01:00:5e:xx:xx:xx` / `33:33:xx:xx:xx:xx`) -> `host_mac` -> `00:00:00:00:00:01` (caller) / `02` (callee). Auto-default `TTL = 255` when omitted on `Ndp`, `Vrrp`, and IPv6 `Arp` (which polymorphically emits NDP NS `135` / NA `136`).
-- **Two-Stage Ports & 4-Tuple TCP**: `EndpointPairPorts` tracks `(caller_port, callee_port)` across `->` (default `srcport 12345`) and `<-` (automatic port swap). `Canonical4Tuple` initializes `seq1 = 1000`, `seq2 = 1000`, default `win = 64240`, advancing `seq` by `payload_len + SYN + FIN` (`wrapping_add`).
+- **MAC & TTL Defaults**: `derive_mac` resolves `stmt_mac` -> protocol group MAC (`lldp`, `stp`, `lacp`, `eapol`, broadcast `arp` request) -> multicast IP (`01:00:5e:xx:xx:xx` / `33:33:xx:xx:xx:xx`) -> `host_mac` -> `00:00:00:00:00:01` (caller) / `02` (callee). Auto-default `ttl = 255` when omitted on `ndp`, `vrrp`, and IPv6 `arp` (which polymorphically emits NDP NS `135` / NA `136`).
+- **Two-Stage Ports & 4-Tuple TCP**: `EndpointPairPorts` tracks `(caller_port, callee_port)` across `->` (default `srcport 12345`) and `<-` (automatic port swap). `Canonical4Tuple` initializes `seq1 = 1000`, `seq2 = 1000`, default `win = 64240`, advancing `seq` by `payload_len + syn + fin` (`wrapping_add`).
 
 ## 4. `pcap-file 2.0.0` Invariants & Critical Quirks (`src/pcap.rs`)
 - **Exact Enums**: `PcapError` has 6 variants (`IncompleteBuffer`, `IoError`, `InvalidField`, `Utf8Error`, `FromUtf8Error`, `InvalidInterfaceId`); `pcapng::Block<'a>` has 9 variants.
@@ -38,8 +38,8 @@ Enforce these rootless, offline, wire-exact RFC packet synthesis, `pcap-file 2.0
   2. `InterfaceDescriptionOption::IfTzone` has a fatal 1-byte vs 4-byte read bug in `pcap-file 2.0.0`—**never** emit `IfTzone`!
 
 ## 5. Key Wire & `tshark` Dissector QA Invariants
-- Preserve `L7DispatchResult` in `l7_dispatch.rs` (`DHCP` `68/67` & `546/547`, `MDNS` `5353` + multicast IP, `PTP` `319/320`, `RADIUS` `1812/1813` + reverse `<-` `src_port`).
-- Maintain full RFC wire structures: `GRE` `CHECKSUM` at `gre[4..6]`; `GENEVE` `0x6558` & `VXLAN` 42B inner Ethernet+IPv4+UDP frame; `WIREGUARD` `DATA` `>= 32`B (16B Poly1305 tag); `RSTP` 36th byte `0x00`; `EAP` Success/Failure 4B; `QUIC` Long Header 2B varint `0x4000 | len`; `IPFIX` lengths including payload; `SFLOW` v5 Flow Sample 32B (`8 x u32`) header; complete 8-field RFC 4511 BER `SearchRequest` in `ldap.rs`; complete explicit-tag RFC 4120 DER `KDC-REQ`/`KDC-REP`/`KRB-ERROR` in `kerberos.rs`; `MYSQL` 3B LE length; `POSTGRES` `'Q'` 4B BE length including self; `SMB` 4B NetBIOS + 64B LE `\xFESMB`; `NFS` `0x80000000 | len` RPC record mark; `MODBUS` MBAP `len = 1 + pdu.len()`; `S7COMM` 10B Job / 12B Ack_Data; `ETHERNETIP` 24B LE header; `OPCUA` 8B LE UACP header.
+- Preserve `L7DispatchResult` in `l7_dispatch.rs` (`dhcp` `68/67` & `546/547`, `mdns` `5353` + multicast IP, `ptp` `319/320`, `radius` `1812/1813` + reverse `<-` `src_port`).
+- Maintain full RFC wire structures: `gre` `checksum` at `gre[4..6]`; `geneve` `0x6558` & `vxlan` 42B inner Ethernet+IPv4+UDP frame; `wireguard` `data` `>= 32`B (16B Poly1305 tag); `rstp` 36th byte `0x00`; `eap` Success/Failure 4B; `quic` Long Header 2B varint `0x4000 | len`; `ipfix` lengths including payload; `sflow` v5 Flow Sample 32B (`8 x u32`) header; complete 8-field RFC 4511 BER `SearchRequest` in `ldap.rs`; complete explicit-tag RFC 4120 DER `KDC-REQ`/`KDC-REP`/`KRB-ERROR` in `kerberos.rs`; `mysql` 3B LE length; `postgres` `'Q'` 4B BE length including self; `smb` 4B NetBIOS + 64B LE `\xFESMB`; `nfs` `0x80000000 | len` RPC record mark; `modbus` MBAP `len = 1 + pdu.len()`; `s7comm` 10B Job / 12B Ack_Data; `ethernetip` 24B LE header; `opcua` 8B LE UACP header.
 
 ## 6. `etherparse 0.21.0` & PCAP-to-`.fasm` Decompiler Invariants (`src/reverse/`)
 - **`etherparse 0.21.0` APIs**:

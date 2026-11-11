@@ -1,32 +1,34 @@
-# WebAssembly (`frameassembly-wasm`) & VS Code Extension (`frameassembly-vscode`) Reference Patterns
+# WebAssembly (`frameassembly-wasm`) & VS Code Packet Studio (`frameassembly-vscode`) Reference Patterns (v2.0.0)
 
-This reference document provides complete, production-verified templates for `frameassembly-wasm/Cargo.toml`, `frameassembly-wasm/src/lib.rs`, `frameassembly-vscode/package.json`, `language-configuration.json`, TextMate grammar definitions (`source.frameassembly` and `markdown.frameassembly.codeblock`), and GitHub Actions OIDC Trusted Publishing workflows.
+This reference document provides complete, production-verified v2.0.0 templates for `frameassembly-wasm/Cargo.toml`, `frameassembly-wasm/src/lib.rs`, `frameassembly-vscode/package.json`, `frameassembly-vscode/extension.js`, `language-configuration.json`, strict-lowercase TextMate grammar definitions (`source.frameassembly` and `markdown.frameassembly.codeblock`), and GitHub Actions OIDC Trusted Publishing workflows across supported release channels only (GitHub Releases + `.deb`, Crates.io, NPM `frameassembly-wasm`, VS Code Marketplace, and `SteveWinschel/homebrew-tap-FrameAssembly` for `Homebrew` & `Scoop`).
 
 ---
 
-## 1. `frameassembly-wasm/Cargo.toml` Production Manifest
+## 1. `frameassembly-wasm/Cargo.toml` Production Manifest (`v2.0.0`)
 
 Configures `crate-type = ["cdylib", "rlib"]`, `miette = { version = "7.6.0", default-features = false }` (avoiding terminal/filesystem dependencies on `wasm32-unknown-unknown`), `wasm-bindgen = "0.2.130"`, `serde-wasm-bindgen = "0.6.5"`, and `[package.metadata.wasm-pack.profile.release] wasm-opt = false` so `wasm-pack 0.15.1` preserves bulk-memory and multivalue instructions emitted by `rustc 1.99.1`.
 
 ```toml
 [package]
 name = "frameassembly-wasm"
-version = "1.5.1"
+version = "2.0.0"
 edition = "2024"
+rust-version = "1.85"
 authors = ["Steve Winschel"]
-description = "WebAssembly compiler, packet inspector, and IDE diagnostics for the FrameAssembly (.fasm) network packet synthesis DSL"
+description = "Compile .fasm network traffic code to .pcapng and decompile .pcap/.pcapng captures in WebAssembly across 81 L2-L7 protocols with live IDE diagnostics."
 license = "MIT"
+documentation = "https://docs.rs/frameassembly-wasm"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
 homepage = "https://frameassembly.ai.studio/"
-keywords = ["frameassembly", "pcap", "pcapng", "wireshark", "wasm"]
+readme = "README.md"
+keywords = ["frameassembly", "pcap", "pcapng", "packet-generator", "wasm"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-frameassembly = { path = "..", version = "1.5.1" }
+frameassembly = { path = "..", version = "2.0.0" }
 miette = { version = "7.6.0", default-features = false }
-pcap-file = "2.0.0"
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
 wasm-bindgen = "0.2.130"
@@ -43,24 +45,20 @@ wasm-opt = false
 
 ---
 
-## 2. `frameassembly-wasm/src/lib.rs` Complete Implementation
+## 2. `frameassembly-wasm/src/lib.rs` Complete v2.0.0 Implementation
 
-Exposes `validate_fasm`, `inspect_fasm`, and `compile_fasm_to_pcapng` with typed TypeScript declarations (`#[wasm_bindgen(typescript_custom_section)]` + `unchecked_return_type`), zero uncaught panics (`Result<JsValue, JsError>` / `Result<Vec<u8>, JsError>`), UTF-8 byte offset to zero-based UTF-16 `(line, col)` conversion (`byte_offset_to_utf16_line_col`), and in-memory PCAPNG serialization (`PcapNgWriter::new(Vec::new())` / direct block writer without `std::fs`).
+Exposes `validate_fasm` (`validateFasm`), `inspect_fasm`, `compile_fasm_to_pcapng` (`compileFasm`), and `reverse_pcap` (`reversePcap`) with typed TypeScript declarations, `find_backend_error_span` (resolving backend compilation errors to the offending identifier or `compile` block instead of `(0, 0)`), preserved `help` hints for 1-click Quick Fixes, enriched `PacketPreview` (`source_dest`, `protocol`, `summary`), and in-memory PCAPNG serialization/decompilation.
 
 ```rust
-//! WebAssembly bindings, frame inspector, and UTF-16 IDE diagnostics for the FrameAssembly
-//! (`.fasm`) network packet synthesis compiler.
-//!
-//! This crate exposes `validate_fasm`, `inspect_fasm`, and `compile_fasm_to_pcapng` to browser
-//! environments and web-based code editors (Monaco, CodeMirror, VS Code Web) via `wasm-bindgen`.
-//! It compiles declarative `.fasm` specifications across all 81 native Layer 2 through Layer 7
-//! protocols into deterministic nanosecond-resolution PCAPNG byte arrays (`Uint8Array`) and maps
-//! compiler spans into zero-based UTF-16 line and column coordinates.
+//! WebAssembly bindings, PCAP/PCAPNG-to-`.fasm` decompiler, frame inspector, and UTF-16 IDE
+//! diagnostics for the FrameAssembly (`.fasm` v2.0.0) network packet synthesis compiler.
 
 use std::fmt::Write;
+use std::net::{Ipv4Addr, Ipv6Addr};
 
 use frameassembly::backend::compile_program;
 use frameassembly::parser::parse_program;
+use frameassembly::reverse::reverse_pcap_bytes;
 use miette::Diagnostic;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -82,11 +80,21 @@ export interface PacketPreview {
     timestamp_ms: number;
     length: number;
     hex: string;
+    source_dest: string;
+    protocol: string;
+    summary: string;
+}
+
+export interface ReversePcapResult {
+    success: boolean;
+    fasm: string;
+    packetCount: number;
+    hostCount: number;
 }
 "#;
 
-/// Zero-based UTF-16 source range diagnostic and remediation hint for browser code editors.
-#[derive(Serialize)]
+/// Zero-based UTF-16 source range diagnostic and remediation hint for browser and IDE code editors.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct IdeDiagnostic {
     /// Zero-based starting line index.
     pub start_line: u32,
@@ -98,12 +106,12 @@ pub struct IdeDiagnostic {
     pub end_col: u32,
     /// Primary diagnostic error message.
     pub message: String,
-    /// Optional plain-English remediation hint.
+    /// Optional plain-English remediation hint (including v2.0.0 lowercase keyword quick-fix hints).
     pub help: Option<String>,
 }
 
-/// Summary metadata and hexadecimal wire dump for a single synthesized Ethernet frame.
-#[derive(Serialize)]
+/// Summary metadata, protocol dissection, and hexadecimal wire dump for a synthesized Ethernet frame.
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct PacketPreview {
     /// One-based frame sequence index in the capture.
     pub index: usize,
@@ -113,10 +121,30 @@ pub struct PacketPreview {
     pub length: usize,
     /// Space-delimited lowercase hexadecimal representation of the frame bytes.
     pub hex: String,
+    /// Formatted `source -> destination` IPv4, IPv6, or MAC endpoint pair.
+    pub source_dest: String,
+    /// Dissected highest-layer protocol label (e.g. `DNS`, `SNMP`, `MODBUS`, `TCP`, `ARP`).
+    pub protocol: String,
+    /// Human-readable Ethernet/VLAN/QinQ/MPLS/L3/L4/L7 frame summary string.
+    pub summary: String,
+}
+
+/// Decompilation summary and canonical `.fasm` code returned by [`reverse_pcap`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReversePcapResult {
+    /// Indicates that the binary capture was decompiled into `.fasm` code (`true`).
+    pub success: bool,
+    /// Generated canonical strict-lowercase `.fasm` source code (`host1`, `host2`, zero `loop`).
+    pub fasm: String,
+    /// Total number of packets reversed from the capture.
+    pub packet_count: usize,
+    /// Total number of `host1`, `host2`, ... definitions emitted in the `.fasm` program.
+    pub host_count: usize,
 }
 
 /// Converts a UTF-8 byte offset within `source` into a zero-based `(line, utf16_col)` pair
-/// suitable for Monaco Editor, CodeMirror 6, and VS Code Web diagnostics.
+/// suitable for Monaco Editor, CodeMirror 6, and VS Code diagnostics.
 pub fn byte_offset_to_utf16_line_col(source: &str, byte_offset: usize) -> (u32, u32) {
     let clamped = byte_offset.min(source.len());
     let safe_end = (0..=clamped)
@@ -133,7 +161,26 @@ pub fn byte_offset_to_utf16_line_col(source: &str, byte_offset: usize) -> (u32, 
     (line, col)
 }
 
-/// Validates `.fasm` source and returns UTF-16 line/column diagnostics for Monaco/CodeMirror.
+/// Locates the `compile` block keyword or offending single-quoted identifier span in `source`
+/// so backend compilation errors never highlight `(0, 0)` when a `compile` block is present.
+pub fn find_backend_error_span(source: &str, err_msg: &str) -> (usize, usize) {
+    if let Some(q1) = err_msg.find('\'')
+        && let Some(q2) = err_msg[q1 + 1..].find('\'')
+    {
+        let subject = &err_msg[q1 + 1..q1 + 1 + q2];
+        if !subject.is_empty()
+            && let Some(idx) = source.rfind(subject)
+        {
+            return (idx, idx + subject.len());
+        }
+    }
+    if let Some(idx) = source.rfind("compile") {
+        return (idx, idx + "compile".len());
+    }
+    (0, source.len().min(1))
+}
+
+/// Validates `.fasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
 #[wasm_bindgen(unchecked_return_type = "IdeDiagnostic[]")]
 pub fn validate_fasm(source: &str) -> Result<JsValue, JsError> {
     let mut diagnostics = Vec::new();
@@ -141,11 +188,15 @@ pub fn validate_fasm(source: &str) -> Result<JsValue, JsError> {
     match parse_program(source) {
         Ok(program) => {
             if let Err(err) = compile_program(&program) {
+                let (start_byte, end_byte) = find_backend_error_span(source, &err);
+                let (start_line, start_col) = byte_offset_to_utf16_line_col(source, start_byte);
+                let (end_line, end_col) =
+                    byte_offset_to_utf16_line_col(source, end_byte.max(start_byte + 1));
                 diagnostics.push(IdeDiagnostic {
-                    start_line: 0,
-                    start_col: 0,
-                    end_line: 0,
-                    end_col: 1,
+                    start_line,
+                    start_col,
+                    end_line,
+                    end_col,
                     message: err,
                     help: None,
                 });
@@ -157,11 +208,11 @@ pub fn validate_fasm(source: &str) -> Result<JsValue, JsError> {
     Ok(serde_wasm_bindgen::to_value(&diagnostics)?)
 }
 
-/// Returns decoded frame metadata and hex strings for a browser packet inspector.
+/// Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for packet ladder inspectors.
 #[wasm_bindgen(unchecked_return_type = "PacketPreview[]")]
 pub fn inspect_fasm(source: &str) -> Result<JsValue, JsError> {
     let program = parse_program(source).map_err(|e| JsError::new(&e.to_string()))?;
-    let packets = compile_program(&program).map_err(|e| JsError::new(&e.to_string()))?;
+    let packets = compile_program(&program).map_err(|e| JsError::new(&e))?;
     let base_ns = packets.first().map_or(0, |(_, ts)| *ts);
 
     let previews: Vec<PacketPreview> = packets
@@ -175,11 +226,15 @@ pub fn inspect_fasm(source: &str) -> Result<JsValue, JsError> {
                 }
                 let _ = write!(hex, "{b:02x}");
             }
+            let (source_dest, protocol, summary) = summarize_ethernet_frame(bytes);
             PacketPreview {
                 index: idx + 1,
                 timestamp_ms: ts_ns.saturating_sub(base_ns) as f64 / 1_000_000.0,
                 length: bytes.len(),
                 hex,
+                source_dest,
+                protocol,
+                summary,
             }
         })
         .collect();
@@ -188,61 +243,49 @@ pub fn inspect_fasm(source: &str) -> Result<JsValue, JsError> {
 }
 
 /// Compiles `.fasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
-///
-/// Never calls `std::fs::File::create`; serializes `SHB -> IDB -> EPBs` strictly in memory.
 #[wasm_bindgen]
 pub fn compile_fasm_to_pcapng(source: &str) -> Result<Vec<u8>, JsError> {
     let program = parse_program(source).map_err(|e| JsError::new(&e.to_string()))?;
-    let packets = compile_program(&program).map_err(|e| JsError::new(&e.to_string()))?;
+    let packets = compile_program(&program).map_err(|e| JsError::new(&e))?;
     Ok(packets_to_pcapng(&packets))
 }
 
-/// Serializes `(frame_bytes, timestamp_ns)` tuples into an in-memory PCAPNG byte vector
-/// using `pcap_file::pcapng::PcapNgWriter::new(Vec::new())` with nanosecond resolution (`IfTsResol(9)`).
-pub fn packets_to_pcapng_via_writer(packets: &[(Vec<u8>, u64)]) -> Result<Vec<u8>, JsError> {
-    use std::borrow::Cow;
-    use std::time::Duration;
-    use pcap_file::DataLink;
-    use pcap_file::pcapng::blocks::enhanced_packet::EnhancedPacketBlock;
-    use pcap_file::pcapng::blocks::interface_description::{
-        InterfaceDescriptionBlock, InterfaceDescriptionOption,
+/// Decompiles an in-memory `.pcap` or `.pcapng` capture (`Uint8Array`) into canonical v2.0.0 `.fasm` code.
+#[wasm_bindgen(unchecked_return_type = "ReversePcapResult")]
+pub fn reverse_pcap(pcap_bytes: &[u8]) -> Result<JsValue, JsError> {
+    let out = reverse_pcap_bytes(pcap_bytes).map_err(|e| JsError::new(&e.to_string()))?;
+    let result = ReversePcapResult {
+        success: true,
+        fasm: out.fasm,
+        packet_count: out.packet_count,
+        host_count: out.host_count,
     };
-    use pcap_file::pcapng::{PcapNgBlock, PcapNgWriter};
-
-    let mut writer = PcapNgWriter::new(Vec::new())
-        .map_err(|e| JsError::new(&format!("Failed to initialize in-memory PcapNgWriter: {e}")))?;
-
-    let interface = InterfaceDescriptionBlock {
-        linktype: DataLink::ETHERNET,
-        snaplen: 65535,
-        options: vec![InterfaceDescriptionOption::IfTsResol(9)],
-    };
-    writer
-        .write_block(&interface.into_block())
-        .map_err(|e| JsError::new(&format!("Failed to write PCAPNG IDB: {e}")))?;
-
-    for (frame, ts_ns) in packets {
-        let epb = EnhancedPacketBlock {
-            interface_id: 0,
-            timestamp: Duration::from_nanos(*ts_ns),
-            original_len: frame.len() as u32,
-            data: Cow::Borrowed(frame),
-            options: vec![],
-        };
-        writer
-            .write_block(&epb.into_block())
-            .map_err(|e| JsError::new(&format!("Failed to write PCAPNG EPB: {e}")))?;
-    }
-
-    Ok(writer.into_inner())
+    Ok(serde_wasm_bindgen::to_value(&result)?)
 }
 
-/// Serializes `(frame_bytes, timestamp_ns)` tuples into an in-memory PCAPNG byte vector
-/// with nanosecond timestamp resolution (`if_tsresol = 9`) without extra I/O buffering.
+/// Dissects Ethernet II / IPv4 / IPv6 headers into `(source_dest, protocol, summary)` preview strings.
+fn summarize_ethernet_frame(data: &[u8]) -> (String, String, String) {
+    if data.len() < 14 {
+        return ("unknown -> unknown".into(), "RAW".into(), format!("{} bytes", data.len()));
+    }
+    let etype = u16::from_be_bytes([data[12], data[13]]);
+    if etype == 0x0800 && data.len() >= 34 {
+        let src = Ipv4Addr::new(data[26], data[27], data[28], data[29]);
+        let dst = Ipv4Addr::new(data[30], data[31], data[32], data[33]);
+        return (format!("{src} -> {dst}"), format!("IP({})", data[23]), format!("{} bytes", data.len()));
+    }
+    if etype == 0x86DD && data.len() >= 54 {
+        let src = Ipv6Addr::from(<[u8; 16]>::try_from(&data[22..38]).unwrap_or_default());
+        let dst = Ipv6Addr::from(<[u8; 16]>::try_from(&data[38..54]).unwrap_or_default());
+        return (format!("{src} -> {dst}"), format!("IPv6({})", data[20]), format!("{} bytes", data.len()));
+    }
+    ("l2 -> l2".into(), format!("0x{etype:04x}"), format!("{} bytes", data.len()))
+}
+
+/// Serializes `(frame_bytes, timestamp_ns)` tuples into an in-memory PCAPNG byte vector (`if_tsresol = 9`).
 fn packets_to_pcapng(packets: &[(Vec<u8>, u64)]) -> Vec<u8> {
     let mut buf = Vec::with_capacity(60 + packets.len() * 96);
-
-    // Section Header Block (28 bytes, magic 0x0A0D0D0A, byte-order magic 0x1A2B3C4D)
+    // SHB (28B) + IDB (32B, LINKTYPE_ETHERNET = 1, snaplen = 65535, if_tsresol = 9)
     buf.extend_from_slice(&0x0A0D_0D0Au32.to_le_bytes());
     buf.extend_from_slice(&28u32.to_le_bytes());
     buf.extend_from_slice(&0x1A2B_3C4Du32.to_le_bytes());
@@ -251,7 +294,6 @@ fn packets_to_pcapng(packets: &[(Vec<u8>, u64)]) -> Vec<u8> {
     buf.extend_from_slice(&(-1i64).to_le_bytes());
     buf.extend_from_slice(&28u32.to_le_bytes());
 
-    // Interface Description Block (32 bytes, LINKTYPE_ETHERNET = 1, snaplen = 65535, if_tsresol = 9)
     buf.extend_from_slice(&1u32.to_le_bytes());
     buf.extend_from_slice(&32u32.to_le_bytes());
     buf.extend_from_slice(&1u16.to_le_bytes());
@@ -260,16 +302,13 @@ fn packets_to_pcapng(packets: &[(Vec<u8>, u64)]) -> Vec<u8> {
     buf.extend_from_slice(&9u16.to_le_bytes());
     buf.extend_from_slice(&1u16.to_le_bytes());
     buf.extend_from_slice(&[9, 0, 0, 0]);
-    buf.extend_from_slice(&0u16.to_le_bytes());
-    buf.extend_from_slice(&0u16.to_le_bytes());
+    buf.extend_from_slice(&0u32.to_le_bytes());
     buf.extend_from_slice(&32u32.to_le_bytes());
 
-    // Enhanced Packet Blocks (type = 6, 32-bit padded payload)
     for (frame, ts_ns) in packets {
         let orig_len = frame.len() as u32;
         let padded_len = (frame.len() + 3) & !3;
         let block_len = (32 + padded_len) as u32;
-
         buf.extend_from_slice(&6u32.to_le_bytes());
         buf.extend_from_slice(&block_len.to_le_bytes());
         buf.extend_from_slice(&0u32.to_le_bytes());
@@ -281,11 +320,10 @@ fn packets_to_pcapng(packets: &[(Vec<u8>, u64)]) -> Vec<u8> {
         buf.resize(buf.len() + (padded_len - frame.len()), 0);
         buf.extend_from_slice(&block_len.to_le_bytes());
     }
-
     buf
 }
 
-/// Extracts span coordinates and remediation hints from a `miette::Diagnostic` and appends an `IdeDiagnostic`.
+/// Extracts span coordinates and remediation hints from a `miette::Diagnostic`.
 fn push_diagnostic(source: &str, err: &dyn Diagnostic, out: &mut Vec<IdeDiagnostic>) {
     let message = err.to_string();
     let help = err.help().map(|h| h.to_string());
@@ -322,13 +360,10 @@ mod tests {
 
     #[test]
     fn test_utf16_line_col_handles_multibyte_utf8_and_surrogate_pairs() {
-        // '🔥' is 4 UTF-8 bytes (0..4) and 2 UTF-16 code units
-        let src = "HOST a { IP 10.0.0.1 }\n// 🔥\nCOMPILE {}";
+        let src = "host a { ip 10.0.0.1 }\n// 🔥\ncompile {}";
         assert_eq!(byte_offset_to_utf16_line_col(src, 0), (0, 0));
         let line2_start = src.find("//").unwrap();
-        // Offset right after "// 🔥" (3 ASCII bytes + 4 UTF-8 emoji bytes = +7 bytes)
         assert_eq!(byte_offset_to_utf16_line_col(src, line2_start + 7), (1, 5));
-        // Mid-codepoint byte offset clamps safely to preceding char boundary
         assert_eq!(byte_offset_to_utf16_line_col(src, line2_start + 5), (1, 3));
     }
 }
@@ -336,17 +371,17 @@ mod tests {
 
 ---
 
-## 3. VS Code Extension Configuration (`frameassembly-vscode`)
+## 3. VS Code Packet Studio Configuration (`frameassembly-vscode` v2.0.0)
 
 ### A. `frameassembly-vscode/package.json`
-Configures language ID `"frameassembly"`, MIME `"text/vnd.frameassembly"`, `firstLine` regex `^(?:HOST|FLOW|COMPILE|host|flow|compile|//)` (without `#` or `;`), primary TextMate grammar `"source.frameassembly"`, Markdown fenced codeblock injection `"markdown.frameassembly.codeblock"`, and PNG icon `"icon.png"`.
+Configures `"main": "./extension.js"` and `"browser": "./extension.js"`, 30 Marketplace SEO keywords (zero `"DSL"` jargon), strict-lowercase `"firstLine": "^(?:host|flow|compile|//)"`, editor title-bar Packet Ladder & `.pcapng` compile commands, and Explorer `.pcap`/`.pcapng` reverse command.
 
 ```json
 {
   "name": "frameassembly-vscode",
-  "displayName": "FrameAssembly (.fasm Packet Crafting DSL)",
-  "description": "Syntax highlighting and language support for FrameAssembly (.fasm), the declarative DSL for deterministic .pcap/.pcapng network packet generation across 81 L2-L7 protocols.",
-  "version": "1.5.1",
+  "displayName": "FrameAssembly — PCAP & Network Packet Studio (.fasm)",
+  "description": "Compile, inspect, and reverse .pcap / .pcapng network packet captures as .fasm code across 81 L2-L7 protocols with live diagnostics, autocomplete, and packet ladder preview.",
+  "version": "2.0.0",
   "publisher": "SteveWinschel",
   "icon": "icon.png",
   "galleryBanner": {
@@ -365,37 +400,34 @@ Configures language ID `"frameassembly"`, MIME `"text/vnd.frameassembly"`, `firs
   "engines": {
     "vscode": "^1.75.0"
   },
+  "main": "./extension.js",
+  "browser": "./extension.js",
+  "activationEvents": [
+    "onLanguage:frameassembly",
+    "onCommand:frameassembly.reversePcap"
+  ],
   "categories": [
     "Programming Languages",
-    "Snippets"
+    "Snippets",
+    "Linters",
+    "Other"
   ],
   "keywords": [
-    "frameassembly",
-    "fasm",
-    "pcap",
-    "pcapng",
-    "wireshark",
-    "packet-crafting",
-    "networking",
-    "security",
-    "snmp",
-    "dsl"
+    "frameassembly", "fasm", "pcap", "pcapng", "wireshark", "tshark",
+    "tcpreplay", "packet-crafting", "packet-generator", "pcap-editor",
+    "pcap-decompiler", "packets-as-code", "networking", "network-testing",
+    "firewall", "security", "cybersecurity", "pentesting", "suricata",
+    "zeek", "siem", "ids", "shadow-it", "snmp", "snmpv3", "checkmk",
+    "zabbix", "modbus", "scada", "vlan"
   ],
   "contributes": {
     "languages": [
       {
         "id": "frameassembly",
-        "aliases": [
-          "FrameAssembly",
-          "frameassembly"
-        ],
-        "extensions": [
-          ".fasm"
-        ],
-        "mimetypes": [
-          "text/vnd.frameassembly"
-        ],
-        "firstLine": "^(?:HOST|FLOW|COMPILE|host|flow|compile|//)",
+        "aliases": ["FrameAssembly", "frameassembly"],
+        "extensions": [".fasm"],
+        "mimetypes": ["text/vnd.frameassembly"],
+        "firstLine": "^(?:host|flow|compile|//)",
         "configuration": "./language-configuration.json"
       }
     ],
@@ -408,9 +440,7 @@ Configures language ID `"frameassembly"`, MIME `"text/vnd.frameassembly"`, `firs
       {
         "scopeName": "markdown.frameassembly.codeblock",
         "path": "./syntaxes/frameassembly.markdown.tmLanguage.json",
-        "injectTo": [
-          "text.html.markdown"
-        ],
+        "injectTo": ["text.html.markdown"],
         "embeddedLanguages": {
           "meta.embedded.block.frameassembly": "frameassembly"
         }
@@ -421,12 +451,91 @@ Configures language ID `"frameassembly"`, MIME `"text/vnd.frameassembly"`, `firs
         "language": "frameassembly",
         "path": "./snippets/frameassembly.code-snippets"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "frameassembly.compileToPcap",
+        "title": "FrameAssembly: Compile .fasm to .pcapng",
+        "icon": "$(package)"
+      },
+      {
+        "command": "frameassembly.showPacketLadder",
+        "title": "FrameAssembly: Show Live Packet Ladder Preview",
+        "icon": "$(split-horizontal)"
+      },
+      {
+        "command": "frameassembly.reversePcap",
+        "title": "FrameAssembly: Reverse Capture (.pcap/.pcapng) to .fasm"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "frameassembly.showPacketLadder",
+          "when": "editorLangId == frameassembly",
+          "group": "navigation@1"
+        },
+        {
+          "command": "frameassembly.compileToPcap",
+          "when": "editorLangId == frameassembly",
+          "group": "navigation@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "frameassembly.reversePcap",
+          "when": "resourceExtname == .pcap || resourceExtname == .pcapng",
+          "group": "navigation@1"
+        }
+      ]
+    }
   }
 }
 ```
 
-### B. `frameassembly-vscode/language-configuration.json` & `.vscodeignore`
+### B. Universal `Uint8Array` WASM Loader & 1-Click Quick Fix Pattern (`extension.js`)
+```javascript
+const vscode = require("vscode");
+
+// Universal WASM initialization for both Desktop Node Extension Host & Browser vscode.dev
+async function loadWasmBindings(context) {
+  const wasmJsUri = vscode.Uri.joinPath(context.extensionUri, "wasm", "frameassembly_wasm.js");
+  const wasmBinUri = vscode.Uri.joinPath(context.extensionUri, "wasm", "frameassembly_wasm_bg.wasm");
+  const wasmBytes = await vscode.workspace.fs.readFile(wasmBinUri);
+  const mod = await import(wasmJsUri.toString());
+  if (typeof mod.initSync === "function") {
+    mod.initSync({ module: wasmBytes });
+  } else if (typeof mod.default === "function") {
+    await mod.default(wasmBytes);
+  }
+  return mod;
+}
+
+// 1-Click Quick Fix parsing "replace '<raw>' with '<kw>'" from IdeDiagnostic.help
+function provideLowercaseQuickFixes(document, range, context) {
+  const actions = [];
+  for (const diag of context.diagnostics) {
+    if (diag.source !== "frameassembly") continue;
+    const match = /replace '([^']+)' with '([^']+)'/.exec(diag.message);
+    if (!match) continue;
+    const [, rawToken, canonicalKw] = match;
+    const fix = new vscode.CodeAction(
+      `Replace '${rawToken}' with '${canonicalKw}'`,
+      vscode.CodeActionKind.QuickFix
+    );
+    fix.edit = new vscode.WorkspaceEdit();
+    fix.edit.replace(document.uri, diag.range, canonicalKw);
+    fix.diagnostics = [diag];
+    fix.isPreferred = true;
+    actions.push(fix);
+  }
+  return actions;
+}
+
+module.exports = { loadWasmBindings, provideLowercaseQuickFixes };
+```
+
+### C. `frameassembly-vscode/language-configuration.json` & `.vscodeignore`
 ```json
 {
     "comments": {
@@ -448,7 +557,7 @@ Configures language ID `"frameassembly"`, MIME `"text/vnd.frameassembly"`, `firs
     ],
     "folding": {
         "markers": {
-            "start": "^\\s*(?i:HOST|FLOW|COMPILE|LOOP)\\b.*\\{\\s*$",
+            "start": "^\\s*(?:host|flow|compile)\\b.*\\{\\s*$",
             "end": "^\\s*\\}"
         }
     }
@@ -467,10 +576,10 @@ vsc-extension-quickstart.md
 
 ---
 
-## 4. TextMate Grammar & Markdown Injection Patterns
+## 4. Strict-Lowercase v2.0.0 TextMate Grammar & Markdown Injection Patterns
 
 ### A. Primary Grammar Structure (`syntaxes/frameassembly.tmLanguage.json`)
-Must include every uppercase and lowercase keyword variant from `src/lexer/mod.rs` (verified by Gate 4 in `tests/corpus_verification_tests.rs`):
+Must include every strict-lowercase `[a-z0-9]+` keyword from `src/lexer/mod.rs` (zero `_`, zero `-`, no `loop`, no `(?i)` case-insensitivity — verified by Gate 4 in `tests/corpus_verification_tests.rs`):
 
 ```json
 {
@@ -504,7 +613,7 @@ Must include every uppercase and lowercase keyword variant from `src/lexer/mod.r
       ]
     },
     "keywords": {
-      "match": "(?i)\\b(HOST|FLOW|COMPILE|LOOP|host|flow|compile|loop)\\b",
+      "match": "\\b(host|flow|compile)\\b",
       "name": "keyword.control.frameassembly"
     },
     "operators": {
@@ -514,7 +623,7 @@ Must include every uppercase and lowercase keyword variant from `src/lexer/mod.r
     "numbers": {
       "patterns": [
         {
-          "match": "\\b[0-9]+(?i:ns|us|ms|s|m)\\b",
+          "match": "\\b[0-9]+(?:ns|us|ms|s|m)\\b",
           "name": "constant.numeric.duration.frameassembly"
         },
         {
@@ -573,9 +682,9 @@ Highlights fenced ````frameassembly`, ````fasm`, and ````text/vnd.frameassembly`
 
 ---
 
-## 5. GitHub Actions WASM & VS Code OIDC Trusted Publishing Workflow
+## 5. GitHub Actions WASM -> VS Code (`needs: [prepare, wasm]`) OIDC Publishing Workflow
 
-Demonstrates `CARGO_PROFILE_RELEASE_STRIP: none`, `wasm-pack build --release --target web`, `npx @vscode/vsce package`, `env:` secret-guarding, and post-Dec-1-2026 OIDC Trusted Publishing (`npm publish --provenance --access public` and `npx @vscode/vsce@latest publish --oidc`).
+Demonstrates `CARGO_PROFILE_RELEASE_STRIP: none`, `wasm-pack build --release --target web`, `release-wasm` artifact bundling into `frameassembly-vscode/wasm/`, `npx @vscode/vsce package` (`frameassembly-vscode-2.0.0.vsix`), and post-Dec-1-2026 OIDC Trusted Publishing (`npm publish --provenance --access public` and `npx @vscode/vsce@latest publish --oidc` to Visual Studio Marketplace only).
 
 ```yaml
   wasm:
@@ -610,45 +719,45 @@ Demonstrates `CARGO_PROFILE_RELEASE_STRIP: none`, `wasm-pack build --release --t
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Build WebAssembly package & normalize pkg/package.json repository URL
+      - name: Build WebAssembly package & sync package.json metadata
         working-directory: frameassembly-wasm
         run: |
           wasm-pack build --release --target web
           node -e '
             const fs = require("fs");
+            const src = JSON.parse(fs.readFileSync("package.json", "utf8"));
             const pkg = JSON.parse(fs.readFileSync("pkg/package.json", "utf8"));
-            pkg.repository = {
+            for (const field of ["keywords", "description", "homepage", "license", "repository"]) {
+              if (src[field] !== undefined) pkg[field] = src[field];
+            }
+            pkg.repository = pkg.repository || {
               type: "git",
               url: "git+https://github.com/SteveWinschel/FrameAssembly.git"
             };
             fs.writeFileSync("pkg/package.json", JSON.stringify(pkg, null, 2) + "\n");
           '
 
-      - name: Publish to NPM Registry via Token (Optional)
-        id: npm_token_publish
-        if: ${{ env.NPM_TOKEN != '' }}
-        continue-on-error: true
-        working-directory: frameassembly-wasm/pkg
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Package & upload WASM archive
         run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-          npm publish --provenance --access public
+          TAG="${{ needs.prepare.outputs.tag }}"
+          tar -czf "frameassembly-wasm-${TAG}.tar.gz" -C frameassembly-wasm pkg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-wasm
+          path: frameassembly-wasm-*.tar.gz
 
       - name: Publish to NPM Registry via OIDC Trusted Publisher
-        if: ${{ env.NPM_TOKEN == '' || steps.npm_token_publish.outcome == 'failure' }}
+        if: ${{ env.NPM_TOKEN == '' }}
         continue-on-error: true
         working-directory: frameassembly-wasm/pkg
         run: |
           npm install -g npm@latest
-          rm -f ~/.npmrc "$NPM_CONFIG_USERCONFIG"
           unset NPM_TOKEN NODE_AUTH_TOKEN NPM_CONFIG_USERCONFIG
           npm publish --provenance --access public
 
   vscode-extension:
     name: Package & Publish VS Code Extension (.vsix)
-    needs: [prepare]
+    needs: [prepare, wasm]
     runs-on: ubuntu-24.04
     continue-on-error: true
     permissions:
@@ -662,30 +771,32 @@ Demonstrates `CARGO_PROFILE_RELEASE_STRIP: none`, `wasm-pack build --release --t
         with:
           ref: ${{ needs.prepare.outputs.tag }}
 
-      - name: Setup Node.js
+      - name: Download release-wasm artifact & bundle into frameassembly-vscode/wasm
+        uses: actions/download-artifact@v4
+        with:
+          name: release-wasm
+          path: wasm-artifact
+      - run: |
+          mkdir -p wasm-extract frameassembly-vscode/wasm
+          tar -xzf wasm-artifact/frameassembly-wasm-*.tar.gz -C wasm-extract
+          cp -f wasm-extract/pkg/frameassembly_wasm.js \
+                wasm-extract/pkg/frameassembly_wasm_bg.wasm \
+                wasm-extract/pkg/frameassembly_wasm.d.ts \
+                frameassembly-vscode/wasm/
+          rm -rf wasm-artifact wasm-extract
+
+      - name: Setup Node.js & Package VSIX with @vscode/vsce 4.1.0
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Package VSIX with @vscode/vsce 4.1.0
-        working-directory: frameassembly-vscode
+      - working-directory: frameassembly-vscode
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
+          rm -f frameassembly-vscode-*.vsix
           npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o "frameassembly-vscode-${VERSION}.vsix"
 
-      - name: Publish to Visual Studio Marketplace via PAT (Optional)
-        id: vsce_pat_publish
-        if: ${{ env.VSCE_PAT != '' }}
-        continue-on-error: true
-        working-directory: frameassembly-vscode
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: |
-          VERSION="${{ needs.prepare.outputs.version }}"
-          npx --yes @vscode/vsce@latest publish -p "${{ secrets.VSCE_PAT }}" --packagePath "frameassembly-vscode-${VERSION}.vsix"
-
       - name: Publish to Visual Studio Marketplace via OIDC Trusted Publisher
-        if: ${{ env.VSCE_PAT == '' || steps.vsce_pat_publish.outcome == 'failure' }}
+        if: ${{ env.VSCE_PAT == '' }}
         continue-on-error: true
         working-directory: frameassembly-vscode
         run: |

@@ -1,9 +1,9 @@
-//! Secure Shell Transport Layer Protocol (`SSH`, RFC 4253) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Secure Shell Transport Layer Protocol (`ssh`, RFC 4253) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for unencrypted RFC 4253 `SSH` protocol
+//! This module implements the fuzz-safe reverse dissector for unencrypted RFC 4253 `ssh` protocol
 //! version identification banners (`SSH-2.0-...`, `SSH-1.99-...`) and outer binary packet framing
 //! (`kexinit` message code `20` with 16-byte `cookie`, `newkeys` message code `21`, or arbitrary
-//! `msg_code` values such as `50` userauth, `90` channel open, and `94` channel data) carried over
+//! `msgcode` values such as `50` userauth, `90` channel open, and `94` channel data) carried over
 //! TCP ports `22`, `2222`, and `830`. It never attempts cryptographic decryption: encrypted post-key
 //! exchange records that do not match unencrypted RFC 4253 framing return `None` to step down
 //! cleanly to `tcp` with `payload` or `hexpayload`.
@@ -57,7 +57,7 @@ pub(crate) fn dissect_ssh(payload: &[u8]) -> Option<ProtocolDissection> {
         tokens.push_str(" newkeys");
         body.get(1..)?.to_vec()
     } else {
-        let _ = write!(tokens, " msg_code {code}");
+        let _ = write!(tokens, " msgcode {code}");
         body.get(1..)?.to_vec()
     };
 

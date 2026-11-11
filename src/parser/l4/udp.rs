@@ -1,9 +1,9 @@
-//! User Datagram Protocol (`UDP`, RFC 768) protocol parser for FrameAssembly.
+//! User Datagram Protocol (`udp`, RFC 768) protocol parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `UDP` datagram frame statements.
-//! When `UDP` is selected as the statement protocol, the backend synthesizes an 8-byte RFC 768
+//! This module implements the winnow parser combinator for `udp` datagram frame statements.
+//! When `udp` is selected as the statement protocol, the backend synthesizes an 8-byte RFC 768
 //! UDP header with automatic length and IPv4/IPv6 pseudo-header checksum computation around the
-//! statement's `SRCPORT`, `DSTPORT`, and `PAYLOAD`/`HEXPAYLOAD` modifiers.
+//! statement's `srcport`, `dstport`, and `payload`/`hexpayload` modifiers.
 
 use winnow::ModalResult as PResult;
 use winnow::prelude::*;

@@ -1,10 +1,10 @@
-//! Remote Authentication Dial-In User Service (`RADIUS`, RFC 2865 / RFC 2866) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Remote Authentication Dial-In User Service (`radius`, RFC 2865 / RFC 2866) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 2865 Authentication and RFC 2866
-//! Accounting `RADIUS` packets carried over UDP ports `1812`, `1813`, `1645`, and `1646`. It
-//! decodes the 20-byte RADIUS header (`access_request`, `access_accept`, `access_reject`,
-//! `accounting_request`, `accounting_response`, `access_challenge`, and packet `id`) and standard
-//! TLV attribute-value pairs (`user`, `nas_ip`, `service_type`, `framed_ip`).
+//! Accounting `radius` packets carried over UDP ports `1812`, `1813`, `1645`, and `1646`. It
+//! decodes the 20-byte RADIUS header (`accessrequest`, `accessaccept`, `accessreject`,
+//! `accountingrequest`, `accountingresponse`, `accesschallenge`, and packet `id`) and standard
+//! TLV attribute-value pairs (`user`, `nasip`, `servicetype`, `framedip`).
 
 use alloc::format;
 use alloc::string::ToString;
@@ -16,18 +16,18 @@ use crate::reverse::{ProtocolDissection, be_u32, ipv4_at, ipv6_at, push_if};
 
 use super::{is_printable_ascii_str, ok_dissect, push_opt, push_str_if};
 
-/// Dissects an RFC 2865 / RFC 2866 `RADIUS` packet (20B header + TLV AVPs).
+/// Dissects an RFC 2865 / RFC 2866 `radius` packet (20B header + TLV AVPs).
 pub(crate) fn dissect_radius(payload: &[u8]) -> Option<ProtocolDissection> {
     if payload.len() < 20 {
         return None;
     }
     let code_kw = match payload[0] {
-        1 => "access_request",
-        2 => "access_accept",
-        3 => "access_reject",
-        4 => "accounting_request",
-        5 => "accounting_response",
-        11 => "access_challenge",
+        1 => "accessrequest",
+        2 => "accessaccept",
+        3 => "accessreject",
+        4 => "accountingrequest",
+        5 => "accountingresponse",
+        11 => "accesschallenge",
         _ => return None,
     };
 
@@ -73,9 +73,9 @@ pub(crate) fn dissect_radius(payload: &[u8]) -> Option<ProtocolDissection> {
     if let Some(u) = user {
         push_str_if(&mut tokens, "user", &u, "user");
     }
-    push_opt(&mut tokens, "nas_ip", nas_ip);
-    push_opt(&mut tokens, "service_type", service_type);
-    push_opt(&mut tokens, "framed_ip", framed_ip);
+    push_opt(&mut tokens, "nasip", nas_ip);
+    push_opt(&mut tokens, "servicetype", service_type);
+    push_opt(&mut tokens, "framedip", framed_ip);
 
     ok_dissect(Protocol::Radius, tokens, residual_payload)
 }

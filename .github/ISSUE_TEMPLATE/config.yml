@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: General Questions, Ideas & Traffic Recipes (GitHub Discussions)
+    url: https://github.com/SteveWinschel/FrameAssembly/discussions
+    about: Ask questions about modeling traffic in .fasm, share packet recipes, or discuss ideas with the community.
+  - name: Getting Started & Protocol Guides
+    url: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/getting_started.md
+    about: Browse step-by-step examples and field references across all 81 supported protocols.

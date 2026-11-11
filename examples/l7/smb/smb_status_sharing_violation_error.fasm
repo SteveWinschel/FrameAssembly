@@ -1,26 +1,26 @@
 // PROMPT: SMB2 CREATE request failing with NT_STATUS_SHARING_VIOLATION (3221225539) due to an exclusive file lock.
-// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, FILENAME, STATUS, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, s, smb, command, treeid, sessionid, msgid, filename, status, wait, ms, compile
 
 // INSTRUCTION: Define the secondary workstation attempting concurrent write access.
-HOST second_user {
-    IP 10.60.20.33
-    MAC 00:1a:2b:60:20:33
+host second_user {
+    ip 10.60.20.33
+    mac 00:1a:2b:60:20:33
 }
 
 // INSTRUCTION: Define the shared CAD repository server.
-HOST cad_server {
-    IP 10.60.20.5
-    MAC 00:1a:2b:60:20:05
+host cad_server {
+    ip 10.60.20.5
+    mac 00:1a:2b:60:20:05
 }
 
 // INSTRUCTION: Attempt to open a locked CAD assembly drawing and receive sharing violation status.
-FLOW smb_sharing_violation(c, s) {
-    c -> s SMB COMMAND "CREATE" TREE_ID 7 SESSION_ID 8100 MSGID 19 FILENAME "turbine_housing_v4.dwg"
-    c <- s SMB COMMAND "CREATE" STATUS 3221225539 TREE_ID 7 SESSION_ID 8100 MSGID 19 WAIT 2ms
-    c -> s SMB COMMAND "CLOSE" TREE_ID 7 SESSION_ID 8100 MSGID 20
+flow smb_sharing_violation(c, s) {
+    c -> s smb command "create" treeid 7 sessionid 8100 msgid 19 filename "turbine_housing_v4.dwg"
+    c <- s smb command "create" status 3221225539 treeid 7 sessionid 8100 msgid 19 wait 2ms
+    c -> s smb command "close" treeid 7 sessionid 8100 msgid 20
 }
 
 // INSTRUCTION: Compile the SMB2 sharing violation flow.
-COMPILE {
+compile {
     smb_sharing_violation(second_user, cad_server)
 }

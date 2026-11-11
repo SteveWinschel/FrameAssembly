@@ -18,11 +18,15 @@ pub fn build_opcua_payload(
     payload_bytes: &[u8],
 ) -> Vec<u8> {
     let default_msg = if spec.node_id.is_some() && spec.endpoint_url.is_none() {
-        "MSG"
+        "msg"
     } else {
-        "HEL"
+        "hel"
     };
-    let msg_type_str = spec.msg_type.unwrap_or(default_msg).to_ascii_uppercase();
+    let msg_type_str = spec
+        .msg_type
+        .unwrap_or(default_msg)
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
     let msg_bytes = match msg_type_str.as_str() {
         "HEL" => *b"HEL",
         "ACK" => *b"ACK",
@@ -33,7 +37,7 @@ pub fn build_opcua_payload(
         _ => *b"HEL",
     };
 
-    let chunk_type = spec.chunk_type.unwrap_or('F') as u8;
+    let chunk_type = spec.chunk_type.unwrap_or('F').to_ascii_uppercase() as u8;
 
     let mut body = Vec::new();
     if msg_bytes == *b"HEL" {

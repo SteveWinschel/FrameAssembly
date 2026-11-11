@@ -1,25 +1,25 @@
 // PROMPT: Model a high-turnover airport guest Wi-Fi client renewing a 300-second DHCP lease in-place via unicast REQUEST/ACK.
-// TOKENS: HOST, IP, MAC, FLOW, DHCP, REQUEST, XID, CIADDR, CHADDR, HOSTNAME, WAIT, ACK, YIADDR, SUBNET_MASK, ROUTER, DNS_SERVER, LEASE_TIME, COMPILE
+// TOKENS: host, ip, mac, flow, s, dhcp, request, xid, ciaddr, chaddr, hostname, wait, ms, ack, yiaddr, subnetmask, router, dnsserver, leasetime, compile
 
 // INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
-HOST dhcp_client {
-    IP 100.64.88.142
-    MAC 00:25:90:67:01:0a
+host dhcp_client {
+    ip 100.64.88.142
+    mac 00:25:90:67:01:0a
 }
 
 // INSTRUCTION: Define the DHCP server or relay agent endpoint.
-HOST dhcp_server {
-    IP 100.64.88.1
-    MAC 00:25:90:67:01:01
+host dhcp_server {
+    ip 100.64.88.1
+    mac 00:25:90:67:01:01
 }
 
 // INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
-FLOW dhcp_scenario_flow(c, s) {
-    c -> s DHCP REQUEST XID 0x31001005 CIADDR 100.64.88.142 CHADDR 3c:22:fb:58:00:8e HOSTNAME "iphone-traveler" WAIT 3ms
-    c <- s DHCP ACK XID 0x31001005 CIADDR 100.64.88.142 YIADDR 100.64.88.142 SUBNET_MASK 255.255.252.0 ROUTER 100.64.88.1 DNS_SERVER 1.1.1.1 LEASE_TIME 300
+flow dhcp_scenario_flow(c, s) {
+    c -> s dhcp request xid 0x31001005 ciaddr 100.64.88.142 chaddr 3c:22:fb:58:00:8e hostname "iphone-traveler" wait 3ms
+    c <- s dhcp ack xid 0x31001005 ciaddr 100.64.88.142 yiaddr 100.64.88.142 subnetmask 255.255.252.0 router 100.64.88.1 dnsserver 1.1.1.1 leasetime 300
 }
 
 // INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
-COMPILE {
+compile {
     dhcp_scenario_flow(dhcp_client, dhcp_server)
 }

@@ -1,24 +1,24 @@
 // PROMPT: 5G Voice over New Radio (VoNR) AMR-WB wideband speech on dynamic payload type 104 over IPv6.
-// TOKENS: HOST, IP, FLOW, RTP, PT, SEQ, TIMESTAMP, SSRC, MARKER, DSCP, HEXPAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, flow, rtp, pt, seq, timestamp, ssrc, marker, dscp, hexpayload, wait, ms, compile
 
 // INSTRUCTION: Define 5G User Equipment (UE) IPv6 IMS media endpoint.
-HOST ue_5g_v6 {
-    IP 2001:db8:500:1::104
+host ue_5g_v6 {
+    ip 2001:db8:500:1::104
 }
 
 // INSTRUCTION: Define 5G UPF / IMS Access Gateway IPv6 endpoint.
-HOST ims_agw_v6 {
-    IP 2001:db8:500:1::1
+host ims_agw_v6 {
+    ip 2001:db8:500:1::1
 }
 
 // INSTRUCTION: Define AMR-WB (16kHz clock, 320 ticks per 20ms) RTP frames over IPv6.
-FLOW rtp_vonr_amrwb(ue, agw) {
-    ue -> agw RTP PT 104 SEQ 10 TIMESTAMP 3200 SSRC 0x50000104 MARKER 1 DSCP 46 HEXPAYLOAD "f0445566778899aa" WAIT 20ms
-    ue -> agw RTP PT 104 SEQ 11 TIMESTAMP 3520 SSRC 0x50000104 MARKER 0 DSCP 46 HEXPAYLOAD "f0bbccddeeff0011" WAIT 20ms
-    ue <- agw RTP PT 104 SEQ 80 TIMESTAMP 6400 SSRC 0x50000204 MARKER 1 DSCP 46 HEXPAYLOAD "f011223344556677"
+flow rtp_vonr_amrwb(ue, agw) {
+    ue -> agw rtp pt 104 seq 10 timestamp 3200 ssrc 0x50000104 marker 1 dscp 46 hexpayload "f0445566778899aa" wait 20ms
+    ue -> agw rtp pt 104 seq 11 timestamp 3520 ssrc 0x50000104 marker 0 dscp 46 hexpayload "f0bbccddeeff0011" wait 20ms
+    ue <- agw rtp pt 104 seq 80 timestamp 6400 ssrc 0x50000204 marker 1 dscp 46 hexpayload "f011223344556677"
 }
 
 // INSTRUCTION: Compile the 5G VoNR AMR-WB IPv6 RTP flow.
-COMPILE {
+compile {
     rtp_vonr_amrwb(ue_5g_v6, ims_agw_v6)
 }

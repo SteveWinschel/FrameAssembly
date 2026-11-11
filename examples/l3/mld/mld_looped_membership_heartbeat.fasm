@@ -1,20 +1,21 @@
 // PROMPT: Continuous MLD membership report keepalive heartbeats inside a COMPILE LOOP.
-// TOKENS: HOST, IP, FLOW, MLD, REPORT, MULTICAST_ADDR, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, flow, mld, report, multicastaddr, wait, ms, compile
 
 // INSTRUCTION: Define IP camera streaming telemetry node.
-HOST ip_camera_sensor { IP fe80::ca3e:1 }
+host ip_camera_sensor { ip fe80::ca3e:1 }
 
 // INSTRUCTION: Define surveillance multicast group target.
-HOST security_dvr_grp { IP ff02::2 }
+host security_dvr_grp { ip ff02::2 }
 
 // INSTRUCTION: Define periodic MLD membership confirmation stream.
-FLOW mld_camera_heartbeat(cam, dvr) {
-    cam -> dvr MLD REPORT MULTICAST_ADDR ff05::5555 WAIT 20ms
+flow mld_camera_heartbeat(cam, dvr) {
+    cam -> dvr mld report multicastaddr ff05::5555 wait 20ms
 }
 
 // INSTRUCTION: Compile loop executing 4 continuous MLD reports.
-COMPILE {
-    LOOP 4 {
-        mld_camera_heartbeat(ip_camera_sensor, security_dvr_grp)
-    }
+compile {
+    mld_camera_heartbeat(ip_camera_sensor, security_dvr_grp) // cycle 1
+    mld_camera_heartbeat(ip_camera_sensor, security_dvr_grp) // cycle 2
+    mld_camera_heartbeat(ip_camera_sensor, security_dvr_grp) // cycle 3
+    mld_camera_heartbeat(ip_camera_sensor, security_dvr_grp) // cycle 4
 }

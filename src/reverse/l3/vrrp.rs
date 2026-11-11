@@ -1,9 +1,9 @@
 //! Virtual Router Redundancy Protocol (VRRPv2 RFC 3768 & VRRPv3 RFC 5798) Layer 3 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for Virtual Router Redundancy
-//! Protocol (`VRRP`, IP protocol `112`) advertisement packets across both IPv4 and IPv6. It
+//! Protocol (`vrrp`, IP protocol `112`) advertisement packets across both IPv4 and IPv6. It
 //! extracts the VRRP protocol `version` (`2` or `3`), Virtual Router Identifier (`vrid`), router
-//! `priority`, advertisement interval (`adv_int`), and IPv4 or IPv6 virtual IP address (`vip`).
+//! `priority`, advertisement interval (`advint`), and IPv4 or IPv6 virtual IP address (`vip`).
 
 use alloc::string::String;
 use core::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -11,7 +11,7 @@ use core::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use crate::ast::Protocol;
 use crate::reverse::{ProtocolDissection, be_u16, ipv4_at, ipv6_at, push_if, sd, src_v4_or};
 
-/// Decompiles an RFC 3768 / RFC 5798 `VRRP` packet (`ip_proto == 112`) into a [`ProtocolDissection`].
+/// Decompiles an RFC 3768 / RFC 5798 `vrrp` packet (`ip_proto == 112`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_vrrp(b: &[u8], is_ipv6: bool, src_ip: Option<IpAddr>) -> ProtocolDissection {
     if b.len() < 8 {
         return sd(Protocol::Vrrp, String::from("vrrp"), b.to_vec());
@@ -23,7 +23,7 @@ pub(crate) fn dissect_vrrp(b: &[u8], is_ipv6: bool, src_ip: Option<IpAddr>) -> P
     push_if(&mut t, "priority", u16::from(b[2]), 100);
     push_if(
         &mut t,
-        "adv_int",
+        "advint",
         if ver == 2 {
             u16::from(b[5])
         } else {

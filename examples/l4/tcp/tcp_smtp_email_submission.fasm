@@ -1,29 +1,29 @@
 // PROMPT: Simulate an SMTP email submission conversation over TCP port 587 including EHLO, MAIL FROM, RCPT TO, DATA, and QUIT commands.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WAIT, ACK, PSH, PAYLOAD, FIN, COMPILE
+// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, wait, ms, ack, psh, payload, fin, compile
 
 // INSTRUCTION: Define a mail user agent host with IP 10.15.0.25.
-HOST mail_client { IP 10.15.0.25 MAC 00:11:32:aa:bb:01 }
+host mail_client { ip 10.15.0.25 mac 00:11:32:aa:bb:01 }
 
 // INSTRUCTION: Define an SMTP mail relay server with IP 10.15.0.10.
-HOST smtp_relay { IP 10.15.0.10 MAC 00:11:32:aa:bb:02 }
+host smtp_relay { ip 10.15.0.10 mac 00:11:32:aa:bb:02 }
 
 // INSTRUCTION: Define a flow simulating an SMTP mail submission dialog on port 587.
-FLOW smtp_mail_submission(mua, mta) {
-    mua -> mta TCP SYN SRCPORT 49800 DSTPORT 587 WAIT 5ms
-    mua <- mta TCP SYN ACK SRCPORT 587 DSTPORT 49800 WAIT 5ms
-    mua -> mta TCP ACK SRCPORT 49800 DSTPORT 587 WAIT 2ms
-    mua <- mta TCP PSH ACK SRCPORT 587 DSTPORT 49800 PAYLOAD "220 smtp.example.com ESMTP" WAIT 10ms
-    mua -> mta TCP PSH ACK SRCPORT 49800 DSTPORT 587 PAYLOAD "EHLO client.example.com" WAIT 10ms
-    mua <- mta TCP PSH ACK SRCPORT 587 DSTPORT 49800 PAYLOAD "250-smtp.example.com" WAIT 10ms
-    mua -> mta TCP PSH ACK SRCPORT 49800 DSTPORT 587 PAYLOAD "MAIL FROM:<alice@example.com>" WAIT 10ms
-    mua <- mta TCP PSH ACK SRCPORT 587 DSTPORT 49800 PAYLOAD "250 2.1.0 Ok" WAIT 10ms
-    mua -> mta TCP PSH ACK SRCPORT 49800 DSTPORT 587 PAYLOAD "RCPT TO:<bob@example.com>" WAIT 10ms
-    mua <- mta TCP PSH ACK SRCPORT 587 DSTPORT 49800 PAYLOAD "250 2.1.5 Ok" WAIT 10ms
-    mua -> mta TCP PSH ACK SRCPORT 49800 DSTPORT 587 PAYLOAD "QUIT" WAIT 5ms
-    mua <- mta TCP FIN ACK SRCPORT 587 DSTPORT 49800 PAYLOAD "221 2.0.0 Bye" WAIT 5ms
+flow smtp_mail_submission(mua, mta) {
+    mua -> mta tcp syn srcport 49800 dstport 587 wait 5ms
+    mua <- mta tcp syn ack srcport 587 dstport 49800 wait 5ms
+    mua -> mta tcp ack srcport 49800 dstport 587 wait 2ms
+    mua <- mta tcp psh ack srcport 587 dstport 49800 payload "220 smtp.example.com ESMTP" wait 10ms
+    mua -> mta tcp psh ack srcport 49800 dstport 587 payload "EHLO client.example.com" wait 10ms
+    mua <- mta tcp psh ack srcport 587 dstport 49800 payload "250-smtp.example.com" wait 10ms
+    mua -> mta tcp psh ack srcport 49800 dstport 587 payload "MAIL FROM:<alice@example.com>" wait 10ms
+    mua <- mta tcp psh ack srcport 587 dstport 49800 payload "250 2.1.0 Ok" wait 10ms
+    mua -> mta tcp psh ack srcport 49800 dstport 587 payload "RCPT TO:<bob@example.com>" wait 10ms
+    mua <- mta tcp psh ack srcport 587 dstport 49800 payload "250 2.1.5 Ok" wait 10ms
+    mua -> mta tcp psh ack srcport 49800 dstport 587 payload "QUIT" wait 5ms
+    mua <- mta tcp fin ack srcport 587 dstport 49800 payload "221 2.0.0 Bye" wait 5ms
 }
 
 // INSTRUCTION: Compile block to execute the SMTP email submission flow.
-COMPILE {
+compile {
     smtp_mail_submission(mail_client, smtp_relay)
 }

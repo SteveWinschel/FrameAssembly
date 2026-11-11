@@ -1,10 +1,10 @@
 //! Kerberos v5 (RFC 4120) Layer 7 network authentication protocol field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 4120 `KERBEROS` Key Distribution
-//! Center (`KDC`) exchanges in FrameAssembly `.fasm` specifications. It recognizes the `KERBEROS`
-//! protocol keyword, ASN.1 message type flags (`AS_REQ`, `AS_REP`, `TGS_REQ`, `TGS_REP`,
-//! `KRB_ERROR`), Kerberos realms (`REALM`), client principal names (`CNAME`), service principal
-//! names (`SNAME`), and encryption type identifiers (`ETYPE`).
+//! This module implements the `winnow` parser combinator for RFC 4120 `kerberos` Key Distribution
+//! Center (`KDC`) exchanges in FrameAssembly `.fasm` specifications. It recognizes the `kerberos`
+//! protocol keyword, ASN.1 message type flags (`asreq`, `asrep`, `tgsreq`, `tgsrep`,
+//! `krberror`), Kerberos realms (`realm`), client principal names (`cname`), service principal
+//! names (`sname`), and encryption type identifiers (`etype`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

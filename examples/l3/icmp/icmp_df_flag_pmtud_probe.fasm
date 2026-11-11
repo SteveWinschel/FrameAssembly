@@ -1,18 +1,18 @@
 // PROMPT: IPv4 ICMP Echo Request with DF flag asserted to detect maximum unfragmented MTU.
-// TOKENS: HOST, IP, FLOW, ICMP, ECHO_REQUEST, ID, SEQ, DF, IPID, COMPILE
+// TOKENS: host, ip, flow, src, dst, icmp, echorequest, id, seq, df, ipid, compile
 
 // INSTRUCTION: Define MTU testing host.
-HOST mtu_probe_host { IP 192.168.80.20 }
+host mtu_probe_host { ip 192.168.80.20 }
 
 // INSTRUCTION: Define remote lab gateway.
-HOST lab_gateway { IP 192.168.80.1 }
+host lab_gateway { ip 192.168.80.1 }
 
 // INSTRUCTION: Define ICMP Echo flow with Don't Fragment (DF) flag set and IPID 45000.
-FLOW icmp_pmtu_df_flow(src, dst) {
-    src -> dst ICMP ECHO_REQUEST ID 1234 SEQ 1 DF IPID 45000
+flow icmp_pmtu_df_flow(src, dst) {
+    src -> dst icmp echorequest id 1234 seq 1 df ipid 45000
 }
 
 // INSTRUCTION: Compile block executing unfragmentable ICMP ping probe.
-COMPILE {
+compile {
     icmp_pmtu_df_flow(mtu_probe_host, lab_gateway)
 }

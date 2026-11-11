@@ -1,19 +1,19 @@
 // PROMPT: HTTP 206 Partial Content byte-range video segment fetch on custom port 8080 with DF flag.
-// TOKENS: HOST, IP, FLOW, HTTP, METHOD, URI, HOST_HDR, HEADER, SRCPORT, DSTPORT, DF, IPID, STATUS, REASON, CONTENT_TYPE, COMPILE
+// TOKENS: host, ip, flow, m, http, method, uri, hosthdr, header, srcport, dstport, df, ipid, status, reason, contenttype, compile
 
 // INSTRUCTION: Define smart TV media player client.
-HOST media_player { IP 192.168.95.40 }
+host media_player { ip 192.168.95.40 }
 
 // INSTRUCTION: Define local HLS media caching server on port 8080.
-HOST media_cache { IP 192.168.95.1 }
+host media_cache { ip 192.168.95.1 }
 
 // INSTRUCTION: Send Range bytes=0-1023 request on port 8080 and receive 206 Partial Content.
-FLOW http_range_206(m, c) {
-    m -> c HTTP METHOD "GET" URI "/video/seg_01.mp4" HOST_HDR "media.local:8080" HEADER "Range" "bytes=0-1023" SRCPORT 53000 DSTPORT 8080 DF IPID 0x8080
-    m <- c HTTP STATUS 206 REASON "Partial Content" CONTENT_TYPE "video/mp4" HEADER "Content-Range" "bytes 0-1023/1048576" SRCPORT 8080 DSTPORT 53000 DF IPID 0x8081
+flow http_range_206(m, c) {
+    m -> c http method "GET" uri "/video/seg_01.mp4" hosthdr "media.local:8080" header "Range" "bytes=0-1023" srcport 53000 dstport 8080 df ipid 0x8080
+    m <- c http status 206 reason "Partial Content" contenttype "video/mp4" header "Content-Range" "bytes 0-1023/1048576" srcport 8080 dstport 53000 df ipid 0x8081
 }
 
 // INSTRUCTION: Compile the HTTP 206 Partial Content byte-range scenario.
-COMPILE {
+compile {
     http_range_206(media_player, media_cache)
 }

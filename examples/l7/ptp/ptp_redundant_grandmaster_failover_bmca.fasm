@@ -1,26 +1,26 @@
 // PROMPT: Simulate a Best Master Clock Algorithm (BMCA) failover between primary and standby PTPv2 grandmasters.
-// TOKENS: HOST, IP, MAC, FLOW, PTP, ANNOUNCE, DOMAIN, SEQ_ID, CLOCK_ID, WAIT, SYNC, COMPILE
+// TOKENS: host, ip, mac, flow, ptp, announce, domain, seqid, clockid, wait, ms, sync, compile
 
 // INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
-HOST ptp_grandmaster {
-    IP 192.168.158.1
-    MAC 00:1b:21:31:90:01
+host ptp_grandmaster {
+    ip 192.168.158.1
+    mac 00:1b:21:31:90:01
 }
 
 // INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
-HOST ptp_slave_clock {
-    IP 192.168.158.2
-    MAC 00:1b:21:31:90:25
+host ptp_slave_clock {
+    ip 192.168.158.2
+    mac 00:1b:21:31:90:25
 }
 
 // INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
-FLOW ptp_scenario_flow(gm, slv) {
-    gm -> slv PTP ANNOUNCE DOMAIN 0 SEQ_ID 101 CLOCK_ID "001b21fffeaa0001" WAIT 5ms
-    gm <- slv PTP ANNOUNCE DOMAIN 0 SEQ_ID 201 CLOCK_ID "001b21fffeaa0002" WAIT 5ms
-    gm <- slv PTP SYNC DOMAIN 0 SEQ_ID 202 CLOCK_ID "001b21fffeaa0002"
+flow ptp_scenario_flow(gm, slv) {
+    gm -> slv ptp announce domain 0 seqid 101 clockid "001b21fffeaa0001" wait 5ms
+    gm <- slv ptp announce domain 0 seqid 201 clockid "001b21fffeaa0002" wait 5ms
+    gm <- slv ptp sync domain 0 seqid 202 clockid "001b21fffeaa0002"
 }
 
 // INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
-COMPILE {
+compile {
     ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
 }

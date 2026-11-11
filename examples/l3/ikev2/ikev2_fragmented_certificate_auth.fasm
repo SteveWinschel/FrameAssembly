@@ -1,20 +1,20 @@
 // PROMPT: RFC 7383 IKEv2 message fragmentation (Next Payload 53 SKF) carrying large X.509 certificates.
-// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, MSGID, FLAGS, NEXT_PAYLOAD, HEXPAYLOAD, COMPILE
+// TOKENS: host, ip, flow, init, ikev2, initiatorspi, responderspi, msgid, flags, nextpayload, hexpayload, compile
 
 // INSTRUCTION: Define IKEv2 initiator sending fragmented certificate chain using Next Payload 53 (SKF).
-HOST skf_ike_init { IP 172.30.15.1 }
+host skf_ike_init { ip 172.30.15.1 }
 
 // INSTRUCTION: Define IKEv2 responder reassembling IKEv2 fragments.
-HOST skf_ike_resp { IP 172.30.15.2 }
+host skf_ike_resp { ip 172.30.15.2 }
 
 // INSTRUCTION: Define RFC 7383 SKF fragmented IKE_AUTH exchange with binary HEXPAYLOAD.
-FLOW ikev2_skf_fragments(init, resp) {
-    init -> resp IKEV2 INITIATOR_SPI 777000111 RESPONDER_SPI 777000222 MSGID 1 FLAGS 8 NEXT_PAYLOAD 53 HEXPAYLOAD "00010002aabbccddeeff001122334455"
-    init -> resp IKEV2 INITIATOR_SPI 777000111 RESPONDER_SPI 777000222 MSGID 1 FLAGS 8 NEXT_PAYLOAD 53 HEXPAYLOAD "0002000266778899aabbccddeeff0011"
-    init <- resp IKEV2 INITIATOR_SPI 777000111 RESPONDER_SPI 777000222 MSGID 1 FLAGS 32 NEXT_PAYLOAD 46 HEXPAYLOAD "99887766554433221100ffeeddccbbaa"
+flow ikev2_skf_fragments(init, resp) {
+    init -> resp ikev2 initiatorspi 777000111 responderspi 777000222 msgid 1 flags 8 nextpayload 53 hexpayload "00010002aabbccddeeff001122334455"
+    init -> resp ikev2 initiatorspi 777000111 responderspi 777000222 msgid 1 flags 8 nextpayload 53 hexpayload "0002000266778899aabbccddeeff0011"
+    init <- resp ikev2 initiatorspi 777000111 responderspi 777000222 msgid 1 flags 32 nextpayload 46 hexpayload "99887766554433221100ffeeddccbbaa"
 }
 
 // INSTRUCTION: Compile the RFC 7383 fragmented IKEv2 certificate flow.
-COMPILE {
+compile {
     ikev2_skf_fragments(skf_ike_init, skf_ike_resp)
 }

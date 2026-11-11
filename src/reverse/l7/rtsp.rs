@@ -1,9 +1,9 @@
-//! Real Time Streaming Protocol (`RTSP`, RFC 7826 / RFC 2326) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Real Time Streaming Protocol (`rtsp`, RFC 7826 / RFC 2326) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for RFC 2326 / RFC 7826 `RTSP` streaming
+//! This module implements the fuzz-safe reverse dissector for RFC 2326 / RFC 7826 `rtsp` streaming
 //! media control requests (`options`, `describe`, `setup`, `play`, `teardown`, or `method`) and
 //! status responses (`status`) carried over TCP ports `554` and `8554`. It validates CRLF header
-//! framing, decodes `uri`, `cseq`, `session`, and `transport_hdr` fields into canonical `.fasm`
+//! framing, decodes `uri`, `cseq`, `session`, and `transporthdr` fields into canonical `.fasm`
 //! modifiers, elides default request URIs and sequence numbers, and preserves any trailing media
 //! description bytes in `residual_payload`.
 
@@ -66,7 +66,7 @@ pub(crate) fn dissect_rtsp(payload: &[u8]) -> Option<ProtocolDissection> {
         push_str_mod(&mut tokens, "session", s);
     }
     if let Some(t) = trans_opt {
-        push_str_mod(&mut tokens, "transport_hdr", t);
+        push_str_mod(&mut tokens, "transporthdr", t);
     }
 
     Some(sd(Protocol::Rtsp, tokens, trailing.to_vec()))

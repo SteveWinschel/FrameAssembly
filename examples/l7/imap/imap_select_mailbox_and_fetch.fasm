@@ -1,19 +1,19 @@
 // PROMPT: IMAP mailbox selection and email header retrieval.
-// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, COMPILE
+// TOKENS: host, ip, flow, s, imap, tag, cmd, arg, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 10.0.0.25 }
+host client { ip 10.0.0.25 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 10.0.0.1 }
+host server { ip 10.0.0.1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW imap_select(c, s) {
-    c -> s IMAP TAG "A02" CMD "SELECT" ARG "INBOX"
-    c -> s IMAP TAG "A03" CMD "FETCH" ARG "1"
+flow imap_select(c, s) {
+    c -> s imap tag "A02" cmd "SELECT" arg "INBOX"
+    c -> s imap tag "A03" cmd "FETCH" arg "1"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     imap_select(client, server)
 }

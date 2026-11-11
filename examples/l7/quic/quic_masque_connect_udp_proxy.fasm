@@ -1,24 +1,24 @@
 // PROMPT: MASQUE (RFC 9298) CONNECT-UDP proxy tunnel over QUIC Short header datagrams on port 8443.
-// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, VERSION, DCID, SCID, SRCPORT, DSTPORT, PKT_NUM, WAIT, SHORT, HEXPAYLOAD, COMPILE
+// TOKENS: host, ip, flow, s, quic, initial, version, dcid, scid, srcport, dstport, pktnum, wait, ms, short, hexpayload, compile
 
 // INSTRUCTION: Define privacy relay client establishing MASQUE tunnel.
-HOST masque_client {
-    IP 10.88.77.12
+host masque_client {
+    ip 10.88.77.12
 }
 
 // INSTRUCTION: Define MASQUE oblivious HTTP/3 proxy server on port 8443.
-HOST masque_proxy {
-    IP 10.88.77.1
+host masque_proxy {
+    ip 10.88.77.1
 }
 
 // INSTRUCTION: Define QUIC setup and HTTP/3 Datagram capsule tunneling UDP payload.
-FLOW quic_masque_tunnel(c, s) {
-    c -> s QUIC INITIAL VERSION 1 DCID 0x777788889999aaaa SCID 0x1111222233334444 SRCPORT 58443 DSTPORT 8443 PKT_NUM 1 WAIT 4ms
-    c -> s QUIC SHORT DCID 0x777788889999aaaa SRCPORT 58443 DSTPORT 8443 PKT_NUM 2 HEXPAYLOAD "004500001c" WAIT 4ms
-    c <- s QUIC SHORT DCID 0x1111222233334444 SRCPORT 8443 DSTPORT 58443 PKT_NUM 1 HEXPAYLOAD "0045000020"
+flow quic_masque_tunnel(c, s) {
+    c -> s quic initial version 1 dcid 0x777788889999aaaa scid 0x1111222233334444 srcport 58443 dstport 8443 pktnum 1 wait 4ms
+    c -> s quic short dcid 0x777788889999aaaa srcport 58443 dstport 8443 pktnum 2 hexpayload "004500001c" wait 4ms
+    c <- s quic short dcid 0x1111222233334444 srcport 8443 dstport 58443 pktnum 1 hexpayload "0045000020"
 }
 
 // INSTRUCTION: Compile the MASQUE CONNECT-UDP over QUIC scenario.
-COMPILE {
+compile {
     quic_masque_tunnel(masque_client, masque_proxy)
 }

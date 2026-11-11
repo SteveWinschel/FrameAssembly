@@ -59,27 +59,27 @@ impl<T> core::ops::Deref for Spanned<T> {
 
 /// A host definition with an optional IP and optional MAC address.
 ///
-/// Syntax mapping: `HOST <name> { [IP <ip_addr>] [MAC <mac_addr>] }`
+/// Syntax mapping: `host <name> { [ip <ip_addr>] [mac <mac_addr>] }`
 ///
 /// # Examples
 /// ```frameassembly
 /// // PROMPT: Declare IPv4 endpoints with explicit MAC addresses and execute an ICMP Echo Request.
-/// // TOKENS: HOST, IP, MAC, FLOW, ICMP, ECHO_REQUEST, COMPILE
+/// // TOKENS: host, ip, mac, flow, icmp, echorequest, compile
 /// // INSTRUCTION: Declare two IPv4 hosts.
-/// HOST client { IP 10.0.0.1 MAC 00:11:22:33:44:55 }
-/// HOST server { IP 10.0.0.2 MAC 00:aa:bb:cc:dd:ee }
+/// host client { ip 10.0.0.1 mac 00:11:22:33:44:55 }
+/// host server { ip 10.0.0.2 mac 00:aa:bb:cc:dd:ee }
 /// // INSTRUCTION: Define a minimal ICMP flow.
-/// FLOW ping(a, b) {
-///     a -> b ICMP ECHO_REQUEST
+/// flow ping(a, b) {
+///     a -> b icmp echorequest
 /// }
 /// // INSTRUCTION: Compile the flow.
-/// COMPILE {
+/// compile {
 ///     ping(client, server)
 /// }
 /// ```
-#[doc(alias = "HOST")]
-#[doc(alias = "IP")]
-#[doc(alias = "MAC")]
+#[doc(alias = "host")]
+#[doc(alias = "ip")]
+#[doc(alias = "mac")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostDef<'a> {
     /// The name of the host.
@@ -454,11 +454,11 @@ pub enum ProtocolSpec<'a> {
 
 /// A single frame statement inside a flow.
 ///
-/// Syntax mapping: `<caller> ->|<- <callee> [L2/L3/L4 modifiers] <Protocol> [ProtocolSpec] [WAIT <duration>]`
+/// Syntax mapping: `<caller> ->|<- <callee> [l2/l3/l4 modifiers] <protocol> [protocol_spec] [wait <duration>]`
 ///
 /// # Examples
 /// ```text
-/// client -> server TCP SYN ACK PAYLOAD "World" WAIT 10ms
+/// client -> server tcp syn ack payload "World" wait 10ms
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrameStatement<'a> {
@@ -500,6 +500,8 @@ pub struct FrameStatement<'a> {
     pub raw_flowlabel: Option<(u32, (usize, usize))>,
     /// Raw parsed GENTRAP span for semantic range validation.
     pub raw_gentrap_span: Option<(usize, usize)>,
+    /// Raw parsed `hellotime` value and span for HSRP semantic range validation (`0..=255`).
+    pub raw_hellotime: Option<(u16, (usize, usize))>,
     /// Any duplicate statement modifiers detected during parsing.
     pub duplicate_modifiers: Vec<(String, (usize, usize))>,
 
@@ -571,17 +573,17 @@ impl<'a> FrameStatement<'a> {
     }
 }
 
-/// A flow definition in the form `FLOW name(arg1, arg2) { statements }`
+/// A flow definition in the form `flow name(arg1, arg2) { statements }`
 ///
-/// Syntax mapping: `FLOW <name>(<param1>, <param2>) { <statements> }`
+/// Syntax mapping: `flow <name>(<param1>, <param2>) { <statements> }`
 ///
 /// # Examples
 /// ```text
-/// FLOW name(arg1, arg2) {
-///     arg1 -> arg2 TCP SYN
+/// flow name(arg1, arg2) {
+///     arg1 -> arg2 tcp syn
 /// }
 /// ```
-#[doc(alias = "FLOW")]
+#[doc(alias = "flow")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FlowDef<'a> {
     /// The name of the flow.
@@ -618,17 +620,14 @@ pub struct TemplateInvocation<'a> {
     pub span: (usize, usize),
 }
 
-/// A statement in the run/compile block, which can be a flow invocation, an inline frame statement, or a loop.
-#[doc(alias = "COMPILE")]
-#[doc(alias = "LOOP")]
+/// A statement in the `compile` block, which can be a flow invocation or an inline frame statement.
+#[doc(alias = "compile")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunStatement<'a> {
     /// A single template invocation directly in the block.
     Invocation(TemplateInvocation<'a>),
-    /// An inline directional frame statement directly inside `COMPILE`.
+    /// An inline directional frame statement directly inside `compile`.
     Frame(alloc::boxed::Box<FrameStatement<'a>>),
-    /// A loop block containing a count and inner invocations.
-    Loop(u32, Vec<TemplateInvocation<'a>>),
 }
 
 /// The root of the AST containing all assignments, flows, and the compile block.

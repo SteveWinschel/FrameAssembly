@@ -1,25 +1,25 @@
 // PROMPT: High-frequency TLS application data records marked with DSCP AF41 and Don't Fragment flag.
-// TOKENS: HOST, IP, FLOW, TLS, APP_DATA, RECORD_VERSION, DSCP, ECN, DF, TTL, PAYLOAD, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, flow, s, tls, appdata, recordversion, dscp, ecn, df, ttl, payload, wait, ms, compile
 
 // INSTRUCTION: Define real-time risk analytics client host.
-HOST risk_engine {
-    IP 10.55.1.20
+host risk_engine {
+    ip 10.55.1.20
 }
 
 // INSTRUCTION: Define market risk gateway TLS server host.
-HOST risk_gateway {
-    IP 10.55.1.1
+host risk_gateway {
+    ip 10.55.1.1
 }
 
 // INSTRUCTION: Define QoS-marked TLS APP_DATA request and response exchange.
-FLOW tls_qos_appdata(c, s) {
-    c -> s TLS APP_DATA RECORD_VERSION 0x0303 DSCP 34 ECN 2 DF TTL 64 PAYLOAD "ENC_RISK_VECTOR_REQ" WAIT 2ms
-    c <- s TLS APP_DATA RECORD_VERSION 0x0303 DSCP 34 ECN 2 DF TTL 64 PAYLOAD "ENC_RISK_MARGIN_ACK"
+flow tls_qos_appdata(c, s) {
+    c -> s tls appdata recordversion 0x0303 dscp 34 ecn 2 df ttl 64 payload "ENC_RISK_VECTOR_REQ" wait 2ms
+    c <- s tls appdata recordversion 0x0303 dscp 34 ecn 2 df ttl 64 payload "ENC_RISK_MARGIN_ACK"
 }
 
 // INSTRUCTION: Compile 3 iterations of QoS-marked TLS application data records.
-COMPILE {
-    LOOP 3 {
-        tls_qos_appdata(risk_engine, risk_gateway)
-    }
+compile {
+    tls_qos_appdata(risk_engine, risk_gateway) // cycle 1
+    tls_qos_appdata(risk_engine, risk_gateway) // cycle 2
+    tls_qos_appdata(risk_engine, risk_gateway) // cycle 3
 }

@@ -1,27 +1,27 @@
 // PROMPT: RFC 7752 BGP Link-State (BGP-LS) exporting IGP Traffic Engineering topology to a centralized PCE controller.
-// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, DSCP, TTL, WAIT, UPDATE, PREFIX, NEXTHOP, PAYLOAD, KEEPALIVE, COMPILE
+// TOKENS: host, ip, mac, flow, bgp, open, asn, holdtime, bgpid, dscp, ttl, wait, ms, update, prefix, nexthop, payload, keepalive, compile
 
 // INSTRUCTION: Define Area Border Router exporting OSPF-TE / IS-IS-TE graph via BGP-LS.
-HOST bgpls_abr_exporter {
-    IP 10.77.52.10
-    MAC 00:22:bd:77:52:0a
+host bgpls_abr_exporter {
+    ip 10.77.52.10
+    mac 00:22:bd:77:52:0a
 }
 
 // INSTRUCTION: Define Path Computation Element (PCE) SDN controller collecting BGP-LS NLRI.
-HOST sdn_pce_collector {
-    IP 10.77.52.100
-    MAC 00:22:bd:77:52:64
+host sdn_pce_collector {
+    ip 10.77.52.100
+    mac 00:22:bd:77:52:64
 }
 
 // INSTRUCTION: Define BGP-LS session establishment and link-state topology UPDATE export.
-FLOW bgp_link_state_export(abr, pce) {
-    abr -> pce BGP OPEN ASN 65077 HOLDTIME 180 BGPID 10.77.52.10 DSCP 48 TTL 64 WAIT 5ms
-    abr <- pce BGP OPEN ASN 65077 HOLDTIME 180 BGPID 10.77.52.100 DSCP 48 TTL 64 WAIT 5ms
-    abr -> pce BGP UPDATE ASN 65077 PREFIX "10.0.0.0/8" NEXTHOP 10.77.52.10 DSCP 48 TTL 64 PAYLOAD "BGPLS_AFI16388_SAFI71_NODE_LINK_SID_16001" WAIT 5ms
-    abr <- pce BGP KEEPALIVE DSCP 48 TTL 64
+flow bgp_link_state_export(abr, pce) {
+    abr -> pce bgp open asn 65077 holdtime 180 bgpid 10.77.52.10 dscp 48 ttl 64 wait 5ms
+    abr <- pce bgp open asn 65077 holdtime 180 bgpid 10.77.52.100 dscp 48 ttl 64 wait 5ms
+    abr -> pce bgp update asn 65077 prefix "10.0.0.0/8" nexthop 10.77.52.10 dscp 48 ttl 64 payload "BGPLS_AFI16388_SAFI71_NODE_LINK_SID_16001" wait 5ms
+    abr <- pce bgp keepalive dscp 48 ttl 64
 }
 
 // INSTRUCTION: Compile the RFC 7752 BGP-LS topology export flow.
-COMPILE {
+compile {
     bgp_link_state_export(bgpls_abr_exporter, sdn_pce_collector)
 }

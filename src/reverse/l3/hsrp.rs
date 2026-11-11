@@ -1,7 +1,7 @@
 //! Hot Standby Router Protocol (HSRP, RFC 2281) Layer 3 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for Cisco Hot Standby Router
-//! Protocol (`HSRP`, RFC 2281) messages carried over UDP ports `1985` (IPv4) and `2029` (IPv6).
+//! Protocol (`hsrp`, RFC 2281) messages carried over UDP ports `1985` (IPv4) and `2029` (IPv6).
 //! It decodes the standby `group`, router `priority`, HSRP `state`, `hellotime`, `holdtime`,
 //! cleartext `auth` string, and IPv4 or IPv6 virtual IP (`vip`) into canonical `.fasm` tokens.
 
@@ -14,7 +14,7 @@ use crate::reverse::{
     ProtocolDissection, escape_fasm_string, ipv4_at, ipv6_at, push_if, sd, src_v4_or,
 };
 
-/// Decompiles an RFC 2281 `HSRP` UDP payload (ports `1985` / `2029`) into a [`ProtocolDissection`].
+/// Decompiles an RFC 2281 `hsrp` UDP payload (ports `1985` / `2029`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_hsrp(b: &[u8], src_ip: Option<IpAddr>) -> Option<ProtocolDissection> {
     if b.len() < 20 {
         return None;

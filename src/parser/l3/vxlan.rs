@@ -1,8 +1,8 @@
-//! Virtual eXtensible Local Area Network (`VXLAN`, RFC 7348) overlay tunnel parser.
+//! Virtual eXtensible Local Area Network (`vxlan`, RFC 7348) overlay tunnel parser.
 //!
-//! This module implements the winnow parser combinator for `VXLAN` UDP-encapsulated Layer 2
-//! overlay frames. It parses the `VXLAN` protocol keyword and 24-bit Virtual Network Identifier
-//! modifiers (`VNI <u32>` or `VNID <u32>`) into spanned [`ParsedField`] nodes for downstream
+//! This module implements the winnow parser combinator for `vxlan` UDP-encapsulated Layer 2
+//! overlay frames. It parses the `vxlan` protocol keyword and 24-bit Virtual Network Identifier
+//! modifiers (`vni <u32>` or `vnid <u32>`) into spanned [`ParsedField`] nodes for downstream
 //! VXLAN header and inner frame construction.
 
 use winnow::ModalResult as PResult;

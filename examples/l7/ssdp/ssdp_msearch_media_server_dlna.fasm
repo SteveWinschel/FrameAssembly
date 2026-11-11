@@ -1,33 +1,33 @@
 // PROMPT: Simulate a smart TV discovering a UPnP MediaServer:1 via SSDP M-SEARCH and receiving a presence announcement.
-// TOKENS: HOST, MAC, IP, FLOW, SSDP, MSEARCH, HOST_HDR, MAN, MX, ST, WAIT, NOTIFY, NT, NTS, USN, LOCATION, COMPILE
+// TOKENS: host, mac, ip, flow, ssdp, msearch, hosthdr, man, mx, st, wait, ms, notify, nt, nts, usn, location, compile
 
 // INSTRUCTION: Define host endpoint smart_tv.
-HOST smart_tv {
-    MAC 00:1e:7d:10:20:30
-    IP 192.168.10.55
+host smart_tv {
+    mac 00:1e:7d:10:20:30
+    ip 192.168.10.55
 }
 
 // INSTRUCTION: Define host endpoint nas_media.
-HOST nas_media {
-    MAC 00:11:32:55:66:77
-    IP 192.168.10.10
+host nas_media {
+    mac 00:11:32:55:66:77
+    ip 192.168.10.10
 }
 
 // INSTRUCTION: Define host endpoint ssdp_group.
-HOST ssdp_group {
-    MAC 01:00:5e:7f:ff:fa
-    IP 239.255.255.250
+host ssdp_group {
+    mac 01:00:5e:7f:ff:fa
+    ip 239.255.255.250
 }
 
 // INSTRUCTION: Send M-SEARCH for MediaServer:1 and receive an advertisement with LOCATION URL.
-FLOW ssdp_media_server_discovery(smart_tv, nas_media, ssdp_group) {
-    smart_tv -> ssdp_group SSDP MSEARCH HOST_HDR "239.255.255.250:1900" MAN "\"ssdp:discover\"" MX 3 ST "urn:schemas-upnp-org:device:MediaServer:1" WAIT 25ms
-    nas_media -> smart_tv SSDP NOTIFY HOST_HDR "239.255.255.250:1900" NT "urn:schemas-upnp-org:device:MediaServer:1" NTS "ssdp:alive"
-        USN "uuid:nas-dlna-01::urn:schemas-upnp-org:device:MediaServer:1"
-        LOCATION "http://192.168.10.10:50002/desc/device.xml"
+flow ssdp_media_server_discovery(smart_tv, nas_media, ssdp_group) {
+    smart_tv -> ssdp_group ssdp msearch hosthdr "239.255.255.250:1900" man "\"ssdp:discover\"" mx 3 st "urn:schemas-upnp-org:device:MediaServer:1" wait 25ms
+    nas_media -> smart_tv ssdp notify hosthdr "239.255.255.250:1900" nt "urn:schemas-upnp-org:device:MediaServer:1" nts "ssdp:alive"
+        usn "uuid:nas-dlna-01::urn:schemas-upnp-org:device:MediaServer:1"
+        location "http://192.168.10.10:50002/desc/device.xml"
 }
 
 // INSTRUCTION: Compile the SSDP MediaServer discovery flow.
-COMPILE {
+compile {
     ssdp_media_server_discovery(smart_tv, nas_media, ssdp_group)
 }

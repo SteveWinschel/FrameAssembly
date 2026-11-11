@@ -5,7 +5,7 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b DHCP [DISCOVER | OFFER | REQUEST | ACK | RELEASE | SOLICIT | ADVERTISE | REPLY] [XID <u32>] [CIADDR <ip>] [YIADDR <ip>] [SIADDR <ip>] [CHADDR <mac>] [HOSTNAME <str>] [DNS_SERVER <ip>] [ROUTER <ip>] [SUBNET_MASK <ip>] [LEASE_TIME <u32>]`
+//! `a -> b dhcp [discover | offer | request | ack | release | solicit | advertise | reply] [xid <u32>] [ciaddr <ip>] [yiaddr <ip>] [siaddr <ip>] [chaddr <mac>] [hostname <str>] [dnsserver <ip>] [router <ip>] [subnetmask <ip>] [leasetime <u32>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 use core::net::IpAddr;
 
 /// Builds an RFC 2131 DHCPv4 or RFC 8415 DHCPv6 payload, returning payload, source port, and destination port.
-/// Syntax mapping: `DHCP [DISCOVER | OFFER | REQUEST | ACK | RELEASE | SOLICIT | ADVERTISE | REPLY] [XID <u32>] [CIADDR <ip>] [YIADDR <ip>] [SIADDR <ip>] [CHADDR <mac>] [HOSTNAME <str>] [DNS_SERVER <ip>] [ROUTER <ip>] [SUBNET_MASK <ip>] [LEASE_TIME <u32>]`
+/// Syntax mapping: `dhcp [discover | offer | request | ack | release | solicit | advertise | reply] [xid <u32>] [ciaddr <ip>] [yiaddr <ip>] [siaddr <ip>] [chaddr <mac>] [hostname <str>] [dnsserver <ip>] [router <ip>] [subnetmask <ip>] [leasetime <u32>]`
 #[doc(alias = "DHCP")]
 #[doc(alias = "DHCPV4")]
 #[doc(alias = "DHCPV6")]

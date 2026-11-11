@@ -1,18 +1,18 @@
 // PROMPT: mDNS service announcement with custom 4500-second cache time-to-live parameter.
-// TOKENS: HOST, IP, FLOW, MDNS, RESPONSE, TXID, QNAME, QTYPE, RDATA, ANS_TTL, COMPILE
+// TOKENS: host, ip, flow, mdns, response, txid, qname, qtype, rdata, ansttl, compile
 
 // INSTRUCTION: Define network attached storage device.
-HOST nas_device { IP 192.168.1.200 }
+host nas_device { ip 192.168.1.200 }
 
 // INSTRUCTION: Define multicast broadcast receiver.
-HOST mdns_addr { IP 224.0.0.251 }
+host mdns_addr { ip 224.0.0.251 }
 
 // INSTRUCTION: Define long TTL announcement flow.
-FLOW long_ttl_announce(nas, grp) {
-    nas -> grp MDNS RESPONSE TXID 0 QNAME "storage-vault.local" QTYPE "A" RDATA "192.168.1.200" ANS_TTL 4500
+flow long_ttl_announce(nas, grp) {
+    nas -> grp mdns response txid 0 qname "storage-vault.local" qtype "a" rdata "192.168.1.200" ansttl 4500
 }
 
 // INSTRUCTION: Compile custom TTL announcement scenario.
-COMPILE {
+compile {
     long_ttl_announce(nas_device, mdns_addr)
 }

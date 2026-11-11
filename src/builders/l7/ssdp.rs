@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b SSDP [MSEARCH | NOTIFY] [HOST_HDR <str>] [MAN <str>] [MX <u8>] [ST <str>] [NT <str>] [NTS <str>] [USN <str>] [LOCATION <str>]`
+//! `a -> b ssdp [msearch | notify] [hosthdr <str>] [man <str>] [mx <u8>] [st <str>] [nt <str>] [nts <str>] [usn <str>] [location <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an SSDP discovery request or notification string.
-/// Syntax mapping: `SSDP [MSEARCH | NOTIFY] [HOST_HDR <str>] [MAN <str>] [MX <u8>] [ST <str>] [NT <str>] [NTS <str>] [USN <str>] [LOCATION <str>]`
+/// Syntax mapping: `ssdp [msearch | notify] [hosthdr <str>] [man <str>] [mx <u8>] [st <str>] [nt <str>] [nts <str>] [usn <str>] [location <str>]`
 #[doc(alias = "SSDP")]
 #[doc(alias = "UPNP")]
 #[doc(alias = "MSEARCH")]

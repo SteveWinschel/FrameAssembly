@@ -1,19 +1,19 @@
 // PROMPT: EtherNet/IP CIP Set_Attribute_Single (Service 16) writing output assembly data with HEXPAYLOAD.
-// TOKENS: HOST, IP, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, HEXPAYLOAD, STATUS, COMPILE
+// TOKENS: host, ip, flow, ethernetip, cmd, sessionhandle, cipservice, cipclass, cipinstance, cipattr, hexpayload, status, compile
 
 // INSTRUCTION: Define conveyor PLC master.
-HOST conveyor_plc { IP 192.168.44.1 }
+host conveyor_plc { ip 192.168.44.1 }
 
 // INSTRUCTION: Define pneumatic solenoid valve island.
-HOST valve_island { IP 192.168.44.50 }
+host valve_island { ip 192.168.44.50 }
 
 // INSTRUCTION: Write 4-byte output bitmask to Assembly Class 4 Instance 150 Attribute 3 using Service 16.
-FLOW enip_cip_write_outputs(p, v) {
-    p -> v ETHERNETIP CMD "SendRRData" SESSION_HANDLE 500 CIP_SERVICE 16 CIP_CLASS 4 CIP_INSTANCE 150 CIP_ATTR 3 HEXPAYLOAD "ff00aa55"
-    p <- v ETHERNETIP CMD "SendRRData" SESSION_HANDLE 500 STATUS 0
+flow enip_cip_write_outputs(p, v) {
+    p -> v ethernetip cmd "sendrrdata" sessionhandle 500 cipservice 16 cipclass 4 cipinstance 150 cipattr 3 hexpayload "ff00aa55"
+    p <- v ethernetip cmd "sendrrdata" sessionhandle 500 status 0
 }
 
 // INSTRUCTION: Compile the EtherNet/IP CIP Set_Attribute_Single flow.
-COMPILE {
+compile {
     enip_cip_write_outputs(conveyor_plc, valve_island)
 }

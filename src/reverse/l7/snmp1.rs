@@ -1,11 +1,11 @@
-//! Simple Network Management Protocol v1 (`SNMP1`, RFC 1157) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Simple Network Management Protocol v1 (`snmp1`, RFC 1157) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe ASN.1 Basic Encoding Rules (BER) reverse dissector for
-//! RFC 1157 `SNMP1` messages carried over UDP ports `161`, `162`, `10161`, and `10162`. It decodes
+//! RFC 1157 `snmp1` messages carried over UDP ports `161`, `162`, `10161`, and `10162`. It decodes
 //! `Trap-PDU` (`enterprise`, `agentip`, `gentrap`, `spectrap`, `sysuptime`), `GetRequest-PDU`,
 //! `GetNextRequest-PDU`, `GetResponse-PDU`, and `SetRequest-PDU` structures along with all SMIv1
 //! (RFC 1155) `VarBind` value types (`int`, `string`, `oidval`, `ipval`, `counter32`, `gauge32`,
-//! `timeticks`, `null`) and provides shared ASN.1 formatting helpers for `SNMP2` and `SNMP3`.
+//! `timeticks`, `null`) and provides shared ASN.1 formatting helpers for `snmp2` and `snmp3`.
 
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -42,7 +42,7 @@ pub(crate) fn format_octet_vb_body(bytes: &[u8]) -> Option<String> {
     }
 }
 
-/// Dissects an RFC 1157 `SNMP1` ASN.1 BER payload.
+/// Dissects an RFC 1157 `snmp1` ASN.1 BER payload.
 pub(crate) fn dissect_snmp1(payload: &[u8], is_ipv6: bool) -> Option<ProtocolDissection> {
     use rasn_smi::v1::NetworkAddress::Internet;
     use rasn_snmp::v1::{Message, Pdus};

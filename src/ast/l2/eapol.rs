@@ -8,7 +8,7 @@
 //! and a 16-bit Packet Body Length, followed by the RFC 3748 EAP message body.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b EAPOL [VERSION <u8>] [TYPE <EAP_PACKET|START|LOGOFF|KEY>] [EAP_CODE <u8>] [EAP_ID <u8>] [EAP_METHOD <u8>] [IDENTITY "<str>"]`
+//! `a -> b eapol [version <u8>] [type <eappacket|start|logoff|key>] [eapcode <u8>] [eapid <u8>] [eapmethod <u8>] [identity "<str>"]`
 
 /// IEEE 802.1X EAPOL 8-bit packet type field (`Packet Type` at offset 1 of the EAPOL header).
 #[doc(alias = "802.1X")]
@@ -27,31 +27,31 @@ pub enum EapolType {
 
 /// IEEE 802.1X EAPOL and RFC 3748 EAP frame specification.
 ///
-/// Syntax mapping: `EAPOL [VERSION <u8>] [TYPE <EAP_PACKET | START | LOGOFF | KEY>] [EAP_CODE <u8>] [EAP_ID <u8>] [EAP_METHOD <u8>] [IDENTITY "<str>"]`
-#[doc(alias = "EAPOL")]
+/// Syntax mapping: `eapol [version <u8>] [type <eappacket | start | logoff | key>] [eapcode <u8>] [eapid <u8>] [eapmethod <u8>] [identity "<str>"]`
+#[doc(alias = "eapol")]
 #[doc(alias = "802.1X")]
 #[doc(alias = "RFC 3748")]
 #[doc(alias = "0x888E")]
-#[doc(alias = "EAP_PACKET")]
-#[doc(alias = "START")]
-#[doc(alias = "LOGOFF")]
-#[doc(alias = "KEY")]
-#[doc(alias = "EAP_CODE")]
-#[doc(alias = "EAP_ID")]
-#[doc(alias = "EAP_METHOD")]
-#[doc(alias = "IDENTITY")]
+#[doc(alias = "eappacket")]
+#[doc(alias = "start")]
+#[doc(alias = "logoff")]
+#[doc(alias = "key")]
+#[doc(alias = "eapcode")]
+#[doc(alias = "eapid")]
+#[doc(alias = "eapmethod")]
+#[doc(alias = "identity")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct EapolSpec<'a> {
-    /// IEEE 802.1X protocol version (`VERSION <u8>`, typically `1`, `2`, or `3`).
+    /// IEEE 802.1X protocol version (`version <u8>`, typically `1`, `2`, or `3`).
     pub version: Option<u8>,
-    /// EAPOL packet type (`TYPE <EAP_PACKET | START | LOGOFF | KEY>`).
+    /// EAPOL packet type (`type <eappacket | start | logoff | key>`).
     pub packet_type: Option<EapolType>,
-    /// RFC 3748 EAP Code (`EAP_CODE <u8>`: `1` Request, `2` Response, `3` Success, `4` Failure).
+    /// RFC 3748 EAP Code (`eapcode <u8>`: `1` Request, `2` Response, `3` Success, `4` Failure).
     pub eap_code: Option<u8>,
-    /// RFC 3748 EAP Identifier (`EAP_ID <u8>`) matching requests and responses.
+    /// RFC 3748 EAP Identifier (`eapid <u8>`) matching requests and responses.
     pub eap_id: Option<u8>,
-    /// RFC 3748 EAP Method / Type (`EAP_METHOD <u8>`: `1` Identity, `4` MD5, `13` EAP-TLS, `25` PEAP).
+    /// RFC 3748 EAP Method / Type (`eapmethod <u8>`: `1` Identity, `4` MD5, `13` EAP-TLS, `25` PEAP).
     pub eap_method: Option<u8>,
-    /// Optional UTF-8 identity string (`IDENTITY "<str>"`) carried in EAP-Identity payloads.
+    /// Optional UTF-8 identity string (`identity "<str>"`) carried in EAP-Identity payloads.
     pub identity: Option<&'a str>,
 }

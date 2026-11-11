@@ -1,27 +1,27 @@
 // PROMPT: WireGuard RFC 6479 2000-bit anti-replay sliding window accepting out-of-order UDP transport DATA packets.
-// TOKENS: HOST, IP, MAC, FLOW, WIREGUARD, TYPE, DATA, RECEIVER, COUNTER, DF, TTL, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, wireguard, type, data, receiver, counter, df, ttl, payload, wait, ms, compile
 
 // INSTRUCTION: Define multi-WAN WireGuard sender striping packets across asymmetric paths.
-HOST wg_multipath_tx {
-    IP 10.51.82.10
-    MAC 00:22:bd:51:82:0a
+host wg_multipath_tx {
+    ip 10.51.82.10
+    mac 00:22:bd:51:82:0a
 }
 
 // INSTRUCTION: Define WireGuard receiver validating out-of-order COUNTER values (100, 103, 101, 102).
-HOST wg_multipath_rx {
-    IP 10.51.82.20
-    MAC 00:22:bd:51:82:14
+host wg_multipath_rx {
+    ip 10.51.82.20
+    mac 00:22:bd:51:82:14
 }
 
 // INSTRUCTION: Define out-of-order WireGuard DATA packets within the 2000-packet replay window.
-FLOW wg_anti_replay_window_flow(tx, rx) {
-    tx -> rx WIREGUARD TYPE DATA RECEIVER 82001 COUNTER 100 DF TTL 64 PAYLOAD "WG_COUNTER_100_IN_ORDER" WAIT 1ms
-    tx -> rx WIREGUARD TYPE DATA RECEIVER 82001 COUNTER 103 DF TTL 64 PAYLOAD "WG_COUNTER_103_ADVANCE_HEAD" WAIT 1ms
-    tx -> rx WIREGUARD TYPE DATA RECEIVER 82001 COUNTER 101 DF TTL 64 PAYLOAD "WG_COUNTER_101_REORDERED_OK" WAIT 1ms
-    tx -> rx WIREGUARD TYPE DATA RECEIVER 82001 COUNTER 102 DF TTL 64 PAYLOAD "WG_COUNTER_102_REORDERED_OK"
+flow wg_anti_replay_window_flow(tx, rx) {
+    tx -> rx wireguard type data receiver 82001 counter 100 df ttl 64 payload "WG_COUNTER_100_IN_ORDER" wait 1ms
+    tx -> rx wireguard type data receiver 82001 counter 103 df ttl 64 payload "WG_COUNTER_103_ADVANCE_HEAD" wait 1ms
+    tx -> rx wireguard type data receiver 82001 counter 101 df ttl 64 payload "WG_COUNTER_101_REORDERED_OK" wait 1ms
+    tx -> rx wireguard type data receiver 82001 counter 102 df ttl 64 payload "WG_COUNTER_102_REORDERED_OK"
 }
 
 // INSTRUCTION: Compile the WireGuard RFC 6479 anti-replay sliding window flow.
-COMPILE {
+compile {
     wg_anti_replay_window_flow(wg_multipath_tx, wg_multipath_rx)
 }

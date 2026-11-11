@@ -1,10 +1,10 @@
 //! Terminal Access Controller Access-Control System Plus (TACACS+) Layer 7 field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 8907 `TACACS` authentication,
+//! This module implements the `winnow` parser combinator for RFC 8907 `tacacs` authentication,
 //! authorization, and accounting frames in FrameAssembly `.fasm` specifications. It recognizes
-//! the `TACACS` protocol keyword, session types (`AUTHEN`, `AUTHOR`, `ACCT` bare or after `TYPE`),
-//! session identifiers (`SESSION_ID`), sequence numbers (`SEQ`), header flags (`FLAGS`), user
-//! principals (`USER`), and payload data strings (`DATA`).
+//! the `tacacs` protocol keyword, session types (`authen`, `author`, `acct` bare or after `type`),
+//! session identifiers (`sessionid`), sequence numbers (`seq`), header flags (`flags`), user
+//! principals (`user`), and payload data strings (`data`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

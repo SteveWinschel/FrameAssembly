@@ -1,25 +1,25 @@
 // PROMPT: Create a carrier-grade NAT subscriber DNS lookup encapsulated in QinQ S-VLAN 500 and C-VLAN 53.
-// TOKENS: HOST, IP, MAC, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, QINQ, INNER_VLAN, WAIT, RESPONSE, RCODE, RDATA, ANS_TTL, COMPILE
+// TOKENS: host, ip, mac, flow, s, dns, query, txid, qname, qtype, qinq, innervlan, wait, ms, response, rcode, rdata, ansttl, compile
 
 // INSTRUCTION: Define the DNS stub resolver client endpoint.
-HOST dns_client {
-    IP 100.64.53.14
-    MAC 00:1b:21:53:01:0a
+host dns_client {
+    ip 100.64.53.14
+    mac 00:1b:21:53:01:0a
 }
 
 // INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
-HOST dns_server {
-    IP 100.64.0.53
-    MAC 00:1b:21:53:01:35
+host dns_server {
+    ip 100.64.0.53
+    mac 00:1b:21:53:01:35
 }
 
 // INSTRUCTION: Execute the DNS query and authoritative response transaction.
-FLOW dns_scenario_flow(c, s) {
-    c -> s DNS QUERY TXID 2113 QNAME "api.streaming.example.net" QTYPE "A" QINQ 500 INNER_VLAN 53 WAIT 4ms
-    c <- s DNS RESPONSE TXID 2113 RCODE 0 QNAME "api.streaming.example.net" QTYPE "A" RDATA "198.51.100.240" ANS_TTL 120 QINQ 500 INNER_VLAN 53
+flow dns_scenario_flow(c, s) {
+    c -> s dns query txid 2113 qname "api.streaming.example.net" qtype "a" qinq 500 innervlan 53 wait 4ms
+    c <- s dns response txid 2113 rcode 0 qname "api.streaming.example.net" qtype "a" rdata "198.51.100.240" ansttl 120 qinq 500 innervlan 53
 }
 
 // INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
-COMPILE {
+compile {
     dns_scenario_flow(dns_client, dns_server)
 }

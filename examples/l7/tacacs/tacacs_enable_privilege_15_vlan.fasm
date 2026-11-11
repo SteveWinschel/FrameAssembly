@@ -1,30 +1,30 @@
 // PROMPT: Model a Cisco IOS enable privilege level 15 elevation authentication using TACACS+ AUTHEN on management VLAN 49.
-// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, VLAN, ACK, TACACS, AUTHEN, SESSION_ID, USER, PAYLOAD, COMPILE
+// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, vlan, ack, tacacs, authen, sessionid, user, payload, compile
 
 // INSTRUCTION: Define host endpoint dist_switch.
-HOST dist_switch {
-    MAC 00:0c:29:49:00:10
-    IP 10.49.0.10
+host dist_switch {
+    mac 00:0c:29:49:00:10
+    ip 10.49.0.10
 }
 
 // INSTRUCTION: Define host endpoint aaa_server.
-HOST aaa_server {
-    MAC 00:0c:29:49:00:01
-    IP 10.49.0.1
+host aaa_server {
+    mac 00:0c:29:49:00:01
+    ip 10.49.0.1
 }
 
 // INSTRUCTION: Request TACACS+ enable authentication on VLAN 49 and receive PASS.
-FLOW tacacs_enable_privilege_15(dist_switch, aaa_server) {
-    dist_switch -> aaa_server TCP SYN SRCPORT 56049 DSTPORT 49 VLAN 49
-    aaa_server -> dist_switch TCP SYN ACK VLAN 49
-    dist_switch -> aaa_server TCP ACK VLAN 49
-    dist_switch -> aaa_server TACACS AUTHEN SESSION_ID 71001 USER "$enab15$" PAYLOAD "service=enable:priv-lvl=15" VLAN 49
-    aaa_server -> dist_switch TACACS AUTHEN SESSION_ID 71001 PAYLOAD "GETPASS:Password: " VLAN 49
-    dist_switch -> aaa_server TACACS AUTHEN SESSION_ID 71001 USER "$enab15$" PAYLOAD "EnableSecret#2026" VLAN 49
-    aaa_server -> dist_switch TACACS AUTHEN SESSION_ID 71001 PAYLOAD "AUTHEN_STATUS_PASS" VLAN 49
+flow tacacs_enable_privilege_15(dist_switch, aaa_server) {
+    dist_switch -> aaa_server tcp syn srcport 56049 dstport 49 vlan 49
+    aaa_server -> dist_switch tcp syn ack vlan 49
+    dist_switch -> aaa_server tcp ack vlan 49
+    dist_switch -> aaa_server tacacs authen sessionid 71001 user "$enab15$" payload "service=enable:priv-lvl=15" vlan 49
+    aaa_server -> dist_switch tacacs authen sessionid 71001 payload "GETPASS:Password: " vlan 49
+    dist_switch -> aaa_server tacacs authen sessionid 71001 user "$enab15$" payload "EnableSecret#2026" vlan 49
+    aaa_server -> dist_switch tacacs authen sessionid 71001 payload "AUTHEN_STATUS_PASS" vlan 49
 }
 
 // INSTRUCTION: Compile the TACACS+ enable privilege 15 flow.
-COMPILE {
+compile {
     tacacs_enable_privilege_15(dist_switch, aaa_server)
 }

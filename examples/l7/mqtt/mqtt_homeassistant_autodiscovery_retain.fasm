@@ -1,29 +1,29 @@
 // PROMPT: Generate an MQTT Home Assistant auto-discovery configuration publish followed by state telemetry.
-// TOKENS: HOST, IP, MAC, FLOW, MQTT, CONNECT, CLIENT_ID, WAIT, CONNACK, RETURN_CODE, PUBLISH, TOPIC, QOS, RETAIN, PKT_ID, PAYLOAD, PUBACK, COMPILE
+// TOKENS: host, ip, mac, flow, s, mqtt, connect, clientid, wait, ms, connack, returncode, publish, topic, qos, retain, pktid, payload, puback, compile
 
 // INSTRUCTION: Define the ESPHome smart plug publishing its Home Assistant discovery JSON payload.
-HOST esphome_plug {
-    IP 192.168.1.145
-    MAC 24:6f:28:01:01:45
+host esphome_plug {
+    ip 192.168.1.145
+    mac 24:6f:28:01:01:45
 }
 
 // INSTRUCTION: Define the Home Assistant Mosquitto broker add-on.
-HOST hass_mosquitto {
-    IP 192.168.1.10
-    MAC dc:a6:32:01:00:10
+host hass_mosquitto {
+    ip 192.168.1.10
+    mac dc:a6:32:01:00:10
 }
 
 // INSTRUCTION: Connect, publish a retained auto-discovery config to homeassistant/sensor/.../config, and publish live watt readings.
-FLOW homeassistant_autodiscovery(c, s) {
-    c -> s MQTT CONNECT CLIENT_ID "esphome-desk-plug" WAIT 2ms
-    c <- s MQTT CONNACK RETURN_CODE 0 WAIT 3ms
-    c -> s MQTT PUBLISH TOPIC "homeassistant/sensor/desk_plug_power/config" QOS 1 RETAIN PKT_ID 1
-        PAYLOAD "{\"name\":\"Desk Power\",\"unit_of_meas\":\"W\",\"stat_t\":\"esphome/desk_plug/power\"}" WAIT 2ms
-    c <- s MQTT PUBACK PKT_ID 1 WAIT 10ms
-    c -> s MQTT PUBLISH TOPIC "esphome/desk_plug/power" QOS 0 PAYLOAD "124.6"
+flow homeassistant_autodiscovery(c, s) {
+    c -> s mqtt connect clientid "esphome-desk-plug" wait 2ms
+    c <- s mqtt connack returncode 0 wait 3ms
+    c -> s mqtt publish topic "homeassistant/sensor/desk_plug_power/config" qos 1 retain pktid 1
+        payload "{\"name\":\"Desk Power\",\"unit_of_meas\":\"W\",\"stat_t\":\"esphome/desk_plug/power\"}" wait 2ms
+    c <- s mqtt puback pktid 1 wait 10ms
+    c -> s mqtt publish topic "esphome/desk_plug/power" qos 0 payload "124.6"
 }
 
 // INSTRUCTION: Compile the Home Assistant MQTT auto-discovery trace into a PCAP file.
-COMPILE {
+compile {
     homeassistant_autodiscovery(esphome_plug, hass_mosquitto)
 }

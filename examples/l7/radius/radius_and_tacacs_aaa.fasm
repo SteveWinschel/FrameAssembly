@@ -1,19 +1,19 @@
 // PROMPT: Authentication, Authorization, and Accounting signaling with RADIUS Access-Request and TACACS+ Authen.
-// TOKENS: HOST, IP, FLOW, RADIUS, ACCESS_REQUEST, USER, TACACS, AUTHEN, COMPILE
+// TOKENS: host, ip, flow, s, radius, accessrequest, user, tacacs, authen, compile
 
 // INSTRUCTION: Define network access server.
-HOST nas_client { IP 172.16.10.1 }
+host nas_client { ip 172.16.10.1 }
 
 // INSTRUCTION: Define centralized AAA authentication server.
-HOST aaa_server { IP 172.16.10.2 }
+host aaa_server { ip 172.16.10.2 }
 
 // INSTRUCTION: Define RADIUS and TACACS authentication flow.
-FLOW aaa_flow(c, s) {
-    c -> s RADIUS ACCESS_REQUEST USER "operator"
-    c -> s TACACS AUTHEN USER "admin"
+flow aaa_flow(c, s) {
+    c -> s radius accessrequest user "operator"
+    c -> s tacacs authen user "admin"
 }
 
 // INSTRUCTION: Compile block executing AAA security requests.
-COMPILE {
+compile {
     aaa_flow(nas_client, aaa_server)
 }

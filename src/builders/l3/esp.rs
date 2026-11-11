@@ -2,18 +2,18 @@
 //!
 //! Serializes an [`IpsecSpec`] / [`EspSpec`] into an RFC 4303 IPsec ESP wire payload encapsulated
 //! directly inside IPv4 or IPv6 with protocol / Next Header number `50` (`0x32`). The builder
-//! writes the 32-bit big-endian Security Parameters Index (`SPI`, default `0x1000`), 32-bit
-//! big-endian Sequence Number (`SEQ`, default `1`), explicit Initialization Vector (`IV`, default
+//! writes the 32-bit big-endian Security Parameters Index (`spi`, default `0x1000`), 32-bit
+//! big-endian Sequence Number (`seq`, default `1`), explicit Initialization Vector (`iv`, default
 //! 8 zeroed bytes), encrypted payload (or 16-byte `0xAA` dummy ciphertext when unspecified), ESP
-//! trailer (`Pad Length = 0` and `Next Header` default `59`), and trailing Integrity Check Value (`ICV`).
+//! trailer (`Pad Length = 0` and `Next Header` default `59`), and trailing Integrity Check Value (`icv`).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b [ESP | IPSEC] [SPI <u32>] [SEQ <u32>] [IV "<hex>"] [ICV "<hex>"] [NEXT_HEADER <u8>] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
+//! `a -> b [esp | ipsec] [spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [nextheader <u8>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;
 use alloc::vec::Vec;
 
-/// Builds an RFC 4303 IPsec Encapsulating Security Payload (`ESP`) body and returns `(bytes, 50)`.
+/// Builds an RFC 4303 IPsec Encapsulating Security Payload (`esp`) body and returns `(bytes, 50)`.
 pub fn build_ipsec_esp_payload(spec: &IpsecSpec, payload: &[u8]) -> (Vec<u8>, u8) {
     let spi = spec.spi.unwrap_or(0x1000);
     let seq = spec.seq.unwrap_or(1);

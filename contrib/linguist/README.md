@@ -67,10 +67,10 @@ The assets organized in this directory map directly to upstream targets in the [
 The `.fasm` file extension is historically associated with three distinct formats across software and hardware engineering:
 
 1. **FrameAssembly (`.fasm`, `text/vnd.frameassembly`)**:
-   - *Domain*: Declarative network packet capture specification ("Packets as Code").
+   - *Domain*: Network packet capture specification ("Packets as Code").
    - *Comments*: Single-line `//` comments only.
-   - *Top-Level Structure*: `HOST <id> { IP ... }`, `FLOW <id>(...) { ... }`, and `COMPILE { ... }`.
-   - *Operators & Protocols*: Directional arrows `->` and `<-` paired with Layer 2 through Layer 7 protocol tokens (`TCP`, `HTTP`, `SNMP3`, `MODBUS`, `DNS`, `VLAN`, `MPLS`).
+   - *Top-Level Structure*: `host <id> { ip|mac ... }`, `flow <id>(...) { ... }`, and `compile { ... }`.
+   - *Operators & Protocols*: Directional arrows `->` and `<-` paired with strict-lowercase Layer 2 through Layer 7 protocol tokens (`tcp`, `http`, `snmp3`, `modbus`, `dns`, `vlan`, `mpls`).
 2. **Flat Assembler (`.asm`, `.fasm`, `text/x-asm`)**:
    - *Domain*: Low-level x86/x86-64 machine assembly.
    - *Comments*: Single-line `;` comments only.
@@ -91,10 +91,10 @@ disambiguations:
     rules:
       - language: FrameAssembly
         pattern:
-          - '(?i)^\s*HOST\s+[A-Za-z_][A-Za-z0-9_]*\s*\{\s*(?:IP|MAC)\b'
-          - '(?i)^\s*FLOW\s+[A-Za-z_][A-Za-z0-9_]*\s*\([A-Za-z0-9_,\s]*\)\s*\{'
-          - '(?i)^\s*COMPILE\s*\{\s*(?:LOOP\s+[0-9]+\s*\{|[A-Za-z_][A-Za-z0-9_]*\s*\()'
-          - '(?i)\b[A-Za-z_][A-Za-z0-9_]*\s*(?:->|<-)\s*[A-Za-z_][A-Za-z0-9_]*\s+(?:SRCMAC|DSTMAC|ETHERTYPE|VLAN|QINQ|MPLS|TTL|DSCP|ECN|FLOWLABEL|IPID|DF|MF|FRAGOFFSET|SRCPORT|DSTPORT|TRANSPORT|SEQ|ACKNUM|WIN|MSS|WSCALE|SACK_PERM|TSVAL|TSECR|URGENT|ARP|LLDP|STP|LACP|EAPOL|ICMP|NDP|IGMP|MLD|GRE|VXLAN|GENEVE|IPSEC|ESP|AH|IKEV2|WIREGUARD|OSPF|BGP|RIP|VRRP|HSRP|PIM|BFD|OPENFLOW|TCP|UDP|SCTP|SNMP[123]|DNS|MDNS|DHCP|NTP|PTP|RADIUS|TACACS|SYSLOG|NETFLOW|IPFIX|SFLOW|TFTP|FTP|SSH|TELNET|HTTP|HTTP2|GRPC|WEBSOCKET|TLS|QUIC|STUN|SIP|RTP|RTSP|SMTP|IMAP|POP3|KERBEROS|LDAP|SMB|NFS|REDIS|MEMCACHED|MYSQL|POSTGRES|MQTT|COAP|AMQP|SSDP|WHOIS|MODBUS|BACNET|DNP3|S7COMM|ETHERNETIP|OPCUA)\b'
+          - '^\s*host\s+[A-Za-z_][A-Za-z0-9_-]*\s*\{\s*(?:ip|mac)\b'
+          - '^\s*flow\s+[A-Za-z_][A-Za-z0-9_-]*\s*\([A-Za-z0-9_,\s-]*\)\s*\{'
+          - '^\s*compile\s*\{\s*(?:[A-Za-z_][A-Za-z0-9_-]*\s*\(|[A-Za-z_][A-Za-z0-9_-]*\s*(?:->|<-))'
+          - '\b[A-Za-z_][A-Za-z0-9_-]*\s*(?:->|<-)\s*[A-Za-z_][A-Za-z0-9_-]*\s+(?:srcmac|dstmac|ethertype|vlan|qinq|mpls|ttl|dscp|ecn|flowlabel|ipid|df|mf|fragoffset|srcport|dstport|transport|seq|acknum|win|window|mss|wscale|sackperm|tsval|tsecr|urgent|arp|lldp|stp|lacp|eapol|icmp|ndp|igmp|mld|gre|vxlan|geneve|ipsec|esp|ah|ikev2|wireguard|ospf|bgp|rip|vrrp|hsrp|pim|bfd|openflow|tcp|udp|sctp|snmp[123]|dns|mdns|dhcp|ntp|ptp|radius|tacacs|syslog|netflow|ipfix|sflow|tftp|ftp|ssh|telnet|http|http2|grpc|websocket|tls|quic|stun|sip|rtp|rtsp|smtp|imap|pop3|kerberos|ldap|smb|nfs|redis|memcached|mysql|postgres|mqtt|coap|amqp|ssdp|whois|modbus|bacnet|dnp3|s7comm|ethernetip|opcua)\b'
       - language: Assembly
         pattern:
           - '(?i)^\s*format\s+(?:PE|PE64|ELF|ELF64|MZ|COFF|binary)\b'
@@ -102,7 +102,7 @@ disambiguations:
           - '^\s*;'
 ```
 
-Because FrameAssembly matches on structural blocks (`HOST`, `FLOW`, `COMPILE`) or directional arrow statements (`->`, `<-`) paired with protocol keywords, and Flat Assembler matches on x86 directives or `;` comments, false positive cross-classification is mathematically eliminated. FPGA FASM files (which use `#` comments and dot-separated hardware paths) match neither rule and gracefully fall back to generic plain-text handling.
+Because FrameAssembly matches on strict-lowercase structural blocks (`host`, `flow`, `compile`) or directional arrow statements (`->`, `<-`) paired with protocol keywords, and Flat Assembler matches on x86 directives or `;` comments, false positive cross-classification is mathematically eliminated. FPGA FASM files (which use `#` comments and dot-separated hardware paths) match neither rule and gracefully fall back to generic plain-text handling.
 
 ---
 
@@ -191,18 +191,18 @@ frameassembly show contrib/linguist/samples/industrial_ot_modbus_dnp3.fasm
 ```
 
 ```frameassembly
-HOST client { IP 10.0.0.10 MAC 00:11:22:33:44:55 }
-HOST server { IP 10.0.0.80 MAC aa:bb:cc:dd:ee:ff }
+host client { ip 10.0.0.10 mac 00:11:22:33:44:55 }
+host server { ip 10.0.0.80 mac aa:bb:cc:dd:ee:ff }
 
-FLOW sample_verify(c, s) {
-    c -> s TCP SYN SRCPORT 51234 DSTPORT 80 WIN 65535 MSS 1460 WAIT 1ms
-    c <- s TCP SYN ACK WIN 65535 MSS 1460 WAIT 1ms
-    c -> s TCP ACK WAIT 1ms
-    c -> s HTTP GET URI "/status" HOST_HDR "example.com" WAIT 2ms
-    c <- s HTTP STATUS 200 REASON "OK" BODY "OK" WAIT 2ms
+flow sample_verify(c, s) {
+    c -> s tcp syn srcport 51234 dstport 80 win 65535 mss 1460 wait 1ms
+    c <- s tcp syn ack win 65535 mss 1460 wait 1ms
+    c -> s tcp ack wait 1ms
+    c -> s http get uri "/status" hosthdr "example.com" wait 2ms
+    c <- s http status 200 reason "OK" body "OK" wait 2ms
 }
 
-COMPILE {
+compile {
     sample_verify(client, server)
 }
 ```

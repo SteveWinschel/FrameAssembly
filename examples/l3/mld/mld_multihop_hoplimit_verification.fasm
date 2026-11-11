@@ -1,18 +1,18 @@
 // PROMPT: Strict IPv6 Hop Limit verification (TTL 1) on MLD General Query per RFC 2710.
-// TOKENS: HOST, IP, FLOW, MLD, QUERY, TTL, COMPILE
+// TOKENS: host, ip, flow, mld, query, ttl, compile
 
 // INSTRUCTION: Define local link IPv6 router enforcing single-hop boundary.
-HOST link_local_router { IP fe80::beef:1 }
+host link_local_router { ip fe80::beef:1 }
 
 // INSTRUCTION: Define link-local all-nodes multicast destination.
-HOST all_nodes_mcast { IP ff02::1 }
+host all_nodes_mcast { ip ff02::1 }
 
 // INSTRUCTION: Define MLD query ensuring strict link-local Hop Limit 1.
-FLOW mld_hoplimit_flow(rtr, mcast) {
-    rtr -> mcast MLD QUERY TTL 1
+flow mld_hoplimit_flow(rtr, mcast) {
+    rtr -> mcast mld query ttl 1
 }
 
 // INSTRUCTION: Compile block enforcing single-hop MLD query transmission.
-COMPILE {
+compile {
     mld_hoplimit_flow(link_local_router, all_nodes_mcast)
 }

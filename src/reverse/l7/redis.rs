@@ -1,9 +1,9 @@
 //! Redis Serialization Protocol v2 (RESP2) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `REDIS` RESP2 command arrays and
+//! This module implements fuzz-safe wire-to-AST dissection for `redis` RESP2 command arrays and
 //! typed server replies over TCP ports `6379` and `26379` (Redis Sentinel). It decodes Simple
 //! Strings (`+`), Errors (`-`), Integers (`:`), Bulk Strings (`$`), and multibulk Command Arrays
-//! (`*`, including `PING`, `GET`, `SET`, and custom commands with `args`) into canonical `.fasm`
+//! (`*`, including `ping`, `get`, `set`, and custom commands with `args`) into canonical `.fasm`
 //! statements.
 
 use alloc::format;
@@ -31,7 +31,7 @@ fn split_crlf_line(bytes: &[u8]) -> Option<(&str, &[u8])> {
     Some((line, &bytes[pos + 2..]))
 }
 
-/// Dissects a `REDIS` RESP2 command array or typed reply over TCP ports `6379` or `26379`.
+/// Dissects a `redis` RESP2 command array or typed reply over TCP ports `6379` or `26379`.
 pub(crate) fn dissect_redis(
     transport: TransportProto,
     src_port: u16,
@@ -51,7 +51,7 @@ pub(crate) fn dissect_redis(
     match payload[0] {
         b'+' => {
             let (val, rem) = split_crlf_line(&payload[1..])?;
-            tokens.push_str(" reply_type \"STATUS\"");
+            tokens.push_str(" replytype \"status\"");
             if val != "OK" {
                 tokens.push_str(&format!(" value \"{val}\""));
             }
@@ -59,7 +59,7 @@ pub(crate) fn dissect_redis(
         }
         b'-' => {
             let (val, rem) = split_crlf_line(&payload[1..])?;
-            tokens.push_str(" reply_type \"ERR\"");
+            tokens.push_str(" replytype \"err\"");
             let clean = val.strip_prefix("ERR ").unwrap_or(val);
             if clean != "unknown command" {
                 tokens.push_str(&format!(" value \"{clean}\""));
@@ -68,7 +68,7 @@ pub(crate) fn dissect_redis(
         }
         b':' => {
             let (val, rem) = split_crlf_line(&payload[1..])?;
-            tokens.push_str(" reply_type \"INT\"");
+            tokens.push_str(" replytype \"int\"");
             if val != "1" {
                 tokens.push_str(&format!(" value \"{val}\""));
             }
@@ -77,7 +77,7 @@ pub(crate) fn dissect_redis(
         b'$' => {
             let (len_str, after_len) = split_crlf_line(&payload[1..])?;
             if len_str == "-1" {
-                tokens.push_str(" reply_type \"BULK\"");
+                tokens.push_str(" replytype \"bulk\"");
                 residual = after_len;
             } else {
                 let len: usize = len_str.parse().ok()?;
@@ -88,7 +88,7 @@ pub(crate) fn dissect_redis(
                 if !is_valid_raw_str(val) {
                     return None;
                 }
-                tokens.push_str(&format!(" reply_type \"BULK\" value \"{val}\""));
+                tokens.push_str(&format!(" replytype \"bulk\" value \"{val}\""));
                 residual = &after_len[len + 2..];
             }
         }

@@ -5,7 +5,7 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b DNS [QUERY | RESPONSE] [TXID <u16>] [QNAME <str>] [QTYPE <str>] [RDATA <str>] [RCODE <u8>] [ANS_TTL <u32>] [TRANSPORT TCP]`
+//! `a -> b dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>] [transport tcp]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -31,9 +31,10 @@ pub fn encode_dns_name(domain: &str) -> Vec<u8> {
     encoded
 }
 
-/// Parses a DNS QTYPE string (e.g. `"A"`, `"AAAA"`, `"CNAME"`) into its 16-bit numeric identifier.
+/// Parses a DNS QTYPE string (e.g. `"a"`, `"aaaa"`, `"cname"`, `"A"`) into its 16-bit numeric identifier.
 pub fn parse_dns_qtype(qtype: &str) -> u16 {
-    match qtype.to_ascii_uppercase().as_str() {
+    let norm = qtype.trim().to_ascii_uppercase().replace(['_', '-'], "");
+    match norm.as_str() {
         "A" => 1,
         "NS" => 2,
         "CNAME" => 5,
@@ -45,14 +46,14 @@ pub fn parse_dns_qtype(qtype: &str) -> u16 {
         "SRV" => 33,
         "AXFR" => 252,
         "ANY" => 255,
-        _ => qtype.parse::<u16>().unwrap_or(1),
+        _ => qtype.trim().parse::<u16>().unwrap_or(1),
     }
 }
 
 /// Builds an RFC 1035 DNS message payload for UDP or TCP transmission.
 ///
 /// When `is_tcp` is true, a 2-byte big-endian message length prefix is prepended (RFC 1035 §4.2.2).
-/// Syntax mapping: `DNS [QUERY | RESPONSE] [TXID <u16>] [QNAME <str>] [QTYPE <str>] [RDATA <str>] [RCODE <u8>] [ANS_TTL <u32>] [TRANSPORT TCP]`
+/// Syntax mapping: `dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>] [transport tcp]`
 #[doc(alias = "DNS")]
 #[doc(alias = "RFC1035")]
 #[doc(alias = "RFC3596")]

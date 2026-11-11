@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b RTSP [OPTIONS | METHOD <str>] [URI <str>] [STATUS <u16>] [CSEQ <u32>] [TRANSPORT_HDR <str>] [SESSION <str>]`
+//! `a -> b rtsp [options | method <str>] [uri <str>] [status <u16>] [cseq <u32>] [transporthdr <str>] [session <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 7826 RTSP streaming control message.
-/// Syntax mapping: `RTSP [OPTIONS | METHOD <str>] [URI <str>] [STATUS <u16>] [CSEQ <u32>] [TRANSPORT_HDR <str>] [SESSION <str>]`
+/// Syntax mapping: `rtsp [options | method <str>] [uri <str>] [status <u16>] [cseq <u32>] [transporthdr <str>] [session <str>]`
 #[doc(alias = "RTSP")]
 #[doc(alias = "RFC7826")]
 #[doc(alias = "RFC2326")]

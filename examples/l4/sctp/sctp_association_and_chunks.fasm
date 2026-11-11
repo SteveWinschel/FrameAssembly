@@ -1,21 +1,21 @@
 // PROMPT: Stream Control Transmission Protocol 4-way association handshake and data chunk transmission with CRC32c.
-// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, INIT, VTAG, INIT_ACK, COOKIE_ECHO, COOKIE_ACK, COMPILE
+// TOKENS: host, ip, flow, sctp, chunk, init, vtag, initack, cookieecho, cookieack, compile
 
 // INSTRUCTION: Define SCTP client endpoint.
-HOST sctp_ep_a { IP 192.168.10.1 }
+host sctp_ep_a { ip 192.168.10.1 }
 
 // INSTRUCTION: Define SCTP server endpoint.
-HOST sctp_ep_b { IP 192.168.10.2 }
+host sctp_ep_b { ip 192.168.10.2 }
 
 // INSTRUCTION: Define SCTP association handshake flow.
-FLOW sctp_assoc_flow(a, b) {
-    a -> b SCTP CHUNK INIT VTAG 0
-    a <- b SCTP CHUNK INIT_ACK VTAG 100
-    a -> b SCTP CHUNK COOKIE_ECHO VTAG 100
-    a <- b SCTP CHUNK COOKIE_ACK VTAG 100
+flow sctp_assoc_flow(a, b) {
+    a -> b sctp chunk init vtag 0
+    a <- b sctp chunk initack vtag 100
+    a -> b sctp chunk cookieecho vtag 100
+    a <- b sctp chunk cookieack vtag 100
 }
 
 // INSTRUCTION: Compile block executing SCTP association handshake.
-COMPILE {
+compile {
     sctp_assoc_flow(sctp_ep_a, sctp_ep_b)
 }

@@ -1,10 +1,10 @@
 //! OPC Unified Architecture Binary TCP Protocol (OPC UA, IEC 62541-6) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `OPCUA` binary TCP conversation
+//! This module implements fuzz-safe wire-to-AST dissection for `opcua` binary TCP conversation
 //! messages (`HEL`, `ACK`, `OPN`, `CLO`, `MSG`, `ERR`) with chunk types (`'F'`, `'C'`, `'A'`) over
 //! TCP (port `4840` and custom OPC UA server ports matching the 8-byte message header and exact
-//! frame length). It decodes `endpoint_url`, `secure_channel_id`, `token_id`, `seq_num`, `reqid`,
-//! and string `node_id` fields.
+//! frame length). It decodes `endpointurl`, `securechannelid`, `tokenid`, `seqnum`, `reqid`,
+//! and string `nodeid` fields.
 
 use alloc::format;
 use alloc::string::String;
@@ -20,7 +20,7 @@ fn is_valid_raw_str(s: &str) -> bool {
         && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
 }
 
-/// Dissects an `OPCUA` binary TCP conversation message (`HEL`, `ACK`, `OPN`, `CLO`, `MSG`, `ERR`).
+/// Dissects an `opcua` binary TCP conversation message (`HEL`, `ACK`, `OPN`, `CLO`, `MSG`, `ERR`).
 pub(crate) fn dissect_opcua(
     transport: TransportProto,
     _src_port: u16,
@@ -44,15 +44,15 @@ pub(crate) fn dissect_opcua(
 
     match msg_type {
         b"HEL" => {}
-        b"ACK" => tokens.push_str(" msg_type \"ACK\""),
-        b"OPN" => tokens.push_str(" msg_type \"OPN\""),
-        b"CLO" => tokens.push_str(" msg_type \"CLO\""),
+        b"ACK" => tokens.push_str(" msgtype \"ack\""),
+        b"OPN" => tokens.push_str(" msgtype \"opn\""),
+        b"CLO" => tokens.push_str(" msgtype \"clo\""),
         b"MSG" => {}
-        b"ERR" => tokens.push_str(" msg_type \"ERR\""),
+        b"ERR" => tokens.push_str(" msgtype \"err\""),
         _ => return None,
     }
     if chunk != 'F' {
-        tokens.push_str(&format!(" chunk_type \"{chunk}\""));
+        tokens.push_str(&format!(" chunktype \"{}\"", chunk.to_ascii_lowercase()));
     }
 
     let residual = match msg_type {
@@ -72,7 +72,7 @@ pub(crate) fn dissect_opcua(
                 if !is_valid_raw_str(url) {
                     return None;
                 }
-                tokens.push_str(&format!(" endpoint_url \"{url}\""));
+                tokens.push_str(&format!(" endpointurl \"{url}\""));
             }
             &body[24 + ulen..]
         }
@@ -94,13 +94,13 @@ pub(crate) fn dissect_opcua(
             let seq = u32::from_le_bytes([body[8], body[9], body[10], body[11]]);
             let req = u32::from_le_bytes([body[12], body[13], body[14], body[15]]);
             if sc_id != 1 {
-                tokens.push_str(&format!(" secure_channel_id {sc_id}"));
+                tokens.push_str(&format!(" securechannelid {sc_id}"));
             }
             if tok_id != 1 {
-                tokens.push_str(&format!(" token_id {tok_id}"));
+                tokens.push_str(&format!(" tokenid {tok_id}"));
             }
             if seq != 1 {
-                tokens.push_str(&format!(" seq_num {seq}"));
+                tokens.push_str(&format!(" seqnum {seq}"));
             }
             if req != 1 {
                 tokens.push_str(&format!(" reqid {req}"));
@@ -114,17 +114,17 @@ pub(crate) fn dissect_opcua(
                     && let Ok(nid) = core::str::from_utf8(&after_hdr[6..6 + nlen])
                     && is_valid_raw_str(nid)
                 {
-                    tokens.push_str(&format!(" node_id \"{nid}\""));
+                    tokens.push_str(&format!(" nodeid \"{nid}\""));
                     &after_hdr[6 + nlen..]
                 } else {
                     if msg_type == b"MSG" {
-                        tokens.push_str(" msg_type \"MSG\"");
+                        tokens.push_str(" msgtype \"msg\"");
                     }
                     after_hdr
                 }
             } else {
                 if msg_type == b"MSG" {
-                    tokens.push_str(" msg_type \"MSG\"");
+                    tokens.push_str(" msgtype \"msg\"");
                 }
                 after_hdr
             }

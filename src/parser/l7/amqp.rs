@@ -1,10 +1,10 @@
 //! Advanced Message Queuing Protocol (AMQP 0-9-1) Layer 7 broker protocol field parser.
 //!
-//! This module implements the `winnow` parser combinator for `AMQP` 0-9-1 message broker frames in
-//! FrameAssembly `.fasm` specifications. It recognizes the `AMQP` protocol keyword, frame type
-//! flags (`PROTOCOL_HEADER`, `CONNECTION_START`, `CHANNEL_OPEN`, `BASIC_PUBLISH`, `BASIC_DELIVER`,
-//! `HEARTBEAT`), virtual channel numbers (`CHANNEL`), broker exchange names (`EXCHANGE`), and
-//! message routing keys (`ROUTING_KEY`).
+//! This module implements the `winnow` parser combinator for `amqp` 0-9-1 message broker frames in
+//! FrameAssembly `.fasm` specifications. It recognizes the `amqp` protocol keyword, frame type
+//! flags (`protocolheader`, `connectionstart`, `channelopen`, `basicpublish`, `basicdeliver`,
+//! `heartbeat`), virtual channel numbers (`channel`), broker exchange names (`exchange`), and
+//! message routing keys (`routingkey`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

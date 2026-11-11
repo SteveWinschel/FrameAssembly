@@ -1,19 +1,19 @@
 // PROMPT: Full Kerberos authentication exchange AS-REQ and AS-REP across IPv6 domain controller underlay.
-// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REQ, REALM, CNAME, ETYPE, WAIT, AS_REP, COMPILE
+// TOKENS: host, ip, flow, kerberos, asreq, realm, cname, etype, wait, ms, asrep, compile
 
 // INSTRUCTION: Define IPv6 enterprise client workstation.
-HOST v6_client { IP 2001:db8:acad::15 }
+host v6_client { ip 2001:db8:acad::15 }
 
 // INSTRUCTION: Define IPv6 Key Distribution Center server.
-HOST v6_kdc { IP 2001:db8:acad::1 }
+host v6_kdc { ip 2001:db8:acad::1 }
 
 // INSTRUCTION: Define full IPv6 Kerberos AS exchange flow.
-FLOW krb_v6_exchange(c, kdc) {
-    c -> kdc KERBEROS AS_REQ REALM "IPV6.ACADEMY" CNAME "student_lab" ETYPE 18 WAIT 15ms
-    c <- kdc KERBEROS AS_REP REALM "IPV6.ACADEMY" CNAME "student_lab" ETYPE 18
+flow krb_v6_exchange(c, kdc) {
+    c -> kdc kerberos asreq realm "IPV6.ACADEMY" cname "student_lab" etype 18 wait 15ms
+    c <- kdc kerberos asrep realm "IPV6.ACADEMY" cname "student_lab" etype 18
 }
 
 // INSTRUCTION: Compile IPv6 Kerberos exchange scenario.
-COMPILE {
+compile {
     krb_v6_exchange(v6_client, v6_kdc)
 }

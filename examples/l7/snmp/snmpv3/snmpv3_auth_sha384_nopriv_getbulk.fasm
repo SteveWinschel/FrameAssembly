@@ -1,28 +1,28 @@
 // PROMPT: Simulate an RFC 7860 SNMPv3 authNoPriv GETBULK request and RESPONSE authenticated with HMAC-SHA-384 (AUTH SHA384).
-// TOKENS: HOST, IP, MAC, FLOW, SNMP3, GETBULK, USER, ENGINEID, ENGINEBOOTS, ENGINETIME, AUTH, SHA384, REQID, NONREPEATERS, MAXREPETITIONS, VARBIND, NULLVAL, WAIT, RESPONSE, STRING, COMPILE
+// TOKENS: host, ip, mac, flow, snmp3, getbulk, user, engineid, engineboots, enginetime, auth, sha384, reqid, nonrepeaters, maxrepetitions, varbind, nullval, wait, ms, response, string, compile
 
 // INSTRUCTION: Define a core telemetry poller with IP 10.144.0.10.
-HOST v3_sha384_poller { IP 10.144.0.10 MAC 00:25:90:44:00:10 }
+host v3_sha384_poller { ip 10.144.0.10 mac 00:25:90:44:00:10 }
 
 // INSTRUCTION: Define a spine switch agent supporting SHA-384 USM with IP 10.144.0.1.
-HOST v3_sha384_spine { IP 10.144.0.1 MAC 00:25:90:44:00:01 }
+host v3_sha384_spine { ip 10.144.0.1 mac 00:25:90:44:00:01 }
 
 // INSTRUCTION: Define a flow executing an SNMPv3 GETBULK request with AUTH SHA384 and receiving a 64-bit counter RESPONSE.
-FLOW snmpv3_sha384_getbulk(poller, spine) {
-    poller -> spine SNMP3 GETBULK USER "sha384_poller" ENGINEID "80001f880430313233" ENGINEBOOTS 2 ENGINETIME 7200
-        AUTH SHA384 "sha384_integrity_secret" REQID 9201 NONREPEATERS 0
-        MAXREPETITIONS 10
-        VARBIND 1.3.6.1.2.1.31.1.1.1.1 NULLVAL
-        VARBIND 1.3.6.1.2.1.31.1.1.1.6 NULLVAL
-        WAIT 10ms
-    poller <- spine SNMP3 RESPONSE USER "sha384_poller" ENGINEID "80001f880430313233" ENGINEBOOTS 2 ENGINETIME 7200
-        AUTH SHA384 "sha384_integrity_secret" REQID 9201
-        VARBIND 1.3.6.1.2.1.31.1.1.1.1.1 STRING "Ethernet1/1"
-        VARBIND 1.3.6.1.2.1.31.1.1.1.6.1 COUNTER64 554433221100
-        WAIT 10ms
+flow snmpv3_sha384_getbulk(poller, spine) {
+    poller -> spine snmp3 getbulk user "sha384_poller" engineid "80001f880430313233" engineboots 2 enginetime 7200
+        auth sha384 "sha384_integrity_secret" reqid 9201 nonrepeaters 0
+        maxrepetitions 10
+        varbind 1.3.6.1.2.1.31.1.1.1.1 nullval
+        varbind 1.3.6.1.2.1.31.1.1.1.6 nullval
+        wait 10ms
+    poller <- spine snmp3 response user "sha384_poller" engineid "80001f880430313233" engineboots 2 enginetime 7200
+        auth sha384 "sha384_integrity_secret" reqid 9201
+        varbind 1.3.6.1.2.1.31.1.1.1.1.1 string "Ethernet1/1"
+        varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 554433221100
+        wait 10ms
 }
 
 // INSTRUCTION: Compile block to execute the SHA-384 authenticated SNMPv3 GETBULK flow.
-COMPILE {
+compile {
     snmpv3_sha384_getbulk(v3_sha384_poller, v3_sha384_spine)
 }

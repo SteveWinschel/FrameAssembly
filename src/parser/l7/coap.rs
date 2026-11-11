@@ -1,10 +1,10 @@
 //! Constrained Application Protocol (CoAP) Layer 7 IoT REST protocol field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 7252 `COAP` constrained RESTful
-//! exchanges in FrameAssembly `.fasm` specifications. It recognizes the `COAP` protocol keyword,
-//! message types (`CON`, `NON`, `ACK`, `RST`, or `MSG_TYPE`), method/response codes (`CODE` or
-//! shorthands `GET`, `POST`, `PUT`, `DELETE`, `CREATED`, `CHANGED`, `NOT_FOUND`), 16-bit message
-//! IDs (`MSGID`), client tokens (`TOKEN`), `URI_PATH` options, and `CONTENT_FORMAT` IDs.
+//! This module implements the `winnow` parser combinator for RFC 7252 `coap` constrained RESTful
+//! exchanges in FrameAssembly `.fasm` specifications. It recognizes the `coap` protocol keyword,
+//! message types (`con`, `non`, `ack`, `rst`, or `msgtype`), method/response codes (`code` or
+//! shorthands `get`, `post`, `put`, `delete`, `created`, `changed`, `notfound`), 16-bit message
+//! IDs (`msgid`), client tokens (`token`), `uripath` options, and `contentformat` IDs.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

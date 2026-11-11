@@ -1,27 +1,27 @@
 // PROMPT: SINUMERIK CNC cell clearing spindle drive fault bits in DB31 and verifying drive ready status.
-// TOKENS: HOST, IP, MAC, FLOW, S7COMM, ROSCTR, PDU_REF, FUNC, AREA, DB_NUM, OFFSET, COUNT, HEXPAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, s7comm, rosctr, pduref, func, area, dbnum, offset, count, hexpayload, wait, ms, compile
 
 // INSTRUCTION: Define the cell controller HMI host.
-HOST cnc_cell_hmi {
-    IP 10.130.140.12
-    MAC 00:1a:2b:82:e0:12
+host cnc_cell_hmi {
+    ip 10.130.140.12
+    mac 00:1a:2b:82:e0:12
 }
 
 // INSTRUCTION: Define the SINUMERIK embedded S7 PLC.
-HOST sinumerik_plc {
-    IP 10.130.140.1
-    MAC 00:1a:2b:82:e0:01
+host sinumerik_plc {
+    ip 10.130.140.1
+    mac 00:1a:2b:82:e0:01
 }
 
 // INSTRUCTION: Pulse fault reset bit in axis DB31 (OFFSET 16) and read drive ready status byte (OFFSET 488).
-FLOW s7_cnc_fault_reset(h, p) {
-    h -> p S7COMM ROSCTR "JOB" PDU_REF 1400 FUNC "WRITE_VAR" AREA 132 DB_NUM 31 OFFSET 16 COUNT 1 HEXPAYLOAD "80"
-    h <- p S7COMM ROSCTR "ACK_DATA" PDU_REF 1400 FUNC "WRITE_VAR" WAIT 2ms
-    h -> p S7COMM ROSCTR "JOB" PDU_REF 1401 FUNC "READ_VAR" AREA 132 DB_NUM 31 OFFSET 488 COUNT 1
-    h <- p S7COMM ROSCTR "ACK_DATA" PDU_REF 1401 FUNC "READ_VAR" HEXPAYLOAD "ff04000107"
+flow s7_cnc_fault_reset(h, p) {
+    h -> p s7comm rosctr "job" pduref 1400 func "writevar" area 132 dbnum 31 offset 16 count 1 hexpayload "80"
+    h <- p s7comm rosctr "ackdata" pduref 1400 func "writevar" wait 2ms
+    h -> p s7comm rosctr "job" pduref 1401 func "readvar" area 132 dbnum 31 offset 488 count 1
+    h <- p s7comm rosctr "ackdata" pduref 1401 func "readvar" hexpayload "ff04000107"
 }
 
 // INSTRUCTION: Compile the SINUMERIK CNC spindle fault reset flow.
-COMPILE {
+compile {
     s7_cnc_fault_reset(cnc_cell_hmi, sinumerik_plc)
 }

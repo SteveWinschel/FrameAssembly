@@ -1,18 +1,18 @@
 // PROMPT: Dual-tagged QinQ RIPv2 frame connecting remote retail branch site.
-// TOKENS: HOST, IP, FLOW, RIP, RESPONSE, PREFIX, METRIC, QINQ, INNER_VLAN, COMPILE
+// TOKENS: host, ip, flow, rip, response, prefix, metric, qinq, innervlan, compile
 
 // INSTRUCTION: Define retail store edge router.
-HOST store_edge_rtr { IP 192.168.12.1 }
+host store_edge_rtr { ip 192.168.12.1 }
 
 // INSTRUCTION: Define headquarters aggregation router.
-HOST hq_agg_rtr { IP 192.168.12.2 }
+host hq_agg_rtr { ip 192.168.12.2 }
 
 // INSTRUCTION: Define QinQ encapsulated RIP update flow on provider VLAN 700 and customer VLAN 12.
-FLOW rip_qinq_update(store, hq) {
-    store -> hq RIP RESPONSE PREFIX 192.168.50.0 METRIC 2 QINQ 700 INNER_VLAN 12
+flow rip_qinq_update(store, hq) {
+    store -> hq rip response prefix 192.168.50.0 metric 2 qinq 700 innervlan 12
 }
 
 // INSTRUCTION: Compile block executing QinQ hosted branch RIP update.
-COMPILE {
+compile {
     rip_qinq_update(store_edge_rtr, hq_agg_rtr)
 }

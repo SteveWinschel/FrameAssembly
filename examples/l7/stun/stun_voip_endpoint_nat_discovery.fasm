@@ -1,21 +1,21 @@
 // PROMPT: SIP telephone performing STUN binding request for NAT discovery.
-// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+// TOKENS: host, ip, flow, s, stun, bindingrequest, software, bindingresponse, xormappedaddr, compile
 
 // INSTRUCTION: Define desk phone endpoint.
-HOST sip_phone { IP 192.168.15.22 }
+host sip_phone { ip 192.168.15.22 }
 
 // INSTRUCTION: Define cloud STUN resolver.
-HOST cloud_stun { IP 198.51.100.40 }
+host cloud_stun { ip 198.51.100.40 }
 
 // INSTRUCTION: Define VoIP NAT discovery flow.
-FLOW stun_sip_nat_flow(c, s) {
-    c -> s STUN BINDING_REQUEST SOFTWARE "Polycom-VVX450"
-    c <- s STUN BINDING_RESPONSE
-        XOR_MAPPED_ADDR 203.0.113.190
-        SOFTWARE "reTurnServer-0.4"
+flow stun_sip_nat_flow(c, s) {
+    c -> s stun bindingrequest software "Polycom-VVX450"
+    c <- s stun bindingresponse
+        xormappedaddr 203.0.113.190
+        software "reTurnServer-0.4"
 }
 
 // INSTRUCTION: Compile block executing VoIP STUN discovery.
-COMPILE {
+compile {
     stun_sip_nat_flow(sip_phone, cloud_stun)
 }

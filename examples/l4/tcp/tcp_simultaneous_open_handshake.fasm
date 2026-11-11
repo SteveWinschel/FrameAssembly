@@ -1,22 +1,22 @@
 // PROMPT: Simulate an RFC 793 TCP simultaneous open handshake where two peer hosts send SYN packets concurrently and complete the connection with SYN-ACKs.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ACK, ACKNUM, PSH, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, seq, win, wait, ms, ack, acknum, psh, payload, compile
 
 // INSTRUCTION: Define peer alpha with IP 10.40.0.1 and MAC 02:40:00:00:00:01.
-HOST peer_alpha { IP 10.40.0.1 MAC 02:40:00:00:00:01 }
+host peer_alpha { ip 10.40.0.1 mac 02:40:00:00:00:01 }
 
 // INSTRUCTION: Define peer beta with IP 10.40.0.2 and MAC 02:40:00:00:00:02.
-HOST peer_beta { IP 10.40.0.2 MAC 02:40:00:00:00:02 }
+host peer_beta { ip 10.40.0.2 mac 02:40:00:00:00:02 }
 
 // INSTRUCTION: Define a flow for a 4-packet TCP simultaneous open exchange on port 17900.
-FLOW simultaneous_open(alpha, beta) {
-    alpha -> beta TCP SYN SRCPORT 17900 DSTPORT 17900 SEQ 3000 WIN 65535 WAIT 1ms
-    alpha <- beta TCP SYN SRCPORT 17900 DSTPORT 17900 SEQ 7000 WIN 65535 WAIT 1ms
-    alpha -> beta TCP SYN ACK SRCPORT 17900 DSTPORT 17900 SEQ 3000 ACKNUM 7001 WIN 65535 WAIT 2ms
-    alpha <- beta TCP SYN ACK SRCPORT 17900 DSTPORT 17900 SEQ 7000 ACKNUM 3001 WIN 65535 WAIT 2ms
-    alpha -> beta TCP PSH ACK SRCPORT 17900 DSTPORT 17900 SEQ 3001 ACKNUM 7001 PAYLOAD "P2P_ESTABLISHED" WAIT 5ms
+flow simultaneous_open(alpha, beta) {
+    alpha -> beta tcp syn srcport 17900 dstport 17900 seq 3000 win 65535 wait 1ms
+    alpha <- beta tcp syn srcport 17900 dstport 17900 seq 7000 win 65535 wait 1ms
+    alpha -> beta tcp syn ack srcport 17900 dstport 17900 seq 3000 acknum 7001 win 65535 wait 2ms
+    alpha <- beta tcp syn ack srcport 17900 dstport 17900 seq 7000 acknum 3001 win 65535 wait 2ms
+    alpha -> beta tcp psh ack srcport 17900 dstport 17900 seq 3001 acknum 7001 payload "P2P_ESTABLISHED" wait 5ms
 }
 
 // INSTRUCTION: Compile block to execute the simultaneous open TCP flow.
-COMPILE {
+compile {
     simultaneous_open(peer_alpha, peer_beta)
 }

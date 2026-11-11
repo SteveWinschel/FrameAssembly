@@ -91,27 +91,27 @@ pub use crate::ast::l2::mpls::MplsSpec;
 
 /// Layer 3 IPv4 (RFC 791) and IPv6 (RFC 8200) packet header modifiers applied to any frame statement.
 ///
-/// Syntax mapping: `[TTL <0..255>] [DSCP <0..63>] [ECN <0..3>] [FLOWLABEL <0..1048575>] [IPID <u16>] [DF] [MF] [FRAGOFFSET <u16>]`
+/// Syntax mapping: `[ttl <0..255>] [dscp <0..63>] [ecn <0..3>] [flowlabel <0..1048575>] [ipid <u16>] [df] [mf] [fragoffset <u16>]`
 #[doc(alias = "IPv4")]
 #[doc(alias = "IPv6")]
-#[doc(alias = "DSCP")]
-#[doc(alias = "TTL")]
+#[doc(alias = "dscp")]
+#[doc(alias = "ttl")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct L3Modifiers {
-    /// IPv4 Time-to-Live or IPv6 Hop Limit (`TTL <0..=255>`, default `64`).
+    /// IPv4 Time-to-Live or IPv6 Hop Limit (`ttl <0..=255>`, default `64`).
     pub ttl: Option<u8>,
-    /// 6-bit Differentiated Services Code Point (`DSCP <0..=63>`, RFC 2474, default `0`).
+    /// 6-bit Differentiated Services Code Point (`dscp <0..=63>`, RFC 2474, default `0`).
     pub dscp: Option<u8>,
-    /// 2-bit Explicit Congestion Notification (`ECN <0..=3>`, RFC 3168, default `0`).
+    /// 2-bit Explicit Congestion Notification (`ecn <0..=3>`, RFC 3168, default `0`).
     pub ecn: Option<u8>,
-    /// 20-bit IPv6 Flow Label (`FLOWLABEL <0..=0xFFFFF>`, RFC 6437, default `0`).
+    /// 20-bit IPv6 Flow Label (`flowlabel <0..=0xFFFFF>`, RFC 6437, default `0`).
     pub flowlabel: Option<u32>,
-    /// 16-bit IPv4 Identification field (`IPID <u16>`, default `0x1234`).
+    /// 16-bit IPv4 Identification field (`ipid <u16>`, default `0x1234`).
     pub ipid: Option<u16>,
-    /// IPv4 Don't Fragment flag (`DF`, bit 1 of the IPv4 Flags field).
+    /// IPv4 Don't Fragment flag (`df`, bit 1 of the IPv4 Flags field).
     pub df: bool,
-    /// IPv4 More Fragments flag (`MF`, bit 2 of the IPv4 Flags field).
+    /// IPv4 More Fragments flag (`mf`, bit 2 of the IPv4 Flags field).
     pub mf: bool,
-    /// 13-bit IPv4 Fragment Offset in 8-octet units (`FRAGOFFSET <0..=8191>`).
+    /// 13-bit IPv4 Fragment Offset in 8-octet units (`fragoffset <0..=8191>`).
     pub frag_offset: Option<u16>,
 }

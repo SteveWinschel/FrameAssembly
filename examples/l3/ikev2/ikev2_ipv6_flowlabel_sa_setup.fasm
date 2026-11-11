@@ -1,21 +1,21 @@
 // PROMPT: IPv6 IKEv2 tunnel setup with explicit 64-bit SPIs, Flow Labels, and MAC addresses.
-// TOKENS: HOST, IP, MAC, FLOW, IKEV2, SA_INIT, INITIATOR_SPI, RESPONDER_SPI, MSGID, FLAGS, NEXT_PAYLOAD, FLOWLABEL, DSCP, TTL, CREATE_CHILD_SA, COMPILE
+// TOKENS: host, ip, mac, flow, s, ikev2, sainit, initiatorspi, responderspi, msgid, flags, nextpayload, flowlabel, dscp, ttl, createchildsa, compile
 
 // INSTRUCTION: Define IPv6 security gateway North.
-HOST v6_ike_north { IP 2001:db8:7296:1::10 MAC 00:25:90:72:96:01 }
+host v6_ike_north { ip 2001:db8:7296:1::10 mac 00:25:90:72:96:01 }
 
 // INSTRUCTION: Define IPv6 security gateway South.
-HOST v6_ike_south { IP 2001:db8:7296:2::20 MAC 00:25:90:72:96:02 }
+host v6_ike_south { ip 2001:db8:7296:2::20 mac 00:25:90:72:96:02 }
 
 // INSTRUCTION: Define IPv6 IKEv2 SA_INIT and CREATE_CHILD_SA negotiation with Flow Labels.
-FLOW ikev2_ipv6_setup(n, s) {
-    n -> s IKEV2 SA_INIT INITIATOR_SPI 900100200300 RESPONDER_SPI 0 MSGID 0 FLAGS 8 NEXT_PAYLOAD 33 FLOWLABEL 729601 DSCP 48 TTL 64
-    n <- s IKEV2 SA_INIT INITIATOR_SPI 900100200300 RESPONDER_SPI 400500600700 MSGID 0 FLAGS 32 NEXT_PAYLOAD 33 FLOWLABEL 729602 DSCP 48 TTL 64
-    n -> s IKEV2 CREATE_CHILD_SA INITIATOR_SPI 900100200300 RESPONDER_SPI 400500600700 MSGID 1 FLAGS 8 NEXT_PAYLOAD 46 FLOWLABEL 729601 DSCP 48 TTL 64
-    n <- s IKEV2 CREATE_CHILD_SA INITIATOR_SPI 900100200300 RESPONDER_SPI 400500600700 MSGID 1 FLAGS 32 NEXT_PAYLOAD 46 FLOWLABEL 729602 DSCP 48 TTL 64
+flow ikev2_ipv6_setup(n, s) {
+    n -> s ikev2 sainit initiatorspi 900100200300 responderspi 0 msgid 0 flags 8 nextpayload 33 flowlabel 729601 dscp 48 ttl 64
+    n <- s ikev2 sainit initiatorspi 900100200300 responderspi 400500600700 msgid 0 flags 32 nextpayload 33 flowlabel 729602 dscp 48 ttl 64
+    n -> s ikev2 createchildsa initiatorspi 900100200300 responderspi 400500600700 msgid 1 flags 8 nextpayload 46 flowlabel 729601 dscp 48 ttl 64
+    n <- s ikev2 createchildsa initiatorspi 900100200300 responderspi 400500600700 msgid 1 flags 32 nextpayload 46 flowlabel 729602 dscp 48 ttl 64
 }
 
 // INSTRUCTION: Compile the IPv6 Flow Label IKEv2 negotiation flow.
-COMPILE {
+compile {
     ikev2_ipv6_setup(v6_ike_north, v6_ike_south)
 }

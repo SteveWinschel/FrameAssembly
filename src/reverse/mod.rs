@@ -12,7 +12,7 @@
 //! 2. **Layer 2–7 Modular Protocol Dissection (`l2`, `l3`, `l4`, `l7`)**: Decodes all 81 native
 //!    protocols across Layer 2 through Layer 7 into strongly-typed modifier structures and
 //!    canonical `.fasm` token strings.
-//! 3. **Deterministic Topology Discovery (`topology`)**: Infers sequential `host_1`, `host_2`, ...
+//! 3. **Deterministic Topology Discovery (`topology`)**: Infers sequential `host1`, `host2`, ...
 //!    declarations, tracks dominant unicast MAC addresses, pairs broadcast/multicast traffic, and
 //!    locks directional arrows (`->` vs `<-`) per endpoint pair.
 //! 4. **Per-Packet Self-Check Oracle (`oracle`)**: Compiles each candidate `.fasm` statement in
@@ -46,7 +46,7 @@ pub struct ReverseOutput {
     pub fasm: String,
     /// Total number of packets reversed.
     pub packet_count: usize,
-    /// Total number of `host_N` definitions emitted.
+    /// Total number of `hostN` definitions emitted.
     pub host_count: usize,
 }
 
@@ -56,7 +56,7 @@ pub struct ProtocolDissection {
     /// Identified FrameAssembly [`Protocol`].
     pub protocol: Protocol,
     /// Canonical lowercase `.fasm` protocol keyword and protocol-specific modifiers
-    /// (e.g., `"dns query txid 0x1a2b qname \"example.com\" qtype \"A\""`).
+    /// (e.g., `"dns query txid 0x1a2b qname \"example.com\" qtype \"a\""`).
     /// Does NOT include caller/callee arrows, L2/L3/L4 universal modifiers, `payload`/`hexpayload`, or `wait`.
     pub tokens: String,
     /// Residual application payload bytes to attach as `payload "..."` or `hexpayload "..."`.
@@ -470,5 +470,111 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// Verifies v2.0.0 strict-lowercase PCAPNG decompilation (`host1`/`host2`, zero `loop`,
+    /// lowercase enum strings, SCTP `shutdownack`, and exact wire-literal case preservation).
+    #[test]
+    fn test_v2_strict_lowercase_reverse_roundtrip() {
+        let src = r#"
+host client { ip 10.10.0.1 mac 02:00:00:00:00:01 }
+host server { ip 10.10.0.2 mac 02:00:00:00:00:02 }
+
+flow v2_check(a, b) {
+    a -> b qinq 100 innervlan 200 payload "QinQ-Body"
+    a -> b tcp dstport 443 syn mss 1460 sackperm
+    a -> b sctp srcport 2905 dstport 2905 vtag 0x12345678 shutdownack
+    b -> a dns response txid 0x1122 qname "Api.Example.COM" qtype "aaaa" rdata 2001:db8::1 ansttl 60
+    a -> b http get uri "/v2/HealthCheck" hosthdr "Api.Example.COM"
+    a -> b modbus readcoils count 4
+    b -> a s7comm rosctr "ackdata" setupcomm
+    a -> b opcua msgtype "opn" chunktype "c"
+    a -> b smb command "logoff" sessionid 0x42
+}
+
+compile {
+    v2_check(client, server)
+}
+"#;
+        let prog = parse_program(src).unwrap_or_else(|e| panic!("parse v2 fixture failed: {e}"));
+        let orig_frames =
+            compile_program(&prog).unwrap_or_else(|e| panic!("compile v2 fixture failed: {e}"));
+        let pcap_bytes = frames_to_pcapng(&orig_frames);
+
+        let out = reverse_pcap_bytes(&pcap_bytes)
+            .unwrap_or_else(|e| panic!("reverse_pcap_bytes failed: {e}"));
+        assert!(out.fasm.contains("host host1"), "expected host1:\n{}", out.fasm);
+        assert!(out.fasm.contains("host host2"), "expected host2:\n{}", out.fasm);
+        assert!(!out.fasm.contains("host_1"), "unexpected host_1:\n{}", out.fasm);
+        assert!(!out.fasm.contains("loop "), "unexpected loop block:\n{}", out.fasm);
+        assert!(!out.fasm.contains("// ["), "unexpected fallback comment:\n{}", out.fasm);
+        assert!(out.fasm.contains("innervlan 200"), "expected innervlan:\n{}", out.fasm);
+        assert!(out.fasm.contains("sackperm"), "expected sackperm:\n{}", out.fasm);
+        assert!(out.fasm.contains("shutdownack"), "expected shutdownack:\n{}", out.fasm);
+        assert!(out.fasm.contains("qtype \"aaaa\""), "expected lowercase qtype:\n{}", out.fasm);
+        assert!(out.fasm.contains("Api.Example.COM"), "expected preserved domain case:\n{}", out.fasm);
+        assert!(out.fasm.contains("/v2/HealthCheck"), "expected preserved URI case:\n{}", out.fasm);
+        assert!(out.fasm.contains("rosctr \"ackdata\""), "expected lowercase rosctr:\n{}", out.fasm);
+        assert!(out.fasm.contains("chunktype \"c\""), "expected lowercase chunktype:\n{}", out.fasm);
+        assert!(out.fasm.contains("command \"logoff\""), "expected lowercase smb command:\n{}", out.fasm);
+
+        let reprog =
+            parse_program(&out.fasm).unwrap_or_else(|e| panic!("re-parse failed: {e}\n{}", out.fasm));
+        let reframes =
+            compile_program(&reprog).unwrap_or_else(|e| panic!("re-compile failed: {e}"));
+        assert_eq!(orig_frames.len(), reframes.len());
+        for (idx, ((orig_b, _), (re_b, _))) in orig_frames.iter().zip(reframes.iter()).enumerate() {
+            assert_eq!(orig_b, re_b, "wire frame mismatch on packet #{}", idx + 1);
+        }
+    }
+
+    /// Verifies that all 50 Layer 7 protocols reverse-decompile to their native v2.0.0 lowercase
+    /// protocol keywords without silently stepping down to `tcp`/`udp` + `hexpayload` in the oracle.
+    #[test]
+    fn test_all_50_l7_protocols_reverse_without_fallback() {
+        let l7_protos = [
+            "snmp1", "snmp2", "snmp3", "dns", "mdns", "dhcp", "ntp", "ptp", "radius", "tacacs",
+            "syslog", "netflow", "ipfix", "sflow", "tftp", "ftp", "ssh", "telnet", "http", "http2",
+            "grpc", "websocket", "tls", "quic", "stun", "sip", "rtp", "rtsp", "smtp", "imap",
+            "pop3", "kerberos", "ldap", "smb", "nfs", "redis", "memcached", "mysql", "postgres",
+            "mqtt", "coap", "amqp", "ssdp", "whois", "modbus", "bacnet", "dnp3", "s7comm",
+            "ethernetip", "opcua",
+        ];
+        assert_eq!(l7_protos.len(), 50);
+
+        let mut fallbacks = Vec::new();
+        for proto in l7_protos {
+            let src = alloc::format!(
+                "host c {{ ip 10.20.0.1 mac 02:00:00:00:01:01 }}\n\
+                 host s {{ ip 10.20.0.2 mac 02:00:00:00:01:02 }}\n\
+                 flow f(a, b) {{ a -> b {proto} }}\n\
+                 compile {{ f(c, s) }}\n"
+            );
+            let prog = parse_program(&src)
+                .unwrap_or_else(|e| panic!("parse failed for {proto}: {e}"));
+            let orig_frames = compile_program(&prog)
+                .unwrap_or_else(|e| panic!("compile failed for {proto}: {e}"));
+            let pcap_bytes = frames_to_pcapng(&orig_frames);
+            let out = reverse_pcap_bytes(&pcap_bytes)
+                .unwrap_or_else(|e| panic!("reverse failed for {proto}: {e}"));
+
+            let needle = alloc::format!(" {proto}");
+            if !out.fasm.contains(&needle) || out.fasm.contains("hexpayload") {
+                fallbacks.push((proto, out.fasm.clone()));
+                continue;
+            }
+
+            let reprog = parse_program(&out.fasm)
+                .unwrap_or_else(|e| panic!("re-parse failed for {proto}: {e}\n{}", out.fasm));
+            let reframes = compile_program(&reprog)
+                .unwrap_or_else(|e| panic!("re-compile failed for {proto}: {e}"));
+            assert_eq!(orig_frames[0].0, reframes[0].0, "wire mismatch for {proto}");
+        }
+        assert!(
+            fallbacks.is_empty(),
+            "L7 protocols fell back ({} total): {:?}",
+            fallbacks.len(),
+            fallbacks.iter().map(|(p, _)| *p).collect::<Vec<_>>()
+        );
     }
 }

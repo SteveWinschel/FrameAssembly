@@ -8,7 +8,7 @@ Simulating SNMP traffic—especially encrypted **SNMPv3 `authPriv` traps**—is 
 
 If you want to verify that **Zabbix**, **Checkmk**, **LibreNMS**, **PRTG**, **SolarWinds**, **Datadog**, or `snmptrapd` actually pages the on-call engineer when a core uplink dies, your usual options are grim -> configure an SNMP agent, hunt down broken vendor MIB dependencies, match hex EngineIDs and localized keys, and physically yank a patch cord out of a switch just to watch a dashboard turn red :)
 
-With **FrameAssembly**, you describe the poll, walk, `SET`, or encrypted trap in a few lines of `.fasm` code, compile a `.pcap` file without MIB dependencies, and fire it at your collector or IDS with **`tcpreplay`**:
+With **FrameAssembly**, you describe the poll, walk, `set`, or encrypted trap in a few lines of `.fasm` code, compile a `.pcap` file without MIB dependencies, and fire it at your collector or IDS with **`tcpreplay`**:
 
 ```frameassembly
 host core_sw { ip 10.10.1.2  mac 00:1a:2b:3c:4d:01 }
@@ -27,13 +27,13 @@ compile { link_down_alert(core_sw, zabbix) }
 
 ```console
 $ frameassembly show snmp_alert.fasm
-$ frameassembly snmp_alert.fasm -o snmp_alert.pcap && sudo tcpreplay -i eth0 snmp_alert.pcap
+$ frameassembly snmp_alert.fasm snmp_alert.pcap && sudo tcpreplay -i eth0 snmp_alert.pcap
 ```
 
 ## SNMP Testing and Security Use Cases
 
-### 1. Test Encrypted `SNMPv3` `authPriv` Traps & `INFORM` Alerts Without Touching Live Gear
-Getting SNMPv3 `authPriv` traps working between a router and an NMS is notorious for silent packet drops whenever an `EngineID`, `EngineBoots` counter, `EngineTime` window, or `SHA-2`/`AES` key doesn't line up. Instead of fighting `snmptrap` CLI flags or rebooting lab gear, pass plain passphrases in `.fasm` code—FrameAssembly derives the localized keys, encrypts the payload, signs the packet, and handles acknowledged `inform` -> `response` handshakes out of the box:
+### 1. Test Encrypted `snmp3` `authPriv` Traps & `inform` Alerts Without Touching Live Gear
+Getting SNMPv3 `authPriv` traps working between a router and an NMS is notorious for silent packet drops whenever an `engineid`, `engineboots` counter, `enginetime` window, or SHA-2/AES key doesn't line up. Instead of fighting `snmptrap` CLI flags or rebooting lab gear, pass plain passphrases in `.fasm` code—FrameAssembly derives the localized keys, encrypts the payload, signs the packet, and handles acknowledged `inform` -> `response` handshakes out of the box:
 
 ```frameassembly
 host core_rtr { ip 10.151.0.1   mac 00:25:90:51:00:01 }
@@ -51,8 +51,8 @@ flow snmpv3_alerts(rtr, nms) {
 compile { snmpv3_alerts(core_rtr, nms_srv) }
 ```
 
-### 2. Stress-Test Collector Queues & Alert Deduplication (`loop` Trap Storms & Link Flaps)
-Finding out *during* a real fiber cut that a single flapping port sends 500 Slack alerts or chokes your trap daemon is bad timing. Wrap a `linkDown` / `linkUp` sequence inside `loop` to verify alert throttling and deduplication before production finds out for you:
+### 2. Stress-Test Collector Queues & Alert Deduplication (Trap Bursts & Link Flaps)
+Finding out *during* a real fiber cut that a single flapping port sends 500 Slack alerts or chokes your trap daemon is bad timing. Invoke a `linkDown` / `linkUp` flow back-to-back inside `compile` to verify alert throttling and deduplication before production finds out for you:
 
 ```frameassembly
 host flapping_sw { ip 10.125.0.10  mac 00:1c:73:25:00:10 }
@@ -64,11 +64,13 @@ flow link_flap_cycle(sw, sink) {
 }
 
 compile {
-    loop 25 { link_flap_cycle(flapping_sw, trap_sink) }
+    link_flap_cycle(flapping_sw, trap_sink)
+    link_flap_cycle(flapping_sw, trap_sink)
+    link_flap_cycle(flapping_sw, trap_sink)
 }
 ```
 
-### 3. Simulate 400G `Counter64` `GETBULK` Polls, Optical Sensors & Multi-VRF Contexts
+### 3. Simulate 400G `counter64` `getbulk` Polls, Optical Sensors & Multi-VRF Contexts
 Testing custom NMS templates, Prometheus `snmp_exporter` parsers, 64-bit interface counter wraps, negative optical `dBm` readings, or per-VRF routing table queries usually requires physical spine switches and MPLS PE routers. Here you can script the exact `getbulk` / `get` and `response` packets—exercising all 9 `varbind` types—in one flow:
 
 ```frameassembly
@@ -88,8 +90,8 @@ flow poll_counters_and_vrfs(nms, pe) {
 compile { poll_counters_and_vrfs(poller, pe_router) }
 ```
 
-### 4. Pentesting, Rogue `SET` Detection & IDS Rule Validation (`Suricata`, `Zeek`, SIEM)
-Leftover `"public"` and `"private"` community strings are still an internal pentester's best friend. Build clean, zero-noise captures to verify that **Suricata**, **Zeek**, or your SIEM flags unauthenticated SNMPv3 EngineID discovery probes, unauthorized `SET` requests shutting down switch ports (`ifAdminStatus = 2`), and resulting `authenticationFailure` traps:
+### 4. Pentesting, Rogue `set` Detection & IDS Rule Validation (Suricata, Zeek, SIEM)
+Leftover `"public"` and `"private"` community strings are still an internal pentester's best friend. Build zero-noise captures to verify that **Suricata**, **Zeek**, or your SIEM flags unauthenticated SNMPv3 EngineID discovery probes, unauthorized `set` requests shutting down switch ports (`ifAdminStatus = 2`), and resulting `authenticationFailure` traps:
 
 ```frameassembly
 host rogue_scanner { ip 192.168.66.13 mac 00:0c:29:66:00:13 }
@@ -113,11 +115,11 @@ compile { snmp_pentest_and_detection(rogue_scanner, access_sw, secops_siem) }
 ```
 
 ```console
-$ frameassembly snmp_ids.fasm -o snmp_ids.pcap && suricata -r snmp_ids.pcap -k none
+$ frameassembly snmp_ids.fasm snmp_ids.pcap && suricata -r snmp_ids.pcap -k none
 ```
 
-### 5. Legacy `SNMPv1` UPS/Printer Hardware, `MD5`/`DES` & Carrier `QinQ` + `MPLS`
-Every network has that one ancient UPS management card, laser printer, or branch CPE that only speaks `SNMPv1` (`gentrap` / `spectrap`) or legacy `SNMPv3` `MD5` + `DES`—sometimes Riding across a carrier `QinQ` + `MPLS` backhaul or IPv6 management network:
+### 5. Legacy `snmp1` UPS/Printer Hardware, `md5`/`des` & Carrier `qinq` + `mpls`
+Every network has that one ancient UPS management card, laser printer, or branch CPE that only speaks `snmp1` (`gentrap` / `spectrap`) or legacy `snmp3` `md5` + `des`—sometimes riding across a carrier `qinq` + `mpls` backhaul or IPv6 management network:
 
 ```frameassembly
 host ups_card     { ip 10.145.40.5   mac 00:1a:2b:91:40:05 }
@@ -130,7 +132,7 @@ flow legacy_and_carrier_snmp(agent, nms) {
     agent -> nms snmp1 trap community "ups_traps" enterprise 1.3.6.1.2.1.33.2 agentip 10.145.40.5 gentrap 6 spectrap 1 sysuptime 9912400 varbind 1.3.6.1.2.1.33.1.2.3.0 int 28 wait 5ms
 
     // Legacy SNMPv3 MD5 + DES trap inside Carrier QinQ (800/162) and MPLS label 7300
-    agent -> nms qinq 800 inner_vlan 162 mpls 7300 snmp3 trap user "legacy_ups" engineid "80001f8880aa11bb22" engineboots 4 enginetime 12000 auth md5 "LegacyMd5Key!" priv des "LegacyDesKey!" oid 1.3.6.1.6.3.1.1.5.3 sysuptime 1200000 varbind 1.3.6.1.2.1.2.2.1.2.3 string "FastEthernet0/3"
+    agent -> nms qinq 800 innervlan 162 mpls 7300 snmp3 trap user "legacy_ups" engineid "80001f8880aa11bb22" engineboots 4 enginetime 12000 auth md5 "LegacyMd5Key!" priv des "LegacyDesKey!" oid 1.3.6.1.6.3.1.1.5.3 sysuptime 1200000 varbind 1.3.6.1.2.1.2.2.1.2.3 string "FastEthernet0/3"
 }
 
 flow ipv6_snmp_traps(a6, n6) {
@@ -173,7 +175,7 @@ compile {
 | `maxrepetitions <m>` | `snmp2`, `snmp3` | `10` | Max table rows fetched per remaining OID in a `getbulk` request |
 | `enterprise <oid>` | `snmp1` | `1.3.6.1.4.1` | Vendor enterprise OID in an SNMPv1 `Trap-PDU` |
 | `agentip <ipv4>` | `snmp1` | Sender IPv4 (`0.0.0.0` on v6) | Overrides inner `agent-addr` (useful when simulating an SNMP trap proxy/concentrator) |
-| `gentrap <0..6>` | `snmp1` | `6` (or auto from `oid`) | `0` `coldStart`, `1` `warmStart`, `2` `linkDown`, `3` `linkUp`, `4` `authFailure`, `5` `egpNeighborLoss`, `6` `enterpriseSpecific` |
+| `gentrap <0..6>` | `snmp1` | `6` (or auto from `oid`) | `0` coldStart, `1` warmStart, `2` linkDown, `3` linkUp, `4` authFailure, `5` egpNeighborLoss, `6` enterpriseSpecific |
 | `spectrap <u32>` | `snmp1` | `0` (`0..5`) / `1` (`6`) | Vendor-specific trap sub-code when `gentrap` is `6` |
 | `user "<name>"` | `snmp3` | `"admin"` | USM username (`""` for EngineID discovery probes) |
 | `engineid "<hex>"` | `snmp3` | `"8000000001"` | Even-length hex EngineID string (e.g., `"80001f8880510001"`) |
@@ -193,7 +195,7 @@ Chain as many `varbind <oid> <type> [value]` entries onto a single statement as 
 | :--- | :--- | :--- |
 | `null` / `nullval` | `varbind 1.3.6.1.2.1.1.1.0 null` | Empty placeholder used in `get`, `getnext`, and `getbulk` requests |
 | `string "<text>"` | `varbind 1.3.6.1.2.1.1.5.0 string "core-sw"` | Hostnames, interface names, serial numbers, and status messages |
-| `int <-2B..2B>` | `varbind 1.3.6.1.2.1.2.2.1.8.1 int 2` | Signed 32-bit integer (`1`=`up`, `2`=`down`, or negative values like `-18` dBm / `-15` °C) |
+| `int <-2B..2B>` | `varbind 1.3.6.1.2.1.2.2.1.8.1 int 2` | Signed 32-bit integer (`1`=up, `2`=down, or negative values like `-18` dBm / `-15` °C) |
 | `timeticks <u32>` | `varbind 1.3.6.1.2.1.1.3.0 timeticks 8640000` | Elapsed time in `1/100`s centiseconds (`8640000` = 24 hours) |
 | `ipval <ip>` | `varbind 1.3.6.1.2.1.4.20.1.1.10.0.0.1 ipval 10.0.0.1` | Accepts both IPv4 (`IpAddress`) and IPv6 (`2001:db8::1` 16-byte `InetAddress`) |
 | `oidval <oid>` | `varbind 1.3.6.1.2.1.1.2.0 oidval 1.3.6.1.4.1.9.1.1` | Value that points to another OID (such as `sysObjectID.0`) |
@@ -209,7 +211,7 @@ Chain as many `varbind <oid> <type> [value]` entries onto a single statement as 
 | `sysUpTime.0` | `1.3.6.1.2.1.1.3.0` | `timeticks` | Uptime in hundredths of a second |
 | `sysContact.0` / `sysName.0` / `sysLocation.0` | `1.3.6.1.2.1.1.4.0` / `.5.0` / `.6.0` | `string` | Admin email, hostname, rack location |
 | `ifIndex.<n>` / `ifDescr.<n>` | `1.3.6.1.2.1.2.2.1.1.<n>` / `.2.<n>` | `int` / `string` | Port index (`1`, `2`) / name (`"Gi0/1"`) |
-| `ifAdminStatus.<n>` / `ifOperStatus.<n>` | `1.3.6.1.2.1.2.2.1.7.<n>` / `.8.<n>` | `int` | `1` = `up`, `2` = `down`, `3` = `testing` |
+| `ifAdminStatus.<n>` / `ifOperStatus.<n>` | `1.3.6.1.2.1.2.2.1.7.<n>` / `.8.<n>` | `int` | `1` = up, `2` = down, `3` = testing |
 | `ifHCInOctets.<n>` / `ifHCOutOctets.<n>` | `1.3.6.1.2.1.31.1.1.1.6.<n>` / `.10.<n>` | `counter64` | 64-bit inbound / outbound byte counters |
 | `coldStart` / `warmStart` | `1.3.6.1.6.3.1.1.5.1` / `1.3.6.1.6.3.1.1.5.2` | Trap `oid` | Device rebooted / SNMP agent restarted |
 | `linkDown` / `linkUp` | `1.3.6.1.6.3.1.1.5.3` / `1.3.6.1.6.3.1.1.5.4` | Trap `oid` | Interface went down / came back up |
@@ -235,8 +237,8 @@ sudo tcpreplay -i eth0 snmp_alert.pcap
 # Blast traps at wire speed to benchmark collector throughput
 sudo tcpreplay -i eth0 --topspeed snmp_alert.pcap
 
-# Reverse an existing SNMP .pcap / .pcapng capture into editable .fasm code (defaults to <input_stem>.fasm)
-frameassembly reverse snmp_walk.pcap -o snmp_walk.fasm
+# Reverse an existing SNMP .pcap / .pcapng capture into .fasm code (defaults to <input_stem>.fasm)
+frameassembly reverse snmp_walk.pcap snmp_walk.fasm
 ```
 
 When reversing an SNMP capture with `frameassembly reverse`, cleartext `snmp1`, `snmp2`, and `snmp3` (`noAuthNoPriv`) packets decompile directly into `snmp1` / `snmp2` / `snmp3` statements with `varbind` entries. Encrypted `snmp3` `authPriv` (or keyed `authNoPriv`) packets are not decrypted; `frameassembly reverse` keeps them as `udp` statements with `hexpayload` so recompiling preserves the exact wire bytes.

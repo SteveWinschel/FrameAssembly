@@ -1,27 +1,27 @@
 // PROMPT: Model an IP deskphone acquiring a voice VLAN 110 DHCP lease with QoS priority tagging.
-// TOKENS: HOST, IP, MAC, FLOW, DHCP, DISCOVER, XID, CHADDR, HOSTNAME, VLAN, PCP, WAIT, OFFER, YIADDR, SIADDR, SUBNET_MASK, ROUTER, DNS_SERVER, LEASE_TIME, REQUEST, ACK, COMPILE
+// TOKENS: host, ip, mac, flow, s, dhcp, discover, xid, chaddr, hostname, vlan, pcp, wait, ms, offer, yiaddr, siaddr, subnetmask, router, dnsserver, leasetime, request, ack, compile
 
 // INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
-HOST dhcp_client {
-    IP 172.20.110.55
-    MAC 00:25:90:67:01:0a
+host dhcp_client {
+    ip 172.20.110.55
+    mac 00:25:90:67:01:0a
 }
 
 // INSTRUCTION: Define the DHCP server or relay agent endpoint.
-HOST dhcp_server {
-    IP 172.20.110.1
-    MAC 00:25:90:67:01:01
+host dhcp_server {
+    ip 172.20.110.1
+    mac 00:25:90:67:01:01
 }
 
 // INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
-FLOW dhcp_scenario_flow(c, s) {
-    c -> s DHCP DISCOVER XID 0x31001002 CHADDR 00:04:f2:aa:11:02 HOSTNAME "SEP0004F2AA1102" VLAN 110 PCP 5 WAIT 3ms
-    c <- s DHCP OFFER XID 0x31001002 YIADDR 172.20.110.55 SIADDR 172.20.110.10 SUBNET_MASK 255.255.255.0 ROUTER 172.20.110.1 DNS_SERVER 172.20.110.2 LEASE_TIME 28800 VLAN 110 PCP 5 WAIT 3ms
-    c -> s DHCP REQUEST XID 0x31001002 YIADDR 172.20.110.55 CHADDR 00:04:f2:aa:11:02 VLAN 110 PCP 5 WAIT 3ms
-    c <- s DHCP ACK XID 0x31001002 YIADDR 172.20.110.55 SUBNET_MASK 255.255.255.0 ROUTER 172.20.110.1 DNS_SERVER 172.20.110.2 LEASE_TIME 28800 VLAN 110 PCP 5
+flow dhcp_scenario_flow(c, s) {
+    c -> s dhcp discover xid 0x31001002 chaddr 00:04:f2:aa:11:02 hostname "SEP0004F2AA1102" vlan 110 pcp 5 wait 3ms
+    c <- s dhcp offer xid 0x31001002 yiaddr 172.20.110.55 siaddr 172.20.110.10 subnetmask 255.255.255.0 router 172.20.110.1 dnsserver 172.20.110.2 leasetime 28800 vlan 110 pcp 5 wait 3ms
+    c -> s dhcp request xid 0x31001002 yiaddr 172.20.110.55 chaddr 00:04:f2:aa:11:02 vlan 110 pcp 5 wait 3ms
+    c <- s dhcp ack xid 0x31001002 yiaddr 172.20.110.55 subnetmask 255.255.255.0 router 172.20.110.1 dnsserver 172.20.110.2 leasetime 28800 vlan 110 pcp 5
 }
 
 // INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
-COMPILE {
+compile {
     dhcp_scenario_flow(dhcp_client, dhcp_server)
 }

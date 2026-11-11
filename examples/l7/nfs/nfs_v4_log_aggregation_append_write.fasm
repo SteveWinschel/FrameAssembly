@@ -1,27 +1,27 @@
 // PROMPT: Centralized rsyslog collector appending rotated log batches to an archival NFSv4 share over VLAN 705.
-// TOKENS: HOST, IP, MAC, FLOW, NFS, VERS, PROC, TAG, PATH, VLAN, PCP, WAIT, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, nfs, vers, proc, tag, path, vlan, pcp, wait, ms, payload, compile
 
 // INSTRUCTION: Define the log collector host writing audit batches.
-HOST log_collector {
-    IP 10.70.130.15
-    MAC 00:1a:2b:70:d0:15
+host log_collector {
+    ip 10.70.130.15
+    mac 00:1a:2b:70:d0:15
 }
 
 // INSTRUCTION: Define the compliance WORM NFSv4 archive appliance.
-HOST worm_archive {
-    IP 10.70.130.2
-    MAC 00:1a:2b:70:d0:02
+host worm_archive {
+    ip 10.70.130.2
+    mac 00:1a:2b:70:d0:02
 }
 
 // INSTRUCTION: Lookup daily directory and write compressed audit log records over VLAN 705.
-FLOW nfs_log_append(c, s) {
-    c -> s NFS VERS 4 PROC "LOOKUP" TAG "find_audit_dir" PATH "/worm/audit/2026-10-25" VLAN 705 PCP 3
-    c <- s NFS VERS 4 PROC "LOOKUP" TAG "find_audit_dir" VLAN 705 PCP 3 WAIT 1ms
-    c -> s NFS VERS 4 PROC "WRITE" TAG "append_audit_batch" PATH "/worm/audit/2026-10-25/auth.log.zst" VLAN 705 PCP 3 PAYLOAD "ZSTD_AUDIT_LOG_FRAME_991"
-    c <- s NFS VERS 4 PROC "WRITE" TAG "append_audit_batch" VLAN 705 PCP 3
+flow nfs_log_append(c, s) {
+    c -> s nfs vers 4 proc "lookup" tag "find_audit_dir" path "/worm/audit/2026-10-25" vlan 705 pcp 3
+    c <- s nfs vers 4 proc "lookup" tag "find_audit_dir" vlan 705 pcp 3 wait 1ms
+    c -> s nfs vers 4 proc "write" tag "append_audit_batch" path "/worm/audit/2026-10-25/auth.log.zst" vlan 705 pcp 3 payload "ZSTD_AUDIT_LOG_FRAME_991"
+    c <- s nfs vers 4 proc "write" tag "append_audit_batch" vlan 705 pcp 3
 }
 
 // INSTRUCTION: Compile the VLAN-tagged NFSv4 compliance log write flow.
-COMPILE {
+compile {
     nfs_log_append(log_collector, worm_archive)
 }

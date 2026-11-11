@@ -1,10 +1,10 @@
 //! Cisco NetFlow v5 Layer 7 network flow telemetry protocol field parser.
 //!
-//! This module implements the `winnow` parser combinator for Cisco `NETFLOW` v5 flow export
-//! datagrams in FrameAssembly `.fasm` specifications. It recognizes the `NETFLOW` protocol
-//! keyword, flow source and destination IPv4 addresses (`SRCIP`, `DSTIP`), IP protocol numbers
-//! (`PROTO`), packet counters (`PACKETS`), and byte counters (`OCTETS`), while `SRCPORT` and
-//! `DSTPORT` are populated through universal modifier dispatch.
+//! This module implements the `winnow` parser combinator for Cisco `netflow` v5 flow export
+//! datagrams in FrameAssembly `.fasm` specifications. It recognizes the `netflow` protocol
+//! keyword, flow source and destination IPv4 addresses (`srcip`, `dstip`), IP protocol numbers
+//! (`proto`), packet counters (`packets`), and byte counters (`octets`), while `srcport` and
+//! `dstport` are populated through universal modifier dispatch.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

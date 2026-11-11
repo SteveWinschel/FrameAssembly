@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 
 /// Builds an RFC 9051 IMAP mail message.
 ///
-/// Syntax mapping: `IMAP [TAG <str>] [CMD <str>] [ARG <str>] [STATUS <str>] [RESPONSE <str>]`
+/// Syntax mapping: `imap [tag <str>] [cmd <str>] [arg <str>] [status <str>] [response <str>]`
 #[doc(alias = "IMAP")]
 #[doc(alias = "RFC3501")]
 #[doc(alias = "RFC9051")]

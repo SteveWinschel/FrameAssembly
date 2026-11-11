@@ -1,28 +1,28 @@
 // PROMPT: Create an IMAP periodic NOOP polling loop checking for new mail arrivals on an active connection.
-// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, WAIT, STATUS, RESPONSE, COMPILE, LOOP
+// TOKENS: host, ip, mac, flow, s, imap, tag, cmd, wait, ms, status, response, compile
 
 // INSTRUCTION: Define the legacy IMAP mail notifier applet.
-HOST notifier_applet {
-    IP 10.143.30.55
-    MAC 00:15:5d:8f:1e:37
+host notifier_applet {
+    ip 10.143.30.55
+    mac 00:15:5d:8f:1e:37
 }
 
 // INSTRUCTION: Define the corporate IMAP server.
-HOST corp_imap {
-    IP 10.143.30.1
-    MAC 00:15:5d:8f:1e:01
+host corp_imap {
+    ip 10.143.30.1
+    mac 00:15:5d:8f:1e:01
 }
 
 // INSTRUCTION: Send a tagged NOOP command and receive EXISTS/RECENT updates followed by OK.
-FLOW imap_noop_poll(c, s) {
-    c -> s IMAP TAG "N99" CMD "NOOP" WAIT 2ms
-    c <- s IMAP TAG "*" STATUS "42 EXISTS" RESPONSE "New mail count" WAIT 1ms
-    c <- s IMAP TAG "N99" STATUS "OK" RESPONSE "NOOP completed" WAIT 25ms
+flow imap_noop_poll(c, s) {
+    c -> s imap tag "N99" cmd "NOOP" wait 2ms
+    c <- s imap tag "*" status "42 EXISTS" response "New mail count" wait 1ms
+    c <- s imap tag "N99" status "OK" response "NOOP completed" wait 25ms
 }
 
-// INSTRUCTION: Execute 3 consecutive IMAP NOOP polls inside a COMPILE LOOP block.
-COMPILE {
-    LOOP 3 {
-        imap_noop_poll(notifier_applet, corp_imap)
-    }
+// INSTRUCTION: Execute 3 consecutive IMAP NOOP polls inside a COMPILE repeated flow calls.
+compile {
+    imap_noop_poll(notifier_applet, corp_imap) // cycle 1
+    imap_noop_poll(notifier_applet, corp_imap) // cycle 2
+    imap_noop_poll(notifier_applet, corp_imap) // cycle 3
 }

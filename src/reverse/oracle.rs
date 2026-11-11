@@ -179,7 +179,7 @@ pub(crate) fn compile_single_statement(
     frames.into_iter().next().map(|(data, _)| data)
 }
 
-/// Checks whether `stmt_body` already contains a `PAYLOAD` or `HEXPAYLOAD` token.
+/// Checks whether `stmt_body` already contains a `payload` or `hexpayload` token.
 fn has_payload_token(stmt_body: &str) -> bool {
     Token::lexer(stmt_body)
         .flatten()
@@ -240,7 +240,10 @@ fn hydrate_elided_l4_fields(stmt_body: &str, pkt: &DissectedPacket) -> String {
     if !has_dstport && let Some(dp) = pkt.l4.dst_port {
         extra.push(format!("dstport {dp}"));
     }
-    if !has_seq && let Some(seq) = pkt.seq {
+    if !has_seq
+        && let Some(seq) = pkt.seq
+        && !(pkt.dissection.protocol == Protocol::Tacacs && seq == 1000)
+    {
         extra.push(format!("seq {seq}"));
     }
     if !has_acknum && let Some(ack) = pkt.ack_num {
@@ -320,7 +323,7 @@ fn build_stepdown_statement(
                     parts.push(format!("wscale {ws}"));
                 }
                 if opts.sack_perm {
-                    parts.push(String::from("sack_perm"));
+                    parts.push(String::from("sackperm"));
                 }
                 if let Some(tsv) = opts.tsval {
                     parts.push(format!("tsval {tsv}"));
@@ -350,7 +353,7 @@ fn build_stepdown_statement(
         if let Some(q) = &pkt.l2.qinq {
             parts.push(format!("qinq {}", q.outer_vid));
             if let Some(iv) = q.inner_vid {
-                parts.push(format!("inner_vlan {iv}"));
+                parts.push(format!("innervlan {iv}"));
             }
             if let Some(m) = &pkt.l2.mpls {
                 parts.push(format!("mpls {}", m.label));
@@ -367,7 +370,7 @@ fn build_stepdown_statement(
                 if let Some(ttl) = m.ttl
                     && ttl != 64
                 {
-                    parts.push(format!("mpls_ttl {ttl}"));
+                    parts.push(format!("mplsttl {ttl}"));
                 }
             }
         } else if let Some(m) = &pkt.l2.mpls {
@@ -385,7 +388,7 @@ fn build_stepdown_statement(
             if let Some(ttl) = m.ttl
                 && ttl != 64
             {
-                parts.push(format!("mpls_ttl {ttl}"));
+                parts.push(format!("mplsttl {ttl}"));
             }
             if let Some(v) = &pkt.l2.vlan {
                 parts.push(format!("vlan {}", v.vid));
@@ -473,7 +476,7 @@ fn append_l2_l3_modifiers(
         if let Some(q) = &pkt.l2.qinq {
             parts.push(format!("qinq {}", q.outer_vid));
             if let Some(iv) = q.inner_vid {
-                parts.push(format!("inner_vlan {iv}"));
+                parts.push(format!("innervlan {iv}"));
             }
         }
         if let Some(m) = &pkt.l2.mpls {
@@ -491,7 +494,7 @@ fn append_l2_l3_modifiers(
             if let Some(ttl) = m.ttl
                 && ttl != 64
             {
-                parts.push(format!("mpls_ttl {ttl}"));
+                parts.push(format!("mplsttl {ttl}"));
             }
         }
     }

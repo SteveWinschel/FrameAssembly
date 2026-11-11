@@ -1,21 +1,23 @@
-// PROMPT: Rapid BFD sub-second keepalive burst executed in a COMPILE LOOP block.
-// TOKENS: HOST, IP, FLOW, BFD, STATE, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, WAIT, COMPILE, LOOP
+// PROMPT: Rapid BFD sub-second keepalive burst executed in a COMPILE repeated flow calls.
+// TOKENS: host, ip, flow, bfd, state, mydisc, yourdisc, mintx, minrx, mult, wait, ms, compile
 
 // INSTRUCTION: Define fabric spine switch 1.
-HOST fabric_spine_1 { IP 10.240.1.1 }
+host fabric_spine_1 { ip 10.240.1.1 }
 
 // INSTRUCTION: Define fabric tor switch 1.
-HOST fabric_tor_1 { IP 10.240.1.2 }
+host fabric_tor_1 { ip 10.240.1.2 }
 
 // INSTRUCTION: Define bidirectional 10ms BFD keepalive exchange.
-FLOW bfd_rapid_poll(spine, tor) {
-    spine -> tor BFD STATE 3 MY_DISC 4401 YOUR_DISC 4402 MIN_TX 10000 MIN_RX 10000 MULT 3 WAIT 10ms
-    spine <- tor BFD STATE 3 MY_DISC 4402 YOUR_DISC 4401 MIN_TX 10000 MIN_RX 10000 MULT 3 WAIT 10ms
+flow bfd_rapid_poll(spine, tor) {
+    spine -> tor bfd state 3 mydisc 4401 yourdisc 4402 mintx 10000 minrx 10000 mult 3 wait 10ms
+    spine <- tor bfd state 3 mydisc 4402 yourdisc 4401 mintx 10000 minrx 10000 mult 3 wait 10ms
 }
 
 // INSTRUCTION: Compile 5 consecutive iterations of the rapid BFD heartbeat.
-COMPILE {
-    LOOP 5 {
-        bfd_rapid_poll(fabric_spine_1, fabric_tor_1)
-    }
+compile {
+    bfd_rapid_poll(fabric_spine_1, fabric_tor_1) // cycle 1
+    bfd_rapid_poll(fabric_spine_1, fabric_tor_1) // cycle 2
+    bfd_rapid_poll(fabric_spine_1, fabric_tor_1) // cycle 3
+    bfd_rapid_poll(fabric_spine_1, fabric_tor_1) // cycle 4
+    bfd_rapid_poll(fabric_spine_1, fabric_tor_1) // cycle 5
 }

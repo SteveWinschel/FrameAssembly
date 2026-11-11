@@ -1,19 +1,19 @@
 // PROMPT: Simulate a UDP DNS query from a client to a public DNS resolver on port 53 followed by a UDP DNS response.
-// TOKENS: HOST, IP, FLOW, UDP, DSTPORT, PAYLOAD, SRCPORT, COMPILE
+// TOKENS: host, ip, flow, udp, dstport, payload, srcport, compile
 
 // INSTRUCTION: Define a DNS client with IP 192.168.1.5.
-HOST dns_client { IP 192.168.1.5 }
+host dns_client { ip 192.168.1.5 }
 
 // INSTRUCTION: Define a DNS server with IP 8.8.8.8.
-HOST dns_server { IP 8.8.8.8 }
+host dns_server { ip 8.8.8.8 }
 
 // INSTRUCTION: Define a flow that sends a UDP packet mimicking a DNS query to port 53, and receives a UDP response.
-FLOW dns_query(client, server) {
-    client -> server UDP DSTPORT 53 PAYLOAD "query"
-    client <- server UDP SRCPORT 53 PAYLOAD "response"
+flow dns_query(client, server) {
+    client -> server udp dstport 53 payload "query"
+    client <- server udp srcport 53 payload "response"
 }
 
 // INSTRUCTION: Compile block to execute the DNS query flow.
-COMPILE {
+compile {
     dns_query(dns_client, dns_server)
 }

@@ -1,23 +1,23 @@
 // PROMPT: SIP CANCEL request terminating an unanswered call during 180 Ringing.
-// TOKENS: HOST, IP, FLOW, SIP, INVITE, FROM, TO, CALL_ID, CSEQ, WAIT, STATUS, REASON, CANCEL, METHOD, URI, COMPILE
+// TOKENS: host, ip, flow, s, sip, invite, from, to, callid, cseq, wait, ms, status, reason, cancel, method, uri, compile
 
 // INSTRUCTION: Define caller canceling outbound attempt.
-HOST canceling_caller { IP 10.33.1.25 }
+host canceling_caller { ip 10.33.1.25 }
 
 // INSTRUCTION: Define call manager PBX.
-HOST call_manager { IP 10.33.1.1 }
+host call_manager { ip 10.33.1.1 }
 
 // INSTRUCTION: Define INVITE, Ringing, CANCEL, and Request Terminated teardown.
-FLOW sip_cancel_flow(c, s) {
-    c -> s SIP INVITE FROM "sip:agent1@callcenter.com" TO "sip:lead@sales.com" CALL_ID "cancel-3312" CSEQ 1 WAIT 10ms
-    c <- s SIP STATUS 180 REASON "Ringing" CALL_ID "cancel-3312" CSEQ 1 WAIT 15ms
-    c -> s SIP CANCEL FROM "sip:agent1@callcenter.com" TO "sip:lead@sales.com" CALL_ID "cancel-3312" CSEQ 1 WAIT 5ms
-    c <- s SIP STATUS 200 REASON "OK" CALL_ID "cancel-3312" CSEQ 1 WAIT 5ms
-    c <- s SIP STATUS 487 REASON "Request Terminated" CALL_ID "cancel-3312" CSEQ 1 WAIT 5ms
-    c -> s SIP METHOD "ACK" URI "sip:lead@sales.com" FROM "sip:agent1@callcenter.com" TO "sip:lead@sales.com" CALL_ID "cancel-3312" CSEQ 1
+flow sip_cancel_flow(c, s) {
+    c -> s sip invite from "sip:agent1@callcenter.com" to "sip:lead@sales.com" callid "cancel-3312" cseq 1 wait 10ms
+    c <- s sip status 180 reason "Ringing" callid "cancel-3312" cseq 1 wait 15ms
+    c -> s sip cancel from "sip:agent1@callcenter.com" to "sip:lead@sales.com" callid "cancel-3312" cseq 1 wait 5ms
+    c <- s sip status 200 reason "OK" callid "cancel-3312" cseq 1 wait 5ms
+    c <- s sip status 487 reason "Request Terminated" callid "cancel-3312" cseq 1 wait 5ms
+    c -> s sip method "ACK" uri "sip:lead@sales.com" from "sip:agent1@callcenter.com" to "sip:lead@sales.com" callid "cancel-3312" cseq 1
 }
 
 // INSTRUCTION: Compile SIP call cancellation flow.
-COMPILE {
+compile {
     sip_cancel_flow(canceling_caller, call_manager)
 }

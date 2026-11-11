@@ -1,12 +1,12 @@
 //! EtherNet/IP (Common Industrial Protocol over TCP/UDP) Layer 7 field parser.
 //!
-//! This module implements the `winnow` parser combinator for ODVA `ETHERNETIP` encapsulation and
+//! This module implements the `winnow` parser combinator for ODVA `ethernetip` encapsulation and
 //! Common Industrial Protocol (`CIP`) frames in FrameAssembly `.fasm` specifications. It
-//! recognizes the `ETHERNETIP` protocol keyword, explicit `CMD` strings, shorthand encapsulation
-//! commands (`NOP`, `LIST_IDENTITY`, `LIST_INTERFACES`, `LIST_SERVICES`, `REGISTER_SESSION`,
-//! `UNREGISTER_SESSION`, `SEND_RR_DATA`, `SEND_UNIT_DATA`), `STATUS` codes, `SESSION_HANDLE` IDs,
-//! 64-bit `CONTEXT` values, and CIP object path attributes (`CIP_SERVICE`, `CIP_CLASS`,
-//! `CIP_INSTANCE`, `CIP_ATTR`).
+//! recognizes the `ethernetip` protocol keyword, explicit `cmd` strings, shorthand encapsulation
+//! commands (`nop`, `listidentity`, `listinterfaces`, `listservices`, `registersession`,
+//! `unregistersession`, `sendrrdata`, `sendunitdata`), `status` codes, `sessionhandle` IDs,
+//! 64-bit `context` values, and CIP object path attributes (`cipservice`, `cipclass`,
+//! `cipinstance`, `cipattr`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
@@ -24,7 +24,7 @@ pub(crate) fn parse_ethernetip_field<'i, 'a>(
         alt((
             tag(Token::Ethernetip)
                 .map(|(_, s)| ParsedField::Protocol(Protocol::Ethernetip, (s.start, s.len()))),
-            tag(Token::Ident("NOP"))
+            tag(Token::Nop)
                 .map(|(_, s)| ParsedField::L7StringField("CMD", "NOP", (s.start, s.len()))),
             tag(Token::ListIdentity).map(|(_, s)| {
                 ParsedField::L7StringField("CMD", "LIST_IDENTITY", (s.start, s.len()))

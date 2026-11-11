@@ -1,19 +1,19 @@
 // PROMPT: Negotiate About Window Size option negotiation using IAC DO 31.
-// TOKENS: HOST, IP, FLOW, TELNET, DO, WILL, COMPILE
+// TOKENS: host, ip, flow, s, telnet, do, will, compile
 
 // INSTRUCTION: Define graphical terminal emulator.
-HOST gui_term { IP 172.16.8.50 }
+host gui_term { ip 172.16.8.50 }
 
 // INSTRUCTION: Define Unix main server.
-HOST unix_main { IP 172.16.8.1 }
+host unix_main { ip 172.16.8.1 }
 
 // INSTRUCTION: Define NAWS option negotiation flow.
-FLOW telnet_naws_flow(c, s) {
-    c <- s TELNET DO 31
-    c -> s TELNET WILL 31
+flow telnet_naws_flow(c, s) {
+    c <- s telnet do 31
+    c -> s telnet will 31
 }
 
 // INSTRUCTION: Compile block executing NAWS negotiation.
-COMPILE {
+compile {
     telnet_naws_flow(gui_term, unix_main)
 }

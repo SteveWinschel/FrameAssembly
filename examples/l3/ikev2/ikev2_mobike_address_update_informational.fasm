@@ -1,25 +1,25 @@
 // PROMPT: RFC 4555 MOBIKE roaming client sending authenticated INFORMATIONAL exchange to update tunnel endpoint address.
-// TOKENS: HOST, IP, MAC, FLOW, FLOWLABEL, IKEV2, INFORMATIONAL, INITIATOR_SPI, RESPONDER_SPI, MSGID, FLAGS, NEXT_PAYLOAD, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, flowlabel, ikev2, informational, initiatorspi, responderspi, msgid, flags, nextpayload, payload, wait, ms, compile
 
 // INSTRUCTION: Define roaming mobile VPN client transitioning to a new cellular IPv6 address.
-HOST mobike_client_v6 {
-    IP 2001:db8:90:1::55
-    MAC 00:24:d7:90:01:55
+host mobike_client_v6 {
+    ip 2001:db8:90:1::55
+    mac 00:24:d7:90:01:55
 }
 
 // INSTRUCTION: Define corporate headend IPv6 VPN concentrator supporting RFC 4555 MOBIKE.
-HOST corp_headend_v6 {
-    IP 2001:db8:10:1::1
-    MAC 00:24:d7:10:01:01
+host corp_headend_v6 {
+    ip 2001:db8:10:1::1
+    mac 00:24:d7:10:01:01
 }
 
 // INSTRUCTION: Exchange RFC 4555 MOBIKE INFORMATIONAL UPDATE_SA_ADDRESSES and NAT detection probes over IPv6.
-FLOW ikev2_mobike_roam(cli, gw) {
-    cli -> gw FLOWLABEL 65536 IKEV2 INFORMATIONAL INITIATOR_SPI 44556677 RESPONDER_SPI 88990011 MSGID 12 FLAGS 8 NEXT_PAYLOAD 46 PAYLOAD "MOBIKE_UPDATE_SA_ADDRESSES_NAT_D" WAIT 10ms
-    cli <- gw FLOWLABEL 65536 IKEV2 INFORMATIONAL INITIATOR_SPI 44556677 RESPONDER_SPI 88990011 MSGID 12 FLAGS 32 NEXT_PAYLOAD 46 PAYLOAD "MOBIKE_COOKIE2_VERIFY_ACK"
+flow ikev2_mobike_roam(cli, gw) {
+    cli -> gw flowlabel 65536 ikev2 informational initiatorspi 44556677 responderspi 88990011 msgid 12 flags 8 nextpayload 46 payload "MOBIKE_UPDATE_SA_ADDRESSES_NAT_D" wait 10ms
+    cli <- gw flowlabel 65536 ikev2 informational initiatorspi 44556677 responderspi 88990011 msgid 12 flags 32 nextpayload 46 payload "MOBIKE_COOKIE2_VERIFY_ACK"
 }
 
 // INSTRUCTION: Compile the IPv6 MOBIKE roaming address update exchange.
-COMPILE {
+compile {
     ikev2_mobike_roam(mobike_client_v6, corp_headend_v6)
 }

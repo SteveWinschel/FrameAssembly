@@ -1,27 +1,27 @@
 // PROMPT: Cloud-native OpenTelemetry (OTel) observability pipeline combining gRPC OTLP trace ingest, HTTP/2 Prometheus metrics scrape, Redis cardinality rate-limiting, and PostgreSQL index storage.
-// TOKENS: HOST, IP, FLOW, GRPC, SERVICE, METHOD, GRPC_STATUS, PAYLOAD, HTTP2, HEADERS, STREAM_ID, WAIT, REDIS, CMD, ARGS, REPLY_TYPE, POSTGRES, SQL, COMMAND_COMPLETE, COMPILE
+// TOKENS: host, ip, flow, app, grpc, service, method, grpcstatus, payload, http2, headers, streamid, wait, ms, redis, cmd, args, replytype, postgres, sql, commandcomplete, compile
 
 // INSTRUCTION: Define instrumented payment microservice pod emitting OTLP traces and metrics.
-HOST instrumented_app_pod { IP 10.248.12.34 }
+host instrumented_app_pod { ip 10.248.12.34 }
 
 // INSTRUCTION: Define OpenTelemetry Collector DaemonSet gateway pod.
-HOST otel_collector_gw { IP 10.248.12.1 }
+host otel_collector_gw { ip 10.248.12.1 }
 
 // INSTRUCTION: Define observability backend running Redis cardinality limiter and PostgreSQL trace index.
-HOST observability_storage { IP 10.248.100.50 }
+host observability_storage { ip 10.248.100.50 }
 
 // INSTRUCTION: Define gRPC OTLP span export, HTTP/2 metrics scrape, Redis token bucket check, and PostgreSQL trace index insert.
-FLOW cloud_otel_observability_pipeline(app, otel, store) {
-    app -> otel GRPC SERVICE "opentelemetry.proto.collector.trace.v1.TraceService" METHOD "Export" GRPC_STATUS 0 PAYLOAD "OTLP_SPAN_TRACE_ID_4bf92f3577b34da6"
-    otel -> app HTTP2 HEADERS STREAM_ID 1 PAYLOAD "GET /metrics Accept: application/openmetrics-text" WAIT 1ms
-    otel <- app HTTP2 HEADERS STREAM_ID 1 PAYLOAD "200 OK http_requests_total{status=\"200\"} 98412" WAIT 1ms
-    otel -> store REDIS CMD "INCR" ARGS "otel:ratelimit:tenant_prod:20261025" WAIT 1ms
-    otel <- store REDIS REPLY_TYPE "INTEGER" PAYLOAD ":1420\r\n" WAIT 1ms
-    otel -> store POSTGRES SQL "INSERT INTO trace_index (trace_id, service_name, duration_us) VALUES ('4bf92f3577b34da6', 'payment-svc', 1840);" WAIT 1ms
-    otel <- store POSTGRES COMMAND_COMPLETE WAIT 1ms
+flow cloud_otel_observability_pipeline(app, otel, store) {
+    app -> otel grpc service "opentelemetry.proto.collector.trace.v1.TraceService" method "Export" grpcstatus 0 payload "OTLP_SPAN_TRACE_ID_4bf92f3577b34da6"
+    otel -> app http2 headers streamid 1 payload "GET /metrics Accept: application/openmetrics-text" wait 1ms
+    otel <- app http2 headers streamid 1 payload "200 OK http_requests_total{status=\"200\"} 98412" wait 1ms
+    otel -> store redis cmd "INCR" args "otel:ratelimit:tenant_prod:20261025" wait 1ms
+    otel <- store redis replytype "integer" payload ":1420\r\n" wait 1ms
+    otel -> store postgres sql "INSERT INTO trace_index (trace_id, service_name, duration_us) VALUES ('4bf92f3577b34da6', 'payment-svc', 1840);" wait 1ms
+    otel <- store postgres commandcomplete wait 1ms
 }
 
 // INSTRUCTION: Compile block executing OpenTelemetry gRPC, HTTP/2, Redis, and PostgreSQL observability topology.
-COMPILE {
+compile {
     cloud_otel_observability_pipeline(instrumented_app_pod, otel_collector_gw, observability_storage)
 }

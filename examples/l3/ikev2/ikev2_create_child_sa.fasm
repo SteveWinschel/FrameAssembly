@@ -1,19 +1,19 @@
 // PROMPT: IKEv2 CREATE_CHILD_SA exchange rekeying an existing Child Security Association.
-// TOKENS: HOST, IP, FLOW, IKEV2, EXCHANGE, CREATE_CHILD_SA, MSGID, COMPILE
+// TOKENS: host, ip, flow, init, ikev2, exchange, createchildsa, msgid, compile
 
 // INSTRUCTION: Define IKEv2 initiator gateway.
-HOST ike_gw_init { IP 198.51.100.10 }
+host ike_gw_init { ip 198.51.100.10 }
 
 // INSTRUCTION: Define IKEv2 responder gateway.
-HOST ike_gw_resp { IP 198.51.100.20 }
+host ike_gw_resp { ip 198.51.100.20 }
 
 // INSTRUCTION: Define CREATE_CHILD_SA exchange flow with incremented message IDs.
-FLOW ikev2_child_sa_flow(init, resp) {
-    init -> resp IKEV2 EXCHANGE CREATE_CHILD_SA MSGID 2
-    init <- resp IKEV2 EXCHANGE CREATE_CHILD_SA MSGID 2
+flow ikev2_child_sa_flow(init, resp) {
+    init -> resp ikev2 exchange createchildsa msgid 2
+    init <- resp ikev2 exchange createchildsa msgid 2
 }
 
 // INSTRUCTION: Compile block executing Child SA negotiation.
-COMPILE {
+compile {
     ikev2_child_sa_flow(ike_gw_init, ike_gw_resp)
 }

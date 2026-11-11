@@ -1,27 +1,27 @@
 // PROMPT: Generate a QinQ double-tagged NDP Router Solicitation and Neighbor Discovery sequence for an ISP subscriber CPE
-// TOKENS: HOST, IP, MAC, FLOW, NDP, ROUTER_SOLICIT, SLLA, QINQ, INNER_VLAN, TTL, WAIT, ROUTER_ADVERT, ROUTER_LIFETIME, NEIGHBOR_SOLICIT, TARGET, NEIGHBOR_ADVERT, TLLA, COMPILE
+// TOKENS: host, ip, mac, flow, ndp, routersolicit, slla, qinq, innervlan, ttl, wait, ms, routeradvert, routerlifetime, neighborsolicit, target, neighboradvert, tlla, compile
 
 // INSTRUCTION: Define the subscriber IPv6 CPE WAN interface
-HOST cpe_wan_v6 {
-    IP fe80::2100:120
-    MAC 00:0f:53:d5:21:01
+host cpe_wan_v6 {
+    ip fe80::2100:120
+    mac 00:0f:53:d5:21:01
 }
 
 // INSTRUCTION: Define the ISP Broadband Network Gateway IPv6 interface
-HOST isp_bng_v6 {
-    IP fe80::2100:1
-    MAC 00:0f:53:d5:21:99
+host isp_bng_v6 {
+    ip fe80::2100:1
+    mac 00:0f:53:d5:21:99
 }
 
 // INSTRUCTION: Perform QinQ-tagged router discovery and link-local neighbor resolution
-FLOW ndp_qinq_cpe_onboarding(cpe, bng) {
-    cpe -> bng NDP ROUTER_SOLICIT SLLA 00:0f:53:d5:21:01 QINQ 2100 INNER_VLAN 120 TTL 255 WAIT 15ms
-    bng -> cpe NDP ROUTER_ADVERT ROUTER_LIFETIME 3600 SLLA 00:0f:53:d5:21:99 QINQ 2100 INNER_VLAN 120 TTL 255 WAIT 10ms
-    cpe -> bng NDP NEIGHBOR_SOLICIT TARGET fe80::2100:1 SLLA 00:0f:53:d5:21:01 QINQ 2100 INNER_VLAN 120 TTL 255 WAIT 10ms
-    bng -> cpe NDP NEIGHBOR_ADVERT TARGET fe80::2100:1 TLLA 00:0f:53:d5:21:99 QINQ 2100 INNER_VLAN 120 TTL 255
+flow ndp_qinq_cpe_onboarding(cpe, bng) {
+    cpe -> bng ndp routersolicit slla 00:0f:53:d5:21:01 qinq 2100 innervlan 120 ttl 255 wait 15ms
+    bng -> cpe ndp routeradvert routerlifetime 3600 slla 00:0f:53:d5:21:99 qinq 2100 innervlan 120 ttl 255 wait 10ms
+    cpe -> bng ndp neighborsolicit target fe80::2100:1 slla 00:0f:53:d5:21:01 qinq 2100 innervlan 120 ttl 255 wait 10ms
+    bng -> cpe ndp neighboradvert target fe80::2100:1 tlla 00:0f:53:d5:21:99 qinq 2100 innervlan 120 ttl 255
 }
 
 // INSTRUCTION: Compile the QinQ subscriber CPE NDP onboarding trace
-COMPILE {
+compile {
     ndp_qinq_cpe_onboarding(cpe_wan_v6, isp_bng_v6)
 }

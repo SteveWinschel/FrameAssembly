@@ -1,10 +1,10 @@
-//! QUIC Transport Protocol (`QUIC`, RFC 9000) Layer 7 PCAP-to-`.fasm` decompiler.
+//! QUIC Transport Protocol (`quic`, RFC 9000) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for unencrypted outer RFC 9000 `QUIC`
-//! Long Header (`initial`, `zero_rtt`, `handshake`, `retry`) and 1-RTT Short Header (`short`) UDP
+//! This module implements the fuzz-safe reverse dissector for unencrypted outer RFC 9000 `quic`
+//! Long Header (`initial`, `zerortt`, `handshake`, `retry`) and 1-RTT Short Header (`short`) UDP
 //! datagrams on ports `443`, `8443`, `6443`, `4433`, `853`, `179`, and `5684`. It decodes
 //! `version`, destination and source connection IDs (`dcid`, `scid`), retry/initial `token`
-//! strings, RFC 9000 §16 2-byte variable-length integers, and packet numbers (`pkt_num`). It never
+//! strings, RFC 9000 §16 2-byte variable-length integers, and packet numbers (`pktnum`). It never
 //! attempts header protection removal or payload decryption, preserving remaining encrypted frame
 //! bytes via residual payload or returning `None` to step down cleanly to `udp`.
 
@@ -29,7 +29,7 @@ pub(crate) fn dissect_quic(payload: &[u8]) -> Option<ProtocolDissection> {
             let _ = write!(tokens, " dcid 0x{dcid:08x}");
         }
         if pkt_num != 1 {
-            let _ = write!(tokens, " pkt_num {pkt_num}");
+            let _ = write!(tokens, " pktnum {pkt_num}");
         }
         return Some(sd(Protocol::Quic, tokens, payload.get(6..)?.to_vec()));
     }
@@ -40,7 +40,7 @@ pub(crate) fn dissect_quic(payload: &[u8]) -> Option<ProtocolDissection> {
     let hdr_type = (b0 >> 4) & 0x03;
     let type_kw = match hdr_type {
         0 => "initial",
-        1 => "zero_rtt",
+        1 => "zerortt",
         2 => "handshake",
         _ => "retry",
     };
@@ -106,7 +106,7 @@ pub(crate) fn dissect_quic(payload: &[u8]) -> Option<ProtocolDissection> {
     }
     let pkt_num = *payload.get(pos)? as u32;
     if pkt_num != 1 {
-        let _ = write!(tokens, " pkt_num {pkt_num}");
+        let _ = write!(tokens, " pktnum {pkt_num}");
     }
     Some(sd(Protocol::Quic, tokens, payload.get(pos + 1..)?.to_vec()))
 }

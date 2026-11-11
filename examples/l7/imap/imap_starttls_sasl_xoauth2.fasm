@@ -1,21 +1,21 @@
 // PROMPT: IMAP STARTTLS opportunistic encryption upgrade and SASL AUTHENTICATE XOAUTH2 login.
-// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, COMPILE
+// TOKENS: host, ip, flow, s, imap, tag, cmd, arg, compile
 
 // INSTRUCTION: Define OAuth2-capable mail client.
-HOST oauth_mua { IP 172.20.143.15 }
+host oauth_mua { ip 172.20.143.15 }
 
 // INSTRUCTION: Define enterprise IMAP gateway.
-HOST imap_gw { IP 172.20.143.1 }
+host imap_gw { ip 172.20.143.1 }
 
 // INSTRUCTION: Negotiate STARTTLS and authenticate with SASL XOAUTH2 bearer token.
-FLOW imap_starttls_xoauth2(c, s) {
-    c -> s IMAP TAG "F01" CMD "STARTTLS"
-    c <- s IMAP TAG "F01" CMD "OK" ARG "Begin TLS negotiation now"
-    c -> s IMAP TAG "F02" CMD "AUTHENTICATE" ARG "XOAUTH2 dXNlcj1hbGljZQ=="
-    c <- s IMAP TAG "F02" CMD "OK" ARG "Logged in"
+flow imap_starttls_xoauth2(c, s) {
+    c -> s imap tag "F01" cmd "STARTTLS"
+    c <- s imap tag "F01" cmd "OK" arg "Begin TLS negotiation now"
+    c -> s imap tag "F02" cmd "AUTHENTICATE" arg "XOAUTH2 dXNlcj1hbGljZQ=="
+    c <- s imap tag "F02" cmd "OK" arg "Logged in"
 }
 
 // INSTRUCTION: Compile the IMAP STARTTLS and XOAUTH2 authentication flow.
-COMPILE {
+compile {
     imap_starttls_xoauth2(oauth_mua, imap_gw)
 }

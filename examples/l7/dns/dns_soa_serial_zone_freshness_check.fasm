@@ -1,25 +1,25 @@
 // PROMPT: Model a secondary nameserver polling the primary authoritative server for the zone SOA record serial number.
-// TOKENS: HOST, IP, MAC, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, WAIT, RESPONSE, RCODE, RDATA, ANS_TTL, COMPILE
+// TOKENS: host, ip, mac, flow, s, dns, query, txid, qname, qtype, wait, ms, response, rcode, rdata, ansttl, compile
 
 // INSTRUCTION: Define the DNS stub resolver client endpoint.
-HOST dns_client {
-    IP 198.51.100.53
-    MAC 00:1b:21:53:01:0a
+host dns_client {
+    ip 198.51.100.53
+    mac 00:1b:21:53:01:0a
 }
 
 // INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
-HOST dns_server {
-    IP 198.51.100.1
-    MAC 00:1b:21:53:01:35
+host dns_server {
+    ip 198.51.100.1
+    mac 00:1b:21:53:01:35
 }
 
 // INSTRUCTION: Execute the DNS query and authoritative response transaction.
-FLOW dns_scenario_flow(c, s) {
-    c -> s DNS QUERY TXID 2105 QNAME "prod.internal.example" QTYPE "SOA" WAIT 2ms
-    c <- s DNS RESPONSE TXID 2105 RCODE 0 QNAME "prod.internal.example" QTYPE "SOA" RDATA "ns1.prod.internal.example hostmaster.prod.internal.example 2026102501" ANS_TTL 86400
+flow dns_scenario_flow(c, s) {
+    c -> s dns query txid 2105 qname "prod.internal.example" qtype "soa" wait 2ms
+    c <- s dns response txid 2105 rcode 0 qname "prod.internal.example" qtype "soa" rdata "ns1.prod.internal.example hostmaster.prod.internal.example 2026102501" ansttl 86400
 }
 
 // INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
-COMPILE {
+compile {
     dns_scenario_flow(dns_client, dns_server)
 }

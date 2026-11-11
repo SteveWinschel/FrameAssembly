@@ -8,7 +8,7 @@
 //! TLVs, and the mandatory End Of LLDPDU (`Type = 0, Length = 0`) marker.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b LLDP [CHASSIS_ID "<str>"] [PORT_ID "<str>"] [TTL <u16>] [SYSNAME "<str>"] [SYSDESC "<str>"]`
+//! `a -> b lldp [chassisid "<str>"] [portid "<str>"] [ttl <u16>] [sysname "<str>"] [sysdesc "<str>"]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

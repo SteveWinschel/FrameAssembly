@@ -1,27 +1,27 @@
 // PROMPT: BACnet/IP communication on alternate UDP port 47809 (0xBAC1) for an isolated laboratory HVAC network.
-// TOKENS: HOST, IP, MAC, FLOW, BACNET, SRCPORT, DSTPORT, WHO_IS, I_AM, OBJECT_TYPE, OBJECT_INSTANCE, WAIT, READ_PROPERTY, INVOKE_ID, PROPERTY_ID, VALUE, COMPILE
+// TOKENS: host, ip, mac, flow, bacnet, srcport, dstport, whois, iam, objecttype, objectinstance, wait, ms, readproperty, invokeid, propertyid, value, compile
 
 // INSTRUCTION: Define the laboratory BMS gateway on UDP port 47809.
-HOST lab_bms {
-    IP 172.28.120.10
-    MAC 00:1a:2b:1c:78:10
+host lab_bms {
+    ip 172.28.120.10
+    mac 00:1a:2b:1c:78:10
 }
 
 // INSTRUCTION: Define the fume hood sash controller on UDP port 47809.
-HOST fume_hood_ctrl {
-    IP 172.28.120.55
-    MAC 00:1a:2b:1c:78:55
+host fume_hood_ctrl {
+    ip 172.28.120.55
+    mac 00:1a:2b:1c:78:55
 }
 
 // INSTRUCTION: Exchange Who-Is, I-Am, and sash height ReadProperty on UDP port 47809.
-FLOW bacnet_port_47809(b, f) {
-    b -> f BACNET SRCPORT 47809 DSTPORT 47809  WHO_IS
-    b <- f BACNET SRCPORT 47809 DSTPORT 47809  I_AM OBJECT_TYPE 8 OBJECT_INSTANCE 5500 WAIT 1ms
-    b -> f BACNET SRCPORT 47809 DSTPORT 47809  READ_PROPERTY INVOKE_ID 101 OBJECT_TYPE 0 OBJECT_INSTANCE 1 PROPERTY_ID 85
-    b <- f BACNET SRCPORT 47809 DSTPORT 47809  READ_PROPERTY INVOKE_ID 101 OBJECT_TYPE 0 OBJECT_INSTANCE 1 PROPERTY_ID 85 VALUE 35
+flow bacnet_port_47809(b, f) {
+    b -> f bacnet srcport 47809 dstport 47809  whois
+    b <- f bacnet srcport 47809 dstport 47809  iam objecttype 8 objectinstance 5500 wait 1ms
+    b -> f bacnet srcport 47809 dstport 47809  readproperty invokeid 101 objecttype 0 objectinstance 1 propertyid 85
+    b <- f bacnet srcport 47809 dstport 47809  readproperty invokeid 101 objecttype 0 objectinstance 1 propertyid 85 value 35
 }
 
 // INSTRUCTION: Compile the custom port 47809 laboratory BACnet flow.
-COMPILE {
+compile {
     bacnet_port_47809(lab_bms, fume_hood_ctrl)
 }

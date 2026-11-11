@@ -1,30 +1,30 @@
 // PROMPT: MySQL replica configuring GTID replication source parameters and starting the binlog dump thread.
-// TOKENS: HOST, IP, MAC, FLOW, MYSQL, GREETING, SERVER_VERSION, WAIT, LOGIN, USER, DB, OK, SQL, EOF, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, m, mysql, greeting, serverversion, wait, ms, login, user, db, ok, sql, eof, payload, compile
 
 // INSTRUCTION: Define the read-only MySQL replica host.
-HOST mysql_replica {
-    IP 10.90.20.12
-    MAC 00:1a:2b:90:20:12
+host mysql_replica {
+    ip 10.90.20.12
+    mac 00:1a:2b:90:20:12
 }
 
 // INSTRUCTION: Define the MySQL binlog source master host.
-HOST mysql_source {
-    IP 10.90.20.10
-    MAC 00:1a:2b:90:20:10
+host mysql_source {
+    ip 10.90.20.10
+    mac 00:1a:2b:90:20:10
 }
 
 // INSTRUCTION: Authenticate as the replication user, check GTID_EXECUTED, and set heartbeat period.
-FLOW mysql_gtid_repl(r, m) {
-    r <- m MYSQL GREETING SERVER_VERSION "8.0.35-commercial" WAIT 1ms
-    r -> m MYSQL LOGIN USER "repl_agent" DB "mysql"
-    r <- m MYSQL OK WAIT 1ms
-    r -> m MYSQL SQL "SELECT @@GLOBAL.gtid_executed"
-    r <- m MYSQL EOF PAYLOAD "3e11fa47-71ca-11e1-9e33-c80aa9429562:1-14920" WAIT 1ms
-    r -> m MYSQL SQL "SET @master_heartbeat_period = 30000000000"
-    r <- m MYSQL OK
+flow mysql_gtid_repl(r, m) {
+    r <- m mysql greeting serverversion "8.0.35-commercial" wait 1ms
+    r -> m mysql login user "repl_agent" db "mysql"
+    r <- m mysql ok wait 1ms
+    r -> m mysql sql "SELECT @@GLOBAL.gtid_executed"
+    r <- m mysql eof payload "3e11fa47-71ca-11e1-9e33-c80aa9429562:1-14920" wait 1ms
+    r -> m mysql sql "SET @master_heartbeat_period = 30000000000"
+    r <- m mysql ok
 }
 
 // INSTRUCTION: Compile the MySQL GTID replication handshake flow.
-COMPILE {
+compile {
     mysql_gtid_repl(mysql_replica, mysql_source)
 }

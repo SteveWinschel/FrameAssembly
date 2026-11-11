@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b WEBSOCKET [OPCODE <str>] [FIN_BIT <u8>] [MASK_KEY <u32>] [PAYLOAD <str>]`
+//! `a -> b websocket [opcode <str>] [finbit <u8>] [maskkey <u32>] [payload <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 6455 WebSocket frame payload.
-/// Syntax mapping: `WEBSOCKET [OPCODE <str>] [FIN_BIT <u8>] [MASK_KEY <u32>] [PAYLOAD <str>]`
+/// Syntax mapping: `websocket [opcode <str>] [finbit <u8>] [maskkey <u32>] [payload <str>]`
 #[doc(alias = "WEBSOCKET")]
 #[doc(alias = "WS")]
 #[doc(alias = "WSS")]
@@ -24,7 +24,12 @@ pub fn build_websocket_payload(
     payload_bytes: &[u8],
 ) -> Vec<u8> {
     let fin_bit = spec.fin_bit.unwrap_or(1) & 0x01;
-    let opcode = match spec.opcode.unwrap_or("TEXT").to_ascii_uppercase().as_str() {
+    let opcode_norm = spec
+        .opcode
+        .unwrap_or("text")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
+    let opcode = match opcode_norm.as_str() {
         "TEXT" => 1u8,
         "BINARY" => 2u8,
         "CLOSE" => 8u8,

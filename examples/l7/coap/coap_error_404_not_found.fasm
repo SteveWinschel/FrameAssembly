@@ -1,19 +1,19 @@
 // PROMPT: CoAP 4.04 Not Found error response when querying a non-existent URI path.
-// TOKENS: HOST, IP, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, ACK, PAYLOAD, COMPILE
+// TOKENS: host, ip, flow, coap, con, code, msgid, token, uripath, ack, payload, compile
 
 // INSTRUCTION: Define diagnostic CLI client.
-HOST diag_cli { IP 172.16.90.10 }
+host diag_cli { ip 172.16.90.10 }
 
 // INSTRUCTION: Define embedded CoAP gateway.
-HOST emb_gw { IP 172.16.90.1 }
+host emb_gw { ip 172.16.90.1 }
 
 // INSTRUCTION: Query missing URI path and receive CoAP ACK with 4.04 Not Found diagnostic payload.
-FLOW coap_not_found(c, g) {
-    c -> g COAP CON CODE "0.01" MSGID 303 TOKEN 0x5501 URI_PATH "firmware/beta"
-    c <- g COAP ACK CODE "4.04" MSGID 303 TOKEN 0x5501 PAYLOAD "Resource not found"
+flow coap_not_found(c, g) {
+    c -> g coap con code "0.01" msgid 303 token 0x5501 uripath "firmware/beta"
+    c <- g coap ack code "4.04" msgid 303 token 0x5501 payload "Resource not found"
 }
 
 // INSTRUCTION: Compile the CoAP 4.04 error scenario.
-COMPILE {
+compile {
     coap_not_found(diag_cli, emb_gw)
 }

@@ -1,19 +1,19 @@
 // PROMPT: User privilege elevation request to access level 15 exec mode.
-// TOKENS: HOST, IP, FLOW, TACACS, TYPE, AUTHEN, USER, SESSION_ID, COMPILE
+// TOKENS: host, ip, flow, s, tacacs, type, authen, user, sessionid, compile
 
 // INSTRUCTION: Define core router NAS.
-HOST core_nas { IP 10.0.0.1 }
+host core_nas { ip 10.0.0.1 }
 
 // INSTRUCTION: Define policy AAA server.
-HOST policy_aaa { IP 10.0.0.254 }
+host policy_aaa { ip 10.0.0.254 }
 
 // INSTRUCTION: Define enable privilege elevation flow.
-FLOW tacacs_enable_flow(c, s) {
-    c -> s TACACS TYPE AUTHEN USER "enable_admin" SESSION_ID 7030
-    c <- s TACACS TYPE AUTHEN USER "enable_admin" SESSION_ID 7030
+flow tacacs_enable_flow(c, s) {
+    c -> s tacacs type authen user "enable_admin" sessionid 7030
+    c <- s tacacs type authen user "enable_admin" sessionid 7030
 }
 
 // INSTRUCTION: Compile block executing privilege elevation.
-COMPILE {
+compile {
     tacacs_enable_flow(core_nas, policy_aaa)
 }

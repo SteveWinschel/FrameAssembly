@@ -1,21 +1,21 @@
 // PROMPT: Periodic WebSocket connection keepalive ping pong exchange loop.
-// TOKENS: HOST, IP, FLOW, WEBSOCKET, OPCODE, FIN_BIT, MASK_KEY, COMPILE, LOOP
+// TOKENS: host, ip, flow, s, websocket, opcode, finbit, maskkey, compile
 
 // INSTRUCTION: Define mobile background client.
-HOST bg_client { IP 172.31.8.24 }
+host bg_client { ip 172.31.8.24 }
 
 // INSTRUCTION: Define cloud gateway server.
-HOST cloud_gw_svr { IP 172.31.8.1 }
+host cloud_gw_svr { ip 172.31.8.1 }
 
 // INSTRUCTION: Define recurring heartbeat exchange flow.
-FLOW ws_heartbeat_loop(c, s) {
-    c -> s WEBSOCKET OPCODE "PING" FIN_BIT 1 MASK_KEY 987654321
-    c <- s WEBSOCKET OPCODE "PONG" FIN_BIT 1 MASK_KEY 0
+flow ws_heartbeat_loop(c, s) {
+    c -> s websocket opcode "ping" finbit 1 maskkey 987654321
+    c <- s websocket opcode "pong" finbit 1 maskkey 0
 }
 
 // INSTRUCTION: Compile block executing 3 repeated ping pong cycles.
-COMPILE {
-    LOOP 3 {
-        ws_heartbeat_loop(bg_client, cloud_gw_svr)
-    }
+compile {
+    ws_heartbeat_loop(bg_client, cloud_gw_svr) // cycle 1
+    ws_heartbeat_loop(bg_client, cloud_gw_svr) // cycle 2
+    ws_heartbeat_loop(bg_client, cloud_gw_svr) // cycle 3
 }

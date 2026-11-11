@@ -1,10 +1,10 @@
 //! Telnet (RFC 854) Layer 7 interactive terminal and IAC option negotiation field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 854 `TELNET` terminal streams and
+//! This module implements the `winnow` parser combinator for RFC 854 `telnet` terminal streams and
 //! Interpret As Command (`IAC`) option negotiations in FrameAssembly `.fasm` specifications. It
-//! recognizes the `TELNET` protocol keyword, option negotiation commands (`WILL`, `WONT`, `DO`,
-//! `DONT` with an optional `OPTION` keyword before the option code), standalone `OPTION` codes,
-//! and terminal text data (`DATA`).
+//! recognizes the `telnet` protocol keyword, option negotiation commands (`will`, `wont`, `do`,
+//! `dont` with an optional `option` keyword before the option code), standalone `option` codes,
+//! and terminal text data (`data`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err, opt};

@@ -1,33 +1,33 @@
 // PROMPT: Root bridge election battle between three switches advertising competing bridge priorities until lowest Root ID wins.
-// TOKENS: HOST, IP, MAC, FLOW, STP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, HELLO_TIME, MAX_AGE, FORWARD_DELAY, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, stp, rootid, bridgeid, cost, portid, hellotime, maxage, forwarddelay, wait, ms, compile
 
 // INSTRUCTION: Define switch A claiming initial root with priority 32768.
-HOST elect_sw_a {
-    IP 192.168.70.11
-    MAC 00:aa:00:70:00:0b
+host elect_sw_a {
+    ip 192.168.70.11
+    mac 00:aa:00:70:00:0b
 }
 
 // INSTRUCTION: Define switch B claiming root with priority 16384.
-HOST elect_sw_b {
-    IP 192.168.70.12
-    MAC 00:aa:00:70:00:0c
+host elect_sw_b {
+    ip 192.168.70.12
+    mac 00:aa:00:70:00:0c
 }
 
 // INSTRUCTION: Define core switch C asserting authoritative root with priority 4096.
-HOST elect_sw_c {
-    IP 192.168.70.1
-    MAC 00:aa:00:70:00:01
+host elect_sw_c {
+    ip 192.168.70.1
+    mac 00:aa:00:70:00:01
 }
 
 // INSTRUCTION: Define three-way STP root bridge election convergence sequence.
-FLOW root_bridge_election(a, b, c) {
-    a -> b STP ROOT_ID "32768:00:aa:00:70:00:0b" BRIDGE_ID "32768:00:aa:00:70:00:0b" COST 0 PORT_ID 32769 HELLO_TIME 2 MAX_AGE 20 FORWARD_DELAY 15
-    b -> c STP ROOT_ID "16384:00:aa:00:70:00:0c" BRIDGE_ID "16384:00:aa:00:70:00:0c" COST 0 PORT_ID 32770 HELLO_TIME 2 MAX_AGE 20 FORWARD_DELAY 15 WAIT 5ms
-    c -> b STP ROOT_ID "4096:00:aa:00:70:00:01" BRIDGE_ID "4096:00:aa:00:70:00:01" COST 0 PORT_ID 32769 HELLO_TIME 2 MAX_AGE 20 FORWARD_DELAY 15 WAIT 5ms
-    b -> a STP ROOT_ID "4096:00:aa:00:70:00:01" BRIDGE_ID "16384:00:aa:00:70:00:0c" COST 4000 PORT_ID 32769 HELLO_TIME 2 MAX_AGE 20 FORWARD_DELAY 15 WAIT 5ms
+flow root_bridge_election(a, b, c) {
+    a -> b stp rootid "32768:00:aa:00:70:00:0b" bridgeid "32768:00:aa:00:70:00:0b" cost 0 portid 32769 hellotime 2 maxage 20 forwarddelay 15
+    b -> c stp rootid "16384:00:aa:00:70:00:0c" bridgeid "16384:00:aa:00:70:00:0c" cost 0 portid 32770 hellotime 2 maxage 20 forwarddelay 15 wait 5ms
+    c -> b stp rootid "4096:00:aa:00:70:00:01" bridgeid "4096:00:aa:00:70:00:01" cost 0 portid 32769 hellotime 2 maxage 20 forwarddelay 15 wait 5ms
+    b -> a stp rootid "4096:00:aa:00:70:00:01" bridgeid "16384:00:aa:00:70:00:0c" cost 4000 portid 32769 hellotime 2 maxage 20 forwarddelay 15 wait 5ms
 }
 
 // INSTRUCTION: Compile block executing three-switch STP root election.
-COMPILE {
+compile {
     root_bridge_election(elect_sw_a, elect_sw_b, elect_sw_c)
 }

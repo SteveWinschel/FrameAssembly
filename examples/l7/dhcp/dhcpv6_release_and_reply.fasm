@@ -1,19 +1,19 @@
 // PROMPT: DHCPv6 lease release and server reply confirmation over link-local IPv6 addresses.
-// TOKENS: HOST, IP, FLOW, DHCP, RELEASE, FLOWLABEL, TTL, REPLY, COMPILE
+// TOKENS: host, ip, flow, s, dhcp, release, flowlabel, ttl, reply, compile
 
 // INSTRUCTION: Define link-local IPv6 container host releasing its address.
-HOST container_v6 { IP fe80::a00:27ff:fe44:5566 }
+host container_v6 { ip fe80::a00:27ff:fe44:5566 }
 
 // INSTRUCTION: Define link-local DHCPv6 server.
-HOST server_v6 { IP fe80::1:1 }
+host server_v6 { ip fe80::1:1 }
 
 // INSTRUCTION: Send DHCPv6 RELEASE (type 8) and receive DHCPv6 REPLY (type 7).
-FLOW dhcpv6_release_flow(c, s) {
-    c -> s DHCP RELEASE FLOWLABEL 0x05460 TTL 64
-    c <- s DHCP REPLY FLOWLABEL 0x05470 TTL 64
+flow dhcpv6_release_flow(c, s) {
+    c -> s dhcp release flowlabel 0x05460 ttl 64
+    c <- s dhcp reply flowlabel 0x05470 ttl 64
 }
 
 // INSTRUCTION: Compile the DHCPv6 release and reply exchange.
-COMPILE {
+compile {
     dhcpv6_release_flow(container_v6, server_v6)
 }

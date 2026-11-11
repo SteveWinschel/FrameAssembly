@@ -1,21 +1,22 @@
 // PROMPT: SIP OPTIONS heartbeat ping loop for PBX trunk keepalive monitoring.
-// TOKENS: HOST, IP, FLOW, SIP, METHOD, URI, FROM, TO, CALL_ID, CSEQ, WAIT, STATUS, REASON, COMPILE, LOOP
+// TOKENS: host, ip, flow, s, sip, method, uri, from, to, callid, cseq, wait, ms, status, reason, compile
 
 // INSTRUCTION: Define monitoring session border controller.
-HOST sbc_monitor { IP 172.28.1.100 }
+host sbc_monitor { ip 172.28.1.100 }
 
 // INSTRUCTION: Define remote carrier SIP trunk.
-HOST carrier_trunk { IP 172.28.1.1 }
+host carrier_trunk { ip 172.28.1.1 }
 
 // INSTRUCTION: Define OPTIONS heartbeat query and 200 OK acknowledgment.
-FLOW sip_options_ping(c, s) {
-    c -> s SIP METHOD "OPTIONS" URI "sip:carrier.net" FROM "sip:sbc@enterprise.com" TO "sip:carrier.net" CALL_ID "opt-ping-772" CSEQ 1 WAIT 20ms
-    c <- s SIP STATUS 200 REASON "OK" CALL_ID "opt-ping-772" CSEQ 1 WAIT 20ms
+flow sip_options_ping(c, s) {
+    c -> s sip method "OPTIONS" uri "sip:carrier.net" from "sip:sbc@enterprise.com" to "sip:carrier.net" callid "opt-ping-772" cseq 1 wait 20ms
+    c <- s sip status 200 reason "OK" callid "opt-ping-772" cseq 1 wait 20ms
 }
 
 // INSTRUCTION: Execute 4 OPTIONS heartbeat iterations in a COMPILE LOOP.
-COMPILE {
-    LOOP 4 {
-        sip_options_ping(sbc_monitor, carrier_trunk)
-    }
+compile {
+    sip_options_ping(sbc_monitor, carrier_trunk) // cycle 1
+    sip_options_ping(sbc_monitor, carrier_trunk) // cycle 2
+    sip_options_ping(sbc_monitor, carrier_trunk) // cycle 3
+    sip_options_ping(sbc_monitor, carrier_trunk) // cycle 4
 }

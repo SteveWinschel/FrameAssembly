@@ -1,26 +1,26 @@
 // PROMPT: Dual-stack Kerberos v5 HTTP SPNEGO service ticket request (HTTP/intranet) over IPv4 and IPv6.
-// TOKENS: HOST, IP, FLOW, KERBEROS, TGS_REQ, REALM, CNAME, SNAME, ETYPE, TGS_REP, COMPILE
+// TOKENS: host, ip, flow, kerberos, tgsreq, realm, cname, sname, etype, tgsrep, compile
 
 // INSTRUCTION: Define IPv4 intranet browser client.
-HOST spnego_c4 { IP 192.168.88.25 }
+host spnego_c4 { ip 192.168.88.25 }
 
 // INSTRUCTION: Define IPv4 KDC server.
-HOST kdc_v4 { IP 192.168.88.1 }
+host kdc_v4 { ip 192.168.88.1 }
 
 // INSTRUCTION: Define IPv6 intranet browser client.
-HOST spnego_c6 { IP 2001:db8:88::25 }
+host spnego_c6 { ip 2001:db8:88::25 }
 
 // INSTRUCTION: Define IPv6 KDC server.
-HOST kdc_v6 { IP 2001:db8:88::1 }
+host kdc_v6 { ip 2001:db8:88::1 }
 
 // INSTRUCTION: Request HTTP/intranet.corp.net SPNEGO service ticket via TGS_REQ and TGS_REP.
-FLOW krb5_spnego_http(c, k) {
-    c -> k KERBEROS TGS_REQ REALM "CORP.NET" CNAME "alice" SNAME "HTTP/intranet.corp.net" ETYPE 18
-    c <- k KERBEROS TGS_REP REALM "CORP.NET" CNAME "alice" SNAME "HTTP/intranet.corp.net" ETYPE 18
+flow krb5_spnego_http(c, k) {
+    c -> k kerberos tgsreq realm "CORP.NET" cname "alice" sname "HTTP/intranet.corp.net" etype 18
+    c <- k kerberos tgsrep realm "CORP.NET" cname "alice" sname "HTTP/intranet.corp.net" etype 18
 }
 
 // INSTRUCTION: Execute the polymorphic Kerberos SPNEGO flow over IPv4 and IPv6.
-COMPILE {
+compile {
     krb5_spnego_http(spnego_c4, kdc_v4)
     krb5_spnego_http(spnego_c6, kdc_v6)
 }

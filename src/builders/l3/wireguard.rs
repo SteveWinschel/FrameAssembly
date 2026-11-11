@@ -2,16 +2,16 @@
 //!
 //! Serializes a [`WireguardSpec`] into a WireGuard protocol packet carried over UDP destination
 //! port `51820`. All integer fields in WireGuard headers are encoded in little-endian byte order:
-//! - `INITIATION` (`Type = 1`, 148 bytes): 3-byte zeroed Reserved, 32-bit LE `sender_index` (`SENDER`),
+//! - `initiation` (`Type = 1`, 148 bytes): 3-byte zeroed Reserved, 32-bit LE `sender_index` (`sender`),
 //!   32-byte unencrypted ephemeral Curve25519 public key, 48-byte encrypted static key, 28-byte
 //!   encrypted TAI64N timestamp, 16-byte `mac1`, and 16-byte `mac2`.
-//! - `RESPONSE` (`Type = 2`, 92 bytes): 32-bit LE `sender_index`, 32-bit LE `receiver_index` (`RECEIVER`),
+//! - `response` (`Type = 2`, 92 bytes): 32-bit LE `sender_index`, 32-bit LE `receiver_index` (`receiver`),
 //!   32-byte ephemeral key, 16-byte encrypted empty payload, and two 16-byte MAC tags.
-//! - `COOKIE` (`Type = 3`, 64 bytes): 32-bit LE `receiver_index`, 24-byte nonce, and 32-byte cookie.
-//! - `DATA` (`Type = 4`, `16 + payload` bytes): 32-bit LE `receiver_index` and 64-bit LE `counter` (`COUNTER`).
+//! - `cookie` (`Type = 3`, 64 bytes): 32-bit LE `receiver_index`, 24-byte nonce, and 32-byte cookie.
+//! - `data` (`Type = 4`, `16 + payload` bytes): 32-bit LE `receiver_index` and 64-bit LE `counter` (`counter`).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b WIREGUARD [TYPE <INITIATION|RESPONSE|COOKIE|DATA> | INITIATION | COOKIE | DATA] [SENDER <u32>] [RECEIVER <u32>] [COUNTER <u64>] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
+//! `a -> b wireguard [type <initiation|response|cookie|data> | initiation | cookie | data] [sender <u32>] [receiver <u32>] [counter <u64>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;
 use alloc::vec::Vec;

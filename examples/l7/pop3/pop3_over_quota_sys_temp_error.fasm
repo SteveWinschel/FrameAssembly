@@ -1,28 +1,28 @@
 // PROMPT: Simulate a POP3 server returning -ERR [SYS/TEMP] during temporary storage backend maintenance.
-// TOKENS: HOST, IP, MAC, FLOW, POP3, OK, RESPONSE, WAIT, CMD, ARG, ERR, COMPILE
+// TOKENS: host, ip, mac, flow, s, pop3, ok, response, wait, ms, cmd, arg, err, compile
 
 // INSTRUCTION: Define the office mail client attempting login during storage failover.
-HOST office_pc {
-    IP 10.110.90.50
-    MAC 00:15:5d:6e:5a:32
+host office_pc {
+    ip 10.110.90.50
+    mac 00:15:5d:6e:5a:32
 }
 
 // INSTRUCTION: Define the POP3 frontend experiencing temporary NFS maildir unavailability.
-HOST maint_pop3_srv {
-    IP 10.110.90.1
-    MAC 00:15:5d:6e:5a:01
+host maint_pop3_srv {
+    ip 10.110.90.1
+    mac 00:15:5d:6e:5a:01
 }
 
 // INSTRUCTION: Authenticate and receive -ERR [SYS/TEMP] indicating temporary backend unavailability.
-FLOW pop3_sys_temp_fail(c, s) {
-    c <- s POP3 OK RESPONSE "POP3 frontend ready" WAIT 2ms
-    c -> s POP3 CMD "USER" ARG "accounting" WAIT 2ms
-    c <- s POP3 OK RESPONSE "send PASS" WAIT 2ms
-    c -> s POP3 CMD "PASS" ARG "Ledger2025!" WAIT 4ms
-    c <- s POP3 ERR RESPONSE "[SYS/TEMP] Temporary maildrop storage error, try again later"
+flow pop3_sys_temp_fail(c, s) {
+    c <- s pop3 ok response "POP3 frontend ready" wait 2ms
+    c -> s pop3 cmd "USER" arg "accounting" wait 2ms
+    c <- s pop3 ok response "send PASS" wait 2ms
+    c -> s pop3 cmd "PASS" arg "Ledger2025!" wait 4ms
+    c <- s pop3 err response "[SYS/TEMP] Temporary maildrop storage error, try again later"
 }
 
 // INSTRUCTION: Compile the POP3 [SYS/TEMP] temporary failure flow.
-COMPILE {
+compile {
     pop3_sys_temp_fail(office_pc, maint_pop3_srv)
 }

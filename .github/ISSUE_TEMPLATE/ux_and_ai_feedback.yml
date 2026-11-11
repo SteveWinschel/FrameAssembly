@@ -1,0 +1,46 @@
+name: CLI, Editor Studio & AI Generation Feedback
+description: Report confusing compiler errors, VS Code extension friction, documentation gaps, or AI code generation issues
+title: "[UX / AI]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help make **FrameAssembly** faster and easier to use across the CLI, VS Code Packet Studio, Browser Playground, and AI coding assistants!
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where Did You Hit Friction?
+      options:
+        - CLI (`frameassembly <in.fasm>`, `show`, `reverse`, Tab completions, `install.sh`)
+        - Compiler Diagnostic or Self-Healing Hint
+        - VS Code / Cursor / Windsurf Extension (`frameassembly-vscode`)
+        - Browser Playground (`frameassembly.ai.studio`)
+        - AI Assistant Code Generation (ChatGPT, Claude, Copilot, Gemini)
+        - Documentation, Examples, or `llms.txt`
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_tried
+    attributes:
+      label: Command, .fasm Snippet, or AI Prompt Used
+      description: Paste the command, `.fasm` snippet, or prompt that led to unexpected behavior.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome_vs_expected
+    attributes:
+      label: What Happened vs. What Would Have Helped
+      description: Describe the error message, UI behavior, or AI hallucination you saw and what would have made it immediately clear.
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: OS, Shell / Editor, or AI Model (Optional)
+      placeholder: "e.g. Ubuntu 24.04 + zsh, VS Code 1.100, or Claude / ChatGPT"

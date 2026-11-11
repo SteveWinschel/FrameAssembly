@@ -1,19 +1,19 @@
 // PROMPT: TLS alert record signaling fatal handshake failure to peer endpoint.
-// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, ALERT, COMPILE
+// TOKENS: host, ip, flow, s, tls, clienthello, sni, alert, compile
 
 // INSTRUCTION: Define incompatible client cipher suite requester.
-HOST incomp_client { IP 192.168.70.33 }
+host incomp_client { ip 192.168.70.33 }
 
 // INSTRUCTION: Define strict cipher policy server.
-HOST strict_sec_svr { IP 192.168.70.1 }
+host strict_sec_svr { ip 192.168.70.1 }
 
 // INSTRUCTION: Define TLS handshake failure alert flow.
-FLOW tls_handshake_fail_flow(c, s) {
-    c -> s TLS CLIENT_HELLO SNI "hardened.vault.local"
-    c <- s TLS ALERT
+flow tls_handshake_fail_flow(c, s) {
+    c -> s tls clienthello sni "hardened.vault.local"
+    c <- s tls alert
 }
 
 // INSTRUCTION: Compile block executing handshake failure alert.
-COMPILE {
+compile {
     tls_handshake_fail_flow(incomp_client, strict_sec_svr)
 }

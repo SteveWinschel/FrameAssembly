@@ -104,7 +104,7 @@ fn encode_ticket(realm: &str, sname: &str, etype: i64) -> Vec<u8> {
 
 /// Builds an RFC 4120 Kerberos authentication message payload.
 ///
-/// Syntax mapping: `KERBEROS [AS_REQ | AS_REP | TGS_REQ | TGS_REP | KRB_ERROR] [REALM <str>] [CNAME <str>] [SNAME <str>] [ETYPE <i32>]`
+/// Syntax mapping: `kerberos [asreq | asrep | tgsreq | tgsrep | krberror] [realm <str>] [cname <str>] [sname <str>] [etype <i32>]`
 #[doc(alias = "KERBEROS")]
 #[doc(alias = "RFC4120")]
 #[doc(alias = "AS_REQ")]

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Freedesktop.org shared-mime-info definition for FrameAssembly (.fasm)
+  Freedesktop.org shared-mime-info definition for FrameAssembly (.fasm) v2.0.0
   Media Type: text/vnd.frameassembly
   Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
 
@@ -20,17 +20,7 @@
     <generic-icon name="text-x-script"/>
     <glob pattern="*.fasm" weight="60"/>
     <magic priority="60">
-      <!-- Match top-level HOST ... IP ... COMPILE tokens (uppercase/lowercase, space/tab) from src/lexer/mod.rs -->
-      <match type="string" value="HOST " offset="0:1024">
-        <match type="string" value="IP " offset="0:1536">
-          <match type="string" value="COMPILE" offset="0:8192"/>
-        </match>
-      </match>
-      <match type="string" value="HOST&#x09;" offset="0:1024">
-        <match type="string" value="IP " offset="0:1536">
-          <match type="string" value="COMPILE" offset="0:8192"/>
-        </match>
-      </match>
+      <!-- Match top-level host ... ip|mac ... compile tokens (strict lowercase, space/tab) from src/lexer/mod.rs -->
       <match type="string" value="host " offset="0:1024">
         <match type="string" value="ip " offset="0:1536">
           <match type="string" value="compile" offset="0:8192"/>
@@ -41,11 +31,21 @@
           <match type="string" value="compile" offset="0:8192"/>
         </match>
       </match>
-      <!-- Match top-level FLOW ... COMPILE tokens (uppercase/lowercase) from src/lexer/mod.rs -->
-      <match type="string" value="FLOW " offset="0:2048">
-        <match type="string" value="COMPILE" offset="0:8192"/>
+      <match type="string" value="host " offset="0:1024">
+        <match type="string" value="mac " offset="0:1536">
+          <match type="string" value="compile" offset="0:8192"/>
+        </match>
       </match>
+      <match type="string" value="host&#x09;" offset="0:1024">
+        <match type="string" value="mac " offset="0:1536">
+          <match type="string" value="compile" offset="0:8192"/>
+        </match>
+      </match>
+      <!-- Match top-level flow ... compile tokens (strict lowercase, space/tab) from src/lexer/mod.rs -->
       <match type="string" value="flow " offset="0:2048">
+        <match type="string" value="compile" offset="0:8192"/>
+      </match>
+      <match type="string" value="flow&#x09;" offset="0:2048">
         <match type="string" value="compile" offset="0:8192"/>
       </match>
     </magic>

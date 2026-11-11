@@ -1,25 +1,25 @@
 // PROMPT: Segment Routing TI-LFA (Topology-Independent Loop-Free Alternate) fast reroute pushing repair label 16050 with EXP 6.
-// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, mpls, exp, bos, mplsttl, udp, srcport, dstport, payload, wait, ms, compile
 
 // INSTRUCTION: Define Point of Local Repair (PLR) router activating TI-LFA backup path upon link failure.
-HOST tilfa_plr_rtr {
-    IP 10.255.10.1
-    MAC 00:1c:73:ff:0a:01
+host tilfa_plr_rtr {
+    ip 10.255.10.1
+    mac 00:1c:73:ff:0a:01
 }
 
 // INSTRUCTION: Define Post-Convergence merge-point router receiving TI-LFA repair-labeled packets.
-HOST tilfa_mp_rtr {
-    IP 10.255.10.2
-    MAC 00:1c:73:ff:0a:02
+host tilfa_mp_rtr {
+    ip 10.255.10.2
+    mac 00:1c:73:ff:0a:02
 }
 
 // INSTRUCTION: Forward protected voice and data packets using TI-LFA repair label 16050 with BOS 1.
-FLOW mpls_tilfa_frr_repair(plr, mp) {
-    plr -> mp MPLS 16050 EXP 6 BOS 1 MPLS_TTL 63 UDP SRCPORT 50000 DSTPORT 50000 PAYLOAD "tilfa_protected_packet_sub50ms_repair_1" WAIT 2ms
-    plr -> mp MPLS 16050 EXP 6 BOS 1 MPLS_TTL 63 UDP SRCPORT 50000 DSTPORT 50000 PAYLOAD "tilfa_protected_packet_sub50ms_repair_2"
+flow mpls_tilfa_frr_repair(plr, mp) {
+    plr -> mp mpls 16050 exp 6 bos 1 mplsttl 63 udp srcport 50000 dstport 50000 payload "tilfa_protected_packet_sub50ms_repair_1" wait 2ms
+    plr -> mp mpls 16050 exp 6 bos 1 mplsttl 63 udp srcport 50000 dstport 50000 payload "tilfa_protected_packet_sub50ms_repair_2"
 }
 
 // INSTRUCTION: Compile the Segment Routing TI-LFA fast reroute MPLS repair trace.
-COMPILE {
+compile {
     mpls_tilfa_frr_repair(tilfa_plr_rtr, tilfa_mp_rtr)
 }

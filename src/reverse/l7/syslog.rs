@@ -1,6 +1,6 @@
-//! Syslog (`SYSLOG`, RFC 5424 / RFC 3164 / RFC 6587) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Syslog (`syslog`, RFC 5424 / RFC 3164 / RFC 6587) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for RFC 5424 and RFC 3164 `SYSLOG`
+//! This module implements the fuzz-safe reverse dissector for RFC 5424 and RFC 3164 `syslog`
 //! messages carried over UDP or TCP ports `514`, `1514`, and `6514`. It parses the leading
 //! `<PRI>` header, extracts RFC 5424 version `1` structured fields (`hostname`, `app`, `procid`,
 //! `msgid`, `msg`), and records `transport tcp` when encapsulated over TCP.
@@ -13,7 +13,7 @@ use crate::reverse::{ProtocolDissection, push_if};
 
 use super::{is_printable_ascii_str, push_str_if};
 
-/// Dissects an RFC 5424 / RFC 3164 `SYSLOG` message over UDP or TCP port `514`.
+/// Dissects an RFC 5424 / RFC 3164 `syslog` message over UDP or TCP port `514`.
 pub(crate) fn dissect_syslog(payload: &[u8], is_tcp: bool) -> Option<ProtocolDissection> {
     let text = is_printable_ascii_str(payload)?;
     if !text.starts_with('<') {

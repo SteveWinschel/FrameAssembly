@@ -1,8 +1,8 @@
 {
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "FrameAssembly",
-  "description": "Rootless Packets-as-Code DSL & Rust compiler (v1.5.1) that compiles declarative .fasm code into deterministic, nanosecond-precision .pcap / .pcapng packet captures—and decompiles .pcap / .pcapng captures back into canonical .fasm code—across 81 native Layer 2 through Layer 7 protocols (2,611 verified .fasm corpus scenarios). Official website & interactive browser playground: https://frameassembly.ai.studio/. Companion to Wireshark/tshark, tcpreplay, Suricata, and Zeek.",
-  "version": "1.5.1",
+  "description": "Rootless Packets-as-Code DSL & Rust compiler (v2.0.0) that compiles strict-lowercase .fasm code into deterministic, nanosecond-precision .pcap / .pcapng packet captures—and decompiles .pcap / .pcapng captures back into canonical .fasm code—across 81 native Layer 2 through Layer 7 protocols (2,611 verified .fasm corpus scenarios). Official website & interactive browser playground: https://frameassembly.ai.studio/. Companion to Wireshark/tshark, tcpreplay, Suricata, and Zeek.",
+  "version": "2.0.0",
   "repository": "https://github.com/SteveWinschel/FrameAssembly",
   "folders": [
     "docs",
@@ -57,10 +57,11 @@
     "*.vsix"
   ],
   "rules": [
-    "Every .fasm program must declare HOST <id> { IP <ip> [MAC <mac>] }, parameterized FLOW <id>(<params>) { ... }, and COMPILE { ... }.",
-    "Always use inline WAIT <int><ns|us|ms|s|m> on frame statements; never use standalone WAIT lines or +5ms / [+delay] prefixes.",
-    "Always use SRCPORT, DSTPORT, SEQ, ACKNUM, TTL, QINQ <outer> INNER_VLAN <inner>, and REQID; never use SPORT, DPORT, ACK_NUM, or HOP_LIMIT.",
-    "Never mix IPv4 and IPv6 endpoints in the same packet statement.",
-    "Always use // for .fasm comments (never #); never include // PROMPT:, // TOKENS:, or // INSTRUCTION: in human-facing docs."
+    "Every .fasm program must declare host <id> { [ip <ip>] [mac <mac>] }, parameterized flow <id>(<params>) { ... }, and compile { ... } (strictly one compile block; loop was removed in v2.0.0).",
+    "All built-in keywords, protocols, modifiers, and time units (ns, us, ms, s, m) are strictly lowercase alphanumeric without '_' or '-' (e.g., echorequest, innervlan, clienthello, hosthdr, transporthdr, sackperm, readholdingregisters); user-defined host, flow, and parameter names allow uppercase, '_', and '-'.",
+    "Always use inline wait <int><ns|us|ms|s|m> on frame statements; never use standalone wait lines, loop blocks, or +5ms / [+delay] prefixes.",
+    "Always use srcport, dstport, seq, acknum, ttl, qinq <outer> innervlan <inner>, and reqid; never use sport, dport, ack_num, or hop_limit, and never mix IPv4 and IPv6 endpoints in the same packet statement.",
+    "Use the v2.0.0 CLI: frameassembly <in.fasm> [out.pcap] (default root compilation; no compile subcommand), frameassembly show <in.fasm>, frameassembly reverse <in.pcap> [out.fasm], frameassembly help [subcommand], and frameassembly version (never -o or --output).",
+    "Always use // for .fasm comments (never # or ;); never include // PROMPT:, // TOKENS:, or // INSTRUCTION: in human-facing docs."
   ]
 }

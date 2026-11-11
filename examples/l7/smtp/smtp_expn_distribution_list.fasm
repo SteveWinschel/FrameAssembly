@@ -1,21 +1,21 @@
 // PROMPT: Mailing list membership expansion query using EXPN command.
-// TOKENS: HOST, IP, FLOW, SMTP, CMD, PARAM, CODE, REPLY, COMPILE
+// TOKENS: host, ip, flow, s, smtp, cmd, param, code, reply, compile
 
 // INSTRUCTION: Define admin management workstation.
-HOST admin_station { IP 172.19.4.12 }
+host admin_station { ip 172.19.4.12 }
 
 // INSTRUCTION: Define campus listserv server.
-HOST campus_listserv { IP 172.19.4.1 }
+host campus_listserv { ip 172.19.4.1 }
 
 // INSTRUCTION: Define list expansion command flow.
-FLOW smtp_expn_flow(c, s) {
-    c -> s SMTP CMD "EXPN" PARAM "sysadmins"
-    c <- s SMTP CODE 250 REPLY "lead-admin@campus.edu"
-    c -> s SMTP CMD "EXPN" PARAM "secops"
-    c <- s SMTP CODE 250 REPLY "soc-oncall@campus.edu"
+flow smtp_expn_flow(c, s) {
+    c -> s smtp cmd "EXPN" param "sysadmins"
+    c <- s smtp code 250 reply "lead-admin@campus.edu"
+    c -> s smtp cmd "EXPN" param "secops"
+    c <- s smtp code 250 reply "soc-oncall@campus.edu"
 }
 
 // INSTRUCTION: Compile block executing EXPN query.
-COMPILE {
+compile {
     smtp_expn_flow(admin_station, campus_listserv)
 }

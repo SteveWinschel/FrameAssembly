@@ -1,25 +1,25 @@
 // PROMPT: IPv6-only data center management fabric LLDP discovery between a SmartNIC DPU and Top-of-Rack switch.
-// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, lldp, chassisid, portid, sysname, sysdesc, ttl, wait, ms, compile
 
 // INSTRUCTION: Define server SmartNIC DPU management interface with IPv6 address.
-HOST dpu_smartnic_v6 {
-    IP 2001:db8:d000:1::50
-    MAC b8:ce:f6:d0:00:32
+host dpu_smartnic_v6 {
+    ip 2001:db8:d000:1::50
+    mac b8:ce:f6:d0:00:32
 }
 
 // INSTRUCTION: Define IPv6 Top-of-Rack switch port connected to SmartNIC DPU.
-HOST tor_v6_switch {
-    IP 2001:db8:d000:1::1
-    MAC b8:ce:f6:d0:00:01
+host tor_v6_switch {
+    ip 2001:db8:d000:1::1
+    mac b8:ce:f6:d0:00:01
 }
 
 // INSTRUCTION: Define SmartNIC DPU and ToR switch bidirectional LLDP discovery.
-FLOW smartnic_dpu_lldp(dpu, tor) {
-    dpu -> tor LLDP CHASSIS_ID "b8:ce:f6:d0:00:32" PORT_ID "p0" SYSNAME "dpu-bf3-node50.dc6.internal" SYSDESC "BlueField-3 SmartNIC DPU ARMv9" TTL 120
-    dpu <- tor LLDP CHASSIS_ID "b8:ce:f6:d0:00:01" PORT_ID "swp50" SYSNAME "tor-sn5600-rack02.dc6.internal" SYSDESC "SONiC Network OS 202511" TTL 120 WAIT 3ms
+flow smartnic_dpu_lldp(dpu, tor) {
+    dpu -> tor lldp chassisid "b8:ce:f6:d0:00:32" portid "p0" sysname "dpu-bf3-node50.dc6.internal" sysdesc "BlueField-3 SmartNIC DPU ARMv9" ttl 120
+    dpu <- tor lldp chassisid "b8:ce:f6:d0:00:01" portid "swp50" sysname "tor-sn5600-rack02.dc6.internal" sysdesc "SONiC Network OS 202511" ttl 120 wait 3ms
 }
 
 // INSTRUCTION: Compile block executing SmartNIC DPU IPv6 LLDP discovery.
-COMPILE {
+compile {
     smartnic_dpu_lldp(dpu_smartnic_v6, tor_v6_switch)
 }

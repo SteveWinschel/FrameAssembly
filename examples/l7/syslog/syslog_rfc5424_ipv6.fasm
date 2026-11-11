@@ -1,18 +1,18 @@
 // PROMPT: RFC 5424 structured event logging over IPv6 with custom facility, severity, and application tags.
-// TOKENS: HOST, IP, FLOW, SYSLOG, FACILITY, SEVERITY, APP, MSG, COMPILE
+// TOKENS: host, ip, flow, src, dst, syslog, facility, severity, app, msg, compile
 
 // INSTRUCTION: Define logging agent on IPv6.
-HOST syslog_sender { IP 2001:db8:514::1 }
+host syslog_sender { ip 2001:db8:514::1 }
 
 // INSTRUCTION: Define central syslog collector server.
-HOST syslog_collector { IP 2001:db8:514::2 }
+host syslog_collector { ip 2001:db8:514::2 }
 
 // INSTRUCTION: Define event notification logging flow.
-FLOW syslog_flow(src, dst) {
-    src -> dst SYSLOG FACILITY 1 SEVERITY 5 APP "kernel" MSG "System boot complete"
+flow syslog_flow(src, dst) {
+    src -> dst syslog facility 1 severity 5 app "kernel" msg "System boot complete"
 }
 
 // INSTRUCTION: Compile block executing syslog event transmission.
-COMPILE {
+compile {
     syslog_flow(syslog_sender, syslog_collector)
 }

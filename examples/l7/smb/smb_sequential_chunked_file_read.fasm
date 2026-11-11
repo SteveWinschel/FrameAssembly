@@ -1,29 +1,29 @@
 // PROMPT: Sequential multi-chunk SMB2 READ transfer streaming media assets from a shared storage volume.
-// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, FILENAME, STATUS, WAIT, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, s, smb, command, treeid, sessionid, msgid, filename, status, wait, ms, payload, compile
 
 // INSTRUCTION: Define the video editing workstation reading raw media frames.
-HOST nle_editor {
-    IP 10.60.80.15
-    MAC 00:1a:2b:60:80:15
+host nle_editor {
+    ip 10.60.80.15
+    mac 00:1a:2b:60:80:15
 }
 
 // INSTRUCTION: Define the high-throughput media NAS cluster.
-HOST media_nas {
-    IP 10.60.80.1
-    MAC 00:1a:2b:60:80:01
+host media_nas {
+    ip 10.60.80.1
+    mac 00:1a:2b:60:80:01
 }
 
 // INSTRUCTION: Open media file and issue two consecutive SMB2 READ requests.
-FLOW smb_chunked_read(c, s) {
-    c -> s SMB COMMAND "CREATE" TREE_ID 12 SESSION_ID 3300 MSGID 50 FILENAME "scene04_prores4444.mov"
-    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 12 SESSION_ID 3300 MSGID 50 WAIT 1ms
-    c -> s SMB COMMAND "READ" TREE_ID 12 SESSION_ID 3300 MSGID 51
-    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 12 SESSION_ID 3300 MSGID 51 PAYLOAD "PRORES_FRAME_0001_DATA" WAIT 1ms
-    c -> s SMB COMMAND "READ" TREE_ID 12 SESSION_ID 3300 MSGID 52
-    c <- s SMB COMMAND "READ" STATUS 0 TREE_ID 12 SESSION_ID 3300 MSGID 52 PAYLOAD "PRORES_FRAME_0002_DATA"
+flow smb_chunked_read(c, s) {
+    c -> s smb command "create" treeid 12 sessionid 3300 msgid 50 filename "scene04_prores4444.mov"
+    c <- s smb command "create" status 0 treeid 12 sessionid 3300 msgid 50 wait 1ms
+    c -> s smb command "read" treeid 12 sessionid 3300 msgid 51
+    c <- s smb command "read" status 0 treeid 12 sessionid 3300 msgid 51 payload "PRORES_FRAME_0001_DATA" wait 1ms
+    c -> s smb command "read" treeid 12 sessionid 3300 msgid 52
+    c <- s smb command "read" status 0 treeid 12 sessionid 3300 msgid 52 payload "PRORES_FRAME_0002_DATA"
 }
 
 // INSTRUCTION: Compile the sequential SMB2 media read flow.
-COMPILE {
+compile {
     smb_chunked_read(nle_editor, media_nas)
 }

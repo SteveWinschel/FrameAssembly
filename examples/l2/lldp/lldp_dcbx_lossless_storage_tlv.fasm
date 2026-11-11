@@ -1,24 +1,24 @@
 // PROMPT: Data Center Bridging Capability Exchange (DCBX) over LLDP advertising PFC and ETS lossless queues for NVMe/TCP.
-// TOKENS: HOST, IP, MAC, FLOW, LLDP, CHASSIS_ID, PORT_ID, SYSNAME, SYSDESC, TTL, HEXPAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, lldp, chassisid, portid, sysname, sysdesc, ttl, hexpayload, compile
 
 // INSTRUCTION: Define storage leaf switch advertising IEEE 802.1Qaz ETS and PFC TLVs.
-HOST dcbx_storage_sw {
-    IP 172.25.100.1
-    MAC 00:02:c9:dc:b0:01
+host dcbx_storage_sw {
+    ip 172.25.100.1
+    mac 00:02:c9:dc:b0:01
 }
 
 // INSTRUCTION: Define NVMe/TCP storage server CNA interface.
-HOST nvme_cna_host {
-    IP 172.25.100.25
-    MAC 00:02:c9:dc:b0:19
+host nvme_cna_host {
+    ip 172.25.100.25
+    mac 00:02:c9:dc:b0:19
 }
 
 // INSTRUCTION: Define LLDP frame carrying IEEE 802.1 OUI (00-80-C2) DCBX PFC and ETS configuration TLVs.
-FLOW lldp_dcbx_pfc_ets(sw, host) {
-    sw -> host LLDP CHASSIS_ID "00:02:c9:dc:b0:01" PORT_ID "Ethernet1/16" SYSNAME "san-leaf-dcbx-01" SYSDESC "Lossless DCBX Switch" TTL 90 HEXPAYLOAD "fe060080c20b0008"
+flow lldp_dcbx_pfc_ets(sw, host) {
+    sw -> host lldp chassisid "00:02:c9:dc:b0:01" portid "Ethernet1/16" sysname "san-leaf-dcbx-01" sysdesc "Lossless DCBX Switch" ttl 90 hexpayload "fe060080c20b0008"
 }
 
 // INSTRUCTION: Compile block executing LLDP DCBX capability advertisement.
-COMPILE {
+compile {
     lldp_dcbx_pfc_ets(dcbx_storage_sw, nvme_cna_host)
 }

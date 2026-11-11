@@ -1,19 +1,19 @@
 // PROMPT: Routing Information Protocol table request and routing response exchange.
-// TOKENS: HOST, IP, FLOW, RIP, REQUEST, RESPONSE, COMPILE
+// TOKENS: host, ip, flow, rip, request, response, compile
 
 // INSTRUCTION: Define local branch router.
-HOST branch_router { IP 192.168.1.1 }
+host branch_router { ip 192.168.1.1 }
 
 // INSTRUCTION: Define regional distribution router.
-HOST dist_router { IP 192.168.1.2 }
+host dist_router { ip 192.168.1.2 }
 
 // INSTRUCTION: Define RIP request and response flow exchanging routing tables.
-FLOW rip_exchange_flow(br, dr) {
-    br -> dr RIP REQUEST
-    br <- dr RIP RESPONSE
+flow rip_exchange_flow(br, dr) {
+    br -> dr rip request
+    br <- dr rip response
 }
 
 // INSTRUCTION: Compile block executing RIP routing discovery.
-COMPILE {
+compile {
     rip_exchange_flow(branch_router, dist_router)
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # FrameAssembly Manifest Checksum Updater
-# Stamping release SHA-256 hashes across AUR, WinGet, Homebrew, and Scoop manifests.
+# Stamping release SHA-256 hashes across Homebrew and Scoop manifests.
 
 set -euo pipefail
 
@@ -21,8 +21,8 @@ Usage:
   ./contrib/packaging/update-checksums.sh [OPTIONS] [VERSION|TAG]
 
 Arguments:
-  VERSION | TAG            Release version (e.g. '1.4.6' or 'v1.4.6').
-                           If omitted, auto-detected from Cargo.toml or PKGBUILD.
+  VERSION | TAG            Release version (e.g. '2.0.0' or 'v2.0.0').
+                           If omitted, auto-detected from Cargo.toml.
 
 Options:
   -s, --sums-file <PATH>   Path to local SHA256SUMS.txt file (for testing/dry-run).
@@ -31,10 +31,8 @@ Options:
   -h, --help               Show this help message and exit.
 
 Manifests Updated:
-  1. Arch Linux AUR:       contrib/packaging/aur/PKGBUILD & .SRCINFO
-  2. Microsoft WinGet:     contrib/packaging/winget/manifests/.../*.installer.yaml
-  3. macOS & Linux Brew:   contrib/packaging/homebrew/Formula/frameassembly.rb
-  4. Windows Scoop:        contrib/packaging/scoop/frameassembly.json
+  1. macOS & Linux Brew:   contrib/packaging/homebrew/Formula/frameassembly.rb
+  2. Windows Scoop:        contrib/packaging/scoop/frameassembly.json
 EOF
 }
 
@@ -84,13 +82,10 @@ if [[ -z "$VERSION" ]]; then
     if [[ -f "${REPO_ROOT}/Cargo.toml" ]]; then
         VERSION="$(grep -m1 '^version[[:space:]]*=' "${REPO_ROOT}/Cargo.toml" | sed -E 's/.*"([^"]+)".*/\1/' || true)"
     fi
-    if [[ -z "$VERSION" && -f "${REPO_ROOT}/contrib/packaging/aur/PKGBUILD" ]]; then
-        VERSION="$(grep -m1 '^pkgver=' "${REPO_ROOT}/contrib/packaging/aur/PKGBUILD" | cut -d= -f2 || true)"
-    fi
 fi
 
 if [[ -z "$VERSION" ]]; then
-    echo "Error: Version could not be determined. Please specify VERSION (e.g. 1.4.6 or v1.4.6)." >&2
+    echo "Error: Version could not be determined. Please specify VERSION (e.g. 2.0.0 or v2.0.0)." >&2
     exit 1
 fi
 
@@ -195,81 +190,7 @@ fi
 echo "==> Updating package manifests in '${REPO_ROOT}'..."
 
 # ------------------------------------------------------------------------------
-# 1. Arch Linux AUR (PKGBUILD & .SRCINFO)
-# ------------------------------------------------------------------------------
-AUR_DIR="${REPO_ROOT}/contrib/packaging/aur"
-PKGBUILD="${AUR_DIR}/PKGBUILD"
-SRCINFO="${AUR_DIR}/.SRCINFO"
-
-if [[ -f "$PKGBUILD" ]]; then
-    awk -v h_x86="$HASH_LINUX_X86_64" -v h_arm="$HASH_LINUX_AARCH64" -v ver="$VERSION" '
-        /^pkgver=/ { print "pkgver=" ver; next }
-        /^sha256sums_x86_64=/ { print "sha256sums_x86_64=(\x27" h_x86 "\x27)"; next }
-        /^sha256sums_aarch64=/ { print "sha256sums_aarch64=(\x27" h_arm "\x27)"; next }
-        { print }
-    ' "$PKGBUILD" > "${PKGBUILD}.tmp" && mv "${PKGBUILD}.tmp" "$PKGBUILD"
-    echo "  [OK] Updated AUR PKGBUILD: ${PKGBUILD}"
-else
-    echo "  [SKIP] AUR PKGBUILD not found at: ${PKGBUILD}"
-fi
-
-if [[ -f "$SRCINFO" ]]; then
-    awk -v h_x86="$HASH_LINUX_X86_64" -v h_arm="$HASH_LINUX_AARCH64" -v ver="$VERSION" '
-        /^[[:space:]]*pkgver[[:space:]]*=/ { print "\tpkgver = " ver; next }
-        /^[[:space:]]*sha256sums_x86_64[[:space:]]*=/ { print "\tsha256sums_x86_64 = " h_x86; next }
-        /^[[:space:]]*sha256sums_aarch64[[:space:]]*=/ { print "\tsha256sums_aarch64 = " h_arm; next }
-        /^[[:space:]]*source_x86_64[[:space:]]*=/ {
-            sub(/\/v[0-9.]+\/frameassembly-v[0-9.]+-/, "/v" ver "/frameassembly-v" ver "-")
-            print
-            next
-        }
-        /^[[:space:]]*source_aarch64[[:space:]]*=/ {
-            sub(/\/v[0-9.]+\/frameassembly-v[0-9.]+-/, "/v" ver "/frameassembly-v" ver "-")
-            print
-            next
-        }
-        { print }
-    ' "$SRCINFO" > "${SRCINFO}.tmp" && mv "${SRCINFO}.tmp" "$SRCINFO"
-    echo "  [OK] Updated AUR .SRCINFO: ${SRCINFO}"
-else
-    echo "  [SKIP] AUR .SRCINFO not found at: ${SRCINFO}"
-fi
-
-# ------------------------------------------------------------------------------
-# 2. Microsoft Windows Package Manager (WinGet)
-# ------------------------------------------------------------------------------
-WINGET_BASE="${REPO_ROOT}/contrib/packaging/winget/manifests/s/SteveWinschel/FrameAssembly"
-WINGET_INSTALLER=""
-
-if [[ -d "$WINGET_BASE" ]]; then
-    if [[ -f "${WINGET_BASE}/${VERSION}/SteveWinschel.FrameAssembly.installer.yaml" ]]; then
-        WINGET_INSTALLER="${WINGET_BASE}/${VERSION}/SteveWinschel.FrameAssembly.installer.yaml"
-    else
-        WINGET_INSTALLER="$(find "$WINGET_BASE" -name "SteveWinschel.FrameAssembly.installer.yaml" | sort -V | tail -n1 || true)"
-    fi
-fi
-
-if [[ -n "$WINGET_INSTALLER" && -f "$WINGET_INSTALLER" ]]; then
-    awk -v h_x64="$HASH_WINDOWS_X86_64" -v h_arm64="$HASH_WINDOWS_AARCH64" '
-        /Architecture: x64/ { in_x64=1; in_arm64=0 }
-        /Architecture: arm64/ { in_arm64=1; in_x64=0 }
-        in_x64 && /InstallerSha256:/ {
-            sub(/InstallerSha256:[[:space:]]*"[^"]*"/, "InstallerSha256: \"" h_x64 "\"")
-            in_x64=0
-        }
-        in_arm64 && /InstallerSha256:/ {
-            sub(/InstallerSha256:[[:space:]]*"[^"]*"/, "InstallerSha256: \"" h_arm64 "\"")
-            in_arm64=0
-        }
-        { print }
-    ' "$WINGET_INSTALLER" > "${WINGET_INSTALLER}.tmp" && mv "${WINGET_INSTALLER}.tmp" "$WINGET_INSTALLER"
-    echo "  [OK] Updated WinGet Installer Manifest: ${WINGET_INSTALLER}"
-else
-    echo "  [SKIP] WinGet installer manifest not found under: ${WINGET_BASE}"
-fi
-
-# ------------------------------------------------------------------------------
-# 3. macOS & Linux Homebrew Tap (Formula/frameassembly.rb)
+# 1. macOS & Linux Homebrew Tap (Formula/frameassembly.rb)
 # ------------------------------------------------------------------------------
 HOMEBREW_FORMULA="${REPO_ROOT}/contrib/packaging/homebrew/Formula/frameassembly.rb"
 
@@ -281,6 +202,12 @@ if [[ -f "$HOMEBREW_FORMULA" ]]; then
         -v ver="$VERSION" '
         /^[[:space:]]*version[[:space:]]+"[^"]*"/ {
             sub(/version[[:space:]]+"[^"]*"/, "version \"" ver "\"")
+        }
+        /\/v[0-9.]+\/frameassembly-v[0-9.]+-/ {
+            gsub(/\/v[0-9.]+\/frameassembly-v[0-9.]+-/, "/v" ver "/frameassembly-v" ver "-")
+        }
+        /assert_match[[:space:]]+"frameassembly[[:space:]][0-9.]+"/ {
+            sub(/frameassembly[[:space:]][0-9.]+/, "frameassembly " ver)
         }
         /aarch64-apple-darwin/ { target="mac_arm" }
         /x86_64-apple-darwin/ { target="mac_x86" }
@@ -310,7 +237,7 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 4. Windows Scoop (frameassembly.json)
+# 2. Windows Scoop (frameassembly.json)
 # ------------------------------------------------------------------------------
 SCOOP_JSON="${REPO_ROOT}/contrib/packaging/scoop/frameassembly.json"
 
@@ -319,8 +246,15 @@ if [[ -f "$SCOOP_JSON" ]]; then
         /"version":[[:space:]]*"[^"]*"/ {
             sub(/"version":[[:space:]]*"[^"]*"/, "\"version\": \"" ver "\"")
         }
-        /"64bit":[[:space:]]*\{/ { in_64=1; in_arm=0 }
-        /"arm64":[[:space:]]*\{/ { in_arm=1; in_64=0 }
+        /\/v[0-9.]+\/frameassembly-v[0-9.]+-/ {
+            gsub(/\/v[0-9.]+\/frameassembly-v[0-9.]+-/, "/v" ver "/frameassembly-v" ver "-")
+        }
+        /"extract_dir":[[:space:]]*"frameassembly-v[0-9.]+-/ {
+            sub(/frameassembly-v[0-9.]+-/, "frameassembly-v" ver "-")
+        }
+        /"autoupdate":[[:space:]]*\{/ { in_auto=1 }
+        !in_auto && /"64bit":[[:space:]]*\{/ { in_64=1; in_arm=0 }
+        !in_auto && /"arm64":[[:space:]]*\{/ { in_arm=1; in_64=0 }
         in_64 && /"hash":[[:space:]]*"[^"]*"/ {
             sub(/"hash":[[:space:]]*"[^"]*"/, "\"hash\": \"" h_64 "\"")
             in_64=0
@@ -340,8 +274,6 @@ echo "======================================================================"
 echo "All packaging manifests successfully updated with release SHA-256 sums."
 echo "Next Maintainer Steps:"
 echo "  1. Review git diff: git diff contrib/packaging/"
-echo "  2. Submit WinGet PR: wingetcreate update SteveWinschel.FrameAssembly --version ${VERSION} --submit"
-echo "  3. Push AUR update: git commit -am 'chore(release): bump to v${VERSION}' && git push"
-echo "  4. Update Homebrew tap: copy Formula/frameassembly.rb to homebrew-tap"
-echo "  5. Update Scoop bucket: copy scoop/frameassembly.json to scoop-bucket"
+echo "  2. Sync Homebrew Formula/frameassembly.rb and Scoop bucket/frameassembly.json to:"
+echo "     https://github.com/SteveWinschel/homebrew-tap-FrameAssembly"
 echo "======================================================================"

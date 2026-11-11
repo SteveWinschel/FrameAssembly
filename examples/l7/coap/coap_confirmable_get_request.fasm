@@ -1,18 +1,18 @@
 // PROMPT: RFC 7252 CoAP Confirmable (CON) GET request targeting resource URI path.
-// TOKENS: HOST, IP, FLOW, COAP, CON, URI_PATH, MSGID, COMPILE
+// TOKENS: host, ip, flow, s, coap, con, uripath, msgid, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.25 }
+host client { ip 192.168.1.25 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.168.1.1 }
+host server { ip 192.168.1.1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW coap_con(c, s) {
-    c -> s COAP CON URI_PATH "telemetry/status" MSGID 101
+flow coap_con(c, s) {
+    c -> s coap con uripath "telemetry/status" msgid 101
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     coap_con(client, server)
 }

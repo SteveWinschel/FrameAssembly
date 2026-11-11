@@ -1,10 +1,10 @@
-//! gRPC Remote Procedure Call (`GRPC`) Layer 7 PCAP-to-`.fasm` decompiler.
+//! gRPC Remote Procedure Call (`grpc`) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for length-prefixed `GRPC` frames (1-byte
+//! This module implements the fuzz-safe reverse dissector for length-prefixed `grpc` frames (1-byte
 //! compression flag `0x00` or `0x01` followed by a 4-byte big-endian message length) carried over
 //! TCP ports `50051`, `50001`, `2379`, `9339`, `9559`, `7233`, and `8001`. It validates exact wire
 //! framing bounds, extracts gRPC service names (`service`), RPC method names (`method`), and
-//! trailing status codes (`grpc_status`), and preserves remaining Protobuf or message bytes via
+//! trailing status codes (`grpcstatus`), and preserves remaining Protobuf or message bytes via
 //! residual payload.
 
 use alloc::string::String;
@@ -61,7 +61,7 @@ pub(crate) fn dissect_grpc(payload: &[u8]) -> Option<ProtocolDissection> {
                     push_str_mod(&mut tokens, "method", prefix_str);
                 }
             }
-            let _ = write!(tokens, " grpc_status {status}");
+            let _ = write!(tokens, " grpcstatus {status}");
             return Some(sd(
                 Protocol::Grpc,
                 tokens,

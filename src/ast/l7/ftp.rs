@@ -1,33 +1,33 @@
 //! File Transfer Protocol (FTP) (RFC 959 / RFC 2428 (EPSV/EPRT) / RFC 2228 (FTPS)) Layer 7 AST definitions.
 //!
 //! This module defines the abstract syntax tree (AST) configuration parameters for synthesizing
-//! File Transfer Protocol (FTP) packets over TCP port 21 (Control channel) and TCP port 20 (Active data channel). On the wire, the protocol uses a CRLF-terminated NVT-ASCII control commands (`USER`, `PASS`, `SYST`, `FEAT`, `PWD`, `CWD`, `TYPE`, `PASV`, `EPSV`, `PORT`, `RETR`, `STOR`, `LIST`, `DELE`, `QUIT`) and 3-digit numeric status replies (`220` Service ready, `331` User name okay, `230` User logged in, `227` Entering Passive Mode, `150` File status okay, `226` Closing data connection, `530` Not logged in).
+//! File Transfer Protocol (FTP) packets over TCP port 21 (Control channel) and TCP port 20 (Active data channel). On the wire, the protocol uses a CRLF-terminated NVT-ASCII control commands (`user`, `PASS`, `SYST`, `FEAT`, `PWD`, `CWD`, `type`, `PASV`, `EPSV`, `PORT`, `RETR`, `STOR`, `LIST`, `DELE`, `quit`) and 3-digit numeric status replies (`220` Service ready, `331` User name okay, `230` User logged in, `227` Entering Passive Mode, `150` File status okay, `226` Closing data connection, `530` Not logged in).
 //! Every field in [`FtpSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b FTP [CMD <str>] [ARG <str>] [CODE <u16>] [REPLY <str>]`
+//! `a -> b ftp [cmd <str>] [arg <str>] [code <u16>] [reply <str>]`
 
 /// RFC 959 File Transfer Protocol specification.
 ///
-/// Syntax mapping: `FTP [CMD <str>] [ARG <str>] [CODE <u16>] [REPLY <str>]`
-#[doc(alias = "FTP")]
+/// Syntax mapping: `ftp [cmd <str>] [arg <str>] [code <u16>] [reply <str>]`
+#[doc(alias = "ftp")]
 #[doc(alias = "RFC 959")]
 #[doc(alias = "RFC959")]
 #[doc(alias = "RFC 2428")]
 #[doc(alias = "RFC2428")]
-#[doc(alias = "CMD")]
-#[doc(alias = "ARG")]
-#[doc(alias = "CODE")]
-#[doc(alias = "REPLY")]
+#[doc(alias = "cmd")]
+#[doc(alias = "arg")]
+#[doc(alias = "code")]
+#[doc(alias = "reply")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct FtpSpec<'a> {
-    /// FTP command verb (`CMD <str>`).
+    /// FTP command verb (`cmd <str>`).
     pub cmd: Option<&'a str>,
-    /// FTP command argument (`ARG <str>`).
+    /// FTP command argument (`arg <str>`).
     pub arg: Option<&'a str>,
-    /// Reply status code (`CODE <u16>`).
+    /// Reply status code (`code <u16>`).
     pub code: Option<u16>,
-    /// Reply explanation text (`REPLY <str>`).
+    /// Reply explanation text (`reply <str>`).
     pub reply: Option<&'a str>,
 }

@@ -2,9 +2,8 @@
 // FrameAssembly Lark Grammar (Outlines / vLLM / Guidance / XGrammar / llguidance)
 // Synchronized with src/lexer/mod.rs, grammar.ebnf, and frameassembly.gbnf.
 // Covers all 81 native protocols, L2-L4 modifiers, SNMPv1/v2c/v3 USM, and L7.
-// Note: The FrameAssembly compiler accepts all keywords, protocols, modifiers,
-// time units, and identifiers case-insensitively; canonical uppercase tokens
-// are used here for deterministic LLM constrained decoding.
+// Note: FrameAssembly v2.0.0 enforces strict-lowercase alphanumeric tokens
+// without '_' or '-' across all keywords, protocols, modifiers, and time units.
 // ============================================================================
 
 start: top_level_decl* compile_block top_level_decl*
@@ -12,25 +11,23 @@ start: top_level_decl* compile_block top_level_decl*
 top_level_decl: host_decl
               | flow_decl
 
-// 1. Host Declarations (at least one IP or MAC property in any order)
-host_decl: "HOST" IDENT "{" host_prop+ "}"
-host_prop: "IP" ip_addr
-         | "MAC" MAC_ADDR
+// 1. Host Declarations (at least one ip or mac property in any order)
+host_decl: "host" ident "{" host_prop+ "}"
+host_prop: "ip" ip_addr
+         | "mac" MAC_ADDR
 
-// 2. Flow Declarations & Statements (FLOW blocks are optional when COMPILE uses inline frame_stmt)
-flow_decl: "FLOW" IDENT "(" param_list? ")" "{" frame_stmt* "}"
-param_list: IDENT ("," IDENT)*
+// 2. Flow Declarations & Statements (flow blocks are optional when compile uses inline frame_stmt)
+flow_decl: "flow" ident "(" param_list? ")" "{" frame_stmt* "}"
+param_list: ident ("," ident)*
 
-frame_stmt: IDENT direction IDENT frame_field*
+frame_stmt: ident direction ident frame_field*
 direction: "->" | "<-"
 
-// 3. Compile Block, Loops & Inline Frame Statements
-compile_block: "COMPILE" "{" run_stmt* "}"
-run_stmt: loop_block
-        | flow_call
+// 3. Compile Block & Inline Frame Statements
+compile_block: "compile" "{" run_stmt* "}"
+run_stmt: flow_call
         | frame_stmt
-loop_block: "LOOP" UINT_LIT "{" flow_call* "}"
-flow_call: IDENT "(" param_list? ")"
+flow_call: ident "(" param_list? ")"
 
 // 4. Frame Fields (Protocols, Modifiers & Protocol Attributes)
 frame_field: protocol_kw
@@ -53,457 +50,548 @@ protocol_kw: l2_proto
            | l7_app_proto
            | l7_ot_proto
 
-l2_proto: "ARP" | "VLAN" | "QINQ" | "LLDP" | "STP" | "LACP" | "EAPOL" | "MPLS"
+l2_proto: "arp" | "vlan" | "qinq" | "lldp" | "stp" | "lacp" | "eapol" | "mpls"
 
-l3_proto: "ICMP" | "NDP" | "IGMP" | "MLD" | "GRE" | "VXLAN" | "GENEVE"
-        | "IPSEC" | "ESP" | "AH" | "IKEV2" | "WIREGUARD"
-        | "OSPF" | "BGP" | "RIP" | "VRRP" | "HSRP" | "PIM" | "BFD" | "OPENFLOW"
+l3_proto: "icmp" | "ndp" | "igmp" | "mld" | "gre" | "vxlan" | "geneve"
+        | "ipsec" | "esp" | "ah" | "ikev2" | "wireguard"
+        | "ospf" | "bgp" | "rip" | "vrrp" | "hsrp" | "pim" | "bfd" | "openflow"
 
-l4_proto: "TCP" | "UDP" | "SCTP"
+l4_proto: "tcp" | "udp" | "sctp"
 
-snmp_proto: "SNMP1" | "SNMP2" | "SNMP3"
+snmp_proto: "snmp1" | "snmp2" | "snmp3"
 
-l7_infra_proto: "DNS" | "MDNS" | "DHCP" | "NTP" | "PTP" | "RADIUS"
-              | "TACACS" | "SYSLOG" | "NETFLOW" | "IPFIX" | "SFLOW"
+l7_infra_proto: "dns" | "mdns" | "dhcp" | "ntp" | "ptp" | "radius"
+              | "tacacs" | "syslog" | "netflow" | "ipfix" | "sflow"
 
-l7_app_proto: "TFTP" | "FTP" | "SSH" | "TELNET" | "HTTP" | "HTTP2" | "GRPC"
-            | "WEBSOCKET" | "TLS" | "QUIC" | "STUN" | "SIP" | "RTP" | "RTSP"
-            | "SMTP" | "IMAP" | "POP3" | "KERBEROS" | "LDAP" | "SMB" | "NFS"
-            | "REDIS" | "MEMCACHED" | "MYSQL" | "POSTGRES" | "MQTT" | "COAP"
-            | "AMQP" | "SSDP" | "WHOIS"
+l7_app_proto: "tftp" | "ftp" | "ssh" | "telnet" | "http" | "http2" | "grpc"
+            | "websocket" | "tls" | "quic" | "stun" | "sip" | "rtp" | "rtsp"
+            | "smtp" | "imap" | "pop3" | "kerberos" | "ldap" | "smb" | "nfs"
+            | "redis" | "memcached" | "mysql" | "postgres" | "mqtt" | "coap"
+            | "amqp" | "ssdp" | "whois"
 
-l7_ot_proto: "MODBUS" | "BACNET" | "DNP3" | "S7COMM" | "ETHERNETIP" | "OPCUA"
+l7_ot_proto: "modbus" | "bacnet" | "dnp3" | "s7comm" | "ethernetip" | "opcua"
 
 // 6. Universal & Layer 2-4 Modifiers
-universal_mod: "WAIT" DURATION_LIT
-             | "PAYLOAD" STRING_LIT
-             | "HEXPAYLOAD" HEX_STRING_LIT
+universal_mod: "wait" duration_lit
+             | "payload" STRING_LIT
+             | "hexpayload" HEX_STRING_LIT
 
-l2_mod: "SRCMAC" MAC_ADDR
-      | "DSTMAC" MAC_ADDR
-      | "ETHERTYPE" UINT_LIT
-      | "VLAN" UINT_LIT?
-      | "PCP" UINT_LIT
-      | "DEI" UINT_LIT
-      | "QINQ" UINT_LIT?
-      | "INNER_VLAN" UINT_LIT
-      | "MPLS" UINT_LIT?
-      | "LABEL" UINT_LIT
-      | ("EXP" | "TC") UINT_LIT
-      | "BOS" UINT_LIT
-      | "MPLS_TTL" UINT_LIT
+l2_mod: "srcmac" MAC_ADDR
+      | "dstmac" MAC_ADDR
+      | "ethertype" UINT_LIT
+      | "vlan" UINT_LIT?
+      | "pcp" UINT_LIT
+      | "dei" UINT_LIT
+      | "qinq" UINT_LIT?
+      | "innervlan" UINT_LIT
+      | "mpls" UINT_LIT?
+      | "label" UINT_LIT
+      | ("exp" | "tc") UINT_LIT
+      | "bos" UINT_LIT
+      | "mplsttl" UINT_LIT
 
-l3_mod: "TTL" UINT_LIT
-      | "DSCP" UINT_LIT
-      | "ECN" UINT_LIT
-      | "FLOWLABEL" UINT_LIT
-      | "IPID" UINT_LIT
-      | "DF"
-      | "MF"
-      | "FRAGOFFSET" UINT_LIT
-      | "NEXT_HEADER" UINT_LIT
+l3_mod: "ttl" UINT_LIT
+      | "dscp" UINT_LIT
+      | "ecn" UINT_LIT
+      | "flowlabel" UINT_LIT
+      | "ipid" UINT_LIT
+      | "df"
+      | "mf"
+      | "fragoffset" UINT_LIT
+      | "nextheader" UINT_LIT
 
-l4_mod: "SRCPORT" UINT_LIT
-      | "DSTPORT" UINT_LIT
-      | "TRANSPORT" ("TCP" | "UDP")
+l4_mod: "srcport" UINT_LIT
+      | "dstport" UINT_LIT
+      | "transport" ("tcp" | "udp")
       | tcp_flag
-      | "SEQ" UINT_LIT
-      | "ACKNUM" UINT_LIT
-      | ("WIN" | "WINDOW") UINT_LIT
-      | "URGENT" UINT_LIT
-      | "MSS" UINT_LIT
-      | "WSCALE" UINT_LIT
-      | "SACK_PERM" | "SACKPERM"
-      | "TSVAL" UINT_LIT
-      | "TSECR" UINT_LIT
+      | "seq" UINT_LIT
+      | "acknum" UINT_LIT
+      | ("win" | "window") UINT_LIT
+      | "urgent" UINT_LIT
+      | "mss" UINT_LIT
+      | "wscale" UINT_LIT
+      | "sackperm"
+      | "tsval" UINT_LIT
+      | "tsecr" UINT_LIT
 
-tcp_flag: "SYN" | "ACK" | "FIN" | "RST" | "PSH" | "URG" | "ECE" | "CWR"
+tcp_flag: "syn" | "ack" | "fin" | "rst" | "psh" | "urg" | "ece" | "cwr"
 
 // 7. Layer 2 Protocol Sub-Keywords
-l2_proto_field: "REQUEST"
-              | "REPLY" STRING_LIT?
-              | "GRATUITOUS" | "GARP"
-              | ("SHA" | "SENDERMAC") MAC_ADDR
-              | ("SPA" | "SENDERIP") ip_addr
-              | ("THA" | "TARGETMAC") MAC_ADDR
-              | ("TPA" | "TARGETIP") ip_addr
-              | "CHASSIS_ID" str_or_ident
-              | "PORT_ID" (UINT_LIT | str_or_ident)
-              | "SYSNAME" str_or_ident
-              | "SYSDESC" str_or_ident
-              | "ROOT_ID" str_or_ident
-              | "BRIDGE_ID" str_or_ident
-              | "COST" UINT_LIT
-              | "MAX_AGE" UINT_LIT
-              | "HELLO_TIME" UINT_LIT
-              | "FORWARD_DELAY" UINT_LIT
-              | "RSTP"
-              | "FLAGS" UINT_LIT
-              | "ACTOR_SYS" (MAC_ADDR | STRING_LIT)
-              | "ACTOR_KEY" UINT_LIT
-              | "ACTOR_PORT" UINT_LIT
-              | "PARTNER_SYS" (MAC_ADDR | STRING_LIT)
-              | "PARTNER_KEY" UINT_LIT
-              | "PARTNER_PORT" UINT_LIT
-              | "ACTOR_STATE" UINT_LIT
-              | "PARTNER_STATE" UINT_LIT
-              | "VERSION" (UINT_LIT | str_or_ident)
-              | "TYPE" (UINT_LIT | "START" | "LOGOFF" | "KEY" | "EAP_PACKET" | "INITIATION" | "RESPONSE" | "COOKIE" | "DATA"
-              | "HELLO" | "FEATURES_REQ" | "FEATURES_REPLY" | "PACKET_IN" | "PACKET_OUT" | "FLOW_MOD" | "ECHO_REQ" | "ECHO_REQUEST" | "ECHO_REPLY"
-              | "AUTHEN" | "AUTHOR" | "ACCT" | str_or_ident)
-              | "START" | "LOGOFF" | "KEY" | "EAP_PACKET"
-              | "EAP_CODE" UINT_LIT
-              | "EAP_ID" UINT_LIT
-              | "EAP_METHOD" UINT_LIT
-              | "IDENTITY" str_or_ident
+l2_proto_field: "request"
+              | "reply" STRING_LIT?
+              | "gratuitous" | "garp"
+              | ("sha" | "sendermac") MAC_ADDR
+              | ("spa" | "senderip") ip_addr
+              | ("tha" | "targetmac") MAC_ADDR
+              | ("tpa" | "targetip") ip_addr
+              | "chassisid" str_or_ident
+              | "portid" (UINT_LIT | str_or_ident)
+              | "sysname" str_or_ident
+              | "sysdesc" str_or_ident
+              | "rootid" str_or_ident
+              | "bridgeid" str_or_ident
+              | "cost" UINT_LIT
+              | "maxage" UINT_LIT
+              | "hellotime" UINT_LIT
+              | "forwarddelay" UINT_LIT
+              | "rstp"
+              | "flags" UINT_LIT
+              | "actorsys" (MAC_ADDR | STRING_LIT)
+              | "actorkey" UINT_LIT
+              | "actorport" UINT_LIT
+              | "partnersys" (MAC_ADDR | STRING_LIT)
+              | "partnerkey" UINT_LIT
+              | "partnerport" UINT_LIT
+              | "actorstate" UINT_LIT
+              | "partnerstate" UINT_LIT
+              | "version" (UINT_LIT | str_or_ident)
+              | "type" (UINT_LIT | "start" | "logoff" | "key" | "eappacket" | "initiation" | "response" | "cookie" | "data"
+              | "hello" | "featuresreq" | "featuresreply" | "packetin" | "packetout" | "flowmod" | "echoreq" | "echorequest" | "echoreply"
+              | "authen" | "author" | "acct" | str_or_ident)
+              | "start" | "logoff" | "key" | "eappacket"
+              | "eapcode" UINT_LIT
+              | "eapid" UINT_LIT
+              | "eapmethod" UINT_LIT
+              | "identity" str_or_ident
 
 // 8. Layer 3 Protocol Sub-Keywords
-l3_proto_field: "ECHO_REQUEST" | "ECHO_REPLY" | "DEST_UNREACH" | "TIME_EXCEEDED" | "REDIRECT"
-              | "CODE" (UINT_LIT | str_or_ident)
-              | "ID" UINT_LIT
-              | "GATEWAY" ip_addr
-              | "ROUTER_SOLICIT" | "ROUTER_ADVERT" | "NEIGHBOR_SOLICIT" | "NEIGHBOR_ADVERT"
-              | "TARGET" (ip_addr | MAC_ADDR)
-              | "SLLA" MAC_ADDR
-              | "TLLA" MAC_ADDR
-              | "ROUTER_LIFETIME" UINT_LIT
-              | "QUERY" | "REPORT" | "LEAVE" | "DONE" | "V1" | "V2" | "V3"
-              | "GROUP" (ip_addr | UINT_LIT)
-              | "MAX_RESP" UINT_LIT
-              | "MULTICAST_ADDR" ip_addr
-              | "MAX_RESP_DELAY" UINT_LIT
-              | "CHECKSUM"
-              | "GRE_KEY" UINT_LIT
-              | "GRE_SEQ" UINT_LIT
-              | "GRE_PROTO" UINT_LIT
-              | ("VNI" | "VNID") UINT_LIT
-              | "OPT_CLASS" UINT_LIT
-              | "OPT_TYPE" UINT_LIT
-              | "PROTOCOL_TYPE" UINT_LIT
-              | "SPI" UINT_LIT
-              | "IV" (HEX_STRING_LIT | UINT_LIT)
-              | "ICV" (HEX_STRING_LIT | UINT_LIT)
-              | "INITIATOR_SPI" (UINT_LIT | HEX_STRING_LIT)
-              | "RESPONDER_SPI" (UINT_LIT | HEX_STRING_LIT)
-              | "EXCHANGE" (UINT_LIT | "SA_INIT" | "CREATE_CHILD_SA" | "INFORMATIONAL" | str_or_ident)
-              | "SA_INIT" | "CREATE_CHILD_SA" | "INFORMATIONAL"
-              | "MSGID" (UINT_LIT | str_or_ident)
-              | "NEXT_PAYLOAD" UINT_LIT
-              | "INITIATION" | "COOKIE" str_or_ident? | "DATA" str_or_ident?
-              | "SENDER" UINT_LIT
-              | "RECEIVER" UINT_LIT
-              | "COUNTER" UINT_LIT
-              | "HELLO" | "DBD" | "LSR" | "LSU" | "LSACK"
-              | "ROUTER_ID" ip_addr
-              | "AREA_ID" (UINT_LIT | ip_addr)
-              | "HELLO_INTERVAL" UINT_LIT
-              | "DEAD_INTERVAL" UINT_LIT
-              | "PRIORITY" UINT_LIT
-              | "OPEN" | "UPDATE" | "NOTIFICATION" | "KEEPALIVE" UINT_LIT?
-              | "ASN" UINT_LIT
-              | "HOLDTIME" UINT_LIT
-              | "BGPID" ip_addr
-              | ("PREFIX" | "NLRI") (ip_addr | str_or_ident)
-              | "NEXTHOP" ip_addr
-              | "COMMAND" (UINT_LIT | str_or_ident)
-              | "METRIC" UINT_LIT
-              | "TAG" (UINT_LIT | str_or_ident)
-              | "VRID" UINT_LIT
-              | "ADV_INT" UINT_LIT
-              | "VIP" ip_addr
-              | "HELLOTIME" UINT_LIT
-              | "STATE" UINT_LIT
-              | "JOIN_PRUNE" | "REGISTER"
-              | "SOURCE" ip_addr
-              | "RP" ip_addr
-              | "DR_PRIORITY" UINT_LIT
-              | "DIAG" UINT_LIT
-              | "MY_DISC" UINT_LIT
-              | "YOUR_DISC" UINT_LIT
-              | "MIN_TX" UINT_LIT
-              | "MIN_RX" UINT_LIT
-              | "MULT" UINT_LIT
-              | "FEATURES_REQ" | "FEATURES_REPLY" | "PACKET_IN" | "PACKET_OUT" | "FLOW_MOD" | "ECHO_REQ"
-              | "XID" UINT_LIT
-              | "DPID" UINT_LIT
-              | "TABLE_ID" UINT_LIT
+l3_proto_field: "echorequest" | "echoreply" | "destunreach" | "timeexceeded" | "redirect"
+              | "code" (UINT_LIT | str_or_ident)
+              | "id" UINT_LIT
+              | "gateway" ip_addr
+              | "routersolicit" | "routeradvert" | "neighborsolicit" | "neighboradvert"
+              | "target" (ip_addr | MAC_ADDR)
+              | "slla" MAC_ADDR
+              | "tlla" MAC_ADDR
+              | "routerlifetime" UINT_LIT
+              | "query" | "report" | "leave" | "done" | "v1" | "v2" | "v3"
+              | "group" (ip_addr | UINT_LIT)
+              | "maxresp" UINT_LIT
+              | "multicastaddr" ip_addr
+              | "maxrespdelay" UINT_LIT
+              | "checksum"
+              | "grekey" UINT_LIT
+              | "greseq" UINT_LIT
+              | "greproto" UINT_LIT
+              | ("vni" | "vnid") UINT_LIT
+              | "optclass" UINT_LIT
+              | "opttype" UINT_LIT
+              | "protocoltype" UINT_LIT
+              | "spi" UINT_LIT
+              | "iv" (HEX_STRING_LIT | UINT_LIT)
+              | "icv" (HEX_STRING_LIT | UINT_LIT)
+              | "initiatorspi" (UINT_LIT | HEX_STRING_LIT)
+              | "responderspi" (UINT_LIT | HEX_STRING_LIT)
+              | "exchange" (UINT_LIT | "sainit" | "createchildsa" | "informational" | str_or_ident)
+              | "sainit" | "createchildsa" | "informational"
+              | "msgid" (UINT_LIT | str_or_ident)
+              | "nextpayload" UINT_LIT
+              | "initiation" | "cookie" str_or_ident? | "data" str_or_ident?
+              | "sender" UINT_LIT
+              | "receiver" UINT_LIT
+              | "counter" UINT_LIT
+              | "hello" | "dbd" | "lsr" | "lsu" | "lsack"
+              | "routerid" ip_addr
+              | "areaid" (UINT_LIT | ip_addr)
+              | "hellointerval" UINT_LIT
+              | "deadinterval" UINT_LIT
+              | "priority" UINT_LIT
+              | "open" | "update" | "notification" | "keepalive" UINT_LIT?
+              | "asn" UINT_LIT
+              | "holdtime" UINT_LIT
+              | "bgpid" ip_addr
+              | ("prefix" | "nlri") (ip_addr | str_or_ident)
+              | "nexthop" ip_addr
+              | "command" (UINT_LIT | str_or_ident)
+              | "metric" UINT_LIT
+              | "tag" (UINT_LIT | str_or_ident)
+              | "vrid" UINT_LIT
+              | "advint" UINT_LIT
+              | "vip" ip_addr
+              | "hellotime" UINT_LIT
+              | "state" UINT_LIT
+              | "joinprune" | "register"
+              | "source" ip_addr
+              | "rp" ip_addr
+              | "drpriority" UINT_LIT
+              | "diag" UINT_LIT
+              | "mydisc" UINT_LIT
+              | "yourdisc" UINT_LIT
+              | "mintx" UINT_LIT
+              | "minrx" UINT_LIT
+              | "mult" UINT_LIT
+              | "featuresreq" | "featuresreply" | "packetin" | "packetout" | "flowmod" | "echoreq"
+              | "xid" UINT_LIT
+              | "dpid" UINT_LIT
+              | "tableid" UINT_LIT
 
 // 9. Layer 4 SCTP Sub-Keywords
-l4_proto_field: "VTAG" UINT_LIT
-              | "STREAM" UINT_LIT
-              | "SSN" UINT_LIT
-              | "PPID" UINT_LIT
-              | "TSN" UINT_LIT
-              | "CHUNK" ("DATA" | "INIT" | "INIT_ACK" | "SACK" | "HEARTBEAT" | "HEARTBEAT_ACK" | "ABORT" | "SHUTDOWN" | "COOKIE_ECHO" | "COOKIE_ACK" | UINT_LIT | str_or_ident)
-              | "INIT" | "INIT_ACK" | "SACK" | "HEARTBEAT" | "HEARTBEAT_ACK"
-              | "ABORT" | "SHUTDOWN" | "COOKIE_ECHO" | "COOKIE_ACK"
+l4_proto_field: "vtag" UINT_LIT
+              | "stream" UINT_LIT
+              | "ssn" UINT_LIT
+              | "ppid" UINT_LIT
+              | "tsn" UINT_LIT
+              | "chunk" ("data" | "init" | "initack" | "sack" | "heartbeat" | "heartbeatack" | "abort" | "shutdown" | "shutdownack" | "cookieecho" | "cookieack" | UINT_LIT | str_or_ident)
+              | "init" | "initack" | "sack" | "heartbeat" | "heartbeatack"
+              | "abort" | "shutdown" | "shutdownack" | "cookieecho" | "cookieack"
 
 // 10. SNMPv1 / SNMPv2c / SNMPv3 Sub-Keywords
-snmp_proto_field: "TRAP" | "INFORM" | "GET" | "GETNEXT" | "GETBULK" | "SET" | "RESPONSE" str_or_ident? | "REPORT"
-                | "COMMUNITY" STRING_LIT
-                | "OID" oid_lit
-                | "SYSUPTIME" UINT_LIT
-                | "REQID" UINT_LIT
-                | "NONREPEATERS" UINT_LIT
-                | "MAXREPETITIONS" UINT_LIT
-                | "ENTERPRISE" oid_lit
-                | "AGENTIP" ip_addr
-                | "GENTRAP" UINT_LIT
-                | "SPECTRAP" UINT_LIT
-                | "USER" str_or_ident
-                | "ENGINEID" STRING_LIT
-                | "ENGINEBOOTS" UINT_LIT
-                | "ENGINETIME" UINT_LIT
-                | "CONTEXTNAME" STRING_LIT
-                | "AUTH" ("MD5" | "SHA" | "SHA256" | "SHA384" | "SHA512") STRING_LIT
-                | "PRIV" ("DES" | "AES") STRING_LIT
-                | "VARBIND" oid_lit varbind_val
+snmp_proto_field: "trap" | "inform" | "get" | "getnext" | "getbulk" | "set" | "response" str_or_ident? | "report"
+                | "community" STRING_LIT
+                | "oid" oid_lit
+                | "sysuptime" UINT_LIT
+                | "reqid" UINT_LIT
+                | "nonrepeaters" UINT_LIT
+                | "maxrepetitions" UINT_LIT
+                | "enterprise" oid_lit
+                | "agentip" ip_addr
+                | "gentrap" UINT_LIT
+                | "spectrap" UINT_LIT
+                | "user" str_or_ident
+                | "engineid" STRING_LIT
+                | "engineboots" UINT_LIT
+                | "enginetime" UINT_LIT
+                | "contextname" STRING_LIT
+                | "auth" ("md5" | "sha" | "sha256" | "sha384" | "sha512") STRING_LIT
+                | "priv" ("des" | "aes") STRING_LIT
+                | "varbind" oid_lit varbind_val
 
-varbind_val: "NULLVAL" | "NULL"
-           | "STRING" STRING_LIT
-           | "INT" INT_LIT
-           | "TIMETICKS" UINT_LIT
-           | "IPVAL" ip_addr
-           | "OIDVAL" oid_lit
-           | "COUNTER32" UINT_LIT
-           | "GAUGE32" UINT_LIT
-           | "COUNTER64" UINT_LIT
+varbind_val: "nullval" | "null"
+           | "string" STRING_LIT
+           | "int" INT_LIT
+           | "timeticks" UINT_LIT
+           | "ipval" ip_addr
+           | "oidval" oid_lit
+           | "counter32" UINT_LIT
+           | "gauge32" UINT_LIT
+           | "counter64" UINT_LIT
 
 // 11. Layer 7 Sub-Keywords
-l7_proto_field: "TXID" (UINT_LIT | str_or_ident)
-              | "QNAME" str_or_ident
-              | "QTYPE" (UINT_LIT | str_or_ident)
-              | "RDATA" str_or_ident
-              | "RCODE" UINT_LIT
-              | "ANS_TTL" UINT_LIT
-              | "DISCOVER" | "SOLICIT" | "OFFER" | "ADVERTISE" | "RELEASE"
-              | "CIADDR" ip_addr
-              | "YIADDR" ip_addr
-              | "SIADDR" ip_addr
-              | "CHADDR" MAC_ADDR
-              | "HOSTNAME" str_or_ident
-              | "DNS_SERVER" ip_addr
-              | "ROUTER" ip_addr
-              | "SUBNET_MASK" ip_addr
-              | "LEASE_TIME" UINT_LIT
-              | "LI" UINT_LIT
-              | "VN" UINT_LIT
-              | "MODE" (UINT_LIT | str_or_ident)
-              | "STRATUM" UINT_LIT
-              | "POLL" UINT_LIT
-              | "PRECISION" INT_LIT
-              | "REFID" str_or_ident
-              | "TX_TIMESTAMP" UINT_LIT
-              | "MSG_TYPE" (UINT_LIT | str_or_ident)
-              | "SYNC" | "DELAY_REQ" | "FOLLOW_UP" | "DELAY_RESP" | "ANNOUNCE"
-              | "DOMAIN" (UINT_LIT | str_or_ident)
-              | "SEQ_ID" UINT_LIT
-              | "CLOCK_ID" (MAC_ADDR | str_or_ident)
-              | "ACCESS_REQUEST" | "ACCESS_ACCEPT" | "ACCESS_REJECT"
-              | "ACCESS_CHALLENGE" | "ACCOUNTING_REQUEST" | "ACCOUNTING_RESPONSE"
-              | "NAS_IP" ip_addr
-              | "SERVICE_TYPE" UINT_LIT
-              | "FRAMED_IP" ip_addr
-              | "AUTHEN" | "AUTHOR" | "ACCT"
-              | "SESSION_ID" UINT_LIT
-              | "FACILITY" UINT_LIT
-              | "SEVERITY" UINT_LIT
-              | "PRI" UINT_LIT
-              | "APP" str_or_ident
-              | "PROCID" str_or_ident
-              | "MSG" str_or_ident
-              | "SRCIP" ip_addr
-              | "DSTIP" ip_addr
-              | "PROTO" UINT_LIT
-              | "PACKETS" UINT_LIT
-              | "OCTETS" UINT_LIT
-              | "DOMAIN_ID" UINT_LIT
-              | "AGENT_IP" ip_addr
-              | "SUB_AGENT_ID" UINT_LIT
-              | "UPTIME" UINT_LIT
-              | "SAMPLES" UINT_LIT
-              | "RRQ" | "WRQ"
-              | "FILENAME" str_or_ident
-              | "BLOCK" UINT_LIT
-              | "ERRCODE" UINT_LIT
-              | "ERRMSG" str_or_ident
-              | "CMD" (UINT_LIT | str_or_ident)
-              | "ARG" str_or_ident
-              | "BANNER" str_or_ident
-              | "KEXINIT" | "NEWKEYS"
-              | "MSG_CODE" UINT_LIT
-              | "WILL" UINT_LIT
-              | "WONT" UINT_LIT
-              | "DO" UINT_LIT
-              | "DONT" UINT_LIT
-              | "OPTION" UINT_LIT
-              | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
-              | "URI" str_or_ident
-              | "HOST_HDR" str_or_ident
-              | "USER_AGENT" str_or_ident
-              | "CONTENT_TYPE" str_or_ident
-              | "STATUS" (UINT_LIT | str_or_ident)
-              | "REASON" str_or_ident
-              | "HEADER" STRING_LIT STRING_LIT
-              | "BODY" str_or_ident
-              | "PREFACE" | "SETTINGS" | "HEADERS" | "WINDOW_UPDATE" | "PING" | "GOAWAY"
-              | "STREAM_ID" UINT_LIT
-              | "SERVICE" str_or_ident
-              | "METHOD" str_or_ident
-              | "GRPC_STATUS" UINT_LIT
-              | "OPCODE" (UINT_LIT | str_or_ident)
-              | "TEXT" | "BINARY" | "PONG" | "CLOSE"
-              | "FIN_BIT" UINT_LIT
-              | "MASK_KEY" UINT_LIT
-              | "CLIENT_HELLO" | "SERVER_HELLO" | "CERTIFICATE" | "FINISHED" | "APP_DATA" | "ALERT"
-              | "RECORD_VERSION" UINT_LIT
-              | "HANDSHAKE_VERSION" UINT_LIT
-              | "SNI" str_or_ident
-              | "CIPHERSUITE" UINT_LIT
-              | "ALPN" str_or_ident
-              | "INITIAL" | "ZERO_RTT" | "HANDSHAKE" | "RETRY" | "SHORT"
-              | "DCID" (UINT_LIT | str_or_ident)
-              | "SCID" (UINT_LIT | str_or_ident)
-              | "TOKEN" (UINT_LIT | str_or_ident)
-              | "PKT_NUM" UINT_LIT
-              | "BINDING_REQUEST" | "BINDING_RESPONSE" | "BINDING_ERROR"
-              | "XOR_MAPPED_ADDR" ip_addr UINT_LIT?
-              | "SOFTWARE" str_or_ident
-              | "INVITE" | "BYE" | "CANCEL"
-              | "FROM" str_or_ident
-              | "TO" str_or_ident
-              | "CALL_ID" str_or_ident
-              | "CSEQ" UINT_LIT
-              | "VIA" str_or_ident
-              | "CONTACT" str_or_ident
-              | "PT" UINT_LIT
-              | "TIMESTAMP" UINT_LIT
-              | "SSRC" UINT_LIT
-              | "MARKER" UINT_LIT
-              | "DESCRIBE" | "SETUP" | "PLAY" | "TEARDOWN"
-              | "TRANSPORT_HDR" str_or_ident
-              | "SESSION" str_or_ident
-              | "EHLO" str_or_ident?
-              | "HELO" str_or_ident?
-              | "MAIL_FROM" str_or_ident?
-              | "RCPT_TO" str_or_ident?
-              | "QUIT"
-              | "PARAM" str_or_ident
-              | "OK" | "ERR"
-              | "AS_REQ" | "AS_REP" | "TGS_REQ" | "TGS_REP" | "KRB_ERROR"
-              | "REALM" str_or_ident
-              | "CNAME" str_or_ident
-              | "SNAME" str_or_ident
-              | "ETYPE" UINT_LIT
-              | "BIND_REQ" | "BIND_RES" | "SEARCH_REQ" | "SEARCH_ENTRY" | "SEARCH_DONE" | "UNBIND_REQ"
-              | "BASE_DN" str_or_ident
-              | "FILTER" str_or_ident
-              | "RESULT_CODE" UINT_LIT
-              | "NEGOTIATE" | "SESSION_SETUP" | "TREE_CONNECT" | "CREATE" | "TREE_DISCONNECT"
-              | "TREE_ID" UINT_LIT
-              | "SHARE" str_or_ident
-              | "VERS" UINT_LIT
-              | "PROC" (UINT_LIT | str_or_ident)
-              | "PATH" str_or_ident
-              | "COMPOUND"
-              | "ARGS" str_or_ident
-              | "REPLY_TYPE" str_or_ident
-              | "KEY" (UINT_LIT | str_or_ident)
-              | "VALUE" (UINT_LIT | str_or_ident)
-              | "EXPTIME" UINT_LIT
-              | "OPAQUE" UINT_LIT
-              | "CAS" UINT_LIT
-              | "GREETING" | "LOGIN" | "EOF"
-              | "SQL" str_or_ident
-              | "SERVER_VERSION" str_or_ident
-              | "DB" str_or_ident
-              | "STARTUP" | "READY_FOR_QUERY" | "COMMAND_COMPLETE" | "ERROR_RESPONSE" | "AUTH_OK"
-              | "CONNECT" | "CONNACK" | "PUBLISH" | "PUBACK" | "SUBSCRIBE" | "SUBACK"
-              | "PINGREQ" | "PINGRESP" | "DISCONNECT"
-              | "CLIENT_ID" str_or_ident
-              | "TOPIC" str_or_ident
-              | "QOS" UINT_LIT
-              | "RETAIN" UINT_LIT?
-              | "PKT_ID" UINT_LIT
-              | "RETURN_CODE" UINT_LIT
-              | "CON" | "NON" | "CHANGED" | "CREATED" | "NOT_FOUND"
-              | "URI_PATH" str_or_ident
-              | "CONTENT_FORMAT" UINT_LIT
-              | "PROTOCOL_HEADER" | "CONNECTION_START" | "CHANNEL_OPEN" | "BASIC_PUBLISH" | "BASIC_DELIVER"
-              | "CHANNEL" UINT_LIT
-              | "ROUTING_KEY" str_or_ident
-              | "MSEARCH" | "NOTIFY"
-              | "MAN" str_or_ident
-              | "MX" UINT_LIT
-              | "ST" str_or_ident
-              | "NT" str_or_ident
-              | "NTS" str_or_ident
-              | "USN" str_or_ident
-              | "LOCATION" str_or_ident
-              | "REGISTRAR" str_or_ident
-              | "PROTO_ID" UINT_LIT
-              | "UNITID" UINT_LIT
-              | "FUNC" (UINT_LIT | str_or_ident)
-              | "READ_COILS" | "READ_DISCRETE_INPUTS" | "READ_HOLDING_REGISTERS" | "READ_INPUT_REGISTERS"
-              | "WRITE_SINGLE_COIL" | "WRITE_SINGLE_REGISTER" | "WRITE_MULTIPLE_REGISTERS"
-              | "ADDR" UINT_LIT
-              | "COUNT" UINT_LIT
-              | "IS_RESPONSE"
-              | "WHO_IS" | "I_AM" | "READ_PROPERTY" | "WRITE_PROPERTY"
-              | "INVOKE_ID" UINT_LIT
-              | "OBJECT_TYPE" UINT_LIT
-              | "OBJECT_INSTANCE" UINT_LIT
-              | "PROPERTY_ID" UINT_LIT
-              | "CONFIRM" | "SELECT" | "OPERATE" | "DIRECT_OPERATE" | "UNSOLICITED_RESPONSE"
-              | "VARIATION" UINT_LIT
-              | "CRC" UINT_LIT
-              | "SRC" UINT_LIT
-              | "DST" UINT_LIT
-              | "ROSCTR" (UINT_LIT | str_or_ident)
-              | "PDU_REF" UINT_LIT
-              | "SETUP_COMM" | "READ_VAR" | "WRITE_VAR" | "PLC_CONTROL"
-              | "AREA" (UINT_LIT | str_or_ident)
-              | "DB_NUM" UINT_LIT
-              | "OFFSET" UINT_LIT
-              | "LIST_SERVICES" | "LIST_IDENTITY" | "LIST_INTERFACES"
-              | "REGISTER_SESSION" | "UNREGISTER_SESSION" | "SEND_RR_DATA" | "SEND_UNIT_DATA"
-              | "SESSION_HANDLE" UINT_LIT
-              | "CONTEXT" (UINT_LIT | str_or_ident)
-              | "CIP_SERVICE" UINT_LIT
-              | "CIP_CLASS" UINT_LIT
-              | "CIP_INSTANCE" UINT_LIT
-              | "CIP_ATTR" UINT_LIT
-              | "CHUNK_TYPE" str_or_ident
-              | "SECURE_CHANNEL_ID" UINT_LIT
-              | "TOKEN_ID" UINT_LIT
-              | "SEQ_NUM" UINT_LIT
-              | "ENDPOINT_URL" str_or_ident
-              | "NODE_ID" str_or_ident
+l7_proto_field: "txid" (UINT_LIT | str_or_ident)
+              | "qname" str_or_ident
+              | "qtype" (UINT_LIT | str_or_ident)
+              | "rdata" str_or_ident
+              | "rcode" UINT_LIT
+              | "ansttl" UINT_LIT
+              | "discover" | "solicit" | "offer" | "advertise" | "release"
+              | "ciaddr" ip_addr
+              | "yiaddr" ip_addr
+              | "siaddr" ip_addr
+              | "chaddr" MAC_ADDR
+              | "hostname" str_or_ident
+              | "dnsserver" ip_addr
+              | "router" ip_addr
+              | "subnetmask" ip_addr
+              | "leasetime" UINT_LIT
+              | "li" UINT_LIT
+              | "vn" UINT_LIT
+              | "mode" (UINT_LIT | str_or_ident)
+              | "stratum" UINT_LIT
+              | "poll" UINT_LIT
+              | "precision" INT_LIT
+              | "refid" str_or_ident
+              | "txtimestamp" UINT_LIT
+              | "msgtype" (UINT_LIT | str_or_ident)
+              | "sync" | "delayreq" | "followup" | "delayresp" | "announce"
+              | "domain" (UINT_LIT | str_or_ident)
+              | "seqid" UINT_LIT
+              | "clockid" (MAC_ADDR | str_or_ident)
+              | "accessrequest" | "accessaccept" | "accessreject"
+              | "accesschallenge" | "accountingrequest" | "accountingresponse"
+              | "nasip" ip_addr
+              | "servicetype" UINT_LIT
+              | "framedip" ip_addr
+              | "authen" | "author" | "acct"
+              | "sessionid" UINT_LIT
+              | "facility" UINT_LIT
+              | "severity" UINT_LIT
+              | "pri" UINT_LIT
+              | "app" str_or_ident
+              | "procid" str_or_ident
+              | "msg" str_or_ident
+              | "srcip" ip_addr
+              | "dstip" ip_addr
+              | "proto" UINT_LIT
+              | "packets" UINT_LIT
+              | "octets" UINT_LIT
+              | "domainid" UINT_LIT
+              | "agentip" ip_addr
+              | "subagentid" UINT_LIT
+              | "uptime" UINT_LIT
+              | "samples" UINT_LIT
+              | "rrq" | "wrq" | "error"
+              | "filename" str_or_ident
+              | "block" UINT_LIT
+              | "errcode" UINT_LIT
+              | "errmsg" str_or_ident
+              | "cmd" (UINT_LIT | str_or_ident)
+              | "arg" str_or_ident
+              | "banner" str_or_ident
+              | "kexinit" | "newkeys"
+              | "msgcode" UINT_LIT
+              | "will" UINT_LIT
+              | "wont" UINT_LIT
+              | "do" UINT_LIT
+              | "dont" UINT_LIT
+              | "option" UINT_LIT
+              | "post" | "put" | "delete" | "head" | "options" | "patch"
+              | "uri" str_or_ident
+              | "hosthdr" str_or_ident
+              | "useragent" str_or_ident
+              | "contenttype" str_or_ident
+              | "status" (UINT_LIT | str_or_ident)
+              | "reason" str_or_ident
+              | "header" STRING_LIT STRING_LIT
+              | "body" str_or_ident
+              | "preface" | "settings" | "headers" | "windowupdate" | "ping" | "goaway"
+              | "streamid" UINT_LIT
+              | "service" str_or_ident
+              | "method" str_or_ident
+              | "grpcstatus" UINT_LIT
+              | "opcode" (UINT_LIT | str_or_ident)
+              | "text" | "binary" | "pong" | "close"
+              | "finbit" UINT_LIT
+              | "maskkey" UINT_LIT
+              | "clienthello" | "serverhello" | "certificate" | "finished" | "appdata" | "alert"
+              | "recordversion" UINT_LIT
+              | "handshakeversion" UINT_LIT
+              | "sni" str_or_ident
+              | "ciphersuite" UINT_LIT
+              | "alpn" str_or_ident
+              | "initial" | "zerortt" | "handshake" | "retry" | "short"
+              | "dcid" (UINT_LIT | str_or_ident)
+              | "scid" (UINT_LIT | str_or_ident)
+              | "token" (UINT_LIT | str_or_ident)
+              | "pktnum" UINT_LIT
+              | "bindingrequest" | "bindingresponse" | "bindingerror"
+              | "xormappedaddr" ip_addr UINT_LIT?
+              | "software" str_or_ident
+              | "invite" | "bye" | "cancel"
+              | "from" str_or_ident
+              | "to" str_or_ident
+              | "callid" str_or_ident
+              | "cseq" UINT_LIT
+              | "via" str_or_ident
+              | "contact" str_or_ident
+              | "pt" UINT_LIT
+              | "timestamp" UINT_LIT
+              | "ssrc" UINT_LIT
+              | "marker" UINT_LIT
+              | "describe" | "setup" | "play" | "teardown"
+              | "transporthdr" str_or_ident
+              | "session" str_or_ident
+              | "ehlo" str_or_ident?
+              | "helo" str_or_ident?
+              | "mailfrom" str_or_ident?
+              | "rcptto" str_or_ident?
+              | "quit"
+              | "param" str_or_ident
+              | "ok" | "err"
+              | "asreq" | "asrep" | "tgsreq" | "tgsrep" | "krberror"
+              | "realm" str_or_ident
+              | "cname" str_or_ident
+              | "sname" str_or_ident
+              | "etype" UINT_LIT
+              | "bindreq" | "bindres" | "searchreq" | "searchentry" | "searchdone" | "unbindreq"
+              | "basedn" str_or_ident
+              | "filter" str_or_ident
+              | "resultcode" UINT_LIT
+              | "negotiate" | "sessionsetup" | "treeconnect" | "create" | "treedisconnect"
+              | "treeid" UINT_LIT
+              | "share" str_or_ident
+              | "vers" UINT_LIT
+              | "proc" (UINT_LIT | str_or_ident)
+              | "path" str_or_ident
+              | "compound"
+              | "args" str_or_ident
+              | "replytype" str_or_ident
+              | "key" (UINT_LIT | str_or_ident)
+              | "value" (UINT_LIT | str_or_ident)
+              | "exptime" UINT_LIT
+              | "opaque" UINT_LIT
+              | "cas" UINT_LIT
+              | "greeting" | "login" | "eof"
+              | "sql" str_or_ident
+              | "serverversion" str_or_ident
+              | "db" str_or_ident
+              | "startup" | "readyforquery" | "commandcomplete" | "errorresponse" | "authok"
+              | "connect" | "connack" | "publish" | "puback" | "subscribe" | "suback"
+              | "pingreq" | "pingresp" | "disconnect"
+              | "clientid" str_or_ident
+              | "topic" str_or_ident
+              | "qos" UINT_LIT
+              | "retain" UINT_LIT?
+              | "pkttype" (UINT_LIT | str_or_ident)
+              | "pktid" UINT_LIT
+              | "returncode" UINT_LIT
+              | "con" | "non" | "changed" | "created" | "notfound"
+              | "uripath" str_or_ident
+              | "contentformat" UINT_LIT
+              | "protocolheader" | "connectionstart" | "channelopen" | "basicpublish" | "basicdeliver"
+              | "channel" UINT_LIT
+              | "routingkey" str_or_ident
+              | "msearch" | "notify"
+              | "man" str_or_ident
+              | "mx" UINT_LIT
+              | "st" str_or_ident
+              | "nt" str_or_ident
+              | "nts" str_or_ident
+              | "usn" str_or_ident
+              | "location" str_or_ident
+              | "registrar" str_or_ident
+              | "protoid" UINT_LIT
+              | "unitid" UINT_LIT
+              | "func" (UINT_LIT | str_or_ident)
+              | "readcoils" | "readdiscreteinputs" | "readholdingregisters" | "readinputregisters"
+              | "writesinglecoil" | "writesingleregister" | "writemultipleregisters"
+              | "addr" UINT_LIT
+              | "count" UINT_LIT
+              | "isresponse"
+              | "whois" | "iam" | "readproperty" | "writeproperty"
+              | "invokeid" UINT_LIT
+              | "objecttype" UINT_LIT
+              | "objectinstance" UINT_LIT
+              | "propertyid" UINT_LIT
+              | "confirm" | "read" | "write" | "select" | "operate" | "directoperate" | "unsolicitedresponse"
+              | "variation" UINT_LIT
+              | "crc" UINT_LIT
+              | "src" UINT_LIT
+              | "dst" UINT_LIT
+              | "rosctr" (UINT_LIT | str_or_ident)
+              | "pduref" UINT_LIT
+              | "setupcomm" | "readvar" | "writevar" | "plccontrol"
+              | "area" (UINT_LIT | str_or_ident)
+              | "dbnum" UINT_LIT
+              | "offset" UINT_LIT
+              | "nop" | "listservices" | "listidentity" | "listinterfaces"
+              | "registersession" | "unregistersession" | "sendrrdata" | "sendunitdata"
+              | "sessionhandle" UINT_LIT
+              | "context" (UINT_LIT | str_or_ident)
+              | "cipservice" UINT_LIT
+              | "cipclass" UINT_LIT
+              | "cipinstance" UINT_LIT
+              | "cipattr" UINT_LIT
+              | "chunktype" str_or_ident
+              | "securechannelid" UINT_LIT
+              | "tokenid" UINT_LIT
+              | "seqnum" UINT_LIT
+              | "endpointurl" str_or_ident
+              | "nodeid" str_or_ident
 
 // 12. Lexical Terminals
+ident: IDENT | contextual_keyword
 str_or_ident: STRING_LIT | IDENT | contextual_keyword
 
-contextual_keyword: "CNAME" | "TEXT" | "BINARY" | "PING" | "PONG" | "CLOSE"
-                  | "INIT" | "INIT_ACK" | "SACK" | "HEARTBEAT" | "HEARTBEAT_ACK"
-                  | "ABORT" | "SHUTDOWN" | "COOKIE_ECHO" | "COOKIE_ACK"
-                  | "DATA" | "ACK" | "SYN" | "FIN" | "RST" | "PSH" | "URG"
-                  | "SYNC" | "REPORT" | "TRAP" | "INFORM" | "GET" | "GETNEXT" | "GETBULK" | "SET" | "RESPONSE"
-                  | "REQUEST" | "REPLY" | "QUERY" | "NOTIFY" | "HELLO" | "OPEN" | "UPDATE" | "KEEPALIVE"
-                  | "CONNECT" | "CONNACK" | "PUBLISH" | "SUBSCRIBE" | "DISCONNECT"
-                  | "START" | "LOGOFF" | "KEY" | "EAP_PACKET" | "AUTHEN" | "AUTHOR" | "ACCT" | "AUTH"
-                  | "SA_INIT" | "CREATE_CHILD_SA" | "INFORMATIONAL"
-                  | "NEGOTIATE" | "SESSION_SETUP" | "TREE_CONNECT" | "CREATE" | "TREE_DISCONNECT"
-                  | "LIST_SERVICES" | "LIST_IDENTITY" | "LIST_INTERFACES" | "REGISTER_SESSION" | "UNREGISTER_SESSION" | "SEND_RR_DATA" | "SEND_UNIT_DATA"
-                  | "READ_COILS" | "READ_DISCRETE_INPUTS" | "READ_HOLDING_REGISTERS" | "READ_INPUT_REGISTERS"
-                  | "WRITE_SINGLE_COIL" | "WRITE_SINGLE_REGISTER" | "WRITE_MULTIPLE_REGISTERS"
-                  | "CONFIRM" | "SELECT" | "OPERATE" | "DIRECT_OPERATE" | "UNSOLICITED_RESPONSE"
-                  | "SETUP_COMM" | "READ_VAR" | "WRITE_VAR" | "PLC_CONTROL"
-                  | "OK" | "ERR" | "QUIT" | "EHLO" | "HELO" | "DB"
+contextual_keyword: "abort" | "accessaccept" | "accesschallenge" | "accessreject"
+                  | "accessrequest" | "accountingrequest" | "accountingresponse" | "acct"
+                  | "ack" | "acknum" | "actorkey" | "actorport" | "actorstate" | "actorsys"
+                  | "addr" | "advertise" | "advint" | "aes" | "agentip" | "ah" | "alert"
+                  | "alpn" | "amqp" | "announce" | "ansttl" | "app" | "appdata" | "area"
+                  | "areaid" | "arg" | "args" | "arp" | "asn" | "asrep" | "asreq" | "auth"
+                  | "authen" | "authok" | "author" | "bacnet" | "banner" | "basedn"
+                  | "basicdeliver" | "basicpublish" | "bfd" | "bgp" | "bgpid" | "binary"
+                  | "bindingerror" | "bindingrequest" | "bindingresponse" | "bindreq"
+                  | "bindres" | "block" | "body" | "bos" | "bridgeid" | "bye" | "callid"
+                  | "cancel" | "cas" | "certificate" | "chaddr" | "changed" | "channel"
+                  | "channelopen" | "chassisid" | "checksum" | "chunk" | "chunktype" | "ciaddr"
+                  | "cipattr" | "cipclass" | "ciphersuite" | "cipinstance" | "cipservice"
+                  | "clienthello" | "clientid" | "clockid" | "close" | "cmd" | "cname" | "coap"
+                  | "code" | "command" | "commandcomplete" | "community" | "compound" | "con"
+                  | "confirm" | "connack" | "connect" | "connectionstart" | "contact"
+                  | "contentformat" | "contenttype" | "context" | "contextname" | "cookie"
+                  | "cookieack" | "cookieecho" | "cost" | "count" | "counter" | "counter32"
+                  | "counter64" | "crc" | "create" | "createchildsa" | "created" | "cseq"
+                  | "cwr" | "data" | "db" | "dbd" | "dbnum" | "dcid" | "deadinterval" | "dei"
+                  | "delayreq" | "delayresp" | "delete" | "des" | "describe" | "destunreach"
+                  | "df" | "dhcp" | "diag" | "directoperate" | "disconnect" | "discover"
+                  | "dnp3" | "dns" | "dnsserver" | "do" | "domain" | "domainid" | "done"
+                  | "dont" | "dpid" | "drpriority" | "dscp" | "dst" | "dstip" | "dstmac"
+                  | "dstport" | "eapcode" | "eapid" | "eapmethod" | "eapol" | "eappacket"
+                  | "ece" | "echoreply" | "echoreq" | "echorequest" | "ecn" | "ehlo"
+                  | "endpointurl" | "engineboots" | "engineid" | "enginetime" | "enterprise"
+                  | "eof" | "err" | "errcode" | "errmsg" | "error" | "errorresponse" | "esp"
+                  | "ethernetip" | "ethertype" | "etype" | "exchange" | "exp" | "exptime"
+                  | "facility" | "featuresreply" | "featuresreq" | "filename" | "filter" | "fin"
+                  | "finbit" | "finished" | "flags" | "flowlabel" | "flowmod" | "followup"
+                  | "forwarddelay" | "fragoffset" | "framedip" | "from" | "ftp" | "func"
+                  | "garp" | "gateway" | "gauge32" | "geneve" | "gentrap" | "get" | "getbulk"
+                  | "getnext" | "goaway" | "gratuitous" | "gre" | "greeting" | "grekey"
+                  | "greproto" | "greseq" | "group" | "grpc" | "grpcstatus" | "handshake"
+                  | "handshakeversion" | "head" | "header" | "headers" | "heartbeat"
+                  | "heartbeatack" | "hello" | "hellointerval" | "hellotime" | "helo"
+                  | "hexpayload" | "holdtime" | "hosthdr" | "hostname" | "hsrp" | "http"
+                  | "http2" | "iam" | "icmp" | "icv" | "id" | "identity" | "igmp" | "ikev2"
+                  | "imap" | "inform" | "informational" | "init" | "initack" | "initial"
+                  | "initiation" | "initiatorspi" | "innervlan" | "int" | "invite" | "invokeid"
+                  | "ip" | "ipfix" | "ipid" | "ipsec" | "ipval" | "isresponse" | "iv"
+                  | "joinprune" | "keepalive" | "kerberos" | "kexinit" | "key" | "krberror"
+                  | "label" | "lacp" | "ldap" | "leasetime" | "leave" | "li" | "listidentity"
+                  | "listinterfaces" | "listservices" | "lldp" | "location" | "login" | "logoff"
+                  | "lsack" | "lsr" | "lsu" | "m" | "mac" | "mailfrom" | "man" | "marker"
+                  | "maskkey" | "maxage" | "maxrepetitions" | "maxresp" | "maxrespdelay" | "md5"
+                  | "mdns" | "memcached" | "method" | "metric" | "mf" | "minrx" | "mintx"
+                  | "mld" | "modbus" | "mode" | "mpls" | "mplsttl" | "mqtt" | "ms" | "msearch"
+                  | "msg" | "msgcode" | "msgid" | "msgtype" | "mss" | "mult" | "multicastaddr"
+                  | "mx" | "mydisc" | "mysql" | "nasip" | "ndp" | "negotiate" | "neighboradvert"
+                  | "neighborsolicit" | "netflow" | "newkeys" | "nextheader" | "nexthop"
+                  | "nextpayload" | "nfs" | "nlri" | "nodeid" | "non" | "nonrepeaters" | "nop"
+                  | "notfound" | "notification" | "notify" | "ns" | "nt" | "ntp" | "nts"
+                  | "null" | "nullval" | "objectinstance" | "objecttype" | "octets" | "offer"
+                  | "offset" | "oid" | "oidval" | "ok" | "opaque" | "opcode" | "opcua" | "open"
+                  | "openflow" | "operate" | "optclass" | "option" | "options" | "opttype"
+                  | "ospf" | "packetin" | "packetout" | "packets" | "param" | "partnerkey"
+                  | "partnerport" | "partnerstate" | "partnersys" | "patch" | "path" | "payload"
+                  | "pcp" | "pduref" | "pim" | "ping" | "pingreq" | "pingresp" | "pktid"
+                  | "pktnum" | "pkttype" | "play" | "plccontrol" | "poll" | "pong" | "pop3"
+                  | "portid" | "post" | "postgres" | "ppid" | "precision" | "preface" | "prefix"
+                  | "pri" | "priority" | "priv" | "proc" | "procid" | "propertyid" | "proto"
+                  | "protocolheader" | "protocoltype" | "protoid" | "psh" | "pt" | "ptp"
+                  | "puback" | "publish" | "put" | "qinq" | "qname" | "qos" | "qtype" | "query"
+                  | "quic" | "quit" | "radius" | "rcode" | "rcptto" | "rdata" | "read"
+                  | "readcoils" | "readdiscreteinputs" | "readholdingregisters"
+                  | "readinputregisters" | "readproperty" | "readvar" | "readyforquery"
+                  | "realm" | "reason" | "receiver" | "recordversion" | "redirect" | "redis"
+                  | "refid" | "register" | "registersession" | "registrar" | "release" | "reply"
+                  | "replytype" | "report" | "reqid" | "request" | "responderspi" | "response"
+                  | "resultcode" | "retain" | "retry" | "returncode" | "rip" | "rootid"
+                  | "rosctr" | "router" | "routeradvert" | "routerid" | "routerlifetime"
+                  | "routersolicit" | "routingkey" | "rp" | "rrq" | "rst" | "rstp" | "rtp"
+                  | "rtsp" | "s" | "s7comm" | "sack" | "sackperm" | "sainit" | "samples"
+                  | "scid" | "sctp" | "searchdone" | "searchentry" | "searchreq"
+                  | "securechannelid" | "select" | "sender" | "senderip" | "sendermac"
+                  | "sendrrdata" | "sendunitdata" | "seq" | "seqid" | "seqnum" | "serverhello"
+                  | "serverversion" | "service" | "servicetype" | "session" | "sessionhandle"
+                  | "sessionid" | "sessionsetup" | "set" | "settings" | "setup" | "setupcomm"
+                  | "severity" | "sflow" | "sha" | "sha256" | "sha384" | "sha512" | "share"
+                  | "short" | "shutdown" | "shutdownack" | "siaddr" | "sip" | "slla" | "smb"
+                  | "smtp" | "sname" | "sni" | "snmp1" | "snmp2" | "snmp3" | "software"
+                  | "solicit" | "source" | "spa" | "spectrap" | "spi" | "sql" | "src" | "srcip"
+                  | "srcmac" | "srcport" | "ssdp" | "ssh" | "ssn" | "ssrc" | "st" | "start"
+                  | "startup" | "state" | "status" | "stp" | "stratum" | "stream" | "streamid"
+                  | "string" | "stun" | "suback" | "subagentid" | "subnetmask" | "subscribe"
+                  | "syn" | "sync" | "sysdesc" | "syslog" | "sysname" | "sysuptime" | "tableid"
+                  | "tacacs" | "tag" | "target" | "targetip" | "targetmac" | "tc" | "tcp"
+                  | "teardown" | "telnet" | "text" | "tftp" | "tgsrep" | "tgsreq" | "tha"
+                  | "timeexceeded" | "timestamp" | "timeticks" | "tlla" | "tls" | "to" | "token"
+                  | "tokenid" | "topic" | "tpa" | "transport" | "transporthdr" | "trap"
+                  | "treeconnect" | "treedisconnect" | "treeid" | "tsecr" | "tsn" | "tsval"
+                  | "ttl" | "txid" | "txtimestamp" | "type" | "udp" | "unbindreq" | "unitid"
+                  | "unregistersession" | "unsolicitedresponse" | "update" | "uptime" | "urg"
+                  | "urgent" | "uri" | "uripath" | "us" | "user" | "useragent" | "usn" | "v1"
+                  | "v2" | "v3" | "value" | "varbind" | "variation" | "vers" | "version" | "via"
+                  | "vip" | "vlan" | "vn" | "vni" | "vnid" | "vrid" | "vrrp" | "vtag" | "vxlan"
+                  | "wait" | "websocket" | "whois" | "will" | "win" | "window" | "windowupdate"
+                  | "wireguard" | "wont" | "write" | "writemultipleregisters" | "writeproperty"
+                  | "writesinglecoil" | "writesingleregister" | "writevar" | "wrq" | "wscale"
+                  | "xid" | "xormappedaddr" | "yiaddr" | "yourdisc" | "zerortt"
+
+duration_lit: DURATION_LIT | UINT_LIT time_unit
+time_unit: "ns" | "us" | "ms" | "s" | "m"
 
 ip_addr: IPV4_ADDR | IPV6_ADDR
 oid_lit: OID_LIT | STRING_LIT
 
-IDENT: /[a-zA-Z_][a-zA-Z0-9_]*/
+IDENT: /[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*/
 UINT_LIT: /0[xX][0-9a-fA-F]+|[0-9]+/
 INT_LIT: /-?[0-9]+|0[xX][0-9a-fA-F]+/
 DURATION_LIT: /(?:0[xX][0-9a-fA-F]+|[0-9]+)(?:ns|us|ms|s|m)/

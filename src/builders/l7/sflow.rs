@@ -5,7 +5,7 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b SFLOW [AGENT_IP <ip>] [SUB_AGENT_ID <u32>] [SEQ <u32>] [UPTIME <u32>] [SAMPLES <u32>]`
+//! `a -> b sflow [agentip <ip>] [subagentid <u32>] [seq <u32>] [uptime <u32>] [samples <u32>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 use core::net::IpAddr;
 
 /// Builds an sFlow v5 network monitoring datagram payload.
-/// Syntax mapping: `SFLOW [AGENT_IP <ip>] [SUB_AGENT_ID <u32>] [SEQ <u32>] [UPTIME <u32>] [SAMPLES <u32>]`
+/// Syntax mapping: `sflow [agentip <ip>] [subagentid <u32>] [seq <u32>] [uptime <u32>] [samples <u32>]`
 #[doc(alias = "SFLOW")]
 #[doc(alias = "RFC3176")]
 #[doc(alias = "SFLOWV5")]

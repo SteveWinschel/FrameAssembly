@@ -1,26 +1,26 @@
 // PROMPT: PostgreSQL client upgrading database connection to TLS on TCP port 5432 with ALPN postgresql.
-// TOKENS: HOST, IP, FLOW, TLS, CLIENT_HELLO, SNI, ALPN, SRCPORT, DSTPORT, WAIT, SERVER_HELLO, CIPHERSUITE, CERTIFICATE, FINISHED, APP_DATA, COMPILE
+// TOKENS: host, ip, flow, s, tls, clienthello, sni, alpn, srcport, dstport, wait, ms, serverhello, ciphersuite, certificate, finished, appdata, compile
 
 // INSTRUCTION: Define backend microservice database client host.
-HOST db_worker {
-    IP 10.80.10.42
+host db_worker {
+    ip 10.80.10.42
 }
 
 // INSTRUCTION: Define primary PostgreSQL database cluster server.
-HOST pg_primary {
-    IP 10.80.10.1
+host pg_primary {
+    ip 10.80.10.1
 }
 
 // INSTRUCTION: Define TLS handshake and encrypted SQL query over port 5432.
-FLOW tls_postgres_5432(c, s) {
-    c -> s TLS CLIENT_HELLO SNI "pg-primary.db.internal" ALPN "postgresql" SRCPORT 54320 DSTPORT 5432 WAIT 2ms
-    c <- s TLS SERVER_HELLO CIPHERSUITE 0x1302 ALPN "postgresql" SRCPORT 5432 DSTPORT 54320 WAIT 2ms
-    c <- s TLS CERTIFICATE SRCPORT 5432 DSTPORT 54320 WAIT 2ms
-    c -> s TLS FINISHED SRCPORT 54320 DSTPORT 5432 WAIT 2ms
-    c -> s TLS APP_DATA SRCPORT 54320 DSTPORT 5432
+flow tls_postgres_5432(c, s) {
+    c -> s tls clienthello sni "pg-primary.db.internal" alpn "postgresql" srcport 54320 dstport 5432 wait 2ms
+    c <- s tls serverhello ciphersuite 0x1302 alpn "postgresql" srcport 5432 dstport 54320 wait 2ms
+    c <- s tls certificate srcport 5432 dstport 54320 wait 2ms
+    c -> s tls finished srcport 54320 dstport 5432 wait 2ms
+    c -> s tls appdata srcport 54320 dstport 5432
 }
 
 // INSTRUCTION: Compile the PostgreSQL TLS port 5432 flow.
-COMPILE {
+compile {
     tls_postgres_5432(db_worker, pg_primary)
 }

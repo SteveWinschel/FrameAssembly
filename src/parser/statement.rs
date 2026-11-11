@@ -1,10 +1,11 @@
 //! Frame statement parser and L2/L3/L4/SNMP field state accumulator.
 //!
 //! This module implements [`FrameBuilder`] and [`parse_frame_statement`], which parse a single
-//! directional packet transmission statement (`<caller> -> <callee> <PROTOCOL> [modifiers...]`)
-//! inside a `FLOW` block. It maintains protocol-scoped field dispatch via [`dispatch_protocol_field`]
-//! so that shared modifier tokens resolve cleanly to the active protocol, tracks duplicate modifiers
-//! for semantic validation, and constructs the final [`FrameStatement`] AST node.
+//! directional packet transmission statement (`<caller> -> <callee> <protocol> [modifiers...]`)
+//! inside a `flow` or `compile` block. It maintains protocol-scoped field dispatch via
+//! [`parse_protocol_keyword`] and [`dispatch_protocol_field`] so that shared modifier tokens
+//! resolve cleanly to the active protocol, tracks duplicate modifiers for semantic validation,
+//! and constructs the final [`FrameStatement`] AST node.
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -19,7 +20,9 @@ use winnow::prelude::*;
 use crate::ast::*;
 use crate::lexer::Token;
 
-use super::fields::{dispatch_protocol_field, parse_fallback_field, parse_universal_field};
+use super::fields::{
+    dispatch_protocol_field, parse_fallback_field, parse_protocol_keyword, parse_universal_field,
+};
 use super::{ParsedField, Stream, parse_direction, parse_spanned_ident};
 
 /// Accumulator state for constructing a [`FrameStatement`] from parsed modifier fields.
@@ -334,6 +337,8 @@ pub(crate) struct FrameBuilder<'a> {
     pub(crate) hsrp_auth: Option<&'a str>,
     /// HSRP hello time.
     pub(crate) hsrp_hellotime: Option<u8>,
+    /// Raw `hellotime` value and span for HSRP semantic range validation (`0..=255`).
+    pub(crate) raw_hellotime: Option<(u16, (usize, usize))>,
     /// PIM Hello message flag.
     pub(crate) pim_is_hello: bool,
     /// PIM Join/Prune message flag.
@@ -634,6 +639,7 @@ impl<'a> FrameBuilder<'a> {
             hsrp_group: None,
             hsrp_auth: None,
             hsrp_hellotime: None,
+            raw_hellotime: None,
             pim_is_hello: false,
             pim_is_join_prune: false,
             pim_is_register: false,
@@ -727,19 +733,17 @@ pub(crate) fn parse_frame_statement<'i, 'a>(
     let mut current_protocol: Option<Protocol> = None;
 
     while !input.is_empty() {
-        // Stop if we reached the closing brace of the FLOW/COMPILE block or the start of the next statement
+        // Stop if we reached the closing brace of the flow/compile block or the start of the next statement
         if matches!(input[0].0, Token::RBrace)
             || (input.len() >= 2 && matches!(input[1].0, Token::RightArrow | Token::LeftArrow))
             || (input.len() >= 2 && matches!(input[1].0, Token::LParen))
-            || (matches!(input[0].0, Token::Loop)
-                && input.get(1).is_some_and(|t| matches!(t.0, Token::Number(_))))
         {
             break;
         }
 
         let saved = *input;
 
-        // 1. Try universal modifiers (WAIT, PAYLOAD, HEXPAYLOAD, L2/L3/L4 header fields)
+        // 1. Try universal modifiers (wait, payload, hexpayload, L2/L3/L4 header fields)
         match parse_universal_field(input, current_protocol.as_ref()) {
             Ok(field) => {
                 if let ParsedField::Protocol(ref p, _) = field {
@@ -754,9 +758,25 @@ pub(crate) fn parse_frame_statement<'i, 'a>(
             }
         }
 
-        // 2. If a protocol has already been identified, try its protocol-specific field parser first
+        // 2. If a protocol has already been identified, try its protocol-specific field parser first;
+        //    otherwise try explicit protocol keywords before falling back across all protocol fields
+        //    (preventing `bacnet` `whois` from shadowing the `whois` protocol keyword).
         if let Some(ref proto) = current_protocol {
             match dispatch_protocol_field(proto, input) {
+                Ok(field) => {
+                    if let ParsedField::Protocol(ref p, _) = field {
+                        current_protocol = Some(p.clone());
+                    }
+                    parsed_fields.push(field);
+                    continue;
+                }
+                Err(ErrMode::Cut(e)) => return Err(ErrMode::Cut(e)),
+                Err(_) => {
+                    *input = saved;
+                }
+            }
+        } else {
+            match parse_protocol_keyword(input) {
                 Ok(field) => {
                     if let ParsedField::Protocol(ref p, _) = field {
                         current_protocol = Some(p.clone());

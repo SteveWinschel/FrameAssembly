@@ -1,19 +1,19 @@
 // PROMPT: BACnet/IP Broadcast Management Device (BBMD) traffic across MPLS backbone with DSCP CS6.
-// TOKENS: HOST, IP, FLOW, BACNET, WHO_IS, MPLS, EXP, BOS, MPLS_TTL, DSCP, TTL, I_AM, COMPILE
+// TOKENS: host, ip, flow, bacnet, whois, mpls, exp, bos, mplsttl, dscp, ttl, iam, compile
 
 // INSTRUCTION: Define Campus A BBMD router.
-HOST bbmd_campus_a { IP 172.25.1.1 }
+host bbmd_campus_a { ip 172.25.1.1 }
 
 // INSTRUCTION: Define Campus B BBMD router.
-HOST bbmd_campus_b { IP 172.25.2.1 }
+host bbmd_campus_b { ip 172.25.2.1 }
 
 // INSTRUCTION: Forward BACnet Who-Is and I-Am across MPLS label 3050.
-FLOW bacnet_bbmd_mpls(a, b) {
-    a -> b BACNET WHO_IS MPLS 3050 EXP 6 BOS 1 MPLS_TTL 128 DSCP 48 TTL 64
-    a <- b BACNET I_AM MPLS 3050 EXP 6 BOS 1 MPLS_TTL 128 DSCP 48 TTL 64
+flow bacnet_bbmd_mpls(a, b) {
+    a -> b bacnet whois mpls 3050 exp 6 bos 1 mplsttl 128 dscp 48 ttl 64
+    a <- b bacnet iam mpls 3050 exp 6 bos 1 mplsttl 128 dscp 48 ttl 64
 }
 
 // INSTRUCTION: Compile the MPLS-encapsulated BACnet BBMD exchange.
-COMPILE {
+compile {
     bacnet_bbmd_mpls(bbmd_campus_a, bbmd_campus_b)
 }

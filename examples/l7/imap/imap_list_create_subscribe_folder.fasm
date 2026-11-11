@@ -1,23 +1,23 @@
 // PROMPT: IMAP folder management with LIST hierarchy discovery, CREATE new folder, and SUBSCRIBE.
-// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, COMPILE
+// TOKENS: host, ip, flow, s, imap, tag, cmd, arg, compile
 
 // INSTRUCTION: Define corporate email client.
-HOST corp_mail { IP 192.168.143.25 }
+host corp_mail { ip 192.168.143.25 }
 
 // INSTRUCTION: Define Exchange IMAP4 service.
-HOST exchange_imap { IP 192.168.143.5 }
+host exchange_imap { ip 192.168.143.5 }
 
 // INSTRUCTION: List mailbox hierarchy, create Archive/2026 folder, and subscribe to it.
-FLOW imap_folder_management(c, s) {
-    c -> s IMAP TAG "D01" CMD "LIST" ARG "\"\" \"*\""
-    c <- s IMAP TAG "D01" CMD "OK" ARG "LIST completed"
-    c -> s IMAP TAG "D02" CMD "CREATE" ARG "Archive/2026"
-    c <- s IMAP TAG "D02" CMD "OK" ARG "CREATE completed"
-    c -> s IMAP TAG "D03" CMD "SUBSCRIBE" ARG "Archive/2026"
-    c <- s IMAP TAG "D03" CMD "OK" ARG "SUBSCRIBE completed"
+flow imap_folder_management(c, s) {
+    c -> s imap tag "D01" cmd "LIST" arg "\"\" \"*\""
+    c <- s imap tag "D01" cmd "OK" arg "LIST completed"
+    c -> s imap tag "D02" cmd "CREATE" arg "Archive/2026"
+    c <- s imap tag "D02" cmd "OK" arg "CREATE completed"
+    c -> s imap tag "D03" cmd "SUBSCRIBE" arg "Archive/2026"
+    c <- s imap tag "D03" cmd "OK" arg "SUBSCRIBE completed"
 }
 
 // INSTRUCTION: Compile the IMAP folder LIST, CREATE, and SUBSCRIBE scenario.
-COMPILE {
+compile {
     imap_folder_management(corp_mail, exchange_imap)
 }

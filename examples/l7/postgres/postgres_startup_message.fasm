@@ -1,18 +1,18 @@
 // PROMPT: PostgreSQL frontend connection initialization StartupMessage.
-// TOKENS: HOST, IP, FLOW, POSTGRES, STARTUP, DB, COMPILE
+// TOKENS: host, ip, flow, s, postgres, startup, db, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.200 }
+host client { ip 192.168.1.200 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.168.1.1 }
+host server { ip 192.168.1.1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW pg_startup(c, s) {
-    c -> s POSTGRES STARTUP DB "analytics"
+flow pg_startup(c, s) {
+    c -> s postgres startup db "analytics"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     pg_startup(client, server)
 }

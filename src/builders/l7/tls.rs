@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b TLS [CLIENT_HELLO | SERVER_HELLO | CERTIFICATE | FINISHED | APP_DATA | ALERT] [RECORD_VERSION <u16>] [HANDSHAKE_VERSION <u16>] [SNI <str>] [CIPHERSUITE <u16>] [ALPN <str>]`
+//! `a -> b tls [clienthello | serverhello | certificate | finished | appdata | alert] [recordversion <u16>] [handshakeversion <u16>] [sni <str>] [ciphersuite <u16>] [alpn <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 8446 TLS 1.3 handshake record payload.
-/// Syntax mapping: `TLS [CLIENT_HELLO | SERVER_HELLO | CERTIFICATE | FINISHED | APP_DATA | ALERT] [RECORD_VERSION <u16>] [HANDSHAKE_VERSION <u16>] [SNI <str>] [CIPHERSUITE <u16>] [ALPN <str>]`
+/// Syntax mapping: `tls [clienthello | serverhello | certificate | finished | appdata | alert] [recordversion <u16>] [handshakeversion <u16>] [sni <str>] [ciphersuite <u16>] [alpn <str>]`
 #[doc(alias = "TLS")]
 #[doc(alias = "TLS13")]
 #[doc(alias = "RFC8446")]

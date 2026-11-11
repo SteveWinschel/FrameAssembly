@@ -1,28 +1,28 @@
 // PROMPT: Periodic 802.1X re-authentication timer expiry triggering a fresh EAP-Identity and EAP-TLS verification without dropping link.
-// TOKENS: HOST, IP, MAC, FLOW, EAPOL, VERSION, TYPE, EAP_PACKET, EAP_CODE, EAP_ID, EAP_METHOD, IDENTITY, WAIT, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, eapol, version, type, eappacket, eapcode, eapid, eapmethod, identity, wait, ms, payload, compile
 
 // INSTRUCTION: Define authenticated medical imaging workstation on hospital VLAN.
-HOST pacs_workstation {
-    IP 10.75.20.33
-    MAC 00:1b:21:75:14:21
+host pacs_workstation {
+    ip 10.75.20.33
+    mac 00:1b:21:75:14:21
 }
 
 // INSTRUCTION: Define hospital access switch enforcing 3600-second periodic 802.1X re-authentication.
-HOST hospital_edge_sw {
-    IP 10.75.20.1
-    MAC 00:1c:73:75:14:01
+host hospital_edge_sw {
+    ip 10.75.20.1
+    mac 00:1c:73:75:14:01
 }
 
 // INSTRUCTION: Define authenticator-initiated periodic re-authentication with high EAP_ID sequence numbers.
-FLOW eapol_periodic_reauth(ws, sw) {
-    ws <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 200 EAP_METHOD 1
-    ws -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 200 EAP_METHOD 1 IDENTITY "pacs-ws33.radiology.hosp" WAIT 1ms
-    ws <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 1 EAP_ID 201 EAP_METHOD 13 PAYLOAD "eap_tls_session_ticket_resumption" WAIT 2ms
-    ws -> sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 2 EAP_ID 201 EAP_METHOD 13 PAYLOAD "eap_tls_client_finished_verify" WAIT 2ms
-    ws <- sw EAPOL VERSION 2 TYPE EAP_PACKET EAP_CODE 3 EAP_ID 202 EAP_METHOD 13 WAIT 2ms
+flow eapol_periodic_reauth(ws, sw) {
+    ws <- sw eapol version 2 type eappacket eapcode 1 eapid 200 eapmethod 1
+    ws -> sw eapol version 2 type eappacket eapcode 2 eapid 200 eapmethod 1 identity "pacs-ws33.radiology.hosp" wait 1ms
+    ws <- sw eapol version 2 type eappacket eapcode 1 eapid 201 eapmethod 13 payload "eap_tls_session_ticket_resumption" wait 2ms
+    ws -> sw eapol version 2 type eappacket eapcode 2 eapid 201 eapmethod 13 payload "eap_tls_client_finished_verify" wait 2ms
+    ws <- sw eapol version 2 type eappacket eapcode 3 eapid 202 eapmethod 13 wait 2ms
 }
 
 // INSTRUCTION: Compile block executing periodic 802.1X session re-authentication.
-COMPILE {
+compile {
     eapol_periodic_reauth(pacs_workstation, hospital_edge_sw)
 }

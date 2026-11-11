@@ -1,9 +1,9 @@
-//! Address Resolution Protocol (`ARP`, RFC 826) field parser for FrameAssembly.
+//! Address Resolution Protocol (`arp`, RFC 826) field parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `ARP` frame statements and modifiers.
-//! It supports `REQUEST`, `REPLY`, and `GRATUITOUS` (`GARP`) operation codes alongside sender
-//! hardware address (`SHA`/`SENDERMAC`), sender protocol address (`SPA`/`SENDERIP`), target
-//! hardware address (`THA`/`TARGETMAC`), and target protocol address (`TPA`/`TARGETIP`) overrides.
+//! This module implements the winnow parser combinator for `arp` frame statements and modifiers.
+//! It supports `request`, `reply`, and `gratuitous` (`garp`) operation codes alongside sender
+//! hardware address (`sha`/`sendermac`), sender protocol address (`spa`/`senderip`), target
+//! hardware address (`tha`/`targetmac`), and target protocol address (`tpa`/`targetip`) overrides.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

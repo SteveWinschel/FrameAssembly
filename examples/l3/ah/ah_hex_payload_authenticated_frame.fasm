@@ -1,18 +1,18 @@
 // PROMPT: IPsec AH packet encapsulating raw binary HEXPAYLOAD and custom source/destination MACs.
-// TOKENS: HOST, IP, FLOW, AH, SPI, SEQ, NEXT_HEADER, SRCMAC, DSTMAC, HEXPAYLOAD, COMPILE
+// TOKENS: host, ip, flow, ah, spi, seq, nextheader, srcmac, dstmac, hexpayload, compile
 
 // INSTRUCTION: Define industrial security appliance A.
-HOST sec_appliance_a { IP 10.99.0.10 }
+host sec_appliance_a { ip 10.99.0.10 }
 
 // INSTRUCTION: Define industrial security appliance B.
-HOST sec_appliance_b { IP 10.99.0.20 }
+host sec_appliance_b { ip 10.99.0.20 }
 
 // INSTRUCTION: Define AH packet with explicit Ethernet MAC overrides and binary hex payload.
-FLOW ah_hex_payload_flow(a, b) {
-    a -> b AH SPI 20480 SEQ 7 NEXT_HEADER 17 SRCMAC 02:00:5e:10:00:01 DSTMAC 02:00:5e:10:00:02 HEXPAYLOAD "4500001c0001000040117cce"
+flow ah_hex_payload_flow(a, b) {
+    a -> b ah spi 20480 seq 7 nextheader 17 srcmac 02:00:5e:10:00:01 dstmac 02:00:5e:10:00:02 hexpayload "4500001c0001000040117cce"
 }
 
 // INSTRUCTION: Compile the binary hex payload AH flow.
-COMPILE {
+compile {
     ah_hex_payload_flow(sec_appliance_a, sec_appliance_b)
 }

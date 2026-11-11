@@ -1,18 +1,18 @@
 // PROMPT: Kerberos AS-REP reply from KDC returning encrypted Ticket Granting Ticket to client.
-// TOKENS: HOST, IP, FLOW, KERBEROS, AS_REP, REALM, CNAME, ETYPE, COMPILE
+// TOKENS: host, ip, flow, kerberos, asrep, realm, cname, etype, compile
 
 // INSTRUCTION: Define authenticating enterprise workstation.
-HOST corp_workstation { IP 10.20.1.80 }
+host corp_workstation { ip 10.20.1.80 }
 
 // INSTRUCTION: Define primary Key Distribution Center (KDC).
-HOST central_kdc { IP 10.20.1.5 }
+host central_kdc { ip 10.20.1.5 }
 
 // INSTRUCTION: Define AS-REP ticket issuance flow.
-FLOW krb_as_rep_flow(w, kdc) {
-    w <- kdc KERBEROS AS_REP REALM "ENTERPRISE.CORP" CNAME "jdoe" ETYPE 18
+flow krb_as_rep_flow(w, kdc) {
+    w <- kdc kerberos asrep realm "ENTERPRISE.CORP" cname "jdoe" etype 18
 }
 
 // INSTRUCTION: Compile Kerberos AS-REP scenario.
-COMPILE {
+compile {
     krb_as_rep_flow(corp_workstation, central_kdc)
 }

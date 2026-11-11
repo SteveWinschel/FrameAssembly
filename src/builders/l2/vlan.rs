@@ -1,13 +1,13 @@
 //! IEEE 802.1Q Virtual Local Area Network (VLAN) wire frame builder.
 //!
 //! Synthesizes standalone IEEE 802.1Q single-tagged Ethernet frames inserting a 32-bit VLAN
-//! tag (`TPID = 0x8100` followed by 16-bit Tag Control Information packing 3-bit `PCP`, 1-bit
-//! `DEI`, and 12-bit `VID`) between the Ethernet Source MAC address and the inner payload
+//! tag (`TPID = 0x8100` followed by 16-bit Tag Control Information packing 3-bit `pcp`, 1-bit
+//! `dei`, and 12-bit `VID`) between the Ethernet Source MAC address and the inner payload
 //! EtherType (`0x0800` / `0x86DD` for IP hosts, or `0x88B5` IEEE 802.1 Local Experimental
 //! EtherType for MAC-only Layer 2 hosts), followed by the encapsulated frame payload bytes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b VLAN <vid> [PCP <0..7>] [DEI <0|1>] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
+//! `a -> b vlan <vid> [pcp <0..7>] [dei <0|1>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

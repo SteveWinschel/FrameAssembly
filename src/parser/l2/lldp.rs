@@ -1,9 +1,9 @@
-//! IEEE 802.1AB Link Layer Discovery Protocol (`LLDP`) TLV parser for FrameAssembly.
+//! IEEE 802.1AB Link Layer Discovery Protocol (`lldp`) TLV parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `LLDP` neighbor discovery frames.
+//! This module implements the winnow parser combinator for `lldp` neighbor discovery frames.
 //! It parses mandatory and optional Type-Length-Value (TLV) attributes including Chassis ID
-//! (`CHASSIS_ID`), Port ID (`PORT_ID`), System Name (`SYSNAME`), and System Description
-//! (`SYSDESC`) so the backend builder can serialize standards-compliant LLDP Data Units.
+//! (`chassisid`), Port ID (`portid`), System Name (`sysname`), and System Description
+//! (`sysdesc`) so the backend builder can serialize standards-compliant LLDP Data Units.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

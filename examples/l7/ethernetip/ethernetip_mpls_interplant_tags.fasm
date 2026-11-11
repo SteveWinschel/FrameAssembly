@@ -1,19 +1,19 @@
 // PROMPT: Inter-plant EtherNet/IP CIP Produced/Consumed tag exchange transported over MPLS.
-// TOKENS: HOST, IP, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, MPLS, EXP, BOS, MPLS_TTL, PAYLOAD, STATUS, COMPILE
+// TOKENS: host, ip, flow, ethernetip, cmd, sessionhandle, cipservice, cipclass, cipinstance, cipattr, mpls, exp, bos, mplsttl, payload, status, compile
 
 // INSTRUCTION: Define Plant A assembly line PLC.
-HOST plant_a_plc { IP 10.201.1.10 }
+host plant_a_plc { ip 10.201.1.10 }
 
 // INSTRUCTION: Define Plant B packaging line PLC.
-HOST plant_b_plc { IP 10.202.1.10 }
+host plant_b_plc { ip 10.202.1.10 }
 
 // INSTRUCTION: Exchange CIP symbolic tag data over MPLS label 4481.
-FLOW enip_mpls_interplant(a, b) {
-    a -> b ETHERNETIP CMD "SendUnitData" SESSION_HANDLE 801 CIP_SERVICE 76 CIP_CLASS 107 CIP_INSTANCE 1 CIP_ATTR 0 MPLS 4481 EXP 5 BOS 1 MPLS_TTL 64 PAYLOAD "BATCH_READY=1"
-    a <- b ETHERNETIP CMD "SendUnitData" SESSION_HANDLE 801 STATUS 0 MPLS 4481 EXP 5 BOS 1 MPLS_TTL 64
+flow enip_mpls_interplant(a, b) {
+    a -> b ethernetip cmd "sendunitdata" sessionhandle 801 cipservice 76 cipclass 107 cipinstance 1 cipattr 0 mpls 4481 exp 5 bos 1 mplsttl 64 payload "BATCH_READY=1"
+    a <- b ethernetip cmd "sendunitdata" sessionhandle 801 status 0 mpls 4481 exp 5 bos 1 mplsttl 64
 }
 
 // INSTRUCTION: Compile the MPLS inter-plant EtherNet/IP flow.
-COMPILE {
+compile {
     enip_mpls_interplant(plant_a_plc, plant_b_plc)
 }

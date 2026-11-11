@@ -601,25 +601,51 @@ pub fn decompile_snmpv2c_ber(payload: &[u8]) -> Option<(String, Vec<u8>)> {
 
 ---
 
-## 4. Deterministic Topology Discovery (`host_1`, `host_2`, Dominant MACs, Arrow Locking) & 4-Tuple Shadow-State Elision (`loop <N>` Folding)
+## 4. Deterministic Topology Discovery (`host1`, `host2`, Dominant MACs, Arrow Locking) & Direct `compile` Emission (Zero `loop` Blocks)
 
-Demonstrates Stages 3 and 5 of the decompiler:
-- **Deterministic Host & Direction Discovery**: Assigns `host_1`, `host_2`, ... in first-seen order, tracks each host's dominant unicast MAC (ignoring broadcast `ff:ff:ff:ff:ff:ff` and multicast `01:00:5e:...` / `33:33:...`), and locks each pair's canonical `(caller_idx, callee_idx)` so forward frames emit `->` and reply frames emit `<-`.
-- **Consecutive Identical Statement Folding (`fold_consecutive_into_loops`)**: Collapses runs of identical verified `.fasm` statements into `loop <N> { ... }` blocks.
+Demonstrates Stages 3 and 5 of the FrameAssembly v2.0.0 decompiler:
+- **Deterministic Host & Direction Discovery**: Assigns `host1`, `host2`, ... (never `host_1`, `host_2`) in first-seen order, tracks each host's dominant unicast MAC (ignoring broadcast `ff:ff:ff:ff:ff:ff` and multicast `01:00:5e:...` / `33:33:...`), and locks each pair's canonical `(caller_idx, callee_idx)` so forward frames emit `->` and reply frames emit `<-`.
+- **Direct `compile` Emission (Zero `loop` Blocks)**: Because `loop` was removed in FrameAssembly v2.0.0, `shadow_emit.rs` emits direct flow invocations inside `compile { ... }` without folding consecutive calls into `loop` blocks.
 
 ```rust
 use core::net::IpAddr;
 use std::collections::HashMap;
 
-/// Discovered host definition for `.fasm` topology emission.
+/// Discovered host definition for v2.0.0 `.fasm` topology emission.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiscoveredHost {
-    /// Sequential identifier (`"host_1"`, `"host_2"`, ...).
+    /// Sequential v2.0.0 identifier (`"host1"`, `"host2"`, ... — never `"host_1"`).
     pub name: String,
     /// Host IPv4 or IPv6 address (`None` for pure L2 MAC-only endpoints).
     pub ip: Option<IpAddr>,
     /// Dominant unicast MAC address observed for this host.
     pub mac: Option<[u8; 6]>,
+}
+
+impl DiscoveredHost {
+    /// Constructs a sequentially numbered v2.0.0 host (`host1`, `host2`, ...).
+    pub fn numbered(one_based_index: usize, ip: Option<IpAddr>, mac: Option<[u8; 6]>) -> Self {
+        Self {
+            name: format!("host{one_based_index}"),
+            ip,
+            mac,
+        }
+    }
+
+    /// Formats the canonical v2.0.0 `host <name> { [ip <ip>] [mac <mac>] }` declaration.
+    pub fn to_fasm_decl(&self) -> String {
+        let mut fields = Vec::new();
+        if let Some(ip) = self.ip {
+            fields.push(format!("ip {ip}"));
+        }
+        if let Some(m) = self.mac {
+            fields.push(format!(
+                "mac {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
+                m[0], m[1], m[2], m[3], m[4], m[5]
+            ));
+        }
+        format!("host {} {{ {} }}", self.name, fields.join(" "))
+    }
 }
 
 /// Returns `true` if `mac` is a unicast Ethernet MAC (least-significant bit of byte 0 is 0 and non-zero).
@@ -628,23 +654,15 @@ pub fn is_unicast_mac(mac: [u8; 6]) -> bool {
     mac != [0; 6] && (mac[0] & 0x01) == 0
 }
 
-/// Folds runs of `>= 2` identical consecutive `.fasm` statements into `loop <N> { ... }` blocks.
-pub fn fold_consecutive_into_loops(statements: &[String]) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut i = 0usize;
-    while i < statements.len() {
-        let current = &statements[i];
-        let mut run_len = 1usize;
-        while i + run_len < statements.len() && &statements[i + run_len] == current {
-            run_len += 1;
-        }
-        if run_len >= 2 {
-            out.push(format!("    loop {run_len} {{\n        {current}\n    }}"));
-        } else {
-            out.push(format!("    {current}"));
-        }
-        i += run_len;
+/// Emits direct flow invocations inside a v2.0.0 `compile { ... }` block (never folding into `loop`).
+pub fn emit_compile_block(invocations: &[String]) -> String {
+    let mut out = String::from("compile {\n");
+    for call in invocations {
+        out.push_str("    ");
+        out.push_str(call);
+        out.push('\n');
     }
+    out.push('}');
     out
 }
 
@@ -675,20 +693,20 @@ pub fn resolve_pair_direction(
 ## 5. Self-Checking Forward-Compiler Oracle (`verify_with_oracle`) & Round-Trip Decompilation Verification Test Template
 
 Demonstrates Stage 4 (`src/reverse/oracle.rs`) and end-to-end round-trip verification:
-- **In-Memory Compiler Oracle (`compile_single_statement_oracle`)**: Wraps a candidate `.fasm` statement in a minimal self-contained `.fasm` program, runs `frameassembly::parser::parse_program` -> `frameassembly::backend::compile_program`, and compares the synthesized Ethernet II bytes against the original normalized frame.
-- **Round-Trip Verification Test**: Compiles a canonical `.fasm` specification into PCAPNG bytes in memory, decompiles those bytes back into `.fasm` via `reverse_pcap_bytes`, recompiles the decompiled `.fasm` program, and asserts 100% byte-for-byte wire identity across every frame and timestamp.
+- **In-Memory Compiler Oracle (`verify_statement_against_wire`)**: Wraps a candidate v2.0.0 `.fasm` statement in a minimal self-contained `.fasm` program, runs `frameassembly::parser::parse_program` -> `frameassembly::backend::compile_program`, and compares the synthesized Ethernet II bytes against the original normalized frame.
+- **Round-Trip Verification Test**: Compiles a canonical v2.0.0 `.fasm` specification into PCAPNG bytes in memory, decompiles those bytes back into `.fasm` via `reverse_pcap_bytes`, recompiles the decompiled `.fasm` program, and asserts 100% byte-for-byte wire identity across every frame and timestamp.
 
 ```frameassembly
 host h1 { ip 10.0.0.1 mac 00:11:22:33:44:01 }
 host h2 { ip 10.0.0.2 mac 00:11:22:33:44:02 }
 
 flow dns_and_http(a, b) {
-    a -> b dns query txid 0x1a2b qname "api.example.com" qtype "A"
+    a -> b dns query txid 0x1a2b qname "api.example.com" qtype "a"
     a <- b dns response txid 0x1a2b qname "api.example.com" rdata 93.184.216.34
     a -> b tcp syn
     a <- b tcp syn ack
     a -> b tcp ack
-    a -> b http get uri "/health" host_hdr "api.example.com"
+    a -> b http get uri "/health" hosthdr "api.example.com"
     a <- b http response status 200 reason "OK"
 }
 

@@ -1,9 +1,9 @@
 [package]
 name = "frameassembly"
-version = "1.5.1"
+version = "2.0.0"
 edition = "2024"
 rust-version = "1.85"
-description = "A DSL for creating custom .pcap/.pcapng captures and decompiling captures to .fasm for testing firewalls, IDS rules, SNMP traps, and pentesting."
+description = "Compile .fasm network traffic code into .pcap/.pcapng and decompile captures to .fasm across 81 L2-L7 protocols for Wireshark, tcpreplay & IDS/SNMP testing."
 authors = ["Steve Winschel"]
 license = "MIT"
 documentation = "https://docs.rs/frameassembly"

@@ -1,25 +1,25 @@
 // PROMPT: RIPv2 unicast neighbor exchange over a non-broadcast multi-access (NBMA) link with passive-interface enabled.
-// TOKENS: HOST, IP, MAC, FLOW, RIP, REQUEST, PREFIX, METRIC, SRCPORT, DSTPORT, DF, DSCP, TTL, WAIT, RESPONSE, NEXTHOP, TAG, COMPILE
+// TOKENS: host, ip, mac, flow, rip, request, prefix, metric, srcport, dstport, df, dscp, ttl, wait, ms, response, nexthop, tag, compile
 
 // INSTRUCTION: Define headquarters NBMA hub router sending unicast RIPv2 updates to configured neighbor.
-HOST nbma_rip_hub {
-    IP 172.25.52.1
-    MAC 00:1e:13:52:00:01
+host nbma_rip_hub {
+    ip 172.25.52.1
+    mac 00:1e:13:52:00:01
 }
 
 // INSTRUCTION: Define remote NBMA spoke router exchanging unicast UDP port 520 packets.
-HOST nbma_rip_spoke {
-    IP 172.25.52.10
-    MAC 00:1e:13:52:00:0a
+host nbma_rip_spoke {
+    ip 172.25.52.10
+    mac 00:1e:13:52:00:0a
 }
 
 // INSTRUCTION: Define unicast RIPv2 REQUEST and RESPONSE on UDP port 520 with DF flag set.
-FLOW rip_unicast_nbma_flow(hub, spoke) {
-    hub -> spoke RIP REQUEST PREFIX 172.25.100.0 METRIC 1 SRCPORT 520 DSTPORT 520 DF DSCP 48 TTL 64 WAIT 10ms
-    hub <- spoke RIP RESPONSE PREFIX 172.25.100.0 METRIC 2 NEXTHOP 172.25.52.10 TAG 25 SRCPORT 520 DSTPORT 520 DF DSCP 48 TTL 64
+flow rip_unicast_nbma_flow(hub, spoke) {
+    hub -> spoke rip request prefix 172.25.100.0 metric 1 srcport 520 dstport 520 df dscp 48 ttl 64 wait 10ms
+    hub <- spoke rip response prefix 172.25.100.0 metric 2 nexthop 172.25.52.10 tag 25 srcport 520 dstport 520 df dscp 48 ttl 64
 }
 
 // INSTRUCTION: Compile the unicast NBMA passive-interface RIPv2 neighbor flow.
-COMPILE {
+compile {
     rip_unicast_nbma_flow(nbma_rip_hub, nbma_rip_spoke)
 }

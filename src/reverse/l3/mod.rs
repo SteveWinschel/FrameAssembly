@@ -3,13 +3,13 @@
 //! This module implements the Layer 3 protocol decompilation stage for FrameAssembly's PCAP and
 //! PCAPNG to `.fasm` decompiler across IPv4/IPv6 Layer 3 headers ([`ip`], [`ipv6`]), unified
 //! `ICMPv6` dispatch ([`icmpv6`]), and all twenty supported Layer 3 network protocols:
-//! - Direct IP-encapsulated protocols ([`dissect_l3_ip_protocol`]): `ICMP` (`1` / `58`), `NDP`
-//!   (`58`), `MLD` (`58`), `IGMP` (`2`), `GRE` (`47`), `ESP` / `IPSEC` (`50`), `AH` (`51`), `OSPF`
-//!   (`89`), `PIM` (`103`), and `VRRP` (`112`).
-//! - TCP and UDP transport-encapsulated Layer 3 protocols ([`dissect_l3_over_l4`]): `BGP` (TCP
-//!   `179`), `OPENFLOW` (TCP `6653` / `6633`), `VXLAN` (UDP `4789`), `GENEVE` (UDP `6081`),
-//!   `IKEV2` (UDP `500` / `4500`), `WIREGUARD` (UDP `51820`), `RIP` (UDP `520` / `521`), `HSRP`
-//!   (UDP `1985` / `2029`), and `BFD` (UDP `3784` / `4784`).
+//! - Direct IP-encapsulated protocols ([`dissect_l3_ip_protocol`]): `icmp` (`1` / `58`), `ndp`
+//!   (`58`), `mld` (`58`), `igmp` (`2`), `gre` (`47`), `esp` / `ipsec` (`50`), `ah` (`51`), `ospf`
+//!   (`89`), `pim` (`103`), and `vrrp` (`112`).
+//! - TCP and UDP transport-encapsulated Layer 3 protocols ([`dissect_l3_over_l4`]): `bgp` (TCP
+//!   `179`), `openflow` (TCP `6653` / `6633`), `vxlan` (UDP `4789`), `geneve` (UDP `6081`),
+//!   `ikev2` (UDP `500` / `4500`), `wireguard` (UDP `51820`), `rip` (UDP `520` / `521`), `hsrp`
+//!   (UDP `1985` / `2029`), and `bfd` (UDP `3784` / `4784`).
 
 pub(crate) mod ah;
 pub(crate) mod bfd;

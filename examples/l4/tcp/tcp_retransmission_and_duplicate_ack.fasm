@@ -1,30 +1,30 @@
 // PROMPT: Simulate TCP fast retransmission triggered by three duplicate ACKs when an intermediate segment is lost in transit.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ACK, ACKNUM, PSH, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, seq, win, wait, ms, ack, acknum, psh, payload, compile
 
 // INSTRUCTION: Define a video streaming server with IP 172.20.0.10.
-HOST media_server { IP 172.20.0.10 MAC 00:aa:00:20:00:10 }
+host media_server { ip 172.20.0.10 mac 00:aa:00:20:00:10 }
 
 // INSTRUCTION: Define a subscriber client with IP 172.20.0.99.
-HOST subscriber_client { IP 172.20.0.99 MAC 00:aa:00:20:00:99 }
+host subscriber_client { ip 172.20.0.99 mac 00:aa:00:20:00:99 }
 
 // INSTRUCTION: Define a flow showing out-of-order segment arrival, 3 duplicate ACKs for SEQ 1011, and fast retransmission of the missing segment.
-FLOW fast_retransmit_flow(server, client) {
-    client -> server TCP SYN SRCPORT 58000 DSTPORT 8000 SEQ 200 WIN 65535 WAIT 5ms
-    client <- server TCP SYN ACK SRCPORT 8000 DSTPORT 58000 SEQ 1000 ACKNUM 201 WIN 65535 WAIT 5ms
-    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1001 WIN 65535 WAIT 5ms
-    client <- server TCP PSH ACK SRCPORT 8000 DSTPORT 58000 SEQ 1001 ACKNUM 201 PAYLOAD "SEG_000001" WAIT 5ms
-    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1011 WIN 65535 WAIT 2ms
-    client <- server TCP PSH ACK SRCPORT 8000 DSTPORT 58000 SEQ 1021 ACKNUM 201 PAYLOAD "SEG_000003" WAIT 5ms
-    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1011 WIN 65535 WAIT 2ms
-    client <- server TCP PSH ACK SRCPORT 8000 DSTPORT 58000 SEQ 1031 ACKNUM 201 PAYLOAD "SEG_000004" WAIT 5ms
-    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1011 WIN 65535 WAIT 2ms
-    client <- server TCP PSH ACK SRCPORT 8000 DSTPORT 58000 SEQ 1041 ACKNUM 201 PAYLOAD "SEG_000005" WAIT 5ms
-    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1011 WIN 65535 WAIT 2ms
-    client <- server TCP PSH ACK SRCPORT 8000 DSTPORT 58000 SEQ 1011 ACKNUM 201 PAYLOAD "SEG_000002" WAIT 5ms
-    client -> server TCP ACK SRCPORT 58000 DSTPORT 8000 SEQ 201 ACKNUM 1051 WIN 65535 WAIT 5ms
+flow fast_retransmit_flow(server, client) {
+    client -> server tcp syn srcport 58000 dstport 8000 seq 200 win 65535 wait 5ms
+    client <- server tcp syn ack srcport 8000 dstport 58000 seq 1000 acknum 201 win 65535 wait 5ms
+    client -> server tcp ack srcport 58000 dstport 8000 seq 201 acknum 1001 win 65535 wait 5ms
+    client <- server tcp psh ack srcport 8000 dstport 58000 seq 1001 acknum 201 payload "SEG_000001" wait 5ms
+    client -> server tcp ack srcport 58000 dstport 8000 seq 201 acknum 1011 win 65535 wait 2ms
+    client <- server tcp psh ack srcport 8000 dstport 58000 seq 1021 acknum 201 payload "SEG_000003" wait 5ms
+    client -> server tcp ack srcport 58000 dstport 8000 seq 201 acknum 1011 win 65535 wait 2ms
+    client <- server tcp psh ack srcport 8000 dstport 58000 seq 1031 acknum 201 payload "SEG_000004" wait 5ms
+    client -> server tcp ack srcport 58000 dstport 8000 seq 201 acknum 1011 win 65535 wait 2ms
+    client <- server tcp psh ack srcport 8000 dstport 58000 seq 1041 acknum 201 payload "SEG_000005" wait 5ms
+    client -> server tcp ack srcport 58000 dstport 8000 seq 201 acknum 1011 win 65535 wait 2ms
+    client <- server tcp psh ack srcport 8000 dstport 58000 seq 1011 acknum 201 payload "SEG_000002" wait 5ms
+    client -> server tcp ack srcport 58000 dstport 8000 seq 201 acknum 1051 win 65535 wait 5ms
 }
 
 // INSTRUCTION: Compile block to execute the TCP fast retransmission simulation.
-COMPILE {
+compile {
     fast_retransmit_flow(media_server, subscriber_client)
 }

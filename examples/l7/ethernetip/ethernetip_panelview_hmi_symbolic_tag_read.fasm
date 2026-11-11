@@ -1,27 +1,27 @@
 // PROMPT: PanelView Plus HMI reading controller-scoped symbolic tags via CIP Service 0x4C (76 = Read_Tag_Service).
-// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, PAYLOAD, STATUS, HEXPAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, ethernetip, cmd, sessionhandle, context, cipservice, cipclass, cipinstance, cipattr, payload, status, hexpayload, wait, ms, compile
 
 // INSTRUCTION: Define the PanelView Plus 7 operator terminal.
-HOST panelview_hmi {
-    IP 10.135.110.20
-    MAC 00:1a:2b:87:b0:20
+host panelview_hmi {
+    ip 10.135.110.20
+    mac 00:1a:2b:87:b0:20
 }
 
 // INSTRUCTION: Define the ControlLogix batch reactor PLC.
-HOST reactor_clx {
-    IP 10.135.110.1
-    MAC 00:1a:2b:87:b0:01
+host reactor_clx {
+    ip 10.135.110.1
+    mac 00:1a:2b:87:b0:01
 }
 
 // INSTRUCTION: Invoke CIP Service 76 (Read_Tag) and CIP Service 77 (Write_Tag) on Symbol Object Class 107 (0x6B).
-FLOW enip_hmi_tags(h, p) {
-    h -> p ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 4400 CONTEXT 1601 CIP_SERVICE 76 CIP_CLASS 107 CIP_INSTANCE 1 CIP_ATTR 0 PAYLOAD " Reactor_Temp_PV"
-    h <- p ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 4400 CONTEXT 1601 CIP_SERVICE 204 CIP_CLASS 107 CIP_INSTANCE 1 HEXPAYLOAD "ca000000aa42" WAIT 2ms
-    h -> p ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 4400 CONTEXT 1602 CIP_SERVICE 77 CIP_CLASS 107 CIP_INSTANCE 2 CIP_ATTR 0 PAYLOAD " Reactor_Agitator_Auto"
-    h <- p ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 4400 CONTEXT 1602 CIP_SERVICE 205 CIP_CLASS 107 CIP_INSTANCE 2
+flow enip_hmi_tags(h, p) {
+    h -> p ethernetip cmd "sendrrdata" sessionhandle 4400 context 1601 cipservice 76 cipclass 107 cipinstance 1 cipattr 0 payload " Reactor_Temp_PV"
+    h <- p ethernetip cmd "sendrrdata" status 0 sessionhandle 4400 context 1601 cipservice 204 cipclass 107 cipinstance 1 hexpayload "ca000000aa42" wait 2ms
+    h -> p ethernetip cmd "sendrrdata" sessionhandle 4400 context 1602 cipservice 77 cipclass 107 cipinstance 2 cipattr 0 payload " Reactor_Agitator_Auto"
+    h <- p ethernetip cmd "sendrrdata" status 0 sessionhandle 4400 context 1602 cipservice 205 cipclass 107 cipinstance 2
 }
 
 // INSTRUCTION: Compile the PanelView HMI symbolic tag read/write flow.
-COMPILE {
+compile {
     enip_hmi_tags(panelview_hmi, reactor_clx)
 }

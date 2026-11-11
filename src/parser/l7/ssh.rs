@@ -1,10 +1,10 @@
 //! Secure Shell (SSH-2) Layer 7 transport and key exchange protocol field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 4253 `SSH` version banners and
+//! This module implements the `winnow` parser combinator for RFC 4253 `ssh` version banners and
 //! binary packet protocol messages in FrameAssembly `.fasm` specifications. It recognizes the
-//! `SSH` protocol keyword, version identification strings (`BANNER`), key exchange flags
-//! (`KEXINIT`, `NEWKEYS`), explicit SSH message type numbers (`MSG_CODE`), and 16-byte key
-//! exchange cookies (`COOKIE`).
+//! `ssh` protocol keyword, version identification strings (`banner`), key exchange flags
+//! (`kexinit`, `newkeys`), explicit SSH message type numbers (`msgcode`), and 16-byte key
+//! exchange cookies (`cookie`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

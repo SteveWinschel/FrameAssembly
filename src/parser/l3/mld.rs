@@ -1,9 +1,9 @@
-//! IPv6 Multicast Listener Discovery (`MLD`, RFC 2710 / RFC 3810) parser for FrameAssembly.
+//! IPv6 Multicast Listener Discovery (`mld`, RFC 2710 / RFC 3810) parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `MLD` IPv6 multicast group management
-//! messages encapsulated inside ICMPv6 headers. It parses MLD message types (`QUERY`, `REPORT`,
-//! `DONE`), multicast group IPv6 addresses (`MULTICAST_ADDR <ipv6>`), and maximum response delay
-//! timers (`MAX_RESP_DELAY <u16>`).
+//! This module implements the winnow parser combinator for `mld` IPv6 multicast group management
+//! messages encapsulated inside ICMPv6 headers. It parses MLD message types (`query`, `report`,
+//! `done`), multicast group IPv6 addresses (`multicastaddr <ipv6>`), and maximum response delay
+//! timers (`maxrespdelay <u16>`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

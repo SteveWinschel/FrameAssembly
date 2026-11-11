@@ -1,25 +1,25 @@
 // PROMPT: CoAP Confirmable POST request registering a new LwM2M endpoint and receiving 2.01 Created.
-// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, CONTENT_FORMAT, PAYLOAD, ACK, COMPILE
+// TOKENS: host, ip, mac, flow, s, coap, con, code, msgid, token, uripath, contentformat, payload, ack, compile
 
 // INSTRUCTION: Define the LwM2M cellular IoT sensor node.
-HOST lwm2m_client {
-    IP 10.110.1.50
-    MAC 00:1a:2b:6e:01:50
+host lwm2m_client {
+    ip 10.110.1.50
+    mac 00:1a:2b:6e:01:50
 }
 
 // INSTRUCTION: Define the LwM2M device management server.
-HOST lwm2m_server {
-    IP 10.110.1.1
-    MAC 00:1a:2b:6e:01:01
+host lwm2m_server {
+    ip 10.110.1.1
+    mac 00:1a:2b:6e:01:01
 }
 
 // INSTRUCTION: Send a Confirmable POST to /rd with Link-Format payload (Content-Format 40) and receive 2.01 Created.
-FLOW coap_lwm2m_register(c, s) {
-    c -> s COAP CON CODE "0.02" MSGID 1010 TOKEN 5001 URI_PATH "rd" CONTENT_FORMAT 40 PAYLOAD "</3/0>,</3303/0>"
-    c <- s COAP ACK CODE "2.01" MSGID 1010 TOKEN 5001 URI_PATH "rd"
+flow coap_lwm2m_register(c, s) {
+    c -> s coap con code "0.02" msgid 1010 token 5001 uripath "rd" contentformat 40 payload "</3/0>,</3303/0>"
+    c <- s coap ack code "2.01" msgid 1010 token 5001 uripath "rd"
 }
 
 // INSTRUCTION: Compile the CoAP LwM2M registration POST flow.
-COMPILE {
+compile {
     coap_lwm2m_register(lwm2m_client, lwm2m_server)
 }

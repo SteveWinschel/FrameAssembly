@@ -1,32 +1,34 @@
-// PROMPT: Simulate a multi-stage load test using sequential LOOP blocks in the COMPILE section representing warm-up, peak burst, and cool-down traffic phases.
-// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, TCP, SYN, ACK, PSH, COMPILE, LOOP
+// PROMPT: Simulate a multi-stage load test using sequential repeated flow calls in the compile section representing warm-up, peak burst, and cool-down traffic phases.
+// TOKENS: host, ip, mac, flow, udp, srcport, dstport, payload, wait, ms, tcp, syn, ack, psh, compile
 
 // INSTRUCTION: Define a load generator client host with IP 10.201.0.10.
-HOST load_generator { IP 10.201.0.10 MAC 00:16:3e:c9:00:0a }
+host load_generator { ip 10.201.0.10 mac 00:16:3e:c9:00:0a }
 
 // INSTRUCTION: Define the system under test (SUT) API gateway with IP 10.201.0.80.
-HOST sut_gateway { IP 10.201.0.80 MAC 00:16:3e:c9:00:50 }
+host sut_gateway { ip 10.201.0.80 mac 00:16:3e:c9:00:50 }
 
 // INSTRUCTION: Define a warm-up health check flow over UDP port 8125.
-FLOW warmup_probe(gen, sut) {
-    gen -> sut UDP SRCPORT 58125 DSTPORT 8125 PAYLOAD "STATSD_WARMUP_STAGE:1|c" WAIT 20ms
+flow warmup_probe(gen, sut) {
+    gen -> sut udp srcport 58125 dstport 8125 payload "STATSD_WARMUP_STAGE:1|c" wait 20ms
 }
 
 // INSTRUCTION: Define a high-rate HTTP load test flow over TCP port 80.
-FLOW peak_http_burst(gen, sut) {
-    gen -> sut TCP SYN DSTPORT 80 WAIT 1ms
-    gen <- sut TCP SYN ACK SRCPORT 80 WAIT 1ms
-    gen -> sut TCP PSH ACK DSTPORT 80 PAYLOAD "GET /benchmark HTTP/1.1" WAIT 1ms
-    gen <- sut TCP PSH ACK SRCPORT 80 PAYLOAD "HTTP/1.1 200 OK" WAIT 1ms
+flow peak_http_burst(gen, sut) {
+    gen -> sut tcp syn dstport 80 wait 1ms
+    gen <- sut tcp syn ack srcport 80 wait 1ms
+    gen -> sut tcp psh ack dstport 80 payload "GET /benchmark HTTP/1.1" wait 1ms
+    gen <- sut tcp psh ack srcport 80 payload "HTTP/1.1 200 OK" wait 1ms
 }
 
-// INSTRUCTION: Compile block executing 3 warm-up loops, 15 peak load loops, and a final single probe.
-COMPILE {
-    LOOP 3 {
-        warmup_probe(load_generator, sut_gateway)
-    }
-    LOOP 15 {
-        peak_http_burst(load_generator, sut_gateway)
-    }
+// INSTRUCTION: Compile block executing 3 warm-up cycles, 15 peak load cycles, and a final single probe.
+compile {
+    warmup_probe(load_generator, sut_gateway) // cycle 1
+    warmup_probe(load_generator, sut_gateway) // cycle 2
+    warmup_probe(load_generator, sut_gateway) // cycle 3
+    peak_http_burst(load_generator, sut_gateway) // cycle 1 of 15
+    peak_http_burst(load_generator, sut_gateway) // cycle 2 of 15
+    peak_http_burst(load_generator, sut_gateway) // cycle 3 of 15
+    peak_http_burst(load_generator, sut_gateway) // cycle 4 of 15
+    peak_http_burst(load_generator, sut_gateway) // cycle 5 of 15
     warmup_probe(load_generator, sut_gateway)
 }

@@ -1,25 +1,25 @@
 // PROMPT: High-voltage power grid MPLS-TP teleprotection circuit carrying deterministic EXP 7 differential relay trip commands.
-// TOKENS: HOST, IP, MAC, FLOW, MPLS, EXP, BOS, MPLS_TTL, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, mpls, exp, bos, mplsttl, payload, wait, ms, compile
 
 // INSTRUCTION: Define Substation Alpha line differential protection relay MPLS-TP multiplexer.
-HOST subst_alpha_mux {
-    IP 192.168.110.1
-    MAC 00:0e:8c:6e:00:01
+host subst_alpha_mux {
+    ip 192.168.110.1
+    mac 00:0e:8c:6e:00:01
 }
 
 // INSTRUCTION: Define Substation Beta remote breaker trip MPLS-TP multiplexer.
-HOST subst_beta_mux {
-    IP 192.168.110.2
-    MAC 00:0e:8c:6e:00:02
+host subst_beta_mux {
+    ip 192.168.110.2
+    mac 00:0e:8c:6e:00:02
 }
 
 // INSTRUCTION: Transmit deterministic static MPLS-TP label 4096 EXP 7 teleprotection phasor samples.
-FLOW mpls_tp_teleprotection(alpha, beta) {
-    alpha -> beta MPLS 4096 EXP 7 BOS 1 MPLS_TTL 255 PAYLOAD "IEEE_C37_94_87L_DIFF_RELAY_TRIP_PHASE_A" WAIT 1ms
-    alpha <- beta MPLS 4097 EXP 7 BOS 1 MPLS_TTL 255 PAYLOAD "IEEE_C37_94_87L_BREAKER_OPEN_CONFIRM"
+flow mpls_tp_teleprotection(alpha, beta) {
+    alpha -> beta mpls 4096 exp 7 bos 1 mplsttl 255 payload "IEEE_C37_94_87L_DIFF_RELAY_TRIP_PHASE_A" wait 1ms
+    alpha <- beta mpls 4097 exp 7 bos 1 mplsttl 255 payload "IEEE_C37_94_87L_BREAKER_OPEN_CONFIRM"
 }
 
 // INSTRUCTION: Compile the smart grid MPLS-TP EXP 7 teleprotection relay trace.
-COMPILE {
+compile {
     mpls_tp_teleprotection(subst_alpha_mux, subst_beta_mux)
 }

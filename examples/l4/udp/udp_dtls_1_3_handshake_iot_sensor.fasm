@@ -1,21 +1,21 @@
 // PROMPT: RFC 9147 DTLS 1.3 over UDP port 5684 with stateless HelloRetryRequest cookie exchange for constrained IoT sensors.
-// TOKENS: HOST, IP, FLOW, UDP, SRCPORT, DSTPORT, HEXPAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, flow, udp, srcport, dstport, hexpayload, wait, ms, compile
 
 // INSTRUCTION: Define IPv6 Thread/6LoWPAN border sensor node initiating DTLS 1.3 over UDP 5684.
-HOST dtls_iot_sensor { IP 2001:db8:5684:1::55 }
+host dtls_iot_sensor { ip 2001:db8:5684:1::55 }
 
 // INSTRUCTION: Define IPv6 CoAPs cloud ingestion gateway on UDP port 5684.
-HOST dtls_cloud_gw { IP 2001:db8:5684:1::1 }
+host dtls_cloud_gw { ip 2001:db8:5684:1::1 }
 
 // INSTRUCTION: Define DTLS 1.3 ClientHello, HelloRetryRequest Cookie challenge, and encrypted Application Data record.
-FLOW udp_dtls13_handshake(sensor, gw) {
-    sensor -> gw UDP SRCPORT 49684 DSTPORT 5684 HEXPAYLOAD "16fefd0000000000000001001001000004"
-    sensor <- gw UDP SRCPORT 5684 DSTPORT 49684 HEXPAYLOAD "16fefd0000000000000001001002000004" WAIT 4ms
-    sensor -> gw UDP SRCPORT 49684 DSTPORT 5684 HEXPAYLOAD "16fefd0000000000000002001001000004" WAIT 4ms
-    sensor -> gw UDP SRCPORT 49684 DSTPORT 5684 HEXPAYLOAD "2f0001aabbccddeeff1122334455667788" WAIT 5ms
+flow udp_dtls13_handshake(sensor, gw) {
+    sensor -> gw udp srcport 49684 dstport 5684 hexpayload "16fefd0000000000000001001001000004"
+    sensor <- gw udp srcport 5684 dstport 49684 hexpayload "16fefd0000000000000001001002000004" wait 4ms
+    sensor -> gw udp srcport 49684 dstport 5684 hexpayload "16fefd0000000000000002001001000004" wait 4ms
+    sensor -> gw udp srcport 49684 dstport 5684 hexpayload "2f0001aabbccddeeff1122334455667788" wait 5ms
 }
 
 // INSTRUCTION: Compile block executing DTLS 1.3 over UDP port 5684.
-COMPILE {
+compile {
     udp_dtls13_handshake(dtls_iot_sensor, dtls_cloud_gw)
 }

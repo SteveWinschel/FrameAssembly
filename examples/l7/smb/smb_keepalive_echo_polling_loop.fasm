@@ -1,29 +1,29 @@
 // PROMPT: Periodic SMB2 session keepalive polling loop verifying NAS share reachability across 3 iterations.
-// TOKENS: HOST, IP, MAC, FLOW, SMB, COMMAND, TREE_ID, SESSION_ID, MSGID, FILENAME, STATUS, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, mac, flow, s, smb, command, treeid, sessionid, msgid, filename, status, wait, ms, compile
 
 // INSTRUCTION: Define the clustered application server monitoring its mounted SMB share.
-HOST app_node {
-    IP 10.60.120.9
-    MAC 00:1a:2b:60:bb:09
+host app_node {
+    ip 10.60.120.9
+    mac 00:1a:2b:60:bb:09
 }
 
 // INSTRUCTION: Define the enterprise NAS head unit.
-HOST nas_head {
-    IP 10.60.120.1
-    MAC 00:1a:2b:60:bb:01
+host nas_head {
+    ip 10.60.120.1
+    mac 00:1a:2b:60:bb:01
 }
 
 // INSTRUCTION: Probe the mounted tree with a lightweight directory root CREATE and CLOSE cycle.
-FLOW smb_health_probe(c, s) {
-    c -> s SMB COMMAND "CREATE" TREE_ID 1 SESSION_ID 5000 MSGID 90 FILENAME "."
-    c <- s SMB COMMAND "CREATE" STATUS 0 TREE_ID 1 SESSION_ID 5000 MSGID 90 WAIT 1ms
-    c -> s SMB COMMAND "CLOSE" TREE_ID 1 SESSION_ID 5000 MSGID 91
-    c <- s SMB COMMAND "CLOSE" STATUS 0 TREE_ID 1 SESSION_ID 5000 MSGID 91 WAIT 10ms
+flow smb_health_probe(c, s) {
+    c -> s smb command "create" treeid 1 sessionid 5000 msgid 90 filename "."
+    c <- s smb command "create" status 0 treeid 1 sessionid 5000 msgid 90 wait 1ms
+    c -> s smb command "close" treeid 1 sessionid 5000 msgid 91
+    c <- s smb command "close" status 0 treeid 1 sessionid 5000 msgid 91 wait 10ms
 }
 
 // INSTRUCTION: Execute the SMB2 health probe across 3 loop iterations.
-COMPILE {
-    LOOP 3 {
-        smb_health_probe(app_node, nas_head)
-    }
+compile {
+    smb_health_probe(app_node, nas_head) // cycle 1
+    smb_health_probe(app_node, nas_head) // cycle 2
+    smb_health_probe(app_node, nas_head) // cycle 3
 }

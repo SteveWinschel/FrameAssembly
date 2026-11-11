@@ -1,18 +1,18 @@
 // PROMPT: OPC UA binary protocol with zero sub-keywords emitting default HEL frame.
-// TOKENS: HOST, IP, MAC, FLOW, OPCUA, COMPILE
+// TOKENS: host, ip, mac, flow, s, opcua, compile
 
 // INSTRUCTION: Define industrial SCADA client host.
-HOST scada_client { IP 10.20.1.10 MAC 00:1b:1b:20:01:0a }
+host scada_client { ip 10.20.1.10 mac 00:1b:1b:20:01:0a }
 
 // INSTRUCTION: Define PLC OPC UA server host.
-HOST plc_server { IP 10.20.1.100 MAC 00:1b:1b:20:01:64 }
+host plc_server { ip 10.20.1.100 mac 00:1b:1b:20:01:64 }
 
 // INSTRUCTION: Define flow sending default OPCUA packet on TCP port 4840.
-FLOW opcua_default_hel(c, s) {
-    c -> s OPCUA
+flow opcua_default_hel(c, s) {
+    c -> s opcua
 }
 
 // INSTRUCTION: Compile the default OPC UA flow.
-COMPILE {
+compile {
     opcua_default_hel(scada_client, plc_server)
 }

@@ -1,18 +1,18 @@
 // PROMPT: NetFlow accounting record reporting sustained high packet rate across datacenter spine.
-// TOKENS: HOST, IP, FLOW, NETFLOW, SRCIP, DSTIP, SRCPORT, DSTPORT, PROTO, PACKETS, OCTETS, COMPILE
+// TOKENS: host, ip, flow, netflow, srcip, dstip, srcport, dstport, proto, packets, octets, compile
 
 // INSTRUCTION: Define datacenter spine router exporter.
-HOST dc_spine_exporter { IP 10.255.0.1 }
+host dc_spine_exporter { ip 10.255.0.1 }
 
 // INSTRUCTION: Define network telemetry storage node.
-HOST telemetry_storage { IP 10.255.0.100 }
+host telemetry_storage { ip 10.255.0.100 }
 
 // INSTRUCTION: Define high packet volume audit flow.
-FLOW spine_audit_flow(rtr, stor) {
-    rtr -> stor NETFLOW SRCIP 10.1.1.100 DSTIP 10.2.2.200 SRCPORT 9000 DSTPORT 9000 PROTO 6 PACKETS 250000 OCTETS 350000000
+flow spine_audit_flow(rtr, stor) {
+    rtr -> stor netflow srcip 10.1.1.100 dstip 10.2.2.200 srcport 9000 dstport 9000 proto 6 packets 250000 octets 350000000
 }
 
 // INSTRUCTION: Compile high packet volume audit scenario.
-COMPILE {
+compile {
     spine_audit_flow(dc_spine_exporter, telemetry_storage)
 }

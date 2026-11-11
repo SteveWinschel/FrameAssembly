@@ -1,10 +1,10 @@
-//! WebSocket (`WEBSOCKET`, RFC 6455) Layer 7 framing PCAP-to-`.fasm` decompiler.
+//! WebSocket (`websocket`, RFC 6455) Layer 7 framing PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for RFC 6455 `WEBSOCKET` data and
+//! This module implements the fuzz-safe reverse dissector for RFC 6455 `websocket` data and
 //! control frames carried over TCP ports `80`, `443`, `8080`, and `8443`. It validates reserved
 //! header bits (`RSV1..RSV3 == 0`), decodes opcodes (`text`, `binary`, `close`, `ping`, `pong`),
-//! `fin_bit`, extended 16-bit and 64-bit big-endian payload lengths, and 32-bit client masking
-//! keys (`mask_key`), unmasking payload bytes so the forward compiler reproduces identical wire
+//! `finbit`, extended 16-bit and 64-bit big-endian payload lengths, and 32-bit client masking
+//! keys (`maskkey`), unmasking payload bytes so the forward compiler reproduces identical wire
 //! frames.
 
 use alloc::format;
@@ -68,10 +68,10 @@ pub(crate) fn dissect_websocket(payload: &[u8]) -> Option<ProtocolDissection> {
 
     let mut tokens = format!("websocket {opcode_tok}");
     if fin_bit != 1 {
-        let _ = write!(tokens, " fin_bit {fin_bit}");
+        let _ = write!(tokens, " finbit {fin_bit}");
     }
     if masked && mask_key != 0x12345678 {
-        let _ = write!(tokens, " mask_key 0x{mask_key:08x}");
+        let _ = write!(tokens, " maskkey 0x{mask_key:08x}");
     }
     let residual = if unmasked == b"ping" {
         Vec::new()

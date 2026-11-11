@@ -1,33 +1,33 @@
 // PROMPT: Create a Modbus Function Code 15 (Write Multiple Coils) and Function Code 16 (Write Multiple Registers) recipe download over TCP.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SRCPORT, DSTPORT, SYN, SEQ, WIN, WAIT, ACK, ACKNUM, MODBUS, TXID, UNITID, FUNC, ADDR, COUNT, VALUE, IS_RESPONSE, FIN, COMPILE
+// TOKENS: host, ip, mac, flow, s, tcp, srcport, dstport, syn, seq, win, wait, ms, ack, acknum, modbus, txid, unitid, func, addr, count, value, isresponse, fin, compile
 
 // INSTRUCTION: Define the batch server downloading a multi-parameter mixing recipe to a packaging line PLC.
-HOST batch_server {
-    IP 10.100.20.10
-    MAC 00:1b:1b:64:14:0a
+host batch_server {
+    ip 10.100.20.10
+    mac 00:1b:1b:64:14:0a
 }
 
 // INSTRUCTION: Define the packaging line PLC on TCP port 502.
-HOST packaging_plc {
-    IP 10.100.20.55
-    MAC 00:1b:1b:64:14:37
+host packaging_plc {
+    ip 10.100.20.55
+    mac 00:1b:1b:64:14:37
 }
 
 // INSTRUCTION: Establish a TCP connection, execute FC 15 (Write Multiple Coils) and FC 16 (Write Multiple Registers), and close with FIN.
-FLOW recipe_download_tcp(c, s) {
-    c -> s TCP SRCPORT 49502 DSTPORT 502 SYN SEQ 500000 WIN 64240 WAIT 1ms
-    c <- s TCP SRCPORT 502 DSTPORT 49502 SYN ACK SEQ 600000 ACKNUM 500001 WIN 32768 WAIT 1ms
-    c -> s TCP SRCPORT 49502 DSTPORT 502 ACK SEQ 500001 ACKNUM 600001 WIN 64240 WAIT 2ms
-    c -> s MODBUS SRCPORT 49502 DSTPORT 502 SEQ 500001 ACKNUM 600001 TXID 301 UNITID 1 FUNC "WRITE_MULTIPLE_COILS" ADDR 32 COUNT 8 VALUE 0xaa WAIT 4ms
-    c <- s MODBUS SRCPORT 502 DSTPORT 49502 SEQ 600001 ACKNUM 500016 TXID 301 UNITID 1 FUNC "WRITE_MULTIPLE_COILS" ADDR 32 COUNT 8 IS_RESPONSE WAIT 5ms
-    c -> s MODBUS SRCPORT 49502 DSTPORT 502 SEQ 500016 ACKNUM 600013 TXID 302 UNITID 1 FUNC "WRITE_MULTIPLE_REGISTERS" ADDR 200 COUNT 10 VALUE 1500 WAIT 5ms
-    c <- s MODBUS SRCPORT 502 DSTPORT 49502 SEQ 600013 ACKNUM 500049 TXID 302 UNITID 1 FUNC "WRITE_MULTIPLE_REGISTERS" ADDR 200 COUNT 10 IS_RESPONSE WAIT 2ms
-    c -> s TCP SRCPORT 49502 DSTPORT 502 FIN ACK SEQ 500049 ACKNUM 600025 WIN 64240 WAIT 1ms
-    c <- s TCP SRCPORT 502 DSTPORT 49502 FIN ACK SEQ 600025 ACKNUM 500050 WIN 32768 WAIT 1ms
-    c -> s TCP SRCPORT 49502 DSTPORT 502 ACK SEQ 500050 ACKNUM 600026 WIN 64240
+flow recipe_download_tcp(c, s) {
+    c -> s tcp srcport 49502 dstport 502 syn seq 500000 win 64240 wait 1ms
+    c <- s tcp srcport 502 dstport 49502 syn ack seq 600000 acknum 500001 win 32768 wait 1ms
+    c -> s tcp srcport 49502 dstport 502 ack seq 500001 acknum 600001 win 64240 wait 2ms
+    c -> s modbus srcport 49502 dstport 502 seq 500001 acknum 600001 txid 301 unitid 1 func "writemultiplecoils" addr 32 count 8 value 0xaa wait 4ms
+    c <- s modbus srcport 502 dstport 49502 seq 600001 acknum 500016 txid 301 unitid 1 func "writemultiplecoils" addr 32 count 8 isresponse wait 5ms
+    c -> s modbus srcport 49502 dstport 502 seq 500016 acknum 600013 txid 302 unitid 1 func "writemultipleregisters" addr 200 count 10 value 1500 wait 5ms
+    c <- s modbus srcport 502 dstport 49502 seq 600013 acknum 500049 txid 302 unitid 1 func "writemultipleregisters" addr 200 count 10 isresponse wait 2ms
+    c -> s tcp srcport 49502 dstport 502 fin ack seq 500049 acknum 600025 win 64240 wait 1ms
+    c <- s tcp srcport 502 dstport 49502 fin ack seq 600025 acknum 500050 win 32768 wait 1ms
+    c -> s tcp srcport 49502 dstport 502 ack seq 500050 acknum 600026 win 64240
 }
 
 // INSTRUCTION: Compile the full TCP Modbus FC 15 and FC 16 recipe download into a PCAP file.
-COMPILE {
+compile {
     recipe_download_tcp(batch_server, packaging_plc)
 }

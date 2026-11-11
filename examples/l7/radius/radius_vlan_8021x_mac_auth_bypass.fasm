@@ -1,19 +1,19 @@
 // PROMPT: Campus 802.1X MAC authentication bypass (MAB) over management VLAN 181 with 802.1p priority.
-// TOKENS: HOST, IP, MAC, FLOW, RADIUS, ACCESS_REQUEST, USER, NAS_IP, SERVICE_TYPE, VLAN, PCP, DEI, WAIT, ACCESS_ACCEPT, COMPILE
+// TOKENS: host, ip, mac, flow, radius, accessrequest, user, nasip, servicetype, vlan, pcp, dei, wait, ms, accessaccept, compile
 
 // INSTRUCTION: Define campus access switch on management VLAN 181.
-HOST access_sw { IP 10.181.0.25 MAC 00:26:cb:b5:00:19 }
+host access_sw { ip 10.181.0.25 mac 00:26:cb:b5:00:19 }
 
 // INSTRUCTION: Define NAC policy engine RADIUS server.
-HOST nac_engine { IP 10.181.0.1 MAC 00:26:cb:b5:00:01 }
+host nac_engine { ip 10.181.0.1 mac 00:26:cb:b5:00:01 }
 
 // INSTRUCTION: Define MAB RADIUS request using device MAC as username on VLAN 181.
-FLOW radius_mab_vlan(sw, nac) {
-    sw -> nac RADIUS ACCESS_REQUEST USER "001122aabbcc" NAS_IP 10.181.0.25 SERVICE_TYPE 10 VLAN 181 PCP 6 DEI 0 WAIT 4ms
-    sw <- nac RADIUS ACCESS_ACCEPT USER "001122aabbcc" SERVICE_TYPE 10 VLAN 181 PCP 6 DEI 0
+flow radius_mab_vlan(sw, nac) {
+    sw -> nac radius accessrequest user "001122aabbcc" nasip 10.181.0.25 servicetype 10 vlan 181 pcp 6 dei 0 wait 4ms
+    sw <- nac radius accessaccept user "001122aabbcc" servicetype 10 vlan 181 pcp 6 dei 0
 }
 
 // INSTRUCTION: Compile VLAN-tagged MAB RADIUS flow.
-COMPILE {
+compile {
     radius_mab_vlan(access_sw, nac_engine)
 }

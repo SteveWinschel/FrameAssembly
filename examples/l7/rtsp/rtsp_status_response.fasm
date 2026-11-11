@@ -1,18 +1,18 @@
 // PROMPT: RTSP 200 OK status response confirming media control over IPv6.
-// TOKENS: HOST, IP, FLOW, RTSP, CSEQ, STATUS, SESSION, COMPILE
+// TOKENS: host, ip, flow, s, rtsp, cseq, status, session, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 2001:db8::15 }
+host client { ip 2001:db8::15 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 2001:db8::1 }
+host server { ip 2001:db8::1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW rtsp_resp(c, s) {
-    c <- s RTSP CSEQ 3 STATUS 200 SESSION "Q192837465"
+flow rtsp_resp(c, s) {
+    c <- s rtsp cseq 3 status 200 session "Q192837465"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     rtsp_resp(client, server)
 }

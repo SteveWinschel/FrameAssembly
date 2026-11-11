@@ -1,9 +1,9 @@
-//! Generic Network Virtualization Encapsulation (`GENEVE`, RFC 8926) tunnel parser.
+//! Generic Network Virtualization Encapsulation (`geneve`, RFC 8926) tunnel parser.
 //!
-//! This module implements the winnow parser combinator for `GENEVE` network virtualization
-//! overlay packets. It parses 24-bit Virtual Network Identifiers (`VNI <u32>` or `VNID <u32>`),
-//! TLV Option Class namespaces (`OPT_CLASS <u16>`), Option Type codes (`OPT_TYPE <u8>`), and inner
-//! EtherType protocol identifiers (`PROTOCOL_TYPE <u16>`).
+//! This module implements the winnow parser combinator for `geneve` network virtualization
+//! overlay packets. It parses 24-bit Virtual Network Identifiers (`vni <u32>` or `vnid <u32>`),
+//! TLV Option Class namespaces (`optclass <u16>`), Option Type codes (`opttype <u8>`), and inner
+//! EtherType protocol identifiers (`protocoltype <u16>`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

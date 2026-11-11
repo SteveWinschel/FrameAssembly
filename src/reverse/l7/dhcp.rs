@@ -1,10 +1,10 @@
-//! Dynamic Host Configuration Protocol (`DHCP`, RFC 2131 / RFC 8415) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Dynamic Host Configuration Protocol (`dhcp`, RFC 2131 / RFC 8415) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissectors for both IPv4 BOOTP / `DHCP` (RFC 2131
+//! This module implements the fuzz-safe reverse dissectors for both IPv4 BOOTP / `dhcp` (RFC 2131
 //! and RFC 2132 over UDP ports `67` and `68`) and `DHCPv6` (RFC 8415 over UDP ports `546` and
 //! `547`). It decodes transaction identifiers (`xid`), client/server IPv4 addresses (`ciaddr`,
-//! `yiaddr`, `siaddr`), client hardware MAC addresses (`chaddr`), and DHCP options (`subnet_mask`,
-//! `router`, `dns_server`, `hostname`, `lease_time`) into canonical `.fasm` modifiers.
+//! `yiaddr`, `siaddr`), client hardware MAC addresses (`chaddr`), and DHCP options (`subnetmask`,
+//! `router`, `dnsserver`, `hostname`, `leasetime`) into canonical `.fasm` modifiers.
 
 use alloc::format;
 use alloc::string::ToString;
@@ -13,7 +13,7 @@ use core::fmt::Write as _;
 use core::net::Ipv4Addr;
 
 use crate::ast::Protocol;
-use crate::reverse::{ProtocolDissection, be_u32, format_mac_lower, ipv4_at, push_if};
+use crate::reverse::{ProtocolDissection, be_u16, be_u32, format_mac_lower, ipv4_at, push_if};
 
 use super::{is_printable_ascii_str, ok_dissect, push_opt, push_str_if};
 
@@ -89,16 +89,16 @@ pub(crate) fn dissect_dhcpv4(payload: &[u8]) -> Option<ProtocolDissection> {
         idx += 2 + len;
     }
 
-    let msg_kw = match msg_type.unwrap_or(1) {
-        1 => "discover",
-        2 => "offer",
-        3 => "request",
-        5 => "ack",
-        7 => "release",
+    let bootp_flags = be_u16(payload, 10);
+    let mut tokens = match (msg_type.unwrap_or(1), bootp_flags) {
+        (1, 0x8000) => "dhcp discover".to_string(),
+        (1, 0x0000) => "dhcp".to_string(),
+        (2, 0x0000) => "dhcp offer".to_string(),
+        (3, 0x0000) => "dhcp request".to_string(),
+        (5, 0x0000) => "dhcp ack".to_string(),
+        (7, 0x0000) => "dhcp release".to_string(),
         _ => return None,
     };
-
-    let mut tokens = format!("dhcp {msg_kw}");
     if xid != 0x1234_5678 {
         let _ = write!(tokens, " xid 0x{xid:08x}");
     }
@@ -106,13 +106,13 @@ pub(crate) fn dissect_dhcpv4(payload: &[u8]) -> Option<ProtocolDissection> {
     push_if(&mut tokens, "yiaddr", yiaddr, Ipv4Addr::UNSPECIFIED);
     push_if(&mut tokens, "siaddr", siaddr, Ipv4Addr::UNSPECIFIED);
     let _ = write!(tokens, " chaddr {}", format_mac_lower(chaddr));
-    push_opt(&mut tokens, "subnet_mask", subnet_mask);
+    push_opt(&mut tokens, "subnetmask", subnet_mask);
     push_opt(&mut tokens, "router", router);
-    push_opt(&mut tokens, "dns_server", dns_server);
+    push_opt(&mut tokens, "dnsserver", dns_server);
     if let Some(h) = hostname {
         push_str_if(&mut tokens, "hostname", &h, "");
     }
-    push_opt(&mut tokens, "lease_time", lease_time);
+    push_opt(&mut tokens, "leasetime", lease_time);
 
     ok_dissect(Protocol::Dhcp, tokens, residual_payload)
 }

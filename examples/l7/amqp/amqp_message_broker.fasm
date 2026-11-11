@@ -1,20 +1,20 @@
 // PROMPT: Advanced Message Queuing Protocol 0-9-1 connection initialization and message publishing on TCP 5672.
-// TOKENS: HOST, IP, FLOW, AMQP, PROTOCOL_HEADER, CHANNEL_OPEN, CHANNEL, BASIC_PUBLISH, ROUTING_KEY, COMPILE
+// TOKENS: host, ip, flow, amqp, protocolheader, channelopen, channel, basicpublish, routingkey, compile
 
 // INSTRUCTION: Define AMQP publisher client.
-HOST publisher { IP 10.10.0.10 }
+host publisher { ip 10.10.0.10 }
 
 // INSTRUCTION: Define RabbitMQ message broker.
-HOST rabbit_broker { IP 10.10.0.1 }
+host rabbit_broker { ip 10.10.0.1 }
 
 // INSTRUCTION: Define AMQP publishing sequence flow.
-FLOW amqp_flow(p, b) {
-    p -> b AMQP PROTOCOL_HEADER
-    p -> b AMQP CHANNEL_OPEN CHANNEL 1
-    p -> b AMQP BASIC_PUBLISH ROUTING_KEY "orders"
+flow amqp_flow(p, b) {
+    p -> b amqp protocolheader
+    p -> b amqp channelopen channel 1
+    p -> b amqp basicpublish routingkey "orders"
 }
 
 // INSTRUCTION: Compile block executing AMQP message delivery.
-COMPILE {
+compile {
     amqp_flow(publisher, rabbit_broker)
 }

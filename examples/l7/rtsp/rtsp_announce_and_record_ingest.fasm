@@ -1,22 +1,22 @@
 // PROMPT: RTSP ANNOUNCE and RECORD live stream contribution from encoder to media server.
-// TOKENS: HOST, IP, FLOW, RTSP, METHOD, URI, CSEQ, PAYLOAD, WAIT, STATUS, TRANSPORT_HDR, SESSION, COMPILE
+// TOKENS: host, ip, flow, rtsp, method, uri, cseq, payload, wait, ms, status, transporthdr, session, compile
 
 // INSTRUCTION: Define live hardware video encoder.
-HOST live_encoder { IP 10.65.0.15 }
+host live_encoder { ip 10.65.0.15 }
 
 // INSTRUCTION: Define RTSP ingestion origin server.
-HOST ingest_srv { IP 10.65.0.1 }
+host ingest_srv { ip 10.65.0.1 }
 
 // INSTRUCTION: Define ANNOUNCE SDP push, SETUP, and RECORD start.
-FLOW rtsp_live_ingest(enc, srv) {
-    enc -> srv RTSP METHOD "ANNOUNCE" URI "rtsp://10.65.0.1/ingest/event1" CSEQ 1 PAYLOAD "v=0\r\nm=video 0 RTP/AVP 96\r\n" WAIT 5ms
-    enc <- srv RTSP STATUS 200 CSEQ 1 WAIT 5ms
-    enc -> srv RTSP METHOD "SETUP" URI "rtsp://10.65.0.1/ingest/event1/trackID=0" CSEQ 2 TRANSPORT_HDR "RTP/AVP;unicast;client_port=5000-5001" WAIT 5ms
-    enc <- srv RTSP STATUS 200 CSEQ 2 WAIT 5ms
-    enc -> srv RTSP METHOD "RECORD" URI "rtsp://10.65.0.1/ingest/event1" CSEQ 3 SESSION "rec_771"
+flow rtsp_live_ingest(enc, srv) {
+    enc -> srv rtsp method "ANNOUNCE" uri "rtsp://10.65.0.1/ingest/event1" cseq 1 payload "v=0\r\nm=video 0 RTP/AVP 96\r\n" wait 5ms
+    enc <- srv rtsp status 200 cseq 1 wait 5ms
+    enc -> srv rtsp method "SETUP" uri "rtsp://10.65.0.1/ingest/event1/trackID=0" cseq 2 transporthdr "RTP/AVP;unicast;client_port=5000-5001" wait 5ms
+    enc <- srv rtsp status 200 cseq 2 wait 5ms
+    enc -> srv rtsp method "RECORD" uri "rtsp://10.65.0.1/ingest/event1" cseq 3 session "rec_771"
 }
 
 // INSTRUCTION: Compile RTSP ANNOUNCE and RECORD contribution flow.
-COMPILE {
+compile {
     rtsp_live_ingest(live_encoder, ingest_srv)
 }

@@ -1,26 +1,26 @@
 // PROMPT: VRRP Master decrementing its priority from 130 to 80 upon WAN uplink tracking failure, allowing Backup (Priority 100) to preempt.
-// TOKENS: HOST, IP, MAC, FLOW, VRRP, VRID, PRIORITY, ADV_INT, VIP, VERSION, DSCP, TTL, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, pri, vrrp, vrid, priority, advint, vip, version, dscp, ttl, payload, wait, ms, compile
 
 // INSTRUCTION: Define primary VRRP gateway whose WAN SLA object track transitions to Down (-50 penalty).
-HOST tracked_vrrp_pri {
-    IP 10.50.0.2
-    MAC 00:00:5e:00:01:32
+host tracked_vrrp_pri {
+    ip 10.50.0.2
+    mac 00:00:5e:00:01:32
 }
 
 // INSTRUCTION: Define secondary VRRP gateway with Priority 100 preempting once primary drops to 80.
-HOST tracked_vrrp_sec {
-    IP 10.50.0.3
-    MAC 00:00:5e:00:01:32
+host tracked_vrrp_sec {
+    ip 10.50.0.3
+    mac 00:00:5e:00:01:32
 }
 
 // INSTRUCTION: Define VRRP priority degradation (130 -> 80) and Backup preemption at PRIORITY 100.
-FLOW vrrp_object_track_failover(pri, sec) {
-    pri -> sec VRRP VRID 50 PRIORITY 130 ADV_INT 100 VIP 10.50.0.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "WAN_UPLINK_UP_PRIO_130" WAIT 10ms
-    pri -> sec VRRP VRID 50 PRIORITY 80 ADV_INT 100 VIP 10.50.0.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "WAN_UPLINK_DOWN_DECREMENT_50_PRIO_80" WAIT 10ms
-    pri <- sec VRRP VRID 50 PRIORITY 100 ADV_INT 100 VIP 10.50.0.1 VERSION 3 DSCP 48 TTL 255 PAYLOAD "BACKUP_PREEMPT_NEW_MASTER_PRIO_100"
+flow vrrp_object_track_failover(pri, sec) {
+    pri -> sec vrrp vrid 50 priority 130 advint 100 vip 10.50.0.1 version 3 dscp 48 ttl 255 payload "WAN_UPLINK_UP_PRIO_130" wait 10ms
+    pri -> sec vrrp vrid 50 priority 80 advint 100 vip 10.50.0.1 version 3 dscp 48 ttl 255 payload "WAN_UPLINK_DOWN_DECREMENT_50_PRIO_80" wait 10ms
+    pri <- sec vrrp vrid 50 priority 100 advint 100 vip 10.50.0.1 version 3 dscp 48 ttl 255 payload "BACKUP_PREEMPT_NEW_MASTER_PRIO_100"
 }
 
 // INSTRUCTION: Compile the VRRP uplink object tracking priority decrement failover flow.
-COMPILE {
+compile {
     vrrp_object_track_failover(tracked_vrrp_pri, tracked_vrrp_sec)
 }

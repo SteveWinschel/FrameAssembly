@@ -1,28 +1,28 @@
 // PROMPT: MySQL database monitoring agent querying performance_schema and information_schema.PROCESSLIST.
-// TOKENS: HOST, IP, MAC, FLOW, MYSQL, GREETING, SERVER_VERSION, WAIT, LOGIN, USER, DB, OK, SQL, EOF, COMPILE
+// TOKENS: host, ip, mac, flow, s, mysql, greeting, serverversion, wait, ms, login, user, db, ok, sql, eof, compile
 
 // INSTRUCTION: Define the Prometheus mysqld_exporter collector host.
-HOST mysqld_exporter {
-    IP 10.90.90.100
-    MAC 00:1a:2b:90:90:99
+host mysqld_exporter {
+    ip 10.90.90.100
+    mac 00:1a:2b:90:90:99
 }
 
 // INSTRUCTION: Define the monitored MySQL database server.
-HOST target_mysql {
-    IP 10.90.90.1
-    MAC 00:1a:2b:90:90:01
+host target_mysql {
+    ip 10.90.90.1
+    mac 00:1a:2b:90:90:01
 }
 
 // INSTRUCTION: Login as exporter user and query active threads from information_schema.PROCESSLIST.
-FLOW mysql_exporter_scrape(c, s) {
-    c <- s MYSQL GREETING SERVER_VERSION "8.0.34" WAIT 1ms
-    c -> s MYSQL LOGIN USER "prometheus_exp" DB "information_schema"
-    c <- s MYSQL OK WAIT 1ms
-    c -> s MYSQL SQL "SELECT STATE, COUNT(*) FROM information_schema.PROCESSLIST GROUP BY STATE"
-    c <- s MYSQL EOF
+flow mysql_exporter_scrape(c, s) {
+    c <- s mysql greeting serverversion "8.0.34" wait 1ms
+    c -> s mysql login user "prometheus_exp" db "information_schema"
+    c <- s mysql ok wait 1ms
+    c -> s mysql sql "SELECT STATE, COUNT(*) FROM information_schema.PROCESSLIST GROUP BY STATE"
+    c <- s mysql eof
 }
 
 // INSTRUCTION: Compile the Prometheus mysqld_exporter scrape flow.
-COMPILE {
+compile {
     mysql_exporter_scrape(mysqld_exporter, target_mysql)
 }

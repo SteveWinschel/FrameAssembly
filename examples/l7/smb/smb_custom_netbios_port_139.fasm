@@ -1,19 +1,19 @@
 // PROMPT: Legacy SMB NetBIOS session transport running over custom TCP port 139.
-// TOKENS: HOST, IP, FLOW, SMB, COMMAND, SESSION_ID, MSGID, SRCPORT, DSTPORT, WAIT, STATUS, COMPILE
+// TOKENS: host, ip, flow, s, smb, command, sessionid, msgid, srcport, dstport, wait, ms, status, compile
 
 // INSTRUCTION: Define legacy industrial controller.
-HOST legacy_plc { IP 192.168.139.40 }
+host legacy_plc { ip 192.168.139.40 }
 
 // INSTRUCTION: Define legacy file gateway.
-HOST netbios_gw { IP 192.168.139.1 }
+host netbios_gw { ip 192.168.139.1 }
 
 // INSTRUCTION: Define SMB NEGOTIATE over port 139.
-FLOW smb_port139_flow(c, s) {
-    c -> s SMB COMMAND "NEGOTIATE" SESSION_ID 0x1390 MSGID 1 SRCPORT 50139 DSTPORT 139 WAIT 5ms
-    c <- s SMB COMMAND "NEGOTIATE" STATUS 0 SESSION_ID 0x1390 MSGID 1 SRCPORT 139 DSTPORT 50139
+flow smb_port139_flow(c, s) {
+    c -> s smb command "negotiate" sessionid 0x1390 msgid 1 srcport 50139 dstport 139 wait 5ms
+    c <- s smb command "negotiate" status 0 sessionid 0x1390 msgid 1 srcport 139 dstport 50139
 }
 
 // INSTRUCTION: Compile custom port 139 SMB session flow.
-COMPILE {
+compile {
     smb_port139_flow(legacy_plc, netbios_gw)
 }

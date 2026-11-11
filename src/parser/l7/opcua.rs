@@ -1,11 +1,11 @@
 //! OPC Unified Architecture (OPC UA Binary Protocol) Layer 7 industrial field parser.
 //!
-//! This module implements the `winnow` parser combinator for IEC 62541 `OPCUA` binary TCP
+//! This module implements the `winnow` parser combinator for IEC 62541 `opcua` binary TCP
 //! connection and secure channel messages in FrameAssembly `.fasm` specifications. It recognizes
-//! the `OPCUA` protocol keyword, 3-character message types (`MSG_TYPE`, e.g., `"HEL"`, `"ACK"`,
-//! `"OPN"`, `"MSG"`, `"CLO"`), chunk flags (`CHUNK_TYPE`), secure channel IDs
-//! (`SECURE_CHANNEL_ID`), security token IDs (`TOKEN_ID`), sequence numbers (`SEQ_NUM`), request
-//! IDs (`REQID`), endpoint URLs (`ENDPOINT_URL`), and target node identifiers (`NODE_ID`).
+//! the `opcua` protocol keyword, 3-character message types (`msgtype`, e.g., `"HEL"`, `"ACK"`,
+//! `"OPN"`, `"MSG"`, `"CLO"`), chunk flags (`chunktype`), secure channel IDs
+//! (`securechannelid`), security token IDs (`tokenid`), sequence numbers (`seqnum`), request
+//! IDs (`reqid`), endpoint URLs (`endpointurl`), and target node identifiers (`nodeid`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

@@ -1,29 +1,29 @@
 // PROMPT: Multipath QUIC client probing primary Wi-Fi path and secondary cellular LTE path to server.
-// TOKENS: HOST, IP, FLOW, QUIC, SHORT, DCID, PKT_NUM, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, flow, s, quic, short, dcid, pktnum, payload, wait, ms, compile
 
 // INSTRUCTION: Define client Wi-Fi interface endpoint.
-HOST client_wifi {
-    IP 192.168.10.80
+host client_wifi {
+    ip 192.168.10.80
 }
 
 // INSTRUCTION: Define client cellular LTE interface endpoint.
-HOST client_lte {
-    IP 192.168.10.81
+host client_lte {
+    ip 192.168.10.81
 }
 
 // INSTRUCTION: Define multipath QUIC aggregation server endpoint.
-HOST mpquic_srv {
-    IP 192.168.10.1
+host mpquic_srv {
+    ip 192.168.10.1
 }
 
 // INSTRUCTION: Define Short header path validation and data flow over a given interface.
-FLOW mpquic_subflow(c, s) {
-    c -> s QUIC SHORT DCID 0xaaaa111122223333 PKT_NUM 10 PAYLOAD "MP_PATH_CHALLENGE" WAIT 3ms
-    c <- s QUIC SHORT DCID 0xbbbb111122223333 PKT_NUM 20 PAYLOAD "MP_PATH_RESPONSE"
+flow mpquic_subflow(c, s) {
+    c -> s quic short dcid 0xaaaa111122223333 pktnum 10 payload "MP_PATH_CHALLENGE" wait 3ms
+    c <- s quic short dcid 0xbbbb111122223333 pktnum 20 payload "MP_PATH_RESPONSE"
 }
 
 // INSTRUCTION: Compile Multipath QUIC subflows across both client interfaces.
-COMPILE {
+compile {
     mpquic_subflow(client_wifi, mpquic_srv)
     mpquic_subflow(client_lte, mpquic_srv)
 }

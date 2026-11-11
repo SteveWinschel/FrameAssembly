@@ -1,33 +1,33 @@
 // PROMPT: Simulate a 4-host three-tier web application architecture (External Client -> Reverse Proxy Load Balancer -> App Server -> Database Server) in a single multi-parameter flow.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WIN, WAIT, ACK, PSH, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, app, db, tcp, syn, srcport, dstport, win, wait, ms, ack, psh, payload, compile
 
 // INSTRUCTION: Define an external browser client with IP 198.51.100.12.
-HOST ext_client { IP 198.51.100.12 MAC 00:11:22:91:00:01 }
+host ext_client { ip 198.51.100.12 mac 00:11:22:91:00:01 }
 
 // INSTRUCTION: Define an Nginx reverse proxy load balancer with IP 10.91.1.10.
-HOST nginx_lb { IP 10.91.1.10 MAC 00:11:22:91:00:02 }
+host nginx_lb { ip 10.91.1.10 mac 00:11:22:91:00:02 }
 
 // INSTRUCTION: Define a backend Rust application server with IP 10.91.2.20.
-HOST app_server { IP 10.91.2.20 MAC 00:11:22:91:00:03 }
+host app_server { ip 10.91.2.20 mac 00:11:22:91:00:03 }
 
 // INSTRUCTION: Define a backend PostgreSQL database server with IP 10.91.3.30.
-HOST db_server { IP 10.91.3.30 MAC 00:11:22:91:00:04 }
+host db_server { ip 10.91.3.30 mac 00:11:22:91:00:04 }
 
 // INSTRUCTION: Define a 4-parameter flow tracing a user HTTPS request from client through load balancer and app tier to the database and back.
-FLOW three_tier_request(client, lb, app, db) {
-    client -> lb TCP SYN SRCPORT 54000 DSTPORT 443 WIN 65535 WAIT 2ms
-    client <- lb TCP SYN ACK SRCPORT 443 DSTPORT 54000 WIN 65535 WAIT 2ms
-    client -> lb TCP PSH ACK SRCPORT 54000 DSTPORT 443 PAYLOAD "GET /orders/42 HTTP/1.1" WAIT 2ms
-    lb -> app TCP SYN SRCPORT 48000 DSTPORT 8080 WIN 65535 WAIT 1ms
-    lb <- app TCP SYN ACK SRCPORT 8080 DSTPORT 48000 WIN 65535 WAIT 1ms
-    lb -> app TCP PSH ACK SRCPORT 48000 DSTPORT 8080 PAYLOAD "GET /internal/orders/42" WAIT 1ms
-    app -> db TCP PSH ACK SRCPORT 49000 DSTPORT 5432 PAYLOAD "SELECT * FROM orders WHERE id=42;" WAIT 1ms
-    app <- db TCP PSH ACK SRCPORT 5432 DSTPORT 49000 PAYLOAD "ORDER_ROW_42_SHIPPED" WAIT 2ms
-    lb <- app TCP PSH ACK SRCPORT 8080 DSTPORT 48000 PAYLOAD "200_JSON_ORDER_42" WAIT 1ms
-    client <- lb TCP PSH ACK SRCPORT 443 DSTPORT 54000 PAYLOAD "HTTP/1.1 200 OK {id:42,status:shipped}" WAIT 2ms
+flow three_tier_request(client, lb, app, db) {
+    client -> lb tcp syn srcport 54000 dstport 443 win 65535 wait 2ms
+    client <- lb tcp syn ack srcport 443 dstport 54000 win 65535 wait 2ms
+    client -> lb tcp psh ack srcport 54000 dstport 443 payload "GET /orders/42 HTTP/1.1" wait 2ms
+    lb -> app tcp syn srcport 48000 dstport 8080 win 65535 wait 1ms
+    lb <- app tcp syn ack srcport 8080 dstport 48000 win 65535 wait 1ms
+    lb -> app tcp psh ack srcport 48000 dstport 8080 payload "GET /internal/orders/42" wait 1ms
+    app -> db tcp psh ack srcport 49000 dstport 5432 payload "SELECT * FROM orders WHERE id=42;" wait 1ms
+    app <- db tcp psh ack srcport 5432 dstport 49000 payload "ORDER_ROW_42_SHIPPED" wait 2ms
+    lb <- app tcp psh ack srcport 8080 dstport 48000 payload "200_JSON_ORDER_42" wait 1ms
+    client <- lb tcp psh ack srcport 443 dstport 54000 payload "HTTP/1.1 200 OK {id:42,status:shipped}" wait 2ms
 }
 
 // INSTRUCTION: Compile block to execute the 4-host three-tier web application flow.
-COMPILE {
+compile {
     three_tier_request(ext_client, nginx_lb, app_server, db_server)
 }

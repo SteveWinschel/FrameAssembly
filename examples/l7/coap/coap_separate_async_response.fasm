@@ -1,21 +1,21 @@
 // PROMPT: CoAP Separate Response pattern with empty ACK followed by asynchronous CON response.
-// TOKENS: HOST, IP, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, PAYLOAD, ACK, WAIT, COMPILE
+// TOKENS: host, ip, flow, coap, con, code, msgid, token, uripath, payload, ack, wait, ms, compile
 
 // INSTRUCTION: Define CoAP client requesting slow cryptographic signing operation.
-HOST sign_client { IP 10.44.1.10 }
+host sign_client { ip 10.44.1.10 }
 
 // INSTRUCTION: Define hardware security CoAP node.
-HOST hsm_node { IP 10.44.1.2 }
+host hsm_node { ip 10.44.1.2 }
 
 // INSTRUCTION: Client sends CON request; server sends empty ACK, computes result, then sends CON 2.05.
-FLOW coap_separate_response(c, h) {
-    c -> h COAP CON CODE "0.02" MSGID 1100 TOKEN 0x4455 URI_PATH "crypto/sign" PAYLOAD "digest_01"
-    c <- h COAP ACK CODE "0.00" MSGID 1100 WAIT 50ms
-    c <- h COAP CON CODE "2.05" MSGID 1101 TOKEN 0x4455 PAYLOAD "sig_verified" WAIT 200ms
-    c -> h COAP ACK CODE "0.00" MSGID 1101
+flow coap_separate_response(c, h) {
+    c -> h coap con code "0.02" msgid 1100 token 0x4455 uripath "crypto/sign" payload "digest_01"
+    c <- h coap ack code "0.00" msgid 1100 wait 50ms
+    c <- h coap con code "2.05" msgid 1101 token 0x4455 payload "sig_verified" wait 200ms
+    c -> h coap ack code "0.00" msgid 1101
 }
 
 // INSTRUCTION: Compile the CoAP separate response exchange.
-COMPILE {
+compile {
     coap_separate_response(sign_client, hsm_node)
 }

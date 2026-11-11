@@ -4,14 +4,15 @@
 # https://github.com/SteveWinschel/FrameAssembly
 #
 # Builds a production-ready Debian/Ubuntu .deb package from a pre-compiled
-# FrameAssembly binary using dpkg-deb.
+# FrameAssembly binary using dpkg-deb, bundling MIME, file magic, and
+# Bash/Zsh/Fish Tab completion definitions.
 #
 # Usage:
 #   contrib/packaging/apt/build-deb.sh [VERSION] [BINARY_PATH] [ARCH] [OUTPUT_DIR]
 #
 # Examples:
-#   contrib/packaging/apt/build-deb.sh 1.4.6 target/release/frameassembly amd64 dist
-#   contrib/packaging/apt/build-deb.sh 1.4.6 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist
+#   contrib/packaging/apt/build-deb.sh 2.0.0 target/release/frameassembly amd64 dist
+#   contrib/packaging/apt/build-deb.sh 2.0.0 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist
 # ==============================================================================
 
 set -euo pipefail
@@ -19,7 +20,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
-VERSION="${1:-1.4.6}"
+VERSION="${1:-2.0.0}"
 VERSION="${VERSION#v}" # strip leading 'v' if provided
 
 BINARY_PATH="${2:-}"
@@ -104,7 +105,26 @@ if [[ -f "${REPO_ROOT}/contrib/magic/frameassembly.magic" ]]; then
     chmod 644 "${STAGE_DIR}/usr/share/file/magic/frameassembly"
 fi
 
-# 4. Generate DEBIAN/control file for specific architecture and version
+# 4. Install Bash, Zsh, and Fish Tab completions (mode 644)
+if [[ -f "${REPO_ROOT}/contrib/completions/frameassembly.bash" ]]; then
+    mkdir -p "${STAGE_DIR}/usr/share/bash-completion/completions"
+    cp "${REPO_ROOT}/contrib/completions/frameassembly.bash" "${STAGE_DIR}/usr/share/bash-completion/completions/frameassembly"
+    chmod 644 "${STAGE_DIR}/usr/share/bash-completion/completions/frameassembly"
+fi
+
+if [[ -f "${REPO_ROOT}/contrib/completions/_frameassembly" ]]; then
+    mkdir -p "${STAGE_DIR}/usr/share/zsh/vendor-completions"
+    cp "${REPO_ROOT}/contrib/completions/_frameassembly" "${STAGE_DIR}/usr/share/zsh/vendor-completions/_frameassembly"
+    chmod 644 "${STAGE_DIR}/usr/share/zsh/vendor-completions/_frameassembly"
+fi
+
+if [[ -f "${REPO_ROOT}/contrib/completions/frameassembly.fish" ]]; then
+    mkdir -p "${STAGE_DIR}/usr/share/fish/vendor_completions.d"
+    cp "${REPO_ROOT}/contrib/completions/frameassembly.fish" "${STAGE_DIR}/usr/share/fish/vendor_completions.d/frameassembly.fish"
+    chmod 644 "${STAGE_DIR}/usr/share/fish/vendor_completions.d/frameassembly.fish"
+fi
+
+# 5. Generate DEBIAN/control file for specific architecture and version
 cat > "${STAGE_DIR}/DEBIAN/control" <<EOF
 Package: frameassembly
 Version: ${VERSION}
@@ -112,10 +132,11 @@ Section: net
 Priority: optional
 Architecture: ${TARGET_ARCH}
 Maintainer: Steve Winschel <https://github.com/SteveWinschel/FrameAssembly>
-Description: Rootless Packets-as-Code DSL and compiler
- FrameAssembly compiles declarative .fasm specifications into deterministic,
- nanosecond-precision .pcap and .pcapng packet captures across 81 native
- Layer 2 through Layer 7 protocols for Wireshark, tcpreplay, Suricata, and Zeek.
+Description: Compile .fasm network traffic code to .pcap/.pcapng and reverse captures
+ FrameAssembly compiles .fasm network traffic code into nanosecond-precision
+ .pcap and .pcapng packet captures and reverses captures back into .fasm code
+ across 81 native Layer 2 through Layer 7 protocols for Wireshark, tcpreplay,
+ Suricata, and Zeek.
 Homepage: https://github.com/SteveWinschel/FrameAssembly
 EOF
 

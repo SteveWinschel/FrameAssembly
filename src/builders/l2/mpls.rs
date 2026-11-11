@@ -7,7 +7,7 @@
 //! Time-to-Live (`ttl`), followed by the encapsulated MPLS payload bytes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b MPLS <label> [EXP <0..7>] [BOS <0|1>] [MPLS_TTL <u8>] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
+//! `a -> b mpls <label> [exp <0..7>] [bos <0|1>] [mplsttl <u8>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

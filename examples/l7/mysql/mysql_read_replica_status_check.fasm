@@ -1,18 +1,18 @@
 // PROMPT: MySQL replication monitor querying SHOW REPLICA STATUS on secondary database node.
-// TOKENS: HOST, IP, FLOW, MYSQL, SQL, COMPILE
+// TOKENS: host, ip, flow, mysql, sql, compile
 
 // INSTRUCTION: Define database replication monitor.
-HOST repl_monitor { IP 172.24.0.15 }
+host repl_monitor { ip 172.24.0.15 }
 
 // INSTRUCTION: Define secondary MySQL replica node.
-HOST secondary_replica { IP 172.24.0.2 }
+host secondary_replica { ip 172.24.0.2 }
 
 // INSTRUCTION: Define replica status check flow.
-FLOW check_replica_flow(mon, rep) {
-    mon -> rep MYSQL SQL "SHOW REPLICA STATUS"
+flow check_replica_flow(mon, rep) {
+    mon -> rep mysql sql "SHOW REPLICA STATUS"
 }
 
 // INSTRUCTION: Compile read replica status check scenario.
-COMPILE {
+compile {
     check_replica_flow(repl_monitor, secondary_replica)
 }

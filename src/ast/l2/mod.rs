@@ -39,22 +39,22 @@ pub use vlan::*;
 
 /// Layer 2 Ethernet header and shim encapsulation modifiers applied to any frame statement.
 ///
-/// Syntax mapping: `[SRCMAC <mac>] [DSTMAC <mac>] [ETHERTYPE <u16>] [VLAN <vid> [PCP <pcp>] [DEI <dei>]] [QINQ <svid> [INNER_VLAN <cvid>]] [MPLS <label> [EXP <tc>] [BOS <s_bit>] [MPLS_TTL <ttl>]]`
+/// Syntax mapping: `[srcmac <mac>] [dstmac <mac>] [ethertype <u16>] [vlan <vid> [pcp <pcp>] [dei <dei>]] [qinq <svid> [innervlan <cvid>]] [mpls <label> [exp <tc>] [bos <s_bit>] [mplsttl <ttl>]]`
 #[doc(alias = "Ethernet")]
 #[doc(alias = "802.3")]
 #[doc(alias = "802.1Q")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct L2Modifiers {
-    /// Source 48-bit IEEE 802 MAC address override (`SRCMAC <mac>`).
+    /// Source 48-bit IEEE 802 MAC address override (`srcmac <mac>`).
     pub src_mac: Option<[u8; 6]>,
-    /// Destination 48-bit IEEE 802 MAC address override (`DSTMAC <mac>`).
+    /// Destination 48-bit IEEE 802 MAC address override (`dstmac <mac>`).
     pub dst_mac: Option<[u8; 6]>,
-    /// Custom 16-bit IEEE 802.3 EtherType override (`ETHERTYPE <u16>`).
+    /// Custom 16-bit IEEE 802.3 EtherType override (`ethertype <u16>`).
     pub ethertype: Option<u16>,
-    /// Optional IEEE 802.1Q single VLAN tag (`VLAN <vid> [PCP <u8>] [DEI <u8>]`).
+    /// Optional IEEE 802.1Q single VLAN tag (`vlan <vid> [pcp <u8>] [dei <u8>]`).
     pub vlan: Option<VlanSpec>,
-    /// Optional IEEE 802.1ad QinQ double VLAN tag (`QINQ <outer> [INNER_VLAN <inner>]`).
+    /// Optional IEEE 802.1ad QinQ double VLAN tag (`qinq <outer> [innervlan <inner>]`).
     pub qinq: Option<QinqSpec>,
-    /// Optional RFC 3032 MPLS shim label (`MPLS <label> [EXP <u8>] [BOS <u8>] [MPLS_TTL <u8>]`).
+    /// Optional RFC 3032 MPLS shim label (`mpls <label> [exp <u8>] [bos <u8>] [mplsttl <u8>]`).
     pub mpls: Option<MplsSpec>,
 }

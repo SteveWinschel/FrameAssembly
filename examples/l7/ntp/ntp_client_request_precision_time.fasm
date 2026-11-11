@@ -1,18 +1,18 @@
 // PROMPT: NTP client request transmitting 64-bit transmit timestamp to NTP time server.
-// TOKENS: HOST, IP, FLOW, NTP, MODE, VN, STRATUM, TX_TIMESTAMP, COMPILE
+// TOKENS: host, ip, flow, ntp, mode, vn, stratum, txtimestamp, compile
 
 // INSTRUCTION: Define timestamping client device.
-HOST timestamp_client { IP 10.10.10.55 }
+host timestamp_client { ip 10.10.10.55 }
 
 // INSTRUCTION: Define network time protocol server.
-HOST ntp_clock_server { IP 10.10.10.1 }
+host ntp_clock_server { ip 10.10.10.1 }
 
 // INSTRUCTION: Define timestamped request flow.
-FLOW timestamped_ntp_req(cli, srv) {
-    cli -> srv NTP MODE 3 VN 4 STRATUM 0 TX_TIMESTAMP 16500000000000000000
+flow timestamped_ntp_req(cli, srv) {
+    cli -> srv ntp mode 3 vn 4 stratum 0 txtimestamp 16500000000000000000
 }
 
 // INSTRUCTION: Compile client request precision time scenario.
-COMPILE {
+compile {
     timestamped_ntp_req(timestamp_client, ntp_clock_server)
 }

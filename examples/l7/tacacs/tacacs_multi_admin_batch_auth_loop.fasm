@@ -1,21 +1,21 @@
 // PROMPT: Periodic administrative access validation loop simulating operator checks.
-// TOKENS: HOST, IP, FLOW, TACACS, TYPE, AUTHEN, USER, SESSION_ID, COMPILE, LOOP
+// TOKENS: host, ip, flow, s, tacacs, type, authen, user, sessionid, compile
 
 // INSTRUCTION: Define automated validation test bench.
-HOST test_bench { IP 172.31.10.4 }
+host test_bench { ip 172.31.10.4 }
 
 // INSTRUCTION: Define target TACACS daemon.
-HOST target_tacacs { IP 172.31.10.1 }
+host target_tacacs { ip 172.31.10.1 }
 
 // INSTRUCTION: Define repetitive authentication request flow.
-FLOW tacacs_loop_flow(c, s) {
-    c -> s TACACS TYPE AUTHEN USER "batch_test" SESSION_ID 16120
-    c <- s TACACS TYPE AUTHEN USER "batch_test" SESSION_ID 16120
+flow tacacs_loop_flow(c, s) {
+    c -> s tacacs type authen user "batch_test" sessionid 16120
+    c <- s tacacs type authen user "batch_test" sessionid 16120
 }
 
 // INSTRUCTION: Compile block executing 3 repeated authentication queries.
-COMPILE {
-    LOOP 3 {
-        tacacs_loop_flow(test_bench, target_tacacs)
-    }
+compile {
+    tacacs_loop_flow(test_bench, target_tacacs) // cycle 1
+    tacacs_loop_flow(test_bench, target_tacacs) // cycle 2
+    tacacs_loop_flow(test_bench, target_tacacs) // cycle 3
 }

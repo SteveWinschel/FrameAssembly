@@ -1,11 +1,11 @@
 //! Transmission Control Protocol (TCP, RFC 9293 / RFC 7323) Layer 4 PCAP-to-`.fasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 9293 Transmission
-//! Control Protocol (`TCP`, IP protocol `6`) headers and RFC 7323 TCP header options in
+//! Control Protocol (`tcp`, IP protocol `6`) headers and RFC 7323 TCP header options in
 //! FrameAssembly. It extracts source and destination ports (`srcport`, `dstport`), 32-bit sequence
 //! and acknowledgment numbers (`seq`, `acknum`), control flags (`syn`, `ack`, `fin`, `rst`, `psh`,
 //! `urg`, `ece`, `cwr`), receive window (`win`), urgent pointer (`urgent`), and TCP options (`mss`,
-//! `wscale`, `sack_perm`, `tsval`, `tsecr`).
+//! `wscale`, `sackperm`, `tsval`, `tsecr`).
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -56,7 +56,7 @@ pub(crate) fn dissect_tcp_header(
     Some((sp, dp))
 }
 
-/// Parses RFC 793 / RFC 7323 TCP header options (`MSS`, `WSCALE`, `SACK_PERM`, `TSVAL`/`TSECR`).
+/// Parses RFC 793 / RFC 7323 TCP header options (`mss`, `wscale`, `sackperm`, `tsval`/`tsecr`).
 pub(crate) fn parse_tcp_options(opts: &[u8]) -> Option<TcpOptions> {
     let (mut p, mut any, mut i) = (TcpOptions::default(), false, 0usize);
     while i < opts.len() {

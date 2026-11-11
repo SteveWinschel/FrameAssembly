@@ -1,10 +1,10 @@
-//! OpenFlow (`OPENFLOW`) Software-Defined Networking control-plane parser for FrameAssembly.
+//! OpenFlow (`openflow`) Software-Defined Networking control-plane parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `OPENFLOW` SDN controller-to-switch
-//! messages over TCP port 6653. It supports both explicit (`TYPE HELLO`, `TYPE FEATURES_REQ`,
-//! `TYPE PACKET_IN`, etc.) and bare shorthand message types (`HELLO`, `FEATURES_REQ`,
-//! `FEATURES_REPLY`, `PACKET_IN`, `PACKET_OUT`, `FLOW_MOD`, `ECHO_REQ`/`ECHO_REQUEST`,
-//! `ECHO_REPLY`), alongside `VERSION`, `XID`, `DPID`, `TABLE_ID`, and `PRIORITY`.
+//! This module implements the winnow parser combinator for `openflow` SDN controller-to-switch
+//! messages over TCP port 6653. It supports both explicit (`type hello`, `type featuresreq`,
+//! `type packetin`, etc.) and bare shorthand message types (`hello`, `featuresreq`,
+//! `featuresreply`, `packetin`, `packetout`, `flowmod`, `echoreq`/`echorequest`,
+//! `echoreply`), alongside `version`, `xid`, `dpid`, `tableid`, and `priority`.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err, opt};

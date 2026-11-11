@@ -5,7 +5,7 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b MDNS [QUERY | RESPONSE] [TXID <u16>] [QNAME <str>] [QTYPE <str>] [RDATA <str>] [RCODE <u8>] [ANS_TTL <u32>]`
+//! `a -> b mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -14,7 +14,7 @@ use core::net::IpAddr;
 use super::dns::build_dns_payload;
 
 /// Builds an RFC 6762 mDNS payload and returns the payload, target multicast IP, and port (5353).
-/// Syntax mapping: `MDNS [QUERY | RESPONSE] [TXID <u16>] [QNAME <str>] [QTYPE <str>] [RDATA <str>] [RCODE <u8>] [ANS_TTL <u32>]`
+/// Syntax mapping: `mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>]`
 #[doc(alias = "MDNS")]
 #[doc(alias = "RFC6762")]
 #[doc(alias = "RFC6763")]

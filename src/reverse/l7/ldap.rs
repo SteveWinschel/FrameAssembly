@@ -1,10 +1,10 @@
 //! Lightweight Directory Access Protocol v3 (LDAPv3, RFC 4511) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe ASN.1 BER wire-to-AST dissection for `LDAP` v3 `LDAPMessage`
+//! This module implements fuzz-safe ASN.1 BER wire-to-AST dissection for `ldap` v3 `LDAPMessage`
 //! envelopes over TCP and UDP ports `389`, `636`, `3268`, and `1389`. It decodes outer ASN.1 BER
 //! message identifiers (`msgid`) and protocol operations—`BindRequest` (`0x60`), `BindResponse`
 //! (`0x61`), `SearchRequest` (`0x63`), `SearchResultEntry` (`0x64`), `SearchResultDone` (`0x65`),
-//! and `UnbindRequest` (`0x42`)—along with `base_dn`, `filter`, and `result_code` fields while
+//! and `UnbindRequest` (`0x42`)—along with `basedn`, `filter`, and `resultcode` fields while
 //! preserving trailing bytes in `residual_payload`.
 
 use alloc::format;
@@ -59,7 +59,7 @@ fn parse_ber_int(bytes: &[u8]) -> Option<i64> {
     Some(val)
 }
 
-/// Dissects an `LDAP` v3 BER `LDAPMessage` envelope over ports `389`, `636`, `3268`, or `1389`.
+/// Dissects an `ldap` v3 BER `LDAPMessage` envelope over ports `389`, `636`, `3268`, or `1389`.
 pub(crate) fn dissect_ldap(
     transport: TransportProto,
     src_port: u16,
@@ -108,14 +108,14 @@ pub(crate) fn dissect_ldap(
                 return None;
             }
             if dn != "dc=corp,dc=local" {
-                tokens.push_str(&format!(" base_dn \"{dn}\""));
+                tokens.push_str(&format!(" basedn \"{dn}\""));
             }
         }
         0x61 | 0x65 => {
             tokens.push_str(if op_tag == 0x61 {
-                " bind_res"
+                " bindres"
             } else {
-                " search_done"
+                " searchdone"
             });
             let (rc_tag, rc_bytes, rest) = parse_ber_tlv(op_body)?;
             if rc_tag != 0x0A {
@@ -131,14 +131,14 @@ pub(crate) fn dissect_ldap(
                 return None;
             }
             if rc != 0 {
-                tokens.push_str(&format!(" result_code {rc}"));
+                tokens.push_str(&format!(" resultcode {rc}"));
             }
             if !dn.is_empty() {
-                tokens.push_str(&format!(" base_dn \"{dn}\""));
+                tokens.push_str(&format!(" basedn \"{dn}\""));
             }
         }
         0x63 => {
-            tokens.push_str(" search_req");
+            tokens.push_str(" searchreq");
             let (dn_tag, dn_bytes, mut rest) = parse_ber_tlv(op_body)?;
             if dn_tag != 0x04 {
                 return None;
@@ -148,7 +148,7 @@ pub(crate) fn dissect_ldap(
                 return None;
             }
             if dn != "dc=corp,dc=local" {
-                tokens.push_str(&format!(" base_dn \"{dn}\""));
+                tokens.push_str(&format!(" basedn \"{dn}\""));
             }
             for _ in 0..5 {
                 let (_, _, next) = parse_ber_tlv(rest)?;
@@ -165,7 +165,7 @@ pub(crate) fn dissect_ldap(
             }
         }
         0x64 => {
-            tokens.push_str(" search_entry");
+            tokens.push_str(" searchentry");
             let (dn_tag, dn_bytes, _) = parse_ber_tlv(op_body)?;
             if dn_tag != 0x04 {
                 return None;
@@ -175,11 +175,11 @@ pub(crate) fn dissect_ldap(
                 return None;
             }
             if dn != "dc=corp,dc=local" {
-                tokens.push_str(&format!(" base_dn \"{dn}\""));
+                tokens.push_str(&format!(" basedn \"{dn}\""));
             }
         }
         0x42 => {
-            tokens.push_str(" unbind_req");
+            tokens.push_str(" unbindreq");
         }
         _ => return None,
     }

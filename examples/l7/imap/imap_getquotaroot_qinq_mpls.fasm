@@ -1,20 +1,20 @@
 // PROMPT: RFC 2087 IMAP GETQUOTAROOT storage quota check over MPLS and QinQ carrier tags.
-// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, QINQ, INNER_VLAN, MPLS, COMPILE
+// TOKENS: host, ip, flow, imap, tag, cmd, arg, qinq, innervlan, mpls, compile
 
 // INSTRUCTION: Define hosted webmail proxy.
-HOST webmail_proxy { IP 100.64.143.10 }
+host webmail_proxy { ip 100.64.143.10 }
 
 // INSTRUCTION: Define backend multi-tenant IMAP storage node.
-HOST quota_imap { IP 100.64.143.1 }
+host quota_imap { ip 100.64.143.1 }
 
 // INSTRUCTION: Query mailbox storage usage via GETQUOTAROOT over QinQ and MPLS.
-FLOW imap_quota_qinq_mpls(p, q) {
-    p -> q IMAP TAG "Q01" CMD "GETQUOTAROOT" ARG "INBOX" QINQ 1143 INNER_VLAN 143 MPLS 1430
-    p <- q IMAP TAG "*" CMD "QUOTA" ARG "\"\" (STORAGE 40960 102400)" QINQ 1143 INNER_VLAN 143 MPLS 1430
-    p <- q IMAP TAG "Q01" CMD "OK" ARG "GETQUOTAROOT completed" QINQ 1143 INNER_VLAN 143 MPLS 1430
+flow imap_quota_qinq_mpls(p, q) {
+    p -> q imap tag "Q01" cmd "GETQUOTAROOT" arg "INBOX" qinq 1143 innervlan 143 mpls 1430
+    p <- q imap tag "*" cmd "QUOTA" arg "\"\" (STORAGE 40960 102400)" qinq 1143 innervlan 143 mpls 1430
+    p <- q imap tag "Q01" cmd "OK" arg "GETQUOTAROOT completed" qinq 1143 innervlan 143 mpls 1430
 }
 
 // INSTRUCTION: Compile the QinQ and MPLS IMAP quota check flow.
-COMPILE {
+compile {
     imap_quota_qinq_mpls(webmail_proxy, quota_imap)
 }

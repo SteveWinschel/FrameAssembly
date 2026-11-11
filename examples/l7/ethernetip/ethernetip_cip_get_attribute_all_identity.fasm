@@ -1,27 +1,27 @@
 // PROMPT: EtherNet/IP SendRRData invoking CIP Service 0x01 (Get_Attribute_All) on Identity Object Class 1 Instance 1.
-// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, STATUS, WAIT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, ethernetip, cmd, sessionhandle, context, status, wait, ms, cipservice, cipclass, cipinstance, cipattr, payload, compile
 
 // INSTRUCTION: Define the asset inventory scanner host.
-HOST asset_scanner {
-    IP 10.135.20.99
-    MAC 00:1a:2b:87:20:99
+host asset_scanner {
+    ip 10.135.20.99
+    mac 00:1a:2b:87:20:99
 }
 
 // INSTRUCTION: Define the PowerFlex 755 AC drive EtherNet/IP adapter.
-HOST powerflex_755 {
-    IP 10.135.20.15
-    MAC 00:1a:2b:87:20:15
+host powerflex_755 {
+    ip 10.135.20.15
+    mac 00:1a:2b:87:20:15
 }
 
 // INSTRUCTION: Register session and invoke CIP Service 1 (Get_Attribute_All) on Class 1 Instance 1.
-FLOW enip_get_attr_all(c, d) {
-    c -> d ETHERNETIP CMD "REGISTER_SESSION" SESSION_HANDLE 0 CONTEXT 500
-    c <- d ETHERNETIP CMD "REGISTER_SESSION" STATUS 0 SESSION_HANDLE 4096 CONTEXT 500 WAIT 1ms
-    c -> d ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 4096 CONTEXT 501 CIP_SERVICE 1 CIP_CLASS 1 CIP_INSTANCE 1 CIP_ATTR 0
-    c <- d ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 4096 CONTEXT 501 CIP_SERVICE 129 CIP_CLASS 1 CIP_INSTANCE 1 PAYLOAD "PowerFlex 755 Rev 14.002"
+flow enip_get_attr_all(c, d) {
+    c -> d ethernetip cmd "registersession" sessionhandle 0 context 500
+    c <- d ethernetip cmd "registersession" status 0 sessionhandle 4096 context 500 wait 1ms
+    c -> d ethernetip cmd "sendrrdata" sessionhandle 4096 context 501 cipservice 1 cipclass 1 cipinstance 1 cipattr 0
+    c <- d ethernetip cmd "sendrrdata" status 0 sessionhandle 4096 context 501 cipservice 129 cipclass 1 cipinstance 1 payload "PowerFlex 755 Rev 14.002"
 }
 
 // INSTRUCTION: Compile the CIP Get_Attribute_All Identity Object flow.
-COMPILE {
+compile {
     enip_get_attr_all(asset_scanner, powerflex_755)
 }

@@ -1,18 +1,18 @@
 // PROMPT: IPv6 host reporting membership in solicited-node multicast address for NDP resolution.
-// TOKENS: HOST, IP, FLOW, MLD, REPORT, MULTICAST_ADDR, COMPILE
+// TOKENS: host, ip, flow, mld, report, multicastaddr, compile
 
 // INSTRUCTION: Define newly initialized IPv6 workstation.
-HOST mld_client_node { IP fe80::5054:ff:fe12:3456 }
+host mld_client_node { ip fe80::5054:ff:fe12:3456 }
 
 // INSTRUCTION: Define IPv6 all-routers destination.
-HOST mld_all_routers_dst { IP ff02::2 }
+host mld_all_routers_dst { ip ff02::2 }
 
 // INSTRUCTION: Define MLD report advertising solicited-node multicast group.
-FLOW mld_solicited_report(client, rtrs) {
-    client -> rtrs MLD REPORT MULTICAST_ADDR ff02::1:ff12:3456
+flow mld_solicited_report(client, rtrs) {
+    client -> rtrs mld report multicastaddr ff02::1:ff12:3456
 }
 
 // INSTRUCTION: Compile block transmitting solicited-node MLD report.
-COMPILE {
+compile {
     mld_solicited_report(mld_client_node, mld_all_routers_dst)
 }

@@ -1,13 +1,13 @@
 //! Layer 7 application, infrastructure, telemetry, and industrial OT protocol field parsers.
 //!
 //! This module organizes the syntactic combinator parsers for all 50 Layer 7 protocols supported by
-//! the FrameAssembly language, including core infrastructure services (`DNS`, `mDNS`, `DHCP`, `NTP`,
-//! `PTP`), network management and telemetry (`SNMPv1`/`v2c`/`v3`, `RADIUS`, `TACACS+`, `Syslog`,
-//! `NetFlow`, `IPFIX`, `sFlow`), web and RPC transport (`HTTP/1.1`, `HTTP/2`, `gRPC`, `WebSocket`,
-//! `TLS`, `QUIC`), real-time media (`STUN`, `SIP`, `RTP`, `RTSP`), enterprise directory and storage
-//! (`SMTP`, `IMAP`, `POP3`, `Kerberos`, `LDAP`, `SMB`, `NFS`, `SSH`, `Telnet`, `FTP`, `TFTP`),
-//! data/IoT messaging (`Redis`, `Memcached`, `MySQL`, `PostgreSQL`, `MQTT`, `CoAP`, `AMQP`, `SSDP`,
-//! `WHOIS`), and industrial SCADA/OT (`Modbus`, `BACnet`, `DNP3`, `S7comm`, `EtherNet/IP`, `OPC UA`).
+//! the FrameAssembly language, including core infrastructure services (`dns`, `mdns`, `dhcp`, `ntp`,
+//! `ptp`), network management and telemetry (`SNMPv1`/`v2c`/`v3`, `radius`, `tacacs+`, `Syslog`,
+//! `NetFlow`, `ipfix`, `sFlow`), web and RPC transport (`http/1.1`, `http/2`, `gRPC`, `WebSocket`,
+//! `tls`, `quic`), real-time media (`stun`, `sip`, `rtp`, `rtsp`), enterprise directory and storage
+//! (`smtp`, `imap`, `pop3`, `Kerberos`, `ldap`, `smb`, `nfs`, `ssh`, `Telnet`, `ftp`, `tftp`),
+//! data/IoT messaging (`Redis`, `Memcached`, `MySQL`, `PostgreSQL`, `mqtt`, `CoAP`, `amqp`, `ssdp`,
+//! `whois`), and industrial SCADA/OT (`Modbus`, `BACnet`, `dnp3`, `S7comm`, `EtherNet/IP`, `OPC UA`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::alt;

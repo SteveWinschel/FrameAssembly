@@ -1,8 +1,8 @@
-//! IEEE 802.1ad Provider Bridging (`QINQ`) double-VLAN tag parser for FrameAssembly.
+//! IEEE 802.1ad Provider Bridging (`qinq`) double-VLAN tag parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for IEEE 802.1ad stacked VLAN (`QINQ`)
+//! This module implements the winnow parser combinator for IEEE 802.1ad stacked VLAN (`qinq`)
 //! frame statements and Layer 2 encapsulation modifiers. It parses outer service-provider VLAN
-//! identifiers (`QINQ <outer_vid>`) and inner customer VLAN identifiers (`INNER_VLAN <inner_vid>`)
+//! identifiers (`qinq <outer_vid>`) and inner customer VLAN identifiers (`innervlan <inner_vid>`)
 //! into spanned [`ParsedField`] variants for downstream Ethernet header synthesis.
 
 use winnow::ModalResult as PResult;

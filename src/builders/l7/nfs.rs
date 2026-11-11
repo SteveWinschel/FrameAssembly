@@ -4,7 +4,7 @@
 //! message carrying an NFSv2, NFSv3, or NFSv4 procedure over TCP or UDP port 2049. It prepends the
 //! 4-byte XDR Record Marking header (with last-fragment bit `0x80000000`), serializes the 40-byte
 //! RPC Call header (XID `0x6E667301`, Call type `0`, RPC version `2`, Program `100003`, NFS version,
-//! procedure code, and `AUTH_NULL` credentials), and XDR-encodes optional compound `TAG` and `PATH`
+//! procedure code, and `AUTH_NULL` credentials), and XDR-encodes optional compound `tag` and `path`
 //! strings with 4-byte zero padding.
 
 use crate::ast::*;
@@ -19,7 +19,11 @@ pub fn build_nfs_payload(
 ) -> Vec<u8> {
     let xid = spec.xid.unwrap_or(0x12345678);
     let vers = spec.vers.unwrap_or(4);
-    let proc_str = spec.proc_name.unwrap_or("LOOKUP").to_ascii_uppercase();
+    let proc_str = spec
+        .proc_name
+        .unwrap_or("lookup")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
     let proc_num: u32 = match proc_str.as_str() {
         "NULL" => 0,
         "GETATTR" => 1,

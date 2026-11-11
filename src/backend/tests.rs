@@ -149,21 +149,24 @@ fn test_is_tcp_protocol_logic() {
 #[test]
 fn test_generate_pcap_end_to_end() {
     let dsl = r#"
-HOST client { IP 10.0.0.1 MAC 00:11:22:33:44:55 }
-HOST server { IP 10.0.0.2 MAC 00:aa:bb:cc:dd:ee }
+host client { ip 10.0.0.1 mac 00:11:22:33:44:55 }
+host server { ip 10.0.0.2 mac 00:aa:bb:cc:dd:ee }
 
-FLOW test_flow(c, s) {
-    c -> s UDP DSTPORT 8080 SRCPORT 5000 PAYLOAD "FrameAssembly Test"
+flow test_flow(c, s) {
+    c -> s udp dstport 8080 srcport 5000 payload "FrameAssembly Test"
 }
 
-COMPILE {
+compile {
     test_flow(client, server)
 }
 "#;
     let program = crate::parser::parse_program(dsl).expect("Failed to parse valid DSL");
 
     let temp_dir = std::env::temp_dir();
-    let temp_pcap = temp_dir.join("test_frameassembly_backend.pcap");
+    let temp_pcap = temp_dir.join(format!(
+        "test_frameassembly_backend_{}.pcap",
+        std::process::id()
+    ));
     let pcap_path = temp_pcap.to_str().expect("Valid path");
 
     let result = generate_pcap(&program, pcap_path);

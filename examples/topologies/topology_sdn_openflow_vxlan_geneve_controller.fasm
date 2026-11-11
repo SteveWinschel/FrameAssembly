@@ -1,28 +1,28 @@
 // PROMPT: Software-Defined Networking (SDN) OpenFlow 1.3 controller programming flow tables on VXLAN and GENEVE virtual tunnel switches.
-// TOKENS: HOST, IP, FLOW, OPENFLOW, HELLO, XID, WAIT, FEATURES_REQ, FEATURES_REPLY, DPID, PACKET_IN, TABLE_ID, FLOW_MOD, VXLAN, VNI, PAYLOAD, GENEVE, COMPILE
+// TOKENS: host, ip, flow, openflow, hello, xid, wait, ms, featuresreq, featuresreply, dpid, packetin, tableid, flowmod, vxlan, vni, payload, geneve, compile
 
 // INSTRUCTION: Define centralized SDN OpenFlow 1.3 controller.
-HOST sdn_of_controller { IP 10.240.10.1 }
+host sdn_of_controller { ip 10.240.10.1 }
 
 // INSTRUCTION: Define Open vSwitch VTEP A handling VXLAN and OpenFlow control channel.
-HOST ovs_vtep_alpha { IP 10.240.10.11 }
+host ovs_vtep_alpha { ip 10.240.10.11 }
 
 // INSTRUCTION: Define Open vSwitch VTEP B handling GENEVE and VXLAN overlays.
-HOST ovs_vtep_beta { IP 10.240.10.12 }
+host ovs_vtep_beta { ip 10.240.10.12 }
 
 // INSTRUCTION: Define OpenFlow 1.3 handshake, Packet-In miss, Flow-Mod installation, and resulting VXLAN/GENEVE forwarding.
-FLOW sdn_openflow_overlay_programming(ctrl, vtep_a, vtep_b) {
-    ctrl -> vtep_a OPENFLOW HELLO XID 1
-    ctrl <- vtep_a OPENFLOW HELLO XID 1 WAIT 1ms
-    ctrl -> vtep_a OPENFLOW FEATURES_REQ XID 2 WAIT 1ms
-    ctrl <- vtep_a OPENFLOW FEATURES_REPLY XID 2 DPID 0x0000001c73000001 WAIT 1ms
-    ctrl <- vtep_a OPENFLOW PACKET_IN XID 10 TABLE_ID 0 WAIT 2ms
-    ctrl -> vtep_a OPENFLOW FLOW_MOD XID 11 TABLE_ID 0 WAIT 1ms
-    vtep_a -> vtep_b VXLAN VNI 5001 PAYLOAD "sdn_programmed_vxlan_flow" WAIT 1ms
-    vtep_b -> vtep_a GENEVE VNI 6001 PAYLOAD "sdn_programmed_geneve_flow" WAIT 1ms
+flow sdn_openflow_overlay_programming(ctrl, vtep_a, vtep_b) {
+    ctrl -> vtep_a openflow hello xid 1
+    ctrl <- vtep_a openflow hello xid 1 wait 1ms
+    ctrl -> vtep_a openflow featuresreq xid 2 wait 1ms
+    ctrl <- vtep_a openflow featuresreply xid 2 dpid 0x0000001c73000001 wait 1ms
+    ctrl <- vtep_a openflow packetin xid 10 tableid 0 wait 2ms
+    ctrl -> vtep_a openflow flowmod xid 11 tableid 0 wait 1ms
+    vtep_a -> vtep_b vxlan vni 5001 payload "sdn_programmed_vxlan_flow" wait 1ms
+    vtep_b -> vtep_a geneve vni 6001 payload "sdn_programmed_geneve_flow" wait 1ms
 }
 
 // INSTRUCTION: Compile block executing SDN OpenFlow 1.3 and overlay tunnel topology.
-COMPILE {
+compile {
     sdn_openflow_overlay_programming(sdn_of_controller, ovs_vtep_alpha, ovs_vtep_beta)
 }

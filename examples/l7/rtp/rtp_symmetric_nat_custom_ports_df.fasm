@@ -1,19 +1,19 @@
 // PROMPT: Symmetric NAT RTP media traversal on custom high UDP ports with DF bit set.
-// TOKENS: HOST, IP, FLOW, RTP, PT, TIMESTAMP, SSRC, MARKER, SRCPORT, DSTPORT, DF, IPID, WAIT, COMPILE
+// TOKENS: host, ip, flow, rtp, pt, timestamp, ssrc, marker, srcport, dstport, df, ipid, wait, ms, compile
 
 // INSTRUCTION: Define NAT-traversed WebRTC client.
-HOST ice_client { IP 192.168.100.44 }
+host ice_client { ip 192.168.100.44 }
 
 // INSTRUCTION: Define TURN/RTP media relay server.
-HOST media_relay { IP 198.51.100.44 }
+host media_relay { ip 198.51.100.44 }
 
 // INSTRUCTION: Define symmetric UDP port RTP exchange with DF flag.
-FLOW rtp_symmetric_nat(c, r) {
-    c -> r RTP PT 111 TIMESTAMP 960 SSRC 0x44556677 MARKER 1 SRCPORT 49152 DSTPORT 60000 DF IPID 401 WAIT 20ms
-    c <- r RTP PT 111 TIMESTAMP 960 SSRC 0x77665544 MARKER 1 SRCPORT 60000 DSTPORT 49152 DF IPID 801
+flow rtp_symmetric_nat(c, r) {
+    c -> r rtp pt 111 timestamp 960 ssrc 0x44556677 marker 1 srcport 49152 dstport 60000 df ipid 401 wait 20ms
+    c <- r rtp pt 111 timestamp 960 ssrc 0x77665544 marker 1 srcport 60000 dstport 49152 df ipid 801
 }
 
 // INSTRUCTION: Compile symmetric NAT RTP flow.
-COMPILE {
+compile {
     rtp_symmetric_nat(ice_client, media_relay)
 }

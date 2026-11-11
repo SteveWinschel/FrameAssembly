@@ -1,24 +1,24 @@
 // PROMPT: Simulate a complete 4-way TCP graceful connection teardown using FIN and ACK flags with explicit sequence and acknowledgment numbers.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, SEQ, WIN, WAIT, ACK, ACKNUM, FIN, COMPILE
+// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, seq, win, wait, ms, ack, acknum, fin, compile
 
 // INSTRUCTION: Define a web client endpoint with IP 192.168.10.25 and MAC 00:1a:2b:3c:4d:5e.
-HOST web_client { IP 192.168.10.25 MAC 00:1a:2b:3c:4d:5e }
+host web_client { ip 192.168.10.25 mac 00:1a:2b:3c:4d:5e }
 
 // INSTRUCTION: Define an origin server endpoint with IP 192.168.10.80 and MAC 00:1a:2b:3c:4d:80.
-HOST origin_server { IP 192.168.10.80 MAC 00:1a:2b:3c:4d:80 }
+host origin_server { ip 192.168.10.80 mac 00:1a:2b:3c:4d:80 }
 
 // INSTRUCTION: Define a flow that performs a 3-way handshake followed by a 4-way FIN-ACK connection teardown on port 8080.
-FLOW graceful_teardown(client, server) {
-    client -> server TCP SYN SRCPORT 50100 DSTPORT 8080 SEQ 1000 WIN 64240 WAIT 5ms
-    client <- server TCP SYN ACK SRCPORT 8080 DSTPORT 50100 SEQ 2000 ACKNUM 1001 WIN 65535 WAIT 5ms
-    client -> server TCP ACK SRCPORT 50100 DSTPORT 8080 SEQ 1001 ACKNUM 2001 WIN 64240 WAIT 10ms
-    client -> server TCP FIN ACK SRCPORT 50100 DSTPORT 8080 SEQ 1001 ACKNUM 2001 WIN 64240 WAIT 5ms
-    client <- server TCP ACK SRCPORT 8080 DSTPORT 50100 SEQ 2001 ACKNUM 1002 WIN 65535 WAIT 5ms
-    client <- server TCP FIN ACK SRCPORT 8080 DSTPORT 50100 SEQ 2001 ACKNUM 1002 WIN 65535 WAIT 5ms
-    client -> server TCP ACK SRCPORT 50100 DSTPORT 8080 SEQ 1002 ACKNUM 2002 WIN 64240 WAIT 5ms
+flow graceful_teardown(client, server) {
+    client -> server tcp syn srcport 50100 dstport 8080 seq 1000 win 64240 wait 5ms
+    client <- server tcp syn ack srcport 8080 dstport 50100 seq 2000 acknum 1001 win 65535 wait 5ms
+    client -> server tcp ack srcport 50100 dstport 8080 seq 1001 acknum 2001 win 64240 wait 10ms
+    client -> server tcp fin ack srcport 50100 dstport 8080 seq 1001 acknum 2001 win 64240 wait 5ms
+    client <- server tcp ack srcport 8080 dstport 50100 seq 2001 acknum 1002 win 65535 wait 5ms
+    client <- server tcp fin ack srcport 8080 dstport 50100 seq 2001 acknum 1002 win 65535 wait 5ms
+    client -> server tcp ack srcport 50100 dstport 8080 seq 1002 acknum 2002 win 64240 wait 5ms
 }
 
 // INSTRUCTION: Compile block to execute the graceful TCP teardown flow.
-COMPILE {
+compile {
     graceful_teardown(web_client, origin_server)
 }

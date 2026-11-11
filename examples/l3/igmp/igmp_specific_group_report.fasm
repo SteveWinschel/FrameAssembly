@@ -1,18 +1,18 @@
 // PROMPT: IGMPv2 membership report joining a specific multicast group with maximum response time.
-// TOKENS: HOST, IP, FLOW, IGMP, REPORT, GROUP, MAX_RESP, COMPILE
+// TOKENS: host, ip, flow, router, igmp, report, group, maxresp, compile
 
 // INSTRUCTION: Define multicast subscriber client.
-HOST mcast_client { IP 10.0.10.15 }
+host mcast_client { ip 10.0.10.15 }
 
 // INSTRUCTION: Define all-routers multicast group destination.
-HOST all_routers_group { IP 224.0.0.22 }
+host all_routers_group { ip 224.0.0.22 }
 
 // INSTRUCTION: Define IGMP report flow asserting membership in group 239.255.1.1.
-FLOW igmp_join_flow(client, router) {
-    client -> router IGMP REPORT GROUP 239.255.1.1 MAX_RESP 100
+flow igmp_join_flow(client, router) {
+    client -> router igmp report group 239.255.1.1 maxresp 100
 }
 
 // INSTRUCTION: Compile block executing IGMP group join report.
-COMPILE {
+compile {
     igmp_join_flow(mcast_client, all_routers_group)
 }

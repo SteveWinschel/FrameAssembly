@@ -4,7 +4,7 @@
 //! modifier emission for FrameAssembly's PCAP and PCAPNG decompiler. It validates the IPv4 version
 //! nibble (`4`) and Internet Header Length (`IHL >= 20`), clamps the packet slice to Total Length,
 //! and extracts `src_ip`, `dst_ip`, encapsulated `protocol`, `ttl`, `dscp`, `ecn`, `ipid`, `df`,
-//! `mf`, and `frag_offset` alongside the upper-layer payload slice.
+//! `mf`, and `fragoffset` alongside the upper-layer payload slice.
 
 use alloc::string::String;
 use core::net::Ipv4Addr;
@@ -40,7 +40,7 @@ pub(crate) struct Ipv4HeaderFields<'a> {
 
 impl<'a> Ipv4HeaderFields<'a> {
     /// Appends non-default `.fasm` IPv4 Layer 3 modifiers (`ttl`, `dscp`, `ecn`, `ipid`, `df`,
-    /// `mf`, `frag_offset`) to the statement token buffer.
+    /// `mf`, `fragoffset`) to the statement token buffer.
     pub(crate) fn append_fasm_modifiers(&self, out: &mut String, default_ttl: u8) {
         push_if(out, "ttl", self.ttl, default_ttl);
         push_if(out, "dscp", self.dscp, 0);
@@ -52,7 +52,7 @@ impl<'a> Ipv4HeaderFields<'a> {
         if self.mf {
             out.push_str(" mf");
         }
-        push_if(out, "frag_offset", self.frag_offset, 0);
+        push_if(out, "fragoffset", self.frag_offset, 0);
     }
 
     /// Returns `true` when all IPv4 header fields match FrameAssembly's zeroed overlay inner stub.

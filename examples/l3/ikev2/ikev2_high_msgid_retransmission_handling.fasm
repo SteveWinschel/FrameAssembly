@@ -1,18 +1,18 @@
 // PROMPT: IKEv2 INFORMATIONAL message testing high message ID replay and window handling.
-// TOKENS: HOST, IP, FLOW, IKEV2, INITIATOR_SPI, RESPONDER_SPI, INFORMATIONAL, MSGID, COMPILE
+// TOKENS: host, ip, flow, init, ikev2, initiatorspi, responderspi, informational, msgid, compile
 
 // INSTRUCTION: Define long-lived session initiator.
-HOST long_session_init { IP 192.168.210.10 }
+host long_session_init { ip 192.168.210.10 }
 
 // INSTRUCTION: Define long-lived session responder.
-HOST long_session_resp { IP 192.168.210.20 }
+host long_session_resp { ip 192.168.210.20 }
 
 // INSTRUCTION: Define flow asserting large message ID 50000 for sliding window verification.
-FLOW ikev2_high_msgid_flow(init, resp) {
-    init -> resp IKEV2 INITIATOR_SPI 1357924680135792 RESPONDER_SPI 2468013579246801 INFORMATIONAL MSGID 50000
+flow ikev2_high_msgid_flow(init, resp) {
+    init -> resp ikev2 initiatorspi 1357924680135792 responderspi 2468013579246801 informational msgid 50000
 }
 
 // INSTRUCTION: Compile block executing high message-ID IKEv2 transmission.
-COMPILE {
+compile {
     ikev2_high_msgid_flow(long_session_init, long_session_resp)
 }

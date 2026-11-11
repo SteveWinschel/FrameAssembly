@@ -1,25 +1,25 @@
 // PROMPT: RFC 9175 CoAP over QUIC constrained IoT sensor telemetry over UDP port 5684.
-// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, VERSION, DCID, SCID, SRCPORT, DSTPORT, PKT_NUM, WAIT, HANDSHAKE, SHORT, PAYLOAD, COMPILE
+// TOKENS: host, ip, flow, s, quic, initial, version, dcid, scid, srcport, dstport, pktnum, wait, ms, handshake, short, payload, compile
 
 // INSTRUCTION: Define smart grid meter IoT endpoint.
-HOST grid_meter {
-    IP 10.105.4.88
+host grid_meter {
+    ip 10.105.4.88
 }
 
 // INSTRUCTION: Define utility headend CoAP-over-QUIC server on port 5684.
-HOST headend_srv {
-    IP 10.105.4.1
+host headend_srv {
+    ip 10.105.4.1
 }
 
 // INSTRUCTION: Define CoAP over QUIC handshake and meter reading POST on UDP port 5684.
-FLOW quic_coap_5684(c, s) {
-    c -> s QUIC INITIAL VERSION 1 DCID 0x56840001 SCID 0x56840002 SRCPORT 45684 DSTPORT 5684 PKT_NUM 1 WAIT 6ms
-    c <- s QUIC HANDSHAKE VERSION 1 DCID 0x56840002 SCID 0x56840003 SRCPORT 5684 DSTPORT 45684 PKT_NUM 1 WAIT 6ms
-    c -> s QUIC SHORT DCID 0x56840003 SRCPORT 45684 DSTPORT 5684 PKT_NUM 2 PAYLOAD "COAP_POST_KWH_412" WAIT 6ms
-    c <- s QUIC SHORT DCID 0x56840002 SRCPORT 5684 DSTPORT 45684 PKT_NUM 2 PAYLOAD "COAP_204_CHANGED"
+flow quic_coap_5684(c, s) {
+    c -> s quic initial version 1 dcid 0x56840001 scid 0x56840002 srcport 45684 dstport 5684 pktnum 1 wait 6ms
+    c <- s quic handshake version 1 dcid 0x56840002 scid 0x56840003 srcport 5684 dstport 45684 pktnum 1 wait 6ms
+    c -> s quic short dcid 0x56840003 srcport 45684 dstport 5684 pktnum 2 payload "COAP_POST_KWH_412" wait 6ms
+    c <- s quic short dcid 0x56840002 srcport 5684 dstport 45684 pktnum 2 payload "COAP_204_CHANGED"
 }
 
 // INSTRUCTION: Compile the CoAP over QUIC port 5684 flow.
-COMPILE {
+compile {
     quic_coap_5684(grid_meter, headend_srv)
 }

@@ -1,27 +1,27 @@
 // PROMPT: Full TCP 3-way handshake, IMAP EXAMINE read-only mailbox inspection, and TCP FIN teardown.
-// TOKENS: HOST, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, ACK, IMAP, TAG, CMD, ARG, FIN, COMPILE
+// TOKENS: host, ip, flow, s, tcp, syn, srcport, dstport, ack, imap, tag, cmd, arg, fin, compile
 
 // INSTRUCTION: Define compliance audit reader host.
-HOST audit_reader { IP 10.50.143.30 }
+host audit_reader { ip 10.50.143.30 }
 
 // INSTRUCTION: Define archival IMAP server.
-HOST archive_imap { IP 10.50.143.1 }
+host archive_imap { ip 10.50.143.1 }
 
 // INSTRUCTION: Establish TCP connection, open INBOX read-only with EXAMINE, and close session.
-FLOW imap_tcp_examine_readonly(c, s) {
-    c -> s TCP SYN SRCPORT 52143 DSTPORT 143
-    c <- s TCP SYN ACK
-    c -> s TCP ACK
-    c -> s IMAP TAG "G01" CMD "EXAMINE" ARG "INBOX"
-    c <- s IMAP TAG "G01" CMD "OK" ARG "[READ-ONLY] EXAMINE completed"
-    c -> s IMAP TAG "G02" CMD "CLOSE"
-    c <- s IMAP TAG "G02" CMD "OK" ARG "CLOSE completed"
-    c -> s TCP FIN ACK
-    c <- s TCP FIN ACK
-    c -> s TCP ACK
+flow imap_tcp_examine_readonly(c, s) {
+    c -> s tcp syn srcport 52143 dstport 143
+    c <- s tcp syn ack
+    c -> s tcp ack
+    c -> s imap tag "G01" cmd "EXAMINE" arg "INBOX"
+    c <- s imap tag "G01" cmd "OK" arg "[READ-ONLY] EXAMINE completed"
+    c -> s imap tag "G02" cmd "CLOSE"
+    c <- s imap tag "G02" cmd "OK" arg "CLOSE completed"
+    c -> s tcp fin ack
+    c <- s tcp fin ack
+    c -> s tcp ack
 }
 
 // INSTRUCTION: Compile the full TCP IMAP EXAMINE read-only lifecycle.
-COMPILE {
+compile {
     imap_tcp_examine_readonly(audit_reader, archive_imap)
 }

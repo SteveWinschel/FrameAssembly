@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b SIP [INVITE | BYE | CANCEL | METHOD <str>] [URI <str>] [STATUS <u16>] [REASON <str>] [FROM <str>] [TO <str>] [CALL_ID <str>] [CSEQ <u32>] [VIA <str>] [CONTACT <str>] [CONTENT_TYPE <str>] [BODY <str>] [TRANSPORT TCP]`
+//! `a -> b sip [invite | bye | cancel | method <str>] [uri <str>] [status <u16>] [reason <str>] [from <str>] [to <str>] [callid <str>] [cseq <u32>] [via <str>] [contact <str>] [contenttype <str>] [body <str>] [transport tcp]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 3261 SIP VoIP message string.
-/// Syntax mapping: `SIP [INVITE | BYE | CANCEL | METHOD <str>] [URI <str>] [STATUS <u16>] [REASON <str>] [FROM <str>] [TO <str>] [CALL_ID <str>] [CSEQ <u32>] [VIA <str>] [CONTACT <str>] [CONTENT_TYPE <str>] [BODY <str>] [TRANSPORT TCP]`
+/// Syntax mapping: `sip [invite | bye | cancel | method <str>] [uri <str>] [status <u16>] [reason <str>] [from <str>] [to <str>] [callid <str>] [cseq <u32>] [via <str>] [contact <str>] [contenttype <str>] [body <str>] [transport tcp]`
 #[doc(alias = "SIP")]
 #[doc(alias = "VOIP")]
 #[doc(alias = "RFC3261")]

@@ -1,11 +1,11 @@
 //! Transport Layer Security (TLS 1.2 and TLS 1.3) Layer 7 record and handshake field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 5246 and RFC 8446 `TLS` record
-//! and handshake messages in FrameAssembly `.fasm` specifications. It recognizes the `TLS`
-//! protocol keyword, record/handshake message flags (`CLIENT_HELLO`, `SERVER_HELLO`,
-//! `CERTIFICATE`, `FINISHED`, `APP_DATA`, `ALERT`), TLS record and handshake versions
-//! (`RECORD_VERSION`, `HANDSHAKE_VERSION`), Server Name Indication (`SNI`), cipher suite IDs
-//! (`CIPHERSUITE`), and Application-Layer Protocol Negotiation strings (`ALPN`).
+//! This module implements the `winnow` parser combinator for RFC 5246 and RFC 8446 `tls` record
+//! and handshake messages in FrameAssembly `.fasm` specifications. It recognizes the `tls`
+//! protocol keyword, record/handshake message flags (`clienthello`, `serverhello`,
+//! `certificate`, `finished`, `appdata`, `alert`), TLS record and handshake versions
+//! (`recordversion`, `handshakeversion`), Server Name Indication (`sni`), cipher suite IDs
+//! (`ciphersuite`), and Application-Layer Protocol Negotiation strings (`alpn`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};

@@ -1,25 +1,25 @@
 // PROMPT: gRPC unary validation failure returning GRPC_STATUS 3 (INVALID_ARGUMENT) on malformed request fields.
-// TOKENS: HOST, IP, MAC, FLOW, GRPC, SERVICE, METHOD, PAYLOAD, GRPC_STATUS, COMPILE
+// TOKENS: host, ip, mac, flow, s, grpc, service, method, payload, grpcstatus, compile
 
 // INSTRUCTION: Define order checkout service caller host.
-HOST checkout_caller {
-    IP 10.100.12.10
-    MAC 02:42:0a:64:0c:0a
+host checkout_caller {
+    ip 10.100.12.10
+    mac 02:42:0a:64:0c:0a
 }
 
 // INSTRUCTION: Define user profile validation gRPC server host.
-HOST profile_validator {
-    IP 10.100.12.20
-    MAC 02:42:0a:64:0c:14
+host profile_validator {
+    ip 10.100.12.20
+    mac 02:42:0a:64:0c:14
 }
 
 // INSTRUCTION: Invoke CreateAccount with invalid email and receive GRPC_STATUS 3 INVALID_ARGUMENT.
-FLOW grpc_err_invalid_arg(c, s) {
-    c -> s GRPC SERVICE "identity.v1.UserService" METHOD "CreateAccount" PAYLOAD "email=invalid-format"
-    c <- s GRPC SERVICE "identity.v1.UserService" METHOD "CreateAccount" GRPC_STATUS 3
+flow grpc_err_invalid_arg(c, s) {
+    c -> s grpc service "identity.v1.UserService" method "CreateAccount" payload "email=invalid-format"
+    c <- s grpc service "identity.v1.UserService" method "CreateAccount" grpcstatus 3
 }
 
 // INSTRUCTION: Compile the gRPC status 3 INVALID_ARGUMENT validation failure scenario.
-COMPILE {
+compile {
     grpc_err_invalid_arg(checkout_caller, profile_validator)
 }

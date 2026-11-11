@@ -1,18 +1,18 @@
 // PROMPT: Wide-area power grid monitoring polling remote Modbus RTU across MPLS core network.
-// TOKENS: HOST, IP, FLOW, MODBUS, FUNC, ADDR, COUNT, UNITID, MPLS, COMPILE
+// TOKENS: host, ip, flow, modbus, func, addr, count, unitid, mpls, compile
 
 // INSTRUCTION: Define regional power dispatcher node.
-HOST dispatcher_node { IP 10.250.1.1 }
+host dispatcher_node { ip 10.250.1.1 }
 
 // INSTRUCTION: Define remote wind farm substation RTU.
-HOST wind_farm_rtu { IP 10.250.100.5 }
+host wind_farm_rtu { ip 10.250.100.5 }
 
 // INSTRUCTION: Define MPLS transported Modbus polling flow.
-FLOW mpls_modbus_poll(disp, rtu) {
-    disp -> rtu MODBUS FUNC "READ_HOLDING_REGISTERS" ADDR 100 COUNT 12 UNITID 2 MPLS 3001
+flow mpls_modbus_poll(disp, rtu) {
+    disp -> rtu modbus func "readholdingregisters" addr 100 count 12 unitid 2 mpls 3001
 }
 
 // INSTRUCTION: Compile MPLS remote substation scenario.
-COMPILE {
+compile {
     mpls_modbus_poll(dispatcher_node, wind_farm_rtu)
 }

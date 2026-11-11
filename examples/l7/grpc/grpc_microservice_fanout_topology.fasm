@@ -1,29 +1,29 @@
 // PROMPT: Microservice fanout where an API gateway calls Inventory, Pricing, and Shipping gRPC services.
-// TOKENS: HOST, IP, FLOW, GRPC, SERVICE, METHOD, GRPC_STATUS, COMPILE
+// TOKENS: host, ip, flow, grpc, service, method, grpcstatus, compile
 
 // INSTRUCTION: Define storefront BFF orchestrator.
-HOST storefront_bff { IP 10.99.0.1 }
+host storefront_bff { ip 10.99.0.1 }
 
 // INSTRUCTION: Define Inventory gRPC microservice.
-HOST inventory_svc { IP 10.99.0.11 }
+host inventory_svc { ip 10.99.0.11 }
 
 // INSTRUCTION: Define Pricing gRPC microservice.
-HOST pricing_svc { IP 10.99.0.12 }
+host pricing_svc { ip 10.99.0.12 }
 
 // INSTRUCTION: Define Shipping gRPC microservice.
-HOST shipping_svc { IP 10.99.0.13 }
+host shipping_svc { ip 10.99.0.13 }
 
 // INSTRUCTION: Fan out RPC requests to all three downstream microservices.
-FLOW grpc_microservice_fanout(bff, inv, prc, shp) {
-    bff -> inv GRPC SERVICE "catalog.Inventory" METHOD "CheckStock"
-    bff <- inv GRPC SERVICE "catalog.Inventory" METHOD "CheckStock" GRPC_STATUS 0
-    bff -> prc GRPC SERVICE "catalog.Pricing" METHOD "GetQuote"
-    bff <- prc GRPC SERVICE "catalog.Pricing" METHOD "GetQuote" GRPC_STATUS 0
-    bff -> shp GRPC SERVICE "logistics.Shipping" METHOD "EstimateDelivery"
-    bff <- shp GRPC SERVICE "logistics.Shipping" METHOD "EstimateDelivery" GRPC_STATUS 0
+flow grpc_microservice_fanout(bff, inv, prc, shp) {
+    bff -> inv grpc service "catalog.Inventory" method "CheckStock"
+    bff <- inv grpc service "catalog.Inventory" method "CheckStock" grpcstatus 0
+    bff -> prc grpc service "catalog.Pricing" method "GetQuote"
+    bff <- prc grpc service "catalog.Pricing" method "GetQuote" grpcstatus 0
+    bff -> shp grpc service "logistics.Shipping" method "EstimateDelivery"
+    bff <- shp grpc service "logistics.Shipping" method "EstimateDelivery" grpcstatus 0
 }
 
 // INSTRUCTION: Compile the 4-host gRPC microservice fanout topology.
-COMPILE {
+compile {
     grpc_microservice_fanout(storefront_bff, inventory_svc, pricing_svc, shipping_svc)
 }

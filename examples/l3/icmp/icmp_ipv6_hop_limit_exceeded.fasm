@@ -1,18 +1,18 @@
 // PROMPT: ICMPv6 Time Exceeded (Type 3) generated across IPv6 routers when Hop Limit decrements to 0.
-// TOKENS: HOST, IP, FLOW, ICMP, TIME_EXCEEDED, CODE, COMPILE
+// TOKENS: host, ip, flow, icmp, timeexceeded, code, compile
 
 // INSTRUCTION: Define intermediate IPv6 transit router.
-HOST v6_transit_rtr { IP 2001:db8:fedc::1 }
+host v6_transit_rtr { ip 2001:db8:fedc::1 }
 
 // INSTRUCTION: Define IPv6 originating endpoint.
-HOST v6_origin_host { IP 2001:db8:fedc::99 }
+host v6_origin_host { ip 2001:db8:fedc::99 }
 
 // INSTRUCTION: Define ICMPv6 Hop Limit Exceeded flow with code 0.
-FLOW icmp6_hop_exceeded_flow(rtr, host) {
-    rtr -> host ICMP TIME_EXCEEDED CODE 0
+flow icmp6_hop_exceeded_flow(rtr, host) {
+    rtr -> host icmp timeexceeded code 0
 }
 
 // INSTRUCTION: Compile block executing ICMPv6 Time Exceeded generation.
-COMPILE {
+compile {
     icmp6_hop_exceeded_flow(v6_transit_rtr, v6_origin_host)
 }

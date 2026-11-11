@@ -1,19 +1,19 @@
 // PROMPT: DNS SRV service location query discovering Kubernetes etcd cluster endpoints.
-// TOKENS: HOST, IP, FLOW, DNS, QUERY, TXID, QNAME, QTYPE, RESPONSE, RDATA, ANS_TTL, COMPILE
+// TOKENS: host, ip, flow, dns, query, txid, qname, qtype, response, rdata, ansttl, compile
 
 // INSTRUCTION: Define Kubernetes worker node.
-HOST k8s_node { IP 10.96.1.15 }
+host k8s_node { ip 10.96.1.15 }
 
 // INSTRUCTION: Define CoreDNS cluster service IP.
-HOST coredns_svc { IP 10.96.0.10 }
+host coredns_svc { ip 10.96.0.10 }
 
 // INSTRUCTION: Query _etcd-server._tcp.cluster.local SRV record and return service target.
-FLOW dns_k8s_srv(n, c) {
-    n -> c DNS QUERY TXID 0x7100 QNAME "_etcd-server._tcp.cluster.local" QTYPE "SRV"
-    n <- c DNS RESPONSE TXID 0x7100 QNAME "_etcd-server._tcp.cluster.local" QTYPE "SRV" RDATA "0 10 2380 etcd-0.cluster.local" ANS_TTL 30
+flow dns_k8s_srv(n, c) {
+    n -> c dns query txid 0x7100 qname "_etcd-server._tcp.cluster.local" qtype "srv"
+    n <- c dns response txid 0x7100 qname "_etcd-server._tcp.cluster.local" qtype "srv" rdata "0 10 2380 etcd-0.cluster.local" ansttl 30
 }
 
 // INSTRUCTION: Compile the Kubernetes CoreDNS SRV query flow.
-COMPILE {
+compile {
     dns_k8s_srv(k8s_node, coredns_svc)
 }

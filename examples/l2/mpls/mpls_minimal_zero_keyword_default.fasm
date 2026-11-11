@@ -1,24 +1,24 @@
 // PROMPT: Standalone MPLS frame using zero-parameter MPLS keyword and RFC 3032 default label stack values.
-// TOKENS: HOST, IP, MAC, FLOW, MPLS, COMPILE
+// TOKENS: host, ip, mac, flow, lsr, mpls, compile
 
 // INSTRUCTION: Define ingress Label Edge Router (LER).
-HOST ler_ingress_default {
-    IP 10.130.0.1
-    MAC 00:05:85:82:00:01
+host ler_ingress_default {
+    ip 10.130.0.1
+    mac 00:05:85:82:00:01
 }
 
 // INSTRUCTION: Define core Label Switch Router (LSR).
-HOST lsr_core_default {
-    IP 10.130.0.2
-    MAC 00:05:85:82:00:02
+host lsr_core_default {
+    ip 10.130.0.2
+    mac 00:05:85:82:00:02
 }
 
 // INSTRUCTION: Define zero-argument MPLS statement emitting default label stack entry.
-FLOW mpls_default_zero_kw(ler, lsr) {
-    ler -> lsr MPLS
+flow mpls_default_zero_kw(ler, lsr) {
+    ler -> lsr mpls
 }
 
 // INSTRUCTION: Compile block executing default MPLS frame generation.
-COMPILE {
+compile {
     mpls_default_zero_kw(ler_ingress_default, lsr_core_default)
 }

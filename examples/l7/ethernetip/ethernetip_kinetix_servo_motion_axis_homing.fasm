@@ -1,27 +1,27 @@
 // PROMPT: EtherNet/IP CIP Motion Object (Class 0x42 = 66) homing command and axis status read on a Kinetix 5700 servo drive.
-// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, DSCP, HEXPAYLOAD, STATUS, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, m, ethernetip, cmd, sessionhandle, context, cipservice, cipclass, cipinstance, cipattr, dscp, hexpayload, status, wait, ms, compile
 
 // INSTRUCTION: Define the high-speed pick-and-place motion controller.
-HOST motion_plc {
-    IP 10.135.70.1
-    MAC 00:1a:2b:87:70:01
+host motion_plc {
+    ip 10.135.70.1
+    mac 00:1a:2b:87:70:01
 }
 
 // INSTRUCTION: Define the Kinetix 5700 dual-axis servo drive.
-HOST kinetix_drive {
-    IP 10.135.70.5
-    MAC 00:1a:2b:87:70:05
+host kinetix_drive {
+    ip 10.135.70.5
+    mac 00:1a:2b:87:70:05
 }
 
 // INSTRUCTION: Set homing command on CIP Motion Axis Class 66 Instance 1 and read actual position Attribute 12.
-FLOW enip_kinetix_home(m, k) {
-    m -> k ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 7200 CONTEXT 1201 CIP_SERVICE 16 CIP_CLASS 66 CIP_INSTANCE 1 CIP_ATTR 5 DSCP 46 HEXPAYLOAD "01"
-    m <- k ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 7200 CONTEXT 1201 CIP_SERVICE 144 CIP_CLASS 66 CIP_INSTANCE 1 CIP_ATTR 5 DSCP 46 WAIT 2ms
-    m -> k ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 7200 CONTEXT 1202 CIP_SERVICE 14 CIP_CLASS 66 CIP_INSTANCE 1 CIP_ATTR 12 DSCP 46
-    m <- k ETHERNETIP CMD "SEND_RR_DATA" STATUS 0 SESSION_HANDLE 7200 CONTEXT 1202 CIP_SERVICE 142 CIP_CLASS 66 CIP_INSTANCE 1 CIP_ATTR 12 DSCP 46 HEXPAYLOAD "00000000"
+flow enip_kinetix_home(m, k) {
+    m -> k ethernetip cmd "sendrrdata" sessionhandle 7200 context 1201 cipservice 16 cipclass 66 cipinstance 1 cipattr 5 dscp 46 hexpayload "01"
+    m <- k ethernetip cmd "sendrrdata" status 0 sessionhandle 7200 context 1201 cipservice 144 cipclass 66 cipinstance 1 cipattr 5 dscp 46 wait 2ms
+    m -> k ethernetip cmd "sendrrdata" sessionhandle 7200 context 1202 cipservice 14 cipclass 66 cipinstance 1 cipattr 12 dscp 46
+    m <- k ethernetip cmd "sendrrdata" status 0 sessionhandle 7200 context 1202 cipservice 142 cipclass 66 cipinstance 1 cipattr 12 dscp 46 hexpayload "00000000"
 }
 
 // INSTRUCTION: Compile the Kinetix servo motion axis homing flow.
-COMPILE {
+compile {
     enip_kinetix_home(motion_plc, kinetix_drive)
 }

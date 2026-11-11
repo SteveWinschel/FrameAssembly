@@ -1,27 +1,27 @@
 // PROMPT: Complete TCP port 179 three-way handshake (SYN, SYN-ACK, ACK) followed by RFC 4271 BGP OPEN and KEEPALIVE.
-// TOKENS: HOST, IP, MAC, FLOW, BGP, OPEN, ASN, HOLDTIME, BGPID, SRCPORT, DSTPORT, SEQ, ACKNUM, WIN, SYN, DSCP, TTL, WAIT, ACK, PSH, KEEPALIVE, COMPILE
+// TOKENS: host, ip, mac, flow, bgp, open, asn, holdtime, bgpid, srcport, dstport, seq, acknum, win, syn, dscp, ttl, wait, ms, ack, psh, keepalive, compile
 
 // INSTRUCTION: Define Customer Edge eBGP router initiating active TCP port 179 connection.
-HOST ce_bgp_initiator {
-    IP 192.0.2.2
-    MAC 00:1e:49:02:00:02
+host ce_bgp_initiator {
+    ip 192.0.2.2
+    mac 00:1e:49:02:00:02
 }
 
 // INSTRUCTION: Define Provider Edge eBGP router listening on TCP port 179.
-HOST pe_bgp_listener {
-    IP 192.0.2.1
-    MAC 00:1e:49:02:00:01
+host pe_bgp_listener {
+    ip 192.0.2.1
+    mac 00:1e:49:02:00:01
 }
 
 // INSTRUCTION: Define TCP 3-way handshake on port 179 followed by BGP OPEN and KEEPALIVE exchange.
-FLOW bgp_tcp_handshake_open(ce, pe) {
-    ce -> pe BGP OPEN ASN 65010 HOLDTIME 180 BGPID 192.0.2.2 SRCPORT 52179 DSTPORT 179 SEQ 1000 ACKNUM 0 WIN 64240 SYN DSCP 48 TTL 1 WAIT 5ms
-    ce <- pe BGP OPEN ASN 65001 HOLDTIME 180 BGPID 192.0.2.1 SRCPORT 179 DSTPORT 52179 SEQ 5000 ACKNUM 1001 WIN 65535 SYN ACK DSCP 48 TTL 1 WAIT 5ms
-    ce -> pe BGP OPEN ASN 65010 HOLDTIME 180 BGPID 192.0.2.2 SRCPORT 52179 DSTPORT 179 SEQ 1001 ACKNUM 5001 WIN 64240 PSH ACK DSCP 48 TTL 1 WAIT 5ms
-    ce <- pe BGP KEEPALIVE SRCPORT 179 DSTPORT 52179 SEQ 5030 ACKNUM 1030 WIN 65535 PSH ACK DSCP 48 TTL 1
+flow bgp_tcp_handshake_open(ce, pe) {
+    ce -> pe bgp open asn 65010 holdtime 180 bgpid 192.0.2.2 srcport 52179 dstport 179 seq 1000 acknum 0 win 64240 syn dscp 48 ttl 1 wait 5ms
+    ce <- pe bgp open asn 65001 holdtime 180 bgpid 192.0.2.1 srcport 179 dstport 52179 seq 5000 acknum 1001 win 65535 syn ack dscp 48 ttl 1 wait 5ms
+    ce -> pe bgp open asn 65010 holdtime 180 bgpid 192.0.2.2 srcport 52179 dstport 179 seq 1001 acknum 5001 win 64240 psh ack dscp 48 ttl 1 wait 5ms
+    ce <- pe bgp keepalive srcport 179 dstport 52179 seq 5030 acknum 1030 win 65535 psh ack dscp 48 ttl 1
 }
 
 // INSTRUCTION: Compile the TCP handshake + BGP OPEN session establishment flow.
-COMPILE {
+compile {
     bgp_tcp_handshake_open(ce_bgp_initiator, pe_bgp_listener)
 }

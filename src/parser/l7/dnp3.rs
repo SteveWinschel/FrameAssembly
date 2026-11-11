@@ -1,11 +1,11 @@
 //! Distributed Network Protocol 3 (IEEE 1815 DNP3) Layer 7 SCADA protocol field parser.
 //!
-//! This module implements the `winnow` parser combinator for IEEE 1815 `DNP3` data link,
+//! This module implements the `winnow` parser combinator for IEEE 1815 `dnp3` data link,
 //! transport, and application layer frames in FrameAssembly `.fasm` specifications. It recognizes
-//! the `DNP3` protocol keyword, explicit `FUNC` strings, shorthand application function keywords
-//! (`CONFIRM`, `READ`, `WRITE`, `SELECT`, `OPERATE`, `DIRECT_OPERATE`, `UNSOLICITED_RESPONSE`),
-//! master/outstation addresses (`SRC`, `DST`), object `GROUP` and `VARIATION` numbers, and data
-//! link `CRC` overrides.
+//! the `dnp3` protocol keyword, explicit `func` strings, shorthand application function keywords
+//! (`confirm`, `read`, `write`, `select`, `operate`, `directoperate`, `unsolicitedresponse`),
+//! master/outstation addresses (`src`, `dst`), object `group` and `variation` numbers, and data
+//! link `crc` overrides.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
@@ -23,9 +23,9 @@ pub(crate) fn parse_dnp3_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pa
                 .map(|(_, s)| ParsedField::Protocol(Protocol::Dnp3, (s.start, s.len()))),
             tag(Token::Confirm)
                 .map(|(_, s)| ParsedField::L7StringField("FUNC", "CONFIRM", (s.start, s.len()))),
-            tag(Token::Ident("READ"))
+            tag(Token::Read)
                 .map(|(_, s)| ParsedField::L7StringField("FUNC", "READ", (s.start, s.len()))),
-            tag(Token::Ident("WRITE"))
+            tag(Token::Write)
                 .map(|(_, s)| ParsedField::L7StringField("FUNC", "WRITE", (s.start, s.len()))),
             tag(Token::Select)
                 .map(|(_, s)| ParsedField::L7StringField("FUNC", "SELECT", (s.start, s.len()))),

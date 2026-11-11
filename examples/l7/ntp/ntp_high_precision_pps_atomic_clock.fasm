@@ -1,18 +1,18 @@
 // PROMPT: Stratum 1 atomic time reference server response with pulse-per-second precision.
-// TOKENS: HOST, IP, FLOW, NTP, MODE, VN, STRATUM, PRECISION, REFID, COMPILE
+// TOKENS: host, ip, flow, ntp, mode, vn, stratum, precision, refid, compile
 
 // INSTRUCTION: Define enterprise time synchronization client.
-HOST enterprise_sync_client { IP 10.20.1.88 }
+host enterprise_sync_client { ip 10.20.1.88 }
 
 // INSTRUCTION: Define Stratum 1 atomic clock reference node.
-HOST atomic_pps_server { IP 10.20.1.1 }
+host atomic_pps_server { ip 10.20.1.1 }
 
 // INSTRUCTION: Define PPS atomic reference response flow.
-FLOW pps_atomic_response(cli, srv) {
-    cli <- srv NTP MODE 4 VN 4 STRATUM 1 PRECISION -24 REFID "PPS"
+flow pps_atomic_response(cli, srv) {
+    cli <- srv ntp mode 4 vn 4 stratum 1 precision -24 refid "PPS"
 }
 
 // INSTRUCTION: Compile PPS atomic clock response scenario.
-COMPILE {
+compile {
     pps_atomic_response(enterprise_sync_client, atomic_pps_server)
 }

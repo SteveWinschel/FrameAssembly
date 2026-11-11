@@ -1,28 +1,28 @@
 // PROMPT: Build an IPv6 OSPFv3 link-local adjacency using AllSPFRouters multicast MAC (33:33:00:00:00:05) and IPv6 Flow Labels
-// TOKENS: HOST, IP, MAC, FLOW, OSPF, HELLO, ROUTER_ID, AREA_ID, HELLO_INTERVAL, DEAD_INTERVAL, PRIORITY, FLOWLABEL, SRCMAC, DSTMAC, TTL, WAIT, DBD, LSU, LSACK, COMPILE
+// TOKENS: host, ip, mac, flow, ospf, hello, routerid, areaid, hellointerval, deadinterval, priority, flowlabel, srcmac, dstmac, ttl, wait, ms, dbd, lsu, lsack, compile
 
 // INSTRUCTION: Define the first OSPFv3 IPv6 router
-HOST ospfv3_rtr_1 {
-    IP fe80::fc00:1
-    MAC 00:0f:53:fc:00:01
+host ospfv3_rtr_1 {
+    ip fe80::fc00:1
+    mac 00:0f:53:fc:00:01
 }
 
 // INSTRUCTION: Define the second OSPFv3 IPv6 router
-HOST ospfv3_rtr_2 {
-    IP fe80::fc00:2
-    MAC 00:0f:53:fc:00:02
+host ospfv3_rtr_2 {
+    ip fe80::fc00:2
+    mac 00:0f:53:fc:00:02
 }
 
 // INSTRUCTION: Exchange OSPFv3 packets over IPv6 using multicast MAC 33:33:00:00:00:05 and Flow Labels
-FLOW ospfv3_ipv6_multicast_adj(r1, r2) {
-    r1 -> r2 OSPF HELLO ROUTER_ID 10.6.0.1 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 100 FLOWLABEL 131072 SRCMAC 00:0f:53:fc:00:01 DSTMAC 33:33:00:00:00:05 TTL 1 WAIT 10ms
-    r2 -> r1 OSPF HELLO ROUTER_ID 10.6.0.2 AREA_ID 0 HELLO_INTERVAL 10 DEAD_INTERVAL 40 PRIORITY 50 FLOWLABEL 131072 SRCMAC 00:0f:53:fc:00:02 DSTMAC 33:33:00:00:00:05 TTL 1 WAIT 10ms
-    r1 -> r2 OSPF DBD ROUTER_ID 10.6.0.1 AREA_ID 0 FLOWLABEL 131072 TTL 1 WAIT 10ms
-    r2 -> r1 OSPF LSU ROUTER_ID 10.6.0.2 AREA_ID 0 FLOWLABEL 131072 SRCMAC 00:0f:53:fc:00:02 DSTMAC 33:33:00:00:00:06 TTL 1 WAIT 10ms
-    r1 -> r2 OSPF LSACK ROUTER_ID 10.6.0.1 AREA_ID 0 FLOWLABEL 131072 SRCMAC 00:0f:53:fc:00:01 DSTMAC 33:33:00:00:00:05 TTL 1
+flow ospfv3_ipv6_multicast_adj(r1, r2) {
+    r1 -> r2 ospf hello routerid 10.6.0.1 areaid 0 hellointerval 10 deadinterval 40 priority 100 flowlabel 131072 srcmac 00:0f:53:fc:00:01 dstmac 33:33:00:00:00:05 ttl 1 wait 10ms
+    r2 -> r1 ospf hello routerid 10.6.0.2 areaid 0 hellointerval 10 deadinterval 40 priority 50 flowlabel 131072 srcmac 00:0f:53:fc:00:02 dstmac 33:33:00:00:00:05 ttl 1 wait 10ms
+    r1 -> r2 ospf dbd routerid 10.6.0.1 areaid 0 flowlabel 131072 ttl 1 wait 10ms
+    r2 -> r1 ospf lsu routerid 10.6.0.2 areaid 0 flowlabel 131072 srcmac 00:0f:53:fc:00:02 dstmac 33:33:00:00:00:06 ttl 1 wait 10ms
+    r1 -> r2 ospf lsack routerid 10.6.0.1 areaid 0 flowlabel 131072 srcmac 00:0f:53:fc:00:01 dstmac 33:33:00:00:00:05 ttl 1
 }
 
 // INSTRUCTION: Compile the IPv6 OSPFv3 multicast adjacency flow
-COMPILE {
+compile {
     ospfv3_ipv6_multicast_adj(ospfv3_rtr_1, ospfv3_rtr_2)
 }

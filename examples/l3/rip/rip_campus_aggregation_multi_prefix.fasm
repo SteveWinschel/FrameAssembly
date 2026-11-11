@@ -1,20 +1,20 @@
 // PROMPT: Campus aggregation router announcing multiple subnet prefixes in sequence.
-// TOKENS: HOST, IP, FLOW, RIP, RESPONSE, PREFIX, METRIC, WAIT, COMPILE
+// TOKENS: host, ip, flow, rip, response, prefix, metric, wait, ms, compile
 
 // INSTRUCTION: Define building aggregation switch.
-HOST bldg_agg_switch { IP 192.168.1.1 }
+host bldg_agg_switch { ip 192.168.1.1 }
 
 // INSTRUCTION: Define floor distribution router.
-HOST floor_dist_rtr { IP 192.168.1.254 }
+host floor_dist_rtr { ip 192.168.1.254 }
 
 // INSTRUCTION: Define sequential multi-subnet announcement flow.
-FLOW rip_multi_prefix_flow(agg, dist) {
-    agg -> dist RIP RESPONSE PREFIX 192.168.10.0 METRIC 1 WAIT 2ms
-    agg -> dist RIP RESPONSE PREFIX 192.168.20.0 METRIC 1 WAIT 2ms
-    agg -> dist RIP RESPONSE PREFIX 192.168.30.0 METRIC 2
+flow rip_multi_prefix_flow(agg, dist) {
+    agg -> dist rip response prefix 192.168.10.0 metric 1 wait 2ms
+    agg -> dist rip response prefix 192.168.20.0 metric 1 wait 2ms
+    agg -> dist rip response prefix 192.168.30.0 metric 2
 }
 
 // INSTRUCTION: Compile block executing multi-prefix route announcement.
-COMPILE {
+compile {
     rip_multi_prefix_flow(bldg_agg_switch, floor_dist_rtr)
 }

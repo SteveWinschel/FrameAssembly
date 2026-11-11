@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b GRPC [SERVICE <str>] [METHOD <str>] [GRPC_STATUS <u32>]`
+//! `a -> b grpc [service <str>] [method <str>] [grpcstatus <u32>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds a length-prefixed gRPC message payload.
-/// Syntax mapping: `GRPC [SERVICE <str>] [METHOD <str>] [GRPC_STATUS <u32>]`
+/// Syntax mapping: `grpc [service <str>] [method <str>] [grpcstatus <u32>]`
 #[doc(alias = "GRPC")]
 #[doc(alias = "PROTOBUF")]
 #[doc(alias = "GRPC_STATUS")]

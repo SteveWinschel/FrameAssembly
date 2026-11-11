@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing git tag to build and publish (e.g. v1.4.6)'
+        description: 'Existing git tag to build and publish (e.g. v2.0.0)'
         required: false
         type: string
 
@@ -167,6 +167,7 @@ jobs:
 
           [ -f contrib/mime/text-vnd.frameassembly.xml ] && cp contrib/mime/text-vnd.frameassembly.xml "$STAGE/"
           [ -f contrib/magic/frameassembly.magic ] && cp contrib/magic/frameassembly.magic "$STAGE/"
+          [ -d contrib/completions ] && cp -r contrib/completions "$STAGE/completions"
 
           echo "stage_dir=$STAGE" >> "$GITHUB_OUTPUT"
 
@@ -181,7 +182,7 @@ jobs:
         run: |
           Compress-Archive -Path "${{ steps.stage.outputs.stage_dir }}" -DestinationPath "${{ steps.stage.outputs.stage_dir }}.zip" -Force
 
-      - name: Build Debian .deb package (Linux)
+      - name: Build Debian .deb package with shell completions (Linux)
         if: runner.os == 'Linux'
         run: |
           TAG="${{ needs.prepare.outputs.tag }}"
@@ -193,6 +194,16 @@ jobs:
           chmod +x contrib/packaging/apt/build-deb.sh
           ./contrib/packaging/apt/build-deb.sh "${TAG}" "target/${{ matrix.target }}/release/frameassembly" "${ARCH}" deb-dist
           cp -f deb-dist/frameassembly_*_${ARCH}.deb "deb-dist/frameassembly_${ARCH}.deb"
+          DEB_CONTENTS="$(dpkg-deb --contents "deb-dist/frameassembly_${ARCH}.deb")"
+          for comp_entry in \
+            "/usr/share/bash-completion/completions/frameassembly" \
+            "/usr/share/zsh/vendor-completions/_frameassembly" \
+            "/usr/share/fish/vendor_completions.d/frameassembly.fish"; do
+            if ! grep -Fq "${comp_entry#/}" <<< "$DEB_CONTENTS"; then
+              echo "::error::Debian package missing expected completion path: ${comp_entry}"
+              exit 1
+            fi
+          done
 
       - name: Upload built archive
         uses: actions/upload-artifact@v4
@@ -231,9 +242,10 @@ jobs:
       - name: Sync version across Cargo.toml, WASM, and VS Code
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
-          echo "Syncing version $VERSION into WASM Cargo.toml and VS Code package.json..."
+          echo "Syncing version $VERSION into WASM Cargo.toml, WASM package.json, and VS Code package.json..."
           sed -i -E "s/^version = \".*\"/version = \"$VERSION\"/" frameassembly-wasm/Cargo.toml
           sed -i -E "s/frameassembly = \{ path = \"\.\.\", version = \".*\" \}/frameassembly = { path = \"..\", version = \"$VERSION\" }/" frameassembly-wasm/Cargo.toml
+          sed -i -E "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" frameassembly-wasm/package.json
           sed -i -E "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" frameassembly-vscode/package.json
 
       - name: Install Rust stable
@@ -255,15 +267,24 @@ jobs:
         working-directory: frameassembly-wasm
         run: |
           wasm-pack build --release --target web
-          node -e '
-            const fs = require("fs");
-            const pkg = JSON.parse(fs.readFileSync("pkg/package.json", "utf8"));
-            pkg.repository = {
-              type: "git",
-              url: "git+https://github.com/SteveWinschel/FrameAssembly.git"
-            };
-            fs.writeFileSync("pkg/package.json", JSON.stringify(pkg, null, 2) + "\n");
-          '
+          (
+            cd pkg
+            node -e '
+              const fs = require("fs");
+              const src = JSON.parse(fs.readFileSync("../package.json", "utf8"));
+              const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+              for (const field of ["keywords", "description", "homepage", "license", "repository"]) {
+                if (src[field] !== undefined) {
+                  pkg[field] = src[field];
+                }
+              }
+              pkg.repository = pkg.repository || {
+                type: "git",
+                url: "git+https://github.com/SteveWinschel/FrameAssembly.git"
+              };
+              fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+            '
+          )
 
       - name: Package WASM tarball
         run: |
@@ -302,7 +323,7 @@ jobs:
 
   vscode-extension:
     name: Package & Publish VS Code Extension (.vsix)
-    needs: [prepare]
+    needs: [prepare, wasm]
     runs-on: ubuntu-24.04
     continue-on-error: true
     permissions:
@@ -310,12 +331,27 @@ jobs:
       id-token: write
     env:
       VSCE_PAT: ${{ secrets.VSCE_PAT }}
-      OVSX_PAT: ${{ secrets.OVSX_PAT }}
     steps:
       - name: Checkout tagged commit
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare.outputs.tag }}
+
+      - name: Download release-wasm artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-wasm
+          path: wasm-artifact
+
+      - name: Bundle WASM runtime into frameassembly-vscode/wasm
+        run: |
+          mkdir -p wasm-extract frameassembly-vscode/wasm
+          tar -xzf wasm-artifact/frameassembly-wasm-*.tar.gz -C wasm-extract
+          cp -f wasm-extract/pkg/frameassembly_wasm.js \
+                wasm-extract/pkg/frameassembly_wasm_bg.wasm \
+                wasm-extract/pkg/frameassembly_wasm.d.ts \
+                frameassembly-vscode/wasm/
+          rm -rf wasm-artifact wasm-extract
 
       - name: Sync version in package.json
         working-directory: frameassembly-vscode
@@ -333,6 +369,7 @@ jobs:
         run: |
           TAG="${{ needs.prepare.outputs.tag }}"
           VERSION="${TAG#v}"
+          rm -f frameassembly-vscode-*.vsix
           npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o "frameassembly-vscode-${VERSION}.vsix"
 
       - name: Upload VSIX artifact
@@ -365,17 +402,6 @@ jobs:
           unset VSCE_PAT
           npx --yes @vscode/vsce@latest publish --oidc --packagePath "frameassembly-vscode-${VERSION}.vsix"
 
-      - name: Publish to Open VSX Registry (Optional)
-        if: ${{ env.OVSX_PAT != '' }}
-        continue-on-error: true
-        working-directory: frameassembly-vscode
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: |
-          TAG="${{ needs.prepare.outputs.tag }}"
-          VERSION="${TAG#v}"
-          npx --yes ovsx publish -p "${{ secrets.OVSX_PAT }}" --packagePath "frameassembly-vscode-${VERSION}.vsix"
-
   publish:
     name: Checksum, Attest & Publish Release
     needs: [prepare, build, wasm, vscode-extension]
@@ -387,8 +413,6 @@ jobs:
       attestations: write
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
       HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
     steps:
@@ -477,40 +501,6 @@ jobs:
             git push origin main || true
           fi
 
-      - name: Push to Arch User Repository (AUR) (Optional)
-        if: ${{ env.AUR_SSH_PRIVATE_KEY != '' }}
-        env:
-          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          TAG: ${{ needs.prepare.outputs.tag }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur_key
-          chmod 600 ~/.ssh/aur_key
-          ssh-keyscan -t ed25519,rsa aur.archlinux.org >> ~/.ssh/known_hosts 2>/dev/null || true
-          GIT_SSH_COMMAND="ssh -i ~/.ssh/aur_key -o StrictHostKeyChecking=accept-new" git clone ssh://aur@aur.archlinux.org/frameassembly-bin.git aur-dist || true
-          if [ -d aur-dist ]; then
-            cp contrib/packaging/aur/PKGBUILD aur-dist/
-            cp contrib/packaging/aur/.SRCINFO aur-dist/
-            cd aur-dist
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add PKGBUILD .SRCINFO
-            if ! git diff --cached --quiet; then
-              git commit -m "chore(release): bump frameassembly-bin to $TAG"
-              GIT_SSH_COMMAND="ssh -i ~/.ssh/aur_key -o StrictHostKeyChecking=accept-new" git push origin master
-            fi
-            cd ..
-          fi
-
-      - name: Trigger Microsoft WinGet Manifest Update (Optional)
-        if: ${{ env.WINGET_TOKEN != '' }}
-        env:
-          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
-          TAG: ${{ needs.prepare.outputs.tag }}
-          VERSION: ${{ needs.prepare.outputs.version }}
-        run: |
-          echo "Triggering WinGet package manifest submission for FrameAssembly $VERSION ($TAG)..."
-
       - name: Trigger Homebrew Tap and Scoop Bucket Sync (Optional)
         if: ${{ env.HOMEBREW_TAP_TOKEN != '' }}
         env:
@@ -519,7 +509,7 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           echo "Syncing Homebrew tap formula and Scoop bucket manifest for FrameAssembly $VERSION ($TAG)..."
-          # Sync Homebrew tap with 4-repo fallback
+          # Sync Homebrew tap and Scoop bucket with 4-repo fallback
           TAP_SYNCED=0
           for TAP_REPO in homebrew-tap-FrameAssembly homebrew-tap homebrew-frameassembly tap-FrameAssembly; do
             echo "Attempting Homebrew tap sync to SteveWinschel/${TAP_REPO}..."

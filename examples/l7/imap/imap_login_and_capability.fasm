@@ -1,19 +1,19 @@
 // PROMPT: IMAP session authentication and mailbox capability discovery.
-// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, COMPILE
+// TOKENS: host, ip, flow, s, imap, tag, cmd, arg, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.20 }
+host client { ip 192.168.1.20 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.168.1.1 }
+host server { ip 192.168.1.1 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW imap_login(c, s) {
-    c -> s IMAP TAG "A01" CMD "LOGIN" ARG "user pass"
-    c -> s IMAP TAG "A02" CMD "CAPABILITY"
+flow imap_login(c, s) {
+    c -> s imap tag "A01" cmd "LOGIN" arg "user pass"
+    c -> s imap tag "A02" cmd "CAPABILITY"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     imap_login(client, server)
 }

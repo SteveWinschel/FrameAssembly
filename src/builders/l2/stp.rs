@@ -8,7 +8,7 @@
 //! 1/256-second scaled timers (Message Age, Max Age, Hello Time, Forward Delay).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b [STP | RSTP] [ROOT_ID "<str>"] [BRIDGE_ID "<str>"] [PORT_ID <u16>] [COST <u32>] [MAX_AGE <u16>] [HELLO_TIME <u16>] [FORWARD_DELAY <u16>] [FLAGS <u8>]`
+//! `a -> b [stp | rstp] [rootid "<str>"] [bridgeid "<str>"] [portid <u16>] [cost <u32>] [maxage <u16>] [hellotime <u16>] [forwarddelay <u16>] [flags <u8>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

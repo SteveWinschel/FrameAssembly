@@ -1,10 +1,10 @@
-//! IPsec Encapsulating Security Payload (`ESP`, RFC 4303) Layer 3 security protocol parser.
+//! IPsec Encapsulating Security Payload (`esp`, RFC 4303) Layer 3 security protocol parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 4303 `ESP` confidentiality and
+//! This module implements the `winnow` parser combinator for RFC 4303 `esp` confidentiality and
 //! authenticated encryption headers in FrameAssembly `.fasm` specifications. It recognizes the
-//! `ESP` protocol keyword as well as shared IPsec Security Association parameters, including
-//! Security Parameter Index (`SPI`), sequence number (`SEQ`), Initialization Vector (`IV`),
-//! Integrity Check Value (`ICV`), and `NEXT_HEADER` via [`super::ipsec::parse_ipsec_field`].
+//! `esp` protocol keyword as well as shared IPsec Security Association parameters, including
+//! Security Parameter Index (`spi`), sequence number (`seq`), Initialization Vector (`iv`),
+//! Integrity Check Value (`icv`), and `nextheader` via [`super::ipsec::parse_ipsec_field`].
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::alt;

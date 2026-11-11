@@ -1,21 +1,21 @@
 // PROMPT: BFD three-way session establishment progressing from Down (1) to Init (2) to Up (3).
-// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, COMPILE
+// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, compile
 
 // INSTRUCTION: Define spine router A initiating BFD control session.
-HOST spine_rtr_a { IP 10.101.0.1 MAC 00:1c:73:aa:00:01 }
+host spine_rtr_a { ip 10.101.0.1 mac 00:1c:73:aa:00:01 }
 
 // INSTRUCTION: Define leaf switch B responding to BFD session establishment.
-HOST leaf_sw_b { IP 10.101.0.2 MAC 00:1c:73:aa:00:02 }
+host leaf_sw_b { ip 10.101.0.2 mac 00:1c:73:aa:00:02 }
 
 // INSTRUCTION: Define BFD state machine progression from Down to Init to Up.
-FLOW bfd_three_way_setup(a, b) {
-    a -> b BFD STATE 1 DIAG 0 MY_DISC 1001 YOUR_DISC 0 MIN_TX 100000 MIN_RX 100000 MULT 3
-    a <- b BFD STATE 2 DIAG 0 MY_DISC 2002 YOUR_DISC 1001 MIN_TX 50000 MIN_RX 50000 MULT 3
-    a -> b BFD STATE 3 DIAG 0 MY_DISC 1001 YOUR_DISC 2002 MIN_TX 50000 MIN_RX 50000 MULT 3
-    a <- b BFD STATE 3 DIAG 0 MY_DISC 2002 YOUR_DISC 1001 MIN_TX 50000 MIN_RX 50000 MULT 3
+flow bfd_three_way_setup(a, b) {
+    a -> b bfd state 1 diag 0 mydisc 1001 yourdisc 0 mintx 100000 minrx 100000 mult 3
+    a <- b bfd state 2 diag 0 mydisc 2002 yourdisc 1001 mintx 50000 minrx 50000 mult 3
+    a -> b bfd state 3 diag 0 mydisc 1001 yourdisc 2002 mintx 50000 minrx 50000 mult 3
+    a <- b bfd state 3 diag 0 mydisc 2002 yourdisc 1001 mintx 50000 minrx 50000 mult 3
 }
 
 // INSTRUCTION: Compile the BFD three-way handshake flow.
-COMPILE {
+compile {
     bfd_three_way_setup(spine_rtr_a, leaf_sw_b)
 }

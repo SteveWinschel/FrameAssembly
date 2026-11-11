@@ -1,6 +1,6 @@
 //! Post Office Protocol Version 3 (POP3, RFC 1939) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `POP3` client commands and server
+//! This module implements fuzz-safe wire-to-AST dissection for `pop3` client commands and server
 //! status responses over TCP ports `110`, `995`, and `2110`. It decodes CRLF-terminated `+OK` and
 //! `-ERR` response banners (`ok`, `err`, `response`) as well as `USER`, `PASS`, `STAT`, `LIST`,
 //! `RETR`, `DELE`, `QUIT`, and custom POP3 commands (`cmd`, `arg`) while eliding default `USER`,
@@ -30,7 +30,7 @@ fn split_crlf_line(bytes: &[u8]) -> Option<(&str, &[u8])> {
     Some((line, &bytes[pos + 2..]))
 }
 
-/// Dissects a `POP3` command or `+OK` / `-ERR` status response over TCP ports `110`, `995`, or `2110`.
+/// Dissects a `pop3` command or `+OK` / `-ERR` status response over TCP ports `110`, `995`, or `2110`.
 pub(crate) fn dissect_pop3(
     transport: TransportProto,
     src_port: u16,

@@ -1,7 +1,7 @@
 //! Shadow-state elision and canonical `.fasm` program emitter for the reverse decompiler.
 //!
 //! This module implements Stage 5 of the FrameAssembly reverse decompilation pipeline
-//! ([`emit_fasm_program`]). It emits discovered `host_<N>` declarations followed by a single
+//! ([`emit_fasm_program`]). It emits discovered `host<N>` declarations followed by a single
 //! `compile { ... }` block containing chronological inline directional frame statements. While
 //! emitting statements, it maintains a shadow copy of the forward compiler's two-stage port
 //! inheritance table (`EndpointPairPorts`) and canonical 4-tuple TCP sequence/acknowledgment state
@@ -71,7 +71,7 @@ struct ExistingTokens {
     has_mss: bool,
     /// Whether `wscale` is already present.
     has_wscale: bool,
-    /// Whether `sack_perm` is already present.
+    /// Whether `sackperm` is already present.
     has_sack_perm: bool,
     /// Whether `tsval` is already present.
     has_tsval: bool,
@@ -671,7 +671,7 @@ fn build_candidate_statement_body(
                 parts.push(format!("wscale {ws}"));
             }
             if !existing.has_sack_perm && opts.sack_perm {
-                parts.push(String::from("sack_perm"));
+                parts.push(String::from("sackperm"));
             }
             if !existing.has_tsval
                 && let Some(tsv) = opts.tsval
@@ -720,7 +720,7 @@ fn build_candidate_statement_body(
         {
             parts.push(format!("qinq {}", q.outer_vid));
             if let Some(iv) = q.inner_vid {
-                parts.push(format!("inner_vlan {iv}"));
+                parts.push(format!("innervlan {iv}"));
             }
         }
         if !existing.has_mpls
@@ -740,7 +740,7 @@ fn build_candidate_statement_body(
             if let Some(ttl) = m.ttl
                 && ttl != 64
             {
-                parts.push(format!("mpls_ttl {ttl}"));
+                parts.push(format!("mplsttl {ttl}"));
             }
         }
     } else if !pkt.has_ip_header

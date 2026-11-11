@@ -1,22 +1,22 @@
 // PROMPT: 4G LTE S1-AP signaling over SCTP port 36412 (PPID 18) between eNodeB and MME with Selective Acknowledgment (SACK).
-// TOKENS: HOST, IP, FLOW, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, SACK, WAIT, COMPILE
+// TOKENS: host, ip, flow, sctp, chunk, data, vtag, stream, ssn, ppid, srcport, dstport, payload, sack, wait, ms, compile
 
 // INSTRUCTION: Define LTE eNodeB cell site S1-MME interface.
-HOST lte_enodeb { IP 10.140.36.11 }
+host lte_enodeb { ip 10.140.36.11 }
 
 // INSTRUCTION: Define LTE Mobility Management Entity (MME) core node.
-HOST lte_mme_core { IP 10.140.36.1 }
+host lte_mme_core { ip 10.140.36.1 }
 
 // INSTRUCTION: Define S1-AP Initial UE Attach and Authentication Request across SCTP streams 0 and 1.
-FLOW sctp_lte_s1ap_exchange(enb, mme) {
-    enb -> mme SCTP CHUNK DATA VTAG 364121 STREAM 0 SSN 0 PPID 18 SRCPORT 36412 DSTPORT 36412 PAYLOAD "s1ap_s1_setup_request"
-    enb <- mme SCTP CHUNK SACK VTAG 364121 SRCPORT 36412 DSTPORT 36412 WAIT 1ms
-    enb <- mme SCTP CHUNK DATA VTAG 364121 STREAM 0 SSN 0 PPID 18 SRCPORT 36412 DSTPORT 36412 PAYLOAD "s1ap_s1_setup_response" WAIT 1ms
-    enb -> mme SCTP CHUNK DATA VTAG 364121 STREAM 1 SSN 0 PPID 18 SRCPORT 36412 DSTPORT 36412 PAYLOAD "s1ap_initial_ue_message_attach_req" WAIT 2ms
-    enb <- mme SCTP CHUNK SACK VTAG 364121 SRCPORT 36412 DSTPORT 36412 WAIT 1ms
+flow sctp_lte_s1ap_exchange(enb, mme) {
+    enb -> mme sctp chunk data vtag 364121 stream 0 ssn 0 ppid 18 srcport 36412 dstport 36412 payload "s1ap_s1_setup_request"
+    enb <- mme sctp chunk sack vtag 364121 srcport 36412 dstport 36412 wait 1ms
+    enb <- mme sctp chunk data vtag 364121 stream 0 ssn 0 ppid 18 srcport 36412 dstport 36412 payload "s1ap_s1_setup_response" wait 1ms
+    enb -> mme sctp chunk data vtag 364121 stream 1 ssn 0 ppid 18 srcport 36412 dstport 36412 payload "s1ap_initial_ue_message_attach_req" wait 2ms
+    enb <- mme sctp chunk sack vtag 364121 srcport 36412 dstport 36412 wait 1ms
 }
 
 // INSTRUCTION: Compile block executing LTE S1-AP SCTP signaling.
-COMPILE {
+compile {
     sctp_lte_s1ap_exchange(lte_enodeb, lte_mme_core)
 }

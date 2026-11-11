@@ -1,29 +1,29 @@
 // PROMPT: Model an RFC 7162 IMAP CONDSTORE and QRESYNC mailbox selection synchronizing delta flag changes over MPLS label 3143.
-// TOKENS: HOST, IP, MAC, FLOW, IMAP, TAG, CMD, ARG, MPLS, EXP, BOS, MPLS_TTL, WAIT, STATUS, RESPONSE, COMPILE
+// TOKENS: host, ip, mac, flow, s, imap, tag, cmd, arg, mpls, exp, bos, mplsttl, wait, ms, status, response, compile
 
 // INSTRUCTION: Define the branch office mail proxy synchronizing mailbox state over MPLS.
-HOST branch_mail_proxy {
-    IP 10.143.50.10
-    MAC 00:50:56:8f:32:0a
+host branch_mail_proxy {
+    ip 10.143.50.10
+    mac 00:50:56:8f:32:0a
 }
 
 // INSTRUCTION: Define the central datacenter IMAP cluster node.
-HOST core_imap_node {
-    IP 10.143.1.10
-    MAC 00:50:56:8f:01:0a
+host core_imap_node {
+    ip 10.143.1.10
+    mac 00:50:56:8f:01:0a
 }
 
 // INSTRUCTION: Enable QRESYNC and SELECT INBOX with known HIGHESTMODSEQ over MPLS label 3143.
-FLOW imap_qresync_select(c, s) {
-    c -> s IMAP TAG "C01" CMD "ENABLE" ARG "CONDSTORE QRESYNC" MPLS 3143 EXP 4 BOS 1 MPLS_TTL 64 WAIT 3ms
-    c <- s IMAP TAG "*" STATUS "ENABLED" RESPONSE "CONDSTORE QRESYNC" MPLS 3143 EXP 4 BOS 1 MPLS_TTL 64 WAIT 1ms
-    c <- s IMAP TAG "C01" STATUS "OK" RESPONSE "Enable completed" MPLS 3143 EXP 4 BOS 1 MPLS_TTL 64 WAIT 2ms
-    c -> s IMAP TAG "C02" CMD "SELECT" ARG "INBOX (QRESYNC (1690001 450 1:500))" MPLS 3143 EXP 4 BOS 1 MPLS_TTL 64 WAIT 4ms
-    c <- s IMAP TAG "*" STATUS "OK" RESPONSE "[HIGHESTMODSEQ 458] Highest" MPLS 3143 EXP 4 BOS 1 MPLS_TTL 64 WAIT 1ms
-    c <- s IMAP TAG "C02" STATUS "OK" RESPONSE "[READ-WRITE] Select completed" MPLS 3143 EXP 4 BOS 1 MPLS_TTL 64
+flow imap_qresync_select(c, s) {
+    c -> s imap tag "C01" cmd "ENABLE" arg "CONDSTORE QRESYNC" mpls 3143 exp 4 bos 1 mplsttl 64 wait 3ms
+    c <- s imap tag "*" status "ENABLED" response "CONDSTORE QRESYNC" mpls 3143 exp 4 bos 1 mplsttl 64 wait 1ms
+    c <- s imap tag "C01" status "OK" response "Enable completed" mpls 3143 exp 4 bos 1 mplsttl 64 wait 2ms
+    c -> s imap tag "C02" cmd "SELECT" arg "INBOX (QRESYNC (1690001 450 1:500))" mpls 3143 exp 4 bos 1 mplsttl 64 wait 4ms
+    c <- s imap tag "*" status "OK" response "[HIGHESTMODSEQ 458] Highest" mpls 3143 exp 4 bos 1 mplsttl 64 wait 1ms
+    c <- s imap tag "C02" status "OK" response "[READ-WRITE] Select completed" mpls 3143 exp 4 bos 1 mplsttl 64
 }
 
 // INSTRUCTION: Compile the MPLS-encapsulated IMAP QRESYNC flow.
-COMPILE {
+compile {
     imap_qresync_select(branch_mail_proxy, core_imap_node)
 }

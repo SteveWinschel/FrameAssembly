@@ -1,22 +1,22 @@
 // PROMPT: Generate an SNMPv1 linkDown generic trap (GENTRAP 2) reporting interface index and interface description via INT and STRING variable bindings.
-// TOKENS: HOST, IP, MAC, FLOW, SNMP1, TRAP, COMMUNITY, ENTERPRISE, AGENTIP, GENTRAP, SPECTRAP, SYSUPTIME, VARBIND, INT, STRING, COMPILE
+// TOKENS: host, ip, mac, flow, snmp1, trap, community, enterprise, agentip, gentrap, spectrap, sysuptime, varbind, int, string, compile
 
 // INSTRUCTION: Define a top-of-rack switch agent with IP 10.102.1.10.
-HOST tor_switch { IP 10.102.1.10 MAC 00:05:9a:3c:78:00 }
+host tor_switch { ip 10.102.1.10 mac 00:05:9a:3c:78:00 }
 
 // INSTRUCTION: Define an operations monitoring host with IP 10.102.1.200.
-HOST noc_monitor { IP 10.102.1.200 MAC 00:05:9a:3c:78:c8 }
+host noc_monitor { ip 10.102.1.200 mac 00:05:9a:3c:78:c8 }
 
 // INSTRUCTION: Define a flow emitting an SNMPv1 linkDown trap (GENTRAP 2) with ifIndex, ifDescr, and ifOperStatus varbinds.
-FLOW snmpv1_link_down(agent, nms) {
-    agent -> nms SNMP1 TRAP COMMUNITY "trap_ro" ENTERPRISE 1.3.6.1.4.1.9.1.516
-        AGENTIP 10.102.1.10 GENTRAP 2 SPECTRAP 0 SYSUPTIME 98400
-        VARBIND 1.3.6.1.2.1.2.2.1.1.4 INT 4
-        VARBIND 1.3.6.1.2.1.2.2.1.2.4 STRING "TenGigabitEthernet1/0/4"
-        VARBIND 1.3.6.1.2.1.2.2.1.8.4 INT 2
+flow snmpv1_link_down(agent, nms) {
+    agent -> nms snmp1 trap community "trap_ro" enterprise 1.3.6.1.4.1.9.1.516
+        agentip 10.102.1.10 gentrap 2 spectrap 0 sysuptime 98400
+        varbind 1.3.6.1.2.1.2.2.1.1.4 int 4
+        varbind 1.3.6.1.2.1.2.2.1.2.4 string "TenGigabitEthernet1/0/4"
+        varbind 1.3.6.1.2.1.2.2.1.8.4 int 2
 }
 
 // INSTRUCTION: Compile block to trigger the SNMPv1 linkDown trap.
-COMPILE {
+compile {
     snmpv1_link_down(tor_switch, noc_monitor)
 }

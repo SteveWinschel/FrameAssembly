@@ -2,9 +2,9 @@
 //!
 //! This module implements [`build_redis_payload`], which serializes a [`RedisSpec`]
 //! AST node into a Redis Serialization Protocol (RESP) byte stream over TCP port 6379 (or 26379 for
-//! Redis Sentinel). When `REPLY_TYPE` is set, it formats server replies as Simple Strings
+//! Redis Sentinel). When `replytype` is set, it formats server replies as Simple Strings
 //! (`+<val>\r\n`), Errors (`-ERR <val>\r\n`), Integers (`:<n>\r\n`), or Bulk Strings
-//! (`$<len>\r\n<val>\r\n`); otherwise it encodes client commands and whitespace-separated `ARGS`
+//! (`$<len>\r\n<val>\r\n`); otherwise it encodes client commands and whitespace-separated `args`
 //! as a RESP Array of Bulk Strings (`*<argc>\r\n$<len>\r\n...`).
 
 use crate::ast::*;
@@ -19,8 +19,13 @@ pub fn build_redis_payload(
 ) -> Vec<u8> {
     let mut out = String::new();
     if let Some(rt) = spec.reply_type {
-        let rt_upper = rt.trim().to_ascii_uppercase();
-        match rt_upper.as_str() {
+        let rt_trimmed = rt.trim();
+        let rt_norm = if matches!(rt_trimmed, "+" | "-" | ":" | "$") {
+            alloc::string::String::from(rt_trimmed)
+        } else {
+            rt_trimmed.to_ascii_uppercase().replace(['_', '-'], "")
+        };
+        match rt_norm.as_str() {
             "+" | "SIMPLE" | "STATUS" | "OK" => {
                 let val = spec.value.unwrap_or("OK");
                 out.push_str(&format!("+{}\r\n", val));

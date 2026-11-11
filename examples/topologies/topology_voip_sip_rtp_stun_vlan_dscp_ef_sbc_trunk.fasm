@@ -1,39 +1,39 @@
 // PROMPT: Enterprise VoIP Session Border Controller (SBC) SIP trunking with VLAN 200 voice tagging, STUN NAT reflexive discovery, SIP call setup, and DSCP 46 EF RTP media.
-// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, STUN, BINDING_REQUEST, BINDING_RESPONSE, XOR_MAPPED_ADDR, WAIT, DSCP, SIP, INVITE, URI, FROM, TO, CALL_ID, CSEQ, STATUS, REASON, METHOD, RTP, COMPILE
+// TOKENS: host, ip, mac, flow, vlan, pcp, stun, bindingrequest, bindingresponse, xormappedaddr, wait, ms, dscp, sip, invite, uri, from, to, callid, cseq, status, reason, method, rtp, pt, seq, compile
 
 // INSTRUCTION: Define executive desk IP phone on Voice VLAN 200.
-HOST exec_sip_phone {
-    IP 10.60.200.42
-    MAC 00:04:f2:3c:c8:2a
+host exec_sip_phone {
+    ip 10.60.200.42
+    mac 00:04:f2:3c:c8:2a
 }
 
 // INSTRUCTION: Define enterprise Session Border Controller (SBC) and STUN server.
-HOST enterprise_sbc {
-    IP 10.60.200.1
-    MAC 00:08:25:3c:c8:01
+host enterprise_sbc {
+    ip 10.60.200.1
+    mac 00:08:25:3c:c8:01
 }
 
 // INSTRUCTION: Define carrier SIP trunk media gateway.
-HOST carrier_sip_trunk {
-    IP 10.60.250.10
-    MAC 00:1b:21:3c:fa:0a
+host carrier_sip_trunk {
+    ip 10.60.250.10
+    mac 00:1b:21:3c:fa:0a
 }
 
 // INSTRUCTION: Define STUN binding check, SIP INVITE/200 OK/ACK signaling, bidirectional DSCP EF RTP voice, and SIP BYE teardown.
-FLOW voip_sbc_trunk_call_flow(phone, sbc, trunk) {
-    phone -> sbc VLAN 200 PCP 5 STUN BINDING_REQUEST
-    phone <- sbc VLAN 200 PCP 5 STUN BINDING_RESPONSE XOR_MAPPED_ADDR 198.51.100.42 WAIT 1ms
-    phone -> sbc VLAN 200 PCP 3 DSCP 24 SIP INVITE URI "sip:+18005550199@sbc.corp.net" FROM "sip:2042@corp.net" TO "sip:+18005550199@sbc.corp.net" CALL_ID "call-8821@phone" CSEQ 1 WAIT 1ms
-    sbc -> trunk DSCP 24 SIP INVITE URI "sip:+18005550199@carrier.net" CALL_ID "sbc-b2b-8821" CSEQ 1 WAIT 1ms
-    sbc <- trunk DSCP 24 SIP STATUS 200 REASON "OK" CALL_ID "sbc-b2b-8821" CSEQ 1 WAIT 2ms
-    phone <- sbc VLAN 200 PCP 3 DSCP 24 SIP STATUS 200 REASON "OK" CALL_ID "call-8821@phone" CSEQ 1 WAIT 1ms
-    phone -> sbc VLAN 200 PCP 3 DSCP 24 SIP METHOD "ACK" URI "sip:+18005550199@sbc.corp.net" CALL_ID "call-8821@phone" CSEQ 1 WAIT 1ms
-    phone -> trunk VLAN 200 PCP 5 DSCP 46 RTP PT 0 SEQ 101 TIMESTAMP 160 SSRC 0x12345678 PAYLOAD "g711_ulaw_voice_frame_up" WAIT 20ms
-    phone <- trunk VLAN 200 PCP 5 DSCP 46 RTP PT 0 SEQ 501 TIMESTAMP 160 SSRC 0x87654321 PAYLOAD "g711_ulaw_voice_frame_down" WAIT 20ms
-    phone -> sbc VLAN 200 PCP 3 DSCP 24 SIP BYE URI "sip:+18005550199@sbc.corp.net" CALL_ID "call-8821@phone" CSEQ 2 WAIT 2ms
+flow voip_sbc_trunk_call_flow(phone, sbc, trunk) {
+    phone -> sbc vlan 200 pcp 5 stun bindingrequest
+    phone <- sbc vlan 200 pcp 5 stun bindingresponse xormappedaddr 198.51.100.42 wait 1ms
+    phone -> sbc vlan 200 pcp 3 dscp 24 sip invite uri "sip:+18005550199@sbc.corp.net" from "sip:2042@corp.net" to "sip:+18005550199@sbc.corp.net" callid "call-8821@phone" cseq 1 wait 1ms
+    sbc -> trunk dscp 24 sip invite uri "sip:+18005550199@carrier.net" callid "sbc-b2b-8821" cseq 1 wait 1ms
+    sbc <- trunk dscp 24 sip status 200 reason "OK" callid "sbc-b2b-8821" cseq 1 wait 2ms
+    phone <- sbc vlan 200 pcp 3 dscp 24 sip status 200 reason "OK" callid "call-8821@phone" cseq 1 wait 1ms
+    phone -> sbc vlan 200 pcp 3 dscp 24 sip method "ACK" uri "sip:+18005550199@sbc.corp.net" callid "call-8821@phone" cseq 1 wait 1ms
+    phone -> trunk vlan 200 pcp 5 dscp 46 rtp pt 0 seq 101 timestamp 160 ssrc 0x12345678 payload "g711_ulaw_voice_frame_up" wait 20ms
+    phone <- trunk vlan 200 pcp 5 dscp 46 rtp pt 0 seq 501 timestamp 160 ssrc 0x87654321 payload "g711_ulaw_voice_frame_down" wait 20ms
+    phone -> sbc vlan 200 pcp 3 dscp 24 sip bye uri "sip:+18005550199@sbc.corp.net" callid "call-8821@phone" cseq 2 wait 2ms
 }
 
 // INSTRUCTION: Compile block executing VoIP SBC trunk STUN, SIP, and RTP QoS topology.
-COMPILE {
+compile {
     voip_sbc_trunk_call_flow(exec_sip_phone, enterprise_sbc, carrier_sip_trunk)
 }

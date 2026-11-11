@@ -1,24 +1,24 @@
 // PROMPT: Default IEEE 1815 DNP3 frame emission on TCP port 20000 with automatic link-layer CRC.
-// TOKENS: HOST, IP, MAC, FLOW, DNP3, COMPILE
+// TOKENS: host, ip, mac, flow, m, dnp3, compile
 
 // INSTRUCTION: Define SCADA master station host.
-HOST scada_master {
-    IP 10.200.1.10
-    MAC 00:0e:8c:10:00:01
+host scada_master {
+    ip 10.200.1.10
+    mac 00:0e:8c:10:00:01
 }
 
 // INSTRUCTION: Define remote terminal unit (RTU) outstation.
-HOST rtu_outstation {
-    IP 10.200.1.50
-    MAC 00:0e:8c:10:00:50
+host rtu_outstation {
+    ip 10.200.1.50
+    mac 00:0e:8c:10:00:50
 }
 
 // INSTRUCTION: Emit a default DNP3 frame with smart protocol defaults.
-FLOW dnp3_default(m, o) {
-    m -> o DNP3
+flow dnp3_default(m, o) {
+    m -> o dnp3
 }
 
 // INSTRUCTION: Compile the default DNP3 frame scenario.
-COMPILE {
+compile {
     dnp3_default(scada_master, rtu_outstation)
 }

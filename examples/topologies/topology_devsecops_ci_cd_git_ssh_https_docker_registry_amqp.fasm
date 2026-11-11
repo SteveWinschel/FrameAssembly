@@ -1,28 +1,28 @@
 // PROMPT: DevSecOps CI/CD container build pipeline combining SSH git push, AMQP build worker dispatch, TLS 1.3 and HTTP/2 OCI registry push, and gRPC Kubernetes rollout.
-// TOKENS: HOST, IP, FLOW, SSH, BANNER, KEXINIT, NEWKEYS, WAIT, AMQP, BASIC_PUBLISH, CHANNEL, ROUTING_KEY, BASIC_DELIVER, TLS, CLIENT_HELLO, SNI, SERVER_HELLO, HTTP2, HEADERS, STREAM_ID, COMPILE
+// TOKENS: host, ip, flow, ssh, banner, kexinit, newkeys, wait, ms, amqp, basicpublish, channel, routingkey, basicdeliver, tls, clienthello, sni, serverhello, http2, headers, streamid, compile
 
 // INSTRUCTION: Define developer workstation and Git server endpoint.
-HOST git_ci_controller { IP 10.165.10.10 }
+host git_ci_controller { ip 10.165.10.10 }
 
 // INSTRUCTION: Define ephemeral CI build runner and AMQP broker node.
-HOST ci_build_runner { IP 10.165.10.50 }
+host ci_build_runner { ip 10.165.10.50 }
 
 // INSTRUCTION: Define OCI container registry and Kubernetes cluster API server.
-HOST oci_registry_k8s { IP 10.165.20.100 }
+host oci_registry_k8s { ip 10.165.20.100 }
 
 // INSTRUCTION: Define SSH git receive-pack, AMQP pipeline trigger, TLS/HTTP2 image layer upload, and gRPC rollout.
-FLOW devsecops_cicd_pipeline_flow(git, runner, k8s) {
-    git -> runner SSH BANNER "SSH-2.0-GitLab-SSHD"
-    git <- runner SSH KEXINIT NEWKEYS WAIT 1ms
-    git -> runner AMQP BASIC_PUBLISH CHANNEL 1 ROUTING_KEY "ci.jobs.container_build" WAIT 1ms
-    runner <- git AMQP BASIC_DELIVER CHANNEL 1 ROUTING_KEY "ci.jobs.container_build" WAIT 1ms
-    runner -> k8s TLS CLIENT_HELLO SNI "registry.internal.io" WAIT 1ms
-    runner <- k8s TLS SERVER_HELLO WAIT 1ms
-    runner -> k8s HTTP2 HEADERS STREAM_ID 1 PAYLOAD "PUT /v2/payments/blobs/uploads/sha256:9f86d08" WAIT 2ms
-    runner -> k8s GRPC SERVICE "deploy.v1.RolloutController" METHOD "ApplyManifest" GRPC_STATUS 0 PAYLOAD "{\"image\":\"registry.internal.io/payments:v1.4.2\"}" WAIT 1ms
+flow devsecops_cicd_pipeline_flow(git, runner, k8s) {
+    git -> runner ssh banner "SSH-2.0-GitLab-SSHD"
+    git <- runner ssh kexinit newkeys wait 1ms
+    git -> runner amqp basicpublish channel 1 routingkey "ci.jobs.container_build" wait 1ms
+    runner <- git amqp basicdeliver channel 1 routingkey "ci.jobs.container_build" wait 1ms
+    runner -> k8s tls clienthello sni "registry.internal.io" wait 1ms
+    runner <- k8s tls serverhello wait 1ms
+    runner -> k8s http2 headers streamid 1 payload "PUT /v2/payments/blobs/uploads/sha256:9f86d08" wait 2ms
+    runner -> k8s grpc service "deploy.v1.RolloutController" method "ApplyManifest" grpcstatus 0 payload "{\"image\":\"registry.internal.io/payments:v1.4.2\"}" wait 1ms
 }
 
 // INSTRUCTION: Compile block executing DevSecOps CI/CD SSH, AMQP, TLS, HTTP/2, and gRPC topology.
-COMPILE {
+compile {
     devsecops_cicd_pipeline_flow(git_ci_controller, ci_build_runner, oci_registry_k8s)
 }

@@ -4,12 +4,12 @@
 # https://github.com/SteveWinschel/FrameAssembly
 # https://crates.io/crates/frameassembly
 #
-# Installs system prerequisites (curl, ca-certificates, and a C linker 'cc')
-# across major OS package managers if missing, ensures Rust >= 1.85 (Edition
-# 2024) is installed via rustup, installs 'frameassembly' via Cargo, optionally
-# installs the VS Code / Antigravity syntax extension directly from GitHub
-# without cloning the repository, and self-deletes if downloaded as a standalone
-# script file.
+# Installs the prebuilt FrameAssembly release binary to ~/.cargo/bin (when Rust
+# is present) or ~/.local/bin (on systems without Rust), falls back to building
+# from crates.io via rustup (>= 1.85) + cargo install if no prebuilt archive is
+# available, installs Bash/Zsh/Fish Tab completion scripts, optionally installs
+# the VS Code / Cursor / Windsurf / VSCodium / Antigravity extension (.vsix),
+# and self-deletes if downloaded as a standalone script file.
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
@@ -17,26 +17,32 @@
 # Options (via `sh -s -- [OPTIONS]`):
 #   --locked          Pass --locked to cargo install
 #   --force           Pass --force to cargo install
-#   --no-vscode       Skip automatic VS Code / Antigravity .vsix extension install
+#   --vscode          Install the editor extension (.vsix) [default: auto]
+#   --no-vscode       Skip automatic editor .vsix extension install
+#   --no-completions  Skip installing shell Tab completion scripts
 #   --dry-run         Print planned commands without executing system modifications
 #   -h, --help        Display this help message and exit
 # ==============================================================================
 
 set -eu
 
+CALLER_PATH="${PATH:-}"
 REQUIRED_RUST_MAJOR=1
 REQUIRED_RUST_MINOR=85
 CRATE_NAME="frameassembly"
-VSIX_VERSION="1.5.1"
-RELEASE_VERSION="1.5.1"
+VSIX_VERSION="2.0.0"
+RELEASE_VERSION="2.0.0"
 VSIX_RAW_URL="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-${VSIX_VERSION}.vsix"
+COMPLETIONS_RAW_BASE="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/completions"
 GITHUB_RELEASE_BASE="https://github.com/SteveWinschel/FrameAssembly/releases/download/v${RELEASE_VERSION}"
 RUSTUP_INIT_URL="https://sh.rustup.rs"
 
 CARGO_LOCKED=0
 CARGO_FORCE=0
 INSTALL_VSCODE=1
+INSTALL_COMPLETIONS=1
 DRY_RUN=0
+INSTALLED_BIN_DIR=""
 
 log_info() {
     printf '\033[1;34m[FrameAssembly]\033[0m %s\n' "$*"
@@ -65,8 +71,9 @@ Usage:
 Options:
   --locked          Use locked Cargo.lock dependencies (cargo install --locked)
   --force           Force overwrite an existing frameassembly binary (cargo install --force)
-  --vscode          Install the VS Code / Antigravity syntax extension (.vsix) [default: auto]
-  --no-vscode       Skip installing the VS Code / Antigravity syntax extension
+  --vscode          Install the VS Code / Cursor / Windsurf / VSCodium / Antigravity extension (.vsix) [default: auto]
+  --no-vscode       Skip installing the editor extension
+  --no-completions  Skip installing Bash, Zsh, and Fish Tab completion scripts
   --dry-run         Show detected platform and planned actions without modifying the system
   -h, --help        Show this help message and exit
 EOF
@@ -85,6 +92,9 @@ while [ "$#" -gt 0 ]; do
             ;;
         --no-vscode)
             INSTALL_VSCODE=0
+            ;;
+        --no-completions)
+            INSTALL_COMPLETIONS=0
             ;;
         --dry-run)
             DRY_RUN=1
@@ -219,22 +229,36 @@ install_system_prerequisites() {
     fi
 }
 
+prepend_to_path_if_dir() {
+    dir_to_add="$1"
+    case ":$PATH:" in
+        *":$dir_to_add:"*) ;;
+        *)
+            if [ -d "$dir_to_add" ]; then
+                PATH="$dir_to_add:$PATH"
+                export PATH
+            fi
+            ;;
+    esac
+}
+
 source_cargo_env() {
     CARGO_ENV_FILE="${CARGO_HOME:-$HOME/.cargo}/env"
     if [ -f "$CARGO_ENV_FILE" ]; then
         # shellcheck disable=SC1090
         . "$CARGO_ENV_FILE"
     fi
-    CARGO_BIN_DIR="${CARGO_HOME:-$HOME/.cargo}/bin"
-    case ":$PATH:" in
-        *":$CARGO_BIN_DIR:"*) ;;
-        *)
-            if [ -d "$CARGO_BIN_DIR" ]; then
-                PATH="$CARGO_BIN_DIR:$PATH"
-                export PATH
-            fi
-            ;;
-    esac
+    prepend_to_path_if_dir "${CARGO_HOME:-$HOME/.cargo}/bin"
+}
+
+resolve_prebuilt_bin_dir() {
+    cargo_bin_candidate="${CARGO_HOME:-$HOME/.cargo}/bin"
+    cargo_env_candidate="${CARGO_HOME:-$HOME/.cargo}/env"
+    if [ -d "$cargo_bin_candidate" ] || [ -f "$cargo_env_candidate" ]; then
+        printf '%s' "$cargo_bin_candidate"
+    else
+        printf '%s' "$HOME/.local/bin"
+    fi
 }
 
 detect_prebuilt_target() {
@@ -265,9 +289,9 @@ try_install_prebuilt_binary() {
     fi
     target_triple="$(detect_prebuilt_target)" || return 1
     archive_url="${GITHUB_RELEASE_BASE}/${CRATE_NAME}-v${RELEASE_VERSION}-${target_triple}.tar.gz"
-    bin_dir="${CARGO_HOME:-$HOME/.cargo}/bin"
+    bin_dir="$(resolve_prebuilt_bin_dir)"
     if [ "$DRY_RUN" -eq 1 ]; then
-        log_info "[dry-run] Checking prebuilt release binary at ${archive_url} (falling back to cargo install if unavailable)"
+        log_info "[dry-run] Checking prebuilt release binary at ${archive_url} -> ${bin_dir}/${CRATE_NAME} (falling back to cargo install if unavailable)"
         return 1
     fi
     tmp_archive="${TMPDIR:-/tmp}/${CRATE_NAME}-${RELEASE_VERSION}-$$.tar.gz"
@@ -285,7 +309,8 @@ try_install_prebuilt_binary() {
                 mv -f "$extracted_bin" "${bin_dir}/${CRATE_NAME}"
                 chmod +x "${bin_dir}/${CRATE_NAME}"
                 rm -rf -- "$tmp_archive" "$tmp_extract"
-                source_cargo_env
+                INSTALLED_BIN_DIR="$bin_dir"
+                prepend_to_path_if_dir "$bin_dir"
                 log_ok "Installed prebuilt ${CRATE_NAME} v${RELEASE_VERSION} (${target_triple}) to ${bin_dir}/${CRATE_NAME}."
                 return 0
             fi
@@ -357,26 +382,85 @@ install_frameassembly() {
 
     log_info "Installing ${CRATE_NAME} from crates.io (cargo $* ${CRATE_NAME})..."
     run_cmd cargo "$@" "$CRATE_NAME"
+    INSTALLED_BIN_DIR="${CARGO_HOME:-$HOME/.cargo}/bin"
+    prepend_to_path_if_dir "$INSTALLED_BIN_DIR"
+}
+
+install_single_completion() {
+    comp_src_name="$1"
+    comp_dest_path="$2"
+
+    local_comp_path=""
+    if [ -f "contrib/completions/${comp_src_name}" ]; then
+        local_comp_path="contrib/completions/${comp_src_name}"
+    else
+        case "$0" in
+            */*)
+                script_dir="$(dirname "$0")"
+                if [ -f "${script_dir}/contrib/completions/${comp_src_name}" ]; then
+                    local_comp_path="${script_dir}/contrib/completions/${comp_src_name}"
+                fi
+                ;;
+        esac
+    fi
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+        log_info "[dry-run] Install shell completion ${comp_src_name} -> ${comp_dest_path}"
+        return 0
+    fi
+
+    comp_dest_dir="$(dirname "$comp_dest_path")"
+    mkdir -p "$comp_dest_dir" 2>/dev/null || return 0
+
+    if [ -n "$local_comp_path" ]; then
+        cp -f "$local_comp_path" "$comp_dest_path" 2>/dev/null || return 0
+    elif command -v curl >/dev/null 2>&1; then
+        curl -fsSL "${COMPLETIONS_RAW_BASE}/${comp_src_name}" -o "$comp_dest_path" 2>/dev/null || rm -f -- "$comp_dest_path"
+    fi
+}
+
+install_shell_completions() {
+    if [ "$INSTALL_COMPLETIONS" -eq 0 ] || [ -z "${HOME:-}" ]; then
+        return 0
+    fi
+
+    bash_comp_dest="${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions/frameassembly"
+    if [ -d "${ZDOTDIR:-$HOME}/.zfunc" ]; then
+        zsh_comp_dest="${ZDOTDIR:-$HOME}/.zfunc/_frameassembly"
+    else
+        zsh_comp_dest="${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions/_frameassembly"
+    fi
+    fish_comp_dest="${XDG_CONFIG_HOME:-$HOME/.config}/fish/completions/frameassembly.fish"
+
+    install_single_completion "frameassembly.bash" "$bash_comp_dest"
+    install_single_completion "_frameassembly" "$zsh_comp_dest"
+    install_single_completion "frameassembly.fish" "$fish_comp_dest"
+    log_ok "Installed Bash, Zsh, and Fish Tab completions."
 }
 
 install_vscode_extension_if_requested() {
     if [ "$INSTALL_VSCODE" -eq 0 ]; then
         return 0
     fi
-    editor_cli=""
-    if command -v code >/dev/null 2>&1; then
-        editor_cli="code"
-    elif command -v agy >/dev/null 2>&1; then
-        editor_cli="agy"
-    else
+
+    detected_editors=""
+    for candidate in code cursor windsurf codium agy; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            detected_editors="${detected_editors} ${candidate}"
+        fi
+    done
+
+    if [ -z "$detected_editors" ]; then
         return 0
     fi
 
     tmp_vsix="${TMPDIR:-/tmp}/frameassembly-vscode-${VSIX_VERSION}-$$.vsix"
-    log_info "Downloading VS Code / Antigravity extension (v${VSIX_VERSION}) from GitHub..."
+    log_info "Downloading FrameAssembly editor extension (v${VSIX_VERSION}) from GitHub..."
     if run_cmd curl -fsSL "$VSIX_RAW_URL" -o "$tmp_vsix"; then
-        log_info "Installing syntax extension via ${editor_cli}..."
-        run_cmd "$editor_cli" --install-extension "$tmp_vsix" || log_warn "Editor extension install returned non-zero status."
+        for editor_cli in $detected_editors; do
+            log_info "Installing extension via ${editor_cli}..."
+            run_cmd "$editor_cli" --install-extension "$tmp_vsix" || log_warn "${editor_cli} extension install returned non-zero status."
+        done
         run_cmd rm -f -- "$tmp_vsix"
     else
         log_warn "Could not download ${VSIX_RAW_URL}; skipping editor extension install."
@@ -395,6 +479,25 @@ cleanup_self() {
     esac
 }
 
+print_path_hint_if_needed() {
+    target_dir="$1"
+    [ -z "$target_dir" ] && return 0
+    case ":${CALLER_PATH}:" in
+        *":${target_dir}:"*)
+            return 0
+            ;;
+    esac
+
+    cargo_env_file="${CARGO_HOME:-$HOME/.cargo}/env"
+    if [ "$target_dir" = "${CARGO_HOME:-$HOME/.cargo}/bin" ] && [ -f "$cargo_env_file" ]; then
+        log_warn "${target_dir} is not yet in your current shell PATH."
+        log_warn "Run: . \"${cargo_env_file}\"  (or restart your terminal)"
+    else
+        log_warn "${target_dir} is not yet in your current shell PATH."
+        log_warn "Run: export PATH=\"${target_dir}:\$PATH\"  (and add that line to ~/.bashrc or ~/.zshrc)"
+    fi
+}
+
 main() {
     log_info "Starting FrameAssembly (${CRATE_NAME}) bootstrap installer..."
     if ! try_install_prebuilt_binary; then
@@ -402,6 +505,7 @@ main() {
         ensure_rust_toolchain
         install_frameassembly
     fi
+    install_shell_completions
     install_vscode_extension_if_requested
     cleanup_self
 
@@ -411,11 +515,12 @@ main() {
     fi
 
     if command -v frameassembly >/dev/null 2>&1; then
-        log_ok "Successfully installed $(frameassembly --version)!"
-        log_info "Quickstart: frameassembly demo.fasm -o output.pcap && frameassembly show demo.fasm"
+        log_ok "Successfully installed $(frameassembly version)!"
+        log_info "Quickstart: frameassembly demo.fasm output.pcap && frameassembly show demo.fasm"
+        print_path_hint_if_needed "$INSTALLED_BIN_DIR"
     else
-        log_warn "frameassembly was installed to ${CARGO_HOME:-$HOME/.cargo}/bin, which is not yet in your current shell PATH."
-        log_warn "Run: . \"${CARGO_HOME:-$HOME/.cargo}/env\"  (or restart your terminal)"
+        fallback_dir="${INSTALLED_BIN_DIR:-$HOME/.local/bin}"
+        print_path_hint_if_needed "$fallback_dir"
     fi
 }
 

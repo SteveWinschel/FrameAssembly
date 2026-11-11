@@ -1,9 +1,9 @@
-//! WireGuard (`WIREGUARD`) Layer 3 cryptographic VPN tunnel parser for FrameAssembly.
+//! WireGuard (`wireguard`) Layer 3 cryptographic VPN tunnel parser for FrameAssembly.
 //!
-//! This module implements the winnow parser combinator for `WIREGUARD` Noise-protocol handshake
-//! and encrypted transport packets over UDP port 51820. It supports both explicit (`TYPE INITIATION`,
-//! `TYPE RESPONSE`, `TYPE COOKIE`, `TYPE DATA`) and bare shorthand message types (`INITIATION`,
-//! `RESPONSE`, `COOKIE`, `DATA`), alongside `SENDER`, `RECEIVER`, and `COUNTER` modifiers.
+//! This module implements the winnow parser combinator for `wireguard` Noise-protocol handshake
+//! and encrypted transport packets over UDP port 51820. It supports both explicit (`type initiation`,
+//! `type response`, `type cookie`, `type data`) and bare shorthand message types (`initiation`,
+//! `response`, `cookie`, `data`), alongside `sender`, `receiver`, and `counter` modifiers.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err, opt};

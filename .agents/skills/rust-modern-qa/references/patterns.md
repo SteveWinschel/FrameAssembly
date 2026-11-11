@@ -26,16 +26,16 @@ use frameassembly::parser::{parse_program, validate_semantics};
 fn test_tier1_ipv4_udp_dns_wire_encoding() {
     let source = r#"
 // PROMPT: Verify standard IPv4 UDP DNS A-record query wire encoding.
-// TOKENS: HOST, IP, MAC, FLOW, DNS, QNAME, QTYPE, COMPILE
+// TOKENS: host, ip, mac, flow, dns, qname, qtype, compile
 // INSTRUCTION: Declare client and DNS resolver endpoints.
-HOST client { IP 192.168.1.10 MAC 00:11:22:33:44:55 }
-HOST resolver { IP 192.168.1.1 MAC 00:aa:bb:cc:dd:ee }
+host client { ip 192.168.1.10 mac 00:11:22:33:44:55 }
+host resolver { ip 192.168.1.1 mac 00:aa:bb:cc:dd:ee }
 // INSTRUCTION: Emit a DNS query for example.com.
-FLOW dns_lookup(c, s) {
-    c -> s DNS QNAME "example.com" QTYPE "A"
+flow dns_lookup(c, s) {
+    c -> s dns qname "example.com" qtype "a"
 }
 // INSTRUCTION: Compile the DNS lookup flow.
-COMPILE {
+compile {
     dns_lookup(client, resolver)
 }
 "#
@@ -61,12 +61,12 @@ COMPILE {
 #[test]
 fn test_tier2_mixed_ipv4_ipv6_endpoints_rejected_by_semantics() {
     let source = r#"
-HOST v4_client { IP 10.0.0.1 }
-HOST v6_server { IP 2001:db8::1 }
-FLOW mixed(a, b) {
-    a -> b TCP SYN
+host v4_client { ip 10.0.0.1 }
+host v6_server { ip 2001:db8::1 }
+flow mixed(a, b) {
+    a -> b tcp syn
 }
-COMPILE {
+compile {
     mixed(v4_client, v6_server)
 }
 "#
@@ -88,12 +88,12 @@ COMPILE {
 #[test]
 fn test_tier3_qinq_double_vlan_with_ipv6_flowlabel_and_tcp() {
     let source = r#"
-HOST node_a { IP 2001:db8::1 MAC 52:54:00:12:34:56 }
-HOST node_b { IP 2001:db8::2 MAC 52:54:00:65:43:21 }
-FLOW carrier_flow(a, b) {
-    a -> b QINQ 100 INNER_VLAN 200 DSCP 46 FLOWLABEL 43981 TCP SYN SRCPORT 45000 DSTPORT 443 SEQ 5000 WINDOW 64240
+host node_a { ip 2001:db8::1 mac 52:54:00:12:34:56 }
+host node_b { ip 2001:db8::2 mac 52:54:00:65:43:21 }
+flow carrier_flow(a, b) {
+    a -> b qinq 100 innervlan 200 dscp 46 flowlabel 43981 tcp syn srcport 45000 dstport 443 seq 5000 window 64240
 }
-COMPILE {
+compile {
     carrier_flow(node_a, node_b)
 }
 "#
@@ -128,16 +128,16 @@ fn test_tier4_complete_three_way_tcp_handshake_and_http_flow() {
     lock_file.lock().expect("Failed to acquire File::lock()");
 
     let source = r#"
-HOST client { IP 172.16.0.5 MAC 00:01:02:03:04:05 }
-HOST server { IP 172.16.0.10 MAC 00:06:07:08:09:0a }
-FLOW web_session(c, s) {
-    c -> s TCP SYN SRCPORT 49152 DSTPORT 80
-    c <- s TCP SYN ACK WAIT 1ms
-    c -> s TCP ACK WAIT 1ms
-    c -> s HTTP GET URI "/v1/health" HOST_HDR "api.internal" WAIT 2ms
-    c <- s HTTP RESPONSE STATUS 200 REASON "OK" BODY "healthy" WAIT 3ms
+host client { ip 172.16.0.5 mac 00:01:02:03:04:05 }
+host server { ip 172.16.0.10 mac 00:06:07:08:09:0a }
+flow web_session(c, s) {
+    c -> s tcp syn srcport 49152 dstport 80
+    c <- s tcp syn ack wait 1ms
+    c -> s tcp ack wait 1ms
+    c -> s http get uri "/v1/health" hosthdr "api.internal" wait 2ms
+    c <- s http response status 200 reason "OK" body "healthy" wait 3ms
 }
-COMPILE {
+compile {
     web_session(client, server)
 }
 "#
@@ -228,8 +228,7 @@ pub fn verify_markdown_fasm_blocks_compile(path: &Path) -> Result<usize, String>
         } else if in_block && trimmed.starts_with("```") {
             in_block = false;
             let snippet = current_block.trim();
-            let upper = snippet.to_ascii_uppercase();
-            if upper.contains("HOST ") && upper.contains("FLOW ") && upper.contains("COMPILE") {
+            if snippet.contains("host ") && snippet.contains("flow ") && snippet.contains("compile") {
                 let prog = parse_program(snippet).map_err(|e| {
                     format!("{}:{}: Markdown .fasm block failed to parse: {e:?}", path.display(), block_start_line)
                 })?;
@@ -323,7 +322,7 @@ pub fn verify_ast_spec_fields_wired(ast_path: &Path, builder_sources: &str) -> V
 
 ## 3. Automated 6-Way Grammar, IDE & WASM Lockstep + Non-Terminal Resolution Test Template
 
-Verifies that every uppercase `#[token("...")]` in `src/lexer/mod.rs` is present in `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json` (both uppercase and lowercase), and that **every non-terminal referenced on the RHS of a grammar rule is actually defined on the LHS**:
+Verifies that every strict-lowercase `[a-z0-9]+` `#[token("...")]` in `src/lexer/mod.rs` (zero `_`, zero `-`, no `ignore(ascii_case)`, no `Token::Loop`) is present in `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`, and that **every non-terminal referenced on the RHS of a grammar rule is actually defined on the LHS**:
 
 ```rust
 //! Automated 6-way grammar/IDE/WASM non-terminal resolution and keyword lockstep test.
@@ -411,14 +410,14 @@ proptest! {
         wait_ms in 1u64..=1000u64,
     ) {
         let source = format!(
-            "HOST c {{ IP 10.0.0.{src_octet} }}\n\
-             HOST s {{ IP 10.0.1.{dst_octet} }}\n\
-             FLOW prop_flow(a, b) {{\n\
-                 a -> b TCP SYN SRCPORT {src_port} DSTPORT {dst_port} SEQ {seq_num} WINDOW {win_size}\n\
-                 a <- b TCP SYN ACK WAIT {wait_ms}ms\n\
-                 a -> b TCP ACK WAIT {wait_ms}ms\n\
+            "host c {{ ip 10.0.0.{src_octet} }}\n\
+             host s {{ ip 10.0.1.{dst_octet} }}\n\
+             flow prop_flow(a, b) {{\n\
+                 a -> b tcp syn srcport {src_port} dstport {dst_port} seq {seq_num} window {win_size}\n\
+                 a <- b tcp syn ack wait {wait_ms}ms\n\
+                 a -> b tcp ack wait {wait_ms}ms\n\
              }}\n\
-             COMPILE {{\n\
+             compile {{\n\
                  prop_flow(c, s)\n\
              }}"
         );
@@ -429,7 +428,7 @@ proptest! {
 
         // Invariant 1: 1 Statement = 1 Frame
         prop_assert_eq!(packets.len(), 3);
-        // Invariant 2: Monotonic nanosecond timestamps matching WAIT modifiers
+        // Invariant 2: Monotonic nanosecond timestamps matching wait modifiers
         prop_assert_eq!(packets[0].1, 0);
         prop_assert_eq!(packets[1].1, wait_ms * 1_000_000);
         prop_assert_eq!(packets[2].1, wait_ms * 2_000_000);

@@ -1,25 +1,25 @@
 // PROMPT: IPv6 QUIC 0-RTT early data resumption sending HTTP/3 GET immediately after Initial packet.
-// TOKENS: HOST, IP, FLOW, QUIC, INITIAL, VERSION, DCID, SCID, PKT_NUM, WAIT, ZERO_RTT, PAYLOAD, HANDSHAKE, SHORT, COMPILE
+// TOKENS: host, ip, flow, s, quic, initial, version, dcid, scid, pktnum, wait, ms, zerortt, payload, handshake, short, compile
 
 // INSTRUCTION: Define returning IPv6 mobile browser client.
-HOST v6_client {
-    IP 2001:db8:9000::50
+host v6_client {
+    ip 2001:db8:9000::50
 }
 
 // INSTRUCTION: Define IPv6 HTTP/3 origin server accepting 0-RTT early data.
-HOST v6_origin {
-    IP 2001:db8:9000::1
+host v6_origin {
+    ip 2001:db8:9000::1
 }
 
 // INSTRUCTION: Define IPv6 QUIC Initial + 0-RTT burst followed by server Handshake and 1-RTT response.
-FLOW quic_v6_0rtt(c, s) {
-    c -> s QUIC INITIAL VERSION 1 DCID 0x1000200030004000 SCID 0x5000600070008000 PKT_NUM 1 WAIT 1ms
-    c -> s QUIC ZERO_RTT VERSION 1 DCID 0x1000200030004000 SCID 0x5000600070008000 PKT_NUM 2 PAYLOAD "H3_EARLY_GET_INDEX" WAIT 5ms
-    c <- s QUIC HANDSHAKE VERSION 1 DCID 0x5000600070008000 SCID 0x9000a000b000c000 PKT_NUM 1 WAIT 5ms
-    c <- s QUIC SHORT DCID 0x5000600070008000 PKT_NUM 2 PAYLOAD "H3_200_OK_BODY"
+flow quic_v6_0rtt(c, s) {
+    c -> s quic initial version 1 dcid 0x1000200030004000 scid 0x5000600070008000 pktnum 1 wait 1ms
+    c -> s quic zerortt version 1 dcid 0x1000200030004000 scid 0x5000600070008000 pktnum 2 payload "H3_EARLY_GET_INDEX" wait 5ms
+    c <- s quic handshake version 1 dcid 0x5000600070008000 scid 0x9000a000b000c000 pktnum 1 wait 5ms
+    c <- s quic short dcid 0x5000600070008000 pktnum 2 payload "H3_200_OK_BODY"
 }
 
 // INSTRUCTION: Compile the IPv6 QUIC 0-RTT resumption flow.
-COMPILE {
+compile {
     quic_v6_0rtt(v6_client, v6_origin)
 }

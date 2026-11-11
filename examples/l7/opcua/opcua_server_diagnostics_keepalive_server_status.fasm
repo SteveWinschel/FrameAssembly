@@ -1,27 +1,27 @@
 // PROMPT: OPC UA client reading ServerStatus CurrentTime (i=2258) and State (i=2259) as an application-level watchdog.
-// TOKENS: HOST, IP, MAC, FLOW, OPCUA, MSG_TYPE, CHUNK_TYPE, SECURE_CHANNEL_ID, TOKEN_ID, SEQ_NUM, REQID, NODE_ID, PAYLOAD, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, s, opcua, msgtype, chunktype, securechannelid, tokenid, seqnum, reqid, nodeid, payload, wait, ms, compile
 
 // INSTRUCTION: Define the redundant HMI watchdog client.
-HOST hmi_watchdog {
-    IP 10.140.120.14
-    MAC 00:1a:2b:8c:c0:14
+host hmi_watchdog {
+    ip 10.140.120.14
+    mac 00:1a:2b:8c:c0:14
 }
 
 // INSTRUCTION: Define the primary DCS OPC UA server.
-HOST dcs_ua_server {
-    IP 10.140.120.1
-    MAC 00:1a:2b:8c:c0:01
+host dcs_ua_server {
+    ip 10.140.120.1
+    mac 00:1a:2b:8c:c0:01
 }
 
 // INSTRUCTION: Read Server_ServerStatus_CurrentTime (i=2258) and Server_ServerStatus_State (i=2259).
-FLOW opcua_watchdog_read(c, s) {
-    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1200 TOKEN_ID 9 SEQ_NUM 500 REQID 500 NODE_ID "i=2258"
-    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1200 TOKEN_ID 9 SEQ_NUM 500 REQID 500 NODE_ID "i=2258" PAYLOAD "2026-10-25T12:00:00Z" WAIT 1ms
-    c -> s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1200 TOKEN_ID 9 SEQ_NUM 501 REQID 501 NODE_ID "i=2259"
-    c <- s OPCUA MSG_TYPE "MSG" CHUNK_TYPE "F" SECURE_CHANNEL_ID 1200 TOKEN_ID 9 SEQ_NUM 501 REQID 501 NODE_ID "i=2259" PAYLOAD "ServerState:Running(0)"
+flow opcua_watchdog_read(c, s) {
+    c -> s opcua msgtype "msg" chunktype "f" securechannelid 1200 tokenid 9 seqnum 500 reqid 500 nodeid "i=2258"
+    c <- s opcua msgtype "msg" chunktype "f" securechannelid 1200 tokenid 9 seqnum 500 reqid 500 nodeid "i=2258" payload "2026-10-25T12:00:00Z" wait 1ms
+    c -> s opcua msgtype "msg" chunktype "f" securechannelid 1200 tokenid 9 seqnum 501 reqid 501 nodeid "i=2259"
+    c <- s opcua msgtype "msg" chunktype "f" securechannelid 1200 tokenid 9 seqnum 501 reqid 501 nodeid "i=2259" payload "ServerState:Running(0)"
 }
 
 // INSTRUCTION: Compile the OPC UA ServerStatus watchdog flow.
-COMPILE {
+compile {
     opcua_watchdog_read(hmi_watchdog, dcs_ua_server)
 }

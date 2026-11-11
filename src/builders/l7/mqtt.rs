@@ -4,8 +4,8 @@
 //! AST specification into an OASIS MQTT v3.1.1 control packet over TCP port 1883 (or 8883 for
 //! MQTTS). It constructs the 1-byte Fixed Header (control packet type `1..=14`, QoS bits, and
 //! RETAIN flag), encodes the variable-length Remaining Length field using 7-bit continuation bytes,
-//! and serializes the Variable Header and payload for `CONNECT`, `CONNACK`, `PUBLISH`, `PUBACK`,
-//! `SUBSCRIBE`, `SUBACK`, `PINGREQ`, and `PINGRESP` frames.
+//! and serializes the Variable Header and payload for `connect`, `connack`, `publish`, `puback`,
+//! `subscribe`, `suback`, `pingreq`, and `pingresp` frames.
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -17,7 +17,11 @@ pub fn build_mqtt_payload(
     spec: &MqttSpec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
-    let pkt_type_str = spec.pkt_type.unwrap_or("CONNECT").to_ascii_uppercase();
+    let pkt_type_str = spec
+        .pkt_type
+        .unwrap_or("connect")
+        .to_ascii_uppercase()
+        .replace(['_', '-'], "");
 
     if pkt_type_str == "CONNACK" {
         return vec![0x20, 0x02, 0x00, spec.return_code.unwrap_or(0)];

@@ -1,27 +1,27 @@
 // PROMPT: FANUC robotic welder cell selecting spot weld schedule via EtherNet/IP Assembly Object Instance 112.
-// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, CIP_SERVICE, CIP_CLASS, CIP_INSTANCE, CIP_ATTR, HEXPAYLOAD, STATUS, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, ethernetip, cmd, sessionhandle, context, cipservice, cipclass, cipinstance, cipattr, hexpayload, status, wait, ms, compile
 
 // INSTRUCTION: Define the weld line master PLC.
-HOST weld_line_plc {
-    IP 10.135.140.1
-    MAC 00:1a:2b:87:e0:01
+host weld_line_plc {
+    ip 10.135.140.1
+    mac 00:1a:2b:87:e0:01
 }
 
 // INSTRUCTION: Define the FANUC R-30iB Plus robot EtherNet/IP adapter.
-HOST fanuc_robot {
-    IP 10.135.140.30
-    MAC 00:1a:2b:87:e0:30
+host fanuc_robot {
+    ip 10.135.140.30
+    mac 00:1a:2b:87:e0:30
 }
 
 // INSTRUCTION: Send weld schedule 14 via SendUnitData to Instance 112 and receive weld complete confirmation from Instance 111.
-FLOW enip_fanuc_weld(p, r) {
-    p -> r ETHERNETIP CMD "SEND_UNIT_DATA" SESSION_HANDLE 9900 CONTEXT 1901 CIP_SERVICE 16 CIP_CLASS 4 CIP_INSTANCE 112 CIP_ATTR 3 HEXPAYLOAD "0e000100"
-    p <- r ETHERNETIP CMD "SEND_UNIT_DATA" STATUS 0 SESSION_HANDLE 9900 CONTEXT 1901 CIP_SERVICE 144 CIP_CLASS 4 CIP_INSTANCE 112 CIP_ATTR 3 WAIT 5ms
-    p -> r ETHERNETIP CMD "SEND_UNIT_DATA" SESSION_HANDLE 9900 CONTEXT 1902 CIP_SERVICE 14 CIP_CLASS 4 CIP_INSTANCE 111 CIP_ATTR 3
-    p <- r ETHERNETIP CMD "SEND_UNIT_DATA" STATUS 0 SESSION_HANDLE 9900 CONTEXT 1902 CIP_SERVICE 142 CIP_CLASS 4 CIP_INSTANCE 111 CIP_ATTR 3 HEXPAYLOAD "0e008000"
+flow enip_fanuc_weld(p, r) {
+    p -> r ethernetip cmd "sendunitdata" sessionhandle 9900 context 1901 cipservice 16 cipclass 4 cipinstance 112 cipattr 3 hexpayload "0e000100"
+    p <- r ethernetip cmd "sendunitdata" status 0 sessionhandle 9900 context 1901 cipservice 144 cipclass 4 cipinstance 112 cipattr 3 wait 5ms
+    p -> r ethernetip cmd "sendunitdata" sessionhandle 9900 context 1902 cipservice 14 cipclass 4 cipinstance 111 cipattr 3
+    p <- r ethernetip cmd "sendunitdata" status 0 sessionhandle 9900 context 1902 cipservice 142 cipclass 4 cipinstance 111 cipattr 3 hexpayload "0e008000"
 }
 
 // INSTRUCTION: Compile the FANUC robot weld schedule EtherNet/IP flow.
-COMPILE {
+compile {
     enip_fanuc_weld(weld_line_plc, fanuc_robot)
 }

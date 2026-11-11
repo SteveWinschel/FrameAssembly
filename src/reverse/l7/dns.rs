@@ -1,10 +1,10 @@
-//! Domain Name System (`DNS`, RFC 1035) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Domain Name System (`dns`, RFC 1035) Layer 7 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe reverse dissector for RFC 1035 Domain Name System (`DNS`)
+//! This module implements the fuzz-safe reverse dissector for RFC 1035 Domain Name System (`dns`)
 //! queries and responses carried over UDP or TCP port `53` (including the 2-byte TCP length prefix
 //! per RFC 1035 §4.2.2). It enforces a strict pointer-compression jump ceiling (`MAX_DNS_JUMPS`)
 //! to prevent infinite loops on malformed packets and decodes `txid`, `qname`, `qtype`, `rdata`,
-//! `rcode`, and `ans_ttl` into canonical `.fasm` modifiers.
+//! `rcode`, and `ansttl` into canonical `.fasm` modifiers.
 
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -19,7 +19,7 @@ use super::{is_printable_ascii_str, push_str_if};
 /// Maximum number of RFC 1035 §4.1.4 DNS label compression pointer jumps allowed.
 const MAX_DNS_JUMPS: usize = 16;
 
-/// Dissects an RFC 1035 `DNS` query or response message over UDP or TCP port `53`.
+/// Dissects an RFC 1035 `dns` query or response message over UDP or TCP port `53`.
 pub(crate) fn dissect_dns(payload: &[u8], is_tcp: bool) -> Option<ProtocolDissection> {
     dissect_dns_or_mdns(payload, is_tcp, false)
 }
@@ -63,7 +63,7 @@ pub(crate) fn decode_dns_name(msg: &[u8], start_offset: usize) -> Option<(String
     Some((labels.join("."), end_offset?))
 }
 
-/// Dissects a `DNS` (port `53`, UDP or TCP) or `MDNS` (UDP port `5353`) message.
+/// Dissects a `dns` (port `53`, UDP or TCP) or `mdns` (UDP port `5353`) message.
 pub(crate) fn dissect_dns_or_mdns(
     payload: &[u8],
     is_tcp: bool,
@@ -151,20 +151,20 @@ pub(crate) fn dissect_dns_or_mdns(
     }
     push_str_if(&mut tokens, "qname", &qname, "example.com");
     let qtype_name = match qtype {
-        1 => String::from("A"),
-        2 => String::from("NS"),
-        5 => String::from("CNAME"),
-        6 => String::from("SOA"),
-        12 => String::from("PTR"),
-        15 => String::from("MX"),
-        16 => String::from("TXT"),
-        28 => String::from("AAAA"),
-        33 => String::from("SRV"),
-        252 => String::from("AXFR"),
-        255 => String::from("ANY"),
+        1 => String::from("a"),
+        2 => String::from("ns"),
+        5 => String::from("cname"),
+        6 => String::from("soa"),
+        12 => String::from("ptr"),
+        15 => String::from("mx"),
+        16 => String::from("txt"),
+        28 => String::from("aaaa"),
+        33 => String::from("srv"),
+        252 => String::from("axfr"),
+        255 => String::from("any"),
         other => other.to_string(),
     };
-    push_str_if(&mut tokens, "qtype", &qtype_name, "A");
+    push_str_if(&mut tokens, "qtype", &qtype_name, "a");
     if let Some(rdata) = rdata_str
         && !(is_response && qtype == 1 && rdata == "93.184.216.34")
     {
@@ -172,7 +172,7 @@ pub(crate) fn dissect_dns_or_mdns(
     }
     push_if(&mut tokens, "rcode", rcode, 0);
     if let Some(ttl) = ans_ttl {
-        push_if(&mut tokens, "ans_ttl", ttl, 300);
+        push_if(&mut tokens, "ansttl", ttl, 300);
     }
 
     Some(ProtocolDissection {

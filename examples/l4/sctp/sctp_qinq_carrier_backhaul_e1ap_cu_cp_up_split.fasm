@@ -1,27 +1,27 @@
 // PROMPT: 5G O-RAN E1AP interface between O-CU-CP and O-CU-UP on SCTP port 38462 (PPID 64) over Metro Ethernet QinQ S-VLAN 2100 C-VLAN 100.
-// TOKENS: HOST, IP, MAC, FLOW, QINQ, INNER_VLAN, DSCP, SCTP, CHUNK, DATA, VTAG, STREAM, SSN, PPID, SRCPORT, DSTPORT, PAYLOAD, WAIT, SACK, COMPILE
+// TOKENS: host, ip, mac, flow, qinq, innervlan, dscp, sctp, chunk, data, vtag, stream, ssn, ppid, srcport, dstport, payload, wait, ms, sack, compile
 
 // INSTRUCTION: Define 5G Centralized Unit Control Plane (O-CU-CP) node.
-HOST ocu_cp_node {
-    IP 10.210.100.1
-    MAC 00:1c:73:d2:64:01
+host ocu_cp_node {
+    ip 10.210.100.1
+    mac 00:1c:73:d2:64:01
 }
 
 // INSTRUCTION: Define 5G Centralized Unit User Plane (O-CU-UP) node across Metro QinQ fabric.
-HOST ocu_up_node {
-    IP 10.210.100.2
-    MAC 00:1c:73:d2:64:02
+host ocu_up_node {
+    ip 10.210.100.2
+    mac 00:1c:73:d2:64:02
 }
 
 // INSTRUCTION: Exchange E1AP Bearer Context Setup Request and Response (PPID 64, Port 38462) inside QinQ S-VLAN 2100 C-VLAN 100.
-FLOW sctp_e1ap_over_qinq(cp, up) {
-    cp -> up QINQ 2100 INNER_VLAN 100 DSCP 46 SCTP CHUNK DATA VTAG 384620 STREAM 1 SSN 0 PPID 64 SRCPORT 38462 DSTPORT 38462 PAYLOAD "e1ap_bearer_context_setup_req_pdu_id_5" WAIT 2ms
-    cp <- up QINQ 2100 INNER_VLAN 100 DSCP 46 SCTP CHUNK SACK VTAG 384620 SRCPORT 38462 DSTPORT 38462 WAIT 2ms
-    cp <- up QINQ 2100 INNER_VLAN 100 DSCP 46 SCTP CHUNK DATA VTAG 384620 STREAM 1 SSN 0 PPID 64 SRCPORT 38462 DSTPORT 38462 PAYLOAD "e1ap_bearer_context_setup_resp_gtpu_teid" WAIT 2ms
-    cp -> up QINQ 2100 INNER_VLAN 100 DSCP 46 SCTP CHUNK SACK VTAG 384620 SRCPORT 38462 DSTPORT 38462
+flow sctp_e1ap_over_qinq(cp, up) {
+    cp -> up qinq 2100 innervlan 100 dscp 46 sctp chunk data vtag 384620 stream 1 ssn 0 ppid 64 srcport 38462 dstport 38462 payload "e1ap_bearer_context_setup_req_pdu_id_5" wait 2ms
+    cp <- up qinq 2100 innervlan 100 dscp 46 sctp chunk sack vtag 384620 srcport 38462 dstport 38462 wait 2ms
+    cp <- up qinq 2100 innervlan 100 dscp 46 sctp chunk data vtag 384620 stream 1 ssn 0 ppid 64 srcport 38462 dstport 38462 payload "e1ap_bearer_context_setup_resp_gtpu_teid" wait 2ms
+    cp -> up qinq 2100 innervlan 100 dscp 46 sctp chunk sack vtag 384620 srcport 38462 dstport 38462
 }
 
 // INSTRUCTION: Compile the 5G E1AP over QinQ S-VLAN 2100 C-VLAN 100 SCTP trace.
-COMPILE {
+compile {
     sctp_e1ap_over_qinq(ocu_cp_node, ocu_up_node)
 }

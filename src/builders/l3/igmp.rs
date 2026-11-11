@@ -1,13 +1,13 @@
 //! Internet Group Management Protocol (IGMP, RFC 2236 / RFC 3376) Layer 3 wire builder.
 //!
 //! Serializes an [`IgmpSpec`] into an 8-byte RFC 2236 IGMPv2 packet encapsulated directly over IPv4
-//! with IP protocol number `2` (`0x02`). The wire builder maps `REPORT` (`0x16`, default group
-//! `239.1.1.1`), `QUERY` (`0x11`, default `Max Resp Time = 100` tenths of a second, default group
-//! `224.0.0.1`), and `LEAVE` (`0x17`, default group `224.0.0.2`), writes the 32-bit IPv4 `GROUP`
+//! with IP protocol number `2` (`0x02`). The wire builder maps `report` (`0x16`, default group
+//! `239.1.1.1`), `query` (`0x11`, default `Max Resp Time = 100` tenths of a second, default group
+//! `224.0.0.1`), and `leave` (`0x17`, default group `224.0.0.2`), writes the 32-bit IPv4 `group`
 //! address, and computes the 16-bit RFC 1071 ones'-complement Internet checksum.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b IGMP [QUERY | REPORT | LEAVE] [GROUP <ipv4>] [MAX_RESP <u8>] [V1 | V2 | V3]`
+//! `a -> b igmp [query | report | leave] [group <ipv4>] [maxresp <u8>] [v1 | v2 | v3]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

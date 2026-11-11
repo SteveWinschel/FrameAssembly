@@ -6,13 +6,13 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b DHCP [DISCOVER | OFFER | REQUEST | ACK | RELEASE | SOLICIT | ADVERTISE | REPLY] [XID <u32>] [CIADDR <ip>] [YIADDR <ip>] [SIADDR <ip>] [CHADDR <mac>] [HOSTNAME <str>] [DNS_SERVER <ip>] [ROUTER <ip>] [SUBNET_MASK <ip>] [LEASE_TIME <u32>]`
+//! `a -> b dhcp [discover | offer | request | ack | release | solicit | advertise | reply] [xid <u32>] [ciaddr <ip>] [yiaddr <ip>] [siaddr <ip>] [chaddr <mac>] [hostname <str>] [dnsserver <ip>] [router <ip>] [subnetmask <ip>] [leasetime <u32>]`
 
 use core::net::IpAddr;
 /// Dynamic Host Configuration Protocol (v4 / v6) specification.
 ///
-/// Syntax mapping: `DHCP [DISCOVER | OFFER | REQUEST | ACK | RELEASE | SOLICIT | ADVERTISE | REPLY] [XID <u32>] [CIADDR <ip>] [YIADDR <ip>] [SIADDR <ip>] [CHADDR <mac>] [HOSTNAME <str>] [DNS_SERVER <ip>] [ROUTER <ip>] [SUBNET_MASK <ip>] [LEASE_TIME <u32>]`
-#[doc(alias = "DHCP")]
+/// Syntax mapping: `dhcp [discover | offer | request | ack | release | solicit | advertise | reply] [xid <u32>] [ciaddr <ip>] [yiaddr <ip>] [siaddr <ip>] [chaddr <mac>] [hostname <str>] [dnsserver <ip>] [router <ip>] [subnetmask <ip>] [leasetime <u32>]`
+#[doc(alias = "dhcp")]
 #[doc(alias = "DHCPV4")]
 #[doc(alias = "DHCPV6")]
 #[doc(alias = "RFC 2131")]
@@ -20,24 +20,24 @@ use core::net::IpAddr;
 #[doc(alias = "RFC 8415")]
 #[doc(alias = "RFC8415")]
 #[doc(alias = "BOOTP")]
-#[doc(alias = "DISCOVER")]
-#[doc(alias = "OFFER")]
-#[doc(alias = "REQUEST")]
-#[doc(alias = "ACK")]
-#[doc(alias = "RELEASE")]
-#[doc(alias = "SOLICIT")]
-#[doc(alias = "ADVERTISE")]
-#[doc(alias = "REPLY")]
-#[doc(alias = "XID")]
-#[doc(alias = "CIADDR")]
-#[doc(alias = "YIADDR")]
-#[doc(alias = "SIADDR")]
-#[doc(alias = "CHADDR")]
-#[doc(alias = "HOSTNAME")]
-#[doc(alias = "DNS_SERVER")]
-#[doc(alias = "ROUTER")]
-#[doc(alias = "SUBNET_MASK")]
-#[doc(alias = "LEASE_TIME")]
+#[doc(alias = "discover")]
+#[doc(alias = "offer")]
+#[doc(alias = "request")]
+#[doc(alias = "ack")]
+#[doc(alias = "release")]
+#[doc(alias = "solicit")]
+#[doc(alias = "advertise")]
+#[doc(alias = "reply")]
+#[doc(alias = "xid")]
+#[doc(alias = "ciaddr")]
+#[doc(alias = "yiaddr")]
+#[doc(alias = "siaddr")]
+#[doc(alias = "chaddr")]
+#[doc(alias = "hostname")]
+#[doc(alias = "dnsserver")]
+#[doc(alias = "router")]
+#[doc(alias = "subnetmask")]
+#[doc(alias = "leasetime")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct DhcpSpec<'a> {
     /// DHCPDISCOVER flag.

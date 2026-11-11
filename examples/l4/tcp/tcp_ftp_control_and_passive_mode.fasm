@@ -1,27 +1,27 @@
 // PROMPT: Simulate an FTP control session on TCP port 21 authenticating a user and entering passive mode (PASV) for directory listing.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, SYN, SRCPORT, DSTPORT, WAIT, ACK, PSH, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, wait, ms, ack, psh, payload, compile
 
 // INSTRUCTION: Define an FTP client workstation with IP 192.168.20.45.
-HOST ftp_workstation { IP 192.168.20.45 MAC 08:00:27:12:34:56 }
+host ftp_workstation { ip 192.168.20.45 mac 08:00:27:12:34:56 }
 
 // INSTRUCTION: Define an FTP archive server with IP 192.168.20.21.
-HOST ftp_server { IP 192.168.20.21 MAC 08:00:27:65:43:21 }
+host ftp_server { ip 192.168.20.21 mac 08:00:27:65:43:21 }
 
 // INSTRUCTION: Define a flow performing FTP USER/PASS login and PASV mode negotiation on port 21.
-FLOW ftp_control_session(client, server) {
-    client -> server TCP SYN SRCPORT 50210 DSTPORT 21 WAIT 5ms
-    client <- server TCP SYN ACK SRCPORT 21 DSTPORT 50210 WAIT 5ms
-    client -> server TCP ACK SRCPORT 50210 DSTPORT 21 WAIT 2ms
-    client <- server TCP PSH ACK SRCPORT 21 DSTPORT 50210 PAYLOAD "220 vsFTPd 3.0.5" WAIT 10ms
-    client -> server TCP PSH ACK SRCPORT 50210 DSTPORT 21 PAYLOAD "USER anonymous" WAIT 10ms
-    client <- server TCP PSH ACK SRCPORT 21 DSTPORT 50210 PAYLOAD "331 Please specify the password." WAIT 10ms
-    client -> server TCP PSH ACK SRCPORT 50210 DSTPORT 21 PAYLOAD "PASS guest@example.com" WAIT 10ms
-    client <- server TCP PSH ACK SRCPORT 21 DSTPORT 50210 PAYLOAD "230 Login successful." WAIT 10ms
-    client -> server TCP PSH ACK SRCPORT 50210 DSTPORT 21 PAYLOAD "PASV" WAIT 10ms
-    client <- server TCP PSH ACK SRCPORT 21 DSTPORT 50210 PAYLOAD "227 Entering Passive Mode (192,168,20,21,195,80)." WAIT 10ms
+flow ftp_control_session(client, server) {
+    client -> server tcp syn srcport 50210 dstport 21 wait 5ms
+    client <- server tcp syn ack srcport 21 dstport 50210 wait 5ms
+    client -> server tcp ack srcport 50210 dstport 21 wait 2ms
+    client <- server tcp psh ack srcport 21 dstport 50210 payload "220 vsFTPd 3.0.5" wait 10ms
+    client -> server tcp psh ack srcport 50210 dstport 21 payload "USER anonymous" wait 10ms
+    client <- server tcp psh ack srcport 21 dstport 50210 payload "331 Please specify the password." wait 10ms
+    client -> server tcp psh ack srcport 50210 dstport 21 payload "PASS guest@example.com" wait 10ms
+    client <- server tcp psh ack srcport 21 dstport 50210 payload "230 Login successful." wait 10ms
+    client -> server tcp psh ack srcport 50210 dstport 21 payload "PASV" wait 10ms
+    client <- server tcp psh ack srcport 21 dstport 50210 payload "227 Entering Passive Mode (192,168,20,21,195,80)." wait 10ms
 }
 
 // INSTRUCTION: Compile block to run the FTP control channel flow.
-COMPILE {
+compile {
     ftp_control_session(ftp_workstation, ftp_server)
 }

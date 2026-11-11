@@ -1,19 +1,19 @@
 // PROMPT: OpenFlow controller querying datapath capabilities via FEATURES_REQ and FEATURES_REPLY exchange.
-// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, FEATURES_REQ, XID, FEATURES_REPLY, COMPILE
+// TOKENS: host, ip, flow, openflow, type, featuresreq, xid, featuresreply, compile
 
 // INSTRUCTION: Define centralized SDN network controller.
-HOST sdn_central_ctrl { IP 10.100.1.10 }
+host sdn_central_ctrl { ip 10.100.1.10 }
 
 // INSTRUCTION: Define programmable openflow switch datapath.
-HOST sdn_openflow_sw { IP 10.100.1.20 }
+host sdn_openflow_sw { ip 10.100.1.20 }
 
 // INSTRUCTION: Define features negotiation exchange flow on port 6653.
-FLOW of_features_handshake(ctrl, sw) {
-    ctrl -> sw OPENFLOW TYPE FEATURES_REQ XID 101
-    ctrl <- sw OPENFLOW TYPE FEATURES_REPLY XID 101
+flow of_features_handshake(ctrl, sw) {
+    ctrl -> sw openflow type featuresreq xid 101
+    ctrl <- sw openflow type featuresreply xid 101
 }
 
 // INSTRUCTION: Compile block executing OpenFlow features request and reply.
-COMPILE {
+compile {
     of_features_handshake(sdn_central_ctrl, sdn_openflow_sw)
 }

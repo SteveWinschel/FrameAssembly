@@ -1,18 +1,18 @@
 // PROMPT: Google Cast device discovery query matching _googlecast._tcp.local service pointers.
-// TOKENS: HOST, IP, FLOW, MDNS, QUERY, TXID, QNAME, QTYPE, COMPILE
+// TOKENS: host, ip, flow, app, dst, mdns, query, txid, qname, qtype, compile
 
 // INSTRUCTION: Define streaming media application client.
-HOST media_client { IP 10.0.50.40 }
+host media_client { ip 10.0.50.40 }
 
 // INSTRUCTION: Define local subnet multicast endpoint.
-HOST mcast_dest { IP 224.0.0.251 }
+host mcast_dest { ip 224.0.0.251 }
 
 // INSTRUCTION: Define Google Cast query flow.
-FLOW cast_query_flow(app, dst) {
-    app -> dst MDNS QUERY TXID 7007 QNAME "_googlecast._tcp.local" QTYPE "PTR"
+flow cast_query_flow(app, dst) {
+    app -> dst mdns query txid 7007 qname "_googlecast._tcp.local" qtype "ptr"
 }
 
 // INSTRUCTION: Compile Chromecast discovery scenario.
-COMPILE {
+compile {
     cast_query_flow(media_client, mcast_dest)
 }

@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 
 /// Builds an RFC 1939 POP3 mail access message.
 ///
-/// Syntax mapping: `POP3 [CMD <str>] [ARG <str>] [OK] [ERR] [RESPONSE <str>]`
+/// Syntax mapping: `pop3 [cmd <str>] [arg <str>] [ok] [err] [response <str>]`
 #[doc(alias = "POP3")]
 #[doc(alias = "RFC1939")]
 pub fn build_pop3_payload(

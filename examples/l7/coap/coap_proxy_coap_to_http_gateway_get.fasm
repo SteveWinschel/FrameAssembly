@@ -1,25 +1,25 @@
 // PROMPT: IoT sensor querying an external weather forecast API through a CoAP-to-HTTP cross-protocol proxy.
-// TOKENS: HOST, IP, MAC, FLOW, COAP, CON, CODE, MSGID, TOKEN, URI_PATH, ACK, CONTENT_FORMAT, PAYLOAD, COMPILE
+// TOKENS: host, ip, mac, flow, coap, con, code, msgid, token, uripath, ack, contentformat, payload, compile
 
 // INSTRUCTION: Define the constrained irrigation controller requesting forecast data.
-HOST smart_sprinkler {
-    IP 10.110.130.30
-    MAC 00:1a:2b:6e:d0:30
+host smart_sprinkler {
+    ip 10.110.130.30
+    mac 00:1a:2b:6e:d0:30
 }
 
 // INSTRUCTION: Define the border CoAP-to-HTTP reverse proxy gateway.
-HOST cross_proxy {
-    IP 10.110.130.1
-    MAC 00:1a:2b:6e:d0:01
+host cross_proxy {
+    ip 10.110.130.1
+    mac 00:1a:2b:6e:d0:01
 }
 
 // INSTRUCTION: Issue CON GET to /proxy/forecast and receive JSON precipitation probability.
-FLOW coap_cross_proxy(c, p) {
-    c -> p COAP CON CODE "0.01" MSGID 13100 TOKEN 710 URI_PATH "proxy/forecast/rain_prob"
-    c <- p COAP ACK CODE "2.05" MSGID 13100 TOKEN 710 CONTENT_FORMAT 50 PAYLOAD "{'rain_prob_pct':85}"
+flow coap_cross_proxy(c, p) {
+    c -> p coap con code "0.01" msgid 13100 token 710 uripath "proxy/forecast/rain_prob"
+    c <- p coap ack code "2.05" msgid 13100 token 710 contentformat 50 payload "{'rain_prob_pct':85}"
 }
 
 // INSTRUCTION: Compile the CoAP-to-HTTP proxy request flow.
-COMPILE {
+compile {
     coap_cross_proxy(smart_sprinkler, cross_proxy)
 }

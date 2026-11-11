@@ -1,19 +1,19 @@
 // PROMPT: Secure SIP SIPS signaling exchange operating on custom port 5061.
-// TOKENS: HOST, IP, FLOW, SIP, INVITE, FROM, TO, CALL_ID, CSEQ, SRCPORT, DSTPORT, WAIT, STATUS, REASON, COMPILE
+// TOKENS: host, ip, flow, s, sip, invite, from, to, callid, cseq, srcport, dstport, wait, ms, status, reason, compile
 
 // INSTRUCTION: Define secure workstation softphone.
-HOST secure_phone { IP 10.61.0.88 }
+host secure_phone { ip 10.61.0.88 }
 
 // INSTRUCTION: Define encrypted TLS SIP proxy server.
-HOST secure_proxy { IP 10.61.0.1 }
+host secure_proxy { ip 10.61.0.1 }
 
 // INSTRUCTION: Define SIP session exchange on port 5061.
-FLOW sip_sips_custom(c, s) {
-    c -> s SIP INVITE FROM "sips:conf@finance.org" TO "sips:board@finance.org" CALL_ID "sips-port-5061" CSEQ 1 SRCPORT 55061 DSTPORT 5061 WAIT 5ms
-    c <- s SIP STATUS 200 REASON "OK" CALL_ID "sips-port-5061" CSEQ 1 SRCPORT 5061 DSTPORT 55061
+flow sip_sips_custom(c, s) {
+    c -> s sip invite from "sips:conf@finance.org" to "sips:board@finance.org" callid "sips-port-5061" cseq 1 srcport 55061 dstport 5061 wait 5ms
+    c <- s sip status 200 reason "OK" callid "sips-port-5061" cseq 1 srcport 5061 dstport 55061
 }
 
 // INSTRUCTION: Compile custom port SIPS signaling flow.
-COMPILE {
+compile {
     sip_sips_custom(secure_phone, secure_proxy)
 }

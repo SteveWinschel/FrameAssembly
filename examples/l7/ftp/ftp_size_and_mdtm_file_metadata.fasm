@@ -1,27 +1,27 @@
 // PROMPT: RFC 3659 FTP SIZE and MDTM extensions querying remote tarball byte size and modification timestamp.
-// TOKENS: HOST, IP, MAC, FLOW, FTP, CMD, ARG, CODE, REPLY, COMPILE
+// TOKENS: host, ip, mac, flow, s, ftp, cmd, arg, code, reply, compile
 
 // INSTRUCTION: Define software mirror synchronization client.
-HOST mirror_sync_cli {
-    IP 172.20.21.88
-    MAC 00:25:90:14:15:58
+host mirror_sync_cli {
+    ip 172.20.21.88
+    mac 00:25:90:14:15:58
 }
 
 // INSTRUCTION: Define upstream distribution FTP mirror server.
-HOST upstream_mirror {
-    IP 172.20.21.1
-    MAC 00:25:90:14:15:01
+host upstream_mirror {
+    ip 172.20.21.1
+    mac 00:25:90:14:15:01
 }
 
 // INSTRUCTION: Query exact byte count via SIZE and UTC modification time via MDTM.
-FLOW ftp_size_mdtm_check(c, s) {
-    c -> s FTP CMD "SIZE" ARG "linux-6.12.tar.xz"
-    c <- s FTP CODE 213 REPLY "145829120"
-    c -> s FTP CMD "MDTM" ARG "linux-6.12.tar.xz"
-    c <- s FTP CODE 213 REPLY "20261025120000"
+flow ftp_size_mdtm_check(c, s) {
+    c -> s ftp cmd "SIZE" arg "linux-6.12.tar.xz"
+    c <- s ftp code 213 reply "145829120"
+    c -> s ftp cmd "MDTM" arg "linux-6.12.tar.xz"
+    c <- s ftp code 213 reply "20261025120000"
 }
 
 // INSTRUCTION: Compile the RFC 3659 FTP SIZE and MDTM metadata inspection scenario.
-COMPILE {
+compile {
     ftp_size_mdtm_check(mirror_sync_cli, upstream_mirror)
 }

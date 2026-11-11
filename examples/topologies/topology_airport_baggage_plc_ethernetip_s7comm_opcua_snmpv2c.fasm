@@ -1,33 +1,33 @@
 // PROMPT: Airport automated baggage handling system (BHS) combining EtherNet/IP barcode scanner PLCs, Siemens S7comm high-speed diverters, OPC UA SCADA supervision, and SNMPv2c traps.
-// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, ETHERNETIP, CMD, SESSION_HANDLE, CIP_SERVICE, S7COMM, ROSCTR, FUNC, PDU_REF, DB_NUM, WAIT, OPCUA, ENDPOINT_URL, NODE_ID, SNMP2, TRAP, COMMUNITY, COMPILE
+// TOKENS: host, ip, mac, flow, vlan, pcp, ethernetip, cmd, sessionhandle, cipservice, s7comm, rosctr, func, pduref, dbnum, wait, ms, opcua, endpointurl, nodeid, snmp2, trap, community, oid, compile
 
 // INSTRUCTION: Define BHS central SCADA control server.
-HOST bhs_scada_master {
-    IP 192.168.55.10
-    MAC 00:1b:21:37:00:0a
+host bhs_scada_master {
+    ip 192.168.55.10
+    mac 00:1b:21:37:00:0a
 }
 
 // INSTRUCTION: Define conveyor barcode scanner ControlLogix PLC speaking EtherNet/IP.
-HOST scanner_eip_plc {
-    IP 192.168.55.20
-    MAC 00:00:bc:37:00:14
+host scanner_eip_plc {
+    ip 192.168.55.20
+    mac 00:00:bc:37:00:14
 }
 
 // INSTRUCTION: Define high-speed tilt-tray sorter S7-1500 PLC and SNMP agent.
-HOST sorter_s7_plc {
-    IP 192.168.55.30
-    MAC 00:0e:8c:37:00:1e
+host sorter_s7_plc {
+    ip 192.168.55.30
+    mac 00:0e:8c:37:00:1e
 }
 
 // INSTRUCTION: Define EtherNet/IP IATA bag tag read, S7comm diverter actuation, OPC UA tracking update, and SNMPv2c jam clear trap.
-FLOW airport_bhs_sorting_flow(scada, scanner, sorter) {
-    scada -> scanner VLAN 55 PCP 6 ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 10 CIP_SERVICE 0x0e
-    scada -> sorter VLAN 55 PCP 6 S7COMM ROSCTR "JOB" FUNC "WRITE_VAR" PDU_REF 42 DB_NUM 10 WAIT 1ms
-    scada -> sorter VLAN 55 PCP 4 OPCUA ENDPOINT_URL "opc.tcp://bhs-scada:4840" NODE_ID "ns=2;s=Chute14.BagSorted" WAIT 1ms
-    sorter -> scada VLAN 55 PCP 5 SNMP2 TRAP COMMUNITY "bhs_ops" OID 1.3.6.1.4.1.4329.1.1 WAIT 1ms
+flow airport_bhs_sorting_flow(scada, scanner, sorter) {
+    scada -> scanner vlan 55 pcp 6 ethernetip cmd "SEND_RR_DATA" sessionhandle 10 cipservice 0x0e
+    scada -> sorter vlan 55 pcp 6 s7comm rosctr "job" func "writevar" pduref 42 dbnum 10 wait 1ms
+    scada -> sorter vlan 55 pcp 4 opcua endpointurl "opc.tcp://bhs-scada:4840" nodeid "ns=2;s=Chute14.BagSorted" wait 1ms
+    sorter -> scada vlan 55 pcp 5 snmp2 trap community "bhs_ops" oid 1.3.6.1.4.1.4329.1.1 wait 1ms
 }
 
 // INSTRUCTION: Compile block executing airport BHS EtherNet/IP, S7comm, OPC UA, and SNMPv2c topology.
-COMPILE {
+compile {
     airport_bhs_sorting_flow(bhs_scada_master, scanner_eip_plc, sorter_s7_plc)
 }

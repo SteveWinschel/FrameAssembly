@@ -1,18 +1,18 @@
 // PROMPT: DNP3 SCADA application layer Read function querying binary input objects.
-// TOKENS: HOST, IP, FLOW, DNP3, FUNC, SRC, DST, GROUP, VARIATION, COMPILE
+// TOKENS: host, ip, flow, s, dnp3, func, src, dst, group, variation, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 10.0.0.10 }
+host client { ip 10.0.0.10 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 10.0.0.20 }
+host server { ip 10.0.0.20 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW dnp3_read(c, s) {
-    c -> s DNP3 FUNC "READ" SRC 10 DST 20 GROUP 1 VARIATION 2
+flow dnp3_read(c, s) {
+    c -> s dnp3 func "read" src 10 dst 20 group 1 variation 2
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     dnp3_read(client, server)
 }

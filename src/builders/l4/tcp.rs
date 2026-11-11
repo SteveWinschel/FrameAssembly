@@ -2,13 +2,13 @@
 //!
 //! Documents the wire-level framing rules for RFC 9293 TCP segments over IPv4 (`0x0800`) and
 //! IPv6 (`0x86DD`) using IP Protocol number `6`. The 20-byte base TCP header encodes 16-bit
-//! `SRCPORT`, 16-bit `DSTPORT`, 32-bit `SEQ`, 32-bit `ACKNUM`, 4-bit Data Offset, 8-bit
-//! Control Flags (`CWR`, `ECE`, `URG`, `ACK`, `PSH`, `RST`, `SYN`, `FIN`), 16-bit `WIN`,
-//! 16-bit one's complement pseudo-header Checksum, and 16-bit `URGENT` pointer, followed by
-//! 32-bit aligned TLV options (`MSS`, `WSCALE`, `SACK_PERM`, `TSVAL`, `TSECR`).
+//! `srcport`, 16-bit `dstport`, 32-bit `seq`, 32-bit `acknum`, 4-bit Data Offset, 8-bit
+//! Control Flags (`cwr`, `ece`, `urg`, `ack`, `psh`, `rst`, `syn`, `fin`), 16-bit `win`,
+//! 16-bit one's complement pseudo-header Checksum, and 16-bit `urgent` pointer, followed by
+//! 32-bit aligned TLV options (`mss`, `wscale`, `sackperm`, `tsval`, `tsecr`).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b TCP [SYN] [ACK] [FIN] [RST] [PSH] [URG] [ECE] [CWR] [SRCPORT <u16>] [DSTPORT <u16>] [SEQ <u32>] [ACKNUM <u32>] [WIN <u16>] [MSS <u16>] [WSCALE <u8>] [SACK_PERM] [TSVAL <u32>] [TSECR <u32>]`
+//! `a -> b tcp [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [srcport <u16>] [dstport <u16>] [seq <u32>] [acknum <u32>] [win <u16>] [mss <u16>] [wscale <u8>] [sackperm] [tsval <u32>] [tsecr <u32>]`
 
 use crate::ast::{TcpFlag, TcpOptions};
 use alloc::vec::Vec;

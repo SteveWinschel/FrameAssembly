@@ -5,14 +5,14 @@
 //! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b SYSLOG [FACILITY <u8>] [SEVERITY <u8>] [PRI <u8>] [HOSTNAME <str>] [APP <str>] [PROCID <str>] [MSG <str>] [TRANSPORT TCP]`
+//! `a -> b syslog [facility <u8>] [severity <u8>] [pri <u8>] [hostname <str>] [app <str>] [procid <str>] [msg <str>] [transport tcp]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
 /// Builds an RFC 5424 Syslog packet payload.
-/// Syntax mapping: `SYSLOG [FACILITY <u8>] [SEVERITY <u8>] [PRI <u8>] [HOSTNAME <str>] [APP <str>] [PROCID <str>] [MSG <str>] [TRANSPORT TCP]`
+/// Syntax mapping: `syslog [facility <u8>] [severity <u8>] [pri <u8>] [hostname <str>] [app <str>] [procid <str>] [msg <str>] [transport tcp]`
 #[doc(alias = "SYSLOG")]
 #[doc(alias = "RFC5424")]
 #[doc(alias = "RFC3164")]

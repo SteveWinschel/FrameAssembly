@@ -1,25 +1,25 @@
 // PROMPT: RSTP Dispute mechanism resolving a unidirectional fiber link fault where a downstream port sends Designated Learning flags.
-// TOKENS: HOST, IP, MAC, FLOW, STP, RSTP, ROOT_ID, BRIDGE_ID, COST, PORT_ID, FLAGS, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, flags, wait, ms, compile
 
 // INSTRUCTION: Define upstream designated switch port with broken RX fiber strand.
-HOST upstream_uni_port {
-    IP 172.22.50.1
-    MAC 00:19:e8:32:00:01
+host upstream_uni_port {
+    ip 172.22.50.1
+    mac 00:19:e8:32:00:01
 }
 
 // INSTRUCTION: Define downstream switch port claiming Designated role after MaxAge expiry.
-HOST downstream_dispute_port {
-    IP 172.22.50.2
-    MAC 00:19:e8:32:00:02
+host downstream_dispute_port {
+    ip 172.22.50.2
+    mac 00:19:e8:32:00:02
 }
 
 // INSTRUCTION: Define RSTP Dispute exchange where inferior Designated BPDU triggers upstream discarding block.
-FLOW rstp_unidirectional_dispute(up, down) {
-    up -> down STP RSTP ROOT_ID "4096:00:19:e8:32:00:01" BRIDGE_ID "4096:00:19:e8:32:00:01" COST 0 PORT_ID 32769 FLAGS 60
-    up <- down STP RSTP ROOT_ID "32768:00:19:e8:32:00:02" BRIDGE_ID "32768:00:19:e8:32:00:02" COST 0 PORT_ID 32769 FLAGS 44 WAIT 5ms
+flow rstp_unidirectional_dispute(up, down) {
+    up -> down stp rstp rootid "4096:00:19:e8:32:00:01" bridgeid "4096:00:19:e8:32:00:01" cost 0 portid 32769 flags 60
+    up <- down stp rstp rootid "32768:00:19:e8:32:00:02" bridgeid "32768:00:19:e8:32:00:02" cost 0 portid 32769 flags 44 wait 5ms
 }
 
 // INSTRUCTION: Compile block executing RSTP unidirectional link dispute test.
-COMPILE {
+compile {
     rstp_unidirectional_dispute(upstream_uni_port, downstream_dispute_port)
 }

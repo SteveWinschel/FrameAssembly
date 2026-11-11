@@ -1,27 +1,27 @@
 // PROMPT: Model a VoIP Session Border Controller verifying NAT hairpinning behavior using two consecutive STUN Binding transactions.
-// TOKENS: HOST, IP, MAC, FLOW, STUN, BINDING_REQUEST, TXID, SOFTWARE, VLAN, PCP, WAIT, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+// TOKENS: host, ip, mac, flow, stun, bindingrequest, txid, software, vlan, pcp, wait, ms, bindingresponse, xormappedaddr, compile
 
 // INSTRUCTION: Define the SIP desktop media endpoint on voice VLAN 120.
-HOST voip_deskphone {
-    IP 172.24.120.44
-    MAC 00:04:f2:78:00:2c
+host voip_deskphone {
+    ip 172.24.120.44
+    mac 00:04:f2:78:00:2c
 }
 
 // INSTRUCTION: Define the carrier SBC STUN media reflector.
-HOST carrier_sbc_stun {
-    IP 172.24.120.1
-    MAC 00:04:f2:78:00:01
+host carrier_sbc_stun {
+    ip 172.24.120.1
+    mac 00:04:f2:78:00:01
 }
 
 // INSTRUCTION: Execute two STUN Binding Request/Response transactions on VLAN 120 to verify port preservation.
-FLOW stun_sbc_hairpin_probe(phone, sbc) {
-    phone -> sbc STUN BINDING_REQUEST TXID 0x10203040 SOFTWARE "PolyEdge-E450" VLAN 120 PCP 5 WAIT 4ms
-    phone <- sbc STUN BINDING_RESPONSE TXID 0x10203040 XOR_MAPPED_ADDR 192.0.2.44 SOFTWARE "Kamailio-RTPProxy" VLAN 120 PCP 5 WAIT 10ms
-    phone -> sbc STUN BINDING_REQUEST TXID 0x10203041 SOFTWARE "PolyEdge-E450" VLAN 120 PCP 5 WAIT 4ms
-    phone <- sbc STUN BINDING_RESPONSE TXID 0x10203041 XOR_MAPPED_ADDR 192.0.2.44 SOFTWARE "Kamailio-RTPProxy" VLAN 120 PCP 5
+flow stun_sbc_hairpin_probe(phone, sbc) {
+    phone -> sbc stun bindingrequest txid 0x10203040 software "PolyEdge-E450" vlan 120 pcp 5 wait 4ms
+    phone <- sbc stun bindingresponse txid 0x10203040 xormappedaddr 192.0.2.44 software "Kamailio-RTPProxy" vlan 120 pcp 5 wait 10ms
+    phone -> sbc stun bindingrequest txid 0x10203041 software "PolyEdge-E450" vlan 120 pcp 5 wait 4ms
+    phone <- sbc stun bindingresponse txid 0x10203041 xormappedaddr 192.0.2.44 software "Kamailio-RTPProxy" vlan 120 pcp 5
 }
 
 // INSTRUCTION: Compile the VoIP SBC STUN NAT hairpin validation flow.
-COMPILE {
+compile {
     stun_sbc_hairpin_probe(voip_deskphone, carrier_sbc_stun)
 }

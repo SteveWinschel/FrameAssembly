@@ -1,18 +1,18 @@
 // PROMPT: OpenFlow controller sending PACKET_OUT message injecting Ethernet frame onto physical port.
-// TOKENS: HOST, IP, FLOW, OPENFLOW, TYPE, PACKET_OUT, XID, PAYLOAD, COMPILE
+// TOKENS: host, ip, flow, openflow, type, packetout, xid, payload, compile
 
 // INSTRUCTION: Define SDN orchestrator controller.
-HOST sdn_orchestrator { IP 192.168.10.1 }
+host sdn_orchestrator { ip 192.168.10.1 }
 
 // INSTRUCTION: Define target fabric switch.
-HOST fabric_target_sw { IP 192.168.10.100 }
+host fabric_target_sw { ip 192.168.10.100 }
 
 // INSTRUCTION: Define PACKET_OUT frame injection flow.
-FLOW of_packet_out_flow(ctrl, sw) {
-    ctrl -> sw OPENFLOW TYPE PACKET_OUT XID 3050 PAYLOAD "ARP_INJECTED_PACKET_PAYLOAD"
+flow of_packet_out_flow(ctrl, sw) {
+    ctrl -> sw openflow type packetout xid 3050 payload "ARP_INJECTED_PACKET_PAYLOAD"
 }
 
 // INSTRUCTION: Compile block executing PACKET_OUT transmission.
-COMPILE {
+compile {
     of_packet_out_flow(sdn_orchestrator, fabric_target_sw)
 }

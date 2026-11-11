@@ -3,13 +3,13 @@
 //! Serializes an [`HsrpSpec`] into an RFC 2281 Cisco HSRP Hello packet carried over UDP port `1985`
 //! to the IPv4 all-routers multicast address `224.0.0.2` (or over UDP port `2029` to IPv6 link-local
 //! multicast `ff02::66` when the endpoints are IPv6). The header encodes Version (`0` for IPv4, `2`
-//! for IPv6), Op Code (`0` Hello), State (`STATE`, default `16` Active), `Hellotime` (`HELLOTIME`,
-//! default `3`s), `Holdtime` (`HOLDTIME`, default `10`s), `Priority` (`PRIORITY`, default `100`),
-//! Standby `Group` (`GROUP`, default `1`), 8-byte zero-padded `Authentication Data` (`AUTH`, default
-//! `"cisco"`), and the 4-byte or 16-byte Virtual IP address (`VIP`).
+//! for IPv6), Op Code (`0` Hello), State (`state`, default `16` Active), `Hellotime` (`hellotime`,
+//! default `3`s), `Holdtime` (`holdtime`, default `10`s), `Priority` (`priority`, default `100`),
+//! Standby `Group` (`group`, default `1`), 8-byte zero-padded `Authentication Data` (`auth`, default
+//! `"cisco"`), and the 4-byte or 16-byte Virtual IP address (`vip`).
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b HSRP [GROUP <u8>] [PRIORITY <u8>] [STATE <u8>] [HELLOTIME <u8>] [HOLDTIME <u8>] [AUTH "<str>"] [VIP <ip>]`
+//! `a -> b hsrp [group <u8>] [priority <u8>] [state <u8>] [hellotime <u8>] [holdtime <u8>] [auth "<str>"] [vip <ip>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

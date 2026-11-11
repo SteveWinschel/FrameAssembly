@@ -1,25 +1,25 @@
 // PROMPT: SIP SUBSCRIBE and NOTIFY (RFC 6665) busy lamp field (BLF) presence monitoring exchange.
-// TOKENS: HOST, IP, FLOW, SIP, METHOD, URI, FROM, TO, CALL_ID, CSEQ, CONTACT, WAIT, STATUS, REASON, CONTENT_TYPE, BODY, COMPILE
+// TOKENS: host, ip, flow, s, sip, method, uri, from, to, callid, cseq, contact, wait, ms, status, reason, contenttype, body, compile
 
 // INSTRUCTION: Define executive assistant IP phone monitoring BLF line keys.
-HOST blf_phone {
-    IP 10.60.20.45
+host blf_phone {
+    ip 10.60.20.45
 }
 
 // INSTRUCTION: Define SIP presence and dialog state server.
-HOST presence_srv {
-    IP 10.60.20.1
+host presence_srv {
+    ip 10.60.20.1
 }
 
 // INSTRUCTION: Define SIP SUBSCRIBE for dialog event package and XML presence NOTIFY push.
-FLOW sip_blf_presence(c, s) {
-    c -> s SIP METHOD "SUBSCRIBE" URI "sip:director@10.60.20.1" FROM "sip:asst@10.60.20.45" TO "sip:director@10.60.20.1" CALL_ID "blf-9001" CSEQ 1 CONTACT "sip:asst@10.60.20.45" WAIT 4ms
-    c <- s SIP STATUS 200 REASON "OK" CALL_ID "blf-9001" CSEQ 1 WAIT 4ms
-    c <- s SIP METHOD "NOTIFY" URI "sip:asst@10.60.20.45" CALL_ID "blf-9001" CSEQ 2 CONTENT_TYPE "application/dialog-info+xml" BODY "<dialog-info state='full'/>" WAIT 4ms
-    c -> s SIP STATUS 200 REASON "OK" CALL_ID "blf-9001" CSEQ 2
+flow sip_blf_presence(c, s) {
+    c -> s sip method "SUBSCRIBE" uri "sip:director@10.60.20.1" from "sip:asst@10.60.20.45" to "sip:director@10.60.20.1" callid "blf-9001" cseq 1 contact "sip:asst@10.60.20.45" wait 4ms
+    c <- s sip status 200 reason "OK" callid "blf-9001" cseq 1 wait 4ms
+    c <- s sip method "NOTIFY" uri "sip:asst@10.60.20.45" callid "blf-9001" cseq 2 contenttype "application/dialog-info+xml" body "<dialog-info state='full'/>" wait 4ms
+    c -> s sip status 200 reason "OK" callid "blf-9001" cseq 2
 }
 
 // INSTRUCTION: Compile the SIP BLF presence SUBSCRIBE/NOTIFY flow.
-COMPILE {
+compile {
     sip_blf_presence(blf_phone, presence_srv)
 }

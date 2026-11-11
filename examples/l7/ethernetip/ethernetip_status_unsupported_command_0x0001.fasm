@@ -1,27 +1,27 @@
 // PROMPT: EtherNet/IP target returning encapsulation error status 1 (Invalid/Unsupported Command) and status 101 (Invalid Length).
-// TOKENS: HOST, IP, MAC, FLOW, ETHERNETIP, CMD, SESSION_HANDLE, CONTEXT, STATUS, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, ethernetip, cmd, sessionhandle, context, status, wait, ms, compile
 
 // INSTRUCTION: Define the protocol fuzzing security scanner host.
-HOST sec_fuzzer {
-    IP 10.135.100.200
-    MAC 00:1a:2b:87:a0:c8
+host sec_fuzzer {
+    ip 10.135.100.200
+    mac 00:1a:2b:87:a0:c8
 }
 
 // INSTRUCTION: Define the hardened industrial EtherNet/IP gateway.
-HOST hardened_gw {
-    IP 10.135.100.1
-    MAC 00:1a:2b:87:a0:01
+host hardened_gw {
+    ip 10.135.100.1
+    mac 00:1a:2b:87:a0:01
 }
 
 // INSTRUCTION: Send malformed encapsulation requests and receive error status codes 1 and 101.
-FLOW enip_error_codes(f, g) {
-    f -> g ETHERNETIP CMD "SEND_RR_DATA" SESSION_HANDLE 0 CONTEXT 1501
-    f <- g ETHERNETIP CMD "SEND_RR_DATA" STATUS 1 SESSION_HANDLE 0 CONTEXT 1501 WAIT 1ms
-    f -> g ETHERNETIP CMD "REGISTER_SESSION" SESSION_HANDLE 0 CONTEXT 1502
-    f <- g ETHERNETIP CMD "REGISTER_SESSION" STATUS 101 SESSION_HANDLE 0 CONTEXT 1502
+flow enip_error_codes(f, g) {
+    f -> g ethernetip cmd "sendrrdata" sessionhandle 0 context 1501
+    f <- g ethernetip cmd "sendrrdata" status 1 sessionhandle 0 context 1501 wait 1ms
+    f -> g ethernetip cmd "registersession" sessionhandle 0 context 1502
+    f <- g ethernetip cmd "registersession" status 101 sessionhandle 0 context 1502
 }
 
 // INSTRUCTION: Compile the EtherNet/IP error status verification flow.
-COMPILE {
+compile {
     enip_error_codes(sec_fuzzer, hardened_gw)
 }

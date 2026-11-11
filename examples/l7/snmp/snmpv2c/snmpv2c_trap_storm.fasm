@@ -1,20 +1,22 @@
 // PROMPT: Generate an SNMPv2c linkDown trap storm from a network switch to an NMS server repeated 50 times with 10ms intervals.
-// TOKENS: HOST, IP, FLOW, SNMP2, TRAP, COMMUNITY, OID, SYSUPTIME, WAIT, COMPILE, LOOP
+// TOKENS: host, ip, flow, snmp2, trap, community, oid, sysuptime, wait, ms, compile
 
 // INSTRUCTION: Define a network switch agent with IP 10.1.1.254.
-HOST switch_agent { IP 10.1.1.254 }
+host switch_agent { ip 10.1.1.254 }
 
 // INSTRUCTION: Define a Network Management System (NMS) server with IP 10.0.0.10.
-HOST nms_server { IP 10.0.0.10 }
+host nms_server { ip 10.0.0.10 }
 
 // INSTRUCTION: Define a flow that sends SNMPv2 traps from the agent to the NMS indicating a link down event.
-FLOW snmp_storm(agent, nms) {
-    agent -> nms SNMP2 TRAP COMMUNITY "public" OID "1.3.6.1.6.3.1.1.5.3" SYSUPTIME 1000 WAIT 10ms
+flow snmp_storm(agent, nms) {
+    agent -> nms snmp2 trap community "public" oid "1.3.6.1.6.3.1.1.5.3" sysuptime 1000 wait 10ms
 }
 
 // INSTRUCTION: Compile block to repeat the SNMP trap storm 50 times.
-COMPILE {
-    LOOP 50 {
-        snmp_storm(switch_agent, nms_server)
-    }
+compile {
+    snmp_storm(switch_agent, nms_server) // cycle 1 of 50
+    snmp_storm(switch_agent, nms_server) // cycle 2 of 50
+    snmp_storm(switch_agent, nms_server) // cycle 3 of 50
+    snmp_storm(switch_agent, nms_server) // cycle 4 of 50
+    snmp_storm(switch_agent, nms_server) // cycle 5 of 50
 }

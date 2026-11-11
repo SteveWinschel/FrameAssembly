@@ -1,6 +1,6 @@
 //! WireGuard Noise_IK Cryptographic VPN Tunnel Layer 3 PCAP-to-`.fasm` decompiler.
 //!
-//! This module implements the fuzz-safe PCAP and PCAPNG decompiler for `WIREGUARD` VPN packets
+//! This module implements the fuzz-safe PCAP and PCAPNG decompiler for `wireguard` VPN packets
 //! carried over UDP port `51820`. It validates the 4-byte message type (`1..=4`) and zeroed
 //! reserved bytes, and decodes handshake `initiation` (`sender`), handshake `response` (`sender`,
 //! `receiver`), `cookie` reply (`receiver`), and transport `data` (`receiver`, `counter`) messages
@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 use crate::ast::Protocol;
 use crate::reverse::{ProtocolDissection, le_u32, push_if, sd};
 
-/// Decompiles a `WIREGUARD` UDP payload (port `51820`) into a [`ProtocolDissection`].
+/// Decompiles a `wireguard` UDP payload (port `51820`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_wireguard(b: &[u8]) -> Option<ProtocolDissection> {
     if b.len() < 16 || !matches!(b[0], 1..=4) || b[1..4] != [0, 0, 0] {
         return None;

@@ -1,21 +1,21 @@
 // PROMPT: RTSP PAUSE and resume PLAY control during VOD media playback.
-// TOKENS: HOST, IP, FLOW, RTSP, METHOD, URI, CSEQ, SESSION, WAIT, STATUS, COMPILE
+// TOKENS: host, ip, flow, s, rtsp, method, uri, cseq, session, wait, ms, status, compile
 
 // INSTRUCTION: Define smart TV media player client.
-HOST smart_tv { IP 192.168.80.45 }
+host smart_tv { ip 192.168.80.45 }
 
 // INSTRUCTION: Define VOD streaming server.
-HOST vod_server { IP 192.168.80.10 }
+host vod_server { ip 192.168.80.10 }
 
 // INSTRUCTION: Define PAUSE followed by resumed PLAY on active session.
-FLOW rtsp_pause_resume(c, s) {
-    c -> s RTSP METHOD "PAUSE" URI "rtsp://192.168.80.10/vod/movie42.mp4" CSEQ 7 SESSION "vod_sess_42" WAIT 5ms
-    c <- s RTSP STATUS 200 CSEQ 7 WAIT 50ms
-    c -> s RTSP METHOD "PLAY" URI "rtsp://192.168.80.10/vod/movie42.mp4" CSEQ 8 SESSION "vod_sess_42" WAIT 5ms
-    c <- s RTSP STATUS 200 CSEQ 8
+flow rtsp_pause_resume(c, s) {
+    c -> s rtsp method "PAUSE" uri "rtsp://192.168.80.10/vod/movie42.mp4" cseq 7 session "vod_sess_42" wait 5ms
+    c <- s rtsp status 200 cseq 7 wait 50ms
+    c -> s rtsp method "PLAY" uri "rtsp://192.168.80.10/vod/movie42.mp4" cseq 8 session "vod_sess_42" wait 5ms
+    c <- s rtsp status 200 cseq 8
 }
 
 // INSTRUCTION: Compile RTSP PAUSE and resume PLAY flow.
-COMPILE {
+compile {
     rtsp_pause_resume(smart_tv, vod_server)
 }

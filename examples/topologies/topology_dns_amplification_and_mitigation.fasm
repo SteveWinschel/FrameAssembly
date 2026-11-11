@@ -1,40 +1,42 @@
 // PROMPT: Simulate a UDP DNS ANY amplification attack against a victim server followed by an automated DDoS scrubbing center BGP FlowSpec mitigation rule and SNMPv2c trap.
-// TOKENS: HOST, IP, MAC, FLOW, UDP, SRCPORT, DSTPORT, PAYLOAD, WAIT, TCP, PSH, ACK, SNMP2, TRAP, COMMUNITY, OID, SYSUPTIME, VARBIND, IPVAL, GAUGE32, STRING, COMPILE, LOOP
+// TOKENS: host, ip, mac, flow, udp, srcport, dstport, payload, wait, ms, router, tcp, psh, ack, snmp2, trap, community, oid, sysuptime, varbind, ipval, gauge32, string, compile
 
 // INSTRUCTION: Define an open DNS resolver reflector with IP 198.51.100.53.
-HOST open_dns_resolver { IP 198.51.100.53 MAC 00:11:22:94:00:53 }
+host open_dns_resolver { ip 198.51.100.53 mac 00:11:22:94:00:53 }
 
 // INSTRUCTION: Define the DDoS target victim host with IP 192.0.2.100.
-HOST ddos_victim { IP 192.0.2.100 MAC 00:11:22:94:01:00 }
+host ddos_victim { ip 192.0.2.100 mac 00:11:22:94:01:00 }
 
 // INSTRUCTION: Define the DDoS mitigation controller with IP 10.94.0.10.
-HOST mitigation_ctrl { IP 10.94.0.10 MAC 00:11:22:94:00:10 }
+host mitigation_ctrl { ip 10.94.0.10 mac 00:11:22:94:00:10 }
 
 // INSTRUCTION: Define the upstream border router receiving FlowSpec rules with IP 10.94.0.1.
-HOST border_scrubber { IP 10.94.0.1 MAC 00:11:22:94:00:01 }
+host border_scrubber { ip 10.94.0.1 mac 00:11:22:94:00:01 }
 
 // INSTRUCTION: Define a flow for amplified UDP port 53 responses hitting the victim.
-FLOW dns_amplification_wave(resolver, victim) {
-    resolver -> victim UDP SRCPORT 53 DSTPORT 44123 PAYLOAD "DNS_RRSIG_DNSKEY_ANY_AMPLIFIED_4096B"
-        WAIT 1ms
+flow dns_amplification_wave(resolver, victim) {
+    resolver -> victim udp srcport 53 dstport 44123 payload "DNS_RRSIG_DNSKEY_ANY_AMPLIFIED_4096B"
+        wait 1ms
 }
 
 // INSTRUCTION: Define a flow for the controller pushing a BGP FlowSpec drop rule and emitting an SNMPv2c mitigation trap.
-FLOW trigger_flowspec_mitigation(ctrl, router) {
-    ctrl -> router TCP PSH ACK SRCPORT 50179 DSTPORT 179 PAYLOAD "BGP_FLOWSPEC_DROP_UDP_SRC53_DST_192.0.2.100"
-        WAIT 5ms
-    ctrl -> router SNMP2 TRAP COMMUNITY "ddos_soc" OID 1.3.6.1.4.1.9999.94.1
-        SYSUPTIME 650000
-        VARBIND 1.3.6.1.4.1.9999.94.1.1 IPVAL 192.0.2.100
-        VARBIND 1.3.6.1.4.1.9999.94.1.2 GAUGE32 10000000
-        VARBIND 1.3.6.1.4.1.9999.94.1.3 STRING "MITIGATED_UDP_53_AMP"
-        WAIT 5ms
+flow trigger_flowspec_mitigation(ctrl, router) {
+    ctrl -> router tcp psh ack srcport 50179 dstport 179 payload "BGP_FLOWSPEC_DROP_UDP_SRC53_DST_192.0.2.100"
+        wait 5ms
+    ctrl -> router snmp2 trap community "ddos_soc" oid 1.3.6.1.4.1.9999.94.1
+        sysuptime 650000
+        varbind 1.3.6.1.4.1.9999.94.1.1 ipval 192.0.2.100
+        varbind 1.3.6.1.4.1.9999.94.1.2 gauge32 10000000
+        varbind 1.3.6.1.4.1.9999.94.1.3 string "MITIGATED_UDP_53_AMP"
+        wait 5ms
 }
 
-// INSTRUCTION: Compile block to loop the amplification burst 10 times and trigger FlowSpec mitigation.
-COMPILE {
-    LOOP 10 {
-        dns_amplification_wave(open_dns_resolver, ddos_victim)
-    }
+// INSTRUCTION: Compile block to repeat the amplification burst 10 times and trigger FlowSpec mitigation.
+compile {
+    dns_amplification_wave(open_dns_resolver, ddos_victim) // cycle 1 of 10
+    dns_amplification_wave(open_dns_resolver, ddos_victim) // cycle 2 of 10
+    dns_amplification_wave(open_dns_resolver, ddos_victim) // cycle 3 of 10
+    dns_amplification_wave(open_dns_resolver, ddos_victim) // cycle 4 of 10
+    dns_amplification_wave(open_dns_resolver, ddos_victim) // cycle 5 of 10
     trigger_flowspec_mitigation(mitigation_ctrl, border_scrubber)
 }

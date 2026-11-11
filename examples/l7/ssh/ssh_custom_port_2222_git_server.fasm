@@ -1,30 +1,30 @@
 // PROMPT: Model an SSH session on a custom non-standard port 2222 for a Git server container over VLAN 220.
-// TOKENS: HOST, MAC, IP, FLOW, TCP, SYN, SRCPORT, DSTPORT, VLAN, ACK, SSH, BANNER, KEXINIT, PAYLOAD, COMPILE
+// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, vlan, ack, ssh, banner, kexinit, payload, compile
 
 // INSTRUCTION: Define host endpoint git_client.
-HOST git_client {
-    MAC 00:0c:29:22:22:01
-    IP 10.220.0.15
+host git_client {
+    mac 00:0c:29:22:22:01
+    ip 10.220.0.15
 }
 
 // INSTRUCTION: Define host endpoint gitea_srv.
-HOST gitea_srv {
-    MAC 00:0c:29:22:22:99
-    IP 10.220.0.99
+host gitea_srv {
+    mac 00:0c:29:22:22:99
+    ip 10.220.0.99
 }
 
 // INSTRUCTION: Connect to custom TCP port 2222 on VLAN 220 and exchange SSH-2.0 banners and KEXINIT.
-FLOW ssh_custom_port_2222_git(git_client, gitea_srv) {
-    git_client -> gitea_srv TCP SYN SRCPORT 56222 DSTPORT 2222 VLAN 220
-    gitea_srv -> git_client TCP SYN ACK VLAN 220
-    git_client -> gitea_srv TCP ACK VLAN 220
-    git_client -> gitea_srv SRCPORT 56222 DSTPORT 2222 SSH BANNER "SSH-2.0-libssh2_1.11.0" VLAN 220
-    gitea_srv -> git_client DSTPORT 56222 SRCPORT 2222 SSH BANNER "SSH-2.0-Go" VLAN 220
-    git_client -> gitea_srv SRCPORT 56222 DSTPORT 2222 SSH KEXINIT PAYLOAD "0102030405060708090a0b0c0d0e0f10" VLAN 220
-    gitea_srv -> git_client DSTPORT 56222 SRCPORT 2222 SSH KEXINIT PAYLOAD "100f0e0d0c0b0a090807060504030201" VLAN 220
+flow ssh_custom_port_2222_git(git_client, gitea_srv) {
+    git_client -> gitea_srv tcp syn srcport 56222 dstport 2222 vlan 220
+    gitea_srv -> git_client tcp syn ack vlan 220
+    git_client -> gitea_srv tcp ack vlan 220
+    git_client -> gitea_srv srcport 56222 dstport 2222 ssh banner "SSH-2.0-libssh2_1.11.0" vlan 220
+    gitea_srv -> git_client dstport 56222 srcport 2222 ssh banner "SSH-2.0-Go" vlan 220
+    git_client -> gitea_srv srcport 56222 dstport 2222 ssh kexinit payload "0102030405060708090a0b0c0d0e0f10" vlan 220
+    gitea_srv -> git_client dstport 56222 srcport 2222 ssh kexinit payload "100f0e0d0c0b0a090807060504030201" vlan 220
 }
 
 // INSTRUCTION: Compile the custom port 2222 Git SSH flow.
-COMPILE {
+compile {
     ssh_custom_port_2222_git(git_client, gitea_srv)
 }

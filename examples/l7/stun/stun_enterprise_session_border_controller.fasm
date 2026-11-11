@@ -1,21 +1,21 @@
 // PROMPT: Enterprise SBC performing STUN keepalive probe on UDP 3478.
-// TOKENS: HOST, IP, FLOW, STUN, BINDING_REQUEST, SOFTWARE, BINDING_RESPONSE, XOR_MAPPED_ADDR, COMPILE
+// TOKENS: host, ip, flow, s, stun, bindingrequest, software, bindingresponse, xormappedaddr, compile
 
 // INSTRUCTION: Define internal Session Border Controller.
-HOST internal_sbc { IP 10.50.200.5 }
+host internal_sbc { ip 10.50.200.5 }
 
 // INSTRUCTION: Define public carrier SBC edge.
-HOST carrier_sbc { IP 203.0.113.120 }
+host carrier_sbc { ip 203.0.113.120 }
 
 // INSTRUCTION: Define SBC trunk binding validation flow.
-FLOW stun_sbc_flow(c, s) {
-    c -> s STUN BINDING_REQUEST SOFTWARE "Audiocodes-Mediant-SBC"
-    c <- s STUN BINDING_RESPONSE
-        XOR_MAPPED_ADDR 203.0.113.245
-        SOFTWARE "Carrier-Edge-SBC-v7"
+flow stun_sbc_flow(c, s) {
+    c -> s stun bindingrequest software "Audiocodes-Mediant-SBC"
+    c <- s stun bindingresponse
+        xormappedaddr 203.0.113.245
+        software "Carrier-Edge-SBC-v7"
 }
 
 // INSTRUCTION: Compile block executing SBC binding exchange.
-COMPILE {
+compile {
     stun_sbc_flow(internal_sbc, carrier_sbc)
 }

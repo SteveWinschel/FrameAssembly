@@ -1,18 +1,18 @@
 // PROMPT: SSDP M-SEARCH multicast discovery searching for root devices.
-// TOKENS: HOST, IP, FLOW, SSDP, MSEARCH, ST, MX, MAN, COMPILE
+// TOKENS: host, ip, flow, s, ssdp, msearch, st, mx, man, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.100 }
+host client { ip 192.168.1.100 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 239.255.255.250 }
+host server { ip 239.255.255.250 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW ssdp_msearch(c, s) {
-    c -> s SSDP MSEARCH ST "upnp:rootdevice" MX 2 MAN "\"ssdp:discover\""
+flow ssdp_msearch(c, s) {
+    c -> s ssdp msearch st "upnp:rootdevice" mx 2 man "\"ssdp:discover\""
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     ssdp_msearch(client, server)
 }

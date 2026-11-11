@@ -1,33 +1,33 @@
 // PROMPT: Create a full TCP-connected MQTT session with CONNECT, CONNACK, QoS 1 PUBLISH, PUBACK, and TCP FIN teardown.
-// TOKENS: HOST, IP, MAC, FLOW, TCP, DSTPORT, SYN, SEQ, WAIT, ACK, ACKNUM, MQTT, CONNECT, CLIENT_ID, CONNACK, RETURN_CODE, PUBLISH, TOPIC, QOS, PKT_ID, PAYLOAD, PUBACK, FIN, COMPILE
+// TOKENS: host, ip, mac, flow, s, tcp, dstport, syn, seq, wait, ms, ack, acknum, mqtt, connect, clientid, connack, returncode, publish, topic, qos, pktid, payload, puback, fin, compile
 
 // INSTRUCTION: Define the smart meter gateway publishing hourly kWh readings.
-HOST meter_gateway {
-    IP 10.40.20.55
-    MAC 00:50:56:40:20:55
+host meter_gateway {
+    ip 10.40.20.55
+    mac 00:50:56:40:20:55
 }
 
 // INSTRUCTION: Define the EMQX broker listening on TCP port 1883.
-HOST emqx_broker {
-    IP 10.40.20.10
-    MAC 00:50:56:40:20:10
+host emqx_broker {
+    ip 10.40.20.10
+    mac 00:50:56:40:20:10
 }
 
 // INSTRUCTION: Complete a TCP handshake, connect to the broker, publish a QoS 1 message with PUBACK, and close the connection.
-FLOW full_mqtt_tcp_lifecycle(c, s) {
-    c -> s TCP DSTPORT 1883 SYN SEQ 100000 WAIT 1ms
-    c <- s TCP SYN ACK SEQ 200000 ACKNUM 100001 WAIT 1ms
-    c -> s TCP DSTPORT 1883 ACK SEQ 100001 ACKNUM 200001 WAIT 2ms
-    c -> s MQTT DSTPORT 1883 SEQ 100001 ACKNUM 200001 CONNECT CLIENT_ID "meter-gw-055" WAIT 3ms
-    c <- s MQTT SEQ 200001 ACKNUM 100027 CONNACK RETURN_CODE 0 WAIT 5ms
-    c -> s MQTT DSTPORT 1883 SEQ 100027 ACKNUM 200005 PUBLISH TOPIC "grid/substation4/meter055/kwh" QOS 1 PKT_ID 10 PAYLOAD "{\"kwh\":1420.5}" WAIT 3ms
-    c <- s MQTT SEQ 200005 ACKNUM 100078 PUBACK PKT_ID 10 WAIT 2ms
-    c -> s TCP DSTPORT 1883 FIN ACK SEQ 100078 ACKNUM 200009 WAIT 1ms
-    c <- s TCP FIN ACK SEQ 200009 ACKNUM 100079 WAIT 1ms
-    c -> s TCP DSTPORT 1883 ACK SEQ 100079 ACKNUM 200010
+flow full_mqtt_tcp_lifecycle(c, s) {
+    c -> s tcp dstport 1883 syn seq 100000 wait 1ms
+    c <- s tcp syn ack seq 200000 acknum 100001 wait 1ms
+    c -> s tcp dstport 1883 ack seq 100001 acknum 200001 wait 2ms
+    c -> s mqtt dstport 1883 seq 100001 acknum 200001 connect clientid "meter-gw-055" wait 3ms
+    c <- s mqtt seq 200001 acknum 100027 connack returncode 0 wait 5ms
+    c -> s mqtt dstport 1883 seq 100027 acknum 200005 publish topic "grid/substation4/meter055/kwh" qos 1 pktid 10 payload "{\"kwh\":1420.5}" wait 3ms
+    c <- s mqtt seq 200005 acknum 100078 puback pktid 10 wait 2ms
+    c -> s tcp dstport 1883 fin ack seq 100078 acknum 200009 wait 1ms
+    c <- s tcp fin ack seq 200009 acknum 100079 wait 1ms
+    c -> s tcp dstport 1883 ack seq 100079 acknum 200010
 }
 
 // INSTRUCTION: Compile the full TCP and MQTT QoS 1 session into a PCAP file.
-COMPILE {
+compile {
     full_mqtt_tcp_lifecycle(meter_gateway, emqx_broker)
 }

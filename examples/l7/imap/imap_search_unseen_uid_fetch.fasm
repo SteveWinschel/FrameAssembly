@@ -1,21 +1,21 @@
 // PROMPT: IMAP SEARCH UNSEEN query and UID FETCH retrieving unread message body flags.
-// TOKENS: HOST, IP, FLOW, IMAP, TAG, CMD, ARG, PAYLOAD, COMPILE
+// TOKENS: host, ip, flow, s, imap, tag, cmd, arg, payload, compile
 
 // INSTRUCTION: Define Thunderbird mail user agent.
-HOST mua_client { IP 10.14.0.35 }
+host mua_client { ip 10.14.0.35 }
 
 // INSTRUCTION: Define enterprise IMAP mailstore.
-HOST mailstore { IP 10.14.0.1 }
+host mailstore { ip 10.14.0.1 }
 
 // INSTRUCTION: Search for UNSEEN messages and fetch UID and FLAGS for message 42.
-FLOW imap_search_unseen(c, s) {
-    c -> s IMAP TAG "A10" CMD "SEARCH" ARG "UNSEEN"
-    c <- s IMAP TAG "*" CMD "SEARCH" ARG "42 43" PAYLOAD "A10 OK SEARCH completed\r\n"
-    c -> s IMAP TAG "A11" CMD "UID" ARG "FETCH 42 (FLAGS BODY.PEEK[HEADER])"
-    c <- s IMAP TAG "A11" CMD "OK" ARG "UID FETCH completed"
+flow imap_search_unseen(c, s) {
+    c -> s imap tag "A10" cmd "SEARCH" arg "UNSEEN"
+    c <- s imap tag "*" cmd "SEARCH" arg "42 43" payload "A10 OK SEARCH completed\r\n"
+    c -> s imap tag "A11" cmd "UID" arg "FETCH 42 (FLAGS BODY.PEEK[HEADER])"
+    c <- s imap tag "A11" cmd "OK" arg "UID FETCH completed"
 }
 
 // INSTRUCTION: Compile the IMAP SEARCH UNSEEN and UID FETCH flow.
-COMPILE {
+compile {
     imap_search_unseen(mua_client, mailstore)
 }

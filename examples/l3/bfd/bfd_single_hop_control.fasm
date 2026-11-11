@@ -1,18 +1,18 @@
 // PROMPT: Bidirectional Forwarding Detection session monitoring in Up state with discriminators.
-// TOKENS: HOST, IP, FLOW, BFD, STATE, MY_DISC, YOUR_DISC, COMPILE
+// TOKENS: host, ip, flow, bfd, state, mydisc, yourdisc, compile
 
 // INSTRUCTION: Define BFD session node A.
-HOST bfd_node_a { IP 10.200.1.1 }
+host bfd_node_a { ip 10.200.1.1 }
 
 // INSTRUCTION: Define BFD session node B.
-HOST bfd_node_b { IP 10.200.1.2 }
+host bfd_node_b { ip 10.200.1.2 }
 
 // INSTRUCTION: Define BFD control packet monitoring flow in State 3 (Up).
-FLOW bfd_session_flow(a, b) {
-    a -> b BFD STATE 3 MY_DISC 100 YOUR_DISC 200
+flow bfd_session_flow(a, b) {
+    a -> b bfd state 3 mydisc 100 yourdisc 200
 }
 
 // INSTRUCTION: Compile block executing BFD session packet.
-COMPILE {
+compile {
     bfd_session_flow(bfd_node_a, bfd_node_b)
 }

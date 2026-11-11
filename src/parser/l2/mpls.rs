@@ -1,9 +1,9 @@
-//! Multi-Protocol Label Switching (`MPLS`, RFC 3032) shim header parser for FrameAssembly.
+//! Multi-Protocol Label Switching (`mpls`, RFC 3032) shim header parser for FrameAssembly.
 //!
 //! This module implements the winnow parser combinator for MPLS label-switched frame statements
-//! and Layer 2.5 shim modifiers. It parses 20-bit label values (`MPLS <label>` or `LABEL <label>`),
-//! 3-bit traffic class / experimental bits (`EXP <0..7>`), 1-bit bottom-of-stack indicators
-//! (`BOS <0..1>`), and 8-bit label time-to-live values (`MPLS_TTL <0..255>`).
+//! and Layer 2.5 shim modifiers. It parses 20-bit label values (`mpls <label>` or `label <label>`),
+//! 3-bit traffic class / experimental bits (`exp <0..7>`), 1-bit bottom-of-stack indicators
+//! (`bos <0..1>`), and 8-bit label time-to-live values (`mplsttl <0..255>`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err, opt};

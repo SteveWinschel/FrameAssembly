@@ -1,25 +1,25 @@
 // PROMPT: Generate an LTE/5G base station NTPv4 frequency and phase poll across a QinQ metro backhaul (S-VLAN 700, C-VLAN 123).
-// TOKENS: HOST, IP, MAC, FLOW, NTP, LI, VN, MODE, STRATUM, POLL, PRECISION, TX_TIMESTAMP, QINQ, INNER_VLAN, DSCP, WAIT, REFID, COMPILE
+// TOKENS: host, ip, mac, flow, s, ntp, li, vn, mode, stratum, poll, precision, txtimestamp, qinq, innervlan, dscp, wait, ms, refid, compile
 
 // INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
-HOST ntp_client {
-    IP 10.70.123.15
-    MAC 00:1b:21:7b:01:0a
+host ntp_client {
+    ip 10.70.123.15
+    mac 00:1b:21:7b:01:0a
 }
 
 // INSTRUCTION: Define the NTP reference server or peer endpoint.
-HOST ntp_server {
-    IP 10.70.123.1
-    MAC 00:1b:21:7b:01:01
+host ntp_server {
+    ip 10.70.123.1
+    mac 00:1b:21:7b:01:01
 }
 
 // INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
-FLOW ntp_scenario_flow(c, s) {
-    c -> s NTP LI 0 VN 4 MODE 3 STRATUM 3 POLL 4 PRECISION -20 TX_TIMESTAMP 0xe9b4c90000000000 QINQ 700 INNER_VLAN 123 DSCP 46 WAIT 2ms
-    c <- s NTP LI 0 VN 4 MODE 4 STRATUM 1 POLL 4 PRECISION -24 REFID "GPS" TX_TIMESTAMP 0xe9b4c9000020c49b QINQ 700 INNER_VLAN 123 DSCP 46
+flow ntp_scenario_flow(c, s) {
+    c -> s ntp li 0 vn 4 mode 3 stratum 3 poll 4 precision -20 txtimestamp 0xe9b4c90000000000 qinq 700 innervlan 123 dscp 46 wait 2ms
+    c <- s ntp li 0 vn 4 mode 4 stratum 1 poll 4 precision -24 refid "GPS" txtimestamp 0xe9b4c9000020c49b qinq 700 innervlan 123 dscp 46
 }
 
 // INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
-COMPILE {
+compile {
     ntp_scenario_flow(ntp_client, ntp_server)
 }

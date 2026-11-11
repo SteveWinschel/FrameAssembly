@@ -1,27 +1,27 @@
 // PROMPT: Enterprise campus distribution router sending periodic Router Advertisements on VLAN 120 trusted RA-Guard port.
-// TOKENS: HOST, IP, MAC, FLOW, VLAN, PCP, TTL, NDP, ROUTER_SOLICIT, SLLA, WAIT, ROUTER_ADVERT, ROUTER_LIFETIME, NEIGHBOR_SOLICIT, TARGET, NEIGHBOR_ADVERT, TLLA, COMPILE
+// TOKENS: host, ip, mac, flow, vlan, pcp, ttl, ndp, routersolicit, slla, wait, ms, routeradvert, routerlifetime, neighborsolicit, target, neighboradvert, tlla, compile
 
 // INSTRUCTION: Define authorized campus distribution router on trusted RA-Guard uplink port.
-HOST trusted_dist_rtr {
-    IP 2001:db8:120::1
-    MAC 00:1e:be:12:00:01
+host trusted_dist_rtr {
+    ip 2001:db8:120::1
+    mac 00:1e:be:12:00:01
 }
 
 // INSTRUCTION: Define enterprise workstation receiving SLAAC router parameters on VLAN 120.
-HOST corp_workstation {
-    IP 2001:db8:120::50
-    MAC 00:1e:be:12:00:50
+host corp_workstation {
+    ip 2001:db8:120::50
+    mac 00:1e:be:12:00:50
 }
 
 // INSTRUCTION: Solicit router on VLAN 120, receive valid Router Advertisement, and resolve router link-layer address.
-FLOW ndp_vlan120_slaac(rtr, ws) {
-    ws -> rtr VLAN 120 PCP 6 TTL 255 NDP ROUTER_SOLICIT SLLA 00:1e:be:12:00:50 WAIT 10ms
-    rtr -> ws VLAN 120 PCP 6 TTL 255 NDP ROUTER_ADVERT ROUTER_LIFETIME 1800 SLLA 00:1e:be:12:00:01 WAIT 10ms
-    ws -> rtr VLAN 120 PCP 6 TTL 255 NDP NEIGHBOR_SOLICIT TARGET 2001:db8:120::1 SLLA 00:1e:be:12:00:50 WAIT 5ms
-    rtr -> ws VLAN 120 PCP 6 TTL 255 NDP NEIGHBOR_ADVERT TARGET 2001:db8:120::1 TLLA 00:1e:be:12:00:01
+flow ndp_vlan120_slaac(rtr, ws) {
+    ws -> rtr vlan 120 pcp 6 ttl 255 ndp routersolicit slla 00:1e:be:12:00:50 wait 10ms
+    rtr -> ws vlan 120 pcp 6 ttl 255 ndp routeradvert routerlifetime 1800 slla 00:1e:be:12:00:01 wait 10ms
+    ws -> rtr vlan 120 pcp 6 ttl 255 ndp neighborsolicit target 2001:db8:120::1 slla 00:1e:be:12:00:50 wait 5ms
+    rtr -> ws vlan 120 pcp 6 ttl 255 ndp neighboradvert target 2001:db8:120::1 tlla 00:1e:be:12:00:01
 }
 
 // INSTRUCTION: Compile the VLAN 120 trusted RA-Guard SLAAC and neighbor resolution flow.
-COMPILE {
+compile {
     ndp_vlan120_slaac(trusted_dist_rtr, corp_workstation)
 }

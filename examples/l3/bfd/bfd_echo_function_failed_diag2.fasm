@@ -1,26 +1,26 @@
 // PROMPT: RFC 5880 BFD session transitioning to Down with Diagnostic Code 2 (Echo Function Failed) over UDP 3784.
-// TOKENS: HOST, IP, MAC, FLOW, BFD, STATE, DIAG, MY_DISC, YOUR_DISC, MIN_TX, MIN_RX, MULT, DSCP, TTL, WAIT, COMPILE
+// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, dscp, ttl, wait, ms, compile
 
 // INSTRUCTION: Define access aggregation router running BFD Echo modeloopback checks.
-HOST bfd_echo_agg {
-    IP 172.16.37.1
-    MAC 00:1e:be:37:00:01
+host bfd_echo_agg {
+    ip 172.16.37.1
+    mac 00:1e:be:37:00:01
 }
 
 // INSTRUCTION: Define customer edge router whose forwarding path dropped BFD Echo frames.
-HOST bfd_echo_ce {
-    IP 172.16.37.2
-    MAC 00:1e:be:37:00:02
+host bfd_echo_ce {
+    ip 172.16.37.2
+    mac 00:1e:be:37:00:02
 }
 
 // INSTRUCTION: Define BFD session signaling STATE 1 (Down) and DIAG 2 (Echo Function Failed).
-FLOW bfd_echo_fail_diag(agg, ce) {
-    agg -> ce BFD STATE 3 DIAG 0 MY_DISC 37851 YOUR_DISC 37852 MIN_TX 100000 MIN_RX 100000 MULT 3 DSCP 48 TTL 255 WAIT 15ms
-    agg -> ce BFD STATE 1 DIAG 2 MY_DISC 37851 YOUR_DISC 0 MIN_TX 1000000 MIN_RX 1000000 MULT 3 DSCP 48 TTL 255 WAIT 5ms
-    agg <- ce BFD STATE 1 DIAG 3 MY_DISC 37852 YOUR_DISC 0 MIN_TX 1000000 MIN_RX 1000000 MULT 3 DSCP 48 TTL 255
+flow bfd_echo_fail_diag(agg, ce) {
+    agg -> ce bfd state 3 diag 0 mydisc 37851 yourdisc 37852 mintx 100000 minrx 100000 mult 3 dscp 48 ttl 255 wait 15ms
+    agg -> ce bfd state 1 diag 2 mydisc 37851 yourdisc 0 mintx 1000000 minrx 1000000 mult 3 dscp 48 ttl 255 wait 5ms
+    agg <- ce bfd state 1 diag 3 mydisc 37852 yourdisc 0 mintx 1000000 minrx 1000000 mult 3 dscp 48 ttl 255
 }
 
 // INSTRUCTION: Compile the BFD Echo Function Failed diagnostic transition flow.
-COMPILE {
+compile {
     bfd_echo_fail_diag(bfd_echo_agg, bfd_echo_ce)
 }

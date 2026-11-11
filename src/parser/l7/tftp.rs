@@ -1,10 +1,11 @@
 //! Trivial File Transfer Protocol (TFTP) Layer 7 file transfer field parser.
 //!
-//! This module implements the `winnow` parser combinator for RFC 1350 `TFTP` read/write requests,
+//! This module implements the `winnow` parser combinator for RFC 1350 `tftp` read/write requests,
 //! data blocks, acknowledgments, and error packets in FrameAssembly `.fasm` specifications. It
-//! recognizes the `TFTP` protocol keyword, packet type flags (`RRQ`, `WRQ`, `DATA`, `ACK`, `ERR`),
-//! target filenames (`FILENAME`), transfer modes (`MODE`, e.g., `"octet"` or `"netascii"`), block
-//! numbers (`BLOCK`), error codes (`ERRCODE`), and error message strings (`ERRMSG`).
+//! recognizes the `tftp` protocol keyword, packet type flags (`rrq`, `wrq`, `data`, `ack`, `err`,
+//! `error`), target filenames (`filename`), transfer modes (`mode`, e.g., `"octet"` or
+//! `"netascii"`), block numbers (`block`), error codes (`errcode`), and error message strings
+//! (`errmsg`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
@@ -25,7 +26,7 @@ pub(crate) fn parse_tftp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pa
             tag(Token::Data).map(|(_, s)| ParsedField::L7Flag("DATA", (s.start, s.len()))),
             tag(Token::Ack).map(|(_, s)| ParsedField::L7Flag("ACK", (s.start, s.len()))),
             tag(Token::Err).map(|(_, s)| ParsedField::L7Flag("ERR", (s.start, s.len()))),
-            tag(Token::Ident("ERROR")).map(|(_, s)| ParsedField::L7Flag("ERROR", (s.start, s.len()))),
+            tag(Token::ErrorKw).map(|(_, s)| ParsedField::L7Flag("ERROR", (s.start, s.len()))),
         )),
         alt((
             (tag(Token::Filename), cut_err(parse_str_val)).map(|((_, s), v)| {

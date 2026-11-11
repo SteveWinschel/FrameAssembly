@@ -1,19 +1,19 @@
 // PROMPT: LDAP SearchResponse returning matched SearchResultEntry followed by SearchResultDone.
-// TOKENS: HOST, IP, FLOW, LDAP, SEARCH_ENTRY, MSGID, WAIT, SEARCH_DONE, RESULT_CODE, COMPILE
+// TOKENS: host, ip, flow, s, ldap, searchentry, msgid, wait, ms, searchdone, resultcode, compile
 
 // INSTRUCTION: Define searching client workstation.
-HOST search_client { IP 192.168.1.150 }
+host search_client { ip 192.168.1.150 }
 
 // INSTRUCTION: Define directory search responder.
-HOST ldap_responder { IP 192.168.1.10 }
+host ldap_responder { ip 192.168.1.10 }
 
 // INSTRUCTION: Define search response sequence flow.
-FLOW search_response_stream(c, s) {
-    c <- s LDAP SEARCH_ENTRY MSGID 7 WAIT 3ms
-    c <- s LDAP SEARCH_DONE MSGID 7 RESULT_CODE 0
+flow search_response_stream(c, s) {
+    c <- s ldap searchentry msgid 7 wait 3ms
+    c <- s ldap searchdone msgid 7 resultcode 0
 }
 
 // INSTRUCTION: Compile LDAP search response scenario.
-COMPILE {
+compile {
     search_response_stream(search_client, ldap_responder)
 }

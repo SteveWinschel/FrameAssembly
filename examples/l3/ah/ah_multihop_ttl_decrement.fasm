@@ -1,20 +1,20 @@
 // PROMPT: Multi-hop IPv4 AH transit simulation showing TTL decrements across intermediate hops.
-// TOKENS: HOST, IP, FLOW, AH, SPI, SEQ, TTL, DSCP, COMPILE
+// TOKENS: host, ip, flow, ah, spi, seq, ttl, dscp, compile
 
 // INSTRUCTION: Define origin security host.
-HOST ah_origin_host { IP 10.5.1.10 }
+host ah_origin_host { ip 10.5.1.10 }
 
 // INSTRUCTION: Define destination security gateway.
-HOST ah_dest_gateway { IP 10.5.99.10 }
+host ah_dest_gateway { ip 10.5.99.10 }
 
 // INSTRUCTION: Define AH packets observed at successive hop counts with invariant fields.
-FLOW ah_ttl_observation(orig, dest) {
-    orig -> dest AH SPI 71000 SEQ 1 TTL 64 DSCP 16
-    orig -> dest AH SPI 71000 SEQ 2 TTL 63 DSCP 16
-    orig -> dest AH SPI 71000 SEQ 3 TTL 62 DSCP 16
+flow ah_ttl_observation(orig, dest) {
+    orig -> dest ah spi 71000 seq 1 ttl 64 dscp 16
+    orig -> dest ah spi 71000 seq 2 ttl 63 dscp 16
+    orig -> dest ah spi 71000 seq 3 ttl 62 dscp 16
 }
 
 // INSTRUCTION: Compile the multi-hop TTL observation AH trace.
-COMPILE {
+compile {
     ah_ttl_observation(ah_origin_host, ah_dest_gateway)
 }

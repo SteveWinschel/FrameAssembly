@@ -473,6 +473,7 @@ impl<'a> FrameBuilder<'a> {
             raw_ttl: self.ttl_val,
             raw_flowlabel: self.flowlabel_val,
             raw_gentrap_span: self.gentrap_span,
+            raw_hellotime: self.raw_hellotime,
             duplicate_modifiers: self.duplicate_modifiers,
             src_port: self.src_port,
             dst_port: self.dst_port,

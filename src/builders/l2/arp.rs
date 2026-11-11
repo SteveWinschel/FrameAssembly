@@ -7,7 +7,7 @@
 //! Solicitation (Type 135) or Neighbor Advertisement (Type 136) over `EtherType = 0x86DD`.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b ARP [REQUEST | REPLY] [GRATUITOUS] [SENDERMAC <mac>] [SENDERIP <ip>] [TARGETMAC <mac>] [TARGETIP <ip>]`
+//! `a -> b arp [request | reply] [gratuitous] [sendermac <mac>] [senderip <ip>] [targetmac <mac>] [targetip <ip>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

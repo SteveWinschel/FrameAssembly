@@ -1,18 +1,18 @@
 // PROMPT: WHOIS directory domain registration query over TCP port 43.
-// TOKENS: HOST, IP, FLOW, WHOIS, QUERY, DOMAIN, COMPILE
+// TOKENS: host, ip, flow, s, whois, query, domain, compile
 
 // INSTRUCTION: Define client endpoint.
-HOST client { IP 192.168.1.50 }
+host client { ip 192.168.1.50 }
 
 // INSTRUCTION: Define server endpoint.
-HOST server { IP 192.0.47.59 }
+host server { ip 192.0.47.59 }
 
 // INSTRUCTION: Define application traffic flow.
-FLOW whois_query(c, s) {
-    c -> s WHOIS QUERY DOMAIN "example.com"
+flow whois_query(c, s) {
+    c -> s whois query domain "example.com"
 }
 
 // INSTRUCTION: Compile block executing the flow scenario.
-COMPILE {
+compile {
     whois_query(client, server)
 }

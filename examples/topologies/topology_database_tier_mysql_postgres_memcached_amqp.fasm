@@ -1,34 +1,34 @@
 // PROMPT: Polyglot persistence data tier combining AMQP event broker, Memcached lookaside cache, MySQL read replica, and PostgreSQL primary ledger.
-// TOKENS: HOST, IP, FLOW, AMQP, BASIC_DELIVER, CHANNEL, ROUTING_KEY, MEMCACHED, CMD, KEY, WAIT, MYSQL, SQL, OK, EXPTIME, PAYLOAD, POSTGRES, COMMAND_COMPLETE, BASIC_PUBLISH, COMPILE
+// TOKENS: host, ip, flow, amqp, basicdeliver, channel, routingkey, memcached, cmd, key, wait, us, mysql, sql, ms, ok, exptime, payload, postgres, commandcomplete, basicpublish, compile
 
 // INSTRUCTION: Define backend worker service processing asynchronous events.
-HOST async_worker_svc { IP 10.215.1.10 }
+host async_worker_svc { ip 10.215.1.10 }
 
 // INSTRUCTION: Define RabbitMQ AMQP 0-9-1 message broker.
-HOST rabbitmq_broker { IP 10.215.1.20 }
+host rabbitmq_broker { ip 10.215.1.20 }
 
 // INSTRUCTION: Define Memcached distributed object cache node.
-HOST memcached_node { IP 10.215.1.30 }
+host memcached_node { ip 10.215.1.30 }
 
 // INSTRUCTION: Define MySQL read-replica analytics database.
-HOST mysql_replica_db { IP 10.215.1.40 }
+host mysql_replica_db { ip 10.215.1.40 }
 
 // INSTRUCTION: Define PostgreSQL primary transactional database.
-HOST postgres_primary_db { IP 10.215.1.50 }
+host postgres_primary_db { ip 10.215.1.50 }
 
 // INSTRUCTION: Define AMQP message delivery, Memcached cache miss/fill, MySQL query, and PostgreSQL commit.
-FLOW polyglot_data_tier_flow(wrk, mq, mc, my, pg) {
-    mq -> wrk AMQP BASIC_DELIVER CHANNEL 1 ROUTING_KEY "billing.invoice.created"
-    wrk -> mc MEMCACHED CMD "GET" KEY "customer:profile:8812" WAIT 500us
-    wrk -> my MYSQL SQL "SELECT tier, discount FROM customer_profiles WHERE id = 8812;" WAIT 1ms
-    wrk <- my MYSQL OK WAIT 1ms
-    wrk -> mc MEMCACHED CMD "SET" KEY "customer:profile:8812" EXPTIME 3600 PAYLOAD "{\"tier\":\"enterprise\"}" WAIT 500us
-    wrk -> pg POSTGRES SQL "UPDATE invoices SET finalized = true WHERE cust_id = 8812;" WAIT 1ms
-    wrk <- pg POSTGRES COMMAND_COMPLETE WAIT 1ms
-    wrk -> mq AMQP BASIC_PUBLISH CHANNEL 1 ROUTING_KEY "billing.invoice.finalized" WAIT 500us
+flow polyglot_data_tier_flow(wrk, mq, mc, my, pg) {
+    mq -> wrk amqp basicdeliver channel 1 routingkey "billing.invoice.created"
+    wrk -> mc memcached cmd "get" key "customer:profile:8812" wait 500us
+    wrk -> my mysql sql "SELECT tier, discount FROM customer_profiles WHERE id = 8812;" wait 1ms
+    wrk <- my mysql ok wait 1ms
+    wrk -> mc memcached cmd "set" key "customer:profile:8812" exptime 3600 payload "{\"tier\":\"enterprise\"}" wait 500us
+    wrk -> pg postgres sql "UPDATE invoices SET finalized = true WHERE cust_id = 8812;" wait 1ms
+    wrk <- pg postgres commandcomplete wait 1ms
+    wrk -> mq amqp basicpublish channel 1 routingkey "billing.invoice.finalized" wait 500us
 }
 
 // INSTRUCTION: Compile block executing polyglot data tier topology.
-COMPILE {
+compile {
     polyglot_data_tier_flow(async_worker_svc, rabbitmq_broker, memcached_node, mysql_replica_db, postgres_primary_db)
 }

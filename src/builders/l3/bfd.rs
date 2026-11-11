@@ -2,13 +2,13 @@
 //!
 //! Serializes a [`BfdSpec`] into a 24-byte RFC 5880 BFD Version 1 Control packet carried over
 //! UDP destination port `3784` (single-hop, RFC 5881) or custom multihop ports (`4784`, RFC 5883).
-//! Byte 0 packs the 3-bit `Vers` (`1`) in bits `7..5` and the 5-bit Diagnostic code (`DIAG`, default
-//! `0`) in bits `4..0`. Byte 1 encodes the 2-bit session `State` (`STATE`, default `3` Up) in bits
-//! `7..6`, followed by `Detect Mult` (`MULT`, default `3`), `Length` (`24`), 32-bit `My Discriminator`
-//! (`MY_DISC`), 32-bit `Your Discriminator` (`YOUR_DISC`), and 32-bit `MIN_TX` / `MIN_RX` timers.
+//! Byte 0 packs the 3-bit `Vers` (`1`) in bits `7..5` and the 5-bit Diagnostic code (`diag`, default
+//! `0`) in bits `4..0`. Byte 1 encodes the 2-bit session `State` (`state`, default `3` Up) in bits
+//! `7..6`, followed by `Detect Mult` (`mult`, default `3`), `Length` (`24`), 32-bit `My Discriminator`
+//! (`mydisc`), 32-bit `Your Discriminator` (`yourdisc`), and 32-bit `mintx` / `minrx` timers.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b BFD [STATE <0..3>] [DIAG <0..31>] [MY_DISC <u32>] [YOUR_DISC <u32>] [MIN_TX <u32>] [MIN_RX <u32>] [MULT <u8>]`
+//! `a -> b bfd [state <0..3>] [diag <0..31>] [mydisc <u32>] [yourdisc <u32>] [mintx <u32>] [minrx <u32>] [mult <u8>]`
 
 use crate::ast::*;
 use alloc::vec::Vec;

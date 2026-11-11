@@ -2,14 +2,14 @@
 //!
 //! Serializes a [`GeneveSpec`] into an RFC 8926 GENEVE tunnel frame carried over UDP destination
 //! port `6081`. The 8-byte fixed GENEVE header encodes a 2-bit `Ver` (`0`) and 6-bit `Opt Len`
-//! (`1` when an `OPT_CLASS` TLV option is present, `0` otherwise), an 8-bit `Flags` byte (`0`),
-//! a 16-bit IEEE EtherType `Protocol Type` (`PROTOCOL_TYPE`, default `0x6558` Transparent Ethernet
-//! Bridging), a 24-bit big-endian Virtual Network Identifier (`VNI`, default `4096`), and an 8-bit
-//! `Reserved` zero byte, optionally followed by a 4-byte TLV option header (`OPT_CLASS`, `OPT_TYPE`)
+//! (`1` when an `optclass` TLV option is present, `0` otherwise), an 8-bit `Flags` byte (`0`),
+//! a 16-bit IEEE EtherType `Protocol Type` (`protocoltype`, default `0x6558` Transparent Ethernet
+//! Bridging), a 24-bit big-endian Virtual Network Identifier (`vni`, default `4096`), and an 8-bit
+//! `Reserved` zero byte, optionally followed by a 4-byte TLV option header (`optclass`, `opttype`)
 //! and the inner passenger frame.
 //!
 //! Canonical `.fasm` syntax:
-//! `a -> b GENEVE [VNI <u24>] [OPT_CLASS <u16>] [OPT_TYPE <u8>] [PROTOCOL_TYPE <u16>] [PAYLOAD "<str>" | HEXPAYLOAD "<hex>"]`
+//! `a -> b geneve [vni <u24>] [optclass <u16>] [opttype <u8>] [protocoltype <u16>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;
 use alloc::vec::Vec;

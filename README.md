@@ -7,7 +7,6 @@
 [![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
 [![Rust 1.85+](https://img.shields.io/badge/rust-1.85%2B%20(Edition%202024)-orange.svg)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
-[![Youtube Tutorial](https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1&pp=ygUXbmV2ZXIgZ29ubmEgZ2l2ZSB5b3UgdXCgBwE%3D)]
 
 [**Try in Browser (`frameassembly.ai.studio`)**](https://frameassembly.ai.studio/) • [**Use Cases**](#network-and-security-testing-use-cases) • [**How It Works**](#how-frameassembly-works) • [**Comparison**](#why-frameassembly-instead-of-scapy-or-lab-vms) • [**Installation**](#installation) • [**81 Protocols & Docs**](#supported-protocols-and-documentation)
 

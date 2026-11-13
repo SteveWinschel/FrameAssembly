@@ -2,7 +2,7 @@
 // FrameAssembly Lark Grammar (Outlines / vLLM / Guidance / XGrammar / llguidance)
 // Synchronized with src/lexer/mod.rs, grammar.ebnf, and frameassembly.gbnf.
 // Covers all 81 native protocols, L2-L4 modifiers, SNMPv1/v2c/v3 USM, and L7.
-// Note: FrameAssembly v2.0.0 enforces strict-lowercase alphanumeric tokens
+// Note: FrameAssembly v3.0.0 (.frasm) enforces strict-lowercase alphanumeric tokens
 // without '_' or '-' across all keywords, protocols, modifiers, and time units.
 // ============================================================================
 

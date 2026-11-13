@@ -7,7 +7,7 @@
 //! `Reserved` zero byte. When no explicit `payload` or `hexpayload` is supplied, a sensible default
 //! inner Ethernet frame (`00:00:00:00:00:02 <- 00:00:00:00:00:01`, EtherType `0x0800`) is synthesized.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b vxlan [vni <u24>] [srcport <u16>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;

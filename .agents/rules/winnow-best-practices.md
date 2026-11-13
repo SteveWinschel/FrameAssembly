@@ -10,7 +10,7 @@ Enforce these zero-copy, high-performance `winnow` (`1.0.5+`) and `memchr` (`2.8
 
 ## 1. Stream Representation & Core Combinator Signatures
 - **FrameAssembly Zero-Copy 3-Tuple Slice Stream (`src/parser/mod.rs`)**:
-  - `FrameAssembly` defines `pub type Stream<'i, 'a> = &'i [(Token<'a>, core::ops::Range<usize>, &'a str)];`, pairing each `logos` `Token<'a>` with its byte range and exact original `&'a str` slice (preserving wire casing for barewords and flexible user identifiers while matching strict-lowercase v2.0.0 built-in keywords).
+  - `FrameAssembly` defines `pub type Stream<'i, 'a> = &'i [(Token<'a>, core::ops::Range<usize>, &'a str)];`, pairing each `logos` `Token<'a>` with its byte range and exact original `&'a str` slice (preserving wire casing for barewords and flexible user identifiers while matching strict-lowercase v3.0.0 built-in keywords).
   - Every parser function uses `&mut Stream<'i, 'a>` and returns `winnow::ModalResult<O>` (`PResult<O>`, alias for `Result<O, ErrMode<ContextError>>`):
     ```rust
     pub(crate) fn parse_item<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Output<'a>>
@@ -37,7 +37,7 @@ Enforce these zero-copy, high-performance `winnow` (`1.0.5+`) and `memchr` (`2.8
     ```
     or omit `cut_err` on the non-final overloaded branch so `Backtrack` falls through to the string branch cleanly.
   - **Unified `hellotime`**: Both STP (`u16`) and HSRP (`<= 255` `u8`, validated in `validation.rs`) share `Token::HelloTime` (`ParsedField::HelloTime`), avoiding duplicate lexer tokens.
-- **Contextual Identifiers (`parse_spanned_ident`)**: Every built-in keyword in `Token<'a>` (including promoted v2.0.0 tokens `pkttype`, `read`, `write`, `nop`, `error`, `shutdownack`) is automatically usable as a `host`, `flow`, or parameter identifier via `parse_spanned_ident` as long as punctuation and literal variants remain excluded in `src/parser/ident.rs` (never add `PartialEq` string hacks on `Token::Ident` for pseudo-keywords).
+- **Contextual Identifiers (`parse_spanned_ident`)**: Every built-in keyword in `Token<'a>` (including promoted v3.0.0 tokens `pkttype`, `read`, `write`, `nop`, `error`, `shutdownack`) is automatically usable as a `host`, `flow`, or parameter identifier via `parse_spanned_ident` as long as punctuation and literal variants remain excluded in `src/parser/ident.rs` (never add `PartialEq` string hacks on `Token::Ident` for pseudo-keywords).
 
 ## 3. Zero-Allocation `Accumulate<T>` Sinks & Loop Safety
 - **Bind Side-Effect `repeat` Loops to `()` (Never `Vec<()>`)**:

@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire sFlow Version 5 Sampled Network Telemetry frames over UDP port 6343.
 //! The wire encoder constructs a 28-byte (IPv4) or 40-byte (IPv6) sFlow v5 datagram header containing 32-bit datagram_version = 5, 32-bit address_type (1 = IPv4, 2 = IPv6), Agent IP address, 32-bit sub_agent_id, 32-bit sequence_number, 32-bit sys_uptime in milliseconds, and 32-bit num_samples count followed by XDR-encoded flow sample and counter sample records. When optional fields in [`SflowSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b sflow [agentip <ip>] [subagentid <u32>] [seq <u32>] [uptime <u32>] [samples <u32>]`
 
 use crate::ast::*;

@@ -1,7 +1,7 @@
 //! Redis Serialization Protocol (RESP2 and RESP3) Layer 7 in-memory cache field parser.
 //!
 //! This module implements the `winnow` parser combinator for `redis` RESP command arrays and
-//! server replies in FrameAssembly `.fasm` specifications. It recognizes the `redis` protocol
+//! server replies in FrameAssembly `.frasm` specifications. It recognizes the `redis` protocol
 //! keyword, shorthand `get` and `set` command keywords, explicit `cmd` strings, command arguments
 //! (`args` and `key`), RESP reply type designators (`replytype`, e.g., `"SIMPLE"`, `"BULK"`,
 //! `"INT"`, `"ERR"`), and response values (`value`).

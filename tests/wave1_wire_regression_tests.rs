@@ -10,7 +10,7 @@ use frameassembly::backend::compile_program;
 use frameassembly::packet::internet_checksum;
 use frameassembly::parser::parse_program;
 
-/// Parses and compiles a FrameAssembly `.fasm` source string into raw wire frames.
+/// Parses and compiles a FrameAssembly `.frasm` source string into raw wire frames.
 fn compile_frames(fasm: &str) -> Vec<Vec<u8>> {
     let program = parse_program(fasm).expect("FASM program should parse cleanly");
     compile_program(&program)

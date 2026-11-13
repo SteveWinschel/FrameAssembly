@@ -1,4 +1,4 @@
-//! WebSocket (`websocket`, RFC 6455) Layer 7 framing PCAP-to-`.fasm` decompiler.
+//! WebSocket (`websocket`, RFC 6455) Layer 7 framing PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 6455 `websocket` data and
 //! control frames carried over TCP ports `80`, `443`, `8080`, and `8443`. It validates reserved

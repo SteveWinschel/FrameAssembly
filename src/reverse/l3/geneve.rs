@@ -1,4 +1,4 @@
-//! Generic Network Virtualization Encapsulation (GENEVE, RFC 8926) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Generic Network Virtualization Encapsulation (GENEVE, RFC 8926) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 8926 `geneve` overlay
 //! tunnel packets carried over UDP port `6081`. It validates the GENEVE version and variable

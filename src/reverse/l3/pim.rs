@@ -1,10 +1,10 @@
-//! Protocol Independent Multicast - Sparse Mode (PIM-SM, RFC 7761) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Protocol Independent Multicast - Sparse Mode (PIM-SM, RFC 7761) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 7761 Protocol
 //! Independent Multicast (`pim`, IP protocol `103`) packets. It inspects the 4-byte PIM common
 //! header and decodes `hello` (Holdtime option `1` and DR Priority option `19`), `joinprune`
 //! (`rp`, `holdtime`, `group`, `source`), and `register` (`source`, `group`) messages into
-//! canonical `.fasm` statements.
+//! canonical `.frasm` statements.
 
 use alloc::string::String;
 use alloc::vec::Vec;

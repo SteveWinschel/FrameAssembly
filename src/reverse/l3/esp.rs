@@ -1,11 +1,11 @@
-//! IPsec Encapsulating Security Payload (ESP, RFC 4303) Layer 3 PCAP-to-`.fasm` decompiler.
+//! IPsec Encapsulating Security Payload (ESP, RFC 4303) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 4303 IPsec
 //! Encapsulating Security Payload (`esp`) packets carried directly over IPv4 or IPv6 with protocol
 //! / Next Header number `50` (`0x32`). It decodes the 32-bit Security Parameters Index (`spi`),
 //! Sequence Number (`seq`), 8-byte Initialization Vector (`iv`), ESP trailer Next Header
 //! (`nextheader`), 12-byte Integrity Check Value (`icv`), and ciphertext body into canonical
-//! `.fasm` tokens.
+//! `.frasm` tokens.
 
 use alloc::string::String;
 use alloc::vec::Vec;

@@ -7,7 +7,7 @@
 //! IPv4; `128`/`129`/`1`/`3`/`137` for IPv6), populates `id`, `seq`, or `gateway`, and computes the
 //! ones'-complement Internet checksum (including the 40-byte IPv6 pseudo-header for ICMPv6).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b icmp [echorequest | echoreply | destunreach | timeexceeded | redirect] [type <u8>] [code <u8>] [id <u16>] [seq <u16>] [gateway <ipv4>]`
 
 use crate::ast::*;

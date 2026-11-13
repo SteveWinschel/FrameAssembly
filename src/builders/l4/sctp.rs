@@ -6,7 +6,7 @@
 //! control or data chunks (`data`, `init`, `initack`, `sack`, `heartbeat`, `heartbeatack`,
 //! `abort`, `shutdown`, `shutdownack`, `cookieecho`, `cookieack`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b sctp [chunk <type>] [vtag <u32>] [stream <u16>] [ssn <u16>] [ppid <u32>] [srcport <u16>] [dstport <u16>]`
 
 use crate::ast::*;

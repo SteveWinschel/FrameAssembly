@@ -5,7 +5,7 @@
 //! Every field in [`NetflowSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b netflow [srcip <ip>] [dstip <ip>] [srcport <u16>] [dstport <u16>] [proto <u8>] [packets <u32>] [octets <u32>]`
 
 use core::marker::PhantomData;

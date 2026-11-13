@@ -70,7 +70,7 @@ fn test_string_escapes_tokenization() {
     assert_eq!(tokens[0].0, Token::StringLit(input));
 }
 
-/// Verifies v2.0.0 strict-lowercase `[a-z0-9]+` keywords, promoted sub-keywords, unified tokens,
+/// Verifies v3.0.0 strict-lowercase `[a-z0-9]+` keywords, promoted sub-keywords, unified tokens,
 /// removal of `loop`, and rejection of uppercase/snake_case/kebab-case forms into `Token::Ident`.
 #[test]
 fn test_strict_lowercase_keywords_and_flexible_identifiers() {
@@ -155,7 +155,7 @@ fn test_plain_english_lexer_error_hints() {
     use miette::Diagnostic;
 
     let cases = [
-        ("# router config", "comments in .fasm start with '//'"),
+        ("# router config", "comments in .frasm start with '//'"),
         ("/* block */", "block comments are not supported"),
         ("host a { ip '10.0.0.1' }", "single quotes are not used"),
         (

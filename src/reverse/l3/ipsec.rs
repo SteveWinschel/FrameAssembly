@@ -1,4 +1,4 @@
-//! IPsec security suite (RFC 4303 ESP & RFC 4302 AH) Layer 3 PCAP-to-`.fasm` decompiler facade.
+//! IPsec security suite (RFC 4303 ESP & RFC 4302 AH) Layer 3 PCAP-to-`.frasm` decompiler facade.
 //!
 //! This module provides the `ipsec` Layer 3 decompiler entry point ([`dissect_ipsec`]) for the
 //! FrameAssembly PCAP and PCAPNG decompiler, delegating IP protocol `50` (`0x32`) Encapsulating

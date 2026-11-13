@@ -1,4 +1,4 @@
-//! Simple Network Management Protocol v1 (`snmp1`, RFC 1157) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Simple Network Management Protocol v1 (`snmp1`, RFC 1157) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe ASN.1 Basic Encoding Rules (BER) reverse dissector for
 //! RFC 1157 `snmp1` messages carried over UDP ports `161`, `162`, `10161`, and `10162`. It decodes
@@ -125,7 +125,7 @@ fn append_v1_pdu_fields(
     Some(())
 }
 
-/// Formats a single SMIv1 `VarBind` into canonical `.fasm` `varbind <oid> <type> [val]` syntax.
+/// Formats a single SMIv1 `VarBind` into canonical `.frasm` `varbind <oid> <type> [val]` syntax.
 fn format_v1_varbind(vb: &rasn_snmp::v1::VarBind) -> Option<String> {
     use rasn_smi::v1::{
         ApplicationSyntax as App, NetworkAddress::Internet, ObjectSyntax as Obj,

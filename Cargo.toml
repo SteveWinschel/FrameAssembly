@@ -1,9 +1,9 @@
 [package]
 name = "frameassembly"
-version = "2.0.0"
+version = "3.0.0"
 edition = "2024"
 rust-version = "1.85"
-description = "Compile .fasm network traffic code into .pcap/.pcapng and decompile captures to .fasm across 81 L2-L7 protocols for Wireshark, tcpreplay & IDS/SNMP testing."
+description = "A language to create or edit .pcap and .pcapng packet captures across 81 network protocols for Wireshark, tcpreplay, firewall, SNMP, and IDS testing."
 authors = ["Steve Winschel"]
 license = "MIT"
 documentation = "https://docs.rs/frameassembly"
@@ -40,7 +40,9 @@ exclude = [
     "codemeta.json",
     "context7.json",
     "demo.fasm",
+    "demo.frasm",
     "install.sh",
+    "install.ps1",
     "tests/",
     ".github/",
     ".agents/",

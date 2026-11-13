@@ -1,4 +1,4 @@
-//! OPC Unified Architecture Binary TCP Protocol (OPC UA, IEC 62541-6) Layer 7 PCAP-to-`.fasm` decompiler.
+//! OPC Unified Architecture Binary TCP Protocol (OPC UA, IEC 62541-6) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `opcua` binary TCP conversation
 //! messages (`HEL`, `ACK`, `OPN`, `CLO`, `MSG`, `ERR`) with chunk types (`'F'`, `'C'`, `'A'`) over

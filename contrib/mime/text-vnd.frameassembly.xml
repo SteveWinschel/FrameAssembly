@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Freedesktop.org shared-mime-info definition for FrameAssembly (.fasm) v2.0.0
+  Freedesktop.org shared-mime-info definition for FrameAssembly (.frasm) v3.0.0
   Media Type: text/vnd.frameassembly
-  Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+  Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
 
   Local Linux Installation & Verification:
     mkdir -p ~/.local/share/mime/packages
     cp contrib/mime/text-vnd.frameassembly.xml ~/.local/share/mime/packages/
     update-mime-database ~/.local/share/mime
-    gio info -a standard::content-type demo.fasm
-    xdg-mime query filetype demo.fasm
+    gio info -a standard::content-type demo.frasm
+    xdg-mime query filetype demo.frasm
 -->
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
   <mime-type type="text/vnd.frameassembly">
     <comment>FrameAssembly network packet specification</comment>
-    <acronym>FASM</acronym>
+    <acronym>FRASM</acronym>
     <expanded-acronym>FrameAssembly</expanded-acronym>
     <sub-class-of type="text/plain"/>
     <generic-icon name="text-x-script"/>
-    <glob pattern="*.fasm" weight="60"/>
+    <glob pattern="*.frasm" weight="60"/>
     <magic priority="60">
       <!-- Match top-level host ... ip|mac ... compile tokens (strict lowercase, space/tab) from src/lexer/mod.rs -->
       <match type="string" value="host " offset="0:1024">

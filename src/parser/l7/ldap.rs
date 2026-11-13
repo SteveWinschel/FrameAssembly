@@ -1,7 +1,7 @@
 //! Lightweight Directory Access Protocol (LDAPv3) Layer 7 directory service field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 4511 `ldap` directory operations
-//! in FrameAssembly `.fasm` specifications. It recognizes the `ldap` protocol keyword, BER message
+//! in FrameAssembly `.frasm` specifications. It recognizes the `ldap` protocol keyword, BER message
 //! identifiers (`msgid`), protocol operation flags (`bindreq`, `bindres`, `searchreq`,
 //! `searchentry`, `searchdone`, `unbindreq`), distinguished names (`basedn`), search filters
 //! (`filter`), and LDAP result codes (`resultcode`).

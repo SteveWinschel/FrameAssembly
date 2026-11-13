@@ -1,7 +1,7 @@
 //! MySQL Client/Server Wire Protocol Layer 7 database field parser.
 //!
 //! This module implements the `winnow` parser combinator for `mysql` connection handshakes,
-//! authentication packets, SQL command queries, and server result packets in FrameAssembly `.fasm`
+//! authentication packets, SQL command queries, and server result packets in FrameAssembly `.frasm`
 //! specifications. It recognizes the `mysql` protocol keyword, packet type flags (`greeting`,
 //! `login`, `query`, `ok`, `err`, `eof`), SQL query strings (`sql`), server version banners
 //! (`serverversion`), login usernames (`user`), database schemas (`db`), and numeric error codes

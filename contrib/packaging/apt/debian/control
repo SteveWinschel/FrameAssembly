@@ -1,12 +1,12 @@
 Package: frameassembly
-Version: 2.0.0-1
+Version: 3.0.0-1
 Section: net
 Priority: optional
 Architecture: amd64 arm64
 Maintainer: Steve Winschel <https://github.com/SteveWinschel/FrameAssembly>
 Homepage: https://github.com/SteveWinschel/FrameAssembly
-Description: Compile .fasm network traffic code to .pcap/.pcapng and reverse captures
- FrameAssembly compiles .fasm network traffic code into nanosecond-precision
- .pcap and .pcapng packet captures and reverses captures back into .fasm code
+Description: Compile .frasm network traffic code to .pcap/.pcapng and reverse captures
+ FrameAssembly compiles .frasm network traffic code into nanosecond-precision
+ .pcap and .pcapng packet captures and reverses captures back into .frasm code
  across 81 native Layer 2 through Layer 7 protocols for Wireshark, tcpreplay,
  Suricata, and Zeek.

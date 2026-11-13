@@ -6,7 +6,7 @@
 //! (16-bit Command code such as `0x0063` `ListIdentity`, `0x0065` `RegisterSession`, or `0x006F`
 //! `SendRRData`, 16-bit data length, 32-bit Session Handle, 32-bit Status code, 64-bit Sender
 //! Context, and 32-bit Options) followed by Common Packet Format (CPF) items and a CIP request/reply
-//! path (Service, Class, Instance, and Attribute). Canonical `.fasm` syntax:
+//! path (Service, Class, Instance, and Attribute). Canonical `.frasm` syntax:
 //! `ethernetip [nop | listidentity | registersession | sendrrdata | sendunitdata | cmd <str>] [sessionhandle <u32>] [status <u32>] [context <u64>] [cipservice <u8>] [cipclass <u16>] [cipinstance <u16>] [cipattr <u16>]`.
 
 /// ODVA EtherNet/IP encapsulation and Common Industrial Protocol (CIP) specification.

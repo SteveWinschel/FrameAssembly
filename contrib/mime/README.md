@@ -1,10 +1,10 @@
-# Freedesktop `shared-mime-info` Package & Upstream Merge Guide for FrameAssembly (`.fasm`)
+# Freedesktop `shared-mime-info` Package & Upstream Merge Guide for FrameAssembly (`.frasm`)
 
-This directory contains the Freedesktop.org `shared-mime-info` XML database definition and upstream contribution assets for **FrameAssembly** (`.fasm`, media type `text/vnd.frameassembly`).
+This directory contains the Freedesktop.org `shared-mime-info` XML database definition and upstream contribution assets for **FrameAssembly** (`.frasm`, media type `text/vnd.frameassembly`).
 
 The definition provides desktop-wide MIME classification, content-sniffing magic rules, file-manager icons, and default editor associations across Linux, BSD, and Unix desktop environments (GNOME, KDE Plasma, XFCE, Sway, and Wayland/X11 compositors).
 
-For the normative language specification, see [`docs/fasm-specification.md`](../../docs/fasm-specification.md). For the IANA registration application, see [`contrib/iana/text-vnd.frameassembly.md`](../iana/text-vnd.frameassembly.md). For GitHub Linguist integration, see [`contrib/linguist/README.md`](../linguist/README.md).
+For the normative language specification, see [`docs/12_frasm_specification.md`](../../docs/12_frasm_specification.md). For the IANA registration application, see [`contrib/iana/text-vnd.frameassembly.md`](../iana/text-vnd.frameassembly.md). For GitHub Linguist integration, see [`contrib/linguist/README.md`](../linguist/README.md).
 
 ---
 
@@ -17,11 +17,11 @@ The XML definition file [`text-vnd.frameassembly.xml`](text-vnd.frameassembly.xm
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
   <mime-type type="text/vnd.frameassembly">
     <comment>FrameAssembly network packet specification</comment>
-    <acronym>FASM</acronym>
+    <acronym>FRASM</acronym>
     <expanded-acronym>FrameAssembly</expanded-acronym>
     <sub-class-of type="text/plain"/>
     <generic-icon name="text-x-script"/>
-    <glob pattern="*.fasm" weight="60"/>
+    <glob pattern="*.frasm" weight="60"/>
     <magic priority="60">
       ...
     </magic>
@@ -32,16 +32,16 @@ The XML definition file [`text-vnd.frameassembly.xml`](text-vnd.frameassembly.xm
 ### Key Elements & Technical Rationale
 
 - **`type="text/vnd.frameassembly"`**: Formal media type aligned with RFC 6838 Vendor Tree registration (`contrib/iana/text-vnd.frameassembly.md`).
-- **`<sub-class-of type="text/plain"/>`**: Ensures that every text editor, pager (`less`, `bat`), and previewer can inspect `.fasm` files out of the box even without dedicated syntax plugins.
+- **`<sub-class-of type="text/plain"/>`**: Ensures that every text editor, pager (`less`, `bat`), and previewer can inspect `.frasm` files out of the box even without dedicated syntax plugins.
 - **`<generic-icon name="text-x-script"/>`**: Assigns standard script/source iconography in desktop file managers (GNOME Files/Nautilus, KDE Dolphin, Thunar).
-- **`<glob pattern="*.fasm" weight="60"/>`**: Standard default glob weight is 50. Assigning `weight="60"` guarantees that FrameAssembly packet specifications are preferred over fallback generic plain-text associations.
-- **`<magic priority="60">`**: Content-sniffing rules that accurately classify `.fasm` files by inspecting raw file contents even when filenames lack extensions or when conflicting file types share the `.fasm` extension.
+- **`<glob pattern="*.frasm" weight="60"/>`**: Standard default glob weight is 50. Assigning `weight="60"` guarantees that FrameAssembly packet specifications are preferred over fallback generic plain-text associations.
+- **`<magic priority="60">`**: Content-sniffing rules that accurately classify `.frasm` files by inspecting raw file contents even when filenames lack extensions or when content is copied across extensionless buffers.
 
 ---
 
 ## 2. Magic Content-Sniffing Rules Documentation
 
-Because the `.fasm` extension is shared informally by Flat Assembler (x86 assembly) and FPGA FASM (SymbiFlow / F4PGA bitstream configurations), content sniffing is essential for deterministic disambiguation.
+While FrameAssembly v3.0.0 uses the dedicated `.frasm` extension (distinct from `.fasm` used by Flat Assembler and SymbiFlow / F4PGA FPGA FASM), content sniffing remains essential for deterministic classification when files lack extensions.
 
 [`text-vnd.frameassembly.xml`](text-vnd.frameassembly.xml) implements two multi-level, nested conjunction (`AND`) magic rules:
 
@@ -111,20 +111,20 @@ sudo update-mime-database /usr/share/mime
 
 ### Verifying MIME Installation
 
-Verify that the local MIME database classifies `.fasm` files as `text/vnd.frameassembly`:
+Verify that the local MIME database classifies `.frasm` files as `text/vnd.frameassembly`:
 
 ```bash
 # Query via xdg-mime (standard freedesktop utility)
-xdg-mime query filetype demo.fasm
+xdg-mime query filetype demo.frasm
 # Output: text/vnd.frameassembly
 
 # Query via GLib / GIO
-gio info -a standard::content-type demo.fasm
+gio info -a standard::content-type demo.frasm
 # Output: standard::content-type: text/vnd.frameassembly
 
 # Query via file utility (magic sniffing)
-mimetype demo.fasm
-# Output: demo.fasm: text/vnd.frameassembly
+mimetype demo.frasm
+# Output: demo.frasm: text/vnd.frameassembly
 ```
 
 ### Linux Distribution Packaging Integration
@@ -161,11 +161,11 @@ index a1b2c3d..e4f5a6b 100644
  
 +  <mime-type type="text/vnd.frameassembly">
 +    <_comment>FrameAssembly network packet specification</_comment>
-+    <acronym>FASM</acronym>
++    <acronym>FRASM</acronym>
 +    <expanded-acronym>FrameAssembly</expanded-acronym>
 +    <sub-class-of type="text/plain"/>
 +    <generic-icon name="text-x-script"/>
-+    <glob pattern="*.fasm" weight="60"/>
++    <glob pattern="*.frasm" weight="60"/>
 +    <magic priority="60">
 +      <match type="string" value="host " offset="0:1024">
 +        <match type="string" value="ip " offset="0:1536">
@@ -212,7 +212,7 @@ cd shared-mime-info
 meson setup build
 
 # 3. Apply the patch above to data/freedesktop.org.xml.in
-# Add a test file to tests/ (e.g. tests/sample.fasm)
+# Add a test file to tests/ (e.g. tests/sample.frasm)
 
 # 4. Build and run tests
 ninja -C build test
@@ -224,17 +224,17 @@ ninja -C build test
 Title: Add text/vnd.frameassembly MIME type for FrameAssembly packet specifications
 
 ### Summary
-Adds the `text/vnd.frameassembly` MIME type for FrameAssembly (`.fasm`) network packet specifications.
+Adds the `text/vnd.frameassembly` MIME type for FrameAssembly (`.frasm`) network packet specifications.
 
 FrameAssembly is a declarative domain-specific language for synthesizing deterministic `.pcap` / `.pcapng` packet capture fixtures across 81 Layer 2–7 protocols.
 
 ### Specifications & Registrations
-- Published Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+- Published Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
 - IANA Vendor Tree Application: https://github.com/SteveWinschel/FrameAssembly/blob/main/contrib/iana/text-vnd.frameassembly.md
 - Reference Compiler: https://github.com/SteveWinschel/FrameAssembly
 
 ### Disambiguation
-The `.fasm` extension is shared with x86 Flat Assembler and FPGA FASM. This entry defines `weight="60"` and `<magic priority="60">` rules matching top-level `host ... ip|mac ... compile` and `flow ... compile` blocks, preventing false positive collisions.
+FrameAssembly v3.0.0 uses `.frasm` (replacing historical `.fasm` which collided with x86 Flat Assembler and FPGA FASM). This entry defines `weight="60"` and `<magic priority="60">` rules matching top-level `host ... ip|mac ... compile` and `flow ... compile` blocks, preventing false positive collisions.
 
 ### Verification
 - Tested with `ninja -C build test`.
@@ -245,7 +245,7 @@ The `.fasm` extension is shared with x86 Flat Assembler and FPGA FASM. This entr
 
 ## 5. Desktop Application File Associations
 
-To associate `.fasm` files with preferred code editors or the `frameassembly` terminal ladder previewer, configure XDG MIME applications:
+To associate `.frasm` files with preferred code editors or the `frameassembly` terminal ladder previewer, configure XDG MIME applications:
 
 ```ini
 # Add to ~/.config/mimeapps.list under [Default Applications]

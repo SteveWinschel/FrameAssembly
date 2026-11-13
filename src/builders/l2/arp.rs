@@ -6,7 +6,7 @@
 //! When invoked between IPv6 endpoints, polymorphically adapts to RFC 4861 ICMPv6 Neighbor
 //! Solicitation (Type 135) or Neighbor Advertisement (Type 136) over `EtherType = 0x86DD`.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b arp [request | reply] [gratuitous] [sendermac <mac>] [senderip <ip>] [targetmac <mac>] [targetip <ip>]`
 
 use crate::ast::*;

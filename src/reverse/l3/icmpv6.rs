@@ -1,4 +1,4 @@
-//! ICMPv6 (RFC 4443 / RFC 4861 / RFC 2710 / RFC 3810) Layer 3 PCAP-to-`.fasm` dispatcher.
+//! ICMPv6 (RFC 4443 / RFC 4861 / RFC 2710 / RFC 3810) Layer 3 PCAP-to-`.frasm` dispatcher.
 //!
 //! This module implements the unified IPv6 Next Header `58` (`ICMPv6`) dispatcher
 //! ([`dissect_icmpv6`]) for FrameAssembly's PCAP and PCAPNG decompiler. It routes ICMPv6 frames by

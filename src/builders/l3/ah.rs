@@ -7,7 +7,7 @@
 //! big-endian `spi` (default `0x2000`), 32-bit big-endian `Sequence Number` (`seq`, default `1`),
 //! and 96-bit (or user-supplied) Integrity Check Value (`icv`), followed by the authenticated payload.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ah [spi <u32>] [seq <u32>] [icv "<hex>"] [nextheader <u8>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;

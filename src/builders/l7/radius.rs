@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Remote Authentication Dial-In User Service (RADIUS) frames over UDP port 1812 (Authentication) and UDP port 1813 (Accounting).
 //! The wire encoder constructs a 20-byte fixed RADIUS header (8-bit Code: 1 Access-Request, 2 Access-Accept, 3 Access-Reject, 4 Accounting-Request, 5 Accounting-Response, 11 Access-Challenge; 8-bit Identifier; 16-bit big-endian Length; 16-byte Request/Response Authenticator) followed by TLV Attribute-Value Pairs (AVPs: Type 1 User-Name, Type 4 NAS-IP-Address, Type 6 Service-Type, Type 8 Framed-IP-Address). When optional fields in [`RadiusSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b radius [accessrequest | accessaccept | accessreject | accesschallenge | accountingrequest | accountingresponse | code <str>] [id <u8>] [user <str>] [nasip <ip>] [servicetype <u32>] [framedip <ip>]`
 
 use crate::ast::*;

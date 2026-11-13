@@ -1,4 +1,4 @@
-//! Hypertext Transfer Protocol (`http`, RFC 9110 / RFC 9112) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Hypertext Transfer Protocol (`http`, RFC 9110 / RFC 9112) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 9110 and RFC 9112 HTTP/1.x
 //! request and response frames carried over TCP ports `80`, `8080`, `8000`, `443`, `8443`, and

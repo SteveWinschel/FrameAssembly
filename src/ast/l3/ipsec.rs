@@ -8,7 +8,7 @@
 //! identifier (`nextheader`, default `59` No Next Header), and a trailing Integrity Check Value (`icv`,
 //! default 12-byte HMAC-SHA1-96 digest). Both `ipsec` and `esp` keywords map to [`IpsecSpec`].
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b [ipsec | esp] [spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [nextheader <u8>] [payload "<str>" | hexpayload "<hex>"]`
 
 use alloc::vec::Vec;

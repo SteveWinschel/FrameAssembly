@@ -5,7 +5,7 @@
 //! Every field in [`SyslogSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b syslog [facility <u8>] [severity <u8>] [pri <u8>] [hostname <str>] [app <str>] [procid <str>] [msgid <str>] [msg <str>] [transport tcp]`
 
 /// RFC 5424 The Syslog Protocol specification.

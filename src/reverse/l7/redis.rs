@@ -1,9 +1,9 @@
-//! Redis Serialization Protocol v2 (RESP2) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Redis Serialization Protocol v2 (RESP2) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `redis` RESP2 command arrays and
 //! typed server replies over TCP ports `6379` and `26379` (Redis Sentinel). It decodes Simple
 //! Strings (`+`), Errors (`-`), Integers (`:`), Bulk Strings (`$`), and multibulk Command Arrays
-//! (`*`, including `ping`, `get`, `set`, and custom commands with `args`) into canonical `.fasm`
+//! (`*`, including `ping`, `get`, `set`, and custom commands with `args`) into canonical `.frasm`
 //! statements.
 
 use alloc::format;

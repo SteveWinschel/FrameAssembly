@@ -1,4 +1,4 @@
-//! Cisco NetFlow v5 (`netflow`) Layer 7 network flow telemetry PCAP-to-`.fasm` decompiler.
+//! Cisco NetFlow v5 (`netflow`) Layer 7 network flow telemetry PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for Cisco `netflow` Version 5 export
 //! datagrams (24-byte header + 48-byte flow record) carried over UDP port `2055` or matching the

@@ -8,7 +8,7 @@
 //! rest field containing `Identifier` (`id`) and `Sequence Number` (`seq`) for Echo messages or a
 //! 32-bit `Gateway Internet Address` (`gateway`) for IPv4 Redirect messages.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b icmp [echorequest | echoreply | destunreach | timeexceeded | redirect] [type <u8>] [code <u8>] [id <u16>] [seq <u16>] [gateway <ipv4>]`
 
 use core::marker::PhantomData;

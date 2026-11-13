@@ -5,7 +5,7 @@
 //! On the wire, POP3 operates across Authorization (`user`, `PASS`, `APOP`, `auth`), Transaction
 //! (`STAT`, `LIST`, `UIDL`, `RETR`, `TOP`, `DELE`, `NOOP`, `RSET`), and Update (`quit`) states
 //! using CRLF-terminated ASCII commands and `+ok` or `-err` status indicators followed by optional
-//! dot-stuffed multi-line bodies. Canonical FrameAssembly `.fasm` syntax expresses POP3 packets via
+//! dot-stuffed multi-line bodies. Canonical FrameAssembly `.frasm` syntax expresses POP3 packets via
 //! `pop3 [cmd <str>] [arg <str>] [ok | err] [response <str>]`.
 
 /// RFC 1939 Post Office Protocol Version 3 (POP3) command or response specification.

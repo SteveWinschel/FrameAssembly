@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Domain Name System (DNS) frames over UDP/TCP port 53.
 //! The wire encoder constructs a 12-byte fixed DNS header (16-bit Transaction ID, 16-bit Flags QR/Opcode/AA/TC/RD/RA/Z/RCODE, 16-bit QDCOUNT, 16-bit ANCOUNT, 16-bit NSCOUNT, 16-bit ARCOUNT) followed by length-prefixed QNAME labels, 16-bit QTYPE, 16-bit QCLASS, and resource record RDATA sections. When optional fields in [`DnsSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>] [transport tcp]`
 
 use crate::ast::*;

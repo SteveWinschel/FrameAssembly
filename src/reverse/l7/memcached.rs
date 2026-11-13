@@ -1,4 +1,4 @@
-//! Memcached Binary (`0x80`) and ASCII Protocol Layer 7 PCAP-to-`.fasm` decompiler.
+//! Memcached Binary (`0x80`) and ASCII Protocol Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `memcached` binary protocol frames
 //! (24-byte `0x80` request header with `opcode`, `flags`, `exptime`, `key`, `value`, `opaque`, and

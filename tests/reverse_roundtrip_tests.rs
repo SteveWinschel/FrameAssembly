@@ -1,11 +1,11 @@
 //! Comprehensive end-to-end round-trip verification suite (`fasm -> pcap -> reverse -> fasm -> pcap`)
-//! for FrameAssembly v2.0.0's 5-stage PCAP and PCAPNG to `.fasm` reverse decompiler across all 81
+//! for FrameAssembly v3.0.0's 5-stage PCAP and PCAPNG to `.frasm` reverse decompiler across all 81
 //! native Layer 2 through Layer 7 protocols.
 //!
 //! This integration test suite verifies that every protocol supported by FrameAssembly compiles to
 //! binary PCAPNG frames, decompiles via [`frameassembly::reverse::reverse_pcap_bytes`],
 //! [`frameassembly::reverse::reverse_pcap_reader`], and [`frameassembly::reverse::reverse_pcap_file`]
-//! into strict-lowercase v2.0.0 `.fasm` code (with zero `//` diagnostic comments, sequential
+//! into strict-lowercase v3.0.0 `.frasm` code (with zero `//` diagnostic comments, sequential
 //! `host1` / `host2` topology discovery, native protocol keywords without stepping down to
 //! `hexpayload`, and inline `compile { ... }` statements), and recompiles to byte-for-byte
 //! identical Ethernet II wire frames with identical relative nanosecond timestamps.
@@ -55,16 +55,16 @@ fn frames_to_pcapng(frames: &[(Vec<u8>, u64)]) -> Vec<u8> {
     buf
 }
 
-/// Compiles `fasm_src`, decompiles the emitted PCAPNG via `reverse_pcap_bytes`, verifies v2.0.0
+/// Compiles `fasm_src`, decompiles the emitted PCAPNG via `reverse_pcap_bytes`, verifies v3.0.0
 /// strict-lowercase formatting (`host1`, `host2`, zero `hexpayload`, presence of `expected_kw`),
-/// recompiles the decompiled `.fasm`, and asserts byte-for-byte frame and timestamp equality.
+/// recompiles the decompiled `.frasm`, and asserts byte-for-byte frame and timestamp equality.
 fn assert_protocol_roundtrip(label: &str, fasm_src: &str, expected_kw: &str) -> String {
     let prog = parse_program(fasm_src)
-        .unwrap_or_else(|e| panic!("[{label}] failed to parse original .fasm: {e:?}"));
+        .unwrap_or_else(|e| panic!("[{label}] failed to parse original .frasm: {e:?}"));
     validate_semantics(&prog, fasm_src)
         .unwrap_or_else(|e| panic!("[{label}] failed original semantic validation: {e:?}"));
     let orig_frames = compile_program(&prog)
-        .unwrap_or_else(|e| panic!("[{label}] failed to compile original .fasm: {e}"));
+        .unwrap_or_else(|e| panic!("[{label}] failed to compile original .frasm: {e}"));
     assert!(
         !orig_frames.is_empty(),
         "[{label}] original program produced zero frames"
@@ -86,22 +86,22 @@ fn assert_protocol_roundtrip(label: &str, fasm_src: &str, expected_kw: &str) -> 
     );
     assert!(
         !rev.fasm.lines().any(|line| line.trim_start().starts_with("//")),
-        "[{label}] reversed .fasm must not contain comments:\n{}",
+        "[{label}] reversed .frasm must not contain comments:\n{}",
         rev.fasm
     );
     assert!(
         rev.fasm.contains("host host1") && rev.fasm.contains("host host2"),
-        "[{label}] reversed .fasm must declare host1 and host2:\n{}",
+        "[{label}] reversed .frasm must declare host1 and host2:\n{}",
         rev.fasm
     );
     assert!(
         !rev.fasm.contains("\nflow ") && !rev.fasm.contains("loop "),
-        "[{label}] reversed .fasm must not emit flow or loop blocks:\n{}",
+        "[{label}] reversed .frasm must not emit flow or loop blocks:\n{}",
         rev.fasm
     );
     assert!(
         rev.fasm.contains("compile {\n"),
-        "[{label}] reversed .fasm must contain inline compile block:\n{}",
+        "[{label}] reversed .frasm must contain inline compile block:\n{}",
         rev.fasm
     );
     if matches!(expected_kw, "vxlan" | "geneve") {
@@ -119,25 +119,25 @@ fn assert_protocol_roundtrip(label: &str, fasm_src: &str, expected_kw: &str) -> 
     }
     assert!(
         rev.fasm.contains(expected_kw),
-        "[{label}] expected keyword '{expected_kw}' in reversed .fasm:\n{}",
+        "[{label}] expected keyword '{expected_kw}' in reversed .frasm:\n{}",
         rev.fasm
     );
 
     let reprog = parse_program(&rev.fasm).unwrap_or_else(|e| {
         panic!(
-            "[{label}] failed to re-parse decompiled .fasm: {e:?}\n--- FASM ---\n{}",
+            "[{label}] failed to re-parse decompiled .frasm: {e:?}\n--- FASM ---\n{}",
             rev.fasm
         )
     });
     validate_semantics(&reprog, &rev.fasm).unwrap_or_else(|e| {
         panic!(
-            "[{label}] failed semantic validation on decompiled .fasm: {e:?}\n--- FASM ---\n{}",
+            "[{label}] failed semantic validation on decompiled .frasm: {e:?}\n--- FASM ---\n{}",
             rev.fasm
         )
     });
     let reframes = compile_program(&reprog).unwrap_or_else(|e| {
         panic!(
-            "[{label}] failed to re-compile decompiled .fasm: {e}\n--- FASM ---\n{}",
+            "[{label}] failed to re-compile decompiled .frasm: {e}\n--- FASM ---\n{}",
             rev.fasm
         )
     });
@@ -733,7 +733,7 @@ fn test_roundtrip_l7_data_storage_messaging_and_ot_protocols() {
 }
 
 /// Verifies shadow-state elision across a multi-packet TCP 3-way handshake + HTTP request/response
-/// + FIN teardown using `host1`/`host2` and v2.0.0 `hosthdr`.
+/// + FIN teardown using `host1`/`host2` and v3.0.0 `hosthdr`.
 #[test]
 fn test_shadow_state_elision_and_wait_quantization_tcp_http_session() {
     let session_src = r#"

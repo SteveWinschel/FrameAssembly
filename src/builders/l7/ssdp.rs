@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Simple Service Discovery Protocol (SSDP / UPnP) frames over UDP port 1900 (IPv4 multicast 239.255.255.250 / IPv6 ff02::c or ff05::c).
 //! The wire encoder constructs a HTTP-over-UDP (HTTPU) multicast datagram beginning with `M-SEARCH * HTTP/1.1\r\n` active discovery request or `NOTIFY * HTTP/1.1\r\n` presence advertisement, carrying `HOST:`, `MAN:` (`"ssdp:discover"`), `MX:` delay seconds, `ST:` Search Target, `NT:` Notification Type, `NTS:` (`ssdp:alive`, `ssdp:byebye`, `ssdp:update`), `USN:` Unique Service Name, and `LOCATION:` XML device descriptor URL. When optional fields in [`SsdpSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ssdp [msearch | notify] [hosthdr <str>] [man <str>] [mx <u8>] [st <str>] [nt <str>] [nts <str>] [usn <str>] [location <str>]`
 
 use crate::ast::*;

@@ -1,4 +1,4 @@
-//! Terminal Access Controller Access-Control System Plus (`tacacs`, RFC 8907) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Terminal Access Controller Access-Control System Plus (`tacacs`, RFC 8907) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 8907 `tacacs` (`TACACS+`) AAA
 //! packets carried over TCP port `49`. It validates the 12-byte TACACS+ common header (`0xC0`

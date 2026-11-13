@@ -1,7 +1,7 @@
 //! sFlow v5 Layer 7 switched network packet sampling protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for sFlow v5 (`sflow`) datagrams in
-//! FrameAssembly `.fasm` specifications. It recognizes the `sflow` protocol keyword, exporter
+//! FrameAssembly `.frasm` specifications. It recognizes the `sflow` protocol keyword, exporter
 //! agent IP addresses (`agentip`), sub-agent identifiers (`subagentid`), switch uptime values
 //! (`uptime`), sample counts (`samples`), and datagram sequence numbers (`seq`).
 

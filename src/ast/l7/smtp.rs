@@ -5,7 +5,7 @@
 //! and 587 (MSA message submission, RFC 6409). On the wire, SMTP exchanges CRLF-terminated ASCII
 //! command lines (`ehlo`, `helo`, `MAIL from:<...>`, `RCPT to:<...>`, `data`, `STARTTLS`, `auth`,
 //! `quit`) and 3-digit status replies (`220`, `250`, `354`, `221`, `550`) followed by optional
-//! RFC 5322 message bodies. Canonical FrameAssembly `.fasm` syntax models SMTP frames using
+//! RFC 5322 message bodies. Canonical FrameAssembly `.frasm` syntax models SMTP frames using
 //! `smtp [ehlo [domain]] [helo [domain]] [mailfrom <addr>] [rcptto <addr>] [data] [quit] [cmd <verb>] [param <arg>] [code <u16>] [reply <text>] [body <data>]`.
 
 /// RFC 5321 Simple Mail Transfer Protocol (SMTP) command or reply specification.

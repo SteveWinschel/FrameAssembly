@@ -1,4 +1,4 @@
-//! Automated E2E verification test suite for FrameAssembly v2.0.0 multi-platform packaging,
+//! Automated E2E verification test suite for FrameAssembly v3.0.0 multi-platform packaging,
 //! shell completions, registry authority assets, installer harmonization, and release workflows.
 //!
 //! This test harness verifies compliance across four quality tiers:
@@ -7,13 +7,13 @@
 //!   completions (`bash`, `zsh`, `fish`, `powershell`), GitHub Issue forms, and verified removal
 //!   of discontinued third-party registry channels.
 //! - **Tier 2 (Syntax & Linter Integration)**: Shell syntax linting (`bash -n`) for build scripts,
-//!   completion scripts, and `install.sh` (`v2.0.0`, `$HOME/.local/bin`, musl targets).
+//!   completion scripts, and `install.sh` (`v3.0.0`, `$HOME/.local/bin`, musl targets).
 //! - **Tier 3 (Registry & Disambiguation Invariants)**: GitHub Linguist definitions and heuristics,
 //!   Freedesktop `shared-mime-info` XML magic (`host`/`flow`/`compile`, `ip` + MAC-only `mac`),
 //!   libmagic rules, IANA RFC 6838 vendor tree registration, and 3-way format disambiguation.
 //! - **Tier 4 (Maintainer Workflows & Store Readiness)**: Master packaging maintainer guide,
-//!   in-process WASM VS Code Packet Studio (`frameassembly-vscode-2.0.0.vsix`), `frameassembly-wasm`
-//!   v2.0.0 metadata, and `< 50,000`-byte test harness hygiene.
+//!   in-process WASM VS Code Packet Studio (`frameassembly-vscode-3.0.0.vsix`), `frameassembly-wasm`
+//!   v3.0.0 metadata, and `< 50,000`-byte test harness hygiene.
 
 use std::fs;
 use std::path::Path;
@@ -62,12 +62,12 @@ fn test_tier1_discontinued_registry_channels_absent() {
     let legacy_win_dir = concat!("contrib/packaging/win", "get");
     assert!(
         !Path::new(legacy_arch_dir).exists(),
-        "Discontinued packaging directory '{}' must not exist in v2.0.0",
+        "Discontinued packaging directory '{}' must not exist in v3.0.0",
         legacy_arch_dir
     );
     assert!(
         !Path::new(legacy_win_dir).exists(),
-        "Discontinued packaging directory '{}' must not exist in v2.0.0",
+        "Discontinued packaging directory '{}' must not exist in v3.0.0",
         legacy_win_dir
     );
 
@@ -89,7 +89,7 @@ fn test_tier1_discontinued_registry_channels_absent() {
     }
 }
 
-/// Verifies that the APT Debian package control file exists and contains all mandatory v2.0.0 fields.
+/// Verifies that the APT Debian package control file exists and contains all mandatory v3.0.0 fields.
 #[test]
 fn test_tier1_apt_control_structure() {
     let content = fs::read_to_string("contrib/packaging/apt/debian/control")
@@ -100,8 +100,8 @@ fn test_tier1_apt_control_structure() {
         "APT control must declare 'Package: frameassembly'"
     );
     assert!(
-        content.contains("Version: 2.0.0"),
-        "APT control must declare Version: 2.0.0*"
+        content.contains("Version: 3.0.0"),
+        "APT control must declare Version: 3.0.0*"
     );
     assert!(
         content.contains("Section: net") && content.contains("Priority: optional"),
@@ -112,7 +112,7 @@ fn test_tier1_apt_control_structure() {
         "APT control must declare Architecture and Maintainer Steve Winschel"
     );
     assert!(
-        content.contains("Description: Compile .fasm") && !content.contains("DSL"),
+        content.contains("Description: Compile .frasm") && !content.contains("DSL"),
         "APT control must use natural description without compiler 'DSL' jargon"
     );
     assert!(
@@ -140,7 +140,7 @@ fn test_tier1_apt_copyright_structure() {
     );
 }
 
-/// Verifies that the Homebrew formula declares version 2.0.0 and multi-architecture macOS/Linux URLs.
+/// Verifies that the Homebrew formula declares version 3.0.0 and multi-architecture macOS/Linux URLs.
 #[test]
 fn test_tier1_homebrew_formula_structure() {
     let content = fs::read_to_string("contrib/packaging/homebrew/Formula/frameassembly.rb")
@@ -148,8 +148,8 @@ fn test_tier1_homebrew_formula_structure() {
 
     assert!(content.contains("class Frameassembly < Formula"));
     assert!(
-        content.contains("version \"2.0.0\""),
-        "Homebrew formula must declare version \"2.0.0\""
+        content.contains("version \"3.0.0\""),
+        "Homebrew formula must declare version \"3.0.0\""
     );
     assert!(content.contains("homepage \"https://github.com/SteveWinschel/FrameAssembly\""));
     assert!(content.contains("license \"MIT\""));
@@ -158,15 +158,15 @@ fn test_tier1_homebrew_formula_structure() {
     assert!(content.contains("test do"));
 }
 
-/// Verifies that the Scoop JSON manifest declares version 2.0.0 and multi-arch zip downloads.
+/// Verifies that the Scoop JSON manifest declares version 3.0.0 and multi-arch zip downloads.
 #[test]
 fn test_tier1_scoop_manifest_structure() {
     let content = fs::read_to_string("contrib/packaging/scoop/frameassembly.json")
         .expect("Missing Scoop manifest");
 
     assert!(
-        content.contains("\"version\": \"2.0.0\""),
-        "Scoop manifest must declare version 2.0.0"
+        content.contains("\"version\": \"3.0.0\""),
+        "Scoop manifest must declare version 3.0.0"
     );
     assert!(content.contains("\"license\": \"MIT\""));
     assert!(content.contains("\"bin\": \"frameassembly.exe\""));
@@ -203,7 +203,7 @@ fn test_tier1_apt_mime_magic_and_completions_bundling() {
 }
 
 /// Verifies context-aware shell completions (`contrib/completions/`) and structured GitHub Issue
-/// forms (`.github/ISSUE_TEMPLATE/`) for FrameAssembly v2.0.0.
+/// forms (`.github/ISSUE_TEMPLATE/`) for FrameAssembly v3.0.0.
 #[test]
 fn test_tier1_shell_completions_and_issue_templates() {
     for file in [
@@ -216,10 +216,10 @@ fn test_tier1_shell_completions_and_issue_templates() {
         let p = Path::new(file);
         assert!(p.exists(), "Missing completion file: {}", file);
         let text = fs::read_to_string(p).expect("Failed to read completion file");
-        for token in ["show", "reverse", "version", "help", ".fasm", ".pcap"] {
+        for token in ["show", "reverse", "version", "help", ".frasm", ".pcap"] {
             assert!(
                 text.contains(token),
-                "{} must reference '{}' for v2.0.0 Tab completion",
+                "{} must reference '{}' for v3.0.0 Tab completion",
                 file,
                 token
             );
@@ -237,7 +237,7 @@ fn test_tier1_shell_completions_and_issue_templates() {
 }
 
 /// Verifies that `contrib/packaging/update-checksums.sh` exists, is executable, supports `--help`,
-/// and accurately updates Homebrew and Scoop v2.0.0 manifests using `--sums-file`.
+/// and accurately updates Homebrew and Scoop v3.0.0 manifests using `--sums-file`.
 #[test]
 fn test_tier1_update_checksums_script() {
     let script_path = Path::new("contrib/packaging/update-checksums.sh");
@@ -305,7 +305,7 @@ fn test_tier1_update_checksums_script() {
         "5".repeat(64),
         "6".repeat(64),
     );
-    let target_ver = "2.0.0";
+    let target_ver = "3.0.0";
     let synthetic_sums = temp_root.join("SHA256SUMS.txt");
     let test_sums_content = format!(
         "{h1}  frameassembly-v{target_ver}-x86_64-unknown-linux-musl.tar.gz\n\
@@ -369,8 +369,8 @@ fn test_tier2_shell_syntax_validation() {
     }
 }
 
-/// Verifies that `install.sh` targets `v2.0.0`, `$HOME/.local/bin` fallback, musl binaries,
-/// shell completions, and the default root CLI command (`frameassembly demo.fasm output.pcap`).
+/// Verifies that `install.sh` targets `v3.0.0`, `$HOME/.local/bin` fallback, musl binaries,
+/// shell completions, and the default root CLI command (`frameassembly demo.frasm output.pcap`).
 #[test]
 fn test_tier2_install_sh_harmonization() {
     let install_sh = Path::new("install.sh");
@@ -380,8 +380,8 @@ fn test_tier2_install_sh_harmonization() {
     assert!(content.contains("detect_prebuilt_target"));
     assert!(content.contains("try_install_prebuilt_binary"));
     assert!(
-        content.contains("VSIX_VERSION=\"2.0.0\"") && content.contains("RELEASE_VERSION=\"2.0.0\""),
-        "install.sh must declare VSIX_VERSION=\"2.0.0\" and RELEASE_VERSION=\"2.0.0\""
+        content.contains("VSIX_VERSION=\"3.0.0\"") && content.contains("RELEASE_VERSION=\"3.0.0\""),
+        "install.sh must declare VSIX_VERSION=\"3.0.0\" and RELEASE_VERSION=\"3.0.0\""
     );
     assert!(
         content.contains(".local/bin"),
@@ -393,8 +393,13 @@ fn test_tier2_install_sh_harmonization() {
         "install.sh must map both x86_64 and aarch64 Linux targets to musl"
     );
     assert!(
-        content.contains("frameassembly demo.fasm output.pcap"),
-        "install.sh quickstart must showcase 'frameassembly demo.fasm output.pcap'"
+        content.contains("frameassembly show quickstart.frasm")
+            && content.contains("frameassembly quickstart.frasm quickstart.pcap"),
+        "install.sh quickstart must write quickstart.frasm and run 'frameassembly quickstart.frasm quickstart.pcap'"
+    );
+    assert!(
+        !content.contains("demo.frasm") && !content.contains("demo.fasm"),
+        "install.sh quickstart must be self-contained and not reference a non-existent demo file"
     );
     let legacy_cli = concat!("frameassembly", " ", "compile");
     assert!(
@@ -407,7 +412,7 @@ fn test_tier2_install_sh_harmonization() {
 // TIER 3: REGISTRY & DISAMBIGUATION INVARIANTS TESTS
 // ==============================================================================
 
-/// Verifies GitHub Linguist registration assets, v2.0.0 strict-lowercase heuristics, samples,
+/// Verifies GitHub Linguist registration assets, v3.0.0 strict-lowercase heuristics, samples,
 /// and `.gitattributes`.
 #[test]
 fn test_tier3_linguist_registry_assets() {
@@ -415,7 +420,7 @@ fn test_tier3_linguist_registry_assets() {
         fs::read_to_string("contrib/linguist/languages.yml").expect("Failed to read languages.yml");
     assert!(lang_content.contains("FrameAssembly:"));
     assert!(lang_content.contains("type: programming"));
-    assert!(lang_content.contains("- \".fasm\"") || lang_content.contains("-\".fasm\""));
+    assert!(lang_content.contains("- \".frasm\"") || lang_content.contains("-\".frasm\""));
     assert!(lang_content.contains("tm_scope: source.frameassembly"));
     assert!(!lang_content.contains("language_id:"));
 
@@ -425,12 +430,12 @@ fn test_tier3_linguist_registry_assets() {
     assert!(heur_content.contains("language: Assembly"));
     assert!(
         heur_content.contains("host") && heur_content.contains("flow") && heur_content.contains("compile"),
-        "heuristics.yml must match v2.0.0 lowercase FrameAssembly anchors host, flow, compile"
+        "heuristics.yml must match v3.0.0 lowercase FrameAssembly anchors host, flow, compile"
     );
 
     for sample_path in [
-        "contrib/linguist/samples/enterprise_snmpv3_and_tls.fasm",
-        "contrib/linguist/samples/industrial_ot_modbus_dnp3.fasm",
+        "contrib/linguist/samples/enterprise_snmpv3_and_tls.frasm",
+        "contrib/linguist/samples/industrial_ot_modbus_dnp3.frasm",
     ] {
         let code = fs::read_to_string(sample_path).expect("Failed to read Linguist sample");
         let prog = frameassembly::parser::parse_program(&code)
@@ -443,10 +448,10 @@ fn test_tier3_linguist_registry_assets() {
     }
 
     let gitattrs = fs::read_to_string(".gitattributes").expect("Failed to read .gitattributes");
-    assert!(gitattrs.contains("*.fasm linguist-language=FrameAssembly"));
+    assert!(gitattrs.contains("*.frasm linguist-language=FrameAssembly"));
 }
 
-/// Verifies that the Freedesktop shared-mime-info XML definition matches v2.0.0 strict-lowercase
+/// Verifies that the Freedesktop shared-mime-info XML definition matches v3.0.0 strict-lowercase
 /// `host`, `flow`, `compile`, `ip`, and MAC-only `mac` clauses.
 #[test]
 fn test_tier3_freedesktop_mime_xml_structure() {
@@ -456,7 +461,7 @@ fn test_tier3_freedesktop_mime_xml_structure() {
     assert!(content.contains("<mime-info xmlns=\"http://www.freedesktop.org/standards/shared-mime-info\">"));
     assert!(content.contains("<mime-type type=\"text/vnd.frameassembly\">"));
     assert!(content.contains("<sub-class-of type=\"text/plain\"/>"));
-    assert!(content.contains("<glob pattern=\"*.fasm\" weight=\"60\"/>"));
+    assert!(content.contains("<glob pattern=\"*.frasm\" weight=\"60\"/>"));
     assert!(content.contains("<magic priority=\"60\">"));
     assert!(
         content.contains("value=\"host ") && content.contains("value=\"compile\"") && content.contains("value=\"mac "),
@@ -477,28 +482,28 @@ fn test_tier3_iana_and_wikidata_assets() {
     assert!(content.contains("Interoperability considerations:"));
     assert!(content.contains("`P31`") && content.contains("`P1195`") && content.contains("`P1163`"));
     assert!(content.contains("`P973`") && content.contains("`P856`") && content.contains("`P1324`"));
-    assert!(content.contains("LAST|P1195|\"fasm\""));
+    assert!(content.contains("LAST|P1195|\"frasm\""));
     assert!(content.contains("LAST|P1163|\"text/vnd.frameassembly\""));
     assert!(content.contains("LAST|P856|\"https://frameassembly.ai.studio/\""));
     assert!(content.contains("file-extensions.org") || content.contains("File-Extensions.org"));
     assert!(content.contains("Wikidata") && (content.contains("PRONOM") || content.contains("National Archives")));
 }
 
-/// Verifies that `docs/fasm-specification.md` documents authoritative 3-way format disambiguation.
+/// Verifies that `docs/12_frasm_specification.md` documents authoritative 3-way format disambiguation.
 #[test]
 fn test_tier3_format_disambiguation_integrity() {
     let content =
-        fs::read_to_string("docs/fasm-specification.md").expect("Failed to read fasm-specification.md");
+        fs::read_to_string("docs/12_frasm_specification.md").expect("Failed to read 12_frasm_specification.md");
     assert!(
-        content.contains("FrameAssembly (`.fasm`)")
-            || content.contains("FrameAssembly (`.fasm`, `text/vnd.frameassembly`)")
+        content.contains("FrameAssembly (`.frasm`)")
+            || content.contains("FrameAssembly (`.frasm`, `text/vnd.frameassembly`)")
     );
     assert!(content.contains("Flat Assembler"));
     assert!(content.contains("FPGA") || content.contains("SymbiFlow"));
     assert!(content.contains("//") && content.contains(";") && content.contains("#"));
 }
 
-/// Verifies that `contrib/magic/frameassembly.magic` defines valid v2.0.0 strict-lowercase libmagic
+/// Verifies that `contrib/magic/frameassembly.magic` defines valid v3.0.0 strict-lowercase libmagic
 /// patterns (`host`, `flow`, `compile`, `ip`, `mac`) and upstream submission instructions.
 #[test]
 fn test_tier3_libmagic_rules_and_upstream_guide() {
@@ -515,7 +520,7 @@ fn test_tier3_libmagic_rules_and_upstream_guide() {
     );
     assert!(content.contains("search/2048"));
     assert!(content.contains("text/vnd.frameassembly"));
-    assert!(content.contains("!:ext") && content.contains("fasm"));
+    assert!(content.contains("!:ext") && content.contains("frasm"));
     assert!(!content.contains('\0'));
 }
 
@@ -567,8 +572,8 @@ fn test_tier4_test_suite_hygiene() {
     assert!(docstring_words >= 50, "Inner //! module docstring must have >= 50 words");
 }
 
-/// Verifies that `frameassembly-vscode` v2.0.0 is configured for the VS Code Marketplace with
-/// 256x256 icon, 30 keywords, WASM Packet Studio commands, and `frameassembly-vscode-2.0.0.vsix`.
+/// Verifies that `frameassembly-vscode` v3.0.0 is configured for the VS Code Marketplace with
+/// 256x256 icon, 30 keywords, WASM Packet Studio commands, and `frameassembly-vscode-3.0.0.vsix`.
 #[test]
 fn test_tier4_vscode_extension_store_readiness() {
     let base_dir = Path::new("frameassembly-vscode");
@@ -586,7 +591,7 @@ fn test_tier4_vscode_extension_store_readiness() {
     assert!(pkg_json.contains("text/vnd.frameassembly"));
     assert!(pkg_json.contains("\"firstLine\":"));
     assert!(pkg_json.contains("\"publisher\": \"SteveWinschel\""));
-    assert!(pkg_json.contains("\"version\": \"2.0.0\""));
+    assert!(pkg_json.contains("\"version\": \"3.0.0\""));
     assert!(pkg_json.contains("\"homepage\": \"https://frameassembly.ai.studio/\""));
     assert!(pkg_json.contains("\"main\": \"./extension.js\""));
     assert!(pkg_json.contains("frameassembly.compileToPcap"));
@@ -598,11 +603,11 @@ fn test_tier4_vscode_extension_store_readiness() {
     assert!(tml.contains("\"scopeName\": \"source.frameassembly\""));
 
     let readme = fs::read_to_string(base_dir.join("README.md")).expect("Failed to read README.md");
-    assert!(readme.contains("Example `.fasm` Workflows") && !readme.contains("Problem -> Solution"));
+    assert!(readme.contains("Example `.frasm` Workflows") && !readme.contains("Problem -> Solution"));
     assert!(readme.contains("source.frameassembly"));
 
-    let vsix_path = base_dir.join("frameassembly-vscode-2.0.0.vsix");
-    assert!(vsix_path.exists(), "frameassembly-vscode-2.0.0.vsix must exist");
+    let vsix_path = base_dir.join("frameassembly-vscode-3.0.0.vsix");
+    assert!(vsix_path.exists(), "frameassembly-vscode-3.0.0.vsix must exist");
     if cfg!(unix) {
         let unzip_output = Command::new("unzip")
             .arg("-l")
@@ -619,7 +624,7 @@ fn test_tier4_vscode_extension_store_readiness() {
         ] {
             assert!(
                 out_str.contains(entry),
-                "frameassembly-vscode-2.0.0.vsix must bundle {}",
+                "frameassembly-vscode-3.0.0.vsix must bundle {}",
                 entry
             );
         }
@@ -668,25 +673,25 @@ fn test_tier1_release_workflow_full_matrix_and_secrets() {
     assert!(content.contains("frameassembly_${ARCH}.deb"));
 }
 
-/// Verifies `frameassembly-wasm` v2.0.0 manifest, dependencies, and README SEO formatting.
+/// Verifies `frameassembly-wasm` v3.0.0 manifest, dependencies, and README SEO formatting.
 #[test]
 fn test_tier1_wasm_packaging_and_readme_seo() {
     let wasm_manifest =
         fs::read_to_string("frameassembly-wasm/Cargo.toml").expect("Read frameassembly-wasm/Cargo.toml");
-    assert!(wasm_manifest.contains("version = \"2.0.0\""));
-    assert!(wasm_manifest.contains("frameassembly = { path = \"..\", version = \"2.0.0\" }"));
+    assert!(wasm_manifest.contains("version = \"3.0.0\""));
+    assert!(wasm_manifest.contains("frameassembly = { path = \"..\", version = \"3.0.0\" }"));
     assert!(wasm_manifest.contains("homepage = \"https://frameassembly.ai.studio/\""));
 
     let wasm_pkg_json = fs::read_to_string("frameassembly-wasm/package.json")
         .expect("Read frameassembly-wasm/package.json");
-    assert!(wasm_pkg_json.contains("\"version\": \"2.0.0\""));
+    assert!(wasm_pkg_json.contains("\"version\": \"3.0.0\""));
     assert!(wasm_pkg_json.contains("\"homepage\": \"https://frameassembly.ai.studio/\""));
 
     let wasm_readme =
         fs::read_to_string("frameassembly-wasm/README.md").expect("Read frameassembly-wasm/README.md");
-    assert!(wasm_readme.contains("frameassembly-wasm` v2.0.0"));
+    assert!(wasm_readme.contains("frameassembly-wasm` v3.0.0"));
     assert!(
-        wasm_readme.contains("Client-Side `.fasm` to `.pcapng` Compilation")
+        wasm_readme.contains("Client-Side `.frasm` to `.pcapng` Compilation")
             && !wasm_readme.contains("Problem -> Solution")
     );
     assert!(wasm_readme.contains("compile_fasm_to_pcapng"));
@@ -697,7 +702,7 @@ fn test_tier1_wasm_packaging_and_readme_seo() {
     for doc_path in [
         "README.md",
         "src/lib.rs",
-        "docs/getting_started.md",
+        "docs/01_getting_started.md",
         "frameassembly-vscode/README.md",
         "frameassembly-wasm/README.md",
     ] {
@@ -706,4 +711,66 @@ fn test_tier1_wasm_packaging_and_readme_seo() {
             assert!(!doc.contains(banned), "{} must not contain '{}'", doc_path, banned);
         }
     }
+}
+
+/// Verifies the v3.0.0 release surface: the Windows `install.ps1` bootstrapper, clean per-OS
+/// archive names in `release.yml`, the single `SHA256SUMS.txt` manifest, the community health
+/// files, and the Linux/macOS `update-checksums.sh` syntax.
+#[test]
+fn test_tier2_v3_release_assets_installer_and_community_files() {
+    let install_ps1 = fs::read_to_string("install.ps1").expect("Missing install.ps1");
+    for needle in [
+        "LOCALAPPDATA",
+        "SHA256SUMS.txt",
+        "frameassembly-windows-x64.zip",
+        "frameassembly-windows-arm64.zip",
+        "-DryRun",
+        "-NoVsCode",
+        "-NoCompletions",
+        ".frasm",
+    ] {
+        assert!(
+            install_ps1.contains(needle),
+            "install.ps1 must reference '{}'",
+            needle
+        );
+    }
+    assert!(!install_ps1.contains("demo.fasm"), "install.ps1 must not reference demo.fasm");
+
+    let release_yml =
+        fs::read_to_string(".github/workflows/release.yml").expect("Missing release.yml");
+    for asset in [
+        "frameassembly-windows-x64",
+        "frameassembly-windows-arm64",
+        "frameassembly-macos-arm64",
+        "frameassembly-macos-x64",
+        "frameassembly-linux-x64",
+        "frameassembly-linux-arm64",
+        "frameassembly_${ARCH}.deb",
+        "frameassembly-vscode.vsix",
+        "SHA256SUMS.txt",
+        "quickstart.frasm",
+        "Download by Operating System",
+    ] {
+        assert!(
+            release_yml.contains(asset),
+            "release.yml must publish or document '{}'",
+            asset
+        );
+    }
+    assert!(
+        !release_yml.contains(".fasm"),
+        "release.yml must not reference legacy .fasm files"
+    );
+
+    for community in [".github/SECURITY.md", ".github/CONTRIBUTING.md"] {
+        let text = fs::read_to_string(community).unwrap_or_else(|_| panic!("Missing {}", community));
+        assert!(
+            text.split_whitespace().count() >= 50,
+            "{} must contain at least 50 words",
+            community
+        );
+    }
+
+    verify_bash_syntax(Path::new("contrib/packaging/update-checksums.sh"));
 }

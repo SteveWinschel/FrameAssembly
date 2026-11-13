@@ -6,7 +6,7 @@
 //! `outer_vid` (S-VID) ahead of an inner 4-byte Customer VLAN tag (C-Tag, TPID `0x8100`)
 //! containing the 12-bit `inner_vid` (C-VID), followed by the encapsulated payload EtherType.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b qinq <outer_vid> [innervlan <inner_vid>] [<upper_layer_protocol>...]`
 
 /// IEEE 802.1ad QinQ dual VLAN (S-VLAN + C-VLAN) specification.

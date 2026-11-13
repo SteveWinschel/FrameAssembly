@@ -1,6 +1,6 @@
-// FrameAssembly (.fasm) Sample 2: Industrial OT / SCADA Conduit Verification (Modbus, DNP3, S7comm, OPC UA)
+// FrameAssembly (.frasm) Sample 2: Industrial OT / SCADA Conduit Verification (Modbus, DNP3, S7comm, OPC UA)
 // Media Type: text/vnd.frameassembly
-// Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+// Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
 
 host scada_hmi      { ip 192.168.110.10 mac 00:1b:21:b0:00:10 }
 host substation_plc { ip 192.168.110.50 mac 00:0e:8c:b0:00:50 }

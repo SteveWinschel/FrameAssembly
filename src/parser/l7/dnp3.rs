@@ -1,7 +1,7 @@
 //! Distributed Network Protocol 3 (IEEE 1815 DNP3) Layer 7 SCADA protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for IEEE 1815 `dnp3` data link,
-//! transport, and application layer frames in FrameAssembly `.fasm` specifications. It recognizes
+//! transport, and application layer frames in FrameAssembly `.frasm` specifications. It recognizes
 //! the `dnp3` protocol keyword, explicit `func` strings, shorthand application function keywords
 //! (`confirm`, `read`, `write`, `select`, `operate`, `directoperate`, `unsolicitedresponse`),
 //! master/outstation addresses (`src`, `dst`), object `group` and `variation` numbers, and data

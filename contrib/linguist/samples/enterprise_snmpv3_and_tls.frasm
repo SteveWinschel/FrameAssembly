@@ -1,6 +1,6 @@
-// FrameAssembly (.fasm) Sample 1: Enterprise Dual-Stack TLS 1.3, HTTP/1.1 & Encrypted SNMPv3 USM
+// FrameAssembly (.frasm) Sample 1: Enterprise Dual-Stack TLS 1.3, HTTP/1.1 & Encrypted SNMPv3 USM
 // Media Type: text/vnd.frameassembly
-// Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+// Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
 
 host branch_client_v4 { ip 10.40.10.15 mac 00:1a:2b:40:10:0f }
 host app_gateway_v4   { ip 10.40.10.80 mac 00:1a:2b:40:10:50 }

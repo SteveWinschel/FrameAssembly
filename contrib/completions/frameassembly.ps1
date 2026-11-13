@@ -5,8 +5,8 @@ Register-ArgumentCompleter -Native -CommandName frameassembly -ScriptBlock {
     param($wordToComplete, $commandAst, $cursorPosition)
 
     $subcommands = @(
-        @{ Name = 'show';    Description = 'Validate a .fasm file and print its packet ladder table' }
-        @{ Name = 'reverse'; Description = 'Reverse a .pcap or .pcapng capture into .fasm code' }
+        @{ Name = 'show';    Description = 'Validate a .frasm file and print its packet ladder table' }
+        @{ Name = 'reverse'; Description = 'Reverse a .pcap or .pcapng capture into .frasm code' }
         @{ Name = 'version'; Description = 'Print the FrameAssembly version' }
         @{ Name = 'help';    Description = 'Print help for FrameAssembly or a subcommand' }
     )
@@ -60,18 +60,18 @@ Register-ArgumentCompleter -Native -CommandName frameassembly -ScriptBlock {
                 )
             }
         }
-        Complete-FilteredPaths $wordToComplete @('.fasm')
+        Complete-FilteredPaths $wordToComplete @('.frasm')
         return
     }
 
     $sub = $elements[1].Extent.Text
     switch ($sub) {
         'show' {
-            if ($argIndex -eq 2) { Complete-FilteredPaths $wordToComplete @('.fasm') }
+            if ($argIndex -eq 2) { Complete-FilteredPaths $wordToComplete @('.frasm') }
         }
         'reverse' {
             if ($argIndex -eq 2) { Complete-FilteredPaths $wordToComplete @('.pcap', '.pcapng') }
-            elseif ($argIndex -eq 3) { Complete-FilteredPaths $wordToComplete @('.fasm') }
+            elseif ($argIndex -eq 3) { Complete-FilteredPaths $wordToComplete @('.frasm') }
         }
         'help' {
             if ($argIndex -eq 2) {

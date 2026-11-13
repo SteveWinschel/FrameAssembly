@@ -7,7 +7,7 @@
 //! 16-bit one's complement pseudo-header Checksum, and 16-bit `urgent` pointer, followed by
 //! 32-bit aligned TLV options (`mss`, `wscale`, `sackperm`, `tsval`, `tsecr`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b tcp [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [srcport <u16>] [dstport <u16>] [seq <u32>] [acknum <u32>] [win <u16>] [mss <u16>] [wscale <u8>] [sackperm] [tsval <u32>] [tsecr <u32>]`
 
 use crate::ast::{TcpFlag, TcpOptions};

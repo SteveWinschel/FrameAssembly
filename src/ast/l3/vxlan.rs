@@ -8,7 +8,7 @@
 //! `I` flag indicating a valid VNI), 24 bits of `Reserved` zeros, a 24-bit VXLAN Network Identifier
 //! (`vni`, `0..=16_777_215`, default `4096`), and a trailing 8-bit `Reserved` zero field.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b vxlan [vni <u24>] [srcport <u16>] [payload "<str>" | hexpayload "<hex>"]`
 
 use core::marker::PhantomData;

@@ -1,7 +1,7 @@
 //! EtherNet/IP (Common Industrial Protocol over TCP/UDP) Layer 7 field parser.
 //!
 //! This module implements the `winnow` parser combinator for ODVA `ethernetip` encapsulation and
-//! Common Industrial Protocol (`CIP`) frames in FrameAssembly `.fasm` specifications. It
+//! Common Industrial Protocol (`CIP`) frames in FrameAssembly `.frasm` specifications. It
 //! recognizes the `ethernetip` protocol keyword, explicit `cmd` strings, shorthand encapsulation
 //! commands (`nop`, `listidentity`, `listinterfaces`, `listservices`, `registersession`,
 //! `unregistersession`, `sendrrdata`, `sendunitdata`), `status` codes, `sessionhandle` IDs,

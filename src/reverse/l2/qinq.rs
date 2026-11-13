@@ -4,7 +4,7 @@
 //! or `0x9100` with inner `0x8100`) frame decompilation ([`dissect_qinq`]) for FrameAssembly's
 //! PCAP and PCAPNG reverse decompiler. It formats the outer service VLAN identifier (`qinq`),
 //! optional inner customer VLAN identifier (`innervlan`), Priority Code Point (`pcp`), and Drop
-//! Eligible Indicator (`dei`) into canonical `.fasm` tokens.
+//! Eligible Indicator (`dei`) into canonical `.frasm` tokens.
 
 use alloc::format;
 use alloc::vec::Vec;

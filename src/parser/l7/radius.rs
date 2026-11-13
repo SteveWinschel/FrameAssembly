@@ -1,7 +1,7 @@
 //! Remote Authentication Dial-In User Service (RADIUS) Layer 7 field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 2865 and RFC 2866 `radius`
-//! authentication and accounting packets in FrameAssembly `.fasm` specifications. It recognizes
+//! authentication and accounting packets in FrameAssembly `.frasm` specifications. It recognizes
 //! the `radius` protocol keyword, packet code shorthands (`accessrequest`, `accessaccept`,
 //! `accessreject`, `accesschallenge`, `accountingrequest`, `accountingresponse`), explicit
 //! `code` strings, packet identifiers (`id`), usernames (`user`), NAS IP addresses (`nasip`),

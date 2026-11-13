@@ -1,4 +1,4 @@
-//! Internet Message Access Protocol v4rev1 (IMAP4, RFC 3501 / RFC 9051) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Internet Message Access Protocol v4rev1 (IMAP4, RFC 3501 / RFC 9051) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `imap` client command and server
 //! response frames over TCP ports `143` and `993`. It parses CRLF-delimited tagged (`A01` and

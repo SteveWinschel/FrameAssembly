@@ -1,4 +1,4 @@
-//! Link Aggregation Control Protocol (LACP, IEEE 802.3ad / 802.1AX) Layer 2 PCAP-to-`.fasm` decompiler.
+//! Link Aggregation Control Protocol (LACP, IEEE 802.3ad / 802.1AX) Layer 2 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IEEE 802.3ad / 802.1AX
 //! Link Aggregation Control Protocol (`lacp`, Slow Protocols EtherType `0x8809`, subtype `0x01`)

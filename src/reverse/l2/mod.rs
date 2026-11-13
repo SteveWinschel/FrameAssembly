@@ -1,7 +1,7 @@
-//! Layer 2 data-link framing and protocol PCAP-to-`.fasm` decompilers.
+//! Layer 2 data-link framing and protocol PCAP-to-`.frasm` decompilers.
 //!
 //! This module implements Stage 2 entry point ([`dissect_packet`]) and all eight Layer 2 protocol
-//! decompilers for FrameAssembly's PCAP and PCAPNG to `.fasm` reverse decompiler:
+//! decompilers for FrameAssembly's PCAP and PCAPNG to `.frasm` reverse decompiler:
 //! - Outer tag & label stack peelers and standalone dissectors: [`vlan`] (IEEE 802.1Q `0x8100`),
 //!   [`qinq`] (IEEE 802.1ad `0x88A8` / `0x9100`), and [`mpls`] (RFC 3032 `0x8847` / `0x8848`).
 //! - Native Layer 2 control and discovery protocols: [`arp`] (RFC 826 / 5227 `0x0806`), [`lldp`]

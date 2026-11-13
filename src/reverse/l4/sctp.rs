@@ -1,4 +1,4 @@
-//! Stream Control Transmission Protocol (SCTP, RFC 9260) Layer 4 PCAP-to-`.fasm` decompiler.
+//! Stream Control Transmission Protocol (SCTP, RFC 9260) Layer 4 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 9260 Stream Control
 //! Transmission Protocol (`sctp`, IP protocol `132`) packets in FrameAssembly. It decodes the

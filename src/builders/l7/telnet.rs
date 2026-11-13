@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Telnet Network Virtual Terminal (NVT) Protocol frames over TCP port 23.
 //! The wire encoder constructs a 7-bit/8-bit NVT-ASCII stream interspersed with 3-byte Interpret As Command (`IAC = 0xFF`) option negotiation sequences: `IAC WILL <opt>` (`0xFF 0xFB <opt>`), `IAC WONT <opt>` (`0xFF 0xFC <opt>`), `IAC DO <opt>` (`0xFF 0xFD <opt>`), `IAC DONT <opt>` (`0xFF 0xFE <opt>`), and `IAC SB <opt> ... IAC SE` (`0xFF 0xFA ... 0xFF 0xF0`) subnegotiations. When optional fields in [`TelnetSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b telnet [do <u8>] [dont <u8>] [will <u8>] [wont <u8>] [option <u8>] [payload <str>]`
 
 use crate::ast::*;

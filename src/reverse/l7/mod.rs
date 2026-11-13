@@ -1,5 +1,5 @@
 //! Layer 7 application, network management, telemetry, web, security, VoIP, storage, database,
-//! message broker, and industrial OT protocol PCAP-to-`.fasm` decompilers.
+//! message broker, and industrial OT protocol PCAP-to-`.frasm` decompilers.
 //!
 //! This module organizes all 50 Layer 7 protocol dissectors into 1-to-1 per-protocol files
 //! mirroring `src/ast/l7/`, `src/parser/l7/`, and `src/builders/l7/`. The top-level [`dissect_l7`]
@@ -371,7 +371,7 @@ fn dissect_data_ot(
         .or_else(|| memcached::dissect_memcached(transport, src_port, dst_port, payload))
 }
 
-/// Checks whether a byte slice is valid printable ASCII suitable for a `.fasm` string literal.
+/// Checks whether a byte slice is valid printable ASCII suitable for a `.frasm` string literal.
 pub(crate) fn is_printable_ascii_str(bytes: &[u8]) -> Option<&str> {
     let s = core::str::from_utf8(bytes).ok()?;
     s.bytes().all(|b| (0x20..=0x7E).contains(&b)).then_some(s)
@@ -445,7 +445,7 @@ pub(crate) fn checked_be_u32(buf: &[u8], offset: usize) -> Option<u32> {
     Some(u32::from_be_bytes([b[0], b[1], b[2], b[3]]))
 }
 
-/// Checks whether a string slice can be placed inside `"..."` in `.fasm` source and round-tripped
+/// Checks whether a string slice can be placed inside `"..."` in `.frasm` source and round-tripped
 /// verbatim through `Token::StringLit` and `parse_raw_string_lit`.
 pub(crate) fn is_valid_raw_string_body(s: &str) -> bool {
     let bytes = s.as_bytes();
@@ -467,7 +467,7 @@ pub(crate) fn is_valid_raw_string_body(s: &str) -> bool {
     true
 }
 
-/// Formats a string value as a quoted `.fasm` string literal (`"..."`), preserving existing valid
+/// Formats a string value as a quoted `.frasm` string literal (`"..."`), preserving existing valid
 /// escape sequences for `parse_raw_string_lit` and escaping raw quotes or control characters.
 pub(crate) fn quote_web_str(s: &str) -> String {
     if is_valid_raw_string_body(s) {

@@ -1,7 +1,7 @@
 //! Two-phase parser and semantic analyzer for the FrameAssembly domain-specific language.
 //!
 //! This module implements the syntactic parser and semantic validation pipeline for FrameAssembly
-//! `.fasm` specifications using `winnow` parser combinators. Phase 1 consumes a spanned lexical
+//! `.frasm` specifications using `winnow` parser combinators. Phase 1 consumes a spanned lexical
 //! token [`Stream`] produced by [`crate::lexer::lex`] and constructs a strongly typed Abstract
 //! Syntax Tree ([`Program`], [`HostDef`], [`FlowDef`], [`FrameStatement`]) via protocol-scoped
 //! statement modifier dispatch. Phase 2 executes [`validate_semantics`] to verify endpoint IP
@@ -457,7 +457,7 @@ enum EnclosingBlock<'a> {
     Compile,
 }
 
-/// Suggests a canonical v2.0.0 strict-lowercase `.fasm` keyword for common typos or muscle-memory aliases.
+/// Suggests a canonical v3.0.0 strict-lowercase `.frasm` keyword for common typos or muscle-memory aliases.
 fn suggest_canonical_keyword(raw: &str) -> Option<&'static str> {
     let lower = raw.to_ascii_lowercase();
     match lower.as_str() {
@@ -589,7 +589,7 @@ fn diagnose_parse_error<'a>(
     if err_idx >= tokens.len() {
         let eof_pos = tokens.last().map_or(input_str.len(), |t| t.1.end);
         let msg = if enclosing == EnclosingBlock::None && compile_count == 0 {
-            "Syntax error: missing 'compile { ... }' block at the end of the file. Every .fasm file must include a compile block to generate packets (for example: compile { my_flow(client, server) })".to_string()
+            "Syntax error: missing 'compile { ... }' block at the end of the file. Every .frasm file must include a compile block to generate packets (for example: compile { my_flow(client, server) })".to_string()
         } else {
             "Syntax error: unexpected end of file (check for a missing closing '}' or incomplete packet statement)".to_string()
         };
@@ -604,7 +604,7 @@ fn diagnose_parse_error<'a>(
     // 1. Duplicate compile block
     if *tok == Token::Compile && brace_depth == 0 && compile_count >= 1 {
         return (
-            "Syntax error: duplicate 'compile' block. A .fasm file can only have one compile { ... } block — place all flow calls inside a single compile block".to_string(),
+            "Syntax error: duplicate 'compile' block. A .frasm file can only have one compile { ... } block — place all flow calls inside a single compile block".to_string(),
             span,
         );
     }
@@ -702,7 +702,7 @@ fn diagnose_parse_error<'a>(
         }
     }
 
-    // 5. v2.0.0 self-healing diagnostics for removed `loop` and non-lowercase / `_` / `-` keywords
+    // 5. Self-healing diagnostics for removed `loop` and non-lowercase / `_` / `-` keywords
     if matches!(tok, Token::Ident(_)) {
         if raw_slice.eq_ignore_ascii_case("loop") {
             return (
@@ -768,7 +768,7 @@ fn diagnose_parse_error<'a>(
     if matches!(tok, Token::Number(_)) && err_idx >= 1 && tokens[err_idx - 1].0 == Token::Ack {
         return (
             alloc::format!(
-                "Syntax error: unexpected number '{}' after 'ack'. In .fasm, 'ack' alone is a TCP flag; did you mean 'acknum {}' to set the acknowledgment number?",
+                "Syntax error: unexpected number '{}' after 'ack'. In .frasm, 'ack' alone is a TCP flag; did you mean 'acknum {}' to set the acknowledgment number?",
                 raw_slice,
                 raw_slice
             ),

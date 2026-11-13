@@ -1,4 +1,4 @@
-//! Constrained Application Protocol (CoAP, RFC 7252) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Constrained Application Protocol (CoAP, RFC 7252) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `coap` v1 messages over UDP ports
 //! `5683` and `5684`. It decodes message types (`con`, `non`, `ack`, `rst`), `"c.dd"` method and

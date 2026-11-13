@@ -1,18 +1,18 @@
 {
-  "version": "2.0.0",
-  "description": "Compile .fasm network traffic code into .pcap/.pcapng captures and reverse captures back to .fasm across 81 L2-L7 protocols",
+  "version": "3.0.0",
+  "description": "Compile .frasm network traffic code into .pcap/.pcapng captures and reverse captures back to .frasm across 81 L2-L7 protocols",
   "homepage": "https://github.com/SteveWinschel/FrameAssembly",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v2.0.0/frameassembly-v2.0.0-x86_64-pc-windows-msvc.zip",
-      "hash": "597fe8601f6a3eaf372410fc2d1c551ec7ed4db4f79624412fca69fc794fe630",
-      "extract_dir": "frameassembly-v2.0.0-x86_64-pc-windows-msvc"
+      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.0.0/frameassembly-windows-x64.zip",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "extract_dir": "frameassembly-windows-x64"
     },
     "arm64": {
-      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v2.0.0/frameassembly-v2.0.0-aarch64-pc-windows-msvc.zip",
-      "hash": "e0e377b8e52a4a7b76e0b4130e67f0aa052530933f32302ddb71e673a3291994",
-      "extract_dir": "frameassembly-v2.0.0-aarch64-pc-windows-msvc"
+      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.0.0/frameassembly-windows-arm64.zip",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "extract_dir": "frameassembly-windows-arm64"
     }
   },
   "bin": "frameassembly.exe",
@@ -20,16 +20,16 @@
   "autoupdate": {
     "architecture": {
       "64bit": {
-        "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v$version/frameassembly-v$version-x86_64-pc-windows-msvc.zip",
-        "extract_dir": "frameassembly-v$version-x86_64-pc-windows-msvc"
+        "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v$version/frameassembly-windows-x64.zip",
+        "extract_dir": "frameassembly-windows-x64"
       },
       "arm64": {
-        "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v$version/frameassembly-v$version-aarch64-pc-windows-msvc.zip",
-        "extract_dir": "frameassembly-v$version-aarch64-pc-windows-msvc"
+        "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v$version/frameassembly-windows-arm64.zip",
+        "extract_dir": "frameassembly-windows-arm64"
       }
     },
     "hash": {
-      "url": "$url.sha256"
+      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v$version/SHA256SUMS.txt"
     }
   }
 }

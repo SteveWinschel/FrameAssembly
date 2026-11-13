@@ -1,4 +1,4 @@
-//! Session Initiation Protocol (`sip`, RFC 3261) Layer 7 VoIP signaling PCAP-to-`.fasm` decompiler.
+//! Session Initiation Protocol (`sip`, RFC 3261) Layer 7 VoIP signaling PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 3261 `sip` signaling requests
 //! (`invite`, `ack`, `bye`, `cancel`, `register`, `options`, or `method`) and responses (`status`,
@@ -131,7 +131,7 @@ pub(crate) fn dissect_sip<'a>(payload: &'a [u8], is_tcp: bool) -> Option<Protoco
     })
 }
 
-/// Appends the canonical `.fasm` SIP method token or `method "<str>"` modifier.
+/// Appends the canonical `.frasm` SIP method token or `method "<str>"` modifier.
 fn append_sip_method(tokens: &mut String, method: &str) {
     if matches!(
         method,

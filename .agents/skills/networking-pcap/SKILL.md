@@ -9,7 +9,7 @@ Use this skill when designing, implementing, debugging, or verifying network pro
 
 > **Architectural Boundary (`frameassembly`)**:
 > - **Forward Wire Synthesis (`src/packet.rs`, `src/builders/`)**: Uses 100% zero-heap native Rust 2024 slice operations (`std::slice::as_chunks::<2>()`) and never uses `etherparse::PacketBuilder` or `libpcap`. All L2–L7 headers, pseudo-headers, RFC 1071 one's complement checksums, RFC 9260 Castagnoli CRC32c checksums, and IEEE 1815 DNP3 CRC-16 checksums are synthesized natively and serialized into PCAPNG streams via `pcap-file = "2.0.0"`.
-> - **PCAP/PCAPNG-to-`.fasm` Decompilation (`src/reverse/`)**: Uses `etherparse = { version = "0.21.0", default-features = false, features = ["std"] }` (`SlicedPacket::from_ethernet`, `LaxSlicedPacket::from_ethernet`, `link_exts: ArrayVec<LinkExtSlice, 3>`, `.vlan()`, `NetSlice`, `TransportSlice`) and `pcap-file = "2.0.0"` (`PcapNgReader`, `PcapReader`). For decompiler engineering, consult [`.agents/skills/pcap-decompilation/SKILL.md`](../pcap-decompilation/SKILL.md).
+> - **PCAP/PCAPNG-to-`.frasm` Decompilation (`src/reverse/`)**: Uses `etherparse = { version = "0.21.0", default-features = false, features = ["std"] }` (`SlicedPacket::from_ethernet`, `LaxSlicedPacket::from_ethernet`, `link_exts: ArrayVec<LinkExtSlice, 3>`, `.vlan()`, `NetSlice`, `TransportSlice`) and `pcap-file = "2.0.0"` (`PcapNgReader`, `PcapReader`). For decompiler engineering, consult [`.agents/skills/pcap-decompilation/SKILL.md`](../pcap-decompilation/SKILL.md).
 
 ---
 
@@ -32,7 +32,7 @@ Use this skill when designing, implementing, debugging, or verifying network pro
 | **RFC 9260 SCTP CRC32c checksum** | `crc32c(&[&sctp_packet])` stored in **little-endian** (`cksum.to_le_bytes()`) at bytes `8..12` | Using RFC 1071 checksum or big-endian byte order for SCTP CRC32c |
 | **IEEE 1815 DNP3 link/chunk CRC-16** | `calculate_dnp3_crc(chunk)` (poly `0xA653` reflected) in **little-endian** every 16 bytes | Computing a single trailing CRC over the entire DNP3 payload |
 | **L7 builder return-tuple ports/IPs** | Preserve `(payload, sport, dport)` / `target_ip` from `dhcp` (`546/547`), `mdns` (`5353`), `ptp` (`319/320`), `radius` (`1812/1813`) | Overwriting builder-returned ports with hardcoded defaults (e.g., forcing DHCPv6 onto port `67`) |
-| **Quoted enum string normalization** | Normalize `_` and `-` case-insensitively on quoted string enum arguments (e.g., `qtype "a"` or `"A"`), while `.fasm` keywords are strict `[a-z0-9]+` | Requiring exact uppercase or `_` inside quoted string parameters in L7 wire builders |
+| **Quoted enum string normalization** | Normalize `_` and `-` case-insensitively on quoted string enum arguments (e.g., `qtype "a"` or `"A"`), while `.frasm` keywords are strict `[a-z0-9]+` | Requiring exact uppercase or `_` inside quoted string parameters in L7 wire builders |
 | **Modern packet capture output** | `pcap_file::pcapng::PcapNgWriter::new(file)` (`frameassembly::pcap::PcapWriter`) | Legacy flat `pcap_file::pcap::PcapWriter` lacking interface options |
 | **Nanosecond timestamp fidelity** | `InterfaceDescriptionOption::IfTsResol(9)` in `InterfaceDescriptionBlock` (never emit `IfTzone`) | Omitting `IfTsResol` (Wireshark defaults to $10^{-6}\text{s}$) or emitting `IfTzone` (triggers `pcap-file` read bug) |
 | **PCAPNG block emission** | `writer.write_block(&idb.into_block())` (`PcapNgBlock` trait) before any `EnhancedPacketBlock` | Writing `EnhancedPacketBlock` before registering `InterfaceDescriptionBlock` (`InvalidInterfaceId`) |
@@ -70,7 +70,7 @@ Use this skill when designing, implementing, debugging, or verifying network pro
 
 ### 3. `pcap-file 2.0.0` API Surface, Block Lifecycle & Critical Quirks
 - **Exact `PcapError` Enum (6 Variants)**:
-  - `pcap_file::PcapError` in `2.0.0` has **exactly 6 variants**:
+  - `pcap_file::PcapError` in `3.0.0` has **exactly 6 variants**:
     1. `PcapError::IncompleteBuffer`
     2. `PcapError::IoError(std::io::Error)`
     3. `PcapError::InvalidField(&'static str)`
@@ -128,7 +128,7 @@ Use this skill when designing, implementing, debugging, or verifying network pro
 
 ## 4. Production Reference Templates
 
-Read [references/patterns.md](references/patterns.md) for complete, copy-pasteable production implementations verified against `frameassembly` v2.0.0 and `pcap-file 2.0.0`:
+Read [references/patterns.md](references/patterns.md) for complete, copy-pasteable production implementations verified against `frameassembly` v3.0.0 and `pcap-file 2.0.0`:
 1. **Native RFC 1071, RFC 768 Zero-Mapping, RFC 9260 CRC32c & DNP3 CRC-16 Checksum Engines**: Disjoint-slice one's complement checksums, adversarial `0x0000 -> 0xFFFF` UDP verification, `const` Castagnoli CRC32c, and IEEE 1815 CRC-16.
 2. **Native L3/L4 Dual-Stack Wire Builders (IPv4, IPv6, TCP with Options, UDP, SCTP)**: Complete header synthesis with DSCP/ECN, IPv4 DF/MF/Fragment Offset, IPv6 Flow Labels, and 32-bit aligned TCP options.
 3. **Native L2 Encapsulation (Ethernet II, 802.1Q VLAN, 802.1ad QinQ, RFC 3032 MPLS) & Multicast MAC Derivation**: Tag stacking, RFC 1112 / RFC 2464 multicast MAC derivation, and polymorphic IPv6 ARP-to-NDP adaptation.

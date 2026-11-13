@@ -1,4 +1,4 @@
-//! Spanning Tree Protocol (STP / RSTP, IEEE 802.1D / 802.1w) Layer 2 PCAP-to-`.fasm` decompiler.
+//! Spanning Tree Protocol (STP / RSTP, IEEE 802.1D / 802.1w) Layer 2 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IEEE 802.1D Spanning Tree
 //! Protocol (`stp`) and IEEE 802.1w Rapid Spanning Tree Protocol (`rstp`) Bridge Protocol Data

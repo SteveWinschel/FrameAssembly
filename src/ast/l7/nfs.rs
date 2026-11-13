@@ -5,7 +5,7 @@
 //! 2049. On the wire, TCP NFS frames carry a 4-byte RPC Record Marking header (with last-fragment
 //! bit `0x80000000`), an ONC RPC Call header (XID, Message Type `0`, RPC Version `2`, Program
 //! `100003`, NFS Version, Procedure number, and `AUTH_NULL` credentials/verifier), and XDR-encoded
-//! compound tags or filehandle paths. Canonical `.fasm` syntax:
+//! compound tags or filehandle paths. Canonical `.frasm` syntax:
 //! `nfs [vers <u32>] [proc <str>] [tag <str>] [path <str>] [xid <u32>]`.
 
 /// RFC 1813 / RFC 7530 Network File System (NFS) over ONC RPC specification.

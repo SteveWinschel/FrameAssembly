@@ -7,7 +7,7 @@
 //! 20-byte Partner Information TLV (`0x02`), 16-byte Collector Information TLV (`0x03`),
 //! Terminator TLV (`0x00`), and 50 bytes of zero padding.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b lacp [actorsys <mac>] [actorkey <u16>] [actorport <u16>] [actorstate <u8>] [partnersys <mac>] [partnerkey <u16>] [partnerport <u16>] [partnerstate <u8>]`
 
 use core::marker::PhantomData;

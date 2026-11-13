@@ -8,7 +8,7 @@
 //! for IP address owner), an 8-bit `Count IPvX Addr` (`1`), a 12-bit `Max Adver Int` in centiseconds
 //! (`advint`, default `100` = 1.0s), a 16-bit Checksum, and the Virtual IP address (`vip`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b vrrp [vrid <1..255>] [priority <0..255>] [advint <u16>] [vip <ip>] [version <2|3>]`
 
 use core::marker::PhantomData;

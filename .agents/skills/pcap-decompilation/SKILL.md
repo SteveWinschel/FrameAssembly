@@ -1,19 +1,19 @@
 ---
 name: pcap-decompilation
-description: Comprehensive architecture guide, etherparse 0.21.0 and pcap-file 2.0.0 API selection matrix, container linktype normalization rules, fuzz-safe 81-protocol v2.0.0 strict-lowercase decompilation patterns, and self-checking forward-compiler oracle verification for PCAP/PCAPNG-to-.fasm decompilation in FrameAssembly.
+description: Comprehensive architecture guide, etherparse 0.21.0 and pcap-file 2.0.0 API selection matrix, container linktype normalization rules, fuzz-safe 81-protocol v3.0.0 strict-lowercase decompilation patterns, and self-checking forward-compiler oracle verification for PCAP/PCAPNG-to-.frasm decompilation in FrameAssembly.
 ---
 
-# PCAP & PCAPNG to `.fasm` Decompilation Engineering Skill (`etherparse 0.21.0`, `pcap-file 2.0.0`)
+# PCAP & PCAPNG to `.frasm` Decompilation Engineering Skill (`etherparse 0.21.0`, `pcap-file 2.0.0`)
 
-Use this skill when designing, implementing, debugging, or verifying **PCAP and PCAPNG to `.fasm` decompilation** (`frameassembly reverse <input.pcap> [output.fasm]`, `src/reverse/`, `reverse_pcap_reader(reader)`, `reverse_pcap_bytes(bytes)`, `reverse_pcap_file(path)`—single-argument Rust signatures taking only the input capture) using **`etherparse = { version = "0.21.0", default-features = false, features = ["std"] }`** and **`pcap-file = "2.0.0"`**.
+Use this skill when designing, implementing, debugging, or verifying **PCAP and PCAPNG to `.frasm` decompilation** (`frameassembly reverse <input.pcap> [output.frasm]`, `src/reverse/`, `reverse_pcap_reader(reader)`, `reverse_pcap_bytes(bytes)`, `reverse_pcap_file(path)`—single-argument Rust signatures taking only the input capture) using **`etherparse = { version = "0.21.0", default-features = false, features = ["std"] }`** and **`pcap-file = "2.0.0"`**.
 
 > **Terminology & Architectural Boundary**:
-> - Always refer to binary `.pcap` / `.pcapng` to `.fasm` translation as **decompilation** (or **PCAP-to-`.fasm` decompiler**).
-> - **Forward Wire Synthesis (`src/packet.rs`, `src/builders/`)** uses 100% zero-heap native byte assembly (see [`networking-pcap`](../networking-pcap/SKILL.md)), whereas **PCAP-to-`.fasm` Decompilation (`src/reverse/`)** uses `etherparse 0.21.0` for zero-copy L2–L4 slicing, `pcap-file 2.0.0` for container streaming, and FrameAssembly v2.0.0's forward compiler as an in-memory self-checking oracle (`verify_with_oracle`).
+> - Always refer to binary `.pcap` / `.pcapng` to `.frasm` translation as **decompilation** (or **PCAP-to-`.frasm` decompiler**).
+> - **Forward Wire Synthesis (`src/packet.rs`, `src/builders/`)** uses 100% zero-heap native byte assembly (see [`networking-pcap`](../networking-pcap/SKILL.md)), whereas **PCAP-to-`.frasm` Decompilation (`src/reverse/`)** uses `etherparse 0.21.0` for zero-copy L2–L4 slicing, `pcap-file 2.0.0` for container streaming, and FrameAssembly v3.0.0's forward compiler as an in-memory self-checking oracle (`verify_with_oracle`).
 
 ---
 
-## 1. 5-Stage PCAP-to-`.fasm` Decompiler Pipeline (`src/reverse/mod.rs`)
+## 1. 5-Stage PCAP-to-`.frasm` Decompiler Pipeline (`src/reverse/mod.rs`)
 
 1. **Stage 1 — Container Normalization (`src/reverse/container.rs`)**:
    - Inspects the leading 4-byte magic number of any `std::io::Read` stream:
@@ -24,14 +24,14 @@ Use this skill when designing, implementing, debugging, or verifying **PCAP and 
 2. **Stage 2 — Modular `<layer>/<protocol>` Strict-Lowercase Decompilation (`src/reverse/{l2,l3,l4,l7}/<protocol>.rs`)**:
    - Slices L2 (`Ethernet2Slice`, `SingleVlanSlice`, `MacsecSlice`, manual RFC 3032 MPLS `0x8847`/`0x8848`), L3 (`Ipv4Slice`, `Ipv6Slice`, `ArpPacket`), and L4 (`TcpSlice`, `UdpSlice`, `Icmpv4Slice`, `Icmpv6Slice`, `IgmpSlice`, manual RFC 9260 SCTP `proto == 132`) across `src/reverse/{l2,l3,l4}/mod.rs`.
    - Dispatches across 81 per-protocol decompiler modules (`src/reverse/{l2,l3,l4,l7}/<protocol>.rs`, mirroring `src/ast/`, `src/parser/`, and `src/builders/` 1-to-1) to decode all 81 native protocols into `ProtocolDissection { protocol, tokens, residual_payload, explicit_transport }`.
-   - **CRITICAL v2.0.0 Invariant**: Every emitted keyword and modifier token across `src/reverse/` **must** use FrameAssembly v2.0.0 strict lowercase `[a-z0-9]+` with zero `_` and zero `-` (`echorequest`, `innervlan`, `mplsttl`, `sackperm`, `clienthello`, `hosthdr`, `transporthdr`, `readholdingregisters`, `isresponse`, `whois`, `pkttype`, `shutdownack`, etc.) so `verify_with_oracle` (`parse_program`) succeeds in memory instead of stepping down to raw `tcp`/`udp` + `hexpayload`.
+   - **CRITICAL v3.0.0 Invariant**: Every emitted keyword and modifier token across `src/reverse/` **must** use FrameAssembly v3.0.0 strict lowercase `[a-z0-9]+` with zero `_` and zero `-` (`echorequest`, `innervlan`, `mplsttl`, `sackperm`, `clienthello`, `hosthdr`, `transporthdr`, `readholdingregisters`, `isresponse`, `whois`, `pkttype`, `shutdownack`, etc.) so `verify_with_oracle` (`parse_program`) succeeds in memory instead of stepping down to raw `tcp`/`udp` + `hexpayload`.
 3. **Stage 3 — Deterministic Topology Discovery (`src/reverse/topology.rs`)**:
    - Assigns sequential **`host1`, `host2`, ...** identifiers (never `host_1`, `host_2`) in order of discovery.
    - Tracks each host's dominant unicast MAC address, pairs broadcast (`ff:ff:ff:ff:ff:ff`) and multicast (`01:00:5e:...`, `33:33:...`, `01:80:c2:...`) frames with deterministic peer hosts, and locks directional arrows (`->` vs `<-`) per endpoint pair.
 4. **Stage 4 — Per-Packet Self-Check Compiler Oracle (`src/reverse/oracle.rs`)**:
-   - `verify_with_oracle` wraps each candidate statement into a minimal self-contained v2.0.0 `.fasm` program, runs `parse_program` -> `compile_program` in memory (hydrating elided `srcport`, `dstport`, `seq`, and `acknum` fields), and compares the synthesized Ethernet II bytes against `pkt.raw_eth_frame`.
+   - `verify_with_oracle` wraps each candidate statement into a minimal self-contained v3.0.0 `.frasm` program, runs `parse_program` -> `compile_program` in memory (hydrating elided `srcport`, `dstport`, `seq`, and `acknum` fields), and compares the synthesized Ethernet II bytes against `pkt.raw_eth_frame`.
    - If `pkt.raw_eth_frame` has extra trailing bytes, automatically appends `payload "..."` or `hexpayload "..."` before `wait` and re-verifies.
-   - If any byte still diverges, steps down cleanly to raw L4 (`tcp`/`udp` + `payload`/`hexpayload`) or raw L2 (`vlan`/`qinq`/`mpls` + `payload`/`hexpayload`) statements—emitting **zero** `//` warning or fallback comments in reversed `.fasm` output.
+   - If any byte still diverges, steps down cleanly to raw L4 (`tcp`/`udp` + `payload`/`hexpayload`) or raw L2 (`vlan`/`qinq`/`mpls` + `payload`/`hexpayload`) statements—emitting **zero** `//` warning or fallback comments in reversed `.frasm` output.
 5. **Stage 5 — Shadow-State Elision & Direct `compile` Emission (`src/reverse/shadow_emit.rs`)**:
    - Mirrors the forward compiler's `EndpointPairPorts` and `Canonical4Tuple` TCP sequence/acknowledgment state machines to elide default modifiers (`srcport 12345`, well-known `dstport`, predictable `seq`/`acknum`, `window 64240`, `ttl 64`, `wait 10ms`) and emits direct flow invocations in `compile { ... }` (**never** folding consecutive frames into `loop`, which was removed in FrameAssembly v2.0.0).
 
@@ -65,7 +65,7 @@ Use this skill when designing, implementing, debugging, or verifying **PCAP and 
 
 ## 4. Production Reference Templates
 
-Read [references/patterns.md](references/patterns.md) for complete, copy-pasteable v2.0.0 production implementations verified against `src/reverse/`, `etherparse 0.21.0`, and `pcap-file 2.0.0`:
+Read [references/patterns.md](references/patterns.md) for complete, copy-pasteable v3.0.0 production implementations verified against `src/reverse/`, `etherparse 0.21.0`, and `pcap-file 2.0.0`:
 1. **Container Magic Detection, 8-Linktype Normalization & Ethernet Padding/FCS Stripping (`container.rs` pattern)**
 2. **`etherparse 0.21.0` Zero-Copy L2–L4 + MPLS + SCTP Decompilation (`src/reverse/{l2,l3,l4}` pattern)**
 3. **Fuzz-Safe L7 Protocol Decompilation with Bounded DNS Pointers (`MAX_DNS_JUMPS = 16`) & ASN.1 BER/DER Decoding (`src/reverse/l7/<protocol>.rs` pattern)**

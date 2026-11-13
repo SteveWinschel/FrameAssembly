@@ -1,4 +1,4 @@
-//! OpenFlow Software-Defined Networking (SDN, ONF OpenFlow v1.0–v1.5) Layer 3 PCAP-to-`.fasm` decompiler.
+//! OpenFlow Software-Defined Networking (SDN, ONF OpenFlow v1.0–v1.5) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for ONF `openflow` control-plane
 //! messages carried over TCP ports `6653` and `6633`. It validates the 8-byte OpenFlow header and

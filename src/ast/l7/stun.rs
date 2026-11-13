@@ -5,7 +5,7 @@
 //! Every field in [`StunSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip>] [software <str>]`
 
 use core::net::IpAddr;

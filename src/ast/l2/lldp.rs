@@ -7,7 +7,7 @@
 //! mandatory Chassis ID (Type 1), Port ID (Type 2), and Time To Live (Type 3) TLVs, optional
 //! System Name (Type 5) and System Description (Type 6) TLVs, and ending with End Of LLDPDU (Type 0).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b lldp [chassisid "<str>"] [portid "<str>"] [ttl <u16>] [sysname "<str>"] [sysdesc "<str>"]`
 
 /// Link Layer Discovery Protocol (IEEE 802.1AB) frame specification.

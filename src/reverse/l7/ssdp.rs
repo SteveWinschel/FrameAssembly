@@ -1,10 +1,10 @@
-//! Simple Service Discovery Protocol (`ssdp`, UPnP HTTPU) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Simple Service Discovery Protocol (`ssdp`, UPnP HTTPU) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for UPnP `ssdp` multicast discovery
 //! queries (`M-SEARCH * HTTP/1.1` -> `msearch`) and presence announcements (`NOTIFY * HTTP/1.1` ->
 //! `notify`) carried over UDP port `1900`. It enforces duplicate-free CRLF header parsing, decodes
 //! `hosthdr`, `man`, `mx`, `st`, `nt`, `nts`, `usn`, and `location` headers into canonical
-//! `.fasm` modifiers while eliding RFC defaults, and preserves trailing bytes in
+//! `.frasm` modifiers while eliding RFC defaults, and preserves trailing bytes in
 //! `residual_payload`.
 
 use alloc::string::String;

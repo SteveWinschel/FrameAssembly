@@ -1,9 +1,9 @@
-//! Border Gateway Protocol v4 (BGP-4, RFC 4271) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Border Gateway Protocol v4 (BGP-4, RFC 4271) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 4271 Border Gateway
 //! Protocol (`bgp`) messages carried over TCP port `179`. It verifies the 16-byte all-ones BGP
 //! marker and decodes `open` (`asn`, `holdtime`, `bgpid`), `update` (`AS_PATH` `asn`, `NEXT_HOP`
-//! `nexthop`, and NLRI `prefix`), `notification`, and `keepalive` PDUs into canonical `.fasm`
+//! `nexthop`, and NLRI `prefix`), `notification`, and `keepalive` PDUs into canonical `.frasm`
 //! statements while preserving any trailing bytes as residual payload.
 
 use alloc::string::String;

@@ -1,4 +1,4 @@
-//! Simple Mail Transfer Protocol (SMTP, RFC 5321) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Simple Mail Transfer Protocol (SMTP, RFC 5321) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `smtp` client commands and server
 //! reply frames carried over TCP ports `25`, `465`, `587`, and `2525`. It validates CRLF line

@@ -1,7 +1,7 @@
 //! Trivial File Transfer Protocol (TFTP) Layer 7 file transfer field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 1350 `tftp` read/write requests,
-//! data blocks, acknowledgments, and error packets in FrameAssembly `.fasm` specifications. It
+//! data blocks, acknowledgments, and error packets in FrameAssembly `.frasm` specifications. It
 //! recognizes the `tftp` protocol keyword, packet type flags (`rrq`, `wrq`, `data`, `ack`, `err`,
 //! `error`), target filenames (`filename`), transfer modes (`mode`, e.g., `"octet"` or
 //! `"netascii"`), block numbers (`block`), error codes (`errcode`), and error message strings

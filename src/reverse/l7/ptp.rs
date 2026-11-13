@@ -1,4 +1,4 @@
-//! Precision Time Protocol v2 (`ptp`, IEEE 1588-2008 / RFC 8173) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Precision Time Protocol v2 (`ptp`, IEEE 1588-2008 / RFC 8173) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for IEEE 1588v2 Precision Time Protocol
 //! (`ptp`) 44-byte event (`sync`, `delayreq` on UDP port `319`) and general (`followup`,

@@ -5,7 +5,7 @@
 //! Every field in [`DnsSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>] [transport tcp]`
 
 /// RFC 1035 / RFC 6762 Domain Name System specification.

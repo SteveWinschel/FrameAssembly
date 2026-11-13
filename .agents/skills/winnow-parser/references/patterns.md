@@ -35,7 +35,7 @@ pub fn tag_tuple<'i, 'a: 'i>(
     })
 }
 
-/// Lexical token kinds emitted by the strict-lowercase v2.0.0 tokenizer.
+/// Lexical token kinds emitted by the strict-lowercase v3.0.0 tokenizer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TokenKind<'a> {
     /// The `host` keyword starting a host definition.
@@ -165,12 +165,12 @@ pub fn parse_integer<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult<u64
 
 ---
 
-## 2. High-Performance v2.0.0 DSL AST Parsing (`host`, `flow`, `compile`)
+## 2. High-Performance v3.0.0 DSL AST Parsing (`host`, `flow`, `compile`)
 
-Production grammar rules using `seq!`, `cut_err`, `repeat`, and `opt` to construct validated AST nodes with full source byte spans for canonical FrameAssembly v2.0.0 lowercase syntax (`host <id> { [ip <ip>] [mac <mac>] }` and `flow <id>(<params>) { <src> -> <dst> <proto> ... }`).
+Production grammar rules using `seq!`, `cut_err`, `repeat`, and `opt` to construct validated AST nodes with full source byte spans for canonical FrameAssembly v3.0.0 lowercase syntax (`host <id> { [ip <ip>] [mac <mac>] }` and `flow <id>(<params>) { <src> -> <dst> <proto> ... }`).
 
 ```rust
-//! Declarative AST parser for canonical FrameAssembly v2.0.0 structural blocks.
+//! Declarative AST parser for canonical FrameAssembly v3.0.0 structural blocks.
 
 use core::ops::Range;
 use winnow::combinator::{alt, cut_err, opt, repeat, separated, seq};
@@ -348,7 +348,7 @@ pub fn parse_flow_def<'t, 'a>(input: &mut TokenStream<'t, 'a>) -> ModalResult<Fl
 
 ## 3. Canonical Space-Separated L3 Modifier Extraction & Shared-Keyword `cut_err` Dispatch
 
-In FrameAssembly v2.0.0's canonical space-separated lowercase syntax (`ttl 64 dscp 46 ecn 2 df mf flowlabel 0x12345`), modifiers are never separated by `=` or `:`. This pattern demonstrates:
+In FrameAssembly v3.0.0's canonical space-separated lowercase syntax (`ttl 64 dscp 46 ecn 2 df mf flowlabel 0x12345`), modifiers are never separated by `=` or `:`. This pattern demonstrates:
 1. Canonical space-separated `<keyword> <value>` and 0-argument flag (`df`, `mf`) extraction with checkpoint rewind on non-L3 tokens.
 2. Zero-allocation `let (): () = repeat(0.., ...).parse_next(input)?;` accumulation into unit `()` rather than `Vec<()>`.
 3. Safe shared-keyword `cut_err(alt((...)))` dispatch when a keyword (such as `version` or `token`) accepts either an integer or a string literal.

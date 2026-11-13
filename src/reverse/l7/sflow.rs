@@ -1,4 +1,4 @@
-//! sFlow v5 (`sflow`, RFC 3176) Layer 7 sampled network telemetry PCAP-to-`.fasm` decompiler.
+//! sFlow v5 (`sflow`, RFC 3176) Layer 7 sampled network telemetry PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for sFlow Version 5 datagrams carried
 //! over UDP ports `6343` and `16343`. It decodes both IPv4 (`address_type == 1`, 28-byte header)

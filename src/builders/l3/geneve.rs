@@ -8,7 +8,7 @@
 //! `Reserved` zero byte, optionally followed by a 4-byte TLV option header (`optclass`, `opttype`)
 //! and the inner passenger frame.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b geneve [vni <u24>] [optclass <u16>] [opttype <u8>] [protocoltype <u16>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;

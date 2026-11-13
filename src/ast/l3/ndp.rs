@@ -8,7 +8,7 @@
 //! attaching Option 1 Source Link-Layer Address `slla`), `neighboradvert` (Type `136`, setting
 //! Solicited + Override flags `0x60` and Option 2 Target Link-Layer Address `tlla`), and `redirect` (`137`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ndp [routersolicit | routeradvert | neighborsolicit | neighboradvert | redirect] [target <ipv6>] [slla <mac>] [tlla <mac>] [routerlifetime <u16>]`
 
 use core::marker::PhantomData;

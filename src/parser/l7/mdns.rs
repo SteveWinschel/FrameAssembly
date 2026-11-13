@@ -1,7 +1,7 @@
 //! Multicast DNS (mDNS) Layer 7 service discovery protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 6762 Multicast DNS (`mdns`)
-//! messages in FrameAssembly `.fasm` specifications. It recognizes the `mdns` protocol keyword,
+//! messages in FrameAssembly `.frasm` specifications. It recognizes the `mdns` protocol keyword,
 //! `query` and `response` flags, transaction identifiers (`txid`), multicast service query names
 //! (`qname`), record types (`qtype`), resource data (`rdata`), response status codes (`rcode`),
 //! and answer time-to-live intervals (`ansttl`).

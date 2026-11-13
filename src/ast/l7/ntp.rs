@@ -5,7 +5,7 @@
 //! Every field in [`NtpSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ntp [li <u8>] [vn <u8>] [mode <u8>] [stratum <u8>] [poll <u8>] [precision <i8>] [refid <str>] [txtimestamp <u64>]`
 
 /// RFC 5905 Network Time Protocol specification.

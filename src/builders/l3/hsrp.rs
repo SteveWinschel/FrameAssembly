@@ -8,7 +8,7 @@
 //! Standby `Group` (`group`, default `1`), 8-byte zero-padded `Authentication Data` (`auth`, default
 //! `"cisco"`), and the 4-byte or 16-byte Virtual IP address (`vip`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b hsrp [group <u8>] [priority <u8>] [state <u8>] [hellotime <u8>] [holdtime <u8>] [auth "<str>"] [vip <ip>]`
 
 use crate::ast::*;

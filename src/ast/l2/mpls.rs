@@ -7,7 +7,7 @@
 //! RFC 5462), a 1-bit Bottom of Stack indicator (`S` / `bos`, bit 23), and an 8-bit
 //! Time To Live field (`ttl`, bits 24..31).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b mpls <label> [exp <0..7>] [bos <0|1>] [mplsttl <u8>] [<inner_protocol>...]`
 
 /// RFC 3032 / RFC 5462 32-bit MPLS label stack entry specification.

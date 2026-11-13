@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing git tag to build and publish (e.g. v2.0.0)'
+        description: 'Existing git tag to build and publish (e.g. v3.0.0)'
         required: false
         type: string
 
@@ -74,7 +74,7 @@ jobs:
           fi
 
   build:
-    name: Build (${{ matrix.target }})
+    name: Build (${{ matrix.bundle_name }})
     needs: [prepare]
     runs-on: ${{ matrix.os }}
     defaults:
@@ -85,31 +85,37 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-musl
+            bundle_name: frameassembly-linux-x64
             os: ubuntu-24.04
             archive: tar.gz
             ext: ''
             run_tests: false
           - target: aarch64-unknown-linux-musl
+            bundle_name: frameassembly-linux-arm64
             os: ubuntu-24.04-arm
             archive: tar.gz
             ext: ''
             run_tests: false
           - target: x86_64-pc-windows-msvc
+            bundle_name: frameassembly-windows-x64
             os: windows-2025
             archive: zip
             ext: '.exe'
             run_tests: false
           - target: aarch64-pc-windows-msvc
+            bundle_name: frameassembly-windows-arm64
             os: windows-2025
             archive: zip
             ext: '.exe'
             run_tests: false
           - target: aarch64-apple-darwin
+            bundle_name: frameassembly-macos-arm64
             os: macos-15
             archive: tar.gz
             ext: ''
             run_tests: false
           - target: x86_64-apple-darwin
+            bundle_name: frameassembly-macos-x64
             os: macos-15
             archive: tar.gz
             ext: ''
@@ -153,8 +159,7 @@ jobs:
       - name: Stage release bundle
         id: stage
         run: |
-          TAG="${{ needs.prepare.outputs.tag }}"
-          STAGE="frameassembly-${TAG}-${{ matrix.target }}"
+          STAGE="${{ matrix.bundle_name }}"
           mkdir -p "$STAGE"
 
           cp "target/${{ matrix.target }}/release/frameassembly${{ matrix.ext }}" "$STAGE/"
@@ -165,8 +170,27 @@ jobs:
             cp "$lic" "$STAGE/"
           done
 
-          [ -f contrib/mime/text-vnd.frameassembly.xml ] && cp contrib/mime/text-vnd.frameassembly.xml "$STAGE/"
-          [ -f contrib/magic/frameassembly.magic ] && cp contrib/magic/frameassembly.magic "$STAGE/"
+          cat <<'EOF' > "$STAGE/quickstart.frasm"
+          // FrameAssembly 3.0 Quickstart
+          // Preview ladder: frameassembly show quickstart.frasm
+          // Compile PCAP:   frameassembly quickstart.frasm quickstart.pcap
+
+          host client { ip 10.0.0.10 mac 00:11:22:33:44:55 }
+          host server { ip 10.0.0.20 mac aa:bb:cc:dd:ee:ff }
+
+          compile {
+              client -> server tcp syn srcport 51234 dstport 80 win 65535 mss 1460 wait 1ms
+              client <- server tcp syn ack win 65535 mss 1460 wait 1ms
+              client -> server tcp ack wait 1ms
+              client -> server http get uri "/healthz" hosthdr "api.example.com" wait 2ms
+              client <- server http status 200 reason "OK" body "ok"
+          }
+          EOF
+
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            [ -f contrib/mime/text-vnd.frameassembly.xml ] && cp contrib/mime/text-vnd.frameassembly.xml "$STAGE/"
+            [ -f contrib/magic/frameassembly.magic ] && cp contrib/magic/frameassembly.magic "$STAGE/"
+          fi
           [ -d contrib/completions ] && cp -r contrib/completions "$STAGE/completions"
 
           echo "stage_dir=$STAGE" >> "$GITHUB_OUTPUT"
@@ -183,6 +207,7 @@ jobs:
           Compress-Archive -Path "${{ steps.stage.outputs.stage_dir }}" -DestinationPath "${{ steps.stage.outputs.stage_dir }}.zip" -Force
 
       - name: Build Debian .deb package with shell completions (Linux)
+        id: deb
         if: runner.os == 'Linux'
         run: |
           TAG="${{ needs.prepare.outputs.tag }}"
@@ -204,11 +229,12 @@ jobs:
               exit 1
             fi
           done
+          echo "deb_file=deb-dist/frameassembly_${ARCH}.deb" >> "$GITHUB_OUTPUT"
 
       - name: Upload built archive
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.target }}
+          name: release-${{ matrix.bundle_name }}
           path: ${{ steps.stage.outputs.stage_dir }}.${{ matrix.archive }}
           if-no-files-found: error
           retention-days: 5
@@ -217,8 +243,8 @@ jobs:
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: release-deb-${{ matrix.target }}
-          path: deb-dist/*.deb
+          name: release-deb-${{ matrix.bundle_name }}
+          path: ${{ steps.deb.outputs.deb_file }}
           if-no-files-found: error
           retention-days: 5
 
@@ -367,16 +393,14 @@ jobs:
       - name: Package VSIX
         working-directory: frameassembly-vscode
         run: |
-          TAG="${{ needs.prepare.outputs.tag }}"
-          VERSION="${TAG#v}"
-          rm -f frameassembly-vscode-*.vsix
-          npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o "frameassembly-vscode-${VERSION}.vsix"
+          rm -f frameassembly-vscode-*.vsix frameassembly-vscode.vsix
+          npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o "frameassembly-vscode.vsix"
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-vsix
-          path: frameassembly-vscode/*.vsix
+          path: frameassembly-vscode/frameassembly-vscode.vsix
           if-no-files-found: error
           retention-days: 5
 
@@ -388,19 +412,15 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
-          TAG="${{ needs.prepare.outputs.tag }}"
-          VERSION="${TAG#v}"
-          npx --yes @vscode/vsce@latest publish -p "${{ secrets.VSCE_PAT }}" --packagePath "frameassembly-vscode-${VERSION}.vsix"
+          npx --yes @vscode/vsce@latest publish -p "${{ secrets.VSCE_PAT }}" --packagePath "frameassembly-vscode.vsix"
 
       - name: Publish to Visual Studio Marketplace via OIDC Trusted Publisher
         if: ${{ env.VSCE_PAT == '' || steps.vsce_pat_publish.outcome == 'failure' }}
         continue-on-error: true
         working-directory: frameassembly-vscode
         run: |
-          TAG="${{ needs.prepare.outputs.tag }}"
-          VERSION="${TAG#v}"
           unset VSCE_PAT
-          npx --yes @vscode/vsce@latest publish --oidc --packagePath "frameassembly-vscode-${VERSION}.vsix"
+          npx --yes @vscode/vsce@latest publish --oidc --packagePath "frameassembly-vscode.vsix"
 
   publish:
     name: Checksum, Attest & Publish Release
@@ -428,10 +448,19 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Ensure VSIX is present in dist
+      - name: Prepare final 10 release assets in dist
         run: |
           mkdir -p dist
-          cp -n frameassembly-vscode/*.vsix dist/ || true
+          rm -f dist/frameassembly-wasm-*.tar.gz
+          if [ ! -f dist/frameassembly-vscode.vsix ]; then
+            VERSION="${{ needs.prepare.outputs.version }}"
+            if [ -f "frameassembly-vscode/frameassembly-vscode-${VERSION}.vsix" ]; then
+              cp "frameassembly-vscode/frameassembly-vscode-${VERSION}.vsix" dist/frameassembly-vscode.vsix
+            elif [ -f frameassembly-vscode/frameassembly-vscode.vsix ]; then
+              cp frameassembly-vscode/frameassembly-vscode.vsix dist/frameassembly-vscode.vsix
+            fi
+          fi
+          ls -la dist
 
       - name: Generate SHA-256 checksums
         working-directory: dist
@@ -442,9 +471,6 @@ jobs:
             echo "::error::No release archives found in dist/"
             exit 1
           fi
-          for f in "${FILES[@]}"; do
-            sha256sum "$f" > "${f}.sha256"
-          done
           sha256sum "${FILES[@]}" > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
@@ -465,12 +491,25 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ contains(needs.prepare.outputs.tag, '-') }}
           fail_on_unmatched_files: true
+          body: |
+            ## Download by Operating System
+
+            | Operating System | Architecture | Direct Download | Quick Install |
+            | :--- | :--- | :--- | :--- |
+            | **Windows** | x64 (`x86_64`) | [`frameassembly-windows-x64.zip`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-windows-x64.zip) | `irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 \| iex` |
+            | **Windows** | ARM64 | [`frameassembly-windows-arm64.zip`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-windows-arm64.zip) | `scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly && scoop install frameassembly` |
+            | **macOS** | Apple Silicon (`arm64`) | [`frameassembly-macos-arm64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-macos-arm64.tar.gz) | `brew install SteveWinschel/tap-FrameAssembly/frameassembly` |
+            | **macOS** | Intel (`x64`) | [`frameassembly-macos-x64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-macos-x64.tar.gz) | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` |
+            | **Linux (Debian / Ubuntu)** | `amd64` / `arm64` | [`frameassembly_amd64.deb`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly_amd64.deb) · [`frameassembly_arm64.deb`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly_arm64.deb) | `curl -fsSLo /tmp/frameassembly.deb https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly_amd64.deb && sudo apt install -y /tmp/frameassembly.deb` |
+            | **Linux (Static `musl`)** | `x64` / `arm64` | [`frameassembly-linux-x64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-linux-x64.tar.gz) · [`frameassembly-linux-arm64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-linux-arm64.tar.gz) | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` |
+            | **VS Code / Cursor / VSCodium** | Universal | [`frameassembly-vscode.vsix`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-vscode.vsix) | `code --install-extension SteveWinschel.frameassembly-vscode` |
+
+            Verify every archive against [`SHA256SUMS.txt`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/SHA256SUMS.txt), or run FrameAssembly directly in your browser at [`frameassembly.ai.studio`](https://frameassembly.ai.studio/).
           files: |
             dist/*.tar.gz
             dist/*.zip
             dist/*.deb
             dist/*.vsix
-            dist/*.sha256
             dist/SHA256SUMS.txt
 
       - name: Install Rust stable for Crates.io publish

@@ -1,8 +1,8 @@
 {
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "FrameAssembly",
-  "description": "Rootless Packets-as-Code DSL & Rust compiler (v2.0.0) that compiles strict-lowercase .fasm code into deterministic, nanosecond-precision .pcap / .pcapng packet captures—and decompiles .pcap / .pcapng captures back into canonical .fasm code—across 81 native Layer 2 through Layer 7 protocols (2,611 verified .fasm corpus scenarios). Official website & interactive browser playground: https://frameassembly.ai.studio/. Companion to Wireshark/tshark, tcpreplay, Suricata, and Zeek.",
-  "version": "2.0.0",
+  "description": "Rootless Packets-as-Code DSL & Rust compiler (v3.0.0) that compiles strict-lowercase .frasm code into deterministic, nanosecond-precision .pcap / .pcapng packet captures—and decompiles .pcap / .pcapng captures back into canonical .frasm code—across 81 native Layer 2 through Layer 7 protocols (2,611 verified .frasm corpus scenarios). Official website & interactive browser playground: https://frameassembly.ai.studio/. Companion to Wireshark/tshark, tcpreplay, Suricata, and Zeek.",
+  "version": "3.0.0",
   "repository": "https://github.com/SteveWinschel/FrameAssembly",
   "folders": [
     "docs",
@@ -24,19 +24,19 @@
     "AGENTS.md",
     "CLAUDE.md",
     "llms.txt",
-    "docs/getting_started.md",
-    "docs/use_cases.md",
-    "docs/l2_protocols.md",
-    "docs/l3_protocols.md",
-    "docs/l4_transports.md",
-    "docs/l7_snmp.md",
-    "docs/l7_infra_and_telemetry.md",
-    "docs/l7_web_and_cloud.md",
-    "docs/l7_mail_auth_storage_db.md",
-    "docs/l7_industrial_ot.md",
-    "docs/topologies_and_dual_stack.md",
-    "docs/fasm-specification.md",
-    "docs/for_nerds.md"
+    "docs/01_getting_started.md",
+    "docs/02_use_cases.md",
+    "docs/03_l2_protocols.md",
+    "docs/04_l3_protocols.md",
+    "docs/05_l4_transports.md",
+    "docs/06_l7_snmp.md",
+    "docs/07_l7_infra_and_telemetry.md",
+    "docs/08_l7_web_and_cloud.md",
+    "docs/09_l7_mail_auth_storage_db.md",
+    "docs/10_l7_industrial_ot.md",
+    "docs/11_topologies_and_dual_stack.md",
+    "docs/12_frasm_specification.md",
+    "docs/13_for_nerds.md"
   ],
   "grammars": [
     "grammar.ebnf",
@@ -57,11 +57,11 @@
     "*.vsix"
   ],
   "rules": [
-    "Every .fasm program must declare host <id> { [ip <ip>] [mac <mac>] }, parameterized flow <id>(<params>) { ... }, and compile { ... } (strictly one compile block; loop was removed in v2.0.0).",
+    "Every .frasm program must declare host <id> { [ip <ip>] [mac <mac>] }, parameterized flow <id>(<params>) { ... }, and compile { ... } (strictly one compile block; loop was removed in v2.0.0).",
     "All built-in keywords, protocols, modifiers, and time units (ns, us, ms, s, m) are strictly lowercase alphanumeric without '_' or '-' (e.g., echorequest, innervlan, clienthello, hosthdr, transporthdr, sackperm, readholdingregisters); user-defined host, flow, and parameter names allow uppercase, '_', and '-'.",
     "Always use inline wait <int><ns|us|ms|s|m> on frame statements; never use standalone wait lines, loop blocks, or +5ms / [+delay] prefixes.",
     "Always use srcport, dstport, seq, acknum, ttl, qinq <outer> innervlan <inner>, and reqid; never use sport, dport, ack_num, or hop_limit, and never mix IPv4 and IPv6 endpoints in the same packet statement.",
-    "Use the v2.0.0 CLI: frameassembly <in.fasm> [out.pcap] (default root compilation; no compile subcommand), frameassembly show <in.fasm>, frameassembly reverse <in.pcap> [out.fasm], frameassembly help [subcommand], and frameassembly version (never -o or --output).",
-    "Always use // for .fasm comments (never # or ;); never include // PROMPT:, // TOKENS:, or // INSTRUCTION: in human-facing docs."
+    "Use the v3.0.0 CLI: frameassembly <in.frasm> [out.pcap] (default root compilation; no compile subcommand), frameassembly show <in.frasm>, frameassembly reverse <in.pcap> [out.frasm], frameassembly help [subcommand], and frameassembly version (never -o or --output).",
+    "Always use // for .frasm comments (never # or ;); never include // PROMPT:, // TOKENS:, or // INSTRUCTION: in human-facing docs."
   ]
 }

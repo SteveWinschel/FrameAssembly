@@ -1,4 +1,4 @@
-//! HTTP/2 (`http2`, RFC 9113) Layer 7 binary framing PCAP-to-`.fasm` decompiler.
+//! HTTP/2 (`http2`, RFC 9113) Layer 7 binary framing PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 9113 HTTP/2 connection preface
 //! strings (`PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n`) and 9-byte binary frame headers carried over TCP

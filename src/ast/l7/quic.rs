@@ -5,7 +5,7 @@
 //! Every field in [`QuicSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b quic [initial | zerortt | handshake | retry | short] [version <u32>] [dcid <u64>] [scid <u64>] [token <str>] [pktnum <u32>]`
 
 /// RFC 9000 QUIC Transport Protocol specification.

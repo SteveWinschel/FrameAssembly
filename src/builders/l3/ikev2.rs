@@ -7,7 +7,7 @@
 //! `0x20` (v2.0), 8-bit `Exchange Type` (`34` `sainit`, `35` `auth`, `36` `createchildsa`, `37`
 //! `informational`), 8-bit `Flags` (`0x08` Initiator), 32-bit `Message ID` (`msgid`), and 32-bit `Length`.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ikev2 [exchange <sainit|auth|createchildsa|informational>] [initiatorspi <u64>] [responderspi <u64>] [msgid <u32>] [flags <u8>] [nextheader <u8>]`
 
 use crate::ast::*;

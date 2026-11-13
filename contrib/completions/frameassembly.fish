@@ -23,8 +23,8 @@ function __fish_frameassembly_default_output_arg
     and not string match -qr '^-' -- "$tokens[2]"
 end
 
-function __fish_frameassembly_fasm_files
-    __fish_complete_suffix .fasm
+function __fish_frameassembly_frasm_files
+    __fish_complete_suffix .frasm
 end
 
 function __fish_frameassembly_pcap_files
@@ -32,22 +32,22 @@ function __fish_frameassembly_pcap_files
     __fish_complete_suffix .pcapng
 end
 
-# Position 1: .fasm files/directories + 4 subcommands
-complete -c frameassembly -n "__fish_frameassembly_pos1" -a "(__fish_frameassembly_fasm_files)"
-complete -c frameassembly -n "__fish_frameassembly_pos1" -a show -d "Validate a .fasm file and print a packet ladder table"
-complete -c frameassembly -n "__fish_frameassembly_pos1" -a reverse -d "Reverse a .pcap or .pcapng capture into .fasm code"
+# Position 1: .frasm files/directories + 4 subcommands
+complete -c frameassembly -n "__fish_frameassembly_pos1" -a "(__fish_frameassembly_frasm_files)"
+complete -c frameassembly -n "__fish_frameassembly_pos1" -a show -d "Validate a .frasm file and print a packet ladder table"
+complete -c frameassembly -n "__fish_frameassembly_pos1" -a reverse -d "Reverse a .pcap or .pcapng capture into .frasm code"
 complete -c frameassembly -n "__fish_frameassembly_pos1" -a version -d "Print the FrameAssembly version"
 complete -c frameassembly -n "__fish_frameassembly_pos1" -a help -d "Print help for FrameAssembly or a subcommand"
 
-# Default root command: frameassembly <input.fasm> [output.pcap]
+# Default root command: frameassembly <input.frasm> [output.pcap]
 complete -c frameassembly -n "__fish_frameassembly_default_output_arg" -a "(__fish_frameassembly_pcap_files)"
 
-# show <input.fasm>
-complete -c frameassembly -n "__fish_frameassembly_subcmd_arg show 1" -a "(__fish_frameassembly_fasm_files)"
+# show <input.frasm>
+complete -c frameassembly -n "__fish_frameassembly_subcmd_arg show 1" -a "(__fish_frameassembly_frasm_files)"
 
-# reverse <input.pcap> [output.fasm]
+# reverse <input.pcap> [output.frasm]
 complete -c frameassembly -n "__fish_frameassembly_subcmd_arg reverse 1" -a "(__fish_frameassembly_pcap_files)"
-complete -c frameassembly -n "__fish_frameassembly_subcmd_arg reverse 2" -a "(__fish_frameassembly_fasm_files)"
+complete -c frameassembly -n "__fish_frameassembly_subcmd_arg reverse 2" -a "(__fish_frameassembly_frasm_files)"
 
 # help [subcommand]
 complete -c frameassembly -n "__fish_frameassembly_subcmd_arg help 1" -a "show reverse version help"

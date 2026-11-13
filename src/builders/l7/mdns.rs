@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Multicast DNS (mDNS) frames over UDP port 5353 (IPv4 multicast 224.0.0.251 / IPv6 ff02::fb).
 //! The wire encoder constructs a 12-byte RFC 1035 DNS wire header (16-bit ID usually 0x0000, 16-bit Flags 0x0000 query or 0x8400 authoritative response, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT) carrying link-local .local domain labels, PTR/SRV/TXT/A/AAAA resource records, and cache-flush class bits. When optional fields in [`MdnsSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>]`
 
 use crate::ast::*;

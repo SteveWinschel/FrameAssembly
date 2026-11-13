@@ -1,4 +1,4 @@
-//! Syslog (`syslog`, RFC 5424 / RFC 3164 / RFC 6587) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Syslog (`syslog`, RFC 5424 / RFC 3164 / RFC 6587) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 5424 and RFC 3164 `syslog`
 //! messages carried over UDP or TCP ports `514`, `1514`, and `6514`. It parses the leading

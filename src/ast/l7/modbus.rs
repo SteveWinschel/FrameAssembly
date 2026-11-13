@@ -6,7 +6,7 @@
 //! 8-bit Unit Identifier) followed by a 1-byte Function Code (`0x01` Read Coils, `0x02` Read
 //! Discrete Inputs, `0x03` Read Holding Registers, `0x04` Read Input Registers, `0x05` Write
 //! Single Coil, `0x06` Write Single Register, `0x10` Write Multiple Registers) and register data.
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `modbus [txid <u16>] [protoid <u16>] [unitid <u8>] [func <str>] [addr <u16>] [count <u16>] [value <u16>] [isresponse]`.
 
 /// Modbus TCP Application Protocol v1.1b3 (MBAP + PDU) specification.

@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Real-time Transport Protocol (RTP) frames over UDP port 5004 (or negotiated even UDP media port).
 //! The wire encoder constructs a 12-byte fixed RTP header: Byte 0 packs 2-bit Version (`V = 2`), 1-bit Padding (`P`), 1-bit Extension (`X`), and 4-bit CSRC Count (`CC`); Byte 1 packs 1-bit Marker (`M`) and 7-bit Payload Type (`pt`, e.g. `0` PCMU/G.711u, `8` PCMA/G.711a, `9` G.722, `18` G.729, `96..127` dynamic Opus/H.264); followed by 16-bit Sequence Number, 32-bit Media Timestamp, and 32-bit Synchronization Source (`ssrc`) identifier. When optional fields in [`RtpSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b rtp [pt <u8>] [seq <u16>] [timestamp <u32>] [ssrc <u32>] [marker <u8>]`
 
 use crate::ast::*;

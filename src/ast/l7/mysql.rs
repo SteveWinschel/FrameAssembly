@@ -5,7 +5,7 @@
 //! 4-byte header consisting of a 24-bit little-endian payload length and a 1-byte sequence ID,
 //! encapsulating Protocol v10 `HandshakeV10` greetings, `HandshakeResponse41` logins, `COM_QUERY`
 //! (`0x03`) SQL statements, `OK_Packet` (`0x00`), `EOF_Packet` (`0xFE`), or `ERR_Packet` (`0xFF`).
-//! Canonical FrameAssembly `.fasm` syntax models MySQL frames via
+//! Canonical FrameAssembly `.frasm` syntax models MySQL frames via
 //! `mysql [greeting | login | query | ok | err | eof] [serverversion <str>] [user <str>] [db <str>] [sql <str>] [errcode <u16>]`.
 
 /// MySQL / MariaDB Client/Server Wire Protocol v10 specification.

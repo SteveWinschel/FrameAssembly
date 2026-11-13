@@ -1,7 +1,7 @@
-//! Native PCAP and PCAPNG to `.fasm` reverse decompiler for FrameAssembly.
+//! Native PCAP and PCAPNG to `.frasm` reverse decompiler for FrameAssembly.
 //!
 //! This module implements the five-stage decompilation pipeline that translates binary `.pcap` and
-//! `.pcapng` packet captures back into canonical, lowercase `.fasm` network traffic specifications:
+//! `.pcapng` packet captures back into canonical, lowercase `.frasm` network traffic specifications:
 //!
 //! 1. **Container Normalization (`container`)**: Streams legacy PCAP (microsecond and nanosecond
 //!    magic numbers) and PCAPNG (`SectionHeaderBlock`, `InterfaceDescriptionBlock`,
@@ -11,13 +11,13 @@
 //!    padding and 4-byte FCS trailers.
 //! 2. **Layer 2–7 Modular Protocol Dissection (`l2`, `l3`, `l4`, `l7`)**: Decodes all 81 native
 //!    protocols across Layer 2 through Layer 7 into strongly-typed modifier structures and
-//!    canonical `.fasm` token strings.
+//!    canonical `.frasm` token strings.
 //! 3. **Deterministic Topology Discovery (`topology`)**: Infers sequential `host1`, `host2`, ...
 //!    declarations, tracks dominant unicast MAC addresses, pairs broadcast/multicast traffic, and
 //!    locks directional arrows (`->` vs `<-`) per endpoint pair.
-//! 4. **Per-Packet Self-Check Oracle (`oracle`)**: Compiles each candidate `.fasm` statement in
+//! 4. **Per-Packet Self-Check Oracle (`oracle`)**: Compiles each candidate `.frasm` statement in
 //!    isolation via FrameAssembly's own forward compiler and preserves clean, readable high-level
-//!    `.fasm` statements (or steps down to raw L4/L2 if a candidate statement fails to compile).
+//!    `.frasm` statements (or steps down to raw L4/L2 if a candidate statement fails to compile).
 //! 5. **Shadow-State Elision & Emission (`shadow_emit`)**: Mirrors the forward compiler's 4-tuple
 //!    TCP sequence/acknowledgment state machine and bidirectional port inheritance to elide
 //!    redundant defaults and emit canonical `host` and `compile` blocks.
@@ -39,10 +39,10 @@ use core::net::IpAddr;
 use crate::ast::{L2Modifiers, L3Modifiers, L4Modifiers, Protocol, TransportProto};
 use crate::error::CompilerError;
 
-/// Summary statistics and `.fasm` source code returned by the decompiler.
+/// Summary statistics and `.frasm` source code returned by the decompiler.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReverseOutput {
-    /// Generated canonical lowercase `.fasm` code.
+    /// Generated canonical lowercase `.frasm` code.
     pub fasm: String,
     /// Total number of packets reversed.
     pub packet_count: usize,
@@ -55,7 +55,7 @@ pub struct ReverseOutput {
 pub struct ProtocolDissection {
     /// Identified FrameAssembly [`Protocol`].
     pub protocol: Protocol,
-    /// Canonical lowercase `.fasm` protocol keyword and protocol-specific modifiers
+    /// Canonical lowercase `.frasm` protocol keyword and protocol-specific modifiers
     /// (e.g., `"dns query txid 0x1a2b qname \"example.com\" qtype \"a\""`).
     /// Does NOT include caller/callee arrows, L2/L3/L4 universal modifiers, `payload`/`hexpayload`, or `wait`.
     pub tokens: String,
@@ -108,7 +108,7 @@ pub(crate) struct DissectedPacket {
     pub dissection: ProtocolDissection,
 }
 
-/// Decompiles a binary `.pcap` or `.pcapng` capture stream into canonical `.fasm` code.
+/// Decompiles a binary `.pcap` or `.pcapng` capture stream into canonical `.frasm` code.
 ///
 /// # Errors
 /// Returns [`CompilerError::BackendError`] if the stream is not a valid `.pcap` or `.pcapng`
@@ -120,7 +120,7 @@ pub fn reverse_pcap_reader<R: std::io::Read>(reader: R) -> Result<ReverseOutput,
     Ok(shadow_emit::emit_fasm_program(&packets, &topo))
 }
 
-/// Decompiles an in-memory `.pcap` or `.pcapng` byte slice into canonical `.fasm` code.
+/// Decompiles an in-memory `.pcap` or `.pcapng` byte slice into canonical `.frasm` code.
 ///
 /// # Errors
 /// Returns [`CompilerError::BackendError`] if `bytes` is not a valid `.pcap` or `.pcapng` capture.
@@ -128,7 +128,7 @@ pub fn reverse_pcap_bytes(bytes: &[u8]) -> Result<ReverseOutput, CompilerError> 
     reverse_pcap_reader(std::io::Cursor::new(bytes))
 }
 
-/// Decompiles a `.pcap` or `.pcapng` file on disk into canonical `.fasm` code.
+/// Decompiles a `.pcap` or `.pcapng` file on disk into canonical `.frasm` code.
 ///
 /// # Errors
 /// Returns [`CompilerError::BackendError`] if the file cannot be opened or is not a valid capture.
@@ -158,7 +158,7 @@ pub(crate) fn format_mac_lower(mac: [u8; 6]) -> String {
     )
 }
 
-/// Escapes a UTF-8 string for inclusion inside a `.fasm` double-quoted string literal.
+/// Escapes a UTF-8 string for inclusion inside a `.frasm` double-quoted string literal.
 pub(crate) fn escape_fasm_string(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for ch in s.chars() {
@@ -397,15 +397,15 @@ mod tests {
         buf
     }
 
-    /// Recursively collects `.fasm` files under `dir`.
-    fn collect_fasm_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+    /// Recursively collects `.frasm` files under `dir`.
+    fn collect_frasm_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
         if let Ok(entries) = std::fs::read_dir(dir) {
             let mut paths: Vec<_> = entries.filter_map(|e| e.ok().map(|e| e.path())).collect();
             paths.sort();
             for p in paths {
                 if p.is_dir() {
-                    collect_fasm_files(&p, out);
-                } else if p.extension().and_then(|s| s.to_str()) == Some("fasm") {
+                    collect_frasm_files(&p, out);
+                } else if p.extension().and_then(|s| s.to_str()) == Some("frasm") {
                     out.push(p);
                 }
             }
@@ -417,7 +417,7 @@ mod tests {
     fn test_l2_l3_l4_corpus_roundtrip_oracle() {
         let mut files = Vec::new();
         for sub in ["examples/l2", "examples/l3", "examples/l4"] {
-            collect_fasm_files(std::path::Path::new(sub), &mut files);
+            collect_frasm_files(std::path::Path::new(sub), &mut files);
         }
         assert!(!files.is_empty(), "expected L2/L3/L4 corpus files");
 
@@ -443,7 +443,7 @@ mod tests {
             );
             let reprog = parse_program(&out.fasm).unwrap_or_else(|e| {
                 panic!(
-                    "re-parse failed on {}: {e}\n--- FASM ---\n{}",
+                    "re-parse failed on {}: {e}\n--- FRASM ---\n{}",
                     path.display(),
                     out.fasm
                 )
@@ -472,7 +472,7 @@ mod tests {
         }
     }
 
-    /// Verifies v2.0.0 strict-lowercase PCAPNG decompilation (`host1`/`host2`, zero `loop`,
+    /// Verifies v3.0.0 strict-lowercase PCAPNG decompilation (`host1`/`host2`, zero `loop`,
     /// lowercase enum strings, SCTP `shutdownack`, and exact wire-literal case preservation).
     #[test]
     fn test_v2_strict_lowercase_reverse_roundtrip() {
@@ -528,7 +528,7 @@ compile {
         }
     }
 
-    /// Verifies that all 50 Layer 7 protocols reverse-decompile to their native v2.0.0 lowercase
+    /// Verifies that all 50 Layer 7 protocols reverse-decompile to their native v3.0.0 lowercase
     /// protocol keywords without silently stepping down to `tcp`/`udp` + `hexpayload` in the oracle.
     #[test]
     fn test_all_50_l7_protocols_reverse_without_fallback() {

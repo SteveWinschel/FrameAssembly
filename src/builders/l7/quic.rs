@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire QUIC UDP-Based Multiplexed and Secure Transport frames over UDP port 443.
 //! The wire encoder constructs a RFC 9000 Long Header (`Header Form = 1`, `Fixed Bit = 1`, 2-bit Long Packet Type: `0x0` Initial, `0x1` 0-RTT, `0x2` Handshake, `0x3` Retry; 32-bit Version e.g. `0x00000001` v1 or `0x6b3343cf` v2; DCID Length + 64-bit DCID; SCID Length + 64-bit SCID; variable-length Token; Length; Packet Number) or 1-RTT Short Header (`Header Form = 0`, `Fixed Bit = 1`, DCID, Packet Number). When optional fields in [`QuicSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b quic [initial | zerortt | handshake | retry | short] [version <u32>] [dcid <u64>] [scid <u64>] [token <str>] [pktnum <u32>]`
 
 use crate::ast::*;

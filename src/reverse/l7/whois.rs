@@ -1,4 +1,4 @@
-//! WHOIS Directory Protocol (`whois`, RFC 3912) Layer 7 PCAP-to-`.fasm` decompiler.
+//! WHOIS Directory Protocol (`whois`, RFC 3912) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 3912 `whois` domain registration
 //! queries and structured responses (`Domain Name: ...` and `Registrar: ...` header lines) carried

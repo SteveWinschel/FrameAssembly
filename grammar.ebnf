@@ -2,8 +2,8 @@
 (* FrameAssembly Formal Grammar Specification (ISO/IEC 14977 EBNF)           *)
 (* Covers all 81 native protocols, L2-L7 sub-keywords, modifiers & literals. *)
 (* Synchronized with src/lexer/mod.rs and src/parser/                        *)
-(* Note: FrameAssembly v2.0.0 enforces strict-lowercase alphanumeric syntax  *)
-(* without '_' or '-' on all built-in keywords, protocols, modifiers & units.*)
+(* Note: FrameAssembly v3.0.0 (.frasm) enforces strict-lowercase alphanumeric  *)
+(* syntax without '_' or '-' on all built-in keywords, protocols, modifiers & units.*)
 (* ========================================================================= *)
 
 program                 = { top_level_decl } , compile_block , { top_level_decl } ;

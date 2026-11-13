@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire The Syslog Protocol frames over UDP port 514 (default) or TCP port 514 (via TRANSPORT TCP).
 //! The wire encoder constructs a ASCII UTF-8 structured log record beginning with `<PRI>VERSION` header where `PRI = (Facility * 8) + Severity` (Facility 0..23, Severity 0..7), space-delimited ISO-8601 `TIMESTAMP`, `HOSTNAME`, `APP-NAME`, `PROCID`, `MSGID`, `STRUCTURED-DATA` (`-` or `[sd-id param="val"]`), and free-form UTF-8 `MSG` payload. When optional fields in [`SyslogSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b syslog [facility <u8>] [severity <u8>] [pri <u8>] [hostname <str>] [app <str>] [procid <str>] [msg <str>] [transport tcp]`
 
 use crate::ast::*;

@@ -1,10 +1,10 @@
-//! Kerberos Network Authentication Service v5 (RFC 4120) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Kerberos Network Authentication Service v5 (RFC 4120) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe ASN.1 DER wire-to-AST dissection for `kerberos` v5 messages
 //! (`asreq`, `asrep`, `tgsreq`, `tgsrep`, and `krberror`) over UDP and 4-byte record-marked
 //! TCP transports (port `88` and custom ports with valid ASN.1 APPLICATION tags `0x6A..=0x6D` or
 //! `0x7E`). It dissects outer unencrypted ASN.1 DER fields (`realm`, `cname`, `sname`, and
-//! `etype`) into canonical `.fasm` tokens without attempting to decrypt encrypted ticket or
+//! `etype`) into canonical `.frasm` tokens without attempting to decrypt encrypted ticket or
 //! cipher payloads, and preserves trailing bytes in `residual_payload`.
 
 use alloc::format;

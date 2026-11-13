@@ -1,7 +1,7 @@
 //! Memcached Layer 7 distributed memory caching protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for `memcached` text and binary protocol
-//! frames in FrameAssembly `.fasm` specifications. It recognizes the `memcached` protocol keyword,
+//! frames in FrameAssembly `.frasm` specifications. It recognizes the `memcached` protocol keyword,
 //! shorthand `get` and `set` command keywords, explicit `cmd` strings, cache keys (`key`), data
 //! payloads (`value`), client-specific flags (`flags`), expiration times (`exptime`), request
 //! correlation tokens (`opaque`), and compare-and-swap 64-bit identifiers (`cas`).

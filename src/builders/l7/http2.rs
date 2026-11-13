@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Hypertext Transfer Protocol Version 2 (HTTP/2) frames over TCP port 443 (h2 over TLS) or TCP port 80 (h2c cleartext).
 //! The wire encoder constructs a 24-octet client connection preface (`PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n`) and 9-octet binary frame headers containing 24-bit payload Length, 8-bit Frame Type (`0x0` DATA, `0x1` HEADERS, `0x4` SETTINGS, `0x6` PING, `0x7` GOAWAY, `0x8` WINDOW_UPDATE), 8-bit Flags (`END_STREAM = 0x1`, `END_HEADERS = 0x4`, `ACK = 0x1`), 1-bit Reserved flag, and 31-bit Stream Identifier. When optional fields in [`Http2Spec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b http2 [preface | settings | headers | data | windowupdate | ping | goaway] [streamid <u32>]`
 
 use crate::ast::*;

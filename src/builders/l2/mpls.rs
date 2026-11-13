@@ -6,7 +6,7 @@
 //! (`(exp & 0x07) << 9`), a 1-bit Bottom-of-Stack flag (`(bos & 0x01) << 8`), and an 8-bit
 //! Time-to-Live (`ttl`), followed by the encapsulated MPLS payload bytes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b mpls <label> [exp <0..7>] [bos <0|1>] [mplsttl <u8>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;

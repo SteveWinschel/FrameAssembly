@@ -1,9 +1,9 @@
 # ============================================================================
 # FrameAssembly GBNF Constrained Decoding Grammar (llama.cpp / GGML BNF)
 # Usage: llama-server -m model.gguf --grammar-file frameassembly.gbnf
-# Enforces 100% syntactically valid FrameAssembly (.fasm) generation across
+# Enforces 100% syntactically valid FrameAssembly (.frasm) generation across
 # all 81 native protocols, L2-L4 modifiers, SNMPv1/v2c/v3 USM, and L7 specs.
-# Note: FrameAssembly v2.0.0 enforces strict-lowercase alphanumeric tokens
+# Note: FrameAssembly v3.0.0 enforces strict-lowercase alphanumeric tokens
 # without '_' or '-' across all keywords, protocols, modifiers, and time units.
 # ============================================================================
 

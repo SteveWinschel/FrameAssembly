@@ -1,7 +1,7 @@
 ---
 trigger: glob
 globs: "src/lexer/**/*.rs, src/error.rs, src/parser/**/*.rs, Cargo.toml, tests/**/*.rs"
-description: "Logos 0.14.4 / 0.16.1 zero-copy lexing, v2.0.0 strict-lowercase [a-z0-9]+ keywords, 6-tier priority ladder, Miette 7.6.0 (start, len) span invariants, self-healing keyword diagnostics, foreign .fasm detection, and CI snapshot testing rules."
+description: "Logos 0.14.4 / 0.16.1 zero-copy lexing, v3.0.0 strict-lowercase [a-z0-9]+ keywords, 6-tier priority ladder, Miette 7.6.0 (start, len) span invariants, self-healing keyword diagnostics, foreign .fasm detection, and CI snapshot testing rules."
 ---
 
 # Logos (`0.14.4` -> `0.16.1`) & Miette `7.6.0` Architecture & Best Practices
@@ -19,9 +19,9 @@ Enforce these zero-allocation lexing and technician-friendly diagnostic rules ac
     pub enum Token<'a> { /* ... */ }
     ```
     `r"//[^\r\n]*"` is CRLF-safe, $O(N)$ non-backtracking, and compiles cleanly on **both** `logos 0.14.4` and `logos 0.16.1` without needing `allow_greedy = true`!
-- **Zero-Allocation `&'a str` Slices & Strict-Lowercase Built-In Keywords (v2.0.0)**:
+- **Zero-Allocation `&'a str` Slices & Strict-Lowercase Built-In Keywords (v3.0.0)**:
   - Never allocate `String` or `Vec` inside lexer callbacks; borrow `&'a str` directly (`Token::StringLit(&'a str)`, `Token::Ident(&'a str)`) and defer unescaping (`unescape_string`) to the parser.
-  - Every built-in keyword, protocol, modifier, and time unit (`ns`, `us`, `ms`, `s`, `m`) uses an exact lowercase alphanumeric `#[token("...")]` attribute (`[a-z0-9]+`, zero `_`, zero `-`, **never** `ignore(ascii_case)`)—e.g., `#[token("host")]`, `#[token("echorequest")]`, `#[token("innervlan")]`, `#[token("clienthello")]`, `#[token("hosthdr")]`, `#[token("transporthdr")]`, `#[token("sackperm")]`, `#[token("agentip")]`, `#[token("hellotime")]`, `#[token("whois")]`, `#[token("pkttype")]`, `#[token("read")]`, `#[token("write")]`, `#[token("nop")]`, `#[token("error")]`, `#[token("shutdownack")]`. `Token::Loop` does not exist in v2.0.0.
+  - Every built-in keyword, protocol, modifier, and time unit (`ns`, `us`, `ms`, `s`, `m`) uses an exact lowercase alphanumeric `#[token("...")]` attribute (`[a-z0-9]+`, zero `_`, zero `-`, **never** `ignore(ascii_case)`)—e.g., `#[token("host")]`, `#[token("echorequest")]`, `#[token("innervlan")]`, `#[token("clienthello")]`, `#[token("hosthdr")]`, `#[token("transporthdr")]`, `#[token("sackperm")]`, `#[token("agentip")]`, `#[token("hellotime")]`, `#[token("whois")]`, `#[token("pkttype")]`, `#[token("read")]`, `#[token("write")]`, `#[token("nop")]`, `#[token("error")]`, `#[token("shutdownack")]`. `Token::Loop` does not exist in v3.0.0.
 
 ## 2. Exact Priority Formula & FrameAssembly's 6-Tier Disambiguation Ladder
 - **`logos-codegen 0.14.4` Default Priority Formula (`Mir::priority`)**:
@@ -45,10 +45,10 @@ Enforce these zero-allocation lexing and technician-friendly diagnostic rules ac
 - **CRITICAL `(byte_offset, byte_length)` Tuple Invariant**:
   - `miette::SourceSpan::from((usize, usize))` interprets a 2-tuple as **`(start_byte_offset, byte_length)`**, **NEVER** `(start, end)`!
   - When converting `Range<usize>` (`r.start..r.end`) into `CompilerError`'s `span: (usize, usize)` field, **always** compute `(r.start, r.end - r.start)` (or pass `r.start..r.end` directly to `SourceSpan::from(range)`).
-- **Self-Healing v2.0.0 Keyword & `loop` Diagnostics (`src/parser/mod.rs` & `src/error.rs`)**:
+- **Self-Healing v3.0.0 Keyword & `loop` Diagnostics (`src/parser/mod.rs` & `src/error.rs`)**:
   - When parsing fails on `Token::Ident(raw)`:
     - If `raw.eq_ignore_ascii_case("loop")`, emit `"The 'loop' block was removed in FrameAssembly 2.0; invoke flows or frame statements directly inside 'compile { ... }'."`
-    - If `raw.to_ascii_lowercase().replace(['_', '-'], "")` matches any valid v2.0.0 built-in keyword `<kw>` (`raw != <kw>`), emit `"Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace '<raw>' with '<kw>'."` (powering 1-click VS Code Quick Fixes).
+    - If `raw.to_ascii_lowercase().replace(['_', '-'], "")` matches any valid v3.0.0 built-in keyword `<kw>` (`raw != <kw>`), emit `"Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace '<raw>' with '<kw>'."` (powering 1-click VS Code Quick Fixes).
 - **`NamedSource` Language Tag & Technician-First Hints (`src/error.rs`)**:
   - Construct `NamedSource::new(filename, code).with_language("frameassembly")` (never `"fasm"`).
   - Preserve `detect_foreign_fasm(src)` in `src/error.rs` so users passing x86 Flat Assembler or SymbiFlow/F4PGA FPGA `.fasm` files receive immediate disambiguation guidance.

@@ -1,6 +1,6 @@
-//! IPv4 Layer 3 header extraction (RFC 791 / RFC 2474 / RFC 3168) for PCAP-to-`.fasm` decompilation.
+//! IPv4 Layer 3 header extraction (RFC 791 / RFC 2474 / RFC 3168) for PCAP-to-`.frasm` decompilation.
 //!
-//! This module implements fuzz-safe IPv4 header parsing ([`extract_ipv4_l3`]) and `.fasm` Layer 3
+//! This module implements fuzz-safe IPv4 header parsing ([`extract_ipv4_l3`]) and `.frasm` Layer 3
 //! modifier emission for FrameAssembly's PCAP and PCAPNG decompiler. It validates the IPv4 version
 //! nibble (`4`) and Internet Header Length (`IHL >= 20`), clamps the packet slice to Total Length,
 //! and extracts `src_ip`, `dst_ip`, encapsulated `protocol`, `ttl`, `dscp`, `ecn`, `ipid`, `df`,
@@ -39,7 +39,7 @@ pub(crate) struct Ipv4HeaderFields<'a> {
 }
 
 impl<'a> Ipv4HeaderFields<'a> {
-    /// Appends non-default `.fasm` IPv4 Layer 3 modifiers (`ttl`, `dscp`, `ecn`, `ipid`, `df`,
+    /// Appends non-default `.frasm` IPv4 Layer 3 modifiers (`ttl`, `dscp`, `ecn`, `ipid`, `df`,
     /// `mf`, `fragoffset`) to the statement token buffer.
     pub(crate) fn append_fasm_modifiers(&self, out: &mut String, default_ttl: u8) {
         push_if(out, "ttl", self.ttl, default_ttl);

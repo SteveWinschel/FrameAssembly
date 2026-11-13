@@ -7,7 +7,7 @@
 //! (`greproto`, default `0x0800` IPv4, `0x6558` NVGRE TEB, `0x88BE` ERSPAN, `0x8847` MPLS) and
 //! optional 32-bit Checksum/Reserved (`checksum`), Key (`grekey`), and Sequence (`greseq`) words.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b gre [grekey <u32>] [greseq <u32>] [greproto <u16>] [checksum] [payload "<str>" | hexpayload "<hex>"]`
 
 use core::marker::PhantomData;

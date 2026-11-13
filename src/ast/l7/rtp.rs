@@ -5,7 +5,7 @@
 //! Every field in [`RtpSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b rtp [pt <u8>] [seq <u16>] [timestamp <u32>] [ssrc <u32>] [marker <u8>]`
 
 use core::marker::PhantomData;

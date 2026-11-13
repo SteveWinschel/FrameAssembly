@@ -1,4 +1,4 @@
-//! Remote Authentication Dial-In User Service (`radius`, RFC 2865 / RFC 2866) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Remote Authentication Dial-In User Service (`radius`, RFC 2865 / RFC 2866) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 2865 Authentication and RFC 2866
 //! Accounting `radius` packets carried over UDP ports `1812`, `1813`, `1645`, and `1646`. It

@@ -95,7 +95,7 @@ mod tests {
         }
     }
 
-    /// Verifies that v2.0.0 lowercase de-underscored enum inputs and uppercase/underscored inputs
+    /// Verifies that v3.0.0 lowercase de-underscored enum inputs and uppercase/underscored inputs
     /// produce identical wire bytes while preserving exact user casing on wire string literals.
     #[test]
     fn test_v2_enum_normalization_and_literal_case_preservation() {

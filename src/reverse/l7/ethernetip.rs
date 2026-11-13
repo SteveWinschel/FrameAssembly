@@ -1,4 +1,4 @@
-//! EtherNet/IP and Common Industrial Protocol (ODVA CIP) Layer 7 PCAP-to-`.fasm` decompiler.
+//! EtherNet/IP and Common Industrial Protocol (ODVA CIP) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `ethernetip` 24-byte encapsulation
 //! headers and Common Packet Format (CPF) / CIP bodies over TCP and UDP transports (ports `44818`

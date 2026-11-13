@@ -1,7 +1,7 @@
 //! Session Traversal Utilities for NAT (STUN) Layer 7 protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 8489 `stun` binding discovery
-//! packets in FrameAssembly `.fasm` specifications. It recognizes the `stun` protocol keyword,
+//! packets in FrameAssembly `.frasm` specifications. It recognizes the `stun` protocol keyword,
 //! message class flags (`bindingrequest`, `bindingresponse`, `bindingerror`), transaction IDs
 //! (`txid`), `xormappedaddr` reflexive IP attributes (with an optional port number), and
 //! `software` agent description strings.

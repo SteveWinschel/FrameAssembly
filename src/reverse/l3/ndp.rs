@@ -1,4 +1,4 @@
-//! IPv6 Neighbor Discovery Protocol (NDP, RFC 4861) Layer 3 PCAP-to-`.fasm` decompiler.
+//! IPv6 Neighbor Discovery Protocol (NDP, RFC 4861) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 4861 IPv6 Neighbor
 //! Discovery Protocol (`ndp`, carried over ICMPv6 Next Header `58` with message types `133..=137`).

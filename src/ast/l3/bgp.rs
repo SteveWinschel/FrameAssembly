@@ -8,7 +8,7 @@
 //! 32-bit IPv4 `BGP Identifier` (`bgpid`), while `update` messages advertise Network Layer Reachability
 //! Information (`prefix`) and `nexthop` (`nexthop`) path attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b bgp [open | update | notification | keepalive] [asn <u32>] [holdtime <u16>] [bgpid <ipv4>] [prefix "<cidr>"] [nexthop <ip>]`
 
 use core::net::IpAddr;

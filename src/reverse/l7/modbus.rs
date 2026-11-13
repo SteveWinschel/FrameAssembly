@@ -1,4 +1,4 @@
-//! Modbus Application Protocol v1.1b3 (MBAP + PDU) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Modbus Application Protocol v1.1b3 (MBAP + PDU) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `modbus` TCP and UDP frames on port
 //! `502`. It validates the 7-byte MBAP header (`txid`, `protoid`, `mbap_len`, `unitid`) and decodes

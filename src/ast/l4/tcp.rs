@@ -8,7 +8,7 @@
 //! and 16-bit Urgent Pointer (`urgent`), followed by 32-bit padded TLV options (`mss`, `wscale`,
 //! `sackperm`, `tsval`, `tsecr`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b tcp [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [srcport <u16>] [dstport <u16>] [seq <u32>] [acknum <u32>] [win <u16>] [mss <u16>] [wscale <u8>] [sackperm] [tsval <u32>] [tsecr <u32>]`
 
 /// TCP 8-bit control flags in byte 13 of the RFC 9293 TCP header (`cwr`, `ece`, `urg`, `ack`, `psh`, `rst`, `syn`, `fin`).

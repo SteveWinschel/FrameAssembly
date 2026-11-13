@@ -5,7 +5,7 @@
 //! Every field in [`SsdpSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ssdp [msearch | notify] [hosthdr <str>] [man <str>] [mx <u8>] [st <str>] [nt <str>] [nts <str>] [usn <str>] [location <str>]`
 
 /// Simple Service Discovery Protocol specification.

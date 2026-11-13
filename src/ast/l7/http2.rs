@@ -5,7 +5,7 @@
 //! Every field in [`Http2Spec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b http2 [preface | settings | headers | data | windowupdate | ping | goaway] [streamid <u32>]`
 
 use core::marker::PhantomData;

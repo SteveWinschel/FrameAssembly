@@ -1,9 +1,9 @@
-//! Multicast Listener Discovery (MLDv1 RFC 2710 & MLDv2 RFC 3810) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Multicast Listener Discovery (MLDv1 RFC 2710 & MLDv2 RFC 3810) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IPv6 Multicast Listener
 //! Discovery (`mld`, carried over ICMPv6 Next Header `58` with message types `130..=132` and
 //! `143`). It decodes `query` (`130`), `report` (`131` and MLDv2 `143`), and `done` (`132`)
-//! messages along with the target IPv6 `multicastaddr` and `maxrespdelay` into canonical `.fasm`
+//! messages along with the target IPv6 `multicastaddr` and `maxrespdelay` into canonical `.frasm`
 //! statements while preserving any trailing options or group records as residual payload.
 
 use alloc::string::String;

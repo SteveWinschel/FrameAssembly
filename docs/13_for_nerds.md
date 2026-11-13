@@ -1,18 +1,22 @@
 # For Nerds: Six-Stage Compiler Architecture, Rust Library API & Formal Grammars
 
-While FrameAssembly is designed so network engineers, firewall administrators, and NOC/SOC operators can generate deterministic `.pcap` / `.pcapng` captures with a few lines of declarative `.fasm` code ("Packets as Code"), under the hood `frameassembly` (v2.0.0, Rust Edition 2024) is a six-stage, zero-copy optimizing compiler, a five-stage PCAP/PCAPNG-to-`.fasm` decompiler, a reusable Rust library crate, and a formally specified language (`text/vnd.frameassembly`) backed by six-way synchronized context-free grammars, IDE/WASM bindings ([`frameassembly.ai.studio`](https://frameassembly.ai.studio/)), and a `2,611`-scenario compiler-verified training corpus.
+[← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)
 
-This guide is the dedicated home for **systems engineers**, **Rust developers**, and **AI/ML practitioners**. For the formal RFC 6838 media type specification, UTF-8 encoding rules, lexical magic numbers, and `.fasm` extension disambiguation (IANA, Freedesktop `shared-mime-info`, Wikidata, and GitHub Linguist), see **[`docs/fasm-specification.md`](fasm-specification.md)** and **[`contrib/`](../contrib/)**.
+Every other guide in `docs/` took a solemn oath never to say "AST", "zero-copy DFA", or "context-free grammar". You clicked on `13_for_nerds.md`, so the oath does not apply here. Welcome to the guts.
+
+On the surface, FrameAssembly lets network engineers, firewall administrators, and NOC/SOC operators produce deterministic `.pcap` / `.pcapng` captures from a few lines of declarative `.frasm` code ("Packets as Code"). Underneath, `frameassembly` (v3.0.0, Rust Edition 2024) is a six-stage, zero-copy optimizing compiler, a five-stage PCAP/PCAPNG-to-`.frasm` decompiler, a reusable Rust library crate, and a formally specified language (`text/vnd.frameassembly`) backed by six-way synchronized context-free grammars, IDE/WASM bindings ([`frameassembly.ai.studio`](https://frameassembly.ai.studio/)), and a `2,611`-scenario compiler-verified training corpus. Yes, for a tool whose job is "make some packets", this is a lot of machinery. No, we are not sorry.
+
+This guide is the dedicated home for **systems engineers**, **Rust developers**, and **AI/ML practitioners**. If you came for the formal RFC 6838 media type specification, UTF-8 encoding rules, lexical magic numbers, and `.frasm` extension disambiguation (IANA, Freedesktop `shared-mime-info`, Wikidata, and GitHub Linguist), that lives in **[`docs/12_frasm_specification.md`](12_frasm_specification.md)** and **[`contrib/`](../contrib/)**.
 
 ---
 
 ## 1. Six-Stage Zero-Copy Rust Compiler Pipeline
 
-FrameAssembly compiles `.fasm` source buffers into nanosecond-precision `.pcap` / `.pcapng` captures through a deterministic six-stage pipeline in pure userspace—rootless, offline, and requiring **no `libpcap` or raw sockets** (`CAP_NET_RAW` is never required at build time or runtime).
+FrameAssembly compiles `.frasm` source buffers into nanosecond-precision `.pcap` / `.pcapng` captures through a deterministic six-stage pipeline in pure userspace—rootless, offline, and requiring **no `libpcap` or raw sockets** (`CAP_NET_RAW` is never required at build time or runtime). The only thing it ever sends over a wire is nothing, which makes the threat model refreshingly short.
 
 ```text
  ┌───────────────────────────────────────────────────────────────────────────────┐
- │                           .fasm Source Text (&'a str)                         │
+ │                           .frasm Source Text (&'a str)                         │
  └───────────────────────────────────────┬───────────────────────────────────────┘
                                          │
                                          ▼
@@ -65,17 +69,17 @@ FrameAssembly compiles `.fasm` source buffers into nanosecond-precision `.pcap` 
  ┌───────────────────────────────────────────────────────────────────────────────┐
  │ STAGE 6: Nanosecond PCAPNG Serialization (src/pcap.rs) & Reverse (src/reverse)│
  │  • Transactional in-memory synthesis -> SHB -> IDB (IfTsResol(9)) -> EPBs     │
- │  • 5-stage PCAP/PCAPNG-to-.fasm decompiler (host1, host2, oracle verified)    │
+ │  • 5-stage PCAP/PCAPNG-to-.frasm decompiler (host1, host2, oracle verified)    │
  └───────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Stage 1: Zero-Copy Strict-Lowercase Lexical Analysis (`src/lexer/mod.rs`)
 
-The front-end tokenizer is built on [`logos 0.14.4`](https://docs.rs/logos) and compiles the `Token<'a>` enum into a jump-table Deterministic Finite Automaton (DFA):
+The front-end tokenizer is built on [`logos 0.14.4`](https://docs.rs/logos) and compiles the `Token<'a>` enum into a jump-table Deterministic Finite Automaton (DFA). It reads each byte once and never looks back, which is more than most of us can say about our own regexes:
 
 * **Zero-Copy Lifetimes (`Token<'a>`)**: Variable-length tokens—including `Token::Ident(&'a str)`, `Token::StringLit(&'a str)`, `Token::IpAddress(&'a str)`, `Token::MacAddress(&'a str)`, `Token::OidStr(&'a str)`, and `Token::Number(&'a str)`—borrow slices directly from the input `&'a str` source buffer without heap allocation.
-* **Strict-Lowercase Built-In Keywords (`[a-z0-9]+`, Zero `_`, Zero `-`, No `ignore(ascii_case)`)**: In FrameAssembly v2.0.0, all `646` built-in keyword and time-unit tokens (`host`, `ip`, `mac`, `flow`, `compile`, `wait`, all 81 protocol names, L2–L7 modifiers such as `echorequest`, `innervlan`, `clienthello`, `hosthdr`, `transporthdr`, `sackperm`, `agentip`, `hellotime`, `whois`, `pkttype`, `read`, `write`, `nop`, `error`, `shutdownack`, `readholdingregisters`, and time suffixes `ns`, `us`, `ms`, `s`, `m`) use exact lowercase `#[token("...")]` attributes without `ignore(ascii_case)`.
-* **v2.0.0 Token Consolidation & Removal of `loop`**: `Token::Loop` is completely removed (`loop` blocks were retired in v2.0.0 in favor of direct flow invocations and inline frame statements inside `compile { ... }`); `sackperm`, `agentip`, `hellotime` (unified across STP `u16` and HSRP `<= 255` `u8`), and `whois` (unified across `Protocol::Whois` and BACnet `whois`) are deduplicated; and `pkttype`, `read`, `write`, `nop`, `error`, and `shutdownack` are first-class `Token` variants.
+* **Strict-Lowercase Built-In Keywords (`[a-z0-9]+`, Zero `_`, Zero `-`, No `ignore(ascii_case)`)**: In FrameAssembly v3.0.0, all `646` built-in keyword and time-unit tokens (`host`, `ip`, `mac`, `flow`, `compile`, `wait`, all 81 protocol names, L2–L7 modifiers such as `echorequest`, `innervlan`, `clienthello`, `hosthdr`, `transporthdr`, `sackperm`, `agentip`, `hellotime`, `whois`, `pkttype`, `read`, `write`, `nop`, `error`, `shutdownack`, `readholdingregisters`, and time suffixes `ns`, `us`, `ms`, `s`, `m`) use exact lowercase `#[token("...")]` attributes without `ignore(ascii_case)`.
+* **v3.0.0 Token Consolidation & Removal of `loop`**: `Token::Loop` is completely removed (`loop` blocks were retired in v3.0.0 in favor of direct flow invocations and inline frame statements inside `compile { ... }`); `sackperm`, `agentip`, `hellotime` (unified across STP `u16` and HSRP `<= 255` `u8`), and `whois` (unified across `Protocol::Whois` and BACnet `whois`) are deduplicated; and `pkttype`, `read`, `write`, `nop`, `error`, and `shutdownack` are first-class `Token` variants.
 * **Flexible User Identifiers**: `Token::Ident` uses `#[regex(r"[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*", priority = 1)]` so user-defined `host`, `flow`, and parameter names permit uppercase letters, underscores (`core_sw`), and internal hyphens (`fw-dmz-01`) while stopping cleanly before `->`.
 * **Six-Tier DFA Priority Disambiguation**: Overlapping lexical classes are resolved deterministically at compile time via `logos` priority weights:
   1. `priority = 6`: IEEE 802.3 MAC addresses across colon-separated (`00:1a:2b:3c:4d:5e`), Windows hyphen-separated (`00-1A-2B-3C-4D-5E`), and Cisco dotted-quad (`001a.2b3c.4d5e`) formats—outranks IPv6 hextets and dotted OIDs.
@@ -88,26 +92,26 @@ The front-end tokenizer is built on [`logos 0.14.4`](https://docs.rs/logos) and 
 
 ### Stage 2: Two-Phase Token-Slice Combinator Parsing (`src/parser/`)
 
-Rather than parsing raw characters with backtracking regexes, FrameAssembly uses a two-phase [`winnow 1.0.5`](https://docs.rs/winnow) combinator architecture operating over a contiguous 3-tuple token slice (`Stream<'i, 'a>` in `src/parser/mod.rs`):
+Rather than parsing raw characters with backtracking regexes (an approach with a long history of producing both parsers and outages), FrameAssembly uses a two-phase [`winnow 1.0.5`](https://docs.rs/winnow) combinator architecture operating over a contiguous 3-tuple token slice (`Stream<'i, 'a>` in `src/parser/mod.rs`):
 
 ```rust
 pub type Stream<'i, 'a> = &'i [(Token<'a>, core::ops::Range<usize>, &'a str)];
 ```
 
-* **Protocol-First `whois` Disambiguation & Three-Tier Scoped Field Dispatch (`src/parser/statement.rs` & `src/parser/fields.rs`)**: Across 81 network protocols, many domain keywords naturally overlap (`whois`, `hellotime`, `cookie`, `data`, `value`, `version`, `status`, `token`, `msgid`, `group`, `get`, `set`, `response`, `reqid`, `echoreply`, `query`, `report`, `request`, `reply`, `read`, `write`, `nop`, `error`, and `keepalive`). FrameAssembly prevents cross-protocol keyword shadowing in `parse_frame_statement`:
-  1. **Protocol-First Guard**: When `current_protocol.is_none()`, an explicit protocol-keyword matcher runs *before* fallback field parsing so `a -> b whois domain "example.com"` always sets `Protocol::Whois` instead of being intercepted by BACnet's `whois` modifier.
+* **Protocol-First `whois` Disambiguation & Three-Tier Scoped Field Dispatch (`src/parser/statement.rs` & `src/parser/fields.rs`)**: Across 81 network protocols, many domain keywords naturally overlap (`whois`, `hellotime`, `cookie`, `data`, `value`, `version`, `status`, `token`, `msgid`, `group`, `get`, `set`, `response`, `reqid`, `echoreply`, `query`, `report`, `request`, `reply`, `read`, `write`, `nop`, `error`, and `keepalive`). Eighty-one protocols sharing one vocabulary is how you get two of them fighting over the word `whois`. FrameAssembly prevents cross-protocol keyword shadowing in `parse_frame_statement`:
+  1. **Protocol-First Guard**: When `current_protocol.is_none()`, an explicit protocol-keyword matcher runs *before* fallback field parsing so a `whois` statement carrying `domain "example.com"` always sets `Protocol::Whois` instead of being intercepted by BACnet's `whois` modifier. (BACnet's `whois` is a device-discovery broadcast. The other one asks about domains. They have never met and should not.)
   2. **Three-Tier Modifier Loop**:
      * `parse_universal_field`: Cross-layer L2 (`vlan`, `qinq`, `mpls`, `srcmac`, `dstmac`, `ethertype`), L3 (`ttl`, `dscp`, `ecn`, `flowlabel`, `ipid`, `df`, `mf`, `fragoffset`), L4 (`srcport`, `dstport`, `seq`, `acknum`, `win`, `mss`, `wscale`, `sackperm`, `tsval`, `tsecr`, TCP flags—bypassing `ack` and `rst` when the active protocol is `coap`, `dhcp`, `tftp`, or `sip`), payload (`payload`, `hexpayload`), and timing (`wait`) modifiers.
      * `dispatch_protocol_field(active_proto, input)`: Routes directly to the active protocol's dedicated combinator module (`src/parser/{l2,l3,l4,l7}/<protocol>.rs`, kept `pub(crate) mod` for clean `docs.rs` output).
      * `parse_fallback_field`: Invoked only when diagnosing cross-protocol modifier mistakes so Stage 3 can report a rich semantic error rather than a generic syntax failure.
-* **Contextual Keyword Recovery (`parse_spanned_ident` in `src/parser/ident.rs`)**: Every keyword token in `Token<'a>` is mapped in `parse_spanned_ident`, allowing users to name hosts, flows, or flow parameters `http`, `dns`, `client`, `server`, `token`, or `status` without reserved-word collisions.
-* **Self-Healing Diagnostics (`src/parser/mod.rs` & `src/error.rs`)**: When parsing fails on `Token::Ident(raw)`:
-  * If `raw.to_ascii_lowercase().replace(['_', '-'], "")` matches a valid v2.0.0 built-in keyword `<kw>`, the compiler emits `"Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace '<raw>' with '<kw>'."` (powering 1-click Quick Fix actions in `frameassembly-vscode`).
+* **Contextual Keyword Recovery (`parse_spanned_ident` in `src/parser/ident.rs`)**: Every keyword token in `Token<'a>` is mapped in `parse_spanned_ident`, allowing users to name hosts, flows, or flow parameters `http`, `dns`, `client`, `server`, `token`, or `status` without reserved-word collisions. A host named `dns` is a questionable life choice, but it is your life.
+* **Self-Healing Diagnostics (`src/parser/mod.rs` & `src/error.rs`)**: When parsing fails on `Token::Ident(raw)`, the compiler tries to be helpful instead of merely correct:
+  * If `raw.to_ascii_lowercase().replace(['_', '-'], "")` matches a valid v3.0.0 built-in keyword `<kw>`, the compiler emits `"Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace '<raw>' with '<kw>'."` (powering 1-click Quick Fix actions in `frameassembly-vscode`).
   * If `raw.eq_ignore_ascii_case("loop")`, the compiler emits `"The 'loop' block was removed in FrameAssembly 2.0; invoke flows or frame statements directly inside 'compile { ... }'."`
 
 ### Stage 3: Semantic Validation (`src/parser/validation.rs`)
 
-Once `parse_all` constructs the `Program<'a>` AST, `validate_semantics(&program, &source)` enforces domain invariants before any wire buffers are allocated, returning structured [`miette 7.6`](https://docs.rs/miette) diagnostics on failure:
+Once `parse_all` constructs the `Program<'a>` AST, `validate_semantics(&program, &source)` enforces domain invariants before any wire buffers are allocated. Better to be told "no" by a compiler than by a switch at 2 a.m. Failures come back as structured [`miette 7.6`](https://docs.rs/miette) diagnostics:
 
 1. **Symbol Uniqueness**: Rejects duplicate `host` declarations, duplicate `flow` declarations, and duplicate parameter names within a `flow` signature, reporting the exact source span of the duplicate.
 2. **Statement Modifier Uniqueness & Exclusivity**: Rejects duplicate modifiers on the same statement, duplicate TCP flags (e.g., `syn syn`), and simultaneous `payload` + `hexpayload` declarations.
@@ -124,7 +128,7 @@ Once `parse_all` constructs the `Program<'a>` AST, `validate_semantics(&program,
 
 ### Stage 4: Zero-Heap Protocol Wire Builders & Checksum/Crypto Engines (`src/builders/` & `src/packet.rs`)
 
-FrameAssembly constructs frames **inner-outward** (`Application Layer 7 -> Transport Layer 4 -> Network Layer 3 -> Data-Link Layer 2`) so every outer header knows the exact byte length and checksum of its encapsulated payload before serialization:
+FrameAssembly constructs frames **inner-outward** (`Application Layer 7 → Transport Layer 4 → Network Layer 3 → Data-Link Layer 2`) so every outer header knows the exact byte length and checksum of its encapsulated payload before serialization. Like Russian dolls, except the doll is built from the inside and has a CRC:
 
 ```text
  ┌─────────────────────────────────────────────────────────────────────────┐
@@ -145,7 +149,7 @@ FrameAssembly constructs frames **inner-outward** (`Application Layer 7 -> Trans
   Implemented over `&[&[u8]]` using Rust's `slice.as_chunks::<2>()` so pseudo-headers, transport headers, and payloads are summed in place without concatenating temporary heap vectors:
   * **IPv4 Header Checksum (RFC 791)**: Computed over the 20-byte IPv4 header (`bytes 10..12`).
   * **TCP & UDP Pseudo-Header Checksums (RFC 9293 / RFC 768 / RFC 8200)**: Computed over `[&pseudo_header, &l4_header, payload]` for both IPv4 (12-byte pseudo-header) and IPv6 (40-byte pseudo-header).
-  * **Mandatory UDP `0x0000 -> 0xFFFF` Folding (RFC 768 / RFC 8200 §8.1)**: In UDP, a checksum field of `0x0000` indicates "no checksum computed" (illegal over IPv6 and dropped by strict stacks). Whenever the one's-complement sum evaluates to `0x0000`, `build_udp_datagram` maps it to `0xFFFF`.
+  * **Mandatory UDP `0x0000` → `0xFFFF` Folding (RFC 768 / RFC 8200 §8.1)**: In UDP, a checksum field of `0x0000` indicates "no checksum computed" (illegal over IPv6 and dropped by strict stacks). Whenever the one's-complement sum evaluates to `0x0000`, `build_udp_datagram` maps it to `0xFFFF`. Yes, there is a packet whose checksum is correct only if it is written as the wrong number. Networking is like that.
   * **L3 Control & Routing Checksums**: Native RFC 1071 and IPv6 pseudo-header checksums (RFC 4443 / RFC 5798) are computed automatically for `icmp` (IPv4 Type 8/0 & ICMPv6 Type 128/129), `ndp` (Types 133–137), `igmp`, `mld` (Types 130–132), `gre` (RFC 2784 optional checksum when `C=1`), `ospf` (RFC 2328 header checksum excluding the 64-bit authentication field), and `vrrp` (RFC 3768 v2 and RFC 5798 dual-stack v3 pseudo-header checksum).
 * **SCTP Castagnoli CRC32c (`builders::l4::sctp::crc32c`, RFC 9260 §3.3.10)**:
   Uses a `const` 256-entry lookup table for the reflected Castagnoli polynomial `0x82F63B78` (normal `0x1EDC6F41`). The 32-bit CRC is computed with bytes `8..12` zeroed and written into the SCTP Common Header in **little-endian** byte order (`cksum.to_le_bytes()`) while all other SCTP fields remain big-endian.
@@ -153,7 +157,7 @@ FrameAssembly constructs frames **inner-outward** (`Application Layer 7 -> Trans
   Computes the reflected polynomial `0xA653` (normal `0x3D65`) with inverted remainder (`!crc`) written in **little-endian** order after the 8-byte Data Link header (`0x0564` sync) and after every 16-byte chunk of Transport + Application user data.
 * **ASN.1 BER/DER & SNMPv3 USM Cryptography (`src/builders/l7/snmp/`)**:
   * Uses [`rasn 0.28.15`](https://docs.rs/rasn), `rasn-smi`, and `rasn-snmp` to encode SMIv1/SMIv2 `VarBind` lists across all 9 ASN.1 application/universal types (`int`, `string`, `oid`, `ipaddr`, `counter32`, `gauge32`, `timeticks`, `opaque`, `counter64`) and SNMPv1/v2c/v3 PDUs. Over IPv6, `snmp1` `TrapV1` automatically falls back to `0.0.0.0` for the 4-byte `agent-addr` field per RFC 3584 §3.1.
-  * **RFC 3414 & RFC 7860 Key Localization (`Ku -> Kul`)**: `password_to_key_generic<D>` stretches the passphrase to `1,048,576` bytes (1 MB) in 64-byte blocks through `Md5`, `Sha1`, `Sha256`, `Sha384`, or `Sha512` to derive the master key $K_u$, then hashes $K_u \parallel \text{snmpEngineID} \parallel K_u$ to produce the localized key $K_{ul}$.
+  * **RFC 3414 & RFC 7860 Key Localization (`Ku` → `Kul`)**: `password_to_key_generic<D>` stretches the passphrase to `1,048,576` bytes (1 MB) in 64-byte blocks through `Md5`, `Sha1`, `Sha256`, `Sha384`, or `Sha512` to derive the master key `Ku`, then hashes `Ku || snmpEngineID || Ku` to produce the localized key `Kul`. Yes, the standard makes you hash a megabyte of your password on purpose. It was 1999 and that was considered a security feature.
   * **Privacy Encryption (`DES-CBC` & `AES-128-CFB`)**:
     * `priv des` (RFC 3414 §8.1.1): Splits the 16-byte localized key into an 8-byte DES key and 8-byte pre-IV, XORs the pre-IV with the 8-byte salt to form the CBC IV, zero-pads the BER `ScopedPDU` to an 8-byte multiple, and encrypts via `cbc::Encryptor<Des>`.
     * `priv aes` (RFC 3826 §3.1.2.1): Forms the 128-bit CFB IV by concatenating `snmpEngineBoots (4B BE) || snmpEngineTime (4B BE) || 64-bit salt (8B)` and encrypts the `ScopedPDU` stream in-place via `cfb_mode::Encryptor<Aes128>`.
@@ -161,7 +165,7 @@ FrameAssembly constructs frames **inner-outward** (`Application Layer 7 -> Trans
 
 ### Stage 5: Stateful 4-Tuple & Bidirectional Port Engine (`src/backend/`)
 
-`backend::compile_program` evaluates `RunStatement::{Invocation, Frame}` entries in the `compile` block and maintains two complementary state machines across statements:
+`backend::compile_program` evaluates `RunStatement::{Invocation, Frame}` entries in the `compile` block and maintains two complementary state machines across statements. This is the stage that remembers things so you do not have to do TCP sequence arithmetic by hand:
 
 * **Stage 5a — Two-Stage Bidirectional Port Inheritance (`EndpointPairPorts`)**:
   For every `(caller, callee)` endpoint pair in a `flow` or inline `compile` sequence:
@@ -175,7 +179,7 @@ FrameAssembly constructs frames **inner-outward** (`Application Layer 7 -> Trans
   * `radius`: `(payload, 1812)` for Authentication (`accessrequest`, `accessaccept`, `accessreject`, `accesschallenge`) vs. `(payload, 1813)` for Accounting (`accountingrequest`, `accountingresponse`), automatically assigning the server source port on `<-` replies.
 * **Stage 5b — Canonical 4-Tuple TCP State Machine (`Canonical4Tuple` & `TcpStreamState`)**:
   All TCP-based protocols (`tcp`, `bgp`, `openflow`, `tacacs`, `ftp`, `ssh`, `telnet`, `http`, `http2`, `grpc`, `websocket`, `tls`, `rtsp`, `smtp`, `imap`, `pop3`, `ldap`, `smb`, `redis`, `mysql`, `postgres`, `mqtt`, `amqp`, `whois`, `s7comm`, `opcua`, default-TCP `modbus`/`nfs`/`memcached`/`dnp3`/`ethernetip`, and `transport tcp` overrides on `dns`/`sip`/`syslog`/`kerberos`) share a canonical 4-tuple table keyed by sorted endpoints `((IpAddr, u16), (IpAddr, u16))`:
-  * Each new stream initializes `seq1 = 1000` and `seq2 = 1000`.
+  * Each new stream initializes `seq1 = 1000` and `seq2 = 1000`. (Real stacks pick random initial sequence numbers. Reproducible captures have opinions about that.)
   * Every frame uses the sender's current sequence counter (unless overridden by `seq <u32>`, which resynchronizes the counter) and sets `acknum` to the peer's current sequence counter.
   * After each frame, the sender's sequence counter advances by `payload_len + (1 if syn) + (1 if fin)` using wrapping 32-bit arithmetic.
   * TCP-based L7 statements without explicit TCP flags automatically emit `psh ack` (`0x18`) frames on that connection, seamlessly continuing the sequence numbers established by a preceding raw `tcp` 3-way handshake.
@@ -190,17 +194,17 @@ FrameAssembly constructs frames **inner-outward** (`Application Layer 7 -> Trans
 
 `pcap::PcapWriter` wraps [`pcap-file 2.0.0`](https://docs.rs/pcap-file) to emit standards-compliant PCAP Next Generation (`PCAPNG`) captures:
 
-1. **Transactional Synthesis**: `backend::generate_pcap` executes `compile_program(program)` in memory first, creating the output file on disk only after all frames have been synthesized without error.
-2. **Block Ordering (`SHB -> IDB -> EPB`)**:
+1. **Transactional Synthesis**: `backend::generate_pcap` executes `compile_program(program)` in memory first, creating the output file on disk only after all frames have been synthesized without error. A failed compile leaves no half-written capture behind to confuse you later.
+2. **Block Ordering (`SHB → IDB → EPB`)**:
    * **Section Header Block (`SHB`)**: Emitted automatically by `PcapNgWriter::new(file)` with magic bytes `0x0A0D0D0A`.
-   * **Interface Description Block (`IDB`)**: Configured with `DataLink::ETHERNET` (`LINKTYPE_ETHERNET = 1`), `snaplen = 65535`, and `InterfaceDescriptionOption::IfTsResol(9)` (`10^-9` nanosecond resolution). Including `IfTsResol(9)` prevents the $1000\times$ timestamp skew that occurs when nanosecond timestamps are interpreted as default microseconds (`10^-6`).
+   * **Interface Description Block (`IDB`)**: Configured with `DataLink::ETHERNET` (`LINKTYPE_ETHERNET = 1`), `snaplen = 65535`, and `InterfaceDescriptionOption::IfTsResol(9)` (`10^-9` nanosecond resolution). Including `IfTsResol(9)` prevents the 1000× timestamp skew that occurs when nanosecond timestamps are interpreted as default microseconds (`10^-6`), a bug that turns a 10 ms conversation into one that apparently lasted 10 seconds and makes everyone blame the network.
    * **Enhanced Packet Blocks (`EPB`)**: Starts at deterministic epoch `1_700_000_000_000_000_000` ns (`2023-11-14T22:13:20Z`) and advances by each statement's `wait` duration (default `10ms` = `10_000_000` ns), writing `Duration::from_nanos(ts_nanos_total)` and `Cow::Borrowed(packet_data)`.
 
-In the reverse direction (`frameassembly reverse <input.pcap> [output.fasm]`, defaulting to `<input_stem>.fasm`), `src/reverse/` decompiles binary `.pcap` and `.pcapng` captures back into canonical strict-lowercase v2.0.0 `.fasm` code through a 5-stage pipeline:
+In the reverse direction (`frameassembly reverse <input.pcap> [output.frasm]`, defaulting to `<input_stem>.frasm`), `src/reverse/` does the thing compilers are not supposed to do: it takes the binary back and recovers the source. It decompiles binary `.pcap` and `.pcapng` captures into canonical strict-lowercase v3.0.0 `.frasm` code through a 5-stage pipeline:
 1. **Container Normalization (`src/reverse/container.rs`)**: Detects PCAPNG (`0x0A0D0D0A`) vs. microsecond/nanosecond legacy PCAP magic numbers, normalizes 8 linktypes (`ETHERNET`, `RAW`, `IPV4`, `IPV6`, `LINUX_SLL`, `LINUX_SLL2`, `NULL`, `LOOP`) into 14-byte Ethernet II frames, and strips 60/64-byte Ethernet zero-padding and 4-byte FCS trailers.
 2. **Modular `<layer>/<protocol>` Dissection (`src/reverse/{l2,l3,l4,l7}/<protocol>.rs`)**: Uses `etherparse 0.21.0` (`SlicedPacket` / `LaxSlicedPacket` and `link_exts`) for zero-copy L2–L4 slicing (`src/reverse/l3/{ip,ipv6,icmpv6}.rs` alongside the 20 L3 protocol dissectors) and dispatches across 81 per-protocol decompiler modules (including `src/reverse/l7/{snmp1,snmp2,snmp3}.rs` across all 50 L7 protocol dissectors) matching `src/ast/`, `src/parser/`, and `src/builders/` 1-to-1.
 3. **Deterministic Topology Discovery (`src/reverse/topology.rs`)**: Infers sequential `host1`, `host2`, ... declarations (zero underscores), tracks dominant unicast MACs, pairs broadcast/multicast frames, and locks directional arrows (`->` vs. `<-`) per endpoint pair.
-4. **Per-Packet Self-Check Compiler Oracle (`src/reverse/oracle.rs`)**: Compiles each candidate `.fasm` statement in memory via `parse_program` -> `compile_program` (`verify_with_oracle`), automatically attaching residual `payload`/`hexpayload` or stepping down cleanly to raw L4 (`tcp`/`udp`) or L2 (`vlan`/`qinq`/`mpls`) statements with zero `//` warning or fallback comments.
+4. **Per-Packet Self-Check Compiler Oracle (`src/reverse/oracle.rs`)**: Compiles each candidate `.frasm` statement in memory via `parse_program` → `compile_program` (`verify_with_oracle`), automatically attaching residual `payload`/`hexpayload` or stepping down cleanly to raw L4 (`tcp`/`udp`) or L2 (`vlan`/`qinq`/`mpls`) statements with zero `//` warning or fallback comments.
 5. **Shadow-State Elision & Emission (`src/reverse/shadow_emit.rs`)**: Mirrors the forward compiler's `EndpointPairPorts` and `Canonical4Tuple` TCP sequence/acknowledgment state machine to elide redundant defaults and emits `host<N>` declarations (`host1`, `host2`, ...) and a single `compile { ... }` block containing strict-lowercase `[a-z0-9]+` tokens and zero `loop` blocks.
 
 ---
@@ -209,24 +213,24 @@ In the reverse direction (`frameassembly reverse <input.pcap> [output.fasm]`, de
 
 ### CLI Command Contract (`src/main.rs` & `contrib/completions/`)
 
-In FrameAssembly v2.0.0, compiling `.fasm` to `.pcap` is the **default root command** (using positional arguments with no `compile` CLI subcommand and no output flags), paired with four subcommands:
-* `frameassembly <input.fasm> [output.pcap]` — compiles `.fasm` to `.pcap` / `.pcapng` (defaults to `<input_stem>.pcap`).
-* `frameassembly show <input.fasm>` — validates and prints a relative-timestamp packet ladder in the terminal without writing disk files.
-* `frameassembly reverse <input.pcap> [output.fasm]` — decompiles `.pcap` / `.pcapng` into canonical v2.0.0 `.fasm` code (defaults to `<input_stem>.fasm`).
+In FrameAssembly v3.0.0, compiling `.frasm` to `.pcap` is the **default root command** (using positional arguments with no `compile` CLI subcommand and no output flags), paired with four subcommands:
+* `frameassembly <input.frasm> [output.pcap]` — compiles `.frasm` to `.pcap` / `.pcapng` (defaults to `<input_stem>.pcap`).
+* `frameassembly show <input.frasm>` — validates and prints a relative-timestamp packet ladder in the terminal without writing disk files.
+* `frameassembly reverse <input.pcap> [output.frasm]` — decompiles `.pcap` / `.pcapng` into canonical v3.0.0 `.frasm` code (defaults to `<input_stem>.frasm`).
 * `frameassembly help [subcommand]` & `frameassembly version` — display CLI documentation and version (`-h`/`--help` and `-V`/`--version` remain supported as hidden flags for script compatibility).
 * Static Tab-completion scripts for **Bash**, **Zsh**, **Fish**, and **PowerShell** live in [`contrib/completions/`](../contrib/completions/README.md), and supported release channels in [`contrib/packaging/`](../contrib/packaging/README.md) cover GitHub Releases + Debian/Ubuntu `.deb`, Crates.io (`frameassembly`), NPM (`frameassembly-wasm`), VS Code Marketplace (`frameassembly-vscode`), and `SteveWinschel/homebrew-tap-FrameAssembly` (`Homebrew` & `Scoop`).
 
 ### Repository `<layer>/<protocol>` Symmetry
 
-FrameAssembly enforces a 1-to-1 structural symmetry across `src/`, `examples/`, and `docs/`:
+FrameAssembly enforces a 1-to-1 structural symmetry across `src/`, `examples/`, and `docs/`. The directory tree is the architecture diagram, which saves a meeting:
 
 ```text
 frameassembly/
-├── Cargo.toml                         # Crate manifest (v2.0.0, Rust 1.85+, Edition 2024, centralized [lints])
-├── grammar.ebnf                       # Formal ISO/IEC 14977 EBNF grammar (strict-lowercase v2.0.0)
+├── Cargo.toml                         # Crate manifest (v3.0.0, Rust 1.85+, Edition 2024, centralized [lints])
+├── grammar.ebnf                       # Formal ISO/IEC 14977 EBNF grammar (strict-lowercase v3.0.0)
 ├── frameassembly.gbnf                 # GGML BNF grammar for llama.cpp / XGrammar constrained decoding
 ├── frameassembly.lark                 # Earley/LALR Lark grammar for Outlines / vLLM / Guidance / llguidance
-├── llms.txt / llms-full.txt           # AI agent discovery index & single-fetch RAG context bundle
+├── llms.txt / llms-full.txt           # AI/search discovery index (llms.txt) & prompt-injection context (llms-full.txt)
 ├── contrib/
 │   ├── completions/                   # Bash, Zsh, Fish, and PowerShell Tab-completion scripts
 │   ├── packaging/                     # .deb, Homebrew & Scoop tap, NPM WASM, and VS Code packaging
@@ -235,7 +239,7 @@ frameassembly/
 ├── frameassembly-vscode/              # VS Code Packet Studio & TextMate grammar (source.frameassembly)
 ├── src/
 │   ├── lib.rs                         # Crate root & public library re-exports
-│   ├── main.rs                        # Clap 4.6 CLI (<input.fasm> [output.pcap], show, reverse, help, version)
+│   ├── main.rs                        # Clap 4.6 CLI (<input.frasm> [output.pcap], show, reverse, help, version)
 │   ├── error.rs                       # CompilerError enum with self-healing miette::Diagnostic spans
 │   ├── packet.rs                      # Ethernet/VLAN/QinQ/MPLS/IPv4/IPv6/TCP/UDP framing & RFC 1071 checksums
 │   ├── pcap.rs                        # PcapWriter PCAPNG serializer with IfTsResol(9) nanosecond timestamps
@@ -265,13 +269,13 @@ frameassembly/
 │       ├── shadow_emit.rs             # 4-tuple shadow-state default elision & compile block emission
 │       └── {l2,l3,l4,l7}/             # 81 protocol dissectors (l3/{ip,ipv6,icmpv6}.rs, l7/{snmp1,snmp2,snmp3}.rs)
 ├── docs/                              # 13 canonical Markdown guides
-├── examples/                          # 2,611 verified strict-lowercase .fasm scenarios across 82 directories
+├── examples/                          # 2,611 verified strict-lowercase .frasm scenarios across 82 directories
 └── tests/                             # 12 integration test suites including corpus_verification_tests.rs
 ```
 
 ### Core Architectural & DSL Design Invariants
 
-1. **Strict `<layer>/<protocol>` Symmetry**: Every one of the 81 protocols maps 1-to-1 across `src/ast/<layer>/<protocol>.rs` (`*Spec` struct with strict-lowercase `/// Syntax mapping:` docstring), `src/parser/<layer>/<protocol>.rs` (`winnow` field combinator), `src/builders/<layer>/<protocol>.rs` (wire payload encoder), `src/reverse/<layer>/<protocol>.rs` (PCAP-to-`.fasm` decompiler), and `examples/<layer>/<protocol>/<protocol>_<scenario>.fasm` (`>= 30` verified scenarios per protocol).
+1. **Strict `<layer>/<protocol>` Symmetry**: Every one of the 81 protocols maps 1-to-1 across `src/ast/<layer>/<protocol>.rs` (`*Spec` struct with strict-lowercase `/// Syntax mapping:` docstring), `src/parser/<layer>/<protocol>.rs` (`winnow` field combinator), `src/builders/<layer>/<protocol>.rs` (wire payload encoder), `src/reverse/<layer>/<protocol>.rs` (PCAP-to-`.frasm` decompiler), and `examples/<layer>/<protocol>/<protocol>_<scenario>.frasm` (`>= 30` verified scenarios per protocol).
 2. **Zero Mandatory Sub-Keywords**: Every protocol compiles with zero sub-keywords (emitting RFC-compliant default headers, EtherTypes, IP protocol numbers, and well-known ports) while exposing every AST `*Spec` field as an optional override (enforced by Gate 6 of `corpus_verification_tests`).
 3. **1 Statement = 1 Frame & Shared 4-Tuple TCP State**: Each statement in a `flow` or inline in `compile` emits one Ethernet frame. TCP-based Layer 7 statements automatically emit `psh ack` (`0x18`) frames on that protocol's well-known port and share 4-tuple sequence and acknowledgment counters with raw `tcp` statements on the same connection.
 4. **Polymorphic Dual-Stack Flow Reuse**: A single `flow` executes identically over IPv4 and IPv6 host pairs without duplicating flow logic, while mixing IPv4 and IPv6 endpoints in the same packet statement is rejected at compile time by `validate_semantics`.
@@ -281,22 +285,22 @@ frameassembly/
 
 ## 3. Using `frameassembly` as a Rust Library
 
-In addition to the `frameassembly` CLI binary, the crate exposes its full compiler and decompiler pipelines as a library so Rust projects can synthesize deterministic network frames in memory for protocol parser unit tests, IDS/IPS engine benchmarks, or automated `.pcap` fixture generation.
+In addition to the `frameassembly` CLI binary, the crate exposes its full compiler and decompiler pipelines as a library, so Rust projects can synthesize deterministic network frames in memory for protocol parser unit tests, IDS/IPS engine benchmarks, or automated `.pcap` fixture generation. That means you can delete the 40 MB capture someone checked into `tests/fixtures/` in 2019 and nobody remembers the origin of.
 
 ### Public API Reference
 
 | Function / Type | Signature & Purpose |
 | :--- | :--- |
-| [`lexer::lex`](../src/lexer/mod.rs) | `pub fn lex<'a>(input: &'a str) -> Result<Vec<(Token<'a>, Range<usize>)>, CompilerError>` — Tokenizes `.fasm` source text into zero-copy strict-lowercase `Token<'a>` items paired with byte-offset ranges. |
+| [`lexer::lex`](../src/lexer/mod.rs) | `pub fn lex<'a>(input: &'a str) -> Result<Vec<(Token<'a>, Range<usize>)>, CompilerError>` — Tokenizes `.frasm` source text into zero-copy strict-lowercase `Token<'a>` items paired with byte-offset ranges. |
 | [`parser::parse_program`](../src/parser/mod.rs) | `pub fn parse_program<'a>(input_str: &'a str) -> Result<Program<'a>, CompilerError>` — Runs `lexer::lex`, parses the token stream into a `Program<'a>` AST, and automatically runs `validate_semantics`. |
 | [`parser::validate_semantics`](../src/parser/validation.rs) | `pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerError>` — Validates symbol uniqueness, flow arity, `protocol_requires_ip`, dual-stack IPv4/IPv6 homogeneity, numeric ranges, and modifier rules. |
 | [`backend::compile_program`](../src/backend/mod.rs) | `pub fn compile_program(program: &Program) -> Result<Vec<(Vec<u8>, u64)>, String>` — Evaluates `compile` in memory, returning `(raw_ethernet_frame_bytes, timestamp_nanos)` for each emitted frame. |
 | [`backend::generate_pcap`](../src/backend/mod.rs) | `pub fn generate_pcap(program: &Program, output_path: &str) -> Result<(), String>` — Compiles `program` and writes a nanosecond-resolution PCAPNG capture file to `output_path`. |
 | [`packet::build_wire_packet`](../src/packet.rs) | `pub fn build_wire_packet(...) -> Result<Vec<u8>, CompilerError>` — Low-level builder constructing a complete Ethernet/VLAN/QinQ/MPLS + IPv4/IPv6 + TCP/UDP frame with RFC 1071 checksums. |
 | [`pcap::PcapWriter`](../src/pcap.rs) | `PcapWriter::create(path: &str)` & `writer.write_packet(packet_data: &[u8], ts_nanos_total: u64)` — Streaming PCAPNG writer initialized with `LINKTYPE_ETHERNET` and `IfTsResol(9)`. |
-| [`reverse::reverse_pcap_reader`](../src/reverse/mod.rs) | `pub fn reverse_pcap_reader<R: std::io::Read>(reader: R) -> Result<ReverseOutput, CompilerError>` — Decompiles a `.pcap` or `.pcapng` stream into canonical v2.0.0 `.fasm` code (`ReverseOutput { fasm, packet_count, host_count }`). |
-| [`reverse::reverse_pcap_bytes`](../src/reverse/mod.rs) | `pub fn reverse_pcap_bytes(bytes: &[u8]) -> Result<ReverseOutput, CompilerError>` — Decompiles an in-memory `.pcap` or `.pcapng` byte slice into canonical v2.0.0 `.fasm` code. |
-| [`reverse::reverse_pcap_file`](../src/reverse/mod.rs) | `pub fn reverse_pcap_file(path: impl AsRef<std::path::Path>) -> Result<ReverseOutput, CompilerError>` — Decompiles a `.pcap` or `.pcapng` file on disk into canonical v2.0.0 `.fasm` code. |
+| [`reverse::reverse_pcap_reader`](../src/reverse/mod.rs) | `pub fn reverse_pcap_reader<R: std::io::Read>(reader: R) -> Result<ReverseOutput, CompilerError>` — Decompiles a `.pcap` or `.pcapng` stream into canonical v3.0.0 `.frasm` code (`ReverseOutput { fasm, packet_count, host_count }`). |
+| [`reverse::reverse_pcap_bytes`](../src/reverse/mod.rs) | `pub fn reverse_pcap_bytes(bytes: &[u8]) -> Result<ReverseOutput, CompilerError>` — Decompiles an in-memory `.pcap` or `.pcapng` byte slice into canonical v3.0.0 `.frasm` code. |
+| [`reverse::reverse_pcap_file`](../src/reverse/mod.rs) | `pub fn reverse_pcap_file(path: impl AsRef<std::path::Path>) -> Result<ReverseOutput, CompilerError>` — Decompiles a `.pcap` or `.pcapng` file on disk into canonical v3.0.0 `.frasm` code. |
 | [`error::CompilerError`](../src/error.rs) | Structured diagnostic enum implementing `std::error::Error` and `miette::Diagnostic` with variants `LexError { src: String, span: (usize, usize) }` (`frameassembly::lex_error`), `ParseError { message: String, src: String, span: (usize, usize) }` (`frameassembly::parse_error`), `SemanticError { message: String, src: String, span: (usize, usize) }` (`frameassembly::semantic_error`), and `BackendError(String)` (`frameassembly::backend_error`). |
 
 ### Example 1: In-Memory Frame Synthesis & Byte-Offset Assertions
@@ -325,7 +329,7 @@ fn main() {
         }
     "#;
 
-    let program = parse_program(fasm).expect("valid v2.0.0 .fasm specification");
+    let program = parse_program(fasm).expect("valid v3.0.0 .frasm specification");
     let frames = compile_program(&program).expect("in-memory wire synthesis succeeds");
 
     // 5 statements -> 5 Ethernet frames
@@ -377,7 +381,7 @@ fn write_dns_fixture(output_path: &str) {
 
 ### Example 3: Inspecting Structured `miette` Diagnostics Programmatically
 
-All front-end error variants carry the source string (`src`) and byte-offset tuple `span: (start_byte, byte_len)`, allowing callers to pattern-match on errors or render graphical terminal reports via `miette::GraphicalReportHandler`:
+All front-end error variants carry the source string (`src`) and byte-offset tuple `span: (start_byte, byte_len)`, allowing callers to pattern-match on errors or render graphical terminal reports via `miette::GraphicalReportHandler`. The following test checks that the compiler refuses to put IPv4 and IPv6 in the same packet, which is the correct amount of stubbornness:
 
 ```rust
 use frameassembly::error::CompilerError;
@@ -410,11 +414,11 @@ fn verify_mixed_ip_family_rejection() {
 
 ## 4. Formal Grammars, Constrained LLM Decoding & RLVR Architecture
 
-Because `.fasm` v2.0.0 is a compact, non-Turing-complete specification language with strict-lowercase `[a-z0-9]+` built-in keywords and zero mandatory protocol sub-keywords, it is directly suited for **constrained LLM decoding** (guaranteed 100% syntactically valid generation) and **Reinforcement Learning with Verifiable Rewards (RLVR)**.
+Because `.frasm` v3.0.0 is a compact, non-Turing-complete specification language with strict-lowercase `[a-z0-9]+` built-in keywords and zero mandatory protocol sub-keywords, it is directly suited for **constrained LLM decoding** (guaranteed 100% syntactically valid generation) and **Reinforcement Learning with Verifiable Rewards (RLVR)**. A small language is also one a language model has a fair chance of getting right, which is more than we can say for YAML.
 
 ### Six-Way Grammar, Lexer, IDE & WASM Lockstep
 
-FrameAssembly maintains six grammar, IDE, and WASM artifacts in strict automated lockstep verified by Gate 4 of `tests/corpus_verification_tests.rs` (which checks that all `646` strict-lowercase `#[token("...")]` literals in `src/lexer/mod.rs` exist in every grammar with zero `_`, zero `-`, and zero `loop`, and that every RHS non-terminal resolves to a defined LHS rule):
+FrameAssembly maintains six grammar, IDE, and WASM artifacts in strict automated lockstep. Six copies of one vocabulary will drift apart unless a test forces them not to, so Gate 4 of `tests/corpus_verification_tests.rs` does exactly that: it checks that all `646` strict-lowercase `#[token("...")]` literals in `src/lexer/mod.rs` exist in every grammar with zero `_`, zero `-`, and zero `loop`, and that every RHS non-terminal resolves to a defined LHS rule:
 
 | Artifact | Format | Target Inference Engines & Tooling |
 | :--- | :--- | :--- |
@@ -425,7 +429,7 @@ FrameAssembly maintains six grammar, IDE, and WASM artifacts in strict automated
 | [`frameassembly.tmLanguage.json`](../frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json) | TextMate JSON (`source.frameassembly`) | VS Code (`frameassembly-vscode`), VSCodium, Cursor, Windsurf, and GitHub/Shiki |
 | [`frameassembly-wasm/src/lib.rs`](../frameassembly-wasm/src/lib.rs) | WebAssembly (`wasm-bindgen`) | In-browser compiler (`compile_fasm_to_pcapng`), decompiler (`reverse_pcap`), packet inspector (`inspect_fasm`), and UTF-16 IDE diagnostics (`validate_fasm`) |
 
-### Core v2.0.0 Grammar Productions (`EBNF` / `GBNF` / `Lark`)
+### Core v3.0.0 Grammar Productions (`EBNF` / `GBNF` / `Lark`)
 
 All three context-free grammars enforce strict-lowercase `host`, `flow`, and `compile` blocks, flexible user identifiers, and `run_statement = flow_invocation | frame_statement` (`loop` removed):
 
@@ -464,19 +468,19 @@ run_stmt: flow_call | frame_stmt
 
 ### Constrained Decoding with `llama.cpp` (`frameassembly.gbnf`)
 
-Pass `--grammar-file frameassembly.gbnf` to `llama-cli` or `llama-server` to mask out invalid token logits at every decoding step, then compile the generated `.fasm` directly with the default `frameassembly` command:
+Pass `--grammar-file frameassembly.gbnf` to `llama-cli` or `llama-server` to mask out invalid token logits at every decoding step, then compile the generated `.frasm` directly with the default `frameassembly` command:
 
 ```bash
 llama-cli \
   -m qwen2.5-coder-7b-instruct-q8_0.gguf \
   --grammar-file frameassembly.gbnf \
-  -p "Write a FrameAssembly v2.0.0 (.fasm) program that performs a TCP 3-way handshake between 10.0.0.1 and 10.0.0.2 on port 443 and sends a TLS clienthello with sni 'secure.example.com'." \
-  > generated.fasm && frameassembly generated.fasm synthesized.pcap
+  -p "Write a FrameAssembly v3.0.0 (.frasm) program that performs a TCP 3-way handshake between 10.0.0.1 and 10.0.0.2 on port 443 and sends a TLS clienthello with sni 'secure.example.com'." \
+  > generated.frasm && frameassembly generated.frasm synthesized.pcap
 ```
 
 ### Constrained Decoding with Python `Outlines` / `vLLM` (`frameassembly.lark`)
 
-Use `frameassembly.lark` with `outlines` or `vLLM` structured outputs to guarantee valid v2.0.0 `.fasm` generation from Python inference pipelines:
+Use `frameassembly.lark` with `outlines` or `vLLM` structured outputs to guarantee valid v3.0.0 `.frasm` generation from Python inference pipelines:
 
 ```python
 from pathlib import Path
@@ -487,19 +491,19 @@ model = outlines.models.transformers("Qwen/Qwen2.5-Coder-7B-Instruct")
 generator = outlines.generate.cfg(model, lark_grammar)
 
 fasm_code = generator(
-    "Generate a FrameAssembly v2.0.0 (.fasm) specification for a bgp open and keepalive "
+    "Generate a FrameAssembly v3.0.0 (.frasm) specification for a bgp open and keepalive "
     "session between peer_a (10.0.0.1, asn 65001) and peer_b (10.0.0.2, asn 65002)."
 )
 ```
 
 ### Four-Stage Hierarchical Verifiable Compiler Reward (RLVR / GRPO)
 
-Because `frameassembly` compiles in microseconds in pure memory without `libpcap` or network interfaces, the Rust library serves directly as a dense, deterministic reward oracle $R(x, y) \in [0.0, 1.0]$ for GRPO / PPO post-training:
+Because `frameassembly` compiles in microseconds in pure memory without `libpcap` or network interfaces, the Rust library serves directly as a dense, deterministic reward oracle R(x, y) in [0.0, 1.0] for GRPO / PPO post-training. It is a grader that never gets tired, never gets bribed, and never changes its mind about what a valid TCP checksum is:
 
-1. **Stage 1 — Lexical Validity ($R = 0.15$, $+0.15$)**: `frameassembly::lexer::lex(candidate)` succeeds with zero `LexError` tokens.
-2. **Stage 2 — Syntactic AST Validity ($R = 0.40$, $+0.25$)**: `frameassembly::parser::parse_program(candidate)` constructs a syntactically valid `Program<'a>` AST (`host` + optional `flow` + `compile`).
-3. **Stage 3 — Semantic Validity ($R = 0.70$, $+0.30$)**: `frameassembly::parser::validate_semantics(&program, candidate)` passes symbol resolution, flow arity, field range, `protocol_requires_ip`, and dual-stack IPv4/IPv6 homogeneity checks.
-4. **Stage 4 — Wire, PCAPNG & Reverse Decompiler Oracle ($R = 1.00$, $+0.30$)**: `frameassembly::backend::compile_program(&program)` emits deterministic Ethernet frames with valid RFC checksums (IPv4 header, TCP/UDP pseudo-header, ICMP/ICMPv6, SCTP CRC-32c, DNP3 CRC-16) and round-trips through `frameassembly::reverse::reverse_pcap_bytes`.
+1. **Stage 1 — Lexical Validity (R = 0.15, +0.15)**: `frameassembly::lexer::lex(candidate)` succeeds with zero `LexError` tokens.
+2. **Stage 2 — Syntactic AST Validity (R = 0.40, +0.25)**: `frameassembly::parser::parse_program(candidate)` constructs a syntactically valid `Program<'a>` AST (`host` + optional `flow` + `compile`).
+3. **Stage 3 — Semantic Validity (R = 0.70, +0.30)**: `frameassembly::parser::validate_semantics(&program, candidate)` passes symbol resolution, flow arity, field range, `protocol_requires_ip`, and dual-stack IPv4/IPv6 homogeneity checks.
+4. **Stage 4 — Wire, PCAPNG & Reverse Decompiler Oracle (R = 1.00, +0.30)**: `frameassembly::backend::compile_program(&program)` emits deterministic Ethernet frames with valid RFC checksums (IPv4 header, TCP/UDP pseudo-header, ICMP/ICMPv6, SCTP CRC-32c, DNP3 CRC-16) and round-trips through `frameassembly::reverse::reverse_pcap_bytes`.
 
 ```rust
 use frameassembly::backend::compile_program;
@@ -507,7 +511,7 @@ use frameassembly::error::CompilerError;
 use frameassembly::lexer::lex;
 use frameassembly::parser::parse_program;
 
-/// Computes a dense 4-stage verifiable reward in [0.0, 1.0] for an LLM-generated `.fasm` candidate.
+/// Computes a dense 4-stage verifiable reward in [0.0, 1.0] for an LLM-generated `.frasm` candidate.
 pub fn compute_rlvr_reward(candidate_fasm: &str) -> f64 {
     if lex(candidate_fasm).is_err() {
         return 0.0;
@@ -538,21 +542,25 @@ pub fn compute_rlvr_reward(candidate_fasm: &str) -> f64 {
 
 ## 5. Verified SFT / RLVR Corpus Architecture (`examples/`)
 
-Every `.fasm` file across the **`2,611` verified scenarios** (`>= 30` per protocol across all 81 protocols plus `104` multi-host topologies in [`examples/`](../examples/)) is continuously validated by `cargo test --test corpus_verification_tests`:
+Every `.frasm` file across the **`2,611` verified scenarios** (`>= 30` per protocol across all 81 protocols plus `104` multi-host topologies in [`examples/`](../examples/)) is continuously validated by `cargo test --test corpus_verification_tests`. Every file passes a compiler, not a code review, so nobody has to argue about style:
 
 * **Pre-Training Quality Filter Compliance**: Every corpus file satisfies the heuristic quality gates used by **The Stack v2**, **StarCoder2**, **FineWeb-Edu**, **Dolma**, **DeepSeek-Coder**, and **OpenCoder**:
   * Word count `>= 50` words and file size `< 50,000` bytes.
   * Average line length `<= 85` characters and maximum line length `<= 200` characters.
-  * Descriptive `<protocol>_<scenario>.fasm` filenames without numeric prefixes.
-* **Three-Tier Structured Metadata Headers** (used exclusively in `examples/**/*.fasm` and documented here for ML engineers—never included in human-facing guides):
+  * Descriptive `<protocol>_<scenario>.frasm` filenames without numeric prefixes.
+* **Three-Tier Structured Metadata Headers** (used exclusively in `examples/**/*.frasm` and documented here for ML engineers—never included in human-facing guides, which would be rude to the humans):
   1. **Line 1 (`// PROMPT: <description>`)**: Natural-language task specification describing the protocol, topology, and wire behavior.
   2. **Line 2 (`// TOKENS: <t1, t2, ...>`)**: Exact, comma-separated strict-lowercase `src/lexer/mod.rs` keywords exercised in the file body in first-appearance order (verified for 100% lexer bijection by Gate 2).
   3. **Block Annotations (`// INSTRUCTION: <step>`)**: Placed immediately above each `host`, `flow`, and `compile` block to support 5 deterministic dataset export tasks (`13,055` total instances across `2,611` scenarios):
-     * **Task 1 — Forward SFT (`2,611` pairs)**: Natural-language prompt $\rightarrow$ strict-lowercase v2.0.0 `.fasm` code.
+     * **Task 1 — Forward SFT (`2,611` pairs)**: Natural-language prompt → strict-lowercase v3.0.0 `.frasm` code.
      * **Task 2 — Repo/File-Level FIM (`2,611` triplets)**: `<|fim_prefix|>`, `<|fim_suffix|>`, `<|fim_middle|>` completion across `flow` bodies.
-     * **Task 3 — Inverse PCAP-to-`.fasm` Decompilation (`2,611` pairs)**: Deterministic PCAP/PCAPNG dissection via `src/reverse/` (`host1`, `host2`, strict lowercase, zero `loop`).
+     * **Task 3 — Inverse PCAP-to-`.frasm` Decompilation (`2,611` pairs)**: Deterministic PCAP/PCAPNG dissection via `src/reverse/` (`host1`, `host2`, strict lowercase, zero `loop`).
      * **Task 4 — Contrastive DPO (`2,611` triplets)**: `(prompt, chosen_valid_fasm, rejected_hallucinated_fasm)`.
-     * **Task 5 — Execution-Feedback Self-Repair & RLVR (`2,611` trajectories)**: Mutated `.fasm` + self-healing `miette` span diagnostic (`replace '<raw>' with '<kw>'`) $\rightarrow$ repaired compilable `.fasm`.
+     * **Task 5 — Execution-Feedback Self-Repair & RLVR (`2,611` trajectories)**: Mutated `.frasm` + self-healing `miette` span diagnostic (`replace '<raw>' with '<kw>'`) → repaired compilable `.frasm`.
+
+### Corpus Header Examples
+
+The three files below are shown with their full metadata headers, exactly as they appear in `examples/`. They are the only place in `docs/` where you will see `// PROMPT:` and friends, because everywhere else the audience has a pulse and a deadline.
 
 ### Corpus Header Example 1: Polymorphic Dual-Stack ICMPv4 / ICMPv6 Echo
 
@@ -639,3 +647,7 @@ compile {
     ot_register_poll(scada_hmi, rtu_plc)
 }
 ```
+
+---
+
+That is the whole machine. If you found a bug in it, the corpus gates would very much like to hear about it before the rest of us do. Back to the people-friendly docs: [← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)

@@ -5,7 +5,7 @@
 //! LDAPS). On the wire, an `LDAPMessage` is an ASN.1 BER `SEQUENCE` (tag `0x30`) containing an
 //! integer `messageid` followed by a protocol operation choice (`BindRequest` `0x60`,
 //! `BindResponse` `0x61`, `SearchRequest` `0x63`, `SearchResultEntry` `0x64`,
-//! `SearchResultDone` `0x65`, or `UnbindRequest` `0x42`). Canonical FrameAssembly `.fasm` syntax:
+//! `SearchResultDone` `0x65`, or `UnbindRequest` `0x42`). Canonical FrameAssembly `.frasm` syntax:
 //! `ldap [msgid <i32>] [bindreq | bindres | searchreq | searchentry | searchdone | unbindreq] [basedn <str>] [filter <str>] [resultcode <u32>]`.
 
 /// RFC 4511 Lightweight Directory Access Protocol v3 (LDAP) specification.

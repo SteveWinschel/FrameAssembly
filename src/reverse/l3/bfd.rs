@@ -1,10 +1,10 @@
-//! Bidirectional Forwarding Detection (BFD, RFC 5880) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Bidirectional Forwarding Detection (BFD, RFC 5880) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 5880 / RFC 5881
 //! Bidirectional Forwarding Detection (`bfd`) control packets carried over UDP ports `3784`
 //! (single-hop) and `4784` (multi-hop). It validates the 24-byte BFD v1 control header and decodes
 //! session `state`, diagnostic code (`diag`), detection multiplier (`mult`), `mydisc`,
-//! `yourdisc`, `mintx`, and `minrx` timer intervals into canonical `.fasm` tokens.
+//! `yourdisc`, `mintx`, and `minrx` timer intervals into canonical `.frasm` tokens.
 
 use alloc::string::String;
 

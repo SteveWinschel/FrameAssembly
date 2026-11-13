@@ -23,13 +23,13 @@ fn lex_error_summary(src: &str, span: (usize, usize)) -> String {
     let snippet = slice_at_span(src, span);
     let rest = src.get(span.0.min(src.len())..).unwrap_or("");
     if rest.starts_with('#') {
-        "Failed to parse token '#': comments in .fasm start with '//', not '#'".to_string()
+        "Failed to parse token '#': comments in .frasm start with '//', not '#'".to_string()
     } else if rest.starts_with("/*") || rest.starts_with("*/") {
-        "Failed to parse token '/*': block comments are not supported in .fasm (use '//' instead)"
+        "Failed to parse token '/*': block comments are not supported in .frasm (use '//' instead)"
             .to_string()
     } else if rest.starts_with('\'') {
         alloc::format!(
-            "Failed to parse token '{}': single quotes are not used for text strings in .fasm (use double quotes \"...\" instead)",
+            "Failed to parse token '{}': single quotes are not used for text strings in .frasm (use double quotes \"...\" instead)",
             snippet
         )
     } else if rest.starts_with('/')
@@ -42,21 +42,21 @@ fn lex_error_summary(src: &str, span: (usize, usize)) -> String {
     } else if rest.starts_with('=') || rest.starts_with(':') {
         let ch = rest.chars().next().unwrap_or('=');
         alloc::format!(
-            "Failed to parse token '{}': assignment symbol '{}' is not used between keywords and values in .fasm",
+            "Failed to parse token '{}': assignment symbol '{}' is not used between keywords and values in .frasm",
             ch,
             ch
         )
     } else if rest.starts_with('[') || rest.starts_with(']') {
         let ch = rest.chars().next().unwrap_or('[');
         alloc::format!(
-            "Failed to parse token '{}': square brackets '[' and ']' are not used in .fasm",
+            "Failed to parse token '{}': square brackets '[' and ']' are not used in .frasm",
             ch
         )
     } else if rest.starts_with(';') {
-        "Failed to parse token ';': semicolons are not needed at the end of lines in .fasm"
+        "Failed to parse token ';': semicolons are not needed at the end of lines in .frasm"
             .to_string()
     } else if rest.starts_with('+') {
-        "Failed to parse token '+': relative delay prefixes like '+5ms' are not used in .fasm"
+        "Failed to parse token '+': relative delay prefixes like '+5ms' are not used in .frasm"
             .to_string()
     } else if snippet.is_empty() {
         "Failed to parse token".to_string()
@@ -65,8 +65,8 @@ fn lex_error_summary(src: &str, span: (usize, usize)) -> String {
     }
 }
 
-/// Detects whether `src` appears to be a foreign `.fasm` file (such as x86 Flat Assembler
-/// or FPGA FASM bitstream configuration) rather than a FrameAssembly network packet specification.
+/// Detects whether `src` appears to be a foreign `.fasm` assembly file (such as x86 Flat Assembler
+/// or FPGA FASM bitstream configuration) rather than a FrameAssembly `.frasm` network packet specification.
 ///
 /// Returns `Some("an x86 Flat Assembler")` or `Some("an FPGA FASM")` if foreign signatures
 /// are identified and the input lacks canonical FrameAssembly `flow` and `compile` structure.
@@ -180,7 +180,7 @@ fn lex_error_help(src: &str, span: (usize, usize)) -> String {
     } else if rest.starts_with('+') {
         "Put 'wait <duration>' at the end of the packet statement instead (for example: c -> s tcp syn ack wait 5ms).".to_string()
     } else {
-        "Check for unsupported punctuation or typos. See docs/getting_started.md for valid .fasm syntax and examples.".to_string()
+        "Check for unsupported punctuation or typos. See docs/01_getting_started.md for valid .frasm syntax and examples.".to_string()
     }
 }
 
@@ -241,11 +241,11 @@ fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
     } else if message.contains("missing its endpoint parameter list") {
         "Add endpoint parameter names in parentheses after the flow name — for example: flow my_flow(c, s) { c -> s tcp syn }.".to_string()
     } else if message.contains("missing 'compile") || message.contains("duplicate 'compile'") {
-        "Every .fasm file must contain exactly one compile { ... } block at the end that calls your flows — for example: compile { my_flow(client, server) }.".to_string()
+        "Every .frasm file must contain exactly one compile { ... } block at the end that calls your flows — for example: compile { my_flow(client, server) }.".to_string()
     } else if message.contains("outside a flow block") {
         "Move packet statements ('a -> b ...') inside a flow name(a, b) { ... } block (then call name(host1, host2) inside compile { ... }) or place inline packet statements directly inside compile { ... }.".to_string()
     } else {
-        "Ensure the syntax matches the expected grammar. See docs/getting_started.md for ready-to-use .fasm examples.".to_string()
+        "Ensure the syntax matches the expected grammar. See docs/01_getting_started.md for ready-to-use .frasm examples.".to_string()
     }
 }
 

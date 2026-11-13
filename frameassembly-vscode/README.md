@@ -1,47 +1,51 @@
-# FrameAssembly — PCAP & Network Packet Studio (`.fasm` v2.0.0)
+# FrameAssembly — PCAP & Network Packet Studio (`.frasm` v3.0.0)
 
 [![Website & Playground](https://img.shields.io/badge/web%20app-frameassembly.ai.studio-0ea5e9.svg)](https://frameassembly.ai.studio/)
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/SteveWinschel.frameassembly-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-v3.0.0-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
 
-[**Try in Browser (`frameassembly.ai.studio`)**](https://frameassembly.ai.studio/) • [**Studio Features**](#interactive-packet-studio-features) • [**Example `.fasm` Workflows**](#example-fasm-workflows) • [**81 Native Protocols**](#protocol-coverage-81-native-protocols) • [**18 Snippets**](#18-tab-completable-snippets) • [**CLI Companion**](#cli--replay-companion-tools)
+[**Try in Browser (`frameassembly.ai.studio`)**](https://frameassembly.ai.studio/) • [**Studio Features**](#interactive-packet-studio-features) • [**Example `.frasm` Workflows**](#example-frasm-workflows) • [**81 Native Protocols**](#protocol-coverage-81-native-protocols) • [**18 Snippets**](#18-tab-completable-snippets) • [**CLI Companion**](#cli--replay-companion-tools)
 
 ## What Is FrameAssembly Packet Studio?
 
 [**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) is a **Packets as Code** toolkit built for **Network Engineers, Firewall Administrators, SOC/NDR Analysts, Pentesters, and OT/SCADA Integrators** who need `.pcap` and `.pcapng` traffic captures without maintaining Python `Scapy` virtualenvs, pulling switch cables to trigger alerts, or editing raw hex offsets in `text2pcap`.
 
-Starting in **v2.0.0**, this extension bundles the full **FrameAssembly WebAssembly engine** directly inside **VS Code**, **VS Code for the Web (`vscode.dev`)**, **Cursor**, **Windsurf**, **VSCodium**, and **Antigravity IDE**—with zero external dependencies, zero background daemons, and dedicated `source.frameassembly` (`text/vnd.frameassembly`) disambiguation so x86 Flat Assembler (`;` comments) and FPGA bitstream (`#` comments) extensions never hijack your network packet files.
+Since **v2.0.0**, this extension bundles the full **FrameAssembly WebAssembly engine** directly inside **VS Code**, **VS Code for the Web (`vscode.dev`)**, **Cursor**, **Windsurf**, **VSCodium**, and **Antigravity IDE**—with zero external dependencies, zero background daemons, and dedicated `source.frameassembly` (`text/vnd.frameassembly`) disambiguation so x86 Flat Assembler (`;` comments) and FPGA bitstream (`#` comments) extensions never hijack your network packet files.
+
+[See the Packet Studio preview: `.frasm` code on the left, Live Packet Ladder and hex dump on the right](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/assets/packet-studio-preview.svg)
+
+**Upgrading from 2.x?** FrameAssembly 3.0 renamed its files from `.fasm` to `.frasm`. Rename your files; the code inside is unchanged. The new extension opens `.frasm` files with full highlighting, diagnostics, and autocomplete, and the first time it starts it opens a short **Getting Started** walkthrough (also available as **FrameAssembly: Open Getting Started Walkthrough**).
 
 ---
 
 ## Interactive Packet Studio Features
 
 ### 1. Live In-Editor Diagnostics & 1-Click Quick Fixes
-As you edit `.fasm` code, the embedded WebAssembly compiler validates endpoint IPv4/IPv6 families, MAC formats, port bounds, and protocol modifiers in under `5ms` (`120ms` typing debounce). Pasted an older snippet with uppercase or underscored keywords like `ECHO_REQUEST` or `inner_vlan`? Press `Ctrl+.` / `Cmd+.` (or click the lightbulb) for a **1-click Quick Fix** that converts it to FrameAssembly 2.0 strict lowercase (`echorequest`, `innervlan`).
+As you edit `.frasm` code, the embedded WebAssembly compiler validates endpoint IPv4/IPv6 families, MAC formats, port bounds, and protocol modifiers in under `5ms` (`120ms` typing debounce). Pasted an older snippet with uppercase or underscored keywords like `ECHO_REQUEST` or `inner_vlan`? Press `Ctrl+.` / `Cmd+.` (or click the lightbulb) for a **1-click Quick Fix** that converts it to FrameAssembly 3.0 strict lowercase (`echorequest`, `innervlan`).
 
 ### 2. Protocol-Scoped Autocomplete Across All 81 Protocols
-Press `Ctrl+Space` anywhere in a `.fasm` file for context-aware completions:
+Press `Ctrl+Space` anywhere in a `.frasm` file for context-aware completions:
 * **Top-level & `host` blocks:** Completes `host`, `flow`, `compile`, `ip`, and `mac`.
 * **Endpoints & Flows:** Suggests declared `host` identifiers, `flow` parameters right after `->` or `<-`, and parameterized flow calls inside `compile { ... }`.
 * **81 Protocols & Scoped Modifiers:** Suggests all 81 L2–L7 protocols after `<src> -> <dst>`, then narrows modifier completions to the active protocol (`snmp3` USM crypto flags, `modbus` function codes, `dns` record fields, `bgp` peering attributes, `vlan`/`qinq`/`mpls` tags, and `wait` units `ns`, `us`, `ms`, `s`, `m`).
 
 ### 3. Live Packet Ladder Preview & 1-Click Compile to `.pcap`
-Use the editor title bar buttons whenever a `.fasm` file is open:
+Use the editor title bar buttons whenever a `.frasm` file is open:
 * **Show Live Packet Ladder Preview (`frameassembly.showPacketLadder`):** Opens a theme-aware side-by-side panel displaying `# | Time (ms) | Source -> Destination | Proto | Bytes | Summary` that refreshes live as you edit. Click any packet row to inspect its raw Ethernet frame hex dump.
-* **Compile `.fasm` to `.pcapng` (`frameassembly.compileToPcap`):** Compiles the active `.fasm` specification directly into `<stem>.pcap` (nanosecond-precision PCAPNG) ready for **Wireshark**, **`tshark`**, **`tcpreplay`**, **Suricata**, or **Zeek**.
+* **Compile `.frasm` to `.pcap` (`frameassembly.compileToPcap`):** Compiles the active `.frasm` specification directly into `<stem>.pcap` (nanosecond-precision PCAPNG) ready for **Wireshark**, **`tshark`**, **`tcpreplay`**, **Suricata**, or **Zeek**. The success notification offers **Open Capture** (opens the file in your default capture tool) and **Reveal in Explorer**. In `vscode.dev` and `github.dev`, where there is no local file to write next to, the Packet Ladder panel shows a **Download .pcap** button that saves the capture straight to your downloads folder.
 
-### 4. Explorer Right-Click `.pcap` / `.pcapng` -> Reverse to `.fasm`
-Need to anonymize customer IPs before sending a capture to vendor TAC, or tweak one packet inside an existing trace? Right-click any `.pcap` or `.pcapng` file in the VS Code Explorer and select **`FrameAssembly: Reverse Capture (.pcap/.pcapng) to .fasm`** (`frameassembly.reversePcap`) to decompile the capture into `.fasm` code (`host1`, `host2`, ... and inline `compile { ... }` statements) and open it immediately in a new tab.
+### 4. Explorer Right-Click `.pcap` / `.pcapng` -> Reverse to `.frasm`
+Need to anonymize customer IPs before sending a capture to vendor TAC, or tweak one packet inside an existing trace? Right-click any `.pcap` or `.pcapng` file in the VS Code Explorer and select **`FrameAssembly: Reverse Capture (.pcap/.pcapng) to .frasm`** (`frameassembly.reversePcap`) to decompile the capture into `.frasm` code (`host1`, `host2`, ... and inline `compile { ... }` statements) and open it immediately in a new tab.
 
 ### 5. Markdown Runbook Highlighting & Safe Auto-Closing Pairs
-Injects `source.frameassembly` syntax highlighting into ```` ```frameassembly ```` and ```` ```fasm ```` code blocks inside Markdown files (`markdown.frameassembly.codeblock`), and configures `//` comment toggling (`Ctrl+/`) with `{...}`, `(...)`, and `"..."` pairs without inserting invalid `'single quotes'` or `[brackets]`.
+Injects `source.frameassembly` syntax highlighting into ```` ```frameassembly ```` and ```` ```frasm ```` code blocks inside Markdown files (`markdown.frameassembly.codeblock`), and configures `//` comment toggling (`Ctrl+/`) with `{...}`, `(...)`, and `"..."` pairs without inserting invalid `'single quotes'` or `[brackets]`.
 
 ---
 
-## Example `.fasm` Workflows
+## Example `.frasm` Workflows
 
 ### Simulating Encrypted `SNMPv3` `authPriv` Traps & `Syslog` Alerts (`Checkmk`, `Zabbix`, `PRTG`)
-Verifying whether **Checkmk**, **Zabbix**, **PRTG**, **LibreNMS**, **SolarWinds**, or `snmptrapd` fires an incident alert should not require fighting MIB imports, matching EngineIDs on hardware, or pulling fiber out of a core switch. Write the trap and syslog frames in `.fasm` code and click **Compile `.fasm` to `.pcapng`**:
+Verifying whether **Checkmk**, **Zabbix**, **PRTG**, **LibreNMS**, **SolarWinds**, or `snmptrapd` fires an incident alert should not require fighting MIB imports, matching EngineIDs on hardware, or pulling fiber out of a core switch. Write the trap and syslog frames in `.frasm` code and click **Compile `.frasm` to `.pcap`**:
 
 ```frameassembly
 // SNMPv3 authPriv linkDown trap + RFC 5424 Syslog alert
@@ -80,7 +84,7 @@ compile {
 ```
 
 ### Verifying `802.1Q` `VLAN`, `802.1ad` `QinQ`, `MPLS` & `DSCP` QoS Without NIC Tag Stripping
-Desktop OS network card drivers frequently strip `802.1Q` tags and carrier `QinQ` double tags before live capture tools see them. Compiling `.fasm` code writes outer service tags, inner customer VLANs (`innervlan`), MPLS label stacks, and `pcp` / `dscp` markings straight into the `.pcap` capture:
+Desktop OS network card drivers frequently strip `802.1Q` tags and carrier `QinQ` double tags before live capture tools see them. Compiling `.frasm` code writes outer service tags, inner customer VLANs (`innervlan`), MPLS label stacks, and `pcp` / `dscp` markings straight into the `.pcap` capture:
 
 ```frameassembly
 // Carrier 802.1ad QinQ trunk + 802.1p/DSCP EF voice frame
@@ -117,7 +121,7 @@ compile { ot_conduit_audit(scada_hmi, field_plc) }
 ```
 
 ### Reversing `.pcap` Captures & MAC-Only Layer 2 Topologies
-Right-clicking a `.pcap` or `.pcapng` capture in Explorer (or running `frameassembly reverse capture.pcap`) produces `.fasm` code with `host1`, `host2`, ... declarations (including MAC-only `host` blocks for pure Layer 2 switching protocols such as `lldp`, `stp`, `lacp`, and `eapol`) and inline `compile { ... }` statements:
+Right-clicking a `.pcap` or `.pcapng` capture in Explorer (or running `frameassembly reverse capture.pcap`) produces `.frasm` code with `host1`, `host2`, ... declarations (including MAC-only `host` blocks for pure Layer 2 switching protocols such as `lldp`, `stp`, `lacp`, and `eapol`) and inline `compile { ... }` statements:
 
 ```frameassembly
 // Reversed pure L2 LLDP neighbor discovery with MAC-only hosts and inline compile frames
@@ -134,7 +138,7 @@ compile {
 
 ## Protocol Coverage (81 Native Protocols)
 
-All keywords, protocols, modifiers, and duration units (`ns`, `us`, `ms`, `s`, `m`) in FrameAssembly 2.0 use strict lowercase without `_` or `-` (`echorequest`, `innervlan`, `clienthello`, `readholdingregisters`):
+All keywords, protocols, modifiers, and duration units (`ns`, `us`, `ms`, `s`, `m`) in FrameAssembly 3.0 use strict lowercase without `_` or `-` (`echorequest`, `innervlan`, `clienthello`, `readholdingregisters`):
 
 | OSI Layer | Count | Native Protocol Keywords |
 | :--- | :---: | :--- |
@@ -150,9 +154,9 @@ All keywords, protocols, modifiers, and duration units (`ns`, `us`, `ms`, `s`, `
 
 ## 18 Tab-Completable Snippets
 
-Type any prefix below in a `.fasm` file and press `Tab`:
+Type any prefix below in a `.frasm` file and press `Tab`:
 
-* **Structure & Reachability:** `fasm` (full `host`/`flow`/`compile` skeleton), `compile-inline` (inline `compile` frames matching `reverse` output), `host` (IP + MAC endpoint block), `host-l2` (MAC-only Layer 2 endpoint), `icmp-ping` (`echorequest` / `echoreply`)
+* **Structure & Reachability:** `frasm` (full `host`/`flow`/`compile` skeleton), `compile-inline` (inline `compile` frames matching `reverse` output), `host` (IP + MAC endpoint block), `host-l2` (MAC-only Layer 2 endpoint), `icmp-ping` (`echorequest` / `echoreply`)
 * **Transport & Firewalling:** `tcp-handshake` (3-way `syn` / `syn ack` / `ack`), `firewall-rst` (blocked `syn` -> `rst ack`)
 * **SNMP Alerting:** `snmp2-trap` (`linkDown` v2c trap), `snmp3-trap` (encrypted USM `sha256` + `aes` trap)
 * **Infra, Web & Cloud:** `dns-query` (`a` record lookup), `dhcp-dora` (4-way lease), `http-get` (handshake + `get` + `200 OK`)
@@ -162,11 +166,11 @@ Type any prefix below in a `.fasm` file and press `Tab`:
 
 ## CLI & Replay Companion Tools
 
-For headless CI/CD pipelines, shell batch jobs, and pairing with `tshark` or `tcpreplay`, install the companion `frameassembly` CLI (`frameassembly demo.fasm output.pcap`, `frameassembly show demo.fasm`, `frameassembly reverse capture.pcap`):
+For headless CI/CD pipelines, shell batch jobs, and pairing with `tshark` or `tcpreplay`, install the companion `frameassembly` CLI (`frameassembly demo.frasm output.pcap`, `frameassembly show demo.frasm`, `frameassembly reverse capture.pcap`):
 
 * **Try in Browser (No Install Required):** [frameassembly.ai.studio](https://frameassembly.ai.studio/)
 * **FrameAssembly CLI, Releases & Protocol Guides:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
-* **Language & Use-Case Reference (`docs/`):** [Getting Started](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/getting_started.md) • [Use-Case Cookbook](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/use_cases.md) • [`.fasm` Media Type Spec (`text/vnd.frameassembly`)](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md)
+* **Language & Use-Case Reference (`docs/`):** [Getting Started](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/01_getting_started.md) • [Use-Case Cookbook](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/02_use_cases.md) • [`.frasm` Media Type Spec (`text/vnd.frameassembly`)](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md)
 
 ## License
 

@@ -1,4 +1,4 @@
-//! Address Resolution Protocol (ARP, RFC 826 / RFC 5227) Layer 2 PCAP-to-`.fasm` decompiler.
+//! Address Resolution Protocol (ARP, RFC 826 / RFC 5227) Layer 2 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IPv4-over-Ethernet Address
 //! Resolution Protocol (`arp`, EtherType `0x0806`) frames in FrameAssembly. It extracts the 16-bit

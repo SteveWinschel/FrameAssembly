@@ -5,7 +5,7 @@
 //! Every field in [`TelnetSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b telnet [do <u8>] [dont <u8>] [will <u8>] [wont <u8>] [option <u8>] [data <str>] [payload <str>]`
 
 /// RFC 854 Telnet Protocol specification.

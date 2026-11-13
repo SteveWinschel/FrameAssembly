@@ -1,4 +1,4 @@
-//! Real-time Transport Protocol (`rtp`, RFC 3550) Layer 7 media stream PCAP-to-`.fasm` decompiler.
+//! Real-time Transport Protocol (`rtp`, RFC 3550) Layer 7 media stream PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 3550 `rtp` 12-byte fixed headers
 //! (`V=2`, `P=0`, `X=0`, `CC=0`) and audio or video media payloads carried over UDP ports `5004`,

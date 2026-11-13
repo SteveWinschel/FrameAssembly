@@ -1,9 +1,9 @@
-# GitHub Linguist heuristics.yml disambiguation rules for .fasm
+# GitHub Linguist heuristics.yml disambiguation rules for .frasm (v3.0.0)
 # Upstream target: lib/linguist/heuristics.yml in https://github.com/github-linguist/linguist
-# Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+# Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
 
 disambiguations:
-  - extensions: ['.fasm']
+  - extensions: ['.frasm']
     rules:
       # 1. FrameAssembly network packet specification (text/vnd.frameassembly)
       # Matches strict-lowercase top-level host { ip|mac ... }, flow name(...) {, compile { ... }, or directional -> / <- packet lines

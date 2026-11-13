@@ -1,6 +1,6 @@
-//! IPv6 Layer 3 header extraction (RFC 8200 / RFC 2474 / RFC 3168) for PCAP-to-`.fasm` decompilation.
+//! IPv6 Layer 3 header extraction (RFC 8200 / RFC 2474 / RFC 3168) for PCAP-to-`.frasm` decompilation.
 //!
-//! This module implements fuzz-safe IPv6 header parsing ([`extract_ipv6_l3`]) and `.fasm` Layer 3
+//! This module implements fuzz-safe IPv6 header parsing ([`extract_ipv6_l3`]) and `.frasm` Layer 3
 //! modifier emission for FrameAssembly's PCAP and PCAPNG decompiler. It validates the 40-byte RFC
 //! 8200 fixed IPv6 header and version nibble (`6`), traverses standard IPv6 extension headers
 //! (`Hop-by-Hop`, `Routing`, `Fragment`, and `Destination Options`), and extracts `src_ip`,
@@ -20,7 +20,7 @@ pub(crate) struct Ipv6HeaderFields<'a> {
     pub(crate) dst_ip: Ipv6Addr,
     /// Terminal upper-layer IPv6 Next Header protocol number (`byte 6` or final extension header).
     pub(crate) next_header: u8,
-    /// IPv6 Hop Limit mapped to canonical `.fasm` `ttl` (`byte 7`).
+    /// IPv6 Hop Limit mapped to canonical `.frasm` `ttl` (`byte 7`).
     pub(crate) ttl: u8,
     /// 6-bit Differentiated Services Code Point (`dscp`, Traffic Class `>> 2`).
     pub(crate) dscp: u8,
@@ -33,12 +33,12 @@ pub(crate) struct Ipv6HeaderFields<'a> {
 }
 
 impl<'a> Ipv6HeaderFields<'a> {
-    /// Returns the RFC 8200 IPv6 Hop Limit (`ttl` in `.fasm` syntax).
+    /// Returns the RFC 8200 IPv6 Hop Limit (`ttl` in `.frasm` syntax).
     pub(crate) const fn hop_limit(&self) -> u8 {
         self.ttl
     }
 
-    /// Appends non-default `.fasm` IPv6 Layer 3 modifiers (`ttl`, `dscp`, `ecn`, `flowlabel`)
+    /// Appends non-default `.frasm` IPv6 Layer 3 modifiers (`ttl`, `dscp`, `ecn`, `flowlabel`)
     /// to the statement token buffer.
     pub(crate) fn append_fasm_modifiers(&self, out: &mut String, default_ttl: u8) {
         push_if(out, "ttl", self.ttl, default_ttl);

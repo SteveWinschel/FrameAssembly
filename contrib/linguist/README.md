@@ -1,28 +1,28 @@
-# GitHub Linguist, `bat` & `Chroma` Syntax Registration Package for FrameAssembly (`.fasm`)
+# GitHub Linguist, `bat` & `Chroma` Syntax Registration Package for FrameAssembly (`.frasm`)
 
-This directory contains the language definitions, disambiguation heuristics, and verified sample corpus required to register **FrameAssembly** (`.fasm`, media type `text/vnd.frameassembly`) in:
+This directory contains the language definitions, disambiguation heuristics, and verified sample corpus required to register **FrameAssembly** (`.frasm`, media type `text/vnd.frameassembly`) in:
 
 1. **[GitHub Linguist](https://github.com/github-linguist/linguist)** (`languages.yml`, `heuristics.yml`, TextMate grammar, and `samples/FrameAssembly/`)
 2. **[`sharkdp/bat`](https://github.com/sharkdp/bat)** (`assets/syntaxes/` TextMate `.tmLanguage.json` integration)
 3. **[`alecthomas/chroma`](https://github.com/alecthomas/chroma)** & **Pygments** CLI and static-site syntax highlighters
 
-For the normative technical specification and media type registration, see [`docs/fasm-specification.md`](../../docs/fasm-specification.md), [`contrib/iana/text-vnd.frameassembly.md`](../iana/text-vnd.frameassembly.md), and the official website & browser playground at [`frameassembly.ai.studio`](https://frameassembly.ai.studio/). For Freedesktop desktop MIME integration, see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml).
+For the normative technical specification and media type registration, see [`docs/12_frasm_specification.md`](../../docs/12_frasm_specification.md), [`contrib/iana/text-vnd.frameassembly.md`](../iana/text-vnd.frameassembly.md), and the official website & browser playground at [`frameassembly.ai.studio`](https://frameassembly.ai.studio/). For Freedesktop desktop MIME integration, see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml).
 
 ---
 
 ## 1. Repository-Local GitHub Override (`.gitattributes`)
 
-Before an upstream pull request is merged into GitHub Linguist and deployed across github.com, repository owners can achieve immediate, 100% accurate syntax highlighting and language classification by adding a one-line rule to [`.gitattributes`](../../.gitattributes):
+Before an upstream pull request is merged into GitHub Linguist and deployed across github.com, repository owners can achieve immediate, 100% accurate syntax highlighting and language classification by adding a rule to [`.gitattributes`](../../.gitattributes):
 
 ```gitattributes
-*.fasm linguist-language=FrameAssembly linguist-detectable=true linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
-contrib/linguist/samples/*.fasm linguist-language=FrameAssembly linguist-detectable=true linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
+*.frasm linguist-language=FrameAssembly linguist-detectable=false linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
+contrib/linguist/samples/*.frasm linguist-language=FrameAssembly linguist-detectable=false linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
 ```
 
 This directive instructs GitHub's language detection pipeline to:
-- Classify all `*.fasm` files as **FrameAssembly** rather than legacy x86 Flat Assembler (`Assembly`).
-- Count `.fasm` source files toward the repository's primary language statistics bar (`linguist-detectable=true`).
-- Ensure `.fasm` files are recognized as human-authored code rather than generated or vendored boilerplate.
+- Classify all `*.frasm` files as **FrameAssembly** rather than legacy assembly heuristics.
+- Keep `.frasm` fixture files excluded from the repository's primary language statistics bar (`linguist-detectable=false`) so Rust remains the primary language while preserving syntax classification.
+- Ensure `.frasm` files are recognized as human-authored code rather than generated or vendored boilerplate.
 - Normalize line endings to LF across all platforms (`text eol=lf`).
 
 ---
@@ -39,9 +39,9 @@ GitHub Linguist enforces strict acceptance criteria in its [`CONTRIBUTING.md`](h
    - The grammar repository must carry an OSI-approved permissive open-source license (such as MIT, Apache 2.0, or BSD).
    - In GitHub Linguist, the grammar is vendored as a Git submodule under `vendor/grammars/`.
 3. **Extension Collision & Disambiguation Requirements**:
-   - When a requested file extension (such as `.fasm`) is shared with existing registered languages or historical tools, the pull request **must**:
+   - When a requested file extension is shared with existing registered languages or historical tools (such as `.fasm` prior to FrameAssembly v3.0.0 adopting `.frasm`), the pull request **must**:
      - Provide comprehensive regex disambiguation rules in `lib/linguist/heuristics.yml`.
-     - Include at least two representative, real-world, valid sample files for each conflicting language under `samples/<LanguageName>/`.
+     - Include at least two representative, real-world, valid sample files for each language under `samples/<LanguageName>/`.
 4. **Pull Request Protocol**:
    - Do **not** assign an integer `language_id` in `languages.yml`. Maintainers allocate this identifier sequentially upon merge.
    - The pull request description must provide a direct, working GitHub Search query URL demonstrating the file volume requirement in the wild.
@@ -54,19 +54,19 @@ The assets organized in this directory map directly to upstream targets in the [
 
 | Local Repository Asset | Upstream Path in `github-linguist/linguist` | Description & Technical Notes |
 | :--- | :--- | :--- |
-| [`languages.yml`](languages.yml) | `lib/linguist/languages.yml` | Language entry defining `FrameAssembly`, color (`#2b6cb0`), scope `source.frameassembly`, and editor modes. `language_id` is intentionally omitted. |
-| [`heuristics.yml`](heuristics.yml) | `lib/linguist/heuristics.yml` | Disambiguation rules under the `.fasm` extension entry, prioritizing `FrameAssembly` over `Assembly`. |
+| [`languages.yml`](languages.yml) | `lib/linguist/languages.yml` | Language entry defining `FrameAssembly` (`.frasm`), color (`#2b6cb0`), scope `source.frameassembly`, and editor modes. `language_id` is intentionally omitted. |
+| [`heuristics.yml`](heuristics.yml) | `lib/linguist/heuristics.yml` | Disambiguation rules under the `.frasm` extension entry, prioritizing `FrameAssembly` over `Assembly`. |
 | [`../../frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`](../../frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json) | `vendor/grammars/` (submodule) | Complete TextMate JSON grammar supporting all 81 L2–L7 protocols, modifiers, and 640+ lexer keywords. |
-| [`samples/enterprise_snmpv3_and_tls.fasm`](samples/enterprise_snmpv3_and_tls.fasm) | `samples/FrameAssembly/enterprise_snmpv3_and_tls.fasm` | Real-world dual-stack enterprise scenario: VLAN 10, TCP handshake, TLS 1.3, HTTP/1.1, and SNMPv3 USM SHA-256 + AES-128. |
-| [`samples/industrial_ot_modbus_dnp3.fasm`](samples/industrial_ot_modbus_dnp3.fasm) | `samples/FrameAssembly/industrial_ot_modbus_dnp3.fasm` | Real-world industrial SCADA/OT scenario: IEEE 802.1ad QinQ, MPLS, Modbus TCP, IEEE 1815 DNP3, and Siemens S7comm. |
+| [`samples/enterprise_snmpv3_and_tls.frasm`](samples/enterprise_snmpv3_and_tls.frasm) | `samples/FrameAssembly/enterprise_snmpv3_and_tls.frasm` | Real-world dual-stack enterprise scenario: VLAN 10, TCP handshake, TLS 1.3, HTTP/1.1, and SNMPv3 USM SHA-256 + AES-128. |
+| [`samples/industrial_ot_modbus_dnp3.frasm`](samples/industrial_ot_modbus_dnp3.frasm) | `samples/FrameAssembly/industrial_ot_modbus_dnp3.frasm` | Real-world industrial SCADA/OT scenario: IEEE 802.1ad QinQ, MPLS, Modbus TCP, IEEE 1815 DNP3, and Siemens S7comm. |
 
 ---
 
-## 4. Disambiguation Rules: FrameAssembly vs x86 Flat Assembler vs FPGA FASM
+## 4. Disambiguation Rules: FrameAssembly (`.frasm`) vs x86 Flat Assembler & FPGA FASM (`.fasm`)
 
-The `.fasm` file extension is historically associated with three distinct formats across software and hardware engineering:
+FrameAssembly v3.0.0 uses the dedicated `.frasm` extension (`text/vnd.frameassembly`) to eliminate extension collisions with two legacy `.fasm` formats across software and hardware engineering:
 
-1. **FrameAssembly (`.fasm`, `text/vnd.frameassembly`)**:
+1. **FrameAssembly (`.frasm`, `text/vnd.frameassembly`)**:
    - *Domain*: Network packet capture specification ("Packets as Code").
    - *Comments*: Single-line `//` comments only.
    - *Top-Level Structure*: `host <id> { ip|mac ... }`, `flow <id>(...) { ... }`, and `compile { ... }`.
@@ -83,11 +83,11 @@ The `.fasm` file extension is historically associated with three distinct format
 
 ### Heuristics Implementation in `lib/linguist/heuristics.yml`
 
-In [`heuristics.yml`](heuristics.yml), the `.fasm` disambiguation rule establishes an explicit precedence hierarchy:
+In [`heuristics.yml`](heuristics.yml), the `.frasm` disambiguation rule establishes an explicit precedence hierarchy:
 
 ```yaml
 disambiguations:
-  - extensions: ['.fasm']
+  - extensions: ['.frasm']
     rules:
       - language: FrameAssembly
         pattern:
@@ -122,17 +122,17 @@ https://github.com/SteveWinschel/FrameAssembly (frameassembly-vscode/syntaxes/fr
 License: MIT
 
 ### URL of Documentation for the Language
-https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
 
 ### GitHub Search Query URL Demonstrating File Volume
-https://github.com/search?q=path%3A*.fasm+NOT+fork%3Atrue&type=code
+https://github.com/search?q=path%3A*.frasm+NOT+fork%3Atrue&type=code
 
 ### Description
-FrameAssembly is a declarative domain-specific language and compiler for specifying deterministic network packet captures ("Packets as Code") across 81 native Layer 2 through Layer 7 protocols. Files use the `.fasm` extension and the registered IANA vendor candidate media type `text/vnd.frameassembly`.
+FrameAssembly is a declarative domain-specific language and compiler for specifying deterministic network packet captures ("Packets as Code") across 81 native Layer 2 through Layer 7 protocols. Files use the `.frasm` extension and the registered IANA vendor candidate media type `text/vnd.frameassembly`.
 
 This pull request:
 1. Adds `FrameAssembly` to `lib/linguist/languages.yml` with color `#2b6cb0` and tm_scope `source.frameassembly`.
-2. Adds disambiguation heuristics in `lib/linguist/heuristics.yml` to distinguish FrameAssembly (.fasm) from x86 Flat Assembler (.fasm) and FPGA FASM.
+2. Adds disambiguation heuristics in `lib/linguist/heuristics.yml` to classify FrameAssembly (`.frasm`) cleanly.
 3. Vendors the TextMate grammar in `vendor/grammars/`.
 4. Adds two representative real-world samples under `samples/FrameAssembly/`.
 
@@ -163,7 +163,7 @@ git checkout -b add-frameassembly
 # - Insert heuristics rules into lib/linguist/heuristics.yml under disambiguations
 # - Copy samples into samples/FrameAssembly/
 mkdir -p samples/FrameAssembly
-cp /path/to/frameassembly/contrib/linguist/samples/*.fasm samples/FrameAssembly/
+cp /path/to/frameassembly/contrib/linguist/samples/*.frasm samples/FrameAssembly/
 
 # 4. Vendor the grammar
 # Add the grammar repository as a submodule or link the JSON grammar
@@ -182,12 +182,12 @@ bundle exec rake test TEST=test/test_heuristics.rb
 
 ## 7. Verifying Samples with the `frameassembly` Compiler
 
-Every sample under `contrib/linguist/samples/` is a complete, compilable `.fasm` specification verified by the `frameassembly` test suite:
+Every sample under `contrib/linguist/samples/` is a complete, compilable `.frasm` specification verified by the `frameassembly` test suite:
 
 ```bash
 # Preview the packet ladder in the terminal without writing a .pcap file
-frameassembly show contrib/linguist/samples/enterprise_snmpv3_and_tls.fasm
-frameassembly show contrib/linguist/samples/industrial_ot_modbus_dnp3.fasm
+frameassembly show contrib/linguist/samples/enterprise_snmpv3_and_tls.frasm
+frameassembly show contrib/linguist/samples/industrial_ot_modbus_dnp3.frasm
 ```
 
 ```frameassembly

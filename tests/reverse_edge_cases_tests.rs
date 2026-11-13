@@ -1,5 +1,5 @@
 //! Edge-case, container-variant, linktype-normalization, padding/FCS-stripping, encrypted-fallback,
-//! and malformed-input fuzz-safety test suite for FrameAssembly v2.0.0's PCAP/PCAPNG-to-`.fasm`
+//! and malformed-input fuzz-safety test suite for FrameAssembly v3.0.0's PCAP/PCAPNG-to-`.frasm`
 //! decompiler.
 //!
 //! This integration suite exercises every boundary condition of [`frameassembly::reverse`]:
@@ -31,11 +31,11 @@ use pcap_file::pcapng::blocks::interface_description::{
 };
 use pcap_file::pcapng::blocks::simple_packet::SimplePacketBlock;
 
-/// Compiles a `.fasm` snippet and returns its synthesized `(frame_bytes, timestamp_ns)` list.
+/// Compiles a `.frasm` snippet and returns its synthesized `(frame_bytes, timestamp_ns)` list.
 fn compile_fasm_frames(fasm_src: &str) -> Vec<(Vec<u8>, u64)> {
-    let prog = parse_program(fasm_src).expect("parse valid .fasm snippet");
-    validate_semantics(&prog, fasm_src).expect("validate .fasm snippet");
-    compile_program(&prog).expect("compile .fasm snippet")
+    let prog = parse_program(fasm_src).expect("parse valid .frasm snippet");
+    validate_semantics(&prog, fasm_src).expect("validate .frasm snippet");
+    compile_program(&prog).expect("compile .frasm snippet")
 }
 
 /// Builds a raw classic `.pcap` buffer with configurable endianness (`is_be`), timestamp precision
@@ -501,7 +501,7 @@ fn craft_ipv4_tcp_frame(src_port: u16, dst_port: u16, payload: &[u8]) -> Vec<u8>
     f
 }
 
-/// Verifies fuzz safety (zero panics and 100% compilable `.fasm` output) on truncated L2/L3/L4
+/// Verifies fuzz safety (zero panics and 100% compilable `.frasm` output) on truncated L2/L3/L4
 /// headers and corrupted L7 payloads across well-known service ports.
 #[test]
 fn test_malformed_and_truncated_headers_and_corrupted_l7_ports_fuzz_safety() {
@@ -581,9 +581,9 @@ fn test_malformed_and_truncated_headers_and_corrupted_l7_ports_fuzz_safety() {
     assert_eq!(rev.packet_count, fuzz_frames.len());
     assert!(!rev.fasm.contains("//"));
 
-    let parsed = parse_program(&rev.fasm).expect("decompiled fuzz .fasm must parse cleanly");
+    let parsed = parse_program(&rev.fasm).expect("decompiled fuzz .frasm must parse cleanly");
     validate_semantics(&parsed, &rev.fasm)
-        .expect("decompiled fuzz .fasm must pass semantic validation");
-    let recompiled = compile_program(&parsed).expect("decompiled fuzz .fasm must compile cleanly");
+        .expect("decompiled fuzz .frasm must pass semantic validation");
+    let recompiled = compile_program(&parsed).expect("decompiled fuzz .frasm must compile cleanly");
     assert_eq!(recompiled.len(), fuzz_frames.len());
 }

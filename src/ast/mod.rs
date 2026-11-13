@@ -1,6 +1,6 @@
 //! Abstract Syntax Tree (AST) Definitions for the FrameAssembly Compiler.
 //!
-//! This module hierarchy defines the complete intermediate representation for parsed `.fasm`
+//! This module hierarchy defines the complete intermediate representation for parsed `.frasm`
 //! protocol specification programs, including [`HostDef`] endpoint declarations, parameterized
 //! [`FlowDef`] templates, [`FrameStatement`] protocol specifications, [`Protocol`] discriminators,
 //! and [`Program`] execution blocks. Layer-specific specifications and header modifiers are

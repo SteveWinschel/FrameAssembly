@@ -1,9 +1,9 @@
-//! Internet Group Management Protocol (IGMPv1/v2/v3, RFC 1112 / 2236 / 3376) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Internet Group Management Protocol (IGMPv1/v2/v3, RFC 1112 / 2236 / 3376) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IPv4 Internet Group
 //! Management Protocol (`igmp`, IP protocol `2`) multicast group membership packets. It decodes
 //! `query` (`0x11`), `v1 report` (`0x12`), `report` (`0x16`), `leave` (`0x17`), and `v3 report`
-//! (`0x22`) messages along with `maxresp` and multicast `group` overrides into canonical `.fasm`
+//! (`0x22`) messages along with `maxresp` and multicast `group` overrides into canonical `.frasm`
 //! statements.
 
 use alloc::string::String;

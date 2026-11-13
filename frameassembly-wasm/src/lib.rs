@@ -1,13 +1,15 @@
-//! WebAssembly bindings, PCAP/PCAPNG-to-`.fasm` decompiler, frame inspector, and UTF-16 IDE
-//! diagnostics for the FrameAssembly (`.fasm` v2.0.0) network packet synthesis compiler.
+//! WebAssembly bindings, PCAP/PCAPNG-to-`.frasm` decompiler, frame inspector, and UTF-16 IDE
+//! diagnostics for the FrameAssembly (`.frasm` v3.0.0) network packet synthesis compiler.
 //!
-//! This crate exposes `validate_fasm` (`validateFasm`), `inspect_fasm`,
-//! `compile_fasm_to_pcapng` (`compileFasm`), and `reverse_pcap` (`reversePcap`) to browser
+//! This crate exposes `validate_frasm` (`validateFrasm`), `inspect_frasm` (`inspectFrasm`),
+//! `compile_frasm_to_pcapng` (`compileFrasm`), and `reverse_pcap` (`reversePcap`) to browser
 //! environments, VS Code Desktop and Web extensions, Node.js test harnesses, and web-based code
-//! editors (Monaco, CodeMirror, VS Code Web) via `wasm-bindgen`. It compiles strict-lowercase
-//! `.fasm` specifications across all 81 native Layer 2 through Layer 7 protocols into
+//! editors (Monaco, CodeMirror, VS Code Web) via `wasm-bindgen`. The 2.x export names
+//! `validate_fasm` (`validateFasm`), `inspect_fasm`, and `compile_fasm_to_pcapng` (`compileFasm`)
+//! remain available as compatibility aliases. It compiles strict-lowercase `.frasm`
+//! specifications across all 81 native Layer 2 through Layer 7 protocols into
 //! deterministic nanosecond-resolution PCAPNG byte arrays (`Uint8Array`), decompiles binary
-//! `.pcap` and `.pcapng` packet captures back into canonical lowercase `.fasm` code in memory via
+//! `.pcap` and `.pcapng` packet captures back into canonical lowercase `.frasm` code in memory via
 //! `frameassembly::reverse::reverse_pcap_bytes`, summarizes Ethernet/VLAN/QinQ/MPLS/ARP/IPv4/IPv6
 //! and Layer 4/Layer 7 frames, and maps compiler diagnostic byte spans into zero-based UTF-16
 //! line and column coordinates.
@@ -46,6 +48,7 @@ export interface PacketPreview {
 
 export interface ReversePcapResult {
     success: boolean;
+    frasm: string;
     fasm: string;
     packetCount: number;
     hostCount: number;
@@ -73,7 +76,7 @@ pub struct IdeDiagnostic {
     pub end_col: u32,
     /// Primary diagnostic error message.
     pub message: String,
-    /// Optional plain-English remediation hint (including v2.0.0 lowercase keyword quick-fix hints).
+    /// Optional plain-English remediation hint (including v3.0.0 lowercase keyword quick-fix hints).
     pub help: Option<String>,
 }
 
@@ -96,17 +99,19 @@ pub struct PacketPreview {
     pub summary: String,
 }
 
-/// Decompilation summary and canonical `.fasm` code returned by [`reverse_pcap`].
+/// Decompilation summary and canonical `.frasm` code returned by [`reverse_pcap`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReversePcapResult {
-    /// Indicates that the binary capture was decompiled into `.fasm` code (`true`).
+    /// Indicates that the binary capture was decompiled into `.frasm` code (`true`).
     pub success: bool,
-    /// Generated canonical lowercase `.fasm` source code.
+    /// Generated canonical lowercase `.frasm` source code.
+    pub frasm: String,
+    /// Backward-compatible 2.x alias of [`ReversePcapResult::frasm`] (identical content).
     pub fasm: String,
     /// Total number of packets reversed from the capture.
     pub packet_count: usize,
-    /// Total number of `host1`, `host2`, ... definitions emitted in the `.fasm` program.
+    /// Total number of `host1`, `host2`, ... definitions emitted in the `.frasm` program.
     pub host_count: usize,
 }
 
@@ -250,7 +255,7 @@ fn find_backend_error_span(source: &str, err_msg: &str) -> (usize, usize) {
     (0, source.len().min(1))
 }
 
-/// Validates `.fasm` source and returns typed [`IdeDiagnostic`] entries without invoking JS bindings.
+/// Validates `.frasm` source and returns typed [`IdeDiagnostic`] entries without invoking JS bindings.
 pub fn validate_fasm_to_diagnostics(source: &str) -> Vec<IdeDiagnostic> {
     let mut diagnostics = Vec::new();
 
@@ -277,16 +282,28 @@ pub fn validate_fasm_to_diagnostics(source: &str) -> Vec<IdeDiagnostic> {
     diagnostics
 }
 
-/// Validates `.fasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+/// Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
 #[wasm_bindgen(unchecked_return_type = "IdeDiagnostic[]")]
 pub fn validate_fasm(source: &str) -> Result<JsValue, JsError> {
     let diagnostics = validate_fasm_to_diagnostics(source);
     Ok(serde_wasm_bindgen::to_value(&diagnostics)?)
 }
 
-/// Validates `.fasm` source and returns UTF-16 line/column diagnostics (`validateFasm` alias).
+/// Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFasm` 2.x alias).
 #[wasm_bindgen(js_name = validateFasm, unchecked_return_type = "IdeDiagnostic[]")]
 pub fn validate_fasm_js(source: &str) -> Result<JsValue, JsError> {
+    validate_fasm(source)
+}
+
+/// Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+#[wasm_bindgen(unchecked_return_type = "IdeDiagnostic[]")]
+pub fn validate_frasm(source: &str) -> Result<JsValue, JsError> {
+    validate_fasm(source)
+}
+
+/// Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFrasm` camelCase alias).
+#[wasm_bindgen(js_name = validateFrasm, unchecked_return_type = "IdeDiagnostic[]")]
+pub fn validate_frasm_js(source: &str) -> Result<JsValue, JsError> {
     validate_fasm(source)
 }
 
@@ -674,7 +691,7 @@ fn summarize_l4(proto: u8, l4: &[u8], tag_prefix: &str) -> (String, String) {
     }
 }
 
-/// Compiles `.fasm` source into typed [`PacketPreview`] entries without invoking JS bindings.
+/// Compiles `.frasm` source into typed [`PacketPreview`] entries without invoking JS bindings.
 ///
 /// # Errors
 /// Returns a human-readable compilation error string if parsing or wire synthesis fails.
@@ -717,7 +734,19 @@ pub fn inspect_fasm(source: &str) -> Result<JsValue, JsError> {
     Ok(serde_wasm_bindgen::to_value(&previews)?)
 }
 
-/// Compiles `.fasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+/// Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for `.frasm` source.
+#[wasm_bindgen(unchecked_return_type = "PacketPreview[]")]
+pub fn inspect_frasm(source: &str) -> Result<JsValue, JsError> {
+    inspect_fasm(source)
+}
+
+/// Returns decoded frame metadata for `.frasm` source (`inspectFrasm` camelCase alias).
+#[wasm_bindgen(js_name = inspectFrasm, unchecked_return_type = "PacketPreview[]")]
+pub fn inspect_frasm_js(source: &str) -> Result<JsValue, JsError> {
+    inspect_fasm(source)
+}
+
+/// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
 #[wasm_bindgen]
 pub fn compile_fasm_to_pcapng(source: &str) -> Result<Vec<u8>, JsError> {
     let program = parse_program(source).map_err(|e| JsError::new(&e.to_string()))?;
@@ -725,9 +754,21 @@ pub fn compile_fasm_to_pcapng(source: &str) -> Result<Vec<u8>, JsError> {
     Ok(packets_to_pcapng(&packets))
 }
 
-/// Compiles `.fasm` source into a standards-compliant PCAPNG byte array (`compileFasm` alias).
+/// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFasm` 2.x alias).
 #[wasm_bindgen(js_name = compileFasm)]
 pub fn compile_fasm(source: &str) -> Result<Vec<u8>, JsError> {
+    compile_fasm_to_pcapng(source)
+}
+
+/// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+#[wasm_bindgen]
+pub fn compile_frasm_to_pcapng(source: &str) -> Result<Vec<u8>, JsError> {
+    compile_fasm_to_pcapng(source)
+}
+
+/// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFrasm` alias).
+#[wasm_bindgen(js_name = compileFrasm)]
+pub fn compile_frasm(source: &str) -> Result<Vec<u8>, JsError> {
     compile_fasm_to_pcapng(source)
 }
 
@@ -740,6 +781,7 @@ pub fn reverse_pcap_to_result(pcap_bytes: &[u8]) -> Result<ReversePcapResult, Re
     match reverse_pcap_bytes(pcap_bytes) {
         Ok(out) => Ok(ReversePcapResult {
             success: true,
+            frasm: out.fasm.clone(),
             fasm: out.fasm,
             packet_count: out.packet_count,
             host_count: out.host_count,
@@ -755,8 +797,8 @@ pub fn reverse_pcap_to_result(pcap_bytes: &[u8]) -> Result<ReversePcapResult, Re
     }
 }
 
-/// Decompiles an in-memory `.pcap` or `.pcapng` capture (`Uint8Array`) into canonical `.fasm`
-/// source code and summary counts (`{ success: true, fasm, packetCount, hostCount }`).
+/// Decompiles an in-memory `.pcap` or `.pcapng` capture (`Uint8Array`) into canonical `.frasm`
+/// source code and summary counts (`{ success: true, frasm, fasm, packetCount, hostCount }`).
 ///
 /// # Errors
 /// Returns a structured `JsValue` error object (`{ success: false, error, message }`) if
@@ -886,7 +928,7 @@ mod tests {
         );
     }
 
-    /// Verifies in-memory `.fasm` -> PCAPNG compilation, enriched `PacketPreview` summaries, and `reverse_pcap_to_result`.
+    /// Verifies in-memory `.frasm` -> PCAPNG compilation, enriched `PacketPreview` summaries, and `reverse_pcap_to_result`.
     #[test]
     fn test_packets_to_pcapng_preview_and_reverse_pcap_roundtrip_in_memory() {
         let src = "host host1 { ip 192.0.2.10 mac 00:11:22:33:44:55 }\n\
@@ -896,7 +938,7 @@ mod tests {
                    }";
         assert!(validate_fasm_to_diagnostics(src).is_empty());
 
-        let previews = inspect_fasm_to_previews(src).expect("inspect valid .fasm");
+        let previews = inspect_fasm_to_previews(src).expect("inspect valid .frasm");
         assert_eq!(previews.len(), 1);
         assert_eq!(previews[0].index, 1);
         assert_eq!(previews[0].source_dest, "192.0.2.10 -> 192.0.2.20");
@@ -904,7 +946,7 @@ mod tests {
         assert!(previews[0].summary.contains("[VLAN=100]"));
         assert!(!previews[0].hex.is_empty());
 
-        let program = parse_program(src).expect("parse valid .fasm");
+        let program = parse_program(src).expect("parse valid .frasm");
         let packets = compile_program(&program).expect("compile packets");
         let pcapng_bytes = packets_to_pcapng(&packets);
 
@@ -912,13 +954,14 @@ mod tests {
         assert!(rev.success);
         assert_eq!(rev.packet_count, 1);
         assert_eq!(rev.host_count, 2);
-        assert!(rev.fasm.contains("host1"));
+        assert_eq!(rev.frasm, rev.fasm);
+        assert!(rev.frasm.contains("host1"));
         assert!(rev.fasm.contains("host2"));
         assert!(rev.fasm.contains("dns"));
     }
 
     /// Verifies that backend errors highlight the offending statement or `compile` block instead of `(0, 0)`,
-    /// and that v2.0.0 lowercase keyword hints are preserved in `IdeDiagnostic.help`.
+    /// and that v3.0.0 lowercase keyword hints are preserved in `IdeDiagnostic.help`.
     #[test]
     fn test_validate_fasm_backend_span_and_lowercase_help_hints() {
         // 1. General backend error fallback locates the `compile` keyword (ignoring `compile` in comments)
@@ -952,7 +995,7 @@ mod tests {
         let help = kw_diags[0].help.as_deref().unwrap_or("");
         assert!(
             help.contains("replace 'echo_request' with 'echorequest'"),
-            "expected v2.0.0 lowercase help hint, got: {help}"
+            "expected v3.0.0 lowercase help hint, got: {help}"
         );
     }
 

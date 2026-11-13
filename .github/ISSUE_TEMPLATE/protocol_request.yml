@@ -41,8 +41,8 @@ body:
   - type: textarea
     id: proposed_syntax
     attributes:
-      label: Proposed .fasm Code Example
-      description: Sketch how you would expect to write a packet statement in FrameAssembly 2.0 lowercase syntax (optional).
+      label: Proposed .frasm Code Example
+      description: Sketch how you would expect to write a packet statement in FrameAssembly 3.0 lowercase syntax (optional).
       render: text
       placeholder: |
         host sgw { ip 10.10.0.1 }

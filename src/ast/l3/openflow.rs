@@ -8,7 +8,7 @@
 //! 16-bit total message `length`, and a 32-bit transaction identifier `xid` (`xid`), optionally
 //! accompanied by Datapath ID (`dpid`), flow `tableid`, and flow rule `priority` attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b openflow [hello | echoreq | echoreply | featuresreq | featuresreply | packetin | packetout | flowmod] [version <u8>] [xid <u32>] [dpid <u64>] [tableid <u8>] [priority <u16>]`
 
 use core::marker::PhantomData;

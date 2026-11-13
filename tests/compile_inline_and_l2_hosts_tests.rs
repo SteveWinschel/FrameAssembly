@@ -1,9 +1,9 @@
-//! Integration test suite for FrameAssembly v2.0.0 strict-lowercase grammar, self-healing
+//! Integration test suite for FrameAssembly v3.0.0 strict-lowercase grammar, self-healing
 //! diagnostics, inline compilation, Layer 2 MAC-only hosts, and default-compile + 4-subcommand CLI.
 //!
 //! This test module validates four core capabilities across the parser, semantic analyzer,
 //! wire builder backend, reverse PCAP/PCAPNG decompiler, and `frameassembly` CLI binary:
-//! 1. **Strict-Lowercase v2.0.0 Grammar & Self-Healing Hints**: Confirms strict `[a-z0-9]+`
+//! 1. **Strict-Lowercase v3.0.0 Grammar & Self-Healing Hints**: Confirms strict `[a-z0-9]+`
 //!    built-in keywords without `_` or `-`, flexible hyphenated/uppercase user identifiers,
 //!    self-healing `miette` diagnostics on uppercase/`_`/`-`/`loop` tokens, `whois` vs
 //!    `bacnet whois` disambiguation, and unified `hellotime` validation on `stp` and `hsrp`.
@@ -14,8 +14,8 @@
 //! 3. **Optional-`ip` Layer 2 Host Declarations**: Verifies that MAC-only `host` blocks compile
 //!    across all eight Layer 2 protocols (`stp`, `lldp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`,
 //!    `arp`) while rejecting empty `host` blocks and MAC-only endpoints on IP-requiring protocols.
-//! 4. **v2.0.0 Default-Compile & 4-Subcommand CLI Contract**: Exercises default root compilation
-//!    (`frameassembly <input.fasm> [output.pcap]`), `show`, `reverse`, `version`, `help`, hidden
+//! 4. **v3.0.0 Default-Compile & 4-Subcommand CLI Contract**: Exercises default root compilation
+//!    (`frameassembly <input.frasm> [output.pcap]`), `show`, `reverse`, `version`, `help`, hidden
 //!    `-h`/`--help` and `-V`/`--version`, collision protection, and migration safety guards.
 
 use std::fs;
@@ -65,14 +65,14 @@ impl Drop for TempTestDir {
     }
 }
 
-/// Parses and compiles a `.fasm` source string into `(raw_frame_bytes, timestamp_ns)` tuples.
+/// Parses and compiles a `.frasm` source string into `(raw_frame_bytes, timestamp_ns)` tuples.
 fn must_compile(src: &str) -> Vec<(Vec<u8>, u64)> {
     let program = parse_program(src).unwrap_or_else(|e| panic!("failed to parse program: {e}"));
     compile_program(&program).unwrap_or_else(|e| panic!("failed to compile program: {e}"))
 }
 
 // ============================================================================
-// 1. Strict-Lowercase v2.0.0 Grammar, Identifiers & Self-Healing Hints
+// 1. Strict-Lowercase v3.0.0 Grammar, Identifiers & Self-Healing Hints
 // ============================================================================
 
 /// Verifies strict-lowercase `[a-z0-9]+` keywords (`sackperm`, `hosthdr`, `echorequest`, `ns`,
@@ -125,7 +125,7 @@ fn test_v2_strict_lowercase_keywords_and_flexible_hyphenated_identifiers() {
 }
 
 /// Verifies that uppercase, underscore, hyphenated, and `loop` v1.x keywords are rejected in
-/// FrameAssembly v2.0.0 with actionable self-healing `miette::Diagnostic::help` hints.
+/// FrameAssembly v3.0.0 with actionable self-healing `miette::Diagnostic::help` hints.
 #[test]
 fn test_v2_uppercase_underscore_and_loop_self_healing_diagnostics() {
     let cases: &[(&str, &str)] = &[
@@ -538,7 +538,7 @@ fn test_mac_only_host_rejected_for_l3_l4_l7_ip_requiring_protocols() {
 }
 
 // ============================================================================
-// 4. v2.0.0 Default-Compile + 4-Subcommand CLI Contract & Safety Guard Tests
+// 4. v3.0.0 Default-Compile + 4-Subcommand CLI Contract & Safety Guard Tests
 // ============================================================================
 
 /// Returns the path to the compiled `frameassembly` binary under test.
@@ -546,14 +546,14 @@ fn cli_binary_path() -> &'static str {
     env!("CARGO_BIN_EXE_frameassembly")
 }
 
-/// Verifies `frameassembly <example.fasm>` (default `<example>.pcap`),
-/// `frameassembly <other.fasm> <custom.pcap>` (positional output), the 4 subcommands (`show`,
+/// Verifies `frameassembly <example.frasm>` (default `<example>.pcap`),
+/// `frameassembly <other.frasm> <custom.pcap>` (positional output), the 4 subcommands (`show`,
 /// `reverse`, `help`, `version`), hidden `-h`/`--help` and `-V`/`--version`, and helpful error
-/// hints on `-o`, bare `.pcap`, an accidental `compile` subcommand token, and `.fasm` output paths.
+/// hints on `-o`, bare `.pcap`, an accidental `compile` subcommand token, and `.frasm` output paths.
 #[test]
 fn test_cli_default_compile_subcommands_hidden_flags_and_safety_guards() {
     let temp = TempTestDir::new("cli_forward");
-    let fasm_path = temp.join("example.fasm");
+    let fasm_path = temp.join("example.frasm");
     let default_pcap_path = temp.join("example.pcap");
 
     let sample_fasm = "\
@@ -564,9 +564,9 @@ compile {
     client <- server icmp echoreply id 10 seq 1 wait 5ms
 }
 ";
-    fs::write(&fasm_path, sample_fasm).expect("write example.fasm");
+    fs::write(&fasm_path, sample_fasm).expect("write example.frasm");
 
-    // 1. Default root compile: `frameassembly <example.fasm>` -> `<example>.pcap`
+    // 1. Default root compile: `frameassembly <example.frasm>` -> `<example>.pcap`
     let output = Command::new(cli_binary_path())
         .arg(&fasm_path)
         .output()
@@ -581,17 +581,17 @@ compile {
     assert!(pcap_bytes.len() > 28);
     assert_eq!(&pcap_bytes[0..4], &[0x0A, 0x0D, 0x0D, 0x0A]);
 
-    // 2. Explicit positional output: `frameassembly <other.fasm> <custom.pcap>`
-    let other_fasm_path = temp.join("other.fasm");
+    // 2. Explicit positional output: `frameassembly <other.frasm> <custom.pcap>`
+    let other_fasm_path = temp.join("other.frasm");
     let other_default_pcap = temp.join("other.pcap");
     let custom_pcap_path = temp.join("custom_out.pcap");
-    fs::write(&other_fasm_path, sample_fasm).expect("write other.fasm");
+    fs::write(&other_fasm_path, sample_fasm).expect("write other.frasm");
 
     let output_custom = Command::new(cli_binary_path())
         .arg(&other_fasm_path)
         .arg(&custom_pcap_path)
         .output()
-        .expect("run frameassembly other.fasm custom_out.pcap");
+        .expect("run frameassembly other.frasm custom_out.pcap");
     assert!(
         output_custom.status.success(),
         "Default CLI custom output failed: {}",
@@ -609,8 +609,8 @@ compile {
             .expect("run frameassembly version query");
         assert!(ver_out.status.success(), "version query '{ver_arg}' failed");
         assert!(
-            String::from_utf8_lossy(&ver_out.stdout).contains("2.0.0"),
-            "version query '{ver_arg}' missing 2.0.0"
+            String::from_utf8_lossy(&ver_out.stdout).contains("3.0.0"),
+            "version query '{ver_arg}' missing 3.0.0"
         );
     }
 
@@ -630,11 +630,11 @@ compile {
         }
         assert!(
             !help_stdout.contains("--output") && !help_stdout.contains(" -o"),
-            "v2.0.0 help output must not advertise removed -o/--output flags"
+            "v3.0.0 help output must not advertise removed -o/--output flags"
         );
     }
 
-    // 5. Rejections with helpful hints: `-o`, bare `.pcap`, accidental `compile` token, `.fasm` as OUTPUT.pcap
+    // 5. Rejections with helpful hints: `-o`, bare `.pcap`, accidental `compile` token, `.frasm` as OUTPUT.pcap
     let legacy_o = Command::new(cli_binary_path())
         .arg(&fasm_path)
         .arg("-o")
@@ -670,33 +670,33 @@ compile {
     );
     assert_eq!(fs::read_to_string(&fasm_path).expect("fasm intact"), sample_fasm);
 
-    let protected_fasm = temp.join("protected.fasm");
-    fs::write(&protected_fasm, sample_fasm).expect("write protected.fasm");
+    let protected_fasm = temp.join("protected.frasm");
+    fs::write(&protected_fasm, sample_fasm).expect("write protected.frasm");
     let fasm_as_output = Command::new(cli_binary_path())
         .arg(&fasm_path)
         .arg(&protected_fasm)
         .output()
-        .expect("run with .fasm passed as OUTPUT.pcap");
+        .expect("run with .frasm passed as OUTPUT.pcap");
     assert!(!fasm_as_output.status.success());
     assert!(
-        String::from_utf8_lossy(&fasm_as_output.stderr).contains(".fasm"),
-        "passing .fasm as OUTPUT.pcap must warn about .fasm overwrite"
+        String::from_utf8_lossy(&fasm_as_output.stderr).contains(".frasm"),
+        "passing .frasm as OUTPUT.pcap must warn about .frasm overwrite"
     );
     assert_eq!(
-        fs::read_to_string(&protected_fasm).expect("protected.fasm intact"),
+        fs::read_to_string(&protected_fasm).expect("protected.frasm intact"),
         sample_fasm
     );
 }
 
-/// Verifies `frameassembly reverse <example.pcap>` (default `<example>.fasm`), positional
-/// `<custom.fasm>`, recompilation via default root `frameassembly`, and `.pcapng` stem replacement.
+/// Verifies `frameassembly reverse <example.pcap>` (default `<example>.frasm`), positional
+/// `<custom.frasm>`, recompilation via default root `frameassembly`, and `.pcapng` stem replacement.
 #[test]
 fn test_cli_reverse_default_stem_pcap_and_pcapng_roundtrip() {
     let temp = TempTestDir::new("cli_reverse");
-    let seed_fasm = temp.join("seed.fasm");
+    let seed_fasm = temp.join("seed.frasm");
     let example_pcap = temp.join("example.pcap");
-    let expected_example_fasm = temp.join("example.fasm");
-    let custom_reversed_fasm = temp.join("custom_rev.fasm");
+    let expected_example_fasm = temp.join("example.frasm");
+    let custom_reversed_fasm = temp.join("custom_rev.frasm");
     let recompiled_pcap = temp.join("recompiled.pcap");
 
     let fasm_code = "\
@@ -707,13 +707,13 @@ compile {
     h1 <- h2 dns response txid 0x2a3b qname \"example.org\" qtype \"a\" rdata \"93.184.216.34\" wait 5ms
 }
 ";
-    fs::write(&seed_fasm, fasm_code).expect("write seed.fasm");
+    fs::write(&seed_fasm, fasm_code).expect("write seed.frasm");
 
     let compile_out = Command::new(cli_binary_path())
         .arg(&seed_fasm)
         .arg(&example_pcap)
         .output()
-        .expect("compile seed.fasm to example.pcap");
+        .expect("compile seed.frasm to example.pcap");
     assert!(compile_out.status.success());
     assert!(example_pcap.exists());
 
@@ -734,18 +734,18 @@ compile {
         .arg(&example_pcap)
         .arg(&custom_reversed_fasm)
         .output()
-        .expect("reverse example.pcap custom_rev.fasm");
+        .expect("reverse example.pcap custom_rev.frasm");
     assert!(rev_custom_out.status.success());
     assert_eq!(
-        fs::read_to_string(&custom_reversed_fasm).expect("read custom_rev.fasm"),
-        fs::read_to_string(&expected_example_fasm).expect("read example.fasm")
+        fs::read_to_string(&custom_reversed_fasm).expect("read custom_rev.frasm"),
+        fs::read_to_string(&expected_example_fasm).expect("read example.frasm")
     );
 
     let recompile_out = Command::new(cli_binary_path())
         .arg(&expected_example_fasm)
         .arg(&recompiled_pcap)
         .output()
-        .expect("recompile example.fasm to recompiled.pcap");
+        .expect("recompile example.frasm to recompiled.pcap");
     assert!(
         recompile_out.status.success(),
         "recompile failed: {}",
@@ -758,7 +758,7 @@ compile {
     );
 
     let trace_pcapng = temp.join("trace.pcapng");
-    let expected_trace_fasm = temp.join("trace.fasm");
+    let expected_trace_fasm = temp.join("trace.frasm");
     fs::copy(&example_pcap, &trace_pcapng).expect("copy to trace.pcapng");
 
     let rev_pcapng_out = Command::new(cli_binary_path())
@@ -770,7 +770,7 @@ compile {
     assert!(expected_trace_fasm.exists());
 }
 
-/// Verifies CLI collision guards so extensionless inputs on root compilation and `.fasm`-named
+/// Verifies CLI collision guards so extensionless inputs on root compilation and `.frasm`-named
 /// captures on `reverse` never overwrite the input file in place.
 #[test]
 fn test_cli_collision_guard_never_overwrites_input_file() {
@@ -802,16 +802,16 @@ compile {
         original_fasm_text
     );
 
-    let pcap_named_fasm = temp.join("capture_named.fasm");
-    let expected_double_fasm = temp.join("capture_named.fasm.fasm");
+    let pcap_named_fasm = temp.join("capture_named.frasm");
+    let expected_double_fasm = temp.join("capture_named.frasm.frasm");
     let original_pcap_bytes = fs::read(&expected_spec_pcap).expect("read binary pcap bytes");
-    fs::write(&pcap_named_fasm, &original_pcap_bytes).expect("write capture_named.fasm");
+    fs::write(&pcap_named_fasm, &original_pcap_bytes).expect("write capture_named.frasm");
 
     let rev_out = Command::new(cli_binary_path())
         .arg("reverse")
         .arg(&pcap_named_fasm)
         .output()
-        .expect("reverse capture_named.fasm");
+        .expect("reverse capture_named.frasm");
     assert!(
         rev_out.status.success(),
         "reverse collision test failed: {}",
@@ -819,19 +819,19 @@ compile {
     );
     assert!(expected_double_fasm.exists());
     assert_eq!(
-        fs::read(&pcap_named_fasm).expect("read original capture_named.fasm"),
+        fs::read(&pcap_named_fasm).expect("read original capture_named.frasm"),
         original_pcap_bytes
     );
     let reversed_text = fs::read_to_string(&expected_double_fasm).expect("read reversed fasm");
     assert!(reversed_text.contains("compile"));
 }
 
-/// Verifies that `frameassembly show <example.fasm>` succeeds and prints the formatted packet
+/// Verifies that `frameassembly show <example.frasm>` succeeds and prints the formatted packet
 /// ladder table without creating any `.pcap` file on disk.
 #[test]
 fn test_cli_show_prints_packet_ladder_without_writing_pcap() {
     let temp = TempTestDir::new("cli_show");
-    let fasm_path = temp.join("ladder_demo.fasm");
+    let fasm_path = temp.join("ladder_demo.frasm");
     let unexpected_pcap_path = temp.join("ladder_demo.pcap");
 
     let sample_fasm = "\
@@ -842,7 +842,7 @@ compile {
     sw1 <- sw2 lldp chassisid \"sw2\" portid \"Eth2\" wait 5ms
 }
 ";
-    fs::write(&fasm_path, sample_fasm).expect("write ladder_demo.fasm");
+    fs::write(&fasm_path, sample_fasm).expect("write ladder_demo.frasm");
 
     let show_out = Command::new(cli_binary_path())
         .arg("show")
@@ -864,4 +864,47 @@ compile {
         !unexpected_pcap_path.exists(),
         "frameassembly show must not create a .pcap file on disk"
     );
+}
+
+/// Verifies the FrameAssembly 3.0 file-extension contract: legacy `.fasm` inputs and outputs are
+/// rejected with a self-healing rename hint, `--help` shows copy-paste `.frasm` examples, and a
+/// flow-free `compile { ... }` program reports `Successfully parsed N hosts` without `0 flows`.
+#[test]
+fn test_cli_v3_legacy_fasm_rejection_help_examples_and_flowless_summary() {
+    let temp = TempTestDir::new("cli_v3_ext");
+    let legacy_input = temp.join("demo.fasm");
+    fs::write(&legacy_input, "host a { ip 10.0.0.1 }\n").expect("write demo.fasm");
+
+    let legacy_run = Command::new(cli_binary_path())
+        .arg(&legacy_input)
+        .output()
+        .expect("run frameassembly on a .fasm input");
+    assert!(!legacy_run.status.success(), ".fasm input must be rejected");
+    let legacy_stderr = String::from_utf8_lossy(&legacy_run.stderr);
+    assert!(
+        legacy_stderr.contains("uses '.frasm'") && legacy_stderr.contains("demo.frasm"),
+        "missing .frasm rename hint, got: {legacy_stderr}"
+    );
+
+    let help = Command::new(cli_binary_path()).arg("help").output().expect("run help");
+    let help_text = String::from_utf8_lossy(&help.stdout);
+    for example in [
+        "frameassembly demo.frasm",
+        "frameassembly show demo.frasm",
+        "frameassembly reverse capture.pcap",
+    ] {
+        assert!(help_text.contains(example), "help must list example '{example}'");
+    }
+
+    let frasm_path = temp.join("flowless.frasm");
+    fs::write(
+        &frasm_path,
+        "host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile {\n    c -> s icmp echorequest id 1 seq 1\n}\n",
+    )
+    .expect("write flowless.frasm");
+    let ok = Command::new(cli_binary_path()).arg(&frasm_path).output().expect("compile flowless");
+    assert!(ok.status.success(), "flow-free .frasm must compile");
+    let stdout = String::from_utf8_lossy(&ok.stdout);
+    assert!(stdout.contains("Successfully parsed 2 hosts"), "unexpected stdout: {stdout}");
+    assert!(!stdout.contains("0 flows"), "flow-free summary must omit '0 flows': {stdout}");
 }

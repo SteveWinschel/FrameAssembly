@@ -1,4 +1,4 @@
-//! Shadow-state elision and canonical `.fasm` program emitter for the reverse decompiler.
+//! Shadow-state elision and canonical `.frasm` program emitter for the reverse decompiler.
 //!
 //! This module implements Stage 5 of the FrameAssembly reverse decompilation pipeline
 //! ([`emit_fasm_program`]). It emits discovered `host<N>` declarations followed by a single
@@ -171,7 +171,7 @@ impl ExistingTokens {
     }
 }
 
-/// Emits a complete, canonical lowercase `.fasm` program from dissected packets and topology.
+/// Emits a complete, canonical lowercase `.frasm` program from dissected packets and topology.
 pub(crate) fn emit_fasm_program(
     packets: &[DissectedPacket],
     topo: &CaptureTopology,

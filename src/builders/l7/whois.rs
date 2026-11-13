@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire WHOIS Domain and IP Registry Query Protocol frames over TCP port 43.
 //! The wire encoder constructs a Cleartext TCP query-response transaction on port 43 where the client transmits a CRLF-terminated domain name, Autonomous System Number (ASN), or IPv4/IPv6 CIDR prefix query (`<domain>\r\n`) and the RIR/TLD registry server returns human-readable key-value lines (`Domain Name:`, `Registrar:`, `Updated Date:`) before closing the connection. When optional fields in [`WhoisSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b whois [query | response] [domain <str>] [registrar <str>]`
 
 use crate::ast::*;

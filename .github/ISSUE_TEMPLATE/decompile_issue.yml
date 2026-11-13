@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Report an accuracy or parsing issue with `frameassembly reverse <input.pcap> [output.fasm]`, the VS Code **Reverse Capture to .fasm** command, or the browser playground decompiler.
+        Report an accuracy or parsing issue with `frameassembly reverse <input.pcap> [output.frasm]`, the VS Code **Reverse Capture (.pcap/.pcapng) to .frasm** command, or the browser playground decompiler.
         **Important:** Please sanitize any sensitive IP addresses, credentials, or internal hostnames before pasting packet captures or hex bytes.
 
   - type: input
@@ -14,7 +14,7 @@ body:
     attributes:
       label: FrameAssembly Version
       description: Output of `frameassembly version` (or VS Code extension / playground version).
-      placeholder: "frameassembly 2.0.0"
+      placeholder: "frameassembly 3.0.0"
     validations:
       required: true
 
@@ -45,7 +45,7 @@ body:
     id: actual_output
     attributes:
       label: Actual Output or Error
-      description: Paste the `.fasm` output or error message produced by `frameassembly reverse`.
+      description: Paste the `.frasm` output or error message produced by `frameassembly reverse`.
       render: text
     validations:
       required: true
@@ -53,7 +53,7 @@ body:
   - type: textarea
     id: expected_output
     attributes:
-      label: Expected .fasm Output
+      label: Expected .frasm Output
       description: Describe which protocol keywords or header modifiers you expected to see instead.
     validations:
       required: true

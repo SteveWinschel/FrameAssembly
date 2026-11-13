@@ -6,7 +6,7 @@
 //! and, for `EAP-Packet` (`Type = 0`), serializes the nested RFC 3748 EAP header (`Code`,
 //! `Identifier`, 16-bit `Length`, `Type/Method`, and optional identity or method data).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b eapol [version <u8>] [type <eappacket|start|logoff|key>] [eapcode <u8>] [eapid <u8>] [eapmethod <u8>] [identity "<str>"]`
 
 use crate::ast::*;

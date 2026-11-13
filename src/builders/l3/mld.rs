@@ -6,7 +6,7 @@
 //! `ff02::2`), writes the 16-bit `Maximum Response Delay` (`maxrespdelay`) and 128-bit IPv6
 //! `Multicast Address` (`multicastaddr`), and computes the mandatory 40-byte IPv6 pseudo-header checksum.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b mld [query | report | done] [multicastaddr <ipv6>] [maxrespdelay <u16>]`
 
 use crate::ast::*;

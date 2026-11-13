@@ -17,9 +17,9 @@ _frameassembly_complete_files() {
         fi
         lower="$(printf '%s' "$item" | tr '[:upper:]' '[:lower:]')"
         case "$mode" in
-            fasm)
+            frasm)
                 case "$lower" in
-                    *.fasm) COMPREPLY+=("$item") ;;
+                    *.frasm) COMPREPLY+=("$item") ;;
                 esac
                 ;;
             pcap)
@@ -37,7 +37,7 @@ _frameassembly() {
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ "$COMP_CWORD" -eq 1 ]; then
-        _frameassembly_complete_files "$cur" "fasm"
+        _frameassembly_complete_files "$cur" "frasm"
         # shellcheck disable=SC2207
         COMPREPLY+=($(compgen -W "show reverse version help" -- "$cur"))
         return 0
@@ -47,13 +47,13 @@ _frameassembly() {
     case "$subcmd" in
         show)
             if [ "$COMP_CWORD" -eq 2 ]; then
-                _frameassembly_complete_files "$cur" "fasm"
+                _frameassembly_complete_files "$cur" "frasm"
             fi
             ;;
         reverse)
             case "$COMP_CWORD" in
                 2) _frameassembly_complete_files "$cur" "pcap" ;;
-                3) _frameassembly_complete_files "$cur" "fasm" ;;
+                3) _frameassembly_complete_files "$cur" "frasm" ;;
             esac
             ;;
         help)

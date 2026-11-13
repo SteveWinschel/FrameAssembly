@@ -8,7 +8,7 @@
 //! Sequence Number (`seq`, default `1`), and a variable-length Integrity Check Value (`icv`, default 96-bit
 //! HMAC digest) followed by the authenticated upper-layer payload.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ah [spi <u32>] [seq <u32>] [icv "<hex>"] [nextheader <u8>] [payload "<str>" | hexpayload "<hex>"]`
 
 use alloc::vec::Vec;

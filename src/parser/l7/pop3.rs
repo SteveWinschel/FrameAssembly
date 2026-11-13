@@ -1,7 +1,7 @@
 //! Post Office Protocol Version 3 (POP3) Layer 7 mail retrieval field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 1939 `pop3` mailbox commands and
-//! server responses in FrameAssembly `.fasm` specifications. It recognizes the `pop3` protocol
+//! server responses in FrameAssembly `.frasm` specifications. It recognizes the `pop3` protocol
 //! keyword, client commands (`cmd`, e.g., `"USER"`, `"PASS"`, `"STAT"`, `"RETR"`, `"QUIT"`),
 //! command arguments (`arg`), status indicator flags (`ok` for `+ok` and `err` for `-err`), and
 //! server response lines (`response`).

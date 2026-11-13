@@ -1,7 +1,7 @@
 //! Message Queuing Telemetry Transport (MQTT v3.1.1) Layer 7 IoT protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for OASIS `mqtt` v3.1.1 publish/subscribe
-//! control packets in FrameAssembly `.fasm` specifications. It recognizes the `mqtt` protocol
+//! control packets in FrameAssembly `.frasm` specifications. It recognizes the `mqtt` protocol
 //! keyword, control packet types (`connect`, `connack`, `publish`, `puback`, `subscribe`,
 //! `suback`, `pingreq`, `pingresp`, `disconnect` or explicit `pkttype`), client identifiers
 //! (`clientid`), topic strings (`topic`), QoS levels (`qos`), `retain` flags, packet IDs

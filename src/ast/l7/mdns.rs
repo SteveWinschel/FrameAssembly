@@ -5,7 +5,7 @@
 //! Every field in [`MdnsSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>]`
 
 /// Multicast DNS (mDNS) (RFC 6762 / RFC 6763 (DNS-SD)) specification.

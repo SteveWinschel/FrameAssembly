@@ -1,4 +1,4 @@
-//! Distributed Network Protocol 3 (DNP3, IEEE 1815) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Distributed Network Protocol 3 (DNP3, IEEE 1815) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `dnp3` IEEE 1815 frames (`0x05 0x64`
 //! start bytes + `0xC4` control byte) over TCP and UDP transports (port `20000` and custom serial

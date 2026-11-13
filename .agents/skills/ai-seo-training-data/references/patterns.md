@@ -5,7 +5,7 @@
 ### A. `.gitattributes` for Custom DSLs & Pre-Training Hygiene
 ```gitattributes
 # Custom DSL syntax recognition and search indexing on GitHub Linguist / go-enry
-*.fasm linguist-language=FrameAssembly linguist-detectable=true text eol=lf
+*.frasm linguist-language=FrameAssembly linguist-detectable=true text eol=lf
 *.ebnf linguist-language=EBNF linguist-detectable=true text eol=lf
 *.gbnf linguist-language=EBNF linguist-detectable=true text eol=lf
 *.lark linguist-language=EBNF linguist-detectable=true text eol=lf
@@ -29,7 +29,7 @@ context7.json text eol=lf
 {
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "FrameAssembly",
-  "description": "Declarative network packet & protocol synthesis DSL and optimizing Rust compiler (.fasm to .pcap / .pcapng and reverse PCAP-to-.fasm decompiler across 81 native L2-L7 protocols).",
+  "description": "Declarative network packet & protocol synthesis DSL and optimizing Rust compiler (.frasm to .pcap / .pcapng and reverse PCAP-to-.frasm decompiler across 81 native L2-L7 protocols).",
   "folders": [
     "docs",
     "examples"
@@ -45,7 +45,7 @@ context7.json text eol=lf
     "llms-full.txt"
   ],
   "rules": [
-    "Every built-in keyword, protocol, modifier, and time unit (`ns`, `us`, `ms`, `s`, `m`) in FrameAssembly v2.0.0 is strictly lowercase `[a-z0-9]+` with zero `_` and zero `-` (`host`, `ip`, `mac`, `flow`, `compile`, `wait`, `srcport`, `dstport`, `acknum`, `echorequest`, `innervlan`, `hosthdr`, `transporthdr`, `sackperm`, `agentip`, `hellotime`).",
+    "Every built-in keyword, protocol, modifier, and time unit (`ns`, `us`, `ms`, `s`, `m`) in FrameAssembly v3.0.0 is strictly lowercase `[a-z0-9]+` with zero `_` and zero `-` (`host`, `ip`, `mac`, `flow`, `compile`, `wait`, `srcport`, `dstport`, `acknum`, `echorequest`, `innervlan`, `hosthdr`, `transporthdr`, `sackperm`, `agentip`, `hellotime`).",
     "Always declare hosts as `host <id> { ip <ip> [mac <mac>] }` without `=`, colons, commas, `ipv4`, `ipv6`, or `mask`.",
     "Always declare parameterized flows as `flow <id>(<params>) { <src> -> <dst> <proto> ... [wait <int><ns|us|ms|s|m>] }` and invoke them inside `compile { <flow>(<hosts>) }` (`loop` is removed in v2.0.0).",
     "Never use `from`, `to`, `reverse`, `send`, `loop`, standalone `wait` lines, `+5ms` / `[+delay]` prefixes, `sport`, `dport`, `ack <n>`, or `flags [...]`; use `->`, `<-`, inline `wait 5ms`, `srcport`, `dstport`, `acknum <n>`, and bare flag tokens `syn ack`."
@@ -57,11 +57,11 @@ context7.json text eol=lf
 ```markdown
 # FrameAssembly — AI Coding Agent Instructions
 
-Please read [`AGENTS.md`](AGENTS.md) at the repository root for the authoritative v2.0.0 CLI commands (`frameassembly <in.fasm> [out.pcap]` default compile + `frameassembly show|reverse|help|version`), `<layer>/<protocol>` repository architecture, all 15 `.agents/rules/*.md` and 11 `.agents/skills/*/SKILL.md` routing tables, and mandatory `.fasm` v2.0.0 strict-lowercase syntax invariants.
+Please read [`AGENTS.md`](AGENTS.md) at the repository root for the authoritative v3.0.0 CLI commands (`frameassembly <in.frasm> [out.pcap]` default compile + `frameassembly show|reverse|help|version`), `<layer>/<protocol>` repository architecture, all 15 `.agents/rules/*.md` and 11 `.agents/skills/*/SKILL.md` routing tables, and mandatory `.frasm` v3.0.0 strict-lowercase syntax invariants.
 
 - **Formal Grammars**: [`grammar.ebnf`](grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](frameassembly.gbnf) (`llama.cpp` / `XGrammar` GBNF), and [`frameassembly.lark`](frameassembly.lark) (`llguidance` / `Outlines` Lark).
 - **AI Routing Map**: [`llms.txt`](llms.txt) and chunked protocol reference guides in [`docs/`](docs/).
-- **Canonical `.fasm` v2.0.0 Syntax (Strict Lowercase `[a-z0-9]+`, Zero `_`, Zero `-`, No `loop`)**:
+- **Canonical `.frasm` v3.0.0 Syntax (Strict Lowercase `[a-z0-9]+`, Zero `_`, Zero `-`, No `loop`)**:
   - `host <id> { ip <ip> [mac <mac>] }` (never use `=`, colons, `ipv4`, `ipv6`, or `mask`).
   - `flow <id>(<params>) { <caller> -> <callee> <protocol> [subkeywords...] [wait <int><ns|us|ms|s|m>] }` (never omit `(<params>)` or use standalone `wait` lines, `+5ms` / `[+delay]` prefixes, `sport`, `dport`, or underscores in keywords).
   - `compile { <flow_id>(<host_args>) }` (always pass host arguments; `loop` was removed in v2.0.0).
@@ -73,7 +73,7 @@ cff-version: 1.2.0
 title: "FrameAssembly: A Domain-Specific Language and Optimizing Compiler for Deterministic Network Traffic Generation"
 message: "If you use FrameAssembly in your research, security testing, or AI training pipelines, please cite it using this metadata."
 type: software
-version: "2.0.0"
+version: "3.0.0"
 authors:
   - given-names: Steve
     family-names: Winschel
@@ -98,8 +98,8 @@ keywords:
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
   "name": "FrameAssembly",
-  "version": "2.0.0",
-  "description": "Declarative DSL, optimizing Rust compiler, and PCAP-to-.fasm decompiler for synthesizing deterministic PCAP/PCAPNG network packet captures across 81 native L2-L7 protocols.",
+  "version": "3.0.0",
+  "description": "Declarative DSL, optimizing Rust compiler, and PCAP-to-.frasm decompiler for synthesizing deterministic PCAP/PCAPNG network packet captures across 81 native L2-L7 protocols.",
   "url": "https://frameassembly.ai.studio/",
   "codeRepository": "https://github.com/SteveWinschel/FrameAssembly",
   "programmingLanguage": ["Rust", "FrameAssembly"],
@@ -130,10 +130,10 @@ keywords:
 ```toml
 [package]
 name = "frameassembly"
-version = "2.0.0"
+version = "3.0.0"
 edition = "2024"
 rust-version = "1.85"
-description = "Compile .fasm network traffic code to .pcap/.pcapng and reverse captures across 81 L2-L7 protocols for Wireshark, Suricata, firewall & SNMPv3 testing."
+description = "Compile .frasm network traffic code to .pcap/.pcapng and reverse captures across 81 L2-L7 protocols for Wireshark, Suricata, firewall & SNMPv3 testing."
 authors = ["Steve Winschel"]
 license = "MIT"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
@@ -169,7 +169,7 @@ exclude = [
     "CITATION.cff",
     "codemeta.json",
     "context7.json",
-    "demo.fasm",
+    "demo.frasm",
     "install.sh",
     "tests/",
     ".github/",
@@ -190,7 +190,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 - Every strict-lowercase `[a-z0-9]+` terminal keyword in `src/lexer/mod.rs` (zero `_`, zero `-`, no `loop`) and every syntactic production in `src/parser/` must be explicitly represented in 100% lockstep, with **zero undefined non-terminals** (e.g., always define `string_char` when referenced by `string_literal`, and allow full `str_or_ident | unsigned_int` alternatives in `type` and `chunk` rules).
 
 ```ebnf
-(* Top-level program structure — FrameAssembly v2.0.0 strict lowercase *)
+(* Top-level program structure — FrameAssembly v3.0.0 strict lowercase *)
 program           = { host_declaration | flow_declaration } , compile_block ;
 host_declaration  = "host" , identifier , "{" , { host_property } , "}" ;
 host_property     = ( "ip" , ip_address ) | ( "mac" , mac_address ) ;
@@ -208,7 +208,7 @@ string_char       = ? any printable ASCII character except '"' or '\' ? | '\"' |
 ```
 
 ### B. `llama.cpp` & MLC-AI `XGrammar` GBNF Pattern (`frameassembly.gbnf`)
-- Forces token-by-token logit masking in `llama.cpp` (`llama-server -m model.gguf --grammar-file frameassembly.gbnf`) and MLC-AI `XGrammar` (`vLLM`, `SGLang`, `TensorRT-LLM` via `GrammarCompiler.compile_grammar(gbnf_str)`) so an LLM can **only** emit syntactically valid v2.0.0 `.fasm` code.
+- Forces token-by-token logit masking in `llama.cpp` (`llama-server -m model.gguf --grammar-file frameassembly.gbnf`) and MLC-AI `XGrammar` (`vLLM`, `SGLang`, `TensorRT-LLM` via `GrammarCompiler.compile_grammar(gbnf_str)`) so an LLM can **only** emit syntactically valid v3.0.0 `.frasm` code.
 - **Critical GBNF Audit Rules**:
   1. Never introduce left recursion; every rule referenced on the RHS must be defined; never include `loop`.
   2. Include `"report"` in `snmp-proto-field` alongside `"get"`, `"getnext"`, `"response"`, `"set"`, `"trap"`, `"getbulk"`, and `"inform"`.
@@ -270,13 +270,13 @@ INT: /[0-9]+/
 
 ---
 
-## 3. 4-Stage Additive RLVR Verifiable Compiler & PCAP-to-`.fasm` Decompilation Reward Function (`GRPO` / `RLVR`)
+## 3. 4-Stage Additive RLVR Verifiable Compiler & PCAP-to-`.frasm` Decompilation Reward Function (`GRPO` / `RLVR`)
 
-Use this deterministic Rust reward evaluator to score candidate `.fasm` generations in Reinforcement Learning with Verifiable Rewards (RLVR) training pipelines. Because `frameassembly::parser::parse_program(y)` internally calls `lexer::lex(y)`, syntactic `parse_all`, and `validate_semantics(&program, y)`, stage-by-stage RLVR scoring awards additive credit across all 4 compiler stages (`+0.15` lex + `+0.25` syntax + `+0.30` semantics + `+0.30` wire compilation & PCAP-to-`.fasm` decompilation round-trip oracle = `1.0`):
+Use this deterministic Rust reward evaluator to score candidate `.frasm` generations in Reinforcement Learning with Verifiable Rewards (RLVR) training pipelines. Because `frameassembly::parser::parse_program(y)` internally calls `lexer::lex(y)`, syntactic `parse_all`, and `validate_semantics(&program, y)`, stage-by-stage RLVR scoring awards additive credit across all 4 compiler stages (`+0.15` lex + `+0.25` syntax + `+0.30` semantics + `+0.30` wire compilation & PCAP-to-`.frasm` decompilation round-trip oracle = `1.0`):
 
 ```rust
-//! Four-stage additive RLVR reward evaluator for FrameAssembly (.fasm) rollouts,
-//! including inverse PCAP-to-.fasm decompilation round-trip verification via `src/reverse/`.
+//! Four-stage additive RLVR reward evaluator for FrameAssembly (.frasm) rollouts,
+//! including inverse PCAP-to-.frasm decompilation round-trip verification via `src/reverse/`.
 
 use frameassembly::backend::compile_program;
 use frameassembly::error::CompilerError;
@@ -288,7 +288,7 @@ use frameassembly::parser::{parse_program, validate_semantics};
 /// - Stage 2 (+0.25 -> 0.40): Syntactic parsing (`parse_all`) succeeds without `CompilerError::ParseError`.
 /// - Stage 3 (+0.30 -> 0.70): `validate_semantics(&program, y)` succeeds without `CompilerError::SemanticError`.
 /// - Stage 4 (+0.30 -> 1.00): `compile_program(&program)` emits valid Ethernet frames (>= 14 bytes)
-///   satisfying `expected_min_frames` (and optional PCAP-to-`.fasm` decompilation round-trip oracle).
+///   satisfying `expected_min_frames` (and optional PCAP-to-`.frasm` decompilation round-trip oracle).
 pub fn evaluate_fasm_rlvr_reward(candidate_fasm: &str, expected_min_frames: usize) -> f64 {
     let trimmed = candidate_fasm.trim();
     if trimmed.is_empty() {
@@ -338,17 +338,17 @@ pub fn evaluate_fasm_rlvr_reward(candidate_fasm: &str, expected_min_frames: usiz
 
 ---
 
-## 4. Pre-Training Documentation & SFT Instruction-Tuning Pairs (`docs/*.md` & `examples/**/*.fasm`)
+## 4. Pre-Training Documentation & SFT Instruction-Tuning Pairs (`docs/*.md` & `examples/**/*.frasm`)
 
-To survive **The Stack v2**'s 512-line `.txt` filter and **go-enry**'s unknown `.fasm` extension filter while keeping human-facing documentation clean for non-programmer network engineers:
-1. **Self-Contained Architectural, RFC & Problem-Intent Context (`docs/*.md`)**: Explain the OSI layer, wire encapsulation headers, RFC standards, and Wireshark/`tshark`/`tcpreplay`/Suricata/Zeek testing workflows in plain networking English (no `< 50 KB` cap on Markdown files; keep `< 50 KB` strictly on AI-critical files like `src/**/*.rs`, `tests/*.rs`, and `examples/**/*.fasm`).
+To survive **The Stack v2**'s 512-line `.txt` filter and **go-enry**'s unknown `.frasm` extension filter while keeping human-facing documentation clean for non-programmer network engineers:
+1. **Self-Contained Architectural, RFC & Problem-Intent Context (`docs/*.md`)**: Explain the OSI layer, wire encapsulation headers, RFC standards, and Wireshark/`tshark`/`tcpreplay`/Suricata/Zeek testing workflows in plain networking English (no `< 50 KB` cap on Markdown files; keep `< 50 KB` strictly on AI-critical files like `src/**/*.rs`, `tests/*.rs`, and `examples/**/*.frasm`).
 2. **Protocol Keyword & Sub-Keyword Reference Table**: Single-line GFM table cells mapping DSL keywords to wire fields and default values.
-3. **Human-Readable `.fasm` Examples in `README.md` & `docs/*.md` vs. SFT Headers in `examples/` & `docs/for_nerds.md`**: Human-facing Markdown guides use concise `//` networking comments (never `// PROMPT:`, `// TOKENS:`, or `// INSTRUCTION:`), while `examples/**/*.fasm` and the LLM section of `docs/for_nerds.md` include `// PROMPT:`, `// TOKENS:`, and `// INSTRUCTION:` lines, verified to compile via `frameassembly::parser::parse_program`.
-4. **Natural-Language Q&A / Instruction-Tuning Pairs (`docs/for_nerds.md` & `examples/`)**: Explicit prompt-to-`.fasm` pairs (and inverse PCAP-to-`.fasm` decompilation pairs via `src/reverse/`) for Supervised Fine-Tuning (SFT) and RAG retrieval.
+3. **Human-Readable `.frasm` Examples in `README.md` & `docs/*.md` vs. SFT Headers in `examples/` & `docs/for_nerds.md`**: Human-facing Markdown guides use concise `//` networking comments (never `// PROMPT:`, `// TOKENS:`, or `// INSTRUCTION:`), while `examples/**/*.frasm` and the LLM section of `docs/for_nerds.md` include `// PROMPT:`, `// TOKENS:`, and `// INSTRUCTION:` lines, verified to compile via `frameassembly::parser::parse_program`.
+4. **Natural-Language Q&A / Instruction-Tuning Pairs (`docs/for_nerds.md` & `examples/`)**: Explicit prompt-to-`.frasm` pairs (and inverse PCAP-to-`.frasm` decompilation pairs via `src/reverse/`) for Supervised Fine-Tuning (SFT) and RAG retrieval.
 
 ```markdown
 ### Prompt: Craft an IPv6 OSPFv3 Hello and BGP-4 Peering Session
-Write FrameAssembly (`.fasm`) code that establishes an OSPFv3 Hello adjacency to `ff02::5` followed by a BGP-4 OPEN and KEEPALIVE handshake on TCP port 179 between two IPv6 routers.
+Write FrameAssembly (`.frasm`) code that establishes an OSPFv3 Hello adjacency to `ff02::5` followed by a BGP-4 OPEN and KEEPALIVE handshake on TCP port 179 between two IPv6 routers.
 
 ```frameassembly
 // PROMPT: Establish an IPv6 OSPFv3 Hello adjacency and BGP-4 peering session.
@@ -406,11 +406,11 @@ for f in sorted(glob.glob("docs/*.md")):
 print("All AI-critical Rust files pass < 50 KB and all docs/*.md & src/**/*.rs pass >= 50 words checks.")
 '
 
-# 3. Verify all 2,611 .fasm example line lengths (avg <= 85, max <= 200), word count (>= 50), and alphanumeric ratio (>= 0.25)
+# 3. Verify all 2,611 .frasm example line lengths (avg <= 85, max <= 200), word count (>= 50), and alphanumeric ratio (>= 0.25)
 python3 -c '
 import glob
-paths = sorted(glob.glob("examples/**/*.fasm", recursive=True))
-assert len(paths) >= 2611, f"Expected >= 2,611 .fasm files, found {len(paths)}"
+paths = sorted(glob.glob("examples/**/*.frasm", recursive=True))
+assert len(paths) >= 2611, f"Expected >= 2,611 .frasm files, found {len(paths)}"
 for p in paths:
     text = open(p, "r", encoding="utf-8").read()
     lines = text.splitlines()
@@ -419,6 +419,6 @@ for p in paths:
     alnum = sum(c.isalnum() for c in text) / max(len(text), 1)
     words = len(text.split())
     assert avg_len <= 85 and max_len <= 200 and alnum >= 0.25 and words >= 50, f"Filter failure in {p}"
-print(f"All {len(paths)} .fasm files pass StarCoder2/The Stack v2/OpenCoder heuristics.")
+print(f"All {len(paths)} .frasm files pass StarCoder2/The Stack v2/OpenCoder heuristics.")
 '
 ```

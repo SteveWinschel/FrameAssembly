@@ -1,4 +1,4 @@
-//! Generic Routing Encapsulation (GRE, RFC 2784 / RFC 2890) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Generic Routing Encapsulation (GRE, RFC 2784 / RFC 2890) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 2784 and RFC 2890
 //! Generic Routing Encapsulation (`gre`) tunnel packets carried directly over IPv4 or IPv6 with

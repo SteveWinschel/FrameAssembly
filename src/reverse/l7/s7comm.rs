@@ -1,4 +1,4 @@
-//! Siemens S7 Communication (S7comm over RFC 1006 TPKT + ISO 8073 COTP) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Siemens S7 Communication (S7comm over RFC 1006 TPKT + ISO 8073 COTP) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `s7comm` frames encapsulated in
 //! RFC 1006 TPKT (`\x03\x00`), ISO 8073 COTP DT (`\x02\xF0\x80`), and the `0x32` S7 protocol magic

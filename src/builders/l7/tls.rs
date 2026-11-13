@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Transport Layer Security (TLS 1.2 / TLS 1.3) frames over TCP port 443.
 //! The wire encoder constructs a 5-byte TLS Record Layer header (8-bit ContentType: `21` Alert, `22` Handshake, `23` ApplicationData; 16-bit Legacy Record Version e.g. `0x0303`; 16-bit Length) encapsulating a 4-byte Handshake header (8-bit HandshakeType: `1` ClientHello, `2` ServerHello, `11` Certificate, `20` Finished; 24-bit Length), 32-byte Random nonce, CipherSuite list (`0x1301` TLS_AES_128_GCM_SHA256, `0x1302` TLS_AES_256_GCM_SHA384), and SNI (`0x0000`) / ALPN (`0x0010`) extensions. When optional fields in [`TlsSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b tls [clienthello | serverhello | certificate | finished | appdata | alert] [recordversion <u16>] [handshakeversion <u16>] [sni <str>] [ciphersuite <u16>] [alpn <str>]`
 
 use crate::ast::*;

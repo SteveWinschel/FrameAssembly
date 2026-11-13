@@ -7,7 +7,7 @@
 //! `0x02`), Flags, 8-byte Root ID, 4-byte Root Path Cost, 8-byte Bridge ID, 2-byte Port ID, and
 //! 1/256-second scaled timers (Message Age, Max Age, Hello Time, Forward Delay).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b [stp | rstp] [rootid "<str>"] [bridgeid "<str>"] [portid <u16>] [cost <u32>] [maxage <u16>] [hellotime <u16>] [forwarddelay <u16>] [flags <u8>]`
 
 use crate::ast::*;

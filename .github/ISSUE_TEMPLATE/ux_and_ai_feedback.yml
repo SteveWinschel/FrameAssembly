@@ -13,7 +13,7 @@ body:
     attributes:
       label: Where Did You Hit Friction?
       options:
-        - CLI (`frameassembly <in.fasm>`, `show`, `reverse`, Tab completions, `install.sh`)
+        - CLI (`frameassembly <in.frasm>`, `show`, `reverse`, Tab completions, `install.sh`, `install.ps1`)
         - Compiler Diagnostic or Self-Healing Hint
         - VS Code / Cursor / Windsurf Extension (`frameassembly-vscode`)
         - Browser Playground (`frameassembly.ai.studio`)
@@ -25,8 +25,8 @@ body:
   - type: textarea
     id: what_tried
     attributes:
-      label: Command, .fasm Snippet, or AI Prompt Used
-      description: Paste the command, `.fasm` snippet, or prompt that led to unexpected behavior.
+      label: Command, .frasm Snippet, or AI Prompt Used
+      description: Paste the command, `.frasm` snippet, or prompt that led to unexpected behavior.
       render: text
     validations:
       required: true
@@ -43,4 +43,4 @@ body:
     id: environment
     attributes:
       label: OS, Shell / Editor, or AI Model (Optional)
-      placeholder: "e.g. Ubuntu 24.04 + zsh, VS Code 1.100, or Claude / ChatGPT"
+      placeholder: "e.g. Ubuntu 24.04 + zsh, Windows 11 + PowerShell, VS Code 1.100, or Claude / ChatGPT"

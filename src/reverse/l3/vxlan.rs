@@ -1,4 +1,4 @@
-//! Virtual eXtensible Local Area Network (VXLAN, RFC 7348) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Virtual eXtensible Local Area Network (VXLAN, RFC 7348) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 7348 `vxlan` overlay
 //! tunnel packets carried over UDP port `4789`. It validates the 8-byte VXLAN header and `I` flag

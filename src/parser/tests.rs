@@ -3,7 +3,7 @@
 //! This module verifies string escape sequence decoding (`\r`, `\n`, `\t`, `\xHH`, `\uXXXX`),
 //! raw hexadecimal payload parsing (`hexpayload`), top-level `host`, `flow`, and `compile` block
 //! parsing, protocol-scoped modifier disambiguation (`whois`, `hellotime`, promoted sub-keywords),
-//! self-healing v2.0.0 diagnostics, and spanned semantic diagnostic reporting across out-of-range
+//! self-healing v3.0.0 diagnostics, and spanned semantic diagnostic reporting across out-of-range
 //! fields, mixed IPv4/IPv6 endpoints, and duplicate symbol declarations.
 
 use super::*;
@@ -40,7 +40,7 @@ fn test_hex_payload_parsing() {
     );
 }
 
-/// Tests that contextual keywords (including newly promoted v2.0.0 sub-keywords) and hyphenated
+/// Tests that contextual keywords (including newly promoted v3.0.0 sub-keywords) and hyphenated
 /// names can be used as identifiers for hosts, flows, and parameters.
 #[test]
 fn test_contextual_keywords_and_hyphenated_identifiers() {
@@ -249,7 +249,7 @@ fn test_v2_whois_hellotime_and_promoted_subkeywords() {
     }
 }
 
-/// Verifies v2.0.0 self-healing diagnostics for removed `loop` and uppercase/snake_case/kebab-case keywords.
+/// Verifies v3.0.0 self-healing diagnostics for removed `loop` and uppercase/snake_case/kebab-case keywords.
 #[test]
 fn test_v2_self_healing_diagnostics() {
     use miette::Diagnostic;

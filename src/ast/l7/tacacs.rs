@@ -5,7 +5,7 @@
 //! Every field in [`TacacsSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b tacacs [type authen | type author | type acct | authen | author | acct] [seq <u8>] [flags <u8>] [sessionid <u32>] [user <str>] [data <str>] [payload <str>]`
 
 /// RFC 8907 TACACS+ authentication & authorization specification.

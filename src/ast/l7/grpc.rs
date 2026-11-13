@@ -5,7 +5,7 @@
 //! Every field in [`GrpcSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b grpc [service <str>] [method <str>] [grpcstatus <u32>]`
 
 /// gRPC remote procedure call framing specification.

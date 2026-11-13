@@ -6,7 +6,7 @@
 //! zero byte, and a 16-bit ones'-complement Internet Checksum, followed by Option `1` (`Holdtime`,
 //! Length `2`, `holdtime` default `105`s) and Option `19` (`DR Priority`, Length `4`, `drpriority` default `1`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b pim [hello | joinprune | register] [holdtime <u16>] [drpriority <u32>] [group <ip>] [source <ip>] [rp <ip>]`
 
 use crate::ast::*;

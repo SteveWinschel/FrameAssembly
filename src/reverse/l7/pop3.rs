@@ -1,4 +1,4 @@
-//! Post Office Protocol Version 3 (POP3, RFC 1939) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Post Office Protocol Version 3 (POP3, RFC 1939) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `pop3` client commands and server
 //! status responses over TCP ports `110`, `995`, and `2110`. It decodes CRLF-terminated `+OK` and

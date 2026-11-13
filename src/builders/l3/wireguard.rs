@@ -10,7 +10,7 @@
 //! - `cookie` (`Type = 3`, 64 bytes): 32-bit LE `receiver_index`, 24-byte nonce, and 32-byte cookie.
 //! - `data` (`Type = 4`, `16 + payload` bytes): 32-bit LE `receiver_index` and 64-bit LE `counter` (`counter`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b wireguard [type <initiation|response|cookie|data> | initiation | cookie | data] [sender <u32>] [receiver <u32>] [counter <u64>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;

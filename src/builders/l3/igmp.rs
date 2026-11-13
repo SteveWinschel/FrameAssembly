@@ -6,7 +6,7 @@
 //! `224.0.0.1`), and `leave` (`0x17`, default group `224.0.0.2`), writes the 32-bit IPv4 `group`
 //! address, and computes the 16-bit RFC 1071 ones'-complement Internet checksum.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b igmp [query | report | leave] [group <ipv4>] [maxresp <u8>] [v1 | v2 | v3]`
 
 use crate::ast::*;

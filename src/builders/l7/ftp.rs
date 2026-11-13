@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire File Transfer Protocol (FTP) frames over TCP port 21 (Control channel) and TCP port 20 (Active data channel).
 //! The wire encoder constructs a CRLF-terminated NVT-ASCII control commands (`USER`, `PASS`, `SYST`, `FEAT`, `PWD`, `CWD`, `TYPE`, `PASV`, `EPSV`, `PORT`, `RETR`, `STOR`, `LIST`, `DELE`, `QUIT`) and 3-digit numeric status replies (`220` Service ready, `331` User name okay, `230` User logged in, `227` Entering Passive Mode, `150` File status okay, `226` Closing data connection, `530` Not logged in). When optional fields in [`FtpSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ftp [cmd <str>] [arg <str>] [code <u16>] [reply <str>]`
 
 use crate::ast::*;

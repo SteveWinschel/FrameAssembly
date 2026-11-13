@@ -5,7 +5,7 @@
 //! Every field in [`SshSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ssh [banner <str>] [kexinit] [newkeys] [msgcode <u8>] [cookie <str>] [payload <str>]`
 
 /// RFC 4253 Secure Shell Protocol specification.

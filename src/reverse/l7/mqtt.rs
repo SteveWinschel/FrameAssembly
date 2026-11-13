@@ -1,10 +1,10 @@
-//! Message Queuing Telemetry Transport v3.1.1 (MQTT, OASIS Standard) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Message Queuing Telemetry Transport v3.1.1 (MQTT, OASIS Standard) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `mqtt` v3.1.1 control packets over
 //! TCP ports `1883` and `8883` (as well as custom-port `connect` packets carrying the
 //! `\x00\x04MQTT\x04\x02` variable header signature). It decodes `connect`, `connack`, `publish`,
 //! `puback`, `subscribe`, `suback`, `pingreq`, `pingresp`, and `disconnect` frames into canonical
-//! `.fasm` statements.
+//! `.frasm` statements.
 
 use alloc::format;
 use alloc::string::String;

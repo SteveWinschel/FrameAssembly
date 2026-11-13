@@ -6,7 +6,7 @@
 //! NUL-terminated parameter pairs (`user`, `database`), while all subsequent frontend and backend
 //! messages start with a 1-byte type tag (`'Q'` Query, `'R'` AuthenticationOk, `'C'`
 //! CommandComplete, `'Z'` ReadyForQuery, `'E'` ErrorResponse) and a 32-bit big-endian length.
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `postgres [startup | query | authok | commandcomplete | readyforquery | errorresponse] [user <str>] [db <str>] [sql <str>]`.
 
 /// PostgreSQL Frontend/Backend Protocol 3.0 specification.

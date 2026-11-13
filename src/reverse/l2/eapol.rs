@@ -1,4 +1,4 @@
-//! Extensible Authentication Protocol over LAN (EAPOL, IEEE 802.1X) Layer 2 PCAP-to-`.fasm` decompiler.
+//! Extensible Authentication Protocol over LAN (EAPOL, IEEE 802.1X) Layer 2 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IEEE 802.1X Port-Based
 //! Network Access Control (`eapol`, EtherType `0x888E`) frames in FrameAssembly. It decodes the

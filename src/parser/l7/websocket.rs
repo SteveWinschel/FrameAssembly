@@ -1,7 +1,7 @@
 //! WebSocket (RFC 6455) Layer 7 full-duplex framing protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 6455 `websocket` data and control
-//! frames in FrameAssembly `.fasm` specifications. It recognizes the `websocket` protocol keyword,
+//! frames in FrameAssembly `.frasm` specifications. It recognizes the `websocket` protocol keyword,
 //! explicit `opcode` strings, shorthand opcode keywords (`text`, `binary`, `ping`, `pong`,
 //! `close`), final fragment indicator bits (`finbit`), and 32-bit client masking keys
 //! (`maskkey`).

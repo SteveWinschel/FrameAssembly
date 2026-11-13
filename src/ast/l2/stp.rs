@@ -7,7 +7,7 @@
 //! an IEEE 802.2 Logical Link Control (LLC) header (`DSAP = 0x42`, `SSAP = 0x42`, `Control = 0x03`)
 //! and a 35-byte Configuration BPDU payload.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b [stp | rstp] [rootid "<str>"] [bridgeid "<str>"] [portid <u16>] [cost <u32>] [maxage <u16>] [hellotime <u16>] [forwarddelay <u16>] [flags <u8>]`
 
 /// Spanning Tree Protocol (IEEE 802.1D / IEEE 802.1w) BPDU specification.

@@ -7,7 +7,7 @@
 //! bit when `greseq` is present), appends the 16-bit EtherType `Protocol Type` (`greproto`,
 //! default `0x0800`), optional 32-bit Checksum/Reserved, Key, and Sequence words, and the inner packet.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b gre [grekey <u32>] [greseq <u32>] [greproto <u16>] [checksum] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;

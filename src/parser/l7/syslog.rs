@@ -1,7 +1,7 @@
 //! Syslog (RFC 5424 and RFC 3164) Layer 7 event logging protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 5424 structured `syslog` event
-//! messages in FrameAssembly `.fasm` specifications. It recognizes the `syslog` protocol keyword,
+//! messages in FrameAssembly `.frasm` specifications. It recognizes the `syslog` protocol keyword,
 //! facility codes (`facility`), severity levels (`severity`), explicit priority values (`pri`),
 //! originating hostnames (`hostname`), application names (`app`), process identifiers (`procid`),
 //! message type identifiers (`msgid`), and log message strings (`msg`).

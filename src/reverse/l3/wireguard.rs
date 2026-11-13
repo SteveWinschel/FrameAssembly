@@ -1,10 +1,10 @@
-//! WireGuard Noise_IK Cryptographic VPN Tunnel Layer 3 PCAP-to-`.fasm` decompiler.
+//! WireGuard Noise_IK Cryptographic VPN Tunnel Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for `wireguard` VPN packets
 //! carried over UDP port `51820`. It validates the 4-byte message type (`1..=4`) and zeroed
 //! reserved bytes, and decodes handshake `initiation` (`sender`), handshake `response` (`sender`,
 //! `receiver`), `cookie` reply (`receiver`), and transport `data` (`receiver`, `counter`) messages
-//! into canonical `.fasm` statements.
+//! into canonical `.frasm` statements.
 
 use alloc::string::String;
 use alloc::vec::Vec;

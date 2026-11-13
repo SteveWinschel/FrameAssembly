@@ -22,6 +22,7 @@ export interface PacketPreview {
 
 export interface ReversePcapResult {
     success: boolean;
+    frasm: string;
     fasm: string;
     packetCount: number;
     hostCount: number;
@@ -38,19 +39,39 @@ export interface ReversePcapError {
 
 
 /**
- * Compiles `.fasm` source into a standards-compliant PCAPNG byte array (`compileFasm` alias).
+ * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFasm` 2.x alias).
  */
 export function compileFasm(source: string): Uint8Array;
 
 /**
- * Compiles `.fasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+ * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFrasm` alias).
+ */
+export function compileFrasm(source: string): Uint8Array;
+
+/**
+ * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
  */
 export function compile_fasm_to_pcapng(source: string): Uint8Array;
+
+/**
+ * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+ */
+export function compile_frasm_to_pcapng(source: string): Uint8Array;
+
+/**
+ * Returns decoded frame metadata for `.frasm` source (`inspectFrasm` camelCase alias).
+ */
+export function inspectFrasm(source: string): PacketPreview[];
 
 /**
  * Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for packet ladder inspectors.
  */
 export function inspect_fasm(source: string): PacketPreview[];
+
+/**
+ * Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for `.frasm` source.
+ */
+export function inspect_frasm(source: string): PacketPreview[];
 
 /**
  * Decompiles an in-memory `.pcap` or `.pcapng` capture (`reversePcap` camelCase alias).
@@ -62,8 +83,8 @@ export function inspect_fasm(source: string): PacketPreview[];
 export function reversePcap(pcap_bytes: Uint8Array | number[]): ReversePcapResult;
 
 /**
- * Decompiles an in-memory `.pcap` or `.pcapng` capture (`Uint8Array`) into canonical `.fasm`
- * source code and summary counts (`{ success: true, fasm, packetCount, hostCount }`).
+ * Decompiles an in-memory `.pcap` or `.pcapng` capture (`Uint8Array`) into canonical `.frasm`
+ * source code and summary counts (`{ success: true, frasm, fasm, packetCount, hostCount }`).
  *
  * # Errors
  * Returns a structured `JsValue` error object (`{ success: false, error, message }`) if
@@ -72,26 +93,42 @@ export function reversePcap(pcap_bytes: Uint8Array | number[]): ReversePcapResul
 export function reverse_pcap(pcap_bytes: Uint8Array | number[]): ReversePcapResult;
 
 /**
- * Validates `.fasm` source and returns UTF-16 line/column diagnostics (`validateFasm` alias).
+ * Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFasm` 2.x alias).
  */
 export function validateFasm(source: string): IdeDiagnostic[];
 
 /**
- * Validates `.fasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+ * Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFrasm` camelCase alias).
+ */
+export function validateFrasm(source: string): IdeDiagnostic[];
+
+/**
+ * Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
  */
 export function validate_fasm(source: string): IdeDiagnostic[];
+
+/**
+ * Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+ */
+export function validate_frasm(source: string): IdeDiagnostic[];
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly compileFasm: (a: number, b: number) => [number, number, number, number];
+    readonly compileFrasm: (a: number, b: number) => [number, number, number, number];
     readonly compile_fasm_to_pcapng: (a: number, b: number) => [number, number, number, number];
+    readonly compile_frasm_to_pcapng: (a: number, b: number) => [number, number, number, number];
+    readonly inspectFrasm: (a: number, b: number) => [number, number, number];
     readonly inspect_fasm: (a: number, b: number) => [number, number, number];
+    readonly inspect_frasm: (a: number, b: number) => [number, number, number];
     readonly reversePcap: (a: number, b: number) => [number, number, number];
     readonly reverse_pcap: (a: number, b: number) => [number, number, number];
     readonly validateFasm: (a: number, b: number) => [number, number, number];
+    readonly validateFrasm: (a: number, b: number) => [number, number, number];
     readonly validate_fasm: (a: number, b: number) => [number, number, number];
+    readonly validate_frasm: (a: number, b: number) => [number, number, number];
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;

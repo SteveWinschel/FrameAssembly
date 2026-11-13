@@ -1,10 +1,10 @@
-//! Server Message Block v2/v3 (SMB2, MS-SMB2) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Server Message Block v2/v3 (SMB2, MS-SMB2) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `smb` packets encapsulated inside
 //! 4-byte NetBIOS Session Service headers (`\x00...\xFESMB`) over TCP (ports `445`, `139`, and
 //! custom ports matching the 64-byte SMB2 header signature). It decodes `negotiate`,
 //! `sessionsetup`, `"logoff"`, `treeconnect` (with UTF-16LE `share`), `treedisconnect`, `create`
-//! (with UTF-16LE `filename`), `"close"`, `"read"`, and `"write"` commands into canonical `.fasm` tokens.
+//! (with UTF-16LE `filename`), `"close"`, `"read"`, and `"write"` commands into canonical `.frasm` tokens.
 
 use alloc::format;
 use alloc::string::String;

@@ -7,7 +7,7 @@
 //! `7..6`, followed by `Detect Mult` (`mult`, default `3`), `Length` (`24`), 32-bit `My Discriminator`
 //! (`mydisc`), 32-bit `Your Discriminator` (`yourdisc`), and 32-bit `mintx` / `minrx` timers.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b bfd [state <0..3>] [diag <0..31>] [mydisc <u32>] [yourdisc <u32>] [mintx <u32>] [minrx <u32>] [mult <u8>]`
 
 use crate::ast::*;

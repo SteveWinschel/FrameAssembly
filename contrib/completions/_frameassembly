@@ -6,28 +6,28 @@ _frameassembly() {
     local ret=1
     local -a subcommands
     subcommands=(
-        'show:Validate a .fasm file and print its packet ladder table'
-        'reverse:Reverse a .pcap or .pcapng capture file into .fasm code'
+        'show:Validate a .frasm file and print its packet ladder table'
+        'reverse:Reverse a .pcap or .pcapng capture file into .frasm code'
         'version:Print the FrameAssembly version'
         'help:Print help for FrameAssembly or a subcommand'
     )
 
     if (( CURRENT == 2 )); then
         _describe -t commands 'frameassembly subcommand' subcommands && ret=0
-        _path_files -/ -g '*.(fasm|FASM)' && ret=0
+        _path_files -/ -g '*.(frasm|FRASM)' && ret=0
         return ret
     fi
 
     case "${words[2]}" in
         show)
             if (( CURRENT == 3 )); then
-                _files -g '*.(fasm|FASM)'
+                _files -g '*.(frasm|FRASM)'
             fi
             ;;
         reverse)
             case "$CURRENT" in
                 3) _files -g '*.(pcap|pcapng|PCAP|PCAPNG)' ;;
-                4) _files -g '*.(fasm|FASM)' ;;
+                4) _files -g '*.(frasm|FRASM)' ;;
             esac
             ;;
         help)

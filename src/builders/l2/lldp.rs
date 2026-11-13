@@ -7,7 +7,7 @@
 //! and TTL (`Type = 3`) TLVs, optional System Name (`Type = 5`) and System Description (`Type = 6`)
 //! TLVs, and the mandatory End Of LLDPDU (`Type = 0, Length = 0`) marker.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b lldp [chassisid "<str>"] [portid "<str>"] [ttl <u16>] [sysname "<str>"] [sysdesc "<str>"]`
 
 use crate::ast::*;

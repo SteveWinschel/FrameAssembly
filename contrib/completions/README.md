@@ -2,10 +2,10 @@
 
 This directory provides context-aware Tab completion scripts for the `frameassembly` CLI across **Bash**, **Zsh**, **Fish**, and **PowerShell**:
 
-- **Position 1 (`frameassembly <TAB>`)**: Completes `.fasm` files and directories alongside `show`, `reverse`, `version`, and `help`.
-- **`frameassembly <input.fasm> [output.pcap]`**: Completes `.fasm` files and directories on argument 1, and `.pcap` / `.pcapng` files and directories on argument 2.
-- **`frameassembly show <input.fasm>`**: Completes `.fasm` files and directories on argument 1.
-- **`frameassembly reverse <input.pcap> [output.fasm]`**: Completes `.pcap` / `.pcapng` files and directories on argument 1, and `.fasm` files and directories on argument 2.
+- **Position 1 (`frameassembly <TAB>`)**: Completes `.frasm` files and directories alongside `show`, `reverse`, `version`, and `help`.
+- **`frameassembly <input.frasm> [output.pcap]`**: Completes `.frasm` files and directories on argument 1, and `.pcap` / `.pcapng` files and directories on argument 2.
+- **`frameassembly show <input.frasm>`**: Completes `.frasm` files and directories on argument 1.
+- **`frameassembly reverse <input.pcap> [output.frasm]`**: Completes `.pcap` / `.pcapng` files and directories on argument 1, and `.frasm` files and directories on argument 2.
 - **`frameassembly help [subcommand]`**: Completes `show`, `reverse`, `version`, and `help`.
 
 Debian `.deb` packages and the `install.sh` bootstrap installer copy Bash, Zsh, and Fish completions automatically. For manual setup, use the commands below.

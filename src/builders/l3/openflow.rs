@@ -6,7 +6,7 @@
 //! `5` `featuresreq`, `6` `featuresreply`, `10` `packetin`, `13` `packetout`, `14` `flowmod`),
 //! 16-bit big-endian total `length` (`8 + payload.len()`), and 32-bit big-endian transaction ID (`xid`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b openflow [hello | echoreq | echoreply | featuresreq | featuresreply | packetin | packetout | flowmod] [version <u8>] [xid <u32>] [dpid <u64>] [tableid <u8>] [priority <u16>]`
 
 use crate::ast::*;

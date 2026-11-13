@@ -8,7 +8,7 @@
 //! Identifier (`vni`, default `4096`), and an 8-bit `Reserved` byte, optionally followed by variable
 //! Type-Length-Value metadata options (`optclass` and `opttype`) used by OVN, Cilium, and NSX.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b geneve [vni <u24>] [optclass <u16>] [opttype <u8>] [protocoltype <u16>] [payload "<str>" | hexpayload "<hex>"]`
 
 use core::marker::PhantomData;

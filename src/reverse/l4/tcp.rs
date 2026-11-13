@@ -1,4 +1,4 @@
-//! Transmission Control Protocol (TCP, RFC 9293 / RFC 7323) Layer 4 PCAP-to-`.fasm` decompiler.
+//! Transmission Control Protocol (TCP, RFC 9293 / RFC 7323) Layer 4 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 9293 Transmission
 //! Control Protocol (`tcp`, IP protocol `6`) headers and RFC 7323 TCP header options in

@@ -1,7 +1,7 @@
 //! QUIC (RFC 9000) Layer 7 encrypted transport protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 9000 `quic` long-header and
-//! short-header packets in FrameAssembly `.fasm` specifications. It recognizes the `quic` protocol
+//! short-header packets in FrameAssembly `.frasm` specifications. It recognizes the `quic` protocol
 //! keyword, packet type flags (`initial`, `zerortt`, `handshake`, `retry`, `short`), protocol
 //! versions (`version`), destination and source connection IDs (`dcid`, `scid` as numeric or hex
 //! string literals), retry/initial tokens (`token`), and packet numbers (`pktnum`).

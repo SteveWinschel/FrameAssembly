@@ -4,6 +4,15 @@ All notable changes to the "frameassembly-vscode" extension will be documented i
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [3.0.0] - 2026-11-13
+- Renamed FrameAssembly source files from `.fasm` to **`.frasm`** across the language registration, snippets, commands, prompts, Markdown fenced-block highlighting (`frameassembly` and `frasm` blocks), and default output file names; the `source.frameassembly` scope and `text/vnd.frameassembly` MIME type are unchanged. The `.fasm` extension is no longer claimed, so it can never collide with x86 Flat Assembler or FPGA FASM files.
+- Unified command titles: **Compile .frasm to .pcap** and **Reverse Capture (.pcap/.pcapng) to .frasm**.
+- Added **Open Capture** and **Reveal in Explorer** buttons to the compile success notification.
+- Added a **Download .pcap** button to the Live Packet Ladder for browser hosts (`vscode.dev`, `github.dev`) where compiled captures cannot be written next to the source file.
+- Added a 3-step **Getting Started** walkthrough (`walkthroughs/`) and the **FrameAssembly: Open Getting Started Walkthrough** command; it opens once on first start.
+- Added Explorer right-click **Compile .frasm to .pcap** for `.frasm` files.
+- Powered by the embedded `frameassembly-wasm` 3.0.0 engine (the 2.x `validate_fasm`, `inspect_fasm`, and `compile_fasm_to_pcapng` exports remain supported as aliases).
+
 ## [2.0.0] - 2026-11-10
 - Upgraded into the **FrameAssembly — PCAP & Network Packet Studio (`.fasm` v2.0.0)** powered by the embedded `frameassembly-wasm` 2.0.0 engine across Desktop and Web (`vscode.dev`) Extension Hosts.
 - Added **Live Diagnostics & 1-Click Quick Fixes**: `120ms`-debounced UTF-16 compiler diagnostics with `CodeActionProvider` quick fixes that convert legacy uppercase or underscored keywords into FrameAssembly 2.0 strict lowercase.

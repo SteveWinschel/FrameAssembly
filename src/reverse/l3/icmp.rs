@@ -1,4 +1,4 @@
-//! Internet Control Message Protocol (ICMPv4 RFC 792 & ICMPv6 RFC 4443) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Internet Control Message Protocol (ICMPv4 RFC 792 & ICMPv6 RFC 4443) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IPv4 `icmp` (IP protocol
 //! `1`) and IPv6 `ICMPv6` (Next Header `58`) diagnostic and control messages. It maps message

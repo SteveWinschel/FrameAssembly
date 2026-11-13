@@ -1,7 +1,7 @@
 //! Siemens S7 Communication (S7comm over ISO-on-TCP) Layer 7 PLC protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for Siemens `s7comm` TPKT/COTP/S7 frames
-//! over TCP port 102 in FrameAssembly `.fasm` specifications. It recognizes the `s7comm` protocol
+//! over TCP port 102 in FrameAssembly `.frasm` specifications. It recognizes the `s7comm` protocol
 //! keyword, Remote Operating Service Control types (`rosctr`, e.g., `"JOB"`, `"ACK_DATA"`), PDU
 //! reference IDs (`pduref`), explicit `func` names and shorthands (`setupcomm`, `readvar`,
 //! `writevar`, `plccontrol`), PLC memory areas (`area` as numeric codes or area names such as

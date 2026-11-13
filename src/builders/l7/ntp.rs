@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Network Time Protocol v4 (NTPv4) frames over UDP port 123.
 //! The wire encoder constructs a 48-byte fixed NTP packet header starting with packed 8-bit LI (2 bits) / VN (3 bits) / Mode (3 bits) byte, 8-bit Stratum, 8-bit Poll interval (log2 seconds), signed 8-bit Precision, 32-bit Root Delay, 32-bit Root Dispersion, 32-bit Reference ID (ASCII kiss-code or IPv4), and four 64-bit fixed-point timestamps (Reference, Origin, Receive, Transmit). When optional fields in [`NtpSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ntp [li <u8>] [vn <u8>] [mode <u8>] [stratum <u8>] [poll <u8>] [precision <i8>] [refid <str>] [txtimestamp <u64>]`
 
 use crate::ast::*;

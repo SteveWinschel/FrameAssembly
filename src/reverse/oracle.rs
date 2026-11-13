@@ -1,7 +1,7 @@
 //! Self-checking in-memory compiler oracle for the FrameAssembly reverse decompiler pipeline.
 //!
-//! Every candidate `.fasm` statement synthesized by the protocol dissectors and shadow emitter is
-//! verified by [`verify_with_oracle`]. The oracle constructs a minimal self-contained `.fasm`
+//! Every candidate `.frasm` statement synthesized by the protocol dissectors and shadow emitter is
+//! verified by [`verify_with_oracle`]. The oracle constructs a minimal self-contained `.frasm`
 //! program in memory, runs [`crate::parser::parse_program`] and [`crate::backend::compile_program`],
 //! and compares the resulting Ethernet frame bytes against the normalized capture frame. Any
 //! high-level statement whose compiled wire bytes match the capture frame is preserved (attaching
@@ -21,14 +21,14 @@ use crate::lexer::Token;
 use super::topology::{DiscoveredHost, ResolvedFrameEndpoints};
 use super::{DissectedPacket, format_mac_lower, format_payload_modifier};
 
-/// Result of verifying a candidate `.fasm` statement through the in-memory compiler oracle.
+/// Result of verifying a candidate `.frasm` statement through the in-memory compiler oracle.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct VerifiedStatement {
     /// Final verified statement body (excluding the `<caller> ->|<- <callee> ` prefix).
     pub statement_body: String,
 }
 
-/// Verifies a candidate `.fasm` statement against the original [`DissectedPacket`] using the
+/// Verifies a candidate `.frasm` statement against the original [`DissectedPacket`] using the
 /// in-memory FrameAssembly parser and compiler as a self-checking oracle.
 ///
 /// Always operates in best-effort mode without failing:
@@ -156,7 +156,7 @@ fn format_host_decl(host: &DiscoveredHost) -> String {
     format!("host {} {{ {} }}", host.name, fields.join(" "))
 }
 
-/// Parses and compiles a minimal 1-statement `.fasm` program in memory, returning the
+/// Parses and compiles a minimal 1-statement `.frasm` program in memory, returning the
 /// synthesized Ethernet II frame bytes if successful.
 pub(crate) fn compile_single_statement(
     caller: &DiscoveredHost,

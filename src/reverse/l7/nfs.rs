@@ -1,4 +1,4 @@
-//! Network File System v3/v4 (NFS, RFC 1813 / RFC 7530 / RFC 8881) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Network File System v3/v4 (NFS, RFC 1813 / RFC 7530 / RFC 8881) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe ONC-RPC / SunRPC (`prog == 100_003`, `rpc_vers == 2`) wire-to-AST
 //! dissection for `nfs` frames over 4-byte record-marked TCP and raw UDP transports (port `2049`

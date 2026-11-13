@@ -1,12 +1,12 @@
-# FrameAssembly Custom Domain-Specific Language (.fasm — text/vnd.frameassembly)
-# Overrides GitHub's default x86 Assembly mapping so .fasm files are always indexed as FrameAssembly
-*.fasm linguist-language=FrameAssembly linguist-detectable=true linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
-contrib/linguist/samples/*.fasm linguist-language=FrameAssembly linguist-detectable=true linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
+# FrameAssembly Custom Domain-Specific Language (.frasm — text/vnd.frameassembly)
+# Overrides GitHub's default language detection so .frasm files are always indexed as FrameAssembly
+*.frasm linguist-language=FrameAssembly linguist-detectable=false linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
+contrib/linguist/samples/*.frasm linguist-language=FrameAssembly linguist-detectable=false linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
 
 # Formal Grammars (EBNF, GBNF, Lark)
-*.ebnf linguist-language=EBNF linguist-detectable=true text eol=lf
-*.gbnf linguist-language=EBNF linguist-detectable=true text eol=lf
-*.lark linguist-language=EBNF linguist-detectable=true text eol=lf
+*.ebnf linguist-language=EBNF linguist-detectable=false text eol=lf
+*.gbnf linguist-language=EBNF linguist-detectable=false text eol=lf
+*.lark linguist-language=EBNF linguist-detectable=false text eol=lf
 
 # Documentation, Standards Registration, Citation & AI Context Files
 *.md text eol=lf

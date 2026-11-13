@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Session Traversal Utilities for NAT (STUN) frames over UDP port 3478 (and WebRTC port 19302).
 //! The wire encoder constructs a 20-byte fixed STUN message header containing 16-bit STUN Message Type (`0x0001` Binding Request, `0x0101` Binding Success Response, `0x0111` Binding Error Response), 16-bit Message Length (excluding 20-byte header), 32-bit Magic Cookie `0x2112A442`, and 96-bit Transaction ID, followed by 4-byte-aligned TLV attributes (`0x0020` XOR-MAPPED-ADDRESS and `0x8022` SOFTWARE). When optional fields in [`StunSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip>] [software <str>]`
 
 use crate::ast::*;

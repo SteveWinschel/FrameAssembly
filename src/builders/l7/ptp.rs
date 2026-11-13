@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Precision Time Protocol v2 (PTPv2) frames over UDP port 319 (Event messages: SYNC, DELAY_REQ) and UDP port 320 (General messages: FOLLOW_UP, DELAY_RESP, ANNOUNCE).
 //! The wire encoder constructs a 34-byte IEEE 1588v2 commonPTP header (4-bit transportSpecific + 4-bit messageType, 4-bit versionPTP = 2, 16-bit messageLength, 8-bit domainNumber, 8-bit reserved, 16-bit flagField, 64-bit correctionField, 32-bit reserved, 80-bit sourcePortIdentity containing 64-bit ClockIdentity + 16-bit PortNumber, 16-bit sequenceId, 8-bit controlField, 8-bit logMessageInterval) followed by 10-byte originTimestamp. When optional fields in [`PtpSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ptp [sync | delayreq | followup | delayresp | announce | msgtype <str>] [domain <u8>] [seqid <u16>] [clockid <str>]`
 
 use crate::ast::*;

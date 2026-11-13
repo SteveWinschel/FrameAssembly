@@ -28,7 +28,7 @@ Use this skill when designing, implementing, debugging, or optimizing parsers us
 | Dependent / chained sub-parsing | `p1.flat_map(\|v\| p2(v))` / `p1.and_then(sub_parser)` | Manual nested `parse_peek` calls |
 | Commit to branch (syntax error) | `cut_err(parser)` (`ErrMode::Cut`) | Returning `Backtrack` after consuming unique keyword |
 | Static diagnostic context | `.context(StrContext::Label("..."))` | Allocating custom error strings on backtrack |
-| Case-insensitive text literal (raw `&str`) | `Caseless("select")` (for general text streams; FrameAssembly v2.0.0 keywords are strict lowercase) | `tag_no_case("select")` |
+| Case-insensitive text literal (raw `&str`) | `Caseless("select")` (for general text streams; FrameAssembly v3.0.0 keywords are strict lowercase) | `tag_no_case("select")` |
 | String / slice -> `FromStr` type | `parser.take().parse_to::<T>()` | `map_res` |
 | Fallible `Result<O, E>` conversion | `parser.try_map(\|x\| ...)` | `map_res` |
 | Fallible `Option<O>` conversion | `parser.verify_map(\|x\| ...)` | `map_opt` |
@@ -39,13 +39,13 @@ Use this skill when designing, implementing, debugging, or optimizing parsers us
 ## 2. Architecture Decision Guide
 
 1. **Two-Phase Token Streams (`Stream<'i, 'a>` vs. `TokenSlice<'t, T>`) & Single-Phase Byte Streams**:
-   - **FrameAssembly v2.0.0 Zero-Copy 3-Tuple Slice Stream (`src/parser/mod.rs`)**: `FrameAssembly` defines `pub type Stream<'i, 'a> = &'i [(Token<'a>, core::ops::Range<usize>, &'a str)];`, pairing each strict-lowercase `[a-z0-9]+` `logos 0.14.4` `Token<'a>` with its byte range and exact original `&'a str` slice (preserving user casing, `_`, and `-` on `Token::Ident` host/flow/param identifiers). Because `pkttype`, `read`, `write`, `nop`, `error`, and `shutdownack` are real `Token` variants in v2.0.0 (no `PartialEq` pseudo-keyword hack on `Token::Ident`), leaf combinators (`tag(expected: Token<'a>)`, `parse_spanned_ident` in `src/parser/ident.rs`) match directly against `(t, span, raw_str)` tuples with zero wrapper overhead.
+   - **FrameAssembly v3.0.0 Zero-Copy 3-Tuple Slice Stream (`src/parser/mod.rs`)**: `FrameAssembly` defines `pub type Stream<'i, 'a> = &'i [(Token<'a>, core::ops::Range<usize>, &'a str)];`, pairing each strict-lowercase `[a-z0-9]+` `logos 0.14.4` `Token<'a>` with its byte range and exact original `&'a str` slice (preserving user casing, `_`, and `-` on `Token::Ident` host/flow/param identifiers). Because `pkttype`, `read`, `write`, `nop`, `error`, and `shutdownack` are real `Token` variants in v3.0.0 (no `PartialEq` pseudo-keyword hack on `Token::Ident`), leaf combinators (`tag(expected: Token<'a>)`, `parse_spanned_ident` in `src/parser/ident.rs`) match directly against `(t, span, raw_str)` tuples with zero wrapper overhead.
    - **Standalone `winnow::stream::TokenSlice<'t, SpannedToken<'a>>`**: When building standalone token-stream parsers outside `Stream<'i, 'a>`, wrap `&[SpannedToken<'a>]` in `TokenSlice` and implement `Location`, `PartialEq<Token<'a>>`, and `ContainsToken` on `SpannedToken<'a>` so `.span()`, `.with_span()`, `literal(...)`, and `one_of([...])` work natively.
    - **Single-Phase Byte/String Stream**: Prefer `&'i BStr` (or `LocatingSlice<&'i BStr>`) with `features = ["simd"]` enabled (`memchr 2.8.3`) so 1–3 byte `ContainsToken` sets (`take_while`, `take_till`) dispatch to `memchr::memchr`/`memchr2`/`memchr3` and `FindSlice` (`take_until`) uses `memchr::memmem::Finder`.
 
 2. **Protocol-First Guard, Three-Tier Protocol-Scoped Dispatch & Shared-Keyword `cut_err` Rule**:
    - **Protocol-First Guard (`whois` Disambiguation in `src/parser/statement.rs`)**:
-     - In FrameAssembly v2.0.0, `#[token("whois")] Token::Whois` serves both the L7 `whois` protocol and BACnet's `whois` Unconfirmed-Request service (`WhoIs` was merged into `Whois`), while `#[token("hellotime")] Token::HelloTime` is unified across STP (`u16`) and HSRP (`<= 255` `u8` validated in `src/parser/validation.rs`).
+     - In FrameAssembly v3.0.0, `#[token("whois")] Token::Whois` serves both the L7 `whois` protocol and BACnet's `whois` Unconfirmed-Request service (`WhoIs` was merged into `Whois`), while `#[token("hellotime")] Token::HelloTime` is unified across STP (`u16`) and HSRP (`<= 255` `u8` validated in `src/parser/validation.rs`).
      - Whenever `current_protocol.is_none()` in `parse_frame_statement`, run an explicit protocol-keyword matcher **before** `parse_fallback_field` so `a -> b whois domain "example.com"` always sets `Protocol::Whois` instead of being intercepted alphabetically by `parse_bacnet_field`!
    - **3-Tier Statement Modifier Loop (`src/parser/statement.rs` & `src/parser/fields.rs`)**:
      1. **Tier 1 (`parse_universal_field`)**: Parses `wait`, `payload`, `hexpayload`, and universal L2/L3/L4 header fields—**explicitly bypassing `Token::Ack` and `Token::Rst`** when `current_protocol` is `Coap`, `Dhcp`, `Tftp`, or `Sip` so protocol message types are never misparsed as TCP flags.
@@ -70,7 +70,7 @@ Use this skill when designing, implementing, debugging, or optimizing parsers us
 
 Read [references/patterns.md](references/patterns.md) for complete, copy-pasteable production implementations:
 1. **Two-Phase Lexing Bridge (FrameAssembly 3-Tuple `Stream<'i, 'a>` + Standalone `TokenSlice` + `Location` + `ContainsToken`)**
-2. **High-Performance v2.0.0 DSL AST Parsing (`host`, `flow`, `compile` with `seq!`, `cut_err`, `repeat`, `opt`)**
+2. **High-Performance v3.0.0 DSL AST Parsing (`host`, `flow`, `compile` with `seq!`, `cut_err`, `repeat`, `opt`)**
 3. **Protocol-First Guard, Space-Separated L3 Modifiers & Shared-Keyword `cut_err` Factoring**
 4. **Built-In Pratt Precedence Climbing Expression Parser (`combinator::expression`)**
 5. **Zero-Copy String Unescaping & Hex Byte Stream Decoding (`Cow<'i, str>`, `\xHH`, `\u{...}`)**

@@ -1,4 +1,4 @@
-//! Building Automation and Control Networks over IP (BACnet/IP, ASHRAE 135) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Building Automation and Control Networks over IP (BACnet/IP, ASHRAE 135) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `bacnet`/IP BVLC (`0x81`, unicast
 //! `0x0A` or broadcast `0x0B`), NPDU (`\x01\x00`), and APDU messages over UDP (port `47808` and

@@ -5,7 +5,7 @@
 //! header `amqp\x00\x00\x09\x01`, followed by general frames consisting of a 1-byte Frame Type
 //! (`1` Method, `2` Content Header, `3` Content Body, `8` Heartbeat), a 16-bit Channel number, a
 //! 32-bit Payload Size, the class/method arguments, and a trailing `0xCE` frame-end octet.
-//! Canonical FrameAssembly `.fasm` syntax models AMQP frames via
+//! Canonical FrameAssembly `.frasm` syntax models AMQP frames via
 //! `amqp [protocolheader | connectionstart | channelopen | basicpublish | basicdeliver | heartbeat] [channel <u16>] [exchange <str>] [routingkey <str>]`.
 
 /// Advanced Message Queuing Protocol v0-9-1 (AMQP 0-9-1) specification.

@@ -5,7 +5,7 @@
 //! Every field in [`WhoisSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b whois [query | response] [domain <str>] [registrar <str>]`
 
 /// RFC 3912 WHOIS Protocol specification.

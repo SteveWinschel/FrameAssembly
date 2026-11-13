@@ -1,7 +1,7 @@
 //! Modbus TCP Layer 7 industrial automation and SCADA register field parser.
 //!
 //! This module implements the `winnow` parser combinator for `modbus` Application Protocol (`MBAP`)
-//! frames over TCP port 502 in FrameAssembly `.fasm` specifications. It recognizes the `modbus`
+//! frames over TCP port 502 in FrameAssembly `.frasm` specifications. It recognizes the `modbus`
 //! protocol keyword, MBAP transaction IDs (`txid`), protocol IDs (`protoid`), slave unit IDs
 //! (`unitid`), explicit `func` names, shorthand function keywords (`readcoils`,
 //! `readdiscreteinputs`, `readholdingregisters`, `readinputregisters`, `writesinglecoil`,

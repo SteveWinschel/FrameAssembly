@@ -1,9 +1,9 @@
-//! IP Flow Information Export (`ipfix`, RFC 7011 / RFC 7012) Layer 7 PCAP-to-`.fasm` decompiler.
+//! IP Flow Information Export (`ipfix`, RFC 7011 / RFC 7012) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 7011 `ipfix` (Version 10) flow
 //! telemetry datagrams (16-byte message header + 4-byte set header + 29-byte flow record) over UDP
 //! port `4739` or matching the deterministic FrameAssembly IPFIX header signature. It decodes
-//! `domainid`, `srcip`, `dstip`, `proto`, `packets`, and `octets` into canonical `.fasm` tokens.
+//! `domainid`, `srcip`, `dstip`, `proto`, `packets`, and `octets` into canonical `.frasm` tokens.
 
 use alloc::string::String;
 

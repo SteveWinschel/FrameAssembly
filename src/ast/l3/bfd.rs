@@ -8,7 +8,7 @@
 //! 32-bit `My Discriminator` (`mydisc`) and `Your Discriminator` (`yourdisc`) identifiers, and 32-bit
 //! microsecond timer intervals (`mintx`, `minrx`, and Required Min Echo RX Interval).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b bfd [state <0..3>] [diag <0..31>] [mydisc <u32>] [yourdisc <u32>] [mintx <u32>] [minrx <u32>] [mult <u8>]`
 
 use core::marker::PhantomData;

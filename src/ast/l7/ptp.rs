@@ -5,7 +5,7 @@
 //! Every field in [`PtpSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ptp [sync | delayreq | followup | delayresp | announce | msgtype <str>] [domain <u8>] [seqid <u16>] [clockid <str>]`
 
 /// IEEE 1588 Precision Time Protocol specification.

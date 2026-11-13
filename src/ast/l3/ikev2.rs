@@ -8,7 +8,7 @@
 //! `createchildsa`, `37` `informational`), an 8-bit `Flags` bitmask (`flags`, default `0x08`
 //! Initiator bit), a 32-bit `Message ID` (`msgid`), and a 32-bit total `Length`.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ikev2 [exchange <sainit|auth|createchildsa|informational>] [initiatorspi <u64>] [responderspi <u64>] [msgid <u32>] [flags <u8>] [nextheader <u8>]`
 
 use core::marker::PhantomData;

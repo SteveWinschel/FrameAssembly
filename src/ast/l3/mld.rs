@@ -7,7 +7,7 @@
 //! 40-byte IPv6 pseudo-header), a 16-bit `Maximum Response Delay` in milliseconds (`maxrespdelay`),
 //! a 16-bit `Reserved` field, and a 128-bit IPv6 `Multicast Address` (`multicastaddr`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b mld [query | report | done] [multicastaddr <ipv6>] [maxrespdelay <u16>]`
 
 use core::marker::PhantomData;

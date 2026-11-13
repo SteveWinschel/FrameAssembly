@@ -8,7 +8,7 @@
 //! Vector (`iv`), encrypted payload octets, padding, an 8-bit `Pad Length`, an 8-bit `Next Header`
 //! (`nextheader`), and a trailing Integrity Check Value (`icv`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b esp [spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [nextheader <u8>] [payload "<str>" | hexpayload "<hex>"]`
 
 #[doc(inline)]

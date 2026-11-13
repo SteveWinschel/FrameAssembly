@@ -6,7 +6,7 @@
 //! Partner Information TLV (`Type = 0x02`), 16-byte Collector Information TLV (`Type = 0x03`),
 //! 2-byte Terminator TLV (`Type = 0x00`), and 50 bytes of reserved zero padding.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b lacp [actorsys <mac>] [actorkey <u16>] [actorport <u16>] [actorstate <u8>] [partnersys <mac>] [partnerkey <u16>] [partnerport <u16>] [partnerstate <u8>]`
 
 use crate::ast::*;

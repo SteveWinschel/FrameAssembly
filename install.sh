@@ -2,12 +2,14 @@
 # ==============================================================================
 # FrameAssembly (frameassembly) — Cross-Platform Bootstrap Installer
 # https://github.com/SteveWinschel/FrameAssembly
+# https://frameassembly.ai.studio/
 # https://crates.io/crates/frameassembly
 #
 # Installs the prebuilt FrameAssembly release binary to ~/.cargo/bin (when Rust
-# is present) or ~/.local/bin (on systems without Rust), falls back to building
-# from crates.io via rustup (>= 1.85) + cargo install if no prebuilt archive is
-# available, installs Bash/Zsh/Fish Tab completion scripts, optionally installs
+# is present) or ~/.local/bin (on systems without Rust), verifies SHA-256
+# checksums against SHA256SUMS.txt, falls back (after interactive TTY prompt)
+# to building from crates.io via rustup (>= 1.85) + cargo install if no prebuilt
+# archive is available, installs Bash/Zsh/Fish Tab completion scripts, installs
 # the VS Code / Cursor / Windsurf / VSCodium / Antigravity extension (.vsix),
 # and self-deletes if downloaded as a standalone script file.
 #
@@ -30,8 +32,8 @@ CALLER_PATH="${PATH:-}"
 REQUIRED_RUST_MAJOR=1
 REQUIRED_RUST_MINOR=85
 CRATE_NAME="frameassembly"
-VSIX_VERSION="2.0.0"
-RELEASE_VERSION="2.0.0"
+VSIX_VERSION="3.0.0"
+RELEASE_VERSION="3.0.0"
 VSIX_RAW_URL="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-${VSIX_VERSION}.vsix"
 COMPLETIONS_RAW_BASE="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/completions"
 GITHUB_RELEASE_BASE="https://github.com/SteveWinschel/FrameAssembly/releases/download/v${RELEASE_VERSION}"
@@ -140,6 +142,39 @@ run_priv() {
 
 has_c_linker() {
     command -v cc >/dev/null 2>&1 || command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1
+}
+
+confirm_toolchain_fallback() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        log_info "[dry-run] Prebuilt archive unavailable; would prompt on interactive TTY before running sudo/toolchain fallback."
+        return 0
+    fi
+
+    log_warn "Prebuilt FrameAssembly v${RELEASE_VERSION} archive could not be downloaded from GitHub Releases."
+    log_info "Fallback installs missing build tools (which may invoke sudo/doas) and builds from crates.io via rustup/cargo."
+
+    answer=""
+    if [ -t 0 ]; then
+        printf '[FrameAssembly] Proceed with toolchain fallback (may invoke sudo)? [y/N] ' >&2
+        IFS= read -r answer || answer=""
+    elif [ -t 1 ] && ( : </dev/tty ) 2>/dev/null; then
+        printf '[FrameAssembly] Proceed with toolchain fallback (may invoke sudo)? [y/N] ' >/dev/tty
+        IFS= read -r answer </dev/tty || answer=""
+    else
+        log_warn "Non-interactive terminal detected; proceeding with toolchain fallback."
+        return 0
+    fi
+
+    case "$answer" in
+        y|Y|yes|YES|Yes)
+            return 0
+            ;;
+        *)
+            log_err "Aborted before running toolchain/sudo fallback."
+            log_info "Download prebuilt archives manually from: https://github.com/SteveWinschel/FrameAssembly/releases/tag/v${RELEASE_VERSION}"
+            exit 1
+            ;;
+    esac
 }
 
 install_system_prerequisites() {
@@ -283,20 +318,108 @@ detect_prebuilt_target() {
     esac
 }
 
+detect_clean_archive_name() {
+    os_name="$(uname -s 2>/dev/null || echo unknown)"
+    arch_name="$(uname -m 2>/dev/null || echo unknown)"
+    case "${os_name}:${arch_name}" in
+        Linux:x86_64|Linux:amd64)
+            printf 'frameassembly-linux-x64.tar.gz'
+            ;;
+        Linux:aarch64|Linux:arm64)
+            printf 'frameassembly-linux-arm64.tar.gz'
+            ;;
+        Darwin:x86_64)
+            printf 'frameassembly-macos-x64.tar.gz'
+            ;;
+        Darwin:arm64|Darwin:aarch64)
+            printf 'frameassembly-macos-arm64.tar.gz'
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+compute_sha256() {
+    target_file="$1"
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$target_file" | awk '{print tolower($1)}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$target_file" | awk '{print tolower($1)}'
+    elif command -v openssl >/dev/null 2>&1; then
+        openssl dgst -sha256 "$target_file" | awk '{print tolower($NF)}'
+    else
+        return 1
+    fi
+}
+
+verify_sha256_against_sums() {
+    archive_file="$1"
+    archive_basename="$2"
+    sums_file="$3"
+
+    [ -f "$sums_file" ] || return 0
+    expected_hash="$(awk -v fname="$archive_basename" '
+        {
+            h = tolower($1)
+            f = $2
+            sub(/^[*./]+/, "", f)
+            n = split(f, parts, "/")
+            if (h ~ /^[0-9a-f]{64}$/ && parts[n] == fname) {
+                print h
+                exit
+            }
+        }
+    ' "$sums_file")"
+
+    [ -n "$expected_hash" ] || return 0
+
+    if actual_hash="$(compute_sha256 "$archive_file")"; then
+        if [ "$actual_hash" != "$expected_hash" ]; then
+            log_err "SHA-256 checksum mismatch for ${archive_basename}! Expected ${expected_hash}, got ${actual_hash}."
+            return 1
+        fi
+        log_ok "Verified SHA-256 checksum for ${archive_basename}."
+    else
+        log_warn "No SHA-256 tool found (sha256sum/shasum/openssl); skipping checksum verification."
+    fi
+    return 0
+}
+
 try_install_prebuilt_binary() {
     if ! command -v curl >/dev/null 2>&1 || ! command -v tar >/dev/null 2>&1; then
         return 1
     fi
+    clean_archive="$(detect_clean_archive_name)" || return 1
     target_triple="$(detect_prebuilt_target)" || return 1
-    archive_url="${GITHUB_RELEASE_BASE}/${CRATE_NAME}-v${RELEASE_VERSION}-${target_triple}.tar.gz"
+    clean_url="${GITHUB_RELEASE_BASE}/${clean_archive}"
+    legacy_archive="${CRATE_NAME}-v${RELEASE_VERSION}-${target_triple}.tar.gz"
+    legacy_url="${GITHUB_RELEASE_BASE}/${legacy_archive}"
     bin_dir="$(resolve_prebuilt_bin_dir)"
+
     if [ "$DRY_RUN" -eq 1 ]; then
-        log_info "[dry-run] Checking prebuilt release binary at ${archive_url} -> ${bin_dir}/${CRATE_NAME} (falling back to cargo install if unavailable)"
+        log_info "[dry-run] Checking prebuilt release binary at ${clean_url} (fallback: ${legacy_url}) -> ${bin_dir}/${CRATE_NAME}"
         return 1
     fi
+
     tmp_archive="${TMPDIR:-/tmp}/${CRATE_NAME}-${RELEASE_VERSION}-$$.tar.gz"
+    tmp_sums="${TMPDIR:-/tmp}/${CRATE_NAME}-sums-${RELEASE_VERSION}-$$.txt"
     tmp_extract="${TMPDIR:-/tmp}/${CRATE_NAME}-extract-$$"
-    if curl -fsSL "$archive_url" -o "$tmp_archive" 2>/dev/null; then
+
+    downloaded_archive=""
+    if curl -fsSL "$clean_url" -o "$tmp_archive" 2>/dev/null; then
+        downloaded_archive="$clean_archive"
+    elif curl -fsSL "$legacy_url" -o "$tmp_archive" 2>/dev/null; then
+        downloaded_archive="$legacy_archive"
+    fi
+
+    if [ -n "$downloaded_archive" ]; then
+        curl -fsSL "${GITHUB_RELEASE_BASE}/SHA256SUMS.txt" -o "$tmp_sums" 2>/dev/null || rm -f -- "$tmp_sums"
+        if ! verify_sha256_against_sums "$tmp_archive" "$downloaded_archive" "$tmp_sums"; then
+            rm -rf -- "$tmp_archive" "$tmp_sums" "$tmp_extract"
+            return 1
+        fi
+
         mkdir -p "$tmp_extract" "$bin_dir"
         if tar -xzf "$tmp_archive" -C "$tmp_extract" 2>/dev/null; then
             extracted_bin=""
@@ -308,15 +431,16 @@ try_install_prebuilt_binary() {
             if [ -n "$extracted_bin" ] && [ -f "$extracted_bin" ]; then
                 mv -f "$extracted_bin" "${bin_dir}/${CRATE_NAME}"
                 chmod +x "${bin_dir}/${CRATE_NAME}"
-                rm -rf -- "$tmp_archive" "$tmp_extract"
+                rm -rf -- "$tmp_archive" "$tmp_sums" "$tmp_extract"
                 INSTALLED_BIN_DIR="$bin_dir"
                 prepend_to_path_if_dir "$bin_dir"
-                log_ok "Installed prebuilt ${CRATE_NAME} v${RELEASE_VERSION} (${target_triple}) to ${bin_dir}/${CRATE_NAME}."
+                log_ok "Installed prebuilt ${CRATE_NAME} v${RELEASE_VERSION} (${downloaded_archive}) to ${bin_dir}/${CRATE_NAME}."
                 return 0
             fi
         fi
     fi
-    rm -rf -- "$tmp_archive" "$tmp_extract"
+
+    rm -rf -- "$tmp_archive" "$tmp_sums" "$tmp_extract"
     return 1
 }
 
@@ -455,15 +579,24 @@ install_vscode_extension_if_requested() {
     fi
 
     tmp_vsix="${TMPDIR:-/tmp}/frameassembly-vscode-${VSIX_VERSION}-$$.vsix"
+    vsix_release_url="${GITHUB_RELEASE_BASE}/frameassembly-vscode.vsix"
     log_info "Downloading FrameAssembly editor extension (v${VSIX_VERSION}) from GitHub..."
-    if run_cmd curl -fsSL "$VSIX_RAW_URL" -o "$tmp_vsix"; then
+    if [ "$DRY_RUN" -eq 1 ]; then
+        log_info "[dry-run] Download ${vsix_release_url} (fallback: ${VSIX_RAW_URL}) -> ${tmp_vsix}"
+        for editor_cli in $detected_editors; do
+            log_info "[dry-run] ${editor_cli} --install-extension ${tmp_vsix}"
+        done
+        return 0
+    fi
+
+    if curl -fsSL "$vsix_release_url" -o "$tmp_vsix" 2>/dev/null || curl -fsSL "$VSIX_RAW_URL" -o "$tmp_vsix" 2>/dev/null; then
         for editor_cli in $detected_editors; do
             log_info "Installing extension via ${editor_cli}..."
             run_cmd "$editor_cli" --install-extension "$tmp_vsix" || log_warn "${editor_cli} extension install returned non-zero status."
         done
         run_cmd rm -f -- "$tmp_vsix"
     else
-        log_warn "Could not download ${VSIX_RAW_URL}; skipping editor extension install."
+        log_warn "Could not download ${vsix_release_url} or ${VSIX_RAW_URL}; skipping editor extension install."
         run_cmd rm -f -- "$tmp_vsix"
     fi
 }
@@ -498,9 +631,17 @@ print_path_hint_if_needed() {
     fi
 }
 
+print_quickstart() {
+    log_info "Quickstart (copy and paste to run right away):"
+    cat <<'EOF'
+  printf 'host client { ip 10.0.0.10 }\nhost server { ip 10.0.0.20 }\ncompile {\n  client -> server http get uri "/healthz" hosthdr "api.example.com" wait 2ms\n  client <- server http status 200 reason "OK" body "ok"\n}\n' > quickstart.frasm && frameassembly show quickstart.frasm && frameassembly quickstart.frasm quickstart.pcap
+EOF
+}
+
 main() {
-    log_info "Starting FrameAssembly (${CRATE_NAME}) bootstrap installer..."
+    log_info "Starting FrameAssembly (${CRATE_NAME} v${RELEASE_VERSION}) bootstrap installer..."
     if ! try_install_prebuilt_binary; then
+        confirm_toolchain_fallback
         install_system_prerequisites
         ensure_rust_toolchain
         install_frameassembly
@@ -516,7 +657,7 @@ main() {
 
     if command -v frameassembly >/dev/null 2>&1; then
         log_ok "Successfully installed $(frameassembly version)!"
-        log_info "Quickstart: frameassembly demo.fasm output.pcap && frameassembly show demo.fasm"
+        print_quickstart
         print_path_hint_if_needed "$INSTALLED_BIN_DIR"
     else
         fallback_dir="${INSTALLED_BIN_DIR:-$HOME/.local/bin}"

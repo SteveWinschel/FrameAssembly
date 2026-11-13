@@ -1,15 +1,15 @@
-# FrameAssembly v2.0.0 Production Reference Patterns
+# FrameAssembly v3.0.0 Production Reference Patterns
 
-This reference document provides production-ready, fully-documented, and compiler-verified Rust code templates and canonical v2.0.0 `.fasm` scenarios for FrameAssembly, covering forward and reverse compiler pipeline invocation, AST representation with strict-lowercase `/// Syntax mapping:`, protocol-first + 3-tier protocol-scoped sub-keyword parser dispatch, wire invariants, 4-tuple TCP state tracking, and enterprise `.fasm` archetypes.
+This reference document provides production-ready, fully-documented, and compiler-verified Rust code templates and canonical v3.0.0 `.frasm` scenarios for FrameAssembly, covering forward and reverse compiler pipeline invocation, AST representation with strict-lowercase `/// Syntax mapping:`, protocol-first + 3-tier protocol-scoped sub-keyword parser dispatch, wire invariants, 4-tuple TCP state tracking, and enterprise `.frasm` archetypes.
 
 ---
 
 ## 1. Programmatic Forward & Reverse Compiler Pipeline Invocation
 
-Demonstrates how to invoke FrameAssembly v2.0.0's two-phase forward compiler pipeline (`parse_program` $\rightarrow$ `validate_semantics(&program, source)` $\rightarrow$ `compile_program` / `generate_pcap`) and the 5-stage reverse PCAP/PCAPNG decompiler (`reverse_pcap_bytes` / `reverse_pcap_file`) without temporary file leaks or unchecked errors.
+Demonstrates how to invoke FrameAssembly v3.0.0's two-phase forward compiler pipeline (`parse_program` $\rightarrow$ `validate_semantics(&program, source)` $\rightarrow$ `compile_program` / `generate_pcap`) and the 5-stage reverse PCAP/PCAPNG decompiler (`reverse_pcap_bytes` / `reverse_pcap_file`) without temporary file leaks or unchecked errors.
 
 ```rust
-//! Programmatic entry points for forward compilation and reverse PCAP decompilation in FrameAssembly v2.0.0.
+//! Programmatic entry points for forward compilation and reverse PCAP decompilation in FrameAssembly v3.0.0.
 
 use std::fs;
 use std::path::Path;
@@ -18,10 +18,10 @@ use frameassembly::backend::{compile_program, generate_pcap};
 use frameassembly::parser::{parse_program, validate_semantics};
 use frameassembly::reverse::{ReversedCapture, reverse_pcap_bytes};
 
-/// Parses, semantically validates, and compiles v2.0.0 `.fasm` code in-memory into `(wire_bytes, timestamp_ns)` frames.
+/// Parses, semantically validates, and compiles v3.0.0 `.frasm` code in-memory into `(wire_bytes, timestamp_ns)` frames.
 ///
 /// # Arguments
-/// * `source` - Raw UTF-8 string containing canonical FrameAssembly v2.0.0 `.fasm` code.
+/// * `source` - Raw UTF-8 string containing canonical FrameAssembly v3.0.0 `.frasm` code.
 ///
 /// # Errors
 /// Returns a descriptive error string if lexing, syntax parsing, semantic validation,
@@ -39,11 +39,11 @@ pub fn compile_fasm_str(source: &str) -> Result<Vec<(Vec<u8>, u64)>, String> {
     compile_program(&program)
 }
 
-/// Compiles a `.fasm` file on disk directly into a deterministic `.pcapng` capture file
-/// (mirroring `frameassembly <input.fasm> [output.pcap]`).
+/// Compiles a `.frasm` file on disk directly into a deterministic `.pcapng` capture file
+/// (mirroring `frameassembly <input.frasm> [output.pcap]`).
 ///
 /// # Arguments
-/// * `input_path` - Path to the input `.fasm` specification.
+/// * `input_path` - Path to the input `.frasm` specification.
 /// * `output_path` - Destination path for the generated `.pcap` / `.pcapng` capture.
 pub fn compile_fasm_file<P: AsRef<Path>>(input_path: P, output_path: &str) -> Result<(), String> {
     let source = fs::read_to_string(input_path.as_ref())
@@ -58,7 +58,7 @@ pub fn compile_fasm_file<P: AsRef<Path>>(input_path: P, output_path: &str) -> Re
     generate_pcap(&program, output_path)
 }
 
-/// Decompiles raw `.pcap` or `.pcapng` capture bytes into canonical v2.0.0 `.fasm` code
+/// Decompiles raw `.pcap` or `.pcapng` capture bytes into canonical v3.0.0 `.frasm` code
 /// (`host1`, `host2`, strict-lowercase keywords without `_`, direct `compile { ... }` statements).
 pub fn decompile_capture_bytes(pcap_bytes: &[u8]) -> Result<ReversedCapture, String> {
     reverse_pcap_bytes(pcap_bytes)
@@ -67,12 +67,12 @@ pub fn decompile_capture_bytes(pcap_bytes: &[u8]) -> Result<ReversedCapture, Str
 
 ---
 
-## 2. Canonical v2.0.0 AST Structures & `/// Syntax mapping:` Docstring Pattern
+## 2. Canonical v3.0.0 AST Structures & `/// Syntax mapping:` Docstring Pattern
 
-Every AST struct in `src/ast/mod.rs` (`HostDef<'a>`, `FlowDef<'a>`, `RunStatement<'a>`, `FrameStatement<'a>`) and every protocol `*Spec` struct in `src/ast/{l2,l3,l4,l7}/<protocol>.rs` must include a `/// Syntax mapping: \`...\`` docstring in v2.0.0 strict-lowercase syntax and `#[doc(alias = "...")]` attributes binding the Rust type to its `.fasm` surface syntax and RFC standard. Note that `RunStatement::Loop` was removed in FrameAssembly v2.0.0 (`RunStatement::{Invocation, Frame}`).
+Every AST struct in `src/ast/mod.rs` (`HostDef<'a>`, `FlowDef<'a>`, `RunStatement<'a>`, `FrameStatement<'a>`) and every protocol `*Spec` struct in `src/ast/{l2,l3,l4,l7}/<protocol>.rs` must include a `/// Syntax mapping: \`...\`` docstring in v3.0.0 strict-lowercase syntax and `#[doc(alias = "...")]` attributes binding the Rust type to its `.frasm` surface syntax and RFC standard. Note that `RunStatement::Loop` was removed in FrameAssembly v2.0.0 (`RunStatement::{Invocation, Frame}`).
 
 ```rust
-//! Canonical v2.0.0 AST definitions with Syntax Mapping and docs.rs search aliases.
+//! Canonical v3.0.0 AST definitions with Syntax Mapping and docs.rs search aliases.
 
 use core::marker::PhantomData;
 use core::net::IpAddr;
@@ -135,7 +135,7 @@ pub struct FlowDef<'a> {
     pub span: (usize, usize),
 }
 
-/// Statement inside the `compile { ... }` block (`RunStatement` in FrameAssembly v2.0.0).
+/// Statement inside the `compile { ... }` block (`RunStatement` in FrameAssembly v3.0.0).
 ///
 /// Syntax mapping: `compile { <flow>(<args>) | <caller> -> <callee> <proto> ... }`
 #[doc(alias = "compile")]
@@ -199,7 +199,7 @@ pub struct ArpSpec<'a> {
 
 ## 3. Protocol-First Guard & 3-Tier Protocol-Scoped Field Parser Dispatch (`src/parser/`)
 
-In FrameAssembly v2.0.0:
+In FrameAssembly v3.0.0:
 1. Because `#[token("whois")] Token::Whois` serves both the L7 `whois` protocol and BACnet's `whois` Unconfirmed-Request service, `parse_frame_statement` checks an explicit protocol-keyword matcher **before** `parse_fallback_field` whenever `current_protocol.is_none()`. That ensures `a -> b whois domain "example.com"` sets `Protocol::Whois` instead of being intercepted alphabetically by `parse_bacnet_field`.
 2. When multiple protocols share a modifier token (`value`, `version`, `status`, `token`, `msgid`, `group`, `data`, `cookie`, `response`, `reply`, `keepalive`, `hellotime`, `ack`, `rst`), statement parsing runs a 3-tier loop (`parse_universal_field` $\rightarrow$ `dispatch_protocol_field` $\rightarrow$ `parse_fallback_field`).
 
@@ -271,9 +271,9 @@ pub(crate) fn dispatch_protocol_field<'i, 'a>(
 
 ---
 
-## 4. Production v2.0.0 `.fasm` Scenario Archetypes (100% Compiler-Verified)
+## 4. Production v3.0.0 `.frasm` Scenario Archetypes (100% Compiler-Verified)
 
-Complete, copy-pasteable scenarios using strictly canonical FrameAssembly v2.0.0 lowercase syntax (zero `_` or `-` in keywords, flexible user-defined host/flow identifiers, and direct flow invocations in `compile`).
+Complete, copy-pasteable scenarios using strictly canonical FrameAssembly v3.0.0 lowercase syntax (zero `_` or `-` in keywords, flexible user-defined host/flow identifiers, and direct flow invocations in `compile`).
 
 ### Scenario 1: Enterprise SNMPv3 USM Encrypted Telemetry over IPv6 (`examples/l7/snmp/snmpv3/`)
 

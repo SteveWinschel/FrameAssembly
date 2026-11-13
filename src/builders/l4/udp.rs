@@ -6,7 +6,7 @@
 //! Length in bytes (bits 32..47, minimum `8`), and a 16-bit one's complement Checksum
 //! (bits 48..63) computed over the IPv4/IPv6 pseudo-header, 8-byte UDP header, and payload.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b udp [srcport <u16>] [dstport <u16>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::UdpSpec;

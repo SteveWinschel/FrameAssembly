@@ -5,7 +5,7 @@
 //! human-readable command lines (`get <key>\r\n`, `set <key> <flags> <exptime> <bytes>\r\n`,
 //! `stats\r\n`, `version\r\n`), whereas the Memcached Binary Protocol uses a fixed 24-byte header
 //! (`0x80` request magic, 1-byte opcode, 2-byte key length, 1-byte extras length, 4-byte total
-//! body length, 4-byte opaque token, and 8-byte CAS version). Canonical `.fasm` syntax:
+//! body length, 4-byte opaque token, and 8-byte CAS version). Canonical `.frasm` syntax:
 //! `memcached [cmd <str>] [key <str>] [value <str>] [flags <u32>] [exptime <u32>] [opcode <u8>] [opaque <u32>] [cas <u64>]`.
 
 /// Memcached ASCII and Binary caching protocol specification.

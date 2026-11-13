@@ -6,7 +6,7 @@
 //! with an alphanumeric client command tag (e.g., `A001`), an untagged server token (`*`), or a
 //! command continuation request (`+`), followed by command verbs (`login`, `select`, `FETCH`,
 //! `UID`, `SEARCH`, `STORE`, `IDLE`, `LOGOUT`) or tagged completion statuses (`ok`, `NO`, `BAD`).
-//! Canonical FrameAssembly `.fasm` syntax models IMAP traffic with
+//! Canonical FrameAssembly `.frasm` syntax models IMAP traffic with
 //! `imap [tag <str>] [cmd <str>] [arg <str>] [status <str>] [response <str>]`.
 
 /// RFC 3501 / RFC 9051 Internet Message Access Protocol (IMAP4rev1/v4rev2) specification.

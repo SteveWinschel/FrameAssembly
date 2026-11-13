@@ -1,7 +1,7 @@
 //! Session Initiation Protocol (SIP) Layer 7 VoIP signaling field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 3261 `sip` multimedia session
-//! signaling messages in FrameAssembly `.fasm` specifications. It recognizes the `sip` protocol
+//! signaling messages in FrameAssembly `.frasm` specifications. It recognizes the `sip` protocol
 //! keyword, shorthand method tokens (`invite`, `ack`, `bye`, `cancel`, `register`, `options`),
 //! explicit `method` strings, request `uri` targets, signaling headers (`from`, `to`, `callid`,
 //! `cseq`, `via`, `contact`, `contenttype`), response `status` and `reason`, and SDP `body`

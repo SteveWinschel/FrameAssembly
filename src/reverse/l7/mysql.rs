@@ -1,4 +1,4 @@
-//! MySQL Client/Server Wire Protocol v10 Layer 7 PCAP-to-`.fasm` decompiler.
+//! MySQL Client/Server Wire Protocol v10 Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `mysql` 4-byte framed packets
 //! (3-byte little-endian payload length + 1-byte sequence number) over TCP ports `3306`, `6033`

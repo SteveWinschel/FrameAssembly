@@ -1,9 +1,9 @@
-//! Hot Standby Router Protocol (HSRP, RFC 2281) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Hot Standby Router Protocol (HSRP, RFC 2281) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for Cisco Hot Standby Router
 //! Protocol (`hsrp`, RFC 2281) messages carried over UDP ports `1985` (IPv4) and `2029` (IPv6).
 //! It decodes the standby `group`, router `priority`, HSRP `state`, `hellotime`, `holdtime`,
-//! cleartext `auth` string, and IPv4 or IPv6 virtual IP (`vip`) into canonical `.fasm` tokens.
+//! cleartext `auth` string, and IPv4 or IPv6 virtual IP (`vip`) into canonical `.frasm` tokens.
 
 use alloc::string::String;
 use core::fmt::Write as _;

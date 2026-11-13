@@ -1,30 +1,37 @@
-# Getting Started with FrameAssembly (`docs/getting_started.md`)
+# Getting Started with FrameAssembly
 
-[**Try in Browser (`frameassembly.ai.studio`)**](https://frameassembly.ai.studio/) • [**Installation**](#1-install-frameassembly) • [**60-Second Quickstart**](#2-build-your-first-pcap-in-60-seconds) • [**Reverse PCAP to `.fasm`**](#convert-existing-pcap--pcapng-captures-to-fasm-code-frameassembly-reverse) • [**MACs & Defaults**](#3-skip-mac-formatting-and-boilerplate) • [**Stateful TCP**](#4-stateful-tcp-without-sequence-number-math) • [**VLANs, QinQ, MPLS & QoS**](#5-vlan-trunks-qinq-mpls-qos-and-fragments) • [**IPv4 & IPv6 Reuse**](#6-reusing-flows-across-ipv4-and-ipv6) • [**Cheat Sheet**](#7-wireshark-and-tcpdump-to-fasm-cheat-sheet) • [**AI Copy-Paste Prompt**](#8-generating-fasm-code-with-ai-assistants-copy-paste-prompt)
+[← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)
 
-## Why FrameAssembly Exists
+Your firewall team swears the box never dropped your packet. You swear it did. Only one of you has a capture, and right now neither does. FrameAssembly turns "trust me" into a few lines of `.frasm` code: describe the traffic, compile it into a `.pcap`, replay it, and read the counters. No sticky note covered in TCP sequence numbers, no Python `virtualenv` that worked fine yesterday.
 
-Crafting custom network traffic is usually way harder than whatever you are actually trying to test.
-
-Want to verify a stateful firewall rule, check if Checkmk or Zabbix pages on an encrypted SNMPv3 trap, or test a new Suricata signature? Normally you have three choices: wire up lab gear and pull cables by hand, fight Python virtual environments and manual TCP sequence math in `Scapy`, or count hex byte offsets in `text2pcap` until you question your career choices :)
-
-**FrameAssembly** (`frameassembly`) lets you write traffic in `.fasm` code, compile it into `.pcap` / `.pcapng` captures—or decompile existing captures back into `.fasm` code—and feed the result straight into **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, or **Zeek**.
+You can [**Try in Browser**](https://frameassembly.ai.studio/) first, or jump straight to [install](#1-install-frameassembly), your [first capture](#2-build-your-first-pcap-in-60-seconds), [scrubbing a customer capture](#scrub-a-capture-before-support-blames-dns-frameassembly-reverse), [stateful TCP](#4-stateful-tcp-without-sequence-number-math), [VLAN and QoS tags](#5-vlan-trunks-qinq-mpls-qos-and-fragments), [IPv4 and IPv6 reuse](#6-reusing-flows-across-ipv4-and-ipv6), the [Wireshark and `tcpdump` cheat sheet](#7-wireshark-and-tcpdump-to-frasm-cheat-sheet), or the [AI prompt](#8-generating-frasm-code-with-ai-assistants-copy-paste-prompt).
 
 ## 1. Install FrameAssembly
 
-Installing via **Cargo** (`cargo install frameassembly`) is the recommended CLI method because updating to future releases only requires re-running `cargo install frameassembly`—or you can [**Try in Browser (No Install Required)**](https://frameassembly.ai.studio/) on the official web app to compile `.fasm` <-> `.pcap` / `.pcapng` and inspect packet ladders immediately:
+Pick whichever route is fastest for you. None of these need a Rust toolchain, and the browser route needs nothing installed at all:
 
 | Platform / OS | Method | Command |
 | :--- | :--- | :--- |
-| **Any (Rust 1.85+)** | **Cargo (Recommended)** | `cargo install frameassembly` |
-| **Web Browser** | **Browser Playground** | [**frameassembly.ai.studio**](https://frameassembly.ai.studio/) (compile `.fasm` <-> `.pcap`/`.pcapng` & inspect packet ladders in the browser) |
+| **Web Browser** | **Browser Playground** | [**frameassembly.ai.studio**](https://frameassembly.ai.studio/) (turn `.frasm` code into captures and captures back into code, with packet ladders, without installing anything) |
 | **VS Code** | **VS Code Packet Studio** | `code --install-extension SteveWinschel.frameassembly-vscode` ([**Marketplace**](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)) |
+| **Windows** | **PowerShell installer** (no Administrator rights) | `irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 \| iex` |
 | **Linux & macOS** | **Shell installer** | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` |
+| **Windows, macOS & Linux** | **GitHub Releases** | [**Download `frameassembly-windows-x64.zip`, `frameassembly-macos-arm64.tar.gz`, `frameassembly-linux-x64.tar.gz` or `frameassembly_amd64.deb`**](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
 | **macOS & Linux** | **Homebrew** | `brew install SteveWinschel/tap-FrameAssembly/frameassembly` |
 | **Windows** | **Scoop** | `scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly && scoop install frameassembly` |
 | **Debian / Ubuntu** | **APT (`.deb`)** | `curl -fsSLo /tmp/frameassembly.deb https://github.com/SteveWinschel/FrameAssembly/releases/latest/download/frameassembly_amd64.deb && sudo apt install -y /tmp/frameassembly.deb && rm -f /tmp/frameassembly.deb` |
+
+<details>
+<summary><strong>Developer Install (Cargo, Docs.rs, NPM / WebAssembly)</strong></summary>
+
+| Platform / OS | Method | Command |
+| :--- | :--- | :--- |
+| **Any (Rust 1.85+)** | **Cargo** | `cargo install frameassembly` |
+| **Rust library users** | **Docs.rs API reference** | [**docs.rs/frameassembly**](https://docs.rs/frameassembly) |
 | **Browser / Node.js** | **NPM (WASM)** | `npm install frameassembly-wasm` |
-| **Standalone Archives** | **GitHub Releases** | [**Download prebuilt binaries (`v2.0.0`)**](https://github.com/SteveWinschel/FrameAssembly/releases/latest) |
+
+</details>
+
 
 Check that the CLI binary is ready:
 
@@ -33,17 +40,17 @@ frameassembly version
 frameassembly help
 ```
 
-> **Shell Tab Completions:** Context-aware Tab completion scripts for **Bash**, **Zsh**, **Fish**, and **PowerShell** (completing `.fasm` inputs, `show`, `reverse`, `help`, `version`, and `.pcap` / `.pcapng` paths) are installed automatically by `install.sh` and the `.deb` package, or can be installed manually from [`contrib/completions/`](../contrib/completions/README.md).
+> **Shell Tab Completions:** Context-aware Tab completion scripts for **Bash**, **Zsh**, **Fish**, and **PowerShell** (completing `.frasm` inputs, `show`, `reverse`, `help`, `version`, and `.pcap` / `.pcapng` paths) are installed automatically by `install.sh` and the `.deb` package, or can be installed manually from [`contrib/completions/`](../contrib/completions/README.md).
 
 ## 2. Build Your First `.pcap` in 60 Seconds
 
-Every `.fasm` file has up to three building blocks:
+Every `.frasm` file has up to three building blocks:
 
 1. **`host` — Name Your Devices:** Bind a name to an `ip` (IPv4 or IPv6) and an optional `mac`—or declare MAC-only `host` blocks (`host sw1 { mac 00:1c:73:00:00:01 }`) for Layer 2 switching protocols (`lldp`, `stp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`, `arp`).
-2. **`flow` — Group Reusable Packet Exchanges (Optional):** One line = one Ethernet frame. Use `->` for forward packets, `<-` for replies, and `wait` (`ns`, `us`, `ms`, `s`, `m`) for timing.
+2. **`flow` — Group Reusable Packet Exchanges (Optional):** One line is one Ethernet frame. An arrow pointing right sends the packet forward, an arrow pointing left sends the reply, and `wait` (`ns`, `us`, `ms`, `s`, `m`) sets the gap before the next one (see the first line of `ping_check` below).
 3. **`compile` — Generate the Capture:** Call your `flow` with your `host` names, or write packet statements directly inside `compile { ... }` without a `flow` block.
 
-Save this as `ping_test.fasm`:
+Save this as `ping_test.frasm`:
 
 ```frameassembly
 // 1. Declare the endpoints
@@ -62,10 +69,10 @@ flow ping_check(c, gw) {
 compile { ping_check(workstation, gateway) }
 ```
 
-Preview the packet ladder in your terminal with `frameassembly show`, compile `ping_test.fasm` directly with `frameassembly ping_test.fasm` (which writes `ping_test.pcap` by default, or pass a custom output filename as the second argument), and inspect or replay it:
+Preview the packet ladder in your terminal with `frameassembly show`, compile `ping_test.frasm` directly with `frameassembly ping_test.frasm` (which writes `ping_test.pcap` by default, or pass a custom output filename as the second argument), and inspect or replay it:
 
 ```console
-$ frameassembly show ping_test.fasm
+$ frameassembly show ping_test.frasm
 #      Time (ms)   Source -> Destination                    Proto       Bytes  Summary
 --------------------------------------------------------------------------------------------------------------
 1      0.000       192.168.10.50 -> 192.168.10.1            ICMP        48     Echo Request (type=8 code=0)
@@ -73,8 +80,8 @@ $ frameassembly show ping_test.fasm
 3      12.000      192.168.10.50 -> 192.168.10.1            ICMP        48     Echo Request (type=8 code=0)
 4      14.000      192.168.10.1 -> 192.168.10.50            ICMP        48     Echo Reply (type=0 code=0)
 
-$ frameassembly ping_test.fasm
-$ frameassembly ping_test.fasm custom_ping.pcap
+$ frameassembly ping_test.frasm
+$ frameassembly ping_test.frasm custom_ping.pcap
 $ tshark -r ping_test.pcap
 $ sudo tcpreplay -i eth0 ping_test.pcap
 ```
@@ -93,14 +100,15 @@ compile {
 }
 ```
 
-### Convert Existing `.pcap` / `.pcapng` Captures to `.fasm` Code (`frameassembly reverse`)
-Already have a `.pcap` or `.pcapng` capture from `tcpdump` or Wireshark that you want to sanitize, edit, or check into Git? Run `frameassembly reverse` (which writes `<input_stem>.fasm` by default, or takes an optional output filename as the second argument):
+### Scrub a Capture Before Support Blames DNS (`frameassembly reverse`)
+
+The vendor ticket needs a capture. The capture has your customer's internal subnets in it, and DNS will be blamed regardless. Run `frameassembly reverse` on the `.pcap` or `.pcapng` (it writes `<input_stem>.frasm` unless you pass an output name), swap the identifying bits, and recompile:
 
 ```console
-$ frameassembly reverse ping_test.pcap reversed_ping.fasm
+$ frameassembly reverse ping_test.pcap reversed_ping.frasm
 ```
 
-`frameassembly reverse` inspects every packet in the capture, discovers the `host` endpoints (`host1`, `host2`, ...), and emits `.fasm` code with a `compile { ... }` block:
+`reverse` walks every packet, names the endpoints `host1`, `host2` and so on, and writes the conversation out as `.frasm` code inside a `compile { ... }` block:
 
 ```frameassembly
 host host1 { ip 192.168.10.50 mac 00:1a:2b:3c:4d:50 }
@@ -114,17 +122,17 @@ compile {
 }
 ```
 
-From there, you can change any IP, MAC, VLAN tag, or payload and recompile (`frameassembly reversed_ping.fasm edited.pcap`)—FrameAssembly automatically recalculates all L3/L4 checksums and TCP `SEQ`/`ACK` numbers. Encrypted payloads (such as SNMPv3 `authPriv`, TLS application data, SSH, or IPsec `ESP`) are not decrypted; `reverse` keeps them as `tcp` or `udp` statements with `payload` / `hexpayload` so recompiling preserves the exact wire bytes.
+Change any IP, MAC, VLAN tag, or payload, then recompile with `frameassembly reversed_ping.frasm edited.pcap`. Checksums and TCP `SEQ`/`ACK` numbers are recalculated for you. Encrypted payloads (such as SNMPv3 `authPriv`, TLS application data, SSH, or IPsec `ESP`) are not decrypted; `reverse` keeps them as `tcp` or `udp` statements with `payload` / `hexpayload` so recompiling preserves the exact wire bytes.
 
 ### Three Quick Ground Rules
 * **Strictly lowercase built-in keywords (zero `_` or `-`):** Every built-in keyword, protocol, modifier, and time unit (`ns`, `us`, `ms`, `s`, `m`) is lowercase without underscores or hyphens (`host`, `flow`, `compile`, `echorequest`, `innervlan`, `clienthello`, `hosthdr`, `readholdingregisters`). Your own `host`, `flow`, and parameter names can freely use uppercase, `_`, or `-` (`core_sw`, `fw-dmz-01`), and quoted strings (`"..."`) keep their exact casing on the wire.
 * **Comments use `//`:** Never `#` or `;`.
-* **1 statement = 1 frame:** Even if you wrap a long Layer 7 line across multiple indented lines, each `->` or `<-` statement emits one Ethernet frame.
+* **1 statement = 1 frame:** You can wrap a long Layer 7 line across several indented lines; it still produces exactly one Ethernet frame.
 
 ## 3. Skip MAC Formatting and Boilerplate
 
 ### Paste Any MAC Format—Or Leave MACs Out Completely
-Copying MAC addresses between Linux (`ip link`), Windows (`ipconfig /all`), and Cisco (`show mac address-table`) usually means replacing colons, hyphens, and dots by hand. FrameAssembly accepts all three formats natively—and if you only care about Layer 3–7, you can skip `mac` altogether:
+Linux prints MACs with colons, Windows with hyphens, Cisco with dots, and somebody always spends ten minutes with find-and-replace. Paste them as they come. If all you care about is Layer 3–7, leave `mac` out entirely:
 
 * **Unicast hosts without `mac`:** Automatically get direction-aware MACs (`00:00:00:00:00:01` and `00:00:00:00:00:02`) so switch CAM tables don't flap during `tcpreplay`.
 * **Multicast hosts without `mac`:** Automatically get RFC multicast MACs (`01:00:5e:xx:xx:xx` for IPv4 `224.0.0.0/4` and `33:33:xx:xx:xx:xx` for IPv6 `ff00::/8`).
@@ -141,7 +149,7 @@ flow mac_and_multicast_demo(srv, pc, sw, rtr, mcast) {
     pc  <- sw arp reply   sendermac 001a.2b3c.4d01    senderip 10.0.0.1  targetmac 00-1A-2B-3C-4D-5F targetip 10.0.0.20 wait 2ms
     srv -> pc icmp echorequest id 1 seq 1 payload "all-mac-formats-work" wait 2ms
 
-    // No MAC on ospf_mcast -> automatically derives 01:00:5e:00:00:05
+    // ospf_mcast has no MAC, so 01:00:5e:00:00:05 is derived automatically
     rtr -> mcast ttl 1 ospf hello routerid 10.0.0.254 areaid 0 hellointerval 10 deadinterval 40
 }
 
@@ -172,11 +180,11 @@ compile { defaults_vs_overrides(client, server) }
 
 ## 4. Stateful TCP Without Sequence Number Math
 
-Firing a single spoofed HTTP or Modbus packet at a stateful firewall (**Palo Alto**, **FortiGate**, **CheckPoint**, `nftables`) won't test your application rules because the firewall drops mid-stream data without a valid 3-way handshake—and calculating `SEQ`/`ACK` byte offsets by hand in Wireshark gets old fast.
+One spoofed HTTP packet fired at a stateful firewall (**Palo Alto**, **FortiGate**, **CheckPoint**, `nftables`) proves nothing: no handshake, no session, and the firewall is correct to drop it. Sending the handshake first normally means a sticky note with sequence numbers on it, and an off-by-one that sends you back to the beginning.
 
-Keep `c` on the left and `s` on the right inside `flow(c, s)` and flip the arrow (`->` vs. `<-`). FrameAssembly tracks the TCP connection automatically:
-* **Reply port swapping:** Set `srcport` and `dstport` once on `syn`; every `c <- s` line flips them automatically (`80 -> 52100`).
-* **Automatic `SEQ`/`ACK` progression:** `syn` and `fin` advance sequence numbers by `+1`, and any TCP-based Layer 7 protocol (`http`, `tls`, `ssh`, `bgp`, `smb`, `modbus`, etc.) emits a `PSH ACK` segment and advances `SEQ`/`ACK` by the exact payload length:
+Keep `c` on the left and `s` on the right inside `flow(c, s)` and flip the arrow direction for replies. The compiler tracks the connection:
+* **Reply port swapping:** Set `srcport` and `dstport` once on `syn`; every reply line flips them automatically (`80` to `52100`).
+* **Automatic `SEQ`/`ACK` progression:** `syn` and `fin` advance sequence numbers by one, and any TCP-based Layer 7 protocol (`http`, `tls`, `ssh`, `bgp`, `smb`, `modbus`, and so on) emits a `PSH ACK` segment and advances `SEQ`/`ACK` by the exact payload length:
 
 ```frameassembly
 host app_client { ip 10.20.1.50 }
@@ -199,7 +207,7 @@ compile { http_health_check(app_client, web_server) }
 ```
 
 ### Need Broken TCP Traffic? Override Anything
-When you *want* to test how an IDS or firewall reacts to `TCP ZeroWindow` stalls, out-of-window sequence numbers, or `RST` teardowns, override `win 0`, `seq`, `acknum`, or `rst` on any line:
+Sometimes the point is to misbehave: a `ZeroWindow` stall, an out-of-window segment, an abrupt `RST`. Override `win 0`, `seq`, `acknum`, or `rst` on any line and the compiler does exactly what you said, even if the RFC would object:
 
 ```frameassembly
 host scanner { ip 10.30.0.10 }
@@ -223,9 +231,9 @@ compile { firewall_state_test(scanner, backend) }
 
 ## 5. VLAN Trunks, QinQ, MPLS, QoS and Fragments
 
-Desktop OS network stacks and NIC drivers love stripping 802.1Q VLAN tags and blocking `QinQ`, `MPLS`, or fragmented packets. In FrameAssembly, you can slap Layer 2–4 tags onto **any** packet statement:
+Desktop network stacks and NIC drivers quietly strip VLAN tags and refuse to send `QinQ`, `MPLS`, or hand-made fragments, which makes lab testing a guessing game. Here the tags are just modifiers you add to **any** packet statement:
 
-| Feature | `.fasm` Modifier | Example / Range | What Goes on the Wire |
+| Feature | `.frasm` Modifier | Example / Range | What Goes on the Wire |
 | :--- | :--- | :--- | :--- |
 | **802.1Q VLAN & CoS** | `vlan <1..4094> [pcp <0..7>] [dei <0..1>]` | `vlan 110 pcp 5` | 802.1Q tag (`0x8100`) + 802.1p priority |
 | **802.1ad QinQ** | `qinq <s_vid> innervlan <c_vid>` | `qinq 2000 innervlan 110` | S-VLAN (`0x88a8`) + C-VLAN (`0x8100`) |
@@ -259,7 +267,7 @@ compile { trunk_and_wan_tags(branch_edge, core_pe) }
 
 ## 6. Reusing Flows Across IPv4 and IPv6
 
-Because a `flow` uses role names instead of hardcoded IPs, you can write a traffic exchange once and invoke it across both IPv4 and IPv6 host pairs—or call it multiple times inside `compile { ... }` to simulate repeated heartbeat or polling cycles:
+A `flow` refers to roles, not addresses, so the same exchange runs unchanged over IPv4 and IPv6 host pairs. Call it several times inside `compile { ... }` and you have a heartbeat generator:
 
 ```frameassembly
 host sensor_v4    { ip 10.50.0.10 }
@@ -280,16 +288,16 @@ compile {
 }
 ```
 
-## 7. Wireshark and `tcpdump` to `.fasm` Cheat Sheet
+## 7. Wireshark and `tcpdump` to `.frasm` Cheat Sheet
 
-If muscle memory makes you type `sport` instead of `srcport`, `ack 100` instead of `acknum 100`, or an uppercase/underscored keyword like `ECHO_REQUEST`, FrameAssembly refuses to write a broken `.pcap` and points straight to the fix (and surfaces a 1-click Quick Fix in VS Code):
+Muscle memory will make you type `sport` instead of `srcport`, `ack 100` instead of `acknum 100`, or `ECHO_REQUEST` instead of `echorequest`. FrameAssembly refuses to write a broken `.pcap` and tells you the fix (VS Code adds a 1-click Quick Fix):
 
 ```text
 frameassembly::parse_error
 
   × Failed to parse input: Syntax error: unexpected token 'sport', expected a valid statement
   │ or protocol modifier (such as srcport, dstport, seq, acknum, win, or tcp flags).
-   ╭─[test.fasm:5:16]
+   ╭─[test.frasm:5:16]
  4 │ flow check(c, s) {
  5 │     c -> s tcp sport 50000 dstport 80 syn
    ·                ──┬──
@@ -298,7 +306,9 @@ frameassembly::parse_error
   help: Replace 'sport' with 'srcport <port>' (for example: srcport 51234).
 ```
 
-| What You Want | Wireshark Filter | `tcpdump` Filter | `.fasm` Code |
+The filters you already type, next to their `.frasm` equivalents:
+
+| What You Want | Wireshark Filter | `tcpdump` Filter | `.frasm` Code |
 | :--- | :--- | :--- | :--- |
 | **Host IP & MAC** | `ip.addr == 10.0.0.1` | `host 10.0.0.1` | `host rtr { ip 10.0.0.1 mac 00:1a:2b:3c:4d:5e }` |
 | **802.1Q VLAN & CoS** | `vlan.id == 100 && vlan.priority == 5` | `vlan 100` | `vlan 100 pcp 5 dei 0` |
@@ -311,12 +321,12 @@ frameassembly::parse_error
 | **HTTP Host Header** | `http.host == "api.local"` | `port 80` | `http get uri "/" hosthdr "api.local"` |
 | **Packet Delay** | `frame.time_delta` | `-tt` | `wait 500us` / `wait 5ms` / `wait 1s` |
 
-## 8. Generating `.fasm` Code with AI Assistants (Copy-Paste Prompt)
+## 8. Generating `.frasm` Code with AI Assistants (Copy-Paste Prompt)
 
-Want ChatGPT, Claude, Copilot, or Gemini to draft a multi-host `.fasm` capture from a short description? Paste the prompt block below into your AI chat and replace the last line with the traffic scenario you need:
+If you would rather describe the scenario than type it, ChatGPT, Claude, Copilot, and Gemini can draft `.frasm` code too, provided they know the rules. Paste the block below into your chat and replace the last line with your scenario:
 
 ```text
-Write valid FrameAssembly v2.0.0 (.fasm) network packet code following these strict rules:
+Write valid FrameAssembly v3.0.0 (.frasm) network packet code following these strict rules:
 1. Structure: Declare endpoints with `host <name> { [ip <addr>] [mac <mac>] }`, optional flows with `flow <name>(a, b) { ... }`, and exactly one `compile { ... }` block at the end calling flows or inline packet statements.
 2. Strict Lowercase Keywords: Every built-in keyword, protocol, modifier, and time unit (`ns`, `us`, `ms`, `s`, `m`) MUST be lowercase alphanumeric (`[a-z0-9]+`) with ZERO underscores and ZERO hyphens (e.g., `echorequest`, `echoreply`, `innervlan`, `mplsttl`, `sackperm`, `clienthello`, `serverhello`, `hosthdr`, `useragent`, `contenttype`, `readholdingregisters`, `isresponse`). User-defined host/flow/parameter names may use `_` or `-`.
 3. Never Use Invalid Syntax: Never use `=`, `:`, `,`, or `/24` CIDR inside `host`; never use `sport`/`dport` (use `srcport`/`dstport`); never use `ack <n>` for acknowledgment numbers (use `acknum <n>`); never write standalone `wait` lines or `+5ms` (append `wait 2ms` at the end of a packet line); never use `loop` blocks (invoke flows or packet lines directly inside `compile { ... }`); never mix IPv4 and IPv6 hosts on the same line; use `//` comments and double quotes `"..."`.
@@ -334,18 +344,4 @@ compile { check(client, server) }
 Task: [DESCRIBE YOUR NETWORK SCENARIO HERE]
 ```
 
-For large multi-protocol captures or local coding agents (Cursor, Claude Code, Copilot, Windsurf), you can also point your assistant straight at [`llms.txt`](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms.txt).
-
-## Where to Go Next
-
-* [**Real-World Use Cases (`use_cases.md`)**](use_cases.md) — Copy-paste recipes for Checkmk/Zabbix SNMPv3 traps, Shadow IT & NDR detection, firewall/VLAN verification, OT conduits, and PCAP anonymization.
-* [**Layer 2 — Switching & Data Link (`l2_protocols.md`)**](l2_protocols.md) — `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, and `mpls`.
-* [**Layer 3 — Network, Routing & Tunnels (`l3_protocols.md`)**](l3_protocols.md) — `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, and `openflow`.
-* [**Layer 4 — Transports (`l4_transports.md`)**](l4_transports.md) — Stateful `tcp`, `udp`, and `sctp`.
-* [**Layer 7 — SNMPv1 / v2c / v3 (`l7_snmp.md`)**](l7_snmp.md) — `snmp1`, `snmp2`, encrypted `snmp3` USM, and all 9 `varbind` types.
-* [**Layer 7 — Infrastructure & Telemetry (`l7_infra_and_telemetry.md`)**](l7_infra_and_telemetry.md) — `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, and `sflow`.
-* [**Layer 7 — Web, Cloud, Security & VoIP (`l7_web_and_cloud.md`)**](l7_web_and_cloud.md) — `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `tftp`, `ftp`, `ssh`, `telnet`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, and `ssdp`.
-* [**Layer 7 — Mail, Auth, Storage & Databases (`l7_mail_auth_storage_db.md`)**](l7_mail_auth_storage_db.md) — `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, and `amqp`.
-* [**Layer 7 — Industrial OT & ICS (`l7_industrial_ot.md`)**](l7_industrial_ot.md) — `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, and `opcua`.
-* [**Topologies & Dual-Stack (`topologies_and_dual_stack.md`)**](topologies_and_dual_stack.md) — Multi-device EVPN-VXLAN, 802.1X NAC, and WAN failover captures.
-* [**`.fasm` Format Spec (`fasm-specification.md`)**](fasm-specification.md) & [**For Nerds (`for_nerds.md`)**](for_nerds.md) — `text/vnd.frameassembly` media type spec, Rust library API, and compiler internals.
+Need all 81 protocol keywords and syntax rules inside your chat prompt? Attach or paste [`llms-full.txt`](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt) (or point search-enabled assistants at [`llms.txt`](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms.txt)).

@@ -7,7 +7,7 @@
 //! Reports and Leaves), a 16-bit ones'-complement `Checksum`, and a 32-bit `Group Address` (`group`,
 //! default `224.0.0.1` for General Queries, `239.1.1.1` for Reports, and `224.0.0.2` for Leaves).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b igmp [query | report | leave] [group <ipv4>] [maxresp <u8>] [v1 | v2 | v3]`
 
 use core::marker::PhantomData;

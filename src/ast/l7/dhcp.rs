@@ -5,7 +5,7 @@
 //! Every field in [`DhcpSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b dhcp [discover | offer | request | ack | release | solicit | advertise | reply] [xid <u32>] [ciaddr <ip>] [yiaddr <ip>] [siaddr <ip>] [chaddr <mac>] [hostname <str>] [dnsserver <ip>] [router <ip>] [subnetmask <ip>] [leasetime <u32>]`
 
 use core::net::IpAddr;

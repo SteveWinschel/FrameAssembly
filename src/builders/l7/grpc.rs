@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire gRPC High-Performance Remote Procedure Call Framework frames over TCP port 50051.
 //! The wire encoder constructs a HTTP/2 transport framing carrying gRPC `/package.Service/Method` call metadata, `grpc-status` trailer codes (`0` OK, `1` CANCELLED, `2` UNKNOWN, `3` INVALID_ARGUMENT, `4` DEADLINE_EXCEEDED, `5` NOT_FOUND, `7` PERMISSION_DENIED, `14` UNAVAILABLE, `16` UNAUTHENTICATED), and 5-byte length-prefixed Protocol Buffers message frames (1-byte Compressed-Flag `0x00`/`0x01` + 32-bit big-endian Message-Length). When optional fields in [`GrpcSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b grpc [service <str>] [method <str>] [grpcstatus <u32>]`
 
 use crate::ast::*;

@@ -1,10 +1,10 @@
-//! Domain Name System (`dns`, RFC 1035) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Domain Name System (`dns`, RFC 1035) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 1035 Domain Name System (`dns`)
 //! queries and responses carried over UDP or TCP port `53` (including the 2-byte TCP length prefix
 //! per RFC 1035 §4.2.2). It enforces a strict pointer-compression jump ceiling (`MAX_DNS_JUMPS`)
 //! to prevent infinite loops on malformed packets and decodes `txid`, `qname`, `qtype`, `rdata`,
-//! `rcode`, and `ansttl` into canonical `.fasm` modifiers.
+//! `rcode`, and `ansttl` into canonical `.frasm` modifiers.
 
 use alloc::format;
 use alloc::string::{String, ToString};

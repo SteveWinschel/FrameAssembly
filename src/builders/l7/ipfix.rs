@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire IP Flow Information Export (IPFIX) frames over UDP port 4739.
 //! The wire encoder constructs a 16-byte IPFIX message header (16-bit Version = 0x000a, 16-bit Message Length, 32-bit Export Time in epoch seconds, 32-bit Sequence Number, 32-bit Observation Domain ID) followed by Set Header (16-bit Set ID >= 256 for Data Sets, 16-bit Set Length) and Information Element flow records (sourceIPv4Address, destinationIPv4Address, sourceTransportPort, destinationTransportPort, protocolIdentifier, packetDeltaCount, octetDeltaCount). When optional fields in [`IpfixSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ipfix [domainid <u32>] [srcip <ip>] [dstip <ip>] [srcport <u16>] [dstport <u16>] [proto <u8>] [packets <u32>] [octets <u32>]`
 
 use crate::ast::*;

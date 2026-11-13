@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Real-Time Streaming Protocol (RTSP) frames over TCP port 554 (and alternate port 8554).
 //! The wire encoder constructs a CRLF-delimited text control protocol starting with a Request-Line (`<METHOD> <URI> RTSP/1.0\r\n` for `OPTIONS`, `DESCRIBE`, `SETUP`, `PLAY`, `PAUSE`, `RECORD`, `ANNOUNCE`, `GET_PARAMETER`, `TEARDOWN`) or Status-Line (`RTSP/1.0 <STATUS> OK\r\n`), followed by `CSeq:`, `Transport:` (e.g. `RTP/AVP;unicast;client_port=5004-5005`), `Session:`, and `Content-Length:` headers. When optional fields in [`RtspSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b rtsp [options | method <str>] [uri <str>] [status <u16>] [cseq <u32>] [transporthdr <str>] [session <str>]`
 
 use crate::ast::*;

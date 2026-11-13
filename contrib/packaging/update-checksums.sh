@@ -21,7 +21,7 @@ Usage:
   ./contrib/packaging/update-checksums.sh [OPTIONS] [VERSION|TAG]
 
 Arguments:
-  VERSION | TAG            Release version (e.g. '2.0.0' or 'v2.0.0').
+  VERSION | TAG            Release version (e.g. '3.0.0' or 'v3.0.0').
                            If omitted, auto-detected from Cargo.toml.
 
 Options:
@@ -85,7 +85,7 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 if [[ -z "$VERSION" ]]; then
-    echo "Error: Version could not be determined. Please specify VERSION (e.g. 2.0.0 or v2.0.0)." >&2
+    echo "Error: Version could not be determined. Please specify VERSION (e.g. 3.0.0 or v3.0.0)." >&2
     exit 1
 fi
 
@@ -140,7 +140,7 @@ fi
 extract_hash() {
     local pattern="$1"
     local line
-    line="$(grep -Ei "[0-9a-f]{64}[[:space:]]+(\*|\./)?[^[:space:]]*${pattern}" "$SUMS_FILE" | head -n1 || true)"
+    line="$(grep -Ei "^[0-9a-f]{64}[[:space:]]+(\*|\./)?[^[:space:]]*${pattern}([[:space:]]|\$)" "$SUMS_FILE" | head -n1 || true)"
     if [[ -z "$line" ]]; then
         echo ""
         return
@@ -154,14 +154,25 @@ extract_hash() {
     fi
 }
 
+extract_hash_with_fallback() {
+    local primary_pattern="$1"
+    local legacy_pattern="$2"
+    local h
+    h="$(extract_hash "$primary_pattern")"
+    if [[ -z "$h" ]]; then
+        h="$(extract_hash "$legacy_pattern")"
+    fi
+    echo "$h"
+}
+
 echo "==> Extracting SHA-256 hashes from checksums file..."
 
-HASH_LINUX_X86_64="$(extract_hash "x86_64-unknown-linux-musl\.tar\.gz")"
-HASH_LINUX_AARCH64="$(extract_hash "aarch64-unknown-linux-musl\.tar\.gz")"
-HASH_DARWIN_X86_64="$(extract_hash "x86_64-apple-darwin\.tar\.gz")"
-HASH_DARWIN_AARCH64="$(extract_hash "aarch64-apple-darwin\.tar\.gz")"
-HASH_WINDOWS_X86_64="$(extract_hash "x86_64-pc-windows-msvc\.zip")"
-HASH_WINDOWS_AARCH64="$(extract_hash "aarch64-pc-windows-msvc\.zip")"
+HASH_LINUX_X86_64="$(extract_hash_with_fallback "frameassembly-linux-x64\.tar\.gz" "x86_64-unknown-linux-musl\.tar\.gz")"
+HASH_LINUX_AARCH64="$(extract_hash_with_fallback "frameassembly-linux-arm64\.tar\.gz" "aarch64-unknown-linux-musl\.tar\.gz")"
+HASH_DARWIN_X86_64="$(extract_hash_with_fallback "frameassembly-macos-x64\.tar\.gz" "x86_64-apple-darwin\.tar\.gz")"
+HASH_DARWIN_AARCH64="$(extract_hash_with_fallback "frameassembly-macos-arm64\.tar\.gz" "aarch64-apple-darwin\.tar\.gz")"
+HASH_WINDOWS_X86_64="$(extract_hash_with_fallback "frameassembly-windows-x64\.zip" "x86_64-pc-windows-msvc\.zip")"
+HASH_WINDOWS_AARCH64="$(extract_hash_with_fallback "frameassembly-windows-arm64\.zip" "aarch64-pc-windows-msvc\.zip")"
 
 MISSING_HASHES=0
 check_hash() {
@@ -175,12 +186,12 @@ check_hash() {
     fi
 }
 
-check_hash "Linux x86_64 (musl tar.gz)   " "$HASH_LINUX_X86_64"
-check_hash "Linux aarch64 (musl tar.gz) " "$HASH_LINUX_AARCH64"
-check_hash "macOS x86_64 (darwin tar.gz) " "$HASH_DARWIN_X86_64"
-check_hash "macOS aarch64 (darwin tar.gz)" "$HASH_DARWIN_AARCH64"
-check_hash "Windows x86_64 (msvc zip)   " "$HASH_WINDOWS_X86_64"
-check_hash "Windows aarch64 (msvc zip)  " "$HASH_WINDOWS_AARCH64"
+check_hash "Linux x64 (tar.gz)    " "$HASH_LINUX_X86_64"
+check_hash "Linux arm64 (tar.gz)  " "$HASH_LINUX_AARCH64"
+check_hash "macOS x64 (tar.gz)    " "$HASH_DARWIN_X86_64"
+check_hash "macOS arm64 (tar.gz)  " "$HASH_DARWIN_AARCH64"
+check_hash "Windows x64 (zip)     " "$HASH_WINDOWS_X86_64"
+check_hash "Windows arm64 (zip)   " "$HASH_WINDOWS_AARCH64"
 
 if [[ $MISSING_HASHES -ne 0 ]]; then
     echo "Error: One or more target archive hashes could not be found in '${SUMS_FILE}'." >&2
@@ -206,13 +217,16 @@ if [[ -f "$HOMEBREW_FORMULA" ]]; then
         /\/v[0-9.]+\/frameassembly-v[0-9.]+-/ {
             gsub(/\/v[0-9.]+\/frameassembly-v[0-9.]+-/, "/v" ver "/frameassembly-v" ver "-")
         }
+        /\/v[0-9.]+\/frameassembly-(linux|macos)-/ {
+            gsub(/\/v[0-9.]+\/frameassembly-/, "/v" ver "/frameassembly-")
+        }
         /assert_match[[:space:]]+"frameassembly[[:space:]][0-9.]+"/ {
             sub(/frameassembly[[:space:]][0-9.]+/, "frameassembly " ver)
         }
-        /aarch64-apple-darwin/ { target="mac_arm" }
-        /x86_64-apple-darwin/ { target="mac_x86" }
-        /aarch64-unknown-linux-musl/ { target="lin_arm" }
-        /x86_64-unknown-linux-musl/ { target="lin_x86" }
+        /frameassembly-macos-arm64\.tar\.gz|aarch64-apple-darwin/ { target="mac_arm" }
+        /frameassembly-macos-x64\.tar\.gz|x86_64-apple-darwin/ { target="mac_x86" }
+        /frameassembly-linux-arm64\.tar\.gz|aarch64-unknown-linux-musl/ { target="lin_arm" }
+        /frameassembly-linux-x64\.tar\.gz|x86_64-unknown-linux-musl/ { target="lin_x86" }
         target == "mac_arm" && /sha256/ {
             sub(/sha256[[:space:]]+"[^"]*"/, "sha256 \"" h_mac_arm "\"")
             target=""
@@ -248,6 +262,9 @@ if [[ -f "$SCOOP_JSON" ]]; then
         }
         /\/v[0-9.]+\/frameassembly-v[0-9.]+-/ {
             gsub(/\/v[0-9.]+\/frameassembly-v[0-9.]+-/, "/v" ver "/frameassembly-v" ver "-")
+        }
+        /\/v[0-9.]+\/frameassembly-windows-/ {
+            gsub(/\/v[0-9.]+\/frameassembly-windows-/, "/v" ver "/frameassembly-windows-")
         }
         /"extract_dir":[[:space:]]*"frameassembly-v[0-9.]+-/ {
             sub(/frameassembly-v[0-9.]+-/, "frameassembly-v" ver "-")

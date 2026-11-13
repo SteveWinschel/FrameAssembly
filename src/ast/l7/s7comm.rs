@@ -5,7 +5,7 @@
 //! encapsulates a 4-byte TPKT header (Version `3`, 16-bit total length) and a 3-byte COTP DT Data
 //! header (`0x02 0xF0 0x80`) around a 10-byte S7 header (`0x32` Protocol ID, `rosctr` message type,
 //! PDU Reference, parameter length, and data length) plus `Setup_Communication` (`0xF0`),
-//! `Read_Var` (`0x04`), `Write_Var` (`0x05`), or `PLC_Control` (`0x28`) parameters. Canonical `.fasm` syntax:
+//! `Read_Var` (`0x04`), `Write_Var` (`0x05`), or `PLC_Control` (`0x28`) parameters. Canonical `.frasm` syntax:
 //! `s7comm [rosctr <str>] [pduref <u16>] [func <str>] [area <u8>] [dbnum <u16>] [offset <u32>] [count <u16>]`.
 
 /// Siemens SIMATIC S7 Communication (S7comm over TPKT/COTP) protocol specification.

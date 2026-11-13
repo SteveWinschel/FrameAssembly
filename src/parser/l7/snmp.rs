@@ -2,7 +2,7 @@
 //!
 //! This module implements the `winnow` parser combinator for RFC 1157 (`snmp1`), RFC 3416
 //! (`snmp2`), and RFC 3414 User-based Security Model (`snmp3`) protocol data units in FrameAssembly
-//! `.fasm` specifications. It recognizes community strings (`community`), USM security parameters
+//! `.frasm` specifications. It recognizes community strings (`community`), USM security parameters
 //! (`user`, `engineid`, `engineboots`, `enginetime`, `contextname`, `auth`, `priv`), trap headers
 //! (`enterprise`, `agentip`, `gentrap`, `spectrap`, `sysuptime`), PDU types (`get`, `set`,
 //! `response`, `trap`, `inform`, `getnext`, `getbulk`), and typed ASN.1 `varbind` entries.

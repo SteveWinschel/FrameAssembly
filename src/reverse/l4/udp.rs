@@ -1,4 +1,4 @@
-//! User Datagram Protocol (UDP, RFC 768) Layer 4 PCAP-to-`.fasm` decompiler.
+//! User Datagram Protocol (UDP, RFC 768) Layer 4 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 768 User Datagram
 //! Protocol (`udp`, IP protocol `17`) headers in FrameAssembly. It slices the 8-byte UDP transport

@@ -6,7 +6,7 @@
 //! Index (`spi`), anti-replay Sequence Number (`seq`), Initialization Vector (`iv`), `Next Header`
 //! (`nextheader`), and Integrity Check Value (`icv`) fields for transport-mode and tunnel-mode SAs.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b [ipsec | esp | ah] [spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [nextheader <u8>]`
 
 use crate::ast::IpsecSpec;

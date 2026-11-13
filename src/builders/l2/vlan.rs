@@ -6,7 +6,7 @@
 //! EtherType (`0x0800` / `0x86DD` for IP hosts, or `0x88B5` IEEE 802.1 Local Experimental
 //! EtherType for MAC-only Layer 2 hosts), followed by the encapsulated frame payload bytes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b vlan <vid> [pcp <0..7>] [dei <0|1>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;

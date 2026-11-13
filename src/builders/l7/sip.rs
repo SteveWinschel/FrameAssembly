@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Session Initiation Protocol (SIP) frames over UDP/TCP port 5060 (SIP) and TCP/TLS port 5061 (SIPS).
 //! The wire encoder constructs a UTF-8 text signaling message starting with a Request-Line (`<METHOD> <URI> SIP/2.0\r\n` for `INVITE`, `ACK`, `BYE`, `CANCEL`, `REGISTER`, `OPTIONS`, `MESSAGE`) or Status-Line (`SIP/2.0 <STATUS> <REASON>\r\n` e.g. `100 Trying`, `180 Ringing`, `200 OK`, `401 Unauthorized`, `486 Busy Here`), followed by `Via:`, `From:`, `To:`, `Call-ID:`, `CSeq:`, `Contact:`, `Content-Type:`, `Content-Length:`, and optional `application/sdp` body. When optional fields in [`SipSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b sip [invite | bye | cancel | method <str>] [uri <str>] [status <u16>] [reason <str>] [from <str>] [to <str>] [callid <str>] [cseq <u32>] [via <str>] [contact <str>] [contenttype <str>] [body <str>] [transport tcp]`
 
 use crate::ast::*;

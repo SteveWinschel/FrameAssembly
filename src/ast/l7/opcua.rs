@@ -6,7 +6,7 @@
 //! `OPN`, `CLO`, or `msg`), a 1-byte ChunkType (`'F'` Final, `'C'` Intermediate, `'A'` Aborted),
 //! and a 32-bit little-endian MessageSize, followed by either connection parameters (`EndpointUrl`)
 //! or SecureChannel/Sequence headers (`SecureChannelId`, `TokenId`, `SequenceNumber`, `RequestId`)
-//! and an ExpandedNodeId service body. Canonical `.fasm` syntax:
+//! and an ExpandedNodeId service body. Canonical `.frasm` syntax:
 //! `opcua [msgtype <str>] [chunktype <str>] [securechannelid <u32>] [tokenid <u32>] [seqnum <u32>] [reqid <u32>] [endpointurl <str>] [nodeid <str>]`.
 
 /// IEC 62541-6 OPC Unified Architecture (OPC UA) Binary Protocol specification.

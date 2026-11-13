@@ -5,7 +5,7 @@
 //! Every field in [`TftpSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b tftp [rrq | wrq | data | ack | error] [filename <str>] [mode <str>] [block <u16>] [errcode <u16>] [errmsg <str>]`
 
 /// RFC 1350 Trivial File Transfer Protocol specification.

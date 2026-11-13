@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Terminal Access Controller Access-Control System Plus (TACACS+) frames over TCP port 49.
 //! The wire encoder constructs a 12-byte fixed TACACS+ header (8-bit Version byte: 4-bit major 0xC + 4-bit minor 0x0/0x1; 8-bit Type: 1 AUTHEN, 2 AUTHOR, 3 ACCT; 8-bit seq_no; 8-bit flags bitmask e.g. 0x01 TAC_PLUS_UNENCRYPTED_FLAG; 32-bit big-endian session_id; 32-bit big-endian body length) followed by Authentication START/REPLY/CONTINUE, Authorization REQUEST/RESPONSE, or Accounting START/STOP/WATCHDOG body. When optional fields in [`TacacsSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b tacacs [type authen | type author | type acct | authen | author | acct] [seq <u8>] [flags <u8>] [sessionid <u32>] [user <str>] [payload <str>]`
 
 use crate::ast::*;

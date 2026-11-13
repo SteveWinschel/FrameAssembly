@@ -1,4 +1,4 @@
-//! Simple Network Management Protocol v3 (`snmp3`, RFC 3414 / RFC 3826 / RFC 7860) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Simple Network Management Protocol v3 (`snmp3`, RFC 3414 / RFC 3826 / RFC 7860) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe ASN.1 Basic Encoding Rules (BER) reverse dissector for
 //! RFC 3414 User-based Security Model (USM) `snmp3` messages over UDP ports `161`, `162`, `10161`,
@@ -54,7 +54,7 @@ pub(crate) fn dissect_snmp3(payload: &[u8]) -> Option<ProtocolDissection> {
     ok_dissect(Protocol::Snmp3, tokens, rem.to_vec())
 }
 
-/// Formats an SNMPv3 `ScopedPdu` and USM header parameters into canonical `.fasm` tokens.
+/// Formats an SNMPv3 `ScopedPdu` and USM header parameters into canonical `.frasm` tokens.
 fn format_scoped_pdu_tokens(
     scoped_pdu: &rasn_snmp::v3::ScopedPdu,
     user: &str,

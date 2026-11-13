@@ -8,7 +8,7 @@
 //! `Checksum`, followed by TLV options (`Option 1` `holdtime` default `105`s, `Option 19` `drpriority`
 //! default `1`) and multicast tree `(S, G)` or `(*, G)` state (`source`, `group`, `rp`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b pim [hello | joinprune | register] [holdtime <u16>] [drpriority <u32>] [group <ip>] [source <ip>] [rp <ip>]`
 
 use core::marker::PhantomData;

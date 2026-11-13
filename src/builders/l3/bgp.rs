@@ -10,7 +10,7 @@
 //! - `notification` (`Type = 3`, `21 + payload` bytes): Encodes Error Code `6` (`Cease`), Subcode `0`.
 //! - `keepalive` (`Type = 4`, 19 bytes): Fixed 19-byte header-only heartbeat.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b bgp [open | update | notification | keepalive] [asn <u32>] [holdtime <u16>] [bgpid <ipv4>] [prefix "<cidr>"] [nexthop <ip>]`
 
 use crate::ast::*;

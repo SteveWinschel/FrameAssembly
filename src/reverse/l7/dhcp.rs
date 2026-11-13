@@ -1,10 +1,10 @@
-//! Dynamic Host Configuration Protocol (`dhcp`, RFC 2131 / RFC 8415) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Dynamic Host Configuration Protocol (`dhcp`, RFC 2131 / RFC 8415) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissectors for both IPv4 BOOTP / `dhcp` (RFC 2131
 //! and RFC 2132 over UDP ports `67` and `68`) and `DHCPv6` (RFC 8415 over UDP ports `546` and
 //! `547`). It decodes transaction identifiers (`xid`), client/server IPv4 addresses (`ciaddr`,
 //! `yiaddr`, `siaddr`), client hardware MAC addresses (`chaddr`), and DHCP options (`subnetmask`,
-//! `router`, `dnsserver`, `hostname`, `leasetime`) into canonical `.fasm` modifiers.
+//! `router`, `dnsserver`, `hostname`, `leasetime`) into canonical `.frasm` modifiers.
 
 use alloc::format;
 use alloc::string::ToString;

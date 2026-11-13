@@ -41,9 +41,9 @@ compile {
 "#
     .trim();
 
-    let program = parse_program(source).expect("Valid DNS .fasm must parse");
-    validate_semantics(&program, source).expect("Valid DNS .fasm must pass semantic validation");
-    let packets = compile_program(&program).expect("Valid DNS .fasm must compile to wire frames");
+    let program = parse_program(source).expect("Valid DNS .frasm must parse");
+    validate_semantics(&program, source).expect("Valid DNS .frasm must pass semantic validation");
+    let packets = compile_program(&program).expect("Valid DNS .frasm must compile to wire frames");
 
     assert_eq!(packets.len(), 1);
     let frame = &packets[0].0;
@@ -169,7 +169,7 @@ use frameassembly::lexer::Token;
 use frameassembly::parser::{parse_program, validate_semantics};
 
 /// Gate 2: Verifies that every keyword token listed in `// TOKENS:` on Line 2
-/// is a valid lexer token present in the `.fasm` file body.
+/// is a valid lexer token present in the `.frasm` file body.
 pub fn verify_tokens_header_bijection(path: &Path, content: &str) -> Result<(), String> {
     let lines: Vec<&str> = content.lines().collect();
     if lines.len() < 2 || !lines[1].starts_with("// TOKENS: ") {
@@ -208,7 +208,7 @@ pub fn verify_tokens_header_bijection(path: &Path, content: &str) -> Result<(), 
     Ok(())
 }
 
-/// Gate 3: Extracts all ```frameassembly and ```fasm fenced code blocks from a Markdown
+/// Gate 3: Extracts all ```frameassembly and ```frasm fenced code blocks from a Markdown
 /// or Rust source file and verifies that every complete program compiles cleanly.
 pub fn verify_markdown_fasm_blocks_compile(path: &Path) -> Result<usize, String> {
     let content = fs::read_to_string(path)
@@ -221,7 +221,7 @@ pub fn verify_markdown_fasm_blocks_compile(path: &Path) -> Result<usize, String>
 
     for (idx, line) in content.lines().enumerate() {
         let trimmed = line.trim().trim_start_matches("//!").trim_start_matches("///").trim();
-        if !in_block && (trimmed.starts_with("```frameassembly") || trimmed.starts_with("```fasm")) {
+        if !in_block && (trimmed.starts_with("```frameassembly") || trimmed.starts_with("```frasm")) {
             in_block = true;
             current_block.clear();
             block_start_line = idx + 1;
@@ -230,13 +230,13 @@ pub fn verify_markdown_fasm_blocks_compile(path: &Path) -> Result<usize, String>
             let snippet = current_block.trim();
             if snippet.contains("host ") && snippet.contains("flow ") && snippet.contains("compile") {
                 let prog = parse_program(snippet).map_err(|e| {
-                    format!("{}:{}: Markdown .fasm block failed to parse: {e:?}", path.display(), block_start_line)
+                    format!("{}:{}: Markdown .frasm block failed to parse: {e:?}", path.display(), block_start_line)
                 })?;
                 validate_semantics(&prog, snippet).map_err(|e| {
-                    format!("{}:{}: Markdown .fasm block failed semantics: {e:?}", path.display(), block_start_line)
+                    format!("{}:{}: Markdown .frasm block failed semantics: {e:?}", path.display(), block_start_line)
                 })?;
                 compile_program(&prog).map_err(|e| {
-                    format!("{}:{}: Markdown .fasm block failed compilation: {e}", path.display(), block_start_line)
+                    format!("{}:{}: Markdown .frasm block failed compilation: {e}", path.display(), block_start_line)
                 })?;
                 compiled_blocks += 1;
             }
@@ -257,7 +257,7 @@ pub fn verify_markdown_fasm_blocks_compile(path: &Path) -> Result<usize, String>
 }
 
 /// Gate 5: Verifies that every AI-critical Rust source/test file (`src/**/*.rs`, `tests/*.rs`)
-/// and `.fasm` corpus file is strictly < 50 KB (Markdown documentation has no 50 KB cap)
+/// and `.frasm` corpus file is strictly < 50 KB (Markdown documentation has no 50 KB cap)
 /// and has at least 50 words (OpenCoder opc_data_filtering minimum word count).
 pub fn verify_file_chunk_size_and_word_bounds(path: &Path) -> Result<(), String> {
     let content = fs::read_to_string(path)
@@ -422,9 +422,9 @@ proptest! {
              }}"
         );
 
-        let program = parse_program(&source).expect("Generated valid .fasm must parse");
-        validate_semantics(&program, &source).expect("Generated valid .fasm must pass semantics");
-        let packets = compile_program(&program).expect("Generated valid .fasm must compile");
+        let program = parse_program(&source).expect("Generated valid .frasm must parse");
+        validate_semantics(&program, &source).expect("Generated valid .frasm must pass semantics");
+        let packets = compile_program(&program).expect("Generated valid .frasm must compile");
 
         // Invariant 1: 1 Statement = 1 Frame
         prop_assert_eq!(packets.len(), 3);
@@ -449,11 +449,11 @@ use std::process::Command;
 use frameassembly::backend::generate_pcap;
 use frameassembly::parser::{parse_program, validate_semantics};
 
-/// Compiles a `.fasm` script to a temporary PCAPNG file and runs `tshark -r <file> -V`
+/// Compiles a `.frasm` script to a temporary PCAPNG file and runs `tshark -r <file> -V`
 /// (when `tshark` is installed on the host) to assert zero malformed packet or bad checksum expert infos.
 pub fn assert_tshark_clean_dissection(source: &str, temp_pcap_path: &str) {
-    let program = parse_program(source).expect("Valid .fasm program");
-    validate_semantics(&program, source).expect("Valid .fasm semantics");
+    let program = parse_program(source).expect("Valid .frasm program");
+    validate_semantics(&program, source).expect("Valid .frasm semantics");
     generate_pcap(&program, temp_pcap_path).expect("Valid PCAPNG generation");
 
     let Ok(output) = Command::new("tshark")

@@ -1,10 +1,10 @@
-//! IPsec Authentication Header (AH, RFC 4302) Layer 3 PCAP-to-`.fasm` decompiler.
+//! IPsec Authentication Header (AH, RFC 4302) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 4302 IPsec
 //! Authentication Header (`ah`) packets carried directly over IPv4 or IPv6 with protocol / Next
 //! Header number `51` (`0x33`). It extracts the Next Header (`nextheader`), 32-bit Security
 //! Parameters Index (`spi`), anti-replay Sequence Number (`seq`), variable-length Integrity Check
-//! Value (`icv`), and any encapsulated inner payload bytes into canonical `.fasm` tokens.
+//! Value (`icv`), and any encapsulated inner payload bytes into canonical `.frasm` tokens.
 
 use alloc::string::String;
 use core::fmt::Write as _;

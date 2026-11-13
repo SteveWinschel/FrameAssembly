@@ -1,7 +1,7 @@
 ---
 trigger: glob
 globs: "src/main.rs, Cargo.toml, contrib/completions/**, tests/**/*.rs"
-description: "Clap 4.6.7+, clap_builder 4.6.7, clap_lex 1.1.1, anstyle 1.0.14, and anstream 1.0.0 CLI architecture, v2.0.0 default-compile + 4-subcommand routing (show/reverse/help/version), static shell completions, ValueSource precedence, and debug_assert QA rules."
+description: "Clap 4.6.7+, clap_builder 4.6.7, clap_lex 1.1.1, anstyle 1.0.14, and anstream 1.0.0 CLI architecture, v3.0.0 default-compile + 4-subcommand routing (show/reverse/help/version), static shell completions, ValueSource precedence, and debug_assert QA rules."
 ---
 
 # Clap 4.6.7+ CLI Engineering Architecture & Best Practices
@@ -16,14 +16,14 @@ Enforce these type-safe, zero-proc-macro-ready `clap` (`4.6.7+`, `clap_builder 4
 - **Opt-In Features (Do Not Assume Unless Enabled in `Cargo.toml`)**:
   - `derive` (`#[derive(Parser)]`), `cargo` (`command!()`), `env` (`Arg::env`), `string` (dynamic `String` names/help), `wrap_help`, `unicode`. Without `cargo`, always pass `env!("CARGO_PKG_VERSION")` to `.version(...)`.
 
-## 2. FrameAssembly v2.0.0 Default-Compile + 4-Subcommand CLI & Tab-Prediction Architecture
+## 2. FrameAssembly v3.0.0 Default-Compile + 4-Subcommand CLI & Tab-Prediction Architecture
 - **Root Default Compile + Four Canonical Subcommands (`show`, `reverse`, `help`, `version`)**:
-  - `frameassembly <input.fasm> [output.pcap]` (default root command; optional 2nd positional `[output.pcap]` replaces `-o`/`--output`, defaulting via `derive_default_output_path(input, "pcap")` to `<input_stem>.pcap`; configured with `.subcommand_negates_reqs(true)`, `.args_conflicts_with_subcommands(true)`, and `.arg_required_else_help(true)`—there is **no** `compile` CLI subcommand).
-  - `frameassembly show <input.fasm>` (validates `.fasm` code and prints a relative-timestamp packet ladder table without writing disk files).
-  - `frameassembly reverse <input.pcap> [output.fasm]` (optional 2nd positional `[output.fasm]` replaces `-o`/`--output`, defaulting to `<input_stem>.fasm`).
-  - `frameassembly help [subcommand]` and `frameassembly version` (pair `.disable_help_flag(true)` / `.disable_version_flag(true)` with hidden `-h`/`--help` `ArgAction::Help` and `-V`/`--version` `ArgAction::Version` via `.hide(true)` so scripts still exit `0`, and guard in `check_legacy_cli_args` against `-o`/`--output`, `--show`/`--reverse`, bare `.pcap`/`.pcapng` at arg 1, accidental `"compile"` as arg 1, and `.fasm` passed as `OUTPUT.pcap`).
+  - `frameassembly <input.frasm> [output.pcap]` (default root command; optional 2nd positional `[output.pcap]` replaces `-o`/`--output`, defaulting via `derive_default_output_path(input, "pcap")` to `<input_stem>.pcap`; configured with `.subcommand_negates_reqs(true)`, `.args_conflicts_with_subcommands(true)`, and `.arg_required_else_help(true)`—there is **no** `compile` CLI subcommand).
+  - `frameassembly show <input.frasm>` (validates `.frasm` code and prints a relative-timestamp packet ladder table without writing disk files).
+  - `frameassembly reverse <input.pcap> [output.frasm]` (optional 2nd positional `[output.frasm]` replaces `-o`/`--output`, defaulting to `<input_stem>.frasm`).
+  - `frameassembly help [subcommand]` and `frameassembly version` (pair `.disable_help_flag(true)` / `.disable_version_flag(true)` with hidden `-h`/`--help` `ArgAction::Help` and `-V`/`--version` `ArgAction::Version` via `.hide(true)` so scripts still exit `0`, and guard in `check_legacy_cli_args` against `-o`/`--output`, `--show`/`--reverse`, bare `.pcap`/`.pcapng` at arg 1, accidental `"compile"` as arg 1, and `.frasm` passed as `OUTPUT.pcap`).
 - **Extension-Aware Shell Tab Predictions (`contrib/completions/`)**:
-  - Maintain static `bash`, `zsh`, `fish`, and `powershell` completion scripts in `contrib/completions/` completing both the 4 subcommands (`show`, `reverse`, `version`, `help`) and `.fasm` paths at position 1, `.pcap`/`.pcapng` paths at position 2 when arg 1 is a `.fasm` path, `.fasm` paths after `show`, `.pcap`/`.pcapng` (arg 2) and `.fasm` (arg 3) after `reverse`, and subcommand names after `help`, installed automatically by `install.sh` and `.deb` packaging.
+  - Maintain static `bash`, `zsh`, `fish`, and `powershell` completion scripts in `contrib/completions/` completing both the 4 subcommands (`show`, `reverse`, `version`, `help`) and `.frasm` paths at position 1, `.pcap`/`.pcapng` paths at position 2 when arg 1 is a `.frasm` path, `.frasm` paths after `show`, `.pcap`/`.pcapng` (arg 2) and `.frasm` (arg 3) after `reverse`, and subcommand names after `help`, installed automatically by `install.sh` and `.deb` packaging.
 
 ## 3. Builder Extraction, `ValueHint` & Mandatory `debug_assert()` Gate
 - **Extract `build_cli() -> Command`**: Never inline `Command::new(...)` directly inside `fn main()`. Keep CLI construction in `fn build_cli() -> Command` so unit tests validate invariants without spawning subprocesses.

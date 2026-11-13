@@ -5,7 +5,7 @@
 //! Every field in [`HttpSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b http [method <str>] [uri <str>] [version <str>] [hosthdr <str>] [useragent <str>] [contenttype <str>] [status <u16>] [reason <str>] [header <key> <val>] [body <str>]`
 
 use alloc::vec::Vec;

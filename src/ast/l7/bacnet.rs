@@ -5,7 +5,7 @@
 //! 4-byte BACnet Virtual Link Control (BVLC) header (`0x81` type, function `0x0A` Original-Unicast
 //! or `0x0B` Original-Broadcast, and 16-bit length), a 2-byte NPDU header (Version `0x01` and
 //! control byte), and an APDU encoding unconfirmed services (`Who-Is`, `I-Am`) or confirmed
-//! services (`ReadProperty` `0x0C`, `WriteProperty` `0x0F`). Canonical `.fasm` syntax:
+//! services (`ReadProperty` `0x0C`, `WriteProperty` `0x0F`). Canonical `.frasm` syntax:
 //! `bacnet [whois | iam | readproperty | writeproperty] [invokeid <u8>] [objecttype <u16>] [objectinstance <u32>] [propertyid <u32>] [value <u32>]`.
 
 use core::marker::PhantomData;

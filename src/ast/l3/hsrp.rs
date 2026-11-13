@@ -8,7 +8,7 @@
 //! default `10`s), 8-bit `Priority` (`priority`, default `100`), 8-bit Standby `Group` (`group`,
 //! default `1`), 8-byte cleartext `Authentication Data` (`auth`, default `"cisco"`), and the Virtual IP (`vip`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b hsrp [group <u8>] [priority <u8>] [state <u8>] [hellotime <u8>] [holdtime <u8>] [auth "<str>"] [vip <ip>]`
 
 use core::net::IpAddr;

@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire The WebSocket Protocol frames over TCP port 80 (ws://) or TCP port 443 (wss://).
 //! The wire encoder constructs a 2-to-14-byte RFC 6455 binary frame header: Byte 0 packs 1-bit `FIN` flag, 3-bit `RSV1..3` extension bits, and 4-bit `Opcode` (`0x1` TEXT, `0x2` BINARY, `0x8` CLOSE, `0x9` PING, `0xA` PONG); Byte 1 packs 1-bit `MASK` flag and 7-bit Payload Length (with optional 16-bit or 64-bit extended length), followed by an optional 32-bit XOR `Masking-Key` and masked/unmasked application payload. When optional fields in [`WebsocketSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b websocket [opcode <str>] [finbit <u8>] [maskkey <u32>] [payload <str>]`
 
 use crate::ast::*;

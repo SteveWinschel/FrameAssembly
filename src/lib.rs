@@ -1,17 +1,17 @@
-//! **FrameAssembly** (`frameassembly` v2.0.0) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.fasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.fasm` code—across **81 native Layer 2 through Layer 7 protocols**.
+//! **FrameAssembly** (`frameassembly` v3.0.0) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
 //!
-//! * **Official Website & Browser Playground:** [frameassembly.ai.studio](https://frameassembly.ai.studio/) (compile `.fasm` <-> `.pcap`/`.pcapng` and inspect packets in the browser with zero install)
+//! * **Official Website & Browser Playground:** [frameassembly.ai.studio](https://frameassembly.ai.studio/) (compile `.frasm` <-> `.pcap`/`.pcapng` and inspect packets in the browser with zero install)
 //! * **Canonical Repository & CLI:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
 //! * **Crates.io Package:** [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly)
 //! * **API Documentation:** [docs.rs/frameassembly](https://docs.rs/frameassembly)
-//! * **`.fasm` Format Specification (`text/vnd.frameassembly`):** [`docs/fasm-specification.md`](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md)
+//! * **`.frasm` Format Specification (`text/vnd.frameassembly`):** [`docs/12_frasm_specification.md`](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md)
 //!
 //! Whether you are testing firewall ACLs, simulating SNMPv3 traps, validating Suricata/Zeek IDS
 //! rules, or verifying VLAN/QinQ/MPLS QoS markings, generating custom network traffic manually is
 //! tedious—requiring lab hardware, manual fault triggers, raw-socket privileges (`CAP_NET_RAW`),
 //! or manual TCP `SEQ`/`ACK` math in `Scapy`. FrameAssembly solves this for **network engineers,
 //! firewall administrators, NOC/SOC analysts, OT/SCADA integrators, and CI pipelines** with a few
-//! lines of `.fasm` code and two CLI commands: compile bit-exact capture files offline in
+//! lines of `.frasm` code and two CLI commands: compile bit-exact capture files offline in
 //! unprivileged user space (no root, no live raw sockets, no `libpcap`) and replay or inspect with
 //! **`tcpreplay`**, **Wireshark**, **`tshark`**, **Suricata**, or **Zeek**.
 //!
@@ -20,13 +20,13 @@
 //! FrameAssembly is the **upstream packet-crafting compiler** in your network testing and analysis
 //! pipeline—never a competitor to packet analyzers or live wire injectors:
 //!
-//! 1. **Compile, Inspect & Decompile (`frameassembly` / `frameassembly show` / `frameassembly reverse`)**: Turn a declarative `.fasm`
+//! 1. **Compile, Inspect & Decompile (`frameassembly` / `frameassembly show` / `frameassembly reverse`)**: Turn a declarative `.frasm`
 //!    ("Packets as Code") specification into a deterministic `.pcap` / `.pcapng` file with automatic
 //!    RFC defaults, 4-tuple TCP `SEQ`/`ACK` progression, bidirectional port inheritance across
 //!    `->` and `<-`, IPv4/IPv6 dual-stack flow reuse, and full SNMPv3 USM (`MD5`/`SHA-1`/`SHA-2` +
-//!    `DES`/`AES`) cryptography (`frameassembly demo.fasm output.pcap`)—preview the packet
-//!    ladder in the terminal with `frameassembly show demo.fasm`, or decompile an existing `.pcap` /
-//!    `.pcapng` capture back into canonical `.fasm` code with `frameassembly reverse capture.pcap`.
+//!    `DES`/`AES`) cryptography (`frameassembly demo.frasm output.pcap`)—preview the packet
+//!    ladder in the terminal with `frameassembly show demo.frasm`, or decompile an existing `.pcap` /
+//!    `.pcapng` capture back into canonical `.frasm` code with `frameassembly reverse capture.pcap`.
 //! 2. **Inspect & Dissect (`Wireshark` / `tshark`)**: Open the generated `.pcap` in Wireshark or
 //!    assert protocol fields in automated CI pipelines with `tshark -r output.pcap -V`.
 //! 3. **Replay & Validate (`tcpreplay` / `Suricata` / `Zeek`)**: Inject the synthesized `.pcap`
@@ -36,20 +36,20 @@
 //!
 //! ## Packet-Crafting Generator Comparison (`FrameAssembly` vs. `Scapy`, `text2pcap`, `Ostinato`)
 //!
-//! | Capability | **FrameAssembly (`.fasm`)** | **Python + `Scapy`** | **`text2pcap` (Hex Dumps)** | **`Ostinato` (GUI / Streams)** |
+//! | Capability | **FrameAssembly (`.frasm`)** | **Python + `Scapy`** | **`text2pcap` (Hex Dumps)** | **`Ostinato` (GUI / Streams)** |
 //! | :--- | :--- | :--- | :--- | :--- |
-//! | **Primary Interface** | Declarative `.fasm` code (`1 line = 1 frame`) | Imperative Python scripts & classes | Raw hexadecimal byte offsets | Desktop GUI & stream dialogs |
+//! | **Primary Interface** | Declarative `.frasm` code (`1 line = 1 frame`) | Imperative Python scripts & classes | Raw hexadecimal byte offsets | Desktop GUI & stream dialogs |
 //! | **Target Audience** | Network/firewall engineers & CI pipelines | Python developers & researchers | Analysts editing hex dumps | Desktop lab engineers |
 //! | **Rootless / Offline** | Offline user space (no `libpcap` or raw sockets) | Requires Python + root for wire send | Offline user space | Requires daemon / agent setup |
 //! | **TCP `SEQ`/`ACK` & Ports** | Automatic 4-tuple `SEQ`/`ACK` & `<-` port swap | Manual per-packet sequence math | Manual hex recalculation | Manual per-stream configuration |
 //! | **SNMPv3 `authPriv` USM** | Built-in RFC 3414/3826/7860 `SHA-2` + `AES`/`DES` | Manual ASN.1 BER & crypto code | Impractical by hand | Not built-in |
-//! | **Version Control ("Packets as Code")** | Clean, diffable UTF-8 `.fasm` code | Code scripts coupled to Python env | Opaque hex blobs | Binary/protobuf stream files |
+//! | **Version Control ("Packets as Code")** | Clean, diffable UTF-8 `.frasm` code | Code scripts coupled to Python env | Opaque hex blobs | Binary/protobuf stream files |
 //!
 //! ## Common Network Testing Scenarios
 //!
 //! ### 1. Generate Custom Network Traffic & Protocol Exchanges Without Raw Sockets
 //!
-//! Instead of setting up a Python environment for `Scapy`, requesting `CAP_NET_RAW` root privileges, or calculating hexadecimal byte offsets in `text2pcap`, write your hosts and packet lines in `.fasm` code and compile directly to `.pcap` in unprivileged user space:
+//! Instead of setting up a Python environment for `Scapy`, requesting `CAP_NET_RAW` root privileges, or calculating hexadecimal byte offsets in `text2pcap`, write your hosts and packet lines in `.frasm` code and compile directly to `.pcap` in unprivileged user space:
 //!
 //! ```frameassembly
 //! host client { ip 192.168.1.100 }
@@ -62,12 +62,12 @@
 //! ```
 //!
 //! ```console
-//! $ frameassembly dns.fasm dns.pcap
+//! $ frameassembly dns.frasm dns.pcap
 //! ```
 //!
 //! ### 2. Simulate SNMPv1/v2c & Encrypted SNMPv3 `authPriv` Traps Without Touching Live Gear
 //!
-//! Simulating SNMP traps to verify Zabbix, SolarWinds, LibreNMS, PRTG, or `snmptrapd` alerting rules normally requires configuring agent credentials, loading MIB files, and manually triggering faults on a switch. FrameAssembly replaces that with a few lines of `.fasm` code (performing RFC 3414/3826/7860 USM key localization `Ku -> Kul`, HMAC signing, and `DES-CBC`/`AES-128-CFB` encryption automatically) and two CLI commands:
+//! Simulating SNMP traps to verify Zabbix, SolarWinds, LibreNMS, PRTG, or `snmptrapd` alerting rules normally requires configuring agent credentials, loading MIB files, and manually triggering faults on a switch. FrameAssembly replaces that with a few lines of `.frasm` code (performing RFC 3414/3826/7860 USM key localization `Ku -> Kul`, HMAC signing, and `DES-CBC`/`AES-128-CFB` encryption automatically) and two CLI commands:
 //!
 //! ```frameassembly
 //! host router { ip 10.151.0.1 }
@@ -79,7 +79,7 @@
 //! ```
 //!
 //! ```console
-//! $ frameassembly trap.fasm trap.pcap && tcpreplay -i eth0 trap.pcap
+//! $ frameassembly trap.frasm trap.pcap && tcpreplay -i eth0 trap.pcap
 //! ```
 //!
 //! ### 3. Test 802.1Q `vlan` Trunks, 802.1ad `qinq`, `mpls` & `dscp` QoS Queues
@@ -97,7 +97,7 @@
 //! ```
 //!
 //! ```console
-//! $ frameassembly trunk.fasm trunk.pcap && tshark -r trunk.pcap -V
+//! $ frameassembly trunk.frasm trunk.pcap && tshark -r trunk.pcap -V
 //! ```
 //!
 //! ### 4. Validate Firewall ACLs & Suricata / Zeek / Snort IDS Rules
@@ -118,12 +118,12 @@
 //! ```
 //!
 //! ```console
-//! $ frameassembly ids_test.fasm ids_test.pcap && suricata -r ids_test.pcap
+//! $ frameassembly ids_test.frasm ids_test.pcap && suricata -r ids_test.pcap
 //! ```
 //!
 //! ### 5. Reproduce Customer Incidents & Sanitize Captures for Vendor TAC Tickets
 //!
-//! Instead of scrubbing production PCAPs and risking leaked internal IPs or customer payloads, write a clean `.fasm` reproducer containing only the relevant protocol exchange:
+//! Instead of scrubbing production PCAPs and risking leaked internal IPs or customer payloads, write a clean `.frasm` reproducer containing only the relevant protocol exchange:
 //!
 //! ```frameassembly
 //! host client { ip 10.0.0.10 }
@@ -136,7 +136,7 @@
 //! ```
 //!
 //! ```console
-//! $ frameassembly tac_ticket.fasm sanitized.pcap
+//! $ frameassembly tac_ticket.frasm sanitized.pcap
 //! ```
 //!
 //! ### 6. Test Industrial OT / SCADA Firewalls Without a Live PLC
@@ -153,17 +153,17 @@
 //! ```
 //!
 //! ```console
-//! $ frameassembly ot_test.fasm ot_test.pcap && tshark -r ot_test.pcap -Y dnp3
+//! $ frameassembly ot_test.frasm ot_test.pcap && tshark -r ot_test.pcap -Y dnp3
 //! ```
 //!
-//! ## `.fasm` File Extension & Media Type Disambiguation (`text/vnd.frameassembly`)
+//! ## `.frasm` File Extension & Media Type Disambiguation (`text/vnd.frameassembly`)
 //!
-//! `.fasm` is the permanent file extension for FrameAssembly network packet specifications
+//! `.frasm` is the canonical file extension for FrameAssembly network packet specifications
 //! (IANA vendor media type `text/vnd.frameassembly`, specified in
-//! [`docs/fasm-specification.md`](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md)).
-//! FrameAssembly `.fasm` files (`host`, `flow`, `compile`, `->`, `<-`, `//` comments) are completely
-//! distinct from unregistered x86 Flat Assembler source files (`; ` comments, `format PE`/`ELF`, x86
-//! mnemonics) and SymbiFlow/F4PGA FPGA bitstream assembly files (`#` comments, hardware tile bit paths).
+//! [`docs/12_frasm_specification.md`](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md)).
+//! FrameAssembly `.frasm` files (`host`, `flow`, `compile`, `->`, `<-`, `//` comments) are completely
+//! distinct from x86 Flat Assembler `.fasm` source files (`; ` comments, `format PE`/`ELF`, x86
+//! mnemonics) and SymbiFlow/F4PGA FPGA `.fasm` bitstream assembly files (`#` comments, hardware tile bit paths).
 //!
 //! ## Six-Stage Zero-Copy Compiler Pipeline
 //!
@@ -189,7 +189,7 @@
 //!    and derives RFC 1112 (`01:00:5e:xx:xx:xx`) and RFC 2464 (`33:33:xx:xx:xx:xx`) multicast MACs.
 //! 6. **Stage 6 — Nanosecond PCAPNG Serialization ([`pcap`]) & 5-Stage Reverse PCAP Decompiler ([`reverse`])**: Emits `SHB -> IDB -> EPB` blocks
 //!    via [`pcap::PcapWriter`] with `LINKTYPE_ETHERNET` and `IfTsResol(9)` (`10^-9`s) resolution,
-//!    and decompiles `.pcap` / `.pcapng` captures into canonical `.fasm` code via
+//!    and decompiles `.pcap` / `.pcapng` captures into canonical `.frasm` code via
 //!    [`reverse::reverse_pcap_reader`], [`reverse::reverse_pcap_bytes`], and
 //!    [`reverse::reverse_pcap_file`] across a 5-stage reverse pipeline (`container.rs`,
 //!    `topology.rs`, `oracle.rs`, `shadow_emit.rs`, and `src/reverse/{l2,l3,l4,l7}/<protocol>.rs`)
@@ -209,19 +209,19 @@
 //!
 //! ## Canonical Documentation Guides (`docs/`)
 //!
-//! * [Getting Started Guide](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/getting_started.md) — Step-by-step tutorial to writing `.fasm` code, defaults vs. overrides, automatic TCP `SEQ`/`ACK` & reply ports, and Wireshark/`tshark` + `tcpreplay` workflows.
-//! * [Practical Use-Case Cookbook](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/use_cases.md) — Ready-to-run recipes for SNMPv1/v2c/v3 traps, firewall ACL verification, VLAN/QinQ/MPLS QoS tagging, IDS/IPS validation, and OT/SCADA testing.
-//! * [Layer 2 Switching & Data-Link Protocols](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/l2_protocols.md) — `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, and `mpls`.
-//! * [Layer 3 Control, Tunneling, VPN & Routing](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/l3_protocols.md) — `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, and `openflow`.
-//! * [Layer 4 Transports (`tcp`, `udp`, `sctp`)](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/l4_transports.md) — 4-tuple state tracking, RFC 7323 TCP options, and SCTP multi-chunk signaling.
-//! * [Layer 7 SNMPv1, SNMPv2c & SNMPv3 USM](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/l7_snmp.md) — USM authentication (`md5`/`sha`/`sha256`/`sha384`/`sha512`), privacy (`des`/`aes`), and all 9 SMI `varbind` types.
-//! * [Layer 7 Infrastructure, Time, AAA & Telemetry](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/l7_infra_and_telemetry.md) — `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, and `sflow`.
-//! * [Layer 7 Web, Cloud, Security, VoIP & Remote Access](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/l7_web_and_cloud.md) — `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `tftp`, `ftp`, `ssh`, `telnet`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, and `ssdp`.
-//! * [Layer 7 Mail, Auth, Storage, Databases & Brokers](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/l7_mail_auth_storage_db.md) — `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, and `amqp`.
-//! * [Layer 7 Industrial Control Systems (ICS) & SCADA/OT](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/l7_industrial_ot.md) — `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, and `opcua`.
-//! * [Multi-Host Topologies & Dual-Stack IPv4/IPv6 Reuse](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/topologies_and_dual_stack.md) — Enterprise WAN, EVPN-VXLAN data center, and Zero-Trust 802.1X NAC architectures.
-//! * [`.fasm` File Format & Media Type Specification (`text/vnd.frameassembly`)](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md) — Normative RFC 6838 media type specification, UTF-8 encoding, lexical magic rules, `.fasm` extension disambiguation, and Wikidata/IANA mappings.
-//! * [For Nerds: Compiler Internals, Rust API & Formal Grammars](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/for_nerds.md) — Deep dive into the 6-stage zero-copy compiler, public Rust library API, EBNF/GBNF/Lark constrained decoding, and RLVR/SFT corpus design.
+//! * [Getting Started Guide](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/01_getting_started.md) — Step-by-step tutorial to writing `.frasm` code, defaults vs. overrides, automatic TCP `SEQ`/`ACK` & reply ports, and Wireshark/`tshark` + `tcpreplay` workflows.
+//! * [Practical Use-Case Cookbook](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/02_use_cases.md) — Ready-to-run recipes for SNMPv1/v2c/v3 traps, firewall ACL verification, VLAN/QinQ/MPLS QoS tagging, IDS/IPS validation, and OT/SCADA testing.
+//! * [Layer 2 Switching & Data-Link Protocols](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/03_l2_protocols.md) — `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, and `mpls`.
+//! * [Layer 3 Control, Tunneling, VPN & Routing](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/04_l3_protocols.md) — `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, and `openflow`.
+//! * [Layer 4 Transports (`tcp`, `udp`, `sctp`)](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/05_l4_transports.md) — 4-tuple state tracking, RFC 7323 TCP options, and SCTP multi-chunk signaling.
+//! * [Layer 7 SNMPv1, SNMPv2c & SNMPv3 USM](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/06_l7_snmp.md) — USM authentication (`md5`/`sha`/`sha256`/`sha384`/`sha512`), privacy (`des`/`aes`), and all 9 SMI `varbind` types.
+//! * [Layer 7 Infrastructure, Time, AAA & Telemetry](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/07_l7_infra_and_telemetry.md) — `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, and `sflow`.
+//! * [Layer 7 Web, Cloud, Security, VoIP & Remote Access](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/08_l7_web_and_cloud.md) — `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `tftp`, `ftp`, `ssh`, `telnet`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, and `ssdp`.
+//! * [Layer 7 Mail, Auth, Storage, Databases & Brokers](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/09_l7_mail_auth_storage_db.md) — `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, and `amqp`.
+//! * [Layer 7 Industrial Control Systems (ICS) & SCADA/OT](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/10_l7_industrial_ot.md) — `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, and `opcua`.
+//! * [Multi-Host Topologies & Dual-Stack IPv4/IPv6 Reuse](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/11_topologies_and_dual_stack.md) — Enterprise WAN, EVPN-VXLAN data center, and Zero-Trust 802.1X NAC architectures.
+//! * [`.frasm` File Format & Media Type Specification (`text/vnd.frameassembly`)](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md) — Normative RFC 6838 media type specification, UTF-8 encoding, lexical magic rules, `.frasm` extension disambiguation, and Wikidata/IANA mappings.
+//! * [For Nerds: Compiler Internals, Rust API & Formal Grammars](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/13_for_nerds.md) — Deep dive into the 6-stage zero-copy compiler, public Rust library API, EBNF/GBNF/Lark constrained decoding, and RLVR/SFT corpus design.
 //!
 //! ## FrameAssembly DSL Syntax Example
 //!
@@ -254,13 +254,13 @@
 //!
 //! ## Rust Library Quickstart
 //!
-//! Parse a `.fasm` program and synthesize raw Ethernet frames paired with nanosecond timestamps in memory:
+//! Parse a `.frasm` program and synthesize raw Ethernet frames paired with nanosecond timestamps in memory:
 //!
 //! ```rust
 //! use frameassembly::backend::compile_program;
 //! use frameassembly::parser::parse_program;
 //!
-//! let fasm_source = r#"
+//! let frasm_source = r#"
 //!     host sensor { ip 192.168.10.5  mac 00:1a:2b:3c:4d:5e }
 //!     host plc    { ip 192.168.10.20 mac 00:1a:2b:3c:4d:5f }
 //!
@@ -274,7 +274,7 @@
 //!     }
 //! "#;
 //!
-//! let program = parse_program(fasm_source).expect("valid FrameAssembly program");
+//! let program = parse_program(frasm_source).expect("valid FrameAssembly program");
 //! let packets = compile_program(&program).expect("successful packet synthesis");
 //! assert_eq!(packets.len(), 2);
 //! assert!(packets[0].0.len() > 54);
@@ -282,20 +282,20 @@
 //! ```
 //!
 //! Inspect structured [`error::CompilerError`] diagnostics and byte-offset spans when validating
-//! untrusted `.fasm` input:
+//! untrusted `.frasm` input:
 //!
 //! ```rust
 //! use frameassembly::error::CompilerError;
 //! use frameassembly::parser::parse_program;
 //!
-//! let invalid_fasm = r#"
+//! let invalid_frasm = r#"
 //!     host v4_host { ip 10.0.0.1 }
 //!     host v6_host { ip 2001:db8::1 }
 //!     flow bad_ping(a, b) { a -> b icmp echorequest }
 //!     compile { bad_ping(v4_host, v6_host) }
 //! "#;
 //!
-//! let err = parse_program(invalid_fasm).expect_err("mixed address families must fail");
+//! let err = parse_program(invalid_frasm).expect_err("mixed address families must fail");
 //! match err {
 //!     CompilerError::SemanticError { message, span, .. } => {
 //!         assert!(message.contains("Mixed IPv4 and IPv6 endpoints"));

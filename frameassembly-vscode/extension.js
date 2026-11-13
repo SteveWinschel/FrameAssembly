@@ -113,6 +113,33 @@ async function ensureWasm(context) {
 }
 
 /**
+ * Resolves the WASM `validate` export, preferring the 3.0 `.frasm` names and falling back to 2.x names.
+ * @param {any} wasm
+ * @returns {(source: string) => Array<any>}
+ */
+function resolveValidateFn(wasm) {
+  return wasm.validateFrasm || wasm.validate_frasm || wasm.validateFasm || wasm.validate_fasm;
+}
+
+/**
+ * Resolves the WASM `inspect` export, preferring the 3.0 `.frasm` names and falling back to 2.x names.
+ * @param {any} wasm
+ * @returns {(source: string) => Array<any>}
+ */
+function resolveInspectFn(wasm) {
+  return wasm.inspectFrasm || wasm.inspect_frasm || wasm.inspect_fasm;
+}
+
+/**
+ * Resolves the WASM `compile` export, preferring the 3.0 `.frasm` names and falling back to 2.x names.
+ * @param {any} wasm
+ * @returns {(source: string) => Uint8Array}
+ */
+function resolveCompileFn(wasm) {
+  return wasm.compileFrasm || wasm.compile_frasm_to_pcapng || wasm.compile_fasm_to_pcapng;
+}
+
+/**
  * Replaces the file extension on a `vscode.Uri` while preserving directory and query/authority.
  * @param {vscode.Uri} uri
  * @param {string} newExtWithDot
@@ -256,9 +283,10 @@ function inspectDocumentSymbolsAndBlock(document, cursorPosition) {
  * @param {string} titleName
  * @param {Array<any>} previews
  * @param {string | null} errorBanner
+ * @param {boolean} [allowDownload] Show the `Download .pcap` button (browser hosts such as `vscode.dev`).
  * @returns {string}
  */
-function renderPacketLadderHtml(titleName, previews, errorBanner) {
+function renderPacketLadderHtml(titleName, previews, errorBanner, allowDownload) {
   const nonce = createNonce();
   const totalBytes = previews.reduce((acc, p) => acc + (p.length || 0), 0);
   const durationMs =
@@ -292,6 +320,10 @@ function renderPacketLadderHtml(titleName, previews, errorBanner) {
 
   const errorHtml = errorBanner
     ? `<div class="error-banner"><strong>Compiler Diagnostic:</strong> ${escapeHtml(errorBanner)}</div>`
+    : '';
+
+  const downloadButtonHtml = allowDownload
+    ? '<button class="action-btn" id="download-btn" type="button">Download .pcap</button>'
     : '';
 
   const emptyHtml =
@@ -340,6 +372,10 @@ function renderPacketLadderHtml(titleName, previews, errorBanner) {
     .stats {
       font-size: 12px;
       color: var(--vscode-descriptionForeground);
+    }
+    .btn-group {
+      display: flex;
+      gap: 8px;
     }
     button.action-btn {
       background: var(--vscode-button-background);
@@ -438,7 +474,10 @@ function renderPacketLadderHtml(titleName, previews, errorBanner) {
       <div class="title">${escapeHtml(titleName)}</div>
       <div class="stats">${previews.length} frame${previews.length === 1 ? '' : 's'} &bull; ${totalBytes} bytes &bull; ${durationMs} ms span (click any row for hex dump)</div>
     </div>
-    <button class="action-btn" id="compile-btn" type="button">Compile to .pcap</button>
+    <div class="btn-group">
+      <button class="action-btn" id="compile-btn" type="button">Compile to .pcap</button>
+      ${downloadButtonHtml}
+    </div>
   </div>
   ${errorHtml}
   <table>
@@ -465,6 +504,26 @@ function renderPacketLadderHtml(titleName, previews, errorBanner) {
         vscode.postMessage({ command: 'compile' });
       });
     }
+    const downloadBtn = document.getElementById('download-btn');
+    if (downloadBtn) {
+      downloadBtn.addEventListener('click', () => {
+        vscode.postMessage({ command: 'download' });
+      });
+    }
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (msg && msg.command === 'download' && msg.bytes) {
+        const blob = new Blob([msg.bytes], { type: 'application/vnd.tcpdump.pcap' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = msg.filename || 'capture.pcap';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    });
     document.querySelectorAll('tr.pkt-row').forEach((row) => {
       row.addEventListener('click', () => {
         const idx = row.getAttribute('data-idx');
@@ -497,7 +556,7 @@ function activate(context) {
   let lastValidPreviews = [];
 
   /**
-   * Validates a `.fasm` document via WASM and publishes UTF-16 diagnostics.
+   * Validates a `.frasm` document via WASM and publishes UTF-16 diagnostics.
    * @param {vscode.TextDocument} doc
    */
   async function validateDocumentNow(doc) {
@@ -507,7 +566,7 @@ function activate(context) {
     try {
       const wasm = await ensureWasm(context);
       const source = doc.getText();
-      const validateFn = wasm.validateFasm || wasm.validate_fasm;
+      const validateFn = resolveValidateFn(wasm);
       const rawDiags = validateFn(source) || [];
 
       const vscDiags = rawDiags.map((d) => {
@@ -544,15 +603,15 @@ function activate(context) {
       return;
     }
     ladderDocument = doc;
-    const titleName = doc.uri.path.split('/').pop() || 'Untitled.fasm';
+    const titleName = doc.uri.path.split('/').pop() || 'Untitled.frasm';
     try {
       const wasm = await ensureWasm(context);
-      const previews = wasm.inspect_fasm(doc.getText()) || [];
+      const previews = resolveInspectFn(wasm)(doc.getText()) || [];
       lastValidPreviews = previews;
-      ladderPanel.webview.html = renderPacketLadderHtml(titleName, previews, null);
+      ladderPanel.webview.html = renderPacketLadderHtml(titleName, previews, null, doc.uri.scheme !== 'file');
     } catch (err) {
       const msg = err && err.message ? err.message : String(err);
-      ladderPanel.webview.html = renderPacketLadderHtml(titleName, lastValidPreviews, msg);
+      ladderPanel.webview.html = renderPacketLadderHtml(titleName, lastValidPreviews, msg, doc.uri.scheme !== 'file');
     }
   }
 
@@ -579,7 +638,7 @@ function activate(context) {
     debounceTimers.set(key, handle);
   }
 
-  // Validate all currently open `.fasm` documents on activation
+  // Validate all currently open `.frasm` documents on activation
   for (const doc of vscode.workspace.textDocuments) {
     if (doc.languageId === 'frameassembly') {
       validateDocumentNow(doc);
@@ -843,6 +902,39 @@ function activate(context) {
     )
   );
 
+  /**
+   * Compiles `doc` in memory and hands the `.pcap` bytes to the ladder Webview, which saves them
+   * through a browser download. Used on `vscode.dev` / `github.dev` where no `file:` URI exists.
+   * @param {vscode.TextDocument} doc
+   */
+  async function downloadCompiledPcap(doc) {
+    try {
+      if (!ladderPanel) {
+        return;
+      }
+      const wasm = await ensureWasm(context);
+      const source = doc.getText();
+      const diags = resolveValidateFn(wasm)(source) || [];
+      if (diags.length > 0) {
+        const first = diags[0];
+        vscode.window.showErrorMessage(
+          `FrameAssembly compile failed (line ${first.start_line + 1}): ${first.message}`
+        );
+        return;
+      }
+      const pcapBytes = resolveCompileFn(wasm)(source);
+      const stem = (doc.uri.path.split('/').pop() || 'capture').replace(/\.[^./]*$/, '') || 'capture';
+      await ladderPanel.webview.postMessage({
+        command: 'download',
+        filename: `${stem}.pcap`,
+        bytes: pcapBytes,
+      });
+    } catch (err) {
+      const msg = err && err.message ? err.message : String(err);
+      vscode.window.showErrorMessage(`FrameAssembly download failed: ${msg}`);
+    }
+  }
+
   // Feature 3A: `frameassembly.compileToPcap` command
   const compileCmd = vscode.commands.registerCommand('frameassembly.compileToPcap', async (resourceUri) => {
     try {
@@ -856,13 +948,13 @@ function activate(context) {
       }
 
       if (!doc) {
-        vscode.window.showWarningMessage('Open a .fasm file first to compile it into a packet capture.');
+        vscode.window.showWarningMessage('Open a .frasm file first to compile it into a packet capture.');
         return;
       }
 
       const wasm = await ensureWasm(context);
       const source = doc.getText();
-      const validateFn = wasm.validateFasm || wasm.validate_fasm;
+      const validateFn = resolveValidateFn(wasm);
       const diags = validateFn(source) || [];
       if (diags.length > 0) {
         await validateDocumentNow(doc);
@@ -873,7 +965,7 @@ function activate(context) {
         return;
       }
 
-      const pcapBytes = wasm.compile_fasm_to_pcapng(source);
+      const pcapBytes = resolveCompileFn(wasm)(source);
       let outUri;
       if (doc.isUntitled) {
         outUri = await vscode.window.showSaveDialog({
@@ -888,11 +980,20 @@ function activate(context) {
       }
 
       await vscode.workspace.fs.writeFile(outUri, pcapBytes);
-      const previews = wasm.inspect_fasm(source) || [];
+      const previews = resolveInspectFn(wasm)(source) || [];
       const outName = outUri.path.split('/').pop() || outUri.toString();
-      vscode.window.showInformationMessage(
-        `Compiled ${previews.length} frame${previews.length === 1 ? '' : 's'} (${pcapBytes.byteLength} bytes) -> ${outName}`
+      const openLabel = 'Open Capture';
+      const revealLabel = 'Reveal in Explorer';
+      const choice = await vscode.window.showInformationMessage(
+        `Compiled ${previews.length} frame${previews.length === 1 ? '' : 's'} (${pcapBytes.byteLength} bytes) -> ${outName}`,
+        openLabel,
+        revealLabel
       );
+      if (choice === openLabel) {
+        await vscode.env.openExternal(outUri);
+      } else if (choice === revealLabel) {
+        await vscode.commands.executeCommand('revealFileInOS', outUri);
+      }
     } catch (err) {
       const msg = err && err.message ? err.message : String(err);
       vscode.window.showErrorMessage(`FrameAssembly compilation error: ${msg}`);
@@ -906,7 +1007,7 @@ function activate(context) {
       editor && editor.document.languageId === 'frameassembly' ? editor.document : ladderDocument;
 
     if (!doc) {
-      vscode.window.showWarningMessage('Open a .fasm file to launch the Live Packet Ladder preview.');
+      vscode.window.showWarningMessage('Open a .frasm file to launch the Live Packet Ladder preview.');
       return;
     }
 
@@ -926,6 +1027,8 @@ function activate(context) {
       ladderPanel.webview.onDidReceiveMessage((msg) => {
         if (msg && msg.command === 'compile' && ladderDocument) {
           vscode.commands.executeCommand('frameassembly.compileToPcap', ladderDocument.uri);
+        } else if (msg && msg.command === 'download' && ladderDocument) {
+          downloadCompiledPcap(ladderDocument);
         }
       });
     }
@@ -934,14 +1037,14 @@ function activate(context) {
     await refreshLadderPanel(doc);
   });
 
-  // Feature 4: `frameassembly.reversePcap` Explorer right-click `.pcap` / `.pcapng` -> `.fasm`
+  // Feature 4: `frameassembly.reversePcap` Explorer right-click `.pcap` / `.pcapng` -> `.frasm`
   const reverseCmd = vscode.commands.registerCommand('frameassembly.reversePcap', async (resourceUri) => {
     try {
       let targetUri = resourceUri instanceof vscode.Uri ? resourceUri : null;
       if (!targetUri) {
         const picked = await vscode.window.showOpenDialog({
           canSelectMany: false,
-          openLabel: 'Reverse Capture to .fasm',
+          openLabel: 'Reverse Capture to .frasm',
           filters: { 'Packet Captures (.pcap, .pcapng)': ['pcap', 'pcapng'] },
         });
         if (!picked || picked.length === 0) {
@@ -955,15 +1058,15 @@ function activate(context) {
       const reverseFn = wasm.reverse_pcap || wasm.reversePcap;
       const res = reverseFn(pcapBytes);
 
-      const outUri = replaceUriExtension(targetUri, '.fasm');
-      const encoded = new TextEncoder().encode(res.fasm);
+      const outUri = replaceUriExtension(targetUri, '.frasm');
+      const encoded = new TextEncoder().encode(res.frasm || res.fasm);
       await vscode.workspace.fs.writeFile(outUri, encoded);
 
       const openedDoc = await vscode.workspace.openTextDocument(outUri);
       await vscode.window.showTextDocument(openedDoc, { preview: false });
 
       const inName = targetUri.path.split('/').pop() || 'capture.pcap';
-      const outName = outUri.path.split('/').pop() || 'capture.fasm';
+      const outName = outUri.path.split('/').pop() || 'capture.frasm';
       vscode.window.showInformationMessage(
         `Reversed ${inName} -> ${outName} (${res.packetCount} packet${res.packetCount === 1 ? '' : 's'}, ${res.hostCount} host${res.hostCount === 1 ? '' : 's'})`
       );
@@ -978,7 +1081,18 @@ function activate(context) {
     }
   });
 
-  context.subscriptions.push(compileCmd, showLadderCmd, reverseCmd);
+  // Getting Started walkthrough launcher (also shown once on first activation)
+  const walkthroughId = 'SteveWinschel.frameassembly-vscode#frameassembly.gettingStarted';
+  const walkthroughCmd = vscode.commands.registerCommand('frameassembly.openWalkthrough', () =>
+    vscode.commands.executeCommand('workbench.action.openWalkthrough', walkthroughId, false)
+  );
+
+  context.subscriptions.push(compileCmd, showLadderCmd, reverseCmd, walkthroughCmd);
+
+  if (!context.globalState.get('frameassembly.walkthroughShown.v3')) {
+    context.globalState.update('frameassembly.walkthroughShown.v3', true);
+    vscode.commands.executeCommand('frameassembly.openWalkthrough');
+  }
 }
 
 /**

@@ -1,4 +1,4 @@
-//! Secure Shell Transport Layer Protocol (`ssh`, RFC 4253) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Secure Shell Transport Layer Protocol (`ssh`, RFC 4253) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for unencrypted RFC 4253 `ssh` protocol
 //! version identification banners (`SSH-2.0-...`, `SSH-1.99-...`) and outer binary packet framing

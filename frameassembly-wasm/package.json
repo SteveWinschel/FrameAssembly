@@ -4,8 +4,8 @@
   "collaborators": [
     "Steve Winschel"
   ],
-  "description": "Compile .fasm network traffic code to .pcapng and decompile .pcap/.pcapng packet captures in WebAssembly across 81 L2-L7 protocols with live IDE diagnostics and frame inspection.",
-  "version": "2.0.0",
+  "description": "Compile .frasm network traffic code to .pcapng and decompile .pcap/.pcapng packet captures in WebAssembly across 81 L2-L7 protocols with live IDE diagnostics and frame inspection.",
+  "version": "3.0.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -24,7 +24,7 @@
   ],
   "keywords": [
     "frameassembly",
-    "fasm",
+    "frasm",
     "pcap",
     "pcapng",
     "wasm",

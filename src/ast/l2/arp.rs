@@ -7,7 +7,7 @@
 //! 48-bit Sender Hardware Address (`sha`), 32-bit Sender Protocol Address (`spa`), 48-bit Target
 //! Hardware Address (`tha`), and 32-bit Target Protocol Address (`tpa`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b arp [request | reply] [gratuitous] [sendermac <mac>] [senderip <ip>] [targetmac <mac>] [targetip <ip>]`
 
 use core::marker::PhantomData;

@@ -5,7 +5,7 @@
 //! Every field in [`SipSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b sip [invite | bye | cancel | method <str>] [uri <str>] [status <u16>] [reason <str>] [from <str>] [to <str>] [callid <str>] [cseq <u32>] [via <str>] [contact <str>] [contenttype <str>] [body <str>] [transport tcp]`
 
 /// RFC 3261 Session Initiation Protocol specification.

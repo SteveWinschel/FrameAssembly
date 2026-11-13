@@ -6,7 +6,7 @@
 //! `inner_vid`), ahead of the encapsulated inner EtherType (`0x0800` / `0x86DD` for IP hosts,
 //! or `0x88B5` for MAC-only Layer 2 hosts) and payload bytes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b qinq <outer_vid> [innervlan <inner_vid>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;

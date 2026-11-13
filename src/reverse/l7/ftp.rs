@@ -1,4 +1,4 @@
-//! File Transfer Protocol (`ftp`, RFC 959) Layer 7 control channel PCAP-to-`.fasm` decompiler.
+//! File Transfer Protocol (`ftp`, RFC 959) Layer 7 control channel PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 959 `ftp` control commands and
 //! 3-digit numeric server replies carried over TCP ports `21` and `2121`. It validates CRLF-delimited

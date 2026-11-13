@@ -8,7 +8,7 @@
 //! `Route Tag` (`tag`), 32-bit `IP Address` (`prefix`), 32-bit `Subnet Mask` (`255.255.255.0`), 32-bit
 //! `Next Hop` (`nexthop`), and 32-bit hop-count `Metric` (`metric`, `1..=16` where `16` = infinity).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b rip [request | response] [prefix <ip>] [metric <1..16>] [nexthop <ip>] [tag <u16>]`
 
 use core::marker::PhantomData;

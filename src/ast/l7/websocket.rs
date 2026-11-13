@@ -5,7 +5,7 @@
 //! Every field in [`WebsocketSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b websocket [opcode <str>] [finbit <u8>] [maskkey <u32>] [payload <str>]`
 
 /// RFC 6455 The WebSocket Protocol specification.

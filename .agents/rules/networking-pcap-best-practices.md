@@ -1,16 +1,16 @@
 ---
 trigger: glob
 globs: "src/packet.rs, src/pcap.rs, src/backend/**, src/builders/**, src/reverse/**, tests/**/*.rs"
-description: "Native RFC L2-L7 wire packet crafting, case-insensitive enum string normalization, checksums, 4-tuple state machine constants, pcap-file 2.0.0 PCAPNG quirks, etherparse 0.21.0 PCAP-to-.fasm decompilation, and 81-protocol tshark QA invariants."
+description: "Native RFC L2-L7 wire packet crafting, case-insensitive enum string normalization, checksums, 4-tuple state machine constants, pcap-file 2.0.0 PCAPNG quirks, etherparse 0.21.0 PCAP-to-.frasm decompilation, and 81-protocol tshark QA invariants."
 ---
 
 # Networking, Native RFC Wire Crafting, PCAPNG & Decompilation Best Practices
 
-Enforce these rootless, offline, wire-exact RFC packet synthesis, `pcap-file 2.0.0`, and `etherparse 0.21.0` PCAP-to-`.fasm` decompilation rules across `src/packet.rs`, `src/pcap.rs`, `src/backend/`, `src/builders/`, and `src/reverse/`:
+Enforce these rootless, offline, wire-exact RFC packet synthesis, `pcap-file 2.0.0`, and `etherparse 0.21.0` PCAP-to-`.frasm` decompilation rules across `src/packet.rs`, `src/pcap.rs`, `src/backend/`, `src/builders/`, and `src/reverse/`:
 
-## 1. Forward Native Wire Synthesis vs. PCAP-to-`.fasm` Decompilation
+## 1. Forward Native Wire Synthesis vs. PCAP-to-`.frasm` Decompilation
 - **Forward Wire Synthesis (`src/packet.rs`, `src/builders/`)**: Uses 100% zero-heap native Rust 2024 slice operations (`etherparse::PacketBuilder` and `libpcap` are never used), normalizing `_` and `-` case-insensitively on quoted protocol enum strings (e.g., `qtype "a"` or `"A"`).
-- **PCAP/PCAPNG-to-`.fasm` Decompilation (`src/reverse/`)**: Uses `etherparse = { version = "0.21.0", default-features = false, features = ["std"] }` for zero-copy L2–L4 header slicing and `pcap-file = "2.0.0"` (`PcapNgReader` and `PcapReader`) for container reading, emitting v2.0.0 strict-lowercase `[a-z0-9]+` keywords without `_` or `-`, `host1`/`host2` host names, and direct flow calls in `compile` (never `loop`).
+- **PCAP/PCAPNG-to-`.frasm` Decompilation (`src/reverse/`)**: Uses `etherparse = { version = "0.21.0", default-features = false, features = ["std"] }` for zero-copy L2–L4 header slicing and `pcap-file = "2.0.0"` (`PcapNgReader` and `PcapReader`) for container reading, emitting v3.0.0 strict-lowercase `[a-z0-9]+` keywords without `_` or `-`, `host1`/`host2` host names, and direct flow calls in `compile` (never `loop`).
 - **Inner-Outward Encapsulation Order (`src/packet.rs`)**:
   1. **L7 Payload** (`src/builders/l7/`) -> 2. **L4 Segment/Datagram** (`build_tcp_segment`, `build_udp_datagram`, `build_sctp_payload` with 4-byte padded options/chunks) -> 3. **L3 Packet** (`build_ipv4_header`, `build_ipv6_header` with strict `(V4, V4)` or `(V6, V6)` family homogeneity) -> 4. **L2 Frame** (`build_ethernet_and_l2`: `0x88A8` QinQ S-Tag -> `0x8100` C-Tag/VLAN -> `0x8847` MPLS shim with **no** extra EtherType after MPLS -> inner packet).
 - **Pure L2 MAC-Only EtherType `0x88B5` Fallback**: When `vlan` (`src/builders/l2/vlan.rs`) or `qinq` (`src/builders/l2/qinq.rs`) executes between MAC-only hosts with no IP (`ctx.src_ip.is_unspecified() || ctx.dst_ip.is_unspecified()`), default the inner EtherType to `l2.ethertype.unwrap_or(0x88B5)` (IEEE 802.1 Local Experimental) and wrap `payload` directly without synthesizing an IP/UDP header.
@@ -41,7 +41,7 @@ Enforce these rootless, offline, wire-exact RFC packet synthesis, `pcap-file 2.0
 - Preserve `L7DispatchResult` in `l7_dispatch.rs` (`dhcp` `68/67` & `546/547`, `mdns` `5353` + multicast IP, `ptp` `319/320`, `radius` `1812/1813` + reverse `<-` `src_port`).
 - Maintain full RFC wire structures: `gre` `checksum` at `gre[4..6]`; `geneve` `0x6558` & `vxlan` 42B inner Ethernet+IPv4+UDP frame; `wireguard` `data` `>= 32`B (16B Poly1305 tag); `rstp` 36th byte `0x00`; `eap` Success/Failure 4B; `quic` Long Header 2B varint `0x4000 | len`; `ipfix` lengths including payload; `sflow` v5 Flow Sample 32B (`8 x u32`) header; complete 8-field RFC 4511 BER `SearchRequest` in `ldap.rs`; complete explicit-tag RFC 4120 DER `KDC-REQ`/`KDC-REP`/`KRB-ERROR` in `kerberos.rs`; `mysql` 3B LE length; `postgres` `'Q'` 4B BE length including self; `smb` 4B NetBIOS + 64B LE `\xFESMB`; `nfs` `0x80000000 | len` RPC record mark; `modbus` MBAP `len = 1 + pdu.len()`; `s7comm` 10B Job / 12B Ack_Data; `ethernetip` 24B LE header; `opcua` 8B LE UACP header.
 
-## 6. `etherparse 0.21.0` & PCAP-to-`.fasm` Decompiler Invariants (`src/reverse/`)
+## 6. `etherparse 0.21.0` & PCAP-to-`.frasm` Decompiler Invariants (`src/reverse/`)
 - **`etherparse 0.21.0` APIs**:
   - `SlicedPacket::from_ethernet(frame)` (strict length checks) and `LaxSlicedPacket::from_ethernet(frame)` (partial/truncated capture fallback).
   - `link_exts: ArrayVec<LinkExtSlice, 3>` replaces the removed `.vlan` field on `SlicedPacket` / `LaxSlicedPacket` to support up to 3 `LinkExtSlice::Vlan(SingleVlanSlice)` or IEEE 802.1AE `LinkExtSlice::Macsec(MacsecSlice)` headers; call `.vlan()` helper for `Option<VlanSlice>` (`SingleVlan` or `DoubleVlan`).

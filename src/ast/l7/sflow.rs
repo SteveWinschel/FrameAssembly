@@ -5,7 +5,7 @@
 //! Every field in [`SflowSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b sflow [agentip <ip>] [subagentid <u32>] [seq <u32>] [uptime <u32>] [samples <u32>]`
 
 use core::marker::PhantomData;

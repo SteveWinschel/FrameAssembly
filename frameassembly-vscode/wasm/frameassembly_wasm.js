@@ -1,7 +1,7 @@
 /* @ts-self-types="./frameassembly_wasm.d.ts" */
 
 /**
- * Compiles `.fasm` source into a standards-compliant PCAPNG byte array (`compileFasm` alias).
+ * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFasm` 2.x alias).
  * @param {string} source
  * @returns {Uint8Array}
  */
@@ -18,7 +18,24 @@ export function compileFasm(source) {
 }
 
 /**
- * Compiles `.fasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+ * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFrasm` alias).
+ * @param {string} source
+ * @returns {Uint8Array}
+ */
+export function compileFrasm(source) {
+    const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.compileFrasm(ptr0, len0);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
  * @param {string} source
  * @returns {Uint8Array}
  */
@@ -35,6 +52,38 @@ export function compile_fasm_to_pcapng(source) {
 }
 
 /**
+ * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+ * @param {string} source
+ * @returns {Uint8Array}
+ */
+export function compile_frasm_to_pcapng(source) {
+    const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.compile_frasm_to_pcapng(ptr0, len0);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * Returns decoded frame metadata for `.frasm` source (`inspectFrasm` camelCase alias).
+ * @param {string} source
+ * @returns {PacketPreview[]}
+ */
+export function inspectFrasm(source) {
+    const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.inspectFrasm(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
  * Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for packet ladder inspectors.
  * @param {string} source
  * @returns {PacketPreview[]}
@@ -43,6 +92,21 @@ export function inspect_fasm(source) {
     const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.inspect_fasm(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for `.frasm` source.
+ * @param {string} source
+ * @returns {PacketPreview[]}
+ */
+export function inspect_frasm(source) {
+    const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.inspect_frasm(ptr0, len0);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -69,8 +133,8 @@ export function reversePcap(pcap_bytes) {
 }
 
 /**
- * Decompiles an in-memory `.pcap` or `.pcapng` capture (`Uint8Array`) into canonical `.fasm`
- * source code and summary counts (`{ success: true, fasm, packetCount, hostCount }`).
+ * Decompiles an in-memory `.pcap` or `.pcapng` capture (`Uint8Array`) into canonical `.frasm`
+ * source code and summary counts (`{ success: true, frasm, fasm, packetCount, hostCount }`).
  *
  * # Errors
  * Returns a structured `JsValue` error object (`{ success: false, error, message }`) if
@@ -89,7 +153,7 @@ export function reverse_pcap(pcap_bytes) {
 }
 
 /**
- * Validates `.fasm` source and returns UTF-16 line/column diagnostics (`validateFasm` alias).
+ * Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFasm` 2.x alias).
  * @param {string} source
  * @returns {IdeDiagnostic[]}
  */
@@ -104,7 +168,22 @@ export function validateFasm(source) {
 }
 
 /**
- * Validates `.fasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+ * Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFrasm` camelCase alias).
+ * @param {string} source
+ * @returns {IdeDiagnostic[]}
+ */
+export function validateFrasm(source) {
+    const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.validateFrasm(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
  * @param {string} source
  * @returns {IdeDiagnostic[]}
  */
@@ -112,6 +191,21 @@ export function validate_fasm(source) {
     const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.validate_fasm(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+ * @param {string} source
+ * @returns {IdeDiagnostic[]}
+ */
+export function validate_frasm(source) {
+    const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.validate_frasm(ptr0, len0);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }

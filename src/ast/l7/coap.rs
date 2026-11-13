@@ -5,7 +5,7 @@
 //! wire, a CoAP frame starts with a 4-byte binary header (2-bit Version `1`, 2-bit Type `con`/`non`
 //! /`ack`/`rst`, 4-bit Token Length, 8-bit `c.dd` Code byte, and 16-bit big-endian Message ID),
 //! followed by the variable-length Token, delta-encoded CoAP Options (`Uri-Path` option 11,
-//! `Content-Format` option 12), and an optional `0xFF` payload marker. Canonical `.fasm` syntax:
+//! `Content-Format` option 12), and an optional `0xFF` payload marker. Canonical `.frasm` syntax:
 //! `coap [con | non | ack | rst] [code <str>] [msgid <u16>] [token <u32>] [uripath <str>] [contentformat <u16>]`.
 
 /// RFC 7252 Constrained Application Protocol (CoAP) specification.

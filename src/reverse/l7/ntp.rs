@@ -1,4 +1,4 @@
-//! Network Time Protocol v4 (`ntp`, RFC 5905) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Network Time Protocol v4 (`ntp`, RFC 5905) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 5905 Network Time Protocol
 //! (`ntp`) 48-byte packets carried over UDP port `123`. It extracts leap indicator (`li`), version

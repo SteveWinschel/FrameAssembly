@@ -7,7 +7,7 @@
 //! Checksum, `AuType = 0`, and 8-byte zeroed Authentication, followed by a 20-byte Hello body with
 //! `255.255.255.0` mask, `hellointerval` (`10`s), `Options = 0x02` (E-bit), `priority` (`1`), and `deadinterval` (`40`s).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ospf [hello | dbd | lsr | lsu | lsack] [routerid <ipv4>] [areaid <u32>] [hellointerval <u16>] [deadinterval <u32>] [priority <u8>]`
 
 use crate::ast::*;

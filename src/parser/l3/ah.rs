@@ -1,7 +1,7 @@
 //! IPsec Authentication Header (`ah`, RFC 4302) Layer 3 security protocol parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 4302 `ah` connectionless
-//! integrity and data origin authentication headers in FrameAssembly `.fasm` specifications. It
+//! integrity and data origin authentication headers in FrameAssembly `.frasm` specifications. It
 //! recognizes the `ah` protocol keyword as well as shared IPsec Security Association parameters,
 //! including Security Parameter Index (`spi`), sequence number (`seq`), Integrity Check Value
 //! (`icv`), and encapsulated `nextheader` protocol number via [`super::ipsec::parse_ipsec_field`].

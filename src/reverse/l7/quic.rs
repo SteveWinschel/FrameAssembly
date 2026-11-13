@@ -1,4 +1,4 @@
-//! QUIC Transport Protocol (`quic`, RFC 9000) Layer 7 PCAP-to-`.fasm` decompiler.
+//! QUIC Transport Protocol (`quic`, RFC 9000) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for unencrypted outer RFC 9000 `quic`
 //! Long Header (`initial`, `zerortt`, `handshake`, `retry`) and 1-RTT Short Header (`short`) UDP

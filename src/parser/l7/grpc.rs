@@ -1,7 +1,7 @@
 //! gRPC Remote Procedure Call (gRPC over HTTP/2) Layer 7 protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for `grpc` length-prefixed Protobuf calls
-//! and HTTP/2 header/trailer frames in FrameAssembly `.fasm` specifications. It recognizes the
+//! and HTTP/2 header/trailer frames in FrameAssembly `.frasm` specifications. It recognizes the
 //! `grpc` protocol keyword, fully qualified service names (`service`), RPC method names
 //! (`method`), and gRPC trailer status codes (`grpcstatus`).
 

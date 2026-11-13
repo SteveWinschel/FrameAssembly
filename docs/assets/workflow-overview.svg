@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420" role="img" aria-labelledby="t d">
+  <title id="t">FrameAssembly 3.0 workflow: .frasm code to .pcap and .pcapng captures</title>
+  <desc id="d">A .frasm file is compiled by FrameAssembly 3.0 into a .pcap or .pcapng capture, which feeds Wireshark, tcpreplay, Suricata and Checkmk. Captures can be reversed back into .frasm code. Everything runs offline without drivers or root.</desc>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0f172a"/>
+    </marker>
+    <style>
+      text { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; fill: #0f172a; }
+      .mono { font-family: 'JetBrains Mono', 'Fira Code', Consolas, 'DejaVu Sans Mono', monospace; }
+      .h { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; fill: #475569; }
+      .t { font-size: 22px; font-weight: 700; }
+      .s { font-size: 14px; fill: #334155; }
+      .w { fill: #ffffff; }
+    </style>
+  </defs>
+  <rect width="1200" height="420" rx="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+
+  <text x="40" y="52" class="h">1 · WRITE</text>
+  <text x="440" y="52" class="h">2 · COMPILE OR REVERSE</text>
+  <text x="780" y="52" class="h">3 · CAPTURE</text>
+  <text x="1010" y="52" class="h">4 · USE</text>
+
+  <!-- .frasm code card -->
+  <rect x="40" y="70" width="340" height="230" rx="12" fill="#0f172a"/>
+  <circle cx="62" cy="92" r="6" fill="#f87171"/><circle cx="82" cy="92" r="6" fill="#fbbf24"/><circle cx="102" cy="92" r="6" fill="#4ade80"/>
+  <text x="124" y="97" class="mono w" font-size="13" style="fill:#94a3b8">demo.frasm</text>
+  <g class="mono" font-size="14">
+    <text x="60" y="130" style="fill:#7dd3fc">host <tspan style="fill:#f8fafc">client</tspan> <tspan style="fill:#cbd5e1">{ ip 10.0.0.10 }</tspan></text>
+    <text x="60" y="152" style="fill:#7dd3fc">host <tspan style="fill:#f8fafc">fw</tspan>     <tspan style="fill:#cbd5e1">{ ip 10.0.0.1 }</tspan></text>
+    <text x="60" y="186" style="fill:#fbbf24">compile <tspan style="fill:#cbd5e1">{</tspan></text>
+    <text x="80" y="208" style="fill:#f8fafc">client <tspan style="fill:#fb7185">-&gt;</tspan> fw <tspan style="fill:#4ade80">tcp</tspan> <tspan style="fill:#7dd3fc">syn</tspan></text>
+    <text x="80" y="230" style="fill:#f8fafc">client <tspan style="fill:#fb7185">-&gt;</tspan> fw <tspan style="fill:#4ade80">http</tspan> <tspan style="fill:#7dd3fc">get uri</tspan> <tspan style="fill:#fdba74">"/"</tspan></text>
+    <text x="60" y="252" style="fill:#cbd5e1">}</text>
+  </g>
+  <text x="210" y="326" text-anchor="middle" class="t">.frasm code</text>
+  <text x="210" y="350" text-anchor="middle" class="s">Packets as Code · 81 protocols</text>
+
+  <!-- arrows: code <-> engine -->
+  <line x1="388" y1="150" x2="452" y2="150" stroke="#0f172a" stroke-width="3" marker-end="url(#arr)"/>
+  <text x="420" y="138" text-anchor="middle" class="s mono">compile</text>
+  <line x1="452" y1="230" x2="388" y2="230" stroke="#0f172a" stroke-width="3" marker-end="url(#arr)"/>
+  <text x="420" y="256" text-anchor="middle" class="s mono">reverse</text>
+
+  <!-- engine -->
+  <rect x="460" y="70" width="280" height="230" rx="14" fill="#0ea5e9"/>
+  <text x="600" y="132" text-anchor="middle" class="t w" style="fill:#ffffff;font-size:26px">FrameAssembly 3.0</text>
+  <text x="600" y="164" text-anchor="middle" class="s" style="fill:#f0f9ff;font-size:15px">TCP seq/ack · checksums · framing</text>
+  <rect x="490" y="190" width="220" height="34" rx="17" fill="#0c4a6e"/>
+  <text x="600" y="213" text-anchor="middle" class="s" style="fill:#ffffff;font-weight:700">Offline · no drivers · no root</text>
+  <rect x="490" y="238" width="220" height="34" rx="17" fill="#0c4a6e"/>
+  <text x="600" y="261" text-anchor="middle" class="s" style="fill:#ffffff;font-weight:700">Windows · macOS · Linux</text>
+  <text x="600" y="326" text-anchor="middle" class="t">frameassembly</text>
+  <text x="600" y="350" text-anchor="middle" class="s">CLI · VS Code Packet Studio · Browser</text>
+
+  <!-- engine -> capture -->
+  <line x1="748" y1="185" x2="792" y2="185" stroke="#0f172a" stroke-width="3" marker-end="url(#arr)"/>
+  <line x1="792" y1="205" x2="748" y2="205" stroke="#0f172a" stroke-width="3" marker-end="url(#arr)"/>
+
+  <!-- capture -->
+  <rect x="800" y="110" width="170" height="150" rx="12" fill="#fff7ed" stroke="#ea580c" stroke-width="3"/>
+  <text x="885" y="165" text-anchor="middle" class="t mono" style="fill:#9a3412">.pcap</text>
+  <text x="885" y="198" text-anchor="middle" class="t mono" style="fill:#9a3412">.pcapng</text>
+  <text x="885" y="232" text-anchor="middle" class="s">nanosecond timestamps</text>
+  <text x="885" y="326" text-anchor="middle" class="t">Capture file</text>
+  <text x="885" y="350" text-anchor="middle" class="s">standard, tool-neutral</text>
+
+  <!-- capture -> tools -->
+  <line x1="978" y1="185" x2="1016" y2="185" stroke="#0f172a" stroke-width="3" marker-end="url(#arr)"/>
+
+  <!-- tools -->
+  <g>
+    <rect x="1024" y="74" width="140" height="44" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2.5"/>
+    <text x="1094" y="102" text-anchor="middle" class="s" style="font-weight:700;font-size:16px">Wireshark</text>
+    <rect x="1024" y="130" width="140" height="44" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2.5"/>
+    <text x="1094" y="158" text-anchor="middle" class="s mono" style="font-weight:700;font-size:16px">tcpreplay</text>
+    <rect x="1024" y="186" width="140" height="44" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2.5"/>
+    <text x="1094" y="214" text-anchor="middle" class="s" style="font-weight:700;font-size:16px">Suricata</text>
+    <rect x="1024" y="242" width="140" height="44" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2.5"/>
+    <text x="1094" y="270" text-anchor="middle" class="s" style="font-weight:700;font-size:16px">Checkmk</text>
+  </g>
+  <text x="1094" y="326" text-anchor="middle" class="t">Your tools</text>
+  <text x="1094" y="350" text-anchor="middle" class="s">analyze · replay · detect</text>
+
+  <text x="600" y="396" text-anchor="middle" class="s" style="font-size:13px">Edit a real capture: <tspan class="mono" style="font-weight:700">frameassembly reverse trace.pcap</tspan> → change hosts or headers → recompile.</text>
+</svg>
+

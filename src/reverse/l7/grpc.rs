@@ -1,4 +1,4 @@
-//! gRPC Remote Procedure Call (`grpc`) Layer 7 PCAP-to-`.fasm` decompiler.
+//! gRPC Remote Procedure Call (`grpc`) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for length-prefixed `grpc` frames (1-byte
 //! compression flag `0x00` or `0x01` followed by a 4-byte big-endian message length) carried over

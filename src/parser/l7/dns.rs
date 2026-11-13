@@ -1,7 +1,7 @@
 //! Domain Name System (DNS) Layer 7 protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 1035 / RFC 3596 Domain Name
-//! System (`dns`) messages in FrameAssembly `.fasm` specifications. It recognizes the `dns`
+//! System (`dns`) messages in FrameAssembly `.frasm` specifications. It recognizes the `dns`
 //! protocol keyword, `query` and `response` direction flags, transaction identifiers (`txid`),
 //! query domain names (`qname`), record types (`qtype`), answer resource data (`rdata` as strings
 //! or IP literals), response codes (`rcode`), and answer TTLs (`ansttl`).

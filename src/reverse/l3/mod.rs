@@ -1,7 +1,7 @@
-//! Layer 3 control, routing, overlay tunneling, redundancy, and security protocol PCAP-to-`.fasm` decompilers.
+//! Layer 3 control, routing, overlay tunneling, redundancy, and security protocol PCAP-to-`.frasm` decompilers.
 //!
 //! This module implements the Layer 3 protocol decompilation stage for FrameAssembly's PCAP and
-//! PCAPNG to `.fasm` decompiler across IPv4/IPv6 Layer 3 headers ([`ip`], [`ipv6`]), unified
+//! PCAPNG to `.frasm` decompiler across IPv4/IPv6 Layer 3 headers ([`ip`], [`ipv6`]), unified
 //! `ICMPv6` dispatch ([`icmpv6`]), and all twenty supported Layer 3 network protocols:
 //! - Direct IP-encapsulated protocols ([`dissect_l3_ip_protocol`]): `icmp` (`1` / `58`), `ndp`
 //!   (`58`), `mld` (`58`), `igmp` (`2`), `gre` (`47`), `esp` / `ipsec` (`50`), `ah` (`51`), `ospf`

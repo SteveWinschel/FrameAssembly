@@ -1,4 +1,4 @@
-//! Link Layer Discovery Protocol (LLDP, IEEE 802.1AB) Layer 2 PCAP-to-`.fasm` decompiler.
+//! Link Layer Discovery Protocol (LLDP, IEEE 802.1AB) Layer 2 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for IEEE 802.1AB Link Layer
 //! Discovery Protocol (`lldp`, EtherType `0x88CC`) frames in FrameAssembly. It walks the TLV chain

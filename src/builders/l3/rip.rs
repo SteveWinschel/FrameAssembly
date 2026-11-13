@@ -7,7 +7,7 @@
 //! 16-bit `Route Tag` (`tag`, default `0`), 32-bit `prefix` (default `10.0.0.0`), 32-bit Subnet Mask
 //! (`255.255.255.0`), 32-bit `nexthop` (default `0.0.0.0`), and 32-bit `metric` (default `1`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b rip [request | response] [prefix <ip>] [metric <1..16>] [nexthop <ip>] [tag <u16>]`
 
 use crate::ast::*;

@@ -1,4 +1,4 @@
-//! Simple Network Management Protocol v2c (`snmp2`, RFC 3416) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Simple Network Management Protocol v2c (`snmp2`, RFC 3416) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe ASN.1 Basic Encoding Rules (BER) reverse dissector for
 //! RFC 3416 and RFC 1901 community-based `snmp2` (SNMPv2c) messages carried over UDP ports `161`,
@@ -35,7 +35,7 @@ pub(crate) fn dissect_snmp2(payload: &[u8]) -> Option<ProtocolDissection> {
     ok_dissect(Protocol::Snmp2, tokens, rem.to_vec())
 }
 
-/// Maps an SNMPv2/v3 `Pdus` variant to its lowercase `.fasm` PDU keyword.
+/// Maps an SNMPv2/v3 `Pdus` variant to its lowercase `.frasm` PDU keyword.
 pub(crate) fn v2_pdu_keyword(pdus: &rasn_snmp::v2::Pdus) -> Option<&'static str> {
     use rasn_snmp::v2::Pdus;
     match pdus {
@@ -130,7 +130,7 @@ fn append_v2_vb_list(tokens: &mut String, vbs: &[rasn_snmp::v2::VarBind]) -> Opt
     Some(())
 }
 
-/// Formats a single SMIv2 `VarBind` into canonical `.fasm` `varbind <oid> <type> [val]` syntax.
+/// Formats a single SMIv2 `VarBind` into canonical `.frasm` `varbind <oid> <type> [val]` syntax.
 fn format_v2_varbind(vb: &rasn_snmp::v2::VarBind) -> Option<String> {
     use rasn_smi::v2::{ApplicationSyntax as App, ObjectSyntax as Obj, SimpleSyntax as Sim};
     use rasn_snmp::v2::VarBindValue::{Unspecified, Value};

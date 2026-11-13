@@ -1,4 +1,4 @@
-//! Session Traversal Utilities for NAT (`stun`, RFC 8489) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Session Traversal Utilities for NAT (`stun`, RFC 8489) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 8489 `stun` messages carried
 //! over UDP ports `3478` and `19302` or identified by the 32-bit magic cookie `0x2112A442`. It

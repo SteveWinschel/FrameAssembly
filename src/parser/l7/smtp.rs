@@ -1,7 +1,7 @@
 //! Simple Mail Transfer Protocol (SMTP) Layer 7 electronic mail field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 5321 `smtp` mail submission and
-//! relay exchanges in FrameAssembly `.fasm` specifications. It recognizes the `smtp` protocol
+//! relay exchanges in FrameAssembly `.frasm` specifications. It recognizes the `smtp` protocol
 //! keyword, shorthand command verbs (`ehlo`, `helo`, `mailfrom`, `rcptto`, `quit` with optional
 //! inline string parameters), explicit `cmd` and `param` attributes, 3-digit server status codes
 //! (`code`), reply strings (`reply`), and message `body` content.

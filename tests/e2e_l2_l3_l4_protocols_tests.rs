@@ -56,7 +56,7 @@ fn read_pcapng_packets(path: &Path) -> Result<Vec<PacketContext>, String> {
     Ok(captured_frames)
 }
 
-/// Compiles a `.fasm` script to a temporary PCAPNG file and runs the verification closure.
+/// Compiles a `.frasm` script to a temporary PCAPNG file and runs the verification closure.
 ///
 /// Panics immediately if parsing, semantic validation, or PCAPNG generation fails, or if zero
 /// packets are emitted.
@@ -747,15 +747,15 @@ pub mod tier3_cross_feature_combinations {
     }
 }
 
-/// CLI output path handling and `.fasm` corpus backwards compatibility verification.
+/// CLI output path handling and `.frasm` corpus backwards compatibility verification.
 pub mod cli_and_backwards_compatibility {
     use super::*;
 
-    /// Tests that compiling a `.fasm` program to a default PCAPNG path succeeds cleanly.
+    /// Tests that compiling a `.frasm` program to a default PCAPNG path succeeds cleanly.
     #[test]
     pub fn test_cli_output_flag_default() {
         let temp_dir = std::env::temp_dir();
-        let input_path = temp_dir.join(format!("cli_in_default_{}.fasm", std::process::id()));
+        let input_path = temp_dir.join(format!("cli_in_default_{}.frasm", std::process::id()));
         let default_script = r#"
             host def_a { ip 10.99.0.1 }
             host def_b { ip 10.99.0.2 }
@@ -787,14 +787,14 @@ pub mod cli_and_backwards_compatibility {
         let _ = fs::remove_file(&custom_out);
     }
 
-    /// Recursively traverses an `examples/` directory tree and compiles a sample of `.fasm` files.
+    /// Recursively traverses an `examples/` directory tree and compiles a sample of `.frasm` files.
     fn visit_examples_dir(dir: &Path, count: &mut usize, temp_dir: &Path) {
         if let Ok(entries) = fs::read_dir(dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
                     visit_examples_dir(&path, count, temp_dir);
-                } else if path.extension().and_then(|s| s.to_str()) == Some("fasm") {
+                } else if path.extension().and_then(|s| s.to_str()) == Some("frasm") {
                     *count += 1;
                     let filename = path.file_name().unwrap().to_str().unwrap();
                     let content = fs::read_to_string(&path)
@@ -811,7 +811,7 @@ pub mod cli_and_backwards_compatibility {
         }
     }
 
-    /// Tests backwards compatibility: verified `.fasm` examples across layer directories compile.
+    /// Tests backwards compatibility: verified `.frasm` examples across layer directories compile.
     #[test]
     pub fn test_legacy_examples_01_to_105_backwards_compatibility() {
         let mut compiled_total = 0;

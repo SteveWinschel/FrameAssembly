@@ -1,7 +1,7 @@
-//! Layer 4 transport protocol (`tcp`, `udp`, `sctp`) PCAP-to-`.fasm` decompilers.
+//! Layer 4 transport protocol (`tcp`, `udp`, `sctp`) PCAP-to-`.frasm` decompilers.
 //!
 //! This module organizes the Layer 4 transport header dissectors for FrameAssembly's PCAP and
-//! PCAPNG to `.fasm` reverse decompiler pipeline:
+//! PCAPNG to `.frasm` reverse decompiler pipeline:
 //! - [`tcp`]: RFC 9293 TCP header slicing, sequence/acknowledgment/window extraction, and RFC 7323
 //!   option parsing (`mss`, `wscale`, `sackperm`, `tsval`, `tsecr`).
 //! - [`udp`]: RFC 768 UDP datagram header slicing and port extraction.

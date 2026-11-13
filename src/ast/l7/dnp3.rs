@@ -6,7 +6,7 @@
 //! byte, 16-bit little-endian destination and source addresses, and 16-bit DNP3 CRC), followed by
 //! a 1-byte Transport Header (`0xC0`), an Application Layer header (Application Control + Function
 //! Code), and Object Header group/variation descriptors with trailing 16-bit data chunk CRCs.
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `dnp3 [read | write | select | operate | directoperate | confirm | response | unsolicitedresponse | func <str>] [src <u16>] [dst <u16>] [group <u8>] [variation <u8>] [crc <u16>]`.
 
 /// IEEE 1815-2012 Distributed Network Protocol v3 (DNP3) specification.

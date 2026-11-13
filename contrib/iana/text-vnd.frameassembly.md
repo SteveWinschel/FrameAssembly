@@ -6,7 +6,7 @@ This document contains:
 3. The **Wikidata Entity & Property Mapping Specification** (`P31`, `P1195`, `P1163`, `P973`, `P856`, `P1324`, `P275`, `P306`, `P277`) and ready-to-run QuickStatements batch script.
 4. The **`file-extensions.org` Submission Web Form Template** and instructions.
 
-For the normative technical specification referenced by all submissions, see [`docs/fasm-specification.md`](../../docs/fasm-specification.md). For Freedesktop desktop MIME integration, see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml). For GitHub Linguist integration, see [`contrib/linguist/README.md`](../linguist/README.md).
+For the normative technical specification referenced by all submissions, see [`docs/12_frasm_specification.md`](../../docs/12_frasm_specification.md). For Freedesktop desktop MIME integration, see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml). For GitHub Linguist integration, see [`contrib/linguist/README.md`](../linguist/README.md).
 
 ---
 
@@ -62,17 +62,17 @@ For the normative technical specification referenced by all submissions, see [`d
 
 * **Security considerations:**
   ```text
-  FrameAssembly (.fasm) files are purely declarative, non-executable UTF-8 source specifications that describe network endpoints (host), protocol packet sequences (flow), and capture compilation targets (compile).
+  FrameAssembly (.frasm) files are purely declarative, non-executable UTF-8 source specifications that describe network endpoints (host), protocol packet sequences (flow), and capture compilation targets (compile).
 
-  1. No Active or Turing-Complete Execution: The language contains no executable macros, shell invocations, conditional branches, loops, file-inclusion directives, or network I/O primitives. Compiling an untrusted .fasm file does not open network sockets, perform DNS lookups, or read arbitrary local files.
+  1. No Active or Turing-Complete Execution: The language contains no executable macros, shell invocations, conditional branches, loops, file-inclusion directives, or network I/O primitives. Compiling an untrusted .frasm file does not open network sockets, perform DNS lookups, or read arbitrary local files.
   2. Unprivileged Offline Compilation: The reference compiler (frameassembly) runs entirely offline in unprivileged user space without root privileges (CAP_NET_RAW), kernel packet sockets, or libpcap dependencies, and performs strict lexical, syntactic, and semantic bounds checks before writing passive .pcap / .pcapng capture files.
   3. Downstream Capture Consumers: Because FrameAssembly is used to synthesize deterministic packet captures for testing firewalls, intrusion detection systems (Suricata, Zeek, Snort), and protocol dissectors (Wireshark, tshark), the resulting .pcap / .pcapng files may intentionally contain crafted protocol header values, IPv4 fragments, or IDS signature test payloads. Replaying generated .pcap files onto a live network requires explicit invocation of an external tool such as tcpreplay by an authorized administrator.
-  4. Confidentiality & Integrity: .fasm files are unencrypted source code and provide no built-in transport encryption or digital signature container; when SNMPv3 USM (RFC 3414 / 3826 / 7860) test passphrases or network topologies are sensitive, standard transport security (TLS/SSH) and repository access controls should be applied.
+  4. Confidentiality & Integrity: .frasm files are unencrypted source code and provide no built-in transport encryption or digital signature container; when SNMPv3 USM (RFC 3414 / 3826 / 7860) test passphrases or network topologies are sensitive, standard transport security (TLS/SSH) and repository access controls should be applied.
   ```
 
 * **Interoperability considerations:**
   ```text
-  The ".fasm" file extension is also used informally by two unregistered formats in other domains:
+  FrameAssembly v3.0.0 uses the dedicated ".frasm" extension (migrated from ".fasm" in v1/v2 to avoid ambiguity with two unregistered ".fasm" formats in other domains):
   1. Flat Assembler (x86/x86-64 machine assembly), which uses ";" comments, "format PE/ELF", "section", "org", and x86 CPU mnemonics.
   2. SymbiFlow / F4PGA FPGA Assembly (FASM), which uses "#" comments and dot-separated hardware tile feature paths (e.g., "CLBLL_L_X10Y100.SLICEL_X0...").
 
@@ -81,7 +81,7 @@ For the normative technical specification referenced by all submissions, see [`d
 
 * **Published specification:**
   ```text
-  https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+  https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
   https://github.com/SteveWinschel/FrameAssembly/blob/main/grammar.ebnf
   ```
 
@@ -107,7 +107,7 @@ For the normative technical specification referenced by all submissions, see [`d
 * **Additional information:**
   - **Deprecated alias names for this type:** `N/A`
   - **Magic number(s):** Top-level strict-lowercase ASCII keywords `host`, `ip` / `mac`, `flow`, and `compile` within the initial UTF-8 text stream; see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml).
-  - **File extension(s):** `.fasm`
+  - **File extension(s):** `.frasm`
   - **Macintosh file type code(s):** `TEXT`
   - **Uniform Type Identifier (UTI):** `io.github.stevewinschel.frameassembly` conforms to `public.plain-text` and `public.source-code`
   - **Object Identifiers (OIDs):** `N/A`
@@ -143,7 +143,7 @@ Registration in the RFC 6838 Vendor Tree proceeds according to the **Designated 
      - Character set specifications adhering to RFC 6657 (explicit default of UTF-8, no BOM).
      - Accurate fragment identifier addressing (RFC 5147).
 3. **Expert Feedback & Dialogue**:
-   - The project owner responds directly to any questions on the `media-types@ietf.org` thread, referencing the normative technical specification at [`docs/fasm-specification.md`](../../docs/fasm-specification.md).
+   - The project owner responds directly to any questions on the `media-types@ietf.org` thread, referencing the normative technical specification at [`docs/12_frasm_specification.md`](../../docs/12_frasm_specification.md).
 4. **Approval & Registry Publication**:
    - Upon Designated Expert consensus, IANA notifies the applicant and updates the official IANA Media Types Registry at [`https://www.iana.org/assignments/media-types/media-types.xhtml`](https://www.iana.org/assignments/media-types/media-types.xhtml) under the `text` category.
 
@@ -157,10 +157,10 @@ Registering the FrameAssembly file format in **Wikidata** populates structured f
 
 | Wikidata Property | Property Name | Value | Qualifier / Reference URL (`S854`) |
 | :--- | :--- | :--- | :--- |
-| **`P31`** | instance of | `Q235557` (file format)<br>`Q1262091` (domain-specific language)<br>`Q9143` (programming language) | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` |
-| **`P1195`** | file extension | `"fasm"` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` |
-| **`P1163`** | media type | `"text/vnd.frameassembly"` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` |
-| **`P973`** | described at URL | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` | Language of work (`P407`): `Q1860` (English) |
+| **`P31`** | instance of | `Q235557` (file format)<br>`Q1262091` (domain-specific language)<br>`Q9143` (programming language) | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` |
+| **`P1195`** | file extension | `"frasm"` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` |
+| **`P1163`** | media type | `"text/vnd.frameassembly"` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` |
+| **`P973`** | described at URL | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` | Language of work (`P407`): `Q1860` (English) |
 | **`P856`** | official website | `https://frameassembly.ai.studio/` | — |
 | **`P1324`** | source code repository | `https://github.com/SteveWinschel/FrameAssembly` | Version control system (`P8423`): `Q186055` (Git) |
 | **`P275`** | copyright license | `Q334661` (MIT License) | [`https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE`](../../LICENSE) |
@@ -174,14 +174,14 @@ Because QuickStatements requires an autoconfirmed Wikidata account ($\ge 4$ days
 1. Open [`https://www.wikidata.org/wiki/Special:NewItem`](https://www.wikidata.org/wiki/Special:NewItem) (optionally create a free account first at [`Special:CreateAccount`](https://www.wikidata.org/w/index.php?title=Special:CreateAccount)).
 2. Fill in the initial item creation form and click **Create**:
    - **Language:** `en` (English)
-   - **Label:** `FrameAssembly (.fasm)`
+   - **Label:** `FrameAssembly (.frasm)`
    - **Description:** `declarative domain-specific language and file format for generating deterministic .pcap and .pcapng network packet captures`
-   - **Aliases (pipe-separated):** `fasm|.fasm|text/vnd.frameassembly|FrameAssembly packet specification`
+   - **Aliases (pipe-separated):** `frasm|.frasm|text/vnd.frameassembly|FrameAssembly packet specification`
 3. On the newly created item page (`Q...`), click **+ add statement** for each of the 9 properties in [Section 3.1](#31-comprehensive-wikidata-property-table):
-   - **`instance of` (`P31`)**: add `file format` (`Q235557`), `domain-specific language` (`Q1262091`), and `programming language` (`Q9143`), each with reference `reference URL` (`P854`) = `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md`.
-   - **`file extension` (`P1195`)**: `fasm` (with reference URL `P854` above).
+   - **`instance of` (`P31`)**: add `file format` (`Q235557`), `domain-specific language` (`Q1262091`), and `programming language` (`Q9143`), each with reference `reference URL` (`P854`) = `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md`.
+   - **`file extension` (`P1195`)**: `frasm` (with reference URL `P854` above).
    - **`media type` (`P1163`)**: `text/vnd.frameassembly` (with reference URL `P854` above).
-   - **`described at URL` (`P973`)**: `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` (qualifier `language of work or name` `P407` = `English` `Q1860`).
+   - **`described at URL` (`P973`)**: `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` (qualifier `language of work or name` `P407` = `English` `Q1860`).
    - **`official website` (`P856`)**: `https://frameassembly.ai.studio/`.
    - **`source code repository` (`P1324`)**: `https://github.com/SteveWinschel/FrameAssembly` (qualifier `version control system` `P8423` = `Git` `Q186055`).
    - **`copyright license` (`P275`)**: `MIT License` (`Q334661`).
@@ -199,18 +199,18 @@ Because QuickStatements requires an autoconfirmed Wikidata account ($\ge 4$ days
 
 ```text
 CREATE
-LAST|Len|"FrameAssembly (.fasm)"
+LAST|Len|"FrameAssembly (.frasm)"
 LAST|Den|"declarative domain-specific language and file format for generating deterministic .pcap and .pcapng network packet captures"
-LAST|Aen|"fasm"
-LAST|Aen|".fasm"
+LAST|Aen|"frasm"
+LAST|Aen|".frasm"
 LAST|Aen|"text/vnd.frameassembly"
 LAST|Aen|"FrameAssembly packet specification"
-LAST|P31|Q235557|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md"
-LAST|P31|Q1262091|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md"
-LAST|P31|Q9143|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md"
-LAST|P1195|"fasm"|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md"
-LAST|P1163|"text/vnd.frameassembly"|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md"
-LAST|P973|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md"|P407|Q1860
+LAST|P31|Q235557|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
+LAST|P31|Q1262091|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
+LAST|P31|Q9143|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
+LAST|P1195|"frasm"|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
+LAST|P1163|"text/vnd.frameassembly"|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
+LAST|P973|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"|P407|Q1860
 LAST|P856|"https://frameassembly.ai.studio/"
 LAST|P1324|"https://github.com/SteveWinschel/FrameAssembly"|P8423|Q186055
 LAST|P275|Q334661|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE"
@@ -224,7 +224,7 @@ LAST|P277|Q575650|S854|"https://crates.io/crates/frameassembly"
 
 ## 4. Public File Extension & Preservation Registries
 
-To claim the `.fasm` file extension and ensure authoritative consumer and technician search results, maintainers should submit the following ready-to-paste entries across major file format databases:
+To claim the `.frasm` file extension and ensure authoritative consumer and technician search results, maintainers should submit the following ready-to-paste entries across major file format databases:
 
 ### 4.1 `file-extensions.org` Submission Web Form Template
 
@@ -232,10 +232,10 @@ To claim the `.fasm` file extension and ensure authoritative consumer and techni
 * **Submitter Name & Email:** `Steve Winschel` (`steve.winschel@gmail.com`)
 
 ```text
-Subject: New File Extension Submission: .fasm (FrameAssembly Network Packet Specification)
+Subject: New File Extension Submission: .frasm (FrameAssembly Network Packet Specification)
 
 File Extension:
-fasm
+frasm
 
 Full File Type Name:
 FrameAssembly Network Packet Specification
@@ -258,13 +258,13 @@ Associated Programs:
 - Downstream tools: Wireshark, tshark, tcpreplay, Suricata, Zeek
 
 Short Description (1-2 sentences):
-A .fasm file is a declarative network traffic specification written in the FrameAssembly Domain-Specific Language. It defines network hosts, directional packet flows, and compilation targets compiled into deterministic .pcap and .pcapng packet captures.
+A .frasm file is a declarative network traffic specification written in the FrameAssembly Domain-Specific Language. It defines network hosts, directional packet flows, and compilation targets compiled into deterministic .pcap and .pcapng packet captures.
 
 Long Description:
-FrameAssembly (.fasm) is a human-readable language designed for network engineers, security researchers, and test engineers. Instead of writing complex Python scripts or using raw sockets, users declare network endpoints (host), protocol sequences (flow), and output schedules (compile). The FrameAssembly compiler (frameassembly) parses .fasm files offline in userspace and emits bit-exact .pcap or .pcapng captures across 81 native Layer 2 through Layer 7 protocols (including Ethernet, VLAN, QinQ, MPLS, IPv4, IPv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, DNS, DHCP, TLS, HTTP/2, Modbus, DNP3, and BGP).
+FrameAssembly (.frasm) is a human-readable language designed for network engineers, security researchers, and test engineers. Instead of writing complex Python scripts or using raw sockets, users declare network endpoints (host), protocol sequences (flow), and output schedules (compile). The FrameAssembly compiler (frameassembly) parses .frasm files offline in userspace and emits bit-exact .pcap or .pcapng captures across 81 native Layer 2 through Layer 7 protocols (including Ethernet, VLAN, QinQ, MPLS, IPv4, IPv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, DNS, DHCP, TLS, HTTP/2, Modbus, DNP3, and BGP).
 
 Format Disambiguation:
-The .fasm extension is also used historically by two unrelated formats:
+FrameAssembly v3.0.0 uses .frasm (prior v1/v2 releases used .fasm, which collided with two unrelated formats):
 1. Flat Assembler (x86 assembly language source code, using ';' comments and x86 CPU mnemonics).
 2. SymbiFlow / F4PGA FPGA FASM (hardware tile bitstream configuration, using '#' comments and dot-separated hardware paths).
 FrameAssembly files are distinguished by '//' comments, 'host { ip|mac ... }', 'flow(...) { ... }', 'compile { ... }' blocks, and directional packet operators ('->' and '<-').
@@ -272,11 +272,11 @@ FrameAssembly files are distinguished by '//' comments, 'host { ip|mac ... }', '
 How to Open / Compile:
 Install via cargo (cargo install frameassembly) or download the prebuilt binary.
 To preview packet sequences in the terminal:
-frameassembly show input.fasm
+frameassembly show input.frasm
 To compile to a PCAP packet capture:
-frameassembly input.fasm output.pcap
-To decompile a PCAP packet capture back to .fasm:
-frameassembly reverse output.pcap reversed.fasm
+frameassembly input.frasm output.pcap
+To decompile a PCAP packet capture back to .frasm:
+frameassembly reverse output.pcap reversed.frasm
 ```
 
 ### 4.2 `FileInfo.com` Submission Template
@@ -285,7 +285,7 @@ frameassembly reverse output.pcap reversed.fasm
 * **Developer Contact:** `Steve Winschel` (`steve.winschel@gmail.com`)
 
 ```text
-File Extension: .fasm
+File Extension: .frasm
 File Type: FrameAssembly Network Packet Specification
 Developer: Steve Winschel
 Primary Program: FrameAssembly
@@ -293,14 +293,14 @@ Format: Text
 Category: Developer Files
 
 Description:
-A .fasm file is a source specification created in FrameAssembly, a language used by network engineers to synthesize deterministic network traffic packet captures (.pcap and .pcapng files). It contains declarations for network endpoints (host blocks specifying ip and mac addresses), traffic sequences (flow blocks specifying directional packet transmissions across Layer 2 through Layer 7 protocols), and capture schedules (compile blocks).
+A .frasm file is a source specification created in FrameAssembly, a language used by network engineers to synthesize deterministic network traffic packet captures (.pcap and .pcapng files). It contains declarations for network endpoints (host blocks specifying ip and mac addresses), traffic sequences (flow blocks specifying directional packet transmissions across Layer 2 through Layer 7 protocols), and capture schedules (compile blocks).
 
-Unlike binary packet captures, .fasm files are human-readable code and can be version-controlled in Git. The FrameAssembly compiler (frameassembly) processes .fasm files offline without root privileges, generating packet captures for analysis in Wireshark, tcpreplay, Suricata, and Zeek.
+Unlike binary packet captures, .frasm files are human-readable code and can be version-controlled in Git. The FrameAssembly compiler (frameassembly) processes .frasm files offline without root privileges, generating packet captures for analysis in Wireshark, tcpreplay, Suricata, and Zeek.
 
 Disambiguation:
-The .fasm file extension is also used by Flat Assembler (an x86 assembly tool) and SymbiFlow FPGA FASM (FPGA bitstream tooling). FrameAssembly files are distinct in that they exclusively use '//' comments, strict-lowercase 'host', 'flow', and 'compile' blocks, and directional arrows ('->' and '<-').
+FrameAssembly v3.0.0 adopted the dedicated .frasm extension to avoid collisions with legacy .fasm files used by Flat Assembler (x86 assembly) and SymbiFlow FPGA FASM (FPGA bitstream tooling). FrameAssembly files exclusively use '//' comments, strict-lowercase 'host', 'flow', and 'compile' blocks, and directional arrows ('->' and '<-').
 
-Programs that open .fasm files:
+Programs that open .frasm files:
 - Windows: FrameAssembly (CLI), Microsoft Visual Studio Code with FrameAssembly extension
 - Mac: FrameAssembly (CLI), Microsoft Visual Studio Code with FrameAssembly extension
 - Linux: FrameAssembly (CLI), Microsoft Visual Studio Code with FrameAssembly extension
@@ -312,19 +312,19 @@ Programs that open .fasm files:
 * **Submitter Contact:** `Steve Winschel` (`steve.winschel@gmail.com`)
 
 ```text
-File Extension: fasm
+File Extension: frasm
 File Type: FrameAssembly Network Packet Specification
 MIME-Type: text/vnd.frameassembly
 Developer: Steve Winschel / FrameAssembly
 File Category: Source Code / Network Data
 
 Overview:
-FrameAssembly specification (.fasm) is a source code file used to generate deterministic .pcap and .pcapng network packet captures across 81 protocols (Ethernet, IPv4/IPv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, TLS, HTTP/2, Modbus, DNP3, etc.).
+FrameAssembly specification (.frasm) is a source code file used to generate deterministic .pcap and .pcapng network packet captures across 81 protocols (Ethernet, IPv4/IPv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, TLS, HTTP/2, Modbus, DNP3, etc.).
 
-Distinction from other .fasm files:
-- FrameAssembly: Uses '//' comments, 'host { ip|mac ... }', 'flow(...) { ... }', 'compile { ... }' keywords.
-- Flat Assembler: Uses ';' comments, 'format PE/ELF', and x86 CPU opcodes.
-- FPGA FASM: Uses '#' comments and dot-separated hardware tile strings.
+Distinction from legacy .fasm files:
+- FrameAssembly (.frasm): Uses '//' comments, 'host { ip|mac ... }', 'flow(...) { ... }', 'compile { ... }' keywords.
+- Flat Assembler (.fasm): Uses ';' comments, 'format PE/ELF', and x86 CPU opcodes.
+- FPGA FASM (.fasm): Uses '#' comments and dot-separated hardware tile strings.
 
 Associated Software:
 FrameAssembly CLI (https://github.com/SteveWinschel/FrameAssembly)
@@ -339,15 +339,15 @@ FrameAssembly CLI (https://github.com/SteveWinschel/FrameAssembly)
 
 ```text
 Format Name: FrameAssembly Network Packet Specification
-Acronym: FASM
-Version: 2.0.0
+Acronym: FRASM
+Version: 3.0.0
 Format Type: Text (Source Code) / Network Data Specification
 Disclosure: Full (Open Source, MIT License, RFC 6838 Vendor Tree Candidate)
 Developer / Organisation: Steve Winschel (steve.winschel@gmail.com) / FrameAssembly Project
 Official URL: https://frameassembly.ai.studio/
-Specification Document: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md
+Specification Document: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
 
-File Extension: fasm
+File Extension: frasm
 Internet Media Type: text/vnd.frameassembly
 Character Encoding: UTF-8 (RFC 3629) without BOM, US-ASCII compatible
 Line Termination: LF (canonical) or CRLF
@@ -372,9 +372,9 @@ Declarative DSL allowing network engineers and archivists to define reproducible
 ```json
   "text/vnd.frameassembly": {
     "compressible": true,
-    "extensions": ["fasm"],
+    "extensions": ["frasm"],
     "sources": [
-      "https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md"
+      "https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
     ]
   }
 ```
@@ -411,16 +411,16 @@ This checklist outlines the exact sequence of manual submission steps required b
   - Submit the template in [Section 4.1](#41-file-extensionsorg-submission-web-form-template) to [file-extensions.org](https://www.file-extensions.org/contact-us).
   - Submit the template in [Section 4.2](#42-fileinfocom-submission-template) to [FileInfo.com](https://fileinfo.com/software/developer).
   - Submit the template in [Section 4.3](#43-filextcom-submission-template) to [FILExt.com](https://filext.com/submit_extension.php).
-  - Submit the template in [Section 4.4](#44-uk-national-archives-pronom-technical-registry-submission) (with a sample `.fasm` file) to [`digital-preservation/PRONOM_Research`](https://github.com/digital-preservation/PRONOM_Research/issues) or `PRONOM@nationalarchives.gov.uk`.
+  - Submit the template in [Section 4.4](#44-uk-national-archives-pronom-technical-registry-submission) (with a sample `.frasm` file) to [`digital-preservation/PRONOM_Research`](https://github.com/digital-preservation/PRONOM_Research/issues) or `PRONOM@nationalarchives.gov.uk`.
   - Submit the JSON snippet in [Section 4.5](#45-nodejs--web-ecosystem-jshttpmime-db-registration) to [`jshttp/mime-db`](https://github.com/jshttp/mime-db).
 
 - [ ] **Step 6: GitHub Linguist Upstream Pull Request**
-  - Monitor public GitHub repositories using the query `path:*.fasm NOT fork:true`.
+  - Monitor public GitHub repositories using the query `path:*.frasm NOT fork:true`.
   - Once the volume reaches **200+ unique public files**, open a pull request against [`github-linguist/linguist`](https://github.com/github-linguist/linguist) using the instructions and template in [`contrib/linguist/README.md`](../linguist/README.md).
 
 ---
 
-## 6. Canonical `.fasm` Media Type Verification Sample
+## 6. Canonical `.frasm` Media Type Verification Sample
 
 ```frameassembly
 host branch_gw { ip 10.20.0.1 mac 00:1a:2b:3c:4d:01 }

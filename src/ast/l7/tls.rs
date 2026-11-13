@@ -5,7 +5,7 @@
 //! Every field in [`TlsSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b tls [clienthello | serverhello | certificate | finished | appdata | alert] [recordversion <u16>] [handshakeversion <u16>] [sni <str>] [ciphersuite <u16>] [alpn <str>]`
 
 /// RFC 8446 Transport Layer Security specification.

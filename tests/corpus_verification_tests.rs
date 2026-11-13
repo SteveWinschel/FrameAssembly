@@ -1,9 +1,9 @@
 //! Seven-gate corpus, lexer-bijection, Markdown/Rustdoc block compilation, six-way grammar/parser
 //! lockstep, AI pre-training chunk filter, AST-to-builder field wiring, and reverse PCAP
-//! decompiler symmetry suite for FrameAssembly v2.0.0:
-//! 1. **Gate 1**: All 2,611 `.fasm` files satisfy header/metric rules and compile to PCAPNG (`0x0A0D0D0A`).
+//! decompiler symmetry suite for FrameAssembly v3.0.0:
+//! 1. **Gate 1**: All 2,611 `.frasm` files satisfy header/metric rules and compile to PCAPNG (`0x0A0D0D0A`).
 //! 2. **Gate 2**: `// TOKENS:` matches `src/lexer/mod.rs` lowercase keywords in exact first-appearance order.
-//! 3. **Gate 3**: All ````frameassembly` and ````fasm` blocks across docs, skills, and `src/**/*.rs` compile.
+//! 3. **Gate 3**: All ````frameassembly` and ````frasm` blocks across docs, skills, and `src/**/*.rs` compile.
 //! 4. **Gate 4**: Six-way lockstep (`src/lexer/mod.rs`, `src/parser/`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, TextMate).
 //! 5. **Gate 5**: `< 50 KB` Rust/corpus ceiling, `//!` docstrings (`>= 50` words), zero NUL bytes, 13 docs.
 //! 6. **Gate 6**: AST `*Spec` fields wired to builders and 1:1 reverse decompiler file symmetry.
@@ -31,22 +31,22 @@ fn collect_files_with_ext(dir: &Path, extension: &str, results: &mut Vec<PathBuf
     }
 }
 
-/// Discovers all `.fasm` files in the `examples/` directory hierarchy sorted by path.
+/// Discovers all `.frasm` files in the `examples/` directory hierarchy sorted by path.
 fn get_sorted_example_paths() -> Vec<PathBuf> {
     let mut paths = Vec::new();
-    collect_files_with_ext(Path::new("examples"), "fasm", &mut paths);
+    collect_files_with_ext(Path::new("examples"), "frasm", &mut paths);
     paths.sort();
     paths
 }
 
 /// Extracts all built-in `#[token("...")]` keyword literals from `src/lexer/mod.rs`, asserting
-/// FrameAssembly v2.0.0 strict-lowercase `[a-z0-9]+` invariants (zero uppercase, zero `_`, zero `-`,
+/// FrameAssembly v3.0.0 strict-lowercase `[a-z0-9]+` invariants (zero uppercase, zero `_`, zero `-`,
 /// zero `ignore(ascii_case)`, and zero `loop`).
 fn extract_lexer_lowercase_keywords() -> HashSet<String> {
     let lexer_src = fs::read_to_string("src/lexer/mod.rs").expect("Failed to read src/lexer/mod.rs");
     assert!(
         !lexer_src.contains("ignore(ascii_case)"),
-        "src/lexer/mod.rs must not use ignore(ascii_case) in FrameAssembly v2.0.0"
+        "src/lexer/mod.rs must not use ignore(ascii_case) in FrameAssembly v3.0.0"
     );
     let punct: HashSet<&str> = ["{", "}", "(", ")", "->", "<-", ","].into_iter().collect();
     let mut keywords = HashSet::new();
@@ -137,7 +137,7 @@ fn expected_tokens_for_file(ordered_keywords: &[String]) -> Vec<String> {
     prefix
 }
 
-/// Inspects and verifies a single `.fasm` example file for Gate 1 and Gate 2.
+/// Inspects and verifies a single `.frasm` example file for Gate 1 and Gate 2.
 fn verify_example_file(path: &Path, valid_keywords: &HashSet<String>) -> Result<(), String> {
     let filename = path.file_name().and_then(|s| s.to_str()).ok_or("Invalid filename")?;
     let content = fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
@@ -281,21 +281,21 @@ fn verify_example_file(path: &Path, valid_keywords: &HashSet<String>) -> Result<
     Ok(())
 }
 
-/// Tests that no `.fasm` files remain directly in the root of `examples/`.
+/// Tests that no `.frasm` files remain directly in the root of `examples/`.
 #[test]
 fn test_corpus_no_root_examples() {
     let mut root_fasm = Vec::new();
     if let Ok(entries) = fs::read_dir("examples") {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("fasm") {
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("frasm") {
                 root_fasm.push(path);
             }
         }
     }
     assert!(
         root_fasm.is_empty(),
-        "No flat .fasm files should remain in examples/ root, found: {:?}",
+        "No flat .frasm files should remain in examples/ root, found: {:?}",
         root_fasm
     );
 }
@@ -321,14 +321,14 @@ const EXPECTED_L7_NON_SNMP: [&str; 47] = [
     "ssdp", "whois", "modbus", "bacnet", "dnp3", "s7comm", "ethernetip", "opcua",
 ];
 
-/// Tests that all `.fasm` example files in the corpus avoid numeric prefixes and follow snake_case naming.
+/// Tests that all `.frasm` example files in the corpus avoid numeric prefixes and follow snake_case naming.
 #[test]
 fn test_corpus_non_numeric_naming_conventions() {
     let paths = get_sorted_example_paths();
     assert_eq!(
         paths.len(),
         2611,
-        "Corpus must contain exactly 2,611 .fasm examples across all layers, found {}",
+        "Corpus must contain exactly 2,611 .frasm examples across all layers, found {}",
         paths.len()
     );
 
@@ -341,8 +341,8 @@ fn test_corpus_non_numeric_naming_conventions() {
             path.display()
         );
         assert!(
-            filename.ends_with(".fasm"),
-            "{}: Must have .fasm extension",
+            filename.ends_with(".frasm"),
+            "{}: Must have .frasm extension",
             path.display()
         );
     }
@@ -363,7 +363,7 @@ fn test_corpus_protocol_folder_coverage() {
             let dir = Path::new(base).join(proto);
             assert!(dir.exists() && dir.is_dir(), "Missing folder: {}", dir.display());
             let mut files = Vec::new();
-            collect_files_with_ext(&dir, "fasm", &mut files);
+            collect_files_with_ext(&dir, "frasm", &mut files);
             assert!(
                 files.len() >= 30,
                 "Folder {} has fewer than 30 scenarios: {}",
@@ -376,7 +376,7 @@ fn test_corpus_protocol_folder_coverage() {
     let topologies_dir = Path::new("examples/topologies");
     assert!(topologies_dir.exists() && topologies_dir.is_dir(), "Missing examples/topologies");
     let mut topo_files = Vec::new();
-    collect_files_with_ext(topologies_dir, "fasm", &mut topo_files);
+    collect_files_with_ext(topologies_dir, "frasm", &mut topo_files);
     assert!(
         topo_files.len() >= 100,
         "examples/topologies has fewer than 100 scenarios: {}",
@@ -384,7 +384,7 @@ fn test_corpus_protocol_folder_coverage() {
     );
 }
 
-/// Gate 1 & Gate 2: Tests all `.fasm` example files in `examples/` for headers, lexer bijection,
+/// Gate 1 & Gate 2: Tests all `.frasm` example files in `examples/` for headers, lexer bijection,
 /// pre-training metrics, syntax parsing, and PCAPNG compilation.
 #[test]
 fn test_corpus_all_examples_headers_and_compilation() {
@@ -393,20 +393,20 @@ fn test_corpus_all_examples_headers_and_compilation() {
     assert_eq!(
         paths.len(),
         2611,
-        "Corpus must have 2,611 .fasm examples, found {}",
+        "Corpus must have 2,611 .frasm examples, found {}",
         paths.len()
     );
 
     let mut failed = Vec::new();
-    let demo_path = Path::new("demo.fasm");
+    let demo_path = Path::new("demo.frasm");
     if demo_path.exists() {
-        let demo_src = fs::read_to_string(demo_path).expect("Failed to read demo.fasm");
+        let demo_src = fs::read_to_string(demo_path).expect("Failed to read demo.frasm");
         for tag in ["// PROMPT:", "// TOKENS:", "// INSTRUCTION:"] {
-            assert!(!demo_src.contains(tag), "demo.fasm must not contain {}", tag);
+            assert!(!demo_src.contains(tag), "demo.frasm must not contain {}", tag);
         }
-        let prog = parse_program(&demo_src).expect("demo.fasm failed to parse");
-        validate_semantics(&prog, &demo_src).expect("demo.fasm failed semantic validation");
-        compile_program(&prog).expect("demo.fasm failed wire compilation");
+        let prog = parse_program(&demo_src).expect("demo.frasm failed to parse");
+        validate_semantics(&prog, &demo_src).expect("demo.frasm failed semantic validation");
+        compile_program(&prog).expect("demo.frasm failed wire compilation");
     }
     for path in &paths {
         if let Err(e) = verify_example_file(path, &valid_keywords) {
@@ -423,7 +423,7 @@ fn test_corpus_all_examples_headers_and_compilation() {
     }
 }
 
-/// Helper to extract and compile all ````frameassembly` and ````fasm` blocks in a file.
+/// Helper to extract and compile all ````frameassembly` and ````frasm` blocks in a file.
 fn verify_fasm_blocks_in_file(path: &Path) -> Result<usize, String> {
     let content = fs::read_to_string(path)
         .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
@@ -446,7 +446,7 @@ fn verify_fasm_blocks_in_file(path: &Path) -> Result<usize, String> {
         };
         let trimmed = stripped.trim();
 
-        if !in_block && (trimmed.starts_with("```frameassembly") || trimmed.starts_with("```fasm")) {
+        if !in_block && (trimmed.starts_with("```frameassembly") || trimmed.starts_with("```frasm")) {
             in_block = true;
             current_block.clear();
             block_start_line = idx + 1;
@@ -456,11 +456,11 @@ fn verify_fasm_blocks_in_file(path: &Path) -> Result<usize, String> {
             let snippet_lower = snippet.to_ascii_lowercase();
             if snippet_lower.contains("host ") && snippet_lower.contains("compile") {
                 let prog = parse_program(snippet)
-                    .map_err(|e| format!("{}:{}: Fenced .fasm block failed to parse: {:?}", path.display(), block_start_line, e))?;
+                    .map_err(|e| format!("{}:{}: Fenced .frasm block failed to parse: {:?}", path.display(), block_start_line, e))?;
                 validate_semantics(&prog, snippet)
-                    .map_err(|e| format!("{}:{}: Fenced .fasm block failed semantic validation: {:?}", path.display(), block_start_line, e))?;
+                    .map_err(|e| format!("{}:{}: Fenced .frasm block failed semantic validation: {:?}", path.display(), block_start_line, e))?;
                 compile_program(&prog)
-                    .map_err(|e| format!("{}:{}: Fenced .fasm block failed wire compilation: {}", path.display(), block_start_line, e))?;
+                    .map_err(|e| format!("{}:{}: Fenced .frasm block failed wire compilation: {}", path.display(), block_start_line, e))?;
                 compiled += 1;
             }
         } else if in_block {
@@ -472,7 +472,7 @@ fn verify_fasm_blocks_in_file(path: &Path) -> Result<usize, String> {
     Ok(compiled)
 }
 
-/// Gate 3: Verifies that every ````frameassembly` and ````fasm` code block in Markdown docs,
+/// Gate 3: Verifies that every ````frameassembly` and ````frasm` code block in Markdown docs,
 /// READMEs, `llms.txt`, `llms-full.txt`, skills, and Rust docstrings compiles with zero errors.
 #[test]
 fn test_gate3_all_markdown_and_rustdoc_fasm_blocks_compile() {
@@ -503,12 +503,12 @@ fn test_gate3_all_markdown_and_rustdoc_fasm_blocks_compile() {
 
     assert!(
         errors.is_empty(),
-        "Fenced .fasm code block compilation errors:\n{}",
+        "Fenced .frasm code block compilation errors:\n{}",
         errors.join("\n")
     );
     assert!(
         total_compiled_blocks >= 70,
-        "Expected at least 70 compilable .fasm blocks across docs/skills/src, found {}",
+        "Expected at least 70 compilable .frasm blocks across docs/skills/src, found {}",
         total_compiled_blocks
     );
 }
@@ -728,22 +728,23 @@ fn test_gate4_constrained_decoding_grammar_lockstep() {
     verify_gbnf_non_terminal_resolution(&gbnf);
 }
 
-/// Canonical `docs/*.md` inventory (human guides first, then `for_nerds.md`), shared by Gate 5
+/// Canonical `docs/*.md` inventory (human guides first, then `13_for_nerds.md`), shared by Gate 5
 /// (orphan check) and Gate 7 (`llms-full.txt` bundle order).
-const CANONICAL_DOCS: [&str; 13] = [
-    "getting_started.md",
-    "use_cases.md",
-    "l2_protocols.md",
-    "l3_protocols.md",
-    "l4_transports.md",
-    "l7_snmp.md",
-    "l7_infra_and_telemetry.md",
-    "l7_web_and_cloud.md",
-    "l7_mail_auth_storage_db.md",
-    "l7_industrial_ot.md",
-    "topologies_and_dual_stack.md",
-    "fasm-specification.md",
-    "for_nerds.md",
+const CANONICAL_DOCS: [&str; 14] = [
+    "README.md",
+    "01_getting_started.md",
+    "02_use_cases.md",
+    "03_l2_protocols.md",
+    "04_l3_protocols.md",
+    "05_l4_transports.md",
+    "06_l7_snmp.md",
+    "07_l7_infra_and_telemetry.md",
+    "08_l7_web_and_cloud.md",
+    "09_l7_mail_auth_storage_db.md",
+    "10_l7_industrial_ot.md",
+    "11_topologies_and_dual_stack.md",
+    "12_frasm_specification.md",
+    "13_for_nerds.md",
 ];
 
 /// Gate 5: Verifies `< 50 KB` size limits on Rust sources, `//!` module docstrings (`>= 50` words),
@@ -781,7 +782,7 @@ fn test_gate5_markdown_fasm_blocks_and_file_sizes() {
             "{} has fewer than 50 words",
             doc_path.display()
         );
-        if name != "for_nerds.md" {
+        if name != "13_for_nerds.md" {
             for tag in ["// PROMPT:", "// TOKENS:", "// INSTRUCTION:"] {
                 assert!(
                     !text.contains(tag),
@@ -1018,11 +1019,11 @@ fn test_reverse_decompiler_per_protocol_file_symmetry() {
     }
 }
 
-/// Gate 7: Verifies v2.0.0 release packaging hygiene (no stray `output.pcap` or legacy `.vsix`
-/// files), verifies `frameassembly-vscode/frameassembly-vscode-2.0.0.vsix` bundles the WASM-powered
+/// Gate 7: Verifies v3.0.0 release packaging hygiene (no stray `output.pcap` or legacy `.vsix`
+/// files), verifies `frameassembly-vscode/frameassembly-vscode-3.0.0.vsix` bundles the WASM-powered
 /// Packet Studio assets without overwriting it, checks `llms.txt` (`< 512` lines, `< 25 KB`),
-/// and synchronizes/verifies `llms-full.txt` against `llms.txt`, `README.md`, `AGENTS.md`,
-/// `docs/*.md`, `grammar.ebnf`, `frameassembly.gbnf`, and `frameassembly.lark`.
+/// and verifies the prompt-injection context in `llms-full.txt` (`60–250 KB`, zero NULs, all
+/// v3.0.0 markers/docs/grammars, and zero contributor-internal leaks).
 #[test]
 fn test_gate7_release_packaging_and_llms_bundle_sync() {
     for stray in [
@@ -1034,22 +1035,23 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
         "frameassembly-vscode/frameassembly-vscode-1.4.6.vsix",
         "frameassembly-vscode/frameassembly-vscode-1.5.0.vsix",
         "frameassembly-vscode/frameassembly-vscode-1.5.1.vsix",
+        "frameassembly-vscode/frameassembly-vscode-2.0.0.vsix",
     ] {
         assert!(
             !Path::new(stray).exists(),
-            "Stray or legacy artifact {} must not exist in v2.0.0",
+            "Stray or legacy artifact {} must not exist in v3.0.0",
             stray
         );
     }
 
-    let vsix_v2 = Path::new("frameassembly-vscode/frameassembly-vscode-2.0.0.vsix");
+    let vsix_v2 = Path::new("frameassembly-vscode/frameassembly-vscode-3.0.0.vsix");
     assert!(
         vsix_v2.exists(),
-        "Bundled frameassembly-vscode/frameassembly-vscode-2.0.0.vsix must exist"
+        "Bundled frameassembly-vscode/frameassembly-vscode-3.0.0.vsix must exist"
     );
     let py_check_vsix = r#"
 import zipfile
-with zipfile.ZipFile("frameassembly-vscode/frameassembly-vscode-2.0.0.vsix", "r") as zf:
+with zipfile.ZipFile("frameassembly-vscode/frameassembly-vscode-3.0.0.vsix", "r") as zf:
     names = set(zf.namelist())
 for req in [
     "extension/package.json",
@@ -1057,60 +1059,66 @@ for req in [
     "extension/protocol_schema.json",
     "extension/wasm/frameassembly_wasm_bg.wasm",
     "extension/readme.md",
+    "extension/icon.png",
 ]:
-    assert req in names, f"Missing {req} in frameassembly-vscode-2.0.0.vsix"
+    assert req in names, f"Missing {req} in frameassembly-vscode-3.0.0.vsix"
 "#;
     let status = std::process::Command::new("python3")
         .arg("-c")
         .arg(py_check_vsix)
         .status()
         .expect("Failed to execute python3 for read-only VSIX verification");
-    assert!(status.success(), "Read-only VSIX v2.0.0 inspection failed");
+    assert!(status.success(), "Read-only VSIX v3.0.0 inspection failed");
 
     let llms_txt = fs::read_to_string("llms.txt").expect("Missing llms.txt");
     let llms_lines = llms_txt.lines().count();
     assert!(
-        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("2.0.0"),
-        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 2.0.0 (got {} lines, {} bytes)",
+        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("3.0.0"),
+        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 3.0.0 (got {} lines, {} bytes)",
         llms_lines,
         llms_txt.len()
     );
 
-    // Read-only verification of `llms-full.txt` (generated by docs/AI-map pipeline; never overwrite from tests).
+    // Read-only verification of `llms-full.txt` (generated as a clean prompt-injection context).
     let full_bytes = fs::read("llms-full.txt").expect("Missing llms-full.txt");
     assert!(
         !full_bytes.contains(&0),
         "llms-full.txt must contain zero 0x00 NUL bytes"
     );
     assert!(
-        (100_000..900_000).contains(&full_bytes.len()),
-        "llms-full.txt must be between 100 KB and 900 KB (got {} bytes)",
+        (60_000..250_000).contains(&full_bytes.len()),
+        "llms-full.txt must remain prompt-window friendly between 60 KB and 250 KB (got {} bytes)",
         full_bytes.len()
     );
     let full_txt = String::from_utf8(full_bytes).expect("llms-full.txt must be valid UTF-8");
     assert!(
-        full_txt.contains("frameassembly demo.fasm") || full_txt.contains("frameassembly test.fasm"),
-        "llms-full.txt missing default root CLI invocation (`frameassembly <input.fasm>`)"
+        full_txt.contains("frameassembly demo.frasm") || full_txt.contains("frameassembly test.frasm"),
+        "llms-full.txt missing default root CLI invocation (`frameassembly <input.frasm>`)"
     );
     for required_marker in [
-        "2.0.0",
+        "3.0.0",
         "frameassembly show",
         "frameassembly reverse",
         "README.md",
-        "AGENTS.md",
         "grammar.ebnf",
         "frameassembly.gbnf",
         "frameassembly.lark",
     ] {
         assert!(
             full_txt.contains(required_marker),
-            "llms-full.txt missing required v2.0.0 marker `{required_marker}`"
+            "llms-full.txt missing required v3.0.0 marker `{required_marker}`"
         );
     }
     for doc_name in CANONICAL_DOCS {
         assert!(
             full_txt.contains(doc_name),
             "llms-full.txt missing canonical doc reference `{doc_name}`"
+        );
+    }
+    for leaked_internal in ["file_lock.sh", "PreToolUse", "// PROMPT:"] {
+        assert!(
+            !full_txt.contains(leaked_internal),
+            "llms-full.txt must not leak contributor/training internals (`{leaked_internal}`)"
         );
     }
     assert!(

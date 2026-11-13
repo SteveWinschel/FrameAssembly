@@ -14,7 +14,7 @@ Enforce these version-exact ASN.1 and SNMP codec rules across `src/builders/l7/s
   - **CRITICAL Upgrade Trap**: Upstream `rasn` has a `0.30.0` release while `rasn-snmp` and `rasn-smi` are on `0.29.0` (depending on `rasn ^0.29`). **Never** upgrade `rasn` to `0.30.0` independently of `rasn-smi` and `rasn-snmp`, or Cargo will link two incompatible versions of `rasn::Encode`/`Decode`! Only bump all three together (`0.29.0` across all three, or `0.30.x` once `rasn-snmp 0.30` is published).
 - **BER vs. DER, `encode_buf` Reuse & `decode_with_remainder` Decompilation**:
   - Use `rasn::ber` for SNMPv1/v2c/v3 and RFC 4511 LDAPv3 (`rasn::ber::encode_buf(&value, &mut buf)` for buffer reuse); use `rasn::der` for RFC 4120 Kerberos v5.
-  - In PCAP-to-`.fasm` decompilation (`src/reverse/`) and QA round-trip tests, always decode with `rasn::ber::decode_with_remainder::<T>(wire)` (or `rasn::der::decode_with_remainder::<T>(wire)`) to inspect or assert `remainder.is_empty()`.
+  - In PCAP-to-`.frasm` decompilation (`src/reverse/`) and QA round-trip tests, always decode with `rasn::ber::decode_with_remainder::<T>(wire)` (or `rasn::der::decode_with_remainder::<T>(wire)`) to inspect or assert `remainder.is_empty()`.
 
 ## 2. OID Validation, Zero-Heap Primitives & Upstream Quirks (`rasn 0.28.15`)
 - **Mandatory 2-Arc & Root-Arc Guard in `parse_oid`**:

@@ -5,7 +5,7 @@
 //! ASN.1 DER application-tagged PDUs including Authentication Service requests/replies (`AS-REQ`
 //! tag `0x6A`, `AS-REP` tag `0x6B`), Ticket-Granting Service exchanges (`TGS-REQ` tag `0x6C`,
 //! `TGS-REP` tag `0x6D`), and error messages (`KRB-error` tag `0x7E`) carrying realm strings,
-//! client/service principal names, and RFC 3961/8009 encryption types. Canonical `.fasm` syntax:
+//! client/service principal names, and RFC 3961/8009 encryption types. Canonical `.frasm` syntax:
 //! `kerberos [asreq | asrep | tgsreq | tgsrep | krberror] [realm <str>] [cname <str>] [sname <str>] [etype <i32>]`.
 
 /// RFC 4120 Kerberos v5 Authentication Service and Ticket-Granting Service specification.

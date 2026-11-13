@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Hypertext Transfer Protocol (HTTP/1.1) frames over TCP port 80 (HTTP) or custom ports (8080, 8000, 8443).
 //! The wire encoder constructs a CRLF-delimited text message starting with a Request-Line (`<METHOD> <URI> HTTP/<VERSION>\r\n`) or Status-Line (`HTTP/<VERSION> <STATUS> <REASON>\r\n`), followed by `Host:`, `User-Agent:`, `Content-Type:`, `Content-Length:`, and custom `Header: Value\r\n` fields, an empty line (`\r\n`), and an optional entity body. When optional fields in [`HttpSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b http [method <str>] [uri <str>] [version <str>] [hosthdr <str>] [useragent <str>] [contenttype <str>] [status <u16>] [reason <str>] [header <key> <val>] [body <str>]`
 
 use crate::ast::*;

@@ -9,7 +9,7 @@
 //! Reply (`64` bytes, carrying `receiver_index`, 24B XChaCha20-Poly1305 nonce, and 32B encrypted cookie
 //! for DoS mitigation), and Type `4` Transport `data` (`16`B header with `receiver_index` and 64-bit `counter`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b wireguard [type <initiation|response|cookie|data> | initiation | cookie | data] [sender <u32>] [receiver <u32>] [counter <u64>] [payload "<str>" | hexpayload "<hex>"]`
 
 use core::marker::PhantomData;

@@ -6,7 +6,7 @@
 //! 16-bit Total Length (8-byte header plus payload length in bytes), and a 16-bit one's
 //! complement Checksum computed over the IP pseudo-header, UDP header, and payload.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b udp [srcport <u16>] [dstport <u16>] [payload "<str>" | hexpayload "<hex>"]`
 
 /// User Datagram Protocol (RFC 768) specification.

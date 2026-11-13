@@ -2,7 +2,7 @@
 
 ## 1. Two-Phase Lexing & Self-Healing Diagnostic Pipeline (Strict-Lowercase `[a-z0-9]+` Tokens + 6-Tier Priority Ladder + `expand_lex_error_span` + `detect_foreign_fasm` + `suggest_v2_keyword_fix` + `miette`)
 
-When building compilers, language frontends, or network DSLs like FrameAssembly v2.0.0, combine `logos` (`0.14.4` / `0.16.1`-ready) for $O(1)$ SIMD lexing and `winnow 1.0.5+` for grammar parsing. Enforce strict-lowercase `[a-z0-9]+` built-in keywords without `ignore(ascii_case)`, preserve the 6-tier priority ladder (with `Ident` allowing uppercase, `_`, and internal `-`), expand multi-char lex failure spans (`expand_lex_error_span`), detect foreign `.fasm` dialects (`detect_foreign_fasm`), emit self-healing v2.0.0 keyword/`loop` diagnostics, and map token offsets directly into `miette::Diagnostic` error frames with `NamedSource::new(...).with_language("frameassembly")` and `(start_byte_offset, byte_length)` `SourceSpan` tuples.
+When building compilers, language frontends, or network DSLs like FrameAssembly v3.0.0, combine `logos` (`0.14.4` / `0.16.1`-ready) for $O(1)$ SIMD lexing and `winnow 1.0.5+` for grammar parsing. Enforce strict-lowercase `[a-z0-9]+` built-in keywords without `ignore(ascii_case)`, preserve the 6-tier priority ladder (with `Ident` allowing uppercase, `_`, and internal `-`), expand multi-char lex failure spans (`expand_lex_error_span`), detect foreign `.fasm` dialects (`detect_foreign_fasm`), emit self-healing v3.0.0 keyword/`loop` diagnostics, and map token offsets directly into `miette::Diagnostic` error frames with `NamedSource::new(...).with_language("frameassembly")` and `(start_byte_offset, byte_length)` `SourceSpan` tuples.
 
 ```rust
 //! Complete two-phase compiler pipeline: `logos 0.14.4` -> `winnow 1.0.5` -> `miette 7.6.0`.
@@ -18,7 +18,7 @@ use winnow::token::{any, literal};
 
 /// Lexer token kinds recognized by `logos 0.14.4` (and `0.16.1`-ready via non-greedy `//[^\r\n]*`).
 ///
-/// Mandatory 6-tier priority ladder (`src/lexer/mod.rs` in FrameAssembly v2.0.0):
+/// Mandatory 6-tier priority ladder (`src/lexer/mod.rs` in FrameAssembly v3.0.0):
 /// 1. `priority = 6` — `MacAddress` (colon, hyphen, Cisco dotted-quad)
 /// 2. `priority = 5` — IPv4 `IpAddress` (outranks 4-arc `OidStr`)
 /// 3. `priority = 4` — `Number` / `Int` (outranks single-arc `OidStr`)
@@ -82,8 +82,8 @@ pub enum TokenKind<'s> {
     Ident(&'s str),
 }
 
-/// Produces FrameAssembly v2.0.0 self-healing diagnostic hints when `raw` is a removed `loop`
-/// keyword or an uppercase/underscored/hyphenated spelling of a valid v2.0.0 keyword.
+/// Produces FrameAssembly v3.0.0 self-healing diagnostic hints when `raw` is a removed `loop`
+/// keyword or an uppercase/underscored/hyphenated spelling of a valid v3.0.0 keyword.
 pub fn suggest_v2_keyword_fix(raw: &str, valid_keywords: &[&str]) -> Option<String> {
     if raw.eq_ignore_ascii_case("loop") {
         return Some(
@@ -94,7 +94,7 @@ pub fn suggest_v2_keyword_fix(raw: &str, valid_keywords: &[&str]) -> Option<Stri
     let normalized = raw.to_ascii_lowercase().replace(['_', '-'], "");
     if normalized != raw && valid_keywords.contains(&normalized.as_str()) {
         return Some(format!(
-            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace '{raw}' with '{normalized}'."
+            "Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace '{raw}' with '{normalized}'."
         ));
     }
     None

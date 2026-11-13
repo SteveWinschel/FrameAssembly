@@ -1,4 +1,4 @@
-//! Advanced Message Queuing Protocol v0-9-1 (AMQP) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Advanced Message Queuing Protocol v0-9-1 (AMQP) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `amqp` 0-9-1 frames over TCP
 //! (ports `5672`, `5671`, `15672`, and custom ports matching the `AMQP\x00\x00\x09\x01` protocol

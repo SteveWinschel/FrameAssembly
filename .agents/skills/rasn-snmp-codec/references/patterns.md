@@ -1,6 +1,6 @@
 # ASN.1 & SNMP Production Reference Patterns (`rasn`, `rasn-smi`, `rasn-snmp` `0.28.15`)
 
-This reference contains production-ready, fully-documented, and compile-verified Rust patterns for ASN.1 BER/DER encoding, PCAP-to-`.fasm` decompilation (`rasn::ber::decode_with_remainder`), SMIv1/SMIv2 data modeling, SNMPv1/v2c/v3 USM wire framing, and RFC 4511 LDAPv3 / RFC 4120 Kerberos v5 ASN.1 verification verified against `rasn = "0.28.15"`, `rasn-smi = "0.28.15"`, and `rasn-snmp = "0.28.15"`.
+This reference contains production-ready, fully-documented, and compile-verified Rust patterns for ASN.1 BER/DER encoding, PCAP-to-`.frasm` decompilation (`rasn::ber::decode_with_remainder`), SMIv1/SMIv2 data modeling, SNMPv1/v2c/v3 USM wire framing, and RFC 4511 LDAPv3 / RFC 4120 Kerberos v5 ASN.1 verification verified against `rasn = "0.28.15"`, `rasn-smi = "0.28.15"`, and `rasn-snmp = "0.28.15"`.
 
 > **Version Lockstep Note**: Always keep `rasn`, `rasn-smi`, and `rasn-snmp` on matching minor versions (`0.28.15` across all three; never upgrade `rasn` to `0.30.0` while `rasn-smi`/`rasn-snmp` are on `0.29.0`).
 

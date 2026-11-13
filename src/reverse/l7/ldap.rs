@@ -1,4 +1,4 @@
-//! Lightweight Directory Access Protocol v3 (LDAPv3, RFC 4511) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Lightweight Directory Access Protocol v3 (LDAPv3, RFC 4511) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe ASN.1 BER wire-to-AST dissection for `ldap` v3 `LDAPMessage`
 //! envelopes over TCP and UDP ports `389`, `636`, `3268`, and `1389`. It decodes outer ASN.1 BER

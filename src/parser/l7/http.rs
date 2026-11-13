@@ -1,7 +1,7 @@
 //! Hypertext Transfer Protocol (HTTP/1.1) Layer 7 web protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 9112 `http` request and response
-//! messages in FrameAssembly `.fasm` specifications. It recognizes the `http` protocol keyword,
+//! messages in FrameAssembly `.frasm` specifications. It recognizes the `http` protocol keyword,
 //! explicit `method` verbs and shorthand HTTP method tokens (`get`, `post`, `put`, `delete`,
 //! `head`, `options`, `patch`), request targets (`uri`), protocol versions (`version`), header
 //! shorthands (`hosthdr`, `useragent`, `contenttype`), arbitrary `header <k> <v>` pairs, status

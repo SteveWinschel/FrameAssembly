@@ -1,11 +1,11 @@
 # Clap 4.6.7+ Production Reference Patterns
 
-## 1. FrameAssembly v2.0.0 Default-Compile + 4-Subcommand CLI (`<input.fasm> [output.pcap]` + `show`, `reverse`, `version`, `help` + Optional 2nd Positional Output + Hidden `--help`/`--version` + Legacy/Safety Guards + `debug_assert()`)
+## 1. FrameAssembly v3.0.0 Default-Compile + 4-Subcommand CLI (`<input.frasm> [output.pcap]` + `show`, `reverse`, `version`, `help` + Optional 2nd Positional Output + Hidden `--help`/`--version` + Legacy/Safety Guards + `debug_assert()`)
 
-In FrameAssembly v2.0.0 (`src/main.rs`), compiling `.fasm` to `.pcap` is the default root command (`frameassembly <input.fasm> [output.pcap]`) configured with `.subcommand_negates_reqs(true)`, `.args_conflicts_with_subcommands(true)`, and `.arg_required_else_help(true)` alongside 4 subcommands (`show <input.fasm>`, `reverse <input.pcap> [output.fasm]`, `version`, and `help [subcommand]`). It replaces legacy `-o`/`--output` flags with an optional 2nd positional output path (`derive_default_output_path`), hides `-h`/`--help` and `-V`/`--version` via `.disable_help_flag(true)` / `.disable_version_flag(true)` paired with hidden `ArgAction::Help` / `ArgAction::Version` so scripts still exit `0`, intercepts legacy flags and accidental typos (`check_legacy_cli_args`), pairs with static extension-aware shell completions in `contrib/completions/` (`bash`, `zsh`, `fish`, `powershell`), and verifies invariants via `build_cli().debug_assert()`:
+In FrameAssembly v3.0.0 (`src/main.rs`), compiling `.frasm` to `.pcap` is the default root command (`frameassembly <input.frasm> [output.pcap]`) configured with `.subcommand_negates_reqs(true)`, `.args_conflicts_with_subcommands(true)`, and `.arg_required_else_help(true)` alongside 4 subcommands (`show <input.frasm>`, `reverse <input.pcap> [output.frasm]`, `version`, and `help [subcommand]`). It replaces legacy `-o`/`--output` flags with an optional 2nd positional output path (`derive_default_output_path`), hides `-h`/`--help` and `-V`/`--version` via `.disable_help_flag(true)` / `.disable_version_flag(true)` paired with hidden `ArgAction::Help` / `ArgAction::Version` so scripts still exit `0`, intercepts legacy flags and accidental typos (`check_legacy_cli_args`), pairs with static extension-aware shell completions in `contrib/completions/` (`bash`, `zsh`, `fish`, `powershell`), and verifies invariants via `build_cli().debug_assert()`:
 
 ```rust
-//! FrameAssembly v2.0.0 default-compile + 4-subcommand CLI architecture (`show`, `reverse`, `version`, `help`)
+//! FrameAssembly v3.0.0 default-compile + 4-subcommand CLI architecture (`show`, `reverse`, `version`, `help`)
 //! with optional 2nd positional output derivation, hidden script-compatible `--help`/`--version`,
 //! pre-match legacy and typo safety guards, 9-role `anstyle` styling, and `debug_assert()` QA in `clap` 4.6.7+.
 
@@ -27,42 +27,42 @@ pub const CLI_STYLES: Styles = Styles::styled()
     .context(AnsiColor::BrightBlack.on_default())
     .context_value(AnsiColor::Cyan.on_default());
 
-/// Canonical top-level subcommands exposed by FrameAssembly 2.0 (compilation is the root default).
+/// Canonical top-level subcommands exposed by FrameAssembly 3.0 (compilation is the root default).
 pub const SUBCOMMANDS: [&str; 4] = ["show", "reverse", "version", "help"];
 
-/// Strongly-typed parameters for default root invocation `frameassembly <input.fasm> [output.pcap]`.
+/// Strongly-typed parameters for default root invocation `frameassembly <input.frasm> [output.pcap]`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompileArgs {
-    /// Input `.fasm` file path (`index(1)`).
+    /// Input `.frasm` file path (`index(1)`).
     pub input_file: PathBuf,
     /// Resolved output `.pcap`/`.pcapng` path (`index(2)` or derived `<input_stem>.pcap`).
     pub output_file: PathBuf,
 }
 
-/// Strongly-typed parameters for `frameassembly show <input.fasm>`.
+/// Strongly-typed parameters for `frameassembly show <input.frasm>`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShowArgs {
-    /// Input `.fasm` file path (`index(1)`) to validate and render as a packet ladder.
+    /// Input `.frasm` file path (`index(1)`) to validate and render as a packet ladder.
     pub input_file: PathBuf,
 }
 
-/// Strongly-typed parameters for `frameassembly reverse <input.pcap> [output.fasm]`.
+/// Strongly-typed parameters for `frameassembly reverse <input.pcap> [output.frasm]`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReverseArgs {
     /// Input `.pcap` or `.pcapng` capture path (`index(1)`).
     pub input_pcap: PathBuf,
-    /// Resolved output `.fasm` file path (`index(2)` or derived `<input_stem>.fasm`).
+    /// Resolved output `.frasm` file path (`index(2)` or derived `<input_stem>.frasm`).
     pub output_fasm: PathBuf,
 }
 
-/// Discriminated CLI operations across FrameAssembly 2.0 root compile and subcommands.
+/// Discriminated CLI operations across FrameAssembly 3.0 root compile and subcommands.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CliCommand {
-    /// Compile `.fasm` code into a `.pcap`/`.pcapng` capture (default root command).
+    /// Compile `.frasm` code into a `.pcap`/`.pcapng` capture (default root command).
     Compile(CompileArgs),
-    /// Validate `.fasm` code and print a packet ladder table without writing disk files.
+    /// Validate `.frasm` code and print a packet ladder table without writing disk files.
     Show(ShowArgs),
-    /// Reverse a `.pcap` / `.pcapng` capture into `.fasm` code.
+    /// Reverse a `.pcap` / `.pcapng` capture into `.frasm` code.
     Reverse(ReverseArgs),
     /// Print `frameassembly <CARGO_PKG_VERSION>`.
     Version,
@@ -94,7 +94,7 @@ pub fn derive_default_output_path(input: &Path, default_ext: &str) -> PathBuf {
 }
 
 /// Checks raw CLI arguments for legacy invocation flags (`-o`/`--output`, `--show`, `--reverse`),
-/// bare `.pcap`/`.pcapng` captures at arg 1, accidental `"compile"` at arg 1, or `.fasm` passed as
+/// bare `.pcap`/`.pcapng` captures at arg 1, accidental `"compile"` at arg 1, or `.frasm` passed as
 /// `OUTPUT.pcap`, returning an actionable error hint.
 pub fn check_legacy_cli_args<I, T>(args: I) -> Result<(), String>
 where
@@ -120,19 +120,19 @@ where
             || (s.starts_with("-o") && s.len() > 2 && !s.starts_with("--"))
         {
             return Err(
-                "The '-o' / '--output' flag was replaced by an optional second positional path in FrameAssembly 2.0.\n  Compile: frameassembly <in.fasm> [out.pcap]\n  Reverse: frameassembly reverse <in.pcap> [out.fasm]"
+                "The '-o' / '--output' flag was replaced by an optional second positional path in FrameAssembly 3.0.\n  Compile: frameassembly <in.frasm> [out.pcap]\n  Reverse: frameassembly reverse <in.pcap> [out.frasm]"
                     .to_string(),
             );
         }
         if s == "--show" {
             return Err(
-                "The '--show' flag was replaced by the 'show' subcommand in FrameAssembly 2.0:\n  frameassembly show <in.fasm>"
+                "The '--show' flag was replaced by the 'show' subcommand in FrameAssembly 3.0:\n  frameassembly show <in.frasm>"
                     .to_string(),
             );
         }
         if s == "--reverse" {
             return Err(
-                "The '--reverse' flag was replaced by the 'reverse' subcommand in FrameAssembly 2.0:\n  frameassembly reverse <in.pcap> [out.fasm]"
+                "The '--reverse' flag was replaced by the 'reverse' subcommand in FrameAssembly 3.0:\n  frameassembly reverse <in.pcap> [out.frasm]"
                     .to_string(),
             );
         }
@@ -141,7 +141,7 @@ where
     let arg1 = collected[1].to_string_lossy();
     if arg1 == "compile" && !Path::new("compile").is_file() {
         return Err(
-            "Compiling is the default command in FrameAssembly 2.0 (there is no 'compile' subcommand); run:\n  frameassembly <in.fasm> [out.pcap]"
+            "Compiling is the default command in FrameAssembly 3.0 (there is no 'compile' subcommand); run:\n  frameassembly <in.frasm> [out.pcap]"
                 .to_string(),
         );
     }
@@ -155,9 +155,9 @@ where
         }
         if let Some(arg2) = collected.get(2) {
             let s2 = arg2.to_string_lossy();
-            if !s2.starts_with('-') && s2.to_ascii_lowercase().ends_with(".fasm") {
+            if !s2.starts_with('-') && s2.to_ascii_lowercase().ends_with(".frasm") {
                 return Err(format!(
-                    "Refusing to write PCAP capture bytes to a '.fasm' source path ('{s2}'); specify a '.pcap' or '.pcapng' output path:\n  frameassembly {arg1} <out.pcap>"
+                    "Refusing to write PCAP capture bytes to a '.frasm' source path ('{s2}'); specify a '.pcap' or '.pcapng' output path:\n  frameassembly {arg1} <out.pcap>"
                 ));
             }
         }
@@ -166,11 +166,11 @@ where
     Ok(())
 }
 
-/// Constructs the `clap::Command` definition for FrameAssembly 2.0 (default root compile + `show`, `reverse`, `version`, `help`).
+/// Constructs the `clap::Command` definition for FrameAssembly 3.0 (default root compile + `show`, `reverse`, `version`, `help`).
 pub fn build_cli() -> Command {
     Command::new("frameassembly")
         .version(env!("CARGO_PKG_VERSION"))
-        .about("Compile .fasm network traffic code to .pcap/.pcapng and reverse captures back to .fasm")
+        .about("Compile .frasm network traffic code to .pcap/.pcapng and reverse captures back to .frasm")
         .after_help("Feedback & protocol requests: https://github.com/SteveWinschel/FrameAssembly/issues")
         .styles(CLI_STYLES)
         .subcommand_negates_reqs(true)
@@ -195,8 +195,8 @@ pub fn build_cli() -> Command {
         )
         .arg(
             Arg::new("input")
-                .value_name("INPUT.fasm")
-                .help("Path to the input .fasm file")
+                .value_name("INPUT.frasm")
+                .help("Path to the input .frasm file")
                 .required(true)
                 .index(1)
                 .value_hint(ValueHint::FilePath)
@@ -212,12 +212,12 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("show")
-                .about("Validate a .fasm file and print a packet ladder table without writing a capture file")
+                .about("Validate a .frasm file and print a packet ladder table without writing a capture file")
                 .disable_help_flag(true)
                 .arg(
                     Arg::new("input")
-                        .value_name("INPUT.fasm")
-                        .help("Path to the input .fasm file")
+                        .value_name("INPUT.frasm")
+                        .help("Path to the input .frasm file")
                         .required(true)
                         .index(1)
                         .value_hint(ValueHint::FilePath)
@@ -226,7 +226,7 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("reverse")
-                .about("Reverse a .pcap or .pcapng capture file into .fasm code")
+                .about("Reverse a .pcap or .pcapng capture file into .frasm code")
                 .disable_help_flag(true)
                 .arg(
                     Arg::new("input")
@@ -239,8 +239,8 @@ pub fn build_cli() -> Command {
                 )
                 .arg(
                     Arg::new("output")
-                        .value_name("OUTPUT.fasm")
-                        .help("Optional output .fasm path (defaults to <input_stem>.fasm)")
+                        .value_name("OUTPUT.frasm")
+                        .help("Optional output .frasm path (defaults to <input_stem>.frasm)")
                         .index(2)
                         .value_hint(ValueHint::FilePath)
                         .value_parser(PathBufValueParser::new()),
@@ -312,17 +312,17 @@ mod tests {
     #[test]
     fn verify_default_compile_and_legacy_guards() {
         let matches = build_cli()
-            .try_get_matches_from(["frameassembly", "demo.fasm"])
+            .try_get_matches_from(["frameassembly", "demo.frasm"])
             .expect("default root compile should parse");
         assert_eq!(
             parse_command(&matches),
             CliCommand::Compile(CompileArgs {
-                input_file: PathBuf::from("demo.fasm"),
+                input_file: PathBuf::from("demo.frasm"),
                 output_file: PathBuf::from("demo.pcap"),
             })
         );
-        assert!(check_legacy_cli_args(["frameassembly", "compile", "demo.fasm"]).is_err());
-        assert!(check_legacy_cli_args(["frameassembly", "a.fasm", "b.fasm"]).is_err());
+        assert!(check_legacy_cli_args(["frameassembly", "compile", "demo.frasm"]).is_err());
+        assert!(check_legacy_cli_args(["frameassembly", "a.frasm", "b.frasm"]).is_err());
         assert!(check_legacy_cli_args(["frameassembly", "capture.pcap"]).is_err());
     }
 }
@@ -733,7 +733,7 @@ pub struct AppConfig {
 impl CommandFactory for AppConfig {
     fn command() -> Command {
         let cmd = Command::new("packet-crafter")
-            .version("2.0.0")
+            .version("3.0.0")
             .about("Type-safe network traffic synthesizer")
             .arg(
                 Arg::new("output")

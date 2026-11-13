@@ -1,4 +1,4 @@
-//! Transport Layer Security (`tls`, RFC 8446 / RFC 5246) Layer 7 PCAP-to-`.fasm` decompiler.
+//! Transport Layer Security (`tls`, RFC 8446 / RFC 5246) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for unencrypted outer RFC 8446 (TLS 1.3)
 //! and RFC 5246 (TLS 1.2) record and handshake messages (`clienthello`, `serverhello`,

@@ -5,7 +5,7 @@
 //! Redis Sentinel). On the wire, client commands are encoded as RESP Arrays (`*<count>\r\n`) of
 //! Bulk Strings (`$<len>\r\n<bytes>\r\n`), while server replies use type-prefixed frames: Simple
 //! Strings (`+ok\r\n`), Errors (`-err ...\r\n`), Integers (`:<n>\r\n`), or Bulk Strings.
-//! Canonical FrameAssembly `.fasm` syntax models Redis traffic via
+//! Canonical FrameAssembly `.frasm` syntax models Redis traffic via
 //! `redis [cmd <str>] [args <str>] [replytype <str>] [value <str>]`.
 
 use alloc::vec::Vec;

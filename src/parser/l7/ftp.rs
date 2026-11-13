@@ -1,7 +1,7 @@
 //! File Transfer Protocol (FTP) Layer 7 control channel field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 959 `ftp` control connection
-//! commands and replies in FrameAssembly `.fasm` specifications. It recognizes the `ftp` protocol
+//! commands and replies in FrameAssembly `.frasm` specifications. It recognizes the `ftp` protocol
 //! keyword, client command verbs (`cmd`, e.g., `"USER"`, `"PASS"`, `"RETR"`, `"PASV"`), command
 //! arguments (`arg`), 3-digit server status codes (`code`), and human-readable server reply text
 //! (`reply`).

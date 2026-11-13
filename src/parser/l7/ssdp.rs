@@ -1,7 +1,7 @@
 //! Simple Service Discovery Protocol (SSDP / UPnP) Layer 7 multicast discovery field parser.
 //!
 //! This module implements the `winnow` parser combinator for UPnP `ssdp` HTTPU multicast discovery
-//! and advertisement datagrams in FrameAssembly `.fasm` specifications. It recognizes the `ssdp`
+//! and advertisement datagrams in FrameAssembly `.frasm` specifications. It recognizes the `ssdp`
 //! protocol keyword, method flags (`msearch`, `notify`), multicast `hosthdr` addresses, `man`
 //! extension headers, maximum wait seconds (`mx`), search targets (`st`), notification types
 //! (`nt`, `nts`), unique service names (`usn`), and device description URLs (`location`).

@@ -1,7 +1,7 @@
-//! Zero-copy lexical analyzer and token specification for the FrameAssembly v2.0 language.
+//! Zero-copy lexical analyzer and token specification for the FrameAssembly v3.0 language.
 //!
 //! Built on the [`logos`] deterministic finite-automaton generator, this module defines the
-//! [`Token`] enumeration and [`lex`] entry point for scanning `.fasm` source files into
+//! [`Token`] enumeration and [`lex`] entry point for scanning `.frasm` source files into
 //! byte-spanned token streams. Every built-in structural keyword (`host`, `flow`, `compile`),
 //! all 81 Layer 2 through Layer 7 protocol identifiers, header and payload modifiers, and time
 //! units (`ns`, `us`, `ms`, `s`, `m`) are strictly lowercase alphanumeric (`[a-z0-9]+` without
@@ -1453,7 +1453,7 @@ pub fn lex<'a>(
 }
 
 /// Checks whether normalizing `raw` to ASCII lowercase with `'_'` and `'-'` stripped matches a
-/// built-in FrameAssembly v2.0 keyword (returning `Some(kw)` when `raw != kw`).
+/// built-in FrameAssembly v3.0 keyword (returning `Some(kw)` when `raw != kw`).
 pub(crate) fn suggest_v2_lowercase_keyword(raw: &str) -> Option<alloc::string::String> {
     if raw.is_empty() {
         return None;

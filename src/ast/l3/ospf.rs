@@ -8,7 +8,7 @@
 //! followed by a 20-byte Hello body specifying `Network Mask`, `HelloInterval` (`hellointerval`,
 //! default `10`s), `Options`, `Rtr Pri` (`priority`, default `1`), and `RouterDeadInterval` (`deadinterval`, default `40`s).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ospf [hello | dbd | lsr | lsu | lsack] [routerid <ipv4>] [areaid <u32>] [hellointerval <u16>] [deadinterval <u32>] [priority <u8>]`
 
 use core::marker::PhantomData;

@@ -1,21 +1,21 @@
-# WebAssembly (`frameassembly-wasm`) & VS Code Packet Studio (`frameassembly-vscode`) Reference Patterns (v2.0.0)
+# WebAssembly (`frameassembly-wasm`) & VS Code Packet Studio (`frameassembly-vscode`) Reference Patterns (v3.0.0)
 
-This reference document provides complete, production-verified v2.0.0 templates for `frameassembly-wasm/Cargo.toml`, `frameassembly-wasm/src/lib.rs`, `frameassembly-vscode/package.json`, `frameassembly-vscode/extension.js`, `language-configuration.json`, strict-lowercase TextMate grammar definitions (`source.frameassembly` and `markdown.frameassembly.codeblock`), and GitHub Actions OIDC Trusted Publishing workflows across supported release channels only (GitHub Releases + `.deb`, Crates.io, NPM `frameassembly-wasm`, VS Code Marketplace, and `SteveWinschel/homebrew-tap-FrameAssembly` for `Homebrew` & `Scoop`).
+This reference document provides complete, production-verified v3.0.0 templates for `frameassembly-wasm/Cargo.toml`, `frameassembly-wasm/src/lib.rs`, `frameassembly-vscode/package.json`, `frameassembly-vscode/extension.js`, `language-configuration.json`, strict-lowercase TextMate grammar definitions (`source.frameassembly` and `markdown.frameassembly.codeblock`), and GitHub Actions OIDC Trusted Publishing workflows across supported release channels only (GitHub Releases + `.deb`, Crates.io, NPM `frameassembly-wasm`, VS Code Marketplace, and `SteveWinschel/homebrew-tap-FrameAssembly` for `Homebrew` & `Scoop`).
 
 ---
 
-## 1. `frameassembly-wasm/Cargo.toml` Production Manifest (`v2.0.0`)
+## 1. `frameassembly-wasm/Cargo.toml` Production Manifest (`v3.0.0`)
 
 Configures `crate-type = ["cdylib", "rlib"]`, `miette = { version = "7.6.0", default-features = false }` (avoiding terminal/filesystem dependencies on `wasm32-unknown-unknown`), `wasm-bindgen = "0.2.130"`, `serde-wasm-bindgen = "0.6.5"`, and `[package.metadata.wasm-pack.profile.release] wasm-opt = false` so `wasm-pack 0.15.1` preserves bulk-memory and multivalue instructions emitted by `rustc 1.99.1`.
 
 ```toml
 [package]
 name = "frameassembly-wasm"
-version = "2.0.0"
+version = "3.0.0"
 edition = "2024"
 rust-version = "1.85"
 authors = ["Steve Winschel"]
-description = "Compile .fasm network traffic code to .pcapng and decompile .pcap/.pcapng captures in WebAssembly across 81 L2-L7 protocols with live IDE diagnostics."
+description = "Compile .frasm network traffic code to .pcapng and decompile .pcap/.pcapng captures in WebAssembly across 81 L2-L7 protocols with live IDE diagnostics."
 license = "MIT"
 documentation = "https://docs.rs/frameassembly-wasm"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
@@ -27,7 +27,7 @@ keywords = ["frameassembly", "pcap", "pcapng", "packet-generator", "wasm"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-frameassembly = { path = "..", version = "2.0.0" }
+frameassembly = { path = "..", version = "3.0.0" }
 miette = { version = "7.6.0", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
@@ -45,13 +45,13 @@ wasm-opt = false
 
 ---
 
-## 2. `frameassembly-wasm/src/lib.rs` Complete v2.0.0 Implementation
+## 2. `frameassembly-wasm/src/lib.rs` Complete v3.0.0 Implementation
 
 Exposes `validate_fasm` (`validateFasm`), `inspect_fasm`, `compile_fasm_to_pcapng` (`compileFasm`), and `reverse_pcap` (`reversePcap`) with typed TypeScript declarations, `find_backend_error_span` (resolving backend compilation errors to the offending identifier or `compile` block instead of `(0, 0)`), preserved `help` hints for 1-click Quick Fixes, enriched `PacketPreview` (`source_dest`, `protocol`, `summary`), and in-memory PCAPNG serialization/decompilation.
 
 ```rust
-//! WebAssembly bindings, PCAP/PCAPNG-to-`.fasm` decompiler, frame inspector, and UTF-16 IDE
-//! diagnostics for the FrameAssembly (`.fasm` v2.0.0) network packet synthesis compiler.
+//! WebAssembly bindings, PCAP/PCAPNG-to-`.frasm` decompiler, frame inspector, and UTF-16 IDE
+//! diagnostics for the FrameAssembly (`.frasm` v3.0.0) network packet synthesis compiler.
 
 use std::fmt::Write;
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -106,7 +106,7 @@ pub struct IdeDiagnostic {
     pub end_col: u32,
     /// Primary diagnostic error message.
     pub message: String,
-    /// Optional plain-English remediation hint (including v2.0.0 lowercase keyword quick-fix hints).
+    /// Optional plain-English remediation hint (including v3.0.0 lowercase keyword quick-fix hints).
     pub help: Option<String>,
 }
 
@@ -129,17 +129,17 @@ pub struct PacketPreview {
     pub summary: String,
 }
 
-/// Decompilation summary and canonical `.fasm` code returned by [`reverse_pcap`].
+/// Decompilation summary and canonical `.frasm` code returned by [`reverse_pcap`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReversePcapResult {
-    /// Indicates that the binary capture was decompiled into `.fasm` code (`true`).
+    /// Indicates that the binary capture was decompiled into `.frasm` code (`true`).
     pub success: bool,
-    /// Generated canonical strict-lowercase `.fasm` source code (`host1`, `host2`, zero `loop`).
+    /// Generated canonical strict-lowercase `.frasm` source code (`host1`, `host2`, zero `loop`).
     pub fasm: String,
     /// Total number of packets reversed from the capture.
     pub packet_count: usize,
-    /// Total number of `host1`, `host2`, ... definitions emitted in the `.fasm` program.
+    /// Total number of `host1`, `host2`, ... definitions emitted in the `.frasm` program.
     pub host_count: usize,
 }
 
@@ -180,7 +180,7 @@ pub fn find_backend_error_span(source: &str, err_msg: &str) -> (usize, usize) {
     (0, source.len().min(1))
 }
 
-/// Validates `.fasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+/// Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
 #[wasm_bindgen(unchecked_return_type = "IdeDiagnostic[]")]
 pub fn validate_fasm(source: &str) -> Result<JsValue, JsError> {
     let mut diagnostics = Vec::new();
@@ -242,7 +242,7 @@ pub fn inspect_fasm(source: &str) -> Result<JsValue, JsError> {
     Ok(serde_wasm_bindgen::to_value(&previews)?)
 }
 
-/// Compiles `.fasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+/// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
 #[wasm_bindgen]
 pub fn compile_fasm_to_pcapng(source: &str) -> Result<Vec<u8>, JsError> {
     let program = parse_program(source).map_err(|e| JsError::new(&e.to_string()))?;
@@ -250,13 +250,13 @@ pub fn compile_fasm_to_pcapng(source: &str) -> Result<Vec<u8>, JsError> {
     Ok(packets_to_pcapng(&packets))
 }
 
-/// Decompiles an in-memory `.pcap` or `.pcapng` capture (`Uint8Array`) into canonical v2.0.0 `.fasm` code.
+/// Decompiles an in-memory `.pcap` or `.pcapng` capture (`Uint8Array`) into canonical v3.0.0 `.frasm` code.
 #[wasm_bindgen(unchecked_return_type = "ReversePcapResult")]
 pub fn reverse_pcap(pcap_bytes: &[u8]) -> Result<JsValue, JsError> {
     let out = reverse_pcap_bytes(pcap_bytes).map_err(|e| JsError::new(&e.to_string()))?;
     let result = ReversePcapResult {
         success: true,
-        fasm: out.fasm,
+        fasm: out.frasm,
         packet_count: out.packet_count,
         host_count: out.host_count,
     };
@@ -371,7 +371,7 @@ mod tests {
 
 ---
 
-## 3. VS Code Packet Studio Configuration (`frameassembly-vscode` v2.0.0)
+## 3. VS Code Packet Studio Configuration (`frameassembly-vscode` v3.0.0)
 
 ### A. `frameassembly-vscode/package.json`
 Configures `"main": "./extension.js"` and `"browser": "./extension.js"`, 30 Marketplace SEO keywords (zero `"DSL"` jargon), strict-lowercase `"firstLine": "^(?:host|flow|compile|//)"`, editor title-bar Packet Ladder & `.pcapng` compile commands, and Explorer `.pcap`/`.pcapng` reverse command.
@@ -379,9 +379,9 @@ Configures `"main": "./extension.js"` and `"browser": "./extension.js"`, 30 Mark
 ```json
 {
   "name": "frameassembly-vscode",
-  "displayName": "FrameAssembly — PCAP & Network Packet Studio (.fasm)",
-  "description": "Compile, inspect, and reverse .pcap / .pcapng network packet captures as .fasm code across 81 L2-L7 protocols with live diagnostics, autocomplete, and packet ladder preview.",
-  "version": "2.0.0",
+  "displayName": "FrameAssembly — PCAP & Network Packet Studio (.frasm)",
+  "description": "Compile, inspect, and reverse .pcap / .pcapng network packet captures as .frasm code across 81 L2-L7 protocols with live diagnostics, autocomplete, and packet ladder preview.",
+  "version": "3.0.0",
   "publisher": "SteveWinschel",
   "icon": "icon.png",
   "galleryBanner": {
@@ -425,7 +425,7 @@ Configures `"main": "./extension.js"` and `"browser": "./extension.js"`, 30 Mark
       {
         "id": "frameassembly",
         "aliases": ["FrameAssembly", "frameassembly"],
-        "extensions": [".fasm"],
+        "extensions": [".frasm"],
         "mimetypes": ["text/vnd.frameassembly"],
         "firstLine": "^(?:host|flow|compile|//)",
         "configuration": "./language-configuration.json"
@@ -455,7 +455,7 @@ Configures `"main": "./extension.js"` and `"browser": "./extension.js"`, 30 Mark
     "commands": [
       {
         "command": "frameassembly.compileToPcap",
-        "title": "FrameAssembly: Compile .fasm to .pcapng",
+        "title": "FrameAssembly: Compile .frasm to .pcapng",
         "icon": "$(package)"
       },
       {
@@ -465,7 +465,7 @@ Configures `"main": "./extension.js"` and `"browser": "./extension.js"`, 30 Mark
       },
       {
         "command": "frameassembly.reversePcap",
-        "title": "FrameAssembly: Reverse Capture (.pcap/.pcapng) to .fasm"
+        "title": "FrameAssembly: Reverse Capture (.pcap/.pcapng) to .frasm"
       }
     ],
     "menus": {
@@ -576,7 +576,7 @@ vsc-extension-quickstart.md
 
 ---
 
-## 4. Strict-Lowercase v2.0.0 TextMate Grammar & Markdown Injection Patterns
+## 4. Strict-Lowercase v3.0.0 TextMate Grammar & Markdown Injection Patterns
 
 ### A. Primary Grammar Structure (`syntaxes/frameassembly.tmLanguage.json`)
 Must include every strict-lowercase `[a-z0-9]+` keyword from `src/lexer/mod.rs` (zero `_`, zero `-`, no `loop`, no `(?i)` case-insensitivity — verified by Gate 4 in `tests/corpus_verification_tests.rs`):
@@ -637,7 +637,7 @@ Must include every strict-lowercase `[a-z0-9]+` keyword from `src/lexer/mod.rs` 
 ```
 
 ### B. Markdown Codeblock Injection (`syntaxes/frameassembly.markdown.tmLanguage.json`)
-Highlights fenced ````frameassembly`, ````fasm`, and ````text/vnd.frameassembly` blocks inside Markdown files:
+Highlights fenced ````frameassembly`, ````frasm`, and ````text/vnd.frameassembly` blocks inside Markdown files:
 
 ```json
 {
@@ -654,7 +654,7 @@ Highlights fenced ````frameassembly`, ````fasm`, and ````text/vnd.frameassembly`
   ],
   "repository": {
     "frameassembly-code-block": {
-      "begin": "(^|\\G)(\\s*)(`{3,}|~{3,})\\s*(?i:(frameassembly|fasm|text/vnd\\.frameassembly)((\\s+|:|,|\\{|\\?)[^`~]*)?$)",
+      "begin": "(^|\\G)(\\s*)(`{3,}|~{3,})\\s*(?i:(frameassembly|frasm|text/vnd\\.frameassembly)((\\s+|:|,|\\{|\\?)[^`~]*)?$)",
       "name": "markup.fenced_code.block.markdown",
       "end": "(^|\\G)(\\2|\\s{0,3})(\\3)\\s*$",
       "beginCaptures": {
@@ -684,7 +684,7 @@ Highlights fenced ````frameassembly`, ````fasm`, and ````text/vnd.frameassembly`
 
 ## 5. GitHub Actions WASM -> VS Code (`needs: [prepare, wasm]`) OIDC Publishing Workflow
 
-Demonstrates `CARGO_PROFILE_RELEASE_STRIP: none`, `wasm-pack build --release --target web`, `release-wasm` artifact bundling into `frameassembly-vscode/wasm/`, `npx @vscode/vsce package` (`frameassembly-vscode-2.0.0.vsix`), and post-Dec-1-2026 OIDC Trusted Publishing (`npm publish --provenance --access public` and `npx @vscode/vsce@latest publish --oidc` to Visual Studio Marketplace only).
+Demonstrates `CARGO_PROFILE_RELEASE_STRIP: none`, `wasm-pack build --release --target web`, `release-wasm` artifact bundling into `frameassembly-vscode/wasm/`, `npx @vscode/vsce package` (`frameassembly-vscode-3.0.0.vsix`), and post-Dec-1-2026 OIDC Trusted Publishing (`npm publish --provenance --access public` and `npx @vscode/vsce@latest publish --oidc` to Visual Studio Marketplace only).
 
 ```yaml
   wasm:

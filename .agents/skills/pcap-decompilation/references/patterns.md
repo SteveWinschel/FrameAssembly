@@ -1,12 +1,12 @@
-# PCAP & PCAPNG to `.fasm` Decompilation Production Reference Patterns
+# PCAP & PCAPNG to `.frasm` Decompilation Production Reference Patterns
 
-This reference document provides production-ready, fully-documented, and compile-verified Rust code templates for FrameAssembly's 5-stage **PCAP and PCAPNG to `.fasm` decompilation pipeline** (`src/reverse/`) using **`etherparse = { version = "0.21.0", default-features = false, features = ["std"] }`**, **`pcap-file = "2.0.0"`**, and **`rasn = "0.28.15"`**.
+This reference document provides production-ready, fully-documented, and compile-verified Rust code templates for FrameAssembly's 5-stage **PCAP and PCAPNG to `.frasm` decompilation pipeline** (`src/reverse/`) using **`etherparse = { version = "0.21.0", default-features = false, features = ["std"] }`**, **`pcap-file = "2.0.0"`**, and **`rasn = "0.28.15"`**.
 
 ---
 
 ## 1. Container Magic Detection, 8-Linktype Normalization & Ethernet Padding/FCS Stripping (`container.rs` Pattern)
 
-Demonstrates Stage 1 of the PCAP-to-`.fasm` decompiler (`src/reverse/container.rs`):
+Demonstrates Stage 1 of the PCAP-to-`.frasm` decompiler (`src/reverse/container.rs`):
 - **4-Byte Magic Dispatch**: Distinguishes `PCAPNG` (`0x0A0D0D0A` Section Header Block) from legacy `PCAP` microsecond (`0xa1b2c3d4` / `0xd4c3b2a1`) and nanosecond (`0xa1b23c4d` / `0x4d3cb2a1`) captures.
 - **8-Linktype Normalization**: Converts `ETHERNET`, `RAW`, `IPV4`, `IPV6`, `LINUX_SLL` (16B header), `LINUX_SLL2` (20B header), `NULL`, and `LOOP` (4B BSD family header) into canonical 14-byte Ethernet II frames.
 - **Ethernet Zero-Padding & 4-Byte FCS Stripping**: Advances past up to 2 VLAN/QinQ tags (`0x8100`, `0x88A8`, `0x9100`) and any MPLS shim stack (`0x8847`, `0x8848`), then uses `IPv4.total_len`, `IPv6.payload_len`, `ARP` 28-byte body, or `EAPOL` `body_len` to truncate 60/64-byte Ethernet padding and 4-byte FCS trailers.
@@ -603,7 +603,7 @@ pub fn decompile_snmpv2c_ber(payload: &[u8]) -> Option<(String, Vec<u8>)> {
 
 ## 4. Deterministic Topology Discovery (`host1`, `host2`, Dominant MACs, Arrow Locking) & Direct `compile` Emission (Zero `loop` Blocks)
 
-Demonstrates Stages 3 and 5 of the FrameAssembly v2.0.0 decompiler:
+Demonstrates Stages 3 and 5 of the FrameAssembly v3.0.0 decompiler:
 - **Deterministic Host & Direction Discovery**: Assigns `host1`, `host2`, ... (never `host_1`, `host_2`) in first-seen order, tracks each host's dominant unicast MAC (ignoring broadcast `ff:ff:ff:ff:ff:ff` and multicast `01:00:5e:...` / `33:33:...`), and locks each pair's canonical `(caller_idx, callee_idx)` so forward frames emit `->` and reply frames emit `<-`.
 - **Direct `compile` Emission (Zero `loop` Blocks)**: Because `loop` was removed in FrameAssembly v2.0.0, `shadow_emit.rs` emits direct flow invocations inside `compile { ... }` without folding consecutive calls into `loop` blocks.
 
@@ -611,10 +611,10 @@ Demonstrates Stages 3 and 5 of the FrameAssembly v2.0.0 decompiler:
 use core::net::IpAddr;
 use std::collections::HashMap;
 
-/// Discovered host definition for v2.0.0 `.fasm` topology emission.
+/// Discovered host definition for v3.0.0 `.frasm` topology emission.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiscoveredHost {
-    /// Sequential v2.0.0 identifier (`"host1"`, `"host2"`, ... — never `"host_1"`).
+    /// Sequential v3.0.0 identifier (`"host1"`, `"host2"`, ... — never `"host_1"`).
     pub name: String,
     /// Host IPv4 or IPv6 address (`None` for pure L2 MAC-only endpoints).
     pub ip: Option<IpAddr>,
@@ -623,7 +623,7 @@ pub struct DiscoveredHost {
 }
 
 impl DiscoveredHost {
-    /// Constructs a sequentially numbered v2.0.0 host (`host1`, `host2`, ...).
+    /// Constructs a sequentially numbered v3.0.0 host (`host1`, `host2`, ...).
     pub fn numbered(one_based_index: usize, ip: Option<IpAddr>, mac: Option<[u8; 6]>) -> Self {
         Self {
             name: format!("host{one_based_index}"),
@@ -632,7 +632,7 @@ impl DiscoveredHost {
         }
     }
 
-    /// Formats the canonical v2.0.0 `host <name> { [ip <ip>] [mac <mac>] }` declaration.
+    /// Formats the canonical v3.0.0 `host <name> { [ip <ip>] [mac <mac>] }` declaration.
     pub fn to_fasm_decl(&self) -> String {
         let mut fields = Vec::new();
         if let Some(ip) = self.ip {
@@ -654,7 +654,7 @@ pub fn is_unicast_mac(mac: [u8; 6]) -> bool {
     mac != [0; 6] && (mac[0] & 0x01) == 0
 }
 
-/// Emits direct flow invocations inside a v2.0.0 `compile { ... }` block (never folding into `loop`).
+/// Emits direct flow invocations inside a v3.0.0 `compile { ... }` block (never folding into `loop`).
 pub fn emit_compile_block(invocations: &[String]) -> String {
     let mut out = String::from("compile {\n");
     for call in invocations {
@@ -693,8 +693,8 @@ pub fn resolve_pair_direction(
 ## 5. Self-Checking Forward-Compiler Oracle (`verify_with_oracle`) & Round-Trip Decompilation Verification Test Template
 
 Demonstrates Stage 4 (`src/reverse/oracle.rs`) and end-to-end round-trip verification:
-- **In-Memory Compiler Oracle (`verify_statement_against_wire`)**: Wraps a candidate v2.0.0 `.fasm` statement in a minimal self-contained `.fasm` program, runs `frameassembly::parser::parse_program` -> `frameassembly::backend::compile_program`, and compares the synthesized Ethernet II bytes against the original normalized frame.
-- **Round-Trip Verification Test**: Compiles a canonical v2.0.0 `.fasm` specification into PCAPNG bytes in memory, decompiles those bytes back into `.fasm` via `reverse_pcap_bytes`, recompiles the decompiled `.fasm` program, and asserts 100% byte-for-byte wire identity across every frame and timestamp.
+- **In-Memory Compiler Oracle (`verify_statement_against_wire`)**: Wraps a candidate v3.0.0 `.frasm` statement in a minimal self-contained `.frasm` program, runs `frameassembly::parser::parse_program` -> `frameassembly::backend::compile_program`, and compares the synthesized Ethernet II bytes against the original normalized frame.
+- **Round-Trip Verification Test**: Compiles a canonical v3.0.0 `.frasm` specification into PCAPNG bytes in memory, decompiles those bytes back into `.frasm` via `reverse_pcap_bytes`, recompiles the decompiled `.frasm` program, and asserts 100% byte-for-byte wire identity across every frame and timestamp.
 
 ```frameassembly
 host h1 { ip 10.0.0.1 mac 00:11:22:33:44:01 }
@@ -728,7 +728,7 @@ use pcap_file::DataLink;
 use std::borrow::Cow;
 use std::time::Duration;
 
-/// Compiles a single candidate `.fasm` statement in memory and checks whether its wire bytes
+/// Compiles a single candidate `.frasm` statement in memory and checks whether its wire bytes
 /// match `expected_eth_frame` byte-for-byte.
 pub fn verify_statement_against_wire(
     caller_decl: &str,
@@ -756,7 +756,7 @@ pub fn verify_statement_against_wire(
 /// Performs a full forward -> PCAPNG -> decompiler -> forward round-trip test and asserts
 /// 100% byte-for-byte and nanosecond-timestamp identity.
 pub fn assert_lossless_pcap_decompilation_roundtrip(original_fasm: &str) -> Result<String, String> {
-    // 1. Compile original .fasm to frames
+    // 1. Compile original .frasm to frames
     let prog1 = parse_program(original_fasm).map_err(|e| format!("Parse 1 failed: {e}"))?;
     let frames1 = compile_program(&prog1).map_err(|e| format!("Compile 1 failed: {e}"))?;
 
@@ -787,15 +787,15 @@ pub fn assert_lossless_pcap_decompilation_roundtrip(original_fasm: &str) -> Resu
         }
     }
 
-    // 3. Decompile the PCAPNG buffer back into canonical .fasm code
+    // 3. Decompile the PCAPNG buffer back into canonical .frasm code
     let reversed = reverse_pcap_bytes(&pcapng_buf)?;
     assert_eq!(reversed.packet_count, frames1.len());
 
-    // 4. Recompile the decompiled .fasm code and verify byte-for-byte + timestamp equality
+    // 4. Recompile the decompiled .frasm code and verify byte-for-byte + timestamp equality
     let prog2 =
-        parse_program(&reversed.fasm).map_err(|e| format!("Decompiled .fasm parse failed: {e}"))?;
+        parse_program(&reversed.frasm).map_err(|e| format!("Decompiled .frasm parse failed: {e}"))?;
     let frames2 =
-        compile_program(&prog2).map_err(|e| format!("Decompiled .fasm compile failed: {e}"))?;
+        compile_program(&prog2).map_err(|e| format!("Decompiled .frasm compile failed: {e}"))?;
 
     assert_eq!(frames1.len(), frames2.len(), "Packet count mismatch");
     for (idx, ((b1, ts1), (b2, ts2))) in frames1.iter().zip(frames2.iter()).enumerate() {
@@ -808,6 +808,6 @@ pub fn assert_lossless_pcap_decompilation_roundtrip(original_fasm: &str) -> Resu
         );
     }
 
-    Ok(reversed.fasm)
+    Ok(reversed.frasm)
 }
 ```

@@ -1,7 +1,7 @@
 //! Hypertext Transfer Protocol Version 2 (HTTP/2) Layer 7 multiplexed frame field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 9113 `http2` binary framing in
-//! FrameAssembly `.fasm` specifications. It recognizes the `http2` protocol keyword, connection
+//! FrameAssembly `.frasm` specifications. It recognizes the `http2` protocol keyword, connection
 //! preface flags (`preface`), frame type flags (`settings`, `headers`, `data`, `windowupdate`,
 //! `ping`, `goaway`), and 31-bit HTTP/2 stream identifiers (`streamid`).
 

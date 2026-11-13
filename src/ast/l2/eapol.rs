@@ -7,7 +7,7 @@
 //! an 8-bit Packet Type (`0` EAP-Packet, `1` EAPOL-Start, `2` EAPOL-Logoff, `3` EAPOL-Key),
 //! and a 16-bit Packet Body Length, followed by the RFC 3748 EAP message body.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b eapol [version <u8>] [type <eappacket|start|logoff|key>] [eapcode <u8>] [eapid <u8>] [eapmethod <u8>] [identity "<str>"]`
 
 /// IEEE 802.1X EAPOL 8-bit packet type field (`Packet Type` at offset 1 of the EAPOL header).

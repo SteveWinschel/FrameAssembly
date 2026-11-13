@@ -1,10 +1,10 @@
-//! Open Shortest Path First (OSPFv2 RFC 2328 & OSPFv3 RFC 5340) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Open Shortest Path First (OSPFv2 RFC 2328 & OSPFv3 RFC 5340) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for Open Shortest Path First
 //! (`ospf`, IP protocol `89`) routing protocol packets across both OSPFv2 (24-byte header) and
 //! OSPFv3 (16-byte header). It decodes `hello`, `dbd`, `lsr`, `lsu`, and `lsack` message types,
 //! `routerid`, `areaid`, `hellointerval`, `priority`, and `deadinterval` into canonical
-//! `.fasm` statements.
+//! `.frasm` statements.
 
 use alloc::string::String;
 use alloc::vec::Vec;

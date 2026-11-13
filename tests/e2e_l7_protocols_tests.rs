@@ -56,7 +56,7 @@ fn read_pcapng_packets(path: &Path) -> Result<Vec<PacketContext>, String> {
     Ok(frames)
 }
 
-/// Compiles a `.fasm` script to a temporary PCAPNG file and runs the verification closure.
+/// Compiles a `.frasm` script to a temporary PCAPNG file and runs the verification closure.
 ///
 /// Panics immediately if parsing, semantic validation, or PCAPNG generation fails, or if zero
 /// packets are emitted.

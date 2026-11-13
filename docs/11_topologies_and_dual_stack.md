@@ -1,55 +1,64 @@
-# Multi-Host Network Topologies & Dual-Stack Scenarios
+# Multi-Host Topologies & Dual-Stack Scenarios
 
-Real production incidents rarely happen between just two hosts speaking a single protocol. A single user login, WAN failover, or microservice call typically crosses Layer 2 switching, Layer 3 routing or tunneling, Layer 4 transport handshakes, and three or four Layer 7 services across 4 to 8 devices.
+[← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)
 
-Reproducing that kind of multi-hop sequence in a physical lab or a virtual network emulator (GNS3, EVE-NG, Containerlab) just to get a test capture takes hours: you have to boot half a dozen router and server images, wire up VLAN trunks and VRFs, configure routing protocols and AAA daemons, and then coordinate `tcpdump` across multiple interfaces while manually triggering the event.
+Outages never stay politely inside one OSI layer. A ticket arrives saying "the app is slow", and ten minutes later the investigation has touched 802.1X, DNS, a TLS handshake, a gRPC call, a Redis lookup, and a Postgres insert. Nobody changed the firewall rules since Tuesday, which is exactly what everyone says right before someone finds the firewall change from Tuesday.
 
-FrameAssembly lets you express the entire multi-device conversation in a single `.fasm` file and run it with two CLI commands (`frameassembly topology.fasm` to build `topology.pcap` + `tcpreplay`, **Wireshark**, or **Suricata** to replay or inspect, or `frameassembly reverse trace.pcap` to convert an existing capture into `.fasm` code) using three core capabilities:
+Reproducing that in a lab means booting a pile of router and server images in GNS3, EVE-NG, or Containerlab, wiring VLAN trunks and VRFs, standing up AAA, and running `tcpdump` on five interfaces while you trigger the failure by hand. FrameAssembly puts the whole multi-device conversation in one `.frasm` file. Build it with `frameassembly topology.frasm`, replay it with `tcpreplay`, inspect it in **Wireshark** or **Suricata**, or run `frameassembly reverse trace.pcap` to turn a real capture into `.frasm` code you can edit.
 
-1. **Multi-Host Flows:** Pass 3, 4, or 8+ endpoints into a single `flow(client, switch, radius, firewall, server, siem)` to interleave north-south client traffic, east-west service calls, and out-of-band telemetry in exact chronological order.
-2. **Reusable Dual-Stack IPv4 & IPv6 Flows:** Write a `flow` once and run it inside `compile` first with IPv4 `host` definitions and then with IPv6 `host` definitions—automatically switching between IPv4 (`EtherType 0x0800`) and IPv6 (`EtherType 0x86DD`), recomputing IPv4/IPv6 pseudo-header checksums, and deriving multicast MAC addresses per RFC 1112 (`01:00:5e:xx:xx:xx`) and RFC 2464 (`33:33:xx:xx:xx:xx`).
-3. **Precise `wait` Timers & Multi-Call `compile` Sequences:** Combine nanosecond-to-minute inter-packet delays (`ns`, `us`, `ms`, `s`, `m`) with sequential flow calls and inline statements inside `compile` to generate realistic keepalive cadences, VXLAN/IPsec bursts, and RTP media streams.
+Three features carry this: multi-host flows, dual-stack reuse, and precise `wait` timers.
 
-> **104 Ready-to-Compile Topologies in `examples/topologies/`:**
-> In addition to the 5 reference architectures below, you can browse **104 full-stack `.fasm` scenarios** in [`examples/topologies/`](../examples/topologies/).
+> **104 ready-to-compile topologies** live in [`examples/topologies/`](../examples/topologies/). The five below are the reference architectures; the directory has the rest.
 
 ---
 
-## Core Architectural Building Blocks
+## Building Blocks
 
-### 1. Multi-Host Flows Across 3 to 8+ Devices
+### Multi-Host Flows
 
-A `flow` header can accept any number of host endpoints. Inside the flow body, every statement specifies which two endpoints are communicating on that line (`ws -> sw`, `sw -> aaa`, `aaa -> siem`):
+A `flow` takes as many endpoints as you give it, and every statement names the two that talk on that line. Pass four hosts in, and `compile` plugs your real `host` definitions into the parameters in left-to-right order. Client traffic, firewall logging, and SIEM telemetry stay in the exact chronological order they happened:
 
-```text
+```frameassembly
+host workstation  { ip 10.30.0.10 mac 00:1b:21:30:00:0a }
+host perimeter_fw { ip 10.30.0.1  mac 00:1b:21:30:00:01 }
+host web_srv      { ip 10.30.1.20 mac 00:1b:21:30:01:14 }
+host splunk_siem  { ip 10.30.9.50 mac 00:1b:21:30:09:32 }
+
 flow branch_transaction(client, edge_fw, app_srv, siem) {
-    client  -> app_srv tcp syn dstport 443 wait 1ms
+    client  -> app_srv tcp syn srcport 50443 dstport 443 wait 1ms
     edge_fw -> siem    syslog facility 4 severity 6 msg "Permit TCP 443" wait 1ms
     client  <- app_srv tcp syn ack
 }
+
+compile { branch_transaction(workstation, perimeter_fw, web_srv, splunk_siem) }
 ```
 
-When you run `branch_transaction(workstation, perimeter_fw, web_srv, splunk_siem)` inside `compile { ... }`, FrameAssembly plugs those four `host` definitions into `(client, edge_fw, app_srv, siem)` in matching left-to-right order.
+### Dual-Stack Reuse
 
-### 2. Dual-Stack IPv4 / IPv6 Reuse & Multicast MAC Derivation
-
-FrameAssembly enforces strict Layer 3 address-family consistency per statement (mixing an IPv4 host and an IPv6 host on the same arrow is rejected with a clear validation error), while allowing the exact same `flow` block to run unmodified over both IPv4 and IPv6:
+FrameAssembly checks address-family consistency per statement: an IPv4 host and an IPv6 host on the same line is a validation error. The same `flow`, though, runs unchanged over both families when you call it once with IPv4 hosts and once with IPv6 hosts.
 
 | Feature | IPv4 Execution (`host { ip 10.x.x.x }`) | IPv6 Execution (`host { ip 2001:db8::x }`) |
 | :--- | :--- | :--- |
-| **Ethernet EtherType** | `0x0800` (or `0x8100` / `0x88A8` / `0x8847` when tagged) | `0x86DD` (or `0x8100` / `0x88A8` / `0x8847` when tagged) |
-| **L3 `ttl <0..255>` & `dscp <0..63>`** | Maps to IPv4 `TTL` and `TOS/DSCP` | Maps to IPv6 `Hop Limit` and `Traffic Class` |
-| **L3 `flowlabel <0..1048575>`** | Silently ignored on IPv4 statements | Encoded into the 20-bit IPv6 `Flow Label` field |
-| **Multicast Destination MAC** | Auto-derived as `01:00:5e:xx:xx:xx` (RFC 1112) when `mac` is omitted on a `224.0.0.0/4` host | Auto-derived as `33:33:xx:xx:xx:xx` (RFC 2464) when `mac` is omitted on an `ff00::/8` host |
-| **UDP Checksum `0x0000` Guard** | RFC 768 checksum | RFC 8200 §8.1 mandatory pseudo-header checksum (`0x0000` mapped to `0xFFFF`) |
+| **EtherType** | `0x0800` (or `0x8100` / `0x88A8` / `0x8847` when tagged) | `0x86DD` (or `0x8100` / `0x88A8` / `0x8847` when tagged) |
+| **`ttl <0..255>` and `dscp <0..63>`** | IPv4 `TTL` and `TOS/DSCP` | IPv6 `Hop Limit` and `Traffic Class` |
+| **`flowlabel <0..1048575>`** | Silently ignored | Encoded into the 20-bit IPv6 Flow Label |
+| **Multicast destination MAC** | `01:00:5e:xx:xx:xx` (RFC 1112) when `mac` is omitted on a `224.0.0.0/4` host | `33:33:xx:xx:xx:xx` (RFC 2464) when `mac` is omitted on an `ff00::/8` host |
+| **UDP checksum** | RFC 768 | RFC 8200 §8.1 mandatory pseudo-header checksum (`0x0000` becomes `0xFFFF`) |
 
-### 3. Multi-Call Traffic Bursts & Inline Statements in `compile`
+### Bursts and Inline Statements in `compile`
 
-Inside `compile { ... }`, invoke reusable flows multiple times alongside direct one-off statements to build sustained traffic bursts while automatically advancing TCP sequence numbers and packet timestamps across every frame:
+Inside `compile { ... }` you can call flows repeatedly and mix in one-off statements. TCP sequence numbers and timestamps keep advancing across all of it, and `wait` accepts `ns`, `us`, `ms`, `s`, and `m`, which is how you get realistic keepalive cadences, VXLAN bursts, and RTP streams:
 
-```text
+```frameassembly
+host leaf_01   { ip 10.255.0.11   mac 00:1c:73:00:01:01 }
+host leaf_02   { ip 10.255.0.12   mac 00:1c:73:00:01:02 }
+host collector { ip 10.255.100.50 mac 00:1c:73:00:99:50 }
+
+flow vxlan_east_west(vtep1, vtep2) {
+    vtep1 -> vtep2 vxlan vni 10100 dscp 26 df payload "EAST_WEST_TENANT_RPC_FRAME" wait 2ms
+}
+
 compile {
-    underlay_bringup(spine_01, leaf_01)
     vxlan_east_west(leaf_01, leaf_02)
     vxlan_east_west(leaf_01, leaf_02)
     vxlan_east_west(leaf_01, leaf_02)
@@ -59,12 +68,12 @@ compile {
 
 ---
 
-## 1. EVPN-VXLAN Leaf-Spine Data Center Fabric (`lldp` + `bfd` + `bgp` + `vxlan` + `ipfix`)
+## 1. EVPN-VXLAN Leaf-Spine Fabric (`lldp` + `bfd` + `bgp` + `vxlan` + `ipfix`)
 
-**Scenario:** Models a data center fabric link bring-up between a Spine switch (`spine_01`) and two ToR Leaf VTEPs (`leaf_01`, `leaf_02`), followed by an East-West VXLAN tenant burst and an IPFIX flow telemetry export to a fabric collector:
+**Scenario:** A spine (`spine_01`) brings up a link to a leaf VTEP, the leaf pushes a burst of east-west tenant traffic to a second leaf, and then reports it to a flow collector. It is the sequence you would normally only see after wiring four switches and an EVPN control plane, and after someone has remembered which port is the uplink.
 1. **Layer 2 Link Discovery (`lldp`):** Spine and Leaf exchange chassis/port capabilities and system names.
-2. **Sub-Second Failure Detection (`bfd`):** 50ms (`50000` $\mu\text{s}$) BFD Control sessions reach State `3` (`Up`) with `ttl 255` GTSM protection.
-3. **Underlay Routing (`bgp`):** eBGP `open` (`asn 65101` $\leftrightarrow$ `asn 65000`), `keepalive`, and `/32` VTEP loopback `update` advertisement.
+2. **Sub-Second Failure Detection (`bfd`):** 50ms (`50000` µs) BFD Control sessions reach State `3` (`Up`) with `ttl 255` GTSM protection.
+3. **Underlay Routing (`bgp`):** eBGP `open` (`asn 65101` ↔ `asn 65000`), `keepalive`, and `/32` VTEP loopback `update` advertisement.
 4. **Overlay Data Plane (`vxlan`):** A 3-packet burst encapsulating tenant traffic in `vni 10100` with `dscp 26` (`AF31`) and the IPv4 Don't Fragment (`df`) bit set for Path MTU validation.
 5. **Fabric Visibility (`ipfix`):** `leaf_01` exports a CFlow/IPFIX v10 accounting record summarizing the 3-packet VXLAN burst (`384` octets) to `collector` on UDP port `4739`.
 
@@ -114,10 +123,10 @@ compile {
 
 ## 2. Campus Zero-Trust 802.1X NAC Port Onboarding (`eapol` + `radius` + `dhcp` + `arp` + `snmp3`)
 
-**Scenario:** Captures the complete lifecycle of an employee workstation plugging into a Zero-Trust campus switch port across 4 network tiers (`workstation`, `access_sw`, `radius_srv`, and `nms_srv`):
+**Scenario:** An employee plugs a laptop into a Zero-Trust campus switch port. Four devices take part (`workstation`, `access_sw`, `radius_srv`, `nms_srv`), and the port stays dark until every step succeeds. When it does not, the ticket reads "network is down" and the packet capture is the only witness:
 1. **802.1X Supplicant Handshake (`eapol`):** The laptop sends `EAPOL-Start`, responds to the switch's `EAP-Request/Identity` (`eapcode 1, eapmethod 1`), and awaits port authorization.
 2. **AAA Policy Verification (`radius`):** The switch relays the identity to the RADIUS server (`accessrequest` on UDP `1812`) and receives `accessaccept` with the assigned `framedip`, then sends `EAP-Success` (`eapcode 3`) to open the switch port.
-3. **IPv4 Address Assignment (`dhcp`):** Full 4-packet `DORA` exchange (`discover` $\rightarrow$ `offer` $\rightarrow$ `request` $\rightarrow$ `ack`) assigning `10.10.50.100/24`.
+3. **IPv4 Address Assignment (`dhcp`):** Full 4-packet `DORA` exchange (`discover`, `offer`, `request`, `ack`) assigning `10.10.50.100/24`.
 4. **Duplicate Address Detection (`arp`):** The workstation broadcasts a Gratuitous ARP (`sha`, `spa`, and `tpa` announcing `10.10.50.100`).
 5. **Encrypted NMS Audit (`snmp3`):** The switch sends an authenticated and AES-128-CFB encrypted SNMPv3 `inform` (`sha256` + `aes`) to the NMS reporting `ifOperStatus = up(1)` on port 12.
 
@@ -160,14 +169,14 @@ compile {
 
 ## 3. Dual-Stack IPv4 & IPv6 Cloud Service Mesh (`dns` + `tcp` + `tls` + `grpc` + `redis` + `postgres`)
 
-**Scenario:** Demonstrates **reusable dual-stack IPv4 and IPv6 flow generation**. A single 4-tier Kubernetes service-mesh flow (`service_mesh_checkout`) models:
+**Scenario:** One Kubernetes checkout flow (`service_mesh_checkout`), written once and run over IPv4 and IPv6. It covers:
 1. CoreDNS service discovery (`dns`)
-2. Explicit 3-way TCP handshake (`syn` $\rightarrow$ `syn ack` $\rightarrow$ `ack`) on port `50051`
+2. Explicit 3-way TCP handshake (`syn`, `syn ack`, `ack`) on port `50051`
 3. mTLS 1.3 negotiation with `sni` and `alpn "h2"` (`tls`)
 4. Unary gRPC `CreateOrder` call (`grpc`)
 5. East-west Redis inventory cache lookup (`redis`) and PostgreSQL SQL order insert (`postgres`)
 
-In `compile`, calling `service_mesh_checkout` first with the `_v4` hosts and then with the `_v6` hosts generates both the complete IPv4 cluster trace and the complete IPv6 cluster trace in one PCAPNG file.
+In `compile`, call `service_mesh_checkout` with the `_v4` hosts, then with the `_v6` hosts. You get the complete IPv4 trace and the complete IPv6 trace in one PCAPNG file, which is handy when the bug only shows up on the family nobody tested.
 
 ```frameassembly
 // IPv4 Kubernetes Pod & Service Endpoints
@@ -221,7 +230,7 @@ compile {
 
 ## 4. WAN Branch Failover & IPsec/MPLS Backhaul (`bfd` + `ospf` + `vrrp` + `ikev2`/`esp` + `qinq`/`mpls`)
 
-**Scenario:** Models an enterprise branch office with redundant WAN edge routers (`branch_r1`, `branch_r2`) failing over to an IPsec-over-Metro-Ethernet/MPLS backhaul connected to `hq_hub`:
+**Scenario:** A branch office with two WAN edge routers (`branch_r1`, `branch_r2`) loses its primary link and fails over to an IPsec tunnel across a Metro Ethernet and MPLS backhaul to `hq_hub`. Failover tests are usually run on a Friday, by someone who will not be there on Monday:
 1. **LAN First-Hop Redundancy (`vrrp`):** `branch_r1` advertises VRRPv3 Group `10` Master ownership (`priority 200`, `vip 10.250.10.1`).
 2. **WAN Link Failure & IGP Convergence (`bfd` + `ospf`):** `branch_r1` signals a BFD `Down` state (`state 1, diag 1`), then floods an Area `0` OSPF Link State Update (`lsu`) to `branch_r2` and receives an `lsack`.
 3. **Carrier QinQ IPsec Tunnel Bring-Up (`qinq` + `ikev2`):** `branch_r2` negotiates an IKEv2 Security Association (`sainit` and `auth`) with `hq_hub` across a Metro Ethernet IEEE 802.1ad QinQ trunk (`qinq 2100`, `innervlan 100`).
@@ -263,7 +272,7 @@ compile {
 
 ## 5. IEC 62443 Industrial Substation & IDMZ Conduit (`modbus` + `dnp3` + `s7comm` + `opcua` + `syslog`)
 
-**Scenario:** Validates a segmented **IEC 62443 / Purdue Model** industrial architecture spanning Level 2 Supervisory HMI (`substation_hmi`), Level 1 Field Controllers (`bay_rtu`, `s7_plc`), and a Level 3.5 Industrial DMZ Historian & SIEM (`idmz_historian`):
+**Scenario:** A segmented IEC 62443 / Purdue Model substation: a Level 2 supervisory HMI (`substation_hmi`), Level 1 field controllers (`bay_rtu`, `s7_plc`), and a Level 3.5 industrial DMZ historian and SIEM (`idmz_historian`). None of it needs a live PLC, which is good, because live PLCs have a way of ending up in someone else's budget:
 1. **Level 1–2 Process VLAN (`vlan 110, pcp 6`):** The supervisory HMI polls holding registers from `bay_rtu` via `modbus` (TCP `502`), executes an IEEE 1815 `dnp3` Class 0 integrity poll (TCP `20000`), and reads Data Block `DB1` from a Siemens PLC via `s7comm` (TCP `102`).
 2. **Level 2–3.5 IDMZ Conduit (`vlan 120, pcp 4`):** The HMI forwards aggregated telemetry upstream to `idmz_historian` over an `opcua` binary session (TCP `4840`) and emits an RFC 5424 `syslog` compliance audit message (UDP `514`).
 
@@ -297,15 +306,3 @@ compile {
     substation_conduit_telemetry(substation_hmi, bay_rtu, s7_plc, idmz_historian)
 }
 ```
-
----
-
-## Related Documentation
-
-- [**Getting Started Guide (`getting_started.md`)**](getting_started.md) — Step-by-step introduction to `host`, `flow`, `compile`, and cross-layer modifiers.
-- [**Practical Use-Case Cookbook (`use_cases.md`)**](use_cases.md) — Ready-to-run recipes for firewall testing, SNMP traps, QoS validation, and IDS verification.
-- [**Layer 2 Switching & Data-Link Protocols (`l2_protocols.md`)**](l2_protocols.md) & [**Layer 3 Control, Tunneling, VPN & Routing Protocols (`l3_protocols.md`)**](l3_protocols.md) — Complete reference for `vlan`, `qinq`, `mpls`, `ospf`, `bgp`, `bfd`, `vrrp`, `ikev2`, and `esp`.
-- [**Layer 4 Transport Protocols (`l4_transports.md`)**](l4_transports.md) — `tcp`, `udp`, and `sctp` 4-tuple state tracking and RFC 7323 options.
-- [**Layer 7 Network Management (`l7_snmp.md`)**](l7_snmp.md) & [**Layer 7 Infrastructure & Telemetry (`l7_infra_and_telemetry.md`)**](l7_infra_and_telemetry.md) — `snmp3`, `radius`, `dhcp`, `dns`, `syslog`, and `ipfix`.
-- [**Layer 7 Industrial Control Systems & SCADA/OT (`l7_industrial_ot.md`)**](l7_industrial_ot.md) — Complete reference for `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, and `opcua`.
-- [**`.fasm` File Format & Media Type Specification (`fasm-specification.md`)**](fasm-specification.md) — Normative `text/vnd.frameassembly` media type specification, lexical rules, and `.fasm` extension disambiguation.

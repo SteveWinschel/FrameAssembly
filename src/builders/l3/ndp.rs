@@ -8,7 +8,7 @@
 //! `routersolicit` (Type `133` to `ff02::2`), `routeradvert` (Type `134` with `routerlifetime`),
 //! and `redirect` (Type `137`), with full 40-byte IPv6 pseudo-header checksum calculation.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ndp [routersolicit | routeradvert | neighborsolicit | neighboradvert | redirect] [target <ipv6>] [slla <mac>] [tlla <mac>] [routerlifetime <u16>]`
 
 use crate::ast::*;

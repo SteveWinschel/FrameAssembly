@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Secure Shell Transport Layer Protocol (SSH-2) frames over TCP port 22.
 //! The wire encoder constructs a CRLF-terminated protocol version identification string (`SSH-2.0-softwareversion\r\n`) followed by binary packet framing (32-bit packet_length, 8-bit padding_length, 8-bit SSH message code such as `20` SSH_MSG_KEXINIT with 16-byte random cookie and algorithm name-lists, `21` SSH_MSG_NEWKEYS, `50` SSH_MSG_USERAUTH_REQUEST, `90` SSH_MSG_CHANNEL_OPEN, random padding, and MAC). When optional fields in [`SshSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ssh [banner <str>] [kexinit] [newkeys] [msgcode <u8>] [payload <str>]`
 
 use crate::ast::*;

@@ -6,7 +6,7 @@
 //! 3-bit Priority Code Point (`pcp`, IEEE 802.1p Class of Service `0..=7`), a 1-bit Drop
 //! Eligible Indicator (`dei`, `0..=1`), and a 12-bit VLAN Identifier (`VID`, `1..=4094`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b vlan <vid> [pcp <0..7>] [dei <0|1>] [<upper_layer_protocol>...]`
 
 /// IEEE 802.1Q single VLAN tag specification.

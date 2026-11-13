@@ -5,7 +5,7 @@
 //! Every field in [`RadiusSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b radius [accessrequest | accessaccept | accessreject | accesschallenge | accountingrequest | accountingresponse | code <str>] [id <u8>] [user <str>] [nasip <ip>] [servicetype <u32>] [framedip <ip>]`
 
 use core::net::IpAddr;

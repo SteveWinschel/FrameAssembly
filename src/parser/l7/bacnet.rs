@@ -1,7 +1,7 @@
 //! Building Automation and Control Networks (BACnet/IP) Layer 7 protocol field parser.
 //!
 //! This module implements the `winnow` parser combinator for ASHRAE 135 `bacnet` BVLL/NPDU/APDU
-//! frames over UDP port 47808 in FrameAssembly `.fasm` specifications. It recognizes the `bacnet`
+//! frames over UDP port 47808 in FrameAssembly `.frasm` specifications. It recognizes the `bacnet`
 //! protocol keyword, unconfirmed and confirmed service flags (`whois`, `iam`, `readproperty`,
 //! `writeproperty`), APDU invoke IDs (`invokeid`), object types (`objecttype`), object
 //! instances (`objectinstance`), property identifiers (`propertyid`), and property values

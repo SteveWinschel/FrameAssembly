@@ -1,7 +1,7 @@
 {
   "FrameAssembly Program Skeleton": {
-    "prefix": "fasm",
-    "description": "Complete FrameAssembly (.fasm) specification with host, flow, and compile blocks",
+    "prefix": ["frasm", "frameassembly"],
+    "description": "Complete FrameAssembly (.frasm) specification with host, flow, and compile blocks",
     "body": [
       "host ${1:client} {",
       "    ip ${2:10.0.0.10}",

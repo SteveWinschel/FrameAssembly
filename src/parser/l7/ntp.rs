@@ -1,7 +1,7 @@
 //! Network Time Protocol (NTPv4) Layer 7 clock synchronization field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 5905 Network Time Protocol (`ntp`)
-//! headers in FrameAssembly `.fasm` specifications. It recognizes the `ntp` protocol keyword, leap
+//! headers in FrameAssembly `.frasm` specifications. It recognizes the `ntp` protocol keyword, leap
 //! indicators (`li`), protocol version numbers (`vn`), association modes (`mode`), clock stratum
 //! levels (`stratum`), polling intervals (`poll`), clock precision (`precision`), reference clock
 //! identifiers (`refid`), and 64-bit transmit timestamps (`txtimestamp`).

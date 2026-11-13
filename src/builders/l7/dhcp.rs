@@ -2,9 +2,9 @@
 //!
 //! This module synthesizes deterministic on-the-wire Dynamic Host Configuration Protocol (DHCPv4 / DHCPv6) frames over UDP ports 67/68 (DHCPv4) and UDP ports 546/547 (DHCPv6).
 //! The wire encoder constructs a 236-byte BOOTP fixed header (op, htype, hlen, hops, 32-bit xid, secs, flags, ciaddr, yiaddr, siaddr, giaddr, 16-byte chaddr, 64-byte sname, 128-byte file), 4-byte RFC 1497 magic cookie 0x63825363, and TLV DHCP options (Option 53 Message Type, Option 1 Subnet Mask, Option 3 Router, Option 6 DNS, Option 12 Hostname, Option 51 Lease Time, 0xFF End), or 4-byte DHCPv6 msg-type + 24-bit transaction-id header. When optional fields in [`DhcpSpec`]
-//! are omitted in the `.fasm` source, RFC-compliant default values are automatically populated.
+//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b dhcp [discover | offer | request | ack | release | solicit | advertise | reply] [xid <u32>] [ciaddr <ip>] [yiaddr <ip>] [siaddr <ip>] [chaddr <mac>] [hostname <str>] [dnsserver <ip>] [router <ip>] [subnetmask <ip>] [leasetime <u32>]`
 
 use crate::ast::*;

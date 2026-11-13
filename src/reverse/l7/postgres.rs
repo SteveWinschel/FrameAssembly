@@ -1,4 +1,4 @@
-//! PostgreSQL Frontend/Backend Wire Protocol v3.0 Layer 7 PCAP-to-`.fasm` decompiler.
+//! PostgreSQL Frontend/Backend Wire Protocol v3.0 Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `postgres` v3.0 messages over TCP
 //! ports `5432`, `6432` (PgBouncer), and `9999` (Pgpool-II), as well as custom-port `StartupMessage`

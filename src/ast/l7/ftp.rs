@@ -5,7 +5,7 @@
 //! Every field in [`FtpSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b ftp [cmd <str>] [arg <str>] [code <u16>] [reply <str>]`
 
 /// RFC 959 File Transfer Protocol specification.

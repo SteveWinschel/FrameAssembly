@@ -1,10 +1,10 @@
-//! Internet Key Exchange v2 (IKEv2, RFC 7296) Layer 3 PCAP-to-`.fasm` decompiler.
+//! Internet Key Exchange v2 (IKEv2, RFC 7296) Layer 3 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe PCAP and PCAPNG decompiler for RFC 7296 Internet Key
 //! Exchange v2 (`ikev2`) control messages carried over UDP ports `500` and `4500`. It validates
 //! the 28-byte IKEv2 header and version byte (`0x20`) and extracts exchange subtype (`sainit`,
 //! `createchildsa`, `informational`), 64-bit `initiatorspi` and `responderspi`,
-//! `nextpayload`, `flags`, and `msgid` into canonical `.fasm` tokens.
+//! `nextpayload`, `flags`, and `msgid` into canonical `.frasm` tokens.
 
 use alloc::string::String;
 

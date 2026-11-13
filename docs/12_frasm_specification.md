@@ -1,25 +1,27 @@
-# FrameAssembly (`.fasm`) File Format & Media Type Specification (`text/vnd.frameassembly`)
+# FrameAssembly (`.frasm`) File Format & Media Type Specification (`text/vnd.frameassembly`)
+
+[← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)
 
 * **Canonical Media Type:** `text/vnd.frameassembly`
-* **File Extension:** `.fasm`
+* **File Extension:** `.frasm`
 * **Uniform Type Identifier (UTI):** `io.github.stevewinschel.frameassembly` (conforms to `public.source-code`, `public.text`)
-* **Freedesktop Shared MIME Info:** [`contrib/mime/text-vnd.frameassembly.xml`](../contrib/mime/text-vnd.frameassembly.xml) (`sub-class-of` `text/plain`, glob `*.fasm`) • [`contrib/mime/README.md`](../contrib/mime/README.md)
+* **Freedesktop Shared MIME Info:** [`contrib/mime/text-vnd.frameassembly.xml`](../contrib/mime/text-vnd.frameassembly.xml) (`sub-class-of` `text/plain`, glob `*.frasm`) • [`contrib/mime/README.md`](../contrib/mime/README.md)
 * **Unix `file(1)` / `libmagic` Rule:** [`contrib/magic/frameassembly.magic`](../contrib/magic/frameassembly.magic)
 * **IANA Vendor Tree Registration Template:** [`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md)
 * **GitHub Linguist Grammar & Heuristics:** [`contrib/linguist/languages.yml`](../contrib/linguist/languages.yml), [`contrib/linguist/heuristics.yml`](../contrib/linguist/heuristics.yml) • [`contrib/linguist/README.md`](../contrib/linguist/README.md)
 * **Formal Context-Free Grammars:** [`grammar.ebnf`](../grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](../frameassembly.gbnf) (`llama.cpp` / `XGrammar` GBNF), [`frameassembly.lark`](../frameassembly.lark) (Earley/LALR Lark)
 * **Shell Tab Completions & Supported Distribution:** [`contrib/completions/`](../contrib/completions/README.md) (`bash`, `zsh`, `fish`, `PowerShell`) • [`contrib/packaging/`](../contrib/packaging/README.md) (GitHub Releases + `.deb`, Crates.io `frameassembly`, NPM `frameassembly-wasm`, VS Code Marketplace `frameassembly-vscode`, and `SteveWinschel/homebrew-tap-FrameAssembly` for Homebrew & Scoop)
-* **Reference Compiler, Website & Repository:** `frameassembly` v2.0.0 • [frameassembly.ai.studio](https://frameassembly.ai.studio/) • [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
+* **Reference Compiler, Website & Repository:** `frameassembly` v3.0.0 • [frameassembly.ai.studio](https://frameassembly.ai.studio/) • [https://github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly) • [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly) • [docs.rs/frameassembly](https://docs.rs/frameassembly)
 
 ---
 
 ## 1. Abstract & Scope
 
-The **FrameAssembly** file format (`.fasm`, media type `text/vnd.frameassembly`) is a network packet specification code format ("Packets as Code" / "PCAP as Code") for building network packet captures.
+The **FrameAssembly** file format (`.frasm`, media type `text/vnd.frameassembly`) is a network packet specification code format ("Packets as Code" / "PCAP as Code") for building network packet captures.
 
-A `.fasm` document defines network endpoints (`host`), optional parameterized multi-packet traffic sequences (`flow`), and compilation targets (`compile`). Compiling `.fasm` code to `.pcap` is the default root command of the `frameassembly` reference CLI (`frameassembly <input.fasm> [output.pcap]`, defaulting to `<input_stem>.pcap`), paired with four subcommands:
-* `frameassembly show <input.fasm>` — validates a `.fasm` file and prints a relative-timestamp packet ladder in the terminal without writing disk files.
-* `frameassembly reverse <input.pcap> [output.fasm]` — decompiles `.pcap` or `.pcapng` captures into `.fasm` code (defaulting to `<input_stem>.fasm`), emitting `host1`, `host2`, ... declarations, strict-lowercase `[a-z0-9]+` keywords, and chronological packet statements inside `compile { ... }`. Encrypted payloads (such as SNMPv3 `authPriv`, TLS application data, SSH, or IPsec `esp`) are not decrypted during decompilation and are preserved as `tcp` or `udp` statements with `payload` / `hexpayload`.
+A `.frasm` document defines network endpoints (`host`), optional parameterized multi-packet traffic sequences (`flow`), and compilation targets (`compile`). Compiling `.frasm` code to `.pcap` is the default root command of the `frameassembly` reference CLI (`frameassembly <input.frasm> [output.pcap]`, defaulting to `<input_stem>.pcap`), paired with four subcommands:
+* `frameassembly show <input.frasm>` — validates a `.frasm` file and prints a relative-timestamp packet ladder in the terminal without writing disk files.
+* `frameassembly reverse <input.pcap> [output.frasm]` — decompiles `.pcap` or `.pcapng` captures into `.frasm` code (defaulting to `<input_stem>.frasm`), emitting `host1`, `host2`, ... declarations, strict-lowercase `[a-z0-9]+` keywords, and chronological packet statements inside `compile { ... }`. Encrypted payloads (such as SNMPv3 `authPriv`, TLS application data, SSH, or IPsec `esp`) are not decrypted during decompilation and are preserved as `tcp` or `udp` statements with `payload` / `hexpayload`.
 * `frameassembly help [subcommand]` and `frameassembly version` — display CLI command reference and active compiler version (with hidden `-h`/`--help` and `-V`/`--version` flags for script compatibility, and positional output paths rather than output flags).
 
 Generated captures across all **81 native Layer 2 through Layer 7 network protocols** feed directly into **Wireshark** and **`tshark`**, wire-speed packet injection via **`tcpreplay`**, and rule validation in intrusion detection systems (**Suricata**, **Zeek**, **Snort**), firewalls, network monitoring platforms (**Checkmk**, **Zabbix**), and CI/CD pipelines.
@@ -37,41 +39,41 @@ This section defines the formal media type registration parameters for `text/vnd
 | **Required parameters** | None. |
 | **Optional parameters** | `charset`: Per RFC 6657 §3, the default charset is `UTF-8`. Implementations MUST support `UTF-8` without a Byte Order Mark (BOM). |
 | **Encoding considerations** | `8bit` (UTF-8 source code). Documents containing only ASCII characters in comments and string literals are valid `7bit` US-ASCII. |
-| **File extension(s)** | `.fasm` |
+| **File extension(s)** | `.frasm` |
 | **Macintosh file type code(s)** | `TEXT` |
 | **Uniform Type Identifier (UTI)** | `io.github.stevewinschel.frameassembly` (`public.source-code`, `public.text`) |
 | **Object Identifiers (OIDs)** | None. |
 | **Fragment identifier considerations** | Supports [RFC 5147](https://www.rfc-editor.org/rfc/rfc5147) `text/plain` character and line fragment identifiers (for example, `#line=10,25`). |
-| **Published specification** | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` |
+| **Published specification** | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` |
 
 ---
 
 ## 3. Character Encoding, Line Endings & Binary Safety
 
 1. **Character Encoding (`UTF-8`)**:
-   - All `.fasm` files MUST be encoded in valid UTF-8 (RFC 3629).
+   - All `.frasm` files MUST be encoded in valid UTF-8 (RFC 3629).
    - All language keywords, protocol names, header modifiers, identifiers, numeric literals, IPv4/IPv6 addresses, MAC addresses, and ASN.1 Object Identifiers (OIDs) belong to the 7-bit US-ASCII character set (`0x20..0x7E`).
    - Non-ASCII UTF-8 code points MAY appear inside single-line comments (`// ...`) and double-quoted payload strings (`"..."`).
 2. **Line Endings & Whitespace**:
-   - The preferred line ending for `.fasm` files in version control is LF (`0x0A`, `\n`).
+   - The preferred line ending for `.frasm` files in version control is LF (`0x0A`, `\n`).
    - Compliant parsers MUST accept both LF (`\n`) and CRLF (`\r\n`) line endings, as well as horizontal tabs (`\t`), form feeds (`\f`), and spaces (`0x20`) as token delimiters (`[ \t\r\n\f]+`).
 3. **Prohibition of Literal NUL Bytes (`0x00`)**:
-   - A valid `.fasm` file MUST NOT contain literal NUL bytes (`0x00`).
-   - Arbitrary binary wire payloads (including NUL bytes) are represented safely in `.fasm` code using hexadecimal escape sequences inside `payload "<string>"` (such as `\x00\x09\x01`) or hexadecimal byte strings inside `hexpayload "<hex>"` (such as `hexpayload "000102ff"`).
+   - A valid `.frasm` file MUST NOT contain literal NUL bytes (`0x00`).
+   - Arbitrary binary wire payloads (including NUL bytes) are represented safely in `.frasm` code using hexadecimal escape sequences inside `payload "<string>"` (such as `\x00\x09\x01`) or hexadecimal byte strings inside `hexpayload "<hex>"` (such as `hexpayload "000102ff"`).
 
 ---
 
-## 4. Document Structure & Lexical Grammar (v2.0.0)
+## 4. Document Structure & Lexical Grammar (v3.0.0)
 
 ### 4.1 Comments, Strict-Lowercase Keywords & Flexible User Identifiers
 
-- **Single-Line Comments**: Comments begin with `//` and extend to the end of the line. Neither `#`, `;`, nor `/* ... */` are valid comment delimiters in `.fasm`.
-- **Strict-Lowercase Built-In Keywords (`[a-z0-9]+`)**: In FrameAssembly v2.0.0, every structural keyword (`host`, `ip`, `mac`, `flow`, `compile`, `wait`), every one of the 81 protocol keywords, every Layer 2–Layer 7 modifier (`echorequest`, `innervlan`, `clienthello`, `hosthdr`, `transporthdr`, `sackperm`, `agentip`, `hellotime`, `whois`, `pkttype`, `read`, `write`, `nop`, `error`, `shutdownack`, `readholdingregisters`, etc.), and every time unit suffix (`ns`, `us`, `ms`, `s`, `m`) MUST be strictly lowercase alphanumeric (`[a-z0-9]+`) with **zero underscores (`_`)** and **zero hyphens (`-`)**. Case-insensitive keyword matching is not permitted; when an uppercase, underscored, or hyphenated typo is encountered, the reference compiler reports a self-healing diagnostic (`replace '<raw>' with '<kw>'`).
+- **Single-Line Comments**: Comments begin with `//` and extend to the end of the line. Neither `#`, `;`, nor `/* ... */` are valid comment delimiters in `.frasm`.
+- **Strict-Lowercase Built-In Keywords (`[a-z0-9]+`)**: In FrameAssembly v3.0.0, every structural keyword (`host`, `ip`, `mac`, `flow`, `compile`, `wait`), every one of the 81 protocol keywords, every Layer 2–Layer 7 modifier (`echorequest`, `innervlan`, `clienthello`, `hosthdr`, `transporthdr`, `sackperm`, `agentip`, `hellotime`, `whois`, `pkttype`, `read`, `write`, `nop`, `error`, `shutdownack`, `readholdingregisters`, etc.), and every time unit suffix (`ns`, `us`, `ms`, `s`, `m`) MUST be strictly lowercase alphanumeric (`[a-z0-9]+`) with **zero underscores (`_`)** and **zero hyphens (`-`)**. Case-insensitive keyword matching is not permitted; when an uppercase, underscored, or hyphenated typo is encountered, the reference compiler reports a self-healing diagnostic (`replace '<raw>' with '<kw>'`).
 - **Flexible User-Defined Identifiers**: User-defined `host`, `flow`, and flow parameter identifiers match `[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*`, allowing uppercase characters, underscores (`core_sw`), and internal hyphens (`fw-dmz-01`) while stopping before `->`. Double-quoted string literals (`"..."`) preserve exact casing on the wire.
 
 ### 4.2 Three-Block Program Model
 
-Every compilable `.fasm` file consists of up to three top-level block types:
+Every compilable `.frasm` file consists of up to three top-level block types:
 
 1. **Endpoint Declarations (`host`)**:
    ```text
@@ -126,7 +128,7 @@ The reference lexer (`src/lexer/mod.rs`) partitions input code into the followin
 
 Every strict-lowercase protocol keyword below compiles with zero mandatory sub-keywords (emitting RFC-compliant default headers and ports) and accepts protocol-specific field overrides:
 
-| OSI Layer | Count | Strict-Lowercase `.fasm` Protocol Keywords |
+| OSI Layer | Count | Strict-Lowercase `.frasm` Protocol Keywords |
 | :--- | :---: | :--- |
 | **Layer 2 (Switching & Data-Link)** | 8 | `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls` |
 | **Layer 3 (Control, Tunnel, VPN, Routing)** | 20 | `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, `openflow` |
@@ -138,15 +140,15 @@ Every strict-lowercase protocol keyword below compiles with zero mandatory sub-k
 
 ---
 
-## 5. Lexical Magic, Content Sniffing & `.fasm` Extension Disambiguation
+## 5. Lexical Magic, Content Sniffing & `.frasm` Extension Disambiguation
 
 ### 5.1 Authoritative Three-Way Format Disambiguation
 
-The `.fasm` file extension is historically associated with three distinct formats across network engineering, systems assembly, and hardware synthesis. Because neither Flat Assembler nor FPGA FASM has registered a formal media type with IANA or Freedesktop.org, naive extension-only associations can cause misclassification.
+FrameAssembly 3.0 uses the dedicated `.frasm` extension so its network packet files no longer share a suffix with other tools. The older `.fasm` suffix is used by two unrelated formats, x86 Flat Assembler and FPGA FASM, neither of which has a registered media type with IANA or Freedesktop.org. FrameAssembly 2.x used `.fasm`; `frameassembly` 3.0 rejects `.fasm` inputs with a hint to rename the file to `.frasm`.
 
 The table below provides the technical disambiguation across eleven dimensions:
 
-| Dimension | **FrameAssembly (`.fasm`)** | **Flat Assembler x86 (`.asm`, `.fasm`)** | **FPGA Bitstream Assembly (`FASM`, `.fasm`)** |
+| Dimension | **FrameAssembly (`.frasm`)** | **Flat Assembler x86 (`.asm`, `.fasm`)** | **FPGA Bitstream Assembly (`FASM`, `.fasm`)** |
 | :--- | :--- | :--- | :--- |
 | **Primary Domain** | Network packet capture specification code ("Packets as Code" / "PCAP as Code") | Low-level x86 / x86-64 machine assembly language | FPGA hardware tile and interconnect feature configuration (SymbiFlow / F4PGA) |
 | **Media Type** | `text/vnd.frameassembly` (RFC 6838 Vendor Tree candidate) | Unregistered (`text/x-asm`) | Unregistered (`text/plain`) |
@@ -179,7 +181,7 @@ Because each format operates in a separate domain, their lexical token sets and 
 
 ### 5.3 Content-Sniffing & Linguist Heuristics
 
-GitHub Linguist, `bat`, `Chroma`, and Pygments identify FrameAssembly `.fasm` documents with zero false positives using the strict-lowercase v2.0.0 regular expression heuristics published in [`contrib/linguist/heuristics.yml`](../contrib/linguist/heuristics.yml):
+GitHub Linguist, `bat`, `Chroma`, and Pygments identify FrameAssembly `.frasm` documents with zero false positives using the strict-lowercase v3.0.0 regular expression heuristics published in [`contrib/linguist/heuristics.yml`](../contrib/linguist/heuristics.yml):
 
 - **Positive FrameAssembly Anchors**:
   - `^\s*host\s+[A-Za-z_][A-Za-z0-9_-]*\s*\{\s*(?:ip|mac)\b`
@@ -192,7 +194,7 @@ GitHub Linguist, `bat`, `Chroma`, and Pygments identify FrameAssembly `.fasm` do
 
 ### 5.4 Freedesktop `shared-mime-info` Magic Signatures & Desktop Integration
 
-The Freedesktop MIME package in [`contrib/mime/text-vnd.frameassembly.xml`](../contrib/mime/text-vnd.frameassembly.xml) (documented in [`contrib/mime/README.md`](../contrib/mime/README.md)) registers `text/vnd.frameassembly` as a subclass of `text/plain` with glob `*.fasm` (`weight="60"`) and `<magic priority="60">` rules matching strict-lowercase v2.0.0 keywords:
+The Freedesktop MIME package in [`contrib/mime/text-vnd.frameassembly.xml`](../contrib/mime/text-vnd.frameassembly.xml) (documented in [`contrib/mime/README.md`](../contrib/mime/README.md)) registers `text/vnd.frameassembly` as a subclass of `text/plain` with glob `*.frasm` (`weight="60"`) and `<magic priority="60">` rules matching strict-lowercase v3.0.0 keywords:
 - `host ` or `host\t` within bytes `0..1024` AND (`ip ` or `mac `) within bytes `0..1536` AND `compile` within bytes `0..8192`, or
 - `flow ` or `flow\t` within bytes `0..2048` AND `compile` within bytes `0..8192`.
 
@@ -200,52 +202,52 @@ Priority `60` ensures that FrameAssembly specifications take precedence over gen
 
 ### 5.5 Unix `file(1)` / `libmagic` Content Sniffing
 
-Unix systems and command-line utilities using `libmagic` identify FrameAssembly `.fasm` files via [`contrib/magic/frameassembly.magic`](../contrib/magic/frameassembly.magic):
+Unix systems and command-line utilities using `libmagic` identify FrameAssembly `.frasm` files via [`contrib/magic/frameassembly.magic`](../contrib/magic/frameassembly.magic):
 
 ```magic
 0	search/2048	host\ 
 >0	search/1536	ip\ 
 >>0	search/8192	compile	FrameAssembly network packet specification
 !:mime	text/vnd.frameassembly
-!:ext	fasm
+!:ext	frasm
 
 0	search/2048	host\ 
 >0	search/1536	mac\ 
 >>0	search/8192	compile	FrameAssembly network packet specification
 !:mime	text/vnd.frameassembly
-!:ext	fasm
+!:ext	frasm
 
 0	search/2048	flow\ 
 >0	search/8192	compile	FrameAssembly network packet specification
 !:mime	text/vnd.frameassembly
-!:ext	fasm
+!:ext	frasm
 ```
 
-Running `file -i <file.fasm>` returns `text/vnd.frameassembly; charset=us-ascii` or `utf-8`.
+Running `file -i <file.frasm>` returns `text/vnd.frameassembly; charset=us-ascii` or `utf-8`.
 
-### 5.6 FAQ: What is a `.fasm` File? (FrameAssembly vs. Flat Assembler vs. FPGA FASM)
+### 5.6 FAQ: What Is a `.frasm` File? (FrameAssembly vs. Flat Assembler vs. FPGA FASM)
 
-#### Q1: What is a `.fasm` file in FrameAssembly?
-A `.fasm` file is a network traffic specification written in FrameAssembly `.fasm` code ("Packets as Code"). It defines network endpoints (`host`), optional directional packet exchanges across OSI Layers 2 through 7 (`flow`), and capture targets (`compile`). Running `frameassembly <input.fasm> [output.pcap]` compiles `.fasm` code offline into `.pcap` or `.pcapng` captures for Wireshark, `tshark`, `tcpreplay`, Suricata, and Zeek; `frameassembly show <input.fasm>` previews the packet ladder in the terminal; and `frameassembly reverse <input.pcap> [output.fasm]` decompiles captures back into `.fasm` code.
+#### Q1: What is a `.frasm` file in FrameAssembly?
+A `.frasm` file is a network traffic specification written in FrameAssembly `.frasm` code ("Packets as Code"). It defines network endpoints (`host`), optional directional packet exchanges across OSI Layers 2 through 7 (`flow`), and capture targets (`compile`). Running `frameassembly <input.frasm> [output.pcap]` compiles `.frasm` code offline into `.pcap` or `.pcapng` captures for Wireshark, `tshark`, `tcpreplay`, Suricata, and Zeek; `frameassembly show <input.frasm>` previews the packet ladder in the terminal; and `frameassembly reverse <input.pcap> [output.frasm]` decompiles captures back into `.frasm` code.
 
-#### Q2: How does a FrameAssembly `.fasm` file differ from an x86 Flat Assembler file?
+#### Q2: How does a FrameAssembly `.frasm` file differ from an x86 Flat Assembler file?
 Flat Assembler (traditionally abbreviated FASM) is a machine-code assembler that translates low-level x86/x86-64 assembly instructions into binary executables (`.exe`, `.elf`, `.bin`). Flat Assembler files use semicolon (`;`) comments, format directives (`format PE`, `section '.text'`), and CPU mnemonics (`mov`, `jmp`, `xor`). In contrast, FrameAssembly files use slash (`//`) comments, strict-lowercase blocks (`host`, `flow`, `compile`), and networking statements (`client -> server tcp syn`).
 
-#### Q3: How does a FrameAssembly `.fasm` file differ from an FPGA FASM file?
+#### Q3: How does a FrameAssembly `.frasm` file differ from an FPGA FASM file?
 In open-source FPGA toolchains (SymbiFlow / F4PGA), FASM stands for FPGA Assembly. It describes low-level FPGA configuration bitstreams using hash (`#`) comments and dot-separated hardware tile feature paths (such as `CLBLL_L_X10Y100.SLICEL_X0.ALUT.INIT[63:0]`). It has no network endpoints, protocols, or flow logic.
 
-#### Q4: How do tools, operating systems, and code editors disambiguate `.fasm` files?
+#### Q4: How do tools, operating systems, and code editors disambiguate `.frasm` files?
 Multi-tier content sniffing eliminates false-positive collisions:
 1. **GitHub**: `.gitattributes` (`linguist-language=FrameAssembly`) and Linguist `heuristics.yml` detect strict-lowercase `host`, `flow`, `compile`, and directional arrows (`->` and `<-`).
 2. **Linux & BSD Desktops**: Freedesktop `shared-mime-info` (`contrib/mime/text-vnd.frameassembly.xml`) and `libmagic` (`contrib/magic/frameassembly.magic`) inspect file bytes for `host ... ip|mac ... compile` or `flow ... compile` magic tokens, reporting `text/vnd.frameassembly`.
 3. **VS Code & Web Packet Studio**: The VS Code Marketplace extension (`SteveWinschel.frameassembly-vscode`) and browser studio ([`frameassembly.ai.studio`](https://frameassembly.ai.studio/)) register the `source.frameassembly` TextMate scope and `text/vnd.frameassembly` MIME type.
 
 #### Q5: Can I compile an x86 Flat Assembler or FPGA FASM file with the `frameassembly` compiler?
-No. FrameAssembly is a network packet capture compiler. If you pass an x86 Flat Assembler or FPGA FASM file to `frameassembly`, the parser detects foreign syntax (such as `;` or `#` comments, `format PE`, or tile paths) and displays a plain-English error explaining that FrameAssembly `.fasm` files use `host`, `flow`, and `compile` blocks.
+No. FrameAssembly is a network packet capture compiler. If you pass an x86 Flat Assembler or FPGA FASM file to `frameassembly`, the parser detects foreign syntax (such as `;` or `#` comments, `format PE`, or tile paths) and displays a plain-English error explaining that FrameAssembly `.frasm` files use `host`, `flow`, and `compile` blocks.
 
 ### 5.7 Registry Status Across Standards Bodies & Public Databases
 
-The `.fasm` file extension and `text/vnd.frameassembly` media type maintain registration entries and packaging assets across major registries and supported channels:
+The `.frasm` file extension and `text/vnd.frameassembly` media type maintain registration entries and packaging assets across major registries and supported channels:
 
 1. **IANA Media Type Registry**: RFC 6838 Vendor Tree registration application in [`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md).
 2. **Freedesktop `shared-mime-info`**: XML package definition in [`contrib/mime/text-vnd.frameassembly.xml`](../contrib/mime/text-vnd.frameassembly.xml) and upstream merge request guide in [`contrib/mime/README.md`](../contrib/mime/README.md).
@@ -259,13 +261,13 @@ The `.fasm` file extension and `text/vnd.frameassembly` media type maintain regi
 ## 6. Security Considerations (RFC 6838 §4.6 & RFC 3552)
 
 1. **Passive, Non-Executable Format**:
-   - A `.fasm` file is a passive network packet specification describing network endpoints and packet header fields. It contains no general-purpose executable code, macros, shell invocations, or system calls.
+   - A `.frasm` file is a passive network packet specification describing network endpoints and packet header fields. It contains no general-purpose executable code, macros, shell invocations, or system calls.
 2. **Bounded, Side-Effect-Free Compilation**:
    - The `frameassembly` language is intentionally non-Turing-complete: there are no loops (`loop` was removed in FrameAssembly v2.0.0), no unbounded recursion, no dynamic memory allocation expressions, and no conditional branching.
-   - The language includes no file-inclusion directives (`include` or `import`) and performs no network I/O or DNS resolution during compilation, eliminating Server-Side Request Forgery (SSRF) and local file inclusion vectors when compiling untrusted `.fasm` inputs.
+   - The language includes no file-inclusion directives (`include` or `import`) and performs no network I/O or DNS resolution during compilation, eliminating Server-Side Request Forgery (SSRF) and local file inclusion vectors when compiling untrusted `.frasm` inputs.
    - The compiler runs offline without `CAP_NET_RAW`, raw sockets, or `libpcap`.
 3. **Downstream Packet Capture Considerations**:
-   - Compiling `.fasm` code (`frameassembly <input.fasm> [output.pcap]`) produces a passive `.pcap` / `.pcapng` packet capture file.
+   - Compiling `.frasm` code (`frameassembly <input.frasm> [output.pcap]`) produces a passive `.pcap` / `.pcapng` packet capture file.
    - Because FrameAssembly is built for firewall, IDS/IPS (**Suricata**, **Zeek**, **Snort**), and protocol dissector (**Wireshark** / `tshark`) testing, generated `.pcap` files may intentionally contain custom header combinations, fragmentation overlaps (`mf` + `fragoffset`), out-of-window TCP sequence numbers, or intrusion-detection test signatures.
    - Replaying a generated `.pcap` file onto a live network interface requires explicit invocation of an external replay tool (such as `tcpreplay`) by an authorized administrator.
 
@@ -273,7 +275,7 @@ The `.fasm` file extension and `text/vnd.frameassembly` media type maintain regi
 
 ## 7. Knowledge Graph & Registry Mapping (Wikidata, IANA, GitHub)
 
-For knowledge graphs, digital preservation registries (Wikidata, PRONOM, Software Heritage), and package indexes, the FrameAssembly `.fasm` format maps to the following properties:
+For knowledge graphs, digital preservation registries (Wikidata, PRONOM, Software Heritage), and package indexes, the FrameAssembly `.frasm` format maps to the following properties:
 
 | Property / Registry | Identifier / Property Code | Value |
 | :--- | :--- | :--- |
@@ -282,22 +284,22 @@ For knowledge graphs, digital preservation registries (Wikidata, PRONOM, Softwar
 | **Unix `file(1)` / `libmagic`** | Magdir Rule | `text/vnd.frameassembly` ([`contrib/magic/frameassembly.magic`](../contrib/magic/frameassembly.magic)) |
 | **UK National Archives PRONOM** | Technical Registry | `FrameAssembly Network Packet Specification` (`text/vnd.frameassembly`) ([`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md)) |
 | **Wikidata: instance of** | `P31` | `Q235557` (file format), `Q1262091` (packet specification format), `Q9143` (computer language) |
-| **Wikidata: file extension** | `P1195` | `fasm` |
+| **Wikidata: file extension** | `P1195` | `frasm` |
 | **Wikidata: media type** | `P1163` | `text/vnd.frameassembly` |
-| **Wikidata: described at URL** | `P973` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/fasm-specification.md` |
+| **Wikidata: described at URL** | `P973` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` |
 | **Wikidata: official website** | `P856` | `https://frameassembly.ai.studio/` |
 | **Wikidata: source repository** | `P1324` | `https://github.com/SteveWinschel/FrameAssembly` |
 | **Wikidata: copyright license** | `P275` | `Q334661` (MIT License) |
 | **Wikidata: operating system** | `P306` | `Q388` (Linux), `Q14116` (macOS), `Q1406` (Microsoft Windows) |
 | **Wikidata: programmed in** | `P277` | `Q575650` (Rust) |
-| **Public Extension Databases** | FileInfo / File-Extensions / FILExt | `.fasm` (`text/vnd.frameassembly`) ([`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md)) |
-| **GitHub `.gitattributes`** | `linguist-language` | `*.fasm linguist-language=FrameAssembly linguist-detectable=true` ([`.gitattributes`](../.gitattributes)) |
+| **Public Extension Databases** | FileInfo / File-Extensions / FILExt | `.frasm` (`text/vnd.frameassembly`) ([`contrib/iana/text-vnd.frameassembly.md`](../contrib/iana/text-vnd.frameassembly.md)) |
+| **GitHub `.gitattributes`** | `linguist-language` | `*.frasm linguist-language=FrameAssembly linguist-detectable=false` ([`.gitattributes`](../.gitattributes)) |
 
 ---
 
-## 8. Validated `.fasm` v2.0.0 Specification Examples
+## 8. Validated `.frasm` v3.0.0 Specification Examples
 
-Every example below is a complete `text/vnd.frameassembly` document verified by the `frameassembly` v2.0.0 compiler (`frameassembly <input.fasm> [output.pcap]`).
+Every example below is a complete `text/vnd.frameassembly` document verified by the `frameassembly` v3.0.0 compiler (`frameassembly <input.frasm> [output.pcap]`).
 
 ### Example 1: Stateful TCP Handshake, HTTP/1.1 Transaction & Encrypted SNMPv3 USM Trap
 
@@ -376,6 +378,6 @@ compile {
 
 ## 9. Related Guides & Companion References
 
-* **[Getting Started Guide (`getting_started.md`)](getting_started.md)** — Beginner tutorial, `frameassembly show` preview, `frameassembly reverse` decompilation, and pairing FrameAssembly with `Wireshark`, `tshark`, and `tcpreplay`.
-* **[Practical Use Cases & Cookbook (`use_cases.md`)](use_cases.md)** — Copy-paste `.fasm` recipes for Checkmk/Zabbix SNMPv3 traps, firewall ACLs, VLAN/QinQ/MPLS QoS, IDS/IPS rules, and OT/SCADA testing.
-* **[For Nerds: Six-Stage Compiler Architecture, Rust API & Formal Grammars (`for_nerds.md`)](for_nerds.md)** — Deep dive into the zero-copy Rust compiler, public crate API, and `EBNF`/`GBNF`/`Lark` grammars.
+* **[Getting Started Guide (`01_getting_started.md`)](01_getting_started.md)** — Beginner tutorial, `frameassembly show` preview, `frameassembly reverse` decompilation, and pairing FrameAssembly with `Wireshark`, `tshark`, and `tcpreplay`.
+* **[Practical Use Cases & Cookbook (`02_use_cases.md`)](02_use_cases.md)** — Copy-paste `.frasm` recipes for Checkmk/Zabbix SNMPv3 traps, firewall ACLs, VLAN/QinQ/MPLS QoS, IDS/IPS rules, and OT/SCADA testing.
+* **[For Nerds: Six-Stage Compiler Architecture, Rust API & Formal Grammars (`13_for_nerds.md`)](13_for_nerds.md)** — Deep dive into the zero-copy Rust compiler, public crate API, and `EBNF`/`GBNF`/`Lark` grammars.

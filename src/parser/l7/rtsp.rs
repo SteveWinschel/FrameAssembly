@@ -1,7 +1,7 @@
 //! Real Time Streaming Protocol (RTSP) Layer 7 media control field parser.
 //!
 //! This module implements the `winnow` parser combinator for RFC 2326 and RFC 7826 `rtsp` session
-//! control messages in FrameAssembly `.fasm` specifications. It recognizes the `rtsp` protocol
+//! control messages in FrameAssembly `.frasm` specifications. It recognizes the `rtsp` protocol
 //! keyword, shorthand method tokens (`options`, `describe`, `setup`, `play`, `teardown`), explicit
 //! `method` strings, stream `uri` targets, sequence numbers (`cseq`), `transporthdr` parameters,
 //! `session` identifiers, and response `status` codes.

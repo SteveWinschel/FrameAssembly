@@ -7,7 +7,7 @@
 //! 8 zeroed bytes), encrypted payload (or 16-byte `0xAA` dummy ciphertext when unspecified), ESP
 //! trailer (`Pad Length = 0` and `Next Header` default `59`), and trailing Integrity Check Value (`icv`).
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b [esp | ipsec] [spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [nextheader <u8>] [payload "<str>" | hexpayload "<hex>"]`
 
 use crate::ast::*;

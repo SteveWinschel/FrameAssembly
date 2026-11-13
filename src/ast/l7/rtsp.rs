@@ -5,7 +5,7 @@
 //! Every field in [`RtspSpec`] is optional so authors can emit zero-configuration default
 //! frames or override specific protocol header fields and attributes.
 //!
-//! Canonical `.fasm` syntax:
+//! Canonical `.frasm` syntax:
 //! `a -> b rtsp [options | method <str>] [uri <str>] [status <u16>] [cseq <u32>] [transporthdr <str>] [session <str>]`
 
 /// RFC 7826 Real-Time Streaming Protocol specification.

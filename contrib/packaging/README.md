@@ -1,16 +1,16 @@
 # FrameAssembly Multi-Platform Packaging & Release Maintainer Guide
 
-This directory contains official packaging recipes, manifests, formulas, and distribution templates for **FrameAssembly** (`frameassembly` v2.0.0, official website & browser playground: [`https://frameassembly.ai.studio/`](https://frameassembly.ai.studio/), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) across supported operating systems and package managers:
+This directory contains official packaging recipes, manifests, formulas, and distribution templates for **FrameAssembly** (`frameassembly` v3.0.0, official website & browser playground: [`https://frameassembly.ai.studio/`](https://frameassembly.ai.studio/), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) across supported operating systems and package managers:
 
 - **Debian / Ubuntu (`APT`)**: Standalone `.deb` package builder and control templates (`contrib/packaging/apt/`), bundling MIME, file magic, and Bash/Zsh/Fish Tab completions
 - **macOS & Linux (`Homebrew`)**: Multi-architecture Ruby formula for [`SteveWinschel/homebrew-tap-FrameAssembly`](https://github.com/SteveWinschel/homebrew-tap-FrameAssembly) (`contrib/packaging/homebrew/`)
-- **Windows (`Scoop`)**: Self-updating JSON manifest synced to [`SteveWinschel/homebrew-tap-FrameAssembly`](https://github.com/SteveWinschel/homebrew-tap-FrameAssembly) (`contrib/packaging/scoop/`)
+- **Windows (`Scoop` & PowerShell)**: Self-updating JSON manifest synced to [`SteveWinschel/homebrew-tap-FrameAssembly`](https://github.com/SteveWinschel/homebrew-tap-FrameAssembly) (`contrib/packaging/scoop/`) plus zero-Admin `install.ps1`
 - **WebAssembly (`NPM`)**: Browser/Node.js WebAssembly package `frameassembly-wasm` (`frameassembly-wasm/`)
 - **VS Code Marketplace**: Interactive Packet Studio extension `frameassembly-vscode` bundling the WASM compiler and decompiler (`frameassembly-vscode/`)
 
 ---
 
-Pre-built static binary packages are provided across APT (`.deb`), macOS & Linux Homebrew (`brew`), and Windows Scoop (`scoop`), with zero runtime library dependencies and automatic MIME, file magic, and shell completion registration on Debian/Ubuntu.
+Pre-built static binary packages are provided across GitHub Releases (`frameassembly-{windows,macos,linux}-{x64,arm64}.{zip,tar.gz}` with `quickstart.frasm`), APT (`.deb`), macOS & Linux Homebrew (`brew`), and Windows Scoop (`scoop`), with zero runtime library dependencies and automatic MIME, file magic, and shell completion registration on Debian/Ubuntu.
 
 ---
 
@@ -18,14 +18,14 @@ Pre-built static binary packages are provided across APT (`.deb`), macOS & Linux
 
 | Package Manager | Target Platform | Architecture | Upstream Registry / Repository | Package Identifier |
 | :--- | :--- | :--- | :--- | :--- |
-| **APT** | Debian 11+, Ubuntu 20.04+ | `amd64`, `arm64` | GitHub Releases (`*.deb`) | `frameassembly` |
-| **Homebrew** | macOS (Apple Silicon / Intel), Linux | `aarch64`, `x86_64` | `SteveWinschel/homebrew-tap-FrameAssembly` | `frameassembly` |
+| **APT** | Debian 11+, Ubuntu 20.04+ | `amd64`, `arm64` | GitHub Releases (`frameassembly_{amd64,arm64}.deb`) | `frameassembly` |
+| **Homebrew** | macOS (Apple Silicon / Intel), Linux | `arm64`, `x64` | `SteveWinschel/homebrew-tap-FrameAssembly` | `frameassembly` |
 | **Scoop** | Windows 10/11, Windows Server | `64bit`, `arm64` | `SteveWinschel/homebrew-tap-FrameAssembly` | `frameassembly` |
 | **NPM (WASM)** | Web browsers, Web Workers, Node.js | Universal (`wasm32`) | `npmjs.com/package/frameassembly-wasm` | `frameassembly-wasm` |
 | **Crates.io** | Rust developers, Cargo users | Source / native | `crates.io/crates/frameassembly` | `frameassembly` |
 | **VS Code Marketplace** | Cross-platform (VS Code, `.vsix` for Cursor, Windsurf, VSCodium) | Universal | Visual Studio Marketplace | `SteveWinschel.frameassembly-vscode` |
 
-All native packages distribute static `musl` binaries on Linux, statically linked MSVC C runtime binaries on Windows, and Mach-O release binaries on macOS.
+All native packages distribute static `musl` binaries on Linux (`frameassembly-linux-x64.tar.gz`, `frameassembly-linux-arm64.tar.gz`), statically linked MSVC C runtime binaries on Windows (`frameassembly-windows-x64.zip`, `frameassembly-windows-arm64.zip`), and Mach-O release binaries on macOS (`frameassembly-macos-arm64.tar.gz`, `frameassembly-macos-x64.tar.gz`). Each GitHub Release publishes exactly 10 top-level assets (the 6 OS archives, `frameassembly_amd64.deb`, `frameassembly_arm64.deb`, `frameassembly-vscode.vsix`, and `SHA256SUMS.txt`).
 
 Debian (`.deb`) packages automatically bundle the Freedesktop shared MIME type definition (`contrib/mime/text-vnd.frameassembly.xml` -> `/usr/share/mime/packages/text-vnd.frameassembly.xml`), file magic rules (`contrib/magic/frameassembly.magic` -> `/usr/share/file/magic/frameassembly`), and Tab completions for Bash (`/usr/share/bash-completion/completions/frameassembly`), Zsh (`/usr/share/zsh/vendor-completions/_frameassembly`), and Fish (`/usr/share/fish/vendor_completions.d/frameassembly.fish`).
 
@@ -36,7 +36,7 @@ Debian (`.deb`) packages automatically bundle the Freedesktop shared MIME type d
 Automated CI release publication and registry synchronization are managed by `.github/workflows/release.yml`. The workflow triggers on pushes to `main` modifying `Cargo.toml` (auto-creating tag `v<version>`) and manual `workflow_dispatch`.
 
 Every external registry upload is guarded by optional GitHub Actions secrets or OIDC Trusted Publishing:
-- **Zero Secrets Configured (`0 secrets set`)**: On forks or dry-runs with zero secrets configured, the workflow still compiles all 6 native matrix targets, packages Debian `.deb` archives with shell completions, compiles the WebAssembly NPM tarball, bundles the WASM runtime into the VS Code `.vsix`, generates SLSA provenance attestations, computes `SHA256SUMS.txt`, and publishes the GitHub Release cleanly.
+- **Zero Secrets Configured (`0 secrets set`)**: On forks or dry-runs with zero secrets configured, the workflow still compiles all 6 native matrix targets, packages Debian `.deb` archives with shell completions, compiles the WebAssembly NPM tarball, bundles the WASM runtime into `frameassembly-vscode.vsix`, generates SLSA provenance attestations, computes `SHA256SUMS.txt`, and publishes the 10-asset GitHub Release cleanly.
 - **With Credentials Configured**: Registry publishing and Homebrew/Scoop repository synchronization activate automatically.
 
 ### Supported Secret & OIDC Specification Matrix
@@ -56,16 +56,16 @@ Every external registry upload is guarded by optional GitHub Actions secrets or 
 
 Every tagged GitHub release runs `.github/workflows/release.yml`, compiling binaries across 6 matrix targets, building `.deb`, WASM, and `.vsix` artifacts, generating SLSA provenance attestations, and publishing `SHA256SUMS.txt`.
 
-`contrib/packaging/update-checksums.sh` reads or downloads `SHA256SUMS.txt` and stamps verified 64-character SHA-256 hashes into:
+`contrib/packaging/update-checksums.sh` reads or downloads `SHA256SUMS.txt` and stamps verified 64-character SHA-256 hashes (matching clean `frameassembly-{linux,macos,windows}-{x64,arm64}.{tar.gz,zip}` names as well as legacy target-triple filenames) into:
 - **Homebrew**: `contrib/packaging/homebrew/Formula/frameassembly.rb` (all 4 macOS/Linux architecture blocks)
 - **Scoop**: `contrib/packaging/scoop/frameassembly.json` (`64bit` and `arm64`)
 
 ```bash
 # Stamp checksums from a published GitHub Release tag
-./contrib/packaging/update-checksums.sh v2.0.0
+./contrib/packaging/update-checksums.sh v3.0.0
 
 # Offline or local dry-run with a local SHA256SUMS.txt file
-./contrib/packaging/update-checksums.sh --sums-file path/to/SHA256SUMS.txt 2.0.0
+./contrib/packaging/update-checksums.sh --sums-file path/to/SHA256SUMS.txt 3.0.0
 ```
 
 ---
@@ -75,14 +75,14 @@ Every tagged GitHub release runs `.github/workflows/release.yml`, compiling bina
 #### Local Build & Verification
 ```bash
 # Build amd64 deb package
-contrib/packaging/apt/build-deb.sh 2.0.0 target/release/frameassembly amd64 dist/
+contrib/packaging/apt/build-deb.sh 3.0.0 target/release/frameassembly amd64 dist/
 
 # Build arm64 deb package
-contrib/packaging/apt/build-deb.sh 2.0.0 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist/
+contrib/packaging/apt/build-deb.sh 3.0.0 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist/
 
 # Verify generated package metadata and bundled completions
-dpkg-deb --info dist/frameassembly_2.0.0_amd64.deb
-dpkg-deb --contents dist/frameassembly_2.0.0_amd64.deb
+dpkg-deb --info dist/frameassembly_3.0.0_amd64.deb
+dpkg-deb --contents dist/frameassembly_3.0.0_amd64.deb
 ```
 
 #### End-User Installation Command
@@ -107,7 +107,7 @@ cd homebrew-tap-FrameAssembly
 mkdir -p Formula
 cp /path/to/frameassembly/contrib/packaging/homebrew/Formula/frameassembly.rb Formula/
 git add Formula/frameassembly.rb
-git commit -m "frameassembly 2.0.0"
+git commit -m "frameassembly 3.0.0"
 git push origin main
 ```
 
@@ -118,21 +118,25 @@ brew install SteveWinschel/tap-FrameAssembly/frameassembly
 
 ---
 
-### 3.3 Windows Scoop (`SteveWinschel/homebrew-tap-FrameAssembly`)
+### 3.3 Windows Scoop (`SteveWinschel/homebrew-tap-FrameAssembly`) & PowerShell
 
 The Scoop manifest (`contrib/packaging/scoop/frameassembly.json`) is hosted inside the `bucket/` directory of [`https://github.com/SteveWinschel/homebrew-tap-FrameAssembly`](https://github.com/SteveWinschel/homebrew-tap-FrameAssembly) and updated automatically on every release alongside the Homebrew formula.
 
 #### End-User Installation Command
 ```powershell
+# Scoop
 scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly
 scoop install frameassembly
+
+# Or zero-Admin PowerShell installer
+irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 | iex
 ```
 
 ---
 
 ### 3.4 Visual Studio Marketplace (`frameassembly-vscode`)
 
-`frameassembly-vscode` bundles the compiled `frameassembly-wasm` engine inside `frameassembly-vscode/wasm/` so live `.fasm` diagnostics, protocol-scoped autocomplete, interactive Packet Ladder previews, and right-click `.pcap` / `.pcapng` reversal run offline inside VS Code.
+`frameassembly-vscode` bundles the compiled `frameassembly-wasm` engine inside `frameassembly-vscode/wasm/` so live `.frasm` diagnostics, protocol-scoped autocomplete, interactive Packet Ladder previews, and right-click `.pcap` / `.pcapng` reversal run offline inside VS Code.
 
 #### Local Packaging & Publishing
 ```bash
@@ -144,8 +148,8 @@ cp frameassembly-wasm/pkg/frameassembly_wasm.js \
    frameassembly-vscode/wasm/
 
 cd frameassembly-vscode
-npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o frameassembly-vscode-2.0.0.vsix
-npx @vscode/vsce publish -p "$VSCE_PAT" --packagePath frameassembly-vscode-2.0.0.vsix
+npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o frameassembly-vscode-3.0.0.vsix
+npx @vscode/vsce publish -p "$VSCE_PAT" --packagePath frameassembly-vscode-3.0.0.vsix
 ```
 
 #### End-User Installation Command
@@ -168,6 +172,6 @@ bash -n install.sh
 jq . contrib/packaging/scoop/frameassembly.json
 
 # 3. Debian package assembly test
-contrib/packaging/apt/build-deb.sh 2.0.0 target/debug/frameassembly amd64 temp/
-rm -rf temp/frameassembly_2.0.0_amd64.deb temp/frameassembly_amd64.deb
+contrib/packaging/apt/build-deb.sh 3.0.0 target/debug/frameassembly amd64 temp/
+rm -rf temp/frameassembly_3.0.0_amd64.deb temp/frameassembly_amd64.deb
 ```

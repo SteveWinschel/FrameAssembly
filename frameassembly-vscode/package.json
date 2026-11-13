@@ -1,8 +1,8 @@
 {
   "name": "frameassembly-vscode",
-  "displayName": "FrameAssembly — PCAP & Network Packet Studio (.fasm)",
-  "description": "Compile, inspect, and reverse .pcap / .pcapng network packet captures as .fasm code across 81 L2-L7 protocols with live diagnostics, autocomplete, and packet ladder preview.",
-  "version": "2.0.0",
+  "displayName": "FrameAssembly — PCAP & Network Packet Studio (.frasm)",
+  "description": "Compile, inspect, and reverse .pcap / .pcapng network packet captures as .frasm code across 81 L2-L7 protocols with live diagnostics, autocomplete, and packet ladder preview.",
+  "version": "3.0.0",
   "publisher": "SteveWinschel",
   "icon": "icon.png",
   "galleryBanner": {
@@ -25,7 +25,8 @@
   "browser": "./extension.js",
   "activationEvents": [
     "onLanguage:frameassembly",
-    "onCommand:frameassembly.reversePcap"
+    "onCommand:frameassembly.reversePcap",
+    "onCommand:frameassembly.openWalkthrough"
   ],
   "categories": [
     "Programming Languages",
@@ -35,7 +36,7 @@
   ],
   "keywords": [
     "frameassembly",
-    "fasm",
+    "frasm",
     "pcap",
     "pcapng",
     "wireshark",
@@ -71,10 +72,11 @@
         "id": "frameassembly",
         "aliases": [
           "FrameAssembly",
-          "frameassembly"
+          "frameassembly",
+          "frasm"
         ],
         "extensions": [
-          ".fasm"
+          ".frasm"
         ],
         "mimetypes": [
           "text/vnd.frameassembly"
@@ -109,17 +111,25 @@
     "commands": [
       {
         "command": "frameassembly.compileToPcap",
-        "title": "FrameAssembly: Compile .fasm to .pcapng",
+        "title": "Compile .frasm to .pcap",
+        "category": "FrameAssembly",
         "icon": "$(package)"
       },
       {
         "command": "frameassembly.showPacketLadder",
-        "title": "FrameAssembly: Show Live Packet Ladder Preview",
+        "title": "Show Live Packet Ladder Preview",
+        "category": "FrameAssembly",
         "icon": "$(split-horizontal)"
       },
       {
         "command": "frameassembly.reversePcap",
-        "title": "FrameAssembly: Reverse Capture (.pcap/.pcapng) to .fasm"
+        "title": "Reverse Capture (.pcap/.pcapng) to .frasm",
+        "category": "FrameAssembly"
+      },
+      {
+        "command": "frameassembly.openWalkthrough",
+        "title": "Open Getting Started Walkthrough",
+        "category": "FrameAssembly"
       }
     ],
     "menus": {
@@ -140,8 +150,56 @@
           "command": "frameassembly.reversePcap",
           "when": "resourceExtname == .pcap || resourceExtname == .pcapng",
           "group": "navigation@1"
+        },
+        {
+          "command": "frameassembly.compileToPcap",
+          "when": "resourceExtname == .frasm",
+          "group": "navigation@1"
         }
       ]
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "frameassembly.gettingStarted",
+        "title": "Get Started with FrameAssembly Packet Studio",
+        "description": "Write packets as code in a .frasm file, preview the packet ladder live, then compile a .pcap for Wireshark or tcpreplay and reverse existing captures.",
+        "steps": [
+          {
+            "id": "frameassembly.step1.create",
+            "title": "Create a .frasm file",
+            "description": "Open a new file, save it with the `.frasm` extension, and type `frasm` followed by Tab to insert a complete host, flow, and compile skeleton.\n[Create a new file](command:workbench.action.files.newUntitledFile)",
+            "media": {
+              "markdown": "walkthroughs/step1-create.md"
+            },
+            "completionEvents": [
+              "onLanguage:frameassembly"
+            ]
+          },
+          {
+            "id": "frameassembly.step2.ladder",
+            "title": "Preview the packet ladder",
+            "description": "See every frame your code produces, with timestamps, protocols, and a hex dump, updating as you type.\n[Show Live Packet Ladder](command:frameassembly.showPacketLadder)",
+            "media": {
+              "markdown": "walkthroughs/step2-ladder.md"
+            },
+            "completionEvents": [
+              "onCommand:frameassembly.showPacketLadder"
+            ]
+          },
+          {
+            "id": "frameassembly.step3.compile",
+            "title": "Compile to .pcap or reverse a capture",
+            "description": "Write a `.pcap` next to your file for Wireshark, tcpreplay, or Suricata, or right-click an existing capture to turn it back into `.frasm` code.\n[Compile .frasm to .pcap](command:frameassembly.compileToPcap)\n[Reverse a capture to .frasm](command:frameassembly.reversePcap)",
+            "media": {
+              "markdown": "walkthroughs/step3-compile-reverse.md"
+            },
+            "completionEvents": [
+              "onCommand:frameassembly.compileToPcap",
+              "onCommand:frameassembly.reversePcap"
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

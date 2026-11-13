@@ -5,7 +5,7 @@
 //! On the wire, an SMB2 frame begins with a 4-byte NetBIOS stream length prefix followed by a
 //! 64-byte SMB2 header (`\xFESMB` magic, StructureSize 64, CreditCharge, NTStatus, Command code,
 //! Flags, MessageId, TreeId, SessionId, and 16-byte Signature) and command-specific body structures.
-//! Canonical FrameAssembly `.fasm` syntax models SMB2 frames using
+//! Canonical FrameAssembly `.frasm` syntax models SMB2 frames using
 //! `smb [command <str>] [status <u32>] [treeid <u32>] [sessionid <u64>] [msgid <u64>] [share <str>] [filename <str>]`.
 
 /// Microsoft Server Message Block v2/v3 (`[MS-SMB2]`) protocol specification.

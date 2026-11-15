@@ -48,7 +48,10 @@ pub fn build_http_payload(
     } else {
         let method = spec.method.unwrap_or("GET");
         let uri = spec.uri.unwrap_or("/");
-        let host = spec.host_hdr.map(|h| h.to_string()).unwrap_or_else(|| ctx.dst_ip.to_string());
+        let host = spec.host_hdr.map(|h| h.to_string()).unwrap_or_else(|| match ctx.dst_ip {
+            core::net::IpAddr::V4(v4) => v4.to_string(),
+            core::net::IpAddr::V6(v6) => format!("[{v6}]"),
+        });
 
         out.push_str(&format!("{} {} HTTP/{}\r\nHost: {}\r\n", method, uri, version, host));
         if let Some(ua) = spec.user_agent {

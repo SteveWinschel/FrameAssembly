@@ -1,20 +1,19 @@
-// PROMPT: Smart home IoT sensor discovery query targeting Basic device schema.
-// TOKENS: host, ip, flow, s, ssdp, msearch, st, mx, man, compile
+// Smart home IoT sensor discovery query targeting Basic device schema.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (SSDP /
+// UPnP, UDP 1900).
+// Wireshark: ssdp
 
-// INSTRUCTION: Define IoT controller hub.
 host iot_hub { ip 192.168.50.2 }
 
-// INSTRUCTION: Define UPnP multicast target.
 host upnp_target { ip 239.255.255.250 }
 
-// INSTRUCTION: Define IoT basic device discovery flow.
 flow ssdp_iot_search(c, s) {
     c -> s ssdp msearch
         st "urn:schemas-upnp-org:device:Basic:1"
         mx 1 man "\"ssdp:discover\""
 }
 
-// INSTRUCTION: Compile block executing IoT search.
 compile {
     ssdp_iot_search(iot_hub, upnp_target)
 }

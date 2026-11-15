@@ -1,13 +1,13 @@
-// PROMPT: LACNIC regional internet registry lookup for South American IP allocation.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// LACNIC regional internet registry lookup for South American IP allocation.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define South American operations terminal.
 host lacnic_cli { ip 192.168.99.20 }
 
-// INSTRUCTION: Define LACNIC WHOIS directory.
 host lacnic_whois { ip 200.3.14.10 }
 
-// INSTRUCTION: Define LACNIC regional IP query flow.
 flow whois_lacnic_flow(c, s) {
     c -> s whois query domain "200.7.84.0/22"
     c <- s whois response
@@ -15,7 +15,6 @@ flow whois_lacnic_flow(c, s) {
         registrar "LACNIC"
 }
 
-// INSTRUCTION: Compile block executing LACNIC query.
 compile {
     whois_lacnic_flow(lacnic_cli, lacnic_whois)
 }

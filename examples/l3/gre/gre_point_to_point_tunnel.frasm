@@ -1,19 +1,21 @@
-// PROMPT: Generic Routing Encapsulation tunnel packet transmission with GRE key and sequence numbers.
-// TOKENS: host, ip, flow, gre, grekey, greseq, compile
+// Generic Routing Encapsulation tunnel packet transmission with GRE key and
+// sequence numbers.
+// This capture encapsulates passenger traffic inside IP protocol 47 GRE
+// headers.
+// Wireshark: gre
 
-// INSTRUCTION: Define GRE tunnel source gateway.
 host gre_endpoint_a { ip 192.0.2.1 }
 
-// INSTRUCTION: Define GRE tunnel destination gateway.
 host gre_endpoint_b { ip 192.0.2.2 }
 
-// INSTRUCTION: Define GRE encapsulation flow.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow gre_tunnel_flow(a, b) {
     a -> b gre grekey 12345 greseq 1
     a -> b gre grekey 12345 greseq 2
 }
 
-// INSTRUCTION: Compile block executing GRE tunnel transmission.
+// Run gre_tunnel_flow(gre_endpoint_a, gre_endpoint_b) to generate the
+// capture.
 compile {
     gre_tunnel_flow(gre_endpoint_a, gre_endpoint_b)
 }

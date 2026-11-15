@@ -1,25 +1,24 @@
-// PROMPT: Airport common-use terminal network encapsulating airline C-VLAN 310 inside airport authority S-VLAN 1500 via IEEE 802.1ad QinQ.
-// TOKENS: host, ip, mac, flow, qinq, innervlan, tcp, psh, ack, srcport, dstport, seq, acknum, win, payload, wait, ms, compile
+// Airport common-use terminal network encapsulating airline C-VLAN 310 inside
+// airport authority S-VLAN 1500 via IEEE 802.1ad QinQ.
+// Wire profile: 2 frames; 2 IPv4 hosts; QinQ S-VLAN 1500 / C-VLAN 310; TCP; TCP
+// flags ACK/PSH; dstport 443,50310; waits 5ms.
+// Wireshark: vlan.id == 1500 && vlan.id == 310
 
-// INSTRUCTION: Define departure gate boarding pass kiosk on airline C-VLAN 310 inside S-VLAN 1500.
 host gate_cupps_kiosk {
     ip 10.150.31.15
     mac 00:1b:21:96:1f:0f
 }
 
-// INSTRUCTION: Define airline back-office departure control system gateway.
 host airline_dcs_gw {
     ip 10.150.31.1
     mac 00:1b:21:96:1f:01
 }
 
-// INSTRUCTION: Exchange boarding pass scan transaction over QinQ outer S-VLAN 1500 and inner C-VLAN 310.
 flow qinq_airport_cupps(kiosk, dcs) {
     kiosk -> dcs qinq 1500 innervlan 310 tcp psh ack srcport 50310 dstport 443 seq 1 acknum 1 win 32768 payload "BCBP_M1DOE/JOHN_EA123_JFK_LHR_12A" wait 5ms
     kiosk <- dcs qinq 1500 innervlan 310 tcp psh ack srcport 443 dstport 50310 seq 1 acknum 34 win 32768 payload "BOARDING_APPROVED_GATE_B14"
 }
 
-// INSTRUCTION: Compile the airport common-use terminal QinQ S-VLAN 1500 C-VLAN 310 flow.
 compile {
     qinq_airport_cupps(gate_cupps_kiosk, airline_dcs_gw)
 }

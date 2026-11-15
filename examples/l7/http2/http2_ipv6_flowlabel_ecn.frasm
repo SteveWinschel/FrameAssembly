@@ -1,13 +1,13 @@
-// PROMPT: HTTP/2 connection over IPv6 with explicit FlowLabel, ECN Congestion Experienced, and Settings exchange.
-// TOKENS: host, ip, flow, http2, preface, flowlabel, ecn, ttl, settings, streamid, headers, ping, compile
+// HTTP/2 connection over IPv6 with explicit FlowLabel, ECN Congestion
+// Experienced, and Settings exchange.
+// Wireshark: http2
 
-// INSTRUCTION: Define IPv6 CDN client.
 host v6_client { ip 2001:db8:abcd::55 }
 
-// INSTRUCTION: Define IPv6 CDN edge node.
+// IPv6 CDN edge node.
 host v6_edge { ip 2001:db8:abcd::1 }
 
-// INSTRUCTION: Exchange HTTP/2 frames over IPv6 with FlowLabel 0x44300 and ECN 2 (ECT0).
+// Exchange HTTP/2 frames over IPv6 with FlowLabel 0x44300 and ECN 2 (ECT0).
 flow http2_ipv6_flowlabel(c, e) {
     c -> e http2 preface flowlabel 0x44300 ecn 2 ttl 64
     c -> e http2 settings streamid 0 flowlabel 0x44300 ecn 2 ttl 64
@@ -17,7 +17,6 @@ flow http2_ipv6_flowlabel(c, e) {
     c -> e http2 ping streamid 0 flowlabel 0x44300 ecn 2 ttl 64
 }
 
-// INSTRUCTION: Compile the IPv6 FlowLabel and ECN HTTP/2 scenario.
 compile {
     http2_ipv6_flowlabel(v6_client, v6_edge)
 }

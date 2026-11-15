@@ -1,26 +1,25 @@
-// PROMPT: 5G O-RAN midhaul/fronthaul transport over Metro Ethernet QinQ carrying high-priority PTP and UDP IQ data.
-// TOKENS: host, ip, mac, flow, qinq, innervlan, dscp, ptp, sync, seqid, udp, srcport, dstport, hexpayload, wait, us, compile
+// 5G O-RAN midhaul/fronthaul transport over Metro Ethernet QinQ carrying high-
+// priority PTP and UDP IQ data.
+// Wire profile: 3 frames; 2 IPv6 hosts; QinQ S-VLAN 4010 / C-VLAN 101; PTP, UDP;
+// dstport 31999; DSCP 46,56; waits 125us.
+// Wireshark: vlan.id == 4010 && vlan.id == 101
 
-// INSTRUCTION: Define 5G Distributed Unit (O-DU) baseband controller.
 host oran_du_node {
     ip 2001:db8:5000:1::10
     mac 00:11:22:50:00:0a
 }
 
-// INSTRUCTION: Define 5G Radio Unit (O-RU) cell site transceiver.
 host oran_ru_cell {
     ip 2001:db8:5000:1::20
     mac 00:11:22:50:00:14
 }
 
-// INSTRUCTION: Define QinQ S-VLAN 4010 C-VLAN 101 PTP synchronization and eCPRI UDP IQ transport over IPv6.
 flow oran_qinq_fronthaul(du, ru) {
-    du -> ru qinq 4010 innervlan 101 dscp 56 ptp sync seqid 4010
+    du -> ru qinq 4010 innervlan 101 dscp 56 ptp sync seqid 4010 wait 125us
     du -> ru qinq 4010 innervlan 101 dscp 46 udp srcport 31999 dstport 31999 hexpayload "10000018000100007f807f807f807f80" wait 125us
-    du -> ru qinq 4010 innervlan 101 dscp 46 udp srcport 31999 dstport 31999 hexpayload "10000018000100017f807f807f807f80" wait 125us
+    du -> ru qinq 4010 innervlan 101 dscp 46 udp srcport 31999 dstport 31999 hexpayload "10000018000100017f807f807f807f80"
 }
 
-// INSTRUCTION: Compile block executing 5G O-RAN QinQ fronthaul exchange.
 compile {
     oran_qinq_fronthaul(oran_du_node, oran_ru_cell)
 }

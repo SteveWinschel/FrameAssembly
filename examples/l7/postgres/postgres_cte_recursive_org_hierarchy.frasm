@@ -1,26 +1,24 @@
-// PROMPT: PostgreSQL WITH RECURSIVE Common Table Expression traversing an enterprise organizational tree.
-// TOKENS: host, ip, mac, flow, s, postgres, sql, commandcomplete, payload, wait, ms, readyforquery, compile
+// PostgreSQL WITH RECURSIVE Common Table Expression traversing an enterprise
+// organizational tree.
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: pgsql
 
-// INSTRUCTION: Define the HR directory backend service.
 host hr_service {
     ip 10.95.10.35
     mac 00:1a:2b:95:10:35
 }
 
-// INSTRUCTION: Define the HR PostgreSQL database server.
 host hr_postgres {
     ip 10.95.10.1
     mac 00:1a:2b:95:10:01
 }
 
-// INSTRUCTION: Execute a recursive CTE query to fetch all direct and indirect reports under manager 101.
 flow pg_recursive_cte(c, s) {
     c -> s postgres sql "WITH RECURSIVE org AS (SELECT id, mgr_id FROM emp WHERE id = 101 UNION ALL SELECT e.id, e.mgr_id FROM emp e JOIN org o ON e.mgr_id = o.id) SELECT * FROM org"
     c <- s postgres commandcomplete payload "SELECT 48" wait 2ms
     c <- s postgres readyforquery
 }
 
-// INSTRUCTION: Compile the PostgreSQL recursive CTE query flow.
 compile {
     pg_recursive_cte(hr_service, hr_postgres)
 }

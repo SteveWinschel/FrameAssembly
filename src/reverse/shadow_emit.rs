@@ -127,8 +127,12 @@ impl ExistingTokens {
     /// Scans `tokens_str` with the FrameAssembly lexer to record already-emitted modifier keywords.
     fn scan(tokens_str: &str) -> Self {
         let mut out = Self::default();
+        let mut seen_netflow_ipfix = false;
+        let mut seen_tacacs = false;
         for tok in Token::lexer(tokens_str).flatten() {
             match tok {
+                Token::Netflow | Token::Ipfix => seen_netflow_ipfix = true,
+                Token::Tacacs => seen_tacacs = true,
                 Token::Syn
                 | Token::Ack
                 | Token::Fin
@@ -143,9 +147,9 @@ impl ExistingTokens {
                 Token::Tsval => out.has_tsval = true,
                 Token::Tsecr => out.has_tsecr = true,
                 Token::Transport => out.has_transport = true,
-                Token::SrcPort => out.has_srcport = true,
-                Token::DstPort => out.has_dstport = true,
-                Token::Seq => out.has_seq = true,
+                Token::SrcPort if !seen_netflow_ipfix => out.has_srcport = true,
+                Token::DstPort if !seen_netflow_ipfix => out.has_dstport = true,
+                Token::Seq if !seen_tacacs => out.has_seq = true,
                 Token::AckNum => out.has_acknum = true,
                 Token::Win => out.has_win = true,
                 Token::Urgent => out.has_urgent = true,
@@ -181,6 +185,7 @@ pub(crate) fn emit_fasm_program(
             fasm: String::from("compile {\n}\n"),
             packet_count: packets.len(),
             host_count: topo.hosts.len(),
+            warnings: Vec::new(),
         };
     }
 
@@ -213,12 +218,12 @@ pub(crate) fn emit_fasm_program(
             Direction::RightToLeft => "<-",
         };
 
-        let wait_opt = if idx == 0 {
-            None
-        } else {
-            let prev_ts = packets[idx - 1].timestamp_ns;
-            let delta_ns = pkt.timestamp_ns.saturating_sub(prev_ts);
+        let wait_opt = if idx + 1 < packets.len() {
+            let next_ts = packets[idx + 1].timestamp_ns;
+            let delta_ns = next_ts.saturating_sub(pkt.timestamp_ns);
             quantize_wait_delta(delta_ns)
+        } else {
+            None
         };
 
         let candidate_body = build_candidate_statement_body(
@@ -256,6 +261,7 @@ pub(crate) fn emit_fasm_program(
         fasm,
         packet_count: packets.len(),
         host_count: topo.hosts.len(),
+        warnings: Vec::new(),
     }
 }
 
@@ -393,13 +399,14 @@ fn l7_builder_port_overrides(
     protocol: &Protocol,
     tokens_str: &str,
     is_ipv6: bool,
+    transport_override: Option<TransportProto>,
 ) -> (Option<u16>, Option<u16>) {
     match protocol {
         Protocol::Mdns => (None, Some(5353)),
         Protocol::Dhcp => {
             let is_server_reply = Token::lexer(tokens_str)
                 .flatten()
-                .any(|t| matches!(t, Token::Offer | Token::Ack));
+                .any(|t| matches!(t, Token::Offer | Token::Ack | Token::Advertise | Token::Reply));
             let (sport, dport) = match (is_ipv6, is_server_reply) {
                 (false, false) => (68, 67),
                 (false, true) => (67, 68),
@@ -423,6 +430,12 @@ fn l7_builder_port_overrides(
                 .any(|t| matches!(t, Token::AccountingRequest | Token::AccountingResponse));
             (None, Some(if is_acct { 1813 } else { 1812 }))
         }
+        Protocol::Ethernetip
+            if transport_override == Some(TransportProto::Udp)
+                || tokens_str.contains("transport udp") =>
+        {
+            (None, Some(2222))
+        }
         _ => (None, None),
     }
 }
@@ -434,6 +447,7 @@ fn predict_wire_ports(
     tokens_str: &str,
     dir: Direction,
     is_ipv6: bool,
+    transport_override: Option<TransportProto>,
     pair_ports: Option<&ShadowEndpointPairPorts>,
 ) -> (u16, u16) {
     let is_raw_l4 = matches!(protocol, Protocol::Tcp | Protocol::Udp | Protocol::Sctp);
@@ -465,12 +479,17 @@ fn predict_wire_ports(
         ),
     };
 
-    let (l7_sp, l7_dp) = l7_builder_port_overrides(protocol, tokens_str, is_ipv6);
+    let (l7_sp, l7_dp) =
+        l7_builder_port_overrides(protocol, tokens_str, is_ipv6, transport_override);
     if let Some(sp) = l7_sp {
         src_port = sp;
     }
     if let Some(dp) = l7_dp {
-        if *protocol == Protocol::Radius && dir == Direction::RightToLeft {
+        if matches!(
+            protocol,
+            Protocol::Radius | Protocol::Ptp | Protocol::Ethernetip
+        ) && dir == Direction::RightToLeft
+        {
             src_port = dp;
         } else {
             dst_port = dp;
@@ -485,7 +504,7 @@ fn predict_wire_ports(
             dst_port = dport;
         }
         Protocol::Hsrp => {
-            let is_v2 = tokens_str.contains("version 2");
+            let is_v2 = is_ipv6 || tokens_str.contains("version 2");
             let dport = if is_v2 { 2029 } else { 1985 };
             src_port = dport;
             dst_port = dport;
@@ -513,6 +532,7 @@ fn build_candidate_statement_body(
     tcp_connections: &HashMap<Canonical4Tuple, ShadowTcpStreamState>,
 ) -> String {
     let existing = ExistingTokens::scan(&pkt.dissection.tokens);
+    let mut prefix_parts: Vec<String> = Vec::new();
     let mut parts: Vec<String> = Vec::new();
     parts.push(pkt.dissection.tokens.trim().to_string());
 
@@ -586,6 +606,7 @@ fn build_candidate_statement_body(
         &pkt.dissection.tokens,
         ep.dir,
         is_ipv6,
+        transport_override,
         pair_ports,
     );
 
@@ -596,13 +617,21 @@ fn build_candidate_statement_body(
         && let Some(sp) = pkt.l4.src_port
         && sp != pred_src_port
     {
-        parts.push(format!("srcport {sp}"));
+        if matches!(protocol, Protocol::Netflow | Protocol::Ipfix) {
+            prefix_parts.push(format!("srcport {sp}"));
+        } else {
+            parts.push(format!("srcport {sp}"));
+        }
     }
     if !existing.has_dstport
         && let Some(dp) = pkt.l4.dst_port
         && dp != pred_dst_port
     {
-        parts.push(format!("dstport {dp}"));
+        if matches!(protocol, Protocol::Netflow | Protocol::Ipfix) {
+            prefix_parts.push(format!("dstport {dp}"));
+        } else {
+            parts.push(format!("dstport {dp}"));
+        }
     }
 
     // 3. TCP `seq`, `acknum`, `win`, `urgent`, and RFC 7323 TCP options.
@@ -629,7 +658,11 @@ fn build_candidate_statement_body(
             && let Some(actual_seq) = pkt.seq
             && actual_seq != expected_sender_seq
         {
-            parts.push(format!("seq {actual_seq}"));
+            if *protocol == Protocol::Tacacs {
+                prefix_parts.push(format!("seq {actual_seq}"));
+            } else {
+                parts.push(format!("seq {actual_seq}"));
+            }
         }
 
         if !existing.has_acknum
@@ -719,8 +752,20 @@ fn build_candidate_statement_body(
             && let Some(q) = &pkt.l2.qinq
         {
             parts.push(format!("qinq {}", q.outer_vid));
-            if let Some(iv) = q.inner_vid {
+            if let Some(iv) = q.inner_vid
+                && iv != 1
+            {
                 parts.push(format!("innervlan {iv}"));
+            }
+            if let Some(pcp) = q.pcp
+                && pcp != 0
+            {
+                parts.push(format!("pcp {pcp}"));
+            }
+            if let Some(dei) = q.dei
+                && dei != 0
+            {
+                parts.push(format!("dei {dei}"));
             }
         }
         if !existing.has_mpls
@@ -787,7 +832,7 @@ fn build_candidate_statement_body(
         if !is_ipv6 {
             if !existing.has_ipid
                 && let Some(ipid) = pkt.l3.ipid
-                && ipid != 0x1234
+                && ipid != 0
             {
                 parts.push(format!("ipid 0x{ipid:04x}"));
             }
@@ -819,7 +864,12 @@ fn build_candidate_statement_body(
         parts.push(w.to_string());
     }
 
-    parts.join(" ")
+    if prefix_parts.is_empty() {
+        parts.join(" ")
+    } else {
+        prefix_parts.extend(parts);
+        prefix_parts.join(" ")
+    }
 }
 
 /// Updates the shadow `EndpointPairPorts` and `TcpStreamState` tables after `verified_body` is
@@ -928,14 +978,24 @@ fn update_shadow_state_after_statement(
         }
     };
 
-    let (l7_sp, l7_dp) = l7_builder_port_overrides(&effective_protocol, verified_body, is_ipv6);
+    let transport_override = pkt.dissection.explicit_transport.or(pkt.l4.transport);
+    let (l7_sp, l7_dp) = l7_builder_port_overrides(
+        &effective_protocol,
+        verified_body,
+        is_ipv6,
+        transport_override,
+    );
     if let Some(sp) = l7_sp
         && !scanned.has_srcport
     {
         src_port = sp;
     }
     if let Some(dp) = l7_dp {
-        if effective_protocol == Protocol::Radius && ep.dir == Direction::RightToLeft {
+        if matches!(
+            effective_protocol,
+            Protocol::Radius | Protocol::Ptp | Protocol::Ethernetip
+        ) && ep.dir == Direction::RightToLeft
+        {
             if !scanned.has_srcport {
                 src_port = dp;
             }
@@ -958,7 +1018,6 @@ fn update_shadow_state_after_statement(
         }
     }
 
-    let transport_override = pkt.dissection.explicit_transport.or(pkt.l4.transport);
     if is_tcp_protocol(&effective_protocol, transport_override) {
         let ep1 = (src_ip, src_port);
         let ep2 = (dst_ip, dst_port);

@@ -1,19 +1,18 @@
-// PROMPT: Server Message Block 2/3 file sharing dialect negotiation and session setup on TCP 445.
-// TOKENS: host, ip, flow, s, smb, command, negotiate, sessionsetup, compile
+// Server Message Block 2/3 file sharing dialect negotiation and session setup
+// on TCP 445.
+// SMB2 over NetBIOS TCP 445 with UTF-16LE share/file paths computed
+// automatically.
+// Wireshark: smb2
 
-// INSTRUCTION: Define SMB workstation client.
 host smb_workstation { ip 192.168.20.10 }
 
-// INSTRUCTION: Define enterprise file storage server.
 host file_server { ip 192.168.20.2 }
 
-// INSTRUCTION: Define SMB file sharing connection setup flow.
 flow smb_flow(w, s) {
     w -> s smb command negotiate
     w -> s smb command sessionsetup
 }
 
-// INSTRUCTION: Compile block executing SMB file sharing session.
 compile {
     smb_flow(smb_workstation, file_server)
 }

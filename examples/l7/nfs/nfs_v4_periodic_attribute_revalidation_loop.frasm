@@ -1,25 +1,26 @@
-// PROMPT: NFSv4 client attribute cache revalidation polling loop checking file mtime every 5ms for 4 iterations.
-// TOKENS: host, ip, mac, flow, s, nfs, vers, proc, tag, path, wait, ms, compile
+// NFSv4 client attribute cache revalidation polling loop checking file mtime
+// every 5ms for 4 iterations.
+// Wireshark: nfs
 
-// INSTRUCTION: Define the application server caching shared configuration files.
+// Application server caching shared configuration files.
 host app_cache_client {
     ip 10.70.120.33
     mac 00:1a:2b:70:c0:33
 }
 
-// INSTRUCTION: Define the configuration NFSv4 server.
 host cfg_nfs_server {
     ip 10.70.120.1
     mac 00:1a:2b:70:c0:01
 }
 
-// INSTRUCTION: Poll GETATTR on the shared feature flags JSON file to detect modifications.
+// Poll GETATTR on the shared feature flags JSON file to detect modifications.
+// Repeats 4 times; each wait value pauses after sending its packet.
 flow nfs_attr_revalidate(c, s) {
     c -> s nfs vers 4 proc "getattr" tag "acregmin_poll" path "/etc/shared/feature_flags.json"
     c <- s nfs vers 4 proc "getattr" tag "acregmin_poll" wait 5ms
 }
 
-// INSTRUCTION: Run the attribute cache revalidation loop for 4 iterations.
+// Run the attribute cache revalidation loop for 4 iterations.
 compile {
     nfs_attr_revalidate(app_cache_client, cfg_nfs_server) // cycle 1
     nfs_attr_revalidate(app_cache_client, cfg_nfs_server) // cycle 2

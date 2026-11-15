@@ -1,26 +1,27 @@
-// PROMPT: Multi-exporter leaf-spine topology where three switches export IPFIX records to one collector.
-// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, proto, packets, octets, compile
+// Multi-exporter leaf-spine topology where three switches export IPFIX
+// records to one collector.
+// Wireshark: cflow || udp.port == 4739
 
-// INSTRUCTION: Define Leaf 1 exporter switch.
+// Leaf 1 exporter switch.
 host leaf_sw1 { ip 10.99.47.11 }
 
-// INSTRUCTION: Define Leaf 2 exporter switch.
+// Leaf 2 exporter switch.
 host leaf_sw2 { ip 10.99.47.12 }
 
-// INSTRUCTION: Define Spine 1 exporter switch.
+// Spine 1 exporter switch.
 host spine_sw1 { ip 10.99.47.21 }
 
-// INSTRUCTION: Define central IPFIX fabric collector.
+// Central IPFIX fabric collector.
 host fabric_collector { ip 10.99.47.100 }
 
-// INSTRUCTION: Export flow records from three distinct Observation Domain IDs (11, 12, 21).
+// Export flow records from three distinct Observation Domain IDs (11, 12,
+// 21). Reports IP protocol 6 (TCP) flow records to UDP 4739.
 flow ipfix_fabric_telemetry(l1, l2, s1, col) {
     l1 -> col ipfix domainid 11 srcip 10.11.0.5 dstip 10.12.0.5 proto 6 packets 1200 octets 1728000
     l2 -> col ipfix domainid 12 srcip 10.12.0.5 dstip 10.11.0.5 proto 6 packets 1150 octets 92000
     s1 -> col ipfix domainid 21 srcip 10.11.0.5 dstip 10.12.0.5 proto 6 packets 2350 octets 1820000
 }
 
-// INSTRUCTION: Compile the 4-host leaf-spine IPFIX telemetry topology.
 compile {
     ipfix_fabric_telemetry(leaf_sw1, leaf_sw2, spine_sw1, fabric_collector)
 }

@@ -1,22 +1,24 @@
-// PROMPT: OPC UA Method Call invoking emergency valve shutoff across multiple substation PLCs.
-// TOKENS: host, ip, mac, flow, opcua, msgtype, chunktype, securechannelid, tokenid, seqnum, reqid, nodeid, payload, wait, ms, compile
+// OPC UA Method Call invoking emergency valve shutoff across multiple
+// substation PLCs.
+// Wireshark: opcua
 
-// INSTRUCTION: Define safety instrumented system (SIS) master controller.
+// Safety instrumented system (SIS) master controller.
 host sis_master { ip 10.70.0.1 mac 00:1d:9c:70:00:01 }
 
-// INSTRUCTION: Define valve actuator PLC A.
+// Valve actuator PLC A.
 host valve_plc_a { ip 10.70.0.101 mac 00:1d:9c:70:00:65 }
 
-// INSTRUCTION: Define valve actuator PLC B.
+// Valve actuator PLC B.
 host valve_plc_b { ip 10.70.0.102 mac 00:1d:9c:70:00:66 }
 
-// INSTRUCTION: Define OPC UA Call service invocation on EmergencyShutoff node.
+// OPC UA Call service invocation on EmergencyShutoff node. OPC UA message
+// sequence: MSG on TCP port 4840. Repeats 2 times; each wait value pauses
+// after sending its packet.
 flow opcua_valve_shutoff(master, plc) {
     master -> plc opcua msgtype "msg" chunktype "f" securechannelid 1001 tokenid 10 seqnum 1 reqid 1 nodeid "ns=2;s=Valve.EmergencyShutoff" payload "CALL_SHUTOFF_NOW" wait 3ms
     master <- plc opcua msgtype "msg" chunktype "f" securechannelid 1001 tokenid 10 seqnum 2 reqid 1 nodeid "ns=2;s=Valve.EmergencyShutoff" payload "STATUS_GOOD_CLOSED"
 }
 
-// INSTRUCTION: Compile emergency shutoff across both valve PLCs.
 compile {
     opcua_valve_shutoff(sis_master, valve_plc_a)
     opcua_valve_shutoff(sis_master, valve_plc_b)

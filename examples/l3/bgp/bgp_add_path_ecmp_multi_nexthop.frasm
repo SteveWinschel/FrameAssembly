@@ -1,19 +1,20 @@
-// PROMPT: RFC 7911 BGP ADD-PATH Route Reflector advertising multiple ECMP next-hops for the same anycast prefix.
-// TOKENS: host, ip, mac, flow, bgp, update, asn, prefix, nexthop, dscp, ttl, payload, wait, ms, keepalive, compile
+// RFC 7911 BGP ADD-PATH Route Reflector advertising multiple ECMP next-hops
+// for the same anycast prefix.
+// This capture sets DSCP 48, TTL 64, carries ASN 65000, and uses post-packet
+// wait gaps (3ms) between frames.
+// Wireshark: bgp
 
-// INSTRUCTION: Define BGP Route Reflector with RFC 7911 ADD-PATH Send capability enabled.
 host addpath_rr_server {
     ip 10.79.11.1
     mac 00:1c:73:79:11:01
 }
 
-// INSTRUCTION: Define ingress WAN border router receiving multiple ECMP paths for 10.200.200.1/32.
 host addpath_edge_client {
     ip 10.79.11.10
     mac 00:1c:73:79:11:0a
 }
 
-// INSTRUCTION: Define sequential BGP UPDATE messages advertising distinct NEXTHOPs for the same anycast /32 prefix.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow bgp_add_path_ecmp_flow(rr, client) {
     rr -> client bgp update asn 65000 prefix "10.200.200.1/32" nexthop 10.1.1.1 dscp 48 ttl 64 payload "PATH_ID_1_LEAF_A" wait 3ms
     rr -> client bgp update asn 65000 prefix "10.200.200.1/32" nexthop 10.1.1.2 dscp 48 ttl 64 payload "PATH_ID_2_LEAF_B" wait 3ms
@@ -21,7 +22,8 @@ flow bgp_add_path_ecmp_flow(rr, client) {
     rr <- client bgp keepalive dscp 48 ttl 64
 }
 
-// INSTRUCTION: Compile the RFC 7911 BGP ADD-PATH ECMP advertisement flow.
+// Run bgp_add_path_ecmp_flow(addpath_rr_server, addpath_edge_client) to
+// generate the capture.
 compile {
     bgp_add_path_ecmp_flow(addpath_rr_server, addpath_edge_client)
 }

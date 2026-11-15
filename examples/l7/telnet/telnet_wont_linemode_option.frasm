@@ -1,19 +1,16 @@
-// PROMPT: Client declining linemode operation using IAC WONT 34.
-// TOKENS: host, ip, flow, s, telnet, do, wont, compile
+// Client declining linemode operation using IAC WONT 34.
+// Telnet on TCP 23 negotiating option(s): 34 (Linemode).
+// Wireshark: telnet
 
-// INSTRUCTION: Define dumb terminal display.
 host dumb_term { ip 10.30.0.14 }
 
-// INSTRUCTION: Define timesharing host.
 host timeshare_host { ip 10.30.0.1 }
 
-// INSTRUCTION: Define linemode decline flow.
 flow telnet_linemode_flow(c, s) {
     c <- s telnet do 34
     c -> s telnet wont 34
 }
 
-// INSTRUCTION: Compile block executing linemode refusal.
 compile {
     telnet_linemode_flow(dumb_term, timeshare_host)
 }

@@ -1,18 +1,19 @@
-// PROMPT: Industrial SCADA sensor advertising membership in site-local multicast group ff05::100.
-// TOKENS: host, ip, flow, mld, report, multicastaddr, ttl, compile
+// Industrial SCADA sensor advertising membership in site-local multicast
+// group ff05::100.
+// This capture targets IPv6 endpoints and sets TTL 1.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define factory floor pressure telemetry transducer.
 host scada_pressure_sensor { ip fe80::9999:8888:7777:1111 }
 
-// INSTRUCTION: Define plant industrial router address.
 host plant_mld_router { ip ff02::2 }
 
-// INSTRUCTION: Define MLD report for site-local telemetry group ff05::100.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow scada_telemetry_join(sensor, rtr) {
     sensor -> rtr mld report multicastaddr ff05::100 ttl 1
 }
 
-// INSTRUCTION: Compile block executing industrial sensor group join.
+// Run scada_telemetry_join(scada_pressure_sensor, plant_mld_router) to
+// generate the capture.
 compile {
     scada_telemetry_join(scada_pressure_sensor, plant_mld_router)
 }

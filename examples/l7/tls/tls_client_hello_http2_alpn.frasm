@@ -1,20 +1,20 @@
-// PROMPT: Client hello offering ALPN h2 application negotiation and SNI domain.
-// TOKENS: host, ip, flow, s, tls, clienthello, sni, alpn, compile
+// Client hello offering ALPN h2 application negotiation and SNI domain.
+// TLS extensions: SNI api.service.internal; ALPN h2.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (TLS (RFC
+// 8446 / 5246), TCP 443).
+// Wireshark: tls
 
-// INSTRUCTION: Define microservice API consumer.
 host api_consumer { ip 172.16.50.15 }
 
-// INSTRUCTION: Define cloud API gateway.
 host api_gateway { ip 172.16.50.1 }
 
-// INSTRUCTION: Define ClientHello with h2 ALPN flow.
 flow tls_alpn_h2_flow(c, s) {
     c -> s tls clienthello
         sni "api.service.internal"
         alpn "h2"
 }
 
-// INSTRUCTION: Compile block executing h2 ALPN request.
 compile {
     tls_alpn_h2_flow(api_consumer, api_gateway)
 }

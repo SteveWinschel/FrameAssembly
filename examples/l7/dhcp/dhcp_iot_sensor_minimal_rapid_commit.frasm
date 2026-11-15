@@ -1,25 +1,24 @@
-// PROMPT: Generate a rapid-commit two-message DHCP DISCOVER and immediate ACK exchange for a battery-powered IoT sensor.
-// TOKENS: host, ip, mac, flow, s, dhcp, discover, xid, chaddr, hostname, wait, ms, ack, yiaddr, subnetmask, router, dnsserver, leasetime, compile
+// Rapid-commit two-message DHCP DISCOVER and immediate ACK exchange for a
+// battery-powered IoT sensor.
+// Wireshark: dhcp
 
-// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+// DHCP client endpoint requesting dynamic network configuration.
 host dhcp_client {
     ip 192.168.44.80
     mac 00:25:90:67:01:0a
 }
 
-// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+// DHCP server or relay agent endpoint.
 host dhcp_server {
     ip 192.168.44.1
     mac 00:25:90:67:01:01
 }
 
-// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
 flow dhcp_scenario_flow(c, s) {
     c -> s dhcp discover xid 0x31001003 chaddr 00:17:88:44:00:50 hostname "zigbee-gw-04" wait 2ms
     c <- s dhcp ack xid 0x31001003 yiaddr 192.168.44.80 subnetmask 255.255.255.0 router 192.168.44.1 dnsserver 192.168.44.1 leasetime 86400
 }
 
-// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
 compile {
     dhcp_scenario_flow(dhcp_client, dhcp_server)
 }

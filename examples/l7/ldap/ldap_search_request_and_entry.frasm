@@ -1,20 +1,16 @@
-// PROMPT: LDAP subtree search request filtering for user accounts.
-// TOKENS: host, ip, flow, s, ldap, searchreq, msgid, basedn, filter, searchentry, searchdone, compile
+// LDAP subtree search request filtering for user accounts.
+// Wireshark: ldap
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow ldap_search(c, s) {
     c -> s ldap searchreq msgid 2 basedn "dc=corp,dc=net" filter "(sAMAccountName=alice)"
     c <- s ldap searchentry msgid 2
     c <- s ldap searchdone msgid 2
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ldap_search(client, server)
 }

@@ -1,19 +1,22 @@
-// PROMPT: Create a Kubernetes kubelet periodic HTTP GET /healthz and /readyz probe loop against a container pod.
-// TOKENS: host, ip, mac, flow, http, method, uri, hosthdr, useragent, wait, ms, status, reason, contenttype, body, compile
+// Kubernetes kubelet periodic HTTP GET /healthz and /readyz probe loop
+// against a container pod.
+// Wireshark: http
 
-// INSTRUCTION: Define the Kubernetes node kubelet probing local container health endpoints.
+// Kubernetes node kubelet probing local container health endpoints.
 host node_kubelet {
     ip 10.240.0.1
     mac 00:16:3e:f0:00:01
 }
 
-// INSTRUCTION: Define the microservice pod answering health and readiness checks.
+// Microservice pod answering health and readiness checks.
 host service_pod {
     ip 10.240.0.88
     mac 00:16:3e:f0:00:58
 }
 
-// INSTRUCTION: Probe /healthz and /readyz with kube-probe User-Agent and receive 200 OK JSON status.
+// Probe /healthz and /readyz with kube-probe User-Agent and receive 200 OK
+// JSON status. Repeats 2 times; each wait value pauses after sending its
+// packet.
 flow kubelet_http_probe(kubelet, pod) {
     kubelet -> pod http method "GET" uri "/healthz" hosthdr "10.240.0.88:80" useragent "kube-probe/1.30" wait 2ms
     kubelet <- pod http status 200 reason "OK" contenttype "application/json" body "{'status':'ok'}" wait 20ms
@@ -21,7 +24,6 @@ flow kubelet_http_probe(kubelet, pod) {
     kubelet <- pod http status 200 reason "OK" contenttype "application/json" body "{'ready':true,'db':'connected'}" wait 20ms
 }
 
-// INSTRUCTION: Compile a 2-iteration loop of Kubernetes HTTP liveness and readiness probes.
 compile {
     kubelet_http_probe(node_kubelet, service_pod) // cycle 1
     kubelet_http_probe(node_kubelet, service_pod) // cycle 2

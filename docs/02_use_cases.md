@@ -2,88 +2,106 @@
 
 [← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)
 
-Every network team owns at least one story about the afternoon they had to prove the problem was not "the network". This cookbook is the evidence locker: thirteen copy-paste recipes for FrameAssembly 3.0.0, each starting from a problem you have probably already had and ending with a `.pcap` you can replay, dissect, or attach to a ticket.
+Every network team owns at least one story about the afternoon they had to prove the problem was not "the network". This cookbook is the evidence locker: thirteen copy-paste recipes for
+FrameAssembly 3.1.0, each starting from a problem you have probably already had and ending with a `.pcap` you can replay, dissect, or attach to a ticket.
 
 Nothing here needs a lab, a MIB directory, a second laptop running a half-working Python virtualenv, or a maintenance window.
 
+## Jump by Role
+
+| Your Role | Start With These Recipes |
+| :--- | :--- |
+| **Firewall / Network Admin** | [2A — DMZ Policy][r2a], [2B — MTU & Fragments][r2b], [3A — VLAN & QoS][r3a], [3B — QinQ & MPLS][r3b], [6B — HA Failover][r6b] |
+| **Monitoring / Checkmk / Zabbix Tech** | [1A — SNMPv1/v2c Traps & Polls][r1a], [1B — Encrypted SNMPv3 `authPriv` Traps][r1b], [4A — Syslog, NetFlow, IPFIX & sFlow][r4a] |
+| **SOC / Suricata / Zeek Analyst** | [4A — SIEM & Flow Ingest][r4a], [4B — DNS Sinkhole, TLS SNI & WAF][r4b], [4C — Shadow IT & Rogue DHCP][r4c], [6C — `.pcap` Scrubbing][r6c] |
+| **Pentester / AppSec** | [2A — Stealth & Out-of-State Scans][r2a], [2B — Spoofed Sources & Fragments][r2b], [4B — Custom HTTP & TLS Probes][r4b], [6A — TCP Zero-Window][r6a] |
+| **OT / SCADA Engineer** | [5 — Purdue Conduit (`modbus`, `s7comm`, `dnp3`, `bacnet`, `ethernetip`, `opcua`)][r5], [3A — VLAN Priority][r3a] |
+
 ## How a Recipe Works
 
-Every recipe is `.frasm` code made of up to three parts:
+Every recipe is `.frasm` code made of two (or optionally three) parts:
 
-- **`host` blocks** describe the boxes on your network diagram: an `ip` and an optional `mac`, or a MAC-only `host sw1 { mac 00:1c:73:00:00:01 }` for Layer 2 switching protocols.
-- **`flow(a, b)` blocks** *(optional)* group a packet-by-packet exchange between role names. Direction is written like this:
+- **`host` blocks** describe the boxes on your network diagram: an `ip` and an optional `mac` (omitted unicast MACs default to `00:00:00:00:00:01`, `:02`, ... in declaration order), or a MAC-only
+  `host sw1 { mac 00:1c:73:00:00:01 }` for Layer 2 switching protocols.
+- **One `compile` block** writes packet statements directly (`a -> b ...` forward, `a <- b ...` reply) or calls reusable `flow(a, b)` blocks. `wait 2ms` at the end of a packet line pauses `2ms`
+  **after** that packet before the next (`10ms` default between packets when omitted).
+- **`flow(a, b)` blocks** *(optional)* group reusable packet exchanges when you want to run the same sequence across different IPv4 or IPv6 host pairs:
 
   ```text
   a -> b   forward packet: a sends to b
   a <- b   reply packet: b sends back to a
   ```
 
-- **One `compile` block** plugs real `host` devices into the flow roles, left to right. You can also skip the `flow` and write packet statements directly inside `compile { ... }`.
-
 ## Run Any Recipe
 
-1. Save the code to a file such as `scenario.frasm`. Preview the packet ladder with `frameassembly show scenario.frasm`, then compile with `frameassembly scenario.frasm` (writes `scenario.pcap`) or pass your own output name: `frameassembly scenario.frasm custom.pcapng`.
+1. Save the code to `scenario.frasm`. Preview the packet ladder with `frameassembly show scenario.frasm`, then compile with `frameassembly scenario.frasm` (writes classic libpcap `scenario.pcap`)
+   or pass `.pcapng` (`frameassembly scenario.frasm custom.pcapng`) for nanosecond `PCAPNG`.
 2. Replay or inspect the result with **`tcpreplay`**, **Wireshark** / **`tshark`**, or **Suricata** / **Zeek**.
-3. Got a real capture instead? `frameassembly reverse trace.pcap` writes `trace.frasm` (or name it: `frameassembly reverse trace.pcap sanitized.frasm`), ready for anonymizing and tweaking. Recipe 6C walks through it.
+3. Got a real capture instead? `frameassembly reverse trace.pcap` writes `trace.frasm` (or pass a custom path: `frameassembly reverse trace.pcap sanitized.frasm`), ready for scrubbing. Recipe 6C
+   walks through it.
 
 ---
 
 ## Find Your Problem
 
-| The problem on your desk | What the recipe uses | Recipe |
+| The problem on your desk | Protocols | Recipe |
 | :--- | :--- | :--- |
-| **The Checkmk / Zabbix / PRTG / LibreNMS alert for `linkDown` or chassis temperature has never been seen to fire** | `snmp1`, `snmp2` (`trap`, `inform`, `get`, `response`, `varbind`) | [Recipe 1A — Link Down at 2 a.m.: SNMPv1 and SNMPv2c Traps, Polls and Informs](#recipe-1a--link-down-at-2-am-snmpv1-and-snmpv2c-traps-polls-and-informs) |
-| **SNMPv3 `authPriv` traps vanish without a log line** | `snmp3` (`auth sha256`/`sha512`/`md5`/`sha`, `priv aes`/`des`, `engineid`) | [Recipe 1B — Encrypted SNMPv3 `authPriv` Traps for Checkmk, Zabbix and PRTG](#recipe-1b--encrypted-snmpv3-authpriv-traps-for-checkmk-zabbix-and-prtg) |
-| **The firewall policy says "allow 443, drop the rest" and nobody has tested "the rest"** | `tcp` (`syn`, `rst ack`, out-of-state `ack`, `fin psh urg`), `vlan`, `icmp` (`code 13`) | [Recipe 2A — DMZ Firewall Policy Audit: Handshakes, Rejections, Out-of-State and Stealth Probes](#recipe-2a--dmz-firewall-policy-audit-handshakes-rejections-out-of-state-and-stealth-probes) |
-| **The VPN pings fine and hangs on the first real file; or someone suspects spoofed source IPs inside** | `df`, `ipid`, `mf`, `fragoffset`, `icmp` (`destunreach code 4`), spoofed `host` | [Recipe 2B — Path MTU, IPv4 Fragmentation and Spoofed Sources](#recipe-2b--path-mtu-ipv4-fragmentation-and-spoofed-sources) |
-| **Voice sounds underwater and the QoS policy "is definitely correct"** | `vlan`, `pcp`, `dei`, `dscp` (`46` EF, `34` AF41, `48` CS6, `8` CS1), `ecn`, `rtp`, `bfd` | [Recipe 3A — 802.1Q Trunk and Voice / Video / Scavenger DiffServ QoS](#recipe-3a--8021q-trunk-and-voice--video--scavenger-diffserv-qos) |
-| **The carrier's "transparent Ethernet" needs checking: `qinq` S-tags or MPLS labels** | `qinq`, `innervlan`, `mpls` (`exp`, `bos`, `mplsttl`), `dscp` | [Recipe 3B — Carrier 802.1ad `qinq` Double-Tagging and MPLS Backhaul](#recipe-3b--carrier-8021ad-qinq-double-tagging-and-mpls-backhaul) |
-| **The SIEM parser only works on the vendor's sample log; the flow collector is unproven** | `syslog` (`transport tcp`), `netflow` (v5), `ipfix` (v10), `sflow` (v5) | [Recipe 4A — SIEM and Flow Collector Ingest: `syslog`, NetFlow v5, IPFIX and sFlow](#recipe-4a--siem-and-flow-collector-ingest-syslog-netflow-v5-ipfix-and-sflow) |
-| **The IDS rule has never seen a hit outside the rule author's imagination** | `dns` (`rcode 5`), `tls` (`clienthello`, `sni`, `alpn`, `alert`), `http` (`header`, `body`) | [Recipe 4B — IDS/IPS and DPI Signatures: DNS Sinkhole, TLS 1.3 SNI/ALPN and Custom HTTP Headers](#recipe-4b--idsips-and-dpi-signatures-dns-sinkhole-tls-13-snialpn-and-custom-http-headers) |
-| **Shadow IT, QUIC/DoH around the proxy, a rogue DHCP server, chatty casting devices** | `tls` (`sni`), `quic` (`initial`), `dhcp` (`discover`, `offer`), `mdns`, `ssdp` | [Recipe 4C — Shadow IT and Rogue LAN Devices](#recipe-4c--shadow-it-and-rogue-lan-devices) |
-| **The OT firewall must allow `read` and refuse `write`, and there is no spare PLC** | `modbus`, `s7comm`, `dnp3` (auto CRC-16), `bacnet`, `ethernetip`, `opcua` | [Recipe 5 — Purdue Level 1–3.5 Conduit Validation: `modbus`, `s7comm`, `dnp3`, `bacnet`, `ethernetip` and `opcua`](#recipe-5--purdue-level-135-conduit-validation-modbus-s7comm-dnp3-bacnet-ethernetip-and-opcua) |
-| **The app froze and someone already blamed DNS** | `tcp` (`win 0`, probe, `win 32768`), `http` (`post`, `202 Accepted`) | [Recipe 6A — TCP Zero-Window Stall and Window Update Recovery](#recipe-6a--tcp-zero-window-stall-and-window-update-recovery) |
-| **Failover took "a bit": what actually happened, in which order** | `bfd`, `ospf`, `bgp`, `vrrp`, `hsrp`, `arp` (`gratuitous`) | [Recipe 6B — Routing and First-Hop Redundancy Failover: `bfd`, `ospf`, `bgp`, `vrrp`, `hsrp` and Gratuitous `arp`](#recipe-6b--routing-and-first-hop-redundancy-failover-bfd-ospf-bgp-vrrp-hsrp-and-gratuitous-arp) |
-| **The vendor wants a capture, and the capture contains the customer** | `frameassembly reverse` (`host1`, `host2`, IP/SNI scrubbing, automatic checksum and SEQ recalculation) | [Recipe 6C — Anonymizing Customer `.pcap` Captures for Vendor Support: `frameassembly reverse`](#recipe-6c--anonymizing-customer-pcap-captures-for-vendor-support-frameassembly-reverse) |
+| **Checkmk / Zabbix / PRTG `linkDown` or temperature alert never fired** | `snmp1`, `snmp2` | [Recipe 1A][r1a] |
+| **SNMPv3 `authPriv` traps vanish without a log line** | `snmp3` (`sha256`, `aes`, `engineid`) | [Recipe 1B][r1b] |
+| **Firewall says "allow 443, drop the rest" and nobody tested "the rest"** | `tcp`, `vlan`, `icmp` | [Recipe 2A][r2a] |
+| **VPN pings fine and hangs on files, or spoofed IPs need checking** | `df`, `mf`, `fragoffset`, `icmp` | [Recipe 2B][r2b] |
+| **Voice sounds underwater and QoS "is definitely correct"** | `vlan`, `pcp`, `dei`, `dscp`, `rtp`, `bfd` | [Recipe 3A][r3a] |
+| **Carrier "transparent Ethernet" (`qinq` S-tags or MPLS labels)** | `qinq`, `innervlan`, `mpls` | [Recipe 3B][r3b] |
+| **SIEM parser or flow collector is unproven** | `syslog`, `netflow`, `ipfix`, `sflow` | [Recipe 4A][r4a] |
+| **IDS/WAF rule has never seen a real test packet** | `dns`, `tls` (`sni`, `alpn`), `http` | [Recipe 4B][r4b] |
+| **Shadow IT, QUIC/DoH bypass, rogue DHCP, casting chatter** | `tls`, `quic`, `dhcp`, `mdns`, `ssdp` | [Recipe 4C][r4c] |
+| **OT firewall must allow `read` and block `write` without a spare PLC** | `modbus`, `s7comm`, `dnp3`, `bacnet`, `ethernetip`, `opcua` | [Recipe 5][r5] |
+| **App froze and someone already blamed DNS** | `tcp` (`win 0`), `http` | [Recipe 6A][r6a] |
+| **Failover took "a bit": measure exact control-plane order** | `bfd`, `ospf`, `bgp`, `vrrp`, `hsrp`, `arp` | [Recipe 6B][r6b] |
+| **Vendor wants a capture, and the capture contains the customer** | `frameassembly reverse` | [Recipe 6C][r6c] |
 
 ---
 
 ## Table of Contents
 
 1. [1. SNMP Alerts That Actually Fire](#1-snmp-alerts-that-actually-fire)
-   * [Recipe 1A — Link Down at 2 a.m.: SNMPv1 and SNMPv2c Traps, Polls and Informs](#recipe-1a--link-down-at-2-am-snmpv1-and-snmpv2c-traps-polls-and-informs)
+   * [Recipe 1A — SNMPv1 and SNMPv2c Traps, Polls and Informs](#recipe-1a--link-down-at-2-am-snmpv1-and-snmpv2c-traps-polls-and-informs)
    * [Recipe 1B — Encrypted SNMPv3 `authPriv` Traps for Checkmk, Zabbix and PRTG](#recipe-1b--encrypted-snmpv3-authpriv-traps-for-checkmk-zabbix-and-prtg)
 2. [2. Firewall Rules and ACLs, Tested Outside the Kernel](#2-firewall-rules-and-acls-tested-outside-the-kernel)
-   * [Recipe 2A — DMZ Firewall Policy Audit: Handshakes, Rejections, Out-of-State and Stealth Probes](#recipe-2a--dmz-firewall-policy-audit-handshakes-rejections-out-of-state-and-stealth-probes)
+   * [Recipe 2A — DMZ Firewall Policy Audit](#recipe-2a--dmz-firewall-policy-audit-handshakes-rejections-out-of-state-and-stealth-probes)
    * [Recipe 2B — Path MTU, IPv4 Fragmentation and Spoofed Sources](#recipe-2b--path-mtu-ipv4-fragmentation-and-spoofed-sources)
 3. [3. VLAN, QoS, QinQ and MPLS Without a Packet Generator License](#3-vlan-qos-qinq-and-mpls-without-a-packet-generator-license)
    * [Recipe 3A — 802.1Q Trunk and Voice / Video / Scavenger DiffServ QoS](#recipe-3a--8021q-trunk-and-voice--video--scavenger-diffserv-qos)
    * [Recipe 3B — Carrier 802.1ad `qinq` Double-Tagging and MPLS Backhaul](#recipe-3b--carrier-8021ad-qinq-double-tagging-and-mpls-backhaul)
 4. [4. Proving Your Detection Stack Works](#4-proving-your-detection-stack-works)
    * [Recipe 4A — SIEM and Flow Collector Ingest: `syslog`, NetFlow v5, IPFIX and sFlow](#recipe-4a--siem-and-flow-collector-ingest-syslog-netflow-v5-ipfix-and-sflow)
-   * [Recipe 4B — IDS/IPS and DPI Signatures: DNS Sinkhole, TLS 1.3 SNI/ALPN and Custom HTTP Headers](#recipe-4b--idsips-and-dpi-signatures-dns-sinkhole-tls-13-snialpn-and-custom-http-headers)
+   * [Recipe 4B — IDS/IPS and DPI Signatures: DNS Sinkhole, TLS 1.3 SNI/ALPN and HTTP](#recipe-4b--idsips-and-dpi-signatures-dns-sinkhole-tls-13-snialpn-and-custom-http-headers)
    * [Recipe 4C — Shadow IT and Rogue LAN Devices](#recipe-4c--shadow-it-and-rogue-lan-devices)
 5. [5. Industrial OT: Allow the Read, Refuse the Write](#5-industrial-ot-allow-the-read-refuse-the-write)
-   * [Recipe 5 — Purdue Level 1–3.5 Conduit Validation: `modbus`, `s7comm`, `dnp3`, `bacnet`, `ethernetip` and `opcua`](#recipe-5--purdue-level-135-conduit-validation-modbus-s7comm-dnp3-bacnet-ethernetip-and-opcua)
+   * [Recipe 5 — Purdue Level 1–3.5 Conduit Validation](#recipe-5--purdue-level-135-conduit-validation-modbus-s7comm-dnp3-bacnet-ethernetip-and-opcua)
 6. [6. Incident Reproducers and Anonymized Captures](#6-incident-reproducers-and-anonymized-captures)
    * [Recipe 6A — TCP Zero-Window Stall and Window Update Recovery](#recipe-6a--tcp-zero-window-stall-and-window-update-recovery)
-   * [Recipe 6B — Routing and First-Hop Redundancy Failover: `bfd`, `ospf`, `bgp`, `vrrp`, `hsrp` and Gratuitous `arp`](#recipe-6b--routing-and-first-hop-redundancy-failover-bfd-ospf-bgp-vrrp-hsrp-and-gratuitous-arp)
-   * [Recipe 6C — Anonymizing Customer `.pcap` Captures for Vendor Support: `frameassembly reverse`](#recipe-6c--anonymizing-customer-pcap-captures-for-vendor-support-frameassembly-reverse)
+   * [Recipe 6B — Routing and First-Hop Redundancy Failover](#recipe-6b--routing-and-first-hop-redundancy-failover-bfd-ospf-bgp-vrrp-hsrp-and-gratuitous-arp)
+   * [Recipe 6C — Anonymizing Customer `.pcap` Captures: `frameassembly reverse`](#recipe-6c--anonymizing-customer-pcap-captures-for-vendor-support-frameassembly-reverse)
 
 ---
 
 ## 1. SNMP Alerts That Actually Fire
 
-The only completely honest way to test a `linkDown` alert is to take a link down. Production teams tend to object, especially on Fridays at 16:55, and nobody has ever recovered from "let's see if PagerDuty rings" as a change description. The alternatives are not better:
+The only completely honest way to test a `linkDown` alert is to take a link down. Production teams tend to object, especially on Fridays at 16:55, and nobody has ever recovered from
+"let's see if PagerDuty rings" as a change description. The alternatives are not better:
 
-* Net-SNMP's `snmptrap` wants a dozen positional flags (`-v 3 -l authPriv -e 0x8000... -u ... -a SHA-256 -A ... -x AES -X ... -Z boots,time`), local MIB files, and a spoofed source IP if the receiver filters alerts by switch address.
+* Net-SNMP's `snmptrap` wants a dozen positional flags (`-v 3 -l authPriv -e 0x8000... -u ... -a SHA-256 -A ... -x AES -X ... -Z boots,time`), local MIB files, and a spoofed source IP
+  if the receiver filters alerts by switch address.
 * Overheating a power supply for the thermal alarm is a hardware warranty conversation.
 
-FrameAssembly needs a few lines of `.frasm` code instead. It encodes the ASN.1 BER varbinds, keeps the real switch source IP and VLAN tag, and handles RFC 3414 / 3826 / 7860 SNMPv3 key localization, HMAC digests, and DES/AES encryption.
+FrameAssembly needs a few lines of `.frasm` code instead. It encodes the ASN.1 BER varbinds, keeps the real switch source IP and VLAN tag, and handles RFC 3414 / 3826 / 7860 SNMPv3 key
+localization, HMAC digests, and DES/AES encryption.
 
 ### Recipe 1A — Link Down at 2 a.m.: SNMPv1 and SNMPv2c Traps, Polls and Informs
 
-Start with the traps your NMS has been politely ignoring. This capture holds a v1 generic `linkDown`, a v1 enterprise trap for a chassis temperature alarm, a v2c GET and RESPONSE pair, a v2c `linkUp` trap with a `Counter64`, and an acknowledged v2c inform answered from UDP 162.
+Start with the traps your NMS has been politely ignoring. This capture holds a v1 generic `linkDown`, a v1 enterprise trap for a chassis temperature alarm, a v2c GET and RESPONSE pair,
+a v2c `linkUp` trap with a `Counter64`, and an acknowledged v2c inform answered from UDP 162.
 
 Save as `snmp_v1_v2c_alerts.frasm`:
 
@@ -100,17 +118,21 @@ host nms_collector {
 
 flow snmp_v1_and_v2c_verification(sw, nms) {
     // 1. SNMPv1 generic linkDown trap (gentrap 2, spectrap 0) for interface index 5
-    sw -> nms snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.1.1 agentip 10.100.0.254 gentrap 2 spectrap 0 sysuptime 125000 varbind 1.3.6.1.2.1.2.2.1.1.5 int 5 varbind 1.3.6.1.2.1.2.2.1.2.5 string "GigabitEthernet0/5" wait 5ms
+    sw -> nms snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.1.1 agentip 10.100.0.254 gentrap 2 spectrap 0 sysuptime 125000
+        varbind 1.3.6.1.2.1.2.2.1.1.5 int 5 varbind 1.3.6.1.2.1.2.2.1.2.5 string "GigabitEthernet0/5" wait 5ms
 
     // 2. SNMPv1 vendor enterprise-specific trap (gentrap 6, spectrap 1 = chassis temperature alarm)
-    sw -> nms snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.9.13.3 agentip 10.100.0.254 gentrap 6 spectrap 1 sysuptime 125100 varbind 1.3.6.1.4.1.9.9.13.1.3.1.3.1 gauge32 84 wait 10ms
+    sw -> nms snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.9.13.3 agentip 10.100.0.254 gentrap 6 spectrap 1 sysuptime 125100
+        varbind 1.3.6.1.4.1.9.9.13.1.3.1.3.1 gauge32 84 wait 10ms
 
     // 3. SNMPv2c GET poll from NMS and switch RESPONSE with sysName.0 and sysUpTime.0
     nms -> sw snmp2 get community "noc_ro" reqid 1001 varbind 1.3.6.1.2.1.1.5.0 null varbind 1.3.6.1.2.1.1.3.0 null wait 2ms
-    nms <- sw snmp2 response community "noc_ro" reqid 1001 varbind 1.3.6.1.2.1.1.5.0 string "core-sw-01.dc1.example.com" varbind 1.3.6.1.2.1.1.3.0 timeticks 8640000 wait 10ms
+    nms <- sw snmp2 response community "noc_ro" reqid 1001
+        varbind 1.3.6.1.2.1.1.5.0 string "core-sw-01.dc1.example.com" varbind 1.3.6.1.2.1.1.3.0 timeticks 8640000 wait 10ms
 
     // 4. SNMPv2c linkUp trap (1.3.6.1.6.3.1.1.5.4) with 64-bit interface counter (Counter64)
-    sw -> nms snmp2 trap community "noc_traps" reqid 2001 sysuptime 125500 oid 1.3.6.1.6.3.1.1.5.4 varbind 1.3.6.1.2.1.31.1.1.1.1.5 string "TenGigabitEthernet1/1/5" varbind 1.3.6.1.2.1.31.1.1.1.6.5 counter64 9876543210 wait 10ms
+    sw -> nms snmp2 trap community "noc_traps" reqid 2001 sysuptime 125500 oid 1.3.6.1.6.3.1.1.5.4
+        varbind 1.3.6.1.2.1.31.1.1.1.1.5 string "TenGigabitEthernet1/1/5" varbind 1.3.6.1.2.1.31.1.1.1.6.5 counter64 9876543210 wait 10ms
 
     // 5. SNMPv2c acknowledged InformRequest and NMS Response from UDP port 162
     sw -> nms snmp2 inform community "noc_traps" reqid 2002 sysuptime 126000 oid 1.3.6.1.6.3.1.1.5.4 varbind 1.3.6.1.2.1.2.2.1.8.5 int 1 wait 2ms
@@ -136,9 +158,14 @@ sudo tcpreplay -i eth0 snmp_v1_v2c_alerts.pcap
 
 ### Recipe 1B — Encrypted SNMPv3 `authPriv` Traps for Checkmk, Zabbix and PRTG
 
-SNMPv3 traps fail the way a locked door fails: silently, with no hint as to which key was wrong. Unlike v3 polling, where the NMS first asks the device for its EngineID, **v3 traps are one-way**. The receiver must already know the `engineid`, and **Checkmk**'s Event Console (`Credentials for SNMPv3 traps`), **Zabbix** (`snmptrapd.conf` with `createUser -e`), and **PRTG**'s trap receiver drop an `authPriv` trap if the `engineid`, `engineboots`, `enginetime`, authentication hash, or AES key is off by a single character. Debugging that without a known-good capture is a hobby for people who have run out of other hobbies.
+SNMPv3 traps fail the way a locked door fails: silently, with no hint as to which key was wrong. Unlike v3 polling, where the NMS first asks the device for its EngineID,
+**v3 traps are one-way**. The receiver must already know the `engineid`, and **Checkmk** 's Event Console (`Credentials for SNMPv3 traps`), **Zabbix** (`snmptrapd.conf` with
+`createUser -e`), and **PRTG** 's trap receiver drop an `authPriv` trap if the `engineid`, `engineboots`, `enginetime`, authentication hash, or AES key is off by a single character.
+Debugging that without a known-good capture is a hobby for people who have run out of other hobbies.
 
-This recipe builds authenticated, encrypted **USM `authPriv`** packets with explicit `engineid`, `engineboots`, `enginetime`, and `contextname`. It covers **RFC 7860 SHA-2** (`sha256`, `sha512`) with **RFC 3826 `aes`** (AES-128-CFB), plus legacy **RFC 3414 `md5`/`sha`** with **`des`** for the UPS and PDU hardware nobody dares to replace. The router keeps its real address (`10.100.0.250`), so Checkmk host matching and Zabbix SNMP trapper items behave exactly as they will in production.
+This recipe builds authenticated, encrypted **USM `authPriv`** packets with explicit `engineid`, `engineboots`, `enginetime`, and `contextname`. It covers **RFC 7860 SHA-2**
+(`sha256`, `sha512`) with **RFC 3826 `aes`** (AES-128-CFB), plus legacy **RFC 3414 `md5`/`sha`** with **`des`** for the UPS and PDU hardware nobody dares to replace. The router keeps
+its real address (`10.100.0.250`), so Checkmk host matching and Zabbix SNMP trapper items behave exactly as they will in production.
 
 Save as `snmp_v3_encrypted.frasm`:
 
@@ -155,15 +182,23 @@ host trap_receiver {
 
 flow snmpv3_usm_authpriv_suite(rtr, nms) {
     // 1. Modern SNMPv3 authPriv TRAP for Checkmk Event Console / Zabbix / PRTG: HMAC-SHA256 + AES-128-CFB
-    rtr -> nms snmp3 trap user "ops_sha256_aes" engineid "80001f8880001c73a000fa" engineboots 14 enginetime 86400 contextname "dc1_vrf" auth sha256 "AuthSecret_SHA256_2026!" priv aes "PrivSecret_AES128_2026!" reqid 3001 oid 1.3.6.1.4.1.9.9.13.3.0.1 varbind 1.3.6.1.2.1.1.5.0 string "dist-rtr-01.dc1" varbind 1.3.6.1.4.1.9.9.13.1.3.1.3.1 gauge32 89 wait 10ms
+    rtr -> nms snmp3 trap user "ops_sha256_aes" engineid "80001f8880001c73a000fa" engineboots 14 enginetime 86400 contextname "dc1_vrf"
+        auth sha256 "AuthSecret_SHA256_2026!" priv aes "PrivSecret_AES128_2026!" reqid 3001 oid 1.3.6.1.4.1.9.9.13.3.0.1
+        varbind 1.3.6.1.2.1.1.5.0 string "dist-rtr-01.dc1" varbind 1.3.6.1.4.1.9.9.13.1.3.1.3.1 gauge32 89 wait 10ms
 
     // 2. High-security SNMPv3 authPriv INFORM + NMS RESPONSE: HMAC-SHA512 + AES-128-CFB
-    rtr -> nms snmp3 inform user "sec_sha512_aes" engineid "80001f8880001c73a000fa" engineboots 14 enginetime 86405 contextname "dc1_vrf" auth sha512 "HighSecAuth_SHA512_Key!" priv aes "HighSecPriv_AES128_Key!" reqid 3002 oid 1.3.6.1.6.3.1.1.5.5 varbind 1.3.6.1.2.1.1.5.0 string "dist-rtr-01.dc1" wait 2ms
-    rtr <- nms snmp3 response srcport 162 user "sec_sha512_aes" engineid "80001f8880001c73a000fa" engineboots 14 enginetime 86405 contextname "dc1_vrf" auth sha512 "HighSecAuth_SHA512_Key!" priv aes "HighSecPriv_AES128_Key!" reqid 3002 varbind 1.3.6.1.2.1.1.5.0 string "dist-rtr-01.dc1" wait 10ms
+    rtr -> nms snmp3 inform user "sec_sha512_aes" engineid "80001f8880001c73a000fa" engineboots 14 enginetime 86405 contextname "dc1_vrf"
+        auth sha512 "HighSecAuth_SHA512_Key!" priv aes "HighSecPriv_AES128_Key!" reqid 3002 oid 1.3.6.1.6.3.1.1.5.5
+        varbind 1.3.6.1.2.1.1.5.0 string "dist-rtr-01.dc1" wait 2ms
+    rtr <- nms snmp3 response srcport 162 user "sec_sha512_aes" engineid "80001f8880001c73a000fa" engineboots 14 enginetime 86405 contextname "dc1_vrf"
+        auth sha512 "HighSecAuth_SHA512_Key!" priv aes "HighSecPriv_AES128_Key!" reqid 3002
+        varbind 1.3.6.1.2.1.1.5.0 string "dist-rtr-01.dc1" wait 10ms
 
     // 3. Legacy SNMPv3 authPriv TRAPs for older UPS/branch appliances: HMAC-MD5 + DES and HMAC-SHA1 + DES
-    rtr -> nms snmp3 trap user "legacy_ups_md5" engineid "80001f8880001c73a000fa" engineboots 3 enginetime 43200 auth md5 "LegacyUpsAuthMD5!" priv des "LegacyUpsPrivDES!" reqid 3003 oid 1.3.6.1.2.1.33.2.0.1 varbind 1.3.6.1.2.1.33.1.2.1.0 int 3 wait 10ms
-    rtr -> nms snmp3 trap user "legacy_rtr_sha1" engineid "80001f8880001c73a000fa" engineboots 3 enginetime 43210 auth sha "LegacyRtrAuthSHA1!" priv des "LegacyRtrPrivDES!" reqid 3004 oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.1.2 int 2
+    rtr -> nms snmp3 trap user "legacy_ups_md5" engineid "80001f8880001c73a000fa" engineboots 3 enginetime 43200
+        auth md5 "LegacyUpsAuthMD5!" priv des "LegacyUpsPrivDES!" reqid 3003 oid 1.3.6.1.2.1.33.2.0.1 varbind 1.3.6.1.2.1.33.1.2.1.0 int 3 wait 10ms
+    rtr -> nms snmp3 trap user "legacy_rtr_sha1" engineid "80001f8880001c73a000fa" engineboots 3 enginetime 43210
+        auth sha "LegacyRtrAuthSHA1!" priv des "LegacyRtrPrivDES!" reqid 3004 oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.1.2 int 2
 }
 
 compile {
@@ -194,11 +229,15 @@ wireshark snmp_v3_encrypted.pcap &
 
 ## 2. Firewall Rules and ACLs, Tested Outside the Kernel
 
-`ping`, `curl`, and `nc` all run through the local TCP/IP stack, which is considerate of them and fatal to a firewall audit. The kernel will not emit an out-of-state `ack` without a socket, will not bundle a permitted HTTPS handshake and a rejected `rst ack` in one file, and will not hand you a spoofed source address or a hand-built fragment. FrameAssembly writes the packets you describe, so **Palo Alto**, **FortiGate**, **CheckPoint**, or `nftables` can be tested across an 802.1Q trunk with `tcpreplay`, and nobody has to do TCP sequence math on a sticky note.
+`ping`, `curl`, and `nc` all run through the local TCP/IP stack, which is considerate of them and fatal to a firewall audit. The kernel will not emit an out-of-state `ack` without a
+socket, will not bundle a permitted HTTPS handshake and a rejected `rst ack` in one file, and will not hand you a spoofed source address or a hand-built fragment. FrameAssembly writes
+the packets you describe, so **Palo Alto**, **FortiGate**, **CheckPoint**, or `nftables` can be tested across an 802.1Q trunk with `tcpreplay`, and nobody has to do TCP sequence
+math on a sticky note.
 
 ### Recipe 2A — DMZ Firewall Policy Audit: Handshakes, Rejections, Out-of-State and Stealth Probes
 
-The change request said "allow 443, block everything else". "Everything else" deserves at least one test packet per bad habit. This capture contains a permitted HTTPS handshake, a refused MySQL attempt, an unsolicited ACK on SSH, a Christmas-tree probe on SMB, and a ping across DMZ VLAN 40 that earns an ICMP "administratively prohibited" (code 13).
+The change request said "allow 443, block everything else". "Everything else" deserves at least one test packet per bad habit. This capture contains a permitted HTTPS handshake, a
+refused MySQL attempt, an unsolicited ACK on SSH, a Christmas-tree probe on SMB, and a ping across DMZ VLAN 40 that earns an ICMP "administratively prohibited" (code 13).
 
 Save as `firewall_dmz_audit.frasm`:
 
@@ -254,7 +293,9 @@ sudo tcpreplay -i eth1 firewall_dmz_audit.pcap
 
 ### Recipe 2B — Path MTU, IPv4 Fragmentation and Spoofed Sources
 
-The VPN pings perfectly and hangs on the first real file transfer. Congratulations, it is MTU, and it is always MTU, except on the days it is DNS. Tunnel overhead from IPsec, GRE, or VXLAN eats the headroom, and a DF packet that hits the limit should trigger a message rather than a silent blackhole. The same capture also covers anti-spoofing (BCP 38 / uRPF). Three checks:
+The VPN pings perfectly and hangs on the first real file transfer. Congratulations, it is MTU, and it is always MTU, except on the days it is DNS. Tunnel overhead from IPsec, GRE, or
+VXLAN eats the headroom, and a DF packet that hits the limit should trigger a message rather than a silent blackhole. The same capture also covers anti-spoofing (BCP 38 / uRPF). Three
+checks:
 
 1. A packet with **Don't Fragment (`df`)** set must be answered with **ICMP Destination Unreachable, Code 4** (fragmentation needed and DF set).
 2. **IPv4 fragments (`mf` + `fragoffset`)** sharing one `ipid` must be reassembled by stateful inspection.
@@ -317,11 +358,14 @@ sudo tcpreplay -i eth2 firewall_mtu_frag_spoof.pcap
 
 ## 3. VLAN, QoS, QinQ and MPLS Without a Packet Generator License
 
-Desktop NIC drivers like to strip 802.1Q tags before anything reaches user space, and ordinary applications cannot set 802.1p priority (`pcp`), the drop-eligible bit (`dei`), outer 802.1ad `qinq` S-tags, or MPLS `exp` bits. FrameAssembly writes those headers at the Ethernet layer, so queues, trunk allow-lists, and WAN shapers can be checked with `tcpreplay` instead of with opinions.
+Desktop NIC drivers like to strip 802.1Q tags before anything reaches user space, and ordinary applications cannot set 802.1p priority (`pcp`), the drop-eligible bit (`dei`), outer
+802.1ad `qinq` S-tags, or MPLS `exp` bits. FrameAssembly writes those headers at the Ethernet layer, so queues, trunk allow-lists, and WAN shapers can be checked with `tcpreplay`
+instead of with opinions.
 
 ### Recipe 3A — 802.1Q Trunk and Voice / Video / Scavenger DiffServ QoS
 
-Voice sounds like a robot at the bottom of a pool, and the carrier insists the QoS policy is correct. Send one frame per traffic class with distinct markings and see which queue each one lands in: voice (VLAN 110, CoS 5, DSCP EF), video (VLAN 120, CoS 4, AF41, ECN), network control (VLAN 10, CoS 6, CS6) and bulk backup (VLAN 300, CoS 1, drop-eligible, CS1).
+Voice sounds like a robot at the bottom of a pool, and the carrier insists the QoS policy is correct. Send one frame per traffic class with distinct markings and see which queue each
+one lands in: voice (VLAN 110, CoS 5, DSCP EF), video (VLAN 120, CoS 4, AF41, ECN), network control (VLAN 10, CoS 6, CS6) and bulk backup (VLAN 300, CoS 1, drop-eligible, CS1).
 
 Save as `qos_diffserv_trunk.frasm`:
 
@@ -369,7 +413,8 @@ sudo tcpreplay -i eth0 qos_diffserv_trunk.pcap
 
 ### Recipe 3B — Carrier 802.1ad `qinq` Double-Tagging and MPLS Backhaul
 
-Your provider sold you "transparent Ethernet", so test how transparent. This capture sends two customers through one provider S-VLAN (2500) with different customer C-VLANs, then adds an MPLS L3VPN packet with EXP 5 and a best-effort packet with EXP 0, so you can see whether the markings survive the trip.
+Your provider sold you "transparent Ethernet", so test how transparent. This capture sends two customers through one provider S-VLAN (2500) with different customer C-VLANs, then adds an
+MPLS L3VPN packet with EXP 5 and a best-effort packet with EXP 0, so you can see whether the markings survive the trip.
 
 Save as `carrier_qinq_mpls.frasm`:
 
@@ -418,11 +463,15 @@ tshark -r carrier_qinq_mpls.pcap -T fields -e frame.number -e vlan.id -e mpls.la
 
 ## 4. Proving Your Detection Stack Works
 
-A SIEM parser that works on the vendor's sample log works on exactly the vendor's sample log. Before a new SIEM, flow collector (**ElastiFlow**, **Akvorado**, **pmacct**, **nfdump**), NDR sensor, or IDS/IPS ruleset (**Suricata**, **Zeek**, **Snort**) goes into production, feed it a small capture where every packet has a reason to be there, instead of a thousand unrelated background frames you now have to explain.
+A SIEM parser that works on the vendor's sample log works on exactly the vendor's sample log. Before a new SIEM, flow collector (**ElastiFlow**, **Akvorado**, **pmacct**, **nfdump**
+), NDR sensor, or IDS/IPS ruleset (**Suricata**, **Zeek**, **Snort**) goes into production, feed it a small capture where every packet has a reason to be there, instead of a thousand
+unrelated background frames you now have to explain.
 
 ### Recipe 4A — SIEM and Flow Collector Ingest: `syslog`, NetFlow v5, IPFIX and sFlow
 
-Log pipelines are the one part of the stack where "it received something" counts as a pass. This capture sends an RFC 5424 syslog message over UDP 514, another over TCP 514 (with its handshake), a NetFlow v5 datagram reporting an HTTPS flow, an IPFIX export in observation domain 4001, and an sFlow v5 sample datagram. If a field is missing in the collector, it is missing on purpose.
+Log pipelines are the one part of the stack where "it received something" counts as a pass. This capture sends an RFC 5424 syslog message over UDP 514, another over TCP 514 (with its
+handshake), a NetFlow v5 datagram reporting an HTTPS flow, an IPFIX export in observation domain 4001, and an sFlow v5 sample datagram. If a field is missing in the collector, it is
+missing on purpose.
 
 Save as `siem_and_flow_collectors.frasm`:
 
@@ -445,7 +494,8 @@ flow telemetry_ingest_test(rtr, col) {
     rtr -> col tcp syn srcport 51514 dstport 514 win 65535 mss 1460 wait 1ms
     rtr <- col tcp syn ack win 65535 mss 1460 wait 1ms
     rtr -> col tcp ack wait 1ms
-    rtr -> col transport tcp syslog facility 4 severity 4 hostname "core-rtr-01.dc1" app "sshd" procid "9012" msgid "SSH_AUTH_FAIL" msg "Failed password for admin from 198.51.100.99 port 54122 ssh2" wait 5ms
+    rtr -> col transport tcp syslog facility 4 severity 4 hostname "core-rtr-01.dc1" app "sshd" procid "9012"
+        msgid "SSH_AUTH_FAIL" msg "Failed password for admin from 198.51.100.99 port 54122 ssh2" wait 5ms
 
     // 3. Cisco NetFlow v5 export datagram (UDP 2055) reporting an HTTPS flow
     rtr -> col netflow srcip 198.51.100.25 dstip 203.0.113.80 srcport 52400 dstport 443 proto 6 packets 15400 octets 21560000 wait 5ms
@@ -511,7 +561,8 @@ flow ids_signature_verification(client, gw) {
     client -> gw tcp syn srcport 53080 dstport 80 win 65535 mss 1460 wait 1ms
     client <- gw tcp syn ack win 65535 mss 1460 wait 1ms
     client -> gw tcp ack wait 1ms
-    client -> gw http post uri "/admin/export-secrets" hosthdr "internal-portal.local" useragent "ScannerBot/2.1" contenttype "application/json" header "X-Api-Token" "test-token-998877" body "{\"dump\":true}" wait 2ms
+    client -> gw http post uri "/admin/export-secrets" hosthdr "internal-portal.local" useragent "ScannerBot/2.1"
+        contenttype "application/json" header "X-Api-Token" "test-token-998877" body "{\"dump\":true}" wait 2ms
     client <- gw http status 403 reason "Forbidden" contenttype "application/json" body "{\"error\":\"blocked_by_waf\"}"
 }
 
@@ -537,7 +588,8 @@ zeek -C -r ids_dpi_validation.pcap
 
 ### Recipe 4C — Shadow IT and Rogue LAN Devices
 
-Everyone writes correlation rules for Shadow IT and rogue devices. Almost nobody tests them, because nobody wants to stand up a rogue DHCP server on the production LAN or upload corporate files to an unapproved AI service just to see if an alert fires. One capture covers four detections:
+Everyone writes correlation rules for Shadow IT and rogue devices. Almost nobody tests them, because nobody wants to stand up a rogue DHCP server on the production LAN or upload
+corporate files to an unapproved AI service just to see if an alert fires. One capture covers four detections:
 
 1. **Unapproved SaaS or AI upload (`tls` `sni`)**: a workstation opens TLS 1.3 to `shadow-ai-upload.example.net`.
 2. **`quic` / DoH bypass on UDP `443`**: a browser tries HTTP/3 (`initial`) to slip past corporate DNS inspection.
@@ -596,13 +648,16 @@ sudo tcpreplay -i eth0 shadow_it_audit.pcap
 
 ## 5. Industrial OT: Allow the Read, Refuse the Write
 
-Industrial security sensors (**Claroty**, **Dragos**, **Nozomi Networks**, **Palo Alto / Fortinet OT profiles**, **Suricata ICS rules**) look deep into the protocol. They need to allow a historian's `read` poll, block the `write` or `operate` command, and drop mid-stream TCP packets that arrive without a proper handshake. Purdue Model levels 1 through 3.5 are not the place to run experiments, and borrowing a PLC from the plant for a firewall test is how you meet the plant manager.
+Industrial security sensors (**Claroty**, **Dragos**, **Nozomi Networks**, **Palo Alto / Fortinet OT profiles**, **Suricata ICS rules**) look deep into the protocol. They need to
+allow a historian's `read` poll, block the `write` or `operate` command, and drop mid-stream TCP packets that arrive without a proper handshake. Purdue Model levels 1 through 3.5 are
+not the place to run experiments, and borrowing a PLC from the plant for a firewall test is how you meet the plant manager.
 
 FrameAssembly builds all **six core industrial protocols** with stateful TCP `SEQ`/`ACK` tracking and automatic **IEEE 1815 DNP3 CRC-16** calculation over every header and 16-byte data block.
 
 ### Recipe 5 — Purdue Level 1–3.5 Conduit Validation: `modbus`, `s7comm`, `dnp3`, `bacnet`, `ethernetip` and `opcua`
 
-One HMI talks to one imaginary PLC over every industrial protocol you are likely to meet on the conduit: Modbus TCP (handshake, read holding registers, write single register), S7comm (setup communication, read DB1), DNP3 (class 0 poll, select, operate), BACnet/IP (ReadProperty, WriteProperty), EtherNet/IP with CIP, and OPC UA binary (HEL, ACK, MSG).
+One HMI talks to one imaginary PLC over every industrial protocol you are likely to meet on the conduit: Modbus TCP (handshake, read holding registers, write single register), S7comm
+(setup communication, read DB1), DNP3 (class 0 poll, select, operate), BACnet/IP (ReadProperty, WriteProperty), EtherNet/IP with CIP, and OPC UA binary (HEL, ACK, MSG).
 
 Save as `ot_scada_conduit_test.frasm`:
 
@@ -672,11 +727,15 @@ sudo tcpreplay -i eth1 ot_scada_conduit_test.pcap
 
 ## 6. Incident Reproducers and Anonymized Captures
 
-Attaching a live `tcpdump` to a vendor TAC case, a Jira ticket, or a runbook has two problems. The capture contains **customer subnets, internal hostnames, TLS `sni` strings, and a great deal of unrelated chatter**. And a binary `.pcap` cannot be reviewed in a Git pull request, or adjusted when someone asks *"what happens if the timer is 50 ms instead?"* The recipes below turn an incident into a few lines of `.frasm` code that anyone can read, diff, and replay.
+Attaching a live `tcpdump` to a vendor TAC case, a Jira ticket, or a runbook has two problems. The capture contains
+**customer subnets, internal hostnames, TLS `sni` strings, and a great deal of unrelated chatter**. And a binary `.pcap` cannot be reviewed in a Git pull request, or adjusted when
+someone asks *"what happens if the timer is 50 ms instead?"* The recipes below turn an incident into a few lines of `.frasm` code that anyone can read, diff, and replay.
 
 ### Recipe 6A — TCP Zero-Window Stall and Window Update Recovery
 
-The ticket reads "the app froze for a few seconds, probably DNS". It was not DNS. The server's receive buffer filled up, advertised a zero window, and the client waited, politely, for it to drain. This reproducer shows the whole story: handshake, HTTP POST, `win 0`, a one-byte probe that also gets `win 0`, a window update to 32768, the `202 Accepted`, and a graceful close.
+The ticket reads "the app froze for a few seconds, probably DNS". It was not DNS. The server's receive buffer filled up, advertised a zero window, and the client waited, politely, for
+it to drain. This reproducer shows the whole story: handshake, HTTP POST, `win 0`, a one-byte probe that also gets `win 0`, a window update to 32768, the `202 Accepted`, and a
+graceful close.
 
 Save as `reproducer_zero_window.frasm`:
 
@@ -733,7 +792,9 @@ tshark -r reproducer_zero_window.pcap
 
 ### Recipe 6B — Routing and First-Hop Redundancy Failover: `bfd`, `ospf`, `bgp`, `vrrp`, `hsrp` and Gratuitous `arp`
 
-"Failover took a bit" is not a measurement. This capture lays an entire core failover out as 10 frames: `bfd` session up and then down, `ospf` hello and link-state update, `bgp` open and update, `vrrp` and `hsrp` active-gateway advertisements, and a **gratuitous ARP** that refreshes the downstream switches' CAM tables. Arrange the `wait` timings to match your own convergence budget and see where the milliseconds go.
+"Failover took a bit" is not a measurement. This capture lays an entire core failover out as 10 frames: `bfd` session up and then down, `ospf` hello and link-state update, `bgp` open
+and update, `vrrp` and `hsrp` active-gateway advertisements, and a **gratuitous ARP** that refreshes the downstream switches' CAM tables. Arrange the `wait` timings to match your own
+convergence budget and see where the milliseconds go.
 
 Save as `routing_ha_failover.frasm`:
 
@@ -783,13 +844,17 @@ tshark -r routing_ha_failover.pcap
 
 ### Recipe 6C — Anonymizing Customer `.pcap` Captures for Vendor Support: `frameassembly reverse`
 
-`tcprewrite` can swap outer IP addresses, but it cannot scrub internal DNS `qname`s, TLS `sni` hostnames, HTTP `hosthdr` values, or syslog and SNMP strings. Changing a Layer 7 string changes its length, and that invalidates every downstream IP length, TCP/UDP checksum, and TCP `SEQ`/`ACK` offset in the stream. Doing it by hand is how you lose a Thursday.
+`tcprewrite` can swap outer IP addresses, but it cannot scrub internal DNS `qname` s, TLS `sni` hostnames, HTTP `hosthdr` values, or syslog and SNMP strings. Changing a Layer 7 string
+changes its length, and that invalidates every downstream IP length, TCP/UDP checksum, and TCP `SEQ` /`ACK` offset in the stream. Doing it by hand is how you lose a Thursday.
 
 `frameassembly reverse` handles the whole round trip:
 
 1. Run `frameassembly reverse` on your `tcpdump` or Wireshark `.pcap` / `.pcapng` to decompile it into `.frasm` code with `host1`, `host2`, and so on.
-2. Replace customer IPs and MACs in the `host` blocks with RFC 5737 documentation ranges (`192.0.2.0/24`, `198.51.100.0/24`), scrub internal `sni`, `qname`, and `hosthdr` strings, and delete unrelated background lines.
-3. Recompile with `frameassembly sanitized_ticket.frasm sanitized_ticket.pcap`. FrameAssembly recalculates the Ethernet, IP, TCP, and UDP lengths, the L3/L4 checksums, and the TCP `SEQ`/`ACK` numbers. Encrypted payloads (SNMPv3 `authPriv`, TLS application data, SSH, IPsec `esp`) stay intact as `tcp` or `udp` statements with `payload` / `hexpayload`, so their wire bytes are not touched.
+2. Replace customer IPs and MACs in the `host` blocks with RFC 5737 documentation ranges (`192.0.2.0/24`, `198.51.100.0/24`), scrub internal `sni`, `qname`, and `hosthdr` strings,
+   and delete unrelated background lines.
+3. Recompile with `frameassembly sanitized_ticket.frasm sanitized_ticket.pcap`. FrameAssembly recalculates the Ethernet, IP, TCP, and UDP lengths, the L3/L4 checksums, and the TCP
+   `SEQ` /`ACK` numbers. Encrypted payloads (SNMPv3 `authPriv`, TLS application data, SSH, IPsec `esp`) stay intact as `tcp` or `udp` statements with `payload` / `hexpayload`, so
+   their wire bytes are not touched.
 
 ```bash
 # 1. Decompile customer_incident.pcap -> sanitized_ticket.frasm
@@ -819,7 +884,8 @@ frameassembly show sanitized_ticket.frasm
 frameassembly sanitized_ticket.frasm sanitized_ticket.pcap
 ```
 
-Layer 2 reproducers (`lldp`, `stp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`, `arp`) do not need IP addresses at all. Declare MAC-only `host` blocks and write the statements directly inside `compile { ... }`:
+Layer 2 reproducers (`lldp`, `stp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`, `arp`) do not need IP addresses at all. Declare MAC-only `host` blocks and write the statements
+directly inside `compile { ... }`:
 
 ```frameassembly
 host sw1 { mac 00:1c:73:00:00:01 }
@@ -835,3 +901,17 @@ compile {
 ---
 
 Next stops: [Getting Started](01_getting_started.md) for the first-hour walkthrough, and the [Docs Index](README.md) for the per-protocol reference guides.
+
+[r1a]: #recipe-1a--link-down-at-2-am-snmpv1-and-snmpv2c-traps-polls-and-informs
+[r1b]: #recipe-1b--encrypted-snmpv3-authpriv-traps-for-checkmk-zabbix-and-prtg
+[r2a]: #recipe-2a--dmz-firewall-policy-audit-handshakes-rejections-out-of-state-and-stealth-probes
+[r2b]: #recipe-2b--path-mtu-ipv4-fragmentation-and-spoofed-sources
+[r3a]: #recipe-3a--8021q-trunk-and-voice--video--scavenger-diffserv-qos
+[r3b]: #recipe-3b--carrier-8021ad-qinq-double-tagging-and-mpls-backhaul
+[r4a]: #recipe-4a--siem-and-flow-collector-ingest-syslog-netflow-v5-ipfix-and-sflow
+[r4b]: #recipe-4b--idsips-and-dpi-signatures-dns-sinkhole-tls-13-snialpn-and-custom-http-headers
+[r4c]: #recipe-4c--shadow-it-and-rogue-lan-devices
+[r5]: #recipe-5--purdue-level-135-conduit-validation-modbus-s7comm-dnp3-bacnet-ethernetip-and-opcua
+[r6a]: #recipe-6a--tcp-zero-window-stall-and-window-update-recovery
+[r6b]: #recipe-6b--routing-and-first-hop-redundancy-failover-bfd-ospf-bgp-vrrp-hsrp-and-gratuitous-arp
+[r6c]: #recipe-6c--anonymizing-customer-pcap-captures-for-vendor-support-frameassembly-reverse

@@ -1,18 +1,19 @@
-// PROMPT: IPsec ESP frame with raw binary HEXPAYLOAD, custom MACs, and Next Header 59 (No Next Header).
-// TOKENS: host, ip, flow, esp, spi, seq, iv, icv, nextheader, srcmac, dstmac, hexpayload, compile
+// IPsec ESP frame with raw binary HEXPAYLOAD, custom MACs, and Next Header 59
+// (No Next Header).
+// This capture carries SPI 555000.
+// Wireshark: esp
 
-// INSTRUCTION: Define high-assurance crypto bridge 1.
 host crypto_bridge_1 { ip 10.80.80.1 }
 
-// INSTRUCTION: Define high-assurance crypto bridge 2.
 host crypto_bridge_2 { ip 10.80.80.2 }
 
-// INSTRUCTION: Define dummy traffic padding ESP packet using RFC 4303 Next Header 59.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow esp_dummy_padding_flow(b1, b2) {
     b1 -> b2 esp spi 555000 seq 99 iv "cafebabedeadbeef" icv "0123456789abcdef01234567" nextheader 59 srcmac 02:aa:bb:cc:dd:01 dstmac 02:aa:bb:cc:dd:02 hexpayload "f0e1d2c3b4a5968778695a4b3c2d1e0f"
 }
 
-// INSTRUCTION: Compile the raw hex ciphertext ESP flow.
+// Run esp_dummy_padding_flow(crypto_bridge_1, crypto_bridge_2) to generate
+// the capture.
 compile {
     esp_dummy_padding_flow(crypto_bridge_1, crypto_bridge_2)
 }

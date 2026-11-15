@@ -45,6 +45,7 @@ pub fn build_s7comm_payload(
 
     let pdu_ref = spec.pdu_ref.unwrap_or(1);
     let mut param = Vec::new();
+    let mut data = Vec::new();
 
     if func_code == 0xF0 {
         // Setup Communication parameter (8 bytes)
@@ -53,29 +54,79 @@ pub fn build_s7comm_payload(
         param.extend_from_slice(&1u16.to_be_bytes()); // Max AMQ Calling: 1
         param.extend_from_slice(&1u16.to_be_bytes()); // Max AMQ Called: 1
         param.extend_from_slice(&480u16.to_be_bytes()); // PDU Length: 480
+        if !payload_bytes.is_empty() {
+            data.extend_from_slice(payload_bytes);
+        }
+    } else if (func_code == 0x04 || func_code == 0x05) && rosctr == 0x03 {
+        // Read/Write Var Ack_Data parameter (2 bytes: Function + Item count 1)
+        param.push(func_code);
+        param.push(0x01);
+        if func_code == 0x04 {
+            if payload_bytes.is_empty() {
+                let byte_len = usize::from(spec.count.unwrap_or(1).max(1)).min(4096);
+                let bit_len = (byte_len * 8) as u16;
+                data.push(0xFF); // Return code: Success
+                data.push(0x04); // Transport size: BYTE/WORD/DWORD (bits)
+                data.extend_from_slice(&bit_len.to_be_bytes());
+                data.resize(data.len() + byte_len, 0);
+            } else if payload_bytes.len() >= 5
+                && payload_bytes[0] == 0xFF
+                && matches!(payload_bytes[1], 0x03 | 0x04 | 0x05 | 0x07 | 0x09)
+            {
+                data.extend_from_slice(payload_bytes);
+            } else {
+                let bit_len = (payload_bytes.len() * 8) as u16;
+                data.push(0xFF);
+                data.push(0x04);
+                data.extend_from_slice(&bit_len.to_be_bytes());
+                data.extend_from_slice(payload_bytes);
+            }
+        } else if payload_bytes.is_empty() {
+            data.push(0xFF); // Write Var Ack_Data Item Return code: Success
+        } else {
+            data.extend_from_slice(payload_bytes);
+        }
     } else if func_code == 0x04 || func_code == 0x05 {
-        // Read/Write Var parameter (14 bytes)
+        // Read/Write Var Job parameter (14 bytes)
+        let item_count = spec.count.unwrap_or(1).max(1);
         param.push(func_code); // Function: Read Var (0x04) or Write Var (0x05)
         param.push(0x01); // Item count: 1
         param.push(0x12); // Variable spec syntax ID
         param.push(0x0A); // Length of item spec (10 bytes)
         param.push(0x10); // Syntax ID: S7ANY
         param.push(0x02); // Transport size: BYTE
-        param.extend_from_slice(&spec.count.unwrap_or(1).to_be_bytes()); // Length
+        param.extend_from_slice(&item_count.to_be_bytes()); // Length
         param.extend_from_slice(&spec.db_num.unwrap_or(1).to_be_bytes()); // DB Number
         param.push(spec.area.unwrap_or(0x84)); // Area: DB (0x84)
         let offset = spec.offset.unwrap_or(0) << 3; // Bit address offset
         param.push((offset >> 16) as u8);
         param.push((offset >> 8) as u8);
         param.push(offset as u8);
+
+        if func_code == 0x05 {
+            if payload_bytes.is_empty() {
+                let byte_len = usize::from(item_count).min(4096);
+                let bit_len = (byte_len * 8) as u16;
+                data.push(0xFF);
+                data.push(0x04);
+                data.extend_from_slice(&bit_len.to_be_bytes());
+                data.resize(data.len() + byte_len, 0);
+            } else {
+                let bit_len = (payload_bytes.len() * 8) as u16;
+                data.push(0xFF);
+                data.push(0x04);
+                data.extend_from_slice(&bit_len.to_be_bytes());
+                data.extend_from_slice(payload_bytes);
+            }
+        } else if !payload_bytes.is_empty() {
+            data.extend_from_slice(payload_bytes);
+        }
     } else {
         param.push(func_code);
         param.push(0x00);
-    }
-
-    let mut data = Vec::new();
-    if !payload_bytes.is_empty() {
-        data.extend_from_slice(payload_bytes);
+        if !payload_bytes.is_empty() {
+            data.extend_from_slice(payload_bytes);
+        }
     }
 
     let param_len = param.len() as u16;

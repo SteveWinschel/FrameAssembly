@@ -1,18 +1,19 @@
-// PROMPT: Expedited forwarding DSCP marked NetFlow export packet for high-priority telemetry.
-// TOKENS: host, ip, flow, netflow, srcip, dstip, srcport, dstport, proto, packets, octets, dscp, compile
+// Expedited forwarding DSCP marked NetFlow export packet for high-priority
+// telemetry.
+// Wireshark: cflow || udp.port == 2055 || udp.port == 443
 
-// INSTRUCTION: Define financial exchange gateway router.
+// Financial exchange gateway router.
 host exchange_gateway { ip 10.77.1.1 }
 
-// INSTRUCTION: Define high-priority market audit collector.
+// High-priority market audit collector.
 host audit_collector { ip 10.77.1.100 }
 
-// INSTRUCTION: Define DSCP marked telemetry export flow.
+// DSCP marked telemetry export flow. Encapsulation and QoS markings: DSCP 46.
+// Reports IP protocol 6 (TCP) flow records to UDP 2055.
 flow dscp_netflow_export(gw, col) {
     gw -> col netflow srcip 10.77.10.5 dstip 10.77.20.9 srcport 443 dstport 59123 proto 6 packets 500 octets 650000 dscp 46
 }
 
-// INSTRUCTION: Compile DSCP marked NetFlow scenario.
 compile {
     dscp_netflow_export(exchange_gateway, audit_collector)
 }

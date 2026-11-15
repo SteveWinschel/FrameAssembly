@@ -1,25 +1,27 @@
-// PROMPT: RFC 9136 BGP EVPN Type-5 IP Prefix route inter-subnet forwarding using a dedicated Tenant VRF L3VNI (VNI 50001).
-// TOKENS: host, ip, mac, flow, vxlan, vni, srcport, dstport, df, dscp, ttl, payload, wait, ms, compile
+// RFC 9136 BGP EVPN Type-5 IP Prefix route inter-subnet forwarding using a
+// dedicated Tenant VRF L3VNI (VNI 50001).
+// This capture sets DSCP 26, TTL 63, DF bit set, carries VNI 50001,
+// destination port 4789, and uses post-packet wait gaps (2ms) between frames.
+// Wireshark: vxlan && vxlan.vni == 50001
 
-// INSTRUCTION: Define Ingress Leaf VTEP routing from Subnet A to Subnet B via Tenant VRF L3VNI 50001.
 host irb_vtep_ingress {
     ip 10.255.2.11
     mac 00:1c:73:50:01:0b
 }
 
-// INSTRUCTION: Define Egress Leaf VTEP performing L3VNI 50001 lookup and local ARP delivery.
 host irb_vtep_egress {
     ip 10.255.2.22
     mac 00:1c:73:50:01:16
 }
 
-// INSTRUCTION: Define VXLAN L3VNI 50001 Symmetric IRB forwarding with Router MAC inner header.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vxlan_evpn_l3vni_irb_flow(ing, egr) {
     ing -> egr vxlan vni 50001 srcport 58001 dstport 4789 df dscp 26 ttl 63 payload "RFC9136_EVPN_TYPE5_L3VNI_50001_ROUTED_PKT" wait 2ms
     ing <- egr vxlan vni 50001 srcport 58002 dstport 4789 df dscp 26 ttl 63 payload "RFC9136_EVPN_TYPE5_L3VNI_50001_ROUTED_ACK"
 }
 
-// INSTRUCTION: Compile the RFC 9136 EVPN Type-5 L3VNI Symmetric IRB VXLAN flow.
+// Run vxlan_evpn_l3vni_irb_flow(irb_vtep_ingress, irb_vtep_egress) to
+// generate the capture.
 compile {
     vxlan_evpn_l3vni_irb_flow(irb_vtep_ingress, irb_vtep_egress)
 }

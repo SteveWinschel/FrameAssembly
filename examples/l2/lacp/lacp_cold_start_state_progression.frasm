@@ -1,27 +1,25 @@
-// PROMPT: IEEE 802.1AX LACP cold-start state machine progression from Defaulted (0x45) to Collecting/Distributing (0x3D).
-// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, compile
+// IEEE 802.1AX LACP cold-start state machine progression from Defaulted (0x45) to
+// Collecting/Distributing (0x3D).
+// Wire profile: 4 frames; 2 IPv4 hosts; LACP; waits 10ms.
+// Wireshark: lacp
 
-// INSTRUCTION: Define server bond0 primary interface starting LACP cold boot.
 host srv_bond_cold {
     ip 10.50.10.11
     mac 00:25:90:50:10:0b
 }
 
-// INSTRUCTION: Define Top-of-Rack port-channel member interface.
 host tor_po1_member {
     ip 10.50.10.1
     mac 00:1c:73:50:10:01
 }
 
-// INSTRUCTION: Define LACP state progression from Defaulted (69) to InSync (13) to Collecting/Distributing (61).
 flow lacp_cold_start_convergence(srv, tor) {
-    srv -> tor lacp actorsys 00:25:90:50:10:0b actorkey 10 actorport 1 actorstate 69 partnersys 00:00:00:00:00:00 partnerkey 0 partnerport 0 partnerstate 64
+    srv -> tor lacp actorsys 00:25:90:50:10:0b actorkey 10 actorport 1 actorstate 69 partnersys 00:00:00:00:00:00 partnerkey 0 partnerport 0 partnerstate 64 wait 10ms
     srv <- tor lacp actorsys 00:1c:73:50:10:01 actorkey 10 actorport 17 actorstate 13 partnersys 00:25:90:50:10:0b partnerkey 10 partnerport 1 partnerstate 5 wait 10ms
     srv -> tor lacp actorsys 00:25:90:50:10:0b actorkey 10 actorport 1 actorstate 61 partnersys 00:1c:73:50:10:01 partnerkey 10 partnerport 17 partnerstate 61 wait 10ms
-    srv <- tor lacp actorsys 00:1c:73:50:10:01 actorkey 10 actorport 17 actorstate 61 partnersys 00:25:90:50:10:0b partnerkey 10 partnerport 1 partnerstate 61 wait 10ms
+    srv <- tor lacp actorsys 00:1c:73:50:10:01 actorkey 10 actorport 17 actorstate 61 partnersys 00:25:90:50:10:0b partnerkey 10 partnerport 1 partnerstate 61
 }
 
-// INSTRUCTION: Compile block executing LACP cold-start state progression.
 compile {
     lacp_cold_start_convergence(srv_bond_cold, tor_po1_member)
 }

@@ -1,19 +1,21 @@
-// PROMPT: Model an HTTP/1.1 conditional GET using If-None-Match ETag validation returning 304 Not Modified.
-// TOKENS: host, ip, mac, flow, s, http, method, uri, hosthdr, header, wait, ms, status, reason, compile
+// HTTP/1.1 conditional GET using If-None-Match ETag validation returning 304
+// Not Modified.
+// Wireshark: http
 
-// INSTRUCTION: Define the browser client revalidating a cached static bundle.
+// Browser client revalidating a cached static bundle.
 host browser_cache {
     ip 192.168.120.33
     mac 00:1c:42:78:00:21
 }
 
-// INSTRUCTION: Define the reverse proxy web server validating strong ETags.
+// Reverse proxy web server validating strong ETags.
 host nginx_cache_srv {
     ip 192.168.120.1
     mac 00:1c:42:78:00:01
 }
 
-// INSTRUCTION: Issue conditional GET with If-None-Match and receive 304 Not Modified without entity body.
+// Issue conditional GET with If-None-Match and receive 304 Not Modified
+// without entity body.
 flow http_conditional_304_flow(c, s) {
     c -> s http method "GET" uri "/assets/vendor.bundle.js" hosthdr "static.example.org"
         header "If-None-Match" "sha256-9f86d081884c7d65" header "Cache-Control" "max-age=0" wait 3ms
@@ -21,7 +23,6 @@ flow http_conditional_304_flow(c, s) {
         header "ETag" "sha256-9f86d081884c7d65" header "Cache-Control" "public, max-age=3600"
 }
 
-// INSTRUCTION: Compile the HTTP 304 Not Modified ETag revalidation flow.
 compile {
     http_conditional_304_flow(browser_cache, nginx_cache_srv)
 }

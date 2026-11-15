@@ -1,19 +1,16 @@
-// PROMPT: HTTP/1.1 POST API request submitting JSON payload and receiving 201 Created.
-// TOKENS: host, ip, flow, s, http, method, uri, contenttype, body, status, reason, compile
+// HTTP/1.1 POST API request submitting JSON payload and receiving 201
+// Created.
+// Wireshark: http
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.5 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow http_post(c, s) {
     c -> s http method "POST" uri "/api/v1/telemetry" contenttype "application/json" body "{\"temp\":22.5}"
     c <- s http status 201 reason "Created" body "{\"status\":\"recorded\"}"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     http_post(client, server)
 }

@@ -1,21 +1,25 @@
 {
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Compile .frasm network traffic code into .pcap/.pcapng captures and reverse captures back to .frasm across 81 L2-L7 protocols",
   "homepage": "https://github.com/SteveWinschel/FrameAssembly",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.0.0/frameassembly-windows-x64.zip",
-      "hash": "7007a0fd470d47175eb192f367ebede92f6c5040ed4f7a34705c0f98f8d0edd9",
+      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.0/frameassembly-windows-x64.zip",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000000",
       "extract_dir": "frameassembly-windows-x64"
     },
     "arm64": {
-      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.0.0/frameassembly-windows-arm64.zip",
-      "hash": "12ab5f5a0a86e5717e0c3ef14bdf24dc5a2f53cc2dfd1f3561eaadd3916ac6ad",
+      "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.0/frameassembly-windows-arm64.zip",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000000",
       "extract_dir": "frameassembly-windows-arm64"
     }
   },
   "bin": "frameassembly.exe",
+  "notes": [
+    "Starter example & offline protocol guides: $dir\\quickstart.frasm and $dir\\docs\\",
+    "Optional PowerShell Tab completion: . \"$dir\\completions\\frameassembly.ps1\""
+  ],
   "checkver": "github",
   "autoupdate": {
     "architecture": {

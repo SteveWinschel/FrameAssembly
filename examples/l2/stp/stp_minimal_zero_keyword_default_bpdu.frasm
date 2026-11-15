@@ -1,25 +1,20 @@
-// PROMPT: Minimal zero-argument STP statement synthesizing a standard 35-byte IEEE 802.1D Configuration BPDU over 802.2 LLC.
-// TOKENS: host, ip, mac, flow, stp, wait, ms, rstp, compile
+// Minimal STP and RSTP BPDU exchange using direct two-block host and compile syntax.
+// Sends a 35-byte IEEE 802.1D Configuration BPDU, waits 5ms post-packet, then
+// returns a 36-byte IEEE 802.1w RSTP BPDU over 802.2 LLC (0x424203).
+// Inspect BPDU versions via `frameassembly show stp_minimal_zero_keyword_default_bpdu.frasm`.
+// Wireshark: stp
 
-// INSTRUCTION: Define default STP bridge A.
 host default_stp_a {
     ip 10.0.10.1
     mac 00:11:22:33:44:01
 }
 
-// INSTRUCTION: Define default STP bridge B.
 host default_stp_b {
     ip 10.0.10.2
     mac 00:11:22:33:44:02
 }
 
-// INSTRUCTION: Emit default IEEE 802.1D Configuration BPDU and default IEEE 802.1w RSTP BPDU with zero optional modifiers.
-flow stp_minimal_defaults(a, b) {
-    a -> b stp wait 5ms
-    a <- b stp rstp
-}
-
-// INSTRUCTION: Compile the minimal default STP and RSTP BPDU exchange.
 compile {
-    stp_minimal_defaults(default_stp_a, default_stp_b)
+    default_stp_a -> default_stp_b stp wait 5ms
+    default_stp_a <- default_stp_b stp rstp
 }

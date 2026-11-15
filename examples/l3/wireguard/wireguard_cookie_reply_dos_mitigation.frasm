@@ -1,18 +1,20 @@
-// PROMPT: WireGuard concentrator issuing Cookie Reply to mitigate denial-of-service flood.
-// TOKENS: host, ip, flow, wireguard, type, cookie, receiver, compile
+// WireGuard concentrator issuing Cookie Reply to mitigate denial-of-service
+// flood.
+// This capture models UDP port 51820 WireGuard handshake and transport
+// frames.
+// Wireshark: wg
 
-// INSTRUCTION: Define high-capacity WireGuard VPN concentrator under load.
 host wg_loaded_concentrator { ip 198.51.100.1 }
 
-// INSTRUCTION: Define incoming peer connection endpoint.
 host wg_incoming_peer { ip 203.0.113.77 }
 
-// INSTRUCTION: Define Cookie Reply transmission flow challenging peer authenticity.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow wg_cookie_mitigation_flow(conc, peer) {
     conc -> peer wireguard type cookie receiver 987654321
 }
 
-// INSTRUCTION: Compile block executing Cookie challenge reply.
+// Run wg_cookie_mitigation_flow(wg_loaded_concentrator, wg_incoming_peer) to
+// generate the capture.
 compile {
     wg_cookie_mitigation_flow(wg_loaded_concentrator, wg_incoming_peer)
 }

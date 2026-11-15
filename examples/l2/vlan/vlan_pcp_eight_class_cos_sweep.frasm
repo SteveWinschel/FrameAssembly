@@ -1,25 +1,24 @@
-// PROMPT: IEEE 802.1Q full Priority Code Point (PCP 0 through 7) CoS marking sweep across a trunk link.
-// TOKENS: host, ip, flow, vlan, pcp, dei, udp, srcport, dstport, payload, wait, ms, compile
+// IEEE 802.1Q full Priority Code Point (PCP 0 through 7) CoS marking sweep across
+// a trunk link.
+// Wire profile: 8 frames; 2 IPv4 hosts; VLAN 802; PCP 0,1,2; UDP; dstport
+// 8000,8001,8002,8003; waits 1ms.
+// Wireshark: vlan.id == 802 && vlan.priority == 0
 
-// INSTRUCTION: Define QoS traffic generator port.
 host cos_tx_port { ip 172.16.80.1 }
 
-// INSTRUCTION: Define QoS traffic analyzer port.
 host cos_rx_port { ip 172.16.80.2 }
 
-// INSTRUCTION: Define 8-class IEEE 802.1p PCP 0..7 priority sweep on VLAN 802.
 flow pcp_eight_class_sweep(tx, rx) {
-    tx -> rx vlan 802 pcp 0 dei 0 udp srcport 40000 dstport 8000 payload "cos_pcp_0_best_effort"
+    tx -> rx vlan 802 pcp 0 dei 0 udp srcport 40000 dstport 8000 payload "cos_pcp_0_best_effort" wait 1ms
     tx -> rx vlan 802 pcp 1 dei 1 udp srcport 40001 dstport 8001 payload "cos_pcp_1_background_scavenger" wait 1ms
     tx -> rx vlan 802 pcp 2 dei 0 udp srcport 40002 dstport 8002 payload "cos_pcp_2_excellent_effort" wait 1ms
     tx -> rx vlan 802 pcp 3 dei 0 udp srcport 40003 dstport 8003 payload "cos_pcp_3_critical_applications" wait 1ms
     tx -> rx vlan 802 pcp 4 dei 0 udp srcport 40004 dstport 8004 payload "cos_pcp_4_video_conferencing" wait 1ms
     tx -> rx vlan 802 pcp 5 dei 0 udp srcport 40005 dstport 8005 payload "cos_pcp_5_interactive_voice" wait 1ms
     tx -> rx vlan 802 pcp 6 dei 0 udp srcport 40006 dstport 8006 payload "cos_pcp_6_internetwork_control" wait 1ms
-    tx -> rx vlan 802 pcp 7 dei 0 udp srcport 40007 dstport 8007 payload "cos_pcp_7_network_control" wait 1ms
+    tx -> rx vlan 802 pcp 7 dei 0 udp srcport 40007 dstport 8007 payload "cos_pcp_7_network_control"
 }
 
-// INSTRUCTION: Compile block executing full 8-level 802.1p PCP CoS verification sweep.
 compile {
     pcp_eight_class_sweep(cos_tx_port, cos_rx_port)
 }

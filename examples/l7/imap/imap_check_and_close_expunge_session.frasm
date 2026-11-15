@@ -1,19 +1,20 @@
-// PROMPT: Simulate an IMAP session marking deleted messages, issuing CHECK, and calling CLOSE to silently expunge and deselect.
-// TOKENS: host, ip, mac, flow, s, imap, tag, cmd, arg, wait, ms, status, response, compile
+// IMAP session marking deleted messages, issuing CHECK, and calling CLOSE to
+// silently expunge and deselect.
+// Wireshark: imap
 
-// INSTRUCTION: Define the workstation mail client cleaning up a project folder.
+// Workstation mail client cleaning up a project folder.
 host cleanup_client {
     ip 10.143.95.40
     mac 00:1b:21:8f:5f:28
 }
 
-// INSTRUCTION: Define the department IMAP server.
 host dept_imap {
     ip 10.143.95.1
     mac 00:1b:21:8f:5f:01
 }
 
-// INSTRUCTION: Store \Deleted flag, flush mailbox state with CHECK, Close to expunge, and LOGOUT.
+// Store \Deleted flag, flush mailbox state with CHECK, Close to expunge, and
+// LOGOUT.
 flow imap_check_and_close(c, s) {
     c -> s imap tag "K01" cmd "STORE" arg "1:10 +FLAGS.SILENT (\Deleted)" wait 2ms
     c <- s imap tag "K01" status "OK" response "Store completed" wait 2ms
@@ -25,7 +26,6 @@ flow imap_check_and_close(c, s) {
     c <- s imap tag "*" status "BYE" response "Logging out"
 }
 
-// INSTRUCTION: Compile the IMAP CHECK, CLOSE, and LOGOUT session.
 compile {
     imap_check_and_close(cleanup_client, dept_imap)
 }

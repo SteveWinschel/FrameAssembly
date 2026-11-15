@@ -1,25 +1,25 @@
-// PROMPT: Simulate an FTTH Broadband Network Gateway authenticating a PPPoE subscriber via RADIUS and assigning a Framed-IP.
-// TOKENS: host, ip, mac, flow, radius, accessrequest, id, user, nasip, servicetype, wait, ms, accessaccept, framedip, compile
+// Simulate an FTTH Broadband Network Gateway authenticating a PPPoE
+// subscriber via RADIUS and assigning a Framed-IP.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting (accessrequest,
+// accessaccept) with Service-Type 2 (Framed (802.1X)).
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: radius
 
-// INSTRUCTION: Define the Network Access Server (NAS) client initiating RADIUS requests.
 host radius_nas {
     ip 10.181.2.5
     mac 00:1b:21:18:12:05
 }
 
-// INSTRUCTION: Define the central RADIUS authentication and accounting server.
 host radius_server {
     ip 10.181.2.100
     mac 00:1b:21:18:12:64
 }
 
-// INSTRUCTION: Execute the RFC 2865 / RFC 2866 RADIUS transaction flow.
 flow radius_scenario_flow(nas, srv) {
     nas -> srv radius accessrequest id 101 user "ftth_sub_8841@isp.net" nasip 10.181.2.5 servicetype 2 wait 4ms
     nas <- srv radius accessaccept id 101 user "ftth_sub_8841@isp.net" nasip 10.181.2.5 servicetype 2 framedip 100.65.12.88
 }
 
-// INSTRUCTION: Compile the RADIUS AAA exchange into a PCAP trace.
 compile {
     radius_scenario_flow(radius_nas, radius_server)
 }

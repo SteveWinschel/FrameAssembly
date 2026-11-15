@@ -1,19 +1,18 @@
-// PROMPT: POP3 traffic encapsulated in QinQ service provider tags and MPLS label stack.
-// TOKENS: host, ip, flow, s, pop3, cmd, arg, qinq, innervlan, mpls, exp, bos, mplsttl, ok, compile
+// POP3 traffic encapsulated in QinQ service provider tags and MPLS label
+// stack.
+// Encapsulation and QoS markings: 802.1ad QinQ outer 500 / inner 110, MPLS
+// label 11001, 11002.
+// Wireshark: (pop && vlan) && mpls
 
-// INSTRUCTION: Define branch office mail fetcher.
 host branch_fetcher { ip 10.110.1.5 }
 
-// INSTRUCTION: Define headquarters POP3 server.
 host hq_pop_srv { ip 10.110.2.5 }
 
-// INSTRUCTION: Define POP3 LIST command with QinQ and MPLS encapsulation.
 flow pop3_wan_mpls(c, s) {
     c -> s pop3 cmd "LIST" arg "1" qinq 500 innervlan 110 mpls 11001 exp 2 bos 1 mplsttl 64
     c <- s pop3 ok qinq 500 innervlan 110 mpls 11002 exp 2 bos 1 mplsttl 63
 }
 
-// INSTRUCTION: Compile WAN MPLS POP3 flow.
 compile {
     pop3_wan_mpls(branch_fetcher, hq_pop_srv)
 }

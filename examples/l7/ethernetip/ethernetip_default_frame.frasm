@@ -1,24 +1,19 @@
-// PROMPT: Default EtherNet/IP industrial frame emission over TCP port 44818 using protocol defaults.
-// TOKENS: host, ip, mac, flow, s, ethernetip, compile
+// ODVA EtherNet/IP starter packet on TCP port 44818 using built-in defaults.
+// Omitting extra keywords emits a 24-byte ListIdentity (0x0063) encapsulation
+// request.
+// Wireshark: enip || cip
 
-// INSTRUCTION: Define ControlLogix PLC scanner host.
 host clx_scanner {
     ip 192.168.1.10
     mac 00:00:bc:11:22:01
 }
 
-// INSTRUCTION: Define Point I/O EtherNet/IP adapter module.
 host pio_adapter {
     ip 192.168.1.20
     mac 00:00:bc:11:22:02
 }
 
-// INSTRUCTION: Emit a default EtherNet/IP encapsulation packet.
-flow enip_default(s, a) {
-    s -> a ethernetip
-}
-
-// INSTRUCTION: Compile the default EtherNet/IP scenario.
+// Send the frame directly in compile without needing a reusable flow block.
 compile {
-    enip_default(clx_scanner, pio_adapter)
+    clx_scanner -> pio_adapter ethernetip
 }

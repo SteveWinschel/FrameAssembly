@@ -1,29 +1,25 @@
-// PROMPT: RTSP REDIRECT (302 Moved Temporarily) load-balancing client to an edge media node.
-// TOKENS: host, ip, flow, rtsp, method, uri, cseq, wait, ms, status, transporthdr, session, compile
+// RTSP REDIRECT (302 Moved Temporarily) load-balancing client to an edge
+// media node.
+// Timing: runs 2 cycles in compile using post-packet waits (4ms).
+// Wireshark: rtsp
 
-// INSTRUCTION: Define streaming client endpoint.
 host viewer_client { ip 10.90.55.25 }
 
-// INSTRUCTION: Define RTSP director load balancer.
 host rtsp_director { ip 10.90.55.1 }
 
-// INSTRUCTION: Define edge RTSP streaming node.
 host rtsp_edge { ip 10.90.55.2 }
 
-// INSTRUCTION: Define initial DESCRIBE returning 302 redirect from director.
 flow rtsp_redirect_302(c, dir) {
     c -> dir rtsp method "DESCRIBE" uri "rtsp://10.90.55.1/live/sports" cseq 1 wait 4ms
     c <- dir rtsp status 302 cseq 1
 }
 
-// INSTRUCTION: Define client connecting to redirected edge server.
 flow rtsp_connect_edge(c, edge) {
     c -> edge rtsp method "SETUP" uri "rtsp://10.90.55.2/live/sports/track1" cseq 2 transporthdr "RTP/AVP;unicast;client_port=6000-6001" wait 4ms
     c <- edge rtsp status 200 cseq 2 wait 4ms
     c -> edge rtsp method "PLAY" uri "rtsp://10.90.55.2/live/sports" cseq 3 session "edge_sess_55"
 }
 
-// INSTRUCTION: Compile RTSP 302 redirect followed by edge playback.
 compile {
     rtsp_redirect_302(viewer_client, rtsp_director)
     rtsp_connect_edge(viewer_client, rtsp_edge)

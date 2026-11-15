@@ -1,18 +1,18 @@
-// PROMPT: TACACS+ authentication session passing user credentials.
-// TOKENS: host, ip, flow, s, tacacs, type, authen, user, sessionid, compile
+// TACACS+ authentication session passing user credentials.
+// TACACS+ on TCP 49 (authen).
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (TACACS+
+// (RFC 8907), TCP 49).
+// Wireshark: tacplus
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.10.5 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.10.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow tacacs_pass(c, s) {
     c -> s tacacs type authen user "admin" sessionid 1002
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     tacacs_pass(client, server)
 }

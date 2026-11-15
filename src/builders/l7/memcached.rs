@@ -13,10 +13,23 @@ use alloc::vec::Vec;
 
 /// Builds a Memcached text or binary protocol packet payload.
 pub fn build_memcached_payload(
-    _ctx: &WireContext,
+    ctx: &WireContext,
     spec: &MemcachedSpec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
+    let inner = build_memcached_inner(spec, payload_bytes);
+    if ctx.transport == Some(TransportProto::Udp) {
+        let mut pkt = Vec::with_capacity(8 + inner.len());
+        pkt.extend_from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00]);
+        pkt.extend_from_slice(&inner);
+        pkt
+    } else {
+        inner
+    }
+}
+
+/// Builds the inner Memcached binary or ASCII request body prior to optional UDP framing.
+fn build_memcached_inner(spec: &MemcachedSpec, payload_bytes: &[u8]) -> Vec<u8> {
     if spec.opcode.is_some() || spec.opaque.is_some() || spec.cas.is_some() {
         let cmd_norm = spec
             .cmd

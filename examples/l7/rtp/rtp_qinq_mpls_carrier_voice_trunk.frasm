@@ -1,19 +1,19 @@
-// PROMPT: Carrier SIP trunk RTP media over QinQ double VLANs and MPLS EXP 5 pseudowire.
-// TOKENS: host, ip, flow, rtp, pt, timestamp, ssrc, marker, qinq, innervlan, mpls, exp, bos, mplsttl, compile
+// Carrier SIP trunk RTP media over QinQ double VLANs and MPLS EXP 5
+// pseudowire.
+// Encapsulation and QoS markings: 802.1ad QinQ outer 4000 / inner 500, MPLS
+// label 50040, 50041.
+// RTP media on UDP 5004 carrying PT 18 (G.729).
+// Wireshark: ((rtp || udp.port == 5004) && vlan) && mpls
 
-// INSTRUCTION: Define enterprise SBC media leg.
 host ent_sbc { ip 100.64.50.10 }
 
-// INSTRUCTION: Define carrier Class-4 trunk media gateway.
 host carrier_mgw { ip 100.64.50.1 }
 
-// INSTRUCTION: Define G.729 (PT 18) RTP packets over QinQ and MPLS EXP 5.
 flow rtp_carrier_mpls(sbc, mgw) {
     sbc -> mgw rtp pt 18 timestamp 160 ssrc 0x18000001 marker 1 qinq 4000 innervlan 500 mpls 50040 exp 5 bos 1 mplsttl 64
     sbc <- mgw rtp pt 18 timestamp 160 ssrc 0x18000002 marker 1 qinq 4000 innervlan 500 mpls 50041 exp 5 bos 1 mplsttl 63
 }
 
-// INSTRUCTION: Compile carrier MPLS G.729 RTP trunk flow.
 compile {
     rtp_carrier_mpls(ent_sbc, carrier_mgw)
 }

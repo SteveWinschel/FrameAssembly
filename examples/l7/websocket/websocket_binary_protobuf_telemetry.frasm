@@ -1,13 +1,12 @@
-// PROMPT: Binary opcode WebSocket frame transporting serialized sensor telemetry.
-// TOKENS: host, ip, flow, s, websocket, opcode, finbit, maskkey, compile
+// Binary opcode WebSocket frame transporting serialized sensor telemetry.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define industrial IoT gateway client.
 host iot_gateway { ip 10.10.4.15 }
 
-// INSTRUCTION: Define cloud telemetry ingestion node.
 host cloud_telemetry { ip 10.10.4.1 }
 
-// INSTRUCTION: Define binary telemetry transmission flow.
 flow ws_binary_flow(c, s) {
     c -> s websocket
         opcode "binary"
@@ -15,7 +14,6 @@ flow ws_binary_flow(c, s) {
         maskkey 1437227610
 }
 
-// INSTRUCTION: Compile block executing binary telemetry transmission.
 compile {
     ws_binary_flow(iot_gateway, cloud_telemetry)
 }

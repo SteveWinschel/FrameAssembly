@@ -1,19 +1,20 @@
-// PROMPT: Periodic IPsec AH heartbeat burst executed inside a COMPILE repeated flow calls.
-// TOKENS: host, ip, flow, ah, spi, seq, wait, ms, compile
+// Periodic IPsec AH heartbeat burst repeated across multiple cycles in
+// compile.
+// This capture carries SPI 3300/3301, executes 4 cycles in compile, and uses
+// post-packet wait gaps (20ms) between frames.
+// Wireshark: ah
 
-// INSTRUCTION: Define primary WAN concentrator.
 host wan_conc_primary { ip 203.0.113.100 }
 
-// INSTRUCTION: Define remote spoke router.
 host wan_spoke_router { ip 203.0.113.101 }
 
-// INSTRUCTION: Define bidirectional AH heartbeat probe with 20ms interval.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow ah_heartbeat_cycle(conc, spoke) {
     conc -> spoke ah spi 3300 seq 1 wait 20ms
     conc <- spoke ah spi 3301 seq 1 wait 20ms
 }
 
-// INSTRUCTION: Compile 4 consecutive iterations of the AH heartbeat cycle.
+// Emit 4 sequential cycles of ah_heartbeat_cycle.
 compile {
     ah_heartbeat_cycle(wan_conc_primary, wan_spoke_router) // cycle 1
     ah_heartbeat_cycle(wan_conc_primary, wan_spoke_router) // cycle 2

@@ -1,0 +1,28 @@
+// Full eBGP peering lifecycle using 4-byte Autonomous System Numbers (RFC 6793)
+// AS 4200001001 and AS 4200002002 over TCP port 179: OPEN, KEEPALIVE, prefix
+// UPDATE (203.0.113.0/24), and graceful NOTIFICATION shutdown with post-packet waits.
+// Wireshark: bgp
+
+host edge_as4200001001 {
+    ip 198.51.100.10
+    mac 00:1c:73:b4:00:0a
+}
+
+host transit_as4200002002 {
+    ip 198.51.100.11
+    mac 00:1c:73:b4:00:0b
+}
+
+// Space peering stages with explicit post-packet waits after each transmission.
+flow four_byte_ebgp_session(local, remote) {
+    local -> remote dscp 48 ttl 1 bgp open asn 4200001001 holdtime 90 bgpid 198.51.100.10 wait 5ms
+    local <- remote dscp 48 ttl 1 bgp open asn 4200002002 holdtime 90 bgpid 198.51.100.11 wait 5ms
+    local -> remote dscp 48 ttl 1 bgp keepalive wait 10ms
+    local -> remote dscp 48 ttl 1 bgp update asn 4200001001 prefix "203.0.113.0/24" nexthop 198.51.100.10 wait 15ms
+    local -> remote dscp 48 ttl 1 bgp notification payload "Cease Administrative Reset"
+}
+
+// Compile the 4-byte ASN eBGP session trace.
+compile {
+    four_byte_ebgp_session(edge_as4200001001, transit_as4200002002)
+}

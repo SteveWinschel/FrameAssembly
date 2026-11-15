@@ -1,18 +1,16 @@
-// PROMPT: DNP3 SCADA direct operate command pulsing substation breaker relay over IPv6.
-// TOKENS: host, ip, flow, s, dnp3, func, src, dst, group, variation, compile
+// DNP3 SCADA direct operate command pulsing substation breaker relay over
+// IPv6.
+// Wireshark: dnp3
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::20 }
 
-// INSTRUCTION: Define application traffic flow.
+// DNP3 data groups: Group 12 (CROB Control Relay).
 flow dnp3_operate(c, s) {
     c -> s dnp3 func "directoperate" src 10 dst 20 group 12 variation 1
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     dnp3_operate(client, server)
 }

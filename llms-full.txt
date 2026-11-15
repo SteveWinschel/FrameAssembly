@@ -1,1014 +1,1339 @@
-# FrameAssembly v3.0.0 (`.frasm`) — Prompt Injection Context
+# FrameAssembly v3.1.0 — Complete LLM Prompt-Injection Reference (`llms-full.txt`)
 
-> **Usage**: Attach or inject this file into an LLM prompt when asking the assistant to generate, edit, review, or debug FrameAssembly `.frasm` (`text/vnd.frameassembly`) network packet capture code (v3.0.0, https://frameassembly.ai.studio/). For search engine indexing and discovery links, see `llms.txt`.
+> **FrameAssembly** (`frameassembly` v3.1.0, MIT License, official website & browser playground:
+> `https://frameassembly.ai.studio/`, repository: `https://github.com/SteveWinschel/FrameAssembly`)
+> is a rootless, offline "Packets as Code" Rust compiler and PCAP/PCAPNG-to-`.frasm` decompiler.
+> It compiles `.frasm` (`text/vnd.frameassembly`) code into classic `.pcap` or nanosecond `.pcapng`
+> packet captures—and decompiles `.pcap` / `.pcapng` captures back into `.frasm` code—across all
+> **81 native Layer 2 through Layer 7 protocols**.
 
-## 1. LLM Generation Contract (Follow Strictly)
+This file is engineered specifically to be attached or pasted directly into an LLM prompt window so
+the model can write, review, debug, or refactor any `.frasm` specification with **zero keyword
+guessing**. Every syntax rule, field modifier, shorthand flag, `<str>` enum value, default port,
+validation rule, and compilable example below matches the `frameassembly 3.1.0` compiler 1-to-1.
 
-1. Always emit **complete, standalone, compilable `.frasm` code**: `host` declarations, optional parameterized `flow(p1, p2, ...)` definitions, and **one** `compile { ... }` block at the end. Never output bare packet lines without `host` and `compile`.
-2. Use `compile { a -> b ... }` inline statements for quick single-shot captures, and use parameterized `flow name(a, b) { ... }` whenever packets are reused across host pairs (e.g., IPv4 + IPv6 dual-stack) or represent multi-step protocols.
-3. Follow **v3.0.0 strict-lowercase syntax**: every built-in keyword, protocol, modifier, and time unit (`ns`, `us`, `ms`, `s`, `m`) is strictly lowercase `[a-z0-9]+` with **zero underscores** (`_`) and **zero hyphens** (`-`), and there is **no `loop` keyword**.
-4. Use only documented CLI invocations when showing terminal commands: `frameassembly file.frasm [out.pcap]`, `frameassembly show file.frasm`, `frameassembly reverse cap.pcap [out.frasm]`, `frameassembly help [cmd]`, `frameassembly version` (never `-o`, `--output`, or `frameassembly compile`).
+---
 
-## 2. Core v3.0.0 Language Rules, Stateful Engine & Anti-Hallucination Table
+## 1. Core `.frasm` v3.1.0 Language Architecture & Invariants
 
-### Lexical, Structural & Type Rules
-- **Extension & Disambiguation**: File extension is `.frasm` (renamed from `.fasm` in 3.0.0; code inside `.frasm` is distinct from x86 Flat Assembler and FPGA FASM). Comments use `// ...` only. Strings use double quotes `"..."` supporting `\"`, `\\`, `\n`, `\r`, `\t` (string contents preserve original case).
-- **Host Declarations (`host`)**: `host <id> { [ip <ipv4_or_ipv6>] [mac <mac>] }`. At least one of `ip` or `mac` is required. MAC formats: `00:1a:2b:3c:4d:5e`, `00-1A-2B-3C-4D-5E`, or `001a.2b3c.4d5e`. User-defined `host`, `flow`, and parameter names allow letters, digits, `_`, and internal `-` (`[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*`, e.g. `fw-dmz-01`, `core_sw`).
-- **MAC-Only L2 Hosts vs. IP-Required Hosts**: MAC-only hosts (`host sw1 { mac 00:1c:73:00:00:01 }`) are valid **only** with the 8 pure Layer 2 protocols (`arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`). All 73 L3/L4/L7 protocols require `ip` on both endpoints of that statement.
-- **Dual-Stack Rule**: A `flow(a, b)` works polymorphically over IPv4 or IPv6 host pairs (`ttl` and `dscp` apply to both; `flowlabel` is ignored on IPv4). **Mixing IPv4 and IPv6 hosts in the same packet statement is a compile-time error.**
-- **Validation Bounds**: `vlan` `<1..4094>`, `qinq` `<1..4094>`, `innervlan` `<1..4094>`, `pcp` `<0..7>`, `dei` `<0..1>`, `dscp` `<0..63>`, `ecn` `<0..3>`, `mpls` `<0..1048575>`, `exp`/`tc` `<0..7>`, `bos` `<0..1>`, `flowlabel` `<0..1048575>`, `hsrp hellotime` `<0..255>`. `payload "..."` and `hexpayload "..."` (even-length hex) are mutually exclusive on a single statement.
+### 1.1 Two-Block Minimal Program Structure (`host` + `compile`) & Optional `flow`
 
-### Stateful Wire Engine (`1 Statement = 1 Frame`)
-- **Direction (`->` / `<-`)**: `a -> b <mods> <proto> ...` sends from `a` to `b`. `a <- b <mods> <proto> ...` reverses wire direction (from `b` to `a`), automatically swapping source/dest IPs, MACs, and inherited L4 ports.
-- **Timers (`wait`)**: Optional trailing `wait <u32><ns|us|ms|s|m>` sets pre-frame delay (default `10ms`; PCAPNG base timestamp `1_700_000_000_000_000_000` ns, `IfTsResol(9)`; `show` displays frame 1 at `0.000 ms`).
-- **Automatic 4-Tuple TCP State**: TCP connections start at `seq = 1000`, `win = 64240`, default `srcport = 12345`. `syn` and `fin` advance sequence by `+1`; payload advances sequence by payload byte length. Any TCP-backed Layer 7 protocol emits `psh ack` on its well-known port and shares `seq`/`acknum` counters with raw `tcp` statements on the same 4-tuple unless explicitly overridden.
-- **Port Inheritance & Dynamic L7 Dispatch**: `srcport`/`dstport` set on an opening packet are inherited (and flipped on `<-`) across subsequent packets in that flow. Built-in dynamic dispatch: `dhcp` (`68/67` v4 vs `546/547` v6), `mdns` (`224.0.0.251`/`ff02::fb` UDP `5353`), `ptp` (`319` Event vs `320` General), `radius` (`1812` Auth vs `1813` Accounting).
-- **Automatic MAC Derivation Order**: (1) statement `srcmac`/`dstmac`, (2) IEEE 802.1D L2 control multicast (`lldp`/`stp`/`lacp`/`eapol`) or broadcast (`arp request`), (3) RFC 1112 IPv4 multicast (`01:00:5e:xx:xx:xx`) or RFC 2464 IPv6 multicast (`33:33:xx:xx:xx:xx`), (4) host `mac`, (5) direction-aware unicast defaults (`00:00:00:00:00:01` forward, `00:00:00:00:00:02` reverse).
-- **Checksums & Crypto**: Automatically computes IPv4 header checksums, TCP/UDP/ICMPv6 pseudo-header checksums, VRRPv2/v3 checksums, SCTP Castagnoli `CRC-32c`, IEEE 1815 DNP3 per-chunk `CRC-16`, and RFC 3414/3826/7860 SNMPv3 USM key localization + AES-128-CFB/DES-CBC encryption + HMAC auth tags.
+A `.frasm` file requires only **two top-level sections** for straightforward captures, with an
+optional reusable `flow` template section in between:
 
-### Anti-Hallucination Guardrails (`❌ NEVER` vs `✅ ALWAYS`)
+1. **One or more `host` declarations**: `host <id> { [ip <ip>] [mac <mac>] }`
+   - At least one of `ip` or `mac` is required per host.
+   - `ip` accepts any IPv4 (`10.0.0.1`) or IPv6 (`2001:db8::1`, `fe80::1`) literal (never `/24`
+     CIDR suffixes, `ipv4`, `ipv6`, `mask`, `=`, `:`, or commas).
+   - `mac` accepts colon (`00:1a:2b:3c:4d:5e`), hyphen (`00-1A-2B-3C-4D-5E`), or Cisco dot-quad
+     (`001a.2b3c.4d5e`) hex notation.
+   - **MAC-Only Hosts**: Valid for the 8 pure Layer 2 protocols (`arp`, `vlan`, `qinq`, `lldp`,
+     `stp`, `lacp`, `eapol`, `mpls`). All Layer 3, Layer 4, and Layer 7 protocols require `ip` on
+     both endpoints.
+   - **Automatic Default MACs**: When `mac` is omitted on a unicast `host`, FrameAssembly assigns
+     deterministic MACs in 1-based `host` declaration order: `00:00:00:00:00:01` for the first
+     declared host, `00:00:00:00:00:02` for the second, `00:00:00:00:00:03` for the third, and so
+     on. Multicast IPv4 destinations (`224.0.0.0/4`) derive RFC 1112 MACs (`01:00:5e:xx:xx:xx`),
+     and multicast IPv6 destinations (`ff00::/8`) derive RFC 2464 MACs (`33:33:xx:xx:xx:xx`). Pure
+     L2 control protocols derive IEEE group destination MACs automatically when `dstmac` is omitted
+     (`stp`: `01:80:c2:00:00:00`, `lacp`: `01:80:c2:00:00:02`, `eapol`: `01:80:c2:00:00:03`,
+     `lldp`: `01:80:c2:00:00:0e`, `arp request`: `ff:ff:ff:ff:ff:ff`).
+2. **Zero or more optional `flow` templates**: `flow <name>(<p1>, <p2>[, ...]) { <statements> }`
+   - Use `flow` when you want to replay a multi-step exchange across different host pairs (for
+     example, running the same TCP + TLS + HTTP sequence over both IPv4 and IPv6 host pairs) or
+     organize multi-stage topologies cleanly.
+   - Every `flow` declaration must have a parameter list `(<params>)` with at least 1 parameter
+     (never `flow name { ... }`). Inside a `flow`, frame endpoints must reference the flow's formal
+     parameters rather than global host names directly.
+3. **Exactly one `compile` block**: `compile { <flow_calls_or_inline_frames> }`
+   - `compile` accepts direct inline frame statements (`client -> server icmp echorequest`), flow
+     invocations (`web_check(client, server)`), or a mix of both in execution order.
+   - Each statement executes top-to-bottom and emits **1 Ethernet frame** (`1 statement = 1 frame`).
+   - There is **no `loop` keyword** (`loop` was removed in v2.0.0; repeat flow invocations or frame
+     lines explicitly inside `compile`).
 
-| Construct | ❌ NEVER WRITE | ✅ ALWAYS WRITE (v3.0.0 `.frasm`) |
+Minimal 2-block `.frasm` program (`host` + `compile`):
+
+```frameassembly
+host workstation { ip 192.168.10.25 }
+host resolver { ip 192.168.10.53 }
+
+compile {
+    workstation -> resolver dns query txid 0x1a2b qname "portal.internal" qtype "A" wait 3ms
+    workstation <- resolver dns response txid 0x1a2b qname "portal.internal" qtype "A" rdata "10.20.30.40"
+}
+```
+
+Reusable parameterized `flow(a, b)` running identically over IPv4 and IPv6 host pairs:
+
+```frameassembly
+host app_v4 { ip 10.10.1.10 }
+host db_v4  { ip 10.10.1.20 }
+host app_v6 { ip 2001:db8:10::10 }
+host db_v6  { ip 2001:db8:10::20 }
+
+flow pg_ping(c, s) {
+    c -> s tcp syn srcport 52100 dstport 5432 win 65535 mss 1460 wait 1ms
+    c <- s tcp syn ack win 65535 mss 1460 wait 1ms
+    c -> s tcp ack wait 1ms
+    c -> s postgres query sql "SELECT 1;" wait 2ms
+    c <- s postgres commandcomplete wait 1ms
+    c <- s postgres readyforquery
+}
+
+compile {
+    pg_ping(app_v4, db_v4)
+    pg_ping(app_v6, db_v6)
+}
+```
+
+### 1.2 Lexical Rules: Strict-Lowercase Built-In Keywords vs. Flexible User Identifiers
+
+- **Strict-Lowercase Built-In Keywords (`[a-z0-9]+`)**: Every built-in keyword, protocol name,
+  modifier, flag, and time unit (`ns`, `us`, `ms`, `s`, `m`) is **strictly lowercase alphanumeric
+  with zero `_` and zero `-`** (`echorequest`, `innervlan`, `clienthello`, `serverhello`,
+  `hosthdr`, `transporthdr`, `sackperm`, `agentip`, `hellotime`, `pkttype`, `shutdownack`,
+  `readholdingregisters`, `routeradvert`, `neighborsolicit`, `accessrequest`, `oidval`, `ipval`).
+  Uppercase or underscored keywords (`TCP`, `echo_request`, `inner_vlan`, `host_hdr`, `sack_perm`)
+  are rejected with self-healing diagnostics (`replace '<raw>' with '<kw>'`).
+- **Flexible User Identifiers**: User-defined `host`, `flow`, and parameter names match
+  `[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*` (allowing uppercase letters, `_`, and internal `-` such
+  as `fw-dmz-01`, `Core_SW_1`, or `plc-rack-a`, stopping cleanly before `->`). Contextual keywords
+  may also be used as user identifiers or unquoted `str_or_ident` values where unambiguous, though
+  descriptive endpoint names (`client`, `firewall`, `plc1`) are clearest.
+- **Direction Operators**:
+  - `a -> b <proto> ...` sends a frame from source `a` to destination `b`.
+  - `a <- b <proto> ...` sends a frame from source `b` back to destination `a` (preserving visual
+    left/right column alignment between initiator `a` and responder `b`).
+- **Comments & Literals**:
+  - Line comments start with `//` and run to end of line (`#` and `;` are invalid).
+  - Unsigned integers accept decimal (`443`, `65535`) or hex (`0x0800`, `0xdeadbeef`); signed
+    integers (`int` in SNMP `varbind`, `precision` in `ntp`, `etype` in `kerberos`, `msgid` in
+    `ldap`) also accept negative decimal (`-5`, `-20`).
+  - Strings are double-quoted UTF-8 (`"GET / HTTP/1.1\r\n"`, supporting `\r`, `\n`, `\t`,
+    `\\`, `\"`, `\'`, `\xHH`, `\uXXXX`). Single-quoted strings (`'abc'`) are invalid.
+  - Raw hex byte strings (`hexpayload`, `iv`, `icv`, `engineid`) are double-quoted hex octets
+    allowing optional spaces or colons (`"deadbeef"`, `"de:ad:be:ef"`, `"de ad be ef"`).
+  - ASN.1 OIDs (`oid`, `enterprise`, `varbind <oid> ...`, `oidval <oid>`) accept unquoted dotted
+    numeric trees with at least two arcs (`1.3.6.1.2.1.1.1.0` or `.1.3.6.1.2.1.1.1.0`) or quoted
+    strings (`"1.3.6.1.2.1.1.1.0"`).
+
+### 1.3 Post-Packet `wait` Timing Model (Nanosecond Precision)
+
+- **Frame 1 always starts at relative timestamp `0ns` (`0.000000000 s`)**.
+- `wait <u32><ns|us|ms|s|m>` is a **post-packet delay**: writing `wait 2ms` on frame `k` transmits
+  frame `k` at the current clock timestamp and then advances the capture clock by `2ms` *before*
+  frame `k + 1` is emitted.
+- When `wait` is **omitted** on frame `k`, the capture clock advances by the **default inter-packet
+  gap of `10ms` (`10,000,000 ns`)** before frame `k + 1`.
+- Supported units: `ns` (`1` ns), `us` (`1,000` ns), `ms` (`1,000,000` ns), `s` (`1,000,000,000`
+  ns), and `m` (`60,000,000,000` ns). `wait 0ns` emits back-to-back zero-gap bursts.
+- `wait` on the final emitted packet of a capture has no subsequent packet to delay.
+
+### 1.4 Stateful 4-Tuple TCP Progression & Bidirectional Port Inheritance
+
+- **Bidirectional Port Memory**: When `a -> b` sets `srcport 51234 dstport 443` (or uses a protocol
+  default destination port with ephemeral client source port `49152`), subsequent `a <- b` replies
+  automatically swap ports (`srcport 443`, `dstport 51234`) and subsequent `a -> b` packets reuse
+  `51234 -> 443` without repeating `srcport` or `dstport`.
+- **Shared 4-Tuple TCP `seq` / `acknum` State Machine**:
+  - Raw `tcp` frames and all TCP-based Layer 7 protocols (`http`, `http2`, `grpc`, `websocket`,
+    `tls`, `ssh`, `telnet`, `ftp`, `smtp`, `imap`, `pop3`, `ldap`, `smb`, `mysql`, `postgres`,
+    `redis`, `mqtt`, `amqp`, `whois`, `s7comm`, `opcua`, `bgp`, `openflow`, `tacacs`, plus dual-L4
+    protocols with default or explicit `transport tcp`) share the **same canonical 4-tuple state**:
+    - Initial sequence number defaults to `1000` per direction when `seq` is omitted.
+    - `syn` and `fin` each advance that direction's next `seq` by `+1`.
+    - TCP payload frames (including every TCP L7 statement, which emits `psh ack` automatically when
+      no explicit TCP flags are written) advance that direction's next `seq` by `+payload_len` and
+      set `acknum` to the peer's latest expected sequence number.
+    - Explicit `seq <u32>` or `acknum <u32>` overrides on a frame transmit that exact header value
+      and re-anchor the connection state for testing retransmissions, sequence gaps, or RST attacks.
+- **Dynamic L7 Port & Multicast Return-Tuple Rules**:
+  - `dhcp`: IPv4 `discover`/`request`/`release` use UDP `68 -> 67`, while `offer`/`ack` replies use
+    UDP `67 -> 68`; over IPv6 hosts, `solicit`/`request` use UDP `546 -> 547` and `advertise`/`reply`
+    use UDP `547 -> 546`.
+  - `mdns`: Defaults to UDP `5353 -> 5353` and overrides destination IP to `224.0.0.251` (IPv4) or
+    `ff02::fb` (IPv6) with matching RFC multicast destination MAC.
+  - `ptp`: Event messages (`sync`, `delayreq`) use UDP `319`; general messages (`followup`,
+    `delayresp`, `announce`) use UDP `320` (swapping onto `srcport` on `<-` replies).
+  - `radius`: Authentication (`accessrequest`/`accept`/`reject`/`challenge`) uses UDP `1812`;
+    accounting (`accountingrequest`/`accountingresponse`) uses UDP `1813`.
+  - `snmp1` / `snmp2` / `snmp3`: `trap`, `inform`, and `report` default to UDP `162`; `get`,
+    `getnext`, `getbulk`, `set`, and `response` default to UDP `161`.
+
+### 1.5 Cross-Layer Modifiers & Semantic Validation Bounds
+
+Any frame statement may combine its protocol modifiers with cross-layer L2/L3/L4 modifiers (unless
+restricted below). Out-of-range values fail semantic validation at compile time:
+
+| Layer | Modifier Syntax | Validated Range / Rules & Default |
 | :--- | :--- | :--- |
-| **Keyword Casing** | `HOST`, `FLOW`, `COMPILE`, `TCP`, `SYN`, `WAIT 5MS` | `host`, `flow`, `compile`, `tcp`, `syn`, `wait 5ms` |
-| **Keyword `_` or `-`** | `echo_request`, `inner_vlan`, `client_hello`, `host_hdr`, `who-is` | `echorequest`, `innervlan`, `clienthello`, `hosthdr`, `whois` |
-| **Comments** | `# comment`, `; comment`, or `/* block */` | `// single-line comment` |
-| **Host Block** | `host c = { ipv4: "10.0.0.1", mask: 24 }`, `ipv6 ::1`, `host c {}` | `host c { ip 10.0.0.1 mac 00:11:22:33:44:55 }` or `host sw { mac 00:11:22:33:44:55 }` |
-| **Flow Signature** | `flow web { from c to s send http }` | `flow web(c, s) { c -> s http get uri "/" }` |
-| **Inter-Frame Delay** | `[+5ms] c -> s tcp ack` or standalone `wait 5ms` | `c -> s tcp ack wait 5ms` |
-| **Ports & TCP Ack** | `sport 1234 dport 80 ack 100 sack_perm` | `srcport 1234 dstport 80 seq 1 acknum 100 sackperm` |
-| **TCP Flags** | `flags [syn, ack]` or `flags="SA"` | `tcp syn ack` (`syn ack fin rst psh urg ece cwr`) |
-| **Hop Limit & QoS** | `hop_limit 64`, `hoplimit 64`, or `tos 46` | `ttl 64 dscp 46 ecn 2` |
-| **VLAN & QinQ** | `vlan 0`, `qinq 100 200`, or `qinq 100 inner_vlan 200` | `vlan 100 pcp 5 dei 0` or `qinq 100 innervlan 200` |
-| **HTTP & RTSP Hdrs** | `http get host "a.com"` or `rtsp setup transport "..."` | `http get uri "/" hosthdr "a.com"` / `rtsp setup transporthdr "..."` |
-| **BGP vs RIP Prefix** | `bgp update prefix 10.0.0.0/8` / `rip prefix "10.0.0.0/8"` | `bgp update prefix "10.0.0.0/8"` / `rip prefix 10.0.0.0` |
-| **DHCP vs SNMP ID** | `dhcp discover txid 1` or `snmp2 get req_id 1` | `dhcp discover xid 1` / `snmp2 get reqid 1` |
-| **IKEv2 & SNMPv3** | `ikev2 sa_init` or `snmp3 auth "sha256" "pw"` | `ikev2 sainit` (`createchildsa`\|`informational`) / `snmp3 auth sha256 "pw"` |
-| **Compile & Loops** | `loop 3 { f(h1, h2) }`, omitted `compile`, or `compile { f }` | `compile { f(h1, h2) f(h1, h2) h1 -> h2 icmp }` |
-| **CLI Invocation** | `-o out.pcap`, `--output`, or `compile` subcommand | `frameassembly demo.frasm out.pcap` / `frameassembly reverse out.pcap out.frasm` |
+| **Universal** | `wait <u32><ns\|us\|ms\|s\|m>` | Post-packet gap before next frame (default `10ms`). |
+| **Universal** | `payload "<str>"` \| `hexpayload "<hex>"` | Mutually exclusive raw payload override/trailer. |
+| **L2** | `srcmac <mac>` \| `dstmac <mac>` | Overrides Ethernet source or destination MAC. |
+| **L2** | `ethertype <u16>` | `0..=65535` (e.g., `0x0800`, `0x86dd`, `0x88cc`). |
+| **L2 VLAN** | `vlan <0..4095>` `[pcp <0..7>]` `[dei <0\|1>]` | Wraps any L2/L3/L4/L7 frame in an IEEE 802.1Q tag (`0x8100`). |
+| **L2 QinQ** | `qinq <0..4095>` `[innervlan <0..4095>]` | Emits outer `0x88a8` S-Tag + inner `0x8100` C-Tag (default inner `1`). |
+| **L2 MPLS** | `mpls <0..1048575>` `[exp\|tc <0..7>]` `[bos <0\|1>]` `[mplsttl <0..255>]` | Prepends 32-bit MPLS shim (`0x8847`); at most one `mpls` clause per frame. |
+| **L3 IP** | `ttl <0..255>` | IPv4 TTL or IPv6 Hop Limit (default `64`; `255` on `ndp`/`vrrp`/BGP/OSPF). |
+| **L3 QoS** | `dscp <0..63>` `[ecn <0..3>]` | IPv4 TOS / IPv6 Traffic Class DiffServ & ECN bits (default `0`). |
+| **L3 IPv4** | `ipid <0..65535>` `[df]` `[mf]` `[fragoffset <0..8191>]` | IPv4 identification & fragmentation (`df` and `mf` on IPv4; ignored/N/A v6). |
+| **L3 IPv6** | `flowlabel <0..1048575>` | 20-bit IPv6 Flow Label (silently ignored when flow runs over IPv4 hosts). |
+| **L4 Ports** | `srcport <0..65535>` `dstport <0..65535>` | Overrides TCP/UDP/SCTP source or destination port. |
+| **L4 Dual** | `transport <tcp\|udp>` | Allowed **only** on the 9 dual-L4 protocols (listed below). |
+| **L4 TCP** | `seq <u32>` `acknum <u32>` `win\|window <u16>` `urgent <u16>` | Allowed **only** on `tcp` and TCP-based L7 frames. |
+| **L4 TCP** | `syn` `ack` `fin` `rst` `psh` `urg` `ece` `cwr` | Bare TCP flag tokens; rejected on UDP/L2/L3 non-TCP protocols. |
+| **L4 TCP Opt** | `mss <u16>` `wscale <u8>` `sackperm` `tsval <u32>` `tsecr <u32>` | RFC 7323 TCP options; rejected on non-TCP protocols. |
 
-## 3. Universal Cross-Layer Modifiers (Allowed on Any Statement Before Protocol)
+**Strict Validation Rules Enforced by `validate_semantics`**:
+- **Endpoint IP Family Match**: Source and destination hosts in a frame must both be IPv4, both be
+  IPv6, or (for the 8 L2 protocols only) MAC-only. Mixing IPv4 and IPv6 endpoints is an error.
+- **Address-Family-Specific Protocols**: `igmp` requires IPv4 hosts; `ndp` and `mld` require IPv6
+  hosts; all other 70 L3/L4/L7 protocols work identically over IPv4 and IPv6 hosts.
+- **`transport tcp|udp` Whitelist**: Permitted **exclusively** on the 9 dual-transport protocols:
+  `dns` (default `udp`), `sip` (default `udp`), `syslog` (default `udp`), `kerberos` (default
+  `udp`), `memcached` (default `udp`), `dnp3` (default `tcp`), `modbus` (default `tcp`), `nfs`
+  (default `tcp`), and `ethernetip` (default `tcp`, or `udp` `2222` on `sendunitdata`). Note: use
+  `transporthdr "<str>"` (never `transport`) for the RTSP `Transport:` header!
+- **Protocol-Specific Checks**: `dns`/`mdns` `qname` enforces RFC 1035 label length `<= 63` octets
+  and total domain length `<= 253`; `snmp3` `engineid` requires valid even-length ASCII hex; `hsrp`
+  `hellotime` requires `0..=255` (`u8`).
 
-- **Layer 2 (`src/ast/l2/mod.rs`)**: `[srcmac <mac>] [dstmac <mac>] [ethertype <u16>] [vlan <1..4094> [pcp <0..7>] [dei <0|1>]] [qinq <1..4094> [innervlan <1..4094>] [pcp <0..7>] [dei <0|1>]] [mpls <0..1048575> [exp|tc <0..7>] [bos <0|1>] [mplsttl <u8>]]`
-- **Layer 3 (`src/ast/l3/mod.rs`)**: `[ttl <0..255>] [dscp <0..63>] [ecn <0..3>] [flowlabel <0..1048575>] [ipid <u16>] [df] [mf] [fragoffset <0..8191>] [nextheader <u8>]`
-- **Layer 4 (`src/ast/l4/mod.rs`)**: `[srcport <u16>] [dstport <u16>] [transport <tcp|udp>]` (default-TCP protocols switchable to UDP: `modbus`, `nfs`, `memcached`, `dnp3`, `ethernetip`; default-UDP protocols switchable to TCP: `dns`, `sip`, `syslog`, `kerberos`) `[seq <u32>] [acknum <u32>] [win|window <u16>] [urgent <u16>] [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [mss <u16>] [wscale <u8>] [sackperm] [tsval <u32>] [tsecr <u32>]`
-- **Payload & Timing**: `[payload "<escaped_utf8>" | hexpayload "<even_hex>"]` (mutually exclusive) `[wait <u32><ns|us|ms|s|m>]`
+### 1.6 CLI, Installation, Output Formats (`.pcap` vs `.pcapng`) & Library APIs
 
-## 4. Complete 81-Protocol Syntax, Modifiers & Default Ports
+- **Recommended Installation**:
+  - Rust / Cargo (**Recommended**): `cargo install frameassembly` (Rust `1.88+`, Edition 2024, MIT).
+  - Browser Playground: `https://frameassembly.ai.studio/`
+  - macOS / Linux script: `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
+  - Windows PowerShell: `irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 | iex`
+  - Package managers & IDE: `brew install SteveWinschel/tap-FrameAssembly/frameassembly`, Scoop
+    (`frameassembly`), Debian/Ubuntu `.deb` on GitHub Releases, VS Code extension
+    `SteveWinschel.frameassembly-vscode`, and `npm install frameassembly-wasm`.
+- **CLI Commands (`v3.1.0` — default root compile + 4 subcommands; no `-o`/`--output` or `compile`)**:
+  - `frameassembly demo.frasm` — Compiles `demo.frasm` to `demo.pcap` (classic libpcap `0xa1b2c3d4`).
+  - `frameassembly demo.frasm out.pcap` — Compiles to classic libpcap `.pcap` (microsecond/classic
+    header compatible with every legacy parser, `tcpdump`, `tcpreplay`, Suricata, and Wireshark).
+  - `frameassembly demo.frasm out.pcapng` — Compiles to nanosecond-precision PCAPNG (`IfTsResol(9)`,
+    `LINKTYPE_ETHERNET`, snaplen `65535`).
+  - `frameassembly show demo.frasm` — Validates syntax/semantics and prints the relative-timestamp
+    packet table to stdout without writing disk files.
+  - `frameassembly reverse capture.pcap [reversed.frasm]` — Decompiles `.pcap` or `.pcapng` back
+    into strict-lowercase `.frasm` code (`host1`, `host2`, ..., verified by self-check oracle).
+  - `frameassembly help [subcommand]` | `frameassembly version` — Displays usage or `3.1.0`.
+- **Rust & WebAssembly Entrypoints**:
+  - Rust (`frameassembly` crate): `lexer::lex`, `parser::parse_program`,
+    `parser::validation::validate_semantics`, `backend::compile_program`, `backend::generate_pcap`,
+    `reverse::{reverse_pcap_bytes, reverse_pcap_file, reverse_pcap_reader}`.
+  - WebAssembly (`frameassembly-wasm`): `compile_frasm_to_pcap(src)`,
+    `compile_frasm_to_pcapng(src)`, `validate_frasm(src)`, `inspect_frasm(src)`,
+    `reverse_pcap(bytes)`.
+- **Canonical Documentation & Grammar Files in Repository**:
+  - Root & Guides: `README.md` (plus `docs/README.md` index), `01_getting_started.md`,
+    `02_use_cases.md`, `03_l2_protocols.md`, `04_l3_protocols.md`, `05_l4_transports.md`,
+    `06_l7_snmp.md`, `07_l7_infra_and_telemetry.md`, `08_l7_web_and_cloud.md`,
+    `09_l7_mail_auth_storage_db.md`, `10_l7_industrial_ot.md`, `11_topologies_and_dual_stack.md`,
+    `12_frasm_specification.md`, `13_for_nerds.md`, and `examples/README.md`.
+  - Formal Grammars: `grammar.ebnf` (ISO/IEC 14977 EBNF, included in full in Section 4),
+    `frameassembly.gbnf` (`llama.cpp` / `XGrammar`), and `frameassembly.lark` (`Outlines` / `vLLM`).
 
-Every protocol compiles with **zero mandatory sub-keywords** (emitting RFC-compliant wire defaults and ports). Combine any Layer 2/3/4 modifiers before `<protocol>` on the same statement.
+### 1.7 Anti-Hallucination Guardrail Table (Never Emit Left Column!)
 
-### Layer 2 Switching & Data-Link (8 Protocols — MAC-only `host` allowed)
+| Invalid / Hallucinated Syntax | Valid FrameAssembly `v3.1.0` Syntax |
+| :--- | :--- |
+| `HOST a { ip = "10.0.0.1/24", mac: ... }` | `host a { ip 10.0.0.1 mac 00:11:22:33:44:55 }` |
+| `flow ping { from a to b icmp }` | `flow ping(a, b) { a -> b icmp }` (or 2-block `compile`) |
+| `loop 5 { ping(a, b) }` or `compile` bare | `compile { ping(a, b) }` (no `loop` keyword) |
+| `wait 5ms` on its own line or `+5ms a -> b` | `a -> b icmp echorequest wait 5ms` (inline post-packet) |
+| `echo_request`, `inner_vlan`, `sack_perm` | `echorequest`, `innervlan`, `sackperm` (zero `_` or `-`) |
+| `sport 1234 dport 80 ack 1001 flags [SYN]` | `srcport 1234 dstport 80 acknum 1001 syn` |
+| `hop_limit 64`, `tos 46`, `traffic_class` | `ttl 64 dscp 46 ecn 0` (unified across IPv4 and IPv6) |
+| `http get host "example.com"` | `http get hosthdr "example.com"` (`host` opens a host block) |
+| `rtsp setup transport "RTP/AVP;unicast"` | `rtsp setup transporthdr "RTP/AVP;unicast"` |
+| `varbind 1.3.6.1.2.1.1.5.0 str "core1"` | `varbind 1.3.6.1.2.1.1.5.0 string "core1"` (`string`, `oidval`) |
+| `snmp2 trap trapoid 1.3.6.1.6.3.1.1.5.3` | `snmp2 trap varbind 1.3.6.1.6.3.1.1.4.1.0 oidval 1.3.6.1.6.3.1.1.5.3` |
+| `frameassembly compile a.frasm -o a.pcap` | `frameassembly a.frasm a.pcap` (default root compile) |
 
-- **`arp`** (EtherType 0x0806): `arp [request | reply] [gratuitous] [sendermac <mac>] [senderip <ip>] [targetmac <mac>] [targetip <ip>]`
-- **`vlan`** (EtherType 0x8100 (stackable L2 tag)): `vlan <vid> [pcp <0..7>] [dei <0|1>]`
-- **`qinq`** (EtherType 0x88A8 + 0x8100 (double tag)): `qinq <outer_vid> [innervlan <inner_vid>]`
-- **`lldp`** (EtherType 0x88CC, dst MAC 01:80:c2:00:00:0e): `lldp [chassisid "<str>"] [portid "<str>"] [ttl <u16>] [sysname "<str>"] [sysdesc "<str>"]`
-- **`stp`** (802.3 LLC 0x424203, dst MAC 01:80:c2:00:00:00): `[stp | rstp] [rootid "<str>"] [bridgeid "<str>"] [portid <u16>] [cost <u32>] [maxage <u16>] [hellotime <u16>] [forwarddelay <u16>] [flags <u8>]`
-- **`lacp`** (EtherType 0x8809, dst MAC 01:80:c2:00:00:02): `lacp [actorsys <mac>] [actorkey <u16>] [actorport <u16>] [actorstate <u8>] [partnersys <mac>] [partnerkey <u16>] [partnerport <u16>] [partnerstate <u8>]`
-- **`eapol`** (EtherType 0x888E, dst MAC 01:80:c2:00:00:03): `eapol [version <u8>] [type <eappacket | start | logoff | key>] [eapcode <u8>] [eapid <u8>] [eapmethod <u8>] [identity "<str>"]`
-- **`mpls`** (EtherType 0x8847 (stackable MPLS shim)): `mpls <label> [exp <0..7>] [bos <0|1>] [mplsttl <u8>]`
+---
 
-### Layer 3 Control, Tunneling, VPN, Routing & FHRP (20 Protocols)
+## 2. Exhaustive 81-Protocol Syntax, Modifier & Wire Reference
 
-- **`icmp`** (IPv4 Proto 1 / IPv6 NextHeader 58): `icmp [echorequest | echoreply | destunreach | timeexceeded | redirect] [type <u8>] [code <u8>] [id <u16>] [seq <u16>] [gateway <ipv4>]`
-- **`ndp`** (IPv6 ICMPv6 NH 58, default ttl 255): `ndp [routersolicit | routeradvert | neighborsolicit | neighboradvert | redirect] [target <ipv6>] [slla <mac>] [tlla <mac>] [routerlifetime <u16>]`
-- **`igmp`** (IPv4 Proto 2): `igmp [query | report | leave] [group <ipv4>] [maxresp <u8>] [v1 | v2 | v3]`
-- **`mld`** (IPv6 ICMPv6 NH 58): `mld [query | report | done] [multicastaddr <ipv6>] [maxrespdelay <u16>]`
-- **`gre`** (IP Proto 47): `gre [grekey <u32>] [greseq <u32>] [greproto <u16>] [checksum]`
-- **`vxlan`** (UDP 4789): `vxlan [vni <0..16777215>]`
-- **`geneve`** (UDP 6081): `geneve [vni <u24>] [optclass <u16>] [opttype <u8>] [protocoltype <u16>]`
-- **`ipsec`** (IP Proto 50 (ESP)): `ipsec [spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [nextheader <u8>]`
-- **`esp`** (IP Proto 50 (alias for ipsec)): `esp [spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [nextheader <u8>]`
-- **`ah`** (IP Proto 51): `ah [spi <u32>] [seq <u32>] [icv "<hex>"] [nextheader <u8>]`
-- **`ikev2`** (UDP 500): `ikev2 [exchange <sainit|auth|createchildsa|informational>] [initiatorspi <u64>] [responderspi <u64>] [msgid <u32>] [flags <u8>] [nextheader <u8>]`
-- **`wireguard`** (UDP 51820): `wireguard [type <initiation|response|cookie|data> | initiation | cookie | data] [sender <u32>] [receiver <u32>] [counter <u64>]`
-- **`ospf`** (IP Proto 89): `ospf [hello | dbd | lsr | lsu | lsack] [routerid <ipv4>] [areaid <u32>] [hellointerval <u16>] [deadinterval <u32>] [priority <u8>]`
-- **`bgp`** (TCP 179): `bgp [open | update | notification | keepalive] [asn <u32>] [holdtime <u16>] [bgpid <ipv4>] [prefix "<cidr>"] [nexthop <ip>]`
-- **`rip`** (UDP 520 (v4) / UDP 521 (RIPng v6)): `rip [request | response] [prefix <ip>] [metric <1..16>] [nexthop <ip>] [tag <u16>]`
-- **`pim`** (IP Proto 103): `pim [hello | joinprune | register] [holdtime <u16>] [drpriority <u32>] [group <ip>] [source <ip>] [rp <ip>]`
-- **`vrrp`** (IP Proto 112, default ttl 255): `vrrp [vrid <1..255>] [priority <0..255>] [advint <u16>] [vip <ip>] [version <2|3>]`
-- **`hsrp`** (UDP 1985 (v1) / UDP 2029 (v2/v6)): `hsrp [group <u8>] [priority <u8>] [state <u8>] [hellotime <u8>] [holdtime <u8>] [auth "<str>"] [vip <ip>]`
-- **`bfd`** (UDP 3784): `bfd [state <0..3>] [diag <0..31>] [mydisc <u32>] [yourdisc <u32>] [mintx <u32>] [minrx <u32>] [mult <u8>]`
-- **`openflow`** (TCP 6653): `openflow [hello | echoreq | echoreply | featuresreq | featuresreply | packetin | packetout | flowmod] [version <u8>] [xid <u32>] [dpid <u64>] [tableid <u8>] [priority <u16>]`
+Every protocol below compiles with zero mandatory sub-keywords (emitting RFC-compliant defaults) and accepts any
+combination of its protocol-specific modifiers plus valid cross-layer modifiers from Section 1.5. String enum
+arguments (`<str>`) match case-insensitively in builders while `.frasm` keywords themselves are strictly lowercase.
 
-### Layer 4 Transports (3 Protocols)
+## 2.1 Layer 2 Switching, VLAN/QinQ, NAC & MPLS Protocols (`1–8`)
 
-- **`tcp`** (IP Proto 6, default dstport 80 / srcport 12345): `tcp [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [srcport <u16>] [dstport <u16>] [seq <u32>] [acknum <u32>] [win <u16>] [urgent <u16>] [mss <u16>] [wscale <u8>] [sackperm] [tsval <u32>] [tsecr <u32>]`
-- **`udp`** (IP Proto 17, default dstport 80 / srcport 12345): `udp [srcport <u16>] [dstport <u16>] [payload "<str>" | hexpayload "<hex>"]`
-- **`sctp`** (IP Proto 132, Castagnoli CRC-32c LE): `sctp [chunk <data|init|initack|sack|heartbeat|heartbeatack|abort|shutdown|shutdownack|cookieecho|cookieack>] [vtag <u32>] [stream <u16>] [ssn <u16>] [ppid <u32>]`
+### 1. `arp` — Address Resolution Protocol & Gratuitous ARP (RFC 826 / RFC 5227)
+```text
+arp [request | reply | gratuitous | garp] [sendermac|sha <mac>] [senderip|spa <ipv4>]
+    [targetmac|tha <mac>] [targetip|tpa <ipv4>]
+```
+- **Defaults**: Ethernet II `0x0806`; `request` broadcasts to `ff:ff:ff:ff:ff:ff` (`targetmac 00:00:00:00:00:00`);
+  `reply` unicasts to peer MAC; supports IPv4 hosts or MAC-only hosts (defaults `senderip`/`targetip` to host IPv4s
+  or `0.0.0.0`).
+- **Rules**: `request` (opcode `1`, default), `reply` (opcode `2`), `gratuitous` / `garp` (sets `targetip =
+  senderip` and broadcasts `ff:ff:ff:ff:ff:ff`). `sha`/`spa`/`tha`/`tpa` are aliases for
+  `sendermac`/`senderip`/`targetmac`/`targetip`. Over IPv6 endpoints, emits Neighbor Discovery resolution framing
+  cleanly.
 
-### Layer 7 SNMP (3 Protocols)
+### 2. `vlan` — IEEE 802.1Q Virtual LAN Tagging & 802.1p QoS
+```text
+vlan [<vid 0..4095>] [pcp <0..7>] [dei <0|1>]
+```
+- **Defaults**: Ethernet II outer TPID `0x8100`, default `vid 1`, `pcp 0`, `dei 0`, inner EtherType `0x0800` (or
+  `ethertype <u16>` override) when used as standalone L2 protocol; MAC-only or IP hosts.
+- **Rules**: Works both as a standalone L2 protocol (`a -> b vlan 100 pcp 5`) and as a cross-layer L2 modifier on
+  any L3/L4/L7 frame (`a -> b ospf hello vlan 100 pcp 6`). `vid` `0..=4095`, `pcp` `0..=7`, `dei` `0..=1`.
 
-- **`snmp1`** (UDP 162 (trap) / UDP 161 (get/getnext/set/response)): `snmp1 [trap | get | getnext | set | response] [community <str>] [enterprise <oid>] [agentip <ip>] [gentrap <u32>] [spectrap <u32>] [sysuptime <u32>] [reqid <u32>] [varbind <oid> <val>...]`
-- **`snmp2`** (UDP 162 (trap/inform) / UDP 161 (get/getnext/getbulk/set/response)): `snmp2 [trap | inform | get | getnext | getbulk | set | response] [community <str>] [reqid <u32>] [nonrepeaters <u32>] [maxrepetitions <u32>] [sysuptime <u32>] [oid <oid>] [varbind <oid> <val>...]`
-- **`snmp3`** (UDP 162 (trap/inform/report) / UDP 161 (polls), RFC 3414/3826/7860 USM): `snmp3 [trap | inform | get | getnext | getbulk | set | response] [user <str>] [engineid <hex>] [engineboots <u32>] [enginetime <u32>] [contextname <str>] [auth <alg> <pass>] [priv <alg> <pass>] [reqid <u32>] [nonrepeaters <u32>] [maxrepetitions <u32>] [sysuptime <u32>] [oid <oid>] [varbind <oid> <val>...]`
-- **`varbind` values** (shared across `snmp1`/`snmp2`/`snmp3`, also accepts bare `null` alias): `varbind <oid> <nullval | string <str> | int <i32> | timeticks <u32> | ipval <ip> | oidval <oid> | counter32 <u32> | gauge32 <u32> | counter64 <u64>>`
+### 3. `qinq` — IEEE 802.1ad Provider Bridge Double VLAN Tagging (S-Tag + C-Tag)
+```text
+qinq [<outer_svlan 0..4095>] [innervlan <inner_cvlan 0..4095>] [pcp <0..7>] [dei <0|1>]
+```
+- **Defaults**: Always emits **two** VLAN tags: outer IEEE 802.1ad S-Tag (`0x88a8`, default `100`) + inner IEEE
+  802.1Q C-Tag (`0x8100`, default `innervlan 1`); MAC-only or IP hosts.
+- **Rules**: Works both standalone (`a -> b qinq 200 innervlan 10 pcp 4`) and as a cross-layer modifier on any
+  L3/L4/L7 frame (`a -> b bgp keepalive qinq 500 innervlan 20`). Both VIDs validate `0..=4095`.
 
-### Layer 7 Infrastructure, Time, AAA & Telemetry (11 Protocols)
+### 4. `lldp` — IEEE 802.1AB Link Layer Discovery Protocol
+```text
+lldp [chassisid <str>] [portid <str>] [ttl <u16>] [sysname <str>] [sysdesc <str>]
+```
+- **Defaults**: Ethernet II `0x88cc`, default multicast destination MAC `01:80:c2:00:00:0e`, default `chassisid`
+  `"switch"`, `portid` `"eth0"`, `ttl 120`; MAC-only or IP hosts.
+- **Rules**: Encodes mandatory Chassis ID (TLV 1), Port ID (TLV 2), Time-To-Live (TLV 3, `0..=65535`), optional
+  System Name (TLV 5) and System Description (TLV 6), and End of LLDPDU (TLV 0).
 
-- **`dns`** (UDP 53 (or `transport tcp` -> TCP 53)): `dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>] [transport tcp]`
-- **`mdns`** (UDP 5353, multicast 224.0.0.251 / ff02::fb): `mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>]`
-- **`dhcp`** (UDP 68/67 (v4) / UDP 546/547 (DHCPv6)): `dhcp [discover | offer | request | ack | release | solicit | advertise | reply] [xid <u32>] [ciaddr <ip>] [yiaddr <ip>] [siaddr <ip>] [chaddr <mac>] [hostname <str>] [dnsserver <ip>] [router <ip>] [subnetmask <ip>] [leasetime <u32>]`
-- **`ntp`** (UDP 123): `ntp [li <u8>] [vn <u8>] [mode <u8>] [stratum <u8>] [poll <u8>] [precision <i8>] [refid <str>] [txtimestamp <u64>]`
-- **`ptp`** (UDP 319 (sync/delayreq) / UDP 320 (followup/delayresp/announce)): `ptp [sync | delayreq | followup | delayresp | announce | msgtype <str>] [domain <u8>] [seqid <u16>] [clockid <str>]`
-- **`radius`** (UDP 1812 (access*) / UDP 1813 (accounting*)): `radius [accessrequest | accessaccept | accessreject | accesschallenge | accountingrequest | accountingresponse | code <str>] [id <u8>] [user <str>] [nasip <ip>] [servicetype <u32>] [framedip <ip>]`
-- **`tacacs`** (TCP 49): `tacacs [type authen | type author | type acct | authen | author | acct] [seq <u8>] [flags <u8>] [sessionid <u32>] [user <str>] [data <str>] [payload <str>]`
-- **`syslog`** (UDP 514 (or `transport tcp` -> TCP 514)): `syslog [facility <u8>] [severity <u8>] [pri <u8>] [hostname <str>] [app <str>] [procid <str>] [msgid <str>] [msg <str>] [transport tcp]`
-- **`netflow`** (UDP 2055): `netflow [srcip <ip>] [dstip <ip>] [srcport <u16>] [dstport <u16>] [proto <u8>] [packets <u32>] [octets <u32>]`
-- **`ipfix`** (UDP 4739): `ipfix [domainid <u32>] [srcip <ip>] [dstip <ip>] [srcport <u16>] [dstport <u16>] [proto <u8>] [packets <u32>] [octets <u32>]`
-- **`sflow`** (UDP 6343): `sflow [agentip <ip>] [subagentid <u32>] [seq <u32>] [uptime <u32>] [samples <u32>]`
+### 5. `stp` — IEEE 802.1D Spanning Tree & IEEE 802.1w Rapid Spanning Tree (RSTP)
+```text
+stp [rstp] [rootid <str>] [bridgeid <str>] [portid <u16>] [cost <u32>]
+    [maxage <u16>] [hellotime <u16>] [forwarddelay <u16>] [flags <u8>]
+```
+- **Defaults**: IEEE 802.3 LLC (`DSAP=0x42, SSAP=0x42, Ctrl=0x03`), multicast MAC `01:80:c2:00:00:00`, default `cost
+  0`, `portid 0x8001`, `maxage 20`, `hellotime 2`, `forwarddelay 15`, `flags 0`; MAC-only or IP hosts.
+- **Rules**: Add `rstp` to emit Version 2 Rapid STP BPDU (type `0x02`, including Version 1 Length byte); omit `rstp`
+  for classic 802.1D Configuration BPDU (version `0x00`). `rootid` and `bridgeid` accept MAC/bridge strings.
 
-### Layer 7 Web, Cloud, TLS, VoIP & Remote Access (16 Protocols)
+### 6. `lacp` — IEEE 802.3ad / 802.1AX Link Aggregation Control Protocol
+```text
+lacp [actorsys <mac>] [actorkey <u16>] [actorport <u16>] [actorstate <u8>]
+     [partnersys <mac>] [partnerkey <u16>] [partnerport <u16>] [partnerstate <u8>]
+```
+- **Defaults**: Ethernet II Slow Protocols `0x8809` (subtype `0x01`), multicast MAC `01:80:c2:00:00:02`, 110-byte
+  LACPDU (Actor TLV `0x01`, Partner TLV `0x02`, Collector TLV `0x03`, Terminator TLV `0x00`); MAC-only or IP.
+- **Rules**: `actorkey` default `1`, `actorport` default `1`, `actorstate` default `0x3d` (Active + Aggregatable +
+  Sync + Collecting + Distributing), `partnerstate` default `0x3d`.
 
-- **`http`** (TCP 80): `http [method <str>] [uri <str>] [version <str>] [hosthdr <str>] [useragent <str>] [contenttype <str>] [status <u16>] [reason <str>] [header <key> <val>] [body <str>]`
-- **`http2`** (TCP 443): `http2 [preface | settings | headers | data | windowupdate | ping | goaway] [streamid <u32>]`
-- **`grpc`** (TCP 50051): `grpc [service <str>] [method <str>] [grpcstatus <u32>]`
-- **`websocket`** (TCP 80): `websocket [opcode <str>] [finbit <u8>] [maskkey <u32>] [payload <str>]`
-- **`tls`** (TCP 443): `tls [clienthello | serverhello | certificate | finished | appdata | alert] [recordversion <u16>] [handshakeversion <u16>] [sni <str>] [ciphersuite <u16>] [alpn <str>]`
-- **`quic`** (UDP 443): `quic [initial | zerortt | handshake | retry | short] [version <u32>] [dcid <u64>] [scid <u64>] [token <str>] [pktnum <u32>]`
-- **`ssh`** (TCP 22): `ssh [banner <str>] [kexinit] [newkeys] [msgcode <u8>] [cookie <str>] [payload <str>]`
-- **`telnet`** (TCP 23): `telnet [do <u8>] [dont <u8>] [will <u8>] [wont <u8>] [option <u8>] [data <str>] [payload <str>]`
-- **`tftp`** (UDP 69): `tftp [rrq | wrq | data | ack | error] [filename <str>] [mode <str>] [block <u16>] [errcode <u16>] [errmsg <str>]`
-- **`ftp`** (TCP 21): `ftp [cmd <str>] [arg <str>] [code <u16>] [reply <str>]`
-- **`whois`** (TCP 43): `whois [query | response] [domain <str>] [registrar <str>]`
-- **`sip`** (UDP 5060 (or `transport tcp` -> TCP 5060)): `sip [invite | bye | cancel | method <str>] [uri <str>] [status <u16>] [reason <str>] [from <str>] [to <str>] [callid <str>] [cseq <u32>] [via <str>] [contact <str>] [contenttype <str>] [body <str>] [transport tcp]`
-- **`rtp`** (UDP 5004): `rtp [pt <u8>] [seq <u16>] [timestamp <u32>] [ssrc <u32>] [marker <u8>]`
-- **`rtsp`** (TCP 554): `rtsp [options | method <str>] [uri <str>] [status <u16>] [cseq <u32>] [transporthdr <str>] [session <str>]`
-- **`stun`** (UDP 3478): `stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip>] [software <str>]`
-- **`ssdp`** (UDP 1900): `ssdp [msearch | notify] [hosthdr <str>] [man <str>] [mx <u8>] [st <str>] [nt <str>] [nts <str>] [usn <str>] [location <str>]`
+### 7. `eapol` — IEEE 802.1X Port-Based Network Access Control (EAP over LAN)
+```text
+eapol [version <u8>] [type <eappacket|start|logoff|key> | eappacket | start | logoff | key]
+      [eapcode <u8>] [eapid <u8>] [eapmethod <u8>] [identity <str>]
+```
+- **Defaults**: Ethernet II `0x888e`, PAE group MAC `01:80:c2:00:00:03`, default `version 2` (802.1X-2004),
+  `eappacket` (type `0`), `eapcode 2` (Response), `eapid 1`, `eapmethod 1` (Identity); MAC-only or IP hosts.
+- **Rules**: `type` accepts bare or `type`-prefixed `eappacket` (`0`), `start` (`1`), `logoff` (`2`), or `key` (`3`,
+  WPA2/802.11i EAPOL-Key descriptor). `eapcode`: `1`=Request, `2`=Response, `3`=Success, `4`=Failure.
 
-### Layer 7 Mail, Identity, Storage, Databases & Brokers (14 Protocols)
+### 8. `mpls` — Multiprotocol Label Switching Unicast Shim (RFC 3032)
+```text
+mpls [<label 0..1048575> | label <0..1048575>] [exp|tc <0..7>] [bos <0|1>] [mplsttl <0..255>]
+```
+- **Defaults**: Ethernet II `0x8847`, default `label 16`, `exp 0` (`tc` alias), `bos 1`, `mplsttl 64`; MAC-only or
+  IP hosts.
+- **Rules**: Works standalone (`a -> b mpls 16000 exp 5 bos 1 mplsttl 64`) or once as a cross-layer L2 modifier on
+  any L3/L4/L7 statement (`a -> b bgp keepalive mpls 16000 exp 6`; never repeat `mpls` twice on one line).
 
-- **`smtp`** (TCP 25): `smtp [ehlo [str]] [helo [str]] [mailfrom <str>] [rcptto <str>] [data] [quit] [cmd <str>] [param <str>] [code <u16>] [reply <str>] [body <str>]`
-- **`imap`** (TCP 143): `imap [tag <str>] [cmd <str>] [arg <str>] [status <str>] [response <str>]`
-- **`pop3`** (TCP 110): `pop3 [cmd <str>] [arg <str>] [ok] [err] [response <str>]`
-- **`kerberos`** (UDP 88 (or `transport tcp` -> TCP 88)): `kerberos [asreq | asrep | tgsreq | tgsrep | krberror] [realm <str>] [cname <str>] [sname <str>] [etype <i32>]`
-- **`ldap`** (TCP 389): `ldap [msgid <i32>] [bindreq | bindres | searchreq | searchentry | searchdone | unbindreq] [basedn <str>] [filter <str>] [resultcode <u32>]`
-- **`smb`** (TCP 445): `smb [command <str>] [status <u32>] [treeid <u32>] [sessionid <u64>] [msgid <u64>] [share <str>] [filename <str>]`
-- **`nfs`** (TCP 2049 (or `transport udp` -> UDP 2049)): `nfs [vers <u32>] [proc <str>] [tag <str>] [path <str>] [xid <u32>]`
-- **`redis`** (TCP 6379): `redis [cmd <str>] [args <str>] [replytype <str>] [value <str>]`
-- **`memcached`** (TCP 11211 (or `transport udp` -> UDP 11211)): `memcached [cmd <str>] [key <str>] [value <str>] [flags <u32>] [exptime <u32>] [opcode <u8>] [opaque <u32>] [cas <u64>]`
-- **`mysql`** (TCP 3306): `mysql [greeting | login | query | ok | err | eof] [serverversion <str>] [user <str>] [db <str>] [sql <str>] [errcode <u16>]`
-- **`postgres`** (TCP 5432): `postgres [startup | query | authok | commandcomplete | readyforquery | errorresponse] [user <str>] [db <str>] [sql <str>]`
-- **`mqtt`** (TCP 1883): `mqtt [connect | connack | publish | puback | subscribe | suback | pingreq | pingresp | disconnect | pkttype <str>] [clientid <str>] [topic <str>] [qos <u8>] [retain] [pktid <u16>] [keepalive <u16>] [returncode <u8>]`
-- **`coap`** (UDP 5683): `coap [con | non | ack | rst] [code <str>] [msgid <u16>] [token <u32>] [uripath <str>] [contentformat <u16>]`
-- **`amqp`** (TCP 5672): `amqp [protocolheader | connectionstart | channelopen | basicpublish | basicdeliver | heartbeat] [channel <u16>] [exchange <str>] [routingkey <str>]`
+## 2.2 Layer 3 Control, Tunneling, VPN, Routing & FHRP Protocols (`9–28`)
 
-### Layer 7 Industrial Control Systems & SCADA/OT (6 Protocols)
+### 9. `icmp` — Internet Control Message Protocol v4 & v6 (RFC 792 / RFC 4443)
+```text
+icmp [echorequest | echoreply | destunreach | timeexceeded | redirect]
+     [type <u8>] [code <u8>] [id <u16>] [seq <u16>] [gateway <ipv4>]
+```
+- **Defaults**: IPv4 protocol `1` (RFC 1071 checksum) over IPv4 hosts; automatically morphs to **ICMPv6** (Next
+  Header `58` with IPv6 pseudo-header checksum) over IPv6 hosts! Default `echorequest` (`8`/`0` v4, `128`/`0` v6),
+  `id 1`, `seq 1`.
+- **Rules**: Shorthands map cleanly across v4/v6: `echorequest` (`8`/`128`), `echoreply` (`0`/`129`), `destunreach`
+  (`3`/`1`), `timeexceeded` (`11`/`3`), `redirect` (`5`/`137`, `gateway <ipv4>` on v4). Explicit `type` and `code`
+  (`0..=255`) override any shorthand.
 
-- **`modbus`** (TCP 502 (or `transport udp` -> UDP 502)): `modbus [txid <u16>] [protoid <u16>] [unitid <u8>] [func <str>] [addr <u16>] [count <u16>] [value <u16>] [isresponse]`
-- **`bacnet`** (UDP 47808): `bacnet [whois | iam | readproperty | writeproperty] [invokeid <u8>] [objecttype <u16>] [objectinstance <u32>] [propertyid <u32>] [value <u32>]`
-- **`dnp3`** (TCP 20000 (or `transport udp` -> UDP 20000), CRC-16): `dnp3 [read | write | select | operate | directoperate | confirm | response | unsolicitedresponse | func <str>] [src <u16>] [dst <u16>] [group <u8>] [variation <u8>] [crc <u16>]`
-- **`s7comm`** (TCP 102): `s7comm [rosctr <str>] [pduref <u16>] [func <str>] [area <u8>] [dbnum <u16>] [offset <u32>] [count <u16>]`
-- **`ethernetip`** (TCP 44818 (or `transport udp` -> UDP 44818)): `ethernetip [nop | listidentity | registersession | sendrrdata | sendunitdata | cmd <str>] [sessionhandle <u32>] [status <u32>] [context <u64>] [cipservice <u8>] [cipclass <u16>] [cipinstance <u16>] [cipattr <u16>]`
-- **`opcua`** (TCP 4840): `opcua [msgtype <str>] [chunktype <str>] [securechannelid <u32>] [tokenid <u32>] [seqnum <u32>] [reqid <u32>] [endpointurl <str>] [nodeid <str>]`
+### 10. `ndp` — IPv6 Neighbor Discovery Protocol (RFC 4861 — IPv6 Only)
+```text
+ndp [routersolicit | routeradvert | neighborsolicit | neighboradvert | redirect]
+    [target <ipv6>] [slla <mac>] [tlla <mac>] [routerlifetime <u16>]
+```
+- **Defaults**: ICMPv6 (Next Header `58`), default `ttl 255` (RFC 4861 mandatory Hop Limit `255`), default
+  `neighborsolicit` (`type 135`). **IPv6 hosts required**.
+- **Rules**: `routersolicit` (`133`), `routeradvert` (`134`, `routerlifetime` default `1800`), `neighborsolicit`
+  (`135`, `target` defaults to destination IPv6), `neighboradvert` (`136`, Solicited+Override flags), `redirect`
+  (`137`). Appends Source/Target Link-Layer Address options (`slla` TLV 1 / `tlla` TLV 2).
 
-## 5. Canonical Compilable `.frasm` Reference Examples
+### 11. `igmp` — Internet Group Management Protocol v1/v2/v3 (RFC 1112 / 2236 / 3376 — IPv4 Only)
+```text
+igmp [query | report | leave] [v1 | v2 | v3 | version <1|2|3>] [group <ipv4>] [maxresp <u8>]
+```
+- **Defaults**: IPv4 protocol `2`, `ttl 1`, default `v2` `query` (`0x11`), `group 224.0.0.1` (`maxresp 100` =
+  10.0s). **IPv4 hosts required**.
+- **Rules**: `v1` (`0x11` query / `0x12` report), `v2` (`0x11` query / `0x16` report / `0x17` `leave`), `v3` (`0x11`
+  12B query / `0x22` Membership Report with Group Record). Checksummed per RFC 2236/3376.
 
-Every block below compiles standalone under FrameAssembly v3.0.0 (`host` + optional `flow` + `compile`).
+### 12. `mld` — Multicast Listener Discovery v1/v2 (RFC 2710 / RFC 3810 — IPv6 Only)
+```text
+mld [query | report | done] [multicastaddr <ipv6>] [maxrespdelay <u16>]
+```
+- **Defaults**: ICMPv6 Next Header `58`, Hop Limit `1`, default `query` (`type 130`), `multicastaddr ::` (general
+  query) or `ff02::1`, `maxrespdelay 10000` ms. **IPv6 hosts required**.
+- **Rules**: `query` (`130`), `report` (`131` MLDv1 Listener Report), `done` (`132` MLDv1 Listener Done). Computes
+  full IPv6 pseudo-header ICMPv6 checksum.
 
-### Inline L2/L3 Ping, TCP Handshake, Stacked QoS & Dual-Stack Reuse (`docs/01_getting_started.md`)
+### 13. `gre` — Generic Routing Encapsulation (RFC 2784 / RFC 2890 / NVGRE)
+```text
+gre [grekey|key <u32>] [greseq <u32>] [greproto <u16>] [checksum]
+```
+- **Defaults**: IP protocol `47` (IPv4 or IPv6 outer header), default `greproto 0x0800` (IPv4 inner) or `0x6558`
+  (TEB / GRETAP), optional C/K/S flags.
+- **Rules**: `checksum` sets bit 15 (`C=1`) and computes the RFC 2784 16-bit GRE checksum + 16-bit Reserved1;
+  `grekey` (or `key`) sets `K=1` (`0x2000`); `greseq` sets `S=1` (`0x1000`).
+
+### 14. `vxlan` — Virtual eXtensible Local Area Network Overlay (RFC 7348)
+```text
+vxlan [vni|vnid <0..16777215>]
+```
+- **Defaults**: UDP `dstport 4789`, 8-byte VXLAN header (`Flags = 0x08` I-bit set) + encapsulated inner
+  Ethernet/IPv4 frame; default `vni 1`; dual-stack outer IPv4 or IPv6.
+- **Rules**: `vni` (alias `vnid`) validates 24-bit range `0..=16777215`. Override UDP port via `dstport 8472` for
+  Linux legacy VXLAN tables.
+
+### 15. `geneve` — Generic Network Virtualization Encapsulation (RFC 8926)
+```text
+geneve [vni|vnid <0..16777215>] [optclass <u16>] [opttype <u8>] [protocoltype <u16>]
+```
+- **Defaults**: UDP `dstport 6081`, default `vni 1`, `protocoltype 0x6558` (Transparent Ethernet Bridging).
+- **Rules**: When `optclass` (e.g. `0x0102` OVN / `0x0104` Cilium) or `opttype` is specified, encodes a 4-byte
+  padded GENEVE TLV option and updates `OptLen` automatically.
+
+### 16. `ipsec` — IPsec Encapsulating Security Payload Alias (RFC 4303)
+```text
+ipsec [spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [nextheader <u8>]
+```
+- **Defaults**: IP protocol `50` (ESP), default `spi 0x00000100`, `seq 1`, 8-byte IV, padded ciphertext + trailer
+  (`nextheader 4` IP-in-IP or `6` TCP) + 12-byte ICV.
+- **Rules**: Identical wire framing to `esp` (`Protocol::Ipsec` and `Protocol::Esp` share `IpsecSpec`). `iv` and
+  `icv` accept hex strings (`"0102030405060708"`).
+
+### 17. `esp` — IPsec Encapsulating Security Payload (RFC 4303)
+```text
+esp [spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [nextheader <u8>]
+```
+- **Defaults**: IP protocol `50`, default `spi 0x00000100`, `seq 1`, `nextheader 4`.
+- **Rules**: Explicit RFC 4303 keyword counterpart to `ipsec`; `frameassembly reverse` emits `esp` on IP proto `50`.
+
+### 18. `ah` — IPsec Authentication Header (RFC 4302)
+```text
+ah [spi <u32>] [seq <u32>] [icv "<hex>"] [nextheader <u8>]
+```
+- **Defaults**: IP protocol `51`, default `nextheader 6` (TCP) or `59` (No Next Header), `spi 0x00000200`, `seq 1`,
+  12-byte (96-bit) aligned ICV (`Payload Len` computed in 32-bit words minus 2).
+- **Rules**: `icv` accepts hex octets padded to 4-byte (IPv4) or 8-byte (IPv6) RFC 4302 alignment.
+
+### 19. `ikev2` — Internet Key Exchange Protocol Version 2 (RFC 7296)
+```text
+ikev2 [exchange <sainit|auth|createchildsa|informational> | sainit | auth | createchildsa |
+       informational] [initiatorspi <u64|"hex">] [responderspi <u64|"hex">] [msgid <u32>]
+      [flags <u8>] [nextpayload|nextheader <u8>]
+```
+- **Defaults**: UDP `500 -> 500` (use `srcport 4500 dstport 4500` for NAT-T), version `0x20`, default `exchange
+  sainit` (`34`), `flags 0x08` (Initiator), `msgid 0`.
+- **Rules**: Exchange codes: `sainit` (`34`), `auth` (`35`, `IKE_AUTH`), `createchildsa` (`36`), `informational`
+  (`37`). `nextheader` is a full alias for `nextpayload` (e.g., `33`=SA, `46`=SK, `0`=None).
+
+### 20. `wireguard` — WireGuard Noise_IK Secure Network Tunnel
+```text
+wireguard [type <initiation|response|cookie|data> | initiation | response | cookie | data]
+          [sender <u32>] [receiver <u32>] [counter <u64>]
+```
+- **Defaults**: UDP `dstport 51820`, default `initiation` (type `1`, 148 bytes).
+- **Rules**: Message types: `initiation` (type `1`, 148B with `sender`), `response` (type `2`, 92B with `sender` +
+  `receiver`), `cookie` (type `3`, 64B `receiver`), `data` (type `4`, 32B+ transport data with `receiver` and 64-bit
+  `counter`).
+
+### 21. `ospf` — Open Shortest Path First — OSPFv2 (RFC 2328) & OSPFv3 (RFC 5340)
+```text
+ospf [hello | dbd | lsr | lsu | lsack] [routerid <ipv4>] [areaid <u32|ipv4>]
+     [hellointerval <u16>] [deadinterval <u32>] [priority <u8>]
+```
+- **Defaults**: IP protocol `89`, `ttl 1`; emits **OSPFv2** (24B header, RFC 1071 checksum) over IPv4 hosts and
+  **OSPFv3** (RFC 5340 version `3`, 16B header, IPv6 pseudo-header checksum) over IPv6 hosts! Default `hello`.
+- **Rules**: Packet types: `hello` (`1`, default `hellointerval 10`, `deadinterval 40`, `priority 1`), `dbd` (`2`),
+  `lsr` (`3`), `lsu` (`4`), `lsack` (`5`, includes valid Fletcher-16 LSA header checksum). `routerid` always takes
+  32-bit dotted-quad (`1.1.1.1`) in both OSPFv2 and OSPFv3.
+
+### 22. `bgp` — Border Gateway Protocol 4 & 4-Byte ASN Capability (RFC 4271 / RFC 6793)
+```text
+bgp [open | update | notification | keepalive] [asn <u32>] [holdtime <u16>] [bgpid <ipv4>]
+    [prefix|nlri <str|ip>] [nexthop <ip>]
+```
+- **Defaults**: TCP `dstport 179` (`psh ack`, shares 4-tuple TCP `seq`/`acknum`), 16-byte `ff..ff` marker, default
+  `keepalive` (19 bytes) or `open` (`asn 65001`, `holdtime 180`).
+- **Rules**: When `asn > 65535` (4-byte ASN such as `4200000001`), `open` automatically writes `AS_TRANS` (`23456`)
+  in the 16-bit My Autonomous System field and appends RFC 6793 Capability Code `65` carrying the full 32-bit `asn`.
+  `update` encodes `ORIGIN`, `AS_PATH`, `NEXT_HOP`, and `prefix`/`nlri` CIDR (`"10.20.0.0/16"`).
+
+### 23. `rip` — Routing Information Protocol — RIPv2 (RFC 2453) & RIPng (RFC 2080)
+```text
+rip [request | response | reply] [prefix <ip>] [metric <1..16>] [nexthop <ip>] [tag <u16>]
+```
+- **Defaults**: UDP `520 -> 520` (RIPv2 over IPv4) or UDP `521 -> 521` (RIPng over IPv6), default `response`
+  (command `2`), `metric 1`, `tag 0`.
+- **Rules**: `request` (`1`), `response` / `reply` (`2`); `metric` `1..=16` (`16` = infinity/unreachable).
+
+### 24. `pim` — Protocol Independent Multicast — Sparse Mode (RFC 7761)
+```text
+pim [hello | joinprune | register] [holdtime <u16>] [drpriority <u32>]
+    [group <ip>] [source <ip>] [rp <ip>]
+```
+- **Defaults**: IP protocol `103`, PIMv2 (`0x20`), default `hello` (`holdtime 105`, `drpriority 1`).
+- **Rules**: `hello` (type `0`), `register` (type `1`, unicast to `rp`/destination IP, checksums the 8-byte PIMv2
+  header excluding encapsulated data per RFC 7761 §4.9), `joinprune` (type `3`, encodes `group` & `source`).
+
+### 25. `vrrp` — Virtual Router Redundancy Protocol v2 & v3 (RFC 3768 / RFC 5798)
+```text
+vrrp [vrid <1..255>] [priority <0..255>] [advint <u16>] [vip <ip>] [version <2|3>]
+```
+- **Defaults**: IP protocol `112`, mandatory `ttl 255`, default `vrid 1`, `priority 100`, `advint 1` (v2 seconds) /
+  `100` (v3 centiseconds); defaults to VRRPv2 over IPv4 and VRRPv3 (RFC 5798 pseudo-header checksum) over IPv6.
+- **Rules**: `vrid` `1..=255`, `priority` `0..=255` (`255` = IP owner, `0` = master release), `version 2` or `3`.
+
+### 26. `hsrp` — Cisco Hot Standby Router Protocol v1 & v2 (RFC 2281)
+```text
+hsrp [group <u8>] [priority <u8>] [state <u8>] [hellotime <u8>] [holdtime <u8>]
+     [auth <str>] [vip <ip>]
+```
+- **Defaults**: UDP `1985 -> 1985` (HSRPv1 over IPv4) or UDP `2029 -> 2029` (HSRPv2 TLV over IPv6), default `group
+  1`, `priority 100`, `state 16` (Active), `hellotime 3`, `holdtime 10`, `auth "cisco"`.
+- **Rules**: `hellotime` and `holdtime` validate `0..=255` (`u8`). Common `state` values: `16`=Active, `8`=Standby,
+  `4`=Speak, `2`=Listen.
+
+### 27. `bfd` — Bidirectional Forwarding Detection Control Packet (RFC 5880)
+```text
+bfd [state <0..3>] [diag <0..31>] [mydisc <u32>] [yourdisc <u32>]
+    [mintx <u32>] [minrx <u32>] [mult <u8>]
+```
+- **Defaults**: UDP `dstport 3784` (use `dstport 4784` for multihop BFD or `7784` for S-BFD), `ttl 255`, 24-byte BFD
+  v1 control header, default `state 3` (Up), `mult 3`, `mydisc 1`, `mintx 100000` us, `minrx 100000` us.
+- **Rules**: `state` `0..=3` (`0`=AdminDown, `1`=Down, `2`=Init, `3`=Up); `diag` `0..=31`.
+
+### 28. `openflow` — OpenFlow SDN Control Channel (OpenFlow 1.3 / 1.4)
+```text
+openflow [hello | echoreq | echorequest | echoreply | featuresreq | featuresreply |
+          packetin | packetout | flowmod | type <u8>] [version <u8>] [xid <u32>]
+         [dpid <u64>] [tableid <u8>] [priority <u16>]
+```
+- **Defaults**: TCP `dstport 6653` (`psh ack`), default `version 4` (OpenFlow 1.3), `hello` (type `0`), `xid 1`.
+- **Rules**: Message types: `hello` (`0`), `echoreq`/`echorequest` (`2`), `echoreply` (`3`), `featuresreq` (`5`),
+  `featuresreply` (`6`, carries 64-bit `dpid`), `packetin` (`10`), `packetout` (`13`), `flowmod` (`14`, carries
+  `tableid` and `priority`).
+
+## 2.3 Layer 4 Transport Protocols (`29–31`)
+
+### 29. `tcp` — Transmission Control Protocol & RFC 7323 Options (RFC 9293)
+```text
+tcp [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [srcport <u16>] [dstport <u16>]
+    [seq <u32>] [acknum <u32>] [win|window <u16>] [urgent <u16>]
+    [mss <u16>] [wscale <u8>] [sackperm] [tsval <u32>] [tsecr <u32>]
+```
+- **Defaults**: IP protocol `6`, default `srcport 49152` (or inherited pair port), `dstport 80`, default flag `ack`
+  when all flags omitted (or `psh ack` when `payload`/`hexpayload` present), `win 65535`.
+- **Rules**: Tracks 4-tuple `seq`/`acknum` automatically (`seq 1000` initial) and pads TCP options (`mss`, `wscale`,
+  `sackperm`, `tsval`/`tsecr`) to 32-bit alignment with NOP/EOL bytes; RFC 793/2460 pseudo-header checksum.
+
+### 30. `udp` — User Datagram Protocol (RFC 768)
+```text
+udp [srcport <u16>] [dstport <u16>] [payload "<str>" | hexpayload "<hex>"]
+```
+- **Defaults**: IP protocol `17`, default `srcport 49152`, `dstport 80`, non-zero RFC 768/8200 pseudo-header
+  checksum (`0x0000` mapped to `0xffff`).
+- **Rules**: Remembers bidirectional ports across `->` and `<-` on the endpoint pair.
+
+### 31. `sctp` — Stream Control Transmission Protocol (RFC 9260 + Castagnoli CRC-32c)
+```text
+sctp [chunk <data|init|initack|sack|heartbeat|heartbeatack|abort|shutdown|shutdownack|
+      cookieecho|cookieack> | data | init | initack | sack | heartbeat | heartbeatack |
+      abort | shutdown | shutdownack | cookieecho | cookieack] [vtag <u32>] [tsn <u32>]
+     [stream <u16>] [ssn <u16>] [ppid <u32>]
+```
+- **Defaults**: IP protocol `132`, default `dstport 80` (use `dstport 38412` NGAP / `36412` S1AP / `2905` M3UA),
+  12-byte common header with hardware-table Castagnoli **CRC-32c** checksum, default `data` chunk.
+- **Rules**: Accepts bare chunk keywords (`sctp init vtag 0`) or `chunk <type>`. `ppid` sets Payload Protocol ID on
+  `data` chunks (e.g., `60` NGAP, `18` S1AP).
+
+## 2.4 Layer 7 SNMPv1, SNMPv2c & SNMPv3 USM Protocols (`32–34`)
+
+### 32. `snmp1` — Simple Network Management Protocol v1 (RFC 1157)
+```text
+snmp1 [trap | get | getnext | set | response] [community <str>] [enterprise <oid>]
+      [agentip <ipv4>] [gentrap <0..6>] [spectrap <u32>] [sysuptime <u32>] [reqid <u32>]
+      [oid <oid>] [varbind <oid> <type_val> ...]
+```
+- **Defaults**: UDP `162` (`trap`, default PDU) or UDP `161` (`get`, `getnext`, `set`, `response`), ASN.1 BER
+  `version=0`, default `community "public"`, `enterprise 1.3.6.1.4.1.8072.3.2.10`, `gentrap 6`
+  (`enterpriseSpecific`), `spectrap 1`; dual-stack (over IPv6, `agent-addr` encodes `0.0.0.0` per RFC 3584).
+- **Rules**: `varbind <oid> <val>` is repeatable and supports all 9 SMI value keywords: `string "<str>"` (NOTE:
+  `string`, never `str`), `int <i32>`, `oidval <oid>`, `ipval <ipv4>`, `counter32 <u32>`, `gauge32 <u32>`,
+  `timeticks <u32>`, `counter64 <u64>`, `opaque "<hex_or_str>"`, and `null` / `nullval`.
+
+### 33. `snmp2` — Simple Network Management Protocol v2c (RFC 3416)
+```text
+snmp2 [trap | inform | report | get | getnext | getbulk | set | response] [community <str>]
+      [reqid <u32>] [nonrepeaters <u32>] [maxrepetitions <u32>] [sysuptime <u32>]
+      [oid <oid>] [varbind <oid> <type_val> ...]
+```
+- **Defaults**: UDP `162` (`trap`, `inform`, `report`) or UDP `161` (`get`, `getnext`, `getbulk`, `set`,
+  `response`), ASN.1 BER `version=1` (v2c), default `trap`, `community "public"`.
+- **Rules**: `trap` (`0xa7`), `inform` (`0xa6`), and `report` (`0xa8`) auto-prepend `sysUpTime.0`
+  (`1.3.6.1.2.1.1.3.0`) when `sysuptime` is set; pass `snmpTrapOID.0` via `varbind 1.3.6.1.6.3.1.1.4.1.0 oidval
+  <oid>`. `getbulk` uses `nonrepeaters` (default `0`) and `maxrepetitions` (default `10`).
+
+### 34. `snmp3` — Simple Network Management Protocol v3 with USM Auth & Privacy (RFC 3414 / 3826 / 7860)
+```text
+snmp3 [trap | inform | report | get | getnext | getbulk | set | response] [user <str>]
+      [engineid "<even_hex>"] [engineboots <u32>] [enginetime <u32>] [contextname <str>]
+      [auth <md5|sha|sha256|sha384|sha512> <pass> | <md5|sha|sha256|sha384|sha512> <pass>]
+      [priv <des|aes> <pass> | <des|aes> <pass>] [reqid <u32>] [nonrepeaters <u32>]
+      [maxrepetitions <u32>] [sysuptime <u32>] [oid <oid>] [varbind <oid> <type_val> ...]
+```
+- **Defaults**: UDP `162` (`trap`, `inform`, `report`) or UDP `161` (`get`, `getnext`, `getbulk`, `set`,
+  `response`), `version=3`, default `user "initial"`, `engineid "80001f888000000001"`, `engineboots 1`, `enginetime
+  100`, `contextname ""`; security level derived automatically (`noAuthNoPriv`, `authNoPriv`, or `authPriv`).
+- **Rules**: Performs real RFC 3414 / RFC 7860 Ku->Kul key localization against `engineid`, computes live HMAC
+  (`md5`, `sha` SHA-1, `sha256`, `sha384`, `sha512`), and encrypts `ScopedPDU` with `des` (CBC) or `aes`
+  (AES-128-CFB per RFC 3826). `engineid` must be valid even-length ASCII hex (`"80001f880431"`).
+
+## 2.5 Layer 7 Infrastructure, Time, AAA & Flow Telemetry (`35–45`)
+
+### 35. `dns` — Domain Name System over UDP or TCP (RFC 1035 / RFC 3596)
+```text
+dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>]
+    [rcode <0..15>] [ansttl <u32>] [transport <udp|tcp>]
+```
+- **Defaults**: UDP `dstport 53` by default (`transport tcp` prefixes the 2-byte RFC 1035 TCP length field on
+  `dstport 53`), default `query`, `txid 0x1234`, `qname "example.com"`, `qtype "A"`, `ansttl 300`.
+- **Rules**: `qtype` `<str>` values (case-insensitive): `"A"`, `"AAAA"`, `"CNAME"`, `"MX"`, `"NS"`, `"PTR"`,
+  `"SOA"`, `"SRV"`, `"TXT"`, `"AXFR"`, `"ANY"`. `qname` labels must be `<= 63` bytes and total name `<= 253` bytes.
+  `rcode`: `0`=NOERROR, `2`=SERVFAIL, `3`=NXDOMAIN, `5`=REFUSED.
+
+### 36. `mdns` — Multicast DNS Zero-Configuration Discovery (RFC 6762)
+```text
+mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>]
+     [rcode <0..15>] [ansttl <u32>]
+```
+- **Defaults**: UDP `5353 -> 5353`, automatically overrides destination IP to `224.0.0.251` (IPv4) or `ff02::fb`
+  (IPv6) with RFC multicast MAC, default `txid 0`, `qname "_http._tcp.local"`, `qtype "PTR"`.
+- **Rules**: Shares all `qtype` values and RFC 1035 label validation rules with `dns` (`UDP`-only).
+
+### 37. `dhcp` — Dynamic Host Configuration Protocol — DHCPv4 (RFC 2131) & DHCPv6 (RFC 8415)
+```text
+dhcp [discover | offer | request | ack | release | solicit | advertise | reply]
+     [xid <u32>] [ciaddr <ipv4>] [yiaddr <ipv4>] [siaddr <ipv4>] [chaddr <mac>]
+     [subnetmask <ipv4>] [router <ipv4>] [dnsserver <ip>] [leasetime <u32>] [hostname <str>]
+```
+- **Defaults**: Over IPv4: BOOTP + magic cookie `63:82:53:63` on UDP `68 -> 67` (`discover`/`request`/`release`) or
+  `67 -> 68` (`offer`/`ack`). Over IPv6: DHCPv6 message on UDP `546 -> 547` (`solicit`/`request`/`release`) or `547
+  -> 546` (`advertise`/`reply`).
+- **Rules**: Encodes Option 53 (Message Type), Option 1 (`subnetmask`), Option 3 (`router`), Option 6 (`dnsserver`),
+  Option 12 (`hostname`), Option 51 (`leasetime`), and Option 255 End.
+
+### 38. `ntp` — Network Time Protocol v1–v4 (RFC 5905)
+```text
+ntp [li <0..3>] [vn <1..4>] [mode <0..7>] [stratum <0..16>] [poll <u8>] [precision <i8>]
+    [refid <str>] [txtimestamp <u64>]
+```
+- **Defaults**: UDP `dstport 123`, 48-byte NTP packet, default `li 0`, `vn 4`, `mode 3` (Client; use `mode 4` for
+  Server), `stratum 0` (client) / `1` (`refid "GPS"`), `precision -20`.
+- **Rules**: `mode`: `1`=Symmetric Active, `2`=Passive, `3`=Client, `4`=Server, `5`=Broadcast, `6`=Control.
+
+### 39. `ptp` — IEEE 1588 Precision Time Protocol v2
+```text
+ptp [sync | delayreq | followup | delayresp | announce | msgtype <str>]
+    [domain <u8>] [seqid <u16>] [clockid <str>]
+```
+- **Defaults**: UDP `319` for event messages (`sync` `0x0`, `delayreq` `0x1`) and UDP `320` for general messages
+  (`followup` `0x8`, `delayresp` `0x9`, `announce` `0xb`); PTPv2 (`0x02`), default `sync`, `domain 0`.
+- **Rules**: Automatically swaps port `319`/`320` onto `srcport` on `<-` replies. `clockid` accepts 8-octet
+  hex/string.
+
+### 40. `radius` — Remote Authentication Dial-In User Service (RFC 2865 / RFC 2866)
+```text
+radius [accessrequest | accessaccept | accessreject | accesschallenge | accountingrequest |
+        accountingresponse | code <str>] [id <u8>] [user <str>] [nasip <ipv4>]
+       [servicetype <u32>] [framedip <ipv4>]
+```
+- **Defaults**: UDP `1812` for Auth (`accessrequest` `1`, `accessaccept` `2`, `accessreject` `3`, `accesschallenge`
+  `11`) and UDP `1813` for Accounting (`accountingrequest` `4`, `accountingresponse` `5`).
+- **Rules**: Encodes RFC 2865 20-byte header (Code, Identifier `id`, Length, 16-byte Authenticator) + User-Name (1),
+  NAS-IP-Address (4), Service-Type (6), and Framed-IP-Address (8) AVPs.
+
+### 41. `tacacs` — Cisco Terminal Access Controller Access-Control System Plus (RFC 8907)
+```text
+tacacs [authen | author | acct | type <authen|author|acct>] [seq <u8>] [flags <u8>]
+       [sessionid <u32>] [user <str>] [data <str>]
+```
+- **Defaults**: TCP `dstport 49` (`psh ack`), TACACS+ version `0xc0`, default `authen` (`0x01`), `seq 1`, `flags 0`,
+  `sessionid 1`.
+- **Rules**: `seq <u8>` (`0..=255`) sets the TACACS+ header `seq_no` cleanly without touching TCP's 32-bit sequence
+  number (`1`=client start, `2`=server reply, `3`=client continue).
+
+### 42. `syslog` — Syslog Event Logging over UDP or TCP (RFC 5424 / RFC 3164)
+```text
+syslog [facility <0..23>] [severity <0..7>] [pri <0..191>] [hostname <str>] [app <str>]
+       [procid <str>] [msgid <str>] [msg <str>] [transport <udp|tcp>]
+```
+- **Defaults**: UDP `dstport 514` by default (`transport tcp` streams over TCP `514`), default `facility 16`
+  (`local0`), `severity 6` (`info`, computing `<134>`), RFC 5424 `<PRI>1 ...` message.
+- **Rules**: `pri` (`0..=191`) directly overrides `facility * 8 + severity`.
+
+### 43. `netflow` — Cisco NetFlow v5 Flow Export Telemetry
+```text
+netflow [srcip <ipv4>] [dstip <ipv4>] [srcport <u16>] [dstport <u16>] [proto <u8>]
+        [packets <u32>] [octets <u32>]
+```
+- **Defaults**: UDP `dstport 2055`, 24-byte NetFlow v5 header (`count=1`) + 48-byte flow record (`72` bytes total),
+  default `proto 6` (TCP), `packets 10`, `octets 1500`; dual-stack outer transport.
+- **Rules**: Exports 5-tuple (`srcip`, `dstip`, `srcport`, `dstport`, `proto`) + packet/octet counters for
+  collectors.
+
+### 44. `ipfix` — IP Flow Information Export (RFC 7011 — NetFlow v10)
+```text
+ipfix [domainid <u32>] [srcip <ip>] [dstip <ip>] [srcport <u16>] [dstport <u16>]
+      [proto <u8>] [packets <u32>] [octets <u32>]
+```
+- **Defaults**: UDP `dstport 4739`, IPFIX Version `0x000a` 16-byte header + Template Set (`Set ID 2`) + Data Set,
+  default `domainid 1`, `proto 6`, `packets 10`, `octets 1500`; dual-stack (supports IPv4 or IPv6 flow IPs).
+- **Rules**: Self-describing Template + Data Set in one packet so Wireshark/collectors decode immediately.
+
+### 45. `sflow` — sFlow Version 5 Switched/Routed Packet Sampling
+```text
+sflow [agentip <ip>] [subagentid <u32>] [seq <u32>] [uptime <u32>] [samples <u32>]
+```
+- **Defaults**: UDP `dstport 6343`, XDR-encoded sFlow v5 datagram (address type `1` IPv4 or `2` IPv6 for `agentip`),
+  default `subagentid 0`, `seq 1`, `uptime 1000`, `samples 1`.
+- **Rules**: Encodes Flow Sample enterprise=0 format=1 header with sampled Ethernet header record.
+
+## 2.6 Layer 7 Web, Cloud, Security, VoIP & Remote Access (`46–61`)
+
+### 46. `http` — Hypertext Transfer Protocol HTTP/1.1 (RFC 9112)
+```text
+http [get | post | put | delete | head | options | patch | method <str>] [uri <str>]
+     [version <str>] [hosthdr <str>] [useragent <str>] [contenttype <str>]
+     [status <u16>] [reason <str>] [header <key_str_or_id> <val_str_or_id> ...] [body <str>]
+```
+- **Defaults**: TCP `dstport 80` (`psh ack`), default request `GET / HTTP/1.1` with `Host` header; setting `status
+  <u16>` (e.g. `status 200 reason "OK"`) emits an HTTP response instead.
+- **Rules**: IMPORTANT: Always use `hosthdr "api.local"` (never `host`) for the `Host:` header! `header <k> <v>` is
+  repeatable; when `body` is set, `Content-Length` is computed automatically.
+
+### 47. `http2` — Hypertext Transfer Protocol Version 2 Binary Framing (RFC 9113)
+```text
+http2 [preface | settings | headers | data | windowupdate | ping | goaway] [streamid <u32>]
+```
+- **Defaults**: TCP `dstport 443` (`psh ack`), 9-byte RFC 9113 frame header (or 24-byte client connection `preface`
+  + `SETTINGS`), default `settings` (`streamid 0`).
+- **Rules**: Emits valid RFC 9113 mandatory frame lengths automatically when `payload` is omitted: `ping` (8-byte
+  opaque data, `streamid 0`), `windowupdate` (4-byte increment, default `65535`), `goaway` (8-byte `last_stream_id`
+  + `error_code`, `streamid 0`), `headers` (`streamid 1` HPACK indexed `:method GET`).
+
+### 48. `grpc` — gRPC Remote Procedure Calls over HTTP/2
+```text
+grpc [service <str>] [method <str>] [grpcstatus <u32>]
+```
+- **Defaults**: TCP `dstport 50051` (`psh ack`), HTTP/2 `HEADERS` + length-prefixed gRPC message frame (`1B
+  compressed=0` + `4B length` + protobuf wire bytes), default `service "helloworld.Greeter"`, `method "SayHello"`.
+- **Rules**: Setting `grpcstatus <u32>` (`0`=OK, `14`=UNAVAILABLE, `7`=PERMISSION_DENIED) emits a gRPC Trailers-Only
+  / response `HEADERS` frame carrying `grpc-status`.
+
+### 49. `websocket` — WebSocket Framed Bidirectional Messaging (RFC 6455)
+```text
+websocket [text | binary | close | ping | pong | opcode <str>] [finbit <0|1>]
+          [maskkey <u32>] [payload <str>]
+```
+- **Defaults**: TCP `dstport 80` (`psh ack`), default `text` (`opcode 0x1`), `finbit 1`.
+- **Rules**: When `maskkey <u32>` is specified (RFC 6455 client->server requirement, e.g. `maskkey 0x37fa213d`),
+  sets `MASK=1` and XOR-masks payload bytes on the wire.
+
+### 50. `tls` — Transport Layer Security 1.2 & 1.3 Record & Handshake Layer (RFC 5246 / RFC 8446)
+```text
+tls [clienthello | serverhello | certificate | finished | appdata | alert]
+    [recordversion <u16>] [handshakeversion <u16>] [sni <str>] [ciphersuite <u16>] [alpn <str>]
+```
+- **Defaults**: TCP `dstport 443` (`psh ack`), default `clienthello`, `recordversion 0x0303`, `handshakeversion
+  0x0303`, `ciphersuite 0x1301` (`TLS_AES_128_GCM_SHA256`).
+- **Rules**: `clienthello` encodes SNI (`0x0000` when `sni` set), Supported Versions (`TLS 1.3 0x0304` + `TLS 1.2`),
+  and ALPN (`0x0010` when `alpn` set, e.g. `"h2"`). Other types: `serverhello`, `certificate`, `finished`, `appdata`
+  (record `23`), `alert` (record `21`).
+
+### 51. `quic` — QUIC v1/v2 Encrypted UDP Transport (RFC 9000 / RFC 9369)
+```text
+quic [initial | zerortt | handshake | retry | short] [version <u32>] [dcid <u64>]
+     [scid <u64>] [token <str>] [pktnum <u32>]
+```
+- **Defaults**: UDP `dstport 443`, default Long Header `initial` (`version 1` `0x00000001`; use `0x6b3343cf` for
+  QUIC v2), 8-byte `dcid`/`scid`, RFC 9000 §16 2-byte variable-length Length encoding.
+- **Rules**: `short` emits a 1-RTT Short Header (`0x40 | fixed_bit` + 8-byte `dcid` + `pktnum`).
+
+### 52. `ssh` — Secure Shell Transport Layer SSH-2 (RFC 4253)
+```text
+ssh [banner <str>] [kexinit] [newkeys] [msgcode <u8>] [cookie <str>]
+```
+- **Defaults**: TCP `dstport 22` (`psh ack`), default identification string `SSH-2.0-OpenSSH_9.6\r\n`.
+- **Rules**: `banner "SSH-2.0-..."` emits CR-LF terminated version exchange; `kexinit` (`msgcode 20`, 16-byte random
+  `cookie` + algorithm name-lists), `newkeys` (`msgcode 21`), or arbitrary RFC 4253 binary packet `msgcode`.
+
+### 53. `telnet` — Telnet Protocol & IAC Option Negotiation (RFC 854 / RFC 855)
+```text
+telnet [do <u8>] [dont <u8>] [will <u8>] [wont <u8>] [option <u8>] [data <str>]
+```
+- **Defaults**: TCP `dstport 23` (`psh ack`), emits `0xff` IAC negotiation triplets (`WILL=251`, `WONT=252`,
+  `DO=253`, `DONT=254`) and/or NVT ASCII `data`.
+- **Rules**: Common options: `1`=Echo, `3`=Suppress Go Ahead, `24`=Terminal Type, `31`=NAWS.
+
+### 54. `tftp` — Trivial File Transfer Protocol (RFC 1350)
+```text
+tftp [rrq | wrq | data | ack | error | err] [filename <str>] [mode <str>]
+     [block <u16>] [errcode <u16>] [errmsg <str>]
+```
+- **Defaults**: UDP `dstport 69`, default `rrq` (opcode `1`), `filename "boot.bin"`, `mode "octet"`.
+- **Rules**: Opcodes: `rrq` (`1`), `wrq` (`2`), `data` (`3`, `block 1`), `ack` (`4`, `block 1`), `error`/`err` (`5`,
+  `errcode` + NUL-terminated `errmsg`).
+
+### 55. `ftp` — File Transfer Protocol Control Channel (RFC 959)
+```text
+ftp [cmd <str>] [arg <str>] [code <u16>] [reply <str>]
+```
+- **Defaults**: TCP `dstport 21` (`psh ack`); setting `code <u16>` (e.g. `code 220 reply "FTP Ready"`) emits a
+  server reply, otherwise emits `cmd` (`"USER"`, `"PASS"`, `"PASV"`, `"RETR"`) + `arg`.
+- **Rules**: Terminates FTP control lines with standard `\r\n`.
+
+### 56. `whois` — WHOIS Directory Query & Response Service (RFC 3912)
+```text
+whois [query | response] [domain <str>] [registrar <str>]
+```
+- **Defaults**: TCP `dstport 43` (`psh ack`), default `query` (`domain "example.com"` + `\r\n`); `response` formats
+  `Domain Name:` + `Registrar:` records.
+- **Rules**: Disambiguated cleanly from `bacnet whois` by protocol position (`a -> b whois ...` vs `a -> b bacnet
+  whois`).
+
+### 57. `sip` — Session Initiation Protocol VoIP Signaling (RFC 3261)
+```text
+sip [invite | ack | bye | cancel | register | options | method <str>] [uri <str>]
+    [status <u16>] [reason <str>] [from <str>] [to <str>] [callid <str>] [cseq <u32>]
+    [via <str>] [contact <str>] [contenttype <str>] [body <str>] [transport <udp|tcp>]
+```
+- **Defaults**: UDP `dstport 5060` by default (`transport tcp` uses TCP `5060`), default `INVITE sip:bob@example.com
+  SIP/2.0` (or `SIP/2.0 <status> <reason>` when `status` is set).
+- **Rules**: Generates RFC 3261 mandatory headers (`Via` with magic cookie `z9hG4bK`, `From`, `To`, `Call-ID`,
+  `CSeq`, `Max-Forwards: 70`, `Contact`, `Content-Length`) and optional SDP `body`.
+
+### 58. `rtp` — Real-time Transport Protocol Media Stream (RFC 3550)
+```text
+rtp [pt <0..127>] [seq <u16>] [timestamp <u32>] [ssrc <u32>] [marker <0|1>]
+```
+- **Defaults**: UDP `dstport 5004`, 12-byte RTP v2 (`0x80`) header + audio/video payload, default `pt 0` (G.711
+  PCMU), `seq 1`, `timestamp 160`, `ssrc 0x12345678`, `marker 0`.
+- **Rules**: `pt`: `0`=PCMU, `8`=PCMA, `96`=Dynamic Opus/H.264, `101`=telephone-event DTMF.
+
+### 59. `rtsp` — Real Time Streaming Protocol Media Control (RFC 2326 / RFC 7826)
+```text
+rtsp [options | describe | setup | play | teardown | method <str>] [uri <str>]
+     [status <u16>] [cseq <u32>] [transporthdr <str>] [session <str>]
+```
+- **Defaults**: TCP `dstport 554` (`psh ack`), default `OPTIONS rtsp://camera.local/stream RTSP/1.0` (`cseq 1`);
+  setting `status <u16>` emits `RTSP/1.0 <status> OK`.
+- **Rules**: IMPORTANT: Always use `transporthdr` (never `transport`) for the `Transport:` header
+  (`"RTP/AVP;unicast;client_port=5004-5005"`).
+
+### 60. `stun` — Session Traversal Utilities for NAT (RFC 5389)
+```text
+stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>]
+     [xormappedaddr <ip>] [software <str>]
+```
+- **Defaults**: UDP `dstport 3478`, 20-byte header with RFC 5389 magic cookie `0x2112a442`, default `bindingrequest`
+  (`0x0001`).
+- **Rules**: `bindingresponse` (`0x0101`) XOR-encodes `xormappedaddr` (`0x0020`, IPv4 or IPv6) with `0x2112a442` and
+  96-bit transaction ID; `software` adds attribute `0x8022`.
+
+### 61. `ssdp` — Simple Service Discovery Protocol / UPnP (HTTPU)
+```text
+ssdp [msearch | notify] [hosthdr <str>] [man <str>] [mx <u8>] [st <str>]
+     [nt <str>] [nts <str>] [usn <str>] [location <str>]
+```
+- **Defaults**: UDP `dstport 1900`, default `msearch` (`M-SEARCH * HTTP/1.1`, `HOST: 239.255.255.250:1900`, `MAN:
+  "ssdp:discover"`, `MX: 3`, `ST: ssdp:all`).
+- **Rules**: `notify` emits `NOTIFY * HTTP/1.1` with `NT`, `NTS` (`"ssdp:alive"`), `USN`, and `LOCATION` headers.
+
+## 2.7 Layer 7 Mail, Directory, Storage, Databases & Brokers (`62–75`)
+
+### 62. `smtp` — Simple Mail Transfer Protocol (RFC 5321)
+```text
+smtp [ehlo [<str>] | helo [<str>] | mailfrom <str> | rcptto <str> | data | quit |
+      cmd <str> [param <str>]] [code <u16>] [reply <str>] [body <str>]
+```
+- **Defaults**: TCP `dstport 25` (`psh ack`; override `dstport 587` for submission), default `220` greeting or
+  `EHLO`.
+- **Rules**: Client commands: `ehlo "mail.local"`, `mailfrom "<a@x>"`, `rcptto "<b@y>"`, `data` (or `body` ending
+  with `\r\n.\r\n`), `quit`. Server responses use `code <u16>` + `reply <str>` (e.g. `code 250`).
+
+### 63. `imap` — Internet Message Access Protocol IMAP4rev1 (RFC 3501)
+```text
+imap [tag <str>] [cmd <str>] [arg <str>] [status <str>] [response <str>]
+```
+- **Defaults**: TCP `dstport 143` (`psh ack`), default tagged command `A001 CAPABILITY` (or server `* OK` / tagged
+  `status "OK"` response when `status` or `response` is set).
+- **Rules**: Examples: `imap tag "A1" cmd "LOGIN" arg "alice secret"`, `imap tag "A1" status "OK" response "LOGIN
+  completed"`.
+
+### 64. `pop3` — Post Office Protocol Version 3 (RFC 1939)
+```text
+pop3 [cmd <str>] [arg <str>] [ok | err] [response <str>]
+```
+- **Defaults**: TCP `dstport 110` (`psh ack`); `ok` (`+OK ...`) and `err` (`-ERR ...`) emit server responses; `cmd`
+  (`"USER"`, `"PASS"`, `"STAT"`, `"RETR"`, `"QUIT"`) emits client commands.
+- **Rules**: Terminates lines with `\r\n` per RFC 1939.
+
+### 65. `kerberos` — Kerberos Network Authentication Service v5 (RFC 4120)
+```text
+kerberos [asreq | asrep | tgsreq | tgsrep | krberror] [realm <str>] [cname <str>]
+         [sname <str>] [etype <i32>] [transport <udp|tcp>]
+```
+- **Defaults**: UDP `dstport 88` by default (`transport tcp` prepends the 4-byte RFC 4120 record-mark length on TCP
+  `88`), ASN.1 DER `pvno=5`, default `asreq` (`msg-type 10`), `etype 18` (`aes256-cts-hmac-sha1-96`).
+- **Rules**: `etype 23` (`rc4-hmac`) models Kerberoasting `tgsreq`/`tgsrep` detections (`sname "MSSQLSvc/db.corp"`).
+
+### 66. `ldap` — Lightweight Directory Access Protocol v3 (RFC 4511 ASN.1 BER)
+```text
+ldap [msgid <i32>] [bindreq | bindres | searchreq | searchentry | searchdone | unbindreq]
+     [basedn <str>] [filter <str>] [resultcode <u32>]
+```
+- **Defaults**: TCP `dstport 389` (`psh ack`), ASN.1 BER `LDAPMessage` SEQUENCE, default `searchreq`, `msgid 1`,
+  `basedn "dc=example,dc=com"`, `filter "(objectClass=*)"`.
+- **Rules**: `resultcode`: `0`=success, `49`=invalidCredentials (`bindres`), `32`=noSuchObject.
+
+### 67. `smb` — Server Message Block SMB2 / SMB3 Protocol (MS-SMB2)
+```text
+smb [negotiate | sessionsetup | treeconnect | treedisconnect | create | close |
+     read | write | logoff | command <str>] [status <u32>] [treeid <u32>]
+    [sessionid <u64>] [msgid <u64>] [share <str>] [filename <str>]
+```
+- **Defaults**: TCP `dstport 445` (`psh ack`), 4-byte NetBIOS Session Service length prefix + 64-byte `\xfeSMB`
+  header, default `negotiate` (command `0x0000`, `msgid 0`).
+- **Rules**: `command` `<str>` / bare keywords: `negotiate`, `sessionsetup`, `logoff`, `treeconnect` (encodes
+  UTF-16LE `share`), `treedisconnect`, `create` (UTF-16LE `filename`), `close`, `read`, `write`. Setting non-zero
+  `status` (e.g. `0xc000006d` `STATUS_LOGON_FAILURE`) or `<-` sets `SMB2_FLAGS_SERVER_TO_REDIRECTOR`.
+
+### 68. `nfs` — Network File System v3/v4 over ONC RPC (RFC 1813 / RFC 7530)
+```text
+nfs [vers <u32>] [compound | proc <str>] [tag <str>] [path <str>] [xid <u32>]
+    [transport <tcp|udp>]
+```
+- **Defaults**: TCP `dstport 2049` by default (4-byte ONC RPC Last-Fragment Record Marking header; `transport udp`
+  omits record mark on UDP `2049`), RPC program `100003`, default `vers 4`, `compound`.
+- **Rules**: `proc` `<str>` values: `"NULL"`, `"COMPOUND"` (`vers 4` with UTF-8 `tag` + `path`), `"GETATTR"`,
+  `"LOOKUP"`, `"READ"`, `"WRITE"`.
+
+### 69. `redis` — Redis Serialization Protocol (RESP2 / RESP3)
+```text
+redis [get | set | cmd <str>] [key <str>] [args <str>] [value <str>] [replytype <str>]
+```
+- **Defaults**: TCP `dstport 6379` (`psh ack`), RESP multibulk array `*N\r\n$len\r\n...` for commands; setting
+  `replytype` emits a server reply (`"ok"` `+OK`, `"err"` `-ERR`, `"integer"` `:N`, `"bulk"` `$len`).
+- **Rules**: Examples: `redis set key "session:1" value "active"`, `redis replytype "ok" value "OK"`.
+
+### 70. `memcached` — Memcached ASCII & Binary Cache Protocol
+```text
+memcached [get | set | cmd <str>] [key <str>] [value <str>] [flags <u32>] [exptime <u32>]
+          [opcode <u8>] [opaque <u32>] [cas <u64>] [transport <udp|tcp>]
+```
+- **Defaults**: UDP `dstport 11211` by default (8-byte Memcached UDP frame header; `transport tcp` streams over TCP
+  `11211`), default ASCII `get`; setting `opcode <u8>` emits the 24-byte Binary Protocol (`0x80`/`0x81`).
+- **Rules**: ASCII commands: `get`, `set`, `cmd "stats"`; Binary opcodes: `0x00`=Get, `0x01`=Set, `0x07`=Quit.
+
+### 71. `mysql` — MySQL Client/Server Wire Protocol v10
+```text
+mysql [greeting | login | query | ok | err | eof] [serverversion <str>] [user <str>]
+      [db <str>] [sql <str>] [errcode <u16>]
+```
+- **Defaults**: TCP `dstport 3306` (`psh ack`), 3-byte little-endian payload length + 1-byte sequence ID, default
+  `query` (`COM_QUERY 0x03`, `sql "SELECT 1"`).
+- **Rules**: `greeting` (Handshake v10 `serverversion "8.0.36"`), `login` (HandshakeResponse41 `user` + `db`),
+  `query` (`sql`), `ok` (`0x00`), `err` (`0xff` + `errcode 1045`), `eof` (`0xfe`).
+
+### 72. `postgres` — PostgreSQL Frontend/Backend Protocol v3.0
+```text
+postgres [startup | authok | query | commandcomplete | readyforquery | errorresponse]
+         [user <str>] [db <str>] [sql <str>]
+```
+- **Defaults**: TCP `dstport 5432` (`psh ack`), default Simple Query `'Q'` (`sql "SELECT 1;"`).
+- **Rules**: `startup` (v3.0 `0x00030000` with `user` & `database` `db`), `authok` (`'R'` status `0`), `query`
+  (`'Q'`), `commandcomplete` (`'C'` `SELECT 1`), `readyforquery` (`'Z'` idle `'I'`), `errorresponse` (`'E'`
+  SQLSTATE).
+
+### 73. `mqtt` — Message Queuing Telemetry Transport v3.1.1 / v5.0 (OASIS MQTT)
+```text
+mqtt [connect | connack | publish | puback | subscribe | suback | pingreq | pingresp |
+      disconnect | pkttype <str>] [clientid <str>] [topic <str>] [qos <0..2>] [retain]
+     [pktid <u16>] [keepalive <u16>] [returncode <u8>]
+```
+- **Defaults**: TCP `dstport 1883` (`psh ack`), MQTT fixed header with variable-byte Remaining Length, default
+  `publish` (`topic "sensors/temp"`, `qos 0`).
+- **Rules**: `connect` encodes `"MQTT"` level 4, `keepalive` (default `60`), and `clientid`; `publish` supports `qos
+  0..2`, `retain`, `pktid`, and `payload "23.5"`.
+
+### 74. `coap` — Constrained Application Protocol (RFC 7252)
+```text
+coap [con | non | ack | rst | msgtype <str>] [get | post | put | delete | created |
+      changed | notfound | code <str>] [msgid <u16>] [token <u32>] [uripath <str>]
+     [contentformat <u16>]
+```
+- **Defaults**: UDP `dstport 5683`, CoAP v1 4-byte header + token + delta-encoded options (`Uri-Path` 11,
+  `Content-Format` 12) + `0xff` payload marker, default `con` `get` (`0.01`), `msgid 1`.
+- **Rules**: `code` accepts bare shorthands OR `code "c.dd"` (mutually exclusive—never combine `get` and `code` on
+  the same frame): `"0.01"` (`get`), `"0.02"` (`post`), `"0.03"` (`put`), `"0.04"` (`delete`), `"2.01"` (`created`),
+  `"2.04"` (`changed`), `"2.05"` (`"content"`), `"4.04"` (`notfound`).
+
+### 75. `amqp` — Advanced Message Queuing Protocol AMQP 0-9-1
+```text
+amqp [protocolheader | connectionstart | channelopen | basicpublish | basicdeliver |
+      heartbeat] [channel <u16>] [exchange <str>] [routingkey <str>]
+```
+- **Defaults**: TCP `dstport 5672` (`psh ack`), AMQP 0-9-1 frame (`type`, `channel`, `size`, payload, `0xce`
+  frame-end) or 8-byte `AMQP\x00\x00\x09\x01` `protocolheader`; default `basicpublish` (`channel 1`).
+- **Rules**: `basicpublish` (Class 60 Method 40) and `basicdeliver` (Class 60 Method 60) encode `exchange` &
+  `routingkey`.
+
+## 2.8 Layer 7 Industrial Control Systems & SCADA/OT (`76–81`)
+
+### 76. `modbus` — Modbus TCP / UDP Application Protocol (MBAP + PDU)
+```text
+modbus [readcoils | readdiscreteinputs | readholdingregisters | readinputregisters |
+        writesinglecoil | writesingleregister | writemultipleregisters | func <str_or_u8>]
+       [txid <u16>] [protoid <u16>] [unitid <u8>] [addr <u16>] [count <u16>]
+       [value <u16>] [isresponse] [transport <tcp|udp>]
+```
+- **Defaults**: TCP `dstport 502` by default (`transport udp` sends MBAP over UDP `502`), 7-byte MBAP header (`txid
+  1`, `protoid 0`, length, `unitid 1`) + Modbus PDU, default `readholdingregisters` (FC `3`, `addr 0`, `count 1`).
+- **Rules**: `func` accepts keywords or FC numbers: `readcoils`/`"1"`, `readdiscreteinputs`/`"2"`,
+  `readholdingregisters`/`"3"`, `readinputregisters`/`"4"`, `writesinglecoil`/`"5"`, `writesingleregister`/`"6"`,
+  `"writemultiplecoils"`/`"15"`, `writemultipleregisters`/`"16"`. Add `isresponse` on `<-` PLC replies to emit
+  byte-count + register data instead of request `addr`/`count`.
+
+### 77. `bacnet` — BACnet/IP Building Automation and Control Networks (ASHRAE 135)
+```text
+bacnet [whois | iam | readproperty | writeproperty] [invokeid <u8>] [objecttype <u16>]
+       [objectinstance <u32>] [propertyid <u32>] [value <u32>]
+```
+- **Defaults**: UDP `dstport 47808` (`0xbac0`), BVLC header (`0x81`, Original-Unicast `0x0a` or Broadcast `0x0b` on
+  `whois`) + NPDU (`0x01`) + APDU, default `whois`.
+- **Rules**: `whois` (Unconfirmed-REQ service `8`), `iam` (Unconfirmed-REQ `0`), `readproperty` (Confirmed-REQ `12`,
+  default `objecttype 0` Analog-Input, `propertyid 85` Present-Value), `writeproperty` (Confirmed-REQ `15`).
+
+### 78. `dnp3` — IEEE 1815 Distributed Network Protocol 3 (DNP3 over TCP/UDP)
+```text
+dnp3 [read | write | select | operate | directoperate | confirm | response |
+      unsolicitedresponse | func <str>] [src <u16>] [dst <u16>] [group <u8>]
+     [variation <u8>] [crc <u16>] [transport <tcp|udp>]
+```
+- **Defaults**: TCP `dstport 20000` by default (`transport udp` uses UDP `20000`), `0x0564` Data Link header +
+  Transport + Application layer with reflected IEEE 1815 **CRC-16 (`0x3d65`)** per block, default `read` (`0x01`),
+  `src 1`, `dst 10`, `group 30` (Analog Input), `variation 1`.
+- **Rules**: Explicit `crc <u16>` overrides the Data Link header CRC for negative/fuzz dissector testing.
+
+### 79. `s7comm` — Siemens S7 Communication Protocol over ISO-on-TCP (RFC 1006 / TPKT + COTP)
+```text
+s7comm [setupcomm | readvar | writevar | plccontrol | func <str>] [rosctr <str>]
+       [pduref <u16>] [area <u8|str>] [dbnum <u16>] [offset <u32>] [count <u16>]
+```
+- **Defaults**: TCP `dstport 102` (`psh ack`), 4-byte TPKT (`0x03 0x00`) + 3-byte COTP DT (`0x02 0xf0 0x80`) + S7
+  header (`0x32`), default `rosctr "job"` (`0x01`), `setupcomm` (`0xf0`).
+- **Rules**: `rosctr` values: `"job"` (`0x01`), `"ack"` (`0x02`), `"ackdata"` (`0x03`), `"userdata"` (`0x07`).
+  `func` values: `setupcomm` (`0xf0`), `readvar` (`0x04`), `writevar` (`0x05`), `plccontrol` (`0x28`). `area`:
+  `0x84` (`132` DB, with `dbnum`), `0x81` Inputs, `0x82` Outputs, `0x83` Flags/Merkers.
+
+### 80. `ethernetip` — ODVA EtherNet/IP & Common Industrial Protocol (CIP)
+```text
+ethernetip [nop | listservices | listidentity | listinterfaces | registersession |
+            unregistersession | sendrrdata | sendunitdata | cmd <str>]
+           [sessionhandle <u32>] [status <u32>] [context <u64|str>] [cipservice <u8>]
+           [cipclass <u16>] [cipinstance <u16>] [cipattr <u16>] [transport <tcp|udp>]
+```
+- **Defaults**: TCP `dstport 44818` for explicit messaging (`registersession` `0x0065`, `sendrrdata` `0x006f`,
+  `listidentity` `0x0063`); `sendunitdata` (`0x0070`) or `transport udp` uses UDP `2222`.
+- **Rules**: 24-byte EtherNet/IP encapsulation header + CPF items + CIP path (`cipservice 0x0e`
+  Get_Attribute_Single, `cipclass`, `cipinstance`, `cipattr`).
+
+### 81. `opcua` — OPC Unified Architecture Binary TCP Protocol (IEC 62541-6)
+```text
+opcua [msgtype <str>] [chunktype <str>] [securechannelid <u32>] [tokenid <u32>]
+      [seqnum <u32>] [reqid <u32>] [endpointurl <str>] [nodeid <str>]
+```
+- **Defaults**: TCP `dstport 4840` (`psh ack`), 8-byte OPC UA message header (`msgtype` 3B + `chunktype` 1B + 32-bit
+  little-endian `MessageSize`), default `msgtype "HEL"`, `chunktype "F"`, `endpointurl "opc.tcp://localhost:4840"`.
+- **Rules**: `msgtype` `<str>` values: `"HEL"` (Hello), `"ACK"` (Acknowledge), `"OPN"` (OpenSecureChannel), `"MSG"`
+  (Read/Service request with `securechannelid`, `tokenid`, `seqnum`, `reqid`, `nodeid`), `"CLO"`
+  (CloseSecureChannel), `"ERR"` (Error). `chunktype`: `"F"` (Final), `"C"`, `"A"`.
+
+---
+
+## 3. Compiler-Verified `.frasm` Code Library Covering All 81 Protocols
+
+Every ````frameassembly` block below compiles with zero errors under `frameassembly 3.1.0` and
+collectively exercises **all 81 native protocols**.
+
+### 3.1 Layer 2 Switching, VLAN/QinQ, MPLS & Port Security (`arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`)
 
 ```frameassembly
-// 1. Declare the endpoints
-host workstation { ip 192.168.10.50 mac 00:1a:2b:3c:4d:50 }
-host gateway     { ip 192.168.10.1  mac 00:1a:2b:3c:4d:01 }
+// Pure Layer 2 switching audit using MAC-only switches and ARP endpoints
+host access_sw { mac 00:1b:21:aa:00:01 }
+host core_sw   { mac 00:1b:21:bb:00:02 }
+host gw_v4     { ip 10.0.10.1 mac 00:1b:21:cc:00:01 }
+host host_v4   { ip 10.0.10.25 mac 00:1b:21:cc:00:25 }
 
-// 2. Describe the packet exchange (1 line = 1 wire frame)
-flow ping_check(c, gw) {
-    c -> gw icmp echorequest id 100 seq 1 payload "ping-1"
-    c <- gw icmp echoreply   id 100 seq 1 payload "ping-1" wait 2ms
-    c -> gw icmp echorequest id 100 seq 2 payload "ping-2" wait 10ms
-    c <- gw icmp echoreply   id 100 seq 2 payload "ping-2" wait 2ms
+compile {
+    access_sw -> core_sw stp rstp rootid "32768:00:1b:21:aa:00:01" cost 20000 hellotime 2 wait 2ms
+    access_sw -> core_sw lldp chassisid "access-sw-01" portid "Gi1/0/48" ttl 120 sysname "access-sw-01" wait 2ms
+    access_sw -> core_sw lacp actorkey 10 actorport 48 actorstate 0x3d partnerkey 10 partnerport 1 wait 2ms
+    host_v4 -> access_sw eapol start version 2 wait 1ms
+    access_sw -> host_v4 eapol eappacket eapcode 1 eapid 1 eapmethod 1 identity "corp\\alice" wait 2ms
+    host_v4 -> gw_v4 arp request senderip 10.0.10.25 targetip 10.0.10.1 vlan 10 pcp 3 wait 1ms
+    host_v4 <- gw_v4 arp reply senderip 10.0.10.1 targetip 10.0.10.25 vlan 10 wait 2ms
+    access_sw -> core_sw vlan 100 pcp 5 dei 0 payload "l2-keepalive" wait 1ms
+    access_sw -> core_sw qinq 500 innervlan 100 pcp 6 payload "metro-svlan" wait 1ms
+    access_sw -> core_sw mpls 16000 exp 5 bos 1 mplsttl 64 payload "l3vpn-shim"
 }
-
-// 3. Build the capture
-compile { ping_check(workstation, gateway) }
 ```
 
+### 3.2 Layer 3 IPv4 Control, Overlays, VPNs, Routing & FHRP (18 IPv4/Dual-Stack Protocols)
+
 ```frameassembly
-host linux_srv  { ip 10.0.0.10 mac 00:1a:2b:3c:4d:5e }
-host windows_pc { ip 10.0.0.20 mac 00-1A-2B-3C-4D-5F }
-host cisco_sw   { ip 10.0.0.1  mac 001a.2b3c.4d01 }
-host core_rtr   { ip 10.0.0.254 }
-host ospf_mcast { ip 224.0.0.5 }
+// Enterprise & data-center Layer 3 routing, tunnel overlays, IPsec/IKEv2/WireGuard, and SDN
+host rtr_a { ip 172.16.0.1 mac 00:50:56:01:00:01 }
+host rtr_b { ip 172.16.0.2 mac 00:50:56:01:00:02 }
 
-flow mac_and_multicast_demo(srv, pc, sw, rtr, mcast) {
-    pc  -> sw arp request sendermac 00-1A-2B-3C-4D-5F senderip 10.0.0.20 targetip 10.0.0.1 wait 1ms
-    pc  <- sw arp reply   sendermac 001a.2b3c.4d01    senderip 10.0.0.1  targetmac 00-1A-2B-3C-4D-5F targetip 10.0.0.20 wait 2ms
-    srv -> pc icmp echorequest id 1 seq 1 payload "all-mac-formats-work" wait 2ms
-
-    // ospf_mcast has no MAC, so 01:00:5e:00:00:05 is derived automatically
-    rtr -> mcast ttl 1 ospf hello routerid 10.0.0.254 areaid 0 hellointerval 10 deadinterval 40
+compile {
+    rtr_a -> rtr_b icmp echorequest id 0x1001 seq 1 ttl 64 dscp 46 df wait 1ms
+    rtr_a <- rtr_b icmp echoreply id 0x1001 seq 1 ttl 64 wait 2ms
+    rtr_a -> rtr_b igmp v3 report group 239.1.1.10 wait 2ms
+    rtr_a -> rtr_b gre grekey 1001 greseq 1 checksum payload "gre-keepalive" wait 2ms
+    rtr_a -> rtr_b vxlan vni 10100 wait 2ms
+    rtr_a -> rtr_b geneve vni 20200 optclass 0x0102 opttype 1 wait 2ms
+    rtr_a -> rtr_b ikev2 exchange sainit initiatorspi 0xa1b2c3d4e5f60708 msgid 0 nextheader 33 wait 2ms
+    rtr_a <- rtr_b ikev2 exchange sainit initiatorspi 0xa1b2c3d4e5f60708 responderspi 0x1122334455667788 flags 0x20 wait 2ms
+    rtr_a -> rtr_b ikev2 exchange auth initiatorspi 0xa1b2c3d4e5f60708 responderspi 0x1122334455667788 msgid 1 nextheader 46 wait 2ms
+    rtr_a -> rtr_b esp spi 0x00001001 seq 1 iv "0102030405060708" icv "aabbccddeeff001122334455" wait 1ms
+    rtr_a -> rtr_b ipsec spi 0x00001001 seq 2 iv "1112131415161718" wait 1ms
+    rtr_a -> rtr_b ah spi 0x00002001 seq 1 icv "00112233445566778899aabb" wait 2ms
+    rtr_a -> rtr_b wireguard initiation sender 0x01020304 wait 1ms
+    rtr_a <- rtr_b wireguard response sender 0x05060708 receiver 0x01020304 wait 1ms
+    rtr_a -> rtr_b wireguard data receiver 0x05060708 counter 1 payload "wg-encrypted" wait 2ms
+    rtr_a -> rtr_b ospf hello routerid 1.1.1.1 areaid 0 hellointerval 10 deadinterval 40 wait 1ms
+    rtr_a <- rtr_b ospf lsack routerid 2.2.2.2 areaid 0 wait 2ms
+    rtr_a -> rtr_b tcp syn srcport 50179 dstport 179 win 65535 mss 1460 wait 1ms
+    rtr_a <- rtr_b tcp syn ack win 65535 mss 1460 wait 1ms
+    rtr_a -> rtr_b tcp ack wait 1ms
+    rtr_a -> rtr_b bgp open asn 4200000001 holdtime 90 bgpid 1.1.1.1 wait 1ms
+    rtr_a -> rtr_b bgp update prefix "10.100.0.0/16" nexthop 172.16.0.1 wait 2ms
+    rtr_a -> rtr_b rip response prefix 10.200.0.0 metric 2 tag 100 wait 1ms
+    rtr_a -> rtr_b pim register group 239.10.10.1 source 172.16.0.1 rp 172.16.0.2 wait 1ms
+    rtr_a -> rtr_b vrrp vrid 10 priority 120 advint 1 vip 172.16.0.254 wait 1ms
+    rtr_a -> rtr_b hsrp group 10 priority 110 state 16 hellotime 3 holdtime 10 vip 172.16.0.253 wait 1ms
+    rtr_a -> rtr_b bfd state 3 mydisc 101 yourdisc 202 mintx 50000 minrx 50000 mult 3 wait 1ms
+    rtr_a -> rtr_b openflow featuresreq version 4 xid 10
 }
-
-compile { mac_and_multicast_demo(linux_srv, windows_pc, cisco_sw, core_rtr, ospf_mcast) }
 ```
 
+### 3.3 IPv6 Neighbor Discovery, MLD & OSPFv3 (`ndp`, `mld`, `ospf`, `icmp`)
+
 ```frameassembly
-host app_client { ip 10.20.1.50 }
-host web_server { ip 10.20.1.80 }
+// Native IPv6 Neighbor Discovery, MLD multicast listener report, ICMPv6, and OSPFv3 Hello
+host leaf_v6  { ip 2001:db8:cafe::1 mac 00:1c:73:00:00:01 }
+host spine_v6 { ip 2001:db8:cafe::2 mac 00:1c:73:00:00:02 }
 
-flow http_health_check(c, s) {
-    c -> s tcp syn srcport 52100 dstport 80 win 65535 mss 1460 wscale 7 sackperm wait 1ms
-    c <- s tcp syn ack win 65535 mss 1460 wscale 7 sackperm wait 1ms
-    c -> s tcp ack wait 1ms
-
-    c -> s http get uri "/api/v1/status" hosthdr "api.internal" useragent "NOC-Probe/1.0" wait 5ms
-    c <- s http status 200 reason "OK" contenttype "application/json" body "{\"healthy\":true}" wait 2ms
-
-    c -> s tcp fin ack wait 1ms
-    c <- s tcp fin ack wait 1ms
-    c -> s tcp ack
+compile {
+    leaf_v6 -> spine_v6 ndp neighborsolicit target 2001:db8:cafe::2 slla 00:1c:73:00:00:01 wait 1ms
+    leaf_v6 <- spine_v6 ndp neighboradvert target 2001:db8:cafe::2 tlla 00:1c:73:00:00:02 wait 1ms
+    spine_v6 -> leaf_v6 ndp routeradvert routerlifetime 1800 slla 00:1c:73:00:00:02 wait 2ms
+    leaf_v6 -> spine_v6 mld report multicastaddr ff02::1:ff00:2 maxrespdelay 1000 wait 2ms
+    leaf_v6 -> spine_v6 icmp echorequest id 7 seq 1 flowlabel 0x12345 wait 1ms
+    leaf_v6 <- spine_v6 icmp echoreply id 7 seq 1 wait 2ms
+    leaf_v6 -> spine_v6 ospf hello routerid 10.0.0.1 areaid 0 hellointerval 10 deadinterval 40
 }
-
-compile { http_health_check(app_client, web_server) }
 ```
 
-```frameassembly
-host sensor_v4    { ip 10.50.0.10 }
-host collector_v4 { ip 10.50.0.100 }
-host sensor_v6    { ip 2001:db8:50::10 }
-host collector_v6 { ip 2001:db8:50::100 }
+### 3.4 Layer 4 Transports: Stateful TCP Options, UDP & Multi-Chunk SCTP (`tcp`, `udp`, `sctp`)
 
-flow heartbeat_and_log(node, col) {
-    node -> col vlan 50 dscp 16 ttl 64 flowlabel 0x1a2b3 icmp echorequest id 90 seq 1 payload "HB" wait 2ms
-    node <- col vlan 50 dscp 16 ttl 64 flowlabel 0x1a2b3 icmp echoreply   id 90 seq 1 payload "HB" wait 5ms
-    node -> col vlan 50 dscp 16 ttl 64 flowlabel 0x1a2b3 syslog facility 16 severity 6 hostname "edge-01" app "healthd" msg "Link OK" wait 10ms
+```frameassembly
+// TCP RFC 7323 options, UDP payload probing, and 5G NGAP SCTP association setup
+host gnb { ip 10.50.0.11 }
+host amf { ip 10.50.0.22 }
+
+compile {
+    gnb -> amf tcp syn srcport 54000 dstport 8443 win 65535 mss 1460 wscale 7 sackperm tsval 100 tsecr 0 wait 1ms
+    gnb <- amf tcp syn ack win 65535 mss 1460 wscale 7 sackperm tsval 500 tsecr 100 wait 1ms
+    gnb -> amf tcp ack tsval 101 tsecr 500 wait 2ms
+    gnb -> amf udp srcport 55000 dstport 9999 hexpayload "deadbeefcafe" wait 2ms
+    gnb -> amf sctp init srcport 38412 dstport 38412 vtag 0 tsn 1000 wait 1ms
+    gnb <- amf sctp initack vtag 0x11223344 tsn 2000 wait 1ms
+    gnb -> amf sctp cookieecho vtag 0x22334455 wait 1ms
+    gnb <- amf sctp cookieack vtag 0x11223344 wait 1ms
+    gnb -> amf sctp data vtag 0x22334455 tsn 1001 stream 0 ssn 0 ppid 60 hexpayload "0015000900000100"
+}
+```
+
+### 3.5 Layer 7 SNMPv1, SNMPv2c & Encrypted SNMPv3 USM (`snmp1`, `snmp2`, `snmp3`)
+
+```frameassembly
+// Checkmk / Zabbix monitoring simulations across SNMPv1, SNMPv2c, and SNMPv3 authPriv + report
+host switch_agent { ip 10.20.30.10 }
+host nms_poller   { ip 10.20.30.100 }
+
+compile {
+    switch_agent -> nms_poller snmp1 trap community "public" enterprise 1.3.6.1.4.1.9.9.43 gentrap 6 spectrap 1 varbind 1.3.6.1.2.1.1.5.0 string "sw-floor2" wait 2ms
+    nms_poller -> switch_agent snmp2 getbulk community "ops-ro" reqid 101 nonrepeaters 0 maxrepetitions 10 oid 1.3.6.1.2.1.2.2.1 wait 2ms
+    switch_agent -> nms_poller snmp2 trap community "ops-ro" sysuptime 54321 varbind 1.3.6.1.6.3.1.1.4.1.0 oidval 1.3.6.1.6.3.1.1.5.3 wait 2ms
+    switch_agent -> nms_poller snmp3 report user "nms-v3" engineid "80001f888001020304" engineboots 1 enginetime 450 varbind 1.3.6.1.6.3.15.1.1.4.0 counter32 1 wait 2ms
+    nms_poller -> switch_agent snmp3 get user "nms-v3" engineid "80001f888001020304" auth sha256 "AuthSecretKey99!" priv aes "PrivSecretKey99!" reqid 202 oid 1.3.6.1.2.1.1.1.0 wait 2ms
+    nms_poller <- switch_agent snmp3 response user "nms-v3" engineid "80001f888001020304" auth sha256 "AuthSecretKey99!" priv aes "PrivSecretKey99!" reqid 202 varbind 1.3.6.1.2.1.1.1.0 string "IOS-XE"
+}
+```
+
+### 3.6 Layer 7 Infrastructure, Time, AAA & Flow Telemetry (`dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, `sflow`)
+
+```frameassembly
+// Campus DNS/mDNS/DHCP, NTP/PTP precision time, RADIUS/TACACS+ AAA, syslog, and flow exports
+host branch_edge { ip 10.30.0.1 }
+host core_srv    { ip 10.30.0.50 }
+
+compile {
+    branch_edge -> core_srv dns query txid 0x2201 qname "ldap.corp.internal" qtype "SRV" transport tcp wait 1ms
+    branch_edge <- core_srv dns response txid 0x2201 qname "ldap.corp.internal" qtype "A" rdata "10.30.0.50" ansttl 60 transport tcp wait 2ms
+    branch_edge -> core_srv mdns query qname "_printer._tcp.local" qtype "PTR" wait 2ms
+    branch_edge -> core_srv dhcp discover xid 0xabcdef01 chaddr 00:11:22:33:44:55 hostname "ap-lobby-01" wait 1ms
+    branch_edge <- core_srv dhcp offer xid 0xabcdef01 yiaddr 10.30.0.120 subnetmask 255.255.255.0 router 10.30.0.1 dnsserver 10.30.0.50 leasetime 86400 wait 2ms
+    branch_edge -> core_srv ntp vn 4 mode 3 poll 6 wait 1ms
+    branch_edge <- core_srv ntp vn 4 mode 4 stratum 1 refid "GPS" wait 2ms
+    core_srv -> branch_edge ptp sync domain 0 seqid 42 wait 1ms
+    core_srv -> branch_edge ptp followup domain 0 seqid 42 wait 2ms
+    branch_edge -> core_srv radius accessrequest id 7 user "netadmin" nasip 10.30.0.1 servicetype 2 wait 1ms
+    branch_edge <- core_srv radius accessaccept id 7 framedip 10.30.99.10 wait 2ms
+    branch_edge -> core_srv tacacs authen seq 1 sessionid 0x9001 user "netadmin" data "tty0" wait 1ms
+    branch_edge <- core_srv tacacs authen seq 2 sessionid 0x9001 data "Password: " wait 2ms
+    branch_edge -> core_srv syslog facility 4 severity 4 hostname "branch-edge" app "sshd" msg "Failed publickey for root" wait 1ms
+    branch_edge -> core_srv netflow srcip 10.30.1.15 dstip 198.51.100.20 srcport 51422 dstport 443 proto 6 packets 45 octets 38400 wait 1ms
+    branch_edge -> core_srv ipfix domainid 100 srcip 10.30.1.15 dstip 198.51.100.20 srcport 51422 dstport 443 proto 6 packets 45 octets 38400 wait 1ms
+    branch_edge -> core_srv sflow agentip 10.30.0.1 subagentid 1 seq 99 uptime 360000 samples 1
+}
+```
+
+### 3.7 Layer 7 Web, Cloud, TLS/QUIC, VoIP & Remote Access (`http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `ssh`, `telnet`, `tftp`, `ftp`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, `ssdp`)
+
+```frameassembly
+// Web/API stack, TLS 1.3 & QUIC, SSH/Telnet/FTP/TFTP/WHOIS, and SIP/RTP/RTSP/STUN/SSDP media
+host edge_client { ip 10.40.0.10 }
+host cloud_gw    { ip 10.40.0.80 }
+
+compile {
+    edge_client -> cloud_gw http post uri "/v1/events" hosthdr "ingest.internal" contenttype "application/json" header "X-Env" "prod" body "{\"ok\":1}" wait 1ms
+    edge_client <- cloud_gw http status 201 reason "Created" body "{\"id\":99}" wait 2ms
+    edge_client -> cloud_gw tls clienthello sni "ingest.internal" ciphersuite 0x1301 alpn "h2" wait 1ms
+    edge_client <- cloud_gw tls serverhello ciphersuite 0x1301 wait 1ms
+    edge_client -> cloud_gw http2 ping wait 1ms
+    edge_client -> cloud_gw http2 windowupdate streamid 0 wait 1ms
+    edge_client -> cloud_gw grpc service "telemetry.Collector" method "Export" wait 1ms
+    edge_client <- cloud_gw grpc grpcstatus 0 wait 1ms
+    edge_client -> cloud_gw websocket text maskkey 0x12345678 payload "{\"sub\":\"alerts\"}" wait 2ms
+    edge_client -> cloud_gw quic initial version 1 dcid 0x1122334455667788 scid 0x8877665544332211 pktnum 1 wait 2ms
+    edge_client -> cloud_gw ssh banner "SSH-2.0-OpenSSH_9.7" wait 1ms
+    edge_client -> cloud_gw telnet will 3 do 1 data "show version\r\n" wait 1ms
+    edge_client -> cloud_gw tftp rrq filename "router-confg" mode "octet" wait 1ms
+    edge_client -> cloud_gw ftp cmd "USER" arg "anonymous" wait 1ms
+    edge_client <- cloud_gw ftp code 331 reply "Anonymous access allowed" wait 1ms
+    edge_client -> cloud_gw whois query domain "example.org" wait 2ms
+    edge_client -> cloud_gw stun bindingrequest txid 0x10203040 software "webrtc-probe" wait 1ms
+    edge_client <- cloud_gw stun bindingresponse txid 0x10203040 xormappedaddr 203.0.113.45 wait 1ms
+    edge_client -> cloud_gw sip invite uri "sip:noc@pbx.internal" from "sip:oncall@pbx.internal" to "sip:noc@pbx.internal" callid "call-901" cseq 1 wait 1ms
+    edge_client <- cloud_gw sip status 200 reason "OK" callid "call-901" cseq 1 wait 1ms
+    edge_client -> cloud_gw rtp pt 0 seq 100 timestamp 16000 ssrc 0xdeadbeef marker 1 payload "pcmu-frame" wait 1ms
+    edge_client -> cloud_gw rtsp setup uri "rtsp://cam01.internal/live" cseq 2 transporthdr "RTP/AVP;unicast;client_port=5004-5005" wait 1ms
+    edge_client -> cloud_gw ssdp msearch hosthdr "239.255.255.250:1900" mx 2 st "urn:schemas-upnp-org:device:InternetGatewayDevice:1"
+}
+```
+
+### 3.8 Layer 7 Mail, Directory/Auth, Storage, Databases & Brokers (`smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, `amqp`)
+
+```frameassembly
+// Enterprise mail, Active Directory (Kerberos/LDAP/SMB), NFS, SQL/NoSQL caches, and IoT brokers
+host app_node { ip 10.60.0.15 }
+host svc_host { ip 10.60.0.90 }
+
+compile {
+    app_node -> svc_host smtp ehlo "app-node.internal" wait 1ms
+    app_node <- svc_host smtp code 250 reply "svc-host.internal Hello" wait 1ms
+    app_node -> svc_host imap tag "A01" cmd "SELECT" arg "INBOX" wait 1ms
+    app_node -> svc_host pop3 cmd "STAT" wait 1ms
+    app_node <- svc_host pop3 ok response "2 320" wait 2ms
+    app_node -> svc_host kerberos tgsreq realm "CORP.INTERNAL" cname "svc_backup" sname "MSSQLSvc/db01.corp.internal:1433" etype 23 wait 2ms
+    app_node -> svc_host ldap bindreq msgid 1 basedn "cn=read-only,dc=corp,dc=internal" wait 1ms
+    app_node <- svc_host ldap bindres msgid 1 resultcode 0 wait 1ms
+    app_node -> svc_host smb treeconnect sessionid 0x100 msgid 2 share "\\\\svc_host\\IPC$" wait 1ms
+    app_node -> svc_host nfs vers 4 compound xid 0x4401 tag "readdir" path "/exports/backups" wait 2ms
+    app_node -> svc_host redis set key "ratelimit:10.60.0.15" value "1" wait 1ms
+    app_node <- svc_host redis replytype "ok" value "OK" wait 1ms
+    app_node -> svc_host memcached get key "user:profile:42" transport tcp wait 1ms
+    app_node -> svc_host mysql query sql "SELECT id, role FROM accounts WHERE active = 1" wait 1ms
+    app_node <- svc_host mysql ok wait 1ms
+    app_node -> svc_host postgres startup user "app_ro" db "inventory" wait 1ms
+    app_node <- svc_host postgres authok wait 2ms
+    app_node -> svc_host mqtt publish topic "dc1/rack04/pdukw" qos 1 pktid 10 retain payload "4.82" wait 1ms
+    app_node -> svc_host coap con get msgid 501 token 0x0a0b uripath "sensors/humidity" wait 1ms
+    app_node -> svc_host amqp basicpublish channel 1 exchange "events" routingkey "audit.login" payload "{\"uid\":42}"
+}
+```
+
+### 3.9 Layer 7 Industrial Control Systems & SCADA/OT (`modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, `opcua`)
+
+```frameassembly
+// Industrial OT / ICS conduit baseline across Modbus, BACnet/IP, DNP3, S7comm, EtherNet/IP & OPC UA
+host eng_ws { ip 192.168.100.10 }
+host plc_01 { ip 192.168.100.50 }
+
+flow ot_poll(hmi, plc) {
+    hmi -> plc modbus readholdingregisters txid 10 unitid 1 addr 40001 count 4 wait 2ms
+    hmi <- plc modbus readholdingregisters txid 10 unitid 1 count 4 value 1500 isresponse wait 3ms
+    hmi -> plc bacnet readproperty invokeid 1 objecttype 0 objectinstance 1 propertyid 85 wait 3ms
+    hmi -> plc dnp3 read src 1 dst 10 group 30 variation 1 wait 2ms
+    hmi <- plc dnp3 response src 10 dst 1 group 30 variation 1 wait 3ms
+    hmi -> plc s7comm rosctr "job" readvar pduref 200 area 0x84 dbnum 1 offset 0 count 4 wait 2ms
+    hmi <- plc s7comm rosctr "ackdata" readvar pduref 200 count 4 wait 3ms
+    hmi -> plc ethernetip registersession sessionhandle 0x00010001 wait 2ms
+    hmi -> plc ethernetip sendrrdata sessionhandle 0x00010001 cipservice 0x0e cipclass 0x04 cipinstance 100 cipattr 3 wait 3ms
+    hmi -> plc opcua msgtype "HEL" chunktype "F" endpointurl "opc.tcp://192.168.100.50:4840" wait 2ms
+    hmi <- plc opcua msgtype "ACK" chunktype "F" wait 2ms
+    hmi -> plc opcua msgtype "MSG" chunktype "F" securechannelid 1 tokenid 1 seqnum 1 reqid 1 nodeid "ns=2;s=Line1.Pressure"
 }
 
 compile {
-    heartbeat_and_log(sensor_v4, collector_v4)
-    heartbeat_and_log(sensor_v6, collector_v6)
-    heartbeat_and_log(sensor_v4, collector_v4)
+    ot_poll(eng_ws, plc_01)
 }
 ```
 
-### MAC Overrides, ARP/GARP, QinQ + MPLS Stacks, STP/LACP & 802.1X EAPOL (`docs/03_l2_protocols.md`)
+---
 
-```frameassembly
-host sensor_a { ip 10.10.1.10 mac 00:1b:21:aa:bb:01 }
-host sensor_b { ip 10.10.1.20 mac 00:1b:21:aa:bb:02 }
-
-flow custom_ethernet_framing(a, b) {
-    // Normal unicast UDP frame using the MACs from the host blocks
-    a -> b udp srcport 40000 dstport 40000 payload "NORMAL_UNICAST" wait 1ms
-
-    // Spoofed source MAC, broadcast destination, EtherType 0x88b5 (IEEE local experimental)
-    a -> b udp srcport 40000 dstport 40000 srcmac de:ad:be:ef:00:01 dstmac ff:ff:ff:ff:ff:ff ethertype 0x88b5 payload "CUSTOM_L2_ETHERTYPE"
-}
-
-compile {
-    custom_ethernet_framing(sensor_a, sensor_b)
-}
-```
-
-```frameassembly
-host sw1 { mac 00:1c:73:00:00:01 }
-host sw2 { mac 00:1c:73:00:00:02 }
-
-compile {
-    sw1 -> sw2 lldp chassisid "00:1c:73:00:00:01" portid "Ethernet1/1" ttl 120 sysname "spine-01" wait 2ms
-    sw1 <- sw2 stp rstp rootid "4096/00:1c:73:00:00:02" bridgeid "4096/00:1c:73:00:00:02" portid 0x8001 cost 0 flags 0x3c wait 2ms
-    sw1 -> sw2 lacp actorsys 00:1c:73:00:00:01 actorkey 10 actorport 1 actorstate 0x3f partnersys 00:1c:73:00:00:02 partnerkey 10 partnerport 1 partnerstate 0x3f
-}
-```
-
-```frameassembly
-host fw_standby { ip 192.168.10.2   mac 00:50:56:fe:00:02 }
-host lan_bcast  { ip 192.168.10.255 mac ff:ff:ff:ff:ff:ff }
-
-flow vip_takeover(sec, bcast) {
-    // Standby claims 192.168.10.1 with its own MAC. DAI should have an opinion about this.
-    sec -> bcast arp reply gratuitous sendermac 00:50:56:fe:00:02 senderip 192.168.10.1 targetmac ff:ff:ff:ff:ff:ff targetip 192.168.10.1
-}
-
-compile { vip_takeover(fw_standby, lan_bcast) }
-```
-
-```frameassembly
-host tor_sw_a { ip 172.16.10.1 mac 00:1c:73:10:00:01 }
-host tor_sw_b { ip 172.16.10.2 mac 00:1c:73:10:00:02 }
-
-flow trunk_cos_mix(a, b) {
-    // VLAN 10: voice, PCP 5, DSCP 46 (EF)
-    a -> b vlan 10 pcp 5 dei 0 dscp 46 rtp seq 101 timestamp 16000 ssrc 0x11223344 payload "G711_PCMU_FRAME" wait 1ms
-
-    // VLAN 20: RoCEv2 lossless queue, PCP 3, DSCP 26 (AF31)
-    a -> b vlan 20 pcp 3 dei 0 dscp 26 udp srcport 51000 dstport 4791 payload "RDMA_WRITE_ONLY" wait 1ms
-
-    // VLAN 99: backup traffic marked drop-eligible, PCP 1, DEI 1, DSCP 8 (CS1)
-    a -> b vlan 99 pcp 1 dei 1 dscp 8 tcp psh ack srcport 49152 dstport 873 payload "RSYNC_SNAPSHOT_CHUNK"
-}
-
-compile { trunk_cos_mix(tor_sw_a, tor_sw_b) }
-```
-
-```frameassembly
-host core_root { ip 10.0.1.1  mac 00:1c:73:00:00:01 }
-host dist_sw   { ip 10.0.1.2  mac 00:1c:73:00:00:02 }
-host rogue_sw  { ip 10.0.1.99 mac 00:e0:4c:99:99:99 }
-
-flow bpduguard_test(root, dist, rogue) {
-    // Legitimate root (priority 4096) sends a steady-state designated BPDU
-    root -> dist stp rstp rootid "4096/00:1c:73:00:00:01" bridgeid "4096/00:1c:73:00:00:01" portid 0x8001 cost 0 maxage 20 hellotime 2 forwarddelay 15 flags 0x3c wait 5ms
-
-    // Rogue switch injects a priority 0 superior BPDU. BPDU Guard should err-disable the port.
-    rogue -> dist stp rstp rootid "0/00:e0:4c:99:99:99" bridgeid "0/00:e0:4c:99:99:99" portid 0x8001 cost 0 flags 0x3c
-}
-
-compile { bpduguard_test(core_root, dist_sw, rogue_sw) }
-```
-
-```frameassembly
-host tor_sw   { ip 10.0.2.1 mac 00:1c:73:11:22:33 }
-host linux_hv { ip 10.0.2.2 mac 00:50:56:88:99:aa }
-
-flow lacp_bond_bringup(sw, hv) {
-    // Unbundled and defaulted (0x47), partner unknown
-    sw -> hv lacp actorsys 00:1c:73:11:22:33 actorkey 10 actorport 1 actorstate 0x47 partnersys 00:00:00:00:00:00 partnerkey 0 partnerport 0 partnerstate 0x00 wait 2ms
-
-    // Linux bond0 answers, in sync (0x0f)
-    sw <- hv lacp actorsys 00:50:56:88:99:aa actorkey 10 actorport 1 actorstate 0x0f partnersys 00:1c:73:11:22:33 partnerkey 10 partnerport 1 partnerstate 0x07 wait 2ms
-
-    // Both sides reach Collecting + Distributing (0x3f)
-    sw -> hv lacp actorsys 00:1c:73:11:22:33 actorkey 10 actorport 1 actorstate 0x3f partnersys 00:50:56:88:99:aa partnerkey 10 partnerport 1 partnerstate 0x3f
-}
-
-compile { lacp_bond_bringup(tor_sw, linux_hv) }
-```
-
-### ICMP/NDP/IGMP/MLD, BGP/OSPF/VRRP/BFD, GRE/VXLAN/GENEVE, IPsec/IKEv2/WireGuard (`docs/04_l3_protocols.md`)
-
-```frameassembly
-host app_srv    { ip 10.88.1.10 mac 00:50:56:88:01:0a }
-host wan_pri_gw { ip 10.88.1.2  mac 00:00:5e:00:01:58 }
-
-flow pmtud_blackhole(srv, gw) {
-    // Oversized DF ping hits the 1400-byte GRE limit; the router answers ICMP Type 3 Code 4
-    srv -> gw df ttl 64 icmp echorequest id 4410 seq 1 payload "oversized_1472_byte_wan_probe" wait 2ms
-    srv <- gw ttl 64 icmp destunreach code 4 payload "mtu_1400_exceeded_on_gre0"
-}
-
-compile { pmtud_blackhole(app_srv, wan_pri_gw) }
-```
-
-```frameassembly
-host edge_rtr { ip 198.51.100.2 mac 00:1c:73:64:00:02 }
-host isp_pe   { ip 198.51.100.1 mac 00:1c:73:64:00:01 }
-
-flow ospf_p2p_sync(ce, pe) {
-    ce -> pe dscp 48 ttl 1 ospf hello routerid 10.0.0.2 areaid 0 hellointerval 1 deadinterval 4 priority 0 wait 2ms
-    ce <- pe dscp 48 ttl 1 ospf dbd   routerid 10.0.0.1 areaid 0 wait 2ms
-    ce -> pe dscp 48 ttl 1 ospf lsr   routerid 10.0.0.2 areaid 0 wait 2ms
-    ce <- pe dscp 48 ttl 1 ospf lsu   routerid 10.0.0.1 areaid 0 payload "router_lsa_seq_0x80000001" wait 2ms
-    ce -> pe dscp 48 ttl 1 ospf lsack routerid 10.0.0.2 areaid 0 wait 5ms
-}
-
-compile { ospf_p2p_sync(edge_rtr, isp_pe) }
-```
-
-```frameassembly
-host wan_pri_gw { ip 10.88.1.2 mac 00:00:5e:00:01:58 }
-host wan_sec_gw { ip 10.88.1.3 mac 00:1c:73:88:01:03 }
-
-flow gateway_failover(pri, sec) {
-    // Primary drops from 130 to 80 after its tracked uplink fails; backup (100) takes over
-    pri -> sec dscp 48 ttl 255 vrrp vrid 88 priority 80  advint 20 vip 10.88.1.1 version 3 wait 5ms
-    pri <- sec dscp 48 ttl 255 vrrp vrid 88 priority 100 advint 20 vip 10.88.1.1 version 3 wait 5ms
-
-    // HSRP equivalent: Active state (16) with hellotime 3 and holdtime 10
-    pri -> sec ttl 1 hsrp group 10 priority 110 state 16 vip 10.88.1.1 hellotime 3 holdtime 10 wait 5ms
-
-    // RIP poison reverse: metric 16 means unreachable
-    pri -> sec ttl 1 rip response prefix 10.10.0.0 metric 16 tag 100
-}
-
-compile { gateway_failover(wan_pri_gw, wan_sec_gw) }
-```
-
-```frameassembly
-host compute_nve { ip 10.244.0.11 mac 00:16:3e:60:81:0b }
-host inspect_nve { ip 10.244.0.50 mac 02:a1:b2:60:81:32 }
-
-flow cloud_overlay_inspection(nve, fw) {
-    // Cilium eBPF frame (optclass 267, Transparent Ethernet Bridging 0x6558)
-    nve -> fw df dscp 18 ttl 64 geneve vni 2 optclass 267 opttype 1 protocoltype 0x6558 srcport 51234 dstport 6081 payload "CILIUM_ID_42105_HTTP_GET" wait 2ms
-
-    // AWS GWLB appliance hairpin (optclass 264, routed IPv4 0x0800)
-    nve -> fw df ttl 64 geneve vni 1 optclass 264 opttype 1 protocoltype 0x0800 srcport 49800 dstport 6081 payload "AWS_GWLBE_FLOW_COOKIE_IN" wait 1ms
-    nve <- fw df ttl 64 geneve vni 1 optclass 264 opttype 1 protocoltype 0x0800 srcport 49800 dstport 6081 payload "AWS_GWLBE_FLOW_COOKIE_OK"
-}
-
-compile { cloud_overlay_inspection(compute_nve, inspect_nve) }
-```
-
-```frameassembly
-host roaming_cli { ip 198.51.100.88 mac 00:1b:21:51:82:58 }
-host vpn_headend { ip 203.0.113.1   mac 00:1b:21:51:82:01 }
-
-flow ikev2_nat_float(cli, gw) {
-    cli -> gw dscp 48 ikev2 sainit initiatorspi 111222333 responderspi 0 msgid 0 flags 8 nextpayload 33 srcport 500 dstport 500 wait 5ms
-    cli <- gw dscp 48 ikev2 sainit initiatorspi 111222333 responderspi 444555666 msgid 0 flags 32 nextpayload 33 srcport 500 dstport 500 wait 5ms
-    cli -> gw dscp 48 ikev2 informational initiatorspi 111222333 responderspi 444555666 msgid 1 flags 8 nextpayload 46 srcport 4500 dstport 4500
-}
-
-compile { ikev2_nat_float(roaming_cli, vpn_headend) }
-```
-
-```frameassembly
-host roaming_cli { ip 198.51.100.88 mac 00:1b:21:51:82:58 }
-host vpn_headend { ip 203.0.113.1   mac 00:1b:21:51:82:01 }
-
-flow wireguard_cookie_retry(cli, gw) {
-    cli -> gw df wireguard initiation sender 44301 srcport 54321 dstport 443 wait 3ms
-    cli <- gw df wireguard cookie receiver 44301 srcport 443 dstport 54321 wait 3ms
-    cli -> gw df wireguard initiation sender 44302 srcport 54321 dstport 443 wait 3ms
-    cli <- gw df wireguard response sender 44303 receiver 44302 srcport 443 dstport 54321 wait 3ms
-    cli -> gw df wireguard data receiver 44303 counter 0 srcport 54321 dstport 443 payload "CHACHA20_FIRST_PKT"
-}
-
-compile { wireguard_cookie_retry(roaming_cli, vpn_headend) }
-```
-
-### Stateful TCP Options, ZeroWindow/Scans, UDP Burst & SCTP Multi-Chunk (`docs/05_l4_transports.md`)
-
-```frameassembly
-host app_node { ip 10.20.1.10 mac 00:1b:21:aa:00:0a }
-host db_srv   { ip 10.20.1.54 mac 00:1b:21:aa:00:36 }
-
-flow tcp_session(c, s) {
-    // Ports set once on the SYN. Replies flip them; seq and acknum are tracked automatically.
-    c -> s tcp syn srcport 52400 dstport 5432 win 64240 mss 1460 wscale 7 sackperm wait 1ms
-    c <- s tcp syn ack win 65535 mss 1460 wscale 7 sackperm wait 1ms
-    c -> s tcp ack wait 1ms
-    c -> s tcp psh ack payload "SELECT 1;" wait 2ms
-    c <- s tcp psh ack payload "ROW 1" wait 2ms
-    c -> s tcp fin ack wait 1ms
-    c <- s tcp fin ack wait 1ms
-    c -> s tcp ack
-}
-
-compile { tcp_session(app_node, db_srv) }
-```
-
-```frameassembly
-host sender   { ip 10.20.0.10 mac 00:1b:21:aa:00:01 }
-host receiver { ip 10.20.0.20 mac 00:1b:21:aa:00:02 }
-
-flow tcp_dupack(tx, rx) {
-    tx -> rx tcp syn srcport 42000 dstport 9100 seq 1000 win 64240 wait 1ms
-    tx <- rx tcp syn ack seq 5000 acknum 1001 win 65535 wait 1ms
-    tx -> rx tcp ack seq 1001 acknum 5001 win 64240 wait 1ms
-
-    tx -> rx tcp psh ack seq 1001 acknum 5001 win 64240 payload "SEG_000001_" wait 1ms
-    tx <- rx tcp ack seq 5001 acknum 1012 win 65535 wait 1ms
-    tx -> rx tcp psh ack seq 1022 acknum 5001 win 64240 payload "SEG_000003" wait 2ms
-    tx <- rx tcp ack seq 5001 acknum 1012 win 65535 wait 1ms
-    tx -> rx tcp psh ack seq 1012 acknum 5001 win 64240 payload "SEG_000002" wait 2ms
-    tx <- rx tcp ack seq 5001 acknum 1032 win 65535
-}
-
-compile { tcp_dupack(sender, receiver) }
-```
-
-```frameassembly
-host workstation { ip 10.88.1.10 mac 00:50:56:88:01:0a }
-host hop1_rtr    { ip 10.88.1.1  mac 00:1c:73:88:01:01 }
-host target_srv  { ip 10.88.2.50 mac 00:50:56:88:02:32 }
-host lan_bcast   { ip 10.88.1.255 mac ff:ff:ff:ff:ff:ff }
-
-flow udp_diagnostics(src, rtr, dst, bcast) {
-    // TTL 1 expires at the first hop; TTL 2 reaches the target and draws Port Unreachable
-    src -> rtr ttl 1 udp srcport 54321 dstport 33434 payload "paris_probe_hop1" wait 1ms
-    src <- rtr icmp timeexceeded code 0 wait 2ms
-    src -> dst ttl 2 udp srcport 54321 dstport 33435 payload "paris_probe_hop2" wait 1ms
-    src <- dst icmp destunreach code 3 wait 5ms
-
-    // Two IPv4 fragments sharing IPID 4242
-    src -> dst ipid 4242 mf fragoffset 0 udp srcport 51000 dstport 8125 payload "statsd.batch.part_a:1|c" wait 500us
-    src -> dst ipid 4242 fragoffset 185 udp srcport 51000 dstport 8125 payload "statsd.batch.part_b:1|c" wait 5ms
-
-    // Wake-on-LAN magic packet on VLAN 25, UDP port 9
-    src -> bcast vlan 25 dstmac ff:ff:ff:ff:ff:ff udp srcport 49152 dstport 9 hexpayload "ffffffffffff001b21aabbcc001b21aabbcc001b21aabbcc001b21aabbcc"
-}
-
-compile { udp_diagnostics(workstation, hop1_rtr, target_srv, lan_bcast) }
-```
-
-```frameassembly
-host gnb_n2 { ip 2001:db8:5000:a2::10 }
-host amf_n2 { ip 2001:db8:5000:a2::1 }
-
-flow sctp_5g_n2_setup(gnb, amf) {
-    gnb -> amf dscp 46 sctp chunk init vtag 0 srcport 38412 dstport 38412 wait 1ms
-    gnb <- amf dscp 46 sctp chunk initack vtag 384120 srcport 38412 dstport 38412 wait 1ms
-    gnb -> amf dscp 46 sctp chunk cookieecho vtag 384120 srcport 38412 dstport 38412 payload "state_cookie_n2" wait 1ms
-    gnb <- amf dscp 46 sctp chunk cookieack vtag 384120 srcport 38412 dstport 38412 wait 1ms
-    gnb -> amf dscp 46 sctp chunk data vtag 384120 stream 0 ssn 0 ppid 60 srcport 38412 dstport 38412 payload "ngap_ng_setup_request_gnb_001" wait 2ms
-    gnb <- amf dscp 46 sctp chunk sack vtag 384120 srcport 38412 dstport 38412
-}
-
-compile { sctp_5g_n2_setup(gnb_n2, amf_n2) }
-```
-
-### SNMPv3 authPriv Trap/Inform/Get, SNMPv1/v2c Varbinds (`docs/06_l7_snmp.md`)
-
-```frameassembly
-host core_sw { ip 10.10.1.2  mac 00:1a:2b:3c:4d:01 }
-host zabbix  { ip 10.10.1.50 mac 00:1a:2b:3c:4d:50 }
-
-flow authpriv_trap(sw, nms) {
-    // linkDown for ifIndex 1, encrypted. Wireshark steps below use these exact credentials.
-    sw -> nms vlan 100 snmp3 trap user "netops" engineid "80001f8801" engineboots 5 enginetime 3600 auth sha256 "AuthPass123!" priv aes "PrivPass123!" sysuptime 432005 oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.8.1 int 2
-}
-
-compile { authpriv_trap(core_sw, zabbix) }
-```
-
-```frameassembly
-host core_rtr { ip 10.151.0.1   mac 00:25:90:51:00:01 }
-host nms_srv  { ip 10.151.0.250 mac 00:25:90:51:00:fa }
-
-flow acknowledged_inform(rtr, nms) {
-    // BGP peer state change, SHA-512 + AES-128, delivered to UDP 162 and acknowledged
-    rtr -> nms dscp 16 snmp3 inform dstport 162 user "ops_v3" engineid "80001f8880510001" engineboots 30 enginetime 400001 contextname "core-fabric" auth sha512 "HighSecSha512!" priv aes "HighSecAes128!" reqid 9702 sysuptime 40000100 oid 1.3.6.1.2.1.15.7.2 varbind 1.3.6.1.2.1.15.3.1.2.198.51.100.2 int 1 wait 2ms
-    rtr <- nms dscp 16 snmp3 response user "ops_v3" engineid "80001f8880510001" engineboots 30 enginetime 400001 contextname "core-fabric" auth sha512 "HighSecSha512!" priv aes "HighSecAes128!" reqid 9702 varbind 1.3.6.1.2.1.15.3.1.2.198.51.100.2 int 1
-}
-
-compile { acknowledged_inform(core_rtr, nms_srv) }
-```
-
-```frameassembly
-host poller    { ip 10.156.0.10 mac 00:1b:54:56:00:10 }
-host pe_router { ip 10.156.0.1  mac 00:1b:54:56:00:01 }
-
-flow poll_400g_counters(nms, pe) {
-    // nonrepeaters 1 fetches sysUpTime.0 once; the ifHCInOctets column repeats up to 10 times
-    nms -> pe snmp2 getbulk community "telemetry_ro" reqid 7001 nonrepeaters 1 maxrepetitions 10 varbind 1.3.6.1.2.1.1.3.0 null varbind 1.3.6.1.2.1.31.1.1.1.6 null wait 2ms
-    nms <- pe snmp2 response community "telemetry_ro" reqid 7001 varbind 1.3.6.1.2.1.1.3.0 timeticks 8640000 varbind 1.3.6.1.2.1.1.2.0 oidval 1.3.6.1.4.1.30065.1.3011 varbind 1.3.6.1.2.1.31.1.1.1.1.1 string "Ethernet1/1" varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 2199023255552 varbind 1.3.6.1.2.1.2.2.1.14.1 counter32 0 varbind 1.3.6.1.2.1.31.1.1.1.15.1 gauge32 400000 varbind 1.3.6.1.4.1.9.9.91.1.1.1.1.4.1 int -7
-}
-
-compile { poll_400g_counters(poller, pe_router) }
-```
-
-```frameassembly
-host rogue_scanner { ip 192.168.66.13 mac 00:0c:29:66:00:13 }
-host access_sw     { ip 192.168.66.1  mac 00:1c:73:66:00:01 }
-host secops_siem   { ip 10.104.0.99   mac 00:19:56:00:01:99 }
-
-flow rogue_set(attacker, sw, siem) {
-    // ifAdminStatus.24 = 2 (down), using the default write community
-    attacker -> sw snmp2 set community "private" reqid 8002 varbind 1.3.6.1.2.1.2.2.1.7.24 int 2 wait 2ms
-    attacker <- sw snmp2 response community "private" reqid 8002 varbind 1.3.6.1.2.1.2.2.1.7.24 int 2 wait 5ms
-    // SNMPv1 authenticationFailure trap (gentrap 4) to the SIEM
-    sw -> siem snmp1 trap community "sec_trap" enterprise 1.3.6.1.4.1.9.1 agentip 192.168.66.1 gentrap 4 spectrap 0 sysuptime 543210 varbind 1.3.6.1.4.1.9.2.1.5.0 ipval 192.168.66.13 varbind 1.3.6.1.4.1.9.2.1.6.0 string "bad_community_attempt"
-}
-
-compile { rogue_set(rogue_scanner, access_sw, secops_siem) }
-```
-
-### Rogue DHCP, DNS/mDNS, NTP/PTP, RADIUS/TACACS+, Syslog & NetFlow/IPFIX/sFlow (`docs/07_l7_infra_and_telemetry.md`)
-
-```frameassembly
-host client { ip 192.168.20.100 mac 00:50:56:20:00:64 }
-host dhcp1  { ip 192.168.20.1   mac 00:50:56:20:00:01 }
-host rogue  { ip 192.168.20.66  mac 00:0c:29:20:00:66 }
-
-flow dora_with_rogue_offer(c, s, r) {
-    c -> s dhcp discover xid 0x10203040 chaddr 00:50:56:20:00:64 hostname "eng-ws-01" wait 2ms
-    c <- s dhcp offer xid 0x10203040 yiaddr 192.168.20.100 siaddr 192.168.20.1 chaddr 00:50:56:20:00:64 subnetmask 255.255.255.0 router 192.168.20.1 dnsserver 192.168.20.1 leasetime 86400 wait 1ms
-    c <- r dhcp offer xid 0x10203040 yiaddr 192.168.20.100 siaddr 192.168.20.66 chaddr 00:50:56:20:00:64 subnetmask 255.255.255.0 router 192.168.20.66 dnsserver 192.168.20.66 leasetime 600 wait 2ms
-    c -> s dhcp request xid 0x10203040 ciaddr 192.168.20.100 yiaddr 192.168.20.100 chaddr 00:50:56:20:00:64 hostname "eng-ws-01" wait 2ms
-    c <- s dhcp ack xid 0x10203040 yiaddr 192.168.20.100 siaddr 192.168.20.1 chaddr 00:50:56:20:00:64 subnetmask 255.255.255.0 router 192.168.20.1 dnsserver 192.168.20.1 leasetime 86400
-}
-
-compile { dora_with_rogue_offer(client, dhcp1, rogue) }
-```
-
-```frameassembly
-host client_v4 { ip 192.168.20.100 mac 00:50:56:20:00:64 }
-host resolver  { ip 192.168.20.1   mac 00:50:56:20:00:01 }
-
-flow sinkhole_check(c, s) {
-    c -> s dns query txid 1010 qname "git.corp.example.com" qtype "a" wait 1ms
-    c <- s dns response txid 1010 qname "git.corp.example.com" qtype "a" rdata "192.168.20.55" rcode 0 ansttl 300 wait 2ms
-    c -> s dns query txid 1011 qname "ransom-beacon.bad.example" qtype "a" wait 1ms
-    c <- s dns response txid 1011 qname "ransom-beacon.bad.example" qtype "a" rcode 3 wait 2ms
-}
-
-compile { sinkhole_check(client_v4, resolver) }
-```
-
-```frameassembly
-host client_v6 { ip 2001:db8:20::100 mac 00:50:56:62:00:64 }
-host infra_v6  { ip 2001:db8:20::1   mac 00:50:56:62:00:01 }
-
-flow dns_and_mdns_v6(c6, s6) {
-    c6 -> s6 dns query txid 2020 qname "git.corp.example.com" qtype "aaaa" wait 1ms
-    c6 <- s6 dns response txid 2020 qname "git.corp.example.com" qtype "aaaa" rdata "2001:db8:20::55" ansttl 300 wait 2ms
-    c6 -> s6 mdns query txid 0 qname "_ssh._tcp.local" qtype "ptr"
-}
-
-compile { dns_and_mdns_v6(client_v6, infra_v6) }
-```
-
-```frameassembly
-host sw_v6  { ip 2001:db8:60::10 }
-host aaa_v6 { ip 2001:db8:60::200 }
-
-flow radius_ipv6_avps(nas6, aaa6) {
-    nas6 -> aaa6 radius accessrequest id 20 user "bob@corp.example" nasip 2001:db8:60::10 servicetype 2 wait 2ms
-    nas6 <- aaa6 radius accessaccept  id 20 user "bob@corp.example" framedip 2001:db8:60:20::55
-}
-
-compile { radius_ipv6_avps(sw_v6, aaa_v6) }
-```
-
-```frameassembly
-host leaf_v6      { ip 2001:db8:fa::1 }
-host collector_v6 { ip 2001:db8:fa::100 }
-
-flow ipv6_telemetry(sw6, col6) {
-    sw6 -> col6 syslog facility 23 severity 2 hostname "leaf-sw-v6" app "envmon" msgid "FAN-2-FAIL" msg "Tray 2 Fan 1 RPM below critical threshold" wait 1ms
-    sw6 -> col6 sflow agentip 2001:db8:fa::1 subagentid 2 seq 500 uptime 172800000 samples 1
-}
-
-compile { ipv6_telemetry(leaf_v6, collector_v6) }
-```
-
-### HTTP/HTTP2/gRPC/WebSocket, TLS/QUIC, SSH/Telnet/FTP/TFTP/WHOIS, SIP/RTP/RTSP/STUN/SSDP (`docs/08_l7_web_and_cloud.md`)
-
-```frameassembly
-host scanner { ip 198.51.100.42 mac 00:0c:29:11:22:33 }
-host waf_gw  { ip 203.0.113.10  mac 00:1b:21:aa:bb:cc }
-
-flow waf_sqli_block(c, gw) {
-    c -> gw tcp syn srcport 53080 dstport 80 win 65535 mss 1460 wait 1ms
-    c <- gw tcp syn ack win 65535 mss 1460 wait 1ms
-    c -> gw tcp ack wait 1ms
-    c -> gw http post uri "/api/login" hosthdr "portal.example.com" contenttype "application/json" body "{\"user\":\"admin' OR 1=1--\"}" wait 2ms
-    c <- gw http status 403 reason "Forbidden" contenttype "application/json" body "{\"blocked\":\"sqli_rule_942100\"}"
-}
-
-compile { waf_sqli_block(scanner, waf_gw) }
-```
-
-```frameassembly
-host api_gw  { ip 10.120.1.10 mac 00:1b:21:10:01:0a }
-host app_svc { ip 10.120.1.50 mac 00:1b:21:10:01:32 }
-
-flow grpc_unavailable(gw, svc) {
-    gw -> svc grpc service "inventory.v1.StockService" method "ReserveItems" payload "PROTOBUF_RESERVE_REQ" wait 1ms
-    gw <- svc grpc service "inventory.v1.StockService" method "ReserveItems" grpcstatus 14 payload "upstream_reset" wait 2ms
-}
-
-compile { grpc_unavailable(api_gw, app_svc) }
-```
-
-```frameassembly
-host client_v6   { ip 2001:db8:443::50 }
-host cdn_edge_v6 { ip 2001:db8:443::1 }
-
-flow tls_full_exchange(c, s) {
-    c <- s tls certificate recordversion 0x0303 payload "X509_ECDSA_CERT_CHAIN" wait 1ms
-    c <- s tls finished recordversion 0x0303 payload "SERVER_VERIFY" wait 1ms
-    c -> s tls finished recordversion 0x0303 payload "CLIENT_VERIFY" wait 1ms
-    c -> s tls appdata recordversion 0x0303 payload "ENCRYPTED_H2_GET" wait 1ms
-}
-
-compile { tls_full_exchange(client_v6, cdn_edge_v6) }
-```
-
-```frameassembly
-host admin_ws    { ip 10.50.1.100 }
-host core_switch { ip 10.50.1.1 }
-
-flow ftp_cleartext_login(ws, sw) {
-    ws <- sw ftp code 220 reply "Switch FTP Ready" wait 1ms
-    ws -> sw ftp cmd "USER" arg "admin" wait 1ms
-    ws <- sw ftp code 331 reply "Password required" wait 1ms
-    ws -> sw ftp cmd "PASS" arg "SwitchPass!2026" wait 1ms
-    ws <- sw ftp code 230 reply "User logged in" wait 1ms
-    ws -> sw ftp cmd "EPSV" wait 1ms
-    ws <- sw ftp code 229 reply "Entering Extended Passive Mode (|||62001|)"
-}
-
-compile { ftp_cleartext_login(admin_ws, core_switch) }
-```
-
-```frameassembly
-host analyst_ws { ip 10.50.1.100 }
-host whois_srv  { ip 10.50.1.1 }
-
-flow asn_lookup(ws, srv) {
-    ws -> srv whois query domain "AS65001" wait 1ms
-    ws <- srv whois response domain "AS65001" registrar "IANA Private Use ASN"
-}
-
-compile { asn_lookup(analyst_ws, whois_srv) }
-```
-
-```frameassembly
-host nvr    { ip 10.80.1.50 }
-host camera { ip 10.80.1.10 }
-
-flow rtsp_camera_stream(n, cam) {
-    n -> cam rtsp describe uri "rtsp://10.80.1.10:554/cam01/main" cseq 1 wait 1ms
-    n <- cam rtsp status 200 cseq 1 wait 1ms
-    n -> cam rtsp setup uri "rtsp://10.80.1.10:554/cam01/main/track1" cseq 2 transporthdr "RTP/AVP;unicast;client_port=5004-5005" wait 1ms
-    n <- cam rtsp status 200 cseq 2 session "cam-sess-991" wait 1ms
-    n -> cam rtsp play uri "rtsp://10.80.1.10:554/cam01/main" cseq 3 session "cam-sess-991" wait 2ms
-    n -> cam rtsp teardown uri "rtsp://10.80.1.10:554/cam01/main" cseq 4 session "cam-sess-991"
-}
-
-compile { rtsp_camera_stream(nvr, camera) }
-```
-
-### Kerberos/LDAP, SMB/NFS, SMTP/IMAP/POP3, MySQL/Postgres/Redis/Memcached, MQTT/CoAP/AMQP (`docs/09_l7_mail_auth_storage_db.md`)
-
-```frameassembly
-host workstation { ip 10.20.5.101 mac 00:50:56:20:05:65 }
-host dc01        { ip 10.20.1.10  mac 00:50:56:20:01:0a }
-
-flow kerberoast(ws, dc) {
-    // Pre-auth failure, then an RC4-HMAC (etype 23) TGS request for a SQL service account
-    ws -> dc kerberos asreq realm "CORP.LOCAL" cname "jdoe" sname "krbtgt/CORP.LOCAL" etype 18 wait 1ms
-    ws <- dc kerberos krberror realm "CORP.LOCAL" cname "jdoe" sname "krbtgt/CORP.LOCAL" wait 2ms
-    ws -> dc kerberos tgsreq realm "CORP.LOCAL" cname "jdoe" sname "mssqlsvc/sql01.corp.local" etype 23 wait 2ms
-    ws <- dc kerberos tgsrep realm "CORP.LOCAL" cname "jdoe" sname "mssqlsvc/sql01.corp.local" etype 23
-}
-
-compile { kerberoast(workstation, dc01) }
-```
-
-```frameassembly
-host workstation { ip 10.20.5.101 mac 00:50:56:20:05:65 }
-host file_srv    { ip 10.20.1.50  mac 00:50:56:20:01:32 }
-
-flow admin_share_probe(ws, fs) {
-    ws -> fs tcp syn srcport 51445 dstport 445 win 64240 mss 1460 wait 1ms
-    ws <- fs tcp syn ack win 64240 mss 1460 wait 1ms
-    ws -> fs tcp ack wait 1ms
-    ws -> fs smb negotiate msgid 0 wait 1ms
-    ws -> fs smb sessionsetup msgid 1 sessionid 0x0001000000000001 wait 1ms
-    ws -> fs smb treeconnect msgid 2 sessionid 0x0001000000000001 share "\\\\10.20.1.50\\ADMIN$" wait 2ms
-    ws <- fs smb treeconnect msgid 2 sessionid 0x0001000000000001 treeid 1 status 0xc0000022
-}
-
-compile { admin_share_probe(workstation, file_srv) }
-```
-
-```frameassembly
-host ext_mta { ip 198.51.100.25 mac 00:11:22:33:44:25 }
-host mail_gw { ip 10.10.25.10   mac aa:bb:cc:dd:ee:10 }
-
-flow smtp_filter_check(mta, gw) {
-    mta <- gw smtp code 220 reply "mx01.example.com ESMTP Postfix" wait 2ms
-    mta -> gw smtp ehlo "mailer.suspicious-sender.test" wait 1ms
-    mta -> gw smtp mailfrom "<ceo-urgent@suspicious-sender.test>" wait 1ms
-    mta -> gw smtp rcptto "<finance@example.com>" wait 1ms
-    mta -> gw smtp cmd "DATA" wait 1ms
-    mta <- gw smtp code 354 reply "End data with <CR><LF>.<CR><LF>" wait 1ms
-    mta -> gw smtp cmd "Subject:" param "Urgent Wire Transfer" body "Please open invoice_q4.scr immediately." wait 3ms
-    mta <- gw smtp code 550 reply "5.7.1 Message rejected by attachment policy"
-}
-
-compile { smtp_filter_check(ext_mta, mail_gw) }
-```
-
-```frameassembly
-host app_node { ip 10.30.1.15 mac 00:1a:2b:30:01:15 }
-host data_srv { ip 10.30.2.40 mac 00:1a:2b:30:02:40 }
-
-flow sql_exfil_probe(app, db) {
-    app -> db tcp syn srcport 55432 dstport 5432 win 65535 mss 1460 wait 1ms
-    app <- db tcp syn ack win 65535 mss 1460 wait 1ms
-    app -> db tcp ack wait 1ms
-    app -> db postgres startup user "readonly_reporting" db "customers" wait 1ms
-    app <- db postgres authok wait 1ms
-    app <- db postgres readyforquery wait 1ms
-    app -> db postgres query sql "SELECT email, password_hash FROM users WHERE '1'='1';" wait 2ms
-    app <- db postgres errorresponse sql "permission denied for table users"
-}
-
-compile { sql_exfil_probe(app_node, data_srv) }
-```
-
-```frameassembly
-host edge_gw { ip 10.60.10.12 mac 00:1e:c0:60:10:12 }
-host broker  { ip 10.60.1.5   mac 00:1e:c0:60:01:05 }
-
-flow mqtt_publish(gw, brk) {
-    gw -> brk tcp syn srcport 51883 dstport 1883 win 64240 mss 1460 wait 1ms
-    gw <- brk tcp syn ack win 64240 mss 1460 wait 1ms
-    gw -> brk tcp ack wait 1ms
-    gw -> brk mqtt connect clientid "turbine-gw-12" keepalive 60 wait 1ms
-    gw <- brk mqtt connack returncode 0 wait 1ms
-    gw -> brk mqtt publish topic "plant/line4/temp" qos 1 retain pktid 7 payload "{\"celsius\":84.2}" wait 2ms
-    gw <- brk mqtt puback pktid 7
-}
-
-compile { mqtt_publish(edge_gw, broker) }
-```
-
-```frameassembly
-host edge_gw { ip 10.60.10.12 mac 00:1e:c0:60:10:12 }
-host broker  { ip 10.60.1.5   mac 00:1e:c0:60:01:05 }
-
-flow coap_and_amqp(gw, brk) {
-    gw -> brk coap con get msgid 0x2201 token 0x0a0b0c0d uripath "sensors/pressure" contentformat 50 wait 2ms
-    gw <- brk coap ack code "2.05" msgid 0x2201 token 0x0a0b0c0d contentformat 50 payload "{\"bar\":6.4}" wait 2ms
-    gw -> brk amqp protocolheader wait 1ms
-    gw <- brk amqp connectionstart wait 1ms
-    gw -> brk amqp channelopen channel 1 wait 1ms
-    gw -> brk amqp basicpublish channel 1 exchange "telemetry.events" routingkey "alerts.high_temp" payload "{\"unit\":12}"
-}
-
-compile { coap_and_amqp(edge_gw, broker) }
-```
-
-### Modbus, S7comm, DNP3 CRC-16, BACnet, EtherNet/IP & OPC UA (`docs/10_l7_industrial_ot.md`)
-
-```frameassembly
-host scada_hmi { ip 172.22.10.10 mac 00:1b:21:10:00:0a }
-host rogue_eng { ip 172.22.99.66 mac 00:50:56:99:00:66 }
-host line_plc  { ip 172.22.10.50 mac 00:0e:8c:10:00:32 }
-
-flow modbus_policy_check(hmi, rogue, plc) {
-    // Allowed: the HMI polls 4 holding registers on VLAN 110 (802.1p PCP 6)
-    hmi -> plc vlan 110 pcp 6 tcp syn srcport 50502 dstport 502 win 64240 mss 1460 wait 1ms
-    hmi <- plc vlan 110 pcp 6 tcp syn ack win 64240 mss 1460 wait 1ms
-    hmi -> plc vlan 110 pcp 6 tcp ack wait 1ms
-    hmi -> plc vlan 110 pcp 6 modbus readholdingregisters txid 1 unitid 1 addr 100 count 4 wait 2ms
-    hmi <- plc vlan 110 pcp 6 modbus readholdingregisters txid 1 unitid 1 count 4 value 1500 isresponse wait 2ms
-    // Violation: a rogue host writes Single Register (function 0x06)
-    rogue -> plc vlan 110 modbus writesingleregister txid 99 unitid 1 addr 100 value 0xffff wait 2ms
-    rogue <- plc vlan 110 tcp rst ack
-}
-
-compile { modbus_policy_check(scada_hmi, rogue_eng, line_plc) }
-```
-
-```frameassembly
-host scada_master { ip 10.210.1.10 mac 00:1b:21:d2:01:0a }
-host substation   { ip 10.210.1.55 mac 00:a0:f4:d2:01:37 }
-
-flow dnp3_sbo(master, rtu) {
-    master -> rtu tcp syn srcport 52000 dstport 20000 win 64240 mss 1460 wait 1ms
-    master <- rtu tcp syn ack win 64240 mss 1460 wait 1ms
-    master -> rtu tcp ack wait 1ms
-    master -> rtu dnp3 read src 1 dst 10 group 60 variation 1 wait 2ms
-    master <- rtu dnp3 func "response" src 10 dst 1 group 30 variation 1 hexpayload "0100dc05" wait 3ms
-    master -> rtu dnp3 select src 1 dst 10 group 12 variation 1 wait 2ms
-    master <- rtu dnp3 func "response" src 10 dst 1 group 12 variation 1 wait 2ms
-    master -> rtu dnp3 operate src 1 dst 10 group 12 variation 1 wait 2ms
-    master <- rtu dnp3 confirm src 10 dst 1
-}
-
-compile { dnp3_sbo(scada_master, substation) }
-```
-
-```frameassembly
-host scada_master { ip 10.210.1.10 mac 00:1b:21:d2:01:0a }
-host substation   { ip 10.210.1.55 mac 00:a0:f4:d2:01:37 }
-
-flow dnp3_bad_crc(master, rtu) {
-    master -> rtu dnp3 directoperate src 1 dst 10 group 12 variation 1 crc 0xdead
-}
-
-compile { dnp3_bad_crc(scada_master, substation) }
-```
-
-```frameassembly
-host cell_scanner { ip 172.22.30.10 mac 00:00:bc:30:00:0a }
-host cip_drive    { ip 172.22.30.25 mac 00:00:bc:30:00:19 }
-
-flow cip_read(scanner, drive) {
-    scanner -> drive tcp syn srcport 54818 dstport 44818 win 64240 mss 1460 wait 1ms
-    scanner <- drive tcp syn ack win 64240 mss 1460 wait 1ms
-    scanner -> drive tcp ack wait 1ms
-    scanner -> drive ethernetip registersession context 0x0102030405060708 wait 1ms
-    scanner <- drive ethernetip registersession sessionhandle 0x00001001 status 0 context 0x0102030405060708 wait 1ms
-    scanner -> drive ethernetip sendrrdata sessionhandle 0x00001001 cipservice 0x0e cipclass 1 cipinstance 1 cipattr 7
-}
-
-compile { cip_read(cell_scanner, cip_drive) }
-```
-
-### Multi-Host Enterprise SIEM Flow, Campus 802.1X & EVPN-VXLAN Fabric (`docs/11_topologies_and_dual_stack.md`)
-
-```frameassembly
-host workstation  { ip 10.30.0.10 mac 00:1b:21:30:00:0a }
-host perimeter_fw { ip 10.30.0.1  mac 00:1b:21:30:00:01 }
-host web_srv      { ip 10.30.1.20 mac 00:1b:21:30:01:14 }
-host splunk_siem  { ip 10.30.9.50 mac 00:1b:21:30:09:32 }
-
-flow branch_transaction(client, edge_fw, app_srv, siem) {
-    client  -> app_srv tcp syn srcport 50443 dstport 443 wait 1ms
-    edge_fw -> siem    syslog facility 4 severity 6 msg "Permit TCP 443" wait 1ms
-    client  <- app_srv tcp syn ack
-}
-
-compile { branch_transaction(workstation, perimeter_fw, web_srv, splunk_siem) }
-```
-
-```frameassembly
-host leaf_01   { ip 10.255.0.11   mac 00:1c:73:00:01:01 }
-host leaf_02   { ip 10.255.0.12   mac 00:1c:73:00:01:02 }
-host collector { ip 10.255.100.50 mac 00:1c:73:00:99:50 }
-
-flow vxlan_east_west(vtep1, vtep2) {
-    vtep1 -> vtep2 vxlan vni 10100 dscp 26 df payload "EAST_WEST_TENANT_RPC_FRAME" wait 2ms
-}
-
-compile {
-    vxlan_east_west(leaf_01, leaf_02)
-    vxlan_east_west(leaf_01, leaf_02)
-    vxlan_east_west(leaf_01, leaf_02)
-    leaf_01 -> collector ipfix seq 1 domainid 100 packets 3 octets 384
-}
-```
-
-```frameassembly
-host workstation { ip 10.10.50.100 mac 00:22:44:66:88:aa }
-host access_sw   { ip 10.10.50.1   mac 00:11:22:33:44:01 }
-host radius_srv  { ip 10.10.1.10   mac 00:11:22:33:44:10 }
-host nms_srv     { ip 10.10.1.20   mac 00:11:22:33:44:20 }
-
-flow campus_dot1x_onboarding(ws, sw, aaa, nms) {
-    // 1. IEEE 802.1X EAPOL Start and EAP-Identity exchange
-    ws -> sw eapol version 2 type start wait 2ms
-    ws <- sw eapol version 2 type eappacket eapcode 1 eapid 1 eapmethod 1 wait 2ms
-    ws -> sw eapol version 2 type eappacket eapcode 2 eapid 1 eapmethod 1 identity "eng-laptop-42" wait 2ms
-
-    // 2. RADIUS Access-Request / Access-Accept and EAP-Success (eapcode 3)
-    sw -> aaa radius accessrequest id 42 user "eng-laptop-42" nasip 10.10.50.1 wait 5ms
-    sw <- aaa radius accessaccept id 42 framedip 10.10.50.100 wait 2ms
-    ws <- sw eapol version 2 type eappacket eapcode 3 eapid 1 wait 5ms
-
-    // 3. DHCPv4 DORA lease acquisition (Discover -> Offer -> Request -> Ack)
-    ws -> sw dhcp discover xid 0xabcdef01 chaddr 00:22:44:66:88:aa wait 5ms
-    ws <- sw dhcp offer xid 0xabcdef01 chaddr 00:22:44:66:88:aa yiaddr 10.10.50.100 router 10.10.50.1 dnsserver 10.10.1.53 subnetmask 255.255.255.0 leasetime 43200 wait 5ms
-    ws -> sw dhcp request xid 0xabcdef01 chaddr 00:22:44:66:88:aa yiaddr 10.10.50.100 wait 5ms
-    ws <- sw dhcp ack xid 0xabcdef01 chaddr 00:22:44:66:88:aa yiaddr 10.10.50.100 router 10.10.50.1 dnsserver 10.10.1.53 subnetmask 255.255.255.0 leasetime 43200 wait 5ms
-
-    // 4. RFC 5227 Gratuitous ARP announcement
-    ws -> sw arp gratuitous sha 00:22:44:66:88:aa spa 10.10.50.100 tpa 10.10.50.100 wait 2ms
-
-    // 5. SNMPv3 USM authPriv (HMAC-SHA-256 + AES-128) Inform to NMS
-    sw -> nms snmp3 inform user "nac_auditor" engineid "80001f88801122334455" engineboots 5 enginetime 3600 auth sha256 "AuditAuthKey2026!" priv aes "AuditPrivKey2026!" reqid 500 varbind 1.3.6.1.2.1.1.5.0 string "access-sw-floor2" varbind 1.3.6.1.2.1.2.2.1.8.12 int 1
-}
-
-compile {
-    campus_dot1x_onboarding(workstation, access_sw, radius_srv, nms_srv)
-}
-```
-
-```frameassembly
-host branch_r1 { ip 10.250.10.2  mac 00:00:5e:00:01:0a }
-host branch_r2 { ip 10.250.10.3  mac 00:1e:be:25:10:03 }
-host hq_hub    { ip 172.31.250.1 mac 00:1e:be:31:fa:01 }
-
-flow wan_failover_and_ipsec_mpls(r1, r2, hub) {
-    // 1. VRRPv3 LAN gateway advertisement and preemptive priority takeover on VRID 10
-    r1 -> r2 vrrp vrid 10 priority 200 advint 100 vip 10.250.10.1 version 3 ttl 255 wait 2ms
-
-    // 2. BFD Down notification (state 1, diag 1) triggers OSPF Area 0 LSA flooding
-    r1 -> r2 bfd state 1 diag 1 mydisc 501 yourdisc 502 mintx 100000 minrx 100000 mult 3 ttl 255 wait 2ms
-    r2 -> r1 vrrp vrid 10 priority 220 advint 100 vip 10.250.10.1 version 3 ttl 255 wait 2ms
-    r1 -> r2 ospf hello routerid 10.250.0.1 areaid 0 hellointerval 10 deadinterval 40 priority 100 ttl 1 wait 1ms
-    r1 -> r2 ospf lsu routerid 10.250.0.1 areaid 0 ttl 1 wait 1ms
-    r1 <- r2 ospf lsack routerid 10.250.0.2 areaid 0 ttl 1 wait 3ms
-
-    // 3. IKEv2 SA_INIT and AUTH negotiation over IEEE 802.1ad QinQ (S-VLAN 2100, C-VLAN 100)
-    r2 -> hub qinq 2100 innervlan 100 dscp 48 ikev2 exchange sainit initiatorspi 0x1122334455667788 responderspi 0 msgid 0 flags 0x08 wait 2ms
-    r2 <- hub qinq 2100 innervlan 100 dscp 48 ikev2 exchange sainit initiatorspi 0x1122334455667788 responderspi 0x99aabbccddeeff00 msgid 0 flags 0x20 wait 2ms
-    r2 -> hub qinq 2100 innervlan 100 dscp 48 ikev2 exchange auth initiatorspi 0x1122334455667788 responderspi 0x99aabbccddeeff00 msgid 1 flags 0x08 wait 2ms
-    r2 <- hub qinq 2100 innervlan 100 dscp 48 ikev2 exchange auth initiatorspi 0x1122334455667788 responderspi 0x99aabbccddeeff00 msgid 1 flags 0x20 wait 3ms
-
-    // 4. Encrypted IPsec ESP tunnel traffic over MPLS Label 32100 (EXP 5 EF)
-    r2 -> hub mpls 32100 exp 5 bos 1 mplsttl 60 dscp 46 esp spi 0x00102030 seq 1 iv "1122334455667788" icv "aabbccddeeff001122334455" nextheader 4 payload "ENCRYPTED_BRANCH_VOICE_FRAME_1" wait 2ms
-    r2 <- hub mpls 32200 exp 5 bos 1 mplsttl 60 dscp 46 esp spi 0x00102031 seq 1 iv "8877665544332211" icv "554433221100ffeeddccbbaa" nextheader 4 payload "ENCRYPTED_HQ_VOICE_REPLY_1"
-}
-
-compile {
-    wan_failover_and_ipsec_mpls(branch_r1, branch_r2, hq_hub)
-}
-```
-
-## 6. Formal ISO/IEC 14977 EBNF Grammar (`grammar.ebnf`) & API / Docs Reference
-
-> Note: Constrained decoding grammars `frameassembly.gbnf` (`llama.cpp` / `XGrammar`) and `frameassembly.lark` (`Outlines` / `vLLM` / `llguidance`) are also available in the repository root and track `grammar.ebnf` in lockstep.
+## 4. Complete Formal ISO/IEC 14977 EBNF Grammar (`grammar.ebnf`)
 
 ```ebnf
 (* ========================================================================= *)
 (* FrameAssembly Formal Grammar Specification (ISO/IEC 14977 EBNF)           *)
-(* Covers all 81 native protocols, L2-L7 sub-keywords, modifiers & literals. *)
-(* Synchronized with src/lexer/mod.rs and src/parser/                        *)
-(* Note: FrameAssembly v3.0.0 (.frasm) enforces strict-lowercase alphanumeric  *)
-(* syntax without '_' or '-' on all built-in keywords, protocols, modifiers & units.*)
+(* Version: 3.1.0 — Strict-lowercase [a-z0-9]+ built-in keywords, optional   *)
+(* flow blocks (2-block host + compile or reusable flow templates), and all  *)
+(* 81 native Layer 2 through Layer 7 protocols, modifiers, and literals.     *)
+(* Synchronized 1:1 with src/lexer/mod.rs and src/parser/.                   *)
 (* ========================================================================= *)
 
 program                 = { top_level_decl } , compile_block , { top_level_decl } ;
@@ -1016,31 +1341,32 @@ program                 = { top_level_decl } , compile_block , { top_level_decl 
 top_level_decl          = host_declaration | flow_declaration ;
 
 (* ------------------------------------------------------------------------- *)
-(* 1. Host Declarations (at least one IP or MAC property in any order)       *)
+(* 1. Host Declarations (at least one ip or mac property in any order)       *)
 (* ------------------------------------------------------------------------- *)
-host_declaration        = "host" , identifier , "{" , host_property , { host_property } , "}" ;
+host_declaration        = "host" , ident_or_kw , "{" , host_property , { host_property } , "}" ;
 host_property           = ( "ip" , ip_address )
                         | ( "mac" , mac_address ) ;
 
 (* ------------------------------------------------------------------------- *)
-(* 2. Flow Declarations & Frame Statements (FLOW blocks are optional when    *)
-(*    COMPILE contains inline frame_statement entries)                       *)
+(* 2. Optional Flow Declarations & Frame Statements                          *)
+(*    Minimal 2-block programs use only host + compile; flow blocks define   *)
+(*    optional reusable packet sequences parameterized over endpoints.       *)
 (* ------------------------------------------------------------------------- *)
-flow_declaration        = "flow" , identifier , "(" , [ param_list ] , ")" ,
+flow_declaration        = "flow" , ident_or_kw , "(" , [ param_list ] , ")" ,
                           "{" , { frame_statement } , "}" ;
-param_list              = identifier , { "," , identifier } ;
+param_list              = ident_or_kw , { "," , ident_or_kw } ;
 
 frame_statement         = endpoint , direction , endpoint , { frame_field } ;
-endpoint                = identifier ;
+endpoint                = ident_or_kw ;
 direction               = "->" | "<-" ;
 
 (* ------------------------------------------------------------------------- *)
-(* 3. Compilation Block & Inline Frame Statements                            *)
+(* 3. Compilation Block (inline frame_statement or flow_invocation)          *)
 (* ------------------------------------------------------------------------- *)
 compile_block           = "compile" , "{" , { run_statement } , "}" ;
 run_statement           = flow_invocation | frame_statement ;
-flow_invocation         = identifier , "(" , [ arg_list ] , ")" ;
-arg_list                = identifier , { "," , identifier } ;
+flow_invocation         = ident_or_kw , "(" , [ arg_list ] , ")" ;
+arg_list                = ident_or_kw , { "," , ident_or_kw } ;
 
 (* ------------------------------------------------------------------------- *)
 (* 4. Frame Fields (Protocols, Modifiers & Protocol-Specific Attributes)     *)
@@ -1169,8 +1495,8 @@ lldp_field              = ( "chassisid" , str_or_ident )
                         | ( "sysname" , str_or_ident )
                         | ( "sysdesc" , str_or_ident ) ;
 
-stp_field               = ( "rootid" , str_or_ident )
-                        | ( "bridgeid" , str_or_ident )
+stp_field               = ( "rootid" , any_str )
+                        | ( "bridgeid" , any_str )
                         | ( "cost" , unsigned_int )
                         | ( "maxage" , unsigned_int )
                         | ( "hellotime" , unsigned_int )
@@ -1187,9 +1513,9 @@ lacp_field              = ( "actorsys" , ( mac_address | string_literal ) )
                         | ( "actorstate" , unsigned_int )
                         | ( "partnerstate" , unsigned_int ) ;
 
-eapol_field             = ( "version" , ( unsigned_int | str_or_ident ) )
+eapol_field             = ( "version" , any_str )
                         | ( "type" , ( unsigned_int | eapol_pkt_type | wireguard_pkt_type
-                                     | openflow_pkt_type | tacacs_pkt_type | str_or_ident ) )
+                                     | openflow_pkt_type | tacacs_pkt_type | any_str ) )
                         | eapol_pkt_type
                         | ( "eapcode" , unsigned_int )
                         | ( "eapid" , unsigned_int )
@@ -1214,7 +1540,7 @@ l3_protocol_field       = icmp_field | ndp_field | igmp_field | mld_field
 
 icmp_field              = "echorequest" | "echoreply" | "destunreach"
                         | "timeexceeded" | "redirect"
-                        | ( "code" , ( unsigned_int | str_or_ident ) )
+                        | ( "code" , any_str )
                         | ( "id" , unsigned_int )
                         | ( "gateway" , ip_address ) ;
 
@@ -1253,9 +1579,9 @@ ikev2_field             = ( "initiatorspi" , ( unsigned_int | hex_string_literal
                         | ( "exchange" , ( unsigned_int | ikev2_exchange_mode | str_or_ident ) )
                         | ikev2_exchange_mode
                         | ( "msgid" , ( unsigned_int | str_or_ident ) )
-                        | ( "nextpayload" , unsigned_int ) ;
+                        | ( ( "nextpayload" | "nextheader" ) , unsigned_int ) ;
 
-ikev2_exchange_mode     = "sainit" | "createchildsa" | "informational" ;
+ikev2_exchange_mode     = "sainit" | "auth" | "createchildsa" | "informational" ;
 
 wireguard_field         = "initiation"
                         | ( "cookie" , [ str_or_ident ] )
@@ -1276,7 +1602,7 @@ bgp_field               = "open" | "update" | "notification"
                         | ( "asn" , unsigned_int )
                         | ( "holdtime" , unsigned_int )
                         | ( "bgpid" , ip_address )
-                        | ( ( "prefix" | "nlri" ) , ( ip_address | str_or_ident ) )
+                        | ( ( "prefix" | "nlri" ) , any_str )
                         | ( "nexthop" , ip_address ) ;
 
 rip_field               = ( "command" , ( unsigned_int | str_or_ident ) )
@@ -1317,7 +1643,7 @@ l4_protocol_field       = ( "vtag" , unsigned_int )
                         | ( "ssn" , unsigned_int )
                         | ( "ppid" , unsigned_int )
                         | ( "tsn" , unsigned_int )
-                        | ( "chunk" , ( sctp_chunk_flag | unsigned_int | str_or_ident ) )
+                        | ( "chunk" , ( sctp_chunk_flag | any_str ) )
                         | sctp_chunk_flag ;
 
 sctp_chunk_flag         = "data" | "init" | "initack" | "sack"
@@ -1386,9 +1712,9 @@ l7_protocol_field       = l7_dns_dhcp_field
                         | l7_industrial_ot_field ;
 
 l7_dns_dhcp_field       = ( "txid" , ( unsigned_int | str_or_ident ) )
-                        | ( "qname" , str_or_ident )
-                        | ( "qtype" , ( unsigned_int | str_or_ident ) )
-                        | ( "rdata" , str_or_ident )
+                        | ( "qname" , any_str )
+                        | ( "qtype" , any_str )
+                        | ( "rdata" , any_str )
                         | ( "rcode" , unsigned_int )
                         | ( "ansttl" , unsigned_int )
                         | "discover" | "solicit" | "offer" | "advertise" | "release"
@@ -1404,17 +1730,17 @@ l7_dns_dhcp_field       = ( "txid" , ( unsigned_int | str_or_ident ) )
 
 l7_ntp_ptp_aaa_field    = ( "li" , unsigned_int )
                         | ( "vn" , unsigned_int )
-                        | ( "mode" , ( unsigned_int | str_or_ident ) )
+                        | ( "mode" , any_str )
                         | ( "stratum" , unsigned_int )
                         | ( "poll" , unsigned_int )
                         | ( "precision" , signed_int )
                         | ( "refid" , str_or_ident )
                         | ( "txtimestamp" , unsigned_int )
-                        | ( "msgtype" , ( unsigned_int | str_or_ident ) )
+                        | ( "msgtype" , any_str )
                         | "sync" | "delayreq" | "followup" | "delayresp" | "announce"
-                        | ( "domain" , ( unsigned_int | str_or_ident ) )
+                        | ( "domain" , any_str )
                         | ( "seqid" , unsigned_int )
-                        | ( "clockid" , ( mac_address | str_or_ident ) )
+                        | ( "clockid" , any_str )
                         | "accessrequest" | "accessaccept" | "accessreject"
                         | "accesschallenge" | "accountingrequest" | "accountingresponse"
                         | ( "nasip" , ip_address )
@@ -1445,7 +1771,7 @@ l7_web_transfer_field   = "rrq" | "wrq" | "error"
                         | ( "block" , unsigned_int )
                         | ( "errcode" , unsigned_int )
                         | ( "errmsg" , str_or_ident )
-                        | ( "cmd" , ( unsigned_int | str_or_ident ) )
+                        | ( "cmd" , any_str )
                         | ( "arg" , str_or_ident )
                         | ( "banner" , str_or_ident )
                         | "kexinit" | "newkeys"
@@ -1460,16 +1786,16 @@ l7_web_transfer_field   = "rrq" | "wrq" | "error"
                         | ( "hosthdr" , str_or_ident )
                         | ( "useragent" , str_or_ident )
                         | ( "contenttype" , str_or_ident )
-                        | ( "status" , ( unsigned_int | str_or_ident ) )
+                        | ( "status" , any_str )
                         | ( "reason" , str_or_ident )
-                        | ( "header" , string_literal , string_literal )
+                        | ( "header" , str_or_ident , str_or_ident )
                         | ( "body" , str_or_ident )
                         | "preface" | "settings" | "headers" | "windowupdate" | "ping" | "goaway"
                         | ( "streamid" , unsigned_int )
                         | ( "service" , str_or_ident )
-                        | ( "method" , str_or_ident )
+                        | ( "method" , any_str )
                         | ( "grpcstatus" , unsigned_int )
-                        | ( "opcode" , ( unsigned_int | str_or_ident ) )
+                        | ( "opcode" , any_str )
                         | "text" | "binary" | "pong" | "close"
                         | ( "finbit" , unsigned_int )
                         | ( "maskkey" , unsigned_int ) ;
@@ -1521,18 +1847,18 @@ l7_mail_auth_dir_field  = ( "ehlo" , [ str_or_ident ] )
                         | ( "basedn" , str_or_ident )
                         | ( "filter" , str_or_ident )
                         | ( "resultcode" , unsigned_int )
-                        | ( "command" , str_or_ident )
+                        | ( "command" , any_str )
                         | "negotiate" | "sessionsetup" | "treeconnect"
                         | "create" | "treedisconnect"
                         | ( "treeid" , unsigned_int )
                         | ( "share" , str_or_ident )
                         | ( "vers" , unsigned_int )
-                        | ( "proc" , ( unsigned_int | str_or_ident ) )
+                        | ( "proc" , any_str )
                         | ( "path" , str_or_ident )
                         | "compound" ;
 
 l7_db_cache_mq_field    = ( "args" , str_or_ident )
-                        | ( "replytype" , str_or_ident )
+                        | ( "replytype" , any_str )
                         | ( "key" , ( unsigned_int | str_or_ident ) )
                         | ( "value" , ( unsigned_int | str_or_ident ) )
                         | ( "exptime" , unsigned_int )
@@ -1550,7 +1876,7 @@ l7_db_cache_mq_field    = ( "args" , str_or_ident )
                         | ( "topic" , str_or_ident )
                         | ( "qos" , unsigned_int )
                         | ( "retain" , [ unsigned_int ] )
-                        | ( "pkttype" , ( unsigned_int | str_or_ident ) )
+                        | ( "pkttype" , any_str )
                         | ( "pktid" , unsigned_int )
                         | ( "returncode" , unsigned_int )
                         | "con" | "non" | "changed" | "created" | "notfound"
@@ -1572,7 +1898,7 @@ l7_db_cache_mq_field    = ( "args" , str_or_ident )
 
 l7_industrial_ot_field  = ( "protoid" , unsigned_int )
                         | ( "unitid" , unsigned_int )
-                        | ( "func" , ( unsigned_int | str_or_ident ) )
+                        | ( "func" , any_str )
                         | "readcoils" | "readdiscreteinputs"
                         | "readholdingregisters" | "readinputregisters"
                         | "writesinglecoil" | "writesingleregister"
@@ -1591,10 +1917,10 @@ l7_industrial_ot_field  = ( "protoid" , unsigned_int )
                         | ( "crc" , unsigned_int )
                         | ( "src" , unsigned_int )
                         | ( "dst" , unsigned_int )
-                        | ( "rosctr" , ( unsigned_int | str_or_ident ) )
+                        | ( "rosctr" , any_str )
                         | ( "pduref" , unsigned_int )
                         | "setupcomm" | "readvar" | "writevar" | "plccontrol"
-                        | ( "area" , ( unsigned_int | str_or_ident ) )
+                        | ( "area" , any_str )
                         | ( "dbnum" , unsigned_int )
                         | ( "offset" , unsigned_int )
                         | "nop" | "listservices" | "listidentity" | "listinterfaces"
@@ -1606,7 +1932,7 @@ l7_industrial_ot_field  = ( "protoid" , unsigned_int )
                         | ( "cipclass" , unsigned_int )
                         | ( "cipinstance" , unsigned_int )
                         | ( "cipattr" , unsigned_int )
-                        | ( "chunktype" , str_or_ident )
+                        | ( "chunktype" , any_str )
                         | ( "securechannelid" , unsigned_int )
                         | ( "tokenid" , unsigned_int )
                         | ( "seqnum" , unsigned_int )
@@ -1614,24 +1940,29 @@ l7_industrial_ot_field  = ( "protoid" , unsigned_int )
                         | ( "nodeid" , str_or_ident ) ;
 
 (* ------------------------------------------------------------------------- *)
-(* 12. Lexical Terminals                                                     *)
+(* 12. Lexical Terminals (Pure ISO/IEC 14977 EBNF Productions)               *)
 (* ------------------------------------------------------------------------- *)
-str_or_ident            = string_literal | identifier ;
+ident_or_kw             = identifier | protocol_keyword | time_unit
+                        | "host" | "flow" | "compile" | "ip" | "mac" ;
+str_or_ident            = string_literal | ident_or_kw ;
+any_str                 = str_or_ident | signed_int | ip_address | mac_address | oid_literal ;
+
 (* Matches /[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*/ *)
 identifier              = ( letter | "_" ) , { letter | digit | "_" } ,
                           { "-" , ( letter | digit | "_" ) , { letter | digit | "_" } } ;
 unsigned_int            = decimal_int | hex_int ;
-signed_int              = [ "-" ] , decimal_int | hex_int ;
+signed_int              = ( [ "-" ] , decimal_int ) | hex_int ;
 decimal_int             = digit , { digit } ;
 hex_int                 = ( "0x" | "0X" ) , hex_digit , { hex_digit } ;
 duration_literal        = unsigned_int , time_unit ;
 time_unit               = "ns" | "us" | "ms" | "s" | "m" ;
 string_literal          = '"' , { string_char | escape_sequence } , '"' ;
-string_char             = " ".."!" | "#".."[" | "]".."~" ;
+string_char             = ? any UTF-8 character except U+0022 double quote or U+005C backslash ? ;
+backslash_char          = ? U+005C reverse solidus ? ;
 hex_string_literal      = '"' , { hex_digit | ":" | " " } , '"' ;
-escape_sequence         = "\" , ( "r" | "n" | "t" | "\" | '"' | "'"
-                                | ( "x" , hex_digit , hex_digit )
-                                | ( "u" , hex_digit , hex_digit , hex_digit , hex_digit ) ) ;
+escape_sequence         = backslash_char , ( "r" | "n" | "t" | backslash_char | '"' | "'"
+                                           | ( "x" , hex_digit , hex_digit )
+                                           | ( "u" , hex_digit , hex_digit , hex_digit , hex_digit ) ) ;
 mac_address             = ( hex_byte , ":" , hex_byte , ":" , hex_byte , ":" ,
                             hex_byte , ":" , hex_byte , ":" , hex_byte )
                         | ( hex_byte , "-" , hex_byte , "-" , hex_byte , "-" ,
@@ -1640,26 +1971,21 @@ mac_address             = ( hex_byte , ":" , hex_byte , ":" , hex_byte , ":" ,
 hex_byte                = hex_digit , hex_digit ;
 hex_word                = hex_digit , hex_digit , hex_digit , hex_digit ;
 ip_address              = ipv4_address | ipv6_address ;
-ipv4_address            = decimal_int , "." , decimal_int , "." , decimal_int , "." , decimal_int ;
+ipv4_address            = decimal_int , "." , decimal_int , "." ,
+                          decimal_int , "." , decimal_int ;
 ipv6_address            = ( "::" , { hex_digit | ":" | "." } )
                         | ( hex_digit , [ hex_digit ] , [ hex_digit ] , [ hex_digit ] ,
                             ":" , { hex_digit | ":" | "." } ) ;
-oid_literal             = [ "." ] , decimal_int , { "." , decimal_int } | string_literal ;
-letter                  = "A".."Z" | "a".."z" ;
-digit                   = "0".."9" ;
-hex_digit               = digit | "A".."F" | "a".."f" ;
+oid_literal             = ( [ "." ] , decimal_int , "." , decimal_int , { "." , decimal_int } )
+                        | string_literal ;
+letter                  = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J"
+                        | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T"
+                        | "U" | "V" | "W" | "X" | "Y" | "Z"
+                        | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j"
+                        | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t"
+                        | "u" | "v" | "w" | "x" | "y" | "z" ;
+digit                   = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+hex_digit               = digit
+                        | "A" | "B" | "C" | "D" | "E" | "F"
+                        | "a" | "b" | "c" | "d" | "e" | "f" ;
 ```
-
-### CLI Commands, Rust Crate & WebAssembly (`3.0.0`)
-- **CLI (default root compile + 4 subcommands; no `-o`/`--output`)**:
-  - `frameassembly demo.frasm [output.pcap]` (compiles `.frasm` -> `.pcap` / `.pcapng`; defaults to `<input_stem>.pcap`)
-  - `frameassembly show demo.frasm` (prints packet ladder timestamps, endpoints, protocols, ports, flags, bytes)
-  - `frameassembly reverse capture.pcap [output.frasm]` (decompiles `.pcap`/`.pcapng` -> canonical `.frasm`; defaults to `<input_stem>.frasm`)
-  - `frameassembly help [subcommand]` | `frameassembly version` (`frameassembly 3.0.0`)
-- **Rust Crate (`frameassembly = "3.0.0"`)**: `lexer::lex`, `parser::parse_program`, `parser::validate_semantics`, `backend::compile_program`, `backend::generate_pcap`, `reverse::{reverse_pcap_reader, reverse_pcap_bytes, reverse_pcap_file}`, `error::CompilerError`.
-- **WebAssembly (`frameassembly-wasm` `3.0.0`)**: `validate_frasm`, `inspect_frasm`, `compile_frasm_to_pcapng`, `reverse_pcap` (browser studio: `https://frameassembly.ai.studio/`).
-
-### Official Repository Documentation Links
-- Overview & Use-Case Guides: `README.md`, `docs/README.md`, `docs/01_getting_started.md`, `docs/02_use_cases.md`
-- Layer 2–7 & Topology Guides: `docs/03_l2_protocols.md`, `docs/04_l3_protocols.md`, `docs/05_l4_transports.md`, `docs/06_l7_snmp.md`, `docs/07_l7_infra_and_telemetry.md`, `docs/08_l7_web_and_cloud.md`, `docs/09_l7_mail_auth_storage_db.md`, `docs/10_l7_industrial_ot.md`, `docs/11_topologies_and_dual_stack.md`
-- Format Spec & Compiler Internals: `docs/12_frasm_specification.md`, `docs/13_for_nerds.md`

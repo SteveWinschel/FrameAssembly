@@ -1,19 +1,22 @@
-// PROMPT: Model an SSH keyboard-interactive 2FA challenge-response using MSG_CODE 50, INFO_REQUEST (60), INFO_RESPONSE (61), and SUCCESS (52).
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, ssh, msgcode, payload, compile
+// Model an SSH keyboard-interactive 2FA challenge-response using msgcode 50,
+// INFO_REQUEST (60), INFO_RESPONSE (61), and SUCCESS (52).
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// SSH RFC 4253 framing on TCP 22 (message codes: 50 (USERAUTH_REQUEST), 52
+// (USERAUTH_SUCCESS), 60, 61).
+// Overrides destination port to 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define host endpoint admin_client.
 host admin_client {
     mac 00:1a:a0:60:61:01
     ip 10.60.22.10
 }
 
-// INSTRUCTION: Define host endpoint pam_bastion.
 host pam_bastion {
     mac 00:1a:a0:60:61:02
     ip 10.60.22.1
 }
 
-// INSTRUCTION: Request keyboard-interactive auth (50), receive TOTP prompt (60), send OTP (61), and succeed (52).
 flow ssh_keyboard_interactive_totp(admin_client, pam_bastion) {
     admin_client -> pam_bastion tcp syn srcport 62022 dstport 22
     pam_bastion -> admin_client tcp syn ack
@@ -24,7 +27,6 @@ flow ssh_keyboard_interactive_totp(admin_client, pam_bastion) {
     pam_bastion -> admin_client ssh msgcode 52
 }
 
-// INSTRUCTION: Compile the SSH keyboard-interactive 2FA authentication flow.
 compile {
     ssh_keyboard_interactive_totp(admin_client, pam_bastion)
 }

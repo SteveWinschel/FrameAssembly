@@ -1,19 +1,22 @@
-// PROMPT: BACnet/IP Multi-State Input (Object Type 13) reading elevator car floor position and operating mode.
-// TOKENS: host, ip, mac, flow, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, value, wait, ms, compile
+// BACnet/IP Multi-State Input (Object Type 13) reading elevator car floor
+// position and operating mode.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the central security and facilities dashboard host.
+// Central security and facilities dashboard host.
 host facilities_dash {
     ip 10.120.80.20
     mac 00:1a:2b:78:80:20
 }
 
-// INSTRUCTION: Define the elevator bank BACnet supervisory gateway.
+// Elevator bank BACnet supervisory gateway.
 host elevator_gw {
     ip 10.120.80.8
     mac 00:1a:2b:78:80:08
 }
 
-// INSTRUCTION: Read elevator Car 1 current floor (Instance 1) and operating mode (Instance 2) from Multi-State Input (Type 13).
+// Read elevator Car 1 current floor (Instance 1) and operating mode (Instance
+// 2) from Multi-State Input (Type 13). BACnet/IP on UDP 47808 (objects: 13
+// (Multi-State Input); properties: 85 (Present_Value)).
 flow bacnet_elevator_poll(d, e) {
     d -> e bacnet readproperty invokeid 90 objecttype 13 objectinstance 1 propertyid 85
     d <- e bacnet readproperty invokeid 90 objecttype 13 objectinstance 1 propertyid 85 value 18 wait 1ms
@@ -21,7 +24,6 @@ flow bacnet_elevator_poll(d, e) {
     d <- e bacnet readproperty invokeid 91 objecttype 13 objectinstance 2 propertyid 85 value 1
 }
 
-// INSTRUCTION: Compile the BACnet elevator bank telemetry flow.
 compile {
     bacnet_elevator_poll(facilities_dash, elevator_gw)
 }

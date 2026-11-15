@@ -1,19 +1,23 @@
-// PROMPT: Periodic BACnet/IP temperature and humidity polling loop with 500ms interval.
-// TOKENS: host, ip, flow, s, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, wait, ms, compile
+// Periodic BACnet/IP temperature and humidity polling loop with 500ms
+// interval.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the BACnet historian logger.
+// BACnet historian logger.
 host historian { ip 10.60.10.2 }
 
-// INSTRUCTION: Define the cleanroom environmental sensor node.
+// Cleanroom environmental sensor node.
 host env_sensor { ip 10.60.10.44 }
 
-// INSTRUCTION: Poll temperature (Instance 1) and relative humidity (Instance 2) analog inputs.
+// Poll temperature (Instance 1) and relative humidity (Instance 2) analog
+// inputs. BACnet/IP on UDP 47808 (objects: 0 (Analog Input); properties: 85
+// (Present_Value)). Repeats 4 times; each wait value pauses after sending its
+// packet.
 flow bacnet_env_poll(h, s) {
     h -> s bacnet readproperty invokeid 10 objecttype 0 objectinstance 1 propertyid 85 wait 500ms
     h -> s bacnet readproperty invokeid 11 objecttype 0 objectinstance 2 propertyid 85 wait 500ms
 }
 
-// INSTRUCTION: Repeat the environmental sensor polling cycle 4 times.
+// Repeat the environmental sensor polling cycle 4 times.
 compile {
     bacnet_env_poll(historian, env_sensor) // cycle 1
     bacnet_env_poll(historian, env_sensor) // cycle 2

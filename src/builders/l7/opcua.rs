@@ -66,8 +66,34 @@ pub fn build_opcua_payload(
         body.extend_from_slice(&65536u32.to_le_bytes()); // SendBufferSize
         body.extend_from_slice(&16777216u32.to_le_bytes()); // MaxMessageSize
         body.extend_from_slice(&5000u32.to_le_bytes()); // MaxChunkCount
+    } else if msg_bytes == *b"ERR" {
+        // Error Message Body (8 bytes: BadUnexpectedError 0x80010000 + null Reason string -1i32)
+        body.extend_from_slice(&0x8001_0000u32.to_le_bytes());
+        body.extend_from_slice(&(-1i32).to_le_bytes());
+    } else if msg_bytes == *b"OPN" {
+        // OpenSecureChannel Body: SecureChannelId + AsymmetricAlgorithmSecurityHeader + SequenceHeader
+        let policy = b"http://opcfoundation.org/UA/SecurityPolicy#None";
+        body.extend_from_slice(&spec.secure_channel_id.unwrap_or(1).to_le_bytes());
+        body.extend_from_slice(&(policy.len() as u32).to_le_bytes());
+        body.extend_from_slice(policy);
+        body.extend_from_slice(&(-1i32).to_le_bytes()); // SenderCertificate: null ByteString
+        body.extend_from_slice(&(-1i32).to_le_bytes()); // ReceiverCertificateThumbprint: null ByteString
+        body.extend_from_slice(&spec.seq_num.unwrap_or(1).to_le_bytes());
+        body.extend_from_slice(&spec.req_id.unwrap_or(1).to_le_bytes());
+        if let Some(node_id) = spec.node_id {
+            let nid_bytes = node_id.as_bytes();
+            body.push(0x03); // String NodeId encoding mask
+            body.push(0x00); // Namespace index 0
+            body.extend_from_slice(&(nid_bytes.len() as u32).to_le_bytes());
+            body.extend_from_slice(nid_bytes);
+        }
+        if let Some(url) = spec.endpoint_url {
+            let url_bytes = url.as_bytes();
+            body.extend_from_slice(&(url_bytes.len() as u32).to_le_bytes());
+            body.extend_from_slice(url_bytes);
+        }
     } else {
-        // Message / OpenSecureChannel Body
+        // Message / CloseSecureChannel Body (SymmetricSecurityHeader + SequenceHeader)
         body.extend_from_slice(&spec.secure_channel_id.unwrap_or(1).to_le_bytes());
         body.extend_from_slice(&spec.token_id.unwrap_or(1).to_le_bytes());
         body.extend_from_slice(&spec.seq_num.unwrap_or(1).to_le_bytes());

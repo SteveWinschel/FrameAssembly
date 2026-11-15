@@ -1,18 +1,19 @@
-// PROMPT: Router Solicitation with strict IPv6 Hop Limit 255 verification per RFC 4861.
-// TOKENS: host, ip, mac, flow, ndp, routersolicit, slla, ttl, compile
+// Router Solicitation with strict IPv6 Hop Limit 255 verification per RFC
+// 4861.
+// This capture targets IPv6 endpoints and sets TTL 255.
+// Wireshark: icmpv6.nd
 
-// INSTRUCTION: Define newly attached IPv6 client device.
 host unconfigured_client { ip fe80::707:1 mac 00:14:22:77:88:99 }
 
-// INSTRUCTION: Define all-routers multicast destination ff02::2.
 host all_routers_dst { ip ff02::2 mac 33:33:00:00:00:02 }
 
-// INSTRUCTION: Define Router Solicitation ensuring strict TTL 255 per specification.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow router_solicit_strict_ttl(client, rtrs) {
     client -> rtrs ndp routersolicit slla 00:14:22:77:88:99 ttl 255
 }
 
-// INSTRUCTION: Compile block executing strict TTL Router Solicitation.
+// Run router_solicit_strict_ttl(unconfigured_client, all_routers_dst) to
+// generate the capture.
 compile {
     router_solicit_strict_ttl(unconfigured_client, all_routers_dst)
 }

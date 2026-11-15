@@ -1,20 +1,19 @@
-// PROMPT: Authentication security warning recording repeated invalid password attempts.
-// TOKENS: host, ip, flow, s, syslog, facility, severity, hostname, app, procid, msg, compile
+// Authentication security warning recording repeated invalid password
+// attempts.
+// RFC 5424 over UDP 514; facility 10 (authpriv) + severity 4 (warning) yields
+// PRI <84>.
+// Wireshark: syslog
 
-// INSTRUCTION: Define exposed bastion server.
 host exposed_bastion { ip 198.51.100.10 }
 
-// INSTRUCTION: Define SOC SIEM aggregation system.
 host soc_siem { ip 10.20.30.5 }
 
-// INSTRUCTION: Define failed authentication alert flow.
 flow syslog_bruteforce_flow(c, s) {
     c -> s syslog facility 10 severity 4
         hostname "bastion-ext" app "sshd" procid "9940"
         msg "Failed password for invalid user root from 203.0.113.90 port 44102"
 }
 
-// INSTRUCTION: Compile block executing brute force warning.
 compile {
     syslog_bruteforce_flow(exposed_bastion, soc_siem)
 }

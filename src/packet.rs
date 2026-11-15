@@ -57,7 +57,16 @@ pub fn build_ipv4_header(
     let tos = (dscp << 2) | ecn;
     header.push(tos);
     // Bytes 2..4: Total Length (header + payload)
-    let total_len = (20 + l4_and_payload_len) as u16;
+    let total_len_usize = 20usize
+        .checked_add(l4_and_payload_len)
+        .filter(|&n| n <= u16::MAX as usize)
+        .ok_or_else(|| {
+            CompilerError::BackendError(alloc::format!(
+                "IPv4 total packet length ({} bytes) exceeds the 65,535-byte RFC 791 maximum",
+                20usize.saturating_add(l4_and_payload_len)
+            ))
+        })?;
+    let total_len = total_len_usize as u16;
     header.extend_from_slice(&total_len.to_be_bytes());
     // Bytes 4..6: Identification
     let ipid = l3.ipid.unwrap_or(0);
@@ -108,7 +117,12 @@ pub fn build_ipv6_header(
     let v_tc_fl: u32 = (0x6_u32 << 28) | ((tc as u32) << 20) | flow_label;
     header.extend_from_slice(&v_tc_fl.to_be_bytes());
     // Bytes 4..6: Payload Length
-    let payload_len = l4_and_payload_len as u16;
+    let payload_len = u16::try_from(l4_and_payload_len).map_err(|_| {
+        CompilerError::BackendError(alloc::format!(
+            "IPv6 payload length ({} bytes) exceeds the 65,535-byte RFC 8200 header limit",
+            l4_and_payload_len
+        ))
+    })?;
     header.extend_from_slice(&payload_len.to_be_bytes());
     // Byte 6: Next Header
     header.push(next_header);
@@ -204,7 +218,17 @@ pub fn build_tcp_segment(
     tcp_header.extend_from_slice(&urgent.unwrap_or(0).to_be_bytes());
     tcp_header.extend_from_slice(&opts_buf);
 
-    let tcp_len = (tcp_header.len() + payload.len()) as u32;
+    let tcp_len_usize = tcp_header
+        .len()
+        .checked_add(payload.len())
+        .filter(|&n| n <= u16::MAX as usize)
+        .ok_or_else(|| {
+            CompilerError::BackendError(alloc::format!(
+                "TCP segment length ({} bytes) exceeds the 65,535-byte packet limit",
+                tcp_header.len().saturating_add(payload.len())
+            ))
+        })?;
+    let tcp_len = tcp_len_usize as u32;
 
     let checksum = match (src_ip, dst_ip) {
         (IpAddr::V4(s), IpAddr::V4(d)) => {
@@ -246,7 +270,16 @@ pub fn build_udp_datagram(
     dst_port: u16,
     payload: &[u8],
 ) -> Result<Vec<u8>, CompilerError> {
-    let udp_len = (8 + payload.len()) as u16;
+    let udp_len_usize = 8usize
+        .checked_add(payload.len())
+        .filter(|&n| n <= u16::MAX as usize)
+        .ok_or_else(|| {
+            CompilerError::BackendError(alloc::format!(
+                "UDP datagram length ({} bytes) exceeds the 65,535-byte RFC 768 header limit",
+                8usize.saturating_add(payload.len())
+            ))
+        })?;
+    let udp_len = udp_len_usize as u16;
     let mut udp_header = Vec::with_capacity(8);
     udp_header.extend_from_slice(&src_port.to_be_bytes());
     udp_header.extend_from_slice(&dst_port.to_be_bytes());
@@ -333,17 +366,10 @@ pub fn build_ethernet_and_l2(
     frame.extend_from_slice(&src_mac);
 
     if let Some(qinq) = &l2.qinq {
-        frame.extend_from_slice(&0x88A8_u16.to_be_bytes());
-        let pcp = l2.vlan.as_ref().and_then(|v| v.pcp).unwrap_or(0) & 0x07;
-        let dei = l2.vlan.as_ref().and_then(|v| v.dei).unwrap_or(0) & 0x01;
-        let outer_tci: u16 = ((pcp as u16) << 13) | ((dei as u16) << 12) | (qinq.outer_vid & 0x0FFF);
-        frame.extend_from_slice(&outer_tci.to_be_bytes());
-
-        if let Some(inner_vid) = qinq.inner_vid {
-            frame.extend_from_slice(&0x8100_u16.to_be_bytes());
-            let inner_tci: u16 = inner_vid & 0x0FFF;
-            frame.extend_from_slice(&inner_tci.to_be_bytes());
-        }
+        frame.extend_from_slice(&crate::builders::l2::qinq::encode_qinq_tags(
+            qinq,
+            l2.vlan.as_ref(),
+        ));
 
         if let Some(mpls) = &l2.mpls {
             frame.extend_from_slice(&0x8847_u16.to_be_bytes());
@@ -599,4 +625,38 @@ pub fn build_udp_packet(
         None,
         payload,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core::net::{Ipv4Addr, Ipv6Addr};
+
+    #[test]
+    fn test_oversized_ipv4_ipv6_udp_packets_rejected() {
+        let l3 = L3Modifiers::default();
+        assert!(build_ipv4_header([10, 0, 0, 1], [10, 0, 0, 2], 17, &l3, 65520).is_err());
+        assert!(build_ipv6_header([0; 16], [0; 16], 17, &l3, 65536).is_err());
+        let big = alloc::vec![0u8; 65530];
+        assert!(
+            build_udp_datagram(
+                IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)),
+                1000,
+                2000,
+                &big,
+            )
+            .is_err()
+        );
+        assert!(
+            build_udp_datagram(
+                IpAddr::V6(Ipv6Addr::LOCALHOST),
+                IpAddr::V6(Ipv6Addr::LOCALHOST),
+                1000,
+                2000,
+                &big,
+            )
+            .is_err()
+        );
+    }
 }

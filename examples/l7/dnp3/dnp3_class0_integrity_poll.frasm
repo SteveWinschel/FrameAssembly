@@ -1,13 +1,14 @@
-// PROMPT: DNP3 Integrity Poll reading Class 0 static data (Group 60 Variation 1) after TCP 3-way handshake.
-// TOKENS: host, ip, flow, m, tcp, syn, srcport, dstport, ack, dnp3, func, src, dst, group, variation, compile
+// DNP3 Integrity Poll reading Class 0 static data (Group 60 Variation 1)
+// after TCP 3-way handshake.
+// Wireshark: tcp || dnp3
 
-// INSTRUCTION: Define utility EMS master host.
 host ems_master { ip 192.168.200.1 }
 
-// INSTRUCTION: Define substation bay controller RTU.
+// Substation bay controller RTU.
 host bay_rtu { ip 192.168.200.25 }
 
-// INSTRUCTION: Establish TCP connection on port 20000 and issue Class 0 integrity poll.
+// Establish TCP connection on port 20000 and issue Class 0 integrity poll.
+// DNP3 data groups: Group 30 (Analog Input), Group 60 (Class 0/1/2/3/4 Data).
 flow dnp3_class0_integrity(m, r) {
     m -> r tcp syn srcport 52100 dstport 20000
     m <- r tcp syn ack
@@ -16,7 +17,6 @@ flow dnp3_class0_integrity(m, r) {
     m <- r dnp3 func "response" src 25 dst 1 group 30 variation 1
 }
 
-// INSTRUCTION: Compile the DNP3 TCP handshake and Class 0 integrity poll.
 compile {
     dnp3_class0_integrity(ems_master, bay_rtu)
 }

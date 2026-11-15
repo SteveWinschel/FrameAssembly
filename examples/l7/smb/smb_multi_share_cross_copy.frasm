@@ -1,19 +1,19 @@
-// PROMPT: SMB2 client mounting two distinct shares (staging and production) on the same session to copy a release artifact.
-// TOKENS: host, ip, mac, flow, s, smb, command, sessionid, msgid, share, status, treeid, wait, ms, payload, compile
+// SMB2 client mounting two distinct shares (staging and production) on the
+// same session to copy a release artifact.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: smb2
 
-// INSTRUCTION: Define the release automation worker host.
 host release_worker {
     ip 10.60.110.18
     mac 00:1a:2b:60:aa:18
 }
 
-// INSTRUCTION: Define the artifact repository SMB server.
 host artifact_srv {
     ip 10.60.110.2
     mac 00:1a:2b:60:aa:02
 }
 
-// INSTRUCTION: Connect to both staging and prod shares under SESSION_ID 8800, read from TREE_ID 1, and write to TREE_ID 2.
 flow smb_cross_share_copy(c, s) {
     c -> s smb command "treeconnect" sessionid 8800 msgid 1 share "\\repo\staging"
     c <- s smb command "treeconnect" status 0 treeid 1 sessionid 8800 msgid 1 wait 1ms
@@ -25,7 +25,6 @@ flow smb_cross_share_copy(c, s) {
     c <- s smb command "write" status 0 treeid 2 sessionid 8800 msgid 4
 }
 
-// INSTRUCTION: Compile the multi-share cross-copy SMB2 flow.
 compile {
     smb_cross_share_copy(release_worker, artifact_srv)
 }

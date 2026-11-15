@@ -1,19 +1,17 @@
-// PROMPT: Authentication accepted by server transmitting MSG_CODE 52.
-// TOKENS: host, ip, flow, s, ssh, msgcode, compile
+// Authentication accepted by server transmitting msgcode 52.
+// SSH RFC 4253 framing on TCP 22 (message codes: 50 (USERAUTH_REQUEST), 52
+// (USERAUTH_SUCCESS)).
+// Wireshark: ssh
 
-// INSTRUCTION: Define authenticated operator client.
 host oper_client { ip 10.77.2.19 }
 
-// INSTRUCTION: Define authenticating server.
 host auth_server { ip 10.77.2.1 }
 
-// INSTRUCTION: Define successful user authentication flow.
 flow ssh_userauth_success(c, s) {
     c -> s ssh msgcode 50
     c <- s ssh msgcode 52
 }
 
-// INSTRUCTION: Compile block executing authentication success.
 compile {
     ssh_userauth_success(oper_client, auth_server)
 }

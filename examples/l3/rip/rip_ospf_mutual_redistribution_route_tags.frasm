@@ -1,25 +1,27 @@
-// PROMPT: Autonomous System Boundary Router (ASBR) redistributing OSPF Area 10 routes into RIPv2 with loop-prevention TAG 110.
-// TOKENS: host, ip, mac, flow, rip, response, prefix, metric, nexthop, tag, dscp, ttl, wait, ms, compile
+// Autonomous System Boundary Router (ASBR) redistributing OSPF Area 10 routes
+// into RIPv2 with loop-prevention TAG 110.
+// This capture sets DSCP 48, TTL 1 and uses post-packet wait gaps (5ms)
+// between frames.
+// Wireshark: rip
 
-// INSTRUCTION: Define OSPF-to-RIPv2 mutual redistribution ASBR router.
 host ospf_rip_asbr1 {
     ip 10.52.10.1
     mac 00:22:bd:52:10:01
 }
 
-// INSTRUCTION: Define backup ASBR filtering TAG 110 routes to prevent routing domain feedback loops.
 host ospf_rip_asbr2 {
     ip 10.52.10.2
     mac 00:22:bd:52:10:02
 }
 
-// INSTRUCTION: Define RIPv2 updates carrying TAG 110 (OSPF) and TAG 120 (RIP internal).
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow rip_ospf_redistribution_tags(asbr1, asbr2) {
     asbr1 -> asbr2 rip response prefix 10.10.10.0 metric 5 nexthop 10.52.10.1 tag 110 dscp 48 ttl 1 wait 5ms
     asbr1 <- asbr2 rip response prefix 10.20.20.0 metric 2 nexthop 10.52.10.2 tag 120 dscp 48 ttl 1
 }
 
-// INSTRUCTION: Compile the OSPF-to-RIPv2 route tag loop-prevention flow.
+// Run rip_ospf_redistribution_tags(ospf_rip_asbr1, ospf_rip_asbr2) to
+// generate the capture.
 compile {
     rip_ospf_redistribution_tags(ospf_rip_asbr1, ospf_rip_asbr2)
 }

@@ -1,19 +1,21 @@
-// PROMPT: 802.1ad QinQ double-tagged IPsec ESP site-to-site tunnel over metro Ethernet.
-// TOKENS: host, ip, flow, esp, spi, seq, iv, qinq, innervlan, compile
+// 802.1ad QinQ double-tagged IPsec ESP site-to-site tunnel over metro
+// Ethernet.
+// This capture wraps frames in QinQ S-VLAN 2500 / C-VLAN 150 and carries SPI
+// 65001/65002.
+// Wireshark: esp
 
-// INSTRUCTION: Define site A IPsec encryptor.
 host site_a_encryptor { ip 172.19.1.1 }
 
-// INSTRUCTION: Define site B IPsec decryptor.
 host site_b_decryptor { ip 172.19.1.2 }
 
-// INSTRUCTION: Define QinQ tagged ESP exchange with outer S-VLAN 2500 and inner C-VLAN 150.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow esp_qinq_wan_flow(a, b) {
     a -> b esp spi 65001 seq 8 iv "a1a2a3a4a5a6a7a8" qinq 2500 innervlan 150
     a <- b esp spi 65002 seq 8 iv "b1b2b3b4b5b6b7b8" qinq 2500 innervlan 150
 }
 
-// INSTRUCTION: Compile the QinQ metro WAN ESP flow.
+// Run esp_qinq_wan_flow(site_a_encryptor, site_b_decryptor) to generate the
+// capture.
 compile {
     esp_qinq_wan_flow(site_a_encryptor, site_b_decryptor)
 }

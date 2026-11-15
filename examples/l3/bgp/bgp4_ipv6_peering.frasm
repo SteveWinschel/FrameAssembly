@@ -1,13 +1,14 @@
-// PROMPT: Border Gateway Protocol 4+ peering over IPv6 using TCP 179 with OPEN and KEEPALIVE messages.
-// TOKENS: host, ip, flow, bgp, open, asn, holdtime, bgpid, keepalive, compile
+// Border Gateway Protocol 4+ peering over IPv6 using TCP 179 with OPEN and
+// KEEPALIVE messages.
+// This capture runs the same exchange over both IPv4 and IPv6 host pairs and
+// carries ASN 65001/65002.
+// Wireshark: bgp
 
-// INSTRUCTION: Define Autonomous System 65001 BGP router.
 host bgp_peer_a { ip 2001:db8:ffff::1 }
 
-// INSTRUCTION: Define Autonomous System 65002 BGP router.
 host bgp_peer_b { ip 2001:db8:ffff::2 }
 
-// INSTRUCTION: Define BGP-4+ session establishment and keepalive flow.
+// Packet sequence (4 frames) with default 10ms post-packet spacing.
 flow bgp_peer_flow(a, b) {
     a -> b bgp open asn 65001 holdtime 180 bgpid 10.0.0.1
     a <- b bgp open asn 65002 holdtime 180 bgpid 10.0.0.2
@@ -15,7 +16,7 @@ flow bgp_peer_flow(a, b) {
     a <- b bgp keepalive
 }
 
-// INSTRUCTION: Compile block executing BGP IPv6 session.
+// Run bgp_peer_flow(bgp_peer_a, bgp_peer_b) to generate the capture.
 compile {
     bgp_peer_flow(bgp_peer_a, bgp_peer_b)
 }

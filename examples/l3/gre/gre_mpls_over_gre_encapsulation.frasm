@@ -1,19 +1,21 @@
-// PROMPT: RFC 4023 MPLS-in-GRE encapsulation using GRE_PROTO 0x8847 across an IP transit network.
-// TOKENS: host, ip, flow, gre, grekey, greproto, checksum, payload, compile
+// RFC 4023 MPLS-in-GRE encapsulation using GRE protocol type 0x8847 across an
+// IP transit network.
+// This capture encapsulates passenger traffic inside IP protocol 47 GRE
+// headers.
+// Wireshark: gre
 
-// INSTRUCTION: Define autonomous system border router West.
 host asbr_mpls_gre_w { ip 198.51.100.151 }
 
-// INSTRUCTION: Define autonomous system border router East.
 host asbr_mpls_gre_e { ip 198.51.100.152 }
 
-// INSTRUCTION: Define MPLS-in-GRE tunnel specifying EtherType 0x8847 (MPLS Unicast).
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow mpls_in_gre_flow(w, e) {
     w -> e gre grekey 4023 greproto 0x8847 checksum payload "MPLS_VPN_LABEL_STACK_FWD"
     w <- e gre grekey 4023 greproto 0x8847 checksum payload "MPLS_VPN_LABEL_STACK_REV"
 }
 
-// INSTRUCTION: Compile the RFC 4023 MPLS-over-GRE encapsulation flow.
+// Run mpls_in_gre_flow(asbr_mpls_gre_w, asbr_mpls_gre_e) to generate the
+// capture.
 compile {
     mpls_in_gre_flow(asbr_mpls_gre_w, asbr_mpls_gre_e)
 }

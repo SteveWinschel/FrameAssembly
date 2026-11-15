@@ -75,16 +75,22 @@ pub(crate) fn dissect_dnp3(
         tokens.push_str(&format!(" dst {dst}"));
     }
 
-    let residual = if transport_bytes.len() >= 6 && transport_bytes[5] == 0x06 {
-        let g = transport_bytes[3];
-        let v = transport_bytes[4];
+    let app_rem = if func == 129 || func == 130 {
+        transport_bytes[3..].strip_prefix(&[0x00, 0x00])?
+    } else {
+        &transport_bytes[3..]
+    };
+
+    let residual = if app_rem.len() >= 3 && app_rem[2] == 0x06 {
+        let g = app_rem[0];
+        let v = app_rem[1];
         tokens.push_str(&format!(" group {g}"));
         if v != 1 {
             tokens.push_str(&format!(" variation {v}"));
         }
-        transport_bytes[6..].to_vec()
+        app_rem[3..].to_vec()
     } else {
-        transport_bytes[3..].to_vec()
+        app_rem.to_vec()
     };
 
     if hdr_crc != expected_crc {

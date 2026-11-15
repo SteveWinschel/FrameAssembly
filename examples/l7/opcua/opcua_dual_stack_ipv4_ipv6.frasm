@@ -1,23 +1,25 @@
-// PROMPT: Dual-stack IPv4 and IPv6 OPC UA telemetry polling using a shared polymorphic flow.
-// TOKENS: host, ip, flow, s, opcua, msgtype, chunktype, securechannelid, tokenid, seqnum, reqid, nodeid, dscp, ttl, flowlabel, compile
+// Dual-stack IPv4 and IPv6 OPC UA telemetry polling using a shared shared
+// IPv4/IPv6 flow.
+// Wireshark: opcua
 
-// INSTRUCTION: Define IPv4 OPC UA client and server.
+// IPv4 OPC UA client and server.
 host opc_v4_client { ip 10.105.0.10 }
-// INSTRUCTION: Define IPv4 OPC UA PLC endpoint.
+
 host opc_v4_server { ip 10.105.0.20 }
 
-// INSTRUCTION: Define IPv6 OPC UA client and server.
+// IPv6 OPC UA client and server.
 host opc_v6_client { ip 2001:db8:4840::10 }
-// INSTRUCTION: Define IPv6 OPC UA PLC endpoint.
+
 host opc_v6_server { ip 2001:db8:4840::20 }
 
-// INSTRUCTION: Define dual-stack flow reading turbine RPM node over IPv4 and IPv6.
+// Dual-stack flow reading turbine RPM node over IPv4 and IPv6. Encapsulation
+// and QoS markings: DSCP 46. Runs the same flow definition over both IPv4 and
+// IPv6 host pairs. OPC UA message sequence: MSG on TCP port 4840.
 flow opcua_dual_stack_poll(c, s) {
     c -> s opcua msgtype "msg" chunktype "f" securechannelid 9 tokenid 1 seqnum 1 reqid 1 nodeid "ns=3;i=1001" dscp 46 ttl 64 flowlabel 0x48400
     c <- s opcua msgtype "msg" chunktype "f" securechannelid 9 tokenid 1 seqnum 2 reqid 1 nodeid "ns=3;i=1001" dscp 46 ttl 64 flowlabel 0x48400
 }
 
-// INSTRUCTION: Compile polymorphic flow across IPv4 and IPv6 endpoint pairs.
 compile {
     opcua_dual_stack_poll(opc_v4_client, opc_v4_server)
     opcua_dual_stack_poll(opc_v6_client, opc_v6_server)

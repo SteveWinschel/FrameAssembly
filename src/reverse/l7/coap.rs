@@ -72,34 +72,42 @@ pub(crate) fn dissect_coap(
     while idx < payload.len() {
         if payload[idx] == 0xFF {
             idx += 1;
+            if idx == payload.len() {
+                return None;
+            }
             break;
         }
         let delta = (payload[idx] >> 4) as u16;
         let olen_nib = (payload[idx] & 0x0F) as usize;
-        if delta >= 13 || olen_nib >= 14 {
+        if delta >= 13 || olen_nib >= 15 {
             return None;
         }
         idx += 1;
         let olen = if olen_nib == 13 {
-            if idx >= payload.len() {
-                return None;
-            }
-            let ext = payload[idx] as usize;
+            let ext = *payload.get(idx)? as usize;
             idx += 1;
             13 + ext
+        } else if olen_nib == 14 {
+            if idx + 2 > payload.len() {
+                return None;
+            }
+            let ext = u16::from_be_bytes([payload[idx], payload[idx + 1]]) as usize;
+            idx += 2;
+            269 + ext
         } else {
             olen_nib
         };
-        if idx + olen > payload.len() {
+        let val_end = idx.checked_add(olen)?;
+        if val_end > payload.len() {
             return None;
         }
         opt_num += delta;
-        let oval = &payload[idx..idx + olen];
-        idx += olen;
+        let oval = &payload[idx..val_end];
+        idx = val_end;
         match opt_num {
             11 => {
                 let seg = core::str::from_utf8(oval).ok()?;
-                if !is_valid_raw_str(seg) {
+                if seg.is_empty() || seg.contains('/') || !is_valid_raw_str(seg) {
                     return None;
                 }
                 path_segs.push(seg);

@@ -1,19 +1,20 @@
-// PROMPT: EtherNet/IP NOP (0x0000) encapsulation command checking TCP port 44818 link liveness without response.
-// TOKENS: host, ip, mac, flow, s, ethernetip, cmd, sessionhandle, context, payload, wait, ms, status, compile
+// EtherNet/IP NOP (0x0000) encapsulation command checking TCP port 44818 link
+// liveness without response.
+// Wireshark: enip || cip
 
-// INSTRUCTION: Define the Rockwell ControlLogix scanner PLC.
+// Rockwell ControlLogix scanner PLC.
 host clx_scanner {
     ip 10.135.1.1
     mac 00:1a:2b:87:01:01
 }
 
-// INSTRUCTION: Define the Stratix managed switch EtherNet/IP agent.
+// Stratix managed switch EtherNet/IP agent.
 host stratix_switch {
     ip 10.135.1.254
     mac 00:1a:2b:87:01:fe
 }
 
-// INSTRUCTION: Send two NOP encapsulation frames followed by a ListIdentity check.
+// Send two NOP encapsulation frames followed by a ListIdentity check.
 flow enip_nop_keepalive(c, s) {
     c -> s ethernetip cmd "nop" sessionhandle 1024 context 0 payload "ENIP_NOP_PADDING" wait 5ms
     c -> s ethernetip cmd "nop" sessionhandle 1024 context 0 payload "ENIP_NOP_PADDING" wait 5ms
@@ -21,7 +22,6 @@ flow enip_nop_keepalive(c, s) {
     c <- s ethernetip cmd "listidentity" status 0 sessionhandle 1024 context 99
 }
 
-// INSTRUCTION: Compile the EtherNet/IP NOP keepalive flow.
 compile {
     enip_nop_keepalive(clx_scanner, stratix_switch)
 }

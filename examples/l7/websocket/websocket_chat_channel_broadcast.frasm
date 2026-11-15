@@ -1,19 +1,17 @@
-// PROMPT: Multi-user chat broadcast message delivered via WebSocket text frame.
-// TOKENS: host, ip, flow, s, websocket, opcode, finbit, maskkey, compile
+// Multi-user chat broadcast message delivered via WebSocket text frame.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define chat client user node.
 host chat_user { ip 192.168.55.19 }
 
-// INSTRUCTION: Define chat channel relay server.
 host chat_relay { ip 192.168.55.1 }
 
-// INSTRUCTION: Define chat message exchange flow.
 flow ws_chat_flow(c, s) {
     c -> s websocket opcode "text" finbit 1 maskkey 1234567890
     c <- s websocket opcode "text" finbit 1 maskkey 0
 }
 
-// INSTRUCTION: Compile block executing chat message delivery.
 compile {
     ws_chat_flow(chat_user, chat_relay)
 }

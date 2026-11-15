@@ -1,18 +1,19 @@
-// PROMPT: 1-in-1000 sampled IPFIX export from enterprise edge gateway reporting egress stats.
-// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, proto, packets, octets, compile
+// 1-in-1000 sampled IPFIX export from enterprise edge gateway reporting
+// egress stats.
+// Wireshark: cflow || udp.port == 4739
 
-// INSTRUCTION: Define enterprise Internet edge firewall.
+// Enterprise Internet edge firewall.
 host edge_firewall { ip 198.51.100.1 }
 
-// INSTRUCTION: Define security information and event collector.
+// Security information and event collector.
 host siem_collector { ip 198.51.100.50 }
 
-// INSTRUCTION: Define sampled egress IPFIX export flow.
+// Sampled egress IPFIX export flow. Reports IP protocol 6 (TCP) flow records
+// to UDP 4739.
 flow sampled_egress_flow(fw, siem) {
     fw -> siem ipfix domainid 1000 srcip 10.1.50.120 dstip 198.51.100.254 proto 6 packets 1000 octets 1420000
 }
 
-// INSTRUCTION: Compile enterprise sampled export scenario.
 compile {
     sampled_egress_flow(edge_firewall, siem_collector)
 }

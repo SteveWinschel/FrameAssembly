@@ -1,25 +1,27 @@
-// PROMPT: Customer Edge (CE) to Customer Edge (CE) RFC 4303 IPsec ESP encryption traversing an MPLS L3VPN provider core.
-// TOKENS: host, ip, mac, flow, esp, spi, seq, iv, icv, nextheader, mpls, exp, bos, mplsttl, df, dscp, ttl, payload, wait, ms, compile
+// Customer Edge (CE) to Customer Edge (CE) RFC 4303 IPsec ESP encryption
+// traversing an MPLS L3VPN provider core.
+// This capture wraps frames in MPLS label 35001/35002, sets DSCP 32, TTL 62,
+// DF bit set, carries SPI 350011/350012, and uses post-packet wait gaps (6ms)
+// between frames.
+// Wireshark: esp && mpls
 
-// INSTRUCTION: Define Customer Edge router CE-West encrypting payload prior to MPLS PE handoff.
 host ce_west_esp {
     ip 10.150.1.1
     mac 00:24:38:96:01:01
 }
 
-// INSTRUCTION: Define Customer Edge router CE-East decrypting ESP payload after MPLS label disposition.
 host ce_east_esp {
     ip 10.150.2.1
     mac 00:24:38:96:02:01
 }
 
-// INSTRUCTION: Define MPLS-labeled ESP frames with VRF label 35001 and EXP 4.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow esp_ce_over_mpls_vpn(west, east) {
     west -> east esp spi 350011 seq 10 iv "3500110035001100" icv "aabbccddeeff001122334455" nextheader 4 mpls 35001 exp 4 bos 1 mplsttl 62 df dscp 32 ttl 62 payload "CE_FIN_REQ" wait 6ms
     west <- east esp spi 350012 seq 10 iv "3500120035001200" icv "554433221100ffeeddccbbaa" nextheader 4 mpls 35002 exp 4 bos 1 mplsttl 62 df dscp 32 ttl 62 payload "CE_FIN_ACK"
 }
 
-// INSTRUCTION: Compile the CE-to-CE IPsec ESP over MPLS L3VPN flow.
+// Run esp_ce_over_mpls_vpn(ce_west_esp, ce_east_esp) to generate the capture.
 compile {
     esp_ce_over_mpls_vpn(ce_west_esp, ce_east_esp)
 }

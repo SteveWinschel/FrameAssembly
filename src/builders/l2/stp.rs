@@ -52,10 +52,11 @@ fn encode_bridge_id(id_str: Option<&str>, default_mac: [u8; 6]) -> [u8; 8] {
     }
 
     let hex_candidate = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).unwrap_or(s);
-    if hex_candidate.len() <= 16 && hex_candidate.chars().all(|c| c.is_ascii_hexdigit()) {
-        if let Ok(val) = u64::from_str_radix(hex_candidate, 16) {
-            return val.to_be_bytes();
-        }
+    if hex_candidate.len() <= 16
+        && hex_candidate.chars().all(|c| c.is_ascii_hexdigit())
+        && let Ok(val) = u64::from_str_radix(hex_candidate, 16)
+    {
+        return val.to_be_bytes();
     }
 
     let bytes = s.as_bytes();

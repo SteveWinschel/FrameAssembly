@@ -1,18 +1,18 @@
-// PROMPT: IPsec Encapsulating Security Payload packet transmission with SPI and sequence number.
-// TOKENS: host, ip, flow, esp, spi, seq, compile
+// IPsec Encapsulating Security Payload packet transmission with SPI and
+// sequence number.
+// This capture carries SPI 5001.
+// Wireshark: esp
 
-// INSTRUCTION: Define IPsec security gateway 1.
 host ipsec_gw1 { ip 198.51.100.1 }
 
-// INSTRUCTION: Define IPsec security gateway 2.
 host ipsec_gw2 { ip 198.51.100.2 }
 
-// INSTRUCTION: Define ESP security encapsulation flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow esp_vpn_flow(gw1, gw2) {
     gw1 -> gw2 esp spi 5001 seq 1
 }
 
-// INSTRUCTION: Compile block executing ESP security transmission.
+// Run esp_vpn_flow(ipsec_gw1, ipsec_gw2) to generate the capture.
 compile {
     esp_vpn_flow(ipsec_gw1, ipsec_gw2)
 }

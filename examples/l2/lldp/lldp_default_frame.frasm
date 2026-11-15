@@ -1,0 +1,13 @@
+// Minimal two-block IEEE 802.1AB LLDP advertisement starter for switch neighbor tests.
+// Sends Ethernet II EtherType 0x88CC to Nearest Bridge multicast 01:80:c2:00:00:0e
+// with automatic MAC Chassis ID, Port ID "eth0", TTL 120 seconds, and End TLV.
+// Preview with `frameassembly show lldp_default_frame.frasm` or build a capture
+// using `frameassembly lldp_default_frame.frasm`.
+// Wireshark: lldp
+
+host switch_port_tx { mac 00:1c:73:12:00:01 }
+host neighbor_rx { mac 00:1c:73:12:00:02 }
+
+compile {
+    switch_port_tx -> neighbor_rx lldp
+}

@@ -1,27 +1,26 @@
-// PROMPT: Industrial OT IEC 61850 substation VLAN 250 with high-priority PCP 6 Modbus and PTP time sync.
-// TOKENS: host, ip, mac, flow, vlan, pcp, dei, ptp, sync, seqid, followup, wait, us, modbus, func, readinputregisters, ms, compile
+// Industrial OT IEC 61850 substation VLAN 250 with high-priority PCP 6 Modbus and
+// PTP time sync.
+// Wire profile: 4 frames; 2 IPv4 hosts; VLAN 250; PCP 5,6; PTP, Modbus; waits
+// 500us, 2ms.
+// Wireshark: vlan.id == 250 && vlan.priority == 5
 
-// INSTRUCTION: Define substation grandmaster clock and SCADA master on VLAN 250.
 host substation_master {
     ip 10.61.250.1
     mac 00:80:f4:61:fa:01
 }
 
-// INSTRUCTION: Define bay controller Intelligent Electronic Device (IED) on VLAN 250.
 host bay_ied_controller {
     ip 10.61.250.25
     mac 00:80:f4:61:fa:19
 }
 
-// INSTRUCTION: Define prioritized VLAN 250 IEEE 1588 PTP synchronization and Modbus register poll.
 flow ot_substation_vlan(master, ied) {
-    master -> ied vlan 250 pcp 6 dei 0 ptp sync seqid 901
-    master -> ied vlan 250 pcp 6 dei 0 ptp followup seqid 901 wait 500us
+    master -> ied vlan 250 pcp 6 dei 0 ptp sync seqid 901 wait 500us
+    master -> ied vlan 250 pcp 6 dei 0 ptp followup seqid 901 wait 2ms
     master -> ied vlan 250 pcp 5 dei 0 modbus func readinputregisters wait 2ms
-    master <- ied vlan 250 pcp 5 dei 0 modbus func readinputregisters wait 2ms
+    master <- ied vlan 250 pcp 5 dei 0 modbus func readinputregisters
 }
 
-// INSTRUCTION: Compile block executing industrial OT VLAN 250 telemetry.
 compile {
     ot_substation_vlan(substation_master, bay_ied_controller)
 }

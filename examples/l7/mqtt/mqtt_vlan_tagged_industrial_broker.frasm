@@ -1,18 +1,19 @@
-// PROMPT: Manufacturing shop floor IoT gateway communicating with broker over tagged VLAN.
-// TOKENS: host, ip, flow, mqtt, connect, clientid, vlan, pcp, dei, compile
+// Manufacturing shop floor IoT gateway communicating with broker over tagged
+// VLAN.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define shop floor telemetry gateway.
+// Shop floor telemetry gateway.
 host shopfloor_gw { ip 10.90.1.25 }
 
-// INSTRUCTION: Define factory MQTT cluster broker on VLAN 90.
+// Factory MQTT cluster broker on VLAN 90.
 host plant_broker { ip 10.90.1.5 }
 
-// INSTRUCTION: Define tagged VLAN CONNECT session initiation.
+// Tagged VLAN CONNECT session initiation. Encapsulation and QoS markings:
+// 802.1Q VLAN 90.
 flow vlan_mqtt_connect(gw, brk) {
     gw -> brk mqtt connect clientid "shopfloor-gw-01" vlan 90 pcp 5 dei 0
 }
 
-// INSTRUCTION: Compile VLAN tagged industrial broker scenario.
 compile {
     vlan_mqtt_connect(shopfloor_gw, plant_broker)
 }

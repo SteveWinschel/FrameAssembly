@@ -1,25 +1,23 @@
-// PROMPT: Primary root bridge (priority 24576) and secondary root bridge (priority 28672) exchanging classic 802.1D Configuration BPDUs.
-// TOKENS: host, ip, mac, flow, pri, stp, rootid, bridgeid, cost, portid, maxage, hellotime, forwarddelay, flags, wait, ms, compile
+// Primary root bridge (priority 24576) and secondary root bridge (priority 28672)
+// exchanging classic 802.1D Configuration BPDUs.
+// Wire profile: 2 frames; 2 IPv4 hosts; STP; waits 5ms.
+// Wireshark: stp
 
-// INSTRUCTION: Define campus core switch 1 configured with primary root macro priority 24576.
 host core_root_primary {
     ip 172.16.1.1
     mac 00:1b:21:10:01:01
 }
 
-// INSTRUCTION: Define campus core switch 2 configured with secondary root macro priority 28672.
 host core_root_secondary {
     ip 172.16.1.2
     mac 00:1b:21:10:01:02
 }
 
-// INSTRUCTION: Exchange initial Configuration BPDUs and converge on core_root_primary as Root Bridge.
 flow stp_primary_secondary_root(pri, sec) {
     sec -> pri stp rootid "28672:00:1b:21:10:01:02" bridgeid "28672:00:1b:21:10:01:02" cost 0 portid 32769 maxage 20 hellotime 2 forwarddelay 15 flags 0 wait 5ms
     pri -> sec stp rootid "24576:00:1b:21:10:01:01" bridgeid "24576:00:1b:21:10:01:01" cost 0 portid 32769 maxage 20 hellotime 2 forwarddelay 15 flags 0
 }
 
-// INSTRUCTION: Compile the campus primary/secondary root bridge election trace.
 compile {
     stp_primary_secondary_root(core_root_primary, core_root_secondary)
 }

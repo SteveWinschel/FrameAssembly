@@ -1,19 +1,21 @@
-// PROMPT: Model a Telnet Binary Transmission (Option 0, RFC 856) negotiation for 8-bit clean data transfer.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, telnet, do, will, payload, compile
+// Model a Telnet Binary Transmission (Option 0, RFC 856) negotiation for
+// 8-bit clean data transfer.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Telnet on TCP 23 negotiating option(s): 0 (Binary).
+// Overrides destination port to 23.
+// Wireshark: telnet
 
-// INSTRUCTION: Define host endpoint ind_term.
 host ind_term {
     mac 00:1b:21:00:23:05
     ip 10.55.23.5
 }
 
-// INSTRUCTION: Define host endpoint plc_gw.
 host plc_gw {
     mac 00:1b:21:00:23:50
     ip 10.55.23.50
 }
 
-// INSTRUCTION: Negotiate bidirectional Telnet Binary Transmission (Option 0) and send 8-bit frame data.
 flow telnet_binary_transmission_rfc856(ind_term, plc_gw) {
     ind_term -> plc_gw tcp syn srcport 56023 dstport 23
     plc_gw -> ind_term tcp syn ack
@@ -26,7 +28,6 @@ flow telnet_binary_transmission_rfc856(ind_term, plc_gw) {
     plc_gw -> ind_term telnet payload "8BIT-BINARY-ACK-FRAME"
 }
 
-// INSTRUCTION: Compile the Telnet Option 0 binary transmission flow.
 compile {
     telnet_binary_transmission_rfc856(ind_term, plc_gw)
 }

@@ -1,18 +1,17 @@
-// PROMPT: LDAP directory BindResponse confirming successful administrative authentication.
-// TOKENS: host, ip, flow, s, ldap, bindres, msgid, resultcode, compile
+// LDAP directory BindResponse confirming successful administrative
+// authentication.
+// Wireshark: ldap
 
-// INSTRUCTION: Define administrative management console.
+// Administrative management console.
 host admin_console { ip 10.0.15.50 }
 
-// INSTRUCTION: Define directory service LDAP server.
 host ldap_server { ip 10.0.15.1 }
 
-// INSTRUCTION: Define BindResponse success flow.
+// BindResponse success flow. LDAP result codes: 0 (success).
 flow bind_response_flow(c, s) {
     c <- s ldap bindres msgid 1 resultcode 0
 }
 
-// INSTRUCTION: Compile LDAP BindResponse success scenario.
 compile {
     bind_response_flow(admin_console, ldap_server)
 }

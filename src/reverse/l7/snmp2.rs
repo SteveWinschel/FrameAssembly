@@ -46,7 +46,7 @@ pub(crate) fn v2_pdu_keyword(pdus: &rasn_snmp::v2::Pdus) -> Option<&'static str>
         Pdus::GetBulkRequest(_) => Some("getbulk"),
         Pdus::Response(_) => Some("response"),
         Pdus::SetRequest(_) => Some("set"),
-        Pdus::Report(_) => None,
+        Pdus::Report(_) => Some("report"),
     }
 }
 
@@ -83,7 +83,10 @@ pub(crate) fn append_v2_pdu_body_tokens(
             push_if(tokens, "maxrepetitions", bulk.max_repetitions, 10);
             append_v2_vb_list(tokens, &bulk.variable_bindings)
         }
-        Pdus::Report(_) => None,
+        Pdus::Report(rep) => {
+            push_if(tokens, "reqid", rep.0.request_id as u32, 1);
+            append_v2_vb_list(tokens, &rep.0.variable_bindings)
+        }
     }
 }
 

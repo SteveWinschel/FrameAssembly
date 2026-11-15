@@ -1,25 +1,24 @@
-// PROMPT: Metro Ethernet QinQ double-tagged ARP request and reply between customer branch routers.
-// TOKENS: host, ip, mac, flow, qinq, innervlan, arp, request, reply, wait, ms, compile
+// Metro Ethernet QinQ double-tagged ARP request and reply between customer branch
+// routers.
+// Wire profile: 2 frames; 2 IPv4 hosts; QinQ S-VLAN 300 / C-VLAN 100; ARP; waits
+// 4ms.
+// Wireshark: arp
 
-// INSTRUCTION: Define customer branch router East.
 host ce_branch_east {
     ip 172.22.100.1
     mac 00:1e:67:aa:bb:01
 }
 
-// INSTRUCTION: Define customer branch router West.
 host ce_branch_west {
     ip 172.22.100.2
     mac 00:1e:67:aa:bb:02
 }
 
-// INSTRUCTION: Define QinQ encapsulated ARP resolution across service provider L2VPN.
 flow qinq_arp_exchange(east, west) {
-    east -> west qinq 300 innervlan 100 arp request
-    east <- west qinq 300 innervlan 100 arp reply wait 4ms
+    east -> west qinq 300 innervlan 100 arp request wait 4ms
+    east <- west qinq 300 innervlan 100 arp reply
 }
 
-// INSTRUCTION: Compile block executing double-tagged QinQ ARP resolution.
 compile {
     qinq_arp_exchange(ce_branch_east, ce_branch_west)
 }

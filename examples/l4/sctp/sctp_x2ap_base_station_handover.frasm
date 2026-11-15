@@ -1,26 +1,26 @@
-// PROMPT: 4G/5G X2AP and XnAP inter-base-station handover preparation over SCTP port 36422 (PPID 27) with VLAN tagging.
-// TOKENS: host, ip, mac, flow, vlan, pcp, dscp, sctp, chunk, data, vtag, stream, ssn, ppid, srcport, dstport, payload, sack, wait, ms, compile
+// 4G/5G X2AP and XnAP inter-base-station handover preparation over SCTP port
+// 36422 (PPID 27) with VLAN tagging.
+// Wire profile: 3 frames; 2 IPv4 hosts; VLAN 364; PCP 5; SCTP; SCTP DATA/SACK;
+// PPID 27; dstport 36422; DSCP 46; waits 1ms.
+// Wireshark: sctp && sctp.data_ppid == 27
 
-// INSTRUCTION: Define source eNodeB/gNodeB initiating UE handover.
 host source_ran_node {
     ip 172.26.36.1
     mac 00:1e:be:26:36:01
 }
 
-// INSTRUCTION: Define target neighbor eNodeB/gNodeB accepting UE handover.
 host target_ran_node {
     ip 172.26.36.2
     mac 00:1e:be:26:36:02
 }
 
-// INSTRUCTION: Define X2AP Handover Request and Handover Request Acknowledge over SCTP port 36422.
 flow sctp_x2ap_handover(src_ran, tgt_ran) {
     src_ran -> tgt_ran vlan 364 pcp 5 dscp 46 sctp chunk data vtag 364220 stream 0 ssn 1 ppid 27 srcport 36422 dstport 36422 payload "x2ap_handover_request_ue_x2_id_42"
+        wait 1ms
     src_ran <- tgt_ran vlan 364 pcp 5 dscp 46 sctp chunk sack vtag 364220 srcport 36422 dstport 36422 wait 1ms
-    src_ran <- tgt_ran vlan 364 pcp 5 dscp 46 sctp chunk data vtag 364220 stream 0 ssn 1 ppid 27 srcport 36422 dstport 36422 payload "x2ap_handover_request_ack_gtp_teid" wait 1ms
+    src_ran <- tgt_ran vlan 364 pcp 5 dscp 46 sctp chunk data vtag 364220 stream 0 ssn 1 ppid 27 srcport 36422 dstport 36422 payload "x2ap_handover_request_ack_gtp_teid"
 }
 
-// INSTRUCTION: Compile block executing X2AP inter-base-station handover over SCTP.
 compile {
     sctp_x2ap_handover(source_ran_node, target_ran_node)
 }

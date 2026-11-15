@@ -1,19 +1,20 @@
-// PROMPT: Generate a unicast IPv6 Neighbor Unreachability Detection (NUD) probe and reachability confirmation
-// TOKENS: host, ip, mac, flow, ndp, neighborsolicit, target, slla, ttl, wait, ms, neighboradvert, tlla, compile
+// Generate a unicast IPv6 Neighbor Unreachability Detection (NUD) probe and
+// reachability confirmation.
+// This capture targets IPv6 endpoints, sets TTL 255, and uses post-packet
+// wait gaps (5ms, 20ms) between frames.
+// Wireshark: icmpv6.nd
 
-// INSTRUCTION: Define the probing IPv6 application server
 host app_node_v6 {
     ip 2001:db8:30::11
     mac 00:16:3e:d2:00:11
 }
 
-// INSTRUCTION: Define the neighbor IPv6 database server being verified
 host db_node_v6 {
     ip 2001:db8:30::22
     mac 00:16:3e:d2:00:22
 }
 
-// INSTRUCTION: Exchange unicast Neighbor Solicitation and Neighbor Advertisement frames for NUD
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow ndp_nud_unicast_probe(prober, neighbor) {
     prober -> neighbor ndp neighborsolicit target 2001:db8:30::22 slla 00:16:3e:d2:00:11 ttl 255 wait 5ms
     neighbor -> prober ndp neighboradvert target 2001:db8:30::22 tlla 00:16:3e:d2:00:22 ttl 255 wait 20ms
@@ -21,7 +22,7 @@ flow ndp_nud_unicast_probe(prober, neighbor) {
     prober -> neighbor ndp neighboradvert target 2001:db8:30::11 tlla 00:16:3e:d2:00:11 ttl 255
 }
 
-// INSTRUCTION: Compile the bidirectional NUD reachability verification flow
+// Run ndp_nud_unicast_probe(app_node_v6, db_node_v6) to generate the capture.
 compile {
     ndp_nud_unicast_probe(app_node_v6, db_node_v6)
 }

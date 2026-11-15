@@ -1,19 +1,19 @@
-// PROMPT: Siemens S7comm PLC_CONTROL (0x28) job stopping and restarting an S7-300 CPU during maintenance.
-// TOKENS: host, ip, mac, flow, s7comm, rosctr, pduref, func, payload, wait, ms, compile
+// Siemens S7comm PLC_CONTROL (0x28) job stopping and restarting an S7-300 CPU
+// during maintenance.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define the SIMATIC STEP 7 engineering station.
 host step7_pg {
     ip 10.130.1.50
     mac 00:1a:2b:82:01:50
 }
 
-// INSTRUCTION: Define the Siemens S7-300 CPU 315-2 PN/DP controller.
 host s7_300_cpu {
     ip 10.130.1.1
     mac 00:1a:2b:82:01:01
 }
 
-// INSTRUCTION: Send PLC_CONTROL JOB with PDU_REF 10 to transition the PLC run mode and receive ACK_DATA.
 flow s7_cpu_mode_ctrl(pg, plc) {
     pg -> plc s7comm rosctr "job" pduref 10 func "plccontrol" payload "P_PROGRAM"
     pg <- plc s7comm rosctr "ackdata" pduref 10 func "plccontrol" wait 5ms
@@ -21,7 +21,6 @@ flow s7_cpu_mode_ctrl(pg, plc) {
     pg <- plc s7comm rosctr "ackdata" pduref 11 func "plccontrol"
 }
 
-// INSTRUCTION: Compile the S7comm PLC_CONTROL mode transition flow.
 compile {
     s7_cpu_mode_ctrl(step7_pg, s7_300_cpu)
 }

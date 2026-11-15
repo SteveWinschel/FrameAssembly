@@ -1,26 +1,27 @@
-// PROMPT: RFC 5880 BFD session transitioning to Down with Diagnostic Code 2 (Echo Function Failed) over UDP 3784.
-// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, dscp, ttl, wait, ms, compile
+// RFC 5880 BFD session transitioning to Down with Diagnostic Code 2 (Echo
+// Function Failed) over UDP 3784.
+// This capture sets DSCP 48, TTL 255, carries BFD state 1/3, diag 0/2, and
+// uses post-packet wait gaps (15ms, 5ms) between frames.
+// Wireshark: bfd
 
-// INSTRUCTION: Define access aggregation router running BFD Echo modeloopback checks.
 host bfd_echo_agg {
     ip 172.16.37.1
     mac 00:1e:be:37:00:01
 }
 
-// INSTRUCTION: Define customer edge router whose forwarding path dropped BFD Echo frames.
 host bfd_echo_ce {
     ip 172.16.37.2
     mac 00:1e:be:37:00:02
 }
 
-// INSTRUCTION: Define BFD session signaling STATE 1 (Down) and DIAG 2 (Echo Function Failed).
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow bfd_echo_fail_diag(agg, ce) {
     agg -> ce bfd state 3 diag 0 mydisc 37851 yourdisc 37852 mintx 100000 minrx 100000 mult 3 dscp 48 ttl 255 wait 15ms
     agg -> ce bfd state 1 diag 2 mydisc 37851 yourdisc 0 mintx 1000000 minrx 1000000 mult 3 dscp 48 ttl 255 wait 5ms
     agg <- ce bfd state 1 diag 3 mydisc 37852 yourdisc 0 mintx 1000000 minrx 1000000 mult 3 dscp 48 ttl 255
 }
 
-// INSTRUCTION: Compile the BFD Echo Function Failed diagnostic transition flow.
+// Run bfd_echo_fail_diag(bfd_echo_agg, bfd_echo_ce) to generate the capture.
 compile {
     bfd_echo_fail_diag(bfd_echo_agg, bfd_echo_ce)
 }

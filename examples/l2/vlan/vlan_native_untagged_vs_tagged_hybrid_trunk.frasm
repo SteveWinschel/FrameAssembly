@@ -1,25 +1,23 @@
-// PROMPT: Hybrid switch port contrasting standalone IEEE 802.1Q VLAN 100 control frames with priority-tagged VLAN 200 frames.
-// TOKENS: host, ip, mac, flow, vlan, pcp, dei, payload, wait, ms, compile
+// Hybrid switch port contrasting standalone IEEE 802.1Q VLAN 100 control frames
+// with priority-tagged VLAN 200 frames.
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 100,200; PCP 0,5; VLAN; waits 5ms.
+// Wireshark: vlan.id == 100 || vlan.id == 200
 
-// INSTRUCTION: Define hybrid switch trunk interface A.
 host hybrid_trunk_a {
     ip 10.10.100.1
     mac 00:1c:73:0a:64:01
 }
 
-// INSTRUCTION: Define hybrid switch trunk interface B.
 host hybrid_trunk_b {
     ip 10.10.100.2
     mac 00:1c:73:0a:64:02
 }
 
-// INSTRUCTION: Transmit standalone Layer 2 VLAN 100 and VLAN 200 test frames with custom ASCII payloads.
 flow vlan_hybrid_standalone(a, b) {
     a -> b vlan 100 pcp 0 dei 0 payload "hybrid_port_vlan100_untagged_equivalent" wait 5ms
     a <- b vlan 200 pcp 5 dei 1 payload "hybrid_port_vlan200_tagged_drop_eligible"
 }
 
-// INSTRUCTION: Compile the standalone IEEE 802.1Q VLAN 100 and VLAN 200 hybrid trunk flow.
 compile {
     vlan_hybrid_standalone(hybrid_trunk_a, hybrid_trunk_b)
 }

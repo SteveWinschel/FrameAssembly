@@ -1,19 +1,21 @@
-// PROMPT: Simulate a TACACS+ authorization request returning AUTHOR_STATUS_PASS_REPL to rewrite a user's command arguments.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, tacacs, author, sessionid, user, payload, compile
+// Simulate a TACACS+ authorization request returning AUTHOR_STATUS_PASS_REPL
+// to rewrite a user's command arguments.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// TACACS+ on TCP 49 (author).
+// Overrides destination port to 49.
+// Wireshark: tacplus
 
-// INSTRUCTION: Define host endpoint leaf_sw.
 host leaf_sw {
     mac 00:1e:67:49:30:01
     ip 10.39.1.11
 }
 
-// INSTRUCTION: Define host endpoint policy_srv.
 host policy_srv {
     mac 00:1e:67:49:30:02
     ip 10.39.1.2
 }
 
-// INSTRUCTION: Authorize a ping command and return AUTHOR_STATUS_PASS_REPL restricting the repeat count.
 flow tacacs_author_pass_replace(leaf_sw, policy_srv) {
     leaf_sw -> policy_srv tcp syn srcport 59049 dstport 49
     policy_srv -> leaf_sw tcp syn ack
@@ -22,7 +24,6 @@ flow tacacs_author_pass_replace(leaf_sw, policy_srv) {
     policy_srv -> leaf_sw tacacs author sessionid 50501 payload "AUTHOR_STATUS_PASS_REPL:cmd-arg=10.0.0.1 repeat 5"
 }
 
-// INSTRUCTION: Compile the TACACS+ AUTHOR_STATUS_PASS_REPL attribute replacement flow.
 compile {
     tacacs_author_pass_replace(leaf_sw, policy_srv)
 }

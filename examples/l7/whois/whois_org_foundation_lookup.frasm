@@ -1,13 +1,13 @@
-// PROMPT: Public interest foundation domain lookup query for open source project.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// Public interest foundation domain lookup query for open source project.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define developer audit client.
 host dev_audit { ip 192.168.10.45 }
 
-// INSTRUCTION: Define Public Interest Registry ORG server.
 host org_registry { ip 199.19.56.1 }
 
-// INSTRUCTION: Define foundation domain WHOIS lookup flow.
 flow whois_org_flow(c, s) {
     c -> s whois query domain "opensourcesoftware.org"
     c <- s whois response
@@ -15,7 +15,6 @@ flow whois_org_flow(c, s) {
         registrar "Public Interest Registry"
 }
 
-// INSTRUCTION: Compile block executing ORG domain query.
 compile {
     whois_org_flow(dev_audit, org_registry)
 }

@@ -1,25 +1,26 @@
-// PROMPT: Simulate a PTPv2 diagnostic probe using explicit MSG_TYPE string specification on Domain 15.
-// TOKENS: host, ip, mac, flow, ptp, msgtype, domain, seqid, clockid, wait, ms, compile
+// Simulate a PTPv2 diagnostic probe using explicit MSG_TYPE string
+// specification on Domain 15.
+// IEEE 1588v2 PTP (domain 15). UDP 319 handles Event messages (sync,
+// delayreq) and UDP 320 carries General messages (announce, followup,
+// delayresp).
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: ptp
 
-// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
 host ptp_grandmaster {
     ip 10.15.31.1
     mac 00:1b:21:31:90:01
 }
 
-// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
 host ptp_slave_clock {
     ip 10.15.31.9
     mac 00:1b:21:31:90:25
 }
 
-// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
 flow ptp_scenario_flow(gm, slv) {
     gm -> slv ptp msgtype "sync" domain 15 seqid 701 clockid "001b21fffe0f0001" wait 2ms
     gm -> slv ptp msgtype "followup" domain 15 seqid 701 clockid "001b21fffe0f0001"
 }
 
-// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
 compile {
     ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
 }

@@ -1,19 +1,16 @@
-// PROMPT: SIP signaling tagged on Voice VLAN 120 with 802.1p priority CoS 5.
-// TOKENS: host, ip, mac, flow, s, sip, invite, from, to, callid, cseq, vlan, pcp, dei, status, reason, compile
+// SIP signaling tagged on Voice VLAN 120 with 802.1p priority CoS 5.
+// Encapsulation and QoS markings: 802.1Q VLAN 120, 802.1p priority 5.
+// Wireshark: sip && vlan.id == 120
 
-// INSTRUCTION: Define IP phone on Voice VLAN 120.
 host voice_phone { ip 10.120.0.45 mac 00:04:f2:12:00:2d }
 
-// INSTRUCTION: Define corporate voice gateway.
 host voice_switch { ip 10.120.0.1 mac 00:04:f2:12:00:01 }
 
-// INSTRUCTION: Define prioritized SIP call setup on VLAN 120.
 flow sip_vlan_qos(c, s) {
     c -> s sip invite from "sip:line1@corp.lan" to "sip:reception@corp.lan" callid "vlan-call-55" cseq 1 vlan 120 pcp 5 dei 0
     c <- s sip status 200 reason "OK" callid "vlan-call-55" cseq 1 vlan 120 pcp 5 dei 0
 }
 
-// INSTRUCTION: Compile Voice VLAN prioritized SIP flow.
 compile {
     sip_vlan_qos(voice_phone, voice_switch)
 }

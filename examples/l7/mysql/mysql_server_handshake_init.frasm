@@ -1,18 +1,16 @@
-// PROMPT: MySQL initial server handshake greeting announcing version capabilities.
-// TOKENS: host, ip, flow, s, mysql, greeting, serverversion, compile
+// MySQL initial server handshake greeting announcing version capabilities.
+// Wireshark: mysql
+// Automatic Ethernet MAC addresses and TCP port 3306 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.100 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow mysql_greet(c, s) {
     c <- s mysql greeting serverversion "8.0.35"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     mysql_greet(client, server)
 }

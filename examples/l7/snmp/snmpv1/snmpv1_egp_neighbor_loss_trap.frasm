@@ -1,13 +1,12 @@
-// PROMPT: Generate an SNMPv1 egpNeighborLoss generic trap (GENTRAP 5) with EGP peer IPVAL and packet loss COUNTER32 variable bindings.
-// TOKENS: host, ip, mac, flow, snmp1, trap, community, oid, enterprise, agentip, gentrap, spectrap, sysuptime, varbind, ipval, counter32, compile
+// Generate an SNMPv1 egpNeighborLoss generic trap (gentrap 5) with EGP peer
+// IpAddress and packet loss Counter32 variable bindings.
+// MIB objects / traps: 1.3.6.1.6.3.1.1.5.6 (egpNeighborLoss).
+// Wireshark: snmp
 
-// INSTRUCTION: Define a legacy exterior gateway router with IP 10.105.0.1.
 host egp_router { ip 10.105.0.1 mac 00:00:0c:aa:05:01 }
 
-// INSTRUCTION: Define a core routing NMS with IP 10.105.0.250.
 host routing_nms { ip 10.105.0.250 mac 00:00:0c:aa:05:fa }
 
-// INSTRUCTION: Define a flow sending an SNMPv1 egpNeighborLoss trap (GENTRAP 5) with egpNeighAddr IPVAL and error COUNTER32 varbinds.
 flow snmpv1_egp_neighbor_loss(agent, nms) {
     agent -> nms snmp1 trap community "public" oid 1.3.6.1.6.3.1.1.5.6
         enterprise 1.3.6.1.2.1.8 agentip 10.105.0.1 gentrap 5 spectrap 0
@@ -16,7 +15,6 @@ flow snmpv1_egp_neighbor_loss(agent, nms) {
         varbind 1.3.6.1.2.1.8.5.1.5.192.0.2.9 counter32 42
 }
 
-// INSTRUCTION: Compile block to trigger the SNMPv1 egpNeighborLoss trap.
 compile {
     snmpv1_egp_neighbor_loss(egp_router, routing_nms)
 }

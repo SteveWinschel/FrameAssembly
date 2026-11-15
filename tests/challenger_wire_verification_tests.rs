@@ -21,14 +21,25 @@ use frameassembly::snmp_crypto::{
 use std::fs;
 use std::path::Path;
 
-/// Reads enhanced packet blocks from an emitted PCAPNG file.
+/// Reads packet frames from an emitted `.pcap` or `.pcapng` capture file.
 fn read_emitted_packets(path: &Path) -> Vec<Vec<u8>> {
-    let file = fs::File::open(path).expect("open pcap file");
-    let mut reader = pcap_file::pcapng::PcapNgReader::new(file).expect("pcapng reader");
+    let bytes = fs::read(path).expect("read pcap file");
     let mut packets = Vec::new();
-    while let Some(block) = reader.next_block() {
-        if let Ok(pcap_file::pcapng::Block::EnhancedPacket(epb)) = block {
-            packets.push(epb.data.to_vec());
+    if bytes.starts_with(&[0x0A, 0x0D, 0x0D, 0x0A]) {
+        let mut reader =
+            pcap_file::pcapng::PcapNgReader::new(std::io::Cursor::new(bytes)).expect("pcapng reader");
+        while let Some(block) = reader.next_block() {
+            if let Ok(pcap_file::pcapng::Block::EnhancedPacket(epb)) = block {
+                packets.push(epb.data.to_vec());
+            }
+        }
+    } else {
+        let mut reader =
+            pcap_file::pcap::PcapReader::new(std::io::Cursor::new(bytes)).expect("classic pcap reader");
+        while let Some(pkt) = reader.next_packet() {
+            if let Ok(pkt) = pkt {
+                packets.push(pkt.data.to_vec());
+            }
         }
     }
     packets
@@ -246,9 +257,9 @@ fn test_deterministic_mac_auto_derivation_invariants() {
     assert_eq!(&pkts[0][0..6], &[0x00, 0x00, 0x00, 0x00, 0x00, 0x02]); // callee dst
     assert_eq!(&pkts[0][6..12], &[0x00, 0x00, 0x00, 0x00, 0x00, 0x01]); // caller src
 
-    // Frame 1: IPv6 unicast
-    assert_eq!(&pkts[1][0..6], &[0x00, 0x00, 0x00, 0x00, 0x00, 0x02]); // callee dst
-    assert_eq!(&pkts[1][6..12], &[0x00, 0x00, 0x00, 0x00, 0x00, 0x01]); // caller src
+    // Frame 1: IPv6 unicast (caller_v6 is host #3, callee_v6 is host #4)
+    assert_eq!(&pkts[1][0..6], &[0x00, 0x00, 0x00, 0x00, 0x00, 0x04]); // callee dst
+    assert_eq!(&pkts[1][6..12], &[0x00, 0x00, 0x00, 0x00, 0x00, 0x03]); // caller src
 
     // Frame 2: RFC 2464 ff02::1 -> 33:33:00:00:00:01
     assert_eq!(&pkts[2][0..6], &[0x33, 0x33, 0x00, 0x00, 0x00, 0x01]);
@@ -460,7 +471,11 @@ fn test_wire_header_correctness_all_60_protocols() {
                 assert_eq!(outer_ethertype, 0x88A8, "QINQ Outer EtherType must be 0x88A8");
                 let vid = u16::from_be_bytes([pkt[14], pkt[15]]) & 0x0FFF;
                 assert_eq!(vid, 1, "Default QINQ Outer VID must be 1");
-                let next_ethertype = u16::from_be_bytes([pkt[16], pkt[17]]);
+                let inner_ethertype = u16::from_be_bytes([pkt[16], pkt[17]]);
+                assert_eq!(inner_ethertype, 0x8100, "Default QINQ Inner EtherType must be 0x8100");
+                let inner_vid = u16::from_be_bytes([pkt[18], pkt[19]]) & 0x0FFF;
+                assert_eq!(inner_vid, 1, "Default QINQ Inner VID must be 1");
+                let next_ethertype = u16::from_be_bytes([pkt[20], pkt[21]]);
                 assert_eq!(next_ethertype, 0x0800, "Default QINQ payload EtherType must be 0x0800");
             }
             "LLDP" => {

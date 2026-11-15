@@ -1,18 +1,17 @@
-// PROMPT: Data center network overlay virtualization using VXLAN tunneling protocol.
-// TOKENS: host, ip, flow, vxlan, vni, compile
+// Data center network overlay virtualization using VXLAN tunneling protocol.
+// This capture carries VNI 10000.
+// Wireshark: vxlan && vxlan.vni == 10000
 
-// INSTRUCTION: Define VTEP overlay gateway A.
 host vtep_a { ip 192.168.100.1 }
 
-// INSTRUCTION: Define VTEP overlay gateway B.
 host vtep_b { ip 192.168.100.2 }
 
-// INSTRUCTION: Define VXLAN tunnel transmission flow with VNI 10000.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vxlan_tunnel_flow(a, b) {
     a -> b vxlan vni 10000
 }
 
-// INSTRUCTION: Compile block executing VXLAN encapsulation.
+// Run vxlan_tunnel_flow(vtep_a, vtep_b) to generate the capture.
 compile {
     vxlan_tunnel_flow(vtep_a, vtep_b)
 }

@@ -1,25 +1,27 @@
-// PROMPT: RFC 2080 RIPng over IPv6 advertising default route ::/0 with Hop Limit 255 over UDP port 521.
-// TOKENS: host, ip, mac, flow, rip, response, prefix, metric, tag, srcport, dstport, dscp, ttl, payload, wait, ms, compile
+// RFC 2080 RIPng over IPv6 advertising default route ::/0 with Hop Limit 255
+// over UDP port 521.
+// This capture targets IPv6 endpoints, sets DSCP 48, TTL 255, carries
+// destination port 521, and uses post-packet wait gaps (10ms) between frames.
+// Wireshark: ripng
 
-// INSTRUCTION: Define IPv6 border router originating RIPng default route on link-local address.
 host ripng_v6_border {
     ip fe80::521:1
     mac 00:25:90:05:21:01
 }
 
-// INSTRUCTION: Define All-RIPng-Routers link-local multicast group ff02::9.
 host ripng_all_routers {
     ip ff02::9
     mac 33:33:00:00:00:09
 }
 
-// INSTRUCTION: Define RFC 2080 RIPng RESPONSE with TTL 255 (Hop Limit 255 mandatory per RFC 2080).
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow ripng_v6_default_route(border, mcast) {
     border -> mcast rip response prefix :: metric 1 tag 64512 srcport 521 dstport 521 dscp 48 ttl 255 payload "RIPNG_DEFAULT_ROUTE_FE80_521_1" wait 10ms
     border -> mcast rip response prefix 2001:db8:521:: metric 2 tag 64512 srcport 521 dstport 521 dscp 48 ttl 255 payload "RIPNG_CAMPUS_PREFIX_ADVERT"
 }
 
-// INSTRUCTION: Compile the RFC 2080 RIPng IPv6 default route advertisement flow.
+// Run ripng_v6_default_route(ripng_v6_border, ripng_all_routers) to generate
+// the capture.
 compile {
     ripng_v6_default_route(ripng_v6_border, ripng_all_routers)
 }

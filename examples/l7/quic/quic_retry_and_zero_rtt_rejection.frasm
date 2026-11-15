@@ -1,17 +1,17 @@
-// PROMPT: QUIC server rejecting unvalidated 0-RTT attempt with RETRY token before completing 1-RTT setup.
-// TOKENS: host, ip, flow, s, quic, initial, version, dcid, scid, pktnum, wait, ms, zerortt, retry, token, handshake, short, compile
+// QUIC server rejecting unvalidated 0-RTT attempt with RETRY token before
+// completing 1-RTT setup.
+// QUIC UDP 443 (v1) packet types: initial, zerortt, handshake, retry, short.
+// Timing: uses post-packet wait delays (1ms, 4ms) between frames.
+// Wireshark: quic
 
-// INSTRUCTION: Define client attempting optimistic 0-RTT resumption.
 host opt_client {
     ip 10.12.88.33
 }
 
-// INSTRUCTION: Define strict anti-amplification QUIC server enforcing Retry token validation.
 host strict_quic_srv {
     ip 10.12.88.1
 }
 
-// INSTRUCTION: Define Initial + 0-RTT rejected by RETRY, followed by tokenized Initial and Handshake.
 flow quic_retry_0rtt(c, s) {
     c -> s quic initial version 1 dcid 0x11110000 scid 0x22220000 pktnum 1 wait 1ms
     c -> s quic zerortt version 1 dcid 0x11110000 scid 0x22220000 pktnum 2 wait 4ms
@@ -21,7 +21,6 @@ flow quic_retry_0rtt(c, s) {
     c -> s quic short dcid 0x33330000 pktnum 4
 }
 
-// INSTRUCTION: Compile the QUIC Retry and 0-RTT rejection scenario.
 compile {
     quic_retry_0rtt(opt_client, strict_quic_srv)
 }

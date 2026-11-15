@@ -1,17 +1,16 @@
-// PROMPT: ONVIF Profile T intercom camera negotiating bidirectional audio backchannel via RTSP SETUP.
-// TOKENS: host, ip, flow, s, rtsp, describe, uri, cseq, wait, ms, status, setup, transporthdr, session, play, compile
+// ONVIF Profile T intercom camera negotiating bidirectional audio backchannel
+// via RTSP SETUP.
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: rtsp
 
-// INSTRUCTION: Define security guard station VMS console.
 host guard_vms {
     ip 192.168.105.10
 }
 
-// INSTRUCTION: Define front-gate ONVIF door intercom camera.
 host gate_intercom {
     ip 192.168.105.50
 }
 
-// INSTRUCTION: Define ONVIF RTSP setup for video track and audio backchannel track.
 flow rtsp_onvif_backchannel(c, s) {
     c -> s rtsp describe uri "rtsp://192.168.105.50/onvif-media/media.amp" cseq 1 wait 4ms
     c <- s rtsp status 200 cseq 1 wait 4ms
@@ -23,7 +22,6 @@ flow rtsp_onvif_backchannel(c, s) {
     c <- s rtsp status 200 cseq 4 session "onvif_bc_99"
 }
 
-// INSTRUCTION: Compile the ONVIF RTSP audio backchannel scenario.
 compile {
     rtsp_onvif_backchannel(guard_vms, gate_intercom)
 }

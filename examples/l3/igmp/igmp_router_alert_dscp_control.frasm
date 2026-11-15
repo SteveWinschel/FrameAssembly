@@ -1,18 +1,19 @@
-// PROMPT: IGMP query framed with network control DSCP CS6 and TTL 1 link-local scoping.
-// TOKENS: host, ip, flow, dst, igmp, query, maxresp, group, dscp, ttl, compile
+// IGMP query framed with network control DSCP CS6 and TTL 1 link-local
+// scoping.
+// This capture sets DSCP 48, TTL 1 and carries group 224.0.0.1.
+// Wireshark: igmp
 
-// INSTRUCTION: Define enterprise aggregation querier.
 host enterprise_querier { ip 10.60.0.1 }
 
-// INSTRUCTION: Define all-systems destination.
 host all_hosts_sub { ip 224.0.0.1 }
 
-// INSTRUCTION: Define QoS prioritized IGMP query flow with DSCP 48 (CS6) and TTL 1.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow igmp_control_query(q, dst) {
     q -> dst igmp query maxresp 60 group 224.0.0.1 dscp 48 ttl 1
 }
 
-// INSTRUCTION: Compile block executing prioritized IGMP query.
+// Run igmp_control_query(enterprise_querier, all_hosts_sub) to generate the
+// capture.
 compile {
     igmp_control_query(enterprise_querier, all_hosts_sub)
 }

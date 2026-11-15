@@ -1,26 +1,27 @@
-// PROMPT: SDN fabric controller injecting LLDP discovery probes via PACKET_OUT and receiving neighbor reports via PACKET_IN.
-// TOKENS: host, ip, mac, flow, openflow, type, packetout, version, xid, payload, wait, ms, packetin, flowmod, tableid, priority, compile
+// SDN fabric controller injecting LLDP discovery probes via packetout and
+// receiving neighbor reports via packetin.
+// This capture uses post-packet wait gaps (10ms) between frames.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define data center fabric SDN controller running link-discovery topology service.
 host fabric_topo_ctrl {
     ip 10.100.250.1
     mac 00:16:3e:64:fa:01
 }
 
-// INSTRUCTION: Define top-of-rack OpenFlow leaf switch executing controller-directed port operations.
 host tor_leaf_ofs {
     ip 10.100.250.12
     mac 00:16:3e:64:fa:0c
 }
 
-// INSTRUCTION: Inject synthetic LLDP frame via PACKET_OUT on port uplink and receive neighbor LLDP via PACKET_IN.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow openflow_topo_discovery(ctrl, leaf) {
     ctrl -> leaf openflow type packetout version 4 xid 510 payload "lldp_chassis_spine01_port_eth1" wait 10ms
     leaf -> ctrl openflow type packetin version 4 xid 511 payload "lldp_chassis_spine02_port_eth4" wait 10ms
     ctrl -> leaf openflow type flowmod version 4 xid 512 tableid 0 priority 50000
 }
 
-// INSTRUCTION: Compile the OpenFlow PACKET_OUT / PACKET_IN fabric topology discovery trace.
+// Run openflow_topo_discovery(fabric_topo_ctrl, tor_leaf_ofs) to generate the
+// capture.
 compile {
     openflow_topo_discovery(fabric_topo_ctrl, tor_leaf_ofs)
 }

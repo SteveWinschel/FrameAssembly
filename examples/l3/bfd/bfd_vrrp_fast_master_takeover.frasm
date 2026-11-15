@@ -1,26 +1,28 @@
-// PROMPT: BFD session tracking VRRP Master liveness to trigger immediate Backup-to-Master takeover in under 30ms.
-// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, dscp, ttl, wait, ms, compile
+// BFD session tracking VRRP Master liveness to trigger immediate
+// Backup-to-Master takeover in under 30ms.
+// This capture sets DSCP 48, TTL 255, carries BFD state 1/3, diag 0/5, and
+// uses post-packet wait gaps (10ms) between frames.
+// Wireshark: bfd
 
-// INSTRUCTION: Define VRRP Master router running 10ms BFD peer tracking.
 host vrrp_bfd_master {
     ip 192.168.112.2
     mac 00:00:5e:00:01:01
 }
 
-// INSTRUCTION: Define VRRP Backup router tracking Master health via BFD.
 host vrrp_bfd_backup {
     ip 192.168.112.3
     mac 00:19:bb:70:00:03
 }
 
-// INSTRUCTION: Define BFD Up exchange followed by Master Path Down (DIAG 5) triggering VRRP takeover.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow bfd_vrrp_tracking_flow(master, backup) {
     master -> backup bfd state 3 diag 0 mydisc 11201 yourdisc 11202 mintx 10000 minrx 10000 mult 3 dscp 48 ttl 255 wait 10ms
     master <- backup bfd state 3 diag 0 mydisc 11202 yourdisc 11201 mintx 10000 minrx 10000 mult 3 dscp 48 ttl 255 wait 10ms
     master -> backup bfd state 1 diag 5 mydisc 11201 yourdisc 11202 mintx 1000000 minrx 1000000 mult 3 dscp 48 ttl 255
 }
 
-// INSTRUCTION: Compile the BFD-tracked VRRP fast failover scenario.
+// Run bfd_vrrp_tracking_flow(vrrp_bfd_master, vrrp_bfd_backup) to generate
+// the capture.
 compile {
     bfd_vrrp_tracking_flow(vrrp_bfd_master, vrrp_bfd_backup)
 }

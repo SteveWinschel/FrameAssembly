@@ -1,28 +1,26 @@
-// PROMPT: Protected EAP (PEAPv0 / EAP-MSCHAPv2, Method 25) outer anonymous identity and inner tunnel negotiation.
-// TOKENS: host, ip, mac, flow, eapol, version, type, eappacket, eapcode, eapid, eapmethod, identity, wait, ms, payload, compile
+// Protected EAP (PEAPv0 / EAP-MSCHAPv2, Method 25) outer anonymous identity and
+// inner tunnel negotiation.
+// Wire profile: 5 frames; 2 IPv4 hosts; EAPOL; waits 2ms, 4ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define corporate Windows domain workstation supplicant.
 host peap_domain_pc {
     ip 172.17.25.44
     mac 00:21:70:19:00:2c
 }
 
-// INSTRUCTION: Define enterprise access switch forwarding EAP-PEAP to RADIUS.
 host peap_access_sw {
     ip 172.17.25.1
     mac 00:1b:54:19:00:01
 }
 
-// INSTRUCTION: Define PEAP (EAP_METHOD 25) anonymous outer identity and inner MSCHAPv2 tunnel setup.
 flow eapol_peap_mschapv2(pc, sw) {
-    pc <- sw eapol version 2 type eappacket eapcode 1 eapid 20 eapmethod 1
-    pc -> sw eapol version 2 type eappacket eapcode 2 eapid 20 eapmethod 1 identity "anonymous@corp.internal" wait 2ms
+    pc <- sw eapol version 2 type eappacket eapcode 1 eapid 20 eapmethod 1 wait 2ms
+    pc -> sw eapol version 2 type eappacket eapcode 2 eapid 20 eapmethod 1 identity "anonymous@corp.internal" wait 4ms
     pc <- sw eapol version 2 type eappacket eapcode 1 eapid 21 eapmethod 25 payload "peap_v0_tls_outer_tunnel_start" wait 4ms
     pc -> sw eapol version 2 type eappacket eapcode 2 eapid 21 eapmethod 25 payload "peap_v0_inner_eap_mschapv2_response" wait 4ms
-    pc <- sw eapol version 2 type eappacket eapcode 3 eapid 22 eapmethod 25 wait 4ms
+    pc <- sw eapol version 2 type eappacket eapcode 3 eapid 22 eapmethod 25
 }
 
-// INSTRUCTION: Compile block executing PEAPv0 authentication exchange.
 compile {
     eapol_peap_mschapv2(peap_domain_pc, peap_access_sw)
 }

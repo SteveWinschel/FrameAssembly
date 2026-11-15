@@ -1,19 +1,18 @@
-// PROMPT: NTP client synchronization with regional Stratum 2 time server over UDP 123.
-// TOKENS: host, ip, flow, s, ntp, mode, vn, stratum, poll, wait, ms, compile
+// NTP client synchronization with regional Stratum 2 time server over UDP
+// 123.
+// Wireshark: ntp
 
-// INSTRUCTION: Define campus time client workstation.
 host campus_client { ip 192.168.1.150 }
 
-// INSTRUCTION: Define regional Stratum 2 time server.
 host regional_stratum2 { ip 192.168.1.1 }
 
-// INSTRUCTION: Define NTP client request and server response flow.
+// NTP client request and server response flow. NTPv4 modes on UDP 123: 3
+// (Client), 4 (Server).
 flow stratum2_sync_flow(c, s) {
     c -> s ntp mode 3 vn 4 stratum 0 poll 6 wait 10ms
     c <- s ntp mode 4 vn 4 stratum 2 poll 6
 }
 
-// INSTRUCTION: Compile Stratum 2 time sync scenario.
 compile {
     stratum2_sync_flow(campus_client, regional_stratum2)
 }

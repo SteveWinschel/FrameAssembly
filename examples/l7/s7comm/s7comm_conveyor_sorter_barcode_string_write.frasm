@@ -1,19 +1,20 @@
-// PROMPT: Warehouse conveyor PLC receiving an ASCII parcel tracking barcode written into DB80 via S7comm WRITE_VAR.
-// TOKENS: host, ip, mac, flow, s, s7comm, rosctr, pduref, func, area, dbnum, offset, count, payload, wait, ms, hexpayload, compile
+// Warehouse conveyor PLC receiving an ASCII parcel tracking barcode written
+// into DB80 via S7comm WRITE_VAR.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting Outputs (0x82),
+// DB (0x84).
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define the warehouse management system (WMS) scanner gateway.
 host wms_gateway {
     ip 10.130.110.22
     mac 00:1a:2b:82:b0:22
 }
 
-// INSTRUCTION: Define the cross-belt sorter S7-1500 PLC.
 host sorter_plc {
     ip 10.130.110.1
     mac 00:1a:2b:82:b0:01
 }
 
-// INSTRUCTION: Write parcel tracking string into DB80 and read Assigned Chute number from Process Outputs (Area 130).
 flow s7_sorter_barcode(w, s) {
     w -> s s7comm rosctr "job" pduref 1100 func "writevar" area 132 dbnum 80 offset 0 count 12 payload "PKG9048123US"
     w <- s s7comm rosctr "ackdata" pduref 1100 func "writevar" wait 1ms
@@ -21,7 +22,6 @@ flow s7_sorter_barcode(w, s) {
     w <- s s7comm rosctr "ackdata" pduref 1101 func "readvar" hexpayload "ff040010000e"
 }
 
-// INSTRUCTION: Compile the warehouse sorter barcode S7comm flow.
 compile {
     s7_sorter_barcode(wms_gateway, sorter_plc)
 }

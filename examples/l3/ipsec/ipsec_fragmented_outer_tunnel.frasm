@@ -1,26 +1,28 @@
-// PROMPT: Generate a fragmented outer IPv4 IPsec tunnel datagram sequence using IPID, MF, and FRAGOFFSET modifiers
-// TOKENS: host, ip, mac, flow, src, dst, ipsec, spi, seq, ipid, mf, fragoffset, payload, wait, ms, compile
+// Generate a fragmented outer IPv4 IPsec tunnel datagram sequence using IPID,
+// MF, and FRAGOFFSET modifiers.
+// This capture sets MF fragmentation, carries SPI 64001/64002, and uses
+// post-packet wait gaps (5ms, 15ms) between frames.
+// Wireshark: esp
 
-// INSTRUCTION: Define the sender VPN concentrator
 host vpn_sender {
     ip 192.0.2.190
     mac 00:1e:67:e2:01:01
 }
 
-// INSTRUCTION: Define the receiver VPN concentrator
 host vpn_receiver {
     ip 198.51.100.190
     mac 00:1e:67:e2:02:02
 }
 
-// INSTRUCTION: Transmit an IPsec packet split across two outer IPv4 fragments
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow ipsec_outer_fragmentation(src, dst) {
     src -> dst ipsec spi 64001 seq 88 ipid 41200 mf fragoffset 0 payload "outer-ipsec-fragment-one-ciphertext-block" wait 5ms
     src -> dst ipsec spi 64001 seq 88 ipid 41200 fragoffset 185 payload "outer-ipsec-fragment-two-icv-tail" wait 15ms
     dst -> src ipsec spi 64002 seq 44 ipid 41201 payload "unfragmented-ipsec-response"
 }
 
-// INSTRUCTION: Compile the fragmented outer IPsec datagram flow
+// Run ipsec_outer_fragmentation(vpn_sender, vpn_receiver) to generate the
+// capture.
 compile {
     ipsec_outer_fragmentation(vpn_sender, vpn_receiver)
 }

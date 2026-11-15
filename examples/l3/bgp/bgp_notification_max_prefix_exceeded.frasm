@@ -1,26 +1,28 @@
-// PROMPT: RFC 4271 / RFC 4486 BGP Cease NOTIFICATION triggered when a peer exceeds the configured maximum prefix limit.
-// TOKENS: host, ip, mac, flow, bgp, update, asn, prefix, nexthop, dscp, ttl, wait, ms, notification, payload, compile
+// RFC 4271 / RFC 4486 BGP Cease NOTIFICATION triggered when a peer exceeds
+// the configured maximum prefix limit.
+// This capture sets DSCP 48, TTL 1, carries ASN 65111, and uses post-packet
+// wait gaps (2ms) between frames.
+// Wireshark: bgp
 
-// INSTRUCTION: Define Internet Exchange Route Server enforcing a strict max-prefix threshold.
 host ixp_rs_protector {
     ip 192.0.2.250
     mac 00:0c:29:02:fa:01
 }
 
-// INSTRUCTION: Define peering member accidentally leaking full BGP table routes.
 host ixp_leaking_peer {
     ip 192.0.2.111
     mac 00:0c:29:02:6f:02
 }
 
-// INSTRUCTION: Define leaked BGP UPDATE burst followed by Cease NOTIFICATION (Subcode 1 Max Prefixes).
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow bgp_max_prefix_cease_flow(peer, rs) {
     peer -> rs bgp update asn 65111 prefix "8.8.8.0/24" nexthop 192.0.2.111 dscp 48 ttl 1 wait 2ms
     peer -> rs bgp update asn 65111 prefix "1.1.1.0/24" nexthop 192.0.2.111 dscp 48 ttl 1 wait 2ms
     peer <- rs bgp notification dscp 48 ttl 1 payload "CEASE_MAX_NUMBER_OF_PREFIXES_REACHED"
 }
 
-// INSTRUCTION: Compile the BGP maximum prefix exceeded NOTIFICATION scenario.
+// Run bgp_max_prefix_cease_flow(ixp_leaking_peer, ixp_rs_protector) to
+// generate the capture.
 compile {
     bgp_max_prefix_cease_flow(ixp_leaking_peer, ixp_rs_protector)
 }

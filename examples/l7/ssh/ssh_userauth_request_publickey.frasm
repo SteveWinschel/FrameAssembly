@@ -1,19 +1,17 @@
-// PROMPT: User authentication request message with MSG_CODE 50.
-// TOKENS: host, ip, flow, s, ssh, msgcode, compile
+// User authentication request message with msgcode 50.
+// SSH RFC 4253 framing on TCP 22 (message codes: 50 (USERAUTH_REQUEST), 51
+// (USERAUTH_FAILURE)).
+// Wireshark: ssh
 
-// INSTRUCTION: Define remote developer laptop.
 host dev_laptop { ip 192.168.4.15 }
 
-// INSTRUCTION: Define build cluster node.
 host build_node { ip 192.168.4.1 }
 
-// INSTRUCTION: Define user authentication request flow.
 flow ssh_userauth_req(c, s) {
     c -> s ssh msgcode 50
     c <- s ssh msgcode 51
 }
 
-// INSTRUCTION: Compile block executing auth request.
 compile {
     ssh_userauth_req(dev_laptop, build_node)
 }

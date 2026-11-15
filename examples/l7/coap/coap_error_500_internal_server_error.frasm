@@ -1,25 +1,27 @@
-// PROMPT: CoAP GET request returning 5.00 Internal Server Error when an I2C peripheral bus read fails.
-// TOKENS: host, ip, mac, flow, s, coap, con, code, msgid, token, uripath, ack, payload, compile
+// CoAP GET request returning 5.00 Internal Server Error when an I2C
+// peripheral bus read fails.
+// Wireshark: coap
 
-// INSTRUCTION: Define the telemetry collector polling a remote weather station.
+// Telemetry collector polling a remote weather station.
 host weather_poller {
     ip 10.110.110.10
     mac 00:1a:2b:6e:b0:10
 }
 
-// INSTRUCTION: Define the weather station CoAP node experiencing an I2C bus fault.
+// Weather station CoAP node experiencing an I2C bus fault.
 host weather_node {
     ip 10.110.110.50
     mac 00:1a:2b:6e:b0:50
 }
 
-// INSTRUCTION: Request barometric pressure and receive 5.00 Internal Server Error diagnostic payload.
+// Request barometric pressure and receive 5.00 Internal Server Error
+// diagnostic payload. CoAP over UDP 5683: codes 0.01 (GET), 5.00 (Internal
+// Server Error).
 flow coap_500_fault(c, s) {
     c -> s coap con code "0.01" msgid 11500 token 604 uripath "sensors/bme280/pressure"
     c <- s coap ack code "5.00" msgid 11500 token 604 payload "I2C bus NACK on 0x76"
 }
 
-// INSTRUCTION: Compile the CoAP 5.00 Internal Server Error flow.
 compile {
     coap_500_fault(weather_poller, weather_node)
 }

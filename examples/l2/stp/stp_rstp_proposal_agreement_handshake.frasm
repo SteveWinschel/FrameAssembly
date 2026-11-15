@@ -1,25 +1,23 @@
-// PROMPT: IEEE 802.1w RSTP Proposal and Agreement handshake on a point-to-point full-duplex inter-switch link.
-// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, maxage, hellotime, forwarddelay, flags, wait, ms, compile
+// IEEE 802.1w RSTP Proposal and Agreement handshake on a point-to-point full-
+// duplex inter-switch link.
+// Wire profile: 2 frames; 2 IPv4 hosts; STP; waits 2ms.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define upstream designated RSTP bridge proposing rapid transition.
 host rstp_designated_sw {
     ip 172.16.12.1
     mac 00:21:d8:12:00:01
 }
 
-// INSTRUCTION: Define downstream RSTP bridge replying with Agreement flag set.
 host rstp_rootport_sw {
     ip 172.16.12.2
     mac 00:21:d8:12:00:02
 }
 
-// INSTRUCTION: Define RSTP Proposal (Flags 0x0E) and Agreement (Flags 0x4E) sub-second convergence handshake.
 flow rstp_proposal_agreement(desig, down) {
-    desig -> down stp rstp rootid "4096:00:21:d8:12:00:01" bridgeid "4096:00:21:d8:12:00:01" cost 0 portid 32769 maxage 20 hellotime 2 forwarddelay 15 flags 14
-    desig <- down stp rstp rootid "4096:00:21:d8:12:00:01" bridgeid "32768:00:21:d8:12:00:02" cost 2000 portid 32769 maxage 20 hellotime 2 forwarddelay 15 flags 78 wait 2ms
+    desig -> down stp rstp rootid "4096:00:21:d8:12:00:01" bridgeid "4096:00:21:d8:12:00:01" cost 0 portid 32769 maxage 20 hellotime 2 forwarddelay 15 flags 14 wait 2ms
+    desig <- down stp rstp rootid "4096:00:21:d8:12:00:01" bridgeid "32768:00:21:d8:12:00:02" cost 2000 portid 32769 maxage 20 hellotime 2 forwarddelay 15 flags 78
 }
 
-// INSTRUCTION: Compile block executing RSTP Proposal/Agreement convergence.
 compile {
     rstp_proposal_agreement(rstp_designated_sw, rstp_rootport_sw)
 }

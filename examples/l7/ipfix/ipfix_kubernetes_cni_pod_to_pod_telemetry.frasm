@@ -1,24 +1,26 @@
-// PROMPT: Model an eBPF/Cilium Kubernetes CNI agent exporting pod-to-pod microservice IPFIX flow telemetry.
-// TOKENS: host, ip, mac, flow, ipfix, domainid, srcip, dstip, srcport, dstport, proto, packets, octets, vlan, pcp, compile
+// EBPF/Cilium Kubernetes CNI agent exporting pod-to-pod microservice IPFIX
+// flow telemetry.
+// Wireshark: cflow || udp.port == 4739 || udp.port == 50051
 
-// INSTRUCTION: Define the Kubernetes worker node running the eBPF IPFIX flow exporter.
+// Kubernetes worker node running the eBPF IPFIX flow exporter.
 host cilium_agent_node {
     ip 10.244.1.10
     mac 00:16:3e:f4:01:0a
 }
 
-// INSTRUCTION: Define the observability cluster IPFIX aggregator service.
+// Observability cluster IPFIX aggregator service.
 host hubble_ipfix_sink {
     ip 10.244.0.55
     mac 00:16:3e:f4:00:37
 }
 
-// INSTRUCTION: Export pod-to-pod gRPC traffic telemetry with VLAN 244 tagging.
+// Export pod-to-pod gRPC traffic telemetry with VLAN 244 tagging.
+// Encapsulation and QoS markings: 802.1Q VLAN 244. Reports IP protocol 6
+// (TCP) flow records to UDP 4739.
 flow ipfix_k8s_pod_flows(node, sink) {
     node -> sink ipfix domainid 1024 srcip 10.244.2.18 dstip 10.244.3.92 srcport 49152 dstport 50051 proto 6 packets 420 octets 315000 vlan 244 pcp 3
 }
 
-// INSTRUCTION: Compile the Kubernetes CNI pod-to-pod IPFIX telemetry trace.
 compile {
     ipfix_k8s_pod_flows(cilium_agent_node, hubble_ipfix_sink)
 }

@@ -1,19 +1,17 @@
-// PROMPT: IMAP graceful session logout closing connection over IPv6.
-// TOKENS: host, ip, flow, s, imap, tag, cmd, compile
+// IMAP graceful session logout closing connection over IPv6.
+// Wireshark: imap
+// Automatic Ethernet MAC addresses and TCP port 143 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::25 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow imap_logout(c, s) {
     c -> s imap tag "A04" cmd "NOOP"
     c -> s imap tag "A05" cmd "LOGOUT"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     imap_logout(client, server)
 }

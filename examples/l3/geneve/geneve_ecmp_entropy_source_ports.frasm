@@ -1,20 +1,21 @@
-// PROMPT: GENEVE tunnel varying outer UDP source ports to spread flows across ECMP spine links.
-// TOKENS: host, ip, flow, src, dst, geneve, vni, srcport, dstport, payload, compile
+// GENEVE tunnel varying outer UDP source ports to spread flows across ECMP
+// spine links.
+// This capture carries VNI 15000, destination port 6081.
+// Wireshark: geneve && geneve.vni == 15000
 
-// INSTRUCTION: Define ingress NVE computing inner 5-tuple hash for UDP source port.
 host ecmp_nve_src { ip 10.90.0.10 }
 
-// INSTRUCTION: Define egress NVE terminating GENEVE on UDP port 6081.
 host ecmp_nve_dst { ip 10.90.0.20 }
 
-// INSTRUCTION: Define GENEVE packets with varied ephemeral UDP source ports for ECMP load balancing.
+// Packet sequence (3 frames) with default 10ms post-packet spacing.
 flow geneve_ecmp_entropy(src, dst) {
     src -> dst geneve vni 15000 srcport 51001 dstport 6081 payload "TENANT_FLOW_HASH_BUCKET_1"
     src -> dst geneve vni 15000 srcport 54322 dstport 6081 payload "TENANT_FLOW_HASH_BUCKET_2"
     src -> dst geneve vni 15000 srcport 60199 dstport 6081 payload "TENANT_FLOW_HASH_BUCKET_3"
 }
 
-// INSTRUCTION: Compile the ECMP entropy source port GENEVE flow.
+// Run geneve_ecmp_entropy(ecmp_nve_src, ecmp_nve_dst) to generate the
+// capture.
 compile {
     geneve_ecmp_entropy(ecmp_nve_src, ecmp_nve_dst)
 }

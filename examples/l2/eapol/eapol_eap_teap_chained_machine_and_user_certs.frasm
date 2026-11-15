@@ -1,19 +1,18 @@
-// PROMPT: RFC 7170 TEAP (Tunnel Extensible Authentication Protocol, EAP_METHOD 55) chaining machine and user certificates in a single tunnel.
-// TOKENS: host, ip, mac, flow, eapol, version, type, start, wait, ms, eappacket, eapcode, eapid, eapmethod, identity, payload, compile
+// RFC 7170 TEAP (Tunnel Extensible Authentication Protocol, EAP_METHOD 55)
+// chaining machine and user certificates in a single tunnel.
+// Wire profile: 6 frames; 2 IPv4 hosts; EAPOL; waits 2ms, 5ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define corporate workstation running RFC 7170 TEAP (Method 55) dual-identity supplicant.
 host teap_dual_supp {
     ip 10.85.10.22
     mac 00:21:70:55:0a:16
 }
 
-// INSTRUCTION: Define campus Zero-Trust access switch port supporting RFC 7170 TEAP.
 host ztna_switch_pae {
     ip 10.85.10.1
     mac 00:1c:73:55:0a:01
 }
 
-// INSTRUCTION: Authenticate outer anonymous identity and inner chained machine/user TLVs over EAP_METHOD 55.
 flow eapol_teap_chained(ws, sw) {
     ws -> sw eapol version 3 type start wait 2ms
     ws <- sw eapol version 3 type eappacket eapcode 1 eapid 30 eapmethod 1 wait 2ms
@@ -23,7 +22,6 @@ flow eapol_teap_chained(ws, sw) {
     ws <- sw eapol version 3 type eappacket eapcode 3 eapid 31 eapmethod 55
 }
 
-// INSTRUCTION: Compile the RFC 7170 TEAP chained machine and user authentication trace.
 compile {
     eapol_teap_chained(teap_dual_supp, ztna_switch_pae)
 }

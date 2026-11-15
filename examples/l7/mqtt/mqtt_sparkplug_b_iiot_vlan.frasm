@@ -1,19 +1,22 @@
-// PROMPT: Create an Eclipse Sparkplug B IIoT MQTT telemetry flow on VLAN 410 publishing NBIRTH and NDATA topics.
-// TOKENS: host, ip, mac, flow, s, mqtt, connect, clientid, vlan, dscp, ttl, wait, ms, connack, returncode, publish, topic, qos, hexpayload, pktid, puback, compile
+// Eclipse Sparkplug B IIoT MQTT telemetry flow on VLAN 410 publishing NBIRTH
+// and NDATA topics.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define the Sparkplug B edge-of-network (EoN) gateway on industrial VLAN 410.
+// Sparkplug B edge-of-network (EoN) gateway on industrial VLAN 410.
 host sparkplug_eon {
     ip 10.41.0.30
     mac 00:25:90:41:00:1e
 }
 
-// INSTRUCTION: Define the HiveMQ Sparkplug B primary broker on VLAN 410.
+// HiveMQ Sparkplug B primary broker on VLAN 410.
 host hivemq_broker {
     ip 10.41.0.10
     mac 00:25:90:41:00:0a
 }
 
-// INSTRUCTION: Connect and publish spBv1.0 NBIRTH and NDATA protobuf payloads over VLAN 410.
+// Connect and publish spBv1.0 NBIRTH and NDATA protobuf payloads over VLAN
+// 410. Encapsulation and QoS markings: 802.1Q VLAN 410, DSCP 24. MQTT control
+// session on TCP 1883 (QoS 0/1, CONNACK codes 0).
 flow sparkplug_b_telemetry(c, s) {
     c -> s mqtt connect clientid "spb-eon-line4" vlan 410 dscp 24 ttl 64 wait 2ms
     c <- s mqtt connack returncode 0 vlan 410 dscp 24 ttl 64 wait 3ms
@@ -22,7 +25,6 @@ flow sparkplug_b_telemetry(c, s) {
     c <- s mqtt puback pktid 101 vlan 410 dscp 24 ttl 64
 }
 
-// INSTRUCTION: Compile the Sparkplug B IIoT VLAN 410 MQTT trace into a PCAP file.
 compile {
     sparkplug_b_telemetry(sparkplug_eon, hivemq_broker)
 }

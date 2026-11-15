@@ -1,18 +1,18 @@
-// PROMPT: OSPF Area 0 backbone link traversing metro provider QinQ dual-VLAN infrastructure.
-// TOKENS: host, ip, flow, ospf, hello, routerid, areaid, qinq, innervlan, compile
+// OSPF Area 0 backbone link traversing metro provider QinQ dual-VLAN
+// infrastructure.
+// This capture wraps frames in QinQ S-VLAN 1000 / C-VLAN 40.
+// Wireshark: ospf
 
-// INSTRUCTION: Define core data center OSPF gateway.
 host dc_ospf_gw { ip 172.16.100.1 }
 
-// INSTRUCTION: Define disaster recovery OSPF gateway.
 host dr_ospf_gw { ip 172.16.100.2 }
 
-// INSTRUCTION: Define QinQ encapsulated OSPF backbone Hello flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow ospf_qinq_hello(dc, dr) {
     dc -> dr ospf hello routerid 172.16.100.1 areaid 0 qinq 1000 innervlan 40
 }
 
-// INSTRUCTION: Compile block executing QinQ metro interconnect Hello.
+// Run ospf_qinq_hello(dc_ospf_gw, dr_ospf_gw) to generate the capture.
 compile {
     ospf_qinq_hello(dc_ospf_gw, dr_ospf_gw)
 }

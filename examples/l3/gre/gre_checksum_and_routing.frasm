@@ -1,18 +1,19 @@
-// PROMPT: GRE tunnel header asserting checksum verification flag and payload protocol.
-// TOKENS: host, ip, flow, src, dst, gre, grekey, checksum, compile
+// GRE tunnel header asserting checksum verification flag and payload
+// protocol.
+// This capture encapsulates passenger traffic inside IP protocol 47 GRE
+// headers.
+// Wireshark: gre
 
-// INSTRUCTION: Define secure enterprise branch gateway.
 host branch_gw { ip 10.100.0.1 }
 
-// INSTRUCTION: Define secure corporate datacenter gateway.
 host dc_gw { ip 10.100.0.2 }
 
-// INSTRUCTION: Define GRE tunnel flow with enabled checksum and tunnel key.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow gre_checksum_flow(src, dst) {
     src -> dst gre grekey 54321 checksum
 }
 
-// INSTRUCTION: Compile block executing GRE checksum enabled packet transmission.
+// Run gre_checksum_flow(branch_gw, dc_gw) to generate the capture.
 compile {
     gre_checksum_flow(branch_gw, dc_gw)
 }

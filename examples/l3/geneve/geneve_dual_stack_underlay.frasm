@@ -1,18 +1,18 @@
-// PROMPT: GENEVE network virtualization tunnel established over IPv6 transport endpoints.
-// TOKENS: host, ip, flow, geneve, vni, compile
+// GENEVE network virtualization tunnel established over IPv6 transport
+// endpoints.
+// This capture targets IPv6 endpoints and carries VNI 50000.
+// Wireshark: geneve && geneve.vni == 50000 && ipv6
 
-// INSTRUCTION: Define IPv6 GENEVE tunnel endpoint A.
 host geneve_v6_a { ip 2001:db8:9000::1 }
 
-// INSTRUCTION: Define IPv6 GENEVE tunnel endpoint B.
 host geneve_v6_b { ip 2001:db8:9000::2 }
 
-// INSTRUCTION: Define GENEVE overlay flow over IPv6 with VNI 50000.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow geneve_v6_flow(a, b) {
     a -> b geneve vni 50000
 }
 
-// INSTRUCTION: Compile block executing GENEVE over IPv6 transmission.
+// Run geneve_v6_flow(geneve_v6_a, geneve_v6_b) to generate the capture.
 compile {
     geneve_v6_flow(geneve_v6_a, geneve_v6_b)
 }

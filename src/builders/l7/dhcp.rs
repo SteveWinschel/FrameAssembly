@@ -120,9 +120,10 @@ pub fn build_dhcp_payload(
         // Option 12: Hostname
         if let Some(hostname) = spec.hostname {
             let bytes = hostname.as_bytes();
+            let slice = &bytes[..bytes.len().min(255)];
             pkt.push(12);
-            pkt.push(bytes.len() as u8);
-            pkt.extend_from_slice(bytes);
+            pkt.push(slice.len() as u8);
+            pkt.extend_from_slice(slice);
         }
 
         // Option 51: IP Address Lease Time
@@ -141,7 +142,7 @@ pub fn build_dhcp_payload(
         let (sport, dport) = if is_server_msg { (67, 68) } else { (68, 67) };
         (pkt, sport, dport)
     } else {
-        // DHCPv6
+        // DHCPv6 (RFC 8415)
         let msg_type = if spec.is_solicit || spec.is_discover {
             1u8 // SOLICIT
         } else if spec.is_advertise || spec.is_offer {
@@ -155,6 +156,7 @@ pub fn build_dhcp_payload(
         } else {
             1u8 // Default SOLICIT
         };
+        let is_v6_server_msg = matches!(msg_type, 2 | 7);
 
         let xid = spec.xid.unwrap_or(0x123456);
         let mut pkt = alloc::vec![
@@ -166,21 +168,63 @@ pub fn build_dhcp_payload(
         ];
 
         // Option 1: Client Identifier (DUID-LL)
-        let chaddr = spec.chaddr.unwrap_or(ctx.src_mac);
+        let chaddr = spec.chaddr.unwrap_or(if is_v6_server_msg {
+            ctx.dst_mac
+        } else {
+            ctx.src_mac
+        });
         pkt.extend_from_slice(&[0, 1, 0, 10]); // Option 1, len 10
         pkt.extend_from_slice(&[0, 3, 0, 1]); // DUID-LL (type 3), HW type 1
         pkt.extend_from_slice(&chaddr);
+
+        // Option 2: Server Identifier (DUID-LL, mandatory on ADVERTISE & REPLY per RFC 8415 §18.3.9)
+        if is_v6_server_msg {
+            pkt.extend_from_slice(&[0, 2, 0, 10]); // Option 2, len 10
+            pkt.extend_from_slice(&[0, 3, 0, 1]); // DUID-LL (type 3), HW type 1
+            pkt.extend_from_slice(&ctx.src_mac);
+        }
+
+        // Option 3: IA_NA with nested Option 5 IAADDR when yiaddr is IPv6 (RFC 8415 §21.4 / §21.6)
+        if let Some(IpAddr::V6(v6)) = spec.yiaddr {
+            let lease = spec.lease_time.unwrap_or(3600);
+            let t1 = lease / 2;
+            let t2 = ((u64::from(lease) * 4) / 5) as u32;
+            pkt.extend_from_slice(&[0, 3, 0, 40]); // Option 3 IA_NA, len 40
+            pkt.extend_from_slice(&1u32.to_be_bytes()); // IAID = 1
+            pkt.extend_from_slice(&t1.to_be_bytes());
+            pkt.extend_from_slice(&t2.to_be_bytes());
+            pkt.extend_from_slice(&[0, 5, 0, 24]); // Nested Option 5 IAADDR, len 24
+            pkt.extend_from_slice(&v6.octets());
+            pkt.extend_from_slice(&lease.to_be_bytes()); // preferred-lifetime
+            pkt.extend_from_slice(&lease.to_be_bytes()); // valid-lifetime
+        }
+
+        // Option 23: DNS Recursive Name Server (RFC 3646) when dns_server is IPv6
+        if let Some(IpAddr::V6(v6)) = spec.dns_server {
+            pkt.extend_from_slice(&[0, 23, 0, 16]);
+            pkt.extend_from_slice(&v6.octets());
+        }
+
+        // Option 39: Client FQDN (RFC 4704) when hostname is specified
+        if let Some(hostname) = spec.hostname {
+            let hb = hostname.as_bytes();
+            let slice = &hb[..hb.len().min(253)];
+            let opt_len = (1 + slice.len()) as u16;
+            pkt.extend_from_slice(&39u16.to_be_bytes());
+            pkt.extend_from_slice(&opt_len.to_be_bytes());
+            pkt.push(0); // Flags = 0
+            pkt.extend_from_slice(slice);
+        }
 
         if !payload_bytes.is_empty() {
             pkt.extend_from_slice(payload_bytes);
         }
 
-        let (sport, dport) =
-            if spec.is_advertise || spec.is_offer || spec.is_reply || spec.is_ack {
-                (547, 546)
-            } else {
-                (546, 547)
-            };
+        let (sport, dport) = if is_v6_server_msg {
+            (547, 546)
+        } else {
+            (546, 547)
+        };
         (pkt, sport, dport)
     }
 }

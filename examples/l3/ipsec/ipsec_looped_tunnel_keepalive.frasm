@@ -1,25 +1,26 @@
-// PROMPT: Simulate a looped IPsec tunnel keepalive sequence maintaining security association state across a firewall
-// TOKENS: host, ip, mac, flow, ipsec, spi, seq, ttl, payload, wait, ms, compile
+// Simulate a looped IPsec tunnel keepalive sequence maintaining security
+// association state across a firewall.
+// This capture sets TTL 64, carries SPI 77001/77002, executes 5 cycles in
+// compile, and uses post-packet wait gaps (25ms) between frames.
+// Wireshark: esp
 
-// INSTRUCTION: Define the branch office IPsec endpoint
 host branch_fw {
     ip 10.140.1.1
     mac 00:16:3e:c1:01:01
 }
 
-// INSTRUCTION: Define the central headquarters IPsec endpoint
 host hq_fw {
     ip 10.140.2.1
     mac 00:16:3e:c1:02:01
 }
 
-// INSTRUCTION: Exchange IPsec keepalive probes and acknowledgments
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow ipsec_keepalive_cycle(branch, hq) {
     branch -> hq ipsec spi 77001 seq 10 ttl 64 payload "ipsec-sa-keepalive-ping" wait 25ms
     hq -> branch ipsec spi 77002 seq 10 ttl 64 payload "ipsec-sa-keepalive-pong" wait 25ms
 }
 
-// INSTRUCTION: Compile five iterations of the IPsec tunnel keepalive cycle
+// Emit 5 sequential cycles of ipsec_keepalive_cycle.
 compile {
     ipsec_keepalive_cycle(branch_fw, hq_fw) // cycle 1
     ipsec_keepalive_cycle(branch_fw, hq_fw) // cycle 2

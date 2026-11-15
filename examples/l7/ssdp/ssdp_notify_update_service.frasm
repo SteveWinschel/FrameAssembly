@@ -1,13 +1,13 @@
-// PROMPT: Device service configuration update notification using NTS ssdp:update.
-// TOKENS: host, ip, flow, s, ssdp, notify, nt, nts, usn, location, compile
+// Device service configuration update notification using NTS ssdp:update.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (SSDP /
+// UPnP, UDP 1900).
+// Wireshark: ssdp
 
-// INSTRUCTION: Define multimedia gateway device.
 host gateway_dev { ip 10.200.1.1 }
 
-// INSTRUCTION: Define SSDP multicast destination.
 host mcast_endpoint { ip 239.255.255.250 }
 
-// INSTRUCTION: Define service configuration update flow.
 flow ssdp_update_flow(c, s) {
     c -> s ssdp notify
         nt "upnp:rootdevice"
@@ -16,7 +16,6 @@ flow ssdp_update_flow(c, s) {
         location "http://10.200.1.1:8080/desc.xml"
 }
 
-// INSTRUCTION: Compile block executing update notification.
 compile {
     ssdp_update_flow(gateway_dev, mcast_endpoint)
 }

@@ -1,18 +1,19 @@
-// PROMPT: VXLAN underlay packet transported across 802.1Q tagged data center transit VLAN 800.
-// TOKENS: host, ip, flow, vxlan, vni, vlan, pcp, dei, compile
+// VXLAN underlay packet transported across 802.1Q tagged data center transit
+// VLAN 800.
+// This capture wraps frames in 802.1Q VLAN 800 and carries VNI 12000.
+// Wireshark: vxlan && vxlan.vni == 12000 && vlan.id == 800
 
-// INSTRUCTION: Define rack server VTEP endpoint.
 host rack_vtep_server { ip 10.80.0.10 }
 
-// INSTRUCTION: Define aggregation leaf VTEP endpoint.
 host agg_leaf_vtep { ip 10.80.0.1 }
 
-// INSTRUCTION: Define VLAN 800 tagged VXLAN underlay flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vxlan_vlan_underlay(srv, leaf) {
     srv -> leaf vxlan vni 12000 vlan 800 pcp 4 dei 0
 }
 
-// INSTRUCTION: Compile block executing VLAN tagged VXLAN encapsulation.
+// Run vxlan_vlan_underlay(rack_vtep_server, agg_leaf_vtep) to generate the
+// capture.
 compile {
     vxlan_vlan_underlay(rack_vtep_server, agg_leaf_vtep)
 }

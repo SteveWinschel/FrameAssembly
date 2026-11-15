@@ -1,19 +1,23 @@
-// PROMPT: Pharmaceutical cleanroom positive pressure cascade monitoring via BACnet/IP Analog Input (Object Type 0).
-// TOKENS: host, ip, mac, flow, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, dscp, value, wait, ms, compile
+// Pharmaceutical cleanroom positive pressure cascade monitoring via BACnet/IP
+// Analog Input (Object Type 0).
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the cleanroom environmental validation historian.
+// Cleanroom environmental validation historian.
 host pharma_historian {
     ip 10.120.50.10
     mac 00:1a:2b:78:50:10
 }
 
-// INSTRUCTION: Define the ISO-5 cleanroom pressure controller.
+// ISO-5 cleanroom pressure controller.
 host iso5_pressure_ctrl {
     ip 10.120.50.25
     mac 00:1a:2b:78:50:25
 }
 
-// INSTRUCTION: Read differential pressure Pascals (Object Type 0, Instance 101) and HEPA fan speed (Instance 102).
+// Read differential pressure Pascals (Object Type 0, Instance 101) and HEPA
+// fan speed (Instance 102). Encapsulation and QoS markings: DSCP 34.
+// BACnet/IP on UDP 47808 (objects: 0 (Analog Input); properties: 85
+// (Present_Value)).
 flow bacnet_cleanroom_poll(h, c) {
     h -> c bacnet readproperty invokeid 60 objecttype 0 objectinstance 101 propertyid 85 dscp 34
     h <- c bacnet readproperty invokeid 60 objecttype 0 objectinstance 101 propertyid 85 value 45 dscp 34 wait 1ms
@@ -21,7 +25,6 @@ flow bacnet_cleanroom_poll(h, c) {
     h <- c bacnet readproperty invokeid 61 objecttype 0 objectinstance 102 propertyid 85 value 1420 dscp 34
 }
 
-// INSTRUCTION: Compile the pharmaceutical cleanroom BACnet monitoring flow.
 compile {
     bacnet_cleanroom_poll(pharma_historian, iso5_pressure_ctrl)
 }

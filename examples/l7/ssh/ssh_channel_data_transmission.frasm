@@ -1,19 +1,16 @@
-// PROMPT: Encrypted pseudo-terminal session data frame with MSG_CODE 94.
-// TOKENS: host, ip, flow, s, ssh, msgcode, compile
+// Encrypted pseudo-terminal session data frame with msgcode 94.
+// SSH RFC 4253 framing on TCP 22 (message codes: 94 (CHANNEL_DATA)).
+// Wireshark: ssh
 
-// INSTRUCTION: Define interactive user shell.
 host shell_client { ip 192.168.33.22 }
 
-// INSTRUCTION: Define remote target bastion.
 host target_bastion { ip 192.168.33.1 }
 
-// INSTRUCTION: Define interactive data exchange flow.
 flow ssh_data_flow(c, s) {
     c -> s ssh msgcode 94
     c <- s ssh msgcode 94
 }
 
-// INSTRUCTION: Compile block executing channel data transmission.
 compile {
     ssh_data_flow(shell_client, target_bastion)
 }

@@ -1,18 +1,18 @@
-// PROMPT: LDAP directory SearchRequest looking up security group memberships for authorization.
-// TOKENS: host, ip, flow, ldap, searchreq, msgid, basedn, filter, compile
+// LDAP directory SearchRequest looking up security group memberships for
+// authorization.
+// Wireshark: ldap
 
-// INSTRUCTION: Define VPN gateway authorization module.
+// VPN gateway authorization module.
 host vpn_gateway { ip 192.168.88.1 }
 
-// INSTRUCTION: Define corporate directory replica.
+// Corporate directory replica.
 host directory_replica { ip 192.168.88.10 }
 
-// INSTRUCTION: Define security group membership query flow.
+// Security group membership query flow.
 flow group_search_flow(vpn, dir) {
     vpn -> dir ldap searchreq msgid 42 basedn "ou=groups,dc=corp,dc=org" filter "(member=cn=eng_lead)"
 }
 
-// INSTRUCTION: Compile group membership search scenario.
 compile {
     group_search_flow(vpn_gateway, directory_replica)
 }

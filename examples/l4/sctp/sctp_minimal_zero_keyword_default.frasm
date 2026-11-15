@@ -1,18 +1,12 @@
-// PROMPT: Minimal zero-keyword SCTP packet using default INIT chunk and RFC 9260 Castagnoli CRC32c checksum.
-// TOKENS: host, ip, flow, sctp, compile
+// Minimal RFC 9260 SCTP packet using default INIT chunk and Castagnoli CRC-32c checksum.
+// Uses direct two-block host and compile syntax without a flow block, defaulting
+// to srcport 12345, dstport 80, verification tag 0, and IP protocol 132.
+// Inspect chunk details via `frameassembly show sctp_minimal_zero_keyword_default.frasm`.
+// Wireshark: sctp && sctp.chunk_type == 1
 
-// INSTRUCTION: Define SCTP signaling endpoint A.
 host sctp_min_a { ip 10.32.0.1 }
-
-// INSTRUCTION: Define SCTP signaling endpoint B.
 host sctp_min_b { ip 10.32.0.2 }
 
-// INSTRUCTION: Define zero-argument SCTP frame using RFC-compliant defaults.
-flow sctp_minimal_default(a, b) {
-    a -> b sctp
-}
-
-// INSTRUCTION: Compile block executing minimal default SCTP packet generation.
 compile {
-    sctp_minimal_default(sctp_min_a, sctp_min_b)
+    sctp_min_a -> sctp_min_b sctp
 }

@@ -1,26 +1,28 @@
-// PROMPT: RFC 5798 Section 6.4.3 VRRP election tie-breaker where two routers with equal Priority 100 resolve Master via higher primary IP.
-// TOKENS: host, ip, mac, flow, vrrp, vrid, priority, advint, vip, version, dscp, ttl, payload, wait, ms, compile
+// RFC 5798 Section 6.4.3 VRRP election tie-breaker where two routers with
+// equal Priority 100 resolve Master via higher primary IP.
+// This capture sets DSCP 48, TTL 255, carries VRID 33, and uses post-packet
+// wait gaps (5ms, 100ms) between frames.
+// Wireshark: vrrp
 
-// INSTRUCTION: Define Router 1 with lower primary IP 10.112.33.2 and Priority 100.
 host tiebreak_rtr_low_ip {
     ip 10.112.33.2
     mac 00:00:5e:00:01:21
 }
 
-// INSTRUCTION: Define Router 2 with higher primary IP 10.112.33.3 and equal Priority 100 winning Master election.
 host tiebreak_rtr_high_ip {
     ip 10.112.33.3
     mac 00:00:5e:00:01:21
 }
 
-// INSTRUCTION: Define simultaneous PRIORITY 100 advertisements resolved in favor of 10.112.33.3.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow vrrp_equal_priority_tiebreak(low_ip, high_ip) {
     low_ip -> high_ip vrrp vrid 33 priority 100 advint 100 vip 10.112.33.1 version 3 dscp 48 ttl 255 payload "CANDIDATE_10_112_33_2_PRIO_100" wait 5ms
     low_ip <- high_ip vrrp vrid 33 priority 100 advint 100 vip 10.112.33.1 version 3 dscp 48 ttl 255 payload "WINNER_HIGHER_IP_10_112_33_3_PRIO_100" wait 100ms
     low_ip <- high_ip vrrp vrid 33 priority 100 advint 100 vip 10.112.33.1 version 3 dscp 48 ttl 255 payload "STEADY_MASTER_10_112_33_3"
 }
 
-// INSTRUCTION: Compile the RFC 5798 VRRP equal-priority highest-IP tie-breaker flow.
+// Run vrrp_equal_priority_tiebreak(tiebreak_rtr_low_ip, tiebreak_rtr_high_ip)
+// to generate the capture.
 compile {
     vrrp_equal_priority_tiebreak(tiebreak_rtr_low_ip, tiebreak_rtr_high_ip)
 }

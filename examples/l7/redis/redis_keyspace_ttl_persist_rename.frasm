@@ -1,19 +1,18 @@
-// PROMPT: Redis key lifecycle management using SETEX, TTL inspection, PERSIST, and atomic RENAME.
-// TOKENS: host, ip, mac, flow, s, redis, cmd, args, replytype, value, wait, ms, compile
+// Redis key lifecycle management using SETEX, TTL inspection, PERSIST, and
+// atomic RENAME.
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: resp
 
-// INSTRUCTION: Define the checkout cart service managing temporary order holds.
 host cart_service {
     ip 10.80.90.25
     mac 00:1a:2b:80:90:25
 }
 
-// INSTRUCTION: Define the checkout Redis node.
 host checkout_redis {
     ip 10.80.90.5
     mac 00:1a:2b:80:90:05
 }
 
-// INSTRUCTION: Create expiring hold key, inspect TTL, remove expiration with PERSIST, and RENAME to confirmed order.
 flow redis_key_lifecycle(c, s) {
     c -> s redis cmd "SETEX" args "hold:ord_701 300 pending_payment"
     c <- s redis replytype "status" value "OK" wait 1ms
@@ -25,7 +24,6 @@ flow redis_key_lifecycle(c, s) {
     c <- s redis replytype "status" value "OK"
 }
 
-// INSTRUCTION: Compile the Redis key lifecycle management flow.
 compile {
     redis_key_lifecycle(cart_service, checkout_redis)
 }

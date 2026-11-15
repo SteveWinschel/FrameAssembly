@@ -30,18 +30,22 @@ pub(crate) fn dissect_sflow(payload: &[u8], sp: u16, dp: u16) -> Option<Protocol
     };
 
     let base = hdr_end - 16;
-    let residual_start = if payload.len() >= hdr_end + 40 {
-        hdr_end + 40
-    } else {
-        hdr_end
-    };
+    let samples = be_u32(payload, base + 12);
+    if samples > 64 {
+        return None;
+    }
+    let blocks_len = (samples as usize).checked_mul(40)?;
+    let residual_start = hdr_end.checked_add(blocks_len)?;
+    if payload.len() < residual_start {
+        return None;
+    }
 
     let mut tokens = String::from("sflow");
     let _ = write!(tokens, " agentip {agent_ip}");
     push_if(&mut tokens, "subagentid", be_u32(payload, base), 0);
     push_if(&mut tokens, "seq", be_u32(payload, base + 4), 1);
     push_if(&mut tokens, "uptime", be_u32(payload, base + 8), 1000);
-    push_if(&mut tokens, "samples", be_u32(payload, base + 12), 1);
+    push_if(&mut tokens, "samples", samples, 1);
 
     ok_dissect(Protocol::Sflow, tokens, payload[residual_start..].to_vec())
 }

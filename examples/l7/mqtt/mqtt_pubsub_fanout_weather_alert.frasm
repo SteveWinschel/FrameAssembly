@@ -1,49 +1,51 @@
-// PROMPT: Simulate a 1-to-many MQTT pub/sub fan-out where one weather station publishes an alert and the broker dispatches it to two subscribers.
-// TOKENS: host, ip, mac, flow, s, mqtt, publish, topic, qos, pktid, payload, wait, ms, puback, compile
+// 1-to-many MQTT pub/sub fan-out where one weather station publishes an alert
+// and the broker dispatches it to two subscribers.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define the rooftop weather sensor publishing wind gust alerts.
+// Rooftop weather sensor publishing wind gust alerts.
 host weather_station {
     ip 192.168.90.15
     mac 00:1c:42:90:00:0f
 }
 
-// INSTRUCTION: Define the central MQTT broker routing publications to active subscribers.
+// Central MQTT broker routing publications to active subscribers.
 host central_broker {
     ip 192.168.90.5
     mac 00:1c:42:90:00:05
 }
 
-// INSTRUCTION: Define the crane safety controller subscribed to wind alerts.
+// Crane safety controller subscribed to wind alerts.
 host crane_controller {
     ip 192.168.90.101
     mac 00:1c:42:90:01:01
 }
 
-// INSTRUCTION: Define the site operations siren controller subscribed to wind alerts.
+// Site operations siren controller subscribed to wind alerts.
 host siren_controller {
     ip 192.168.90.102
     mac 00:1c:42:90:01:02
 }
 
-// INSTRUCTION: Publish the high-wind alert from the weather station to the broker at QoS 1.
+// Publish the high-wind alert from the weather station to the broker at QoS
+// 1. MQTT control session on TCP 1883 (QoS 1). Repeats 3 times; each wait
+// value pauses after sending its packet.
 flow publish_wind_alert(c, s) {
     c -> s mqtt publish topic "weather/site1/wind/gust_kmh" qos 1 pktid 301 payload "{\"gust_kmh\":82,\"alert\":true}" wait 2ms
     c <- s mqtt puback pktid 301
 }
 
-// INSTRUCTION: Fan out the alert from the broker to the crane safety controller.
+// Fan out the alert from the broker to the crane safety controller.
 flow fanout_to_crane(c, s) {
     c -> s mqtt publish topic "weather/site1/wind/gust_kmh" qos 1 pktid 401 payload "{\"gust_kmh\":82,\"alert\":true}" wait 2ms
     c <- s mqtt puback pktid 401
 }
 
-// INSTRUCTION: Fan out the alert from the broker to the site operations siren controller.
+// Fan out the alert from the broker to the site operations siren controller.
 flow fanout_to_siren(c, s) {
     c -> s mqtt publish topic "weather/site1/wind/gust_kmh" qos 1 pktid 402 payload "{\"gust_kmh\":82,\"alert\":true}" wait 2ms
     c <- s mqtt puback pktid 402
 }
 
-// INSTRUCTION: Compile the 1-to-2 MQTT fan-out alert topology into a PCAP file.
 compile {
     publish_wind_alert(weather_station, central_broker)
     fanout_to_crane(central_broker, crane_controller)

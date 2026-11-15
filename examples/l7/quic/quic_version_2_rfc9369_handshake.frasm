@@ -1,17 +1,17 @@
-// PROMPT: QUIC Version 2 (RFC 9369, version 0x6b3343cf) Initial and Handshake packet exchange.
-// TOKENS: host, ip, flow, s, quic, initial, version, dcid, scid, pktnum, wait, ms, handshake, short, compile
+// QUIC Version 2 (RFC 9369, version 0x6b3343cf) Initial and Handshake packet
+// exchange.
+// QUIC UDP 443 (v2 (RFC 9369)) packet types: initial, handshake, short.
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: quic
 
-// INSTRUCTION: Define RFC 9369 QUIC v2 client endpoint.
 host quic_v2_client {
     ip 10.70.2.15
 }
 
-// INSTRUCTION: Define RFC 9369 QUIC v2 server endpoint.
 host quic_v2_server {
     ip 10.70.2.1
 }
 
-// INSTRUCTION: Define QUIC v2 Initial, Handshake, and 1-RTT Short header packet sequence.
 flow quic_v2_flow(c, s) {
     c -> s quic initial version 0x6b3343cf dcid 0x1122334455667788 scid 0x8877665544332211 pktnum 1 wait 4ms
     c <- s quic initial version 0x6b3343cf dcid 0x8877665544332211 scid 0x99aabbccddeeff00 pktnum 1 wait 4ms
@@ -20,7 +20,6 @@ flow quic_v2_flow(c, s) {
     c -> s quic short dcid 0x99aabbccddeeff00 pktnum 3
 }
 
-// INSTRUCTION: Compile the QUIC Version 2 handshake flow.
 compile {
     quic_v2_flow(quic_v2_client, quic_v2_server)
 }

@@ -1,29 +1,28 @@
-// PROMPT: Storage Area Network (SAN) NAS filer 40GbE LACP trunk negotiation followed by NFSv4 compound mount RPC.
-// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, vlan, pcp, nfs, vers, proc, path, compile
+// Storage Area Network (SAN) NAS filer 40GbE LACP trunk negotiation followed by
+// NFSv4 compound mount RPC.
+// Wire profile: 4 frames; 2 IPv4 hosts; VLAN 270; PCP 3; NFS, LACP; waits 2ms,
+// 1ms.
+// Wireshark: lacp
 
-// INSTRUCTION: Define enterprise NAS storage filer bond interface.
 host nas_filer_bond {
     ip 172.27.50.100
     mac 00:a0:98:27:50:64
 }
 
-// INSTRUCTION: Define compute cluster storage switch port-channel.
 host compute_san_sw {
     ip 172.27.50.10
     mac 00:1c:73:27:50:0a
 }
 
-// INSTRUCTION: Define LACP trunk bringup followed by VLAN 270 NFSv4 datastore access.
 flow nas_lacp_and_nfsv4(filer, sw) {
     filer -> sw lacp actorsys 00:a0:98:27:50:64 actorkey 270 actorport 1 actorstate 61
-        partnersys 00:1c:73:27:50:0a partnerkey 270 partnerport 1 partnerstate 61
+        partnersys 00:1c:73:27:50:0a partnerkey 270 partnerport 1 partnerstate 61 wait 2ms
     filer <- sw lacp actorsys 00:1c:73:27:50:0a actorkey 270 actorport 1 actorstate 61
         partnersys 00:a0:98:27:50:64 partnerkey 270 partnerport 1 partnerstate 61 wait 2ms
-    filer <- sw vlan 270 pcp 3 nfs vers 4 proc "compound" path "/export/vmstore01" wait 2ms
-    filer -> sw vlan 270 pcp 3 nfs vers 4 proc "lookup" path "/export/vmstore01" wait 1ms
+    filer <- sw vlan 270 pcp 3 nfs vers 4 proc "compound" path "/export/vmstore01" wait 1ms
+    filer -> sw vlan 270 pcp 3 nfs vers 4 proc "lookup" path "/export/vmstore01"
 }
 
-// INSTRUCTION: Compile block executing NAS LACP negotiation and NFSv4 traffic.
 compile {
     nas_lacp_and_nfsv4(nas_filer_bond, compute_san_sw)
 }

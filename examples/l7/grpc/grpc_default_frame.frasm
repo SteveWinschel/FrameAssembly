@@ -1,24 +1,18 @@
-// PROMPT: Default gRPC frame emission over TCP port 50051 using automatic protocol defaults.
-// TOKENS: host, ip, mac, flow, s, grpc, compile
+// gRPC starter frame on TCP port 50051 using built-in defaults. Omitting
+// extra keywords emits a 5-byte length-prefixed gRPC frame header.
+// Wireshark: grpc || http2 || tcp.port == 50051
 
-// INSTRUCTION: Define gRPC microservice caller host.
 host grpc_caller {
     ip 10.100.50.10
     mac 02:42:0a:64:32:0a
 }
 
-// INSTRUCTION: Define gRPC backend service pod.
 host grpc_callee {
     ip 10.100.50.20
     mac 02:42:0a:64:32:14
 }
 
-// INSTRUCTION: Emit a default gRPC frame without explicit sub-keywords.
-flow grpc_default(c, s) {
-    c -> s grpc
-}
-
-// INSTRUCTION: Compile the default gRPC scenario.
+// Send the frame directly in compile without needing a reusable flow block.
 compile {
-    grpc_default(grpc_caller, grpc_callee)
+    grpc_caller -> grpc_callee grpc
 }

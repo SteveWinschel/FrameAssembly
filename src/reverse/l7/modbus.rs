@@ -32,10 +32,16 @@ pub(crate) fn dissect_modbus(
     let unit_id = payload[6];
     let func = payload[7];
 
-    if mbap_len < 2 || 6 + mbap_len != payload.len() || !matches!(func, 1..=6 | 16) {
+    let total_len = 6usize.checked_add(mbap_len)?;
+    if mbap_len < 2 || total_len != payload.len() || !matches!(func, 1..=6 | 15 | 16) {
         return None;
     }
     let pdu = &payload[8..];
+    let explicit_transport = if !is_tcp {
+        Some(TransportProto::Udp)
+    } else {
+        None
+    };
     let mut tokens = String::from("modbus");
 
     match func {
@@ -45,6 +51,7 @@ pub(crate) fn dissect_modbus(
         4 => tokens.push_str(" readinputregisters"),
         5 => tokens.push_str(" writesinglecoil"),
         6 => tokens.push_str(" writesingleregister"),
+        15 => tokens.push_str(" func \"writemultiplecoils\""),
         16 => tokens.push_str(" writemultipleregisters"),
         _ => return None,
     }
@@ -58,14 +65,42 @@ pub(crate) fn dissect_modbus(
         tokens.push_str(&format!(" unitid {unit_id}"));
     }
 
-    if !pdu.is_empty() && pdu[0] >= 2 && pdu[0].is_multiple_of(2) {
+    if matches!(func, 1 | 2) && !pdu.is_empty() && (1..=250).contains(&pdu[0]) {
+        let bc = pdu[0] as usize;
+        if pdu.len() > bc
+            && (pdu.len() != 4 || (bc == 3 && u16::from_be_bytes([pdu[2], pdu[3]]) == 0))
+        {
+            let fill = pdu[1];
+            if pdu[1..1 + bc].iter().all(|&b| b == fill) {
+                tokens.push_str(" isresponse");
+                if bc > 1 {
+                    tokens.push_str(&format!(" count {}", bc * 8));
+                }
+                if fill != 0 {
+                    tokens.push_str(&format!(" value {fill}"));
+                }
+                return Some(ProtocolDissection {
+                    protocol: Protocol::Modbus,
+                    tokens,
+                    residual_payload: pdu[1 + bc..].to_vec(),
+                    explicit_transport,
+                });
+            }
+        }
+    } else if matches!(func, 3 | 4)
+        && !pdu.is_empty()
+        && (2..=250).contains(&pdu[0])
+        && pdu[0].is_multiple_of(2)
+    {
         let bc = pdu[0] as usize;
         let count = bc / 2;
         if pdu.len() > bc && pdu.len() != 4 {
             let val = u16::from_be_bytes([pdu[1], pdu[2]]);
             let all_same = pdu[1..1 + bc]
-                .chunks_exact(2)
-                .all(|c| u16::from_be_bytes([c[0], c[1]]) == val);
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .all(|&c| u16::from_be_bytes(c) == val);
             if all_same {
                 tokens.push_str(" isresponse");
                 if count != 1 {
@@ -78,11 +113,7 @@ pub(crate) fn dissect_modbus(
                     protocol: Protocol::Modbus,
                     tokens,
                     residual_payload: pdu[1 + bc..].to_vec(),
-                    explicit_transport: if !is_tcp {
-                        Some(TransportProto::Udp)
-                    } else {
-                        None
-                    },
+                    explicit_transport,
                 });
             }
         }
@@ -110,26 +141,64 @@ pub(crate) fn dissect_modbus(
             }
             &pdu[4..]
         }
-        16 => {
-            let count = second as usize;
+        15 => {
+            if (1..=1968).contains(&second) {
+                let bc = usize::from(second).div_ceil(8);
+                if pdu.len() >= 5 + bc && pdu[4] as usize == bc {
+                    let fill = pdu[5];
+                    if pdu[5..5 + bc].iter().all(|&b| b == fill) {
+                        if second != 1 {
+                            tokens.push_str(&format!(" count {second}"));
+                        }
+                        if fill != 0 {
+                            tokens.push_str(&format!(" value {fill}"));
+                        }
+                        return Some(ProtocolDissection {
+                            protocol: Protocol::Modbus,
+                            tokens,
+                            residual_payload: pdu[5 + bc..].to_vec(),
+                            explicit_transport,
+                        });
+                    }
+                }
+            }
+            tokens.push_str(" isresponse");
             if second != 1 {
                 tokens.push_str(&format!(" count {second}"));
             }
-            let bc = count * 2;
-            if pdu.len() >= 5 + bc && pdu[4] as usize == bc && count > 0 {
-                let val = u16::from_be_bytes([pdu[5], pdu[6]]);
-                let all_same = pdu[5..5 + bc]
-                    .chunks_exact(2)
-                    .all(|c| u16::from_be_bytes([c[0], c[1]]) == val);
-                if all_same {
-                    tokens.push_str(&format!(" value {val}"));
-                    &pdu[5 + bc..]
-                } else {
-                    &pdu[4..]
+            &pdu[4..]
+        }
+        16 => {
+            if (1..=125).contains(&second) {
+                let bc = usize::from(second) * 2;
+                if pdu.len() >= 5 + bc && pdu[4] as usize == bc {
+                    let val = u16::from_be_bytes([pdu[5], pdu[6]]);
+                    let all_same = pdu[5..5 + bc]
+                        .as_chunks::<2>()
+                        .0
+                        .iter()
+                        .all(|&c| u16::from_be_bytes(c) == val);
+                    if all_same {
+                        if second != 1 {
+                            tokens.push_str(&format!(" count {second}"));
+                        }
+                        if val != 0 {
+                            tokens.push_str(&format!(" value {val}"));
+                        }
+                        return Some(ProtocolDissection {
+                            protocol: Protocol::Modbus,
+                            tokens,
+                            residual_payload: pdu[5 + bc..].to_vec(),
+                            explicit_transport,
+                        });
+                    }
                 }
-            } else {
-                &pdu[4..]
             }
+            tokens.push_str(" isresponse");
+            if second != 1 {
+                tokens.push_str(&format!(" count {second}"));
+            }
+            &pdu[4..]
         }
         _ => return None,
     };
@@ -138,10 +207,6 @@ pub(crate) fn dissect_modbus(
         protocol: Protocol::Modbus,
         tokens,
         residual_payload: residual.to_vec(),
-        explicit_transport: if !is_tcp {
-            Some(TransportProto::Udp)
-        } else {
-            None
-        },
+        explicit_transport,
     })
 }

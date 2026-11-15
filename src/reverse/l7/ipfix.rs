@@ -16,11 +16,13 @@ use super::{append_flow_record_tokens, ok_dissect};
 pub(crate) fn dissect_ipfix(payload: &[u8], sp: u16, dp: u16) -> Option<ProtocolDissection> {
     if payload.len() < 49
         || be_u16(payload, 0) != 10
+        || usize::from(be_u16(payload, 2)) != payload.len()
+        || be_u16(payload, 16) != 256
+        || 16usize.checked_add(usize::from(be_u16(payload, 18))) != Some(payload.len())
         || !(sp == 4739
             || dp == 4739
             || (be_u32(payload, 4) == 1_700_000_000
                 && be_u32(payload, 8) == 1
-                && be_u16(payload, 16) == 256
                 && be_u16(payload, 18) == 33))
     {
         return None;
@@ -35,5 +37,7 @@ pub(crate) fn dissect_ipfix(payload: &[u8], sp: u16, dp: u16) -> Option<Protocol
         be_u64(payload, 33) as u32,
         be_u64(payload, 41) as u32,
     );
+    push_if(&mut tokens, "srcport", be_u16(payload, 28), 0);
+    push_if(&mut tokens, "dstport", be_u16(payload, 30), 0);
     ok_dissect(Protocol::Ipfix, tokens, payload[49..].to_vec())
 }

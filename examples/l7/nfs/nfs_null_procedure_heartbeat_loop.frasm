@@ -1,18 +1,19 @@
-// PROMPT: NFS NULL procedure RPC ping loop verifying remote storage cluster server availability.
-// TOKENS: host, ip, flow, nfs, vers, proc, wait, ms, compile
+// NFS NULL procedure RPC ping loop verifying remote storage cluster server
+// availability.
+// Wireshark: nfs
 
-// INSTRUCTION: Define storage health monitor.
+// Storage health monitor.
 host storage_monitor { ip 192.168.50.25 }
 
-// INSTRUCTION: Define enterprise NFS cluster head.
+// Enterprise NFS cluster head.
 host nfs_cluster_head { ip 192.168.50.1 }
 
-// INSTRUCTION: Define periodic NULL RPC ping flow.
+// Periodic NULL RPC ping flow. Repeats 3 times; each wait value pauses after
+// sending its packet.
 flow nfs_null_ping_flow(mon, srv) {
     mon -> srv nfs vers 4 proc "null" wait 20ms
 }
 
-// INSTRUCTION: Compile NFS heartbeat loop scenario.
 compile {
     nfs_null_ping_flow(storage_monitor, nfs_cluster_head) // cycle 1
     nfs_null_ping_flow(storage_monitor, nfs_cluster_head) // cycle 2

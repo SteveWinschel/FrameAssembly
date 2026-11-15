@@ -1,19 +1,21 @@
-// PROMPT: Multi-tenant GENEVE overlay preserving outer DSCP AF31 (26) and ECN markings.
-// TOKENS: host, ip, flow, geneve, vni, optclass, opttype, dscp, ecn, ttl, wait, ms, compile
+// Multi-tenant GENEVE overlay preserving outer DSCP AF31 (26) and ECN
+// markings.
+// This capture sets DSCP 26, TTL 64, carries VNI 30010, and uses post-packet
+// wait gaps (10ms) between frames.
+// Wireshark: geneve && geneve.vni == 30010
 
-// INSTRUCTION: Define gold-tier tenant hypervisor A.
 host tenant_gold_hyp_a { ip 10.180.10.1 }
 
-// INSTRUCTION: Define gold-tier tenant hypervisor B.
 host tenant_gold_hyp_b { ip 10.180.10.2 }
 
-// INSTRUCTION: Define GENEVE packets marked with outer DSCP 26 (AF31) and ECN 2 (ECT0).
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow geneve_tenant_qos(a, b) {
-    a -> b geneve vni 30010 optclass 258 opttype 20 dscp 26 ecn 2 ttl 64
-    a <- b geneve vni 30010 optclass 258 opttype 20 dscp 26 ecn 2 ttl 64 wait 10ms
+    a -> b geneve vni 30010 optclass 258 opttype 20 dscp 26 ecn 2 ttl 64 wait 10ms
+    a <- b geneve vni 30010 optclass 258 opttype 20 dscp 26 ecn 2 ttl 64
 }
 
-// INSTRUCTION: Compile the QoS-marked multi-tenant GENEVE flow.
+// Run geneve_tenant_qos(tenant_gold_hyp_a, tenant_gold_hyp_b) to generate the
+// capture.
 compile {
     geneve_tenant_qos(tenant_gold_hyp_a, tenant_gold_hyp_b)
 }

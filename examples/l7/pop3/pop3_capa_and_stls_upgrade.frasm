@@ -1,13 +1,11 @@
-// PROMPT: POP3 CAPA capability negotiation and STLS upgrade command on port 110.
-// TOKENS: host, ip, flow, s, pop3, cmd, wait, ms, ok, payload, compile
+// POP3 CAPA capability negotiation and STLS upgrade command on port 110.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: pop
 
-// INSTRUCTION: Define security-aware POP3 client.
 host stls_client { ip 192.168.30.14 }
 
-// INSTRUCTION: Define POP3 server supporting STARTTLS.
 host stls_server { ip 192.168.30.2 }
 
-// INSTRUCTION: Define CAPA query and STLS command exchange.
 flow pop3_capa_stls(c, s) {
     c -> s pop3 cmd "CAPA" wait 5ms
     c <- s pop3 ok payload "USER\r\nUIDL\r\nTOP\r\nSTLS\r\n.\r\n" wait 5ms
@@ -15,7 +13,6 @@ flow pop3_capa_stls(c, s) {
     c <- s pop3 ok
 }
 
-// INSTRUCTION: Compile POP3 CAPA and STLS flow.
 compile {
     pop3_capa_stls(stls_client, stls_server)
 }

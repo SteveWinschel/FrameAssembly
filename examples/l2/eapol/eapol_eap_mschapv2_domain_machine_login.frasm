@@ -1,19 +1,18 @@
-// PROMPT: Windows domain workstation authenticating machine account credentials via standalone EAP-MSCHAPv2 (EAP_METHOD 26).
-// TOKENS: host, ip, mac, flow, eapol, version, type, start, wait, ms, eappacket, eapcode, eapid, eapmethod, identity, payload, compile
+// Windows domain workstation authenticating machine account credentials via
+// standalone EAP-MSCHAPv2 (EAP_METHOD 26).
+// Wire profile: 6 frames; 2 IPv4 hosts; EAPOL; waits 2ms, 5ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define Windows domain-joined desktop authenticating machine account host/ws-fin-04.
 host win_domain_pc {
     ip 10.45.12.40
     mac 00:24:e8:2d:0c:28
 }
 
-// INSTRUCTION: Define enterprise floor switch port connected to Active Directory NPS RADIUS server.
 host floor_nps_sw {
     ip 10.45.12.1
     mac 00:1e:be:2d:0c:01
 }
 
-// INSTRUCTION: Execute machine identity exchange and EAP-MSCHAPv2 (Method 26) challenge/response.
 flow eapol_machine_mschapv2(pc, sw) {
     pc -> sw eapol version 2 type start wait 2ms
     pc <- sw eapol version 2 type eappacket eapcode 1 eapid 1 eapmethod 1 wait 2ms
@@ -23,7 +22,6 @@ flow eapol_machine_mschapv2(pc, sw) {
     pc <- sw eapol version 2 type eappacket eapcode 3 eapid 2 eapmethod 26
 }
 
-// INSTRUCTION: Compile the Windows machine account EAP-MSCHAPv2 authentication trace.
 compile {
     eapol_machine_mschapv2(win_domain_pc, floor_nps_sw)
 }

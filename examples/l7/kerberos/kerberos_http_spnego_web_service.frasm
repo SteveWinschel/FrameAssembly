@@ -1,18 +1,17 @@
-// PROMPT: Kerberos SPNEGO ticket request for intranet web application single sign-on.
-// TOKENS: host, ip, flow, kerberos, tgsreq, realm, sname, etype, compile
+// Kerberos SPNEGO ticket request for intranet web application single sign-on.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define web browser workstation.
+// Web browser workstation.
 host web_workstation { ip 192.168.12.45 }
 
-// INSTRUCTION: Define corporate authentication server.
 host auth_server { ip 192.168.12.1 }
 
-// INSTRUCTION: Define SPNEGO HTTP service ticket request flow.
+// SPNEGO HTTP service ticket request flow. Kerberos encryption types: 18
+// (AES256-CTS).
 flow spnego_req_flow(w, a) {
     w -> a kerberos tgsreq realm "INTRANET.NET" sname "HTTP/wiki.intranet.net" etype 18
 }
 
-// INSTRUCTION: Compile SPNEGO web service ticket scenario.
 compile {
     spnego_req_flow(web_workstation, auth_server)
 }

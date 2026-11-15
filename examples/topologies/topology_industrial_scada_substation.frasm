@@ -1,20 +1,18 @@
-// PROMPT: Power grid electrical substation automation integrating Modbus, DNP3, and S7comm telemetry.
-// TOKENS: host, ip, flow, modbus, func, readholdingregisters, dnp3, read, s7comm, readvar, compile
+// Power grid electrical substation automation integrating Modbus, DNP3, and
+// S7comm telemetry.
+// Wire profile: 3 frames; 2 IPv4 hosts; Modbus, DNP3, S7comm.
+// Wireshark: modbus || dnp3 || s7comm
 
-// INSTRUCTION: Define substation central HMI station.
 host scada_hmi { ip 10.50.0.10 }
 
-// INSTRUCTION: Define electrical feeder protection relay.
 host feeder_relay { ip 10.50.0.100 }
 
-// INSTRUCTION: Define multi-protocol industrial telemetry flow.
 flow substation_scada(hmi, relay) {
     hmi -> relay modbus func readholdingregisters
     hmi -> relay dnp3 func read
     hmi -> relay s7comm func readvar
 }
 
-// INSTRUCTION: Compile block executing substation automation.
 compile {
     substation_scada(scada_hmi, feeder_relay)
 }

@@ -1,18 +1,20 @@
-// PROMPT: Embedded IoT gateway transmitting encrypted telemetry to cloud WireGuard receiver.
-// TOKENS: host, ip, flow, wireguard, type, data, receiver, counter, payload, compile
+// Embedded IoT gateway transmitting encrypted telemetry to cloud WireGuard
+// receiver.
+// This capture models UDP port 51820 WireGuard handshake and transport
+// frames.
+// Wireshark: wg
 
-// INSTRUCTION: Define environmental IoT sensor gateway.
 host iot_sensor_node { ip 172.30.99.10 }
 
-// INSTRUCTION: Define cloud IoT telemetry receiver.
 host cloud_iot_receiver { ip 172.30.99.1 }
 
-// INSTRUCTION: Define telemetry data payload transmission flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow wg_iot_telemetry_flow(sensor, cloud) {
     sensor -> cloud wireguard type data receiver 90901 counter 1 payload "SENSOR_TEMP_HUMIDITY_DATA"
 }
 
-// INSTRUCTION: Compile block executing IoT sensor encrypted telemetry.
+// Run wg_iot_telemetry_flow(iot_sensor_node, cloud_iot_receiver) to generate
+// the capture.
 compile {
     wg_iot_telemetry_flow(iot_sensor_node, cloud_iot_receiver)
 }

@@ -1,25 +1,23 @@
-// PROMPT: sFlow v5 datagram export from an AI cluster top-of-rack switch sampling RoCEv2 RDMA fabric packets.
-// TOKENS: host, ip, mac, flow, sflow, agentip, subagentid, uptime, samples, dscp, ttl, compile
+// sFlow v5 datagram export from an AI cluster top-of-rack switch sampling
+// RoCEv2 RDMA fabric packets.
+// Encapsulation and QoS markings: DSCP 26 (AF31).
+// Wireshark: sflow
 
-// INSTRUCTION: Define AI training cluster top-of-rack switch agent.
 host ai_tor_switch {
     ip 10.140.1.1
     mac 00:1c:73:8c:01:01
 }
 
-// INSTRUCTION: Define RDMA congestion analytics sFlow collector.
 host rdma_sflow_col {
     ip 10.140.1.250
     mac 00:1c:73:8c:01:fa
 }
 
-// INSTRUCTION: Export high-rate sFlow v5 packet samples with DSCP 26 marking.
 flow sflow_rocev2_tor(tor, col) {
     tor -> col sflow agentip 10.140.1.1 subagentid 1 uptime 8640000 samples 16 dscp 26 ttl 64
     tor -> col sflow agentip 10.140.1.1 subagentid 2 uptime 8640100 samples 16 dscp 26 ttl 64
 }
 
-// INSTRUCTION: Compile the AI cluster RoCEv2 sFlow packet sampling scenario.
 compile {
     sflow_rocev2_tor(ai_tor_switch, rdma_sflow_col)
 }

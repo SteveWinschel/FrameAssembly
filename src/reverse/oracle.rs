@@ -28,6 +28,17 @@ pub(crate) struct VerifiedStatement {
     pub statement_body: String,
 }
 
+/// Compares synthesized wire bytes against `pkt.raw_eth_frame` using strict 100% raw-frame byte
+/// equality on Ethernet captures and L2-MAC-independent byte equality (`bytes[12..]`) on L3-only
+/// linktypes (`RAW`, `IPV4`, `IPV6`, `NULL`, `LOOP`) that lack wire MAC headers.
+fn frames_match(synth_bytes: &[u8], pkt: &DissectedPacket) -> bool {
+    if pkt.is_l3_only {
+        synth_bytes.get(12..) == pkt.raw_eth_frame.get(12..)
+    } else {
+        synth_bytes == pkt.raw_eth_frame
+    }
+}
+
 /// Verifies a candidate `.frasm` statement against the original [`DissectedPacket`] using the
 /// in-memory FrameAssembly parser and compiler as a self-checking oracle.
 ///
@@ -64,7 +75,7 @@ pub(crate) fn verify_with_oracle(
             .or_else(|| compile_single_statement(caller, callee, ep.dir, &best_candidate));
 
         if let Some(synth_bytes) = synth_opt {
-            if synth_bytes == pkt.raw_eth_frame {
+            if frames_match(&synth_bytes, pkt) {
                 return VerifiedStatement {
                     statement_body: best_candidate,
                 };
@@ -87,7 +98,7 @@ pub(crate) fn verify_with_oracle(
                                 .or_else(|| {
                                     compile_single_statement(caller, callee, ep.dir, &with_payload)
                                 })
-                            && synth2 == pkt.raw_eth_frame
+                            && frames_match(&synth2, pkt)
                         {
                             return VerifiedStatement {
                                 statement_body: with_payload,
@@ -112,7 +123,7 @@ pub(crate) fn verify_with_oracle(
         if let Some(stepdown_bytes) =
             compile_single_statement(caller, callee, ep.dir, &stepdown_body)
                 .or_else(|| compile_single_statement(caller, callee, ep.dir, &raw_stepdown))
-            && (stepdown_bytes == pkt.raw_eth_frame || !candidate_compiled || is_unicast_l4)
+            && (frames_match(&stepdown_bytes, pkt) || !candidate_compiled || is_unicast_l4)
         {
             return VerifiedStatement {
                 statement_body: stepdown_body,
@@ -222,29 +233,43 @@ fn hydrate_elided_l4_fields(stmt_body: &str, pkt: &DissectedPacket) -> String {
     let mut has_dstport = false;
     let mut has_seq = false;
     let mut has_acknum = false;
+    let mut seen_netflow_ipfix = false;
+    let mut seen_tacacs = false;
 
     for tok in Token::lexer(stmt_body).flatten() {
         match tok {
-            Token::SrcPort => has_srcport = true,
-            Token::DstPort => has_dstport = true,
-            Token::Seq => has_seq = true,
+            Token::Netflow | Token::Ipfix => seen_netflow_ipfix = true,
+            Token::Tacacs => seen_tacacs = true,
+            Token::SrcPort if !seen_netflow_ipfix => has_srcport = true,
+            Token::DstPort if !seen_netflow_ipfix => has_dstport = true,
+            Token::Seq if !seen_tacacs => has_seq = true,
             Token::AckNum => has_acknum = true,
             _ => {}
         }
     }
 
+    let mut prefix = Vec::new();
     let mut extra = Vec::new();
     if !has_srcport && let Some(sp) = pkt.l4.src_port {
-        extra.push(format!("srcport {sp}"));
+        if seen_netflow_ipfix {
+            prefix.push(format!("srcport {sp}"));
+        } else {
+            extra.push(format!("srcport {sp}"));
+        }
     }
     if !has_dstport && let Some(dp) = pkt.l4.dst_port {
-        extra.push(format!("dstport {dp}"));
+        if seen_netflow_ipfix {
+            prefix.push(format!("dstport {dp}"));
+        } else {
+            extra.push(format!("dstport {dp}"));
+        }
     }
-    if !has_seq
-        && let Some(seq) = pkt.seq
-        && !(pkt.dissection.protocol == Protocol::Tacacs && seq == 1000)
-    {
-        extra.push(format!("seq {seq}"));
+    if !has_seq && let Some(seq) = pkt.seq {
+        if seen_tacacs {
+            prefix.push(format!("seq {seq}"));
+        } else {
+            extra.push(format!("seq {seq}"));
+        }
     }
     if !has_acknum && let Some(ack) = pkt.ack_num {
         let should_ack = pkt.l4.tcp_flags.contains(&TcpFlag::Ack)
@@ -254,10 +279,15 @@ fn hydrate_elided_l4_fields(stmt_body: &str, pkt: &DissectedPacket) -> String {
         }
     }
 
-    if extra.is_empty() {
+    let with_prefix = if prefix.is_empty() {
         stmt_body.to_string()
     } else {
-        insert_before_wait(stmt_body, &extra.join(" "))
+        format!("{} {}", prefix.join(" "), stmt_body.trim_start())
+    };
+    if extra.is_empty() {
+        with_prefix
+    } else {
+        insert_before_wait(&with_prefix, &extra.join(" "))
     }
 }
 
@@ -276,8 +306,8 @@ fn build_stepdown_statement(
     };
     let synth_src = super::topology::derive_mac(src_host.mac, None, src_host.ip, is_forward);
     let synth_dst = super::topology::derive_mac(dst_host.mac, None, dst_host.ip, !is_forward);
-    let emit_src_mac = (pkt.src_mac != synth_src).then_some(pkt.src_mac);
-    let emit_dst_mac = (pkt.dst_mac != synth_dst).then_some(pkt.dst_mac);
+    let emit_src_mac = (!pkt.is_l3_only && pkt.src_mac != synth_src).then_some(pkt.src_mac);
+    let emit_dst_mac = (!pkt.is_l3_only && pkt.dst_mac != synth_dst).then_some(pkt.dst_mac);
 
     if pkt.has_ip_header && matches!(pkt.ip_proto, Some(6 | 17)) {
         let is_tcp = pkt.ip_proto == Some(6);
@@ -352,8 +382,20 @@ fn build_stepdown_statement(
     } else if !pkt.has_ip_header {
         if let Some(q) = &pkt.l2.qinq {
             parts.push(format!("qinq {}", q.outer_vid));
-            if let Some(iv) = q.inner_vid {
+            if let Some(iv) = q.inner_vid
+                && iv != 1
+            {
                 parts.push(format!("innervlan {iv}"));
+            }
+            if let Some(pcp) = q.pcp
+                && pcp != 0
+            {
+                parts.push(format!("pcp {pcp}"));
+            }
+            if let Some(dei) = q.dei
+                && dei != 0
+            {
+                parts.push(format!("dei {dei}"));
             }
             if let Some(m) = &pkt.l2.mpls {
                 parts.push(format!("mpls {}", m.label));
@@ -475,8 +517,20 @@ fn append_l2_l3_modifiers(
         }
         if let Some(q) = &pkt.l2.qinq {
             parts.push(format!("qinq {}", q.outer_vid));
-            if let Some(iv) = q.inner_vid {
+            if let Some(iv) = q.inner_vid
+                && iv != 1
+            {
                 parts.push(format!("innervlan {iv}"));
+            }
+            if let Some(pcp) = q.pcp
+                && pcp != 0
+            {
+                parts.push(format!("pcp {pcp}"));
+            }
+            if let Some(dei) = q.dei
+                && dei != 0
+            {
+                parts.push(format!("dei {dei}"));
             }
         }
         if let Some(m) = &pkt.l2.mpls {
@@ -524,7 +578,7 @@ fn append_l2_l3_modifiers(
         }
         if !is_ipv6 {
             if let Some(ipid) = pkt.l3.ipid
-                && ipid != 0x1234
+                && ipid != 0
             {
                 parts.push(format!("ipid 0x{ipid:04x}"));
             }

@@ -1,19 +1,20 @@
-// PROMPT: IP SLA jitter and latency ICMP Echo probe executed repeatedly inside a COMPILE repeated flow calls.
-// TOKENS: host, ip, flow, src, dst, icmp, echorequest, id, seq, dscp, wait, ms, echoreply, compile
+// IP SLA jitter and latency ICMP Echo probe executed repeatedly across
+// multiple cycles in compile.
+// This capture sets DSCP 46, executes 5 cycles in compile, and uses
+// post-packet wait gaps (5ms) between frames.
+// Wireshark: icmp
 
-// INSTRUCTION: Define IP SLA source router.
 host sla_responder_src { ip 10.222.1.1 }
 
-// INSTRUCTION: Define IP SLA target router.
 host sla_responder_dst { ip 10.222.1.2 }
 
-// INSTRUCTION: Define single SLA ping sample with 10ms round-trip time.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow icmp_sla_sample(src, dst) {
     src -> dst icmp echorequest id 901 seq 1 dscp 46 wait 5ms
     src <- dst icmp echoreply id 901 seq 1 dscp 46 wait 5ms
 }
 
-// INSTRUCTION: Compile 5 consecutive IP SLA ICMP ping samples.
+// Emit 5 sequential cycles of icmp_sla_sample.
 compile {
     icmp_sla_sample(sla_responder_src, sla_responder_dst) // cycle 1
     icmp_sla_sample(sla_responder_src, sla_responder_dst) // cycle 2

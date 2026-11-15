@@ -1,18 +1,19 @@
-// PROMPT: Modbus industrial automation command with DSCP expedited forwarding priority marking.
-// TOKENS: host, ip, flow, modbus, func, addr, value, unitid, dscp, compile
+// Modbus industrial automation command with DSCP expedited forwarding
+// priority marking.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define emergency shutdown safety system.
+// Emergency shutdown safety system.
 host safety_system { ip 192.168.1.99 }
 
-// INSTRUCTION: Define emergency relief valve actuator.
+// Emergency relief valve actuator.
 host valve_actuator { ip 192.168.1.150 }
 
-// INSTRUCTION: Define DSCP prioritized emergency coil write flow.
+// DSCP prioritized emergency coil write flow. Encapsulation and QoS markings:
+// DSCP 46. Modbus functions: FC 5 Write Single Coil.
 flow emergency_valve_trip(sys, act) {
     sys -> act modbus func "writesinglecoil" addr 10 value 65280 unitid 1 dscp 46
 }
 
-// INSTRUCTION: Compile DSCP marked process automation scenario.
 compile {
     emergency_valve_trip(safety_system, valve_actuator)
 }

@@ -1,19 +1,19 @@
-// PROMPT: IPv6 NDP Router Solicitation sent to all-routers multicast address and Router Advertisement reply.
-// TOKENS: host, ip, flow, ndp, routersolicit, routeradvert, routerlifetime, compile
+// IPv6 NDP Router Solicitation sent to all-routers multicast address and
+// Router Advertisement reply.
+// This capture targets IPv6 endpoints.
+// Wireshark: icmpv6.nd
 
-// INSTRUCTION: Define newly booted IPv6 host.
 host new_host { ip fe80::50 }
 
-// INSTRUCTION: Define local IPv6 gateway router.
 host gateway_router { ip fe80::1 }
 
-// INSTRUCTION: Define router discovery flow requesting network configuration parameters.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ndp_router_discovery(h, r) {
     h -> r ndp routersolicit
     h <- r ndp routeradvert routerlifetime 1800
 }
 
-// INSTRUCTION: Compile block executing router advertisement discovery.
+// Run ndp_router_discovery(new_host, gateway_router) to generate the capture.
 compile {
     ndp_router_discovery(new_host, gateway_router)
 }

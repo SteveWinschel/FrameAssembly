@@ -1,19 +1,24 @@
-// PROMPT: Build an MQTT inter-datacenter broker bridge synchronization flow over QinQ 700/40 and MPLS label 88100.
-// TOKENS: host, ip, mac, flow, s, mqtt, connect, clientid, qinq, innervlan, mpls, dscp, wait, ms, connack, returncode, subscribe, topic, qos, pktid, suback, publish, payload, puback, compile
+// Build an MQTT inter-datacenter broker bridge synchronization flow over QinQ
+// 700/40 and MPLS label 88100.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define the regional edge MQTT broker bridging local sensor topics to the central cloud broker.
+// Regional edge MQTT broker bridging local sensor topics to the central cloud
+// broker.
 host edge_bridge_broker {
     ip 10.180.40.5
     mac 00:50:56:b4:28:05
 }
 
-// INSTRUCTION: Define the central core MQTT broker receiving bridged publications over MPLS.
+// Central core MQTT broker receiving bridged publications over MPLS.
 host core_cloud_broker {
     ip 10.180.1.5
     mac 00:50:56:b4:01:05
 }
 
-// INSTRUCTION: Establish the MQTT bridge session, subscribe to downward command topics, and forward an upward QoS 1 event over QinQ/MPLS.
+// Establish the MQTT bridge session, subscribe to downward command topics,
+// and forward an upward QoS 1 event over QinQ/MPLS. Encapsulation and QoS
+// markings: 802.1ad QinQ S-VLAN 700 / C-VLAN 40, MPLS label 88100, DSCP 32.
+// MQTT control session on TCP 1883 (QoS 1, CONNACK codes 0).
 flow broker_bridge_qinq_mpls(c, s) {
     c -> s mqtt connect clientid "bridge-site40-primary" qinq 700 innervlan 40 mpls 88100 dscp 32 wait 6ms
     c <- s mqtt connack returncode 0 qinq 700 innervlan 40 mpls 88100 dscp 32 wait 3ms
@@ -23,7 +28,6 @@ flow broker_bridge_qinq_mpls(c, s) {
     c <- s mqtt puback pktid 2 qinq 700 innervlan 40 mpls 88100 dscp 32
 }
 
-// INSTRUCTION: Compile the QinQ and MPLS MQTT broker bridge trace into a PCAP file.
 compile {
     broker_bridge_qinq_mpls(edge_bridge_broker, core_cloud_broker)
 }

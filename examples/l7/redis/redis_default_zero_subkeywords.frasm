@@ -1,18 +1,14 @@
-// PROMPT: Default Redis RESP PING frame with zero sub-keywords on TCP port 6379.
-// TOKENS: host, ip, mac, flow, s, redis, compile
+// Minimal 2-block Redis RESP2 / RESP3 starter emitting automatic protocol
+// defaults directly from the compile block (zero flow wrapper).
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (Redis
+// RESP2 / RESP3, TCP 6379).
+// Wireshark: resp
 
-// INSTRUCTION: Define web application worker host.
 host web_worker { ip 10.63.79.10 mac 00:16:3e:63:79:0a }
 
-// INSTRUCTION: Define Redis in-memory cache master.
 host redis_master { ip 10.63.79.1 mac 00:16:3e:63:79:01 }
 
-// INSTRUCTION: Define flow sending default REDIS PING frame.
-flow redis_default(c, s) {
-    c -> s redis
-}
-
-// INSTRUCTION: Compile default Redis scenario.
 compile {
-    redis_default(web_worker, redis_master)
+    web_worker -> redis_master redis
 }

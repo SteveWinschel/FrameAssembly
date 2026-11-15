@@ -1,20 +1,20 @@
-// PROMPT: Router WAN IP connection service query using ST urn:schemas-upnp-org:service:WANIPConnection:1.
-// TOKENS: host, ip, flow, s, ssdp, msearch, st, mx, man, compile
+// Router WAN IP connection service query using ST
+// urn:schemas-upnp-org:service:WANIPConnection:1.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (SSDP /
+// UPnP, UDP 1900).
+// Wireshark: ssdp
 
-// INSTRUCTION: Define port mapping client.
 host mapping_client { ip 192.168.10.82 }
 
-// INSTRUCTION: Define UPnP multicast destination.
 host igd_mcast { ip 239.255.255.250 }
 
-// INSTRUCTION: Define WAN IP service discovery flow.
 flow ssdp_wanip_flow(c, s) {
     c -> s ssdp msearch
         st "urn:schemas-upnp-org:service:WANIPConnection:1"
         mx 2 man "\"ssdp:discover\""
 }
 
-// INSTRUCTION: Compile block executing WAN IP discovery.
 compile {
     ssdp_wanip_flow(mapping_client, igd_mcast)
 }

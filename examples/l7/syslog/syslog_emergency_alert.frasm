@@ -1,18 +1,17 @@
-// PROMPT: Syslog critical emergency alert delivered over TCP transport.
-// TOKENS: host, ip, flow, s, syslog, transport, tcp, facility, severity, msg, compile
+// Syslog critical emergency alert delivered over TCP transport.
+// RFC 5424 over TCP 514; facility 0 (kern) + severity 0 (emerg) yields PRI
+// <0>.
+// Uses transport tcp instead of the default UDP transport.
+// Wireshark: syslog
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.5 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow syslog_emerg(c, s) {
     c -> s syslog transport tcp facility 0 severity 0 msg "Kernel panic - not syncing: Fatal hardware fault"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     syslog_emerg(client, server)
 }

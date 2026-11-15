@@ -1,25 +1,24 @@
-// PROMPT: Cable MSO Converged Interconnect Network (CIN) transporting Remote-PHY DEPI frames over QinQ S-VLAN 1900 C-VLAN 19.
-// TOKENS: host, ip, mac, flow, qinq, innervlan, dscp, udp, srcport, dstport, payload, wait, ms, compile
+// Cable MSO Converged Interconnect Network (CIN) transporting Remote-PHY DEPI
+// frames over QinQ S-VLAN 1900 C-VLAN 19.
+// Wire profile: 2 frames; 2 IPv4 hosts; QinQ S-VLAN 1900 / C-VLAN 19; UDP;
+// dstport 1701; DSCP 46; waits 2ms.
+// Wireshark: vlan.id == 1900 && vlan.id == 19
 
-// INSTRUCTION: Define virtual CCAP Core (vCMTS) downstream scheduler in regional headend.
 host vcmts_ccap_core {
     ip 172.28.19.1
     mac 00:0f:53:1c:13:01
 }
 
-// INSTRUCTION: Define outdoor fiber node Remote-PHY Device (RPD) modulated QAM transmitter.
 host fiber_node_rpd {
     ip 172.28.19.50
     mac 00:0f:53:1c:13:32
 }
 
-// INSTRUCTION: Exchange DOCSIS R-PHY control and payload packets over QinQ S-VLAN 1900 C-VLAN 19.
 flow qinq_docsis_rphy(core, rpd) {
     core -> rpd qinq 1900 innervlan 19 dscp 46 udp srcport 1701 dstport 1701 payload "docsis31_ofdm_profile_a_codeword_burst" wait 2ms
     core <- rpd qinq 1900 innervlan 19 dscp 46 udp srcport 1701 dstport 1701 payload "docsis31_upstream_req_grant_map_ack"
 }
 
-// INSTRUCTION: Compile the Cable MSO Remote-PHY QinQ S-VLAN 1900 C-VLAN 19 flow.
 compile {
     qinq_docsis_rphy(vcmts_ccap_core, fiber_node_rpd)
 }

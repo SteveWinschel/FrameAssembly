@@ -1,18 +1,18 @@
-// PROMPT: HSRP hello heartbeat on 802.1Q tagged subinterface for campus VLAN 100.
-// TOKENS: host, ip, flow, dst, hsrp, group, priority, vip, vlan, pcp, dei, compile
+// HSRP hello heartbeat on 802.1Q tagged subinterface for campus VLAN 100.
+// This capture wraps frames in 802.1Q VLAN 100 and carries group 10.
+// Wireshark: hsrp && vlan.id == 100
 
-// INSTRUCTION: Define campus distribution switch subinterface.
 host campus_dist_rtr { ip 10.100.1.254 }
 
-// INSTRUCTION: Define all-routers multicast target.
 host hsrp_all_rtrs { ip 224.0.0.2 }
 
-// INSTRUCTION: Define tagged HSRP flow with VLAN 100 and voice-level PCP priority 5.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow hsrp_vlan_tagged(rtr, dst) {
     rtr -> dst hsrp group 10 priority 110 vip 10.100.1.1 vlan 100 pcp 5 dei 0
 }
 
-// INSTRUCTION: Compile block executing VLAN-encapsulated HSRP hello.
+// Run hsrp_vlan_tagged(campus_dist_rtr, hsrp_all_rtrs) to generate the
+// capture.
 compile {
     hsrp_vlan_tagged(campus_dist_rtr, hsrp_all_rtrs)
 }

@@ -1,19 +1,20 @@
-// PROMPT: 802.1Q VLAN-tagged IPsec ESP packets traversing an enterprise DMZ handoff link.
-// TOKENS: host, ip, mac, flow, esp, spi, seq, vlan, pcp, dei, compile
+// 802.1Q VLAN-tagged IPsec ESP packets traversing an enterprise DMZ handoff
+// link.
+// This capture wraps frames in 802.1Q VLAN 300 and carries SPI 44500/44501.
+// Wireshark: esp && vlan.id == 300
 
-// INSTRUCTION: Define perimeter DMZ router.
 host dmz_edge_rtr { ip 10.20.30.1 mac 00:1e:67:aa:11:01 }
 
-// INSTRUCTION: Define internal crypto terminator.
 host crypto_term_01 { ip 10.20.30.2 mac 00:1e:67:aa:11:02 }
 
-// INSTRUCTION: Define VLAN 300 tagged ESP session with PCP 5.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow esp_vlan_dmz_flow(rtr, term) {
     rtr -> term esp spi 44500 seq 1 vlan 300 pcp 5 dei 0
     rtr <- term esp spi 44501 seq 1 vlan 300 pcp 5 dei 0
 }
 
-// INSTRUCTION: Compile the VLAN-tagged DMZ ESP handoff flow.
+// Run esp_vlan_dmz_flow(dmz_edge_rtr, crypto_term_01) to generate the
+// capture.
 compile {
     esp_vlan_dmz_flow(dmz_edge_rtr, crypto_term_01)
 }

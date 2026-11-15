@@ -15,6 +15,25 @@ use crate::error::CompilerError;
 use crate::packet::build_ethernet_and_l2;
 use alloc::vec::Vec;
 
+/// Encodes an 8-byte IEEE 802.1ad QinQ tag stack (`0x88A8` outer S-Tag + `0x8100` inner C-Tag).
+pub fn encode_qinq_tags(qinq: &QinqSpec, fallback_vlan: Option<&VlanSpec>) -> [u8; 8] {
+    let pcp = qinq
+        .pcp
+        .or_else(|| fallback_vlan.and_then(|v| v.pcp))
+        .unwrap_or(0)
+        & 0x07;
+    let dei = qinq
+        .dei
+        .or_else(|| fallback_vlan.and_then(|v| v.dei))
+        .unwrap_or(0)
+        & 0x01;
+    let outer_tci: u16 = ((pcp as u16) << 13) | ((dei as u16) << 12) | (qinq.outer_vid & 0x0FFF);
+    let inner_tci: u16 = qinq.inner_vid.unwrap_or(1) & 0x0FFF;
+    let [o0, o1] = outer_tci.to_be_bytes();
+    let [i0, i1] = inner_tci.to_be_bytes();
+    [0x88, 0xA8, o0, o1, 0x81, 0x00, i0, i1]
+}
+
 /// Builds a standalone IEEE 802.1ad QinQ wire frame.
 ///
 /// # Errors
@@ -29,7 +48,9 @@ pub fn build_qinq_frame(
         let outer_vid = if spec.outer_vid != 0 { spec.outer_vid } else { 1 };
         l2.qinq = Some(QinqSpec {
             outer_vid,
-            inner_vid: spec.inner_vid.or(Some(2)),
+            inner_vid: spec.inner_vid.or(Some(1)),
+            pcp: spec.pcp,
+            dei: spec.dei,
         });
     }
     if ctx.src_ip.is_unspecified() || ctx.dst_ip.is_unspecified() {

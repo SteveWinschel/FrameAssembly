@@ -1,19 +1,21 @@
-// PROMPT: Simulate an SMTP multipart MIME email delivery carrying an HTML body over MPLS label 2025.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, mpls, ack, smtp, code, reply, ehlo, mailfrom, param, rcptto, cmd, body, quit, compile
+// Simulate an SMTP multipart MIME email delivery carrying an HTML body over
+// MPLS label 2025.
+// Encapsulation and QoS markings: MPLS label 2025.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Overrides destination port to 25.
+// Wireshark: smtp && mpls
 
-// INSTRUCTION: Define the marketing mailer and WAN SMTP relay over MPLS 2025.
 host mailer_app {
     mac 00:50:56:70:25:10
     ip 10.125.1.10
 }
 
-// INSTRUCTION: Define the wan_relay mail endpoint.
 host wan_relay {
     mac 00:50:56:70:25:01
     ip 10.125.2.1
 }
 
-// INSTRUCTION: Deliver a MIME-formatted message body over MPLS label 2025.
 flow smtp_mime_multipart_flow(mailer_app, wan_relay) {
     mailer_app -> wan_relay tcp syn srcport 60025 dstport 25 mpls 2025
     wan_relay -> mailer_app tcp syn ack mpls 2025
@@ -33,7 +35,6 @@ flow smtp_mime_multipart_flow(mailer_app, wan_relay) {
     wan_relay -> mailer_app smtp code 221 reply "2.0.0 Bye" mpls 2025
 }
 
-// INSTRUCTION: Compile the SMTP MIME delivery over MPLS flow.
 compile {
     smtp_mime_multipart_flow(mailer_app, wan_relay)
 }

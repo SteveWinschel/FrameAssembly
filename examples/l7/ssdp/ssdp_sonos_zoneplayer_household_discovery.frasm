@@ -1,25 +1,23 @@
-// PROMPT: Simulate a multi-room audio controller discovering Sonos ZonePlayer speakers via SSDP M-SEARCH and NOTIFY.
-// TOKENS: host, ip, mac, flow, ssdp, msearch, hosthdr, man, mx, st, ttl, wait, ms, notify, nt, nts, usn, location, compile
+// Simulate a multi-room audio controller discovering Sonos ZonePlayer
+// speakers via SSDP M-SEARCH and NOTIFY.
+// Timing: pauses 6ms after each marked packet before sending the next frame.
+// Wireshark: ssdp
 
-// INSTRUCTION: Define the tablet audio controller app probing the local multicast group.
 host audio_tablet {
     ip 192.168.50.19
     mac 3c:22:fb:32:00:13
 }
 
-// INSTRUCTION: Define the SSDP IPv4 multicast group 239.255.255.250.
 host ssdp_audio_mcast {
     ip 239.255.255.250
     mac 01:00:5e:7f:ff:fa
 }
 
-// INSTRUCTION: Define the wireless ZonePlayer speaker responding with its XML topology descriptor.
 host zone_speaker {
     ip 192.168.50.110
     mac 00:0e:58:32:01:10
 }
 
-// INSTRUCTION: Multicast M-SEARCH for ZonePlayer:1 and receive the speaker ssdp:alive notification.
 flow ssdp_sonos_zone_discovery(tab, mcast, spk) {
     tab -> mcast ssdp msearch hosthdr "239.255.255.250:1900" man "ssdp:discover" mx 2
         st "urn:schemas-upnp-org:device:ZonePlayer:1" ttl 4 wait 6ms
@@ -28,7 +26,6 @@ flow ssdp_sonos_zone_discovery(tab, mcast, spk) {
         location "http://192.168.50.110:1400/xml/device_description.xml" ttl 4
 }
 
-// INSTRUCTION: Compile the multi-room speaker SSDP discovery flow.
 compile {
     ssdp_sonos_zone_discovery(audio_tablet, ssdp_audio_mcast, zone_speaker)
 }

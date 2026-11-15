@@ -1,19 +1,23 @@
-// PROMPT: Generate an SSH session channel lifecycle: CHANNEL_OPEN (90), CHANNEL_OPEN_CONFIRMATION (91), CHANNEL_DATA (94), and CHANNEL_CLOSE (97).
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, ssh, msgcode, payload, compile
+// Generate an SSH session channel lifecycle: CHANNEL_OPEN (90),
+// CHANNEL_OPEN_CONFIRMATION (91), CHANNEL_DATA (94), and CHANNEL_CLOSE (97).
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// SSH RFC 4253 framing on TCP 22 (message codes: 90 (CHANNEL_OPEN), 91
+// (CHANNEL_OPEN_CONFIRMATION), 94 (CHANNEL_DATA), 96, 97, 98
+// (CHANNEL_REQUEST)).
+// Overrides destination port to 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define host endpoint admin_term.
 host admin_term {
     mac 00:25:90:44:22:10
     ip 10.22.1.10
 }
 
-// INSTRUCTION: Define host endpoint linux_srv.
 host linux_srv {
     mac 00:25:90:44:22:01
     ip 10.22.1.1
 }
 
-// INSTRUCTION: Open a session channel (90/91), request exec (98), exchange encrypted channel data (94), and close (96/97).
 flow ssh_channel_open_data_close(admin_term, linux_srv) {
     admin_term -> linux_srv tcp syn srcport 54022 dstport 22
     linux_srv -> admin_term tcp syn ack
@@ -27,7 +31,6 @@ flow ssh_channel_open_data_close(admin_term, linux_srv) {
     linux_srv -> admin_term ssh msgcode 97
 }
 
-// INSTRUCTION: Compile the SSH channel lifecycle flow.
 compile {
     ssh_channel_open_data_close(admin_term, linux_srv)
 }

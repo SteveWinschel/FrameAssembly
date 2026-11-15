@@ -1,18 +1,18 @@
-// PROMPT: VRRP failover redundancy signaling encapsulated across MPLS core network.
-// TOKENS: host, ip, flow, dst, vrrp, vrid, priority, vip, mpls, compile
+// VRRP failover redundancy signaling encapsulated across MPLS core network.
+// This capture wraps frames in MPLS label 4096 and carries VRID 50.
+// Wireshark: vrrp && mpls
 
-// INSTRUCTION: Define provider edge redundancy gateway.
 host mpls_pe_redundancy_gw { ip 172.24.0.254 }
 
-// INSTRUCTION: Define MPLS core multicast listener.
 host mpls_core_mcast_dst { ip 224.0.0.18 }
 
-// INSTRUCTION: Define MPLS labeled VRRP advertisement flow with label 4096.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vrrp_mpls_flow(gw, dst) {
     gw -> dst vrrp vrid 50 priority 210 vip 172.24.0.1 mpls 4096
 }
 
-// INSTRUCTION: Compile block executing MPLS transported VRRP heartbeat.
+// Run vrrp_mpls_flow(mpls_pe_redundancy_gw, mpls_core_mcast_dst) to generate
+// the capture.
 compile {
     vrrp_mpls_flow(mpls_pe_redundancy_gw, mpls_core_mcast_dst)
 }

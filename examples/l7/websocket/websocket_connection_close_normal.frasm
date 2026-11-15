@@ -1,19 +1,17 @@
-// PROMPT: WebSocket connection termination frame with CLOSE opcode and FIN bit 1.
-// TOKENS: host, ip, flow, s, websocket, opcode, finbit, maskkey, compile
+// WebSocket connection termination frame with CLOSE opcode and FIN bit 1.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define client closing connection.
 host closing_client { ip 10.30.5.8 }
 
-// INSTRUCTION: Define connected server instance.
 host connected_svr { ip 10.30.5.1 }
 
-// INSTRUCTION: Define graceful connection closure flow.
 flow ws_close_flow(c, s) {
     c -> s websocket opcode "close" finbit 1 maskkey 2588014022
     c <- s websocket opcode "close" finbit 1 maskkey 0
 }
 
-// INSTRUCTION: Compile block executing clean close handshake.
 compile {
     ws_close_flow(closing_client, connected_svr)
 }

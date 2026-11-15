@@ -1,18 +1,18 @@
-// PROMPT: Connected vehicle telematics gateway streaming GPS location coordinates via MQTT.
-// TOKENS: host, ip, flow, mqtt, publish, topic, clientid, compile
+// Connected vehicle telematics gateway streaming GPS location coordinates via
+// MQTT.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define vehicle telematics unit.
+// Vehicle telematics unit.
 host vehicle_telematics { ip 10.220.1.88 }
 
-// INSTRUCTION: Define fleet operations broker.
+// Fleet operations broker.
 host fleet_broker { ip 10.220.1.10 }
 
-// INSTRUCTION: Define vehicle GPS telemetry publishing flow.
+// Vehicle GPS telemetry publishing flow.
 flow vehicle_gps_publish(veh, brk) {
     veh -> brk mqtt publish topic "fleet/truck402/location" clientid "truck-obd-402"
 }
 
-// INSTRUCTION: Compile fleet telematics scenario.
 compile {
     vehicle_gps_publish(vehicle_telematics, fleet_broker)
 }

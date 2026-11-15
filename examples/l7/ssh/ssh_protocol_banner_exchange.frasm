@@ -1,19 +1,17 @@
-// PROMPT: SSH protocol version exchange with client and server identification banners.
-// TOKENS: host, ip, flow, s, ssh, banner, compile
+// SSH protocol version exchange with client and server identification
+// banners.
+// SSH RFC 4253 framing on TCP 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.100 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow ssh_banner(c, s) {
     c -> s ssh banner "SSH-2.0-OpenSSH_9.3"
     c <- s ssh banner "SSH-2.0-OpenSSH_8.9p1 Ubuntu"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ssh_banner(client, server)
 }

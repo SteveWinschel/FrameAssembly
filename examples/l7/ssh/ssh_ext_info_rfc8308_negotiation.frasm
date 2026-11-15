@@ -1,19 +1,21 @@
-// PROMPT: Model an OpenSSH 8.3+ extension negotiation sending SSH_MSG_EXT_INFO (7) immediately after SSH_MSG_NEWKEYS (21).
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, ssh, banner, kexinit, payload, newkeys, msgcode, compile
+// Model an OpenSSH 8.3+ extension negotiation sending SSH_MSG_EXT_INFO (7)
+// immediately after SSH_MSG_NEWKEYS (21).
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// SSH RFC 4253 framing on TCP 22 (message codes: 7).
+// Overrides destination port to 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define host endpoint modern_client.
 host modern_client {
     mac 00:50:56:83:08:01
     ip 10.99.22.10
 }
 
-// INSTRUCTION: Define host endpoint modern_server.
 host modern_server {
     mac 00:50:56:83:08:02
     ip 10.99.22.20
 }
 
-// INSTRUCTION: Complete KEXINIT and NEWKEYS, followed by SSH_MSG_EXT_INFO (7) advertising server-sig-algs.
 flow ssh_ext_info_rfc8308(modern_client, modern_server) {
     modern_client -> modern_server tcp syn srcport 60022 dstport 22
     modern_server -> modern_client tcp syn ack
@@ -27,7 +29,6 @@ flow ssh_ext_info_rfc8308(modern_client, modern_server) {
     modern_server -> modern_client ssh msgcode 7 payload "server-sig-algs:rsa-sha2-512,rsa-sha2-256,ssh-ed25519"
 }
 
-// INSTRUCTION: Compile the SSH RFC 8308 EXT_INFO negotiation flow.
 compile {
     ssh_ext_info_rfc8308(modern_client, modern_server)
 }

@@ -1,19 +1,18 @@
-// PROMPT: S7comm USERDATA cyclic diagnostic SZL (System Status List) query and response.
-// TOKENS: host, ip, flow, s7comm, rosctr, pduref, hexpayload, wait, ms, compile
+// S7comm USERDATA cyclic diagnostic SZL (System Status List) query and
+// response.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define OT asset inventory scanner.
 host ot_scanner { ip 10.42.102.15 }
 
-// INSTRUCTION: Define Siemens S7 PLC target.
 host target_plc { ip 10.42.102.1 }
 
-// INSTRUCTION: Define ROSCTR USERDATA request reading CPU identification SZL 0x001C.
 flow s7comm_szl_userdata(c, plc) {
     c -> plc s7comm rosctr "userdata" pduref 200 hexpayload "ff090004001c0000" wait 5ms
     c <- plc s7comm rosctr "userdata" pduref 200 hexpayload "ff090008001c000136455337"
 }
 
-// INSTRUCTION: Compile S7comm USERDATA SZL diagnostic flow.
 compile {
     s7comm_szl_userdata(ot_scanner, target_plc)
 }

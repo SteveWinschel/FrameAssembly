@@ -1,19 +1,18 @@
-// PROMPT: Redis connection diagnostics setting client name with CLIENT SETNAME and inspecting SLOWLOG GET.
-// TOKENS: host, ip, mac, flow, s, redis, cmd, args, replytype, value, wait, ms, compile
+// Redis connection diagnostics setting client name with CLIENT SETNAME and
+// inspecting SLOWLOG GET.
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: resp
 
-// INSTRUCTION: Define the observability agent polling Redis slowlog metrics.
 host obs_agent {
     ip 10.80.80.12
     mac 00:1a:2b:80:80:12
 }
 
-// INSTRUCTION: Define the monitored Redis instance.
 host monitored_redis {
     ip 10.80.80.1
     mac 00:1a:2b:80:80:01
 }
 
-// INSTRUCTION: Tag the connection via CLIENT SETNAME and retrieve slow queries via SLOWLOG LEN and SLOWLOG GET.
 flow redis_slowlog_poll(c, s) {
     c -> s redis cmd "CLIENT" args "SETNAME datadog-redis-check"
     c <- s redis replytype "status" value "OK" wait 1ms
@@ -23,7 +22,6 @@ flow redis_slowlog_poll(c, s) {
     c <- s redis replytype "bulk" value "KEYS *"
 }
 
-// INSTRUCTION: Compile the Redis slowlog monitoring flow.
 compile {
     redis_slowlog_poll(obs_agent, monitored_redis)
 }

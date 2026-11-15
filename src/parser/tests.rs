@@ -76,7 +76,7 @@ fn test_semantic_error_duplicate_host() {
     let err = parse_program(input).unwrap_err();
     match err {
         CompilerError::SemanticError { message, .. } => {
-            assert!(message.contains("Duplicate HOST"));
+            assert!(message.contains("Duplicate host"));
         }
         _ => panic!("Expected SemanticError"),
     }
@@ -257,19 +257,19 @@ fn test_v2_self_healing_diagnostics() {
     let cases = [
         (
             "HOST a { ip 10.0.0.1 }\ncompile {}",
-            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'HOST' with 'host'.",
+            "Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace 'HOST' with 'host'.",
         ),
         (
             "host a { ip 10.0.0.1 }\ncompile { a -> a icmp echo_request }",
-            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'echo_request' with 'echorequest'.",
+            "Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace 'echo_request' with 'echorequest'.",
         ),
         (
             "host a { ip 10.0.0.1 }\ncompile { a -> a tls client-hello }",
-            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'client-hello' with 'clienthello'.",
+            "Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace 'client-hello' with 'clienthello'.",
         ),
         (
             "host a { ip 10.0.0.1 }\ncompile { a -> a tcp syn wait 5MS }",
-            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'MS' with 'ms'.",
+            "Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace 'MS' with 'ms'.",
         ),
         (
             "host a { ip 10.0.0.1 }\nflow f(x, y) { x -> y icmp }\ncompile { loop 2 { f(a, a) } }",
@@ -358,7 +358,7 @@ fn test_case_insensitive_duplicate_symbol_errors() {
     "#;
     match parse_program(dup_host).unwrap_err() {
         CompilerError::SemanticError { message, .. } => {
-            assert!(message.contains("Duplicate HOST"));
+            assert!(message.contains("Duplicate host"));
         }
         other => panic!("Expected SemanticError for duplicate host, got {:?}", other),
     }
@@ -372,7 +372,7 @@ fn test_case_insensitive_duplicate_symbol_errors() {
     "#;
     match parse_program(dup_flow).unwrap_err() {
         CompilerError::SemanticError { message, .. } => {
-            assert!(message.contains("Duplicate FLOW"));
+            assert!(message.contains("Duplicate flow"));
         }
         other => panic!("Expected SemanticError for duplicate flow, got {:?}", other),
     }
@@ -445,11 +445,11 @@ fn test_plain_english_parser_structural_and_networking_hints() {
     let cases = [
         (
             "host r1 { mac 00:11:22:33:44:55 } flow f(a, b) { a -> b icmp } compile { f(r1, r1) }",
-            "requires an 'IP <address>' field",
+            "requires an 'ip <address>' field",
         ),
         (
             "host r1 {} flow f(a, b) { a -> b icmp } compile { f(r1, r1) }",
-            "must specify at least an 'IP <address>' or 'MAC <address>' field",
+            "must specify at least an 'ip <address>' or 'mac <address>' field",
         ),
         (
             "host r1 { ip 10.0.0.1 } flow f { r1 -> r1 icmp } compile { f(r1) }",
@@ -535,4 +535,142 @@ fn test_mac_only_hosts_and_inline_compile_statements() {
     assert_eq!(prog.compile_block.len(), 2);
     let packets = crate::backend::compile_program(&prog).unwrap();
     assert_eq!(packets.len(), 2);
+}
+
+/// Verifies UTF-8 BOM skipping, missing-protocol rejection, `wait` overflow handling,
+/// beginner diagnostics, and expanded L2/L3/L7 semantic bounds.
+#[test]
+fn test_bom_missing_protocol_wait_overflow_and_bounds() {
+    use miette::Diagnostic;
+
+    // 1. UTF-8 BOM compiles cleanly without shifting byte spans
+    let bom_src = "\u{feff}host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b icmp }\n";
+    assert!(parse_program(bom_src).is_ok());
+
+    // 2. Standalone vlan / qinq / mpls remain valid, while bare lines without protocol fail cleanly
+    for ok_l2 in [
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b vlan 100 }",
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b qinq 100 innervlan 200 pcp 5 dei 1 }",
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b mpls 1000 }",
+        "host sw1 { mac 00:11:22:33:44:01 }\nhost sw2 { mac 00:11:22:33:44:02 }\ncompile { sw1 -> sw2 lldp ttl 300 }",
+    ] {
+        assert!(parse_program(ok_l2).is_ok(), "Expected valid program: {ok_l2}");
+    }
+
+    for missing_proto in [
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b }",
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b payload \"hi\" }",
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b dstport 80 }",
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b syn }",
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b transport udp }",
+    ] {
+        let err = parse_program(missing_proto).unwrap_err();
+        assert!(
+            err.to_string().contains("missing a protocol keyword"),
+            "Unexpected error for `{missing_proto}`: {err}"
+        );
+    }
+
+    // 3. `wait` overflow and missing-unit hints (zero panic, no bogus `flow call '5'`)
+    let overflow_err = parse_program(
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b icmp wait 400000000m }",
+    )
+    .unwrap_err();
+    assert!(overflow_err.to_string().contains("wait duration"));
+
+    let missing_unit_err = parse_program(
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b tcp syn wait 5 }",
+    )
+    .unwrap_err();
+    assert!(missing_unit_err.to_string().contains("missing time unit"));
+    assert!(!missing_unit_err.to_string().contains("flow call"));
+
+    // 4. Beginner diagnostics (`port`, raw IP, L4+L7 combo, unquoted `/`, smart quotes, non-hijacked help)
+    let port_err = parse_program(
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b tcp port 80 }",
+    )
+    .unwrap_err();
+    assert!(port_err.to_string().contains("dstport"));
+    assert!(
+        !port_err
+            .help()
+            .unwrap()
+            .to_string()
+            .contains("acknum <number>")
+    );
+
+    let raw_ip_err = parse_program(
+        "host a { ip 10.0.0.1 }\ncompile { 10.0.0.1 -> a icmp }",
+    )
+    .unwrap_err();
+    assert!(raw_ip_err.to_string().contains("Declare a host block first"));
+
+    let multi_proto_err = parse_program(
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b tcp http get }",
+    )
+    .unwrap_err();
+    assert!(multi_proto_err.to_string().contains("Multiple protocols"));
+
+    let unquoted_uri = parse_program(
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b http get uri /index.html }",
+    )
+    .unwrap_err();
+    assert!(unquoted_uri.to_string().contains("double quotes"));
+
+    let smart_quote = parse_program(
+        "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b udp payload \u{201c}hi\u{201d} }",
+    )
+    .unwrap_err();
+    assert!(smart_quote.to_string().contains("smart quotes"));
+
+    // 5. Semantic range and IP-version checks
+    let bad_semantic_cases = [
+        (
+            "host a { ip 2001:db8::1 }\nhost b { ip 2001:db8::2 }\ncompile { a -> b igmp }",
+            "requires IPv4 endpoints",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b ndp }",
+            "requires IPv6 endpoints",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b mld }",
+            "requires IPv6 endpoints",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b qinq 5000 icmp }",
+            "QinQ VLAN ID 5000 out of range",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b qinq 100 innervlan 5000 icmp }",
+            "QinQ innervlan ID 5000 out of range",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b vlan 100 pcp 8 icmp }",
+            "PCP 8 out of range",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b vlan 100 dei 2 icmp }",
+            "DEI 2 out of range",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b mpls 2000000 icmp }",
+            "MPLS label 2000000 out of range",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b syslog facility 24 msg \"x\" }",
+            "Syslog facility 24 out of range",
+        ),
+        (
+            "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b syslog severity 8 msg \"x\" }",
+            "Syslog severity 8 out of range",
+        ),
+    ];
+    for (src, expected) in bad_semantic_cases {
+        let err = parse_program(src).unwrap_err();
+        assert!(
+            err.to_string().contains(expected),
+            "For `{src}`, expected `{expected}`, got `{err}`"
+        );
+    }
 }

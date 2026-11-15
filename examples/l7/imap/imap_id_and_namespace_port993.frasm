@@ -1,13 +1,13 @@
-// PROMPT: IMAPS session commands over custom port 993 with RFC 2971 ID client/server identification.
-// TOKENS: host, ip, flow, s, imap, tag, cmd, arg, srcport, dstport, df, ttl, compile
+// IMAPS session commands over custom port 993 with RFC 2971 ID client/server
+// identification.
+// Wireshark: imap || tcp.port == 993
 
-// INSTRUCTION: Define mobile mail client connecting on port 993.
+// Mobile mail client connecting on port 993.
 host imaps_client { ip 192.168.99.30 }
 
-// INSTRUCTION: Define IMAPS server on port 993.
 host imaps_server { ip 192.168.99.1 }
 
-// INSTRUCTION: Exchange RFC 2971 ID command and NAMESPACE query on port 993.
+// Exchange RFC 2971 ID command and NAMESPACE query on port 993.
 flow imap_id_namespace_993(c, s) {
     c -> s imap tag "K01" cmd "ID" arg "(\"name\" \"FrameMail\" \"version\" \"1.0\")" srcport 54993 dstport 993 df ttl 64
     c <- s imap tag "K01" cmd "OK" arg "ID completed" srcport 993 dstport 54993 df ttl 64
@@ -15,7 +15,6 @@ flow imap_id_namespace_993(c, s) {
     c <- s imap tag "K02" cmd "OK" arg "NAMESPACE completed" srcport 993 dstport 54993 df ttl 64
 }
 
-// INSTRUCTION: Compile the port 993 IMAP ID and NAMESPACE scenario.
 compile {
     imap_id_namespace_993(imaps_client, imaps_server)
 }

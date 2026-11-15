@@ -1,13 +1,11 @@
-// PROMPT: Redis hash operations HSET, HGET, and HGETALL storing user profile fields.
-// TOKENS: host, ip, flow, s, redis, cmd, args, wait, ms, compile
+// Redis hash operations HSET, HGET, and HGETALL storing user profile fields.
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: resp
 
-// INSTRUCTION: Define profile service client.
 host prof_svc { ip 10.40.63.15 }
 
-// INSTRUCTION: Define Redis cluster shard.
 host redis_shard { ip 10.40.63.2 }
 
-// INSTRUCTION: Define HSET, HGET, and HGETALL hash commands.
 flow redis_hash_ops(c, s) {
     c -> s redis cmd "HSET" args "user:1001 role admin" wait 2ms
     c <- s redis cmd "INTEGER" args "1" wait 2ms
@@ -16,7 +14,6 @@ flow redis_hash_ops(c, s) {
     c -> s redis cmd "HGETALL" args "user:1001"
 }
 
-// INSTRUCTION: Compile Redis hash operations flow.
 compile {
     redis_hash_ops(prof_svc, redis_shard)
 }

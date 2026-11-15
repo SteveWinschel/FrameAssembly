@@ -1,19 +1,18 @@
-// PROMPT: STUN error response indicating unauthorized credential challenge.
-// TOKENS: host, ip, flow, s, stun, bindingrequest, software, bindingerror, compile
+// STUN error response indicating unauthorized credential challenge.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (STUN (RFC
+// 8489), UDP 3478).
+// Wireshark: stun
 
-// INSTRUCTION: Define unauthenticated client endpoint.
 host unauth_client { ip 10.140.2.19 }
 
-// INSTRUCTION: Define strict auth STUN gateway.
 host auth_stun_gw { ip 10.140.2.1 }
 
-// INSTRUCTION: Define STUN unauthorized error response flow.
 flow stun_error_flow(c, s) {
     c -> s stun bindingrequest software "Generic-STUN-Tester"
     c <- s stun bindingerror software "Secure-STUN-Gateway"
 }
 
-// INSTRUCTION: Compile block executing STUN error response.
 compile {
     stun_error_flow(unauth_client, auth_stun_gw)
 }

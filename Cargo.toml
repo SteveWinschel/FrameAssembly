@@ -1,8 +1,8 @@
 [package]
 name = "frameassembly"
-version = "3.0.0"
+version = "3.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 description = "A language to create or edit .pcap and .pcapng packet captures across 81 network protocols for Wireshark, tcpreplay, firewall, SNMP, and IDS testing."
 authors = ["Steve Winschel"]
 license = "MIT"
@@ -99,4 +99,3 @@ unescaped_backticks = "warn"
 [lints.clippy]
 missing_docs_in_private_items = "warn"
 undocumented_unsafe_blocks = "warn"
-incompatible_msrv = "allow"

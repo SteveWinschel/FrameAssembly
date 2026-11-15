@@ -1,23 +1,21 @@
-// PROMPT: Comprehensive perimeter security inspection chain traversing next-gen firewall, TLS proxy, and SIEM Syslog.
-// TOKENS: host, ip, flow, s, tcp, syn, srcport, dstport, tls, clienthello, sni, syslog, facility, severity, msg, compile
+// Comprehensive perimeter security inspection chain traversing next-gen firewall,
+// TLS proxy, and SIEM Syslog.
+// Wire profile: 3 frames; 3 IPv4 hosts; Syslog, TLS, TCP; TCP flags SYN; dstport
+// 443.
+// Wireshark: syslog || tls || tcp
 
-// INSTRUCTION: Define internal user workstation.
 host workstation { ip 10.1.1.50 }
 
-// INSTRUCTION: Define next-gen firewall security proxy.
 host proxy_fw { ip 10.1.1.1 }
 
-// INSTRUCTION: Define central SIEM log collector.
 host siem_collector { ip 10.1.1.250 }
 
-// INSTRUCTION: Define zero-trust security inspection chain flow.
 flow inspection_chain(w, p, s) {
     w -> p tcp syn srcport 52000 dstport 443
     w -> p tls clienthello sni "intranet.secure"
     p -> s syslog facility 4 severity 6 msg "TLS proxy connection inspected"
 }
 
-// INSTRUCTION: Compile block executing zero-trust inspection pipeline.
 compile {
     inspection_chain(workstation, proxy_fw, siem_collector)
 }

@@ -17,10 +17,12 @@ use crate::reverse::{ProtocolDissection, push_if, sd};
 /// fields (`qp`, `qd`), and residual L2 payload bytes.
 pub(crate) fn dissect_qinq(q: &QinqSpec, qp: u8, qd: u8, res: Vec<u8>) -> ProtocolDissection {
     let mut t = format!("qinq {}", q.outer_vid);
-    if let Some(iv) = q.inner_vid {
+    if let Some(iv) = q.inner_vid
+        && iv != 1
+    {
         let _ = write!(t, " innervlan {iv}");
     }
-    push_if(&mut t, "pcp", qp, 0);
-    push_if(&mut t, "dei", qd, 0);
+    push_if(&mut t, "pcp", q.pcp.unwrap_or(qp), 0);
+    push_if(&mut t, "dei", q.dei.unwrap_or(qd), 0);
     sd(Protocol::Qinq, t, res)
 }

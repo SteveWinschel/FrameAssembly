@@ -1,19 +1,19 @@
-// PROMPT: OpenFlow controller-to-switch liveliness verification with ECHO_REQUEST and ECHO_REPLY.
-// TOKENS: host, ip, flow, s, openflow, type, echorequest, xid, echoreply, compile
+// OpenFlow controller-to-switch liveliness verification with echoreq and
+// echoreply.
+// This capture sends OpenFlow SDN control messages over TCP port 6653.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define SDN controller.
 host sdn_ctrl { ip 192.168.100.1 }
 
-// INSTRUCTION: Define OpenFlow hardware switch.
 host sdn_switch { ip 192.168.100.2 }
 
-// INSTRUCTION: Define OpenFlow keepalive flow verifying channel liveliness.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow of_echo_flow(c, s) {
     c -> s openflow type echorequest xid 1001
     c <- s openflow type echoreply xid 1001
 }
 
-// INSTRUCTION: Compile block executing OpenFlow echo transaction.
+// Run of_echo_flow(sdn_ctrl, sdn_switch) to generate the capture.
 compile {
     of_echo_flow(sdn_ctrl, sdn_switch)
 }

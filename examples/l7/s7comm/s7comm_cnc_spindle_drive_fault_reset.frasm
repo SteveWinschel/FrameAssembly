@@ -1,19 +1,19 @@
-// PROMPT: SINUMERIK CNC cell clearing spindle drive fault bits in DB31 and verifying drive ready status.
-// TOKENS: host, ip, mac, flow, s7comm, rosctr, pduref, func, area, dbnum, offset, count, hexpayload, wait, ms, compile
+// SINUMERIK CNC cell clearing spindle drive fault bits in DB31 and verifying
+// drive ready status.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting DB (0x84).
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define the cell controller HMI host.
 host cnc_cell_hmi {
     ip 10.130.140.12
     mac 00:1a:2b:82:e0:12
 }
 
-// INSTRUCTION: Define the SINUMERIK embedded S7 PLC.
 host sinumerik_plc {
     ip 10.130.140.1
     mac 00:1a:2b:82:e0:01
 }
 
-// INSTRUCTION: Pulse fault reset bit in axis DB31 (OFFSET 16) and read drive ready status byte (OFFSET 488).
 flow s7_cnc_fault_reset(h, p) {
     h -> p s7comm rosctr "job" pduref 1400 func "writevar" area 132 dbnum 31 offset 16 count 1 hexpayload "80"
     h <- p s7comm rosctr "ackdata" pduref 1400 func "writevar" wait 2ms
@@ -21,7 +21,6 @@ flow s7_cnc_fault_reset(h, p) {
     h <- p s7comm rosctr "ackdata" pduref 1401 func "readvar" hexpayload "ff04000107"
 }
 
-// INSTRUCTION: Compile the SINUMERIK CNC spindle fault reset flow.
 compile {
     s7_cnc_fault_reset(cnc_cell_hmi, sinumerik_plc)
 }

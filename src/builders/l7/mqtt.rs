@@ -11,6 +11,21 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Encodes an OASIS MQTT v3.1.1 variable-length Remaining Length integer (1..=4 bytes).
+fn push_mqtt_varint(buf: &mut Vec<u8>, mut rem: usize) {
+    loop {
+        let mut enc = (rem % 128) as u8;
+        rem /= 128;
+        if rem > 0 {
+            enc |= 0x80;
+        }
+        buf.push(enc);
+        if rem == 0 {
+            break;
+        }
+    }
+}
+
 /// Builds an MQTT v3.1.1 / v5.0 control packet payload.
 pub fn build_mqtt_payload(
     _ctx: &WireContext,
@@ -49,9 +64,9 @@ pub fn build_mqtt_payload(
         }
         body.extend_from_slice(content);
 
-        let mut pkt = Vec::with_capacity(2 + body.len());
+        let mut pkt = Vec::with_capacity(5 + body.len());
         pkt.push(b0);
-        pkt.push(body.len() as u8);
+        push_mqtt_varint(&mut pkt, body.len());
         pkt.extend_from_slice(&body);
         return pkt;
     } else if pkt_type_str == "PUBACK" {
@@ -69,9 +84,9 @@ pub fn build_mqtt_payload(
         if !payload_bytes.is_empty() {
             body.extend_from_slice(payload_bytes);
         }
-        let mut pkt = Vec::with_capacity(2 + body.len());
+        let mut pkt = Vec::with_capacity(5 + body.len());
         pkt.push(0x82); // SUBSCRIBE (Type 8, reserved flags 0x02)
-        pkt.push(body.len() as u8);
+        push_mqtt_varint(&mut pkt, body.len());
         pkt.extend_from_slice(&body);
         return pkt;
     } else if pkt_type_str == "SUBACK" {
@@ -101,9 +116,9 @@ pub fn build_mqtt_payload(
         var_header.extend_from_slice(payload_bytes);
     }
 
-    let mut pkt = Vec::with_capacity(2 + var_header.len());
+    let mut pkt = Vec::with_capacity(5 + var_header.len());
     pkt.push(0x10); // CONNECT (Type 1)
-    pkt.push(var_header.len() as u8);
+    push_mqtt_varint(&mut pkt, var_header.len());
     pkt.extend_from_slice(&var_header);
     pkt
 }

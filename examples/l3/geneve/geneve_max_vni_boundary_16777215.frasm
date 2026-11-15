@@ -1,25 +1,27 @@
-// PROMPT: RFC 8926 GENEVE boundary validation testing the maximum 24-bit Virtual Network Identifier (VNI 16777215 = 0xFFFFFF).
-// TOKENS: host, ip, mac, flow, src, dst, geneve, vni, optclass, opttype, protocoltype, srcport, dstport, df, ttl, payload, wait, ms, compile
+// RFC 8926 GENEVE boundary validation testing the maximum 24-bit Virtual
+// Network Identifier (VNI 16777215 = 0xFFFFFF).
+// This capture sets TTL 64, DF bit set, carries VNI 1/16777215, destination
+// port 6081, and uses post-packet wait gaps (2ms) between frames.
+// Wireshark: geneve
 
-// INSTRUCTION: Define multi-tenant cloud NVE testing 24-bit VNI upper boundary 16777215.
 host max_vni_nve_src {
     ip 10.60.255.1
     mac 00:25:90:ff:ff:01
 }
 
-// INSTRUCTION: Define peer cloud NVE validating 24-bit VNI 0xFFFFFF decoding.
 host max_vni_nve_dst {
     ip 10.60.255.2
     mac 00:25:90:ff:ff:02
 }
 
-// INSTRUCTION: Define GENEVE exchange at maximum 24-bit VNI 16777215 and minimum VNI 1.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow geneve_vni_boundary_flow(src, dst) {
     src -> dst geneve vni 16777215 optclass 258 opttype 1 protocoltype 25944 srcport 60001 dstport 6081 df ttl 64 payload "GENEVE_MAX_24BIT_VNI_0XFFFFFF" wait 2ms
     src <- dst geneve vni 1 optclass 258 opttype 1 protocoltype 25944 srcport 60002 dstport 6081 df ttl 64 payload "GENEVE_MIN_TENANT_VNI_0X000001"
 }
 
-// INSTRUCTION: Compile the GENEVE 24-bit VNI boundary verification flow.
+// Run geneve_vni_boundary_flow(max_vni_nve_src, max_vni_nve_dst) to generate
+// the capture.
 compile {
     geneve_vni_boundary_flow(max_vni_nve_src, max_vni_nve_dst)
 }

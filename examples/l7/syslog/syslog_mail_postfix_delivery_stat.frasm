@@ -1,20 +1,19 @@
-// PROMPT: Mail server informational log recording queued email delivery to destination.
-// TOKENS: host, ip, flow, s, syslog, facility, severity, hostname, app, procid, msg, compile
+// Mail server informational log recording queued email delivery to
+// destination.
+// RFC 5424 over UDP 514; facility 2 (mail) + severity 6 (info) yields PRI
+// <22>.
+// Wireshark: syslog
 
-// INSTRUCTION: Define corporate mail host.
 host mail_host { ip 172.20.10.5 }
 
-// INSTRUCTION: Define central syslog archive.
 host log_archive { ip 172.20.10.1 }
 
-// INSTRUCTION: Define mail delivery log transmission flow.
 flow syslog_postfix_flow(c, s) {
     c -> s syslog facility 2 severity 6
         hostname "mail-hub-01" app "postfix/smtp" procid "14209"
         msg "to=<alice@example.com>, relay=mx1.example.com[93.184.216.34], status=sent"
 }
 
-// INSTRUCTION: Compile block executing postfix delivery log.
 compile {
     syslog_postfix_flow(mail_host, log_archive)
 }

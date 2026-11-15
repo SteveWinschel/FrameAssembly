@@ -52,6 +52,15 @@ pub(crate) fn dissect_memcached(
     } else {
         None
     };
+    let payload = if is_tcp {
+        payload
+    } else {
+        let udp_body = payload.strip_prefix(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00])?;
+        if udp_body.is_empty() {
+            return None;
+        }
+        udp_body
+    };
 
     if payload.len() >= 24 && payload[0] == 0x80 {
         let opcode = payload[1];
@@ -70,7 +79,9 @@ pub(crate) fn dissect_memcached(
             payload[23],
         ]);
 
-        if total_body < extras_len + key_len || payload.len() < 24 + total_body {
+        let min_body = extras_len.checked_add(key_len)?;
+        let val_end = 24usize.checked_add(total_body)?;
+        if total_body < min_body || payload.len() < val_end {
             return None;
         }
 
@@ -139,7 +150,8 @@ pub(crate) fn dissect_memcached(
         let flags: u32 = parts[2].parse().ok()?;
         let exptime: u32 = parts[3].parse().ok()?;
         let vlen: usize = parts[4].parse().ok()?;
-        if rem.len() < vlen + 2 || &rem[vlen..vlen + 2] != b"\r\n" {
+        let val_end = vlen.checked_add(2)?;
+        if rem.len() < val_end || &rem[vlen..val_end] != b"\r\n" {
             return None;
         }
         let val = core::str::from_utf8(&rem[..vlen]).ok()?;
@@ -166,7 +178,7 @@ pub(crate) fn dissect_memcached(
         return Some(ProtocolDissection {
             protocol: Protocol::Memcached,
             tokens,
-            residual_payload: rem[vlen + 2..].to_vec(),
+            residual_payload: rem[val_end..].to_vec(),
             explicit_transport,
         });
     }

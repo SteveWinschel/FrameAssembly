@@ -1,26 +1,24 @@
-// PROMPT: Branch router downloading a maintenance OS patch via TFTP across an MPLS L3VPN service provider core.
-// TOKENS: host, ip, mac, flow, tftp, rrq, filename, mode, mpls, exp, bos, mplsttl, data, block, payload, ack, compile
+// Branch router downloading a maintenance OS patch via TFTP across an MPLS
+// L3VPN service provider core.
+// Encapsulation and QoS markings: MPLS label 4020.
+// Wireshark: tftp && mpls
 
-// INSTRUCTION: Define remote branch CPE router.
 host branch_cpe {
     ip 10.175.20.1
     mac 00:1e:14:af:14:01
 }
 
-// INSTRUCTION: Define central NOC TFTP depot server.
 host noc_tftp_depot {
     ip 10.175.0.10
     mac 00:1e:14:af:00:0a
 }
 
-// INSTRUCTION: Request router OS image and receive block 1 over MPLS label 4020.
 flow tftp_mpls_upgrade(cpe, noc) {
     cpe -> noc tftp rrq filename "isr4300-universalk9.bin" mode "octet" mpls 4020 exp 3 bos 1 mplsttl 60
     cpe <- noc tftp data block 1 mpls 4020 exp 3 bos 1 mplsttl 60 payload "IOS-XE-IMAGE-BLOCK-1"
     cpe -> noc tftp ack block 1 mpls 4020 exp 3 bos 1 mplsttl 60
 }
 
-// INSTRUCTION: Compile the MPLS L3VPN branch router TFTP upgrade scenario.
 compile {
     tftp_mpls_upgrade(branch_cpe, noc_tftp_depot)
 }

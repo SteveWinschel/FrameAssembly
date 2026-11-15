@@ -1,19 +1,20 @@
-// PROMPT: Simulate an SMTP greylisting temporary deferral returning 451 4.7.1 Try again later on RCPT TO.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, smtp, code, reply, ehlo, mailfrom, param, rcptto, quit, compile
+// Simulate an SMTP greylisting temporary deferral returning 451 4.7.1 Try
+// again later on RCPT TO.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Overrides destination port to 25.
+// Wireshark: smtp
 
-// INSTRUCTION: Define the remote mail server and greylisting MX gateway.
 host remote_mta {
     mac 00:25:90:12:25:01
     ip 203.0.113.90
 }
 
-// INSTRUCTION: Define the greylist_mx mail endpoint.
 host greylist_mx {
     mac 00:25:90:12:25:02
     ip 198.51.100.10
 }
 
-// INSTRUCTION: Attempt mail delivery and receive a 451 4.7.1 Greylisting temporary failure response.
 flow smtp_451_greylisting_deferral(remote_mta, greylist_mx) {
     remote_mta -> greylist_mx tcp syn srcport 54025 dstport 25
     greylist_mx -> remote_mta tcp syn ack
@@ -29,7 +30,6 @@ flow smtp_451_greylisting_deferral(remote_mta, greylist_mx) {
     greylist_mx -> remote_mta smtp code 221 reply "2.0.0 Closing connection"
 }
 
-// INSTRUCTION: Compile the SMTP 451 greylisting deferral flow.
 compile {
     smtp_451_greylisting_deferral(remote_mta, greylist_mx)
 }

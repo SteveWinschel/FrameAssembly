@@ -34,7 +34,11 @@ pub(crate) fn dissect_syslog(payload: &[u8], is_tcp: bool) -> Option<ProtocolDis
         let (msgid, r5) = r4.split_once(' ')?;
         let (_sd, msg) = r5.split_once(' ')?;
 
-        push_str_if(&mut tokens, "hostname", hostname, "");
+        if hostname.is_empty() {
+            tokens.push_str(" hostname \"\"");
+        } else {
+            push_str_if(&mut tokens, "hostname", hostname, "");
+        }
         push_str_if(&mut tokens, "app", app, "app");
         push_str_if(&mut tokens, "procid", procid, "-");
         push_str_if(&mut tokens, "msgid", msgid, "-");

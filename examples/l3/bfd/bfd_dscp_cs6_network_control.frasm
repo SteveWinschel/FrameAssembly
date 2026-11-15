@@ -1,19 +1,19 @@
-// PROMPT: BFD session prioritized with DSCP CS6 (48) and IPv4 Don't Fragment flag.
-// TOKENS: host, ip, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, dscp, ecn, ttl, df, compile
+// BFD session prioritized with DSCP CS6 (48) and IPv4 Don't Fragment flag.
+// This capture sets DSCP 48, TTL 255, DF bit set and carries BFD state 3,
+// diag 0.
+// Wireshark: bfd
 
-// INSTRUCTION: Define core gateway router A.
 host core_gw_a { ip 192.0.2.101 }
 
-// INSTRUCTION: Define core gateway router B.
 host core_gw_b { ip 192.0.2.102 }
 
-// INSTRUCTION: Define DSCP CS6 (48) marked BFD packets with TTL 255 and DF set.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow bfd_cs6_control_flow(a, b) {
     a -> b bfd state 3 diag 0 mydisc 11111 yourdisc 22222 mintx 10000 minrx 10000 mult 3 dscp 48 ecn 0 ttl 255 df
     a <- b bfd state 3 diag 0 mydisc 22222 yourdisc 11111 mintx 10000 minrx 10000 mult 3 dscp 48 ecn 0 ttl 255 df
 }
 
-// INSTRUCTION: Compile the DSCP CS6 BFD control flow.
+// Run bfd_cs6_control_flow(core_gw_a, core_gw_b) to generate the capture.
 compile {
     bfd_cs6_control_flow(core_gw_a, core_gw_b)
 }

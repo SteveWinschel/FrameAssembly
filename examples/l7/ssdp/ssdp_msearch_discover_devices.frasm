@@ -1,18 +1,17 @@
-// PROMPT: SSDP M-SEARCH multicast discovery searching for root devices.
-// TOKENS: host, ip, flow, s, ssdp, msearch, st, mx, man, compile
+// SSDP M-SEARCH multicast discovery searching for root devices.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (SSDP /
+// UPnP, UDP 1900).
+// Wireshark: ssdp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.100 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 239.255.255.250 }
 
-// INSTRUCTION: Define application traffic flow.
 flow ssdp_msearch(c, s) {
     c -> s ssdp msearch st "upnp:rootdevice" mx 2 man "\"ssdp:discover\""
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ssdp_msearch(client, server)
 }

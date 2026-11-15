@@ -1,17 +1,16 @@
-// PROMPT: Mid-call SIP re-INVITE placing remote party on hold with SDP a=sendonly attribute.
-// TOKENS: host, ip, flow, s, sip, invite, uri, from, to, callid, cseq, contenttype, body, wait, ms, status, reason, ack, compile
+// Mid-call SIP re-INVITE placing remote party on hold with SDP a=sendonly
+// attribute.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: sip
 
-// INSTRUCTION: Define agent phone pressing Hold button during active call.
 host agent_phone {
     ip 192.168.80.25
 }
 
-// INSTRUCTION: Define remote caller media endpoint.
 host caller_peer {
     ip 192.168.80.1
 }
 
-// INSTRUCTION: Define in-dialog re-INVITE with a=sendonly SDP, 200 OK with a=recvonly, and ACK.
 flow sip_reinvite_hold(c, s) {
     c -> s sip invite uri "sip:peer@192.168.80.1" from "sip:agent@192.168.80.25" to "sip:peer@192.168.80.1" callid "active-dialog-88" cseq 102 contenttype "application/sdp" body "v=0
 a=sendonly" wait 5ms
@@ -20,7 +19,6 @@ a=recvonly" wait 5ms
     c -> s sip ack uri "sip:peer@192.168.80.1" callid "active-dialog-88" cseq 102
 }
 
-// INSTRUCTION: Compile the mid-call SIP re-INVITE call hold flow.
 compile {
     sip_reinvite_hold(agent_phone, caller_peer)
 }

@@ -1,18 +1,16 @@
-// PROMPT: NFSv4 compound RPC procedure inspecting file attributes over IPv6.
-// TOKENS: host, ip, flow, s, nfs, vers, proc, path, compile
+// NFSv4 compound RPC procedure inspecting file attributes over IPv6.
+// Wireshark: nfs
+// Automatic Ethernet MAC addresses and TCP port 2049 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::80 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow nfs_getattr(c, s) {
     c -> s nfs vers 4 proc "getattr" path "/exports/storage"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     nfs_getattr(client, server)
 }

@@ -1,19 +1,16 @@
-// PROMPT: DNS A record forward resolution query and response over UDP port 53.
-// TOKENS: host, ip, flow, s, dns, query, txid, qname, qtype, response, rdata, compile
+// DNS A record forward resolution query and response over UDP port 53.
+// Wireshark: dns
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.100 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 8.8.8.8 }
 
-// INSTRUCTION: Define application traffic flow.
+// DNS wire details: record types A.
 flow dns_resolve(c, s) {
     c -> s dns query txid 0x1a2b qname "example.com" qtype "a"
     c <- s dns response txid 0x1a2b qname "example.com" qtype "a" rdata "93.184.216.34"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     dns_resolve(client, server)
 }

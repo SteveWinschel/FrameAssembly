@@ -1,24 +1,19 @@
-// PROMPT: Default RFC 7011 IPFIX flow export datagram over UDP port 4739 using smart defaults.
-// TOKENS: host, ip, mac, flow, ipfix, compile
+// IPFIX (NetFlow v10) starter export on UDP port 4739 using built-in
+// defaults. Omitting extra keywords emits a 49-byte IPFIX flow record for the
+// two hosts.
+// Wireshark: cflow || udp.port == 4739
 
-// INSTRUCTION: Define IPFIX observation point router.
 host ipfix_exporter {
     ip 10.47.39.1
     mac 00:1e:f6:47:39:01
 }
 
-// INSTRUCTION: Define IPFIX telemetry collector.
 host ipfix_collector {
     ip 10.47.39.100
     mac 00:1e:f6:47:39:64
 }
 
-// INSTRUCTION: Emit a default IPFIX datagram without optional sub-keywords.
-flow ipfix_default(e, c) {
-    e -> c ipfix
-}
-
-// INSTRUCTION: Compile the default IPFIX scenario.
+// Send the frame directly in compile without needing a reusable flow block.
 compile {
-    ipfix_default(ipfix_exporter, ipfix_collector)
+    ipfix_exporter -> ipfix_collector ipfix
 }

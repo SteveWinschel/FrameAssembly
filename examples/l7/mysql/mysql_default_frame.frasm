@@ -1,0 +1,20 @@
+// MySQL starter packet on TCP port 3306 using built-in defaults. Omitting
+// extra keywords emits a 13-byte COM_QUERY ('SELECT 1') request. Automatic
+// Ethernet MACs and ephemeral client port 12345 apply by default.
+// Wireshark: mysql
+
+host mysql_client {
+    ip 10.90.0.10
+    mac 00:1a:2b:90:00:10
+}
+
+host mysql_server {
+    ip 10.90.0.1
+    mac 00:1a:2b:90:00:01
+}
+
+// Send one default MySQL query directly without needing a reusable flow
+// block.
+compile {
+    mysql_client -> mysql_server mysql
+}

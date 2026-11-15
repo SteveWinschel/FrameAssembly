@@ -1,19 +1,21 @@
-// PROMPT: Simulate a complete SSH-2.0 handshake progressing through Banner, KEXINIT, DH Key Exchange (30/31), and NEWKEYS.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, ssh, banner, kexinit, payload, msgcode, newkeys, compile
+// Simulate a complete SSH-2.0 handshake progressing through Banner, KEXINIT,
+// DH Key Exchange (30/31), and NEWKEYS.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// SSH RFC 4253 framing on TCP 22 (message codes: 30, 31).
+// Overrides destination port to 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define host endpoint ssh_client.
 host ssh_client {
     mac 00:50:56:a1:22:01
     ip 10.10.22.50
 }
 
-// INSTRUCTION: Define host endpoint ssh_bastion.
 host ssh_bastion {
     mac 00:50:56:a1:22:02
     ip 10.10.22.1
 }
 
-// INSTRUCTION: Complete TCP port 22 handshake, exchange banners, KEXINIT, ECDH INIT/REPLY (30/31), and NEWKEYS.
 flow ssh_full_key_exchange_flow(ssh_client, ssh_bastion) {
     ssh_client -> ssh_bastion tcp syn srcport 51022 dstport 22
     ssh_bastion -> ssh_client tcp syn ack
@@ -28,7 +30,6 @@ flow ssh_full_key_exchange_flow(ssh_client, ssh_bastion) {
     ssh_bastion -> ssh_client ssh newkeys
 }
 
-// INSTRUCTION: Compile the full SSH key exchange flow.
 compile {
     ssh_full_key_exchange_flow(ssh_client, ssh_bastion)
 }

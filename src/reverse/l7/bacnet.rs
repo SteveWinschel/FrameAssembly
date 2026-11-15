@@ -68,14 +68,25 @@ pub(crate) fn dissect_bacnet(
         && &apdu[0..2] == b"\x00\x05"
         && matches!(apdu[3], 0x0C | 0x0F)
         && apdu[4] == 0x0C
-        && apdu[9] == 0x19
+        && matches!(apdu[9], 0x19 | 0x1A)
     {
         let invoke_id = apdu[2];
         let svc = apdu[3];
         let oid = u32::from_be_bytes([apdu[5], apdu[6], apdu[7], apdu[8]]);
         let otype = (oid >> 22) as u16;
         let oinst = oid & 0x3F_FFFF;
-        let prop_id = apdu[10] as u32;
+        let (prop_id, val_off) = if apdu[9] == 0x19 {
+            (apdu[10] as u32, 11usize)
+        } else {
+            if apdu.len() < 12 {
+                return None;
+            }
+            let p = u16::from_be_bytes([apdu[10], apdu[11]]) as u32;
+            if p <= 0xFF {
+                return None;
+            }
+            (p, 12usize)
+        };
 
         if svc == 0x0F {
             tokens.push_str(" writeproperty");
@@ -94,14 +105,23 @@ pub(crate) fn dissect_bacnet(
         if prop_id != 85 {
             tokens.push_str(&format!(" propertyid {prop_id}"));
         }
-        if apdu.len() >= 18 && apdu[11] == 0x3E && apdu[12] == 0x24 && apdu[17] == 0x3F {
-            let val = u32::from_be_bytes([apdu[13], apdu[14], apdu[15], apdu[16]]);
+        if apdu.len() >= val_off + 7
+            && apdu[val_off] == 0x3E
+            && apdu[val_off + 1] == 0x24
+            && apdu[val_off + 6] == 0x3F
+        {
+            let val = u32::from_be_bytes([
+                apdu[val_off + 2],
+                apdu[val_off + 3],
+                apdu[val_off + 4],
+                apdu[val_off + 5],
+            ]);
             if svc == 0x0C || val != 0 {
                 tokens.push_str(&format!(" value {val}"));
             }
-            residual = &apdu[18..];
+            residual = &apdu[val_off + 7..];
         } else if svc == 0x0C {
-            residual = &apdu[11..];
+            residual = &apdu[val_off..];
         } else {
             return None;
         }

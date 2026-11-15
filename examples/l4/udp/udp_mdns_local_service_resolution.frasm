@@ -1,22 +1,19 @@
-// PROMPT: Simulate Apple Bonjour / Avahi Multicast DNS (mDNS) service discovery on 224.0.0.251 UDP port 5353.
-// TOKENS: host, ip, mac, flow, group, udp, srcport, dstport, payload, wait, ms, compile
+// Simulate Apple Bonjour / Avahi Multicast DNS (mDNS) service discovery on
+// 224.0.0.251 UDP port 5353.
+// Wire profile: 2 frames; 3 IPv4 hosts; UDP; dstport 5353; waits 15ms.
+// Wireshark: udp.port == 5353
 
-// INSTRUCTION: Define a workstation querying for local printers with IP 192.168.1.30.
 host mdns_querier { ip 192.168.1.30 mac ac:de:48:00:11:22 }
 
-// INSTRUCTION: Define a network printer advertising _ipp._tcp.local with IP 192.168.1.210.
 host network_printer { ip 192.168.1.210 mac ac:de:48:00:33:44 }
 
-// INSTRUCTION: Define the mDNS IPv4 multicast address 224.0.0.251 with multicast MAC 01:00:5e:00:00:fb.
 host mdns_group { ip 224.0.0.251 mac 01:00:5e:00:00:fb }
 
-// INSTRUCTION: Define a flow where the querier and printer exchange mDNS PTR/SRV records via the multicast group on port 5353.
 flow mdns_printer_lookup(querier, printer, group) {
     querier -> group udp srcport 5353 dstport 5353 payload "MDNS_QUERY_PTR_ipp_tcp_local" wait 15ms
-    printer -> group udp srcport 5353 dstport 5353 payload "MDNS_ANSWER_SRV_office_printer_local_631" wait 15ms
+    printer -> group udp srcport 5353 dstport 5353 payload "MDNS_ANSWER_SRV_office_printer_local_631"
 }
 
-// INSTRUCTION: Compile block to execute the mDNS local service lookup.
 compile {
     mdns_printer_lookup(mdns_querier, network_printer, mdns_group)
 }

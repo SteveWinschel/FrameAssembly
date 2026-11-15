@@ -1,19 +1,21 @@
-// PROMPT: Mobile backend server dispatching push notifications over HTTP/2 Streams 1 and 3 to a push gateway.
-// TOKENS: host, ip, mac, flow, http2, headers, streamid, data, payload, compile
+// Mobile backend server dispatching push notifications over HTTP/2 Streams 1
+// and 3 to a push gateway.
+// Wireshark: http2
 
-// INSTRUCTION: Define mobile backend push notification worker.
+// Mobile backend push notification worker.
 host push_worker {
     ip 10.105.4.30
     mac 02:42:0a:69:04:1e
 }
 
-// INSTRUCTION: Define APNs HTTP/2 push notification gateway.
+// APNs HTTP/2 push notification gateway.
 host apns_gateway {
     ip 10.105.4.1
     mac 02:42:0a:69:04:01
 }
 
-// INSTRUCTION: Dispatch two concurrent push notifications on Streams 1 and 3 with JSON alert payloads.
+// Dispatch two concurrent push notifications on Streams 1 and 3 with JSON
+// alert payloads.
 flow http2_apns_push(w, gw) {
     w -> gw http2 headers streamid 1
     w -> gw http2 data streamid 1 payload "{'aps':{'alert':'New message','sound':'default'}}"
@@ -23,7 +25,6 @@ flow http2_apns_push(w, gw) {
     w <- gw http2 headers streamid 3
 }
 
-// INSTRUCTION: Compile the mobile push notification HTTP/2 provider scenario.
 compile {
     http2_apns_push(push_worker, apns_gateway)
 }

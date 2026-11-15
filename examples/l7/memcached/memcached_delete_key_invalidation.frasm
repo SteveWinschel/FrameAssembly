@@ -1,18 +1,17 @@
-// PROMPT: Explicit cache invalidation executing Memcached delete command for stale data.
-// TOKENS: host, ip, flow, app, memcached, cmd, key, compile
+// Explicit cache invalidation executing Memcached delete command for stale
+// data.
+// Wireshark: memcache || tcp.port == 11211
 
-// INSTRUCTION: Define user profile updater service.
+// User profile updater service.
 host profile_updater { ip 10.40.2.18 }
 
-// INSTRUCTION: Define primary Memcached server.
 host profile_cache { ip 10.40.2.2 }
 
-// INSTRUCTION: Define cache key deletion flow.
+// Cache key deletion flow.
 flow delete_cache_key(app, c) {
     app -> c memcached cmd "delete" key "profile:uid:88192"
 }
 
-// INSTRUCTION: Compile delete key invalidation scenario.
 compile {
     delete_cache_key(profile_updater, profile_cache)
 }

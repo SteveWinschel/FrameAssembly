@@ -1,19 +1,15 @@
-// PROMPT: RTSP session setup negotiating media stream parameters and transport.
-// TOKENS: host, ip, flow, s, rtsp, method, uri, cseq, transporthdr, compile
+// RTSP session setup negotiating media stream parameters and transport.
+// Wireshark: rtsp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.15 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow rtsp_setup(c, s) {
     c -> s rtsp method "DESCRIBE" uri "rtsp://media.corp/stream" cseq 2
     c -> s rtsp method "SETUP" uri "rtsp://media.corp/stream/track1" cseq 3 transporthdr "RTP/AVP;unicast;client_port=8000-8001"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     rtsp_setup(client, server)
 }

@@ -1,16 +1,14 @@
-// PROMPT: PostgreSQL advisory lock acquisition and release coordinating distributed cron workers.
-// TOKENS: host, ip, flow, db, postgres, sql, wait, ms, commandcomplete, readyforquery, compile
+// PostgreSQL advisory lock acquisition and release coordinating distributed
+// cron workers.
+// Timing: runs 2 cycles in compile using post-packet waits (3ms, 10ms).
+// Wireshark: pgsql
 
-// INSTRUCTION: Define distributed cron scheduler node A.
 host cron_node_a { ip 10.77.1.11 }
 
-// INSTRUCTION: Define distributed cron scheduler node B.
 host cron_node_b { ip 10.77.1.12 }
 
-// INSTRUCTION: Define central coordination PostgreSQL database.
 host coord_db { ip 10.77.1.1 }
 
-// INSTRUCTION: Define pg_try_advisory_lock and pg_advisory_unlock flow.
 flow pg_advisory_lock(worker, db) {
     worker -> db postgres sql "SELECT pg_try_advisory_lock(9001)" wait 3ms
     worker <- db postgres commandcomplete readyforquery wait 10ms
@@ -18,7 +16,6 @@ flow pg_advisory_lock(worker, db) {
     worker <- db postgres commandcomplete readyforquery
 }
 
-// INSTRUCTION: Compile advisory lock flow across both cron worker nodes.
 compile {
     pg_advisory_lock(cron_node_a, coord_db)
     pg_advisory_lock(cron_node_b, coord_db)

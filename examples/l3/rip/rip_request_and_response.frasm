@@ -1,19 +1,18 @@
-// PROMPT: Routing Information Protocol table request and routing response exchange.
-// TOKENS: host, ip, flow, rip, request, response, compile
+// Routing Information Protocol table request and routing response exchange.
+// This capture sends UDP port 520/521 RIP route requests and updates.
+// Wireshark: rip
 
-// INSTRUCTION: Define local branch router.
 host branch_router { ip 192.168.1.1 }
 
-// INSTRUCTION: Define regional distribution router.
 host dist_router { ip 192.168.1.2 }
 
-// INSTRUCTION: Define RIP request and response flow exchanging routing tables.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow rip_exchange_flow(br, dr) {
     br -> dr rip request
     br <- dr rip response
 }
 
-// INSTRUCTION: Compile block executing RIP routing discovery.
+// Run rip_exchange_flow(branch_router, dist_router) to generate the capture.
 compile {
     rip_exchange_flow(branch_router, dist_router)
 }

@@ -1,22 +1,20 @@
-// PROMPT: S7comm WRITE_VAR setpoint update across multiple S7 PLCs in a water treatment plant.
-// TOKENS: host, ip, mac, flow, s7comm, rosctr, func, pduref, area, dbnum, offset, count, hexpayload, wait, ms, compile
+// S7comm WRITE_VAR setpoint update across multiple S7 PLCs in a water
+// treatment plant.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting 0x84.
+// Timing: runs 2 cycles in compile using post-packet waits (5ms).
+// Wireshark: s7comm
 
-// INSTRUCTION: Define water plant supervisory server.
 host water_scada { ip 172.19.102.1 mac 00:1b:1b:13:66:01 }
 
-// INSTRUCTION: Define filtration pump S7 PLC 1.
 host pump_plc_1 { ip 172.19.102.11 mac 00:1b:1b:13:66:0b }
 
-// INSTRUCTION: Define filtration pump S7 PLC 2.
 host pump_plc_2 { ip 172.19.102.12 mac 00:1b:1b:13:66:0c }
 
-// INSTRUCTION: Define WRITE_VAR updating DB20 flow rate setpoint.
 flow s7comm_write_setpoint(scada, plc) {
     scada -> plc s7comm rosctr "job" func "writevar" pduref 400 area 0x84 dbnum 20 offset 8 count 2 hexpayload "0004001003e8" wait 5ms
     scada <- plc s7comm rosctr "ackdata" func "writevar" pduref 400 hexpayload "ff"
 }
 
-// INSTRUCTION: Compile setpoint write to both filtration pump PLCs.
 compile {
     s7comm_write_setpoint(water_scada, pump_plc_1)
     s7comm_write_setpoint(water_scada, pump_plc_2)

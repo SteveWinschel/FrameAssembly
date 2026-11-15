@@ -1,25 +1,26 @@
-// PROMPT: gRPC context cancellation propagation returning GRPC_STATUS 1 (CANCELLED) when upstream client disconnects.
-// TOKENS: host, ip, mac, flow, grpc, service, method, wait, ms, grpcstatus, compile
+// gRPC context cancellation propagation returning grpcstatus 1 (CANCELLED)
+// when upstream client disconnects.
+// Wireshark: grpc || http2
 
-// INSTRUCTION: Define search aggregator service cancelling an expensive shard query.
+// Search aggregator service cancelling an expensive shard query.
 host search_aggregator {
     ip 10.100.35.10
     mac 02:42:0a:64:23:0a
 }
 
-// INSTRUCTION: Define vector index shard gRPC worker node.
+// Vector index shard gRPC worker node.
 host vector_shard {
     ip 10.100.35.99
     mac 02:42:0a:64:23:63
 }
 
-// INSTRUCTION: Dispatch NearestNeighbors RPC and terminate with GRPC_STATUS 1 CANCELLED after 10ms.
+// Dispatch NearestNeighbors RPC and terminate with grpcstatus 1 CANCELLED
+// after 10ms. gRPC status codes observed: 1 (CANCELLED) on TCP port 50051.
 flow grpc_err_cancelled(agg, shard) {
     agg -> shard grpc service "vector.v1.IndexService" method "NearestNeighbors" wait 10ms
     agg <- shard grpc service "vector.v1.IndexService" method "NearestNeighbors" grpcstatus 1
 }
 
-// INSTRUCTION: Compile the gRPC status 1 CANCELLED context propagation scenario.
 compile {
     grpc_err_cancelled(search_aggregator, vector_shard)
 }

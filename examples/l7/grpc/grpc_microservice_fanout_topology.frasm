@@ -1,19 +1,21 @@
-// PROMPT: Microservice fanout where an API gateway calls Inventory, Pricing, and Shipping gRPC services.
-// TOKENS: host, ip, flow, grpc, service, method, grpcstatus, compile
+// Microservice fanout where an API gateway calls Inventory, Pricing, and
+// Shipping gRPC services.
+// Wireshark: grpc || http2
 
-// INSTRUCTION: Define storefront BFF orchestrator.
+// Storefront BFF orchestrator.
 host storefront_bff { ip 10.99.0.1 }
 
-// INSTRUCTION: Define Inventory gRPC microservice.
+// Inventory gRPC microservice.
 host inventory_svc { ip 10.99.0.11 }
 
-// INSTRUCTION: Define Pricing gRPC microservice.
+// Pricing gRPC microservice.
 host pricing_svc { ip 10.99.0.12 }
 
-// INSTRUCTION: Define Shipping gRPC microservice.
+// Shipping gRPC microservice.
 host shipping_svc { ip 10.99.0.13 }
 
-// INSTRUCTION: Fan out RPC requests to all three downstream microservices.
+// Fan out RPC requests to all three downstream microservices. gRPC status
+// codes observed: 0 (OK) on TCP port 50051.
 flow grpc_microservice_fanout(bff, inv, prc, shp) {
     bff -> inv grpc service "catalog.Inventory" method "CheckStock"
     bff <- inv grpc service "catalog.Inventory" method "CheckStock" grpcstatus 0
@@ -23,7 +25,6 @@ flow grpc_microservice_fanout(bff, inv, prc, shp) {
     bff <- shp grpc service "logistics.Shipping" method "EstimateDelivery" grpcstatus 0
 }
 
-// INSTRUCTION: Compile the 4-host gRPC microservice fanout topology.
 compile {
     grpc_microservice_fanout(storefront_bff, inventory_svc, pricing_svc, shipping_svc)
 }

@@ -1,25 +1,28 @@
-// PROMPT: RFC 7880 Seamless BFD (S-BFD) initiator probing a stateless S-BFD reflector over UDP port 7784.
-// TOKENS: host, ip, mac, flow, init, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, srcport, dstport, mpls, exp, bos, mplsttl, dscp, ttl, wait, ms, compile
+// RFC 7880 Seamless BFD (S-BFD) initiator probing a stateless S-BFD reflector
+// over UDP port 7784.
+// This capture wraps frames in MPLS label 16002, sets DSCP 48, TTL 63/64,
+// carries BFD state 3, diag 0, destination port 49500/7784, and uses
+// post-packet wait gaps (2ms) between frames.
+// Wireshark: bfd && mpls && udp.port == 7784
 
-// INSTRUCTION: Define S-BFD Initiator headend node probing an SR-MPLS TE policy path.
 host sbfd_initiator_node {
     ip 10.78.80.1
     mac 00:21:59:78:80:01
 }
 
-// INSTRUCTION: Define S-BFD Reflector tailend node with well-known discriminator 168430090.
 host sbfd_reflector_node {
     ip 10.78.80.2
     mac 00:21:59:78:80:02
 }
 
-// INSTRUCTION: Define RFC 7880 S-BFD probe to UDP port 7784 and immediate STATE 3 reflection.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow sbfd_seamless_probe(init, refl) {
     init -> refl bfd state 3 diag 0 mydisc 78801 yourdisc 168430090 mintx 20000 minrx 0 mult 3 srcport 49500 dstport 7784 mpls 16002 exp 6 bos 1 mplsttl 64 dscp 48 ttl 64 wait 2ms
     init <- refl bfd state 3 diag 0 mydisc 168430090 yourdisc 78801 mintx 1000000 minrx 20000 mult 3 srcport 7784 dstport 49500 dscp 48 ttl 63
 }
 
-// INSTRUCTION: Compile the RFC 7880 Seamless BFD initiator-reflector exchange.
+// Run sbfd_seamless_probe(sbfd_initiator_node, sbfd_reflector_node) to
+// generate the capture.
 compile {
     sbfd_seamless_probe(sbfd_initiator_node, sbfd_reflector_node)
 }

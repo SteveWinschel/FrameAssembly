@@ -1,19 +1,22 @@
-// PROMPT: Underground parking garage carbon monoxide (CO) ppm threshold triggering BACnet exhaust fan startup.
-// TOKENS: host, ip, mac, flow, m, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, value, wait, ms, writeproperty, compile
+// Underground parking garage carbon monoxide (CO) ppm threshold triggering
+// BACnet exhaust fan startup.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the garage safety ventilation controller.
+// Garage safety ventilation controller.
 host garage_vent_ctrl {
     ip 10.120.130.1
     mac 00:1a:2b:78:d0:01
 }
 
-// INSTRUCTION: Define the CO gas detector and exhaust fan BACnet IO module.
+// CO gas detector and exhaust fan BACnet IO module.
 host co_fan_module {
     ip 10.120.130.15
     mac 00:1a:2b:78:d0:15
 }
 
-// INSTRUCTION: Read CO concentration (42 ppm) from Analog Input 1 and activate Binary Output 1 exhaust fan.
+// Read CO concentration (42 ppm) from Analog Input 1 and activate Binary
+// Output 1 exhaust fan. BACnet/IP on UDP 47808 (objects: 0 (Analog Input), 4
+// (Binary Output); properties: 85 (Present_Value)).
 flow bacnet_co_exhaust(c, m) {
     c -> m bacnet readproperty invokeid 150 objecttype 0 objectinstance 1 propertyid 85
     c <- m bacnet readproperty invokeid 150 objecttype 0 objectinstance 1 propertyid 85 value 42 wait 1ms
@@ -21,7 +24,6 @@ flow bacnet_co_exhaust(c, m) {
     c <- m bacnet writeproperty invokeid 151 objecttype 4 objectinstance 1 propertyid 85 value 1
 }
 
-// INSTRUCTION: Compile the parking garage CO exhaust fan BACnet flow.
 compile {
     bacnet_co_exhaust(garage_vent_ctrl, co_fan_module)
 }

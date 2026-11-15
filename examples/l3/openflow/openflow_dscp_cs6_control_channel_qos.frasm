@@ -1,26 +1,28 @@
-// PROMPT: Generate an OpenFlow 1.4 control exchange marked with DSCP CS6 network control priority, ECN ECT(0), and DF
-// TOKENS: host, ip, mac, flow, openflow, featuresreq, version, xid, dscp, ecn, ttl, df, wait, ms, featuresreply, dpid, flowmod, tableid, priority, compile
+// Generate an OpenFlow 1.4 control exchange marked with DSCP CS6 network
+// control priority, ECN ECT(0), and DF.
+// This capture sets DSCP 48, TTL 64, DF bit set and uses post-packet wait
+// gaps (10ms) between frames.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define the OpenFlow 1.4 controller cluster VIP
 host of14_ctrl {
     ip 198.51.100.210
     mac 00:1b:21:e7:01:01
 }
 
-// INSTRUCTION: Define the OpenFlow 1.4 spine switch
 host of14_spine {
     ip 198.51.100.211
     mac 00:1b:21:e7:01:02
 }
 
-// INSTRUCTION: Send OpenFlow 1.4 (VERSION 5) messages with DSCP 48 (CS6) and Don't Fragment
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow openflow_dscp_cs6_exchange(ctrl, spine) {
     ctrl -> spine openflow featuresreq version 5 xid 601 dscp 48 ecn 2 ttl 64 df wait 10ms
     spine -> ctrl openflow featuresreply version 5 xid 601 dpid 55001122 dscp 48 ecn 2 ttl 64 df wait 10ms
     ctrl -> spine openflow flowmod version 5 xid 602 tableid 0 priority 50000 dscp 48 ecn 2 ttl 64 df
 }
 
-// INSTRUCTION: Compile the DSCP CS6 OpenFlow 1.4 control trace
+// Run openflow_dscp_cs6_exchange(of14_ctrl, of14_spine) to generate the
+// capture.
 compile {
     openflow_dscp_cs6_exchange(of14_ctrl, of14_spine)
 }

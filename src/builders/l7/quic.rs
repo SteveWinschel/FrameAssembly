@@ -11,6 +11,18 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Appends an RFC 9000 §16 variable-length integer using the minimal 1-, 2-, or 4-byte encoding.
+fn push_quic_varint_min(buf: &mut Vec<u8>, val: usize) {
+    if val < 64 {
+        buf.push(val as u8);
+    } else if val < 16384 {
+        buf.extend_from_slice(&(0x4000u16 | (val as u16)).to_be_bytes());
+    } else {
+        let clamped = (val as u32) & 0x3FFF_FFFF;
+        buf.extend_from_slice(&(0x8000_0000u32 | clamped).to_be_bytes());
+    }
+}
+
 /// Builds an RFC 9000 QUIC packet payload.
 /// Syntax mapping: `quic [initial | zerortt | handshake | retry | short] [version <u32>] [dcid <u64>] [scid <u64>] [token <str>] [pktnum <u32>]`
 #[doc(alias = "QUIC")]
@@ -25,7 +37,6 @@ pub fn build_quic_payload(
 ) -> Vec<u8> {
     let mut pkt = Vec::new();
     let dcid = spec.dcid.unwrap_or(0x01020304);
-    let dcid_bytes = (dcid as u32).to_be_bytes();
 
     if spec.is_short
         && !spec.is_initial
@@ -35,7 +46,7 @@ pub fn build_quic_payload(
     {
         // 1-RTT Short Header (Header Form = 0, Fixed Bit = 1 -> 0x40)
         pkt.push(0x40);
-        pkt.extend_from_slice(&dcid_bytes);
+        pkt.extend_from_slice(&(dcid as u32).to_be_bytes());
         pkt.push(spec.pkt_num.unwrap_or(1) as u8);
         pkt.extend_from_slice(payload_bytes);
         return pkt;
@@ -58,13 +69,22 @@ pub fn build_quic_payload(
     let version = spec.version.unwrap_or(0x00000001);
     pkt.extend_from_slice(&version.to_be_bytes());
 
-    pkt.push(dcid_bytes.len() as u8);
-    pkt.extend_from_slice(&dcid_bytes);
+    if dcid > u32::MAX as u64 {
+        pkt.push(8);
+        pkt.extend_from_slice(&dcid.to_be_bytes());
+    } else {
+        pkt.push(4);
+        pkt.extend_from_slice(&(dcid as u32).to_be_bytes());
+    }
 
     let scid = spec.scid.unwrap_or(0x05060708);
-    let scid_bytes = (scid as u32).to_be_bytes();
-    pkt.push(scid_bytes.len() as u8);
-    pkt.extend_from_slice(&scid_bytes);
+    if scid > u32::MAX as u64 {
+        pkt.push(8);
+        pkt.extend_from_slice(&scid.to_be_bytes());
+    } else {
+        pkt.push(4);
+        pkt.extend_from_slice(&(scid as u32).to_be_bytes());
+    }
 
     if hdr_type == 3 {
         // Retry packet: Retry Token + payload / 16-byte Retry Integrity Tag
@@ -80,19 +100,24 @@ pub fn build_quic_payload(
     }
 
     if hdr_type == 0 {
-        // Initial packet includes Token Length + Token
+        // Initial packet includes RFC 9000 varint Token Length + Token
         if let Some(tok) = spec.token {
-            pkt.push(tok.len() as u8);
+            push_quic_varint_min(&mut pkt, tok.len());
             pkt.extend_from_slice(tok.as_bytes());
         } else {
             pkt.push(0);
         }
     }
 
-    // RFC 9000 §16 2-byte variable-length integer (prefix bits 01 -> 0x4000)
+    // RFC 9000 §16 2-byte variable-length integer (prefix bits 01 -> 0x4000, or 4-byte when > 16383)
     let inner_len = 1 + payload_bytes.len();
-    let varint_len = 0x4000u16 | ((inner_len as u16) & 0x3FFF);
-    pkt.extend_from_slice(&varint_len.to_be_bytes());
+    if inner_len <= 0x3FFF {
+        let varint_len = 0x4000u16 | (inner_len as u16);
+        pkt.extend_from_slice(&varint_len.to_be_bytes());
+    } else {
+        let varint_len = 0x8000_0000u32 | ((inner_len as u32) & 0x3FFF_FFFF);
+        pkt.extend_from_slice(&varint_len.to_be_bytes());
+    }
     pkt.push(spec.pkt_num.unwrap_or(1) as u8);
     pkt.extend_from_slice(payload_bytes);
     pkt

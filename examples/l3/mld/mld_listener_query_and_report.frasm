@@ -1,19 +1,18 @@
-// PROMPT: Multicast Listener Discovery query and membership report on IPv6 network.
-// TOKENS: host, ip, flow, mld, query, report, multicastaddr, compile
+// Multicast Listener Discovery query and membership report on IPv6 network.
+// This capture targets IPv6 endpoints.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define IPv6 querier router.
 host mld_router { ip fe80::1 }
 
-// INSTRUCTION: Define IPv6 all-nodes destination.
 host mld_host { ip ff02::1 }
 
-// INSTRUCTION: Define MLD query and report flow.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow mld_mgmt(r, h) {
     r -> h mld query
     r -> h mld report multicastaddr ff02::1:2
 }
 
-// INSTRUCTION: Compile block executing MLD signaling.
+// Run mld_mgmt(mld_router, mld_host) to generate the capture.
 compile {
     mld_mgmt(mld_router, mld_host)
 }

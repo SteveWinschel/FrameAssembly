@@ -1,0 +1,20 @@
+// Minimal Generic Routing Encapsulation (GRE, RFC 2784) starter packet sent
+// over IP protocol 47 with a standard 4-byte header (IPv4 0x0800 passenger
+// type, no optional flags). Useful for verifying protocol-47 tunnel
+// pass-through and baseline packet inspection.
+// Wireshark: gre
+
+host endpoint_a {
+    ip 10.47.0.1
+    mac 02:00:47:00:00:01
+}
+
+host endpoint_b {
+    ip 10.47.0.2
+    mac 02:00:47:00:00:02
+}
+
+// Transmit one default GRE frame directly inside compile.
+compile {
+    endpoint_a -> endpoint_b gre
+}

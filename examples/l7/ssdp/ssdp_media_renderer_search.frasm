@@ -1,20 +1,19 @@
-// PROMPT: SSDP M-SEARCH query discovering UPnP MediaRenderer devices.
-// TOKENS: host, ip, flow, s, ssdp, msearch, st, mx, man, compile
+// SSDP M-SEARCH query discovering UPnP MediaRenderer devices.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (SSDP /
+// UPnP, UDP 1900).
+// Wireshark: ssdp
 
-// INSTRUCTION: Define control point client endpoint.
 host cp_client { ip 192.168.1.105 }
 
-// INSTRUCTION: Define SSDP IPv4 multicast destination.
 host ssdp_mcast { ip 239.255.255.250 }
 
-// INSTRUCTION: Define MediaRenderer discovery search flow.
 flow ssdp_renderer_flow(c, s) {
     c -> s ssdp msearch
         st "urn:schemas-upnp-org:device:MediaRenderer:1"
         mx 3 man "\"ssdp:discover\""
 }
 
-// INSTRUCTION: Compile block executing MediaRenderer search.
 compile {
     ssdp_renderer_flow(cp_client, ssdp_mcast)
 }

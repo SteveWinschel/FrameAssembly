@@ -1,18 +1,19 @@
-// PROMPT: Periodic Neighbor Solicitation keepalive burst inside a COMPILE LOOP.
-// TOKENS: host, ip, mac, flow, db, ndp, neighborsolicit, target, wait, ms, compile
+// Periodic Neighbor Solicitation keepalive burst across repeated cycles in
+// compile.
+// This capture targets IPv6 endpoints, executes 5 cycles in compile, and uses
+// post-packet wait gaps (15ms) between frames.
+// Wireshark: icmpv6.nd
 
-// INSTRUCTION: Define health monitor checking host reachability.
 host health_monitor_node { ip fe80::beef:10 mac 00:0c:29:11:22:33 }
 
-// INSTRUCTION: Define monitored database host.
 host monitored_db_node { ip fe80::beef:20 mac 00:0c:29:44:55:66 }
 
-// INSTRUCTION: Define periodic reachability probe flow.
+// Packet sequence (1 frame); wait pauses after a packet before the next.
 flow ndp_reachability_probe(mon, db) {
     mon -> db ndp neighborsolicit target 2001:db8:88::20 wait 15ms
 }
 
-// INSTRUCTION: Compile loop executing 5 reachability confirmation queries.
+// Emit 5 sequential cycles of ndp_reachability_probe.
 compile {
     ndp_reachability_probe(health_monitor_node, monitored_db_node) // cycle 1
     ndp_reachability_probe(health_monitor_node, monitored_db_node) // cycle 2

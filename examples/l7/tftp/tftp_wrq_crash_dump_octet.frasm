@@ -1,20 +1,19 @@
-// PROMPT: Write request uploading kernel crash dump file to diagnostic TFTP server.
-// TOKENS: host, ip, flow, s, tftp, wrq, filename, mode, compile
+// Write request uploading kernel crash dump file to diagnostic TFTP server.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (TFTP (RFC
+// 1350), UDP 69).
+// Wireshark: tftp
 
-// INSTRUCTION: Define recovering host uploading diagnostic dump.
 host crash_host { ip 10.80.4.12 }
 
-// INSTRUCTION: Define diagnostic collection TFTP server.
 host diag_tftp { ip 10.80.4.1 }
 
-// INSTRUCTION: Define crash dump upload WRQ flow.
 flow tftp_crash_upload(c, s) {
     c -> s tftp wrq
         filename "vmcore-panic-20261024.dmp"
         mode "octet"
 }
 
-// INSTRUCTION: Compile block executing crash dump upload.
 compile {
     tftp_crash_upload(crash_host, diag_tftp)
 }

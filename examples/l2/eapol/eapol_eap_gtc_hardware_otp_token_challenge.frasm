@@ -1,19 +1,18 @@
-// PROMPT: High-security laboratory terminal authenticating via EAP-GTC (Generic Token Card, EAP_METHOD 6) one-time password challenge.
-// TOKENS: host, ip, mac, flow, eapol, version, type, start, wait, ms, eappacket, eapcode, eapid, eapmethod, identity, payload, compile
+// High-security laboratory terminal authenticating via EAP-GTC (Generic Token
+// Card, EAP_METHOD 6) one-time password challenge.
+// Wire profile: 6 frames; 2 IPv4 hosts; EAPOL; waits 2ms, 5ms, 10ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define air-gapped lab terminal supplicant responding with hardware OTP token code.
 host lab_terminal_supp {
     ip 172.29.10.50
     mac 00:21:70:1d:0a:32
 }
 
-// INSTRUCTION: Define lab security switch port enforcing EAP-GTC token verification.
 host lab_sec_switch {
     ip 172.29.10.1
     mac 00:1c:73:1d:0a:01
 }
 
-// INSTRUCTION: Exchange EAP-Identity and EAP-GTC (Method 6) ASCII OTP challenge/response followed by EAP-Success.
 flow eapol_gtc_otp_auth(term, sw) {
     term -> sw eapol version 2 type start wait 2ms
     term <- sw eapol version 2 type eappacket eapcode 1 eapid 20 eapmethod 1 wait 2ms
@@ -23,7 +22,6 @@ flow eapol_gtc_otp_auth(term, sw) {
     term <- sw eapol version 2 type eappacket eapcode 3 eapid 21 eapmethod 6
 }
 
-// INSTRUCTION: Compile the EAP-GTC hardware OTP token authentication trace.
 compile {
     eapol_gtc_otp_auth(lab_terminal_supp, lab_sec_switch)
 }

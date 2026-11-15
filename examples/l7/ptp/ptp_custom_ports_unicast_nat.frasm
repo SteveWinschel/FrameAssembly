@@ -1,20 +1,22 @@
-// PROMPT: PTP unicast negotiation over non-standard NAT UDP ports using SRCPORT and DSTPORT.
-// TOKENS: host, ip, flow, s, ptp, sync, domain, seqid, srcport, dstport, wait, ms, delayreq, delayresp, compile
+// PTP unicast negotiation over non-standard NAT UDP ports using srcport and
+// dstport.
+// IEEE 1588v2 PTP (messages: sync, delayreq, delayresp; domain 0). UDP 319
+// handles Event messages (sync, delayreq) and UDP 320 carries General
+// messages (announce, followup, delayresp).
+// Overrides destination port to 319.
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: ptp
 
-// INSTRUCTION: Define cloud VM time client behind NAT.
 host nat_ptp_client { ip 10.199.1.50 }
 
-// INSTRUCTION: Define enterprise time server.
 host ent_ptp_srv { ip 10.199.1.1 }
 
-// INSTRUCTION: Define PTP exchange with custom source and destination UDP ports.
 flow ptp_custom_ports(c, s) {
     c <- s ptp sync domain 0 seqid 55 srcport 319 dstport 40319 wait 2ms
     c -> s ptp delayreq domain 0 seqid 55 srcport 40319 dstport 319 wait 2ms
     c <- s ptp delayresp domain 0 seqid 55 srcport 320 dstport 40320
 }
 
-// INSTRUCTION: Compile custom-port PTP exchange.
 compile {
     ptp_custom_ports(nat_ptp_client, ent_ptp_srv)
 }

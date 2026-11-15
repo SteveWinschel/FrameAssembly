@@ -1,33 +1,32 @@
-// PROMPT: Dual-stack WebSocket pub/sub broker serving both IPv4 and IPv6 subscriber clients.
-// TOKENS: host, ip, flow, s, websocket, text, finbit, maskkey, payload, wait, ms, compile
+// Dual-stack WebSocket pub/sub broker serving both IPv4 and IPv6 subscriber
+// clients.
+// Runs the same flow definition across both IPv4 and IPv6 host pairs.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Timing: runs 2 cycles in compile using post-packet waits (5ms).
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define IPv4 WebSocket subscriber client.
 host sub_v4 {
     ip 192.168.110.25
 }
 
-// INSTRUCTION: Define IPv4 WebSocket broker address.
 host broker_v4 {
     ip 192.168.110.1
 }
 
-// INSTRUCTION: Define IPv6 WebSocket subscriber client.
 host sub_v6 {
     ip 2001:db8:110::25
 }
 
-// INSTRUCTION: Define IPv6 WebSocket broker address.
 host broker_v6 {
     ip 2001:db8:110::1
 }
 
-// INSTRUCTION: Define reusable WebSocket subscription and broadcast flow.
 flow ws_pubsub(c, s) {
     c -> s websocket text finbit 1 maskkey 0x12345678 payload "SUBSCRIBE topic/news" wait 5ms
     c <- s websocket text finbit 1 payload "MESSAGE topic/news Breaking"
 }
 
-// INSTRUCTION: Compile dual-stack IPv4 and IPv6 WebSocket pub/sub flows.
 compile {
     ws_pubsub(sub_v4, broker_v4)
     ws_pubsub(sub_v6, broker_v6)

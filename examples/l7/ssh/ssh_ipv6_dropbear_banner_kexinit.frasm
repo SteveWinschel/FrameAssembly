@@ -1,19 +1,22 @@
-// PROMPT: Simulate an IPv6 SSH-2.0 connection between a management jump host and a core router using Dropbear SSH banner.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, ssh, banner, kexinit, payload, newkeys, compile
+// Simulate an IPv6 SSH-2.0 connection between a management jump host and a
+// core router using Dropbear SSH banner.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// SSH RFC 4253 framing on TCP 22.
+// Overrides destination port to 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define host endpoint jumpbox_v6.
 host jumpbox_v6 {
     mac 00:50:56:b6:22:01
     ip 2001:db8:22:1::10
 }
 
-// INSTRUCTION: Define host endpoint router_dropbear.
 host router_dropbear {
     mac 00:50:56:b6:22:02
     ip 2001:db8:22:1::1
 }
 
-// INSTRUCTION: Establish IPv6 TCP port 22, exchange OpenSSH and Dropbear banners, KEXINIT, and NEWKEYS.
 flow ssh_ipv6_dropbear_session(jumpbox_v6, router_dropbear) {
     jumpbox_v6 -> router_dropbear tcp syn srcport 55022 dstport 22
     router_dropbear -> jumpbox_v6 tcp syn ack
@@ -26,7 +29,6 @@ flow ssh_ipv6_dropbear_session(jumpbox_v6, router_dropbear) {
     router_dropbear -> jumpbox_v6 ssh newkeys
 }
 
-// INSTRUCTION: Compile the IPv6 Dropbear SSH session flow.
 compile {
     ssh_ipv6_dropbear_session(jumpbox_v6, router_dropbear)
 }

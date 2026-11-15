@@ -1,25 +1,27 @@
-// PROMPT: RFC 3768 VRRPv2 legacy advertisement (VERSION 2) interoperating on a mixed campus gateway subnet.
-// TOKENS: host, ip, mac, flow, vrrp, vrid, priority, advint, vip, version, dscp, ttl, wait, ms, compile
+// RFC 3768 VRRPv2 legacy advertisement (version 2) interoperating on a mixed
+// campus gateway subnet.
+// This capture sets DSCP 48, TTL 255, carries VRID 12, and uses post-packet
+// wait gaps (50ms) between frames.
+// Wireshark: vrrp
 
-// INSTRUCTION: Define legacy distribution router running RFC 3768 VRRPv2 (VERSION 2) on VRID 12.
 host vrrpv2_legacy_gw {
     ip 172.16.12.2
     mac 00:00:5e:00:01:0c
 }
 
-// INSTRUCTION: Define VRRP multicast address 224.0.0.18.
 host vrrpv2_mcast_dst {
     ip 224.0.0.18
     mac 01:00:5e:00:00:12
 }
 
-// INSTRUCTION: Define VRRPv2 (VERSION 2) advertisement with VRID 12, PRIORITY 110, and 1s interval.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vrrpv2_legacy_advert_flow(gw, mcast) {
     gw -> mcast vrrp vrid 12 priority 110 advint 1 vip 172.16.12.1 version 2 dscp 48 ttl 255 wait 50ms
     gw -> mcast vrrp vrid 12 priority 110 advint 1 vip 172.16.12.1 version 2 dscp 48 ttl 255
 }
 
-// INSTRUCTION: Compile the RFC 3768 VRRPv2 backward compatibility advertisement flow.
+// Run vrrpv2_legacy_advert_flow(vrrpv2_legacy_gw, vrrpv2_mcast_dst) to
+// generate the capture.
 compile {
     vrrpv2_legacy_advert_flow(vrrpv2_legacy_gw, vrrpv2_mcast_dst)
 }

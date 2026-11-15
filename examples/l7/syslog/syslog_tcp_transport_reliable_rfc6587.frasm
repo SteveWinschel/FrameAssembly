@@ -1,19 +1,23 @@
-// PROMPT: Simulate reliable RFC 6587 Syslog over TCP on port 514 with a 3-way TCP handshake before delivering log records.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, syslog, transport, facility, severity, hostname, app, procid, msg, compile
+// Simulate reliable RFC 6587 Syslog over TCP on port 514 with a 3-way TCP
+// handshake before delivering log records.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// RFC 5424 over TCP 514; facility 13 (audit) + severity 5 (notice) yields PRI
+// <109>.
+// Overrides destination port to 514.
+// Uses transport tcp instead of the default UDP transport.
+// Wireshark: syslog
 
-// INSTRUCTION: Define host endpoint payment_app.
 host payment_app {
     mac 00:50:56:65:87:01
     ip 10.90.5.11
 }
 
-// INSTRUCTION: Define host endpoint tcp_syslog_srv.
 host tcp_syslog_srv {
     mac 00:50:56:65:87:02
     ip 10.90.5.200
 }
 
-// INSTRUCTION: Complete a TCP handshake on port 514 and transmit PCI audit logs over TCP.
 flow syslog_over_tcp_rfc6587(payment_app, tcp_syslog_srv) {
     payment_app -> tcp_syslog_srv tcp syn srcport 51514 dstport 514
     tcp_syslog_srv -> payment_app tcp syn ack
@@ -24,7 +28,6 @@ flow syslog_over_tcp_rfc6587(payment_app, tcp_syslog_srv) {
         msg "HSM partition health check verified status=OK"
 }
 
-// INSTRUCTION: Compile the Syslog over TCP flow.
 compile {
     syslog_over_tcp_rfc6587(payment_app, tcp_syslog_srv)
 }

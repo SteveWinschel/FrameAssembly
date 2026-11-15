@@ -1,18 +1,17 @@
-// PROMPT: mDNS local service announcement response with SRV record over IPv6 link-local multicast.
-// TOKENS: host, ip, flow, s, mdns, response, txid, qname, qtype, rdata, compile
+// mDNS local service announcement response with SRV record over IPv6
+// link-local multicast.
+// Wireshark: mdns
 
-// INSTRUCTION: Define client endpoint.
 host client { ip fe80::1 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip ff02::fb }
 
-// INSTRUCTION: Define application traffic flow.
+// DNS wire details: record types SRV; multicast 224.0.0.251 / ff02::fb UDP
+// 5353 (TTL 255).
 flow mdns_announce(c, s) {
     c -> s mdns response txid 0 qname "printer._ipp._tcp.local" qtype "srv" rdata "printer.local:631"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     mdns_announce(client, server)
 }

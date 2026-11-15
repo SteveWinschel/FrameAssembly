@@ -1,19 +1,18 @@
-// PROMPT: SMB2 continuous keepalive ping loop over dedicated SAN storage VLAN 445.
-// TOKENS: host, ip, mac, flow, s, smb, command, sessionid, msgid, vlan, pcp, dei, wait, ms, status, compile
+// SMB2 continuous keepalive ping loop over dedicated SAN storage VLAN 445.
+// Encapsulation and QoS markings: 802.1Q VLAN 445, 802.1p priority 4.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Timing: runs 4 cycles in compile using post-packet waits (25ms).
+// Wireshark: smb2 && vlan.id == 445
 
-// INSTRUCTION: Define virtualization hypervisor node.
 host hypervisor_n1 { ip 10.45.1.20 mac 00:25:90:45:01:14 }
 
-// INSTRUCTION: Define high-throughput SAN storage target.
 host san_target { ip 10.45.1.10 mac 00:25:90:45:01:0a }
 
-// INSTRUCTION: Define single SMB2 NEGOTIATE keepalive on SAN VLAN 445 with CoS 4.
 flow smb_san_heartbeat(c, s) {
     c -> s smb command "negotiate" sessionid 0x4000 msgid 1 vlan 445 pcp 4 dei 0 wait 25ms
     c <- s smb command "negotiate" status 0 sessionid 0x4000 msgid 1 vlan 445 pcp 4 dei 0 wait 25ms
 }
 
-// INSTRUCTION: Execute 4 keepalive iterations in a COMPILE LOOP.
 compile {
     smb_san_heartbeat(hypervisor_n1, san_target) // cycle 1
     smb_san_heartbeat(hypervisor_n1, san_target) // cycle 2

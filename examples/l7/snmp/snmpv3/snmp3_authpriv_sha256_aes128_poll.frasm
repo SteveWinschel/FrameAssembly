@@ -1,0 +1,20 @@
+// Encrypted SNMPv3 authPriv poll (SHA-256 authentication + AES-128 privacy) on UDP 161.
+// Queries sysUpTime.0 and ifHCInOctets.1 (64-bit interface counter) and returns values
+// encrypted for user "netops_ro" against engineid "80001f8880102030".
+// Decrypt in Wireshark or tshark with UAT SHA2-256 "AuthPass2026!" and AES "PrivPass2026!".
+// Timing: pauses 2ms after the SNMPv3 GetRequest before sending the Response.
+// Wireshark: snmp
+
+host nms_poller  { ip 10.147.1.50 mac 00:1b:54:47:01:32 }
+host core_router { ip 10.147.1.1  mac 00:1b:54:47:01:01 }
+
+flow snmp3_hc_counter_poll(nms, rtr) {
+    nms -> rtr snmp3 get user "netops_ro" engineid "80001f8880102030" engineboots 7 enginetime 48200 auth sha256 "AuthPass2026!" priv aes "PrivPass2026!"
+        reqid 4101 varbind 1.3.6.1.2.1.1.3.0 null varbind 1.3.6.1.2.1.31.1.1.1.6.1 null wait 2ms
+    nms <- rtr snmp3 response user "netops_ro" engineid "80001f8880102030" engineboots 7 enginetime 48200 auth sha256 "AuthPass2026!" priv aes "PrivPass2026!"
+        reqid 4101 varbind 1.3.6.1.2.1.1.3.0 timeticks 4820000 varbind 1.3.6.1.2.1.31.1.1.1.6.1 counter64 2199023255552
+}
+
+compile {
+    snmp3_hc_counter_poll(nms_poller, core_router)
+}

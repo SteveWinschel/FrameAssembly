@@ -1,19 +1,18 @@
-// PROMPT: PostgreSQL declarative table partitioning maintenance attaching a new monthly partition.
-// TOKENS: host, ip, mac, flow, s, postgres, sql, commandcomplete, wait, ms, readyforquery, compile
+// PostgreSQL time-series range partitioning maintenance attaching a new
+// monthly partition.
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: pgsql
 
-// INSTRUCTION: Define the partition maintenance cron host.
 host partman_cron {
     ip 10.95.80.12
     mac 00:1a:2b:95:80:12
 }
 
-// INSTRUCTION: Define the time-series telemetry PostgreSQL server.
 host ts_postgres {
     ip 10.95.80.1
     mac 00:1a:2b:95:80:01
 }
 
-// INSTRUCTION: Create November 2026 partition table and attach it to telemetry_events.
 flow pg_partition_attach(c, s) {
     c -> s postgres sql "CREATE TABLE telemetry_events_y2026m11 (LIKE telemetry_events INCLUDING DEFAULTS INCLUDING CONSTRAINTS)"
     c <- s postgres commandcomplete wait 2ms
@@ -22,7 +21,6 @@ flow pg_partition_attach(c, s) {
     c <- s postgres readyforquery
 }
 
-// INSTRUCTION: Compile the PostgreSQL partition management flow.
 compile {
     pg_partition_attach(partman_cron, ts_postgres)
 }

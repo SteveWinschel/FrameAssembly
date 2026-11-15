@@ -1,19 +1,16 @@
-// PROMPT: Negotiate About Window Size option negotiation using IAC DO 31.
-// TOKENS: host, ip, flow, s, telnet, do, will, compile
+// Negotiate About Window Size option negotiation using IAC DO 31.
+// Telnet on TCP 23 negotiating option(s): 31 (NAWS).
+// Wireshark: telnet
 
-// INSTRUCTION: Define graphical terminal emulator.
 host gui_term { ip 172.16.8.50 }
 
-// INSTRUCTION: Define Unix main server.
 host unix_main { ip 172.16.8.1 }
 
-// INSTRUCTION: Define NAWS option negotiation flow.
 flow telnet_naws_flow(c, s) {
     c <- s telnet do 31
     c -> s telnet will 31
 }
 
-// INSTRUCTION: Compile block executing NAWS negotiation.
 compile {
     telnet_naws_flow(gui_term, unix_main)
 }

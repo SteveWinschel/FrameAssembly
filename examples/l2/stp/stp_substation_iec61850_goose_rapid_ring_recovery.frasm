@@ -1,25 +1,23 @@
-// PROMPT: Electrical substation IEC 61850 ruggedized Ethernet switches running RSTP with aggressive 6s Max Age and 4s Forward Delay.
-// TOKENS: host, ip, mac, flow, vlan, pcp, stp, rstp, rootid, bridgeid, cost, portid, maxage, hellotime, forwarddelay, flags, wait, ms, compile
+// Electrical substation IEC 61850 ruggedized Ethernet switches running RSTP with
+// aggressive 6s Max Age and 4s Forward Delay.
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 100; PCP 7; STP; waits 2ms.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define substation bay controller switch A acting as RSTP ring master.
 host substation_ied_sw1 {
     ip 192.168.61.1
     mac 00:0e:8c:3d:00:01
 }
 
-// INSTRUCTION: Define substation protection relay switch B in the IEC 61850 process bus ring.
 host substation_ied_sw2 {
     ip 192.168.61.2
     mac 00:0e:8c:3d:00:02
 }
 
-// INSTRUCTION: Exchange aggressive-timer RSTP Proposal and Agreement BPDUs on substation VLAN 100 PCP 7.
 flow stp_substation_ring(sw1, sw2) {
     sw1 -> sw2 vlan 100 pcp 7 stp rstp rootid "4096:00:0e:8c:3d:00:01" bridgeid "4096:00:0e:8c:3d:00:01" cost 0 portid 32769 maxage 6 hellotime 1 forwarddelay 4 flags 14 wait 2ms
     sw1 <- sw2 vlan 100 pcp 7 stp rstp rootid "4096:00:0e:8c:3d:00:01" bridgeid "8192:00:0e:8c:3d:00:02" cost 2000 portid 32769 maxage 6 hellotime 1 forwarddelay 4 flags 78
 }
 
-// INSTRUCTION: Compile the IEC 61850 electrical substation RSTP fast ring convergence trace.
 compile {
     stp_substation_ring(substation_ied_sw1, substation_ied_sw2)
 }

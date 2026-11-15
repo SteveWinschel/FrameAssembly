@@ -66,6 +66,10 @@ pub(crate) fn dissect_websocket(payload: &[u8]) -> Option<ProtocolDissection> {
         raw_data.to_vec()
     };
 
+    if unmasked.is_empty() {
+        return None;
+    }
+
     let mut tokens = format!("websocket {opcode_tok}");
     if fin_bit != 1 {
         let _ = write!(tokens, " finbit {fin_bit}");
@@ -73,7 +77,12 @@ pub(crate) fn dissect_websocket(payload: &[u8]) -> Option<ProtocolDissection> {
     if masked && mask_key != 0x12345678 {
         let _ = write!(tokens, " maskkey 0x{mask_key:08x}");
     }
-    let residual = if unmasked == b"ping" {
+    let default_payload: &[u8] = if opcode_tok == "close" {
+        &[0x03, 0xE8]
+    } else {
+        b"ping"
+    };
+    let residual = if unmasked == default_payload {
         Vec::new()
     } else {
         unmasked

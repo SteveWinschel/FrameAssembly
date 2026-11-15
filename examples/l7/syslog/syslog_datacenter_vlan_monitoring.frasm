@@ -1,13 +1,14 @@
-// PROMPT: Datacenter VLAN 500 tagged syslog notification with CS2 network control.
-// TOKENS: host, ip, flow, s, syslog, facility, severity, hostname, app, msg, vlan, pcp, dei, dscp, compile
+// Datacenter VLAN 500 tagged syslog notification with CS2 network control.
+// Encapsulation and QoS markings: 802.1Q VLAN 500, 802.1p priority 2, DSCP
+// 16.
+// RFC 5424 over UDP 514; facility 16 (local0) + severity 6 (info) yields PRI
+// <134>.
+// Wireshark: syslog && vlan.id == 500
 
-// INSTRUCTION: Define datacenter top-of-rack switch.
 host tor_switch { ip 10.50.0.12 }
 
-// INSTRUCTION: Define datacenter management syslog server.
 host mgmt_syslog { ip 10.50.0.1 }
 
-// INSTRUCTION: Define VLAN prioritized telemetry notification flow.
 flow syslog_vlan_flow(c, s) {
     c -> s syslog facility 16 severity 6
         hostname "tor-rack-12" app "telemetry"
@@ -15,7 +16,6 @@ flow syslog_vlan_flow(c, s) {
         vlan 500 pcp 2 dei 0 dscp 16
 }
 
-// INSTRUCTION: Compile block executing VLAN tagged syslog event.
 compile {
     syslog_vlan_flow(tor_switch, mgmt_syslog)
 }

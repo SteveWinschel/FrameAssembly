@@ -1,19 +1,19 @@
-// PROMPT: FTP CDUP parent directory navigation followed by RMD removal of an obsolete staging directory.
-// TOKENS: host, ip, mac, flow, s, ftp, cmd, code, reply, arg, compile
+// FTP CDUP parent directory navigation followed by RMD removal of an obsolete
+// staging directory.
+// Wireshark: ftp
 
-// INSTRUCTION: Define CI/CD release cleanup runner host.
 host cicd_runner {
     ip 10.112.21.19
     mac 02:42:0a:70:15:13
 }
 
-// INSTRUCTION: Define artifact staging FTP server.
 host staging_ftp {
     ip 10.112.21.1
     mac 02:42:0a:70:15:01
 }
 
-// INSTRUCTION: Navigate to parent directory using CDUP and remove temporary build folder with RMD.
+// Navigate to parent directory using CDUP and remove temporary build folder
+// with RMD.
 flow ftp_cdup_rmd_clean(c, s) {
     c -> s ftp cmd "CDUP"
     c <- s ftp code 250 reply "CDUP command successful"
@@ -21,7 +21,6 @@ flow ftp_cdup_rmd_clean(c, s) {
     c <- s ftp code 250 reply "Remove directory operation successful"
 }
 
-// INSTRUCTION: Compile the FTP CDUP and RMD directory cleanup scenario.
 compile {
     ftp_cdup_rmd_clean(cicd_runner, staging_ftp)
 }

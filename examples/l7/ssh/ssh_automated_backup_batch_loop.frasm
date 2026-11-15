@@ -1,13 +1,12 @@
-// PROMPT: Automated configuration backup probe loop across network routers.
-// TOKENS: host, ip, flow, s, ssh, banner, newkeys, compile
+// Automated configuration backup probe loop across network routers.
+// SSH RFC 4253 framing on TCP 22.
+// Executes 3 sequential flow runs inside the compile block.
+// Wireshark: ssh
 
-// INSTRUCTION: Define configuration audit controller.
 host audit_ctrl { ip 172.22.1.100 }
 
-// INSTRUCTION: Define target router.
 host target_rtr { ip 172.22.1.1 }
 
-// INSTRUCTION: Define recurring configuration pull flow.
 flow ssh_audit_flow(c, s) {
     c -> s ssh banner "SSH-2.0-Ansible_Automation"
     c <- s ssh banner "SSH-2.0-Cisco-1.25"
@@ -15,7 +14,6 @@ flow ssh_audit_flow(c, s) {
     c <- s ssh newkeys
 }
 
-// INSTRUCTION: Compile block executing 3 repeated audit checks.
 compile {
     ssh_audit_flow(audit_ctrl, target_rtr) // cycle 1
     ssh_audit_flow(audit_ctrl, target_rtr) // cycle 2

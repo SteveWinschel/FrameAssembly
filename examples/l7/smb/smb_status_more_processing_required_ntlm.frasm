@@ -1,19 +1,20 @@
-// PROMPT: SMB2 multi-stage NTLM challenge-response SESSION_SETUP returning STATUS_MORE_PROCESSING_REQUIRED (3221225494).
-// TOKENS: host, ip, mac, flow, s, smb, command, msgid, status, wait, ms, sessionid, compile
+// SMB2 multi-stage NTLM challenge-response SESSION_SETUP returning
+// STATUS_MORE_PROCESSING_REQUIRED (3221225494).
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS),
+// 3221225494.
+// Timing: uses post-packet wait delays (1ms, 2ms) between frames.
+// Wireshark: smb2
 
-// INSTRUCTION: Define the workgroup client initiating NTLMv2 authentication.
 host ntlm_client {
     ip 192.168.60.75
     mac 00:1a:2b:60:60:75
 }
 
-// INSTRUCTION: Define the standalone SMB2 file server.
 host standalone_filer {
     ip 192.168.60.5
     mac 00:1a:2b:60:60:05
 }
 
-// INSTRUCTION: Negotiate dialect and perform two-step SESSION_SETUP handshake.
 flow smb_ntlm_setup(c, s) {
     c -> s smb command "negotiate" msgid 0
     c <- s smb command "negotiate" status 0 msgid 0 wait 1ms
@@ -23,7 +24,6 @@ flow smb_ntlm_setup(c, s) {
     c <- s smb command "sessionsetup" status 0 sessionid 501 msgid 2
 }
 
-// INSTRUCTION: Compile the two-stage NTLMv2 SMB2 session setup flow.
 compile {
     smb_ntlm_setup(ntlm_client, standalone_filer)
 }

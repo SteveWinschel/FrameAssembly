@@ -1,25 +1,19 @@
-// PROMPT: Minimal MySQL frame with zero optional sub-keywords exercising builder default COM_QUERY packet generation.
-// TOKENS: host, ip, mac, flow, s, mysql, ok, compile
+// Minimal MySQL frame with zero optional sub-keywords exercising builder
+// default COM_QUERY packet generation. MySQL wire protocol packets default to
+// TCP port 3306 with length framing.
+// Wireshark: mysql
 
-// INSTRUCTION: Define the default MySQL client host.
 host mysql_def_client {
     ip 10.90.0.10
     mac 00:1a:2b:90:00:10
 }
 
-// INSTRUCTION: Define the default MySQL server host.
 host mysql_def_server {
     ip 10.90.0.1
     mac 00:1a:2b:90:00:01
 }
 
-// INSTRUCTION: Emit a bare MYSQL packet and an OK response to test default builder behavior.
-flow mysql_defaults(c, s) {
-    c -> s mysql
-    c <- s mysql ok
-}
-
-// INSTRUCTION: Compile the default MySQL packet flow.
 compile {
-    mysql_defaults(mysql_def_client, mysql_def_server)
+    mysql_def_client -> mysql_def_server mysql
+    mysql_def_client <- mysql_def_server mysql ok
 }

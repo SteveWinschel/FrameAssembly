@@ -1,13 +1,13 @@
-// PROMPT: QUIC 0-RTT early data resumption sending application data alongside INITIAL packet.
-// TOKENS: host, ip, flow, s, quic, initial, dcid, scid, pktnum, wait, ms, zerortt, payload, handshake, short, compile
+// QUIC 0-RTT early data resumption sending application data alongside INITIAL
+// packet.
+// QUIC UDP 443 packet types: initial, zerortt, handshake, short.
+// Timing: uses post-packet wait delays (1ms, 4ms, 2ms) between frames.
+// Wireshark: quic
 
-// INSTRUCTION: Define returning client with cached TLS 1.3 session ticket.
 host returning_client { ip 172.16.80.12 }
 
-// INSTRUCTION: Define low-latency API server supporting 0-RTT.
 host api_edge { ip 172.16.80.1 }
 
-// INSTRUCTION: Define Initial + ZERO_RTT flight followed by Handshake and Short 1-RTT reply.
 flow quic_zero_rtt_resumption(c, s) {
     c -> s quic initial dcid 0xa1b2c3d4 scid 0x10203040 pktnum 1 wait 1ms
     c -> s quic zerortt dcid 0xa1b2c3d4 scid 0x10203040 pktnum 2 payload "GET /v1/quotes" wait 4ms
@@ -15,7 +15,6 @@ flow quic_zero_rtt_resumption(c, s) {
     c <- s quic short dcid 0x10203040 pktnum 2 payload "{\"symbol\":\"RUST\",\"price\":199.5}"
 }
 
-// INSTRUCTION: Compile QUIC 0-RTT early data flow.
 compile {
     quic_zero_rtt_resumption(returning_client, api_edge)
 }

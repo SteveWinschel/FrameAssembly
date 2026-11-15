@@ -1,19 +1,19 @@
-// PROMPT: Windows roaming user profile NTUSER.DAT hive load and save over SMB2 during user login and logout.
-// TOKENS: host, ip, mac, flow, s, smb, command, sessionid, msgid, share, status, treeid, wait, ms, filename, payload, compile
+// Windows roaming user profile NTUSER.DAT hive load and save over SMB2 during
+// user login and logout.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: smb2
 
-// INSTRUCTION: Define the virtual desktop infrastructure (VDI) session host.
 host vdi_desktop {
     ip 10.60.100.41
     mac 00:1a:2b:60:99:41
 }
 
-// INSTRUCTION: Define the user profile storage filer.
 host profile_filer {
     ip 10.60.100.5
     mac 00:1a:2b:60:99:05
 }
 
-// INSTRUCTION: Connect to profiles$, open NTUSER.DAT, write updated registry keys, and close.
 flow smb_roaming_profile(c, s) {
     c -> s smb command "treeconnect" sessionid 7050 msgid 1 share "\\filer\profiles$"
     c <- s smb command "treeconnect" status 0 treeid 15 sessionid 7050 msgid 1 wait 1ms
@@ -24,7 +24,6 @@ flow smb_roaming_profile(c, s) {
     c -> s smb command "close" treeid 15 sessionid 7050 msgid 4
 }
 
-// INSTRUCTION: Compile the roaming profile SMB2 flow.
 compile {
     smb_roaming_profile(vdi_desktop, profile_filer)
 }

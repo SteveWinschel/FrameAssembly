@@ -1,35 +1,34 @@
-// PROMPT: High-Performance Computing (HPC) cluster batch execution combining LACP bond heartbeats, SSH Slurm job launch, VLAN 400 NFSv4 parallel dataset reads, and sFlow telemetry.
-// TOKENS: host, ip, mac, flow, head, lacp, actorsys, actorkey, actorport, actorstate, ssh, banner, wait, ms, kexinit, vlan, pcp, nfs, vers, proc, tag, path, sflow, version, agentip, compile
+// High-Performance Computing (HPC) cluster batch execution combining LACP bond
+// heartbeats, SSH Slurm job launch, VLAN 400 NFSv4 parallel dataset reads, and
+// sFlow telemetry.
+// Wire profile: 6 frames; 3 IPv4 hosts; VLAN 400; PCP 4; sFlow, SSH, NFS, LACP;
+// waits 1ms.
+// Wireshark: sflow || ssh || nfs || lacp
 
-// INSTRUCTION: Define HPC Slurm head login node.
 host hpc_slurm_head {
     ip 10.240.1.1
     mac 0c:42:a1:f0:01:01
 }
 
-// INSTRUCTION: Define HPC compute node 042 executing MPI simulation.
 host hpc_compute_042 {
     ip 10.240.1.42
     mac 0c:42:a1:f0:01:2a
 }
 
-// INSTRUCTION: Define parallel NFSv4 scratch storage gateway and sFlow collector.
 host hpc_storage_filer {
     ip 10.240.1.200
     mac 0c:42:a1:f0:01:c8
 }
 
-// INSTRUCTION: Define LACP 2x200G bond sync, SSH Slurm step launch, VLAN 400 NFSv4 checkpoint read, and sFlow fabric sample.
 flow hpc_cluster_batch_job_flow(head, node, filer) {
-    node -> filer lacp actorsys 0c:42:a1:f0:01:2a actorkey 400 actorport 1 actorstate 61
+    node -> filer lacp actorsys 0c:42:a1:f0:01:2a actorkey 400 actorport 1 actorstate 61 wait 1ms
     head -> node ssh banner "SSH-2.0-SlurmStepd_24.05" wait 1ms
     head <- node ssh kexinit wait 1ms
     node -> filer vlan 400 pcp 4 nfs vers 4 proc "compound" tag "cfd_mesh_read" path "/scratch/cfd/run88/mesh_part042.h5" wait 1ms
     node -> filer vlan 400 pcp 4 nfs vers 4 proc "compound" tag "cfd_ckpt_write" path "/scratch/cfd/run88/ckpt_step1000.h5" wait 1ms
-    node -> head sflow version 5 agentip 10.240.1.42 subagentid 1 seqnum 800 uptime 120000 samples 4 wait 1ms
+    node -> head sflow version 5 agentip 10.240.1.42 subagentid 1 seqnum 800 uptime 120000 samples 4
 }
 
-// INSTRUCTION: Compile block executing HPC LACP, SSH, VLAN, NFSv4, and sFlow topology.
 compile {
     hpc_cluster_batch_job_flow(hpc_slurm_head, hpc_compute_042, hpc_storage_filer)
 }

@@ -1,19 +1,21 @@
-// PROMPT: MPLS-labeled IPsec AH integrity-protected packets traversing a service provider core.
-// TOKENS: host, ip, flow, ah, spi, seq, mpls, exp, bos, mplsttl, compile
+// MPLS-labeled IPsec AH integrity-protected packets traversing a service
+// provider core.
+// This capture wraps frames in MPLS label 16040/24080 and carries SPI
+// 88400/88401.
+// Wireshark: ah && mpls
 
-// INSTRUCTION: Define ingress provider edge router.
 host pe_ingress_nyc { ip 10.254.0.1 }
 
-// INSTRUCTION: Define egress provider edge router.
 host pe_egress_lon { ip 10.254.0.2 }
 
-// INSTRUCTION: Define MPLS label switched AH session with traffic class EXP 5.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ah_mpls_core_flow(ing, egr) {
     ing -> egr ah spi 88400 seq 101 mpls 16040 exp 5 bos 1 mplsttl 62
     ing <- egr ah spi 88401 seq 101 mpls 24080 exp 5 bos 1 mplsttl 61
 }
 
-// INSTRUCTION: Compile the MPLS-encapsulated AH flow.
+// Run ah_mpls_core_flow(pe_ingress_nyc, pe_egress_lon) to generate the
+// capture.
 compile {
     ah_mpls_core_flow(pe_ingress_nyc, pe_egress_lon)
 }

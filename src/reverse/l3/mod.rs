@@ -70,14 +70,14 @@ pub(crate) fn dissect_l3_ip_protocol(
     dst_ip: Option<IpAddr>,
 ) -> Option<ProtocolDissection> {
     match ip_proto {
-        1 => Some(icmp::dissect_icmp(ip_body, false, src_ip)),
+        1 => Some(icmp::dissect_icmp(ip_body, false, src_ip, dst_ip)),
         58 => Some(icmpv6::dissect_icmpv6(ip_body, src_mac, src_ip, dst_ip)),
         2 => Some(igmp::dissect_igmp(ip_body)),
         47 => Some(gre::dissect_gre(ip_body)),
         50 => Some(ipsec::dissect_ipsec(ip_body)),
         51 => Some(ah::dissect_ah(ip_body)),
         89 => Some(ospf::dissect_ospf(ip_body, src_ip)),
-        103 => Some(pim::dissect_pim(ip_body, src_ip)),
+        103 => Some(pim::dissect_pim(ip_body, src_ip, dst_ip)),
         112 => Some(vrrp::dissect_vrrp(ip_body, is_ipv6, src_ip)),
         _ => None,
     }

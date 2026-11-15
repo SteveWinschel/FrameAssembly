@@ -1,19 +1,18 @@
-// PROMPT: S7comm PLC_CONTROL hot restart command and ACK confirmation between engineering station and PLC.
-// TOKENS: host, ip, flow, s7comm, rosctr, func, pduref, payload, wait, ms, compile
+// S7comm PLC_CONTROL hot restart command and ACK confirmation between
+// engineering station and PLC.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102.
+// Timing: pauses 8ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define field engineering laptop.
 host eng_laptop { ip 192.168.102.50 }
 
-// INSTRUCTION: Define S7-400 process controller PLC.
 host s7_400_plc { ip 192.168.102.2 }
 
-// INSTRUCTION: Define PLC_CONTROL JOB command and ACK response.
 flow s7comm_plc_control(c, plc) {
     c -> plc s7comm rosctr "job" func "plccontrol" pduref 10 payload "P_PROGRAM" wait 8ms
     c <- plc s7comm rosctr "ack" func "plccontrol" pduref 10
 }
 
-// INSTRUCTION: Compile S7comm PLC_CONTROL scenario.
 compile {
     s7comm_plc_control(eng_laptop, s7_400_plc)
 }

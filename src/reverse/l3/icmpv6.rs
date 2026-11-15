@@ -29,6 +29,6 @@ pub(crate) fn dissect_icmpv6(
         Some(133..=136) => ndp::dissect_ndp(ip_body, src_mac, dst_ip),
         Some(137) if ip_body.len() >= 40 => ndp::dissect_ndp(ip_body, src_mac, dst_ip),
         Some(130..=132 | 143) if ip_body.len() >= 24 => mld::dissect_mld(ip_body),
-        _ => icmp::dissect_icmpv6(ip_body, src_ip),
+        _ => icmp::dissect_icmpv6(ip_body, src_ip, dst_ip),
     }
 }

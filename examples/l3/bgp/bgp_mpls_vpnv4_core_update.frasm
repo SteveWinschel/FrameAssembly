@@ -1,20 +1,21 @@
-// PROMPT: BGP route updates transported over an MPLS-labeled core backbone with EXP 6.
-// TOKENS: host, ip, flow, bgp, update, asn, prefix, nexthop, mpls, exp, bos, mplsttl, keepalive, compile
+// BGP route updates transported over an MPLS-labeled core backbone with EXP
+// 6.
+// This capture wraps frames in MPLS label 16100/16200 and carries ASN 65500.
+// Wireshark: bgp && mpls
 
-// INSTRUCTION: Define provider edge router PE1.
 host mpls_bgp_pe1 { ip 10.250.0.11 }
 
-// INSTRUCTION: Define provider edge router PE2.
 host mpls_bgp_pe2 { ip 10.250.0.22 }
 
-// INSTRUCTION: Define MPLS-encapsulated iBGP prefix updates between PE routers.
+// Packet sequence (3 frames) with default 10ms post-packet spacing.
 flow bgp_mpls_core_updates(pe1, pe2) {
     pe1 -> pe2 bgp update asn 65500 prefix "10.101.0.0/16" nexthop 10.250.0.11 mpls 16100 exp 6 bos 1 mplsttl 64
     pe1 <- pe2 bgp update asn 65500 prefix "10.202.0.0/16" nexthop 10.250.0.22 mpls 16200 exp 6 bos 1 mplsttl 64
     pe1 -> pe2 bgp keepalive mpls 16100 exp 6 bos 1 mplsttl 64
 }
 
-// INSTRUCTION: Compile the MPLS-labeled BGP core update flow.
+// Run bgp_mpls_core_updates(mpls_bgp_pe1, mpls_bgp_pe2) to generate the
+// capture.
 compile {
     bgp_mpls_core_updates(mpls_bgp_pe1, mpls_bgp_pe2)
 }

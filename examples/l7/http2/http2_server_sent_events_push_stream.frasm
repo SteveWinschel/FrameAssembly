@@ -1,19 +1,20 @@
-// PROMPT: HTTP/2 long-lived Server-Sent Events (SSE) notification stream delivering periodic DATA frames on Stream 5.
-// TOKENS: host, ip, mac, flow, s, http2, headers, streamid, data, payload, wait, ms, compile
+// HTTP/2 long-lived Server-Sent Events (SSE) notification stream delivering
+// periodic DATA frames on Stream 5.
+// Wireshark: http2
 
-// INSTRUCTION: Define browser dashboard client subscribing to real-time alerts.
+// Browser dashboard client subscribing to real-time alerts.
 host sse_dashboard {
     ip 10.92.10.25
     mac 00:1c:42:5c:0a:19
 }
 
-// INSTRUCTION: Define real-time event broker HTTP/2 server.
 host sse_broker_srv {
     ip 10.92.10.1
     mac 00:1c:42:5c:0a:01
 }
 
-// INSTRUCTION: Open Stream 5 for text/event-stream and push two event DATA frames separated by 20ms.
+// Open Stream 5 for text/event-stream and push two event DATA frames
+// separated by 20ms.
 flow http2_sse_events(c, s) {
     c -> s http2 headers streamid 5
     c <- s http2 headers streamid 5
@@ -21,7 +22,6 @@ flow http2_sse_events(c, s) {
     c <- s http2 data streamid 5 payload "event: metric data: cpu=39"
 }
 
-// INSTRUCTION: Compile the HTTP/2 Server-Sent Events streaming scenario.
 compile {
     http2_sse_events(sse_dashboard, sse_broker_srv)
 }

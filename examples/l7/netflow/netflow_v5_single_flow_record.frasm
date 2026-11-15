@@ -1,18 +1,15 @@
-// PROMPT: Cisco NetFlow v5 telemetry export datagram reporting IP traffic metrics.
-// TOKENS: host, ip, flow, s, netflow, srcip, dstip, proto, packets, octets, compile
+// Cisco NetFlow v5 telemetry export datagram reporting IP traffic metrics.
+// Wireshark: cflow || udp.port == 2055
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.1 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.254 }
 
-// INSTRUCTION: Define application traffic flow.
+// Reports IP protocol 6 (TCP) flow records to UDP 2055.
 flow netflow_export(c, s) {
     c -> s netflow srcip 192.168.1.100 dstip 8.8.8.8 proto 6 packets 150 octets 96000
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     netflow_export(client, server)
 }

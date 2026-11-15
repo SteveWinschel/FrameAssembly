@@ -1,13 +1,13 @@
-// PROMPT: HTTP/2 connection-level and stream-level flow control using WINDOW_UPDATE frames.
-// TOKENS: host, ip, flow, s, http2, headers, streamid, wait, ms, windowupdate, compile
+// HTTP/2 connection-level and stream-level flow control using WINDOW_UPDATE
+// frames.
+// Wireshark: http2
 
-// INSTRUCTION: Define large-file downloader client.
 host h2_downloader { ip 10.88.43.15 }
 
-// INSTRUCTION: Define object storage HTTP/2 server.
 host obj_storage { ip 10.88.43.1 }
 
-// INSTRUCTION: Send WINDOW_UPDATE on both connection (Stream 0) and active transfer stream (Stream 7).
+// Send WINDOW_UPDATE on both connection (Stream 0) and active transfer stream
+// (Stream 7).
 flow http2_flow_control_window(c, s) {
     c -> s http2 headers streamid 7
     c <- s http2 headers streamid 7 wait 10ms
@@ -15,7 +15,6 @@ flow http2_flow_control_window(c, s) {
     c -> s http2 windowupdate streamid 7
 }
 
-// INSTRUCTION: Compile the HTTP/2 flow control window update exchange.
 compile {
     http2_flow_control_window(h2_downloader, obj_storage)
 }

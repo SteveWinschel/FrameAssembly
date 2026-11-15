@@ -1,20 +1,21 @@
-// PROMPT: 802.1ad QinQ double-tagged IGMP membership reports across a wholesale IPTV access network.
-// TOKENS: host, ip, flow, igmp, query, group, maxresp, qinq, innervlan, ttl, report, leave, compile
+// 802.1ad QinQ double-tagged IGMP membership reports across a wholesale IPTV
+// access network.
+// This capture wraps frames in QinQ S-VLAN 3000 / C-VLAN 200, sets TTL 1, and
+// carries group 239.200.1.1.
+// Wireshark: igmp
 
-// INSTRUCTION: Define BNG multicast replication router.
 host bng_iptv_root { ip 100.64.50.1 }
 
-// INSTRUCTION: Define residential ONT subscriber terminal.
 host ont_subscriber { ip 100.64.50.25 }
 
-// INSTRUCTION: Define QinQ tagged IGMP query, report, and leave on S-VLAN 3000 and C-VLAN 200.
+// Packet sequence (3 frames) with default 10ms post-packet spacing.
 flow igmp_qinq_iptv(bng, ont) {
     bng -> ont igmp query group 239.200.1.1 maxresp 100 qinq 3000 innervlan 200 ttl 1
     bng <- ont igmp report group 239.200.1.1 qinq 3000 innervlan 200 ttl 1
     bng <- ont igmp leave group 239.200.1.1 qinq 3000 innervlan 200 ttl 1
 }
 
-// INSTRUCTION: Compile the QinQ wholesale IPTV IGMP flow.
+// Run igmp_qinq_iptv(bng_iptv_root, ont_subscriber) to generate the capture.
 compile {
     igmp_qinq_iptv(bng_iptv_root, ont_subscriber)
 }

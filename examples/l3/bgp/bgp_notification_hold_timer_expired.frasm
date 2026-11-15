@@ -1,19 +1,19 @@
-// PROMPT: BGP session teardown via NOTIFICATION message after Hold Timer expiration.
-// TOKENS: host, ip, flow, bgp, keepalive, notification, payload, wait, ms, compile
+// BGP session teardown via NOTIFICATION message after Hold Timer expiration.
+// This capture uses post-packet wait gaps (50ms) between frames.
+// Wireshark: bgp
 
-// INSTRUCTION: Define upstream transit provider BGP speaker.
 host transit_bgp_speaker { ip 203.0.113.5 }
 
-// INSTRUCTION: Define downstream enterprise BGP speaker.
 host enterprise_bgp_speaker { ip 203.0.113.6 }
 
-// INSTRUCTION: Define BGP keepalive followed by NOTIFICATION teardown.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow bgp_holdtimer_notification(up, down) {
-    up -> down bgp keepalive
-    up -> down bgp notification payload "Hold Timer Expired" wait 50ms
+    up -> down bgp keepalive wait 50ms
+    up -> down bgp notification payload "Hold Timer Expired"
 }
 
-// INSTRUCTION: Compile the BGP NOTIFICATION session teardown flow.
+// Run bgp_holdtimer_notification(transit_bgp_speaker, enterprise_bgp_speaker)
+// to generate the capture.
 compile {
     bgp_holdtimer_notification(transit_bgp_speaker, enterprise_bgp_speaker)
 }

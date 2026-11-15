@@ -1,21 +1,19 @@
-// PROMPT: 3GPP GTPv1-U (GPRS Tunneling Protocol User Plane) mobile bearer encapsulation over UDP port 2152.
-// TOKENS: host, ip, flow, dscp, udp, srcport, dstport, hexpayload, wait, ms, compile
+// 3GPP GTPv1-U (GPRS Tunneling Protocol User Plane) mobile bearer encapsulation
+// over UDP port 2152.
+// Wire profile: 4 frames; 2 IPv4 hosts; UDP; dstport 2152; DSCP 34,46; waits 1ms.
+// Wireshark: udp.port == 2152
 
-// INSTRUCTION: Define 5G gNodeB N3 user-plane interface.
 host gnb_n3_gtpu { ip 10.153.21.10 }
 
-// INSTRUCTION: Define 5G User Plane Function (UPF) core gateway N3 interface.
 host upf_n3_gtpu { ip 10.153.21.1 }
 
-// INSTRUCTION: Define UDP port 2152 GTP-U Echo Request/Reply and G-PDU (Type 0xFF) user plane bearer frames.
 flow udp_gtpu_5g_n3_bearer(gnb, upf) {
-    gnb -> upf dscp 46 udp srcport 2152 dstport 2152 hexpayload "320100040000000000010000"
+    gnb -> upf dscp 46 udp srcport 2152 dstport 2152 hexpayload "320100040000000000010000" wait 1ms
     gnb <- upf dscp 46 udp srcport 2152 dstport 2152 hexpayload "3202000600000000000100000e00" wait 1ms
     gnb -> upf dscp 34 udp srcport 2152 dstport 2152 hexpayload "34ff001411223344000000008501001045000014" wait 1ms
-    gnb <- upf dscp 34 udp srcport 2152 dstport 2152 hexpayload "34ff001455667788000000008501000045000014" wait 1ms
+    gnb <- upf dscp 34 udp srcport 2152 dstport 2152 hexpayload "34ff001455667788000000008501000045000014"
 }
 
-// INSTRUCTION: Compile block executing 5G N3 GTPv1-U over UDP port 2152.
 compile {
     udp_gtpu_5g_n3_bearer(gnb_n3_gtpu, upf_n3_gtpu)
 }

@@ -1,19 +1,19 @@
-// PROMPT: Capture a legacy OpenFlow 1.0 (VERSION 1) switch handshake, capability exchange, and flow installation
-// TOKENS: host, ip, mac, flow, openflow, version, xid, wait, ms, featuresreq, featuresreply, dpid, flowmod, tableid, priority, compile
+// Capture a legacy OpenFlow 1.0 (version 1) switch handshake, capability
+// exchange, and flow installation.
+// This capture uses post-packet wait gaps (5ms, 10ms) between frames.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define the OpenFlow 1.0 controller
 host of10_ctrl {
     ip 192.168.55.1
     mac 00:16:3e:e9:55:01
 }
 
-// INSTRUCTION: Define the OpenFlow 1.0 access switch
 host of10_switch {
     ip 192.168.55.10
     mac 00:16:3e:e9:55:10
 }
 
-// INSTRUCTION: Complete the OpenFlow 1.0 HELLO, FEATURES_REQ/REPLY, and FLOW_MOD sequence
+// Packet sequence (5 frames); wait pauses after a packet before the next.
 flow openflow_v10_lifecycle(ctrl, sw) {
     ctrl -> sw openflow version 1 xid 1 wait 5ms
     sw -> ctrl openflow version 1 xid 1 wait 10ms
@@ -22,7 +22,7 @@ flow openflow_v10_lifecycle(ctrl, sw) {
     ctrl -> sw openflow flowmod version 1 xid 3 tableid 0 priority 32768
 }
 
-// INSTRUCTION: Compile the OpenFlow 1.0 handshake and flow setup
+// Run openflow_v10_lifecycle(of10_ctrl, of10_switch) to generate the capture.
 compile {
     openflow_v10_lifecycle(of10_ctrl, of10_switch)
 }

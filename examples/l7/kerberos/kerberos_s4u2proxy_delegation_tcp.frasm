@@ -1,19 +1,22 @@
-// PROMPT: Generate a Kerberos S4U2Proxy constrained delegation exchange where a web frontend requests a backend CIFS ticket over TCP.
-// TOKENS: host, ip, mac, flow, s, tcp, srcport, dstport, syn, seq, win, wait, ms, ack, acknum, kerberos, transport, tgsreq, realm, cname, sname, etype, hexpayload, tgsrep, fin, compile
+// Kerberos S4U2Proxy constrained delegation exchange where a web frontend
+// requests a backend CIFS ticket over TCP.
+// Wireshark: tcp || kerberos
 
-// INSTRUCTION: Define the middle-tier web portal performing Kerberos constrained delegation.
+// Middle-tier web portal performing Kerberos constrained delegation.
 host web_portal {
     ip 10.55.10.20
     mac 00:15:5d:55:10:20
 }
 
-// INSTRUCTION: Define the Active Directory KDC validating the S4U2Proxy evidence ticket.
+// Active Directory KDC validating the S4U2Proxy evidence ticket.
 host ad_kdc {
     ip 10.55.1.10
     mac 00:15:5d:55:01:10
 }
 
-// INSTRUCTION: Establish a TCP connection on port 88 and exchange a delegated CIFS service ticket with custom PA-PAC-OPTIONS hex payload.
+// Establish a TCP connection on port 88 and exchange a delegated CIFS service
+// ticket with custom PA-PAC-OPTIONS hex payload. Uses TCP transport on port
+// 88 (overriding default UDP). Kerberos encryption types: 18 (AES256-CTS).
 flow s4u2proxy_delegation(c, s) {
     c -> s tcp srcport 54120 dstport 88 syn seq 700000 win 64240 wait 1ms
     c <- s tcp srcport 88 dstport 54120 syn ack seq 800000 acknum 700001 win 65535 wait 1ms
@@ -26,7 +29,6 @@ flow s4u2proxy_delegation(c, s) {
     c -> s tcp srcport 54120 dstport 88 ack seq 700131 acknum 800121 win 64240
 }
 
-// INSTRUCTION: Compile the Kerberos S4U2Proxy TCP trace into a PCAP file.
 compile {
     s4u2proxy_delegation(web_portal, ad_kdc)
 }

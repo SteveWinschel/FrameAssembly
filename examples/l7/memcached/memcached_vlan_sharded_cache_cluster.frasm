@@ -1,18 +1,19 @@
-// PROMPT: Distributed Memcached cache node query partitioned across tagged datacenter VLAN.
-// TOKENS: host, ip, flow, app, memcached, cmd, key, vlan, pcp, dei, compile
+// Distributed Memcached cache node query partitioned across tagged datacenter
+// VLAN.
+// Wireshark: memcache || tcp.port == 11211
 
-// INSTRUCTION: Define application tier worker node.
+// Application tier worker node.
 host app_worker_node { ip 10.60.10.14 }
 
-// INSTRUCTION: Define Memcached cache shard on VLAN 250.
+// Memcached cache shard on VLAN 250.
 host cache_shard_250 { ip 10.60.10.2 }
 
-// INSTRUCTION: Define tagged VLAN cache lookup flow.
+// Tagged VLAN cache lookup flow. Encapsulation and QoS markings: 802.1Q VLAN
+// 250.
 flow vlan_cache_lookup(app, shd) {
     app -> shd memcached cmd "get" key "tenant:cfg:101" vlan 250 pcp 4 dei 0
 }
 
-// INSTRUCTION: Compile VLAN sharded cache scenario.
 compile {
     vlan_cache_lookup(app_worker_node, cache_shard_250)
 }

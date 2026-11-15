@@ -1,19 +1,18 @@
-// PROMPT: gRPC Resource Exhausted rate-limit rejection returning GRPC_STATUS 8.
-// TOKENS: host, ip, flow, grpc, service, method, grpcstatus, compile
+// gRPC Resource Exhausted rate-limit rejection returning grpcstatus 8.
+// Wireshark: grpc || http2
 
-// INSTRUCTION: Define batch ingestion worker.
+// Batch ingestion worker.
 host ingest_worker { ip 10.64.2.30 }
 
-// INSTRUCTION: Define rate-limited LLM inference gRPC server.
 host llm_inference { ip 10.64.2.1 }
 
-// INSTRUCTION: Call GenerateEmbeddings and receive GRPC_STATUS 8 (RESOURCE_EXHAUSTED).
+// Call GenerateEmbeddings and receive grpcstatus 8 (RESOURCE_EXHAUSTED). gRPC
+// status codes observed: 8 (RESOURCE_EXHAUSTED) on TCP port 50051.
 flow grpc_rate_limited_8(w, l) {
     w -> l grpc service "ai.v1.EmbeddingService" method "GenerateEmbeddings"
     w <- l grpc service "ai.v1.EmbeddingService" method "GenerateEmbeddings" grpcstatus 8
 }
 
-// INSTRUCTION: Compile the gRPC status 8 rate-limiting scenario.
 compile {
     grpc_rate_limited_8(ingest_worker, llm_inference)
 }

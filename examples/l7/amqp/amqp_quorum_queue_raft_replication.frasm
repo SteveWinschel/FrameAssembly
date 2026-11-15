@@ -1,19 +1,21 @@
-// PROMPT: RabbitMQ quorum queue publishing persistent financial ledger events over VLAN 567.
-// TOKENS: host, ip, mac, flow, amqp, channelopen, channel, vlan, pcp, wait, ms, basicpublish, exchange, routingkey, payload, compile
+// RabbitMQ quorum queue publishing persistent financial ledger events over
+// VLAN 567.
+// Wireshark: amqp
 
-// INSTRUCTION: Define the core banking transaction publisher.
+// Core banking transaction publisher.
 host ledger_pub {
     ip 10.115.40.22
     mac 00:1a:2b:73:40:22
 }
 
-// INSTRUCTION: Define the quorum queue leader node on VLAN 567.
+// Quorum queue leader node on VLAN 567.
 host quorum_leader {
     ip 10.115.40.1
     mac 00:1a:2b:73:40:01
 }
 
-// INSTRUCTION: Publish two sequential ledger postings to the quorum exchange on channel 5 over VLAN 567.
+// Publish two sequential ledger postings to the quorum exchange on channel 5
+// over VLAN 567. Encapsulation and QoS markings: 802.1Q VLAN 567.
 flow amqp_quorum_publish(p, l) {
     p -> l amqp channelopen channel 5 vlan 567 pcp 5
     p <- l amqp channelopen channel 5 vlan 567 pcp 5 wait 1ms
@@ -21,7 +23,6 @@ flow amqp_quorum_publish(p, l) {
     p -> l amqp basicpublish channel 5 exchange "ledger.quorum" routingkey "tx.credit" vlan 567 pcp 5 payload "{'tx_id':'tx_1001','amt':500}"
 }
 
-// INSTRUCTION: Compile the VLAN-tagged AMQP quorum queue flow.
 compile {
     amqp_quorum_publish(ledger_pub, quorum_leader)
 }

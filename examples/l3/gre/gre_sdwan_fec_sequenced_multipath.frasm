@@ -1,19 +1,20 @@
-// PROMPT: SD-WAN appliance striping sequenced RFC 2890 GRE packets (GRE_SEQ 1001..1004) across dual WAN circuits for loss recovery.
-// TOKENS: host, ip, mac, flow, gre, grekey, greseq, greproto, checksum, dscp, df, ttl, payload, wait, ms, compile
+// SD-WAN appliance striping sequenced RFC 2890 GRE packets (greseq
+// 1001..1004) across dual WAN circuits for loss recovery.
+// This capture sets DSCP 34, TTL 62, DF bit set and uses post-packet wait
+// gaps (1ms) between frames.
+// Wireshark: gre
 
-// INSTRUCTION: Define SD-WAN branch appliance transmitting sequenced GRE frames.
 host sdwan_gre_sender {
     ip 100.64.47.10
     mac 00:1a:a1:47:0a:01
 }
 
-// INSTRUCTION: Define SD-WAN cloud gateway reordering GRE_SEQ numbers and detecting gaps.
 host sdwan_gre_receiver {
     ip 100.64.47.1
     mac 00:1a:a1:47:01:01
 }
 
-// INSTRUCTION: Define rapid 4-packet sequenced GRE burst with GRE_KEY 7777 and CHECKSUM.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow gre_sdwan_seq_burst(tx, rx) {
     tx -> rx gre grekey 7777 greseq 1001 greproto 2048 checksum dscp 34 df ttl 62 payload "SDWAN_STRIPE_PKT_1001" wait 1ms
     tx -> rx gre grekey 7777 greseq 1002 greproto 2048 checksum dscp 34 df ttl 62 payload "SDWAN_STRIPE_PKT_1002" wait 1ms
@@ -21,7 +22,8 @@ flow gre_sdwan_seq_burst(tx, rx) {
     tx -> rx gre grekey 7777 greseq 1004 greproto 2048 checksum dscp 34 df ttl 62 payload "SDWAN_STRIPE_PKT_1004_FEC_PARITY"
 }
 
-// INSTRUCTION: Compile the SD-WAN sequenced GRE multipath burst flow.
+// Run gre_sdwan_seq_burst(sdwan_gre_sender, sdwan_gre_receiver) to generate
+// the capture.
 compile {
     gre_sdwan_seq_burst(sdwan_gre_sender, sdwan_gre_receiver)
 }

@@ -1,19 +1,16 @@
-// PROMPT: SIP OPTIONS heartbeat ping loop for PBX trunk keepalive monitoring.
-// TOKENS: host, ip, flow, s, sip, method, uri, from, to, callid, cseq, wait, ms, status, reason, compile
+// SIP OPTIONS heartbeat ping loop for PBX trunk keepalive monitoring.
+// Timing: runs 4 cycles in compile using post-packet waits (20ms).
+// Wireshark: sip
 
-// INSTRUCTION: Define monitoring session border controller.
 host sbc_monitor { ip 172.28.1.100 }
 
-// INSTRUCTION: Define remote carrier SIP trunk.
 host carrier_trunk { ip 172.28.1.1 }
 
-// INSTRUCTION: Define OPTIONS heartbeat query and 200 OK acknowledgment.
 flow sip_options_ping(c, s) {
     c -> s sip method "OPTIONS" uri "sip:carrier.net" from "sip:sbc@enterprise.com" to "sip:carrier.net" callid "opt-ping-772" cseq 1 wait 20ms
     c <- s sip status 200 reason "OK" callid "opt-ping-772" cseq 1 wait 20ms
 }
 
-// INSTRUCTION: Execute 4 OPTIONS heartbeat iterations in a COMPILE LOOP.
 compile {
     sip_options_ping(sbc_monitor, carrier_trunk) // cycle 1
     sip_options_ping(sbc_monitor, carrier_trunk) // cycle 2

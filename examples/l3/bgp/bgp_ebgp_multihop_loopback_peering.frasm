@@ -1,19 +1,20 @@
-// PROMPT: RFC 4271 eBGP multihop peering between redundant loopback interfaces across dual parallel WAN links.
-// TOKENS: host, ip, mac, flow, bgp, open, asn, holdtime, bgpid, ttl, dscp, wait, ms, update, prefix, nexthop, compile
+// RFC 4271 eBGP multihop peering between redundant loopback interfaces across
+// dual parallel WAN links.
+// This capture sets DSCP 48, TTL 2, carries ASN 65201/65202, and uses
+// post-packet wait gaps (5ms) between frames.
+// Wireshark: bgp
 
-// INSTRUCTION: Define AS 65201 border router loopback interface with TTL 2 for eBGP-multihop.
 host as65201_lo0 {
     ip 10.201.255.1
     mac 00:23:04:c9:ff:01
 }
 
-// INSTRUCTION: Define AS 65202 border router loopback interface with TTL 2.
 host as65202_lo0 {
     ip 10.202.255.1
     mac 00:23:04:ca:ff:01
 }
 
-// INSTRUCTION: Define eBGP multihop (TTL 2) OPEN and UPDATE advertisement between loopbacks.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow bgp_ebgp_multihop_flow(r1, r2) {
     r1 -> r2 bgp open asn 65201 holdtime 60 bgpid 10.201.255.1 ttl 2 dscp 48 wait 5ms
     r1 <- r2 bgp open asn 65202 holdtime 60 bgpid 10.202.255.1 ttl 2 dscp 48 wait 5ms
@@ -21,7 +22,8 @@ flow bgp_ebgp_multihop_flow(r1, r2) {
     r1 <- r2 bgp update asn 65202 prefix "172.22.0.0/16" nexthop 10.202.255.1 ttl 2 dscp 48
 }
 
-// INSTRUCTION: Compile the eBGP multihop loopback peering flow.
+// Run bgp_ebgp_multihop_flow(as65201_lo0, as65202_lo0) to generate the
+// capture.
 compile {
     bgp_ebgp_multihop_flow(as65201_lo0, as65202_lo0)
 }

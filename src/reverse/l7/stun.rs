@@ -78,6 +78,16 @@ pub(crate) fn dissect_stun(payload: &[u8]) -> Option<ProtocolDissection> {
         {
             push_str_mod(&mut tokens, "software", sw_str);
             seen_sw = true;
+        } else if atype == 0xFFFF
+            && pos.checked_add(4)?.checked_add(padded_len)? == attrs.len()
+            && attrs
+                .get(pos + 4 + alen..pos + 4 + padded_len)
+                .is_some_and(|p| p.iter().all(|&b| b == 0))
+            && !aval.is_empty()
+            && !looks_like_stun_attrs(aval)
+        {
+            residual = aval.to_vec();
+            break;
         } else {
             residual = attrs.get(pos..)?.to_vec();
             break;
@@ -86,4 +96,31 @@ pub(crate) fn dissect_stun(payload: &[u8]) -> Option<ProtocolDissection> {
     }
 
     Some(sd(Protocol::Stun, tokens, residual))
+}
+
+/// Checks whether `buf` would be treated as raw STUN TLV attributes by [`crate::builders::l7::stun::build_stun_payload`].
+fn looks_like_stun_attrs(buf: &[u8]) -> bool {
+    if buf.is_empty() || !buf.len().is_multiple_of(4) {
+        return false;
+    }
+    let mut pos = 0usize;
+    while pos < buf.len() {
+        let Some(hdr) = buf.get(pos..pos + 4) else {
+            return false;
+        };
+        let atype = u16::from_be_bytes([hdr[0], hdr[1]]);
+        let alen = usize::from(u16::from_be_bytes([hdr[2], hdr[3]]));
+        if matches!(atype, 0x0000 | 0x0020 | 0x8022) {
+            return false;
+        }
+        let padded = (alen + 3) & !3;
+        let Some(next) = pos.checked_add(4).and_then(|p| p.checked_add(padded)) else {
+            return false;
+        };
+        if next > buf.len() || !buf[pos + 4 + alen..next].iter().all(|&b| b == 0) {
+            return false;
+        }
+        pos = next;
+    }
+    pos == buf.len()
 }

@@ -1,0 +1,11 @@
+// Minimal 2-block WebSocket starter sending a default masked text frame on TCP port 80.
+// Applies RFC 6455 masking and computes payload lengths directly inside the compile block.
+// Filter on TCP port 80 or decode as WebSocket in Wireshark.
+// Wireshark: websocket || tcp.port == 80
+
+host web_client { ip 10.120.1.50 mac 00:1a:2b:80:01:32 }
+host ws_gateway { ip 10.120.1.10 mac 00:1a:2b:80:01:0a }
+
+compile {
+    web_client -> ws_gateway websocket
+}

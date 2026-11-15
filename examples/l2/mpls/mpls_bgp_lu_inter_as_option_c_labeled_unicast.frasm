@@ -1,25 +1,24 @@
-// PROMPT: Inter-AS MPLS VPN Option C ASBRs exchanging RFC 8277 BGP Labeled Unicast (BGP-LU) transport labels.
-// TOKENS: host, ip, mac, flow, mpls, exp, bos, mplsttl, tcp, psh, ack, srcport, dstport, seq, acknum, win, payload, wait, ms, bgp, keepalive, compile
+// Inter-AS MPLS VPN Option C ASBRs exchanging RFC 8277 BGP Labeled Unicast (BGP-
+// LU) transport labels.
+// Wire profile: 2 frames; 2 IPv4 hosts; MPLS label 29901,29902; BGP, TCP; TCP
+// flags ACK/PSH; dstport 443; waits 5ms.
+// Wireshark: mpls.label == 29901 || mpls.label == 29902
 
-// INSTRUCTION: Define AS 65001 autonomous system border router (ASBR-1).
 host asbr_optc_as65001 {
     ip 198.18.1.1
     mac 00:1c:73:12:01:01
 }
 
-// INSTRUCTION: Define AS 65002 autonomous system border router (ASBR-2).
 host asbr_optc_as65002 {
     ip 198.18.1.2
     mac 00:1c:73:12:01:02
 }
 
-// INSTRUCTION: Transport inter-AS VPN traffic over BGP-LU label 29901 and exchange MP-BGP KEEPALIVE.
 flow mpls_inter_as_option_c(as1, as2) {
     as1 -> as2 mpls 29901 exp 4 bos 1 mplsttl 62 tcp psh ack srcport 54321 dstport 443 seq 100 acknum 1 win 65535 payload "inter_as_opt_c_vpn_workload" wait 5ms
     as1 <- as2 mpls 29902 exp 6 bos 1 mplsttl 64 bgp keepalive
 }
 
-// INSTRUCTION: Compile the Inter-AS MPLS Option C BGP-LU transport trace.
 compile {
     mpls_inter_as_option_c(asbr_optc_as65001, asbr_optc_as65002)
 }

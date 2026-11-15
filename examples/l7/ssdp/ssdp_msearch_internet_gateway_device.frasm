@@ -1,24 +1,21 @@
-// PROMPT: Model an SSDP M-SEARCH query specifically targeting UPnP InternetGatewayDevice:1 routers on the LAN.
-// TOKENS: host, mac, ip, flow, ssdp, msearch, hosthdr, man, mx, st, ttl, compile
+// Model an SSDP M-SEARCH query specifically targeting UPnP
+// InternetGatewayDevice:1 routers on the LAN.
+// Wireshark: ssdp
 
-// INSTRUCTION: Define host endpoint console_client.
 host console_client {
     mac 00:24:8d:11:22:33
     ip 192.168.1.120
 }
 
-// INSTRUCTION: Define host endpoint upnp_multicast.
 host upnp_multicast {
     mac 01:00:5e:7f:ff:fa
     ip 239.255.255.250
 }
 
-// INSTRUCTION: Multicast an SSDP M-SEARCH probe looking for InternetGatewayDevice:1.
 flow ssdp_igd_gateway_search(console_client, upnp_multicast) {
     console_client -> upnp_multicast ssdp msearch hosthdr "239.255.255.250:1900" man "\"ssdp:discover\"" mx 2 st "urn:schemas-upnp-org:device:InternetGatewayDevice:1" ttl 2
 }
 
-// INSTRUCTION: Compile the SSDP InternetGatewayDevice search flow.
 compile {
     ssdp_igd_gateway_search(console_client, upnp_multicast)
 }

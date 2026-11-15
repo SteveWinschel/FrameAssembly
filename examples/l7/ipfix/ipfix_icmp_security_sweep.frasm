@@ -1,20 +1,21 @@
-// PROMPT: IPFIX telemetry export reporting ICMPv4 ping sweep activity (Protocol 1) to security SIEM.
-// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, proto, packets, octets, wait, ms, compile
+// IPFIX telemetry export reporting ICMPv4 ping sweep activity (Protocol 1) to
+// security SIEM.
+// Wireshark: cflow || udp.port == 4739
 
-// INSTRUCTION: Define perimeter firewall IPFIX exporter.
+// Perimeter firewall IPFIX exporter.
 host fw_exporter { ip 10.1.47.1 }
 
-// INSTRUCTION: Define security operations SIEM collector.
+// Security operations SIEM collector.
 host siem_collector { ip 10.1.47.50 }
 
-// INSTRUCTION: Export three consecutive ICMP (Proto 1) flow records from a scanning host.
+// Export three consecutive ICMP (Proto 1) flow records from a scanning host.
+// Reports IP protocol 1 (ICMP) flow records to UDP 4739.
 flow ipfix_icmp_sweep_alert(fw, siem) {
     fw -> siem ipfix domainid 99 srcip 192.168.50.99 dstip 10.0.1.10 proto 1 packets 10 octets 840 wait 5ms
     fw -> siem ipfix domainid 99 srcip 192.168.50.99 dstip 10.0.1.11 proto 1 packets 10 octets 840 wait 5ms
     fw -> siem ipfix domainid 99 srcip 192.168.50.99 dstip 10.0.1.12 proto 1 packets 10 octets 840
 }
 
-// INSTRUCTION: Compile the IPFIX ICMP security telemetry flow.
 compile {
     ipfix_icmp_sweep_alert(fw_exporter, siem_collector)
 }

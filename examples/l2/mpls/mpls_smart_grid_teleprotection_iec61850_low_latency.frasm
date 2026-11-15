@@ -1,25 +1,23 @@
-// PROMPT: High-voltage power grid MPLS-TP teleprotection circuit carrying deterministic EXP 7 differential relay trip commands.
-// TOKENS: host, ip, mac, flow, mpls, exp, bos, mplsttl, payload, wait, ms, compile
+// High-voltage power grid MPLS-TP teleprotection circuit carrying deterministic
+// EXP 7 differential relay trip commands.
+// Wire profile: 2 frames; 2 IPv4 hosts; MPLS label 4096,4097; MPLS; waits 1ms.
+// Wireshark: mpls.label == 4096 || mpls.label == 4097
 
-// INSTRUCTION: Define Substation Alpha line differential protection relay MPLS-TP multiplexer.
 host subst_alpha_mux {
     ip 192.168.110.1
     mac 00:0e:8c:6e:00:01
 }
 
-// INSTRUCTION: Define Substation Beta remote breaker trip MPLS-TP multiplexer.
 host subst_beta_mux {
     ip 192.168.110.2
     mac 00:0e:8c:6e:00:02
 }
 
-// INSTRUCTION: Transmit deterministic static MPLS-TP label 4096 EXP 7 teleprotection phasor samples.
 flow mpls_tp_teleprotection(alpha, beta) {
     alpha -> beta mpls 4096 exp 7 bos 1 mplsttl 255 payload "IEEE_C37_94_87L_DIFF_RELAY_TRIP_PHASE_A" wait 1ms
     alpha <- beta mpls 4097 exp 7 bos 1 mplsttl 255 payload "IEEE_C37_94_87L_BREAKER_OPEN_CONFIRM"
 }
 
-// INSTRUCTION: Compile the smart grid MPLS-TP EXP 7 teleprotection relay trace.
 compile {
     mpls_tp_teleprotection(subst_alpha_mux, subst_beta_mux)
 }

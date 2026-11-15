@@ -1,18 +1,16 @@
-// PROMPT: RFC 7011 IPFIX flow information export datagram reporting endpoint flow metrics.
-// TOKENS: host, ip, flow, s, ipfix, srcip, dstip, proto, packets, octets, compile
+// RFC 7011 IPFIX flow information export datagram reporting endpoint flow
+// metrics.
+// Wireshark: cflow || udp.port == 4739
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.10.1 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.10.250 }
 
-// INSTRUCTION: Define application traffic flow.
+// Reports IP protocol 6 (TCP) flow records to UDP 4739.
 flow ipfix_export(c, s) {
     c -> s ipfix srcip 172.16.1.10 dstip 172.16.2.20 proto 6 packets 42 octets 28400
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ipfix_export(client, server)
 }

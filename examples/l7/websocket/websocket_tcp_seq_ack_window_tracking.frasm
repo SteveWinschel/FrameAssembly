@@ -1,23 +1,23 @@
-// PROMPT: WebSocket text exchange with explicit TCP sequence numbers, acknowledgments, and window sizes.
-// TOKENS: host, ip, flow, s, websocket, text, finbit, maskkey, seq, acknum, window, payload, wait, ms, compile
+// WebSocket text exchange with explicit TCP sequence numbers,
+// acknowledgments, and window sizes.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define desktop trading terminal endpoint.
 host terminal_ep {
     ip 10.5.50.22
 }
 
-// INSTRUCTION: Define order routing WebSocket gateway endpoint.
 host order_gw {
     ip 10.5.50.1
 }
 
-// INSTRUCTION: Define WebSocket frames with explicit L4 TCP SEQ, ACKNUM, and WINDOW values.
 flow ws_tcp_tracked(c, s) {
     c -> s websocket text finbit 1 maskkey 0x33445566 seq 10000 acknum 20000 window 64240 payload "BUY 100 AAPL" wait 5ms
     c <- s websocket text finbit 1 seq 20000 acknum 10020 window 65535 payload "FILLED 100 AAPL"
 }
 
-// INSTRUCTION: Compile the TCP-tracked WebSocket order flow.
 compile {
     ws_tcp_tracked(terminal_ep, order_gw)
 }

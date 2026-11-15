@@ -1,19 +1,20 @@
-// PROMPT: Automotive body-in-white weld cell reading and writing Merker (M) flags (Area 131) for safety gate interlocks.
-// TOKENS: host, ip, mac, flow, m, s7comm, rosctr, pduref, func, area, dbnum, offset, count, dscp, hexpayload, wait, ms, compile
+// Automotive body-in-white weld cell reading and writing Merker (M) flags
+// (Area 131) for safety gate interlocks.
+// Encapsulation and QoS markings: DSCP 46 (EF).
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting Merker (0x83).
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define the line master safety coordinator PLC.
 host line_coordinator {
     ip 10.130.60.1
     mac 00:1a:2b:82:60:01
 }
 
-// INSTRUCTION: Define Weld Cell 4 S7-1500 controller.
 host weld_cell_4 {
     ip 10.130.60.14
     mac 00:1a:2b:82:60:14
 }
 
-// INSTRUCTION: Read Merker byte MB0 (AREA 131, OFFSET 0) and write weld release interlock bit at MB1 (OFFSET 8).
 flow s7_weld_interlock(m, w) {
     m -> w s7comm rosctr "job" pduref 610 func "readvar" area 131 dbnum 0 offset 0 count 1 dscp 46
     m <- w s7comm rosctr "ackdata" pduref 610 func "readvar" dscp 46 hexpayload "ff04000101" wait 1ms
@@ -21,7 +22,6 @@ flow s7_weld_interlock(m, w) {
     m <- w s7comm rosctr "ackdata" pduref 611 func "writevar" dscp 46
 }
 
-// INSTRUCTION: Compile the automotive weld cell S7comm Merker interlock flow.
 compile {
     s7_weld_interlock(line_coordinator, weld_cell_4)
 }

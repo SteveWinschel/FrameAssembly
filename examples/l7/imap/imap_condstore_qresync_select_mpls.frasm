@@ -1,19 +1,21 @@
-// PROMPT: Model an RFC 7162 IMAP CONDSTORE and QRESYNC mailbox selection synchronizing delta flag changes over MPLS label 3143.
-// TOKENS: host, ip, mac, flow, s, imap, tag, cmd, arg, mpls, exp, bos, mplsttl, wait, ms, status, response, compile
+// RFC 7162 IMAP CONDSTORE and QRESYNC mailbox selection synchronizing delta
+// flag changes over MPLS label 3143.
+// Wireshark: imap
 
-// INSTRUCTION: Define the branch office mail proxy synchronizing mailbox state over MPLS.
+// Branch office mail proxy synchronizing mailbox state over MPLS.
 host branch_mail_proxy {
     ip 10.143.50.10
     mac 00:50:56:8f:32:0a
 }
 
-// INSTRUCTION: Define the central datacenter IMAP cluster node.
+// Central datacenter IMAP cluster node.
 host core_imap_node {
     ip 10.143.1.10
     mac 00:50:56:8f:01:0a
 }
 
-// INSTRUCTION: Enable QRESYNC and SELECT INBOX with known HIGHESTMODSEQ over MPLS label 3143.
+// Enable QRESYNC and SELECT INBOX with known HIGHESTMODSEQ over MPLS label
+// 3143. Encapsulation and QoS markings: MPLS label 3143.
 flow imap_qresync_select(c, s) {
     c -> s imap tag "C01" cmd "ENABLE" arg "CONDSTORE QRESYNC" mpls 3143 exp 4 bos 1 mplsttl 64 wait 3ms
     c <- s imap tag "*" status "ENABLED" response "CONDSTORE QRESYNC" mpls 3143 exp 4 bos 1 mplsttl 64 wait 1ms
@@ -23,7 +25,6 @@ flow imap_qresync_select(c, s) {
     c <- s imap tag "C02" status "OK" response "[READ-WRITE] Select completed" mpls 3143 exp 4 bos 1 mplsttl 64
 }
 
-// INSTRUCTION: Compile the MPLS-encapsulated IMAP QRESYNC flow.
 compile {
     imap_qresync_select(branch_mail_proxy, core_imap_node)
 }

@@ -1,13 +1,13 @@
-// PROMPT: SIP telephone performing STUN binding request for NAT discovery.
-// TOKENS: host, ip, flow, s, stun, bindingrequest, software, bindingresponse, xormappedaddr, compile
+// SIP telephone performing STUN binding request for NAT discovery.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (STUN (RFC
+// 8489), UDP 3478).
+// Wireshark: stun
 
-// INSTRUCTION: Define desk phone endpoint.
 host sip_phone { ip 192.168.15.22 }
 
-// INSTRUCTION: Define cloud STUN resolver.
 host cloud_stun { ip 198.51.100.40 }
 
-// INSTRUCTION: Define VoIP NAT discovery flow.
 flow stun_sip_nat_flow(c, s) {
     c -> s stun bindingrequest software "Polycom-VVX450"
     c <- s stun bindingresponse
@@ -15,7 +15,6 @@ flow stun_sip_nat_flow(c, s) {
         software "reTurnServer-0.4"
 }
 
-// INSTRUCTION: Compile block executing VoIP STUN discovery.
 compile {
     stun_sip_nat_flow(sip_phone, cloud_stun)
 }

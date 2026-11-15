@@ -1,18 +1,19 @@
-// PROMPT: Continuous OSPF Hello heartbeats inside a COMPILE LOOP maintaining adjacency.
-// TOKENS: host, ip, flow, ospf, hello, routerid, areaid, wait, ms, compile
+// Continuous OSPF Hello heartbeats across repeated cycles in compile
+// maintaining adjacency.
+// This capture executes 4 cycles in compile and uses post-packet wait gaps
+// (20ms) between frames.
+// Wireshark: ospf
 
-// INSTRUCTION: Define core spine router maintaining neighbor adjacency.
 host spine_ospf_rtr { ip 10.0.1.1 }
 
-// INSTRUCTION: Define All-OSPF-Routers multicast peer.
 host all_ospf_peers { ip 224.0.0.5 }
 
-// INSTRUCTION: Define periodic OSPF Hello heartbeat flow.
+// Packet sequence (1 frame); wait pauses after a packet before the next.
 flow ospf_hello_heartbeat(spine, peers) {
     spine -> peers ospf hello routerid 10.0.1.1 areaid 0 wait 20ms
 }
 
-// INSTRUCTION: Compile loop executing 4 continuous OSPF Hello bursts.
+// Emit 4 sequential cycles of ospf_hello_heartbeat.
 compile {
     ospf_hello_heartbeat(spine_ospf_rtr, all_ospf_peers) // cycle 1
     ospf_hello_heartbeat(spine_ospf_rtr, all_ospf_peers) // cycle 2

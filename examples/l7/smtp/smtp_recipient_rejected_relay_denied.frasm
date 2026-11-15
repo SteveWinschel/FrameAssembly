@@ -1,13 +1,10 @@
-// PROMPT: Outbound mail relay rejection with 550 Relaying Denied error reply.
-// TOKENS: host, ip, flow, s, smtp, mailfrom, param, code, reply, rcptto, quit, compile
+// Outbound mail relay rejection with 550 Relaying Denied error reply.
+// Wireshark: smtp
 
-// INSTRUCTION: Define untrusted external client.
 host untrusted_client { ip 203.0.113.88 }
 
-// INSTRUCTION: Define border mail gateway.
 host border_gateway { ip 198.51.100.25 }
 
-// INSTRUCTION: Define unauthorized relay rejection flow.
 flow smtp_relay_denied_flow(c, s) {
     c -> s smtp mailfrom param "spammer@external.org"
     c <- s smtp code 250 reply "2.1.0 Sender ok"
@@ -16,7 +13,6 @@ flow smtp_relay_denied_flow(c, s) {
     c -> s smtp quit
 }
 
-// INSTRUCTION: Compile block executing relay rejection flow.
 compile {
     smtp_relay_denied_flow(untrusted_client, border_gateway)
 }

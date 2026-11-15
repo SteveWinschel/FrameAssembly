@@ -1,13 +1,15 @@
-// PROMPT: Complete subscriber lifecycle combining Access-Request, Access-Accept, Accounting-Request, and Accounting-Response.
-// TOKENS: host, ip, flow, radius, accessrequest, user, nasip, servicetype, wait, ms, accessaccept, framedip, accountingrequest, payload, accountingresponse, compile
+// Complete subscriber lifecycle combining Access-Request, Access-Accept,
+// Accounting-Request, and Accounting-Response.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting (accessrequest,
+// accessaccept, accountingrequest, accountingresponse) with Service-Type 2
+// (Framed (802.1X)).
+// Timing: uses post-packet wait delays (4ms, 20ms) between frames.
+// Wireshark: radius
 
-// INSTRUCTION: Define FTTH access concentrator NAS.
 host ftth_nas { ip 10.66.0.5 }
 
-// INSTRUCTION: Define subscriber AAA server.
 host sub_aaa { ip 10.66.0.1 }
 
-// INSTRUCTION: Define full auth + accounting start + accounting stop lifecycle.
 flow radius_full_lifecycle(nas, aaa) {
     nas -> aaa radius accessrequest user "fiber_user_101" nasip 10.66.0.5 servicetype 2 wait 4ms
     nas <- aaa radius accessaccept user "fiber_user_101" framedip 100.64.101.10 servicetype 2 wait 4ms
@@ -17,7 +19,6 @@ flow radius_full_lifecycle(nas, aaa) {
     nas <- aaa radius accountingresponse user "fiber_user_101"
 }
 
-// INSTRUCTION: Compile full subscriber RADIUS lifecycle.
 compile {
     radius_full_lifecycle(ftth_nas, sub_aaa)
 }

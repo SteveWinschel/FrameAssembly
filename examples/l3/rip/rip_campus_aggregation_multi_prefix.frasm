@@ -1,20 +1,20 @@
-// PROMPT: Campus aggregation router announcing multiple subnet prefixes in sequence.
-// TOKENS: host, ip, flow, rip, response, prefix, metric, wait, ms, compile
+// Campus aggregation router announcing multiple subnet prefixes in sequence.
+// This capture uses post-packet wait gaps (2ms) between frames.
+// Wireshark: rip
 
-// INSTRUCTION: Define building aggregation switch.
 host bldg_agg_switch { ip 192.168.1.1 }
 
-// INSTRUCTION: Define floor distribution router.
 host floor_dist_rtr { ip 192.168.1.254 }
 
-// INSTRUCTION: Define sequential multi-subnet announcement flow.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow rip_multi_prefix_flow(agg, dist) {
     agg -> dist rip response prefix 192.168.10.0 metric 1 wait 2ms
     agg -> dist rip response prefix 192.168.20.0 metric 1 wait 2ms
     agg -> dist rip response prefix 192.168.30.0 metric 2
 }
 
-// INSTRUCTION: Compile block executing multi-prefix route announcement.
+// Run rip_multi_prefix_flow(bldg_agg_switch, floor_dist_rtr) to generate the
+// capture.
 compile {
     rip_multi_prefix_flow(bldg_agg_switch, floor_dist_rtr)
 }

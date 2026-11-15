@@ -1,18 +1,16 @@
-// PROMPT: RFC 9000 QUIC Initial packet establishing connection state with DCID and SCID.
-// TOKENS: host, ip, flow, s, quic, initial, dcid, scid, compile
+// RFC 9000 QUIC Initial packet establishing connection state with DCID and
+// SCID.
+// QUIC UDP 443 packet types: initial.
+// Wireshark: quic
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.100 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 198.51.100.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow quic_init(c, s) {
     c -> s quic initial dcid 0x01020304 scid 0x05060708
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     quic_init(client, server)
 }

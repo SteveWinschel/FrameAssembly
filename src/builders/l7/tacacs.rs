@@ -40,9 +40,11 @@ pub fn build_tacacs_payload(
     let session_id = spec.session_id.unwrap_or(0x12345678);
 
     let user = spec.user.unwrap_or("admin");
-    let user_bytes = user.as_bytes();
+    let raw_user = user.as_bytes();
+    let user_bytes = &raw_user[..raw_user.len().min(255)];
     let data = spec.data.unwrap_or("");
-    let data_bytes = data.as_bytes();
+    let raw_data = data.as_bytes();
+    let data_bytes = &raw_data[..raw_data.len().min(255)];
 
     let mut body = Vec::new();
     match type_code {

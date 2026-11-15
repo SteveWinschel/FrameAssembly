@@ -1,19 +1,18 @@
-// PROMPT: GRE point-to-point tunnel transported over an MPLS-labeled core underlay.
-// TOKENS: host, ip, flow, gre, grekey, greseq, mpls, exp, bos, mplsttl, compile
+// GRE point-to-point tunnel transported over an MPLS-labeled core underlay.
+// This capture wraps frames in MPLS label 47100/47200.
+// Wireshark: gre && mpls
 
-// INSTRUCTION: Define west customer edge GRE endpoint.
 host ce_west_gre { ip 10.249.1.1 }
 
-// INSTRUCTION: Define east customer edge GRE endpoint.
 host ce_east_gre { ip 10.249.2.1 }
 
-// INSTRUCTION: Define MPLS-encapsulated GRE tunnel packets with label 47100.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow gre_over_mpls_core(w, e) {
     w -> e gre grekey 1234 greseq 5 mpls 47100 exp 2 bos 1 mplsttl 62
     w <- e gre grekey 1234 greseq 5 mpls 47200 exp 2 bos 1 mplsttl 62
 }
 
-// INSTRUCTION: Compile the GRE-over-MPLS underlay flow.
+// Run gre_over_mpls_core(ce_west_gre, ce_east_gre) to generate the capture.
 compile {
     gre_over_mpls_core(ce_west_gre, ce_east_gre)
 }

@@ -1,19 +1,20 @@
-// PROMPT: Capture a complete OSPF adjacency bringup exercising all five packet types: Hello, DBD, LSR, LSU, and LSAck
-// TOKENS: host, ip, mac, flow, ospf, hello, routerid, areaid, hellointerval, deadinterval, priority, ttl, wait, ms, dbd, lsr, lsu, lsack, compile
+// Capture a complete OSPF adjacency bringup exercising all five packet types:
+// Hello, DBD, LSR, LSU, and LSAck.
+// This capture sets TTL 1 and uses post-packet wait gaps (10ms, 15ms) between
+// frames.
+// Wireshark: ospf
 
-// INSTRUCTION: Define the primary backbone OSPF router
 host ospf_rtr_1 {
     ip 10.0.12.1
     mac 00:1b:21:f0:12:01
 }
 
-// INSTRUCTION: Define the neighbor backbone OSPF router
 host ospf_rtr_2 {
     ip 10.0.12.2
     mac 00:1b:21:f0:12:02
 }
 
-// INSTRUCTION: Transition from Down to Full using HELLO, DBD, LSR, LSU, and LSACK packets
+// Packet sequence (7 frames); wait pauses after a packet before the next.
 flow ospf_full_five_packet_fsm(r1, r2) {
     r1 -> r2 ospf hello routerid 1.1.1.1 areaid 0 hellointerval 10 deadinterval 40 priority 100 ttl 1 wait 10ms
     r2 -> r1 ospf hello routerid 2.2.2.2 areaid 0 hellointerval 10 deadinterval 40 priority 50 ttl 1 wait 15ms
@@ -24,7 +25,8 @@ flow ospf_full_five_packet_fsm(r1, r2) {
     r2 -> r1 ospf lsack routerid 2.2.2.2 areaid 0 ttl 1
 }
 
-// INSTRUCTION: Compile the complete five-packet OSPF adjacency trace
+// Run ospf_full_five_packet_fsm(ospf_rtr_1, ospf_rtr_2) to generate the
+// capture.
 compile {
     ospf_full_five_packet_fsm(ospf_rtr_1, ospf_rtr_2)
 }

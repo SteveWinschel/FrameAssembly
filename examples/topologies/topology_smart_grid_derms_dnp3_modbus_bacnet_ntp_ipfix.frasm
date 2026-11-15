@@ -1,28 +1,27 @@
-// PROMPT: Smart grid Distributed Energy Resource Management System (DERMS) combining NTP sync, DNP3 solar inverter telemetry, Modbus battery storage, BACnet HVAC load shedding, and IPFIX export.
-// TOKENS: host, ip, flow, ntp, vn, mode, stratum, wait, ms, dnp3, src, dst, func, modbus, unitid, addr, isresponse, bacnet, writeproperty, objectinstance, value, ipfix, domainid, packets, compile
+// Smart grid Distributed Energy Resource Management System (DERMS) combining NTP
+// sync, DNP3 solar inverter telemetry, Modbus battery storage, BACnet HVAC load
+// shedding, and IPFIX export.
+// Wire profile: 8 frames; 3 IPv4 hosts; NTP, IPFIX, Modbus, BACnet, DNP3; waits
+// 1ms.
+// Wireshark: ntp || cflow || modbus || bacnet
 
-// INSTRUCTION: Define utility DERMS microgrid controller and IPFIX exporter.
 host derms_controller { ip 10.135.1.1 }
 
-// INSTRUCTION: Define utility-scale solar PV inverter and battery storage RTU.
 host solar_bess_rtu { ip 10.135.1.50 }
 
-// INSTRUCTION: Define commercial campus BACnet building management controller and IPFIX collector.
 host campus_bms_collector { ip 10.135.2.100 }
 
-// INSTRUCTION: Define NTP clock check, DNP3 solar generation read, Modbus battery charge command, BACnet demand response, and IPFIX flow export.
 flow smart_grid_derms_dispatch(derms, rtu, bms) {
-    rtu -> derms ntp vn 4 mode 3 stratum 2
+    rtu -> derms ntp vn 4 mode 3 stratum 2 wait 1ms
     rtu <- derms ntp vn 4 mode 4 stratum 1 wait 1ms
     derms -> rtu dnp3 src 1 dst 50 func "read" wait 1ms
     derms <- rtu dnp3 src 50 dst 1 func "response" wait 1ms
     derms -> rtu modbus unitid 2 func "writesingleregister" addr 40200 wait 1ms
     derms <- rtu modbus unitid 2 func "writesingleregister" addr 40200 isresponse wait 1ms
     derms -> bms bacnet writeproperty objectinstance 101 value 74 wait 1ms
-    derms -> bms ipfix domainid 135 packets 48 octets 6144 wait 1ms
+    derms -> bms ipfix domainid 135 packets 48 octets 6144
 }
 
-// INSTRUCTION: Compile block executing smart grid DERMS NTP, DNP3, Modbus, BACnet, and IPFIX topology.
 compile {
     smart_grid_derms_dispatch(derms_controller, solar_bess_rtu, campus_bms_collector)
 }

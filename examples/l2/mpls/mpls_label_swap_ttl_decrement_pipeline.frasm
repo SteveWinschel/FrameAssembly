@@ -1,31 +1,29 @@
-// PROMPT: Carrier-Supporting-Carrier (CsC) hierarchical MPLS label swap across three core provider routers.
-// TOKENS: host, ip, mac, flow, mpls, exp, bos, mplsttl, tcp, psh, ack, srcport, dstport, payload, wait, ms, compile
+// Carrier-Supporting-Carrier (CsC) hierarchical MPLS label swap across three core
+// provider routers.
+// Wire profile: 2 frames; 3 IPv4 hosts; MPLS label 100100,200200; TCP; TCP flags
+// ACK/PSH; dstport 443; waits 1ms.
+// Wireshark: mpls.label == 100100 || mpls.label == 200200
 
-// INSTRUCTION: Define ingress PE router pushing initial label 100100 with TTL 64.
 host csc_ingress_pe {
     ip 10.210.0.1
     mac 00:1c:73:d2:00:01
 }
 
-// INSTRUCTION: Define core transit P router swapping label to 200200 and decrementing TTL to 63.
 host csc_transit_p {
     ip 10.210.0.2
     mac 00:1c:73:d2:00:02
 }
 
-// INSTRUCTION: Define egress PE router receiving swapped label 200200 with TTL 63.
 host csc_egress_pe {
     ip 10.210.0.3
     mac 00:1c:73:d2:00:03
 }
 
-// INSTRUCTION: Define MPLS label swap and TTL decrement progression across 3 provider hops.
 flow mpls_label_swap_pipeline(ing, core, egr) {
-    ing -> core mpls 100100 exp 3 bos 1 mplsttl 64 tcp psh ack srcport 44100 dstport 443 payload "csc_hierarchical_vpn_payload"
-    core -> egr mpls 200200 exp 3 bos 1 mplsttl 63 tcp psh ack srcport 44100 dstport 443 payload "csc_hierarchical_vpn_payload" wait 1ms
+    ing -> core mpls 100100 exp 3 bos 1 mplsttl 64 tcp psh ack srcport 44100 dstport 443 payload "csc_hierarchical_vpn_payload" wait 1ms
+    core -> egr mpls 200200 exp 3 bos 1 mplsttl 63 tcp psh ack srcport 44100 dstport 443 payload "csc_hierarchical_vpn_payload"
 }
 
-// INSTRUCTION: Compile block executing MPLS label swap pipeline.
 compile {
     mpls_label_swap_pipeline(csc_ingress_pe, csc_transit_p, csc_egress_pe)
 }

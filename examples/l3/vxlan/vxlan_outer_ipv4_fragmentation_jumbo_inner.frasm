@@ -1,25 +1,27 @@
-// PROMPT: Outer IPv4 fragmentation of a VXLAN packet carrying a 1500-byte inner frame across a non-jumbo 1500-byte MTU underlay.
-// TOKENS: host, ip, mac, flow, vxlan, vni, srcport, dstport, ipid, mf, fragoffset, ttl, payload, wait, ms, compile
+// Outer IPv4 fragmentation of a VXLAN packet carrying a 1500-byte inner frame
+// across a non-jumbo 1500-byte MTU underlay.
+// This capture sets TTL 60, MF fragmentation, carries VNI 1450, destination
+// port 4789, and uses post-packet wait gaps (2ms) between frames.
+// Wireshark: vxlan && vxlan.vni == 1450
 
-// INSTRUCTION: Define branch VTEP fragmenting outer VXLAN UDP datagram over standard 1500-byte WAN.
 host frag_vtep_sender {
     ip 172.20.47.10
     mac 00:1e:be:47:89:0a
 }
 
-// INSTRUCTION: Define remote VTEP reassembling outer IPv4 VXLAN fragments (IPID 4789).
 host frag_vtep_receiver {
     ip 172.20.47.20
     mac 00:1e:be:47:89:14
 }
 
-// INSTRUCTION: Define first VXLAN fragment (MF set, FRAGOFFSET 0) and trailing fragment (FRAGOFFSET 180).
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vxlan_outer_ipv4_frag_flow(tx, rx) {
     tx -> rx vxlan vni 1450 srcport 51450 dstport 4789 ipid 4789 mf fragoffset 0 ttl 60 payload "VXLAN_FRAGMENT_1_OUTER_UDP_AND_INNER_HDR" wait 2ms
     tx -> rx vxlan vni 1450 srcport 51450 dstport 4789 ipid 4789 fragoffset 180 ttl 60 payload "VXLAN_FRAGMENT_2_TRAILING_50_BYTES"
 }
 
-// INSTRUCTION: Compile the outer IPv4 fragmented VXLAN reassembly flow.
+// Run vxlan_outer_ipv4_frag_flow(frag_vtep_sender, frag_vtep_receiver) to
+// generate the capture.
 compile {
     vxlan_outer_ipv4_frag_flow(frag_vtep_sender, frag_vtep_receiver)
 }

@@ -1,19 +1,20 @@
-// PROMPT: 802.1Q VLAN-tagged IPsec packets traversing a segmented campus security zone.
-// TOKENS: host, ip, mac, flow, ipsec, spi, seq, vlan, pcp, dei, compile
+// 802.1Q VLAN-tagged IPsec packets traversing a segmented campus security
+// zone.
+// This capture wraps frames in 802.1Q VLAN 750 and carries SPI 75001/75002.
+// Wireshark: esp && vlan.id == 750
 
-// INSTRUCTION: Define campus research enclave firewall.
 host enclave_fw_left { ip 10.75.10.1 mac 00:1e:67:75:10:01 }
 
-// INSTRUCTION: Define core data center crypto gateway.
 host dc_crypto_right { ip 10.75.10.2 mac 00:1e:67:75:10:02 }
 
-// INSTRUCTION: Define VLAN 750 tagged IPsec tunnel exchange with PCP 5.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ipsec_campus_vlan(l, r) {
     l -> r ipsec spi 75001 seq 1 vlan 750 pcp 5 dei 0
     l <- r ipsec spi 75002 seq 1 vlan 750 pcp 5 dei 0
 }
 
-// INSTRUCTION: Compile the VLAN-tagged campus IPsec flow.
+// Run ipsec_campus_vlan(enclave_fw_left, dc_crypto_right) to generate the
+// capture.
 compile {
     ipsec_campus_vlan(enclave_fw_left, dc_crypto_right)
 }

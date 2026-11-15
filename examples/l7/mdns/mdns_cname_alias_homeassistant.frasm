@@ -1,19 +1,22 @@
-// PROMPT: Create an mDNS CNAME alias resolution chaining dashboard.local to ingress-gateway.local and its final IPv4 A record.
-// TOKENS: host, ip, mac, flow, s, mdns, query, txid, qname, qtype, wait, ms, response, rdata, ansttl, compile
+// MDNS CNAME alias resolution chaining dashboard.local to
+// ingress-gateway.local and its final IPv4 A record.
+// Wireshark: mdns
 
-// INSTRUCTION: Define the operator tablet accessing the local home automation dashboard.
+// Operator tablet accessing the local home automation dashboard.
 host operator_tablet {
     ip 192.168.4.18
     mac 3c:22:fb:04:00:12
 }
 
-// INSTRUCTION: Define the Home Assistant appliance publishing a CNAME alias and A record over mDNS.
+// Home Assistant appliance publishing a CNAME alias and A record over mDNS.
 host home_assistant {
     ip 192.168.4.100
     mac dc:a6:32:04:01:00
 }
 
-// INSTRUCTION: Resolve dashboard.local via CNAME to homeassistant.local and then resolve homeassistant.local to its A record.
+// Resolve dashboard.local via CNAME to homeassistant.local and then resolve
+// homeassistant.local to its A record. DNS wire details: record types CNAME,
+// A; multicast 224.0.0.251 / ff02::fb UDP 5353 (TTL 255).
 flow mdns_cname_resolution(c, s) {
     c -> s mdns query txid 0 qname "dashboard.local" qtype "cname" wait 3ms
     c <- s mdns response txid 0 qname "dashboard.local" qtype "cname" rdata "homeassistant.local" ansttl 120 wait 2ms
@@ -21,7 +24,6 @@ flow mdns_cname_resolution(c, s) {
     c <- s mdns response txid 0 qname "homeassistant.local" qtype "a" rdata "192.168.4.100" ansttl 120
 }
 
-// INSTRUCTION: Compile the mDNS CNAME alias resolution trace into a PCAP file.
 compile {
     mdns_cname_resolution(operator_tablet, home_assistant)
 }

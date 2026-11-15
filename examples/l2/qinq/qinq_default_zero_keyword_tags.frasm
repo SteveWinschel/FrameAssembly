@@ -1,24 +1,19 @@
-// PROMPT: Standalone IEEE 802.1ad QinQ frame using default outer S-VLAN and inner C-VLAN tags.
-// TOKENS: host, ip, mac, flow, qinq, payload, compile
+// Standalone IEEE 802.1ad QinQ double-tagged frame with default S-VLAN and C-VLAN IDs.
+// Uses direct two-block host and compile syntax carrying an ASCII bridge test
+// payload behind the stacked 0x88A8 outer S-Tag and 0x8100 inner C-Tag.
+// Verify stacked tags via `frameassembly show qinq_default_zero_keyword_tags.frasm`.
+// Wireshark: eth.type == 0x88a8 || vlan
 
-// INSTRUCTION: Define provider bridge ingress port A.
 host pb_port_a {
     ip 10.108.0.1
     mac 00:1b:21:ad:00:01
 }
 
-// INSTRUCTION: Define provider bridge egress port B.
 host pb_port_b {
     ip 10.108.0.2
     mac 00:1b:21:ad:00:02
 }
 
-// INSTRUCTION: Define standalone QinQ frame relying on RFC-compliant default S-Tag and C-Tag IDs.
-flow default_qinq_frame(a, b) {
-    a -> b qinq payload "ieee_802_1ad_default_provider_bridge"
-}
-
-// INSTRUCTION: Compile block executing default QinQ frame generation.
 compile {
-    default_qinq_frame(pb_port_a, pb_port_b)
+    pb_port_a -> pb_port_b qinq payload "ieee_802_1ad_default_provider_bridge"
 }

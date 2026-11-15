@@ -1,32 +1,34 @@
-// PROMPT: Generate an SSH global keepalive heartbeat loop using SSH_MSG_GLOBAL_REQUEST (80) and REQUEST_FAILURE (82).
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, ssh, msgcode, payload, wait, ms, compile
+// Generate an SSH global keepalive heartbeat loop using
+// SSH_MSG_GLOBAL_REQUEST (80) and REQUEST_FAILURE (82).
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// SSH RFC 4253 framing on TCP 22 (message codes: 80 (GLOBAL_REQUEST), 82
+// (REQUEST_FAILURE)).
+// Overrides destination port to 22.
+// Timing: runs 4 cycles in compile using post-packet waits (50ms).
+// Wireshark: ssh
 
-// INSTRUCTION: Define host endpoint alive_client.
 host alive_client {
     mac 00:24:e8:22:01:01
     ip 10.88.22.10
 }
 
-// INSTRUCTION: Define host endpoint alive_server.
 host alive_server {
     mac 00:24:e8:22:01:02
     ip 10.88.22.1
 }
 
-// INSTRUCTION: Initialize session before loop for ssh_keepalive_global_request.
 flow ssh_keepalive_global_request_init(alive_client, alive_server) {
     alive_client -> alive_server tcp syn srcport 58022 dstport 22
     alive_server -> alive_client tcp syn ack
     alive_client -> alive_server tcp ack
 }
 
-// INSTRUCTION: Send 3 periodic SSH_MSG_GLOBAL_REQUEST (80) keepalive@openssh.com probes answered by MSG_CODE 82.
 flow ssh_keepalive_global_request(alive_client, alive_server) {
     alive_client -> alive_server ssh msgcode 80 payload "keepalive@openssh.com"
     alive_server -> alive_client ssh msgcode 82 wait 50ms
 }
 
-// INSTRUCTION: Compile the SSH keepalive global request loop flow.
 compile {
     ssh_keepalive_global_request_init(alive_client, alive_server)
     ssh_keepalive_global_request(alive_client, alive_server) // cycle 1

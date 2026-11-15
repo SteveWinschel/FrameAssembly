@@ -1,27 +1,25 @@
-// PROMPT: IEEE 802.1X authentication rejection emitting EAP-Failure (EAP_CODE 4) for an unauthorized contractor device.
-// TOKENS: host, ip, mac, flow, eapol, version, type, start, eappacket, eapcode, eapid, eapmethod, wait, ms, identity, compile
+// IEEE 802.1X authentication rejection emitting EAP-Failure (eapcode 4) for an
+// unauthorized contractor device.
+// Wire profile: 4 frames; 2 IPv4 hosts; EAPOL; waits 2ms, 3ms, 10ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define unprovisioned contractor laptop attempting port access.
 host untrusted_laptop {
     ip 10.99.0.200
     mac b4:b5:2f:99:00:c8
 }
 
-// INSTRUCTION: Define NAC-enforced campus switch port denying access.
 host nac_enforced_sw {
     ip 10.99.0.1
     mac 00:1e:14:99:00:01
 }
 
-// INSTRUCTION: Define EAPOL identity check culminating in EAP-Failure (EAP_CODE 4) port block.
 flow eapol_auth_failure_reject(cli, sw) {
-    cli -> sw eapol version 1 type start
-    cli <- sw eapol version 1 type eappacket eapcode 1 eapid 5 eapmethod 1 wait 2ms
-    cli -> sw eapol version 1 type eappacket eapcode 2 eapid 5 eapmethod 1 identity "contractor_temp@external.org" wait 3ms
-    cli <- sw eapol version 1 type eappacket eapcode 4 eapid 5 eapmethod 1 wait 10ms
+    cli -> sw eapol version 1 type start wait 2ms
+    cli <- sw eapol version 1 type eappacket eapcode 1 eapid 5 eapmethod 1 wait 3ms
+    cli -> sw eapol version 1 type eappacket eapcode 2 eapid 5 eapmethod 1 identity "contractor_temp@external.org" wait 10ms
+    cli <- sw eapol version 1 type eappacket eapcode 4 eapid 5 eapmethod 1
 }
 
-// INSTRUCTION: Compile block executing 802.1X EAP-Failure rejection.
 compile {
     eapol_auth_failure_reject(untrusted_laptop, nac_enforced_sw)
 }

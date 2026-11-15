@@ -1,26 +1,24 @@
-// PROMPT: DDoS scrubbing appliance TCP SYN proxy split-handshake validating client ACK before opening backend server connection.
-// TOKENS: host, ip, flow, tcp, syn, srcport, dstport, seq, win, mss, ack, acknum, wait, ms, psh, payload, us, compile
+// DDoS scrubbing appliance TCP SYN proxy split-handshake validating client ACK
+// before opening backend server connection.
+// Wire profile: 6 frames; 3 IPv4 hosts; TCP; TCP flags SYN/ACK/PSH; dstport
+// 443,54888; waits 1ms, 2ms, 500us.
+// Wireshark: (tcp.port == 443 || tcp.port == 54888) && (tcp.window_size_value == 0 || tcp.analysis.zero_window)
 
-// INSTRUCTION: Define external Internet client connecting to protected web service.
 host ext_web_client { ip 198.51.100.88 }
 
-// INSTRUCTION: Define inline DDoS SYN-Proxy scrubbing appliance.
 host syn_proxy_mitigator { ip 203.0.113.10 }
 
-// INSTRUCTION: Define protected backend origin web server.
 host backend_origin_srv { ip 10.200.80.10 }
 
-// INSTRUCTION: Define SYN-cookie challenge to client followed by delayed backend 3-way handshake and sequence splicing.
 flow tcp_syn_proxy_split_handshake(cli, proxy, srv) {
-    cli -> proxy tcp syn srcport 54888 dstport 443 seq 1000 win 64240 mss 1460
-    cli <- proxy tcp syn ack srcport 443 dstport 54888 seq 88442211 acknum 1001 win 0 mss 1460 wait 1ms
-    cli -> proxy tcp psh ack srcport 54888 dstport 443 seq 1001 acknum 88442212 win 64240 payload "TLS_CLIENT_HELLO" wait 2ms
-    proxy -> srv tcp syn srcport 54888 dstport 443 seq 1000 win 64240 mss 1460 wait 500us
-    proxy <- srv tcp syn ack srcport 443 dstport 54888 seq 500000 acknum 1001 win 65535 mss 1460 wait 1ms
-    proxy -> srv tcp psh ack srcport 54888 dstport 443 seq 1001 acknum 500001 win 64240 payload "TLS_CLIENT_HELLO" wait 500us
+    cli -> proxy tcp syn srcport 54888 dstport 443 seq 1000 win 64240 mss 1460 wait 1ms
+    cli <- proxy tcp syn ack srcport 443 dstport 54888 seq 88442211 acknum 1001 win 0 mss 1460 wait 2ms
+    cli -> proxy tcp psh ack srcport 54888 dstport 443 seq 1001 acknum 88442212 win 64240 payload "TLS_CLIENT_HELLO" wait 500us
+    proxy -> srv tcp syn srcport 54888 dstport 443 seq 1000 win 64240 mss 1460 wait 1ms
+    proxy <- srv tcp syn ack srcport 443 dstport 54888 seq 500000 acknum 1001 win 65535 mss 1460 wait 500us
+    proxy -> srv tcp psh ack srcport 54888 dstport 443 seq 1001 acknum 500001 win 64240 payload "TLS_CLIENT_HELLO"
 }
 
-// INSTRUCTION: Compile block executing TCP SYN-proxy split handshake.
 compile {
     tcp_syn_proxy_split_handshake(ext_web_client, syn_proxy_mitigator, backend_origin_srv)
 }

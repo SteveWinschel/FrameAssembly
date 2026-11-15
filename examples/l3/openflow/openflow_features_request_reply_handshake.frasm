@@ -1,19 +1,20 @@
-// PROMPT: OpenFlow controller querying datapath capabilities via FEATURES_REQ and FEATURES_REPLY exchange.
-// TOKENS: host, ip, flow, openflow, type, featuresreq, xid, featuresreply, compile
+// OpenFlow controller querying datapath capabilities via featuresreq and
+// featuresreply exchange.
+// This capture sends OpenFlow SDN control messages over TCP port 6653.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define centralized SDN network controller.
 host sdn_central_ctrl { ip 10.100.1.10 }
 
-// INSTRUCTION: Define programmable openflow switch datapath.
 host sdn_openflow_sw { ip 10.100.1.20 }
 
-// INSTRUCTION: Define features negotiation exchange flow on port 6653.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow of_features_handshake(ctrl, sw) {
     ctrl -> sw openflow type featuresreq xid 101
     ctrl <- sw openflow type featuresreply xid 101
 }
 
-// INSTRUCTION: Compile block executing OpenFlow features request and reply.
+// Run of_features_handshake(sdn_central_ctrl, sdn_openflow_sw) to generate
+// the capture.
 compile {
     of_features_handshake(sdn_central_ctrl, sdn_openflow_sw)
 }

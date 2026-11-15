@@ -1,25 +1,27 @@
-// PROMPT: Create an IPv6 Kerberos NFSv4 RPCSEC_GSS service ticket request with IPv6 flow label and ECN bits.
-// TOKENS: host, ip, mac, flow, s, kerberos, tgsreq, realm, cname, sname, etype, flowlabel, ecn, dscp, ttl, wait, ms, tgsrep, compile
+// IPv6 Kerberos NFSv4 RPCSEC_GSS service ticket request with IPv6 flow label
+// and ECN bits.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define the IPv6 compute cluster node mounting a Kerberized NFSv4 export.
+// IPv6 compute cluster node mounting a Kerberized NFSv4 export.
 host compute_node {
     ip 2001:db8:700:1::50
     mac 00:25:90:70:01:50
 }
 
-// INSTRUCTION: Define the IPv6 Kerberos KDC serving the HPC cluster realm.
+// IPv6 Kerberos KDC serving the HPC cluster realm.
 host hpc_kdc {
     ip 2001:db8:700:1::10
     mac 00:25:90:70:01:10
 }
 
-// INSTRUCTION: Request an nfs/storage01 service ticket using AES128-CTS-HMAC-SHA1-96 (etype 17) over IPv6.
+// Request an nfs/storage01 service ticket using AES128-CTS-HMAC-SHA1-96
+// (etype 17) over IPv6. Encapsulation and QoS markings: DSCP 16. Kerberos
+// encryption types: 17 (AES128-CTS).
 flow ipv6_nfs_ticket(c, s) {
     c -> s kerberos tgsreq realm "HPC.RESEARCH.EDU" cname "host/node50.hpc.research.edu" sname "nfs/storage01.hpc.research.edu" etype 17 flowlabel 0x4a200 ecn 2 dscp 16 ttl 64 wait 4ms
     c <- s kerberos tgsrep realm "HPC.RESEARCH.EDU" cname "host/node50.hpc.research.edu" sname "nfs/storage01.hpc.research.edu" etype 17 flowlabel 0x4a200 ecn 2 dscp 16 ttl 64
 }
 
-// INSTRUCTION: Compile the IPv6 Kerberos NFSv4 service ticket exchange into a PCAP file.
 compile {
     ipv6_nfs_ticket(compute_node, hpc_kdc)
 }

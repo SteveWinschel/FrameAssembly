@@ -1,18 +1,19 @@
-// PROMPT: PIM Register message transmitting encapsulated multicast data to Rendezvous Point.
-// TOKENS: host, ip, flow, rp, pim, register, group, compile
+// PIM Register message transmitting encapsulated multicast data to Rendezvous
+// Point.
+// This capture carries group 239.255.0.1.
+// Wireshark: pim
 
-// INSTRUCTION: Define designated router connected to multicast source.
 host pim_source_dr { ip 192.168.10.1 }
 
-// INSTRUCTION: Define active Rendezvous Point router.
 host pim_rendezvous_pt { ip 10.254.254.1 }
 
-// INSTRUCTION: Define PIM Register unicast flow to RP for group 239.255.0.1.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow pim_register_flow(dr, rp) {
     dr -> rp pim register rp 10.254.254.1 group 239.255.0.1
 }
 
-// INSTRUCTION: Compile block executing PIM Register packet.
+// Run pim_register_flow(pim_source_dr, pim_rendezvous_pt) to generate the
+// capture.
 compile {
     pim_register_flow(pim_source_dr, pim_rendezvous_pt)
 }

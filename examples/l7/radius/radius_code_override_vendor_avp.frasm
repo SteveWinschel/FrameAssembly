@@ -1,19 +1,19 @@
-// PROMPT: Explicit CODE keyword overrides testing ACCESS_REQUEST and ACCESS_ACCEPT with vendor AVP hex payload.
-// TOKENS: host, ip, flow, radius, code, user, nasip, servicetype, wait, ms, framedip, hexpayload, compile
+// Explicit CODE keyword overrides testing ACCESS_REQUEST and ACCESS_ACCEPT
+// with vendor AVP hex payload.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting with Service-Type
+// 6 (Administrative).
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: radius
 
-// INSTRUCTION: Define core router NAS requesting administrative shell privilege.
 host core_rtr_nas { ip 10.250.0.1 }
 
-// INSTRUCTION: Define AAA server returning vendor-specific AVP (Type 26).
 host vendor_aaa { ip 10.250.0.100 }
 
-// INSTRUCTION: Define RADIUS exchange using explicit CODE string and vendor AVP hex bytes.
 flow radius_vendor_avp(nas, aaa) {
     nas -> aaa radius code "accessrequest" user "netadmin" nasip 10.250.0.1 servicetype 6 wait 5ms
     nas <- aaa radius code "accessaccept" user "netadmin" framedip 10.250.0.254 servicetype 6 hexpayload "1a0c0000000901066c766c31"
 }
 
-// INSTRUCTION: Compile RADIUS explicit CODE and vendor AVP flow.
 compile {
     radius_vendor_avp(core_rtr_nas, vendor_aaa)
 }

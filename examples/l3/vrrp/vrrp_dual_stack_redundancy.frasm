@@ -1,18 +1,17 @@
-// PROMPT: VRRP router redundancy advertisement specifying advertisement interval.
-// TOKENS: host, ip, flow, vrrp, vrid, priority, advint, vip, compile
+// VRRP router redundancy advertisement specifying advertisement interval.
+// This capture carries VRID 5.
+// Wireshark: vrrp
 
-// INSTRUCTION: Define high-availability core router A.
 host ha_router_a { ip 172.16.1.254 }
 
-// INSTRUCTION: Define standard VRRP multicast listener address.
 host vrrp_listener { ip 224.0.0.18 }
 
-// INSTRUCTION: Define VRRP sub-second advertisement heartbeat flow with 100 centisecond interval.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vrrp_fast_hb(rtr, mcast) {
     rtr -> mcast vrrp vrid 5 priority 200 advint 100 vip 172.16.1.1
 }
 
-// INSTRUCTION: Compile block executing fast VRRP redundancy heartbeat.
+// Run vrrp_fast_hb(ha_router_a, vrrp_listener) to generate the capture.
 compile {
     vrrp_fast_hb(ha_router_a, vrrp_listener)
 }

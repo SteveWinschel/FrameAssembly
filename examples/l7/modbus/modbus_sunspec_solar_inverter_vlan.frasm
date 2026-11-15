@@ -1,19 +1,22 @@
-// PROMPT: Generate a SunSpec solar inverter Modbus telemetry flow on VLAN 310 reading AC power and grid frequency registers.
-// TOKENS: host, ip, mac, flow, s, modbus, txid, unitid, func, addr, count, vlan, dscp, ttl, wait, ms, isresponse, value, compile
+// SunSpec solar inverter Modbus telemetry flow on VLAN 310 reading AC power
+// and grid frequency registers.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define the solar farm plant controller monitoring string inverters on VLAN 310.
+// Solar farm plant controller monitoring string inverters on VLAN 310.
 host plant_controller {
     ip 172.25.10.5
     mac 00:25:90:19:0a:05
 }
 
-// INSTRUCTION: Define the SunSpec-compliant solar string inverter with Unit ID 126.
+// SunSpec-compliant solar string inverter with Unit ID 126.
 host solar_inverter {
     ip 172.25.10.126
     mac 00:25:90:19:0a:7e
 }
 
-// INSTRUCTION: Poll the SunSpec common model block at register 40000 and inverter telemetry block at 40070 over VLAN 310.
+// Poll the SunSpec common model block at register 40000 and inverter
+// telemetry block at 40070 over VLAN 310. Encapsulation and QoS markings:
+// 802.1Q VLAN 310, DSCP 32. Modbus functions: FC 3 Read Holding Registers.
 flow sunspec_inverter_vlan(c, s) {
     c -> s modbus txid 701 unitid 126 func "readholdingregisters" addr 40000 count 2 vlan 310 dscp 32 ttl 64 wait 4ms
     c <- s modbus txid 701 unitid 126 func "readholdingregisters" isresponse value 0x5375 vlan 310 dscp 32 ttl 64 wait 8ms
@@ -21,7 +24,6 @@ flow sunspec_inverter_vlan(c, s) {
     c <- s modbus txid 702 unitid 126 func "readholdingregisters" isresponse value 6000 vlan 310 dscp 32 ttl 64
 }
 
-// INSTRUCTION: Compile the SunSpec solar inverter VLAN 310 Modbus trace into a PCAP file.
 compile {
     sunspec_inverter_vlan(plant_controller, solar_inverter)
 }

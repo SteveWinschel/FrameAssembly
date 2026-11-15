@@ -1,19 +1,20 @@
-// PROMPT: Continuous ICMP Echo Request and Echo Reply ping exchange inside COMPILE LOOP.
-// TOKENS: host, ip, flow, src, dst, icmp, echorequest, wait, ms, echoreply, compile
+// Continuous ICMP Echo Request and Echo Reply ping exchange across repeated
+// cycles in compile.
+// This capture executes 5 cycles in compile and uses post-packet wait gaps
+// (10ms) between frames.
+// Wireshark: icmp
 
-// INSTRUCTION: Define monitoring station initiating latency ping.
 host mon_station { ip 172.19.1.50 }
 
-// INSTRUCTION: Define target cloud compute instance.
 host cloud_instance { ip 172.19.1.10 }
 
-// INSTRUCTION: Define bidirectional ping exchange flow with 10ms delay.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow icmp_ping_series(src, dst) {
     src -> dst icmp echorequest wait 10ms
     src <- dst icmp echoreply wait 10ms
 }
 
-// INSTRUCTION: Compile loop executing 5 consecutive ping echo exchanges.
+// Emit 5 sequential cycles of icmp_ping_series.
 compile {
     icmp_ping_series(mon_station, cloud_instance) // cycle 1
     icmp_ping_series(mon_station, cloud_instance) // cycle 2

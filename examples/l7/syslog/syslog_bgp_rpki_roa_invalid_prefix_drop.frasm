@@ -1,25 +1,25 @@
-// PROMPT: Model a border router logging an RPKI ROA invalid prefix rejection via Syslog Local6 over IPv6.
-// TOKENS: host, ip, mac, flow, syslog, facility, severity, hostname, app, procid, msg, flowlabel, ttl, compile
+// Model a border router logging an RPKI ROA invalid prefix rejection via
+// Syslog Local6 over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// RFC 5424 over UDP 514; facility 22 (local6) + severity 4 (warning) yields
+// PRI <180>.
+// Wireshark: syslog
 
-// INSTRUCTION: Define the IPv6 internet exchange border router validating RPKI ROAs.
 host ix_border_v6 {
     ip 2001:db8:514:16::1
     mac 00:1b:21:05:14:01
 }
 
-// INSTRUCTION: Define the IPv6 network telemetry Syslog archive server.
 host net_archive_v6 {
     ip 2001:db8:514:16::100
     mac 00:1b:21:05:14:64
 }
 
-// INSTRUCTION: Transmit an RPKI invalid prefix drop warning under Facility 22 (Local6), Severity 4.
 flow syslog_rpki_invalid_v6(rtr, srv) {
     rtr -> srv syslog facility 22 severity 4 hostname "ix-edge-v6-01" app "frr-bgpd" procid "2210"
         msg "RPKI validation state INVALID for prefix 2001:db8:bad::/48 origin AS65510 from peer 2001:db8:ix::99: route rejected" flowlabel 0x51400 ttl 64
 }
 
-// INSTRUCTION: Compile the IPv6 RPKI invalid prefix Syslog event flow.
 compile {
     syslog_rpki_invalid_v6(ix_border_v6, net_archive_v6)
 }

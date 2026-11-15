@@ -1,13 +1,16 @@
-// PROMPT: Generate an SNMPv3 authPriv TRAP combining HMAC-MD5-96 authentication (AUTH MD5) with AES-128-CFB encryption (PRIV AES).
-// TOKENS: host, ip, mac, flow, snmp3, trap, user, engineid, engineboots, enginetime, auth, md5, priv, aes, oid, sysuptime, varbind, string, gauge32, compile
+// Generate an SNMPv3 authPriv TRAP combining HMAC-MD5-96 authentication (auth
+// MD5) with AES-128-CFB encryption (priv AES).
+// SNMPv3 USM security uses auth md5, priv aes with localized engineid keys.
+// MIB objects / traps: 1.3.6.1.6.3.1.1.5.4 (linkUp), 1.3.6.1.2.1.1.5.0
+// (sysName.0).
+// In Wireshark, add the engineid, user, auth, and priv passphrases under SNMP
+// Users Table to decrypt.
+// Wireshark: snmp
 
-// INSTRUCTION: Define an SNMPv3 switch agent using MD5 auth and AES-128 priv with IP 10.147.0.5.
 host v3_md5_aes_agent { ip 10.147.0.5 mac 00:0c:29:47:00:05 }
 
-// INSTRUCTION: Define an SNMPv3 NMS collector with IP 10.147.0.100.
 host v3_md5_aes_nms { ip 10.147.0.100 mac 00:0c:29:47:00:64 }
 
-// INSTRUCTION: Define a flow sending an SNMPv3 trap encrypted with AES-128-CFB and signed with HMAC-MD5.
 flow snmpv3_md5_aes_trap(agent, nms) {
     agent -> nms snmp3 trap user "usm_md5_aes" engineid "80001f8880cc33dd44" engineboots 8 enginetime 24000
         auth md5 "md5_auth_secret" priv aes "aes128_priv_secret" oid 1.3.6.1.6.3.1.1.5.4
@@ -16,7 +19,6 @@ flow snmpv3_md5_aes_trap(agent, nms) {
         varbind 1.3.6.1.2.1.2.2.1.5.1 gauge32 1000000000
 }
 
-// INSTRUCTION: Compile block to emit the MD5 + AES encrypted SNMPv3 trap.
 compile {
     snmpv3_md5_aes_trap(v3_md5_aes_agent, v3_md5_aes_nms)
 }

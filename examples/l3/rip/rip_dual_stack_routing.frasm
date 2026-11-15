@@ -1,18 +1,18 @@
-// PROMPT: RIP route request query sent to broadcast and multicast routing destinations.
-// TOKENS: host, ip, flow, src, dst, rip, request, compile
+// RIP route request query sent to broadcast and multicast routing
+// destinations.
+// This capture sends UDP port 520/521 RIP route requests and updates.
+// Wireshark: rip
 
-// INSTRUCTION: Define edge router inquiring routing updates.
 host edge_router { ip 172.16.0.10 }
 
-// INSTRUCTION: Define standard RIP multicast destination.
 host rip_all_routers { ip 224.0.0.9 }
 
-// INSTRUCTION: Define RIP route request inquiry flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow rip_inquiry_flow(src, dst) {
     src -> dst rip request
 }
 
-// INSTRUCTION: Compile block executing RIP routing query.
+// Run rip_inquiry_flow(edge_router, rip_all_routers) to generate the capture.
 compile {
     rip_inquiry_flow(edge_router, rip_all_routers)
 }

@@ -1,20 +1,19 @@
-// PROMPT: Network printer device discovery targeting UPnP Printer device schema.
-// TOKENS: host, ip, flow, s, ssdp, msearch, st, mx, man, compile
+// Network printer device discovery targeting UPnP Printer device schema.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (SSDP /
+// UPnP, UDP 1900).
+// Wireshark: ssdp
 
-// INSTRUCTION: Define office desktop endpoint.
 host office_pc { ip 172.16.8.95 }
 
-// INSTRUCTION: Define multicast query group.
 host ssdp_group { ip 239.255.255.250 }
 
-// INSTRUCTION: Define office printer discovery flow.
 flow ssdp_printer_search(c, s) {
     c -> s ssdp msearch
         st "urn:schemas-upnp-org:device:Printer:1"
         mx 4 man "\"ssdp:discover\""
 }
 
-// INSTRUCTION: Compile block executing printer discovery.
 compile {
     ssdp_printer_search(office_pc, ssdp_group)
 }

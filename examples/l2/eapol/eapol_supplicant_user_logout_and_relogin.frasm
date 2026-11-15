@@ -1,19 +1,18 @@
-// PROMPT: Shared kiosk workstation sending EAPOL-Logoff upon user sign-out followed immediately by EAPOL-Start for the next shift operator.
-// TOKENS: host, ip, mac, flow, eapol, version, type, logoff, wait, ms, start, eappacket, eapcode, eapid, eapmethod, identity, compile
+// Shared kiosk workstation sending EAPOL-Logoff upon user sign-out followed
+// immediately by EAPOL-Start for the next shift operator.
+// Wire profile: 5 frames; 2 IPv4 hosts; EAPOL; waits 10ms, 2ms, 5ms.
+// Wireshark: eapol.type == 1 || eapol.type == 2
 
-// INSTRUCTION: Define shared hospital nursing station kiosk workstation.
 host nursing_kiosk_pc {
     ip 10.75.4.12
     mac 00:24:e8:4b:04:0c
 }
 
-// INSTRUCTION: Define clinical floor switch port resetting 802.1X session upon EAPOL-Logoff.
 host clinical_port_sw {
     ip 10.75.4.1
     mac 00:1e:be:4b:04:01
 }
 
-// INSTRUCTION: Terminate Shift 1 session with TYPE LOGOFF and initiate Shift 2 login with TYPE START and Identity.
 flow eapol_shift_handover(kiosk, sw) {
     kiosk -> sw eapol version 2 type logoff wait 10ms
     kiosk -> sw eapol version 2 type start wait 2ms
@@ -22,7 +21,6 @@ flow eapol_shift_handover(kiosk, sw) {
     kiosk <- sw eapol version 2 type eappacket eapcode 3 eapid 1 eapmethod 1
 }
 
-// INSTRUCTION: Compile the kiosk EAPOL-Logoff and rapid shift re-login sequence.
 compile {
     eapol_shift_handover(nursing_kiosk_pc, clinical_port_sw)
 }

@@ -1,20 +1,18 @@
-// PROMPT: Automated configuration backup trigger loop across multiple network switches.
-// TOKENS: host, ip, flow, s, tftp, wrq, filename, mode, compile
+// Automated configuration backup trigger loop across multiple network
+// switches.
+// Executes 3 sequential flow runs inside the compile block.
+// Wireshark: tftp
 
-// INSTRUCTION: Define backup orchestrator client.
 host orch_client { ip 172.28.1.10 }
 
-// INSTRUCTION: Define central configuration TFTP store.
 host store_tftp { ip 172.28.1.1 }
 
-// INSTRUCTION: Define switch backup file push flow.
 flow tftp_loop_backup(c, s) {
     c -> s tftp wrq
         filename "switch_config_batch.cfg"
         mode "octet"
 }
 
-// INSTRUCTION: Compile block executing 3 backup upload triggers.
 compile {
     tftp_loop_backup(orch_client, store_tftp) // cycle 1
     tftp_loop_backup(orch_client, store_tftp) // cycle 2

@@ -1,25 +1,23 @@
-// PROMPT: Polymorphic dual-stack IPsec AH flow executed across IPv4 and IPv6 gateway pairs.
-// TOKENS: host, ip, flow, ah, spi, seq, dscp, ttl, flowlabel, compile
+// Dual-stack IPsec AH flow executed across IPv4 and IPv6 gateway pairs.
+// This capture runs the same exchange over both IPv4 and IPv6 host pairs,
+// sets DSCP 34, TTL 64, IPv6 Flow Label, and carries SPI 9001/9002.
+// Wireshark: ah
 
-// INSTRUCTION: Define IPv4 branch router endpoint.
 host branch_v4_left { ip 198.51.100.11 }
 
-// INSTRUCTION: Define IPv4 headquarters router endpoint.
 host hq_v4_right { ip 198.51.100.12 }
 
-// INSTRUCTION: Define IPv6 branch router endpoint.
 host branch_v6_left { ip 2001:db8:400::11 }
 
-// INSTRUCTION: Define IPv6 headquarters router endpoint.
 host hq_v6_right { ip 2001:db8:400::12 }
 
-// INSTRUCTION: Define polymorphic AH authentication flow with QoS and flow label controls.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow dual_stack_ah_verify(left, right) {
     left -> right ah spi 9001 seq 5 dscp 34 ttl 64 flowlabel 12345
     left <- right ah spi 9002 seq 5 dscp 34 ttl 64 flowlabel 54321
 }
 
-// INSTRUCTION: Compile the polymorphic AH flow across IPv4 and IPv6 peers.
+// Run the flow across both the IPv4 and IPv6 host pairs.
 compile {
     dual_stack_ah_verify(branch_v4_left, hq_v4_right)
     dual_stack_ah_verify(branch_v6_left, hq_v6_right)

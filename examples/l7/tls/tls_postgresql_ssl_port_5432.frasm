@@ -1,17 +1,19 @@
-// PROMPT: PostgreSQL client upgrading database connection to TLS on TCP port 5432 with ALPN postgresql.
-// TOKENS: host, ip, flow, s, tls, clienthello, sni, alpn, srcport, dstport, wait, ms, serverhello, ciphersuite, certificate, finished, appdata, compile
+// PostgreSQL client upgrading database connection to TLS on TCP port 5432
+// with ALPN postgresql.
+// Cipher suite(s): 0x1302 (TLS_AES_256_GCM_SHA384).
+// TLS extensions: SNI pg-primary.db.internal; ALPN postgresql.
+// Overrides destination port to 5432.
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: tls || tcp.port == 5432
 
-// INSTRUCTION: Define backend microservice database client host.
 host db_worker {
     ip 10.80.10.42
 }
 
-// INSTRUCTION: Define primary PostgreSQL database cluster server.
 host pg_primary {
     ip 10.80.10.1
 }
 
-// INSTRUCTION: Define TLS handshake and encrypted SQL query over port 5432.
 flow tls_postgres_5432(c, s) {
     c -> s tls clienthello sni "pg-primary.db.internal" alpn "postgresql" srcport 54320 dstport 5432 wait 2ms
     c <- s tls serverhello ciphersuite 0x1302 alpn "postgresql" srcport 5432 dstport 54320 wait 2ms
@@ -20,7 +22,6 @@ flow tls_postgres_5432(c, s) {
     c -> s tls appdata srcport 54320 dstport 5432
 }
 
-// INSTRUCTION: Compile the PostgreSQL TLS port 5432 flow.
 compile {
     tls_postgres_5432(db_worker, pg_primary)
 }

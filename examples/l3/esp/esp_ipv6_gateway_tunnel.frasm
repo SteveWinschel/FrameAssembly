@@ -1,18 +1,17 @@
-// PROMPT: IPsec ESP encrypted tunnel packet transmission between two IPv6 endpoints.
-// TOKENS: host, ip, flow, esp, spi, seq, compile
+// IPsec ESP encrypted tunnel packet transmission between two IPv6 endpoints.
+// This capture targets IPv6 endpoints and carries SPI 90001.
+// Wireshark: esp && ipv6
 
-// INSTRUCTION: Define IPv6 IPsec gateway A.
 host esp_v6_gw_a { ip 2001:db8:e50::1 }
 
-// INSTRUCTION: Define IPv6 IPsec gateway B.
 host esp_v6_gw_b { ip 2001:db8:e50::2 }
 
-// INSTRUCTION: Define ESP tunnel flow protecting IPv6 site-to-site communication.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow esp_v6_tunnel_flow(gw_a, gw_b) {
     gw_a -> gw_b esp spi 90001 seq 1
 }
 
-// INSTRUCTION: Compile block executing IPv6 ESP encapsulation.
+// Run esp_v6_tunnel_flow(esp_v6_gw_a, esp_v6_gw_b) to generate the capture.
 compile {
     esp_v6_tunnel_flow(esp_v6_gw_a, esp_v6_gw_b)
 }

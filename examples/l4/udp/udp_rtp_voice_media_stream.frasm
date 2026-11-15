@@ -1,23 +1,21 @@
-// PROMPT: Simulate a bidirectional G.711 RTP voice media stream exchanging 20ms audio frames on UDP port 16384 in a loop.
-// TOKENS: host, ip, mac, flow, udp, srcport, dstport, payload, wait, ms, compile
+// Simulate a bidirectional G.711 RTP voice media stream exchanging 20ms audio
+// frames on UDP port 16384 in a loop.
+// Wire profile: 10 frames; 2 IPv4 hosts; UDP; dstport 16384; waits 20ms.
+// Wireshark: udp.port == 16384
 
-// INSTRUCTION: Define VoIP endpoint A with IP 10.60.2.11.
 host rtp_endpoint_a { ip 10.60.2.11 mac 00:04:f2:aa:00:01 }
 
-// INSTRUCTION: Define VoIP endpoint B with IP 10.60.2.12.
 host rtp_endpoint_b { ip 10.60.2.12 mac 00:04:f2:aa:00:02 }
 
-// INSTRUCTION: Define a flow exchanging bidirectional RTP G.711 PCMU audio payloads with 20ms pacing.
 flow rtp_audio_frame(ep_a, ep_b) {
     ep_a -> ep_b udp srcport 16384 dstport 16384 payload "RTP_PT0_PCMU_160B_A2B" wait 20ms
     ep_a <- ep_b udp srcport 16384 dstport 16384 payload "RTP_PT0_PCMU_160B_B2A" wait 20ms
 }
 
-// INSTRUCTION: Compile block to stream 25 bidirectional RTP frames.
 compile {
-    rtp_audio_frame(rtp_endpoint_a, rtp_endpoint_b) // cycle 1 of 25
-    rtp_audio_frame(rtp_endpoint_a, rtp_endpoint_b) // cycle 2 of 25
-    rtp_audio_frame(rtp_endpoint_a, rtp_endpoint_b) // cycle 3 of 25
-    rtp_audio_frame(rtp_endpoint_a, rtp_endpoint_b) // cycle 4 of 25
-    rtp_audio_frame(rtp_endpoint_a, rtp_endpoint_b) // cycle 5 of 25
+    rtp_audio_frame(rtp_endpoint_a, rtp_endpoint_b) // Iteration 1 of 5
+    rtp_audio_frame(rtp_endpoint_a, rtp_endpoint_b) // Iteration 2 of 5
+    rtp_audio_frame(rtp_endpoint_a, rtp_endpoint_b) // Iteration 3 of 5
+    rtp_audio_frame(rtp_endpoint_a, rtp_endpoint_b) // Iteration 4 of 5
+    rtp_audio_frame(rtp_endpoint_a, rtp_endpoint_b) // Iteration 5 of 5
 }

@@ -1,19 +1,20 @@
-// PROMPT: Prometheus HTTP metrics scrape loop fetching /metrics text exposition every 15 seconds.
-// TOKENS: host, ip, flow, http, method, uri, hosthdr, useragent, srcport, dstport, wait, s, status, reason, contenttype, body, compile
+// Prometheus HTTP metrics scrape loop fetching /metrics text exposition every
+// 15 seconds.
+// Wireshark: http || tcp.port == 9100
 
-// INSTRUCTION: Define Prometheus scraper server.
 host prom_scraper { ip 10.90.90.1 }
 
-// INSTRUCTION: Define node_exporter target on port 9100.
+// Node_exporter target on port 9100.
 host node_exporter { ip 10.90.90.50 }
 
-// INSTRUCTION: Scrape /metrics endpoint on port 9100 and return Prometheus exposition metrics.
+// Scrape /metrics endpoint on port 9100 and return Prometheus exposition
+// metrics. Repeats 3 times; each wait value pauses after sending its packet.
 flow http_prom_scrape(p, n) {
     p -> n http method "GET" uri "/metrics" hosthdr "10.90.90.50:9100" useragent "Prometheus/2.50" srcport 48900 dstport 9100 wait 15s
     p <- n http status 200 reason "OK" contenttype "text/plain" body "node_cpu_seconds_total 412.5\n" srcport 9100 dstport 48900
 }
 
-// INSTRUCTION: Loop the Prometheus HTTP scrape 3 times.
+// Loop the Prometheus HTTP scrape 3 times.
 compile {
     http_prom_scrape(prom_scraper, node_exporter) // cycle 1
     http_prom_scrape(prom_scraper, node_exporter) // cycle 2

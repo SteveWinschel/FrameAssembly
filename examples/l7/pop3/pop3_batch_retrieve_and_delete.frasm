@@ -1,13 +1,12 @@
-// PROMPT: Multi-message POP3 batch download retrieving messages 1 and 2 then deleting both.
-// TOKENS: host, ip, flow, s, pop3, cmd, arg, wait, ms, ok, payload, compile
+// Multi-message POP3 batch download retrieving messages 1 and 2 then deleting
+// both.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: pop
 
-// INSTRUCTION: Define automated mail archiver host.
 host archiver { ip 172.20.1.100 }
 
-// INSTRUCTION: Define POP3 spool server host.
 host spool_srv { ip 172.20.1.10 }
 
-// INSTRUCTION: Define sequential RETR and DELE for two messages.
 flow pop3_batch_archive(c, s) {
     c -> s pop3 cmd "RETR" arg "1" wait 5ms
     c <- s pop3 ok payload "Subject: Daily Report 1\r\n\r\nAll green.\r\n.\r\n" wait 5ms
@@ -19,7 +18,6 @@ flow pop3_batch_archive(c, s) {
     c <- s pop3 ok
 }
 
-// INSTRUCTION: Compile batch POP3 archive flow.
 compile {
     pop3_batch_archive(archiver, spool_srv)
 }

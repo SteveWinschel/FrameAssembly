@@ -1,20 +1,17 @@
-// PROMPT: IPv6 site-local multicast discovery query to ff05::c address.
-// TOKENS: host, ip, flow, s, ssdp, msearch, st, mx, man, compile
+// IPv6 site-local multicast discovery query to ff05::c address.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Wireshark: ssdp
 
-// INSTRUCTION: Define IPv6 client terminal.
 host terminal_v6 { ip 2001:db8:cafe::12 }
 
-// INSTRUCTION: Define IPv6 site-local SSDP multicast group.
 host ssdp_v6_site { ip ff05::c }
 
-// INSTRUCTION: Define IPv6 site-local discovery flow.
 flow ssdp_v6_flow(c, s) {
     c -> s ssdp msearch
         st "upnp:rootdevice"
         mx 2 man "\"ssdp:discover\""
 }
 
-// INSTRUCTION: Compile block executing IPv6 site-local search.
 compile {
     ssdp_v6_flow(terminal_v6, ssdp_v6_site)
 }

@@ -1,24 +1,18 @@
-// PROMPT: Minimal SNMPv1 frame with zero optional sub-keywords exercising builder default trap generation.
-// TOKENS: host, ip, mac, flow, m, snmp1, compile
+// Minimal 2-block SNMPv1 (RFC 1157) starter emitting automatic protocol
+// defaults directly from the compile block (zero flow wrapper).
+// Uses SNMPv1 default trap PDUs on UDP 161/162.
+// Wireshark: snmp
 
-// INSTRUCTION: Define the default SNMPv1 agent host.
 host snmp1_def_agent {
     ip 10.145.0.1
     mac 00:1a:2b:91:00:01
 }
 
-// INSTRUCTION: Define the default SNMPv1 manager host.
 host snmp1_def_mgr {
     ip 10.145.0.10
     mac 00:1a:2b:91:00:10
 }
 
-// INSTRUCTION: Emit a bare SNMP1 statement to exercise all builder defaults.
-flow snmpv1_defaults(a, m) {
-    a -> m snmp1
-}
-
-// INSTRUCTION: Compile the default SNMPv1 trap flow.
 compile {
-    snmpv1_defaults(snmp1_def_agent, snmp1_def_mgr)
+    snmp1_def_agent -> snmp1_def_mgr snmp1
 }

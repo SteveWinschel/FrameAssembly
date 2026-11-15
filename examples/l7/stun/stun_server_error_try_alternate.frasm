@@ -1,19 +1,18 @@
-// PROMPT: STUN server error response directing client to try alternate server.
-// TOKENS: host, ip, flow, s, stun, bindingrequest, software, bindingerror, compile
+// STUN server error response directing client to try alternate server.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (STUN (RFC
+// 8489), UDP 3478).
+// Wireshark: stun
 
-// INSTRUCTION: Define client endpoint.
 host roving_client { ip 192.168.75.14 }
 
-// INSTRUCTION: Define overloaded primary STUN server.
 host primary_stun { ip 198.51.100.12 }
 
-// INSTRUCTION: Define server error alternate redirect flow.
 flow stun_try_alt_flow(c, s) {
     c -> s stun bindingrequest software "SIP-Agent-3.0"
     c <- s stun bindingerror software "Primary-Overloaded-TryAlternate"
 }
 
-// INSTRUCTION: Compile block executing try alternate flow.
 compile {
     stun_try_alt_flow(roving_client, primary_stun)
 }

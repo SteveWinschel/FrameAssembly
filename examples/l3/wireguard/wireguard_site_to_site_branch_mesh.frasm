@@ -1,19 +1,20 @@
-// PROMPT: Site-to-site branch routers establishing direct WireGuard mesh peering.
-// TOKENS: host, ip, flow, wireguard, type, initiation, sender, response, receiver, compile
+// Site-to-site branch routers establishing direct WireGuard mesh peering.
+// This capture models UDP port 51820 WireGuard handshake and transport
+// frames.
+// Wireshark: wg
 
-// INSTRUCTION: Define Branch Office Tokyo gateway.
 host wg_branch_tokyo { ip 10.210.1.1 }
 
-// INSTRUCTION: Define Branch Office Sydney gateway.
 host wg_branch_sydney { ip 10.210.2.1 }
 
-// INSTRUCTION: Define mutual branch mesh tunnel establishment flow.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow wg_mesh_peering_flow(tokyo, sydney) {
     tokyo -> sydney wireguard type initiation sender 70701
     tokyo <- sydney wireguard type response sender 70702 receiver 70701
 }
 
-// INSTRUCTION: Compile block executing direct branch mesh setup.
+// Run wg_mesh_peering_flow(wg_branch_tokyo, wg_branch_sydney) to generate the
+// capture.
 compile {
     wg_mesh_peering_flow(wg_branch_tokyo, wg_branch_sydney)
 }

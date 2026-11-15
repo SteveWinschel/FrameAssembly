@@ -11,6 +11,17 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Encodes BACnet Context Tag 1 (`PropertyIdentifier`) as 1-byte (`0x19`) or 2-byte (`0x1A`) unsigned integer.
+fn push_bacnet_property_id(apdu: &mut Vec<u8>, prop_id: u32) {
+    if prop_id <= 0xFF {
+        apdu.push(0x19); // Context Tag 1 (PropertyIdentifier, len 1)
+        apdu.push(prop_id as u8);
+    } else {
+        apdu.push(0x1A); // Context Tag 1 (PropertyIdentifier, len 2)
+        apdu.extend_from_slice(&(prop_id as u16).to_be_bytes());
+    }
+}
+
 /// Builds an ANSI/ASHRAE 135 BACnet/IP packet payload with BVLC and NPDU headers.
 pub fn build_bacnet_payload(
     _ctx: &WireContext,
@@ -35,8 +46,7 @@ pub fn build_bacnet_payload(
         let obj_id = ((obj_type as u32) << 22) | (obj_inst & 0x3FFFFF);
         apdu.push(0x0C); // Context Tag 0 (ObjectIdentifier, len 4)
         apdu.extend_from_slice(&obj_id.to_be_bytes());
-        apdu.push(0x19); // Context Tag 1 (PropertyIdentifier, len 1)
-        apdu.push(spec.property_id.unwrap_or(85) as u8); // 85: Present_Value
+        push_bacnet_property_id(&mut apdu, spec.property_id.unwrap_or(85)); // 85: Present_Value
         apdu.push(0x3E); // Context Tag 3 Opening Tag (PropertyValue)
         apdu.push(0x24); // Application Tag 2 (Unsigned Int, len 4)
         apdu.extend_from_slice(&spec.value.unwrap_or(0).to_be_bytes());
@@ -53,8 +63,7 @@ pub fn build_bacnet_payload(
         let obj_id = ((obj_type as u32) << 22) | (obj_inst & 0x3FFFFF);
         apdu.extend_from_slice(&[0x0C]); // Context Tag 0 (ObjectIdentifier, len 4)
         apdu.extend_from_slice(&obj_id.to_be_bytes());
-        apdu.extend_from_slice(&[0x19]); // Context Tag 1 (PropertyIdentifier, len 1)
-        apdu.push(spec.property_id.unwrap_or(85) as u8); // 85: Present_Value
+        push_bacnet_property_id(&mut apdu, spec.property_id.unwrap_or(85)); // 85: Present_Value
         if let Some(val) = spec.value {
             apdu.push(0x3E);
             apdu.push(0x24);

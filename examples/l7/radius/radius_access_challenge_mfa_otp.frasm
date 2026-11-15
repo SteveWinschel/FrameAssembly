@@ -1,13 +1,14 @@
-// PROMPT: RADIUS two-factor MFA OTP flow using Access-Challenge before final Access-Accept.
-// TOKENS: host, ip, mac, flow, radius, accessrequest, user, nasip, servicetype, wait, ms, accesschallenge, payload, accessaccept, framedip, compile
+// RADIUS two-factor MFA OTP flow using Access-Challenge before final
+// Access-Accept.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting (accessrequest,
+// accessaccept, accesschallenge) with Service-Type 2 (Framed (802.1X)).
+// Timing: uses post-packet wait delays (5ms, 10ms) between frames.
+// Wireshark: radius
 
-// INSTRUCTION: Define SSL-VPN firewall NAS.
 host sslvpn_nas { ip 10.28.65.10 mac 00:1b:17:28:65:0a }
 
-// INSTRUCTION: Define MFA-enabled RADIUS server.
 host mfa_radius { ip 10.28.65.1 mac 00:1b:17:28:65:01 }
 
-// INSTRUCTION: Define initial login, OTP challenge, OTP submission, and Framed-IP assignment.
 flow radius_mfa_challenge(nas, aaa) {
     nas -> aaa radius accessrequest user "sec_engineer" nasip 10.28.65.10 servicetype 2 wait 5ms
     nas <- aaa radius accesschallenge user "sec_engineer" payload "Enter 6-digit TOTP code" wait 10ms
@@ -15,7 +16,6 @@ flow radius_mfa_challenge(nas, aaa) {
     nas <- aaa radius accessaccept user "sec_engineer" framedip 10.254.0.42 servicetype 2
 }
 
-// INSTRUCTION: Compile RADIUS MFA Access-Challenge flow.
 compile {
     radius_mfa_challenge(sslvpn_nas, mfa_radius)
 }

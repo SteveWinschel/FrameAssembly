@@ -1,18 +1,19 @@
-// PROMPT: First-hop router encapsulating multicast source stream in PIM REGISTER to Rendezvous Point.
-// TOKENS: host, ip, flow, rp, pim, register, group, source, payload, compile
+// First-hop router encapsulating multicast source stream in PIM REGISTER to
+// Rendezvous Point.
+// This capture carries group 239.1.1.100.
+// Wireshark: pim
 
-// INSTRUCTION: Define first-hop multicast source router.
 host first_hop_source_rtr { ip 10.33.1.1 }
 
-// INSTRUCTION: Define central Rendezvous Point router.
 host rendezvous_point_rtr { ip 10.33.254.1 }
 
-// INSTRUCTION: Define PIM Register encapsulation flow carrying video stream packet.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow pim_register_flow(fhr, rp) {
     fhr -> rp pim register rp 10.33.254.1 group 239.1.1.100 source 10.33.1.50 payload "RTP_VIDEO_PAYLOAD"
 }
 
-// INSTRUCTION: Compile block executing PIM Register encapsulation.
+// Run pim_register_flow(first_hop_source_rtr, rendezvous_point_rtr) to
+// generate the capture.
 compile {
     pim_register_flow(first_hop_source_rtr, rendezvous_point_rtr)
 }

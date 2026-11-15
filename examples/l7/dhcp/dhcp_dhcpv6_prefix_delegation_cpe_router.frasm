@@ -1,19 +1,19 @@
-// PROMPT: Model a residential fiber CPE gateway requesting an IPv6 prefix via DHCPv6 SOLICIT, ADVERTISE, REQUEST, and REPLY.
-// TOKENS: host, ip, mac, flow, s, dhcp, solicit, xid, hostname, ttl, wait, ms, advertise, yiaddr, dnsserver, leasetime, request, reply, compile
+// Residential fiber CPE gateway requesting an IPv6 prefix via DHCPv6 SOLICIT,
+// ADVERTISE, REQUEST, and REPLY.
+// Wireshark: dhcpv6
 
-// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+// DHCP client endpoint requesting dynamic network configuration.
 host dhcp_client {
     ip fe80::224:e8ff:fe54:6001
     mac 00:25:90:67:01:0a
 }
 
-// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+// DHCP server or relay agent endpoint.
 host dhcp_server {
     ip fe80::224:e8ff:fe54:1
     mac 00:25:90:67:01:01
 }
 
-// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
 flow dhcp_scenario_flow(c, s) {
     c -> s dhcp solicit xid 0x00546010 hostname "home-rgw-v6" ttl 64 wait 5ms
     c <- s dhcp advertise xid 0x00546010 yiaddr 2001:db8:cafe::1 dnsserver 2001:4860:4860::8888 leasetime 86400 ttl 64 wait 5ms
@@ -21,7 +21,6 @@ flow dhcp_scenario_flow(c, s) {
     c <- s dhcp reply xid 0x00546010 yiaddr 2001:db8:cafe::1 dnsserver 2001:4860:4860::8888 leasetime 86400 ttl 64
 }
 
-// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
 compile {
     dhcp_scenario_flow(dhcp_client, dhcp_server)
 }

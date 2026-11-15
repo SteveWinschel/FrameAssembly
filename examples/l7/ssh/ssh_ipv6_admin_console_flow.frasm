@@ -1,13 +1,12 @@
-// PROMPT: IPv6 remote console administration session with version banner and KEXINIT.
-// TOKENS: host, ip, flow, s, ssh, banner, kexinit, compile
+// IPv6 remote console administration session with version banner and KEXINIT.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// SSH RFC 4253 framing on TCP 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define IPv6 administration station.
 host admin_v6 { ip 2001:db8:8888::15 }
 
-// INSTRUCTION: Define IPv6 firewall management interface.
 host fw_v6 { ip 2001:db8:8888::1 }
 
-// INSTRUCTION: Define IPv6 SSH session setup flow.
 flow ssh_v6_session(c, s) {
     c -> s ssh banner "SSH-2.0-OpenSSH_9.3"
     c <- s ssh banner "SSH-2.0-OpenSSH_9.3"
@@ -15,7 +14,6 @@ flow ssh_v6_session(c, s) {
     c <- s ssh kexinit
 }
 
-// INSTRUCTION: Compile block executing IPv6 SSH setup.
 compile {
     ssh_v6_session(admin_v6, fw_v6)
 }

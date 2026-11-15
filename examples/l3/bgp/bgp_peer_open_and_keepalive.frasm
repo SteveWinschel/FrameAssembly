@@ -1,13 +1,12 @@
-// PROMPT: BGP peer session establishment and keepalive exchange on TCP port 179.
-// TOKENS: host, ip, flow, bgp, open, asn, holdtime, bgpid, keepalive, compile
+// BGP peer session establishment and keepalive exchange on TCP port 179.
+// This capture carries ASN 64512/64513.
+// Wireshark: bgp
 
-// INSTRUCTION: Define BGP edge router in Autonomous System 64512.
 host bgp_speaker_1 { ip 192.0.2.1 }
 
-// INSTRUCTION: Define BGP edge router in Autonomous System 64513.
 host bgp_speaker_2 { ip 192.0.2.2 }
 
-// INSTRUCTION: Define BGP peering handshake flow exchanging OPEN parameters and KEEPALIVE markers.
+// Packet sequence (4 frames) with default 10ms post-packet spacing.
 flow bgp_peering_flow(peer1, peer2) {
     peer1 -> peer2 bgp open asn 64512 holdtime 90 bgpid 192.0.2.1
     peer1 <- peer2 bgp open asn 64513 holdtime 90 bgpid 192.0.2.2
@@ -15,7 +14,7 @@ flow bgp_peering_flow(peer1, peer2) {
     peer1 <- peer2 bgp keepalive
 }
 
-// INSTRUCTION: Compile block executing BGP session establishment.
+// Run bgp_peering_flow(bgp_speaker_1, bgp_speaker_2) to generate the capture.
 compile {
     bgp_peering_flow(bgp_speaker_1, bgp_speaker_2)
 }

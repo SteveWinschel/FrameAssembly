@@ -1,19 +1,20 @@
-// PROMPT: IPsec encrypted tunnel packets transported across an MPLS label-switched core.
-// TOKENS: host, ip, flow, ipsec, spi, seq, mpls, exp, bos, mplsttl, compile
+// IPsec encrypted tunnel packets transported across an MPLS label-switched
+// core.
+// This capture wraps frames in MPLS label 43030/43031 and carries SPI
+// 430301/430302.
+// Wireshark: esp && mpls
 
-// INSTRUCTION: Define MPLS PE encryptor West.
 host pe_ipsec_west { ip 10.247.1.1 }
 
-// INSTRUCTION: Define MPLS PE encryptor East.
 host pe_ipsec_east { ip 10.247.1.2 }
 
-// INSTRUCTION: Define MPLS-labeled IPsec exchange with label 43030 and EXP 4.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ipsec_mpls_core(w, e) {
     w -> e ipsec spi 430301 seq 20 mpls 43030 exp 4 bos 1 mplsttl 64
     w <- e ipsec spi 430302 seq 20 mpls 43031 exp 4 bos 1 mplsttl 64
 }
 
-// INSTRUCTION: Compile the MPLS-labeled IPsec core flow.
+// Run ipsec_mpls_core(pe_ipsec_west, pe_ipsec_east) to generate the capture.
 compile {
     ipsec_mpls_core(pe_ipsec_west, pe_ipsec_east)
 }

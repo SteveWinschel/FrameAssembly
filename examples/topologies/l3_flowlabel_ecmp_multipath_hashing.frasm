@@ -1,20 +1,18 @@
-// PROMPT: IPv6 20-bit FLOWLABEL generation across parallel traffic streams for ECMP multipath distribution.
-// TOKENS: host, ip, flow, s, flowlabel, udp, payload, compile
+// IPv6 20-bit flowlabel generation across parallel traffic streams for ECMP
+// multipath distribution.
+// Wire profile: 3 frames; 2 IPv6 hosts; UDP.
+// Wireshark: ipv6 && udp
 
-// INSTRUCTION: Define leaf switch in datacenter fabric.
 host leaf_switch { ip 2001:db8:10::1 }
 
-// INSTRUCTION: Define spine switch in datacenter fabric.
 host spine_switch { ip 2001:db8:20::2 }
 
-// INSTRUCTION: Define parallel multipath flow with distinct flow labels.
 flow ecmp_flow(s, d) {
     s -> d flowlabel 1000 udp payload "ecmp_hash_path_1"
     s -> d flowlabel 2000 udp payload "ecmp_hash_path_2"
     s -> d flowlabel 3000 udp payload "ecmp_hash_path_3"
 }
 
-// INSTRUCTION: Compile block executing ECMP multipath distribution.
 compile {
     ecmp_flow(leaf_switch, spine_switch)
 }

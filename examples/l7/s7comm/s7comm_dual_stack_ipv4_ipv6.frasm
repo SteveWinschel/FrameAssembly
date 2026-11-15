@@ -1,23 +1,22 @@
-// PROMPT: Dual-stack IPv4 and IPv6 S7comm Data Block read polling using a polymorphic flow.
-// TOKENS: host, ip, flow, s7comm, rosctr, func, pduref, area, dbnum, offset, count, dscp, ttl, flowlabel, compile
+// Dual-stack IPv4 and IPv6 S7comm Data Block read polling with one shared
+// flow.
+// Encapsulation and QoS markings: DSCP 46 (EF).
+// Runs the same flow definition across both IPv4 and IPv6 host pairs.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting 0x84.
+// Executes 2 sequential flow runs inside the compile block.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define IPv4 SCADA poller and S7 PLC.
 host s7_v4_hmi { ip 10.102.1.10 }
-// INSTRUCTION: Define IPv4 S7 PLC endpoint.
 host s7_v4_plc { ip 10.102.1.20 }
 
-// INSTRUCTION: Define IPv6 SCADA poller and S7 PLC.
 host s7_v6_hmi { ip 2001:db8:102::10 }
-// INSTRUCTION: Define IPv6 S7 PLC endpoint.
 host s7_v6_plc { ip 2001:db8:102::20 }
 
-// INSTRUCTION: Define polymorphic S7comm Data Block 10 read exchange.
 flow s7comm_dual_stack(hmi, plc) {
     hmi -> plc s7comm rosctr "job" func "readvar" pduref 50 area 0x84 dbnum 10 offset 4 count 2 dscp 46 ttl 64 flowlabel 0x10200
     hmi <- plc s7comm rosctr "ackdata" func "readvar" pduref 50 area 0x84 dbnum 10 offset 4 count 2 dscp 46 ttl 64 flowlabel 0x10200
 }
 
-// INSTRUCTION: Compile dual-stack S7comm flow over IPv4 and IPv6.
 compile {
     s7comm_dual_stack(s7_v4_hmi, s7_v4_plc)
     s7comm_dual_stack(s7_v6_hmi, s7_v6_plc)

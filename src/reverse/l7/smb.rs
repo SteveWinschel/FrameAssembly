@@ -27,8 +27,10 @@ fn decode_utf16le(bytes: &[u8]) -> Option<String> {
         return None;
     }
     let units: Vec<u16> = bytes
-        .chunks_exact(2)
-        .map(|c| u16::from_le_bytes([c[0], c[1]]))
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|&c| u16::from_le_bytes(c))
         .collect();
     String::from_utf16(&units).ok()
 }
@@ -71,12 +73,21 @@ pub(crate) fn dissect_smb(
     {
         return None;
     }
+    let nb_len =
+        ((payload[1] as usize) << 16) | ((payload[2] as usize) << 8) | (payload[3] as usize);
+    if 4usize.checked_add(nb_len)? != payload.len() {
+        return None;
+    }
     let hdr = &payload[4..68];
     if le_u16(hdr, 4) != 64 {
         return None;
     }
     let status = le_u32(hdr, 8);
     let cmd_code = le_u16(hdr, 12);
+    let flags = le_u32(hdr, 16);
+    if flags > 1 || (status != 0 && flags != 1) {
+        return None;
+    }
     let msgid = le_u64(hdr, 24);
     let tree_id = le_u32(hdr, 36);
     let session_id = le_u64(hdr, 40);
@@ -96,11 +107,19 @@ pub(crate) fn dissect_smb(
         }
         0x0001 => {
             tokens.push_str(" sessionsetup");
-            residual = body;
+            if flags == 1 {
+                let expected_resp = [9u8, 0, 0, 0, 72, 0, 0, 0, 0];
+                residual = body.strip_prefix(&expected_resp)?;
+            } else {
+                let expected_req = [
+                    25u8, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                ];
+                residual = body.strip_prefix(&expected_req)?;
+            }
         }
         0x0002 => {
             tokens.push_str(" command \"logoff\"");
-            residual = body;
+            residual = body.strip_prefix(&[0x04, 0x00, 0x00, 0x00])?;
         }
         0x0003 => {
             if body.len() < 8 || le_u16(body, 0) != 9 {
@@ -109,7 +128,8 @@ pub(crate) fn dissect_smb(
             tokens.push_str(" treeconnect");
             let path_len = le_u16(body, 6) as usize;
             let consumed = if path_len == 0 { 2usize } else { path_len };
-            if body.len() < 8 + consumed {
+            let end_off = 8usize.checked_add(consumed)?;
+            if body.len() < end_off {
                 return None;
             }
             let s = if path_len == 0 {
@@ -121,11 +141,11 @@ pub(crate) fn dissect_smb(
                 return None;
             }
             share_opt = Some(s);
-            residual = &body[8 + consumed..];
+            residual = &body[end_off..];
         }
         0x0004 => {
             tokens.push_str(" treedisconnect");
-            residual = body;
+            residual = body.strip_prefix(&[0x04, 0x00, 0x00, 0x00])?;
         }
         0x0005 => {
             if body.len() < 56 || le_u16(body, 0) != 57 {
@@ -134,7 +154,8 @@ pub(crate) fn dissect_smb(
             tokens.push_str(" create");
             let name_len = le_u16(body, 48) as usize;
             let consumed = if name_len == 0 { 2usize } else { name_len };
-            if body.len() < 56 + consumed {
+            let end_off = 56usize.checked_add(consumed)?;
+            if body.len() < end_off {
                 return None;
             }
             let f = if name_len == 0 {
@@ -146,25 +167,42 @@ pub(crate) fn dissect_smb(
                 return None;
             }
             file_opt = Some(f);
-            residual = &body[56 + consumed..];
+            residual = &body[end_off..];
         }
         0x0006 => {
+            if body.len() < 24 || le_u16(body, 0) != 24 || body[2..24].iter().any(|&b| b != 0) {
+                return None;
+            }
             tokens.push_str(" command \"close\"");
-            residual = body;
+            residual = &body[24..];
         }
         0x0008 => {
+            if body.len() < 49
+                || &body[0..8] != b"\x31\x00\x50\x00\x00\x10\x00\x00"
+                || body[8..49].iter().any(|&b| b != 0)
+            {
+                return None;
+            }
             tokens.push_str(" command \"read\"");
-            residual = body;
+            residual = &body[49..];
         }
         0x0009 => {
+            if body.len() < 49
+                || &body[0..4] != b"\x31\x00\x70\x00"
+                || body[4..49].iter().any(|&b| b != 0)
+            {
+                return None;
+            }
             tokens.push_str(" command \"write\"");
-            residual = body;
+            residual = &body[49..];
         }
         _ => return None,
     }
 
     if status != 0 {
         tokens.push_str(&format!(" status 0x{status:08x}"));
+    } else if flags == 1 {
+        tokens.push_str(" status 0");
     }
     if session_id != 0 {
         tokens.push_str(&format!(" sessionid 0x{session_id:x}"));

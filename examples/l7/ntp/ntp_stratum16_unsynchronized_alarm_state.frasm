@@ -1,25 +1,25 @@
-// PROMPT: Generate an NTPv4 server response with LI 3 (alarm condition) and STRATUM 16 indicating loss of upstream reference.
-// TOKENS: host, ip, mac, flow, s, ntp, li, vn, mode, stratum, poll, precision, txtimestamp, wait, ms, refid, compile
+// NTPv4 server response with LI 3 (alarm condition) and STRATUM 16 indicating
+// loss of upstream reference.
+// Wireshark: ntp
 
-// INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
+// NTP client or peer endpoint initiating time synchronization.
 host ntp_client {
     ip 10.123.55.20
     mac 00:1b:21:7b:01:0a
 }
 
-// INSTRUCTION: Define the NTP reference server or peer endpoint.
+// NTP reference server or peer endpoint.
 host ntp_server {
     ip 10.123.55.1
     mac 00:1b:21:7b:01:01
 }
 
-// INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
+// NTPv4 modes on UDP 123: 3 (Client), 4 (Server).
 flow ntp_scenario_flow(c, s) {
     c -> s ntp li 0 vn 4 mode 3 stratum 3 poll 6 precision -19 txtimestamp 0xe9b4cd0000000000 wait 3ms
     c <- s ntp li 3 vn 4 mode 4 stratum 16 poll 6 precision -19 refid "INIT" txtimestamp 0xe9b4cd0000300000
 }
 
-// INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
 compile {
     ntp_scenario_flow(ntp_client, ntp_server)
 }

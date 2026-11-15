@@ -1,0 +1,11 @@
+// Minimal 2-block sFlow v5 starter emitting a default counter/flow datagram on UDP port 6343.
+// Derives the agent address from the sender IP automatically with zero flow boilerplate.
+// Compile to verify sFlow collector ingestion or firewall rules.
+// Wireshark: sflow
+
+host leaf_switch     { ip 10.250.10.1   mac 00:50:56:fa:00:01 }
+host sflow_collector { ip 10.250.10.100 mac 00:50:56:fa:00:64 }
+
+compile {
+    leaf_switch -> sflow_collector sflow
+}

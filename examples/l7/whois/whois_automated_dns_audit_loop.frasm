@@ -1,13 +1,11 @@
-// PROMPT: Automated domain registration audit loop verifying registry reachability.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// Automated domain registration audit loop verifying registry reachability.
+// Executes 3 sequential flow runs inside the compile block.
+// Wireshark: whois
 
-// INSTRUCTION: Define automated brand protection bot.
 host brand_bot { ip 172.29.5.12 }
 
-// INSTRUCTION: Define target domain registry.
 host target_whois_svr { ip 198.51.100.10 }
 
-// INSTRUCTION: Define recurring brand domain lookup flow.
 flow whois_audit_flow(c, s) {
     c -> s whois query domain "brandprotection.com"
     c <- s whois response
@@ -15,7 +13,6 @@ flow whois_audit_flow(c, s) {
         registrar "SafeNames Ltd"
 }
 
-// INSTRUCTION: Compile block executing 3 repeated domain audit queries.
 compile {
     whois_audit_flow(brand_bot, target_whois_svr) // cycle 1
     whois_audit_flow(brand_bot, target_whois_svr) // cycle 2

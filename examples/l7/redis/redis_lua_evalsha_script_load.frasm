@@ -1,13 +1,12 @@
-// PROMPT: Redis Lua script evaluation using EVALSHA and fallback SCRIPT LOAD on cache miss.
-// TOKENS: host, ip, flow, s, redis, cmd, args, wait, ms, compile
+// Redis Lua script evaluation using EVALSHA and fallback SCRIPT LOAD on cache
+// miss.
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: resp
 
-// INSTRUCTION: Define checkout service client.
 host checkout_svc { ip 172.24.0.15 }
 
-// INSTRUCTION: Define inventory Redis node.
 host inv_redis { ip 172.24.0.2 }
 
-// INSTRUCTION: Define EVALSHA NOSCRIPT error followed by SCRIPT LOAD and EVALSHA success.
 flow redis_lua_evalsha(c, s) {
     c -> s redis cmd "EVALSHA" args "a42059b356c875f0717db19a51f6aaca9ae659ea 1 stock:sku99 1" wait 2ms
     c <- s redis cmd "ERR" args "NOSCRIPT No matching script" wait 2ms
@@ -15,7 +14,6 @@ flow redis_lua_evalsha(c, s) {
     c -> s redis cmd "EVALSHA" args "a42059b356c875f0717db19a51f6aaca9ae659ea 1 stock:sku99 1"
 }
 
-// INSTRUCTION: Compile Redis Lua EVALSHA script flow.
 compile {
     redis_lua_evalsha(checkout_svc, inv_redis)
 }

@@ -1,25 +1,27 @@
-// PROMPT: RFC 5798 VRRP Preempt_Mode=False scenario where a lower-priority current Master (100) retains ownership despite higher-priority peer.
-// TOKENS: host, ip, mac, flow, vrrp, vrid, priority, advint, vip, version, dscp, ttl, payload, wait, ms, compile
+// RFC 5798 VRRP Preempt_Mode=False scenario where a lower-priority current
+// Master (100) retains ownership despite higher-priority peer.
+// This capture sets DSCP 48, TTL 255, carries VRID 88, and uses post-packet
+// wait gaps (100ms) between frames.
+// Wireshark: vrrp
 
-// INSTRUCTION: Define active VRRP Master (Priority 100) continuing to advertise while Preempt_Mode is disabled on peer.
 host non_preempt_master {
     ip 10.112.88.3
     mac 00:00:5e:00:01:58
 }
 
-// INSTRUCTION: Define recovered router (Priority 150) listening in Backup state with Preempt_Mode=False.
 host non_preempt_backup {
     ip 10.112.88.2
     mac 00:1c:73:70:88:02
 }
 
-// INSTRUCTION: Define steady VRRP Master advertisements at PRIORITY 100 preventing unnecessary flapping.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vrrp_non_preempt_stability(master, backup) {
     master -> backup vrrp vrid 88 priority 100 advint 100 vip 10.112.88.1 version 3 dscp 48 ttl 255 payload "NON_PREEMPT_ACTIVE_MASTER_100" wait 100ms
     master -> backup vrrp vrid 88 priority 100 advint 100 vip 10.112.88.1 version 3 dscp 48 ttl 255 payload "NON_PREEMPT_STABLE_HEARTBEAT"
 }
 
-// INSTRUCTION: Compile the VRRP non-preempt stability verification flow.
+// Run vrrp_non_preempt_stability(non_preempt_master, non_preempt_backup) to
+// generate the capture.
 compile {
     vrrp_non_preempt_stability(non_preempt_master, non_preempt_backup)
 }

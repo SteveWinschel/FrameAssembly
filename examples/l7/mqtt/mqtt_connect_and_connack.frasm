@@ -1,19 +1,17 @@
-// PROMPT: MQTT broker session initiation with CONNECT and CONNACK response.
-// TOKENS: host, ip, flow, s, mqtt, connect, clientid, connack, compile
+// MQTT broker session initiation with CONNECT and CONNACK response.
+// Wireshark: mqtt
+// Automatic Ethernet MAC addresses and TCP port 1883 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.2 }
 
-// INSTRUCTION: Define application traffic flow.
 flow mqtt_conn(c, s) {
     c -> s mqtt connect clientid "iot_sensor_1"
     c <- s mqtt connack
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     mqtt_conn(client, server)
 }

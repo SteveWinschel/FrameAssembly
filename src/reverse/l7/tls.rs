@@ -90,6 +90,9 @@ pub(crate) fn dissect_tls(payload: &[u8]) -> Option<ProtocolDissection> {
             }
         }
         1 | 2 => {
+            if !trailing.is_empty() {
+                return None;
+            }
             tokens.push_str(if hs_type == 1 {
                 " clienthello"
             } else {
@@ -125,31 +128,48 @@ pub(crate) fn dissect_tls(payload: &[u8]) -> Option<ProtocolDissection> {
 
             let mut sni_opt: Option<&str> = None;
             let mut alpn_opt: Option<&str> = None;
+            let mut ext_payload = Vec::new();
             if let Some(exts_len) = checked_be_u16(hs_body, pos) {
                 pos += 2;
-                let exts_end = pos.checked_add(exts_len as usize)?.min(hs_body.len());
-                while pos + 4 <= exts_end {
+                let exts_end = pos.checked_add(exts_len as usize)?;
+                if exts_end != hs_body.len() {
+                    return None;
+                }
+                while pos < exts_end {
                     let ext_type = checked_be_u16(hs_body, pos)?;
                     let ext_len = checked_be_u16(hs_body, pos + 2)? as usize;
                     pos += 4;
-                    let Some(ext_data) = hs_body.get(pos..pos.checked_add(ext_len)?) else {
-                        break;
-                    };
+                    let ext_end = pos.checked_add(ext_len)?;
+                    if ext_end > exts_end {
+                        return None;
+                    }
+                    let ext_data = hs_body.get(pos..ext_end)?;
                     if ext_type == 0x0000
+                        && sni_opt.is_none()
+                        && alpn_opt.is_none()
+                        && ext_payload.is_empty()
                         && let Some(nlen) = checked_be_u16(ext_data, 3)
-                        && let Some(nb) = ext_data.get(5..5usize.checked_add(nlen as usize)?)
-                        && let Ok(s) = core::str::from_utf8(nb)
+                        && 5usize.checked_add(nlen as usize) == Some(ext_data.len())
+                        && let Ok(s) = core::str::from_utf8(&ext_data[5..])
                     {
                         sni_opt = Some(s);
                     } else if ext_type == 0x0010
+                        && alpn_opt.is_none()
+                        && ext_payload.is_empty()
                         && let Some(&plen) = ext_data.get(2)
-                        && let Some(pb) = ext_data.get(3..3usize.checked_add(plen as usize)?)
-                        && let Ok(s) = core::str::from_utf8(pb)
+                        && 3usize.checked_add(plen as usize) == Some(ext_data.len())
+                        && let Ok(s) = core::str::from_utf8(&ext_data[3..])
                     {
                         alpn_opt = Some(s);
+                    } else if ext_type == 0xFFFF && ext_end == exts_end && !ext_data.is_empty() {
+                        ext_payload = ext_data.to_vec();
+                    } else {
+                        return None;
                     }
-                    pos += ext_len;
+                    pos = ext_end;
                 }
+            } else if pos != hs_body.len() {
+                return None;
             }
 
             if let Some(sni) = sni_opt {
@@ -161,7 +181,7 @@ pub(crate) fn dissect_tls(payload: &[u8]) -> Option<ProtocolDissection> {
             if let Some(alpn) = alpn_opt {
                 push_str_mod(&mut tokens, "alpn", alpn);
             }
-            residual_payload = trailing.to_vec();
+            residual_payload = ext_payload;
         }
         _ => return None,
     }

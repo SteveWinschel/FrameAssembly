@@ -1,32 +1,29 @@
-// PROMPT: Multi-hop IEEE 802.1w RSTP path cost accumulation from 400GbE spine (cost 50) to 10GbE leaf (cost 2050) to 1GbE access (cost 22050).
-// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, flags, wait, ms, compile
+// Multi-hop IEEE 802.1w RSTP path cost accumulation from 400GbE spine (cost 50)
+// to 10GbE leaf (cost 2050) to 1GbE access (cost 22050).
+// Wire profile: 3 frames; 3 IPv4 hosts; STP; waits 2ms.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define 400GbE core root bridge.
 host core_400g_root {
     ip 10.70.0.1
     mac 00:05:9a:70:00:01
 }
 
-// INSTRUCTION: Define 10GbE distribution switch accumulating 400GbE uplink cost 50.
 host dist_10g_sw {
     ip 10.70.0.2
     mac 00:05:9a:70:00:02
 }
 
-// INSTRUCTION: Define 1GbE wiring closet switch accumulating 10GbE uplink cost 2050.
 host closet_1g_sw {
     ip 10.70.0.3
     mac 00:05:9a:70:00:03
 }
 
-// INSTRUCTION: Define cascading RSTP BPDUs showing IEEE 802.1t 32-bit long path cost progression.
 flow rstp_cost_cascade(core, dist, closet) {
-    core -> dist stp rstp rootid "4096:00:05:9a:70:00:01" bridgeid "4096:00:05:9a:70:00:01" cost 0 portid 32769 flags 60
+    core -> dist stp rstp rootid "4096:00:05:9a:70:00:01" bridgeid "4096:00:05:9a:70:00:01" cost 0 portid 32769 flags 60 wait 2ms
     dist -> closet stp rstp rootid "4096:00:05:9a:70:00:01" bridgeid "8192:00:05:9a:70:00:02" cost 50 portid 32770 flags 60 wait 2ms
-    closet -> dist stp rstp rootid "4096:00:05:9a:70:00:01" bridgeid "32768:00:05:9a:70:00:03" cost 2050 portid 32771 flags 60 wait 2ms
+    closet -> dist stp rstp rootid "4096:00:05:9a:70:00:01" bridgeid "32768:00:05:9a:70:00:03" cost 2050 portid 32771 flags 60
 }
 
-// INSTRUCTION: Compile block executing multi-hop RSTP path cost cascade.
 compile {
     rstp_cost_cascade(core_400g_root, dist_10g_sw, closet_1g_sw)
 }

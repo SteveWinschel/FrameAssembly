@@ -1,18 +1,19 @@
-// PROMPT: Virtual Router Redundancy Protocol master router advertisement with VRID and priority.
-// TOKENS: host, ip, flow, vrrp, vrid, priority, compile
+// Virtual Router Redundancy Protocol master router advertisement with VRID
+// and priority.
+// This capture carries VRID 1.
+// Wireshark: vrrp
 
-// INSTRUCTION: Define primary master gateway router.
 host vrrp_master_gw { ip 192.168.1.254 }
 
-// INSTRUCTION: Define secondary backup gateway router.
 host vrrp_backup_gw { ip 192.168.1.253 }
 
-// INSTRUCTION: Define VRRP master router advertisement flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vrrp_master_flow(p, b) {
     p -> b vrrp vrid 1 priority 120
 }
 
-// INSTRUCTION: Compile block executing VRRP master advertisement.
+// Run vrrp_master_flow(vrrp_master_gw, vrrp_backup_gw) to generate the
+// capture.
 compile {
     vrrp_master_flow(vrrp_master_gw, vrrp_backup_gw)
 }

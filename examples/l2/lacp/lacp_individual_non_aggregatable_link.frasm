@@ -1,25 +1,23 @@
-// PROMPT: Individual non-aggregatable link LACP advertisement (Aggregation bit 0, ACTOR_STATE 0x39 = 57) for standalone port diagnostics.
-// TOKENS: host, ip, mac, flow, app, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, compile
+// Individual non-aggregatable link LACP advertisement (Aggregation bit 0,
+// actorstate 0x39 = 57) for standalone port diagnostics.
+// Wire profile: 2 frames; 2 IPv4 hosts; LACP; waits 5ms.
+// Wireshark: lacp
 
-// INSTRUCTION: Define diagnostic test appliance port configured as Individual link (non-aggregatable).
 host diag_appliance {
     ip 192.168.88.10
     mac 00:10:94:88:00:0a
 }
 
-// INSTRUCTION: Define switch port accepting Individual LACP link operating mode.
 host switch_diag_port {
     ip 192.168.88.1
     mac 00:10:94:88:00:01
 }
 
-// INSTRUCTION: Define LACP exchange with Aggregation bit cleared (ACTOR_STATE 57 = Active,InSync,Collect,Dist).
 flow lacp_individual_link_mode(app, sw) {
-    app -> sw lacp actorsys 00:10:94:88:00:0a actorkey 1 actorport 1 actorstate 57 partnersys 00:10:94:88:00:01 partnerkey 1 partnerport 9 partnerstate 57
-    app <- sw lacp actorsys 00:10:94:88:00:01 actorkey 1 actorport 9 actorstate 57 partnersys 00:10:94:88:00:0a partnerkey 1 partnerport 1 partnerstate 57 wait 5ms
+    app -> sw lacp actorsys 00:10:94:88:00:0a actorkey 1 actorport 1 actorstate 57 partnersys 00:10:94:88:00:01 partnerkey 1 partnerport 9 partnerstate 57 wait 5ms
+    app <- sw lacp actorsys 00:10:94:88:00:01 actorkey 1 actorport 9 actorstate 57 partnersys 00:10:94:88:00:0a partnerkey 1 partnerport 1 partnerstate 57
 }
 
-// INSTRUCTION: Compile block executing Individual non-aggregatable LACP link exchange.
 compile {
     lacp_individual_link_mode(diag_appliance, switch_diag_port)
 }

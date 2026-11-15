@@ -1,13 +1,13 @@
-// PROMPT: Cloud computing startup domain availability query in ccTLD io registry.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// Cloud computing startup domain availability query in ccTLD io registry.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define entrepreneur browser client.
 host startup_cli { ip 10.40.1.18 }
 
-// INSTRUCTION: Define IO registry authority.
 host io_registry { ip 193.223.78.42 }
 
-// INSTRUCTION: Define IO ccTLD WHOIS lookup flow.
 flow whois_io_flow(c, s) {
     c -> s whois query domain "cloudnative.io"
     c <- s whois response
@@ -15,7 +15,6 @@ flow whois_io_flow(c, s) {
         registrar "NameCheap Inc"
 }
 
-// INSTRUCTION: Compile block executing IO domain query.
 compile {
     whois_io_flow(startup_cli, io_registry)
 }

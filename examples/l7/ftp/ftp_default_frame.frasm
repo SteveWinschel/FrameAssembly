@@ -1,24 +1,19 @@
-// PROMPT: Default FTP control channel frame on TCP port 21 using automatic RFC 959 defaults.
-// TOKENS: host, ip, mac, flow, s, ftp, compile
+// FTP starter control command on TCP port 21 using built-in defaults.
+// Omitting extra keywords emits an ASCII 'USER anonymous' control-channel
+// request.
+// Wireshark: ftp
 
-// INSTRUCTION: Define FTP client workstation.
 host ftp_ws {
     ip 192.168.21.10
     mac 00:11:22:33:21:01
 }
 
-// INSTRUCTION: Define FTP archive server.
 host ftp_srv {
     ip 192.168.21.1
     mac 00:11:22:33:21:02
 }
 
-// INSTRUCTION: Emit a default FTP frame without explicit sub-keywords.
-flow ftp_default(c, s) {
-    c -> s ftp
-}
-
-// INSTRUCTION: Compile the default FTP scenario.
+// Send the frame directly in compile without needing a reusable flow block.
 compile {
-    ftp_default(ftp_ws, ftp_srv)
+    ftp_ws -> ftp_srv ftp
 }

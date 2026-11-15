@@ -32,17 +32,9 @@ pub fn build_igmp_payload(
         _ => 0x16_u8,       // IGMPv2 Membership Report (RFC 2236)
     };
     let (type_byte, max_resp, default_group) = match igmp_type {
-        IgmpType::Report => (
-            report_type,
-            0_u8,
-            if spec.version == Some(3) {
-                [224, 0, 0, 22]
-            } else {
-                [239, 1, 1, 1]
-            },
-        ),
-        IgmpType::Query => (0x11_u8, spec.max_resp.unwrap_or(100), [224, 0, 0, 1]), // General Query
-        IgmpType::Leave => (0x17_u8, 0_u8, [224, 0, 0, 2]), // Leave Group
+        IgmpType::Report => (report_type, 0_u8, [239, 1, 1, 1]),
+        IgmpType::Query => (0x11_u8, spec.max_resp.unwrap_or(100), [0, 0, 0, 0]), // General Query
+        IgmpType::Leave => (0x17_u8, 0_u8, [224, 0, 0, 2]),                       // Leave Group
     };
 
     let group_octets = match spec.group {
@@ -50,16 +42,33 @@ pub fn build_igmp_payload(
         _ => default_group,
     };
 
-    let mut igmp = Vec::with_capacity(8 + payload.len());
+    let mut igmp = Vec::with_capacity(16 + payload.len());
     igmp.push(type_byte);
     igmp.push(max_resp);
     igmp.extend_from_slice(&[0, 0]); // Checksum placeholder
-    igmp.extend_from_slice(&group_octets);
+    if type_byte == 0x22 {
+        // RFC 3376 §4.2 16-byte IGMPv3 Membership Report (1 Group Record: MODE_IS_EXCLUDE)
+        igmp.extend_from_slice(&[0, 0]); // Reserved
+        igmp.extend_from_slice(&1_u16.to_be_bytes()); // Number of Group Records = 1
+        igmp.push(0x02); // Record Type 2: MODE_IS_EXCLUDE
+        igmp.push(0x00); // Aux Data Len = 0
+        igmp.extend_from_slice(&0_u16.to_be_bytes()); // Number of Sources = 0
+        igmp.extend_from_slice(&group_octets);
+    } else {
+        igmp.extend_from_slice(&group_octets);
+    }
     igmp.extend_from_slice(payload);
 
     let cksum = internet_checksum(&[&igmp]);
     igmp[2..4].copy_from_slice(&cksum.to_be_bytes());
 
-    let dst_ip = IpAddr::V4(core::net::Ipv4Addr::from(group_octets));
+    let dst_octets = if type_byte == 0x22 {
+        [224, 0, 0, 22]
+    } else if igmp_type == IgmpType::Query && group_octets == [0, 0, 0, 0] {
+        [224, 0, 0, 1]
+    } else {
+        group_octets
+    };
+    let dst_ip = IpAddr::V4(core::net::Ipv4Addr::from(dst_octets));
     Ok((igmp, dst_ip, 2))
 }

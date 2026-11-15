@@ -1,25 +1,23 @@
-// PROMPT: Model a STUN Binding exchange encapsulated in double-tagged QinQ (S-VLAN 500, C-VLAN 50) for metro residential broadband.
-// TOKENS: host, mac, ip, flow, stun, bindingrequest, software, qinq, innervlan, bindingresponse, xormappedaddr, compile
+// Model a STUN Binding exchange encapsulated in double-tagged QinQ (S-VLAN
+// 500, C-VLAN 50) for metro residential broadband.
+// Encapsulation and QoS markings: 802.1ad QinQ outer 500 / inner 50.
+// Wireshark: stun && vlan
 
-// INSTRUCTION: Define host endpoint ont_voice.
 host ont_voice {
     mac 00:1a:a0:34:78:50
     ip 10.50.50.10
 }
 
-// INSTRUCTION: Define host endpoint bng_stun.
 host bng_stun {
     mac 00:1a:a0:34:78:01
     ip 10.50.50.1
 }
 
-// INSTRUCTION: Exchange STUN Binding Request and Response over QinQ 500/50.
 flow stun_qinq_metro_voice(ont_voice, bng_stun) {
     ont_voice -> bng_stun stun bindingrequest software "ONT-SIP-Agent/4.0" qinq 500 innervlan 50
     bng_stun -> ont_voice stun bindingresponse xormappedaddr 192.0.2.50 software "BNG-STUN-Daemon" qinq 500 innervlan 50
 }
 
-// INSTRUCTION: Compile the QinQ-tagged STUN Binding flow.
 compile {
     stun_qinq_metro_voice(ont_voice, bng_stun)
 }

@@ -1,25 +1,25 @@
-// PROMPT: SNMPv1 RFC 2819 RMON-MIB risingAlarm (SPECTRAP 1) and fallingAlarm (SPECTRAP 2) broadcast storm alerts.
-// TOKENS: host, ip, mac, flow, s, snmp1, trap, community, enterprise, agentip, gentrap, spectrap, sysuptime, varbind, int, wait, ms, compile
+// SNMPv1 RFC 2819 RMON-MIB risingAlarm (spectrap 1) and fallingAlarm
+// (spectrap 2) broadcast storm alerts.
+// MIB objects / traps: 1.3.6.1.2.1.16.0 (RMON-MIB), 1.3.6.1.2.1.16.3.1.1.6.1
+// (RMON-MIB).
+// Timing: pauses 15ms after each marked packet before sending the next frame.
+// Wireshark: snmp
 
-// INSTRUCTION: Define the RMON hardware probe agent.
 host rmon_probe {
     ip 10.145.70.9
     mac 00:1a:2b:91:70:09
 }
 
-// INSTRUCTION: Define the fault management trap sink.
 host fault_sink {
     ip 10.145.70.1
     mac 00:1a:2b:91:70:01
 }
 
-// INSTRUCTION: Emit RMON risingAlarm when broadcast pkt rate exceeds 5000 pps, followed by fallingAlarm when subsided.
 flow snmpv1_rmon_alarms(p, s) {
     p -> s snmp1 trap community "rmon_alert" enterprise 1.3.6.1.2.1.16.0 agentip 10.145.70.9 gentrap 6 spectrap 1 sysuptime 710000 varbind 1.3.6.1.2.1.16.3.1.1.6.1 int 7840 wait 15ms
     p -> s snmp1 trap community "rmon_alert" enterprise 1.3.6.1.2.1.16.0 agentip 10.145.70.9 gentrap 6 spectrap 2 sysuptime 711500 varbind 1.3.6.1.2.1.16.3.1.1.6.1 int 420
 }
 
-// INSTRUCTION: Compile the SNMPv1 RMON rising and falling alarm flow.
 compile {
     snmpv1_rmon_alarms(rmon_probe, fault_sink)
 }

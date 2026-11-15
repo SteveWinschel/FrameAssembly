@@ -1,18 +1,17 @@
-// PROMPT: mDNS discovery for SMB file shares over IPv6 link-local multicast ff02::fb.
-// TOKENS: host, ip, flow, mdns, query, txid, qname, qtype, compile
+// mDNS discovery for SMB file shares over IPv6 link-local multicast ff02::fb.
+// Wireshark: mdns
 
-// INSTRUCTION: Define IPv6 client workstation.
 host v6_workstation { ip fe80::20c:29ff:fe4a:1234 }
 
-// INSTRUCTION: Define IPv6 mDNS link-local multicast group.
+// IPv6 mDNS link-local multicast group.
 host v6_mdns_group { ip ff02::fb }
 
-// INSTRUCTION: Define SMB file share query flow.
+// SMB file share query flow. DNS wire details: record types PTR; multicast
+// 224.0.0.251 / ff02::fb UDP 5353 (TTL 255).
 flow smb_query_flow(w, g) {
     w -> g mdns query txid 3003 qname "_smb._tcp.local" qtype "ptr"
 }
 
-// INSTRUCTION: Compile IPv6 SMB discovery scenario.
 compile {
     smb_query_flow(v6_workstation, v6_mdns_group)
 }

@@ -1,25 +1,27 @@
-// PROMPT: AWS Gateway Load Balancer (GWLB) encapsulating customer VPC traffic in RFC 8926 GENEVE with Option Class 0x0108 (264).
-// TOKENS: host, ip, mac, flow, geneve, vni, optclass, opttype, protocoltype, srcport, dstport, df, ttl, payload, wait, ms, compile
+// AWS Gateway Load Balancer (GWLB) encapsulating customer VPC traffic in RFC
+// 8926 GENEVE with Option Class 0x0108 (264).
+// This capture sets TTL 64, DF bit set, carries VNI 1, destination port 6081,
+// and uses post-packet wait gaps (1ms) between frames.
+// Wireshark: geneve && geneve.vni == 1
 
-// INSTRUCTION: Define AWS Gateway Load Balancer ENI forwarding VPC flow to firewall appliance.
 host aws_gwlb_eni {
     ip 10.100.60.10
     mac 02:a1:b2:60:81:0a
 }
 
-// INSTRUCTION: Define partner Next-Gen Firewall virtual appliance returning inspected GENEVE packet.
 host ngfw_partner_appliance {
     ip 10.100.60.50
     mac 02:a1:b2:60:81:32
 }
 
-// INSTRUCTION: Define AWS GWLB GENEVE hairpin with OPT_CLASS 264 (AWS) and PROTOCOL_TYPE 0x0800 (2048 IPv4).
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow geneve_aws_gwlb_hairpin(gwlb, fw) {
     gwlb -> fw geneve vni 1 optclass 264 opttype 1 protocoltype 2048 srcport 49800 dstport 6081 df ttl 64 payload "AWS_GWLBE_ENI_ID_FLOW_COOKIE_INGRESS" wait 1ms
     gwlb <- fw geneve vni 1 optclass 264 opttype 1 protocoltype 2048 srcport 49800 dstport 6081 df ttl 64 payload "AWS_GWLBE_ENI_ID_FLOW_COOKIE_INSPECTED_OK"
 }
 
-// INSTRUCTION: Compile the AWS Gateway Load Balancer GENEVE inspection hairpin flow.
+// Run geneve_aws_gwlb_hairpin(aws_gwlb_eni, ngfw_partner_appliance) to
+// generate the capture.
 compile {
     geneve_aws_gwlb_hairpin(aws_gwlb_eni, ngfw_partner_appliance)
 }

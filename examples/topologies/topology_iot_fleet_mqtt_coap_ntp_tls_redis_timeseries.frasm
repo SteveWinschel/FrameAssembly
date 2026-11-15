@@ -1,18 +1,18 @@
-// PROMPT: Industrial IoT fleet telemetry pipeline combining NTP stratum-1 synchronization, CoAP constrained sensor collection, TLS-wrapped MQTT cloud publish, and Redis timeseries ingest.
-// TOKENS: host, ip, flow, ntp, vn, mode, stratum, wait, ms, coap, con, code, msgid, uripath, payload, ack, tls, clienthello, sni, serverhello, mqtt, connect, clientid, connack, publish, compile
+// Industrial IoT fleet telemetry pipeline combining NTP stratum-1
+// synchronization, CoAP constrained sensor collection, TLS-wrapped MQTT cloud
+// publish, and Redis timeseries ingest.
+// Wire profile: 10 frames; 3 IPv4 hosts; NTP, TLS, Redis, MQTT, CoAP; TCP flags
+// ACK; waits 1ms.
+// Wireshark: ntp || tls || resp || mqtt
 
-// INSTRUCTION: Define constrained smart factory vibration sensor node.
 host coap_sensor_node { ip 10.140.10.25 }
 
-// INSTRUCTION: Define local IoT edge gateway bridging CoAP to MQTT over TLS.
 host iot_edge_gateway { ip 10.140.10.1 }
 
-// INSTRUCTION: Define cloud MQTT broker, NTP server, and Redis timeseries store.
 host cloud_iot_core { ip 10.140.200.50 }
 
-// INSTRUCTION: Define NTP sync, CoAP sensor report, TLS handshake, MQTT telemetry publish, and Redis XADD stream append.
 flow iot_fleet_telemetry_pipeline(sensor, gw, cloud) {
-    gw -> cloud ntp vn 4 mode 3 stratum 2
+    gw -> cloud ntp vn 4 mode 3 stratum 2 wait 1ms
     gw <- cloud ntp vn 4 mode 4 stratum 1 wait 1ms
     sensor -> gw coap con code "0.02" msgid 401 uripath "sensors/vibration" payload "{\"rms_mm_s\":2.45}" wait 1ms
     sensor <- gw coap ack code "2.04" msgid 401 wait 1ms
@@ -21,10 +21,9 @@ flow iot_fleet_telemetry_pipeline(sensor, gw, cloud) {
     gw -> cloud mqtt connect clientid "edge-gw-plant04" wait 1ms
     gw <- cloud mqtt connack wait 1ms
     gw -> cloud mqtt publish topic "factory/plant04/vibration" qos 1 payload "{\"rms_mm_s\":2.45,\"ts\":1729850000}" wait 1ms
-    gw -> cloud redis cmd "XADD" args "ts:plant04:vibration * rms 2.45" wait 1ms
+    gw -> cloud redis cmd "XADD" args "ts:plant04:vibration * rms 2.45"
 }
 
-// INSTRUCTION: Compile block executing IoT fleet NTP, CoAP, TLS, MQTT, and Redis topology.
 compile {
     iot_fleet_telemetry_pipeline(coap_sensor_node, iot_edge_gateway, cloud_iot_core)
 }

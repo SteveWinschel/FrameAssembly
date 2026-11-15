@@ -1,19 +1,21 @@
-// PROMPT: BACnet/IP ReadProperty on an Accumulator object (Object Type 23) reading chilled water pulse meter totals.
-// TOKENS: host, ip, mac, flow, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, value, wait, ms, compile
+// BACnet/IP ReadProperty on an Accumulator object (Object Type 23) reading
+// chilled water pulse meter totals.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the campus energy management server.
 host ems_collector {
     ip 10.120.10.5
     mac 00:1a:2b:78:10:05
 }
 
-// INSTRUCTION: Define the mechanical room BACnet pulse counter gateway.
+// Mechanical room BACnet pulse counter gateway.
 host water_meter_gw {
     ip 10.120.10.80
     mac 00:1a:2b:78:10:80
 }
 
-// INSTRUCTION: Read Present_Value (Property 85) and Status_Flags (Property 111) from Accumulator Object Type 23 Instance 1.
+// Read Present_Value (Property 85) and Status_Flags (Property 111) from
+// Accumulator Object Type 23 Instance 1. BACnet/IP on UDP 47808 (objects: 23
+// (Accumulator); properties: 85 (Present_Value), 111 (Status_Flags)).
 flow bacnet_accumulator_read(c, g) {
     c -> g bacnet readproperty invokeid 21 objecttype 23 objectinstance 1 propertyid 85
     c <- g bacnet readproperty invokeid 21 objecttype 23 objectinstance 1 propertyid 85 value 482910 wait 2ms
@@ -21,7 +23,6 @@ flow bacnet_accumulator_read(c, g) {
     c <- g bacnet readproperty invokeid 22 objecttype 23 objectinstance 1 propertyid 111 value 0
 }
 
-// INSTRUCTION: Compile the BACnet accumulator water meter flow.
 compile {
     bacnet_accumulator_read(ems_collector, water_meter_gw)
 }

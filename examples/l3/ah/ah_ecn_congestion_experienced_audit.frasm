@@ -1,26 +1,28 @@
-// PROMPT: RFC 4302 IPsec AH verifying that mutable ECN bits (RFC 3168) do not invalidate immutable header authentication.
-// TOKENS: host, ip, mac, flow, src, dst, ah, spi, seq, nextheader, icv, dscp, ecn, df, ttl, payload, wait, ms, compile
+// RFC 4302 IPsec AH verifying that mutable ECN bits (RFC 3168) do not
+// invalidate immutable header authentication.
+// This capture sets DSCP 18, TTL 60, DF bit set, carries SPI 60510/60511, and
+// uses post-packet wait gaps (5ms) between frames.
+// Wireshark: ah
 
-// INSTRUCTION: Define data center storage replication source using AH integrity.
 host dc_storage_src {
     ip 10.120.51.10
     mac 00:25:b5:51:10:01
 }
 
-// INSTRUCTION: Define DR site storage target observing ECN Congestion Experienced (CE = 3).
 host dr_storage_dst {
     ip 10.120.51.20
     mac 00:25:b5:51:20:02
 }
 
-// INSTRUCTION: Define AH flow transitioning from ECN ECT(0) (2) to ECN CE (3) under congestion.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow ah_ecn_mutable_field_flow(src, dst) {
     src -> dst ah spi 60510 seq 1 nextheader 6 icv "abcdef0123456789abcdef01" dscp 18 ecn 2 df ttl 60 payload "STORAGE_BLOCK_REPL_SEQ1" wait 5ms
     src -> dst ah spi 60510 seq 2 nextheader 6 icv "01efcdab8967452301efcdab" dscp 18 ecn 3 df ttl 60 payload "STORAGE_BLOCK_REPL_SEQ2_CONGESTED" wait 5ms
     src <- dst ah spi 60511 seq 1 nextheader 6 icv "1032547698badcfe10325476" dscp 18 ecn 0 df ttl 60 payload "STORAGE_BLOCK_ECE_FEEDBACK"
 }
 
-// INSTRUCTION: Compile the AH ECN mutable field congestion test flow.
+// Run ah_ecn_mutable_field_flow(dc_storage_src, dr_storage_dst) to generate
+// the capture.
 compile {
     ah_ecn_mutable_field_flow(dc_storage_src, dr_storage_dst)
 }

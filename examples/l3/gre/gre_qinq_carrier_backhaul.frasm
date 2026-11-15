@@ -1,19 +1,19 @@
-// PROMPT: 802.1ad QinQ double-tagged GRE backhaul tunnel across a carrier wholesale network.
-// TOKENS: host, ip, flow, gre, grekey, greseq, checksum, qinq, innervlan, compile
+// 802.1ad QinQ double-tagged GRE backhaul tunnel across a carrier wholesale
+// network.
+// This capture wraps frames in QinQ S-VLAN 2400 / C-VLAN 47.
+// Wireshark: gre
 
-// INSTRUCTION: Define cell site backhaul router.
 host cell_bBU_gre { ip 172.24.47.1 }
 
-// INSTRUCTION: Define mobile packet core gateway.
 host epc_core_gre { ip 172.24.47.2 }
 
-// INSTRUCTION: Define QinQ double-tagged GRE tunnel with S-VLAN 2400 and C-VLAN 47.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow gre_qinq_backhaul(cell, epc) {
     cell -> epc gre grekey 9900 greseq 1 checksum qinq 2400 innervlan 47
     cell <- epc gre grekey 9900 greseq 1 checksum qinq 2400 innervlan 47
 }
 
-// INSTRUCTION: Compile the QinQ carrier backhaul GRE flow.
+// Run gre_qinq_backhaul(cell_bBU_gre, epc_core_gre) to generate the capture.
 compile {
     gre_qinq_backhaul(cell_bBU_gre, epc_core_gre)
 }

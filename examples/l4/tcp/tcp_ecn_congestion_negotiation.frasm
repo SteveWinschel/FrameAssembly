@@ -1,23 +1,22 @@
-// PROMPT: Simulate Explicit Congestion Notification (ECN) negotiation and congestion window reduction using TCP SYN, ECE, CWR, and ACK flags.
-// TOKENS: host, ip, mac, flow, sender, receiver, tcp, syn, ece, cwr, srcport, dstport, win, wait, ms, ack, psh, payload, compile
+// Simulate Explicit Congestion Notification (ECN) negotiation and congestion
+// window reduction using TCP SYN, ECE, CWR, and ACK flags.
+// Wire profile: 6 frames; 2 IPv4 hosts; TCP; TCP flags SYN/ACK/PSH/ECE/CWR;
+// dstport 9000,55000; waits 1ms, 2ms.
+// Wireshark: (tcp.port == 9000 || tcp.port == 55000) && tcp.flags.ece == 1 || tcp.flags.cwr == 1
 
-// INSTRUCTION: Define a data center sender host with IP 10.100.1.10 and MAC 00:25:90:aa:bb:01.
 host dc_sender { ip 10.100.1.10 mac 00:25:90:aa:bb:01 }
 
-// INSTRUCTION: Define a data center receiver host with IP 10.100.1.20 and MAC 00:25:90:aa:bb:02.
 host dc_receiver { ip 10.100.1.20 mac 00:25:90:aa:bb:02 }
 
-// INSTRUCTION: Define a flow negotiating ECN capability (SYN+ECE+CWR, SYN+ACK+ECE) followed by an ECN-Echo and CWR response.
 flow ecn_congestion_control(sender, receiver) {
     sender -> receiver tcp syn ece cwr srcport 55000 dstport 9000 win 65535 wait 1ms
     sender <- receiver tcp syn ack ece srcport 9000 dstport 55000 win 65535 wait 1ms
     sender -> receiver tcp ack srcport 55000 dstport 9000 win 65535 wait 1ms
     sender -> receiver tcp psh ack srcport 55000 dstport 9000 payload "RDMA_BULK_BLOCK_01" wait 2ms
     sender <- receiver tcp ack ece srcport 9000 dstport 55000 win 32768 wait 1ms
-    sender -> receiver tcp psh ack cwr srcport 55000 dstport 9000 win 32768 payload "RDMA_BULK_BLOCK_02_THROTTLED" wait 2ms
+    sender -> receiver tcp psh ack cwr srcport 55000 dstport 9000 win 32768 payload "RDMA_BULK_BLOCK_02_THROTTLED"
 }
 
-// INSTRUCTION: Compile block to execute the ECN congestion control flow.
 compile {
     ecn_congestion_control(dc_sender, dc_receiver)
 }

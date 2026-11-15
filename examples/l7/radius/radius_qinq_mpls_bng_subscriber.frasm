@@ -1,19 +1,19 @@
-// PROMPT: Broadband BNG PPPoE subscriber RADIUS accounting over QinQ and MPLS core.
-// TOKENS: host, ip, flow, acct, radius, accountingrequest, user, nasip, framedip, qinq, innervlan, mpls, exp, bos, mplsttl, accountingresponse, compile
+// Broadband BNG PPPoE subscriber RADIUS accounting over QinQ and MPLS core.
+// Encapsulation and QoS markings: 802.1ad QinQ outer 3000 / inner 181, MPLS
+// label 18130, 18131.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting
+// (accountingrequest, accountingresponse).
+// Wireshark: (radius && vlan) && mpls
 
-// INSTRUCTION: Define Broadband Network Gateway (BNG) router.
 host bng_router { ip 100.64.18.2 }
 
-// INSTRUCTION: Define ISP central RADIUS accounting cluster.
 host isp_acct { ip 100.64.18.100 }
 
-// INSTRUCTION: Define subscriber interim accounting update over QinQ and MPLS.
 flow radius_bng_mpls(bng, acct) {
     bng -> acct radius accountingrequest user "sub_ftth_9021" nasip 100.64.18.2 framedip 198.51.100.88 qinq 3000 innervlan 181 mpls 18130 exp 5 bos 1 mplsttl 64
     bng <- acct radius accountingresponse user "sub_ftth_9021" qinq 3000 innervlan 181 mpls 18131 exp 5 bos 1 mplsttl 63
 }
 
-// INSTRUCTION: Compile ISP BNG QinQ + MPLS RADIUS accounting flow.
 compile {
     radius_bng_mpls(bng_router, isp_acct)
 }

@@ -1,19 +1,20 @@
-// PROMPT: Periodic IGMP General Query and host Membership Report executed in a COMPILE repeated flow calls.
-// TOKENS: host, ip, flow, igmp, query, group, maxresp, ttl, wait, ms, report, compile
+// Periodic IGMP General Query and host Membership Report repeated across
+// multiple cycles in compile.
+// This capture sets TTL 1, carries group 0.0.0.0/239.55.1.1, executes 4
+// cycles in compile, and uses post-packet wait gaps (15ms) between frames.
+// Wireshark: igmp
 
-// INSTRUCTION: Define designated IGMP querier switch.
 host igmp_loop_querier { ip 192.168.55.1 }
 
-// INSTRUCTION: Define active multicast listener node.
 host igmp_loop_listener { ip 192.168.55.20 }
 
-// INSTRUCTION: Define periodic IGMP General Query and listener Report cycle.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow igmp_periodic_poll(q, l) {
     q -> l igmp query group 0.0.0.0 maxresp 100 ttl 1 wait 15ms
     q <- l igmp report group 239.55.1.1 ttl 1 wait 15ms
 }
 
-// INSTRUCTION: Compile 4 consecutive IGMP query/report poll intervals.
+// Emit 4 sequential cycles of igmp_periodic_poll.
 compile {
     igmp_periodic_poll(igmp_loop_querier, igmp_loop_listener) // cycle 1
     igmp_periodic_poll(igmp_loop_querier, igmp_loop_listener) // cycle 2

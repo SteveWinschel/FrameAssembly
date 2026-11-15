@@ -1,19 +1,23 @@
-// PROMPT: Simulate a TACACS+ authorization request and response permitting BGP route-map modification on a core router.
-// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, ack, tacacs, type, author, seq, flags, sessionid, user, payload, wait, ms, compile
+// Simulate a TACACS+ authorization request and response permitting BGP
+// route-map modification on a core router.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// TACACS+ on TCP 49 (author; flags 1 keeps TACACS+ unencrypted for cleartext
+// Wireshark inspection).
+// Overrides destination port to 49.
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: tacplus
 
-// INSTRUCTION: Define the core BGP router NAS requesting command authorization.
 host bgp_core_nas {
     ip 10.240.1.10
     mac 00:1b:21:f0:01:0a
 }
 
-// INSTRUCTION: Define the central TACACS+ policy server evaluating network operator privileges.
 host tacacs_policy_srv {
     ip 10.240.1.200
     mac 00:1b:21:f0:01:c8
 }
 
-// INSTRUCTION: Establish TCP port 49 and authorize the route-map configuration command.
 flow tacacs_bgp_policy_author(nas, srv) {
     nas -> srv tcp syn srcport 52049 dstport 49
     nas <- srv tcp syn ack
@@ -22,7 +26,6 @@ flow tacacs_bgp_policy_author(nas, srv) {
     nas <- srv tacacs type author seq 2 flags 1 sessionid 774101 user "routing_eng" payload "AUTHOR_STATUS_PASS_ADD"
 }
 
-// INSTRUCTION: Compile the TACACS+ BGP route-map command authorization flow.
 compile {
     tacacs_bgp_policy_author(bgp_core_nas, tacacs_policy_srv)
 }

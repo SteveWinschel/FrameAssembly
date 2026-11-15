@@ -1,25 +1,24 @@
-// PROMPT: SNMPv3 noAuthNoPriv INFORM request and RESPONSE acknowledgment with explicit USM EngineID and ContextName.
-// TOKENS: host, ip, mac, flow, m, snmp3, inform, user, reqid, engineid, contextname, sysuptime, oid, varbind, int, response, compile
+// SNMPv3 noAuthNoPriv INFORM request and RESPONSE acknowledgment with
+// explicit USM EngineID and ContextName.
+// Targets SNMPv3 MIB context(s): lab_vrf.
+// MIB objects / traps: 1.3.6.1.6.3.1.1.5.4 (linkUp).
+// Wireshark: snmp
 
-// INSTRUCTION: Define the branch lab SNMPv3 agent sending unauthenticated informs.
 host lab_v3_agent {
     ip 10.147.40.50
     mac 00:1a:2b:93:40:50
 }
 
-// INSTRUCTION: Define the lab management trap/inform receiver.
 host lab_nms {
     ip 10.147.40.1
     mac 00:1a:2b:93:40:01
 }
 
-// INSTRUCTION: Send an SNMPv3 noAuthNoPriv INFORM in context lab_vrf and receive SNMPv3 RESPONSE confirmation.
 flow snmpv3_noauth_inform(a, m) {
     a -> m snmp3 inform user "lab_notify" reqid 6500 engineid "80001f88" contextname "lab_vrf" sysuptime 480000 oid 1.3.6.1.6.3.1.1.5.4 varbind 1.3.6.1.2.1.2.2.1.1.5 int 5
     a <- m snmp3 response user "lab_notify" reqid 6500 engineid "80001f88" contextname "lab_vrf" varbind 1.3.6.1.2.1.2.2.1.1.5 int 5
 }
 
-// INSTRUCTION: Compile the SNMPv3 noAuthNoPriv INFORM flow.
 compile {
     snmpv3_noauth_inform(lab_v3_agent, lab_nms)
 }

@@ -1,13 +1,16 @@
-// PROMPT: Demonstrate all 9 supported FrameAssembly VARBIND value types (NULLVAL, STRING, INT, TIMETICKS, IPVAL, OIDVAL, COUNTER32, GAUGE32, COUNTER64) within a single.
-// TOKENS: host, ip, mac, flow, snmp2, get, community, reqid, varbind, nullval, wait, ms, response, string, int, timeticks, ipval, oidval, counter32, gauge32, counter64, compile
+// Demonstrate all 9 supported FrameAssembly varbind value types (NULLVAL,
+// STRING, INT, TimeTicks, IpAddress, OID, Counter32, Gauge32, Counter64)
+// within a single.
+// MIB objects / traps: 1.3.6.1.2.1.1.1.0 (sysDescr.0), 1.3.6.1.2.1.1.4.0
+// (sysContact.0), 1.3.6.1.2.1.1.5.0 (sysName.0), 1.3.6.1.2.1.1.3.0
+// (sysUpTime.0).
+// Timing: pauses 10ms after each marked packet before sending the next frame.
+// Wireshark: snmp
 
-// INSTRUCTION: Define a comprehensive MIB test client with IP 10.127.0.10.
 host mib_tester { ip 10.127.0.10 mac 00:16:3e:27:00:10 }
 
-// INSTRUCTION: Define a reference SNMPv2c agent with IP 10.127.0.20.
 host ref_snmp_agent { ip 10.127.0.20 mac 00:16:3e:27:00:20 }
 
-// INSTRUCTION: Define a flow that sends an SNMPv2c GET and receives a RESPONSE containing all 9 VarBind data types.
 flow snmpv2c_all_nine_varbinds(tester, agent) {
     tester -> agent snmp2 get community "all_types" reqid 9999
         varbind 1.3.6.1.2.1.1.1.0 nullval
@@ -25,7 +28,6 @@ flow snmpv2c_all_nine_varbinds(tester, agent) {
         wait 10ms
 }
 
-// INSTRUCTION: Compile block to execute the 9-varbind SNMPv2c showcase flow.
 compile {
     snmpv2c_all_nine_varbinds(mib_tester, ref_snmp_agent)
 }

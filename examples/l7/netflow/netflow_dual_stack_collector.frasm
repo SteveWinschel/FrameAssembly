@@ -1,18 +1,15 @@
-// PROMPT: NetFlow telemetry export sent over an IPv6 network underlay.
-// TOKENS: host, ip, flow, s, netflow, srcip, dstip, proto, packets, octets, compile
+// NetFlow telemetry export sent over an IPv6 network underlay.
+// Wireshark: cflow || udp.port == 2055
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8:1::1 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8:1::254 }
 
-// INSTRUCTION: Define application traffic flow.
+// Reports IP protocol 17 (UDP) flow records to UDP 2055.
 flow netflow_v6(c, s) {
     c -> s netflow srcip 10.1.1.50 dstip 10.2.2.50 proto 17 packets 12 octets 1500
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     netflow_v6(client, server)
 }

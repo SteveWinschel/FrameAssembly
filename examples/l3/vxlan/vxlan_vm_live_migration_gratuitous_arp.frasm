@@ -1,25 +1,27 @@
-// PROMPT: VMware vMotion / KVM Live Migration transmitting a Gratuitous ARP over VXLAN VNI 15000 to update remote VTEP MAC tables.
-// TOKENS: host, ip, mac, flow, target, vxlan, vni, srcport, dstport, df, dscp, ttl, payload, wait, ms, compile
+// VMware vMotion / KVM Live Migration transmitting a Gratuitous ARP over
+// VXLAN VNI 15000 to update remote VTEP MAC tables.
+// This capture sets DSCP 26/48, TTL 64, DF bit set, carries VNI 15000,
+// destination port 4789, and uses post-packet wait gaps (2ms) between frames.
+// Wireshark: vxlan && vxlan.vni == 15000
 
-// INSTRUCTION: Define target hypervisor VTEP where migrated VM has just resumed execution.
 host vmotion_target_vtep {
     ip 10.255.15.20
     mac 00:50:56:15:00:14
 }
 
-// INSTRUCTION: Define remote Leaf VTEP updating its EVPN MAC table with EVPN seq mobility attribute.
 host vmotion_remote_vtep {
     ip 10.255.15.10
     mac 00:50:56:15:00:0a
 }
 
-// INSTRUCTION: Define VXLAN Gratuitous ARP broadcast announcing VM MAC move to vmotion_target_vtep.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vxlan_vmotion_garp_announce(target, remote) {
     target -> remote vxlan vni 15000 srcport 55000 dstport 4789 df dscp 48 ttl 64 payload "GARP_VM_10_15_0_99_MOVED_SEQ_2" wait 2ms
     target <- remote vxlan vni 15000 srcport 55001 dstport 4789 df dscp 26 ttl 64 payload "RESUMED_TCP_STREAM_TO_NEW_VTEP"
 }
 
-// INSTRUCTION: Compile the VM live migration Gratuitous ARP over VXLAN flow.
+// Run vxlan_vmotion_garp_announce(vmotion_target_vtep, vmotion_remote_vtep)
+// to generate the capture.
 compile {
     vxlan_vmotion_garp_announce(vmotion_target_vtep, vmotion_remote_vtep)
 }

@@ -1,26 +1,28 @@
-// PROMPT: Capture an IPv6 smart-home hub registering for link-local mDNSv6 (ff02::fb) and SSDPv6 (ff02::c) via MLD Reports
-// TOKENS: host, ip, mac, flow, router, mld, report, multicastaddr, maxrespdelay, ttl, payload, wait, ms, query, compile
+// Capture an IPv6 smart-home hub registering for link-local mDNSv6 (ff02::fb)
+// and SSDPv6 (ff02::c) via MLD Reports.
+// This capture targets IPv6 endpoints, sets TTL 1, and uses post-packet wait
+// gaps (15ms, 25ms) between frames.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define the IPv6 smart-home IoT controller
 host iot_hub_v6 {
     ip fe80::99:10
     mac 00:0f:53:cc:99:10
 }
 
-// INSTRUCTION: Define the home router MLD querier
 host home_router_v6 {
     ip fe80::99:1
     mac 00:0f:53:cc:99:01
 }
 
-// INSTRUCTION: Join link-local service discovery multicast groups ff02::fb and ff02::c
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow mld_service_discovery_join(hub, router) {
     hub -> router mld report multicastaddr ff02::fb maxrespdelay 0 ttl 1 payload "mdnsv6-listener-join" wait 15ms
     hub -> router mld report multicastaddr ff02::c maxrespdelay 0 ttl 1 payload "ssdpv6-listener-join" wait 25ms
     router -> hub mld query multicastaddr :: maxrespdelay 2000 ttl 1
 }
 
-// INSTRUCTION: Compile the mDNSv6 and SSDPv6 MLD registration sequence
+// Run mld_service_discovery_join(iot_hub_v6, home_router_v6) to generate the
+// capture.
 compile {
     mld_service_discovery_join(iot_hub_v6, home_router_v6)
 }

@@ -1,13 +1,13 @@
-// PROMPT: Enterprise SBC performing STUN keepalive probe on UDP 3478.
-// TOKENS: host, ip, flow, s, stun, bindingrequest, software, bindingresponse, xormappedaddr, compile
+// Enterprise SBC performing STUN keepalive probe on UDP 3478.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (STUN (RFC
+// 8489), UDP 3478).
+// Wireshark: stun
 
-// INSTRUCTION: Define internal Session Border Controller.
 host internal_sbc { ip 10.50.200.5 }
 
-// INSTRUCTION: Define public carrier SBC edge.
 host carrier_sbc { ip 203.0.113.120 }
 
-// INSTRUCTION: Define SBC trunk binding validation flow.
 flow stun_sbc_flow(c, s) {
     c -> s stun bindingrequest software "Audiocodes-Mediant-SBC"
     c <- s stun bindingresponse
@@ -15,7 +15,6 @@ flow stun_sbc_flow(c, s) {
         software "Carrier-Edge-SBC-v7"
 }
 
-// INSTRUCTION: Compile block executing SBC binding exchange.
 compile {
     stun_sbc_flow(internal_sbc, carrier_sbc)
 }

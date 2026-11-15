@@ -12,7 +12,7 @@ use winnow::prelude::*;
 
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::parser::{parse_str_val, parse_u8, parse_u64, tag, ParsedField, Stream};
+use crate::parser::{ParsedField, Stream, parse_str_val, parse_u8, parse_u32, parse_u64, tag};
 
 /// Parses a TACACS+ protocol declaration or session field.
 pub(crate) fn parse_tacacs_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
@@ -40,7 +40,10 @@ pub(crate) fn parse_tacacs_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<
         alt((
             tag(Token::Acct)
                 .map(|(_, s)| ParsedField::L7StringField("TACACS_TYPE", "ACCT", (s.start, s.len()))),
-            (tag(Token::Flags), parse_u8)
+            (tag(Token::Seq), cut_err(parse_u32)).map(|((_, s), v)| {
+                ParsedField::L7U32Field("TACACS_SEQ", v, (s.start, s.end - s.start))
+            }),
+            (tag(Token::Flags), cut_err(parse_u8))
                 .map(|((_, s), v)| ParsedField::FlagsByte(v, (s.start, s.end - s.start))),
             (tag(Token::SessionId), cut_err(parse_u64)).map(|((_, s), v)| {
                 ParsedField::L7U64Field("SESSION_ID", v, (s.start, s.end - s.start))

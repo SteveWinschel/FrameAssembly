@@ -1,27 +1,26 @@
-// PROMPT: Carrier MPLS L3VPN backbone with LLDP neighbor discovery, LACP trunking, OSPF IGP, BGP VPNv4 route reflection, MPLS label stacking, and BFD fast reroute.
-// TOKENS: host, ip, mac, flow, lldp, chassisid, portid, sysname, lacp, actorsys, actorkey, actorport, actorstate, wait, ms, ospf, hello, routerid, areaid, bfd, mydisc, yourdisc, mintx, minrx, compile
+// Carrier MPLS L3VPN backbone with LLDP neighbor discovery, LACP trunking, OSPF
+// IGP, BGP VPNv4 route reflection, MPLS label stacking, and BFD fast reroute.
+// Wire profile: 9 frames; 3 IPv4 hosts; MPLS label 24001,24002; ICMP, OSPF, BGP,
+// BFD, LACP (+1 more); waits 1ms.
+// Wireshark: icmp || ospf || bgp || bfd
 
-// INSTRUCTION: Define ingress Provider Edge router PE1.
 host carrier_pe1 {
     ip 10.255.0.1
     mac 00:05:85:ff:00:01
 }
 
-// INSTRUCTION: Define core Label Switch Router P1.
 host carrier_core_p1 {
     ip 10.255.0.2
     mac 00:05:85:ff:00:02
 }
 
-// INSTRUCTION: Define egress Provider Edge router PE2.
 host carrier_pe2 {
     ip 10.255.0.3
     mac 00:05:85:ff:00:03
 }
 
-// INSTRUCTION: Define LLDP/LACP link bring-up, OSPF/BFD control plane, BGP VPNv4 update, and MPLS-labeled data path.
 flow carrier_mpls_l3vpn_frr(pe1, p1, pe2) {
-    pe1 -> p1 lldp chassisid "pe1.core.net" portid "et-0/0/0" sysname "PE1-NY"
+    pe1 -> p1 lldp chassisid "pe1.core.net" portid "et-0/0/0" sysname "PE1-NY" wait 1ms
     pe1 -> p1 lacp actorsys 00:05:85:ff:00:01 actorkey 10 actorport 1 actorstate 61 wait 1ms
     pe1 -> p1 ospf hello routerid 10.255.0.1 areaid 0 wait 1ms
     pe1 <- p1 ospf hello routerid 10.255.0.2 areaid 0 wait 1ms
@@ -29,10 +28,9 @@ flow carrier_mpls_l3vpn_frr(pe1, p1, pe2) {
     pe1 -> pe2 bgp update prefix "172.16.100.0/24" nexthop 10.255.0.1 wait 1ms
     pe1 -> p1 mpls 24001 exp 6 bos 1 mplsttl 63 icmp echorequest wait 1ms
     p1 -> pe2 mpls 24002 exp 6 bos 1 mplsttl 62 icmp echorequest wait 1ms
-    pe1 <- pe2 mpls 24001 exp 6 bos 1 mplsttl 62 icmp echoreply wait 1ms
+    pe1 <- pe2 mpls 24001 exp 6 bos 1 mplsttl 62 icmp echoreply
 }
 
-// INSTRUCTION: Compile block executing carrier MPLS L3VPN and BFD fast reroute topology.
 compile {
     carrier_mpls_l3vpn_frr(carrier_pe1, carrier_core_p1, carrier_pe2)
 }

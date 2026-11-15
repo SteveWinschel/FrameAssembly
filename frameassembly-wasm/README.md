@@ -1,4 +1,4 @@
-# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v3.0.0)
+# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v3.1.0)
 
 [![Website & Playground](https://img.shields.io/badge/web%20app-frameassembly.ai.studio-0ea5e9.svg)](https://frameassembly.ai.studio/)
 [![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
@@ -6,13 +6,13 @@
 
 [**Try in Browser (`frameassembly.ai.studio`)**](https://frameassembly.ai.studio/) • [**Installation**](#installation) • [**Vite, React & Next.js**](#initialization-vite-react-nextjs--google-ai-studio) • [**API Reference**](#api-reference)
 
-WebAssembly compiler, `.pcap`/`.pcapng`-to-`.frasm` decompiler, packet ladder inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.frasm` v3.0.0)** — compiling `.frasm` code into `.pcapng` packet captures and decompiling existing captures back into `.frasm` code across 81 L2–L7 protocols in browser applications, VS Code Desktop & Web extensions, web cyber ranges, and Node.js test suites. Powers the official FrameAssembly interactive browser playground at [**frameassembly.ai.studio**](https://frameassembly.ai.studio/) and the official VS Code extension (`SteveWinschel.frameassembly-vscode`). *(Note: FrameAssembly is a network packet specification compiler, not x86 Flat Assembler).*
+WebAssembly compiler, `.pcap`/`.pcapng`-to-`.frasm` decompiler, packet ladder inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.frasm` v3.1.0)** — compiling `.frasm` code into classic `.pcap` and `.pcapng` packet captures and decompiling existing captures back into `.frasm` code across 81 L2–L7 protocols in browser applications, VS Code Desktop & Web extensions, web cyber ranges, and Node.js test suites. Powers the official FrameAssembly interactive browser playground at [**frameassembly.ai.studio**](https://frameassembly.ai.studio/) and the official VS Code extension (`SteveWinschel.frameassembly-vscode`). *(Note: FrameAssembly is a network packet specification compiler, not x86 Flat Assembler).*
 
 ---
 
 ## Client-Side `.frasm` to `.pcapng` Compilation & PCAP Decompilation in the Browser & Node.js
 
-`frameassembly-wasm` compiles the FrameAssembly Rust engine to WebAssembly, turning `.frasm` code into `.pcapng` byte streams, decompiling binary `.pcap` and `.pcapng` captures into strict-lowercase `.frasm` code via `reverse_pcap(pcapBytes)` / `reversePcap(pcapBytes)`, and emitting real-time Monaco, CodeMirror, and VS Code diagnostics directly in the browser or Node.js without a backend server:
+`frameassembly-wasm` compiles the FrameAssembly Rust engine to WebAssembly, turning `.frasm` code into classic `.pcap` (`compileFrasmToPcap` / `compile_frasm_to_pcap`) or `.pcapng` (`compile_fasm_to_pcapng` / `compileFrasm`) byte streams, decompiling binary `.pcap` and `.pcapng` captures into strict-lowercase `.frasm` code via `reverse_pcap(pcapBytes)` / `reversePcap(pcapBytes)`, and emitting real-time Monaco, CodeMirror, and VS Code diagnostics directly in the browser or Node.js without a backend server:
 
 ```frameassembly
 host client { ip 192.168.1.10 mac 00:11:22:33:44:55 }
@@ -90,10 +90,10 @@ npm install frameassembly-wasm
     inspect_fasm,
     compile_fasm_to_pcapng,
     reversePcap,
-  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@3.0.0/frameassembly_wasm.js";
+  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@3.1.0/frameassembly_wasm.js";
 
   await init();
-  console.log("FrameAssembly WebAssembly engine v3.0.0 loaded successfully.");
+  console.log("FrameAssembly WebAssembly engine v3.1.0 loaded successfully.");
 </script>
 ```
 
@@ -153,6 +153,9 @@ interface PacketPreview {
   summary: string;       // Decoded L2/L3/L4/L7 frame summary string
 }
 ```
+
+### `compileFrasmToPcap(source: string): Uint8Array` / `compile_frasm_to_pcap(source: string): Uint8Array`
+Compiles `.frasm` source code into a binary `Uint8Array` containing a valid classic libpcap (`.pcap`) byte stream (`LINKTYPE_ETHERNET`, `snaplen = 65535`, automatic microsecond or nanosecond timestamp header selection). Throws a JavaScript `Error` with diagnostic context if compilation fails.
 
 ### `compile_fasm_to_pcapng(source: string): Uint8Array` / `compileFasm(source: string): Uint8Array` (alias: `compile_frasm_to_pcapng` / `compileFrasm`)
 Compiles `.frasm` source code into a binary `Uint8Array` containing a valid, standards-compliant PCAPNG byte stream with nanosecond timestamp precision (`IfTsResol = 9`). Throws a JavaScript `Error` with diagnostic context if compilation fails.

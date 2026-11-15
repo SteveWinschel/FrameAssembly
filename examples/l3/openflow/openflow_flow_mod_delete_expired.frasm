@@ -1,18 +1,19 @@
-// PROMPT: OpenFlow controller modifying switch flow table via FLOW_MOD with custom table ID and priority.
-// TOKENS: host, ip, flow, openflow, type, flowmod, xid, tableid, priority, compile
+// OpenFlow controller modifying switch flow table via flowmod with custom
+// table ID and priority.
+// This capture sends OpenFlow SDN control messages over TCP port 6653.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define enterprise policy controller.
 host enterprise_policy_ctrl { ip 10.50.1.1 }
 
-// INSTRUCTION: Define campus distribution switch datapath.
 host campus_dist_sw { ip 10.50.1.254 }
 
-// INSTRUCTION: Define FLOW_MOD rule installation flow targeting table 2 with priority 500.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow of_flow_mod_rule(ctrl, sw) {
     ctrl -> sw openflow type flowmod xid 4004 tableid 2 priority 500
 }
 
-// INSTRUCTION: Compile block executing FLOW_MOD instruction.
+// Run of_flow_mod_rule(enterprise_policy_ctrl, campus_dist_sw) to generate
+// the capture.
 compile {
     of_flow_mod_rule(enterprise_policy_ctrl, campus_dist_sw)
 }

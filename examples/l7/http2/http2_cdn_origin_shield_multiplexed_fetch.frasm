@@ -1,19 +1,20 @@
-// PROMPT: CDN edge cache multiplexing three concurrent asset revalidation streams (11, 13, 15) over a single origin connection.
-// TOKENS: host, ip, mac, flow, http2, headers, streamid, data, payload, compile
+// CDN edge cache multiplexing three concurrent asset revalidation streams
+// (11, 13, 15) over a single origin connection.
+// Wireshark: http2
 
-// INSTRUCTION: Define CDN edge PoP proxy node.
+// CDN edge PoP proxy node.
 host cdn_edge_proxy {
     ip 198.51.100.12
     mac 00:25:90:64:00:0c
 }
 
-// INSTRUCTION: Define CDN origin shield HTTP/2 server.
 host origin_shield {
     ip 198.51.100.1
     mac 00:25:90:64:00:01
 }
 
-// INSTRUCTION: Multiplex conditional GET HEADERS and DATA responses on odd Streams 11, 13, and 15.
+// Multiplex conditional GET HEADERS and DATA responses on odd Streams 11, 13,
+// and 15.
 flow http2_cdn_origin_mux(edge, origin) {
     edge -> origin http2 headers streamid 11
     edge -> origin http2 headers streamid 13
@@ -24,7 +25,6 @@ flow http2_cdn_origin_mux(edge, origin) {
     edge <- origin http2 headers streamid 15
 }
 
-// INSTRUCTION: Compile the CDN origin shield HTTP/2 multiplexed fetch scenario.
 compile {
     http2_cdn_origin_mux(cdn_edge_proxy, origin_shield)
 }

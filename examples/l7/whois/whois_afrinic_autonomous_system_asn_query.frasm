@@ -1,25 +1,23 @@
-// PROMPT: Model an AFRINIC WHOIS lookup querying Autonomous System Number AS37100 routing registry details.
-// TOKENS: host, ip, mac, flow, s, whois, query, domain, wait, ms, response, registrar, compile
+// Model an AFRINIC WHOIS lookup querying Autonomous System Number AS37100
+// routing registry details.
+// Timing: pauses 6ms after each marked packet before sending the next frame.
+// Wireshark: whois
 
-// INSTRUCTION: Define the WHOIS client workstation or security enrichment node.
 host whois_client {
     ip 10.43.11.20
     mac 00:1b:21:00:43:0a
 }
 
-// INSTRUCTION: Define the authoritative RIR or TLD WHOIS directory server on TCP port 43.
 host whois_server {
     ip 196.216.2.20
     mac 00:1b:21:00:43:01
 }
 
-// INSTRUCTION: Execute the RFC 3912 WHOIS domain or prefix lookup transaction.
 flow whois_scenario_flow(c, s) {
     c -> s whois query domain "AS37100" wait 6ms
     c <- s whois response domain "AS37100" registrar "AFRINIC - African Network Information Centre"
 }
 
-// INSTRUCTION: Compile the WHOIS registry query flow into a PCAP trace.
 compile {
     whois_scenario_flow(whois_client, whois_server)
 }

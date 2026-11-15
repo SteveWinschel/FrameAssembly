@@ -1,19 +1,22 @@
-// PROMPT: Simulate an IPv6 natural gas compressor station polling suction and discharge pressure registers via Modbus TCP.
-// TOKENS: host, ip, mac, flow, modbus, txid, protoid, unitid, func, addr, count, flowlabel, dscp, ttl, wait, ms, isresponse, value, compile
+// IPv6 natural gas compressor station polling suction and discharge pressure
+// registers via Modbus TCP.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define the IPv6 pipeline regional control center poller.
+// IPv6 pipeline regional control center poller.
 host rcc_poller_v6 {
     ip 2001:db8:502:9::10
     mac 00:25:90:50:29:10
 }
 
-// INSTRUCTION: Define the IPv6 compressor station RTU controller.
+// IPv6 compressor station RTU controller.
 host compressor_rtu_v6 {
     ip 2001:db8:502:9::80
     mac 00:25:90:50:29:80
 }
 
-// INSTRUCTION: Poll holding registers 400-407 for compressor RPM and pressure telemetry over IPv6.
+// Poll holding registers 400-407 for compressor RPM and pressure telemetry
+// over IPv6. Encapsulation and QoS markings: DSCP 34. Modbus functions: FC 3
+// Read Holding Registers.
 flow modbus_compressor_v6(c, rtu) {
     c -> rtu modbus txid 770 protoid 0 unitid 5 func "readholdingregisters" addr 400 count 8
         flowlabel 0x50209 dscp 34 ttl 64 wait 6ms
@@ -21,7 +24,6 @@ flow modbus_compressor_v6(c, rtu) {
         flowlabel 0x50209 dscp 34 ttl 64
 }
 
-// INSTRUCTION: Compile the IPv6 Modbus pipeline compressor telemetry flow.
 compile {
     modbus_compressor_v6(rcc_poller_v6, compressor_rtu_v6)
 }

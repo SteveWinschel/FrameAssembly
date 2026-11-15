@@ -1,18 +1,18 @@
-// PROMPT: PIM multicast signaling transported across provider QinQ dual-VLAN bridge.
-// TOKENS: host, ip, flow, src, pim, hello, qinq, innervlan, compile
+// PIM multicast signaling transported across provider QinQ dual-VLAN bridge.
+// This capture wraps frames in QinQ S-VLAN 800 / C-VLAN 30.
+// Wireshark: pim
 
-// INSTRUCTION: Define enterprise broadcast source gateway.
 host broadcast_source_gw { ip 192.168.90.1 }
 
-// INSTRUCTION: Define carrier multicast transit gateway.
 host carrier_transit_gw { ip 192.168.90.2 }
 
-// INSTRUCTION: Define QinQ encapsulated PIM Hello flow on service VLAN 800 and customer VLAN 30.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow pim_qinq_hello_flow(src, gw) {
     src -> gw pim hello qinq 800 innervlan 30
 }
 
-// INSTRUCTION: Compile block executing carrier QinQ PIM Hello.
+// Run pim_qinq_hello_flow(broadcast_source_gw, carrier_transit_gw) to
+// generate the capture.
 compile {
     pim_qinq_hello_flow(broadcast_source_gw, carrier_transit_gw)
 }

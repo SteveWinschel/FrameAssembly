@@ -1,13 +1,13 @@
-// PROMPT: RIPE NCC regional internet registry query for autonomous system allocation.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// RIPE NCC regional internet registry query for autonomous system allocation.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define European ISP operations client.
 host ripe_client { ip 192.168.80.12 }
 
-// INSTRUCTION: Define RIPE NCC WHOIS database server.
 host ripe_whois { ip 193.0.6.135 }
 
-// INSTRUCTION: Define Autonomous System allocation lookup flow.
 flow whois_ripe_asn_flow(c, s) {
     c -> s whois query domain "AS3333"
     c <- s whois response
@@ -15,7 +15,6 @@ flow whois_ripe_asn_flow(c, s) {
         registrar "RIPE NCC"
 }
 
-// INSTRUCTION: Compile block executing RIPE ASN lookup.
 compile {
     whois_ripe_asn_flow(ripe_client, ripe_whois)
 }

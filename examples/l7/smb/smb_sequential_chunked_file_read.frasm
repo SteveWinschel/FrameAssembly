@@ -1,19 +1,19 @@
-// PROMPT: Sequential multi-chunk SMB2 READ transfer streaming media assets from a shared storage volume.
-// TOKENS: host, ip, mac, flow, s, smb, command, treeid, sessionid, msgid, filename, status, wait, ms, payload, compile
+// Sequential multi-chunk SMB2 READ transfer streaming media assets from a
+// shared storage volume.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: smb2
 
-// INSTRUCTION: Define the video editing workstation reading raw media frames.
 host nle_editor {
     ip 10.60.80.15
     mac 00:1a:2b:60:80:15
 }
 
-// INSTRUCTION: Define the high-throughput media NAS cluster.
 host media_nas {
     ip 10.60.80.1
     mac 00:1a:2b:60:80:01
 }
 
-// INSTRUCTION: Open media file and issue two consecutive SMB2 READ requests.
 flow smb_chunked_read(c, s) {
     c -> s smb command "create" treeid 12 sessionid 3300 msgid 50 filename "scene04_prores4444.mov"
     c <- s smb command "create" status 0 treeid 12 sessionid 3300 msgid 50 wait 1ms
@@ -23,7 +23,6 @@ flow smb_chunked_read(c, s) {
     c <- s smb command "read" status 0 treeid 12 sessionid 3300 msgid 52 payload "PRORES_FRAME_0002_DATA"
 }
 
-// INSTRUCTION: Compile the sequential SMB2 media read flow.
 compile {
     smb_chunked_read(nle_editor, media_nas)
 }

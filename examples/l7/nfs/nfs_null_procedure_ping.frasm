@@ -1,18 +1,16 @@
-// PROMPT: NFS RPC Procedure 0 (NULL) checking remote file server liveness.
-// TOKENS: host, ip, flow, s, nfs, vers, proc, compile
+// NFS RPC Procedure 0 (NULL) checking remote file server liveness.
+// Wireshark: nfs
+// Automatic Ethernet MAC addresses and TCP port 2049 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.80 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow nfs_null(c, s) {
     c -> s nfs vers 4 proc "null"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     nfs_null(client, server)
 }

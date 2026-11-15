@@ -1,13 +1,13 @@
-// PROMPT: S7comm session termination with TCP FIN ACK teardown after reading PLC diagnostics.
-// TOKENS: host, ip, flow, s7comm, rosctr, func, pduref, area, dbnum, offset, count, wait, ms, tcp, fin, ack, compile
+// S7comm session termination with TCP FIN ACK teardown after reading PLC
+// diagnostics.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting 0x84.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define audit collector workstation.
 host audit_ws { ip 192.168.102.90 }
 
-// INSTRUCTION: Define safety PLC endpoint.
 host safety_plc { ip 192.168.102.5 }
 
-// INSTRUCTION: Define final S7comm read followed by clean TCP FIN handshake.
 flow s7comm_clean_close(c, plc) {
     c -> plc s7comm rosctr "job" func "readvar" pduref 999 area 0x84 dbnum 1 offset 0 count 1 wait 5ms
     c <- plc s7comm rosctr "ackdata" func "readvar" pduref 999 wait 5ms
@@ -16,7 +16,6 @@ flow s7comm_clean_close(c, plc) {
     c -> plc tcp ack
 }
 
-// INSTRUCTION: Compile S7comm read and TCP session close.
 compile {
     s7comm_clean_close(audit_ws, safety_plc)
 }

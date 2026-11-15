@@ -1,25 +1,29 @@
-// PROMPT: Generate an MQTT v5 shared subscription ($share/workers/jobs/+) load-balancing tasks across consumer workers.
-// TOKENS: host, ip, mac, flow, s, mqtt, subscribe, topic, qos, pktid, wait, ms, suback, publish, payload, puback, compile
+// MQTT v5 shared subscription ($share/workers/jobs/+) load-balancing tasks
+// across consumer workers.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define two microservice worker instances sharing an MQTT v5 subscription group.
+// Two microservice worker instances sharing an MQTT v5 subscription group.
 host worker_alpha {
     ip 10.25.5.101
     mac 00:50:56:25:05:65
 }
 
-// INSTRUCTION: Define the second microservice worker in the same shared subscription group.
+// Second microservice worker in the same shared subscription group.
 host worker_beta {
     ip 10.25.5.102
     mac 00:50:56:25:05:66
 }
 
-// INSTRUCTION: Define the central MQTT v5 message broker dispatching shared subscription messages round-robin.
+// Central MQTT v5 message broker dispatching shared subscription messages
+// round-robin.
 host mqtt5_broker {
     ip 10.25.5.10
     mac 00:50:56:25:05:0a
 }
 
-// INSTRUCTION: Subscribe worker_alpha to $share/workers/jobs/+ and receive job 1.
+// Subscribe worker_alpha to $share/workers/jobs/+ and receive job 1. MQTT
+// control session on TCP 1883 (QoS 1). Repeats 2 times; each wait value
+// pauses after sending its packet.
 flow alpha_shared_sub(c, s) {
     c -> s mqtt subscribe topic "$share/workers/jobs/+" qos 1 pktid 1 wait 2ms
     c <- s mqtt suback pktid 1 qos 1 wait 5ms
@@ -27,7 +31,8 @@ flow alpha_shared_sub(c, s) {
     c -> s mqtt puback pktid 101
 }
 
-// INSTRUCTION: Subscribe worker_beta to $share/workers/jobs/+ and receive job 2 in round-robin order.
+// Subscribe worker_beta to $share/workers/jobs/+ and receive job 2 in
+// round-robin order.
 flow beta_shared_sub(c, s) {
     c -> s mqtt subscribe topic "$share/workers/jobs/+" qos 1 pktid 2 wait 2ms
     c <- s mqtt suback pktid 2 qos 1 wait 5ms
@@ -35,7 +40,6 @@ flow beta_shared_sub(c, s) {
     c -> s mqtt puback pktid 201
 }
 
-// INSTRUCTION: Compile the MQTT shared subscription load-balancing trace into a PCAP file.
 compile {
     alpha_shared_sub(worker_alpha, mqtt5_broker)
     beta_shared_sub(worker_beta, mqtt5_broker)

@@ -1,25 +1,22 @@
-// PROMPT: ARP request and reply with explicit hardware and protocol address overrides.
-// TOKENS: host, ip, mac, flow, src, dst, arp, sha, spa, tha, tpa, reply, compile
+// ARP request and reply with explicit hardware and protocol address overrides.
+// Wire profile: 2 frames; 2 IPv4 hosts; ARP.
+// Wireshark: arp.opcode == 2
 
-// INSTRUCTION: Define client endpoint.
 host client_a {
     ip 172.16.0.10
     mac 00:50:56:01:02:03
 }
 
-// INSTRUCTION: Define server endpoint.
 host server_b {
     ip 172.16.0.20
     mac 00:50:56:04:05:06
 }
 
-// INSTRUCTION: Define ARP flow with explicit SHA, SPA, THA, and TPA overrides.
 flow arp_custom_hardware(src, dst) {
     src -> dst arp sha 00:50:56:01:02:03 spa 172.16.0.10 tha 00:00:00:00:00:00 tpa 172.16.0.20
     src <- dst arp reply sha 00:50:56:04:05:06 spa 172.16.0.20 tha 00:50:56:01:02:03 tpa 172.16.0.10
 }
 
-// INSTRUCTION: Compile block executing custom ARP hardware address exchange.
 compile {
     arp_custom_hardware(client_a, server_b)
 }

@@ -1,18 +1,16 @@
-// PROMPT: Kerberos TGS_REQ requesting service ticket for LDAP server access over IPv6.
-// TOKENS: host, ip, flow, s, kerberos, tgsreq, realm, sname, etype, compile
+// Kerberos TGS-REQ requesting service ticket for LDAP server access over
+// IPv6.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::100 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
+// Kerberos encryption types: 18 (AES256-CTS).
 flow krb_tgs_req(c, s) {
     c -> s kerberos tgsreq realm "CORP.NET" sname "ldap/dc.corp.net" etype 18
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     krb_tgs_req(client, server)
 }

@@ -1,0 +1,28 @@
+// Defensive WAF and IDS SQL-injection rule test over HTTP/1.1 (TCP port 80).
+// Sends a synthetic UNION SELECT probe blocked with HTTP 403, then a clean
+// query. Post-packet wait spaces the probe and legitimate follow-up request
+// cleanly.
+// Wireshark: http
+
+host waf_scanner {
+    ip 10.50.12.25
+    mac 00:1a:2b:50:0c:19
+}
+
+host waf_gateway {
+    ip 10.50.10.80
+    mac 00:1a:2b:50:0a:50
+}
+
+// Verify both WAF block signature trigger (403) and normal search traffic
+// (200).
+flow waf_sqli_audit(src, waf) {
+    src -> waf http method "GET" uri "/search?q=1%27+UNION+SELECT+1,2--" hosthdr "shop.internal" useragent "waf-audit/1.0" wait 2ms
+    src <- waf http status 403 reason "Forbidden" body "Blocked by SQLi rule 942100" wait 15ms
+    src -> waf http method "GET" uri "/search?q=switch+port" hosthdr "shop.internal" useragent "waf-audit/1.0" wait 2ms
+    src <- waf http status 200 reason "OK" body "Results: 12"
+}
+
+compile {
+    waf_sqli_audit(waf_scanner, waf_gateway)
+}

@@ -1,18 +1,17 @@
-// PROMPT: PostgreSQL frontend connection initialization StartupMessage.
-// TOKENS: host, ip, flow, s, postgres, startup, db, compile
+// PostgreSQL frontend connection initialization StartupMessage.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (PostgreSQL
+// v3.0, TCP 5432).
+// Wireshark: pgsql
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.200 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow pg_startup(c, s) {
     c -> s postgres startup db "analytics"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     pg_startup(client, server)
 }

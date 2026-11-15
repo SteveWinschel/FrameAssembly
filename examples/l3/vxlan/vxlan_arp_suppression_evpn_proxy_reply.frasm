@@ -1,25 +1,27 @@
-// PROMPT: EVPN-VXLAN Leaf VTEP suppressing broadcast ARP flooding by answering from its local EVPN Type-2 MAC/IP cache.
-// TOKENS: host, ip, mac, flow, v1, v2, vxlan, vni, srcport, dstport, df, ttl, payload, wait, ms, compile
+// EVPN-VXLAN Leaf VTEP suppressing broadcast ARP flooding by answering from
+// its local EVPN Type-2 MAC/IP cache.
+// This capture sets TTL 64, DF bit set, carries VNI 10020, destination port
+// 4789, and uses post-packet wait gaps (2ms) between frames.
+// Wireshark: vxlan && vxlan.vni == 10020
 
-// INSTRUCTION: Define local Leaf VTEP forwarding a cache-miss ARP query over VNI 10020.
 host arp_miss_vtep {
     ip 10.255.20.11
     mac 00:1c:73:20:00:0b
 }
 
-// INSTRUCTION: Define peer Leaf VTEP returning unicast VXLAN ARP response for 10.20.0.50.
 host arp_owner_vtep {
     ip 10.255.20.22
     mac 00:1c:73:20:00:16
 }
 
-// INSTRUCTION: Define VXLAN unicast ARP request and reply on VNI 10020.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vxlan_evpn_arp_suppression(v1, v2) {
     v1 -> v2 vxlan vni 10020 srcport 51020 dstport 4789 df ttl 64 payload "INNER_ARP_WHO_HAS_10_20_0_50" wait 2ms
     v1 <- v2 vxlan vni 10020 srcport 51021 dstport 4789 df ttl 64 payload "INNER_ARP_IS_AT_00_50_56_20_00_32"
 }
 
-// INSTRUCTION: Compile the EVPN-VXLAN ARP suppression proxy flow.
+// Run vxlan_evpn_arp_suppression(arp_miss_vtep, arp_owner_vtep) to generate
+// the capture.
 compile {
     vxlan_evpn_arp_suppression(arp_miss_vtep, arp_owner_vtep)
 }

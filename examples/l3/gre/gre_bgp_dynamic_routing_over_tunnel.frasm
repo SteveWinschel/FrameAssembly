@@ -1,25 +1,27 @@
-// PROMPT: GRE point-to-point overlay tunnel carrying interior BGP / OSPF dynamic routing protocol updates with CS6 DSCP.
-// TOKENS: host, ip, mac, flow, gre, grekey, greseq, greproto, checksum, dscp, df, ttl, payload, wait, ms, compile
+// GRE point-to-point overlay tunnel carrying interior BGP / OSPF dynamic
+// routing protocol updates with CS6 DSCP.
+// This capture sets DSCP 48, TTL 64, DF bit set and uses post-packet wait
+// gaps (5ms) between frames.
+// Wireshark: gre
 
-// INSTRUCTION: Define branch router running dynamic routing over a GRE tunnel interface.
 host branch_gre_rtr {
     ip 198.18.47.11
     mac 00:1d:71:47:11:01
 }
 
-// INSTRUCTION: Define regional hub router terminating the routed GRE tunnel interface.
 host hub_gre_rtr {
     ip 198.18.47.1
     mac 00:1d:71:47:01:01
 }
 
-// INSTRUCTION: Define sequenced GRE control plane exchange with DSCP CS6 (48) and CHECKSUM enabled.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow gre_routed_overlay_flow(branch, hub) {
     branch -> hub gre grekey 179 greseq 1 greproto 2048 checksum dscp 48 df ttl 64 payload "INNER_BGP_UPDATE_PREFIX_10_11_0_0_16" wait 5ms
     branch <- hub gre grekey 179 greseq 1 greproto 2048 checksum dscp 48 df ttl 64 payload "INNER_BGP_UPDATE_DEFAULT_ROUTE_0_0_0_0"
 }
 
-// INSTRUCTION: Compile the dynamic routing over GRE tunnel flow.
+// Run gre_routed_overlay_flow(branch_gre_rtr, hub_gre_rtr) to generate the
+// capture.
 compile {
     gre_routed_overlay_flow(branch_gre_rtr, hub_gre_rtr)
 }

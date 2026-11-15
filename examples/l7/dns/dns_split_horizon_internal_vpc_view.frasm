@@ -1,25 +1,26 @@
-// PROMPT: Model a split-horizon private VPC DNS resolver returning RFC 1918 addresses over MPLS label 5300.
-// TOKENS: host, ip, mac, flow, s, dns, query, txid, qname, qtype, mpls, exp, bos, mplsttl, wait, ms, response, rcode, rdata, ansttl, compile
+// Split-horizon private VPC DNS resolver returning RFC 1918 addresses over
+// MPLS label 5300.
+// Wireshark: dns
 
-// INSTRUCTION: Define the DNS stub resolver client endpoint.
+// DNS stub resolver client endpoint.
 host dns_client {
     ip 10.128.1.25
     mac 00:1b:21:53:01:0a
 }
 
-// INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
+// Authoritative or recursive DNS server endpoint.
 host dns_server {
     ip 10.128.0.2
     mac 00:1b:21:53:01:35
 }
 
-// INSTRUCTION: Execute the DNS query and authoritative response transaction.
+// Encapsulation and QoS markings: MPLS label 5300. DNS wire details: record
+// types A; rcode 0 (NOERROR).
 flow dns_scenario_flow(c, s) {
     c -> s dns query txid 2112 qname "db-primary.vpc.internal" qtype "a" mpls 5300 exp 3 bos 1 mplsttl 64 wait 3ms
     c <- s dns response txid 2112 rcode 0 qname "db-primary.vpc.internal" qtype "a" rdata "10.128.44.100" ansttl 60 mpls 5300 exp 3 bos 1 mplsttl 64
 }
 
-// INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
 compile {
     dns_scenario_flow(dns_client, dns_server)
 }

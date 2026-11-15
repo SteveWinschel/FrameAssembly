@@ -1,20 +1,18 @@
-// PROMPT: OPC Unified Architecture binary secure connection hello and open secure channel on TCP 4840.
-// TOKENS: host, ip, flow, s, opcua, msgtype, ack, compile
+// OPC Unified Architecture binary secure connection hello and open secure
+// channel on TCP 4840.
+// Wireshark: opcua
 
-// INSTRUCTION: Define OPC UA client application.
 host opc_client { ip 10.0.10.10 }
 
-// INSTRUCTION: Define OPC UA industrial server.
 host opc_server { ip 10.0.10.1 }
 
-// INSTRUCTION: Define OPC UA secure channel initialization flow.
+// OPC UA secure channel initialization flow.
 flow opcua_flow(c, s) {
     c -> s opcua msgtype hel
     c <- s opcua msgtype ack
     c -> s opcua msgtype opn
 }
 
-// INSTRUCTION: Compile block executing OPC UA connection.
 compile {
     opcua_flow(opc_client, opc_server)
 }

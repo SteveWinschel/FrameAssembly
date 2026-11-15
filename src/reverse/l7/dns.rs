@@ -63,6 +63,42 @@ pub(crate) fn decode_dns_name(msg: &[u8], start_offset: usize) -> Option<(String
     Some((labels.join("."), end_offset?))
 }
 
+/// Decodes RFC 1035 `<character-string>` TXT RDATA chunks into a single printable ASCII string
+/// when the wire chunks match deterministic 255-byte segmentation.
+fn decode_txt_rdata(rdata_bytes: &[u8]) -> Option<String> {
+    if rdata_bytes == [0] {
+        return Some(String::new());
+    }
+    let mut pos = 0usize;
+    let mut out = String::new();
+    while pos < rdata_bytes.len() {
+        let len = usize::from(*rdata_bytes.get(pos)?);
+        let end = pos.checked_add(1)?.checked_add(len)?;
+        if end > rdata_bytes.len() {
+            return None;
+        }
+        if end < rdata_bytes.len() && len != 255 {
+            return None;
+        }
+        let s = is_printable_ascii_str(&rdata_bytes[pos + 1..end])?;
+        out.push_str(s);
+        pos = end;
+    }
+    (!out.is_empty()).then_some(out)
+}
+
+/// Returns `true` when `rdata` equals the synthesized zero-keyword response default for `qtype`.
+fn is_default_response_rdata(qtype: u16, rdata: &str) -> bool {
+    match qtype {
+        1 => rdata == "93.184.216.34",
+        28 => rdata == "2001:db8::1",
+        2 | 5 | 12 => rdata == "ns1.example.com",
+        15 => rdata == "mail.example.com",
+        16 => rdata == "v=spf1 -all",
+        _ => false,
+    }
+}
+
 /// Dissects a `dns` (port `53`, UDP or TCP) or `mdns` (UDP port `5353`) message.
 pub(crate) fn dissect_dns_or_mdns(
     payload: &[u8],
@@ -75,7 +111,7 @@ pub(crate) fn dissect_dns_or_mdns(
         }
         let dns_len = be_u16(payload, 0) as usize;
         payload
-            .get(2..2 + dns_len)
+            .get(2..2usize.checked_add(dns_len)?)
             .filter(|s| s.len() >= 12 && 2 + dns_len == payload.len())?
     } else {
         (payload.len() >= 12).then_some(payload)?
@@ -95,7 +131,7 @@ pub(crate) fn dissect_dns_or_mdns(
     let rcode = (flags & 0x000F) as u8;
 
     let (qname, pos_after_qname) = decode_dns_name(msg, 12)?;
-    if pos_after_qname + 4 > msg.len() || be_u16(msg, pos_after_qname + 2) != 1 {
+    if pos_after_qname.checked_add(4)? > msg.len() || be_u16(msg, pos_after_qname + 2) != 1 {
         return None;
     }
     let qtype = be_u16(msg, pos_after_qname);
@@ -105,7 +141,8 @@ pub(crate) fn dissect_dns_or_mdns(
 
     if ancount == 1 {
         let (_ans_name, pos_after_ans) = decode_dns_name(msg, offset)?;
-        if pos_after_ans + 10 > msg.len()
+        let rdata_start = pos_after_ans.checked_add(10)?;
+        if rdata_start > msg.len()
             || be_u16(msg, pos_after_ans) != qtype
             || be_u16(msg, pos_after_ans + 2) != 1
         {
@@ -113,8 +150,7 @@ pub(crate) fn dissect_dns_or_mdns(
         }
         ans_ttl = Some(be_u32(msg, pos_after_ans + 4));
         let rdlen = be_u16(msg, pos_after_ans + 8) as usize;
-        let rdata_start = pos_after_ans + 10;
-        if rdata_start + rdlen != msg.len() {
+        if rdata_start.checked_add(rdlen)? != msg.len() {
             return None;
         }
         let rdata_bytes = &msg[rdata_start..rdata_start + rdlen];
@@ -127,10 +163,36 @@ pub(crate) fn dissect_dns_or_mdns(
             let (target_domain, end_pos) = decode_dns_name(msg, rdata_start)?;
             if end_pos == rdata_start + rdlen {
                 rdata_str = Some(target_domain);
-            } else {
+            } else if is_response {
                 residual_payload = rdata_bytes.to_vec();
+            } else {
+                return None;
             }
-        } else if let Some(s) = is_printable_ascii_str(rdata_bytes) {
+        } else if qtype == 15 && rdlen >= 3 {
+            let pref = be_u16(msg, rdata_start);
+            let (exch, end_pos) = decode_dns_name(msg, rdata_start + 2)?;
+            if end_pos == rdata_start + rdlen {
+                rdata_str = Some(if pref == 10 {
+                    exch
+                } else {
+                    format!("{pref} {exch}")
+                });
+            } else if is_response {
+                residual_payload = rdata_bytes.to_vec();
+            } else {
+                return None;
+            }
+        } else if qtype == 16 && !rdata_bytes.is_empty() {
+            if let Some(txt) = decode_txt_rdata(rdata_bytes) {
+                rdata_str = Some(txt);
+            } else if is_response {
+                residual_payload = rdata_bytes.to_vec();
+            } else {
+                return None;
+            }
+        } else if !matches!(qtype, 1 | 2 | 5 | 12 | 15 | 16 | 28)
+            && let Some(s) = is_printable_ascii_str(rdata_bytes)
+        {
             rdata_str = Some(s.to_string());
         } else if is_response {
             residual_payload = rdata_bytes.to_vec();
@@ -146,7 +208,8 @@ pub(crate) fn dissect_dns_or_mdns(
         if is_mdns { "mdns" } else { "dns" },
         if is_response { "response" } else { "query" }
     );
-    if txid != 0x1234 {
+    let default_txid = if is_mdns { 0x0000 } else { 0x1234 };
+    if txid != default_txid {
         let _ = write!(tokens, " txid 0x{txid:04x}");
     }
     push_str_if(&mut tokens, "qname", &qname, "example.com");
@@ -166,9 +229,13 @@ pub(crate) fn dissect_dns_or_mdns(
     };
     push_str_if(&mut tokens, "qtype", &qtype_name, "a");
     if let Some(rdata) = rdata_str
-        && !(is_response && qtype == 1 && rdata == "93.184.216.34")
+        && !(is_response && is_default_response_rdata(qtype, &rdata))
     {
-        push_str_if(&mut tokens, "rdata", &rdata, "");
+        if rdata.is_empty() {
+            tokens.push_str(" rdata \"\"");
+        } else {
+            push_str_if(&mut tokens, "rdata", &rdata, "");
+        }
     }
     push_if(&mut tokens, "rcode", rcode, 0);
     if let Some(ttl) = ans_ttl {

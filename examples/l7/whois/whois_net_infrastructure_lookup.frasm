@@ -1,13 +1,14 @@
-// PROMPT: Network infrastructure domain registration query for backbone transit provider.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// Network infrastructure domain registration query for backbone transit
+// provider.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define network engineer terminal.
 host net_engineer { ip 172.16.4.8 }
 
-// INSTRUCTION: Define NET authoritative WHOIS registry.
 host net_registry { ip 192.52.178.30 }
 
-// INSTRUCTION: Define infrastructure domain WHOIS lookup flow.
 flow whois_net_flow(c, s) {
     c -> s whois query domain "backbone-core.net"
     c <- s whois response
@@ -15,7 +16,6 @@ flow whois_net_flow(c, s) {
         registrar "CSC Corporate Domains"
 }
 
-// INSTRUCTION: Compile block executing NET domain query.
 compile {
     whois_net_flow(net_engineer, net_registry)
 }

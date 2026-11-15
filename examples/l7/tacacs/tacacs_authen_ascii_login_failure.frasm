@@ -1,19 +1,21 @@
-// PROMPT: Model a TACACS+ ASCII authentication failure where an invalid password yields TAC_PLUS_AUTHEN_STATUS_FAIL.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, tacacs, authen, sessionid, user, payload, compile
+// Model a TACACS+ ASCII authentication failure where an invalid password
+// yields TAC_PLUS_AUTHEN_STATUS_FAIL.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// TACACS+ on TCP 49 (authen).
+// Overrides destination port to 49.
+// Wireshark: tacplus
 
-// INSTRUCTION: Define host endpoint edge_rtr.
 host edge_rtr {
     mac 00:50:56:00:49:11
     ip 172.16.49.11
 }
 
-// INSTRUCTION: Define host endpoint tacacs_aaa.
 host tacacs_aaa {
     mac 00:50:56:00:49:01
     ip 172.16.49.1
 }
 
-// INSTRUCTION: Perform multi-packet ASCII login exchange ending in AUTHEN_STATUS_FAIL.
 flow tacacs_authen_failed_login(edge_rtr, tacacs_aaa) {
     edge_rtr -> tacacs_aaa tcp syn srcport 52049 dstport 49
     tacacs_aaa -> edge_rtr tcp syn ack
@@ -24,7 +26,6 @@ flow tacacs_authen_failed_login(edge_rtr, tacacs_aaa) {
     tacacs_aaa -> edge_rtr tacacs authen sessionid 100202 payload "AUTHEN_STATUS_FAIL"
 }
 
-// INSTRUCTION: Compile the TACACS+ authentication failure flow.
 compile {
     tacacs_authen_failed_login(edge_rtr, tacacs_aaa)
 }

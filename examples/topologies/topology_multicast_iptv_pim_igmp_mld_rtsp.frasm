@@ -1,39 +1,34 @@
-// PROMPT: Dual-stack IPTV multicast distribution combining PIM-SM rendezvous point routing, IGMPv3/MLDv2 joins, RTSP session control, and RTP media.
-// TOKENS: host, ip, flow, igmp, report, version, group, pim, hello, wait, ms, joinprune, rp, rtsp, method, uri, rtp, pt, seq, payload, mld, multicastaddr, compile
+// Dual-stack IPTV multicast distribution combining PIM-SM rendezvous point
+// routing, IGMPv3/MLDv2 joins, RTSP session control, and RTP media.
+// Wire profile: 9 frames; 5 dual-stack IPv4/IPv6 hosts; RTP, RTSP, IGMP, MLD,
+// PIM; waits 1ms, 2ms, 5ms.
+// Wireshark: rtp || rtsp || igmp || icmpv6
 
-// INSTRUCTION: Define IPv4 IPTV set-top box client.
 host stb_client_v4 { ip 10.195.1.50 }
 
-// INSTRUCTION: Define IPv4 first-hop multicast router (FHR/LHR).
 host mcast_rtr_v4 { ip 10.195.1.1 }
 
-// INSTRUCTION: Define IPv4 IPTV headend RTSP/RTP video server and PIM RP.
 host iptv_headend_v4 { ip 10.195.0.10 }
 
-// INSTRUCTION: Define IPv6 IPTV set-top box client.
 host stb_client_v6 { ip 2001:db8:195:1::50 }
 
-// INSTRUCTION: Define IPv6 first-hop multicast router.
 host mcast_rtr_v6 { ip 2001:db8:195:1::1 }
 
-// INSTRUCTION: Define IPv4 IGMPv3 join, PIM Join/Prune to RP, RTSP SETUP/PLAY, and RTP broadcast stream.
 flow iptv_v4_multicast_delivery(stb, rtr, headend) {
-    stb -> rtr igmp report version 3 group 239.195.1.100
+    stb -> rtr igmp report version 3 group 239.195.1.100 wait 1ms
     rtr -> headend pim hello wait 1ms
-    rtr -> headend pim joinprune group 239.195.1.100 rp 10.195.0.10 wait 1ms
+    rtr -> headend pim joinprune group 239.195.1.100 rp 10.195.0.10 wait 2ms
     stb -> headend rtsp method "DESCRIBE" uri "rtsp://10.195.0.10:554/live/uhd1" wait 2ms
     stb -> headend rtsp method "SETUP" uri "rtsp://10.195.0.10:554/live/uhd1/track1" wait 2ms
-    stb -> headend rtsp method "PLAY" uri "rtsp://10.195.0.10:554/live/uhd1" wait 2ms
+    stb -> headend rtsp method "PLAY" uri "rtsp://10.195.0.10:554/live/uhd1" wait 5ms
     headend -> stb rtp pt 33 seq 1000 payload "mpeg2_ts_uhd_hevc_nal_slice" wait 5ms
 }
 
-// INSTRUCTION: Define IPv6 MLDv2 listener report and PIMv6 Hello on dual-stack distribution tree.
 flow iptv_v6_multicast_join(stb6, rtr6) {
-    stb6 -> rtr6 mld report version 2 multicastaddr ff3e::195:100
-    rtr6 -> stb6 pim hello wait 2ms
+    stb6 -> rtr6 mld report version 2 multicastaddr ff3e::195:100 wait 2ms
+    rtr6 -> stb6 pim hello
 }
 
-// INSTRUCTION: Compile block executing dual-stack IPTV PIM, IGMPv3, MLDv2, RTSP, and RTP topology.
 compile {
     iptv_v4_multicast_delivery(stb_client_v4, mcast_rtr_v4, iptv_headend_v4)
     iptv_v6_multicast_join(stb_client_v6, mcast_rtr_v6)

@@ -1,22 +1,24 @@
-// PROMPT: HSRP election progression through Listen (2), Speak (4), Standby (8), and Active (16) states.
-// TOKENS: host, ip, flow, hsrp, group, priority, state, vip, hellotime, holdtime, wait, ms, compile
+// HSRP election progression through Listen (2), Speak (4), Standby (8), and
+// Active (16) states.
+// This capture carries group 25, HSRP state 16/2/4 and uses post-packet wait
+// gaps (15ms) between frames.
+// Wireshark: hsrp
 
-// INSTRUCTION: Define candidate router 1 in Group 25.
 host hsrp_cand_r1 { ip 172.16.25.2 }
 
-// INSTRUCTION: Define candidate router 2 in Group 25.
 host hsrp_cand_r2 { ip 172.16.25.3 }
 
-// INSTRUCTION: Define HSRP election state progression from Listen (2) and Speak (4) to Active/Standby.
+// Packet sequence (5 frames); wait pauses after a packet before the next.
 flow hsrp_election_states(r1, r2) {
-    r1 -> r2 hsrp group 25 priority 110 state 2 vip 172.16.25.1 hellotime 3 holdtime 10
+    r1 -> r2 hsrp group 25 priority 110 state 2 vip 172.16.25.1 hellotime 3 holdtime 10 wait 15ms
     r1 -> r2 hsrp group 25 priority 110 state 4 vip 172.16.25.1 hellotime 3 holdtime 10 wait 15ms
     r1 <- r2 hsrp group 25 priority 90 state 4 vip 172.16.25.1 hellotime 3 holdtime 10 wait 15ms
     r1 -> r2 hsrp group 25 priority 110 state 16 vip 172.16.25.1 hellotime 3 holdtime 10 wait 15ms
-    r1 <- r2 hsrp group 25 priority 90 state 8 vip 172.16.25.1 hellotime 3 holdtime 10 wait 15ms
+    r1 <- r2 hsrp group 25 priority 90 state 8 vip 172.16.25.1 hellotime 3 holdtime 10
 }
 
-// INSTRUCTION: Compile the HSRP Speak/Listen election flow.
+// Run hsrp_election_states(hsrp_cand_r1, hsrp_cand_r2) to generate the
+// capture.
 compile {
     hsrp_election_states(hsrp_cand_r1, hsrp_cand_r2)
 }

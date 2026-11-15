@@ -1,25 +1,27 @@
-// PROMPT: RFC 4303 ESP Security Association configured using the canonical IPSEC protocol keyword alias.
-// TOKENS: host, ip, mac, flow, ipsec, spi, seq, iv, icv, nextheader, df, ttl, payload, wait, ms, esp, compile
+// RFC 4303 ESP Security Association configured using the ipsec protocol
+// alias.
+// This capture sets TTL 64, DF bit set, carries SPI 50501/50502, and uses
+// post-packet wait gaps (4ms) between frames.
+// Wireshark: esp
 
-// INSTRUCTION: Define primary encryption gateway using IPSEC keyword syntax.
 host ipsec_alias_gw1 {
     ip 10.50.50.1
     mac 00:16:3e:50:50:01
 }
 
-// INSTRUCTION: Define secondary encryption gateway validating protocol 50 wire output.
 host ipsec_alias_gw2 {
     ip 10.50.50.2
     mac 00:16:3e:50:50:02
 }
 
-// INSTRUCTION: Define bidirectional exchange mixing IPSEC and ESP keywords with explicit SPI, IV, and ICV.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow ipsec_esp_keyword_parity(gw1, gw2) {
     gw1 -> gw2 ipsec spi 50501 seq 1 iv "aabbccddeeff0011" icv "112233445566778899aabbcc" nextheader 4 df ttl 64 payload "ENCRYPTED_VIA_IPSEC_KEYWORD" wait 4ms
     gw1 <- gw2 esp spi 50502 seq 1 iv "1100ffeeddccbbaa" icv "ccbbaa998877665544332211" nextheader 4 df ttl 64 payload "ENCRYPTED_VIA_ESP_KEYWORD"
 }
 
-// INSTRUCTION: Compile the IPSEC and ESP keyword equivalence verification flow.
+// Run ipsec_esp_keyword_parity(ipsec_alias_gw1, ipsec_alias_gw2) to generate
+// the capture.
 compile {
     ipsec_esp_keyword_parity(ipsec_alias_gw1, ipsec_alias_gw2)
 }

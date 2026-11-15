@@ -25,7 +25,7 @@ pub(crate) fn parse_ethernetip_field<'i, 'a>(
             tag(Token::Ethernetip)
                 .map(|(_, s)| ParsedField::Protocol(Protocol::Ethernetip, (s.start, s.len()))),
             tag(Token::Nop)
-                .map(|(_, s)| ParsedField::L7StringField("CMD", "NOP", (s.start, s.len()))),
+                .map(|(_, s)| ParsedField::L7StringField("EIP_NOP", "NOP", (s.start, s.len()))),
             tag(Token::ListIdentity).map(|(_, s)| {
                 ParsedField::L7StringField("CMD", "LIST_IDENTITY", (s.start, s.len()))
             }),

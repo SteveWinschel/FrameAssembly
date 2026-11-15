@@ -85,7 +85,11 @@ pub(crate) fn build_l7_packet_payload(
             };
             let (p, dport) =
                 crate::builders::l7_infra::build_ptp_payload(ctx, &spec, payload_bytes);
-            dst_port_override = Some(dport);
+            if stmt.dir == Direction::RightToLeft {
+                src_port_override = Some(dport);
+            } else {
+                dst_port_override = Some(dport);
+            }
             p
         }
         Protocol::Radius => {
@@ -376,6 +380,13 @@ pub(crate) fn build_l7_packet_payload(
                 Some(ProtocolSpec::Ethernetip(s)) => s.clone(),
                 _ => EthernetipSpec::default(),
             };
+            if !is_tcp {
+                if stmt.dir == Direction::RightToLeft {
+                    src_port_override = Some(2222);
+                } else {
+                    dst_port_override = Some(2222);
+                }
+            }
             crate::builders::l7_ot::build_ethernetip_payload(ctx, &spec, payload_bytes)
         }
         Protocol::Opcua => {

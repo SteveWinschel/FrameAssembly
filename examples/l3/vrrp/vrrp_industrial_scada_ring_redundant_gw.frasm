@@ -1,25 +1,27 @@
-// PROMPT: Industrial Ethernet ring gateway redundancy using VRRPv3 with 802.1Q VLAN 10, PCP 7, and sub-second 20cs intervals.
-// TOKENS: host, ip, mac, flow, vrrp, vrid, priority, advint, vip, version, vlan, pcp, dei, dscp, ttl, wait, ms, compile
+// Industrial Ethernet ring gateway redundancy using VRRPv3 with 802.1Q VLAN
+// 10, PCP 7, and sub-second 20cs intervals.
+// This capture wraps frames in 802.1Q VLAN 10, sets DSCP 56, TTL 255, carries
+// VRID 10, and uses post-packet wait gaps (20ms) between frames.
+// Wireshark: vrrp && vlan.id == 10
 
-// INSTRUCTION: Define Substation PLC Gateway A acting as VRRP Master for SCADA VLAN 10.
 host scada_vrrp_gw_a {
     ip 192.168.10.252
     mac 00:00:5e:00:01:0a
 }
 
-// INSTRUCTION: Define Substation PLC Gateway B acting as hot-standby VRRP Backup.
 host scada_vrrp_gw_b {
     ip 192.168.10.253
     mac 00:21:59:10:00:fd
 }
 
-// INSTRUCTION: Define high-priority PCP 7 / DSCP CS7 (56) VRRPv3 advertisements on VLAN 10.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vrrp_scada_ring_redundancy(gw_a, gw_b) {
     gw_a -> gw_b vrrp vrid 10 priority 240 advint 20 vip 192.168.10.1 version 3 vlan 10 pcp 7 dei 0 dscp 56 ttl 255 wait 20ms
     gw_a -> gw_b vrrp vrid 10 priority 240 advint 20 vip 192.168.10.1 version 3 vlan 10 pcp 7 dei 0 dscp 56 ttl 255
 }
 
-// INSTRUCTION: Compile the industrial SCADA ring VRRPv3 gateway redundancy flow.
+// Run vrrp_scada_ring_redundancy(scada_vrrp_gw_a, scada_vrrp_gw_b) to
+// generate the capture.
 compile {
     vrrp_scada_ring_redundancy(scada_vrrp_gw_a, scada_vrrp_gw_b)
 }

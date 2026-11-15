@@ -1,19 +1,17 @@
-// PROMPT: POP3 AUTH PLAIN SASL authentication exchange on custom port 2110.
-// TOKENS: host, ip, flow, s, pop3, cmd, arg, srcport, dstport, wait, ms, ok, compile
+// POP3 auth PLAIN SASL authentication exchange on custom port 2110.
+// Overrides destination port to 2110.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: pop || tcp.port == 2110
 
-// INSTRUCTION: Define mail client using SASL PLAIN.
 host sasl_client { ip 10.75.0.20 }
 
-// INSTRUCTION: Define POP3 proxy server on port 2110.
 host pop_proxy { ip 10.75.0.1 }
 
-// INSTRUCTION: Define POP3 AUTH PLAIN command with base64 token on custom port.
 flow pop3_sasl_plain(c, s) {
     c -> s pop3 cmd "AUTH" arg "PLAIN AGFsaWNlAHNlY3JldA==" srcport 54110 dstport 2110 wait 5ms
     c <- s pop3 ok srcport 2110 dstport 54110
 }
 
-// INSTRUCTION: Compile SASL PLAIN POP3 flow.
 compile {
     pop3_sasl_plain(sasl_client, pop_proxy)
 }

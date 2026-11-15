@@ -1,18 +1,19 @@
-// PROMPT: mDNS service announcement with custom 4500-second cache time-to-live parameter.
-// TOKENS: host, ip, flow, mdns, response, txid, qname, qtype, rdata, ansttl, compile
+// mDNS service announcement with custom 4500-second cache time-to-live
+// parameter.
+// Wireshark: mdns
 
-// INSTRUCTION: Define network attached storage device.
+// Network attached storage device.
 host nas_device { ip 192.168.1.200 }
 
-// INSTRUCTION: Define multicast broadcast receiver.
+// Multicast broadcast receiver.
 host mdns_addr { ip 224.0.0.251 }
 
-// INSTRUCTION: Define long TTL announcement flow.
+// Long TTL announcement flow. DNS wire details: record types A; multicast
+// 224.0.0.251 / ff02::fb UDP 5353 (TTL 255).
 flow long_ttl_announce(nas, grp) {
     nas -> grp mdns response txid 0 qname "storage-vault.local" qtype "a" rdata "192.168.1.200" ansttl 4500
 }
 
-// INSTRUCTION: Compile custom TTL announcement scenario.
 compile {
     long_ttl_announce(nas_device, mdns_addr)
 }

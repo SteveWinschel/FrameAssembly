@@ -1,25 +1,26 @@
-// PROMPT: AMQP high-priority emergency alert publication and immediate Basic.Deliver dispatch with DSCP EF.
-// TOKENS: host, ip, mac, flow, m, amqp, basicpublish, channel, exchange, routingkey, dscp, payload, basicdeliver, compile
+// AMQP high-priority emergency alert publication and immediate Basic.Deliver
+// dispatch with DSCP EF.
+// Wireshark: amqp
 
-// INSTRUCTION: Define the industrial safety monitor publishing emergency trip alerts.
+// Industrial safety monitor publishing emergency trip alerts.
 host safety_monitor {
     ip 10.115.20.15
     mac 00:1a:2b:73:20:15
 }
 
-// INSTRUCTION: Define the real-time plant RabbitMQ broker.
+// Real-time plant RabbitMQ broker.
 host plant_broker {
     ip 10.115.20.1
     mac 00:1a:2b:73:20:01
 }
 
-// INSTRUCTION: Publish emergency stop alert with DSCP 46 (EF) and deliver to the SCADA alarm console.
+// Publish emergency stop alert with DSCP 46 (EF) and deliver to the SCADA
+// alarm console. Encapsulation and QoS markings: DSCP 46.
 flow amqp_emergency_alert(m, b) {
     m -> b amqp basicpublish channel 1 exchange "plant.alerts" routingkey "estop.zone4" dscp 46 payload "{'zone':4,'tripped':true}"
     m <- b amqp basicdeliver channel 1 exchange "plant.alerts" routingkey "estop.zone4" dscp 46 payload "{'zone':4,'tripped':true}"
 }
 
-// INSTRUCTION: Compile the DSCP-prioritized AMQP emergency alert flow.
 compile {
     amqp_emergency_alert(safety_monitor, plant_broker)
 }

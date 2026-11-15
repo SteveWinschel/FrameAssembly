@@ -1,18 +1,18 @@
-// PROMPT: MQTT retained message broadcast preserving latest device online status for new subscribers.
-// TOKENS: host, ip, flow, mqtt, publish, topic, retain, compile
+// MQTT retained message broadcast preserving latest device online status for
+// new subscribers.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define industrial IoT gateway.
+// Industrial IoT gateway.
 host industrial_gw { ip 172.16.4.15 }
 
-// INSTRUCTION: Define IoT management broker.
+// IoT management broker.
 host iot_broker { ip 172.16.4.1 }
 
-// INSTRUCTION: Define retained status broadcast flow.
+// Retained status broadcast flow.
 flow retained_status_flow(gw, brk) {
     gw -> brk mqtt publish topic "devices/gateway01/status" retain
 }
 
-// INSTRUCTION: Compile retained status broadcast scenario.
 compile {
     retained_status_flow(industrial_gw, iot_broker)
 }

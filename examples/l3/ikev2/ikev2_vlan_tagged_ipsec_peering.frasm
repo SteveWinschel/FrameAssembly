@@ -1,18 +1,18 @@
-// PROMPT: 802.1Q tagged IKEv2 SA negotiation frames across inter-datacenter WAN trunk.
-// TOKENS: host, ip, flow, ikev2, initiatorspi, responderspi, sainit, msgid, vlan, pcp, dei, compile
+// 802.1Q tagged IKEv2 SA negotiation frames across inter-datacenter WAN
+// trunk.
+// This capture wraps frames in 802.1Q VLAN 250.
+// Wireshark: isakmp && vlan.id == 250
 
-// INSTRUCTION: Define DC1 core VPN router.
 host dc1_vpn_rtr { ip 10.110.1.1 }
 
-// INSTRUCTION: Define DC2 core VPN router.
 host dc2_vpn_rtr { ip 10.110.1.2 }
 
-// INSTRUCTION: Define tagged IKEv2 SA_INIT flow on VLAN 250 with PCP 6.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow ikev2_vlan_tagged(dc1, dc2) {
     dc1 -> dc2 ikev2 initiatorspi 3322110099887766 responderspi 0 sainit msgid 0 vlan 250 pcp 6 dei 0
 }
 
-// INSTRUCTION: Compile block executing VLAN tagged IKEv2 negotiation.
+// Run ikev2_vlan_tagged(dc1_vpn_rtr, dc2_vpn_rtr) to generate the capture.
 compile {
     ikev2_vlan_tagged(dc1_vpn_rtr, dc2_vpn_rtr)
 }

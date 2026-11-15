@@ -1,18 +1,18 @@
-// PROMPT: Expedited forwarding DSCP marked IPFIX export packets for VoIP telemetry.
-// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, srcport, dstport, proto, packets, octets, dscp, ecn, compile
+// Expedited forwarding DSCP marked IPFIX export packets for VoIP telemetry.
+// Wireshark: cflow || udp.port == 4739 || udp.port == 5060
 
-// INSTRUCTION: Define VoIP gateway exporter.
+// VoIP gateway exporter.
 host voip_gw { ip 10.45.1.1 }
 
-// INSTRUCTION: Define QoS monitoring collector.
+// QoS monitoring collector.
 host qos_analyzer { ip 10.45.1.100 }
 
-// INSTRUCTION: Define DSCP prioritized IPFIX export flow.
+// DSCP prioritized IPFIX export flow. Encapsulation and QoS markings: DSCP
+// 46. Reports IP protocol 17 (UDP) flow records to UDP 4739.
 flow voip_ipfix_export(gw, col) {
     gw -> col ipfix domainid 333 srcip 10.45.10.15 dstip 10.45.20.25 srcport 5060 dstport 5060 proto 17 packets 120 octets 24000 dscp 46 ecn 1
 }
 
-// INSTRUCTION: Compile DSCP voice telemetry scenario.
 compile {
     voip_ipfix_export(voip_gw, qos_analyzer)
 }

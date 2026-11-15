@@ -1,25 +1,27 @@
-// PROMPT: RFC 7634 IPsec ESP tunnel utilizing ChaCha20-Poly1305 AEAD with 64-bit implicit/explicit IV and 128-bit Poly1305 ICV.
-// TOKENS: host, ip, mac, flow, esp, spi, seq, iv, icv, nextheader, df, dscp, ttl, payload, wait, ms, compile
+// RFC 7634 IPsec ESP tunnel utilizing ChaCha20-Poly1305 AEAD with 64-bit
+// implicit/explicit IV and 128-bit Poly1305 ICV.
+// This capture sets DSCP 26, TTL 62, DF bit set, carries SPI 763401/763402,
+// and uses post-packet wait gaps (4ms) between frames.
+// Wireshark: esp
 
-// INSTRUCTION: Define mobile edge router encrypting uplink traffic with ChaCha20-Poly1305 ESP.
 host edge_chacha_rtr {
     ip 100.64.50.10
     mac 00:1e:67:76:34:0a
 }
 
-// INSTRUCTION: Define headend concentrator verifying Poly1305 16-byte authentication tag.
 host headend_chacha_gw {
     ip 192.0.2.200
     mac 00:1e:67:76:34:c8
 }
 
-// INSTRUCTION: Define RFC 7634 ChaCha20-Poly1305 ESP exchange with NEXT_HEADER 4 (IPv4).
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow esp_chacha20_poly1305_flow(edge, headend) {
     edge -> headend esp spi 763401 seq 10 iv "000000000000000a" icv "aa11bb22cc33dd44ee55ff6677889900" nextheader 4 df dscp 26 ttl 62 payload "CHACHA20_STREAM_CIPHER_FRAME_A" wait 4ms
     edge <- headend esp spi 763402 seq 10 iv "000000000000000a" icv "0099887766ff55ee44dd33cc22bb11aa" nextheader 4 df dscp 26 ttl 62 payload "CHACHA20_STREAM_CIPHER_FRAME_B"
 }
 
-// INSTRUCTION: Compile the RFC 7634 ChaCha20-Poly1305 ESP VPN scenario.
+// Run esp_chacha20_poly1305_flow(edge_chacha_rtr, headend_chacha_gw) to
+// generate the capture.
 compile {
     esp_chacha20_poly1305_flow(edge_chacha_rtr, headend_chacha_gw)
 }

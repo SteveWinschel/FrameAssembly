@@ -1,24 +1,24 @@
-// PROMPT: HTTP persistent connection sending recurring health poll requests in a COMPILE loop.
-// TOKENS: host, ip, flow, s, http, method, uri, hosthdr, wait, ms, status, reason, compile
+// HTTP persistent connection sending recurring health poll requests across
+// sequential cycles.
+// Wireshark: http
 
-// INSTRUCTION: Define automated polling agent host.
 host poll_agent {
     ip 192.168.140.7
 }
 
-// INSTRUCTION: Define target service endpoint host.
 host target_web {
     ip 192.168.140.1
 }
 
-// INSTRUCTION: Send periodic HTTP probe and receive status acknowledgment.
+// Send periodic HTTP probe and receive status acknowledgment. Repeats 4
+// times; each wait value pauses after sending its packet.
 flow http_probe_flow(c, s) {
     c -> s http method "GET" uri "/probe"
            hosthdr "internal.mesh" wait 10ms
     c <- s http status 200 reason "OK" wait 10ms
 }
 
-// INSTRUCTION: Execute 4 probe iterations in COMPILE loop.
+// 4 probe iterations across sequential cycles.
 compile {
     http_probe_flow(poll_agent, target_web) // cycle 1
     http_probe_flow(poll_agent, target_web) // cycle 2

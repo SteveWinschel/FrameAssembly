@@ -1,25 +1,27 @@
-// PROMPT: RFC 8971 BFD for VXLAN encapsulated with Management VNI 1 to verify end-to-end VTEP dataplane encapsulation health.
-// TOKENS: host, ip, mac, flow, vxlan, vni, srcport, dstport, df, dscp, ttl, payload, wait, ms, compile
+// RFC 8971 BFD for VXLAN encapsulated with Management VNI 1 to verify
+// end-to-end VTEP dataplane encapsulation health.
+// This capture sets DSCP 48, TTL 1, DF bit set, carries VNI 1, destination
+// port 4789, and uses post-packet wait gaps (10ms) between frames.
+// Wireshark: vxlan && vxlan.vni == 1
 
-// INSTRUCTION: Define VTEP-East originating RFC 8971 BFD-over-VXLAN dataplane health check.
 host rfc8971_vtep_east {
     ip 10.89.71.1
     mac 00:1c:73:89:71:01
 }
 
-// INSTRUCTION: Define VTEP-West reflecting BFD-over-VXLAN management VNI 1 probe.
 host rfc8971_vtep_west {
     ip 10.89.71.2
     mac 00:1c:73:89:71:02
 }
 
-// INSTRUCTION: Define RFC 8971 VXLAN management VNI 1 probe with DSCP CS6 (48) and TTL 1.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vxlan_rfc8971_oam_probe(east, west) {
     east -> west vxlan vni 1 srcport 49152 dstport 4789 df dscp 48 ttl 1 payload "RFC8971_INNER_BFD_DISC_101_STATE_UP" wait 10ms
     east <- west vxlan vni 1 srcport 49153 dstport 4789 df dscp 48 ttl 1 payload "RFC8971_INNER_BFD_DISC_102_STATE_UP"
 }
 
-// INSTRUCTION: Compile the RFC 8971 BFD-over-VXLAN OAM probe flow.
+// Run vxlan_rfc8971_oam_probe(rfc8971_vtep_east, rfc8971_vtep_west) to
+// generate the capture.
 compile {
     vxlan_rfc8971_oam_probe(rfc8971_vtep_east, rfc8971_vtep_west)
 }

@@ -1,19 +1,20 @@
-// PROMPT: IKEv2 INFORMATIONAL Delete payload tearing down an active IKE Security Association.
-// TOKENS: host, ip, flow, ikev2, informational, initiatorspi, responderspi, msgid, flags, nextpayload, payload, compile
+// IKEv2 INFORMATIONAL Delete payload tearing down an active IKE Security
+// Association.
+// This capture models UDP port 500/4500 IKEv2 key-exchange messages.
+// Wireshark: isakmp
 
-// INSTRUCTION: Define disconnecting VPN client.
 host delete_ike_cli { ip 10.88.1.50 }
 
-// INSTRUCTION: Define VPN concentrator acknowledging SA deletion.
 host delete_ike_srv { ip 10.88.1.1 }
 
-// INSTRUCTION: Define INFORMATIONAL Delete SA request and response with Next Payload 46 (SK).
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ikev2_delete_sa(cli, srv) {
     cli -> srv ikev2 informational initiatorspi 99001122 responderspi 33445566 msgid 15 flags 8 nextpayload 46 payload "DELETE_IKE_SA_NOTIFY"
     cli <- srv ikev2 informational initiatorspi 99001122 responderspi 33445566 msgid 15 flags 32 nextpayload 46 payload "DELETE_IKE_SA_ACK"
 }
 
-// INSTRUCTION: Compile the IKEv2 INFORMATIONAL Delete SA flow.
+// Run ikev2_delete_sa(delete_ike_cli, delete_ike_srv) to generate the
+// capture.
 compile {
     ikev2_delete_sa(delete_ike_cli, delete_ike_srv)
 }

@@ -1,19 +1,21 @@
-// PROMPT: HSRPv2 for IPv6 advertising link-local Virtual IP over UDP port 2029 to ff02::66.
-// TOKENS: host, ip, mac, flow, hsrp, group, priority, state, vip, hellotime, holdtime, ttl, flowlabel, compile
+// HSRPv2 for IPv6 advertising link-local Virtual IP over UDP port 2029 to
+// ff02::66.
+// This capture targets IPv6 endpoints, sets TTL 255, IPv6 Flow Label, and
+// carries group 1, HSRP state 16/8.
+// Wireshark: hsrp2
 
-// INSTRUCTION: Define IPv6 HSRPv2 active router with virtual MAC 00:05:73:a0:00:01.
 host hsrpv6_active { ip fe80::a1 mac 00:05:73:a0:00:01 }
 
-// INSTRUCTION: Define IPv6 HSRPv2 standby router.
 host hsrpv6_standby { ip fe80::a2 mac 00:1e:bd:aa:00:02 }
 
-// INSTRUCTION: Define IPv6 HSRPv2 Active and Standby advertisements with link-local VIP fe80::1.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow hsrpv2_ipv6_flow(act, stb) {
     act -> stb hsrp group 1 priority 140 state 16 vip fe80::1 hellotime 3 holdtime 10 ttl 255 flowlabel 20290
     act <- stb hsrp group 1 priority 100 state 8 vip fe80::1 hellotime 3 holdtime 10 ttl 255 flowlabel 20291
 }
 
-// INSTRUCTION: Compile the IPv6 HSRPv2 advertisement flow.
+// Run hsrpv2_ipv6_flow(hsrpv6_active, hsrpv6_standby) to generate the
+// capture.
 compile {
     hsrpv2_ipv6_flow(hsrpv6_active, hsrpv6_standby)
 }

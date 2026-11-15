@@ -42,20 +42,28 @@ pub fn build_sflow_payload(
     pkt.extend_from_slice(&spec.sub_agent_id.unwrap_or(0).to_be_bytes());
     pkt.extend_from_slice(&spec.seq.unwrap_or(1).to_be_bytes());
     pkt.extend_from_slice(&spec.uptime.unwrap_or(1000).to_be_bytes());
-    pkt.extend_from_slice(&spec.samples.unwrap_or(1).to_be_bytes());
+    let count = spec.samples.unwrap_or(1).min(64);
+    pkt.extend_from_slice(&count.to_be_bytes());
 
-    // Flow Sample Record (Format 1: standard flow sample, 32-byte 8 x u32 header)
-    let sample_len = (32 + payload_bytes.len()) as u32;
-    pkt.extend_from_slice(&1u32.to_be_bytes()); // Sample format 1 (enterprise 0, format 1)
-    pkt.extend_from_slice(&sample_len.to_be_bytes()); // Sample data length (32B header + flow records)
-    pkt.extend_from_slice(&spec.seq.unwrap_or(1).to_be_bytes()); // 1. sequence_number
-    pkt.extend_from_slice(&0u32.to_be_bytes()); // 2. source_id
-    pkt.extend_from_slice(&100u32.to_be_bytes()); // 3. sampling_rate
-    pkt.extend_from_slice(&100u32.to_be_bytes()); // 4. sample_pool
-    pkt.extend_from_slice(&0u32.to_be_bytes()); // 5. drops
-    pkt.extend_from_slice(&1u32.to_be_bytes()); // 6. input_if (ifIndex 1)
-    pkt.extend_from_slice(&2u32.to_be_bytes()); // 7. output_if (ifIndex 2)
-    pkt.extend_from_slice(&0u32.to_be_bytes()); // 8. num_flow_records
+    // Flow Sample Records (Format 1: standard flow sample, 32-byte 8 x u32 header per sample)
+    for sample_seq in 1..=count {
+        let extra = if sample_seq == count {
+            payload_bytes.len()
+        } else {
+            0
+        };
+        let sample_len = 32u32.saturating_add(extra as u32);
+        pkt.extend_from_slice(&1u32.to_be_bytes()); // Sample format 1 (enterprise 0, format 1)
+        pkt.extend_from_slice(&sample_len.to_be_bytes()); // Sample data length (32B header + flow records)
+        pkt.extend_from_slice(&sample_seq.to_be_bytes()); // 1. sequence_number (1..=count)
+        pkt.extend_from_slice(&0u32.to_be_bytes()); // 2. source_id
+        pkt.extend_from_slice(&100u32.to_be_bytes()); // 3. sampling_rate
+        pkt.extend_from_slice(&100u32.to_be_bytes()); // 4. sample_pool
+        pkt.extend_from_slice(&0u32.to_be_bytes()); // 5. drops
+        pkt.extend_from_slice(&1u32.to_be_bytes()); // 6. input_if (ifIndex 1)
+        pkt.extend_from_slice(&2u32.to_be_bytes()); // 7. output_if (ifIndex 2)
+        pkt.extend_from_slice(&0u32.to_be_bytes()); // 8. num_flow_records
+    }
 
     if !payload_bytes.is_empty() {
         pkt.extend_from_slice(payload_bytes);

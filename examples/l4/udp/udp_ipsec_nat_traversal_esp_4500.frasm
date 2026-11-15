@@ -1,21 +1,19 @@
-// PROMPT: RFC 3948 IPsec NAT-Traversal (NAT-T) over UDP port 4500 with Non-ESP Marker IKEv2 and encapsulated ESP data, plus 0xFF keepalive.
-// TOKENS: host, ip, flow, udp, srcport, dstport, hexpayload, wait, ms, s, compile
+// RFC 3948 IPsec NAT-Traversal (NAT-T) over UDP port 4500 with Non-ESP Marker
+// IKEv2 and encapsulated ESP data, plus 0xFF keepalive.
+// Wire profile: 4 frames; 2 IPv4 hosts; UDP; dstport 4500; waits 2ms, 20s.
+// Wireshark: udp.port == 4500
 
-// INSTRUCTION: Define mobile road-warrior VPN client behind carrier-grade NAT.
 host natt_vpn_client { ip 100.64.88.15 }
 
-// INSTRUCTION: Define corporate edge VPN concentrator listening on UDP port 4500.
 host natt_vpn_gateway { ip 198.51.100.250 }
 
-// INSTRUCTION: Define UDP port 4500 Non-ESP Marker frame, ESP-in-UDP SPI 0x20010001 frame, and 1-byte 0xFF NAT keepalive.
 flow udp_ipsec_nat_traversal(cli, gw) {
-    cli -> gw udp srcport 4500 dstport 4500 hexpayload "00000000a1b2c3d4e5f607181122334455667788"
+    cli -> gw udp srcport 4500 dstport 4500 hexpayload "00000000a1b2c3d4e5f607181122334455667788" wait 2ms
     cli -> gw udp srcport 4500 dstport 4500 hexpayload "200100010000000199aabbccddeeff0011223344" wait 2ms
-    cli <- gw udp srcport 4500 dstport 4500 hexpayload "20010002000000015566778899aabbccddeeff00" wait 2ms
-    cli -> gw udp srcport 4500 dstport 4500 hexpayload "ff" wait 20s
+    cli <- gw udp srcport 4500 dstport 4500 hexpayload "20010002000000015566778899aabbccddeeff00" wait 20s
+    cli -> gw udp srcport 4500 dstport 4500 hexpayload "ff"
 }
 
-// INSTRUCTION: Compile block executing IPsec NAT-T UDP port 4500 session.
 compile {
     udp_ipsec_nat_traversal(natt_vpn_client, natt_vpn_gateway)
 }

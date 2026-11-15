@@ -1,13 +1,11 @@
-// PROMPT: Regional registry query verifying allocated IPv6 address prefix assignment.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// Regional registry query verifying allocated IPv6 address prefix assignment.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Wireshark: whois
 
-// INSTRUCTION: Define IPv6 network architect.
 host architect_v6 { ip 2001:db8:1234::10 }
 
-// INSTRUCTION: Define RIPE NCC IPv6 directory server.
 host ripe_v6_whois { ip 2001:67c:2e8:22::c100:687 }
 
-// INSTRUCTION: Define IPv6 prefix allocation query flow.
 flow whois_v6_prefix_flow(c, s) {
     c -> s whois query domain "2001:db8::/32"
     c <- s whois response
@@ -15,7 +13,6 @@ flow whois_v6_prefix_flow(c, s) {
         registrar "RIPE NCC Registry"
 }
 
-// INSTRUCTION: Compile block executing IPv6 prefix query.
 compile {
     whois_v6_prefix_flow(architect_v6, ripe_v6_whois)
 }

@@ -18,7 +18,7 @@ use alloc::vec::Vec;
 #[doc(alias = "MSEARCH")]
 #[doc(alias = "DLNA")]
 pub fn build_ssdp_payload(
-    _ctx: &WireContext,
+    ctx: &WireContext,
     spec: &SsdpSpec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
@@ -27,7 +27,12 @@ pub fn build_ssdp_payload(
     } else {
         "M-SEARCH"
     };
-    let host = spec.host_hdr.unwrap_or("239.255.255.250:1900");
+    let default_host = if ctx.dst_ip.is_ipv6() {
+        "[ff02::c]:1900"
+    } else {
+        "239.255.255.250:1900"
+    };
+    let host = spec.host_hdr.unwrap_or(default_host);
     let st = spec.st.unwrap_or("ssdp:all");
 
     let mut out = format!("{} * HTTP/1.1\r\nHOST: {}\r\n", method, host);

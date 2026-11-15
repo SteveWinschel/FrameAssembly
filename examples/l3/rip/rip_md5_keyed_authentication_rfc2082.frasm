@@ -1,25 +1,27 @@
-// PROMPT: RFC 2082 / RFC 4822 RIPv2 cryptographic MD5 / HMAC-SHA authentication trailer protecting routing updates.
-// TOKENS: host, ip, mac, flow, rip, response, prefix, metric, nexthop, tag, dscp, ttl, hexpayload, wait, ms, compile
+// RFC 2082 / RFC 4822 RIPv2 cryptographic MD5 / HMAC-SHA authentication
+// trailer protecting routing updates.
+// This capture sets DSCP 48, TTL 1 and uses post-packet wait gaps (5ms)
+// between frames.
+// Wireshark: rip
 
-// INSTRUCTION: Define secure core router A attaching RFC 2082 Keyed-MD5 authentication trailer.
 host rip_md5_rtr_a {
     ip 10.52.208.1
     mac 00:1b:63:52:d0:01
 }
 
-// INSTRUCTION: Define secure core router B validating Key ID 1 cryptographic sequence number.
 host rip_md5_rtr_b {
     ip 10.52.208.2
     mac 00:1b:63:52:d0:02
 }
 
-// INSTRUCTION: Define authenticated RIPv2 RESPONSE carrying hex-encoded RFC 2082 MD5 trailer.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow rip_rfc2082_md5_auth(a, b) {
     a -> b rip response prefix 10.208.1.0 metric 1 nexthop 10.52.208.1 tag 2082 dscp 48 ttl 1 hexpayload "ffff00030014011000000001a1b2c3d4e5f60718293a4b5c" wait 5ms
     a <- b rip response prefix 10.208.2.0 metric 1 nexthop 10.52.208.2 tag 2082 dscp 48 ttl 1 hexpayload "ffff000300140110000000025c4b3a291807f6e5d4c3b2a1"
 }
 
-// INSTRUCTION: Compile the RFC 2082 RIPv2 cryptographic authentication flow.
+// Run rip_rfc2082_md5_auth(rip_md5_rtr_a, rip_md5_rtr_b) to generate the
+// capture.
 compile {
     rip_rfc2082_md5_auth(rip_md5_rtr_a, rip_md5_rtr_b)
 }

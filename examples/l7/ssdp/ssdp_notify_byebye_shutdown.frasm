@@ -1,13 +1,13 @@
-// PROMPT: Device graceful shutdown notification using NTS ssdp:byebye.
-// TOKENS: host, ip, flow, s, ssdp, notify, nt, nts, usn, compile
+// Device graceful shutdown notification using NTS ssdp:byebye.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (SSDP /
+// UPnP, UDP 1900).
+// Wireshark: ssdp
 
-// INSTRUCTION: Define departing printer node.
 host printer_node { ip 192.168.1.50 }
 
-// INSTRUCTION: Define multicast notification group.
 host ssdp_broadcast { ip 239.255.255.250 }
 
-// INSTRUCTION: Define device shutdown departure flow.
 flow ssdp_byebye_flow(c, s) {
     c -> s ssdp notify
         nt "urn:schemas-upnp-org:device:Printer:1"
@@ -15,7 +15,6 @@ flow ssdp_byebye_flow(c, s) {
         usn "uuid:print-lab-uuid::urn:schemas-upnp-org:device:Printer:1"
 }
 
-// INSTRUCTION: Compile block executing byebye advertisement.
 compile {
     ssdp_byebye_flow(printer_node, ssdp_broadcast)
 }

@@ -1,0 +1,11 @@
+// Minimal 2-block SMB2 starter emitting a default Negotiate request on TCP port 445.
+// Prepends the 4-byte NetBIOS length header and 64-byte SMB2 framing automatically.
+// Compile to check lateral-movement detection or SMB firewall ACLs.
+// Wireshark: smb2
+
+host workstation { ip 10.20.5.101 mac 00:50:56:20:05:65 }
+host file_server { ip 10.20.1.50  mac 00:50:56:20:01:32 }
+
+compile {
+    workstation -> file_server smb
+}

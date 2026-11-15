@@ -10,10 +10,12 @@ use alloc::format;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::fmt::Write as _;
-use core::net::Ipv4Addr;
+use core::net::{Ipv4Addr, Ipv6Addr};
 
 use crate::ast::Protocol;
-use crate::reverse::{ProtocolDissection, be_u16, be_u32, format_mac_lower, ipv4_at, push_if};
+use crate::reverse::{
+    ProtocolDissection, be_u16, be_u32, format_mac_lower, ipv4_at, ipv6_at, push_if,
+};
 
 use super::{is_printable_ascii_str, ok_dissect, push_opt, push_str_if};
 
@@ -117,12 +119,13 @@ pub(crate) fn dissect_dhcpv4(payload: &[u8]) -> Option<ProtocolDissection> {
     ok_dissect(Protocol::Dhcp, tokens, residual_payload)
 }
 
-/// Dissects an RFC 8415 DHCPv6 payload (1B msg-type + 3B transaction-id + Option 1 DUID-LL).
+/// Dissects an RFC 8415 DHCPv6 payload (1B msg-type + 3B transaction-id + TLV options).
 pub(crate) fn dissect_dhcpv6(payload: &[u8]) -> Option<ProtocolDissection> {
     if payload.len() < 4 {
         return None;
     }
-    let msg_kw = match payload[0] {
+    let msg_type = payload[0];
+    let msg_kw = match msg_type {
         1 => "solicit",
         2 => "advertise",
         3 => "request",
@@ -130,25 +133,134 @@ pub(crate) fn dissect_dhcpv6(payload: &[u8]) -> Option<ProtocolDissection> {
         8 => "release",
         _ => return None,
     };
+    let is_server_msg = matches!(msg_type, 2 | 7);
     let xid = ((payload[1] as u32) << 16) | ((payload[2] as u32) << 8) | (payload[3] as u32);
 
-    let mut chaddr_opt = None;
+    let mut chaddr_opt: Option<[u8; 6]> = None;
+    let mut seen_server_id = false;
+    let mut yiaddr_opt: Option<Ipv6Addr> = None;
+    let mut lease_opt: Option<u32> = None;
+    let mut dns_opt: Option<Ipv6Addr> = None;
+    let mut hostname_opt: Option<alloc::string::String> = None;
     let mut residual_payload = Vec::new();
-    if payload.len() >= 18 && payload[4..12] == [0, 1, 0, 10, 0, 3, 0, 1] {
-        let mut chaddr = [0u8; 6];
-        chaddr.copy_from_slice(&payload[12..18]);
-        chaddr_opt = Some(chaddr);
-        residual_payload.extend_from_slice(&payload[18..]);
-    } else if payload.len() > 4 {
-        residual_payload.extend_from_slice(&payload[4..]);
+
+    let mut idx = 4usize;
+    while idx < payload.len() {
+        let Some(hdr_end) = idx.checked_add(4) else {
+            residual_payload.extend_from_slice(&payload[idx..]);
+            break;
+        };
+        if hdr_end > payload.len() {
+            residual_payload.extend_from_slice(&payload[idx..]);
+            break;
+        }
+        let opt_code = be_u16(payload, idx);
+        let opt_len = usize::from(be_u16(payload, idx + 2));
+        let Some(opt_end) = hdr_end.checked_add(opt_len) else {
+            residual_payload.extend_from_slice(&payload[idx..]);
+            break;
+        };
+        if opt_end > payload.len() {
+            residual_payload.extend_from_slice(&payload[idx..]);
+            break;
+        }
+        let val = &payload[hdr_end..opt_end];
+        let raw_opt = &payload[idx..opt_end];
+
+        if opt_code == 1
+            && opt_len == 10
+            && val[..4] == [0, 3, 0, 1]
+            && chaddr_opt.is_none()
+            && !seen_server_id
+            && yiaddr_opt.is_none()
+            && dns_opt.is_none()
+            && hostname_opt.is_none()
+            && residual_payload.is_empty()
+        {
+            let mut mac = [0u8; 6];
+            mac.copy_from_slice(&val[4..10]);
+            chaddr_opt = Some(mac);
+        } else if is_server_msg
+            && opt_code == 2
+            && opt_len == 10
+            && val[..4] == [0, 3, 0, 1]
+            && chaddr_opt.is_some()
+            && !seen_server_id
+            && yiaddr_opt.is_none()
+            && dns_opt.is_none()
+            && hostname_opt.is_none()
+            && residual_payload.is_empty()
+        {
+            seen_server_id = true;
+        } else if opt_code == 3
+            && opt_len == 40
+            && val[..4] == [0, 0, 0, 1]
+            && val[12..16] == [0, 5, 0, 24]
+            && yiaddr_opt.is_none()
+            && dns_opt.is_none()
+            && hostname_opt.is_none()
+            && residual_payload.is_empty()
+        {
+            let t1 = be_u32(val, 4);
+            let t2 = be_u32(val, 8);
+            let pref = be_u32(val, 32);
+            let valid = be_u32(val, 36);
+            let expected_t2 = ((u64::from(valid) * 4) / 5) as u32;
+            if pref == valid && t1 == valid / 2 && t2 == expected_t2 {
+                yiaddr_opt = Some(ipv6_at(val, 16));
+                lease_opt = Some(valid);
+            } else {
+                residual_payload.extend_from_slice(raw_opt);
+            }
+        } else if opt_code == 23
+            && opt_len == 16
+            && dns_opt.is_none()
+            && hostname_opt.is_none()
+            && residual_payload.is_empty()
+        {
+            dns_opt = Some(ipv6_at(val, 0));
+        } else if opt_code == 39
+            && opt_len >= 1
+            && val[0] == 0
+            && hostname_opt.is_none()
+            && residual_payload.is_empty()
+        {
+            if let Some(s) = is_printable_ascii_str(&val[1..]) {
+                hostname_opt = Some(s.to_string());
+            } else {
+                residual_payload.extend_from_slice(raw_opt);
+            }
+        } else {
+            residual_payload.extend_from_slice(raw_opt);
+        }
+
+        idx = opt_end;
+    }
+
+    if chaddr_opt.is_none() || (is_server_msg && !seen_server_id) {
+        return None;
     }
 
     let mut tokens = format!("dhcp {msg_kw}");
     if xid != 0x0012_3456 {
         let _ = write!(tokens, " xid 0x{xid:06x}");
     }
+    push_opt(&mut tokens, "yiaddr", yiaddr_opt);
     if let Some(chaddr) = chaddr_opt {
         let _ = write!(tokens, " chaddr {}", format_mac_lower(chaddr));
+    }
+    push_opt(&mut tokens, "dnsserver", dns_opt);
+    if let Some(h) = hostname_opt {
+        if h.is_empty() {
+            tokens.push_str(" hostname \"\"");
+        } else {
+            push_str_if(&mut tokens, "hostname", &h, "");
+        }
+    }
+    if let Some(lease) = lease_opt
+        && lease != 3600
+    {
+        let _ = write!(tokens, " leasetime {lease}");
     }
 
     ok_dissect(Protocol::Dhcp, tokens, residual_payload)

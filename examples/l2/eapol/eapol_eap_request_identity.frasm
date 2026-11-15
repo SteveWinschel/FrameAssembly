@@ -1,19 +1,16 @@
-// PROMPT: IEEE 802.1X EAP-Packet exchange requesting and supplying user identity string.
-// TOKENS: host, ip, flow, eapol, type, eappacket, eapcode, eapid, eapmethod, identity, compile
+// IEEE 802.1X EAP-Packet exchange requesting and supplying user identity string.
+// Wire profile: 2 frames; 2 IPv4 hosts; EAPOL.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define 802.1X client supplicant.
 host client_supplicant { ip 192.168.1.100 }
 
-// INSTRUCTION: Define 802.1X authentication server.
 host radius_auth_server { ip 192.168.1.2 }
 
-// INSTRUCTION: Define EAP identity request and response flow.
 flow eapol_identity_flow(cli, srv) {
     cli <- srv eapol type eappacket eapcode 1 eapid 1 eapmethod 1
     cli -> srv eapol type eappacket eapcode 2 eapid 1 eapmethod 1 identity "alice@corp.local"
 }
 
-// INSTRUCTION: Compile block executing EAPOL identity exchange.
 compile {
     eapol_identity_flow(client_supplicant, radius_auth_server)
 }

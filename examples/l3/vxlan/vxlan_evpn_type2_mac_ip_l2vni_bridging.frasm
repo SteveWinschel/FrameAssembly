@@ -1,25 +1,27 @@
-// PROMPT: RFC 7348 / RFC 7432 BGP EVPN Type-2 L2VNI (VNI 10010) Intra-Subnet Ethernet bridging between Leaf VTEPs.
-// TOKENS: host, ip, mac, flow, vxlan, vni, srcport, dstport, df, dscp, ttl, payload, wait, ms, compile
+// RFC 7348 / RFC 7432 BGP EVPN Type-2 L2VNI (VNI 10010) Intra-Subnet Ethernet
+// bridging between Leaf VTEPs.
+// This capture sets DSCP 18, TTL 62, DF bit set, carries VNI 10010,
+// destination port 4789, and uses post-packet wait gaps (2ms) between frames.
+// Wireshark: vxlan && vxlan.vni == 10010
 
-// INSTRUCTION: Define Leaf-101 VTEP encapsulating intra-subnet VM traffic into L2VNI 10010.
 host evpn_vtep_101 {
     ip 10.255.1.101
     mac 00:1c:73:47:89:01
 }
 
-// INSTRUCTION: Define Leaf-102 VTEP decapsulating L2VNI 10010 and delivering to destination VM.
 host evpn_vtep_102 {
     ip 10.255.1.102
     mac 00:1c:73:47:89:02
 }
 
-// INSTRUCTION: Define RFC 7348 VXLAN exchange on UDP 4789 with L2VNI 10010 and entropy SRCPORT.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vxlan_evpn_l2vni_bridge(vtep1, vtep2) {
     vtep1 -> vtep2 vxlan vni 10010 srcport 54101 dstport 4789 df dscp 18 ttl 62 payload "EVPN_TYPE2_INTRA_VLAN10_VM_A_TO_VM_B" wait 2ms
     vtep1 <- vtep2 vxlan vni 10010 srcport 54102 dstport 4789 df dscp 18 ttl 62 payload "EVPN_TYPE2_INTRA_VLAN10_VM_B_TO_VM_A"
 }
 
-// INSTRUCTION: Compile the BGP EVPN L2VNI 10010 VXLAN bridging flow.
+// Run vxlan_evpn_l2vni_bridge(evpn_vtep_101, evpn_vtep_102) to generate the
+// capture.
 compile {
     vxlan_evpn_l2vni_bridge(evpn_vtep_101, evpn_vtep_102)
 }

@@ -83,9 +83,7 @@ fn append_usm_header_tokens(
     time: u32,
 ) {
     push_str_if(tokens, "user", user, "admin");
-    if !engine_id_hex.is_empty() {
-        push_str_if(tokens, "engineid", engine_id_hex, "8000000001");
-    }
+    push_str_if(tokens, "engineid", engine_id_hex, "8000000001");
     push_if(tokens, "engineboots", boots, 0);
     push_if(tokens, "enginetime", time, 0);
 }

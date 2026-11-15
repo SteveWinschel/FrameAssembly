@@ -1,13 +1,15 @@
-// PROMPT: etcd v3 KV Put and Range gRPC calls over custom TCP port 2379 with MPLS label.
-// TOKENS: host, ip, flow, grpc, service, method, srcport, dstport, mpls, exp, bos, mplsttl, grpcstatus, compile
+// etcd v3 KV Put and Range gRPC calls over custom TCP port 2379 with MPLS
+// label.
+// Wireshark: grpc || http2 || tcp.port == 2379
 
-// INSTRUCTION: Define Kubernetes API server client.
 host kube_apiserver { ip 172.29.0.2 }
 
-// INSTRUCTION: Define etcd cluster leader on port 2379.
+// Etcd cluster leader on port 2379.
 host etcd_leader { ip 172.29.0.10 }
 
-// INSTRUCTION: Execute etcdserverpb.KV/Put and Range over TCP port 2379 and MPLS label 2379.
+// Etcdserverpb.KV/Put and Range over TCP port 2379 and MPLS label 2379.
+// Encapsulation and QoS markings: MPLS label 2379. gRPC status codes
+// observed: 0 (OK) on TCP port 2379.
 flow grpc_etcd_kv_ops(api, etcd) {
     api -> etcd grpc service "etcdserverpb.KV" method "Put" srcport 52300 dstport 2379 mpls 2379 exp 6 bos 1 mplsttl 64
     api <- etcd grpc service "etcdserverpb.KV" method "Put" grpcstatus 0 srcport 2379 dstport 52300 mpls 2379 exp 6 bos 1 mplsttl 64
@@ -15,7 +17,6 @@ flow grpc_etcd_kv_ops(api, etcd) {
     api <- etcd grpc service "etcdserverpb.KV" method "Range" grpcstatus 0 srcport 2379 dstport 52300 mpls 2379 exp 6 bos 1 mplsttl 64
 }
 
-// INSTRUCTION: Compile the etcd v3 gRPC KV operations flow.
 compile {
     grpc_etcd_kv_ops(kube_apiserver, etcd_leader)
 }

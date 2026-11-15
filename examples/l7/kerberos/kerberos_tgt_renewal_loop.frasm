@@ -1,25 +1,27 @@
-// PROMPT: Create a Kerberos periodic TGT renewal TGS_REQ and TGS_REP polling loop from a Linux daemon to a FreeIPA KDC.
-// TOKENS: host, ip, mac, flow, s, kerberos, tgsreq, realm, cname, sname, etype, wait, ms, tgsrep, compile
+// Kerberos periodic TGT renewal TGS-REQ and TGS-REP polling loop from a Linux
+// daemon to a FreeIPA KDC.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define the Linux application node running a long-lived k5start renewal daemon.
+// Linux application node running a long-lived k5start renewal daemon.
 host app_daemon {
     ip 172.22.5.40
     mac 00:16:3e:22:05:40
 }
 
-// INSTRUCTION: Define the FreeIPA Kerberos Key Distribution Center.
+// FreeIPA Kerberos Key Distribution Center.
 host ipa_kdc {
     ip 172.22.1.5
     mac 00:16:3e:22:01:05
 }
 
-// INSTRUCTION: Execute three consecutive TGT renewal exchanges using TGS_REQ for krbtgt.
+// Three consecutive TGT renewal exchanges using TGS-REQ for krbtgt. Kerberos
+// encryption types: 18 (AES256-CTS). Repeats 3 times; each wait value pauses
+// after sending its packet.
 flow tgt_renewal_loop(c, s) {
     c -> s kerberos tgsreq realm "IPA.INTERNAL.NET" cname "svc_kafka" sname "krbtgt/IPA.INTERNAL.NET" etype 18 wait 5ms
     c <- s kerberos tgsrep realm "IPA.INTERNAL.NET" cname "svc_kafka" sname "krbtgt/IPA.INTERNAL.NET" etype 18 wait 50ms
 }
 
-// INSTRUCTION: Compile the Kerberos TGT renewal loop capture into a PCAP file.
 compile {
     tgt_renewal_loop(app_daemon, ipa_kdc) // cycle 1
     tgt_renewal_loop(app_daemon, ipa_kdc) // cycle 2

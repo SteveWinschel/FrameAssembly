@@ -31,7 +31,7 @@ pub(crate) fn dissect_arp(
     );
     *src_ip = Some(IpAddr::V4(spa));
     *dst_ip = Some(IpAddr::V4(tpa));
-    let is_grat = spa == tpa && !spa.is_unspecified() && tha == [0; 6];
+    let is_grat = spa == tpa && !spa.is_unspecified() && (tha == [0; 6] || tha == [0xff; 6]);
     let mut t = String::from(if oper == 2 {
         "arp reply"
     } else {

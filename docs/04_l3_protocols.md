@@ -2,12 +2,17 @@
 
 [← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)
 
-Somebody has to test what the edge router does when an eBGP peer announces an RTBH blackhole, or how long OSPF takes to notice a dead neighbor. The honest options are: boot six router VMs and wait for a 40-second Dead timer, or try it on the production edge and keep your CV current. FrameAssembly offers a third option. Write the routing exchange, tunnel, or VPN handshake as `.frasm` code, compile a `.pcap`, and replay it with **`tcpreplay`** or inspect it with **Wireshark** / **`tshark`**, **Suricata**, or **Zeek**.
+Somebody has to test what the edge router does when an eBGP peer announces an RTBH blackhole, or how long OSPF takes to notice a dead neighbor. The honest options are: boot six router
+VMs and wait for a 40-second Dead timer, or try it on the production edge and keep your CV current. FrameAssembly offers a third option. Write the routing exchange, tunnel, or VPN
+handshake as `.frasm` code, compile a `.pcap`, and replay it with **`tcpreplay`** or inspect it with **Wireshark** / **`tshark`**, **Suricata**, or **Zeek**.
 
-Every Layer 3 protocol here works over IPv4 and IPv6. Write the `flow` once, pass either kind of `host` into `compile`, and FrameAssembly switches between IPv4 (`0x0800`) and IPv6 (`0x86dd`), including ICMPv6, OSPFv3, MP-BGP, RIPng, VRRPv3, and HSRPv2 on `UDP 2029`.
+Every Layer 3 protocol here works over IPv4 and IPv6. Write the `flow` once, pass either kind of `host` into `compile`, and FrameAssembly switches between IPv4 (`0x0800`) and IPv6
+(`0x86dd`), including ICMPv6, OSPFv3, MP-BGP, RIPng, VRRPv3, and HSRPv2 on `UDP 2029`.
 
-* **Outer IP header:** add `ttl <0..255>` (IPv4 TTL or IPv6 Hop Limit: `255` for GTSM, `1` for link-local multicast), `dscp <0..63>`, `ecn <0..3>`, `flowlabel <0..1048575>` (the 20-bit IPv6 ECMP label), `df`, `mf`, `ipid <u16>`, and `fragoffset <0..8191>` to any statement.
-* **Multicast MACs:** a host with an IPv4 multicast IP (`224.0.0.5` for OSPF, `224.0.0.18` for VRRP) or an IPv6 one (`ff02::5`, `ff02::12`) and no `mac` gets `01:00:5e:xx:xx:xx` or `33:33:xx:xx:xx:xx` automatically.
+* **Outer IP header:** add `ttl <0..255>` (IPv4 TTL or IPv6 Hop Limit: `255` for GTSM, `1` for link-local multicast), `dscp <0..63>`, `ecn <0..3>`, `flowlabel <0..1048575>` (the
+  20-bit IPv6 ECMP label), `df`, `mf`, `ipid <u16>`, and `fragoffset <0..8191>` to any statement.
+* **Default & Multicast MACs:** unicast IP hosts without `mac` receive `00:00:00:00:00:01`, `:02`, ... in `host` declaration order; multicast hosts (`224.0.0.5` for OSPF, `224.0.0.18` for VRRP,
+  `ff02::5`, `ff02::12`) derive RFC 1112 `01:00:5e:xx:xx:xx` or RFC 2464 `33:33:xx:xx:xx:xx` automatically.
 * **Stacking:** put `vlan <id> [pcp <n>] [dei <0|1>]`, `qinq <svid> innervlan <cvid>`, or `mpls <label> [exp <n>] [bos <0|1>] [mplsttl <n>]` on the same line as any Layer 3 protocol.
 
 | Protocol | Keyword | Wire Framing / Port | IPv4 & IPv6 | Typical Use |
@@ -38,7 +43,8 @@ Every Layer 3 protocol here works over IPv4 and IPv6. Write the `flow` once, pas
 
 ## 1. PMTUD, Neighbor Discovery & Multicast (`icmp`, `ndp`, `igmp`, `mld`)
 
-Silent MTU blackholes are classic Friday-afternoon outages: a `gre` tunnel carries 1400 bytes, the ICMP "Fragmentation Needed" message is filtered somewhere on the path, and TCP stalls with no error anywhere. Script the `df` probe and the `destunreach code 4` reply, and test whether your filters and monitoring notice.
+Silent MTU blackholes are classic Friday-afternoon outages: a `gre` tunnel carries 1400 bytes, the ICMP "Fragmentation Needed" message is filtered somewhere on the path, and TCP stalls
+with no error anywhere. Script the `df` probe and the `destunreach code 4` reply, and test whether your filters and monitoring notice.
 
 ```frameassembly
 host app_srv    { ip 10.88.1.10 mac 00:50:56:88:01:0a }
@@ -89,8 +95,8 @@ compile { ssm_join(trade_srv, leaf_ofs, upstream) }
 
 | Protocol | Sub-Keywords / Types | Key Modifiers | Unit & Wire Notes |
 | :--- | :--- | :--- | :--- |
-| **`icmp`** | `echorequest`, `echoreply`, `destunreach`, `timeexceeded`, `redirect` | `code <u8>`, `id <u16>`, `seq <u16>`, `gateway <ipv4>` | `code 4` PMTUD Frag Needed, `code 13` Admin Prohibited; switches to ICMPv6 over IPv6 hosts |
-| **`ndp`** | `routersolicit`, `routeradvert`, `neighborsolicit`, `neighboradvert` | `target <ipv6>`, `slla <mac>`, `tlla <mac>`, `routerlifetime <u16>` | Pair with `ttl 255` (RFC 4861 GTSM); `routerlifetime 0` withdraws the default router |
+| **`icmp`** | `echorequest`, `echoreply`, `destunreach`, `timeexceeded`, `redirect` | `code <u8>`, `id <u16>`, `seq <u16>`, `gateway <ipv4>` | `code 4` PMTUD, `code 13` Admin; ICMPv6 on IPv6 |
+| **`ndp`** | `routersolicit`, `routeradvert`, `neighborsolicit`, `neighboradvert` | `target`, `slla`, `tlla`, `routerlifetime <u16>` | Use `ttl 255` (GTSM); `routerlifetime 0` withdraws |
 | **`igmp`** | `query`, `report`, `leave` | `version <1..3>`, `group <ipv4>`, `maxresp <u8>` | `maxresp` in deciseconds (`100` = 10.0s); `group 0.0.0.0` = General Query |
 | **`mld`** | `query`, `report`, `done` | `multicastaddr <ipv6>`, `maxrespdelay <u16>` | `maxrespdelay` in milliseconds (`10000` = 10s); `multicastaddr ::` = General Query |
 
@@ -175,16 +181,18 @@ compile { sdn_scrub(leaf_ofs, sdn_ctrl) }
 
 | Protocol | Operations / Types | Modifiers | Common Values & Defaults |
 | :--- | :--- | :--- | :--- |
-| **`ospf`** | `hello`, `dbd`, `lsr`, `lsu`, `lsack` | `routerid <ipv4>`, `areaid <u32>`, `hellointerval <u16>`, `deadinterval <u32>`, `priority <u8>` | `priority 0` = never DR; multicast `224.0.0.5` (`ff02::5` for OSPFv3) |
-| **`bgp`** | `open`, `update`, `notification`, `keepalive` | `asn <u32>`, `holdtime <u16>`, `bgpid <ipv4>`, `prefix "<cidr>"`, `nexthop <ip>` | 2B and 4B ASNs (`4200000001`); `TCP 179`; GTSM `ttl 255` or eBGP `ttl 1` |
+| **`ospf`** | `hello`, `dbd`, `lsr`, `lsu`, `lsack` | `routerid`, `areaid`, `hellointerval`, `deadinterval`, `priority` | OSPFv2 (24B) IPv4; OSPFv3 (`version 3`, 16B) IPv6 |
+| **`bgp`** | `open`, `update`, `notification`, `keepalive` | `asn <u32>`, `holdtime`, `bgpid`, `prefix "<cidr>"`, `nexthop` | 4B ASNs emit `AS_TRANS` (`23456`) + Cap `65` (`TCP 179`) |
 | **`rip`** | `request`, `response` | `prefix <ip>`, `metric <1..16>`, `nexthop <ipv4>`, `tag <u16>` | `metric 16` = infinity; IPv4 `UDP 520` (`224.0.0.9`), IPv6 `UDP 521` (`ff02::9`) |
-| **`pim`** | `hello`, `joinprune`, `register` | `drpriority <u32>`, `holdtime <u16>`, `group <ip>`, `source <ip>`, `rp <ip>` | `holdtime 0` = Goodbye; `source` without `rp` = SSM `(S,G)`; `224.0.0.13` / `ff02::d` |
+| **`pim`** | `hello`, `joinprune`, `register` | `drpriority <u32>`, `holdtime <u16>`, `group <ip>`, `source <ip>`, `rp <ip>` | `register` keeps unicast RP IP & 8B header checksum |
 | **`vrrp`** | Advertisement | `vrid <1..255>`, `priority <0..255>`, `vip <ip>`, `version <2\|3>`, `advint <u16>` | `advint` in centiseconds on v3 (`20` = 200ms); `priority 255` owner, `0` release |
-| **`hsrp`** | Hello / Coup / Resign | `group <u16>`, `priority <0..255>`, `state <u8>`, `vip <ip>`, `hellotime <0..255>`, `holdtime <u8>` | `state`: `0` Init, `1` Learn, `2` Listen, `4` Speak, `8` Standby, `16` Active |
-| **`bfd`** | Control / Echo / S-BFD | `state <0..3>`, `diag <0..9>`, `mydisc <u32>`, `yourdisc <u32>`, `mintx <u32>`, `minrx <u32>`, `mult <u8>` | `mintx` / `minrx` in microseconds (`3300` = 3.3ms, `50000` = 50ms); `state 3` = Up |
-| **`openflow`** | `hello`, `featuresreq`, `featuresreply`, `echoreq`, `echoreply`, `packetin`, `packetout`, `flowmod` | `version <1..6>`, `xid <u32>`, `dpid <u64>`, `tableid <u8>`, `priority <u16>` | `version 4` = OpenFlow 1.3 (`1` = 1.0, `5` = 1.4); `TCP 6653` (`dstport 6633` for legacy) |
+| **`hsrp`** | Hello / Coup / Resign | `group <u16>`, `priority <0..255>`, `state <u8>`, `vip <ip>`, `hellotime <0..255>`, `holdtime <u8>` | `state`: `0` Init, `4` Speak, `8` Standby, `16` Active |
+| **`bfd`** | Control / Echo / S-BFD | `state <0..3>`, `diag <0..9>`, `mydisc`, `yourdisc`, `mintx`, `minrx`, `mult <u8>` | `mintx`/`minrx` in us (`50000` = 50ms); `state 3` Up |
+| **`openflow`** | `hello`, `featuresreq`, `featuresreply`, `echoreq`, `echoreply`, `packetin`, `packetout`, `flowmod` | `version`, `xid`, `dpid`, `tableid`, `priority` | `version 4` = 1.3 (`6653`) |
 
-The units differ per protocol, and that is where the bugs hide: `bfd` timers are microseconds, `mld` `maxrespdelay` is milliseconds, `vrrp` v3 `advint` is centiseconds, `igmp` `maxresp` is deciseconds, and `ospf`, `bgp`, `hsrp`, `pim` timers are seconds. Also note `bgp` `prefix` is quoted (`"10.10.0.0/16"`, because of the slash) while `rip` `prefix` is a bare IP (`10.10.0.0`). Every other IP and MAC modifier (`nexthop`, `bgpid`, `routerid`, `vip`, `target`, `slla`, `tlla`) is unquoted.
+The units differ per protocol, and that is where the bugs hide: `bfd` timers are microseconds, `mld` `maxrespdelay` is milliseconds, `vrrp` v3 `advint` is centiseconds, `igmp` `maxresp`
+is deciseconds, and `ospf`, `bgp`, `hsrp`, `pim` timers are seconds. Also note `bgp` `prefix` is quoted (`"10.10.0.0/16"`, because of the slash) while `rip` `prefix` is a bare IP
+(`10.10.0.0`). Every other IP and MAC modifier (`nexthop`, `bgpid`, `routerid`, `vip`, `target`, `slla`, `tlla`) is unquoted.
 
 | `state` | Meaning | `diag` | Diagnostic Reason |
 | :---: | :--- | :---: | :--- |
@@ -239,15 +247,16 @@ compile { fabric_overlays(leaf_01, spine_01, ndr_sensor) }
 
 | Protocol | Modifiers & Aliases | Common Passenger Protocol / Option Values |
 | :--- | :--- | :--- |
-| **`gre`** | `greproto <u16>`, `grekey <u32>`, `greseq <u32>`, `checksum` | `0x0800` (`2048`) IPv4, `0x86dd` (`34525`) IPv6, `0x6558` (`25944`) L2 GRETAP/NVGRE, `0x8847` (`34887`) MPLS-in-GRE, `0x88be` (`35006`) ERSPAN II, `0x22eb` (`8939`) ERSPAN III |
+| **`gre`** | `greproto <u16>`, `grekey <u32>`, `greseq <u32>`, `checksum` | `0x0800` IPv4, `0x86dd` IPv6, `0x6558` GRETAP/NVGRE, `0x8847` MPLS, `0x88be` ERSPAN II, `0x22eb` ERSPAN III |
 | **`vxlan`** | `vni <0..16777215>` (alias `vnid`), `srcport <p>`, `dstport <p>` | Default `UDP 4789` (`dstport 8472` for legacy Linux/Flannel); `vni 1` for RFC 8971 BFD-over-VXLAN |
-| **`geneve`** | `vni <0..16777215>` (alias `vnid`), `optclass <u16>`, `opttype <u8>`, `protocoltype <u16>` | `optclass`: `258` (`0x0102`) OVN, `259` (`0x0103`) P4 INT, `260` (`0x0104`) NSX-T, `264` (`0x0108`) AWS GWLB, `267` Cilium; `opttype >= 128` sets the Critical bit; `protocoltype`: `0x6558` L2 TEB, `0x0800` IPv4, `0x86dd` IPv6, `0x8847` MPLS, `0x894f` NSH |
+| **`geneve`** | `vni` (`vnid`), `optclass`, `opttype`, `protocoltype` | `optclass`: `258` OVN, `260` NSX-T, `264` AWS GWLB, `267` Cilium; `protocoltype`: `0x6558` L2 TEB, `0x0800` IPv4 |
 
 ---
 
 ## 4. VPN Edge Cases (`ikev2`, `esp` / `ipsec`, `ah`, `wireguard`)
 
-VPN gateways fail in situations that only happen behind NAT, under packet reordering, or when a DDoS filter decides to issue a cookie. Reproducing those with real `strongSwan` configs and real keys is a project. Reproducing them with `.frasm` code is a capture file, and none of it needs a crypto daemon.
+VPN gateways fail in situations that only happen behind NAT, under packet reordering, or when a DDoS filter decides to issue a cookie. Reproducing those with real `strongSwan` configs
+and real keys is a project. Reproducing them with `.frasm` code is a capture file, and none of it needs a crypto daemon.
 
 An IKEv2 session that starts on `UDP 500` and floats to `UDP 4500` for NAT-T:
 
@@ -258,7 +267,8 @@ host vpn_headend { ip 203.0.113.1   mac 00:1b:21:51:82:01 }
 flow ikev2_nat_float(cli, gw) {
     cli -> gw dscp 48 ikev2 sainit initiatorspi 111222333 responderspi 0 msgid 0 flags 8 nextpayload 33 srcport 500 dstport 500 wait 5ms
     cli <- gw dscp 48 ikev2 sainit initiatorspi 111222333 responderspi 444555666 msgid 0 flags 32 nextpayload 33 srcport 500 dstport 500 wait 5ms
-    cli -> gw dscp 48 ikev2 informational initiatorspi 111222333 responderspi 444555666 msgid 1 flags 8 nextpayload 46 srcport 4500 dstport 4500
+    cli -> gw dscp 48 ikev2 exchange auth initiatorspi 111222333 responderspi 444555666 msgid 1 flags 8 nextpayload 46 srcport 4500 dstport 4500 wait 5ms
+    cli -> gw dscp 48 ikev2 informational initiatorspi 111222333 responderspi 444555666 msgid 2 flags 8 nextpayload 46 srcport 4500 dstport 4500
 }
 
 compile { ikev2_nat_float(roaming_cli, vpn_headend) }
@@ -303,10 +313,10 @@ compile { wireguard_cookie_retry(roaming_cli, vpn_headend) }
 
 | Protocol | Sub-Keywords / Exchanges | Modifiers | Wire & Security Notes |
 | :--- | :--- | :--- | :--- |
-| **`ikev2`** | `sainit`, `auth`, `createchildsa`, `informational` (also `exchange <name>`) | `initiatorspi <u64>`, `responderspi <u64>`, `msgid <u32>`, `flags <u8>`, `nextpayload <u8>` | `flags`: `8` Initiator, `32` Response; `nextpayload`: `33` SA, `41` Notify/Cookie, `42` Delete, `46` SK, `53` SKF fragment; `dstport 4500` for NAT-T |
-| **`esp`** / **`ipsec`** | Encrypted SA frame | `spi <u32>`, `seq <u32>`, `iv "<hex>"`, `icv "<hex>"`, `nextheader <u8>` | `nextheader`: `4` IPv4 tunnel, `41` IPv6 tunnel, `6` TCP, `17` UDP, `47` GRE/DMVPN, `89` OSPF, `132` SCTP, `59` TFC dummy padding |
-| **`ah`** | Authenticated header | `spi <u32>`, `seq <u32>`, `icv "<hex>"`, `nextheader <u8>` | Authenticates the outer IP header and upper-layer control traffic (`6` BGP, `89` OSPF, `103` PIM, `112` VRRP, `58` NDP) |
-| **`wireguard`** | `initiation`, `response`, `cookie`, `data` | `sender <u32>`, `receiver <u32>`, `counter <u64>` | Default `UDP 51820` (override `dstport 443` or `41641`); omit `payload` on `data` for a 0-byte PersistentKeepalive |
+| **`ikev2`** | `sainit`, `auth`, `createchildsa`, `informational` (`exchange`) | `initiatorspi`, `responderspi`, `msgid`, `flags`, `nextpayload`/`nextheader` | `8` Init, `32` Resp; `UDP 500`/`4500` |
+| **`esp`** / **`ipsec`** | Encrypted SA | `spi <u32>`, `seq <u32>`, `iv "<hex>"`, `icv "<hex>"`, `nextheader <u8>` | `nextheader`: `4` IPv4, `41` IPv6, `6` TCP, `17` UDP, `47` GRE, `89` OSPF |
+| **`ah`** | Auth header | `spi <u32>`, `seq <u32>`, `icv "<hex>"`, `nextheader <u8>` | Authenticates outer IP + upper-layer control (`6` BGP, `89` OSPF, `103` PIM, `112` VRRP, `58` NDP) |
+| **`wireguard`** | `initiation`, `response`, `cookie`, `data` | `sender <u32>`, `receiver <u32>`, `counter <u64>` | `UDP 51820` (`dstport 443`/`41641`); omit `payload` on `data` for keepalive |
 
 ---
 

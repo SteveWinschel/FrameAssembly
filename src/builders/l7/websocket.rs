@@ -19,7 +19,7 @@ use alloc::vec::Vec;
 #[doc(alias = "RFC6455")]
 #[doc(alias = "MASK_KEY")]
 pub fn build_websocket_payload(
-    _ctx: &WireContext,
+    ctx: &WireContext,
     spec: &WebsocketSpec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
@@ -40,35 +40,46 @@ pub fn build_websocket_payload(
 
     let b0 = (fin_bit << 7) | opcode;
 
+    let default_payload: &[u8] = if opcode == 8 {
+        &[0x03, 0xE8] // Normal closure code 1000 (RFC 6455 §7.4.1)
+    } else {
+        b"ping"
+    };
     let content = if let Some(p) = spec.payload {
         p.as_bytes()
     } else if !payload_bytes.is_empty() {
         payload_bytes
     } else {
-        b"ping"
+        default_payload
     };
 
+    let is_unmasked_server_reply =
+        spec.mask_key.is_none() && ctx.src_port == 80 && ctx.dst_port != 80;
+    let mask_bit = if is_unmasked_server_reply { 0x00u8 } else { 0x80u8 };
     let mask_key = spec.mask_key.unwrap_or(0x12345678);
     let mask_bytes = mask_key.to_be_bytes();
 
-    let mut pkt = Vec::with_capacity(6 + content.len());
+    let mut pkt = Vec::with_capacity(14 + content.len());
     pkt.push(b0);
 
     let len = content.len();
     if len <= 125 {
-        pkt.push(0x80 | (len as u8)); // Masked bit set
+        pkt.push(mask_bit | (len as u8));
     } else if len <= 65535 {
-        pkt.push(0x80 | 126);
+        pkt.push(mask_bit | 126);
         pkt.extend_from_slice(&(len as u16).to_be_bytes());
     } else {
-        pkt.push(0x80 | 127);
+        pkt.push(mask_bit | 127);
         pkt.extend_from_slice(&(len as u64).to_be_bytes());
     }
 
-    pkt.extend_from_slice(&mask_bytes);
-
-    for (i, &b) in content.iter().enumerate() {
-        pkt.push(b ^ mask_bytes[i % 4]);
+    if !is_unmasked_server_reply {
+        pkt.extend_from_slice(&mask_bytes);
+        for (i, &b) in content.iter().enumerate() {
+            pkt.push(b ^ mask_bytes[i % 4]);
+        }
+    } else {
+        pkt.extend_from_slice(content);
     }
     pkt
 }

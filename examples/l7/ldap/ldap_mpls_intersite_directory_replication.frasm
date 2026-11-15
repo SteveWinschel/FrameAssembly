@@ -1,19 +1,18 @@
-// PROMPT: Inter-site LDAP replication across MPLS VPN backbone connecting enterprise datacenters.
-// TOKENS: host, ip, flow, ldap, bindreq, msgid, basedn, searchreq, filter, compile
+// Inter-site LDAP replication across MPLS VPN backbone connecting enterprise
+// datacenters.
+// Wireshark: ldap
 
-// INSTRUCTION: Define branch office directory replica.
+// Branch office directory replica.
 host branch_replica { ip 10.180.1.5 }
 
-// INSTRUCTION: Define headquarters primary directory server.
 host hq_master_ldap { ip 10.180.2.5 }
 
-// INSTRUCTION: Define inter-site directory replication flow.
+// Inter-site directory replication flow.
 flow intersite_replication(br, hq) {
     br -> hq ldap bindreq msgid 1 basedn "cn=repl_agent,dc=enterprise,dc=net"
     br -> hq ldap searchreq msgid 2 basedn "ou=global,dc=enterprise,dc=net" filter "(modifyTimestamp>=20261024000000Z)"
 }
 
-// INSTRUCTION: Compile inter-site replication scenario.
 compile {
     intersite_replication(branch_replica, hq_master_ldap)
 }

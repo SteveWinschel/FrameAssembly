@@ -21,7 +21,7 @@ Usage:
   ./contrib/packaging/update-checksums.sh [OPTIONS] [VERSION|TAG]
 
 Arguments:
-  VERSION | TAG            Release version (e.g. '3.0.0' or 'v3.0.0').
+  VERSION | TAG            Release version (e.g. '3.1.0' or 'v3.1.0').
                            If omitted, auto-detected from Cargo.toml.
 
 Options:
@@ -30,9 +30,11 @@ Options:
   -r, --repo-root <PATH>   Path to repository root (defaults to auto-detected root).
   -h, --help               Show this help message and exit.
 
-Manifests Updated:
+Manifests & Installers Updated:
   1. macOS & Linux Brew:   contrib/packaging/homebrew/Formula/frameassembly.rb
   2. Windows Scoop:        contrib/packaging/scoop/frameassembly.json
+  3. Debian APT Control:   contrib/packaging/apt/debian/control
+  4. Bootstrap Installers: install.sh & install.ps1 (when present in repo root)
 EOF
 }
 
@@ -85,7 +87,7 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 if [[ -z "$VERSION" ]]; then
-    echo "Error: Version could not be determined. Please specify VERSION (e.g. 3.0.0 or v3.0.0)." >&2
+    echo "Error: Version could not be determined. Please specify VERSION (e.g. 3.1.0 or v3.1.0)." >&2
     exit 1
 fi
 
@@ -287,10 +289,52 @@ else
     echo "  [SKIP] Scoop manifest not found at: ${SCOOP_JSON}"
 fi
 
+# ------------------------------------------------------------------------------
+# 3. Debian Control & Bootstrap Installers (control, install.sh, install.ps1)
+# ------------------------------------------------------------------------------
+APT_CONTROL="${REPO_ROOT}/contrib/packaging/apt/debian/control"
+if [[ -f "$APT_CONTROL" ]]; then
+    awk -v ver="$VERSION" '
+        /^Version:[[:space:]]*/ {
+            sub(/^Version:[[:space:]]*.*/, "Version: " ver)
+        }
+        { print }
+    ' "$APT_CONTROL" > "${APT_CONTROL}.tmp" && mv "${APT_CONTROL}.tmp" "$APT_CONTROL"
+    echo "  [OK] Updated Debian Control: ${APT_CONTROL}"
+fi
+
+INSTALL_SH="${REPO_ROOT}/install.sh"
+if [[ -f "$INSTALL_SH" ]]; then
+    awk -v ver="$VERSION" '
+        /^RELEASE_VERSION="[^"]*"/ {
+            sub(/^RELEASE_VERSION="[^"]*"/, "RELEASE_VERSION=\"" ver "\"")
+        }
+        /^VSIX_VERSION="[^"]*"/ {
+            sub(/^VSIX_VERSION="[^"]*"/, "VSIX_VERSION=\"" ver "\"")
+        }
+        { print }
+    ' "$INSTALL_SH" > "${INSTALL_SH}.tmp" && chmod +x "${INSTALL_SH}.tmp" && mv "${INSTALL_SH}.tmp" "$INSTALL_SH"
+    echo "  [OK] Updated POSIX Installer: ${INSTALL_SH}"
+fi
+
+INSTALL_PS1="${REPO_ROOT}/install.ps1"
+if [[ -f "$INSTALL_PS1" ]]; then
+    awk -v ver="$VERSION" '
+        /^\$ReleaseVersion[[:space:]]*=[[:space:]]*\x27[^\x27]*\x27/ {
+            sub(/^\$ReleaseVersion[[:space:]]*=[[:space:]]*\x27[^\x27]*\x27/, "$ReleaseVersion = \x27" ver "\x27")
+        }
+        /^\$VsixVersion[[:space:]]*=[[:space:]]*\x27[^\x27]*\x27/ {
+            sub(/^\$VsixVersion[[:space:]]*=[[:space:]]*\x27[^\x27]*\x27/, "$VsixVersion = \x27" ver "\x27")
+        }
+        { print }
+    ' "$INSTALL_PS1" > "${INSTALL_PS1}.tmp" && mv "${INSTALL_PS1}.tmp" "$INSTALL_PS1"
+    echo "  [OK] Updated PowerShell Installer: ${INSTALL_PS1}"
+fi
+
 echo "======================================================================"
 echo "All packaging manifests successfully updated with release SHA-256 sums."
 echo "Next Maintainer Steps:"
-echo "  1. Review git diff: git diff contrib/packaging/"
+echo "  1. Review git diff: git diff contrib/packaging/ install.sh install.ps1"
 echo "  2. Sync Homebrew Formula/frameassembly.rb and Scoop bucket/frameassembly.json to:"
 echo "     https://github.com/SteveWinschel/homebrew-tap-FrameAssembly"
 echo "======================================================================"

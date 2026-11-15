@@ -1,36 +1,35 @@
-// PROMPT: Retail store SD-WAN branch zero-touch provisioning combining QinQ metro Ethernet access, DHCP WAN lease, VRRP LAN gateway redundancy, IKEv2 IPsec overlay, and HTTP check-in.
-// TOKENS: host, ip, mac, flow, qinq, innervlan, dhcp, discover, offer, yiaddr, wait, ms, vrrp, vrid, priority, vip, ikev2, sainit, msgid, http, method, uri, body, status, reason, compile
+// Retail store SD-WAN branch zero-touch provisioning combining QinQ metro
+// Ethernet access, DHCP WAN lease, VRRP LAN gateway redundancy, IKEv2 IPsec
+// overlay, and HTTP check-in.
+// Wire profile: 7 frames; 3 IPv4 hosts; QinQ S-VLAN 1200 / C-VLAN 25; DHCP, HTTP,
+// IKEv2, VRRP; waits 1ms.
+// Wireshark: (dhcp || dhcpv6) || http || isakmp || vrrp
 
-// INSTRUCTION: Define retail branch SD-WAN primary CPE appliance.
 host retail_sdwan_cpe1 {
     ip 10.125.10.2
     mac 00:1b:21:7d:0a:02
 }
 
-// INSTRUCTION: Define retail branch SD-WAN secondary CPE appliance.
 host retail_sdwan_cpe2 {
     ip 10.125.10.3
     mac 00:1b:21:7d:0a:03
 }
 
-// INSTRUCTION: Define carrier BNG and central SD-WAN orchestrator hub.
 host sdwan_hub_orchestrator {
     ip 10.125.0.1
     mac 00:05:85:7d:00:01
 }
 
-// INSTRUCTION: Define QinQ DHCP WAN lease, LAN VRRP election, IKEv2 overlay tunnel, and HTTP ZTP configuration fetch.
 flow retail_branch_sdwan_bringup(cpe1, cpe2, hub) {
-    cpe1 -> hub qinq 1200 innervlan 25 dhcp discover
+    cpe1 -> hub qinq 1200 innervlan 25 dhcp discover wait 1ms
     cpe1 <- hub qinq 1200 innervlan 25 dhcp offer yiaddr 10.125.10.2 wait 1ms
     cpe1 -> cpe2 vrrp vrid 25 priority 200 vip 10.125.10.1 wait 1ms
     cpe1 -> hub ikev2 sainit msgid 0 wait 1ms
     cpe1 <- hub ikev2 sainit msgid 0 wait 1ms
     cpe1 -> hub http method "POST" uri "/ztp/v1/checkin" body "{\"store_id\":\"STORE-0492\"}" wait 1ms
-    cpe1 <- hub http status 200 reason "OK" body "{\"policy\":\"pci-pos-segmented-v4\"}" wait 1ms
+    cpe1 <- hub http status 200 reason "OK" body "{\"policy\":\"pci-pos-segmented-v4\"}"
 }
 
-// INSTRUCTION: Compile block executing retail SD-WAN QinQ, DHCP, VRRP, IKEv2, and HTTP topology.
 compile {
     retail_branch_sdwan_bringup(retail_sdwan_cpe1, retail_sdwan_cpe2, sdwan_hub_orchestrator)
 }

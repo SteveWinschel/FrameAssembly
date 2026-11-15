@@ -1,25 +1,27 @@
-// PROMPT: RFC 5798 IPv6 VRRPv3 advertisement using a 10-centisecond (100ms) fast interval and virtual MAC 00:00:5e:00:02:40.
-// TOKENS: host, ip, mac, flow, vrrp, vrid, priority, advint, vip, version, srcmac, dstmac, dscp, ttl, wait, ms, compile
+// RFC 5798 IPv6 VRRPv3 advertisement using a 10-centisecond (100ms) fast
+// interval and virtual MAC 00:00:5e:00:02:40.
+// This capture targets IPv6 endpoints, sets DSCP 48, TTL 255, carries VRID
+// 64, and uses post-packet wait gaps (100ms) between frames.
+// Wireshark: vrrp && ipv6
 
-// INSTRUCTION: Define IPv6 VRRPv3 Master router using RFC 5798 IPv6 Virtual MAC 00:00:5e:00:02:40 (VRID 64).
 host v6_vrrp_fast_master {
     ip fe80::112:1
     mac 00:00:5e:00:02:40
 }
 
-// INSTRUCTION: Define IPv6 VRRP link-local multicast group ff02::12.
 host v6_vrrp_mcast_12 {
     ip ff02::12
     mac 33:33:00:00:00:12
 }
 
-// INSTRUCTION: Define IPv6 VRRPv3 (VERSION 3) fast 10cs (ADV_INT 10) advertisement on VRID 64.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vrrp_v6_subsecond_10cs_flow(master, mcast) {
     master -> mcast vrrp vrid 64 priority 200 advint 10 vip fe80::64:1 version 3 srcmac 00:00:5e:00:02:40 dstmac 33:33:00:00:00:12 dscp 48 ttl 255 wait 100ms
     master -> mcast vrrp vrid 64 priority 200 advint 10 vip fe80::64:1 version 3 srcmac 00:00:5e:00:02:40 dstmac 33:33:00:00:00:12 dscp 48 ttl 255
 }
 
-// INSTRUCTION: Compile the IPv6 VRRPv3 10-centisecond sub-second advertisement flow.
+// Run vrrp_v6_subsecond_10cs_flow(v6_vrrp_fast_master, v6_vrrp_mcast_12) to
+// generate the capture.
 compile {
     vrrp_v6_subsecond_10cs_flow(v6_vrrp_fast_master, v6_vrrp_mcast_12)
 }

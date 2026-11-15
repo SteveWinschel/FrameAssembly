@@ -1,18 +1,17 @@
-// PROMPT: PTP message carrying appended TLV management extension via HEXPAYLOAD.
-// TOKENS: host, ip, flow, ptp, announce, domain, seqid, clockid, hexpayload, compile
+// PTP message carrying appended TLV management extension via HEXPAYLOAD.
+// IEEE 1588v2 PTP (messages: announce; domain 4). UDP 319 handles Event
+// messages (sync, delayreq) and UDP 320 carries General messages (announce,
+// followup, delayresp).
+// Wireshark: ptp
 
-// INSTRUCTION: Define telecom grandmaster clock.
 host tgm_node { ip 192.168.240.1 }
 
-// INSTRUCTION: Define downstream telecom slave clock.
 host tsc_node { ip 192.168.240.2 }
 
-// INSTRUCTION: Define PTP ANNOUNCE with trailing TLV hex bytes.
 flow ptp_tlv_extension(gm, sc) {
     gm -> sc ptp announce domain 4 seqid 12 clockid "TGMNODE1" hexpayload "0008000401020304"
 }
 
-// INSTRUCTION: Compile PTP TLV extension scenario.
 compile {
     ptp_tlv_extension(tgm_node, tsc_node)
 }

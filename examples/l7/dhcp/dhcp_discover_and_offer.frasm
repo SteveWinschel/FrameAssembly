@@ -1,19 +1,16 @@
-// PROMPT: DHCPv4 address negotiation exchange with DISCOVER and OFFER.
-// TOKENS: host, ip, flow, s, dhcp, discover, chaddr, offer, yiaddr, compile
+// DHCPv4 address negotiation exchange with DISCOVER and OFFER.
+// Wireshark: dhcp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 0.0.0.0 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 255.255.255.255 }
 
-// INSTRUCTION: Define application traffic flow.
+// DHCPv4 BOOTP exchange over UDP ports 68 (client) and 67 (server).
 flow dhcp_lease(c, s) {
     c -> s dhcp discover chaddr 00:11:22:33:44:55
     c <- s dhcp offer chaddr 00:11:22:33:44:55 yiaddr 192.168.1.150
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     dhcp_lease(client, server)
 }

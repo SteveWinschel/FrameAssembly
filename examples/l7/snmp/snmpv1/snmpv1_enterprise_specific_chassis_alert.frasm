@@ -1,13 +1,13 @@
-// PROMPT: Generate an SNMPv1 enterpriseSpecific trap (GENTRAP 6, SPECTRAP 42) alerting on power supply voltage and chassis fan speed using GAUGE32 and STRING varbinds.
-// TOKENS: host, ip, mac, flow, snmp1, trap, community, enterprise, agentip, gentrap, spectrap, sysuptime, varbind, string, gauge32, compile
+// Generate an SNMPv1 enterpriseSpecific trap (gentrap 6, spectrap 42)
+// alerting on power supply voltage and chassis fan speed using Gauge32 and
+// STRING varbinds.
+// Uses SNMPv1 trap PDUs on UDP 161/162.
+// Wireshark: snmp
 
-// INSTRUCTION: Define a modular chassis switch with IP 10.106.0.10.
 host chassis_switch { ip 10.106.0.10 mac 00:14:f1:10:60:10 }
 
-// INSTRUCTION: Define a hardware health monitoring server with IP 10.106.0.100.
 host hw_monitor { ip 10.106.0.100 mac 00:14:f1:10:60:64 }
 
-// INSTRUCTION: Define a flow sending an SNMPv1 enterprise-specific chassis alarm (GENTRAP 6, SPECTRAP 42) with GAUGE32 RPM and STRING status.
 flow snmpv1_chassis_alert(agent, nms) {
     agent -> nms snmp1 trap community "chassis_ro" enterprise 1.3.6.1.4.1.9.9.13
         agentip 10.106.0.10 gentrap 6 spectrap 42 sysuptime 360000
@@ -15,7 +15,6 @@ flow snmpv1_chassis_alert(agent, nms) {
         varbind 1.3.6.1.4.1.9.9.13.1.4.1.3.1 gauge32 1850
 }
 
-// INSTRUCTION: Compile block to emit the SNMPv1 enterprise-specific chassis alert.
 compile {
     snmpv1_chassis_alert(chassis_switch, hw_monitor)
 }

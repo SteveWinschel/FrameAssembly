@@ -1,18 +1,19 @@
-// PROMPT: IGMP snooping proxy forwarding aggregated report with explicit RFC 1112 multicast DSTMAC.
-// TOKENS: host, ip, flow, igmp, report, group, srcmac, dstmac, ttl, hexpayload, compile
+// IGMP snooping proxy forwarding aggregated report with explicit RFC 1112
+// multicast DSTMAC.
+// This capture sets TTL 1 and carries group 239.1.2.3.
+// Wireshark: igmp
 
-// INSTRUCTION: Define access switch IGMP proxy.
 host igmp_proxy_sw { ip 172.20.1.2 }
 
-// INSTRUCTION: Define upstream core multicast router.
 host igmp_upstream_rtr { ip 172.20.1.1 }
 
-// INSTRUCTION: Define proxied IGMP report with explicit RFC 1112 DSTMAC 01:00:5e:01:02:03.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow igmp_proxy_report(proxy, rtr) {
     proxy -> rtr igmp report group 239.1.2.3 srcmac 00:1e:49:20:01:02 dstmac 01:00:5e:01:02:03 ttl 1 hexpayload "00000000"
 }
 
-// INSTRUCTION: Compile the IGMP snooping proxy report flow.
+// Run igmp_proxy_report(igmp_proxy_sw, igmp_upstream_rtr) to generate the
+// capture.
 compile {
     igmp_proxy_report(igmp_proxy_sw, igmp_upstream_rtr)
 }

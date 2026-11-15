@@ -1,24 +1,22 @@
-// PROMPT: IPv6 sFlow v5 export from a data center spine switch carrying ECN congestion markings and flow labels.
-// TOKENS: host, ip, mac, flow, sflow, agentip, subagentid, uptime, samples, flowlabel, ecn, ttl, compile
+// IPv6 sFlow v5 export from a data center spine switch carrying ECN
+// congestion markings and flow labels.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Wireshark: sflow
 
-// INSTRUCTION: Define IPv6 data center spine router exporting sFlow v5.
 host spine_v6_rtr {
     ip 2001:db8:900:1::1
     mac 00:1c:73:09:00:01
 }
 
-// INSTRUCTION: Define IPv6 fabric telemetry collector.
 host collector_v6 {
     ip 2001:db8:900:1::250
     mac 00:1c:73:09:00:fa
 }
 
-// INSTRUCTION: Export IPv6 sFlow v5 datagram with explicit IPv6 agent IP, ECN 2, and FLOWLABEL.
 flow sflow_v6_spine_ecn(spine, col) {
     spine -> col sflow agentip 2001:db8:900:1::1 subagentid 12 uptime 1440000 samples 18 flowlabel 98304 ecn 2 ttl 64
 }
 
-// INSTRUCTION: Compile the IPv6 data center spine ECN sFlow scenario.
 compile {
     sflow_v6_spine_ecn(spine_v6_rtr, collector_v6)
 }

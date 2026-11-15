@@ -1,18 +1,14 @@
-// PROMPT: Default Session Initiation Protocol SIP frame with zero sub-keywords on UDP port 5060.
-// TOKENS: host, ip, mac, flow, s, sip, compile
+// Minimal 2-block SIP (RFC 3261) starter emitting automatic protocol defaults
+// directly from the compile block (zero flow wrapper).
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (SIP (RFC
+// 3261), UDP 5060).
+// Wireshark: sip
 
-// INSTRUCTION: Define VoIP user agent client.
 host sip_client { ip 10.99.1.50 mac 00:0c:29:99:01:32 }
 
-// INSTRUCTION: Define SIP proxy server host.
 host sip_proxy { ip 10.99.1.1 mac 00:0c:29:99:01:01 }
 
-// INSTRUCTION: Define flow sending default SIP frame.
-flow sip_default(c, s) {
-    c -> s sip
-}
-
-// INSTRUCTION: Compile default SIP frame scenario.
 compile {
-    sip_default(sip_client, sip_proxy)
+    sip_client -> sip_proxy sip
 }

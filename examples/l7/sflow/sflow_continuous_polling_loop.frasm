@@ -1,18 +1,16 @@
-// PROMPT: Continuous 1-second sFlow counter polling export using a COMPILE repeated flow calls.
-// TOKENS: host, ip, flow, sflow, agentip, subagentid, uptime, samples, wait, s, compile
+// Continuous 1-second sFlow counter polling export across repeated flow
+// calls.
+// Timing: runs 5 cycles in compile using post-packet waits (1s).
+// Wireshark: sflow
 
-// INSTRUCTION: Define core modular chassis switch.
 host core_chassis { ip 192.168.63.1 }
 
-// INSTRUCTION: Define sFlow time-series ingestion server.
 host ts_collector { ip 192.168.63.50 }
 
-// INSTRUCTION: Define single sFlow export datagram with 1s interval.
 flow sflow_periodic_tick(sw, coll) {
     sw -> coll sflow agentip 192.168.63.1 subagentid 0 uptime 500000 samples 5 wait 1s
 }
 
-// INSTRUCTION: Execute 5 sFlow export intervals in COMPILE LOOP.
 compile {
     sflow_periodic_tick(core_chassis, ts_collector) // cycle 1
     sflow_periodic_tick(core_chassis, ts_collector) // cycle 2

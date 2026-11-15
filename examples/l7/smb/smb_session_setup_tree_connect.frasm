@@ -1,18 +1,17 @@
-// PROMPT: SMB2 Tree Connect request mounting network share over IPv6.
-// TOKENS: host, ip, flow, s, smb, command, share, sessionid, compile
+// SMB2 Tree Connect request mounting network share over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// SMB2 over NetBIOS TCP 445 with UTF-16LE share/file paths computed
+// automatically.
+// Wireshark: smb2
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow smb_tree(c, s) {
     c -> s smb command "treeconnect" share "\\\\server\\public" sessionid 100020
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     smb_tree(client, server)
 }

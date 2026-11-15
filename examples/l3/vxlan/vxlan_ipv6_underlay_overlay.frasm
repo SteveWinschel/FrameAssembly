@@ -1,18 +1,17 @@
-// PROMPT: VXLAN overlay tunneling across an IPv6 transport underlay between VTEPs.
-// TOKENS: host, ip, flow, vxlan, vni, compile
+// VXLAN overlay tunneling across an IPv6 transport underlay between VTEPs.
+// This capture targets IPv6 endpoints and carries VNI 30000.
+// Wireshark: vxlan && vxlan.vni == 30000 && ipv6
 
-// INSTRUCTION: Define IPv6 underlay VTEP endpoint A.
 host vtep6_a { ip 2001:db8:beef::1 }
 
-// INSTRUCTION: Define IPv6 underlay VTEP endpoint B.
 host vtep6_b { ip 2001:db8:beef::2 }
 
-// INSTRUCTION: Define IPv6 VXLAN overlay flow with VNI 30000.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vxlan_v6_flow(a, b) {
     a -> b vxlan vni 30000
 }
 
-// INSTRUCTION: Compile block executing IPv6 VXLAN tunnel.
+// Run vxlan_v6_flow(vtep6_a, vtep6_b) to generate the capture.
 compile {
     vxlan_v6_flow(vtep6_a, vtep6_b)
 }

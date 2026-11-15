@@ -1,19 +1,18 @@
-// PROMPT: OPC UA aborted message chunk (CHUNK_TYPE "A") when payload generation is interrupted.
-// TOKENS: host, ip, flow, s, opcua, msgtype, chunktype, securechannelid, tokenid, seqnum, reqid, wait, ms, hexpayload, compile
+// OPC UA aborted message chunk (chunktype "a", Abort) when payload generation
+// is interrupted.
+// Wireshark: opcua
 
-// INSTRUCTION: Define SCADA supervisor host.
 host supervisor { ip 10.90.1.5 }
 
-// INSTRUCTION: Define RTU OPC UA agent host.
 host rtu_agent { ip 10.90.1.50 }
 
-// INSTRUCTION: Define intermediate chunk C followed by abort chunk A.
+// Intermediate chunk C followed by abort chunk A. OPC UA message sequence:
+// MSG on TCP port 4840.
 flow opcua_chunk_abort(c, s) {
     c <- s opcua msgtype "msg" chunktype "c" securechannelid 15 tokenid 2 seqnum 80 reqid 301 wait 4ms
     c <- s opcua msgtype "msg" chunktype "a" securechannelid 15 tokenid 2 seqnum 81 reqid 301 hexpayload "00008080"
 }
 
-// INSTRUCTION: Compile the aborted chunk scenario.
 compile {
     opcua_chunk_abort(supervisor, rtu_agent)
 }

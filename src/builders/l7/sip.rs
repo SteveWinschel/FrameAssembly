@@ -11,6 +11,25 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Brackets bare IPv6 host literals inside a SIP URI (`sip:alice@2001:db8::1` -> `sip:alice@[2001:db8::1]`).
+fn bracket_sip_ipv6_uri(val: &str) -> String {
+    if let Some((prefix, host_part)) = val.rsplit_once('@') {
+        if !host_part.starts_with('[') && host_part.parse::<core::net::Ipv6Addr>().is_ok() {
+            return format!("{prefix}@[{host_part}]");
+        }
+    } else if let Some(rest) = val.strip_prefix("sip:") {
+        if !rest.starts_with('[') && rest.parse::<core::net::Ipv6Addr>().is_ok() {
+            return format!("sip:[{rest}]");
+        }
+    } else if let Some(rest) = val.strip_prefix("sips:")
+        && !rest.starts_with('[')
+        && rest.parse::<core::net::Ipv6Addr>().is_ok()
+    {
+        return format!("sips:[{rest}]");
+    }
+    val.to_string()
+}
+
 /// Builds an RFC 3261 SIP VoIP message string.
 /// Syntax mapping: `sip [invite | bye | cancel | method <str>] [uri <str>] [status <u16>] [reason <str>] [from <str>] [to <str>] [callid <str>] [cseq <u32>] [via <str>] [contact <str>] [contenttype <str>] [body <str>] [transport tcp]`
 #[doc(alias = "SIP")]
@@ -28,28 +47,45 @@ pub fn build_sip_payload(
     let call_id = spec.call_id.unwrap_or("call123@pbx");
     let cseq = spec.cseq.unwrap_or(1);
     let cseq_method = spec.method.unwrap_or("INVITE");
+    let tp_str = if ctx.transport == Some(TransportProto::Tcp) {
+        "TCP"
+    } else {
+        "UDP"
+    };
+    let src_host = match ctx.src_ip {
+        core::net::IpAddr::V4(v4) => v4.to_string(),
+        core::net::IpAddr::V6(v6) => format!("[{v6}]"),
+    };
+    let default_via = format!("SIP/2.0/{tp_str} {src_host}:5060;branch=z9hG4bK-1");
+    let via = spec
+        .via
+        .map(|v| v.to_string())
+        .unwrap_or(default_via);
+    let from_uri = bracket_sip_ipv6_uri(spec.from.unwrap_or("sip:alice@pbx"));
+    let from_hdr = if from_uri.starts_with('<') || from_uri.contains(";tag=") {
+        from_uri
+    } else {
+        format!("<{from_uri}>;tag=1")
+    };
+    let to_uri = bracket_sip_ipv6_uri(spec.to.unwrap_or("sip:bob@pbx"));
 
     if let Some(status) = spec.status {
         let reason = spec.reason.unwrap_or("OK");
-        out.push_str(&format!("SIP/2.0 {} {}\r\n", status, reason));
-        if let Some(via) = spec.via {
-            out.push_str(&format!("Via: {}\r\n", via));
-        }
-        if let Some(from) = spec.from {
-            out.push_str(&format!("From: {}\r\n", from));
-        }
-        if let Some(to) = spec.to {
-            out.push_str(&format!("To: {}\r\n", to));
-        }
+        let to_hdr = if to_uri.starts_with('<') || to_uri.contains(";tag=") {
+            to_uri
+        } else {
+            format!("<{to_uri}>;tag=2")
+        };
         out.push_str(&format!(
-            "Call-ID: {}\r\nCSeq: {} {}\r\n",
-            call_id, cseq, cseq_method
+            "SIP/2.0 {} {}\r\nVia: {}\r\nFrom: {}\r\nTo: {}\r\nCall-ID: {}\r\nCSeq: {} {}\r\n",
+            status, reason, via, from_hdr, to_hdr, call_id, cseq, cseq_method
         ));
         if let Some(contact) = spec.contact {
-            if contact.starts_with('<') {
-                out.push_str(&format!("Contact: {}\r\n", contact));
+            let c_uri = bracket_sip_ipv6_uri(contact);
+            if c_uri.starts_with('<') {
+                out.push_str(&format!("Contact: {}\r\n", c_uri));
             } else {
-                out.push_str(&format!("Contact: <{}>\r\n", contact));
+                out.push_str(&format!("Contact: <{}>\r\n", c_uri));
             }
         }
         if let Some(ct) = spec.content_type {
@@ -69,23 +105,23 @@ pub fn build_sip_payload(
         }
     } else {
         let method = spec.method.unwrap_or("INVITE");
-        let uri = spec.uri.unwrap_or("sip:service@pbx.local");
-        let from = spec.from.unwrap_or("sip:alice@pbx");
-        let to = spec.to.unwrap_or("sip:bob@pbx");
-        let via = spec
-            .via
-            .map(|v| v.to_string())
-            .unwrap_or_else(|| format!("SIP/2.0/UDP {}:5060;branch=z9hG4bK-1", ctx.src_ip));
+        let uri = bracket_sip_ipv6_uri(spec.uri.unwrap_or("sip:service@pbx.local"));
+        let to_hdr = if to_uri.starts_with('<') {
+            to_uri
+        } else {
+            format!("<{to_uri}>")
+        };
 
         out.push_str(&format!(
-            "{} {} SIP/2.0\r\nVia: {}\r\nFrom: <{}>;tag=1\r\nTo: <{}>\r\nCall-ID: {}\r\nCSeq: {} {}\r\n",
-            method, uri, via, from, to, call_id, cseq, method
+            "{} {} SIP/2.0\r\nVia: {}\r\nFrom: {}\r\nTo: {}\r\nCall-ID: {}\r\nCSeq: {} {}\r\n",
+            method, uri, via, from_hdr, to_hdr, call_id, cseq, method
         ));
         if let Some(contact) = spec.contact {
-            if contact.starts_with('<') {
-                out.push_str(&format!("Contact: {}\r\n", contact));
+            let c_uri = bracket_sip_ipv6_uri(contact);
+            if c_uri.starts_with('<') {
+                out.push_str(&format!("Contact: {}\r\n", c_uri));
             } else {
-                out.push_str(&format!("Contact: <{}>\r\n", contact));
+                out.push_str(&format!("Contact: <{}>\r\n", c_uri));
             }
         }
         if let Some(ct) = spec.content_type {

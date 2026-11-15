@@ -1,19 +1,19 @@
-// PROMPT: Enterprise workstation synchronizing time with internal Stratum 1 server across IPv6.
-// TOKENS: host, ip, flow, s, ntp, mode, vn, stratum, wait, ms, refid, compile
+// Enterprise workstation synchronizing time with internal Stratum 1 server
+// across IPv6.
+// Wireshark: ntp
 
-// INSTRUCTION: Define IPv6 enterprise workstation.
+// IPv6 enterprise workstation.
 host v6_client_node { ip 2001:db8:710e::88 }
 
-// INSTRUCTION: Define IPv6 Stratum 1 atomic time server.
+// IPv6 Stratum 1 atomic time server.
 host v6_atomic_server { ip 2001:db8:710e::1 }
 
-// INSTRUCTION: Define IPv6 NTP exchange flow.
+// IPv6 NTP exchange flow. NTPv4 modes on UDP 123: 3 (Client), 4 (Server).
 flow v6_ntp_exchange(c, s) {
     c -> s ntp mode 3 vn 4 stratum 0 wait 8ms
     c <- s ntp mode 4 vn 4 stratum 1 refid "GPS"
 }
 
-// INSTRUCTION: Compile IPv6 enterprise sync scenario.
 compile {
     v6_ntp_exchange(v6_client_node, v6_atomic_server)
 }

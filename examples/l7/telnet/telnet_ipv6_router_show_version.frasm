@@ -1,19 +1,22 @@
-// PROMPT: Simulate an IPv6 Telnet session to an out-of-band console server executing 'show version' and logging out.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, telnet, will, do, payload, fin, compile
+// Simulate an IPv6 Telnet session to an out-of-band console server executing
+// 'show version' and logging out.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Includes explicit TCP 3-way handshake and session teardown with tracked
+// seq/ack counters.
+// Telnet on TCP 23 negotiating option(s): 1 (Echo).
+// Overrides destination port to 23.
+// Wireshark: telnet
 
-// INSTRUCTION: Define host endpoint noc_v6.
 host noc_v6 {
     mac 00:50:56:b6:23:01
     ip 2001:db8:23:1::10
 }
 
-// INSTRUCTION: Define host endpoint console_v6.
 host console_v6 {
     mac 00:50:56:b6:23:99
     ip 2001:db8:23:1::99
 }
 
-// INSTRUCTION: Connect over IPv6 TCP 23, authenticate, run 'show version', and exit cleanly.
 flow telnet_ipv6_console_session(noc_v6, console_v6) {
     noc_v6 -> console_v6 tcp syn srcport 55023 dstport 23
     console_v6 -> noc_v6 tcp syn ack
@@ -29,7 +32,6 @@ flow telnet_ipv6_console_session(noc_v6, console_v6) {
     noc_v6 -> console_v6 tcp ack
 }
 
-// INSTRUCTION: Compile the IPv6 Telnet router CLI session flow.
 compile {
     telnet_ipv6_console_session(noc_v6, console_v6)
 }

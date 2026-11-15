@@ -1,20 +1,22 @@
-// PROMPT: HSRP active router resigning via Priority 0 and State 4 so standby promotes immediately to Active.
-// TOKENS: host, ip, flow, hsrp, group, priority, state, vip, hellotime, holdtime, wait, ms, compile
+// HSRP active router resigning via Priority 0 and State 4 so standby promotes
+// immediately to Active.
+// This capture carries group 30, HSRP state 16/4/8 and uses post-packet wait
+// gaps (10ms) between frames.
+// Wireshark: hsrp
 
-// INSTRUCTION: Define active router lowering priority for maintenance.
 host hsrp_maint_r1 { ip 10.30.40.2 }
 
-// INSTRUCTION: Define standby router promoting to Active (State 16).
 host hsrp_promote_r2 { ip 10.30.40.3 }
 
-// INSTRUCTION: Define HSRP resignation and immediate standby promotion on Group 30.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow hsrp_resign_handover(r1, r2) {
-    r1 -> r2 hsrp group 30 priority 0 state 4 vip 10.30.40.1 hellotime 3 holdtime 10
+    r1 -> r2 hsrp group 30 priority 0 state 4 vip 10.30.40.1 hellotime 3 holdtime 10 wait 10ms
     r1 <- r2 hsrp group 30 priority 105 state 16 vip 10.30.40.1 hellotime 3 holdtime 10 wait 10ms
-    r1 -> r2 hsrp group 30 priority 0 state 8 vip 10.30.40.1 hellotime 3 holdtime 10 wait 10ms
+    r1 -> r2 hsrp group 30 priority 0 state 8 vip 10.30.40.1 hellotime 3 holdtime 10
 }
 
-// INSTRUCTION: Compile the HSRP maintenance resignation flow.
+// Run hsrp_resign_handover(hsrp_maint_r1, hsrp_promote_r2) to generate the
+// capture.
 compile {
     hsrp_resign_handover(hsrp_maint_r1, hsrp_promote_r2)
 }

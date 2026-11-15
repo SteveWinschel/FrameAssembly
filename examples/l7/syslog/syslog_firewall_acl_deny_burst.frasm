@@ -1,0 +1,17 @@
+// Firewall ACL deny syslog burst for validating SIEM, Splunk, and Graylog Grok parsers.
+// Sends RFC 5424 local4 (facility 20) warning (severity 4) logs -> PRI <164> over UDP
+// port 514 across 3 rapid bursts spaced 5ms apart.
+// Wireshark: syslog
+
+host perimeter_fw { ip 10.250.20.1   mac 00:1c:73:fa:14:01 }
+host siem_ingest  { ip 10.250.20.100 mac 00:50:56:fa:14:64 }
+
+flow acl_deny_event(fw, siem) {
+    fw -> siem syslog facility 20 severity 4 hostname "fw-dmz-01" app "filterlog" procid "410" msgid "ACL-DENY" msg "Deny tcp 198.51.100.77:51822 -> 10.20.1.50:445 rule OUTSIDE-IN-BLOCK" wait 5ms
+}
+
+compile {
+    acl_deny_event(perimeter_fw, siem_ingest) // burst 1
+    acl_deny_event(perimeter_fw, siem_ingest) // burst 2
+    acl_deny_event(perimeter_fw, siem_ingest) // burst 3
+}

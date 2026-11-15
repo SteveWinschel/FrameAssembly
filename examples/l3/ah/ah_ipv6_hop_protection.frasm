@@ -1,18 +1,17 @@
-// PROMPT: IPsec AH authentication header protecting IPv6 traffic between endpoints.
-// TOKENS: host, ip, flow, ah, spi, seq, compile
+// IPsec AH authentication header protecting IPv6 traffic between endpoints.
+// This capture targets IPv6 endpoints and carries SPI 70001.
+// Wireshark: ah && ipv6
 
-// INSTRUCTION: Define IPv6 client host A.
 host ah_v6_host_a { ip 2001:db8:a::1 }
 
-// INSTRUCTION: Define IPv6 server host B.
 host ah_v6_host_b { ip 2001:db8:a::2 }
 
-// INSTRUCTION: Define AH authentication flow over IPv6 with SPI 70001.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow ah_v6_flow(a, b) {
     a -> b ah spi 70001 seq 1
 }
 
-// INSTRUCTION: Compile block executing AH IPv6 protection.
+// Run ah_v6_flow(ah_v6_host_a, ah_v6_host_b) to generate the capture.
 compile {
     ah_v6_flow(ah_v6_host_a, ah_v6_host_b)
 }

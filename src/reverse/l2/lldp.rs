@@ -12,8 +12,18 @@ use core::fmt::Write as _;
 
 use crate::ast::Protocol;
 use crate::reverse::{
-    ProtocolDissection, be_u16, escape_fasm_string, format_mac_lower, mac_at, push_if, sd,
+    ProtocolDissection, be_u16, escape_fasm_string, format_mac_lower, is_valid_raw_string_body,
+    mac_at, push_if, sd,
 };
+
+/// Formats an L2 string value for `parse_raw_string_lit`, escaping only when required by the lexer.
+fn quote_l2_raw(s: &str) -> String {
+    if is_valid_raw_string_body(s) {
+        s.to_string()
+    } else {
+        escape_fasm_string(s)
+    }
+}
 
 /// Decompiles an IEEE 802.1AB `lldp` frame (`0x88CC`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_lldp(b: &[u8], src_mac: [u8; 6]) -> ProtocolDissection {
@@ -44,7 +54,7 @@ pub(crate) fn dissect_lldp(b: &[u8], src_mac: [u8; 6]) -> ProtocolDissection {
                         core::str::from_utf8(&val[1..]).unwrap_or("").to_string()
                     };
                     if !cid.is_empty() {
-                        let _ = write!(t, " chassisid \"{}\"", escape_fasm_string(&cid));
+                        let _ = write!(t, " chassisid \"{}\"", quote_l2_raw(&cid));
                     }
                 }
             }
@@ -52,7 +62,7 @@ pub(crate) fn dissect_lldp(b: &[u8], src_mac: [u8; 6]) -> ProtocolDissection {
                 if let Ok(s) = core::str::from_utf8(&val[1..])
                     && s != "eth0"
                 {
-                    let _ = write!(t, " portid \"{}\"", escape_fasm_string(s));
+                    let _ = write!(t, " portid \"{}\"", quote_l2_raw(s));
                 }
             }
             3 if val.len() == 2 => push_if(&mut t, "ttl", be_u16(val, 0), 120),
@@ -62,7 +72,7 @@ pub(crate) fn dissect_lldp(b: &[u8], src_mac: [u8; 6]) -> ProtocolDissection {
                         t,
                         " {} \"{}\"",
                         if tlv_type == 5 { "sysname" } else { "sysdesc" },
-                        escape_fasm_string(s)
+                        quote_l2_raw(s)
                     );
                 }
             }

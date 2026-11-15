@@ -1,19 +1,19 @@
-// PROMPT: Sterilization autoclave cycle dwell time verification using S7 Timers (Area 29) and DB20 recipe setpoint write.
-// TOKENS: host, ip, mac, flow, s7comm, rosctr, pduref, func, area, dbnum, offset, count, hexpayload, wait, ms, compile
+// Sterilization autoclave cycle dwell time verification using S7 Timers (Area
+// 29) and DB20 recipe setpoint write.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting DB (0x84), 29.
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define the batch validation server host.
 host batch_server {
     ip 10.130.80.10
     mac 00:1a:2b:82:80:10
 }
 
-// INSTRUCTION: Define the autoclave sterilizer S7 PLC.
 host autoclave_plc {
     ip 10.130.80.2
     mac 00:1a:2b:82:80:02
 }
 
-// INSTRUCTION: Write sterilization hold timer preset to DB20 and read active S5TIME Timer T1 (AREA 29).
 flow s7_autoclave_timer(b, a) {
     b -> a s7comm rosctr "job" pduref 801 func "writevar" area 132 dbnum 20 offset 16 count 2 hexpayload "2180"
     b <- a s7comm rosctr "ackdata" pduref 801 func "writevar" wait 2ms
@@ -21,7 +21,6 @@ flow s7_autoclave_timer(b, a) {
     b <- a s7comm rosctr "ackdata" pduref 802 func "readvar" hexpayload "ff0900022179"
 }
 
-// INSTRUCTION: Compile the pharmaceutical autoclave S7 timer flow.
 compile {
     s7_autoclave_timer(batch_server, autoclave_plc)
 }

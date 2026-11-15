@@ -1,19 +1,17 @@
-// PROMPT: Differentiated Services Code Point QoS marking for Expedited Forwarding voice and AF41 video.
-// TOKENS: host, ip, flow, s, dscp, udp, dstport, payload, compile
+// Differentiated Services Code Point QoS marking for Expedited Forwarding voice
+// and AF41 video.
+// Wire profile: 2 frames; 2 IPv4 hosts; UDP; dstport 5004,5006; DSCP 34,46.
+// Wireshark: udp.port == 5004
 
-// INSTRUCTION: Define multimedia sender host.
 host media_sender { ip 10.50.1.10 }
 
-// INSTRUCTION: Define multimedia receiver host.
 host media_receiver { ip 10.50.1.20 }
 
-// INSTRUCTION: Define DSCP marked voice and video flow.
 flow qos_media_flow(s, r) {
     s -> r dscp 46 udp dstport 5004 payload "voice_ef_frame"
     s -> r dscp 34 udp dstport 5006 payload "video_af41_frame"
 }
 
-// INSTRUCTION: Compile block executing QoS marked traffic.
 compile {
     qos_media_flow(media_sender, media_receiver)
 }

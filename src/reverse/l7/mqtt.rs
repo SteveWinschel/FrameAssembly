@@ -21,6 +21,31 @@ fn is_valid_raw_str(s: &str) -> bool {
         && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
 }
 
+/// Decodes a canonical 1..=4 byte MQTT v3.1.1 Remaining Length varint, returning `(rem_len, hdr_len)`.
+fn decode_mqtt_varint(payload: &[u8]) -> Option<(usize, usize)> {
+    if payload.len() < 2 {
+        return None;
+    }
+    let mut rem_len = 0usize;
+    let mut multiplier = 1usize;
+    let mut idx = 1usize;
+    loop {
+        let enc = *payload.get(idx)?;
+        rem_len += ((enc & 0x7F) as usize) * multiplier;
+        idx += 1;
+        if (enc & 0x80) == 0 {
+            if idx > 2 && enc == 0 {
+                return None;
+            }
+            return Some((rem_len, idx));
+        }
+        if idx >= 5 {
+            return None;
+        }
+        multiplier *= 128;
+    }
+}
+
 /// Dissects an `mqtt` v3.1.1 control packet over TCP.
 pub(crate) fn dissect_mqtt(
     transport: TransportProto,
@@ -28,29 +53,25 @@ pub(crate) fn dissect_mqtt(
     dst_port: u16,
     payload: &[u8],
 ) -> Option<ProtocolDissection> {
-    if !matches!(transport, TransportProto::Tcp)
-        || payload.len() < 2
-        || (payload[1] & 0x80) != 0
-    {
+    if !matches!(transport, TransportProto::Tcp) {
         return None;
     }
-    let has_connect_sig =
-        payload.len() >= 10 && payload[0] == 0x10 && &payload[2..10] == b"\x00\x04MQTT\x04\x02";
+    let (rem_len, hdr_len) = decode_mqtt_varint(payload)?;
+    let pkt_end = hdr_len.checked_add(rem_len)?;
+    if payload.len() != pkt_end {
+        return None;
+    }
+    let b0 = payload[0];
+    let body = &payload[hdr_len..pkt_end];
+    let has_connect_sig = b0 == 0x10 && body.starts_with(b"\x00\x04MQTT\x04\x02");
     if !has_connect_sig
         && !(matches!(dst_port, 1883 | 8883) || matches!(src_port, 1883 | 8883))
     {
         return None;
     }
 
-    let b0 = payload[0];
-    let rem_len = payload[1] as usize;
-    if payload.len() < 2 + rem_len {
-        return None;
-    }
-    let body = &payload[2..2 + rem_len];
-    let trailing = &payload[2 + rem_len..];
     let mut tokens = String::from("mqtt");
-    let mut residual = trailing.to_vec();
+    let mut residual = Vec::new();
 
     match b0 {
         0x10 => {
@@ -63,7 +84,7 @@ pub(crate) fn dissect_mqtt(
                 return None;
             }
             let cid = core::str::from_utf8(&body[12..12 + cid_len]).ok()?;
-            if !is_valid_raw_str(cid) || !trailing.is_empty() {
+            if !is_valid_raw_str(cid) {
                 return None;
             }
             tokens.push_str(" connect");
@@ -85,7 +106,7 @@ pub(crate) fn dissect_mqtt(
             }
         }
         0x30..=0x3F => {
-            if !trailing.is_empty() || body.len() < 2 {
+            if body.len() < 2 {
                 return None;
             }
             let qos = (b0 >> 1) & 0x03;
@@ -131,7 +152,7 @@ pub(crate) fn dissect_mqtt(
             }
         }
         0x82 => {
-            if !trailing.is_empty() || body.len() < 5 {
+            if body.len() < 5 {
                 return None;
             }
             let pid = u16::from_be_bytes([body[0], body[1]]);

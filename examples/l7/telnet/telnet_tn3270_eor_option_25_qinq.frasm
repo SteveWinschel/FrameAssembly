@@ -1,19 +1,22 @@
-// PROMPT: Simulate a Telnet TN3270 mainframe terminal session negotiating Terminal Type (Option 24) and End of Record (Option 25) over QinQ.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, qinq, innervlan, ack, telnet, do, will, option, payload, compile
+// Simulate a Telnet TN3270 mainframe terminal session negotiating Terminal
+// Type (Option 24) and End of Record (Option 25) over QinQ.
+// Encapsulation and QoS markings: 802.1ad QinQ outer 800 / inner 23.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Telnet on TCP 23 negotiating option(s): 24 (Terminal-Type), 25.
+// Overrides destination port to 23.
+// Wireshark: telnet && vlan
 
-// INSTRUCTION: Define host endpoint tn3270_client.
 host tn3270_client {
     mac 00:26:b9:32:70:01
     ip 10.32.70.15
 }
 
-// INSTRUCTION: Define host endpoint zos_mainframe.
 host zos_mainframe {
     mac 00:26:b9:32:70:99
     ip 10.32.70.99
 }
 
-// INSTRUCTION: Negotiate Option 24 (Terminal Type), Option 25 (EOR), and Option 0 (Binary) over QinQ 800/23.
 flow telnet_tn3270_mainframe_qinq(tn3270_client, zos_mainframe) {
     tn3270_client -> zos_mainframe tcp syn srcport 63023 dstport 23 qinq 800 innervlan 23
     zos_mainframe -> tn3270_client tcp syn ack qinq 800 innervlan 23
@@ -27,7 +30,6 @@ flow telnet_tn3270_mainframe_qinq(tn3270_client, zos_mainframe) {
     tn3270_client -> zos_mainframe telnet do 25 qinq 800 innervlan 23
 }
 
-// INSTRUCTION: Compile the QinQ TN3270 mainframe Telnet flow.
 compile {
     telnet_tn3270_mainframe_qinq(tn3270_client, zos_mainframe)
 }

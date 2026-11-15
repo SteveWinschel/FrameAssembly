@@ -26,13 +26,14 @@ pub fn build_modbus_payload(
         .to_ascii_uppercase()
         .replace(['_', '-'], "");
     let func_code: u8 = match func_norm.as_str() {
-        "READCOILS" => 1,
-        "READDISCRETEINPUTS" => 2,
-        "READHOLDINGREGISTERS" => 3,
-        "READINPUTREGISTERS" => 4,
-        "WRITESINGLECOIL" => 5,
-        "WRITESINGLEREGISTER" => 6,
-        "WRITEMULTIPLEREGISTERS" => 16,
+        "READCOILS" | "1" => 1,
+        "READDISCRETEINPUTS" | "2" => 2,
+        "READHOLDINGREGISTERS" | "3" => 3,
+        "READINPUTREGISTERS" | "4" => 4,
+        "WRITESINGLECOIL" | "5" => 5,
+        "WRITESINGLEREGISTER" | "6" => 6,
+        "WRITEMULTIPLECOILS" | "15" => 15,
+        "WRITEMULTIPLEREGISTERS" | "16" => 16,
         _ => 3,
     };
 
@@ -40,29 +41,59 @@ pub fn build_modbus_payload(
     pdu.push(func_code);
 
     if spec.is_response {
-        let count = spec.count.unwrap_or(1);
-        let byte_count = (count * 2) as u8;
-        pdu.push(byte_count);
-        for _ in 0..count {
-            pdu.extend_from_slice(&spec.value.unwrap_or(0).to_be_bytes());
+        match func_code {
+            1 | 2 => {
+                let coil_count = usize::from(spec.count.unwrap_or(1)).clamp(1, 2000);
+                let byte_count = coil_count.div_ceil(8) as u8;
+                let fill = (spec.value.unwrap_or(0) & 0xFF) as u8;
+                pdu.push(byte_count);
+                pdu.resize(pdu.len() + usize::from(byte_count), fill);
+            }
+            5 | 6 => {
+                pdu.extend_from_slice(&spec.addr.unwrap_or(0).to_be_bytes());
+                pdu.extend_from_slice(&spec.value.unwrap_or(0).to_be_bytes());
+            }
+            15 | 16 => {
+                pdu.extend_from_slice(&spec.addr.unwrap_or(0).to_be_bytes());
+                pdu.extend_from_slice(&spec.count.unwrap_or(1).to_be_bytes());
+            }
+            _ => {
+                let reg_count = usize::from(spec.count.unwrap_or(1)).clamp(1, 125);
+                let byte_count = (reg_count * 2) as u8;
+                let reg_bytes = spec.value.unwrap_or(0).to_be_bytes();
+                pdu.push(byte_count);
+                for _ in 0..reg_count {
+                    pdu.extend_from_slice(&reg_bytes);
+                }
+            }
         }
     } else if func_code == 1 || func_code == 2 || func_code == 3 || func_code == 4 {
-        // Read function: Starting Address (2B) + Quantity of Registers (2B)
+        // Read function: Starting Address (2B) + Quantity of Coils/Registers (2B)
         pdu.extend_from_slice(&spec.addr.unwrap_or(0).to_be_bytes());
         pdu.extend_from_slice(&spec.count.unwrap_or(1).to_be_bytes());
     } else if func_code == 5 || func_code == 6 {
         // Write Single: Address (2B) + Value (2B)
         pdu.extend_from_slice(&spec.addr.unwrap_or(0).to_be_bytes());
         pdu.extend_from_slice(&spec.value.unwrap_or(0).to_be_bytes());
-    } else {
-        let count = spec.count.unwrap_or(1);
+    } else if func_code == 15 {
+        // Write Multiple Coils: Address (2B) + Quantity (2B) + Byte Count (1B) + Coil Bytes
+        let coil_count = spec.count.unwrap_or(1).clamp(1, 1968);
+        let byte_count = usize::from(coil_count).div_ceil(8) as u8;
+        let fill = (spec.value.unwrap_or(0) & 0xFF) as u8;
         pdu.extend_from_slice(&spec.addr.unwrap_or(0).to_be_bytes());
-        pdu.extend_from_slice(&count.to_be_bytes());
-        if let Some(val) = spec.value {
-            pdu.push((count * 2) as u8);
-            for _ in 0..count {
-                pdu.extend_from_slice(&val.to_be_bytes());
-            }
+        pdu.extend_from_slice(&coil_count.to_be_bytes());
+        pdu.push(byte_count);
+        pdu.resize(pdu.len() + usize::from(byte_count), fill);
+    } else {
+        // Write Multiple Registers (FC 16): Address (2B) + Quantity (2B) + Byte Count (1B) + Registers
+        let reg_count = spec.count.unwrap_or(1).clamp(1, 125);
+        let byte_count = (usize::from(reg_count) * 2) as u8;
+        let reg_bytes = spec.value.unwrap_or(0).to_be_bytes();
+        pdu.extend_from_slice(&spec.addr.unwrap_or(0).to_be_bytes());
+        pdu.extend_from_slice(&reg_count.to_be_bytes());
+        pdu.push(byte_count);
+        for _ in 0..reg_count {
+            pdu.extend_from_slice(&reg_bytes);
         }
     }
 

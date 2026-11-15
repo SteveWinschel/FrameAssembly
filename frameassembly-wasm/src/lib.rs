@@ -1,18 +1,18 @@
 //! WebAssembly bindings, PCAP/PCAPNG-to-`.frasm` decompiler, frame inspector, and UTF-16 IDE
-//! diagnostics for the FrameAssembly (`.frasm` v3.0.0) network packet synthesis compiler.
+//! diagnostics for the FrameAssembly (`.frasm` v3.1.0) network packet synthesis compiler.
 //!
 //! This crate exposes `validate_frasm` (`validateFrasm`), `inspect_frasm` (`inspectFrasm`),
-//! `compile_frasm_to_pcapng` (`compileFrasm`), and `reverse_pcap` (`reversePcap`) to browser
-//! environments, VS Code Desktop and Web extensions, Node.js test harnesses, and web-based code
-//! editors (Monaco, CodeMirror, VS Code Web) via `wasm-bindgen`. The 2.x export names
-//! `validate_fasm` (`validateFasm`), `inspect_fasm`, and `compile_fasm_to_pcapng` (`compileFasm`)
-//! remain available as compatibility aliases. It compiles strict-lowercase `.frasm`
-//! specifications across all 81 native Layer 2 through Layer 7 protocols into
-//! deterministic nanosecond-resolution PCAPNG byte arrays (`Uint8Array`), decompiles binary
-//! `.pcap` and `.pcapng` packet captures back into canonical lowercase `.frasm` code in memory via
-//! `frameassembly::reverse::reverse_pcap_bytes`, summarizes Ethernet/VLAN/QinQ/MPLS/ARP/IPv4/IPv6
-//! and Layer 4/Layer 7 frames, and maps compiler diagnostic byte spans into zero-based UTF-16
-//! line and column coordinates.
+//! `compile_frasm_to_pcap` (`compileFrasmToPcap`), `compile_frasm_to_pcapng` (`compileFrasm`), and
+//! `reverse_pcap` (`reversePcap`) to browser environments, VS Code Desktop and Web extensions,
+//! Node.js test harnesses, and web-based code editors (Monaco, CodeMirror, VS Code Web) via
+//! `wasm-bindgen`. The 2.x export names `validate_fasm` (`validateFasm`), `inspect_fasm`, and
+//! `compile_fasm_to_pcapng` (`compileFasm`) remain available as compatibility aliases. It compiles
+//! strict-lowercase `.frasm` specifications across all 81 native Layer 2 through Layer 7 protocols
+//! into deterministic classic `.pcap` and nanosecond-resolution `PCAPNG` byte arrays (`Uint8Array`),
+//! decompiles binary `.pcap` and `.pcapng` packet captures back into canonical lowercase `.frasm`
+//! code in memory via `frameassembly::reverse::reverse_pcap_bytes`, summarizes
+//! Ethernet/VLAN/QinQ/MPLS/ARP/IPv4/IPv6 and Layer 4/Layer 7 frames, and maps compiler diagnostic
+//! byte spans into zero-based UTF-16 line and column coordinates.
 
 use std::fmt::Write;
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -221,15 +221,14 @@ fn find_backend_error_span(source: &str, err_msg: &str) -> (usize, usize) {
         .find(|(w, _, _)| w.eq_ignore_ascii_case("compile"))
         .map(|&(_, s, e)| (s, e));
 
-    if let Some(subject) = extract_single_quoted_subject(err_msg) {
-        if let Some(&(_, s, e)) = words
+    if let Some(subject) = extract_single_quoted_subject(err_msg)
+        && let Some(&(_, s, e)) = words
             .iter()
             .rev()
             .find(|(w, s, _)| *w == subject && compile_span.is_none_or(|(cs, _)| *s >= cs))
             .or_else(|| words.iter().rev().find(|(w, _, _)| *w == subject))
-        {
-            return (s, e);
-        }
+    {
+        return (s, e);
     }
 
     if err_msg.contains("SNMPv1")
@@ -558,7 +557,7 @@ fn summarize_l4(proto: u8, l4: &[u8], tag_prefix: &str) -> (String, String) {
             let dport = u16::from_be_bytes([l4[2], l4[3]]);
             let seq = u32::from_be_bytes([l4[4], l4[5], l4[6], l4[7]]);
             let ack = u32::from_be_bytes([l4[8], l4[9], l4[10], l4[11]]);
-            let hdr_len = ((l4[12] >> 4) as usize) * 4;
+            let hdr_len = (((l4[12] >> 4) as usize) * 4).max(20);
             let flags = l4[13];
             let payload_len = l4.len().saturating_sub(hdr_len);
             let payload = if hdr_len <= l4.len() {
@@ -697,6 +696,7 @@ fn summarize_l4(proto: u8, l4: &[u8], tag_prefix: &str) -> (String, String) {
 /// Returns a human-readable compilation error string if parsing or wire synthesis fails.
 pub fn inspect_fasm_to_previews(source: &str) -> Result<Vec<PacketPreview>, String> {
     let program = parse_program(source).map_err(|e| e.to_string())?;
+    let ast_protocols = program.emitted_protocols();
     let packets = compile_program(&program)?;
     let base_ns = packets.first().map_or(0, |(_, ts)| *ts);
 
@@ -711,7 +711,10 @@ pub fn inspect_fasm_to_previews(source: &str) -> Result<Vec<PacketPreview>, Stri
                 }
                 let _ = write!(hex, "{b:02x}");
             }
-            let (source_dest, protocol, summary) = summarize_frame(bytes);
+            let (source_dest, detected_proto, summary) = summarize_frame(bytes);
+            let protocol = ast_protocols
+                .get(idx)
+                .map_or(detected_proto, |p| p.display_label().to_string());
             PacketPreview {
                 index: idx + 1,
                 timestamp_ms: ts_ns.saturating_sub(base_ns) as f64 / 1_000_000.0,
@@ -744,6 +747,36 @@ pub fn inspect_frasm(source: &str) -> Result<JsValue, JsError> {
 #[wasm_bindgen(js_name = inspectFrasm, unchecked_return_type = "PacketPreview[]")]
 pub fn inspect_frasm_js(source: &str) -> Result<JsValue, JsError> {
     inspect_fasm(source)
+}
+
+/// Compiles `.frasm` source into an in-memory classic libpcap (`.pcap`) byte vector without invoking JS bindings.
+///
+/// # Errors
+/// Returns a human-readable compilation or serialization error string if parsing or wire synthesis fails.
+pub fn compile_frasm_to_pcap(source: &str) -> Result<Vec<u8>, String> {
+    let program = parse_program(source).map_err(|e| e.to_string())?;
+    let packets = compile_program(&program)?;
+    frameassembly::pcap::serialize_classic_pcap(&packets)
+}
+
+/// Compiles `.frasm` source into a classic libpcap (`.pcap`) byte array (`compileFrasmToPcap` JS `Uint8Array`).
+///
+/// # Errors
+/// Returns a JavaScript `JsValue` error if parsing, validation, or serialization fails.
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(js_name = compileFrasmToPcap)]
+pub fn compile_frasm_to_pcap_js(source: &str) -> Result<Vec<u8>, JsValue> {
+    compile_frasm_to_pcap(source).map_err(|e| JsError::new(&e).into())
+}
+
+/// Compiles `.frasm` source into a classic libpcap (`.pcap`) byte array (`compile_frasm_to_pcap` JS alias).
+///
+/// # Errors
+/// Returns a JavaScript `JsValue` error if parsing, validation, or serialization fails.
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(js_name = compile_frasm_to_pcap)]
+pub fn compile_frasm_to_pcap_wasm(source: &str) -> Result<Vec<u8>, JsValue> {
+    compile_frasm_to_pcap(source).map_err(|e| JsError::new(&e).into())
 }
 
 /// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
@@ -1008,5 +1041,40 @@ mod tests {
             assert!(!err.error.is_empty());
             assert_eq!(err.error, err.message);
         }
+    }
+
+    /// Verifies `compile_frasm_to_pcap` classic libpcap magic bytes (usec & nsec) and AST `PacketPreview.protocol`.
+    #[test]
+    fn test_compile_frasm_to_pcap_classic_magic_and_ast_protocol_labels() {
+        let usec_src = "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile {\n    a -> b http2 ping streamid 0 wait 5ms\n    a <- b websocket text payload \"ok\" wait 5ms\n}";
+        let pcap_bytes = compile_frasm_to_pcap(usec_src).expect("compile classic .pcap");
+        assert!(pcap_bytes.len() > 40);
+        assert!(
+            matches!(
+                &pcap_bytes[0..4],
+                [0xd4, 0xc3, 0xb2, 0xa1] | [0xa1, 0xb2, 0xc3, 0xd4]
+            ),
+            "expected classic microsecond libpcap magic bytes, got {:02x?}",
+            &pcap_bytes[0..4]
+        );
+
+        let previews = inspect_fasm_to_previews(usec_src).expect("inspect previews");
+        assert_eq!(previews.len(), 2);
+        assert_eq!(previews[0].protocol, "HTTP2");
+        assert_eq!(previews[1].protocol, "WEBSOCKET");
+
+        let rev = reverse_pcap_to_result(&pcap_bytes).expect("reverse classic .pcap");
+        assert_eq!(rev.packet_count, 2);
+
+        let nsec_src = "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile {\n    a -> b icmp wait 500ns\n    a <- b icmp\n}";
+        let nsec_bytes = compile_frasm_to_pcap(nsec_src).expect("compile nanosecond .pcap");
+        assert!(
+            matches!(
+                &nsec_bytes[0..4],
+                [0x4d, 0x3c, 0xb2, 0xa1] | [0xa1, 0xb2, 0x3c, 0x4d]
+            ),
+            "expected classic nanosecond libpcap magic bytes, got {:02x?}",
+            &nsec_bytes[0..4]
+        );
     }
 }

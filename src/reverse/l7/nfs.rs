@@ -54,9 +54,16 @@ pub(crate) fn dissect_nfs(
     }
     let is_tcp = matches!(transport, TransportProto::Tcp);
 
-    let rpc = if payload.len() >= 44 && (be_u32(payload, 0) & 0x8000_0000) != 0 {
+    let rpc = if is_tcp {
+        if payload.len() < 44 {
+            return None;
+        }
+        let mark = be_u32(payload, 0);
+        if (mark & 0x8000_0000) == 0 || ((mark & 0x7FFF_FFFF) as usize) != payload.len() - 4 {
+            return None;
+        }
         &payload[4..]
-    } else if !is_tcp && payload.len() >= 40 {
+    } else if payload.len() >= 40 {
         payload
     } else {
         return None;
@@ -109,15 +116,16 @@ pub(crate) fn dissect_nfs(
                 tokens.push_str(&format!(" path \"{path_str}\""));
             }
         }
-    } else if proc_num != 1 && !rest.is_empty() {
-        if let Some((first_str, after_first)) = parse_xdr_str(rest) {
-            if let Some((second_str, after_second)) = parse_xdr_str(after_first) {
-                tokens.push_str(&format!(" tag \"{first_str}\" path \"{second_str}\""));
-                rest = after_second;
-            } else {
-                tokens.push_str(&format!(" path \"{first_str}\""));
-                rest = after_first;
-            }
+    } else if proc_num != 1
+        && !rest.is_empty()
+        && let Some((first_str, after_first)) = parse_xdr_str(rest)
+    {
+        if let Some((second_str, after_second)) = parse_xdr_str(after_first) {
+            tokens.push_str(&format!(" tag \"{first_str}\" path \"{second_str}\""));
+            rest = after_second;
+        } else {
+            tokens.push_str(&format!(" path \"{first_str}\""));
+            rest = after_first;
         }
     }
 

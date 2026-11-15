@@ -1,25 +1,30 @@
-// PROMPT: Create an mDNS DNS-SD meta-query for _services._dns-sd._udp.local enumerating available service types on VLAN 110.
-// TOKENS: host, ip, mac, flow, s, mdns, query, txid, qname, qtype, vlan, ttl, wait, ms, response, rdata, ansttl, compile
+// MDNS DNS-SD meta-query for _services._dns-sd._udp.local enumerating
+// available service types on VLAN 110.
+// Wireshark: mdns
 
-// INSTRUCTION: Define the Avahi browser workstation discovering all advertised service types on VLAN 110.
+// Avahi browser workstation discovering all advertised service types on VLAN
+// 110.
 host avahi_browser {
     ip 10.110.0.25
     mac 00:24:e8:6e:00:19
 }
 
-// INSTRUCTION: Define the multi-function network printer responding with its _ipp._tcp.local service type.
+// Multi-function network printer responding with its _ipp._tcp.local service
+// type.
 host office_printer {
     ip 10.110.0.90
     mac 00:24:e8:6e:00:5a
 }
 
-// INSTRUCTION: Query _services._dns-sd._udp.local PTR and receive the _ipp._tcp.local service type announcement.
+// Query _services._dns-sd._udp.local PTR and receive the _ipp._tcp.local
+// service type announcement. Encapsulation and QoS markings: 802.1Q VLAN 110.
+// DNS wire details: record types PTR; multicast 224.0.0.251 / ff02::fb UDP
+// 5353 (TTL 255).
 flow dnssd_meta_query(c, s) {
     c -> s mdns query txid 0 qname "_services._dns-sd._udp.local" qtype "ptr" vlan 110 ttl 255 wait 5ms
     c <- s mdns response txid 0 qname "_services._dns-sd._udp.local" qtype "ptr" rdata "_ipp._tcp.local" ansttl 4500 vlan 110 ttl 255
 }
 
-// INSTRUCTION: Compile the DNS-SD meta-query over VLAN 110 into a PCAP file.
 compile {
     dnssd_meta_query(avahi_browser, office_printer)
 }

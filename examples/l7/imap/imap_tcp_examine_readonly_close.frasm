@@ -1,13 +1,13 @@
-// PROMPT: Full TCP 3-way handshake, IMAP EXAMINE read-only mailbox inspection, and TCP FIN teardown.
-// TOKENS: host, ip, flow, s, tcp, syn, srcport, dstport, ack, imap, tag, cmd, arg, fin, compile
+// Full TCP 3-way handshake, IMAP EXAMINE read-only mailbox inspection, and
+// TCP FIN teardown.
+// Wireshark: tcp || imap
 
-// INSTRUCTION: Define compliance audit reader host.
 host audit_reader { ip 10.50.143.30 }
 
-// INSTRUCTION: Define archival IMAP server.
 host archive_imap { ip 10.50.143.1 }
 
-// INSTRUCTION: Establish TCP connection, open INBOX read-only with EXAMINE, and close session.
+// Establish TCP connection, open INBOX read-only with EXAMINE, and close
+// session.
 flow imap_tcp_examine_readonly(c, s) {
     c -> s tcp syn srcport 52143 dstport 143
     c <- s tcp syn ack
@@ -21,7 +21,6 @@ flow imap_tcp_examine_readonly(c, s) {
     c -> s tcp ack
 }
 
-// INSTRUCTION: Compile the full TCP IMAP EXAMINE read-only lifecycle.
 compile {
     imap_tcp_examine_readonly(audit_reader, archive_imap)
 }

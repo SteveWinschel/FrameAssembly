@@ -1,18 +1,19 @@
-// PROMPT: Aggressive fast failover VRRP tuning with 20 centisecond (200ms) advertisement interval.
-// TOKENS: host, ip, flow, dst, vrrp, vrid, priority, advint, vip, compile
+// Aggressive fast failover VRRP tuning with 20 centisecond (200ms)
+// advertisement interval.
+// This capture carries VRID 25.
+// Wireshark: vrrp
 
-// INSTRUCTION: Define high availability fast failover router.
 host ha_fast_router { ip 172.16.50.254 }
 
-// INSTRUCTION: Define standard VRRP multicast group.
 host vrrp_fast_mcast { ip 224.0.0.18 }
 
-// INSTRUCTION: Define sub-second advertisement interval flow with ADV_INT 20.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vrrp_fast_timer(rtr, dst) {
     rtr -> dst vrrp vrid 25 priority 220 advint 20 vip 172.16.50.1
 }
 
-// INSTRUCTION: Compile block executing fast failover VRRP advertisement.
+// Run vrrp_fast_timer(ha_fast_router, vrrp_fast_mcast) to generate the
+// capture.
 compile {
     vrrp_fast_timer(ha_fast_router, vrrp_fast_mcast)
 }

@@ -1,19 +1,20 @@
-// PROMPT: Simulate an OSPF Link State Request (LSR), Link State Update (LSU) retransmission, and explicit LSAck confirmation
-// TOKENS: host, ip, mac, flow, ospf, lsr, routerid, areaid, ttl, payload, wait, ms, lsu, lsack, compile
+// Simulate an OSPF Link State Request (LSR), Link State Update (LSU)
+// retransmission, and explicit LSAck confirmation.
+// This capture sets TTL 1 and uses post-packet wait gaps (10ms, 50ms) between
+// frames.
+// Wireshark: ospf
 
-// INSTRUCTION: Define the requesting OSPF router in Loading state
 host loading_rtr {
     ip 10.88.1.1
     mac 00:16:3e:f9:88:01
 }
 
-// INSTRUCTION: Define the responding OSPF neighbor holding the latest LSDB
 host database_rtr {
     ip 10.88.1.2
     mac 00:16:3e:f9:88:02
 }
 
-// INSTRUCTION: Request missing LSAs via LSR, retransmit LSU after timeout, and acknowledge with LSACK
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow ospf_lsr_lsu_retransmit(requester, responder) {
     requester -> responder ospf lsr routerid 10.88.0.1 areaid 88 ttl 1 payload "lsr-type1-router-lsa-10.88.0.2" wait 10ms
     responder -> requester ospf lsu routerid 10.88.0.2 areaid 88 ttl 1 payload "lsu-type1-router-lsa-seq-0x80000005" wait 50ms
@@ -21,7 +22,8 @@ flow ospf_lsr_lsu_retransmit(requester, responder) {
     requester -> responder ospf lsack routerid 10.88.0.1 areaid 88 ttl 1 payload "lsack-type1-router-lsa-seq-0x80000005"
 }
 
-// INSTRUCTION: Compile the OSPF LSR/LSU retransmission and acknowledgment trace
+// Run ospf_lsr_lsu_retransmit(loading_rtr, database_rtr) to generate the
+// capture.
 compile {
     ospf_lsr_lsu_retransmit(loading_rtr, database_rtr)
 }

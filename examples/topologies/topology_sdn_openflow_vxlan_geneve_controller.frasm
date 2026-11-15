@@ -1,28 +1,25 @@
-// PROMPT: Software-Defined Networking (SDN) OpenFlow 1.3 controller programming flow tables on VXLAN and GENEVE virtual tunnel switches.
-// TOKENS: host, ip, flow, openflow, hello, xid, wait, ms, featuresreq, featuresreply, dpid, packetin, tableid, flowmod, vxlan, vni, payload, geneve, compile
+// Software-Defined Networking (SDN) OpenFlow 1.3 controller programming flow
+// tables on VXLAN and GENEVE virtual tunnel switches.
+// Wire profile: 8 frames; 3 IPv4 hosts; VXLAN, GENEVE, OpenFlow; waits 1ms, 2ms.
+// Wireshark: vxlan || geneve || (openflow_v4 || openflow)
 
-// INSTRUCTION: Define centralized SDN OpenFlow 1.3 controller.
 host sdn_of_controller { ip 10.240.10.1 }
 
-// INSTRUCTION: Define Open vSwitch VTEP A handling VXLAN and OpenFlow control channel.
 host ovs_vtep_alpha { ip 10.240.10.11 }
 
-// INSTRUCTION: Define Open vSwitch VTEP B handling GENEVE and VXLAN overlays.
 host ovs_vtep_beta { ip 10.240.10.12 }
 
-// INSTRUCTION: Define OpenFlow 1.3 handshake, Packet-In miss, Flow-Mod installation, and resulting VXLAN/GENEVE forwarding.
 flow sdn_openflow_overlay_programming(ctrl, vtep_a, vtep_b) {
-    ctrl -> vtep_a openflow hello xid 1
+    ctrl -> vtep_a openflow hello xid 1 wait 1ms
     ctrl <- vtep_a openflow hello xid 1 wait 1ms
     ctrl -> vtep_a openflow featuresreq xid 2 wait 1ms
-    ctrl <- vtep_a openflow featuresreply xid 2 dpid 0x0000001c73000001 wait 1ms
-    ctrl <- vtep_a openflow packetin xid 10 tableid 0 wait 2ms
+    ctrl <- vtep_a openflow featuresreply xid 2 dpid 0x0000001c73000001 wait 2ms
+    ctrl <- vtep_a openflow packetin xid 10 tableid 0 wait 1ms
     ctrl -> vtep_a openflow flowmod xid 11 tableid 0 wait 1ms
     vtep_a -> vtep_b vxlan vni 5001 payload "sdn_programmed_vxlan_flow" wait 1ms
-    vtep_b -> vtep_a geneve vni 6001 payload "sdn_programmed_geneve_flow" wait 1ms
+    vtep_b -> vtep_a geneve vni 6001 payload "sdn_programmed_geneve_flow"
 }
 
-// INSTRUCTION: Compile block executing SDN OpenFlow 1.3 and overlay tunnel topology.
 compile {
     sdn_openflow_overlay_programming(sdn_of_controller, ovs_vtep_alpha, ovs_vtep_beta)
 }

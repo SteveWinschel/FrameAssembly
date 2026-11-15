@@ -1,13 +1,12 @@
-// PROMPT: Final fragment of multi-frame message with FIN bit 1 completing payload.
-// TOKENS: host, ip, flow, s, websocket, opcode, finbit, maskkey, compile
+// Final fragment of multi-frame message with FIN bit 1 completing payload.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define data transmitter host.
 host data_tx_host { ip 192.168.8.18 }
 
-// INSTRUCTION: Define data collector host.
 host data_rx_host { ip 192.168.8.1 }
 
-// INSTRUCTION: Define final fragment completion flow.
 flow ws_frag_final_flow(c, s) {
     c -> s websocket
         opcode "text"
@@ -15,7 +14,6 @@ flow ws_frag_final_flow(c, s) {
         maskkey 1122334455
 }
 
-// INSTRUCTION: Compile block executing final fragment transmission.
 compile {
     ws_frag_final_flow(data_tx_host, data_rx_host)
 }

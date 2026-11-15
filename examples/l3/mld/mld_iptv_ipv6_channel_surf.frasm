@@ -1,19 +1,20 @@
-// PROMPT: Capture an IPv6 IPTV set-top box channel surf sequence using MLD Done and Report messages
-// TOKENS: host, ip, mac, flow, mld, report, multicastaddr, maxrespdelay, ttl, wait, ms, done, query, compile
+// Capture an IPv6 IPTV set-top box channel surf sequence using MLD Done and
+// Report messages.
+// This capture targets IPv6 endpoints, sets TTL 1, and uses post-packet wait
+// gaps (50ms, 5ms) between frames.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define the IPv6 IPTV set-top box
 host stb_v6 {
     ip 2001:db8:400:10::55
     mac 00:16:3e:c2:10:55
 }
 
-// INSTRUCTION: Define the broadband network gateway multicast router
 host bng_mrouter {
     ip 2001:db8:400:10::1
     mac 00:16:3e:c2:10:01
 }
 
-// INSTRUCTION: Join channel 1, leave channel 1, and immediately join channel 2
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow mld_iptv_channel_surf(stb, bng) {
     stb -> bng mld report multicastaddr ff3e::8000:101 maxrespdelay 0 ttl 1 wait 50ms
     stb -> bng mld done multicastaddr ff3e::8000:101 maxrespdelay 0 ttl 1 wait 5ms
@@ -21,7 +22,7 @@ flow mld_iptv_channel_surf(stb, bng) {
     stb -> bng mld report multicastaddr ff3e::8000:102 maxrespdelay 0 ttl 1
 }
 
-// INSTRUCTION: Compile the IPv6 IPTV channel change MLD trace
+// Run mld_iptv_channel_surf(stb_v6, bng_mrouter) to generate the capture.
 compile {
     mld_iptv_channel_surf(stb_v6, bng_mrouter)
 }

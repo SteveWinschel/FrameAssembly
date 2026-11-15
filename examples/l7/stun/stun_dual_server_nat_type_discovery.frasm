@@ -1,25 +1,22 @@
-// PROMPT: Simulate symmetric NAT behavior detection by querying two distinct STUN servers and observing reflexive address mapping.
-// TOKENS: host, mac, ip, flow, stun, bindingrequest, software, bindingresponse, xormappedaddr, compile
+// Simulate symmetric NAT behavior detection by querying two distinct STUN
+// servers and observing reflexive address mapping.
+// Wireshark: stun
 
-// INSTRUCTION: Define host endpoint nat_endpoint.
 host nat_endpoint {
     mac 00:0c:29:34:78:11
     ip 10.0.0.45
 }
 
-// INSTRUCTION: Define host endpoint stun_primary.
 host stun_primary {
     mac 00:0c:29:34:78:21
     ip 198.51.100.11
 }
 
-// INSTRUCTION: Define host endpoint stun_secondary.
 host stun_secondary {
     mac 00:0c:29:34:78:22
     ip 198.51.100.12
 }
 
-// INSTRUCTION: Query both primary and secondary STUN servers to compare the returned XOR_MAPPED_ADDR values.
 flow stun_dual_server_nat_classification(nat_endpoint, stun_primary, stun_secondary) {
     nat_endpoint -> stun_primary stun bindingrequest software "linphone-sdk/5.2"
     stun_primary -> nat_endpoint stun bindingresponse xormappedaddr 192.0.2.100 software "reTurnServer-1.12"
@@ -27,7 +24,6 @@ flow stun_dual_server_nat_classification(nat_endpoint, stun_primary, stun_second
     stun_secondary -> nat_endpoint stun bindingresponse xormappedaddr 192.0.2.100 software "reTurnServer-1.12"
 }
 
-// INSTRUCTION: Compile the dual-server STUN NAT classification flow.
 compile {
     stun_dual_server_nat_classification(nat_endpoint, stun_primary, stun_secondary)
 }

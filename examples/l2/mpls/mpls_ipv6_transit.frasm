@@ -1,18 +1,15 @@
-// PROMPT: MPLS encapsulated 6PE IPv6 packet transit across service provider core.
-// TOKENS: host, ip, flow, mpls, exp, bos, mplsttl, udp, payload, compile
+// MPLS encapsulated 6PE IPv6 packet transit across service provider core.
+// Wire profile: 1 frame; 2 IPv6 hosts; MPLS label 2048; UDP.
+// Wireshark: mpls.label == 2048
 
-// INSTRUCTION: Define dual-stack provider edge 6PE router A.
 host pe6_router_a { ip 2001:db8:6e::1 }
 
-// INSTRUCTION: Define dual-stack provider edge 6PE router B.
 host pe6_router_b { ip 2001:db8:6e::2 }
 
-// INSTRUCTION: Define 6PE transport flow carrying IPv6 over MPLS label stack.
 flow mpls_6pe_flow(a, b) {
     a -> b mpls 2048 exp 0 bos 1 mplsttl 64 udp payload "6pe_ipv6_payload"
 }
 
-// INSTRUCTION: Compile block executing 6PE IPv6 MPLS transit.
 compile {
     mpls_6pe_flow(pe6_router_a, pe6_router_b)
 }

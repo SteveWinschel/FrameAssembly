@@ -1,18 +1,18 @@
-// PROMPT: Redundant failover IPsec gateway taking over active tunnel SPI session.
-// TOKENS: host, ip, flow, ipsec, spi, seq, compile
+// Redundant failover IPsec gateway taking over active tunnel SPI session.
+// This capture carries SPI 700500.
+// Wireshark: esp
 
-// INSTRUCTION: Define secondary failover VPN appliance.
 host failover_vpn_appliance { ip 192.0.2.202 }
 
-// INSTRUCTION: Define remote data center endpoint.
 host remote_dc_peer { ip 192.0.2.1 }
 
-// INSTRUCTION: Define failover resumption flow carrying state sequence 10001.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow failover_ipsec_flow(sec_app, dc) {
     sec_app -> dc ipsec spi 700500 seq 10001
 }
 
-// INSTRUCTION: Compile block executing failover tunnel transmission.
+// Run failover_ipsec_flow(failover_vpn_appliance, remote_dc_peer) to generate
+// the capture.
 compile {
     failover_ipsec_flow(failover_vpn_appliance, remote_dc_peer)
 }

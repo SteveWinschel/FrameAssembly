@@ -1,19 +1,19 @@
-// PROMPT: Model a campus Wi-Fi 6E access point booting and discovering its IPv4 address and controller gateway via DHCP.
-// TOKENS: host, ip, mac, flow, s, dhcp, discover, xid, chaddr, hostname, dscp, wait, ms, offer, yiaddr, siaddr, subnetmask, router, dnsserver, leasetime, request, ack, compile
+// Campus Wi-Fi 6E access point booting and discovering its IPv4 address and
+// controller gateway via DHCP.
+// Wireshark: dhcp
 
-// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+// DHCP client endpoint requesting dynamic network configuration.
 host dhcp_client {
     ip 10.180.4.50
     mac 00:25:90:67:01:0a
 }
 
-// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+// DHCP server or relay agent endpoint.
 host dhcp_server {
     ip 10.180.4.1
     mac 00:25:90:67:01:01
 }
 
-// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
 flow dhcp_scenario_flow(c, s) {
     c -> s dhcp discover xid 0x31001012 chaddr 00:1e:be:b4:04:32 hostname "AP-Bldg3-Fl2-08" dscp 48 wait 4ms
     c <- s dhcp offer xid 0x31001012 yiaddr 10.180.4.50 siaddr 10.180.0.100 subnetmask 255.255.254.0 router 10.180.4.1 dnsserver 10.180.0.53 leasetime 86400 dscp 48 wait 4ms
@@ -21,7 +21,6 @@ flow dhcp_scenario_flow(c, s) {
     c <- s dhcp ack xid 0x31001012 yiaddr 10.180.4.50 siaddr 10.180.0.100 subnetmask 255.255.254.0 router 10.180.4.1 dnsserver 10.180.0.53 leasetime 86400 dscp 48
 }
 
-// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
 compile {
     dhcp_scenario_flow(dhcp_client, dhcp_server)
 }

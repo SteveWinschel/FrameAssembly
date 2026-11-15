@@ -1,18 +1,20 @@
-// PROMPT: Cyclic industrial control polling loop querying RTU register status every 25ms.
-// TOKENS: host, ip, flow, modbus, func, addr, count, unitid, wait, ms, compile
+// Cyclic industrial control polling loop querying RTU register status every
+// 25ms.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define factory DCS central controller.
+// Factory DCS central controller.
 host factory_dcs { ip 192.168.40.1 }
 
-// INSTRUCTION: Define conveyor belt slave drive.
+// Conveyor belt slave drive.
 host conveyor_drive { ip 192.168.40.50 }
 
-// INSTRUCTION: Define periodic register polling flow.
+// Periodic register polling flow. Modbus functions: FC 3 Read Holding
+// Registers. Repeats 3 times; each wait value pauses after sending its
+// packet.
 flow cyclic_poll_flow(dcs, drv) {
     dcs -> drv modbus func "readholdingregisters" addr 500 count 2 unitid 1 wait 25ms
 }
 
-// INSTRUCTION: Compile cyclic PLC polling in loop.
 compile {
     cyclic_poll_flow(factory_dcs, conveyor_drive) // cycle 1
     cyclic_poll_flow(factory_dcs, conveyor_drive) // cycle 2

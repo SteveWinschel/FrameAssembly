@@ -1,13 +1,12 @@
-// PROMPT: PostgreSQL COPY FROM STDIN bulk ingestion followed by VACUUM ANALYZE maintenance.
-// TOKENS: host, ip, flow, s, postgres, sql, payload, wait, ms, commandcomplete, readyforquery, compile
+// PostgreSQL COPY FROM STDIN bulk ingestion followed by VACUUM ANALYZE
+// maintenance.
+// Timing: uses post-packet wait delays (10ms, 5ms, 15ms) between frames.
+// Wireshark: pgsql
 
-// INSTRUCTION: Define ETL ingestion node.
 host etl_loader { ip 10.95.4.20 }
 
-// INSTRUCTION: Define time-series PostgreSQL server.
 host ts_postgres { ip 10.95.4.2 }
 
-// INSTRUCTION: Define COPY bulk load and VACUUM ANALYZE maintenance statements.
 flow pg_copy_vacuum(c, s) {
     c -> s postgres sql "COPY metrics (ts, host_id, cpu_pct) FROM STDIN WITH CSV" payload "2026-10-24T12:00:00Z,1,42.5\n\\.\n" wait 10ms
     c <- s postgres commandcomplete readyforquery wait 5ms
@@ -15,7 +14,6 @@ flow pg_copy_vacuum(c, s) {
     c <- s postgres commandcomplete readyforquery
 }
 
-// INSTRUCTION: Compile PostgreSQL COPY and VACUUM flow.
 compile {
     pg_copy_vacuum(etl_loader, ts_postgres)
 }

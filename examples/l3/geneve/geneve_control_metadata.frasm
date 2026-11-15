@@ -1,18 +1,17 @@
-// PROMPT: GENEVE tunnel packet specifying option class and option type metadata.
-// TOKENS: host, ip, flow, src, dst, geneve, vni, optclass, opttype, compile
+// GENEVE tunnel packet specifying option class and option type metadata.
+// This capture carries VNI 12345.
+// Wireshark: geneve && geneve.vni == 12345
 
-// INSTRUCTION: Define OVS tunnel controller node.
 host ovs_controller { ip 10.50.0.1 }
 
-// INSTRUCTION: Define OVS dataplane bridge node.
 host ovs_dataplane { ip 10.50.0.2 }
 
-// INSTRUCTION: Define GENEVE flow configuring option class 0x0108 and option type 1 metadata.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow geneve_opt_flow(src, dst) {
     src -> dst geneve vni 12345 optclass 264 opttype 1
 }
 
-// INSTRUCTION: Compile block executing GENEVE metadata delivery.
+// Run geneve_opt_flow(ovs_controller, ovs_dataplane) to generate the capture.
 compile {
     geneve_opt_flow(ovs_controller, ovs_dataplane)
 }

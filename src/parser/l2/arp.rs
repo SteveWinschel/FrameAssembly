@@ -11,7 +11,7 @@ use winnow::prelude::*;
 
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::parser::{ParsedField, Stream, parse_ip, parse_mac, parse_raw_string_lit, tag};
+use crate::parser::{ParsedField, Stream, parse_ip, parse_mac, tag};
 
 /// Parses an ARP protocol declaration or field.
 pub(crate) fn parse_arp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
@@ -19,13 +19,8 @@ pub(crate) fn parse_arp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Par
         tag(Token::Arp).map(|(_, s)| ParsedField::Protocol(Protocol::Arp, (s.start, s.len()))),
         tag(Token::Request)
             .map(|(_, s)| ParsedField::ArpOpcode(ArpOpcode::Request, (s.start, s.len()))),
-        alt((
-            (tag(Token::Reply), parse_raw_string_lit).map(|((_, s), v)| {
-                ParsedField::L7StringField("REPLY", v, (s.start, s.end - s.start))
-            }),
-            tag(Token::Reply)
-                .map(|(_, s)| ParsedField::ArpOpcode(ArpOpcode::Reply, (s.start, s.len()))),
-        )),
+        tag(Token::Reply)
+            .map(|(_, s)| ParsedField::ArpOpcode(ArpOpcode::Reply, (s.start, s.len()))),
         alt((tag(Token::Gratuitous), tag(Token::Garp)))
             .map(|(_, s)| ParsedField::Gratuitous((s.start, s.len()))),
         (alt((tag(Token::Sha), tag(Token::SenderMac))), cut_err(parse_mac))

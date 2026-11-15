@@ -1,26 +1,25 @@
-// PROMPT: PostgreSQL postgres_fdw federated query joining a local table with a foreign server table over VLAN 950.
-// TOKENS: host, ip, mac, flow, s, postgres, sql, vlan, commandcomplete, payload, wait, ms, readyforquery, compile
+// PostgreSQL postgres_fdw federated query joining a local table with a
+// foreign server table over VLAN 950.
+// Encapsulation and QoS markings: 802.1Q VLAN 950.
+// Timing: pauses 3ms after each marked packet before sending the next frame.
+// Wireshark: pgsql && vlan.id == 950
 
-// INSTRUCTION: Define the federated reporting engine host.
 host bi_federator {
     ip 10.95.130.18
     mac 00:1a:2b:95:d0:18
 }
 
-// INSTRUCTION: Define the PostgreSQL coordinator node with postgres_fdw configured.
 host fdw_coordinator {
     ip 10.95.130.1
     mac 00:1a:2b:95:d0:01
 }
 
-// INSTRUCTION: Query a foreign table mapped via postgres_fdw over VLAN 950.
 flow pg_fdw_query(c, s) {
     c -> s postgres sql "SELECT l.order_id, r.Customs_status FROM local_orders l JOIN fdw_eu_customs.shipments r ON l.order_id = r.order_id" vlan 950
     c <- s postgres commandcomplete vlan 950 payload "SELECT 12" wait 3ms
     c <- s postgres readyforquery vlan 950
 }
 
-// INSTRUCTION: Compile the PostgreSQL FDW federated join flow.
 compile {
     pg_fdw_query(bi_federator, fdw_coordinator)
 }

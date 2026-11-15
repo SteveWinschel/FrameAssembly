@@ -111,6 +111,11 @@ pub fn build_ndp_payload(
             ndp_body.extend_from_slice(&[0u8; 4]);
             ndp_body.extend_from_slice(&target_v6.octets());
             ndp_body.extend_from_slice(&dst_v6.octets());
+            if let Some(tlla) = spec.tlla {
+                ndp_body.push(2);
+                ndp_body.push(1);
+                ndp_body.extend_from_slice(&tlla);
+            }
         }
     }
     ndp_body.extend_from_slice(payload);

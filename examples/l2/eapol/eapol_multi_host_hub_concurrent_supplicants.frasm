@@ -1,25 +1,23 @@
-// PROMPT: Multi-auth switch port authenticating two distinct endpoints (IP phone and docked laptop) with independent EAP_ID sequences.
-// TOKENS: host, ip, mac, flow, eapol, version, type, eappacket, eapcode, eapid, eapmethod, identity, wait, ms, compile
+// Multi-auth switch port authenticating two distinct endpoints (IP phone and
+// docked laptop) with independent EAP_ID sequences.
+// Wire profile: 4 frames; 3 IPv4 hosts; EAPOL; waits 2ms, 5ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define VoIP desk phone authenticating on multi-auth switch port.
 host desk_voip_phone {
     ip 10.42.1.10
     mac 00:1e:be:2a:01:0a
 }
 
-// INSTRUCTION: Define laptop daisy-chained behind the VoIP desk phone PC port.
 host daisy_laptop_pc {
     ip 10.42.2.20
     mac 00:21:70:2a:02:14
 }
 
-// INSTRUCTION: Define multi-auth campus switch port authenticating both MAC addresses independently.
 host multiauth_sw_port {
     ip 10.42.0.1
     mac 00:1c:73:2a:00:01
 }
 
-// INSTRUCTION: Authenticate VoIP phone (EAP_ID 1) and daisy-chained laptop (EAP_ID 50) sequentially.
 flow eapol_multiauth_port(phone, laptop, sw) {
     phone -> sw eapol version 2 type eappacket eapcode 2 eapid 1 eapmethod 1 identity "CP-8845-SEP001EBE2A010A" wait 2ms
     phone <- sw eapol version 2 type eappacket eapcode 3 eapid 1 eapmethod 1 wait 5ms
@@ -27,7 +25,6 @@ flow eapol_multiauth_port(phone, laptop, sw) {
     laptop <- sw eapol version 2 type eappacket eapcode 3 eapid 50 eapmethod 1
 }
 
-// INSTRUCTION: Compile the multi-auth switch port concurrent supplicant EAPOL trace.
 compile {
     eapol_multiauth_port(desk_voip_phone, daisy_laptop_pc, multiauth_sw_port)
 }

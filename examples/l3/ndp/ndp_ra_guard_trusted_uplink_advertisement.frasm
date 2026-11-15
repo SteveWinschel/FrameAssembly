@@ -1,19 +1,20 @@
-// PROMPT: Enterprise campus distribution router sending periodic Router Advertisements on VLAN 120 trusted RA-Guard port.
-// TOKENS: host, ip, mac, flow, vlan, pcp, ttl, ndp, routersolicit, slla, wait, ms, routeradvert, routerlifetime, neighborsolicit, target, neighboradvert, tlla, compile
+// Enterprise campus distribution router sending periodic Router
+// Advertisements on VLAN 120 trusted RA-Guard port.
+// This capture targets IPv6 endpoints, wraps frames in 802.1Q VLAN 120, sets
+// TTL 255, and uses post-packet wait gaps (10ms, 5ms) between frames.
+// Wireshark: icmpv6.nd && vlan.id == 120
 
-// INSTRUCTION: Define authorized campus distribution router on trusted RA-Guard uplink port.
 host trusted_dist_rtr {
     ip 2001:db8:120::1
     mac 00:1e:be:12:00:01
 }
 
-// INSTRUCTION: Define enterprise workstation receiving SLAAC router parameters on VLAN 120.
 host corp_workstation {
     ip 2001:db8:120::50
     mac 00:1e:be:12:00:50
 }
 
-// INSTRUCTION: Solicit router on VLAN 120, receive valid Router Advertisement, and resolve router link-layer address.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow ndp_vlan120_slaac(rtr, ws) {
     ws -> rtr vlan 120 pcp 6 ttl 255 ndp routersolicit slla 00:1e:be:12:00:50 wait 10ms
     rtr -> ws vlan 120 pcp 6 ttl 255 ndp routeradvert routerlifetime 1800 slla 00:1e:be:12:00:01 wait 10ms
@@ -21,7 +22,8 @@ flow ndp_vlan120_slaac(rtr, ws) {
     rtr -> ws vlan 120 pcp 6 ttl 255 ndp neighboradvert target 2001:db8:120::1 tlla 00:1e:be:12:00:01
 }
 
-// INSTRUCTION: Compile the VLAN 120 trusted RA-Guard SLAAC and neighbor resolution flow.
+// Run ndp_vlan120_slaac(trusted_dist_rtr, corp_workstation) to generate the
+// capture.
 compile {
     ndp_vlan120_slaac(trusted_dist_rtr, corp_workstation)
 }

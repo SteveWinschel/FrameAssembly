@@ -1,13 +1,11 @@
-// PROMPT: PostgreSQL prepared statement PREPARE, EXECUTE, and DEALLOCATE lifecycle.
-// TOKENS: host, ip, flow, s, postgres, db, sql, wait, ms, commandcomplete, readyforquery, compile
+// PostgreSQL prepared statement PREPARE, EXECUTE, and DEALLOCATE lifecycle.
+// Timing: uses post-packet wait delays (4ms, 2ms) between frames.
+// Wireshark: pgsql
 
-// INSTRUCTION: Define microservice API gateway client.
 host api_client { ip 172.29.0.50 }
 
-// INSTRUCTION: Define customer profile PostgreSQL server.
 host profile_db { ip 172.29.0.10 }
 
-// INSTRUCTION: Define PREPARE, EXECUTE, and DEALLOCATE SQL sequence.
 flow pg_prepared_stmt(c, s) {
     c -> s postgres db "profiles" sql "PREPARE get_user (int) AS SELECT * FROM users WHERE id = $1" wait 4ms
     c <- s postgres commandcomplete readyforquery wait 2ms
@@ -17,7 +15,6 @@ flow pg_prepared_stmt(c, s) {
     c <- s postgres commandcomplete readyforquery
 }
 
-// INSTRUCTION: Compile PostgreSQL prepared statement lifecycle flow.
 compile {
     pg_prepared_stmt(api_client, profile_db)
 }

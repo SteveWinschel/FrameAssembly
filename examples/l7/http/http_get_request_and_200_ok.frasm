@@ -1,19 +1,15 @@
-// PROMPT: HTTP/1.1 GET request for web resource and server 200 OK response with body.
-// TOKENS: host, ip, flow, s, http, method, uri, hosthdr, status, reason, body, compile
+// HTTP/1.1 GET request for web resource and server 200 OK response with body.
+// Wireshark: http
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 93.184.216.34 }
 
-// INSTRUCTION: Define application traffic flow.
 flow http_get(c, s) {
     c -> s http method "GET" uri "/index.html" hosthdr "example.com"
     c <- s http status 200 reason "OK" body "<html><body>Hello World</body></html>"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     http_get(client, server)
 }

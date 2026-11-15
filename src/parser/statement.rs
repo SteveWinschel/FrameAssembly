@@ -39,6 +39,8 @@ pub(crate) struct FrameBuilder<'a> {
     pub(crate) win: Option<u16>,
     /// Decoded string payload.
     pub(crate) payload: Option<String>,
+    /// Decoded raw byte payload (preserving `\x80`..`\xff` as raw octets).
+    pub(crate) payload_bytes: Option<Vec<u8>>,
     /// Decoded binary hex payload.
     pub(crate) hex_payload: Option<Vec<u8>>,
     /// Inter-packet delay in nanoseconds.
@@ -301,14 +303,14 @@ pub(crate) struct FrameBuilder<'a> {
     pub(crate) hello_interval: Option<u16>,
     /// OSPF Router Dead interval.
     pub(crate) dead_interval: Option<u32>,
-    /// OSPF / VRRP / HSRP priority value.
-    pub(crate) priority_val: Option<u16>,
+    /// OSPF / VRRP / HSRP / OpenFlow priority value and span.
+    pub(crate) priority_val: Option<(u16, (usize, usize))>,
     /// BGP message type.
     pub(crate) bgp_type: Option<BgpType>,
     /// BGP Autonomous System Number.
     pub(crate) asn_val: Option<u32>,
-    /// BGP / PIM / HSRP Hold Time.
-    pub(crate) holdtime_val: Option<u16>,
+    /// BGP / PIM / HSRP Hold Time and span.
+    pub(crate) holdtime_val: Option<(u16, (usize, usize))>,
     /// BGP Identifier IP.
     pub(crate) bgpid_ip: Option<IpAddr>,
     /// BGP CIDR prefix string.
@@ -473,6 +475,12 @@ pub(crate) struct FrameBuilder<'a> {
     pub(crate) seen_modifier_keys: HashSet<&'static str>,
     /// Source span of GENTRAP modifier if present.
     pub(crate) gentrap_span: Option<(usize, usize)>,
+    /// Recorded out-of-range numeric values `(label, value, min, max, span)`.
+    pub(crate) raw_bounds: Vec<RawBoundEntry>,
+    /// Deferred protocol-sensitive numeric checks `(key, value, span)` evaluated once `protocol` is finalized.
+    pub(crate) deferred_u32_fields: Vec<(&'static str, u32, (usize, usize))>,
+    /// Source span of a bare `nop` modifier if encountered.
+    pub(crate) raw_nop_span: Option<(usize, usize)>,
     /// End byte offset of the statement.
     pub(crate) stmt_end_offset: usize,
 }
@@ -490,6 +498,7 @@ impl<'a> FrameBuilder<'a> {
             ack_num: None,
             win: None,
             payload: None,
+            payload_bytes: None,
             hex_payload: None,
             wait: None,
             src_port: None,
@@ -707,6 +716,9 @@ impl<'a> FrameBuilder<'a> {
             duplicate_modifiers: Vec::new(),
             seen_modifier_keys: HashSet::new(),
             gentrap_span: None,
+            raw_bounds: Vec::new(),
+            deferred_u32_fields: Vec::new(),
+            raw_nop_span: None,
             stmt_end_offset: callee_end,
         }
     }
@@ -717,12 +729,33 @@ impl<'a> FrameBuilder<'a> {
             self.duplicate_modifiers.push((key.to_string(), span));
         }
     }
+
+    /// Records a modifier key, tracks duplicates, and advances `stmt_end_offset`.
+    pub(crate) fn touch_mod(&mut self, key: &'static str, span: (usize, usize)) {
+        self.record_mod(key, span);
+        self.stmt_end_offset = self.stmt_end_offset.max(span.0 + span.1);
+    }
+
+    /// Records an out-of-range numeric field violation if `val < min || val > max`.
+    pub(crate) fn check_bound(
+        &mut self,
+        label: &'static str,
+        val: u64,
+        min: u64,
+        max: u64,
+        span: (usize, usize),
+    ) {
+        if val < min || val > max {
+            self.raw_bounds.push((label, val, min, max, span));
+        }
+    }
 }
 
 /// Parses a single frame statement within a flow using protocol-scoped field dispatch.
 pub(crate) fn parse_frame_statement<'i, 'a>(
     input: &mut Stream<'i, 'a>,
 ) -> PResult<FrameStatement<'a>> {
+    let stmt_start_input = *input;
     let caller = parse_spanned_ident(input)?;
     let dir = parse_direction(input)?;
 
@@ -811,6 +844,18 @@ pub(crate) fn parse_frame_statement<'i, 'a>(
     let mut builder = FrameBuilder::new(callee.span.0 + callee.span.1);
     for f in &parsed_fields {
         builder.apply_field(f);
+    }
+
+    let stopped_at_stmt_boundary = input.is_empty()
+        || matches!(input[0].0, Token::RBrace)
+        || (input.len() >= 2
+            && matches!(
+                input[1].0,
+                Token::RightArrow | Token::LeftArrow | Token::LParen
+            ));
+    if stopped_at_stmt_boundary && !builder.has_explicit_protocol() {
+        *input = stmt_start_input;
+        return Err(ErrMode::Cut(winnow::error::ContextError::new()));
     }
 
     Ok(builder.finish(caller, dir, callee))

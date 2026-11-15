@@ -1,0 +1,26 @@
+// Data center EVPN-VXLAN VTEP path probe over UDP port 4789 exercising ECMP
+// spine hashing via varied outer UDP source ports across L2VNI 10100 and L3VNI
+// 50100 with DF set, DSCP AF31 (26), and TTL 63.
+// Wireshark: vxlan && (vxlan.vni == 10100 || vxlan.vni == 50100)
+
+host leaf_vtep_a {
+    ip 10.250.1.11
+    mac 00:1c:73:fa:01:0b
+}
+
+host leaf_vtep_b {
+    ip 10.250.2.22
+    mac 00:1c:73:fa:02:16
+}
+
+// Probe two VNIs and three UDP source ports spaced 2ms apart after each frame.
+flow evpn_vtep_ecmp_probe(vtep_a, vtep_b) {
+    vtep_a -> vtep_b df dscp 26 ttl 63 vxlan vni 10100 srcport 49152 dstport 4789 payload "EVPN_L2VNI_10100_PROBE_1" wait 2ms
+    vtep_a -> vtep_b df dscp 26 ttl 63 vxlan vni 10100 srcport 54321 dstport 4789 payload "EVPN_L2VNI_10100_PROBE_2" wait 2ms
+    vtep_a -> vtep_b df dscp 26 ttl 63 vxlan vni 50100 srcport 60123 dstport 4789 payload "EVPN_L3VNI_50100_PROBE_3"
+}
+
+// Compile the EVPN VTEP ECMP probe sequence.
+compile {
+    evpn_vtep_ecmp_probe(leaf_vtep_a, leaf_vtep_b)
+}

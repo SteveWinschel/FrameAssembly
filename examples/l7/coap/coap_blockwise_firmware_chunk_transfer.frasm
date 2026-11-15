@@ -1,19 +1,22 @@
-// PROMPT: CoAP sequential firmware image chunk downloads using incrementing MSGIDs and application/octet-stream (42).
-// TOKENS: host, ip, mac, flow, s, coap, con, code, msgid, token, uripath, ack, contentformat, hexpayload, wait, ms, compile
+// CoAP sequential firmware image chunk downloads using incrementing MSGIDs
+// and application/octet-stream (42).
+// Wireshark: coap
 
-// INSTRUCTION: Define the smart streetlight controller downloading an OTA firmware patch.
+// Smart streetlight controller downloading an OTA firmware patch.
 host streetlight_mcu {
     ip 10.110.60.75
     mac 00:1a:2b:6e:60:75
 }
 
-// INSTRUCTION: Define the municipal OTA firmware CoAP server.
+// Municipal OTA firmware CoAP server.
 host ota_coap_srv {
     ip 10.110.60.1
     mac 00:1a:2b:6e:60:01
 }
 
-// INSTRUCTION: Fetch two consecutive binary firmware chunks (Content-Format 42) from /fw/v2_4.bin.
+// Fetch two consecutive binary firmware chunks (Content-Format 42) from
+// /fw/v2_4.bin. CoAP over UDP 5683: codes 0.01 (GET), 2.05 (Content);
+// content-format 42 (application/octet-stream).
 flow coap_ota_chunks(c, s) {
     c -> s coap con code "0.01" msgid 7001 token 1001 uripath "fw/v2_4.bin"
     c <- s coap ack code "2.05" msgid 7001 token 1001 contentformat 42 hexpayload "7f454c4601010100" wait 2ms
@@ -21,7 +24,6 @@ flow coap_ota_chunks(c, s) {
     c <- s coap ack code "2.05" msgid 7002 token 1002 contentformat 42 hexpayload "0000000002002800"
 }
 
-// INSTRUCTION: Compile the CoAP OTA binary chunk transfer flow.
 compile {
     coap_ota_chunks(streetlight_mcu, ota_coap_srv)
 }

@@ -57,6 +57,10 @@ pub fn build_dnp3_payload(
     let mut app_layer = Vec::new();
     app_layer.push(0xC0); // App Control: FIR=1, FIN=1, CON=0, UNS=0, SEQ=0
     app_layer.push(func_code);
+    if func_code == 129 || func_code == 130 {
+        // Mandatory 2-byte Internal Indications (IIN1, IIN2) on Response (0x81) & Unsolicited Response (0x82)
+        app_layer.extend_from_slice(&[0x00, 0x00]);
+    }
 
     if spec.group.is_some() || spec.variation.is_some() {
         let group = spec.group.unwrap_or(60);

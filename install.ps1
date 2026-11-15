@@ -5,21 +5,29 @@
 #
 # Installs the prebuilt FrameAssembly release binary to
 # $env:LOCALAPPDATA\Programs\FrameAssembly without administrator privileges,
-# adds it to the user PATH, verifies SHA-256 against SHA256SUMS.txt, installs
-# PowerShell Tab completions into $PROFILE if missing, and auto-installs the
-# VS Code / Cursor / Windsurf / VSCodium / Antigravity extension (.vsix).
+# adds it to the user PATH, verifies SHA-256 fail-closed against SHA256SUMS.txt,
+# safely checks Get-ExecutionPolicy before touching $PROFILE for Tab completions,
+# installs the VS Code / Insiders / Cursor / Windsurf / VSCodium / Antigravity
+# extension (.vsix), and supports air-gapped -OfflineArchive <path.zip> installs.
 #
-# Usage:
+# Recommended CLI install when Rust/Cargo is installed:
+#   cargo install frameassembly
+#
+# Bootstrap usage:
 #   irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 | iex
 #
 # Options (when invoked as a script or scriptblock):
-#   -DryRun         Show detected platform and planned actions without modifying the system
-#   -NoVsCode       Skip automatic editor .vsix extension installation
-#   -NoCompletions  Skip installing PowerShell Tab completion into $PROFILE
-#   -Help           Display this help message and exit
+#   -OfflineArchive <Path>  Install offline from a local frameassembly-windows-*.zip
+#   -SkipChecksum           Bypass fail-closed SHA-256 verification against SHA256SUMS.txt
+#   -DryRun                 Show detected platform and planned actions without modifying the system
+#   -NoVsCode               Skip automatic editor .vsix extension installation
+#   -NoCompletions          Skip installing PowerShell Tab completion
+#   -Help                   Display this help message and exit
 # ==============================================================================
 
 param(
+    [string]$OfflineArchive = '',
+    [switch]$SkipChecksum,
     [switch]$DryRun,
     [switch]$NoVsCode,
     [switch]$NoCompletions,
@@ -29,8 +37,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$ReleaseVersion = '3.0.0'
-$VsixVersion = '3.0.0'
+$ReleaseVersion = '3.1.0'
+$VsixVersion = '3.1.0'
 $GitHubReleaseBase = "https://github.com/SteveWinschel/FrameAssembly/releases/download/v$ReleaseVersion"
 $VsixReleaseUrl = "$GitHubReleaseBase/frameassembly-vscode.vsix"
 $VsixRawUrl = "https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-$VsixVersion.vsix"
@@ -55,15 +63,20 @@ function Show-Usage {
     @'
 FrameAssembly (frameassembly) Windows PowerShell Bootstrap Installer
 
+Recommended when Cargo is installed:
+  cargo install frameassembly
+
 Usage:
   irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 | iex
-  .\install.ps1 [-DryRun] [-NoVsCode] [-NoCompletions] [-Help]
+  .\install.ps1 [-OfflineArchive <path.zip>] [-SkipChecksum] [-DryRun] [-NoVsCode] [-NoCompletions] [-Help]
 
 Options:
-  -DryRun         Show detected architecture and planned actions without modifying the system
-  -NoVsCode       Skip installing the VS Code / Cursor / VSCodium editor extension
-  -NoCompletions  Skip installing PowerShell Tab completion into $PROFILE
-  -Help           Show this help message and exit
+  -OfflineArchive <Path>  Install from a local .zip release archive without network access
+  -SkipChecksum           Skip fail-closed SHA-256 verification against SHA256SUMS.txt
+  -DryRun                 Show detected architecture and planned actions without modifying the system
+  -NoVsCode               Skip installing the VS Code / Insiders / Cursor / Windsurf / VSCodium / Antigravity extension
+  -NoCompletions          Skip installing PowerShell Tab completion
+  -Help                   Show this help message and exit
 '@ | Write-Host
 }
 
@@ -131,12 +144,23 @@ function Get-ExpectedSha256 {
 function Assert-FileSha256 {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
-        [Parameter(Mandatory = $true)][string]$ExpectedHash,
+        [Parameter(Mandatory = $true)][string]$SumsPath,
         [Parameter(Mandatory = $true)][string]$DisplayName
     )
+    if ($SkipChecksum) {
+        Write-WarnMsg "Skipping SHA-256 verification for $DisplayName (-SkipChecksum)."
+        return
+    }
+    if (-not (Test-Path $SumsPath)) {
+        throw "SHA256SUMS.txt not found at '$SumsPath' while verifying $DisplayName (pass -SkipChecksum to bypass)."
+    }
+    $expectedHash = Get-ExpectedSha256 -SumsPath $SumsPath -FileName $DisplayName
+    if ([string]::IsNullOrWhiteSpace($expectedHash)) {
+        throw "Could not find a SHA-256 entry for '$DisplayName' in '$SumsPath' (pass -SkipChecksum to bypass)."
+    }
     $actualHash = (Get-FileHash -Path $FilePath -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
-    if ($actualHash -ne $ExpectedHash.ToLowerInvariant()) {
-        throw "SHA-256 verification failed for $DisplayName. Expected: $ExpectedHash, Actual: $actualHash"
+    if ($actualHash -ne $expectedHash.ToLowerInvariant()) {
+        throw "SHA-256 verification failed for $DisplayName. Expected: $expectedHash, Actual: $actualHash"
     }
     Write-Ok "Verified SHA-256 checksum for $DisplayName."
 }
@@ -206,7 +230,7 @@ function Install-PowerShellCompletion {
     $completionDest = Join-Path $completionsDir 'frameassembly.ps1'
 
     if ($DryRun) {
-        Write-Info "[dry-run] Would install PowerShell completion script to $completionDest and wire into `$PROFILE ($PROFILE)"
+        Write-Info "[dry-run] Would install PowerShell completion script to $completionDest and check Get-ExecutionPolicy before touching `$PROFILE"
         return
     }
 
@@ -214,18 +238,33 @@ function Install-PowerShellCompletion {
     $bundledScript = Get-ChildItem -Path $ExtractedDir -Filter 'frameassembly.ps1' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($null -ne $bundledScript -and (Test-Path $bundledScript.FullName)) {
         Copy-Item -Path $bundledScript.FullName -Destination $completionDest -Force
-    } else {
+    } elseif ([string]::IsNullOrWhiteSpace($OfflineArchive)) {
         try {
             Invoke-DownloadFile -Uri $CompletionsRawUrl -OutFile $completionDest
         } catch {
             Write-WarnMsg "Could not download PowerShell completion script from ${CompletionsRawUrl}: $($_.Exception.Message)"
             return
         }
+    } else {
+        return
     }
     Unblock-File -Path $completionDest -ErrorAction SilentlyContinue
 
     if ([string]::IsNullOrWhiteSpace($PROFILE)) {
         Write-WarnMsg 'PowerShell $PROFILE path is empty; completion script saved to disk only.'
+        return
+    }
+
+    $effectivePolicy = 'Restricted'
+    try {
+        $effectivePolicy = (Get-ExecutionPolicy).ToString()
+    } catch {
+        $effectivePolicy = 'Restricted'
+    }
+
+    if ($effectivePolicy -in @('Restricted', 'AllSigned')) {
+        Write-Info "PowerShell ExecutionPolicy is '$effectivePolicy'; skipped editing `$PROFILE so new PowerShell windows never show a script-blocked error."
+        Write-Info "Optional: run 'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser' and re-run installer if you want Tab completion."
         return
     }
 
@@ -273,7 +312,7 @@ function Install-EditorExtension {
     }
 
     $detectedEditors = @()
-    foreach ($candidate in @('code', 'cursor', 'codium', 'windsurf', 'agy')) {
+    foreach ($candidate in @('code', 'code-insiders', 'cursor', 'windsurf', 'codium', 'agy')) {
         $cmd = Get-Command -Name $candidate -ErrorAction SilentlyContinue
         if ($null -ne $cmd) {
             $detectedEditors += $candidate
@@ -285,29 +324,58 @@ function Install-EditorExtension {
     }
 
     if ($DryRun) {
-        Write-Info "[dry-run] Detected editors ($($detectedEditors -join ', ')); would download and install $VsixReleaseUrl (fallback: $VsixRawUrl)"
+        Write-Info "[dry-run] Detected editors ($($detectedEditors -join ', ')); would install verified frameassembly-vscode.vsix"
         return
     }
 
-    $vsixPath = Join-Path $TempRoot 'frameassembly-vscode.vsix'
-    $downloadedFromRelease = $false
-    Write-Info "Downloading FrameAssembly Packet Studio extension (v$VsixVersion)..."
-    try {
-        Invoke-DownloadFile -Uri $VsixReleaseUrl -OutFile $vsixPath
-        $downloadedFromRelease = $true
-    } catch {
-        try {
-            Invoke-DownloadFile -Uri $VsixRawUrl -OutFile $vsixPath
-        } catch {
-            Write-WarnMsg "Could not download VS Code extension (.vsix): $($_.Exception.Message)"
+    $vsixPath = ''
+    $vsixDisplayName = 'frameassembly-vscode.vsix'
+
+    if (-not [string]::IsNullOrWhiteSpace($OfflineArchive)) {
+        $offlineDir = Split-Path -Parent (Resolve-Path -Path $OfflineArchive).Path
+        $candidate1 = Join-Path $offlineDir 'frameassembly-vscode.vsix'
+        $candidate2 = Join-Path $offlineDir "frameassembly-vscode-$VsixVersion.vsix"
+        if (Test-Path $candidate1) {
+            $vsixPath = $candidate1
+            $vsixDisplayName = 'frameassembly-vscode.vsix'
+        } elseif (Test-Path $candidate2) {
+            $vsixPath = $candidate2
+            $vsixDisplayName = "frameassembly-vscode-$VsixVersion.vsix"
+        } else {
+            Write-Info "No local .vsix found alongside '$OfflineArchive'; skipping offline editor extension install."
             return
         }
-    }
-
-    if ($downloadedFromRelease -and (Test-Path $SumsPath)) {
-        $expectedVsixHash = Get-ExpectedSha256 -SumsPath $SumsPath -FileName 'frameassembly-vscode.vsix'
-        if (-not [string]::IsNullOrWhiteSpace($expectedVsixHash)) {
-            Assert-FileSha256 -FilePath $vsixPath -ExpectedHash $expectedVsixHash -DisplayName 'frameassembly-vscode.vsix'
+        try {
+            Assert-FileSha256 -FilePath $vsixPath -SumsPath $SumsPath -DisplayName $vsixDisplayName
+        } catch {
+            Write-WarnMsg $_.Exception.Message
+            return
+        }
+    } else {
+        $vsixPath = Join-Path $TempRoot 'frameassembly-vscode.vsix'
+        Write-Info "Downloading FrameAssembly editor extension (v$VsixVersion)..."
+        $vsixVerified = $false
+        try {
+            Invoke-DownloadFile -Uri $VsixReleaseUrl -OutFile $vsixPath
+            Assert-FileSha256 -FilePath $vsixPath -SumsPath $SumsPath -DisplayName 'frameassembly-vscode.vsix'
+            $vsixVerified = $true
+        } catch {
+            if ($SkipChecksum) {
+                try {
+                    Invoke-DownloadFile -Uri $VsixRawUrl -OutFile $vsixPath
+                    Write-WarnMsg "Using unverified fallback $VsixRawUrl (-SkipChecksum)."
+                    $vsixVerified = $true
+                } catch {
+                    Write-WarnMsg "Could not download VS Code extension (.vsix): $($_.Exception.Message)"
+                    return
+                }
+            } else {
+                Write-WarnMsg "Could not download and verify VS Code extension (.vsix): $($_.Exception.Message)"
+                return
+            }
+        }
+        if (-not $vsixVerified) {
+            return
         }
     }
 
@@ -343,8 +411,12 @@ Write-Info "Starting FrameAssembly v$ReleaseVersion Windows ($arch) installer...
 
 if ($DryRun) {
     Write-Info "[dry-run] Detected Windows architecture: $arch"
-    Write-Info "[dry-run] Would download checksums: $sumsUrl"
-    Write-Info "[dry-run] Would download archive:   $archiveUrl"
+    if (-not [string]::IsNullOrWhiteSpace($OfflineArchive)) {
+        Write-Info "[dry-run] Would install offline from: $OfflineArchive"
+    } else {
+        Write-Info "[dry-run] Would download checksums: $sumsUrl"
+        Write-Info "[dry-run] Would download archive:   $archiveUrl"
+    }
     Write-Info "[dry-run] Would verify SHA-256 and install to: $exeDest"
     Write-Info "[dry-run] Would add '$installDir' to User PATH (no Admin required)"
     Install-PowerShellCompletion -InstallDir $installDir -ExtractedDir $installDir
@@ -362,34 +434,57 @@ $zipPath = Join-Path $workDir $archiveName
 try {
     New-Item -ItemType Directory -Force -Path $workDir, $extractDir | Out-Null
 
-    Write-Info "Downloading SHA256SUMS.txt from v$ReleaseVersion release..."
-    Invoke-DownloadFile -Uri $sumsUrl -OutFile $sumsPath
+    if (-not [string]::IsNullOrWhiteSpace($OfflineArchive)) {
+        if (-not (Test-Path $OfflineArchive)) {
+            throw "Offline archive not found: '$OfflineArchive'"
+        }
+        $resolvedZip = (Resolve-Path -Path $OfflineArchive).Path
+        $offlineFileName = [System.IO.Path]::GetFileName($resolvedZip)
+        $sumsPath = Join-Path (Split-Path -Parent $resolvedZip) 'SHA256SUMS.txt'
+        Assert-FileSha256 -FilePath $resolvedZip -SumsPath $sumsPath -DisplayName $offlineFileName
+        $zipPath = $resolvedZip
+    } else {
+        if (-not $SkipChecksum) {
+            Write-Info "Downloading SHA256SUMS.txt from v$ReleaseVersion release..."
+            Invoke-DownloadFile -Uri $sumsUrl -OutFile $sumsPath
+        } else {
+            try {
+                Invoke-DownloadFile -Uri $sumsUrl -OutFile $sumsPath
+            } catch {
+                # Optional when -SkipChecksum is explicitly passed.
+            }
+        }
 
-    $expectedHash = Get-ExpectedSha256 -SumsPath $sumsPath -FileName $archiveName
-    if ([string]::IsNullOrWhiteSpace($expectedHash)) {
-        throw "Could not find a SHA-256 entry for '$archiveName' in $sumsUrl."
+        Write-Info "Downloading $archiveName..."
+        Invoke-DownloadFile -Uri $archiveUrl -OutFile $zipPath
+
+        Assert-FileSha256 -FilePath $zipPath -SumsPath $sumsPath -DisplayName $archiveName
     }
 
-    Write-Info "Downloading $archiveName..."
-    Invoke-DownloadFile -Uri $archiveUrl -OutFile $zipPath
-
-    Assert-FileSha256 -FilePath $zipPath -ExpectedHash $expectedHash -DisplayName $archiveName
-
-    Write-Info "Extracting $archiveName..."
+    Write-Info "Extracting $([System.IO.Path]::GetFileName($zipPath))..."
     Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
 
     $exeSource = Get-ChildItem -Path $extractDir -Filter 'frameassembly.exe' -Recurse -ErrorAction Stop | Select-Object -First 1
     if ($null -eq $exeSource) {
-        throw "frameassembly.exe was not found inside $archiveName."
+        throw "frameassembly.exe was not found inside $([System.IO.Path]::GetFileName($zipPath))."
     }
 
     New-Item -ItemType Directory -Force -Path $installDir | Out-Null
     Copy-Item -Path $exeSource.FullName -Destination $exeDest -Force
     Unblock-File -Path $exeDest -ErrorAction SilentlyContinue
 
-    $quickstartSrc = Get-ChildItem -Path $extractDir -Filter 'quickstart.frasm' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($null -ne $quickstartSrc) {
-        Copy-Item -Path $quickstartSrc.FullName -Destination (Join-Path $installDir 'quickstart.frasm') -Force
+    $bundleRoot = Split-Path -Parent $exeSource.FullName
+    foreach ($asset in @('quickstart.frasm', 'README.md')) {
+        $assetPath = Join-Path $bundleRoot $asset
+        if (Test-Path $assetPath) {
+            Copy-Item -Path $assetPath -Destination (Join-Path $installDir $asset) -Force
+        }
+    }
+    foreach ($folder in @('docs', 'examples')) {
+        $folderPath = Join-Path $bundleRoot $folder
+        if (Test-Path $folderPath) {
+            Copy-Item -Path $folderPath -Destination (Join-Path $installDir $folder) -Recurse -Force
+        }
     }
 
     Add-UserPathEntry -DirToAdd $installDir

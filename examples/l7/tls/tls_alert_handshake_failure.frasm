@@ -1,19 +1,17 @@
-// PROMPT: TLS alert record signaling fatal handshake failure to peer endpoint.
-// TOKENS: host, ip, flow, s, tls, clienthello, sni, alert, compile
+// TLS alert record signaling fatal handshake failure to peer endpoint.
+// TLS extensions: SNI hardened.vault.local.
+// Includes a TLS fatal alert record over TCP 443.
+// Wireshark: tls
 
-// INSTRUCTION: Define incompatible client cipher suite requester.
 host incomp_client { ip 192.168.70.33 }
 
-// INSTRUCTION: Define strict cipher policy server.
 host strict_sec_svr { ip 192.168.70.1 }
 
-// INSTRUCTION: Define TLS handshake failure alert flow.
 flow tls_handshake_fail_flow(c, s) {
     c -> s tls clienthello sni "hardened.vault.local"
     c <- s tls alert
 }
 
-// INSTRUCTION: Compile block executing handshake failure alert.
 compile {
     tls_handshake_fail_flow(incomp_client, strict_sec_svr)
 }

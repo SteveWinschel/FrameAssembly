@@ -1,25 +1,27 @@
-// PROMPT: Outer IPv4 fragmentation of an oversized GRE tunnel datagram across a 1400-byte MTU WAN bottleneck.
-// TOKENS: host, ip, mac, flow, gre, grekey, greseq, greproto, checksum, ipid, mf, fragoffset, ttl, payload, wait, ms, compile
+// Outer IPv4 fragmentation of an oversized GRE tunnel datagram across a
+// 1400-byte MTU WAN bottleneck.
+// This capture sets TTL 60, MF fragmentation and uses post-packet wait gaps
+// (2ms) between frames.
+// Wireshark: gre
 
-// INSTRUCTION: Define GRE ingress router fragmenting outer IPv4 GRE packet when inner DF is clear.
 host gre_frag_ingress {
     ip 172.22.47.1
     mac 00:1e:be:22:47:01
 }
 
-// INSTRUCTION: Define GRE egress router reassembling outer IPv4 fragments before GRE decapsulation.
 host gre_frag_egress {
     ip 172.22.47.2
     mac 00:1e:be:22:47:02
 }
 
-// INSTRUCTION: Define two outer IPv4 fragments sharing IPID 4701 with MF flag and FRAGOFFSET.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow gre_outer_fragmented_flow(ing, egr) {
     ing -> egr gre grekey 1400 greseq 99 greproto 2048 checksum ipid 4701 mf fragoffset 0 ttl 60 payload "GRE_OUTER_FRAGMENT_1_FIRST_1376_OCTETS" wait 2ms
     ing -> egr gre grekey 1400 greseq 99 greproto 2048 checksum ipid 4701 fragoffset 172 ttl 60 payload "GRE_OUTER_FRAGMENT_2_TRAILING_124_OCTETS"
 }
 
-// INSTRUCTION: Compile the outer IPv4 fragmented GRE tunnel flow.
+// Run gre_outer_fragmented_flow(gre_frag_ingress, gre_frag_egress) to
+// generate the capture.
 compile {
     gre_outer_fragmented_flow(gre_frag_ingress, gre_frag_egress)
 }

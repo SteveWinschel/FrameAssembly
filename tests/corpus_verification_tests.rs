@@ -1,11 +1,11 @@
 //! Seven-gate corpus, lexer-bijection, Markdown/Rustdoc block compilation, six-way grammar/parser
 //! lockstep, AI pre-training chunk filter, AST-to-builder field wiring, and reverse PCAP
-//! decompiler symmetry suite for FrameAssembly v3.0.0:
-//! 1. **Gate 1**: All 2,611 `.frasm` files satisfy header/metric rules and compile to PCAPNG (`0x0A0D0D0A`).
-//! 2. **Gate 2**: `// TOKENS:` matches `src/lexer/mod.rs` lowercase keywords in exact first-appearance order.
+//! decompiler symmetry suite for FrameAssembly v3.1.0:
+//! 1. **Gate 1**: All 2,690 `.frasm` files satisfy human-first header/metric rules and compile cleanly.
+//! 2. **Gate 2**: Every `.frasm` file lexes cleanly against `src/lexer/mod.rs` strict-lowercase keywords with zero legacy tags.
 //! 3. **Gate 3**: All ````frameassembly` and ````frasm` blocks across docs, skills, and `src/**/*.rs` compile.
 //! 4. **Gate 4**: Six-way lockstep (`src/lexer/mod.rs`, `src/parser/`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, TextMate).
-//! 5. **Gate 5**: `< 50 KB` Rust/corpus ceiling, `//!` docstrings (`>= 50` words), zero NUL bytes, 13 docs.
+//! 5. **Gate 5**: `< 50 KB` Rust/corpus ceiling, `//!` docstrings (`>= 50` words), zero NUL bytes, 14 docs.
 //! 6. **Gate 6**: AST `*Spec` fields wired to builders and 1:1 reverse decompiler file symmetry.
 
 use std::collections::{HashMap, HashSet};
@@ -111,32 +111,6 @@ fn extract_lexer_token_variants() -> HashSet<String> {
     variants
 }
 
-/// Computes the expected `// TOKENS:` list from the ordered unique keyword slices emitted by `Token::lexer`,
-/// respecting the 200-character line-length cap on multi-protocol omnibus files.
-fn expected_tokens_for_file(ordered_keywords: &[String]) -> Vec<String> {
-    let full = format!("// TOKENS: {}", ordered_keywords.join(", "));
-    if full.len() <= 200 {
-        return ordered_keywords.to_vec();
-    }
-    let tail = ordered_keywords
-        .last()
-        .cloned()
-        .unwrap_or_else(|| "compile".to_string());
-    let mut prefix = Vec::new();
-    for tok in &ordered_keywords[..ordered_keywords.len().saturating_sub(1)] {
-        let mut candidate = prefix.clone();
-        candidate.push(tok.clone());
-        candidate.push(tail.clone());
-        if format!("// TOKENS: {}", candidate.join(", ")).len() <= 200 {
-            prefix.push(tok.clone());
-        } else {
-            break;
-        }
-    }
-    prefix.push(tail);
-    prefix
-}
-
 /// Inspects and verifies a single `.frasm` example file for Gate 1 and Gate 2.
 fn verify_example_file(path: &Path, valid_keywords: &HashSet<String>) -> Result<(), String> {
     let filename = path.file_name().and_then(|s| s.to_str()).ok_or("Invalid filename")?;
@@ -187,72 +161,54 @@ fn verify_example_file(path: &Path, valid_keywords: &HashSet<String>) -> Result<
         ));
     }
 
-    if !lines[0].starts_with("// PROMPT: ") {
-        return Err(format!("{}: Line 1 must begin with '// PROMPT: ', got: '{}'", path.display(), lines[0]));
+    if !lines[0].starts_with("// ") {
+        return Err(format!(
+            "{}: Line 1 must begin with a human-readable '// ' description comment, got: '{}'",
+            path.display(),
+            lines[0]
+        ));
     }
-    if lines[0].trim_start_matches("// PROMPT: ").trim().is_empty() {
-        return Err(format!("{}: PROMPT comment body cannot be empty", path.display()));
+    if !content.contains("// Wireshark:") {
+        return Err(format!(
+            "{}: File must include a '// Wireshark:' display filter hint",
+            path.display()
+        ));
     }
-
-    if !lines[1].starts_with("// TOKENS: ") {
-        return Err(format!("{}: Line 2 must begin with '// TOKENS: ', got: '{}'", path.display(), lines[1]));
-    }
-    let tokens_body = lines[1].trim_start_matches("// TOKENS: ").trim();
-    if tokens_body.is_empty() {
-        return Err(format!("{}: TOKENS comment body cannot be empty", path.display()));
-    }
-
-    let header_tokens: Vec<String> = tokens_body
-        .split(',')
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(ToString::to_string)
-        .collect();
-
-    for raw_tok in &header_tokens {
-        if !valid_keywords.contains(raw_tok) {
-            return Err(format!("{}: Non-canonical or unknown token '{}' in // TOKENS: header", path.display(), raw_tok));
-        }
-        let mut lex = Token::lexer(raw_tok);
-        if let Some(Ok(Token::Ident(id))) = lex.next() {
-            return Err(format!("{}: Hallucinated identifier '{}' in // TOKENS: header", path.display(), id));
+    for banned_tag in ["// PROMPT:", "// TOKENS:", "// INSTRUCTION:"] {
+        if content.contains(banned_tag) {
+            return Err(format!(
+                "{}: v3.1.0 corpus files must not contain legacy metadata tag '{}'",
+                path.display(),
+                banned_tag
+            ));
         }
     }
 
-    // Gate 2 exact ordered lexer bijection check on the code body
-    let mut ordered_body_keywords = Vec::new();
-    let mut seen_kw = HashSet::new();
+    // Gate 2 strict-lowercase lexer verification on the code body
+    let punct: HashSet<&str> = ["{", "}", "(", ")", "->", "<-", ","].into_iter().collect();
+    let mut saw_keyword = false;
     let mut body_lex = Token::lexer(&content);
     while let Some(res) = body_lex.next() {
         let tok = res.map_err(|_| format!("{}: Lexer error in code body", path.display()))?;
         let slice = body_lex.slice();
-        if valid_keywords.contains(slice)
-            && !matches!(
-                tok,
-                Token::Ident(_)
-                    | Token::StringLit(_)
-                    | Token::IpAddress(_)
-                    | Token::MacAddress(_)
-                    | Token::OidStr(_)
-                    | Token::Number(_)
-            )
-            && seen_kw.insert(slice.to_string())
+        if !matches!(
+            tok,
+            Token::Ident(_)
+                | Token::StringLit(_)
+                | Token::IpAddress(_)
+                | Token::MacAddress(_)
+                | Token::OidStr(_)
+                | Token::Number(_)
+        ) && !punct.contains(slice)
         {
-            ordered_body_keywords.push(slice.to_string());
+            if !valid_keywords.contains(slice) {
+                return Err(format!("{}: Unknown keyword token '{}'", path.display(), slice));
+            }
+            saw_keyword = true;
         }
     }
-    let expected_header = expected_tokens_for_file(&ordered_body_keywords);
-    if header_tokens != expected_header {
-        return Err(format!(
-            "{}: // TOKENS: bijection mismatch\n  header:   {:?}\n  expected: {:?}",
-            path.display(),
-            header_tokens,
-            expected_header
-        ));
-    }
-
-    if !content.contains("// INSTRUCTION:") {
-        return Err(format!("{}: File must contain '// INSTRUCTION:' comments before blocks", path.display()));
+    if !saw_keyword {
+        return Err(format!("{}: No built-in FrameAssembly keywords found", path.display()));
     }
 
     let program = parse_program(&content).map_err(|e| format!("Parse error in {}: {:?}", path.display(), e))?;
@@ -327,8 +283,8 @@ fn test_corpus_non_numeric_naming_conventions() {
     let paths = get_sorted_example_paths();
     assert_eq!(
         paths.len(),
-        2611,
-        "Corpus must contain exactly 2,611 .frasm examples across all layers, found {}",
+        2690,
+        "Corpus must contain exactly 2,690 .frasm examples across all layers, found {}",
         paths.len()
     );
 
@@ -392,8 +348,8 @@ fn test_corpus_all_examples_headers_and_compilation() {
     let valid_keywords = extract_lexer_lowercase_keywords();
     assert_eq!(
         paths.len(),
-        2611,
-        "Corpus must have 2,611 .frasm examples, found {}",
+        2690,
+        "Corpus must have 2,690 .frasm examples, found {}",
         paths.len()
     );
 
@@ -1019,11 +975,11 @@ fn test_reverse_decompiler_per_protocol_file_symmetry() {
     }
 }
 
-/// Gate 7: Verifies v3.0.0 release packaging hygiene (no stray `output.pcap` or legacy `.vsix`
-/// files), verifies `frameassembly-vscode/frameassembly-vscode-3.0.0.vsix` bundles the WASM-powered
-/// Packet Studio assets without overwriting it, checks `llms.txt` (`< 512` lines, `< 25 KB`),
+/// Gate 7: Verifies v3.1.0 release packaging hygiene (no stray `output.pcap` or legacy `.vsix`
+/// files), verifies `frameassembly-vscode/frameassembly-vscode-3.1.0.vsix` bundles the WASM-powered
+/// live diagnostics extension assets without overwriting it, checks `llms.txt` (`< 512` lines, `< 25 KB`),
 /// and verifies the prompt-injection context in `llms-full.txt` (`60–250 KB`, zero NULs, all
-/// v3.0.0 markers/docs/grammars, and zero contributor-internal leaks).
+/// v3.1.0 markers/docs/grammars, and zero contributor-internal leaks).
 #[test]
 fn test_gate7_release_packaging_and_llms_bundle_sync() {
     for stray in [
@@ -1036,45 +992,46 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
         "frameassembly-vscode/frameassembly-vscode-1.5.0.vsix",
         "frameassembly-vscode/frameassembly-vscode-1.5.1.vsix",
         "frameassembly-vscode/frameassembly-vscode-2.0.0.vsix",
+        "frameassembly-vscode/frameassembly-vscode-3.0.0.vsix",
     ] {
         assert!(
             !Path::new(stray).exists(),
-            "Stray or legacy artifact {} must not exist in v3.0.0",
+            "Stray or legacy artifact {} must not exist in v3.1.0",
             stray
         );
     }
 
-    let vsix_v2 = Path::new("frameassembly-vscode/frameassembly-vscode-3.0.0.vsix");
+    let vsix_v31 = Path::new("frameassembly-vscode/frameassembly-vscode-3.1.0.vsix");
     assert!(
-        vsix_v2.exists(),
-        "Bundled frameassembly-vscode/frameassembly-vscode-3.0.0.vsix must exist"
+        vsix_v31.exists(),
+        "Bundled frameassembly-vscode/frameassembly-vscode-3.1.0.vsix must exist"
     );
     let py_check_vsix = r#"
 import zipfile
-with zipfile.ZipFile("frameassembly-vscode/frameassembly-vscode-3.0.0.vsix", "r") as zf:
+with zipfile.ZipFile("frameassembly-vscode/frameassembly-vscode-3.1.0.vsix", "r") as zf:
     names = set(zf.namelist())
 for req in [
     "extension/package.json",
     "extension/extension.js",
-    "extension/protocol_schema.json",
+    "extension/syntaxes/frameassembly.tmLanguage.json",
     "extension/wasm/frameassembly_wasm_bg.wasm",
     "extension/readme.md",
     "extension/icon.png",
 ]:
-    assert req in names, f"Missing {req} in frameassembly-vscode-3.0.0.vsix"
+    assert req in names, f"Missing {req} in frameassembly-vscode-3.1.0.vsix"
 "#;
     let status = std::process::Command::new("python3")
         .arg("-c")
         .arg(py_check_vsix)
         .status()
         .expect("Failed to execute python3 for read-only VSIX verification");
-    assert!(status.success(), "Read-only VSIX v3.0.0 inspection failed");
+    assert!(status.success(), "Read-only VSIX v3.1.0 inspection failed");
 
     let llms_txt = fs::read_to_string("llms.txt").expect("Missing llms.txt");
     let llms_lines = llms_txt.lines().count();
     assert!(
-        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("3.0.0"),
-        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 3.0.0 (got {} lines, {} bytes)",
+        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("3.1.0"),
+        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 3.1.0 (got {} lines, {} bytes)",
         llms_lines,
         llms_txt.len()
     );
@@ -1096,7 +1053,7 @@ for req in [
         "llms-full.txt missing default root CLI invocation (`frameassembly <input.frasm>`)"
     );
     for required_marker in [
-        "3.0.0",
+        "3.1.0",
         "frameassembly show",
         "frameassembly reverse",
         "README.md",
@@ -1106,7 +1063,7 @@ for req in [
     ] {
         assert!(
             full_txt.contains(required_marker),
-            "llms-full.txt missing required v3.0.0 marker `{required_marker}`"
+            "llms-full.txt missing required v3.1.0 marker `{required_marker}`"
         );
     }
     for doc_name in CANONICAL_DOCS {

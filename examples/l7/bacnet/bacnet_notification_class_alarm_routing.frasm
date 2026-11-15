@@ -1,19 +1,22 @@
-// PROMPT: BACnet/IP Notification Class object (Object Type 15) priority array inspection and configuration.
-// TOKENS: host, ip, mac, flow, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, value, wait, ms, writeproperty, compile
+// BACnet/IP Notification Class object (Object Type 15) priority array
+// inspection and configuration.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the HVAC alarm engineering console.
+// HVAC alarm engineering console.
 host alarm_console {
     ip 10.120.20.15
     mac 00:1a:2b:78:20:15
 }
 
-// INSTRUCTION: Define the central plant BACnet building controller.
+// Central plant BACnet building controller.
 host plant_controller {
     ip 10.120.20.1
     mac 00:1a:2b:78:20:01
 }
 
-// INSTRUCTION: Read Ack_Required (Property 1) and Write Priority (Property 86) on Notification Class 15 Instance 5.
+// Read Ack_Required (Property 1) and Write Priority (Property 86) on
+// Notification Class 15 Instance 5. BACnet/IP on UDP 47808 (objects: 15
+// (Notification Class); properties: 1 (Prop), 86 (Prop)).
 flow bacnet_notif_class(c, p) {
     c -> p bacnet readproperty invokeid 30 objecttype 15 objectinstance 5 propertyid 1
     c <- p bacnet readproperty invokeid 30 objecttype 15 objectinstance 5 propertyid 1 value 7 wait 2ms
@@ -21,7 +24,6 @@ flow bacnet_notif_class(c, p) {
     c <- p bacnet writeproperty invokeid 31 objecttype 15 objectinstance 5 propertyid 86 value 1
 }
 
-// INSTRUCTION: Compile the BACnet Notification Class configuration flow.
 compile {
     bacnet_notif_class(alarm_console, plant_controller)
 }

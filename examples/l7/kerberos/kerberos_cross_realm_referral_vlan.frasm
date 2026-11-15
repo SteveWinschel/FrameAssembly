@@ -1,37 +1,43 @@
-// PROMPT: Generate a Kerberos cross-realm referral TGS exchange between two Active Directory forests over VLAN 340.
-// TOKENS: host, ip, mac, flow, s, kerberos, tgsreq, realm, cname, sname, etype, vlan, dscp, ttl, wait, ms, tgsrep, compile
+// Kerberos cross-realm referral TGS exchange between two Active Directory
+// forests over VLAN 340.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define the enterprise workstation and the local forest KDC along with the remote partner forest KDC.
+// Enterprise workstation and the local forest KDC along with the remote
+// partner forest KDC.
 host corp_ws {
     ip 10.40.10.25
     mac 00:1a:2b:40:10:25
 }
 
-// INSTRUCTION: Define the primary corporate realm KDC issuing the cross-realm referral ticket.
+// Primary corporate realm KDC issuing the cross-realm referral ticket.
 host local_kdc {
     ip 10.40.1.10
     mac 00:1a:2b:40:01:10
 }
 
-// INSTRUCTION: Define the partner realm KDC issuing the final service ticket for the remote SQL cluster.
+// Partner realm KDC issuing the final service ticket for the remote SQL
+// cluster.
 host partner_kdc {
     ip 10.90.1.10
     mac 00:1a:2b:90:01:10
 }
 
-// INSTRUCTION: Request a cross-realm TGT from the local KDC over VLAN 340.
+// Request a cross-realm TGT from the local KDC over VLAN 340. Encapsulation
+// and QoS markings: 802.1Q VLAN 340, DSCP 24. Kerberos encryption types: 18
+// (AES256-CTS). Repeats 2 times; each wait value pauses after sending its
+// packet.
 flow local_referral(c, s) {
     c -> s kerberos tgsreq realm "CORP.EXAMPLE.COM" cname "alice" sname "krbtgt/PARTNER.EXAMPLE.COM" etype 18 vlan 340 dscp 24 ttl 64 wait 8ms
     c <- s kerberos tgsrep realm "CORP.EXAMPLE.COM" cname "alice" sname "krbtgt/PARTNER.EXAMPLE.COM" etype 18 vlan 340 dscp 24 ttl 64
 }
 
-// INSTRUCTION: Present the referral TGT to the partner realm KDC to obtain the remote service ticket.
+// Present the referral TGT to the partner realm KDC to obtain the remote
+// service ticket.
 flow remote_service_ticket(c, s) {
     c -> s kerberos tgsreq realm "PARTNER.EXAMPLE.COM" cname "alice" sname "MSSQLSvc/db01.partner.example.com:1433" etype 18 vlan 340 dscp 24 ttl 60 wait 14ms
     c <- s kerberos tgsrep realm "PARTNER.EXAMPLE.COM" cname "alice" sname "MSSQLSvc/db01.partner.example.com:1433" etype 18 vlan 340 dscp 24 ttl 60
 }
 
-// INSTRUCTION: Compile the cross-realm Kerberos referral trace into a PCAP file.
 compile {
     local_referral(corp_ws, local_kdc)
     remote_service_ticket(corp_ws, partner_kdc)

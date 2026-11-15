@@ -1,25 +1,23 @@
-// PROMPT: Generate a Google Cast DIAL multiscreen service discovery using SSDP M-SEARCH on an IoT VLAN 30.
-// TOKENS: host, mac, ip, flow, ssdp, msearch, hosthdr, man, mx, st, vlan, notify, nt, nts, usn, location, compile
+// Generate a Google Cast DIAL multiscreen service discovery using SSDP
+// M-SEARCH on an IoT VLAN 30.
+// Encapsulation and QoS markings: 802.1Q VLAN 30.
+// Wireshark: ssdp && vlan.id == 30
 
-// INSTRUCTION: Define host endpoint phone_cast.
 host phone_cast {
     mac 00:1f:5b:aa:bb:10
     ip 10.30.0.15
 }
 
-// INSTRUCTION: Define host endpoint chromecast.
 host chromecast {
     mac 00:1f:5b:aa:bb:99
     ip 10.30.0.99
 }
 
-// INSTRUCTION: Define host endpoint ssdp_iot_mcast.
 host ssdp_iot_mcast {
     mac 01:00:5e:7f:ff:fa
     ip 239.255.255.250
 }
 
-// INSTRUCTION: Probe for urn:dial-multiscreen-org:service:dial:1 on VLAN 30 and receive the DIAL descriptor URL.
 flow ssdp_dial_multiscreen_discovery(phone_cast, chromecast, ssdp_iot_mcast) {
     phone_cast -> ssdp_iot_mcast ssdp msearch hosthdr "239.255.255.250:1900" man "\"ssdp:discover\"" mx 1 st "urn:dial-multiscreen-org:service:dial:1" vlan 30
     chromecast -> phone_cast ssdp notify hosthdr "239.255.255.250:1900" nt "urn:dial-multiscreen-org:service:dial:1" nts "ssdp:alive"
@@ -27,7 +25,6 @@ flow ssdp_dial_multiscreen_discovery(phone_cast, chromecast, ssdp_iot_mcast) {
         location "http://10.30.0.99:8008/ssdp/device-desc.xml" vlan 30
 }
 
-// INSTRUCTION: Compile the SSDP DIAL multiscreen discovery flow.
 compile {
     ssdp_dial_multiscreen_discovery(phone_cast, chromecast, ssdp_iot_mcast)
 }

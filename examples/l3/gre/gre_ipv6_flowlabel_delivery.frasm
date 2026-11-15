@@ -1,19 +1,20 @@
-// PROMPT: RFC 7676 IPv6 GRE delivery header utilizing IPv6 Flow Labels and Hop Limit 64.
-// TOKENS: host, ip, mac, flow, gre, grekey, greseq, greproto, checksum, flowlabel, dscp, ttl, compile
+// RFC 7676 IPv6 GRE delivery header utilizing IPv6 Flow Labels and Hop Limit
+// 64.
+// This capture targets IPv6 endpoints and sets DSCP 24, TTL 64, IPv6 Flow
+// Label.
+// Wireshark: gre && ipv6
 
-// INSTRUCTION: Define IPv6 core tunnel router Alpha.
 host v6_gre_alpha { ip 2001:db8:7676:1::1 mac 00:1b:63:76:76:01 }
 
-// INSTRUCTION: Define IPv6 core tunnel router Beta.
 host v6_gre_beta { ip 2001:db8:7676:2::1 mac 00:1b:63:76:76:02 }
 
-// INSTRUCTION: Define IPv6 GRE delivery exchange with Flow Label, Key, Sequence, and Checksum.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow gre_ipv6_delivery(a, b) {
     a -> b gre grekey 767600 greseq 11 greproto 0x0800 checksum flowlabel 767601 dscp 24 ttl 64
     a <- b gre grekey 767600 greseq 11 greproto 0x0800 checksum flowlabel 767602 dscp 24 ttl 64
 }
 
-// INSTRUCTION: Compile the RFC 7676 IPv6 GRE delivery flow.
+// Run gre_ipv6_delivery(v6_gre_alpha, v6_gre_beta) to generate the capture.
 compile {
     gre_ipv6_delivery(v6_gre_alpha, v6_gre_beta)
 }

@@ -1,19 +1,18 @@
-// PROMPT: QUIC CONNECTION_CLOSE frame encoded in 1-RTT Short header terminating session.
-// TOKENS: host, ip, flow, s, quic, short, dcid, pktnum, hexpayload, wait, ms, compile
+// QUIC CONNECTION_CLOSE frame encoded in 1-RTT Short header terminating
+// session.
+// QUIC UDP 443 packet types: short.
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: quic
 
-// INSTRUCTION: Define web client closing HTTP/3 tab.
 host web_client { ip 192.168.144.20 }
 
-// INSTRUCTION: Define HTTP/3 web server.
 host web_server { ip 192.168.144.1 }
 
-// INSTRUCTION: Define Short header packets carrying CONNECTION_CLOSE frame (0x1c).
 flow quic_conn_close(c, s) {
     c -> s quic short dcid 0x55443322 pktnum 50 hexpayload "1c000000" wait 2ms
     c <- s quic short dcid 0x22334455 pktnum 60 hexpayload "1c000000"
 }
 
-// INSTRUCTION: Compile QUIC connection close exchange.
 compile {
     quic_conn_close(web_client, web_server)
 }

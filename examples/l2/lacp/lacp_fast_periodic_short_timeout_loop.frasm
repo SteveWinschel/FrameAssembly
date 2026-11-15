@@ -1,28 +1,26 @@
-// PROMPT: Fast-periodic 1-second LACP heartbeat loop with Short Timeout flag (0x3F) between low-latency trading switches.
-// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, s, compile
+// Fast-periodic 1-second LACP heartbeat loop with Short Timeout flag (0x3F)
+// between low-latency trading switches.
+// Wire profile: 5 frames; 2 IPv4 hosts; LACP; waits 1s.
+// Wireshark: lacp
 
-// INSTRUCTION: Define ultra-low-latency trading switch A.
 host hft_switch_a {
     ip 10.8.8.1
     mac 00:0f:53:08:08:01
 }
 
-// INSTRUCTION: Define ultra-low-latency trading switch B.
 host hft_switch_b {
     ip 10.8.8.2
     mac 00:0f:53:08:08:02
 }
 
-// INSTRUCTION: Define LACPDU with Short Timeout bit set (ACTOR_STATE 63 = 0x3F) and 1-second interval.
 flow lacp_fast_rate_heartbeat(a, b) {
     a -> b lacp actorsys 00:0f:53:08:08:01 actorkey 88 actorport 1 actorstate 63 partnersys 00:0f:53:08:08:02 partnerkey 88 partnerport 1 partnerstate 63 wait 1s
 }
 
-// INSTRUCTION: Compile block executing 5 consecutive 1-second LACP fast-rate heartbeats.
 compile {
-    lacp_fast_rate_heartbeat(hft_switch_a, hft_switch_b) // cycle 1
-    lacp_fast_rate_heartbeat(hft_switch_a, hft_switch_b) // cycle 2
-    lacp_fast_rate_heartbeat(hft_switch_a, hft_switch_b) // cycle 3
-    lacp_fast_rate_heartbeat(hft_switch_a, hft_switch_b) // cycle 4
-    lacp_fast_rate_heartbeat(hft_switch_a, hft_switch_b) // cycle 5
+    lacp_fast_rate_heartbeat(hft_switch_a, hft_switch_b) // Iteration 1 of 5
+    lacp_fast_rate_heartbeat(hft_switch_a, hft_switch_b) // Iteration 2 of 5
+    lacp_fast_rate_heartbeat(hft_switch_a, hft_switch_b) // Iteration 3 of 5
+    lacp_fast_rate_heartbeat(hft_switch_a, hft_switch_b) // Iteration 4 of 5
+    lacp_fast_rate_heartbeat(hft_switch_a, hft_switch_b) // Iteration 5 of 5
 }

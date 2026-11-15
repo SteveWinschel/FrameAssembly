@@ -1,21 +1,20 @@
-// PROMPT: Simulate 802.1X RADIUS authentication on UDP port 1812 and RADIUS accounting start/response on UDP port 1813 between a wireless controller and AAA server.
-// TOKENS: host, ip, mac, flow, udp, srcport, dstport, payload, wait, ms, compile
+// Simulate 802.1X RADIUS authentication on UDP port 1812 and RADIUS accounting
+// start/response on UDP port 1813 between a wireless controller and AAA server.
+// Wire profile: 4 frames; 2 IPv4 hosts; UDP; dstport 1812,1813,41812,41813; waits
+// 10ms.
+// Wireshark: udp.port == 1812 || udp.port == 1813 || udp.port == 41812
 
-// INSTRUCTION: Define a wireless LAN controller (NAS) with IP 10.5.10.2.
 host wlan_controller { ip 10.5.10.2 mac 00:24:97:10:20:02 }
 
-// INSTRUCTION: Define a FreeRADIUS AAA server with IP 10.5.10.100.
 host radius_aaa_server { ip 10.5.10.100 mac 00:24:97:10:20:64 }
 
-// INSTRUCTION: Define a flow performing RADIUS Access-Request/Access-Accept on port 1812 and Accounting-Request/Accounting-Response on port 1813.
 flow radius_auth_and_acct(nas, aaa) {
     nas -> aaa udp srcport 41812 dstport 1812 payload "RADIUS_ACCESS_REQUEST_user=jdoe" wait 10ms
     nas <- aaa udp srcport 1812 dstport 41812 payload "RADIUS_ACCESS_ACCEPT_vlan=20" wait 10ms
     nas -> aaa udp srcport 41813 dstport 1813 payload "RADIUS_ACCT_START_sess=9981" wait 10ms
-    nas <- aaa udp srcport 1813 dstport 41813 payload "RADIUS_ACCT_RESPONSE_ok" wait 10ms
+    nas <- aaa udp srcport 1813 dstport 41813 payload "RADIUS_ACCT_RESPONSE_ok"
 }
 
-// INSTRUCTION: Compile block to execute the RADIUS authentication and accounting flow.
 compile {
     radius_auth_and_acct(wlan_controller, radius_aaa_server)
 }

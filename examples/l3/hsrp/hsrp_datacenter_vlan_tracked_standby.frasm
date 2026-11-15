@@ -1,26 +1,28 @@
-// PROMPT: Data center TOR switch HSRP priority decrement due to uplink object tracking on IEEE 802.1Q VLAN 250.
-// TOKENS: host, ip, mac, flow, vlan, pcp, hsrp, group, priority, state, hellotime, holdtime, vip, wait, ms, compile
+// Data center TOR switch HSRP priority decrement due to uplink object
+// tracking on IEEE 802.1Q VLAN 250.
+// This capture wraps frames in 802.1Q VLAN 250, carries group 250, HSRP state
+// 16/8, and uses post-packet wait gaps (15ms) between frames.
+// Wireshark: hsrp && vlan.id == 250
 
-// INSTRUCTION: Define degraded primary TOR switch with decremented HSRP priority 90 after uplink loss.
 host tor_switch_degraded {
     ip 172.18.250.2
     mac 00:00:0c:9f:f0:fa
 }
 
-// INSTRUCTION: Define healthy standby TOR switch preempting with default priority 110 on VLAN 250.
 host tor_switch_healthy {
     ip 172.18.250.3
     mac 00:00:0c:9f:f0:fb
 }
 
-// INSTRUCTION: Advertise degraded priority 90 followed by standby takeover at priority 110 over VLAN 250.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow hsrp_tracked_object_failover(deg, hlth) {
     deg -> hlth vlan 250 pcp 6 hsrp group 250 priority 90 state 16 hellotime 3 holdtime 10 vip 172.18.250.1 wait 15ms
     hlth -> deg vlan 250 pcp 6 hsrp group 250 priority 110 state 16 hellotime 3 holdtime 10 vip 172.18.250.1 wait 15ms
     deg -> hlth vlan 250 pcp 6 hsrp group 250 priority 90 state 8 hellotime 3 holdtime 10 vip 172.18.250.1
 }
 
-// INSTRUCTION: Compile the VLAN 250 HSRP tracked uplink failover scenario.
+// Run hsrp_tracked_object_failover(tor_switch_degraded, tor_switch_healthy)
+// to generate the capture.
 compile {
     hsrp_tracked_object_failover(tor_switch_degraded, tor_switch_healthy)
 }

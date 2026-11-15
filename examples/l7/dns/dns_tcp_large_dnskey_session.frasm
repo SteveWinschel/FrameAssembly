@@ -1,13 +1,16 @@
-// PROMPT: Full TCP 3-way handshake and DNS over TCP query for large DNSKEY response payload.
-// TOKENS: host, ip, flow, tcp, syn, srcport, dstport, ack, dns, transport, query, txid, qname, qtype, response, rdata, ansttl, fin, compile
+// Full TCP 3-way handshake and DNS over TCP query for large DNSKEY response
+// payload.
+// Wireshark: tcp || dns
 
-// INSTRUCTION: Define recursive resolver initiating TCP fallback.
+// Recursive resolver initiating TCP fallback.
 host tcp_resolver { ip 172.20.53.10 }
 
-// INSTRUCTION: Define authoritative DNS server listening on TCP port 53.
+// Authoritative DNS server listening on TCP port 53.
 host tcp_auth_ns { ip 172.20.53.1 }
 
-// INSTRUCTION: Perform TCP handshake, send 2-byte length-prefixed DNS over TCP query, and close.
+// Perform TCP handshake, send 2-byte length-prefixed DNS over TCP query, and
+// close. Uses TCP transport on port 53 (overriding default UDP). DNS wire
+// details: record types DNSKEY.
 flow dns_tcp_fallback_session(r, a) {
     r -> a tcp syn srcport 54321 dstport 53
     r <- a tcp syn ack
@@ -19,7 +22,6 @@ flow dns_tcp_fallback_session(r, a) {
     r -> a tcp ack
 }
 
-// INSTRUCTION: Compile the complete DNS over TCP session.
 compile {
     dns_tcp_fallback_session(tcp_resolver, tcp_auth_ns)
 }

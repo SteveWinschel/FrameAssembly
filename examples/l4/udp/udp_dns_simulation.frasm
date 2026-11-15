@@ -1,19 +1,17 @@
-// PROMPT: Simulate a UDP DNS query from a client to a public DNS resolver on port 53 followed by a UDP DNS response.
-// TOKENS: host, ip, flow, udp, dstport, payload, srcport, compile
+// Simulate a UDP DNS query from a client to a public DNS resolver on port 53
+// followed by a UDP DNS response.
+// Wire profile: 2 frames; 2 IPv4 hosts; UDP; dstport 53.
+// Wireshark: udp.port == 53
 
-// INSTRUCTION: Define a DNS client with IP 192.168.1.5.
 host dns_client { ip 192.168.1.5 }
 
-// INSTRUCTION: Define a DNS server with IP 8.8.8.8.
 host dns_server { ip 8.8.8.8 }
 
-// INSTRUCTION: Define a flow that sends a UDP packet mimicking a DNS query to port 53, and receives a UDP response.
 flow dns_query(client, server) {
     client -> server udp dstport 53 payload "query"
     client <- server udp srcport 53 payload "response"
 }
 
-// INSTRUCTION: Compile block to execute the DNS query flow.
 compile {
     dns_query(dns_client, dns_server)
 }

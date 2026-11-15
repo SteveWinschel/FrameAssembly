@@ -1,19 +1,18 @@
-// PROMPT: PostgreSQL subtransaction management using SAVEPOINT, ERROR_RESPONSE recovery, and ROLLBACK TO SAVEPOINT.
-// TOKENS: host, ip, mac, flow, s, postgres, sql, commandcomplete, wait, ms, errorresponse, payload, readyforquery, compile
+// PostgreSQL subtransaction management using SAVEPOINT, ERROR_RESPONSE
+// recovery, and ROLLBACK TO SAVEPOINT.
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: pgsql
 
-// INSTRUCTION: Define the multi-tenant import worker host.
 host import_worker {
     ip 10.95.50.14
     mac 00:1a:2b:95:50:14
 }
 
-// INSTRUCTION: Define the tenant PostgreSQL server.
 host tenant_pg {
     ip 10.95.50.1
     mac 00:1a:2b:95:50:01
 }
 
-// INSTRUCTION: Establish a savepoint, recover from a check constraint ERROR_RESPONSE, and commit the outer transaction.
 flow pg_savepoint_recovery(c, s) {
     c -> s postgres sql "BEGIN; SAVEPOINT row_import_1"
     c <- s postgres commandcomplete wait 1ms
@@ -24,7 +23,6 @@ flow pg_savepoint_recovery(c, s) {
     c <- s postgres readyforquery
 }
 
-// INSTRUCTION: Compile the PostgreSQL savepoint error recovery flow.
 compile {
     pg_savepoint_recovery(import_worker, tenant_pg)
 }

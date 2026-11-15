@@ -1,25 +1,23 @@
-// PROMPT: Emergency core switch asserting absolute minimum IEEE 802.1D bridge priority 0 to force deterministic Root Bridge takeover.
-// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, maxage, hellotime, forwarddelay, flags, wait, ms, compile
+// Emergency core switch asserting absolute minimum IEEE 802.1D bridge priority 0
+// to force deterministic Root Bridge takeover.
+// Wire profile: 2 frames; 2 IPv4 hosts; STP; waits 5ms.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define emergency core chassis configured with priority 0 (ROOT_ID 0:00:1c:73:00:00:01).
 host core_priority_zero {
     ip 10.0.0.1
     mac 00:1c:73:00:00:01
 }
 
-// INSTRUCTION: Define incumbent root bridge with priority 4096 yielding to priority 0 superior BPDU.
 host incumbent_root_4096 {
     ip 10.0.0.2
     mac 00:1c:73:00:00:02
 }
 
-// INSTRUCTION: Advertise priority 0 Root Bridge BPDU and verify incumbent switch adopts the new Root ID.
 flow stp_priority_zero_claim(zero_sw, inc_sw) {
     zero_sw -> inc_sw stp rstp rootid "0:00:1c:73:00:00:01" bridgeid "0:00:1c:73:00:00:01" cost 0 portid 32769 maxage 20 hellotime 2 forwarddelay 15 flags 14 wait 5ms
     zero_sw <- inc_sw stp rstp rootid "0:00:1c:73:00:00:01" bridgeid "4096:00:1c:73:00:00:02" cost 2000 portid 32769 maxage 20 hellotime 2 forwarddelay 15 flags 78
 }
 
-// INSTRUCTION: Compile the priority 0 emergency Root Bridge takeover sequence.
 compile {
     stp_priority_zero_claim(core_priority_zero, incumbent_root_4096)
 }

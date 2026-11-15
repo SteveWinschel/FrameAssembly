@@ -1,23 +1,27 @@
-// PROMPT: SNMPv3 authPriv GetBulk poll across QinQ (800/161) and MPLS label 7300 targeting a service provider PE router.
-// TOKENS: host, ip, flow, m, snmp3, getbulk, user, reqid, maxrepetitions, auth, sha256, priv, aes, qinq, innervlan, mpls, varbind, nullval, response, string, compile
+// SNMPv3 authPriv GetBulk poll across QinQ (800/161) and MPLS label 7300
+// targeting a service provider PE router.
+// Encapsulation and QoS markings: 802.1ad QinQ outer 800 / inner 161, MPLS
+// label 7300.
+// SNMPv3 USM security uses auth sha256, priv aes with localized engineid
+// keys.
+// Uses SNMPv3 getbulk, response PDUs on UDP 161/162.
+// In Wireshark, add the engineid, user, auth, and priv passphrases under SNMP
+// Users Table to decrypt.
+// Wireshark: (snmp && vlan) && mpls
 
-// INSTRUCTION: Define the service provider NMS poller.
 host sp_nms {
     ip 172.27.147.10
 }
 
-// INSTRUCTION: Define the provider edge (PE) router SNMPv3 agent.
 host pe_router {
     ip 172.27.147.1
 }
 
-// INSTRUCTION: Issue encrypted SNMPv3 GETBULK encapsulated in QinQ (800/161) and MPLS label 7300.
 flow snmpv3_qinq_mpls_bulk(m, a) {
     m -> a snmp3 getbulk user "sp" reqid 6200 maxrepetitions 4 auth sha256 "SpSha256!" priv aes "SpAes128!" qinq 800 innervlan 161 mpls 7300 varbind 1.3.6.1.2.1.31.1.1.1.1 nullval
     m <- a snmp3 response user "sp" reqid 6200 auth sha256 "SpSha256!" priv aes "SpAes128!" qinq 800 innervlan 161 mpls 7300 varbind 1.3.6.1.2.1.31.1.1.1.1.1 string "TenGigE0/0/0/0"
 }
 
-// INSTRUCTION: Compile the QinQ + MPLS encrypted SNMPv3 GetBulk flow.
 compile {
     snmpv3_qinq_mpls_bulk(sp_nms, pe_router)
 }

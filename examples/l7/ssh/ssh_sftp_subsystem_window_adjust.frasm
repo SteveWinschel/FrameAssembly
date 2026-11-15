@@ -1,19 +1,24 @@
-// PROMPT: Simulate an SFTP subsystem invocation over an SSH session channel with window adjust (MSG_CODE 93) over MPLS 2200.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, mpls, ack, ssh, msgcode, payload, compile
+// Simulate an SFTP subsystem invocation over an SSH session channel with
+// window adjust (msgcode 93) over MPLS 2200.
+// Encapsulation and QoS markings: MPLS label 2200.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// SSH RFC 4253 framing on TCP 22 (message codes: 90 (CHANNEL_OPEN), 91
+// (CHANNEL_OPEN_CONFIRMATION), 93, 94 (CHANNEL_DATA), 98 (CHANNEL_REQUEST),
+// 99).
+// Overrides destination port to 22.
+// Wireshark: ssh && mpls
 
-// INSTRUCTION: Define host endpoint sftp_client.
 host sftp_client {
     mac 00:21:5a:22:00:01
     ip 10.150.22.5
 }
 
-// INSTRUCTION: Define host endpoint sftp_server.
 host sftp_server {
     mac 00:21:5a:22:00:02
     ip 10.150.22.50
 }
 
-// INSTRUCTION: Open channel (90/91), request subsystem sftp (98/99), transfer data (94), and adjust window (93).
 flow ssh_sftp_subsystem_window_adjust(sftp_client, sftp_server) {
     sftp_client -> sftp_server tcp syn srcport 61022 dstport 22 mpls 2200
     sftp_server -> sftp_client tcp syn ack mpls 2200
@@ -27,7 +32,6 @@ flow ssh_sftp_subsystem_window_adjust(sftp_client, sftp_server) {
     sftp_client -> sftp_server ssh msgcode 93 payload "WINDOW-ADJUST-2097152" mpls 2200
 }
 
-// INSTRUCTION: Compile the SSH SFTP subsystem and window adjust flow.
 compile {
     ssh_sftp_subsystem_window_adjust(sftp_client, sftp_server)
 }

@@ -1,13 +1,13 @@
-// PROMPT: BFD three-way session establishment progressing from Down (1) to Init (2) to Up (3).
-// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, compile
+// BFD three-way session establishment progressing from Down (1) to Init (2)
+// to Up (3).
+// This capture carries BFD state 1/2/3, diag 0.
+// Wireshark: bfd
 
-// INSTRUCTION: Define spine router A initiating BFD control session.
 host spine_rtr_a { ip 10.101.0.1 mac 00:1c:73:aa:00:01 }
 
-// INSTRUCTION: Define leaf switch B responding to BFD session establishment.
 host leaf_sw_b { ip 10.101.0.2 mac 00:1c:73:aa:00:02 }
 
-// INSTRUCTION: Define BFD state machine progression from Down to Init to Up.
+// Packet sequence (4 frames) with default 10ms post-packet spacing.
 flow bfd_three_way_setup(a, b) {
     a -> b bfd state 1 diag 0 mydisc 1001 yourdisc 0 mintx 100000 minrx 100000 mult 3
     a <- b bfd state 2 diag 0 mydisc 2002 yourdisc 1001 mintx 50000 minrx 50000 mult 3
@@ -15,7 +15,7 @@ flow bfd_three_way_setup(a, b) {
     a <- b bfd state 3 diag 0 mydisc 2002 yourdisc 1001 mintx 50000 minrx 50000 mult 3
 }
 
-// INSTRUCTION: Compile the BFD three-way handshake flow.
+// Run bfd_three_way_setup(spine_rtr_a, leaf_sw_b) to generate the capture.
 compile {
     bfd_three_way_setup(spine_rtr_a, leaf_sw_b)
 }

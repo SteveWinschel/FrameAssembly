@@ -1,19 +1,18 @@
-// PROMPT: IEEE 802.1X EAP-AKA' (EAP_METHOD 50) authentication for a 5G fixed-wireless CPE with USIM credentials.
-// TOKENS: host, ip, mac, flow, eapol, version, type, eappacket, eapcode, eapid, eapmethod, wait, ms, identity, payload, compile
+// IEEE 802.1X EAP-AKA' (EAP_METHOD 50) authentication for a 5G fixed-wireless CPE
+// with USIM credentials.
+// Wire profile: 5 frames; 2 IPv4 hosts; EAPOL; waits 2ms, 5ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define 5G fixed-wireless CPE supplicant authenticating via EAP-AKA' (Method 50).
 host cpe_usim_supp {
     ip 10.50.80.15
     mac 00:26:bb:50:50:0f
 }
 
-// INSTRUCTION: Define carrier aggregation switch authenticator forwarding EAP-AKA' to 3GPP AUSF.
 host carrier_pae_sw {
     ip 10.50.80.1
     mac 00:1c:73:50:50:01
 }
 
-// INSTRUCTION: Complete EAP-Identity and EAP-AKA' (Method 50) challenge/response culminating in EAP-Success (Code 3).
 flow eapol_akaprime_auth(cpe, sw) {
     cpe <- sw eapol version 2 type eappacket eapcode 1 eapid 10 eapmethod 1 wait 2ms
     cpe -> sw eapol version 2 type eappacket eapcode 2 eapid 10 eapmethod 1 identity "631026000012345@wlan.mnc026.mcc310.3gppnetwork.org" wait 5ms
@@ -22,7 +21,6 @@ flow eapol_akaprime_auth(cpe, sw) {
     cpe <- sw eapol version 2 type eappacket eapcode 3 eapid 11 eapmethod 50
 }
 
-// INSTRUCTION: Compile the 5G EAP-AKA' USIM port authentication trace.
 compile {
     eapol_akaprime_auth(cpe_usim_supp, carrier_pae_sw)
 }

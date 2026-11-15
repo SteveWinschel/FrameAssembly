@@ -1,18 +1,19 @@
-// PROMPT: IKEv2 SA_INIT packet specifying NEXT_PAYLOAD 33 (Security Association) and explicit SPIs.
-// TOKENS: host, ip, flow, src, ikev2, initiatorspi, responderspi, sainit, msgid, nextpayload, compile
+// IKEv2 IKE_SA_INIT packet specifying Next Payload 33 (Security Association)
+// and explicit SPIs.
+// This capture models UDP port 500/4500 IKEv2 key-exchange messages.
+// Wireshark: isakmp
 
-// INSTRUCTION: Define security audit probe host.
 host sec_audit_probe { ip 10.130.5.50 }
 
-// INSTRUCTION: Define audited IPsec gateway.
 host audited_ipsec_gw { ip 10.130.5.1 }
 
-// INSTRUCTION: Define IKEv2 packet with explicit NEXT_PAYLOAD 33 header field.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow ikev2_next_payload_flow(src, gw) {
     src -> gw ikev2 initiatorspi 9081726354453627 responderspi 0 sainit msgid 0 nextpayload 33
 }
 
-// INSTRUCTION: Compile block executing custom next-payload IKEv2 frame.
+// Run ikev2_next_payload_flow(sec_audit_probe, audited_ipsec_gw) to generate
+// the capture.
 compile {
     ikev2_next_payload_flow(sec_audit_probe, audited_ipsec_gw)
 }

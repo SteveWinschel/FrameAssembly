@@ -1,19 +1,19 @@
-// PROMPT: Memcached text protocol storing key value pair with set and updating via replace.
-// TOKENS: host, ip, flow, s, memcached, cmd, key, exptime, wait, ms, compile
+// Memcached text protocol storing key value pair with set and updating via
+// replace.
+// Wireshark: memcache || tcp.port == 11211
 
-// INSTRUCTION: Define web backend service.
+// Web backend service.
 host web_service { ip 10.0.30.12 }
 
-// INSTRUCTION: Define Memcached cache cluster node.
+// Memcached cache cluster node.
 host memcache_node { ip 10.0.30.5 }
 
-// INSTRUCTION: Define set and replace caching flow.
+// Set and replace caching flow.
 flow set_replace_flow(c, s) {
     c -> s memcached cmd "set" key "config_flags" exptime 1800 wait 5ms
     c -> s memcached cmd "replace" key "config_flags" exptime 1800
 }
 
-// INSTRUCTION: Compile Memcached set and replace scenario.
 compile {
     set_replace_flow(web_service, memcache_node)
 }

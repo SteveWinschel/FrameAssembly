@@ -1,19 +1,20 @@
-// PROMPT: Layer 3 GENEVE tunnel encapsulating inner IPv6 packets using PROTOCOL_TYPE 0x86DD.
-// TOKENS: host, ip, flow, geneve, vni, optclass, opttype, protocoltype, payload, compile
+// Layer 3 GENEVE tunnel encapsulating inner IPv6 packets using protocoltype
+// 0x86DD.
+// This capture carries VNI 99002.
+// Wireshark: geneve && geneve.vni == 99002
 
-// INSTRUCTION: Define cloud transit gateway 1.
 host tgw_geneve_01 { ip 198.51.100.210 }
 
-// INSTRUCTION: Define cloud transit gateway 2.
 host tgw_geneve_02 { ip 198.51.100.211 }
 
-// INSTRUCTION: Define GENEVE tunnel specifying PROTOCOL_TYPE 0x86DD (IPv6 inner packet).
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow geneve_routed_ipv6(g1, g2) {
     g1 -> g2 geneve vni 99002 optclass 260 opttype 2 protocoltype 0x86DD payload "INNER_IPV6_DATAGRAM_SYN"
     g1 <- g2 geneve vni 99002 optclass 260 opttype 2 protocoltype 0x86DD payload "INNER_IPV6_DATAGRAM_ACK"
 }
 
-// INSTRUCTION: Compile the IPv6-over-GENEVE routed tunnel flow.
+// Run geneve_routed_ipv6(tgw_geneve_01, tgw_geneve_02) to generate the
+// capture.
 compile {
     geneve_routed_ipv6(tgw_geneve_01, tgw_geneve_02)
 }

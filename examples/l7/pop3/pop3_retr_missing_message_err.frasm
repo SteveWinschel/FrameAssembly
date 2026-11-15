@@ -1,19 +1,16 @@
-// PROMPT: POP3 request for non-existent message index returning -ERR no such message.
-// TOKENS: host, ip, flow, s, pop3, cmd, arg, wait, ms, err, compile
+// POP3 request for non-existent message index returning -ERR no such message.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: pop
 
-// INSTRUCTION: Define POP3 mail client.
 host pop_client { ip 192.168.88.12 }
 
-// INSTRUCTION: Define POP3 mail server.
 host pop_server { ip 192.168.88.1 }
 
-// INSTRUCTION: Define RETR for missing message 999 and -ERR response.
 flow pop3_missing_msg(c, s) {
     c -> s pop3 cmd "RETR" arg "999" wait 5ms
     c <- s pop3 err
 }
 
-// INSTRUCTION: Compile POP3 missing message error scenario.
 compile {
     pop3_missing_msg(pop_client, pop_server)
 }

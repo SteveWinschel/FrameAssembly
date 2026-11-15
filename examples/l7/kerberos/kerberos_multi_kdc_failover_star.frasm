@@ -1,43 +1,46 @@
-// PROMPT: Simulate a multi-client Kerberos star topology where a workstation and a database server authenticate to primary and backup KDCs.
-// TOKENS: host, ip, mac, flow, s, kerberos, srcport, dstport, asreq, realm, cname, sname, etype, wait, ms, asrep, tgsreq, tgsrep, compile
+// Multi-client Kerberos star topology where a workstation and a database
+// server authenticate to primary and backup KDCs.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define the primary KDC in the data center.
+// Primary KDC in the data center.
 host kdc_primary {
     ip 10.80.1.10
     mac 00:0c:29:80:01:10
 }
 
-// INSTRUCTION: Define the secondary replica KDC in the data center.
+// Secondary replica KDC in the data center.
 host kdc_replica {
     ip 10.80.1.11
     mac 00:0c:29:80:01:11
 }
 
-// INSTRUCTION: Define an analyst workstation and an application server requesting tickets.
+// Analyst workstation and an application server requesting tickets.
 host analyst_ws {
     ip 10.80.20.15
     mac 00:0c:29:80:20:15
 }
 
-// INSTRUCTION: Define the backend reporting server requesting a service ticket from the replica KDC.
+// Backend reporting server requesting a service ticket from the replica KDC.
 host report_srv {
     ip 10.80.30.22
     mac 00:0c:29:80:30:22
 }
 
-// INSTRUCTION: Obtain an initial TGT for the analyst workstation from the primary KDC.
+// Obtain an initial TGT for the analyst workstation from the primary KDC.
+// Kerberos encryption types: 18 (AES256-CTS). Repeats 2 times; each wait
+// value pauses after sending its packet.
 flow primary_as_flow(c, s) {
     c -> s kerberos srcport 51200 dstport 88 asreq realm "FINANCE.CORP" cname "jdoe" sname "krbtgt/FINANCE.CORP" etype 18 wait 4ms
     c <- s kerberos srcport 88 dstport 51200 asrep realm "FINANCE.CORP" cname "jdoe" sname "krbtgt/FINANCE.CORP" etype 18
 }
 
-// INSTRUCTION: Obtain a service ticket for the reporting server from the secondary replica KDC.
+// Obtain a service ticket for the reporting server from the secondary replica
+// KDC.
 flow replica_tgs_flow(c, s) {
     c -> s kerberos srcport 53400 dstport 88 tgsreq realm "FINANCE.CORP" cname "svc_report" sname "postgres/db-prod.finance.corp" etype 18 wait 4ms
     c <- s kerberos srcport 88 dstport 53400 tgsrep realm "FINANCE.CORP" cname "svc_report" sname "postgres/db-prod.finance.corp" etype 18
 }
 
-// INSTRUCTION: Compile the multi-KDC Kerberos topology trace into a PCAP file.
 compile {
     primary_as_flow(analyst_ws, kdc_primary)
     replica_tgs_flow(report_srv, kdc_replica)

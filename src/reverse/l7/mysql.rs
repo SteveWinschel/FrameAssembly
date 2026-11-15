@@ -30,6 +30,22 @@ fn le_u32(b: &[u8], off: usize) -> u32 {
     u32::from_le_bytes([b[off], b[off + 1], b[off + 2], b[off + 3]])
 }
 
+/// Fixed 66-byte MySQL `HandshakeV10` trailer following the NUL-terminated server version string.
+const HANDSHAKE_V10_TRAILER: &[u8; 66] = &[
+    0x01, 0x00, 0x00, 0x00, // Thread ID (1)
+    b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', // Auth-plugin-data-part-1
+    0x00, // Filler
+    0xFF, 0xFF, // Capability flags (lower 2 bytes)
+    0x21, // Character set (0x21)
+    0x02, 0x00, // Status flags (0x0002)
+    0xFF, 0x00, // Capability flags (upper 2 bytes)
+    21,   // Auth plugin data length (21)
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 10 reserved zero bytes
+    b'9', b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'0', 0x00,
+    b'm', b'y', b's', b'q', b'l', b'_', b'n', b'a', b't', b'i', b'v', b'e', b'_',
+    b'p', b'a', b's', b's', b'w', b'o', b'r', b'd', 0x00,
+];
+
 /// Dissects a `mysql` 4-byte framed wire packet (`greeting`, `login`, `query`, `ok`, `err`, `eof`).
 pub(crate) fn dissect_mysql(
     transport: TransportProto,
@@ -46,33 +62,42 @@ pub(crate) fn dissect_mysql(
     let body_len =
         (payload[0] as usize) | ((payload[1] as usize) << 8) | ((payload[2] as usize) << 16);
     let seq_id = payload[3];
-    if seq_id != 0 || payload.len() < 4 + body_len || body_len == 0 {
+    let pkt_end = 4usize.checked_add(body_len)?;
+    if seq_id != 0 || payload.len() != pkt_end || body_len == 0 {
         return None;
     }
-    let body = &payload[4..4 + body_len];
-    let residual = &payload[4 + body_len..];
+    let body = &payload[4..pkt_end];
     let mut tokens = String::from("mysql");
+    let residual: &[u8];
 
-    if body == [0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00] {
+    if let Some(rem) = body.strip_prefix(&[0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00]) {
         tokens.push_str(" ok");
-    } else if body == [0xFE, 0x00, 0x00, 0x02, 0x00] {
+        residual = rem;
+    } else if let Some(rem) = body.strip_prefix(&[0xFE, 0x00, 0x00, 0x02, 0x00]) {
         tokens.push_str(" eof");
-    } else if body[0] == 0xFF && body.len() >= 3 && body[3..].starts_with(b"#28000Access denied") {
+        residual = rem;
+    } else if body[0] == 0xFF
+        && body.len() >= 3
+        && let Some(rem) = body[3..].strip_prefix(b"#28000Access denied")
+    {
         let errcode = le_u16(body, 1);
         tokens.push_str(" err");
         if errcode != 1045 {
             tokens.push_str(&format!(" errcode {errcode}"));
         }
+        residual = rem;
     } else if body[0] == 0x0A {
         let nul_pos = body[1..].iter().position(|&b| b == 0)?;
         let ver = core::str::from_utf8(&body[1..1 + nul_pos]).ok()?;
-        if !is_valid_raw_str(ver) || body.len() != 1 + nul_pos + 1 + 27 {
+        if !is_valid_raw_str(ver) {
             return None;
         }
+        let rem = body[2 + nul_pos..].strip_prefix(HANDSHAKE_V10_TRAILER)?;
         tokens.push_str(" greeting");
         if ver != "8.0.35" {
             tokens.push_str(&format!(" serverversion \"{ver}\""));
         }
+        residual = rem;
     } else if body[0] == 0x03 {
         let sql = core::str::from_utf8(&body[1..]).ok()?;
         if !is_valid_raw_str(sql) {
@@ -81,6 +106,7 @@ pub(crate) fn dissect_mysql(
         if sql != "SELECT 1" {
             tokens.push_str(&format!(" sql \"{sql}\""));
         }
+        residual = &[];
     } else if body.len() >= 34 && body[8] == 0x21 && body[9..32].iter().all(|&b| b == 0) {
         let caps = le_u32(body, 0);
         if caps != 0x0008_A685 && caps != 0x0008_A68D {
@@ -97,13 +123,16 @@ pub(crate) fn dissect_mysql(
             tokens.push_str(&format!(" user \"{user}\""));
         }
         let after_auth = &rest[u_end + 2..];
-        if (caps & 0x08) != 0 && !after_auth.is_empty() {
+        if (caps & 0x08) != 0 {
             let db_end = after_auth.iter().position(|&b| b == 0)?;
             let db = core::str::from_utf8(&after_auth[..db_end]).ok()?;
             if !is_valid_raw_str(db) {
                 return None;
             }
             tokens.push_str(&format!(" db \"{db}\""));
+            residual = &after_auth[db_end + 1..];
+        } else {
+            residual = after_auth;
         }
     } else {
         return None;

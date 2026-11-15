@@ -1,19 +1,23 @@
-// PROMPT: Hospital operating room steam humidifier control and air change rate monitoring over IPv6 BACnet/IPv6.
-// TOKENS: host, ip, mac, flow, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, value, wait, ms, writeproperty, compile
+// Hospital operating room steam humidifier control and air change rate
+// monitoring over IPv6 BACnet/IPv6.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the hospital clinical BMS supervisor over IPv6.
+// Hospital clinical BMS supervisor over IPv6.
 host hospital_bms {
     ip 2001:db8:120:120::1
     mac 00:1a:2b:78:c0:01
 }
 
-// INSTRUCTION: Define Operating Room 4 HVAC controller over IPv6.
+// Operating Room 4 HVAC controller over IPv6.
 host or4_hvac {
     ip 2001:db8:120:120::4
     mac 00:1a:2b:78:c0:04
 }
 
-// INSTRUCTION: Read relative humidity (Object Type 0, Instance 2) and command steam valve setpoint (Object Type 2, Instance 2) to 50%.
+// Read relative humidity (Object Type 0, Instance 2) and command steam valve
+// setpoint (Object Type 2, Instance 2) to 50%. BACnet/IP on UDP 47808
+// (objects: 0 (Analog Input), 2 (Analog Value); properties: 85
+// (Present_Value)).
 flow bacnet_hospital_or(b, h) {
     b -> h bacnet readproperty invokeid 140 objecttype 0 objectinstance 2 propertyid 85
     b <- h bacnet readproperty invokeid 140 objecttype 0 objectinstance 2 propertyid 85 value 46 wait 1ms
@@ -21,7 +25,6 @@ flow bacnet_hospital_or(b, h) {
     b <- h bacnet writeproperty invokeid 141 objecttype 2 objectinstance 2 propertyid 85 value 50
 }
 
-// INSTRUCTION: Compile the IPv6 hospital operating room BACnet flow.
 compile {
     bacnet_hospital_or(hospital_bms, or4_hvac)
 }

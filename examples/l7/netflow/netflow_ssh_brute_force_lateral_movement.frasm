@@ -1,25 +1,26 @@
-// PROMPT: NetFlow v5 export identifying lateral SSH TCP port 22 brute-force connection attempts.
-// TOKENS: host, ip, mac, flow, netflow, srcip, dstip, srcport, dstport, proto, packets, octets, compile
+// NetFlow v5 export identifying lateral SSH TCP port 22 brute-force
+// connection attempts.
+// Wireshark: cflow || udp.port == 2055 || udp.port == 22
 
-// INSTRUCTION: Define campus core switch monitoring inter-VLAN SSH connections.
+// Campus core switch monitoring inter-VLAN SSH connections.
 host campus_core {
     ip 10.15.0.1
     mac 00:1a:a1:15:00:01
 }
 
-// INSTRUCTION: Define SIEM NetFlow correlation engine.
+// SIEM NetFlow correlation engine.
 host siem_engine {
     ip 10.15.0.240
     mac 00:1a:a1:15:00:f0
 }
 
-// INSTRUCTION: Export multiple short-lived TCP port 22 SSH flow records from a single source host.
+// Export multiple short-lived TCP port 22 SSH flow records from a single
+// source host. Reports IP protocol 6 (TCP) flow records to UDP 2055.
 flow netflow_ssh_bruteforce(core, siem) {
     core -> siem netflow srcip 10.15.30.88 dstip 10.15.40.10 srcport 55101 dstport 22 proto 6 packets 14 octets 1680
     core -> siem netflow srcip 10.15.30.88 dstip 10.15.40.11 srcport 55102 dstport 22 proto 6 packets 14 octets 1680
 }
 
-// INSTRUCTION: Compile the SSH brute-force lateral movement NetFlow scenario.
 compile {
     netflow_ssh_bruteforce(campus_core, siem_engine)
 }

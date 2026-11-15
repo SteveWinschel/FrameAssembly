@@ -1,19 +1,21 @@
-// PROMPT: Multi-drop DNP3 IP polling from one SCADA master across three substation feeder RTUs.
-// TOKENS: host, ip, flow, m, dnp3, func, src, dst, group, variation, compile
+// Multi-drop DNP3 IP polling from one SCADA master across three substation
+// feeder RTUs.
+// Wireshark: dnp3
 
-// INSTRUCTION: Define central SCADA polling engine.
+// Central SCADA polling engine.
 host central_scada { ip 10.175.0.1 }
 
-// INSTRUCTION: Define Feeder 1 RTU.
+// Feeder 1 RTU.
 host rtu_feeder1 { ip 10.175.0.101 }
 
-// INSTRUCTION: Define Feeder 2 RTU.
+// Feeder 2 RTU.
 host rtu_feeder2 { ip 10.175.0.102 }
 
-// INSTRUCTION: Define Feeder 3 RTU.
+// Feeder 3 RTU.
 host rtu_feeder3 { ip 10.175.0.103 }
 
-// INSTRUCTION: Sequentially poll Binary Output status (Group 10 Variation 2) across all three RTUs.
+// Sequentially poll Binary Output status (Group 10 Variation 2) across all
+// three RTUs. DNP3 data groups: Group 10 (Binary Output).
 flow dnp3_multidrop_poll(m, r1, r2, r3) {
     m -> r1 dnp3 func "read" src 1 dst 101 group 10 variation 2
     m <- r1 dnp3 func "response" src 101 dst 1 group 10 variation 2
@@ -23,7 +25,6 @@ flow dnp3_multidrop_poll(m, r1, r2, r3) {
     m <- r3 dnp3 func "response" src 103 dst 1 group 10 variation 2
 }
 
-// INSTRUCTION: Compile the 4-host multi-drop DNP3 polling sequence.
 compile {
     dnp3_multidrop_poll(central_scada, rtu_feeder1, rtu_feeder2, rtu_feeder3)
 }

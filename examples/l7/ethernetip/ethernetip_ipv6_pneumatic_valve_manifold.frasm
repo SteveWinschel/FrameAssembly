@@ -1,19 +1,21 @@
-// PROMPT: IPv6 EtherNet/IP explicit messaging actuating a Festo/SMC pneumatic solenoid valve bank (Assembly Instance 150).
-// TOKENS: host, ip, mac, flow, ethernetip, cmd, sessionhandle, context, status, wait, ms, cipservice, cipclass, cipinstance, cipattr, hexpayload, compile
+// IPv6 EtherNet/IP explicit messaging actuating a Festo/SMC pneumatic
+// solenoid valve bank (Assembly Instance 150).
+// Wireshark: enip || cip
 
-// INSTRUCTION: Define the packaging cell controller over IPv6.
+// Packaging cell controller over IPv6.
 host cell_ctrl_v6 {
     ip 2001:db8:135:120::1
     mac 00:1a:2b:87:c0:01
 }
 
-// INSTRUCTION: Define the 16-station pneumatic valve manifold over IPv6.
+// 16-station pneumatic valve manifold over IPv6.
 host valve_bank_v6 {
     ip 2001:db8:135:120::25
     mac 00:1a:2b:87:c0:25
 }
 
-// INSTRUCTION: Register session and write solenoid bitmask 0x05A5 to Assembly Class 4 Instance 150 Attribute 3 over IPv6.
+// Register session and write solenoid bitmask 0x05A5 to Assembly Class 4
+// Instance 150 Attribute 3 over IPv6.
 flow enip_ipv6_valves(c, v) {
     c -> v ethernetip cmd "registersession" sessionhandle 0 context 1700
     c <- v ethernetip cmd "registersession" status 0 sessionhandle 7700 context 1700 wait 1ms
@@ -21,7 +23,6 @@ flow enip_ipv6_valves(c, v) {
     c <- v ethernetip cmd "sendrrdata" status 0 sessionhandle 7700 context 1701 cipservice 144 cipclass 4 cipinstance 150 cipattr 3
 }
 
-// INSTRUCTION: Compile the IPv6 pneumatic valve manifold EtherNet/IP flow.
 compile {
     enip_ipv6_valves(cell_ctrl_v6, valve_bank_v6)
 }

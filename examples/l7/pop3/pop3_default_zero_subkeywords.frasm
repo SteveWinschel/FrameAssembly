@@ -1,18 +1,14 @@
-// PROMPT: Default POP3 command emission with zero sub-keywords on TCP port 110.
-// TOKENS: host, ip, mac, flow, s, pop3, compile
+// Minimal 2-block POP3 (RFC 1939) starter emitting automatic protocol
+// defaults directly from the compile block (zero flow wrapper).
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (POP3 (RFC
+// 1939), TCP 110).
+// Wireshark: pop
 
-// INSTRUCTION: Define workstation mail client.
 host mail_client { ip 192.168.10.25 mac 00:11:22:33:44:19 }
 
-// INSTRUCTION: Define corporate POP3 server.
 host pop3_srv { ip 192.168.10.5 mac 00:11:22:33:44:05 }
 
-// INSTRUCTION: Define flow sending default POP3 frame.
-flow pop3_default(c, s) {
-    c -> s pop3
-}
-
-// INSTRUCTION: Compile default POP3 scenario.
 compile {
-    pop3_default(mail_client, pop3_srv)
+    mail_client -> pop3_srv pop3
 }

@@ -1,18 +1,16 @@
-// PROMPT: mDNS local service discovery PTR query on multicast 224.0.0.251 port 5353.
-// TOKENS: host, ip, flow, s, mdns, query, txid, qname, qtype, compile
+// mDNS local service discovery PTR query on multicast 224.0.0.251 port 5353.
+// Wireshark: mdns
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 224.0.0.251 }
 
-// INSTRUCTION: Define application traffic flow.
+// DNS wire details: record types PTR; multicast 224.0.0.251 / ff02::fb UDP
+// 5353 (TTL 255).
 flow mdns_query(c, s) {
     c -> s mdns query txid 0 qname "_http._tcp.local" qtype "ptr"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     mdns_query(client, server)
 }

@@ -1,25 +1,25 @@
-// PROMPT: MySQL SELECT query against a non-existent table returning ER_NO_SUCH_TABLE (ERRCODE 1146).
-// TOKENS: host, ip, mac, flow, s, mysql, sql, err, errcode, payload, compile
+// MySQL SELECT query against a non-existent table returning ER_NO_SUCH_TABLE
+// (ERRCODE 1146).
+// Wireshark: mysql
 
-// INSTRUCTION: Define the analytics BI tool executing an ad-hoc user query.
+// Analytics BI tool executing an ad-hoc user query.
 host bi_dashboard {
     ip 10.90.80.60
     mac 00:1a:2b:90:80:60
 }
 
-// INSTRUCTION: Define the reporting MySQL server.
 host report_mysql {
     ip 10.90.80.5
     mac 00:1a:2b:90:80:05
 }
 
-// INSTRUCTION: Query a misspelled table name and receive MySQL error 1146.
+// Query a misspelled table name and receive MySQL error 1146. MySQL error
+// codes: 1146 (ER_NO_SUCH_TABLE) on TCP 3306.
 flow mysql_missing_table(c, s) {
     c -> s mysql sql "SELECT COUNT(*) FROM monthly_revene_2026"
     c <- s mysql err errcode 1146 payload "Table 'analytics.monthly_revene_2026' doesn't exist"
 }
 
-// INSTRUCTION: Compile the MySQL ER_NO_SUCH_TABLE error flow.
 compile {
     mysql_missing_table(bi_dashboard, report_mysql)
 }

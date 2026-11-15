@@ -1,25 +1,27 @@
-// PROMPT: RFC 5798 Section 6.1 VRRPv3 Master_Down_Timer expiry and Skew_Time preemption convergence across three routers.
-// TOKENS: host, ip, mac, flow, vrrp, vrid, priority, advint, vip, version, dscp, ttl, payload, wait, ms, compile
+// RFC 5798 Section 6.1 VRRPv3 Master_Down_Timer expiry and Skew_Time
+// preemption convergence across three routers.
+// This capture sets DSCP 48, TTL 255, carries VRID 90, and uses post-packet
+// wait gaps (50ms) between frames.
+// Wireshark: vrrp
 
-// INSTRUCTION: Define Backup Router B1 (Priority 180, shorter Skew_Time) winning election first.
 host vrrp_backup_b1 {
     ip 10.112.90.3
     mac 00:00:5e:00:01:5a
 }
 
-// INSTRUCTION: Define Backup Router B2 (Priority 120, longer Skew_Time) hearing B1 and remaining Backup.
 host vrrp_backup_b2 {
     ip 10.112.90.4
     mac 00:1e:be:70:90:04
 }
 
-// INSTRUCTION: Define B1 Master transition advertisement suppressing lower-priority B2.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vrrp_skew_time_convergence(b1, b2) {
     b1 -> b2 vrrp vrid 90 priority 180 advint 100 vip 10.112.90.1 version 3 dscp 48 ttl 255 payload "B1_SKEW_TIME_EXPIRED_FIRST_MASTER" wait 50ms
     b1 -> b2 vrrp vrid 90 priority 180 advint 100 vip 10.112.90.1 version 3 dscp 48 ttl 255 payload "B2_CANCELS_MASTER_DOWN_TIMER"
 }
 
-// INSTRUCTION: Compile the RFC 5798 VRRPv3 Skew_Time election convergence flow.
+// Run vrrp_skew_time_convergence(vrrp_backup_b1, vrrp_backup_b2) to generate
+// the capture.
 compile {
     vrrp_skew_time_convergence(vrrp_backup_b1, vrrp_backup_b2)
 }

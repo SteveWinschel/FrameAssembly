@@ -73,7 +73,8 @@ pub fn build_stun_payload(
 
     if let Some(software) = spec.software {
         // SOFTWARE Attribute (Type 0x8022) padded to 4-byte boundary
-        let sw_bytes = software.as_bytes();
+        let raw = software.as_bytes();
+        let sw_bytes = &raw[..raw.len().min(763)];
         attrs.extend_from_slice(&0x8022u16.to_be_bytes());
         attrs.extend_from_slice(&(sw_bytes.len() as u16).to_be_bytes());
         attrs.extend_from_slice(sw_bytes);
@@ -82,10 +83,20 @@ pub fn build_stun_payload(
     }
 
     if !payload_bytes.is_empty() {
-        attrs.extend_from_slice(payload_bytes);
+        if is_valid_stun_attrs(payload_bytes) {
+            attrs.extend_from_slice(payload_bytes);
+        } else {
+            let max_p = usize::from(u16::MAX).saturating_sub(attrs.len().saturating_add(8));
+            let p_slice = &payload_bytes[..payload_bytes.len().min(max_p)];
+            attrs.extend_from_slice(&0xFFFFu16.to_be_bytes()); // Comprehension-optional carrier attribute
+            attrs.extend_from_slice(&(p_slice.len() as u16).to_be_bytes());
+            attrs.extend_from_slice(p_slice);
+            let pad = (4 - (p_slice.len() % 4)) % 4;
+            attrs.resize(attrs.len() + pad, 0);
+        }
     }
 
-    let attr_len = attrs.len() as u16;
+    let attr_len = attrs.len().min(usize::from(u16::MAX)) as u16;
     let mut pkt = Vec::with_capacity(20 + attrs.len());
     pkt.extend_from_slice(&msg_type.to_be_bytes());
     pkt.extend_from_slice(&attr_len.to_be_bytes());
@@ -94,4 +105,34 @@ pub fn build_stun_payload(
     pkt.extend_from_slice(&txid_tail); // Remaining 8 bytes of 96-bit TxID
     pkt.extend_from_slice(&attrs);
     pkt
+}
+
+/// Checks whether `buf` is already a 4-byte-aligned sequence of non-extracted RFC 8489 STUN attributes.
+fn is_valid_stun_attrs(buf: &[u8]) -> bool {
+    if buf.is_empty() || !buf.len().is_multiple_of(4) {
+        return false;
+    }
+    let mut pos = 0usize;
+    while pos < buf.len() {
+        let Some(hdr) = buf.get(pos..pos + 4) else {
+            return false;
+        };
+        let atype = u16::from_be_bytes([hdr[0], hdr[1]]);
+        let alen = usize::from(u16::from_be_bytes([hdr[2], hdr[3]]));
+        if matches!(atype, 0x0000 | 0x0020 | 0x8022) {
+            return false;
+        }
+        let padded = (alen + 3) & !3;
+        let Some(next) = pos.checked_add(4).and_then(|p| p.checked_add(padded)) else {
+            return false;
+        };
+        if next > buf.len() {
+            return false;
+        }
+        if !buf[pos + 4 + alen..next].iter().all(|&b| b == 0) {
+            return false;
+        }
+        pos = next;
+    }
+    pos == buf.len()
 }

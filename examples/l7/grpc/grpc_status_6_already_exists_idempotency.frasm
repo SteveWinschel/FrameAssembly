@@ -1,19 +1,22 @@
-// PROMPT: gRPC ledger service enforcing idempotency keys by returning GRPC_STATUS 6 (ALREADY_EXISTS) on duplicate create.
-// TOKENS: host, ip, mac, flow, grpc, service, method, payload, grpcstatus, compile
+// gRPC ledger service enforcing idempotency keys by returning grpcstatus 6
+// (ALREADY_EXISTS) on duplicate create.
+// Wireshark: grpc || http2
 
-// INSTRUCTION: Define payment retry worker submitting duplicate transaction creation.
+// Payment retry worker submitting duplicate transaction creation.
 host retry_worker {
     ip 10.100.40.12
     mac 02:42:0a:64:28:0c
 }
 
-// INSTRUCTION: Define immutable financial ledger gRPC service.
+// Immutable financial ledger gRPC service.
 host ledger_service {
     ip 10.100.40.1
     mac 02:42:0a:64:28:01
 }
 
-// INSTRUCTION: First RecordEntry succeeds with GRPC_STATUS 0; duplicate retry returns GRPC_STATUS 6.
+// First RecordEntry succeeds with grpcstatus 0; duplicate retry returns
+// grpcstatus 6. gRPC status codes observed: 0 (OK), 6 (ALREADY_EXISTS) on TCP
+// port 50051.
 flow grpc_err_already_exists(w, l) {
     w -> l grpc service "ledger.v1.JournalService" method "RecordEntry" payload "tx_id=9901"
     w <- l grpc service "ledger.v1.JournalService" method "RecordEntry" grpcstatus 0
@@ -21,7 +24,6 @@ flow grpc_err_already_exists(w, l) {
     w <- l grpc service "ledger.v1.JournalService" method "RecordEntry" grpcstatus 6
 }
 
-// INSTRUCTION: Compile the gRPC status 6 ALREADY_EXISTS idempotency check scenario.
 compile {
     grpc_err_already_exists(retry_worker, ledger_service)
 }

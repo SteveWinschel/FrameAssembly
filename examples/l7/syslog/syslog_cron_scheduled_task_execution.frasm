@@ -1,20 +1,18 @@
-// PROMPT: Cron daemon informational log reporting hourly backup task completion.
-// TOKENS: host, ip, flow, s, syslog, facility, severity, hostname, app, procid, msg, compile
+// Cron daemon informational log reporting hourly backup task completion.
+// RFC 5424 over UDP 514; facility 9 (cron) + severity 6 (info) yields PRI
+// <78>.
+// Wireshark: syslog
 
-// INSTRUCTION: Define backup utility node.
 host backup_util { ip 10.60.12.8 }
 
-// INSTRUCTION: Define operational syslog sink.
 host ops_sink { ip 10.60.0.1 }
 
-// INSTRUCTION: Define cron task completion flow.
 flow syslog_cron_flow(c, s) {
     c -> s syslog facility 9 severity 6
         hostname "backup-srv" app "crond" procid "10552"
         msg "(root) CMD (/usr/local/bin/backup_hourly.sh >/dev/null 2>&1)"
 }
 
-// INSTRUCTION: Compile block executing cron log event.
 compile {
     syslog_cron_flow(backup_util, ops_sink)
 }

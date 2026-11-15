@@ -1,13 +1,13 @@
-// PROMPT: Inter-PoP BGP session encapsulated in 802.1ad QinQ double VLAN tags.
-// TOKENS: host, ip, flow, bgp, open, asn, holdtime, bgpid, qinq, innervlan, update, prefix, nexthop, keepalive, compile
+// Inter-PoP BGP session encapsulated in 802.1ad QinQ double VLAN tags.
+// This capture wraps frames in QinQ S-VLAN 3100 / C-VLAN 179 and carries ASN
+// 65101/65102.
+// Wireshark: bgp
 
-// INSTRUCTION: Define metro PoP east router.
 host pop_east_bgp { ip 172.22.1.1 }
 
-// INSTRUCTION: Define metro PoP west router.
 host pop_west_bgp { ip 172.22.1.2 }
 
-// INSTRUCTION: Define QinQ double-tagged BGP peering session.
+// Packet sequence (4 frames) with default 10ms post-packet spacing.
 flow bgp_qinq_inter_pop(east, west) {
     east -> west bgp open asn 65101 holdtime 60 bgpid 172.22.1.1 qinq 3100 innervlan 179
     east <- west bgp open asn 65102 holdtime 60 bgpid 172.22.1.2 qinq 3100 innervlan 179
@@ -15,7 +15,7 @@ flow bgp_qinq_inter_pop(east, west) {
     east <- west bgp keepalive qinq 3100 innervlan 179
 }
 
-// INSTRUCTION: Compile the QinQ inter-PoP BGP flow.
+// Run bgp_qinq_inter_pop(pop_east_bgp, pop_west_bgp) to generate the capture.
 compile {
     bgp_qinq_inter_pop(pop_east_bgp, pop_west_bgp)
 }

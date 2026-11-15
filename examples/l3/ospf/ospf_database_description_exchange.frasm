@@ -1,19 +1,20 @@
-// PROMPT: OSPF Database Description packet exchange synchronizing link-state database headers between neighbors.
-// TOKENS: host, ip, flow, m, s, ospf, dbd, routerid, areaid, compile
+// OSPF Database Description packet exchange synchronizing link-state database
+// headers between neighbors.
+// This capture exchanges OSPF IP protocol 89 link-state packets toward
+// AllSPFRouters.
+// Wireshark: ospf
 
-// INSTRUCTION: Define OSPF master router in area 1.
 host ospf_master { ip 10.1.1.1 }
 
-// INSTRUCTION: Define OSPF slave router in area 1.
 host ospf_slave { ip 10.1.1.2 }
 
-// INSTRUCTION: Define OSPF DBD exchange flow synchronizing link state database summaries.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ospf_dbd_flow(m, s) {
     m -> s ospf dbd routerid 10.1.1.1 areaid 1
     m <- s ospf dbd routerid 10.1.1.2 areaid 1
 }
 
-// INSTRUCTION: Compile block executing OSPF DBD synchronization.
+// Run ospf_dbd_flow(ospf_master, ospf_slave) to generate the capture.
 compile {
     ospf_dbd_flow(ospf_master, ospf_slave)
 }

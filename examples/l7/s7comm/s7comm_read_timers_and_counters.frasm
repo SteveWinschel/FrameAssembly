@@ -1,13 +1,13 @@
-// PROMPT: S7comm Timer (AREA 0x1D) and Counter (AREA 0x1C) register inspection on S7-300 PLC.
-// TOKENS: host, ip, flow, s7comm, rosctr, func, pduref, area, dbnum, offset, count, wait, ms, hexpayload, compile
+// S7comm Timer (AREA 0x1D) and Counter (AREA 0x1C) register inspection on
+// S7-300 PLC.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting 0x1C, 0x1D.
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define maintenance diagnostic terminal.
 host maint_term { ip 10.102.50.99 }
 
-// INSTRUCTION: Define bottling line S7-300 PLC.
 host bottle_plc { ip 10.102.50.1 }
 
-// INSTRUCTION: Define READ_VAR queries targeting S7 Timers (0x1D) and Counters (0x1C).
 flow s7comm_timers_counters(c, plc) {
     c -> plc s7comm rosctr "job" func "readvar" pduref 601 area 0x1D dbnum 0 offset 0 count 1 wait 4ms
     c <- plc s7comm rosctr "ackdata" func "readvar" pduref 601 hexpayload "ff0900020150" wait 4ms
@@ -15,7 +15,6 @@ flow s7comm_timers_counters(c, plc) {
     c <- plc s7comm rosctr "ackdata" func "readvar" pduref 602 hexpayload "ff0900020042"
 }
 
-// INSTRUCTION: Compile S7comm timer and counter read flow.
 compile {
     s7comm_timers_counters(maint_term, bottle_plc)
 }

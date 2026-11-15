@@ -1,19 +1,20 @@
-// PROMPT: IPsec Authentication Header specifying Next Header protocol number for TCP transport.
-// TOKENS: host, ip, flow, app, db, ah, spi, seq, nextheader, payload, compile
+// IPsec Authentication Header specifying Next Header protocol number for TCP
+// transport.
+// This capture carries SPI 4100/4101.
+// Wireshark: ah
 
-// INSTRUCTION: Define application server initiating transport-mode AH protection.
 host app_node_primary { ip 10.40.1.15 }
 
-// INSTRUCTION: Define database backend verifying transport-mode AH headers.
 host db_node_replica { ip 10.40.1.25 }
 
-// INSTRUCTION: Define AH transport flow with NEXT_HEADER set to 6 (TCP).
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ah_next_header_tcp(app, db) {
     app -> db ah spi 4100 seq 1 nextheader 6 payload "SYNC_COMMIT_BATCH_01"
     app <- db ah spi 4101 seq 1 nextheader 6 payload "ACK_COMMIT_BATCH_01"
 }
 
-// INSTRUCTION: Compile the AH Next Header transport verification flow.
+// Run ah_next_header_tcp(app_node_primary, db_node_replica) to generate the
+// capture.
 compile {
     ah_next_header_tcp(app_node_primary, db_node_replica)
 }

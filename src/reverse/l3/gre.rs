@@ -31,7 +31,8 @@ pub(crate) fn dissect_gre(b: &[u8]) -> ProtocolDissection {
         let _ = write!(t, " greseq {}", be_u32(b, pos));
         pos += 4;
     }
-    let rem = if &b[pos..] == b"FrameAssembly GRE Inner Packet" {
+    let default_inner = crate::builders::l3::gre::default_gre_inner_packet(proto);
+    let rem = if b[pos..] == default_inner[..] {
         &[][..]
     } else {
         &b[pos..]

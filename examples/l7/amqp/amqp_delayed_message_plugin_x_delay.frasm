@@ -1,25 +1,27 @@
-// PROMPT: RabbitMQ delayed message exchange (x-delayed-message) scheduling an order payment reminder.
-// TOKENS: host, ip, mac, flow, amqp, basicpublish, channel, exchange, routingkey, payload, basicdeliver, wait, ms, compile
+// RabbitMQ delayed message exchange (x-delayed-message) scheduling an order
+// payment reminder.
+// Wireshark: amqp
 
-// INSTRUCTION: Define the checkout scheduler service.
+// Checkout scheduler service.
 host checkout_sched {
     ip 10.115.30.40
     mac 00:1a:2b:73:30:40
 }
 
-// INSTRUCTION: Define the RabbitMQ broker running rabbitmq_delayed_message_exchange.
+// RabbitMQ broker running rabbitmq_delayed_message_exchange.
 host delayed_broker {
     ip 10.115.30.5
     mac 00:1a:2b:73:30:05
 }
 
-// INSTRUCTION: Publish a delayed reminder message to orders.delayed exchange and receive later delivery.
+// Publish a delayed reminder message to orders.delayed exchange and receive
+// later delivery. Uses post-packet wait timing (50ms) to space follow-up
+// packets.
 flow amqp_delayed_msg(c, b) {
-    c -> b amqp basicpublish channel 3 exchange "orders.delayed" routingkey "reminder.15m" payload "{'order_id':90412,'delay_ms':900000}"
-    c <- b amqp basicdeliver channel 3 exchange "orders.delayed" routingkey "reminder.15m" wait 10ms payload "{'order_id':90412,'delay_ms':900000}"
+    c -> b amqp basicpublish channel 3 exchange "orders.delayed" routingkey "reminder.15m" payload "{'order_id':90412,'delay_ms':900000}" wait 50ms
+    c <- b amqp basicdeliver channel 3 exchange "orders.delayed" routingkey "reminder.15m" payload "{'order_id':90412,'delay_ms':900000}"
 }
 
-// INSTRUCTION: Compile the AMQP delayed exchange message flow.
 compile {
     amqp_delayed_msg(checkout_sched, delayed_broker)
 }

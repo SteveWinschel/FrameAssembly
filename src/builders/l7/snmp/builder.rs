@@ -28,19 +28,44 @@ use rasn_snmp::v2::{BulkPdu, Pdu, Pdus as PdusV2, VarBind, VarBindValue};
 pub fn build_snmp1_payload(stmt: &FrameStatement, src_ip: IpAddr) -> Result<Vec<u8>, String> {
     use rasn_snmp::v1::{Message, Pdus, Trap};
 
-    if let Some(pdu_type) = &stmt.pdu_type
-        && matches!(pdu_type, SnmpPduType::GetBulk | SnmpPduType::Inform)
+    let spec = match &stmt.protocol_spec {
+        Some(ProtocolSpec::Snmp1(s)) => Some(s),
+        _ => None,
+    };
+    let eff_pdu_type = stmt
+        .pdu_type
+        .as_ref()
+        .or_else(|| spec.and_then(|s| s.pdu_type.as_ref()));
+
+    if let Some(pdu_type) = eff_pdu_type
+        && matches!(
+            pdu_type,
+            SnmpPduType::GetBulk | SnmpPduType::Inform | SnmpPduType::Report
+        )
     {
-        return Err("SNMPv1 does not support GETBULK or INFORM".to_string());
+        return Err("SNMPv1 does not support GETBULK, INFORM, or REPORT".to_string());
     }
 
-    let community_str = stmt.community.unwrap_or("public");
+    let community_str = stmt
+        .community
+        .or_else(|| spec.and_then(|s| s.community))
+        .unwrap_or("public");
     let community = OctetString::from(community_str.as_bytes().to_vec());
 
-    let pdu_type = stmt.pdu_type.as_ref().unwrap_or(&SnmpPduType::Trap);
+    let pdu_type = eff_pdu_type.unwrap_or(&SnmpPduType::Trap);
 
-    let v1_varbinds = if !stmt.varbinds.is_empty() {
-        convert_v1_varbinds(&stmt.varbinds)?
+    let vbs_slice: &[VarBindAst] = if !stmt.varbinds.is_empty() {
+        &stmt.varbinds
+    } else if let Some(s) = spec
+        && !s.varbinds.is_empty()
+    {
+        &s.varbinds
+    } else {
+        &[]
+    };
+
+    let v1_varbinds = if !vbs_slice.is_empty() {
+        convert_v1_varbinds(vbs_slice)?
     } else if let Some(oid_str) = stmt.oid {
         vec![rasn_snmp::v1::VarBind {
             name: parse_oid(oid_str)?,
@@ -52,7 +77,8 @@ pub fn build_snmp1_payload(stmt: &FrameStatement, src_ip: IpAddr) -> Result<Vec<
 
     let pdu_data = match pdu_type {
         SnmpPduType::Trap => {
-            let agent_ip = if let Some(IpAddr::V4(addr)) = stmt.agent_ip {
+            let eff_agent_ip = stmt.agent_ip.or_else(|| spec.and_then(|s| s.agent_ip));
+            let agent_ip = if let Some(IpAddr::V4(addr)) = eff_agent_ip {
                 addr.octets()
             } else {
                 match src_ip {
@@ -61,25 +87,32 @@ pub fn build_snmp1_payload(stmt: &FrameStatement, src_ip: IpAddr) -> Result<Vec<
                 }
             };
 
-            // Fall back stmt.enterprise to stmt.oid if enterprise is not explicitly provided.
-            let enterprise_str = stmt.enterprise.or(stmt.oid).unwrap_or("1.3.6.1.4.1");
+            let eff_enterprise = stmt.enterprise.or_else(|| spec.and_then(|s| s.enterprise));
+            let eff_gen_trap = stmt.gen_trap.or_else(|| spec.and_then(|s| s.gen_trap));
+            let eff_spec_trap = stmt.spec_trap.or_else(|| spec.and_then(|s| s.spec_trap));
+            let eff_sys_up_time = stmt
+                .sys_up_time
+                .or_else(|| spec.and_then(|s| s.sys_up_time));
+
+            // Fall back enterprise to stmt.oid if enterprise is not explicitly provided.
+            let enterprise_str = eff_enterprise.or(stmt.oid).unwrap_or("1.3.6.1.4.1");
             let trap_oid = parse_oid(enterprise_str)?;
 
             // Automatically map standard RFC 1157 generic trap OIDs (1.3.6.1.6.3.1.1.5.1 through .6)
             // to generic_trap 0..=5 with specific_trap = 0 when GENTRAP is not explicitly set.
-            let (generic_trap, specific_trap) = match stmt.gen_trap {
-                Some(g) if (0..=5).contains(&g) => (g, stmt.spec_trap.unwrap_or(0)),
-                Some(g) => (g, stmt.spec_trap.unwrap_or(1)),
+            let (generic_trap, specific_trap) = match eff_gen_trap {
+                Some(g) if (0..=5).contains(&g) => (g, eff_spec_trap.unwrap_or(0)),
+                Some(g) => (g, eff_spec_trap.unwrap_or(1)),
                 None => {
-                    let oid_to_check = stmt.oid.or(stmt.enterprise);
+                    let oid_to_check = stmt.oid.or(eff_enterprise);
                     match oid_to_check.map(|s| s.trim_start_matches('.')) {
-                        Some("1.3.6.1.6.3.1.1.5.1") => (0, stmt.spec_trap.unwrap_or(0)), // coldStart
-                        Some("1.3.6.1.6.3.1.1.5.2") => (1, stmt.spec_trap.unwrap_or(0)), // warmStart
-                        Some("1.3.6.1.6.3.1.1.5.3") => (2, stmt.spec_trap.unwrap_or(0)), // linkDown
-                        Some("1.3.6.1.6.3.1.1.5.4") => (3, stmt.spec_trap.unwrap_or(0)), // linkUp
-                        Some("1.3.6.1.6.3.1.1.5.5") => (4, stmt.spec_trap.unwrap_or(0)), // authenticationFailure
-                        Some("1.3.6.1.6.3.1.1.5.6") => (5, stmt.spec_trap.unwrap_or(0)), // egpNeighborLoss
-                        _ => (6, stmt.spec_trap.unwrap_or(1)), // enterpriseSpecific
+                        Some("1.3.6.1.6.3.1.1.5.1") => (0, eff_spec_trap.unwrap_or(0)), // coldStart
+                        Some("1.3.6.1.6.3.1.1.5.2") => (1, eff_spec_trap.unwrap_or(0)), // warmStart
+                        Some("1.3.6.1.6.3.1.1.5.3") => (2, eff_spec_trap.unwrap_or(0)), // linkDown
+                        Some("1.3.6.1.6.3.1.1.5.4") => (3, eff_spec_trap.unwrap_or(0)), // linkUp
+                        Some("1.3.6.1.6.3.1.1.5.5") => (4, eff_spec_trap.unwrap_or(0)), // authenticationFailure
+                        Some("1.3.6.1.6.3.1.1.5.6") => (5, eff_spec_trap.unwrap_or(0)), // egpNeighborLoss
+                        _ => (6, eff_spec_trap.unwrap_or(1)), // enterpriseSpecific
                     }
                 }
             };
@@ -89,7 +122,7 @@ pub fn build_snmp1_payload(stmt: &FrameStatement, src_ip: IpAddr) -> Result<Vec<
                 agent_addr: NetworkAddress::Internet(IpAddress(agent_ip.into())),
                 generic_trap: Integer::from(generic_trap),
                 specific_trap: Integer::from(specific_trap),
-                time_stamp: TimeTicks(stmt.sys_up_time.unwrap_or(0)),
+                time_stamp: TimeTicks(eff_sys_up_time.unwrap_or(0)),
                 variable_bindings: v1_varbinds,
             };
             Pdus::Trap(trap)
@@ -130,8 +163,8 @@ pub fn build_snmp1_payload(stmt: &FrameStatement, src_ip: IpAddr) -> Result<Vec<
             };
             Pdus::SetRequest(rasn_snmp::v1::SetRequest(pdu))
         }
-        SnmpPduType::GetBulk | SnmpPduType::Inform => {
-            return Err("SNMPv1 does not support GETBULK or INFORM".to_string());
+        SnmpPduType::GetBulk | SnmpPduType::Inform | SnmpPduType::Report => {
+            return Err("SNMPv1 does not support GETBULK, INFORM, or REPORT".to_string());
         }
     };
 
@@ -148,7 +181,14 @@ pub fn build_snmp1_payload(stmt: &FrameStatement, src_ip: IpAddr) -> Result<Vec<
 pub fn build_snmp2_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
     use rasn_snmp::v2c::Message;
 
-    let community_str = stmt.community.unwrap_or("public");
+    let spec = match &stmt.protocol_spec {
+        Some(ProtocolSpec::Snmp2(s)) => Some(s),
+        _ => None,
+    };
+    let community_str = stmt
+        .community
+        .or_else(|| spec.and_then(|s| s.community))
+        .unwrap_or("public");
     let community = OctetString::from(community_str.as_bytes().to_vec());
 
     let pdu_data = build_v2_pdus(stmt)?;
@@ -168,43 +208,81 @@ pub fn build_snmp2_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
 pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
     use rasn_snmp::v3::{HeaderData, Message, ScopedPdu, ScopedPduData, USMSecurityParameters};
 
-    let user_str = stmt.user.unwrap_or("admin");
+    let spec = match &stmt.protocol_spec {
+        Some(ProtocolSpec::Snmp3(s)) => Some(s),
+        _ => None,
+    };
+    let user_str = stmt
+        .user
+        .or_else(|| spec.and_then(|s| s.user))
+        .unwrap_or("admin");
     let user = OctetString::from(user_str.as_bytes().to_vec());
-    let engine_id_str = stmt.engine_id.unwrap_or("8000000001");
-    let engine_id_bytes =
-        hex_to_bytes(engine_id_str).unwrap_or_else(|_| vec![0x80, 0x00, 0x00, 0x00, 0x01]);
+    let engine_id_str = stmt
+        .engine_id
+        .or_else(|| spec.and_then(|s| s.engine_id))
+        .unwrap_or("8000000001");
+    let engine_id_bytes = hex_to_bytes(engine_id_str)?;
     let engine_id = OctetString::from(engine_id_bytes.clone());
 
     let pdu_data = build_v2_pdus(stmt)?;
 
+    let context_name_str = stmt
+        .context_name
+        .or_else(|| spec.and_then(|s| s.context_name))
+        .unwrap_or("");
     let scoped_pdu = ScopedPdu {
         engine_id: engine_id.clone(),
-        name: OctetString::from(stmt.context_name.unwrap_or("").as_bytes().to_vec()),
+        name: OctetString::from(context_name_str.as_bytes().to_vec()),
         data: pdu_data,
     };
 
-    if let Some((_, pass)) = &stmt.auth
+    let eff_auth = stmt
+        .auth
+        .as_ref()
+        .or_else(|| spec.and_then(|s| s.auth.as_ref()));
+    let eff_priv = stmt
+        .priv_param
+        .as_ref()
+        .or_else(|| spec.and_then(|s| s.priv_param.as_ref()));
+    let eff_boots = stmt
+        .engine_boots
+        .or_else(|| spec.and_then(|s| s.engine_boots))
+        .unwrap_or(0);
+    let eff_time = stmt
+        .engine_time
+        .or_else(|| spec.and_then(|s| s.engine_time))
+        .unwrap_or(0);
+    let eff_req_id = stmt
+        .req_id
+        .or_else(|| spec.and_then(|s| s.req_id))
+        .unwrap_or(1);
+
+    if let Some((_, pass)) = eff_auth
         && pass.is_empty()
     {
         return Err("SNMPv3 authentication password cannot be empty".to_string());
     }
-    if let Some((_, pass)) = &stmt.priv_param
+    if let Some((_, pass)) = eff_priv
         && pass.is_empty()
     {
         return Err("SNMPv3 privacy password cannot be empty".to_string());
     }
-    if stmt.auth.is_none() && stmt.priv_param.is_some() {
+    if eff_auth.is_none() && eff_priv.is_some() {
         return Err("SNMPv3 does not support privacy without authentication (noAuthPriv)".to_string());
     }
 
     let mut flags = 0u8;
-    if stmt.auth.is_some() {
+    if eff_auth.is_some() {
         flags |= 1; // authFlag
     }
-    if stmt.priv_param.is_some() {
+    if eff_priv.is_some() {
         flags |= 2; // privFlag
     }
-    let pdu_type = stmt.pdu_type.as_ref().unwrap_or(&SnmpPduType::Trap);
+    let pdu_type = stmt
+        .pdu_type
+        .as_ref()
+        .or_else(|| spec.and_then(|s| s.pdu_type.as_ref()))
+        .unwrap_or(&SnmpPduType::Trap);
     let is_confirmed = matches!(
         pdu_type,
         SnmpPduType::Get
@@ -217,7 +295,7 @@ pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
         flags |= 4; // reportableFlag (RFC 3412 §6.2)
     }
 
-    let auth_len = match stmt.auth.as_ref().map(|(t, _)| t) {
+    let auth_len = match eff_auth.map(|(t, _)| t) {
         Some(SnmpAuthType::Md5) | Some(SnmpAuthType::Sha) => 12,
         Some(SnmpAuthType::Sha256) => 24,
         Some(SnmpAuthType::Sha384) => 32,
@@ -230,11 +308,11 @@ pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
 
     let mut usm_params = USMSecurityParameters {
         authoritative_engine_id: engine_id.clone(),
-        authoritative_engine_boots: Integer::from(stmt.engine_boots.unwrap_or(0)),
-        authoritative_engine_time: Integer::from(stmt.engine_time.unwrap_or(0)),
+        authoritative_engine_boots: Integer::from(eff_boots),
+        authoritative_engine_time: Integer::from(eff_time),
         user_name: user,
         authentication_parameters: OctetString::from(vec![0; auth_len]),
-        privacy_parameters: OctetString::from(if stmt.priv_param.is_some() {
+        privacy_parameters: OctetString::from(if eff_priv.is_some() {
             deterministic_salt.to_vec()
         } else {
             vec![]
@@ -242,7 +320,7 @@ pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
     };
 
     let mut auth_key = None;
-    if let Some((auth_type, pass)) = &stmt.auth {
+    if let Some((auth_type, pass)) = eff_auth {
         auth_key = Some(match auth_type {
             SnmpAuthType::Md5 => password_to_key_md5(pass.as_bytes(), &engine_id_bytes),
             SnmpAuthType::Sha => password_to_key_sha1(pass.as_bytes(), &engine_id_bytes),
@@ -253,12 +331,8 @@ pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
     }
 
     let mut priv_key = None;
-    if let Some((_priv_type, pass)) = &stmt.priv_param {
-        let hasher = stmt
-            .auth
-            .as_ref()
-            .map(|(t, _)| t)
-            .unwrap_or(&SnmpAuthType::Md5);
+    if let Some((_priv_type, pass)) = eff_priv {
+        let hasher = eff_auth.map(|(t, _)| t).unwrap_or(&SnmpAuthType::Md5);
         priv_key = Some(match hasher {
             SnmpAuthType::Md5 => password_to_key_md5(pass.as_bytes(), &engine_id_bytes),
             SnmpAuthType::Sha => password_to_key_sha1(pass.as_bytes(), &engine_id_bytes),
@@ -268,14 +342,14 @@ pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
         });
     }
 
-    if stmt.auth.is_none() {
+    if eff_auth.is_none() {
         usm_params.authentication_parameters = OctetString::from(vec![]);
     }
 
     let usm_bytes =
         rasn::ber::encode(&usm_params).map_err(|e| alloc::format!("USM encode error: {:?}", e))?;
 
-    let scoped_data = if let Some((priv_type, _)) = &stmt.priv_param {
+    let scoped_data = if let Some((priv_type, _)) = eff_priv {
         let plaintext_scoped = rasn::ber::encode(&scoped_pdu)
             .map_err(|e| alloc::format!("ScopedPdu encode error: {:?}", e))?;
         let pk = priv_key
@@ -294,7 +368,7 @@ pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
                 for i in 0..8 {
                     iv[i] = pre_iv[i] ^ deterministic_salt[i];
                 }
-                encrypt_des(des_key, &iv, &plaintext_scoped)
+                encrypt_des(des_key, &iv, &plaintext_scoped)?
             }
             SnmpPrivType::Aes => {
                 if pk.len() < 16 {
@@ -303,13 +377,11 @@ pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
                     );
                 }
                 let aes_key = &pk[0..16];
-                let boots = stmt.engine_boots.unwrap_or(0);
-                let time = stmt.engine_time.unwrap_or(0);
                 let mut iv = [0u8; 16];
-                iv[0..4].copy_from_slice(&boots.to_be_bytes());
-                iv[4..8].copy_from_slice(&time.to_be_bytes());
+                iv[0..4].copy_from_slice(&eff_boots.to_be_bytes());
+                iv[4..8].copy_from_slice(&eff_time.to_be_bytes());
                 iv[8..16].copy_from_slice(&deterministic_salt);
-                encrypt_aes128(aes_key, &iv, &plaintext_scoped)
+                encrypt_aes128(aes_key, &iv, &plaintext_scoped)?
             }
         };
         ScopedPduData::EncryptedPdu(OctetString::from(ciphertext))
@@ -320,7 +392,7 @@ pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
     let mut message = Message {
         version: Integer::from(3),
         global_data: HeaderData {
-            message_id: Integer::from(stmt.req_id.unwrap_or(1)),
+            message_id: Integer::from(eff_req_id),
             max_size: Integer::from(65507),
             flags: OctetString::from(vec![flags]),
             security_model: Integer::from(3),
@@ -329,18 +401,18 @@ pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
         scoped_data,
     };
 
-    if let Some((auth_type, _)) = &stmt.auth {
+    if let Some((auth_type, _)) = eff_auth {
         let whole_msg =
             rasn::ber::encode(&message).map_err(|e| alloc::format!("Msg encode error: {:?}", e))?;
         let ak = auth_key
             .as_ref()
             .ok_or_else(|| "Auth key missing".to_string())?;
         let mac = match auth_type {
-            SnmpAuthType::Md5 => sign_md5(ak, &whole_msg),
-            SnmpAuthType::Sha => sign_sha1(ak, &whole_msg),
-            SnmpAuthType::Sha256 => sign_sha256(ak, &whole_msg),
-            SnmpAuthType::Sha384 => sign_sha384(ak, &whole_msg),
-            SnmpAuthType::Sha512 => sign_sha512(ak, &whole_msg),
+            SnmpAuthType::Md5 => sign_md5(ak, &whole_msg)?,
+            SnmpAuthType::Sha => sign_sha1(ak, &whole_msg)?,
+            SnmpAuthType::Sha256 => sign_sha256(ak, &whole_msg)?,
+            SnmpAuthType::Sha384 => sign_sha384(ak, &whole_msg)?,
+            SnmpAuthType::Sha512 => sign_sha512(ak, &whole_msg)?,
         };
         usm_params.authentication_parameters = OctetString::from(mac);
         let usm_bytes = rasn::ber::encode(&usm_params)
@@ -351,14 +423,27 @@ pub fn build_snmp3_payload(stmt: &FrameStatement) -> Result<Vec<u8>, String> {
     rasn::ber::encode(&message).map_err(|e| alloc::format!("SNMP3 encode error: {:?}", e))
 }
 
-/// Decodes an even-length hexadecimal string into bytes.
+/// Decodes a non-empty, even-length ASCII hexadecimal string (with optional `0x` / `0X` prefix) into bytes.
 fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
-    if !hex.len().is_multiple_of(2) {
-        return Err("Hex string must have an even length".to_string());
+    let hex = hex
+        .strip_prefix("0x")
+        .or_else(|| hex.strip_prefix("0X"))
+        .unwrap_or(hex);
+    if hex.is_empty() {
+        return Err("SNMPv3 engineid cannot be empty".to_string());
     }
-    let mut bytes = Vec::new();
-    for i in (0..hex.len()).step_by(2) {
-        bytes.push(u8::from_str_radix(&hex[i..i + 2], 16).map_err(|_| "Invalid hex")?);
+    if !hex.is_ascii() || !hex.len().is_multiple_of(2) {
+        return Err(alloc::format!(
+            "Invalid SNMPv3 engineid '{hex}': expected an even number of hexadecimal digits"
+        ));
+    }
+    let mut bytes = Vec::with_capacity(hex.len() / 2);
+    for pair in hex.as_bytes().as_chunks::<2>().0 {
+        let pair_str = core::str::from_utf8(pair).map_err(|_| "Invalid hex")?;
+        let b = u8::from_str_radix(pair_str, 16).map_err(|_| {
+            alloc::format!("Invalid SNMPv3 engineid '{hex}': contains non-hexadecimal characters")
+        })?;
+        bytes.push(b);
     }
     Ok(bytes)
 }
@@ -499,13 +584,38 @@ fn convert_v1_varbinds(vbs: &[VarBindAst]) -> Result<Vec<rasn_snmp::v1::VarBind>
 /// as the first two `VarBind` entries, followed by user `VarBind` entries.
 /// For request PDUs, only requested `VarBind` entries are encoded.
 fn build_v2_pdus(stmt: &FrameStatement) -> Result<PdusV2, String> {
-    let pdu_type = stmt.pdu_type.as_ref().unwrap_or(&SnmpPduType::Trap);
+    let (s2, s3) = match &stmt.protocol_spec {
+        Some(ProtocolSpec::Snmp2(s)) => (Some(s), None),
+        Some(ProtocolSpec::Snmp3(s)) => (None, Some(s)),
+        _ => (None, None),
+    };
+    let pdu_type = stmt
+        .pdu_type
+        .as_ref()
+        .or_else(|| s2.and_then(|s| s.pdu_type.as_ref()))
+        .or_else(|| s3.and_then(|s| s.pdu_type.as_ref()))
+        .unwrap_or(&SnmpPduType::Trap);
     let is_notification = matches!(pdu_type, SnmpPduType::Trap | SnmpPduType::Inform);
 
+    let vbs_slice: &[VarBindAst] = if !stmt.varbinds.is_empty() {
+        &stmt.varbinds
+    } else if let Some(s) = s2
+        && !s.varbinds.is_empty()
+    {
+        &s.varbinds
+    } else if let Some(s) = s3
+        && !s.varbinds.is_empty()
+    {
+        &s.varbinds
+    } else {
+        &[]
+    };
+
     let varbinds = if is_notification {
-        let sys_up_time_oid = ObjectIdentifier::new(vec![1, 3, 6, 1, 2, 1, 1, 3, 0]).unwrap();
-        let snmp_trap_oid_name =
-            ObjectIdentifier::new(vec![1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0]).unwrap();
+        let sys_up_time_oid = ObjectIdentifier::new(vec![1, 3, 6, 1, 2, 1, 1, 3, 0])
+            .ok_or_else(|| "Invalid sysUpTime OID".to_string())?;
+        let snmp_trap_oid_name = ObjectIdentifier::new(vec![1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0])
+            .ok_or_else(|| "Invalid snmpTrapOID".to_string())?;
         let requested_trap_oid = parse_oid(stmt.oid.unwrap_or("1.3.6.1.6.3.1.1.5.3"))?;
 
         let mut vbs = vec![
@@ -522,11 +632,11 @@ fn build_v2_pdus(stmt: &FrameStatement) -> Result<PdusV2, String> {
                 ))),
             },
         ];
-        let user_vbs = convert_varbinds(&stmt.varbinds)?;
+        let user_vbs = convert_varbinds(vbs_slice)?;
         vbs.extend(user_vbs);
         vbs
-    } else if !stmt.varbinds.is_empty() {
-        convert_varbinds(&stmt.varbinds)?
+    } else if !vbs_slice.is_empty() {
+        convert_varbinds(vbs_slice)?
     } else if let Some(oid_str) = stmt.oid {
         let oid = parse_oid(oid_str)?;
         vec![VarBind {
@@ -537,8 +647,24 @@ fn build_v2_pdus(stmt: &FrameStatement) -> Result<PdusV2, String> {
         vec![]
     };
 
+    let req_id = stmt
+        .req_id
+        .or_else(|| s2.and_then(|s| s.req_id))
+        .or_else(|| s3.and_then(|s| s.req_id))
+        .unwrap_or(1) as i32;
+    let non_repeaters = stmt
+        .non_repeaters
+        .or_else(|| s2.and_then(|s| s.non_repeaters))
+        .or_else(|| s3.and_then(|s| s.non_repeaters))
+        .unwrap_or(0);
+    let max_repetitions = stmt
+        .max_repetitions
+        .or_else(|| s2.and_then(|s| s.max_repetitions))
+        .or_else(|| s3.and_then(|s| s.max_repetitions))
+        .unwrap_or(10);
+
     let pdu = Pdu {
-        request_id: stmt.req_id.unwrap_or(1) as i32,
+        request_id: req_id,
         error_status: 0,
         error_index: 0,
         variable_bindings: varbinds.clone(),
@@ -551,11 +677,12 @@ fn build_v2_pdus(stmt: &FrameStatement) -> Result<PdusV2, String> {
         SnmpPduType::Response => Ok(PdusV2::Response(rasn_snmp::v2::Response(pdu))),
         SnmpPduType::Inform => Ok(PdusV2::InformRequest(rasn_snmp::v2::InformRequest(pdu))),
         SnmpPduType::GetNext => Ok(PdusV2::GetNextRequest(rasn_snmp::v2::GetNextRequest(pdu))),
+        SnmpPduType::Report => Ok(PdusV2::Report(rasn_snmp::v2::Report(pdu))),
         SnmpPduType::GetBulk => {
             let bulk_pdu = BulkPdu {
-                request_id: stmt.req_id.unwrap_or(1) as i32,
-                non_repeaters: stmt.non_repeaters.unwrap_or(0),
-                max_repetitions: stmt.max_repetitions.unwrap_or(10),
+                request_id: req_id,
+                non_repeaters,
+                max_repetitions,
                 variable_bindings: varbinds,
             };
             Ok(PdusV2::GetBulkRequest(rasn_snmp::v2::GetBulkRequest(

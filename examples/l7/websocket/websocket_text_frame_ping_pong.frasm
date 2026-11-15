@@ -1,19 +1,16 @@
-// PROMPT: WebSocket text message framing with opcode and final bit set.
-// TOKENS: host, ip, flow, s, websocket, opcode, finbit, compile
+// WebSocket text message framing with opcode and final bit set.
+// RFC 6455 WebSocket frames on TCP 80.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.5 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow ws_text(c, s) {
     c -> s websocket opcode "text" finbit 1
     c <- s websocket opcode "text" finbit 1
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ws_text(client, server)
 }

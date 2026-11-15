@@ -11,7 +11,7 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 use core::net::IpAddr;
-use super::dns::build_dns_payload;
+use super::dns::build_dns_or_mdns_payload;
 
 /// Builds an RFC 6762 mDNS payload and returns the payload, target multicast IP, and port (5353).
 /// Syntax mapping: `mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>]`
@@ -25,7 +25,7 @@ pub fn build_mdns_payload(
     spec: &DnsSpec,
     payload_bytes: &[u8],
 ) -> (Vec<u8>, IpAddr, u16) {
-    let payload = build_dns_payload(ctx, spec, payload_bytes, false);
+    let payload = build_dns_or_mdns_payload(ctx, spec, payload_bytes, false, true);
     let target_ip = if ctx.src_ip.is_ipv4() {
         IpAddr::V4(core::net::Ipv4Addr::new(224, 0, 0, 251))
     } else {

@@ -1,26 +1,28 @@
-// PROMPT: Model an IPv6 unicast PTPv2 Ordinary Clock performing end-to-end delay measurement on Domain 2.
-// TOKENS: host, ip, mac, flow, ptp, sync, domain, seqid, clockid, flowlabel, ttl, wait, ms, delayreq, delayresp, compile
+// Model an IPv6 unicast PTPv2 Ordinary Clock performing end-to-end delay
+// measurement on Domain 2.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// IEEE 1588v2 PTP (messages: sync, delayreq, delayresp; domain 2). UDP 319
+// handles Event messages (sync, delayreq) and UDP 320 carries General
+// messages (announce, followup, delayresp).
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: ptp
 
-// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
 host ptp_grandmaster {
     ip 2001:db8:319:2::1
     mac 00:1b:21:31:90:01
 }
 
-// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
 host ptp_slave_clock {
     ip 2001:db8:319:2::50
     mac 00:1b:21:31:90:25
 }
 
-// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
 flow ptp_scenario_flow(gm, slv) {
     gm -> slv ptp sync domain 2 seqid 610 clockid "005056fffe020001" flowlabel 0x31902 ttl 64 wait 1ms
     gm <- slv ptp delayreq domain 2 seqid 610 clockid "005056fffe020050" flowlabel 0x31902 ttl 64 wait 1ms
     gm -> slv ptp delayresp domain 2 seqid 610 clockid "005056fffe020001" flowlabel 0x31902 ttl 64
 }
 
-// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
 compile {
     ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
 }

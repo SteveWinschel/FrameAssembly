@@ -1,20 +1,21 @@
-// PROMPT: Multi-chunk OPC UA message transfer using intermediate (C) and final (F) chunks.
-// TOKENS: host, ip, flow, s, opcua, msgtype, chunktype, securechannelid, tokenid, seqnum, reqid, wait, ms, payload, compile
+// Multi-chunk OPC UA message transfer using intermediate (C) and final (F)
+// chunks.
+// Wireshark: opcua
 
-// INSTRUCTION: Define OPC UA client requesting large address space browse result.
+// OPC UA client requesting large address space browse result.
 host browse_client { ip 10.88.2.10 }
 
-// INSTRUCTION: Define OPC UA server streaming multi-chunk response.
+// OPC UA server streaming multi-chunk response.
 host browse_server { ip 10.88.2.20 }
 
-// INSTRUCTION: Define flow with intermediate chunk C and final chunk F.
+// Flow with intermediate chunk C and final chunk F. OPC UA message sequence:
+// MSG on TCP port 4840.
 flow opcua_chunked_transfer(c, s) {
     c -> s opcua msgtype "msg" chunktype "f" securechannelid 77 tokenid 3 seqnum 50 reqid 200 wait 5ms
     c <- s opcua msgtype "msg" chunktype "c" securechannelid 77 tokenid 3 seqnum 51 reqid 200 payload "BrowseChunk1_Nodes_001_to_500" wait 2ms
     c <- s opcua msgtype "msg" chunktype "f" securechannelid 77 tokenid 3 seqnum 52 reqid 200 payload "BrowseChunk2_Nodes_501_to_900"
 }
 
-// INSTRUCTION: Compile the multi-chunk OPC UA flow.
 compile {
     opcua_chunked_transfer(browse_client, browse_server)
 }

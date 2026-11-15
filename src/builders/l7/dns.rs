@@ -25,7 +25,7 @@ pub fn encode_dns_name(domain: &str) -> Vec<u8> {
     for label in trimmed.split('.') {
         let len = label.len().min(63) as u8;
         encoded.push(len);
-        encoded.extend_from_slice(label.as_bytes());
+        encoded.extend_from_slice(&label.as_bytes()[..usize::from(len)]);
     }
     encoded.push(0);
     encoded
@@ -50,6 +50,36 @@ pub fn parse_dns_qtype(qtype: &str) -> u16 {
     }
 }
 
+/// Encodes an RFC 1035 `<character-string>` TXT RDATA payload into 1-byte length-prefixed chunks (`<= 255` bytes each).
+fn encode_txt_rdata(txt: &str) -> Vec<u8> {
+    let raw = txt.as_bytes();
+    if raw.is_empty() {
+        return alloc::vec![0];
+    }
+    let mut out = Vec::with_capacity(raw.len() + (raw.len() / 255) + 1);
+    for chunk in raw.chunks(255) {
+        out.push(chunk.len() as u8);
+        out.extend_from_slice(chunk);
+    }
+    out
+}
+
+/// Encodes an RFC 1035 MX RDATA payload (`16-bit preference` + DNS wire-format `exchange` domain name).
+fn encode_mx_rdata(rdata_str: &str) -> Vec<u8> {
+    let (pref, exchange) = if let Some((pref_s, exch_s)) = rdata_str.split_once(' ')
+        && let Ok(p) = pref_s.trim().parse::<u16>()
+        && !exch_s.trim().is_empty()
+    {
+        (p, exch_s.trim())
+    } else {
+        (10u16, rdata_str.trim())
+    };
+    let mut out = Vec::new();
+    out.extend_from_slice(&pref.to_be_bytes());
+    out.extend_from_slice(&encode_dns_name(exchange));
+    out
+}
+
 /// Builds an RFC 1035 DNS message payload for UDP or TCP transmission.
 ///
 /// When `is_tcp` is true, a 2-byte big-endian message length prefix is prepended (RFC 1035 §4.2.2).
@@ -61,17 +91,29 @@ pub fn parse_dns_qtype(qtype: &str) -> u16 {
 #[doc(alias = "QTYPE")]
 #[doc(alias = "RDATA")]
 pub fn build_dns_payload(
-    _ctx: &WireContext,
+    ctx: &WireContext,
     spec: &DnsSpec,
     payload_bytes: &[u8],
     is_tcp: bool,
 ) -> Vec<u8> {
-    let txid = spec.txid.unwrap_or(0x1234);
+    build_dns_or_mdns_payload(ctx, spec, payload_bytes, is_tcp, false)
+}
+
+/// Shared RFC 1035 DNS and RFC 6762 mDNS wire message encoder.
+pub(crate) fn build_dns_or_mdns_payload(
+    _ctx: &WireContext,
+    spec: &DnsSpec,
+    payload_bytes: &[u8],
+    is_tcp: bool,
+    is_mdns: bool,
+) -> Vec<u8> {
+    let txid = spec.txid.unwrap_or(if is_mdns { 0x0000 } else { 0x1234 });
     let is_resp = spec.is_response && !spec.is_query;
-    let mut flags: u16 = if is_resp {
-        0x8180 // Response, Recursion Desired, Recursion Available, No Error
-    } else {
-        0x0100 // Standard Query, Recursion Desired
+    let mut flags: u16 = match (is_mdns, is_resp) {
+        (false, true) => 0x8180,  // DNS Response: QR=1, RD=1, RA=1
+        (false, false) => 0x0100, // DNS Query: QR=0, RD=1
+        (true, true) => 0x8400,   // mDNS Response (RFC 6762): QR=1, AA=1
+        (true, false) => 0x0000,  // mDNS Query (RFC 6762): QR=0, RD=0
     };
     if let Some(rcode) = spec.rcode {
         flags = (flags & 0xFFF0) | (rcode as u16 & 0x000F);
@@ -110,30 +152,37 @@ pub fn build_dns_payload(
         dns_msg.extend_from_slice(&ttl.to_be_bytes());
 
         let rdata_bytes = if let Some(rdata_str) = spec.rdata {
-            if qtype == 1 {
-                // A Record (IPv4)
-                if let Ok(IpAddr::V4(v4)) = rdata_str.parse::<IpAddr>() {
-                    v4.octets().to_vec()
-                } else {
-                    [93, 184, 216, 34].to_vec()
+            match qtype {
+                1 => {
+                    if let Ok(IpAddr::V4(v4)) = rdata_str.parse::<IpAddr>() {
+                        v4.octets().to_vec()
+                    } else {
+                        [93, 184, 216, 34].to_vec()
+                    }
                 }
-            } else if qtype == 28 {
-                // AAAA Record (IPv6)
-                if let Ok(IpAddr::V6(v6)) = rdata_str.parse::<IpAddr>() {
-                    v6.octets().to_vec()
-                } else {
-                    alloc::vec![0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+                28 => {
+                    if let Ok(IpAddr::V6(v6)) = rdata_str.parse::<IpAddr>() {
+                        v6.octets().to_vec()
+                    } else {
+                        alloc::vec![0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+                    }
                 }
-            } else if qtype == 5 || qtype == 2 || qtype == 12 {
-                // CNAME, NS, PTR: domain name
-                encode_dns_name(rdata_str)
-            } else {
-                rdata_str.as_bytes().to_vec()
+                2 | 5 | 12 => encode_dns_name(rdata_str),
+                15 => encode_mx_rdata(rdata_str),
+                16 => encode_txt_rdata(rdata_str),
+                _ => rdata_str.as_bytes().to_vec(),
             }
         } else if !payload_bytes.is_empty() {
             payload_bytes.to_vec()
         } else {
-            [93, 184, 216, 34].to_vec() // Default 93.184.216.34 (example.com)
+            match qtype {
+                1 => [93, 184, 216, 34].to_vec(),
+                28 => alloc::vec![0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                2 | 5 | 12 => encode_dns_name("ns1.example.com"),
+                15 => encode_mx_rdata("mail.example.com"),
+                16 => encode_txt_rdata("v=spf1 -all"),
+                _ => [93, 184, 216, 34].to_vec(),
+            }
         };
 
         dns_msg.extend_from_slice(&(rdata_bytes.len() as u16).to_be_bytes());

@@ -1,18 +1,18 @@
-// PROMPT: mDNS PTR record query enumerating local workstation hostnames on 224.0.0.251:5353.
-// TOKENS: host, ip, flow, mdns, query, txid, qname, qtype, compile
+// mDNS PTR record query enumerating local workstation hostnames on
+// 224.0.0.251:5353.
+// Wireshark: mdns
 
-// INSTRUCTION: Define network auditing probe.
+// Network auditing probe.
 host audit_probe { ip 10.0.8.55 }
 
-// INSTRUCTION: Define local link multicast endpoint.
 host link_multicast { ip 224.0.0.251 }
 
-// INSTRUCTION: Define workstation enumeration flow.
+// Workstation enumeration flow. DNS wire details: record types PTR; multicast
+// 224.0.0.251 / ff02::fb UDP 5353 (TTL 255).
 flow workstation_enum_flow(prb, grp) {
     prb -> grp mdns query txid 2002 qname "_workstation._tcp.local" qtype "ptr"
 }
 
-// INSTRUCTION: Compile workstation enumeration scenario.
 compile {
     workstation_enum_flow(audit_probe, link_multicast)
 }

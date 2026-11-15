@@ -1,19 +1,17 @@
-// PROMPT: Model a bidirectional peer-to-peer ICE simultaneous open hole-punching exchange using STUN Binding Requests.
-// TOKENS: host, mac, ip, flow, stun, bindingrequest, software, bindingresponse, xormappedaddr, compile
+// Model a bidirectional peer-to-peer ICE simultaneous open hole-punching
+// exchange using STUN Binding Requests.
+// Wireshark: stun
 
-// INSTRUCTION: Define host endpoint peer_alpha.
 host peer_alpha {
     mac 00:1e:67:aa:34:01
     ip 192.0.2.11
 }
 
-// INSTRUCTION: Define host endpoint peer_beta.
 host peer_beta {
     mac 00:1e:67:aa:34:02
     ip 198.51.100.22
 }
 
-// INSTRUCTION: Both peers send STUN Binding Requests to each other and respond with XOR_MAPPED_ADDR.
 flow stun_p2p_hole_punching(peer_alpha, peer_beta) {
     peer_alpha -> peer_beta stun bindingrequest software "pion-ice/v2"
     peer_beta -> peer_alpha stun bindingrequest software "pion-ice/v2"
@@ -21,7 +19,6 @@ flow stun_p2p_hole_punching(peer_alpha, peer_beta) {
     peer_alpha -> peer_beta stun bindingresponse xormappedaddr 198.51.100.22 software "pion-ice/v2"
 }
 
-// INSTRUCTION: Compile the bidirectional P2P STUN hole-punching flow.
 compile {
     stun_p2p_hole_punching(peer_alpha, peer_beta)
 }

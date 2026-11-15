@@ -1,0 +1,13 @@
+// Minimal two-block RFC 793 TCP SYN starter targeting destination port 80.
+// Uses built-in defaults (srcport 12345, dstport 80, seq 1000, SYN flag) with
+// automatic IPv4 and TCP pseudo-header checksums directly inside compile.
+// Preview fields using `frameassembly show tcp_default_frame.frasm` or save a
+// capture via `frameassembly tcp_default_frame.frasm`.
+// Wireshark: tcp.flags.syn == 1 && tcp.flags.ack == 0
+
+host client_host { ip 10.6.0.10 }
+host server_host { ip 10.6.0.80 }
+
+compile {
+    client_host -> server_host tcp
+}

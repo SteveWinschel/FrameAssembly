@@ -1,13 +1,15 @@
-// PROMPT: Generate an RFC 3414 SNMPv3 authPriv TRAP using HMAC-MD5-96 authentication (AUTH MD5) and DES-CBC privacy encryption (PRIV DES).
-// TOKENS: host, ip, mac, flow, snmp3, trap, user, engineid, engineboots, enginetime, auth, md5, priv, des, oid, sysuptime, varbind, int, string, compile
+// Generate an RFC 3414 SNMPv3 authPriv TRAP using HMAC-MD5-96 authentication
+// (auth MD5) and DES-CBC privacy encryption (priv DES).
+// SNMPv3 USM security uses auth md5, priv des with localized engineid keys.
+// MIB objects / traps: 1.3.6.1.6.3.1.1.5.3 (linkDown).
+// In Wireshark, add the engineid, user, auth, and priv passphrases under SNMP
+// Users Table to decrypt.
+// Wireshark: snmp
 
-// INSTRUCTION: Define a legacy SNMPv3 router agent configured with MD5 and DES with IP 10.146.0.5.
 host v3_md5_des_agent { ip 10.146.0.5 mac 00:0c:29:46:00:05 }
 
-// INSTRUCTION: Define an SNMPv3 trap collector with IP 10.146.0.100.
 host v3_md5_des_nms { ip 10.146.0.100 mac 00:0c:29:46:00:64 }
 
-// INSTRUCTION: Define a flow sending an encrypted SNMPv3 trap using AUTH MD5 and PRIV DES.
 flow snmpv3_md5_des_trap(agent, nms) {
     agent -> nms snmp3 trap user "usm_md5_des" engineid "80001f8880aa11bb22" engineboots 4 enginetime 12000
         auth md5 "md5_auth_key_123" priv des "des_priv_key_456" oid 1.3.6.1.6.3.1.1.5.3
@@ -16,7 +18,6 @@ flow snmpv3_md5_des_trap(agent, nms) {
         varbind 1.3.6.1.2.1.2.2.1.2.3 string "FastEthernet0/3"
 }
 
-// INSTRUCTION: Compile block to emit the MD5 + DES encrypted SNMPv3 trap.
 compile {
     snmpv3_md5_des_trap(v3_md5_des_agent, v3_md5_des_nms)
 }

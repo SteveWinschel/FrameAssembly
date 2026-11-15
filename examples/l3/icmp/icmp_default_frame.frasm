@@ -1,0 +1,20 @@
+// Minimal ICMPv4 Echo Request (Type 8, Code 0) starter packet over IP
+// protocol 1 with an automatically computed RFC 792 checksum. Switch both
+// hosts to IPv6 addresses to emit ICMPv6 Echo Request (Type 128) without
+// changing the statement.
+// Wireshark: icmp
+
+host endpoint_a {
+    ip 10.1.0.1
+    mac 02:00:01:00:00:01
+}
+
+host endpoint_b {
+    ip 10.1.0.2
+    mac 02:00:01:00:00:02
+}
+
+// Transmit one default ICMP Echo Request directly inside compile.
+compile {
+    endpoint_a -> endpoint_b icmp
+}

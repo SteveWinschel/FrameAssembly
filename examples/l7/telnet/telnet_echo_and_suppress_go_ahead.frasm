@@ -1,19 +1,21 @@
-// PROMPT: Simulate a Telnet Echo (Option 1) and Suppress Go Ahead (Option 3) negotiation for character-at-a-time full-duplex mode.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, telnet, will, do, payload, compile
+// Simulate a Telnet Echo (Option 1) and Suppress Go Ahead (Option 3)
+// negotiation for character-at-a-time full-duplex mode.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Telnet on TCP 23 negotiating option(s): 1 (Echo), 3 (Suppress Go Ahead).
+// Overrides destination port to 23.
+// Wireshark: telnet
 
-// INSTRUCTION: Define host endpoint term_client.
 host term_client {
     mac 00:50:56:00:23:01
     ip 10.10.23.50
 }
 
-// INSTRUCTION: Define host endpoint unix_telnetd.
 host unix_telnetd {
     mac 00:50:56:00:23:02
     ip 10.10.23.1
 }
 
-// INSTRUCTION: Complete TCP port 23 handshake, negotiate Suppress Go Ahead (3) and Echo (1), and send banner.
 flow telnet_echo_sga_negotiation(term_client, unix_telnetd) {
     term_client -> unix_telnetd tcp syn srcport 51023 dstport 23
     unix_telnetd -> term_client tcp syn ack
@@ -25,7 +27,6 @@ flow telnet_echo_sga_negotiation(term_client, unix_telnetd) {
     unix_telnetd -> term_client telnet payload "SunOS 5.10\r\nlogin: "
 }
 
-// INSTRUCTION: Compile the Telnet Echo and SGA option negotiation flow.
 compile {
     telnet_echo_sga_negotiation(term_client, unix_telnetd)
 }

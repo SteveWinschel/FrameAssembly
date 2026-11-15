@@ -1,32 +1,34 @@
-// PROMPT: Simulate an SSH password brute-force failure sequence returning SSH_MSG_USERAUTH_FAILURE (51) and SSH_MSG_DISCONNECT (1).
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, ssh, msgcode, payload, wait, ms, fin, compile
+// Simulate an SSH password brute-force failure sequence returning
+// SSH_MSG_USERAUTH_FAILURE (51) and SSH_MSG_DISCONNECT (1).
+// Includes explicit TCP 3-way handshake and session teardown with tracked
+// seq/ack counters.
+// SSH RFC 4253 framing on TCP 22 (message codes: 1 (DISCONNECT), 50
+// (USERAUTH_REQUEST), 51 (USERAUTH_FAILURE)).
+// Overrides destination port to 22.
+// Timing: runs 5 cycles in compile using post-packet waits (20ms).
+// Wireshark: ssh
 
-// INSTRUCTION: Define host endpoint scanner_node.
 host scanner_node {
     mac 00:16:3e:99:22:01
     ip 198.51.100.77
 }
 
-// INSTRUCTION: Define host endpoint hardened_sshd.
 host hardened_sshd {
     mac 00:16:3e:99:22:02
     ip 203.0.113.22
 }
 
-// INSTRUCTION: Initialize session before loop for ssh_userauth_failure_disconnect.
 flow ssh_userauth_failure_disconnect_init(scanner_node, hardened_sshd) {
     scanner_node -> hardened_sshd tcp syn srcport 53022 dstport 22
     hardened_sshd -> scanner_node tcp syn ack
     scanner_node -> hardened_sshd tcp ack
 }
 
-// INSTRUCTION: Send 3 failed SSH_MSG_USERAUTH_REQUEST (50) attempts followed by SSH_MSG_DISCONNECT (1).
 flow ssh_userauth_failure_disconnect(scanner_node, hardened_sshd) {
     scanner_node -> hardened_sshd ssh msgcode 50 payload "root:ssh-connection:password"
     hardened_sshd -> scanner_node ssh msgcode 51 payload "publickey,password" wait 20ms
 }
 
-// INSTRUCTION: Complete session teardown after loop for ssh_userauth_failure_disconnect.
 flow ssh_userauth_failure_disconnect_done(scanner_node, hardened_sshd) {
     hardened_sshd -> scanner_node ssh msgcode 1 payload "Too many authentication failures"
     hardened_sshd -> scanner_node tcp fin ack
@@ -34,7 +36,6 @@ flow ssh_userauth_failure_disconnect_done(scanner_node, hardened_sshd) {
     hardened_sshd -> scanner_node tcp ack
 }
 
-// INSTRUCTION: Compile the SSH authentication failure and disconnect flow.
 compile {
     ssh_userauth_failure_disconnect_init(scanner_node, hardened_sshd)
     ssh_userauth_failure_disconnect(scanner_node, hardened_sshd) // cycle 1

@@ -1,13 +1,14 @@
-// PROMPT: Short-lease captive portal Wi-Fi guest DHCPv4 assignment with 300-second lease time.
-// TOKENS: host, ip, flow, dhcp, discover, chaddr, df, ipid, offer, yiaddr, router, dnsserver, subnetmask, leasetime, request, ack, compile
+// Short-lease captive portal Wi-Fi guest DHCPv4 assignment with 300-second
+// lease time.
+// Wireshark: dhcp
 
-// INSTRUCTION: Define guest smartphone joining captive portal Wi-Fi.
+// Guest smartphone joining captive portal Wi-Fi.
 host guest_phone { ip 0.0.0.0 }
 
-// INSTRUCTION: Define captive portal gateway DHCP server.
 host portal_gw { ip 172.16.0.1 }
 
-// INSTRUCTION: Assign a 5-minute (300s) temporary IPv4 lease pointing DNS to the portal gateway.
+// Assign a 5-minute (300s) temporary IPv4 lease pointing DNS to the portal
+// gateway. DHCPv4 BOOTP exchange over UDP ports 68 (client) and 67 (server).
 flow dhcp_captive_guest(g, p) {
     g -> p dhcp discover chaddr dc:a6:32:01:02:03 df ipid 0x1101
     g <- p dhcp offer chaddr dc:a6:32:01:02:03 yiaddr 172.16.12.99 router 172.16.0.1 dnsserver 172.16.0.1 subnetmask 255.255.0.0 leasetime 300 df ipid 0x2201
@@ -15,7 +16,6 @@ flow dhcp_captive_guest(g, p) {
     g <- p dhcp ack chaddr dc:a6:32:01:02:03 yiaddr 172.16.12.99 router 172.16.0.1 dnsserver 172.16.0.1 subnetmask 255.255.0.0 leasetime 300 df ipid 0x2202
 }
 
-// INSTRUCTION: Compile the captive portal short-lease DHCP flow.
 compile {
     dhcp_captive_guest(guest_phone, portal_gw)
 }

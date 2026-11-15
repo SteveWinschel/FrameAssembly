@@ -1,25 +1,23 @@
-// PROMPT: Network Operations Center (NOC) observability pipeline collecting NetFlow v9, IPFIX, sFlow, Syslog, and SNMPv3 traps from core routers.
-// TOKENS: host, ip, flow, dscp, netflow, version, packets, octets, ipfix, domainid, wait, ms, sflow, samples, syslog, pri, app, msg, snmp3, trap, user, auth, sha256, priv, aes, varbind, compile
+// Network Operations Center (NOC) observability pipeline collecting NetFlow v9,
+// IPFIX, sFlow, Syslog, and SNMPv3 traps from core routers.
+// Wire profile: 5 frames; 3 IPv4 hosts; SNMPv3, Syslog, NetFlow, IPFIX, sFlow;
+// DSCP 16,48; waits 1ms, 2ms.
+// Wireshark: snmp || syslog || cflow || sflow
 
-// INSTRUCTION: Define core border router exporting multi-protocol telemetry.
 host core_border_rtr { ip 10.250.0.1 }
 
-// INSTRUCTION: Define distribution switch exporting sFlow and IPFIX records.
 host dist_fabric_sw { ip 10.250.0.2 }
 
-// INSTRUCTION: Define centralized NOC telemetry ingestion collector.
 host noc_telemetry_sink { ip 10.250.0.100 }
 
-// INSTRUCTION: Define multi-protocol NOC observability flow combining NetFlow, IPFIX, sFlow, Syslog, and SNMPv3 Trap.
 flow noc_observability_pipeline(rtr, sw, sink) {
-    rtr -> sink dscp 16 netflow version 9 packets 12500 octets 18000000
+    rtr -> sink dscp 16 netflow version 9 packets 12500 octets 18000000 wait 1ms
     sw -> sink dscp 16 ipfix domainid 100 packets 8400 octets 12000000 wait 1ms
     sw -> sink dscp 16 sflow version 5 samples 64 wait 1ms
-    rtr -> sink dscp 16 syslog pri 131 app "bgpd" msg "BGP-5-ADJCHANGE: neighbor 198.51.100.1 Up" wait 1ms
-    rtr -> sink dscp 48 snmp3 trap user "noc_sec_ops" auth sha256 "NocAuthPass2026!" priv aes "NocPrivPass2026!" varbind 1.3.6.1.2.1.1.3.0 string "BGP_PEER_ESTABLISHED" wait 2ms
+    rtr -> sink dscp 16 syslog pri 131 app "bgpd" msg "BGP-5-ADJCHANGE: neighbor 198.51.100.1 Up" wait 2ms
+    rtr -> sink dscp 48 snmp3 trap user "noc_sec_ops" auth sha256 "NocAuthPass2026!" priv aes "NocPrivPass2026!" varbind 1.3.6.1.2.1.1.3.0 string "BGP_PEER_ESTABLISHED"
 }
 
-// INSTRUCTION: Compile block executing NOC observability telemetry pipeline.
 compile {
     noc_observability_pipeline(core_border_rtr, dist_fabric_sw, noc_telemetry_sink)
 }

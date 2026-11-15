@@ -1,19 +1,16 @@
-// PROMPT: Secure shell connection exchanging OpenSSH 9.5 protocol banner.
-// TOKENS: host, ip, flow, s, ssh, banner, compile
+// Secure shell connection exchanging OpenSSH 9.5 protocol banner.
+// SSH RFC 4253 framing on TCP 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define admin management client.
 host admin_ws { ip 10.88.1.12 }
 
-// INSTRUCTION: Define production server host.
 host prod_svr { ip 10.88.1.2 }
 
-// INSTRUCTION: Define OpenSSH banner exchange flow.
 flow ssh_banner_flow(c, s) {
     c -> s ssh banner "SSH-2.0-OpenSSH_9.5p1 Debian-1"
     c <- s ssh banner "SSH-2.0-OpenSSH_9.5p1 Ubuntu-3"
 }
 
-// INSTRUCTION: Compile block executing banner exchange.
 compile {
     ssh_banner_flow(admin_ws, prod_svr)
 }

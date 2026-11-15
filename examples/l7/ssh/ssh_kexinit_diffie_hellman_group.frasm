@@ -1,19 +1,16 @@
-// PROMPT: Diffie-Hellman key exchange initialization with cryptographic cookie.
-// TOKENS: host, ip, flow, s, ssh, kexinit, payload, compile
+// Diffie-Hellman key exchange initialization with cryptographic cookie.
+// SSH RFC 4253 framing on TCP 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define client node.
 host client_node { ip 10.15.0.4 }
 
-// INSTRUCTION: Define security gateway server.
 host sec_gw { ip 10.15.0.1 }
 
-// INSTRUCTION: Define KEXINIT parameter exchange flow.
 flow ssh_kex_flow(c, s) {
     c -> s ssh kexinit payload "0123456789abcdef"
     c <- s ssh kexinit payload "fedcba9876543210"
 }
 
-// INSTRUCTION: Compile block executing KEXINIT exchange.
 compile {
     ssh_kex_flow(client_node, sec_gw)
 }

@@ -48,6 +48,17 @@ pub struct ReverseOutput {
     pub packet_count: usize,
     /// Total number of `hostN` definitions emitted.
     pub host_count: usize,
+    /// Non-fatal container warnings (e.g., skipped non-Ethernet interfaces or salvaged truncated EOF).
+    pub warnings: Vec<String>,
+}
+
+/// Normalized Ethernet II packet and nanosecond timestamp extracted for `frameassembly show`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShowCapturePacket {
+    /// Capture timestamp in nanoseconds since the Unix epoch.
+    pub timestamp_ns: u64,
+    /// Normalized Ethernet II frame bytes with trailing zero-padding and 4-byte FCS stripped.
+    pub raw_eth_frame: Vec<u8>,
 }
 
 /// Result returned by a protocol dissector.
@@ -114,10 +125,56 @@ pub(crate) struct DissectedPacket {
 /// Returns [`CompilerError::BackendError`] if the stream is not a valid `.pcap` or `.pcapng`
 /// capture or if an I/O or container framing error occurs.
 pub fn reverse_pcap_reader<R: std::io::Read>(reader: R) -> Result<ReverseOutput, CompilerError> {
-    let frames = container::read_capture_frames(reader).map_err(CompilerError::BackendError)?;
-    let packets: Vec<DissectedPacket> = frames.into_iter().map(l2::dissect_packet).collect();
+    let read_res = container::read_capture_frames_with_warnings(reader)
+        .map_err(CompilerError::BackendError)?;
+    let packets: Vec<DissectedPacket> =
+        read_res.frames.into_iter().map(l2::dissect_packet).collect();
     let topo = topology::build_topology(&packets);
-    Ok(shadow_emit::emit_fasm_program(&packets, &topo))
+    let mut out = shadow_emit::emit_fasm_program(&packets, &topo);
+    out.warnings = read_res.warnings;
+    Ok(out)
+}
+
+/// Reads an in-memory `.pcap` or `.pcapng` byte slice into normalized Ethernet II frames and
+/// non-fatal container warnings for `frameassembly show`.
+///
+/// # Errors
+/// Returns an error string if `bytes` is not a valid `.pcap` or `.pcapng` capture.
+pub fn read_capture_bytes_for_show(
+    bytes: &[u8],
+) -> Result<(Vec<ShowCapturePacket>, Vec<String>), String> {
+    let res = container::read_capture_frames_with_warnings(std::io::Cursor::new(bytes))?;
+    let packets = res
+        .frames
+        .into_iter()
+        .map(|f| ShowCapturePacket {
+            timestamp_ns: f.timestamp_ns,
+            raw_eth_frame: f.eth_bytes,
+        })
+        .collect();
+    Ok((packets, res.warnings))
+}
+
+/// Reads a `.pcap` or `.pcapng` file on disk into normalized Ethernet II frames and non-fatal
+/// container warnings for `frameassembly show`.
+///
+/// # Errors
+/// Returns an error string if `path` cannot be opened or is not a valid `.pcap` or `.pcapng` capture.
+pub fn read_capture_for_show(
+    path: &str,
+) -> Result<(Vec<ShowCapturePacket>, Vec<String>), String> {
+    let file = std::fs::File::open(path)
+        .map_err(|e| alloc::format!("Failed to open capture file '{path}': {e}"))?;
+    let res = container::read_capture_frames_with_warnings(std::io::BufReader::new(file))?;
+    let packets = res
+        .frames
+        .into_iter()
+        .map(|f| ShowCapturePacket {
+            timestamp_ns: f.timestamp_ns,
+            raw_eth_frame: f.eth_bytes,
+        })
+        .collect();
+    Ok((packets, res.warnings))
 }
 
 /// Decompiles an in-memory `.pcap` or `.pcapng` byte slice into canonical `.frasm` code.
@@ -268,27 +325,32 @@ pub(crate) fn push_hex(out: &mut String, kw: &str, val: u64, default: u64, width
     }
 }
 
+/// Returns `true` if `"<s>"` tokenizes cleanly as a single `Token::StringLit` whose raw body
+/// (parsed by `parse_raw_string_lit`) equals `s` verbatim without escape Expansion.
+pub(crate) fn is_valid_raw_string_body(s: &str) -> bool {
+    let mut it = s.chars();
+    while let Some(c) = it.next() {
+        if (c as u32) < 0x20 || (c as u32) == 0x7f || c == '"' {
+            return false;
+        }
+        if c == '\\' {
+            match it.next() {
+                Some(n) if (n as u32) >= 0x20 && (n as u32) != 0x7f => {}
+                _ => return false,
+            }
+        }
+    }
+    true
+}
+
 /// Appends ` <kw> "<val>"` onto `out` when `val != default`.
 #[allow(dead_code)]
 pub(crate) fn push_str_if(out: &mut String, kw: &str, val: &str, default: &str) {
     if val != default {
-        let needs_escape = {
-            let mut it = val.chars();
-            let mut esc = false;
-            while let Some(c) = it.next() {
-                if matches!(c, '\0' | '\r' | '\n' | '"')
-                    || (c == '\\' && it.next().is_none_or(|n| matches!(n, '\0' | '\r' | '\n')))
-                {
-                    esc = true;
-                    break;
-                }
-            }
-            esc
-        };
-        if needs_escape {
-            let _ = write!(out, " {kw} \"{}\"", escape_fasm_string(val));
-        } else {
+        if is_valid_raw_string_body(val) {
             let _ = write!(out, " {kw} \"{val}\"");
+        } else {
+            let _ = write!(out, " {kw} \"{}\"", escape_fasm_string(val));
         }
     }
 }
@@ -477,8 +539,8 @@ mod tests {
     #[test]
     fn test_v2_strict_lowercase_reverse_roundtrip() {
         let src = r#"
-host client { ip 10.10.0.1 mac 02:00:00:00:00:01 }
-host server { ip 10.10.0.2 mac 02:00:00:00:00:02 }
+host client { ip 10.10.0.1 mac 00:00:00:00:00:01 }
+host server { ip 10.10.0.2 mac 00:00:00:00:00:02 }
 
 flow v2_check(a, b) {
     a -> b qinq 100 innervlan 200 payload "QinQ-Body"

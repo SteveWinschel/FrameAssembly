@@ -1,25 +1,24 @@
-// PROMPT: Polymorphic dual-stack GRE SD-WAN tunnel running identically over IPv4 and IPv6 underlays.
-// TOKENS: host, ip, flow, gre, grekey, greseq, checksum, dscp, ttl, flowlabel, compile
+// Dual-stack GRE SD-WAN tunnel running identically over IPv4 and IPv6
+// underlays.
+// This capture runs the same exchange over both IPv4 and IPv6 host pairs and
+// sets DSCP 34, TTL 64, IPv6 Flow Label.
+// Wireshark: gre
 
-// INSTRUCTION: Define IPv4 SD-WAN edge router 1.
 host sdwan_gre_v4_1 { ip 192.0.2.71 }
 
-// INSTRUCTION: Define IPv4 SD-WAN edge router 2.
 host sdwan_gre_v4_2 { ip 192.0.2.72 }
 
-// INSTRUCTION: Define IPv6 SD-WAN edge router 1.
 host sdwan_gre_v6_1 { ip 2001:db8:47::71 }
 
-// INSTRUCTION: Define IPv6 SD-WAN edge router 2.
 host sdwan_gre_v6_2 { ip 2001:db8:47::72 }
 
-// INSTRUCTION: Define polymorphic GRE tunnel exchange with key, sequence, and checksum.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow sdwan_dual_stack_gre(r1, r2) {
     r1 -> r2 gre grekey 7001 greseq 1 checksum dscp 34 ttl 64 flowlabel 47001
     r1 <- r2 gre grekey 7001 greseq 1 checksum dscp 34 ttl 64 flowlabel 47002
 }
 
-// INSTRUCTION: Compile the polymorphic GRE flow across IPv4 and IPv6 underlays.
+// Run the flow across both the IPv4 and IPv6 host pairs.
 compile {
     sdwan_dual_stack_gre(sdwan_gre_v4_1, sdwan_gre_v4_2)
     sdwan_dual_stack_gre(sdwan_gre_v6_1, sdwan_gre_v6_2)

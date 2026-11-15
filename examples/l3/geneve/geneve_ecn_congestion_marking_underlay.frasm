@@ -1,26 +1,28 @@
-// PROMPT: RFC 8926 / RFC 6040 GENEVE overlay tunnel propagating ECN Congestion Experienced (ECN 3) across spine switches.
-// TOKENS: host, ip, mac, flow, geneve, vni, optclass, opttype, protocoltype, srcport, dstport, dscp, ecn, df, ttl, payload, wait, ms, compile
+// RFC 8926 / RFC 6040 GENEVE overlay tunnel propagating ECN Congestion
+// Experienced (ECN 3) across spine switches.
+// This capture sets DSCP 24/48, TTL 64, DF bit set, carries VNI 40960,
+// destination port 6081, and uses post-packet wait gaps (2ms) between frames.
+// Wireshark: geneve && geneve.vni == 40960
 
-// INSTRUCTION: Define AI training cluster leaf NVE-1 transmitting RoCEv2 over GENEVE.
 host ai_leaf_nve_1 {
     ip 10.180.60.1
     mac 00:1c:73:b4:3c:01
 }
 
-// INSTRUCTION: Define AI training cluster leaf NVE-2 receiving ECN-marked GENEVE frames.
 host ai_leaf_nve_2 {
     ip 10.180.60.2
     mac 00:1c:73:b4:3c:02
 }
 
-// INSTRUCTION: Define GENEVE frames with DSCP CS3 (24) and ECN transitioning from ECT(0) (2) to CE (3).
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow geneve_ecn_ai_fabric(n1, n2) {
     n1 -> n2 geneve vni 40960 optclass 259 opttype 1 protocoltype 25944 srcport 53100 dstport 6081 dscp 24 ecn 2 df ttl 64 payload "AI_TENSOR_ALLREDUCE_CHUNK_1" wait 2ms
     n1 -> n2 geneve vni 40960 optclass 259 opttype 1 protocoltype 25944 srcport 53100 dstport 6081 dscp 24 ecn 3 df ttl 64 payload "AI_TENSOR_ALLREDUCE_CHUNK_2_CE" wait 2ms
     n1 <- n2 geneve vni 40960 optclass 259 opttype 1 protocoltype 25944 srcport 53101 dstport 6081 dscp 48 ecn 0 df ttl 64 payload "CNP_CONGESTION_NOTIFICATION_PKT"
 }
 
-// INSTRUCTION: Compile the GENEVE ECN congestion marking AI cluster flow.
+// Run geneve_ecn_ai_fabric(ai_leaf_nve_1, ai_leaf_nve_2) to generate the
+// capture.
 compile {
     geneve_ecn_ai_fabric(ai_leaf_nve_1, ai_leaf_nve_2)
 }

@@ -1,19 +1,21 @@
-// PROMPT: BACnet/IP Pulse Converter and Trend Log property reads with ASCII diagnostic payload.
-// TOKENS: host, ip, flow, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, wait, ms, payload, compile
+// BACnet/IP Pulse Converter and Trend Log property reads with ASCII
+// diagnostic payload.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the BMS analytics collector.
+// BMS analytics collector.
 host bms_analytics { ip 10.55.2.10 }
 
-// INSTRUCTION: Define the water flow trend logger.
+// Water flow trend logger.
 host trend_logger { ip 10.55.2.200 }
 
-// INSTRUCTION: Read Trend Log (ObjectType 20) Log_Buffer (Property 131) and Record_Count (Property 141).
+// Read Trend Log (ObjectType 20) Log_Buffer (Property 131) and Record_Count
+// (Property 141). BACnet/IP on UDP 47808 (objects: 20 (Trend Log);
+// properties: 131 (Log_Buffer), 141 (Record_Count)).
 flow bacnet_trend_fetch(a, l) {
     a -> l bacnet readproperty invokeid 60 objecttype 20 objectinstance 3 propertyid 141 wait 15ms
     a -> l bacnet readproperty invokeid 61 objecttype 20 objectinstance 3 propertyid 131 payload "TREND_BATCH_1"
 }
 
-// INSTRUCTION: Compile the BACnet Trend Log retrieval flow.
 compile {
     bacnet_trend_fetch(bms_analytics, trend_logger)
 }

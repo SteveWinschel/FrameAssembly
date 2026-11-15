@@ -1,19 +1,21 @@
-// PROMPT: Create an IPv6 LDAP PKI certificate revocation list (CRL) and userCertificate lookup over IPv6.
-// TOKENS: host, ip, mac, flow, s, ldap, msgid, bindreq, basedn, flowlabel, ecn, ttl, wait, ms, bindres, resultcode, searchreq, filter, searchentry, searchdone, unbindreq, compile
+// IPv6 LDAP PKI certificate revocation list (CRL) and userCertificate lookup
+// over IPv6.
+// Wireshark: ldap
 
-// INSTRUCTION: Define the IPv6 mail gateway verifying S/MIME certificates and CRLs via LDAP.
+// IPv6 mail gateway verifying S/MIME certificates and CRLs via LDAP.
 host smime_gateway {
     ip 2001:db8:950:2::15
     mac 00:1b:21:95:02:15
 }
 
-// INSTRUCTION: Define the IPv6 PKI directory server publishing X.509 certificates and CRLs.
+// IPv6 PKI directory server publishing X.509 certificates and CRLs.
 host pki_directory {
     ip 2001:db8:950:2::5
     mac 00:1b:21:95:02:05
 }
 
-// INSTRUCTION: Bind anonymously and query the PKI directory for a certificateRevocationList entry over IPv6.
+// Bind anonymously and query the PKI directory for a
+// certificateRevocationList entry over IPv6. LDAP result codes: 0 (success).
 flow ipv6_pki_crl_lookup(c, s) {
     c -> s ldap msgid 1 bindreq basedn "" flowlabel 0x77100 ecn 1 ttl 64 wait 2ms
     c <- s ldap msgid 1 bindres resultcode 0 flowlabel 0x77100 ecn 1 ttl 64 wait 2ms
@@ -23,7 +25,6 @@ flow ipv6_pki_crl_lookup(c, s) {
     c -> s ldap msgid 3 unbindreq flowlabel 0x77100 ecn 1 ttl 64
 }
 
-// INSTRUCTION: Compile the IPv6 PKI CRL LDAP lookup into a PCAP file.
 compile {
     ipv6_pki_crl_lookup(smime_gateway, pki_directory)
 }

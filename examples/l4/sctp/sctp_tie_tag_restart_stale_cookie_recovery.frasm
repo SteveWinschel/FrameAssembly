@@ -1,19 +1,19 @@
-// PROMPT: SCTP endpoint restart recovery re-running INIT, INIT_ACK, COOKIE_ECHO, and COOKIE_ACK before resuming DATA transmission.
-// TOKENS: host, ip, mac, flow, sctp, chunk, init, vtag, srcport, dstport, wait, ms, initack, cookieecho, payload, cookieack, data, stream, ssn, ppid, sack, compile
+// SCTP endpoint restart recovery re-running INIT, INIT_ACK, COOKIE_ECHO, and
+// COOKIE_ACK before resuming DATA transmission.
+// Wire profile: 6 frames; 2 IPv4 hosts; SCTP; SCTP
+// COOKIEACK/COOKIEECHO/DATA/INIT; PPID 3; dstport 2905; waits 2ms.
+// Wireshark: sctp && sctp.data_ppid == 3
 
-// INSTRUCTION: Define restarting telecom signaling node re-initializing SCTP association with new VTAG.
 host restarting_sctp_a {
     ip 192.168.132.10
     mac 00:50:56:84:00:0a
 }
 
-// INSTRUCTION: Define peer signaling node accepting restart tie-tag cookie and resuming stream 0.
 host surviving_sctp_b {
     ip 192.168.132.20
     mac 00:50:56:84:00:14
 }
 
-// INSTRUCTION: Execute 4-way SCTP restart handshake followed by Stream 0 SSN 0 recovery DATA and SACK.
 flow sctp_restart_handshake(a, b) {
     a -> b sctp chunk init vtag 0 srcport 2905 dstport 2905 wait 2ms
     a <- b sctp chunk initack vtag 778899 srcport 2905 dstport 2905 wait 2ms
@@ -23,7 +23,6 @@ flow sctp_restart_handshake(a, b) {
     a <- b sctp chunk sack vtag 778899 srcport 2905 dstport 2905
 }
 
-// INSTRUCTION: Compile the SCTP peer restart recovery association trace.
 compile {
     sctp_restart_handshake(restarting_sctp_a, surviving_sctp_b)
 }

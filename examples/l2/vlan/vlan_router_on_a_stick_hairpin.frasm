@@ -1,34 +1,32 @@
-// PROMPT: Router-on-a-stick inter-VLAN routing hairpinned across subinterfaces VLAN 20 and VLAN 40.
-// TOKENS: host, ip, mac, flow, vlan, pcp, tcp, syn, srcport, dstport, wait, us, ack, psh, payload, ms, compile
+// Router-on-a-stick inter-VLAN routing hairpinned across subinterfaces VLAN 20
+// and VLAN 40.
+// Wire profile: 5 frames; 3 IPv4 hosts; VLAN 20,40; PCP 0; TCP; TCP flags
+// SYN/ACK/PSH; dstport 8080,51200; waits 500us, 1ms.
+// Wireshark: vlan.id == 20 || vlan.id == 40
 
-// INSTRUCTION: Define engineering workstation on VLAN 20.
 host eng_client {
     ip 10.20.0.55
     mac 00:50:56:80:20:55
 }
 
-// INSTRUCTION: Define one-armed router trunk interface handling inter-VLAN forwarding.
 host stick_router {
     ip 10.20.0.1
     mac 00:00:0c:07:ac:14
 }
 
-// INSTRUCTION: Define internal application server on VLAN 40.
 host app_server_v40 {
     ip 10.40.0.80
     mac 00:50:56:80:40:80
 }
 
-// INSTRUCTION: Define hairpinned inter-VLAN TCP flow entering on VLAN 20 and exiting on VLAN 40.
 flow router_on_a_stick(cli, rtr, srv) {
-    cli -> rtr vlan 20 pcp 0 tcp syn srcport 51200 dstport 8080
+    cli -> rtr vlan 20 pcp 0 tcp syn srcport 51200 dstport 8080 wait 500us
     rtr -> srv vlan 40 pcp 0 tcp syn srcport 51200 dstport 8080 wait 500us
     srv -> rtr vlan 40 pcp 0 tcp syn ack srcport 8080 dstport 51200 wait 500us
-    rtr -> cli vlan 20 pcp 0 tcp syn ack srcport 8080 dstport 51200 wait 500us
-    cli -> rtr vlan 20 pcp 0 tcp psh ack srcport 51200 dstport 8080 payload "GET /status HTTP/1.1\r\n\r\n" wait 1ms
+    rtr -> cli vlan 20 pcp 0 tcp syn ack srcport 8080 dstport 51200 wait 1ms
+    cli -> rtr vlan 20 pcp 0 tcp psh ack srcport 51200 dstport 8080 payload "GET /status HTTP/1.1\r\n\r\n"
 }
 
-// INSTRUCTION: Compile block executing router-on-a-stick inter-VLAN hairpin flow.
 compile {
     router_on_a_stick(eng_client, stick_router, app_server_v40)
 }

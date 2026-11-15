@@ -1,19 +1,21 @@
-// PROMPT: Create a Memcached cache miss and read-through population pattern (GET miss -> SET -> GET hit).
-// TOKENS: host, ip, mac, flow, s, memcached, get, key, opaque, wait, ms, cmd, set, exptime, cas, payload, compile
+// Memcached cache miss and read-through population pattern (GET miss -> SET
+// -> GET hit).
+// Wireshark: memcache || tcp.port == 11211
 
-// INSTRUCTION: Define the catalog service implementing a read-through cache pattern.
+// Catalog service implementing a read-through cache pattern.
 host catalog_svc {
     ip 10.42.5.25
     mac 00:15:5d:42:05:19
 }
 
-// INSTRUCTION: Define the Memcached cache node.
+// Memcached cache node.
 host catalog_cache {
     ip 10.42.5.10
     mac 00:15:5d:42:05:0a
 }
 
-// INSTRUCTION: Experience a cache miss on GET, populate the key with SET after DB lookup, and verify the subsequent GET hit.
+// Experience a cache miss on GET, populate the key with SET after DB lookup,
+// and verify the subsequent GET hit.
 flow read_through_cache_miss(c, s) {
     c -> s memcached get key "product:price:7730" opaque 1 wait 1ms
     c <- s memcached cmd "end" key "product:price:7730" opaque 1 wait 12ms
@@ -23,7 +25,6 @@ flow read_through_cache_miss(c, s) {
     c <- s memcached get key "product:price:7730" opaque 3 cas 100 payload "2999"
 }
 
-// INSTRUCTION: Compile the Memcached cache-miss and read-through population trace into a PCAP file.
 compile {
     read_through_cache_miss(catalog_svc, catalog_cache)
 }

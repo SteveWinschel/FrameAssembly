@@ -14,7 +14,7 @@ use alloc::vec::Vec;
 use core::net::IpAddr;
 
 use winnow::ModalResult as PResult;
-use winnow::combinator::{alt, cut_err, opt};
+use winnow::combinator::{alt, cut_err};
 use winnow::prelude::*;
 use winnow::token::any;
 
@@ -22,8 +22,8 @@ use crate::ast::*;
 use crate::lexer::Token;
 
 use super::{
-    Stream, l2, l3, l4, l7, parse_hex_payload, parse_mac, parse_string_lit, parse_u8, parse_u16,
-    parse_u32, snmp, tag,
+    Stream, l2, l3, l4, l7, parse_hex_payload, parse_mac, parse_u8, parse_u16, parse_u32, snmp,
+    tag,
 };
 
 /// Internal field representation parsed from a frame statement.
@@ -39,8 +39,8 @@ pub(crate) enum ParsedField<'a> {
     AckNum(u32, (usize, usize)),
     /// TCP window size.
     Win(u16, (usize, usize)),
-    /// Decoded string payload.
-    Payload(String, (usize, usize)),
+    /// Decoded string payload and raw wire octets.
+    Payload(String, Vec<u8>, (usize, usize)),
     /// Raw binary hex payload.
     HexPayload(Vec<u8>, (usize, usize)),
     /// Community string.
@@ -369,9 +369,10 @@ pub(crate) enum ParsedField<'a> {
     L7Header(&'a str, &'a str, (usize, usize)),
 }
 
-/// Parses a `WAIT <u32><unit>` modifier.
+/// Parses a `wait <u32><unit>` modifier with checked nanosecond scaling.
 pub(crate) fn parse_wait<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
     let (_, wait_kw_span) = tag(Token::Wait).parse_next(input)?;
+    let num_saved = *input;
     let val = cut_err(parse_u32).parse_next(input)?;
     let suffix = cut_err(alt((
         tag(Token::Ns).value(1_u64),
@@ -382,21 +383,78 @@ pub(crate) fn parse_wait<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedFi
     )))
     .parse_next(input)?;
 
+    let Some(total_ns) = (val as u64).checked_mul(suffix) else {
+        *input = num_saved;
+        return Err(winnow::error::ErrMode::Cut(
+            winnow::error::ContextError::new(),
+        ));
+    };
+
     let end_offset = if let Some(last_tok) = input.first() {
         last_tok.1.start
     } else {
         wait_kw_span.end
     };
     Ok(ParsedField::Wait(
-        val as u64 * suffix,
+        total_ns,
         (wait_kw_span.start, end_offset - wait_kw_span.start),
     ))
 }
 
-/// Parses a `PAYLOAD <string>` modifier.
+/// Parses a `qinq [<outer_vid>]` modifier, requiring a valid `u16` when a numeric argument is given.
+fn parse_qinq_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
+    let (_, s) = tag(Token::Qinq).parse_next(input)?;
+    let v = if input
+        .first()
+        .is_some_and(|(t, _, _)| matches!(t, Token::Number(_)))
+    {
+        cut_err(parse_u16).parse_next(input)?
+    } else {
+        1
+    };
+    Ok(ParsedField::Qinq(v, (s.start, s.end - s.start)))
+}
+
+/// Parses a `vlan [<vid>]` modifier, requiring a valid `u32` when a numeric argument is given.
+fn parse_vlan_tag_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
+    let (_, s) = tag(Token::Vlan).parse_next(input)?;
+    let v = if input
+        .first()
+        .is_some_and(|(t, _, _)| matches!(t, Token::Number(_)))
+    {
+        cut_err(parse_u32).parse_next(input)?
+    } else {
+        1
+    };
+    Ok(ParsedField::Vlan(v, (s.start, s.end - s.start)))
+}
+
+/// Parses an `mpls [<label>]` modifier, requiring a valid `u32` when a numeric argument is given.
+fn parse_mpls_tag_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
+    let (_, s) = tag(Token::Mpls).parse_next(input)?;
+    let v = if input
+        .first()
+        .is_some_and(|(t, _, _)| matches!(t, Token::Number(_)))
+    {
+        cut_err(parse_u32).parse_next(input)?
+    } else {
+        0
+    };
+    Ok(ParsedField::Mpls(v, (s.start, s.end - s.start)))
+}
+
+/// Parses a `PAYLOAD <string>` modifier into both UTF-8 text and raw byte escapes.
 pub(crate) fn parse_payload<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
-    let ((_, s), v) = (tag(Token::Payload), cut_err(parse_string_lit)).parse_next(input)?;
-    Ok(ParsedField::Payload(v, (s.start, s.end - s.start)))
+    let ((_, s), raw) = (tag(Token::Payload), cut_err(super::parse_raw_string_lit)).parse_next(input)?;
+    let v_str = super::unescape_string(raw)
+        .map_err(|_| winnow::error::ErrMode::Cut(winnow::error::ContextError::new()))?;
+    let v_bytes = super::ident::unescape_bytes(raw)
+        .map_err(|_| winnow::error::ErrMode::Cut(winnow::error::ContextError::new()))?;
+    Ok(ParsedField::Payload(
+        v_str,
+        v_bytes,
+        (s.start, s.end - s.start),
+    ))
 }
 
 /// Parses a `HEXPAYLOAD <string>` modifier.
@@ -421,6 +479,22 @@ pub(crate) fn parse_universal_field<'i, 'a>(
             winnow::error::ContextError::new(),
         ));
     }
+    // For TACACS+, `seq <u8>` after `tacacs` is the RFC 8907 header sequence number, whereas `seq` before `tacacs` is TCP `seq`.
+    if matches!(current_protocol, Some(Protocol::Tacacs))
+        && let Some((Token::Seq, _, _)) = input.first()
+    {
+        return Err(winnow::error::ErrMode::Backtrack(
+            winnow::error::ContextError::new(),
+        ));
+    }
+    // For IKEv2, `nextheader <u8>` after `ikev2` aliases `nextpayload <u8>`.
+    if matches!(current_protocol, Some(Protocol::Ikev2))
+        && let Some((Token::NextHeader, _, _)) = input.first()
+    {
+        return Err(winnow::error::ErrMode::Backtrack(
+            winnow::error::ContextError::new(),
+        ));
+    }
 
     alt((
         alt((
@@ -433,20 +507,17 @@ pub(crate) fn parse_universal_field<'i, 'a>(
                 .map(|((_, s), v)| ParsedField::DstMac(v, (s.start, s.end - s.start))),
             (tag(Token::EtherType), cut_err(parse_u16))
                 .map(|((_, s), v)| ParsedField::EtherType(v, (s.start, s.end - s.start))),
-            (tag(Token::Vlan), opt(parse_u32))
-                .map(|((_, s), v)| ParsedField::Vlan(v.unwrap_or(1), (s.start, s.end - s.start))),
+            parse_vlan_tag_field,
             (tag(Token::Pcp), cut_err(parse_u8))
                 .map(|((_, s), v)| ParsedField::Pcp(v, (s.start, s.end - s.start))),
             (tag(Token::Dei), cut_err(parse_u8))
                 .map(|((_, s), v)| ParsedField::Dei(v, (s.start, s.end - s.start))),
         )),
         alt((
-            (tag(Token::Qinq), opt(parse_u16))
-                .map(|((_, s), v)| ParsedField::Qinq(v.unwrap_or(1), (s.start, s.end - s.start))),
+            parse_qinq_field,
             (tag(Token::InnerVlan), cut_err(parse_u16))
                 .map(|((_, s), v)| ParsedField::InnerVlan(v, (s.start, s.end - s.start))),
-            (tag(Token::Mpls), opt(parse_u32))
-                .map(|((_, s), v)| ParsedField::Mpls(v.unwrap_or(0), (s.start, s.end - s.start))),
+            parse_mpls_tag_field,
             (tag(Token::Exp), cut_err(parse_u8))
                 .map(|((_, s), v)| ParsedField::Exp(v, (s.start, s.end - s.start))),
             (tag(Token::Bos), cut_err(parse_u8))
@@ -637,7 +708,7 @@ pub(crate) fn dispatch_protocol_field<'i, 'a>(
         Protocol::Ipsec => l3::parse_ipsec_field(input),
         Protocol::Esp => alt((l3::parse_esp_field, l3::parse_ipsec_field)).parse_next(input),
         Protocol::Ah => alt((l3::parse_ah_field, l3::parse_ipsec_field)).parse_next(input),
-        Protocol::Ikev2 => l3::parse_ikev2_field(input),
+        Protocol::Ikev2 => l3::parse_ikev2_scoped_field(input),
         Protocol::Wireguard => l3::parse_wireguard_field(input),
         Protocol::Ospf => l3::parse_ospf_field(input),
         Protocol::Bgp => l3::parse_bgp_field(input),

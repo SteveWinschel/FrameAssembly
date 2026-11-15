@@ -1,13 +1,17 @@
-// PROMPT: CoAP Separate Response pattern with empty ACK followed by asynchronous CON response.
-// TOKENS: host, ip, flow, coap, con, code, msgid, token, uripath, payload, ack, wait, ms, compile
+// CoAP Separate Response pattern with empty ACK followed by asynchronous CON
+// response.
+// Wireshark: coap
 
-// INSTRUCTION: Define CoAP client requesting slow cryptographic signing operation.
+// CoAP client requesting slow cryptographic signing operation.
 host sign_client { ip 10.44.1.10 }
 
-// INSTRUCTION: Define hardware security CoAP node.
+// Hardware security CoAP node.
 host hsm_node { ip 10.44.1.2 }
 
-// INSTRUCTION: Client sends CON request; server sends empty ACK, computes result, then sends CON 2.05.
+// Client sends CON request; server sends empty ACK, computes result, then
+// sends CON 2.05. CoAP over UDP 5683: codes 0.02 (POST), 0.00 (Empty), 2.05
+// (Content). Uses post-packet wait timing (50ms, 200ms) to space follow-up
+// packets.
 flow coap_separate_response(c, h) {
     c -> h coap con code "0.02" msgid 1100 token 0x4455 uripath "crypto/sign" payload "digest_01"
     c <- h coap ack code "0.00" msgid 1100 wait 50ms
@@ -15,7 +19,6 @@ flow coap_separate_response(c, h) {
     c -> h coap ack code "0.00" msgid 1101
 }
 
-// INSTRUCTION: Compile the CoAP separate response exchange.
 compile {
     coap_separate_response(sign_client, hsm_node)
 }

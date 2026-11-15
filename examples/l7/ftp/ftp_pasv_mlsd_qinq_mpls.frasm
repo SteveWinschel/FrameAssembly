@@ -1,13 +1,15 @@
-// PROMPT: FTP Passive Mode (PASV) negotiation and MLSD machine-readable directory listing over MPLS and QinQ.
-// TOKENS: host, ip, flow, s, ftp, cmd, qinq, innervlan, mpls, code, reply, compile
+// FTP Passive Mode (PASV) negotiation and MLSD machine-readable directory
+// listing over MPLS and QinQ.
+// Wireshark: ftp
 
-// INSTRUCTION: Define enterprise branch archival client.
 host branch_archiver { ip 10.70.1.25 }
 
-// INSTRUCTION: Define HQ mainframes FTP gateway.
+// HQ mainframes FTP gateway.
 host hq_mainframe_ftp { ip 10.70.0.1 }
 
-// INSTRUCTION: Enter PASV mode and request MLSD directory listing across QinQ and MPLS transport.
+// Enter PASV mode and request MLSD directory listing across QinQ and MPLS
+// transport. Encapsulation and QoS markings: 802.1ad QinQ S-VLAN 400 / C-VLAN
+// 21, MPLS label 2100.
 flow ftp_pasv_mlsd_mpls(c, s) {
     c -> s ftp cmd "PASV" qinq 400 innervlan 21 mpls 2100
     c <- s ftp code 227 reply "Entering Passive Mode (10,70,0,1,195,80)" qinq 400 innervlan 21 mpls 2100
@@ -15,7 +17,6 @@ flow ftp_pasv_mlsd_mpls(c, s) {
     c <- s ftp code 150 reply "Opening ASCII mode data connection for MLSD" qinq 400 innervlan 21 mpls 2100
 }
 
-// INSTRUCTION: Compile the QinQ/MPLS FTP PASV and MLSD flow.
 compile {
     ftp_pasv_mlsd_mpls(branch_archiver, hq_mainframe_ftp)
 }

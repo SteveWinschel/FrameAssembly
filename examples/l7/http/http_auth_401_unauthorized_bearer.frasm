@@ -1,17 +1,16 @@
-// PROMPT: HTTP API authentication challenge with 401 Unauthorized followed by authenticated Bearer token request.
-// TOKENS: host, ip, flow, s, http, method, uri, hosthdr, wait, ms, status, reason, header, compile
+// HTTP API authentication challenge with 401 Unauthorized followed by
+// authenticated Bearer token request.
+// Wireshark: http
 
-// INSTRUCTION: Define API client consumer.
 host api_consumer {
     ip 10.45.12.33
 }
 
-// INSTRUCTION: Define OAuth protected API server host.
 host oauth_resource {
     ip 10.45.12.1
 }
 
-// INSTRUCTION: Exchange unauthenticated probe and retry with valid Bearer token.
+// Exchange unauthenticated probe and retry with valid Bearer token.
 flow http_auth_challenge(c, s) {
     c -> s http method "GET" uri "/secure/data"
            hosthdr "api.enterprise.com" wait 2ms
@@ -24,7 +23,6 @@ flow http_auth_challenge(c, s) {
            header "Content-Type" "application/json"
 }
 
-// INSTRUCTION: Compile 401 authentication challenge flow.
 compile {
     http_auth_challenge(api_consumer, oauth_resource)
 }

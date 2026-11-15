@@ -1,19 +1,21 @@
-// PROMPT: Simulate an SMTP 552 5.3.4 Message size exceeds fixed maximum message size rejection during MAIL FROM SIZE.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, vlan, ack, smtp, code, reply, ehlo, mailfrom, param, quit, compile
+// Simulate an SMTP 552 5.3.4 Message size exceeds fixed maximum message size
+// rejection during MAIL FROM SIZE.
+// Encapsulation and QoS markings: 802.1Q VLAN 25.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Overrides destination port to 25.
+// Wireshark: smtp && vlan.id == 25
 
-// INSTRUCTION: Define the mail sender and size-restricted SMTP relay on VLAN 25.
 host sender_node {
     mac 00:1e:67:10:25:11
     ip 10.25.0.11
 }
 
-// INSTRUCTION: Define the relay_node mail endpoint.
 host relay_node {
     mac 00:1e:67:10:25:01
     ip 10.25.0.1
 }
 
-// INSTRUCTION: Declare a 100MB message in MAIL FROM SIZE and receive 552 5.3.4 size limit exceeded on VLAN 25.
 flow smtp_552_size_exceeded(sender_node, relay_node) {
     sender_node -> relay_node tcp syn srcport 58025 dstport 25 vlan 25
     relay_node -> sender_node tcp syn ack vlan 25
@@ -27,7 +29,6 @@ flow smtp_552_size_exceeded(sender_node, relay_node) {
     relay_node -> sender_node smtp code 221 reply "2.0.0 Bye" vlan 25
 }
 
-// INSTRUCTION: Compile the SMTP 552 message size limit flow.
 compile {
     smtp_552_size_exceeded(sender_node, relay_node)
 }

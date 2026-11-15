@@ -1,24 +1,22 @@
-// PROMPT: sFlow v5 export from a campus PoE access switch reporting wireless AP uplink traffic samples.
-// TOKENS: host, ip, mac, flow, sflow, agentip, subagentid, uptime, samples, vlan, pcp, compile
+// sFlow v5 export from a campus PoE access switch reporting wireless AP
+// uplink traffic samples.
+// Encapsulation and QoS markings: 802.1Q VLAN 25, 802.1p priority 2.
+// Wireshark: sflow && vlan.id == 25
 
-// INSTRUCTION: Define campus PoE access switch agent.
 host poe_access_sw {
     ip 10.25.10.2
     mac 00:19:aa:19:0a:02
 }
 
-// INSTRUCTION: Define campus network management sFlow receiver.
 host campus_nms {
     ip 10.25.0.100
     mac 00:19:aa:19:00:64
 }
 
-// INSTRUCTION: Export sFlow v5 samples tagged on management VLAN 25.
 flow sflow_campus_poe(sw, nms) {
     sw -> nms sflow agentip 10.25.10.2 subagentid 1 uptime 4320000 samples 4 vlan 25 pcp 2
 }
 
-// INSTRUCTION: Compile the campus PoE access switch sFlow export scenario.
 compile {
     sflow_campus_poe(poe_access_sw, campus_nms)
 }

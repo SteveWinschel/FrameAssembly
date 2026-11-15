@@ -1,22 +1,19 @@
-// PROMPT: QinQ double tagging segregating multiple customer inner VLANs within service provider outer VLAN.
-// TOKENS: host, ip, flow, qinq, innervlan, udp, payload, compile
+// QinQ double tagging segregating multiple customer inner VLANs within service
+// provider outer VLAN.
+// Wire profile: 2 frames; 3 IPv4 hosts; QinQ S-VLAN 500 / C-VLAN 10,20; UDP.
+// Wireshark: vlan.id == 500 && vlan.id == 10
 
-// INSTRUCTION: Define service provider ingress PE router.
 host provider_pe { ip 10.254.0.1 }
 
-// INSTRUCTION: Define customer edge router branch 1.
 host customer_branch_1 { ip 10.254.0.10 }
 
-// INSTRUCTION: Define customer edge router branch 2.
 host customer_branch_2 { ip 10.254.0.20 }
 
-// INSTRUCTION: Define multi-tenant QinQ double-tagged encapsulation flow.
 flow multi_tenant_qinq(pe, c1, c2) {
     pe -> c1 qinq 500 innervlan 10 udp payload "cust_tenant_1"
     pe -> c2 qinq 500 innervlan 20 udp payload "cust_tenant_2"
 }
 
-// INSTRUCTION: Compile block executing multi-customer QinQ delivery.
 compile {
     multi_tenant_qinq(provider_pe, customer_branch_1, customer_branch_2)
 }

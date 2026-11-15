@@ -1,18 +1,18 @@
-// PROMPT: Modbus TCP function code 2 reading discrete input binary telemetry from RTU.
-// TOKENS: host, ip, flow, modbus, func, addr, count, unitid, compile
+// Modbus TCP function code 2 reading discrete input binary telemetry from
+// RTU.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define water treatment plant master controller.
+// Water treatment plant master controller.
 host water_plant_hmi { ip 10.100.1.15 }
 
-// INSTRUCTION: Define remote telemetry unit pump controller.
+// Remote telemetry unit pump controller.
 host pump_station_rtu { ip 10.100.1.50 }
 
-// INSTRUCTION: Define read discrete inputs flow.
+// Read discrete inputs flow. Modbus functions: FC 2 Read Discrete Inputs.
 flow read_inputs_flow(hmi, rtu) {
     hmi -> rtu modbus func "readdiscreteinputs" addr 10001 count 8 unitid 2
 }
 
-// INSTRUCTION: Compile read discrete inputs scenario.
 compile {
     read_inputs_flow(water_plant_hmi, pump_station_rtu)
 }

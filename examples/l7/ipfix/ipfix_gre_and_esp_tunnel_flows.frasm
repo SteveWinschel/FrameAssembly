@@ -1,19 +1,20 @@
-// PROMPT: IPFIX telemetry export for GRE (Proto 47) and ESP IPsec (Proto 50) VPN tunnel traffic.
-// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, proto, packets, octets, compile
+// IPFIX telemetry export for GRE (Proto 47) and ESP IPsec (Proto 50) VPN
+// tunnel traffic.
+// Wireshark: cflow || udp.port == 4739
 
-// INSTRUCTION: Define WAN edge router exporter.
+// WAN edge router exporter.
 host wan_edge { ip 192.168.247.1 }
 
-// INSTRUCTION: Define WAN visibility collector.
+// WAN visibility collector.
 host wan_collector { ip 192.168.247.10 }
 
-// INSTRUCTION: Export flow records for GRE tunnel (Proto 47) and IPsec ESP tunnel (Proto 50).
+// Export flow records for GRE tunnel (Proto 47) and IPsec ESP tunnel (Proto
+// 50). Reports IP protocol 47 (GRE), 50 (ESP) flow records to UDP 4739.
 flow ipfix_vpn_tunnels(e, c) {
     e -> c ipfix domainid 500 srcip 198.51.100.1 dstip 203.0.113.1 proto 47 packets 4200 octets 5880000
     e -> c ipfix domainid 500 srcip 198.51.100.2 dstip 203.0.113.2 proto 50 packets 8900 octets 11570000
 }
 
-// INSTRUCTION: Compile the IPFIX GRE and ESP VPN flow telemetry scenario.
 compile {
     ipfix_vpn_tunnels(wan_edge, wan_collector)
 }

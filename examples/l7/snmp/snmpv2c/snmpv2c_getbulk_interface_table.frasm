@@ -1,13 +1,14 @@
-// PROMPT: Simulate an SNMPv2c GETBULK request using NONREPEATERS 1 and MAXREPETITIONS 25 to retrieve sysUpTime and multiple rows of the ifTable in a single round-trip.
-// TOKENS: host, ip, mac, flow, snmp2, getbulk, srcport, dstport, community, reqid, nonrepeaters, maxrepetitions, varbind, nullval, wait, ms, response, timeticks, string, counter32, compile
+// Simulate an SNMPv2c GETBULK request using nonrepeaters 1 and maxrepetitions
+// 25 to retrieve sysUpTime and multiple rows of the ifTable in a single
+// round-trip.
+// MIB objects / traps: 1.3.6.1.2.1.1.3.0 (sysUpTime.0).
+// Timing: pauses 10ms after each marked packet before sending the next frame.
+// Wireshark: snmp || udp.port == 161
 
-// INSTRUCTION: Define a high-throughput telemetry poller with IP 10.122.0.10.
 host bulk_poller { ip 10.122.0.10 mac 00:16:3e:22:00:10 }
 
-// INSTRUCTION: Define a core switch agent with IP 10.122.0.1.
 host core_sw_agent { ip 10.122.0.1 mac 00:16:3e:22:00:01 }
 
-// INSTRUCTION: Define a flow sending an SNMPv2c GETBULK request with NONREPEATERS 1 and MAXREPETITIONS 25 and receiving a bulk RESPONSE.
 flow snmpv2c_getbulk_iftable(poller, agent) {
     poller -> agent snmp2 getbulk srcport 54161 dstport 161 community "bulk_ro"
         reqid 3050 nonrepeaters 1 maxrepetitions 25
@@ -25,7 +26,6 @@ flow snmpv2c_getbulk_iftable(poller, agent) {
         wait 10ms
 }
 
-// INSTRUCTION: Compile block to execute the SNMPv2c GETBULK interface table query.
 compile {
     snmpv2c_getbulk_iftable(bulk_poller, core_sw_agent)
 }

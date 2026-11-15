@@ -1,25 +1,26 @@
-// PROMPT: Simulate a periodic MLD General Querier polling loop and host membership report refresh
-// TOKENS: host, ip, mac, flow, receiver, mld, query, multicastaddr, maxrespdelay, ttl, wait, ms, report, compile
+// Simulate a periodic MLD General Querier polling loop and host membership
+// report refresh.
+// This capture targets IPv6 endpoints, sets TTL 1, executes 4 cycles in
+// compile, and uses post-packet wait gaps (25ms, 50ms) between frames.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define the periodic MLD querier router
 host periodic_querier {
     ip fe80::500:1
     mac 00:50:56:ca:05:01
 }
 
-// INSTRUCTION: Define the persistent IPv6 multicast audio receiver
 host audio_receiver {
     ip fe80::500:22
     mac 00:50:56:ca:05:22
 }
 
-// INSTRUCTION: Send an MLD General Query and receive an MLD Report in each polling interval
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow mld_periodic_poll(querier, receiver) {
     querier -> receiver mld query multicastaddr :: maxrespdelay 5000 ttl 1 wait 25ms
     receiver -> querier mld report multicastaddr ff08::a000:1 maxrespdelay 0 ttl 1 wait 50ms
 }
 
-// INSTRUCTION: Compile four iterations of the periodic MLD query and report loop
+// Emit 4 sequential cycles of mld_periodic_poll.
 compile {
     mld_periodic_poll(periodic_querier, audio_receiver) // cycle 1
     mld_periodic_poll(periodic_querier, audio_receiver) // cycle 2

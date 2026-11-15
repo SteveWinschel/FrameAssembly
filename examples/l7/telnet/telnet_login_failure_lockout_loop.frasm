@@ -1,26 +1,28 @@
-// PROMPT: Simulate a Telnet brute-force login failure sequence returning 'Login incorrect' 3 times in a LOOP before disconnecting.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, telnet, payload, wait, ms, fin, compile
+// Simulate a Telnet brute-force login failure sequence returning 'Login
+// incorrect' 3 times across repeated cycles before disconnecting.
+// Includes explicit TCP 3-way handshake and session teardown with tracked
+// seq/ack counters.
+// Telnet on TCP 23.
+// Overrides destination port to 23.
+// Timing: runs 5 cycles in compile using post-packet waits (20ms).
+// Wireshark: telnet
 
-// INSTRUCTION: Define host endpoint scanner_bot.
 host scanner_bot {
     mac 00:16:3e:00:23:66
     ip 198.51.100.66
 }
 
-// INSTRUCTION: Define host endpoint telnet_honeypot.
 host telnet_honeypot {
     mac 00:16:3e:00:23:01
     ip 203.0.113.23
 }
 
-// INSTRUCTION: Initialize session before loop for telnet_login_failure_loop.
 flow telnet_login_failure_loop_init(scanner_bot, telnet_honeypot) {
     scanner_bot -> telnet_honeypot tcp syn srcport 61023 dstport 23
     telnet_honeypot -> scanner_bot tcp syn ack
     scanner_bot -> telnet_honeypot tcp ack
 }
 
-// INSTRUCTION: Attempt 3 failed credential pairs in a loop followed by server-initiated TCP FIN.
 flow telnet_login_failure_loop(scanner_bot, telnet_honeypot) {
     telnet_honeypot -> scanner_bot telnet payload "login: "
     scanner_bot -> telnet_honeypot telnet payload "admin\r\n"
@@ -29,14 +31,12 @@ flow telnet_login_failure_loop(scanner_bot, telnet_honeypot) {
     telnet_honeypot -> scanner_bot telnet payload "Login incorrect\r\n" wait 20ms
 }
 
-// INSTRUCTION: Complete session teardown after loop for telnet_login_failure_loop.
 flow telnet_login_failure_loop_done(scanner_bot, telnet_honeypot) {
     telnet_honeypot -> scanner_bot tcp fin ack
     scanner_bot -> telnet_honeypot tcp fin ack
     telnet_honeypot -> scanner_bot tcp ack
 }
 
-// INSTRUCTION: Compile the Telnet failed login loop flow.
 compile {
     telnet_login_failure_loop_init(scanner_bot, telnet_honeypot)
     telnet_login_failure_loop(scanner_bot, telnet_honeypot) // cycle 1

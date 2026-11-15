@@ -1,25 +1,24 @@
-// PROMPT: Hospital clinical PACS imaging network on IEEE 802.1Q VLAN 420 transporting priority-marked MRI DICOM slices.
-// TOKENS: host, ip, mac, flow, vlan, pcp, dei, dscp, tcp, psh, ack, srcport, dstport, seq, acknum, win, payload, wait, ms, compile
+// Hospital clinical PACS imaging network on IEEE 802.1Q VLAN 420 transporting
+// priority-marked MRI DICOM slices.
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 420; PCP 4; TCP; TCP flags ACK/PSH;
+// dstport 104,49800; DSCP 34; waits 5ms.
+// Wireshark: vlan.id == 420 && vlan.priority == 4
 
-// INSTRUCTION: Define radiology 3-Tesla MRI scanner modality on clinical imaging VLAN 420.
 host mri_scanner_mod {
     ip 172.19.42.15
     mac 00:19:99:2a:00:0f
 }
 
-// INSTRUCTION: Define hospital PACS radiology archive server on VLAN 420.
 host pacs_archive_srv {
     ip 172.19.42.100
     mac 00:19:99:2a:00:64
 }
 
-// INSTRUCTION: Transfer DICOM C-STORE image block over TCP port 104 on VLAN 420 PCP 4 DEI 0.
 flow vlan_dicom_imaging(mri, pacs) {
     mri -> pacs vlan 420 pcp 4 dei 0 dscp 34 tcp psh ack srcport 49800 dstport 104 seq 1 acknum 1 win 65535 payload "DICOM_C_STORE_RQ_SOP_MR_IMAGE_STORAGE" wait 5ms
     mri <- pacs vlan 420 pcp 4 dei 0 dscp 34 tcp psh ack srcport 104 dstport 49800 seq 1 acknum 38 win 65535 payload "DICOM_C_STORE_RSP_STATUS_0000_SUCCESS"
 }
 
-// INSTRUCTION: Compile the clinical imaging VLAN 420 DICOM storage transfer trace.
 compile {
     vlan_dicom_imaging(mri_scanner_mod, pacs_archive_srv)
 }

@@ -1,24 +1,21 @@
-// PROMPT: sFlow v5 telemetry export from a core route reflector switch sampling inter-AS peering interfaces.
-// TOKENS: host, ip, mac, flow, sflow, agentip, subagentid, uptime, samples, compile
+// sFlow v5 telemetry export from a core route reflector switch sampling
+// inter-AS peering interfaces.
+// Wireshark: sflow
 
-// INSTRUCTION: Define core peering switch running sFlow agent.
 host peering_switch {
     ip 198.51.100.10
     mac 00:21:59:64:00:0a
 }
 
-// INSTRUCTION: Define BGP peering traffic engineering sFlow collector.
 host te_sflow_col {
     ip 198.51.100.240
     mac 00:21:59:64:00:f0
 }
 
-// INSTRUCTION: Export sFlow v5 datagram with explicit agent IP and uptime counters.
 flow sflow_peering_export(sw, col) {
     sw -> col sflow agentip 198.51.100.10 subagentid 10 uptime 17280000 samples 8
 }
 
-// INSTRUCTION: Compile the BGP peering sFlow telemetry export scenario.
 compile {
     sflow_peering_export(peering_switch, te_sflow_col)
 }

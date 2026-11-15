@@ -1,19 +1,19 @@
-// PROMPT: Carrier Ethernet QinQ S-VLAN 2500 C-VLAN 50 transparently tunneling customer IEEE 802.1X EAPOL frames between branch and HQ NAC.
-// TOKENS: host, ip, mac, flow, qinq, innervlan, eapol, version, type, start, wait, ms, eappacket, eapcode, eapid, eapmethod, identity, compile
+// Carrier Ethernet QinQ S-VLAN 2500 C-VLAN 50 transparently tunneling customer
+// IEEE 802.1X EAPOL frames between branch and HQ NAC.
+// Wire profile: 4 frames; 2 IPv4 hosts; QinQ S-VLAN 2500 / C-VLAN 50; EAPOL;
+// waits 5ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define branch office workstation supplicant on C-VLAN 50.
 host branch_dot1x_ws {
     ip 10.50.0.25
     mac 00:21:70:32:00:19
 }
 
-// INSTRUCTION: Define central headquarters NAC authenticator switch reachable across carrier QinQ S-VLAN 2500.
 host hq_nac_switch {
     ip 10.50.0.1
     mac 00:1c:73:32:00:01
 }
 
-// INSTRUCTION: Encapsulate EAPOL-Start, EAP-Identity, and EAP-Success inside QinQ S-VLAN 2500 C-VLAN 50.
 flow eapol_over_qinq_l2pt(ws, nac) {
     ws -> nac qinq 2500 innervlan 50 eapol version 2 type start wait 5ms
     ws <- nac qinq 2500 innervlan 50 eapol version 2 type eappacket eapcode 1 eapid 12 eapmethod 1 wait 5ms
@@ -21,7 +21,6 @@ flow eapol_over_qinq_l2pt(ws, nac) {
     ws <- nac qinq 2500 innervlan 50 eapol version 2 type eappacket eapcode 3 eapid 12 eapmethod 1
 }
 
-// INSTRUCTION: Compile the QinQ S-VLAN 2500 C-VLAN 50 tunneled 802.1X EAPOL trace.
 compile {
     eapol_over_qinq_l2pt(branch_dot1x_ws, hq_nac_switch)
 }

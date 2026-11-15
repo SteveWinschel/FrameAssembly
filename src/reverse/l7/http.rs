@@ -116,6 +116,9 @@ pub(crate) fn dissect_http(payload: &[u8]) -> Option<ProtocolDissection> {
                 let _ = write!(tokens, " header {} {}", quote_web_str(k), quote_web_str(v));
             }
         }
+        if !host_seen {
+            return None;
+        }
     }
 
     let residual_payload = attach_text_body(&mut tokens, "body", body_bytes);

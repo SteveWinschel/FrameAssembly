@@ -1,23 +1,25 @@
-// PROMPT: Enterprise WebSocket event bus traversing carrier QinQ VLAN tags and MPLS label stack.
-// TOKENS: host, ip, flow, s, websocket, text, finbit, maskkey, qinq, innervlan, mpls, payload, wait, ms, compile
+// Enterprise WebSocket event bus traversing carrier QinQ VLAN tags and MPLS
+// label stack.
+// Encapsulation and QoS markings: 802.1ad QinQ outer 100 / inner 20, MPLS
+// label 24001, 24002.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Timing: pauses 8ms after each marked packet before sending the next frame.
+// Wireshark: ((websocket || tcp.port == 80) && vlan) && mpls
 
-// INSTRUCTION: Define branch office event producer endpoint.
 host branch_producer {
     ip 10.77.12.100
 }
 
-// INSTRUCTION: Define headquarters event broker endpoint.
 host hq_broker {
     ip 10.77.12.1
 }
 
-// INSTRUCTION: Define QinQ and MPLS encapsulated WebSocket event publication and acknowledgment.
 flow ws_carrier_bus(c, s) {
     c -> s websocket text finbit 1 maskkey 0xaabbccdd qinq 100 innervlan 20 mpls 24001 payload "EVENT:DOOR_OPEN" wait 8ms
     c <- s websocket text finbit 1 qinq 100 innervlan 20 mpls 24002 payload "ACK:DOOR_OPEN"
 }
 
-// INSTRUCTION: Compile the QinQ MPLS carrier WebSocket scenario.
 compile {
     ws_carrier_bus(branch_producer, hq_broker)
 }

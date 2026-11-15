@@ -1,22 +1,21 @@
-// PROMPT: 5G F1-C control plane interface between O-RAN Central Unit (O-CU-CP) and Distributed Unit (O-DU) over SCTP port 38472 (PPID 62).
-// TOKENS: host, ip, flow, sctp, chunk, init, vtag, srcport, dstport, initack, wait, ms, cookieecho, payload, cookieack, data, stream, ssn, ppid, compile
+// 5G F1-C control plane interface between O-RAN Central Unit (O-CU-CP) and
+// Distributed Unit (O-DU) over SCTP port 38472 (PPID 62).
+// Wire profile: 5 frames; 2 IPv4 hosts; SCTP; SCTP
+// COOKIEACK/COOKIEECHO/DATA/INIT; PPID 62; dstport 38472; waits 1ms.
+// Wireshark: sctp && sctp.data_ppid == 62
 
-// INSTRUCTION: Define O-RAN Distributed Unit (O-DU) F1-C endpoint.
 host oran_du_f1c { ip 10.185.38.10 }
 
-// INSTRUCTION: Define O-RAN Central Unit Control Plane (O-CU-CP) F1-C endpoint.
 host oran_cucp_f1c { ip 10.185.38.1 }
 
-// INSTRUCTION: Define 3GPP TS 38.472 F1-C SCTP association and F1 Setup Request (PPID 62).
 flow sctp_oran_f1c_setup(du, cucp) {
-    du -> cucp sctp chunk init vtag 0 srcport 38472 dstport 38472
+    du -> cucp sctp chunk init vtag 0 srcport 38472 dstport 38472 wait 1ms
     du <- cucp sctp chunk initack vtag 384720 srcport 38472 dstport 38472 wait 1ms
     du -> cucp sctp chunk cookieecho vtag 384720 srcport 38472 dstport 38472 payload "f1c_cookie" wait 1ms
     du <- cucp sctp chunk cookieack vtag 384720 srcport 38472 dstport 38472 wait 1ms
-    du -> cucp sctp chunk data vtag 384720 stream 0 ssn 0 ppid 62 srcport 38472 dstport 38472 payload "f1ap_f1_setup_request_gnb_du_id_7" wait 1ms
+    du -> cucp sctp chunk data vtag 384720 stream 0 ssn 0 ppid 62 srcport 38472 dstport 38472 payload "f1ap_f1_setup_request_gnb_du_id_7"
 }
 
-// INSTRUCTION: Compile block executing O-RAN F1-C SCTP control plane setup.
 compile {
     sctp_oran_f1c_setup(oran_du_f1c, oran_cucp_f1c)
 }

@@ -1,18 +1,19 @@
-// PROMPT: IPFIX flow records exported over IPv6 transport reporting streaming multicast metrics.
-// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, proto, packets, octets, compile
+// IPFIX flow records exported over IPv6 transport reporting streaming
+// multicast metrics.
+// Wireshark: cflow || udp.port == 4739
 
-// INSTRUCTION: Define IPv6 streaming video distribution router.
+// IPv6 streaming video distribution router.
 host video_headend { ip 2001:db8:feed::1 }
 
-// INSTRUCTION: Define IPv6 telemetry collector node.
+// IPv6 telemetry collector node.
 host v6_collector { ip 2001:db8:feed::250 }
 
-// INSTRUCTION: Define IPv6 IPFIX export flow.
+// IPv6 IPFIX export flow. Reports IP protocol 17 (UDP) flow records to UDP
+// 4739.
 flow ipfix_multicast_metrics(vhead, col) {
     vhead -> col ipfix domainid 601 srcip 198.51.100.10 dstip 233.252.0.1 proto 17 packets 98500 octets 128400000
 }
 
-// INSTRUCTION: Compile IPv6 multicast telemetry scenario.
 compile {
     ipfix_multicast_metrics(video_headend, v6_collector)
 }

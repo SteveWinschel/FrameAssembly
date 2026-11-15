@@ -1,25 +1,23 @@
-// PROMPT: LACP port entering Defaulted state (0x45 = 69) when partner LACPDUs cease arriving due to unidirectional fiber fault.
-// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, compile
+// LACP port entering Defaulted state (0x45 = 69) when partner LACPDUs cease
+// arriving due to unidirectional fiber fault.
+// Wire profile: 2 frames; 2 IPv4 hosts; LACP; waits 10ms.
+// Wireshark: lacp
 
-// INSTRUCTION: Define local switch port setting Defaulted bit (0x40) and clearing InSync/Collecting/Distributing.
 host local_defaulted_sw {
     ip 10.45.0.1
     mac 00:1c:73:2d:00:01
 }
 
-// INSTRUCTION: Define remote switch port whose Tx fiber is broken.
 host remote_silent_sw {
     ip 10.45.0.2
     mac 00:1c:73:2d:00:02
 }
 
-// INSTRUCTION: Transmit LACPDU with ACTOR_STATE 69 (Active, Aggregatable, Defaulted) and zeroed partner MAC.
 flow lacp_defaulted_transition(loc, rem) {
     loc -> rem lacp actorsys 00:1c:73:2d:00:01 actorkey 45 actorport 5 actorstate 69 partnersys 00:00:00:00:00:00 partnerkey 0 partnerport 0 partnerstate 64 wait 10ms
     loc -> rem lacp actorsys 00:1c:73:2d:00:01 actorkey 45 actorport 5 actorstate 69 partnersys 00:00:00:00:00:00 partnerkey 0 partnerport 0 partnerstate 64
 }
 
-// INSTRUCTION: Compile the LACP Defaulted state transition trace.
 compile {
     lacp_defaulted_transition(local_defaulted_sw, remote_silent_sw)
 }

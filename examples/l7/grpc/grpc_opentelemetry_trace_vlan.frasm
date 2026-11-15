@@ -1,19 +1,20 @@
-// PROMPT: OpenTelemetry (OTLP/gRPC) trace span export over VLAN 400 with binary protobuf HEXPAYLOAD.
-// TOKENS: host, ip, flow, s, grpc, service, method, vlan, pcp, dscp, hexpayload, grpcstatus, compile
+// OpenTelemetry (OTLP/gRPC) trace span export over VLAN 400 with binary
+// protobuf HEXPAYLOAD.
+// Wireshark: grpc || http2
 
-// INSTRUCTION: Define instrumented microservice host.
 host traced_service { ip 10.40.40.12 }
 
-// INSTRUCTION: Define OpenTelemetry Collector gRPC receiver.
+// OpenTelemetry Collector gRPC receiver.
 host otel_collector { ip 10.40.40.1 }
 
-// INSTRUCTION: Export trace spans via TraceService/Export on VLAN 400 with binary protobuf bytes.
+// Export trace spans via TraceService/Export on VLAN 400 with binary protobuf
+// bytes. Encapsulation and QoS markings: 802.1Q VLAN 400, DSCP 18. gRPC
+// status codes observed: 0 (OK) on TCP port 50051.
 flow grpc_otlp_export(s, c) {
     s -> c grpc service "opentelemetry.proto.collector.trace.v1.TraceService" method "Export" vlan 400 pcp 2 dscp 18 hexpayload "0a120a105b9e8c7d"
     s <- c grpc service "opentelemetry.proto.collector.trace.v1.TraceService" method "Export" grpcstatus 0 vlan 400 pcp 2 dscp 18
 }
 
-// INSTRUCTION: Compile the OpenTelemetry OTLP/gRPC trace export flow.
 compile {
     grpc_otlp_export(traced_service, otel_collector)
 }

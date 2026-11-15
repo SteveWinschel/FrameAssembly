@@ -1,27 +1,26 @@
-// PROMPT: Multi-region disaster recovery database replication combining WireGuard inter-region VPN mesh, PostgreSQL WAL streaming, MySQL binlog replication, and Redis cache invalidation.
-// TOKENS: host, ip, flow, wireguard, initiation, sender, receiver, data, counter, wait, ms, postgres, sql, commandcomplete, mysql, ok, redis, cmd, args, compile
+// Multi-region disaster recovery database replication combining WireGuard inter-
+// region VPN mesh, PostgreSQL WAL streaming, MySQL binlog replication, and Redis
+// cache invalidation.
+// Wire profile: 7 frames; 3 IPv4 hosts; Redis, MySQL, PostgreSQL, WireGuard;
+// waits 1ms.
+// Wireshark: resp || mysql || pgsql || wg
 
-// INSTRUCTION: Define Region-A (US-East) primary database and WireGuard gateway node.
 host region_a_primary { ip 10.10.1.10 }
 
-// INSTRUCTION: Define Region-B (US-West) disaster recovery standby database node.
 host region_b_standby { ip 10.20.1.10 }
 
-// INSTRUCTION: Define Region-B global Redis cache invalidation coordinator.
 host region_b_redis_coord { ip 10.20.1.50 }
 
-// INSTRUCTION: Define WireGuard tunnel setup, PostgreSQL synchronous WAL commit, MySQL GTID replication, and Redis cache purge.
 flow multi_region_dr_replication(reg_a, reg_b, cache_b) {
-    reg_a -> reg_b wireguard initiation sender 0x3001 receiver 0
+    reg_a -> reg_b wireguard initiation sender 0x3001 receiver 0 wait 1ms
     reg_a <- reg_b wireguard data sender 0x4001 receiver 0x3001 counter 1 wait 1ms
     reg_a -> reg_b postgres sql "START_REPLICATION SLOT dr_west_slot LOGICAL 0/16B3748;" wait 1ms
     reg_a <- reg_b postgres commandcomplete wait 1ms
     reg_a -> reg_b mysql sql "BINLOG_DUMP_GTID pos=491820 table=global_accounts" wait 1ms
     reg_a <- reg_b mysql ok wait 1ms
-    reg_b -> cache_b redis cmd "PUBLISH" args "cache:invalidate:global_accounts acct_99201" wait 1ms
+    reg_b -> cache_b redis cmd "PUBLISH" args "cache:invalidate:global_accounts acct_99201"
 }
 
-// INSTRUCTION: Compile block executing multi-region WireGuard, PostgreSQL, MySQL, and Redis DR topology.
 compile {
     multi_region_dr_replication(region_a_primary, region_b_standby, region_b_redis_coord)
 }

@@ -1,19 +1,20 @@
-// PROMPT: DNP3 Unsolicited Response from RTU outstation reporting binary input change event and master CONFIRM.
-// TOKENS: host, ip, flow, m, dnp3, func, src, dst, group, variation, compile
+// DNP3 Unsolicited Response from RTU outstation reporting binary input change
+// event and master CONFIRM.
+// Wireshark: dnp3
 
-// INSTRUCTION: Define regional control center master.
+// Regional control center master.
 host control_center { ip 10.180.0.5 }
 
-// INSTRUCTION: Define pipeline pressure alarm outstation.
+// Pipeline pressure alarm outstation.
 host pressure_rtu { ip 10.180.0.88 }
 
-// INSTRUCTION: Outstation pushes Unsolicited Response (Group 2 Var 2); master acknowledges with Confirm.
+// Outstation pushes Unsolicited Response (Group 2 Var 2); master acknowledges
+// with Confirm. DNP3 data groups: Group 2 (Binary Input Event).
 flow dnp3_unsolicited_alarm(m, o) {
     m <- o dnp3 func "unsolicitedresponse" src 88 dst 5 group 2 variation 2
     m -> o dnp3 func "confirm" src 5 dst 88
 }
 
-// INSTRUCTION: Compile the DNP3 unsolicited event alarm exchange.
 compile {
     dnp3_unsolicited_alarm(control_center, pressure_rtu)
 }

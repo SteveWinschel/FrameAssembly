@@ -1,18 +1,15 @@
-// PROMPT: SIP 200 OK response accepting call setup with media session description body.
-// TOKENS: host, ip, flow, s, sip, status, reason, contenttype, body, compile
+// SIP 200 OK response accepting call setup with media session description
+// body.
+// Wireshark: sip
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow sip_ok(c, s) {
     c <- s sip status 200 reason "OK" contenttype "application/sdp" body "v=0\r\no=bob 2890844526 2890844526 IN IP4 192.168.1.1"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     sip_ok(client, server)
 }

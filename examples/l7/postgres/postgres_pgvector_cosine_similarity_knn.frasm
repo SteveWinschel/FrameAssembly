@@ -1,19 +1,18 @@
-// PROMPT: PostgreSQL pgvector HNSW index nearest-neighbor cosine distance (<=>) query for RAG embeddings.
-// TOKENS: host, ip, mac, flow, s, postgres, sql, commandcomplete, wait, ms, payload, readyforquery, compile
+// PostgreSQL pgvector HNSW index nearest-neighbor cosine distance (<=>) query
+// for RAG embeddings.
+// Timing: uses post-packet wait delays (1ms, 2ms) between frames.
+// Wireshark: pgsql
 
-// INSTRUCTION: Define the AI Retrieval-Augmented Generation (RAG) orchestrator.
 host rag_service {
     ip 10.95.100.50
     mac 00:1a:2b:95:a0:50
 }
 
-// INSTRUCTION: Define the pgvector PostgreSQL database server.
 host vector_pg {
     ip 10.95.100.1
     mac 00:1a:2b:95:a0:01
 }
 
-// INSTRUCTION: Set hnsw.ef_search and query top-3 nearest document chunks by cosine distance.
 flow pg_vector_knn(c, s) {
     c -> s postgres sql "SET LOCAL hnsw.ef_search = 100"
     c <- s postgres commandcomplete wait 1ms
@@ -22,7 +21,6 @@ flow pg_vector_knn(c, s) {
     c <- s postgres readyforquery
 }
 
-// INSTRUCTION: Compile the PostgreSQL pgvector similarity search flow.
 compile {
     pg_vector_knn(rag_service, vector_pg)
 }

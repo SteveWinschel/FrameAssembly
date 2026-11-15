@@ -1,25 +1,25 @@
-// PROMPT: Model an enterprise NTPv4 server rejecting an unauthorized subnet client with Stratum 0 Kiss-o-Death REFID DENY.
-// TOKENS: host, ip, mac, flow, s, ntp, li, vn, mode, stratum, poll, precision, txtimestamp, wait, ms, refid, compile
+// Enterprise NTPv4 server rejecting an unauthorized subnet client with
+// Stratum 0 Kiss-o-Death REFID DENY.
+// Wireshark: ntp
 
-// INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
+// NTP client or peer endpoint initiating time synchronization.
 host ntp_client {
     ip 10.99.123.88
     mac 00:1b:21:7b:01:0a
 }
 
-// INSTRUCTION: Define the NTP reference server or peer endpoint.
+// NTP reference server or peer endpoint.
 host ntp_server {
     ip 10.0.123.1
     mac 00:1b:21:7b:01:01
 }
 
-// INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
+// NTPv4 modes on UDP 123: 3 (Client), 4 (Server).
 flow ntp_scenario_flow(c, s) {
     c -> s ntp li 0 vn 4 mode 3 stratum 0 poll 6 precision -18 txtimestamp 0xe9b4c50000000000 wait 2ms
     c <- s ntp li 3 vn 4 mode 4 stratum 0 poll 6 precision -20 refid "DENY" txtimestamp 0x0000000000000000
 }
 
-// INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
 compile {
     ntp_scenario_flow(ntp_client, ntp_server)
 }

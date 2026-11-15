@@ -1,18 +1,19 @@
-// PROMPT: Consecutive IKEv2 INFORMATIONAL DPD heartbeats inside COMPILE LOOP to test tunnel state.
-// TOKENS: host, ip, flow, ikev2, initiatorspi, responderspi, informational, msgid, wait, ms, compile
+// Consecutive IKEv2 INFORMATIONAL DPD heartbeats across repeated cycles in
+// compile to test tunnel state.
+// This capture executes 3 cycles in compile and uses post-packet wait gaps
+// (50ms) between frames.
+// Wireshark: isakmp
 
-// INSTRUCTION: Define remote monitoring VPN peer.
 host probe_vpn_peer { ip 10.75.0.10 }
 
-// INSTRUCTION: Define central VPN concentrator.
 host central_concentrator { ip 10.75.0.1 }
 
-// INSTRUCTION: Define DPD keepalive probe flow with 50ms pause.
+// Packet sequence (1 frame); wait pauses after a packet before the next.
 flow ikev2_loop_dpd(peer, conc) {
     peer -> conc ikev2 initiatorspi 1212343456567878 responderspi 8787656543432121 informational msgid 100 wait 50ms
 }
 
-// INSTRUCTION: Compile loop executing 3 periodic DPD keepalive transmissions.
+// Emit 3 sequential cycles of ikev2_loop_dpd.
 compile {
     ikev2_loop_dpd(probe_vpn_peer, central_concentrator) // cycle 1
     ikev2_loop_dpd(probe_vpn_peer, central_concentrator) // cycle 2

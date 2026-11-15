@@ -1,19 +1,16 @@
-// PROMPT: NTP client time synchronization request and server timestamp response.
-// TOKENS: host, ip, flow, s, ntp, mode, vn, stratum, poll, compile
+// NTP client time synchronization request and server timestamp response.
+// Wireshark: ntp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
+// NTPv4 modes on UDP 123: 3 (Client), 4 (Server).
 flow ntp_sync(c, s) {
     c -> s ntp mode 3 vn 4 stratum 0 poll 6
     c <- s ntp mode 4 vn 4 stratum 2 poll 6
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ntp_sync(client, server)
 }

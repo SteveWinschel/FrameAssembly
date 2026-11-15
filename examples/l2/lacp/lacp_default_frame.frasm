@@ -1,0 +1,13 @@
+// Minimal two-block IEEE 802.3ad / 802.1AX LACPDU starter using MAC-only ports.
+// Emits a standard 110-byte Slow Protocols (0x8809) frame to 01:80:c2:00:00:02
+// containing Actor, Partner, Collector, and Terminator TLVs with state 0x3d.
+// Inspect the TLV fields with `frameassembly show lacp_default_frame.frasm` or
+// write a capture via `frameassembly lacp_default_frame.frasm`.
+// Wireshark: lacp
+
+host switch_a { mac 00:11:22:44:55:01 }
+host switch_b { mac 00:11:22:44:55:02 }
+
+compile {
+    switch_a -> switch_b lacp
+}

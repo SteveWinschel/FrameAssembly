@@ -1,18 +1,12 @@
-// PROMPT: Minimal zero-keyword TCP frame emitting an RFC 793 default SYN segment to destination port 80.
-// TOKENS: host, ip, flow, tcp, compile
+// Minimal TCP frame emitting an RFC 793 default SYN segment to destination port 80.
+// Uses direct two-block host and compile syntax with automatic IPv4/TCP checksums,
+// initial seq 1000, and srcport 12345 ready for quick firewall or lab checks.
+// Preview with `frameassembly show tcp_minimal_zero_keyword_default.frasm`.
+// Wireshark: tcp.flags.syn == 1 && tcp.flags.ack == 0
 
-// INSTRUCTION: Define client host initiating default TCP connection.
 host tcp_min_client { ip 10.6.0.10 }
-
-// INSTRUCTION: Define server host receiving default TCP connection.
 host tcp_min_server { ip 10.6.0.80 }
 
-// INSTRUCTION: Define zero-argument TCP statement relying on smart compiler defaults.
-flow tcp_minimal_default(cli, srv) {
-    cli -> srv tcp
-}
-
-// INSTRUCTION: Compile block executing minimal default TCP frame generation.
 compile {
-    tcp_minimal_default(tcp_min_client, tcp_min_server)
+    tcp_min_client -> tcp_min_server tcp
 }

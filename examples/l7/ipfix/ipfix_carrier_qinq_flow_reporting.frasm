@@ -1,18 +1,19 @@
-// PROMPT: Carrier Ethernet QinQ stacked VLAN underlay transporting IPFIX flow datagrams.
-// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, proto, packets, octets, vlan, compile
+// Carrier Ethernet QinQ stacked VLAN underlay transporting IPFIX flow
+// datagrams.
+// Wireshark: cflow || udp.port == 4739
 
-// INSTRUCTION: Define broadband network gateway exporter.
+// Broadband network gateway exporter.
 host bng_router { ip 100.64.1.1 }
 
-// INSTRUCTION: Define carrier wholesale telemetry collector.
+// Carrier wholesale telemetry collector.
 host carrier_noc { ip 100.64.1.200 }
 
-// INSTRUCTION: Define QinQ encapsulated IPFIX export flow.
+// QinQ encapsulated IPFIX export flow. Encapsulation and QoS markings: 802.1Q
+// VLAN 100. Reports IP protocol 17 (UDP) flow records to UDP 4739.
 flow qinq_ipfix_stream(bng, noc) {
     bng -> noc ipfix domainid 8000 srcip 100.64.10.5 dstip 100.64.20.9 proto 17 packets 450 octets 57600 vlan 100
 }
 
-// INSTRUCTION: Compile carrier QinQ flow export scenario.
 compile {
     qinq_ipfix_stream(bng_router, carrier_noc)
 }

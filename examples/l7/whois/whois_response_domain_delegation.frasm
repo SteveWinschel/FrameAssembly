@@ -1,13 +1,14 @@
-// PROMPT: WHOIS server response payload returning domain delegation registrar records.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// WHOIS server response payload returning domain delegation registrar
+// records.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define domain registrar inspector.
 host registrar_insp { ip 10.85.12.4 }
 
-// INSTRUCTION: Define authoritative registry database.
 host registry_db { ip 198.51.100.75 }
 
-// INSTRUCTION: Define delegation response flow.
 flow whois_delegation_flow(c, s) {
     c -> s whois query domain "hybrid-cloud-networks.com"
     c <- s whois response
@@ -15,7 +16,6 @@ flow whois_delegation_flow(c, s) {
         registrar "VeriSign Global Registry"
 }
 
-// INSTRUCTION: Compile block executing delegation verification.
 compile {
     whois_delegation_flow(registrar_insp, registry_db)
 }

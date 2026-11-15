@@ -1,19 +1,20 @@
-// PROMPT: IEEE 802.1ad QinQ double-tagged IPsec AH traffic across a metro Ethernet provider.
-// TOKENS: host, ip, flow, ah, spi, seq, icv, qinq, innervlan, compile
+// IEEE 802.1ad QinQ double-tagged IPsec AH traffic across a metro Ethernet
+// provider.
+// This capture wraps frames in QinQ S-VLAN 2000 / C-VLAN 350 and carries SPI
+// 55100/55101.
+// Wireshark: ah
 
-// INSTRUCTION: Define customer edge router at site 1.
 host metro_ce_one { ip 172.20.55.1 }
 
-// INSTRUCTION: Define customer edge router at site 2.
 host metro_ce_two { ip 172.20.55.2 }
 
-// INSTRUCTION: Define QinQ encapsulated AH flow with outer S-VLAN 2000 and inner C-VLAN 350.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ah_qinq_metro_flow(ce1, ce2) {
     ce1 -> ce2 ah spi 55100 seq 42 icv "0102030405060708090a0b0c" qinq 2000 innervlan 350
     ce1 <- ce2 ah spi 55101 seq 42 icv "0c0b0a090807060504030201" qinq 2000 innervlan 350
 }
 
-// INSTRUCTION: Compile the QinQ provider backbone AH exchange.
+// Run ah_qinq_metro_flow(metro_ce_one, metro_ce_two) to generate the capture.
 compile {
     ah_qinq_metro_flow(metro_ce_one, metro_ce_two)
 }

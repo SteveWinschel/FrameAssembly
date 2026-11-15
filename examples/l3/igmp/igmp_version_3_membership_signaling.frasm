@@ -1,19 +1,20 @@
-// PROMPT: RFC 3376 IGMP VERSION 3 membership query and report with group record payload.
-// TOKENS: host, ip, flow, igmp, query, group, maxresp, version, ttl, report, payload, compile
+// RFC 3376 IGMP version 3 membership query and report with group record
+// payload.
+// This capture sets TTL 1 and carries group 232.1.1.100.
+// Wireshark: igmp
 
-// INSTRUCTION: Define IGMPv3 SSM-capable router.
 host igmpv3_ssm_rtr { ip 10.100.33.1 }
 
-// INSTRUCTION: Define IGMPv3 source-specific multicast receiver.
 host igmpv3_ssm_host { ip 10.100.33.77 }
 
-// INSTRUCTION: Define IGMP VERSION 3 query and report for SSM group 232.1.1.100.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow igmp_v3_ssm_flow(rtr, host) {
     rtr -> host igmp query group 232.1.1.100 maxresp 50 version 3 ttl 1
     rtr <- host igmp report group 232.1.1.100 version 3 ttl 1 payload "ALLOW_NEW_SOURCES_10.1.1.5"
 }
 
-// INSTRUCTION: Compile the IGMPv3 SSM membership signaling flow.
+// Run igmp_v3_ssm_flow(igmpv3_ssm_rtr, igmpv3_ssm_host) to generate the
+// capture.
 compile {
     igmp_v3_ssm_flow(igmpv3_ssm_rtr, igmpv3_ssm_host)
 }

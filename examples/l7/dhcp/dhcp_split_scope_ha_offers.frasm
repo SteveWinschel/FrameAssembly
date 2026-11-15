@@ -1,23 +1,23 @@
-// PROMPT: Split-scope high-availability DHCPv4 servers responding with competing DHCPOFFER leases.
-// TOKENS: host, ip, flow, s, dhcp, discover, chaddr, offer, yiaddr, siaddr, leasetime, wait, ms, compile
+// Split-scope high-availability DHCPv4 servers responding with competing
+// DHCPOFFER leases.
+// Wireshark: dhcp
 
-// INSTRUCTION: Define newly connected client workstation.
 host new_client { ip 0.0.0.0 }
 
-// INSTRUCTION: Define primary DHCPv4 server (80% split scope).
+// Primary DHCPv4 server (80% split scope).
 host dhcp_primary { ip 172.22.0.2 }
 
-// INSTRUCTION: Define secondary DHCPv4 server (20% split scope).
+// Secondary DHCPv4 server (20% split scope).
 host dhcp_secondary { ip 172.22.0.3 }
 
-// INSTRUCTION: Client discovers; both primary and secondary servers respond with offers.
+// Client discovers; both primary and secondary servers respond with offers.
+// DHCPv4 BOOTP exchange over UDP ports 68 (client) and 67 (server).
 flow dhcp_ha_split_scope(c, p, s) {
-    c -> p dhcp discover chaddr 52:54:00:12:34:56
-    c <- p dhcp offer chaddr 52:54:00:12:34:56 yiaddr 172.22.1.10 siaddr 172.22.0.2 leasetime 86400 wait 5ms
-    c <- s dhcp offer chaddr 52:54:00:12:34:56 yiaddr 172.22.2.210 siaddr 172.22.0.3 leasetime 86400 wait 25ms
+    c -> p dhcp discover chaddr 52:54:00:12:34:56 wait 5ms
+    c <- p dhcp offer chaddr 52:54:00:12:34:56 yiaddr 172.22.1.10 siaddr 172.22.0.2 leasetime 86400 wait 25ms
+    c <- s dhcp offer chaddr 52:54:00:12:34:56 yiaddr 172.22.2.210 siaddr 172.22.0.3 leasetime 86400
 }
 
-// INSTRUCTION: Compile the high-availability split-scope DHCP scenario.
 compile {
     dhcp_ha_split_scope(new_client, dhcp_primary, dhcp_secondary)
 }

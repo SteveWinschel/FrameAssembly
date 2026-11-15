@@ -1,23 +1,22 @@
-// PROMPT: WebSocket server streaming unmasked binary audio chunks using shorthand BINARY keyword.
-// TOKENS: host, ip, flow, s, websocket, binary, finbit, hexpayload, wait, ms, opcode, compile
+// WebSocket server streaming unmasked binary audio chunks using shorthand
+// BINARY keyword.
+// RFC 6455 WebSocket frames on TCP 80.
+// Timing: pauses 10ms after each marked packet before sending the next frame.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define voice browser client receiving live audio stream.
 host audio_client {
     ip 172.16.88.42
 }
 
-// INSTRUCTION: Define real-time speech synthesis WebSocket server.
 host tts_server {
     ip 172.16.88.10
 }
 
-// INSTRUCTION: Define server-to-client fragmented binary audio stream using BINARY shorthand.
 flow ws_binary_stream(c, s) {
     c <- s websocket binary finbit 0 hexpayload "4f67675300020000" wait 10ms
     c <- s websocket opcode "continuation" finbit 1 hexpayload "ff00ff0011223344"
 }
 
-// INSTRUCTION: Compile the binary audio streaming WebSocket scenario.
 compile {
     ws_binary_stream(audio_client, tts_server)
 }

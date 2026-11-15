@@ -1,13 +1,13 @@
-// PROMPT: STUN binding response populated with server SOFTWARE attribute.
-// TOKENS: host, ip, flow, s, stun, bindingrequest, software, bindingresponse, xormappedaddr, compile
+// STUN binding response populated with server SOFTWARE attribute.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (STUN (RFC
+// 8489), UDP 3478).
+// Wireshark: stun
 
-// INSTRUCTION: Define enterprise teleconference client.
 host conf_client { ip 172.25.1.80 }
 
-// INSTRUCTION: Define Coturn enterprise server.
 host coturn_svr { ip 198.51.100.99 }
 
-// INSTRUCTION: Define Coturn response flow.
 flow stun_coturn_flow(c, s) {
     c -> s stun bindingrequest software "Jitsi-Meet-Client"
     c <- s stun bindingresponse
@@ -15,7 +15,6 @@ flow stun_coturn_flow(c, s) {
         software "Coturn-4.6.2 'dan Eiser'"
 }
 
-// INSTRUCTION: Compile block executing Coturn attribute validation.
 compile {
     stun_coturn_flow(conf_client, coturn_svr)
 }

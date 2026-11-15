@@ -1,13 +1,11 @@
-// PROMPT: Telnet IAC WILL 3 and IAC DO 3 suppress go ahead transmission mode.
-// TOKENS: host, ip, flow, s, telnet, will, do, compile
+// Telnet IAC WILL 3 and IAC DO 3 suppress go ahead transmission mode.
+// Telnet on TCP 23 negotiating option(s): 3 (Suppress Go Ahead).
+// Wireshark: telnet
 
-// INSTRUCTION: Define console workstation.
 host console_ws { ip 10.10.5.20 }
 
-// INSTRUCTION: Define network gateway terminal.
 host gw_term { ip 10.10.5.1 }
 
-// INSTRUCTION: Define suppress go ahead negotiation flow.
 flow telnet_sga_flow(c, s) {
     c -> s telnet will 3
     c <- s telnet do 3
@@ -15,7 +13,6 @@ flow telnet_sga_flow(c, s) {
     c -> s telnet do 3
 }
 
-// INSTRUCTION: Compile block executing SGA negotiation.
 compile {
     telnet_sga_flow(console_ws, gw_term)
 }

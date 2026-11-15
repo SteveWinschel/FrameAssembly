@@ -1,13 +1,14 @@
-// PROMPT: ARIN directory lookup for enterprise private autonomous system registration.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// ARIN directory lookup for enterprise private autonomous system
+// registration.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define North American network auditor.
 host arin_auditor { ip 172.30.2.14 }
 
-// INSTRUCTION: Define ARIN WHOIS database node.
 host arin_whois { ip 199.212.0.43 }
 
-// INSTRUCTION: Define autonomous system organization query flow.
 flow whois_arin_asn_flow(c, s) {
     c -> s whois query domain "AS64512"
     c <- s whois response
@@ -15,7 +16,6 @@ flow whois_arin_asn_flow(c, s) {
         registrar "ARIN"
 }
 
-// INSTRUCTION: Compile block executing ARIN ASN query.
 compile {
     whois_arin_asn_flow(arin_auditor, arin_whois)
 }

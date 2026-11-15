@@ -1,18 +1,19 @@
-// PROMPT: NetFlow record summarizing DNS UDP port 53 query metrics and octet consumption.
-// TOKENS: host, ip, flow, netflow, srcip, dstip, srcport, dstport, proto, packets, octets, compile
+// NetFlow record summarizing DNS UDP port 53 query metrics and octet
+// consumption.
+// Wireshark: cflow || udp.port == 2055 || udp.port == 53
 
-// INSTRUCTION: Define internal DNS resolver router.
+// Internal DNS resolver router.
 host dns_router_node { ip 10.128.0.1 }
 
-// INSTRUCTION: Define network analytics flow receiver.
+// Network analytics flow receiver.
 host analytics_receiver { ip 10.128.0.254 }
 
-// INSTRUCTION: Define DNS volume NetFlow report flow.
+// DNS volume NetFlow report flow. Reports IP protocol 17 (UDP) flow records
+// to UDP 2055.
 flow dns_volume_flow(rtr, rec) {
     rtr -> rec netflow srcip 10.128.1.50 dstip 8.8.8.8 srcport 53 dstport 60124 proto 17 packets 35 octets 2800
 }
 
-// INSTRUCTION: Compile DNS query volume scenario.
 compile {
     dns_volume_flow(dns_router_node, analytics_receiver)
 }

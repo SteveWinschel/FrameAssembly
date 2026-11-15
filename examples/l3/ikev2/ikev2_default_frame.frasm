@@ -1,0 +1,19 @@
+// Minimal IKEv2 (RFC 7296) IKE_SA_INIT starter packet sent over UDP port 500
+// with built-in defaults (exchange 34, Message ID 0, Initiator flag). Useful
+// for validating UDP 500 VPN gateway rules and IKEv2 dissector baselines.
+// Wireshark: isakmp
+
+host endpoint_a {
+    ip 198.51.100.10
+    mac 02:00:05:00:00:0a
+}
+
+host endpoint_b {
+    ip 203.0.113.10
+    mac 02:00:05:00:00:0b
+}
+
+// Transmit one default IKEv2 packet directly inside compile.
+compile {
+    endpoint_a -> endpoint_b ikev2
+}

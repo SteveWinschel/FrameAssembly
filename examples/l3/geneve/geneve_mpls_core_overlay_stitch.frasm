@@ -1,19 +1,20 @@
-// PROMPT: GENEVE overlay stitched into an MPLS WAN core with explicit label and EXP bits.
-// TOKENS: host, ip, flow, geneve, vni, optclass, opttype, mpls, exp, bos, mplsttl, compile
+// GENEVE overlay stitched into an MPLS WAN core with explicit label and EXP
+// bits.
+// This capture wraps frames in MPLS label 60810/60820 and carries VNI 75000.
+// Wireshark: geneve && geneve.vni == 75000 && mpls
 
-// INSTRUCTION: Define data center gateway router 1.
 host dcgw_geneve_1 { ip 10.252.60.1 }
 
-// INSTRUCTION: Define data center gateway router 2.
 host dcgw_geneve_2 { ip 10.252.60.2 }
 
-// INSTRUCTION: Define MPLS-encapsulated GENEVE tunnel packets.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow geneve_mpls_stitch(g1, g2) {
     g1 -> g2 geneve vni 75000 optclass 256 opttype 1 mpls 60810 exp 3 bos 1 mplsttl 63
     g1 <- g2 geneve vni 75000 optclass 256 opttype 1 mpls 60820 exp 3 bos 1 mplsttl 63
 }
 
-// INSTRUCTION: Compile the MPLS-labeled GENEVE overlay stitch flow.
+// Run geneve_mpls_stitch(dcgw_geneve_1, dcgw_geneve_2) to generate the
+// capture.
 compile {
     geneve_mpls_stitch(dcgw_geneve_1, dcgw_geneve_2)
 }

@@ -1,25 +1,23 @@
-// PROMPT: Dual-stack Kerberos v5 HTTP SPNEGO service ticket request (HTTP/intranet) over IPv4 and IPv6.
-// TOKENS: host, ip, flow, kerberos, tgsreq, realm, cname, sname, etype, tgsrep, compile
+// Dual-stack Kerberos v5 HTTP SPNEGO service ticket request (HTTP/intranet)
+// over IPv4 and IPv6.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define IPv4 intranet browser client.
 host spnego_c4 { ip 192.168.88.25 }
 
-// INSTRUCTION: Define IPv4 KDC server.
 host kdc_v4 { ip 192.168.88.1 }
 
-// INSTRUCTION: Define IPv6 intranet browser client.
 host spnego_c6 { ip 2001:db8:88::25 }
 
-// INSTRUCTION: Define IPv6 KDC server.
 host kdc_v6 { ip 2001:db8:88::1 }
 
-// INSTRUCTION: Request HTTP/intranet.corp.net SPNEGO service ticket via TGS_REQ and TGS_REP.
+// Request HTTP/intranet.corp.net SPNEGO service ticket via TGS-REQ and
+// TGS-REP. Runs the same flow definition over both IPv4 and IPv6 host pairs.
+// Kerberos encryption types: 18 (AES256-CTS).
 flow krb5_spnego_http(c, k) {
     c -> k kerberos tgsreq realm "CORP.NET" cname "alice" sname "HTTP/intranet.corp.net" etype 18
     c <- k kerberos tgsrep realm "CORP.NET" cname "alice" sname "HTTP/intranet.corp.net" etype 18
 }
 
-// INSTRUCTION: Execute the polymorphic Kerberos SPNEGO flow over IPv4 and IPv6.
 compile {
     krb5_spnego_http(spnego_c4, kdc_v4)
     krb5_spnego_http(spnego_c6, kdc_v6)

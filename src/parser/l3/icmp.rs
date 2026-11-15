@@ -11,7 +11,7 @@ use winnow::prelude::*;
 
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::parser::{ParsedField, Stream, parse_ip, parse_u8, parse_u16, parse_u32, tag};
+use crate::parser::{ParsedField, Stream, parse_ip, parse_u16, parse_u32, tag};
 
 /// Parses an ICMP protocol declaration or message field.
 pub(crate) fn parse_icmp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
@@ -32,8 +32,8 @@ pub(crate) fn parse_icmp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pa
         alt((
             (tag(Token::Gateway), cut_err(parse_ip))
                 .map(|((_, s), v)| ParsedField::Gateway(v, (s.start, s.end - s.start))),
-            (tag(Token::Type), parse_u8).map(|((_, s), v)| {
-                ParsedField::L7U32Field("ICMP_TYPE", v as u32, (s.start, s.end - s.start))
+            (tag(Token::Type), parse_u32).map(|((_, s), v)| {
+                ParsedField::L7U32Field("ICMP_TYPE", v, (s.start, s.end - s.start))
             }),
             (tag(Token::Code), parse_u32)
                 .map(|((_, s), v)| ParsedField::L7U32Field("CODE", v, (s.start, s.end - s.start))),

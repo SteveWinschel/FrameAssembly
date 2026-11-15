@@ -1,18 +1,17 @@
-// PROMPT: NTP client requesting fine-grained 16-second poll interval log2 4 for clock convergence.
-// TOKENS: host, ip, flow, ntp, mode, vn, stratum, poll, precision, compile
+// NTP client requesting fine-grained 16-second poll interval log2 4 for clock
+// convergence.
+// Wireshark: ntp
 
-// INSTRUCTION: Define precision financial trading host.
 host trading_server { ip 10.60.1.20 }
 
-// INSTRUCTION: Define low-latency local time source.
+// Low-latency local time source.
 host local_time_source { ip 10.60.1.1 }
 
-// INSTRUCTION: Define short poll interval request flow.
+// Short poll interval request flow. NTPv4 modes on UDP 123: 3 (Client).
 flow short_poll_req_flow(trd, srv) {
     trd -> srv ntp mode 3 vn 4 stratum 0 poll 4 precision -20
 }
 
-// INSTRUCTION: Compile custom poll interval scenario.
 compile {
     short_poll_req_flow(trading_server, local_time_source)
 }

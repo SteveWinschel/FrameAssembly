@@ -1,18 +1,16 @@
-// PROMPT: SSDP NOTIFY announcement broadcasting device availability over IPv6 multicast.
-// TOKENS: host, ip, flow, s, ssdp, notify, nt, nts, usn, compile
+// SSDP NOTIFY announcement broadcasting device availability over IPv6
+// multicast.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Wireshark: ssdp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip fe80::10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip ff02::c }
 
-// INSTRUCTION: Define application traffic flow.
 flow ssdp_notify(c, s) {
     c -> s ssdp notify nt "upnp:rootdevice" nts "ssdp:alive" usn "uuid:device-uuid::upnp:rootdevice"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ssdp_notify(client, server)
 }

@@ -1,25 +1,28 @@
-// PROMPT: RFC 6428 MPLS-TP BFD session reporting Diagnostic Code 9 (Misconnectivity Defect) when receiving unexpected discriminator.
-// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, mpls, exp, bos, mplsttl, dscp, ttl, wait, ms, compile
+// RFC 6428 MPLS-TP BFD session reporting Diagnostic Code 9 (Misconnectivity
+// Defect) when receiving unexpected discriminator.
+// This capture wraps frames in MPLS label 64280/64281, sets DSCP 56, TTL 255,
+// carries BFD state 1, diag 3/9, and uses post-packet wait gaps (10ms)
+// between frames.
+// Wireshark: bfd && mpls
 
-// INSTRUCTION: Define MPLS-TP transport node A detecting cross-connected LSP discriminator.
 host tp_node_alpha {
     ip 10.64.28.1
     mac 00:1c:0e:64:28:01
 }
 
-// INSTRUCTION: Define MPLS-TP transport node B receiving STATE 1 Down with DIAG 9.
 host tp_node_beta {
     ip 10.64.28.2
     mac 00:1c:0e:64:28:02
 }
 
-// INSTRUCTION: Define BFD Down frame reporting DIAG 9 (Misconnectivity Defect) over MPLS.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow bfd_misconnectivity_diag9(alpha, beta) {
     alpha -> beta bfd state 1 diag 9 mydisc 64281 yourdisc 99999 mintx 1000000 minrx 1000000 mult 3 mpls 64280 exp 7 bos 1 mplsttl 255 dscp 56 ttl 255 wait 10ms
     alpha <- beta bfd state 1 diag 3 mydisc 64282 yourdisc 0 mintx 1000000 minrx 1000000 mult 3 mpls 64281 exp 7 bos 1 mplsttl 255 dscp 56 ttl 255
 }
 
-// INSTRUCTION: Compile the RFC 6428 BFD Misconnectivity Defect (DIAG 9) scenario.
+// Run bfd_misconnectivity_diag9(tp_node_alpha, tp_node_beta) to generate the
+// capture.
 compile {
     bfd_misconnectivity_diag9(tp_node_alpha, tp_node_beta)
 }

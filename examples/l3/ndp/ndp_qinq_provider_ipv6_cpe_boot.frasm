@@ -1,19 +1,21 @@
-// PROMPT: Generate a QinQ double-tagged NDP Router Solicitation and Neighbor Discovery sequence for an ISP subscriber CPE
-// TOKENS: host, ip, mac, flow, ndp, routersolicit, slla, qinq, innervlan, ttl, wait, ms, routeradvert, routerlifetime, neighborsolicit, target, neighboradvert, tlla, compile
+// Generate a QinQ double-tagged NDP Router Solicitation and Neighbor
+// Discovery sequence for an ISP subscriber CPE.
+// This capture targets IPv6 endpoints, wraps frames in QinQ S-VLAN 2100 /
+// C-VLAN 120, sets TTL 255, and uses post-packet wait gaps (15ms, 10ms)
+// between frames.
+// Wireshark: icmpv6.nd
 
-// INSTRUCTION: Define the subscriber IPv6 CPE WAN interface
 host cpe_wan_v6 {
     ip fe80::2100:120
     mac 00:0f:53:d5:21:01
 }
 
-// INSTRUCTION: Define the ISP Broadband Network Gateway IPv6 interface
 host isp_bng_v6 {
     ip fe80::2100:1
     mac 00:0f:53:d5:21:99
 }
 
-// INSTRUCTION: Perform QinQ-tagged router discovery and link-local neighbor resolution
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow ndp_qinq_cpe_onboarding(cpe, bng) {
     cpe -> bng ndp routersolicit slla 00:0f:53:d5:21:01 qinq 2100 innervlan 120 ttl 255 wait 15ms
     bng -> cpe ndp routeradvert routerlifetime 3600 slla 00:0f:53:d5:21:99 qinq 2100 innervlan 120 ttl 255 wait 10ms
@@ -21,7 +23,8 @@ flow ndp_qinq_cpe_onboarding(cpe, bng) {
     bng -> cpe ndp neighboradvert target fe80::2100:1 tlla 00:0f:53:d5:21:99 qinq 2100 innervlan 120 ttl 255
 }
 
-// INSTRUCTION: Compile the QinQ subscriber CPE NDP onboarding trace
+// Run ndp_qinq_cpe_onboarding(cpe_wan_v6, isp_bng_v6) to generate the
+// capture.
 compile {
     ndp_qinq_cpe_onboarding(cpe_wan_v6, isp_bng_v6)
 }

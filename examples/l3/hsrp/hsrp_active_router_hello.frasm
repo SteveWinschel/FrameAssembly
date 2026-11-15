@@ -1,18 +1,18 @@
-// PROMPT: Hot Standby Router Protocol Hello packet advertising group and priority.
-// TOKENS: host, ip, flow, hsrp, group, priority, compile
+// Hot Standby Router Protocol Hello packet advertising group and priority.
+// This capture carries group 1.
+// Wireshark: hsrp
 
-// INSTRUCTION: Define primary gateway router.
 host hsrp_primary_gw { ip 192.168.1.254 }
 
-// INSTRUCTION: Define backup gateway router.
 host hsrp_backup_gw { ip 192.168.1.253 }
 
-// INSTRUCTION: Define HSRP standby group 1 hello heartbeat flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow hsrp_hello_flow(p, b) {
     p -> b hsrp group 1 priority 110
 }
 
-// INSTRUCTION: Compile block executing HSRP hello advertisement.
+// Run hsrp_hello_flow(hsrp_primary_gw, hsrp_backup_gw) to generate the
+// capture.
 compile {
     hsrp_hello_flow(hsrp_primary_gw, hsrp_backup_gw)
 }

@@ -1,13 +1,15 @@
-// PROMPT: Legacy UDP port 1645 and 1646 RADIUS authentication and accounting exchange.
-// TOKENS: host, ip, flow, radius, accessrequest, user, nasip, srcport, dstport, wait, ms, accessaccept, framedip, accountingrequest, accountingresponse, compile
+// Legacy UDP port 1645 and 1646 RADIUS authentication and accounting
+// exchange.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting (accessrequest,
+// accessaccept, accountingrequest, accountingresponse).
+// Overrides destination port to 1645, 1646.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: radius || udp.port == 1645 || udp.port == 1646
 
-// INSTRUCTION: Define legacy terminal server NAS.
 host legacy_nas { ip 192.168.164.5 }
 
-// INSTRUCTION: Define RADIUS server listening on legacy ports 1645 and 1646.
 host legacy_rad { ip 192.168.164.1 }
 
-// INSTRUCTION: Define auth on port 1645 and accounting on port 1646.
 flow radius_legacy_ports(nas, srv) {
     nas -> srv radius accessrequest user "dialin01" nasip 192.168.164.5 srcport 41645 dstport 1645 wait 5ms
     nas <- srv radius accessaccept user "dialin01" framedip 192.168.164.200 srcport 1645 dstport 41645 wait 5ms
@@ -15,7 +17,6 @@ flow radius_legacy_ports(nas, srv) {
     nas <- srv radius accountingresponse user "dialin01" srcport 1646 dstport 41646
 }
 
-// INSTRUCTION: Compile legacy-port RADIUS flow.
 compile {
     radius_legacy_ports(legacy_nas, legacy_rad)
 }

@@ -1,0 +1,13 @@
+// Minimal two-block IEEE 802.1ad QinQ double-tagged starter on MAC-only bridge ports.
+// Sends a stacked provider frame (outer S-Tag 0x88A8 and inner C-Tag 0x8100) using
+// built-in default VLAN identifiers directly inside compile without a flow wrapper.
+// Verify tags via `frameassembly show qinq_default_frame.frasm` or compile a capture
+// with `frameassembly qinq_default_frame.frasm`.
+// Wireshark: eth.type == 0x88a8 || vlan
+
+host provider_edge_a { mac 00:1b:21:ad:00:01 }
+host provider_edge_b { mac 00:1b:21:ad:00:02 }
+
+compile {
+    provider_edge_a -> provider_edge_b qinq
+}

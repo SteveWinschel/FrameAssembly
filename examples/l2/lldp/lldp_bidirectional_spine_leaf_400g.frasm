@@ -1,25 +1,23 @@
-// PROMPT: Bidirectional LLDP topology exchange between a spine router and leaf switch over 400GbE interfaces.
-// TOKENS: host, ip, mac, flow, lldp, chassisid, portid, sysname, sysdesc, ttl, wait, ms, compile
+// Bidirectional LLDP topology exchange between a spine router and leaf switch
+// over 400GbE interfaces.
+// Wire profile: 2 frames; 2 IPv4 hosts; LLDP; waits 5ms.
+// Wireshark: lldp
 
-// INSTRUCTION: Define spine router 400G optical interface.
 host spine_router_01 {
     ip 10.200.0.1
     mac 2c:60:0c:aa:00:01
 }
 
-// INSTRUCTION: Define leaf switch 400G optical uplink interface.
 host leaf_switch_08 {
     ip 10.200.0.8
     mac 2c:60:0c:bb:00:08
 }
 
-// INSTRUCTION: Define full-duplex LLDP neighbor discovery exchange on 400GbE fabric link.
 flow bidirectional_fabric_lldp(spine, leaf) {
-    spine -> leaf lldp chassisid "2c:60:0c:aa:00:01" portid "HundredGigE0/0/0/1" sysname "dc1-spine-01" sysdesc "IOS-XR 7.10.2 400G Core" ttl 120
-    spine <- leaf lldp chassisid "2c:60:0c:bb:00:08" portid "Ethernet49/1" sysname "dc1-leaf-08" sysdesc "Arista EOS 4.31.1F ToR" ttl 120 wait 5ms
+    spine -> leaf lldp chassisid "2c:60:0c:aa:00:01" portid "HundredGigE0/0/0/1" sysname "dc1-spine-01" sysdesc "IOS-XR 7.10.2 400G Core" ttl 120 wait 5ms
+    spine <- leaf lldp chassisid "2c:60:0c:bb:00:08" portid "Ethernet49/1" sysname "dc1-leaf-08" sysdesc "Arista EOS 4.31.1F ToR" ttl 120
 }
 
-// INSTRUCTION: Compile block executing bidirectional spine-leaf LLDP exchange.
 compile {
     bidirectional_fabric_lldp(spine_router_01, leaf_switch_08)
 }

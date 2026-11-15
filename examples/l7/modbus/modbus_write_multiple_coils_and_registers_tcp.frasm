@@ -1,19 +1,23 @@
-// PROMPT: Create a Modbus Function Code 15 (Write Multiple Coils) and Function Code 16 (Write Multiple Registers) recipe download over TCP.
-// TOKENS: host, ip, mac, flow, s, tcp, srcport, dstport, syn, seq, win, wait, ms, ack, acknum, modbus, txid, unitid, func, addr, count, value, isresponse, fin, compile
+// Modbus Function Code 15 (Write Multiple Coils) and Function Code 16 (Write
+// Multiple Registers) recipe download over TCP.
+// Wireshark: tcp || mbtcp || modbus
 
-// INSTRUCTION: Define the batch server downloading a multi-parameter mixing recipe to a packaging line PLC.
+// Batch server downloading a multi-parameter mixing recipe to a packaging
+// line PLC.
 host batch_server {
     ip 10.100.20.10
     mac 00:1b:1b:64:14:0a
 }
 
-// INSTRUCTION: Define the packaging line PLC on TCP port 502.
+// Packaging line PLC on TCP port 502.
 host packaging_plc {
     ip 10.100.20.55
     mac 00:1b:1b:64:14:37
 }
 
-// INSTRUCTION: Establish a TCP connection, execute FC 15 (Write Multiple Coils) and FC 16 (Write Multiple Registers), and close with FIN.
+// Establish a TCP connection, execute FC 15 (Write Multiple Coils) and FC 16
+// (Write Multiple Registers), and close with FIN. Modbus functions: FC 15
+// Write Multiple Coils, FC 16 Write Multiple Registers.
 flow recipe_download_tcp(c, s) {
     c -> s tcp srcport 49502 dstport 502 syn seq 500000 win 64240 wait 1ms
     c <- s tcp srcport 502 dstport 49502 syn ack seq 600000 acknum 500001 win 32768 wait 1ms
@@ -27,7 +31,6 @@ flow recipe_download_tcp(c, s) {
     c -> s tcp srcport 49502 dstport 502 ack seq 500050 acknum 600026 win 64240
 }
 
-// INSTRUCTION: Compile the full TCP Modbus FC 15 and FC 16 recipe download into a PCAP file.
 compile {
     recipe_download_tcp(batch_server, packaging_plc)
 }

@@ -1,12 +1,12 @@
 # FrameAssembly — Packets as Code
 
 [![Try in Browser](https://img.shields.io/badge/Try%20in%20Browser-frameassembly.ai.studio-0ea5e9.svg)](https://frameassembly.ai.studio/)
-[![VS Code Packet Studio](https://img.shields.io/badge/VS%20Code-Packet%20Studio%20v3.0.0-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension%20v3.1.0-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
 [![Download for Windows, macOS and Linux](https://img.shields.io/badge/Download-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-16a34a.svg)](https://github.com/SteveWinschel/FrameAssembly/releases/latest)
 [![81 Protocols and User Docs](https://img.shields.io/badge/81%20Protocols-User%20Docs-8b5cf6.svg)](docs/README.md)
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
 
-[**Try in Browser**](https://frameassembly.ai.studio/) • [**Quick Download**](#quick-download--try-now) • [**Use Cases**](#network-and-security-testing-use-cases) • [**How It Works**](#how-frameassembly-works) • [**Comparison**](#why-frameassembly-instead-of-scapy-or-lab-vms) • [**81 Protocols & Docs**](#supported-protocols-and-documentation)
+[**Try in Browser**][nav-try] • [**Quick Download**][nav-dl] • [**Use Cases**][nav-uc] • [**How It Works**][nav-how] • [**Comparison**][nav-cmp] • [**81 Protocols & Docs**][nav-docs]
 
 ## What Is FrameAssembly?
 
@@ -16,9 +16,10 @@ Have you ever wished you could just describe traffic in a few lines of simple ne
 
 Well, here you have it and it's fun and free to use (even commercially) -> as long as **I'm not responsible for what you do with it** :)
 
-**Compilation works in both directions** -> Compile FrameAssembly `.frasm` code into custom `.pcap` or `.pcapng` captures across **81 protocols**, or reverse captured `.pcap` / `.pcapng` traces back into `.frasm` code for anonymizing, editing, inspecting, and replaying with **`tcpreplay`**, **Wireshark** / **`tshark`**, or **Suricata** / **Zeek**.
+**Compilation works in both directions** -> Compile FrameAssembly `.frasm` code into `.pcap` or `.pcapng` captures across **81 protocols**, or reverse captured `.pcap` / `.pcapng` traces back
+into `.frasm` code for anonymizing, editing, inspecting, and replaying with **`tcpreplay`**, **Wireshark** / **`tshark`**, or **Suricata** / **Zeek**.
 
-![FrameAssembly workflow: write .frasm code, compile it to .pcap or .pcapng, then open it in Wireshark, replay it with tcpreplay, test Suricata rules, or trigger Checkmk. Reverse any capture back into code.](docs/assets/workflow-overview.svg)
+![FrameAssembly workflow: write .frasm code, compile to .pcap/.pcapng, inspect in Wireshark, replay with tcpreplay, or test Suricata.](docs/assets/workflow-overview.svg)
 
 A complete TCP handshake plus an HTTP request, in a few lines:
 
@@ -51,22 +52,33 @@ $ frameassembly reverse test.pcap edited.frasm
 
 ## Quick Download & Try Now
 
-Pick the fastest route. Every route below runs offline and writes a standard `.pcap` / `.pcapng` file.
+Pick the fastest route. Every option runs offline and writes standard `.pcap` (classic libpcap) or `.pcapng` (`PCAPNG` with nanosecond timestamps) files.
 
-1. **Browser Playground** — nothing to install: [**frameassembly.ai.studio**](https://frameassembly.ai.studio/)
-2. **VS Code Packet Studio** — live Packet Ladder, 1-click Quick Fixes, and right-click `.pcap` -> `.frasm`:
+1. **Recommended CLI Install (`Cargo`, Crates.io):**
    ```bash
-   code --install-extension SteveWinschel.frameassembly-vscode
+   cargo install frameassembly
    ```
+   [![Crates.io](https://img.shields.io/crates/v/frameassembly.svg)](https://crates.io/crates/frameassembly) [![Docs.rs](https://docs.rs/frameassembly/badge.svg)](https://docs.rs/frameassembly)
+
+2. **Browser Playground** — nothing to install: [**frameassembly.ai.studio**](https://frameassembly.ai.studio/)
+
 3. **Windows** (PowerShell, no Administrator rights):
    ```powershell
    irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 | iex
    ```
-4. **macOS & Linux** (includes shell Tab completion):
+
+4. **macOS & Linux** (installs binary + shell Tab completion):
    ```bash
    curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
    ```
-5. **Prefer a plain download?** Grab the archive for your system from [**GitHub Releases**](https://github.com/SteveWinschel/FrameAssembly/releases/latest):
+
+5. **VS Code Extension** — syntax highlighting, live inline error checking, and 1-click typo Quick Fix:
+   ```bash
+   code --install-extension SteveWinschel.frameassembly-vscode
+   ```
+
+6. **Offline Archives & `.deb` Packages** from [**GitHub Releases**](https://github.com/SteveWinschel/FrameAssembly/releases/latest) (each `.zip` / `.tar.gz` includes `frameassembly`,
+   offline `docs/`, and starter `examples/`; on Windows you can also drag a `.frasm` or `.pcap` file directly onto `frameassembly.exe` in Explorer):
 
    | System | Download |
    | :--- | :--- |
@@ -76,7 +88,8 @@ Pick the fastest route. Every route below runs offline and writes a standard `.p
    | Debian / Ubuntu | [`frameassembly_amd64.deb`](https://github.com/SteveWinschel/FrameAssembly/releases/latest/download/frameassembly_amd64.deb) |
 
    Other builds (Windows ARM64, macOS Intel, Linux ARM64, `.deb` for ARM64) and `SHA256SUMS.txt` are on the same page.
-6. **Package managers:**
+
+7. **Homebrew & Scoop:**
    ```bash
    # Homebrew (macOS & Linux)
    brew install SteveWinschel/tap-FrameAssembly/frameassembly
@@ -86,45 +99,54 @@ Pick the fastest route. Every route below runs offline and writes a standard `.p
    ```
 
 <details>
-<summary><strong>Developer Install (Cargo, Docs.rs, NPM / WebAssembly)</strong></summary>
+<summary><strong>Rust Library & WebAssembly (`docs.rs`, `npm`)</strong></summary>
 
 ```bash
-# Rust 1.85+ (Edition 2024)
-cargo install frameassembly
-
-# Browser and Node.js integrations
+# Browser and Node.js WebAssembly package
 npm install frameassembly-wasm
 ```
 
-[![Crates.io](https://img.shields.io/crates/v/frameassembly.svg)](https://crates.io/crates/frameassembly) [![Docs.rs](https://docs.rs/frameassembly/badge.svg)](https://docs.rs/frameassembly) [![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
+[![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
 
-Rust library API reference: [**docs.rs/frameassembly**](https://docs.rs/frameassembly) • Compiler internals: [`docs/13_for_nerds.md`](docs/13_for_nerds.md)
+Rust 1.88+ library API reference: [**docs.rs/frameassembly**](https://docs.rs/frameassembly) • Compiler internals: [`docs/13_for_nerds.md`](docs/13_for_nerds.md)
 
 </details>
 
 First capture in one minute:
 
 ```bash
-frameassembly show demo.frasm     # packet ladder in the terminal
-frameassembly demo.frasm          # writes demo.pcap
-frameassembly reverse trace.pcap  # writes trace.frasm
+cat <<'EOF' > demo.frasm
+host client { ip 10.0.0.10 }
+host server { ip 10.0.0.20 }
+compile {
+    client -> server icmp echorequest id 1 seq 1 payload "hello" wait 2ms
+    client <- server icmp echoreply   id 1 seq 1 payload "hello"
+}
+EOF
+
+frameassembly show demo.frasm            # packet ladder in the terminal
+frameassembly demo.frasm                 # writes classic libpcap demo.pcap (double-click in Wireshark)
+frameassembly demo.frasm demo.pcapng     # writes nanosecond PCAPNG demo.pcapng
+frameassembly reverse demo.pcap          # writes demo.frasm from any .pcap or .pcapng
 ```
 
 ## Network and Security Testing Use Cases
 
 ### 1. Simulate Encrypted SNMPv3 Traps & Syslog Alerts (`Checkmk`, `Zabbix`, `PRTG`)
-Testing whether **Checkmk** Event Console, **Zabbix**, **PRTG**, **LibreNMS**, **SolarWinds**, or `snmptrapd` actually pages on an encrypted SNMPv3 `authPriv` trap usually means configuring a switch agent, loading vendor MIBs, matching EngineIDs, and pulling a fiber patch cord out of hardware. With FrameAssembly, you generate encrypted SNMPv3 traps (`SHA-256` + `AES-128`), SNMPv1/v2c notifications, `Syslog` events, and `NetFlow` / `IPFIX` / `sFlow` records in seconds:
+Testing whether **Checkmk** Event Console, **Zabbix**, **PRTG**, **LibreNMS**, **SolarWinds**, or `snmptrapd` actually pages on an encrypted SNMPv3 `authPriv` trap usually means configuring
+a switch agent, loading vendor MIBs, matching EngineIDs, and pulling a fiber patch cord out of hardware. With FrameAssembly, you generate encrypted SNMPv3 traps (`SHA-256` + `AES-128`),
+SNMPv1/v2c notifications, `Syslog` events, and `NetFlow` / `IPFIX` / `sFlow` records in seconds:
 
 ```frameassembly
 host core_sw { ip 10.10.1.2  mac 00:1a:2b:3c:4d:01 }
 host checkmk { ip 10.10.1.50 mac 00:1a:2b:3c:4d:50 }
 
-flow link_down_alert(sw, nms) {
-    sw -> nms vlan 100 snmp3 trap user "netops" engineid "80001f8801" engineboots 5 enginetime 3600 auth sha256 "AuthPass123!" priv aes "PrivPass123!" oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.8.1 int 2 wait 5ms
-    sw -> nms vlan 100 syslog facility 16 severity 3 hostname "core-sw-01" app "link" msg "Gi0/1 changed state to down"
+compile {
+    core_sw -> checkmk vlan 100 snmp3 trap user "netops" engineid "80001f8801" engineboots 5 enginetime 3600
+        auth sha256 "AuthPass123!" priv aes "PrivPass123!"
+        oid 1.3.6.1.6.3.1.1.5.3 varbind 1.3.6.1.2.1.2.2.1.8.1 int 2 wait 5ms
+    core_sw -> checkmk vlan 100 syslog facility 16 severity 3 hostname "core-sw-01" app "link" msg "Gi0/1 changed state to down"
 }
-
-compile { link_down_alert(core_sw, checkmk) }
 ```
 
 ```console
@@ -132,7 +154,8 @@ $ frameassembly snmp_alert.frasm snmp_alert.pcap && sudo tcpreplay -i eth0 snmp_
 ```
 
 ### 2. Validate Shadow IT, NDR & IDS Detection Rules (`Suricata`, `Zeek`, `Snort`)
-Proving that your NDR sensor, DNS sinkhole, or SIEM catches Shadow IT SaaS/AI uploads (unauthorized TLS `sni` or HTTP/3 `quic`), rogue `dhcp` servers, or unauthorized `mdns` / `ssdp` discovery normally means hunting down noisy third-party `.pcap` captures. FrameAssembly builds exact detection-test captures in a few lines of `.frasm` code:
+Proving that your NDR sensor, DNS sinkhole, or SIEM catches Shadow IT SaaS/AI uploads (unauthorized TLS `sni` or HTTP/3 `quic`), rogue `dhcp` servers, or unauthorized `mdns` / `ssdp`
+discovery normally means hunting down noisy third-party `.pcap` captures. FrameAssembly builds exact detection-test captures in a few lines of `.frasm` code:
 
 ```frameassembly
 host workstation { ip 10.40.5.25 mac 00:50:56:40:05:25 }
@@ -161,7 +184,9 @@ $ frameassembly ids_test.frasm ids_test.pcap && suricata -r ids_test.pcap -k non
 ```
 
 ### 3. Test Stateful Firewalls, VLAN Trunks & OT Rules Without Lab VMs
-Sending a single spoofed packet at a stateful firewall (`nftables` / `iptables`, **Palo Alto**, **FortiGate**, **CheckPoint**) won't test your application rules because the firewall drops mid-stream data without a completed 3-way TCP handshake. FrameAssembly tracks TCP `SEQ`/`ACK` numbers and swaps reply ports on `<-` automatically, so you can verify DMZ rules, 802.1Q `vlan` tags, and industrial OT (`modbus`, `dnp3`, `s7comm`, `opcua`) policies before a maintenance window:
+Sending a single spoofed packet at a stateful firewall (`nftables` / `iptables`, **Palo Alto**, **FortiGate**, **CheckPoint**) won't test your application rules because the firewall drops
+mid-stream data without a completed 3-way TCP handshake. FrameAssembly tracks TCP `SEQ`/`ACK` numbers and swaps reply ports on `<-` automatically, so you can verify DMZ rules, 802.1Q `vlan`
+tags, and industrial OT (`modbus`, `dnp3`, `s7comm`, `opcua`) policies before a maintenance window:
 
 ```frameassembly
 host eng_ws  { ip 192.168.20.25  mac 00:11:22:33:44:55 }
@@ -192,7 +217,9 @@ $ frameassembly acl_test.frasm acl_test.pcap && sudo tcpreplay -i eth0 acl_test.
 ```
 
 ### 4. Anonymize & Edit Production `.pcap` Captures (`frameassembly reverse`)
-When you need to attach a production capture to a vendor TAC ticket without leaking internal subnets or customer hostnames—or turn a live `tcpdump` capture into a Git-tracked regression test—run `frameassembly reverse`. Swap the `host` IPs, MACs, VLAN tags, or TLS `sni` names in `.frasm` code, delete background chatter, and recompile—FrameAssembly recalculates all L3/L4 checksums and TCP `SEQ`/`ACK` numbers automatically:
+When you need to attach a production capture to a vendor TAC ticket without leaking internal subnets or customer hostnames—or turn a live `tcpdump` capture into a Git-tracked regression
+test—run `frameassembly reverse`. Swap the `host` IPs, MACs, VLAN tags, or TLS `sni` names in `.frasm` code, delete background chatter, and recompile—FrameAssembly recalculates all L3/L4
+checksums and TCP `SEQ`/`ACK` numbers automatically:
 
 ```console
 $ frameassembly reverse customer_incident.pcap sanitized_ticket.frasm
@@ -217,11 +244,14 @@ $ frameassembly sanitized_ticket.frasm sanitized_ticket.pcap
 
 ## How FrameAssembly Works
 
-Every `.frasm` file uses up to three building blocks, with strictly lowercase keywords (`host`, `flow`, `compile`, `echorequest`, `clienthello`) and zero underscores or hyphens on built-in keywords:
+Most `.frasm` files need only `host` declarations and a `compile { ... }` block (add an optional `flow` block when reusing sequences across host pairs). Built-in keywords are lowercase with
+zero underscores or hyphens (`host`, `flow`, `compile`, `echorequest`, `clienthello`):
 
-1. **`host` — Declare Endpoints Once:** Bind names to `ip` (IPv4 or IPv6) and `mac` addresses—or declare MAC-only switches (`host sw1 { mac 00:1c:73:00:00:01 }`) for Layer 2 switching protocols (`lldp`, `stp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`, `arp`).
-2. **`flow` — Describe Exchanges Directionally:** Write packets top-to-bottom using `->` and `<-` arrows, optional `vlan` / `qinq` / `mpls` headers, Layer 2–7 protocol keywords, and `wait` deltas (`ns`, `us`, `ms`, `s`, `m`).
-3. **`compile` — Emit Standard Captures:** Call reusable flows across different host pairs, or write packet statements directly inside `compile { ... }` without a `flow` block.
+1. **`host` — Declare Endpoints Once:** Bind names to `ip` (IPv4 or IPv6) and optional `mac` addresses (omitted unicast MACs default to `00:00:00:00:00:01`, `:02`, ... in declaration order),
+   or declare MAC-only switches (`host sw1 { mac 00:1c:73:00:00:01 }`) for Layer 2 switching protocols (`lldp`, `stp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`, `arp`).
+2. **`compile` — Emit Standard Captures:** Write packet statements directly inside `compile { ... }` using `->` and `<-` arrows, optional `vlan` / `qinq` / `mpls` headers, Layer 2–7 protocol
+   keywords, and post-packet `wait` gaps (`ns`, `us`, `ms`, `s`, `m`; `10ms` default between packets when omitted).
+3. **`flow` *(Optional)* — Reuse Packet Exchanges:** Group a multi-step sequence into `flow name(a, b) { ... }` and call it inside `compile` across IPv4 or IPv6 host pairs.
 
 ```frameassembly
 host sw1 { mac 00:1c:73:00:00:01 }
@@ -236,28 +266,32 @@ compile {
 Under the hood, the compiler handles the packet plumbing automatically:
 
 * **Stateful TCP Tracking:** Advances `SEQ` and `ACK` numbers from payload byte lengths and `SYN`/`FIN` flags, while flipping ports, IPs, and MAC addresses on `<-` replies.
-* **Wire-Valid Framing & Checksums:** Computes Ethernet/802.1Q framing, IPv4/IPv6 lengths, and L3/L4/L7 checksums out of the box.
-* **PCAP-to-`.frasm` Decompilation:** Turns existing `.pcap` and `.pcapng` captures into `.frasm` code so you can anonymize IPs or edit headers and recompile. Encrypted payloads (such as SNMPv3 `authPriv`, TLS application data, SSH, or IPsec `ESP`) stay intact as `tcp` or `udp` statements with `payload` / `hexpayload` so recompiled captures preserve exact wire bytes.
+* **Wire-Valid Framing & Checksums:** Computes Ethernet/802.1Q/802.1ad framing, IPv4/IPv6 lengths, and L3/L4/L7 checksums out of the box.
+* **PCAP-to-`.frasm` Decompilation:** Turns existing `.pcap` and `.pcapng` captures into `.frasm` code so you can anonymize IPs or edit headers and recompile. Encrypted payloads (such as
+  SNMPv3 `authPriv`, TLS application data, SSH, or IPsec `ESP`) stay intact as `tcp` or `udp` statements with `payload` / `hexpayload` so recompiled captures preserve exact wire bytes.
 * **Git-Friendly:** Turns binary `.pcap` blobs into `.frasm` code files that you can review with `git diff` in CI/CD and regression suites.
 
 ## Why FrameAssembly Instead of Scapy or Lab VMs?
 
 | Capability | FrameAssembly (`.frasm`) | Scapy (Python) | Full Lab VMs / GNS3 | Downloaded `.pcap` |
 | :--- | :--- | :--- | :--- | :--- |
-| **Setup Overhead** | Single CLI binary or VS Code / Web Studio | Python + `venv` + packages | Hypervisor + OS images | None |
+| **Setup Overhead** | Single CLI binary, Browser Playground, or VS Code | Python + `venv` + packages | Hypervisor + OS images | None |
 | **Admin Rights to Build PCAP** | Never required | Not for offline `wrpcap` | Admin / hypervisor access | Not required |
 | **TCP `SEQ`/`ACK` Math** | Automatic on `->` / `<-` | Manual state in Python | Real OS TCP stack | Fixed static stream |
 | **Anonymize & Edit `.pcap`s** | `frameassembly reverse` (`.pcap` <-> `.frasm`) | Custom Python parsing & checksum scripts | Cannot import `.pcap` into live state | Hex editor / `tcprewrite` only |
 | **Version Control** | L2–L7 `.frasm` code | Imperative scripts | Multi-GB disk images | Binary blobs |
 | **Capture Hygiene** | Zero background chatter | Isolated, high boilerplate | ARP / mDNS / OS noise | Foreign IPs & noise |
 
-FrameAssembly is built to work **alongside** **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, and **Zeek**—not replace them. Instead of maintaining Python environments or booting multi-VM labs just to synthesize 10 packets—or struggling to sanitize a customer capture—you compile or reverse `.frasm` code in milliseconds and feed the resulting `.pcap` straight into your existing replay and analysis tools.
+FrameAssembly is built to work **alongside** **`tcpreplay`**, **Wireshark** / **`tshark`**, **Suricata**, and **Zeek**—not replace them. Instead of maintaining Python environments or booting
+multi-VM labs just to synthesize 10 packets—or struggling to sanitize a customer capture—you compile or reverse `.frasm` code in milliseconds and feed the resulting `.pcap` straight into your
+existing replay and analysis tools.
 
-## VS Code Packet Studio
+## VS Code Extension
 
-Write `.frasm` code on the left and watch the Live Packet Ladder and hex dump update on the right. Typos get a 1-click Quick Fix, and right-clicking a `.pcap` or `.pcapng` in the Explorer decompiles it into `.frasm` code.
+Install the VS Code extension (`SteveWinschel.frameassembly-vscode`) for `.frasm` syntax highlighting, live inline error checking powered by the bundled WebAssembly compiler, and 1-click Quick
+Fixes when muscle memory types `sport` instead of `srcport` or `ECHO_REQUEST` instead of `echorequest`.
 
-![VS Code Packet Studio split view: .frasm code with syntax highlighting on the left, Live Packet Ladder and hex dump on the right.](docs/assets/packet-studio-preview.svg)
+![FrameAssembly VS Code extension showing .frasm syntax highlighting, inline compiler diagnostics, and 1-click typo Quick Fix.](docs/assets/packet-studio-preview.svg)
 
 ## Quick CLI Usage
 
@@ -265,11 +299,11 @@ Write `.frasm` code on the left and watch the Live Packet Ladder and hex dump up
 # Inspect packet timing, flags, sequence numbers, and byte lengths in the terminal
 frameassembly show demo.frasm
 
-# Compile .frasm code to .pcap (writes demo.pcap by default, or pass an output path)
+# Compile .frasm code (.pcap writes classic libpcap; .pcapng writes nanosecond PCAPNG)
 frameassembly demo.frasm
-frameassembly demo.frasm custom.pcap
+frameassembly demo.frasm custom.pcapng
 
-# Decompile an existing .pcap or .pcapng into .frasm code (writes trace.frasm by default, or pass an output path)
+# Decompile an existing .pcap or .pcapng into .frasm code (writes trace.frasm by default)
 frameassembly reverse trace.pcap
 frameassembly reverse trace.pcap sanitized.frasm
 
@@ -280,27 +314,44 @@ frameassembly help
 
 ## Supported Protocols and Documentation
 
-FrameAssembly natively compiles and decompiles **81 protocols across Layers 2–7**. Start at the [**Docs Index**](docs/README.md) (pick your role, or search all 81 protocols by name) or use the guides below:
+FrameAssembly natively compiles and decompiles **81 protocols across Layers 2–7**. Start at the [**Docs Index**](docs/README.md) (pick your role, or search all 81 protocols by name) or
+use the guides below:
 
 * [**Docs Index (`docs/README.md`)**](docs/README.md) — Role-based starting points and a searchable table of all 81 protocols with one-line examples.
 * [**Scenario Index (`examples/README.md`)**](examples/README.md) — Curated `.frasm` scenarios for SNMPv3 monitoring, firewalls and VLANs, IDS and Shadow IT, routing and EVPN, and OT/SCADA.
-* [**Getting Started (`docs/01_getting_started.md`)**](docs/01_getting_started.md) — Core `.frasm` syntax, `host` / `flow` / `compile` mechanics, AI copy-paste prompt, reverse PCAP conversion, and your first capture.
-* [**Real-World Use Cases (`docs/02_use_cases.md`)**](docs/02_use_cases.md) — Copy-paste recipes for Checkmk/Zabbix SNMPv3 traps, Shadow IT & NDR detection, firewall/VLAN verification, and PCAP anonymization.
+* [**Getting Started (`docs/01_getting_started.md`)**](docs/01_getting_started.md) — Minimal `host` + `compile` syntax, reusable `flow` blocks, AI copy-paste prompt, reverse PCAP
+  conversion, and your first capture.
+* [**Real-World Use Cases (`docs/02_use_cases.md`)**](docs/02_use_cases.md) — Copy-paste recipes for Checkmk/Zabbix SNMPv3 traps, Shadow IT & NDR detection, firewall/VLAN verification,
+  and PCAP anonymization.
 * [**Topologies & Dual-Stack (`docs/11_topologies_and_dual_stack.md`)**](docs/11_topologies_and_dual_stack.md) — Multi-hop gateways, VLAN/QinQ trunks, and IPv4/IPv6 dual-stack flows.
-* [**`.frasm` Media Type Specification (`docs/12_frasm_specification.md`)**](docs/12_frasm_specification.md) — Formal `text/vnd.frameassembly` format rules and how `.frasm` differs from the unrelated `.fasm` formats.
+* [**`.frasm` Media Type Specification (`docs/12_frasm_specification.md`)**](docs/12_frasm_specification.md) — Formal `text/vnd.frameassembly` format rules and how `.frasm` differs from
+  the unrelated `.fasm` formats.
 * [**Compiler Architecture (`docs/13_for_nerds.md`)**](docs/13_for_nerds.md) — Lexing, parsing, semantic validation, and binary emission internals for curious engineers.
 
 ### Layer 2–7 Protocol Reference
 
-* [**Layer 2 — Switching & Data Link (`docs/03_l2_protocols.md`)**](docs/03_l2_protocols.md) — Ethernet II, IEEE 802.1Q `vlan`, 802.1ad `qinq`, `arp`, `stp` / `rstp`, `lldp`, `lacp`, `mpls`, and `eapol` (802.1X).
-* [**Layer 3 — Network, Routing & Tunnels (`docs/04_l3_protocols.md`)**](docs/04_l3_protocols.md) — `IPv4`, `IPv6`, `icmp`, `ndp`, `igmp`, `mld`, `gre`, `ipsec` (`esp` / `ah`), `ikev2`, `vxlan`, `geneve`, `ospf`, `bgp`, `rip`, `pim`, `vrrp`, `hsrp`, `bfd`, `openflow`, and `wireguard`.
+* [**Layer 2 — Switching & Data Link (`docs/03_l2_protocols.md`)**](docs/03_l2_protocols.md) — Ethernet II, IEEE 802.1Q `vlan`, 802.1ad `qinq`, `arp`, `stp` / `rstp`, `lldp`,
+  `lacp`, `mpls`, and `eapol` (802.1X).
+* [**Layer 3 — Network, Routing & Tunnels (`docs/04_l3_protocols.md`)**](docs/04_l3_protocols.md) — `IPv4`, `IPv6`, `icmp`, `ndp`, `igmp`, `mld`, `gre`, `ipsec` (`esp` / `ah`),
+  `ikev2`, `vxlan`, `geneve`, `ospf`, `bgp`, `rip`, `pim`, `vrrp`, `hsrp`, `bfd`, `openflow`, and `wireguard`.
 * [**Layer 4 — Transports (`docs/05_l4_transports.md`)**](docs/05_l4_transports.md) — Stateful `tcp` (flags, window, `mss`, options, automatic `SEQ`/`ACK`), `udp`, and `sctp`.
-* [**Layer 7 — SNMPv1 / v2c / v3 (`docs/06_l7_snmp.md`)**](docs/06_l7_snmp.md) — `get`, `getnext`, `getbulk`, `set`, `response`, `trap`, `inform`, and encrypted `snmp3` USM (`SHA-256` auth + `AES-128` priv).
-* [**Layer 7 — Infrastructure & Telemetry (`docs/07_l7_infra_and_telemetry.md`)**](docs/07_l7_infra_and_telemetry.md) — `dns`, `mdns`, `dhcp` / `DHCPv6`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, and `sflow`.
-* [**Layer 7 — Web, Cloud, Security & VoIP (`docs/08_l7_web_and_cloud.md`)**](docs/08_l7_web_and_cloud.md) — `http`, `http2`, `grpc`, `websocket`, `tls` (`clienthello`, `sni`, `alpn`, `alert`), `quic`, `ssh`, `telnet`, `ftp`, `tftp`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, and `ssdp`.
-* [**Layer 7 — Mail, Auth, Storage, Databases & Brokers (`docs/09_l7_mail_auth_storage_db.md`)**](docs/09_l7_mail_auth_storage_db.md) — `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `postgres`, `mysql`, `redis`, `memcached`, `mqtt`, `coap`, and `amqp`.
+* [**Layer 7 — SNMPv1 / v2c / v3 (`docs/06_l7_snmp.md`)**](docs/06_l7_snmp.md) — `get`, `getnext`, `getbulk`, `set`, `response`, `trap`, `inform`, `report`, and encrypted
+  `snmp3` USM (`SHA-256` auth + `AES-128` priv).
+* [**Layer 7 — Infrastructure & Telemetry (`docs/07_l7_infra_and_telemetry.md`)**](docs/07_l7_infra_and_telemetry.md) — `dns`, `mdns`, `dhcp` / `DHCPv6`, `ntp`, `ptp`, `radius`,
+  `tacacs`, `syslog`, `netflow`, `ipfix`, and `sflow`.
+* [**Layer 7 — Web, Cloud, Security & VoIP (`docs/08_l7_web_and_cloud.md`)**](docs/08_l7_web_and_cloud.md) — `http`, `http2`, `grpc`, `websocket`, `tls` (`clienthello`, `sni`,
+  `alpn`, `alert`), `quic`, `ssh`, `telnet`, `ftp`, `tftp`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, and `ssdp`.
+* [**Layer 7 — Mail, Auth, Storage, Databases & Brokers (`docs/09_l7_mail_auth_storage_db.md`)**](docs/09_l7_mail_auth_storage_db.md) — `smtp`, `imap`, `pop3`, `kerberos`, `ldap`,
+  `smb`, `nfs`, `postgres`, `mysql`, `redis`, `memcached`, `mqtt`, `coap`, and `amqp`.
 * [**Layer 7 — Industrial OT & ICS (`docs/10_l7_industrial_ot.md`)**](docs/10_l7_industrial_ot.md) — `modbus`, `dnp3`, `s7comm`, `opcua`, `bacnet`, and `ethernetip`.
 
 ## License
 
 Released under the [MIT License](LICENSE). Free for personal, academic, and commercial use.
+
+[nav-try]: https://frameassembly.ai.studio/
+[nav-dl]: #quick-download--try-now
+[nav-uc]: #network-and-security-testing-use-cases
+[nav-how]: #how-frameassembly-works
+[nav-cmp]: #why-frameassembly-instead-of-scapy-or-lab-vms
+[nav-docs]: #supported-protocols-and-documentation

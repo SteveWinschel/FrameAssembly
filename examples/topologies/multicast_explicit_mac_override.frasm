@@ -1,18 +1,16 @@
-// PROMPT: Multicast endpoint declaration with explicit MAC override taking precedence over auto-derivation.
-// TOKENS: host, ip, mac, flow, src, dst, udp, payload, compile
+// Multicast endpoint declaration with explicit MAC override taking precedence
+// over auto-derivation.
+// Wire profile: 1 frame; 2 IPv4 hosts; UDP.
+// Wireshark: udp
 
-// INSTRUCTION: Define unicast sender host.
 host custom_sender { ip 192.168.1.100 }
 
-// INSTRUCTION: Define multicast destination with explicit MAC override.
 host override_mcast { ip 224.0.0.9 mac 00:aa:bb:cc:dd:ee }
 
-// INSTRUCTION: Define UDP flow utilizing explicit destination MAC.
 flow override_flow(src, dst) {
     src -> dst udp payload "explicit_mac_delivery"
 }
 
-// INSTRUCTION: Compile block executing the flow.
 compile {
     override_flow(custom_sender, override_mcast)
 }

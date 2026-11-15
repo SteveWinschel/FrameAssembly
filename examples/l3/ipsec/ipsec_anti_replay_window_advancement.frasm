@@ -1,13 +1,13 @@
-// PROMPT: IPsec ESP packet sequence advancing anti-replay verification window.
-// TOKENS: host, ip, flow, src, dst, ipsec, spi, seq, wait, ms, compile
+// IPsec ESP packet sequence advancing anti-replay verification window.
+// This capture carries SPI 91000 and uses post-packet wait gaps (1ms) between
+// frames.
+// Wireshark: esp
 
-// INSTRUCTION: Define finance transaction server gateway.
 host fin_tx_gw { ip 10.160.12.1 }
 
-// INSTRUCTION: Define settlement clearinghouse endpoint.
 host clearing_hub { ip 10.160.12.254 }
 
-// INSTRUCTION: Define sequenced IPsec transmission testing anti-replay window state.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow ipsec_seq_advancement(src, dst) {
     src -> dst ipsec spi 91000 seq 1000 wait 1ms
     src -> dst ipsec spi 91000 seq 1001 wait 1ms
@@ -15,7 +15,7 @@ flow ipsec_seq_advancement(src, dst) {
     src -> dst ipsec spi 91000 seq 1003
 }
 
-// INSTRUCTION: Compile block executing sequence advancement.
+// Run ipsec_seq_advancement(fin_tx_gw, clearing_hub) to generate the capture.
 compile {
     ipsec_seq_advancement(fin_tx_gw, clearing_hub)
 }

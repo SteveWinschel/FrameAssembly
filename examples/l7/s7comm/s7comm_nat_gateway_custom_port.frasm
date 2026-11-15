@@ -1,20 +1,20 @@
-// PROMPT: S7comm communication through an industrial NAT router on custom TCP port 10102.
-// TOKENS: host, ip, flow, s7comm, rosctr, func, pduref, srcport, dstport, wait, ms, area, dbnum, offset, count, compile
+// S7comm communication through an industrial NAT router on custom TCP port
+// 10102.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting 0x84.
+// Overrides destination port to 10102.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: s7comm || tcp.port == 10102
 
-// INSTRUCTION: Define remote vendor support client.
 host vendor_client { ip 192.168.222.10 }
 
-// INSTRUCTION: Define NAT gateway forwarding port 10102 to PLC port 102.
 host nat_plc_gw { ip 192.168.222.1 }
 
-// INSTRUCTION: Define SETUP_COMM and READ_VAR on port 10102.
 flow s7comm_nat_port(c, gw) {
     c -> gw s7comm rosctr "job" func "setupcomm" pduref 1 srcport 50102 dstport 10102 wait 5ms
     c <- gw s7comm rosctr "ackdata" func "setupcomm" pduref 1 srcport 10102 dstport 50102 wait 5ms
     c -> gw s7comm rosctr "job" func "readvar" pduref 2 area 0x84 dbnum 1 offset 0 count 4 srcport 50102 dstport 10102
 }
 
-// INSTRUCTION: Compile NAT custom-port S7comm flow.
 compile {
     s7comm_nat_port(vendor_client, nat_plc_gw)
 }

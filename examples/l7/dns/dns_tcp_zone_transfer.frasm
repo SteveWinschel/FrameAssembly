@@ -1,19 +1,17 @@
-// PROMPT: DNS query over TCP transport requesting zone authority records.
-// TOKENS: host, ip, flow, s, dns, transport, tcp, query, txid, qname, qtype, response, rdata, compile
+// DNS query over TCP transport requesting zone authority records.
+// Wireshark: dns
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
+// Uses TCP transport on port 53 (overriding default UDP). DNS wire details:
+// record types SOA.
 flow dns_tcp(c, s) {
     c -> s dns transport tcp query txid 0x4321 qname "corp.local" qtype "soa"
     c <- s dns transport tcp response txid 0x4321 qname "corp.local" qtype "soa" rdata "ns1.corp.local"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     dns_tcp(client, server)
 }

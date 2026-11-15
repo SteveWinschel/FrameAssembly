@@ -1,18 +1,17 @@
-// PROMPT: MySQL server initial greeting packet announcing version 8.0.36 protocol capabilities.
-// TOKENS: host, ip, flow, app, db, mysql, greeting, serverversion, compile
+// MySQL server initial greeting packet announcing version 8.0.36 protocol
+// capabilities.
+// Wireshark: mysql
+// Automatic Ethernet MAC addresses and TCP port 3306 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define connecting application client.
 host connecting_app_client { ip 192.168.1.50 }
 
-// INSTRUCTION: Define MySQL relational database server.
 host enterprise_mysql { ip 192.168.1.10 }
 
-// INSTRUCTION: Define server greeting response flow.
 flow mysql_greeting_flow(app, db) {
     app <- db mysql greeting serverversion "8.0.36"
 }
 
-// INSTRUCTION: Compile MySQL greeting capabilities scenario.
 compile {
     mysql_greeting_flow(connecting_app_client, enterprise_mysql)
 }

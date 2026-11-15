@@ -1,19 +1,16 @@
-// PROMPT: PostgreSQL EXPLAIN ANALYZE query plan inspection on a JSONB GIN index.
-// TOKENS: host, ip, flow, s, postgres, sql, wait, ms, commandcomplete, readyforquery, payload, compile
+// PostgreSQL EXPLAIN ANALYZE query plan inspection on a JSONB GIN index.
+// Timing: pauses 8ms after each marked packet before sending the next frame.
+// Wireshark: pgsql
 
-// INSTRUCTION: Define DBA workstation client.
 host dba_client { ip 192.168.99.50 }
 
-// INSTRUCTION: Define staging PostgreSQL database.
 host staging_pg { ip 192.168.99.5 }
 
-// INSTRUCTION: Define EXPLAIN ANALYZE query and execution plan output.
 flow pg_explain_plan(c, s) {
     c -> s postgres sql "EXPLAIN ANALYZE SELECT * FROM events WHERE metadata @> '{\"env\":\"prod\"}'" wait 8ms
     c <- s postgres commandcomplete readyforquery payload "Bitmap Heap Scan on events (actual time=0.042..0.115 rows=12 loops=1)"
 }
 
-// INSTRUCTION: Compile PostgreSQL EXPLAIN ANALYZE flow.
 compile {
     pg_explain_plan(dba_client, staging_pg)
 }

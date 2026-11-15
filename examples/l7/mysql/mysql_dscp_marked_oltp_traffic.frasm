@@ -1,18 +1,18 @@
-// PROMPT: Online transaction processing database query prioritized with DSCP AF31 traffic marking.
-// TOKENS: host, ip, flow, db, mysql, sql, dscp, compile
+// Online transaction processing database query prioritized with DSCP AF31
+// traffic marking.
+// Wireshark: mysql
 
-// INSTRUCTION: Define trading platform order router.
+// Trading platform order router.
 host order_router { ip 10.90.1.18 }
 
-// INSTRUCTION: Define low-latency MySQL transaction store.
+// Low-latency MySQL transaction store.
 host low_latency_db { ip 10.90.1.2 }
 
-// INSTRUCTION: Define DSCP marked payment query flow.
+// DSCP marked payment query flow. Encapsulation and QoS markings: DSCP 26.
 flow dscp_payment_query(rtr, db) {
     rtr -> db mysql sql "UPDATE balances SET amount = amount - 50.00 WHERE account_id = 918" dscp 26
 }
 
-// INSTRUCTION: Compile DSCP marked OLTP scenario.
 compile {
     dscp_payment_query(order_router, low_latency_db)
 }

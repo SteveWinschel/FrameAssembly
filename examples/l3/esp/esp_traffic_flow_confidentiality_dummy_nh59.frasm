@@ -1,26 +1,28 @@
-// PROMPT: RFC 4303 Section 2.6 Traffic Flow Confidentiality (TFC) transmitting dummy ESP packets with Next Header 59 (No Next Header).
-// TOKENS: host, ip, mac, flow, esp, spi, seq, iv, icv, nextheader, df, dscp, ttl, hexpayload, wait, ms, compile
+// RFC 4303 Section 2.6 Traffic Flow Confidentiality (TFC) transmitting dummy
+// ESP packets with Next Header 59 (No Next Header).
+// This capture sets DSCP 46, TTL 64, DF bit set, carries SPI 595901, and uses
+// post-packet wait gaps (5ms) between frames.
+// Wireshark: esp
 
-// INSTRUCTION: Define high-security military IPsec gateway masking traffic patterns with TFC dummy frames.
 host tfc_highsec_gw_a {
     ip 192.0.2.240
     mac 00:1b:63:50:f0:01
 }
 
-// INSTRUCTION: Define peer high-security gateway discarding decrypted Next Header 59 dummy padding.
 host tfc_highsec_gw_b {
     ip 192.0.2.241
     mac 00:1b:63:50:f0:02
 }
 
-// INSTRUCTION: Define constant-rate ESP stream mixing Next Header 59 (Dummy) and Next Header 4 (IPv4) frames.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow esp_tfc_dummy_padding_flow(a, b) {
     a -> b esp spi 595901 seq 1 iv "5900000159000001" icv "aaaaaaaaaaaaaaaaaaaaaaaa" nextheader 59 df dscp 46 ttl 64 hexpayload "ffffffffffffffffffffffffffffffff" wait 5ms
     a -> b esp spi 595901 seq 2 iv "5900000259000002" icv "bbbbbbbbbbbbbbbbbbbbbbbb" nextheader 4 df dscp 46 ttl 64 hexpayload "4500002012344000401100000a000001" wait 5ms
     a -> b esp spi 595901 seq 3 iv "5900000359000003" icv "cccccccccccccccccccccccc" nextheader 59 df dscp 46 ttl 64 hexpayload "ffffffffffffffffffffffffffffffff"
 }
 
-// INSTRUCTION: Compile the RFC 4303 Traffic Flow Confidentiality dummy packet scenario.
+// Run esp_tfc_dummy_padding_flow(tfc_highsec_gw_a, tfc_highsec_gw_b) to
+// generate the capture.
 compile {
     esp_tfc_dummy_padding_flow(tfc_highsec_gw_a, tfc_highsec_gw_b)
 }

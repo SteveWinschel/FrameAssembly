@@ -1,21 +1,23 @@
-// PROMPT: Three regional branch routers exporting NetFlow v5 summaries into a central collector fan-in topology.
-// TOKENS: host, ip, flow, netflow, srcip, dstip, srcport, dstport, proto, packets, octets, wait, ms, compile
+// Three regional branch routers exporting NetFlow v5 summaries into a central
+// collector fan-in topology.
+// Wireshark: cflow || udp.port == 2055 || udp.port == 443
 
-// INSTRUCTION: Define branch A router exporter.
+// Branch A router exporter.
 host branch_a_rtr { ip 10.101.1.1 }
 
-// INSTRUCTION: Define branch B router exporter.
+// Branch B router exporter.
 host branch_b_rtr { ip 10.101.2.1 }
 
-// INSTRUCTION: Define central regional NetFlow collector.
+// Central regional NetFlow collector.
 host central_collector { ip 10.101.0.250 }
 
-// INSTRUCTION: Export branch WAN summary flow record to the central collector.
+// Export branch WAN summary flow record to the central collector. Reports IP
+// protocol 6 (TCP) flow records to UDP 2055. Repeats 2 times; each wait value
+// pauses after sending its packet.
 flow netflow_branch_report(branch, col) {
     branch -> col netflow srcip 10.101.10.5 dstip 10.101.0.10 srcport 52400 dstport 443 proto 6 packets 950 octets 817000 wait 5ms
 }
 
-// INSTRUCTION: Compile fan-in NetFlow exports from multiple regional branch routers.
 compile {
     netflow_branch_report(branch_a_rtr, central_collector)
     netflow_branch_report(branch_b_rtr, central_collector)

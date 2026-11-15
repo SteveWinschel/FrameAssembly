@@ -1,19 +1,22 @@
-// PROMPT: Create an MQTT $SYS broker internal metrics subscription monitoring active clients and message rates.
-// TOKENS: host, ip, mac, flow, s, mqtt, connect, clientid, wait, ms, connack, returncode, subscribe, topic, qos, pktid, suback, publish, payload, compile
+// MQTT $SYS broker internal metrics subscription monitoring active clients
+// and message rates.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define the NOC monitoring agent subscribing to Mosquitto $SYS/broker/# statistics.
+// NOC monitoring agent subscribing to Mosquitto $SYS/broker/# statistics.
 host noc_monitor {
     ip 10.15.30.80
     mac 00:16:3e:0f:1e:50
 }
 
-// INSTRUCTION: Define the production Mosquitto broker publishing internal $SYS metrics.
+// Production Mosquitto broker publishing internal $SYS metrics.
 host prod_mosquitto {
     ip 10.15.30.10
     mac 00:16:3e:0f:1e:0a
 }
 
-// INSTRUCTION: Connect, subscribe to $SYS/broker/clients/connected and $SYS/broker/load/messages/received/1min, and receive both updates.
+// Connect, subscribe to $SYS/broker/clients/connected and
+// $SYS/broker/load/messages/received/1min, and receive both updates. MQTT
+// control session on TCP 1883 (QoS 0, CONNACK codes 0).
 flow sys_broker_metrics(c, s) {
     c -> s mqtt connect clientid "noc-sys-collector" wait 2ms
     c <- s mqtt connack returncode 0 wait 2ms
@@ -23,7 +26,6 @@ flow sys_broker_metrics(c, s) {
     c <- s mqtt publish topic "$SYS/broker/load/messages/received/1min" qos 0 payload "98450.25"
 }
 
-// INSTRUCTION: Compile the MQTT $SYS broker diagnostics subscription trace into a PCAP file.
 compile {
     sys_broker_metrics(noc_monitor, prod_mosquitto)
 }

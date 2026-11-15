@@ -1,13 +1,15 @@
-// PROMPT: Complete 4-message IEEE 1588v2 E2E synchronization cycle (ANNOUNCE, SYNC, FOLLOW_UP, DELAY_REQ, DELAY_RESP).
-// TOKENS: host, ip, mac, flow, m, s, ptp, announce, domain, seqid, clockid, wait, ms, sync, followup, delayreq, delayresp, compile
+// Complete 4-message IEEE 1588v2 E2E synchronization cycle (ANNOUNCE, SYNC,
+// FOLLOW_UP, DELAY_REQ, DELAY_RESP).
+// IEEE 1588v2 PTP (messages: announce, sync, followup, delayreq, delayresp;
+// domain 0). UDP 319 handles Event messages (sync, delayreq) and UDP 320
+// carries General messages (announce, followup, delayresp).
+// Timing: uses post-packet wait delays (1ms, 2ms) between frames.
+// Wireshark: ptp
 
-// INSTRUCTION: Define IEEE 1588v2 Grandmaster clock.
 host ptp_master { ip 10.158.0.1 mac 00:1b:21:aa:bb:01 }
 
-// INSTRUCTION: Define IEEE 1588v2 Ordinary Clock follower.
 host ptp_follower { ip 10.158.0.50 mac 00:1b:21:aa:bb:32 }
 
-// INSTRUCTION: Define complete two-step PTP offset and delay measurement exchange.
 flow ptp_full_e2e_cycle(m, s) {
     m -> s ptp announce domain 0 seqid 10 clockid "MASTER01" wait 1ms
     m -> s ptp sync domain 0 seqid 10 clockid "MASTER01" wait 1ms
@@ -16,7 +18,6 @@ flow ptp_full_e2e_cycle(m, s) {
     m -> s ptp delayresp domain 0 seqid 10 clockid "MASTER01"
 }
 
-// INSTRUCTION: Compile full E2E PTP synchronization cycle.
 compile {
     ptp_full_e2e_cycle(ptp_master, ptp_follower)
 }

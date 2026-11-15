@@ -1,4 +1,4 @@
-//! Automated E2E verification test suite for FrameAssembly v3.0.0 multi-platform packaging,
+//! Automated E2E verification test suite for FrameAssembly v3.1.0 multi-platform packaging,
 //! shell completions, registry authority assets, installer harmonization, and release workflows.
 //!
 //! This test harness verifies compliance across four quality tiers:
@@ -7,13 +7,13 @@
 //!   completions (`bash`, `zsh`, `fish`, `powershell`), GitHub Issue forms, and verified removal
 //!   of discontinued third-party registry channels.
 //! - **Tier 2 (Syntax & Linter Integration)**: Shell syntax linting (`bash -n`) for build scripts,
-//!   completion scripts, and `install.sh` (`v3.0.0`, `$HOME/.local/bin`, musl targets).
+//!   completion scripts, and `install.sh` (`v3.1.0`, `$HOME/.local/bin`, musl targets, `--offline`).
 //! - **Tier 3 (Registry & Disambiguation Invariants)**: GitHub Linguist definitions and heuristics,
 //!   Freedesktop `shared-mime-info` XML magic (`host`/`flow`/`compile`, `ip` + MAC-only `mac`),
 //!   libmagic rules, IANA RFC 6838 vendor tree registration, and 3-way format disambiguation.
 //! - **Tier 4 (Maintainer Workflows & Store Readiness)**: Master packaging maintainer guide,
-//!   in-process WASM VS Code Packet Studio (`frameassembly-vscode-3.0.0.vsix`), `frameassembly-wasm`
-//!   v3.0.0 metadata, and `< 50,000`-byte test harness hygiene.
+//!   slimmed read-only WASM VS Code extension (`frameassembly-vscode-3.1.0.vsix`),
+//!   `frameassembly-wasm` v3.1.0 metadata, and `< 50,000`-byte test harness hygiene.
 
 use std::fs;
 use std::path::Path;
@@ -62,12 +62,12 @@ fn test_tier1_discontinued_registry_channels_absent() {
     let legacy_win_dir = concat!("contrib/packaging/win", "get");
     assert!(
         !Path::new(legacy_arch_dir).exists(),
-        "Discontinued packaging directory '{}' must not exist in v3.0.0",
+        "Discontinued packaging directory '{}' must not exist in v3.1.0",
         legacy_arch_dir
     );
     assert!(
         !Path::new(legacy_win_dir).exists(),
-        "Discontinued packaging directory '{}' must not exist in v3.0.0",
+        "Discontinued packaging directory '{}' must not exist in v3.1.0",
         legacy_win_dir
     );
 
@@ -89,7 +89,7 @@ fn test_tier1_discontinued_registry_channels_absent() {
     }
 }
 
-/// Verifies that the APT Debian package control file exists and contains all mandatory v3.0.0 fields.
+/// Verifies that the APT Debian package control file exists and contains all mandatory v3.1.0 fields.
 #[test]
 fn test_tier1_apt_control_structure() {
     let content = fs::read_to_string("contrib/packaging/apt/debian/control")
@@ -100,8 +100,8 @@ fn test_tier1_apt_control_structure() {
         "APT control must declare 'Package: frameassembly'"
     );
     assert!(
-        content.contains("Version: 3.0.0"),
-        "APT control must declare Version: 3.0.0*"
+        content.contains("Version: 3.1.0"),
+        "APT control must declare Version: 3.1.0*"
     );
     assert!(
         content.contains("Section: net") && content.contains("Priority: optional"),
@@ -140,7 +140,7 @@ fn test_tier1_apt_copyright_structure() {
     );
 }
 
-/// Verifies that the Homebrew formula declares version 3.0.0 and multi-architecture macOS/Linux URLs.
+/// Verifies that the Homebrew formula declares version 3.1.0 and multi-architecture macOS/Linux URLs.
 #[test]
 fn test_tier1_homebrew_formula_structure() {
     let content = fs::read_to_string("contrib/packaging/homebrew/Formula/frameassembly.rb")
@@ -148,8 +148,8 @@ fn test_tier1_homebrew_formula_structure() {
 
     assert!(content.contains("class Frameassembly < Formula"));
     assert!(
-        content.contains("version \"3.0.0\""),
-        "Homebrew formula must declare version \"3.0.0\""
+        content.contains("version \"3.1.0\""),
+        "Homebrew formula must declare version \"3.1.0\""
     );
     assert!(content.contains("homepage \"https://github.com/SteveWinschel/FrameAssembly\""));
     assert!(content.contains("license \"MIT\""));
@@ -158,15 +158,15 @@ fn test_tier1_homebrew_formula_structure() {
     assert!(content.contains("test do"));
 }
 
-/// Verifies that the Scoop JSON manifest declares version 3.0.0 and multi-arch zip downloads.
+/// Verifies that the Scoop JSON manifest declares version 3.1.0 and multi-arch zip downloads.
 #[test]
 fn test_tier1_scoop_manifest_structure() {
     let content = fs::read_to_string("contrib/packaging/scoop/frameassembly.json")
         .expect("Missing Scoop manifest");
 
     assert!(
-        content.contains("\"version\": \"3.0.0\""),
-        "Scoop manifest must declare version 3.0.0"
+        content.contains("\"version\": \"3.1.0\""),
+        "Scoop manifest must declare version 3.1.0"
     );
     assert!(content.contains("\"license\": \"MIT\""));
     assert!(content.contains("\"bin\": \"frameassembly.exe\""));
@@ -203,7 +203,7 @@ fn test_tier1_apt_mime_magic_and_completions_bundling() {
 }
 
 /// Verifies context-aware shell completions (`contrib/completions/`) and structured GitHub Issue
-/// forms (`.github/ISSUE_TEMPLATE/`) for FrameAssembly v3.0.0.
+/// forms (`.github/ISSUE_TEMPLATE/`) for FrameAssembly v3.1.0.
 #[test]
 fn test_tier1_shell_completions_and_issue_templates() {
     for file in [
@@ -219,7 +219,7 @@ fn test_tier1_shell_completions_and_issue_templates() {
         for token in ["show", "reverse", "version", "help", ".frasm", ".pcap"] {
             assert!(
                 text.contains(token),
-                "{} must reference '{}' for v3.0.0 Tab completion",
+                "{} must reference '{}' for v3.1.0 Tab completion",
                 file,
                 token
             );
@@ -237,7 +237,7 @@ fn test_tier1_shell_completions_and_issue_templates() {
 }
 
 /// Verifies that `contrib/packaging/update-checksums.sh` exists, is executable, supports `--help`,
-/// and accurately updates Homebrew and Scoop v3.0.0 manifests using `--sums-file`.
+/// and accurately updates Homebrew and Scoop v3.1.0 manifests using `--sums-file`.
 #[test]
 fn test_tier1_update_checksums_script() {
     let script_path = Path::new("contrib/packaging/update-checksums.sh");
@@ -305,7 +305,7 @@ fn test_tier1_update_checksums_script() {
         "5".repeat(64),
         "6".repeat(64),
     );
-    let target_ver = "3.0.0";
+    let target_ver = "3.1.0";
     let synthetic_sums = temp_root.join("SHA256SUMS.txt");
     let test_sums_content = format!(
         "{h1}  frameassembly-v{target_ver}-x86_64-unknown-linux-musl.tar.gz\n\
@@ -369,8 +369,9 @@ fn test_tier2_shell_syntax_validation() {
     }
 }
 
-/// Verifies that `install.sh` targets `v3.0.0`, `$HOME/.local/bin` fallback, musl binaries,
-/// shell completions, and the default root CLI command (`frameassembly demo.frasm output.pcap`).
+/// Verifies that `install.sh` targets `v3.1.0`, `$HOME/.local/bin` fallback, musl binaries,
+/// fail-closed `SHA256SUMS.txt` verification, `--offline` archive mode, shell completions, and the
+/// default root CLI command (`frameassembly quickstart.frasm quickstart.pcap`).
 #[test]
 fn test_tier2_install_sh_harmonization() {
     let install_sh = Path::new("install.sh");
@@ -380,12 +381,18 @@ fn test_tier2_install_sh_harmonization() {
     assert!(content.contains("detect_prebuilt_target"));
     assert!(content.contains("try_install_prebuilt_binary"));
     assert!(
-        content.contains("VSIX_VERSION=\"3.0.0\"") && content.contains("RELEASE_VERSION=\"3.0.0\""),
-        "install.sh must declare VSIX_VERSION=\"3.0.0\" and RELEASE_VERSION=\"3.0.0\""
+        content.contains("VSIX_VERSION=\"3.1.0\"") && content.contains("RELEASE_VERSION=\"3.1.0\""),
+        "install.sh must declare VSIX_VERSION=\"3.1.0\" and RELEASE_VERSION=\"3.1.0\""
     );
     assert!(
         content.contains(".local/bin"),
         "install.sh must support $HOME/.local/bin when ~/.cargo/bin is absent"
+    );
+    assert!(
+        content.contains("SHA256SUMS.txt")
+            && content.contains("--skip-checksum")
+            && content.contains("--offline"),
+        "install.sh must verify SHA256SUMS.txt fail-closed and support --offline / --skip-checksum"
     );
     assert!(
         content.contains("x86_64-unknown-linux-musl")
@@ -545,10 +552,14 @@ fn test_tier4_packaging_maintainer_guide() {
         "contrib/packaging/README.md must not advertise discontinued channels"
     );
 
-    let apt_install_cmd = "curl -fsSLo /tmp/frameassembly.deb https://github.com/SteveWinschel/FrameAssembly/releases/latest/download/frameassembly_amd64.deb && sudo apt install -y /tmp/frameassembly.deb && rm -f /tmp/frameassembly.deb";
+    let apt_install_cmd = "curl -fsSLo ./frameassembly_amd64.deb https://github.com/SteveWinschel/FrameAssembly/releases/latest/download/frameassembly_amd64.deb && sudo apt install -y ./frameassembly_amd64.deb && rm -f ./frameassembly_amd64.deb";
     assert!(
         content.contains(apt_install_cmd),
-        "contrib/packaging/README.md must showcase clean one-line apt install command"
+        "contrib/packaging/README.md must showcase clean ./frameassembly_amd64.deb apt install command"
+    );
+    assert!(
+        content.contains("cargo install frameassembly"),
+        "contrib/packaging/README.md must prominently feature `cargo install frameassembly`"
     );
 }
 
@@ -572,8 +583,9 @@ fn test_tier4_test_suite_hygiene() {
     assert!(docstring_words >= 50, "Inner //! module docstring must have >= 50 words");
 }
 
-/// Verifies that `frameassembly-vscode` v3.0.0 is configured for the VS Code Marketplace with
-/// 256x256 icon, 30 keywords, WASM Packet Studio commands, and `frameassembly-vscode-3.0.0.vsix`.
+/// Verifies that `frameassembly-vscode` v3.1.0 is configured for the VS Code Marketplace as a
+/// read-only TextMate + WASM linter extension (`untrustedWorkspaces`, zero Webviews/commands,
+/// and `frameassembly-vscode-3.1.0.vsix`).
 #[test]
 fn test_tier4_vscode_extension_store_readiness() {
     let base_dir = Path::new("frameassembly-vscode");
@@ -591,12 +603,17 @@ fn test_tier4_vscode_extension_store_readiness() {
     assert!(pkg_json.contains("text/vnd.frameassembly"));
     assert!(pkg_json.contains("\"firstLine\":"));
     assert!(pkg_json.contains("\"publisher\": \"SteveWinschel\""));
-    assert!(pkg_json.contains("\"version\": \"3.0.0\""));
+    assert!(pkg_json.contains("\"version\": \"3.1.0\""));
     assert!(pkg_json.contains("\"homepage\": \"https://frameassembly.ai.studio/\""));
     assert!(pkg_json.contains("\"main\": \"./extension.js\""));
-    assert!(pkg_json.contains("frameassembly.compileToPcap"));
-    assert!(pkg_json.contains("frameassembly.showPacketLadder"));
-    assert!(pkg_json.contains("frameassembly.reversePcap"));
+    assert!(pkg_json.contains("\"untrustedWorkspaces\""));
+    assert!(pkg_json.contains("\"virtualWorkspaces\""));
+    assert!(!pkg_json.contains("frameassembly.compileToPcap"));
+    assert!(!pkg_json.contains("frameassembly.showPacketLadder"));
+    assert!(!pkg_json.contains("frameassembly.reversePcap"));
+    assert!(!pkg_json.contains("\"commands\""));
+    assert!(!pkg_json.contains("\"snippets\""));
+    assert!(!pkg_json.contains("\"walkthroughs\""));
 
     let tml = fs::read_to_string(base_dir.join("syntaxes/frameassembly.tmLanguage.json"))
         .expect("Failed to read frameassembly.tmLanguage.json");
@@ -605,9 +622,14 @@ fn test_tier4_vscode_extension_store_readiness() {
     let readme = fs::read_to_string(base_dir.join("README.md")).expect("Failed to read README.md");
     assert!(readme.contains("Example `.frasm` Workflows") && !readme.contains("Problem -> Solution"));
     assert!(readme.contains("source.frameassembly"));
+    assert!(!readme.contains("Packet Studio"));
 
-    let vsix_path = base_dir.join("frameassembly-vscode-3.0.0.vsix");
-    assert!(vsix_path.exists(), "frameassembly-vscode-3.0.0.vsix must exist");
+    let vsix_path = base_dir.join("frameassembly-vscode-3.1.0.vsix");
+    assert!(vsix_path.exists(), "frameassembly-vscode-3.1.0.vsix must exist");
+    assert!(
+        !base_dir.join("frameassembly-vscode-3.0.0.vsix").exists(),
+        "stale frameassembly-vscode-3.0.0.vsix must be removed"
+    );
     if cfg!(unix) {
         let unzip_output = Command::new("unzip")
             .arg("-l")
@@ -619,15 +641,20 @@ fn test_tier4_vscode_extension_store_readiness() {
         for entry in [
             "extension/icon.png",
             "extension/extension.js",
-            "extension/protocol_schema.json",
+            "extension/syntaxes/frameassembly.tmLanguage.json",
+            "extension/wasm/package.json",
             "extension/wasm/frameassembly_wasm_bg.wasm",
         ] {
             assert!(
                 out_str.contains(entry),
-                "frameassembly-vscode-3.0.0.vsix must bundle {}",
+                "frameassembly-vscode-3.1.0.vsix must bundle {}",
                 entry
             );
         }
+        assert!(
+            !out_str.contains("extension/protocol_schema.json"),
+            "slimmed frameassembly-vscode-3.1.0.vsix must not bundle protocol_schema.json"
+        );
     }
 }
 
@@ -673,27 +700,28 @@ fn test_tier1_release_workflow_full_matrix_and_secrets() {
     assert!(content.contains("frameassembly_${ARCH}.deb"));
 }
 
-/// Verifies `frameassembly-wasm` v3.0.0 manifest, dependencies, and README SEO formatting.
+/// Verifies `frameassembly-wasm` v3.1.0 manifest, dependencies, and README SEO formatting.
 #[test]
 fn test_tier1_wasm_packaging_and_readme_seo() {
     let wasm_manifest =
         fs::read_to_string("frameassembly-wasm/Cargo.toml").expect("Read frameassembly-wasm/Cargo.toml");
-    assert!(wasm_manifest.contains("version = \"3.0.0\""));
-    assert!(wasm_manifest.contains("frameassembly = { path = \"..\", version = \"3.0.0\" }"));
+    assert!(wasm_manifest.contains("version = \"3.1.0\""));
+    assert!(wasm_manifest.contains("frameassembly = { path = \"..\", version = \"3.1.0\" }"));
     assert!(wasm_manifest.contains("homepage = \"https://frameassembly.ai.studio/\""));
 
     let wasm_pkg_json = fs::read_to_string("frameassembly-wasm/package.json")
         .expect("Read frameassembly-wasm/package.json");
-    assert!(wasm_pkg_json.contains("\"version\": \"3.0.0\""));
+    assert!(wasm_pkg_json.contains("\"version\": \"3.1.0\""));
     assert!(wasm_pkg_json.contains("\"homepage\": \"https://frameassembly.ai.studio/\""));
 
     let wasm_readme =
         fs::read_to_string("frameassembly-wasm/README.md").expect("Read frameassembly-wasm/README.md");
-    assert!(wasm_readme.contains("frameassembly-wasm` v3.0.0"));
+    assert!(wasm_readme.contains("frameassembly-wasm` v3.1.0"));
     assert!(
         wasm_readme.contains("Client-Side `.frasm` to `.pcapng` Compilation")
             && !wasm_readme.contains("Problem -> Solution")
     );
+    assert!(wasm_readme.contains("compileFrasmToPcap"));
     assert!(wasm_readme.contains("compile_fasm_to_pcapng"));
     assert!(wasm_readme.contains("validate_fasm"));
     assert!(wasm_readme.contains("inspect_fasm"));
@@ -707,13 +735,18 @@ fn test_tier1_wasm_packaging_and_readme_seo() {
         "frameassembly-wasm/README.md",
     ] {
         let doc = fs::read_to_string(doc_path).unwrap_or_else(|_| panic!("Read {}", doc_path));
-        for banned in ["Problem -> Solution", "Why It Hurts Today", "The FrameAssembly Solution"] {
+        for banned in [
+            "Problem -> Solution",
+            "Why It Hurts Today",
+            "The FrameAssembly Solution",
+            "Packet Studio",
+        ] {
             assert!(!doc.contains(banned), "{} must not contain '{}'", doc_path, banned);
         }
     }
 }
 
-/// Verifies the v3.0.0 release surface: the Windows `install.ps1` bootstrapper, clean per-OS
+/// Verifies the v3.1.0 release surface: the Windows `install.ps1` bootstrapper, clean per-OS
 /// archive names in `release.yml`, the single `SHA256SUMS.txt` manifest, the community health
 /// files, and the Linux/macOS `update-checksums.sh` syntax.
 #[test]
@@ -724,6 +757,9 @@ fn test_tier2_v3_release_assets_installer_and_community_files() {
         "SHA256SUMS.txt",
         "frameassembly-windows-x64.zip",
         "frameassembly-windows-arm64.zip",
+        "Get-ExecutionPolicy",
+        "-OfflineArchive",
+        "-SkipChecksum",
         "-DryRun",
         "-NoVsCode",
         "-NoCompletions",

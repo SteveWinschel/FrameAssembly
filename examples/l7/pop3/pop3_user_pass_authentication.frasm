@@ -1,13 +1,10 @@
-// PROMPT: POP3 mailbox access authentication with USER and PASS commands.
-// TOKENS: host, ip, flow, s, pop3, cmd, arg, ok, compile
+// POP3 mailbox access authentication with USER and PASS commands.
+// Wireshark: pop
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.15 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow pop3_auth(c, s) {
     c -> s pop3 cmd "USER" arg "alice"
     c <- s pop3 ok
@@ -15,7 +12,6 @@ flow pop3_auth(c, s) {
     c <- s pop3 ok
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     pop3_auth(client, server)
 }

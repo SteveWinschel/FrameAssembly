@@ -1,18 +1,15 @@
-// PROMPT: EtherNet/IP CIP SendRRData service reading device identity object over IPv6.
-// TOKENS: host, ip, flow, s, ethernetip, cmd, cipservice, cipclass, cipinstance, sessionhandle, compile
+// EtherNet/IP CIP SendRRData service reading device identity object over
+// IPv6.
+// Wireshark: enip || cip
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::2 }
 
-// INSTRUCTION: Define application traffic flow.
 flow enip_cip(c, s) {
     c -> s ethernetip cmd "sendrrdata" cipservice 14 cipclass 1 cipinstance 1 sessionhandle 100
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     enip_cip(client, server)
 }

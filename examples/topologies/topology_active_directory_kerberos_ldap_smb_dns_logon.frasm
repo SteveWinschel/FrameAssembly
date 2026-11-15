@@ -1,21 +1,21 @@
-// PROMPT: Active Directory domain workstation logon workflow combining DNS SRV discovery, Kerberos AS/TGS ticket exchange, LDAP directory query, and SMB3 SYSVOL Group Policy mount.
-// TOKENS: host, ip, mac, flow, dns, query, qname, response, rdata, wait, ms, kerberos, asreq, realm, cname, asrep, tgsreq, tgsrep, ldap, bindreq, user, bindres, searchreq, smb, command, compile
+// Active Directory domain workstation logon workflow combining DNS SRV discovery,
+// Kerberos AS/TGS ticket exchange, LDAP directory query, and SMB3 SYSVOL Group
+// Policy mount.
+// Wire profile: 11 frames; 2 IPv4 hosts; DNS, Kerberos, LDAP, SMB; waits 1ms.
+// Wireshark: dns || kerberos || ldap || (smb || smb2)
 
-// INSTRUCTION: Define corporate Windows 11 domain-joined workstation.
 host ad_workstation {
     ip 10.50.10.105
     mac 00:50:56:32:0a:69
 }
 
-// INSTRUCTION: Define primary Active Directory Domain Controller and KDC.
 host ad_domain_ctrl {
     ip 10.50.1.10
     mac 00:50:56:32:01:0a
 }
 
-// INSTRUCTION: Define DNS SRV lookup, Kerberos TGT/service ticket acquisition, LDAP GPO search, and SMB3 SYSVOL mount.
 flow active_directory_domain_logon(ws, dc) {
-    ws -> dc dns query qname "_kerberos._tcp.corp.internal"
+    ws -> dc dns query qname "_kerberos._tcp.corp.internal" wait 1ms
     ws <- dc dns response qname "_kerberos._tcp.corp.internal" rdata "dc01.corp.internal" wait 1ms
     ws -> dc kerberos asreq realm "CORP.INTERNAL" cname "jdoe" wait 1ms
     ws <- dc kerberos asrep realm "CORP.INTERNAL" cname "jdoe" wait 1ms
@@ -25,10 +25,9 @@ flow active_directory_domain_logon(ws, dc) {
     ws <- dc ldap bindres wait 1ms
     ws -> dc ldap searchreq wait 1ms
     ws -> dc smb command "sessionsetup" wait 1ms
-    ws -> dc smb command "treeconnect" share "\\\\dc01.corp.internal\\SYSVOL" wait 1ms
+    ws -> dc smb command "treeconnect" share "\\\\dc01.corp.internal\\SYSVOL"
 }
 
-// INSTRUCTION: Compile block executing Active Directory domain logon topology.
 compile {
     active_directory_domain_logon(ad_workstation, ad_domain_ctrl)
 }

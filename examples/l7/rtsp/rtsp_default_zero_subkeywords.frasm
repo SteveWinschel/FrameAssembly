@@ -1,18 +1,14 @@
-// PROMPT: Default RFC 7826 RTSP OPTIONS request with zero sub-keywords on TCP port 554.
-// TOKENS: host, ip, mac, flow, s, rtsp, compile
+// Minimal 2-block RTSP (RFC 7826) starter emitting automatic protocol
+// defaults directly from the compile block (zero flow wrapper).
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (RTSP (RFC
+// 7826), TCP 554).
+// Wireshark: rtsp
 
-// INSTRUCTION: Define video player client host.
 host player_client { ip 192.168.55.10 mac 00:1a:2b:55:00:0a }
 
-// INSTRUCTION: Define RTSP IP camera server host.
 host rtsp_camera { ip 192.168.55.1 mac 00:1a:2b:55:00:01 }
 
-// INSTRUCTION: Define flow sending default RTSP frame.
-flow rtsp_default(c, s) {
-    c -> s rtsp
-}
-
-// INSTRUCTION: Compile default RTSP scenario.
 compile {
-    rtsp_default(player_client, rtsp_camera)
+    player_client -> rtsp_camera rtsp
 }

@@ -1,19 +1,20 @@
-// PROMPT: OPC UA client reading ServerStatus CurrentTime (i=2258) and State (i=2259) as an application-level watchdog.
-// TOKENS: host, ip, mac, flow, s, opcua, msgtype, chunktype, securechannelid, tokenid, seqnum, reqid, nodeid, payload, wait, ms, compile
+// OPC UA client reading ServerStatus CurrentTime (i=2258) and State (i=2259)
+// as an application-level watchdog.
+// Wireshark: opcua
 
-// INSTRUCTION: Define the redundant HMI watchdog client.
 host hmi_watchdog {
     ip 10.140.120.14
     mac 00:1a:2b:8c:c0:14
 }
 
-// INSTRUCTION: Define the primary DCS OPC UA server.
+// Primary DCS OPC UA server.
 host dcs_ua_server {
     ip 10.140.120.1
     mac 00:1a:2b:8c:c0:01
 }
 
-// INSTRUCTION: Read Server_ServerStatus_CurrentTime (i=2258) and Server_ServerStatus_State (i=2259).
+// Read Server_ServerStatus_CurrentTime (i=2258) and Server_ServerStatus_State
+// (i=2259). OPC UA message sequence: MSG on TCP port 4840.
 flow opcua_watchdog_read(c, s) {
     c -> s opcua msgtype "msg" chunktype "f" securechannelid 1200 tokenid 9 seqnum 500 reqid 500 nodeid "i=2258"
     c <- s opcua msgtype "msg" chunktype "f" securechannelid 1200 tokenid 9 seqnum 500 reqid 500 nodeid "i=2258" payload "2026-10-25T12:00:00Z" wait 1ms
@@ -21,7 +22,6 @@ flow opcua_watchdog_read(c, s) {
     c <- s opcua msgtype "msg" chunktype "f" securechannelid 1200 tokenid 9 seqnum 501 reqid 501 nodeid "i=2259" payload "ServerState:Running(0)"
 }
 
-// INSTRUCTION: Compile the OPC UA ServerStatus watchdog flow.
 compile {
     opcua_watchdog_read(hmi_watchdog, dcs_ua_server)
 }

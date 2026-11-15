@@ -1,18 +1,18 @@
-// PROMPT: Memcached storage command configuring short 300-second time-to-live expiration.
-// TOKENS: host, ip, flow, memcached, cmd, key, exptime, compile
+// Memcached storage command configuring short 300-second time-to-live
+// expiration.
+// Wireshark: memcache || tcp.port == 11211
 
-// INSTRUCTION: Define OTP verification service.
+// OTP verification service.
 host otp_service { ip 192.168.120.45 }
 
-// INSTRUCTION: Define volatile memory cache store.
+// Volatile memory cache store.
 host volatile_cache { ip 192.168.120.2 }
 
-// INSTRUCTION: Define short TTL storage flow.
+// Short TTL storage flow.
 flow short_ttl_store(svc, store) {
     svc -> store memcached cmd "set" key "otp:user:552" exptime 300
 }
 
-// INSTRUCTION: Compile item expiry TTL caching scenario.
 compile {
     short_ttl_store(otp_service, volatile_cache)
 }

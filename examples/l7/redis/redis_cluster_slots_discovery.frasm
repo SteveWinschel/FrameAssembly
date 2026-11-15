@@ -1,13 +1,12 @@
-// PROMPT: Redis Cluster slot topology inspection using CLUSTER SLOTS and CLUSTER INFO.
-// TOKENS: host, ip, flow, s, redis, cmd, args, wait, ms, payload, compile
+// Redis Cluster slot topology inspection using CLUSTER SLOTS and CLUSTER
+// INFO.
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: resp
 
-// INSTRUCTION: Define cluster-aware smart Redis client.
 host smart_client { ip 10.93.0.50 }
 
-// INSTRUCTION: Define Redis Cluster seed node.
 host seed_node { ip 10.93.0.1 }
 
-// INSTRUCTION: Define CLUSTER INFO and CLUSTER SLOTS discovery queries.
 flow redis_cluster_slots(c, s) {
     c -> s redis cmd "CLUSTER" args "INFO" wait 2ms
     c <- s redis cmd "BULK" args "cluster_state:ok" payload "+cluster_state:ok\r\n" wait 2ms
@@ -15,7 +14,6 @@ flow redis_cluster_slots(c, s) {
     c <- s redis cmd "ARRAY" args "0-5460 10.93.0.1:6379"
 }
 
-// INSTRUCTION: Compile Redis Cluster topology discovery flow.
 compile {
     redis_cluster_slots(smart_client, seed_node)
 }

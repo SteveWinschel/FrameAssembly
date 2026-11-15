@@ -1,19 +1,18 @@
-// PROMPT: SMB2 write data transfer uploading file content payload to shared storage volume.
-// TOKENS: host, ip, flow, s, smb, command, treeid, sessionid, msgid, payload, wait, ms, status, compile
+// SMB2 write data transfer uploading file content payload to shared storage
+// volume.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: smb2
 
-// INSTRUCTION: Define telemetry log collector.
 host log_collector { ip 10.88.3.14 }
 
-// INSTRUCTION: Define audit archive storage server.
 host audit_storage { ip 10.88.3.2 }
 
-// INSTRUCTION: Define SMB2 WRITE transfer with binary block payload.
 flow smb_write_data(c, s) {
     c -> s smb command "write" treeid 3 sessionid 0x5000 msgid 201 payload "SYSTEM_AUDIT_LOG_ENTRY_HEX449102" wait 5ms
     c <- s smb command "write" status 0 treeid 3 sessionid 0x5000 msgid 201
 }
 
-// INSTRUCTION: Compile SMB2 WRITE block upload flow.
 compile {
     smb_write_data(log_collector, audit_storage)
 }

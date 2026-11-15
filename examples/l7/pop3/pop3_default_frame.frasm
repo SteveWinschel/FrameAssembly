@@ -1,0 +1,11 @@
+// Minimal 2-block POP3 starter sending a default client command on TCP port 110.
+// Emits a PSH/ACK segment with automatic sequence tracking and no flow wrapper.
+// Preview with 'frameassembly show' or compile directly to a .pcap capture.
+// Wireshark: pop
+
+host mail_client { ip 192.168.10.25 mac 00:1a:2b:10:00:19 }
+host pop3_server { ip 192.168.10.5  mac 00:1a:2b:10:00:05 }
+
+compile {
+    mail_client -> pop3_server pop3
+}

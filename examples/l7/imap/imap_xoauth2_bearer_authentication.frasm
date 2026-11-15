@@ -1,19 +1,19 @@
-// PROMPT: Simulate an IMAP AUTHENTICATE XOAUTH2 token login exchange for modern OAuth 2.0 mail access.
-// TOKENS: host, ip, mac, flow, s, imap, tag, status, response, wait, ms, cmd, arg, compile
+// IMAP AUTHENTICATE XOAUTH2 token login exchange for modern OAuth 2.0 mail
+// access.
+// Wireshark: imap
 
-// INSTRUCTION: Define the OAuth2-capable desktop mail client.
 host oauth_mua {
     ip 192.168.143.80
     mac 00:1b:21:8f:80:50
 }
 
-// INSTRUCTION: Define the enterprise IMAP gateway validating JWT bearer tokens.
+// Enterprise IMAP gateway validating JWT bearer tokens.
 host oauth_imap_gw {
     ip 192.168.143.1
     mac 00:1b:21:8f:80:01
 }
 
-// INSTRUCTION: Authenticate using SASL XOAUTH2 and select the primary INBOX.
+// Authenticate using SASL XOAUTH2 and select the primary INBOX.
 flow imap_xoauth2_login(c, s) {
     c <- s imap tag "*" status "OK" response "[CAPABILITY IMAP4rev1 SASL-IR AUTH=XOAUTH2] Ready" wait 2ms
     c -> s imap tag "A01" cmd "AUTHENTICATE" arg "XOAUTH2 dXNlcj1hbGljZUBleGFtcGxlLmNvbQFhdXRoPUJlYXJlciB5YTI5LmE=" wait 4ms
@@ -22,7 +22,6 @@ flow imap_xoauth2_login(c, s) {
     c <- s imap tag "A02" status "OK" response "[READ-WRITE] Select completed"
 }
 
-// INSTRUCTION: Compile the IMAP XOAUTH2 bearer authentication flow.
 compile {
     imap_xoauth2_login(oauth_mua, oauth_imap_gw)
 }

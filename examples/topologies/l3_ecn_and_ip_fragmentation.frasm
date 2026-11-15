@@ -1,20 +1,18 @@
-// PROMPT: Explicit Congestion Notification and IPv4 fragmentation control flags including DF, MF, and FRAGOFFSET.
-// TOKENS: host, ip, flow, s, ecn, ipid, df, udp, payload, mf, fragoffset, compile
+// Explicit Congestion Notification and IPv4 fragmentation control flags including
+// DF, mf, and fragoffset.
+// Wire profile: 3 frames; 2 IPv4 hosts; UDP.
+// Wireshark: udp
 
-// INSTRUCTION: Define fragmentation test sender.
 host frag_sender { ip 192.168.1.1 }
 
-// INSTRUCTION: Define fragmentation test receiver.
 host frag_receiver { ip 192.168.1.2 }
 
-// INSTRUCTION: Define fragmentation control flow.
 flow frag_control_flow(s, r) {
     s -> r ecn 1 ipid 1001 df udp payload "dont_fragment_frame"
     s -> r ecn 2 ipid 1002 mf fragoffset 0 udp payload "fragment_first_chunk"
     s -> r ecn 3 ipid 1002 fragoffset 185 udp payload "fragment_last_chunk"
 }
 
-// INSTRUCTION: Compile block executing fragmentation and ECN controls.
 compile {
     frag_control_flow(frag_sender, frag_receiver)
 }

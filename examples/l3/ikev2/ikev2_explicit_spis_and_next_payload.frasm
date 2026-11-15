@@ -1,19 +1,20 @@
-// PROMPT: RFC 7296 IKEv2 SA_INIT and AUTH handshake specifying 64-bit Initiator/Responder SPIs and Next Payload.
-// TOKENS: host, ip, mac, flow, init, ikev2, sainit, initiatorspi, responderspi, msgid, flags, nextpayload, compile
+// RFC 7296 IKEv2 IKE_SA_INIT and AUTH handshake specifying 64-bit
+// Initiator/Responder SPIs and Next Payload.
+// This capture models UDP port 500/4500 IKEv2 key-exchange messages.
+// Wireshark: isakmp
 
-// INSTRUCTION: Define IKEv2 VPN initiator gateway.
 host ike_gw_alpha { ip 198.51.100.11 mac 00:1b:21:50:00:01 }
 
-// INSTRUCTION: Define IKEv2 VPN responder gateway.
 host ike_gw_beta { ip 203.0.113.11 mac 00:1b:21:50:00:02 }
 
-// INSTRUCTION: Define IKEv2 SA_INIT exchange with explicit 64-bit SPIs, MSGID 0, and Next Payload 33 (SA).
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ikev2_explicit_spi_init(init, resp) {
     init -> resp ikev2 sainit initiatorspi 123456789012345 responderspi 0 msgid 0 flags 8 nextpayload 33
     init <- resp ikev2 sainit initiatorspi 123456789012345 responderspi 987654321098765 msgid 0 flags 32 nextpayload 33
 }
 
-// INSTRUCTION: Compile the explicit SPI IKEv2 SA_INIT handshake flow.
+// Run ikev2_explicit_spi_init(ike_gw_alpha, ike_gw_beta) to generate the
+// capture.
 compile {
     ikev2_explicit_spi_init(ike_gw_alpha, ike_gw_beta)
 }

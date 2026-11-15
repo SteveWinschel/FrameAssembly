@@ -1,26 +1,24 @@
-// PROMPT: Bare-metal server failing 802.1X EAP-Request/Identity timeouts and falling back to MAC Authentication Bypass (MAB).
-// TOKENS: host, ip, mac, flow, eapol, version, type, eappacket, eapcode, eapid, eapmethod, wait, ms, compile
+// Bare-metal server failing 802.1X EAP-Request/Identity timeouts and falling back
+// to MAC Authentication Bypass (MAB).
+// Wire profile: 3 frames; 2 IPv4 hosts; EAPOL; waits 10ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define bare-metal server NIC without an active 802.1X supplicant during PXE provisioning.
 host pxe_baremetal_srv {
     ip 10.200.50.99
     mac 00:25:90:c8:32:63
 }
 
-// INSTRUCTION: Define ToR switch port timing out EAP-Request/Identity and granting MAB access via EAP-Success.
 host tor_mab_switch {
     ip 10.200.50.1
     mac 00:1c:73:c8:32:01
 }
 
-// INSTRUCTION: Send two unanswered EAP-Request/Identity probes followed by MAB-authorized EAP-Success (Code 3).
 flow eapol_mab_fallback(srv, tor) {
     srv <- tor eapol version 2 type eappacket eapcode 1 eapid 1 eapmethod 1 wait 10ms
     srv <- tor eapol version 2 type eappacket eapcode 1 eapid 2 eapmethod 1 wait 10ms
     srv <- tor eapol version 2 type eappacket eapcode 3 eapid 2 eapmethod 1
 }
 
-// INSTRUCTION: Compile the bare-metal PXE MAC Authentication Bypass fallback trace.
 compile {
     eapol_mab_fallback(pxe_baremetal_srv, tor_mab_switch)
 }

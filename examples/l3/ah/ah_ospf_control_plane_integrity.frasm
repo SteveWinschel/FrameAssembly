@@ -1,25 +1,27 @@
-// PROMPT: RFC 4302 IPsec Authentication Header securing OSPF protocol 89 routing updates across a backbone link.
-// TOKENS: host, ip, mac, flow, ah, spi, seq, nextheader, icv, dscp, ttl, payload, wait, ms, compile
+// RFC 4302 IPsec Authentication Header securing OSPF protocol 89 routing
+// updates across a backbone link.
+// This capture sets DSCP 48, TTL 1, carries SPI 89001/89002, and uses
+// post-packet wait gaps (10ms) between frames.
+// Wireshark: ah
 
-// INSTRUCTION: Define core OSPF area 0 router 1 transmitting AH-authenticated LSAs.
 host ospf_core_rtr1 {
     ip 10.0.89.1
     mac 00:0c:29:89:01:01
 }
 
-// INSTRUCTION: Define core OSPF area 0 router 2 verifying AH HMAC-SHA256 truncated ICV.
 host ospf_core_rtr2 {
     ip 10.0.89.2
     mac 00:0c:29:89:01:02
 }
 
-// INSTRUCTION: Define AH flow with Next Header 89 (OSPF) and Network Control DSCP CS6.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow ah_ospf_lsa_integrity(r1, r2) {
     r1 -> r2 ah spi 89001 seq 44 nextheader 89 icv "0102030405060708090a0b0c" dscp 48 ttl 1 payload "OSPF_LSU_AREA0_RTR_LSA" wait 10ms
     r1 <- r2 ah spi 89002 seq 19 nextheader 89 icv "0c0b0a090807060504030201" dscp 48 ttl 1 payload "OSPF_LSACK_CONFIRMED"
 }
 
-// INSTRUCTION: Compile the OSPF over IPsec AH control plane protection scenario.
+// Run ah_ospf_lsa_integrity(ospf_core_rtr1, ospf_core_rtr2) to generate the
+// capture.
 compile {
     ah_ospf_lsa_integrity(ospf_core_rtr1, ospf_core_rtr2)
 }

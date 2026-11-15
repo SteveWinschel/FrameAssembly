@@ -1,19 +1,16 @@
-// PROMPT: Clean session termination packet transmitting MSG_CODE 1 disconnect.
-// TOKENS: host, ip, flow, s, ssh, msgcode, compile
+// Clean session termination packet transmitting msgcode 1 disconnect.
+// SSH RFC 4253 framing on TCP 22 (message codes: 1 (DISCONNECT)).
+// Wireshark: ssh
 
-// INSTRUCTION: Define departing client terminal.
 host departing_client { ip 10.250.0.10 }
 
-// INSTRUCTION: Define corporate bastion host.
 host corp_bastion { ip 10.250.0.1 }
 
-// INSTRUCTION: Define clean SSH disconnect flow.
 flow ssh_disconnect_flow(c, s) {
     c -> s ssh msgcode 1
     c <- s ssh msgcode 1
 }
 
-// INSTRUCTION: Compile block executing disconnect flow.
 compile {
     ssh_disconnect_flow(departing_client, corp_bastion)
 }

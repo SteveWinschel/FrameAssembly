@@ -1,13 +1,15 @@
-// PROMPT: EtherNet/IP ListServices and ListInterfaces discovery broadcast over UDP port 44818.
-// TOKENS: host, ip, flow, ethernetip, transport, udp, cmd, context, status, compile
+// EtherNet/IP ListServices and ListInterfaces discovery broadcast over UDP
+// port 44818.
+// Wireshark: enip || cip
 
-// INSTRUCTION: Define RSLinx engineering workstation.
+// RSLinx engineering workstation.
 host rslinx_ws { ip 192.168.10.100 }
 
-// INSTRUCTION: Define variable frequency drive (VFD) EtherNet/IP node.
+// Variable frequency drive (VFD) EtherNet/IP node.
 host vfd_drive { ip 192.168.10.30 }
 
-// INSTRUCTION: Probe ListServices and ListInterfaces over UDP transport with 64-bit sender context.
+// Probe ListServices and ListInterfaces over UDP transport with 64-bit sender
+// context. Overrides default TCP with UDP transport on port 44818.
 flow enip_udp_discovery(ws, vfd) {
     ws -> vfd ethernetip transport udp cmd "listservices" context 0x0102030405060708
     ws <- vfd ethernetip transport udp cmd "listservices" status 0 context 0x0102030405060708
@@ -15,7 +17,6 @@ flow enip_udp_discovery(ws, vfd) {
     ws <- vfd ethernetip transport udp cmd "listinterfaces" status 0 context 0x1122334455667788
 }
 
-// INSTRUCTION: Compile the EtherNet/IP UDP discovery flow.
 compile {
     enip_udp_discovery(rslinx_ws, vfd_drive)
 }

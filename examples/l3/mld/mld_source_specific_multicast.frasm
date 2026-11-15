@@ -1,18 +1,18 @@
-// PROMPT: MLDv1 listener report subscribing to multicast address with maximum response delay.
-// TOKENS: host, ip, flow, mld, report, multicastaddr, maxrespdelay, compile
+// MLDv1 listener report subscribing to multicast address with maximum
+// response delay.
+// This capture targets IPv6 endpoints.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define IPv6 multicast subscriber host.
 host ipv6_subscriber { ip fe80::a1 }
 
-// INSTRUCTION: Define IPv6 querier router multicast address.
 host ipv6_querier { ip ff02::16 }
 
-// INSTRUCTION: Define MLD report flow joining group ff05::1:3 with 1000ms response delay.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow mld_report_flow(sub, qry) {
     sub -> qry mld report multicastaddr ff05::1:3 maxrespdelay 1000
 }
 
-// INSTRUCTION: Compile block executing MLD report.
+// Run mld_report_flow(ipv6_subscriber, ipv6_querier) to generate the capture.
 compile {
     mld_report_flow(ipv6_subscriber, ipv6_querier)
 }

@@ -113,15 +113,17 @@ fn test_v2_strict_lowercase_keywords_and_flexible_hyphenated_identifiers() {
             agent-01 <- nms_srv icmp echoreply id 1 seq 1 wait 12ms
             agent-01 -> nms_srv udp srcport 40000 dstport 9000 hexpayload "deadbeef" wait 3s
             agent-01 <- nms_srv udp hexpayload "cafebabe" wait 2m
+            agent-01 -> nms_srv udp hexpayload "0102"
         }
     "#;
     let snmp_frames = must_compile(snmp_fasm);
-    assert_eq!(snmp_frames.len(), 5);
+    assert_eq!(snmp_frames.len(), 6);
     let t0 = snmp_frames[0].1;
-    assert_eq!(snmp_frames[1].1 - t0, 40_000);
-    assert_eq!(snmp_frames[2].1 - snmp_frames[1].1, 12_000_000);
-    assert_eq!(snmp_frames[3].1 - snmp_frames[2].1, 3_000_000_000);
-    assert_eq!(snmp_frames[4].1 - snmp_frames[3].1, 120_000_000_000);
+    assert_eq!(snmp_frames[1].1 - t0, 250);
+    assert_eq!(snmp_frames[2].1 - snmp_frames[1].1, 40_000);
+    assert_eq!(snmp_frames[3].1 - snmp_frames[2].1, 12_000_000);
+    assert_eq!(snmp_frames[4].1 - snmp_frames[3].1, 3_000_000_000);
+    assert_eq!(snmp_frames[5].1 - snmp_frames[4].1, 120_000_000_000);
 }
 
 /// Verifies that uppercase, underscore, hyphenated, and `loop` v1.x keywords are rejected in
@@ -481,7 +483,7 @@ fn test_empty_host_declaration_rejected() {
     match err {
         CompilerError::ParseError { message, .. } => {
             assert!(
-                message.contains("must specify at least an 'IP <address>' or 'MAC <address>'"),
+                message.contains("must specify at least an 'ip <address>' or 'mac <address>'"),
                 "unexpected ParseError message: {message}"
             );
         }
@@ -513,7 +515,7 @@ fn test_mac_only_host_rejected_for_l3_l4_l7_ip_requiring_protocols() {
         match err {
             CompilerError::SemanticError { message, .. } => {
                 assert!(
-                    message.contains("requires an 'IP <address>' field on HOST 'l2_only'"),
+                    message.contains("requires an 'ip <address>' field on host 'l2_only'"),
                     "unexpected semantic error for '{proto_stmt}': {message}"
                 );
             }
@@ -528,7 +530,7 @@ fn test_mac_only_host_rejected_for_l3_l4_l7_ip_requiring_protocols() {
         match err {
             CompilerError::SemanticError { message, .. } => {
                 assert!(
-                    message.contains("requires an 'IP <address>' field on HOST 'l2_only'"),
+                    message.contains("requires an 'ip <address>' field on host 'l2_only'"),
                     "unexpected semantic error for '{proto_stmt}': {message}"
                 );
             }
@@ -577,14 +579,25 @@ compile {
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(default_pcap_path.exists());
+    let default_stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        default_stdout.contains("Wrote ") && default_stdout.contains("classic pcap)"),
+        "CLI stdout must report Wrote <file> (... classic pcap), got: {default_stdout}"
+    );
     let pcap_bytes = fs::read(&default_pcap_path).expect("read generated example.pcap");
-    assert!(pcap_bytes.len() > 28);
-    assert_eq!(&pcap_bytes[0..4], &[0x0A, 0x0D, 0x0D, 0x0A]);
+    assert!(pcap_bytes.len() > 24);
+    assert!(
+        pcap_bytes[0..4] == [0xd4, 0xc3, 0xb2, 0xa1]
+            || pcap_bytes[0..4] == [0xa1, 0xb2, 0xc3, 0xd4],
+        "Default .pcap output must start with classic libpcap magic, got: {:02x?}",
+        &pcap_bytes[0..4]
+    );
 
-    // 2. Explicit positional output: `frameassembly <other.frasm> <custom.pcap>`
+    // 2. Explicit positional output: `frameassembly <other.frasm> <custom.pcap>` and `<custom.pcapng>`
     let other_fasm_path = temp.join("other.frasm");
     let other_default_pcap = temp.join("other.pcap");
     let custom_pcap_path = temp.join("custom_out.pcap");
+    let custom_pcapng_path = temp.join("custom_out.pcapng");
     fs::write(&other_fasm_path, sample_fasm).expect("write other.frasm");
 
     let output_custom = Command::new(cli_binary_path())
@@ -601,6 +614,16 @@ compile {
     assert!(!other_default_pcap.exists());
     assert_eq!(fs::read(&custom_pcap_path).expect("read custom_out.pcap"), pcap_bytes);
 
+    let output_pcapng = Command::new(cli_binary_path())
+        .arg(&other_fasm_path)
+        .arg(&custom_pcapng_path)
+        .output()
+        .expect("run frameassembly other.frasm custom_out.pcapng");
+    assert!(output_pcapng.status.success());
+    assert!(String::from_utf8_lossy(&output_pcapng.stdout).contains("pcapng)"));
+    let pcapng_bytes = fs::read(&custom_pcapng_path).expect("read custom_out.pcapng");
+    assert_eq!(&pcapng_bytes[0..4], &[0x0A, 0x0D, 0x0D, 0x0A]);
+
     // 3. `version` subcommand + hidden `-V` and `--version`
     for ver_arg in ["version", "-V", "--version"] {
         let ver_out = Command::new(cli_binary_path())
@@ -609,8 +632,8 @@ compile {
             .expect("run frameassembly version query");
         assert!(ver_out.status.success(), "version query '{ver_arg}' failed");
         assert!(
-            String::from_utf8_lossy(&ver_out.stdout).contains("3.0.0"),
-            "version query '{ver_arg}' missing 3.0.0"
+            String::from_utf8_lossy(&ver_out.stdout).contains("3.1.0"),
+            "version query '{ver_arg}' missing 3.1.0"
         );
     }
 

@@ -1,19 +1,19 @@
-// PROMPT: IPv4 AH authenticated packet asserting Don't Fragment and explicit IP identification.
-// TOKENS: host, ip, flow, src, dst, ah, spi, seq, ipid, df, nextheader, payload, compile
+// IPv4 AH authenticated packet asserting Don't Fragment and explicit IP
+// identification.
+// This capture sets DF bit set and carries SPI 60010.
+// Wireshark: ah
 
-// INSTRUCTION: Define path MTU discovery sender using AH.
 host pmtud_sender { ip 10.12.34.1 }
 
-// INSTRUCTION: Define path MTU discovery receiver.
 host pmtud_receiver { ip 10.12.34.2 }
 
-// INSTRUCTION: Define AH flow with DF flag and incrementing IPID values.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ah_df_mtu_probe(src, dst) {
     src -> dst ah spi 60010 seq 1 ipid 1024 df nextheader 4 payload "MTU_PROBE_1400"
     src -> dst ah spi 60010 seq 2 ipid 1025 df nextheader 4 payload "MTU_PROBE_1460"
 }
 
-// INSTRUCTION: Compile the IPv4 Don't Fragment AH probe flow.
+// Run ah_df_mtu_probe(pmtud_sender, pmtud_receiver) to generate the capture.
 compile {
     ah_df_mtu_probe(pmtud_sender, pmtud_receiver)
 }

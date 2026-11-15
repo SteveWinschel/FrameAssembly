@@ -1,18 +1,19 @@
-// PROMPT: Load balancer health check loop executing periodic ping queries against MySQL server.
-// TOKENS: host, ip, flow, db, mysql, sql, wait, ms, compile
+// Load balancer health check loop executing periodic ping queries against
+// MySQL server.
+// Wireshark: mysql
 
-// INSTRUCTION: Define HAProxy load balancer probe.
+// HAProxy load balancer probe.
 host haproxy_probe { ip 172.20.1.10 }
 
-// INSTRUCTION: Define backend MySQL cluster member.
+// Backend MySQL cluster member.
 host backend_mysql_node { ip 172.20.1.2 }
 
-// INSTRUCTION: Define periodic health probe query flow.
+// Periodic health probe query flow. Repeats 3 times; each wait value pauses
+// after sending its packet.
 flow health_probe_flow(prb, db) {
     prb -> db mysql sql "/* ping */ SELECT 1" wait 20ms
 }
 
-// INSTRUCTION: Compile periodic health check loop.
 compile {
     health_probe_flow(haproxy_probe, backend_mysql_node) // cycle 1
     health_probe_flow(haproxy_probe, backend_mysql_node) // cycle 2

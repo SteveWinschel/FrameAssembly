@@ -15,7 +15,12 @@ use crate::ast::Protocol;
 use crate::reverse::{ProtocolDissection, be_u16, ipv4_at, push_hex, push_if, sd};
 
 /// Decompiles an RFC 792 / RFC 4443 `icmp` or `ICMPv6` message into a [`ProtocolDissection`].
-pub(crate) fn dissect_icmp(b: &[u8], is_ipv6: bool, _src_ip: Option<IpAddr>) -> ProtocolDissection {
+pub(crate) fn dissect_icmp(
+    b: &[u8],
+    is_ipv6: bool,
+    src_ip: Option<IpAddr>,
+    dst_ip: Option<IpAddr>,
+) -> ProtocolDissection {
     if b.len() < 4 {
         return sd(Protocol::Icmp, String::from("icmp"), b.to_vec());
     }
@@ -35,6 +40,21 @@ pub(crate) fn dissect_icmp(b: &[u8], is_ipv6: bool, _src_ip: Option<IpAddr>) -> 
         let _ = write!(t, " type {tp}");
     }
     push_if(&mut t, "code", c, 0);
+    let is_default_err_stub = |tail: &[u8]| -> bool {
+        match (is_ipv6, src_ip, dst_ip) {
+            (false, Some(IpAddr::V4(s)), Some(IpAddr::V4(d))) => {
+                let stub =
+                    crate::builders::l3::icmp::default_icmpv4_invoking_stub(s.octets(), d.octets());
+                tail == stub
+            }
+            (true, Some(IpAddr::V6(s)), Some(IpAddr::V6(d))) => {
+                let stub =
+                    crate::builders::l3::icmp::default_icmpv6_invoking_stub(s.octets(), d.octets());
+                tail == stub
+            }
+            _ => false,
+        }
+    };
     let res = if is_echo && b.len() >= 8 {
         push_hex(&mut t, "id", u64::from(be_u16(b, 4)), 0x1234, 4);
         push_if(&mut t, "seq", be_u16(b, 6), 1);
@@ -45,15 +65,31 @@ pub(crate) fn dissect_icmp(b: &[u8], is_ipv6: bool, _src_ip: Option<IpAddr>) -> 
         }
     } else if is_v4_red && b.len() >= 8 {
         push_if(&mut t, "gateway", ipv4_at(b, 4), Ipv4Addr::UNSPECIFIED);
-        b[8..].to_vec()
+        if is_default_err_stub(&b[8..]) {
+            Vec::new()
+        } else {
+            b[8..].to_vec()
+        }
+    } else if is_ipv6 && tp == 137 && b.len() >= 40 {
+        b[40..].to_vec()
+    } else if b.len() >= 8 {
+        if is_default_err_stub(&b[8..]) {
+            Vec::new()
+        } else {
+            b[8..].to_vec()
+        }
     } else {
-        b.get(8..).unwrap_or(&b[4..]).to_vec()
+        b[4..].to_vec()
     };
     sd(Protocol::Icmp, t, res)
 }
 
 /// Decompiles an RFC 4443 `ICMPv6` diagnostic or control message (`ip_proto == 58`) into a [`ProtocolDissection`].
-pub(crate) fn dissect_icmpv6(b: &[u8], src_ip: Option<IpAddr>) -> ProtocolDissection {
-    dissect_icmp(b, true, src_ip)
+pub(crate) fn dissect_icmpv6(
+    b: &[u8],
+    src_ip: Option<IpAddr>,
+    dst_ip: Option<IpAddr>,
+) -> ProtocolDissection {
+    dissect_icmp(b, true, src_ip, dst_ip)
 }
 

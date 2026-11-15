@@ -1,31 +1,32 @@
-// PROMPT: RFC 7432 EVPN Type-3 Inclusive Multicast Ethernet Tag (IMET) Head-End Ingress Replication across three remote VTEPs.
-// TOKENS: host, ip, mac, flow, v2, v3, vxlan, vni, srcport, dstport, df, ttl, payload, wait, ms, compile
+// RFC 7432 EVPN Type-3 Inclusive Multicast Ethernet Tag (IMET) Head-End
+// Ingress Replication across three remote VTEPs.
+// This capture sets TTL 64, DF bit set, carries VNI 20200, destination port
+// 4789, and uses post-packet wait gaps (1ms) between frames.
+// Wireshark: vxlan && vxlan.vni == 20200
 
-// INSTRUCTION: Define ingress VTEP replicating a BUM frame via unicast VXLAN to remote IMET peers.
 host imet_ingress_vtep {
     ip 10.255.10.1
     mac 00:1c:73:10:00:01
 }
 
-// INSTRUCTION: Define remote Leaf VTEP-2 in the VNI 20200 flood list.
 host imet_remote_vtep2 {
     ip 10.255.10.2
     mac 00:1c:73:10:00:02
 }
 
-// INSTRUCTION: Define remote Leaf VTEP-3 in the VNI 20200 flood list.
 host imet_remote_vtep3 {
     ip 10.255.10.3
     mac 00:1c:73:10:00:03
 }
 
-// INSTRUCTION: Define sequential unicast VXLAN ingress replication of a tenant DHCP Discover broadcast.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow vxlan_imet_headend_replication(ing, v2, v3) {
     ing -> v2 vxlan vni 20200 srcport 52200 dstport 4789 df ttl 64 payload "IMET_REPL_COPY1_INNER_DHCP_DISCOVER" wait 1ms
     ing -> v3 vxlan vni 20200 srcport 52200 dstport 4789 df ttl 64 payload "IMET_REPL_COPY2_INNER_DHCP_DISCOVER"
 }
 
-// INSTRUCTION: Compile the EVPN Type-3 Head-End Ingress Replication VXLAN flow.
+// Run vxlan_imet_headend_replication(imet_ingress_vtep, imet_remote_vtep2,
+// imet_remote_vtep3) to generate the capture.
 compile {
     vxlan_imet_headend_replication(imet_ingress_vtep, imet_remote_vtep2, imet_remote_vtep3)
 }

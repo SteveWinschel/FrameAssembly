@@ -1,19 +1,19 @@
-// PROMPT: PIM neighbor Hello exchange over 802.1Q tagged video delivery VLAN 300.
-// TOKENS: host, ip, flow, pim, hello, vlan, pcp, dei, compile
+// PIM neighbor Hello exchange over 802.1Q tagged video delivery VLAN 300.
+// This capture wraps frames in 802.1Q VLAN 300.
+// Wireshark: pim && vlan.id == 300
 
-// INSTRUCTION: Define video headend switch router.
 host video_headend_rtr { ip 172.16.30.1 }
 
-// INSTRUCTION: Define video distribution core switch.
 host video_dist_switch { ip 172.16.30.2 }
 
-// INSTRUCTION: Define VLAN 300 tagged PIM Hello peering flow.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow pim_vlan_peering(v_src, v_dst) {
     v_src -> v_dst pim hello vlan 300 pcp 5 dei 0
     v_src <- v_dst pim hello vlan 300 pcp 5 dei 0
 }
 
-// INSTRUCTION: Compile block executing tagged PIM neighbor discovery.
+// Run pim_vlan_peering(video_headend_rtr, video_dist_switch) to generate the
+// capture.
 compile {
     pim_vlan_peering(video_headend_rtr, video_dist_switch)
 }

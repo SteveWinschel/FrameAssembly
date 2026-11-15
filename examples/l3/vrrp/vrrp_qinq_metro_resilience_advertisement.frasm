@@ -1,18 +1,19 @@
-// PROMPT: Carrier Ethernet dual-tagged QinQ VRRP heartbeat across redundant uplinks.
-// TOKENS: host, ip, flow, vrrp, vrid, priority, vip, qinq, innervlan, compile
+// Carrier Ethernet dual-tagged QinQ VRRP heartbeat across redundant uplinks.
+// This capture wraps frames in QinQ S-VLAN 900 / C-VLAN 45 and carries VRID
+// 45.
+// Wireshark: vrrp
 
-// INSTRUCTION: Define metro edge access gateway.
 host metro_edge_gw { ip 192.168.100.254 }
 
-// INSTRUCTION: Define carrier provider edge listener.
 host carrier_pe_listener { ip 224.0.0.18 }
 
-// INSTRUCTION: Define QinQ encapsulated VRRP heartbeat flow on service VLAN 900 and customer VLAN 45.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vrrp_qinq_flow(gw, pe) {
     gw -> pe vrrp vrid 45 priority 150 vip 192.168.100.1 qinq 900 innervlan 45
 }
 
-// INSTRUCTION: Compile block executing carrier QinQ VRRP heartbeat.
+// Run vrrp_qinq_flow(metro_edge_gw, carrier_pe_listener) to generate the
+// capture.
 compile {
     vrrp_qinq_flow(metro_edge_gw, carrier_pe_listener)
 }

@@ -1,19 +1,21 @@
-// PROMPT: EtherNet/IP CIP query targeting the Message Router Object (Class 0x02, Instance 1) supported object classes list.
-// TOKENS: host, ip, mac, flow, m, ethernetip, cmd, sessionhandle, context, cipservice, cipclass, cipinstance, cipattr, status, wait, ms, compile
+// EtherNet/IP CIP query targeting the Message Router Object (Class 0x02,
+// Instance 1) supported object classes list.
+// Wireshark: enip || cip
 
-// INSTRUCTION: Define the CIP conformance test tool host.
+// CIP conformance test tool host.
 host odva_tester {
     ip 10.135.30.10
     mac 00:1a:2b:87:30:10
 }
 
-// INSTRUCTION: Define the ArmorBlock Guard I/O module under test.
+// ArmorBlock Guard I/O module under test.
 host armorblock_io {
     ip 10.135.30.22
     mac 00:1a:2b:87:30:22
 }
 
-// INSTRUCTION: Read Attribute 1 (Object_List) and Attribute 2 (Number_Available) on Message Router Class 2 Instance 1.
+// Read Attribute 1 (Object_List) and Attribute 2 (Number_Available) on
+// Message Router Class 2 Instance 1.
 flow enip_msg_router(t, m) {
     t -> m ethernetip cmd "sendrrdata" sessionhandle 8192 context 701 cipservice 14 cipclass 2 cipinstance 1 cipattr 1
     t <- m ethernetip cmd "sendrrdata" status 0 sessionhandle 8192 context 701 cipservice 142 cipclass 2 cipinstance 1 cipattr 1 wait 1ms
@@ -21,7 +23,6 @@ flow enip_msg_router(t, m) {
     t <- m ethernetip cmd "sendrrdata" status 0 sessionhandle 8192 context 702 cipservice 142 cipclass 2 cipinstance 1 cipattr 2
 }
 
-// INSTRUCTION: Compile the CIP Message Router Object query flow.
 compile {
     enip_msg_router(odva_tester, armorblock_io)
 }

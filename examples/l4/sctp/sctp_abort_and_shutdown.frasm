@@ -1,19 +1,16 @@
-// PROMPT: SCTP graceful shutdown association termination sequence with verification tag.
-// TOKENS: host, ip, flow, sctp, chunk, shutdown, vtag, shutdownack, compile
+// SCTP graceful shutdown association termination sequence with verification tag.
+// Wire profile: 2 frames; 2 IPv4 hosts; SCTP; SCTP SHUTDOWN/SHUTDOWNACK.
+// Wireshark: sctp
 
-// INSTRUCTION: Define client closing SCTP association.
 host sctp_close_cli { ip 10.0.1.10 }
 
-// INSTRUCTION: Define server acknowledging SCTP teardown.
 host sctp_close_srv { ip 10.0.1.20 }
 
-// INSTRUCTION: Define SCTP association teardown flow exchanging SHUTDOWN and SHUTDOWN_ACK chunks.
 flow sctp_teardown_flow(cli, srv) {
     cli -> srv sctp chunk shutdown vtag 54321
     cli <- srv sctp chunk shutdownack vtag 54321
 }
 
-// INSTRUCTION: Compile block executing SCTP association shutdown.
 compile {
     sctp_teardown_flow(sctp_close_cli, sctp_close_srv)
 }

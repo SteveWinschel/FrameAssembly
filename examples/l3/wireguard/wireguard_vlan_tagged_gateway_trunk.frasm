@@ -1,18 +1,18 @@
-// PROMPT: WireGuard VPN tunnel terminating on 802.1Q tagged security VLAN 150.
-// TOKENS: host, ip, flow, wireguard, type, initiation, sender, vlan, pcp, dei, compile
+// WireGuard VPN tunnel terminating on 802.1Q tagged security VLAN 150.
+// This capture wraps frames in 802.1Q VLAN 150.
+// Wireshark: wg && vlan.id == 150
 
-// INSTRUCTION: Define corporate security VLAN VPN gateway.
 host wg_vlan_sec_gw { ip 10.150.0.1 }
 
-// INSTRUCTION: Define remote branch VPN initiator.
 host wg_branch_initiator { ip 10.150.0.254 }
 
-// INSTRUCTION: Define 802.1Q tagged WireGuard initiation flow with Priority PCP 5.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow wg_vlan_tagged_flow(gw, peer) {
     peer -> gw wireguard type initiation sender 112233 vlan 150 pcp 5 dei 0
 }
 
-// INSTRUCTION: Compile block executing tagged WireGuard handshake initiation.
+// Run wg_vlan_tagged_flow(wg_vlan_sec_gw, wg_branch_initiator) to generate
+// the capture.
 compile {
     wg_vlan_tagged_flow(wg_vlan_sec_gw, wg_branch_initiator)
 }

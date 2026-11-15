@@ -7,16 +7,21 @@
 #
 # Installs the prebuilt FrameAssembly release binary to ~/.cargo/bin (when Rust
 # is present) or ~/.local/bin (on systems without Rust), verifies SHA-256
-# checksums against SHA256SUMS.txt, falls back (after interactive TTY prompt)
-# to building from crates.io via rustup (>= 1.85) + cargo install if no prebuilt
-# archive is available, installs Bash/Zsh/Fish Tab completion scripts, installs
-# the VS Code / Cursor / Windsurf / VSCodium / Antigravity extension (.vsix),
-# and self-deletes if downloaded as a standalone script file.
+# checksums fail-closed against SHA256SUMS.txt, falls back (after interactive
+# TTY prompt) to building from crates.io via rustup (>= 1.88) + cargo install if
+# no prebuilt archive is available, installs Bash/Zsh/Fish Tab completion
+# scripts, installs the VS Code / Cursor / Windsurf / VSCodium / Antigravity
+# extension (.vsix), and supports air-gapped --offline <archive.tar.gz> installs.
 #
-# Usage:
+# Recommended CLI install when Rust/Cargo is available:
+#   cargo install frameassembly
+#
+# Bootstrap usage:
 #   curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
 #
 # Options (via `sh -s -- [OPTIONS]`):
+#   --offline <FILE>  Install offline from a local frameassembly-*.tar.gz bundle
+#   --skip-checksum   Bypass fail-closed SHA-256 verification against SHA256SUMS.txt
 #   --locked          Pass --locked to cargo install
 #   --force           Pass --force to cargo install
 #   --vscode          Install the editor extension (.vsix) [default: auto]
@@ -30,10 +35,10 @@ set -eu
 
 CALLER_PATH="${PATH:-}"
 REQUIRED_RUST_MAJOR=1
-REQUIRED_RUST_MINOR=85
+REQUIRED_RUST_MINOR=88
 CRATE_NAME="frameassembly"
-VSIX_VERSION="3.0.0"
-RELEASE_VERSION="3.0.0"
+VSIX_VERSION="3.1.0"
+RELEASE_VERSION="3.1.0"
 VSIX_RAW_URL="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-${VSIX_VERSION}.vsix"
 COMPLETIONS_RAW_BASE="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/completions"
 GITHUB_RELEASE_BASE="https://github.com/SteveWinschel/FrameAssembly/releases/download/v${RELEASE_VERSION}"
@@ -43,8 +48,11 @@ CARGO_LOCKED=0
 CARGO_FORCE=0
 INSTALL_VSCODE=1
 INSTALL_COMPLETIONS=1
+SKIP_CHECKSUM=0
+OFFLINE_ARCHIVE=""
 DRY_RUN=0
 INSTALLED_BIN_DIR=""
+EXTRACTED_BUNDLE_DIR=""
 
 log_info() {
     printf '\033[1;34m[FrameAssembly]\033[0m %s\n' "$*"
@@ -66,14 +74,20 @@ usage() {
     cat <<'EOF'
 FrameAssembly (frameassembly) Cross-Platform Bootstrap Installer
 
-Usage:
+Recommended when Cargo is installed:
+  cargo install frameassembly
+
+Bootstrap usage:
   curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
   curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh -s -- [OPTIONS]
+  ./install.sh --offline ./frameassembly-linux-x64.tar.gz
 
 Options:
+  --offline <FILE>  Install from a local .tar.gz release archive without network access
+  --skip-checksum   Skip fail-closed SHA-256 verification against SHA256SUMS.txt
   --locked          Use locked Cargo.lock dependencies (cargo install --locked)
   --force           Force overwrite an existing frameassembly binary (cargo install --force)
-  --vscode          Install the VS Code / Cursor / Windsurf / VSCodium / Antigravity extension (.vsix) [default: auto]
+  --vscode          Install the VS Code / Insiders / Cursor / Windsurf / VSCodium / Antigravity extension (.vsix) [default: auto]
   --no-vscode       Skip installing the editor extension
   --no-completions  Skip installing Bash, Zsh, and Fish Tab completion scripts
   --dry-run         Show detected platform and planned actions without modifying the system
@@ -83,6 +97,17 @@ EOF
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
+        --offline)
+            if [ "$#" -lt 2 ]; then
+                log_err "--offline requires a path to a .tar.gz archive"
+                exit 1
+            fi
+            OFFLINE_ARCHIVE="$2"
+            shift
+            ;;
+        --skip-checksum)
+            SKIP_CHECKSUM=1
+            ;;
         --locked)
             CARGO_LOCKED=1
             ;;
@@ -113,6 +138,13 @@ while [ "$#" -gt 0 ]; do
     esac
     shift
 done
+
+cleanup_bundle_dir() {
+    if [ -n "${EXTRACTED_BUNDLE_DIR:-}" ] && [ -d "$EXTRACTED_BUNDLE_DIR" ]; then
+        rm -rf -- "$EXTRACTED_BUNDLE_DIR"
+    fi
+}
+trap cleanup_bundle_dir EXIT
 
 run_cmd() {
     if [ "$DRY_RUN" -eq 1 ]; then
@@ -150,8 +182,8 @@ confirm_toolchain_fallback() {
         return 0
     fi
 
-    log_warn "Prebuilt FrameAssembly v${RELEASE_VERSION} archive could not be downloaded from GitHub Releases."
-    log_info "Fallback installs missing build tools (which may invoke sudo/doas) and builds from crates.io via rustup/cargo."
+    log_warn "Prebuilt FrameAssembly v${RELEASE_VERSION} archive could not be installed from GitHub Releases."
+    log_info "Fallback installs missing build tools (which may invoke sudo/doas) and runs 'cargo install frameassembly' from crates.io."
 
     answer=""
     if [ -t 0 ]; then
@@ -358,7 +390,16 @@ verify_sha256_against_sums() {
     archive_basename="$2"
     sums_file="$3"
 
-    [ -f "$sums_file" ] || return 0
+    if [ "$SKIP_CHECKSUM" -eq 1 ]; then
+        log_warn "Skipping SHA-256 checksum verification for ${archive_basename} (--skip-checksum)."
+        return 0
+    fi
+
+    if [ ! -f "$sums_file" ] || [ ! -s "$sums_file" ]; then
+        log_err "SHA256SUMS.txt missing or empty while verifying ${archive_basename} (pass --skip-checksum to bypass)."
+        return 1
+    fi
+
     expected_hash="$(awk -v fname="$archive_basename" '
         {
             h = tolower($1)
@@ -372,7 +413,10 @@ verify_sha256_against_sums() {
         }
     ' "$sums_file")"
 
-    [ -n "$expected_hash" ] || return 0
+    if [ -z "$expected_hash" ]; then
+        log_err "No SHA-256 entry found for '${archive_basename}' in SHA256SUMS.txt (pass --skip-checksum to bypass)."
+        return 1
+    fi
 
     if actual_hash="$(compute_sha256 "$archive_file")"; then
         if [ "$actual_hash" != "$expected_hash" ]; then
@@ -380,10 +424,76 @@ verify_sha256_against_sums() {
             return 1
         fi
         log_ok "Verified SHA-256 checksum for ${archive_basename}."
-    else
-        log_warn "No SHA-256 tool found (sha256sum/shasum/openssl); skipping checksum verification."
+        return 0
     fi
+
+    log_err "No SHA-256 tool found (sha256sum/shasum/openssl) to verify ${archive_basename} (pass --skip-checksum to bypass)."
+    return 1
+}
+
+extract_and_stage_tarball() {
+    archive_path="$1"
+    display_name="$2"
+    bin_dir="$3"
+
+    tmp_extract="${TMPDIR:-/tmp}/${CRATE_NAME}-extract-$$"
+    mkdir -p "$tmp_extract" "$bin_dir"
+    if ! tar -xzf "$archive_path" -C "$tmp_extract" 2>/dev/null; then
+        rm -rf -- "$tmp_extract"
+        log_err "Failed to extract archive: ${archive_path}"
+        return 1
+    fi
+
+    extracted_bin=""
+    if [ -f "${tmp_extract}/${CRATE_NAME}" ]; then
+        extracted_bin="${tmp_extract}/${CRATE_NAME}"
+    elif command -v find >/dev/null 2>&1; then
+        extracted_bin="$(find "$tmp_extract" -type f -name "$CRATE_NAME" 2>/dev/null | head -n 1)"
+    fi
+
+    if [ -z "$extracted_bin" ] || [ ! -f "$extracted_bin" ]; then
+        rm -rf -- "$tmp_extract"
+        log_err "Could not locate '${CRATE_NAME}' binary inside ${display_name}."
+        return 1
+    fi
+
+    cp -f "$extracted_bin" "${bin_dir}/${CRATE_NAME}"
+    chmod +x "${bin_dir}/${CRATE_NAME}"
+    EXTRACTED_BUNDLE_DIR="$tmp_extract"
+    INSTALLED_BIN_DIR="$bin_dir"
+    prepend_to_path_if_dir "$bin_dir"
+    log_ok "Installed ${CRATE_NAME} (${display_name}) to ${bin_dir}/${CRATE_NAME}."
     return 0
+}
+
+install_from_offline_archive() {
+    if [ ! -f "$OFFLINE_ARCHIVE" ]; then
+        log_err "Offline archive not found: ${OFFLINE_ARCHIVE}"
+        exit 1
+    fi
+    if ! command -v tar >/dev/null 2>&1; then
+        log_err "'tar' is required to extract ${OFFLINE_ARCHIVE}."
+        exit 1
+    fi
+
+    bin_dir="$(resolve_prebuilt_bin_dir)"
+    archive_basename="$(basename "$OFFLINE_ARCHIVE")"
+    archive_dir="$(dirname "$OFFLINE_ARCHIVE")"
+    sibling_sums="${archive_dir}/SHA256SUMS.txt"
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+        log_info "[dry-run] Offline install from ${OFFLINE_ARCHIVE} (checksums: ${sibling_sums}) -> ${bin_dir}/${CRATE_NAME}"
+        INSTALLED_BIN_DIR="$bin_dir"
+        return 0
+    fi
+
+    if ! verify_sha256_against_sums "$OFFLINE_ARCHIVE" "$archive_basename" "$sibling_sums"; then
+        exit 1
+    fi
+
+    if ! extract_and_stage_tarball "$OFFLINE_ARCHIVE" "$archive_basename" "$bin_dir"; then
+        exit 1
+    fi
 }
 
 try_install_prebuilt_binary() {
@@ -404,7 +514,6 @@ try_install_prebuilt_binary() {
 
     tmp_archive="${TMPDIR:-/tmp}/${CRATE_NAME}-${RELEASE_VERSION}-$$.tar.gz"
     tmp_sums="${TMPDIR:-/tmp}/${CRATE_NAME}-sums-${RELEASE_VERSION}-$$.txt"
-    tmp_extract="${TMPDIR:-/tmp}/${CRATE_NAME}-extract-$$"
 
     downloaded_archive=""
     if curl -fsSL "$clean_url" -o "$tmp_archive" 2>/dev/null; then
@@ -416,31 +525,17 @@ try_install_prebuilt_binary() {
     if [ -n "$downloaded_archive" ]; then
         curl -fsSL "${GITHUB_RELEASE_BASE}/SHA256SUMS.txt" -o "$tmp_sums" 2>/dev/null || rm -f -- "$tmp_sums"
         if ! verify_sha256_against_sums "$tmp_archive" "$downloaded_archive" "$tmp_sums"; then
-            rm -rf -- "$tmp_archive" "$tmp_sums" "$tmp_extract"
+            rm -f -- "$tmp_archive" "$tmp_sums"
             return 1
         fi
 
-        mkdir -p "$tmp_extract" "$bin_dir"
-        if tar -xzf "$tmp_archive" -C "$tmp_extract" 2>/dev/null; then
-            extracted_bin=""
-            if [ -f "${tmp_extract}/${CRATE_NAME}" ]; then
-                extracted_bin="${tmp_extract}/${CRATE_NAME}"
-            elif command -v find >/dev/null 2>&1; then
-                extracted_bin="$(find "$tmp_extract" -type f -name "$CRATE_NAME" 2>/dev/null | head -n 1)"
-            fi
-            if [ -n "$extracted_bin" ] && [ -f "$extracted_bin" ]; then
-                mv -f "$extracted_bin" "${bin_dir}/${CRATE_NAME}"
-                chmod +x "${bin_dir}/${CRATE_NAME}"
-                rm -rf -- "$tmp_archive" "$tmp_sums" "$tmp_extract"
-                INSTALLED_BIN_DIR="$bin_dir"
-                prepend_to_path_if_dir "$bin_dir"
-                log_ok "Installed prebuilt ${CRATE_NAME} v${RELEASE_VERSION} (${downloaded_archive}) to ${bin_dir}/${CRATE_NAME}."
-                return 0
-            fi
+        if extract_and_stage_tarball "$tmp_archive" "$downloaded_archive" "$bin_dir"; then
+            rm -f -- "$tmp_archive" "$tmp_sums"
+            return 0
         fi
     fi
 
-    rm -rf -- "$tmp_archive" "$tmp_sums" "$tmp_extract"
+    rm -f -- "$tmp_archive" "$tmp_sums"
     return 1
 }
 
@@ -510,23 +605,36 @@ install_frameassembly() {
     prepend_to_path_if_dir "$INSTALLED_BIN_DIR"
 }
 
+find_bundled_completion() {
+    comp_src_name="$1"
+    if [ -n "${EXTRACTED_BUNDLE_DIR:-}" ] && [ -d "$EXTRACTED_BUNDLE_DIR" ] && command -v find >/dev/null 2>&1; then
+        found_comp="$(find "$EXTRACTED_BUNDLE_DIR" -type f -name "$comp_src_name" 2>/dev/null | head -n 1)"
+        if [ -n "$found_comp" ] && [ -f "$found_comp" ]; then
+            printf '%s' "$found_comp"
+            return 0
+        fi
+    fi
+    if [ -f "contrib/completions/${comp_src_name}" ]; then
+        printf '%s' "contrib/completions/${comp_src_name}"
+        return 0
+    fi
+    case "$0" in
+        */*)
+            script_dir="$(dirname "$0")"
+            if [ -f "${script_dir}/contrib/completions/${comp_src_name}" ]; then
+                printf '%s' "${script_dir}/contrib/completions/${comp_src_name}"
+                return 0
+            fi
+            ;;
+    esac
+    return 1
+}
+
 install_single_completion() {
     comp_src_name="$1"
     comp_dest_path="$2"
 
-    local_comp_path=""
-    if [ -f "contrib/completions/${comp_src_name}" ]; then
-        local_comp_path="contrib/completions/${comp_src_name}"
-    else
-        case "$0" in
-            */*)
-                script_dir="$(dirname "$0")"
-                if [ -f "${script_dir}/contrib/completions/${comp_src_name}" ]; then
-                    local_comp_path="${script_dir}/contrib/completions/${comp_src_name}"
-                fi
-                ;;
-        esac
-    fi
+    local_comp_path="$(find_bundled_completion "$comp_src_name" || true)"
 
     if [ "$DRY_RUN" -eq 1 ]; then
         log_info "[dry-run] Install shell completion ${comp_src_name} -> ${comp_dest_path}"
@@ -538,9 +646,24 @@ install_single_completion() {
 
     if [ -n "$local_comp_path" ]; then
         cp -f "$local_comp_path" "$comp_dest_path" 2>/dev/null || return 0
-    elif command -v curl >/dev/null 2>&1; then
+    elif [ -z "$OFFLINE_ARCHIVE" ] && command -v curl >/dev/null 2>&1; then
         curl -fsSL "${COMPLETIONS_RAW_BASE}/${comp_src_name}" -o "$comp_dest_path" 2>/dev/null || rm -f -- "$comp_dest_path"
     fi
+}
+
+resolve_zsh_completion_dest() {
+    if [ -d "${ZDOTDIR:-$HOME}/.zfunc" ] && [ -w "${ZDOTDIR:-$HOME}/.zfunc" ]; then
+        printf '%s' "${ZDOTDIR:-$HOME}/.zfunc/_frameassembly"
+        return 0
+    fi
+    if command -v zsh >/dev/null 2>&1; then
+        writable_fpath_dir="$(zsh -fc 'for d in $fpath; do if [ -d "$d" ] && [ -w "$d" ]; then printf "%s\n" "$d"; break; fi; done' 2>/dev/null || true)"
+        if [ -n "$writable_fpath_dir" ] && [ -d "$writable_fpath_dir" ] && [ -w "$writable_fpath_dir" ]; then
+            printf '%s' "${writable_fpath_dir}/_frameassembly"
+            return 0
+        fi
+    fi
+    printf '%s' "${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions/_frameassembly"
 }
 
 install_shell_completions() {
@@ -549,17 +672,23 @@ install_shell_completions() {
     fi
 
     bash_comp_dest="${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions/frameassembly"
-    if [ -d "${ZDOTDIR:-$HOME}/.zfunc" ]; then
-        zsh_comp_dest="${ZDOTDIR:-$HOME}/.zfunc/_frameassembly"
-    else
-        zsh_comp_dest="${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions/_frameassembly"
-    fi
+    zsh_comp_dest="$(resolve_zsh_completion_dest)"
     fish_comp_dest="${XDG_CONFIG_HOME:-$HOME/.config}/fish/completions/frameassembly.fish"
 
     install_single_completion "frameassembly.bash" "$bash_comp_dest"
     install_single_completion "_frameassembly" "$zsh_comp_dest"
     install_single_completion "frameassembly.fish" "$fish_comp_dest"
     log_ok "Installed Bash, Zsh, and Fish Tab completions."
+
+    if [ "${SHELL:-}" = "/bin/zsh" ] || [ "${SHELL:-}" = "/usr/bin/zsh" ]; then
+        zsh_dir="$(dirname "$zsh_comp_dest")"
+        if command -v zsh >/dev/null 2>&1; then
+            in_fpath="$(zsh -fc 'for d in $fpath; do printf "%s\n" "$d"; done' 2>/dev/null | grep -Fx "$zsh_dir" || true)"
+            if [ -z "$in_fpath" ]; then
+                log_info "Zsh completion note: add 'fpath=(\"${zsh_dir}\" \$fpath); autoload -Uz compinit && compinit' to ~/.zshrc to enable Tab completion."
+            fi
+        fi
+    fi
 }
 
 install_vscode_extension_if_requested() {
@@ -568,7 +697,7 @@ install_vscode_extension_if_requested() {
     fi
 
     detected_editors=""
-    for candidate in code cursor windsurf codium agy; do
+    for candidate in code code-insiders cursor windsurf codium agy; do
         if command -v "$candidate" >/dev/null 2>&1; then
             detected_editors="${detected_editors} ${candidate}"
         fi
@@ -578,33 +707,71 @@ install_vscode_extension_if_requested() {
         return 0
     fi
 
+    if [ -n "$OFFLINE_ARCHIVE" ]; then
+        archive_dir="$(dirname "$OFFLINE_ARCHIVE")"
+        offline_vsix=""
+        if [ -f "${archive_dir}/frameassembly-vscode.vsix" ]; then
+            offline_vsix="${archive_dir}/frameassembly-vscode.vsix"
+        elif [ -f "${archive_dir}/frameassembly-vscode-${VSIX_VERSION}.vsix" ]; then
+            offline_vsix="${archive_dir}/frameassembly-vscode-${VSIX_VERSION}.vsix"
+        fi
+        if [ -z "$offline_vsix" ]; then
+            log_info "No local .vsix found alongside ${OFFLINE_ARCHIVE}; skipping offline editor extension install."
+            return 0
+        fi
+        if [ "$DRY_RUN" -eq 1 ]; then
+            for editor_cli in $detected_editors; do
+                log_info "[dry-run] ${editor_cli} --install-extension ${offline_vsix}"
+            done
+            return 0
+        fi
+        if verify_sha256_against_sums "$offline_vsix" "$(basename "$offline_vsix")" "${archive_dir}/SHA256SUMS.txt"; then
+            for editor_cli in $detected_editors; do
+                log_info "Installing extension via ${editor_cli}..."
+                run_cmd "$editor_cli" --install-extension "$offline_vsix" || log_warn "${editor_cli} extension install returned non-zero status."
+            done
+        fi
+        return 0
+    fi
+
     tmp_vsix="${TMPDIR:-/tmp}/frameassembly-vscode-${VSIX_VERSION}-$$.vsix"
+    tmp_vsix_sums="${TMPDIR:-/tmp}/frameassembly-vsix-sums-${VSIX_VERSION}-$$.txt"
     vsix_release_url="${GITHUB_RELEASE_BASE}/frameassembly-vscode.vsix"
     log_info "Downloading FrameAssembly editor extension (v${VSIX_VERSION}) from GitHub..."
     if [ "$DRY_RUN" -eq 1 ]; then
-        log_info "[dry-run] Download ${vsix_release_url} (fallback: ${VSIX_RAW_URL}) -> ${tmp_vsix}"
+        log_info "[dry-run] Download ${vsix_release_url} -> ${tmp_vsix} (SHA-256 verified via SHA256SUMS.txt)"
         for editor_cli in $detected_editors; do
             log_info "[dry-run] ${editor_cli} --install-extension ${tmp_vsix}"
         done
         return 0
     fi
 
-    if curl -fsSL "$vsix_release_url" -o "$tmp_vsix" 2>/dev/null || curl -fsSL "$VSIX_RAW_URL" -o "$tmp_vsix" 2>/dev/null; then
+    vsix_ready=0
+    if curl -fsSL "$vsix_release_url" -o "$tmp_vsix" 2>/dev/null; then
+        curl -fsSL "${GITHUB_RELEASE_BASE}/SHA256SUMS.txt" -o "$tmp_vsix_sums" 2>/dev/null || rm -f -- "$tmp_vsix_sums"
+        if verify_sha256_against_sums "$tmp_vsix" "frameassembly-vscode.vsix" "$tmp_vsix_sums"; then
+            vsix_ready=1
+        fi
+    elif [ "$SKIP_CHECKSUM" -eq 1 ] && curl -fsSL "$VSIX_RAW_URL" -o "$tmp_vsix" 2>/dev/null; then
+        log_warn "Using unverified fallback ${VSIX_RAW_URL} (--skip-checksum)."
+        vsix_ready=1
+    fi
+
+    if [ "$vsix_ready" -eq 1 ]; then
         for editor_cli in $detected_editors; do
             log_info "Installing extension via ${editor_cli}..."
             run_cmd "$editor_cli" --install-extension "$tmp_vsix" || log_warn "${editor_cli} extension install returned non-zero status."
         done
-        run_cmd rm -f -- "$tmp_vsix"
     else
-        log_warn "Could not download ${vsix_release_url} or ${VSIX_RAW_URL}; skipping editor extension install."
-        run_cmd rm -f -- "$tmp_vsix"
+        log_warn "Could not download and verify ${vsix_release_url}; skipping editor extension install."
     fi
+    rm -f -- "$tmp_vsix" "$tmp_vsix_sums"
 }
 
 cleanup_self() {
     case "$0" in
         *install.sh)
-            if [ ! -d ".git" ] && [ -f "$0" ]; then
+            if [ -z "$OFFLINE_ARCHIVE" ] && [ ! -d ".git" ] && [ -f "$0" ]; then
                 log_info "Cleaning up one-time installer script ($0)..."
                 run_cmd rm -f -- "$0"
             fi
@@ -612,35 +779,48 @@ cleanup_self() {
     esac
 }
 
-print_path_hint_if_needed() {
+is_in_caller_path() {
     target_dir="$1"
     [ -z "$target_dir" ] && return 0
     case ":${CALLER_PATH}:" in
-        *":${target_dir}:"*)
-            return 0
-            ;;
+        *":${target_dir}:"*) return 0 ;;
+        *) return 1 ;;
     esac
+}
+
+print_path_hint_if_needed() {
+    target_dir="$1"
+    if is_in_caller_path "$target_dir"; then
+        return 0
+    fi
 
     cargo_env_file="${CARGO_HOME:-$HOME/.cargo}/env"
     if [ "$target_dir" = "${CARGO_HOME:-$HOME/.cargo}/bin" ] && [ -f "$cargo_env_file" ]; then
         log_warn "${target_dir} is not yet in your current shell PATH."
-        log_warn "Run: . \"${cargo_env_file}\"  (or restart your terminal)"
+        log_warn "Run first: . \"${cargo_env_file}\"  (or restart your terminal)"
     else
         log_warn "${target_dir} is not yet in your current shell PATH."
-        log_warn "Run: export PATH=\"${target_dir}:\$PATH\"  (and add that line to ~/.bashrc or ~/.zshrc)"
+        log_warn "Run first: export PATH=\"${target_dir}:\$PATH\"  (and add that line to ~/.bashrc or ~/.zshrc)"
     fi
 }
 
 print_quickstart() {
+    target_dir="$1"
     log_info "Quickstart (copy and paste to run right away):"
-    cat <<'EOF'
+    if is_in_caller_path "$target_dir"; then
+        cat <<'EOF'
   printf 'host client { ip 10.0.0.10 }\nhost server { ip 10.0.0.20 }\ncompile {\n  client -> server http get uri "/healthz" hosthdr "api.example.com" wait 2ms\n  client <- server http status 200 reason "OK" body "ok"\n}\n' > quickstart.frasm && frameassembly show quickstart.frasm && frameassembly quickstart.frasm quickstart.pcap
 EOF
+    else
+        printf '  export PATH="%s:$PATH" && printf '\''host client { ip 10.0.0.10 }\\nhost server { ip 10.0.0.20 }\\ncompile {\\n  client -> server http get uri "/healthz" hosthdr "api.example.com" wait 2ms\\n  client <- server http status 200 reason "OK" body "ok"\\n}\\n'\'' > quickstart.frasm && frameassembly show quickstart.frasm && frameassembly quickstart.frasm quickstart.pcap\n' "$target_dir"
+    fi
 }
 
 main() {
     log_info "Starting FrameAssembly (${CRATE_NAME} v${RELEASE_VERSION}) bootstrap installer..."
-    if ! try_install_prebuilt_binary; then
+    if [ -n "$OFFLINE_ARCHIVE" ]; then
+        install_from_offline_archive
+    elif ! try_install_prebuilt_binary; then
         confirm_toolchain_fallback
         install_system_prerequisites
         ensure_rust_toolchain
@@ -657,11 +837,12 @@ main() {
 
     if command -v frameassembly >/dev/null 2>&1; then
         log_ok "Successfully installed $(frameassembly version)!"
-        print_quickstart
         print_path_hint_if_needed "$INSTALLED_BIN_DIR"
+        print_quickstart "$INSTALLED_BIN_DIR"
     else
         fallback_dir="${INSTALLED_BIN_DIR:-$HOME/.local/bin}"
         print_path_hint_if_needed "$fallback_dir"
+        print_quickstart "$fallback_dir"
     fi
 }
 

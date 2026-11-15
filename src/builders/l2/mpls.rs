@@ -25,9 +25,19 @@ pub fn build_mpls_frame(
     payload: &[u8],
 ) -> Result<Vec<u8>, CompilerError> {
     let mut l2 = ctx.l2.clone();
+    let default_label = if spec.label == 0
+        && ctx.src_ip.is_ipv6()
+        && !ctx.src_ip.is_unspecified()
+        && !ctx.dst_ip.is_unspecified()
+        && payload.is_empty()
+    {
+        2
+    } else {
+        spec.label
+    };
     if l2.mpls.is_none() {
         l2.mpls = Some(MplsSpec {
-            label: spec.label,
+            label: default_label,
             exp: spec.exp,
             bos: spec.bos,
             ttl: spec.ttl,

@@ -60,10 +60,18 @@ pub(crate) fn dissect_quic(payload: &[u8]) -> Option<ProtocolDissection> {
         let _ = write!(tokens, " version 0x{version:08x}");
     }
     if dcid != 0x01020304 {
-        let _ = write!(tokens, " dcid 0x{dcid:08x}");
+        if dcid > u32::MAX as u64 {
+            let _ = write!(tokens, " dcid 0x{dcid:016x}");
+        } else {
+            let _ = write!(tokens, " dcid 0x{dcid:08x}");
+        }
     }
     if scid != 0x05060708 {
-        let _ = write!(tokens, " scid 0x{scid:08x}");
+        if scid > u32::MAX as u64 {
+            let _ = write!(tokens, " scid 0x{scid:016x}");
+        } else {
+            let _ = write!(tokens, " scid 0x{scid:08x}");
+        }
     }
 
     if hdr_type == 3 {
@@ -86,8 +94,8 @@ pub(crate) fn dissect_quic(payload: &[u8]) -> Option<ProtocolDissection> {
     }
 
     if hdr_type == 0 {
-        let tok_len = *payload.get(pos)? as usize;
-        pos += 1;
+        let (tok_len, consumed) = read_quic_varint(payload, pos)?;
+        pos += consumed;
         let tok_bytes = payload.get(pos..pos.checked_add(tok_len)?)?;
         if tok_len > 0 {
             push_str_mod(&mut tokens, "token", core::str::from_utf8(tok_bytes).ok()?);
@@ -95,12 +103,16 @@ pub(crate) fn dissect_quic(payload: &[u8]) -> Option<ProtocolDissection> {
         pos += tok_len;
     }
 
-    let varint_len = checked_be_u16(payload, pos)?;
-    if (varint_len & 0xC000) != 0x4000 {
-        return None;
-    }
-    let inner_len = (varint_len & 0x3FFF) as usize;
-    pos += 2;
+    let first_len_b = *payload.get(pos)?;
+    let (inner_len, len_bytes) = match first_len_b >> 6 {
+        1 => ((checked_be_u16(payload, pos)? & 0x3FFF) as usize, 2usize),
+        2 => (
+            (checked_be_u32(payload, pos)? & 0x3FFF_FFFF) as usize,
+            4usize,
+        ),
+        _ => return None,
+    };
+    pos += len_bytes;
     if inner_len < 1 || pos.checked_add(inner_len)? != payload.len() {
         return None;
     }
@@ -109,6 +121,17 @@ pub(crate) fn dissect_quic(payload: &[u8]) -> Option<ProtocolDissection> {
         let _ = write!(tokens, " pktnum {pkt_num}");
     }
     Some(sd(Protocol::Quic, tokens, payload.get(pos + 1..)?.to_vec()))
+}
+
+/// Decodes an RFC 9000 §16 variable-length integer (`1`, `2`, or `4` bytes) at `pos`.
+fn read_quic_varint(payload: &[u8], pos: usize) -> Option<(usize, usize)> {
+    let b0 = *payload.get(pos)?;
+    match b0 >> 6 {
+        0 => Some((b0 as usize, 1)),
+        1 => Some(((checked_be_u16(payload, pos)? & 0x3FFF) as usize, 2)),
+        2 => Some(((checked_be_u32(payload, pos)? & 0x3FFF_FFFF) as usize, 4)),
+        _ => None,
+    }
 }
 
 /// Reads up to 8 big-endian bytes into a `u64`.

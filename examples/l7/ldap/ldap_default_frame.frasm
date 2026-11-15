@@ -1,24 +1,18 @@
-// PROMPT: Generate a minimal default LDAP frame with default protocol parameters between an LDAP client and directory server.
-// TOKENS: host, ip, mac, flow, s, ldap, compile
+// LDAPv3 starter directory request on TCP port 389 using built-in defaults.
+// Omitting extra keywords emits a 30-byte BER BindRequest (msgid 1).
+// Wireshark: ldap
 
-// INSTRUCTION: Define the client host querying the directory service.
 host ldap_client {
     ip 10.10.15.20
     mac 00:1a:2b:15:00:20
 }
 
-// INSTRUCTION: Define the OpenLDAP directory server.
 host ldap_server {
     ip 10.10.15.5
     mac 00:1a:2b:15:00:05
 }
 
-// INSTRUCTION: Emit a default LDAP protocol frame using built-in defaults.
-flow default_ldap_flow(c, s) {
-    c -> s ldap
-}
-
-// INSTRUCTION: Compile the default LDAP packet into a PCAP file.
+// Send the frame directly in compile without needing a reusable flow block.
 compile {
-    default_ldap_flow(ldap_client, ldap_server)
+    ldap_client -> ldap_server ldap
 }

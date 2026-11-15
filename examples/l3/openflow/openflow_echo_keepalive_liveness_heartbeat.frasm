@@ -1,19 +1,20 @@
-// PROMPT: Bidirectional OpenFlow ECHO_REQ and ECHO_REPLY keepalive exchange verifying channel liveness.
-// TOKENS: host, ip, flow, openflow, type, echoreq, xid, echoreply, compile
+// Bidirectional OpenFlow echoreq and echoreply keepalive exchange verifying
+// channel liveness.
+// This capture sends OpenFlow SDN control messages over TCP port 6653.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define cluster SDN controller node.
 host cluster_sdn_ctrl { ip 172.28.1.5 }
 
-// INSTRUCTION: Define monitored OpenFlow spine switch.
 host spine_openflow_sw { ip 172.28.1.15 }
 
-// INSTRUCTION: Define echo keepalive exchange flow with matching XID.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow of_echo_liveness(ctrl, sw) {
     ctrl -> sw openflow type echoreq xid 9999
     ctrl <- sw openflow type echoreply xid 9999
 }
 
-// INSTRUCTION: Compile block executing echo keepalive heartbeat.
+// Run of_echo_liveness(cluster_sdn_ctrl, spine_openflow_sw) to generate the
+// capture.
 compile {
     of_echo_liveness(cluster_sdn_ctrl, spine_openflow_sw)
 }

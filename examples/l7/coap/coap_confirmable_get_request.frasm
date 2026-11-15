@@ -1,18 +1,16 @@
-// PROMPT: RFC 7252 CoAP Confirmable (CON) GET request targeting resource URI path.
-// TOKENS: host, ip, flow, s, coap, con, uripath, msgid, compile
+// RFC 7252 CoAP Confirmable (CON) GET request targeting resource URI path.
+// Wireshark: coap
+// Automatic Ethernet MAC addresses and UDP port 5683 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.25 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow coap_con(c, s) {
     c -> s coap con uripath "telemetry/status" msgid 101
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     coap_con(client, server)
 }

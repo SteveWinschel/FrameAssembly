@@ -1,18 +1,19 @@
-// PROMPT: IPv6 Duplicate Address Detection (DAD) Neighbor Solicitation verifying address uniqueness.
-// TOKENS: host, ip, mac, flow, src, dst, ndp, neighborsolicit, target, compile
+// IPv6 Duplicate Address Detection (DAD) Neighbor Solicitation verifying
+// address uniqueness.
+// This capture targets IPv6 endpoints.
+// Wireshark: icmpv6.nd
 
-// INSTRUCTION: Define bootstrapping host initiating DAD probe.
 host dad_probing_node { ip fe80::dad:1 mac 00:50:56:00:da:01 }
 
-// INSTRUCTION: Define solicited-node multicast destination for candidate address.
 host dad_solicited_node { ip ff02::1:ff34:5678 mac 33:33:ff:34:56:78 }
 
-// INSTRUCTION: Define DAD Neighbor Solicitation packet targeting candidate IPv6 2001:db8::3456:78.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow dad_probe_flow(src, dst) {
     src -> dst ndp neighborsolicit target 2001:db8::3456:78
 }
 
-// INSTRUCTION: Compile block executing DAD verification probe.
+// Run dad_probe_flow(dad_probing_node, dad_solicited_node) to generate the
+// capture.
 compile {
     dad_probe_flow(dad_probing_node, dad_solicited_node)
 }

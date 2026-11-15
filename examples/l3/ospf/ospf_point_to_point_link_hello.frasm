@@ -1,19 +1,20 @@
-// PROMPT: OSPF Hello packets over point-to-point leased line between core routers with Area 0.
-// TOKENS: host, ip, flow, ospf, hello, routerid, areaid, compile
+// OSPF Hello packets over point-to-point leased line between core routers
+// with Area 0.
+// This capture exchanges OSPF IP protocol 89 link-state packets toward
+// AllSPFRouters.
+// Wireshark: ospf
 
-// INSTRUCTION: Define core router 1 on WAN leased line.
 host core_ospf_r1 { ip 10.254.0.1 }
 
-// INSTRUCTION: Define core router 2 on WAN leased line.
 host core_ospf_r2 { ip 10.254.0.2 }
 
-// INSTRUCTION: Define point-to-point OSPF Hello discovery flow in backbone Area 0.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ospf_p2p_hello(r1, r2) {
     r1 -> r2 ospf hello routerid 10.254.0.1 areaid 0
     r1 <- r2 ospf hello routerid 10.254.0.2 areaid 0
 }
 
-// INSTRUCTION: Compile block executing OSPF point-to-point Hello exchange.
+// Run ospf_p2p_hello(core_ospf_r1, core_ospf_r2) to generate the capture.
 compile {
     ospf_p2p_hello(core_ospf_r1, core_ospf_r2)
 }

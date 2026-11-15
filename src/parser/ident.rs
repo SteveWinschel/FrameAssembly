@@ -9,6 +9,7 @@
 //! `\'`, `\xHH`, `\uXXXX`).
 
 use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use winnow::ModalResult as PResult;
 use winnow::combinator::alt;
 use winnow::prelude::*;
@@ -88,9 +89,10 @@ pub fn unescape_string(s: &str) -> Result<String, String> {
                     let h2 = chars
                         .next()
                         .ok_or_else(|| "Incomplete \\x escape sequence".to_string())?;
-                    let mut hex_buf = [0u8; 2];
-                    hex_buf[0] = h1 as u8;
-                    hex_buf[1] = h2 as u8;
+                    if !h1.is_ascii_hexdigit() || !h2.is_ascii_hexdigit() {
+                        return Err(alloc::format!("Invalid hex byte in \\x: {h1}{h2}"));
+                    }
+                    let hex_buf = [h1 as u8, h2 as u8];
                     let hex_str = core::str::from_utf8(&hex_buf)
                         .map_err(|_| "Invalid ASCII hex digit in \\x".to_string())?;
                     let byte = u8::from_str_radix(hex_str, 16)
@@ -103,6 +105,9 @@ pub fn unescape_string(s: &str) -> Result<String, String> {
                         let ch = chars
                             .next()
                             .ok_or_else(|| "Incomplete \\u escape sequence".to_string())?;
+                        if !ch.is_ascii_hexdigit() {
+                            return Err("Invalid ASCII hex digit in \\u".to_string());
+                        }
                         *b = ch as u8;
                     }
                     let hex_str = core::str::from_utf8(&hex_buf)
@@ -118,6 +123,70 @@ pub fn unescape_string(s: &str) -> Result<String, String> {
             }
         } else {
             out.push(c);
+        }
+    }
+    Ok(out)
+}
+
+/// Decodes string escape sequences into raw wire bytes, emitting `\xHH` (`0x00..=0xFF`) as exact
+/// single octets while encoding Unicode characters and `\uXXXX` codepoints as UTF-8.
+///
+/// # Errors
+/// Returns an error message if an invalid or incomplete escape sequence is encountered.
+pub fn unescape_bytes(s: &str) -> Result<Vec<u8>, String> {
+    let mut out = Vec::with_capacity(s.len());
+    let mut chars = s.chars();
+    let mut utf8_buf = [0u8; 4];
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            match chars.next() {
+                Some('r') => out.push(b'\r'),
+                Some('n') => out.push(b'\n'),
+                Some('t') => out.push(b'\t'),
+                Some('\\') => out.push(b'\\'),
+                Some('"') => out.push(b'"'),
+                Some('\'') => out.push(b'\''),
+                Some('x') => {
+                    let h1 = chars
+                        .next()
+                        .ok_or_else(|| "Incomplete \\x escape sequence".to_string())?;
+                    let h2 = chars
+                        .next()
+                        .ok_or_else(|| "Incomplete \\x escape sequence".to_string())?;
+                    if !h1.is_ascii_hexdigit() || !h2.is_ascii_hexdigit() {
+                        return Err(alloc::format!("Invalid hex byte in \\x: {h1}{h2}"));
+                    }
+                    let hex_buf = [h1 as u8, h2 as u8];
+                    let hex_str = core::str::from_utf8(&hex_buf)
+                        .map_err(|_| "Invalid ASCII hex digit in \\x".to_string())?;
+                    let byte = u8::from_str_radix(hex_str, 16)
+                        .map_err(|_| alloc::format!("Invalid hex byte in \\x: {hex_str}"))?;
+                    out.push(byte);
+                }
+                Some('u') => {
+                    let mut hex_buf = [0u8; 4];
+                    for b in &mut hex_buf {
+                        let ch = chars
+                            .next()
+                            .ok_or_else(|| "Incomplete \\u escape sequence".to_string())?;
+                        if !ch.is_ascii_hexdigit() {
+                            return Err("Invalid ASCII hex digit in \\u".to_string());
+                        }
+                        *b = ch as u8;
+                    }
+                    let hex_str = core::str::from_utf8(&hex_buf)
+                        .map_err(|_| "Invalid ASCII hex digit in \\u".to_string())?;
+                    let code = u32::from_str_radix(hex_str, 16)
+                        .map_err(|_| alloc::format!("Invalid unicode hex in \\u: {hex_str}"))?;
+                    let ch = char::from_u32(code)
+                        .ok_or_else(|| alloc::format!("Invalid unicode codepoint: {code:x}"))?;
+                    out.extend_from_slice(ch.encode_utf8(&mut utf8_buf).as_bytes());
+                }
+                Some(other) => out.extend_from_slice(other.encode_utf8(&mut utf8_buf).as_bytes()),
+                None => return Err("Dangling backslash at end of string".to_string()),
+            }
+        } else {
+            out.extend_from_slice(c.encode_utf8(&mut utf8_buf).as_bytes());
         }
     }
     Ok(out)

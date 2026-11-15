@@ -1,19 +1,20 @@
-// PROMPT: Generate an SMTP transaction where RCPT TO is rejected with 550 5.1.1 User unknown followed by RSET and QUIT.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, smtp, code, reply, ehlo, mailfrom, param, rcptto, cmd, quit, compile
+// Generate an SMTP transaction where RCPT TO is rejected with 550 5.1.1 User
+// unknown followed by RSET and QUIT.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Overrides destination port to 25.
+// Wireshark: smtp
 
-// INSTRUCTION: Define the external sender MTA and inbound mail gateway.
 host ext_mta {
     mac 00:16:3e:55:10:01
     ip 198.51.100.88
 }
 
-// INSTRUCTION: Define the inbound_mx mail endpoint.
 host inbound_mx {
     mac 00:16:3e:55:10:02
     ip 192.0.2.25
 }
 
-// INSTRUCTION: Send MAIL FROM, attempt RCPT TO an invalid mailbox, receive 550 User unknown, reset with RSET, and QUIT.
 flow smtp_550_user_unknown_flow(ext_mta, inbound_mx) {
     ext_mta -> inbound_mx tcp syn srcport 53100 dstport 25
     inbound_mx -> ext_mta tcp syn ack
@@ -31,7 +32,6 @@ flow smtp_550_user_unknown_flow(ext_mta, inbound_mx) {
     inbound_mx -> ext_mta smtp code 221 reply "2.0.0 Bye"
 }
 
-// INSTRUCTION: Compile the SMTP 550 User unknown rejection flow.
 compile {
     smtp_550_user_unknown_flow(ext_mta, inbound_mx)
 }

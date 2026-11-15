@@ -1,13 +1,12 @@
-// PROMPT: TLS finished handshake verification record confirming key exchange completion.
-// TOKENS: host, ip, flow, s, tls, clienthello, sni, serverhello, finished, compile
+// TLS finished handshake verification record confirming key exchange
+// completion.
+// TLS extensions: SNI auth.internal.org.
+// Wireshark: tls
 
-// INSTRUCTION: Define authenticating client host.
 host auth_client_node { ip 10.115.1.10 }
 
-// INSTRUCTION: Define authenticating server node.
 host auth_server_node { ip 10.115.1.1 }
 
-// INSTRUCTION: Define finished verification handshake flow.
 flow tls_finished_flow(c, s) {
     c -> s tls clienthello sni "auth.internal.org"
     c <- s tls serverhello
@@ -15,7 +14,6 @@ flow tls_finished_flow(c, s) {
     c <- s tls finished
 }
 
-// INSTRUCTION: Compile block executing finished verification exchange.
 compile {
     tls_finished_flow(auth_client_node, auth_server_node)
 }

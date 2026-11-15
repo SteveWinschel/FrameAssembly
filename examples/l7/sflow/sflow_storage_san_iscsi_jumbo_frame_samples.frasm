@@ -1,24 +1,22 @@
-// PROMPT: sFlow v5 export from a storage fabric switch sampling iSCSI jumbo frame flows with DF flag set.
-// TOKENS: host, ip, mac, flow, sflow, agentip, subagentid, uptime, samples, srcport, dstport, df, ipid, compile
+// sFlow v5 export from a storage fabric switch sampling iSCSI jumbo frame
+// flows with DF flag set.
+// Overrides destination port to 6343.
+// Wireshark: sflow
 
-// INSTRUCTION: Define storage fabric switch monitoring iSCSI targets.
 host san_fabric_sw {
     ip 10.66.1.1
     mac 00:25:b5:42:01:01
 }
 
-// INSTRUCTION: Define SAN latency and throughput sFlow analyzer.
 host san_analyzer {
     ip 10.66.1.90
     mac 00:25:b5:42:01:5a
 }
 
-// INSTRUCTION: Export sFlow datagrams with Don-t Fragment bit and explicit UDP ports.
 flow sflow_iscsi_san(sw, ana) {
     sw -> ana sflow agentip 10.66.1.1 subagentid 4 uptime 950000 samples 12 srcport 55300 dstport 6343 df ipid 7701
 }
 
-// INSTRUCTION: Compile the iSCSI storage fabric sFlow sampling scenario.
 compile {
     sflow_iscsi_san(san_fabric_sw, san_analyzer)
 }

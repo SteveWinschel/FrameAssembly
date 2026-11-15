@@ -1,19 +1,20 @@
-// PROMPT: gRPC Deadline Exceeded error returning GRPC_STATUS 4 after a 500ms upstream timeout.
-// TOKENS: host, ip, flow, grpc, service, method, grpcstatus, wait, ms, compile
+// gRPC Deadline Exceeded error returning grpcstatus 4 after a 500ms upstream
+// timeout.
+// Wireshark: grpc || http2
 
-// INSTRUCTION: Define search aggregator client.
 host search_agg { ip 10.32.1.8 }
 
-// INSTRUCTION: Define vector similarity gRPC engine.
+// Vector similarity gRPC engine.
 host vector_engine { ip 10.32.1.99 }
 
-// INSTRUCTION: Invoke NearestNeighbors RPC and return GRPC_STATUS 4 (DEADLINE_EXCEEDED) after 500ms.
+// Invoke NearestNeighbors RPC and return grpcstatus 4 (DEADLINE_EXCEEDED)
+// after 500ms. gRPC status codes observed: 4 (DEADLINE_EXCEEDED) on TCP port
+// 50051. Uses post-packet wait timing (500ms) to space follow-up packets.
 flow grpc_deadline_exceeded(a, v) {
-    a -> v grpc service "ml.v1.VectorIndex" method "NearestNeighbors"
-    a <- v grpc service "ml.v1.VectorIndex" method "NearestNeighbors" grpcstatus 4 wait 500ms
+    a -> v grpc service "ml.v1.VectorIndex" method "NearestNeighbors" wait 500ms
+    a <- v grpc service "ml.v1.VectorIndex" method "NearestNeighbors" grpcstatus 4
 }
 
-// INSTRUCTION: Compile the gRPC deadline exceeded timeout scenario.
 compile {
     grpc_deadline_exceeded(search_agg, vector_engine)
 }

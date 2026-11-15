@@ -1,18 +1,17 @@
-// PROMPT: sFlow v5 network sampling agent datagram exporting packet samples.
-// TOKENS: host, ip, flow, s, sflow, agentip, samples, uptime, compile
+// sFlow v5 network sampling agent datagram exporting packet samples.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (sFlow v5,
+// UDP 6343).
+// Wireshark: sflow
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 172.16.0.1 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 172.16.0.100 }
 
-// INSTRUCTION: Define application traffic flow.
 flow sflow_sample(c, s) {
     c -> s sflow agentip 172.16.0.1 samples 10 uptime 360000
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     sflow_sample(client, server)
 }

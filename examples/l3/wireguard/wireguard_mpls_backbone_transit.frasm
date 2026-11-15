@@ -1,18 +1,18 @@
-// PROMPT: WireGuard UDP 51820 datagrams traversing MPLS core network with label 7700.
-// TOKENS: host, ip, flow, wireguard, type, initiation, sender, mpls, compile
+// WireGuard UDP 51820 datagrams traversing MPLS core network with label 7700.
+// This capture wraps frames in MPLS label 7700.
+// Wireshark: wg && mpls
 
-// INSTRUCTION: Define MPLS ingress provider edge router.
 host mpls_wg_ingress { ip 10.222.1.1 }
 
-// INSTRUCTION: Define MPLS core destination router.
 host mpls_wg_egress { ip 10.222.1.2 }
 
-// INSTRUCTION: Define MPLS labeled WireGuard initiation flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow wg_mpls_transit_flow(ing, eg) {
     ing -> eg wireguard type initiation sender 889900 mpls 7700
 }
 
-// INSTRUCTION: Compile block executing MPLS encapsulated WireGuard transit.
+// Run wg_mpls_transit_flow(mpls_wg_ingress, mpls_wg_egress) to generate the
+// capture.
 compile {
     wg_mpls_transit_flow(mpls_wg_ingress, mpls_wg_egress)
 }

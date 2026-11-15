@@ -1,18 +1,12 @@
-// PROMPT: Default RFC 3550 RTP audio packet with zero sub-keywords on UDP port 5004.
-// TOKENS: host, ip, mac, flow, rtp, compile
+// Minimal 2-block RTP (RFC 3550) starter emitting automatic protocol defaults
+// directly from the compile block (zero flow wrapper).
+// RTP media stream emitted on UDP 5004 with automatic SSRC and timestamps.
+// Wireshark: rtp || udp.port == 5004
 
-// INSTRUCTION: Define VoIP desk phone endpoint A.
 host phone_a { ip 10.50.4.10 mac 00:04:f2:50:04:0a }
 
-// INSTRUCTION: Define VoIP desk phone endpoint B.
 host phone_b { ip 10.50.4.20 mac 00:04:f2:50:04:14 }
 
-// INSTRUCTION: Define flow sending default RTP G.711 PCMU frame.
-flow rtp_default(a, b) {
-    a -> b rtp
-}
-
-// INSTRUCTION: Compile default RTP scenario.
 compile {
-    rtp_default(phone_a, phone_b)
+    phone_a -> phone_b rtp
 }

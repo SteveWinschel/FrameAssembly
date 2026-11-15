@@ -1,0 +1,20 @@
+// ONC RPC / NFSv4 starter request on TCP port 2049 using built-in defaults.
+// Omitting extra keywords emits a 44-byte NFSv4 LOOKUP procedure call. TCP
+// sequence and acknowledgment numbers are handled automatically.
+// Wireshark: nfs
+
+host nfs_client {
+    ip 10.70.0.10
+    mac 00:1a:2b:70:00:10
+}
+
+host nfs_server {
+    ip 10.70.0.1
+    mac 00:1a:2b:70:00:01
+}
+
+// Send one default NFSv4 request directly without needing a reusable flow
+// block.
+compile {
+    nfs_client -> nfs_server nfs
+}

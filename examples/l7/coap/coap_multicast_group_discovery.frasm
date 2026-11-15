@@ -1,24 +1,27 @@
-// PROMPT: CoAP multicast group discovery to all-CoAP-nodes IPv4 (224.0.1.187) and IPv6 (ff02::fd).
-// TOKENS: host, ip, flow, m, coap, non, code, msgid, uripath, ttl, compile
+// CoAP multicast group discovery to all-CoAP-nodes IPv4 (224.0.1.187) and
+// IPv6 (ff02::fd).
+// Wireshark: coap
 
-// INSTRUCTION: Define IPv4 CoAP commissioning tool.
+// IPv4 CoAP commissioning tool.
 host comm_v4 { ip 192.168.10.5 }
 
-// INSTRUCTION: Define RFC 7252 IPv4 all-CoAP-nodes multicast group.
+// RFC 7252 IPv4 all-CoAP-nodes multicast group.
 host mcast_coap_v4 { ip 224.0.1.187 }
 
-// INSTRUCTION: Define IPv6 CoAP commissioning tool.
+// IPv6 CoAP commissioning tool.
 host comm_v6 { ip fe80::5 }
 
-// INSTRUCTION: Define RFC 7252 IPv6 link-local all-CoAP-nodes multicast address.
+// RFC 7252 IPv6 link-local all-CoAP-nodes multicast address.
 host mcast_coap_v6 { ip ff02::fd }
 
-// INSTRUCTION: Multicast a Non-confirmable GET to .well-known/core with TTL 1.
+// Multicast a Non-confirmable GET to .well-known/core with TTL 1. Runs the
+// same flow definition over both IPv4 and IPv6 host pairs. CoAP over UDP
+// 5683: codes 0.01 (GET).
 flow coap_multicast_probe(c, m) {
     c -> m coap non code "0.01" msgid 2020 uripath ".well-known/core" ttl 1
 }
 
-// INSTRUCTION: Execute CoAP multicast discovery on IPv4 and IPv6.
+// CoAP multicast discovery on IPv4 and IPv6.
 compile {
     coap_multicast_probe(comm_v4, mcast_coap_v4)
     coap_multicast_probe(comm_v6, mcast_coap_v6)

@@ -1,19 +1,17 @@
-// PROMPT: IPv6 FLOWLABEL field boundary testing using minimum value 0 and maximum 20-bit value 1048575.
-// TOKENS: host, ip, flow, s, flowlabel, udp, payload, compile
+// IPv6 flowlabel field boundary testing using minimum value 0 and maximum 20-bit
+// value 1048575.
+// Wire profile: 2 frames; 2 IPv6 hosts; UDP.
+// Wireshark: ipv6 && udp
 
-// INSTRUCTION: Define boundary source host.
 host boundary_src { ip 2001:db8:a::1 }
 
-// INSTRUCTION: Define boundary destination host.
 host boundary_dst { ip 2001:db8:b::2 }
 
-// INSTRUCTION: Define boundary FLOWLABEL verification flow.
 flow boundary_flowlabel(s, d) {
     s -> d flowlabel 0 udp payload "flowlabel_min_zero"
     s -> d flowlabel 1048575 udp payload "flowlabel_max_20bit"
 }
 
-// INSTRUCTION: Compile block executing boundary validation.
 compile {
     boundary_flowlabel(boundary_src, boundary_dst)
 }

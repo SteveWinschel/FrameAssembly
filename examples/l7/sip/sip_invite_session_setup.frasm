@@ -1,18 +1,18 @@
-// PROMPT: RFC 3261 SIP VoIP call setup with INVITE method, From, To, and Call-ID headers.
-// TOKENS: host, ip, flow, s, sip, invite, from, to, callid, compile
+// RFC 3261 SIP VoIP call setup with INVITE method, From, To, and Call-ID
+// headers.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (SIP (RFC
+// 3261), UDP 5060).
+// Wireshark: sip
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow sip_invite(c, s) {
     c -> s sip invite from "sip:alice@pbx.corp" to "sip:bob@pbx.corp" callid "call-994827"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     sip_invite(client, server)
 }

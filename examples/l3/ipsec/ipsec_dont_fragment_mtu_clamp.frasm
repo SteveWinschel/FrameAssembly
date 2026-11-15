@@ -1,19 +1,20 @@
-// PROMPT: IPv4 IPsec tunnel enforcing Don't Fragment (DF) with explicit IPID for TCP MSS/MTU clamping verification.
-// TOKENS: host, ip, flow, ipsec, spi, seq, ipid, df, nextheader, payload, compile
+// IPv4 IPsec tunnel enforcing Don't Fragment (DF) with explicit IPID for TCP
+// MSS/MTU clamping verification.
+// This capture sets DF bit set and carries SPI 13600.
+// Wireshark: esp
 
-// INSTRUCTION: Define IPsec tunnel ingress firewall.
 host ipsec_clamp_ing { ip 10.16.0.1 }
 
-// INSTRUCTION: Define IPsec tunnel egress firewall.
 host ipsec_clamp_egr { ip 10.16.0.2 }
 
-// INSTRUCTION: Define DF-marked IPsec packets carrying clamped inner IPv4 segments.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ipsec_df_mtu_clamp(ing, egr) {
     ing -> egr ipsec spi 13600 seq 1 ipid 2001 df nextheader 4 payload "CLAMPED_MSS_1360_SEGMENT_1"
     ing -> egr ipsec spi 13600 seq 2 ipid 2002 df nextheader 4 payload "CLAMPED_MSS_1360_SEGMENT_2"
 }
 
-// INSTRUCTION: Compile the DF-asserted IPsec MTU clamp flow.
+// Run ipsec_df_mtu_clamp(ipsec_clamp_ing, ipsec_clamp_egr) to generate the
+// capture.
 compile {
     ipsec_df_mtu_clamp(ipsec_clamp_ing, ipsec_clamp_egr)
 }

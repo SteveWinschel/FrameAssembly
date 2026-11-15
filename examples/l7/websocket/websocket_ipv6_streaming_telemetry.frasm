@@ -1,19 +1,18 @@
-// PROMPT: IPv6 real-time monitoring session with masked WebSocket data frames.
-// TOKENS: host, ip, flow, s, websocket, opcode, finbit, maskkey, compile
+// IPv6 real-time monitoring session with masked WebSocket data frames.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define IPv6 monitoring console client.
 host console_v6 { ip 2001:db8:4444::12 }
 
-// INSTRUCTION: Define IPv6 telemetry broadcast server.
 host broadcast_v6 { ip 2001:db8:4444::1 }
 
-// INSTRUCTION: Define IPv6 streaming telemetry flow.
 flow ws_v6_stream_flow(c, s) {
     c -> s websocket opcode "text" finbit 1 maskkey 3456789012
     c <- s websocket opcode "text" finbit 1 maskkey 0
 }
 
-// INSTRUCTION: Compile block executing IPv6 streaming session.
 compile {
     ws_v6_stream_flow(console_v6, broadcast_v6)
 }

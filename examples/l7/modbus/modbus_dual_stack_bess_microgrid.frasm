@@ -1,43 +1,46 @@
-// PROMPT: Create a dual-stack IPv4 and IPv6 Modbus substation battery energy storage system (BESS) monitoring trace.
-// TOKENS: host, ip, mac, flow, s, modbus, txid, unitid, func, addr, count, dscp, wait, ms, isresponse, value, flowlabel, ttl, compile
+// Dual-stack IPv4 and IPv6 Modbus substation battery energy storage system
+// (BESS) monitoring trace.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define the dual-stack microgrid controller managing battery storage racks (IPv4).
+// Dual-stack microgrid controller managing battery storage racks (IPv4).
 host microgrid_ctrl_v4 {
     ip 10.90.20.10
     mac 00:1a:4a:90:20:10
 }
 
-// INSTRUCTION: Define the dual-stack microgrid controller managing battery storage racks (IPv6).
+// Dual-stack microgrid controller managing battery storage racks (IPv6).
 host microgrid_ctrl_v6 {
     ip 2001:db8:90:20::10
     mac 00:1a:4a:90:20:10
 }
 
-// INSTRUCTION: Define the dual-stack Battery Management System (BMS) gateway (IPv4).
+// Dual-stack Battery Management System (BMS) gateway (IPv4).
 host bms_gateway_v4 {
     ip 10.90.20.80
     mac 00:1a:4a:90:20:80
 }
 
-// INSTRUCTION: Define the dual-stack Battery Management System (BMS) gateway (IPv6).
+// Dual-stack Battery Management System (BMS) gateway (IPv6).
 host bms_gateway_v6 {
     ip 2001:db8:90:20::80
     mac 00:1a:4a:90:20:80
 }
 
-// INSTRUCTION: Read battery state-of-charge (SoC) over IPv4.
+// Read battery state-of-charge (SoC) over IPv4. Encapsulation and QoS
+// markings: DSCP 46. Runs the same flow definition over both IPv4 and IPv6
+// host pairs. Modbus functions: FC 4 Read Input Registers, FC 6 Write Single
+// Register. Repeats 2 times; each wait value pauses after sending its packet.
 flow ipv4_soc_read(c, s) {
     c -> s modbus txid 801 unitid 1 func "readinputregisters" addr 100 count 2 dscp 46 wait 3ms
     c <- s modbus txid 801 unitid 1 func "readinputregisters" isresponse value 875 dscp 46
 }
 
-// INSTRUCTION: Command active power dispatch over IPv6 with flow label 0x80200.
+// Command active power dispatch over IPv6 with flow label 0x80200.
 flow ipv6_power_dispatch(c, s) {
     c -> s modbus txid 802 unitid 1 func "writesingleregister" addr 200 value 500 flowlabel 0x80200 ttl 64 wait 3ms
     c <- s modbus txid 802 unitid 1 func "writesingleregister" addr 200 value 500 isresponse flowlabel 0x80200 ttl 64
 }
 
-// INSTRUCTION: Compile the dual-stack Modbus BESS control trace into a PCAP file.
 compile {
     ipv4_soc_read(microgrid_ctrl_v4, bms_gateway_v4)
     ipv6_power_dispatch(microgrid_ctrl_v6, bms_gateway_v6)

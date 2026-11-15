@@ -1,18 +1,17 @@
-// PROMPT: BACnet/IP building automation unconfirmed Who-Is device discovery broadcast.
-// TOKENS: host, ip, flow, s, bacnet, whois, compile
+// BACnet/IP building automation unconfirmed Who-Is device discovery
+// broadcast.
+// Wireshark: bacapp || udp.port == 47808
+// Automatic Ethernet MAC addresses and UDP port 47808 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.10.50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.10.255 }
 
-// INSTRUCTION: Define application traffic flow.
 flow bacnet_whois(c, s) {
     c -> s bacnet whois
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     bacnet_whois(client, server)
 }

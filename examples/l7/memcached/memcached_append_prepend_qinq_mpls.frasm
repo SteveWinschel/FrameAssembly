@@ -1,19 +1,22 @@
-// PROMPT: Generate a Memcached APPEND and PREPEND log buffer aggregation flow over QinQ and MPLS encapsulation.
-// TOKENS: host, ip, mac, flow, s, memcached, set, key, exptime, opaque, payload, qinq, innervlan, mpls, dscp, ttl, wait, ms, cmd, get, compile
+// Memcached APPEND and PREPEND log buffer aggregation flow over QinQ and MPLS
+// encapsulation.
+// Wireshark: memcache || tcp.port == 11211
 
-// INSTRUCTION: Define the audit trail collector appending event IDs into a Memcached list key.
+// Audit trail collector appending event IDs into a Memcached list key.
 host audit_worker {
     ip 10.150.12.30
     mac 00:1e:67:96:0c:1e
 }
 
-// INSTRUCTION: Define the remote Memcached aggregation server across an MPLS core.
+// Remote Memcached aggregation server across an MPLS core.
 host remote_memcache {
     ip 10.150.1.10
     mac 00:1e:67:96:01:0a
 }
 
-// INSTRUCTION: Initialize a list with SET, APPEND a newer event ID, PREPEND a header tag, and GET the combined string over QinQ/MPLS.
+// Initialize a list with SET, APPEND a newer event ID, PREPEND a header tag,
+// and GET the combined string over QinQ/MPLS. Encapsulation and QoS markings:
+// 802.1ad QinQ S-VLAN 350 / C-VLAN 25, MPLS label 51000, DSCP 24.
 flow append_prepend_qinq_mpls(c, s) {
     c -> s memcached set key "audit:batch:42" exptime 600 opaque 601 payload "evt100," qinq 350 innervlan 25 mpls 51000 dscp 24 ttl 61 wait 3ms
     c <- s memcached cmd "stored" key "audit:batch:42" opaque 601 qinq 350 innervlan 25 mpls 51000 dscp 24 ttl 61 wait 2ms
@@ -23,7 +26,6 @@ flow append_prepend_qinq_mpls(c, s) {
     c <- s memcached get key "audit:batch:42" opaque 603 payload "evt100,evt101" qinq 350 innervlan 25 mpls 51000 dscp 24 ttl 61
 }
 
-// INSTRUCTION: Compile the QinQ and MPLS Memcached APPEND trace into a PCAP file.
 compile {
     append_prepend_qinq_mpls(audit_worker, remote_memcache)
 }

@@ -1,25 +1,27 @@
-// PROMPT: Simulate an MQTT client connecting with a Last Will and Testament (LWT) payload and the broker broadcasting the offline will.
-// TOKENS: host, ip, mac, flow, mqtt, connect, clientid, wait, ms, connack, returncode, publish, topic, qos, retain, pktid, payload, puback, s, subscribe, suback, compile
+// MQTT client connecting with a Last Will and Testament (LWT) payload and the
+// broker broadcasting the offline will.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define the industrial pump controller client.
 host pump_ctrl {
     ip 10.92.10.21
     mac 00:1b:21:92:0a:15
 }
 
-// INSTRUCTION: Define the plant SCADA MQTT subscriber console.
+// Plant SCADA MQTT subscriber console.
 host scada_console {
     ip 10.92.10.50
     mac 00:1b:21:92:0a:32
 }
 
-// INSTRUCTION: Define the central industrial MQTT broker.
+// Central industrial MQTT broker.
 host plant_broker {
     ip 10.92.10.1
     mac 00:1b:21:92:0a:01
 }
 
-// INSTRUCTION: Connect pump_ctrl and publish initial online status to the broker.
+// Connect pump_ctrl and publish initial online status to the broker. MQTT
+// control session on TCP 1883 (QoS 1, CONNACK codes 0). Repeats 2 times; each
+// wait value pauses after sending its packet.
 flow mqtt_pump_connect(p, b) {
     p -> b mqtt connect clientid "pump-station-21" wait 2ms
     p <- b mqtt connack returncode 0 wait 2ms
@@ -27,7 +29,8 @@ flow mqtt_pump_connect(p, b) {
     p <- b mqtt puback pktid 10
 }
 
-// INSTRUCTION: Deliver the retained LWT offline alert from the broker to scada_console upon ungraceful loss.
+// Deliver the retained LWT offline alert from the broker to scada_console
+// upon ungraceful loss.
 flow mqtt_lwt_dispatch(s, b) {
     s -> b mqtt subscribe topic "plant/+/status" qos 1 pktid 20 wait 2ms
     s <- b mqtt suback pktid 20 qos 1 wait 15ms
@@ -35,7 +38,6 @@ flow mqtt_lwt_dispatch(s, b) {
     s -> b mqtt puback pktid 21
 }
 
-// INSTRUCTION: Compile the MQTT Last Will and Testament scenario.
 compile {
     mqtt_pump_connect(pump_ctrl, plant_broker)
     mqtt_lwt_dispatch(scada_console, plant_broker)

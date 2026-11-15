@@ -1,0 +1,26 @@
+// IPv6 OSPFv3 (RFC 5340) neighbor Hello and Database Description exchange over
+// IP protocol 89 using DSCP CS6 (48), TTL 1, and backbone Area 0.0.0.0. Useful for
+// verifying IPv6 link-local OSPF firewall rules and OSPFv3 timers without a router lab.
+// Wireshark: ospf && ipv6
+
+host spine_v6 {
+    ip 2001:db8:89::1
+    mac 00:1c:73:89:00:01
+}
+
+host leaf_v6 {
+    ip 2001:db8:89::2
+    mac 00:1c:73:89:00:02
+}
+
+// Send OSPFv3 Hello with 10s/40s timers, pause 20ms, then exchange DBD summaries.
+flow ospfv3_neighbor_hello(spine, leaf) {
+    spine -> leaf dscp 48 ttl 1 ospf hello routerid 10.89.0.1 areaid 0 hellointerval 10 deadinterval 40 priority 10 wait 20ms
+    spine <- leaf dscp 48 ttl 1 ospf hello routerid 10.89.0.2 areaid 0 hellointerval 10 deadinterval 40 priority 5 wait 15ms
+    spine -> leaf dscp 48 ttl 1 ospf dbd routerid 10.89.0.1 areaid 0
+}
+
+// Run one OSPFv3 neighbor discovery and DBD handshake sequence.
+compile {
+    ospfv3_neighbor_hello(spine_v6, leaf_v6)
+}

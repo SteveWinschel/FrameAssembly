@@ -1,27 +1,24 @@
-// PROMPT: Kubernetes Cilium eBPF service mesh topology combining BGP Pod CIDR peering, GENEVE overlay encapsulation, HTTP/2 ingress, and gRPC pod-to-pod RPC.
-// TOKENS: host, ip, flow, bgp, open, asn, holdtime, bgpid, update, prefix, nexthop, wait, ms, geneve, vni, protocoltype, payload, http2, preface, settings, headers, streamid, grpc, service, compile
+// Kubernetes Cilium eBPF service mesh topology combining BGP Pod CIDR peering,
+// GENEVE overlay encapsulation, HTTP/2 ingress, and gRPC pod-to-pod RPC.
+// Wire profile: 7 frames; 3 IPv4 hosts; HTTP/2, gRPC, GENEVE, BGP; waits 1ms.
+// Wireshark: http2 || (grpc || http2) || geneve || bgp
 
-// INSTRUCTION: Define Top-of-Rack leaf router peering with Cilium nodes.
 host tor_bgp_leaf { ip 10.220.0.1 }
 
-// INSTRUCTION: Define Kubernetes worker node 1 running Cilium eBPF agent and ingress gateway.
 host k8s_cilium_node1 { ip 10.220.0.11 }
 
-// INSTRUCTION: Define Kubernetes worker node 2 running backend gRPC microservice pods.
 host k8s_cilium_node2 { ip 10.220.0.12 }
 
-// INSTRUCTION: Define BGP Pod CIDR advertisement, GENEVE tunnel encapsulation, HTTP/2 ingress, and gRPC service mesh call.
 flow cilium_ebpf_mesh_flow(tor, node1, node2) {
-    node1 -> tor bgp open asn 65101 holdtime 90 bgpid 10.220.0.11
+    node1 -> tor bgp open asn 65101 holdtime 90 bgpid 10.220.0.11 wait 1ms
     node1 -> tor bgp update prefix "10.244.1.0/24" nexthop 10.220.0.11 wait 1ms
     node2 -> tor bgp update prefix "10.244.2.0/24" nexthop 10.220.0.12 wait 1ms
     node1 -> node2 geneve vni 12001 protocoltype 0x6558 payload "CILIUM_EBPF_IDENTITY_4096" wait 1ms
     node1 -> node2 http2 preface settings wait 1ms
     node1 -> node2 http2 headers streamid 3 payload "POST /mesh.v1.Catalog/GetItem" wait 1ms
-    node1 <- node2 grpc service "mesh.v1.Catalog" method "GetItem" grpcstatus 0 payload "{\"sku\":\"NV-B200\"}" wait 1ms
+    node1 <- node2 grpc service "mesh.v1.Catalog" method "GetItem" grpcstatus 0 payload "{\"sku\":\"NV-B200\"}"
 }
 
-// INSTRUCTION: Compile block executing Kubernetes Cilium eBPF service mesh topology.
 compile {
     cilium_ebpf_mesh_flow(tor_bgp_leaf, k8s_cilium_node1, k8s_cilium_node2)
 }

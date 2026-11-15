@@ -1,19 +1,18 @@
-// PROMPT: Closed-port TCP probe answered by an immediate RST ACK with Window 0 and RFC 793 sequence-plus-one acknowledgment.
-// TOKENS: host, ip, flow, tcp, syn, srcport, dstport, seq, win, rst, ack, acknum, wait, us, compile
+// Closed-port TCP probe answered by an immediate rst ack with Window 0 and RFC
+// 793 sequence-plus-one acknowledgment.
+// Wire profile: 2 frames; 2 IPv4 hosts; TCP; TCP flags SYN/ACK/RST; dstport
+// 8443,61000; waits 500us.
+// Wireshark: (tcp.port == 8443 || tcp.port == 61000) && (tcp.window_size_value == 0 || tcp.analysis.zero_window)
 
-// INSTRUCTION: Define health-check prober testing an unlistening service port.
 host port_prober { ip 10.48.0.15 }
 
-// INSTRUCTION: Define hardened server rejecting connection to closed port 8443.
 host hardened_host { ip 10.48.0.100 }
 
-// INSTRUCTION: Define TCP SYN to closed port 8443 and immediate RST ACK (WIN 0, ACKNUM = SEQ + 1).
 flow tcp_closed_port_rst_ack(prober, host) {
-    prober -> host tcp syn srcport 61000 dstport 8443 seq 700000 win 64240
-    prober <- host tcp rst ack srcport 8443 dstport 61000 seq 0 acknum 700001 win 0 wait 500us
+    prober -> host tcp syn srcport 61000 dstport 8443 seq 700000 win 64240 wait 500us
+    prober <- host tcp rst ack srcport 8443 dstport 61000 seq 0 acknum 700001 win 0
 }
 
-// INSTRUCTION: Compile block executing closed-port TCP RST ACK response.
 compile {
     tcp_closed_port_rst_ack(port_prober, hardened_host)
 }

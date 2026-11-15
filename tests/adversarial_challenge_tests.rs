@@ -136,17 +136,26 @@ fn get_unique_temp_pcap_path() -> PathBuf {
     std::env::temp_dir().join(format!("adv_chall_{}_{}_{}.pcap", std::process::id(), count, nanos))
 }
 
-/// Helper that reads raw packet buffers from a generated PCAPNG file.
+/// Helper that reads raw packet buffers from a generated `.pcap` or `.pcapng` file.
 fn read_raw_pcapng_frames(path: &Path) -> Result<Vec<Vec<u8>>, String> {
-    let file = fs::File::open(path)
-        .map_err(|e| format!("Failed to open PCAP file {}: {}", path.display(), e))?;
-    let mut reader = pcap_file::pcapng::PcapNgReader::new(file)
-        .map_err(|e| format!("Failed to create PCAPNG reader: {}", e))?;
+    let bytes = fs::read(path)
+        .map_err(|e| format!("Failed to read PCAP file {}: {}", path.display(), e))?;
     let mut frames = Vec::new();
-    while let Some(block) = reader.next_block() {
-        let block = block.map_err(|e| format!("Failed to read block: {}", e))?;
-        if let pcap_file::pcapng::Block::EnhancedPacket(epb) = block {
-            frames.push(epb.data.to_vec());
+    if bytes.starts_with(&[0x0A, 0x0D, 0x0D, 0x0A]) {
+        let mut reader = pcap_file::pcapng::PcapNgReader::new(std::io::Cursor::new(bytes))
+            .map_err(|e| format!("Failed to create PCAPNG reader: {}", e))?;
+        while let Some(block) = reader.next_block() {
+            let block = block.map_err(|e| format!("Failed to read block: {}", e))?;
+            if let pcap_file::pcapng::Block::EnhancedPacket(epb) = block {
+                frames.push(epb.data.to_vec());
+            }
+        }
+    } else {
+        let mut reader = pcap_file::pcap::PcapReader::new(std::io::Cursor::new(bytes))
+            .map_err(|e| format!("Failed to create classic PCAP reader: {}", e))?;
+        while let Some(pkt) = reader.next_packet() {
+            let pkt = pkt.map_err(|e| format!("Failed to read classic PCAP packet: {}", e))?;
+            frames.push(pkt.data.to_vec());
         }
     }
     Ok(frames)
@@ -575,7 +584,7 @@ pub fn test_adversarial_semantic_mixed_ipv4_ipv6() {
     assert_semantic_error(script_reverse, "Mixed IPv4 and IPv6");
 }
 
-/// Tests rejection of out-of-range VLAN IDs (`VLAN == 0` or `VLAN > 4094`).
+/// Tests IEEE 802.1Q VLAN ID boundaries (`0` and `4095` valid; `> 4095` rejected).
 #[test]
 pub fn test_adversarial_semantic_out_of_range_vlan() {
     let script_zero = r#"
@@ -583,14 +592,21 @@ pub fn test_adversarial_semantic_out_of_range_vlan() {
         host v0_srv { ip 10.11.0.2 }
         flow vlan_zero_f(vc0, vs0) { vc0 -> vs0 tcp syn vlan 0 }
         compile { vlan_zero_f(v0_cli, v0_srv) }"#;
-    assert_semantic_error(script_zero, "VLAN ID 0 out of range");
+    assert!(parse_program(script_zero).is_ok(), "Priority-tagged VLAN 0 must be accepted");
 
     let script_4095 = r#"
         host v_max_cli { ip 10.11.1.1 }
         host v_max_srv { ip 10.11.1.2 }
         flow vlan_4095_f(vcm, vsm) { vcm -> vsm tcp syn vlan 4095 }
         compile { vlan_4095_f(v_max_cli, v_max_srv) }"#;
-    assert_semantic_error(script_4095, "VLAN ID 4095 out of range");
+    assert!(parse_program(script_4095).is_ok(), "IEEE 802.1Q VLAN 4095 must be accepted");
+
+    let script_4096 = r#"
+        host v_hi_cli { ip 10.11.2.1 }
+        host v_hi_srv { ip 10.11.2.2 }
+        flow vlan_4096_f(vch, vsh) { vch -> vsh tcp syn vlan 4096 }
+        compile { vlan_4096_f(v_hi_cli, v_hi_srv) }"#;
+    assert_semantic_error(script_4096, "VLAN ID 4096 out of range");
 }
 
 /// Tests rejection of out-of-range DSCP values (`DSCP > 63`).
@@ -655,7 +671,7 @@ pub fn test_adversarial_semantic_duplicate_host() {
         host my_host { ip 10.16.0.1 }
         host my_host { ip 10.16.0.2 }
         compile {}"#;
-    assert_semantic_error(dup_host_script, "Duplicate HOST declaration: 'my_host'");
+    assert_semantic_error(dup_host_script, "Duplicate host declaration: 'my_host'");
 }
 
 /// Tests rejection of duplicate `FLOW` declarations.
@@ -667,7 +683,7 @@ pub fn test_adversarial_semantic_duplicate_flow() {
         flow my_flow(a, b) { a -> b udp }
         flow my_flow(x, y) { x -> y tcp syn }
         compile { my_flow(df_h1, df_h2) }"#;
-    assert_semantic_error(dup_flow_script, "Duplicate FLOW declaration: 'my_flow'");
+    assert_semantic_error(dup_flow_script, "Duplicate flow declaration: 'my_flow'");
 }
 
 /// Tests rejection of duplicate parameters in a `FLOW` definition.
@@ -677,7 +693,7 @@ pub fn test_adversarial_semantic_duplicate_flow_params() {
         host dp_h1 { ip 10.18.0.1 }
         flow f(dup, dup) { dup -> dup udp }
         compile { f(dp_h1, dp_h1) }"#;
-    assert_semantic_error(dup_param_script, "Duplicate parameter 'dup' in FLOW 'f'");
+    assert_semantic_error(dup_param_script, "Duplicate parameter 'dup' in flow 'f'");
 }
 
 /// Tests rejection of duplicate statement modifier keys.
@@ -688,21 +704,21 @@ pub fn test_adversarial_semantic_duplicate_statement_modifier_keys() {
         host dm_s1 { ip 10.19.1.2 }
         flow dm_f1(c1, s1) { c1 -> s1 udp ttl 10 ttl 20 }
         compile { dm_f1(dm_c1, dm_s1) }"#;
-    assert_semantic_error(script_ttl, "Duplicate statement modifier 'TTL'");
+    assert_semantic_error(script_ttl, "Duplicate statement modifier 'ttl'");
 
     let script_vlan = r#"
         host dm_c2 { ip 10.19.2.1 }
         host dm_s2 { ip 10.19.2.2 }
         flow dm_f2(c2, s2) { c2 -> s2 udp vlan 100 vlan 200 }
         compile { dm_f2(dm_c2, dm_s2) }"#;
-    assert_semantic_error(script_vlan, "Duplicate statement modifier 'VLAN'");
+    assert_semantic_error(script_vlan, "Duplicate statement modifier 'vlan'");
 
     let script_srcport = r#"
         host dm_c3 { ip 10.19.3.1 }
         host dm_s3 { ip 10.19.3.2 }
         flow dm_f3(c3, s3) { c3 -> s3 tcp syn srcport 1000 srcport 2000 }
         compile { dm_f3(dm_c3, dm_s3) }"#;
-    assert_semantic_error(script_srcport, "Duplicate statement modifier 'SRCPORT'");
+    assert_semantic_error(script_srcport, "Duplicate statement modifier 'srcport'");
 }
 
 /// Tests rejection of duplicate TCP flags within a statement.
@@ -713,7 +729,7 @@ pub fn test_adversarial_semantic_duplicate_tcp_flags() {
         host tf_s { ip 10.20.0.2 }
         flow tf_f(tc, ts) { tc -> ts tcp syn syn }
         compile { tf_f(tf_c, tf_s) }"#;
-    assert_semantic_error(dup_flag_script, "Duplicate statement modifier: TCP flag 'Syn' specified multiple times");
+    assert_semantic_error(dup_flag_script, "Duplicate statement modifier: TCP flag 'syn' specified multiple times");
 }
 
 /// Tests rejection when both `PAYLOAD` and `HEXPAYLOAD` are specified on the same statement.
@@ -724,7 +740,7 @@ pub fn test_adversarial_semantic_duplicate_conflicting_payloads() {
         host bp_s { ip 10.21.0.2 }
         flow bp_f(bc, bs) { bc -> bs udp payload "hello" hexpayload "68656c6c6f" }
         compile { bp_f(bp_c, bp_s) }"#;
-    assert_semantic_error(both_pay_script, "cannot specify both PAYLOAD and HEXPAYLOAD");
+    assert_semantic_error(both_pay_script, "cannot specify both 'payload' and 'hexpayload'");
 }
 
 /// Tests rejection of invalid cross-protocol modifiers across UDP, TCP, SNMP1, SNMP2, and SNMP3.
@@ -735,63 +751,76 @@ pub fn test_adversarial_semantic_invalid_cross_protocol_modifiers() {
         host xp_s1 { ip 10.22.1.2 }
         flow xp_f1(a1, b1) { a1 -> b1 udp syn }
         compile { xp_f1(xp_c1, xp_s1) }"#;
-    assert_semantic_error(script_udp_flags, "TCP flags cannot be used with UDP");
+    assert_semantic_error(script_udp_flags, "TCP flags cannot be used with 'udp'");
 
     let script_udp_seq = r#"
         host xp_c2 { ip 10.22.2.1 }
         host xp_s2 { ip 10.22.2.2 }
         flow xp_f2(a2, b2) { a2 -> b2 udp seq 1000 }
         compile { xp_f2(xp_c2, xp_s2) }"#;
-    assert_semantic_error(script_udp_seq, "SEQ/ACKNUM/WIN cannot be used with UDP");
+    assert_semantic_error(script_udp_seq, "'seq'/'acknum'/'win' cannot be used with 'udp'");
 
     let script_udp_snmp = r#"
         host xp_c3 { ip 10.22.3.1 }
         host xp_s3 { ip 10.22.3.2 }
         flow xp_f3(a3, b3) { a3 -> b3 udp community "public" }
         compile { xp_f3(xp_c3, xp_s3) }"#;
-    assert_semantic_error(script_udp_snmp, "SNMP fields cannot be used with UDP");
+    assert_semantic_error(script_udp_snmp, "SNMP fields cannot be used with 'udp'");
 
     let script_tcp_snmp = r#"
         host xp_c4 { ip 10.22.4.1 }
         host xp_s4 { ip 10.22.4.2 }
         flow xp_f4(a4, b4) { a4 -> b4 tcp syn community "public" }
         compile { xp_f4(xp_c4, xp_s4) }"#;
-    assert_semantic_error(script_tcp_snmp, "SNMP fields cannot be used with TCP");
+    assert_semantic_error(script_tcp_snmp, "SNMP fields cannot be used with 'tcp'");
 
     let script_snmp1_flags = r#"
         host xp_c5 { ip 10.22.5.1 }
         host xp_s5 { ip 10.22.5.2 }
         flow xp_f5(a5, b5) { a5 -> b5 snmp1 syn }
         compile { xp_f5(xp_c5, xp_s5) }"#;
-    assert_semantic_error(script_snmp1_flags, "TCP flags cannot be used with SNMP1");
+    assert_semantic_error(script_snmp1_flags, "TCP flags cannot be used with 'snmp1'");
 
     let script_snmp1_usm = r#"
         host xp_c6 { ip 10.22.6.1 }
         host xp_s6 { ip 10.22.6.2 }
         flow xp_f6(a6, b6) { a6 -> b6 snmp1 user "alice" }
         compile { xp_f6(xp_c6, xp_s6) }"#;
-    assert_semantic_error(script_snmp1_usm, "SNMPv3 USM fields cannot be used with SNMP1");
+    assert_semantic_error(script_snmp1_usm, "SNMPv3 USM fields cannot be used with 'snmp1'");
 
     let script_snmp1_getbulk = r#"
         host xp_c7 { ip 10.22.7.1 }
         host xp_s7 { ip 10.22.7.2 }
         flow xp_f7(a7, b7) { a7 -> b7 snmp1 getbulk }
         compile { xp_f7(xp_c7, xp_s7) }"#;
-    assert_semantic_error(script_snmp1_getbulk, "GETBULK and INFORM are not supported in SNMP1");
+    assert_semantic_error(
+        script_snmp1_getbulk,
+        "'getbulk', 'inform', and 'report' are not supported in 'snmp1'",
+    );
+
+    let script_snmp1_report = r#"
+        host xp_c7r { ip 10.22.7.3 }
+        host xp_s7r { ip 10.22.7.4 }
+        flow xp_f7r(a7r, b7r) { a7r -> b7r snmp1 report }
+        compile { xp_f7r(xp_c7r, xp_s7r) }"#;
+    assert_semantic_error(
+        script_snmp1_report,
+        "'getbulk', 'inform', and 'report' are not supported in 'snmp1'",
+    );
 
     let script_snmp2_trap = r#"
         host xp_c8 { ip 10.22.8.1 }
         host xp_s8 { ip 10.22.8.2 }
         flow xp_f8(a8, b8) { a8 -> b8 snmp2 enterprise "1.3.6.1.4.1" }
         compile { xp_f8(xp_c8, xp_s8) }"#;
-    assert_semantic_error(script_snmp2_trap, "SNMPv1 trap fields cannot be used with SNMP2");
+    assert_semantic_error(script_snmp2_trap, "SNMPv1 trap fields cannot be used with 'snmp2'");
 
     let script_snmp3_comm = r#"
         host xp_c9 { ip 10.22.9.1 }
         host xp_s9 { ip 10.22.9.2 }
         flow xp_f9(a9, b9) { a9 -> b9 snmp3 community "public" }
         compile { xp_f9(xp_c9, xp_s9) }"#;
-    assert_semantic_error(script_snmp3_comm, "COMMUNITY cannot be used with SNMP3");
+    assert_semantic_error(script_snmp3_comm, "'community' cannot be used with 'snmp3'");
 }
 
 // =========================================================================

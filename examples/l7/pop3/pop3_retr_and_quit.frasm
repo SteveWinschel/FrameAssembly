@@ -1,13 +1,11 @@
-// PROMPT: POP3 message retrieval and session termination over IPv6.
-// TOKENS: host, ip, flow, s, pop3, cmd, arg, ok, compile
+// POP3 message retrieval and session termination over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Wireshark: pop
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::12 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow pop3_retr(c, s) {
     c -> s pop3 cmd "RETR" arg "1"
     c <- s pop3 ok
@@ -15,7 +13,6 @@ flow pop3_retr(c, s) {
     c <- s pop3 ok
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     pop3_retr(client, server)
 }

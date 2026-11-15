@@ -1,19 +1,22 @@
-// PROMPT: Create an LDAP sudoers policy lookup from a Linux server checking sudoRole entries over VLAN 510.
-// TOKENS: host, ip, mac, flow, s, ldap, msgid, bindreq, basedn, vlan, dscp, ttl, wait, ms, bindres, resultcode, searchreq, filter, searchentry, searchdone, unbindreq, compile
+// LDAP sudoers policy lookup from a Linux server checking sudoRole entries
+// over VLAN 510.
+// Wireshark: ldap
 
-// INSTRUCTION: Define the production Linux bastion host verifying sudo privileges via LDAP.
+// Production Linux bastion host verifying sudo privileges via LDAP.
 host bastion_host {
     ip 10.51.0.25
     mac 00:16:3e:51:00:19
 }
 
-// INSTRUCTION: Define the central security LDAP server hosting sudoers rules.
+// Central security LDAP server hosting sudoers rules.
 host sec_ldap {
     ip 10.51.0.5
     mac 00:16:3e:51:00:05
 }
 
-// INSTRUCTION: Bind, query ou=sudoers for matching sudoUser rules over VLAN 510, and cleanly unbind.
+// Bind, query ou=sudoers for matching sudoUser rules over VLAN 510, and
+// cleanly unbind. Encapsulation and QoS markings: 802.1Q VLAN 510, DSCP 32.
+// LDAP result codes: 0 (success).
 flow sudoers_policy_lookup(c, s) {
     c -> s ldap msgid 1 bindreq basedn "cn=sudo_proxy,ou=services,dc=sec,dc=corp" vlan 510 dscp 32 ttl 64 wait 2ms
     c <- s ldap msgid 1 bindres resultcode 0 vlan 510 dscp 32 ttl 64 wait 2ms
@@ -23,7 +26,6 @@ flow sudoers_policy_lookup(c, s) {
     c -> s ldap msgid 3 unbindreq vlan 510 dscp 32 ttl 64
 }
 
-// INSTRUCTION: Compile the LDAP sudoers policy lookup trace into a PCAP file.
 compile {
     sudoers_policy_lookup(bastion_host, sec_ldap)
 }

@@ -1,19 +1,19 @@
-// PROMPT: Create a deterministic static MAC-reserved DHCP assignment for an industrial PLC controller with an infinite lease.
-// TOKENS: host, ip, mac, flow, s, dhcp, discover, xid, chaddr, hostname, vlan, pcp, wait, ms, offer, yiaddr, subnetmask, router, leasetime, request, ack, compile
+// Deterministic static MAC-reserved DHCP assignment for an industrial PLC
+// controller with an infinite lease.
+// Wireshark: dhcp
 
-// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+// DHCP client endpoint requesting dynamic network configuration.
 host dhcp_client {
     ip 10.10.67.10
     mac 00:25:90:67:01:0a
 }
 
-// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+// DHCP server or relay agent endpoint.
 host dhcp_server {
     ip 10.10.67.1
     mac 00:25:90:67:01:01
 }
 
-// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
 flow dhcp_scenario_flow(c, s) {
     c -> s dhcp discover xid 0x31001006 chaddr 00:0e:8c:67:00:0a hostname "s7-1500-cell01" vlan 67 pcp 6 wait 3ms
     c <- s dhcp offer xid 0x31001006 yiaddr 10.10.67.10 subnetmask 255.255.255.0 router 10.10.67.1 leasetime 4294967295 vlan 67 pcp 6 wait 3ms
@@ -21,7 +21,6 @@ flow dhcp_scenario_flow(c, s) {
     c <- s dhcp ack xid 0x31001006 yiaddr 10.10.67.10 subnetmask 255.255.255.0 router 10.10.67.1 leasetime 4294967295 vlan 67 pcp 6
 }
 
-// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
 compile {
     dhcp_scenario_flow(dhcp_client, dhcp_server)
 }

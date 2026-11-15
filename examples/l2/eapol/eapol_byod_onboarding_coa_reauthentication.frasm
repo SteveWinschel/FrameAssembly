@@ -1,19 +1,18 @@
-// PROMPT: Campus switch triggering IEEE 802.1X re-authentication after a RADIUS Change of Authorization (CoA) posture upgrade.
-// TOKENS: host, ip, mac, flow, eapol, version, type, eappacket, eapcode, eapid, eapmethod, wait, ms, identity, payload, compile
+// Campus switch triggering IEEE 802.1X re-authentication after a RADIUS Change of
+// Authorization (CoA) posture upgrade.
+// Wire profile: 5 frames; 2 IPv4 hosts; EAPOL; waits 2ms, 5ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define employee BYOD laptop completing posture compliance check.
 host byod_laptop_supp {
     ip 10.110.20.45
     mac 00:24:d7:6e:14:2d
 }
 
-// INSTRUCTION: Define campus access switch port re-issuing EAP-Request/Identity upon CoA trigger.
 host campus_coa_sw {
     ip 10.110.20.1
     mac 00:1e:be:6e:14:01
 }
 
-// INSTRUCTION: Perform switch-initiated EAP-Request/Identity, EAP-TLS (Method 13) verify, and EAP-Success.
 flow eapol_coa_reauth(laptop, sw) {
     laptop <- sw eapol version 2 type eappacket eapcode 1 eapid 40 eapmethod 1 wait 2ms
     laptop -> sw eapol version 2 type eappacket eapcode 2 eapid 40 eapmethod 1 identity "alice.byod@corp.example.com" wait 5ms
@@ -22,7 +21,6 @@ flow eapol_coa_reauth(laptop, sw) {
     laptop <- sw eapol version 2 type eappacket eapcode 3 eapid 41 eapmethod 13
 }
 
-// INSTRUCTION: Compile the RADIUS CoA triggered EAPOL re-authentication trace.
 compile {
     eapol_coa_reauth(byod_laptop_supp, campus_coa_sw)
 }

@@ -1,18 +1,16 @@
-// PROMPT: IPv6 data center switch exporting sFlow with an IPv6 AGENT_IP address (Address Type 2).
-// TOKENS: host, ip, mac, flow, sflow, agentip, subagentid, uptime, samples, flowlabel, ttl, compile
+// IPv6 data center switch exporting sFlow with an IPv6 AGENT_IP address
+// (Address Type 2).
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Wireshark: sflow
 
-// INSTRUCTION: Define IPv6-only leaf switch.
 host v6_leaf { ip 2001:db8:dc:1::1 mac 00:1c:73:dc:01:01 }
 
-// INSTRUCTION: Define IPv6 sFlow collector.
 host v6_collector { ip 2001:db8:dc:1::100 mac 00:1c:73:dc:01:64 }
 
-// INSTRUCTION: Define sFlow export with explicit IPv6 loopback AGENT_IP.
 flow sflow_ipv6_agent_addr(sw, coll) {
     sw -> coll sflow agentip 2001:db8:dc:ffff::1 subagentid 10 uptime 604800 samples 6 flowlabel 0x06343 ttl 64
 }
 
-// INSTRUCTION: Compile IPv6 AGENT_IP sFlow export.
 compile {
     sflow_ipv6_agent_addr(v6_leaf, v6_collector)
 }

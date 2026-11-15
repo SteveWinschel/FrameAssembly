@@ -1,13 +1,11 @@
-// PROMPT: Redis task queue worker using LPUSH and blocking BRPOP list operations.
-// TOKENS: host, ip, flow, redis, cmd, args, wait, ms, compile
+// Redis task queue worker using LPUSH and blocking BRPOP list operations.
+// Timing: uses post-packet wait delays (3ms, 5ms) between frames.
+// Wireshark: resp
 
-// INSTRUCTION: Define background job worker host.
 host job_worker { ip 172.21.0.30 }
 
-// INSTRUCTION: Define Redis queue broker host.
 host queue_redis { ip 172.21.0.5 }
 
-// INSTRUCTION: Define LPUSH enqueue and BRPOP dequeue operations.
 flow redis_list_queue(w, q) {
     w -> q redis cmd "LPUSH" args "jobs:email_dispatch payload_881" wait 3ms
     w <- q redis cmd "INTEGER" args "1" wait 3ms
@@ -15,7 +13,6 @@ flow redis_list_queue(w, q) {
     w <- q redis cmd "ARRAY" args "payload_881"
 }
 
-// INSTRUCTION: Compile Redis LPUSH/BRPOP queue flow.
 compile {
     redis_list_queue(job_worker, queue_redis)
 }

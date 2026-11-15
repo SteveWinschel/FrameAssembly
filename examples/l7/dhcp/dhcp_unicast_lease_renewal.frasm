@@ -1,19 +1,19 @@
-// PROMPT: DHCPv4 unicast lease renewal (T1 timer expiration) using CIADDR and ACK response.
-// TOKENS: host, ip, flow, s, dhcp, request, ciaddr, chaddr, hostname, ack, yiaddr, leasetime, compile
+// DHCPv4 unicast lease renewal (T1 timer expiration) using CIADDR and ACK
+// response.
+// Wireshark: dhcp
 
-// INSTRUCTION: Define active workstation renewing its existing IPv4 lease.
+// Active workstation renewing its existing IPv4 lease.
 host active_ws { ip 10.20.30.55 }
 
-// INSTRUCTION: Define corporate DHCPv4 server.
 host corp_dhcp { ip 10.20.30.1 }
 
-// INSTRUCTION: Send unicast DHCPREQUEST with populated CIADDR and receive DHCPACK.
+// Send unicast DHCPREQUEST with populated CIADDR and receive DHCPACK. DHCPv4
+// BOOTP exchange over UDP ports 68 (client) and 67 (server).
 flow dhcp_t1_renewal(w, s) {
     w -> s dhcp request ciaddr 10.20.30.55 chaddr 00:25:90:aa:bb:cc hostname "eng-ws-55"
     w <- s dhcp ack ciaddr 10.20.30.55 yiaddr 10.20.30.55 chaddr 00:25:90:aa:bb:cc leasetime 86400
 }
 
-// INSTRUCTION: Compile the DHCPv4 T1 unicast lease renewal flow.
 compile {
     dhcp_t1_renewal(active_ws, corp_dhcp)
 }

@@ -1,19 +1,19 @@
-// PROMPT: NTP symmetric active mode 1 peer clock coordination between core routers.
-// TOKENS: host, ip, flow, ntp, mode, vn, stratum, poll, precision, wait, ms, compile
+// NTP symmetric active mode 1 peer clock coordination between core routers.
+// Wireshark: ntp
 
-// INSTRUCTION: Define core router time peer Alpha.
+// Core router time peer Alpha.
 host router_peer_alpha { ip 172.16.0.1 }
 
-// INSTRUCTION: Define core router time peer Beta.
+// Core router time peer Beta.
 host router_peer_beta { ip 172.16.0.2 }
 
-// INSTRUCTION: Define symmetric active peer exchange flow.
+// Symmetric active peer exchange flow. NTPv4 modes on UDP 123: 1 (Symmetric
+// Active), 2 (Symmetric Passive).
 flow symmetric_peer_flow(a, b) {
     a -> b ntp mode 1 vn 4 stratum 2 poll 6 precision -20 wait 15ms
     a <- b ntp mode 2 vn 4 stratum 2 poll 6 precision -20
 }
 
-// INSTRUCTION: Compile symmetric peer exchange scenario.
 compile {
     symmetric_peer_flow(router_peer_alpha, router_peer_beta)
 }

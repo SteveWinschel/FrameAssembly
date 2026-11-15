@@ -1,13 +1,14 @@
-// PROMPT: Simulate an SNMPv2c GET request on UDP port 161 with a NULLVAL varbind and a matching RESPONSE returning sysDescr and sysObjectID with matching REQID.
-// TOKENS: host, ip, mac, flow, snmp2, get, srcport, dstport, community, reqid, varbind, nullval, wait, ms, response, string, oidval, compile
+// Simulate an SNMPv2c GET request on UDP port 161 with a NULLVAL varbind and
+// a matching RESPONSE returning sysDescr and sysObjectID with matching reqid.
+// MIB objects / traps: 1.3.6.1.2.1.1.1.0 (sysDescr.0), 1.3.6.1.2.1.1.2.0
+// (sysObjectID.0).
+// Timing: pauses 10ms after each marked packet before sending the next frame.
+// Wireshark: snmp || udp.port == 161
 
-// INSTRUCTION: Define an NMS polling station with IP 10.120.0.10.
 host nms_poller { ip 10.120.0.10 mac 00:10:db:20:00:10 }
 
-// INSTRUCTION: Define a managed router agent with IP 10.120.0.1.
 host router_agent { ip 10.120.0.1 mac 00:10:db:20:00:01 }
 
-// INSTRUCTION: Define a flow sending an SNMPv2c GET request with NULLVAL varbinds and receiving a RESPONSE on port 161.
 flow snmpv2c_get_sysinfo(poller, agent) {
     poller -> agent snmp2 get srcport 52161 dstport 161 community "public"
         reqid 1001
@@ -21,7 +22,6 @@ flow snmpv2c_get_sysinfo(poller, agent) {
         wait 10ms
 }
 
-// INSTRUCTION: Compile block to execute the SNMPv2c GET and RESPONSE flow.
 compile {
     snmpv2c_get_sysinfo(nms_poller, router_agent)
 }

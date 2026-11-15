@@ -1,19 +1,21 @@
-// PROMPT: WireGuard peer endpoint migration confirming updated external client address.
-// TOKENS: host, ip, flow, wireguard, type, initiation, sender, response, receiver, compile
+// WireGuard peer endpoint migration confirming updated external client
+// address.
+// This capture models UDP port 51820 WireGuard handshake and transport
+// frames.
+// Wireshark: wg
 
-// INSTRUCTION: Define mobile smartphone roaming to cellular network.
 host mobile_smartphone { ip 198.51.100.99 }
 
-// INSTRUCTION: Define corporate WireGuard access hub.
 host corp_wg_access_hub { ip 203.0.113.1 }
 
-// INSTRUCTION: Define roaming re-association handshake flow.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow wg_roaming_migration(phone, hub) {
     phone -> hub wireguard type initiation sender 991122
     phone <- hub wireguard type response sender 554433 receiver 991122
 }
 
-// INSTRUCTION: Compile block executing mobile roaming re-association.
+// Run wg_roaming_migration(mobile_smartphone, corp_wg_access_hub) to generate
+// the capture.
 compile {
     wg_roaming_migration(mobile_smartphone, corp_wg_access_hub)
 }

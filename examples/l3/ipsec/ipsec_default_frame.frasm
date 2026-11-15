@@ -1,0 +1,20 @@
+// Minimal IPsec ESP (RFC 4303) starter packet emitted via the ipsec keyword
+// over IP protocol 50 with built-in default SPI, sequence number, IV, and ICV
+// fields. Useful for testing protocol-50 tunnel policies without running a
+// VPN daemon.
+// Wireshark: esp
+
+host endpoint_a {
+    ip 10.50.1.1
+    mac 02:00:50:01:00:01
+}
+
+host endpoint_b {
+    ip 10.50.1.2
+    mac 02:00:50:01:00:02
+}
+
+// Transmit one default IPsec ESP frame directly inside compile.
+compile {
+    endpoint_a -> endpoint_b ipsec
+}

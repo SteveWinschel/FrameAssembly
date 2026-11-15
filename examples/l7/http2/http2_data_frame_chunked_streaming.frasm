@@ -1,19 +1,19 @@
-// PROMPT: HTTP/2 DATA frame streaming exchange on Stream 1 delivering JSON API response chunks with WINDOW_UPDATE.
-// TOKENS: host, ip, mac, flow, s, http2, headers, streamid, data, payload, windowupdate, compile
+// HTTP/2 DATA frame streaming exchange on Stream 1 delivering JSON API
+// response chunks with WINDOW_UPDATE.
+// Wireshark: http2
 
-// INSTRUCTION: Define HTTP/2 API gateway client host.
 host h2_api_client {
     ip 10.44.2.10
     mac 00:1b:21:2c:02:0a
 }
 
-// INSTRUCTION: Define HTTP/2 streaming analytics server host.
 host h2_stream_srv {
     ip 10.44.2.100
     mac 00:1b:21:2c:02:64
 }
 
-// INSTRUCTION: Send HEADERS on Stream 1 and stream two HTTP/2 DATA frames followed by WINDOW_UPDATE.
+// Send HEADERS on Stream 1 and stream two HTTP/2 DATA frames followed by
+// WINDOW_UPDATE.
 flow http2_data_streaming(c, s) {
     c -> s http2 headers streamid 1
     c <- s http2 headers streamid 1
@@ -22,7 +22,6 @@ flow http2_data_streaming(c, s) {
     c -> s http2 windowupdate streamid 1
 }
 
-// INSTRUCTION: Compile the HTTP/2 DATA frame streaming scenario.
 compile {
     http2_data_streaming(h2_api_client, h2_stream_srv)
 }

@@ -5,14 +5,14 @@
 #
 # Builds a production-ready Debian/Ubuntu .deb package from a pre-compiled
 # FrameAssembly binary using dpkg-deb, bundling MIME, file magic, and
-# Bash/Zsh/Fish Tab completion definitions.
+# Bash/Zsh/Fish Tab completion definitions plus postinst/postrm MIME hooks.
 #
 # Usage:
 #   contrib/packaging/apt/build-deb.sh [VERSION] [BINARY_PATH] [ARCH] [OUTPUT_DIR]
 #
 # Examples:
-#   contrib/packaging/apt/build-deb.sh 3.0.0 target/release/frameassembly amd64 dist
-#   contrib/packaging/apt/build-deb.sh 3.0.0 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist
+#   contrib/packaging/apt/build-deb.sh 3.1.0 target/release/frameassembly amd64 dist
+#   contrib/packaging/apt/build-deb.sh 3.1.0 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist
 # ==============================================================================
 
 set -euo pipefail
@@ -20,7 +20,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
-VERSION="${1:-3.0.0}"
+VERSION="${1:-3.1.0}"
 VERSION="${VERSION#v}" # strip leading 'v' if provided
 
 BINARY_PATH="${2:-}"
@@ -124,14 +124,14 @@ if [[ -f "${REPO_ROOT}/contrib/completions/frameassembly.fish" ]]; then
     chmod 644 "${STAGE_DIR}/usr/share/fish/vendor_completions.d/frameassembly.fish"
 fi
 
-# 5. Generate DEBIAN/control file for specific architecture and version
+# 5. Generate DEBIAN/control, postinst, and postrm scripts
 cat > "${STAGE_DIR}/DEBIAN/control" <<EOF
 Package: frameassembly
 Version: ${VERSION}
 Section: net
 Priority: optional
 Architecture: ${TARGET_ARCH}
-Maintainer: Steve Winschel <https://github.com/SteveWinschel/FrameAssembly>
+Maintainer: Steve Winschel <steve.winschel@users.noreply.github.com>
 Description: Compile .frasm network traffic code to .pcap/.pcapng and reverse captures
  FrameAssembly compiles .frasm network traffic code into nanosecond-precision
  .pcap and .pcapng packet captures and reverses captures back into .frasm code
@@ -140,7 +140,26 @@ Description: Compile .frasm network traffic code to .pcap/.pcapng and reverse ca
 Homepage: https://github.com/SteveWinschel/FrameAssembly
 EOF
 
+cat > "${STAGE_DIR}/DEBIAN/postinst" <<'EOF'
+#!/bin/sh
+set -e
+if [ "$1" = "configure" ] && command -v update-mime-database >/dev/null 2>&1; then
+    update-mime-database /usr/share/mime >/dev/null 2>&1 || true
+fi
+exit 0
+EOF
+
+cat > "${STAGE_DIR}/DEBIAN/postrm" <<'EOF'
+#!/bin/sh
+set -e
+if command -v update-mime-database >/dev/null 2>&1; then
+    update-mime-database /usr/share/mime >/dev/null 2>&1 || true
+fi
+exit 0
+EOF
+
 chmod 644 "${STAGE_DIR}/DEBIAN/control"
+chmod 755 "${STAGE_DIR}/DEBIAN/postinst" "${STAGE_DIR}/DEBIAN/postrm"
 find "${STAGE_DIR}" -type d -exec chmod 755 {} +
 
 DEB_FILENAME="frameassembly_${VERSION}_${TARGET_ARCH}.deb"

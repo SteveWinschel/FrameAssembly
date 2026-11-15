@@ -1,19 +1,21 @@
-// PROMPT: MySQL online DDL ALTER TABLE execution using ALGORITHM=INPLACE and LOCK=NONE.
-// TOKENS: host, ip, mac, flow, s, mysql, login, user, db, ok, wait, ms, sql, payload, compile
+// MySQL online DDL ALTER TABLE execution using ALGORITHM=INPLACE and
+// LOCK=NONE.
+// Wireshark: mysql
 
-// INSTRUCTION: Define the schema migration runner (gh-ost / Flyway).
+// Schema migration runner (gh-ost / Flyway).
 host migration_runner {
     ip 10.90.60.15
     mac 00:1a:2b:90:60:15
 }
 
-// INSTRUCTION: Define the production MySQL master node.
+// Production MySQL master node.
 host prod_mysql {
     ip 10.90.60.1
     mac 00:1a:2b:90:60:01
 }
 
-// INSTRUCTION: Authenticate as schema_migrator and run an online non-blocking index addition.
+// Authenticate as schema_migrator and run an online non-blocking index
+// addition.
 flow mysql_online_ddl(c, s) {
     c -> s mysql login user "schema_migrator" db "commerce"
     c <- s mysql ok wait 1ms
@@ -21,7 +23,6 @@ flow mysql_online_ddl(c, s) {
     c <- s mysql ok payload "Records: 0  Duplicates: 0  Warnings: 0"
 }
 
-// INSTRUCTION: Compile the MySQL online DDL migration flow.
 compile {
     mysql_online_ddl(migration_runner, prod_mysql)
 }

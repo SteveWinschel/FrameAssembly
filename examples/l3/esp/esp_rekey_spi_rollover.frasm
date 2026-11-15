@@ -1,21 +1,23 @@
-// PROMPT: Child SA rekey rollover transitioning traffic from an old ESP SPI to a newly negotiated SPI.
-// TOKENS: host, ip, flow, esp, spi, seq, wait, ms, compile
+// Child SA rekey rollover transitioning traffic from an old ESP SPI to a
+// newly negotiated SPI.
+// This capture carries SPI 11000/11001/22000 and uses post-packet wait gaps
+// (10ms, 20ms) between frames.
+// Wireshark: esp
 
-// INSTRUCTION: Define enterprise VPN hub.
 host rekey_vpn_hub { ip 172.28.0.1 }
 
-// INSTRUCTION: Define enterprise VPN spoke.
 host rekey_vpn_spoke { ip 172.28.0.2 }
 
-// INSTRUCTION: Define ESP traffic transitioning from SPI 11000/11001 to rekeyed SPI 22000/22001.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow esp_spi_rollover(hub, spoke) {
-    hub -> spoke esp spi 11000 seq 999
-    hub <- spoke esp spi 11001 seq 999 wait 10ms
-    hub -> spoke esp spi 22000 seq 1 wait 20ms
-    hub <- spoke esp spi 22001 seq 1 wait 10ms
+    hub -> spoke esp spi 11000 seq 999 wait 10ms
+    hub <- spoke esp spi 11001 seq 999 wait 20ms
+    hub -> spoke esp spi 22000 seq 1 wait 10ms
+    hub <- spoke esp spi 22001 seq 1
 }
 
-// INSTRUCTION: Compile the ESP SPI rekey rollover flow.
+// Run esp_spi_rollover(rekey_vpn_hub, rekey_vpn_spoke) to generate the
+// capture.
 compile {
     esp_spi_rollover(rekey_vpn_hub, rekey_vpn_spoke)
 }

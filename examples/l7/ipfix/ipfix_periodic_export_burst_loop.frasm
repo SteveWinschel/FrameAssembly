@@ -1,18 +1,20 @@
-// PROMPT: Periodic IPFIX flow export burst executed in compile loop simulating telemetry timer.
-// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, srcport, dstport, proto, packets, octets, wait, ms, compile
+// Periodic IPFIX flow export burst executed across sequential cycles
+// simulating telemetry timer.
+// Wireshark: cflow || udp.port == 4739 || udp.port == 80
 
-// INSTRUCTION: Define edge telemetry probe.
+// Edge telemetry probe.
 host edge_probe { ip 192.168.75.10 }
 
-// INSTRUCTION: Define central flow listener.
+// Central flow listener.
 host flow_listener { ip 192.168.75.1 }
 
-// INSTRUCTION: Define periodic IPFIX export burst flow.
+// Periodic IPFIX export burst flow. Reports IP protocol 6 (TCP) flow records
+// to UDP 4739. Repeats 3 times; each wait value pauses after sending its
+// packet.
 flow ipfix_burst_flow(probe, srv) {
     probe -> srv ipfix domainid 99 srcip 10.0.12.3 dstip 10.0.14.5 srcport 80 dstport 49152 proto 6 packets 15 octets 2140 wait 25ms
 }
 
-// INSTRUCTION: Compile periodic IPFIX export burst in loop.
 compile {
     ipfix_burst_flow(edge_probe, flow_listener) // cycle 1
     ipfix_burst_flow(edge_probe, flow_listener) // cycle 2

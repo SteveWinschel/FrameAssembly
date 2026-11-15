@@ -1,27 +1,25 @@
-// PROMPT: Periodic LLDP heartbeat loop transmitting 4 consecutive topology refresh advertisements with maximum 255s TTL.
-// TOKENS: host, ip, mac, flow, lldp, chassisid, portid, sysname, sysdesc, ttl, wait, s, compile
+// Periodic LLDP heartbeat loop transmitting 4 consecutive topology refresh
+// advertisements with maximum 255s TTL.
+// Wire profile: 4 frames; 2 IPv4 hosts; LLDP; waits 30s.
+// Wireshark: lldp
 
-// INSTRUCTION: Define core modular chassis switch supervisor engine.
 host core_sup_engine {
     ip 10.1.254.1
     mac 00:24:f7:01:fe:01
 }
 
-// INSTRUCTION: Define distribution switch uplink receiving periodic LLDP heartbeats.
 host dist_uplink_port {
     ip 10.1.254.2
     mac 00:24:f7:01:fe:02
 }
 
-// INSTRUCTION: Define periodic LLDP beacon with 255-second hold time and inter-frame delay.
 flow periodic_lldp_beacon(core, dist) {
     core -> dist lldp chassisid "00:24:f7:01:fe:01" portid "Te1/1/1" sysname "hq-core-9606r" sysdesc "Modular Core Switch Supervisor" ttl 255 wait 30s
 }
 
-// INSTRUCTION: Compile block executing 4 iterations of periodic LLDP advertisements.
 compile {
-    periodic_lldp_beacon(core_sup_engine, dist_uplink_port) // cycle 1
-    periodic_lldp_beacon(core_sup_engine, dist_uplink_port) // cycle 2
-    periodic_lldp_beacon(core_sup_engine, dist_uplink_port) // cycle 3
-    periodic_lldp_beacon(core_sup_engine, dist_uplink_port) // cycle 4
+    periodic_lldp_beacon(core_sup_engine, dist_uplink_port) // Iteration 1 of 4
+    periodic_lldp_beacon(core_sup_engine, dist_uplink_port) // Iteration 2 of 4
+    periodic_lldp_beacon(core_sup_engine, dist_uplink_port) // Iteration 3 of 4
+    periodic_lldp_beacon(core_sup_engine, dist_uplink_port) // Iteration 4 of 4
 }

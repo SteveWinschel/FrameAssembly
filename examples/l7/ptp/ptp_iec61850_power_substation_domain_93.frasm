@@ -1,19 +1,22 @@
-// PROMPT: Generate an IEC 61850-9-3 power utility substation PTPv2 synchronization flow on Domain 93 over VLAN 93.
-// TOKENS: host, ip, mac, flow, ptp, sync, domain, seqid, clockid, vlan, pcp, wait, ms, followup, delayreq, delayresp, compile
+// Generate an IEC 61850-9-3 power utility substation PTPv2 synchronization
+// flow on Domain 93 over VLAN 93.
+// Encapsulation and QoS markings: 802.1Q VLAN 93, 802.1p priority 7.
+// IEEE 1588v2 PTP (messages: sync, followup, delayreq, delayresp; domain 93).
+// UDP 319 handles Event messages (sync, delayreq) and UDP 320 carries General
+// messages (announce, followup, delayresp).
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: ptp && vlan.id == 93
 
-// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
 host ptp_grandmaster {
     ip 192.168.93.1
     mac 00:1b:21:31:90:01
 }
 
-// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
 host ptp_slave_clock {
     ip 192.168.93.12
     mac 00:1b:21:31:90:25
 }
 
-// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
 flow ptp_scenario_flow(gm, slv) {
     gm -> slv ptp sync domain 93 seqid 1200 clockid "000e8cfffe930001" vlan 93 pcp 7 wait 1ms
     gm -> slv ptp followup domain 93 seqid 1200 clockid "000e8cfffe930001" vlan 93 pcp 7 wait 1ms
@@ -21,7 +24,6 @@ flow ptp_scenario_flow(gm, slv) {
     gm -> slv ptp delayresp domain 93 seqid 1200 clockid "000e8cfffe930001" vlan 93 pcp 7
 }
 
-// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
 compile {
     ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
 }

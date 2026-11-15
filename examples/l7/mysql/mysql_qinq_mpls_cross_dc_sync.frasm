@@ -1,19 +1,22 @@
-// PROMPT: MySQL cross-datacenter query traffic encapsulated in QinQ (300/900) and MPLS label 4410.
-// TOKENS: host, ip, mac, flow, s, mysql, greeting, serverversion, qinq, innervlan, mpls, wait, ms, login, user, db, ok, sql, eof, compile
+// MySQL cross-datacenter query traffic encapsulated in QinQ (300/900) and
+// MPLS label 4410.
+// Wireshark: mysql
 
-// INSTRUCTION: Define the remote datacenter reporting service.
+// Remote datacenter reporting service.
 host remote_reporter {
     ip 10.90.40.70
     mac 00:1a:2b:90:40:70
 }
 
-// INSTRUCTION: Define the core datacenter MySQL cluster VIP.
+// Core datacenter MySQL cluster VIP.
 host core_mysql_vip {
     ip 10.90.40.1
     mac 00:1a:2b:90:40:01
 }
 
-// INSTRUCTION: Login and execute an aggregation query over QinQ and MPLS encapsulation.
+// Login and execute an aggregation query over QinQ and MPLS encapsulation.
+// Encapsulation and QoS markings: 802.1ad QinQ S-VLAN 300 / C-VLAN 900, MPLS
+// label 4410.
 flow mysql_qinq_mpls(c, s) {
     c <- s mysql greeting serverversion "8.0.36" qinq 300 innervlan 900 mpls 4410 wait 2ms
     c -> s mysql login user "reporter_ro" db "dw_sales" qinq 300 innervlan 900 mpls 4410
@@ -22,7 +25,6 @@ flow mysql_qinq_mpls(c, s) {
     c <- s mysql eof qinq 300 innervlan 900 mpls 4410
 }
 
-// INSTRUCTION: Compile the QinQ + MPLS MySQL reporting flow.
 compile {
     mysql_qinq_mpls(remote_reporter, core_mysql_vip)
 }

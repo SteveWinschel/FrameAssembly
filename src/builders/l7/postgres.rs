@@ -34,54 +34,71 @@ pub fn build_postgres_payload(
         body.extend_from_slice(db);
         body.push(0);
         body.push(0); // Terminating null byte
+        if !payload_bytes.is_empty() {
+            body.extend_from_slice(payload_bytes);
+        }
 
         let length = (4 + body.len()) as u32;
         pkt.extend_from_slice(&length.to_be_bytes());
         pkt.extend_from_slice(&body);
     } else if spec.is_ready_for_query {
-        // ReadyForQuery ('Z', length 5, status 'I' Idle)
+        // ReadyForQuery ('Z', length 5 + trailing payload, status 'I' Idle)
+        let length = (5 + payload_bytes.len()) as u32;
         pkt.push(b'Z');
-        pkt.extend_from_slice(&5u32.to_be_bytes());
+        pkt.extend_from_slice(&length.to_be_bytes());
         pkt.push(b'I');
+        if !payload_bytes.is_empty() {
+            pkt.extend_from_slice(payload_bytes);
+        }
     } else if spec.is_command_complete {
-        // CommandComplete ('C', length, command tag + NUL)
+        // CommandComplete ('C', length, command tag + NUL + trailing payload)
         let tag = spec.sql.unwrap_or("SELECT 1").as_bytes();
-        let length = (4 + tag.len() + 1) as u32;
+        let length = (4 + tag.len() + 1 + payload_bytes.len()) as u32;
         pkt.push(b'C');
         pkt.extend_from_slice(&length.to_be_bytes());
         pkt.extend_from_slice(tag);
         pkt.push(0);
+        if !payload_bytes.is_empty() {
+            pkt.extend_from_slice(payload_bytes);
+        }
     } else if spec.is_error_response {
-        // ErrorResponse ('E', length, severity + SQLSTATE + message + NUL)
+        // ErrorResponse ('E', length, severity + SQLSTATE + message + NUL + trailing payload)
         let msg = spec.sql.unwrap_or("authentication failed").as_bytes();
         let mut body = Vec::new();
         body.extend_from_slice(b"SERROR\0C28P01\0M");
         body.extend_from_slice(msg);
         body.push(0);
         body.push(0);
+        if !payload_bytes.is_empty() {
+            body.extend_from_slice(payload_bytes);
+        }
         let length = (4 + body.len()) as u32;
         pkt.push(b'E');
         pkt.extend_from_slice(&length.to_be_bytes());
         pkt.extend_from_slice(&body);
     } else if spec.is_auth_ok {
-        // AuthenticationOk ('R', length 8, auth code 0)
+        // AuthenticationOk ('R', length 8 + trailing payload, auth code 0)
+        let length = (8 + payload_bytes.len()) as u32;
         pkt.push(b'R');
-        pkt.extend_from_slice(&8u32.to_be_bytes());
+        pkt.extend_from_slice(&length.to_be_bytes());
         pkt.extend_from_slice(&0u32.to_be_bytes());
+        if !payload_bytes.is_empty() {
+            pkt.extend_from_slice(payload_bytes);
+        }
     } else {
-        // Simple Query ('Q', length, query + NUL)
+        // Simple Query ('Q', length, query + NUL + trailing payload)
         let _ = spec.is_query;
         let sql = spec.sql.unwrap_or("SELECT version()");
         let sql_bytes = sql.as_bytes();
-        let length = (4 + sql_bytes.len() + 1) as u32;
+        let length = (4 + sql_bytes.len() + 1 + payload_bytes.len()) as u32;
         pkt.push(b'Q');
         pkt.extend_from_slice(&length.to_be_bytes());
         pkt.extend_from_slice(sql_bytes);
         pkt.push(0);
+        if !payload_bytes.is_empty() {
+            pkt.extend_from_slice(payload_bytes);
+        }
     }
 
-    if !payload_bytes.is_empty() {
-        pkt.extend_from_slice(payload_bytes);
-    }
     pkt
 }

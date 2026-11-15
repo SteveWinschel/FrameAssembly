@@ -1,19 +1,20 @@
-// PROMPT: Layer 3 routed GENEVE tunnel encapsulating raw IPv4 packets using PROTOCOL_TYPE 0x0800.
-// TOKENS: host, ip, flow, geneve, vni, optclass, opttype, protocoltype, payload, compile
+// Layer 3 routed GENEVE tunnel encapsulating raw IPv4 packets using
+// protocoltype 0x0800.
+// This capture carries VNI 88001.
+// Wireshark: geneve && geneve.vni == 88001
 
-// INSTRUCTION: Define cloud VPC gateway router A.
 host vpc_geneve_gw_a { ip 10.200.50.1 }
 
-// INSTRUCTION: Define cloud VPC gateway router B.
 host vpc_geneve_gw_b { ip 10.200.50.2 }
 
-// INSTRUCTION: Define routed GENEVE flow carrying IPv4 payload (EtherType 0x0800).
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow geneve_routed_ipv4(a, b) {
     a -> b geneve vni 88001 optclass 259 opttype 1 protocoltype 0x0800 payload "INNER_IPV4_ROUTED_PACKET"
     a <- b geneve vni 88001 optclass 259 opttype 1 protocoltype 0x0800 payload "INNER_IPV4_ROUTED_REPLY"
 }
 
-// INSTRUCTION: Compile the Layer 3 IPv4-over-GENEVE flow.
+// Run geneve_routed_ipv4(vpc_geneve_gw_a, vpc_geneve_gw_b) to generate the
+// capture.
 compile {
     geneve_routed_ipv4(vpc_geneve_gw_a, vpc_geneve_gw_b)
 }

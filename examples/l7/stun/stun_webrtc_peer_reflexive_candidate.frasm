@@ -1,13 +1,13 @@
-// PROMPT: WebRTC browser endpoint acquiring server reflexive candidate address.
-// TOKENS: host, ip, flow, s, stun, bindingrequest, software, bindingresponse, xormappedaddr, compile
+// WebRTC browser endpoint acquiring server reflexive candidate address.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (STUN (RFC
+// 8489), UDP 3478).
+// Wireshark: stun
 
-// INSTRUCTION: Define WebRTC client browser.
 host browser_client { ip 10.0.8.44 }
 
-// INSTRUCTION: Define WebRTC STUN server.
 host webrtc_stun { ip 198.51.100.88 }
 
-// INSTRUCTION: Define peer reflexive candidate discovery flow.
 flow stun_webrtc_flow(c, s) {
     c -> s stun bindingrequest software "Chromium-WebRTC"
     c <- s stun bindingresponse
@@ -15,7 +15,6 @@ flow stun_webrtc_flow(c, s) {
         software "coturn-4.5.2"
 }
 
-// INSTRUCTION: Compile block executing WebRTC STUN query.
 compile {
     stun_webrtc_flow(browser_client, webrtc_stun)
 }

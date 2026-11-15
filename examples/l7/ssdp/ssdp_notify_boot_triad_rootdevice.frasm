@@ -1,19 +1,17 @@
-// PROMPT: Simulate a full UPnP device boot announcement Triad (rootdevice, device-UUID, and deviceType) via SSDP NOTIFY.
-// TOKENS: host, mac, ip, flow, ssdp, notify, hosthdr, nt, nts, usn, location, ttl, compile
+// Simulate a full UPnP device boot announcement Triad (rootdevice,
+// device-UUID, and deviceType) via SSDP NOTIFY.
+// Wireshark: ssdp
 
-// INSTRUCTION: Define host endpoint storage_box.
 host storage_box {
     mac 00:08:9b:aa:bb:cc
     ip 192.168.5.200
 }
 
-// INSTRUCTION: Define host endpoint ssdp_all_mcast.
 host ssdp_all_mcast {
     mac 01:00:5e:7f:ff:fa
     ip 239.255.255.250
 }
 
-// INSTRUCTION: Emit the three required UPnP rootdevice, UUID, and Basic:1 deviceType NOTIFY advertisements.
 flow ssdp_boot_announcement_triad(storage_box, ssdp_all_mcast) {
     storage_box -> ssdp_all_mcast ssdp notify hosthdr "239.255.255.250:1900" nt "upnp:rootdevice" nts "ssdp:alive" usn "uuid:qnap-nas-00089baabbcc::upnp:rootdevice"
         location "http://192.168.5.200:8080/upnp.xml" ttl 4
@@ -24,7 +22,6 @@ flow ssdp_boot_announcement_triad(storage_box, ssdp_all_mcast) {
         location "http://192.168.5.200:8080/upnp.xml" ttl 4
 }
 
-// INSTRUCTION: Compile the UPnP 3-message boot advertisement flow.
 compile {
     ssdp_boot_announcement_triad(storage_box, ssdp_all_mcast)
 }

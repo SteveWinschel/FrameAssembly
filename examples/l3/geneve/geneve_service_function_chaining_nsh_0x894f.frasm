@@ -1,25 +1,27 @@
-// PROMPT: RFC 8300 Network Service Header (NSH, EtherType 0x894F = 35151) encapsulated inside RFC 8926 GENEVE for SFC.
-// TOKENS: host, ip, mac, flow, geneve, vni, optclass, opttype, protocoltype, srcport, dstport, df, dscp, ttl, payload, wait, ms, compile
+// RFC 8300 Network Service Header (NSH, EtherType 0x894F = 35151)
+// encapsulated inside RFC 8926 GENEVE for SFC.
+// This capture sets DSCP 34, TTL 64, DF bit set, carries VNI 8300,
+// destination port 6081, and uses post-packet wait gaps (3ms) between frames.
+// Wireshark: geneve && geneve.vni == 8300
 
-// INSTRUCTION: Define Service Function Forwarder SFF-1 encapsulating NSH chain inside GENEVE.
 host sfc_sff_node_1 {
     ip 10.83.60.1
     mac 00:21:59:83:60:01
 }
 
-// INSTRUCTION: Define Service Function Forwarder SFF-2 steering traffic through DPI and WAF service functions.
 host sfc_sff_node_2 {
     ip 10.83.60.2
     mac 00:21:59:83:60:02
 }
 
-// INSTRUCTION: Define GENEVE flow with PROTOCOL_TYPE 35151 (0x894F NSH) and service chain TLV metadata.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow geneve_nsh_sfc_chain(sff1, sff2) {
     sff1 -> sff2 geneve vni 8300 optclass 260 opttype 10 protocoltype 35151 srcport 58300 dstport 6081 df dscp 34 ttl 64 payload "NSH_SPI_100_SI_255_DPI_INSPECTED" wait 3ms
     sff1 <- sff2 geneve vni 8300 optclass 260 opttype 10 protocoltype 35151 srcport 58301 dstport 6081 df dscp 34 ttl 64 payload "NSH_SPI_100_SI_254_WAF_CLEARED"
 }
 
-// INSTRUCTION: Compile the NSH-over-GENEVE Service Function Chaining flow.
+// Run geneve_nsh_sfc_chain(sfc_sff_node_1, sfc_sff_node_2) to generate the
+// capture.
 compile {
     geneve_nsh_sfc_chain(sfc_sff_node_1, sfc_sff_node_2)
 }

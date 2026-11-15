@@ -1,13 +1,11 @@
-// PROMPT: SIP CANCEL request terminating an unanswered call during 180 Ringing.
-// TOKENS: host, ip, flow, s, sip, invite, from, to, callid, cseq, wait, ms, status, reason, cancel, method, uri, compile
+// SIP CANCEL request terminating an unanswered call during 180 Ringing.
+// Timing: uses post-packet wait delays (10ms, 15ms, 5ms) between frames.
+// Wireshark: sip
 
-// INSTRUCTION: Define caller canceling outbound attempt.
 host canceling_caller { ip 10.33.1.25 }
 
-// INSTRUCTION: Define call manager PBX.
 host call_manager { ip 10.33.1.1 }
 
-// INSTRUCTION: Define INVITE, Ringing, CANCEL, and Request Terminated teardown.
 flow sip_cancel_flow(c, s) {
     c -> s sip invite from "sip:agent1@callcenter.com" to "sip:lead@sales.com" callid "cancel-3312" cseq 1 wait 10ms
     c <- s sip status 180 reason "Ringing" callid "cancel-3312" cseq 1 wait 15ms
@@ -17,7 +15,6 @@ flow sip_cancel_flow(c, s) {
     c -> s sip method "ACK" uri "sip:lead@sales.com" from "sip:agent1@callcenter.com" to "sip:lead@sales.com" callid "cancel-3312" cseq 1
 }
 
-// INSTRUCTION: Compile SIP call cancellation flow.
 compile {
     sip_cancel_flow(canceling_caller, call_manager)
 }

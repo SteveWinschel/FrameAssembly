@@ -1,19 +1,16 @@
-// PROMPT: CHAP authentication flow verifying administrative user credentials.
-// TOKENS: host, ip, flow, s, tacacs, type, authen, user, sessionid, compile
+// CHAP authentication flow verifying administrative user credentials.
+// TACACS+ on TCP 49 (authen).
+// Wireshark: tacplus
 
-// INSTRUCTION: Define network aggregation router.
 host agg_rtr { ip 172.16.5.2 }
 
-// INSTRUCTION: Define centralized TACACS daemon.
 host tacacs_daemon { ip 172.16.5.1 }
 
-// INSTRUCTION: Define CHAP authentication validation flow.
 flow tacacs_chap_flow(c, s) {
     c -> s tacacs type authen user "netops_lead" sessionid 6020
     c <- s tacacs type authen user "netops_lead" sessionid 6020
 }
 
-// INSTRUCTION: Compile block executing CHAP authentication.
 compile {
     tacacs_chap_flow(agg_rtr, tacacs_daemon)
 }

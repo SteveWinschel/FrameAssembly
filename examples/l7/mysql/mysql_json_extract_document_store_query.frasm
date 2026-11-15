@@ -1,19 +1,19 @@
-// PROMPT: MySQL 8.0 JSON_EXTRACT and JSON_SET queries manipulating semi-structured event attributes.
-// TOKENS: host, ip, mac, flow, s, mysql, sql, ok, wait, ms, eof, compile
+// MySQL 8.0 JSON_EXTRACT and JSON_SET queries manipulating semi-structured
+// event attributes.
+// Wireshark: mysql
 
-// INSTRUCTION: Define the event enrichment service host.
 host event_enricher {
     ip 10.90.130.14
     mac 00:1a:2b:90:d0:14
 }
 
-// INSTRUCTION: Define the MySQL 8.0 document store server.
+// MySQL 8.0 document store server.
 host docstore_mysql {
     ip 10.90.130.1
     mac 00:1a:2b:90:d0:01
 }
 
-// INSTRUCTION: Update a JSON column with JSON_SET and filter rows using JSON_EXTRACT.
+// Update a JSON column with JSON_SET and filter rows using JSON_EXTRACT.
 flow mysql_json_ops(c, s) {
     c -> s mysql sql "UPDATE user_events SET meta = JSON_SET(meta, '$.processed', true) WHERE id = 8801"
     c <- s mysql ok wait 1ms
@@ -21,7 +21,6 @@ flow mysql_json_ops(c, s) {
     c <- s mysql eof
 }
 
-// INSTRUCTION: Compile the MySQL JSON document query flow.
 compile {
     mysql_json_ops(event_enricher, docstore_mysql)
 }

@@ -1,26 +1,26 @@
-// PROMPT: FTP STOR upload aborted mid-transfer by server with code 552 Exceeded storage allocation quota.
-// TOKENS: host, ip, mac, flow, s, ftp, cmd, arg, code, reply, compile
+// FTP STOR upload aborted mid-transfer by server with code 552 Exceeded
+// storage allocation quota.
+// Wireshark: ftp
 
-// INSTRUCTION: Define shared hosting user client uploading a large backup archive.
+// Shared hosting user client uploading a large backup archive.
 host tenant_client {
     ip 172.18.21.104
     mac 00:16:3e:12:15:68
 }
 
-// INSTRUCTION: Define quota-enforcing multi-tenant FTP server.
 host quota_ftp_srv {
     ip 172.18.21.1
     mac 00:16:3e:12:15:01
 }
 
-// INSTRUCTION: Start STOR transfer and reject with code 552 when user disk quota is exceeded.
+// Start STOR transfer and reject with code 552 when user disk quota is
+// exceeded.
 flow ftp_err_552_quota(c, s) {
     c -> s ftp cmd "STOR" arg "full-site-backup.tar.gz"
     c <- s ftp code 150 reply "Ok to send data"
     c <- s ftp code 552 reply "Requested file action aborted, storage quota exceeded"
 }
 
-// INSTRUCTION: Compile the FTP 552 disk quota exceeded error scenario.
 compile {
     ftp_err_552_quota(tenant_client, quota_ftp_srv)
 }

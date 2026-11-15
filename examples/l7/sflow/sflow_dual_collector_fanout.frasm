@@ -1,21 +1,18 @@
-// PROMPT: Dual-collector sFlow fan-out replication sending identical samples to primary and DR collectors.
-// TOKENS: host, ip, flow, target, sflow, agentip, subagentid, uptime, samples, compile
+// Dual-collector sFlow fan-out replication sending identical samples to
+// primary and DR collectors.
+// Executes 2 sequential flow runs inside the compile block.
+// Wireshark: sflow
 
-// INSTRUCTION: Define aggregation switch exporter.
 host agg_switch { ip 10.170.0.1 }
 
-// INSTRUCTION: Define primary NOC sFlow collector.
 host primary_sflow { ip 10.170.0.10 }
 
-// INSTRUCTION: Define DR site sFlow collector.
 host dr_sflow { ip 10.170.0.20 }
 
-// INSTRUCTION: Define sFlow replication flow to a target collector.
 flow sflow_replicate(sw, target) {
     sw -> target sflow agentip 10.170.0.1 subagentid 1 uptime 250000 samples 4
 }
 
-// INSTRUCTION: Compile fan-out export to both primary and DR collectors.
 compile {
     sflow_replicate(agg_switch, primary_sflow)
     sflow_replicate(agg_switch, dr_sflow)

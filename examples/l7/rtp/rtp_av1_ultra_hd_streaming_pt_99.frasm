@@ -1,24 +1,24 @@
-// PROMPT: Next-gen AV1 4K video RTP streaming on dynamic payload type 99 with Don't Fragment flag.
-// TOKENS: host, ip, flow, rtp, pt, seq, timestamp, ssrc, marker, df, dscp, hexpayload, wait, ms, compile
+// Next-gen AV1 4K video RTP streaming on dynamic payload type 99 with Don't
+// Fragment flag.
+// Encapsulation and QoS markings: DSCP 34.
+// RTP media on UDP 5004 carrying PT 99.
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: rtp || udp.port == 5004
 
-// INSTRUCTION: Define hardware AV1 4K broadcast encoder host.
 host av1_encoder {
     ip 192.168.150.10
 }
 
-// INSTRUCTION: Define studio production switcher receiver host.
 host studio_rx {
     ip 192.168.150.20
 }
 
-// INSTRUCTION: Define multi-packet AV1 OBU frame ending with MARKER 1 on final packet of temporal unit.
 flow rtp_av1_4k(tx, rx) {
     tx -> rx rtp pt 99 seq 5000 timestamp 270000 ssrc 0xa7104000 marker 0 df dscp 34 hexpayload "100a000011223344" wait 1ms
     tx -> rx rtp pt 99 seq 5001 timestamp 270000 ssrc 0xa7104000 marker 0 df dscp 34 hexpayload "5566778899aabbcc" wait 1ms
     tx -> rx rtp pt 99 seq 5002 timestamp 270000 ssrc 0xa7104000 marker 1 df dscp 34 hexpayload "ddeeff0011223344"
 }
 
-// INSTRUCTION: Compile the AV1 4K RTP streaming scenario.
 compile {
     rtp_av1_4k(av1_encoder, studio_rx)
 }

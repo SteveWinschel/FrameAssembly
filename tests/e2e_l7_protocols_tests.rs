@@ -40,17 +40,26 @@ impl PacketContext {
     }
 }
 
-/// Reads all Enhanced Packet Blocks from an emitted PCAPNG file on disk.
+/// Reads all packet frames from an emitted `.pcap` or `.pcapng` capture file on disk.
 fn read_pcapng_packets(path: &Path) -> Result<Vec<PacketContext>, String> {
-    let pcap_file =
-        fs::File::open(path).map_err(|e| format!("Failed to open {}: {}", path.display(), e))?;
-    let mut reader = pcap_file::pcapng::PcapNgReader::new(pcap_file)
-        .map_err(|e| format!("Failed to create PCAPNG reader: {}", e))?;
+    let bytes =
+        fs::read(path).map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
     let mut frames = Vec::new();
-    while let Some(block_res) = reader.next_block() {
-        let block = block_res.map_err(|e| format!("Failed to read block: {}", e))?;
-        if let pcap_file::pcapng::Block::EnhancedPacket(epb) = block {
-            frames.push(PacketContext { raw: epb.data.to_vec() });
+    if bytes.starts_with(&[0x0A, 0x0D, 0x0D, 0x0A]) {
+        let mut reader = pcap_file::pcapng::PcapNgReader::new(std::io::Cursor::new(bytes))
+            .map_err(|e| format!("Failed to create PCAPNG reader: {}", e))?;
+        while let Some(block_res) = reader.next_block() {
+            let block = block_res.map_err(|e| format!("Failed to read block: {}", e))?;
+            if let pcap_file::pcapng::Block::EnhancedPacket(epb) = block {
+                frames.push(PacketContext { raw: epb.data.to_vec() });
+            }
+        }
+    } else {
+        let mut reader = pcap_file::pcap::PcapReader::new(std::io::Cursor::new(bytes))
+            .map_err(|e| format!("Failed to create classic PCAP reader: {}", e))?;
+        while let Some(pkt_res) = reader.next_packet() {
+            let pkt = pkt_res.map_err(|e| format!("Failed to read classic PCAP packet: {}", e))?;
+            frames.push(PacketContext { raw: pkt.data.to_vec() });
         }
     }
     Ok(frames)

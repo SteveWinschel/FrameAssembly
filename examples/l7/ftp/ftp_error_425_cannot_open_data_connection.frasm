@@ -1,19 +1,20 @@
-// PROMPT: Active-mode FTP PORT transfer failing with code 425 Cannot open data connection due to firewall blocking.
-// TOKENS: host, ip, mac, flow, s, ftp, cmd, arg, code, reply, compile
+// Active-mode FTP PORT transfer failing with code 425 Cannot open data
+// connection due to firewall blocking.
+// Wireshark: ftp
 
-// INSTRUCTION: Define firewalled client issuing legacy active PORT command.
+// Firewalled client issuing legacy active PORT command.
 host firewalled_cli {
     ip 10.45.21.90
     mac 00:1c:23:2d:15:5a
 }
 
-// INSTRUCTION: Define FTP server unable to reach client active port back-channel.
+// FTP server unable to reach client active port back-channel.
 host strict_ftp_srv {
     ip 10.45.21.1
     mac 00:1c:23:2d:15:01
 }
 
-// INSTRUCTION: Accept PORT command but fail LIST with 425 Cannot open data connection.
+// Accept PORT command but fail LIST with 425 Cannot open data connection.
 flow ftp_err_425_firewall(c, s) {
     c -> s ftp cmd "PORT" arg "10,45,21,90,195,80"
     c <- s ftp code 200 reply "PORT command successful"
@@ -21,7 +22,6 @@ flow ftp_err_425_firewall(c, s) {
     c <- s ftp code 425 reply "Cannot open data connection"
 }
 
-// INSTRUCTION: Compile the FTP 425 blocked active data connection scenario.
 compile {
     ftp_err_425_firewall(firewalled_cli, strict_ftp_srv)
 }

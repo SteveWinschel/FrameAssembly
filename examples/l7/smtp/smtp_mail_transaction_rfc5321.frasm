@@ -1,13 +1,10 @@
-// PROMPT: Complete RFC 5321 SMTP email delivery transaction from sender to recipient.
-// TOKENS: host, ip, flow, s, smtp, mailfrom, param, code, reply, rcptto, body, quit, compile
+// Complete RFC 5321 SMTP email delivery transaction from sender to recipient.
+// Wireshark: smtp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.5 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow smtp_txn(c, s) {
     c -> s smtp mailfrom param "alice@corp.net"
     c <- s smtp code 250 reply "250 Sender OK"
@@ -18,7 +15,6 @@ flow smtp_txn(c, s) {
     c -> s smtp quit
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     smtp_txn(client, server)
 }

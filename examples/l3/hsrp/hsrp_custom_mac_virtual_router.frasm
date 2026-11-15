@@ -1,18 +1,19 @@
-// PROMPT: HSRP advertisement overriding Ethernet SRCMAC with the RFC 2281 virtual MAC 00:00:0c:07:ac:05.
-// TOKENS: host, ip, flow, hsrp, group, priority, state, vip, hellotime, holdtime, srcmac, dstmac, compile
+// HSRP advertisement overriding Ethernet SRCMAC with the RFC 2281 virtual MAC
+// 00:00:0c:07:ac:05.
+// This capture carries group 5, HSRP state 16.
+// Wireshark: hsrp
 
-// INSTRUCTION: Define HSRP active gateway for Group 5.
 host hsrp_vmac_gw { ip 10.55.5.2 }
 
-// INSTRUCTION: Define HSRP multicast peer listener.
 host hsrp_vmac_peer { ip 10.55.5.3 }
 
-// INSTRUCTION: Define HSRP Group 5 frame with RFC 2281 virtual source MAC 00:00:0c:07:ac:05.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow hsrp_virtual_mac_flow(gw, peer) {
     gw -> peer hsrp group 5 priority 120 state 16 vip 10.55.5.1 hellotime 3 holdtime 10 srcmac 00:00:0c:07:ac:05 dstmac 01:00:5e:00:00:02
 }
 
-// INSTRUCTION: Compile the RFC 2281 virtual MAC HSRP flow.
+// Run hsrp_virtual_mac_flow(hsrp_vmac_gw, hsrp_vmac_peer) to generate the
+// capture.
 compile {
     hsrp_virtual_mac_flow(hsrp_vmac_gw, hsrp_vmac_peer)
 }

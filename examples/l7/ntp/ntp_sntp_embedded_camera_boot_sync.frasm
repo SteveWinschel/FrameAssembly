@@ -1,25 +1,25 @@
-// PROMPT: Create a Simple Network Time Protocol (SNTP, RFC 4330) boot time query from an embedded IP camera.
-// TOKENS: host, ip, mac, flow, s, ntp, li, vn, mode, stratum, poll, precision, txtimestamp, wait, ms, refid, compile
+// Simple Network Time Protocol (SNTP, RFC 4330) boot time query from an
+// embedded IP camera.
+// Wireshark: ntp
 
-// INSTRUCTION: Define the NTP client or peer endpoint initiating time synchronization.
+// NTP client or peer endpoint initiating time synchronization.
 host ntp_client {
     ip 192.168.60.140
     mac 00:1b:21:7b:01:0a
 }
 
-// INSTRUCTION: Define the NTP reference server or peer endpoint.
+// NTP reference server or peer endpoint.
 host ntp_server {
     ip 192.168.60.1
     mac 00:1b:21:7b:01:01
 }
 
-// INSTRUCTION: Execute the RFC 5905 NTPv4 time synchronization packet exchange.
+// NTPv4 modes on UDP 123: 3 (Client), 4 (Server).
 flow ntp_scenario_flow(c, s) {
     c -> s ntp li 3 vn 4 mode 3 stratum 0 poll 10 precision -10 txtimestamp 0x0000000000000000 wait 5ms
     c <- s ntp li 0 vn 4 mode 4 stratum 2 poll 10 precision -20 refid "NIST" txtimestamp 0xe9b4cc0080000000
 }
 
-// INSTRUCTION: Compile the NTPv4 synchronization scenario into a PCAP trace.
 compile {
     ntp_scenario_flow(ntp_client, ntp_server)
 }

@@ -1,18 +1,18 @@
-// PROMPT: IPFIX telemetry flow targeted at custom UDP collector port 4739 with source port specification.
-// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, srcport, dstport, proto, packets, octets, compile
+// IPFIX telemetry flow targeted at custom UDP collector port 4739 with source
+// port specification.
+// Wireshark: cflow || udp.port == 4739 || udp.port == 8080
 
-// INSTRUCTION: Define campus aggregation router.
+// Campus aggregation router.
 host campus_agg { ip 172.18.0.1 }
 
-// INSTRUCTION: Define custom port telemetry server.
 host custom_collector { ip 172.18.0.250 }
 
-// INSTRUCTION: Define IPFIX export with port details.
+// IPFIX export with port details. Reports IP protocol 6 (TCP) flow records to
+// UDP 4739.
 flow custom_port_ipfix(agg, col) {
     agg -> col ipfix domainid 7701 srcip 10.10.1.1 dstip 10.20.1.1 srcport 8080 dstport 58200 proto 6 packets 64 octets 8192
 }
 
-// INSTRUCTION: Compile custom port IPFIX scenario.
 compile {
     custom_port_ipfix(campus_agg, custom_collector)
 }

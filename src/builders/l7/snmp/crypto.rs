@@ -7,6 +7,7 @@
 //! and RFC 3826 CFB128-AES-128 encryption using the 128-bit engine boots/time/salt IV.
 
 use aes::Aes128;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use cbc::cipher::{BlockModeEncrypt, KeyIvInit, block_padding};
 
@@ -83,64 +84,51 @@ pub fn password_to_key_sha512(password: &[u8], engine_id: &[u8]) -> Vec<u8> {
     password_to_key_generic::<Sha512>(password, engine_id)
 }
 
-/// Signs data using HMAC-MD5-96
-pub fn sign_md5(key: &[u8], data: &[u8]) -> Vec<u8> {
-    let mut mac = HmacMd5::new_from_slice(key).unwrap();
+/// Computes a truncated HMAC authentication tag with explicit non-empty key validation.
+fn sign_hmac_truncated<M: Mac + KeyInit>(
+    key: &[u8],
+    data: &[u8],
+    trunc_len: usize,
+    alg_name: &str,
+) -> Result<Vec<u8>, String> {
+    if key.is_empty() {
+        return Err(alloc::format!("{alg_name} authentication key cannot be empty"));
+    }
+    let mut mac = M::new_from_slice(key)
+        .map_err(|_| alloc::format!("Invalid {alg_name} authentication key length: {}", key.len()))?;
     mac.update(data);
-    mac.finalize()
+    Ok(mac
+        .finalize()
         .into_bytes()
         .iter()
-        .take(12)
+        .take(trunc_len)
         .copied()
-        .collect()
+        .collect())
 }
 
-/// Signs data using HMAC-SHA-96
-pub fn sign_sha1(key: &[u8], data: &[u8]) -> Vec<u8> {
-    let mut mac = HmacSha1::new_from_slice(key).unwrap();
-    mac.update(data);
-    mac.finalize()
-        .into_bytes()
-        .iter()
-        .take(12)
-        .copied()
-        .collect()
+/// Signs data using HMAC-MD5-96 (RFC 3414).
+pub fn sign_md5(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
+    sign_hmac_truncated::<HmacMd5>(key, data, 12, "HMAC-MD5")
 }
 
-/// Signs data using HMAC-SHA-256 (192 bits)
-pub fn sign_sha256(key: &[u8], data: &[u8]) -> Vec<u8> {
-    let mut mac = HmacSha256::new_from_slice(key).unwrap();
-    mac.update(data);
-    mac.finalize()
-        .into_bytes()
-        .iter()
-        .take(24)
-        .copied()
-        .collect()
+/// Signs data using HMAC-SHA-96 (RFC 3414).
+pub fn sign_sha1(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
+    sign_hmac_truncated::<HmacSha1>(key, data, 12, "HMAC-SHA-1")
 }
 
-/// Signs data using HMAC-SHA-384 (256 bits)
-pub fn sign_sha384(key: &[u8], data: &[u8]) -> Vec<u8> {
-    let mut mac = HmacSha384::new_from_slice(key).unwrap();
-    mac.update(data);
-    mac.finalize()
-        .into_bytes()
-        .iter()
-        .take(32)
-        .copied()
-        .collect()
+/// Signs data using HMAC-SHA-256-192 (RFC 7860).
+pub fn sign_sha256(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
+    sign_hmac_truncated::<HmacSha256>(key, data, 24, "HMAC-SHA-256")
 }
 
-/// Signs data using HMAC-SHA-512 (384 bits)
-pub fn sign_sha512(key: &[u8], data: &[u8]) -> Vec<u8> {
-    let mut mac = HmacSha512::new_from_slice(key).unwrap();
-    mac.update(data);
-    mac.finalize()
-        .into_bytes()
-        .iter()
-        .take(48)
-        .copied()
-        .collect()
+/// Signs data using HMAC-SHA-384-256 (RFC 7860).
+pub fn sign_sha384(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
+    sign_hmac_truncated::<HmacSha384>(key, data, 32, "HMAC-SHA-384")
+}
+
+/// Signs data using HMAC-SHA-512-384 (RFC 7860).
+pub fn sign_sha512(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
+    sign_hmac_truncated::<HmacSha512>(key, data, 48, "HMAC-SHA-512")
 }
 
 /// Encrypts data using DES-CBC according to RFC 3414 Section 8.1.1.2.
@@ -148,8 +136,14 @@ pub fn sign_sha512(key: &[u8], data: &[u8]) -> Vec<u8> {
 /// Plaintext `data` is padded with zeros at the end only if its length is
 /// not an integral multiple of 8 octets. If `data.len()` is already an
 /// integral multiple of 8, no padding is added.
-pub fn encrypt_des(key: &[u8], iv: &[u8], data: &[u8]) -> Vec<u8> {
-    let encryptor = DesCbcEnc::new_from_slices(key, iv).unwrap();
+pub fn encrypt_des(key: &[u8], iv: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
+    let encryptor = DesCbcEnc::new_from_slices(key, iv).map_err(|_| {
+        alloc::format!(
+            "Invalid DES-CBC key/IV length (expected 8-byte key and 8-byte IV, got {} and {})",
+            key.len(),
+            iv.len()
+        )
+    })?;
     let pad_len = if data.len().is_multiple_of(8) {
         0
     } else {
@@ -159,14 +153,20 @@ pub fn encrypt_des(key: &[u8], iv: &[u8], data: &[u8]) -> Vec<u8> {
     buf[..data.len()].copy_from_slice(data);
     let res = encryptor
         .encrypt_padded::<block_padding::ZeroPadding>(&mut buf, data.len())
-        .unwrap();
-    res.to_vec()
+        .map_err(|_| "DES-CBC padding buffer error".to_string())?;
+    Ok(res.to_vec())
 }
 
-/// Encrypts data using AES-128-CFB
-pub fn encrypt_aes128(key: &[u8], iv: &[u8], data: &[u8]) -> Vec<u8> {
-    let encryptor = Aes128CfbEnc::new_from_slices(key, iv).unwrap();
+/// Encrypts data using AES-128-CFB according to RFC 3826.
+pub fn encrypt_aes128(key: &[u8], iv: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
+    let encryptor = Aes128CfbEnc::new_from_slices(key, iv).map_err(|_| {
+        alloc::format!(
+            "Invalid AES-128-CFB key/IV length (expected 16-byte key and 16-byte IV, got {} and {})",
+            key.len(),
+            iv.len()
+        )
+    })?;
     let mut out = data.to_vec();
     encryptor.encrypt(&mut out);
-    out
+    Ok(out)
 }

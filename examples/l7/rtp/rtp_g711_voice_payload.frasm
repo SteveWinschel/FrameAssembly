@@ -1,18 +1,15 @@
-// PROMPT: RTP audio media packet with G.711 PCMU payload type (PT 0) and SSRC.
-// TOKENS: host, ip, flow, s, rtp, pt, ssrc, timestamp, compile
+// RTP audio media packet with G.711 PCMU payload type (PT 0) and SSRC.
+// RTP media on UDP 5004 carrying PT 0 (G.711 PCMU).
+// Wireshark: rtp || udp.port == 5004
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.20 }
 
-// INSTRUCTION: Define application traffic flow.
 flow rtp_voice(c, s) {
     c -> s rtp pt 0 ssrc 0x12345678 timestamp 160
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     rtp_voice(client, server)
 }

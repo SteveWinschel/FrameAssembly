@@ -8,6 +8,7 @@
 
 use alloc::format;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
@@ -37,7 +38,11 @@ pub(crate) fn dissect_s7comm(
         10usize
     };
 
-    if payload.len() != 7 + hdr_len + param_len + data_len
+    let expected_len = 7usize
+        .checked_add(hdr_len)?
+        .checked_add(param_len)?
+        .checked_add(data_len)?;
+    if payload.len() != expected_len
         || ((rosctr == 2 || rosctr == 3) && &payload[17..19] != b"\x00\x00")
     {
         return None;
@@ -57,20 +62,53 @@ pub(crate) fn dissect_s7comm(
         tokens.push_str(&format!(" pduref {pdu_ref}"));
     }
 
+    let residual: Vec<u8>;
     if param == [0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x01, 0xE0] {
         tokens.push_str(" setupcomm");
+        residual = data.to_vec();
     } else if param == [0x28, 0x00] {
         tokens.push_str(" plccontrol");
-    } else if param.len() == 14
+        residual = data.to_vec();
+    } else if rosctr == 3 && param == [0x04, 0x01] {
+        if data.len() < 5
+            || data[0] != 0xFF
+            || !matches!(data[1], 0x03 | 0x04 | 0x05 | 0x07 | 0x09)
+        {
+            return None;
+        }
+        tokens.push_str(" readvar");
+        let byte_len = data.len() - 4;
+        if data[1] == 0x04
+            && (1..=4096).contains(&byte_len)
+            && u16::from_be_bytes([data[2], data[3]]) as usize == byte_len * 8
+            && data[4..].iter().all(|&b| b == 0)
+        {
+            if byte_len != 1 {
+                tokens.push_str(&format!(" count {byte_len}"));
+            }
+            residual = Vec::new();
+        } else {
+            residual = data.to_vec();
+        }
+    } else if rosctr == 3 && param == [0x05, 0x01] {
+        if data.is_empty() {
+            return None;
+        }
+        tokens.push_str(" writevar");
+        residual = if data == [0xFF] {
+            Vec::new()
+        } else {
+            data.to_vec()
+        };
+    } else if rosctr != 3
+        && param.len() == 14
         && matches!(param[0], 0x04 | 0x05)
         && &param[1..6] == b"\x01\x12\x0A\x10\x02"
     {
-        if param[0] == 0x04 {
-            tokens.push_str(" readvar");
-        } else {
-            tokens.push_str(" writevar");
-        }
         let count = u16::from_be_bytes([param[6], param[7]]);
+        if count == 0 {
+            return None;
+        }
         let db_num = u16::from_be_bytes([param[8], param[9]]);
         let area = param[10];
         let bit_off = ((param[11] as u32) << 16) | ((param[12] as u32) << 8) | (param[13] as u32);
@@ -78,6 +116,25 @@ pub(crate) fn dissect_s7comm(
             return None;
         }
         let offset = bit_off >> 3;
+        if param[0] == 0x04 {
+            tokens.push_str(" readvar");
+            residual = data.to_vec();
+        } else {
+            if data.len() < 5
+                || data[0] != 0xFF
+                || data[1] != 0x04
+                || u16::from_be_bytes([data[2], data[3]]) as usize != (data.len() - 4) * 8
+            {
+                return None;
+            }
+            tokens.push_str(" writevar");
+            let raw_val = &data[4..];
+            if raw_val.len() == usize::from(count).min(4096) && raw_val.iter().all(|&b| b == 0) {
+                residual = Vec::new();
+            } else {
+                residual = raw_val.to_vec();
+            }
+        }
         if area != 0x84 {
             tokens.push_str(&format!(" area 0x{area:02x}"));
         }
@@ -97,7 +154,7 @@ pub(crate) fn dissect_s7comm(
     Some(ProtocolDissection {
         protocol: Protocol::S7comm,
         tokens,
-        residual_payload: data.to_vec(),
+        residual_payload: residual,
         explicit_transport: None,
     })
 }

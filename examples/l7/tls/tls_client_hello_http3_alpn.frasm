@@ -1,20 +1,20 @@
-// PROMPT: Client hello offering ALPN h3 next-generation transport negotiation.
-// TOKENS: host, ip, flow, s, tls, clienthello, sni, alpn, compile
+// Client hello offering ALPN h3 next-generation transport negotiation.
+// TLS extensions: SNI cdn.fast-delivery.net; ALPN h3.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (TLS (RFC
+// 8446 / 5246), TCP 443).
+// Wireshark: tls
 
-// INSTRUCTION: Define mobile application endpoint.
 host mobile_app { ip 192.168.10.99 }
 
-// INSTRUCTION: Define edge CDN POP server.
 host cdn_edge { ip 192.168.10.1 }
 
-// INSTRUCTION: Define ClientHello with h3 ALPN flow.
 flow tls_alpn_h3_flow(c, s) {
     c -> s tls clienthello
         sni "cdn.fast-delivery.net"
         alpn "h3"
 }
 
-// INSTRUCTION: Compile block executing h3 ALPN advertisement.
 compile {
     tls_alpn_h3_flow(mobile_app, cdn_edge)
 }

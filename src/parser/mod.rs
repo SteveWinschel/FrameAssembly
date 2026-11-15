@@ -78,12 +78,6 @@ pub(crate) fn parse_raw_string_lit<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResul
     }
 }
 
-/// Helper to parse a string literal and decode its escape sequences.
-pub(crate) fn parse_string_lit<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<String> {
-    let raw = parse_raw_string_lit(input)?;
-    unescape_string(raw).map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))
-}
-
 /// Parses a raw hex payload string into bytes.
 pub(crate) fn parse_hex_payload<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Vec<u8>> {
     let raw = parse_raw_string_lit(input)?;
@@ -91,12 +85,14 @@ pub(crate) fn parse_hex_payload<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<V
         .chars()
         .filter(|c| !c.is_whitespace() && *c != ':')
         .collect();
-    if !clean.len().is_multiple_of(2) {
+    if !clean.is_ascii() || !clean.len().is_multiple_of(2) {
         return Err(winnow::error::ErrMode::Cut(ContextError::new()));
     }
     let mut bytes = Vec::with_capacity(clean.len() / 2);
-    for i in (0..clean.len()).step_by(2) {
-        let b = u8::from_str_radix(&clean[i..i + 2], 16)
+    for pair in clean.as_bytes().as_chunks::<2>().0 {
+        let pair_str = core::str::from_utf8(pair)
+            .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?;
+        let b = u8::from_str_radix(pair_str, 16)
             .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?;
         bytes.push(b);
     }
@@ -350,9 +346,9 @@ pub(crate) fn parse_template_invocation<'i, 'a>(
     let _ = tag(Token::LParen).parse_next(input)?;
 
     let args: Vec<Argument<'a>> =
-        separated(0.., parse_argument, tag(Token::Comma)).parse_next(input)?;
+        cut_err(separated(0.., parse_argument, tag(Token::Comma))).parse_next(input)?;
 
-    let (_, rparen_span) = tag(Token::RParen).parse_next(input)?;
+    let (_, rparen_span) = cut_err(tag(Token::RParen)).parse_next(input)?;
     Ok(TemplateInvocation {
         name: name_spanned.node,
         args,
@@ -648,7 +644,7 @@ fn diagnose_parse_error<'a>(
         if *tok == Token::RBrace && !has_ip_or_mac {
             return (
                 alloc::format!(
-                    "Syntax error: host '{}' must specify at least an 'IP <address>' or 'MAC <address>' field. Example: host {} {{ ip 10.0.0.1 }} or host {} {{ mac 00:11:22:33:44:55 }}",
+                    "Syntax error: host '{}' must specify at least an 'ip <address>' or 'mac <address>' field. Example: host {} {{ ip 10.0.0.1 }} or host {} {{ mac 00:11:22:33:44:55 }}",
                     name,
                     name,
                     name
@@ -716,7 +712,7 @@ fn diagnose_parse_error<'a>(
         if let Some(kw) = crate::lexer::suggest_v2_lowercase_keyword(raw_slice) {
             return (
                 alloc::format!(
-                    "Syntax error: unexpected '{}'. Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace '{}' with '{}'.",
+                    "Syntax error: unexpected '{}'. Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace '{}' with '{}'.",
                     raw_slice,
                     raw_slice,
                     kw
@@ -726,28 +722,142 @@ fn diagnose_parse_error<'a>(
         }
     }
 
-    // 6. Inside a compile block (e.g. bare flow name without arguments)
-    if enclosing == EnclosingBlock::Compile && err_idx >= 1 {
-        let prev = &tokens[err_idx - 1];
-        if *tok == Token::RBrace
-            && !matches!(prev.0, Token::LBrace | Token::RParen | Token::Compile)
-        {
+    // 6. Raw IP/MAC endpoints, missing `wait` units, and missing packet protocols in flows/compile
+    if matches!(enclosing, EnclosingBlock::Flow | EnclosingBlock::Compile) {
+        let in_endpoint_or_arg_pos = next_is_arrow
+            || (err_idx >= 1
+                && matches!(
+                    tokens[err_idx - 1].0,
+                    Token::RightArrow | Token::LeftArrow | Token::LParen | Token::Comma
+                ));
+        if matches!(tok, Token::IpAddress(_)) {
+            if in_endpoint_or_arg_pos && IpAddr::from_str(raw_slice).is_ok() {
+                return (
+                    alloc::format!(
+                        "Syntax error: unexpected IP address '{}' where a host or parameter name is expected. Declare a host block first (for example: 'host h1 {{ ip {} }}') and reference 'h1' here",
+                        raw_slice,
+                        raw_slice
+                    ),
+                    span,
+                );
+            }
+            if IpAddr::from_str(raw_slice).is_err() {
+                return (
+                    alloc::format!(
+                        "Syntax error: invalid IP address '{}'. Expected a valid IPv4 (e.g. 10.0.0.1) or IPv6 (e.g. 2001:db8::1) address",
+                        raw_slice
+                    ),
+                    span,
+                );
+            }
+        }
+        if matches!(tok, Token::MacAddress(_)) && in_endpoint_or_arg_pos {
             return (
                 alloc::format!(
-                    "Syntax error: flow call '{}' inside compile is missing its host arguments in parentheses — for example: {}(client, server)",
-                    prev.2,
-                    prev.2
+                    "Syntax error: unexpected MAC address '{}' where a host or parameter name is expected. Declare a host block first (for example: 'host h1 {{ mac {} }}') and reference 'h1' here",
+                    raw_slice,
+                    raw_slice
                 ),
-                (prev.1.start, prev.1.end - prev.1.start),
+                span,
+            );
+        }
+
+        // `wait <num>` missing or invalid time unit (`ns`, `us`, `ms`, `s`, `m`)
+        if err_idx >= 2
+            && tokens[err_idx - 2].0 == Token::Wait
+            && matches!(tokens[err_idx - 1].0, Token::Number(_))
+        {
+            let num_tok = &tokens[err_idx - 1];
+            if matches!(tok, Token::Ident(_)) {
+                return (
+                    alloc::format!(
+                        "Syntax error: invalid time unit '{}' after 'wait {}'. Valid units are 'ns', 'us', 'ms', 's', or 'm' (for example: 'wait {}ms')",
+                        raw_slice,
+                        num_tok.2,
+                        num_tok.2
+                    ),
+                    span,
+                );
+            }
+            return (
+                alloc::format!(
+                    "Syntax error: missing time unit after 'wait {}'. Append 'ns', 'us', 'ms', 's', or 'm' directly after the number (for example: 'wait {}ms')",
+                    num_tok.2,
+                    num_tok.2
+                ),
+                (num_tok.1.start, num_tok.1.end - num_tok.1.start),
+            );
+        }
+        if err_idx >= 1 && tokens[err_idx - 1].0 == Token::Wait {
+            if matches!(tok, Token::Number(_)) && !raw_slice.starts_with('-') {
+                return (
+                    alloc::format!(
+                        "Syntax error: wait duration '{}' exceeds the maximum supported timestamp range. Specify a smaller duration with 'ns', 'us', 'ms', 's', or 'm' (for example: 'wait 500ms' or 'wait 60s')",
+                        raw_slice
+                    ),
+                    span,
+                );
+            }
+            if !matches!(tok, Token::Number(_)) {
+                return (
+                    "Syntax error: expected a non-negative integer and time unit after 'wait' (for example: 'wait 5ms', 'wait 100us', or 'wait 1s')".to_string(),
+                    span,
+                );
+            }
+        }
+
+        // Packet statement missing an explicit protocol keyword (`c -> s`, `c -> s payload "hi"`, etc.)
+        if next_is_arrow
+            && !matches!(
+                tok,
+                Token::IpAddress(_)
+                    | Token::MacAddress(_)
+                    | Token::Number(_)
+                    | Token::StringLit(_)
+                    | Token::OidStr(_)
+            )
+            && let (Some(arrow_tok), Some(callee_tok)) =
+                (tokens.get(err_idx + 1), tokens.get(err_idx + 2))
+        {
+            let head_span = (
+                span_range.start,
+                callee_tok.1.end.saturating_sub(span_range.start),
+            );
+            return (
+                alloc::format!(
+                    "Syntax error: packet statement '{} {} {}' is missing a protocol keyword. Specify a protocol after the endpoints (for example: '{} {} {} tcp syn', '{} {} {} udp dstport 53', or '{} {} {} icmp echorequest')",
+                    raw_slice,
+                    arrow_tok.2,
+                    callee_tok.2,
+                    raw_slice,
+                    arrow_tok.2,
+                    callee_tok.2,
+                    raw_slice,
+                    arrow_tok.2,
+                    callee_tok.2,
+                    raw_slice,
+                    arrow_tok.2,
+                    callee_tok.2
+                ),
+                head_span,
             );
         }
     }
 
     // 7. Common networking aliases and muscle-memory mistakes
+    if matches!(lower.as_str(), "port" | "ports") {
+        return (
+            alloc::format!(
+                "Syntax error: unexpected token '{}'. FrameAssembly uses 'dstport <port>' for destination port and 'srcport <port>' for source port (for example: dstport 80)",
+                raw_slice
+            ),
+            span,
+        );
+    }
     if matches!(lower.as_str(), "sport" | "source_port" | "sourceport") {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier (such as srcport, dstport, seq, acknum, win, or tcp flags). Did you mean 'srcport'?",
+                "Syntax error: unexpected token '{}'. Did you mean 'srcport'?",
                 raw_slice
             ),
             span,
@@ -759,7 +869,7 @@ fn diagnose_parse_error<'a>(
     ) {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier (such as srcport, dstport, seq, acknum, win, or tcp flags). Did you mean 'dstport'?",
+                "Syntax error: unexpected token '{}'. Did you mean 'dstport'?",
                 raw_slice
             ),
             span,
@@ -856,22 +966,130 @@ fn diagnose_parse_error<'a>(
             span,
         );
     }
-    if let Token::Number(num_str) = tok
-        && num_str.starts_with('-')
-    {
+    if let Token::Number(num_str) = tok {
         let prev_kw = if err_idx >= 1 {
             tokens[err_idx - 1].2
         } else {
             "field"
         };
-        return (
-            alloc::format!(
-                "Syntax error: invalid negative number '{}' after '{}'. Expected a non-negative integer",
-                raw_slice,
-                prev_kw
-            ),
-            span,
-        );
+        if num_str.starts_with('-') {
+            return (
+                alloc::format!(
+                    "Syntax error: invalid negative number '{}' after '{}'. Expected a non-negative integer",
+                    raw_slice,
+                    prev_kw
+                ),
+                span,
+            );
+        }
+        if err_idx >= 1 {
+            let prev_tok = &tokens[err_idx - 1].0;
+            let range_msg = match prev_tok {
+                Token::SrcPort | Token::DstPort => {
+                    Some(alloc::format!("port {raw_slice} out of range (0..=65535)"))
+                }
+                Token::Vlan => {
+                    Some(alloc::format!("VLAN ID {raw_slice} out of range (0..=4095)"))
+                }
+                Token::Qinq => Some(alloc::format!(
+                    "QinQ VLAN ID {raw_slice} out of range (0..=4095)"
+                )),
+                Token::InnerVlan => Some(alloc::format!(
+                    "QinQ innervlan ID {raw_slice} out of range (0..=4095)"
+                )),
+                Token::Pcp => Some(alloc::format!("PCP {raw_slice} out of range (0..=7)")),
+                Token::Dei => Some(alloc::format!("DEI {raw_slice} out of range (0..=1)")),
+                Token::Exp => Some(alloc::format!("MPLS exp {raw_slice} out of range (0..=7)")),
+                Token::Bos => Some(alloc::format!("MPLS bos {raw_slice} out of range (0..=1)")),
+                Token::Dscp => Some(alloc::format!("DSCP {raw_slice} out of range (0..=63)")),
+                Token::Ecn => Some(alloc::format!("ECN {raw_slice} out of range (0..=3)")),
+                Token::Ttl => Some(alloc::format!("TTL {raw_slice} out of range (0..=255)")),
+                Token::MplsTtl
+                | Token::Wscale
+                | Token::Flags
+                | Token::NextHeader
+                | Token::NextPayload
+                | Token::MaxResp
+                | Token::OptType
+                | Token::Diag
+                | Token::Mult
+                | Token::TableId
+                | Token::Vrid
+                | Token::State
+                | Token::ActorState
+                | Token::PartnerState
+                | Token::Version
+                | Token::EapCode
+                | Token::EapId
+                | Token::EapMethod
+                | Token::Group
+                | Token::Type => Some(alloc::format!(
+                    "{prev_kw} {raw_slice} out of range (0..=255)"
+                )),
+                Token::Win
+                | Token::Window
+                | Token::Urgent
+                | Token::Mss
+                | Token::IpId
+                | Token::FragOffset
+                | Token::EtherType
+                | Token::Stream
+                | Token::Ssn
+                | Token::MaxAge
+                | Token::HelloTime
+                | Token::ForwardDelay
+                | Token::ActorKey
+                | Token::ActorPort
+                | Token::PartnerKey
+                | Token::PartnerPort
+                | Token::RouterLifetime
+                | Token::MaxRespDelay
+                | Token::OptClass
+                | Token::ProtocolType
+                | Token::HelloInterval
+                | Token::HoldTime
+                | Token::AdvInt
+                | Token::Priority
+                | Token::Id
+                | Token::GreProto
+                | Token::Tag => Some(alloc::format!(
+                    "{prev_kw} {raw_slice} out of range (0..=65535)"
+                )),
+                Token::Ident(_)
+                | Token::RightArrow
+                | Token::LeftArrow
+                | Token::LBrace
+                | Token::RBrace
+                | Token::LParen
+                | Token::RParen
+                | Token::Comma
+                | Token::StringLit(_)
+                | Token::IpAddress(_)
+                | Token::MacAddress(_)
+                | Token::OidStr(_)
+                | Token::Number(_) => None,
+                _ => {
+                    let parsed_u64 = if let Some(h) = num_str
+                        .strip_prefix("0x")
+                        .or_else(|| num_str.strip_prefix("0X"))
+                    {
+                        u64::from_str_radix(h, 16).ok()
+                    } else {
+                        num_str.parse::<u64>().ok()
+                    };
+                    if parsed_u64.is_none() || parsed_u64 > Some(u64::from(u32::MAX)) {
+                        Some(alloc::format!(
+                            "{prev_kw} {raw_slice} out of range (exceeds maximum integer value)"
+                        ))
+                    } else {
+                        None
+                    }
+                }
+            };
+            if let Some(msg) = range_msg {
+                return (msg, span);
+            }
+        }
     }
 
     if let Some(suggestion) = suggest_canonical_keyword(raw_slice) {
@@ -885,9 +1103,43 @@ fn diagnose_parse_error<'a>(
         );
     }
 
+    // Bare flow call inside `compile { my_flow }` missing `(host1, host2)` arguments
+    if enclosing == EnclosingBlock::Compile {
+        if matches!(tok, Token::Ident(_))
+            && err_idx >= 1
+            && matches!(tokens[err_idx - 1].0, Token::LBrace | Token::RParen)
+            && !next_is_arrow
+            && tokens.get(err_idx + 1).is_none_or(|t| t.0 != Token::LParen)
+        {
+            return (
+                alloc::format!(
+                    "Syntax error: flow call '{}' inside compile is missing its host arguments in parentheses — for example: {}(client, server)",
+                    raw_slice,
+                    raw_slice
+                ),
+                span,
+            );
+        }
+        if *tok == Token::RBrace
+            && err_idx >= 2
+            && matches!(tokens[err_idx - 1].0, Token::Ident(_))
+            && matches!(tokens[err_idx - 2].0, Token::LBrace | Token::RParen)
+        {
+            let prev = &tokens[err_idx - 1];
+            return (
+                alloc::format!(
+                    "Syntax error: flow call '{}' inside compile is missing its host arguments in parentheses — for example: {}(client, server)",
+                    prev.2,
+                    prev.2
+                ),
+                (prev.1.start, prev.1.end - prev.1.start),
+            );
+        }
+    }
+
     (
         alloc::format!(
-            "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier (such as srcport, dstport, seq, acknum, win, or tcp flags)",
+            "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier",
             raw_slice
         ),
         span,

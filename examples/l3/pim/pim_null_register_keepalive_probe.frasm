@@ -1,25 +1,27 @@
-// PROMPT: RFC 7761 Section 4.4.2 PIM Null-Register probe sent by First-Hop DR prior to Register-Suppression Timer expiry.
-// TOKENS: host, ip, mac, flow, rp, pim, register, group, source, holdtime, dscp, df, ttl, payload, wait, ms, compile
+// RFC 7761 Section 4.4.2 PIM Null-Register probe sent by First-Hop DR prior
+// to Register-Suppression Timer expiry.
+// This capture sets DSCP 48, TTL 63, DF bit set, carries group 239.44.1.1,
+// and uses post-packet wait gaps (4ms) between frames.
+// Wireshark: pim
 
-// INSTRUCTION: Define First-Hop Designated Router probing RP liveness and SPT state.
 host fhr_null_reg_dr {
     ip 10.103.44.1
     mac 00:1e:49:67:44:01
 }
 
-// INSTRUCTION: Define core Rendezvous Point replying with Register-Stop to continue suppression.
 host core_rp_responder {
     ip 10.103.0.1
     mac 00:1e:49:67:00:01
 }
 
-// INSTRUCTION: Define PIM Null-Register (header-only inner IP) probe and RP response.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow pim_null_register_probe(dr, rp) {
     dr -> rp pim register group 239.44.1.1 source 10.44.1.100 rp 10.103.0.1 holdtime 105 dscp 48 df ttl 63 payload "PIM_NULL_REGISTER_BIT_SET_HEADER_ONLY" wait 4ms
     dr <- rp pim register group 239.44.1.1 source 10.44.1.100 rp 10.103.0.1 holdtime 105 dscp 48 df ttl 63 payload "PIM_REGISTER_STOP_CONTINUE_SUPPRESSION"
 }
 
-// INSTRUCTION: Compile the RFC 7761 PIM Null-Register probe flow.
+// Run pim_null_register_probe(fhr_null_reg_dr, core_rp_responder) to generate
+// the capture.
 compile {
     pim_null_register_probe(fhr_null_reg_dr, core_rp_responder)
 }

@@ -11,6 +11,7 @@
 //! 4-byte Frame Check Sequence (FCS) trailers are stripped using exact Layer 2 and Layer 3 header
 //! length fields (`IPv4`, `IPv6`, `ARP`, `EAPOL`, `LLDP`, and IEEE 802.3 LLC length).
 
+use alloc::borrow::Cow;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use pcap_file::DataLink;
@@ -50,14 +51,38 @@ pub(crate) struct NormalizedFrame {
     pub is_l3_only: bool,
 }
 
-/// Reads all frames from a `.pcap` or `.pcapng` capture stream and normalizes them to Ethernet II.
+/// Normalized container capture result pairing extracted frames with non-fatal container warnings.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CaptureReadResult {
+    /// Normalized Ethernet II frames extracted from the capture.
+    pub frames: Vec<NormalizedFrame>,
+    /// Non-fatal container warnings (e.g., skipped non-Ethernet interfaces or salvaged truncated EOF).
+    pub warnings: Vec<String>,
+}
+
+/// Returns `true` when `linktype` is one of the 8 link-layer encapsulations normalized by FrameAssembly.
+fn is_supported_linktype(linktype: DataLink) -> bool {
+    matches!(
+        linktype,
+        DataLink::ETHERNET
+            | DataLink::RAW
+            | DataLink::IPV4
+            | DataLink::IPV6
+            | DataLink::LINUX_SLL
+            | DataLink::LINUX_SLL2
+            | DataLink::NULL
+            | DataLink::LOOP
+    )
+}
+
+/// Reads all frames and non-fatal warnings from a `.pcap` or `.pcapng` capture stream and normalizes them to Ethernet II.
 ///
 /// # Errors
 /// Returns a descriptive error string if the stream is shorter than 4 bytes, does not start with
-/// a recognized PCAP or PCAPNG magic number, or contains corrupt container blocks.
-pub(crate) fn read_capture_frames<R: std::io::Read>(
+/// a recognized PCAP or PCAPNG magic number, or contains no supported/valid frames.
+pub(crate) fn read_capture_frames_with_warnings<R: std::io::Read>(
     mut reader: R,
-) -> Result<Vec<NormalizedFrame>, String> {
+) -> Result<CaptureReadResult, String> {
     let mut buf = Vec::new();
     reader
         .read_to_end(&mut buf)
@@ -84,6 +109,18 @@ pub(crate) fn read_capture_frames<R: std::io::Read>(
             magic[3]
         )),
     }
+}
+
+/// Reads all frames from a `.pcap` or `.pcapng` capture stream and normalizes them to Ethernet II.
+///
+/// # Errors
+/// Returns a descriptive error string if the stream is shorter than 4 bytes, does not start with
+/// a recognized PCAP or PCAPNG magic number, or contains corrupt container blocks.
+#[allow(dead_code)]
+pub(crate) fn read_capture_frames<R: std::io::Read>(
+    reader: R,
+) -> Result<Vec<NormalizedFrame>, String> {
+    read_capture_frames_with_warnings(reader).map(|r| r.frames)
 }
 
 /// Scales raw 64-bit PCAPNG timestamp ticks to nanoseconds using the interface's `IfTsResol` and `IfTsOffset`.
@@ -131,20 +168,138 @@ fn scale_pcapng_ts_to_ns(raw_ticks: u64, meta: InterfaceMeta) -> u64 {
     scaled_ns.saturating_add(meta.ts_offset_secs.saturating_mul(1_000_000_000))
 }
 
+/// Pre-sanitizes PCAPNG `InterfaceDescriptionBlock` options so `pcap-file`'s `PcapNgReader` does not
+/// reject standard 4-byte `if_tzone` (`opt_code == 10`) options where `pcap-file` expects 1 byte.
+fn sanitize_pcapng_idb_options(buf: &[u8]) -> Cow<'_, [u8]> {
+    let mut pos = 0usize;
+    let mut is_be = false;
+    let mut owned: Option<Vec<u8>> = None;
+
+    while let Some(hdr) = buf.get(pos..pos.saturating_add(12)) {
+        if hdr.len() < 12 {
+            break;
+        }
+        let shb_candidate = [hdr[0], hdr[1], hdr[2], hdr[3]] == [0x0A, 0x0D, 0x0D, 0x0A];
+        if shb_candidate {
+            let bom = [hdr[8], hdr[9], hdr[10], hdr[11]];
+            if bom == [0x1A, 0x2B, 0x3C, 0x4D] {
+                is_be = true;
+            } else if bom == [0x4D, 0x3C, 0x2B, 0x1A] {
+                is_be = false;
+            }
+        }
+        let read_u32 = |s: &[u8], o: usize, be: bool| -> u32 {
+            let arr = [s[o], s[o + 1], s[o + 2], s[o + 3]];
+            if be {
+                u32::from_be_bytes(arr)
+            } else {
+                u32::from_le_bytes(arr)
+            }
+        };
+        let read_u16 = |s: &[u8], o: usize, be: bool| -> u16 {
+            let arr = [s[o], s[o + 1]];
+            if be {
+                u16::from_be_bytes(arr)
+            } else {
+                u16::from_le_bytes(arr)
+            }
+        };
+
+        let block_type = read_u32(buf, pos, is_be);
+        let total_len = read_u32(buf, pos + 4, is_be) as usize;
+        if total_len < 12 {
+            break;
+        }
+        let Some(block_end) = pos.checked_add(total_len) else {
+            break;
+        };
+        if block_end > buf.len() {
+            break;
+        }
+
+        // Interface Description Block (`0x00000001`): 8B header + 8B fixed body + options + 4B trailer
+        if block_type == 1 && total_len >= 20 {
+            let mut opt_pos = pos + 16;
+            let opts_end = block_end - 4;
+            while opt_pos.saturating_add(4) <= opts_end {
+                let opt_code = read_u16(buf, opt_pos, is_be);
+                let opt_len = read_u16(buf, opt_pos + 2, is_be) as usize;
+                if opt_code == 0 && opt_len == 0 {
+                    break;
+                }
+                if opt_code == 10 && opt_len != 1 {
+                    let vec = owned.get_or_insert_with(|| buf.to_vec());
+                    let repl = if is_be {
+                        0x7FFFu16.to_be_bytes()
+                    } else {
+                        0x7FFFu16.to_le_bytes()
+                    };
+                    vec[opt_pos..opt_pos + 2].copy_from_slice(&repl);
+                }
+                let padded = (opt_len + 3) & !3;
+                let Some(next_opt) = opt_pos.checked_add(4).and_then(|v| v.checked_add(padded))
+                else {
+                    break;
+                };
+                if next_opt > opts_end {
+                    break;
+                }
+                opt_pos = next_opt;
+            }
+        }
+
+        pos = block_end;
+    }
+
+    match owned {
+        Some(v) => Cow::Owned(v),
+        None => Cow::Borrowed(buf),
+    }
+}
+
 /// Parses a PCAPNG byte buffer across one or more Section Header Blocks and interfaces.
-fn read_pcapng_bytes(buf: &[u8]) -> Result<Vec<NormalizedFrame>, String> {
-    let mut ng_reader = PcapNgReader::new(std::io::Cursor::new(buf))
+fn read_pcapng_bytes(buf: &[u8]) -> Result<CaptureReadResult, String> {
+    let clean_buf = sanitize_pcapng_idb_options(buf);
+    let mut ng_reader = PcapNgReader::new(std::io::Cursor::new(clean_buf.as_ref()))
         .map_err(|e| alloc::format!("Failed to initialize PCAPNG reader: {}", e))?;
 
     let mut interfaces: Vec<InterfaceMeta> = Vec::new();
+    let mut skipped_per_iface: Vec<usize> = Vec::new();
     let mut frames: Vec<NormalizedFrame> = Vec::new();
+    let mut warnings: Vec<String> = Vec::new();
     let mut last_timestamp_ns: u64 = 1_700_000_000_000_000_000;
 
     while let Some(block_res) = ng_reader.next_block() {
-        let block = block_res.map_err(|e| alloc::format!("Failed to parse PCAPNG block: {}", e))?;
+        let block = match block_res {
+            Ok(b) => b,
+            Err(e) => {
+                if !frames.is_empty() {
+                    warnings.push(alloc::format!(
+                        "Capture ended with a truncated trailing PCAPNG block ({}); salvaged {} preceding packet(s)",
+                        e,
+                        frames.len()
+                    ));
+                    break;
+                }
+                return Err(alloc::format!("Failed to parse PCAPNG block: {}", e));
+            }
+        };
         match block {
             Block::SectionHeader(_) => {
+                for (idx, &count) in skipped_per_iface.iter().enumerate() {
+                    if count > 0
+                        && let Some(meta) = interfaces.get(idx)
+                    {
+                        warnings.push(alloc::format!(
+                            "Skipped {} packet(s) on unsupported PCAPNG interface #{} ({:?})",
+                            count,
+                            idx,
+                            meta.linktype
+                        ));
+                    }
+                }
                 interfaces.clear();
+                skipped_per_iface.clear();
             }
             Block::InterfaceDescription(idb) => {
                 let mut ts_resol = None;
@@ -163,15 +318,20 @@ fn read_pcapng_bytes(buf: &[u8]) -> Result<Vec<NormalizedFrame>, String> {
                     ts_resol,
                     ts_offset_secs,
                 });
+                skipped_per_iface.push(0);
             }
             Block::EnhancedPacket(epb) => {
-                let meta = interfaces
-                    .get(epb.interface_id as usize)
-                    .copied()
-                    .unwrap_or_default();
+                let iface_idx = epb.interface_id as usize;
+                let meta = interfaces.get(iface_idx).copied().unwrap_or_default();
                 let raw_ticks = epb.timestamp.as_nanos() as u64;
                 let ts_ns = scale_pcapng_ts_to_ns(raw_ticks, meta);
                 last_timestamp_ns = ts_ns;
+                if !is_supported_linktype(meta.linktype) {
+                    if let Some(slot) = skipped_per_iface.get_mut(iface_idx) {
+                        *slot += 1;
+                    }
+                    continue;
+                }
                 if let Some(frame) = normalize_frame(&epb.data, meta.linktype, ts_ns)? {
                     frames.push(frame);
                 }
@@ -179,17 +339,27 @@ fn read_pcapng_bytes(buf: &[u8]) -> Result<Vec<NormalizedFrame>, String> {
             Block::SimplePacket(spb) => {
                 let meta = interfaces.first().copied().unwrap_or_default();
                 let ts_ns = last_timestamp_ns;
+                if !is_supported_linktype(meta.linktype) {
+                    if let Some(slot) = skipped_per_iface.first_mut() {
+                        *slot += 1;
+                    }
+                    continue;
+                }
                 if let Some(frame) = normalize_frame(&spb.data, meta.linktype, ts_ns)? {
                     frames.push(frame);
                 }
             }
             Block::Packet(pb) => {
-                let meta = interfaces
-                    .get(pb.interface_id as usize)
-                    .copied()
-                    .unwrap_or_default();
+                let iface_idx = pb.interface_id as usize;
+                let meta = interfaces.get(iface_idx).copied().unwrap_or_default();
                 let ts_ns = scale_pcapng_ts_to_ns(pb.timestamp, meta);
                 last_timestamp_ns = ts_ns;
+                if !is_supported_linktype(meta.linktype) {
+                    if let Some(slot) = skipped_per_iface.get_mut(iface_idx) {
+                        *slot += 1;
+                    }
+                    continue;
+                }
                 if let Some(frame) = normalize_frame(&pb.data, meta.linktype, ts_ns)? {
                     frames.push(frame);
                 }
@@ -198,25 +368,112 @@ fn read_pcapng_bytes(buf: &[u8]) -> Result<Vec<NormalizedFrame>, String> {
         }
     }
 
-    Ok(frames)
+    if !interfaces.is_empty() && !interfaces.iter().any(|m| is_supported_linktype(m.linktype)) {
+        let first_lt = interfaces[0].linktype;
+        return Err(alloc::format!(
+            "Unsupported capture linktype {:?} (supported: ETHERNET, RAW, IPV4, IPV6, LINUX_SLL, LINUX_SLL2, NULL, LOOP)",
+            first_lt
+        ));
+    }
+
+    for (idx, &count) in skipped_per_iface.iter().enumerate() {
+        if count > 0
+            && let Some(meta) = interfaces.get(idx)
+        {
+            warnings.push(alloc::format!(
+                "Skipped {} packet(s) on unsupported PCAPNG interface #{} ({:?})",
+                count,
+                idx,
+                meta.linktype
+            ));
+        }
+    }
+
+    Ok(CaptureReadResult { frames, warnings })
+}
+
+/// Widens a classic `.pcap` global header `snaplen` (`bytes 16..20`) when packet records carry
+/// `orig_len > snaplen` (such as `tcpdump -s 96` captures rejected by `pcap-file`'s header check).
+fn widen_legacy_pcap_snaplen(buf: &[u8]) -> Cow<'_, [u8]> {
+    if buf.len() < 24 {
+        return Cow::Borrowed(buf);
+    }
+    let is_be = matches!(buf[0], 0xa1);
+    let read_u32 = |o: usize| -> u32 {
+        let arr = [buf[o], buf[o + 1], buf[o + 2], buf[o + 3]];
+        if is_be {
+            u32::from_be_bytes(arr)
+        } else {
+            u32::from_le_bytes(arr)
+        }
+    };
+    let hdr_snaplen = read_u32(16);
+    let mut max_needed = hdr_snaplen;
+    let mut pos = 24usize;
+    while pos.saturating_add(16) <= buf.len() {
+        let incl_len = read_u32(pos + 8);
+        let orig_len = read_u32(pos + 12);
+        max_needed = max_needed.max(incl_len).max(orig_len);
+        let Some(next_pos) = pos.checked_add(16).and_then(|v| v.checked_add(incl_len as usize))
+        else {
+            break;
+        };
+        if next_pos > buf.len() {
+            break;
+        }
+        pos = next_pos;
+    }
+    if max_needed > hdr_snaplen {
+        let mut copy = buf.to_vec();
+        let bytes = if is_be {
+            max_needed.to_be_bytes()
+        } else {
+            max_needed.to_le_bytes()
+        };
+        copy[16..20].copy_from_slice(&bytes);
+        Cow::Owned(copy)
+    } else {
+        Cow::Borrowed(buf)
+    }
 }
 
 /// Parses a legacy PCAP byte buffer (microsecond or nanosecond precision).
-fn read_legacy_pcap_bytes(buf: &[u8]) -> Result<Vec<NormalizedFrame>, String> {
-    let mut pcap_reader = PcapReader::new(std::io::Cursor::new(buf))
+fn read_legacy_pcap_bytes(buf: &[u8]) -> Result<CaptureReadResult, String> {
+    let clean_buf = widen_legacy_pcap_snaplen(buf);
+    let mut pcap_reader = PcapReader::new(std::io::Cursor::new(clean_buf.as_ref()))
         .map_err(|e| alloc::format!("Failed to initialize legacy PCAP reader: {}", e))?;
     let linktype = pcap_reader.header().datalink;
+    if !is_supported_linktype(linktype) {
+        return Err(alloc::format!(
+            "Unsupported capture linktype {:?} (supported: ETHERNET, RAW, IPV4, IPV6, LINUX_SLL, LINUX_SLL2, NULL, LOOP)",
+            linktype
+        ));
+    }
     let mut frames = Vec::new();
+    let mut warnings = Vec::new();
 
     while let Some(pkt_res) = pcap_reader.next_packet() {
-        let pkt = pkt_res.map_err(|e| alloc::format!("Failed to parse PCAP packet: {}", e))?;
+        let pkt = match pkt_res {
+            Ok(p) => p,
+            Err(e) => {
+                if !frames.is_empty() {
+                    warnings.push(alloc::format!(
+                        "Capture ended with a truncated trailing PCAP record ({}); salvaged {} preceding packet(s)",
+                        e,
+                        frames.len()
+                    ));
+                    break;
+                }
+                return Err(alloc::format!("Failed to parse PCAP packet: {}", e));
+            }
+        };
         let ts_ns = pkt.timestamp.as_nanos() as u64;
         if let Some(frame) = normalize_frame(&pkt.data, linktype, ts_ns)? {
             frames.push(frame);
         }
     }
 
-    Ok(frames)
+    Ok(CaptureReadResult { frames, warnings })
 }
 
 /// Normalizes a single raw frame from `linktype` into a 14-byte Ethernet II frame and strips padding.

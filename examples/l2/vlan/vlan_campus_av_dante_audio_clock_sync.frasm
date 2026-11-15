@@ -1,25 +1,24 @@
-// PROMPT: Campus auditorium Dante digital audio-over-IP VLAN 800 carrying high-priority clock sync (PCP 7) and audio media (PCP 5).
-// TOKENS: host, ip, mac, flow, vlan, pcp, dei, dscp, udp, srcport, dstport, payload, wait, ms, compile
+// Campus auditorium Dante digital audio-over-IP VLAN 800 carrying high-priority
+// clock sync (PCP 7) and audio media (PCP 5).
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 800; PCP 5,7; UDP; dstport 319,4321;
+// DSCP 46,56; waits 2ms.
+// Wireshark: vlan.id == 800 && vlan.priority == 5
 
-// INSTRUCTION: Define auditorium mixing console master clock and audio transmitter.
 host dante_mix_console {
     ip 172.22.80.10
     mac 00:1d:c1:50:00:0a
 }
 
-// INSTRUCTION: Define stagebox digital-to-analog amplifier receiver on VLAN 800.
 host dante_stage_amp {
     ip 172.22.80.20
     mac 00:1d:c1:50:00:14
 }
 
-// INSTRUCTION: Send PTP clock sync with PCP 7 DSCP 56 followed by 48kHz PCM audio stream with PCP 5 DSCP 46 on VLAN 800.
 flow vlan_dante_audio_qos(console, amp) {
     console -> amp vlan 800 pcp 7 dei 0 dscp 56 udp srcport 319 dstport 319 payload "dante_ptp_v1_sync_master_clock" wait 2ms
     console -> amp vlan 800 pcp 5 dei 0 dscp 46 udp srcport 4321 dstport 4321 payload "dante_pcm24_48khz_8ch_frame_01"
 }
 
-// INSTRUCTION: Compile the Dante audio-over-IP VLAN 800 dual-priority QoS flow.
 compile {
     vlan_dante_audio_qos(dante_mix_console, dante_stage_amp)
 }

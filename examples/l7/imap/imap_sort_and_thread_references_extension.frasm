@@ -1,19 +1,21 @@
-// PROMPT: Simulate RFC 5256 IMAP UID SORT and UID THREAD (REFERENCES) server-side conversation threading.
-// TOKENS: host, ip, mac, flow, s, imap, tag, cmd, arg, wait, ms, status, response, compile
+// RFC 5256 IMAP UID SORT and UID THREAD (REFERENCES) server-side conversation
+// threading.
+// Wireshark: imap
 
-// INSTRUCTION: Define the webmail application server requesting server-side message sorting.
+// Webmail application server requesting server-side message sorting.
 host webmail_app {
     ip 10.143.70.25
     mac 00:50:56:8f:46:19
 }
 
-// INSTRUCTION: Define the Dovecot backend indexing message threads.
+// Dovecot backend indexing message threads.
 host index_imap {
     ip 10.143.70.5
     mac 00:50:56:8f:46:05
 }
 
-// INSTRUCTION: Request server-side UID SORT by reverse arrival date and UID THREAD by REFERENCES.
+// Request server-side UID SORT by reverse arrival date and UID THREAD by
+// REFERENCES.
 flow imap_sort_thread(c, s) {
     c -> s imap tag "S01" cmd "UID SORT" arg "(REVERSE ARRIVAL) UTF-8 UNSEEN" wait 3ms
     c <- s imap tag "*" status "SORT" response "912 910 904 899" wait 1ms
@@ -23,7 +25,6 @@ flow imap_sort_thread(c, s) {
     c <- s imap tag "S02" status "OK" response "Thread completed"
 }
 
-// INSTRUCTION: Compile the IMAP server-side SORT and THREAD flow.
 compile {
     imap_sort_thread(webmail_app, index_imap)
 }

@@ -1,19 +1,19 @@
-// PROMPT: Pipeline SCADA S7comm telemetry transported over QinQ VLANs and MPLS pseudowire.
-// TOKENS: host, ip, flow, m, s7comm, rosctr, func, pduref, area, dbnum, offset, count, qinq, innervlan, mpls, exp, bos, mplsttl, compile
+// Pipeline SCADA S7comm telemetry transported over QinQ VLANs and MPLS
+// pseudowire.
+// Encapsulation and QoS markings: 802.1ad QinQ outer 1100 / inner 102, MPLS
+// label 10200, 10201.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting 0x84.
+// Wireshark: (s7comm && vlan) && mpls
 
-// INSTRUCTION: Define central pipeline control center master.
 host pipe_master { ip 10.202.0.10 }
 
-// INSTRUCTION: Define remote compressor station S7 PLC.
 host comp_plc { ip 10.202.8.1 }
 
-// INSTRUCTION: Define S7comm READ_VAR over QinQ and MPLS labels.
 flow s7comm_wan_mpls(m, plc) {
     m -> plc s7comm rosctr "job" func "readvar" pduref 88 area 0x84 dbnum 5 offset 12 count 4 qinq 1100 innervlan 102 mpls 10200 exp 5 bos 1 mplsttl 64
     m <- plc s7comm rosctr "ackdata" func "readvar" pduref 88 area 0x84 dbnum 5 offset 12 count 4 qinq 1100 innervlan 102 mpls 10201 exp 5 bos 1 mplsttl 63
 }
 
-// INSTRUCTION: Compile MPLS and QinQ S7comm pipeline flow.
 compile {
     s7comm_wan_mpls(pipe_master, comp_plc)
 }

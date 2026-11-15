@@ -11,6 +11,66 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Parses a `clockid` modifier into an 8-byte IEEE 1588 `ClockIdentity`.
+///
+/// Accepts `0x`-prefixed or 16-character hexadecimal strings (`0x001b19fffe123456`),
+/// colon/hyphen-delimited 8-octet hex (`00:1b:19:ff:fe:12:34:56`), or up to 8 ASCII bytes.
+fn parse_clock_id(clock_id: &str) -> [u8; 8] {
+    let mut out = [0u8; 8];
+    let trimmed = clock_id.trim();
+    let hex_cand = trimmed
+        .strip_prefix("0x")
+        .or_else(|| trimmed.strip_prefix("0X"));
+    if let Some(hex) = hex_cand {
+        if !hex.is_empty() && hex.len() <= 16 && hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+            let padded = format!("{hex:0>16}");
+            for (i, pair) in padded.as_bytes().as_chunks::<2>().0.iter().enumerate() {
+                if let Ok(s) = core::str::from_utf8(pair)
+                    && let Ok(v) = u8::from_str_radix(s, 16)
+                {
+                    out[i] = v;
+                }
+            }
+            return out;
+        }
+    } else if trimmed.len() == 16 && trimmed.bytes().all(|b| b.is_ascii_hexdigit()) {
+        for (i, pair) in trimmed.as_bytes().as_chunks::<2>().0.iter().enumerate() {
+            if let Ok(s) = core::str::from_utf8(pair)
+                && let Ok(v) = u8::from_str_radix(s, 16)
+            {
+                out[i] = v;
+            }
+        }
+        return out;
+    }
+
+    if trimmed.contains(':') || trimmed.contains('-') {
+        let sep = if trimmed.contains(':') { ':' } else { '-' };
+        let parts: Vec<&str> = trimmed.split(sep).collect();
+        if parts.len() == 8 && parts.iter().all(|p| !p.is_empty() && p.len() <= 2) {
+            let mut parsed_ok = true;
+            for (i, p) in parts.iter().enumerate() {
+                match u8::from_str_radix(p, 16) {
+                    Ok(b) => out[i] = b,
+                    Err(_) => {
+                        parsed_ok = false;
+                        break;
+                    }
+                }
+            }
+            if parsed_ok {
+                return out;
+            }
+            out = [0u8; 8];
+        }
+    }
+
+    let bytes = clock_id.as_bytes();
+    let len = bytes.len().min(8);
+    out[..len].copy_from_slice(&bytes[..len]);
+    out
+}
+
 /// Builds an IEEE 1588v2 PTP packet payload and returns payload and UDP port (319 or 320).
 /// Syntax mapping: `ptp [sync | delayreq | followup | delayresp | announce | msgtype <str>] [domain <u8>] [seqid <u16>] [clockid <str>]`
 #[doc(alias = "PTP")]
@@ -27,44 +87,59 @@ pub fn build_ptp_payload(
         .unwrap_or("sync")
         .to_ascii_uppercase()
         .replace(['_', '-'], "");
-    let (msg_type_code, dport, control_field) = match msg_type_norm.as_str() {
-        "SYNC" => (0x00u8, 319u16, 0x00u8),
-        "DELAYREQ" => (0x01u8, 319u16, 0x01u8),
-        "FOLLOWUP" => (0x08u8, 320u16, 0x02u8),
-        "DELAYRESP" => (0x09u8, 320u16, 0x03u8),
-        "ANNOUNCE" => (0x0Bu8, 320u16, 0x05u8),
-        _ => (0x00u8, 319u16, 0x00u8),
+    let (msg_type_code, dport, control_field, fixed_len) = match msg_type_norm.as_str() {
+        "SYNC" => (0x00u8, 319u16, 0x00u8, 44usize),
+        "DELAYREQ" => (0x01u8, 319u16, 0x01u8, 44usize),
+        "FOLLOWUP" => (0x08u8, 320u16, 0x02u8, 44usize),
+        "DELAYRESP" => (0x09u8, 320u16, 0x03u8, 54usize),
+        "ANNOUNCE" => (0x0Bu8, 320u16, 0x05u8, 64usize),
+        _ => (0x00u8, 319u16, 0x00u8, 44usize),
     };
 
-    let mut pkt = [0u8; 44];
-    let msg_len = (44 + payload_bytes.len()) as u16;
+    let clock_bytes = if let Some(clock_id) = spec.clock_id {
+        parse_clock_id(clock_id)
+    } else {
+        [
+            ctx.src_mac[0],
+            ctx.src_mac[1],
+            ctx.src_mac[2],
+            0xFF,
+            0xFE,
+            ctx.src_mac[3],
+            ctx.src_mac[4],
+            ctx.src_mac[5],
+        ]
+    };
+
+    let mut pkt = alloc::vec![0u8; fixed_len];
+    let msg_len = fixed_len
+        .saturating_add(payload_bytes.len())
+        .min(usize::from(u16::MAX)) as u16;
     pkt[0] = msg_type_code & 0x0F;
     pkt[1] = 0x02; // versionPTP 2.0
     pkt[2..4].copy_from_slice(&msg_len.to_be_bytes()); // messageLength
     pkt[4] = spec.domain.unwrap_or(0); // domainNumber
+    pkt[20..28].copy_from_slice(&clock_bytes);
+    pkt[28..30].copy_from_slice(&1u16.to_be_bytes()); // sourcePortIdentity portNumber 1
     pkt[30..32].copy_from_slice(&spec.seq_id.unwrap_or(1).to_be_bytes()); // sequenceId
     pkt[32] = control_field;
 
-    // Clock identity: EUI-64 derived from source MAC
-    if let Some(clock_id) = spec.clock_id {
-        let bytes = clock_id.as_bytes();
-        let len = bytes.len().min(8);
-        pkt[20..20 + len].copy_from_slice(&bytes[..len]);
-    } else {
-        pkt[20] = ctx.src_mac[0];
-        pkt[21] = ctx.src_mac[1];
-        pkt[22] = ctx.src_mac[2];
-        pkt[23] = 0xFF;
-        pkt[24] = 0xFE;
-        pkt[25] = ctx.src_mac[3];
-        pkt[26] = ctx.src_mac[4];
-        pkt[27] = ctx.src_mac[5];
+    // IEEE 1588-2008 §13.5 Announce message body fields (bytes 44..64)
+    if msg_type_code == 0x0B {
+        pkt[44..46].copy_from_slice(&37u16.to_be_bytes()); // currentUtcOffset (TAI-UTC = 37s)
+        pkt[46] = 0; // reserved
+        pkt[47] = 128; // grandmasterPriority1
+        pkt[48] = 248; // grandmasterClockClass (default class 248)
+        pkt[49] = 0xFE; // grandmasterClockAccuracy (unknown)
+        pkt[50..52].copy_from_slice(&0xFFFFu16.to_be_bytes()); // offsetScaledLogVariance
+        pkt[52] = 128; // grandmasterPriority2
+        pkt[53..61].copy_from_slice(&clock_bytes); // grandmasterIdentity
+        pkt[61..63].copy_from_slice(&0u16.to_be_bytes()); // stepsRemoved
+        pkt[63] = 0xA0; // timeSource (INTERNAL_OSCILLATOR)
     }
-    pkt[28..30].copy_from_slice(&1u16.to_be_bytes()); // sourcePortIdentity portNumber 1
 
-    let mut result = pkt.to_vec();
     if !payload_bytes.is_empty() {
-        result.extend_from_slice(payload_bytes);
+        pkt.extend_from_slice(payload_bytes);
     }
-    (result, dport)
+    (pkt, dport)
 }

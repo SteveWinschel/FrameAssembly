@@ -1,19 +1,21 @@
-// PROMPT: Bit-error rate diagnostic ICMP ping carrying a walking-ones binary HEXPAYLOAD pattern.
-// TOKENS: host, ip, flow, target, icmp, echorequest, id, seq, srcmac, dstmac, hexpayload, echoreply, compile
+// Bit-error rate diagnostic ICMP ping carrying a walking-ones binary
+// HEXPAYLOAD pattern.
+// This capture sends ICMP control and reachability probes with valid
+// checksums.
+// Wireshark: icmp
 
-// INSTRUCTION: Define hardware BERT tester node.
 host bert_tester { ip 192.168.99.10 }
 
-// INSTRUCTION: Define loopback diagnostic target node.
 host bert_target { ip 192.168.99.20 }
 
-// INSTRUCTION: Define ICMP Echo exchange with binary pattern HEXPAYLOAD and explicit MACs.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow icmp_hex_pattern_ping(tester, target) {
     tester -> target icmp echorequest id 5555 seq 10 srcmac 00:11:22:33:44:01 dstmac 00:11:22:33:44:02 hexpayload "0102040810204080aa55ff00deadbeef"
     tester <- target icmp echoreply id 5555 seq 10 srcmac 00:11:22:33:44:02 dstmac 00:11:22:33:44:01 hexpayload "0102040810204080aa55ff00deadbeef"
 }
 
-// INSTRUCTION: Compile the binary pattern HEXPAYLOAD ICMP flow.
+// Run icmp_hex_pattern_ping(bert_tester, bert_target) to generate the
+// capture.
 compile {
     icmp_hex_pattern_ping(bert_tester, bert_target)
 }

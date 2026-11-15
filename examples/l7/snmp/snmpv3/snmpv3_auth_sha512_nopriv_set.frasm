@@ -1,13 +1,15 @@
-// PROMPT: Simulate an RFC 7860 SNMPv3 authNoPriv SET request and RESPONSE authenticated with HMAC-SHA-512 (AUTH SHA512).
-// TOKENS: host, ip, mac, flow, router, snmp3, set, user, engineid, engineboots, enginetime, contextname, reqid, auth, sha512, varbind, string, int, wait, ms, response, compile
+// Simulate an RFC 7860 SNMPv3 authNoPriv SET request and RESPONSE
+// authenticated with HMAC-SHA-512 (auth SHA512).
+// SNMPv3 USM security uses auth sha512 with localized engineid keys.
+// Targets SNMPv3 MIB context(s): global.
+// MIB objects / traps: 1.3.6.1.2.1.1.5.0 (sysName.0).
+// Timing: pauses 10ms after each marked packet before sending the next frame.
+// Wireshark: snmp
 
-// INSTRUCTION: Define a network orchestrator host with IP 10.145.0.100.
 host v3_sha512_orchestrator { ip 10.145.0.100 mac 00:50:56:45:00:64 }
 
-// INSTRUCTION: Define a core router accepting SHA-512 signed SET operations with IP 10.145.0.1.
 host v3_sha512_router { ip 10.145.0.1 mac 00:50:56:45:00:01 }
 
-// INSTRUCTION: Define a flow sending an SNMPv3 SET signed with AUTH SHA512 and receiving the matching RESPONSE.
 flow snmpv3_sha512_set(orch, router) {
     orch -> router snmp3 set user "sha512_netadmin" engineid "800000090300005056450001" engineboots 9 enginetime 54000 contextname "global"
         reqid 9301 auth sha512 "sha512_master_auth_password"
@@ -21,7 +23,6 @@ flow snmpv3_sha512_set(orch, router) {
         wait 10ms
 }
 
-// INSTRUCTION: Compile block to run the SHA-512 authenticated SNMPv3 SET flow.
 compile {
     snmpv3_sha512_set(v3_sha512_orchestrator, v3_sha512_router)
 }

@@ -1,18 +1,14 @@
-// PROMPT: Default PostgreSQL wire protocol query frame with zero sub-keywords on TCP port 5432.
-// TOKENS: host, ip, mac, flow, s, postgres, compile
+// Minimal 2-block PostgreSQL v3.0 starter emitting automatic protocol
+// defaults directly from the compile block (zero flow wrapper).
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (PostgreSQL
+// v3.0, TCP 5432).
+// Wireshark: pgsql
 
-// INSTRUCTION: Define backend microservice host.
 host app_node { ip 10.30.1.15 mac 00:16:3e:30:01:0f }
 
-// INSTRUCTION: Define PostgreSQL primary database server.
 host pg_primary { ip 10.30.1.5 mac 00:16:3e:30:01:05 }
 
-// INSTRUCTION: Define flow sending default POSTGRES query frame.
-flow pg_default(c, s) {
-    c -> s postgres
-}
-
-// INSTRUCTION: Compile default PostgreSQL query scenario.
 compile {
-    pg_default(app_node, pg_primary)
+    app_node -> pg_primary postgres
 }

@@ -1,24 +1,23 @@
-// PROMPT: QUIC Initial handshake using string literal DCID, SCID, and address validation TOKEN fields.
-// TOKENS: host, ip, flow, s, quic, initial, version, dcid, scid, token, pktnum, wait, ms, handshake, compile
+// QUIC Initial handshake using string literal DCID, SCID, and address
+// validation TOKEN fields.
+// QUIC UDP 443 (v1) packet types: initial, handshake.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: quic
 
-// INSTRUCTION: Define browser client initiating QUIC connection with string CIDs.
 host str_cid_client {
     ip 192.168.90.40
 }
 
-// INSTRUCTION: Define edge server validating QUIC retry token.
 host str_cid_server {
     ip 192.168.90.1
 }
 
-// INSTRUCTION: Define QUIC Initial and Handshake packets using string DCID, SCID, and TOKEN values.
 flow quic_string_cids(c, s) {
     c -> s quic initial version 1 dcid "a1b2c3d4e5f60718" scid "1807f6e5d4c3b2a1" token "retry_tok_998877" pktnum 2 wait 5ms
     c <- s quic initial version 1 dcid "1807f6e5d4c3b2a1" scid "fedcba9876543210" pktnum 1 wait 5ms
     c <- s quic handshake version 1 dcid "1807f6e5d4c3b2a1" scid "fedcba9876543210" pktnum 2
 }
 
-// INSTRUCTION: Compile the string CID QUIC handshake scenario.
 compile {
     quic_string_cids(str_cid_client, str_cid_server)
 }

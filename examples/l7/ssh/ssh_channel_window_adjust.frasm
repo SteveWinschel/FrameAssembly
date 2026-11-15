@@ -1,19 +1,16 @@
-// PROMPT: Flow control window buffer adjustment packet with MSG_CODE 93.
-// TOKENS: host, ip, flow, s, ssh, msgcode, compile
+// Flow control window buffer adjustment packet with msgcode 93.
+// SSH RFC 4253 framing on TCP 22 (message codes: 93).
+// Wireshark: ssh
 
-// INSTRUCTION: Define streaming file receiver.
 host receiver_host { ip 10.120.3.5 }
 
-// INSTRUCTION: Define file transfer source server.
 host transfer_server { ip 10.120.3.1 }
 
-// INSTRUCTION: Define bidirectional window adjustment flow.
 flow ssh_window_adjust_flow(c, s) {
     c -> s ssh msgcode 93
     c <- s ssh msgcode 93
 }
 
-// INSTRUCTION: Compile block executing window adjustment.
 compile {
     ssh_window_adjust_flow(receiver_host, transfer_server)
 }

@@ -1,38 +1,37 @@
-// PROMPT: Build a dual-stack OpenFlow control plane managing both IPv4 and IPv6 SDN switches
-// TOKENS: host, ip, mac, flow, openflow, featuresreq, version, xid, wait, ms, featuresreply, dpid, flowmod, tableid, priority, compile
+// Build a dual-stack OpenFlow control plane managing both IPv4 and IPv6 SDN
+// switches.
+// This capture runs the same exchange over both IPv4 and IPv6 host pairs and
+// uses post-packet wait gaps (10ms) between frames.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define the IPv4 SDN controller interface
 host ctrl_v4 {
     ip 192.168.210.1
     mac 00:50:56:e3:10:01
 }
 
-// INSTRUCTION: Define the IPv4 OpenFlow switch interface
 host sw_v4 {
     ip 192.168.210.11
     mac 00:50:56:e3:10:11
 }
 
-// INSTRUCTION: Define the IPv6 SDN controller interface
 host ctrl_v6 {
     ip 2001:db8:210::1
     mac 00:50:56:e3:10:21
 }
 
-// INSTRUCTION: Define the IPv6 OpenFlow switch interface
 host sw_v6 {
     ip 2001:db8:210::11
     mac 00:50:56:e3:10:31
 }
 
-// INSTRUCTION: Query switch features and install a base table-miss flow rule
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow openflow_dual_stack_session(ctrl, sw) {
     ctrl -> sw openflow featuresreq version 4 xid 701 wait 10ms
     sw -> ctrl openflow featuresreply version 4 xid 701 dpid 987654321 wait 10ms
     ctrl -> sw openflow flowmod version 4 xid 702 tableid 0 priority 0
 }
 
-// INSTRUCTION: Compile the OpenFlow control exchange across IPv4 and IPv6 management planes
+// Run the flow across both the IPv4 and IPv6 host pairs.
 compile {
     openflow_dual_stack_session(ctrl_v4, sw_v4)
     openflow_dual_stack_session(ctrl_v6, sw_v6)

@@ -1,18 +1,20 @@
-// PROMPT: Network access control via IEEE 802.1X EAPOL start frame initiating authentication.
-// TOKENS: host, ip, flow, src, dst, eapol, type, start, compile
+// Network access control via IEEE 802.1X EAPOL start frame initiating
+// authentication.
+// Wire profile: 1 frame; 2 IPv4 hosts; EAPOL.
+// Verify packet timing and headers with `frameassembly show
+// eapol_start_handshake.frasm` or write `eapol_start_handshake.pcap` via
+// `frameassembly eapol_start_handshake.frasm` before replaying on a lab interface
+// or opening in Wireshark.
+// Wireshark: eapol
 
-// INSTRUCTION: Define network supplicant device.
 host access_supplicant { ip 192.168.100.1 }
 
-// INSTRUCTION: Define network authenticator switch.
 host access_authenticator { ip 192.168.100.2 }
 
-// INSTRUCTION: Define access authentication start flow.
 flow eapol_start_flow(src, dst) {
     src -> dst eapol type start
 }
 
-// INSTRUCTION: Compile block executing EAPOL-Start transmission.
 compile {
     eapol_start_flow(access_supplicant, access_authenticator)
 }

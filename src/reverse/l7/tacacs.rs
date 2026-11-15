@@ -26,6 +26,10 @@ pub(crate) fn dissect_tacacs(payload: &[u8]) -> Option<ProtocolDissection> {
         3 => "acct",
         _ => return None,
     };
+    let body_len = usize::try_from(be_u32(payload, 8)).ok()?;
+    if 12usize.checked_add(body_len) != Some(payload.len()) {
+        return None;
+    }
     let (seq, flags, session_id, body) =
         (payload[2], payload[3], be_u32(payload, 4), &payload[12..]);
 
@@ -42,7 +46,7 @@ pub(crate) fn dissect_tacacs(payload: &[u8]) -> Option<ProtocolDissection> {
     let (args_hdr_end, data_len) = if type_code == 1 {
         (8usize, cnt_or_dlen)
     } else {
-        let end = hdr_off + 8 + cnt_or_dlen;
+        let end = (hdr_off + 8).checked_add(cnt_or_dlen)?;
         let d_len: usize = body
             .get(hdr_off + 8..end)?
             .iter()
@@ -50,9 +54,13 @@ pub(crate) fn dissect_tacacs(payload: &[u8]) -> Option<ProtocolDissection> {
             .sum();
         (end, d_len)
     };
-    let d_start = args_hdr_end + u_len + p_len + r_len;
-    let total_fixed = d_start + data_len;
-    let user_str = is_printable_ascii_str(body.get(args_hdr_end..args_hdr_end + u_len)?)?;
+    let d_start = args_hdr_end
+        .checked_add(u_len)?
+        .checked_add(p_len)?
+        .checked_add(r_len)?;
+    let total_fixed = d_start.checked_add(data_len)?;
+    let user_end = args_hdr_end.checked_add(u_len)?;
+    let user_str = is_printable_ascii_str(body.get(args_hdr_end..user_end)?)?;
     let data_str = is_printable_ascii_str(body.get(d_start..total_fixed)?)?;
 
     let mut tokens = format!("tacacs {type_kw}");

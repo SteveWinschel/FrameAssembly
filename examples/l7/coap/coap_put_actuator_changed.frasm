@@ -1,19 +1,21 @@
-// PROMPT: CoAP Confirmable PUT actuator update and 2.04 Changed piggybacked ACK response.
-// TOKENS: host, ip, flow, coap, con, code, msgid, token, uripath, contentformat, payload, ack, compile
+// CoAP Confirmable PUT actuator update and 2.04 Changed piggybacked ACK
+// response.
+// Wireshark: coap
 
-// INSTRUCTION: Define smart home automation hub.
+// Smart home automation hub.
 host home_hub { ip 10.0.88.1 }
 
-// INSTRUCTION: Define CoAP smart valve actuator.
+// CoAP smart valve actuator.
 host smart_valve { ip 10.0.88.34 }
 
-// INSTRUCTION: Send CON PUT (0.03) with plain text payload and receive ACK 2.04 Changed.
+// Send CON PUT (0.03) with plain text payload and receive ACK 2.04 Changed.
+// CoAP over UDP 5683: codes 0.03 (PUT), 2.04 (Changed); content-format 0
+// (text/plain).
 flow coap_put_valve(hub, vlv) {
     hub -> vlv coap con code "0.03" msgid 501 token 0x0a0b uripath "actuator/valve" contentformat 0 payload "OPEN"
     hub <- vlv coap ack code "2.04" msgid 501 token 0x0a0b
 }
 
-// INSTRUCTION: Compile the CoAP PUT actuator exchange.
 compile {
     coap_put_valve(home_hub, smart_valve)
 }

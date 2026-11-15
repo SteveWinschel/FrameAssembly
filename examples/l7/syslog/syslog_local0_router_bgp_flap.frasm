@@ -1,19 +1,20 @@
-// PROMPT: Simulate a core router emitting BGP neighbor down and OSPF adjacency change logs using Local0 (Facility 16).
-// TOKENS: host, mac, ip, flow, syslog, facility, severity, hostname, app, procid, msg, dscp, compile
+// Simulate a core router emitting BGP neighbor down and OSPF adjacency change
+// logs using Local0 (Facility 16).
+// Encapsulation and QoS markings: DSCP 16.
+// RFC 5424 over UDP 514; facility 16 (local0) + severity 3 (err) yields PRI
+// <131>.
+// Wireshark: syslog
 
-// INSTRUCTION: Define host endpoint core_router.
 host core_router {
     mac 00:1b:21:51:40:16
     ip 10.255.0.1
 }
 
-// INSTRUCTION: Define host endpoint noc_syslog.
 host noc_syslog {
     mac 00:1b:21:51:40:99
     ip 10.255.0.100
 }
 
-// INSTRUCTION: Emit BGP-5-ADJCHANGE error (Severity 3) and OSPF-5-ADJCHG notice (Severity 5) with DSCP 16.
 flow syslog_router_bgp_ospf_events(core_router, noc_syslog) {
     core_router -> noc_syslog syslog facility 16 severity 3 hostname "core-rtr-01" app "bgpd" procid "812"
         msg "neighbor 198.51.100.1 Down Hold Timer Expired" dscp 16
@@ -21,7 +22,6 @@ flow syslog_router_bgp_ospf_events(core_router, noc_syslog) {
         msg "Process 1, Nbr 10.255.0.2 on TenGigE0/0/0 from LOADING to FULL" dscp 16
 }
 
-// INSTRUCTION: Compile the router BGP/OSPF Local0 syslog flow.
 compile {
     syslog_router_bgp_ospf_events(core_router, noc_syslog)
 }

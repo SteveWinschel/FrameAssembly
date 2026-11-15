@@ -1,13 +1,13 @@
-// PROMPT: Simulate an interactive SSH session on TCP port 22 exchanging banner strings and keystroke packets with PSH and ACK flags.
-// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, win, wait, ms, ack, psh, payload, s, compile
+// Simulate an interactive SSH session on TCP port 22 exchanging banner strings
+// and keystroke packets with PSH and ACK flags.
+// Wire profile: 7 frames; 2 IPv4 hosts; TCP; TCP flags SYN/ACK/PSH; dstport
+// 22,54321; waits 10ms, 5ms, 20ms, 1s.
+// Wireshark: (tcp.port == 22 || tcp.port == 54321)
 
-// INSTRUCTION: Define a bastion jump host with IP 172.16.10.5 and MAC aa:bb:cc:10:00:05.
 host bastion_client { ip 172.16.10.5 mac aa:bb:cc:10:00:05 }
 
-// INSTRUCTION: Define a production Linux server with IP 172.16.10.50 and MAC aa:bb:cc:10:00:50.
 host ssh_server { ip 172.16.10.50 mac aa:bb:cc:10:00:50 }
 
-// INSTRUCTION: Define a flow for an SSH handshake and interactive PSH-ACK banner and command exchange on port 22.
 flow ssh_interactive_session(client, server) {
     client -> server tcp syn srcport 54321 dstport 22 win 64240 wait 10ms
     client <- server tcp syn ack srcport 22 dstport 54321 win 65160 wait 10ms
@@ -15,10 +15,9 @@ flow ssh_interactive_session(client, server) {
     client <- server tcp psh ack srcport 22 dstport 54321 payload "SSH-2.0-OpenSSH_9.6" wait 20ms
     client -> server tcp psh ack srcport 54321 dstport 22 payload "SSH-2.0-OpenSSH_9.6p1" wait 20ms
     client -> server tcp psh ack srcport 54321 dstport 22 payload "ENC_KEY_INIT" wait 1s
-    client <- server tcp psh ack srcport 22 dstport 54321 payload "ENC_KEY_REPLY" wait 50ms
+    client <- server tcp psh ack srcport 22 dstport 54321 payload "ENC_KEY_REPLY"
 }
 
-// INSTRUCTION: Compile block to run the interactive SSH session flow.
 compile {
     ssh_interactive_session(bastion_client, ssh_server)
 }

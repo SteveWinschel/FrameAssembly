@@ -1,25 +1,28 @@
-// PROMPT: VMware NSX-T Host Transport Node (TEP) encapsulating overlay frames in RFC 8926 GENEVE with Option Class 0x0104 (260).
-// TOKENS: host, ip, mac, flow, geneve, vni, optclass, opttype, protocoltype, vlan, pcp, srcport, dstport, df, ttl, payload, wait, ms, compile
+// VMware NSX-T Host Transport Node (TEP) encapsulating overlay frames in RFC
+// 8926 GENEVE with Option Class 0x0104 (260).
+// This capture wraps frames in 802.1Q VLAN 160, sets TTL 64, DF bit set,
+// carries VNI 65540, destination port 6081, and uses post-packet wait gaps
+// (3ms) between frames.
+// Wireshark: geneve && geneve.vni == 65540 && vlan.id == 160
 
-// INSTRUCTION: Define ESXi Host Transport Node TEP-1 in Compute Cluster A.
 host nsx_esxi_tep1 {
     ip 172.16.60.11
     mac 00:50:56:60:81:0b
 }
 
-// INSTRUCTION: Define NSX Edge Transport Node TEP-2 providing Tier-0 North-South routing.
 host nsx_edge_tep2 {
     ip 172.16.60.22
     mac 00:50:56:60:81:16
 }
 
-// INSTRUCTION: Define NSX GENEVE overlay with VNI 65540, OPT_CLASS 260 (VMware), and VLAN 160 underlay.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow geneve_nsx_tep_flow(tep1, tep2) {
     tep1 -> tep2 geneve vni 65540 optclass 260 opttype 129 protocoltype 25944 vlan 160 pcp 4 srcport 55100 dstport 6081 df ttl 64 payload "NSX_T_LOGICAL_SWITCH_EAST_WEST" wait 3ms
     tep1 <- tep2 geneve vni 65540 optclass 260 opttype 129 protocoltype 25944 vlan 160 pcp 4 srcport 55101 dstport 6081 df ttl 64 payload "NSX_T_TIER1_DISTRIBUTED_ROUTER_REPLY"
 }
 
-// INSTRUCTION: Compile the VMware NSX-T GENEVE TEP overlay flow.
+// Run geneve_nsx_tep_flow(nsx_esxi_tep1, nsx_edge_tep2) to generate the
+// capture.
 compile {
     geneve_nsx_tep_flow(nsx_esxi_tep1, nsx_edge_tep2)
 }

@@ -1,25 +1,24 @@
-// PROMPT: SNMPv1 SetRequest updating MIB-II sysContact.0 and sysLocation.0 using write community private.
-// TOKENS: host, ip, mac, flow, m, snmp1, set, community, reqid, varbind, string, response, compile
+// SNMPv1 SetRequest updating MIB-II sysContact.0 and sysLocation.0 using
+// write community private.
+// MIB objects / traps: 1.3.6.1.2.1.1.4.0 (sysContact.0), 1.3.6.1.2.1.1.6.0
+// (sysLocation.0).
+// Wireshark: snmp
 
-// INSTRUCTION: Define the network configuration compliance server.
 host config_mgr {
     ip 10.145.20.15
     mac 00:1a:2b:91:20:15
 }
 
-// INSTRUCTION: Define the top-of-rack switch agent.
 host tor_switch {
     ip 10.145.20.1
     mac 00:1a:2b:91:20:01
 }
 
-// INSTRUCTION: Issue SNMP1 SET with community private to provision contact and rack location strings.
 flow snmpv1_set_system(m, a) {
     m -> a snmp1 set community "private" reqid 3001 varbind 1.3.6.1.2.1.1.4.0 string "netops@corp.example.com" varbind 1.3.6.1.2.1.1.6.0 string "DC1-HallB-Row04-Rack12"
     m <- a snmp1 response community "private" reqid 3001 varbind 1.3.6.1.2.1.1.4.0 string "netops@corp.example.com" varbind 1.3.6.1.2.1.1.6.0 string "DC1-HallB-Row04-Rack12"
 }
 
-// INSTRUCTION: Compile the SNMPv1 SetRequest system provisioning flow.
 compile {
     snmpv1_set_system(config_mgr, tor_switch)
 }

@@ -1,23 +1,23 @@
-// PROMPT: SCReAM / RMCAT congestion-controlled interactive video RTP stream with ECN markings.
-// TOKENS: host, ip, flow, rtp, pt, seq, timestamp, ssrc, marker, dscp, ecn, payload, wait, ms, compile
+// SCReAM / RMCAT congestion-controlled interactive video RTP stream with ECN
+// markings.
+// Encapsulation and QoS markings: DSCP 34.
+// RTP media on UDP 5004 carrying PT 96 (dynamic RTP payload (96)).
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: rtp || udp.port == 5004
 
-// INSTRUCTION: Define remote drone FPV video transmitter.
 host drone_tx {
     ip 10.72.9.20
 }
 
-// INSTRUCTION: Define ground control station video receiver.
 host ground_rx {
     ip 10.72.9.1
 }
 
-// INSTRUCTION: Define ECT(0) (ECN 2) and Congestion Experienced (ECN 3) RTP video packets.
 flow rtp_ecn_video(tx, rx) {
     tx -> rx rtp pt 96 seq 9000 timestamp 450000 ssrc 0xd804e001 marker 0 dscp 34 ecn 2 payload "FPV_SLICE_ECT0" wait 4ms
     tx -> rx rtp pt 96 seq 9001 timestamp 450000 ssrc 0xd804e001 marker 1 dscp 34 ecn 3 payload "FPV_SLICE_CE_MARKED"
 }
 
-// INSTRUCTION: Compile the ECN congestion-marked RTP video scenario.
 compile {
     rtp_ecn_video(drone_tx, ground_rx)
 }

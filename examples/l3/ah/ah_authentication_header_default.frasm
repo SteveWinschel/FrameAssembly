@@ -1,18 +1,17 @@
-// PROMPT: IPsec Authentication Header packet transmission with SPI and sequence number.
-// TOKENS: host, ip, flow, ah, spi, seq, compile
+// Single IPsec Authentication Header (AH, RFC 4302) packet over IP protocol 51
+// with SPI 6001 and sequence number 1 between two gateways. Useful for checking
+// firewall protocol-51 permit rules or IDS decoding without live IPsec keys.
+// Wireshark: ah && ah.spi == 6001
 
-// INSTRUCTION: Define IPsec security gateway 1.
-host ipsec_gw1 { ip 198.51.100.1 }
-
-// INSTRUCTION: Define IPsec security gateway 2.
-host ipsec_gw2 { ip 198.51.100.2 }
-
-// INSTRUCTION: Define AH security authentication flow.
-flow ah_vpn_flow(gw1, gw2) {
-    gw1 -> gw2 ah spi 6001 seq 1
+host ipsec_gw1 {
+    ip 198.51.100.1
 }
 
-// INSTRUCTION: Compile block executing AH authentication transmission.
+host ipsec_gw2 {
+    ip 198.51.100.2
+}
+
+// Send one AH frame directly using SPI 6001, sequence 1, and default ICV.
 compile {
-    ah_vpn_flow(ipsec_gw1, ipsec_gw2)
+    ipsec_gw1 -> ipsec_gw2 ah spi 6001 seq 1
 }

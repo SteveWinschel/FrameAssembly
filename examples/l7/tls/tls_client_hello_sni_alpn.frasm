@@ -1,18 +1,16 @@
-// PROMPT: TLS 1.3 Client Hello initiating cryptographic handshake with SNI and ALPN.
-// TOKENS: host, ip, flow, s, tls, clienthello, sni, alpn, ciphersuite, compile
+// TLS 1.3 Client Hello initiating cryptographic handshake with SNI and ALPN.
+// Cipher suite(s): 0x1301 (TLS_AES_128_GCM_SHA256).
+// TLS extensions: SNI secure.example.com; ALPN h2.
+// Wireshark: tls
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 93.184.216.34 }
 
-// INSTRUCTION: Define application traffic flow.
 flow tls_hello(c, s) {
     c -> s tls clienthello sni "secure.example.com" alpn "h2" ciphersuite 0x1301
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     tls_hello(client, server)
 }

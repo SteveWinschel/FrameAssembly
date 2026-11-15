@@ -17,11 +17,17 @@ pub(crate) fn dissect_igmp(b: &[u8]) -> ProtocolDissection {
     if b.len() < 8 {
         return sd(Protocol::Igmp, String::from("igmp"), b.to_vec());
     }
-    let (mt, mr, grp, mut t) = (b[0], b[1], ipv4_at(b, 4), String::from("igmp"));
+    let mt = b[0];
+    if mt == 0x22 && b.len() >= 16 {
+        let grp = ipv4_at(b, 12);
+        let mut t = String::from("igmp v3 report");
+        push_if(&mut t, "group", grp, Ipv4Addr::new(239, 1, 1, 1));
+        return sd(Protocol::Igmp, t, b[16..].to_vec());
+    }
+    let (mr, grp, mut t) = (b[1], ipv4_at(b, 4), String::from("igmp"));
     let (kw, dg) = match mt {
-        0x11 => (" query", [224, 0, 0, 1]),
+        0x11 => (" query", [0, 0, 0, 0]),
         0x12 => (" v1 report", [239, 1, 1, 1]),
-        0x22 => (" v3 report", [224, 0, 0, 22]),
         0x17 => (" leave", [224, 0, 0, 2]),
         _ => (" report", [239, 1, 1, 1]),
     };

@@ -1,19 +1,19 @@
-// PROMPT: IPv4 GENEVE underlay asserting Don't Fragment (DF) to verify jumbo frame path MTU.
-// TOKENS: host, ip, flow, geneve, vni, optclass, opttype, ipid, df, payload, compile
+// IPv4 GENEVE underlay asserting Don't Fragment (DF) to verify jumbo frame
+// path MTU.
+// This capture sets DF bit set and carries VNI 22000.
+// Wireshark: geneve && geneve.vni == 22000
 
-// INSTRUCTION: Define underlay leaf VTEP/NVE 1.
 host jumbo_nve_1 { ip 192.168.60.1 }
 
-// INSTRUCTION: Define underlay leaf VTEP/NVE 2.
 host jumbo_nve_2 { ip 192.168.60.2 }
 
-// INSTRUCTION: Define DF-marked GENEVE packets with explicit IPID values.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow geneve_df_mtu_check(n1, n2) {
     n1 -> n2 geneve vni 22000 optclass 258 opttype 1 ipid 3001 df payload "JUMBO_UNDERLAY_PROBE_REQ"
     n1 <- n2 geneve vni 22000 optclass 258 opttype 1 ipid 3002 df payload "JUMBO_UNDERLAY_PROBE_ACK"
 }
 
-// INSTRUCTION: Compile the DF-asserted GENEVE underlay MTU verification flow.
+// Run geneve_df_mtu_check(jumbo_nve_1, jumbo_nve_2) to generate the capture.
 compile {
     geneve_df_mtu_check(jumbo_nve_1, jumbo_nve_2)
 }

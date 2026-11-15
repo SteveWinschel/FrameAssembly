@@ -1,20 +1,19 @@
-// PROMPT: QUIC stateless address validation using RETRY packet and subsequent INITIAL with TOKEN.
-// TOKENS: host, ip, flow, s, quic, initial, dcid, scid, pktnum, wait, ms, retry, compile
+// QUIC stateless address validation using RETRY packet and subsequent INITIAL
+// with TOKEN.
+// QUIC UDP 443 packet types: initial, retry.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: quic
 
-// INSTRUCTION: Define roaming mobile QUIC client.
 host mobile_client { ip 10.45.0.88 }
 
-// INSTRUCTION: Define QUIC server enforcing address validation.
 host quic_gateway { ip 10.45.0.1 }
 
-// INSTRUCTION: Define Initial, Server Retry with Token, and Client Initial echoing Token.
 flow quic_retry_validation(c, s) {
     c -> s quic initial dcid 0x11223344 scid 0x55667788 pktnum 1 wait 5ms
     c <- s quic retry dcid 0x55667788 scid 0x99aabbcc pktnum 1 wait 5ms
     c -> s quic initial dcid 0x99aabbcc scid 0x55667788 pktnum 2
 }
 
-// INSTRUCTION: Compile QUIC Retry address validation flow.
 compile {
     quic_retry_validation(mobile_client, quic_gateway)
 }

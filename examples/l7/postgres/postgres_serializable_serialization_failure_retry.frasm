@@ -1,19 +1,18 @@
-// PROMPT: PostgreSQL SERIALIZABLE transaction encountering a 40001 serialization failure and retrying cleanly.
-// TOKENS: host, ip, mac, flow, s, postgres, sql, errorresponse, payload, wait, ms, commandcomplete, readyforquery, compile
+// PostgreSQL SERIALIZABLE transaction encountering a 40001 serialization
+// failure and retrying cleanly.
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: pgsql
 
-// INSTRUCTION: Define the treasury transfer service executing strict serializable transactions.
 host treasury_svc {
     ip 10.95.120.25
     mac 00:1a:2b:95:c0:25
 }
 
-// INSTRUCTION: Define the core ledger PostgreSQL database.
 host ledger_pg {
     ip 10.95.120.1
     mac 00:1a:2b:95:c0:01
 }
 
-// INSTRUCTION: Receive ERROR_RESPONSE on concurrent serializable conflict, rollback, and retry the transfer.
 flow pg_serializable_retry(c, s) {
     c -> s postgres sql "UPDATE balances SET amount = amount - 1000 WHERE acct_id = 77"
     c <- s postgres errorresponse payload "ERROR: could not serialize access due to read/write dependencies among transactions" wait 1ms
@@ -24,7 +23,6 @@ flow pg_serializable_retry(c, s) {
     c <- s postgres readyforquery
 }
 
-// INSTRUCTION: Compile the PostgreSQL serializable retry flow.
 compile {
     pg_serializable_retry(treasury_svc, ledger_pg)
 }

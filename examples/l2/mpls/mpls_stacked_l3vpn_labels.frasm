@@ -1,18 +1,15 @@
-// PROMPT: MPLS L3VPN provider edge transport with high-priority experimental class bits.
-// TOKENS: host, ip, flow, mpls, exp, bos, mplsttl, udp, payload, compile
+// MPLS L3VPN provider edge transport with high-priority experimental class bits.
+// Wire profile: 1 frame; 2 IPv4 hosts; MPLS label 10001; UDP.
+// Wireshark: mpls.label == 10001
 
-// INSTRUCTION: Define ingress provider edge router.
 host pe_ingress { ip 172.16.0.1 }
 
-// INSTRUCTION: Define core provider P router.
 host p_core { ip 172.16.0.2 }
 
-// INSTRUCTION: Define L3VPN transport flow asserting expedited forwarding class.
 flow mpls_l3vpn_flow(pe, p) {
     pe -> p mpls 10001 exp 5 bos 1 mplsttl 128 udp payload "l3vpn_inner_packet"
 }
 
-// INSTRUCTION: Compile block executing MPLS L3VPN forwarding.
 compile {
     mpls_l3vpn_flow(pe_ingress, p_core)
 }

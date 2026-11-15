@@ -1,19 +1,20 @@
-// PROMPT: Model an IMAP GETQUOTAROOT command checking mailbox storage consumption against a 10 GB enterprise limit.
-// TOKENS: host, ip, mac, flow, s, imap, tag, cmd, arg, wait, ms, status, response, compile
+// IMAP GETQUOTAROOT command checking mailbox storage consumption against a 10
+// GB enterprise limit.
+// Wireshark: imap
 
-// INSTRUCTION: Define the webmail backend checking user storage quota.
+// Webmail backend checking user storage quota.
 host roundcube_web {
     ip 10.143.12.30
     mac 00:50:56:8f:0c:1e
 }
 
-// INSTRUCTION: Define the Cyrus IMAP storage server.
 host cyrus_store {
     ip 10.143.12.5
     mac 00:50:56:8f:0c:05
 }
 
-// INSTRUCTION: Query GETQUOTAROOT for INBOX and receive current STORAGE usage in kilobytes.
+// Query GETQUOTAROOT for INBOX and receive current STORAGE usage in
+// kilobytes.
 flow imap_quota_check(c, s) {
     c -> s imap tag "Q101" cmd "GETQUOTAROOT" arg "INBOX" wait 2ms
     c <- s imap tag "*" status "QUOTAROOT" response "INBOX user/alice" wait 1ms
@@ -21,7 +22,6 @@ flow imap_quota_check(c, s) {
     c <- s imap tag "Q101" status "OK" response "Getquotaroot completed"
 }
 
-// INSTRUCTION: Compile the IMAP quota inspection flow.
 compile {
     imap_quota_check(roundcube_web, cyrus_store)
 }

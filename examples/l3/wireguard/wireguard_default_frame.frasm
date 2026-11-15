@@ -1,0 +1,20 @@
+// Minimal WireGuard Handshake Initiation starter packet (148-byte Noise_IK
+// message) sent over UDP port 51820 using built-in defaults. Ideal for
+// testing VPN UDP 51820 ACLs and WireGuard dissector recognition without
+// keys.
+// Wireshark: wg
+
+host endpoint_a {
+    ip 198.51.100.51
+    mac 02:00:51:82:00:01
+}
+
+host endpoint_b {
+    ip 203.0.113.51
+    mac 02:00:51:82:00:02
+}
+
+// Transmit one default WireGuard initiation packet directly inside compile.
+compile {
+    endpoint_a -> endpoint_b wireguard
+}

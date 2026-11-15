@@ -1,19 +1,20 @@
-// PROMPT: TLS server hello selecting AES-128-GCM cipher suite and handshake parameters.
-// TOKENS: host, ip, flow, s, tls, clienthello, sni, serverhello, compile
+// TLS server hello selecting AES-128-GCM cipher suite and handshake
+// parameters.
+// TLS extensions: SNI www.example.com.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (TLS (RFC
+// 8446 / 5246), TCP 443).
+// Wireshark: tls
 
-// INSTRUCTION: Define web browser client.
 host browser_host { ip 10.10.1.20 }
 
-// INSTRUCTION: Define secure web server.
 host web_server { ip 10.10.1.1 }
 
-// INSTRUCTION: Define ServerHello selection flow.
 flow tls_server_hello_flow(c, s) {
     c -> s tls clienthello sni "www.example.com"
     c <- s tls serverhello
 }
 
-// INSTRUCTION: Compile block executing ServerHello selection.
 compile {
     tls_server_hello_flow(browser_host, web_server)
 }

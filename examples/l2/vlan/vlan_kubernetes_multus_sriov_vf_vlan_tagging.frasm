@@ -1,26 +1,25 @@
-// PROMPT: Kubernetes Multus CNI SR-IOV Virtual Function hardware VLAN 1200 tagging for containerized CNF signaling.
-// TOKENS: host, ip, mac, flow, vlan, pcp, dei, udp, srcport, dstport, payload, wait, ms, compile
+// Kubernetes Multus CNI SR-IOV Virtual Function hardware VLAN 1200 tagging for
+// containerized CNF signaling.
+// Wire profile: 4 frames; 2 IPv4 hosts; VLAN 1200; PCP 6; UDP; dstport 9999;
+// waits 5ms.
+// Wireshark: vlan.id == 1200 && vlan.priority == 6
 
-// INSTRUCTION: Define containerized cloud-native network function (CNF) pod A with SR-IOV VF VLAN 1200.
 host cnf_sriov_pod_a {
     ip 10.120.12.11
     mac 0a:58:0a:78:0c:0b
 }
 
-// INSTRUCTION: Define peer CNF pod B on another worker node with hardware VF VLAN 1200.
 host cnf_sriov_pod_b {
     ip 10.120.12.12
     mac 0a:58:0a:78:0c:0c
 }
 
-// INSTRUCTION: Exchange hardware VLAN 1200 tagged heartbeat frames across the SR-IOV switch fabric in a loop.
 flow vlan_sriov_vf_heartbeat(pod_a, pod_b) {
     pod_a -> pod_b vlan 1200 pcp 6 dei 0 udp srcport 9999 dstport 9999 payload "multus_sriov_vf_keepalive" wait 5ms
     pod_a <- pod_b vlan 1200 pcp 6 dei 0 udp srcport 9999 dstport 9999 payload "multus_sriov_vf_keepalive_ack"
 }
 
-// INSTRUCTION: Compile 2 iterations of the Kubernetes SR-IOV VF VLAN 1200 heartbeat exchange.
 compile {
-    vlan_sriov_vf_heartbeat(cnf_sriov_pod_a, cnf_sriov_pod_b) // cycle 1
-    vlan_sriov_vf_heartbeat(cnf_sriov_pod_a, cnf_sriov_pod_b) // cycle 2
+    vlan_sriov_vf_heartbeat(cnf_sriov_pod_a, cnf_sriov_pod_b) // Iteration 1 of 2
+    vlan_sriov_vf_heartbeat(cnf_sriov_pod_a, cnf_sriov_pod_b) // Iteration 2 of 2
 }

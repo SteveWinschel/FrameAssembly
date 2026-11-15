@@ -1,13 +1,15 @@
-// PROMPT: Complete TCP 3-way handshake followed by POP3 UIDL and TOP message header preview.
-// TOKENS: host, ip, mac, flow, s, tcp, syn, dstport, ack, wait, ms, pop3, ok, cmd, arg, payload, compile
+// Complete TCP 3-way handshake followed by POP3 UIDL and TOP message header
+// preview.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Overrides destination port to 110.
+// Timing: uses post-packet wait delays (2ms, 5ms) between frames.
+// Wireshark: pop
 
-// INSTRUCTION: Define desktop email client.
 host mua_client { ip 172.16.12.55 mac 00:24:e8:12:00:37 }
 
-// INSTRUCTION: Define POP3 mailbox server.
 host pop_store { ip 172.16.12.10 mac 00:24:e8:12:00:0a }
 
-// INSTRUCTION: Define TCP handshake on port 110 and POP3 UIDL + TOP commands.
 flow pop3_uidl_top(c, s) {
     c -> s tcp syn dstport 110
     c <- s tcp syn ack
@@ -19,7 +21,6 @@ flow pop3_uidl_top(c, s) {
     c <- s pop3 ok payload "Subject: Invoice #402\r\nFrom: billing@corp.net\r\n.\r\n"
 }
 
-// INSTRUCTION: Compile TCP + POP3 UIDL and TOP flow.
 compile {
     pop3_uidl_top(mua_client, pop_store)
 }

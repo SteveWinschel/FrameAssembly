@@ -1,19 +1,16 @@
-// PROMPT: Periodic STUN binding refresh loop preserving firewall translation state.
-// TOKENS: host, ip, flow, s, stun, bindingrequest, bindingresponse, xormappedaddr, compile
+// Periodic STUN binding refresh loop preserving firewall translation state.
+// Executes 4 sequential flow runs inside the compile block.
+// Wireshark: stun
 
-// INSTRUCTION: Define mobile VoIP softphone.
 host softphone { ip 192.168.10.14 }
 
-// INSTRUCTION: Define public STUN keepalive node.
 host stun_keepalive { ip 203.0.113.1 }
 
-// INSTRUCTION: Define recurring NAT keepalive flow.
 flow stun_keepalive_flow(c, s) {
     c -> s stun bindingrequest
     c <- s stun bindingresponse xormappedaddr 203.0.113.89
 }
 
-// INSTRUCTION: Compile block executing 4 periodic refresh cycles.
 compile {
     stun_keepalive_flow(softphone, stun_keepalive) // cycle 1
     stun_keepalive_flow(softphone, stun_keepalive) // cycle 2

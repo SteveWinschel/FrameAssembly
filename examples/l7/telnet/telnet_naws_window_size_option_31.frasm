@@ -1,19 +1,21 @@
-// PROMPT: Model a Telnet Negotiate About Window Size (NAWS, Option 31, RFC 1073) negotiation between a terminal and router.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, telnet, do, will, payload, compile
+// Model a Telnet Negotiate About Window Size (NAWS, Option 31, RFC 1073)
+// negotiation between a terminal and router.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Telnet on TCP 23 negotiating option(s): 31 (NAWS).
+// Overrides destination port to 23.
+// Wireshark: telnet
 
-// INSTRUCTION: Define host endpoint admin_pc.
 host admin_pc {
     mac 00:1c:42:00:23:10
     ip 192.168.23.10
 }
 
-// INSTRUCTION: Define host endpoint managed_rtr.
 host managed_rtr {
     mac 00:1c:42:00:23:01
     ip 192.168.23.1
 }
 
-// INSTRUCTION: Negotiate NAWS Option 31 (DO 31 / WILL 31) and exchange terminal prompt data.
 flow telnet_naws_window_size_rfc1073(admin_pc, managed_rtr) {
     admin_pc -> managed_rtr tcp syn srcport 52023 dstport 23
     managed_rtr -> admin_pc tcp syn ack
@@ -24,7 +26,6 @@ flow telnet_naws_window_size_rfc1073(admin_pc, managed_rtr) {
     managed_rtr -> admin_pc telnet payload "Router# terminal width 132\r\nRouter# "
 }
 
-// INSTRUCTION: Compile the Telnet NAWS Option 31 flow.
 compile {
     telnet_naws_window_size_rfc1073(admin_pc, managed_rtr)
 }

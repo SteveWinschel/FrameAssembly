@@ -1,18 +1,19 @@
-// PROMPT: IGMPv2 membership report joining a specific multicast group with maximum response time.
-// TOKENS: host, ip, flow, router, igmp, report, group, maxresp, compile
+// IGMPv2 membership report joining a specific multicast group with maximum
+// response time.
+// This capture carries group 239.255.1.1.
+// Wireshark: igmp
 
-// INSTRUCTION: Define multicast subscriber client.
 host mcast_client { ip 10.0.10.15 }
 
-// INSTRUCTION: Define all-routers multicast group destination.
 host all_routers_group { ip 224.0.0.22 }
 
-// INSTRUCTION: Define IGMP report flow asserting membership in group 239.255.1.1.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow igmp_join_flow(client, router) {
     client -> router igmp report group 239.255.1.1 maxresp 100
 }
 
-// INSTRUCTION: Compile block executing IGMP group join report.
+// Run igmp_join_flow(mcast_client, all_routers_group) to generate the
+// capture.
 compile {
     igmp_join_flow(mcast_client, all_routers_group)
 }

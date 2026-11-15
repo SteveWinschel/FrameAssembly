@@ -1,19 +1,19 @@
-// PROMPT: BACnet/IP reading Device Object Status_Flags and Out_Of_Service properties.
-// TOKENS: host, ip, flow, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, wait, ms, compile
+// BACnet/IP reading Device Object Status_Flags and Out_Of_Service properties.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the facility monitoring server.
 host facility_srv { ip 10.12.0.5 }
 
-// INSTRUCTION: Define the chiller plant BACnet gateway.
+// Chiller plant BACnet gateway.
 host chiller_gw { ip 10.12.0.80 }
 
-// INSTRUCTION: Query Device Object (ObjectType 8) properties 111 (Status_Flags) and 81 (Out_Of_Service).
+// Query Device Object (ObjectType 8) properties 111 (Status_Flags) and 81
+// (Out_Of_Service). BACnet/IP on UDP 47808 (objects: 8 (Device); properties:
+// 81 (Object_List), 111 (Status_Flags)).
 flow bacnet_device_diag(srv, gw) {
     srv -> gw bacnet readproperty invokeid 1 objecttype 8 objectinstance 8000 propertyid 111 wait 20ms
-    srv -> gw bacnet readproperty invokeid 2 objecttype 8 objectinstance 8000 propertyid 81 wait 20ms
+    srv -> gw bacnet readproperty invokeid 2 objecttype 8 objectinstance 8000 propertyid 81
 }
 
-// INSTRUCTION: Compile the BACnet device diagnostic property read flow.
 compile {
     bacnet_device_diag(facility_srv, chiller_gw)
 }

@@ -1,30 +1,27 @@
-// PROMPT: Polymorphic dual-stack IPv4 and IPv6 RFC 862 UDP Echo service (port 7) jitter test executed inside a repeated flow calls.
-// TOKENS: host, ip, flow, ttl, dscp, flowlabel, udp, srcport, dstport, payload, wait, ms, compile
+// Shared dual-stack IPv4 and IPv6 RFC 862 UDP Echo service (port 7) jitter
+// test executed across repeated flow calls.
+// Wire profile: 12 frames; 4 dual-stack IPv4/IPv6 hosts; UDP; dstport 7,50007;
+// DSCP 46; waits 5ms.
+// Wireshark: udp.port == 7 || udp.port == 50007
 
-// INSTRUCTION: Define IPv4 SLA probe generator.
 host sla_gen_v4 { ip 10.70.7.10 }
 
-// INSTRUCTION: Define IPv4 RFC 862 UDP Echo responder.
 host sla_echo_v4 { ip 10.70.7.1 }
 
-// INSTRUCTION: Define IPv6 SLA probe generator.
 host sla_gen_v6 { ip 2001:db8:70:7::10 }
 
-// INSTRUCTION: Define IPv6 RFC 862 UDP Echo responder.
 host sla_echo_v6 { ip 2001:db8:70:7::1 }
 
-// INSTRUCTION: Define polymorphic UDP port 7 Echo request and reply with canonical TTL, DSCP, and FLOWLABEL modifiers.
 flow udp_rfc862_echo_probe(gen, echo) {
-    gen -> echo ttl 64 dscp 46 flowlabel 0x70007 udp srcport 50007 dstport 7 payload "rfc862_sla_jitter_beacon"
+    gen -> echo ttl 64 dscp 46 flowlabel 0x70007 udp srcport 50007 dstport 7 payload "rfc862_sla_jitter_beacon" wait 5ms
     gen <- echo ttl 64 dscp 46 flowlabel 0x70007 udp srcport 7 dstport 50007 payload "rfc862_sla_jitter_beacon" wait 5ms
 }
 
-// INSTRUCTION: Compile block running 3 iterations of dual-stack UDP Echo probes.
 compile {
-    udp_rfc862_echo_probe(sla_gen_v4, sla_echo_v4) // cycle 1
-    udp_rfc862_echo_probe(sla_gen_v6, sla_echo_v6) // cycle 1
-    udp_rfc862_echo_probe(sla_gen_v4, sla_echo_v4) // cycle 2
-    udp_rfc862_echo_probe(sla_gen_v6, sla_echo_v6) // cycle 2
-    udp_rfc862_echo_probe(sla_gen_v4, sla_echo_v4) // cycle 3
-    udp_rfc862_echo_probe(sla_gen_v6, sla_echo_v6) // cycle 3
+    udp_rfc862_echo_probe(sla_gen_v4, sla_echo_v4) // Iteration 1 of 6
+    udp_rfc862_echo_probe(sla_gen_v6, sla_echo_v6) // Iteration 2 of 6
+    udp_rfc862_echo_probe(sla_gen_v4, sla_echo_v4) // Iteration 3 of 6
+    udp_rfc862_echo_probe(sla_gen_v6, sla_echo_v6) // Iteration 4 of 6
+    udp_rfc862_echo_probe(sla_gen_v4, sla_echo_v4) // Iteration 5 of 6
+    udp_rfc862_echo_probe(sla_gen_v6, sla_echo_v6) // Iteration 6 of 6
 }

@@ -1,19 +1,20 @@
-// PROMPT: GRE-over-IPsec transport mode specifying NEXT_HEADER 47 (GRE) inside IPsec encapsulation.
-// TOKENS: host, ip, flow, ipsec, spi, seq, nextheader, payload, compile
+// GRE-over-IPsec transport mode specifying Next Header 47 (GRE) inside IPsec
+// encapsulation.
+// This capture carries SPI 47001/47002.
+// Wireshark: esp
 
-// INSTRUCTION: Define DMVPN hub router.
 host dmvpn_ipsec_hub { ip 172.16.254.1 }
 
-// INSTRUCTION: Define DMVPN spoke router.
 host dmvpn_ipsec_spoke { ip 172.16.254.10 }
 
-// INSTRUCTION: Define IPsec transport mode protecting GRE tunnel (NEXT_HEADER 47).
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow gre_over_ipsec_flow(hub, spoke) {
     hub -> spoke ipsec spi 47001 seq 10 nextheader 47 payload "ENCRYPTED_GRE_NHRP_PACKET"
     hub <- spoke ipsec spi 47002 seq 10 nextheader 47 payload "ENCRYPTED_GRE_NHRP_REPLY"
 }
 
-// INSTRUCTION: Compile the GRE-over-IPsec NEXT_HEADER 47 flow.
+// Run gre_over_ipsec_flow(dmvpn_ipsec_hub, dmvpn_ipsec_spoke) to generate the
+// capture.
 compile {
     gre_over_ipsec_flow(dmvpn_ipsec_hub, dmvpn_ipsec_spoke)
 }

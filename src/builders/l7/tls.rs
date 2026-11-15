@@ -59,30 +59,6 @@ pub fn build_tls_payload(
         return rec;
     }
 
-    // Build shared TLS Extensions (RFC 6066 SNI 0x0000 and RFC 7301 ALPN 0x0010)
-    let mut exts = Vec::new();
-    if let Some(sni) = spec.sni {
-        let sni_bytes = sni.as_bytes();
-        exts.extend_from_slice(&0u16.to_be_bytes()); // Extension Type 0: server_name
-        let ext_len = (sni_bytes.len() + 5) as u16;
-        exts.extend_from_slice(&ext_len.to_be_bytes());
-        let list_len = (sni_bytes.len() + 3) as u16;
-        exts.extend_from_slice(&list_len.to_be_bytes());
-        exts.push(0); // HostName Type 0
-        exts.extend_from_slice(&(sni_bytes.len() as u16).to_be_bytes());
-        exts.extend_from_slice(sni_bytes);
-    }
-    if let Some(alpn) = spec.alpn {
-        let alpn_bytes = alpn.as_bytes();
-        exts.extend_from_slice(&0x0010u16.to_be_bytes()); // Extension Type 16: application_layer_protocol_negotiation
-        let ext_len = (alpn_bytes.len() + 3) as u16;
-        exts.extend_from_slice(&ext_len.to_be_bytes());
-        let list_len = (alpn_bytes.len() + 1) as u16;
-        exts.extend_from_slice(&list_len.to_be_bytes());
-        exts.push(alpn_bytes.len() as u8);
-        exts.extend_from_slice(alpn_bytes);
-    }
-
     let hs_type: u8 = if spec.is_client_hello {
         1 // ClientHello
     } else if spec.is_server_hello {
@@ -94,6 +70,39 @@ pub fn build_tls_payload(
     } else {
         1 // ClientHello (default)
     };
+
+    // Build shared TLS Extensions (RFC 6066 SNI 0x0000, RFC 7301 ALPN 0x0010, and 0xFFFF payload carrier)
+    let mut exts = Vec::new();
+    if let Some(sni) = spec.sni {
+        let raw = sni.as_bytes();
+        let sni_bytes = &raw[..raw.len().min(usize::from(u16::MAX) - 5)];
+        exts.extend_from_slice(&0u16.to_be_bytes()); // Extension Type 0: server_name
+        let ext_len = (sni_bytes.len() + 5) as u16;
+        exts.extend_from_slice(&ext_len.to_be_bytes());
+        let list_len = (sni_bytes.len() + 3) as u16;
+        exts.extend_from_slice(&list_len.to_be_bytes());
+        exts.push(0); // HostName Type 0
+        exts.extend_from_slice(&(sni_bytes.len() as u16).to_be_bytes());
+        exts.extend_from_slice(sni_bytes);
+    }
+    if let Some(alpn) = spec.alpn {
+        let raw = alpn.as_bytes();
+        let alpn_bytes = &raw[..raw.len().min(255)];
+        exts.extend_from_slice(&0x0010u16.to_be_bytes()); // Extension Type 16: application_layer_protocol_negotiation
+        let ext_len = (alpn_bytes.len() + 3) as u16;
+        exts.extend_from_slice(&ext_len.to_be_bytes());
+        let list_len = (alpn_bytes.len() + 1) as u16;
+        exts.extend_from_slice(&list_len.to_be_bytes());
+        exts.push(alpn_bytes.len() as u8);
+        exts.extend_from_slice(alpn_bytes);
+    }
+    if (hs_type == 1 || hs_type == 2) && !payload_bytes.is_empty() {
+        let max_ext = usize::from(u16::MAX).saturating_sub(exts.len().saturating_add(64));
+        let p_slice = &payload_bytes[..payload_bytes.len().min(max_ext)];
+        exts.extend_from_slice(&0xFFFFu16.to_be_bytes()); // Private-use Extension Type 0xFFFF
+        exts.extend_from_slice(&(p_slice.len() as u16).to_be_bytes());
+        exts.extend_from_slice(p_slice);
+    }
 
     let mut hs_body = Vec::new();
     if hs_type == 2 {
@@ -147,11 +156,7 @@ pub fn build_tls_payload(
     ];
     hs.extend_from_slice(&hs_body);
 
-    if (hs_type == 1 || hs_type == 2) && !payload_bytes.is_empty() {
-        hs.extend_from_slice(payload_bytes);
-    }
-
-    let rec_len = hs.len() as u16;
+    let rec_len = hs.len().min(usize::from(u16::MAX)) as u16;
     let mut rec = Vec::with_capacity(5 + hs.len());
     rec.push(22); // ContentType: Handshake (22)
     rec.extend_from_slice(&rec_version.to_be_bytes());

@@ -1,19 +1,17 @@
-// PROMPT: Service provider BGP/MPLS IP VPN routing between Customer Edge (CE) and Provider Edge (PE) routers.
-// TOKENS: host, ip, flow, bgp, open, asn, holdtime, bgpid, mpls, exp, bos, mplsttl, compile
+// Service provider BGP/MPLS IP VPN routing between Customer Edge (CE) and
+// Provider Edge (PE) routers.
+// Wire profile: 2 frames; 2 IPv4 hosts; MPLS label 2001; BGP.
+// Wireshark: bgp || mpls
 
-// INSTRUCTION: Define customer edge router.
 host ce_router { ip 192.168.10.1 }
 
-// INSTRUCTION: Define provider edge router.
 host pe_router { ip 192.168.10.2 }
 
-// INSTRUCTION: Define carrier MPLS VPN routing flow.
 flow mpls_vpn_flow(ce, pe) {
     ce -> pe bgp open asn 65500 holdtime 180 bgpid 192.168.10.1
     pe -> ce mpls 2001 exp 5 bos 1 mplsttl 128 bgp open asn 65000 holdtime 180 bgpid 192.168.10.2
 }
 
-// INSTRUCTION: Compile block executing carrier PE-CE VPN routing.
 compile {
     mpls_vpn_flow(ce_router, pe_router)
 }

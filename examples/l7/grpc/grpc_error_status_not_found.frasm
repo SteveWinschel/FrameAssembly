@@ -1,18 +1,16 @@
-// PROMPT: gRPC procedure response returning error status code GRPC_STATUS 5 (NOT_FOUND) over IPv6.
-// TOKENS: host, ip, flow, s, grpc, service, method, grpcstatus, compile
+// gRPC procedure response returning error status code grpcstatus 5
+// (NOT_FOUND) over IPv6.
+// Wireshark: grpc || http2
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
+// gRPC status codes observed: 5 (NOT_FOUND) on TCP port 50051.
 flow grpc_err(c, s) {
     c <- s grpc service "InventoryService" method "GetItem" grpcstatus 5
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     grpc_err(client, server)
 }

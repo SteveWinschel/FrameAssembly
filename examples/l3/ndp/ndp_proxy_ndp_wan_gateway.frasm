@@ -1,25 +1,27 @@
-// PROMPT: Simulate an IPv6 Proxy NDP gateway answering Neighbor Solicitations on behalf of an isolated container subnet
-// TOKENS: host, ip, mac, flow, ndp, neighborsolicit, target, slla, dstmac, ttl, wait, ms, neighboradvert, tlla, compile
+// Simulate an IPv6 Proxy NDP gateway answering Neighbor Solicitations on
+// behalf of an isolated container subnet.
+// This capture targets IPv6 endpoints, sets TTL 255, and uses post-packet
+// wait gaps (10ms) between frames.
+// Wireshark: icmpv6.nd
 
-// INSTRUCTION: Define the upstream WAN IPv6 router querying for a container IPv6 address
 host wan_edge_v6 {
     ip 2001:db8:920::1
     mac 00:16:3e:d9:09:01
 }
 
-// INSTRUCTION: Define the hypervisor host running Proxy NDP for its hosted containers
 host proxy_ndp_host {
     ip 2001:db8:920::10
     mac 00:16:3e:d9:09:10
 }
 
-// INSTRUCTION: Query for container address 2001:db8:920::205 and answer with the hypervisor TLLA MAC
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow ndp_proxy_gateway_reply(wan, hypervisor) {
     wan -> hypervisor ndp neighborsolicit target 2001:db8:920::205 slla 00:16:3e:d9:09:01 dstmac 33:33:ff:00:02:05 ttl 255 wait 10ms
     hypervisor -> wan ndp neighboradvert target 2001:db8:920::205 tlla 00:16:3e:d9:09:10 ttl 255
 }
 
-// INSTRUCTION: Compile the Proxy NDP gateway response sequence
+// Run ndp_proxy_gateway_reply(wan_edge_v6, proxy_ndp_host) to generate the
+// capture.
 compile {
     ndp_proxy_gateway_reply(wan_edge_v6, proxy_ndp_host)
 }

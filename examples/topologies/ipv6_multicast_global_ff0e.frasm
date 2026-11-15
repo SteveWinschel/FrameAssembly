@@ -1,18 +1,16 @@
-// PROMPT: IPv6 global scope multicast transmission to ff0e::101 deriving RFC 2464 Ethernet MAC.
-// TOKENS: host, ip, flow, src, dst, udp, dstport, payload, compile
+// IPv6 global scope multicast transmission to ff0e::101 deriving RFC 2464
+// Ethernet MAC.
+// Wire profile: 1 frame; 2 IPv6 hosts; UDP; dstport 5004.
+// Wireshark: udp.port == 5004
 
-// INSTRUCTION: Define global stream media source.
 host stream_source { ip 2001:db8:100::1 }
 
-// INSTRUCTION: Define global scope multicast distribution target.
 host global_stream { ip ff0e::101 }
 
-// INSTRUCTION: Define multimedia streaming UDP flow on port 5004.
 flow global_stream_flow(src, dst) {
     src -> dst udp dstport 5004 payload "video_chunk"
 }
 
-// INSTRUCTION: Compile block executing global multicast stream.
 compile {
     global_stream_flow(stream_source, global_stream)
 }

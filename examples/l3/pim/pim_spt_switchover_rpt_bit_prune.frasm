@@ -1,26 +1,28 @@
-// PROMPT: RFC 7761 RPT-to-SPT switchover sending (S,G) Join toward source followed by (S,G,rpt) Prune toward the RP.
-// TOKENS: host, ip, mac, flow, pim, joinprune, group, rp, holdtime, dscp, ttl, payload, wait, ms, source, compile
+// RFC 7761 RPT-to-SPT switchover sending (S,G) Join toward source followed by
+// (S,G,rpt) Prune toward the RP.
+// This capture sets DSCP 48, TTL 1, carries group 239.80.1.1, and uses
+// post-packet wait gaps (5ms) between frames.
+// Wireshark: pim
 
-// INSTRUCTION: Define Last-Hop DR switching from shared tree (*,G) to shortest-path tree (S,G).
 host spt_switch_lhr {
     ip 10.103.80.10
     mac 00:1a:a1:67:80:0a
 }
 
-// INSTRUCTION: Define upstream core router along both RPT and SPT paths.
 host spt_core_transit {
     ip 10.103.80.1
     mac 00:1a:a1:67:80:01
 }
 
-// INSTRUCTION: Define (S,G) Join followed by (S,G,rpt) Prune pruning the shared Rendezvous Point Tree.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow pim_rpt_to_spt_switchover(lhr, core) {
     lhr -> core pim joinprune group 239.80.1.1 rp 10.103.0.254 holdtime 210 dscp 48 ttl 1 payload "STAR_G_SHARED_TREE_JOIN" wait 5ms
     lhr -> core pim joinprune group 239.80.1.1 source 10.80.5.50 holdtime 210 dscp 48 ttl 1 payload "S_G_SHORTEST_PATH_TREE_JOIN" wait 5ms
     lhr -> core pim joinprune group 239.80.1.1 source 10.80.5.50 rp 10.103.0.254 holdtime 210 dscp 48 ttl 1 payload "S_G_RPT_BIT_PRUNE_SHARED_BRANCH"
 }
 
-// INSTRUCTION: Compile the RFC 7761 RPT-to-SPT switchover and (S,G,rpt) Prune flow.
+// Run pim_rpt_to_spt_switchover(spt_switch_lhr, spt_core_transit) to generate
+// the capture.
 compile {
     pim_rpt_to_spt_switchover(spt_switch_lhr, spt_core_transit)
 }

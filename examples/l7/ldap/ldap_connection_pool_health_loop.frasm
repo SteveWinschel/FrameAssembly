@@ -1,26 +1,28 @@
-// PROMPT: Create an LDAP connection pool health check loop executing periodic anonymous RootDSE searches.
-// TOKENS: host, ip, mac, flow, s, ldap, msgid, searchreq, basedn, filter, wait, ms, searchentry, searchdone, resultcode, compile
+// LDAP connection pool health check loop executing periodic anonymous RootDSE
+// searches.
+// Wireshark: ldap
 
-// INSTRUCTION: Define the API gateway maintaining a warm LDAP connection pool.
+// API gateway maintaining a warm LDAP connection pool.
 host api_gateway {
     ip 10.15.8.20
     mac 00:0c:29:0f:08:14
 }
 
-// INSTRUCTION: Define the backend LDAP server responding to health check probes.
+// Backend LDAP server responding to health check probes.
 host ldap_backend {
     ip 10.15.8.10
     mac 00:0c:29:0f:08:0a
 }
 
-// INSTRUCTION: Repeat an LDAP search probe 3 times across repeated cycles block to verify connection liveness.
+// Repeat an LDAP search probe 3 times across 4 sequential polling cycles to
+// verify connection liveness. LDAP result codes: 0 (success). Repeats 3
+// times; each wait value pauses after sending its packet.
 flow pool_keepalive_loop(c, s) {
     c -> s ldap msgid 100 searchreq basedn "dc=internal,dc=io" filter "(objectClass=domain)" wait 2ms
     c <- s ldap msgid 100 searchentry basedn "dc=internal,dc=io" wait 1ms
     c <- s ldap msgid 100 searchdone resultcode 0 wait 25ms
 }
 
-// INSTRUCTION: Compile the LDAP connection pool health check loop into a PCAP file.
 compile {
     pool_keepalive_loop(api_gateway, ldap_backend) // cycle 1
     pool_keepalive_loop(api_gateway, ldap_backend) // cycle 2

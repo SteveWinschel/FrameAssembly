@@ -1,13 +1,13 @@
-// PROMPT: APNIC regional internet registry lookup for IPv4 allocation subnets.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// APNIC regional internet registry lookup for IPv4 allocation subnets.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define Asia-Pacific regional network planner.
 host apnic_cli { ip 10.120.5.8 }
 
-// INSTRUCTION: Define APNIC WHOIS server.
 host apnic_whois { ip 202.12.29.13 }
 
-// INSTRUCTION: Define IPv4 allocation block lookup flow.
 flow whois_apnic_flow(c, s) {
     c -> s whois query domain "203.0.113.0/24"
     c <- s whois response
@@ -15,7 +15,6 @@ flow whois_apnic_flow(c, s) {
         registrar "APNIC"
 }
 
-// INSTRUCTION: Compile block executing APNIC subnet lookup.
 compile {
     whois_apnic_flow(apnic_cli, apnic_whois)
 }

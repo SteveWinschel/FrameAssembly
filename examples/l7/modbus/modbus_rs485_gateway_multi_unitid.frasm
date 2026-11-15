@@ -1,19 +1,22 @@
-// PROMPT: Generate a Modbus TCP-to-RTU serial gateway polling three daisy-chained RS-485 slaves (Unit IDs 10, 11, and 12) behind one IP address.
-// TOKENS: host, ip, mac, flow, s, modbus, txid, protoid, unitid, func, addr, count, wait, ms, isresponse, value, compile
+// Modbus TCP-to-RTU serial gateway polling three daisy-chained RS-485 slaves
+// (Unit IDs 10, 11, and 12) behind one IP address.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define the central energy management server polling power meters through a Modbus gateway.
+// Central energy management server polling power meters through a Modbus
+// gateway.
 host ems_server {
     ip 10.70.5.10
     mac 00:1a:2b:70:05:10
 }
 
-// INSTRUCTION: Define the Moxa Modbus TCP-to-RS485 serial gateway bridging Unit IDs 10, 11, and 12.
+// Moxa Modbus TCP-to-RS485 serial gateway bridging Unit IDs 10, 11, and 12.
 host rs485_gateway {
     ip 10.70.5.250
     mac 00:90:e8:70:05:fa
 }
 
-// INSTRUCTION: Sequentially poll holding registers on RS-485 Slave Unit IDs 10, 11, and 12 through the gateway IP.
+// Sequentially poll holding registers on RS-485 Slave Unit IDs 10, 11, and 12
+// through the gateway IP. Modbus functions: FC 3 Read Holding Registers.
 flow multidrop_rs485_gateway(c, s) {
     c -> s modbus txid 501 protoid 0 unitid 10 func "readholdingregisters" addr 0 count 2 wait 18ms
     c <- s modbus txid 501 protoid 0 unitid 10 func "readholdingregisters" isresponse value 4802 wait 10ms
@@ -23,7 +26,6 @@ flow multidrop_rs485_gateway(c, s) {
     c <- s modbus txid 503 protoid 0 unitid 12 func "readholdingregisters" isresponse value 4810
 }
 
-// INSTRUCTION: Compile the Modbus TCP-to-RS485 multi-UnitID gateway trace into a PCAP file.
 compile {
     multidrop_rs485_gateway(ems_server, rs485_gateway)
 }

@@ -1,18 +1,17 @@
-// PROMPT: EtherNet/IP encapsulation command 0x0065 RegisterSession establishing session.
-// TOKENS: host, ip, flow, s, ethernetip, cmd, status, compile
+// EtherNet/IP encapsulation command 0x0065 RegisterSession establishing
+// session.
+// Wireshark: enip || cip
+// Automatic Ethernet MAC addresses and TCP port 44818 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.2 }
 
-// INSTRUCTION: Define application traffic flow.
 flow enip_register(c, s) {
     c -> s ethernetip cmd "registersession" status 0
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     enip_register(client, server)
 }

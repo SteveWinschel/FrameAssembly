@@ -1,25 +1,24 @@
-// PROMPT: MPLS Pseudowire (VPWS / EoMPLS) transporting industrial Modbus TCP polling between remote utility substations.
-// TOKENS: host, ip, mac, flow, mpls, exp, bos, mplsttl, modbus, unitid, func, readholdingregisters, addr, count, isresponse, wait, ms, compile
+// MPLS Pseudowire (VPWS / EoMPLS) transporting industrial Modbus TCP polling
+// between remote utility substations.
+// Wire profile: 2 frames; 2 IPv4 hosts; MPLS label 90502,90503; Modbus; waits
+// 3ms.
+// Wireshark: mpls.label == 90502 || mpls.label == 90503
 
-// INSTRUCTION: Define substation A MPLS PE router encapsulating SCADA traffic.
 host sub_a_mpls_pe {
     ip 10.190.1.1
     mac 00:05:85:be:01:01
 }
 
-// INSTRUCTION: Define substation B MPLS PE router terminating pseudowire label 90502.
 host sub_b_mpls_pe {
     ip 10.190.1.2
     mac 00:05:85:be:01:02
 }
 
-// INSTRUCTION: Define MPLS pseudowire Label 90502 EXP 5 carrying Modbus TCP holding register poll and response.
 flow mpls_pseudowire_modbus(pe_a, pe_b) {
-    pe_a -> pe_b mpls 90502 exp 5 bos 1 mplsttl 64 modbus unitid 1 func readholdingregisters addr 40001 count 10
-    pe_a <- pe_b mpls 90503 exp 5 bos 1 mplsttl 64 modbus unitid 1 func readholdingregisters addr 40001 count 10 isresponse wait 3ms
+    pe_a -> pe_b mpls 90502 exp 5 bos 1 mplsttl 64 modbus unitid 1 func readholdingregisters addr 40001 count 10 wait 3ms
+    pe_a <- pe_b mpls 90503 exp 5 bos 1 mplsttl 64 modbus unitid 1 func readholdingregisters addr 40001 count 10 isresponse
 }
 
-// INSTRUCTION: Compile block executing MPLS pseudowire Modbus TCP exchange.
 compile {
     mpls_pseudowire_modbus(sub_a_mpls_pe, sub_b_mpls_pe)
 }

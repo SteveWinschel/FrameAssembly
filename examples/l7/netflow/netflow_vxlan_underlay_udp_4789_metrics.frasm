@@ -1,24 +1,25 @@
-// PROMPT: NetFlow v5 flow export tracking VXLAN UDP port 4789 underlay encapsulation traffic between VTEPs.
-// TOKENS: host, ip, mac, flow, netflow, srcip, dstip, srcport, dstport, proto, packets, octets, compile
+// NetFlow v5 flow export tracking VXLAN UDP port 4789 underlay encapsulation
+// traffic between VTEPs.
+// Wireshark: cflow || udp.port == 2055 || udp.port == 4789
 
-// INSTRUCTION: Define spine switch monitoring VXLAN UDP 4789 underlay traffic between leaf VTEPs.
+// Spine switch monitoring VXLAN UDP 4789 underlay traffic between leaf VTEPs.
 host spine_router {
     ip 10.250.0.1
     mac 00:1c:73:fa:00:01
 }
 
-// INSTRUCTION: Define underlay telemetry NetFlow collector.
+// Underlay telemetry NetFlow collector.
 host underlay_collector {
     ip 10.250.0.254
     mac 00:1c:73:fa:00:fe
 }
 
-// INSTRUCTION: Export UDP destination port 4789 VXLAN tunnel flow record.
+// Export UDP destination port 4789 VXLAN tunnel flow record. Reports IP
+// protocol 17 (UDP) flow records to UDP 2055.
 flow netflow_vxlan_underlay(spine, col) {
     spine -> col netflow srcip 10.250.1.11 dstip 10.250.1.12 srcport 58210 dstport 4789 proto 17 packets 64000 octets 92800000
 }
 
-// INSTRUCTION: Compile the VXLAN UDP 4789 underlay NetFlow telemetry scenario.
 compile {
     netflow_vxlan_underlay(spine_router, underlay_collector)
 }

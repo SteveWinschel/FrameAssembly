@@ -169,6 +169,8 @@ pub(crate) fn parse_snmp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pa
                 .map(|(_, s)| ParsedField::PduType(SnmpPduType::GetNext, (s.start, s.len()))),
             tag(Token::GetBulk)
                 .map(|(_, s)| ParsedField::PduType(SnmpPduType::GetBulk, (s.start, s.len()))),
+            tag(Token::Report)
+                .map(|(_, s)| ParsedField::PduType(SnmpPduType::Report, (s.start, s.len()))),
         )),
     ))
     .parse_next(input)

@@ -1,37 +1,33 @@
-// PROMPT: Hypervisor Open vSwitch (OVS) bridge emitting LLDP beacons across dual-NIC physical uplinks.
-// TOKENS: host, ip, mac, flow, lldp, chassisid, portid, sysname, sysdesc, ttl, wait, ms, compile
+// Hypervisor Open vSwitch (OVS) bridge emitting LLDP beacons across dual-NIC
+// physical uplinks.
+// Wire profile: 2 frames; 4 IPv4 hosts; LLDP; waits 2ms.
+// Wireshark: lldp
 
-// INSTRUCTION: Define hypervisor physical uplink NIC 0.
 host kvm_uplink_eth0 {
     ip 10.14.1.11
     mac 52:54:00:0e:01:0b
 }
 
-// INSTRUCTION: Define hypervisor physical uplink NIC 1.
 host kvm_uplink_eth1 {
     ip 10.14.2.11
     mac 52:54:00:0e:02:0b
 }
 
-// INSTRUCTION: Define Top-of-Rack switch A receiving uplink 0 LLDP.
 host tor_switch_a {
     ip 10.14.1.1
     mac 00:1c:73:0e:01:01
 }
 
-// INSTRUCTION: Define Top-of-Rack switch B receiving uplink 1 LLDP.
 host tor_switch_b {
     ip 10.14.2.1
     mac 00:1c:73:0e:02:01
 }
 
-// INSTRUCTION: Define hypervisor multi-homing LLDP beacon flow across dual ToR switches.
 flow ovs_dual_uplink_lldp(nic0, tor_a, nic1, tor_b) {
-    nic0 -> tor_a lldp chassisid "eb90-4412-kvm01" portid "ens1f0np0" sysname "kvm-hypervisor-01.dc.local" sysdesc "Open vSwitch 3.3.0 Linux 6.8" ttl 120
-    nic1 -> tor_b lldp chassisid "eb90-4412-kvm01" portid "ens1f1np1" sysname "kvm-hypervisor-01.dc.local" sysdesc "Open vSwitch 3.3.0 Linux 6.8" ttl 120 wait 2ms
+    nic0 -> tor_a lldp chassisid "eb90-4412-kvm01" portid "ens1f0np0" sysname "kvm-hypervisor-01.dc.local" sysdesc "Open vSwitch 3.3.0 Linux 6.8" ttl 120 wait 2ms
+    nic1 -> tor_b lldp chassisid "eb90-4412-kvm01" portid "ens1f1np1" sysname "kvm-hypervisor-01.dc.local" sysdesc "Open vSwitch 3.3.0 Linux 6.8" ttl 120
 }
 
-// INSTRUCTION: Compile block executing dual-NIC hypervisor LLDP topology announcement.
 compile {
     ovs_dual_uplink_lldp(kvm_uplink_eth0, tor_switch_a, kvm_uplink_eth1, tor_switch_b)
 }

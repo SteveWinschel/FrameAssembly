@@ -1,19 +1,21 @@
-// PROMPT: IPv6 ESP tunnel preserving inner traffic classes via IPv6 Flow Labels and DSCP AF41.
-// TOKENS: host, ip, mac, flow, s, esp, spi, seq, iv, icv, nextheader, flowlabel, dscp, ecn, ttl, compile
+// IPv6 ESP tunnel preserving inner traffic classes via IPv6 Flow Labels and
+// DSCP AF41.
+// This capture targets IPv6 endpoints, sets DSCP 34, TTL 64, IPv6 Flow Label,
+// and carries SPI 700100/700200.
+// Wireshark: esp && ipv6
 
-// INSTRUCTION: Define IPv6 cloud gateway North.
 host v6_esp_north { ip 2001:db8:900:1::1 mac 00:25:90:aa:00:01 }
 
-// INSTRUCTION: Define IPv6 cloud gateway South.
 host v6_esp_south { ip 2001:db8:900:2::1 mac 00:25:90:aa:00:02 }
 
-// INSTRUCTION: Define IPv6 ESP session with NEXT_HEADER 41 (IPv6-in-IPv6) and Flow Label.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow esp_ipv6_flowlabel_sa(n, s) {
     n -> s esp spi 700100 seq 12 iv "1011121314151617" icv "a0a1a2a3a4a5a6a7a8a9aaab" nextheader 41 flowlabel 262144 dscp 34 ecn 1 ttl 64
     n <- s esp spi 700200 seq 12 iv "1716151413121110" icv "baaa9a8a7a6a5a4a3a2a1a0a" nextheader 41 flowlabel 524288 dscp 34 ecn 1 ttl 64
 }
 
-// INSTRUCTION: Compile the IPv6 Flow Label ESP tunnel flow.
+// Run esp_ipv6_flowlabel_sa(v6_esp_north, v6_esp_south) to generate the
+// capture.
 compile {
     esp_ipv6_flowlabel_sa(v6_esp_north, v6_esp_south)
 }

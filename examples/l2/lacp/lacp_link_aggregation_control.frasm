@@ -1,18 +1,21 @@
-// PROMPT: IEEE 802.3ad Link Aggregation Control Protocol PDU exchanging default link state.
-// TOKENS: host, ip, flow, lacp, compile
+// IEEE 802.3ad Link Aggregation Control Protocol PDU exchanging default link
+// state.
+// Wire profile: 1 frame; 2 IPv4 hosts; LACP.
+// Verify packet timing and headers with `frameassembly show
+// lacp_link_aggregation_control.frasm` or write
+// `lacp_link_aggregation_control.pcap` via `frameassembly
+// lacp_link_aggregation_control.frasm` before replaying on a lab interface or
+// opening in Wireshark.
+// Wireshark: lacp
 
-// INSTRUCTION: Define LAG member interface 1 on switch A.
 host lag_member_a { ip 10.0.0.1 }
 
-// INSTRUCTION: Define LAG member interface 1 on switch B.
 host lag_member_b { ip 10.0.0.2 }
 
-// INSTRUCTION: Define LACP link aggregation control heartbeat flow.
 flow lacp_control_flow(a, b) {
     a -> b lacp
 }
 
-// INSTRUCTION: Compile block executing standard LACPDU transmission.
 compile {
     lacp_control_flow(lag_member_a, lag_member_b)
 }

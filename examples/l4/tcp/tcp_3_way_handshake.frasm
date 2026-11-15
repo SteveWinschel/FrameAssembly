@@ -1,20 +1,18 @@
-// PROMPT: Establish a standard TCP 3-way handshake (SYN, SYN-ACK, ACK) on HTTPS port 443 with explicit sequence and acknowledgment numbers.
-// TOKENS: host, ip, flow, tcp, syn, seq, dstport, ack, acknum, srcport, compile
+// Establish a standard TCP 3-way handshake (SYN, SYN-ACK, ACK) on HTTPS port 443
+// with explicit sequence and acknowledgment numbers.
+// Wire profile: 3 frames; 2 IPv4 hosts; TCP; TCP flags SYN/ACK; dstport 443.
+// Wireshark: tcp.port == 443
 
-// INSTRUCTION: Define an enterprise client with IP 10.10.10.10.
 host enterprise_client { ip 10.10.10.10 }
 
-// INSTRUCTION: Define an enterprise server with IP 10.20.20.20.
 host enterprise_server { ip 10.20.20.20 }
 
-// INSTRUCTION: Define a flow representing a standard TCP 3-way handshake (SYN, SYN-ACK, ACK).
 flow three_way_handshake(client, server) {
     client -> server tcp syn seq 100 dstport 443
     client <- server tcp syn ack seq 500 acknum 101 srcport 443
     client -> server tcp ack seq 101 acknum 501 dstport 443
 }
 
-// INSTRUCTION: Compile block to execute the TCP handshake flow.
 compile {
     three_way_handshake(enterprise_client, enterprise_server)
 }

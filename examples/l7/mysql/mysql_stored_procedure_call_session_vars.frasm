@@ -1,19 +1,19 @@
-// PROMPT: MySQL CALL stored procedure invocation with user session variables (@out_total) and SELECT retrieval.
-// TOKENS: host, ip, mac, flow, s, mysql, sql, ok, wait, ms, eof, payload, compile
+// MySQL CALL stored procedure invocation with user session variables
+// (@out_total) and SELECT retrieval.
+// Wireshark: mysql
 
-// INSTRUCTION: Define the ERP backend worker invoking a stored billing procedure.
+// ERP backend worker invoking a stored billing procedure.
 host erp_worker {
     ip 10.90.70.33
     mac 00:1a:2b:90:70:33
 }
 
-// INSTRUCTION: Define the ERP MySQL 8.0 server.
 host erp_mysql {
     ip 10.90.70.1
     mac 00:1a:2b:90:70:01
 }
 
-// INSTRUCTION: Invoke CALL sp_calculate_invoice and read the populated session variable.
+// Invoke CALL sp_calculate_invoice and read the populated session variable.
 flow mysql_call_proc(c, s) {
     c -> s mysql sql "CALL sp_calculate_invoice(202610, 4401, @out_total)"
     c <- s mysql ok wait 2ms
@@ -21,7 +21,6 @@ flow mysql_call_proc(c, s) {
     c <- s mysql eof payload "48250.75"
 }
 
-// INSTRUCTION: Compile the MySQL stored procedure invocation flow.
 compile {
     mysql_call_proc(erp_worker, erp_mysql)
 }

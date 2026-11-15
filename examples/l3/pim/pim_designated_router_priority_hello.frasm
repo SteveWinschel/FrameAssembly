@@ -1,18 +1,19 @@
-// PROMPT: PIM Hello packet advertising custom Designated Router Priority 100 on multi-access LAN.
-// TOKENS: host, ip, flow, src, dst, pim, hello, drpriority, holdtime, compile
+// PIM Hello packet advertising custom Designated Router Priority 100 on
+// multi-access LAN.
+// This capture exchanges PIM IP protocol 103 multicast routing messages.
+// Wireshark: pim
 
-// INSTRUCTION: Define core distribution router candidate.
 host core_pim_dr_node { ip 10.80.1.1 }
 
-// INSTRUCTION: Define All-PIM-Routers multicast destination 224.0.0.13.
 host all_pim_routers_dst { ip 224.0.0.13 }
 
-// INSTRUCTION: Define PIM Hello flow advertising DR Priority 100 with 105s hold time.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow pim_dr_hello_flow(src, dst) {
     src -> dst pim hello drpriority 100 holdtime 105
 }
 
-// INSTRUCTION: Compile block executing DR priority Hello transmission.
+// Run pim_dr_hello_flow(core_pim_dr_node, all_pim_routers_dst) to generate
+// the capture.
 compile {
     pim_dr_hello_flow(core_pim_dr_node, all_pim_routers_dst)
 }

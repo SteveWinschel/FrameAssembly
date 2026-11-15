@@ -1,19 +1,20 @@
-// PROMPT: Campus 802.1X MAC authentication bypass (MAB) over management VLAN 181 with 802.1p priority.
-// TOKENS: host, ip, mac, flow, radius, accessrequest, user, nasip, servicetype, vlan, pcp, dei, wait, ms, accessaccept, compile
+// Campus 802.1X MAC authentication bypass (MAB) over management VLAN 181 with
+// 802.1p priority.
+// Encapsulation and QoS markings: 802.1Q VLAN 181, 802.1p priority 6.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting (accessrequest,
+// accessaccept) with Service-Type 10.
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: radius && vlan.id == 181
 
-// INSTRUCTION: Define campus access switch on management VLAN 181.
 host access_sw { ip 10.181.0.25 mac 00:26:cb:b5:00:19 }
 
-// INSTRUCTION: Define NAC policy engine RADIUS server.
 host nac_engine { ip 10.181.0.1 mac 00:26:cb:b5:00:01 }
 
-// INSTRUCTION: Define MAB RADIUS request using device MAC as username on VLAN 181.
 flow radius_mab_vlan(sw, nac) {
     sw -> nac radius accessrequest user "001122aabbcc" nasip 10.181.0.25 servicetype 10 vlan 181 pcp 6 dei 0 wait 4ms
     sw <- nac radius accessaccept user "001122aabbcc" servicetype 10 vlan 181 pcp 6 dei 0
 }
 
-// INSTRUCTION: Compile VLAN-tagged MAB RADIUS flow.
 compile {
     radius_mab_vlan(access_sw, nac_engine)
 }

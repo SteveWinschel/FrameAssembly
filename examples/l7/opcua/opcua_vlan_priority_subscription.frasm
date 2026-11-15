@@ -1,19 +1,21 @@
-// PROMPT: Industrial VLAN 200 and PCP 6 prioritized OPC UA subscription publish exchange.
-// TOKENS: host, ip, mac, flow, s, opcua, msgtype, chunktype, securechannelid, tokenid, seqnum, reqid, nodeid, vlan, pcp, dei, dscp, wait, ms, compile
+// Industrial VLAN 200 and PCP 6 prioritized OPC UA subscription publish
+// exchange.
+// Wireshark: opcua
 
-// INSTRUCTION: Define plant floor historian on industrial VLAN 200.
+// Plant floor historian on industrial VLAN 200.
 host plant_hist { ip 192.168.200.10 mac 00:1c:06:c8:00:0a }
 
-// INSTRUCTION: Define CNC machine controller on industrial VLAN 200.
+// CNC machine controller on industrial VLAN 200.
 host cnc_ctrl { ip 192.168.200.50 mac 00:1c:06:c8:00:32 }
 
-// INSTRUCTION: Define VLAN-tagged OPC UA publish request and notification response.
+// VLAN-tagged OPC UA publish request and notification response. Encapsulation
+// and QoS markings: 802.1Q VLAN 200, DSCP 46. OPC UA message sequence: MSG on
+// TCP port 4840.
 flow opcua_vlan_publish(c, s) {
     c -> s opcua msgtype "msg" chunktype "f" securechannelid 300 tokenid 4 seqnum 21 reqid 501 nodeid "ns=4;s=CNC.SpindleLoad" vlan 200 pcp 6 dei 0 dscp 46 wait 10ms
     c <- s opcua msgtype "msg" chunktype "f" securechannelid 300 tokenid 4 seqnum 22 reqid 501 nodeid "ns=4;s=CNC.SpindleLoad" vlan 200 pcp 6 dei 0 dscp 46
 }
 
-// INSTRUCTION: Compile VLAN-tagged OPC UA subscription flow.
 compile {
     opcua_vlan_publish(plant_hist, cnc_ctrl)
 }

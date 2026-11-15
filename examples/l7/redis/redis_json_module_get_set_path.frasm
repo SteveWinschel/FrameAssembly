@@ -1,19 +1,19 @@
-// PROMPT: RedisJSON module JSON.SET and JSON.GET commands manipulating nested document paths over VLAN 804.
-// TOKENS: host, ip, mac, flow, s, redis, cmd, args, vlan, replytype, value, wait, ms, compile
+// RedisJSON module JSON.SET and JSON.GET commands manipulating nested
+// document paths over VLAN 804.
+// Encapsulation and QoS markings: 802.1Q VLAN 804.
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: resp && vlan.id == 804
 
-// INSTRUCTION: Define the user profile microservice host.
 host profile_svc {
     ip 10.80.120.19
     mac 00:1a:2b:80:c0:19
 }
 
-// INSTRUCTION: Define the Redis Stack server with RedisJSON enabled.
 host redis_stack {
     ip 10.80.120.1
     mac 00:1a:2b:80:c0:01
 }
 
-// INSTRUCTION: Store a JSON document at root path $ and query a nested JSONPath field over VLAN 804.
 flow redis_json_doc(c, s) {
     c -> s redis cmd "JSON.SET" args "doc:user:42 $ {'name':'Ada','tier':'platinum'}" vlan 804
     c <- s redis replytype "status" value "OK" vlan 804 wait 1ms
@@ -21,7 +21,6 @@ flow redis_json_doc(c, s) {
     c <- s redis replytype "bulk" value "['platinum']" vlan 804
 }
 
-// INSTRUCTION: Compile the RedisJSON document manipulation flow.
 compile {
     redis_json_doc(profile_svc, redis_stack)
 }

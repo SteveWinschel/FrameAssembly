@@ -1,13 +1,13 @@
-// PROMPT: Machine learning platform domain query targeting registry whois database.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// Machine learning platform domain query targeting registry whois database.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define research lab computer.
 host lab_computer { ip 172.24.8.99 }
 
-// INSTRUCTION: Define AI ccTLD registry server.
 host ai_registry { ip 209.59.119.34 }
 
-// INSTRUCTION: Define AI domain registration check flow.
 flow whois_ai_flow(c, s) {
     c -> s whois query domain "neuralmodels.ai"
     c <- s whois response
@@ -15,7 +15,6 @@ flow whois_ai_flow(c, s) {
         registrar "GoDaddy.com LLC"
 }
 
-// INSTRUCTION: Compile block executing AI domain query.
 compile {
     whois_ai_flow(lab_computer, ai_registry)
 }

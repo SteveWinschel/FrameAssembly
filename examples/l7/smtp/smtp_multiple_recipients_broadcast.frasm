@@ -1,19 +1,20 @@
-// PROMPT: Model an SMTP message sent to multiple recipients using two RCPT TO commands before DATA submission.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, smtp, code, reply, ehlo, mailfrom, param, rcptto, cmd, body, quit, compile
+// Model an SMTP message sent to multiple recipients using two RCPT TO
+// commands before DATA submission.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Overrides destination port to 25.
+// Wireshark: smtp
 
-// INSTRUCTION: Define the internal alert server and corporate mail hub.
 host alert_srv {
     mac 00:0c:29:60:25:10
     ip 10.40.25.10
 }
 
-// INSTRUCTION: Define the mail_hub mail endpoint.
 host mail_hub {
     mac 00:0c:29:60:25:01
     ip 10.40.25.1
 }
 
-// INSTRUCTION: Send an alert email addressed to both noc@corp.local and secops@corp.local.
 flow smtp_multi_rcpt_delivery(alert_srv, mail_hub) {
     alert_srv -> mail_hub tcp syn srcport 55025 dstport 25
     mail_hub -> alert_srv tcp syn ack
@@ -35,7 +36,6 @@ flow smtp_multi_rcpt_delivery(alert_srv, mail_hub) {
     mail_hub -> alert_srv smtp code 221 reply "2.0.0 Bye"
 }
 
-// INSTRUCTION: Compile the multi-recipient SMTP delivery flow.
 compile {
     smtp_multi_rcpt_delivery(alert_srv, mail_hub)
 }

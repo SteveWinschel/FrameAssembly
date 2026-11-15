@@ -1,13 +1,12 @@
-// PROMPT: SIP digest authentication challenge returning 401 Unauthorized followed by authenticated INVITE.
-// TOKENS: host, ip, flow, s, sip, invite, from, to, callid, cseq, wait, ms, status, reason, method, uri, compile
+// SIP digest authentication challenge returning 401 Unauthorized followed by
+// authenticated INVITE.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: sip
 
-// INSTRUCTION: Define unauthenticated SIP endpoint.
 host auth_client { ip 192.168.42.11 }
 
-// INSTRUCTION: Define authenticating SIP proxy.
 host auth_proxy { ip 192.168.42.1 }
 
-// INSTRUCTION: Define initial challenge and authenticated session setup.
 flow sip_auth_handshake(c, s) {
     c -> s sip invite from "sip:user@secure.net" to "sip:echo@secure.net" callid "auth-7721" cseq 1 wait 5ms
     c <- s sip status 401 reason "Unauthorized" callid "auth-7721" cseq 1 wait 5ms
@@ -16,7 +15,6 @@ flow sip_auth_handshake(c, s) {
     c <- s sip status 200 reason "OK" callid "auth-7721" cseq 2
 }
 
-// INSTRUCTION: Compile SIP 401 authentication flow.
 compile {
     sip_auth_handshake(auth_client, auth_proxy)
 }

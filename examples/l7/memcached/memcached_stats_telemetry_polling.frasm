@@ -1,18 +1,17 @@
-// PROMPT: Monitoring agent querying Memcached runtime statistics and memory metrics.
-// TOKENS: host, ip, flow, exp, memcached, cmd, compile
+// Monitoring agent querying Memcached runtime statistics and memory metrics.
+// Wireshark: memcache || tcp.port == 11211
 
-// INSTRUCTION: Define Prometheus monitoring exporter.
+// Prometheus monitoring exporter.
 host prometheus_exporter { ip 192.168.70.15 }
 
-// INSTRUCTION: Define production Memcached node.
+// Production Memcached node.
 host prod_memcached { ip 192.168.70.2 }
 
-// INSTRUCTION: Define stats query command flow.
+// Stats query command flow.
 flow stats_query_flow(exp, node) {
     exp -> node memcached cmd "stats"
 }
 
-// INSTRUCTION: Compile stats telemetry polling scenario.
 compile {
     stats_query_flow(prometheus_exporter, prod_memcached)
 }

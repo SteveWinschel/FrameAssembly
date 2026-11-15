@@ -1,18 +1,19 @@
-// PROMPT: Periodic 30-second RIP update broadcast burst inside a COMPILE LOOP.
-// TOKENS: host, ip, flow, dst, rip, response, prefix, metric, wait, ms, compile
+// Periodic 30-second RIP update broadcast burst across repeated cycles in
+// compile.
+// This capture executes 4 cycles in compile and uses post-packet wait gaps
+// (30ms) between frames.
+// Wireshark: rip
 
-// INSTRUCTION: Define steady-state branch router broadcasting periodic updates.
 host periodic_branch_rtr { ip 172.16.5.1 }
 
-// INSTRUCTION: Define standard RIPv2 multicast destination.
 host rip_mcast_target { ip 224.0.0.9 }
 
-// INSTRUCTION: Define periodic route update flow.
+// Packet sequence (1 frame); wait pauses after a packet before the next.
 flow rip_periodic_burst(br, dst) {
     br -> dst rip response prefix 172.16.50.0 metric 2 wait 30ms
 }
 
-// INSTRUCTION: Compile loop executing 4 periodic RIP updates.
+// Emit 4 sequential cycles of rip_periodic_burst.
 compile {
     rip_periodic_burst(periodic_branch_rtr, rip_mcast_target) // cycle 1
     rip_periodic_burst(periodic_branch_rtr, rip_mcast_target) // cycle 2

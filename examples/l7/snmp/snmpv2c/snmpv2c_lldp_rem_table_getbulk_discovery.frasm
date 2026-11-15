@@ -1,25 +1,25 @@
-// PROMPT: SNMPv2c GetBulkRequest retrieving IEEE 802.1AB LLDP-MIB lldpRemSysName and lldpRemPortDesc neighbor entries.
-// TOKENS: host, ip, mac, flow, m, s, snmp2, getbulk, community, reqid, nonrepeaters, maxrepetitions, varbind, nullval, response, string, compile
+// SNMPv2c GetBulkRequest retrieving IEEE 802.1AB LLDP-MIB lldpRemSysName and
+// lldpRemPortDesc neighbor entries.
+// MIB objects / traps: 1.0.8802.1.1.2.1.4.1.1.9 (LLDP-MIB),
+// 1.0.8802.1.1.2.1.4.1.1.9.0.1.1 (LLDP-MIB), 1.0.8802.1.1.2.1.4.1.1.9.0.2.1
+// (LLDP-MIB).
+// Wireshark: snmp
 
-// INSTRUCTION: Define the topology auto-discovery engine.
 host topo_engine {
     ip 10.146.10.10
     mac 00:1a:2b:92:10:10
 }
 
-// INSTRUCTION: Define the leaf switch agent running LLDP.
 host leaf_switch {
     ip 10.146.10.1
     mac 00:1a:2b:92:10:01
 }
 
-// INSTRUCTION: Issue SNMP2 GETBULK with NONREPEATERS 0 MAXREPETITIONS 10 on lldpRemTable and receive neighbor names.
 flow snmpv2c_lldp_bulk(m, s) {
     m -> s snmp2 getbulk community "public" reqid 4200 nonrepeaters 0 maxrepetitions 10 varbind 1.0.8802.1.1.2.1.4.1.1.9 nullval
     m <- s snmp2 response community "public" reqid 4200 varbind 1.0.8802.1.1.2.1.4.1.1.9.0.1.1 string "spine-sw01.dc1" varbind 1.0.8802.1.1.2.1.4.1.1.9.0.2.1 string "spine-sw02.dc1"
 }
 
-// INSTRUCTION: Compile the SNMPv2c LLDP topology GetBulk flow.
 compile {
     snmpv2c_lldp_bulk(topo_engine, leaf_switch)
 }

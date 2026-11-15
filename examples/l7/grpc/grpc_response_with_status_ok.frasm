@@ -1,18 +1,15 @@
-// PROMPT: gRPC procedure response returning successful status code GRPC_STATUS 0 (OK).
-// TOKENS: host, ip, flow, s, grpc, service, method, grpcstatus, compile
+// gRPC procedure response returning successful status code grpcstatus 0 (OK).
+// Wireshark: grpc || http2
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
+// gRPC status codes observed: 0 (OK) on TCP port 50051.
 flow grpc_resp(c, s) {
     c <- s grpc service "UserService" method "GetUserProfile" grpcstatus 0
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     grpc_resp(client, server)
 }

@@ -1,25 +1,23 @@
-// PROMPT: Access switch executing UplinkFast failover to backup root port and advertising elevated path cost 3000.
-// TOKENS: host, ip, mac, flow, stp, rootid, bridgeid, cost, portid, maxage, hellotime, forwarddelay, flags, wait, ms, compile
+// Access switch executing UplinkFast failover to backup root port and advertising
+// elevated path cost 3000.
+// Wire profile: 2 frames; 2 IPv4 hosts; STP; waits 2ms.
+// Wireshark: stp
 
-// INSTRUCTION: Define access switch transitioning alternate uplink to forwarding after primary uplink loss.
 host access_uplinkfast_sw {
     ip 10.12.1.10
     mac 00:1c:73:0c:01:0a
 }
 
-// INSTRUCTION: Define secondary distribution switch receiving Topology Change Notification on backup link.
 host dist_secondary_sw {
     ip 10.12.1.2
     mac 00:1c:73:0c:01:02
 }
 
-// INSTRUCTION: Receive superior distribution BPDU and reply with Topology Change (Flags 1) BPDU.
 flow stp_uplinkfast_cutover(acc, dist) {
     acc <- dist stp rootid "4096:00:1c:73:0c:01:01" bridgeid "8192:00:1c:73:0c:01:02" cost 4 portid 32770 maxage 20 hellotime 2 forwarddelay 15 flags 0 wait 2ms
     acc -> dist stp rootid "4096:00:1c:73:0c:01:01" bridgeid "49152:00:1c:73:0c:01:0a" cost 3004 portid 32770 maxage 20 hellotime 2 forwarddelay 15 flags 1
 }
 
-// INSTRUCTION: Compile the STP UplinkFast backup root port failover trace.
 compile {
     stp_uplinkfast_cutover(access_uplinkfast_sw, dist_secondary_sw)
 }

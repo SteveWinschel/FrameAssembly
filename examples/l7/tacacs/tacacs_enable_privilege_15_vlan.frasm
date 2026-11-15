@@ -1,19 +1,22 @@
-// PROMPT: Model a Cisco IOS enable privilege level 15 elevation authentication using TACACS+ AUTHEN on management VLAN 49.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, vlan, ack, tacacs, authen, sessionid, user, payload, compile
+// Model a Cisco IOS enable privilege level 15 elevation authentication using
+// TACACS+ AUTHEN on management VLAN 49.
+// Encapsulation and QoS markings: 802.1Q VLAN 49.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// TACACS+ on TCP 49 (authen).
+// Overrides destination port to 49.
+// Wireshark: tacplus && vlan.id == 49
 
-// INSTRUCTION: Define host endpoint dist_switch.
 host dist_switch {
     mac 00:0c:29:49:00:10
     ip 10.49.0.10
 }
 
-// INSTRUCTION: Define host endpoint aaa_server.
 host aaa_server {
     mac 00:0c:29:49:00:01
     ip 10.49.0.1
 }
 
-// INSTRUCTION: Request TACACS+ enable authentication on VLAN 49 and receive PASS.
 flow tacacs_enable_privilege_15(dist_switch, aaa_server) {
     dist_switch -> aaa_server tcp syn srcport 56049 dstport 49 vlan 49
     aaa_server -> dist_switch tcp syn ack vlan 49
@@ -24,7 +27,6 @@ flow tacacs_enable_privilege_15(dist_switch, aaa_server) {
     aaa_server -> dist_switch tacacs authen sessionid 71001 payload "AUTHEN_STATUS_PASS" vlan 49
 }
 
-// INSTRUCTION: Compile the TACACS+ enable privilege 15 flow.
 compile {
     tacacs_enable_privilege_15(dist_switch, aaa_server)
 }

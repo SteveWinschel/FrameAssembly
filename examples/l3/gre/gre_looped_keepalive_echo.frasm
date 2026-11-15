@@ -1,19 +1,20 @@
-// PROMPT: Periodic GRE tunnel keepalive probes executed inside a COMPILE repeated flow calls.
-// TOKENS: host, ip, flow, s, gre, grekey, greseq, checksum, wait, ms, compile
+// Periodic GRE tunnel keepalive probes repeated across multiple cycles in
+// compile.
+// This capture executes 4 cycles in compile and uses post-packet wait gaps
+// (25ms) between frames.
+// Wireshark: gre
 
-// INSTRUCTION: Define primary WAN GRE endpoint.
 host gre_ka_primary { ip 10.210.1.1 }
 
-// INSTRUCTION: Define secondary WAN GRE endpoint.
 host gre_ka_secondary { ip 10.210.1.2 }
 
-// INSTRUCTION: Define bidirectional GRE keepalive exchange with 25ms delay.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow gre_keepalive_cycle(p, s) {
     p -> s gre grekey 1010 greseq 1 checksum wait 25ms
     p <- s gre grekey 1010 greseq 1 checksum wait 25ms
 }
 
-// INSTRUCTION: Compile 4 iterations of the GRE keepalive probe cycle.
+// Emit 4 sequential cycles of gre_keepalive_cycle.
 compile {
     gre_keepalive_cycle(gre_ka_primary, gre_ka_secondary) // cycle 1
     gre_keepalive_cycle(gre_ka_primary, gre_ka_secondary) // cycle 2

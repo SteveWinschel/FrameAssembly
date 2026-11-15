@@ -1,18 +1,19 @@
-// PROMPT: IPsec ESP frame marked with Explicit Congestion Notification Congestion Experienced (ECN 3).
-// TOKENS: host, ip, flow, ipsec, spi, seq, dscp, ecn, compile
+// IPsec ESP frame marked with Explicit Congestion Notification Congestion
+// Experienced (ECN 3).
+// This capture sets DSCP 18 and carries SPI 44300.
+// Wireshark: esp
 
-// INSTRUCTION: Define border router forwarding WAN traffic.
 host wan_edge_router { ip 192.0.2.14 }
 
-// INSTRUCTION: Define destination security appliance.
 host sec_appliance_peer { ip 192.0.2.29 }
 
-// INSTRUCTION: Define ECN Congestion Experienced marked IPsec packet flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow ipsec_ecn_flow(rtr, sec) {
     rtr -> sec ipsec spi 44300 seq 77 dscp 18 ecn 3
 }
 
-// INSTRUCTION: Compile block transmitting ECN marked IPsec frame.
+// Run ipsec_ecn_flow(wan_edge_router, sec_appliance_peer) to generate the
+// capture.
 compile {
     ipsec_ecn_flow(wan_edge_router, sec_appliance_peer)
 }

@@ -1,0 +1,13 @@
+// Minimal two-block MPLS unicast starter with default RFC 3032 shim header values.
+// Builds a single Ethernet II frame (EtherType 0x8847) between MAC-only routers
+// carrying label 0, traffic class EXP 0, Bottom-of-Stack 1, and MPLS TTL 64.
+// Inspect output with `frameassembly show mpls_default_frame.frasm` or compile a
+// trace via `frameassembly mpls_default_frame.frasm`.
+// Wireshark: mpls
+
+host ingress_ler { mac 00:05:85:82:00:01 }
+host core_lsr { mac 00:05:85:82:00:02 }
+
+compile {
+    ingress_ler -> core_lsr mpls
+}

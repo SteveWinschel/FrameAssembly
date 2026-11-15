@@ -1,25 +1,25 @@
-// PROMPT: Periodic 3-iteration SNMPv1 polling loop reading MIB-II udpInDatagrams.0 and udpNoPorts.0.
-// TOKENS: host, ip, mac, flow, m, snmp1, get, community, reqid, varbind, nullval, response, counter32, wait, ms, compile
+// Periodic 3-iteration SNMPv1 polling loop reading MIB-II udpInDatagrams.0
+// and udpNoPorts.0.
+// MIB objects / traps: 1.3.6.1.2.1.7.1.0 (UDP-MIB), 1.3.6.1.2.1.7.2.0
+// (UDP-MIB).
+// Timing: runs 3 cycles in compile using post-packet waits (10ms).
+// Wireshark: snmp
 
-// INSTRUCTION: Define the DNS infrastructure monitoring host.
 host dns_mon {
     ip 10.145.100.20
     mac 00:1a:2b:91:a0:20
 }
 
-// INSTRUCTION: Define the authoritative DNS appliance agent.
 host dns_appliance {
     ip 10.145.100.53
     mac 00:1a:2b:91:a0:53
 }
 
-// INSTRUCTION: Poll udpInDatagrams.0 (1.3.6.1.2.1.7.1.0) and udpNoPorts.0 (1.3.6.1.2.1.7.2.0).
 flow snmpv1_udp_counters(m, a) {
     m -> a snmp1 get community "public" reqid 10100 varbind 1.3.6.1.2.1.7.1.0 nullval varbind 1.3.6.1.2.1.7.2.0 nullval
     m <- a snmp1 response community "public" reqid 10100 varbind 1.3.6.1.2.1.7.1.0 counter32 9941200 varbind 1.3.6.1.2.1.7.2.0 counter32 42 wait 10ms
 }
 
-// INSTRUCTION: Execute the SNMPv1 UDP-MIB counter poll across 3 loop iterations.
 compile {
     snmpv1_udp_counters(dns_mon, dns_appliance) // cycle 1
     snmpv1_udp_counters(dns_mon, dns_appliance) // cycle 2

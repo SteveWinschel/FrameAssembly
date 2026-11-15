@@ -1,19 +1,21 @@
-// PROMPT: Simulate an OpenSSH AuthorizedKeysCommand querying an IPv6 LDAP directory for a user sshPublicKey attribute.
-// TOKENS: host, ip, mac, flow, s, ldap, msgid, bindreq, basedn, flowlabel, ttl, wait, ms, bindres, resultcode, searchreq, filter, searchentry, payload, searchdone, unbindreq, compile
+// OpenSSH AuthorizedKeysCommand querying an IPv6 LDAP directory for a user
+// sshPublicKey attribute.
+// Wireshark: ldap
 
-// INSTRUCTION: Define the IPv6 SSH bastion host looking up user public keys in LDAP.
+// IPv6 SSH bastion host looking up user public keys in LDAP.
 host ssh_bastion_v6 {
     ip 2001:db8:389:1::20
     mac 00:16:3e:38:91:14
 }
 
-// INSTRUCTION: Define the IPv6 OpenLDAP identity provider server.
+// IPv6 OpenLDAP identity provider server.
 host openldap_v6 {
     ip 2001:db8:389:1::5
     mac 00:16:3e:38:91:05
 }
 
-// INSTRUCTION: Bind, query the posixAccount and ldapPublicKey entry for uid=devops, and unbind over IPv6.
+// Bind, query the posixAccount and ldapPublicKey entry for uid=devops, and
+// unbind over IPv6. LDAP result codes: 0 (success).
 flow ldap_ssh_pubkey_v6(c, s) {
     c -> s ldap msgid 1 bindreq basedn "cn=sshd,ou=daemons,dc=cloud,dc=io" flowlabel 0x38901 ttl 64 wait 2ms
     c <- s ldap msgid 1 bindres resultcode 0 flowlabel 0x38901 ttl 64 wait 2ms
@@ -25,7 +27,6 @@ flow ldap_ssh_pubkey_v6(c, s) {
     c -> s ldap msgid 3 unbindreq flowlabel 0x38901 ttl 64
 }
 
-// INSTRUCTION: Compile the IPv6 LDAP SSH public key lookup flow.
 compile {
     ldap_ssh_pubkey_v6(ssh_bastion_v6, openldap_v6)
 }

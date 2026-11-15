@@ -1,26 +1,28 @@
-// PROMPT: RFC 5882 BFD single-hop session coupled with OSPFv2 for sub-second IGP topology reconvergence.
-// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, dscp, ttl, wait, ms, compile
+// RFC 5882 BFD single-hop session coupled with OSPFv2 for sub-second IGP
+// topology reconvergence.
+// This capture sets DSCP 48, TTL 255, carries BFD state 1/3, diag 0/1, and
+// uses post-packet wait gaps (20ms, 5ms) between frames.
+// Wireshark: bfd
 
-// INSTRUCTION: Define OSPF backbone router A running 50ms BFD with Multiplier 3.
 host ospf_bfd_rtr_a {
     ip 10.89.1.1
     mac 00:1a:a1:89:01:01
 }
 
-// INSTRUCTION: Define OSPF backbone router B signaling Neighbor Signaled Session Down (DIAG 3).
 host ospf_bfd_rtr_b {
     ip 10.89.1.2
     mac 00:1a:a1:89:01:02
 }
 
-// INSTRUCTION: Define BFD Up maintenance followed by DIAG 3 teardown notification.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow bfd_ospf_teardown_flow(a, b) {
     a -> b bfd state 3 diag 0 mydisc 8901 yourdisc 8902 mintx 50000 minrx 50000 mult 3 dscp 48 ttl 255 wait 20ms
     a <- b bfd state 1 diag 1 mydisc 8902 yourdisc 8901 mintx 1000000 minrx 1000000 mult 3 dscp 48 ttl 255 wait 5ms
     a -> b bfd state 1 diag 3 mydisc 8901 yourdisc 0 mintx 1000000 minrx 1000000 mult 3 dscp 48 ttl 255
 }
 
-// INSTRUCTION: Compile the OSPF-coupled BFD neighbor teardown flow.
+// Run bfd_ospf_teardown_flow(ospf_bfd_rtr_a, ospf_bfd_rtr_b) to generate the
+// capture.
 compile {
     bfd_ospf_teardown_flow(ospf_bfd_rtr_a, ospf_bfd_rtr_b)
 }

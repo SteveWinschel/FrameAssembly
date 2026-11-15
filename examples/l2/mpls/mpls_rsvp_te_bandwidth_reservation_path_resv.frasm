@@ -1,25 +1,24 @@
-// PROMPT: MPLS Traffic Engineering tunnel carrying assured-bandwidth database replication over RSVP-signaled LSP Label 310500.
-// TOKENS: host, ip, mac, flow, head, mpls, exp, bos, mplsttl, tcp, psh, ack, srcport, dstport, seq, acknum, win, payload, wait, ms, compile
+// MPLS Traffic Engineering tunnel carrying assured-bandwidth database replication
+// over RSVP-signaled LSP Label 310500.
+// Wire profile: 2 frames; 2 IPv4 hosts; MPLS label 310500,310501; TCP; TCP flags
+// ACK/PSH; dstport 3260; waits 2ms.
+// Wireshark: mpls.label == 310500 || mpls.label == 310501
 
-// INSTRUCTION: Define RSVP-TE headend router steering synchronous storage replication onto LSP 310500.
 host rsvpte_headend_pe {
     ip 10.210.1.1
     mac 00:1c:73:d2:01:01
 }
 
-// INSTRUCTION: Define RSVP-TE tailend router terminating guaranteed-bandwidth LSP 310500.
 host rsvpte_tailend_pe {
     ip 10.210.1.2
     mac 00:1c:73:d2:01:02
 }
 
-// INSTRUCTION: Transmit high-priority synchronous storage blocks over RSVP-TE label 310500 with EXP 4.
 flow mpls_rsvpte_guaranteed_lsp(head, tail) {
     head -> tail mpls 310500 exp 4 bos 1 mplsttl 60 tcp psh ack srcport 3260 dstport 3260 seq 5000 acknum 1 win 65535 payload "srdf_sync_replication_journal_block_99" wait 2ms
     head <- tail mpls 310501 exp 4 bos 1 mplsttl 60 tcp psh ack srcport 3260 dstport 3260 seq 1 acknum 5038 win 65535 payload "srdf_sync_commit_ack_block_99"
 }
 
-// INSTRUCTION: Compile the RSVP-TE guaranteed-bandwidth MPLS LSP trace.
 compile {
     mpls_rsvpte_guaranteed_lsp(rsvpte_headend_pe, rsvpte_tailend_pe)
 }

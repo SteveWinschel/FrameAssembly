@@ -1,25 +1,24 @@
-// PROMPT: Offshore wind farm subsea fiber ring aggregating turbine C-VLAN 405 telemetry inside offshore substation S-VLAN 2400.
-// TOKENS: host, ip, mac, flow, qinq, innervlan, udp, srcport, dstport, payload, wait, ms, compile
+// Offshore wind farm subsea fiber ring aggregating turbine C-VLAN 405 telemetry
+// inside offshore substation S-VLAN 2400.
+// Wire profile: 2 frames; 2 IPv4 hosts; QinQ S-VLAN 2400 / C-VLAN 405; UDP;
+// dstport 20000; waits 5ms.
+// Wireshark: vlan.id == 2400 && vlan.id == 405
 
-// INSTRUCTION: Define offshore wind turbine generator (WTG-05) PLC controller on C-VLAN 405.
 host offshore_wtg_05 {
     ip 10.240.5.5
     mac 00:0e:8c:f0:05:05
 }
 
-// INSTRUCTION: Define onshore wind farm control center SCADA historian server.
 host onshore_scada_srv {
     ip 10.240.5.100
     mac 00:0e:8c:f0:05:64
 }
 
-// INSTRUCTION: Report pitch angle and active power generation over QinQ S-VLAN 2400 C-VLAN 405.
 flow qinq_wind_farm_telemetry(wtg, scada) {
     wtg -> scada qinq 2400 innervlan 405 udp srcport 20000 dstport 20000 payload "wtg05_rpm_12_4_mw_14_8_pitch_3_2deg" wait 5ms
     wtg <- scada qinq 2400 innervlan 405 udp srcport 20000 dstport 20000 payload "scada_setpoint_ack_curtailment_none"
 }
 
-// INSTRUCTION: Compile the offshore wind farm QinQ S-VLAN 2400 C-VLAN 405 SCADA telemetry trace.
 compile {
     qinq_wind_farm_telemetry(offshore_wtg_05, onshore_scada_srv)
 }

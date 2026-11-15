@@ -1,18 +1,20 @@
-// PROMPT: OSPF Area Border Router advertising adjacency on Not-So-Stubby Area (NSSA) Area 10.
-// TOKENS: host, ip, flow, ospf, hello, routerid, areaid, hellointerval, deadinterval, compile
+// OSPF Area Border Router advertising adjacency on Not-So-Stubby Area (NSSA)
+// Area 10.
+// This capture exchanges OSPF IP protocol 89 link-state packets toward
+// AllSPFRouters.
+// Wireshark: ospf
 
-// INSTRUCTION: Define Area Border Router in NSSA area.
 host abr_nssa_router { ip 172.19.10.1 }
 
-// INSTRUCTION: Define All-OSPF-Routers multicast group.
 host ospf_all_routers_grp { ip 224.0.0.5 }
 
-// INSTRUCTION: Define NSSA Area 10 Hello advertisement with standard 10s/40s intervals.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow ospf_nssa_hello(abr, mcast) {
     abr -> mcast ospf hello routerid 172.19.10.1 areaid 10 hellointerval 10 deadinterval 40
 }
 
-// INSTRUCTION: Compile block executing NSSA Area border Hello transmission.
+// Run ospf_nssa_hello(abr_nssa_router, ospf_all_routers_grp) to generate the
+// capture.
 compile {
     ospf_nssa_hello(abr_nssa_router, ospf_all_routers_grp)
 }

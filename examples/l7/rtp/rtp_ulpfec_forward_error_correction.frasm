@@ -1,24 +1,23 @@
-// PROMPT: RTP media stream paired with RFC 5109 ULPFEC forward error correction packet on PT 123.
-// TOKENS: host, ip, flow, rtp, pt, seq, timestamp, ssrc, marker, payload, wait, ms, hexpayload, compile
+// RTP media stream paired with RFC 5109 ULPFEC forward error correction
+// packet on PT 123.
+// RTP media on UDP 5004 carrying PT 123, PT 96 (dynamic RTP payload (96)).
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: rtp || udp.port == 5004
 
-// INSTRUCTION: Define telepresence codec endpoint transmitting media + FEC.
 host tele_codec {
     ip 10.85.10.11
 }
 
-// INSTRUCTION: Define remote boardroom telepresence endpoint.
 host boardroom_ep {
     ip 10.85.10.22
 }
 
-// INSTRUCTION: Define two primary VP8 video packets (PT 96) followed by one ULPFEC repair packet (PT 123).
 flow rtp_with_ulpfec(a, b) {
     a -> b rtp pt 96 seq 600 timestamp 120000 ssrc 0x51090001 marker 0 payload "VP8_PKT_600" wait 2ms
     a -> b rtp pt 96 seq 601 timestamp 120000 ssrc 0x51090001 marker 1 payload "VP8_PKT_601" wait 2ms
     a -> b rtp pt 123 seq 602 timestamp 120000 ssrc 0x51090001 marker 0 hexpayload "400002580010c000"
 }
 
-// INSTRUCTION: Compile the RTP media + ULPFEC forward error correction flow.
 compile {
     rtp_with_ulpfec(tele_codec, boardroom_ep)
 }

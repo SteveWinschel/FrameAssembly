@@ -1,0 +1,11 @@
+// Minimal 2-block SMTP starter emitting a default EHLO command on TCP port 25.
+// Appends CRLF line endings and tracks TCP sequence numbers automatically without a flow.
+// Compile to verify mail relay ACLs or DLP sensor visibility.
+// Wireshark: smtp
+
+host sender_mta { ip 198.51.100.25 mac 00:11:22:33:44:19 }
+host mail_relay { ip 10.10.25.10   mac 00:11:22:33:44:0a }
+
+compile {
+    sender_mta -> mail_relay smtp
+}

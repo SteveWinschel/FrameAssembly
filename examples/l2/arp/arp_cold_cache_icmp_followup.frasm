@@ -1,27 +1,25 @@
-// PROMPT: ARP request and reply followed immediately by ICMP Echo verification between resolved hosts.
-// TOKENS: host, ip, mac, flow, arp, request, reply, wait, ms, icmp, echorequest, id, seq, echoreply, compile
+// ARP request and reply followed immediately by ICMP Echo verification between
+// resolved hosts.
+// Wire profile: 4 frames; 2 IPv4 hosts; ICMP, ARP; waits 1ms.
+// Wireshark: arp || icmp
 
-// INSTRUCTION: Define source host initiating communication on cold ARP cache.
 host cold_cache_host {
     ip 10.44.0.10
     mac 00:15:5d:44:00:0a
 }
 
-// INSTRUCTION: Define destination gateway responding to ARP and ICMP ping.
 host local_gateway {
     ip 10.44.0.1
     mac 00:15:5d:44:00:01
 }
 
-// INSTRUCTION: Define complete L2 ARP resolution followed by L3 ICMP echo exchange.
 flow arp_then_ping(host, gw) {
-    host -> gw arp request
+    host -> gw arp request wait 1ms
     host <- gw arp reply wait 1ms
     host -> gw icmp echorequest id 4401 seq 1 wait 1ms
-    host <- gw icmp echoreply id 4401 seq 1 wait 1ms
+    host <- gw icmp echoreply id 4401 seq 1
 }
 
-// INSTRUCTION: Compile block executing cold-cache ARP and ICMP ping sequence.
 compile {
     arp_then_ping(cold_cache_host, local_gateway)
 }

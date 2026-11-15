@@ -1,19 +1,16 @@
-// PROMPT: PostgreSQL backend command completion and ReadyForQuery signal over IPv6.
-// TOKENS: host, ip, flow, s, postgres, commandcomplete, readyforquery, compile
+// PostgreSQL backend command completion and ReadyForQuery signal over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Wireshark: pgsql
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::200 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow pg_ready(c, s) {
     c <- s postgres commandcomplete
     c <- s postgres readyforquery
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     pg_ready(client, server)
 }

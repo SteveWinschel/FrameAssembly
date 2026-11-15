@@ -1,32 +1,34 @@
-// PROMPT: Model an IMAP director proxy routing sessions from one ingress load balancer to two backend mailstore pods.
-// TOKENS: host, ip, mac, flow, m, imap, tag, cmd, arg, wait, ms, status, response, compile
+// IMAP director proxy routing sessions from one ingress load balancer to two
+// backend mailstore pods.
+// Wireshark: imap
 
-// INSTRUCTION: Define the ingress nginx/dovecot-director IMAP proxy.
+// Ingress nginx/dovecot-director IMAP proxy.
 host imap_director {
     ip 10.143.90.5
     mac 00:50:56:8f:5a:05
 }
 
-// INSTRUCTION: Define backend mailstore pod A hosting shard 1 users.
+// Backend mailstore pod A hosting shard 1 users.
 host mailstore_pod_a {
     ip 10.143.90.101
     mac 00:50:56:8f:5a:65
 }
 
-// INSTRUCTION: Define backend mailstore pod B hosting shard 2 users.
+// Backend mailstore pod B hosting shard 2 users.
 host mailstore_pod_b {
     ip 10.143.90.102
     mac 00:50:56:8f:5a:66
 }
 
-// INSTRUCTION: Check mailbox status on backend mailstore pod A.
+// Check mailbox status on backend mailstore pod A. Repeats 2 times; each wait
+// value pauses after sending its packet.
 flow imap_shard_check(p, m) {
     p -> m imap tag "P01" cmd "STATUS" arg "INBOX (MESSAGES UNSEEN UIDNEXT)" wait 2ms
     p <- m imap tag "*" status "STATUS" response "INBOX (MESSAGES 180 UNSEEN 4 UIDNEXT 920)" wait 1ms
     p <- m imap tag "P01" status "OK" response "Status completed"
 }
 
-// INSTRUCTION: Execute IMAP STATUS checks across both backend mailstore pods.
+// IMAP STATUS checks across both backend mailstore pods.
 compile {
     imap_shard_check(imap_director, mailstore_pod_a)
     imap_shard_check(imap_director, mailstore_pod_b)

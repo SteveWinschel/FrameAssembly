@@ -1,13 +1,14 @@
-// PROMPT: Kerberos KRB_ERROR pre-authentication required challenge followed by retry AS_REQ.
-// TOKENS: host, ip, flow, kerberos, asreq, realm, cname, sname, etype, krberror, wait, ms, asrep, compile
+// Kerberos KRB-ERROR pre-authentication required challenge followed by retry
+// AS-REQ.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define domain client initiating login.
 host login_client { ip 172.16.88.40 }
 
-// INSTRUCTION: Define KDC requiring PA-ENC-TIMESTAMP pre-authentication.
+// KDC requiring PA-ENC-TIMESTAMP pre-authentication.
 host preauth_kdc { ip 172.16.88.1 }
 
-// INSTRUCTION: Send initial AS_REQ, receive KRB_ERROR challenge, retry AS_REQ, and receive AS_REP.
+// Send initial AS-REQ, receive KRB-ERROR challenge, retry AS-REQ, and receive
+// AS-REP. Kerberos encryption types: 18 (AES256-CTS).
 flow krb5_preauth_challenge(c, k) {
     c -> k kerberos asreq realm "CORP.LOCAL" cname "admin" sname "krbtgt/CORP.LOCAL" etype 18
     c <- k kerberos krberror realm "CORP.LOCAL" cname "admin" sname "krbtgt/CORP.LOCAL" wait 10ms
@@ -15,7 +16,6 @@ flow krb5_preauth_challenge(c, k) {
     c <- k kerberos asrep realm "CORP.LOCAL" cname "admin" sname "krbtgt/CORP.LOCAL" etype 18
 }
 
-// INSTRUCTION: Compile the Kerberos pre-authentication error and retry sequence.
 compile {
     krb5_preauth_challenge(login_client, preauth_kdc)
 }

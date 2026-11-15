@@ -1,19 +1,19 @@
-// PROMPT: Software-defined WAN controller shifting MPLS traffic-engineering paths across Table 1 and Table 2 via FLOW_MOD.
-// TOKENS: host, ip, mac, flow, openflow, type, featuresreq, version, xid, wait, ms, featuresreply, dpid, flowmod, tableid, priority, compile
+// Software-defined WAN controller shifting MPLS traffic-engineering paths
+// across Table 1 and Table 2 via flowmod.
+// This capture uses post-packet wait gaps (5ms) between frames.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define central SD-WAN traffic engineering orchestrator.
 host wan_te_ctrl {
     ip 172.30.100.1
     mac 00:50:56:30:64:01
 }
 
-// INSTRUCTION: Define WAN edge OpenFlow switch managing dual MPLS uplinks.
 host wan_edge_ofs {
     ip 172.30.100.15
     mac 00:50:56:30:64:0f
 }
 
-// INSTRUCTION: Query switch DPID capabilities and program Table 1 classifier and Table 2 MPLS group forwarding rules.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow openflow_wan_te_shift(ctrl, ofs) {
     ctrl -> ofs openflow type featuresreq version 4 xid 301 wait 5ms
     ofs -> ctrl openflow type featuresreply version 4 xid 301 dpid 987654321 wait 5ms
@@ -21,7 +21,8 @@ flow openflow_wan_te_shift(ctrl, ofs) {
     ctrl -> ofs openflow type flowmod version 4 xid 303 tableid 2 priority 30000
 }
 
-// INSTRUCTION: Compile the SD-WAN traffic-engineering OpenFlow multi-table path shift.
+// Run openflow_wan_te_shift(wan_te_ctrl, wan_edge_ofs) to generate the
+// capture.
 compile {
     openflow_wan_te_shift(wan_te_ctrl, wan_edge_ofs)
 }

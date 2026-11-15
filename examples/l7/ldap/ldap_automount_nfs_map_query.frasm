@@ -1,19 +1,21 @@
-// PROMPT: Model a Linux autofs daemon querying LDAP nisMap and nisObject entries to automount /home network shares.
-// TOKENS: host, ip, mac, flow, s, ldap, msgid, searchreq, basedn, filter, dscp, ttl, wait, ms, searchentry, payload, searchdone, resultcode, compile
+// Linux autofs daemon querying LDAP nisMap and nisObject entries to automount
+// /home network shares.
+// Wireshark: ldap
 
-// INSTRUCTION: Define the Linux compute workstation running autofs LDAP integration.
+// Linux compute workstation running autofs LDAP integration.
 host compute_ws {
     ip 10.44.10.75
     mac 00:1a:4a:44:0a:4b
 }
 
-// INSTRUCTION: Define the campus NIS-to-LDAP directory server.
 host nis_ldap_srv {
     ip 10.44.10.10
     mac 00:1a:4a:44:0a:0a
 }
 
-// INSTRUCTION: Query auto.home automount map entries and receive the NFS server mount location.
+// Query auto.home automount map entries and receive the NFS server mount
+// location. Encapsulation and QoS markings: DSCP 24. LDAP result codes: 0
+// (success).
 flow ldap_autofs_lookup(c, s) {
     c -> s ldap msgid 10 searchreq basedn "nisMapName=auto.home,dc=campus,dc=edu" filter "(cn=researcher)"
         dscp 24 ttl 64 wait 2ms
@@ -22,7 +24,6 @@ flow ldap_autofs_lookup(c, s) {
     c <- s ldap msgid 10 searchdone resultcode 0 dscp 24 ttl 64
 }
 
-// INSTRUCTION: Compile the LDAP autofs NFS map lookup scenario.
 compile {
     ldap_autofs_lookup(compute_ws, nis_ldap_srv)
 }

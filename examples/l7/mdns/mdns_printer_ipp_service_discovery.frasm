@@ -1,18 +1,18 @@
-// PROMPT: Multicast DNS discovery querying Internet Printing Protocol (IPP) services on local link.
-// TOKENS: host, ip, flow, mdns, query, txid, qname, qtype, compile
+// Multicast DNS discovery querying Internet Printing Protocol (IPP) services
+// on local link.
+// Wireshark: mdns
 
-// INSTRUCTION: Define office desktop client.
 host office_desktop { ip 192.168.1.105 }
 
-// INSTRUCTION: Define standard mDNS multicast group.
+// Standard mDNS multicast group.
 host mdns_multicast { ip 224.0.0.251 }
 
-// INSTRUCTION: Define IPP print service query flow.
+// IPP print service query flow. DNS wire details: record types PTR; multicast
+// 224.0.0.251 / ff02::fb UDP 5353 (TTL 255).
 flow ipp_discovery_flow(cli, grp) {
     cli -> grp mdns query txid 1001 qname "_ipp._tcp.local" qtype "ptr"
 }
 
-// INSTRUCTION: Compile mDNS IPP discovery scenario.
 compile {
     ipp_discovery_flow(office_desktop, mdns_multicast)
 }

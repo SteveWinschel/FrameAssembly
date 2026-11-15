@@ -2,7 +2,8 @@
 
 [← Main README](../README.md) • [Getting Started](01_getting_started.md) • [Use-Case Cookbook](02_use_cases.md) • [Scenario Index](../examples/README.md)
 
-Pick what broke this morning, or hit Ctrl+F in the 81-protocol table below. Everything here covers FrameAssembly 3.0: write `.frasm` code, compile it into `.pcap` / `.pcapng` captures, or reverse an existing capture back into code you can edit.
+Pick what broke this morning, or hit Ctrl+F in the 81-protocol table below. Everything here covers FrameAssembly 3.1: write `.frasm` code, compile it into `.pcap` / `.pcapng` captures, or
+reverse an existing capture back into `.frasm` code you can edit.
 
 ![FrameAssembly workflow from .frasm code to .pcap captures and your analysis tools](assets/workflow-overview.svg)
 
@@ -11,31 +12,32 @@ Pick what broke this morning, or hit Ctrl+F in the 81-protocol table below. Ever
 | If your day looks like this | Read this first | Then try |
 | :--- | :--- | :--- |
 | **Checkmk, Zabbix or PRTG never paged anyone** | [SNMPv1, v2c & v3](06_l7_snmp.md) | [Infrastructure & telemetry](07_l7_infra_and_telemetry.md), [Use-Case Cookbook](02_use_cases.md) |
-| **The firewall team says the box dropped nothing** | [Getting Started](01_getting_started.md) | [Layer 2](03_l2_protocols.md), [Layer 4](05_l4_transports.md), [Topologies & dual-stack](11_topologies_and_dual_stack.md) |
+| **Firewall team says nothing was dropped** | [Getting Started](01_getting_started.md) | [Layer 2](03_l2_protocols.md), [Layer 4](05_l4_transports.md), [Topologies](11_topologies_and_dual_stack.md) |
 | **A Suricata or Zeek rule needs proof, not hope** | [Use-Case Cookbook](02_use_cases.md) | [Web & cloud](08_l7_web_and_cloud.md), [Mail, auth & databases](09_l7_mail_auth_storage_db.md) |
 | **Routing or EVPN lab you do not want to build** | [Layer 3 routing & tunnels](04_l3_protocols.md) | [Topologies & dual-stack](11_topologies_and_dual_stack.md) |
 | **Industrial gear nobody is allowed to poke** | [Industrial OT](10_l7_industrial_ot.md) | [Layer 4 transports](05_l4_transports.md) |
 | **CI needs a capture fixture** | [Compiler internals](13_for_nerds.md) | [`.frasm` specification](12_frasm_specification.md) |
-| **An AI assistant keeps inventing keywords** | [Getting Started: the AI prompt](01_getting_started.md#8-generating-frasm-code-with-ai-assistants-copy-paste-prompt) | [`.frasm` specification](12_frasm_specification.md) |
+| **An AI keeps inventing keywords** | [AI prompt](01_getting_started.md#8-generating-frasm-code-with-ai-assistants-copy-paste-prompt) | [`.frasm` spec](12_frasm_specification.md) |
 
 ## Three Ways to Run It
 
-1. **Browser Playground:** [frameassembly.ai.studio](https://frameassembly.ai.studio/) needs nothing installed.
-2. **VS Code Packet Studio:** `code --install-extension SteveWinschel.frameassembly-vscode` puts a live Packet Ladder next to your code.
-3. **Command line:** the install table in [Getting Started](01_getting_started.md#1-install-frameassembly) covers Windows `install.ps1`, macOS and Linux `install.sh`, Homebrew, Scoop, `.deb`, and plain downloads.
+1. **Command line (recommended via Cargo):** `cargo install frameassembly` — or grab a prebuilt installer/archive from [Getting Started](01_getting_started.md#1-install-frameassembly)
+   (Windows `install.ps1`, macOS & Linux `install.sh`, Homebrew, Scoop, `.deb`, and offline `.zip` / `.tar.gz` bundles).
+2. **Browser Playground:** [frameassembly.ai.studio](https://frameassembly.ai.studio/) needs nothing installed.
+3. **VS Code Extension:** `code --install-extension SteveWinschel.frameassembly-vscode` adds `.frasm` syntax highlighting, live inline error checking, and 1-click typo Quick Fixes.
 
-![VS Code Packet Studio showing .frasm code beside the live packet ladder](assets/packet-studio-preview.svg)
+![FrameAssembly VS Code extension showing .frasm syntax highlighting, inline compiler diagnostics, and 1-click Quick Fix](assets/packet-studio-preview.svg)
 
 ## The 13 Guides
 
 | Guide | What is inside |
 | :--- | :--- |
-| [Getting Started](01_getting_started.md) | Install, first capture, MAC shortcuts, TCP without sequence math, the AI prompt |
+| [Getting Started](01_getting_started.md) | Install, 2-block `host` + `compile` capture, MAC shortcuts, TCP without sequence math, the AI prompt |
 | [Use-Case Cookbook](02_use_cases.md) | Copy-paste recipes for SNMPv3 traps, Shadow IT, firewall ACLs, VLAN trunks, OT and `.pcap` scrubbing |
 | [Layer 2](03_l2_protocols.md) | `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls` |
-| [Layer 3](04_l3_protocols.md) | ICMP, multicast, tunnels, VPNs and routing protocols |
+| [Layer 3](04_l3_protocols.md) | ICMP, multicast, tunnels, VPNs (`ikev2`, `esp`, `ah`, `wireguard`) and routing (`ospf`, `bgp`, `pim`) |
 | [Layer 4](05_l4_transports.md) | `tcp`, `udp`, `sctp` and TCP options |
-| [SNMP](06_l7_snmp.md) | `snmp1`, `snmp2`, `snmp3` with USM authentication and encryption |
+| [SNMP](06_l7_snmp.md) | `snmp1`, `snmp2`, `snmp3` (`get`, `trap`, `inform`, `report`) with USM authentication and encryption |
 | [Infrastructure & telemetry](07_l7_infra_and_telemetry.md) | DNS, DHCP, NTP, PTP, RADIUS, TACACS+, syslog, NetFlow, IPFIX, sFlow |
 | [Web & cloud](08_l7_web_and_cloud.md) | HTTP, HTTP/2, gRPC, WebSocket, TLS, QUIC, SSH, SIP, RTP and friends |
 | [Mail, auth, storage & databases](09_l7_mail_auth_storage_db.md) | SMTP, IMAP, POP3, Kerberos, LDAP, SMB, NFS, Redis, MySQL, PostgreSQL, MQTT, AMQP |
@@ -70,22 +72,22 @@ Search for the protocol name. Each example is one packet statement: declare two 
 | L3 | `ipsec` | IPsec ESP/AH wrapper | `a -> b ipsec spi 16384 seq 1` | [guide](04_l3_protocols.md) |
 | L3 | `esp` | Encapsulating Security Payload | `a -> b esp spi 10001 seq 1` | [guide](04_l3_protocols.md) |
 | L3 | `ah` | Authentication Header | `c -> s ah spi 12000 seq 1` | [guide](04_l3_protocols.md) |
-| L3 | `ikev2` | IKEv2 key exchange | `init -> resp ikev2 exchange sainit` | [guide](04_l3_protocols.md) |
+| L3 | `ikev2` | IKEv2 key exchange (`sainit`, `auth`, `childsa`, `informational`) | `init -> resp ikev2 exchange sainit` | [guide](04_l3_protocols.md) |
 | L3 | `wireguard` | WireGuard handshake and data | `a -> b wireguard type initiation` | [guide](04_l3_protocols.md) |
-| L3 | `ospf` | OSPF hello, database descriptions | `r1 -> r2 ospf hello areaid 0` | [guide](04_l3_protocols.md) |
-| L3 | `bgp` | BGP open, keepalive, updates | `a -> b bgp open asn 65001 holdtime 180 bgpid 10.0.0.1` | [guide](04_l3_protocols.md) |
+| L3 | `ospf` | OSPFv2 and OSPFv3 (`hello`, `dbd`, `lsr`, `lsu`, `lsack`) | `r1 -> r2 ospf hello areaid 0` | [guide](04_l3_protocols.md) |
+| L3 | `bgp` | BGP open (2B & 4B ASN), keepalive, updates | `a -> b bgp open asn 65001 holdtime 180 bgpid 10.0.0.1` | [guide](04_l3_protocols.md) |
 | L3 | `rip` | RIP requests and responses | `br -> dr rip request` | [guide](04_l3_protocols.md) |
 | L3 | `vrrp` | VRRP virtual router adverts | `p -> b vrrp vrid 1 priority 120` | [guide](04_l3_protocols.md) |
 | L3 | `hsrp` | Cisco HSRP hellos | `p -> b hsrp group 1 priority 110` | [guide](04_l3_protocols.md) |
-| L3 | `pim` | PIM multicast routing | `r1 -> r2 pim hello` | [guide](04_l3_protocols.md) |
+| L3 | `pim` | PIM multicast routing (`hello`, `register`, `joinprune`) | `r1 -> r2 pim hello` | [guide](04_l3_protocols.md) |
 | L3 | `bfd` | Fast failure detection | `a -> b bfd state 3 mydisc 100 yourdisc 200` | [guide](04_l3_protocols.md) |
 | L3 | `openflow` | OpenFlow controller traffic | `c -> s openflow type hello` | [guide](04_l3_protocols.md) |
 | L4 | `tcp` | Stateful TCP (automatic seq/ack) | `c -> s tcp syn srcport 45000 dstport 80` | [guide](05_l4_transports.md) |
 | L4 | `udp` | UDP datagrams | `client -> server udp dstport 53 payload "query"` | [guide](05_l4_transports.md) |
 | L4 | `sctp` | SCTP chunks | `a -> b sctp chunk init vtag 0` | [guide](05_l4_transports.md) |
 | L7 | `snmp1` | SNMPv1 get, set, traps | `agent -> nms snmp1 trap community "chassis_ro" enterprise 1.3.6.1.4.1.9.9.13` | [guide](06_l7_snmp.md) |
-| L7 | `snmp2` | SNMPv2c get, getbulk, traps, informs | `agent -> collector snmp2 trap community "public" reqid 6001 oid 1.3.6.1.6.3.1.1.5.3` | [guide](06_l7_snmp.md) |
-| L7 | `snmp3` | SNMPv3 with SHA-2 auth and AES/DES privacy | `nms -> pe snmp3 get user "vrf_auditor" auth sha256 "VrfAuthKey!" priv aes "VrfPrivKey!" varbind 1.3.6.1.2.1.1.3.0 null` | [guide](06_l7_snmp.md) |
+| L7 | `snmp2` | SNMPv2c get, getbulk, traps, informs, reports | `agent -> collector snmp2 trap community "public" reqid 6001 oid 1.3.6.1.6.3.1.1.5.3` | [guide](06_l7_snmp.md) |
+| L7 | `snmp3` | SNMPv3 USM (`SHA-2` auth, `AES`/`DES` priv, reports) | `nms -> pe snmp3 get user "auditor" auth sha256 "AuthKey123!" varbind 1.3.6.1.2.1.1.3.0 null` | [guide](06_l7_snmp.md) |
 | L7 | `dns` | DNS queries and responses | `b -> d dns query txid 0x5002 qname "edge.akamaiedge.net" qtype "a"` | [guide](07_l7_infra_and_telemetry.md) |
 | L7 | `mdns` | Multicast DNS | `w -> g mdns query qname "printer.local" qtype a` | [guide](07_l7_infra_and_telemetry.md) |
 | L7 | `dhcp` | DHCPv4 and DHCPv6 | `c -> s dhcp discover chaddr 00:11:22:33:44:55` | [guide](07_l7_infra_and_telemetry.md) |
@@ -137,6 +139,7 @@ Search for the protocol name. Each example is one packet statement: declare two 
 ## Four Rules You Will Use Every Day
 
 * Built-in keywords are lowercase with no underscores or hyphens: `echorequest`, `clienthello`, `hosthdr`. Your own `host` and `flow` names can use letters, digits, `_` and `-`.
-* One statement writes one packet. In the examples above, the arrow direction decides who sends: left to right is forward, right to left is the reply.
-* Ports, sequence numbers and checksums follow along automatically.
-* `frameassembly show file.frasm` previews the packet ladder, `frameassembly file.frasm` writes the capture, and `frameassembly reverse capture.pcap` turns a capture back into code.
+* One statement writes one packet. Arrow direction decides who sends (`->` forward, `<-` reply), and `wait 2ms` pauses `2ms` **after** that packet before the next (`10ms` default when omitted).
+* Ports, sequence numbers, default MACs (`00:00:00:00:00:01`, `:02`, ...), and checksums follow along automatically.
+* `frameassembly show file.frasm` previews the packet ladder, `frameassembly file.frasm` writes classic `.pcap` (or pass `out.pcapng` for `PCAPNG`), and `frameassembly reverse capture.pcap` turns
+  a capture back into `.frasm` code.

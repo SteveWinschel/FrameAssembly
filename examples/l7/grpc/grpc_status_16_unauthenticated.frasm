@@ -1,19 +1,19 @@
-// PROMPT: gRPC Unauthenticated error returning GRPC_STATUS 16 when bearer token is expired.
-// TOKENS: host, ip, flow, s, grpc, service, method, grpcstatus, compile
+// gRPC Unauthenticated error returning grpcstatus 16 when bearer token is
+// expired.
+// Wireshark: grpc || http2
 
-// INSTRUCTION: Define mobile backend client.
 host mobile_bff { ip 172.17.0.15 }
 
-// INSTRUCTION: Define identity verification gRPC service.
+// Identity verification gRPC service.
 host auth_grpc { ip 172.17.0.5 }
 
-// INSTRUCTION: Call VerifyToken and receive gRPC status code 16 (UNAUTHENTICATED).
+// Call VerifyToken and receive gRPC status code 16 (UNAUTHENTICATED). gRPC
+// status codes observed: 16 (UNAUTHENTICATED) on TCP port 50051.
 flow grpc_unauthenticated_16(c, s) {
     c -> s grpc service "auth.v2.TokenService" method "VerifyToken"
     c <- s grpc service "auth.v2.TokenService" method "VerifyToken" grpcstatus 16
 }
 
-// INSTRUCTION: Compile the gRPC status 16 UNAUTHENTICATED scenario.
 compile {
     grpc_unauthenticated_16(mobile_bff, auth_grpc)
 }

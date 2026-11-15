@@ -42,10 +42,11 @@ fn parse_ber_tlv(input: &[u8]) -> Option<(u8, &[u8], &[u8])> {
         }
         (l, 2 + num_octets)
     };
-    if input.len() < hdr_len + len {
+    let end = hdr_len.checked_add(len)?;
+    if input.len() < end {
         return None;
     }
-    Some((tag, &input[hdr_len..hdr_len + len], &input[hdr_len + len..]))
+    Some((tag, &input[hdr_len..end], &input[end..]))
 }
 
 /// Parses a signed ASN.1 BER/DER INTEGER body into an `i64`.
@@ -105,20 +106,29 @@ pub(crate) fn dissect_kerberos(
     }
     let is_tcp = matches!(transport, TransportProto::Tcp);
 
-    let data = if matches!(payload.first(), Some(0x6A..=0x6D | 0x7E)) {
-        payload
-    } else if is_tcp
-        && payload.len() > 4
-        && matches!(payload.get(4), Some(0x6A..=0x6D | 0x7E))
-        && (u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]) as usize + 4
-            <= payload.len())
-    {
+    let data = if is_tcp {
+        if payload.len() <= 4 {
+            return None;
+        }
+        let rec_len = u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]) as usize;
+        let rec_end = 4usize.checked_add(rec_len)?;
+        if rec_end > payload.len() || !matches!(payload.get(4), Some(0x6A..=0x6D | 0x7E)) {
+            return None;
+        }
         &payload[4..]
+    } else if matches!(payload.first(), Some(0x6A..=0x6D | 0x7E)) {
+        payload
     } else {
         return None;
     };
 
     let (app_tag, app_body, residual) = parse_ber_tlv(data)?;
+    if is_tcp {
+        let rec_len = u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]) as usize;
+        if data.len() - residual.len() != rec_len {
+            return None;
+        }
+    }
     let msg_type = match app_tag {
         0x6A => 10u8,
         0x6B => 11u8,

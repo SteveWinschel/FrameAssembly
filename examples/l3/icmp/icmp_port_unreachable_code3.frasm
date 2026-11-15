@@ -1,19 +1,20 @@
-// PROMPT: Server returning ICMP DEST_UNREACH Code 3 (Port Unreachable) and Code 2 (Protocol Unreachable).
-// TOKENS: host, ip, flow, icmp, destunreach, code, payload, wait, ms, compile
+// Server returning ICMP Destination Unreachable Code 3 (Port Unreachable) and
+// Code 2 (Protocol Unreachable).
+// This capture uses post-packet wait gaps (10ms) between frames.
+// Wireshark: icmp
 
-// INSTRUCTION: Define network scanner host.
 host scanner_node { ip 10.50.0.15 }
 
-// INSTRUCTION: Define hardened server rejecting closed UDP port and unsupported IP protocol.
 host hardened_srv { ip 10.50.0.80 }
 
-// INSTRUCTION: Define ICMP Destination Unreachable Code 3 and Code 2 error responses.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow icmp_port_proto_unreach(scan, srv) {
-    scan <- srv icmp destunreach code 3 payload "CLOSED_UDP_PORT_HEADER_ECHO"
-    scan <- srv icmp destunreach code 2 payload "UNSUPPORTED_IP_PROTO_ECHO" wait 10ms
+    scan <- srv icmp destunreach code 3 payload "CLOSED_UDP_PORT_HEADER_ECHO" wait 10ms
+    scan <- srv icmp destunreach code 2 payload "UNSUPPORTED_IP_PROTO_ECHO"
 }
 
-// INSTRUCTION: Compile the ICMP Port and Protocol Unreachable flow.
+// Run icmp_port_proto_unreach(scanner_node, hardened_srv) to generate the
+// capture.
 compile {
     icmp_port_proto_unreach(scanner_node, hardened_srv)
 }

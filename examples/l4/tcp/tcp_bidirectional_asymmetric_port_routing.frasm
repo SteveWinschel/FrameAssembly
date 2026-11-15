@@ -1,13 +1,13 @@
-// PROMPT: Demonstrate automatic vs explicit TCP sequence and acknowledgment tracking across bidirectional arrows (-> and <-) when payload sizes vary.
-// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, win, wait, ms, ack, psh, payload, fin, compile
+// Demonstrate automatic vs explicit TCP sequence and acknowledgment tracking
+// across bidirectional arrows (-> and <-) when payload sizes vary.
+// Wire profile: 8 frames; 2 IPv4 hosts; TCP; TCP flags SYN/ACK/FIN/PSH; dstport
+// 8080,40100; waits 5ms, 2ms.
+// Wireshark: (tcp.port == 8080 || tcp.port == 40100)
 
-// INSTRUCTION: Define a client endpoint relying on auto-calculated TCP sequence numbers with IP 10.203.0.10.
 host auto_seq_client { ip 10.203.0.10 mac 00:1a:2b:cb:00:0a }
 
-// INSTRUCTION: Define a server endpoint relying on auto-calculated TCP sequence numbers with IP 10.203.0.20.
 host auto_seq_server { ip 10.203.0.20 mac 00:1a:2b:cb:00:14 }
 
-// INSTRUCTION: Define a flow exchanging variable-length payloads without manual SEQ/ACKNUM so the backend state machine computes exact byte advancements.
 flow auto_sequence_tracking(client, server) {
     client -> server tcp syn srcport 40100 dstport 8080 win 64240 wait 5ms
     client <- server tcp syn ack srcport 8080 dstport 40100 win 64240 wait 5ms
@@ -16,10 +16,9 @@ flow auto_sequence_tracking(client, server) {
     client <- server tcp psh ack srcport 8080 dstport 40100 payload "PONG_ABCDEFGHIJ" wait 5ms
     client -> server tcp psh ack srcport 40100 dstport 8080 payload "FINAL_BLOCK" wait 5ms
     client <- server tcp fin ack srcport 8080 dstport 40100 wait 5ms
-    client -> server tcp fin ack srcport 40100 dstport 8080 wait 5ms
+    client -> server tcp fin ack srcport 40100 dstport 8080
 }
 
-// INSTRUCTION: Compile block to run the automatic TCP sequence tracking flow.
 compile {
     auto_sequence_tracking(auto_seq_client, auto_seq_server)
 }

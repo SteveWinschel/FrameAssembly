@@ -1,19 +1,19 @@
-// PROMPT: Standard IPv4 ICMP Echo Request and Echo Reply ping exchange.
-// TOKENS: host, ip, flow, target, icmp, echorequest, echoreply, compile
+// Standard IPv4 ICMP Echo Request and Echo Reply ping exchange.
+// This capture sends ICMP control and reachability probes with valid
+// checksums.
+// Wireshark: icmp
 
-// INSTRUCTION: Define IPv4 ping client host.
 host ping_client { ip 192.168.1.100 }
 
-// INSTRUCTION: Define IPv4 ping target host.
 host ping_target { ip 192.168.1.1 }
 
-// INSTRUCTION: Define ICMP ping request and reply flow.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow icmp_ping_flow(client, target) {
     client -> target icmp echorequest
     client <- target icmp echoreply
 }
 
-// INSTRUCTION: Compile block executing standard ICMP ping.
+// Run icmp_ping_flow(ping_client, ping_target) to generate the capture.
 compile {
     icmp_ping_flow(ping_client, ping_target)
 }

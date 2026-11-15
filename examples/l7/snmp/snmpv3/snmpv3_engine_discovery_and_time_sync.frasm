@@ -1,13 +1,19 @@
-// PROMPT: Simulate RFC 3414 SNMPv3 authoritative EngineID discovery and EngineBoots/EngineTime synchronization followed by an authenticated GET/RESPONSE.
-// TOKENS: host, ip, mac, flow, snmp3, get, user, engineid, engineboots, enginetime, reqid, wait, ms, response, varbind, counter32, auth, sha256, priv, aes, nullval, string, compile
+// Simulate RFC 3414 SNMPv3 authoritative EngineID discovery and
+// EngineBoots/EngineTime synchronization followed by an authenticated
+// GET/RESPONSE.
+// SNMPv3 USM security uses auth sha256, priv aes with localized engineid
+// keys.
+// MIB objects / traps: 1.3.6.1.6.3.15.1.1.4.0 (SNMP-USER-BASED-SM-MIB),
+// 1.3.6.1.2.1.1.5.0 (sysName.0).
+// In Wireshark, add the engineid, user, auth, and priv passphrases under SNMP
+// Users Table to decrypt.
+// Timing: pauses 10ms after each marked packet before sending the next frame.
+// Wireshark: snmp
 
-// INSTRUCTION: Define an NMS discovering a new SNMPv3 agent with IP 10.157.0.10.
 host discovery_mgr { ip 10.157.0.10 mac 00:16:3e:57:00:10 }
 
-// INSTRUCTION: Define a newly onboarded SNMPv3 router with IP 10.157.0.1.
 host onboarded_rtr { ip 10.157.0.1 mac 00:16:3e:57:00:01 }
 
-// INSTRUCTION: Define a flow showing unauthenticated EngineID probe (ENGINEBOOTS 0, ENGINETIME 0), Report response, and synchronized authPriv poll.
 flow snmpv3_engine_discovery(mgr, rtr) {
     mgr -> rtr snmp3 get user "" engineid "0000000000" engineboots 0 enginetime 0
         reqid 10200
@@ -26,7 +32,6 @@ flow snmpv3_engine_discovery(mgr, rtr) {
         wait 10ms
 }
 
-// INSTRUCTION: Compile block to run the SNMPv3 engine discovery and synchronization flow.
 compile {
     snmpv3_engine_discovery(discovery_mgr, onboarded_rtr)
 }

@@ -1,19 +1,20 @@
-// PROMPT: WireGuard peer initiating scheduled session rekeying via Handshake Initiation on UDP 51820.
-// TOKENS: host, ip, flow, wireguard, type, initiation, sender, response, receiver, compile
+// WireGuard peer initiating scheduled session rekeying via Handshake
+// Initiation on UDP 51820.
+// This capture models UDP port 51820 WireGuard handshake and transport
+// frames.
+// Wireshark: wg
 
-// INSTRUCTION: Define branch office VPN gateway peer.
 host wg_branch_peer { ip 172.16.200.1 }
 
-// INSTRUCTION: Define data center VPN gateway peer.
 host wg_dc_peer { ip 172.16.200.2 }
 
-// INSTRUCTION: Define rekeying handshake exchange establishing fresh key material.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow wg_rekey_exchange(br, dc) {
     br -> dc wireguard type initiation sender 334455
     br <- dc wireguard type response sender 778899 receiver 334455
 }
 
-// INSTRUCTION: Compile block executing WireGuard session rekeying.
+// Run wg_rekey_exchange(wg_branch_peer, wg_dc_peer) to generate the capture.
 compile {
     wg_rekey_exchange(wg_branch_peer, wg_dc_peer)
 }

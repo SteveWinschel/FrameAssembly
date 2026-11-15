@@ -11,6 +11,14 @@ use crate::ast::*;
 use super::statement::FrameBuilder;
 
 impl<'a> FrameBuilder<'a> {
+    /// Returns `true` if an explicit protocol keyword or standalone L2 tag (`vlan`, `qinq`, `mpls`) was specified.
+    pub(crate) fn has_explicit_protocol(&self) -> bool {
+        self.protocol.is_some()
+            || self.vlan_val.is_some()
+            || self.qinq_val.is_some()
+            || self.mpls_val.is_some()
+    }
+
     /// Finalizes the [`FrameBuilder`] and produces a complete [`FrameStatement`] AST node.
     pub(crate) fn finish(
         mut self,
@@ -18,7 +26,7 @@ impl<'a> FrameBuilder<'a> {
         dir: Direction,
         callee: Spanned<&'a str>,
     ) -> FrameStatement<'a> {
-        let protocol = match (self.protocol, self.transport_val) {
+        let protocol = match (self.protocol.take(), self.transport_val) {
             (Some(p), _) => p,
             (None, Some(TransportProto::Udp)) => Protocol::Udp,
             (None, Some(TransportProto::Tcp)) => Protocol::Tcp,
@@ -60,7 +68,10 @@ impl<'a> FrameBuilder<'a> {
         }
 
         if protocol == Protocol::Tcp && self.flags.is_empty() {
-            if self.payload.is_some() || self.hex_payload.is_some() {
+            if self.payload.is_some()
+                || self.payload_bytes.is_some()
+                || self.hex_payload.is_some()
+            {
                 self.flags.push(TcpFlag::Psh);
                 self.flags.push(TcpFlag::Ack);
             } else {
@@ -68,19 +79,73 @@ impl<'a> FrameBuilder<'a> {
             }
         }
 
+        if let Some((p, span)) = self.priority_val
+            && matches!(protocol, Protocol::Ospf | Protocol::Vrrp | Protocol::Hsrp)
+        {
+            self.check_bound("priority", p as u64, 0, 255, span);
+        }
+        if let Some((ht, span)) = self.holdtime_val
+            && protocol == Protocol::Hsrp
+        {
+            self.check_bound("HSRP holdtime", ht as u64, 0, 255, span);
+        }
+        let deferred = core::mem::take(&mut self.deferred_u32_fields);
+        for (key, val, span) in deferred {
+            match key {
+                "SEQ" if matches!(protocol, Protocol::Icmp | Protocol::Rtp) => {
+                    self.check_bound("seq", val as u64, 0, 65535, span);
+                }
+                "ICMP_ID" if protocol == Protocol::Radius => {
+                    self.check_bound("RADIUS id", val as u64, 0, 255, span);
+                }
+                "VRID" if protocol == Protocol::Vrrp => {
+                    self.check_bound("VRRP vrid", val as u64, 1, 255, span);
+                }
+                "TXID" if matches!(protocol, Protocol::Dns | Protocol::Mdns | Protocol::Modbus) => {
+                    self.check_bound("txid", val as u64, 0, 65535, span);
+                }
+                "CODE" if protocol == Protocol::Icmp => {
+                    self.check_bound("ICMP code", val as u64, 0, 255, span);
+                }
+                "CODE" if matches!(protocol, Protocol::Ftp | Protocol::Smtp) => {
+                    self.check_bound("code", val as u64, 0, 65535, span);
+                }
+                "MSGID" if protocol == Protocol::Coap => {
+                    self.check_bound("CoAP msgid", val as u64, 0, 65535, span);
+                }
+                "STATUS" if matches!(protocol, Protocol::Http | Protocol::Sip | Protocol::Rtsp) => {
+                    self.check_bound("status", val as u64, 0, 65535, span);
+                }
+                "FLAGS" if matches!(protocol, Protocol::Stp | Protocol::Ikev2 | Protocol::Tacacs) =>
+                {
+                    self.check_bound("flags", val as u64, 0, 255, span);
+                }
+                "VALUE" if protocol == Protocol::Modbus => {
+                    self.check_bound("Modbus value", val as u64, 0, 65535, span);
+                }
+                _ => {}
+            }
+        }
+
+        let pcp = self.pcp_val.map(|(p, _)| p);
+        let dei = self.dei_val.map(|(d, _)| d);
         let vlan = self.vlan_val.map(|(v, _)| VlanSpec {
             vid: v as u16,
-            pcp: self.pcp_val.map(|(p, _)| p),
-            dei: self.dei_val.map(|(d, _)| d),
+            pcp,
+            dei,
         });
         let qinq = self.qinq_val.map(|(v, _)| QinqSpec {
             outer_vid: v,
             inner_vid: self.inner_vlan_val.map(|(iv, _)| iv),
+            pcp,
+            dei,
         });
+        let exp = self.exp_val.map(|(e, _)| e);
+        let bos = self.bos_val.map(|(b, _)| b);
         let mpls = self.mpls_val.map(|(lbl, _)| MplsSpec {
             label: lbl,
-            exp: self.exp_val.map(|(e, _)| e),
-            bos: self.bos_val.map(|(b, _)| b),
+            exp,
+            bos,
             ttl: self.mpls_ttl_val.map(|(t, _)| t),
         });
         let l2 = L2Modifiers {
@@ -198,8 +263,17 @@ impl<'a> FrameBuilder<'a> {
                 tpa: self.tpa,
                 _marker: core::marker::PhantomData,
             })),
-            Protocol::Vlan => Some(ProtocolSpec::Vlan(vlan.unwrap_or_default())),
-            Protocol::Qinq => Some(ProtocolSpec::Qinq(qinq.unwrap_or_default())),
+            Protocol::Vlan => Some(ProtocolSpec::Vlan(vlan.unwrap_or(VlanSpec {
+                vid: 1,
+                pcp,
+                dei,
+            }))),
+            Protocol::Qinq => Some(ProtocolSpec::Qinq(qinq.unwrap_or(QinqSpec {
+                outer_vid: 1,
+                inner_vid: self.inner_vlan_val.map(|(iv, _)| iv),
+                pcp,
+                dei,
+            }))),
             Protocol::Mpls => Some(ProtocolSpec::Mpls(mpls.unwrap_or_default())),
             Protocol::Lldp => Some(ProtocolSpec::Lldp(LldpSpec {
                 chassis_id: self.chassis_id,
@@ -320,7 +394,7 @@ impl<'a> FrameBuilder<'a> {
                 exchange: self.ike_exchange,
                 msgid: self.ike_msgid,
                 flags: self.ike_flags,
-                next_payload: self.next_payload,
+                next_payload: self.next_payload.or(self.next_header_val),
                 _marker: core::marker::PhantomData,
             })),
             Protocol::Wireguard => Some(ProtocolSpec::Wireguard(WireguardSpec {
@@ -336,13 +410,13 @@ impl<'a> FrameBuilder<'a> {
                 area_id: self.area_id_val,
                 hello_interval: self.hello_interval,
                 dead_interval: self.dead_interval,
-                priority: self.priority_val.map(|p| p as u8),
+                priority: self.priority_val.map(|(p, _)| p as u8),
                 _marker: core::marker::PhantomData,
             })),
             Protocol::Bgp => Some(ProtocolSpec::Bgp(BgpSpec {
                 bgp_type: self.bgp_type,
                 asn: self.asn_val,
-                holdtime: self.holdtime_val,
+                holdtime: self.holdtime_val.map(|(h, _)| h),
                 bgpid: self.bgpid_ip,
                 prefix: self.prefix_str,
                 nexthop: self.nexthop_ip,
@@ -357,7 +431,7 @@ impl<'a> FrameBuilder<'a> {
             })),
             Protocol::Vrrp => Some(ProtocolSpec::Vrrp(VrrpSpec {
                 vrid: self.vrid_val,
-                priority: self.priority_val.map(|p| p as u8),
+                priority: self.priority_val.map(|(p, _)| p as u8),
                 adv_int: self.adv_int_val,
                 vip: self.vip_ip,
                 version: self.version_byte,
@@ -365,12 +439,12 @@ impl<'a> FrameBuilder<'a> {
             })),
             Protocol::Hsrp => Some(ProtocolSpec::Hsrp(HsrpSpec {
                 group: self.hsrp_group,
-                priority: self.priority_val.map(|p| p as u8),
+                priority: self.priority_val.map(|(p, _)| p as u8),
                 state: self.hsrp_state,
                 auth: self.hsrp_auth,
                 vip: self.vip_ip,
                 hellotime: self.hsrp_hellotime,
-                holdtime: self.holdtime_val.map(|h| h as u8),
+                holdtime: self.holdtime_val.map(|(h, _)| h as u8),
             })),
             Protocol::Pim => Some(ProtocolSpec::Pim(PimSpec {
                 is_hello: self.pim_is_hello,
@@ -379,7 +453,7 @@ impl<'a> FrameBuilder<'a> {
                 group: self.group_ip,
                 source: self.pim_source,
                 rp: self.pim_rp,
-                holdtime: self.holdtime_val,
+                holdtime: self.holdtime_val.map(|(h, _)| h),
                 dr_priority: self.pim_dr_priority,
                 _marker: core::marker::PhantomData,
             })),
@@ -464,6 +538,7 @@ impl<'a> FrameBuilder<'a> {
             l3,
             l4,
             payload: self.payload,
+            payload_bytes: self.payload_bytes,
             hex_payload: self.hex_payload,
             wait: self.wait,
             span: statement_span,
@@ -474,6 +549,8 @@ impl<'a> FrameBuilder<'a> {
             raw_flowlabel: self.flowlabel_val,
             raw_gentrap_span: self.gentrap_span,
             raw_hellotime: self.raw_hellotime,
+            raw_bounds: self.raw_bounds,
+            raw_nop_span: self.raw_nop_span,
             duplicate_modifiers: self.duplicate_modifiers,
             src_port: self.src_port,
             dst_port: self.dst_port,

@@ -2,9 +2,13 @@
 
 [← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)
 
-Layer 2 problems have a talent for happening on the one switch nobody labeled. A forgotten desk switch with a default priority and a lower MAC address wins the Root Bridge election, and the whole floor discovers the 1990s. A laptop NIC quietly strips the 802.1Q tag before `tcpdump` ever sees it, so the capture says the trunk is fine while the trunk is, in fact, not fine. A port-channel sits in `Suspended` and the only clue is an 8-bit state byte.
+Layer 2 problems have a talent for happening on the one switch nobody labeled. A forgotten desk switch with a default priority and a lower MAC address wins the Root Bridge election, and
+the whole floor discovers the 1990s. A laptop NIC quietly strips the 802.1Q tag before `tcpdump` ever sees it, so the capture says the trunk is fine while the trunk is, in fact, not
+fine. A port-channel sits in `Suspended` and the only clue is an 8-bit state byte.
 
-You can reproduce all of this on your desk. Write the frame as `.frasm` code, compile it with `frameassembly l2_test.frasm`, and replay `l2_test.pcap` onto a trunk with `tcpreplay`. Or go the other way: `frameassembly reverse trace.pcap` turns a capture from a misbehaving switch into `.frasm` code you can edit and replay. Leave out the optional fields and FrameAssembly fills in the Ethernet II or 802.3 LLC header, the right multicast MAC, and every mandatory TLV.
+You can reproduce all of this on your desk. Write the frame as `.frasm` code, compile it with `frameassembly l2_test.frasm`, and replay `l2_test.pcap` onto a trunk with `tcpreplay`.
+Or go the other way: `frameassembly reverse trace.pcap` turns a capture from a misbehaving switch into `.frasm` code you can edit and replay. Leave out the optional fields and
+FrameAssembly fills in the Ethernet II or 802.3 LLC header, the right multicast MAC, and every mandatory TLV.
 
 | Protocol | Keyword | Standard | Framing / EtherType | Default Destination MAC |
 | :--- | :--- | :--- | :--- | :--- |
@@ -21,7 +25,8 @@ You can reproduce all of this on your desk. Write the frame as `.frasm` code, co
 
 ## 1. Ethernet MAC Overrides Without Making Your Switch Panic
 
-Every statement in FrameAssembly, whether it is an `arp` request or a `modbus` write, rides inside an Ethernet frame. Three modifiers work on any statement and let you rewrite that outer header: spoof a source MAC, force a broadcast destination, or pick an EtherType the IEEE never imagined.
+Every statement in FrameAssembly, whether it is an `arp` request or a `modbus` write, rides inside an Ethernet frame. Three modifiers work on any statement and let you rewrite that
+outer header: spoof a source MAC, force a broadcast destination, or pick an EtherType the IEEE never imagined.
 
 When you leave them out, FrameAssembly picks the wire MAC for you in this order:
 
@@ -31,9 +36,10 @@ When you leave them out, FrameAssembly picks the wire MAC for you in this order:
 | **2. Protocol control group** | `lldp`, `stp`, `lacp`, `eapol`, `arp request` | Host `mac` (or default unicast) | IEEE 802.1D multicast (`01:80:c2:00:00:xx`) or broadcast |
 | **3. Multicast target IP** | Destination is IPv4 `224.0.0.0/4` or IPv6 `ff00::/8` | Host `mac` (or default unicast) | RFC 1112 `01:00:5e:xx:xx:xx` (IPv4) or RFC 2464 `33:33:xx:xx:xx:xx` (IPv6) |
 | **4. Host declaration** | `host <id> { ip <ip> mac <mac> }` | Sending host's `mac` | Receiving host's `mac` |
-| **5. Unicast fallback** | Host `mac` omitted on a unicast IP | `00:00:00:00:00:01` forward, `00:00:00:00:00:02` reverse | `00:00:00:00:00:02` forward, `00:00:00:00:00:01` reverse |
+| **5. Unicast fallback** | Host `mac` omitted on a unicast IP | `00:00:00:00:00:01`, `:02`, ... in `host` declaration order | Receiving host's declaration-order `00:00:00:00:00:xx` MAC |
 
-The fallback in row 5 is direction-aware on purpose. Forward and reverse statements swap the two default MACs, so a capture replayed through a real switch looks like two stations talking instead of one MAC-address shape-shifter. Your CAM table stays quiet and nobody opens a MAC-flap ticket about your lab.
+The fallback in row 5 assigns each `host` block its own unicast MAC (`00:00:00:00:00:01` for the first host, `00:00:00:00:00:02` for the second, and so on). Forward and reverse
+frames keep each station's MAC attached to that station, so your switch CAM table stays quiet during `tcpreplay` even in multi-host topologies.
 
 ```frameassembly
 host sensor_a { ip 10.10.1.10 mac 00:1b:21:aa:bb:01 }
@@ -78,7 +84,9 @@ compile {
 
 ## 2. Gratuitous `arp` Failover & Dynamic ARP Inspection Probes
 
-A firewall pair fails over, the standby grabs the gateway VIP, and half the subnet keeps sending traffic to the dead unit's MAC for the next four minutes. The cause is almost always a Gratuitous ARP that was lost, rate-limited, or filtered by Dynamic ARP Inspection (`DAI`). With `arp` you can send the exact announcement, watch whether DAI drops it, and do it without pulling a cable out of a production firewall.
+A firewall pair fails over, the standby grabs the gateway VIP, and half the subnet keeps sending traffic to the dead unit's MAC for the next four minutes. The cause is almost always a
+Gratuitous ARP that was lost, rate-limited, or filtered by Dynamic ARP Inspection (`DAI`). With `arp` you can send the exact announcement, watch whether DAI drops it, and do it without
+pulling a cable out of a production firewall.
 
 **Wire behavior over IPv4 (`0x0806`):** a 28-byte ARP header (`HTYPE 1`, `PTYPE 0x0800`, `HLEN 6`, `PLEN 4`).
 
@@ -86,7 +94,9 @@ A firewall pair fails over, the standby grabs the gateway VIP, and half the subn
 * `arp reply`: Opcode `2`, destination is the target host's unicast MAC, `tha` is the target's MAC.
 * `gratuitous` (or `garp`): `tpa` equals `spa`, `tha` zeroed.
 
-**Wire behavior over IPv6 (`0x86DD`):** run the same `arp` flow with IPv6 hosts and FrameAssembly emits RFC 4861 ICMPv6 Neighbor Discovery with Hop Limit `255`. A request becomes a Neighbor Solicitation (Type `135`, Source Link-Layer Address option) sent to the solicited-node multicast address and MAC `33:33:ff:xx:xx:xx`. A reply becomes a Neighbor Advertisement (Type `136`, Solicited + Override `0x60`, Target Link-Layer Address option).
+**Wire behavior over IPv6 (`0x86DD`):** run the same `arp` flow with IPv6 hosts and FrameAssembly emits RFC 4861 ICMPv6 Neighbor Discovery with Hop Limit `255`. A request becomes a
+Neighbor Solicitation (Type `135`, Source Link-Layer Address option) sent to the solicited-node multicast address and MAC `33:33:ff:xx:xx:xx`. A reply becomes a Neighbor Advertisement
+(Type `136`, Solicited + Override `0x60`, Target Link-Layer Address option).
 
 Gateway resolution plus an RFC 5227 duplicate address probe (sender IP `0.0.0.0`):
 
@@ -161,14 +171,18 @@ $ tshark -r arp_test.pcap -Y "arp or icmpv6" -T fields -e frame.number -e eth.sr
 
 ## 3. Trunking: `vlan`, `qinq` & `mpls` Label Stacks
 
-The trunk looks healthy until the carrier's S-tag meets your customer's C-tag and the MTU math goes sideways. Or the voice VLAN arrives with `pcp 0` because one policy map forgot a class. Or a provider-edge router needs MPLS labels, and you would rather not build a BGP label-distribution lab just to see four bytes of shim header.
+The trunk looks healthy until the carrier's S-tag meets your customer's C-tag and the MTU math goes sideways. Or the voice VLAN arrives with `pcp 0` because one policy map forgot a
+class. Or a provider-edge router needs MPLS labels, and you would rather not build a BGP label-distribution lab just to see four bytes of shim header.
 
 `vlan`, `qinq`, and `mpls` each work two ways:
 
-1. **As a modifier on any statement.** Put `vlan <vid>`, `qinq <svid> innervlan <cvid>`, or `mpls <label>` in front of `arp`, `stp`, `ospf`, `bgp`, `tcp`, `udp`, `http`, `sip`, `modbus`, or anything else, and the tags are inserted ahead of the inner packet. They stack: `vlan` or `qinq` outside, `mpls` inside.
-2. **As a standalone statement.** A statement that is only `vlan 100`, `qinq 2000 innervlan 100`, or `mpls 16001`, with no upper-layer keyword, emits a tagged frame carrying a default IP + UDP packet, or raw bytes if you add `payload` or `hexpayload`.
+1. **As a modifier on any statement.** Put `vlan <vid>`, `qinq <svid> innervlan <cvid>`, or `mpls <label>` in front of `arp`, `stp`, `ospf`, `bgp`, `tcp`, `udp`, `http`, `sip`
+   , `modbus`, or anything else, and the tags are inserted ahead of the inner packet. They stack: `vlan` or `qinq` outside, `mpls` inside.
+2. **As a standalone statement.** A statement that is only `vlan 100`, `qinq 2000 pcp 5 innervlan 100`, or `mpls 16001`, with no upper-layer keyword, emits a tagged frame carrying a default
+   payload (or raw bytes if you add `payload` or `hexpayload`; standalone `qinq` always writes both the outer `0x88A8` S-Tag and inner `0x8100` C-Tag, defaulting `innervlan` to `1` when omitted).
 
-Two rules the validator enforces: VLAN IDs run `1..4094` (`0` is priority-tagged and `4095` is reserved, so `vlan 0` and `vlan 4095` are rejected), and a statement takes either `qinq` or `vlan`, never both.
+Two rules the validator enforces: 12-bit VLAN IDs (`vlan`, `qinq`, `innervlan`) run `0..4095` (`0` is 802.1p priority-tagged) with `pcp 0..7`, and a statement takes either `qinq` or
+`vlan`, never both.
 
 An 802.1Q trunk carrying three traffic classes (voice, lossless storage, scavenger backup):
 
@@ -246,11 +260,11 @@ $ tshark -r trunk_test.pcap -T fields -e frame.number -e eth.type -e vlan.id -e 
 
 | Protocol | Modifier | Syntax & Aliases | Range | Wire Field | Default |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `vlan` | **VLAN ID** | `vlan <1..4094>` | `1..4094` | 802.1Q tag, `TPID 0x8100`, 12-bit VID | `1` (bare `vlan`) |
-| `vlan` / `qinq` | **Priority (CoS)** | `pcp <0..7>` | `0..7` | 3-bit 802.1p Priority Code Point in the TCI | `0` |
+| `vlan` | **VLAN ID** | `vlan <0..4095>` | `0..4095` | 802.1Q tag, `TPID 0x8100`, 12-bit VID (`0` = priority-tagged) | `1` (bare `vlan`) |
+| `vlan` / `qinq` | **Priority (CoS)** | `pcp <0..7>` | `0..7` | 3-bit 802.1p Priority Code Point in the outer TCI | `0` |
 | `vlan` / `qinq` | **Drop Eligible** | `dei <0..1>` | `0..1` | 1-bit DEI (`1` = drop first under congestion) | `0` |
-| `qinq` | **Outer service VLAN** | `qinq <1..4094>` | `1..4094` | 802.1ad S-Tag, `TPID 0x88A8` | `1` (bare `qinq`) |
-| `qinq` | **Inner customer VLAN** | `innervlan <1..4094>` | `1..4094` | 802.1Q C-Tag, `TPID 0x8100`, inside `qinq` | `2` (standalone) |
+| `qinq` | **Outer service VLAN** | `qinq <0..4095>` | `0..4095` | 802.1ad S-Tag, `TPID 0x88A8` | `1` (bare `qinq`) |
+| `qinq` | **Inner customer VLAN** | `innervlan <0..4095>` | `0..4095` | 802.1Q C-Tag, `TPID 0x8100`, inside `qinq` | `1` |
 | `mpls` | **Label** | `mpls <0..1048575>` or `label <0..1048575>` | `0..1048575` | 20-bit label (`0` IPv4 Explicit Null, `2` IPv6 Explicit Null, `3` Implicit Null, `16+` L3VPN / SR-MPLS) | `0` |
 | `mpls` | **Traffic Class** | `exp <0..7>` or `tc <0..7>` | `0..7` | 3-bit RFC 5462 Traffic Class | `0` |
 | `mpls` | **Bottom of Stack** | `bos <0\|1>` | `0..1` | `1` = last label before the IP header | `1` |
@@ -275,7 +289,8 @@ Three protocols that all run silently until the day they do not.
 
 ### Rogue switches vs. `stp`
 
-`stp` emits classic 802.1D Configuration BPDUs or 802.1w Rapid Spanning Tree (`rstp`) BPDUs. Use it to check that access ports with **BPDU Guard** or **Root Guard** err-disable the moment a rogue switch injects a superior BPDU, instead of learning that the hard way when somebody plugs in a "temporary" switch under a desk.
+`stp` emits classic 802.1D Configuration BPDUs or 802.1w Rapid Spanning Tree (`rstp`) BPDUs. Use it to check that access ports with **BPDU Guard** or **Root Guard** err-disable the
+moment a rogue switch injects a superior BPDU, instead of learning that the hard way when somebody plugs in a "temporary" switch under a desk.
 
 * **Framing:** 802.3 length frame to the Bridge Group MAC `01:80:c2:00:00:00` with a 3-byte 802.2 LLC header (`DSAP 0x42`, `SSAP 0x42`, `Control 0x03`).
 * **Classic BPDU:** 35 bytes (`Version 0`, `Type 0x00`). **RSTP BPDU:** 36 bytes (`Version 2`, `Type 0x02`, trailing `Version 1 Length 0x00`).
@@ -314,7 +329,8 @@ flow rstp_handshake(root, dist) {
 compile { rstp_handshake(core_root, dist_sw) }
 ```
 
-`rootid` and `bridgeid` accept `"<priority>/<mac>"` (decimal `"4096/..."` or hex `"0x1000/..."`), a bare MAC string (priority defaults to `32768`), or a 16-character hex string. As with every FrameAssembly keyword, write them in lowercase with no underscores.
+`rootid` and `bridgeid` accept `"<priority>/<mac>"` (decimal `"4096/..."` or hex `"0x1000/..."`), a bare MAC string (priority defaults to `32768`), or a 16-character hex string. As
+with every FrameAssembly keyword, write them in lowercase with no underscores.
 
 | Bit(s) | Mask | Flag / Role | Common Composite `flags` |
 | :--- | :--- | :--- | :--- |
@@ -328,7 +344,8 @@ compile { rstp_handshake(core_root, dist_sw) }
 
 ### Mis-cabled neighbors vs. `lldp`
 
-Chasing a mis-patched leaf-spine port, or checking how NetBox, `lldpd`, or a phone provisioning script parses a neighbor advertisement, usually needs a live switch at the other end of the cable. `lldp` produces the advertisement directly.
+Chasing a mis-patched leaf-spine port, or checking how NetBox, `lldpd`, or a phone provisioning script parses a neighbor advertisement, usually needs a live switch at the other end of
+the cable. `lldp` produces the advertisement directly.
 
 * **Framing:** Ethernet II (`0x88CC`) to the Nearest Bridge multicast `01:80:c2:00:00:0e`.
 * **Always emitted:** Chassis ID (TLV 1, subtype `4` MAC, defaults to the host MAC), Port ID (TLV 2, subtype `5` interface name, defaults to `"eth0"`), TTL (TLV 3, defaults to `120`).
@@ -358,7 +375,9 @@ $ tshark -r lldp_test.pcap -Y "lldp" -V
 
 ### Port-channels stuck in `Suspended` vs. `lacp`
 
-Anyone who has stared at a member port stuck in `Individual` or `Suspended` knows it comes down to the 8-bit Actor and Partner state bytes. `lacp` builds the full 110-byte LACPDU over Slow Protocols (`0x8809`, destination `01:80:c2:00:00:02`): Actor TLV (Type 1, Length 20), Partner TLV (Type 2, Length 20), Collector (Type 3, Length 16), Terminator (Type 0), plus the 50-byte zero pad. You replay a bundle bring-up without a second switch.
+Anyone who has stared at a member port stuck in `Individual` or `Suspended` knows it comes down to the 8-bit Actor and Partner state bytes. `lacp` builds the full 110-byte LACPDU over
+Slow Protocols (`0x8809`, destination `01:80:c2:00:00:02`): Actor TLV (Type 1, Length 20), Partner TLV (Type 2, Length 20), Collector (Type 3, Length 16), Terminator (Type 0), plus the
+50-byte zero pad. You replay a bundle bring-up without a second switch.
 
 ```frameassembly
 host tor_sw   { ip 10.0.2.1 mac 00:1c:73:11:22:33 }
@@ -423,7 +442,9 @@ Common values: `0x47` unbundled and defaulted, `0x3d` healthy slow-timer bundle 
 
 ## 5. `eapol` 802.1X Tests Without Locking Yourself Out
 
-Debugging why an IoT supplicant failed EAP-TLS usually means wrestling `wpa_supplicant` certificates against a live RADIUS or ISE lab, and the one test port you own is the one that just blocked you. `eapol` (`0x888E`, destination `01:80:c2:00:00:03`) lets you script the whole conversation between a **Supplicant** and an **Authenticator**: `EAPOL-Start`, Identity, EAP-TLS challenge, `EAP-Success`, `EAPOL-Logoff`. Send it as a capture, replay it at the NAC, and read the verdict in the switch logs.
+Debugging why an IoT supplicant failed EAP-TLS usually means wrestling `wpa_supplicant` certificates against a live RADIUS or ISE lab, and the one test port you own is the one that just
+blocked you. `eapol` (`0x888E`, destination `01:80:c2:00:00:03`) lets you script the whole conversation between a **Supplicant** and an **Authenticator**: `EAPOL-Start`, Identity,
+EAP-TLS challenge, `EAP-Success`, `EAPOL-Logoff`. Send it as a capture, replay it at the NAC, and read the verdict in the switch logs.
 
 * **4-byte EAPOL header:** `Protocol Version` (default `1`), `Packet Type` (`0` eappacket, `1` start, `2` logoff, `3` key), 16-bit `Body Length`.
 * **EAP Request / Response (`eapcode 1` / `2`):** `Code | Identifier | Length | Type`, then the `identity` string and any `payload` / `hexpayload`.

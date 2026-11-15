@@ -1,18 +1,16 @@
-// PROMPT: AMQP 0-9-1 connection initialization protocol header handshake.
-// TOKENS: host, ip, flow, s, amqp, protocolheader, compile
+// AMQP 0-9-1 connection initialization protocol header handshake.
+// Wireshark: amqp
+// Automatic Ethernet MAC addresses and TCP port 5672 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow amqp_hdr(c, s) {
     c -> s amqp protocolheader
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     amqp_hdr(client, server)
 }

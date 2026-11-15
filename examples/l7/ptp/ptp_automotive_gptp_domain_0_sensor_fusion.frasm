@@ -1,25 +1,27 @@
-// PROMPT: Simulate an automotive Ethernet LiDAR/camera sensor fusion PTPv2 synchronization exchange on VLAN 10.
-// TOKENS: host, ip, mac, flow, ptp, sync, domain, seqid, clockid, vlan, pcp, wait, ms, followup, compile
+// Simulate an automotive Ethernet LiDAR/camera sensor fusion PTPv2
+// synchronization exchange on VLAN 10.
+// Encapsulation and QoS markings: 802.1Q VLAN 10, 802.1p priority 6.
+// IEEE 1588v2 PTP (messages: sync, followup; domain 0). UDP 319 handles Event
+// messages (sync, delayreq) and UDP 320 carries General messages (announce,
+// followup, delayresp).
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: ptp && vlan.id == 10
 
-// INSTRUCTION: Define the IEEE 1588v2 PTP Grandmaster clock endpoint.
 host ptp_grandmaster {
     ip 10.10.31.1
     mac 00:1b:21:31:90:01
 }
 
-// INSTRUCTION: Define the IEEE 1588v2 PTP Ordinary or Boundary slave clock endpoint.
 host ptp_slave_clock {
     ip 10.10.31.14
     mac 00:1b:21:31:90:25
 }
 
-// INSTRUCTION: Execute the IEEE 1588v2 Precision Time Protocol message exchange.
 flow ptp_scenario_flow(gm, slv) {
     gm -> slv ptp sync domain 0 seqid 550 clockid "001c42fffe310001" vlan 10 pcp 6 wait 1ms
     gm -> slv ptp followup domain 0 seqid 550 clockid "001c42fffe310001" vlan 10 pcp 6
 }
 
-// INSTRUCTION: Compile the PTPv2 timing synchronization flow into a PCAP file.
 compile {
     ptp_scenario_flow(ptp_grandmaster, ptp_slave_clock)
 }

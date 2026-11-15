@@ -1,18 +1,16 @@
-// PROMPT: IPv6 site-local DHCPv6 server multicast transmission to ff05::1:3 deriving RFC 2464 MAC.
-// TOKENS: host, ip, flow, src, dst, udp, srcport, dstport, payload, compile
+// IPv6 site-local DHCPv6 server multicast transmission to ff05::1:3 deriving RFC
+// 2464 MAC.
+// Wire profile: 1 frame; 2 IPv6 hosts; UDP; dstport 547.
+// Wireshark: udp.port == 547
 
-// INSTRUCTION: Define DHCPv6 relay agent.
 host relay_agent { ip 2001:db8:1::1 }
 
-// INSTRUCTION: Define site-local DHCPv6 server multicast group.
 host dhcp_servers { ip ff05::1:3 }
 
-// INSTRUCTION: Define relay-forward UDP flow on port 547.
 flow dhcp_relay_flow(src, dst) {
     src -> dst udp srcport 547 dstport 547 payload "relay_forward"
 }
 
-// INSTRUCTION: Compile block executing DHCPv6 relay multicast.
 compile {
     dhcp_relay_flow(relay_agent, dhcp_servers)
 }

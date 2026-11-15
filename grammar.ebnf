@@ -1,9 +1,9 @@
 (* ========================================================================= *)
 (* FrameAssembly Formal Grammar Specification (ISO/IEC 14977 EBNF)           *)
-(* Covers all 81 native protocols, L2-L7 sub-keywords, modifiers & literals. *)
-(* Synchronized with src/lexer/mod.rs and src/parser/                        *)
-(* Note: FrameAssembly v3.0.0 (.frasm) enforces strict-lowercase alphanumeric  *)
-(* syntax without '_' or '-' on all built-in keywords, protocols, modifiers & units.*)
+(* Version: 3.1.0 — Strict-lowercase [a-z0-9]+ built-in keywords, optional   *)
+(* flow blocks (2-block host + compile or reusable flow templates), and all  *)
+(* 81 native Layer 2 through Layer 7 protocols, modifiers, and literals.     *)
+(* Synchronized 1:1 with src/lexer/mod.rs and src/parser/.                   *)
 (* ========================================================================= *)
 
 program                 = { top_level_decl } , compile_block , { top_level_decl } ;
@@ -11,31 +11,32 @@ program                 = { top_level_decl } , compile_block , { top_level_decl 
 top_level_decl          = host_declaration | flow_declaration ;
 
 (* ------------------------------------------------------------------------- *)
-(* 1. Host Declarations (at least one IP or MAC property in any order)       *)
+(* 1. Host Declarations (at least one ip or mac property in any order)       *)
 (* ------------------------------------------------------------------------- *)
-host_declaration        = "host" , identifier , "{" , host_property , { host_property } , "}" ;
+host_declaration        = "host" , ident_or_kw , "{" , host_property , { host_property } , "}" ;
 host_property           = ( "ip" , ip_address )
                         | ( "mac" , mac_address ) ;
 
 (* ------------------------------------------------------------------------- *)
-(* 2. Flow Declarations & Frame Statements (FLOW blocks are optional when    *)
-(*    COMPILE contains inline frame_statement entries)                       *)
+(* 2. Optional Flow Declarations & Frame Statements                          *)
+(*    Minimal 2-block programs use only host + compile; flow blocks define   *)
+(*    optional reusable packet sequences parameterized over endpoints.       *)
 (* ------------------------------------------------------------------------- *)
-flow_declaration        = "flow" , identifier , "(" , [ param_list ] , ")" ,
+flow_declaration        = "flow" , ident_or_kw , "(" , [ param_list ] , ")" ,
                           "{" , { frame_statement } , "}" ;
-param_list              = identifier , { "," , identifier } ;
+param_list              = ident_or_kw , { "," , ident_or_kw } ;
 
 frame_statement         = endpoint , direction , endpoint , { frame_field } ;
-endpoint                = identifier ;
+endpoint                = ident_or_kw ;
 direction               = "->" | "<-" ;
 
 (* ------------------------------------------------------------------------- *)
-(* 3. Compilation Block & Inline Frame Statements                            *)
+(* 3. Compilation Block (inline frame_statement or flow_invocation)          *)
 (* ------------------------------------------------------------------------- *)
 compile_block           = "compile" , "{" , { run_statement } , "}" ;
 run_statement           = flow_invocation | frame_statement ;
-flow_invocation         = identifier , "(" , [ arg_list ] , ")" ;
-arg_list                = identifier , { "," , identifier } ;
+flow_invocation         = ident_or_kw , "(" , [ arg_list ] , ")" ;
+arg_list                = ident_or_kw , { "," , ident_or_kw } ;
 
 (* ------------------------------------------------------------------------- *)
 (* 4. Frame Fields (Protocols, Modifiers & Protocol-Specific Attributes)     *)
@@ -164,8 +165,8 @@ lldp_field              = ( "chassisid" , str_or_ident )
                         | ( "sysname" , str_or_ident )
                         | ( "sysdesc" , str_or_ident ) ;
 
-stp_field               = ( "rootid" , str_or_ident )
-                        | ( "bridgeid" , str_or_ident )
+stp_field               = ( "rootid" , any_str )
+                        | ( "bridgeid" , any_str )
                         | ( "cost" , unsigned_int )
                         | ( "maxage" , unsigned_int )
                         | ( "hellotime" , unsigned_int )
@@ -182,9 +183,9 @@ lacp_field              = ( "actorsys" , ( mac_address | string_literal ) )
                         | ( "actorstate" , unsigned_int )
                         | ( "partnerstate" , unsigned_int ) ;
 
-eapol_field             = ( "version" , ( unsigned_int | str_or_ident ) )
+eapol_field             = ( "version" , any_str )
                         | ( "type" , ( unsigned_int | eapol_pkt_type | wireguard_pkt_type
-                                     | openflow_pkt_type | tacacs_pkt_type | str_or_ident ) )
+                                     | openflow_pkt_type | tacacs_pkt_type | any_str ) )
                         | eapol_pkt_type
                         | ( "eapcode" , unsigned_int )
                         | ( "eapid" , unsigned_int )
@@ -209,7 +210,7 @@ l3_protocol_field       = icmp_field | ndp_field | igmp_field | mld_field
 
 icmp_field              = "echorequest" | "echoreply" | "destunreach"
                         | "timeexceeded" | "redirect"
-                        | ( "code" , ( unsigned_int | str_or_ident ) )
+                        | ( "code" , any_str )
                         | ( "id" , unsigned_int )
                         | ( "gateway" , ip_address ) ;
 
@@ -248,9 +249,9 @@ ikev2_field             = ( "initiatorspi" , ( unsigned_int | hex_string_literal
                         | ( "exchange" , ( unsigned_int | ikev2_exchange_mode | str_or_ident ) )
                         | ikev2_exchange_mode
                         | ( "msgid" , ( unsigned_int | str_or_ident ) )
-                        | ( "nextpayload" , unsigned_int ) ;
+                        | ( ( "nextpayload" | "nextheader" ) , unsigned_int ) ;
 
-ikev2_exchange_mode     = "sainit" | "createchildsa" | "informational" ;
+ikev2_exchange_mode     = "sainit" | "auth" | "createchildsa" | "informational" ;
 
 wireguard_field         = "initiation"
                         | ( "cookie" , [ str_or_ident ] )
@@ -271,7 +272,7 @@ bgp_field               = "open" | "update" | "notification"
                         | ( "asn" , unsigned_int )
                         | ( "holdtime" , unsigned_int )
                         | ( "bgpid" , ip_address )
-                        | ( ( "prefix" | "nlri" ) , ( ip_address | str_or_ident ) )
+                        | ( ( "prefix" | "nlri" ) , any_str )
                         | ( "nexthop" , ip_address ) ;
 
 rip_field               = ( "command" , ( unsigned_int | str_or_ident ) )
@@ -312,7 +313,7 @@ l4_protocol_field       = ( "vtag" , unsigned_int )
                         | ( "ssn" , unsigned_int )
                         | ( "ppid" , unsigned_int )
                         | ( "tsn" , unsigned_int )
-                        | ( "chunk" , ( sctp_chunk_flag | unsigned_int | str_or_ident ) )
+                        | ( "chunk" , ( sctp_chunk_flag | any_str ) )
                         | sctp_chunk_flag ;
 
 sctp_chunk_flag         = "data" | "init" | "initack" | "sack"
@@ -381,9 +382,9 @@ l7_protocol_field       = l7_dns_dhcp_field
                         | l7_industrial_ot_field ;
 
 l7_dns_dhcp_field       = ( "txid" , ( unsigned_int | str_or_ident ) )
-                        | ( "qname" , str_or_ident )
-                        | ( "qtype" , ( unsigned_int | str_or_ident ) )
-                        | ( "rdata" , str_or_ident )
+                        | ( "qname" , any_str )
+                        | ( "qtype" , any_str )
+                        | ( "rdata" , any_str )
                         | ( "rcode" , unsigned_int )
                         | ( "ansttl" , unsigned_int )
                         | "discover" | "solicit" | "offer" | "advertise" | "release"
@@ -399,17 +400,17 @@ l7_dns_dhcp_field       = ( "txid" , ( unsigned_int | str_or_ident ) )
 
 l7_ntp_ptp_aaa_field    = ( "li" , unsigned_int )
                         | ( "vn" , unsigned_int )
-                        | ( "mode" , ( unsigned_int | str_or_ident ) )
+                        | ( "mode" , any_str )
                         | ( "stratum" , unsigned_int )
                         | ( "poll" , unsigned_int )
                         | ( "precision" , signed_int )
                         | ( "refid" , str_or_ident )
                         | ( "txtimestamp" , unsigned_int )
-                        | ( "msgtype" , ( unsigned_int | str_or_ident ) )
+                        | ( "msgtype" , any_str )
                         | "sync" | "delayreq" | "followup" | "delayresp" | "announce"
-                        | ( "domain" , ( unsigned_int | str_or_ident ) )
+                        | ( "domain" , any_str )
                         | ( "seqid" , unsigned_int )
-                        | ( "clockid" , ( mac_address | str_or_ident ) )
+                        | ( "clockid" , any_str )
                         | "accessrequest" | "accessaccept" | "accessreject"
                         | "accesschallenge" | "accountingrequest" | "accountingresponse"
                         | ( "nasip" , ip_address )
@@ -440,7 +441,7 @@ l7_web_transfer_field   = "rrq" | "wrq" | "error"
                         | ( "block" , unsigned_int )
                         | ( "errcode" , unsigned_int )
                         | ( "errmsg" , str_or_ident )
-                        | ( "cmd" , ( unsigned_int | str_or_ident ) )
+                        | ( "cmd" , any_str )
                         | ( "arg" , str_or_ident )
                         | ( "banner" , str_or_ident )
                         | "kexinit" | "newkeys"
@@ -455,16 +456,16 @@ l7_web_transfer_field   = "rrq" | "wrq" | "error"
                         | ( "hosthdr" , str_or_ident )
                         | ( "useragent" , str_or_ident )
                         | ( "contenttype" , str_or_ident )
-                        | ( "status" , ( unsigned_int | str_or_ident ) )
+                        | ( "status" , any_str )
                         | ( "reason" , str_or_ident )
-                        | ( "header" , string_literal , string_literal )
+                        | ( "header" , str_or_ident , str_or_ident )
                         | ( "body" , str_or_ident )
                         | "preface" | "settings" | "headers" | "windowupdate" | "ping" | "goaway"
                         | ( "streamid" , unsigned_int )
                         | ( "service" , str_or_ident )
-                        | ( "method" , str_or_ident )
+                        | ( "method" , any_str )
                         | ( "grpcstatus" , unsigned_int )
-                        | ( "opcode" , ( unsigned_int | str_or_ident ) )
+                        | ( "opcode" , any_str )
                         | "text" | "binary" | "pong" | "close"
                         | ( "finbit" , unsigned_int )
                         | ( "maskkey" , unsigned_int ) ;
@@ -516,18 +517,18 @@ l7_mail_auth_dir_field  = ( "ehlo" , [ str_or_ident ] )
                         | ( "basedn" , str_or_ident )
                         | ( "filter" , str_or_ident )
                         | ( "resultcode" , unsigned_int )
-                        | ( "command" , str_or_ident )
+                        | ( "command" , any_str )
                         | "negotiate" | "sessionsetup" | "treeconnect"
                         | "create" | "treedisconnect"
                         | ( "treeid" , unsigned_int )
                         | ( "share" , str_or_ident )
                         | ( "vers" , unsigned_int )
-                        | ( "proc" , ( unsigned_int | str_or_ident ) )
+                        | ( "proc" , any_str )
                         | ( "path" , str_or_ident )
                         | "compound" ;
 
 l7_db_cache_mq_field    = ( "args" , str_or_ident )
-                        | ( "replytype" , str_or_ident )
+                        | ( "replytype" , any_str )
                         | ( "key" , ( unsigned_int | str_or_ident ) )
                         | ( "value" , ( unsigned_int | str_or_ident ) )
                         | ( "exptime" , unsigned_int )
@@ -545,7 +546,7 @@ l7_db_cache_mq_field    = ( "args" , str_or_ident )
                         | ( "topic" , str_or_ident )
                         | ( "qos" , unsigned_int )
                         | ( "retain" , [ unsigned_int ] )
-                        | ( "pkttype" , ( unsigned_int | str_or_ident ) )
+                        | ( "pkttype" , any_str )
                         | ( "pktid" , unsigned_int )
                         | ( "returncode" , unsigned_int )
                         | "con" | "non" | "changed" | "created" | "notfound"
@@ -567,7 +568,7 @@ l7_db_cache_mq_field    = ( "args" , str_or_ident )
 
 l7_industrial_ot_field  = ( "protoid" , unsigned_int )
                         | ( "unitid" , unsigned_int )
-                        | ( "func" , ( unsigned_int | str_or_ident ) )
+                        | ( "func" , any_str )
                         | "readcoils" | "readdiscreteinputs"
                         | "readholdingregisters" | "readinputregisters"
                         | "writesinglecoil" | "writesingleregister"
@@ -586,10 +587,10 @@ l7_industrial_ot_field  = ( "protoid" , unsigned_int )
                         | ( "crc" , unsigned_int )
                         | ( "src" , unsigned_int )
                         | ( "dst" , unsigned_int )
-                        | ( "rosctr" , ( unsigned_int | str_or_ident ) )
+                        | ( "rosctr" , any_str )
                         | ( "pduref" , unsigned_int )
                         | "setupcomm" | "readvar" | "writevar" | "plccontrol"
-                        | ( "area" , ( unsigned_int | str_or_ident ) )
+                        | ( "area" , any_str )
                         | ( "dbnum" , unsigned_int )
                         | ( "offset" , unsigned_int )
                         | "nop" | "listservices" | "listidentity" | "listinterfaces"
@@ -601,7 +602,7 @@ l7_industrial_ot_field  = ( "protoid" , unsigned_int )
                         | ( "cipclass" , unsigned_int )
                         | ( "cipinstance" , unsigned_int )
                         | ( "cipattr" , unsigned_int )
-                        | ( "chunktype" , str_or_ident )
+                        | ( "chunktype" , any_str )
                         | ( "securechannelid" , unsigned_int )
                         | ( "tokenid" , unsigned_int )
                         | ( "seqnum" , unsigned_int )
@@ -609,24 +610,29 @@ l7_industrial_ot_field  = ( "protoid" , unsigned_int )
                         | ( "nodeid" , str_or_ident ) ;
 
 (* ------------------------------------------------------------------------- *)
-(* 12. Lexical Terminals                                                     *)
+(* 12. Lexical Terminals (Pure ISO/IEC 14977 EBNF Productions)               *)
 (* ------------------------------------------------------------------------- *)
-str_or_ident            = string_literal | identifier ;
+ident_or_kw             = identifier | protocol_keyword | time_unit
+                        | "host" | "flow" | "compile" | "ip" | "mac" ;
+str_or_ident            = string_literal | ident_or_kw ;
+any_str                 = str_or_ident | signed_int | ip_address | mac_address | oid_literal ;
+
 (* Matches /[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*/ *)
 identifier              = ( letter | "_" ) , { letter | digit | "_" } ,
                           { "-" , ( letter | digit | "_" ) , { letter | digit | "_" } } ;
 unsigned_int            = decimal_int | hex_int ;
-signed_int              = [ "-" ] , decimal_int | hex_int ;
+signed_int              = ( [ "-" ] , decimal_int ) | hex_int ;
 decimal_int             = digit , { digit } ;
 hex_int                 = ( "0x" | "0X" ) , hex_digit , { hex_digit } ;
 duration_literal        = unsigned_int , time_unit ;
 time_unit               = "ns" | "us" | "ms" | "s" | "m" ;
 string_literal          = '"' , { string_char | escape_sequence } , '"' ;
-string_char             = " ".."!" | "#".."[" | "]".."~" ;
+string_char             = ? any UTF-8 character except U+0022 double quote or U+005C backslash ? ;
+backslash_char          = ? U+005C reverse solidus ? ;
 hex_string_literal      = '"' , { hex_digit | ":" | " " } , '"' ;
-escape_sequence         = "\" , ( "r" | "n" | "t" | "\" | '"' | "'"
-                                | ( "x" , hex_digit , hex_digit )
-                                | ( "u" , hex_digit , hex_digit , hex_digit , hex_digit ) ) ;
+escape_sequence         = backslash_char , ( "r" | "n" | "t" | backslash_char | '"' | "'"
+                                           | ( "x" , hex_digit , hex_digit )
+                                           | ( "u" , hex_digit , hex_digit , hex_digit , hex_digit ) ) ;
 mac_address             = ( hex_byte , ":" , hex_byte , ":" , hex_byte , ":" ,
                             hex_byte , ":" , hex_byte , ":" , hex_byte )
                         | ( hex_byte , "-" , hex_byte , "-" , hex_byte , "-" ,
@@ -635,11 +641,20 @@ mac_address             = ( hex_byte , ":" , hex_byte , ":" , hex_byte , ":" ,
 hex_byte                = hex_digit , hex_digit ;
 hex_word                = hex_digit , hex_digit , hex_digit , hex_digit ;
 ip_address              = ipv4_address | ipv6_address ;
-ipv4_address            = decimal_int , "." , decimal_int , "." , decimal_int , "." , decimal_int ;
+ipv4_address            = decimal_int , "." , decimal_int , "." ,
+                          decimal_int , "." , decimal_int ;
 ipv6_address            = ( "::" , { hex_digit | ":" | "." } )
                         | ( hex_digit , [ hex_digit ] , [ hex_digit ] , [ hex_digit ] ,
                             ":" , { hex_digit | ":" | "." } ) ;
-oid_literal             = [ "." ] , decimal_int , { "." , decimal_int } | string_literal ;
-letter                  = "A".."Z" | "a".."z" ;
-digit                   = "0".."9" ;
-hex_digit               = digit | "A".."F" | "a".."f" ;
+oid_literal             = ( [ "." ] , decimal_int , "." , decimal_int , { "." , decimal_int } )
+                        | string_literal ;
+letter                  = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J"
+                        | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T"
+                        | "U" | "V" | "W" | "X" | "Y" | "Z"
+                        | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j"
+                        | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t"
+                        | "u" | "v" | "w" | "x" | "y" | "z" ;
+digit                   = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+hex_digit               = digit
+                        | "A" | "B" | "C" | "D" | "E" | "F"
+                        | "a" | "b" | "c" | "d" | "e" | "f" ;

@@ -1,0 +1,11 @@
+// Minimal 2-block SNMPv3 starter emitting a default USM trap on UDP port 162.
+// Defaults to noAuthNoPriv with user "admin" and engineid "8000000001" without a flow block.
+// Add auth/priv modifiers when testing encrypted SHA-256 + AES traps.
+// Wireshark: snmp
+
+host core_router { ip 10.147.0.1  mac 00:1a:2b:93:00:01 }
+host nms_server  { ip 10.147.0.10 mac 00:1a:2b:93:00:0a }
+
+compile {
+    core_router -> nms_server snmp3
+}

@@ -2,8 +2,8 @@
 //!
 //! This module implements the winnow parser combinator for `ndp` ICMPv6 neighbor and router
 //! discovery frames. It parses message types (`routersolicit`, `routeradvert`,
-//! `neighborsolicit`, `neighboradvert`), target IPv6 addresses (`target`), Source and Target
-//! Link-Layer Address options (`slla`, `tlla`), and router lifetime intervals (`routerlifetime`).
+//! `neighborsolicit`, `neighboradvert`, `redirect`), target IPv6 addresses (`target`),
+//! Source and Target Link-Layer Address options (`slla`, `tlla`), and router lifetime intervals (`routerlifetime`).
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
@@ -26,6 +26,8 @@ pub(crate) fn parse_ndp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Par
                 .map(|(_, s)| ParsedField::NdpType(NdpType::NeighborSolicit, (s.start, s.len()))),
             tag(Token::NeighborAdvert)
                 .map(|(_, s)| ParsedField::NdpType(NdpType::NeighborAdvert, (s.start, s.len()))),
+            tag(Token::Redirect)
+                .map(|(_, s)| ParsedField::NdpType(NdpType::Redirect, (s.start, s.len()))),
         )),
         alt((
             (tag(Token::Target), cut_err(parse_ip))

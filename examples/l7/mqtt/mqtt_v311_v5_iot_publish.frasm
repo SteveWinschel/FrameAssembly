@@ -1,19 +1,19 @@
-// PROMPT: Lightweight IoT telemetry messaging using MQTT CONNECT and PUBLISH on TCP 1883.
-// TOKENS: host, ip, flow, s, mqtt, connect, clientid, publish, topic, compile
+// Lightweight IoT telemetry messaging using MQTT CONNECT and PUBLISH on TCP
+// 1883.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define edge IoT sensor node.
+// Edge IoT sensor node.
 host iot_sensor { ip 192.168.10.50 }
 
-// INSTRUCTION: Define central MQTT message broker.
+// Central MQTT message broker.
 host mqtt_broker { ip 192.168.10.1 }
 
-// INSTRUCTION: Define MQTT telemetry publishing flow.
+// MQTT telemetry publishing flow.
 flow mqtt_flow(s, b) {
     s -> b mqtt connect clientid "sensor-01"
     s -> b mqtt publish topic "factory/temp"
 }
 
-// INSTRUCTION: Compile block executing MQTT publishing.
 compile {
     mqtt_flow(iot_sensor, mqtt_broker)
 }

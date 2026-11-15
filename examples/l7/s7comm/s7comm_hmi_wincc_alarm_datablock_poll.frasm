@@ -1,19 +1,19 @@
-// PROMPT: SIMATIC WinCC SCADA HMI polling alarm bit words from Data Block DB100 (Area 132) on an S7-1500 PLC.
-// TOKENS: host, ip, mac, flow, s7comm, rosctr, pduref, func, area, dbnum, offset, count, wait, ms, hexpayload, compile
+// SIMATIC WinCC SCADA HMI polling alarm bit words from Data Block DB100 (Area
+// 132) on an S7-1500 PLC.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting DB (0x84).
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define the WinCC SCADA runtime server.
 host wincc_server {
     ip 10.130.20.10
     mac 00:1a:2b:82:20:10
 }
 
-// INSTRUCTION: Define the packaging line S7-1500 PLC.
 host pack_plc {
     ip 10.130.20.1
     mac 00:1a:2b:82:20:01
 }
 
-// INSTRUCTION: Read 32 alarm bytes from DB100 (AREA 132, DB_NUM 100, OFFSET 0, COUNT 32) and acknowledge alarm bit.
 flow s7_wincc_alarms(h, p) {
     h -> p s7comm rosctr "job" pduref 300 func "readvar" area 132 dbnum 100 offset 0 count 32
     h <- p s7comm rosctr "ackdata" pduref 300 func "readvar" wait 2ms
@@ -21,7 +21,6 @@ flow s7_wincc_alarms(h, p) {
     h <- p s7comm rosctr "ackdata" pduref 301 func "writevar"
 }
 
-// INSTRUCTION: Compile the WinCC alarm Data Block polling flow.
 compile {
     s7_wincc_alarms(wincc_server, pack_plc)
 }

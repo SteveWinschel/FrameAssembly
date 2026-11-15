@@ -1,18 +1,20 @@
-// PROMPT: ICMP Redirect message (Type 5, Code 1) notifying host of optimal first-hop router.
-// TOKENS: host, ip, flow, icmp, redirect, code, gateway, compile
+// ICMP Redirect message (Type 5, Code 1) notifying host of optimal first-hop
+// router.
+// This capture sends ICMP control and reachability probes with valid
+// checksums.
+// Wireshark: icmp
 
-// INSTRUCTION: Define default gateway advising alternate route.
 host default_first_gw { ip 10.0.0.1 }
 
-// INSTRUCTION: Define local subnet client host.
 host local_client_host { ip 10.0.0.50 }
 
-// INSTRUCTION: Define ICMP Redirect flow specifying better gateway 10.0.0.254.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow icmp_redirect_flow(gw, host) {
     gw -> host icmp redirect code 1 gateway 10.0.0.254
 }
 
-// INSTRUCTION: Compile block executing ICMP Redirect generation.
+// Run icmp_redirect_flow(default_first_gw, local_client_host) to generate the
+// capture.
 compile {
     icmp_redirect_flow(default_first_gw, local_client_host)
 }

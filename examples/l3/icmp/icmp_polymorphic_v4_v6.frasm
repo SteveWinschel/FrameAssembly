@@ -1,25 +1,23 @@
-// PROMPT: Polymorphic ICMP echo request and reply executed across IPv4 (ICMPv4 0x01) and IPv6 (ICMPv6 0x3a).
-// TOKENS: host, ip, flow, icmp, echorequest, echoreply, compile
+// Dual-stack ICMP echo request and reply executed across IPv4 (ICMPv4 0x01)
+// and IPv6 (ICMPv6 0x3a).
+// This capture runs the same exchange over both IPv4 and IPv6 host pairs.
+// Wireshark: icmp || icmpv6
 
-// INSTRUCTION: Define IPv4 ping initiator.
 host ping_v4_a { ip 10.1.1.1 }
 
-// INSTRUCTION: Define IPv4 ping responder.
 host ping_v4_b { ip 10.1.1.2 }
 
-// INSTRUCTION: Define IPv6 ping initiator.
 host ping_v6_a { ip 2001:db8::1 }
 
-// INSTRUCTION: Define IPv6 ping responder.
 host ping_v6_b { ip 2001:db8::2 }
 
-// INSTRUCTION: Define polymorphic ICMP echo transaction flow.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ping_flow(a, b) {
     a -> b icmp echorequest
     a <- b icmp echoreply
 }
 
-// INSTRUCTION: Compile block executing ICMP echo across IPv4 and IPv6 pairs.
+// Run the flow across both the IPv4 and IPv6 host pairs.
 compile {
     ping_flow(ping_v4_a, ping_v4_b)
     ping_flow(ping_v6_a, ping_v6_b)

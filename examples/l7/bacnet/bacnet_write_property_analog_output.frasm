@@ -1,18 +1,20 @@
-// PROMPT: BACnet/IP WriteProperty service setting an Analog Output damper position value.
-// TOKENS: host, ip, flow, bacnet, writeproperty, invokeid, objecttype, objectinstance, propertyid, value, compile
+// BACnet/IP WriteProperty service setting an Analog Output damper position
+// value.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the HVAC supervisory controller.
+// HVAC supervisory controller.
 host hvac_supervisor { ip 10.40.1.10 }
 
-// INSTRUCTION: Define the variable air volume (VAV) damper actuator.
+// Variable air volume (VAV) damper actuator.
 host vav_damper { ip 10.40.1.55 }
 
-// INSTRUCTION: Write present-value (Property 85) on Analog Output (ObjectType 1) Instance 4.
+// Write present-value (Property 85) on Analog Output (ObjectType 1) Instance
+// 4. BACnet/IP on UDP 47808 (objects: 1 (Analog Output); properties: 85
+// (Present_Value)).
 flow bacnet_write_damper(sup, vav) {
     sup -> vav bacnet writeproperty invokeid 12 objecttype 1 objectinstance 4 propertyid 85 value 75
 }
 
-// INSTRUCTION: Compile the BACnet WriteProperty flow.
 compile {
     bacnet_write_damper(hvac_supervisor, vav_damper)
 }

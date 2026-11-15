@@ -1,19 +1,19 @@
-// PROMPT: Legacy industrial RTU serial-to-ethernet console telemetry query.
-// TOKENS: host, ip, flow, s, telnet, payload, compile
+// Legacy industrial RTU serial-to-ethernet console telemetry query.
+// Telnet on TCP 23.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (Telnet
+// (RFC 854), TCP 23).
+// Wireshark: telnet
 
-// INSTRUCTION: Define SCADA polling master.
 host scada_poller { ip 10.12.34.50 }
 
-// INSTRUCTION: Define industrial terminal server RTU.
 host scada_rtu { ip 10.12.34.1 }
 
-// INSTRUCTION: Define RTU telemetry query flow.
 flow telnet_rtu_flow(c, s) {
     c -> s telnet payload "READ STATUS\r\n"
     c <- s telnet payload "STATUS=OK VOLT=24.2 CURRENT=1.4A\r\n"
 }
 
-// INSTRUCTION: Compile block executing RTU polling.
 compile {
     telnet_rtu_flow(scada_poller, scada_rtu)
 }

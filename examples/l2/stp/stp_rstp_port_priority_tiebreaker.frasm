@@ -1,25 +1,23 @@
-// PROMPT: Dual-stack IPv6 management fabric switch ports exchanging IEEE 802.1w RSTP BPDUs with port priority overrides.
-// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, hellotime, maxage, forwarddelay, flags, wait, ms, compile
+// Dual-stack IPv6 management fabric switch ports exchanging IEEE 802.1w RSTP
+// BPDUs with port priority overrides.
+// Wire profile: 2 frames; 2 IPv6 hosts; STP; waits 2ms.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define IPv6 fabric aggregation switch A with high port priority (PORT_ID 16385 = prio 64, port 1).
 host agg_v6_sw_a {
     ip 2001:db8:802:1d::1
     mac 00:1c:73:1d:00:01
 }
 
-// INSTRUCTION: Define IPv6 fabric aggregation switch B receiving preferred port priority BPDU.
 host agg_v6_sw_b {
     ip 2001:db8:802:1d::2
     mac 00:1c:73:1d:00:02
 }
 
-// INSTRUCTION: Define RSTP BPDU tie-breaker using custom PORT_ID priority on parallel links.
 flow rstp_port_priority_tiebreak(a, b) {
-    a -> b stp rstp rootid "4096:00:1c:73:1d:00:01" bridgeid "4096:00:1c:73:1d:00:01" cost 0 portid 16385 hellotime 2 maxage 20 forwarddelay 15 flags 60
-    a <- b stp rstp rootid "4096:00:1c:73:1d:00:01" bridgeid "32768:00:1c:73:1d:00:02" cost 2000 portid 32769 hellotime 2 maxage 20 forwarddelay 15 flags 60 wait 2ms
+    a -> b stp rstp rootid "4096:00:1c:73:1d:00:01" bridgeid "4096:00:1c:73:1d:00:01" cost 0 portid 16385 hellotime 2 maxage 20 forwarddelay 15 flags 60 wait 2ms
+    a <- b stp rstp rootid "4096:00:1c:73:1d:00:01" bridgeid "32768:00:1c:73:1d:00:02" cost 2000 portid 32769 hellotime 2 maxage 20 forwarddelay 15 flags 60
 }
 
-// INSTRUCTION: Compile block executing RSTP port priority tie-breaker over IPv6 hosts.
 compile {
     rstp_port_priority_tiebreak(agg_v6_sw_a, agg_v6_sw_b)
 }

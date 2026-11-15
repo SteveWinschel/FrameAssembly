@@ -1,19 +1,20 @@
-// PROMPT: Periodic HSRP Active and Standby heartbeat exchange executed inside a COMPILE repeated flow calls.
-// TOKENS: host, ip, flow, hsrp, group, priority, state, vip, hellotime, holdtime, wait, ms, compile
+// Periodic HSRP Active and Standby heartbeat exchange repeated across
+// multiple cycles in compile.
+// This capture carries group 21, HSRP state 16/8, executes 4 cycles in
+// compile, and uses post-packet wait gaps (20ms) between frames.
+// Wireshark: hsrp
 
-// INSTRUCTION: Define primary gateway router.
 host hsrp_loop_act { ip 172.21.0.252 }
 
-// INSTRUCTION: Define secondary gateway router.
 host hsrp_loop_stb { ip 172.21.0.253 }
 
-// INSTRUCTION: Define bidirectional HSRP heartbeat cycle with 20ms interval.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow hsrp_heartbeat_cycle(act, stb) {
     act -> stb hsrp group 21 priority 110 state 16 vip 172.21.0.254 hellotime 3 holdtime 10 wait 20ms
     act <- stb hsrp group 21 priority 95 state 8 vip 172.21.0.254 hellotime 3 holdtime 10 wait 20ms
 }
 
-// INSTRUCTION: Compile 4 consecutive HSRP heartbeat iterations.
+// Emit 4 sequential cycles of hsrp_heartbeat_cycle.
 compile {
     hsrp_heartbeat_cycle(hsrp_loop_act, hsrp_loop_stb) // cycle 1
     hsrp_heartbeat_cycle(hsrp_loop_act, hsrp_loop_stb) // cycle 2

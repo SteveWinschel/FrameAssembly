@@ -1,18 +1,18 @@
-// PROMPT: mDNS unsolicited response announcing available SSH remote terminal service on local subnet.
-// TOKENS: host, ip, flow, mdns, response, txid, qname, qtype, rdata, ansttl, compile
+// mDNS unsolicited response announcing available SSH remote terminal service
+// on local subnet.
+// Wireshark: mdns
 
-// INSTRUCTION: Define headless Linux server.
 host headless_server { ip 192.168.10.8 }
 
-// INSTRUCTION: Define local mDNS multicast address.
+// Local mDNS multicast address.
 host mcast_group { ip 224.0.0.251 }
 
-// INSTRUCTION: Define SSH service announcement flow.
+// SSH service announcement flow. DNS wire details: record types SRV;
+// multicast 224.0.0.251 / ff02::fb UDP 5353 (TTL 255).
 flow ssh_announce_flow(srv, grp) {
     srv -> grp mdns response txid 0 qname "srv-box._ssh._tcp.local" qtype "srv" rdata "srv-box.local:22" ansttl 120
 }
 
-// INSTRUCTION: Compile SSH service announcement scenario.
 compile {
     ssh_announce_flow(headless_server, mcast_group)
 }

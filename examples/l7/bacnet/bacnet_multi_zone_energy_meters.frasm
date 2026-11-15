@@ -1,16 +1,19 @@
-// PROMPT: BACnet/IP multi-controller discovery and accumulator meter reading across three HVAC zones.
-// TOKENS: host, ip, flow, ms, bacnet, whois, iam, readproperty, invokeid, objecttype, objectinstance, propertyid, compile
+// BACnet/IP multi-controller discovery and accumulator meter reading across
+// three HVAC zones.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the building energy gateway.
+// Building energy gateway.
 host energy_gw { ip 192.168.120.1 }
 
-// INSTRUCTION: Define North Wing sub-meter.
+// North Wing sub-meter.
 host meter_north { ip 192.168.120.11 }
 
-// INSTRUCTION: Define South Wing sub-meter.
+// South Wing sub-meter.
 host meter_south { ip 192.168.120.12 }
 
-// INSTRUCTION: Discover both zone meters and read Accumulator (ObjectType 23) kWh totals.
+// Discover both zone meters and read Accumulator (ObjectType 23) kWh totals.
+// BACnet/IP on UDP 47808 (objects: 23 (Accumulator); properties: 85
+// (Present_Value)).
 flow bacnet_zone_meters(gw, mn, ms) {
     gw -> mn bacnet whois
     gw <- mn bacnet iam
@@ -20,7 +23,6 @@ flow bacnet_zone_meters(gw, mn, ms) {
     gw -> ms bacnet readproperty invokeid 51 objecttype 23 objectinstance 1 propertyid 85
 }
 
-// INSTRUCTION: Compile the multi-zone BACnet energy meter flow.
 compile {
     bacnet_zone_meters(energy_gw, meter_north, meter_south)
 }

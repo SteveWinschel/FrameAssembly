@@ -1,19 +1,20 @@
-// PROMPT: DHCPv4 Relay Agent unicast forwarding across an MPLS L3VPN core to a central IPAM server.
-// TOKENS: host, ip, flow, dhcp, discover, chaddr, mpls, exp, bos, mplsttl, offer, yiaddr, siaddr, router, subnetmask, compile
+// DHCPv4 Relay Agent unicast forwarding across an MPLS L3VPN core to a
+// central IPAM server.
+// Wireshark: dhcp
 
-// INSTRUCTION: Define branch router DHCP relay agent.
+// Branch router DHCP relay agent.
 host branch_relay { ip 10.250.1.1 }
 
-// INSTRUCTION: Define central datacenter IPAM DHCP server.
 host central_ipam { ip 10.0.100.10 }
 
-// INSTRUCTION: Forward DHCPv4 request and offer over MPLS label 5001.
+// Forward DHCPv4 request and offer over MPLS label 5001. Encapsulation and
+// QoS markings: MPLS label 5001. DHCPv4 BOOTP exchange over UDP ports 68
+// (client) and 67 (server).
 flow dhcp_mpls_relay(relay, ipam) {
     relay -> ipam dhcp discover chaddr 00:50:56:99:88:77 mpls 5001 exp 4 bos 1 mplsttl 62
     relay <- ipam dhcp offer chaddr 00:50:56:99:88:77 yiaddr 10.250.1.50 siaddr 10.0.100.10 router 10.250.1.1 subnetmask 255.255.255.0 mpls 5001 exp 4 bos 1 mplsttl 62
 }
 
-// INSTRUCTION: Compile the MPLS DHCP relay scenario.
 compile {
     dhcp_mpls_relay(branch_relay, central_ipam)
 }

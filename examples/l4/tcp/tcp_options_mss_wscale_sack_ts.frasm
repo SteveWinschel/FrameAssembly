@@ -1,19 +1,17 @@
-// PROMPT: TCP SYN negotiation with comprehensive TCP options including MSS, WSCALE, SACK_PERM, TSVAL, and TSECR.
-// TOKENS: host, ip, flow, s, tcp, syn, srcport, dstport, mss, wscale, sackperm, tsval, tsecr, ack, compile
+// TCP SYN negotiation with comprehensive TCP options including MSS, WSCALE,
+// SACK_PERM, TSVAL, and TSECR.
+// Wire profile: 2 frames; 2 IPv4 hosts; TCP; TCP flags SYN/ACK; dstport 443.
+// Wireshark: tcp.port == 443
 
-// INSTRUCTION: Define client endpoint advertising TCP options.
 host client_opt { ip 10.1.1.1 }
 
-// INSTRUCTION: Define server endpoint answering with TCP options.
 host server_opt { ip 10.1.1.2 }
 
-// INSTRUCTION: Define TCP options negotiation flow.
 flow tcp_opt_flow(c, s) {
     c -> s tcp syn srcport 50000 dstport 443 mss 1460 wscale 7 sackperm tsval 1000 tsecr 0
     c <- s tcp syn ack mss 1460 wscale 7 sackperm tsval 2000 tsecr 1000
 }
 
-// INSTRUCTION: Compile block executing TCP options negotiation.
 compile {
     tcp_opt_flow(client_opt, server_opt)
 }

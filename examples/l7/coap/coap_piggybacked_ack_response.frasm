@@ -1,18 +1,15 @@
-// PROMPT: CoAP acknowledgment (ACK) response with content payload over IPv6.
-// TOKENS: host, ip, flow, s, coap, ack, code, msgid, compile
+// CoAP acknowledgment (ACK) response with content payload over IPv6.
+// Wireshark: coap
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::25 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
+// CoAP over UDP 5683: codes 2.05 (Content).
 flow coap_ack(c, s) {
     c <- s coap ack code "2.05" msgid 101
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     coap_ack(client, server)
 }

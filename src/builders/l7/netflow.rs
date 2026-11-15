@@ -57,8 +57,8 @@ pub fn build_netflow_payload(
     pkt.extend_from_slice(&spec.octets.unwrap_or(64).to_be_bytes()); // dOctets
     pkt.extend_from_slice(&900u32.to_be_bytes()); // first uptime ms
     pkt.extend_from_slice(&1000u32.to_be_bytes()); // last uptime ms
-    pkt.extend_from_slice(&spec.srcport.unwrap_or(ctx.src_port).to_be_bytes()); // srcport
-    pkt.extend_from_slice(&spec.dstport.unwrap_or(ctx.dst_port).to_be_bytes()); // dstport
+    pkt.extend_from_slice(&spec.srcport.unwrap_or(0).to_be_bytes()); // srcport
+    pkt.extend_from_slice(&spec.dstport.unwrap_or(0).to_be_bytes()); // dstport
     pkt.push(0); // pad1
     pkt.push(0x10); // tcp_flags: ACK
     pkt.push(spec.proto.unwrap_or(6)); // prot: TCP (6)

@@ -1,13 +1,13 @@
-// PROMPT: DNS over QUIC (DoQ) RFC 9250 query and response on dedicated UDP port 853.
-// TOKENS: host, ip, flow, s, quic, initial, dcid, scid, pktnum, srcport, dstport, wait, ms, handshake, short, hexpayload, compile
+// DNS over QUIC (DoQ) RFC 9250 query and response on dedicated UDP port 853.
+// QUIC UDP 443 packet types: initial, handshake, short.
+// Overrides destination port to 853.
+// Timing: pauses 3ms after each marked packet before sending the next frame.
+// Wireshark: quic || udp.port == 853
 
-// INSTRUCTION: Define stub resolver using DNS over QUIC.
 host doq_stub { ip 192.168.85.10 }
 
-// INSTRUCTION: Define recursive DoQ resolver on UDP port 853.
 host doq_resolver { ip 192.168.85.1 }
 
-// INSTRUCTION: Define QUIC session on port 853 carrying encrypted DNS frames.
 flow doq_port_853(c, s) {
     c -> s quic initial dcid 0x08530001 scid 0x08530002 pktnum 1 srcport 55853 dstport 853 wait 3ms
     c <- s quic handshake dcid 0x08530002 scid 0x08530001 pktnum 1 srcport 853 dstport 55853 wait 3ms
@@ -15,7 +15,6 @@ flow doq_port_853(c, s) {
     c <- s quic short dcid 0x08530002 pktnum 2 srcport 853 dstport 55853 hexpayload "069a8b7c6d5e4f"
 }
 
-// INSTRUCTION: Compile DNS over QUIC (DoQ) port 853 flow.
 compile {
     doq_port_853(doq_stub, doq_resolver)
 }

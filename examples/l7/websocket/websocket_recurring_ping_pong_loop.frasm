@@ -1,19 +1,18 @@
-// PROMPT: Periodic WebSocket connection keepalive ping pong exchange loop.
-// TOKENS: host, ip, flow, s, websocket, opcode, finbit, maskkey, compile
+// Periodic WebSocket connection keepalive ping pong exchange loop.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Executes 3 sequential flow runs inside the compile block.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define mobile background client.
 host bg_client { ip 172.31.8.24 }
 
-// INSTRUCTION: Define cloud gateway server.
 host cloud_gw_svr { ip 172.31.8.1 }
 
-// INSTRUCTION: Define recurring heartbeat exchange flow.
 flow ws_heartbeat_loop(c, s) {
     c -> s websocket opcode "ping" finbit 1 maskkey 987654321
     c <- s websocket opcode "pong" finbit 1 maskkey 0
 }
 
-// INSTRUCTION: Compile block executing 3 repeated ping pong cycles.
 compile {
     ws_heartbeat_loop(bg_client, cloud_gw_svr) // cycle 1
     ws_heartbeat_loop(bg_client, cloud_gw_svr) // cycle 2

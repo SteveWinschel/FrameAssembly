@@ -113,7 +113,7 @@ fn encode_ticket(realm: &str, sname: &str, etype: i64) -> Vec<u8> {
 #[doc(alias = "TGS_REP")]
 #[doc(alias = "KRB_ERROR")]
 pub fn build_kerberos_payload(
-    _ctx: &WireContext,
+    ctx: &WireContext,
     spec: &KerberosSpec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
@@ -212,6 +212,16 @@ pub fn build_kerberos_payload(
             encode_der_tlv(0x60 | msg_type, &seq)
         }
     };
+
+    if ctx.transport == Some(TransportProto::Tcp) {
+        let mut tcp_pkt = Vec::with_capacity(4 + pkt.len() + payload_bytes.len());
+        tcp_pkt.extend_from_slice(&(pkt.len() as u32).to_be_bytes());
+        tcp_pkt.extend_from_slice(&pkt);
+        if !payload_bytes.is_empty() {
+            tcp_pkt.extend_from_slice(payload_bytes);
+        }
+        return tcp_pkt;
+    }
 
     if !payload_bytes.is_empty() {
         pkt.extend_from_slice(payload_bytes);

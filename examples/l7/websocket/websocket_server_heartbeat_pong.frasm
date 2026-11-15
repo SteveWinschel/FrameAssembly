@@ -1,19 +1,17 @@
-// PROMPT: Server unmasked pong frame confirming connection availability.
-// TOKENS: host, ip, flow, s, websocket, opcode, finbit, maskkey, compile
+// Server unmasked pong frame confirming connection availability.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define interactive web client.
 host inter_client { ip 192.168.4.12 }
 
-// INSTRUCTION: Define interactive hub server.
 host hub_server { ip 192.168.4.1 }
 
-// INSTRUCTION: Define ping pong response flow.
 flow ws_pong_response_flow(c, s) {
     c -> s websocket opcode "ping" finbit 1 maskkey 1985229328
     c <- s websocket opcode "pong" finbit 1 maskkey 0
 }
 
-// INSTRUCTION: Compile block executing pong confirmation.
 compile {
     ws_pong_response_flow(inter_client, hub_server)
 }

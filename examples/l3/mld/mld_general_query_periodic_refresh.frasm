@@ -1,18 +1,19 @@
-// PROMPT: Periodic MLD General Query sent by IPv6 multicast querier to all-nodes address.
-// TOKENS: host, ip, flow, mld, query, maxrespdelay, compile
+// Periodic MLD General Query sent by IPv6 multicast querier to all-nodes
+// address.
+// This capture targets IPv6 endpoints.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define IPv6 multicast designated querier router.
 host mld_querier_rtr { ip fe80::100 }
 
-// INSTRUCTION: Define IPv6 link-local all-nodes multicast group.
 host mld_all_nodes_grp { ip ff02::1 }
 
-// INSTRUCTION: Define periodic MLD General Query flow with 10-second response delay window.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow mld_periodic_query(q, grp) {
     q -> grp mld query maxrespdelay 10000
 }
 
-// INSTRUCTION: Compile block executing periodic General Query transmission.
+// Run mld_periodic_query(mld_querier_rtr, mld_all_nodes_grp) to generate the
+// capture.
 compile {
     mld_periodic_query(mld_querier_rtr, mld_all_nodes_grp)
 }

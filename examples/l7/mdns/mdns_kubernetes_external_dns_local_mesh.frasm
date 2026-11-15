@@ -1,25 +1,27 @@
-// PROMPT: Model an mDNS edge cluster service discovery resolving k3s-ingress.local across an IPv6 link-local segment.
-// TOKENS: host, ip, mac, flow, mdns, query, txid, qname, qtype, flowlabel, ttl, wait, ms, response, rcode, rdata, ansttl, compile
+// MDNS edge cluster service discovery resolving k3s-ingress.local across an
+// IPv6 link-local segment.
+// Wireshark: mdns
 
-// INSTRUCTION: Define the edge worker node resolving local cluster ingress over IPv6.
+// Edge worker node resolving local cluster ingress over IPv6.
 host k3s_worker_v6 {
     ip fe80::216:3eff:fe44:1001
     mac 00:16:3e:44:10:01
 }
 
-// INSTRUCTION: Define the edge control-plane node answering for k3s-ingress.local.
+// Edge control-plane node answering for k3s-ingress.local.
 host k3s_master_v6 {
     ip fe80::216:3eff:fe44:1000
     mac 00:16:3e:44:10:00
 }
 
-// INSTRUCTION: Query k3s-ingress.local AAAA record and return the authoritative link-local IPv6 address.
+// Query k3s-ingress.local AAAA record and return the authoritative link-local
+// IPv6 address. DNS wire details: record types AAAA; rcode 0 (NOERROR);
+// multicast 224.0.0.251 / ff02::fb UDP 5353 (TTL 255).
 flow k3s_mdns_resolve(worker, master) {
     worker -> master mdns query txid 0 qname "k3s-ingress.local" qtype "aaaa" flowlabel 0x20400 ttl 255 wait 3ms
     worker <- master mdns response txid 0 rcode 0 qname "k3s-ingress.local" qtype "aaaa" rdata "fe80::216:3eff:fe44:1000" ansttl 60 flowlabel 0x20400 ttl 255
 }
 
-// INSTRUCTION: Compile the IPv6 edge cluster mDNS resolution flow.
 compile {
     k3s_mdns_resolve(k3s_worker_v6, k3s_master_v6)
 }

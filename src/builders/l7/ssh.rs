@@ -51,6 +51,27 @@ pub fn build_ssh_payload(
                 }
             }
             body.extend_from_slice(&cookie_bytes);
+            if code == 20 {
+                let kex_lists: [&str; 10] = [
+                    "curve25519-sha256",
+                    "ssh-ed25519",
+                    "chacha20-poly1305@openssh.com",
+                    "chacha20-poly1305@openssh.com",
+                    "",
+                    "",
+                    "none",
+                    "none",
+                    "",
+                    "",
+                ];
+                for list in kex_lists {
+                    let lb = list.as_bytes();
+                    body.extend_from_slice(&(lb.len() as u32).to_be_bytes());
+                    body.extend_from_slice(lb);
+                }
+                body.push(0); // boolean first_kex_packet_follows = FALSE
+                body.extend_from_slice(&0u32.to_be_bytes()); // uint32 reserved = 0
+            }
         }
 
         if !payload_bytes.is_empty() {

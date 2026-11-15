@@ -1,18 +1,16 @@
-// PROMPT: TACACS+ command authorization request over IPv6.
-// TOKENS: host, ip, flow, s, tacacs, type, author, user, sessionid, compile
+// TACACS+ command authorization request over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// TACACS+ on TCP 49 (author).
+// Wireshark: tacplus
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::5 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow tacacs_author(c, s) {
     c -> s tacacs type author user "network_admin" sessionid 2002
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     tacacs_author(client, server)
 }

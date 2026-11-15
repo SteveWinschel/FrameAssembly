@@ -1,26 +1,23 @@
-// PROMPT: Model a targeted unicast SSDP M-SEARCH query probing a known printer's UUID directly without multicast.
-// TOKENS: host, mac, ip, flow, ssdp, msearch, hosthdr, man, mx, st, notify, nt, nts, usn, location, compile
+// Model a targeted unicast SSDP M-SEARCH query probing a known printer's UUID
+// directly without multicast.
+// Wireshark: ssdp
 
-// INSTRUCTION: Define host endpoint workstation_pc.
 host workstation_pc {
     mac 00:21:70:11:22:33
     ip 10.50.1.10
 }
 
-// INSTRUCTION: Define host endpoint upnp_printer.
 host upnp_printer {
     mac 00:21:70:11:22:80
     ip 10.50.1.80
 }
 
-// INSTRUCTION: Send a unicast SSDP M-SEARCH for a specific device UUID and receive its ssdp:alive confirmation.
 flow ssdp_unicast_uuid_probe(workstation_pc, upnp_printer) {
     workstation_pc -> upnp_printer ssdp msearch hosthdr "10.50.1.80:1900" man "\"ssdp:discover\"" mx 1 st "uuid:printer-laserjet-002170112280"
     upnp_printer -> workstation_pc ssdp notify hosthdr "10.50.1.80:1900" nt "uuid:printer-laserjet-002170112280" nts "ssdp:alive" usn "uuid:printer-laserjet-002170112280"
         location "http://10.50.1.80:5200/PrinterDesc.xml"
 }
 
-// INSTRUCTION: Compile the unicast UUID SSDP probe flow.
 compile {
     ssdp_unicast_uuid_probe(workstation_pc, upnp_printer)
 }

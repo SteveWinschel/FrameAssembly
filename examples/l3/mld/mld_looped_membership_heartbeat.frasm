@@ -1,18 +1,19 @@
-// PROMPT: Continuous MLD membership report keepalive heartbeats inside a COMPILE LOOP.
-// TOKENS: host, ip, flow, mld, report, multicastaddr, wait, ms, compile
+// Continuous MLD membership report keepalive heartbeats across repeated
+// cycles in compile.
+// This capture targets IPv6 endpoints, executes 4 cycles in compile, and uses
+// post-packet wait gaps (20ms) between frames.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define IP camera streaming telemetry node.
 host ip_camera_sensor { ip fe80::ca3e:1 }
 
-// INSTRUCTION: Define surveillance multicast group target.
 host security_dvr_grp { ip ff02::2 }
 
-// INSTRUCTION: Define periodic MLD membership confirmation stream.
+// Packet sequence (1 frame); wait pauses after a packet before the next.
 flow mld_camera_heartbeat(cam, dvr) {
     cam -> dvr mld report multicastaddr ff05::5555 wait 20ms
 }
 
-// INSTRUCTION: Compile loop executing 4 continuous MLD reports.
+// Emit 4 sequential cycles of mld_camera_heartbeat.
 compile {
     mld_camera_heartbeat(ip_camera_sensor, security_dvr_grp) // cycle 1
     mld_camera_heartbeat(ip_camera_sensor, security_dvr_grp) // cycle 2

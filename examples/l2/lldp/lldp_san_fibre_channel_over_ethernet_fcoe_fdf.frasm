@@ -1,25 +1,23 @@
-// PROMPT: SAN storage director and converged switch exchanging LLDP frames with FCoE Initialization Protocol (FIP) capabilities.
-// TOKENS: host, ip, mac, flow, vlan, pcp, lldp, chassisid, portid, sysname, sysdesc, ttl, wait, ms, compile
+// SAN storage director and converged switch exchanging LLDP frames with FCoE
+// Initialization Protocol (FIP) capabilities.
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 1002; PCP 3; LLDP; waits 5ms.
+// Wireshark: lldp
 
-// INSTRUCTION: Define Fibre Channel Forwarder (FCF) converged SAN switch port.
 host san_fcf_switch {
     ip 172.18.200.1
     mac 00:05:9b:c8:00:01
 }
 
-// INSTRUCTION: Define enterprise storage array FCoE target controller port.
 host fcoe_storage_tgt {
     ip 172.18.200.50
     mac 00:a0:98:c8:00:32
 }
 
-// INSTRUCTION: Exchange LLDP advertisements on lossless FCoE VLAN 1002 PCP 3.
 flow lldp_fcoe_san_discovery(fcf, tgt) {
     fcf -> tgt vlan 1002 pcp 3 lldp chassisid "mds-9710-san-a" portid "fc1/1-vfc101" sysname "san-dir-a" sysdesc "FCoE FCF Fabric-A VSAN-1002" ttl 120 wait 5ms
     fcf <- tgt vlan 1002 pcp 3 lldp chassisid "aff-a900-ctrl1" portid "e0c-fcoe" sysname "netapp-a900-01" sysdesc "ONTAP 9.14 FCoE Target CNA" ttl 120
 }
 
-// INSTRUCTION: Compile the FCoE SAN storage VLAN 1002 LLDP discovery trace.
 compile {
     lldp_fcoe_san_discovery(san_fcf_switch, fcoe_storage_tgt)
 }

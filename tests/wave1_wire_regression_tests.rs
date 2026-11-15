@@ -145,8 +145,8 @@ fn test_ptp_event_vs_general_sequential_port_routing_and_payload_len() {
     assert_eq!((dport3, l7_3[0] & 0x0F), (320, 0x09)); // DELAY_RESP
     let (_, dport4, l7_4) = ipv4_udp_parts(&ptp_frames[4]);
     assert_eq!((dport4, l7_4[0] & 0x0F), (320, 0x0B)); // ANNOUNCE
-    assert_eq!(u16::from_be_bytes([l7_4[2], l7_4[3]]), 51); // 44B PTP body + 7B "ptp_ext"
-    assert_eq!(l7_4.len(), 51);
+    assert_eq!(u16::from_be_bytes([l7_4[2], l7_4[3]]), 71); // 64B PTP Announce + 7B "ptp_ext"
+    assert_eq!(l7_4.len(), 71);
 }
 
 /// Verifies sequential `RADIUS` Auth (`1812`) vs Accounting (`1813`) ports and IPv6 AVPs (`95` and `168`).
@@ -715,4 +715,131 @@ fn test_l7_messaging_industrial_and_database_wired_fields() {
     assert!(contains_subslice(smb_share, &utf16_share));
     let utf16_file: Vec<u8> = "report.pdf".encode_utf16().flat_map(u16::to_le_bytes).collect();
     assert!(contains_subslice(ipv4_tcp_parts(&ot_frames[32]).2, &utf16_file));
+}
+
+/// Verifies v3.1.0 standalone and modifier 2-tag `qinq` (`0x88A8` + `0x8100`), `vlan 0`/`4095`,
+/// post-packet `wait`, raw `\x80..\xff` byte escapes, and reverse PCAP round-trip fidelity.
+#[test]
+fn test_v31_qinq_two_tags_post_wait_raw_escapes_and_roundtrip() {
+    let prog = parse_program(r#"
+        host sw1 { ip 10.77.0.1 mac 00:1c:73:77:00:01 }
+        host sw2 { ip 10.77.0.2 mac 00:1c:73:77:00:02 }
+        compile {
+            sw1 -> sw2 qinq 100 wait 25ms
+            sw1 -> sw2 qinq 200 innervlan 50 pcp 5 dei 1 udp payload "\xff\x80\x00\xfe"
+            sw1 -> sw2 vlan 0 icmp echorequest id 1 seq 1 wait 5ms
+            sw1 -> sw2 vlan 4095 icmp echoreply id 1 seq 1
+        }
+    "#).expect("v3.1 qinq/vlan program must parse");
+    let pkts = compile_program(&prog).expect("v3.1 qinq/vlan program must compile");
+    assert_eq!(pkts.len(), 4);
+    let t0 = pkts[0].1;
+    assert_eq!((pkts[1].1 - t0, pkts[2].1 - t0, pkts[3].1 - t0), (25_000_000, 35_000_000, 40_000_000));
+
+    // Frame 0: standalone `qinq 100` emits outer 0x88A8 VID 100 + inner 0x8100 default VID 1 + IPv4 0x0800
+    assert_eq!(&pkts[0].0[12..22], &[0x88, 0xA8, 0x00, 100, 0x81, 0x00, 0x00, 1, 0x08, 0x00]);
+    // Frame 1: `qinq 200 innervlan 50 pcp 5 dei 1` -> TCI = (5 << 13) | (1 << 12) | 200 = 0xB0C8
+    assert_eq!(&pkts[1].0[12..22], &[0x88, 0xA8, 0xB0, 0xC8, 0x81, 0x00, 0x00, 50, 0x08, 0x00]);
+    assert_eq!(&pkts[1].0[pkts[1].0.len() - 4..], &[0xFF, 0x80, 0x00, 0xFE]);
+    // Frames 2 & 3: priority-tagged VID 0 and max VID 4095
+    assert_eq!(u16::from_be_bytes([pkts[2].0[14], pkts[2].0[15]]) & 0x0FFF, 0);
+    assert_eq!(u16::from_be_bytes([pkts[3].0[14], pkts[3].0[15]]) & 0x0FFF, 4095);
+
+    let pcap_bytes = frameassembly::pcap::serialize_classic_pcap(&pkts).expect("classic pcap");
+    let reversed = frameassembly::reverse::reverse_pcap_bytes(&pcap_bytes).expect("reverse qinq");
+    assert!(reversed.fasm.contains("qinq 100") && !reversed.fasm.contains("qinq 100 innervlan 1"));
+    assert!(reversed.fasm.contains("pcp 5") && reversed.fasm.contains("dei 1"));
+}
+
+/// Verifies v3.1.0 RFC wire fixes for PIM `register` (unicast RP + 8-byte checksum), OSPFv3 over
+/// IPv6 + Fletcher-16 `lsack` checksums, and BGP 4-byte ASNs (`AS_TRANS` + RFC 6793 Capability 65).
+#[test]
+fn test_v31_pim_register_ospfv3_fletcher16_and_bgp_4byte_asn() {
+    let frames = compile_frames(r#"
+        host r1 { ip 10.88.0.1 mac 00:1c:73:88:00:01 }
+        host r2 { ip 10.88.0.2 mac 00:1c:73:88:00:02 }
+        host r6a { ip 2001:db8:88::1 mac 00:1c:73:88:06:01 }
+        host r6b { ip 2001:db8:88::2 mac 00:1c:73:88:06:02 }
+        compile {
+            r1 -> r2 pim register group 239.6.6.6 source 10.6.6.1 rp 10.6.6.254
+            r1 -> r2 ospf lsack routerid 1.1.1.1 area 0.0.0.0
+            r6a -> r6b ospf hello routerid 1.1.1.1 area 0.0.0.0
+            r6a -> r6b ospf lsack routerid 1.1.1.1 area 0.0.0.0
+            r1 -> r2 bgp open asn 4200000001 holdtime 90 bgpid 1.1.1.1
+            r1 -> r2 bgp update asn 4200000001 nexthop 10.88.0.1 prefix "192.0.2.0/24"
+        }
+    "#);
+    // 1. PIM Register: unicast MAC + unicast RP dst IP (10.6.6.254) + 8-byte checksum + inner group 239.6.6.6
+    assert_eq!(&frames[0][0..6], &[0x00, 0x1c, 0x73, 0x88, 0x00, 0x02]);
+    assert_eq!(&frames[0][30..34], &[10, 6, 6, 254]);
+    let pim = &frames[0][34..];
+    assert_eq!(internet_checksum(&[&pim[..8]]), 0, "RFC 7761 §4.9.3 8B Register checksum");
+    assert_eq!(&pim[24..28], &[239, 6, 6, 6], "Inner multicast group must be 239.6.6.6");
+
+    // 2. OSPFv2 & OSPFv3 lsack Fletcher-16 LSA checksum non-zero + OSPFv3 version 3 (16B header)
+    assert_ne!(&frames[1][34 + 24 + 16..34 + 24 + 18], &[0, 0], "OSPFv2 LSA Fletcher-16");
+    assert_eq!((frames[2][20], frames[2][54]), (89, 3), "IPv6 NextHeader 89 + OSPFv3 version 3");
+    assert_ne!(&frames[3][54 + 16 + 16..54 + 16 + 18], &[0, 0], "OSPFv3 LSA Fletcher-16");
+
+    // 3. BGP 4-byte ASN: My AS == 23456 (AS_TRANS) + Cap 65 (0x41, len 4, 4200000001) + AS4_PATH (17)
+    let (_, _, bgp_open) = ipv4_tcp_parts(&frames[4]);
+    assert_eq!(u16::from_be_bytes([bgp_open[20], bgp_open[21]]), 23456);
+    let mut cap65 = vec![65u8, 4];
+    cap65.extend_from_slice(&4_200_000_001u32.to_be_bytes());
+    assert!(contains_subslice(bgp_open, &cap65));
+    let (_, _, bgp_upd) = ipv4_tcp_parts(&frames[5]);
+    assert!(contains_subslice(bgp_upd, &4_200_000_001u32.to_be_bytes()));
+
+    let pairs: Vec<(Vec<u8>, u64)> = frames.into_iter().map(|f| (f, 0)).collect();
+    let pcap = frameassembly::pcap::serialize_classic_pcap(&pairs).expect("pcap");
+    let rev = frameassembly::reverse::reverse_pcap_bytes(&pcap).expect("reverse v3.1 l3");
+    assert!(rev.fasm.contains("4200000001") && rev.fasm.contains("ospf hello") && rev.fasm.contains("pim register"));
+}
+
+/// Verifies v3.1.0 `ikev2 exchange auth nextheader`, `tacacs seq`, `snmp2`/`snmp3 report`,
+/// HTTP/2 RFC 9113 default bodies, strict bounds, flow-param hints, and plain-English error codes.
+#[test]
+fn test_v31_ikev2_tacacs_snmp_report_http2_and_strict_diagnostics() {
+    let frames = compile_frames(r#"
+        host c { ip 10.91.0.1 mac 00:1c:73:91:00:01 }
+        host s { ip 10.91.0.2 mac 00:1c:73:91:00:02 }
+        compile {
+            c -> s ikev2 exchange auth nextheader 47 msgid 1
+            c -> s tacacs authen seq 3 sessionid 0x1234
+            c -> s snmp2 report reqid 77 varbind 1.3.6.1.6.3.15.1.1.4.0 counter32 1
+            c -> s snmp3 report reqid 78 user "nms" engineid "80001f888001020304"
+            c -> s http2 ping streamid 0
+            c -> s http2 windowupdate streamid 0
+            c -> s http2 goaway streamid 0
+            c -> s ethernetip nop sessionhandle 0x55
+        }
+    "#);
+    let (_, d_ike, ike) = ipv4_udp_parts(&frames[0]);
+    assert_eq!((d_ike, ike[16], ike[18]), (500, 47, 35));
+    assert_eq!(ipv4_tcp_parts(&frames[1]).2[2], 3, "TACACS+ seq_no must be 3");
+    let (_, d_s2, s2) = ipv4_udp_parts(&frames[2]);
+    let (_, d_s3, _) = ipv4_udp_parts(&frames[3]);
+    assert_eq!((d_s2, d_s3), (162, 162));
+    assert!(s2.contains(&0xA8), "SNMPv2 Report-PDU tag 0xA8");
+    assert_eq!(&ipv4_tcp_parts(&frames[4]).2[0..9], &[0, 0, 8, 6, 0, 0, 0, 0, 0]);
+    assert_eq!(&ipv4_tcp_parts(&frames[5]).2[0..13], &[0, 0, 4, 8, 0, 0, 0, 0, 0, 0, 0, 0, 1]);
+    assert_eq!(&ipv4_tcp_parts(&frames[6]).2[0..9], &[0, 0, 8, 7, 0, 0, 0, 0, 0]);
+
+    let syn_err = parse_program("host a { ip 10.0.0.1 }\ncompile { a -> a ttl 99999999999999999999 icmp }\n").unwrap_err();
+    assert!(syn_err.to_string().starts_with("syntax error:"));
+    let syn_id_err = parse_program("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s icmp id 70000 }\n").unwrap_err();
+    assert!(syn_id_err.to_string().contains("out of range (0..=65535)"), "got: {syn_id_err}");
+    for (bad, needle) in [
+        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\nflow f(a) { a -> s udp }\ncompile { f(c) }", "pass 's' as a flow parameter"),
+        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s ntp transport tcp }", "'transport' is only supported"),
+        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s udp nop }", "'nop' cannot be used with 'udp'"),
+        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s dns qname \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com\" }", "63 octets"),
+        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s snmp3 get engineid \"xyz\" }", "even-length hexadecimal"),
+        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s icmp code 300 }", "out of range"),
+        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s icmp type 300 }", "out of range"),
+    ] {
+        let err = parse_program(bad).unwrap_err();
+        let msg = err.to_string();
+        assert!(msg.starts_with("validation error:") && msg.contains(needle), "got: {msg}");
+    }
 }

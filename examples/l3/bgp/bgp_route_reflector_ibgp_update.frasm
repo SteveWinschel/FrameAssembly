@@ -1,20 +1,21 @@
-// PROMPT: iBGP Route Reflector distributing multiple NLRI prefixes to route reflector clients.
-// TOKENS: host, ip, flow, bgp, update, asn, prefix, nexthop, keepalive, compile
+// iBGP Route Reflector distributing multiple NLRI prefixes to route reflector
+// clients.
+// This capture carries ASN 64512.
+// Wireshark: bgp
 
-// INSTRUCTION: Define core iBGP Route Reflector in AS 64512.
 host ibgp_route_reflector { ip 10.0.100.1 }
 
-// INSTRUCTION: Define iBGP Route Reflector client in PoP 1.
 host ibgp_rr_client_pop1 { ip 10.0.100.11 }
 
-// INSTRUCTION: Define iBGP UPDATE sequence reflecting internal and external prefixes.
+// Packet sequence (3 frames) with default 10ms post-packet spacing.
 flow ibgp_rr_distribution(rr, client) {
     rr -> client bgp update asn 64512 prefix "10.10.0.0/16" nexthop 10.0.100.254
     rr -> client bgp update asn 64512 prefix "172.16.0.0/12" nexthop 10.0.100.253
     rr <- client bgp keepalive
 }
 
-// INSTRUCTION: Compile the iBGP Route Reflector prefix distribution flow.
+// Run ibgp_rr_distribution(ibgp_route_reflector, ibgp_rr_client_pop1) to
+// generate the capture.
 compile {
     ibgp_rr_distribution(ibgp_route_reflector, ibgp_rr_client_pop1)
 }

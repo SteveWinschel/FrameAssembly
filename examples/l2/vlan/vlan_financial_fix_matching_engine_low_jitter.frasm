@@ -1,25 +1,24 @@
-// PROMPT: Ultra-low-jitter equities matching engine VLAN 777 carrying priority-tagged TCP FIX order flow with PCP 5.
-// TOKENS: host, ip, mac, flow, vlan, pcp, dei, dscp, tcp, psh, ack, srcport, dstport, seq, acknum, win, payload, wait, ms, compile
+// Ultra-low-jitter equities matching engine VLAN 777 carrying priority-tagged TCP
+// FIX order flow with PCP 5.
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 777; PCP 5; TCP; TCP flags ACK/PSH;
+// dstport 9876,52100; DSCP 46; waits 1ms.
+// Wireshark: vlan.id == 777 && vlan.priority == 5
 
-// INSTRUCTION: Define direct market access (DMA) gateway submitting orders on trading VLAN 777.
 host dma_order_gw {
     ip 10.77.7.10
     mac 00:0f:53:4d:07:0a
 }
 
-// INSTRUCTION: Define exchange limit order book matching engine on trading VLAN 777.
 host lob_match_srv {
     ip 10.77.7.1
     mac 00:0f:53:4d:07:01
 }
 
-// INSTRUCTION: Submit TCP PSH-ACK order entry on VLAN 777 PCP 5 and receive immediate execution report.
 flow vlan_fix_low_jitter(dma, lob) {
     dma -> lob vlan 777 pcp 5 dei 0 dscp 46 tcp psh ack srcport 52100 dstport 9876 seq 5001 acknum 9001 win 16384 payload "35=D|55=NVDA|54=1|38=100|44=125.50" wait 1ms
     dma <- lob vlan 777 pcp 5 dei 0 dscp 46 tcp psh ack srcport 9876 dstport 52100 seq 9001 acknum 5035 win 16384 payload "35=8|39=2|150=F|31=125.50|32=100"
 }
 
-// INSTRUCTION: Compile the trading VLAN 777 low-jitter TCP order execution flow.
 compile {
     vlan_fix_low_jitter(dma_order_gw, lob_match_srv)
 }

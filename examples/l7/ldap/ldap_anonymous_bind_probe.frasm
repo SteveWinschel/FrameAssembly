@@ -1,18 +1,16 @@
-// PROMPT: Anonymous LDAP bind probe checking public directory schema accessibility.
-// TOKENS: host, ip, flow, ldap, bindreq, msgid, basedn, compile
+// Anonymous LDAP bind probe checking public directory schema accessibility.
+// Wireshark: ldap
 
-// INSTRUCTION: Define security audit scanner.
+// Security audit scanner.
 host audit_scanner { ip 10.30.1.200 }
 
-// INSTRUCTION: Define public LDAP directory endpoint.
 host public_directory { ip 10.30.1.5 }
 
-// INSTRUCTION: Define anonymous bind request flow.
+// Anonymous bind request flow.
 flow anon_bind_flow(scan, dir) {
     scan -> dir ldap bindreq msgid 1 basedn ""
 }
 
-// INSTRUCTION: Compile anonymous bind probe scenario.
 compile {
     anon_bind_flow(audit_scanner, public_directory)
 }

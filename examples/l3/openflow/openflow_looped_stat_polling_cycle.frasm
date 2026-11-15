@@ -1,18 +1,19 @@
-// PROMPT: Periodic OpenFlow echo keepalive requests inside a COMPILE LOOP.
-// TOKENS: host, ip, flow, openflow, type, echoreq, xid, wait, ms, compile
+// Periodic OpenFlow echo keepalive requests across repeated cycles in
+// compile.
+// This capture executes 4 cycles in compile and uses post-packet wait gaps
+// (25ms) between frames.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define telemetry polling SDN controller.
 host stat_polling_ctrl { ip 172.31.10.1 }
 
-// INSTRUCTION: Define leaf switch datapath.
 host telemetry_leaf_sw { ip 172.31.10.22 }
 
-// INSTRUCTION: Define periodic echo polling transmission flow.
+// Packet sequence (1 frame); wait pauses after a packet before the next.
 flow of_echo_poll_flow(ctrl, sw) {
     ctrl -> sw openflow type echoreq xid 5050 wait 25ms
 }
 
-// INSTRUCTION: Compile loop executing 4 periodic echo polls.
+// Emit 4 sequential cycles of of_echo_poll_flow.
 compile {
     of_echo_poll_flow(stat_polling_ctrl, telemetry_leaf_sw) // cycle 1
     of_echo_poll_flow(stat_polling_ctrl, telemetry_leaf_sw) // cycle 2

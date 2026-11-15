@@ -1,18 +1,18 @@
-// PROMPT: Modbus TCP function code 4 reading analog sensor measurements from input registers.
-// TOKENS: host, ip, flow, modbus, func, addr, count, unitid, compile
+// Modbus TCP function code 4 reading analog sensor measurements from input
+// registers.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define environmental telemetry monitor.
+// Environmental telemetry monitor.
 host env_monitor { ip 172.25.1.20 }
 
-// INSTRUCTION: Define analog weather station sensor RTU.
+// Analog weather station sensor RTU.
 host weather_rtu { ip 172.25.1.100 }
 
-// INSTRUCTION: Define read input registers flow.
+// Read input registers flow. Modbus functions: FC 4 Read Input Registers.
 flow read_analog_flow(mon, rtu) {
     mon -> rtu modbus func "readinputregisters" addr 30001 count 4 unitid 1
 }
 
-// INSTRUCTION: Compile read input registers scenario.
 compile {
     read_analog_flow(env_monitor, weather_rtu)
 }

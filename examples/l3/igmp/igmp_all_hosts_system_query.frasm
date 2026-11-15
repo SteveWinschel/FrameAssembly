@@ -1,18 +1,18 @@
-// PROMPT: IGMP system query directed to 224.0.0.1 on management VLAN 99.
-// TOKENS: host, ip, flow, dst, igmp, query, maxresp, group, vlan, pcp, compile
+// IGMP system query directed to 224.0.0.1 on management VLAN 99.
+// This capture wraps frames in 802.1Q VLAN 99 and carries group 224.0.0.1.
+// Wireshark: igmp && vlan.id == 99
 
-// INSTRUCTION: Define datacenter top-of-rack multicast querier.
 host tor_multicast_rtr { ip 10.99.0.1 }
 
-// INSTRUCTION: Define all-hosts multicast destination address.
 host all_hosts_sys { ip 224.0.0.1 }
 
-// INSTRUCTION: Define management VLAN query flow with 5s max response timer.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow igmp_mgmt_query(tor, dst) {
     tor -> dst igmp query maxresp 50 group 224.0.0.1 vlan 99 pcp 6
 }
 
-// INSTRUCTION: Compile block executing management VLAN IGMP query.
+// Run igmp_mgmt_query(tor_multicast_rtr, all_hosts_sys) to generate the
+// capture.
 compile {
     igmp_mgmt_query(tor_multicast_rtr, all_hosts_sys)
 }

@@ -1,13 +1,13 @@
-// PROMPT: Simulate a BGP-4 eBGP peering session establishment (OPEN, KEEP-ALIVE, UPDATE) between two autonomous system border routers on TCP port 179.
-// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, seq, win, wait, ms, ack, acknum, psh, payload, s, compile
+// Simulate a BGP-4 eBGP peering session establishment (OPEN, KEEP-ALIVE, UPDATE)
+// between two autonomous system border routers on TCP port 179.
+// Wire profile: 8 frames; 2 IPv4 hosts; TCP; TCP flags SYN/ACK/PSH; dstport
+// 179,49179; waits 5ms, 10ms, 1s.
+// Wireshark: (tcp.port == 179 || tcp.port == 49179)
 
-// INSTRUCTION: Define AS65001 border router with IP 192.0.2.1 and MAC 00:00:5e:00:53:01.
 host as65001_router { ip 192.0.2.1 mac 00:00:5e:00:53:01 }
 
-// INSTRUCTION: Define AS65002 border router with IP 192.0.2.2 and MAC 00:00:5e:00:53:02.
 host as65002_router { ip 192.0.2.2 mac 00:00:5e:00:53:02 }
 
-// INSTRUCTION: Define a flow establishing TCP port 179 connectivity and exchanging BGP OPEN, KEEPALIVE, and NLRI UPDATE messages.
 flow bgp_peering_session(peer_a, peer_b) {
     peer_a -> peer_b tcp syn srcport 49179 dstport 179 seq 10000 win 16384 wait 5ms
     peer_a <- peer_b tcp syn ack srcport 179 dstport 49179 seq 20000 acknum 10001 win 16384 wait 5ms
@@ -16,10 +16,9 @@ flow bgp_peering_session(peer_a, peer_b) {
     peer_a <- peer_b tcp psh ack srcport 179 dstport 49179 payload "BGP4_OPEN_AS65002_HOLD180" wait 10ms
     peer_a -> peer_b tcp psh ack srcport 49179 dstport 179 payload "BGP4_KEEPALIVE" wait 1s
     peer_a <- peer_b tcp psh ack srcport 179 dstport 49179 payload "BGP4_KEEPALIVE" wait 1s
-    peer_a -> peer_b tcp psh ack srcport 49179 dstport 179 payload "BGP4_UPDATE_NLRI_10.0.0.0/8" wait 50ms
+    peer_a -> peer_b tcp psh ack srcport 49179 dstport 179 payload "BGP4_UPDATE_NLRI_10.0.0.0/8"
 }
 
-// INSTRUCTION: Compile block to run the BGP peering session flow.
 compile {
     bgp_peering_session(as65001_router, as65002_router)
 }

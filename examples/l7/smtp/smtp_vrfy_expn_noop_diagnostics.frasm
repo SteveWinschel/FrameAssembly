@@ -1,19 +1,20 @@
-// PROMPT: Simulate an SMTP VRFY, EXPN, and NOOP diagnostic session where VRFY is disabled by policy (252).
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, smtp, code, reply, ehlo, cmd, param, quit, compile
+// Simulate an SMTP VRFY, EXPN, and NOOP diagnostic session where VRFY is
+// disabled by policy (252).
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Overrides destination port to 25.
+// Wireshark: smtp
 
-// INSTRUCTION: Define the security scanner and hardened SMTP server.
 host auditor {
     mac 00:1b:21:88:25:10
     ip 172.16.25.100
 }
 
-// INSTRUCTION: Define the hardened_mta mail endpoint.
 host hardened_mta {
     mac 00:1b:21:88:25:01
     ip 172.16.25.1
 }
 
-// INSTRUCTION: Test VRFY, EXPN, and NOOP commands against a security-hardened MTA.
 flow smtp_vrfy_expn_noop_check(auditor, hardened_mta) {
     auditor -> hardened_mta tcp syn srcport 56100 dstport 25
     hardened_mta -> auditor tcp syn ack
@@ -31,7 +32,6 @@ flow smtp_vrfy_expn_noop_check(auditor, hardened_mta) {
     hardened_mta -> auditor smtp code 221 reply "2.0.0 Bye"
 }
 
-// INSTRUCTION: Compile the SMTP VRFY/EXPN/NOOP diagnostic flow.
 compile {
     smtp_vrfy_expn_noop_check(auditor, hardened_mta)
 }

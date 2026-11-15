@@ -1,19 +1,19 @@
-// PROMPT: TFTP reliability recovery demonstrating duplicate DATA block 3 retransmission after a lost ACK.
-// TOKENS: host, ip, mac, flow, s, tftp, data, block, payload, wait, ms, ack, compile
+// TFTP reliability recovery demonstrating duplicate DATA block 3
+// retransmission after a lost ACK.
+// Timing: pauses 100ms after each marked packet before sending the next
+// frame.
+// Wireshark: tftp
 
-// INSTRUCTION: Define wireless bridge client experiencing packet loss.
 host wisp_bridge {
     ip 172.24.10.30
     mac 00:15:6d:18:0a:1e
 }
 
-// INSTRUCTION: Define WISP tower TFTP firmware server.
 host tower_tftp {
     ip 172.24.10.1
     mac 00:15:6d:18:0a:01
 }
 
-// INSTRUCTION: Retransmit DATA block 3 after timeout and complete ACK handshake.
 flow tftp_retransmit_block(c, s) {
     c <- s tftp data block 3 payload "firmware-segment-003" wait 100ms
     c <- s tftp data block 3 payload "firmware-segment-003"
@@ -22,7 +22,6 @@ flow tftp_retransmit_block(c, s) {
     c -> s tftp ack block 4
 }
 
-// INSTRUCTION: Compile the TFTP duplicate DATA block retransmission scenario.
 compile {
     tftp_retransmit_block(wisp_bridge, tower_tftp)
 }

@@ -1,19 +1,19 @@
-// PROMPT: Active Directory SYSVOL Group Policy Object (GPO) gpt.ini read synchronization over SMB2.
-// TOKENS: host, ip, mac, flow, s, smb, command, sessionid, msgid, share, status, treeid, wait, ms, filename, payload, compile
+// Active Directory SYSVOL Group Policy Object (GPO) gpt.ini read
+// synchronization over SMB2.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: smb2
 
-// INSTRUCTION: Define the domain-joined Windows endpoint refreshing Group Policy.
 host domain_member {
     ip 10.60.40.115
     mac 00:1a:2b:60:40:15
 }
 
-// INSTRUCTION: Define the Primary Domain Controller hosting SYSVOL.
 host pdc_server {
     ip 10.60.40.1
     mac 00:1a:2b:60:40:01
 }
 
-// INSTRUCTION: Connect to SYSVOL, read gpt.ini policy version, and close the file handle.
 flow smb_gpo_sync(c, s) {
     c -> s smb command "treeconnect" sessionid 7700 msgid 1 share "\\corp.local\SYSVOL"
     c <- s smb command "treeconnect" status 0 treeid 9 sessionid 7700 msgid 1 wait 1ms
@@ -26,7 +26,6 @@ Version=65543
     c -> s smb command "close" treeid 9 sessionid 7700 msgid 4
 }
 
-// INSTRUCTION: Compile the SYSVOL Group Policy SMB2 flow.
 compile {
     smb_gpo_sync(domain_member, pdc_server)
 }

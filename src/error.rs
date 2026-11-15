@@ -39,6 +39,24 @@ fn lex_error_summary(src: &str, span: (usize, usize)) -> String {
             "Failed to parse token '{}': subnet masks (CIDR notation) are not used in host or ip declarations",
             snippet
         )
+    } else if rest.starts_with('/') {
+        alloc::format!(
+            "Failed to parse unquoted path '{}': URIs and file paths must be wrapped in double quotes",
+            snippet
+        )
+    } else if rest.starts_with('.') {
+        "Failed to parse unquoted '.': domain names, hostnames, and text values must be wrapped in double quotes"
+            .to_string()
+    } else if rest.starts_with(['\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}']) {
+        alloc::format!(
+            "Failed to parse curly quote '{}': smart quotes are not valid in .frasm (use straight double quotes \"...\")",
+            snippet
+        )
+    } else if rest.starts_with(['\u{2013}', '\u{2014}']) {
+        alloc::format!(
+            "Failed to parse dash '{}': use ASCII '->' or '<-' for packet direction arrows",
+            snippet
+        )
     } else if rest.starts_with('=') || rest.starts_with(':') {
         let ch = rest.chars().next().unwrap_or('=');
         alloc::format!(
@@ -158,6 +176,7 @@ fn lex_error_help(src: &str, span: (usize, usize)) -> String {
         );
     }
 
+    let snippet = slice_at_span(src, span);
     let rest = src.get(span.0.min(src.len())..).unwrap_or("");
     if rest.starts_with('#') {
         "Replace '#' with '//' to write a comment (for example: // Define client and server hosts)."
@@ -170,6 +189,24 @@ fn lex_error_help(src: &str, span: (usize, usize)) -> String {
         && rest.as_bytes().get(1).is_some_and(|b| b.is_ascii_digit())
     {
         "Remove the CIDR prefix length and write a plain IP address (for example: ip 10.0.0.1 instead of ip 10.0.0.1/24).".to_string()
+    } else if rest.starts_with('/') {
+        let example_path = if snippet.len() > 1 {
+            snippet
+        } else {
+            "/index.html"
+        };
+        alloc::format!(
+            "Wrap the path or URI in double quotes (for example: uri \"{}\").",
+            example_path
+        )
+    } else if rest.starts_with('.') {
+        "Wrap domain names, hostnames, and text strings in double quotes (for example: qname \"example.com\" or hosthdr \"api.local\").".to_string()
+    } else if rest.starts_with(['\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}']) {
+        "Replace curly smart quotes (“...” or ‘...’) with straight ASCII double quotes (\"...\")."
+            .to_string()
+    } else if rest.starts_with(['\u{2013}', '\u{2014}']) {
+        "Replace Unicode en/em dashes ('–' or '—') with ASCII packet arrows '->' or '<-'."
+            .to_string()
     } else if rest.starts_with('=') || rest.starts_with(':') {
         "Separate keywords and values with a space instead of '=' or ':' (for example: ip 10.0.0.1 or dstport 443).".to_string()
     } else if rest.starts_with('[') || rest.starts_with(']') {
@@ -199,22 +236,41 @@ fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
     }
     if let Some(kw) = crate::lexer::suggest_v2_lowercase_keyword(raw) {
         return alloc::format!(
-            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace '{}' with '{}'.",
+            "Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace '{}' with '{}'.",
             raw,
             kw
         );
     }
 
     let snippet = raw.to_ascii_lowercase();
-    if matches!(snippet.as_str(), "sport" | "source_port" | "sourceport") {
-        "Replace 'sport' with 'srcport <port>' (for example: srcport 51234).".to_string()
+    if matches!(snippet.as_str(), "port" | "ports") {
+        "Specify 'dstport <port>' for destination port or 'srcport <port>' for source port (for example: tcp syn dstport 443).".to_string()
+    } else if matches!(snippet.as_str(), "sport" | "source_port" | "sourceport") {
+        alloc::format!(
+            "Use 'srcport <port>' for the source port: replace '{}' with 'srcport'.",
+            raw
+        )
     } else if matches!(
         snippet.as_str(),
         "dport" | "dest_port" | "destport" | "destination_port"
     ) {
-        "Replace 'dport' with 'dstport <port>' (for example: dstport 443).".to_string()
-    } else if message.contains("acknum") {
+        alloc::format!(
+            "Use 'dstport <port>' for the destination port: replace '{}' with 'dstport'.",
+            raw
+        )
+    } else if matches!(
+        snippet.as_str(),
+        "ackno" | "ack_number" | "acknumber" | "acknowledgment"
+    ) || message.contains("did you mean 'acknum")
+        || message.contains("Did you mean 'acknum")
+    {
         "Use 'ack' alone as a TCP flag, and use 'acknum <number>' to set the TCP acknowledgment number (for example: tcp ack acknum 100).".to_string()
+    } else if message.contains("missing a protocol keyword") {
+        "Add one of FrameAssembly's 81 protocol keywords after the endpoints — for example: 'c -> s tcp syn', 'c -> s udp payload \"hello\"', or 'c -> s http get uri \"/\"'.".to_string()
+    } else if message.contains("time unit") || message.contains("wait duration") {
+        "Attach a lowercase time unit directly to the integer: 'ns', 'us', 'ms', 's', or 'm' (for example: wait 5ms).".to_string()
+    } else if message.contains("Declare a host block first") {
+        "Declare endpoints at the top of the file (e.g. 'host client { ip 10.0.0.1 }') and reference the host or parameter name in flows and compile.".to_string()
     } else if matches!(snippet.as_str(), "hoplimit" | "hop_limit" | "hlim")
         || message.contains("Hop Limit")
     {
@@ -235,7 +291,7 @@ fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
     } else if message.contains("hosthdr") {
         "Inside an http statement, use 'hosthdr \"example.com\"' to set the HTTP Host header ('host' is reserved for declaring network endpoints).".to_string()
     } else if message.contains("missing a required 'ip")
-        || message.contains("must specify at least an 'IP <address>' or 'MAC <address>'")
+        || message.contains("must specify at least an 'ip <address>' or 'mac <address>'")
     {
         "Add 'ip <address>' and/or 'mac <address>' inside the host block — for example: host client { ip 10.0.0.1 mac 00:11:22:33:44:55 }.".to_string()
     } else if message.contains("missing its endpoint parameter list") {
@@ -253,12 +309,18 @@ fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
 fn semantic_error_help(message: &str) -> String {
     if message.contains("Mixed IPv4 and IPv6") {
         "Use either two IPv4 hosts or two IPv6 hosts in the same flow call — a single packet cannot have an IPv4 source and an IPv6 destination.".to_string()
-    } else if message.contains("requires an 'IP <address>'") {
+    } else if message.contains("requires an 'ip <address>'") {
         "Add 'ip <address>' to the host declaration (for example: host r1 { ip 10.0.0.1 mac 00:11:22:33:44:55 }), or use a pure Layer 2 protocol (arp, vlan, qinq, mpls, lldp, stp, lacp, eapol).".to_string()
+    } else if message.contains("Multiple protocols") {
+        "Write only the highest-layer protocol on each packet line (for example: 'c -> s http get' automatically encapsulates HTTP over TCP port 80; use 'transport tcp' or 'transport udp' on dual-transport protocols like dns or modbus).".to_string()
+    } else if message.contains("requires IPv4 endpoints") || message.contains("requires IPv6 endpoints") {
+        "Match the protocol to the host IP version: 'arp' and 'igmp' run over IPv4, while 'ndp' and 'mld' are their IPv6 counterparts.".to_string()
     } else if message.contains("Undefined host") {
         "Declare the host at the top of the file with 'host <name> { ip <address> }' before passing it into a flow call in compile.".to_string()
     } else if message.contains("Undefined flow") {
         "Declare the flow with 'flow <name>(a, b) { ... }' before calling it inside compile.".to_string()
+    } else if message.contains("pass '") && message.contains("as a flow parameter") {
+        "Add the host parameter to the flow signature (for example: flow my_flow(c, s) { ... }) and pass the declared host name inside compile { my_flow(host1, host2) }.".to_string()
     } else if message.contains("Undefined endpoint") || message.contains("Unknown caller") || message.contains("Unknown callee") {
         "Make sure the endpoint name on the packet line matches one of the parameter names listed in 'flow name(param1, param2)'.".to_string()
     } else if message.contains("expects") && message.contains("arguments") {
@@ -309,10 +371,9 @@ pub enum CompilerError {
 impl Diagnostic for CompilerError {
     fn code<'a>(&'a self) -> Option<Box<dyn core::fmt::Display + 'a>> {
         let code_str = match self {
-            Self::LexError { .. } => "frameassembly::lex_error",
-            Self::ParseError { .. } => "frameassembly::parse_error",
-            Self::SemanticError { .. } => "frameassembly::semantic_error",
-            Self::BackendError(_) => "frameassembly::backend_error",
+            Self::LexError { .. } | Self::ParseError { .. } => "syntax error",
+            Self::SemanticError { .. } => "validation error",
+            Self::BackendError(_) => "compile error",
         };
         Some(Box::new(code_str))
     }
@@ -353,10 +414,28 @@ impl Diagnostic for CompilerError {
 impl core::fmt::Display for CompilerError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::LexError { src, span } => write!(f, "{}", lex_error_summary(src, *span)),
-            Self::ParseError { message, .. } => write!(f, "Failed to parse input: {}", message),
-            Self::SemanticError { message, .. } => write!(f, "Semantic error: {}", message),
-            Self::BackendError(msg) => write!(f, "Backend generation error: {}", msg),
+            Self::LexError { src, span } => write!(f, "syntax error: {}", lex_error_summary(src, *span)),
+            Self::ParseError { message, .. } => {
+                let clean = message
+                    .strip_prefix("Syntax error: ")
+                    .or_else(|| message.strip_prefix("syntax error: "))
+                    .unwrap_or(message);
+                write!(f, "syntax error: {clean}")
+            }
+            Self::SemanticError { message, .. } => {
+                let clean = message
+                    .strip_prefix("Semantic error: ")
+                    .or_else(|| message.strip_prefix("validation error: "))
+                    .unwrap_or(message);
+                write!(f, "validation error: {clean}")
+            }
+            Self::BackendError(msg) => {
+                let clean = msg
+                    .strip_prefix("Backend error: ")
+                    .or_else(|| msg.strip_prefix("compile error: "))
+                    .unwrap_or(msg);
+                write!(f, "compile error: {clean}")
+            }
         }
     }
 }
@@ -427,14 +506,14 @@ mod tests {
         let upper_help = parse_error_help("unexpected 'HOST'", upper_src, (0, 4));
         assert_eq!(
             upper_help,
-            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'HOST' with 'host'."
+            "Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace 'HOST' with 'host'."
         );
 
         let snake_src = "host a { ip 10.0.0.1 }\ncompile { a -> a icmp echo_request }\n";
         let snake_help = parse_error_help("unexpected 'echo_request'", snake_src, (45, 12));
         assert_eq!(
             snake_help,
-            "Keywords in FrameAssembly 2.0 are strictly lowercase without '_' or '-': replace 'echo_request' with 'echorequest'."
+            "Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace 'echo_request' with 'echorequest'."
         );
     }
 }

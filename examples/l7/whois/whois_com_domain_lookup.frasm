@@ -1,13 +1,13 @@
-// PROMPT: Commercial registry domain lookup query for enterprise organization domain.
-// TOKENS: host, ip, flow, s, whois, query, domain, response, registrar, compile
+// Commercial registry domain lookup query for enterprise organization domain.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define security analyst workstation.
 host analyst_ws { ip 10.10.20.15 }
 
-// INSTRUCTION: Define Verisign COM registry server.
 host verisign_svr { ip 192.52.178.30 }
 
-// INSTRUCTION: Define commercial domain WHOIS lookup flow.
 flow whois_com_flow(c, s) {
     c -> s whois query domain "enterprise-tech.com"
     c <- s whois response
@@ -15,7 +15,6 @@ flow whois_com_flow(c, s) {
         registrar "MarkMonitor Inc"
 }
 
-// INSTRUCTION: Compile block executing COM domain query.
 compile {
     whois_com_flow(analyst_ws, verisign_svr)
 }

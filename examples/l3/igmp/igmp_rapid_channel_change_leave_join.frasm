@@ -1,22 +1,23 @@
-// PROMPT: Rapid channel change signaling IGMP Leave from old stream followed by Report join for new stream.
-// TOKENS: host, ip, flow, igmp, leave, group, wait, ms, report, compile
+// Rapid channel change signaling IGMP Leave from old stream followed by
+// Report join for new stream.
+// This capture carries group 239.10.1.1/239.10.1.2 and uses post-packet wait
+// gaps (15ms) between frames.
+// Wireshark: igmp
 
-// INSTRUCTION: Define streaming media subscriber host.
 host media_subscriber { ip 10.15.2.40 }
 
-// INSTRUCTION: Define current channel multicast address.
 host channel_alpha { ip 239.10.1.1 }
 
-// INSTRUCTION: Define new target channel multicast address.
 host channel_bravo { ip 239.10.1.2 }
 
-// INSTRUCTION: Define fast leave and immediate join flow sequence.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow igmp_channel_switch(sub, ch1, ch2) {
     sub -> ch1 igmp leave group 239.10.1.1 wait 15ms
     sub -> ch2 igmp report group 239.10.1.2
 }
 
-// INSTRUCTION: Compile block executing IGMP channel change sequence.
+// Run igmp_channel_switch(media_subscriber, channel_alpha, channel_bravo) to
+// generate the capture.
 compile {
     igmp_channel_switch(media_subscriber, channel_alpha, channel_bravo)
 }

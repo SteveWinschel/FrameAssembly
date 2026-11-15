@@ -1,24 +1,25 @@
-// PROMPT: 5G Voice over New Radio (VoNR) AMR-WB wideband speech on dynamic payload type 104 over IPv6.
-// TOKENS: host, ip, flow, rtp, pt, seq, timestamp, ssrc, marker, dscp, hexpayload, wait, ms, compile
+// 5G Voice over New Radio (VoNR) AMR-WB wideband speech on dynamic payload
+// type 104 over IPv6.
+// Encapsulation and QoS markings: DSCP 46 (EF).
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// RTP media on UDP 5004 carrying PT 104.
+// Timing: pauses 20ms after each marked packet before sending the next frame.
+// Wireshark: rtp || udp.port == 5004
 
-// INSTRUCTION: Define 5G User Equipment (UE) IPv6 IMS media endpoint.
 host ue_5g_v6 {
     ip 2001:db8:500:1::104
 }
 
-// INSTRUCTION: Define 5G UPF / IMS Access Gateway IPv6 endpoint.
 host ims_agw_v6 {
     ip 2001:db8:500:1::1
 }
 
-// INSTRUCTION: Define AMR-WB (16kHz clock, 320 ticks per 20ms) RTP frames over IPv6.
 flow rtp_vonr_amrwb(ue, agw) {
     ue -> agw rtp pt 104 seq 10 timestamp 3200 ssrc 0x50000104 marker 1 dscp 46 hexpayload "f0445566778899aa" wait 20ms
     ue -> agw rtp pt 104 seq 11 timestamp 3520 ssrc 0x50000104 marker 0 dscp 46 hexpayload "f0bbccddeeff0011" wait 20ms
     ue <- agw rtp pt 104 seq 80 timestamp 6400 ssrc 0x50000204 marker 1 dscp 46 hexpayload "f011223344556677"
 }
 
-// INSTRUCTION: Compile the 5G VoNR AMR-WB IPv6 RTP flow.
 compile {
     rtp_vonr_amrwb(ue_5g_v6, ims_agw_v6)
 }

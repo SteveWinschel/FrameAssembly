@@ -1,25 +1,24 @@
-// PROMPT: Data center RoCEv2 lossless storage VLAN 300 with Priority Flow Control class PCP 3 and ECN marking.
-// TOKENS: host, ip, mac, flow, init, vlan, pcp, dei, dscp, ecn, udp, srcport, dstport, hexpayload, wait, us, compile
+// Data center RoCEv2 lossless storage VLAN 300 with Priority Flow Control class
+// PCP 3 and ECN marking.
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 300; PCP 3; UDP; dstport 4791,49152;
+// DSCP 26; waits 200us.
+// Wireshark: vlan.id == 300 && vlan.priority == 3
 
-// INSTRUCTION: Define NVMe-oF RoCEv2 compute initiator host.
 host roce_initiator {
     ip 172.28.30.11
     mac 0c:42:a1:00:30:0b
 }
 
-// INSTRUCTION: Define NVMe-oF RoCEv2 flash storage target array.
 host roce_target {
     ip 172.28.30.50
     mac 0c:42:a1:00:30:32
 }
 
-// INSTRUCTION: Define lossless VLAN 300 PCP 3 RDMA transport flow with ECN congestion notification.
 flow rocev2_lossless_vlan(init, tgt) {
-    init -> tgt vlan 300 pcp 3 dei 0 dscp 26 ecn 2 udp srcport 49152 dstport 4791 hexpayload "0440ffff0000010000000001"
-    init <- tgt vlan 300 pcp 3 dei 0 dscp 26 ecn 3 udp srcport 4791 dstport 49152 hexpayload "1180ffff0000010000000001" wait 200us
+    init -> tgt vlan 300 pcp 3 dei 0 dscp 26 ecn 2 udp srcport 49152 dstport 4791 hexpayload "0440ffff0000010000000001" wait 200us
+    init <- tgt vlan 300 pcp 3 dei 0 dscp 26 ecn 3 udp srcport 4791 dstport 49152 hexpayload "1180ffff0000010000000001"
 }
 
-// INSTRUCTION: Compile block executing lossless storage VLAN RoCEv2 exchange.
 compile {
     rocev2_lossless_vlan(roce_initiator, roce_target)
 }

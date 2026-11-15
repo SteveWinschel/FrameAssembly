@@ -1,20 +1,19 @@
-// PROMPT: Perimeter firewall security audit event logging blocked packet transmission.
-// TOKENS: host, ip, flow, s, syslog, facility, severity, hostname, app, msg, compile
+// Perimeter firewall security audit event logging blocked packet
+// transmission.
+// RFC 5424 over UDP 514; facility 4 (auth) + severity 4 (warning) yields PRI
+// <36>.
+// Wireshark: syslog
 
-// INSTRUCTION: Define perimeter firewall device.
 host edge_firewall { ip 192.168.1.1 }
 
-// INSTRUCTION: Define network auditor collector.
 host audit_collector { ip 10.100.1.25 }
 
-// INSTRUCTION: Define firewall packet drop audit flow.
 flow syslog_fw_drop_flow(c, s) {
     c -> s syslog facility 4 severity 4
         hostname "fw-edge-01" app "nftables"
         msg "DROP rule=WAN_IN src=198.51.100.44 dst=192.168.1.10 proto=TCP dport=445"
 }
 
-// INSTRUCTION: Compile block executing firewall audit event.
 compile {
     syslog_fw_drop_flow(edge_firewall, audit_collector)
 }

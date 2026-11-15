@@ -1,0 +1,11 @@
+// Minimal 2-block Siemens S7comm starter sending a default ISO-on-TCP frame on TCP 102.
+// Wraps TPKT v3, COTP DT Data, and the 0x32 S7 header automatically without a flow wrapper.
+// Safely test OT conduit rules without touching a live PLC.
+// Wireshark: s7comm
+
+host eng_station { ip 172.22.10.15 mac 00:1b:21:10:00:0f }
+host s7_plc      { ip 172.22.10.50 mac 00:0e:8c:10:00:32 }
+
+compile {
+    eng_station -> s7_plc s7comm
+}

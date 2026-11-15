@@ -1,25 +1,23 @@
-// PROMPT: IEEE 802.1t Extended System ID encoding VLAN 4094 into the bridge priority field (4096 + 4094 = 8190).
-// TOKENS: host, ip, mac, flow, vlan, pcp, stp, rstp, rootid, bridgeid, cost, portid, maxage, hellotime, forwarddelay, flags, wait, ms, compile
+// IEEE 802.1t Extended System ID encoding VLAN 4094 into the bridge priority
+// field (4096 + 4094 = 8190).
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 4094; PCP 7; STP; waits 5ms.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define distribution switch running Rapid-PVST+ on maximum VLAN 4094 with extended system ID 8190.
 host rpvst_vlan4094_root {
     ip 10.254.254.1
     mac 00:1c:73:fe:fe:01
 }
 
-// INSTRUCTION: Define access switch receiving tagged RSTP BPDU on VLAN 4094.
 host rpvst_vlan4094_leaf {
     ip 10.254.254.2
     mac 00:1c:73:fe:fe:02
 }
 
-// INSTRUCTION: Transmit RSTP BPDU tagged with VLAN 4094 PCP 7 carrying Extended System ID priority 8190.
 flow stp_extended_sysid_4094(root, leaf) {
     root -> leaf vlan 4094 pcp 7 stp rstp rootid "8190:00:1c:73:fe:fe:01" bridgeid "8190:00:1c:73:fe:fe:01" cost 0 portid 32769 maxage 20 hellotime 2 forwarddelay 15 flags 60 wait 5ms
     root <- leaf vlan 4094 pcp 7 stp rstp rootid "8190:00:1c:73:fe:fe:01" bridgeid "36862:00:1c:73:fe:fe:02" cost 2000 portid 32769 maxage 20 hellotime 2 forwarddelay 15 flags 60
 }
 
-// INSTRUCTION: Compile the IEEE 802.1t Extended System ID VLAN 4094 RSTP trace.
 compile {
     stp_extended_sysid_4094(rpvst_vlan4094_root, rpvst_vlan4094_leaf)
 }

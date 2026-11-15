@@ -1,19 +1,22 @@
-// PROMPT: Model an MQTT Over-The-Air (OTA) firmware binary chunk distribution to an IoT gateway over MPLS label 6188.
-// TOKENS: host, ip, mac, flow, mqtt, publish, topic, qos, pktid, hexpayload, mpls, exp, bos, mplsttl, wait, ms, puback, compile
+// MQTT Over-The-Air (OTA) firmware binary chunk distribution to an IoT
+// gateway over MPLS label 6188.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define the cloud OTA deployment server publishing firmware blocks.
+// Cloud OTA deployment server publishing firmware blocks.
 host ota_publisher {
     ip 172.24.18.5
     mac 00:50:56:18:12:05
 }
 
-// INSTRUCTION: Define the regional IoT aggregation broker reachable over MPLS.
+// Regional IoT aggregation broker reachable over MPLS.
 host regional_broker {
     ip 172.24.88.1
     mac 00:50:56:18:58:01
 }
 
-// INSTRUCTION: Publish two sequential QoS 1 binary firmware chunks over MPLS label 6188.
+// Publish two sequential QoS 1 binary firmware chunks over MPLS label 6188.
+// Encapsulation and QoS markings: MPLS label 6188. MQTT control session on
+// TCP 1883 (QoS 1).
 flow mqtt_ota_chunk_stream(c, b) {
     c -> b mqtt publish topic "ota/gw-fleet/v2.4.1/chunk/0" qos 1 pktid 501
         hexpayload "7f454c46020101000000000000000000" mpls 6188 exp 3 bos 1 mplsttl 64 wait 5ms
@@ -23,7 +26,6 @@ flow mqtt_ota_chunk_stream(c, b) {
     c <- b mqtt puback pktid 502 mpls 6188 exp 3 bos 1 mplsttl 64
 }
 
-// INSTRUCTION: Compile the MPLS-encapsulated MQTT OTA firmware stream.
 compile {
     mqtt_ota_chunk_stream(ota_publisher, regional_broker)
 }

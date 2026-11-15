@@ -1,17 +1,17 @@
-// PROMPT: HTTP/3 client cancelling unwanted server push stream over QUIC Short header frames.
-// TOKENS: host, ip, flow, s, quic, short, dcid, pktnum, payload, wait, ms, compile
+// HTTP/3 client cancelling unwanted server push stream over QUIC Short header
+// frames.
+// QUIC UDP 443 packet types: short.
+// Timing: pauses 3ms after each marked packet before sending the next frame.
+// Wireshark: quic
 
-// INSTRUCTION: Define bandwidth-constrained mobile HTTP/3 client.
 host h3_mobile {
     ip 172.25.10.90
 }
 
-// INSTRUCTION: Define HTTP/3 server initiating push promise.
 host h3_origin {
     ip 172.25.10.1
 }
 
-// INSTRUCTION: Define HTTP/3 request, PUSH_PROMISE frame, and client CANCEL_PUSH response.
 flow quic_h3_cancel_push(c, s) {
     c -> s quic short dcid 0xaaaabbbbccccdddd pktnum 10 payload "H3_GET_ARTICLE_HTML" wait 3ms
     c <- s quic short dcid 0xddddccccbbbbaaaa pktnum 20 payload "H3_PUSH_PROMISE_HERO_JPG" wait 3ms
@@ -19,7 +19,6 @@ flow quic_h3_cancel_push(c, s) {
     c <- s quic short dcid 0xddddccccbbbbaaaa pktnum 21 payload "H3_DATA_ARTICLE_HTML"
 }
 
-// INSTRUCTION: Compile the HTTP/3 server push cancellation scenario.
 compile {
     quic_h3_cancel_push(h3_mobile, h3_origin)
 }

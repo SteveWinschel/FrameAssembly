@@ -1,26 +1,23 @@
-// PROMPT: Multi-homed SCTP failover switching active Diameter Gy charging traffic from primary subnet to secondary subnet after Heartbeat timeout.
-// TOKENS: host, ip, flow, sctp, chunk, heartbeat, vtag, srcport, dstport, payload, data, stream, ssn, ppid, wait, s, sack, ms, compile
+// Multi-homed SCTP failover switching active Diameter Gy charging traffic from
+// primary subnet to secondary subnet after Heartbeat timeout.
+// Wire profile: 3 frames; 4 IPv4 hosts; SCTP; SCTP DATA/HEARTBEAT/SACK; PPID 46;
+// dstport 3868; waits 1s, 2ms.
+// Wireshark: sctp && sctp.data_ppid == 46
 
-// INSTRUCTION: Define Online Charging System (OCS) primary IP interface.
 host ocs_primary_ip { ip 10.71.1.10 }
 
-// INSTRUCTION: Define Online Charging System (OCS) secondary IP interface.
 host ocs_secondary_ip { ip 10.71.2.10 }
 
-// INSTRUCTION: Define Packet Gateway (PGW) primary IP interface.
 host pgw_primary_ip { ip 10.71.1.1 }
 
-// INSTRUCTION: Define Packet Gateway (PGW) secondary IP interface.
 host pgw_secondary_ip { ip 10.71.2.1 }
 
-// INSTRUCTION: Define unanswered SCTP Heartbeat on primary path followed by DATA failover to secondary path.
 flow sctp_multihomed_failover(pgw1, ocs1, pgw2, ocs2) {
-    pgw1 -> ocs1 sctp chunk heartbeat vtag 710001 srcport 3868 dstport 3868 payload "hb_primary_path_probe"
-    pgw2 -> ocs2 sctp chunk data vtag 710001 stream 1 ssn 10 ppid 46 srcport 3868 dstport 3868 payload "diameter_ccr_failover_secondary_path" wait 1s
-    pgw2 <- ocs2 sctp chunk sack vtag 710001 srcport 3868 dstport 3868 wait 2ms
+    pgw1 -> ocs1 sctp chunk heartbeat vtag 710001 srcport 3868 dstport 3868 payload "hb_primary_path_probe" wait 1s
+    pgw2 -> ocs2 sctp chunk data vtag 710001 stream 1 ssn 10 ppid 46 srcport 3868 dstport 3868 payload "diameter_ccr_failover_secondary_path" wait 2ms
+    pgw2 <- ocs2 sctp chunk sack vtag 710001 srcport 3868 dstport 3868
 }
 
-// INSTRUCTION: Compile block executing multi-homed SCTP path failover.
 compile {
     sctp_multihomed_failover(pgw_primary_ip, ocs_primary_ip, pgw_secondary_ip, ocs_secondary_ip)
 }

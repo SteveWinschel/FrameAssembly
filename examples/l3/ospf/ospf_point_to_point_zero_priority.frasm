@@ -1,19 +1,20 @@
-// PROMPT: Generate a fast-hellos OSPF point-to-point link adjacency with sub-5-second dead timers and priority 0
-// TOKENS: host, ip, mac, flow, ospf, hello, routerid, areaid, hellointerval, deadinterval, priority, ttl, wait, ms, dbd, lsu, lsack, compile
+// Generate a fast-hellos OSPF point-to-point link adjacency with sub-5-second
+// dead timers and priority 0.
+// This capture sets TTL 1 and uses post-packet wait gaps (10ms) between
+// frames.
+// Wireshark: ospf
 
-// INSTRUCTION: Define the west core point-to-point OSPF router
 host p2p_west {
     ip 172.16.254.1
     mac 00:16:3e:f2:fe:01
 }
 
-// INSTRUCTION: Define the east core point-to-point OSPF router
 host p2p_east {
     ip 172.16.254.2
     mac 00:16:3e:f2:fe:02
 }
 
-// INSTRUCTION: Exchange fast OSPF Hellos (1s hello, 4s dead, priority 0) and synchronize LSDB
+// Packet sequence (5 frames); wait pauses after a packet before the next.
 flow ospf_p2p_fast_convergence(west, east) {
     west -> east ospf hello routerid 172.16.0.1 areaid 0 hellointerval 1 deadinterval 4 priority 0 ttl 1 wait 10ms
     east -> west ospf hello routerid 172.16.0.2 areaid 0 hellointerval 1 deadinterval 4 priority 0 ttl 1 wait 10ms
@@ -22,7 +23,7 @@ flow ospf_p2p_fast_convergence(west, east) {
     west -> east ospf lsack routerid 172.16.0.1 areaid 0 ttl 1
 }
 
-// INSTRUCTION: Compile the point-to-point fast OSPF convergence flow
+// Run ospf_p2p_fast_convergence(p2p_west, p2p_east) to generate the capture.
 compile {
     ospf_p2p_fast_convergence(p2p_west, p2p_east)
 }

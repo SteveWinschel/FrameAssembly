@@ -1,19 +1,18 @@
-// PROMPT: TFTP error response returning ERRCODE 1 File Not Found.
-// TOKENS: host, ip, flow, s, tftp, rrq, filename, mode, errcode, errmsg, compile
+// TFTP error response returning ERRCODE 1 File Not Found.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (TFTP (RFC
+// 1350), UDP 69).
+// Wireshark: tftp
 
-// INSTRUCTION: Define querying client requesting missing file.
 host query_client { ip 10.10.10.8 }
 
-// INSTRUCTION: Define TFTP server returning error.
 host error_tftp_svr { ip 10.10.10.1 }
 
-// INSTRUCTION: Define File Not Found error transaction flow.
 flow tftp_err_not_found(c, s) {
     c -> s tftp rrq filename "nonexistent_image.bin" mode "octet"
     c <- s tftp errcode 1 errmsg "File not found"
 }
 
-// INSTRUCTION: Compile block executing error response.
 compile {
     tftp_err_not_found(query_client, error_tftp_svr)
 }

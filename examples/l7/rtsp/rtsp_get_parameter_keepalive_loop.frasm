@@ -1,19 +1,17 @@
-// PROMPT: RTSP GET_PARAMETER session keepalive heartbeat loop preventing camera timeout.
-// TOKENS: host, ip, flow, s, rtsp, method, uri, cseq, session, wait, status, compile
+// RTSP GET_PARAMETER session keepalive heartbeat loop preventing camera
+// timeout.
+// Timing: runs 4 cycles in compile using post-packet waits (1s).
+// Wireshark: rtsp
 
-// INSTRUCTION: Define VMS recording server client.
 host vms_node { ip 10.155.1.10 }
 
-// INSTRUCTION: Define perimeter security IP camera.
 host perim_cam { ip 10.155.1.50 }
 
-// INSTRUCTION: Define GET_PARAMETER keepalive ping and 200 OK reply.
 flow rtsp_keepalive_ping(c, s) {
     c -> s rtsp method "GET_PARAMETER" uri "rtsp://10.155.1.50/h265" cseq 10 session "cam_sess_88" wait 1s
     c <- s rtsp status 200 cseq 10 wait 1s
 }
 
-// INSTRUCTION: Execute 4 keepalive cycles in COMPILE LOOP.
 compile {
     rtsp_keepalive_ping(vms_node, perim_cam) // cycle 1
     rtsp_keepalive_ping(vms_node, perim_cam) // cycle 2

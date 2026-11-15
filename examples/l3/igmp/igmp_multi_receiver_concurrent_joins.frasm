@@ -1,25 +1,24 @@
-// PROMPT: Concurrent IGMP Membership Reports from multiple independent client nodes for distinct streams.
-// TOKENS: host, ip, flow, igmp, report, group, compile
+// Concurrent IGMP Membership Reports from multiple independent client nodes
+// for distinct streams.
+// This capture carries group 239.50.1.1/239.50.1.2.
+// Wireshark: igmp
 
-// INSTRUCTION: Define financial analytics node 1.
 host analytics_worker1 { ip 10.120.1.11 }
 
-// INSTRUCTION: Define financial analytics node 2.
 host analytics_worker2 { ip 10.120.1.12 }
 
-// INSTRUCTION: Define equities market feed group.
 host equities_feed_grp { ip 239.50.1.1 }
 
-// INSTRUCTION: Define commodities market feed group.
 host commodities_feed_grp { ip 239.50.1.2 }
 
-// INSTRUCTION: Define multi-receiver join flow issuing independent IGMP reports.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow igmp_multi_join(w1, w2, g1, g2) {
     w1 -> g1 igmp report group 239.50.1.1
     w2 -> g2 igmp report group 239.50.1.2
 }
 
-// INSTRUCTION: Compile block executing concurrent IGMP subscriptions.
+// Run igmp_multi_join(analytics_worker1, analytics_worker2,
+// equities_feed_grp, commodities_feed_grp) to generate the capture.
 compile {
     igmp_multi_join(analytics_worker1, analytics_worker2, equities_feed_grp, commodities_feed_grp)
 }

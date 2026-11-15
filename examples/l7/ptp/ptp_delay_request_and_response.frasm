@@ -1,19 +1,19 @@
-// PROMPT: IEEE 1588 PTP link propagation delay measurement with Delay_Req and Delay_Resp.
-// TOKENS: host, ip, flow, s, ptp, delayreq, seqid, domain, delayresp, compile
+// IEEE 1588 PTP link propagation delay measurement with Delay_Req and
+// Delay_Resp.
+// IEEE 1588v2 PTP (messages: delayreq, delayresp; domain 0). UDP 319 handles
+// Event messages (sync, delayreq) and UDP 320 carries General messages
+// (announce, followup, delayresp).
+// Wireshark: ptp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.2 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow ptp_delay(c, s) {
     c -> s ptp delayreq seqid 101 domain 0
     c <- s ptp delayresp seqid 101 domain 0
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ptp_delay(client, server)
 }

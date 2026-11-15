@@ -1,13 +1,19 @@
-// PROMPT: Poll isolated VRF routing tables on a multi-tenant PE router using SNMPv3 CONTEXTNAME strings ("vrf-prod", "vrf-pci", "vrf-guest").
-// TOKENS: host, ip, mac, flow, snmp3, get, user, engineid, engineboots, enginetime, contextname, reqid, auth, sha256, priv, aes, varbind, nullval, wait, ms, response, ipval, int, compile
+// Poll isolated VRF routing tables on a multi-tenant PE router using SNMPv3
+// contextname strings ("vrf-prod", "vrf-pci", "vrf-guest").
+// SNMPv3 USM security uses auth sha256, priv aes with localized engineid
+// keys.
+// Targets SNMPv3 MIB context(s): vrf-guest, vrf-pci, vrf-prod.
+// MIB objects / traps: 1.3.6.1.2.1.4.21.1.7.0.0.0.0 (IP-MIB),
+// 1.3.6.1.2.1.4.21.1.8.0.0.0.0 (IP-MIB).
+// In Wireshark, add the engineid, user, auth, and priv passphrases under SNMP
+// Users Table to decrypt.
+// Timing: pauses 10ms after each marked packet before sending the next frame.
+// Wireshark: snmp
 
-// INSTRUCTION: Define a multi-tenant MPLS NMS poller with IP 10.156.0.10.
 host mpls_poller { ip 10.156.0.10 mac 00:1b:54:56:00:10 }
 
-// INSTRUCTION: Define a Provider Edge (PE) router hosting multiple VRFs with IP 10.156.0.1.
 host pe_router { ip 10.156.0.1 mac 00:1b:54:56:00:01 }
 
-// INSTRUCTION: Define a flow querying each VRF's routing table by varying the SNMPv3 ScopedPDU CONTEXTNAME.
 flow poll_multi_vrf_contexts(poller, pe) {
     poller -> pe snmp3 get user "vrf_auditor" engineid "800000090300001b54560001" engineboots 10 enginetime 80000 contextname "vrf-prod"
         reqid 10101 auth sha256 "vrf_auth_secret" priv aes "vrf_priv_secret"
@@ -35,7 +41,6 @@ flow poll_multi_vrf_contexts(poller, pe) {
         wait 10ms
 }
 
-// INSTRUCTION: Compile block to run the multi-VRF SNMPv3 context polling flow.
 compile {
     poll_multi_vrf_contexts(mpls_poller, pe_router)
 }

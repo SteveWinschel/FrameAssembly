@@ -1,23 +1,23 @@
-// PROMPT: Ultra-low-bandwidth G.729 (payload type 18) RTP voice stream over satellite link with DSCP EF.
-// TOKENS: host, ip, flow, rtp, pt, seq, timestamp, ssrc, marker, dscp, ttl, hexpayload, wait, ms, compile
+// Ultra-low-bandwidth G.729 (payload type 18) RTP voice stream over satellite
+// link with DSCP EF.
+// Encapsulation and QoS markings: DSCP 46 (EF).
+// RTP media on UDP 5004 carrying PT 18 (G.729).
+// Timing: pauses 20ms after each marked packet before sending the next frame.
+// Wireshark: rtp || udp.port == 5004
 
-// INSTRUCTION: Define remote oil rig satellite VoIP terminal.
 host rig_phone {
     ip 172.22.90.15
 }
 
-// INSTRUCTION: Define onshore headquarters VoIP gateway.
 host onshore_gw {
     ip 172.22.90.1
 }
 
-// INSTRUCTION: Define G.729 (PT 18) 20-byte audio frames with DSCP 46 (EF).
 flow rtp_g729_sat(a, b) {
     a -> b rtp pt 18 seq 4000 timestamp 80000 ssrc 0x18180001 marker 1 dscp 46 ttl 128 hexpayload "789abcde0123456789abcdef0123456789abcdef" wait 20ms
     a -> b rtp pt 18 seq 4001 timestamp 80160 ssrc 0x18180001 marker 0 dscp 46 ttl 128 hexpayload "11223344556677889900aabbccddeeff00112233"
 }
 
-// INSTRUCTION: Compile the G.729 satellite voice RTP flow.
 compile {
     rtp_g729_sat(rig_phone, onshore_gw)
 }

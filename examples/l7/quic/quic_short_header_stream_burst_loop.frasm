@@ -1,19 +1,17 @@
-// PROMPT: High-rate QUIC 1-RTT short header datagram burst using COMPILE LOOP.
-// TOKENS: host, ip, flow, s, quic, short, dcid, pktnum, payload, wait, ms, compile
+// High-rate QUIC 1-RTT short header datagram burst using repeated flow calls.
+// QUIC UDP 443 packet types: short.
+// Timing: runs 5 cycles in compile using post-packet waits (8ms).
+// Wireshark: quic
 
-// INSTRUCTION: Define cloud gaming client endpoint.
 host game_client { ip 10.99.0.15 }
 
-// INSTRUCTION: Define cloud gaming GPU server endpoint.
 host gpu_server { ip 10.99.0.1 }
 
-// INSTRUCTION: Define bidirectional 1-RTT QUIC frame exchange.
 flow quic_game_tick(c, s) {
     c -> s quic short dcid 0x77889900 pktnum 100 payload "INPUT_STATE_TICK" wait 8ms
     c <- s quic short dcid 0x11223300 pktnum 200 payload "VIDEO_SLICE_NAL" wait 8ms
 }
 
-// INSTRUCTION: Execute 5 game ticks in COMPILE LOOP.
 compile {
     quic_game_tick(game_client, gpu_server) // cycle 1
     quic_game_tick(game_client, gpu_server) // cycle 2

@@ -1,24 +1,18 @@
-// PROMPT: Default DNS datagram emission on UDP port 53 using automatic RFC 1035 wire defaults.
-// TOKENS: host, ip, mac, flow, dns, compile
+// DNS starter query on UDP port 53 using built-in defaults. Omitting extra
+// keywords emits a standard A record lookup for example.com (txid 0x1234).
+// Wireshark: dns
 
-// INSTRUCTION: Define stub resolver workstation.
 host stub_client {
     ip 192.168.1.55
     mac 00:1c:42:10:20:30
 }
 
-// INSTRUCTION: Define recursive DNS resolver.
 host dns_recursor {
     ip 1.1.1.1
     mac 00:1c:42:10:20:01
 }
 
-// INSTRUCTION: Emit a default DNS frame without explicit sub-keywords.
-flow dns_default(c, r) {
-    c -> r dns
-}
-
-// INSTRUCTION: Compile the default DNS scenario.
+// Send the frame directly in compile without needing a reusable flow block.
 compile {
-    dns_default(stub_client, dns_recursor)
+    stub_client -> dns_recursor dns
 }

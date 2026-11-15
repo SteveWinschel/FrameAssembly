@@ -1,25 +1,27 @@
-// PROMPT: RFC 7761 Section 4.3.3 LAN Prune Delay where a downstream router overrides a peer's Prune before the Override-Interval expires.
-// TOKENS: host, ip, mac, flow, pim, joinprune, group, rp, holdtime, dscp, ttl, payload, wait, ms, compile
+// RFC 7761 Section 4.3.3 LAN Prune Delay where a downstream router overrides
+// a peer's Prune before the Override-Interval expires.
+// This capture sets DSCP 48, TTL 1, carries group 239.30.1.1, and uses
+// post-packet wait gaps (2ms) between frames.
+// Wireshark: pim
 
-// INSTRUCTION: Define downstream router 1 sending a (*,G) Prune on a multi-access broadcast segment.
 host lan_pim_down_1 {
     ip 10.103.30.11
     mac 00:16:3e:67:1e:0b
 }
 
-// INSTRUCTION: Define downstream router 2 (and upstream router) overriding the Prune to keep the group active.
 host lan_pim_up_rtr {
     ip 10.103.30.1
     mac 00:16:3e:67:1e:01
 }
 
-// INSTRUCTION: Define PIM Prune followed within 2ms by a Join override for group 239.30.1.1.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow pim_prune_override_flow(down, up) {
     down -> up pim joinprune group 239.30.1.1 rp 10.103.0.1 holdtime 210 dscp 48 ttl 1 payload "LAN_PRUNE_PENDING_TIMER_3000MS" wait 2ms
     down -> up pim joinprune group 239.30.1.1 rp 10.103.0.1 holdtime 210 dscp 48 ttl 1 payload "LAN_JOIN_OVERRIDE_KEEP_FORWARDING"
 }
 
-// INSTRUCTION: Compile the RFC 7761 LAN Prune Delay Join-Override flow.
+// Run pim_prune_override_flow(lan_pim_down_1, lan_pim_up_rtr) to generate the
+// capture.
 compile {
     pim_prune_override_flow(lan_pim_down_1, lan_pim_up_rtr)
 }

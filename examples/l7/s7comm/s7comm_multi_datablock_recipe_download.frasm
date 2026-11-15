@@ -1,13 +1,13 @@
-// PROMPT: S7comm sequential multi-DataBlock recipe download (DB1, DB2, DB3) with DF bit set.
-// TOKENS: host, ip, flow, s7comm, rosctr, func, pduref, area, dbnum, offset, count, df, ipid, hexpayload, wait, ms, compile
+// S7comm sequential multi-DataBlock recipe download (DB1, DB2, DB3) with DF
+// bit set.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting 0x84.
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define batch recipe server client.
 host recipe_srv { ip 10.102.88.5 }
 
-// INSTRUCTION: Define mixer S7-1500 PLC.
 host mixer_plc { ip 10.102.88.1 }
 
-// INSTRUCTION: Define sequential WRITE_VAR operations across DB1, DB2, and DB3.
 flow s7comm_recipe_load(c, plc) {
     c -> plc s7comm rosctr "job" func "writevar" pduref 11 area 0x84 dbnum 1 offset 0 count 4 df ipid 101 hexpayload "0004002011223344" wait 4ms
     c <- plc s7comm rosctr "ackdata" func "writevar" pduref 11 df ipid 201 hexpayload "ff" wait 4ms
@@ -17,7 +17,6 @@ flow s7comm_recipe_load(c, plc) {
     c <- plc s7comm rosctr "ackdata" func "writevar" pduref 13 df ipid 203 hexpayload "ff"
 }
 
-// INSTRUCTION: Compile multi-DB recipe download flow.
 compile {
     s7comm_recipe_load(recipe_srv, mixer_plc)
 }

@@ -1,19 +1,20 @@
-// PROMPT: RFC 7432 / RFC 8365 BGP EVPN control plane peering between Data Center Leaf and Spine routers.
-// TOKENS: host, ip, mac, flow, bgp, open, asn, holdtime, bgpid, dscp, ttl, wait, ms, update, prefix, nexthop, payload, keepalive, compile
+// RFC 7432 / RFC 8365 BGP EVPN control plane peering between Data Center Leaf
+// and Spine routers.
+// This capture sets DSCP 48, TTL 64, carries ASN 65000/65101, and uses
+// post-packet wait gaps (5ms) between frames.
+// Wireshark: bgp
 
-// INSTRUCTION: Define Leaf-101 VTEP router advertising EVPN Type-2 MAC/IP NLRI.
 host evpn_leaf_101 {
     ip 10.255.1.101
     mac 00:1c:73:e1:01:01
 }
 
-// INSTRUCTION: Define Spine-1 BGP EVPN Route Reflector in ASN 65000.
 host evpn_spine_01 {
     ip 10.255.0.1
     mac 00:1c:73:e0:00:01
 }
 
-// INSTRUCTION: Define BGP OPEN, EVPN UPDATE prefix exchange, and KEEPALIVE confirmation.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow bgp_evpn_overlay_session(leaf, spine) {
     leaf -> spine bgp open asn 65101 holdtime 90 bgpid 10.255.1.101 dscp 48 ttl 64 wait 5ms
     leaf <- spine bgp open asn 65000 holdtime 90 bgpid 10.255.0.1 dscp 48 ttl 64 wait 5ms
@@ -21,7 +22,8 @@ flow bgp_evpn_overlay_session(leaf, spine) {
     leaf <- spine bgp keepalive dscp 48 ttl 64
 }
 
-// INSTRUCTION: Compile the BGP EVPN Spine-Leaf control plane peering flow.
+// Run bgp_evpn_overlay_session(evpn_leaf_101, evpn_spine_01) to generate the
+// capture.
 compile {
     bgp_evpn_overlay_session(evpn_leaf_101, evpn_spine_01)
 }

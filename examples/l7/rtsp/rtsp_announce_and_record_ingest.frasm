@@ -1,13 +1,12 @@
-// PROMPT: RTSP ANNOUNCE and RECORD live stream contribution from encoder to media server.
-// TOKENS: host, ip, flow, rtsp, method, uri, cseq, payload, wait, ms, status, transporthdr, session, compile
+// RTSP ANNOUNCE and RECORD live stream contribution from encoder to media
+// server.
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: rtsp
 
-// INSTRUCTION: Define live hardware video encoder.
 host live_encoder { ip 10.65.0.15 }
 
-// INSTRUCTION: Define RTSP ingestion origin server.
 host ingest_srv { ip 10.65.0.1 }
 
-// INSTRUCTION: Define ANNOUNCE SDP push, SETUP, and RECORD start.
 flow rtsp_live_ingest(enc, srv) {
     enc -> srv rtsp method "ANNOUNCE" uri "rtsp://10.65.0.1/ingest/event1" cseq 1 payload "v=0\r\nm=video 0 RTP/AVP 96\r\n" wait 5ms
     enc <- srv rtsp status 200 cseq 1 wait 5ms
@@ -16,7 +15,6 @@ flow rtsp_live_ingest(enc, srv) {
     enc -> srv rtsp method "RECORD" uri "rtsp://10.65.0.1/ingest/event1" cseq 3 session "rec_771"
 }
 
-// INSTRUCTION: Compile RTSP ANNOUNCE and RECORD contribution flow.
 compile {
     rtsp_live_ingest(live_encoder, ingest_srv)
 }

@@ -1,25 +1,23 @@
-// PROMPT: Cisco HSRP active router broadcasting Gratuitous ARP Reply with virtual MAC 00:00:0c:07:ac:01 upon standby promotion.
-// TOKENS: host, ip, mac, flow, vlan, pcp, arp, reply, gratuitous, sendermac, senderip, targetmac, targetip, dstmac, wait, ms, compile
+// Cisco HSRP active router broadcasting Gratuitous ARP Reply with virtual MAC
+// 00:00:0c:07:ac:01 upon standby promotion.
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 30; PCP 6; ARP; waits 10ms.
+// Wireshark: vlan.id == 30 && (arp.src.proto_ipv4 == arp.dst.proto_ipv4)
 
-// INSTRUCTION: Define newly active HSRP router advertising virtual IP 10.20.30.1 and HSRP v1 virtual MAC.
 host hsrp_promoted_rtr {
     ip 10.20.30.1
     mac 00:00:0c:07:ac:01
 }
 
-// INSTRUCTION: Define access switch learning the moved port for HSRP virtual MAC 00:00:0c:07:ac:01.
 host access_lan_host {
     ip 10.20.30.50
     mac 00:24:e8:14:1e:32
 }
 
-// INSTRUCTION: Send broadcast Gratuitous ARP Reply updating CAM and ARP tables across VLAN 30.
 flow arp_hsrp_mac_move(rtr, host) {
     rtr -> host vlan 30 pcp 6 arp reply gratuitous sendermac 00:00:0c:07:ac:01 senderip 10.20.30.1 targetmac ff:ff:ff:ff:ff:ff targetip 10.20.30.1 dstmac ff:ff:ff:ff:ff:ff wait 10ms
     rtr -> host vlan 30 pcp 6 arp reply gratuitous sendermac 00:00:0c:07:ac:01 senderip 10.20.30.1 targetmac ff:ff:ff:ff:ff:ff targetip 10.20.30.1 dstmac ff:ff:ff:ff:ff:ff
 }
 
-// INSTRUCTION: Compile the HSRP virtual MAC failover Gratuitous ARP trace.
 compile {
     arp_hsrp_mac_move(hsrp_promoted_rtr, access_lan_host)
 }

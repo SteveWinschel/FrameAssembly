@@ -1,19 +1,17 @@
-// PROMPT: Client requesting interactive shell channel allocation with MSG_CODE 90.
-// TOKENS: host, ip, flow, s, ssh, msgcode, compile
+// Client requesting interactive shell channel allocation with msgcode 90.
+// SSH RFC 4253 framing on TCP 22 (message codes: 90 (CHANNEL_OPEN), 91
+// (CHANNEL_OPEN_CONFIRMATION)).
+// Wireshark: ssh
 
-// INSTRUCTION: Define interactive client terminal.
 host term_client { ip 172.28.0.8 }
 
-// INSTRUCTION: Define Linux application server.
 host app_server { ip 172.28.0.2 }
 
-// INSTRUCTION: Define channel open and confirmation flow.
 flow ssh_channel_open_flow(c, s) {
     c -> s ssh msgcode 90
     c <- s ssh msgcode 91
 }
 
-// INSTRUCTION: Compile block executing channel allocation.
 compile {
     ssh_channel_open_flow(term_client, app_server)
 }

@@ -1,18 +1,19 @@
-// PROMPT: High-priority storage cluster replication traffic encapsulated across dedicated VNI 8888.
-// TOKENS: host, ip, flow, vxlan, vni, dscp, payload, compile
+// High-priority storage cluster replication traffic encapsulated across
+// dedicated VNI 8888.
+// This capture sets DSCP 46 and carries VNI 8888.
+// Wireshark: vxlan && vxlan.vni == 8888
 
-// INSTRUCTION: Define primary storage array controller VTEP.
 host primary_nvme_vtep { ip 192.168.250.1 }
 
-// INSTRUCTION: Define replica storage array controller VTEP.
 host replica_nvme_vtep { ip 192.168.250.2 }
 
-// INSTRUCTION: Define storage replication block transfer flow marked with DSCP EF (DSCP 46).
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vxlan_nvme_replication(p, r) {
     p -> r vxlan vni 8888 dscp 46 payload "NVME_FABRICS_WRITE_COMMAND_BLOCK"
 }
 
-// INSTRUCTION: Compile block executing storage replication over VXLAN.
+// Run vxlan_nvme_replication(primary_nvme_vtep, replica_nvme_vtep) to
+// generate the capture.
 compile {
     vxlan_nvme_replication(primary_nvme_vtep, replica_nvme_vtep)
 }

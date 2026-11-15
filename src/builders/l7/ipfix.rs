@@ -36,13 +36,15 @@ pub fn build_ipfix_payload(
     };
     data_record.extend_from_slice(&src_octets);
     data_record.extend_from_slice(&dst_octets);
-    data_record.extend_from_slice(&spec.srcport.unwrap_or(ctx.src_port).to_be_bytes());
-    data_record.extend_from_slice(&spec.dstport.unwrap_or(ctx.dst_port).to_be_bytes());
+    data_record.extend_from_slice(&spec.srcport.unwrap_or(0).to_be_bytes());
+    data_record.extend_from_slice(&spec.dstport.unwrap_or(0).to_be_bytes());
     data_record.push(spec.proto.unwrap_or(6));
     data_record.extend_from_slice(&(spec.packets.unwrap_or(1) as u64).to_be_bytes());
     data_record.extend_from_slice(&(spec.octets.unwrap_or(64) as u64).to_be_bytes());
 
-    let set_len = (4 + data_record.len() + payload_bytes.len()) as u16;
+    let max_extra = usize::from(u16::MAX) - 16 - 4 - data_record.len();
+    let extra_slice = &payload_bytes[..payload_bytes.len().min(max_extra)];
+    let set_len = (4 + data_record.len() + extra_slice.len()) as u16;
     let total_len = 16 + set_len;
 
     let mut pkt = Vec::with_capacity(total_len as usize);
@@ -58,8 +60,8 @@ pub fn build_ipfix_payload(
     pkt.extend_from_slice(&set_len.to_be_bytes());
     pkt.extend_from_slice(&data_record);
 
-    if !payload_bytes.is_empty() {
-        pkt.extend_from_slice(payload_bytes);
+    if !extra_slice.is_empty() {
+        pkt.extend_from_slice(extra_slice);
     }
     pkt
 }

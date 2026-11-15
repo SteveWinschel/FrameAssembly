@@ -1,19 +1,22 @@
-// PROMPT: Model a TACACS+ accounting watchdog interim update (ACCT_FLAG_WATCHDOG) reporting elapsed session time and byte counters.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, tacacs, acct, sessionid, user, payload, wait, ms, compile
+// Model a TACACS+ accounting watchdog interim update (ACCT_FLAG_WATCHDOG)
+// reporting elapsed session time and byte counters.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// TACACS+ on TCP 49 (acct).
+// Overrides destination port to 49.
+// Timing: pauses 50ms after each marked packet before sending the next frame.
+// Wireshark: tacplus
 
-// INSTRUCTION: Define host endpoint ras_gateway.
 host ras_gateway {
     mac 00:24:e8:49:40:01
     ip 192.168.49.10
 }
 
-// INSTRUCTION: Define host endpoint acct_collector.
 host acct_collector {
     mac 00:24:e8:49:40:02
     ip 192.168.49.2
 }
 
-// INSTRUCTION: Send an ACCT START record followed by a WATCHDOG interim update and ACCT STOP record.
 flow tacacs_acct_watchdog_update(ras_gateway, acct_collector) {
     ras_gateway -> acct_collector tcp syn srcport 60049 dstport 49
     acct_collector -> ras_gateway tcp syn ack
@@ -26,7 +29,6 @@ flow tacacs_acct_watchdog_update(ras_gateway, acct_collector) {
     acct_collector -> ras_gateway tacacs acct sessionid 77400 payload "ACCT_STATUS_SUCCESS"
 }
 
-// INSTRUCTION: Compile the TACACS+ accounting start, watchdog, and stop flow.
 compile {
     tacacs_acct_watchdog_update(ras_gateway, acct_collector)
 }

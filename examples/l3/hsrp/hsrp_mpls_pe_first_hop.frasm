@@ -1,19 +1,20 @@
-// PROMPT: HSRP control packets carried over an MPLS pseudowire with EXP 6 and TTL 1.
-// TOKENS: host, ip, flow, hsrp, group, priority, state, vip, mpls, exp, bos, mplsttl, ttl, compile
+// HSRP control packets carried over an MPLS pseudowire with EXP 6 and TTL 1.
+// This capture wraps frames in MPLS label 19850/19851, sets TTL 1, and
+// carries group 85, HSRP state 16/8.
+// Wireshark: hsrp && mpls
 
-// INSTRUCTION: Define PE1 HSRP active gateway.
 host pe1_hsrp_vrf { ip 10.85.1.2 }
 
-// INSTRUCTION: Define PE2 HSRP standby gateway.
 host pe2_hsrp_vrf { ip 10.85.1.3 }
 
-// INSTRUCTION: Define MPLS-encapsulated HSRP advertisements between redundant PE routers.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow hsrp_mpls_vpls_flow(pe1, pe2) {
     pe1 -> pe2 hsrp group 85 priority 125 state 16 vip 10.85.1.1 mpls 19850 exp 6 bos 1 mplsttl 255 ttl 1
     pe1 <- pe2 hsrp group 85 priority 100 state 8 vip 10.85.1.1 mpls 19851 exp 6 bos 1 mplsttl 255 ttl 1
 }
 
-// INSTRUCTION: Compile the MPLS-labeled HSRP first-hop redundancy flow.
+// Run hsrp_mpls_vpls_flow(pe1_hsrp_vrf, pe2_hsrp_vrf) to generate the
+// capture.
 compile {
     hsrp_mpls_vpls_flow(pe1_hsrp_vrf, pe2_hsrp_vrf)
 }

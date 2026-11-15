@@ -1,18 +1,15 @@
-// PROMPT: OPC UA Binary protocol OPN message establishing secure channel over IPv6.
-// TOKENS: host, ip, flow, s, opcua, msgtype, chunktype, securechannelid, seqnum, compile
+// OPC UA Binary protocol OPN message establishing secure channel over IPv6.
+// Wireshark: opcua
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
+// OPC UA message sequence: OPN on TCP port 4840.
 flow opcua_opn(c, s) {
     c -> s opcua msgtype "opn" chunktype "f" securechannelid 1001 seqnum 1
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     opcua_opn(client, server)
 }

@@ -45,9 +45,10 @@ pub fn build_radius_payload(
     // User-Name (Type 1)
     let user = spec.user.unwrap_or("user");
     let user_bytes = user.as_bytes();
+    let user_slice = &user_bytes[..user_bytes.len().min(253)];
     avps.push(1); // Type 1
-    avps.push((user_bytes.len() + 2) as u8);
-    avps.extend_from_slice(user_bytes);
+    avps.push((user_slice.len() + 2) as u8);
+    avps.extend_from_slice(user_slice);
 
     // NAS-IP-Address (Type 4) or NAS-IPv6-Address (Type 95, RFC 3162)
     match spec.nas_ip {
@@ -87,10 +88,22 @@ pub fn build_radius_payload(
     }
 
     if !payload_bytes.is_empty() {
-        avps.extend_from_slice(payload_bytes);
+        if is_valid_radius_avps(payload_bytes) {
+            avps.extend_from_slice(payload_bytes);
+        } else {
+            for chunk in payload_bytes.chunks(253) {
+                avps.push(18); // Reply-Message (Type 18, RFC 2865 §5.18)
+                avps.push((chunk.len() + 2) as u8);
+                avps.extend_from_slice(chunk);
+            }
+        }
     }
 
-    let total_len = 20 + avps.len() as u16;
+    let max_avps = usize::from(u16::MAX) - 20;
+    if avps.len() > max_avps {
+        avps.truncate(max_avps);
+    }
+    let total_len = (20 + avps.len()) as u16;
     let mut pkt = Vec::with_capacity(total_len as usize);
     pkt.push(code);
     pkt.push(id);
@@ -100,4 +113,32 @@ pub fn build_radius_payload(
     pkt.extend_from_slice(&avps);
 
     (pkt, dport)
+}
+
+/// Checks whether `buf` is already a well-formed sequence of RFC 2865 RADIUS AVP TLVs.
+fn is_valid_radius_avps(buf: &[u8]) -> bool {
+    if buf.is_empty() {
+        return false;
+    }
+    let mut pos = 0usize;
+    while pos < buf.len() {
+        let Some(&attr_type) = buf.get(pos) else {
+            return false;
+        };
+        let Some(&len_u8) = buf.get(pos + 1) else {
+            return false;
+        };
+        let attr_len = usize::from(len_u8);
+        if attr_type == 0 || attr_len < 2 {
+            return false;
+        }
+        let Some(next_pos) = pos.checked_add(attr_len) else {
+            return false;
+        };
+        if next_pos > buf.len() {
+            return false;
+        }
+        pos = next_pos;
+    }
+    pos == buf.len()
 }

@@ -1,19 +1,19 @@
-// PROMPT: IMAP authentication failure returning tagged NO [AUTHENTICATIONFAILED] over VLAN 143.
-// TOKENS: host, ip, flow, s, imap, tag, cmd, arg, vlan, pcp, dscp, compile
+// IMAP authentication failure returning tagged NO [AUTHENTICATIONFAILED] over
+// VLAN 143.
+// Wireshark: imap
 
-// INSTRUCTION: Define campus workstation on VLAN 143.
+// Campus workstation on VLAN 143.
 host campus_ws { ip 172.22.143.44 }
 
-// INSTRUCTION: Define campus IMAP server.
 host campus_imap { ip 172.22.143.1 }
 
-// INSTRUCTION: Attempt LOGIN with invalid password and receive tagged NO response over VLAN 143.
+// Attempt LOGIN with invalid password and receive tagged NO response over
+// VLAN 143. Encapsulation and QoS markings: 802.1Q VLAN 143, DSCP 16.
 flow imap_auth_failed_vlan(c, s) {
     c -> s imap tag "J01" cmd "LOGIN" arg "bob wrongpass" vlan 143 pcp 2 dscp 16
     c <- s imap tag "J01" cmd "NO" arg "[AUTHENTICATIONFAILED] Invalid credentials" vlan 143 pcp 2 dscp 16
 }
 
-// INSTRUCTION: Compile the VLAN-tagged IMAP failed login scenario.
 compile {
     imap_auth_failed_vlan(campus_ws, campus_imap)
 }

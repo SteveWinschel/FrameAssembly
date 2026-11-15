@@ -1,19 +1,21 @@
-// PROMPT: Mobile IPv6 node establishing IPsec protected communication with home agent.
-// TOKENS: host, ip, flow, ipsec, spi, seq, flowlabel, compile
+// Mobile IPv6 node establishing IPsec protected communication with home
+// agent.
+// This capture targets IPv6 endpoints, sets IPv6 Flow Label, and carries SPI
+// 77701/77702.
+// Wireshark: esp && ipv6
 
-// INSTRUCTION: Define roaming IPv6 mobile client endpoint.
 host mobile_ipv6_node { ip 2001:db8:cafe:11::99 }
 
-// INSTRUCTION: Define IPv6 corporate home agent gateway.
 host home_agent_v6 { ip 2001:db8:cafe:ff::1 }
 
-// INSTRUCTION: Define protected IPv6 IPsec transport maintaining FlowLabel 104857.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow mobile_ipsec_v6_flow(node, ha) {
     node -> ha ipsec spi 77701 seq 12 flowlabel 104857
     node <- ha ipsec spi 77702 seq 15 flowlabel 104857
 }
 
-// INSTRUCTION: Compile block executing IPv6 mobile node security exchange.
+// Run mobile_ipsec_v6_flow(mobile_ipv6_node, home_agent_v6) to generate the
+// capture.
 compile {
     mobile_ipsec_v6_flow(mobile_ipv6_node, home_agent_v6)
 }

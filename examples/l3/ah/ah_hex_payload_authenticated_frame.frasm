@@ -1,18 +1,19 @@
-// PROMPT: IPsec AH packet encapsulating raw binary HEXPAYLOAD and custom source/destination MACs.
-// TOKENS: host, ip, flow, ah, spi, seq, nextheader, srcmac, dstmac, hexpayload, compile
+// IPsec AH packet encapsulating raw binary HEXPAYLOAD and custom
+// source/destination MACs.
+// This capture carries SPI 20480.
+// Wireshark: ah
 
-// INSTRUCTION: Define industrial security appliance A.
 host sec_appliance_a { ip 10.99.0.10 }
 
-// INSTRUCTION: Define industrial security appliance B.
 host sec_appliance_b { ip 10.99.0.20 }
 
-// INSTRUCTION: Define AH packet with explicit Ethernet MAC overrides and binary hex payload.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow ah_hex_payload_flow(a, b) {
     a -> b ah spi 20480 seq 7 nextheader 17 srcmac 02:00:5e:10:00:01 dstmac 02:00:5e:10:00:02 hexpayload "4500001c0001000040117cce"
 }
 
-// INSTRUCTION: Compile the binary hex payload AH flow.
+// Run ah_hex_payload_flow(sec_appliance_a, sec_appliance_b) to generate the
+// capture.
 compile {
     ah_hex_payload_flow(sec_appliance_a, sec_appliance_b)
 }

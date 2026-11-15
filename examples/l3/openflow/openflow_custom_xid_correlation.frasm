@@ -1,19 +1,20 @@
-// PROMPT: OpenFlow transactions with sequential transaction IDs (XID) tracking request responses.
-// TOKENS: host, ip, flow, openflow, type, echoreq, xid, echoreply, compile
+// OpenFlow transactions with sequential transaction IDs (XID) tracking
+// request responses.
+// This capture sends OpenFlow SDN control messages over TCP port 6653.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define network operating system controller.
 host nos_ctrl_node { ip 192.168.70.1 }
 
-// INSTRUCTION: Define fabric aggregator switch.
 host fabric_agg_node { ip 192.168.70.2 }
 
-// INSTRUCTION: Define correlated transaction flow with XID 10001.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow of_xid_tracking_flow(ctrl, sw) {
     ctrl -> sw openflow type echoreq xid 10001
     ctrl <- sw openflow type echoreply xid 10001
 }
 
-// INSTRUCTION: Compile block executing correlated OpenFlow transaction.
+// Run of_xid_tracking_flow(nos_ctrl_node, fabric_agg_node) to generate the
+// capture.
 compile {
     of_xid_tracking_flow(nos_ctrl_node, fabric_agg_node)
 }

@@ -1,13 +1,12 @@
-// PROMPT: SMB2 sequential block read query and server data response on TreeId 10.
-// TOKENS: host, ip, flow, s, smb, command, treeid, sessionid, msgid, wait, ms, status, compile
+// SMB2 sequential block read query and server data response on TreeId 10.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: smb2
 
-// INSTRUCTION: Define CAD workstation reader client.
 host cad_workstation { ip 172.16.80.33 }
 
-// INSTRUCTION: Define engineering file server.
 host eng_filesrv { ip 172.16.80.1 }
 
-// INSTRUCTION: Define SMB2 sequential READ data retrieval.
 flow smb_read_stream(c, s) {
     c -> s smb command "read" treeid 10 sessionid 0x2400 msgid 101 wait 2ms
     c <- s smb command "read" status 0 treeid 10 sessionid 0x2400 msgid 101 wait 2ms
@@ -15,7 +14,6 @@ flow smb_read_stream(c, s) {
     c <- s smb command "read" status 0 treeid 10 sessionid 0x2400 msgid 102
 }
 
-// INSTRUCTION: Compile SMB2 READ block transfer flow.
 compile {
     smb_read_stream(cad_workstation, eng_filesrv)
 }

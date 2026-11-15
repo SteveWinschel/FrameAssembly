@@ -1,18 +1,18 @@
-// PROMPT: MLD query prioritizing control traffic with DSCP Class Selector 6.
-// TOKENS: host, ip, flow, mld, query, dscp, compile
+// MLD query prioritizing control traffic with DSCP Class Selector 6.
+// This capture targets IPv6 endpoints and sets DSCP 48.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define campus distribution switch querier.
 host campus_querier_sw { ip fe80::c001:1 }
 
-// INSTRUCTION: Define campus multicast nodes address.
 host campus_nodes { ip ff02::1 }
 
-// INSTRUCTION: Define DSCP CS6 prioritized query flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow mld_dscp_control_flow(sw, nodes) {
     sw -> nodes mld query dscp 48
 }
 
-// INSTRUCTION: Compile block executing DSCP prioritized query.
+// Run mld_dscp_control_flow(campus_querier_sw, campus_nodes) to generate the
+// capture.
 compile {
     mld_dscp_control_flow(campus_querier_sw, campus_nodes)
 }

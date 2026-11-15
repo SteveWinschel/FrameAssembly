@@ -1,18 +1,20 @@
-// PROMPT: BACnet/IP Schedule object property inspection and vendor proprietary payload over IPv6.
-// TOKENS: host, ip, flow, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, flowlabel, ttl, hexpayload, compile
+// BACnet/IP Schedule object property inspection and vendor proprietary
+// payload over IPv6.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define IPv6 smart grid scheduler.
+// IPv6 smart grid scheduler.
 host grid_sched { ip 2001:db8:4780::1 }
 
-// INSTRUCTION: Define IPv6 thermal storage controller.
+// IPv6 thermal storage controller.
 host thermal_ctrl { ip 2001:db8:4780::50 }
 
-// INSTRUCTION: Query Schedule Object (ObjectType 17) Effective_Period (Property 32) with trailing hex tag.
+// Query Schedule Object (ObjectType 17) Effective_Period (Property 32) with
+// trailing hex tag. BACnet/IP on UDP 47808 (objects: 17 (Schedule);
+// properties: 32 (Prop)).
 flow bacnet_schedule_v6(g, t) {
     g -> t bacnet readproperty invokeid 88 objecttype 17 objectinstance 1 propertyid 32 flowlabel 0xabcde ttl 128 hexpayload "2e00"
 }
 
-// INSTRUCTION: Compile the IPv6 BACnet schedule inspection flow.
 compile {
     bacnet_schedule_v6(grid_sched, thermal_ctrl)
 }

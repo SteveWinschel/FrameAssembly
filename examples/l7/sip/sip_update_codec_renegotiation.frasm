@@ -1,14 +1,14 @@
-// PROMPT: SIP UPDATE method (RFC 3311) modifying media session parameters before call answer.
-// TOKENS: host, ip, flow, s, sip, method, uri, from, to, callid, cseq, contact, contenttype, body, wait, ms, status, reason, compile
-// INSTRUCTION: Define SBC border element upgrading audio codec to Opus.
+// SIP UPDATE method (RFC 3311) modifying media session parameters before call
+// answer.
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: sip
+
 host sbc_edge {
     ip 10.110.8.15
 }
-// INSTRUCTION: Define core IMS P-CSCF call server.
 host ims_pcscf {
     ip 10.110.8.1
 }
-// INSTRUCTION: Define SIP UPDATE request with updated SDP offer and 200 OK SDP answer.
 flow sip_update_media(c, s) {
     c -> s sip method "UPDATE" uri "sip:core@10.110.8.1" from "sip:sbc@10.110.8.15" to "sip:core@10.110.8.1"
         callid "upd-3311" cseq 3 contact "sip:sbc@10.110.8.15"
@@ -17,7 +17,6 @@ m=audio 6000 RTP/AVP 111" wait 4ms
     c <- s sip status 200 reason "OK" callid "upd-3311" cseq 3 contenttype "application/sdp" body "v=0
 m=audio 7000 RTP/AVP 111"
 }
-// INSTRUCTION: Compile the SIP UPDATE codec renegotiation flow.
 compile {
     sip_update_media(sbc_edge, ims_pcscf)
 }

@@ -1,18 +1,20 @@
-// PROMPT: ICMP Port Unreachable (Type 3, Code 3) returned when target UDP service port is closed.
-// TOKENS: host, ip, flow, icmp, destunreach, code, id, seq, compile
+// ICMP Port Unreachable (Type 3, Code 3) returned when target UDP service
+// port is closed.
+// This capture sends ICMP control and reachability probes with valid
+// checksums.
+// Wireshark: icmp
 
-// INSTRUCTION: Define server receiving unexpected UDP packet.
 host closed_service_srv { ip 10.99.1.5 }
 
-// INSTRUCTION: Define UDP scanner or client node.
 host udp_scanner_node { ip 10.99.1.200 }
 
-// INSTRUCTION: Define ICMP Port Unreachable error generation flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow icmp_port_unreach_flow(srv, scanner) {
     srv -> scanner icmp destunreach code 3 id 9988 seq 5
 }
 
-// INSTRUCTION: Compile block executing ICMP Port Unreachable error.
+// Run icmp_port_unreach_flow(closed_service_srv, udp_scanner_node) to
+// generate the capture.
 compile {
     icmp_port_unreach_flow(closed_service_srv, udp_scanner_node)
 }

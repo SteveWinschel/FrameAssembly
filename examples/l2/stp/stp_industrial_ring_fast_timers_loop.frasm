@@ -1,27 +1,25 @@
-// PROMPT: Periodic 2-second RSTP Hello timer BPDU keepalive loop between redundant industrial ring switches.
-// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, hellotime, maxage, forwarddelay, flags, wait, s, compile
+// Periodic 2-second RSTP Hello timer BPDU keepalive loop between redundant
+// industrial ring switches.
+// Wire profile: 4 frames; 2 IPv4 hosts; STP; waits 1s.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define industrial DIN-rail ring master switch.
 host ring_master_sw {
     ip 192.168.150.1
     mac 00:80:63:96:00:01
 }
 
-// INSTRUCTION: Define industrial DIN-rail ring transit switch.
 host ring_transit_sw {
     ip 192.168.150.2
     mac 00:80:63:96:00:02
 }
 
-// INSTRUCTION: Define RSTP Hello BPDU with fast industrial timers (Hello 1s, MaxAge 6s, ForwardDelay 4s).
 flow industrial_ring_hello(master, transit) {
     master -> transit stp rstp rootid "4096:00:80:63:96:00:01" bridgeid "4096:00:80:63:96:00:01" cost 0 portid 32769 hellotime 1 maxage 6 forwarddelay 4 flags 60 wait 1s
 }
 
-// INSTRUCTION: Compile block transmitting 4 consecutive RSTP Hello BPDUs in a loop.
 compile {
-    industrial_ring_hello(ring_master_sw, ring_transit_sw) // cycle 1
-    industrial_ring_hello(ring_master_sw, ring_transit_sw) // cycle 2
-    industrial_ring_hello(ring_master_sw, ring_transit_sw) // cycle 3
-    industrial_ring_hello(ring_master_sw, ring_transit_sw) // cycle 4
+    industrial_ring_hello(ring_master_sw, ring_transit_sw) // Iteration 1 of 4
+    industrial_ring_hello(ring_master_sw, ring_transit_sw) // Iteration 2 of 4
+    industrial_ring_hello(ring_master_sw, ring_transit_sw) // Iteration 3 of 4
+    industrial_ring_hello(ring_master_sw, ring_transit_sw) // Iteration 4 of 4
 }

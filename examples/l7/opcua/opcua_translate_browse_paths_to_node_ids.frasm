@@ -1,19 +1,21 @@
-// PROMPT: OPC UA TranslateBrowsePathsToNodeIds (i=554) resolving symbolic path strings to numeric NodeIds.
-// TOKENS: host, ip, mac, flow, s, opcua, msgtype, chunktype, securechannelid, tokenid, seqnum, reqid, nodeid, payload, wait, ms, compile
+// OPC UA TranslateBrowsePathsToNodeIds (i=554) resolving symbolic path
+// strings to numeric NodeIds.
+// Wireshark: opcua
 
-// INSTRUCTION: Define the MES connector resolving ISA-95 equipment browse paths.
+// MES connector resolving ISA-95 equipment browse paths.
 host mes_connector {
     ip 10.140.70.22
     mac 00:1a:2b:8c:70:22
 }
 
-// INSTRUCTION: Define the shopfloor OPC UA gateway server.
+// Shopfloor OPC UA gateway server.
 host shopfloor_gw {
     ip 10.140.70.1
     mac 00:1a:2b:8c:70:01
 }
 
-// INSTRUCTION: Resolve browse path /Objects/2:Cell_03/2:OEE to its numeric NodeId and read its current value.
+// Resolve browse path /Objects/2:Cell_03/2:OEE to its numeric NodeId and read
+// its current value. OPC UA message sequence: MSG on TCP port 4840.
 flow opcua_translate_path(c, s) {
     c -> s opcua msgtype "msg" chunktype "f" securechannelid 705 tokenid 1 seqnum 40 reqid 40 nodeid "i=554" payload "/Objects/2:Cell_03/2:OEE"
     c <- s opcua msgtype "msg" chunktype "f" securechannelid 705 tokenid 1 seqnum 40 reqid 40 nodeid "i=557" payload "ResolvedNodeId=ns=2;i=8402" wait 1ms
@@ -21,7 +23,6 @@ flow opcua_translate_path(c, s) {
     c <- s opcua msgtype "msg" chunktype "f" securechannelid 705 tokenid 1 seqnum 41 reqid 41 nodeid "ns=2;i=8402" payload "Double:0.892"
 }
 
-// INSTRUCTION: Compile the OPC UA TranslateBrowsePathsToNodeIds flow.
 compile {
     opcua_translate_path(mes_connector, shopfloor_gw)
 }

@@ -2,11 +2,15 @@
 
 [← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)
 
-`curl` can only show you a `grpc-status: 14 UNAVAILABLE` if you already have a backend that fails in exactly that way, at exactly that moment. The same goes for a WAF block page, a masked WebSocket frame, or a TLS `ClientHello` for a domain your proxy is supposed to refuse. Spinning up the real service to get one failure is the slow way to get one packet.
+`curl` can only show you a `grpc-status: 14 UNAVAILABLE` if you already have a backend that fails in exactly that way, at exactly that moment. The same goes for a WAF block page, a
+masked WebSocket frame, or a TLS `ClientHello` for a domain your proxy is supposed to refuse. Spinning up the real service to get one failure is the slow way to get one packet.
 
-The other half of this page is the opposite problem: protocols you never want to enable on a real device. Turning on `telnetd` on a core switch "just for five minutes to test Suricata" is the opening paragraph of a lot of postmortems. Here the sensor sees the cleartext login, the switch never runs the service, and nobody has to write the document.
+The other half of this page is the opposite problem: protocols you never want to enable on a real device. Turning on `telnetd` on a core switch "just for five minutes to test Suricata"
+is the opening paragraph of a lot of postmortems. Here the sensor sees the cleartext login, the switch never runs the service, and nobody has to write the document.
 
-Each section covers one problem with short `flow(a, b)` snippets you can reuse, and one cheat-sheet table beneath the group. Every TCP-based statement (`http`, `http2`, `grpc`, `websocket`, `tls`, `ssh`, `telnet`, `ftp`, `whois`, `rtsp`, and `sip` with `transport tcp`) emits a `psh ack` segment, swaps ports on `<-` replies, and advances the TCP sequence and acknowledgment numbers by the exact payload length. Open the connection with a `tcp syn` handshake when you want the capture to start properly.
+Each section covers one problem with short `flow(a, b)` snippets you can reuse, and one cheat-sheet table beneath the group. Every TCP-based statement (`http`, `http2`, `grpc`,
+`websocket`, `tls`, `ssh`, `telnet`, `ftp`, `whois`, `rtsp`, and `sip` with `transport tcp`) emits a `psh ack` segment, swaps ports on `<-` replies, and advances the TCP
+sequence and acknowledgment numbers by the exact payload length. Open the connection with a `tcp syn` handshake when you want the capture to start properly.
 
 ```console
 $ frameassembly show waf_check.frasm
@@ -43,7 +47,8 @@ host api_gw  { ip 10.120.1.10 mac 00:1b:21:10:01:0a }
 host app_svc { ip 10.120.1.50 mac 00:1b:21:10:01:32 }
 
 flow proxied_order(gw, svc) {
-    gw -> svc http post uri "/v1/orders" version "1.1" hosthdr "api.corp.example" useragent "Envoy/1.31" contenttype "application/json" header "X-Request-Id" "req-4092" header "X-Forwarded-For" "198.51.100.7" body "{\"sku\":\"RTR-9000\",\"qty\":2}" wait 1ms
+    gw -> svc http post uri "/v1/orders" version "1.1" hosthdr "api.corp.example" useragent "Envoy/1.31" contenttype "application/json" header "X-Request-Id" "req-4092" header
+        "X-Forwarded-For" "198.51.100.7" body "{\"sku\":\"RTR-9000\",\"qty\":2}" wait 1ms
     gw <- svc http version "1.1" status 201 reason "Created" contenttype "application/json" header "X-Request-Id" "req-4092" body "{\"order_id\":8801,\"status\":\"confirmed\"}"
 }
 
@@ -88,7 +93,8 @@ compile { grpc_unavailable(api_gw, app_svc) }
 
 ### Masked `websocket` Frames
 
-RFC 6455 requires every client frame to be XOR-masked with a 32-bit key. Generators that skip the mask produce frames that proxies drop on sight, which makes for a confusing test. `maskkey` sets the key, and server frames are sent unmasked:
+RFC 6455 requires every client frame to be XOR-masked with a 32-bit key. Generators that skip the mask produce frames that proxies drop on sight, which makes for a confusing test.
+`maskkey` sets the key, and server frames are sent unmasked:
 
 ```frameassembly
 host api_gw  { ip 10.120.1.10 mac 00:1b:21:10:01:0a }
@@ -109,16 +115,17 @@ compile { ws_session(api_gw, app_svc) }
 
 | Protocol | Operations / Frame Types | Modifiers | Wire Notes and Defaults |
 | :--- | :--- | :--- | :--- |
-| **`http`** | `get`, `post`, `put`, `delete`, `head`, `options`, `patch` (or `method "<verb>"`) | `uri "<path>"`, `version "<ver>"`, `hosthdr "<host>"`, `useragent "<ua>"`, `contenttype "<mime>"`, `header "<K>" "<V>"`, `status <100..599>`, `reason "<str>"`, `body "<str>"` | `TCP 80`, RFC 9110 / 9112. Setting `status` makes it a response, omitting it makes a request. `header` may repeat. `Content-Length` is computed from `body`. |
-| **`http2`** | `preface`, `settings` (default), `headers`, `data`, `windowupdate`, `ping`, `goaway` | `streamid <u32>`, `payload "<str>"`, `hexpayload "<hex>"` | `TCP 443`, RFC 9113 with the 9-byte frame header. `preface` is the 24-byte `PRI * HTTP/2.0` string. `streamid 0` is connection control, odd numbers are client streams. |
-| **`grpc`** | Unary / streaming RPC frame | `service "<pkg.Svc>"`, `method "<Rpc>"`, `grpcstatus <0..16>`, `payload "<str>"` | `TCP 50051`, 5-byte length prefix. `grpcstatus`: `0` OK, `3` INVALID_ARGUMENT, `4` DEADLINE_EXCEEDED, `7` PERMISSION_DENIED, `14` UNAVAILABLE, `16` UNAUTHENTICATED. |
-| **`websocket`** | `text` (default), `binary`, `ping`, `pong`, `close` (or `opcode "<text\|binary\|ping\|pong\|close>"`) | `finbit <0\|1>`, `maskkey <u32>`, `payload "<str>"`, `hexpayload "<hex>"` | `TCP 80`, RFC 6455. Sets the `MASK` bit (`0x80`) and XOR-masks the payload with the 4-byte `maskkey`. |
+| **`http`** | `get`, `post`, `put`, `delete`, `head`, `options`, `patch` | `uri`, `version`, `hosthdr`, `useragent`, `contenttype`, `header`, `status`, `reason`, `body` | `TCP 80` (`method` too) |
+| **`http2`** | `preface`, `settings`, `headers`, `data`, `windowupdate`, `ping`, `goaway` | `streamid`, `payload`, `hexpayload` | `TCP 443`; defaults: `ping` 8B, `windowupdate` 4B, `goaway` 8B |
+| **`grpc`** | Unary / streaming RPC frame | `service`, `method`, `grpcstatus <0..16>`, `payload` | `TCP 50051` (5B prefix); `0` OK, `7` PERMISSION_DENIED, `14` UNAVAILABLE |
+| **`websocket`** | `text`, `binary`, `ping`, `pong`, `close` (`opcode "<...>"`) | `finbit <0\|1>`, `maskkey <u32>`, `payload`, `hexpayload` | `TCP 80`, RFC 6455 XOR-masked (`maskkey`) |
 
 ## 2. `tls` 1.3 `SNI` and `ALPN` Filtering, and `quic` UDP 443 Pinholes
 
 ### Block a Domain by `SNI`
 
-Next-generation firewalls and egress proxies read the `ClientHello` before anything is encrypted. Test the policy over IPv6 without creating a single X.509 certificate. `ciphersuite 4866` is `TLS_AES_256_GCM_SHA384`. The `alert` defaults to a fatal `handshake_failure`:
+Next-generation firewalls and egress proxies read the `ClientHello` before anything is encrypted. Test the policy over IPv6 without creating a single X.509 certificate.
+`ciphersuite 4866` is `TLS_AES_256_GCM_SHA384`. The `alert` defaults to a fatal `handshake_failure`:
 
 ```frameassembly
 host client_v6   { ip 2001:db8:443::50 }
@@ -154,7 +161,8 @@ compile { tls_full_exchange(client_v6, cdn_edge_v6) }
 
 ### Is UDP 443 Open for `quic`?
 
-Many firewalls block UDP 443 so that HTTP/3 clients give up and fall back to TCP. This flow plays a QUIC v1 `initial`, a `retry` token challenge, the second `initial`, `0-RTT` data, a `handshake` packet, and a 1-RTT `short` header packet:
+Many firewalls block UDP 443 so that HTTP/3 clients give up and fall back to TCP. This flow plays a QUIC v1 `initial`, a `retry` token challenge, the second `initial`, `0-RTT` data, a
+`handshake` packet, and a 1-RTT `short` header packet:
 
 ```frameassembly
 host client_v6   { ip 2001:db8:443::50 }
@@ -176,14 +184,15 @@ compile { quic_retry_and_0rtt(client_v6, cdn_edge_v6) }
 
 | Protocol | Packet / Record Types | Modifiers | Wire Notes and Defaults |
 | :--- | :--- | :--- | :--- |
-| **`tls`** | `clienthello` (default), `serverhello`, `certificate`, `finished`, `appdata`, `alert` | `recordversion <u16>`, `handshakeversion <u16>`, `sni "<host>"`, `ciphersuite <u16>`, `alpn "<proto>"`, `payload "<str>"` | `TCP 443`, RFC 8446 / 6066. 5-byte record and 4-byte handshake lengths are computed. `ciphersuite`: `4865` (`0x1301` AES_128_GCM), `4866` (`0x1302` AES_256_GCM), `4867` (`0x1303` CHACHA20). `alert` defaults to fatal `handshake_failure` (`[2, 40]`). |
-| **`quic`** | `initial` (default), `zerortt`, `handshake`, `retry`, `short` | `version <u32>`, `dcid <u64>`, `scid <u64>`, `token "<str>"`, `pktnum <u32>`, `payload "<str>"` | `UDP 443`, RFC 9000 / 9114, variable-length integers computed. `version 1` is QUIC v1, `0x6b3343cf` is QUIC v2 (RFC 9369). |
+| **`tls`** | `clienthello`, `serverhello`, `certificate`, `finished`, `appdata`, `alert` | `recordversion`, `handshakeversion`, `sni`, `ciphersuite`, `alpn`, `payload` | `TCP 443` (`4865`–`4867`) |
+| **`quic`** | `initial`, `zerortt`, `handshake`, `retry`, `short` | `version <u32>`, `dcid <u64>`, `scid <u64>`, `token`, `pktnum`, `payload` | `UDP 443`; `version 1` v1, `0x6b3343cf` v2 |
 
 ## 3. Cleartext Tripwires, `ssh` Banner Audits, `tftp` ZTP and `whois`
 
 ### `telnet` on a Management VLAN
 
-The sensor should alert on the login prompt and the username going out in cleartext. The switch does not have to run `telnetd`. Options are `do`, `will`, `dont`, `wont` with a number (`1` Echo, `3` Suppress Go Ahead):
+The sensor should alert on the login prompt and the username going out in cleartext. The switch does not have to run `telnetd`. Options are `do`, `will`, `dont`, `wont` with a
+number (`1` Echo, `3` Suppress Go Ahead):
 
 ```frameassembly
 host admin_ws    { ip 10.50.1.100 }
@@ -221,7 +230,8 @@ compile { ftp_cleartext_login(admin_ws, core_switch) }
 
 ### Outdated `ssh` Banners
 
-A bastion that still advertises `OpenSSH_7.2p2` should show up in a scanner report. The flow runs the banner exchange, `kexinit` with 16-byte cookies, `newkeys`, and an encrypted channel-data record (`msgcode 94`):
+A bastion that still advertises `OpenSSH_7.2p2` should show up in a scanner report. The flow runs the banner exchange, `kexinit` with 16-byte cookies, `newkeys`, and an encrypted
+channel-data record (`msgcode 94`):
 
 ```frameassembly
 host admin_ws    { ip 10.50.1.100 }
@@ -277,17 +287,18 @@ compile { asn_lookup(analyst_ws, whois_srv) }
 
 | Protocol | Sub-Keywords / Modes | Modifiers | Wire Notes and Defaults |
 | :--- | :--- | :--- | :--- |
-| **`ssh`** | Version banner (default), `kexinit`, `newkeys` | `banner "<str>"`, `msgcode <0..255>`, `cookie "<32hex_or_str>"`, `payload "<str>"` | `TCP 22`, RFC 4253, binary packets padded to 8-byte boundaries. `msgcode`: `20` KEXINIT, `21` NEWKEYS, `50` UserAuth Request, `90` Channel Open, `94` Channel Data. |
-| **`telnet`** | `will`, `wont`, `do`, `dont` | `[option] <0..255>`, `data "<str>"`, `payload "<str>"` | `TCP 23`, RFC 854 / 855. Options: `0` Binary, `1` Echo, `3` Suppress Go Ahead, `24` TermType, `31` NAWS. |
-| **`ftp`** | Client command or 3-digit reply | `cmd "<verb>"`, `arg "<str>"`, `code <100..599>`, `reply "<str>"` | `TCP 21`, RFC 959 / 2428. `code`: `220` Ready, `331` Password required, `230` Logged in, `227` PASV, `229` EPSV, `530` Login incorrect. |
-| **`tftp`** | `rrq` (default), `wrq`, `data`, `ack`, `error` (or `err`) | `filename "<str>"`, `mode "<octet\|netascii>"`, `block <u16>`, `errcode <u16>`, `errmsg "<str>"`, `payload "<str>"` | `UDP 69`, RFC 1350. `errcode`: `1` File not found, `2` Access violation, `3` Disk full, `6` File exists. |
+| **`ssh`** | Banner (default), `kexinit`, `newkeys` | `banner "<str>"`, `msgcode <0..255>`, `cookie "<hex>"`, `payload` | `TCP 22`; `msgcode`: `20` KEXINIT, `21` NEWKEYS, `94` Channel Data |
+| **`telnet`** | `will`, `wont`, `do`, `dont` | `[option] <0..255>`, `data "<str>"`, `payload "<str>"` | `TCP 23`; options: `1` Echo, `3` SGA, `24` TermType, `31` NAWS |
+| **`ftp`** | Command or 3-digit reply | `cmd "<verb>"`, `arg "<str>"`, `code <100..599>`, `reply "<str>"` | `TCP 21`; `220` Ready, `331` Pass req, `230` OK, `229` EPSV |
+| **`tftp`** | `rrq`, `wrq`, `data`, `ack`, `error` (`err`) | `filename`, `mode`, `block <u16>`, `errcode <u16>`, `errmsg`, `payload` | `UDP 69`; `errcode`: `1` Not found, `2` Access violation |
 | **`whois`** | `query` (default), `response` | `domain "<str>"`, `registrar "<str>"`, `payload "<str>"` | `TCP 43`, RFC 3912. `domain` accepts domains, IPv4/IPv6 prefixes, and ASNs (`"AS65001"`). |
 
 ## 4. `sip` ALG Bugs, `dscp 46` `rtp` Voice, `stun`, `rtsp` Cameras and Rogue `ssdp`
 
 ### Find Out What the SIP ALG Rewrote
 
-One-way audio across a firewall almost always means a SIP ALG helpfully rewrote something it should have left alone. A `stun` binding request to learn the public address, then an `invite` whose SDP body announces RTP on port 5004, `200 OK`, and `ack`. Signaling is marked `dscp 24` (CS3):
+One-way audio across a firewall almost always means a SIP ALG helpfully rewrote something it should have left alone. A `stun` binding request to learn the public address, then an
+`invite` whose SDP body announces RTP on port 5004, `200 OK`, and `ack`. Signaling is marked `dscp 24` (CS3):
 
 ```frameassembly
 host voip_phone { ip 10.80.1.50 }
@@ -296,7 +307,8 @@ host sbc_media  { ip 10.80.1.10 }
 flow sip_call_setup(phone, sbc) {
     phone -> sbc stun bindingrequest txid 9001 software "Polycom-VVX/6.4" wait 1ms
     phone <- sbc stun bindingresponse txid 9001 xormappedaddr 203.0.113.50 software "Coturn-4.6" wait 2ms
-    phone -> sbc dscp 24 sip invite uri "sip:1002@pbx.example.com" from "sip:1001@pbx.example.com" to "sip:1002@pbx.example.com" callid "call-7741@10.80.1.50" cseq 1 contact "sip:1001@10.80.1.50" contenttype "application/sdp" body "v=0\r\nm=audio 5004 RTP/AVP 0\r\n" wait 2ms
+    phone -> sbc dscp 24 sip invite uri "sip:1002@pbx.example.com" from "sip:1001@pbx.example.com" to "sip:1002@pbx.example.com" callid "call-7741@10.80.1.50" cseq 1 contact
+        "sip:1001@10.80.1.50" contenttype "application/sdp" body "v=0\r\nm=audio 5004 RTP/AVP 0\r\n" wait 2ms
     phone <- sbc dscp 24 sip status 200 reason "OK" callid "call-7741@10.80.1.50" cseq 1 wait 2ms
     phone -> sbc dscp 24 sip ack uri "sip:1002@pbx.example.com" callid "call-7741@10.80.1.50" cseq 1
 }
@@ -360,7 +372,8 @@ compile { rtsp_camera_stream(nvr, camera) }
 
 ### Rogue UPnP Sweep with `ssdp`
 
-An `msearch` to `239.255.255.250:1900` and a media server answering with a `notify`. Useful for checking that the IoT VLAN stays separate from the office. `hosthdr` carries the `Host:` header here too:
+An `msearch` to `239.255.255.250:1900` and a media server answering with a `notify`. Useful for checking that the IoT VLAN stays separate from the office. `hosthdr` carries the `Host:`
+header here too:
 
 ```frameassembly
 host scanner_ws { ip 10.80.1.50 }
@@ -368,7 +381,8 @@ host media_srv  { ip 10.80.1.10 }
 
 flow ssdp_sweep(ws, media) {
     ws -> media ssdp msearch hosthdr "239.255.255.250:1900" man "\"ssdp:discover\"" mx 3 st "urn:schemas-upnp-org:device:MediaServer:1" wait 1ms
-    ws <- media ssdp notify hosthdr "239.255.255.250:1900" nt "urn:schemas-upnp-org:device:MediaServer:1" nts "ssdp:alive" usn "uuid:media-01::upnp:rootdevice" location "http://10.80.1.10:8200/rootDesc.xml"
+    ws <- media ssdp notify hosthdr "239.255.255.250:1900" nt "urn:schemas-upnp-org:device:MediaServer:1" nts "ssdp:alive" usn "uuid:media-01::upnp:rootdevice" location
+        "http://10.80.1.10:8200/rootDesc.xml"
 }
 
 compile { ssdp_sweep(scanner_ws, media_srv) }
@@ -378,11 +392,11 @@ compile { ssdp_sweep(scanner_ws, media_srv) }
 
 | Protocol | Methods / Types | Modifiers | Wire Notes and Defaults |
 | :--- | :--- | :--- | :--- |
-| **`sip`** | `invite` (default), `ack`, `bye`, `cancel`, `register`, `options` (or `method "<verb>"`) | `uri "<sip>"`, `status <100..699>`, `reason "<str>"`, `from "<uri>"`, `to "<uri>"`, `callid "<id>"`, `cseq <u32>`, `via "<str>"`, `contact "<uri>"`, `contenttype "<mime>"`, `body "<sdp>"`, `transport tcp\|udp` | `UDP 5060`, or `TCP 5060` with `transport tcp`. RFC 3261 / 4566. `Content-Length` is computed from `body`. |
-| **`rtp`** | Media frame | `pt <0..127>`, `seq <u16>`, `timestamp <u32>`, `ssrc <u32>`, `marker <0\|1>`, `payload "<str>"`, `hexpayload "<hex>"` | `UDP 5004` (override with `srcport` / `dstport`). RFC 3550 / 3551. `pt`: `0` PCMU, `8` PCMA, `9` G.722, `18` G.729, `96..127` dynamic (Opus, H.264). |
-| **`stun`** | `bindingrequest` (default), `bindingresponse`, `bindingerror` | `txid <u32>`, `xormappedaddr <ip>`, `software "<str>"` | `UDP 3478`, RFC 8489 / 5389. `xormappedaddr` takes a plain IPv4 or IPv6 address. |
-| **`rtsp`** | `options` (default), `describe`, `setup`, `play`, `teardown` (or `method "<verb>"`) | `uri "<url>"`, `status <100..599>`, `cseq <u32>`, `session "<id>"`, `transporthdr "<spec>"` | `TCP 554`, RFC 7826 / 2326. Always use `transporthdr` for the `Transport:` header. |
-| **`ssdp`** | `msearch` (default), `notify` | `hosthdr "<ip:port>"`, `man "<str>"`, `mx <u8>`, `st "<target>"`, `nt "<type>"`, `nts "<sub_type>"`, `usn "<uuid>"`, `location "<url>"` | `UDP 1900`, UPnP DA 1.1 / 2.0. `nts`: `"ssdp:alive"`, `"ssdp:byebye"`, `"ssdp:update"`. |
+| **`sip`** | `invite`, `ack`, `bye`, `cancel`, `register`, `options` | `uri`, `status`, `reason`, `from`, `to`, `callid`, `cseq`, `via`, `contact`, `contenttype`, `body` | `5060` (`transport tcp`) |
+| **`rtp`** | Media frame | `pt <0..127>`, `seq <u16>`, `timestamp <u32>`, `ssrc <u32>`, `marker <0\|1>`, `payload` | `UDP 5004`; `pt`: `0` PCMU, `8` PCMA, `9` G.722, `96..127` dyn |
+| **`stun`** | `bindingrequest`, `bindingresponse`, `bindingerror` | `txid <u32>`, `xormappedaddr <ip>`, `software "<str>"` | `UDP 3478`, RFC 8489 XOR-mapped IP |
+| **`rtsp`** | `options`, `describe`, `setup`, `play`, `teardown` (`method`) | `uri`, `status`, `cseq <u32>`, `session`, `transporthdr` | `TCP 554`; use `transporthdr` for `Transport:` |
+| **`ssdp`** | `msearch` (default), `notify` | `hosthdr`, `man`, `mx <u8>`, `st`, `nt`, `nts`, `usn`, `location` | `UDP 1900`; `nts`: `"ssdp:alive"`, `"ssdp:byebye"` |
 
 `mqtt`, `coap`, and `amqp` are covered in [09_l7_mail_auth_storage_db.md](09_l7_mail_auth_storage_db.md).
 

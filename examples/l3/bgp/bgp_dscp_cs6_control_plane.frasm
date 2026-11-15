@@ -1,19 +1,21 @@
-// PROMPT: BGP control plane updates marked with DSCP CS6 (48) and ECN congestion notification bits.
-// TOKENS: host, ip, flow, s, bgp, update, asn, prefix, nexthop, dscp, ecn, keepalive, wait, ms, compile
+// BGP control plane updates marked with DSCP CS6 (48) and ECN congestion
+// notification bits.
+// This capture sets DSCP 48, carries ASN 65001, and uses post-packet wait
+// gaps (15ms) between frames.
+// Wireshark: bgp
 
-// INSTRUCTION: Define backbone core router North.
 host bgp_core_north { ip 10.1.254.1 }
 
-// INSTRUCTION: Define backbone core router South.
 host bgp_core_south { ip 10.1.254.2 }
 
-// INSTRUCTION: Define DSCP CS6 (48) and ECNECT(0) marked BGP updates.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow bgp_cs6_qos_flow(n, s) {
-    n -> s bgp update asn 65001 prefix "10.100.0.0/16" nexthop 10.1.254.1 dscp 48 ecn 2
-    n <- s bgp keepalive dscp 48 ecn 2 wait 15ms
+    n -> s bgp update asn 65001 prefix "10.100.0.0/16" nexthop 10.1.254.1 dscp 48 ecn 2 wait 15ms
+    n <- s bgp keepalive dscp 48 ecn 2
 }
 
-// INSTRUCTION: Compile the DSCP CS6 prioritized BGP flow.
+// Run bgp_cs6_qos_flow(bgp_core_north, bgp_core_south) to generate the
+// capture.
 compile {
     bgp_cs6_qos_flow(bgp_core_north, bgp_core_south)
 }

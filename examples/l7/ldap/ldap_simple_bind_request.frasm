@@ -1,18 +1,16 @@
-// PROMPT: LDAP simple directory bind authentication request.
-// TOKENS: host, ip, flow, s, ldap, bindreq, msgid, basedn, compile
+// LDAP simple directory bind authentication request.
+// Wireshark: ldap
+// Automatic Ethernet MAC addresses and TCP port 389 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow ldap_bind(c, s) {
     c -> s ldap bindreq msgid 1 basedn "cn=admin,dc=corp,dc=net"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ldap_bind(client, server)
 }

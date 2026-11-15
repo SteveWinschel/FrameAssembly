@@ -1,19 +1,20 @@
-// PROMPT: Model a Telnet Authentication Option (Option 37, RFC 2941) negotiation between an admin terminal and bastion host.
-// TOKENS: host, ip, mac, flow, s, telnet, do, vlan, pcp, wait, ms, will, option, payload, compile
+// Model a Telnet Authentication Option (Option 37, RFC 2941) negotiation
+// between an admin terminal and bastion host.
+// Encapsulation and QoS markings: 802.1Q VLAN 37, 802.1p priority 3.
+// Telnet on TCP 23 negotiating option(s): 37.
+// Timing: uses post-packet wait delays (3ms, 5ms) between frames.
+// Wireshark: telnet && vlan.id == 37
 
-// INSTRUCTION: Define the Kerberos-enabled Telnet client on VLAN 37.
 host krb_term_client {
     ip 172.16.37.22
     mac 00:1b:21:25:00:16
 }
 
-// INSTRUCTION: Define the enterprise Telnet gateway requiring Option 37 authentication.
 host krb_telnet_gw {
     ip 172.16.37.1
     mac 00:1b:21:25:00:01
 }
 
-// INSTRUCTION: Negotiate DO 37 and WILL 37 over VLAN 37 followed by subnegotiation OPTION 37.
 flow telnet_rfc2941_auth_opt37(c, s) {
     c <- s telnet do 37 vlan 37 pcp 3 wait 3ms
     c -> s telnet will 37 vlan 37 pcp 3 wait 3ms
@@ -21,7 +22,6 @@ flow telnet_rfc2941_auth_opt37(c, s) {
     c <- s telnet payload "[Kerberos V5 accepts you as admin@CORP.LOCAL]\r\n# " vlan 37 pcp 3
 }
 
-// INSTRUCTION: Compile the Telnet Option 37 RFC 2941 authentication flow.
 compile {
     telnet_rfc2941_auth_opt37(krb_term_client, krb_telnet_gw)
 }

@@ -184,7 +184,12 @@ fn predict_synthesized_macs(
                 .tokens
                 .split_whitespace()
                 .any(|tok| tok == "reply");
-            if is_reply {
+            let is_gratuitous = pkt
+                .dissection
+                .tokens
+                .split_whitespace()
+                .any(|tok| tok == "gratuitous");
+            if is_reply && !is_gratuitous {
                 derive_mac(dst_host.mac, None, dst_host.ip, !is_forward)
             } else {
                 [0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
@@ -197,8 +202,19 @@ fn predict_synthesized_macs(
         | Protocol::Rip
         | Protocol::Vrrp
         | Protocol::Hsrp
-        | Protocol::Pim
         | Protocol::Mdns => derive_mac(None, None, pkt.dst_ip, false),
+        Protocol::Pim => {
+            let is_mcast = match pkt.dst_ip {
+                Some(IpAddr::V4(v4)) => v4.is_multicast(),
+                Some(IpAddr::V6(v6)) => v6.is_multicast(),
+                None => false,
+            };
+            if is_mcast {
+                derive_mac(None, None, pkt.dst_ip, false)
+            } else {
+                derive_mac(dst_host.mac, None, dst_host.ip, !is_forward)
+            }
+        }
         Protocol::Ssdp => {
             let is_notify = pkt
                 .dissection
@@ -412,8 +428,8 @@ pub(crate) fn build_topology(packets: &[DissectedPacket]) -> CaptureTopology {
 
         let (synth_src, synth_dst) =
             predict_synthesized_macs(pkt, &hosts[caller_idx], &hosts[callee_idx], dir);
-        let emit_src_mac = (pkt.src_mac != synth_src).then_some(pkt.src_mac);
-        let emit_dst_mac = (pkt.dst_mac != synth_dst).then_some(pkt.dst_mac);
+        let emit_src_mac = (!pkt.is_l3_only && pkt.src_mac != synth_src).then_some(pkt.src_mac);
+        let emit_dst_mac = (!pkt.is_l3_only && pkt.dst_mac != synth_dst).then_some(pkt.dst_mac);
 
         frame_endpoints.push(ResolvedFrameEndpoints {
             caller_idx,
@@ -507,16 +523,24 @@ fn find_or_create_l2_peer(
         return idx;
     }
 
-    let mut suffix = if exclude_idx.is_none() { 1u8 } else { 2u8 };
-    let mac = loop {
-        let candidate = [0x00, 0x00, 0x00, 0x00, 0x00, suffix];
+    let start = if exclude_idx.is_none() { 1u32 } else { 2u32 };
+    let mut mac = [0x02, 0x00, 0x00, 0x00, 0x00, start as u8];
+    for n in start..=u32::MAX {
+        let candidate = [
+            0x02,
+            0x00,
+            (n >> 24) as u8,
+            (n >> 16) as u8,
+            (n >> 8) as u8,
+            n as u8,
+        ];
         if !mac_to_l2_host.contains_key(&candidate)
             && !hosts.iter().any(|h| h.mac == Some(candidate))
         {
-            break candidate;
+            mac = candidate;
+            break;
         }
-        suffix = suffix.wrapping_add(1).max(1);
-    };
+    }
 
     let new_idx = hosts.len();
     hosts.push(DiscoveredHost {

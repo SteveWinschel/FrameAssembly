@@ -1,25 +1,26 @@
-// PROMPT: Generate an MPLS L3VPN PE router forwarding RADIUS authentication requests over MPLS label 1812.
-// TOKENS: host, ip, mac, flow, radius, accessrequest, id, user, nasip, servicetype, mpls, exp, bos, mplsttl, wait, ms, accessaccept, compile
+// Generate an MPLS L3VPN PE router forwarding RADIUS authentication requests
+// over MPLS label 1812.
+// Encapsulation and QoS markings: MPLS label 1812.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting (accessrequest,
+// accessaccept) with Service-Type 1 (Login).
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: radius && mpls
 
-// INSTRUCTION: Define the Network Access Server (NAS) client initiating RADIUS requests.
 host radius_nas {
     ip 10.181.12.9
     mac 00:1b:21:18:12:05
 }
 
-// INSTRUCTION: Define the central RADIUS authentication and accounting server.
 host radius_server {
     ip 10.181.12.250
     mac 00:1b:21:18:12:64
 }
 
-// INSTRUCTION: Execute the RFC 2865 / RFC 2866 RADIUS transaction flow.
 flow radius_scenario_flow(nas, srv) {
     nas -> srv radius accessrequest id 109 user "branch_mgr_07" nasip 10.181.12.9 servicetype 1 mpls 1812 exp 4 bos 1 mplsttl 64 wait 4ms
     nas <- srv radius accessaccept id 109 user "branch_mgr_07" nasip 10.181.12.9 servicetype 1 mpls 1812 exp 4 bos 1 mplsttl 64
 }
 
-// INSTRUCTION: Compile the RADIUS AAA exchange into a PCAP trace.
 compile {
     radius_scenario_flow(radius_nas, radius_server)
 }

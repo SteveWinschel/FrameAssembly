@@ -1,24 +1,24 @@
-// PROMPT: WebRTC signaling channel over WebSocket exchanging SDP offer, SDP answer, and ICE candidate.
-// TOKENS: host, ip, flow, s, websocket, text, finbit, maskkey, payload, wait, ms, compile
+// WebRTC signaling channel over WebSocket exchanging SDP offer, SDP answer,
+// and ICE candidate.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Timing: pauses 6ms after each marked packet before sending the next frame.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define WebRTC caller browser peer.
 host rtc_caller {
     ip 10.88.14.10
 }
 
-// INSTRUCTION: Define WebSocket signaling rendezvous server.
 host sig_server {
     ip 10.88.14.1
 }
 
-// INSTRUCTION: Define SDP offer/answer and ICE candidate relay over WebSocket text frames.
 flow ws_webrtc_signaling(c, s) {
     c -> s websocket text finbit 1 maskkey 0x11112222 payload "{'type':'offer','sdp':'v=0...'}" wait 6ms
     c <- s websocket text finbit 1 payload "{'type':'answer','sdp':'v=0...'}" wait 6ms
     c -> s websocket text finbit 1 maskkey 0x33334444 payload "{'type':'candidate','candidate':'1'}"
 }
 
-// INSTRUCTION: Compile WebRTC signaling over WebSocket scenario.
 compile {
     ws_webrtc_signaling(rtc_caller, sig_server)
 }

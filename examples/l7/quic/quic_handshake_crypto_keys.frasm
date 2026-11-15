@@ -1,19 +1,17 @@
-// PROMPT: QUIC Handshake packet establishing 1-RTT cryptographic context over IPv6.
-// TOKENS: host, ip, flow, s, quic, handshake, dcid, scid, compile
+// QUIC Handshake packet establishing 1-RTT cryptographic context over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// QUIC UDP 443 packet types: handshake.
+// Wireshark: quic
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow quic_hs(c, s) {
     c -> s quic handshake dcid 0x11223344 scid 0x55667788
     c <- s quic handshake dcid 0x55667788 scid 0x11223344
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     quic_hs(client, server)
 }

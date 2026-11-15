@@ -1,19 +1,20 @@
-// PROMPT: NFSv3 stateless READ and WRITE block operations for shared web server static media assets.
-// TOKENS: host, ip, mac, flow, s, nfs, vers, proc, path, payload, wait, ms, compile
+// NFSv3 stateless READ and WRITE block operations for shared web server
+// static media assets.
+// Wireshark: nfs
 
-// INSTRUCTION: Define the frontend Nginx web server host.
+// Frontend Nginx web server host.
 host web_node {
     ip 192.168.70.31
     mac 00:1a:2b:70:70:31
 }
 
-// INSTRUCTION: Define the shared NFSv3 media server.
 host media_nfs3 {
     ip 192.168.70.5
     mac 00:1a:2b:70:70:05
 }
 
-// INSTRUCTION: Upload a newly transcoded thumbnail and read back the CSS bundle using NFSv3.
+// Upload a newly transcoded thumbnail and read back the CSS bundle using
+// NFSv3.
 flow nfs3_media_rw(c, s) {
     c -> s nfs vers 3 proc "write" path "/var/www/static/img/thumb_992.webp" payload "RIFF_WEBP_VP8_IMAGE"
     c <- s nfs vers 3 proc "write" wait 2ms
@@ -21,7 +22,6 @@ flow nfs3_media_rw(c, s) {
     c <- s nfs vers 3 proc "read" payload "body{margin:0;font-family:sans-serif}"
 }
 
-// INSTRUCTION: Compile the NFSv3 read and write block flow.
 compile {
     nfs3_media_rw(web_node, media_nfs3)
 }

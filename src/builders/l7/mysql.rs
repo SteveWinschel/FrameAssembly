@@ -28,12 +28,14 @@ pub fn build_mysql_payload(
         body.extend_from_slice(&1u32.to_le_bytes()); // Thread ID
         body.extend_from_slice(b"12345678"); // Auth-plugin-data-part-1 (8 bytes)
         body.push(0x00); // Filler
-        body.extend_from_slice(&0xF7FFu16.to_le_bytes()); // Capability flags (lower 2 bytes)
-        body.push(0x21); // Character set: utf8_general_ci (33)
+        body.extend_from_slice(&0xFFFFu16.to_le_bytes()); // Capability flags (lower 2 bytes)
+        body.push(0x21); // Character set: utf8mb4_0900_ai_ci / utf8 (0x21)
         body.extend_from_slice(&0x0002u16.to_le_bytes()); // Status flags: SERVER_STATUS_AUTOCOMMIT
-        body.extend_from_slice(&0x0081u16.to_le_bytes()); // Capability flags (upper 2 bytes)
-        body.push(0x00); // Auth plugin data length
-        body.extend_from_slice(&[0u8; 10]); // Reserved
+        body.extend_from_slice(&0x00FFu16.to_le_bytes()); // Capability flags (upper 2 bytes)
+        body.push(21); // Auth plugin data length (8 + 13)
+        body.extend_from_slice(&[0u8; 10]); // Reserved (10 zero bytes)
+        body.extend_from_slice(b"901234567890\0"); // Auth-plugin-data-part-2 (13 bytes, NUL-terminated)
+        body.extend_from_slice(b"mysql_native_password\0"); // Auth plugin name
     } else if spec.is_login
         || ((spec.user.is_some() || spec.db.is_some()) && !spec.is_query && spec.sql.is_none())
     {

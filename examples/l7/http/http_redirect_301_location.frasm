@@ -1,13 +1,13 @@
-// PROMPT: HTTP 301 Moved Permanently redirect followed by GET request to the new Location URI.
-// TOKENS: host, ip, flow, http, method, uri, hosthdr, status, reason, header, compile
+// HTTP 301 Moved Permanently redirect followed by GET request to the new
+// Location URI.
+// Wireshark: http
 
-// INSTRUCTION: Define HTTP client following redirect.
 host redir_client { ip 10.18.80.12 }
 
-// INSTRUCTION: Define reverse proxy load balancer.
+// Reverse proxy load balancer.
 host rev_proxy { ip 10.18.80.1 }
 
-// INSTRUCTION: Request legacy URI, receive 301 with Location header, and fetch new URI.
+// Request legacy URI, receive 301 with Location header, and fetch new URI.
 flow http_redirect_301(c, p) {
     c -> p http method "GET" uri "/legacy-docs" hosthdr "docs.example.com"
     c <- p http status 301 reason "Moved Permanently" header "Location" "/v2/docs"
@@ -15,7 +15,6 @@ flow http_redirect_301(c, p) {
     c <- p http status 200 reason "OK"
 }
 
-// INSTRUCTION: Compile the HTTP 301 redirect scenario.
 compile {
     http_redirect_301(redir_client, rev_proxy)
 }

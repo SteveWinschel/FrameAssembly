@@ -12,9 +12,9 @@ use core::fmt::Write as _;
 use core::net::{IpAddr, Ipv4Addr};
 
 use crate::ast::Protocol;
-use crate::reverse::{ProtocolDissection, be_u16, ipv4_at, push_if, sd, src_v4_or};
+use crate::reverse::{ProtocolDissection, be_u16, be_u32, ipv4_at, push_if, sd, src_v4_or};
 
-/// Decompiles an RFC 4271 `bgp` message over TCP port `179` into a [`ProtocolDissection`].
+/// Decompiles an RFC 4271 / RFC 6793 `bgp` message over TCP port `179` into a [`ProtocolDissection`].
 pub(crate) fn dissect_bgp(b: &[u8], src_ip: Option<IpAddr>) -> Option<ProtocolDissection> {
     if b.len() < 19 || b[0..16] != [0xFF; 16] {
         return None;
@@ -28,10 +28,30 @@ pub(crate) fn dissect_bgp(b: &[u8], src_ip: Option<IpAddr>) -> Option<ProtocolDi
     match b[18] {
         1 if body.len() >= 10 => {
             t.push_str(" open");
-            push_if(&mut t, "asn", u32::from(be_u16(body, 1)), 65001);
+            let opt_end = (10 + body[9] as usize).min(body.len());
+            let mut asn = u32::from(be_u16(body, 1));
+            let mut p = 10usize;
+            while p + 2 <= opt_end {
+                let (pt, pl) = (body[p], body[p + 1] as usize);
+                p += 2;
+                if pt == 2 && p + pl <= opt_end {
+                    let mut cp = p;
+                    let cend = p + pl;
+                    while cp + 2 <= cend {
+                        let (cc, cl) = (body[cp], body[cp + 1] as usize);
+                        cp += 2;
+                        if cc == 65 && cl == 4 && cp + 4 <= cend {
+                            asn = be_u32(body, cp);
+                        }
+                        cp = cp.saturating_add(cl);
+                    }
+                }
+                p = p.saturating_add(pl);
+            }
+            push_if(&mut t, "asn", asn, 65001);
             push_if(&mut t, "holdtime", be_u16(body, 3), 180);
             push_if(&mut t, "bgpid", ipv4_at(body, 5), dv4);
-            res.extend_from_slice(&body[(10 + body[9] as usize).min(body.len())..]);
+            res.extend_from_slice(&body[opt_end..]);
         }
         2 if body.len() >= 4 => {
             t.push_str(" update");
@@ -39,15 +59,37 @@ pub(crate) fn dissect_bgp(b: &[u8], src_ip: Option<IpAddr>) -> Option<ProtocolDi
             if pa_off + 2 <= body.len() {
                 let pa_end = (pa_off + 2 + be_u16(body, pa_off) as usize).min(body.len());
                 let mut p = pa_off + 2;
+                let mut asn_opt: Option<u32> = None;
+                let mut nh_opt: Option<Ipv4Addr> = None;
                 while p + 3 <= pa_end {
-                    let (at, al) = (body[p + 1], body[p + 2] as usize);
-                    p += 3;
-                    if at == 2 && al >= 4 && p + al <= pa_end {
-                        let _ = write!(t, " asn {}", be_u16(body, p + al - 2));
+                    let flags = body[p];
+                    let at = body[p + 1];
+                    let al = if (flags & 0x10) != 0 {
+                        if p + 4 > pa_end {
+                            break;
+                        }
+                        let l = be_u16(body, p + 2) as usize;
+                        p += 4;
+                        l
+                    } else {
+                        let l = body[p + 2] as usize;
+                        p += 3;
+                        l
+                    };
+                    if at == 2 && al >= 4 && p + al <= pa_end && asn_opt.is_none() {
+                        asn_opt = Some(u32::from(be_u16(body, p + al - 2)));
+                    } else if at == 17 && al >= 6 && p + al <= pa_end {
+                        asn_opt = Some(be_u32(body, p + al - 4));
                     } else if at == 3 && al == 4 && p + 4 <= pa_end {
-                        push_if(&mut t, "nexthop", ipv4_at(body, p), dv4);
+                        nh_opt = Some(ipv4_at(body, p));
                     }
                     p = p.saturating_add(al);
+                }
+                if let Some(asn) = asn_opt {
+                    let _ = write!(t, " asn {asn}");
+                }
+                if let Some(nh) = nh_opt {
+                    push_if(&mut t, "nexthop", nh, dv4);
                 }
                 if pa_end < body.len() {
                     let plen = body[pa_end];

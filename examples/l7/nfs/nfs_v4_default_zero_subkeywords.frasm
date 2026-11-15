@@ -1,25 +1,19 @@
-// PROMPT: Minimal NFS frame with zero optional sub-keywords exercising builder defaults (NFSv4 LOOKUP on /).
-// TOKENS: host, ip, mac, flow, s, nfs, vers, proc, compile
+// Minimal NFS frame with zero optional sub-keywords exercising builder
+// defaults (NFSv4 LOOKUP on /). NFSv4 RPC calls default to TCP port 2049 with
+// ONC RPC XDR framing.
+// Wireshark: nfs
 
-// INSTRUCTION: Define the default NFS client endpoint.
 host nfs_def_client {
     ip 10.70.0.10
     mac 00:1a:2b:70:00:10
 }
 
-// INSTRUCTION: Define the default NFS server endpoint.
 host nfs_def_server {
     ip 10.70.0.1
     mac 00:1a:2b:70:00:01
 }
 
-// INSTRUCTION: Emit a bare NFS statement relying on default version, procedure, tag, and path.
-flow nfs_defaults(c, s) {
-    c -> s nfs
-    c <- s nfs vers 4 proc "lookup"
-}
-
-// INSTRUCTION: Compile the default NFS protocol test flow.
 compile {
-    nfs_defaults(nfs_def_client, nfs_def_server)
+    nfs_def_client -> nfs_def_server nfs
+    nfs_def_client <- nfs_def_server nfs vers 4 proc "lookup"
 }

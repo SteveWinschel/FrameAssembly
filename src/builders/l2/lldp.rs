@@ -34,7 +34,7 @@ pub fn build_lldp_frame(
         let tlv_len = 1 + ch_bytes.len();
         let header: u16 = (1_u16 << 9) | (tlv_len as u16 & 0x01FF);
         lldpdu.extend_from_slice(&header.to_be_bytes());
-        lldpdu.push(4); // Subtype 4: MAC address / Subtype 7: locally assigned
+        lldpdu.push(7); // Subtype 7: Locally assigned alphanumeric identifier
         lldpdu.extend_from_slice(ch_bytes);
     } else {
         // Default: Chassis ID Subtype 4 (MAC address)

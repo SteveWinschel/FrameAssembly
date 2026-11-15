@@ -1,25 +1,24 @@
-// PROMPT: LLDP-MED VoIP desk phone onboarding exchange advertising voice VLAN and PoE power requirements via organization TLVs.
-// TOKENS: host, ip, mac, flow, lldp, chassisid, portid, sysname, sysdesc, ttl, hexpayload, wait, ms, compile
+// LLDP-MED VoIP desk phone onboarding exchange advertising voice VLAN and PoE
+// power requirements via organization TLVs.
+// Wire profile: 2 frames; 2 IPv4 hosts; LLDP; waits 10ms.
+// Wireshark: lldp
 
-// INSTRUCTION: Define PoE campus access switch port.
 host poe_switch_port {
     ip 10.35.1.1
     mac 00:1e:be:35:01:01
 }
 
-// INSTRUCTION: Define enterprise VoIP desk phone with integrated 3-port switch.
 host voip_desk_phone {
     ip 10.35.1.105
     mac 00:04:f2:aa:bb:69
 }
 
-// INSTRUCTION: Define LLDP-MED switch policy advertisement and IP phone inventory response with custom TLV bytes.
 flow lldp_med_voip_onboarding(sw, phone) {
     sw -> phone lldp chassisid "00:1e:be:35:01:01" portid "Gi1/0/12" sysname "bldg3-fl2-sw01" sysdesc "Campus PoE+ Access Switch" ttl 180 hexpayload "fe090012bb020144006eb0"
-    sw <- phone lldp chassisid "00:04:f2:aa:bb:69" portid "LAN-Port" sysname "SEP0004F2AABB69" sysdesc "Enterprise IP Phone 8845" ttl 180 hexpayload "fe070012bb04110264" wait 10ms
+        wait 10ms
+    sw <- phone lldp chassisid "00:04:f2:aa:bb:69" portid "LAN-Port" sysname "SEP0004F2AABB69" sysdesc "Enterprise IP Phone 8845" ttl 180 hexpayload "fe070012bb04110264"
 }
 
-// INSTRUCTION: Compile block executing LLDP-MED VoIP desk phone discovery.
 compile {
     lldp_med_voip_onboarding(poe_switch_port, voip_desk_phone)
 }

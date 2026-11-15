@@ -1,25 +1,23 @@
-// PROMPT: Proxy ARP gateway replying on behalf of an isolated subnet host with explicit target IP and sender MAC.
-// TOKENS: host, ip, mac, flow, router, arp, request, spa, tpa, reply, sha, tha, wait, ms, compile
+// Proxy ARP gateway replying on behalf of an isolated subnet host with explicit
+// target IP and sender MAC.
+// Wire profile: 2 frames; 2 IPv4 hosts; ARP; waits 2ms.
+// Wireshark: arp
 
-// INSTRUCTION: Define local workstation initiating ARP resolution for remote host.
 host workstation_lan {
     ip 10.24.1.15
     mac 00:1b:63:84:45:e6
 }
 
-// INSTRUCTION: Define proxy ARP router interface answering on behalf of remote subnet.
 host proxy_arp_gw {
     ip 10.24.1.1
     mac 00:00:0c:9f:f0:01
 }
 
-// INSTRUCTION: Define proxy ARP request and router proxy reply sequence.
 flow proxy_arp_resolution(client, router) {
-    client -> router arp request spa 10.24.1.15 tpa 10.24.2.99
-    client <- router arp reply sha 00:00:0c:9f:f0:01 spa 10.24.2.99 tha 00:1b:63:84:45:e6 tpa 10.24.1.15 wait 2ms
+    client -> router arp request spa 10.24.1.15 tpa 10.24.2.99 wait 2ms
+    client <- router arp reply sha 00:00:0c:9f:f0:01 spa 10.24.2.99 tha 00:1b:63:84:45:e6 tpa 10.24.1.15
 }
 
-// INSTRUCTION: Compile block executing proxy ARP gateway mediation.
 compile {
     proxy_arp_resolution(workstation_lan, proxy_arp_gw)
 }

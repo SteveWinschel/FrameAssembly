@@ -1,18 +1,18 @@
-// PROMPT: Secondary querier observing higher priority querier General Query.
-// TOKENS: host, ip, flow, mld, query, maxrespdelay, compile
+// Secondary querier observing higher priority querier General Query.
+// This capture targets IPv6 endpoints.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define primary querier with lower numerical IP address.
 host primary_querier { ip fe80::1 }
 
-// INSTRUCTION: Define link-local all-nodes group including secondary querier.
 host all_nodes_link { ip ff02::1 }
 
-// INSTRUCTION: Define querier announcement query asserting active role.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow querier_election_flow(p_q, nodes) {
     p_q -> nodes mld query maxrespdelay 10000
 }
 
-// INSTRUCTION: Compile block executing querier election query.
+// Run querier_election_flow(primary_querier, all_nodes_link) to generate the
+// capture.
 compile {
     querier_election_flow(primary_querier, all_nodes_link)
 }

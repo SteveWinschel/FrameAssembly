@@ -1,25 +1,28 @@
-// PROMPT: RFC 5882 BFD session detecting peer control timer expiry (DIAG 1) to trigger sub-50ms eBGP fast fallover.
-// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, srcport, dstport, dscp, ttl, wait, ms, compile
+// RFC 5882 BFD session detecting peer control timer expiry (Diag 1) to
+// trigger sub-50ms eBGP fast fallover.
+// This capture sets DSCP 48, TTL 255, carries BFD state 1/3, diag 0/1,
+// destination port 3784, and uses post-packet wait gaps (45ms) between
+// frames.
+// Wireshark: bfd
 
-// INSTRUCTION: Define Internet edge router monitoring eBGP peer via 15ms BFD timers.
 host ixp_edge_rtr1 {
     ip 198.51.100.10
     mac 00:24:38:64:0a:01
 }
 
-// INSTRUCTION: Define IXP peer router experiencing control plane failure.
 host ixp_edge_rtr2 {
     ip 198.51.100.11
     mac 00:24:38:64:0b:02
 }
 
-// INSTRUCTION: Define BFD transition from Up (STATE 3) to Down (STATE 1) with DIAG 1 (Control Detection Time Expired).
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow bfd_ebgp_fallover_flow(r1, r2) {
     r1 -> r2 bfd state 3 diag 0 mydisc 17901 yourdisc 17902 mintx 15000 minrx 15000 mult 3 srcport 49200 dstport 3784 dscp 48 ttl 255 wait 45ms
     r1 -> r2 bfd state 1 diag 1 mydisc 17901 yourdisc 0 mintx 1000000 minrx 1000000 mult 3 srcport 49200 dstport 3784 dscp 48 ttl 255
 }
 
-// INSTRUCTION: Compile the BFD-triggered eBGP fast fallover scenario.
+// Run bfd_ebgp_fallover_flow(ixp_edge_rtr1, ixp_edge_rtr2) to generate the
+// capture.
 compile {
     bfd_ebgp_fallover_flow(ixp_edge_rtr1, ixp_edge_rtr2)
 }

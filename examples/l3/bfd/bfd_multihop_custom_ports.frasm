@@ -1,19 +1,20 @@
-// PROMPT: RFC 5883 multihop BFD session using custom ephemeral UDP source ports and TTL 250.
-// TOKENS: host, ip, flow, bfd, state, mydisc, yourdisc, mintx, minrx, mult, srcport, ttl, compile
+// RFC 5883 multihop BFD session using custom ephemeral UDP source ports and
+// TTL 250.
+// This capture sets TTL 250 and carries BFD state 3.
+// Wireshark: bfd
 
-// INSTRUCTION: Define eBGP loopback endpoint in AS 65001.
 host mh_loopback_west { ip 10.255.1.1 }
 
-// INSTRUCTION: Define eBGP loopback endpoint in AS 65002.
 host mh_loopback_east { ip 10.255.2.1 }
 
-// INSTRUCTION: Define multihop BFD exchange with RFC 5881 source port range 49152..65535.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow bfd_multihop_flow(west, east) {
     west -> east bfd state 3 mydisc 9101 yourdisc 9202 mintx 300000 minrx 300000 mult 4 srcport 49155 ttl 250
     west <- east bfd state 3 mydisc 9202 yourdisc 9101 mintx 300000 minrx 300000 mult 4 srcport 49200 ttl 250
 }
 
-// INSTRUCTION: Compile the multihop BFD control session.
+// Run bfd_multihop_flow(mh_loopback_west, mh_loopback_east) to generate the
+// capture.
 compile {
     bfd_multihop_flow(mh_loopback_west, mh_loopback_east)
 }

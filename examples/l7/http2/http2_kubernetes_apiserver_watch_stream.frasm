@@ -1,19 +1,20 @@
-// PROMPT: Kubernetes kubelet watching Pod state changes over a multiplexed HTTP/2 Stream 7 to kube-apiserver on port 6443.
-// TOKENS: host, ip, mac, flow, http2, headers, streamid, srcport, dstport, data, payload, ping, compile
+// Kubernetes kubelet watching Pod state changes over a multiplexed HTTP/2
+// Stream 7 to kube-apiserver on port 6443.
+// Wireshark: http2 || tcp.port == 6443
 
-// INSTRUCTION: Define Kubernetes worker node kubelet agent.
+// Kubernetes worker node kubelet agent.
 host kubelet_node {
     ip 10.240.1.51
     mac 02:42:0a:f0:01:33
 }
 
-// INSTRUCTION: Define Kubernetes control-plane kube-apiserver on TCP port 6443.
+// Kubernetes control-plane kube-apiserver on TCP port 6443.
 host kube_apiserver {
     ip 10.240.0.1
     mac 02:42:0a:f0:00:01
 }
 
-// INSTRUCTION: Subscribe to /api/v1/pods?watch=true on Stream 7 over TCP port 6443.
+// Subscribe to /api/v1/pods?watch=true on Stream 7 over TCP port 6443.
 flow http2_k8s_watch(kubelet, api) {
     kubelet -> api http2 headers streamid 7 srcport 48200 dstport 6443
     kubelet <- api http2 headers streamid 7 srcport 6443 dstport 48200
@@ -22,7 +23,6 @@ flow http2_k8s_watch(kubelet, api) {
     kubelet <- api http2 ping streamid 0 srcport 6443 dstport 48200
 }
 
-// INSTRUCTION: Compile the Kubernetes kube-apiserver HTTP/2 watch stream scenario.
 compile {
     http2_k8s_watch(kubelet_node, kube_apiserver)
 }

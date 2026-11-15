@@ -1,0 +1,11 @@
+// Minimal 2-block RTSP starter sending a default camera control request on TCP port 554.
+// Formats RFC 7826 headers and CSeq fields directly inside the compile block without a flow.
+// Useful for NVR firewall pinhole checks and IP camera dissector tests.
+// Wireshark: rtsp
+
+host nvr_recorder { ip 10.80.2.50 mac 00:1a:2b:54:00:32 }
+host ip_camera    { ip 10.80.2.10 mac 00:1a:2b:54:00:0a }
+
+compile {
+    nvr_recorder -> ip_camera rtsp
+}

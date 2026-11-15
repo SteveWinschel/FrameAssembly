@@ -1,19 +1,21 @@
-// PROMPT: Simulate an SSH traffic analysis defense sequence combining SSH_MSG_IGNORE (2) and SSH_MSG_DEBUG (4) with channel data.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, ssh, msgcode, payload, compile
+// Simulate an SSH traffic analysis defense sequence combining SSH_MSG_IGNORE
+// (2) and SSH_MSG_DEBUG (4) with channel data.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// SSH RFC 4253 framing on TCP 22 (message codes: 2, 4, 94 (CHANNEL_DATA)).
+// Overrides destination port to 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define host endpoint sec_client.
 host sec_client {
     mac 00:1e:67:22:33:01
     ip 192.168.44.11
 }
 
-// INSTRUCTION: Define host endpoint sec_server.
 host sec_server {
     mac 00:1e:67:22:33:02
     ip 192.168.44.22
 }
 
-// INSTRUCTION: Send SSH_MSG_DEBUG (4), SSH_MSG_IGNORE (2) chaff packet, and SSH_MSG_CHANNEL_DATA (94).
 flow ssh_ignore_and_debug_messages(sec_client, sec_server) {
     sec_client -> sec_server tcp syn srcport 59022 dstport 22
     sec_server -> sec_client tcp syn ack
@@ -25,7 +27,6 @@ flow ssh_ignore_and_debug_messages(sec_client, sec_server) {
     sec_server -> sec_client ssh msgcode 94 payload "ENC-ECHO-RESPONSE"
 }
 
-// INSTRUCTION: Compile the SSH ignore and debug packet flow.
 compile {
     ssh_ignore_and_debug_messages(sec_client, sec_server)
 }

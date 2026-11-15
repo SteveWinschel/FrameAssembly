@@ -1,18 +1,16 @@
-// PROMPT: RTP video stream frame asserting marker bit indicating end of video access unit.
-// TOKENS: host, ip, flow, s, rtp, pt, ssrc, timestamp, marker, compile
+// RTP video stream frame asserting marker bit indicating end of video access
+// unit.
+// RTP media on UDP 5004 carrying PT 96 (dynamic RTP payload (96)).
+// Wireshark: rtp || udp.port == 5004
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.20 }
 
-// INSTRUCTION: Define application traffic flow.
 flow rtp_video(c, s) {
     c -> s rtp pt 96 ssrc 0x87654321 timestamp 3600 marker 1
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     rtp_video(client, server)
 }

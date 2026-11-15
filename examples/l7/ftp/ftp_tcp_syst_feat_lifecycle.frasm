@@ -1,13 +1,13 @@
-// PROMPT: Full TCP 3-way handshake, FTP SYST and FEAT capability discovery, and TCP FIN teardown.
-// TOKENS: host, ip, flow, s, tcp, syn, srcport, dstport, ack, ftp, code, reply, cmd, fin, compile
+// Full TCP 3-way handshake, FTP SYST and FEAT capability discovery, and TCP
+// FIN teardown.
+// Wireshark: tcp || ftp
 
-// INSTRUCTION: Define automated FTP scanner client.
 host ftp_client { ip 192.168.121.10 }
 
-// INSTRUCTION: Define enterprise FTP server.
 host ftp_server { ip 192.168.121.1 }
 
-// INSTRUCTION: Establish TCP session, query server OS type (SYST) and features (FEAT), then close.
+// Establish TCP session, query server OS type (SYST) and features (FEAT),
+// then close.
 flow ftp_tcp_syst_feat(c, s) {
     c -> s tcp syn srcport 49800 dstport 21
     c <- s tcp syn ack
@@ -22,7 +22,6 @@ flow ftp_tcp_syst_feat(c, s) {
     c -> s tcp ack
 }
 
-// INSTRUCTION: Compile the complete FTP TCP session and capability check.
 compile {
     ftp_tcp_syst_feat(ftp_client, ftp_server)
 }

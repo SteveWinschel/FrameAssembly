@@ -1,18 +1,18 @@
-// PROMPT: Low Max Response Delay MLD query for rapid multicast group pruning audit.
-// TOKENS: host, ip, flow, mld, query, multicastaddr, maxrespdelay, compile
+// Low Max Response Delay MLD query for rapid multicast group pruning audit.
+// This capture targets IPv6 endpoints.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define core distribution router auditing active listeners.
 host core_dist_rtr { ip fe80::1 }
 
-// INSTRUCTION: Define multicast channel target address.
 host channel_target_grp { ip ff05::200 }
 
-// INSTRUCTION: Define fast-audit query flow with 1000ms maximum response delay.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow mld_audit_query_flow(core, grp) {
     core -> grp mld query multicastaddr ff05::200 maxrespdelay 1000
 }
 
-// INSTRUCTION: Compile block executing group-specific audit query.
+// Run mld_audit_query_flow(core_dist_rtr, channel_target_grp) to generate the
+// capture.
 compile {
     mld_audit_query_flow(core_dist_rtr, channel_target_grp)
 }

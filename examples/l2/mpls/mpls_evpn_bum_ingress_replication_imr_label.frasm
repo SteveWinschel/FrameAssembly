@@ -1,25 +1,23 @@
-// PROMPT: RFC 7432 MPLS-EVPN Ingress Replication (Inclusive Multicast Ethernet Tag) flooding BUM ARP traffic using IMET label 44000.
-// TOKENS: host, ip, mac, flow, mpls, exp, bos, mplsttl, arp, request, senderip, targetip, wait, ms, reply, compile
+// RFC 7432 MPLS-EVPN Ingress Replication (Inclusive Multicast Ethernet Tag)
+// flooding BUM ARP traffic using IMET label 44000.
+// Wire profile: 2 frames; 2 IPv4 hosts; MPLS label 44000,44001; ARP; waits 5ms.
+// Wireshark: arp
 
-// INSTRUCTION: Define ingress EVPN PE1 replicating broadcast frame to remote PEs using IMET label 44000.
 host evpn_imet_pe1 {
     ip 10.250.44.1
     mac 00:1c:73:fa:2c:01
 }
 
-// INSTRUCTION: Define remote EVPN PE2 receiving IMET-labeled broadcast frame and replying with unicast MAC-VRF label 44001.
 host evpn_imet_pe2 {
     ip 10.250.44.2
     mac 00:1c:73:fa:2c:02
 }
 
-// INSTRUCTION: Flood ARP Request over IMET label 44000 and return unicast ARP Reply over MAC-VRF label 44001.
 flow mpls_evpn_imet_flood(pe1, pe2) {
     pe1 -> pe2 mpls 44000 exp 3 bos 1 mplsttl 64 arp request senderip 192.168.44.10 targetip 192.168.44.20 wait 5ms
     pe1 <- pe2 mpls 44001 exp 3 bos 1 mplsttl 64 arp reply senderip 192.168.44.20 targetip 192.168.44.10
 }
 
-// INSTRUCTION: Compile the MPLS-EVPN IMET ingress replication trace.
 compile {
     mpls_evpn_imet_flood(evpn_imet_pe1, evpn_imet_pe2)
 }

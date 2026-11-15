@@ -1,18 +1,17 @@
-// PROMPT: Kerberos KRB-ERROR response signaling pre-authentication required before ticket issuance.
-// TOKENS: host, ip, flow, kerberos, krberror, realm, sname, compile
+// Kerberos KRB-ERROR response signaling pre-authentication required before
+// ticket issuance.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define unauthenticated client host.
 host unauth_client { ip 192.168.100.12 }
 
-// INSTRUCTION: Define enterprise KDC authenticator.
+// Enterprise KDC authenticator.
 host auth_kdc { ip 192.168.100.1 }
 
-// INSTRUCTION: Define KRB-ERROR preauth notification flow.
+// KRB-ERROR preauth notification flow.
 flow krb_error_preauth(c, kdc) {
     c <- kdc kerberos krberror realm "ACME.ORG" sname "krbtgt/ACME.ORG"
 }
 
-// INSTRUCTION: Compile KRB-ERROR scenario.
 compile {
     krb_error_preauth(unauth_client, auth_kdc)
 }

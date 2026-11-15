@@ -1,19 +1,17 @@
-// PROMPT: Financial exchange market data streaming ticker updates via text frames.
-// TOKENS: host, ip, flow, s, websocket, opcode, finbit, maskkey, compile
+// Financial exchange market data streaming ticker updates via text frames.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define algorithmic trading workstation.
 host algo_trader { ip 10.99.1.5 }
 
-// INSTRUCTION: Define low-latency market exchange server.
 host exchange_engine { ip 10.99.1.1 }
 
-// INSTRUCTION: Define market quote streaming flow.
 flow ws_ticker_flow(c, s) {
     c -> s websocket opcode "text" finbit 1 maskkey 876543210
     c <- s websocket opcode "text" finbit 1 maskkey 0
 }
 
-// INSTRUCTION: Compile block executing market ticker updates.
 compile {
     ws_ticker_flow(algo_trader, exchange_engine)
 }

@@ -1,19 +1,20 @@
-// PROMPT: OPC UA traffic transported over MPLS pseudowire and QinQ double-tagged metro Ethernet.
-// TOKENS: host, ip, flow, s, opcua, msgtype, chunktype, securechannelid, tokenid, seqnum, reqid, qinq, innervlan, mpls, exp, bos, mplsttl, compile
+// OPC UA traffic transported over MPLS pseudowire and QinQ double-tagged
+// metro Ethernet.
+// Wireshark: opcua
 
-// INSTRUCTION: Define central utility control center client.
 host central_scada { ip 10.220.0.10 }
 
-// INSTRUCTION: Define remote substation OPC UA gateway.
+// Remote substation OPC UA gateway.
 host remote_sub { ip 10.220.5.1 }
 
-// INSTRUCTION: Define OPC UA exchange encapsulated with QinQ and MPLS labels.
+// OPC UA exchange encapsulated with QinQ and MPLS labels. Encapsulation and
+// QoS markings: 802.1ad QinQ S-VLAN 1000 / C-VLAN 200, MPLS label 48400,
+// 48401. OPC UA message sequence: OPN on TCP port 4840.
 flow opcua_wan_mpls(c, s) {
     c -> s opcua msgtype "opn" chunktype "f" securechannelid 88 tokenid 1 seqnum 1 reqid 1 qinq 1000 innervlan 200 mpls 48400 exp 5 bos 1 mplsttl 64
     c <- s opcua msgtype "opn" chunktype "f" securechannelid 88 tokenid 1 seqnum 1 reqid 1 qinq 1000 innervlan 200 mpls 48401 exp 5 bos 1 mplsttl 63
 }
 
-// INSTRUCTION: Compile WAN MPLS and QinQ OPC UA flow.
 compile {
     opcua_wan_mpls(central_scada, remote_sub)
 }

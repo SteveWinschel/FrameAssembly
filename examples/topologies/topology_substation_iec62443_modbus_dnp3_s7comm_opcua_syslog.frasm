@@ -1,42 +1,40 @@
-// PROMPT: IEC 62443 utility substation security zone combining Modbus TCP, DNP3 outstation polling, S7comm PLC diagnostics, OPC UA historian push, and Syslog SIEM alerts.
-// TOKENS: host, ip, mac, flow, vlan, pcp, modbus, unitid, func, addr, count, isresponse, wait, ms, dnp3, src, dst, s7comm, rosctr, pduref, opcua, endpointurl, nodeid, syslog, pri, app, msg, compile
+// IEC 62443 utility substation security zone combining Modbus TCP, DNP3
+// outstation polling, S7comm PLC diagnostics, OPC UA historian push, and Syslog
+// SIEM alerts.
+// Wire profile: 7 frames; 4 IPv4 hosts; VLAN 110,120; PCP 4,5,6; Syslog, Modbus,
+// DNP3, S7comm, OPC UA; waits 1ms, 2ms.
+// Wireshark: syslog || modbus || dnp3 || s7comm
 
-// INSTRUCTION: Define substation SCADA HMI engineering master.
 host substation_hmi {
     ip 172.22.10.5
     mac 00:1b:21:22:0a:05
 }
 
-// INSTRUCTION: Define bay controller RTU speaking Modbus TCP and DNP3.
 host bay_rtu_controller {
     ip 172.22.10.50
     mac 00:a0:c9:22:0a:32
 }
 
-// INSTRUCTION: Define transformer protection PLC speaking Siemens S7comm.
 host transformer_s7_plc {
     ip 172.22.10.60
     mac 00:0e:8c:22:0a:3c
 }
 
-// INSTRUCTION: Define DMZ OPC UA historian and Syslog SIEM collector.
 host dmz_historian_siem {
     ip 172.22.20.100
     mac 00:50:56:22:14:64
 }
 
-// INSTRUCTION: Define IEC 62443 conduit polling across Modbus, DNP3, S7comm, OPC UA, and Syslog alert generation.
 flow substation_iec62443_telemetry(hmi, rtu, plc, siem) {
-    hmi -> rtu vlan 110 pcp 6 modbus unitid 1 func "readholdingregisters" addr 40001 count 8
+    hmi -> rtu vlan 110 pcp 6 modbus unitid 1 func "readholdingregisters" addr 40001 count 8 wait 1ms
     hmi <- rtu vlan 110 pcp 6 modbus unitid 1 func "readholdingregisters" count 8 isresponse wait 1ms
     hmi -> rtu vlan 110 pcp 6 dnp3 src 1 dst 10 func "read" wait 1ms
     hmi <- rtu vlan 110 pcp 6 dnp3 src 10 dst 1 func "response" wait 1ms
-    hmi -> plc vlan 110 pcp 6 s7comm rosctr "job" func "readvar" pduref 10 wait 1ms
-    hmi -> siem vlan 120 pcp 4 opcua endpointurl "opc.tcp://dmz-hist:4840" nodeid "ns=3;s=Feeder01.kV" wait 2ms
-    hmi -> siem vlan 120 pcp 5 syslog pri 132 app "iec62443-ids" msg "Zone2_Breaker_Trip_Interlock_Verified" wait 1ms
+    hmi -> plc vlan 110 pcp 6 s7comm rosctr "job" func "readvar" pduref 10 wait 2ms
+    hmi -> siem vlan 120 pcp 4 opcua endpointurl "opc.tcp://dmz-hist:4840" nodeid "ns=3;s=Feeder01.kV" wait 1ms
+    hmi -> siem vlan 120 pcp 5 syslog pri 132 app "iec62443-ids" msg "Zone2_Breaker_Trip_Interlock_Verified"
 }
 
-// INSTRUCTION: Compile block executing IEC 62443 substation security topology.
 compile {
     substation_iec62443_telemetry(substation_hmi, bay_rtu_controller, transformer_s7_plc, dmz_historian_siem)
 }

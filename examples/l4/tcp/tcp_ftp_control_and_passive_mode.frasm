@@ -1,13 +1,13 @@
-// PROMPT: Simulate an FTP control session on TCP port 21 authenticating a user and entering passive mode (PASV) for directory listing.
-// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, wait, ms, ack, psh, payload, compile
+// Simulate an FTP control session on TCP port 21 authenticating a user and
+// entering passive mode (PASV) for directory listing.
+// Wire profile: 10 frames; 2 IPv4 hosts; TCP; TCP flags SYN/ACK/PSH; dstport
+// 21,50210; waits 5ms, 2ms, 10ms.
+// Wireshark: (tcp.port == 21 || tcp.port == 50210)
 
-// INSTRUCTION: Define an FTP client workstation with IP 192.168.20.45.
 host ftp_workstation { ip 192.168.20.45 mac 08:00:27:12:34:56 }
 
-// INSTRUCTION: Define an FTP archive server with IP 192.168.20.21.
 host ftp_server { ip 192.168.20.21 mac 08:00:27:65:43:21 }
 
-// INSTRUCTION: Define a flow performing FTP USER/PASS login and PASV mode negotiation on port 21.
 flow ftp_control_session(client, server) {
     client -> server tcp syn srcport 50210 dstport 21 wait 5ms
     client <- server tcp syn ack srcport 21 dstport 50210 wait 5ms
@@ -18,10 +18,9 @@ flow ftp_control_session(client, server) {
     client -> server tcp psh ack srcport 50210 dstport 21 payload "PASS guest@example.com" wait 10ms
     client <- server tcp psh ack srcport 21 dstport 50210 payload "230 Login successful." wait 10ms
     client -> server tcp psh ack srcport 50210 dstport 21 payload "PASV" wait 10ms
-    client <- server tcp psh ack srcport 21 dstport 50210 payload "227 Entering Passive Mode (192,168,20,21,195,80)." wait 10ms
+    client <- server tcp psh ack srcport 21 dstport 50210 payload "227 Entering Passive Mode (192,168,20,21,195,80)."
 }
 
-// INSTRUCTION: Compile block to run the FTP control channel flow.
 compile {
     ftp_control_session(ftp_workstation, ftp_server)
 }

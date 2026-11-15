@@ -1,25 +1,24 @@
-// PROMPT: Simulate a Linux kernel panic / Out-Of-Memory killer syslog message using Facility 0 (kern) and Severity 2 (crit).
-// TOKENS: host, mac, ip, flow, syslog, facility, severity, hostname, app, procid, msg, compile
+// Simulate a Linux kernel panic / Out-Of-Memory killer syslog message using
+// Facility 0 (kern) and Severity 2 (crit).
+// RFC 5424 over UDP 514; facility 0 (kern) + severity 2 (crit) yields PRI
+// <2>.
+// Wireshark: syslog
 
-// INSTRUCTION: Define host endpoint compute_node.
 host compute_node {
     mac 00:25:90:51:40:01
     ip 10.10.50.101
 }
 
-// INSTRUCTION: Define host endpoint siem_collector.
 host siem_collector {
     mac 00:25:90:51:40:99
     ip 10.10.50.10
 }
 
-// INSTRUCTION: Emit an RFC 5424 kernel critical syslog event reporting an OOM killer invocation.
 flow syslog_kernel_oom_critical(compute_node, siem_collector) {
     compute_node -> siem_collector syslog facility 0 severity 2 hostname "worker-node-01" app "kernel" procid "0"
         msg "Out of memory: Killed process 29481 (java) total-vm:16777216kB"
 }
 
-// INSTRUCTION: Compile the kernel OOM syslog alert flow.
 compile {
     syslog_kernel_oom_critical(compute_node, siem_collector)
 }

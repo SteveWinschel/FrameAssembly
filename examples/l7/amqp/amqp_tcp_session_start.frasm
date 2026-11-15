@@ -1,22 +1,21 @@
-// PROMPT: Full TCP 3-way handshake followed by AMQP protocol header and Connection.Start negotiation.
-// TOKENS: host, ip, flow, tcp, syn, srcport, dstport, ack, amqp, protocolheader, wait, ms, connectionstart, compile
+// Full TCP 3-way handshake followed by AMQP protocol header and
+// Connection.Start negotiation.
+// Wireshark: tcp || amqp
 
-// INSTRUCTION: Define the enterprise queue worker host.
 host queue_worker { ip 172.16.10.25 }
 
-// INSTRUCTION: Define the central RabbitMQ cluster node.
+// Central RabbitMQ cluster node.
 host rmq_node { ip 172.16.10.5 }
 
-// INSTRUCTION: Establish TCP session and exchange AMQP connection negotiation frames.
+// Establish TCP session and exchange AMQP connection negotiation frames.
 flow amqp_tcp_session(w, n) {
     w -> n tcp syn srcport 51200 dstport 5672
     w <- n tcp syn ack
     w -> n tcp ack
     w -> n amqp protocolheader wait 5ms
-    w <- n amqp connectionstart wait 10ms
+    w <- n amqp connectionstart
 }
 
-// INSTRUCTION: Compile the TCP handshake and AMQP connection start flow.
 compile {
     amqp_tcp_session(queue_worker, rmq_node)
 }

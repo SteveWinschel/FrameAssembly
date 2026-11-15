@@ -1,19 +1,21 @@
-// PROMPT: Route server automation daemon injecting BGP Anycast prefixes into GoBGP via gRPC AddPath API.
-// TOKENS: host, ip, mac, flow, bgp, grpc, service, method, payload, grpcstatus, compile
+// Route server automation daemon injecting BGP Anycast prefixes into GoBGP
+// via gRPC AddPath API.
+// Wireshark: grpc || http2
 
-// INSTRUCTION: Define Anycast healthcheck daemon managing BGP prefix announcements.
+// Anycast healthcheck daemon managing BGP prefix announcements.
 host anycast_daemon {
     ip 10.179.1.50
     mac 00:25:90:b3:01:32
 }
 
-// INSTRUCTION: Define GoBGP route server listening for gRPC control commands.
+// GoBGP route server listening for gRPC control commands.
 host gobgp_server {
     ip 10.179.1.1
     mac 00:25:90:b3:01:01
 }
 
-// INSTRUCTION: Inject Anycast VIP prefix via GoBGP AddPath and verify table state via ListPath.
+// Inject Anycast VIP prefix via GoBGP AddPath and verify table state via
+// ListPath. gRPC status codes observed: 0 (OK) on TCP port 50051.
 flow grpc_gobgp_addpath(d, bgp) {
     d -> bgp grpc service "apipb.GobgpApi" method "AddPath" payload "prefix=203.0.113.0/24"
     d <- bgp grpc service "apipb.GobgpApi" method "AddPath" grpcstatus 0
@@ -21,7 +23,6 @@ flow grpc_gobgp_addpath(d, bgp) {
     d <- bgp grpc service "apipb.GobgpApi" method "ListPath" grpcstatus 0
 }
 
-// INSTRUCTION: Compile the GoBGP gRPC RIB route injection scenario.
 compile {
     grpc_gobgp_addpath(anycast_daemon, gobgp_server)
 }

@@ -1,36 +1,34 @@
-// PROMPT: Converged enterprise storage fabric serving SMB3 file shares, NFSv4 exports, and FTP archive backups over LACP and VLAN 300.
-// TOKENS: host, ip, mac, flow, win, lacp, actorsys, actorkey, actorport, actorstate, vlan, pcp, smb, command, wait, ms, sessionid, share, treeid, nfs, vers, proc, tag, path, ftp, code, reply, compile
+// Converged enterprise storage fabric serving SMB3 file shares, NFSv4 exports,
+// and FTP archive backups over LACP and VLAN 300.
+// Wire profile: 7 frames; 3 IPv4 hosts; VLAN 300; PCP 2,3; FTP, SMB, NFS, LACP;
+// waits 1ms.
+// Wireshark: ftp || (smb || smb2) || nfs || lacp
 
-// INSTRUCTION: Define multi-protocol NAS/SAN unified storage controller.
 host unified_storage_nas {
     ip 172.28.30.100
     mac 00:a0:98:1c:1e:64
 }
 
-// INSTRUCTION: Define Windows application server accessing SMB3 shares.
 host win_smb_client {
     ip 172.28.30.11
     mac 00:50:56:1c:1e:0b
 }
 
-// INSTRUCTION: Define Linux compute node mounting NFSv4 exports and archiving via FTP.
 host linux_nfs_client {
     ip 172.28.30.12
     mac 52:54:00:1c:1e:0c
 }
 
-// INSTRUCTION: Define LACP link verification followed by SMB3 tree connect, NFSv4 mount, and FTP archive transfer.
 flow converged_storage_fabric(nas, win, lnx) {
-    nas -> lnx lacp actorsys 00:a0:98:1c:1e:64 actorkey 300 actorport 1 actorstate 61
+    nas -> lnx lacp actorsys 00:a0:98:1c:1e:64 actorkey 300 actorport 1 actorstate 61 wait 1ms
     win -> nas vlan 300 pcp 3 smb command "negotiate" wait 1ms
     win -> nas vlan 300 pcp 3 smb command "sessionsetup" sessionid 1001 wait 1ms
     win -> nas vlan 300 pcp 3 smb command "treeconnect" share "\\\\nas01\\finance" treeid 1 wait 1ms
     lnx -> nas vlan 300 pcp 3 nfs vers 4 proc "compound" tag "mount_eng" path "/vol/engineering" wait 1ms
     nas -> lnx vlan 300 pcp 2 ftp code 220 reply "UnifiedNAS FTP Archive Ready" wait 1ms
-    lnx -> nas vlan 300 pcp 2 ftp cmd "STOR" arg "nightly_backup.tar.zst" wait 1ms
+    lnx -> nas vlan 300 pcp 2 ftp cmd "STOR" arg "nightly_backup.tar.zst"
 }
 
-// INSTRUCTION: Compile block executing converged SMB3, NFSv4, and FTP storage topology.
 compile {
     converged_storage_fabric(unified_storage_nas, win_smb_client, linux_nfs_client)
 }

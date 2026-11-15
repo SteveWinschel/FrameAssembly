@@ -1,18 +1,21 @@
-// PROMPT: Periodic IPFIX active timeout export loop reporting streaming UDP video traffic every 10 seconds.
-// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, proto, packets, octets, wait, s, compile
+// Periodic IPFIX active timeout export loop reporting streaming UDP video
+// traffic every 10 seconds.
+// Wireshark: cflow || udp.port == 4739
 
-// INSTRUCTION: Define media distribution router.
+// Media distribution router.
 host media_rtr { ip 10.70.47.1 }
 
-// INSTRUCTION: Define QoS telemetry collector.
+// QoS telemetry collector.
 host qos_collector { ip 10.70.47.100 }
 
-// INSTRUCTION: Export active UDP (Proto 17) flow statistics every 10 seconds.
+// Export active UDP (Proto 17) flow statistics every 10 seconds. Reports IP
+// protocol 17 (UDP) flow records to UDP 4739. Repeats 4 times; each wait
+// value pauses after sending its packet.
 flow ipfix_periodic_export(r, c) {
     r -> c ipfix domainid 70 srcip 10.70.1.10 dstip 10.70.2.25 proto 17 packets 12000 octets 16560000 wait 10s
 }
 
-// INSTRUCTION: Loop the periodic IPFIX active flow export 4 times.
+// Loop the periodic IPFIX active flow export 4 times.
 compile {
     ipfix_periodic_export(media_rtr, qos_collector) // cycle 1
     ipfix_periodic_export(media_rtr, qos_collector) // cycle 2

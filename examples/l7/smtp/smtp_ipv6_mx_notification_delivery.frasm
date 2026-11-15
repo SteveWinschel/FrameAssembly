@@ -1,13 +1,11 @@
-// PROMPT: Automated IPv6 system status alert delivery over ESMTP port 25.
-// TOKENS: host, ip, flow, s, smtp, mailfrom, param, code, reply, rcptto, body, quit, compile
+// Automated IPv6 system status alert delivery over ESMTP port 25.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Wireshark: smtp
 
-// INSTRUCTION: Define IPv6 monitoring server endpoint.
 host alert_sender_v6 { ip 2001:db8:feed::50 }
 
-// INSTRUCTION: Define IPv6 destination MX server.
 host alert_receiver_v6 { ip 2001:db8:feed::1 }
 
-// INSTRUCTION: Define IPv6 notification delivery transaction flow.
 flow smtp_v6_alert_flow(c, s) {
     c -> s smtp mailfrom param "mon-daemon@ipv6-infra.net"
     c <- s smtp code 250 reply "2.1.0 Sender ok"
@@ -20,7 +18,6 @@ Core interface BGP peer online."
     c -> s smtp quit
 }
 
-// INSTRUCTION: Compile block executing IPv6 alert flow.
 compile {
     smtp_v6_alert_flow(alert_sender_v6, alert_receiver_v6)
 }

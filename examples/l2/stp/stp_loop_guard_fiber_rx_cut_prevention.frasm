@@ -1,26 +1,24 @@
-// PROMPT: Loop Guard test case where an RSTP alternate port stops receiving BPDUs after a fiber Rx strand cut.
-// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, maxage, hellotime, forwarddelay, flags, wait, ms, compile
+// Loop Guard test case where an RSTP alternate port stops receiving BPDUs after a
+// fiber Rx strand cut.
+// Wire profile: 3 frames; 2 IPv4 hosts; STP; waits 10ms.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define designated switch transmitting steady RSTP BPDUs prior to fiber Rx degradation.
 host designated_fiber_sw {
     ip 172.22.10.1
     mac 00:1e:be:16:0a:01
 }
 
-// INSTRUCTION: Define downstream switch with Loop Guard enabled on its alternate blocking port.
 host loopguard_alt_sw {
     ip 172.22.10.2
     mac 00:1e:be:16:0a:02
 }
 
-// INSTRUCTION: Transmit three pre-fault RSTP BPDUs with Max Age 20s and Hello Time 2s before link silence.
 flow stp_loopguard_prefault(desig, alt) {
     desig -> alt stp rstp rootid "4096:00:1e:be:16:0a:00" bridgeid "8192:00:1e:be:16:0a:01" cost 2000 portid 32772 maxage 20 hellotime 2 forwarddelay 15 flags 60 wait 10ms
     desig -> alt stp rstp rootid "4096:00:1e:be:16:0a:00" bridgeid "8192:00:1e:be:16:0a:01" cost 2000 portid 32772 maxage 20 hellotime 2 forwarddelay 15 flags 60 wait 10ms
     desig -> alt stp rstp rootid "4096:00:1e:be:16:0a:00" bridgeid "8192:00:1e:be:16:0a:01" cost 2000 portid 32772 maxage 20 hellotime 2 forwarddelay 15 flags 60
 }
 
-// INSTRUCTION: Compile the RSTP Loop Guard pre-fault BPDU stream.
 compile {
     stp_loopguard_prefault(designated_fiber_sw, loopguard_alt_sw)
 }

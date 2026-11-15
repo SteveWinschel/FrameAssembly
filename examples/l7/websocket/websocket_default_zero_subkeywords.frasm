@@ -1,24 +1,18 @@
-// PROMPT: Default RFC 6455 WebSocket frame with zero sub-keywords over standard HTTP port 80.
-// TOKENS: host, ip, mac, flow, s, websocket, compile
+// Minimal 2-block WebSocket (RFC 6455) starter emitting automatic protocol
+// defaults directly from the compile block (zero flow wrapper).
+// RFC 6455 WebSocket frames on TCP 80.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define browser WebSocket client endpoint with IPv4 and MAC addresses.
 host ws_client {
     ip 10.40.10.25
     mac 00:1a:2b:40:10:19
 }
 
-// INSTRUCTION: Define real-time WebSocket application server endpoint.
 host ws_server {
     ip 10.40.10.1
     mac 00:1a:2b:40:10:01
 }
 
-// INSTRUCTION: Define baseline flow sending a default WebSocket frame without overrides.
-flow ws_default_flow(c, s) {
-    c -> s websocket
-}
-
-// INSTRUCTION: Compile the default zero-subkeyword WebSocket scenario.
 compile {
-    ws_default_flow(ws_client, ws_server)
+    ws_client -> ws_server websocket
 }

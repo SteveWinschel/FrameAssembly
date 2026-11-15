@@ -1,28 +1,27 @@
-// PROMPT: Multi-domain PTP boundary clock distributing Domain 0 and Domain 1 to separate followers.
-// TOKENS: host, ip, flow, ptp, sync, domain, seqid, clockid, wait, ms, followup, compile
+// Multi-domain PTP boundary clock distributing Domain 0 and Domain 1 to
+// separate followers.
+// IEEE 1588v2 PTP (messages: sync, followup; domain 0, 1). UDP 319 handles
+// Event messages (sync, delayreq) and UDP 320 carries General messages
+// (announce, followup, delayresp).
+// Timing: runs 2 cycles in compile using post-packet waits (1ms).
+// Wireshark: ptp
 
-// INSTRUCTION: Define multi-domain boundary clock.
 host boundary_clk { ip 10.88.158.1 }
 
-// INSTRUCTION: Define Domain 0 industrial automation follower.
 host dom0_slave { ip 10.88.158.11 }
 
-// INSTRUCTION: Define Domain 1 audio AES67 media follower.
 host dom1_slave { ip 10.88.158.12 }
 
-// INSTRUCTION: Define Domain 0 PTP flow.
 flow ptp_dom0_sync(bc, s0) {
     bc -> s0 ptp sync domain 0 seqid 15 clockid "BCLOCK00" wait 1ms
     bc -> s0 ptp followup domain 0 seqid 15 clockid "BCLOCK00"
 }
 
-// INSTRUCTION: Define Domain 1 PTP flow.
 flow ptp_dom1_sync(bc, s1) {
     bc -> s1 ptp sync domain 1 seqid 85 clockid "BCLOCK01" wait 1ms
     bc -> s1 ptp followup domain 1 seqid 85 clockid "BCLOCK01"
 }
 
-// INSTRUCTION: Compile both PTP domains sequentially.
 compile {
     ptp_dom0_sync(boundary_clk, dom0_slave)
     ptp_dom1_sync(boundary_clk, dom1_slave)

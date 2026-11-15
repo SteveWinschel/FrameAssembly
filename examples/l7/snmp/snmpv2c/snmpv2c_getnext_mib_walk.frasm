@@ -1,13 +1,14 @@
-// PROMPT: Simulate an snmpwalk MIB tree traversal using sequential SNMPv2c GETNEXT requests and RESPONSE PDUs across the MIB-II system group.
-// TOKENS: host, ip, mac, flow, snmp2, getnext, srcport, dstport, community, reqid, varbind, nullval, wait, ms, response, string, oidval, timeticks, compile
+// Simulate an snmpwalk MIB tree traversal using sequential SNMPv2c GETNEXT
+// requests and RESPONSE PDUs across the MIB-II system group.
+// MIB objects / traps: 1.3.6.1.2.1.1.1.0 (sysDescr.0), 1.3.6.1.2.1.1.2.0
+// (sysObjectID.0), 1.3.6.1.2.1.1.3.0 (sysUpTime.0).
+// Timing: pauses 5ms after each marked packet before sending the next frame.
+// Wireshark: snmp || udp.port == 161
 
-// INSTRUCTION: Define a management workstation running snmpwalk with IP 10.121.0.50.
 host walk_client { ip 10.121.0.50 mac 00:25:b5:00:21:50 }
 
-// INSTRUCTION: Define a switch SNMP agent with IP 10.121.0.1.
 host walk_target { ip 10.121.0.1 mac 00:25:b5:00:21:01 }
 
-// INSTRUCTION: Define a flow walking 1.3.6.1.2.1.1 via three sequential GETNEXT/RESPONSE pairs with incrementing REQIDs.
 flow snmpv2c_mib_walk(client, agent) {
     client -> agent snmp2 getnext srcport 53100 dstport 161 community "public" reqid 201 varbind 1.3.6.1.2.1.1 nullval wait 5ms
     client <- agent snmp2 response srcport 161 dstport 53100 community "public" reqid 201 varbind 1.3.6.1.2.1.1.1.0 string "Juniper Networks, Inc. ex4300-48t" wait 5ms
@@ -17,7 +18,6 @@ flow snmpv2c_mib_walk(client, agent) {
     client <- agent snmp2 response srcport 161 dstport 53100 community "public" reqid 203 varbind 1.3.6.1.2.1.1.3.0 timeticks 4829100 wait 5ms
 }
 
-// INSTRUCTION: Compile block to run the SNMPv2c GETNEXT MIB walk.
 compile {
     snmpv2c_mib_walk(walk_client, walk_target)
 }

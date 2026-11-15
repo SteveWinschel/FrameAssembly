@@ -1,18 +1,19 @@
-// PROMPT: RFC 7641 CoAP Observe periodic temperature notifications in a loop with WAIT delays.
-// TOKENS: host, ip, flow, coap, non, code, msgid, token, uripath, contentformat, payload, wait, ms, compile
+// RFC 7641 CoAP Observe periodic temperature notifications in a loop with
+// WAIT delays.
+// Wireshark: coap
 
-// INSTRUCTION: Define CoAP dashboard observer client.
 host dash_observer { ip 10.22.0.10 }
 
-// INSTRUCTION: Define CoAP environmental probe server.
 host probe_srv { ip 10.22.0.99 }
 
-// INSTRUCTION: Push periodic NON 2.05 Content notifications sharing the observer token.
+// Push periodic NON 2.05 Content notifications sharing the observer token.
+// CoAP over UDP 5683: codes 2.05 (Content); content-format 0 (text/plain).
+// Repeats 5 times; each wait value pauses after sending its packet.
 flow coap_observe_tick(obs, srv) {
     obs <- srv coap non code "2.05" msgid 6100 token 0xabcd uripath "env/temp" contentformat 0 payload "23.4 C" wait 250ms
 }
 
-// INSTRUCTION: Loop the CoAP observer notification 5 times.
+// Loop the CoAP observer notification 5 times.
 compile {
     coap_observe_tick(dash_observer, probe_srv) // cycle 1
     coap_observe_tick(dash_observer, probe_srv) // cycle 2

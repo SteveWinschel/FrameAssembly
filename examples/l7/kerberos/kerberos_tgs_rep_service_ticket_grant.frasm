@@ -1,18 +1,17 @@
-// PROMPT: Kerberos TGS-REP response from KDC delivering service ticket for application server.
-// TOKENS: host, ip, flow, kerberos, tgsrep, realm, sname, etype, compile
+// Kerberos TGS-REP response from KDC delivering service ticket for
+// application server.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define application client workstation.
 host app_client { ip 172.16.8.50 }
 
-// INSTRUCTION: Define Key Distribution Center server.
 host kdc_server { ip 172.16.8.1 }
 
-// INSTRUCTION: Define TGS-REP service ticket delivery flow.
+// TGS-REP service ticket delivery flow. Kerberos encryption types: 18
+// (AES256-CTS).
 flow krb_tgs_rep_flow(c, kdc) {
     c <- kdc kerberos tgsrep realm "SERVICES.LOCAL" sname "http/portal.services.local" etype 18
 }
 
-// INSTRUCTION: Compile Kerberos TGS-REP scenario.
 compile {
     krb_tgs_rep_flow(app_client, kdc_server)
 }

@@ -1,17 +1,16 @@
-// PROMPT: HTTP GET request for non-existent resource resulting in 404 Not Found response.
-// TOKENS: host, ip, flow, s, http, method, uri, hosthdr, useragent, status, reason, contenttype, body, compile
+// HTTP GET request for non-existent resource resulting in 404 Not Found
+// response.
+// Wireshark: http
 
-// INSTRUCTION: Define client host requesting missing documentation.
 host client_404 {
     ip 192.168.104.55
 }
 
-// INSTRUCTION: Define origin web server host.
 host web_origin_404 {
     ip 192.168.104.10
 }
 
-// INSTRUCTION: Define request and 404 Not Found response exchange.
+// Request and 404 Not Found response exchange.
 flow http_missing_resource(c, s) {
     c -> s http method "GET" uri "/missing/doc.html"
            hosthdr "docs.example.org"
@@ -21,7 +20,6 @@ flow http_missing_resource(c, s) {
            body "<html><body>404 Not Found</body></html>"
 }
 
-// INSTRUCTION: Compile 404 Not Found scenario.
 compile {
     http_missing_resource(client_404, web_origin_404)
 }

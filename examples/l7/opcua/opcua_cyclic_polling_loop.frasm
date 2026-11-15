@@ -1,19 +1,22 @@
-// PROMPT: Periodic high-frequency OPC UA cyclic polling using a COMPILE repeated flow calls.
-// TOKENS: host, ip, flow, s, opcua, msgtype, chunktype, securechannelid, tokenid, seqnum, reqid, nodeid, wait, ms, compile
+// Periodic high-frequency OPC UA cyclic polling across 5 sequential polling
+// cycles.
+// Wireshark: opcua
 
-// INSTRUCTION: Define edge analytics collector.
+// Edge analytics collector.
 host edge_collector { ip 192.168.77.10 }
 
-// INSTRUCTION: Define packaging line PLC.
+// Packaging line PLC.
 host pack_plc { ip 192.168.77.2 }
 
-// INSTRUCTION: Define single OPC UA poll cycle with 25ms interval.
+// Single OPC UA poll cycle with 25ms interval. OPC UA message sequence: MSG
+// on TCP port 4840. Repeats 5 times; each wait value pauses after sending its
+// packet.
 flow opcua_poll_cycle(c, s) {
     c -> s opcua msgtype "msg" chunktype "f" securechannelid 12 tokenid 1 seqnum 10 reqid 10 nodeid "ns=2;s=Line1.BottleCount" wait 25ms
     c <- s opcua msgtype "msg" chunktype "f" securechannelid 12 tokenid 1 seqnum 11 reqid 10 nodeid "ns=2;s=Line1.BottleCount" wait 25ms
 }
 
-// INSTRUCTION: Execute 5 cyclic polling iterations in COMPILE LOOP.
+// Run 5 cyclic OPC UA polling iterations sequentially.
 compile {
     opcua_poll_cycle(edge_collector, pack_plc) // cycle 1
     opcua_poll_cycle(edge_collector, pack_plc) // cycle 2

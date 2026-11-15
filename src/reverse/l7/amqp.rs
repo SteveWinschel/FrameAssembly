@@ -59,10 +59,12 @@ pub(crate) fn dissect_amqp(
     let ftype = payload[0];
     let channel = u16::from_be_bytes([payload[1], payload[2]]);
     let size = u32::from_be_bytes([payload[3], payload[4], payload[5], payload[6]]) as usize;
-    if payload.len() != 8 + size || payload[7 + size] != 0xCE {
+    let body_end = 7usize.checked_add(size)?;
+    let frame_end = body_end.checked_add(1)?;
+    if payload.len() != frame_end || payload[body_end] != 0xCE {
         return None;
     }
-    let body = &payload[7..7 + size];
+    let body = &payload[7..body_end];
 
     if ftype == 8 {
         let mut tokens = String::from("amqp heartbeat");

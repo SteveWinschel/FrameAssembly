@@ -1,26 +1,27 @@
-// PROMPT: Capture a reactive OpenFlow Packet-In punt followed by a controller Packet-Out injection and Flow-Mod rule installation
-// TOKENS: host, ip, mac, flow, openflow, packetin, version, xid, tableid, payload, wait, ms, flowmod, priority, packetout, compile
+// Capture a reactive OpenFlow Packet-In punt followed by a controller
+// Packet-Out injection and Flow-Mod rule installation.
+// This capture uses post-packet wait gaps (8ms, 4ms) between frames.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define the OpenFlow top-of-rack switch
 host tor_of_switch {
     ip 172.18.10.21
     mac 00:25:90:e1:10:21
 }
 
-// INSTRUCTION: Define the reactive SDN controller node
 host reactive_ctrl {
     ip 172.18.10.1
     mac 00:25:90:e1:10:01
 }
 
-// INSTRUCTION: Punt an unmatched frame via PACKET_IN, install a FLOW_MOD rule, and inject PACKET_OUT
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow openflow_reactive_forwarding(sw, ctrl) {
     sw -> ctrl openflow packetin version 4 xid 5001 tableid 0 payload "arp-who-has-10.0.0.1" wait 8ms
     ctrl -> sw openflow flowmod version 4 xid 5002 tableid 0 priority 40000 payload "match-eth-dst-output-port-2" wait 4ms
     ctrl -> sw openflow packetout version 4 xid 5003 payload "arp-who-has-10.0.0.1"
 }
 
-// INSTRUCTION: Compile the reactive OpenFlow Packet-In and Packet-Out workflow
+// Run openflow_reactive_forwarding(tor_of_switch, reactive_ctrl) to generate
+// the capture.
 compile {
     openflow_reactive_forwarding(tor_of_switch, reactive_ctrl)
 }

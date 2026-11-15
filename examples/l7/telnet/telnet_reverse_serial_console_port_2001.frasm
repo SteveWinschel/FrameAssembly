@@ -1,19 +1,22 @@
-// PROMPT: Simulate a Telnet session to a reverse-telnet terminal server port 2001 for serial console access to a switch.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, dscp, ack, telnet, will, do, payload, compile
+// Simulate a Telnet session to a reverse-telnet terminal server port 2001 for
+// serial console access to a switch.
+// Encapsulation and QoS markings: DSCP 16.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Telnet on TCP 23 negotiating option(s): 3 (Suppress Go Ahead).
+// Overrides destination port to 2001, 59023.
+// Wireshark: telnet || tcp.port == 2001 || tcp.port == 59023
 
-// INSTRUCTION: Define host endpoint eng_laptop.
 host eng_laptop {
     mac 00:1a:a0:20:01:10
     ip 10.100.23.10
 }
 
-// INSTRUCTION: Define host endpoint term_server.
 host term_server {
     mac 00:1a:a0:20:01:01
     ip 10.100.23.1
 }
 
-// INSTRUCTION: Connect to reverse-telnet port 2001 with DSCP 16 and interact with the serial console.
 flow telnet_reverse_console_port_2001(eng_laptop, term_server) {
     eng_laptop -> term_server tcp syn srcport 59023 dstport 2001 dscp 16
     term_server -> eng_laptop tcp syn ack dscp 16
@@ -25,7 +28,6 @@ flow telnet_reverse_console_port_2001(eng_laptop, term_server) {
     eng_laptop -> term_server srcport 59023 dstport 2001 telnet payload "confreg 0x2102\r\n" dscp 16
 }
 
-// INSTRUCTION: Compile the reverse-telnet serial console port 2001 flow.
 compile {
     telnet_reverse_console_port_2001(eng_laptop, term_server)
 }

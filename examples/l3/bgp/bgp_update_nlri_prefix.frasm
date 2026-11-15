@@ -1,18 +1,20 @@
-// PROMPT: BGP UPDATE message announcing IPv4 Network Layer Reachability Information prefix and next hop.
-// TOKENS: host, ip, flow, bgp, update, prefix, nexthop, compile
+// BGP UPDATE message announcing IPv4 Network Layer Reachability Information
+// prefix and next hop.
+// This capture exchanges TCP port 179 peering messages with automatic
+// sequence tracking.
+// Wireshark: bgp
 
-// INSTRUCTION: Define upstream ISP transit router.
 host isp_transit_router { ip 198.51.100.1 }
 
-// INSTRUCTION: Define customer border router receiving routing updates.
 host customer_bgp_edge { ip 198.51.100.2 }
 
-// INSTRUCTION: Define BGP UPDATE flow announcing enterprise prefix reachability.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow bgp_update_flow(isp, cust) {
     isp -> cust bgp update prefix "203.0.113.0/24" nexthop 198.51.100.1
 }
 
-// INSTRUCTION: Compile block executing BGP UPDATE announcement.
+// Run bgp_update_flow(isp_transit_router, customer_bgp_edge) to generate the
+// capture.
 compile {
     bgp_update_flow(isp_transit_router, customer_bgp_edge)
 }

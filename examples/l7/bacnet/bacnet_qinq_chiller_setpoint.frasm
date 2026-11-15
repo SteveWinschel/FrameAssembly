@@ -1,19 +1,21 @@
-// PROMPT: BACnet/IP smart campus QinQ double-VLAN tagged chiller setpoint adjustment.
-// TOKENS: host, ip, flow, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, qinq, innervlan, writeproperty, value, compile
+// BACnet/IP smart campus QinQ double-VLAN tagged chiller setpoint adjustment.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define central energy management system (EMS).
+// Central energy management system (EMS).
 host central_ems { ip 10.77.1.1 }
 
-// INSTRUCTION: Define building 4 rooftop chiller controller.
+// Building 4 rooftop chiller controller.
 host rooftop_chiller { ip 10.77.4.50 }
 
-// INSTRUCTION: Read Analog Value (ObjectType 2) setpoint and write updated chilled water setpoint.
+// Read Analog Value (ObjectType 2) setpoint and write updated chilled water
+// setpoint. Encapsulation and QoS markings: 802.1ad QinQ S-VLAN 500 / C-VLAN
+// 40. BACnet/IP on UDP 47808 (objects: 2 (Analog Value); properties: 85
+// (Present_Value)).
 flow bacnet_qinq_setpoint(ems, ch) {
     ems -> ch bacnet readproperty invokeid 40 objecttype 2 objectinstance 10 propertyid 85 qinq 500 innervlan 40
     ems -> ch bacnet writeproperty invokeid 41 objecttype 2 objectinstance 10 propertyid 85 value 44 qinq 500 innervlan 40
 }
 
-// INSTRUCTION: Compile the QinQ-tagged BACnet chiller adjustment flow.
 compile {
     bacnet_qinq_setpoint(central_ems, rooftop_chiller)
 }

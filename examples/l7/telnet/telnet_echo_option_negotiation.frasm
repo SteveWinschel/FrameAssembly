@@ -1,13 +1,11 @@
-// PROMPT: Telnet IAC WILL 1 and IAC DO 1 local character echo negotiation.
-// TOKENS: host, ip, flow, s, telnet, will, do, compile
+// Telnet IAC WILL 1 and IAC DO 1 local character echo negotiation.
+// Telnet on TCP 23 negotiating option(s): 1 (Echo).
+// Wireshark: telnet
 
-// INSTRUCTION: Define user terminal client.
 host user_term { ip 192.168.1.15 }
 
-// INSTRUCTION: Define Telnet host server.
 host telnet_host { ip 192.168.1.1 }
 
-// INSTRUCTION: Define echo option negotiation flow.
 flow telnet_echo_negotiate(c, s) {
     c -> s telnet will 1
     c <- s telnet do 1
@@ -15,7 +13,6 @@ flow telnet_echo_negotiate(c, s) {
     c -> s telnet do 1
 }
 
-// INSTRUCTION: Compile block executing echo negotiation.
 compile {
     telnet_echo_negotiate(user_term, telnet_host)
 }

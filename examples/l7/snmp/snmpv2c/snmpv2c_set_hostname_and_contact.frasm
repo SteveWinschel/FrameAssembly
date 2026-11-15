@@ -1,13 +1,14 @@
-// PROMPT: Simulate an SNMPv2c multi-varbind SET request updating sysContact.0, sysName.0, and sysLocation.0 MIB-II scalars simultaneously.
-// TOKENS: host, ip, mac, flow, snmp2, set, community, reqid, varbind, string, wait, ms, response, compile
+// Simulate an SNMPv2c multi-varbind SET request updating sysContact.0,
+// sysName.0, and sysLocation.0 MIB-II scalars simultaneously.
+// MIB objects / traps: 1.3.6.1.2.1.1.4.0 (sysContact.0), 1.3.6.1.2.1.1.5.0
+// (sysName.0), 1.3.6.1.2.1.1.6.0 (sysLocation.0).
+// Timing: uses post-packet wait delays (15ms, 10ms) between frames.
+// Wireshark: snmp
 
-// INSTRUCTION: Define a configuration management server with IP 10.134.0.100.
 host config_mgr { ip 10.134.0.100 mac 00:1b:21:34:00:64 }
 
-// INSTRUCTION: Define a newly provisioned branch switch with IP 10.134.0.25.
 host new_branch_sw { ip 10.134.0.25 mac 00:1b:21:34:00:19 }
 
-// INSTRUCTION: Define a flow sending an SNMPv2c SET with three STRING varbinds and receiving the confirmation RESPONSE.
 flow snmpv2c_set_system_scalars(mgr, sw) {
     mgr -> sw snmp2 set community "prov_rw" reqid 8701
         varbind 1.3.6.1.2.1.1.4.0 string "netops@example.org"
@@ -21,7 +22,6 @@ flow snmpv2c_set_system_scalars(mgr, sw) {
         wait 10ms
 }
 
-// INSTRUCTION: Compile block to run the multi-varbind SNMPv2c SET flow.
 compile {
     snmpv2c_set_system_scalars(config_mgr, new_branch_sw)
 }

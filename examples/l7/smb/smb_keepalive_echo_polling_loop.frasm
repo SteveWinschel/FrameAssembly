@@ -1,19 +1,19 @@
-// PROMPT: Periodic SMB2 session keepalive polling loop verifying NAS share reachability across 3 iterations.
-// TOKENS: host, ip, mac, flow, s, smb, command, treeid, sessionid, msgid, filename, status, wait, ms, compile
+// Periodic SMB2 session keepalive polling loop verifying NAS share
+// reachability across 3 iterations.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Timing: runs 3 cycles in compile using post-packet waits (1ms, 10ms).
+// Wireshark: smb2
 
-// INSTRUCTION: Define the clustered application server monitoring its mounted SMB share.
 host app_node {
     ip 10.60.120.9
     mac 00:1a:2b:60:bb:09
 }
 
-// INSTRUCTION: Define the enterprise NAS head unit.
 host nas_head {
     ip 10.60.120.1
     mac 00:1a:2b:60:bb:01
 }
 
-// INSTRUCTION: Probe the mounted tree with a lightweight directory root CREATE and CLOSE cycle.
 flow smb_health_probe(c, s) {
     c -> s smb command "create" treeid 1 sessionid 5000 msgid 90 filename "."
     c <- s smb command "create" status 0 treeid 1 sessionid 5000 msgid 90 wait 1ms
@@ -21,7 +21,6 @@ flow smb_health_probe(c, s) {
     c <- s smb command "close" status 0 treeid 1 sessionid 5000 msgid 91 wait 10ms
 }
 
-// INSTRUCTION: Execute the SMB2 health probe across 3 loop iterations.
 compile {
     smb_health_probe(app_node, nas_head) // cycle 1
     smb_health_probe(app_node, nas_head) // cycle 2

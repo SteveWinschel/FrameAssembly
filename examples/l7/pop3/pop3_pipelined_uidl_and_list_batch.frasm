@@ -1,19 +1,18 @@
-// PROMPT: Model an RFC 2449 PIPELINING POP3 session sending STAT, LIST, and UIDL commands back-to-back.
-// TOKENS: host, ip, mac, flow, s, pop3, cmd, wait, ms, ok, response, payload, compile
+// Model an RFC 2449 PIPELINING POP3 session sending STAT, LIST, and UIDL
+// commands back-to-back.
+// Timing: uses post-packet wait delays (1ms, 2ms) between frames.
+// Wireshark: pop
 
-// INSTRUCTION: Define the high-throughput mail archiver using POP3 command pipelining.
 host pipelined_client {
     ip 10.110.95.15
     mac 00:50:56:6e:5f:0f
 }
 
-// INSTRUCTION: Define the POP3 server supporting RFC 2449 PIPELINING.
 host pipelined_pop3 {
     ip 10.110.95.1
     mac 00:50:56:6e:5f:01
 }
 
-// INSTRUCTION: Pipeline STAT, LIST, and UIDL requests and receive sequential +OK responses.
 flow pop3_pipelined_batch(c, s) {
     c -> s pop3 cmd "STAT" wait 1ms
     c -> s pop3 cmd "LIST" wait 1ms
@@ -29,7 +28,6 @@ flow pop3_pipelined_batch(c, s) {
 "
 }
 
-// INSTRUCTION: Compile the pipelined POP3 batch metadata query flow.
 compile {
     pop3_pipelined_batch(pipelined_client, pipelined_pop3)
 }

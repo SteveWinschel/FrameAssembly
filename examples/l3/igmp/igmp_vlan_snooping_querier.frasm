@@ -1,19 +1,21 @@
-// PROMPT: 802.1Q VLAN-tagged IGMP snooping querier and subscriber report on multicast VLAN 500.
-// TOKENS: host, ip, mac, flow, igmp, query, group, maxresp, vlan, pcp, dei, ttl, report, compile
+// 802.1Q VLAN-tagged IGMP snooping querier and subscriber report on multicast
+// VLAN 500.
+// This capture wraps frames in 802.1Q VLAN 500, sets TTL 1, and carries group
+// 239.50.0.1.
+// Wireshark: igmp && vlan.id == 500
 
-// INSTRUCTION: Define L2 switch IGMP snooping querier on VLAN 500.
 host snoop_querier_500 { ip 10.50.0.1 mac 00:1c:73:50:00:01 }
 
-// INSTRUCTION: Define multicast subscriber workstation on VLAN 500.
 host mcast_sub_500 { ip 10.50.0.88 mac 00:1c:73:50:00:88 }
 
-// INSTRUCTION: Define VLAN 500 tagged IGMP query and report with PCP 5.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow igmp_vlan_snooping(q, sub) {
     q -> sub igmp query group 239.50.0.1 maxresp 50 vlan 500 pcp 5 dei 0 ttl 1
     q <- sub igmp report group 239.50.0.1 vlan 500 pcp 5 dei 0 ttl 1
 }
 
-// INSTRUCTION: Compile the VLAN-tagged IGMP snooping flow.
+// Run igmp_vlan_snooping(snoop_querier_500, mcast_sub_500) to generate the
+// capture.
 compile {
     igmp_vlan_snooping(snoop_querier_500, mcast_sub_500)
 }

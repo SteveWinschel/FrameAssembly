@@ -1,19 +1,18 @@
-// PROMPT: Enterprise directory authentication and queries with Kerberos AS-REQ and LDAP BIND request.
-// TOKENS: host, ip, flow, kerberos, asreq, realm, ldap, bindreq, msgid, basedn, compile
+// Enterprise directory authentication and queries with Kerberos AS-REQ and
+// LDAP BIND request.
+// Wireshark: kerberos || ldap
 
-// INSTRUCTION: Define enterprise directory client.
 host directory_client { ip 10.10.1.50 }
 
-// INSTRUCTION: Define enterprise domain controller.
+// Enterprise domain controller.
 host domain_controller { ip 10.10.1.1 }
 
-// INSTRUCTION: Define directory authentication and search flow.
+// Directory authentication and search flow.
 flow auth_directory_flow(c, dc) {
     c -> dc kerberos asreq realm "CORP.LOCAL"
     c -> dc ldap bindreq msgid 1 basedn "dc=corp,dc=local"
 }
 
-// INSTRUCTION: Compile block executing Kerberos and LDAP transactions.
 compile {
     auth_directory_flow(directory_client, domain_controller)
 }

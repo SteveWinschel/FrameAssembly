@@ -1,19 +1,19 @@
-// PROMPT: Generate a virtual machine releasing its old subnet DHCP lease via RELEASE before acquiring a new lease.
-// TOKENS: host, ip, mac, flow, s, dhcp, release, xid, ciaddr, chaddr, hostname, wait, ms, discover, offer, yiaddr, subnetmask, router, dnsserver, leasetime, request, ack, compile
+// Virtual machine releasing its old subnet DHCP lease via RELEASE before
+// acquiring a new lease.
+// Wireshark: dhcp
 
-// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+// DHCP client endpoint requesting dynamic network configuration.
 host dhcp_client {
     ip 10.200.12.75
     mac 00:25:90:67:01:0a
 }
 
-// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+// DHCP server or relay agent endpoint.
 host dhcp_server {
     ip 10.200.12.1
     mac 00:25:90:67:01:01
 }
 
-// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
 flow dhcp_scenario_flow(c, s) {
     c -> s dhcp release xid 0x31001009 ciaddr 10.200.12.75 chaddr 00:50:56:c8:0c:4b hostname "vm-app-12" wait 10ms
     c -> s dhcp discover xid 0x31001010 chaddr 00:50:56:c8:0c:4b hostname "vm-app-12" wait 4ms
@@ -22,7 +22,6 @@ flow dhcp_scenario_flow(c, s) {
     c <- s dhcp ack xid 0x31001010 yiaddr 10.200.12.75 subnetmask 255.255.255.0 router 10.200.12.1 dnsserver 10.200.0.53 leasetime 14400
 }
 
-// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
 compile {
     dhcp_scenario_flow(dhcp_client, dhcp_server)
 }

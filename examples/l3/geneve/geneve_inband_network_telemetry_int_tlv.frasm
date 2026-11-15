@@ -1,25 +1,27 @@
-// PROMPT: P4 In-band Network Telemetry (INT) metadata carried inside RFC 8926 GENEVE TLV Option Class 0x0103 (259).
-// TOKENS: host, ip, mac, flow, geneve, vni, optclass, opttype, protocoltype, srcport, dstport, df, dscp, ttl, payload, wait, ms, compile
+// P4 In-band Network Telemetry (INT) metadata carried inside RFC 8926 GENEVE
+// TLV Option Class 0x0103 (259).
+// This capture sets DSCP 16, TTL 63, DF bit set, carries VNI 9001,
+// destination port 6081, and uses post-packet wait gaps (2ms) between frames.
+// Wireshark: geneve && geneve.vni == 9001
 
-// INSTRUCTION: Define P4 programmable ToR switch 1 inserting hop latency and queue depth into GENEVE INT TLV.
 host p4_int_source_tor {
     ip 10.60.90.1
     mac 00:1c:73:59:00:01
 }
 
-// INSTRUCTION: Define P4 sink ToR switch 2 extracting GENEVE INT telemetry before delivering inner frame.
 host p4_int_sink_tor {
     ip 10.60.90.2
     mac 00:1c:73:59:00:02
 }
 
-// INSTRUCTION: Define GENEVE packet carrying OPT_CLASS 259 (INT) and OPT_TYPE 1 with DSCP CS2 (16).
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow geneve_p4_int_telemetry(src_tor, sink_tor) {
     src_tor -> sink_tor geneve vni 9001 optclass 259 opttype 1 protocoltype 25944 srcport 59001 dstport 6081 df dscp 16 ttl 63 payload "INT_HOP1_SW1_LATENCY_420NS_QDEPTH_2" wait 2ms
     src_tor <- sink_tor geneve vni 9001 optclass 259 opttype 2 protocoltype 25944 srcport 59002 dstport 6081 df dscp 16 ttl 63 payload "INT_TELEMETRY_REPORT_ACK"
 }
 
-// INSTRUCTION: Compile the P4 In-band Network Telemetry over GENEVE flow.
+// Run geneve_p4_int_telemetry(p4_int_source_tor, p4_int_sink_tor) to generate
+// the capture.
 compile {
     geneve_p4_int_telemetry(p4_int_source_tor, p4_int_sink_tor)
 }

@@ -48,10 +48,20 @@ pub fn build_http2_payload(
         (4u8, 0x00u8)
     };
 
-    let stream_id = spec.stream_id.unwrap_or(0);
-    let length = payload_bytes.len() as u32;
+    let default_body: &[u8] = if !payload_bytes.is_empty() {
+        payload_bytes
+    } else if spec.is_ping || spec.is_goaway {
+        &[0u8; 8]
+    } else if spec.is_window_update {
+        &[0, 0, 0, 1]
+    } else {
+        &[]
+    };
 
-    let mut pkt = Vec::with_capacity(9 + payload_bytes.len());
+    let stream_id = spec.stream_id.unwrap_or(0);
+    let length = default_body.len().min(0x00FF_FFFF) as u32;
+
+    let mut pkt = Vec::with_capacity(9 + default_body.len());
     // 24-bit Length
     pkt.push((length >> 16) as u8);
     pkt.push((length >> 8) as u8);
@@ -60,6 +70,6 @@ pub fn build_http2_payload(
     pkt.push(flags);
     // 31-bit Stream ID
     pkt.extend_from_slice(&(stream_id & 0x7FFFFFFF).to_be_bytes());
-    pkt.extend_from_slice(payload_bytes);
+    pkt.extend_from_slice(&default_body[..length as usize]);
     pkt
 }

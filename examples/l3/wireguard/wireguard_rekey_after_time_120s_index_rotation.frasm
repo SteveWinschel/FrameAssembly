@@ -1,19 +1,20 @@
-// PROMPT: WireGuard REKEY_AFTER_TIME (120 seconds) rotating session indices from old RECEIVER 5001 to newly negotiated SENDER 6001 / RECEIVER 6002.
-// TOKENS: host, ip, mac, flow, wireguard, type, data, receiver, counter, df, ttl, payload, wait, ms, initiation, sender, dscp, response, compile
+// WireGuard REKEY_AFTER_TIME (120 seconds) rotating session indices from old
+// RECEIVER 5001 to newly negotiated SENDER 6001 / RECEIVER 6002.
+// This capture sets DSCP 48, TTL 64, DF bit set and uses post-packet wait
+// gaps (5ms) between frames.
+// Wireshark: wg
 
-// INSTRUCTION: Define WireGuard initiator triggering periodic 2-minute forward-secrecy rekey.
 host wg_rekey_peer_a {
     ip 10.82.0.1
     mac 00:1c:73:82:00:01
 }
 
-// INSTRUCTION: Define WireGuard responder completing seamless session index rotation.
 host wg_rekey_peer_b {
     ip 10.82.0.2
     mac 00:1c:73:82:00:02
 }
 
-// INSTRUCTION: Define final packet on old SA (RECEIVER 5001), new handshake (6001/6002), and COUNTER reset to 0.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow wg_session_index_rotation(a, b) {
     a -> b wireguard type data receiver 5001 counter 99999 df ttl 64 payload "LAST_PKT_OLD_EPOCH_5001" wait 5ms
     a -> b wireguard type initiation sender 6001 df dscp 48 ttl 64 wait 5ms
@@ -21,7 +22,8 @@ flow wg_session_index_rotation(a, b) {
     a -> b wireguard type data receiver 6002 counter 0 df ttl 64 payload "FIRST_PKT_NEW_EPOCH_6002"
 }
 
-// INSTRUCTION: Compile the WireGuard REKEY_AFTER_TIME index rotation flow.
+// Run wg_session_index_rotation(wg_rekey_peer_a, wg_rekey_peer_b) to generate
+// the capture.
 compile {
     wg_session_index_rotation(wg_rekey_peer_a, wg_rekey_peer_b)
 }

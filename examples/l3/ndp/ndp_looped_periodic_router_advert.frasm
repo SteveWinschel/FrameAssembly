@@ -1,24 +1,25 @@
-// PROMPT: Simulate a periodic unsolicited IPv6 Router Advertisement beacon loop transmitted to all-nodes multicast
-// TOKENS: host, ip, mac, flow, ndp, routeradvert, routerlifetime, slla, dstmac, ttl, wait, ms, compile
+// Simulate a periodic unsolicited IPv6 Router Advertisement beacon loop
+// transmitted to all-nodes multicast.
+// This capture targets IPv6 endpoints, sets TTL 255, executes 4 cycles in
+// compile, and uses post-packet wait gaps (50ms) between frames.
+// Wireshark: icmpv6.nd
 
-// INSTRUCTION: Define the periodic IPv6 router advertising on the LAN
 host ra_beacon_rtr {
     ip fe80::a00:1
     mac 00:50:56:da:0a:01
 }
 
-// INSTRUCTION: Define the on-link IPv6 listener host
 host ra_listener_host {
     ip fe80::a00:50
     mac 00:50:56:da:0a:50
 }
 
-// INSTRUCTION: Transmit an unsolicited Router Advertisement to 33:33:00:00:00:01
+// Packet sequence (1 frame); wait pauses after a packet before the next.
 flow ndp_periodic_ra_beacon(rtr, host) {
     rtr -> host ndp routeradvert routerlifetime 1800 slla 00:50:56:da:0a:01 dstmac 33:33:00:00:00:01 ttl 255 wait 50ms
 }
 
-// INSTRUCTION: Compile four iterations of the periodic Router Advertisement loop
+// Emit 4 sequential cycles of ndp_periodic_ra_beacon.
 compile {
     ndp_periodic_ra_beacon(ra_beacon_rtr, ra_listener_host) // cycle 1
     ndp_periodic_ra_beacon(ra_beacon_rtr, ra_listener_host) // cycle 2

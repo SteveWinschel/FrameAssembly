@@ -1,31 +1,29 @@
-// PROMPT: Model a dual-stack SMTP delivery attempting IPv4 primary MX delivery and IPv6 secondary MX delivery.
-// TOKENS: host, ip, mac, flow, s, smtp, code, reply, wait, ms, ehlo, mailfrom, param, rcptto, quit, compile
+// Model a dual-stack SMTP delivery attempting IPv4 primary MX delivery and
+// IPv6 secondary MX delivery.
+// Runs the same flow definition across both IPv4 and IPv6 host pairs.
+// Timing: runs 2 cycles in compile using post-packet waits (2ms, 1ms).
+// Wireshark: smtp
 
-// INSTRUCTION: Define the IPv4 outbound mail dispatcher.
 host mta_out_v4 {
     ip 192.0.2.25
     mac 00:16:3e:02:00:19
 }
 
-// INSTRUCTION: Define the IPv4 primary MX server.
 host mx_pri_v4 {
     ip 198.51.100.10
     mac 00:16:3e:64:00:0a
 }
 
-// INSTRUCTION: Define the IPv6 outbound mail dispatcher.
 host mta_out_v6 {
     ip 2001:db8:2::25
     mac 00:16:3e:02:06:19
 }
 
-// INSTRUCTION: Define the IPv6 secondary MX server.
 host mx_sec_v6 {
     ip 2001:db8:100::10
     mac 00:16:3e:64:06:0a
 }
 
-// INSTRUCTION: Execute a polymorphic SMTP envelope and QUIT transaction.
 flow smtp_mx_delivery(c, s) {
     c <- s smtp code 220 reply "mx.example.net ESMTP" wait 2ms
     c -> s smtp ehlo "out.example.org" wait 2ms
@@ -38,7 +36,6 @@ flow smtp_mx_delivery(c, s) {
     c <- s smtp code 221 reply "2.0.0 Closing channel"
 }
 
-// INSTRUCTION: Compile the dual-stack IPv4 and IPv6 SMTP MX flows.
 compile {
     smtp_mx_delivery(mta_out_v4, mx_pri_v4)
     smtp_mx_delivery(mta_out_v6, mx_sec_v6)

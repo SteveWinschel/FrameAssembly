@@ -1,20 +1,20 @@
-// PROMPT: 802.1ad QinQ double-tagged IKEv2 negotiation across a carrier Ethernet transport link.
-// TOKENS: host, ip, flow, ikev2, sainit, initiatorspi, responderspi, msgid, qinq, innervlan, createchildsa, compile
+// 802.1ad QinQ double-tagged IKEv2 negotiation across a carrier Ethernet
+// transport link.
+// This capture wraps frames in QinQ S-VLAN 2500 / C-VLAN 500.
+// Wireshark: isakmp
 
-// INSTRUCTION: Define site 1 VPN appliance.
 host qinq_ike_s1 { ip 172.26.50.1 }
 
-// INSTRUCTION: Define site 2 VPN appliance.
 host qinq_ike_s2 { ip 172.26.50.2 }
 
-// INSTRUCTION: Define QinQ tagged IKEv2 negotiation on S-VLAN 2500 and C-VLAN 500.
+// Packet sequence (3 frames) with default 10ms post-packet spacing.
 flow ikev2_qinq_exchange(s1, s2) {
     s1 -> s2 ikev2 sainit initiatorspi 25005001 responderspi 0 msgid 0 qinq 2500 innervlan 500
     s1 <- s2 ikev2 sainit initiatorspi 25005001 responderspi 25005002 msgid 0 qinq 2500 innervlan 500
     s1 -> s2 ikev2 createchildsa initiatorspi 25005001 responderspi 25005002 msgid 1 qinq 2500 innervlan 500
 }
 
-// INSTRUCTION: Compile the QinQ carrier IKEv2 exchange flow.
+// Run ikev2_qinq_exchange(qinq_ike_s1, qinq_ike_s2) to generate the capture.
 compile {
     ikev2_qinq_exchange(qinq_ike_s1, qinq_ike_s2)
 }

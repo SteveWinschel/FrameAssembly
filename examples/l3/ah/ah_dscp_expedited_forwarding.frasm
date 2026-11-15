@@ -1,19 +1,21 @@
-// PROMPT: IPsec AH control plane session marked with DSCP EF (46) and ECN ECT(1) over IPv4.
-// TOKENS: host, ip, flow, ah, spi, seq, dscp, ecn, ttl, wait, ms, compile
+// IPsec AH control plane session marked with DSCP EF (46) and ECN ECT(1) over
+// IPv4.
+// This capture sets DSCP 46, TTL 128, carries SPI 14400/14401, and uses
+// post-packet wait gaps (15ms) between frames.
+// Wireshark: ah
 
-// INSTRUCTION: Define high-priority telemetry collector.
 host telemetry_hub { ip 192.0.2.50 }
 
-// INSTRUCTION: Define remote substation gateway.
 host substation_rtu { ip 192.0.2.51 }
 
-// INSTRUCTION: Define DSCP 46 and ECN 1 marked AH authentication exchange with pacing delay.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow ah_qos_marked_flow(hub, rtu) {
-    hub -> rtu ah spi 14400 seq 1 dscp 46 ecn 1 ttl 128
-    hub <- rtu ah spi 14401 seq 1 dscp 46 ecn 1 ttl 128 wait 15ms
+    hub -> rtu ah spi 14400 seq 1 dscp 46 ecn 1 ttl 128 wait 15ms
+    hub <- rtu ah spi 14401 seq 1 dscp 46 ecn 1 ttl 128
 }
 
-// INSTRUCTION: Compile the QoS-prioritized AH flow.
+// Run ah_qos_marked_flow(telemetry_hub, substation_rtu) to generate the
+// capture.
 compile {
     ah_qos_marked_flow(telemetry_hub, substation_rtu)
 }

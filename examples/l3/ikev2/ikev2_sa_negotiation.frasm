@@ -1,13 +1,13 @@
-// PROMPT: Internet Key Exchange version 2 security association initiation and authentication on UDP 500.
-// TOKENS: host, ip, flow, init, ikev2, exchange, sainit, auth, compile
+// Internet Key Exchange version 2 security association initiation and
+// authentication on UDP 500.
+// This capture models UDP port 500/4500 IKEv2 key-exchange messages.
+// Wireshark: isakmp
 
-// INSTRUCTION: Define IKEv2 negotiation initiator.
 host ike_initiator { ip 203.0.113.1 }
 
-// INSTRUCTION: Define IKEv2 negotiation responder.
 host ike_responder { ip 203.0.113.2 }
 
-// INSTRUCTION: Define IKEv2 security association negotiation flow.
+// Packet sequence (4 frames) with default 10ms post-packet spacing.
 flow ikev2_negotiation(init, resp) {
     init -> resp ikev2 exchange sainit
     init <- resp ikev2 exchange sainit
@@ -15,7 +15,8 @@ flow ikev2_negotiation(init, resp) {
     init <- resp ikev2 exchange auth
 }
 
-// INSTRUCTION: Compile block executing IKEv2 negotiation exchange.
+// Run ikev2_negotiation(ike_initiator, ike_responder) to generate the
+// capture.
 compile {
     ikev2_negotiation(ike_initiator, ike_responder)
 }

@@ -1,25 +1,27 @@
-// PROMPT: Generate an IPsec ESP tunnel frame carrying raw hexadecimal ciphertext blocks and explicit IV/ICV bytes
-// TOKENS: host, ip, mac, flow, src, dst, ipsec, spi, seq, iv, icv, hexpayload, wait, ms, compile
+// Generate an IPsec ESP tunnel frame carrying raw hexadecimal ciphertext
+// blocks and explicit IV/ICV bytes.
+// This capture carries SPI 88101/88102 and uses post-packet wait gaps (15ms)
+// between frames.
+// Wireshark: esp
 
-// INSTRUCTION: Define the primary corporate VPN gateway
 host vpn_primary {
     ip 198.51.100.141
     mac 00:1b:21:a8:01:01
 }
 
-// INSTRUCTION: Define the remote data center VPN gateway
 host vpn_remote {
     ip 203.0.113.141
     mac 00:1b:21:a8:01:02
 }
 
-// INSTRUCTION: Send IPsec packets with raw hex ciphertext payloads and explicit cryptographic trailers
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow ipsec_hex_ciphertext_flow(src, dst) {
     src -> dst ipsec spi 88101 seq 501 iv "1122334455667788" icv "aabbccddeeff001122334455" hexpayload "9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d" wait 15ms
     dst -> src ipsec spi 88102 seq 901 iv "8877665544332211" icv "554433221100ffeeddccbbaa" hexpayload "0f1e2d3c4b5a69788796a5b4c3d2e1f0"
 }
 
-// INSTRUCTION: Compile the raw hexadecimal IPsec ciphertext exchange
+// Run ipsec_hex_ciphertext_flow(vpn_primary, vpn_remote) to generate the
+// capture.
 compile {
     ipsec_hex_ciphertext_flow(vpn_primary, vpn_remote)
 }

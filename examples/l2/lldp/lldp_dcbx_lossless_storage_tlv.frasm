@@ -1,24 +1,22 @@
-// PROMPT: Data Center Bridging Capability Exchange (DCBX) over LLDP advertising PFC and ETS lossless queues for NVMe/TCP.
-// TOKENS: host, ip, mac, flow, lldp, chassisid, portid, sysname, sysdesc, ttl, hexpayload, compile
+// Data Center Bridging Capability Exchange (DCBX) over LLDP advertising PFC and
+// ETS lossless queues for NVMe/TCP.
+// Wire profile: 1 frame; 2 IPv4 hosts; LLDP.
+// Wireshark: lldp
 
-// INSTRUCTION: Define storage leaf switch advertising IEEE 802.1Qaz ETS and PFC TLVs.
 host dcbx_storage_sw {
     ip 172.25.100.1
     mac 00:02:c9:dc:b0:01
 }
 
-// INSTRUCTION: Define NVMe/TCP storage server CNA interface.
 host nvme_cna_host {
     ip 172.25.100.25
     mac 00:02:c9:dc:b0:19
 }
 
-// INSTRUCTION: Define LLDP frame carrying IEEE 802.1 OUI (00-80-C2) DCBX PFC and ETS configuration TLVs.
 flow lldp_dcbx_pfc_ets(sw, host) {
     sw -> host lldp chassisid "00:02:c9:dc:b0:01" portid "Ethernet1/16" sysname "san-leaf-dcbx-01" sysdesc "Lossless DCBX Switch" ttl 90 hexpayload "fe060080c20b0008"
 }
 
-// INSTRUCTION: Compile block executing LLDP DCBX capability advertisement.
 compile {
     lldp_dcbx_pfc_ets(dcbx_storage_sw, nvme_cna_host)
 }

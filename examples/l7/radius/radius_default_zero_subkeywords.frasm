@@ -1,18 +1,12 @@
-// PROMPT: Default RADIUS Access-Request packet with zero sub-keywords on UDP port 1812.
-// TOKENS: host, ip, mac, flow, radius, compile
+// Minimal 2-block RADIUS (RFC 2865 / 2866) starter emitting automatic
+// protocol defaults directly from the compile block (zero flow wrapper).
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting.
+// Wireshark: radius
 
-// INSTRUCTION: Define wireless LAN controller NAS client.
 host wlc_nas { ip 10.18.12.5 mac 00:1e:be:12:00:05 }
 
-// INSTRUCTION: Define enterprise RADIUS AAA server.
 host radius_aaa { ip 10.18.12.1 mac 00:1e:be:12:00:01 }
 
-// INSTRUCTION: Define flow sending default RADIUS Access-Request packet.
-flow radius_default(nas, aaa) {
-    nas -> aaa radius
-}
-
-// INSTRUCTION: Compile default RADIUS scenario.
 compile {
-    radius_default(wlc_nas, radius_aaa)
+    wlc_nas -> radius_aaa radius
 }

@@ -1,25 +1,27 @@
-// PROMPT: IPv4 fragmented outer datagrams carrying RFC 4302 IPsec AH payload across a constrained MTU link.
-// TOKENS: host, ip, mac, flow, ah, spi, seq, nextheader, icv, ipid, mf, fragoffset, ttl, payload, wait, ms, compile
+// IPv4 fragmented outer datagrams carrying RFC 4302 IPsec AH payload across a
+// constrained MTU link.
+// This capture sets TTL 55, MF fragmentation, carries SPI 51500, and uses
+// post-packet wait gaps (4ms) between frames.
+// Wireshark: ah
 
-// INSTRUCTION: Define remote satellite gateway fragmenting oversized AH-authenticated datagrams.
 host sat_ah_sender {
     ip 172.31.51.1
     mac 00:a0:bc:51:00:01
 }
 
-// INSTRUCTION: Define ground station receiver reassembling IPv4 fragments prior to AH ICV verification.
 host ground_ah_receiver {
     ip 172.31.51.2
     mac 00:a0:bc:51:00:02
 }
 
-// INSTRUCTION: Define fragmented IPv4 AH transmission using MF flag and FRAGOFFSET.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow ah_ipv4_fragmented_flow(sat, ground) {
     sat -> ground ah spi 51500 seq 88 nextheader 4 icv "99887766554433221100fffe" ipid 9051 mf fragoffset 0 ttl 55 payload "AH_FRAGMENT_ONE_HEADER_AND_BODY" wait 4ms
     sat -> ground ah spi 51500 seq 88 nextheader 4 icv "99887766554433221100fffe" ipid 9051 fragoffset 185 ttl 55 payload "AH_FRAGMENT_TWO_TRAILING_OCTETS"
 }
 
-// INSTRUCTION: Compile the IPv4 fragmented AH reassembly verification flow.
+// Run ah_ipv4_fragmented_flow(sat_ah_sender, ground_ah_receiver) to generate
+// the capture.
 compile {
     ah_ipv4_fragmented_flow(sat_ah_sender, ground_ah_receiver)
 }

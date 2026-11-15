@@ -1,25 +1,28 @@
-// PROMPT: BFD session tracking primary WAN next-hop reachability for floating static route failover.
-// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, srcport, dstport, dscp, ttl, wait, ms, compile
+// BFD session tracking primary WAN next-hop reachability for floating static
+// route failover.
+// This capture sets DSCP 48, TTL 255, carries BFD state 3, diag 0,
+// destination port 3784, and uses post-packet wait gaps (100ms) between
+// frames.
+// Wireshark: bfd
 
-// INSTRUCTION: Define branch SD-WAN router tracking primary ISP next-hop via BFD.
 host branch_wan_rtr {
     ip 203.0.113.2
     mac 00:1d:aa:71:00:02
 }
 
-// INSTRUCTION: Define primary ISP PE gateway responding to BFD probes.
 host isp_primary_pe {
     ip 203.0.113.1
     mac 00:1d:aa:71:00:01
 }
 
-// INSTRUCTION: Define BFD 100ms probe sequence with Multiplier 4 verifying static route next-hop.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow bfd_static_route_track(branch, isp) {
     branch -> isp bfd state 3 diag 0 mydisc 2031 yourdisc 2032 mintx 100000 minrx 100000 mult 4 srcport 49400 dstport 3784 dscp 48 ttl 255 wait 100ms
     branch <- isp bfd state 3 diag 0 mydisc 2032 yourdisc 2031 mintx 100000 minrx 100000 mult 4 srcport 49401 dstport 3784 dscp 48 ttl 255
 }
 
-// INSTRUCTION: Compile the BFD floating static route next-hop tracking flow.
+// Run bfd_static_route_track(branch_wan_rtr, isp_primary_pe) to generate the
+// capture.
 compile {
     bfd_static_route_track(branch_wan_rtr, isp_primary_pe)
 }

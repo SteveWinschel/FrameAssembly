@@ -1,25 +1,25 @@
-// PROMPT: Simulate an OpenFlow controller communicating with switches on both IANA TCP port 6653 and legacy TCP port 6633
-// TOKENS: host, ip, mac, flow, openflow, featuresreq, version, xid, srcport, dstport, wait, ms, featuresreply, dpid, compile
+// Simulate an OpenFlow controller communicating with switches on both IANA
+// TCP port 6653 and legacy TCP port 6633.
+// This capture carries destination port 52100/52101 and uses post-packet wait
+// gaps (10ms, 15ms) between frames.
+// Wireshark: (openflow_v4 || openflow_v1) && tcp.port == 6633
 
-// INSTRUCTION: Define the multi-version SDN controller
 host multi_port_ctrl {
     ip 10.150.10.1
     mac 00:25:90:e8:10:01
 }
 
-// INSTRUCTION: Define the modern switch listening on TCP port 6653
 host modern_sw {
     ip 10.150.10.11
     mac 00:25:90:e8:10:11
 }
 
-// INSTRUCTION: Define the legacy switch listening on TCP port 6633
 host legacy_sw {
     ip 10.150.10.12
     mac 00:25:90:e8:10:12
 }
 
-// INSTRUCTION: Poll the modern switch on port 6653 and the legacy switch on port 6633
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow openflow_custom_ports_poll(ctrl, sw_new, sw_old) {
     ctrl -> sw_new openflow featuresreq version 4 xid 101 srcport 52100 dstport 6653 wait 10ms
     sw_new -> ctrl openflow featuresreply version 4 xid 101 dpid 1001 srcport 6653 dstport 52100 wait 15ms
@@ -27,7 +27,8 @@ flow openflow_custom_ports_poll(ctrl, sw_new, sw_old) {
     sw_old -> ctrl openflow featuresreply version 1 xid 201 dpid 2002 srcport 6633 dstport 52101
 }
 
-// INSTRUCTION: Compile the dual-port OpenFlow discovery sequence
+// Run openflow_custom_ports_poll(multi_port_ctrl, modern_sw, legacy_sw) to
+// generate the capture.
 compile {
     openflow_custom_ports_poll(multi_port_ctrl, modern_sw, legacy_sw)
 }

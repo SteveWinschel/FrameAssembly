@@ -1,18 +1,17 @@
-// PROMPT: LDAP graceful session termination with UnbindRequest after operations.
-// TOKENS: host, ip, flow, s, ldap, unbindreq, msgid, compile
+// LDAP graceful session termination with UnbindRequest after operations.
+// Wireshark: ldap
+// Automatic Ethernet MAC addresses and TCP port 389 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define directory client application.
 host app_session_client { ip 192.168.200.75 }
 
-// INSTRUCTION: Define LDAP directory service server.
 host directory_service { ip 192.168.200.1 }
 
-// INSTRUCTION: Define graceful unbind termination flow.
+// Graceful unbind termination flow.
 flow unbind_close_flow(c, s) {
     c -> s ldap unbindreq msgid 99
 }
 
-// INSTRUCTION: Compile LDAP unbind session close scenario.
 compile {
     unbind_close_flow(app_session_client, directory_service)
 }

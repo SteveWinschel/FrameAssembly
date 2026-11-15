@@ -1,26 +1,28 @@
-// PROMPT: FRRouting (FRR) routers running eBGP over an encrypted WireGuard point-to-point tunnel with DSCP CS6.
-// TOKENS: host, ip, mac, flow, wireguard, type, data, receiver, counter, df, dscp, ttl, payload, wait, ms, compile
+// FRRouting (FRR) routers running eBGP over an encrypted WireGuard
+// point-to-point tunnel with DSCP CS6.
+// This capture sets DSCP 48, TTL 64, DF bit set and uses post-packet wait
+// gaps (4ms) between frames.
+// Wireshark: wg
 
-// INSTRUCTION: Define FRR POP-1 router encapsulating BGP TCP 179 updates inside WireGuard.
 host frr_wg_pop1 {
     ip 198.18.51.1
     mac 00:1c:73:51:01:01
 }
 
-// INSTRUCTION: Define FRR POP-2 router terminating WireGuard and processing inner BGP updates.
 host frr_wg_pop2 {
     ip 198.18.51.2
     mac 00:1c:73:51:02:02
 }
 
-// INSTRUCTION: Define WireGuard DATA frames marked with DSCP CS6 (48) carrying inner BGP OPEN and UPDATE.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow wg_frr_bgp_peering_flow(pop1, pop2) {
     pop1 -> pop2 wireguard type data receiver 17901 counter 10 df dscp 48 ttl 64 payload "WG_ENCAP_BGP_OPEN_AS65001" wait 4ms
     pop1 <- pop2 wireguard type data receiver 17902 counter 10 df dscp 48 ttl 64 payload "WG_ENCAP_BGP_OPEN_AS65002" wait 4ms
     pop1 -> pop2 wireguard type data receiver 17901 counter 11 df dscp 48 ttl 64 payload "WG_ENCAP_BGP_UPDATE_10_100_0_0_16"
 }
 
-// INSTRUCTION: Compile the BGP-over-WireGuard FRRouting peering flow.
+// Run wg_frr_bgp_peering_flow(frr_wg_pop1, frr_wg_pop2) to generate the
+// capture.
 compile {
     wg_frr_bgp_peering_flow(frr_wg_pop1, frr_wg_pop2)
 }

@@ -1,18 +1,17 @@
-// PROMPT: sFlow v5 sample datagram with explicit agent IP and sub-agent ID.
-// TOKENS: host, ip, flow, s, sflow, agentip, subagentid, samples, compile
+// sFlow v5 sample datagram with explicit agent IP and sub-agent ID.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (sFlow v5,
+// UDP 6343).
+// Wireshark: sflow
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.1 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.250 }
 
-// INSTRUCTION: Define application traffic flow.
 flow sflow_subagent(c, s) {
     c -> s sflow agentip 10.0.0.1 subagentid 5 samples 25
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     sflow_subagent(client, server)
 }

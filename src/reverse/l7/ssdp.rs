@@ -49,7 +49,9 @@ pub(crate) fn dissect_ssdp(payload: &[u8]) -> Option<ProtocolDissection> {
         }
         seen |= bit;
         match k {
-            "HOST" if v != "239.255.255.250:1900" => push_str_mod(&mut tokens, "hosthdr", v),
+            "HOST" if v != "239.255.255.250:1900" && v != "[ff02::c]:1900" => {
+                push_str_mod(&mut tokens, "hosthdr", v)
+            }
             "MAN" if is_notify || v != "\"ssdp:discover\"" => push_str_mod(&mut tokens, "man", v),
             "MX" => {
                 let mx: u8 = v.parse().ok()?;

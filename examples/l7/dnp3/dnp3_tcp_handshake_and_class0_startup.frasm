@@ -1,19 +1,22 @@
-// PROMPT: Full DNP3 TCP 3-way handshake on port 20000 followed by initial unsolicited null response and Class 0 poll.
-// TOKENS: host, ip, mac, flow, m, tcp, srcport, dstport, syn, seq, ack, acknum, dnp3, func, src, dst, group, variation, wait, ms, compile
+// Full DNP3 TCP 3-way handshake on port 20000 followed by initial unsolicited
+// null response and Class 0 poll.
+// Wireshark: tcp || dnp3
 
-// INSTRUCTION: Define the primary SCADA master station.
+// Primary SCADA master station.
 host primary_master {
     ip 10.125.120.1
     mac 00:1a:2b:7d:c0:01
 }
 
-// INSTRUCTION: Define the newly rebooted substation RTU outstation.
+// Newly rebooted substation RTU outstation.
 host rebooted_rtu {
     ip 10.125.120.8
     mac 00:1a:2b:7d:c0:08
 }
 
-// INSTRUCTION: Complete TCP handshake on port 20000, confirm outstation restart unsolicited response, and poll Class 0.
+// Complete TCP handshake on port 20000, confirm outstation restart
+// unsolicited response, and poll Class 0. DNP3 data groups: Group 60 (Class
+// 0/1/2/3/4 Data), Group 80 (Internal Indications).
 flow dnp3_tcp_startup(m, o) {
     m -> o tcp srcport 49500 dstport 20000 syn seq 100
     m <- o tcp srcport 20000 dstport 49500 syn ack seq 800 acknum 101
@@ -24,7 +27,6 @@ flow dnp3_tcp_startup(m, o) {
     m <- o dnp3 func "response" src 8 dst 1 group 60 variation 1
 }
 
-// INSTRUCTION: Compile the DNP3 TCP connection startup flow.
 compile {
     dnp3_tcp_startup(primary_master, rebooted_rtu)
 }

@@ -1,18 +1,19 @@
-// PROMPT: Critical industrial safety alarm published over MQTT with DSCP expedited forwarding.
-// TOKENS: host, ip, flow, mqtt, publish, topic, qos, dscp, compile
+// Critical industrial safety alarm published over MQTT with DSCP expedited
+// forwarding.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define hazardous gas detector.
+// Hazardous gas detector.
 host gas_detector { ip 172.20.10.5 }
 
-// INSTRUCTION: Define safety monitoring broker.
+// Safety monitoring broker.
 host safety_broker { ip 172.20.10.1 }
 
-// INSTRUCTION: Define DSCP marked emergency alert flow.
+// DSCP marked emergency alert flow. Encapsulation and QoS markings: DSCP 46.
+// MQTT control session on TCP 1883 (QoS 1).
 flow safety_alarm_publish(det, brk) {
     det -> brk mqtt publish topic "alarms/safety/methane_leak" qos 1 dscp 46
 }
 
-// INSTRUCTION: Compile DSCP priority safety alarm scenario.
 compile {
     safety_alarm_publish(gas_detector, safety_broker)
 }

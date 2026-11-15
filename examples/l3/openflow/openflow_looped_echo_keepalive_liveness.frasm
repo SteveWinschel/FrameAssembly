@@ -1,25 +1,26 @@
-// PROMPT: Simulate a periodic OpenFlow Echo Request and Echo Reply keepalive loop monitoring control channel liveness
-// TOKENS: host, ip, mac, flow, openflow, echoreq, version, xid, payload, wait, ms, echoreply, compile
+// Simulate a periodic OpenFlow Echo Request and Echo Reply keepalive loop
+// monitoring control channel liveness.
+// This capture executes 5 cycles in compile and uses post-packet wait gaps
+// (15ms, 35ms) between frames.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define the SDN controller monitoring daemon
 host health_ctrl {
     ip 10.180.0.1
     mac 00:50:56:ea:00:01
 }
 
-// INSTRUCTION: Define the monitored OpenFlow virtual switch
 host monitored_ovs {
     ip 10.180.0.20
     mac 00:50:56:ea:00:20
 }
 
-// INSTRUCTION: Exchange an OpenFlow ECHO_REQ and ECHO_REPLY heartbeat pair
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow openflow_echo_heartbeat(ctrl, ovs) {
     ctrl -> ovs openflow echoreq version 4 xid 9900 payload "ofp-keepalive-probe" wait 15ms
     ovs -> ctrl openflow echoreply version 4 xid 9900 payload "ofp-keepalive-probe" wait 35ms
 }
 
-// INSTRUCTION: Compile five iterations of the OpenFlow echo keepalive cycle
+// Emit 5 sequential cycles of openflow_echo_heartbeat.
 compile {
     openflow_echo_heartbeat(health_ctrl, monitored_ovs) // cycle 1
     openflow_echo_heartbeat(health_ctrl, monitored_ovs) // cycle 2

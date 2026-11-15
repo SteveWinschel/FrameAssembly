@@ -1,25 +1,27 @@
-// PROMPT: 3GPP LTE/5G eNodeB-to-MME S1-MME interface secured by RFC 4303 IPsec ESP protecting SCTP (Next Header 132).
-// TOKENS: host, ip, mac, flow, esp, spi, seq, iv, icv, nextheader, df, dscp, ttl, payload, wait, ms, compile
+// 3GPP LTE/5G eNodeB-to-MME S1-MME interface secured by RFC 4303 IPsec ESP
+// protecting SCTP (Next Header 132).
+// This capture sets DSCP 46, TTL 64, DF bit set, carries SPI 132501/132502,
+// and uses post-packet wait gaps (3ms) between frames.
+// Wireshark: esp
 
-// INSTRUCTION: Define 5G gNodeB / LTE eNodeB radio access node with IPsec ESP transport SA.
 host ran_enodeb_01 {
     ip 172.28.50.10
     mac 00:0f:53:50:00:0a
 }
 
-// INSTRUCTION: Define Evolved Packet Core MME / AMF security gateway.
 host epc_mme_secgw {
     ip 172.28.50.1
     mac 00:0f:53:50:00:01
 }
 
-// INSTRUCTION: Define ESP flow protecting SCTP Next Header 132 with DSCP EF (46).
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow esp_s1ap_sctp_flow(ran, epc) {
     ran -> epc esp spi 132501 seq 55 iv "0102030405060708" icv "11223344556677889900aabb" nextheader 132 df dscp 46 ttl 64 payload "ENCRYPTED_SCTP_S1AP_INITIAL_UE_MSG" wait 3ms
     ran <- epc esp spi 132502 seq 55 iv "0807060504030201" icv "bbaa00998877665544332211" nextheader 132 df dscp 46 ttl 64 payload "ENCRYPTED_SCTP_S1AP_CONTEXT_SETUP"
 }
 
-// INSTRUCTION: Compile the 3GPP S1-MME SCTP-over-ESP transport security flow.
+// Run esp_s1ap_sctp_flow(ran_enodeb_01, epc_mme_secgw) to generate the
+// capture.
 compile {
     esp_s1ap_sctp_flow(ran_enodeb_01, epc_mme_secgw)
 }

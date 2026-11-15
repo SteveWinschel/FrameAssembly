@@ -1,18 +1,19 @@
-// PROMPT: IPFIX OSPF (Proto 89) control-plane routing traffic accounting export with custom MACs.
-// TOKENS: host, ip, flow, ipfix, domainid, srcip, dstip, proto, packets, octets, srcmac, dstmac, compile
+// IPFIX OSPF (Proto 89) control-plane routing traffic accounting export with
+// custom MACs.
+// Wireshark: cflow || udp.port == 4739
 
-// INSTRUCTION: Define core router exporting control-plane flow stats.
+// Core router exporting control-plane flow stats.
 host core_rtr { ip 10.0.47.1 }
 
-// INSTRUCTION: Define local flow analyzer appliance.
+// Local flow analyzer appliance.
 host flow_analyzer { ip 10.0.47.2 }
 
-// INSTRUCTION: Report OSPF (Proto 89) multicast hello accounting with explicit Ethernet MACs.
+// Report OSPF (Proto 89) multicast hello accounting with explicit Ethernet
+// MACs. Reports IP protocol 89 (89) flow records to UDP 4739.
 flow ipfix_ospf_control_plane(r, a) {
     r -> a ipfix domainid 1 srcip 10.0.0.1 dstip 224.0.0.5 proto 89 packets 60 octets 4800 srcmac 00:11:22:33:44:01 dstmac 00:11:22:33:44:02
 }
 
-// INSTRUCTION: Compile the IPFIX OSPF control-plane accounting flow.
 compile {
     ipfix_ospf_control_plane(core_rtr, flow_analyzer)
 }

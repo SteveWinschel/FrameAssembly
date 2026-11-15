@@ -1,19 +1,18 @@
-// PROMPT: Model a POP3 server returning -ERR Unknown command when a client mistakenly sends IMAP verbs on port 110.
-// TOKENS: host, ip, mac, flow, s, pop3, ok, response, wait, ms, cmd, arg, err, compile
+// Model a POP3 server returning -ERR Unknown command when a client mistakenly
+// sends IMAP verbs on port 110.
+// Timing: uses post-packet wait delays (2ms, 1ms) between frames.
+// Wireshark: pop
 
-// INSTRUCTION: Define the misconfigured mail client probing TCP port 110.
 host misconfig_client {
     ip 192.168.110.99
     mac 00:1a:2b:6e:00:63
 }
 
-// INSTRUCTION: Define the POP3 server rejecting unrecognized verbs.
 host pop3_daemon {
     ip 192.168.110.1
     mac 00:1a:2b:6e:00:01
 }
 
-// INSTRUCTION: Send invalid SELECT and FETCH commands and receive -ERR responses before quitting.
 flow pop3_invalid_verb_err(c, s) {
     c <- s pop3 ok response "POP3 server ready" wait 2ms
     c -> s pop3 cmd "SELECT" arg "INBOX" wait 2ms
@@ -22,7 +21,6 @@ flow pop3_invalid_verb_err(c, s) {
     c <- s pop3 ok response "Signing off"
 }
 
-// INSTRUCTION: Compile the POP3 invalid command error handling flow.
 compile {
     pop3_invalid_verb_err(misconfig_client, pop3_daemon)
 }

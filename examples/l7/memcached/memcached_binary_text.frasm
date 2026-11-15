@@ -1,18 +1,16 @@
-// PROMPT: Memcached distributed memory caching protocol interaction on TCP 11211.
-// TOKENS: host, ip, flow, memcached, cmd, compile
+// Memcached distributed memory caching protocol interaction on TCP 11211.
+// Wireshark: memcache || tcp.port == 11211
 
-// INSTRUCTION: Define web application worker.
+// Web application worker.
 host cache_client { ip 172.16.50.1 }
 
-// INSTRUCTION: Define Memcached memory node.
+// Memcached memory node.
 host cache_node { ip 172.16.50.2 }
 
-// INSTRUCTION: Define Memcached server stats lookup flow.
 flow memcached_flow(c, n) {
     c -> n memcached cmd "stats"
 }
 
-// INSTRUCTION: Compile block executing Memcached lookup.
 compile {
     memcached_flow(cache_client, cache_node)
 }

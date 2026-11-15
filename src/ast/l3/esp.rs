@@ -11,5 +11,12 @@
 //! Canonical `.frasm` syntax:
 //! `a -> b esp [spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [nextheader <u8>] [payload "<str>" | hexpayload "<hex>"]`
 
+/// IPsec Encapsulating Security Payload (RFC 4303) specification over IP protocol `50`.
+///
+/// Syntax mapping: `esp [spi <u32>] [seq <u32>] [iv "<hex>"] [icv "<hex>"] [nextheader <u8>]`
+#[doc(alias = "esp")]
+#[doc(alias = "ESP")]
+#[doc(alias = "RFC 4303")]
+#[doc(alias = "RFC4303")]
 #[doc(inline)]
 pub use super::ipsec::EspSpec;

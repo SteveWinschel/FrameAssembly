@@ -2,13 +2,17 @@
 
 [← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)
 
-Outages never stay politely inside one OSI layer. A ticket arrives saying "the app is slow", and ten minutes later the investigation has touched 802.1X, DNS, a TLS handshake, a gRPC call, a Redis lookup, and a Postgres insert. Nobody changed the firewall rules since Tuesday, which is exactly what everyone says right before someone finds the firewall change from Tuesday.
+Outages never stay politely inside one OSI layer. A ticket arrives saying "the app is slow", and ten minutes later the investigation has touched 802.1X, DNS, a TLS handshake, a gRPC
+call, a Redis lookup, and a Postgres insert. Nobody changed the firewall rules since Tuesday, which is exactly what everyone says right before someone finds the firewall change from
+Tuesday.
 
-Reproducing that in a lab means booting a pile of router and server images in GNS3, EVE-NG, or Containerlab, wiring VLAN trunks and VRFs, standing up AAA, and running `tcpdump` on five interfaces while you trigger the failure by hand. FrameAssembly puts the whole multi-device conversation in one `.frasm` file. Build it with `frameassembly topology.frasm`, replay it with `tcpreplay`, inspect it in **Wireshark** or **Suricata**, or run `frameassembly reverse trace.pcap` to turn a real capture into `.frasm` code you can edit.
+Reproducing that in a lab means booting a pile of router and server images in GNS3, EVE-NG, or Containerlab, wiring VLAN trunks and VRFs, standing up AAA, and running `tcpdump` on five
+interfaces while you trigger the failure by hand. FrameAssembly puts the whole multi-device conversation in one `.frasm` file. Build it with `frameassembly topology.frasm`, replay it
+with `tcpreplay`, inspect it in **Wireshark** or **Suricata**, or run `frameassembly reverse trace.pcap` to turn a real capture into `.frasm` code you can edit.
 
 Three features carry this: multi-host flows, dual-stack reuse, and precise `wait` timers.
 
-> **104 ready-to-compile topologies** live in [`examples/topologies/`](../examples/topologies/). The five below are the reference architectures; the directory has the rest.
+> **106 ready-to-compile topologies** live in [`examples/topologies/`](../examples/topologies/). The five below are the reference architectures; the directory has the rest.
 
 ---
 
@@ -16,7 +20,8 @@ Three features carry this: multi-host flows, dual-stack reuse, and precise `wait
 
 ### Multi-Host Flows
 
-A `flow` takes as many endpoints as you give it, and every statement names the two that talk on that line. Pass four hosts in, and `compile` plugs your real `host` definitions into the parameters in left-to-right order. Client traffic, firewall logging, and SIEM telemetry stay in the exact chronological order they happened:
+A `flow` takes as many endpoints as you give it, and every statement names the two that talk on that line. Pass four hosts in, and `compile` plugs your real `host` definitions into the
+parameters in left-to-right order. Client traffic, firewall logging, and SIEM telemetry stay in the exact chronological order they happened:
 
 ```frameassembly
 host workstation  { ip 10.30.0.10 mac 00:1b:21:30:00:0a }
@@ -35,19 +40,22 @@ compile { branch_transaction(workstation, perimeter_fw, web_srv, splunk_siem) }
 
 ### Dual-Stack Reuse
 
-FrameAssembly checks address-family consistency per statement: an IPv4 host and an IPv6 host on the same line is a validation error. The same `flow`, though, runs unchanged over both families when you call it once with IPv4 hosts and once with IPv6 hosts.
+FrameAssembly checks address-family consistency per statement: an IPv4 host and an IPv6 host on the same line is a validation error. The same `flow`, though, runs unchanged over both
+families when you call it once with IPv4 hosts and once with IPv6 hosts.
 
 | Feature | IPv4 Execution (`host { ip 10.x.x.x }`) | IPv6 Execution (`host { ip 2001:db8::x }`) |
 | :--- | :--- | :--- |
 | **EtherType** | `0x0800` (or `0x8100` / `0x88A8` / `0x8847` when tagged) | `0x86DD` (or `0x8100` / `0x88A8` / `0x8847` when tagged) |
 | **`ttl <0..255>` and `dscp <0..63>`** | IPv4 `TTL` and `TOS/DSCP` | IPv6 `Hop Limit` and `Traffic Class` |
 | **`flowlabel <0..1048575>`** | Silently ignored | Encoded into the 20-bit IPv6 Flow Label |
-| **Multicast destination MAC** | `01:00:5e:xx:xx:xx` (RFC 1112) when `mac` is omitted on a `224.0.0.0/4` host | `33:33:xx:xx:xx:xx` (RFC 2464) when `mac` is omitted on an `ff00::/8` host |
+| **Unicast host without `mac`** | `00:00:00:00:00:01`, `:02`, ... in `host` declaration order | `00:00:00:00:00:01`, `:02`, ... in `host` declaration order |
+| **Multicast destination MAC** | `01:00:5e:xx:xx:xx` (RFC 1112) when `mac` is omitted on `224.0.0.0/4` | `33:33:xx:xx:xx:xx` (RFC 2464) when `mac` is omitted on `ff00::/8` |
 | **UDP checksum** | RFC 768 | RFC 8200 §8.1 mandatory pseudo-header checksum (`0x0000` becomes `0xFFFF`) |
 
 ### Bursts and Inline Statements in `compile`
 
-Inside `compile { ... }` you can call flows repeatedly and mix in one-off statements. TCP sequence numbers and timestamps keep advancing across all of it, and `wait` accepts `ns`, `us`, `ms`, `s`, and `m`, which is how you get realistic keepalive cadences, VXLAN bursts, and RTP streams:
+Inside `compile { ... }` you can call flows repeatedly and mix in one-off statements. TCP sequence numbers and timestamps keep advancing across all of it, and `wait` accepts `ns`, `us`
+, `ms`, `s`, and `m`, which is how you get realistic keepalive cadences, VXLAN bursts, and RTP streams:
 
 ```frameassembly
 host leaf_01   { ip 10.255.0.11   mac 00:1c:73:00:01:01 }
@@ -70,7 +78,8 @@ compile {
 
 ## 1. EVPN-VXLAN Leaf-Spine Fabric (`lldp` + `bfd` + `bgp` + `vxlan` + `ipfix`)
 
-**Scenario:** A spine (`spine_01`) brings up a link to a leaf VTEP, the leaf pushes a burst of east-west tenant traffic to a second leaf, and then reports it to a flow collector. It is the sequence you would normally only see after wiring four switches and an EVPN control plane, and after someone has remembered which port is the uplink.
+**Scenario:** A spine (`spine_01`) brings up a link to a leaf VTEP, the leaf pushes a burst of east-west tenant traffic to a second leaf, and then reports it to a flow collector. It is
+the sequence you would normally only see after wiring four switches and an EVPN control plane, and after someone has remembered which port is the uplink.
 1. **Layer 2 Link Discovery (`lldp`):** Spine and Leaf exchange chassis/port capabilities and system names.
 2. **Sub-Second Failure Detection (`bfd`):** 50ms (`50000` µs) BFD Control sessions reach State `3` (`Up`) with `ttl 255` GTSM protection.
 3. **Underlay Routing (`bgp`):** eBGP `open` (`asn 65101` ↔ `asn 65000`), `keepalive`, and `/32` VTEP loopback `update` advertisement.
@@ -123,9 +132,11 @@ compile {
 
 ## 2. Campus Zero-Trust 802.1X NAC Port Onboarding (`eapol` + `radius` + `dhcp` + `arp` + `snmp3`)
 
-**Scenario:** An employee plugs a laptop into a Zero-Trust campus switch port. Four devices take part (`workstation`, `access_sw`, `radius_srv`, `nms_srv`), and the port stays dark until every step succeeds. When it does not, the ticket reads "network is down" and the packet capture is the only witness:
+**Scenario:** An employee plugs a laptop into a Zero-Trust campus switch port. Four devices take part (`workstation`, `access_sw`, `radius_srv`, `nms_srv`), and the port stays dark
+until every step succeeds. When it does not, the ticket reads "network is down" and the packet capture is the only witness:
 1. **802.1X Supplicant Handshake (`eapol`):** The laptop sends `EAPOL-Start`, responds to the switch's `EAP-Request/Identity` (`eapcode 1, eapmethod 1`), and awaits port authorization.
-2. **AAA Policy Verification (`radius`):** The switch relays the identity to the RADIUS server (`accessrequest` on UDP `1812`) and receives `accessaccept` with the assigned `framedip`, then sends `EAP-Success` (`eapcode 3`) to open the switch port.
+2. **AAA Policy Verification (`radius`):** The switch relays the identity to the RADIUS server (`accessrequest` on UDP `1812`) and receives `accessaccept` with the assigned `framedip`
+   , then sends `EAP-Success` (`eapcode 3`) to open the switch port.
 3. **IPv4 Address Assignment (`dhcp`):** Full 4-packet `DORA` exchange (`discover`, `offer`, `request`, `ack`) assigning `10.10.50.100/24`.
 4. **Duplicate Address Detection (`arp`):** The workstation broadcasts a Gratuitous ARP (`sha`, `spa`, and `tpa` announcing `10.10.50.100`).
 5. **Encrypted NMS Audit (`snmp3`):** The switch sends an authenticated and AES-128-CFB encrypted SNMPv3 `inform` (`sha256` + `aes`) to the NMS reporting `ifOperStatus = up(1)` on port 12.
@@ -157,7 +168,8 @@ flow campus_dot1x_onboarding(ws, sw, aaa, nms) {
     ws -> sw arp gratuitous sha 00:22:44:66:88:aa spa 10.10.50.100 tpa 10.10.50.100 wait 2ms
 
     // 5. SNMPv3 USM authPriv (HMAC-SHA-256 + AES-128) Inform to NMS
-    sw -> nms snmp3 inform user "nac_auditor" engineid "80001f88801122334455" engineboots 5 enginetime 3600 auth sha256 "AuditAuthKey2026!" priv aes "AuditPrivKey2026!" reqid 500 varbind 1.3.6.1.2.1.1.5.0 string "access-sw-floor2" varbind 1.3.6.1.2.1.2.2.1.8.12 int 1
+    sw -> nms snmp3 inform user "nac_auditor" engineid "80001f88801122334455" engineboots 5 enginetime 3600 auth sha256 "AuditAuthKey2026!" priv aes "AuditPrivKey2026!" reqid 500
+        varbind 1.3.6.1.2.1.1.5.0 string "access-sw-floor2" varbind 1.3.6.1.2.1.2.2.1.8.12 int 1
 }
 
 compile {
@@ -176,7 +188,8 @@ compile {
 4. Unary gRPC `CreateOrder` call (`grpc`)
 5. East-west Redis inventory cache lookup (`redis`) and PostgreSQL SQL order insert (`postgres`)
 
-In `compile`, call `service_mesh_checkout` with the `_v4` hosts, then with the `_v6` hosts. You get the complete IPv4 trace and the complete IPv6 trace in one PCAPNG file, which is handy when the bug only shows up on the family nobody tested.
+In `compile`, call `service_mesh_checkout` with the `_v4` hosts, then with the `_v6` hosts. You get the complete IPv4 trace and the complete IPv6 trace in one `.pcap` or `.pcapng`
+file, which is handy when the bug only shows up on the family nobody tested.
 
 ```frameassembly
 // IPv4 Kubernetes Pod & Service Endpoints
@@ -230,11 +243,15 @@ compile {
 
 ## 4. WAN Branch Failover & IPsec/MPLS Backhaul (`bfd` + `ospf` + `vrrp` + `ikev2`/`esp` + `qinq`/`mpls`)
 
-**Scenario:** A branch office with two WAN edge routers (`branch_r1`, `branch_r2`) loses its primary link and fails over to an IPsec tunnel across a Metro Ethernet and MPLS backhaul to `hq_hub`. Failover tests are usually run on a Friday, by someone who will not be there on Monday:
+**Scenario:** A branch office with two WAN edge routers (`branch_r1`, `branch_r2`) loses its primary link and fails over to an IPsec tunnel across a Metro Ethernet and MPLS backhaul to
+`hq_hub`. Failover tests are usually run on a Friday, by someone who will not be there on Monday:
 1. **LAN First-Hop Redundancy (`vrrp`):** `branch_r1` advertises VRRPv3 Group `10` Master ownership (`priority 200`, `vip 10.250.10.1`).
-2. **WAN Link Failure & IGP Convergence (`bfd` + `ospf`):** `branch_r1` signals a BFD `Down` state (`state 1, diag 1`), then floods an Area `0` OSPF Link State Update (`lsu`) to `branch_r2` and receives an `lsack`.
-3. **Carrier QinQ IPsec Tunnel Bring-Up (`qinq` + `ikev2`):** `branch_r2` negotiates an IKEv2 Security Association (`sainit` and `auth`) with `hq_hub` across a Metro Ethernet IEEE 802.1ad QinQ trunk (`qinq 2100`, `innervlan 100`).
-4. **MPLS Core Encrypted Data Plane (`mpls` + `esp`):** `branch_r2` and `hq_hub` exchange MPLS-labeled (`mpls 32100`, `exp 5`) IPsec `esp` tunnel packets with explicit Initialization Vectors (`iv`) and Integrity Check Values (`icv`).
+2. **WAN Link Failure & IGP Convergence (`bfd` + `ospf`):** `branch_r1` signals a BFD `Down` state (`state 1, diag 1`), then floods an Area `0` OSPF Link State Update (`lsu`) to
+   `branch_r2` and receives an `lsack`.
+3. **Carrier QinQ IPsec Tunnel Bring-Up (`qinq` + `ikev2`):** `branch_r2` negotiates an IKEv2 Security Association (`sainit` and `auth`) with `hq_hub` across a Metro Ethernet IEEE
+   802.1ad QinQ trunk (`qinq 2100`, `innervlan 100`).
+4. **MPLS Core Encrypted Data Plane (`mpls` + `esp`):** `branch_r2` and `hq_hub` exchange MPLS-labeled (`mpls 32100`, `exp 5`) IPsec `esp` tunnel packets with explicit Initialization
+   Vectors (`iv`) and Integrity Check Values (`icv`).
 
 ```frameassembly
 host branch_r1 { ip 10.250.10.2  mac 00:00:5e:00:01:0a }
@@ -272,9 +289,12 @@ compile {
 
 ## 5. IEC 62443 Industrial Substation & IDMZ Conduit (`modbus` + `dnp3` + `s7comm` + `opcua` + `syslog`)
 
-**Scenario:** A segmented IEC 62443 / Purdue Model substation: a Level 2 supervisory HMI (`substation_hmi`), Level 1 field controllers (`bay_rtu`, `s7_plc`), and a Level 3.5 industrial DMZ historian and SIEM (`idmz_historian`). None of it needs a live PLC, which is good, because live PLCs have a way of ending up in someone else's budget:
-1. **Level 1–2 Process VLAN (`vlan 110, pcp 6`):** The supervisory HMI polls holding registers from `bay_rtu` via `modbus` (TCP `502`), executes an IEEE 1815 `dnp3` Class 0 integrity poll (TCP `20000`), and reads Data Block `DB1` from a Siemens PLC via `s7comm` (TCP `102`).
-2. **Level 2–3.5 IDMZ Conduit (`vlan 120, pcp 4`):** The HMI forwards aggregated telemetry upstream to `idmz_historian` over an `opcua` binary session (TCP `4840`) and emits an RFC 5424 `syslog` compliance audit message (UDP `514`).
+**Scenario:** A segmented IEC 62443 / Purdue Model substation: a Level 2 supervisory HMI (`substation_hmi`), Level 1 field controllers (`bay_rtu`, `s7_plc`), and a Level 3.5 industrial
+DMZ historian and SIEM (`idmz_historian`). None of it needs a live PLC, which is good, because live PLCs have a way of ending up in someone else's budget:
+1. **Level 1–2 Process VLAN (`vlan 110, pcp 6`):** The supervisory HMI polls holding registers from `bay_rtu` via `modbus` (TCP `502`), executes an IEEE 1815 `dnp3` Class 0 integrity
+   poll (TCP `20000`), and reads Data Block `DB1` from a Siemens PLC via `s7comm` (TCP `102`).
+2. **Level 2–3.5 IDMZ Conduit (`vlan 120, pcp 4`):** The HMI forwards aggregated telemetry upstream to `idmz_historian` over an `opcua` binary session (TCP `4840`) and emits an RFC
+   5424 `syslog` compliance audit message (UDP `514`).
 
 ```frameassembly
 host substation_hmi { ip 172.22.10.5   mac 00:1b:21:22:0a:05 }

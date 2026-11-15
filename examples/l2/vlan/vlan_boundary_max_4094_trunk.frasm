@@ -1,25 +1,23 @@
-// PROMPT: IEEE 802.1Q VLAN boundary ID 4094 trunk frame carrying network control traffic with PCP 7.
-// TOKENS: host, ip, mac, flow, vlan, pcp, dei, icmp, echorequest, echoreply, wait, ms, compile
+// IEEE 802.1Q VLAN boundary ID 4094 trunk frame carrying network control traffic
+// with PCP 7.
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 4094; PCP 7; ICMP; waits 1ms.
+// Wireshark: vlan.id == 4094 && vlan.priority == 7
 
-// INSTRUCTION: Define core distribution switch A on reserved management trunk VLAN 4094.
 host core_trunk_a {
     ip 10.255.254.1
     mac 00:1c:73:aa:ff:01
 }
 
-// INSTRUCTION: Define core distribution switch B on reserved management trunk VLAN 4094.
 host core_trunk_b {
     ip 10.255.254.2
     mac 00:1c:73:aa:ff:02
 }
 
-// INSTRUCTION: Define maximum valid VLAN ID 4094 ping exchange with highest priority PCP 7.
 flow vlan_max_id_trunk(sw_a, sw_b) {
-    sw_a -> sw_b vlan 4094 pcp 7 dei 0 icmp echorequest
-    sw_a <- sw_b vlan 4094 pcp 7 dei 0 icmp echoreply wait 1ms
+    sw_a -> sw_b vlan 4094 pcp 7 dei 0 icmp echorequest wait 1ms
+    sw_a <- sw_b vlan 4094 pcp 7 dei 0 icmp echoreply
 }
 
-// INSTRUCTION: Compile block executing VLAN 4094 boundary trunk verification.
 compile {
     vlan_max_id_trunk(core_trunk_a, core_trunk_b)
 }

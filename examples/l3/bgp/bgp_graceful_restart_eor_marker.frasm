@@ -1,19 +1,20 @@
-// PROMPT: RFC 4724 BGP Graceful Restart exchanging route updates followed by an empty UPDATE End-of-RIB (EoR) marker.
-// TOKENS: host, ip, mac, flow, bgp, open, asn, holdtime, bgpid, dscp, ttl, wait, ms, update, prefix, nexthop, payload, compile
+// RFC 4724 BGP Graceful Restart exchanging route updates followed by an empty
+// UPDATE End-of-RIB (EoR) marker.
+// This capture sets DSCP 48, TTL 1, carries ASN 65047/65048, and uses
+// post-packet wait gaps (5ms) between frames.
+// Wireshark: bgp
 
-// INSTRUCTION: Define restarting BGP speaker advertising preserved Forwarding State.
 host bgp_gr_restarting {
     ip 10.47.24.1
     mac 00:1a:64:47:24:01
 }
 
-// INSTRUCTION: Define helper BGP speaker retaining stale routes until End-of-RIB receipt.
 host bgp_gr_helper {
     ip 10.47.24.2
     mac 00:1a:64:47:24:02
 }
 
-// INSTRUCTION: Define BGP OPEN, initial table refresh UPDATE, and End-of-RIB empty UPDATE marker.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow bgp_graceful_restart_eor(restarting, helper) {
     restarting -> helper bgp open asn 65047 holdtime 120 bgpid 10.47.24.1 dscp 48 ttl 1 wait 5ms
     restarting <- helper bgp open asn 65048 holdtime 120 bgpid 10.47.24.2 dscp 48 ttl 1 wait 5ms
@@ -21,7 +22,8 @@ flow bgp_graceful_restart_eor(restarting, helper) {
     restarting -> helper bgp update asn 65047 dscp 48 ttl 1 payload "BGP_END_OF_RIB_IPV4_UNICAST"
 }
 
-// INSTRUCTION: Compile the RFC 4724 BGP Graceful Restart and End-of-RIB flow.
+// Run bgp_graceful_restart_eor(bgp_gr_restarting, bgp_gr_helper) to generate
+// the capture.
 compile {
     bgp_graceful_restart_eor(bgp_gr_restarting, bgp_gr_helper)
 }

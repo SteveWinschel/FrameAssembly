@@ -1,19 +1,17 @@
-// PROMPT: HTTP/1.1 REST API interaction over IPv6 with GET request, headers, and 200 OK JSON response.
-// TOKENS: host, ip, flow, s, http, get, uri, hosthdr, status, body, compile
+// HTTP/1.1 REST API interaction over IPv6 with GET request, headers, and 200
+// OK JSON response.
+// Wireshark: http
 
-// INSTRUCTION: Define HTTP REST client.
 host rest_client { ip 2001:db8:cafe::1 }
 
-// INSTRUCTION: Define HTTP REST API server.
 host rest_server { ip 2001:db8:cafe::2 }
 
-// INSTRUCTION: Define HTTP GET request and JSON response flow.
+// HTTP GET request and JSON response flow.
 flow http_api_flow(c, s) {
     c -> s http get uri "/v1/metrics" hosthdr "api.local"
     c <- s http status 200 body "{\"status\":\"ok\"}"
 }
 
-// INSTRUCTION: Compile block executing HTTP REST interaction.
 compile {
     http_api_flow(rest_client, rest_server)
 }

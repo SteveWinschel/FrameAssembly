@@ -1,18 +1,16 @@
-// PROMPT: IEEE 802.1X EAPOL logoff frame terminating an authenticated network port session.
-// TOKENS: host, ip, flow, src, dst, eapol, type, logoff, compile
+// IEEE 802.1X EAPOL logoff frame terminating an authenticated network port
+// session.
+// Wire profile: 1 frame; 2 IPv4 hosts; EAPOL.
+// Wireshark: eapol.type == 1 || eapol.type == 2
 
-// INSTRUCTION: Define client disconnecting from secured access port.
 host departing_client { ip 10.1.1.55 }
 
-// INSTRUCTION: Define edge switch port receiving logoff.
 host switch_edge { ip 10.1.1.1 }
 
-// INSTRUCTION: Define 802.1X session termination flow sending EAPOL-Logoff.
 flow eapol_logoff_flow(src, dst) {
     src -> dst eapol type logoff
 }
 
-// INSTRUCTION: Compile block executing port logoff transmission.
 compile {
     eapol_logoff_flow(departing_client, switch_edge)
 }

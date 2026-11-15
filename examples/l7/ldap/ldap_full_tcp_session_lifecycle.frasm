@@ -1,17 +1,19 @@
-// PROMPT: Create a complete TCP-connected LDAP session performing bind, user search, entry retrieval, search done, and unbind.
-// TOKENS: host, ip, flow, s, tcp, dstport, syn, seq, wait, ms, ack, acknum, ldap, msgid, bindreq, basedn, bindres, resultcode, searchreq, filter, searchentry, searchdone, unbindreq, fin, compile
+// Complete TCP-connected LDAP session performing bind, user search, entry
+// retrieval, search done, and unbind.
+// Wireshark: tcp || ldap
 
-// INSTRUCTION: Define the application server authenticating users against LDAP.
+// Application server authenticating users against LDAP.
 host auth_service {
     ip 10.20.30.50
 }
 
-// INSTRUCTION: Define the enterprise OpenLDAP directory server listening on TCP port 389.
+// Enterprise OpenLDAP directory server listening on TCP port 389.
 host openldap_srv {
     ip 10.20.30.10
 }
 
-// INSTRUCTION: Establish a TCP handshake, execute a full LDAP bind-search-unbind lifecycle, and close with FIN.
+// Establish a TCP handshake, execute a full LDAP bind-search-unbind
+// lifecycle, and close with FIN. LDAP result codes: 0 (success).
 flow full_ldap_lifecycle(c, s) {
     c -> s tcp dstport 389 syn seq 100000 wait 1ms
     c <- s tcp syn ack seq 200000 acknum 100001 wait 1ms
@@ -27,7 +29,6 @@ flow full_ldap_lifecycle(c, s) {
     c -> s tcp dstport 389 ack seq 100113 acknum 200083
 }
 
-// INSTRUCTION: Compile the complete TCP + LDAP session lifecycle into a PCAP file.
 compile {
     full_ldap_lifecycle(auth_service, openldap_srv)
 }

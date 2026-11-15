@@ -1,29 +1,27 @@
-// PROMPT: Complete IEEE 802.1X EAP-MD5 challenge-response authentication sequence ending in EAP-Success (Code 3).
-// TOKENS: host, ip, mac, flow, auth, eapol, version, type, start, eappacket, eapcode, eapid, eapmethod, wait, ms, identity, hexpayload, compile
+// Complete IEEE 802.1X EAP-MD5 challenge-response authentication sequence ending
+// in EAP-Success (Code 3).
+// Wire profile: 6 frames; 2 IPv4 hosts; EAPOL; waits 2ms, 5ms, 3ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define wired workstation supplicant.
 host md5_supplicant {
     ip 192.168.30.15
     mac 00:24:e8:30:00:0f
 }
 
-// INSTRUCTION: Define campus edge authenticator switch.
 host md5_authenticator {
     ip 192.168.30.1
     mac 00:1e:be:30:00:01
 }
 
-// INSTRUCTION: Define full EAPOL-Start, EAP-Identity, EAP-MD5 Challenge (Method 4), and EAP-Success flow.
 flow eapol_md5_challenge_success(supp, auth) {
-    supp -> auth eapol version 2 type start
+    supp -> auth eapol version 2 type start wait 2ms
     supp <- auth eapol version 2 type eappacket eapcode 1 eapid 10 eapmethod 1 wait 2ms
-    supp -> auth eapol version 2 type eappacket eapcode 2 eapid 10 eapmethod 1 identity "eng_workstation_15" wait 2ms
-    supp <- auth eapol version 2 type eappacket eapcode 1 eapid 11 eapmethod 4 hexpayload "10a1b2c3d4e5f60718293a4b5c6d7e8f90" wait 5ms
-    supp -> auth eapol version 2 type eappacket eapcode 2 eapid 11 eapmethod 4 hexpayload "1099887766554433221100ffeeddccbbaa" wait 3ms
-    supp <- auth eapol version 2 type eappacket eapcode 3 eapid 11 eapmethod 4 wait 5ms
+    supp -> auth eapol version 2 type eappacket eapcode 2 eapid 10 eapmethod 1 identity "eng_workstation_15" wait 5ms
+    supp <- auth eapol version 2 type eappacket eapcode 1 eapid 11 eapmethod 4 hexpayload "10a1b2c3d4e5f60718293a4b5c6d7e8f90" wait 3ms
+    supp -> auth eapol version 2 type eappacket eapcode 2 eapid 11 eapmethod 4 hexpayload "1099887766554433221100ffeeddccbbaa" wait 5ms
+    supp <- auth eapol version 2 type eappacket eapcode 3 eapid 11 eapmethod 4
 }
 
-// INSTRUCTION: Compile block executing complete EAP-MD5 authentication handshake.
 compile {
     eapol_md5_challenge_success(md5_supplicant, md5_authenticator)
 }

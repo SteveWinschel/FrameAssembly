@@ -1,13 +1,13 @@
-// PROMPT: Simulate an acknowledged SNMPv2c INFORM notification sent to UDP port 162 followed by an NMS RESPONSE PDU confirming receipt.
-// TOKENS: host, ip, mac, flow, snmp2, inform, srcport, dstport, community, reqid, oid, sysuptime, varbind, int, string, wait, ms, response, compile
+// Simulate an acknowledged SNMPv2c INFORM notification sent to UDP port 162
+// followed by an NMS RESPONSE PDU confirming receipt.
+// MIB objects / traps: 1.3.6.1.6.3.1.1.5.4 (linkUp).
+// Timing: uses post-packet wait delays (15ms, 10ms) between frames.
+// Wireshark: snmp || udp.port == 162
 
-// INSTRUCTION: Define a branch router sending reliable notifications with IP 10.124.0.1.
 host branch_router { ip 10.124.0.1 mac 00:1e:13:24:00:01 }
 
-// INSTRUCTION: Define the central NMS notification receiver with IP 10.124.0.200.
 host central_nms { ip 10.124.0.200 mac 00:1e:13:24:00:c8 }
 
-// INSTRUCTION: Define a flow sending an SNMPv2c INFORM on port 162 and receiving an acknowledging RESPONSE PDU with matching REQID 5010.
 flow snmpv2c_inform_exchange(agent, nms) {
     agent -> nms snmp2 inform srcport 56162 dstport 162 community "inform_comm"
         reqid 5010 oid 1.3.6.1.6.3.1.1.5.4 sysuptime 720000
@@ -21,7 +21,6 @@ flow snmpv2c_inform_exchange(agent, nms) {
         wait 10ms
 }
 
-// INSTRUCTION: Compile block to run the SNMPv2c INFORM and RESPONSE flow.
 compile {
     snmpv2c_inform_exchange(branch_router, central_nms)
 }

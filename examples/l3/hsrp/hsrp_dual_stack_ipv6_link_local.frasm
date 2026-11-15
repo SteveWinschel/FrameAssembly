@@ -1,18 +1,17 @@
-// PROMPT: HSRPv2 IPv6 redundancy announcement over link-local addresses on port 2029.
-// TOKENS: host, ip, flow, hsrp, group, priority, state, vip, compile
+// HSRPv2 IPv6 redundancy announcement over link-local addresses on port 2029.
+// This capture targets IPv6 endpoints and carries group 100, HSRP state 16.
+// Wireshark: hsrp2
 
-// INSTRUCTION: Define IPv6 primary router with link-local address.
 host hsrp_v6_primary { ip fe80::20c:29ff:fe11:2233 }
 
-// INSTRUCTION: Define HSRP IPv6 multicast address ff02::66.
 host hsrp_v6_mcast { ip ff02::66 }
 
-// INSTRUCTION: Define HSRPv2 IPv6 hello flow with virtual link-local address.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow hsrp_v6_hello(rtr, mcast) {
     rtr -> mcast hsrp group 100 priority 120 state 16 vip fe80::1
 }
 
-// INSTRUCTION: Compile block executing IPv6 HSRPv2 heartbeat.
+// Run hsrp_v6_hello(hsrp_v6_primary, hsrp_v6_mcast) to generate the capture.
 compile {
     hsrp_v6_hello(hsrp_v6_primary, hsrp_v6_mcast)
 }

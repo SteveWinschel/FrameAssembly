@@ -42,6 +42,11 @@ pub(crate) fn dissect_ndp(b: &[u8], src_mac: [u8; 6], dst_ip: Option<IpAddr>) ->
             push_if(&mut t, "target", IpAddr::V6(ipv6_at(b, 8)), dtgt);
             24
         }
+        137 if b.len() >= 40 => {
+            t.push_str(" redirect");
+            push_if(&mut t, "target", IpAddr::V6(ipv6_at(b, 8)), dtgt);
+            40
+        }
         _ => b.len(),
     };
     let (mut pos, mut res) = (opt_off, Vec::new());

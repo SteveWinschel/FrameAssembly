@@ -1,20 +1,19 @@
-// PROMPT: IPsec ESP transport session advancing sequence numbers between hosts.
-// TOKENS: host, ip, flow, esp, spi, seq, compile
+// IPsec ESP transport session advancing sequence numbers between hosts.
+// This capture carries SPI 10001/10002.
+// Wireshark: esp
 
-// INSTRUCTION: Define secure workstation node.
 host sec_node_a { ip 10.20.30.1 }
 
-// INSTRUCTION: Define secure application server.
 host sec_node_b { ip 10.20.30.2 }
 
-// INSTRUCTION: Define bidirectional ESP packet stream exchanging encrypted records.
+// Packet sequence (3 frames) with default 10ms post-packet spacing.
 flow esp_transport_flow(a, b) {
     a -> b esp spi 10001 seq 1
     a <- b esp spi 10002 seq 1
     a -> b esp spi 10001 seq 2
 }
 
-// INSTRUCTION: Compile block executing bidirectional ESP transport.
+// Run esp_transport_flow(sec_node_a, sec_node_b) to generate the capture.
 compile {
     esp_transport_flow(sec_node_a, sec_node_b)
 }

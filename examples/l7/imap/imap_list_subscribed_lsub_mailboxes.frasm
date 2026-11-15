@@ -1,19 +1,20 @@
-// PROMPT: Simulate an IMAP LSUB and LIST (SUBSCRIBED) query enumerating active shared team folders.
-// TOKENS: host, ip, mac, flow, s, imap, tag, cmd, arg, wait, ms, status, response, compile
+// IMAP LSUB and LIST (SUBSCRIBED) query enumerating active shared team
+// folders.
+// Wireshark: imap
 
-// INSTRUCTION: Define the customer support workstation enumerating shared ticket folders.
+// Customer support workstation enumerating shared ticket folders.
 host support_agent {
     ip 10.143.40.18
     mac 00:16:3e:8f:28:12
 }
 
-// INSTRUCTION: Define the shared-mailbox IMAP server.
 host shared_imap {
     ip 10.143.40.1
     mac 00:16:3e:8f:28:01
 }
 
-// INSTRUCTION: Query subscribed folders under the shared/ namespace and receive folder attributes.
+// Query subscribed folders under the shared/ namespace and receive folder
+// attributes.
 flow imap_lsub_shared(c, s) {
     c -> s imap tag "L01" cmd "LSUB" arg "'shared/' '*'" wait 2ms
     c <- s imap tag "*" status "LSUB" response "(\HasNoChildren) '/' 'shared/support-tier1'" wait 1ms
@@ -21,7 +22,6 @@ flow imap_lsub_shared(c, s) {
     c <- s imap tag "L01" status "OK" response "Lsub completed"
 }
 
-// INSTRUCTION: Compile the IMAP LSUB shared folder enumeration flow.
 compile {
     imap_lsub_shared(support_agent, shared_imap)
 }

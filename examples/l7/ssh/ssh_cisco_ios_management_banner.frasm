@@ -1,19 +1,16 @@
-// PROMPT: Core switch management session exchanging Cisco IOS SSH banner.
-// TOKENS: host, ip, flow, s, ssh, banner, compile
+// Core switch management session exchanging Cisco IOS SSH banner.
+// SSH RFC 4253 framing on TCP 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define network operations console.
 host noc_console { ip 172.16.20.50 }
 
-// INSTRUCTION: Define Cisco catalyst core switch.
 host cisco_core { ip 172.16.20.1 }
 
-// INSTRUCTION: Define Cisco IOS SSH banner exchange flow.
 flow ssh_cisco_flow(c, s) {
     c -> s ssh banner "SSH-2.0-PuTTY_Release_0.80"
     c <- s ssh banner "SSH-2.0-Cisco-1.25"
 }
 
-// INSTRUCTION: Compile block executing Cisco SSH banner.
 compile {
     ssh_cisco_flow(noc_console, cisco_core)
 }

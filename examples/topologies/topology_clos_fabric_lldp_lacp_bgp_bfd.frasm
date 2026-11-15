@@ -1,32 +1,30 @@
-// PROMPT: Data center Clos leaf-spine underlay fabric bringup sequencing LLDP discovery, LACP port-channel sync, eBGP peering, and BFD liveliness.
-// TOKENS: host, ip, mac, flow, lldp, chassisid, portid, sysname, wait, ms, lacp, actorsys, actorkey, actorport, actorstate, bgp, open, asn, holdtime, bgpid, keepalive, bfd, state, mydisc, compile
+// Data center Clos leaf-spine underlay fabric bringup sequencing LLDP discovery,
+// LACP port-channel sync, eBGP peering, and BFD liveliness.
+// Wire profile: 9 frames; 2 IPv4 hosts; BGP, BFD, LACP, LLDP; waits 1ms, 2ms.
+// Wireshark: bgp || bfd || lacp || lldp
 
-// INSTRUCTION: Define Top-of-Rack Leaf switch 01.
 host clos_leaf_01 {
     ip 10.255.1.1
     mac 00:1c:73:ff:01:01
 }
 
-// INSTRUCTION: Define Spine switch 01 in Clos underlay fabric.
 host clos_spine_01 {
     ip 10.255.1.2
     mac 00:1c:73:ff:01:02
 }
 
-// INSTRUCTION: Define layered Clos underlay bringup from L2 LLDP/LACP to L3 eBGP and BFD.
 flow clos_underlay_bringup(leaf, spine) {
-    leaf -> spine lldp chassisid "00:1c:73:ff:01:01" portid "Ethernet49/1" sysname "dc1-leaf-01"
-    leaf <- spine lldp chassisid "00:1c:73:ff:01:02" portid "Ethernet1/1" sysname "dc1-spine-01" wait 1ms
+    leaf -> spine lldp chassisid "00:1c:73:ff:01:01" portid "Ethernet49/1" sysname "dc1-leaf-01" wait 1ms
+    leaf <- spine lldp chassisid "00:1c:73:ff:01:02" portid "Ethernet1/1" sysname "dc1-spine-01" wait 2ms
     leaf -> spine lacp actorsys 00:1c:73:ff:01:01 actorkey 49 actorport 1 actorstate 63 wait 2ms
     leaf <- spine lacp actorsys 00:1c:73:ff:01:02 actorkey 49 actorport 1 actorstate 63 wait 2ms
     leaf -> spine bgp open asn 65101 holdtime 90 bgpid 10.255.1.1 wait 2ms
-    leaf <- spine bgp open asn 65000 holdtime 90 bgpid 10.255.1.2 wait 2ms
+    leaf <- spine bgp open asn 65000 holdtime 90 bgpid 10.255.1.2 wait 1ms
     leaf -> spine bgp keepalive wait 1ms
     leaf -> spine bfd state 3 mydisc 101 yourdisc 201 wait 1ms
-    leaf <- spine bfd state 3 mydisc 201 yourdisc 101 wait 1ms
+    leaf <- spine bfd state 3 mydisc 201 yourdisc 101
 }
 
-// INSTRUCTION: Compile block executing Clos leaf-spine underlay bringup.
 compile {
     clos_underlay_bringup(clos_leaf_01, clos_spine_01)
 }

@@ -1,19 +1,18 @@
-// PROMPT: Carrier-Grade NAT traversal query with XOR-MAPPED-ADDRESS mapping.
-// TOKENS: host, ip, flow, s, stun, bindingrequest, bindingresponse, xormappedaddr, compile
+// Carrier-Grade NAT traversal query with XOR-MAPPED-ADDRESS mapping.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (STUN (RFC
+// 8489), UDP 3478).
+// Wireshark: stun
 
-// INSTRUCTION: Define cellular subscriber endpoint on CGNAT subnet.
 host cgnat_subscriber { ip 100.64.12.90 }
 
-// INSTRUCTION: Define carrier public STUN reflector.
 host carrier_reflector { ip 203.0.113.5 }
 
-// INSTRUCTION: Define CGNAT address binding flow.
 flow stun_cgnat_flow(c, s) {
     c -> s stun bindingrequest
     c <- s stun bindingresponse xormappedaddr 203.0.113.150
 }
 
-// INSTRUCTION: Compile block executing CGNAT binding flow.
 compile {
     stun_cgnat_flow(cgnat_subscriber, carrier_reflector)
 }

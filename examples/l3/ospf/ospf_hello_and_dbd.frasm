@@ -1,20 +1,21 @@
-// PROMPT: Open Shortest Path First routing adjacency establishment using OSPF Hello and Database Description packets.
-// TOKENS: host, ip, flow, ospf, hello, routerid, areaid, dbd, compile
+// Open Shortest Path First routing adjacency establishment using OSPF Hello
+// and Database Description packets.
+// This capture exchanges OSPF IP protocol 89 link-state packets toward
+// AllSPFRouters.
+// Wireshark: ospf
 
-// INSTRUCTION: Define OSPF router 1.
 host ospf_r1 { ip 10.0.0.1 }
 
-// INSTRUCTION: Define OSPF router 2.
 host ospf_r2 { ip 10.0.0.2 }
 
-// INSTRUCTION: Define OSPF neighbor discovery and database exchange flow.
+// Packet sequence (3 frames) with default 10ms post-packet spacing.
 flow ospf_adj_flow(r1, r2) {
     r1 -> r2 ospf hello routerid 10.0.0.1 areaid 0
     r1 <- r2 ospf hello routerid 10.0.0.2 areaid 0
     r1 -> r2 ospf dbd routerid 10.0.0.1
 }
 
-// INSTRUCTION: Compile block executing OSPF adjacency process.
+// Run ospf_adj_flow(ospf_r1, ospf_r2) to generate the capture.
 compile {
     ospf_adj_flow(ospf_r1, ospf_r2)
 }

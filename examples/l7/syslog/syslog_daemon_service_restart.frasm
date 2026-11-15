@@ -1,20 +1,18 @@
-// PROMPT: System daemon facility notice recording background service restart.
-// TOKENS: host, ip, flow, s, syslog, facility, severity, hostname, app, procid, msg, compile
+// System daemon facility notice recording background service restart.
+// RFC 5424 over UDP 514; facility 3 (daemon) + severity 5 (notice) yields PRI
+// <29>.
+// Wireshark: syslog
 
-// INSTRUCTION: Define application gateway host.
 host app_gw { ip 10.40.2.14 }
 
-// INSTRUCTION: Define infrastructure syslog server.
 host infra_syslog { ip 10.40.0.1 }
 
-// INSTRUCTION: Define daemon restart notice flow.
 flow syslog_daemon_flow(c, s) {
     c -> s syslog facility 3 severity 5
         hostname "app-gw-01" app "systemd" procid "1"
         msg "nginx.service: Deactivated successfully. Service reloaded."
 }
 
-// INSTRUCTION: Compile block executing daemon notice.
 compile {
     syslog_daemon_flow(app_gw, infra_syslog)
 }

@@ -1,20 +1,19 @@
-// PROMPT: Multi-VLAN 802.1Q trunk carrying voice (VLAN 110 PCP 5), video (VLAN 120 PCP 4), and data (VLAN 130 PCP 0).
-// TOKENS: host, ip, flow, vlan, pcp, dei, dscp, udp, srcport, dstport, payload, wait, ms, compile
+// Multi-VLAN 802.1Q trunk carrying voice (VLAN 110 PCP 5), video (VLAN 120 PCP
+// 4), and data (VLAN 130 PCP 0).
+// Wire profile: 3 frames; 2 IPv4 hosts; VLAN 110,120,130; PCP 0,4,5; UDP; dstport
+// 443,5004,16384; DSCP 0,34,46; waits 2ms.
+// Wireshark: vlan.id == 110 || vlan.id == 120 || vlan.id == 130
 
-// INSTRUCTION: Define converged campus access switch uplink.
 host campus_uplink { ip 10.30.0.10 }
 
-// INSTRUCTION: Define campus distribution router trunk interface.
 host campus_dist_gw { ip 10.30.0.1 }
 
-// INSTRUCTION: Define triple-play QoS trunk flow across voice, video, and data VLANs.
 flow multi_vlan_qos_trunk(access, dist) {
-    access -> dist vlan 110 pcp 5 dei 0 dscp 46 udp srcport 16384 dstport 16384 payload "rtp_g711_voice_sample"
+    access -> dist vlan 110 pcp 5 dei 0 dscp 46 udp srcport 16384 dstport 16384 payload "rtp_g711_voice_sample" wait 2ms
     access -> dist vlan 120 pcp 4 dei 0 dscp 34 udp srcport 5004 dstport 5004 payload "h264_video_nal_unit" wait 2ms
-    access -> dist vlan 130 pcp 0 dei 1 dscp 0 udp srcport 54123 dstport 443 payload "bulk_file_sync_chunk" wait 2ms
+    access -> dist vlan 130 pcp 0 dei 1 dscp 0 udp srcport 54123 dstport 443 payload "bulk_file_sync_chunk"
 }
 
-// INSTRUCTION: Compile block executing multi-VLAN QoS trunk multiplexing.
 compile {
     multi_vlan_qos_trunk(campus_uplink, campus_dist_gw)
 }

@@ -1,19 +1,18 @@
-// PROMPT: Redis RDB snapshot administration using BGSAVE, LASTSAVE, and INFO persistence inspection.
-// TOKENS: host, ip, mac, flow, s, redis, cmd, args, replytype, value, wait, ms, compile
+// Redis RDB snapshot administration using BGSAVE, LASTSAVE, and INFO
+// persistence inspection.
+// Timing: uses post-packet wait delays (2ms, 1ms) between frames.
+// Wireshark: resp
 
-// INSTRUCTION: Define the database administration automation runner.
 host dba_runner {
     ip 10.80.70.50
     mac 00:1a:2b:80:70:50
 }
 
-// INSTRUCTION: Define the primary Redis master node.
 host redis_master {
     ip 10.80.70.1
     mac 00:1a:2b:80:70:01
 }
 
-// INSTRUCTION: Trigger background RDB save and query last save timestamp and persistence status.
 flow redis_bgsave_audit(c, s) {
     c -> s redis cmd "BGSAVE" args "SCHEDULE"
     c <- s redis replytype "status" value "Background saving scheduled" wait 2ms
@@ -24,7 +23,6 @@ flow redis_bgsave_audit(c, s) {
 rdb_bgsave_in_progress:0"
 }
 
-// INSTRUCTION: Compile the Redis BGSAVE persistence check flow.
 compile {
     redis_bgsave_audit(dba_runner, redis_master)
 }

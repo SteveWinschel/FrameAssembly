@@ -1,19 +1,16 @@
-// PROMPT: SCTP 4-way association initiation and acknowledgment with verification tag.
-// TOKENS: host, ip, flow, sctp, chunk, init, vtag, srcport, dstport, initack, compile
+// SCTP 4-way association initiation and acknowledgment with verification tag.
+// Wire profile: 2 frames; 2 IPv4 hosts; SCTP; SCTP INIT/INITACK; dstport 2905.
+// Wireshark: sctp && sctp.port == 2905
 
-// INSTRUCTION: Define SCTP signaling client.
 host sctp_client { ip 10.10.10.1 }
 
-// INSTRUCTION: Define SCTP signaling gateway server.
 host sctp_server { ip 10.10.10.2 }
 
-// INSTRUCTION: Define SCTP association initiation exchange flow.
 flow sctp_init_flow(client, server) {
     client -> server sctp chunk init vtag 0 srcport 2905 dstport 2905
     client <- server sctp chunk initack vtag 123456 srcport 2905 dstport 2905
 }
 
-// INSTRUCTION: Compile block executing SCTP association initiation.
 compile {
     sctp_init_flow(sctp_client, sctp_server)
 }

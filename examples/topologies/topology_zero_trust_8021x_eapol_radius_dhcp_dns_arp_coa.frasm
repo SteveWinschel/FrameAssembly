@@ -1,38 +1,37 @@
-// PROMPT: Zero-Trust 802.1X campus access onboarding combining EAPOL supplicant authentication, RADIUS CoA VLAN assignment, DHCP lease, ARP defense, and DNS resolution.
-// TOKENS: host, ip, mac, flow, eapol, version, type, start, eappacket, identity, wait, ms, radius, accessrequest, user, accessaccept, vlan, dhcp, discover, offer, yiaddr, arp, gratuitous, compile
+// Zero-Trust 802.1X campus access onboarding combining EAPOL supplicant
+// authentication, RADIUS CoA VLAN assignment, DHCP lease, ARP defense, and DNS
+// resolution.
+// Wire profile: 9 frames; 3 IPv4 hosts; VLAN 20; DNS, DHCP, RADIUS, ARP, EAPOL;
+// waits 1ms, 2ms.
+// Wireshark: dns || (dhcp || dhcpv6) || radius || arp
 
-// INSTRUCTION: Define corporate employee laptop connecting to access switch port.
 host campus_supplicant {
     ip 10.88.20.55
     mac 3c:52:82:58:14:37
 }
 
-// INSTRUCTION: Define 802.1X authenticator campus access switch.
 host nac_access_sw {
     ip 10.88.0.10
     mac 00:1e:bd:58:00:0a
 }
 
-// INSTRUCTION: Define centralized RADIUS NAC, DHCP, and DNS server.
 host zero_trust_ise_srv {
     ip 10.88.0.200
     mac 00:50:56:58:00:c8
 }
 
-// INSTRUCTION: Define 802.1X EAPOL start, RADIUS authentication, VLAN 20 DHCP lease, gratuitous ARP, and DNS lookup.
 flow zero_trust_campus_onboarding(sup, sw, ise) {
-    sup -> sw eapol version 2 type start
+    sup -> sw eapol version 2 type start wait 1ms
     sup -> sw eapol version 2 type eappacket identity "corp\\alice" wait 1ms
     sw -> ise radius accessrequest user "corp\\alice" wait 1ms
-    sw <- ise radius accessaccept wait 1ms
+    sw <- ise radius accessaccept wait 2ms
     sup -> ise vlan 20 dhcp discover wait 2ms
-    sup <- ise vlan 20 dhcp offer yiaddr 10.88.20.55 wait 2ms
+    sup <- ise vlan 20 dhcp offer yiaddr 10.88.20.55 wait 1ms
     sup -> sw vlan 20 arp gratuitous wait 1ms
     sup -> ise vlan 20 dns query qname "intranet.corp.internal" wait 1ms
-    sup <- ise vlan 20 dns response qname "intranet.corp.internal" rdata "10.88.100.10" wait 1ms
+    sup <- ise vlan 20 dns response qname "intranet.corp.internal" rdata "10.88.100.10"
 }
 
-// INSTRUCTION: Compile block executing Zero-Trust 802.1X campus onboarding topology.
 compile {
     zero_trust_campus_onboarding(campus_supplicant, nac_access_sw, zero_trust_ise_srv)
 }

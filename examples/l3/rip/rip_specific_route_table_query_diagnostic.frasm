@@ -1,25 +1,27 @@
-// PROMPT: Network management station querying a router's RIPv2 table for specific subnet entries via Command 1 (REQUEST).
-// TOKENS: host, ip, mac, flow, rip, request, prefix, metric, srcport, dstport, dscp, ttl, wait, ms, response, nexthop, tag, compile
+// Network management station querying a router's RIPv2 table for specific
+// subnet entries via Command 1 (REQUEST).
+// This capture sets DSCP 16/48, TTL 64, carries destination port 520/55520,
+// and uses post-packet wait gaps (4ms) between frames.
+// Wireshark: rip
 
-// INSTRUCTION: Define network management diagnostic station sending non-standard source port RIP query.
 host nms_rip_poller {
     ip 10.52.250.100
     mac 00:50:56:52:fa:64
 }
 
-// INSTRUCTION: Define managed branch router replying directly to the querying UDP port.
 host managed_rip_rtr {
     ip 10.52.250.1
     mac 00:50:56:52:fa:01
 }
 
-// INSTRUCTION: Define diagnostic RIP REQUEST from ephemeral SRCPORT 55520 and router RESPONSE with current metric.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow rip_diagnostic_entry_poll(nms, rtr) {
     nms -> rtr rip request prefix 10.120.0.0 metric 16 srcport 55520 dstport 520 dscp 16 ttl 64 wait 4ms
     nms <- rtr rip response prefix 10.120.0.0 metric 4 nexthop 10.52.250.254 tag 400 srcport 520 dstport 55520 dscp 48 ttl 64
 }
 
-// INSTRUCTION: Compile the NMS diagnostic RIPv2 specific route query flow.
+// Run rip_diagnostic_entry_poll(nms_rip_poller, managed_rip_rtr) to generate
+// the capture.
 compile {
     rip_diagnostic_entry_poll(nms_rip_poller, managed_rip_rtr)
 }

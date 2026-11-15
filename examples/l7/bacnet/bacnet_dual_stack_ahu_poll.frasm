@@ -1,26 +1,28 @@
-// PROMPT: Dual-stack BACnet/IP discovery and sensor read running over both IPv4 and IPv6 networks.
-// TOKENS: host, ip, flow, bacnet, whois, iam, readproperty, invokeid, objecttype, objectinstance, propertyid, compile
+// Dual-stack BACnet/IP discovery and sensor read running over both IPv4 and
+// IPv6 networks.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define IPv4 BMS workstation.
+// IPv4 BMS workstation.
 host bms_v4 { ip 192.168.50.10 }
 
-// INSTRUCTION: Define IPv4 air handling unit (AHU).
+// IPv4 air handling unit (AHU).
 host ahu_v4 { ip 192.168.50.25 }
 
-// INSTRUCTION: Define IPv6 BMS workstation.
+// IPv6 BMS workstation.
 host bms_v6 { ip 2001:db8:bac0::10 }
 
-// INSTRUCTION: Define IPv6 air handling unit (AHU).
+// IPv6 air handling unit (AHU).
 host ahu_v6 { ip 2001:db8:bac0::25 }
 
-// INSTRUCTION: Discover device and read Analog Input 0 present-value.
+// Discover device and read Analog Input 0 present-value. Runs the same flow
+// definition over both IPv4 and IPv6 host pairs. BACnet/IP on UDP 47808
+// (objects: 0 (Analog Input); properties: 85 (Present_Value)).
 flow bacnet_dual_poll(bms, ahu) {
     bms -> ahu bacnet whois
     bms <- ahu bacnet iam
     bms -> ahu bacnet readproperty invokeid 7 objecttype 0 objectinstance 1 propertyid 85
 }
 
-// INSTRUCTION: Execute the BACnet polling flow on both IPv4 and IPv6 pairs.
 compile {
     bacnet_dual_poll(bms_v4, ahu_v4)
     bacnet_dual_poll(bms_v6, ahu_v6)

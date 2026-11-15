@@ -1,19 +1,18 @@
-// PROMPT: Top-of-Rack leaf switch resolving spine switch IPv6 neighbor cache entry.
-// TOKENS: host, ip, mac, flow, ndp, neighborsolicit, target, slla, neighboradvert, tlla, compile
+// Top-of-Rack leaf switch resolving spine switch IPv6 neighbor cache entry.
+// This capture targets IPv6 endpoints.
+// Wireshark: icmpv6.nd
 
-// INSTRUCTION: Define Data Center Leaf 1 switch.
 host leaf_sw_1 { ip fe80::1001 mac 52:54:00:10:01:01 }
 
-// INSTRUCTION: Define Data Center Spine 1 switch.
 host spine_sw_1 { ip fe80::2001 mac 52:54:00:20:01:01 }
 
-// INSTRUCTION: Define fabric point-to-point NDP resolution flow.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow dc_fabric_ndp_exchange(leaf, spine) {
     leaf -> spine ndp neighborsolicit target 2001:db8:dc::2001 slla 52:54:00:10:01:01
     leaf <- spine ndp neighboradvert target 2001:db8:dc::2001 tlla 52:54:00:20:01:01
 }
 
-// INSTRUCTION: Compile block executing data center fabric neighbor discovery.
+// Run dc_fabric_ndp_exchange(leaf_sw_1, spine_sw_1) to generate the capture.
 compile {
     dc_fabric_ndp_exchange(leaf_sw_1, spine_sw_1)
 }

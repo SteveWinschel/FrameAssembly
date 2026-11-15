@@ -1,0 +1,11 @@
+// Minimal 2-block SSH starter sending a default RFC 4253 version banner on TCP port 22.
+// Tracks TCP sequence numbers automatically directly from the compile block without a flow.
+// Compile to test SSH banner audit signatures or firewall policies.
+// Wireshark: ssh
+
+host admin_ws    { ip 10.50.1.100 mac 00:1a:2b:22:00:64 }
+host bastion_srv { ip 10.50.1.1   mac 00:1a:2b:22:00:01 }
+
+compile {
+    admin_ws -> bastion_srv ssh
+}

@@ -1,25 +1,23 @@
-// PROMPT: LACP cabling misconfiguration detection where a dual-port NIC is accidentally plugged into two different Actor Keys on the switch.
-// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, compile
+// LACP cabling misconfiguration detection where a dual-port NIC is accidentally
+// plugged into two different Actor Keys on the switch.
+// Wire profile: 2 frames; 2 IPv4 hosts; LACP; waits 5ms.
+// Wireshark: lacp
 
-// INSTRUCTION: Define server NIC port 2 expecting Actor Key 100.
 host miswired_srv_nic2 {
     ip 10.33.0.10
     mac 00:25:90:33:00:0a
 }
 
-// INSTRUCTION: Define switch port accidentally configured in port-channel 200 (ACTOR_KEY 200).
 host misconfigured_sw_port {
     ip 10.33.0.1
     mac 00:1c:73:33:00:01
 }
 
-// INSTRUCTION: Define LACP key mismatch holding port out of sync (ACTOR_STATE 5 = Active,Aggregation, InSync=0).
 flow lacp_key_mismatch_fault(srv, sw) {
-    srv -> sw lacp actorsys 00:25:90:33:00:0a actorkey 100 actorport 2 actorstate 61 partnersys 00:1c:73:33:00:01 partnerkey 100 partnerport 2 partnerstate 61
-    srv <- sw lacp actorsys 00:1c:73:33:00:01 actorkey 200 actorport 18 actorstate 5 partnersys 00:25:90:33:00:0a partnerkey 100 partnerport 2 partnerstate 5 wait 5ms
+    srv -> sw lacp actorsys 00:25:90:33:00:0a actorkey 100 actorport 2 actorstate 61 partnersys 00:1c:73:33:00:01 partnerkey 100 partnerport 2 partnerstate 61 wait 5ms
+    srv <- sw lacp actorsys 00:1c:73:33:00:01 actorkey 200 actorport 18 actorstate 5 partnersys 00:25:90:33:00:0a partnerkey 100 partnerport 2 partnerstate 5
 }
 
-// INSTRUCTION: Compile block executing LACP key mismatch fault scenario.
 compile {
     lacp_key_mismatch_fault(miswired_srv_nic2, misconfigured_sw_port)
 }

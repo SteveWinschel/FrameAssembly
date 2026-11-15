@@ -1,19 +1,19 @@
-// PROMPT: RFC 5884 BFD for MPLS Label Switched Paths verifying data plane continuity.
-// TOKENS: host, ip, flow, head, bfd, state, mydisc, yourdisc, mintx, minrx, mult, mpls, exp, bos, mplsttl, compile
+// RFC 5884 BFD for MPLS Label Switched Paths verifying data plane continuity.
+// This capture wraps frames in MPLS label 10480/20480 and carries BFD state
+// 3.
+// Wireshark: bfd && mpls
 
-// INSTRUCTION: Define ingress Label Edge Router (LER).
 host ler_headend { ip 10.0.250.1 }
 
-// INSTRUCTION: Define egress Label Edge Router (LER).
 host ler_tailend { ip 10.0.250.2 }
 
-// INSTRUCTION: Define MPLS-encapsulated BFD OAM session with EXP 6.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow bfd_mpls_lsp_flow(head, tail) {
     head -> tail bfd state 3 mydisc 80001 yourdisc 80002 mintx 50000 minrx 50000 mult 3 mpls 10480 exp 6 bos 1 mplsttl 255
     head <- tail bfd state 3 mydisc 80002 yourdisc 80001 mintx 50000 minrx 50000 mult 3 mpls 20480 exp 6 bos 1 mplsttl 255
 }
 
-// INSTRUCTION: Compile the MPLS LSP BFD OAM verification flow.
+// Run bfd_mpls_lsp_flow(ler_headend, ler_tailend) to generate the capture.
 compile {
     bfd_mpls_lsp_flow(ler_headend, ler_tailend)
 }

@@ -1,4 +1,4 @@
-//! **FrameAssembly** (`frameassembly` v3.0.0) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
+//! **FrameAssembly** (`frameassembly` v3.1.0) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
 //!
 //! * **Official Website & Browser Playground:** [frameassembly.ai.studio](https://frameassembly.ai.studio/) (compile `.frasm` <-> `.pcap`/`.pcapng` and inspect packets in the browser with zero install)
 //! * **Canonical Repository & CLI:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
@@ -187,8 +187,9 @@
 //!    port inheritance across `->` and `<-`, shares canonical 4-tuple TCP sequence/acknowledgment
 //!    state across raw `tcp` and L7 protocols, preserves dynamic builder ports/multicast targets,
 //!    and derives RFC 1112 (`01:00:5e:xx:xx:xx`) and RFC 2464 (`33:33:xx:xx:xx:xx`) multicast MACs.
-//! 6. **Stage 6 — Nanosecond PCAPNG Serialization ([`pcap`]) & 5-Stage Reverse PCAP Decompiler ([`reverse`])**: Emits `SHB -> IDB -> EPB` blocks
-//!    via [`pcap::PcapWriter`] with `LINKTYPE_ETHERNET` and `IfTsResol(9)` (`10^-9`s) resolution,
+//! 6. **Stage 6 — Classic `.pcap` & Nanosecond `PCAPNG` Serialization ([`pcap`]) & 5-Stage Reverse PCAP Decompiler ([`reverse`])**: Emits classic libpcap `.pcap` files
+//!    ([`pcap::serialize_classic_pcap`]) when the output path ends with `.pcap` and `SHB -> IDB -> EPB` `PCAPNG` blocks
+//!    ([`pcap::serialize_pcapng`], [`pcap::write_capture_file`], [`pcap::PcapWriter`]) with `LINKTYPE_ETHERNET` and `IfTsResol(9)` (`10^-9`s) resolution for `.pcapng`,
 //!    and decompiles `.pcap` / `.pcapng` captures into canonical `.frasm` code via
 //!    [`reverse::reverse_pcap_reader`], [`reverse::reverse_pcap_bytes`], and
 //!    [`reverse::reverse_pcap_file`] across a 5-stage reverse pipeline (`container.rs`,

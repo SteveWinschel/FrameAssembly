@@ -1,20 +1,21 @@
-// PROMPT: Fragmented IPv4 ICMP Echo Request and Echo Reply using MF and FRAGOFFSET fields.
-// TOKENS: host, ip, flow, s, icmp, echorequest, id, seq, ipid, mf, fragoffset, payload, echoreply, compile
+// Fragmented IPv4 ICMP Echo Request and Echo Reply using MF and FRAGOFFSET
+// fields.
+// This capture sets MF fragmentation.
+// Wireshark: icmp
 
-// INSTRUCTION: Define host transmitting fragmented jumbo ICMP Echo Request.
 host frag_ping_sender { ip 10.44.0.10 }
 
-// INSTRUCTION: Define host reassembling and replying to fragmented ICMP ping.
 host frag_ping_target { ip 10.44.0.20 }
 
-// INSTRUCTION: Define two-fragment ICMP Echo Request and Echo Reply.
+// Packet sequence (3 frames) with default 10ms post-packet spacing.
 flow icmp_fragmented_ping(s, t) {
     s -> t icmp echorequest id 4400 seq 1 ipid 7777 mf fragoffset 0 payload "JUMBO_PING_FRAGMENT_ONE_DATA"
     s -> t icmp echorequest id 4400 seq 1 ipid 7777 fragoffset 185 payload "JUMBO_PING_FRAGMENT_TWO_TAIL"
     s <- t icmp echoreply id 4400 seq 1 ipid 8888 payload "JUMBO_PING_REASSEMBLED_REPLY"
 }
 
-// INSTRUCTION: Compile the fragmented IPv4 ICMP ping flow.
+// Run icmp_fragmented_ping(frag_ping_sender, frag_ping_target) to generate
+// the capture.
 compile {
     icmp_fragmented_ping(frag_ping_sender, frag_ping_target)
 }

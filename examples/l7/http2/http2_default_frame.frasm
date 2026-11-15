@@ -1,24 +1,18 @@
-// PROMPT: Default HTTP/2 frame emission on TCP port 443 using RFC 9113 wire defaults.
-// TOKENS: host, ip, mac, flow, s, http2, compile
+// HTTP/2 starter frame on TCP port 443 using built-in defaults. Omitting
+// extra keywords emits a 9-byte HTTP/2 SETTINGS control frame on stream 0.
+// Wireshark: http2 || tcp.port == 443
 
-// INSTRUCTION: Define HTTP/2 browser client.
 host h2_client {
     ip 192.168.43.10
     mac 00:1a:11:44:33:01
 }
 
-// INSTRUCTION: Define HTTP/2 edge server.
 host h2_server {
     ip 192.168.43.1
     mac 00:1a:11:44:33:02
 }
 
-// INSTRUCTION: Emit a default HTTP/2 frame with zero optional parameters.
-flow http2_default(c, s) {
-    c -> s http2
-}
-
-// INSTRUCTION: Compile the default HTTP/2 scenario.
+// Send the frame directly in compile without needing a reusable flow block.
 compile {
-    http2_default(h2_client, h2_server)
+    h2_client -> h2_server http2
 }

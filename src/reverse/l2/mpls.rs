@@ -42,7 +42,10 @@ pub(crate) fn peel_mpls(
             *et = 0x0806;
         } else if dst_mac == [0x01, 0x80, 0xc2, 0x00, 0x00, 0x0e] && *off + 2 <= b.len() {
             *et = 0x88CC;
-        } else if *off + 38 <= b.len() && b[*off..*off + 3] == [0x42, 0x42, 0x03] {
+        } else if *off + 38 <= b.len()
+            && b.len() - *off <= 1500
+            && b[*off..*off + 3] == [0x42, 0x42, 0x03]
+        {
             *et = (b.len() - *off) as u16;
         } else if *off + 110 <= b.len() && b[*off..*off + 2] == [0x01, 0x01] {
             *et = 0x8809;

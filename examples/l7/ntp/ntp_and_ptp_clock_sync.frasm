@@ -1,19 +1,18 @@
-// PROMPT: Network Time Protocol client mode on UDP 123 and Precision Time Protocol synchronization on UDP 319.
-// TOKENS: host, ip, flow, s, ntp, mode, stratum, ptp, msgtype, sync, domainid, compile
+// Network Time Protocol client mode on UDP 123 and Precision Time Protocol
+// synchronization on UDP 319.
+// Wireshark: ntp
 
-// INSTRUCTION: Define time synchronization client.
 host time_client { ip 10.0.1.10 }
 
-// INSTRUCTION: Define grandmaster clock time server.
 host time_server { ip 10.0.1.1 }
 
-// INSTRUCTION: Define multi-protocol clock synchronization flow.
+// Multi-protocol clock synchronization flow. NTPv4 modes on UDP 123: 3
+// (Client).
 flow clock_sync_flow(c, s) {
     c -> s ntp mode 3 stratum 2
     c -> s ptp msgtype sync domainid 0
 }
 
-// INSTRUCTION: Compile block executing clock synchronization.
 compile {
     clock_sync_flow(time_client, time_server)
 }

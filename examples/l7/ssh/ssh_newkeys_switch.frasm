@@ -1,19 +1,17 @@
-// PROMPT: SSH key exchange completion switching to negotiated symmetric encryption keys.
-// TOKENS: host, ip, flow, s, ssh, newkeys, compile
+// SSH key exchange completion switching to negotiated symmetric encryption
+// keys.
+// SSH RFC 4253 framing on TCP 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.2 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow ssh_keys(c, s) {
     c -> s ssh newkeys
     c <- s ssh newkeys
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ssh_keys(client, server)
 }

@@ -19,6 +19,7 @@ use core::net::IpAddr;
 #[doc(alias = "inform")]
 #[doc(alias = "getnext")]
 #[doc(alias = "getbulk")]
+#[doc(alias = "report")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SnmpPduType {
     /// SNMPv1 Trap (`0xA4`) or SNMPv2c/v3 Trapv2 (`0xA7`) PDU (`trap`).
@@ -35,6 +36,8 @@ pub enum SnmpPduType {
     GetNext,
     /// SNMPv2c/v3 GetBulkRequest (`0xA5`) PDU (`getbulk`).
     GetBulk,
+    /// SNMPv2c/v3 Report (`0xA8`) PDU (`report`).
+    Report,
 }
 
 /// Represents the SNMPv3 User-Based Security Model (USM) authentication algorithm (RFC 3414 / RFC 7860).
@@ -156,7 +159,7 @@ pub struct Snmp1Spec<'a> {
 
 /// RFC 1901 / RFC 3416 Community-Based Simple Network Management Protocol Version 2 (SNMPv2c) specification.
 ///
-/// Syntax mapping: `snmp2 [trap | inform | get | getnext | getbulk | set | response] [community <str>] [reqid <u32>] [nonrepeaters <u32>] [maxrepetitions <u32>] [sysuptime <u32>] [oid <oid>] [varbind <oid> <val>...]`
+/// Syntax mapping: `snmp2 [trap | inform | get | getnext | getbulk | set | response | report] [community <str>] [reqid <u32>] [nonrepeaters <u32>] [maxrepetitions <u32>] [sysuptime <u32>] [oid <oid>] [varbind <oid> <val>...]`
 #[doc(alias = "snmp2")]
 #[doc(alias = "SNMPv2c")]
 #[doc(alias = "RFC 3416")]
@@ -170,6 +173,7 @@ pub struct Snmp1Spec<'a> {
 #[doc(alias = "getbulk")]
 #[doc(alias = "set")]
 #[doc(alias = "response")]
+#[doc(alias = "report")]
 #[doc(alias = "community")]
 #[doc(alias = "reqid")]
 #[doc(alias = "nonrepeaters")]
@@ -195,7 +199,7 @@ pub struct Snmp2Spec<'a> {
 
 /// RFC 3412 / RFC 3414 Simple Network Management Protocol Version 3 (SNMPv3 USM) specification.
 ///
-/// Syntax mapping: `snmp3 [trap | inform | get | getnext | getbulk | set | response] [user <str>] [engineid <hex>] [engineboots <u32>] [enginetime <u32>] [contextname <str>] [auth <alg> <pass>] [priv <alg> <pass>] [reqid <u32>] [nonrepeaters <u32>] [maxrepetitions <u32>] [sysuptime <u32>] [oid <oid>] [varbind <oid> <val>...]`
+/// Syntax mapping: `snmp3 [trap | inform | get | getnext | getbulk | set | response | report] [user <str>] [engineid <hex>] [engineboots <u32>] [enginetime <u32>] [contextname <str>] [auth <alg> <pass>] [priv <alg> <pass>] [reqid <u32>] [nonrepeaters <u32>] [maxrepetitions <u32>] [sysuptime <u32>] [oid <oid>] [varbind <oid> <val>...]`
 #[doc(alias = "snmp3")]
 #[doc(alias = "SNMPv3")]
 #[doc(alias = "RFC 3414")]
@@ -210,6 +214,7 @@ pub struct Snmp2Spec<'a> {
 #[doc(alias = "getbulk")]
 #[doc(alias = "set")]
 #[doc(alias = "response")]
+#[doc(alias = "report")]
 #[doc(alias = "user")]
 #[doc(alias = "engineid")]
 #[doc(alias = "engineboots")]

@@ -1,18 +1,16 @@
-// PROMPT: Memcached binary protocol command execution over IPv6.
-// TOKENS: host, ip, flow, s, memcached, cmd, key, opaque, compile
+// Memcached binary protocol command execution over IPv6.
+// Wireshark: memcache || tcp.port == 11211
+// Automatic Ethernet MAC addresses and TCP port 11211 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow memcached_bin(c, s) {
     c -> s memcached cmd "get" key "cached_data" opaque 1234
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     memcached_bin(client, server)
 }

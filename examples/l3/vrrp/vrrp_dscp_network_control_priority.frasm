@@ -1,18 +1,19 @@
-// PROMPT: VRRP master advertisement marked with DSCP Class Selector 6 for control plane prioritization.
-// TOKENS: host, ip, flow, dst, vrrp, vrid, priority, vip, dscp, ttl, compile
+// VRRP master advertisement marked with DSCP Class Selector 6 for control
+// plane prioritization.
+// This capture sets DSCP 48, TTL 255 and carries VRID 8.
+// Wireshark: vrrp
 
-// INSTRUCTION: Define enterprise campus core gateway.
 host campus_core_gw { ip 172.18.1.254 }
 
-// INSTRUCTION: Define VRRP multicast destination address.
 host vrrp_mcast_addr { ip 224.0.0.18 }
 
-// INSTRUCTION: Define DSCP CS6 prioritized VRRP advertisement flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vrrp_dscp_flow(gw, dst) {
     gw -> dst vrrp vrid 8 priority 160 vip 172.18.1.1 dscp 48 ttl 255
 }
 
-// INSTRUCTION: Compile block executing DSCP prioritized VRRP advertisement.
+// Run vrrp_dscp_flow(campus_core_gw, vrrp_mcast_addr) to generate the
+// capture.
 compile {
     vrrp_dscp_flow(campus_core_gw, vrrp_mcast_addr)
 }

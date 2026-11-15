@@ -1,19 +1,21 @@
-// PROMPT: Generate a Telnet RFC 2217 Com Port Control (Option 44) negotiation for remote baud-rate and DTR/RTS modem control.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, telnet, will, do, option, payload, compile
+// Generate a Telnet RFC 2217 Com Port Control (Option 44) negotiation for
+// remote baud-rate and DTR/RTS modem control.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Telnet on TCP 23 negotiating option(s): 44.
+// Overrides destination port to 23.
+// Wireshark: telnet
 
-// INSTRUCTION: Define host endpoint scada_box.
 host scada_box {
     mac 00:15:5d:22:17:01
     ip 10.44.23.10
 }
 
-// INSTRUCTION: Define host endpoint serial_bridge.
 host serial_bridge {
     mac 00:15:5d:22:17:02
     ip 10.44.23.20
 }
 
-// INSTRUCTION: Negotiate RFC 2217 Com Port Control (Option 44) and configure 9600 8N1 serial framing.
 flow telnet_rfc2217_com_port_control(scada_box, serial_bridge) {
     scada_box -> serial_bridge tcp syn srcport 62023 dstport 23
     serial_bridge -> scada_box tcp syn ack
@@ -24,7 +26,6 @@ flow telnet_rfc2217_com_port_control(scada_box, serial_bridge) {
     serial_bridge -> scada_box telnet option 44 payload "ACK-BAUDRATE=9600:MODEMSTATE=CTS+DSR"
 }
 
-// INSTRUCTION: Compile the Telnet RFC 2217 Com Port Control flow.
 compile {
     telnet_rfc2217_com_port_control(scada_box, serial_bridge)
 }

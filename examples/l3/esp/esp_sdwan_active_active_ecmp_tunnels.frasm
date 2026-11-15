@@ -1,26 +1,28 @@
-// PROMPT: SD-WAN edge appliance load-balancing two active-active IPsec ESP Security Associations (SPI 50101 and SPI 50102).
-// TOKENS: host, ip, mac, flow, esp, spi, seq, iv, icv, nextheader, dscp, df, ttl, payload, wait, ms, compile
+// SD-WAN edge appliance load-balancing two active-active IPsec ESP Security
+// Associations (SPI 50101 and SPI 50102).
+// This capture sets DSCP 10/46, TTL 64, DF bit set, carries SPI
+// 50101/50102/50103, and uses post-packet wait gaps (2ms) between frames.
+// Wireshark: esp
 
-// INSTRUCTION: Define SD-WAN branch appliance with dual per-flow IPsec ESP SAs.
 host sdwan_branch_edge {
     ip 198.18.50.10
     mac 00:1c:73:50:10:01
 }
 
-// INSTRUCTION: Define SD-WAN regional hub terminating parallel ESP SAs.
 host sdwan_regional_hub {
     ip 198.18.50.1
     mac 00:1c:73:50:01:01
 }
 
-// INSTRUCTION: Define interleaved packets across SPI 50101 (Voice EF) and SPI 50102 (Bulk AF11).
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow esp_sdwan_dual_sa_flow(branch, hub) {
     branch -> hub esp spi 50101 seq 1 iv "0001000100010001" icv "111111112222222233333333" nextheader 4 dscp 46 df ttl 64 payload "SDWAN_SA1_REALTIME_VOICE" wait 2ms
     branch -> hub esp spi 50102 seq 1 iv "0002000200020002" icv "444444445555555566666666" nextheader 4 dscp 10 df ttl 64 payload "SDWAN_SA2_BULK_BACKUP" wait 2ms
     branch <- hub esp spi 50103 seq 1 iv "0003000300030003" icv "777777778888888899999999" nextheader 4 dscp 46 df ttl 64 payload "SDWAN_HUB_VOICE_RETURN"
 }
 
-// INSTRUCTION: Compile the SD-WAN active-active dual-SPI ESP flow.
+// Run esp_sdwan_dual_sa_flow(sdwan_branch_edge, sdwan_regional_hub) to
+// generate the capture.
 compile {
     esp_sdwan_dual_sa_flow(sdwan_branch_edge, sdwan_regional_hub)
 }

@@ -1,26 +1,24 @@
-// PROMPT: Kubernetes MetalLB speaker broadcasting Gratuitous ARP and answering ARP Requests for a LoadBalancer Service VIP.
-// TOKENS: host, ip, mac, flow, arp, gratuitous, sendermac, senderip, wait, ms, request, targetmac, targetip, reply, compile
+// Kubernetes MetalLB speaker broadcasting Gratuitous ARP and answering ARP
+// Requests for a LoadBalancer Service VIP.
+// Wire profile: 3 frames; 2 IPv4 hosts; ARP; waits 10ms, 2ms.
+// Wireshark: arp.src.proto_ipv4 == arp.dst.proto_ipv4
 
-// INSTRUCTION: Define Kubernetes worker node acting as MetalLB Layer 2 leader for Service VIP 10.96.200.50.
 host metallb_speaker_node {
     ip 10.96.200.50
     mac 52:54:00:60:c8:32
 }
 
-// INSTRUCTION: Define upstream ingress router resolving the Kubernetes LoadBalancer Service VIP.
 host cluster_ingress_rtr {
     ip 10.96.200.1
     mac 00:1c:73:60:c8:01
 }
 
-// INSTRUCTION: Broadcast Gratuitous ARP upon speaker election and reply to ingress router ARP Request.
 flow arp_metallb_vip(speaker, rtr) {
     speaker -> rtr arp gratuitous sendermac 52:54:00:60:c8:32 senderip 10.96.200.50 wait 10ms
     speaker <- rtr arp request sendermac 00:1c:73:60:c8:01 senderip 10.96.200.1 targetmac 00:00:00:00:00:00 targetip 10.96.200.50 wait 2ms
     speaker -> rtr arp reply sendermac 52:54:00:60:c8:32 senderip 10.96.200.50 targetmac 00:1c:73:60:c8:01 targetip 10.96.200.1
 }
 
-// INSTRUCTION: Compile the Kubernetes MetalLB L2 service VIP ARP announcement trace.
 compile {
     arp_metallb_vip(metallb_speaker_node, cluster_ingress_rtr)
 }

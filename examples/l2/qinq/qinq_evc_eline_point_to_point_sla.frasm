@@ -1,25 +1,24 @@
-// PROMPT: MEF E-Line Ethernet Virtual Connection (EVC) SLA latency verification using ICMP over QinQ.
-// TOKENS: host, ip, mac, flow, qinq, innervlan, dscp, icmp, echorequest, id, seq, payload, echoreply, wait, ms, compile
+// MEF E-Line Ethernet Virtual Connection (EVC) SLA latency verification using
+// ICMP over QinQ.
+// Wire profile: 2 frames; 2 IPv4 hosts; QinQ S-VLAN 2500 / C-VLAN 55; ICMP; DSCP
+// 46; waits 3ms.
+// Wireshark: vlan.id == 2500 && vlan.id == 55
 
-// INSTRUCTION: Define customer NID demarcation device at headquarters.
 host nid_hq_demarc {
     ip 172.29.10.1
     mac 00:15:ad:29:10:01
 }
 
-// INSTRUCTION: Define customer NID demarcation device at disaster recovery site.
 host nid_dr_demarc {
     ip 172.29.10.2
     mac 00:15:ad:29:10:02
 }
 
-// INSTRUCTION: Define MEF E-Line S-VLAN 2500 C-VLAN 55 SLA synthetic jitter and latency probe.
 flow mef_eline_sla_probe(hq, dr) {
-    hq -> dr qinq 2500 innervlan 55 dscp 46 icmp echorequest id 2500 seq 1 payload "mef_y1731_synthetic_sla_probe_01"
-    hq <- dr qinq 2500 innervlan 55 dscp 46 icmp echoreply id 2500 seq 1 payload "mef_y1731_synthetic_sla_probe_01" wait 3ms
+    hq -> dr qinq 2500 innervlan 55 dscp 46 icmp echorequest id 2500 seq 1 payload "mef_y1731_synthetic_sla_probe_01" wait 3ms
+    hq <- dr qinq 2500 innervlan 55 dscp 46 icmp echoreply id 2500 seq 1 payload "mef_y1731_synthetic_sla_probe_01"
 }
 
-// INSTRUCTION: Compile block executing MEF E-Line QinQ SLA verification.
 compile {
     mef_eline_sla_probe(nid_hq_demarc, nid_dr_demarc)
 }

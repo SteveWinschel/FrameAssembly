@@ -1,19 +1,19 @@
-// PROMPT: Client hello specifying enterprise internal portal SNI host indicator.
-// TOKENS: host, ip, flow, s, tls, clienthello, sni, compile
+// Client hello specifying enterprise internal portal SNI host indicator.
+// TLS extensions: SNI portal.corp.internal.net.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (TLS (RFC
+// 8446 / 5246), TCP 443).
+// Wireshark: tls
 
-// INSTRUCTION: Define corporate employee laptop.
 host corp_laptop { ip 10.200.5.40 }
 
-// INSTRUCTION: Define internal portal load balancer.
 host portal_lb { ip 10.200.5.1 }
 
-// INSTRUCTION: Define multi-domain portal SNI flow.
 flow tls_portal_sni_flow(c, s) {
     c -> s tls clienthello
         sni "portal.corp.internal.net"
 }
 
-// INSTRUCTION: Compile block executing internal portal SNI request.
 compile {
     tls_portal_sni_flow(corp_laptop, portal_lb)
 }

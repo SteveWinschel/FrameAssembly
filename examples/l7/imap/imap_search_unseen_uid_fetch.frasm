@@ -1,13 +1,14 @@
-// PROMPT: IMAP SEARCH UNSEEN query and UID FETCH retrieving unread message body flags.
-// TOKENS: host, ip, flow, s, imap, tag, cmd, arg, payload, compile
+// IMAP SEARCH UNSEEN query and UID FETCH retrieving unread message body
+// flags.
+// Wireshark: imap
 
-// INSTRUCTION: Define Thunderbird mail user agent.
+// Thunderbird mail user agent.
 host mua_client { ip 10.14.0.35 }
 
-// INSTRUCTION: Define enterprise IMAP mailstore.
+// Enterprise IMAP mailstore.
 host mailstore { ip 10.14.0.1 }
 
-// INSTRUCTION: Search for UNSEEN messages and fetch UID and FLAGS for message 42.
+// Search for UNSEEN messages and fetch UID and FLAGS for message 42.
 flow imap_search_unseen(c, s) {
     c -> s imap tag "A10" cmd "SEARCH" arg "UNSEEN"
     c <- s imap tag "*" cmd "SEARCH" arg "42 43" payload "A10 OK SEARCH completed\r\n"
@@ -15,7 +16,6 @@ flow imap_search_unseen(c, s) {
     c <- s imap tag "A11" cmd "OK" arg "UID FETCH completed"
 }
 
-// INSTRUCTION: Compile the IMAP SEARCH UNSEEN and UID FETCH flow.
 compile {
     imap_search_unseen(mua_client, mailstore)
 }

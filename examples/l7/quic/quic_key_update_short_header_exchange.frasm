@@ -1,17 +1,17 @@
-// PROMPT: Long-lived QUIC 1-RTT session rotating cryptographic keys across consecutive packet numbers.
-// TOKENS: host, ip, flow, s, quic, short, dcid, pktnum, hexpayload, wait, ms, compile
+// Long-lived QUIC 1-RTT session rotating cryptographic keys across
+// consecutive packet numbers.
+// QUIC UDP 443 packet types: short.
+// Timing: pauses 3ms after each marked packet before sending the next frame.
+// Wireshark: quic
 
-// INSTRUCTION: Define encrypted backup agent client host.
 host backup_agent {
     ip 10.19.8.30
 }
 
-// INSTRUCTION: Define cloud archive QUIC vault server host.
 host vault_server {
     ip 10.19.8.1
 }
 
-// INSTRUCTION: Define sequence of 1-RTT Short header packets before and after key phase bit rotation.
 flow quic_key_update(c, s) {
     c -> s quic short dcid 0xabcdef0123456789 pktnum 1000 hexpayload "aa0001" wait 3ms
     c <- s quic short dcid 0x9876543210fedcba pktnum 2000 hexpayload "bb0001" wait 3ms
@@ -19,7 +19,6 @@ flow quic_key_update(c, s) {
     c <- s quic short dcid 0x9876543210fedcba pktnum 2001 hexpayload "dd0002"
 }
 
-// INSTRUCTION: Compile the QUIC key update Short header sequence.
 compile {
     quic_key_update(backup_agent, vault_server)
 }

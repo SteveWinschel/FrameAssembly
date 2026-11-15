@@ -1,19 +1,21 @@
-// PROMPT: LwM2M Bootstrap sequence: client requests bootstrap on /bs and server writes credentials via PUT.
-// TOKENS: host, ip, mac, flow, coap, con, code, msgid, token, uripath, ack, wait, ms, contentformat, hexpayload, compile
+// LwM2M Bootstrap sequence: client requests bootstrap on /bs and server
+// writes credentials via PUT.
+// Wireshark: coap
 
-// INSTRUCTION: Define the factory-fresh IoT device initiating bootstrap.
+// Factory-fresh IoT device initiating bootstrap.
 host fresh_device {
     ip 10.110.140.90
     mac 00:1a:2b:6e:e0:90
 }
 
-// INSTRUCTION: Define the LwM2M Bootstrap Server.
 host bootstrap_srv {
     ip 10.110.140.1
     mac 00:1a:2b:6e:e0:01
 }
 
-// INSTRUCTION: Send POST to /bs, receive 2.04 Changed, then receive server-initiated CON PUT provisioning /0/0.
+// Send POST to /bs, receive 2.04 Changed, then receive server-initiated CON
+// PUT provisioning /0/0. CoAP over UDP 5683: codes 0.02 (POST), 2.04
+// (Changed), 0.03 (PUT); content-format 11542 (oma.lwm2m+tlv).
 flow coap_lwm2m_bootstrap(d, b) {
     d -> b coap con code "0.02" msgid 14001 token 801 uripath "bs"
     d <- b coap ack code "2.04" msgid 14001 token 801 wait 2ms
@@ -21,7 +23,6 @@ flow coap_lwm2m_bootstrap(d, b) {
     d -> b coap ack code "2.04" msgid 9001 token 802
 }
 
-// INSTRUCTION: Compile the CoAP LwM2M bootstrap provisioning flow.
 compile {
     coap_lwm2m_bootstrap(fresh_device, bootstrap_srv)
 }

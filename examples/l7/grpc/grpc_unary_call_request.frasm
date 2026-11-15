@@ -1,18 +1,16 @@
-// PROMPT: gRPC unary Remote Procedure Call requesting user profile information.
-// TOKENS: host, ip, flow, s, grpc, service, method, compile
+// gRPC unary Remote Procedure Call requesting user profile information.
+// Wireshark: grpc || http2
+// Automatic Ethernet MAC addresses and TCP port 50051 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow grpc_call(c, s) {
     c -> s grpc service "UserService" method "GetUserProfile"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     grpc_call(client, server)
 }

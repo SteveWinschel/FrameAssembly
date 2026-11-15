@@ -1,19 +1,19 @@
-// PROMPT: Model an IP deskphone acquiring a voice VLAN 110 DHCP lease with QoS priority tagging.
-// TOKENS: host, ip, mac, flow, s, dhcp, discover, xid, chaddr, hostname, vlan, pcp, wait, ms, offer, yiaddr, siaddr, subnetmask, router, dnsserver, leasetime, request, ack, compile
+// IP deskphone acquiring a voice VLAN 110 DHCP lease with QoS priority
+// tagging.
+// Wireshark: dhcp
 
-// INSTRUCTION: Define the DHCP client endpoint requesting dynamic network configuration.
+// DHCP client endpoint requesting dynamic network configuration.
 host dhcp_client {
     ip 172.20.110.55
     mac 00:25:90:67:01:0a
 }
 
-// INSTRUCTION: Define the DHCP server or relay agent endpoint.
+// DHCP server or relay agent endpoint.
 host dhcp_server {
     ip 172.20.110.1
     mac 00:25:90:67:01:01
 }
 
-// INSTRUCTION: Execute the DHCP address assignment and option negotiation flow.
 flow dhcp_scenario_flow(c, s) {
     c -> s dhcp discover xid 0x31001002 chaddr 00:04:f2:aa:11:02 hostname "SEP0004F2AA1102" vlan 110 pcp 5 wait 3ms
     c <- s dhcp offer xid 0x31001002 yiaddr 172.20.110.55 siaddr 172.20.110.10 subnetmask 255.255.255.0 router 172.20.110.1 dnsserver 172.20.110.2 leasetime 28800 vlan 110 pcp 5 wait 3ms
@@ -21,7 +21,6 @@ flow dhcp_scenario_flow(c, s) {
     c <- s dhcp ack xid 0x31001002 yiaddr 172.20.110.55 subnetmask 255.255.255.0 router 172.20.110.1 dnsserver 172.20.110.2 leasetime 28800 vlan 110 pcp 5
 }
 
-// INSTRUCTION: Compile the DHCP provisioning scenario into a PCAP file.
 compile {
     dhcp_scenario_flow(dhcp_client, dhcp_server)
 }

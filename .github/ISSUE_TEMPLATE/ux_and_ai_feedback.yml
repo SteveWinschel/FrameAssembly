@@ -1,4 +1,4 @@
-name: CLI, Editor Studio & AI Generation Feedback
+name: CLI, Editor & AI Generation Feedback
 description: Report confusing compiler errors, VS Code extension friction, documentation gaps, or AI code generation issues
 title: "[UX / AI]: "
 labels: ["enhancement"]
@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Help make **FrameAssembly** faster and easier to use across the CLI, VS Code Packet Studio, Browser Playground, and AI coding assistants!
+        Help make **FrameAssembly** faster and easier to use across the CLI, VS Code extension, Browser Playground, and AI coding assistants!
 
   - type: dropdown
     id: surface

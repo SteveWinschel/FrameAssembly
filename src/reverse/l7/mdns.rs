@@ -3,9 +3,9 @@
 //! This module implements the fuzz-safe reverse dissector for RFC 6762 Multicast DNS (`mdns`)
 //! discovery queries and service responses carried over UDP port `5353` (typically targeting
 //! `224.0.0.251` on IPv4 or `ff02::fb` on IPv6). It delegates DNS wire-format header validation,
-//! pointer-compressed domain name decoding, question section extraction, and resource record
-//! dissection to [`super::dns::dissect_dns_or_mdns`], emitting canonical `mdns query` and
-//! `mdns response` `.frasm` statements.
+//! RFC 6762 `0x0000` transaction ID default elision, pointer-compressed domain name decoding,
+//! question section extraction, and resource record dissection to [`super::dns::dissect_dns_or_mdns`],
+//! emitting canonical `mdns query` and `mdns response` `.frasm` statements.
 
 use crate::reverse::ProtocolDissection;
 

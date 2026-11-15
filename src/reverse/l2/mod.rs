@@ -85,25 +85,24 @@ pub(crate) fn dissect_packet(frame: NormalizedFrame) -> DissectedPacket {
             };
             l3_body = Some(&b[off + ihl..]);
         }
-    } else if et == 0x86DD && off + 40 <= b.len() && (b[off] >> 4) == 6 {
+    } else if et == 0x86DD
+        && let Some(v6) = crate::reverse::l3::ipv6::extract_ipv6_l3(&b[off..])
+    {
         has_ip_header = true;
-        let v_tc_fl = be_u32(b, off);
-        let tc = ((v_tc_fl >> 20) & 0xFF) as u8;
-        let (dscp, ecn, fl) = (tc >> 2, tc & 0x03, v_tc_fl & 0x000F_FFFF);
-        src_ip = Some(IpAddr::V6(ipv6_at(b, off + 8)));
-        dst_ip = Some(IpAddr::V6(ipv6_at(b, off + 24)));
-        ip_proto = Some(b[off + 6]);
+        src_ip = Some(IpAddr::V6(v6.src_ip));
+        dst_ip = Some(IpAddr::V6(v6.dst_ip));
+        ip_proto = Some(v6.next_header);
         l3 = L3Modifiers {
-            ttl: Some(b[off + 7]),
-            dscp: (dscp != 0).then_some(dscp),
-            ecn: (ecn != 0).then_some(ecn),
-            flowlabel: (fl != 0).then_some(fl),
+            ttl: Some(v6.ttl),
+            dscp: (v6.dscp != 0).then_some(v6.dscp),
+            ecn: (v6.ecn != 0).then_some(v6.ecn),
+            flowlabel: (v6.flowlabel != 0).then_some(v6.flowlabel),
             ipid: None,
             df: false,
             mf: false,
             frag_offset: None,
         };
-        l3_body = Some(&b[off + 40..]);
+        l3_body = Some(v6.payload);
     }
 
     let dissection = if let (true, Some(proto), Some(ip_body)) = (has_ip_header, ip_proto, l3_body)

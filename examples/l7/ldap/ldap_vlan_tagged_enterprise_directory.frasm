@@ -1,18 +1,17 @@
-// PROMPT: Enterprise LDAP directory authentication on 802.1Q tagged management VLAN.
-// TOKENS: host, ip, flow, ldap, bindreq, msgid, basedn, vlan, pcp, dei, compile
+// Enterprise LDAP directory authentication on 802.1Q tagged management VLAN.
+// Wireshark: ldap
 
-// INSTRUCTION: Define server rack management controller.
 host bmc_controller { ip 10.110.5.8 }
 
-// INSTRUCTION: Define identity directory server on VLAN 310.
+// Identity directory server on VLAN 310.
 host vlan_ldap_server { ip 10.110.5.1 }
 
-// INSTRUCTION: Define tagged VLAN LDAP bind flow.
+// Tagged VLAN LDAP bind flow. Encapsulation and QoS markings: 802.1Q VLAN
+// 310.
 flow vlan_ldap_bind(bmc, srv) {
     bmc -> srv ldap bindreq msgid 2 basedn "cn=admin,ou=systems,dc=local" vlan 310 pcp 5 dei 0
 }
 
-// INSTRUCTION: Compile VLAN tagged directory scenario.
 compile {
     vlan_ldap_bind(bmc_controller, vlan_ldap_server)
 }

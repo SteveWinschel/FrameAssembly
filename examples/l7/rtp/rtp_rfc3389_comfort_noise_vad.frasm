@@ -1,20 +1,19 @@
-// PROMPT: RFC 3389 Comfort Noise (PT 13) silence suppression frame following active speech.
-// TOKENS: host, ip, flow, rtp, pt, timestamp, ssrc, marker, wait, ms, hexpayload, compile
+// RFC 3389 Comfort Noise (PT 13) silence suppression frame following active
+// speech.
+// RTP media on UDP 5004 carrying PT 0 (G.711 PCMU), PT 13.
+// Timing: pauses 20ms after each marked packet before sending the next frame.
+// Wireshark: rtp || udp.port == 5004
 
-// INSTRUCTION: Define VoIP gateway with VAD (Voice Activity Detection) enabled.
 host vad_gw { ip 10.72.0.10 }
 
-// INSTRUCTION: Define remote VoIP receiver.
 host remote_rx { ip 10.72.0.20 }
 
-// INSTRUCTION: Define active PCMU speech followed by PT 13 Comfort Noise update.
 flow rtp_comfort_noise(tx, rx) {
     tx -> rx rtp pt 0 timestamp 160 ssrc 0x72000001 marker 1 wait 20ms
     tx -> rx rtp pt 0 timestamp 320 ssrc 0x72000001 marker 0 wait 20ms
     tx -> rx rtp pt 13 timestamp 480 ssrc 0x72000001 marker 0 hexpayload "3a1008"
 }
 
-// INSTRUCTION: Compile VAD Comfort Noise RTP scenario.
 compile {
     rtp_comfort_noise(vad_gw, remote_rx)
 }

@@ -11,6 +11,37 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Encodes an RFC 7252 CoAP option with 4-bit, 1-byte (`13`), or 2-byte (`14`) extended delta and length.
+fn push_coap_option(pkt: &mut Vec<u8>, delta: u16, val: &[u8]) {
+    let (d_nib, d_ext1, d_ext2) = if delta < 13 {
+        (delta as u8, None, None)
+    } else if delta < 269 {
+        (13u8, Some((delta - 13) as u8), None)
+    } else {
+        (14u8, None, Some(delta - 269))
+    };
+    let len = val.len();
+    let (l_nib, l_ext1, l_ext2) = if len < 13 {
+        (len as u8, None, None)
+    } else if len < 269 {
+        (13u8, Some((len - 13) as u8), None)
+    } else {
+        (14u8, None, Some((len - 269) as u16))
+    };
+    pkt.push((d_nib << 4) | l_nib);
+    if let Some(b) = d_ext1 {
+        pkt.push(b);
+    } else if let Some(w) = d_ext2 {
+        pkt.extend_from_slice(&w.to_be_bytes());
+    }
+    if let Some(b) = l_ext1 {
+        pkt.push(b);
+    } else if let Some(w) = l_ext2 {
+        pkt.extend_from_slice(&w.to_be_bytes());
+    }
+    pkt.extend_from_slice(val);
+}
+
 /// Builds an RFC 7252 CoAP packet payload.
 pub fn build_coap_payload(
     _ctx: &WireContext,
@@ -80,22 +111,17 @@ pub fn build_coap_payload(
         pkt.extend_from_slice(&tok.to_be_bytes());
     }
 
-    let mut prev_opt: u8 = 0;
+    let mut prev_opt: u16 = 0;
     if let Some(uri_path) = spec.uri_path {
-        let bytes = uri_path.trim_start_matches('/').as_bytes();
-        let len = bytes.len();
-        if len < 13 {
-            pkt.push(0xB0 | (len as u8)); // Option 11: Uri-Path (delta 11)
-        } else {
-            pkt.push(0xBD); // Delta 11, Len 13 (extended 1-byte length)
-            pkt.push((len - 13) as u8);
+        for seg in uri_path.split('/').filter(|s| !s.is_empty()) {
+            let delta = 11 - prev_opt;
+            push_coap_option(&mut pkt, delta, seg.as_bytes());
+            prev_opt = 11;
         }
-        pkt.extend_from_slice(bytes);
-        prev_opt = 11;
     }
 
     if let Some(cf) = spec.content_format {
-        let delta = 12 - prev_opt;
+        let delta = (12 - prev_opt) as u8;
         if cf <= 0xFF {
             pkt.push((delta << 4) | 1);
             pkt.push(cf as u8);

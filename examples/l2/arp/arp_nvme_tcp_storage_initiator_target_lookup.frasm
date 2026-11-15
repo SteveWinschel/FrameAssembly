@@ -1,25 +1,23 @@
-// PROMPT: NVMe-oF/TCP storage initiator resolving all-flash array target ports on lossless storage VLAN 400.
-// TOKENS: host, ip, mac, flow, init, vlan, pcp, arp, request, sendermac, senderip, targetip, wait, ms, reply, targetmac, compile
+// NVMe-oF/TCP storage initiator resolving all-flash array target ports on
+// lossless storage VLAN 400.
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 400; PCP 4; ARP; waits 1ms.
+// Wireshark: vlan.id == 400 && (arp)
 
-// INSTRUCTION: Define hypervisor storage initiator host on storage VLAN 400.
 host nvme_host_init {
     ip 192.168.240.11
     mac 00:0f:53:f0:00:0b
 }
 
-// INSTRUCTION: Define all-flash NVMe/TCP storage array controller port on VLAN 400.
 host nvme_flash_target {
     ip 192.168.240.200
     mac 00:0f:53:f0:00:c8
 }
 
-// INSTRUCTION: Resolve NVMe storage target MAC via ARP Request and Reply on VLAN 400 PCP 4.
 flow arp_nvme_storage_lookup(init, tgt) {
     init -> tgt vlan 400 pcp 4 arp request sendermac 00:0f:53:f0:00:0b senderip 192.168.240.11 targetip 192.168.240.200 wait 1ms
     init <- tgt vlan 400 pcp 4 arp reply sendermac 00:0f:53:f0:00:c8 senderip 192.168.240.200 targetmac 00:0f:53:f0:00:0b targetip 192.168.240.11
 }
 
-// INSTRUCTION: Compile the NVMe/TCP storage VLAN ARP resolution trace.
 compile {
     arp_nvme_storage_lookup(nvme_host_init, nvme_flash_target)
 }

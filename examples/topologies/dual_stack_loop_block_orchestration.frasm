@@ -1,31 +1,27 @@
-// PROMPT: High-volume traffic generation repeating dual-stack polymorphic flows inside repeated flow calls.
-// TOKENS: host, ip, flow, udp, payload, compile
+// High-volume traffic generation repeating dual-stack IPv4/IPv6 flows inside
+// repeated flow calls.
+// Wire profile: 8 frames; 4 dual-stack IPv4/IPv6 hosts; UDP.
+// Wireshark: udp
 
-// INSTRUCTION: Define load generator host on IPv4.
 host gen_v4_a { ip 172.16.0.1 }
 
-// INSTRUCTION: Define load target host on IPv4.
 host gen_v4_b { ip 172.16.0.2 }
 
-// INSTRUCTION: Define load generator host on IPv6.
 host gen_v6_a { ip 2001:db8:1001::1 }
 
-// INSTRUCTION: Define load target host on IPv6.
 host gen_v6_b { ip 2001:db8:1001::2 }
 
-// INSTRUCTION: Define polymorphic synthetic load pulse flow.
 flow load_pulse(a, b) {
     a -> b udp payload "synthetic_load_pulse"
 }
 
-// INSTRUCTION: Compile block executing repeated dual-stack load pulses.
 compile {
-    load_pulse(gen_v4_a, gen_v4_b) // cycle 1 of 25
-    load_pulse(gen_v6_a, gen_v6_b) // cycle 1 of 25
-    load_pulse(gen_v4_a, gen_v4_b) // cycle 2 of 25
-    load_pulse(gen_v6_a, gen_v6_b) // cycle 2 of 25
-    load_pulse(gen_v4_a, gen_v4_b) // cycle 3 of 25
-    load_pulse(gen_v6_a, gen_v6_b) // cycle 3 of 25
-    load_pulse(gen_v4_a, gen_v4_b) // cycle 4 of 25
-    load_pulse(gen_v6_a, gen_v6_b) // cycle 4 of 25
+    load_pulse(gen_v4_a, gen_v4_b) // Iteration 1 of 8
+    load_pulse(gen_v6_a, gen_v6_b) // Iteration 2 of 8
+    load_pulse(gen_v4_a, gen_v4_b) // Iteration 3 of 8
+    load_pulse(gen_v6_a, gen_v6_b) // Iteration 4 of 8
+    load_pulse(gen_v4_a, gen_v4_b) // Iteration 5 of 8
+    load_pulse(gen_v6_a, gen_v6_b) // Iteration 6 of 8
+    load_pulse(gen_v4_a, gen_v4_b) // Iteration 7 of 8
+    load_pulse(gen_v6_a, gen_v6_b) // Iteration 8 of 8
 }

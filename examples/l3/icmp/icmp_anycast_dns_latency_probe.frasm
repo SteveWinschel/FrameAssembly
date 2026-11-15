@@ -1,19 +1,20 @@
-// PROMPT: High-frequency ICMP Echo Request and Echo Reply latency telemetry against an anycast DNS resolver VIP.
-// TOKENS: host, ip, mac, flow, vip, dscp, ttl, icmp, echorequest, id, seq, payload, wait, ms, echoreply, compile
+// High-frequency ICMP Echo Request and Echo Reply latency telemetry against
+// an anycast DNS resolver VIP.
+// This capture sets DSCP 46, TTL 58/64 and uses post-packet wait gaps (5ms,
+// 10ms) between frames.
+// Wireshark: icmp
 
-// INSTRUCTION: Define edge network performance monitoring agent probing anycast DNS latency.
 host perf_probe_agent {
     ip 198.18.10.50
     mac 00:1b:21:aa:10:32
 }
 
-// INSTRUCTION: Define anycast DNS resolver node responding to ICMP echo diagnostics.
 host anycast_dns_vip {
     ip 198.18.0.53
     mac 00:1b:21:aa:00:35
 }
 
-// INSTRUCTION: Send three sequential ICMP Echo probes with incrementing sequence numbers and DSCP EF.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow icmp_anycast_rtt_check(probe, vip) {
     probe -> vip dscp 46 ttl 64 icmp echorequest id 9001 seq 101 payload "anycast-rtt-sample-01" wait 5ms
     probe <- vip dscp 46 ttl 58 icmp echoreply id 9001 seq 101 payload "anycast-rtt-sample-01" wait 10ms
@@ -21,7 +22,8 @@ flow icmp_anycast_rtt_check(probe, vip) {
     probe <- vip dscp 46 ttl 58 icmp echoreply id 9001 seq 102 payload "anycast-rtt-sample-02"
 }
 
-// INSTRUCTION: Compile the anycast DNS ICMP latency telemetry trace.
+// Run icmp_anycast_rtt_check(perf_probe_agent, anycast_dns_vip) to generate
+// the capture.
 compile {
     icmp_anycast_rtt_check(perf_probe_agent, anycast_dns_vip)
 }

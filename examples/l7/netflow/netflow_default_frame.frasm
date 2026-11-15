@@ -1,0 +1,20 @@
+// Cisco NetFlow v5 starter export on UDP port 2055 using built-in defaults.
+// Omitting extra keywords emits a 72-byte single-record NetFlow v5 datagram.
+// Save output as .pcap for classic libpcap or .pcapng for nanosecond timing.
+// Wireshark: cflow || udp.port == 2055
+
+host netflow_exporter {
+    ip 10.20.55.1
+    mac 00:1a:2b:20:55:01
+}
+
+host netflow_collector {
+    ip 10.20.55.100
+    mac 00:1a:2b:20:55:64
+}
+
+// Send one default NetFlow export directly without needing a reusable flow
+// block.
+compile {
+    netflow_exporter -> netflow_collector netflow
+}

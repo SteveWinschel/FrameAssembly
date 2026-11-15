@@ -1,20 +1,17 @@
-// PROMPT: HTTP/2 flow control WINDOW_UPDATE and round-trip PING latency probe over IPv6.
-// TOKENS: host, ip, flow, s, http2, streamid, windowupdate, ping, compile
+// HTTP/2 flow control WINDOW_UPDATE and round-trip PING latency probe over
+// IPv6.
+// Wireshark: http2
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow http2_ping(c, s) {
     c -> s http2 streamid 1 windowupdate
     c -> s http2 ping
     c <- s http2 ping
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     http2_ping(client, server)
 }

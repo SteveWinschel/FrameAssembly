@@ -1,18 +1,20 @@
-// PROMPT: IGMP Membership Report joining organization-wide video conference stream 239.192.100.1.
-// TOKENS: host, ip, flow, igmp, report, group, vlan, compile
+// IGMP Membership Report joining organization-wide video conference stream
+// 239.192.100.1.
+// This capture wraps frames in 802.1Q VLAN 210 and carries group
+// 239.192.100.1.
+// Wireshark: igmp && vlan.id == 210
 
-// INSTRUCTION: Define boardroom conferencing codec.
 host boardroom_codec { ip 10.210.4.50 }
 
-// INSTRUCTION: Define corporate town hall video stream address.
 host townhall_stream { ip 239.192.100.1 }
 
-// INSTRUCTION: Define conferencing IGMP join flow on AV VLAN 210.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow igmp_conf_join(codec, grp) {
     codec -> grp igmp report group 239.192.100.1 vlan 210
 }
 
-// INSTRUCTION: Compile block executing corporate video IGMP join.
+// Run igmp_conf_join(boardroom_codec, townhall_stream) to generate the
+// capture.
 compile {
     igmp_conf_join(boardroom_codec, townhall_stream)
 }

@@ -1,20 +1,22 @@
-// PROMPT: HSRP router startup sequence transitioning through Listen, Speak, and Standby states.
-// TOKENS: host, ip, flow, hsrp, group, priority, state, vip, wait, ms, compile
+// HSRP router startup sequence transitioning through Listen, Speak, and
+// Standby states.
+// This capture carries group 5, HSRP state 2/4/8 and uses post-packet wait
+// gaps (20ms) between frames.
+// Wireshark: hsrp
 
-// INSTRUCTION: Define bootstrapping backup gateway router.
 host hsrp_boot_gw { ip 192.168.50.253 }
 
-// INSTRUCTION: Define HSRP multicast group destination.
 host hsrp_mcast_dest { ip 224.0.0.2 }
 
-// INSTRUCTION: Define state transition flow from Listen (2) to Speak (4) and Standby (8).
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow hsrp_init_states(rtr, mcast) {
     rtr -> mcast hsrp group 5 priority 90 state 2 vip 192.168.50.1 wait 20ms
     rtr -> mcast hsrp group 5 priority 90 state 4 vip 192.168.50.1 wait 20ms
     rtr -> mcast hsrp group 5 priority 90 state 8 vip 192.168.50.1
 }
 
-// INSTRUCTION: Compile block executing progressive HSRP state transitions.
+// Run hsrp_init_states(hsrp_boot_gw, hsrp_mcast_dest) to generate the
+// capture.
 compile {
     hsrp_init_states(hsrp_boot_gw, hsrp_mcast_dest)
 }

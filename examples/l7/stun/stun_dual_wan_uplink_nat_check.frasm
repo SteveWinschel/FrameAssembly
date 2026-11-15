@@ -1,19 +1,18 @@
-// PROMPT: Multi-homed gateway verifying secondary WAN uplink NAT binding.
-// TOKENS: host, ip, flow, s, stun, bindingrequest, bindingresponse, xormappedaddr, compile
+// Multi-homed gateway verifying secondary WAN uplink NAT binding.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (STUN (RFC
+// 8489), UDP 3478).
+// Wireshark: stun
 
-// INSTRUCTION: Define secondary WAN branch interface.
 host wan2_interface { ip 172.31.50.10 }
 
-// INSTRUCTION: Define public STUN discovery node.
 host public_stun { ip 198.51.100.222 }
 
-// INSTRUCTION: Define secondary WAN NAT probe flow.
 flow stun_wan2_flow(c, s) {
     c -> s stun bindingrequest
     c <- s stun bindingresponse xormappedaddr 198.51.100.77
 }
 
-// INSTRUCTION: Compile block executing secondary WAN NAT check.
 compile {
     stun_wan2_flow(wan2_interface, public_stun)
 }

@@ -1,19 +1,21 @@
-// PROMPT: EtherNet/IP CIP Time Sync Object (Class 0x43 = 67) reading IEEE 1588 PTP grandmaster clock synchronization status.
-// TOKENS: host, ip, mac, flow, s, ethernetip, cmd, sessionhandle, context, cipservice, cipclass, cipinstance, cipattr, status, hexpayload, wait, ms, compile
+// EtherNet/IP CIP Time Sync Object (Class 0x43 = 67) reading IEEE 1588 PTP
+// grandmaster clock synchronization status.
+// Wireshark: enip || cip
 
-// INSTRUCTION: Define the Sequence of Events (SOE) recorder supervisor.
+// Sequence of Events (SOE) recorder supervisor.
 host soe_supervisor {
     ip 10.135.130.10
     mac 00:1a:2b:87:d0:10
 }
 
-// INSTRUCTION: Define the 1756-TIME GPS/PTP module.
+// 1756-TIME GPS/PTP module.
 host time_module {
     ip 10.135.130.1
     mac 00:1a:2b:87:d0:01
 }
 
-// INSTRUCTION: Read Attribute 1 (PTP_Enable) and Attribute 2 (Is_Synchronized) from CIP Time Sync Class 67 Instance 1.
+// Read Attribute 1 (PTP_Enable) and Attribute 2 (Is_Synchronized) from CIP
+// Time Sync Class 67 Instance 1.
 flow enip_cip_timesync(s, t) {
     s -> t ethernetip cmd "sendrrdata" sessionhandle 8800 context 1801 cipservice 14 cipclass 67 cipinstance 1 cipattr 1
     s <- t ethernetip cmd "sendrrdata" status 0 sessionhandle 8800 context 1801 cipservice 142 cipclass 67 cipinstance 1 cipattr 1 hexpayload "01" wait 1ms
@@ -21,7 +23,6 @@ flow enip_cip_timesync(s, t) {
     s <- t ethernetip cmd "sendrrdata" status 0 sessionhandle 8800 context 1802 cipservice 142 cipclass 67 cipinstance 1 cipattr 2 hexpayload "01"
 }
 
-// INSTRUCTION: Compile the CIP Time Sync Object inspection flow.
 compile {
     enip_cip_timesync(soe_supervisor, time_module)
 }

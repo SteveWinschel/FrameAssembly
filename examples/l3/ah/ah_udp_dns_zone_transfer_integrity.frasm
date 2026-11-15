@@ -1,25 +1,27 @@
-// PROMPT: RFC 4302 IPsec AH transport mode authenticating UDP (Next Header 17) authoritative DNS metadata.
-// TOKENS: host, ip, mac, flow, pri, ah, spi, seq, nextheader, icv, dscp, ttl, payload, wait, ms, compile
+// RFC 4302 IPsec AH transport mode authenticating UDP (Next Header 17)
+// authoritative DNS metadata.
+// This capture sets DSCP 26, TTL 64, carries SPI 53001/53002, and uses
+// post-packet wait gaps (4ms) between frames.
+// Wireshark: ah
 
-// INSTRUCTION: Define primary authoritative DNS server with IPsec AH policy.
 host dns_primary_ah {
     ip 192.0.2.53
     mac 00:16:3e:53:00:01
 }
 
-// INSTRUCTION: Define secondary authoritative DNS mirror server.
 host dns_secondary_ah {
     ip 198.51.100.53
     mac 00:16:3e:53:00:02
 }
 
-// INSTRUCTION: Define AH transport flow with Next Header 17 (UDP) and explicit ICV authentication digest.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow ah_udp_dns_notify(pri, sec) {
     pri -> sec ah spi 53001 seq 12 nextheader 17 icv "53535353aaaaaaaabbbbbbbb" dscp 26 ttl 64 payload "DNS_SOA_SERIAL_2026102501" wait 4ms
     pri <- sec ah spi 53002 seq 12 nextheader 17 icv "bbbbbbbbaaaaaaaa53535353" dscp 26 ttl 64 payload "DNS_NOTIFY_ACK_OK"
 }
 
-// INSTRUCTION: Compile the AH-protected UDP DNS notification flow.
+// Run ah_udp_dns_notify(dns_primary_ah, dns_secondary_ah) to generate the
+// capture.
 compile {
     ah_udp_dns_notify(dns_primary_ah, dns_secondary_ah)
 }

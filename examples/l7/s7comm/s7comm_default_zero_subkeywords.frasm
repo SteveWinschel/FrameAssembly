@@ -1,18 +1,15 @@
-// PROMPT: Default Siemens S7comm Setup Communication frame with zero sub-keywords on TCP port 102.
-// TOKENS: host, ip, mac, flow, s7comm, compile
+// Minimal 2-block Siemens S7comm (ISO-on-TCP) starter emitting automatic
+// protocol defaults directly from the compile block (zero flow wrapper).
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (Siemens
+// S7comm (ISO-on-TCP), TCP 102).
+// Wireshark: s7comm
 
-// INSTRUCTION: Define TIA Portal engineering station.
 host tia_eng { ip 192.168.0.200 mac 00:1b:1b:00:00:c8 }
 
-// INSTRUCTION: Define Simatic S7-1500 PLC controller.
 host s7_1500 { ip 192.168.0.1 mac 00:1b:1b:00:00:01 }
 
-// INSTRUCTION: Define flow sending default S7COMM frame on ISO-on-TCP port 102.
-flow s7comm_default(eng, plc) {
-    eng -> plc s7comm
-}
-
-// INSTRUCTION: Compile default S7comm scenario.
 compile {
-    s7comm_default(tia_eng, s7_1500)
+    tia_eng -> s7_1500 s7comm
 }

@@ -1,18 +1,19 @@
-// PROMPT: IGMP General Query specifying aggressive 1-second (MAX_RESP 10) response window for fast convergence.
-// TOKENS: host, ip, flow, dst, igmp, query, maxresp, group, compile
+// IGMP General Query specifying aggressive 1-second (Max Response 10)
+// response window for fast convergence.
+// This capture carries group 224.0.0.1.
+// Wireshark: igmp
 
-// INSTRUCTION: Define fast-converging redundant router.
 host fast_igmp_rtr { ip 192.168.220.1 }
 
-// INSTRUCTION: Define all-hosts multicast target.
 host all_hosts_target { ip 224.0.0.1 }
 
-// INSTRUCTION: Define rapid query flow with 10 deciseconds (1.0 second) maximum response time.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow igmp_fast_query_flow(rtr, dst) {
     rtr -> dst igmp query maxresp 10 group 224.0.0.1
 }
 
-// INSTRUCTION: Compile block executing fast convergence IGMP query.
+// Run igmp_fast_query_flow(fast_igmp_rtr, all_hosts_target) to generate the
+// capture.
 compile {
     igmp_fast_query_flow(fast_igmp_rtr, all_hosts_target)
 }

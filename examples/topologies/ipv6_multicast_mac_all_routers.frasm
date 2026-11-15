@@ -1,18 +1,21 @@
-// PROMPT: IPv6 all-routers multicast transmission automatically deriving RFC 2464 MAC 33:33:00:00:00:02.
-// TOKENS: host, ip, flow, src, dst, udp, payload, compile
+// IPv6 all-routers multicast transmission automatically deriving RFC 2464 MAC
+// 33:33:00:00:00:02.
+// Wire profile: 1 frame; 2 IPv6 hosts; UDP.
+// Verify packet timing and headers with `frameassembly show
+// ipv6_multicast_mac_all_routers.frasm` or write
+// `ipv6_multicast_mac_all_routers.pcap` via `frameassembly
+// ipv6_multicast_mac_all_routers.frasm` before replaying on a lab interface or
+// opening in Wireshark.
+// Wireshark: ipv6 && udp
 
-// INSTRUCTION: Define host node querying local routers.
 host host_node { ip fe80::200 }
 
-// INSTRUCTION: Define all-routers link-local multicast destination.
 host all_routers_mcast { ip ff02::2 }
 
-// INSTRUCTION: Define router query flow.
 flow all_routers_flow(src, dst) {
     src -> dst udp payload "router_solicitation_query"
 }
 
-// INSTRUCTION: Compile block executing all-routers multicast.
 compile {
     all_routers_flow(host_node, all_routers_mcast)
 }

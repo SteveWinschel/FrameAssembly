@@ -48,6 +48,9 @@ pub fn build_smb_payload(
     smb_hdr[8..12].copy_from_slice(&spec.status.unwrap_or(0).to_le_bytes()); // NTStatus
     smb_hdr[12..14].copy_from_slice(&cmd_code.to_le_bytes()); // Command
     smb_hdr[14..16].copy_from_slice(&1u16.to_le_bytes()); // CreditsRequested
+    if spec.status.is_some() {
+        smb_hdr[16..20].copy_from_slice(&0x0000_0001u32.to_le_bytes()); // SMB2_FLAGS_SERVER_TO_REDIRECTOR
+    }
     smb_hdr[24..32].copy_from_slice(&spec.msgid.unwrap_or(0).to_le_bytes()); // MessageId
     smb_hdr[36..40].copy_from_slice(&spec.tree_id.unwrap_or(0).to_le_bytes()); // TreeId
     smb_hdr[40..48].copy_from_slice(&spec.session_id.unwrap_or(0).to_le_bytes()); // SessionId
@@ -65,6 +68,29 @@ pub fn build_smb_payload(
         body.extend_from_slice(&0u16.to_le_bytes()); // NegotiateContextCount
         body.extend_from_slice(&0u16.to_le_bytes()); // Reserved2
         body.extend_from_slice(&0x0202u16.to_le_bytes()); // Dialect 0x0202 (SMB 2.0.2)
+    } else if cmd_code == 0x0001 {
+        if spec.status.is_some() {
+            // SESSION_SETUP Response (StructureSize 9)
+            body.extend_from_slice(&9u16.to_le_bytes()); // StructureSize 9
+            body.extend_from_slice(&0u16.to_le_bytes()); // SessionFlags
+            body.extend_from_slice(&72u16.to_le_bytes()); // SecurityBufferOffset (64 + 8)
+            body.extend_from_slice(&0u16.to_le_bytes()); // SecurityBufferLength
+            body.push(0); // Buffer (1 byte)
+        } else {
+            // SESSION_SETUP Request (StructureSize 25)
+            body.extend_from_slice(&25u16.to_le_bytes()); // StructureSize 25
+            body.push(0); // Flags
+            body.push(1); // SecurityMode (Signing Enabled)
+            body.extend_from_slice(&1u32.to_le_bytes()); // Capabilities (DFS)
+            body.extend_from_slice(&0u32.to_le_bytes()); // Channel
+            body.extend_from_slice(&88u16.to_le_bytes()); // SecurityBufferOffset (64 + 24)
+            body.extend_from_slice(&0u16.to_le_bytes()); // SecurityBufferLength
+            body.extend_from_slice(&0u64.to_le_bytes()); // PreviousSessionId
+            body.push(0); // Buffer (1 byte)
+        }
+    } else if cmd_code == 0x0002 || cmd_code == 0x0004 {
+        // LOGOFF / TREE_DISCONNECT (StructureSize 4)
+        body.extend_from_slice(&[0x04, 0x00, 0x00, 0x00]);
     } else if cmd_code == 0x0003 {
         // TREE_CONNECT Request (StructureSize 9)
         let share_str = spec.share.unwrap_or("\\\\localhost\\IPC$");
@@ -105,6 +131,22 @@ pub fn build_smb_payload(
         } else {
             body.extend_from_slice(&utf16);
         }
+    } else if cmd_code == 0x0006 {
+        // CLOSE Request (StructureSize 24)
+        body.extend_from_slice(&24u16.to_le_bytes()); // StructureSize 24
+        body.extend_from_slice(&[0u8; 22]); // Flags (2B) + Reserved (4B) + FileId (16B)
+    } else if cmd_code == 0x0008 {
+        // READ Request (StructureSize 49)
+        body.extend_from_slice(&49u16.to_le_bytes()); // StructureSize 49
+        body.push(0x50); // Padding (80)
+        body.push(0); // Flags
+        body.extend_from_slice(&4096u32.to_le_bytes()); // Read Length (4096)
+        body.extend_from_slice(&[0u8; 41]); // Offset + FileId + MinCount + Channel + Remaining + ChannelInfo + Buffer
+    } else if cmd_code == 0x0009 {
+        // WRITE Request (StructureSize 49)
+        body.extend_from_slice(&49u16.to_le_bytes()); // StructureSize 49
+        body.extend_from_slice(&112u16.to_le_bytes()); // DataOffset (64 + 48)
+        body.extend_from_slice(&[0u8; 45]); // Length + Offset + FileId + Channel + Remaining + WriteChannelInfo + Flags + Buffer
     }
 
     if cmd_code != 0x0003

@@ -1,19 +1,20 @@
-// PROMPT: Multi-datacenter GENEVE interconnect carried over an 802.1ad QinQ carrier link.
-// TOKENS: host, ip, flow, geneve, vni, optclass, opttype, qinq, innervlan, compile
+// Multi-datacenter GENEVE interconnect carried over an 802.1ad QinQ carrier
+// link.
+// This capture wraps frames in QinQ S-VLAN 3600 / C-VLAN 600 and carries VNI
+// 120000.
+// Wireshark: geneve && geneve.vni == 120000
 
-// INSTRUCTION: Define Datacenter West border NVE.
 host dc_west_nve { ip 172.30.60.1 }
 
-// INSTRUCTION: Define Datacenter East border NVE.
 host dc_east_nve { ip 172.30.60.2 }
 
-// INSTRUCTION: Define QinQ double-tagged GENEVE flow with S-VLAN 3600 and C-VLAN 600.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow geneve_qinq_dci(w, e) {
     w -> e geneve vni 120000 optclass 258 opttype 5 qinq 3600 innervlan 600
     w <- e geneve vni 120000 optclass 258 opttype 5 qinq 3600 innervlan 600
 }
 
-// INSTRUCTION: Compile the QinQ GENEVE DCI interconnect flow.
+// Run geneve_qinq_dci(dc_west_nve, dc_east_nve) to generate the capture.
 compile {
     geneve_qinq_dci(dc_west_nve, dc_east_nve)
 }

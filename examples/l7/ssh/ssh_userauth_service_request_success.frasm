@@ -1,19 +1,23 @@
-// PROMPT: Model an SSH-2.0 service request (MSG_CODE 5/6) and user authentication request/success (MSG_CODE 50/52).
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, dscp, ack, ssh, msgcode, payload, compile
+// Model an SSH-2.0 service request (msgcode 5/6) and user authentication
+// request/success (msgcode 50/52).
+// Encapsulation and QoS markings: DSCP 16.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// SSH RFC 4253 framing on TCP 22 (message codes: 5, 50 (USERAUTH_REQUEST), 52
+// (USERAUTH_SUCCESS), 6).
+// Overrides destination port to 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define host endpoint dev_laptop.
 host dev_laptop {
     mac 00:1c:42:22:10:01
     ip 192.168.22.10
 }
 
-// INSTRUCTION: Define host endpoint prod_sshd.
 host prod_sshd {
     mac 00:1c:42:22:10:99
     ip 192.168.22.99
 }
 
-// INSTRUCTION: Exchange SSH_MSG_SERVICE_REQUEST (5), SERVICE_ACCEPT (6), USERAUTH_REQUEST (50), and USERAUTH_SUCCESS (52).
 flow ssh_userauth_publickey_flow(dev_laptop, prod_sshd) {
     dev_laptop -> prod_sshd tcp syn srcport 52022 dstport 22 dscp 16
     prod_sshd -> dev_laptop tcp syn ack dscp 16
@@ -24,7 +28,6 @@ flow ssh_userauth_publickey_flow(dev_laptop, prod_sshd) {
     prod_sshd -> dev_laptop ssh msgcode 52 dscp 16
 }
 
-// INSTRUCTION: Compile the SSH userauth service and authentication flow.
 compile {
     ssh_userauth_publickey_flow(dev_laptop, prod_sshd)
 }

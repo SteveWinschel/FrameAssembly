@@ -291,7 +291,7 @@ fn test_default_dst_ports() {
         stmt.dst_port.unwrap_or(match stmt.protocol {
             Protocol::Snmp1 | Protocol::Snmp2 | Protocol::Snmp3 => {
                 match stmt.pdu_type.as_ref().unwrap_or(&SnmpPduType::Trap) {
-                    SnmpPduType::Trap | SnmpPduType::Inform => 162,
+                    SnmpPduType::Trap | SnmpPduType::Inform | SnmpPduType::Report => 162,
                     SnmpPduType::Get
                     | SnmpPduType::GetNext
                     | SnmpPduType::GetBulk

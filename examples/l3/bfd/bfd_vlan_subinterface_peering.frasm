@@ -1,19 +1,19 @@
-// PROMPT: Single-hop BFD session over an 802.1Q VLAN subinterface with priority PCP 7.
-// TOKENS: host, ip, mac, flow, bfd, state, mydisc, yourdisc, mintx, minrx, mult, vlan, pcp, dei, compile
+// Single-hop BFD session over an 802.1Q VLAN subinterface with priority PCP
+// 7.
+// This capture wraps frames in 802.1Q VLAN 405 and carries BFD state 3.
+// Wireshark: bfd && vlan.id == 405
 
-// INSTRUCTION: Define aggregation router 1 on VLAN 405.
 host agg_rtr_1 { ip 10.40.5.1 mac 00:0c:29:40:05:01 }
 
-// INSTRUCTION: Define aggregation router 2 on VLAN 405.
 host agg_rtr_2 { ip 10.40.5.2 mac 00:0c:29:40:05:02 }
 
-// INSTRUCTION: Define VLAN-tagged BFD heartbeat with 802.1p network control priority 7.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow bfd_vlan_subif_flow(r1, r2) {
     r1 -> r2 bfd state 3 mydisc 701 yourdisc 702 mintx 10000 minrx 10000 mult 3 vlan 405 pcp 7 dei 0
     r1 <- r2 bfd state 3 mydisc 702 yourdisc 701 mintx 10000 minrx 10000 mult 3 vlan 405 pcp 7 dei 0
 }
 
-// INSTRUCTION: Compile the VLAN subinterface BFD flow.
+// Run bfd_vlan_subif_flow(agg_rtr_1, agg_rtr_2) to generate the capture.
 compile {
     bfd_vlan_subif_flow(agg_rtr_1, agg_rtr_2)
 }

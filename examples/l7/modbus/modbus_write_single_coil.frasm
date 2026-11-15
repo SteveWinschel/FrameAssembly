@@ -1,18 +1,15 @@
-// PROMPT: Modbus TCP function code 5 writing single coil state over IPv6.
-// TOKENS: host, ip, flow, s, modbus, func, addr, value, unitid, compile
+// Modbus TCP function code 5 writing single coil state over IPv6.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::100 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::20 }
 
-// INSTRUCTION: Define application traffic flow.
+// Modbus functions: FC 5 Write Single Coil.
 flow modbus_write(c, s) {
     c -> s modbus func "writesinglecoil" addr 200 value 65280 unitid 1
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     modbus_write(client, server)
 }

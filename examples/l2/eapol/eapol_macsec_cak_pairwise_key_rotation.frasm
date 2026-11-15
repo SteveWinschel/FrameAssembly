@@ -1,25 +1,23 @@
-// PROMPT: IEEE 802.1X-2020 EAPOL-Key (TYPE KEY) exchange rotating pairwise Connectivity Association Keys (CAK) for MACsec link encryption.
-// TOKENS: host, ip, mac, flow, eapol, version, type, key, hexpayload, wait, ms, compile
+// IEEE 802.1X-2020 EAPOL-Key (type key) exchange rotating pairwise Connectivity
+// Association Keys (CAK) for MACsec link encryption.
+// Wire profile: 2 frames; 2 IPv4 hosts; EAPOL; waits 5ms.
+// Wireshark: eapol.type == 3
 
-// INSTRUCTION: Define core router A rotating MACsec pairwise CAK key material over EAPOL v3.
 host macsec_peer_a {
     ip 172.16.90.1
     mac 00:1c:73:5a:00:01
 }
 
-// INSTRUCTION: Define core router B acknowledging MACsec CAK key rotation over EAPOL v3.
 host macsec_peer_b {
     ip 172.16.90.2
     mac 00:1c:73:5a:00:02
 }
 
-// INSTRUCTION: Exchange EAPOL Version 3 TYPE KEY frames carrying AES-256-GCM wrapped CAK and ICV payloads.
 flow eapol_cak_key_rotation(a, b) {
     a -> b eapol version 3 type key hexpayload "03030040aa11bb22cc33dd44ee55ff6677889900" wait 5ms
     a <- b eapol version 3 type key hexpayload "03030040ff66ee55dd44cc33bb22aa1100998877"
 }
 
-// INSTRUCTION: Compile the EAPOLv3 MACsec CAK pairwise key rotation trace.
 compile {
     eapol_cak_key_rotation(macsec_peer_a, macsec_peer_b)
 }

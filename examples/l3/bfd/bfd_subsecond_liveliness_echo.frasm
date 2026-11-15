@@ -1,19 +1,19 @@
-// PROMPT: BFD high-frequency session monitoring configuring minimum TX/RX intervals and detection multiplier.
-// TOKENS: host, ip, flow, s, bfd, state, mydisc, yourdisc, mintx, minrx, mult, compile
+// BFD high-frequency session monitoring configuring minimum TX/RX intervals
+// and detection multiplier.
+// This capture carries BFD state 3.
+// Wireshark: bfd
 
-// INSTRUCTION: Define spine switch fast BFD peer.
 host bfd_spine { ip 10.0.100.1 }
 
-// INSTRUCTION: Define leaf switch fast BFD peer.
 host bfd_leaf { ip 10.0.100.2 }
 
-// INSTRUCTION: Define sub-second BFD negotiation flow with 50ms intervals and multiplier 3.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow bfd_fast_flow(s, l) {
     s -> l bfd state 3 mydisc 5001 yourdisc 5002 mintx 50000 minrx 50000 mult 3
     s <- l bfd state 3 mydisc 5002 yourdisc 5001 mintx 50000 minrx 50000 mult 3
 }
 
-// INSTRUCTION: Compile block executing fast BFD liveliness exchange.
+// Run bfd_fast_flow(bfd_spine, bfd_leaf) to generate the capture.
 compile {
     bfd_fast_flow(bfd_spine, bfd_leaf)
 }

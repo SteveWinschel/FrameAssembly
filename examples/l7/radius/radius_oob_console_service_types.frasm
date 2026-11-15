@@ -1,13 +1,14 @@
-// PROMPT: RADIUS Administrative-User (SERVICE_TYPE 6) and Callback-Login (SERVICE_TYPE 3) comparison.
-// TOKENS: host, ip, flow, radius, accessrequest, user, nasip, servicetype, wait, ms, accessaccept, compile
+// RADIUS Administrative-User (SERVICE_TYPE 6) and Callback-Login
+// (SERVICE_TYPE 3) comparison.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting (accessrequest,
+// accessaccept) with Service-Type 3, 6 (Administrative).
+// Timing: uses post-packet wait delays (5ms, 10ms) between frames.
+// Wireshark: radius
 
-// INSTRUCTION: Define out-of-band console server NAS.
 host oob_console { ip 10.9.9.10 }
 
-// INSTRUCTION: Define OOB RADIUS server.
 host oob_radius { ip 10.9.9.1 }
 
-// INSTRUCTION: Define SERVICE_TYPE 6 and SERVICE_TYPE 3 authentication requests.
 flow radius_service_types(nas, aaa) {
     nas -> aaa radius accessrequest user "oob_root" nasip 10.9.9.10 servicetype 6 wait 5ms
     nas <- aaa radius accessaccept user "oob_root" servicetype 6 wait 10ms
@@ -15,7 +16,6 @@ flow radius_service_types(nas, aaa) {
     nas <- aaa radius accessaccept user "modem_cb" servicetype 3
 }
 
-// INSTRUCTION: Compile OOB console RADIUS service type flow.
 compile {
     radius_service_types(oob_console, oob_radius)
 }

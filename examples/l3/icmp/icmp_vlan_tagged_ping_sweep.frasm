@@ -1,13 +1,13 @@
-// PROMPT: 802.1Q VLAN-tagged ICMP Echo Request and Echo Reply diagnostic sweep with explicit ID and SEQ.
-// TOKENS: host, ip, mac, flow, icmp, echorequest, id, seq, vlan, pcp, dei, echoreply, compile
+// 802.1Q VLAN-tagged ICMP Echo Request and Echo Reply diagnostic sweep with
+// explicit ID and SEQ.
+// This capture wraps frames in 802.1Q VLAN 250.
+// Wireshark: icmp && vlan.id == 250
 
-// INSTRUCTION: Define network management station on VLAN 250.
 host nms_ping_station { ip 10.250.1.10 mac 00:21:5a:25:01:10 }
 
-// INSTRUCTION: Define managed access switch on VLAN 250.
 host managed_sw_250 { ip 10.250.1.254 mac 00:21:5a:25:02:54 }
 
-// INSTRUCTION: Define VLAN 250 tagged ICMP ping sequence advancing SEQ numbers.
+// Packet sequence (4 frames) with default 10ms post-packet spacing.
 flow icmp_vlan_sweep(nms, sw) {
     nms -> sw icmp echorequest id 2500 seq 1 vlan 250 pcp 2 dei 0
     nms <- sw icmp echoreply id 2500 seq 1 vlan 250 pcp 2 dei 0
@@ -15,7 +15,8 @@ flow icmp_vlan_sweep(nms, sw) {
     nms <- sw icmp echoreply id 2500 seq 2 vlan 250 pcp 2 dei 0
 }
 
-// INSTRUCTION: Compile the VLAN-tagged ICMP ping sweep flow.
+// Run icmp_vlan_sweep(nms_ping_station, managed_sw_250) to generate the
+// capture.
 compile {
     icmp_vlan_sweep(nms_ping_station, managed_sw_250)
 }

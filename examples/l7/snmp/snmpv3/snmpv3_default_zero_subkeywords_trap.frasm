@@ -1,24 +1,18 @@
-// PROMPT: Minimal SNMPv3 frame with zero optional sub-keywords exercising builder default USM trap generation.
-// TOKENS: host, ip, mac, flow, m, snmp3, compile
+// Minimal 2-block SNMPv3 USM (RFC 3414 / 7860) starter emitting automatic
+// protocol defaults directly from the compile block (zero flow wrapper).
+// Uses SNMPv3 default trap PDUs on UDP 161/162.
+// Wireshark: snmp
 
-// INSTRUCTION: Define the default SNMPv3 agent endpoint.
 host snmp3_def_agent {
     ip 10.147.0.1
     mac 00:1a:2b:93:00:01
 }
 
-// INSTRUCTION: Define the default SNMPv3 trap receiver endpoint.
 host snmp3_def_mgr {
     ip 10.147.0.10
     mac 00:1a:2b:93:00:10
 }
 
-// INSTRUCTION: Emit a bare SNMP3 statement to exercise default USM user, engine parameters, and trap OID.
-flow snmpv3_defaults(a, m) {
-    a -> m snmp3
-}
-
-// INSTRUCTION: Compile the default SNMPv3 trap flow.
 compile {
-    snmpv3_defaults(snmp3_def_agent, snmp3_def_mgr)
+    snmp3_def_agent -> snmp3_def_mgr snmp3
 }

@@ -1,13 +1,12 @@
-// PROMPT: First fragment of multi-frame payload specifying FIN bit 0 and TEXT opcode.
-// TOKENS: host, ip, flow, s, websocket, opcode, finbit, maskkey, compile
+// First fragment of multi-frame payload specifying FIN bit 0 and TEXT opcode.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define streaming client sending large document.
 host doc_client { ip 172.20.15.4 }
 
-// INSTRUCTION: Define document indexing server.
 host index_server { ip 172.20.15.1 }
 
-// INSTRUCTION: Define fragmented initial frame flow.
 flow ws_frag_first_flow(c, s) {
     c -> s websocket
         opcode "text"
@@ -15,7 +14,6 @@ flow ws_frag_first_flow(c, s) {
         maskkey 3735928559
 }
 
-// INSTRUCTION: Compile block executing first fragment transmission.
 compile {
     ws_frag_first_flow(doc_client, index_server)
 }

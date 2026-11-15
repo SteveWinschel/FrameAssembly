@@ -1,19 +1,20 @@
-// PROMPT: Simulate an SMTP AUTH PLAIN authentication on mail submission port 587 with 235 2.7.0 Authentication successful.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, smtp, code, reply, ehlo, cmd, param, quit, compile
+// Simulate an SMTP auth PLAIN authentication on mail submission port 587 with
+// 235 2.7.0 Authentication successful.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Overrides destination port to 52587, 587.
+// Wireshark: smtp || tcp.port == 52587 || tcp.port == 587
 
-// INSTRUCTION: Define the mail user agent and SMTP submission server on port 587.
 host mua_client {
     mac 00:1c:42:33:44:55
     ip 192.168.10.45
 }
 
-// INSTRUCTION: Define the submission_srv mail endpoint.
 host submission_srv {
     mac 00:1c:42:33:44:01
     ip 192.168.10.5
 }
 
-// INSTRUCTION: Connect to port 587, send EHLO, authenticate with AUTH PLAIN, and receive 235 success.
 flow smtp_submission_auth_plain(mua_client, submission_srv) {
     mua_client -> submission_srv tcp syn srcport 52587 dstport 587
     submission_srv -> mua_client tcp syn ack
@@ -27,7 +28,6 @@ flow smtp_submission_auth_plain(mua_client, submission_srv) {
     submission_srv -> mua_client dstport 52587 srcport 587 smtp code 221 reply "2.0.0 Bye"
 }
 
-// INSTRUCTION: Compile the SMTP port 587 AUTH PLAIN submission flow.
 compile {
     smtp_submission_auth_plain(mua_client, submission_srv)
 }

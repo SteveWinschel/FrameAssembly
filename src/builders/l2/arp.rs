@@ -115,10 +115,10 @@ pub fn build_arp_frame(
                 _ => src_v4.octets(),
             };
 
-            let tha = if spec.is_gratuitous {
-                [0u8; 6]
-            } else if let Some(t) = spec.tha {
+            let tha = if let Some(t) = spec.tha {
                 t
+            } else if spec.is_gratuitous {
+                [0u8; 6]
             } else if is_reply {
                 ctx.dst_mac
             } else {
@@ -155,7 +155,7 @@ pub fn build_arp_frame(
 
             let dst_mac = if let Some(m) = ctx.l2.dst_mac {
                 m
-            } else if is_reply {
+            } else if is_reply && !spec.is_gratuitous {
                 ctx.dst_mac
             } else {
                 [0xFF; 6]

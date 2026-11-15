@@ -1,22 +1,22 @@
-// PROMPT: Kerberos ticket request failover sequence querying primary and secondary KDC nodes.
-// TOKENS: host, ip, flow, kerberos, asreq, realm, cname, etype, wait, ms, compile
+// Kerberos ticket request failover sequence querying primary and secondary
+// KDC nodes.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define redundant client station.
 host branch_client { ip 172.22.1.80 }
 
-// INSTRUCTION: Define primary site KDC.
+// Primary site KDC.
 host primary_kdc { ip 172.22.1.10 }
 
-// INSTRUCTION: Define secondary site backup KDC.
+// Secondary site backup KDC.
 host backup_kdc { ip 172.22.2.10 }
 
-// INSTRUCTION: Define failover ticket request flow.
+// Failover ticket request flow. Kerberos encryption types: 18 (AES256-CTS).
+// Uses post-packet wait timing (50ms) to space follow-up packets.
 flow kdc_failover_flow(c, k1, k2) {
     c -> k1 kerberos asreq realm "BRANCH.INTERNAL" cname "teller01" etype 18 wait 50ms
     c -> k2 kerberos asreq realm "BRANCH.INTERNAL" cname "teller01" etype 18
 }
 
-// INSTRUCTION: Compile redundant KDC failover scenario.
 compile {
     kdc_failover_flow(branch_client, primary_kdc, backup_kdc)
 }

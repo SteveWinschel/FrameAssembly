@@ -1,19 +1,16 @@
-// PROMPT: Dual-stack IPv6 STUN binding request to public session controller.
-// TOKENS: host, ip, flow, s, stun, bindingrequest, software, bindingresponse, compile
+// Dual-stack IPv6 STUN binding request to public session controller.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Wireshark: stun
 
-// INSTRUCTION: Define IPv6 dual-stack terminal.
 host dual_terminal { ip 2001:db8:9000::25 }
 
-// INSTRUCTION: Define IPv6 STUN controller.
 host stun_v6_ctrl { ip 2001:db8:9000::1 }
 
-// INSTRUCTION: Define IPv6 STUN binding flow.
 flow stun_v6_flow(c, s) {
     c -> s stun bindingrequest software "V6-Client-Lib"
     c <- s stun bindingresponse software "V6-Coturn-Core"
 }
 
-// INSTRUCTION: Compile block executing IPv6 STUN flow.
 compile {
     stun_v6_flow(dual_terminal, stun_v6_ctrl)
 }

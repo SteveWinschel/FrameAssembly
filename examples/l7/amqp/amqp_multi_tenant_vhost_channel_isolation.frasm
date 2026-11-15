@@ -1,19 +1,20 @@
-// PROMPT: Single AMQP TCP connection multiplexing three isolated channels (10, 20, 30) for separate worker threads.
-// TOKENS: host, ip, mac, flow, amqp, channelopen, channel, wait, ms, basicpublish, exchange, routingkey, payload, compile
+// Single AMQP TCP connection multiplexing three isolated channels (10, 20,
+// 30) for separate worker threads.
+// Wireshark: amqp
 
-// INSTRUCTION: Define the multi-threaded Go worker service.
+// Multi-threaded Go worker service.
 host go_worker {
     ip 10.115.110.18
     mac 00:1a:2b:73:b0:18
 }
 
-// INSTRUCTION: Define the shared RabbitMQ broker.
+// Shared RabbitMQ broker.
 host shared_rmq {
     ip 10.115.110.1
     mac 00:1a:2b:73:b0:01
 }
 
-// INSTRUCTION: Open channels 10, 20, and 30 and publish domain events on each channel.
+// Open channels 10, 20, and 30 and publish domain events on each channel.
 flow amqp_three_channels(c, b) {
     c -> b amqp channelopen channel 10
     c <- b amqp channelopen channel 10 wait 1ms
@@ -26,7 +27,6 @@ flow amqp_three_channels(c, b) {
     c -> b amqp basicpublish channel 30 exchange "events" routingkey "ch30.evt" payload "THREAD_30_OK"
 }
 
-// INSTRUCTION: Compile the three-channel multiplexed AMQP flow.
 compile {
     amqp_three_channels(go_worker, shared_rmq)
 }

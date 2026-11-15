@@ -1,19 +1,18 @@
-// PROMPT: Periodic HTTP/2 PING RTT measurement and keepalive loop on Stream 0.
-// TOKENS: host, ip, flow, s, http2, ping, streamid, wait, compile
+// Periodic HTTP/2 PING RTT measurement and keepalive loop on Stream 0.
+// Wireshark: http2
 
-// INSTRUCTION: Define persistent HTTP/2 mobile client.
 host mobile_h2 { ip 10.15.43.90 }
 
-// INSTRUCTION: Define API gateway server.
 host gateway_h2 { ip 10.15.43.1 }
 
-// INSTRUCTION: Exchange HTTP/2 PING frames on stream 0 every 10 seconds.
+// Exchange HTTP/2 PING frames on stream 0 every 10 seconds. Repeats 4 times;
+// each wait value pauses after sending its packet.
 flow http2_ping_loop(c, s) {
     c -> s http2 ping streamid 0 wait 10s
     c <- s http2 ping streamid 0
 }
 
-// INSTRUCTION: Run 4 iterations of the HTTP/2 PING keepalive loop.
+// Run 4 iterations of the HTTP/2 PING keepalive loop.
 compile {
     http2_ping_loop(mobile_h2, gateway_h2) // cycle 1
     http2_ping_loop(mobile_h2, gateway_h2) // cycle 2

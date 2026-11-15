@@ -1,0 +1,11 @@
+// Minimal 2-block SNMPv2c starter emitting a default RFC 3416 trap on UDP port 162.
+// Automatically prepends sysUpTime.0 and snmpTrapOID.0 (linkDown) with zero flow wrapper.
+// Compile to test NMS trap ingestion or replay with tcpreplay.
+// Wireshark: snmp
+
+host switch_agent { ip 10.146.0.1  mac 00:1a:2b:92:00:01 }
+host nms_server   { ip 10.146.0.10 mac 00:1a:2b:92:00:0a }
+
+compile {
+    switch_agent -> nms_server snmp2
+}

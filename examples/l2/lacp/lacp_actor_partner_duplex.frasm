@@ -1,19 +1,17 @@
-// PROMPT: Link Aggregation Control Protocol PDU exchange configuring actor and partner keys.
-// TOKENS: host, ip, flow, lacp, actorkey, partnerkey, compile
+// Link Aggregation Control Protocol PDU exchange configuring actor and partner
+// keys.
+// Wire profile: 2 frames; 2 IPv4 hosts; LACP.
+// Wireshark: lacp
 
-// INSTRUCTION: Define server dual-port NIC interface.
 host bond_server { ip 192.168.50.1 }
 
-// INSTRUCTION: Define top-of-rack aggregation switch interface.
 host bond_switch { ip 192.168.50.2 }
 
-// INSTRUCTION: Define full duplex LACP negotiation flow exchanging aggregation keys.
 flow lacp_duplex_flow(srv, sw) {
     srv -> sw lacp actorkey 100 partnerkey 200
     srv <- sw lacp actorkey 200 partnerkey 100
 }
 
-// INSTRUCTION: Compile block executing bidirectional LACP key exchange.
 compile {
     lacp_duplex_flow(bond_server, bond_switch)
 }

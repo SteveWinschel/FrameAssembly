@@ -1,19 +1,19 @@
-// PROMPT: Simulate a branch office fetchmail daemon pulling POP3 messages over an MPLS WAN pseudowire (label 4110).
-// TOKENS: host, ip, mac, flow, s, pop3, cmd, mpls, exp, bos, mplsttl, wait, ms, ok, response, arg, payload, compile
+// Simulate a branch office fetchmail daemon pulling POP3 messages over an
+// MPLS WAN pseudowire (label 4110).
+// Encapsulation and QoS markings: MPLS label 4110.
+// Timing: uses post-packet wait delays (3ms, 2ms, 4ms) between frames.
+// Wireshark: pop && mpls
 
-// INSTRUCTION: Define the branch office fetchmail relay host.
 host fetchmail_gw {
     ip 172.21.110.15
     mac 00:1a:4a:6e:00:0f
 }
 
-// INSTRUCTION: Define the headquarters POP3 mailstore server.
 host hq_pop3_srv {
     ip 172.21.1.110
     mac 00:1a:4a:01:00:6e
 }
 
-// INSTRUCTION: Check STAT, retrieve message 1, delete it, and QUIT over MPLS label 4110.
 flow pop3_fetchmail_mpls(c, s) {
     c -> s pop3 cmd "STAT" mpls 4110 exp 3 bos 1 mplsttl 64 wait 3ms
     c <- s pop3 ok response "1 840" mpls 4110 exp 3 bos 1 mplsttl 64 wait 2ms
@@ -29,7 +29,6 @@ Order 9912 approved.
     c <- s pop3 ok response "1 message purged" mpls 4110 exp 3 bos 1 mplsttl 64
 }
 
-// INSTRUCTION: Compile the MPLS-encapsulated POP3 fetchmail flow.
 compile {
     pop3_fetchmail_mpls(fetchmail_gw, hq_pop3_srv)
 }

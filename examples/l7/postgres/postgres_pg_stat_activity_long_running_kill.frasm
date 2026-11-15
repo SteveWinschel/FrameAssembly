@@ -1,19 +1,18 @@
-// PROMPT: PostgreSQL DBA session inspecting pg_stat_activity and terminating a stuck query with pg_terminate_backend.
-// TOKENS: host, ip, mac, flow, s, postgres, sql, commandcomplete, wait, ms, readyforquery, compile
+// PostgreSQL DBA session inspecting pg_stat_activity and terminating a stuck
+// query with pg_terminate_backend.
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: pgsql
 
-// INSTRUCTION: Define the DBA operations console host.
 host dba_console {
     ip 10.95.40.99
     mac 00:1a:2b:95:40:99
 }
 
-// INSTRUCTION: Define the production PostgreSQL cluster leader.
 host pg_leader {
     ip 10.95.40.1
     mac 00:1a:2b:95:40:01
 }
 
-// INSTRUCTION: Query pg_stat_activity for queries running over 5 minutes and terminate PID 28419.
 flow pg_kill_stuck_backend(c, s) {
     c -> s postgres sql "SELECT pid, query FROM pg_stat_activity WHERE state = 'active' AND now() - query_start > interval '5 minutes'"
     c <- s postgres commandcomplete wait 1ms
@@ -22,7 +21,6 @@ flow pg_kill_stuck_backend(c, s) {
     c <- s postgres readyforquery
 }
 
-// INSTRUCTION: Compile the PostgreSQL pg_terminate_backend administration flow.
 compile {
     pg_kill_stuck_backend(dba_console, pg_leader)
 }

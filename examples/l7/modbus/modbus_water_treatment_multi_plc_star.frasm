@@ -1,49 +1,51 @@
-// PROMPT: Simulate a multi-PLC water treatment plant topology where a central SCADA master polls filtration, dosing, and pump PLCs.
-// TOKENS: host, ip, mac, flow, s, modbus, txid, unitid, func, addr, count, wait, ms, isresponse, value, compile
+// Multi-PLC water treatment plant topology where a central SCADA master polls
+// filtration, dosing, and pump PLCs.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define the water treatment plant SCADA master server.
+// Water treatment plant SCADA master server.
 host wtp_scada {
     ip 10.115.1.10
     mac 00:1b:21:73:01:0a
 }
 
-// INSTRUCTION: Define the ultrafiltration skid PLC.
+// Ultrafiltration skid PLC.
 host filtration_plc {
     ip 10.115.1.21
     mac 00:1b:21:73:01:15
 }
 
-// INSTRUCTION: Define the chlorine dosing skid PLC.
+// Chlorine dosing skid PLC.
 host dosing_plc {
     ip 10.115.1.22
     mac 00:1b:21:73:01:16
 }
 
-// INSTRUCTION: Define the high-service distribution pump PLC.
+// High-service distribution pump PLC.
 host pump_plc {
     ip 10.115.1.23
     mac 00:1b:21:73:01:17
 }
 
-// INSTRUCTION: Poll transmembrane pressure from the filtration PLC.
+// Poll transmembrane pressure from the filtration PLC. Modbus functions: FC 4
+// Read Input Registers, FC 5 Write Single Coil. Repeats 3 times; each wait
+// value pauses after sending its packet.
 flow poll_filtration(c, s) {
     c -> s modbus txid 1 unitid 1 func "readinputregisters" addr 10 count 2 wait 3ms
     c <- s modbus txid 1 unitid 1 func "readinputregisters" isresponse value 142
 }
 
-// INSTRUCTION: Poll residual chlorine ppm from the dosing PLC.
+// Poll residual chlorine ppm from the dosing PLC.
 flow poll_dosing(c, s) {
     c -> s modbus txid 2 unitid 1 func "readinputregisters" addr 20 count 2 wait 3ms
     c <- s modbus txid 2 unitid 1 func "readinputregisters" isresponse value 18
 }
 
-// INSTRUCTION: Command pump discharge valve open coil on the distribution pump PLC.
+// Command pump discharge valve open coil on the distribution pump PLC.
 flow control_pump(c, s) {
     c -> s modbus txid 3 unitid 1 func "writesinglecoil" addr 5 value 0xff00 wait 3ms
     c <- s modbus txid 3 unitid 1 func "writesinglecoil" addr 5 value 0xff00 isresponse
 }
 
-// INSTRUCTION: Compile the 3-PLC water treatment plant Modbus topology into a PCAP file.
 compile {
     poll_filtration(wtp_scada, filtration_plc)
     poll_dosing(wtp_scada, dosing_plc)

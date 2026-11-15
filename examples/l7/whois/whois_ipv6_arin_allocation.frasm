@@ -1,18 +1,18 @@
-// PROMPT: WHOIS IP address allocation query over IPv6.
-// TOKENS: host, ip, flow, s, whois, query, domain, compile
+// WHOIS IP address allocation query over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow whois_v6(c, s) {
     c -> s whois query domain "2001:db8::/32"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     whois_v6(client, server)
 }

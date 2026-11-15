@@ -1,18 +1,20 @@
-// PROMPT: WireGuard encrypted transport data packet advancing 64-bit transmission counter.
-// TOKENS: host, ip, flow, wireguard, type, data, receiver, counter, payload, compile
+// WireGuard encrypted transport data packet advancing 64-bit transmission
+// counter.
+// This capture models UDP port 51820 WireGuard handshake and transport
+// frames.
+// Wireshark: wg
 
-// INSTRUCTION: Define enterprise VPN client station.
 host wg_client_station { ip 10.70.1.15 }
 
-// INSTRUCTION: Define central VPN gateway endpoint.
 host wg_central_gw { ip 10.70.1.1 }
 
-// INSTRUCTION: Define sequenced WireGuard data transport flow with counter increment.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow wg_data_counter_flow(cli, gw) {
     cli -> gw wireguard type data receiver 409600 counter 1050 payload "ENCRYPTED_DATABASE_RECORD"
 }
 
-// INSTRUCTION: Compile block executing counter advanced data transmission.
+// Run wg_data_counter_flow(wg_client_station, wg_central_gw) to generate the
+// capture.
 compile {
     wg_data_counter_flow(wg_client_station, wg_central_gw)
 }

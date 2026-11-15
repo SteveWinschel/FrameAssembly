@@ -1,17 +1,16 @@
-// PROMPT: Complete Video-on-Demand RTSP session using shorthand OPTIONS, DESCRIBE, SETUP, PLAY, and TEARDOWN tokens.
-// TOKENS: host, ip, flow, s, rtsp, options, uri, cseq, wait, ms, status, describe, setup, transporthdr, session, play, teardown, compile
+// Complete Video-on-Demand RTSP session using shorthand OPTIONS, DESCRIBE,
+// SETUP, PLAY, and TEARDOWN tokens.
+// Timing: uses post-packet wait delays (3ms, 10ms) between frames.
+// Wireshark: rtsp
 
-// INSTRUCTION: Define set-top box VoD media player client.
 host stb_player {
     ip 10.30.40.50
 }
 
-// INSTRUCTION: Define cable headend RTSP VoD server.
 host vod_server {
     ip 10.30.40.1
 }
 
-// INSTRUCTION: Define full RTSP session using shorthand method keywords from OPTIONS to TEARDOWN.
 flow rtsp_shorthand_lifecycle(c, s) {
     c -> s rtsp options uri "rtsp://10.30.40.1/vod/movie1" cseq 1 wait 3ms
     c <- s rtsp status 200 cseq 1 wait 3ms
@@ -25,7 +24,6 @@ flow rtsp_shorthand_lifecycle(c, s) {
     c <- s rtsp status 200 cseq 5 session "vod_998877"
 }
 
-// INSTRUCTION: Compile the full shorthand RTSP VoD lifecycle scenario.
 compile {
     rtsp_shorthand_lifecycle(stb_player, vod_server)
 }

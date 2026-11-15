@@ -1,18 +1,18 @@
-// PROMPT: Enterprise videoconferencing terminal joining site-local multicast conference group.
-// TOKENS: host, ip, flow, mld, report, multicastaddr, compile
+// Enterprise videoconferencing terminal joining site-local multicast
+// conference group.
+// This capture targets IPv6 endpoints.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define conference room codec terminal.
 host conf_room_codec { ip fe80::a1b:2c3d:4e5f:6001 }
 
-// INSTRUCTION: Define IPv6 all-routers gateway destination.
 host all_rtrs_gw { ip ff02::2 }
 
-// INSTRUCTION: Define MLD report subscribing to conference stream ff02::1:3.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow conf_join_flow(codec, gw) {
     codec -> gw mld report multicastaddr ff02::1:3
 }
 
-// INSTRUCTION: Compile block executing video conference join.
+// Run conf_join_flow(conf_room_codec, all_rtrs_gw) to generate the capture.
 compile {
     conf_join_flow(conf_room_codec, all_rtrs_gw)
 }

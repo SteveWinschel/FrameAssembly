@@ -1,13 +1,13 @@
-// PROMPT: Simulate a long-lived idle TCP database connection using WAIT intervals in milliseconds (ms), seconds (s), and minutes (m) for TCP keepalives.
-// TOKENS: host, ip, mac, flow, db, tcp, syn, srcport, dstport, seq, win, wait, ms, ack, acknum, m, s, psh, payload, compile
+// Simulate a long-lived idle TCP database connection using wait intervals in
+// milliseconds (ms), seconds (s), and minutes (m) for TCP keepalives.
+// Wire profile: 7 frames; 2 IPv4 hosts; TCP; TCP flags SYN/ACK/PSH; dstport
+// 5432,52400; waits 10ms, 1m, 5ms, 5s.
+// Wireshark: (tcp.port == 5432 || tcp.port == 52400)
 
-// INSTRUCTION: Define a backend worker host with IP 10.30.1.15.
 host worker_node { ip 10.30.1.15 mac 00:22:44:66:88:aa }
 
-// INSTRUCTION: Define a PostgreSQL database server with IP 10.30.1.54.
 host postgres_db { ip 10.30.1.54 mac 00:22:44:66:88:bb }
 
-// INSTRUCTION: Define a flow that connects on port 5432, idles for 1 minute, sends a TCP keepalive ACK, and runs a query after 5 seconds.
 flow tcp_keepalive_idle(worker, db) {
     worker -> db tcp syn srcport 52400 dstport 5432 seq 100 win 64240 wait 10ms
     worker <- db tcp syn ack srcport 5432 dstport 52400 seq 500 acknum 101 win 64240 wait 10ms
@@ -15,10 +15,9 @@ flow tcp_keepalive_idle(worker, db) {
     worker -> db tcp ack srcport 52400 dstport 5432 seq 100 acknum 501 win 64240 wait 5ms
     worker <- db tcp ack srcport 5432 dstport 52400 seq 501 acknum 101 win 64240 wait 5s
     worker -> db tcp psh ack srcport 52400 dstport 5432 seq 101 acknum 501 payload "SELECT 1;" wait 20ms
-    worker <- db tcp psh ack srcport 5432 dstport 52400 seq 501 acknum 110 payload "ROW 1" wait 20ms
+    worker <- db tcp psh ack srcport 5432 dstport 52400 seq 501 acknum 110 payload "ROW 1"
 }
 
-// INSTRUCTION: Compile block to run the long-lived TCP keepalive session.
 compile {
     tcp_keepalive_idle(worker_node, postgres_db)
 }

@@ -1,13 +1,13 @@
-// PROMPT: IKEv2 NAT-Traversal (NAT-T) floating from UDP port 500 to UDP port 4500 during authentication.
-// TOKENS: host, ip, flow, ikev2, sainit, initiatorspi, responderspi, msgid, srcport, dstport, informational, compile
+// IKEv2 NAT-Traversal (NAT-T) floating from UDP port 500 to UDP port 4500
+// during authentication.
+// This capture carries destination port 4500/500.
+// Wireshark: isakmp && udp.port == 4500
 
-// INSTRUCTION: Define NATed branch VPN client.
 host natt_ike_client { ip 192.0.2.88 }
 
-// INSTRUCTION: Define public VPN headend responder.
 host natt_ike_server { ip 198.51.100.88 }
 
-// INSTRUCTION: Define IKEv2 SA_INIT on UDP 500 followed by NAT-T port float to UDP 4500.
+// Packet sequence (4 frames) with default 10ms post-packet spacing.
 flow ikev2_natt_float(cli, srv) {
     cli -> srv ikev2 sainit initiatorspi 111222333 responderspi 0 msgid 0 srcport 500 dstport 500
     cli <- srv ikev2 sainit initiatorspi 111222333 responderspi 444555666 msgid 0 srcport 500 dstport 500
@@ -15,7 +15,8 @@ flow ikev2_natt_float(cli, srv) {
     cli <- srv ikev2 informational initiatorspi 111222333 responderspi 444555666 msgid 1 srcport 4500 dstport 4500
 }
 
-// INSTRUCTION: Compile the IKEv2 NAT-Traversal port 4500 float flow.
+// Run ikev2_natt_float(natt_ike_client, natt_ike_server) to generate the
+// capture.
 compile {
     ikev2_natt_float(natt_ike_client, natt_ike_server)
 }

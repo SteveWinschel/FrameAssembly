@@ -1,26 +1,24 @@
-// PROMPT: Internet Exchange Point member upgrading from 1x100GbE to 2x100GbE LACP LAG with hitless member addition.
-// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, compile
+// Internet Exchange Point member upgrading from 1x100GbE to 2x100GbE LACP LAG
+// with hitless member addition.
+// Wire profile: 3 frames; 2 IPv4 hosts; LACP; waits 5ms.
+// Wireshark: lacp
 
-// INSTRUCTION: Define IXP member border router adding second 100GbE port to bundle Key 500.
 host ixp_member_lag {
     ip 198.32.170.50
     mac 00:1c:73:aa:00:32
 }
 
-// INSTRUCTION: Define IXP peering fabric switch terminating member LAG Key 500.
 host ixp_fabric_sw {
     ip 198.32.170.1
     mac 00:1c:73:aa:00:01
 }
 
-// INSTRUCTION: Bring new member port 2 from Synchronizing (state 15 = 0x0F) to Collecting/Distributing (state 63 = 0x3F).
 flow lacp_ixp_hitless_add(mbr, ix) {
     mbr -> ix lacp actorsys 00:1c:73:aa:00:32 actorkey 500 actorport 2 actorstate 15 partnersys 00:1c:73:aa:00:01 partnerkey 500 partnerport 22 partnerstate 15 wait 5ms
     mbr <- ix lacp actorsys 00:1c:73:aa:00:01 actorkey 500 actorport 22 actorstate 63 partnersys 00:1c:73:aa:00:32 partnerkey 500 partnerport 2 partnerstate 63 wait 5ms
     mbr -> ix lacp actorsys 00:1c:73:aa:00:32 actorkey 500 actorport 2 actorstate 63 partnersys 00:1c:73:aa:00:01 partnerkey 500 partnerport 22 partnerstate 63
 }
 
-// INSTRUCTION: Compile the IXP 2x100GbE hitless LACP member addition sequence.
 compile {
     lacp_ixp_hitless_add(ixp_member_lag, ixp_fabric_sw)
 }

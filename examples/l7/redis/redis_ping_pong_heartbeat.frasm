@@ -1,18 +1,17 @@
-// PROMPT: Redis RESP simple PING heartbeat command.
-// TOKENS: host, ip, flow, s, redis, cmd, compile
+// Redis RESP simple PING heartbeat command.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (Redis
+// RESP2 / RESP3, TCP 6379).
+// Wireshark: resp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow redis_ping(c, s) {
     c -> s redis cmd "PING"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     redis_ping(client, server)
 }

@@ -283,6 +283,95 @@ pub enum Protocol {
     Opcua,
 }
 
+impl Protocol {
+    /// Returns the canonical uppercase display label for packet ladders and IDE inspectors.
+    pub const fn display_label(&self) -> &'static str {
+        match self {
+            Self::Tcp => "TCP",
+            Self::Udp => "UDP",
+            Self::Sctp => "SCTP",
+            Self::Snmp1 => "SNMP1",
+            Self::Snmp2 => "SNMP2",
+            Self::Snmp3 => "SNMP3",
+            Self::Arp => "ARP",
+            Self::Vlan => "VLAN",
+            Self::Qinq => "QINQ",
+            Self::Lldp => "LLDP",
+            Self::Stp => "STP",
+            Self::Lacp => "LACP",
+            Self::Eapol => "EAPOL",
+            Self::Mpls => "MPLS",
+            Self::Icmp => "ICMP",
+            Self::Ndp => "NDP",
+            Self::Igmp => "IGMP",
+            Self::Mld => "MLD",
+            Self::Gre => "GRE",
+            Self::Vxlan => "VXLAN",
+            Self::Geneve => "GENEVE",
+            Self::Ipsec => "IPSEC",
+            Self::Esp => "ESP",
+            Self::Ah => "AH",
+            Self::Ikev2 => "IKEV2",
+            Self::Wireguard => "WIREGUARD",
+            Self::Ospf => "OSPF",
+            Self::Bgp => "BGP",
+            Self::Rip => "RIP",
+            Self::Vrrp => "VRRP",
+            Self::Hsrp => "HSRP",
+            Self::Pim => "PIM",
+            Self::Bfd => "BFD",
+            Self::Openflow => "OPENFLOW",
+            Self::Dns => "DNS",
+            Self::Mdns => "MDNS",
+            Self::Dhcp => "DHCP",
+            Self::Ntp => "NTP",
+            Self::Ptp => "PTP",
+            Self::Radius => "RADIUS",
+            Self::Tacacs => "TACACS",
+            Self::Syslog => "SYSLOG",
+            Self::Netflow => "NETFLOW",
+            Self::Ipfix => "IPFIX",
+            Self::Sflow => "SFLOW",
+            Self::Tftp => "TFTP",
+            Self::Ftp => "FTP",
+            Self::Ssh => "SSH",
+            Self::Telnet => "TELNET",
+            Self::Http => "HTTP",
+            Self::Http2 => "HTTP2",
+            Self::Grpc => "GRPC",
+            Self::Websocket => "WEBSOCKET",
+            Self::Tls => "TLS",
+            Self::Quic => "QUIC",
+            Self::Stun => "STUN",
+            Self::Sip => "SIP",
+            Self::Rtp => "RTP",
+            Self::Rtsp => "RTSP",
+            Self::Smtp => "SMTP",
+            Self::Imap => "IMAP",
+            Self::Pop3 => "POP3",
+            Self::Kerberos => "KERBEROS",
+            Self::Ldap => "LDAP",
+            Self::Smb => "SMB",
+            Self::Nfs => "NFS",
+            Self::Redis => "REDIS",
+            Self::Memcached => "MEMCACHED",
+            Self::Mysql => "MYSQL",
+            Self::Postgres => "POSTGRES",
+            Self::Mqtt => "MQTT",
+            Self::Coap => "COAP",
+            Self::Amqp => "AMQP",
+            Self::Ssdp => "SSDP",
+            Self::Whois => "WHOIS",
+            Self::Modbus => "MODBUS",
+            Self::Bacnet => "BACNET",
+            Self::Dnp3 => "DNP3",
+            Self::S7comm => "S7COMM",
+            Self::Ethernetip => "ETHERNETIP",
+            Self::Opcua => "OPCUA",
+        }
+    }
+}
+
 /// Protocol specification holding protocol-specific fields.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtocolSpec<'a> {
@@ -452,6 +541,9 @@ pub enum ProtocolSpec<'a> {
     Raw(Vec<u8>),
 }
 
+/// Recorded numeric bound entry `(label, value, min, max, span)` for semantic range validation.
+pub type RawBoundEntry = (&'static str, u64, u64, u64, (usize, usize));
+
 /// A single frame statement inside a flow.
 ///
 /// Syntax mapping: `<caller> ->|<- <callee> [l2/l3/l4 modifiers] <protocol> [protocol_spec] [wait <duration>]`
@@ -482,6 +574,8 @@ pub struct FrameStatement<'a> {
     pub l4: L4Modifiers,
     /// Optional string payload.
     pub payload: Option<String>,
+    /// Optional raw byte sequence decoded from `payload` (preserving `\x80`..`\xff` as raw octets).
+    pub payload_bytes: Option<Vec<u8>>,
     /// Optional raw binary hex payload.
     pub hex_payload: Option<Vec<u8>>,
     /// Optional wait time before sending the packet (in nanoseconds).
@@ -502,6 +596,10 @@ pub struct FrameStatement<'a> {
     pub raw_gentrap_span: Option<(usize, usize)>,
     /// Raw parsed `hellotime` value and span for HSRP semantic range validation (`0..=255`).
     pub raw_hellotime: Option<(u16, (usize, usize))>,
+    /// Raw numeric field values `(label, value, min, max, span)` recorded for semantic range validation.
+    pub raw_bounds: Vec<RawBoundEntry>,
+    /// Source span of a bare `nop` modifier for cross-protocol validation.
+    pub raw_nop_span: Option<(usize, usize)>,
     /// Any duplicate statement modifiers detected during parsing.
     pub duplicate_modifiers: Vec<(String, (usize, usize))>,
 
@@ -563,10 +661,13 @@ pub struct FrameStatement<'a> {
 impl<'a> FrameStatement<'a> {
     /// Returns the effective payload bytes for this frame statement.
     ///
-    /// Prioritizes `hex_payload` if present, falling back to UTF-8 bytes of `payload`.
+    /// Prioritizes `hex_payload` if present, then `payload_bytes` (preserving single-octet
+    /// `\x80`..`\xff` escapes), falling back to UTF-8 bytes of `payload`.
     pub fn effective_payload(&self) -> Option<&[u8]> {
         if let Some(hex) = &self.hex_payload {
             Some(hex.as_slice())
+        } else if let Some(bytes) = &self.payload_bytes {
+            Some(bytes.as_slice())
         } else {
             self.payload.as_deref().map(str::as_bytes)
         }
@@ -645,4 +746,24 @@ pub struct Program<'a> {
     pub flows: Vec<FlowDef<'a>>,
     /// The list of statements in the compile block.
     pub compile_block: Vec<RunStatement<'a>>,
+}
+
+impl<'a> Program<'a> {
+    /// Returns the ordered sequence of [`Protocol`] variants emitted by evaluating [`Self::compile_block`].
+    pub fn emitted_protocols(&self) -> Vec<Protocol> {
+        let mut out = Vec::new();
+        for item in &self.compile_block {
+            match item {
+                RunStatement::Frame(stmt) => out.push(stmt.protocol.clone()),
+                RunStatement::Invocation(inv) => {
+                    if let Some(flow) = self.flows.iter().find(|f| f.name == inv.name) {
+                        for stmt in &flow.statements {
+                            out.push(stmt.protocol.clone());
+                        }
+                    }
+                }
+            }
+        }
+        out
+    }
 }

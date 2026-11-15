@@ -1,20 +1,20 @@
-// PROMPT: QUIC WebTransport bidirectional media stream over UDP port 4433 with New Token.
-// TOKENS: host, ip, flow, s, quic, initial, dcid, scid, pktnum, srcport, dstport, wait, ms, handshake, short, payload, compile
+// QUIC WebTransport bidirectional media stream over UDP port 4433 with New
+// Token.
+// QUIC UDP 443 packet types: initial, handshake, short.
+// Overrides destination port to 4433.
+// Timing: pauses 3ms after each marked packet before sending the next frame.
+// Wireshark: quic || udp.port == 4433
 
-// INSTRUCTION: Define WebTransport browser client.
 host wt_client { ip 10.188.2.30 }
 
-// INSTRUCTION: Define WebTransport relay server on port 4433.
 host wt_relay { ip 10.188.2.1 }
 
-// INSTRUCTION: Define QUIC session with address token and WebTransport stream payload.
 flow quic_webtransport(c, s) {
     c -> s quic initial dcid 0xabcdef12 scid 0x12abcdef pktnum 1 srcport 49443 dstport 4433 wait 3ms
     c <- s quic handshake dcid 0x12abcdef scid 0xabcdef12 pktnum 1 srcport 4433 dstport 49443 wait 3ms
     c -> s quic short dcid 0xabcdef12 pktnum 2 srcport 49443 dstport 4433 payload "WT_CONNECT:/live/room42"
 }
 
-// INSTRUCTION: Compile WebTransport QUIC flow.
 compile {
     quic_webtransport(wt_client, wt_relay)
 }

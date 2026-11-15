@@ -1,18 +1,20 @@
-// PROMPT: High priority OSPF router asserting Designated Router candidacy with Priority 255.
-// TOKENS: host, ip, flow, dst, ospf, hello, routerid, areaid, priority, compile
+// High priority OSPF router asserting Designated Router candidacy with
+// Priority 255.
+// This capture exchanges OSPF IP protocol 89 link-state packets toward
+// AllSPFRouters.
+// Wireshark: ospf
 
-// INSTRUCTION: Define primary core switch asserting DR role.
 host primary_dr_candidate { ip 172.16.0.254 }
 
-// INSTRUCTION: Define multi-access LAN multicast destination.
 host lan_multicast_dst { ip 224.0.0.5 }
 
-// INSTRUCTION: Define DR priority election Hello flow with Priority 255.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow ospf_dr_election_flow(dr, dst) {
     dr -> dst ospf hello routerid 172.16.0.254 areaid 0 priority 255
 }
 
-// INSTRUCTION: Compile block executing DR priority assertion Hello.
+// Run ospf_dr_election_flow(primary_dr_candidate, lan_multicast_dst) to
+// generate the capture.
 compile {
     ospf_dr_election_flow(primary_dr_candidate, lan_multicast_dst)
 }

@@ -1,18 +1,20 @@
-// PROMPT: OSPF Designated Router flooding topology updates via Link State Update (LSU).
-// TOKENS: host, ip, flow, dst, ospf, lsu, routerid, areaid, compile
+// OSPF Designated Router flooding topology updates via Link State Update
+// (LSU).
+// This capture exchanges OSPF IP protocol 89 link-state packets toward
+// AllSPFRouters.
+// Wireshark: ospf
 
-// INSTRUCTION: Define OSPF Designated Router flooding LSA updates.
 host ospf_designated_rtr { ip 10.10.0.1 }
 
-// INSTRUCTION: Define All-OSPF-Routers multicast address.
 host all_ospf_routers_dst { ip 224.0.0.5 }
 
-// INSTRUCTION: Define Link State Update flooding transmission flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow ospf_lsu_flood_flow(dr, dst) {
     dr -> dst ospf lsu routerid 10.10.0.1 areaid 0
 }
 
-// INSTRUCTION: Compile block executing LSU flooding.
+// Run ospf_lsu_flood_flow(ospf_designated_rtr, all_ospf_routers_dst) to
+// generate the capture.
 compile {
     ospf_lsu_flood_flow(ospf_designated_rtr, all_ospf_routers_dst)
 }

@@ -1,20 +1,20 @@
-// PROMPT: Second-screen DIAL multiscreen protocol discovery query on multicast port 1900.
-// TOKENS: host, ip, flow, s, ssdp, msearch, st, mx, man, compile
+// Second-screen DIAL multiscreen protocol discovery query on multicast port
+// 1900.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (SSDP /
+// UPnP, UDP 1900).
+// Wireshark: ssdp
 
-// INSTRUCTION: Define mobile phone control client.
 host mobile_client { ip 192.168.3.18 }
 
-// INSTRUCTION: Define SSDP multicast destination address.
 host dial_mcast { ip 239.255.255.250 }
 
-// INSTRUCTION: Define DIAL multi-screen service discovery flow.
 flow ssdp_dial_flow(c, s) {
     c -> s ssdp msearch
         st "urn:dial-multiscreen-org:service:dial:1"
         mx 3 man "\"ssdp:discover\""
 }
 
-// INSTRUCTION: Compile block executing DIAL search.
 compile {
     ssdp_dial_flow(mobile_client, dial_mcast)
 }

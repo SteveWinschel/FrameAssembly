@@ -1,17 +1,16 @@
-// PROMPT: Outbound PSTN trunk call challenged with SIP 407 Proxy Authentication Required before 200 OK.
-// TOKENS: host, ip, flow, s, sip, invite, uri, from, to, callid, cseq, wait, ms, status, reason, ack, compile
+// Outbound PSTN trunk call challenged with SIP 407 Proxy Authentication
+// Required before 200 OK.
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: sip
 
-// INSTRUCTION: Define enterprise IP-PBX originating outbound long-distance call.
 host corp_pbx {
     ip 172.16.50.10
 }
 
-// INSTRUCTION: Define ITSP wholesale SIP trunk proxy server.
 host itsp_proxy {
     ip 172.16.50.1
 }
 
-// INSTRUCTION: Define CSeq 1 INVITE challenged with 407, ACK, and authenticated CSeq 2 INVITE.
 flow sip_407_trunk_auth(c, s) {
     c -> s sip invite uri "sip:+442079460000@172.16.50.1" from "sip:trunk1@172.16.50.10" to "sip:+442079460000@172.16.50.1" callid "trunk-407" cseq 1 wait 4ms
     c <- s sip status 407 reason "Proxy Authentication Required" callid "trunk-407" cseq 1 wait 4ms
@@ -20,7 +19,6 @@ flow sip_407_trunk_auth(c, s) {
     c <- s sip status 200 reason "OK" callid "trunk-407" cseq 2
 }
 
-// INSTRUCTION: Compile the SIP 407 Proxy Authentication trunk scenario.
 compile {
     sip_407_trunk_auth(corp_pbx, itsp_proxy)
 }

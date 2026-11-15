@@ -1,18 +1,16 @@
-// PROMPT: Siemens S7comm Write Variable command updating PLC output memory over IPv6.
-// TOKENS: host, ip, flow, s, s7comm, rosctr, func, area, offset, count, compile
+// Siemens S7comm Write Variable command updating PLC output memory over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting Outputs (0x82).
+// Wireshark: s7comm
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow s7_write(c, s) {
     c -> s s7comm rosctr "job" func "writevar" area 130 offset 4 count 2
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     s7_write(client, server)
 }

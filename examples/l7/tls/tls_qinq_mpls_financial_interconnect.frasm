@@ -1,17 +1,20 @@
-// PROMPT: Inter-bank TLS 1.3 settlement session encapsulated inside carrier QinQ and MPLS labels.
-// TOKENS: host, ip, flow, s, tls, clienthello, sni, alpn, qinq, innervlan, mpls, wait, ms, serverhello, ciphersuite, finished, appdata, compile
+// Inter-bank TLS 1.3 settlement session encapsulated inside carrier QinQ and
+// MPLS labels.
+// Encapsulation and QoS markings: 802.1ad QinQ outer 500 / inner 50, MPLS
+// label 88001, 88002.
+// Cipher suite(s): 0x1302 (TLS_AES_256_GCM_SHA384).
+// TLS extensions: SNI swift.clearing.internal; ALPN h2.
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: (tls && vlan) && mpls
 
-// INSTRUCTION: Define originating bank settlement engine host.
 host bank_alpha {
     ip 10.200.1.10
 }
 
-// INSTRUCTION: Define clearing house TLS gateway host.
 host clearing_house {
     ip 10.200.1.1
 }
 
-// INSTRUCTION: Define QinQ and MPLS tagged TLS handshake and settlement data transfer.
 flow tls_carrier_settlement(c, s) {
     c -> s tls clienthello sni "swift.clearing.internal" alpn "h2" qinq 500 innervlan 50 mpls 88001 wait 4ms
     c <- s tls serverhello ciphersuite 0x1302 alpn "h2" qinq 500 innervlan 50 mpls 88002 wait 4ms
@@ -19,7 +22,6 @@ flow tls_carrier_settlement(c, s) {
     c -> s tls appdata qinq 500 innervlan 50 mpls 88001
 }
 
-// INSTRUCTION: Compile the QinQ MPLS financial TLS interconnect flow.
 compile {
     tls_carrier_settlement(bank_alpha, clearing_house)
 }

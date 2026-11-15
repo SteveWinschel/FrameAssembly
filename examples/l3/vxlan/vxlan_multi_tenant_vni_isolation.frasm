@@ -1,18 +1,19 @@
-// PROMPT: Multi-tenant data center overlay isolating tenant network segments using VNI 100200.
-// TOKENS: host, ip, flow, v1, v2, vxlan, vni, compile
+// Multi-tenant data center overlay isolating tenant network segments using
+// VNI 100200.
+// This capture carries VNI 100200.
+// Wireshark: vxlan && vxlan.vni == 100200
 
-// INSTRUCTION: Define tenant hypervisor VTEP gateway 1.
 host tenant_vtep_1 { ip 10.100.1.1 }
 
-// INSTRUCTION: Define tenant hypervisor VTEP gateway 2.
 host tenant_vtep_2 { ip 10.100.1.2 }
 
-// INSTRUCTION: Define VXLAN tenant encapsulation flow with VNI 100200.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vxlan_tenant_flow(v1, v2) {
     v1 -> v2 vxlan vni 100200
 }
 
-// INSTRUCTION: Compile block executing multi-tenant VXLAN tunnel encapsulation.
+// Run vxlan_tenant_flow(tenant_vtep_1, tenant_vtep_2) to generate the
+// capture.
 compile {
     vxlan_tenant_flow(tenant_vtep_1, tenant_vtep_2)
 }

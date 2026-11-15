@@ -1,19 +1,20 @@
-// PROMPT: Hospital operating room surgical video RTSP control session marked with DSCP CS4 (32) and VLAN 300.
-// TOKENS: host, ip, mac, flow, s, rtsp, describe, uri, cseq, vlan, pcp, dscp, df, wait, ms, status, setup, transporthdr, session, play, compile
+// Hospital operating room surgical video RTSP control session marked with
+// DSCP CS4 (32) and VLAN 300.
+// Encapsulation and QoS markings: 802.1Q VLAN 300, 802.1p priority 4, DSCP
+// 32.
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: rtsp && vlan.id == 300
 
-// INSTRUCTION: Define surgical display workstation in theater 4.
 host theater_display {
     ip 10.30.30.40
     mac 00:1b:21:30:30:28
 }
 
-// INSTRUCTION: Define endoscopy 4K medical RTSP encoder.
 host endo_encoder {
     ip 10.30.30.10
     mac 00:1b:21:30:30:0a
 }
 
-// INSTRUCTION: Define low-latency VLAN 300 PCP 4 DSCP 32 RTSP setup and playback.
 flow rtsp_surgical_video(c, s) {
     c -> s rtsp describe uri "rtsp://10.30.30.10/endo4k" cseq 1 vlan 300 pcp 4 dscp 32 df wait 2ms
     c <- s rtsp status 200 cseq 1 vlan 300 pcp 4 dscp 32 df wait 2ms
@@ -23,7 +24,6 @@ flow rtsp_surgical_video(c, s) {
     c <- s rtsp status 200 cseq 3 session "or4_endo_88" vlan 300 pcp 4 dscp 32 df
 }
 
-// INSTRUCTION: Compile the surgical video QoS RTSP control scenario.
 compile {
     rtsp_surgical_video(theater_display, endo_encoder)
 }

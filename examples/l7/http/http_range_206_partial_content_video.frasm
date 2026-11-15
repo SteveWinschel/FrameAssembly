@@ -1,19 +1,21 @@
-// PROMPT: Simulate an HTTP/1.1 Range byte-serving request and 206 Partial Content response for MP4 video streaming.
-// TOKENS: host, ip, mac, flow, http, method, uri, hosthdr, useragent, header, wait, ms, status, reason, contenttype, body, compile
+// HTTP/1.1 Range byte-serving request and 206 Partial Content response for
+// MP4 video streaming.
+// Wireshark: http
 
-// INSTRUCTION: Define the media player client requesting a byte range of an MP4 asset.
+// Media player client requesting a byte range of an MP4 asset.
 host video_player {
     ip 10.100.80.45
     mac 00:50:56:64:50:2d
 }
 
-// INSTRUCTION: Define the CDN origin edge server serving byte-range chunks.
+// CDN origin edge server serving byte-range chunks.
 host cdn_edge_http {
     ip 10.100.80.10
     mac 00:50:56:64:50:0a
 }
 
-// INSTRUCTION: Send GET with Range: bytes=0-65535 and receive HTTP 206 Partial Content with Content-Range.
+// Send GET with Range: bytes=0-65535 and receive HTTP 206 Partial Content
+// with Content-Range.
 flow http_range_206_stream(client, cdn) {
     client -> cdn http method "GET" uri "/vod/keynote-4k.mp4" hosthdr "vod.cdn.example.com"
         useragent "LAVF/60.16.100" header "Range" "bytes=0-65535" wait 5ms
@@ -21,7 +23,6 @@ flow http_range_206_stream(client, cdn) {
         header "Content-Range" "bytes 0-65535/104857600" header "Accept-Ranges" "bytes" body "ISO-BMFF-FTYP-MOOV-FRAGMENT-0"
 }
 
-// INSTRUCTION: Compile the HTTP 206 Partial Content byte-range streaming flow.
 compile {
     http_range_206_stream(video_player, cdn_edge_http)
 }

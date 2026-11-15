@@ -1,37 +1,33 @@
-// PROMPT: Simulate an external attacker scanning a DMZ firewall (SYN, FIN+PSH+URG), the firewall blocking with RST ACK, and alerting a SOC SIEM via Syslog UDP and SNMPv3 INFORM.
-// TOKENS: host, ip, mac, flow, tcp, syn, srcport, dstport, win, wait, ms, rst, ack, fin, psh, urg, udp, payload, snmp3, inform, user, engineid, engineboots, enginetime, auth, sha256, priv, compile
+// Simulate an external attacker scanning a DMZ firewall (SYN, FIN+PSH+URG), the
+// firewall blocking with rst ack, and alerting a SOC SIEM via Syslog UDP and
+// SNMPv3 INFORM.
+// Wire profile: 7 frames; 3 IPv4 hosts; SNMPv3, TCP, UDP; TCP flags
+// SYN/ACK/FIN/RST/PSH/URG; dstport 22,514,3389,61001; waits 2ms, 1ms, 5ms, 10ms.
+// Wireshark: snmp || tcp || udp
 
-// INSTRUCTION: Define an external threat actor host with IP 203.0.113.66.
 host threat_actor { ip 203.0.113.66 mac de:ad:00:93:00:66 }
 
-// INSTRUCTION: Define the DMZ perimeter firewall with IP 198.51.100.1.
 host dmz_firewall { ip 198.51.100.1 mac 00:1b:17:93:00:01 }
 
-// INSTRUCTION: Define the internal SOC SIEM platform with IP 10.93.0.200.
 host soc_siem { ip 10.93.0.200 mac 00:1b:17:93:00:c8 }
 
-// INSTRUCTION: Define a 3-host flow capturing the port scan, RST rejection, UDP syslog alert, and acknowledged SNMPv3 INFORM.
 flow intrusion_detection_workflow(attacker, fw, siem) {
     attacker -> fw tcp syn srcport 61001 dstport 22 win 1024 wait 2ms
     attacker <- fw tcp rst ack srcport 22 dstport 61001 win 0 wait 1ms
     attacker -> fw tcp fin psh urg srcport 61002 dstport 3389 win 1024 wait 2ms
     attacker <- fw tcp rst ack srcport 3389 dstport 61002 win 0 wait 1ms
-    fw -> siem udp srcport 51514 dstport 514 payload "<33>1 2026-10-21T15:00:00Z dmz-fw01 IPS - - Blocked Xmas scan from 203.0.113.66"
-        wait 5ms
+    fw -> siem udp srcport 51514 dstport 514 payload "<33>1 2026-10-21T15:00:00Z dmz-fw01 IPS - - Blocked Xmas scan from 203.0.113.66" wait 5ms
     fw -> siem snmp3 inform user "soc_alert" engineid "80001f8880930001" engineboots 12 enginetime 44000
         auth sha256 "soc_sha256_pass" priv aes "soc_aes128_pass" reqid 10401 oid 1.3.6.1.4.1.25461.2.1.3.2.0.1
         sysuptime 4400000
         varbind 1.3.6.1.4.1.25461.2.1.3.1.2.0 ipval 203.0.113.66
-        varbind 1.3.6.1.4.1.25461.2.1.3.1.3.0 string "SCAN: TCP Xmas Tree Detected"
-        wait 10ms
+        varbind 1.3.6.1.4.1.25461.2.1.3.1.3.0 string "SCAN: TCP Xmas Tree Detected" wait 10ms
     fw <- siem snmp3 response user "soc_alert" engineid "80001f8880930001" engineboots 12 enginetime 44000
         auth sha256 "soc_sha256_pass" priv aes "soc_aes128_pass" reqid 10401
         varbind 1.3.6.1.4.1.25461.2.1.3.1.2.0 ipval 203.0.113.66
         varbind 1.3.6.1.4.1.25461.2.1.3.1.3.0 string "SCAN: TCP Xmas Tree Detected"
-        wait 5ms
 }
 
-// INSTRUCTION: Compile block to run the DMZ firewall intrusion detection scenario.
 compile {
     intrusion_detection_workflow(threat_actor, dmz_firewall, soc_siem)
 }

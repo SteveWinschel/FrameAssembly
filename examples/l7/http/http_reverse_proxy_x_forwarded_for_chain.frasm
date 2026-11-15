@@ -1,19 +1,21 @@
-// PROMPT: Simulate an HTTP reverse-proxy ingress forwarding request with X-Forwarded-For, X-Forwarded-Proto, and Traceparent headers.
-// TOKENS: host, ip, mac, flow, http, srcport, dstport, method, uri, hosthdr, header, vlan, wait, ms, status, reason, contenttype, body, compile
+// HTTP reverse-proxy ingress forwarding request with X-Forwarded-For,
+// X-Forwarded-Proto, and Traceparent headers.
+// Wireshark: http || tcp.port == 8080
 
-// INSTRUCTION: Define the edge load balancer forwarding client requests to an internal upstream pod.
+// Edge load balancer forwarding client requests to an internal upstream pod.
 host envoy_ingress_lb {
     ip 10.50.1.5
     mac 00:16:3e:32:01:05
 }
 
-// INSTRUCTION: Define the internal backend microservice pod on port 8080.
+// Internal backend microservice pod on port 8080.
 host upstream_app_pod {
     ip 10.50.2.40
     mac 00:16:3e:32:02:28
 }
 
-// INSTRUCTION: Forward GET /api/v1/profile on DSTPORT 8080 with W3C traceparent and X-Forwarded-For headers.
+// Forward GET /api/v1/profile on DSTPORT 8080 with W3C traceparent and
+// X-Forwarded-For headers. Encapsulation and QoS markings: 802.1Q VLAN 50.
 flow http_proxy_forwarded_flow(lb, pod) {
     lb -> pod http srcport 48200 dstport 8080 method "GET" uri "/api/v1/profile" hosthdr "users.internal.svc"
         header "X-Forwarded-For" "203.0.113.77, 10.50.1.5" header "X-Forwarded-Proto" "https"
@@ -22,7 +24,6 @@ flow http_proxy_forwarded_flow(lb, pod) {
         body "{'user_id':'u-9921','tier':'enterprise'}" vlan 50
 }
 
-// INSTRUCTION: Compile the reverse proxy X-Forwarded-For HTTP flow.
 compile {
     http_proxy_forwarded_flow(envoy_ingress_lb, upstream_app_pod)
 }

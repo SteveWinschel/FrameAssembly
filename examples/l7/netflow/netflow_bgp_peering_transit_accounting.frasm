@@ -1,18 +1,19 @@
-// PROMPT: Border router NetFlow record tracking inter-domain BGP transit link bandwidth utilization.
-// TOKENS: host, ip, flow, netflow, srcip, dstip, srcport, dstport, proto, packets, octets, compile
+// Border router NetFlow record tracking inter-domain BGP transit link
+// bandwidth utilization.
+// Wireshark: cflow || udp.port == 2055 || udp.port == 179
 
-// INSTRUCTION: Define Internet exchange peering router.
+// Internet exchange peering router.
 host ix_peering_rtr { ip 203.0.113.1 }
 
-// INSTRUCTION: Define capacity planning flow collector.
+// Capacity planning flow collector.
 host capacity_planner { ip 203.0.113.250 }
 
-// INSTRUCTION: Define BGP transit link accounting flow.
+// BGP transit link accounting flow. Reports IP protocol 6 (TCP) flow records
+// to UDP 2055.
 flow bgp_transit_accounting(ix, col) {
     ix -> col netflow srcip 203.0.113.10 dstip 198.51.100.88 srcport 179 dstport 179 proto 6 packets 1200 octets 1560000
 }
 
-// INSTRUCTION: Compile BGP peering transit accounting scenario.
 compile {
     bgp_transit_accounting(ix_peering_rtr, capacity_planner)
 }

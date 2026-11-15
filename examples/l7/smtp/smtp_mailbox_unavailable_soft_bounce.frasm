@@ -1,13 +1,11 @@
-// PROMPT: Mail delivery temporary delay with 450 Mailbox Busy try again later response.
-// TOKENS: host, ip, flow, s, smtp, mailfrom, param, code, reply, rcptto, compile
+// Mail delivery temporary delay with 450 Mailbox Busy try again later
+// response.
+// Wireshark: smtp
 
-// INSTRUCTION: Define delivery dispatch MTA.
 host dispatch_mta { ip 172.24.0.15 }
 
-// INSTRUCTION: Define mailbox destination server.
 host mailbox_server { ip 172.24.0.2 }
 
-// INSTRUCTION: Define temporary soft bounce delivery delay flow.
 flow smtp_soft_bounce_flow(c, s) {
     c -> s smtp mailfrom param "billing@service.com"
     c <- s smtp code 250 reply "2.1.0 Sender ok"
@@ -15,7 +13,6 @@ flow smtp_soft_bounce_flow(c, s) {
     c <- s smtp code 450 reply "4.2.1 Mailbox busy, recipient concurrency exceeded"
 }
 
-// INSTRUCTION: Compile block executing soft bounce flow.
 compile {
     smtp_soft_bounce_flow(dispatch_mta, mailbox_server)
 }

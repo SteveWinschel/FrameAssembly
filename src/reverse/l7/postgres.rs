@@ -9,7 +9,6 @@
 
 use alloc::format;
 use alloc::string::String;
-use alloc::vec::Vec;
 
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
@@ -40,19 +39,19 @@ pub(crate) fn dissect_postgres(
 
     if payload.len() >= 8 && be_u32(payload, 4) == 0x0003_0000 {
         let total_len = be_u32(payload, 0) as usize;
-        if total_len < 9 || payload.len() < total_len {
+        if total_len < 9 || payload.len() != total_len {
             return None;
         }
-        let params = &payload[8..total_len - 1];
-        let parts: Vec<&[u8]> = params.split(|&b| b == 0).collect();
-        if parts.len() < 4 || parts[0] != b"user" || parts[2] != b"database" {
+        let after_uk = payload[8..total_len].strip_prefix(b"user\0")?;
+        let u_end = after_uk.iter().position(|&b| b == 0)?;
+        let user = core::str::from_utf8(&after_uk[..u_end]).ok()?;
+        let after_dk = after_uk[u_end + 1..].strip_prefix(b"database\0")?;
+        let d_end = after_dk.iter().position(|&b| b == 0)?;
+        let db = core::str::from_utf8(&after_dk[..d_end]).ok()?;
+        if after_dk.get(d_end + 1) != Some(&0) || !is_valid_raw_str(user) || !is_valid_raw_str(db) {
             return None;
         }
-        let user = core::str::from_utf8(parts[1]).ok()?;
-        let db = core::str::from_utf8(parts[3]).ok()?;
-        if !is_valid_raw_str(user) || !is_valid_raw_str(db) {
-            return None;
-        }
+        let residual = &after_dk[d_end + 2..];
         let mut tokens = String::from("postgres startup");
         if user != "postgres" {
             tokens.push_str(&format!(" user \"{user}\""));
@@ -63,7 +62,7 @@ pub(crate) fn dissect_postgres(
         return Some(ProtocolDissection {
             protocol: Protocol::Postgres,
             tokens,
-            residual_payload: payload[total_len..].to_vec(),
+            residual_payload: residual.to_vec(),
             explicit_transport: None,
         });
     }
@@ -75,22 +74,24 @@ pub(crate) fn dissect_postgres(
     }
     let tag = payload[0];
     let len = be_u32(payload, 1) as usize;
-    if len < 4 || payload.len() < 1 + len {
+    let msg_end = 1usize.checked_add(len)?;
+    if len < 4 || payload.len() != msg_end {
         return None;
     }
-    let body = &payload[5..1 + len];
-    let residual = &payload[1 + len..];
+    let body = &payload[5..msg_end];
     let mut tokens = String::from("postgres");
-
-    match tag {
-        b'Z' if body == b"I" => {
+    let residual: &[u8] = match tag {
+        b'Z' if body.starts_with(b"I") => {
             tokens.push_str(" readyforquery");
+            &body[1..]
         }
-        b'R' if body == [0, 0, 0, 0] => {
+        b'R' if body.starts_with(&[0, 0, 0, 0]) => {
             tokens.push_str(" authok");
+            &body[4..]
         }
-        b'C' if body.ends_with(&[0]) => {
-            let s = core::str::from_utf8(&body[..body.len() - 1]).ok()?;
+        b'C' => {
+            let nul = body.iter().position(|&b| b == 0)?;
+            let s = core::str::from_utf8(&body[..nul]).ok()?;
             if !is_valid_raw_str(s) {
                 return None;
             }
@@ -98,10 +99,15 @@ pub(crate) fn dissect_postgres(
             if s != "SELECT 1" {
                 tokens.push_str(&format!(" sql \"{s}\""));
             }
+            &body[nul + 1..]
         }
-        b'E' if body.starts_with(b"SERROR\0C28P01\0M") && body.ends_with(b"\0\0") => {
-            let msg_bytes = &body[15..body.len() - 2];
-            let s = core::str::from_utf8(msg_bytes).ok()?;
+        b'E' => {
+            let after_hdr = body.strip_prefix(b"SERROR\0C28P01\0M")?;
+            let nul = after_hdr.iter().position(|&b| b == 0)?;
+            if after_hdr.get(nul + 1) != Some(&0) {
+                return None;
+            }
+            let s = core::str::from_utf8(&after_hdr[..nul]).ok()?;
             if !is_valid_raw_str(s) {
                 return None;
             }
@@ -109,18 +115,21 @@ pub(crate) fn dissect_postgres(
             if s != "authentication failed" {
                 tokens.push_str(&format!(" sql \"{s}\""));
             }
+            &after_hdr[nul + 2..]
         }
-        b'Q' if body.ends_with(&[0]) => {
-            let s = core::str::from_utf8(&body[..body.len() - 1]).ok()?;
+        b'Q' => {
+            let nul = body.iter().position(|&b| b == 0)?;
+            let s = core::str::from_utf8(&body[..nul]).ok()?;
             if !is_valid_raw_str(s) {
                 return None;
             }
             if s != "SELECT version()" {
                 tokens.push_str(&format!(" sql \"{s}\""));
             }
+            &body[nul + 1..]
         }
         _ => return None,
-    }
+    };
 
     Some(ProtocolDissection {
         protocol: Protocol::Postgres,

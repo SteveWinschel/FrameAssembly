@@ -1,18 +1,17 @@
-// PROMPT: BACnet/IP confirmed ReadProperty querying room temperature sensor over IPv6.
-// TOKENS: host, ip, flow, s, bacnet, readproperty, invokeid, objecttype, objectinstance, propertyid, compile
+// BACnet/IP confirmed ReadProperty querying room temperature sensor over
+// IPv6.
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::20 }
 
-// INSTRUCTION: Define application traffic flow.
+// BACnet/IP on UDP 47808 (objects: 0 (Analog Input); properties: 85
+// (Present_Value)).
 flow bacnet_read(c, s) {
     c -> s bacnet readproperty invokeid 1 objecttype 0 objectinstance 101 propertyid 85
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     bacnet_read(client, server)
 }

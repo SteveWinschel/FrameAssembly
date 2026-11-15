@@ -49,9 +49,25 @@ export function compileFasm(source: string): Uint8Array;
 export function compileFrasm(source: string): Uint8Array;
 
 /**
+ * Compiles `.frasm` source into a classic libpcap (`.pcap`) byte array (`compileFrasmToPcap` JS `Uint8Array`).
+ *
+ * # Errors
+ * Returns a JavaScript `JsValue` error if parsing, validation, or serialization fails.
+ */
+export function compileFrasmToPcap(source: string): Uint8Array;
+
+/**
  * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
  */
 export function compile_fasm_to_pcapng(source: string): Uint8Array;
+
+/**
+ * Compiles `.frasm` source into a classic libpcap (`.pcap`) byte array (`compile_frasm_to_pcap` JS alias).
+ *
+ * # Errors
+ * Returns a JavaScript `JsValue` error if parsing, validation, or serialization fails.
+ */
+export function compile_frasm_to_pcap(source: string): Uint8Array;
 
 /**
  * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
@@ -118,7 +134,9 @@ export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly compileFasm: (a: number, b: number) => [number, number, number, number];
     readonly compileFrasm: (a: number, b: number) => [number, number, number, number];
+    readonly compileFrasmToPcap: (a: number, b: number) => [number, number, number, number];
     readonly compile_fasm_to_pcapng: (a: number, b: number) => [number, number, number, number];
+    readonly compile_frasm_to_pcap: (a: number, b: number) => [number, number, number, number];
     readonly compile_frasm_to_pcapng: (a: number, b: number) => [number, number, number, number];
     readonly inspectFrasm: (a: number, b: number) => [number, number, number];
     readonly inspect_fasm: (a: number, b: number) => [number, number, number];

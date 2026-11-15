@@ -48,6 +48,10 @@ pub(crate) fn dissect_ospf(b: &[u8], src_ip: Option<IpAddr>) -> ProtocolDissecti
             push_if(&mut t, "deadinterval", u32::from(be_u16(body, 10)), 40);
             body[20..].to_vec()
         }
+        2 if ver == 3 && body.len() >= 12 => {
+            push_if(&mut t, "deadinterval", be_u32(body, 8), 1);
+            body[12..].to_vec()
+        }
         2 if body.len() >= 8 => {
             push_if(&mut t, "deadinterval", be_u32(body, 4), 1);
             body[8..].to_vec()

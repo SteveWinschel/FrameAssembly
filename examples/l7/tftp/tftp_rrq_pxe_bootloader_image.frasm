@@ -1,20 +1,19 @@
-// PROMPT: Read request downloading PXE network boot loader pxelinux.0.
-// TOKENS: host, ip, flow, s, tftp, rrq, filename, mode, compile
+// Read request downloading PXE network boot loader pxelinux.0.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (TFTP (RFC
+// 1350), UDP 69).
+// Wireshark: tftp
 
-// INSTRUCTION: Define bare-metal compute node booting via PXE.
 host pxe_client { ip 172.16.100.45 }
 
-// INSTRUCTION: Define PXE boot TFTP server.
 host pxe_tftp_host { ip 172.16.100.1 }
 
-// INSTRUCTION: Define PXE bootloader retrieval flow.
 flow tftp_pxe_flow(c, s) {
     c -> s tftp rrq
         filename "pxelinux.0"
         mode "octet"
 }
 
-// INSTRUCTION: Compile block executing PXE loader request.
 compile {
     tftp_pxe_flow(pxe_client, pxe_tftp_host)
 }

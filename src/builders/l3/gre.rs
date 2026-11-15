@@ -14,6 +14,47 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Builds a deterministic default inner packet stub for zero-payload GRE tunnels so network
+/// dissectors (`Wireshark`, `tshark`, `tcpdump`) decode a valid encapsulated L3 header.
+pub(crate) fn default_gre_inner_packet(proto: u16) -> Vec<u8> {
+    match proto {
+        0x0800 => {
+            let mut inner = alloc::vec![
+                0x45, 0x00, 0x00, 28, 0x00, 0x00, 0x00, 0x00, 64, 1, 0x00, 0x00, 198, 51, 100, 1,
+                198, 51, 100, 2, 0x08, 0x00, 0x00, 0x00, 0x12, 0x34, 0x00, 0x01,
+            ];
+            let ip_csum = crate::packet::internet_checksum(&[&inner[0..20]]);
+            inner[10..12].copy_from_slice(&ip_csum.to_be_bytes());
+            let icmp_csum = crate::packet::internet_checksum(&[&inner[20..28]]);
+            inner[22..24].copy_from_slice(&icmp_csum.to_be_bytes());
+            inner
+        }
+        0x86DD => {
+            let src_v6 = [
+                0x20, 0x01, 0x0d, 0xb8, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            ];
+            let dst_v6 = [
+                0x20, 0x01, 0x0d, 0xb8, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+            ];
+            let mut icmp6 = [0x80u8, 0x00, 0x00, 0x00, 0x12, 0x34, 0x00, 0x01];
+            let mut pseudo = Vec::with_capacity(40);
+            pseudo.extend_from_slice(&src_v6);
+            pseudo.extend_from_slice(&dst_v6);
+            pseudo.extend_from_slice(&8_u32.to_be_bytes());
+            pseudo.extend_from_slice(&[0, 0, 0, 58]);
+            let csum = crate::packet::internet_checksum(&[&pseudo, &icmp6]);
+            icmp6[2..4].copy_from_slice(&csum.to_be_bytes());
+            let mut inner = Vec::with_capacity(48);
+            inner.extend_from_slice(&[0x60, 0x00, 0x00, 0x00, 0x00, 0x08, 58, 64]);
+            inner.extend_from_slice(&src_v6);
+            inner.extend_from_slice(&dst_v6);
+            inner.extend_from_slice(&icmp6);
+            inner
+        }
+        _ => alloc::vec![0u8; 16],
+    }
+}
+
 /// Builds an RFC 2784 / RFC 2890 GRE tunnel payload and returns `(bytes, 47)` for IP encapsulation.
 pub fn build_gre_payload(
     _ctx: &WireContext,
@@ -48,7 +89,7 @@ pub fn build_gre_payload(
     }
 
     if payload.is_empty() {
-        gre.extend_from_slice(b"FrameAssembly GRE Inner Packet");
+        gre.extend_from_slice(&default_gre_inner_packet(proto));
     } else {
         gre.extend_from_slice(payload);
     }

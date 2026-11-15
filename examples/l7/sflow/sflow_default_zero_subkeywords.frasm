@@ -1,18 +1,14 @@
-// PROMPT: Default sFlow v5 datagram export with zero sub-keywords on UDP port 6343.
-// TOKENS: host, ip, mac, flow, sflow, compile
+// Minimal 2-block sFlow v5 starter emitting automatic protocol defaults
+// directly from the compile block (zero flow wrapper).
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (sFlow v5,
+// UDP 6343).
+// Wireshark: sflow
 
-// INSTRUCTION: Define top-of-rack leaf switch exporter.
 host leaf_sw { ip 10.63.43.1 mac 00:1c:73:63:43:01 }
 
-// INSTRUCTION: Define sFlow telemetry collector server.
 host sflow_coll { ip 10.63.43.100 mac 00:1c:73:63:43:64 }
 
-// INSTRUCTION: Define flow sending default SFLOW datagram.
-flow sflow_default(sw, coll) {
-    sw -> coll sflow
-}
-
-// INSTRUCTION: Compile default sFlow scenario.
 compile {
-    sflow_default(leaf_sw, sflow_coll)
+    leaf_sw -> sflow_coll sflow
 }

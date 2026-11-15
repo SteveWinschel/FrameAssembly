@@ -1,25 +1,23 @@
-// PROMPT: RFC 7432 EVPN All-Active multihoming PE leaf switches presenting identical LACP Actor System MAC and Key to a CE router.
-// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, compile
+// RFC 7432 EVPN All-Active multihoming PE leaf switches presenting identical LACP
+// Actor System MAC and Key to a CE router.
+// Wire profile: 2 frames; 2 IPv4 hosts; LACP; waits 5ms.
+// Wireshark: lacp
 
-// INSTRUCTION: Define EVPN multihoming PE leaf switches sharing ESI system MAC 00:00:5e:00:0e:01.
 host evpn_esi_pe_pair {
     ip 172.30.1.1
     mac 00:00:5e:00:0e:01
 }
 
-// INSTRUCTION: Define dual-homed customer edge router aggregating links to both EVPN PEs.
 host multihomed_ce_rtr {
     ip 172.30.1.10
     mac 00:25:90:1e:01:0a
 }
 
-// INSTRUCTION: Synchronize EVPN ESI LACP parameters with Actor Key 1000 and State 63.
 flow lacp_evpn_esi_active(pe, ce) {
     pe -> ce lacp actorsys 00:00:5e:00:0e:01 actorkey 1000 actorport 10 actorstate 63 partnersys 00:25:90:1e:01:0a partnerkey 1000 partnerport 1 partnerstate 63 wait 5ms
     pe <- ce lacp actorsys 00:25:90:1e:01:0a actorkey 1000 actorport 1 actorstate 63 partnersys 00:00:5e:00:0e:01 partnerkey 1000 partnerport 10 partnerstate 63
 }
 
-// INSTRUCTION: Compile the RFC 7432 EVPN All-Active ESI LACP multihoming trace.
 compile {
     lacp_evpn_esi_active(evpn_esi_pe_pair, multihomed_ce_rtr)
 }

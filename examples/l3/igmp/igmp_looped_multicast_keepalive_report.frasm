@@ -1,18 +1,19 @@
-// PROMPT: Repetitive IGMP Membership Reports inside COMPILE LOOP to refresh multicast forwarding state.
-// TOKENS: host, ip, flow, igmp, report, group, wait, ms, compile
+// Repetitive IGMP Membership Reports across repeated cycles in compile to
+// refresh multicast forwarding state.
+// This capture carries group 239.20.1.5, executes 4 cycles in compile, and
+// uses post-packet wait gaps (100ms) between frames.
+// Wireshark: igmp
 
-// INSTRUCTION: Define surveillance video wall receiver.
 host video_wall_node { ip 192.168.140.22 }
 
-// INSTRUCTION: Define security camera multicast stream.
 host camera_feed_stream { ip 239.20.1.5 }
 
-// INSTRUCTION: Define IGMP report refresh flow with 100ms interval.
+// Packet sequence (1 frame); wait pauses after a packet before the next.
 flow igmp_keepalive_flow(recv, grp) {
     recv -> grp igmp report group 239.20.1.5 wait 100ms
 }
 
-// INSTRUCTION: Compile loop executing 4 periodic IGMP report renewals.
+// Emit 4 sequential cycles of igmp_keepalive_flow.
 compile {
     igmp_keepalive_flow(video_wall_node, camera_feed_stream) // cycle 1
     igmp_keepalive_flow(video_wall_node, camera_feed_stream) // cycle 2

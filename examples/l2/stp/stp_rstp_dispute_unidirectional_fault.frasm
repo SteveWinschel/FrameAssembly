@@ -1,25 +1,23 @@
-// PROMPT: RSTP Dispute mechanism resolving a unidirectional fiber link fault where a downstream port sends Designated Learning flags.
-// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, flags, wait, ms, compile
+// RSTP Dispute mechanism resolving a unidirectional fiber link fault where a
+// downstream port sends Designated Learning flags.
+// Wire profile: 2 frames; 2 IPv4 hosts; STP; waits 5ms.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define upstream designated switch port with broken RX fiber strand.
 host upstream_uni_port {
     ip 172.22.50.1
     mac 00:19:e8:32:00:01
 }
 
-// INSTRUCTION: Define downstream switch port claiming Designated role after MaxAge expiry.
 host downstream_dispute_port {
     ip 172.22.50.2
     mac 00:19:e8:32:00:02
 }
 
-// INSTRUCTION: Define RSTP Dispute exchange where inferior Designated BPDU triggers upstream discarding block.
 flow rstp_unidirectional_dispute(up, down) {
-    up -> down stp rstp rootid "4096:00:19:e8:32:00:01" bridgeid "4096:00:19:e8:32:00:01" cost 0 portid 32769 flags 60
-    up <- down stp rstp rootid "32768:00:19:e8:32:00:02" bridgeid "32768:00:19:e8:32:00:02" cost 0 portid 32769 flags 44 wait 5ms
+    up -> down stp rstp rootid "4096:00:19:e8:32:00:01" bridgeid "4096:00:19:e8:32:00:01" cost 0 portid 32769 flags 60 wait 5ms
+    up <- down stp rstp rootid "32768:00:19:e8:32:00:02" bridgeid "32768:00:19:e8:32:00:02" cost 0 portid 32769 flags 44
 }
 
-// INSTRUCTION: Compile block executing RSTP unidirectional link dispute test.
 compile {
     rstp_unidirectional_dispute(upstream_uni_port, downstream_dispute_port)
 }

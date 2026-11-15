@@ -1,19 +1,18 @@
-// PROMPT: Polymorphic dual-stack IKEv2 key negotiation running over IPv4 and IPv6 security gateways.
-// TOKENS: host, ip, flow, ikev2, sainit, initiatorspi, responderspi, msgid, dscp, ttl, flowlabel, createchildsa, compile
+// Dual-stack IKEv2 key negotiation running over IPv4 and IPv6 security
+// gateways.
+// This capture runs the same exchange over both IPv4 and IPv6 host pairs and
+// sets DSCP 48, TTL 64, IPv6 Flow Label.
+// Wireshark: isakmp
 
-// INSTRUCTION: Define IPv4 VPN gateway West.
 host ike_v4_west { ip 198.51.100.31 }
 
-// INSTRUCTION: Define IPv4 VPN gateway East.
 host ike_v4_east { ip 198.51.100.32 }
 
-// INSTRUCTION: Define IPv6 VPN gateway West.
 host ike_v6_west { ip 2001:db8:500::31 }
 
-// INSTRUCTION: Define IPv6 VPN gateway East.
 host ike_v6_east { ip 2001:db8:500::32 }
 
-// INSTRUCTION: Define polymorphic IKEv2 SA_INIT and CREATE_CHILD_SA flow.
+// Packet sequence (4 frames) with default 10ms post-packet spacing.
 flow dual_stack_ikev2(w, e) {
     w -> e ikev2 sainit initiatorspi 700800900 responderspi 0 msgid 0 dscp 48 ttl 64 flowlabel 50001
     w <- e ikev2 sainit initiatorspi 700800900 responderspi 900800700 msgid 0 dscp 48 ttl 64 flowlabel 50002
@@ -21,7 +20,7 @@ flow dual_stack_ikev2(w, e) {
     w <- e ikev2 createchildsa initiatorspi 700800900 responderspi 900800700 msgid 1 dscp 48 ttl 64 flowlabel 50002
 }
 
-// INSTRUCTION: Compile the dual-stack IKEv2 negotiation across IPv4 and IPv6.
+// Run the flow across both the IPv4 and IPv6 host pairs.
 compile {
     dual_stack_ikev2(ike_v4_west, ike_v4_east)
     dual_stack_ikev2(ike_v6_west, ike_v6_east)

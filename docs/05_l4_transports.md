@@ -2,13 +2,19 @@
 
 [← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)
 
-A stateful firewall that receives one lonely `psh ack` with no handshake behind it does the only reasonable thing: it drops the packet and tells nobody. Your carefully spoofed payload never reaches the logs, and you spend an afternoon wondering whether the rule is wrong or the packet is. The usual fix is a notepad full of TCP sequence numbers. The fix for SCTP is a Python script that computes the Castagnoli `CRC-32c` and is, statistically, off by one byte.
+A stateful firewall that receives one lonely `psh ack` with no handshake behind it does the only reasonable thing: it drops the packet and tells nobody. Your carefully spoofed payload
+never reaches the logs, and you spend an afternoon wondering whether the rule is wrong or the packet is. The usual fix is a notepad full of TCP sequence numbers. The fix for SCTP is a
+Python script that computes the Castagnoli `CRC-32c` and is, statistically, off by one byte.
 
-FrameAssembly tracks TCP ports, `seq`, and `acknum` for you while you want a valid stream, and gets out of the way the moment you want it broken: a zero window, a skipped segment, a Christmas-tree flag combination, a fragmented UDP burst, a multi-homed SCTP failover. IPv4 and IPv6 pseudo-header checksums and SCTP `CRC-32c` are computed on every frame.
+FrameAssembly tracks TCP ports, `seq`, and `acknum` for you while you want a valid stream, and gets out of the way the moment you want it broken: a zero window, a skipped segment, a
+Christmas-tree flag combination, a fragmented UDP burst, a multi-homed SCTP failover. IPv4 and IPv6 pseudo-header checksums and SCTP `CRC-32c` are computed on every frame.
 
 * **Port inheritance:** set `srcport` and `dstport` on the opening packet of a `flow(c, s)`. Replies flip them automatically, and later packets in the original direction keep them aligned.
-* **Automatic TCP state:** unless you override `seq` or `acknum`, sequence numbers advance across both directions (`+1` for `syn` and `fin`, plus the payload length). That includes every TCP-based Layer 7 protocol: `http`, `tls`, `ssh`, `bgp`, `smtp`, `redis`, `mqtt`, `modbus`, and the rest.
-* **Transport switching:** want `dns`, `syslog`, `sip`, or another dual-transport Layer 7 protocol over TCP instead of UDP, or the other way around? Add `transport tcp` or `transport udp` on that line.
+* **Automatic TCP state:** unless you override `seq` or `acknum`, sequence numbers advance across both directions (`+1` for `syn` and `fin`, plus the payload length). That includes
+  every TCP-based Layer 7 protocol: `http`, `tls`, `ssh`, `bgp`, `smtp`, `redis`, `mqtt`, `modbus`, and the rest.
+* **Transport switching:** add `transport tcp` or `transport udp` on any of the **9 dual-transport Layer 7 protocols** (`dns`, `sip`, `syslog`, `kerberos`, `nfs`, `memcached`, `modbus`, `dnp3`,
+  and `ethernetip`). To prevent accidental typos, `transport` is rejected on protocols that only run over one transport, and TCP-only flags/options (`syn`, `acknum`, `win`, `mss`, `wscale`,
+  `sackperm`, `tsval`) are rejected on non-TCP packets.
 
 | Protocol | Keyword | IP Proto | Checksum | Typical Use |
 | :--- | :--- | :---: | :--- | :--- |
@@ -48,7 +54,8 @@ $ frameassembly tcp_session.frasm tcp_session.pcap && sudo tcpreplay -i eth0 tcp
 
 ### Reproducing ZeroWindow, Dup-ACK and PAWS on demand
 
-Waiting for a production storage target to choke so you can confirm your packet broker flags TCP ZeroWindow is a bad plan. Override `seq`, `acknum`, `win 0`, or the 32-bit `tsval` and Wireshark's TCP analysis lights up exactly when you want it to.
+Waiting for a production storage target to choke so you can confirm your packet broker flags TCP ZeroWindow is a bad plan. Override `seq`, `acknum`, `win 0`, or the 32-bit `tsval`
+and Wireshark's TCP analysis lights up exactly when you want it to.
 
 ZeroWindow stall, one-byte probe, and recovery (the timestamps start close to `2^32` to exercise PAWS wraparound):
 
@@ -95,7 +102,8 @@ compile { tcp_dupack(sender, receiver) }
 
 ### SYN proxies, stateful `ack` rules and stealth scans
 
-Do inline DDoS scrubbers splice `syn`-cookie sequence numbers correctly? Do Suricata, Zeek, or the perimeter firewall notice an unsolicited `ack`, an Nmap Xmas scan (`fin psh urg`), or a packet with all eight flags lit up?
+Do inline DDoS scrubbers splice `syn` -cookie sequence numbers correctly? Do Suricata, Zeek, or the perimeter firewall notice an unsolicited `ack`, an Nmap Xmas scan (`fin psh urg`),
+or a packet with all eight flags lit up?
 
 ```frameassembly
 host client    { ip 198.51.100.88 mac 00:16:3e:10:20:30 }
@@ -141,15 +149,18 @@ compile {
 | **Timestamps** | `tsval <u32>` / `tsecr <u32>` | `tsval 1000 tsecr 0` | Option Kind `8`, RFC 7323 RTTM and PAWS |
 | **Payload** | `payload "<str>"` / `hexpayload "<hex>"` | `payload "SELECT 1;"` | Segment body; advances the automatic `seq` by its length |
 
-Bare `ack` sets the 1-bit ACK flag. `acknum <u32>` sets the 32-bit acknowledgment number: `tcp syn ack seq 5000 acknum 1001` uses both. Ports are always `srcport` and `dstport`, never `sport` or `dport`.
+Bare `ack` sets the 1-bit ACK flag. `acknum <u32>` sets the 32-bit acknowledgment number: `tcp syn ack seq 5000 acknum 1001` uses both. Ports are always `srcport` and `dstport`, never
+`sport` or `dport`.
 
 ---
 
 ## 2. `udp`: Tunnels, Traceroutes and Checksums You Did Not Compute
 
-A bare `udp` statement emits an empty RFC 768 datagram to `dstport 80`, which is handy as a firewall or traceroute probe. The pseudo-header checksum is filled in for IPv4 and IPv6 alike, so the usual IPv6 surprise (UDP checksum is mandatory there) is handled before it becomes your problem.
+A bare `udp` statement emits an empty RFC 768 datagram to `dstport 80`, which is handy as a firewall or traceroute probe. The pseudo-header checksum is filled in for IPv4 and IPv6
+alike, so the usual IPv6 surprise (UDP checksum is mandatory there) is handled before it becomes your problem.
 
-Many fast fabrics and mobile user planes live directly inside `udp`: RoCEv2 on `4791`, GTP-U on `2152`, IPsec NAT-T on `4500`, MPLS-in-UDP on `6635`. Combine the outer `vlan`, `pcp`, `dscp`, `ecn`, and `df` modifiers with `hexpayload` to exercise switch QoS queues and tunnel middleboxes.
+Many fast fabrics and mobile user planes live directly inside `udp`: RoCEv2 on `4791`, GTP-U on `2152`, IPsec NAT-T on `4500`, MPLS-in-UDP on `6635`. Combine the outer `vlan`,
+`pcp`, `dscp`, `ecn`, and `df` modifiers with `hexpayload` to exercise switch QoS queues and tunnel middleboxes.
 
 ```frameassembly
 host gpu_tx { ip 10.200.47.11 mac 0c:42:a1:2f:00:0b }
@@ -203,7 +214,7 @@ compile { udp_diagnostics(workstation, hop1_rtr, target_srv, lan_bcast) }
 | Modifier | Example | Notes |
 | :--- | :--- | :--- |
 | `srcport <0..65535>` | `srcport 53111` | Vary it across packets to test ECMP and NIC RSS hashing |
-| `dstport <0..65535>` | `dstport 4791` | `7` Echo, `9` WoL, `53` DNS, `67`/`68` DHCP, `319`/`320` PTP, `500`/`4500` IPsec, `2152` GTP-U, `3784`/`3785` BFD, `4789` VXLAN, `4791` RoCEv2, `5246`/`5247` CAPWAP, `5684` DTLS, `6081` GENEVE, `6635` MPLS-in-UDP, `8125` StatsD, `33434+` traceroute |
+| `dstport <0..65535>` | `dstport 4791` | `53` DNS, `67`/`68` DHCP, `319`/`320` PTP, `500`/`4500` IPsec, `2152` GTP-U, `3784` BFD, `4789` VXLAN, `4791` RoCEv2, `6081` GENEVE, `33434+` traceroute |
 | `payload` / `hexpayload` | `hexpayload "ff"` | Binary tunnel headers: GTP-U, RoCEv2 BTH, DTLS records, NAT-T keepalives |
 | `ttl`, `dscp`, `ecn`, `df`, `mf`, `ipid`, `fragoffset` | `ttl 1`, `ecn 3` | Outer IP header controls (IPv4 TTL, IPv6 Hop Limit) |
 
@@ -211,7 +222,9 @@ compile { udp_diagnostics(workstation, hop1_rtr, target_srv, lan_bcast) }
 
 ## 3. `sctp`: 5G and SIGTRAN Associations Without a Core Network
 
-Standing up Open5GS, free5GC, or an SS7 SIGTRAN stack just to check a firewall's SCTP inspection policy is a lot of ceremony for one policy. `sctp` builds the 4-way `init`, `initack`, `cookieecho`, `cookieack` handshake, multiplexes independent `stream` IDs with the correct `ppid`, and computes the `CRC-32c` checksum. A bare `sctp` statement defaults to `chunk init`.
+Standing up Open5GS, free5GC, or an SS7 SIGTRAN stack just to check a firewall's SCTP inspection policy is a lot of ceremony for one policy. `sctp` builds the 4-way `init`, `initack`,
+`cookieecho`, `cookieack` handshake, multiplexes independent `stream` IDs with the correct `ppid`, and computes the `CRC-32c` checksum. A bare `sctp` statement defaults to
+`chunk init`.
 
 5G NGAP setup between a gNB and an AMF over IPv6 (port `38412`, PPID `60`):
 

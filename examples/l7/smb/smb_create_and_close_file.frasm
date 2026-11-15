@@ -1,13 +1,13 @@
-// PROMPT: SMB2 file handle creation and subsequent closure using CREATE and CLOSE commands.
-// TOKENS: host, ip, flow, s, smb, command, treeid, sessionid, msgid, filename, wait, ms, status, compile
+// SMB2 file handle creation and subsequent closure using CREATE and CLOSE
+// commands.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Timing: uses post-packet wait delays (5ms, 10ms) between frames.
+// Wireshark: smb2
 
-// INSTRUCTION: Define database backup worker client.
 host backup_worker { ip 192.168.45.22 }
 
-// INSTRUCTION: Define centralized NAS file store.
 host nas_store { ip 192.168.45.2 }
 
-// INSTRUCTION: Define CREATE open handle and CLOSE handle termination flow.
 flow smb_file_lifecycle(c, s) {
     c -> s smb command "create" treeid 1 sessionid 0x1000 msgid 10 filename "db_dump_2026.bak" wait 5ms
     c <- s smb command "create" status 0 treeid 1 sessionid 0x1000 msgid 10 wait 10ms
@@ -15,7 +15,6 @@ flow smb_file_lifecycle(c, s) {
     c <- s smb command "close" status 0 treeid 1 sessionid 0x1000 msgid 11
 }
 
-// INSTRUCTION: Compile SMB2 CREATE and CLOSE file lifecycle flow.
 compile {
     smb_file_lifecycle(backup_worker, nas_store)
 }

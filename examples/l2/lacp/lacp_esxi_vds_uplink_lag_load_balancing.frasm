@@ -1,25 +1,23 @@
-// PROMPT: VMware vSphere Distributed Switch (vDS) negotiating a 2-port LACP LAG with top-of-rack switch ports.
-// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, compile
+// VMware vSphere Distributed Switch (vDS) negotiating a 2-port LACP LAG with top-
+// of-rack switch ports.
+// Wire profile: 2 frames; 2 IPv4 hosts; LACP; waits 5ms.
+// Wireshark: lacp
 
-// INSTRUCTION: Define ESXi hypervisor host vDS LACP uplink group.
 host esxi_vds_host {
     ip 10.60.10.21
     mac 00:50:56:3c:0a:15
 }
 
-// INSTRUCTION: Define ToR switch port-channel 21 partner interface.
 host tor_po21_sw {
     ip 10.60.10.1
     mac 00:1c:73:3c:0a:01
 }
 
-// INSTRUCTION: Negotiate vDS uplink ports 1 and 2 into Collecting/Distributing state 61 (0x3D).
 flow lacp_esxi_vds_lag(esxi, tor) {
     esxi -> tor lacp actorsys 00:50:56:3c:0a:15 actorkey 21 actorport 1 actorstate 61 partnersys 00:1c:73:3c:0a:01 partnerkey 21 partnerport 11 partnerstate 61 wait 5ms
     esxi <- tor lacp actorsys 00:1c:73:3c:0a:01 actorkey 21 actorport 11 actorstate 61 partnersys 00:50:56:3c:0a:15 partnerkey 21 partnerport 1 partnerstate 61
 }
 
-// INSTRUCTION: Compile the VMware vDS LACP LAG negotiation trace.
 compile {
     lacp_esxi_vds_lag(esxi_vds_host, tor_po21_sw)
 }

@@ -9,12 +9,38 @@
 //! cleanly to `tcp` with `payload` or `hexpayload`.
 
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt::Write as _;
 
 use crate::ast::Protocol;
 use crate::reverse::{ProtocolDissection, bytes_to_hex_lower, sd};
 
 use super::{checked_be_u32, find_subslice, push_str_mod};
+
+/// Builds the deterministic RFC 4253 §7.1 `SSH_MSG_KEXINIT` 10-name-list + flags tail after the 16-byte cookie.
+fn default_kexinit_tail() -> Vec<u8> {
+    let kex_lists: [&str; 10] = [
+        "curve25519-sha256",
+        "ssh-ed25519",
+        "chacha20-poly1305@openssh.com",
+        "chacha20-poly1305@openssh.com",
+        "",
+        "",
+        "none",
+        "none",
+        "",
+        "",
+    ];
+    let mut tail = Vec::with_capacity(131);
+    for list in kex_lists {
+        let lb = list.as_bytes();
+        tail.extend_from_slice(&(lb.len() as u32).to_be_bytes());
+        tail.extend_from_slice(lb);
+    }
+    tail.push(0); // first_kex_packet_follows
+    tail.extend_from_slice(&0u32.to_be_bytes()); // reserved
+    tail
+}
 
 /// Dissects an RFC 4253 SSH version banner or binary transport packet on TCP port `22`.
 pub(crate) fn dissect_ssh(payload: &[u8]) -> Option<ProtocolDissection> {
@@ -40,7 +66,7 @@ pub(crate) fn dissect_ssh(payload: &[u8]) -> Option<ProtocolDissection> {
         return None;
     }
 
-    let pkt_len = checked_be_u32(bin_slice, 0)? as usize;
+    let pkt_len = usize::try_from(checked_be_u32(bin_slice, 0)?).ok()?;
     let pad_len = *bin_slice.get(4)? as usize;
     let body_len = pkt_len.checked_sub(1)?.checked_sub(pad_len)?;
     let body = bin_slice.get(5..5usize.checked_add(body_len)?)?;
@@ -48,11 +74,13 @@ pub(crate) fn dissect_ssh(payload: &[u8]) -> Option<ProtocolDissection> {
 
     let residual = if code == 20 {
         let cookie_bytes = body.get(1..17)?;
+        let kex_tail = default_kexinit_tail();
+        let trailing = body.get(17..)?.strip_prefix(kex_tail.as_slice())?;
         tokens.push_str(" kexinit");
         if cookie_bytes != [0xAAu8; 16] {
             let _ = write!(tokens, " cookie \"{}\"", bytes_to_hex_lower(cookie_bytes));
         }
-        body.get(17..)?.to_vec()
+        trailing.to_vec()
     } else if code == 21 {
         tokens.push_str(" newkeys");
         body.get(1..)?.to_vec()
@@ -66,7 +94,7 @@ pub(crate) fn dissect_ssh(payload: &[u8]) -> Option<ProtocolDissection> {
 
 /// Checks whether `buf` matches FrameAssembly's RFC 4253 binary SSH packet framing and padding.
 fn is_ssh_binary_packet(buf: &[u8]) -> bool {
-    let Some(pkt_len) = checked_be_u32(buf, 0).map(|v| v as usize) else {
+    let Some(pkt_len) = checked_be_u32(buf, 0).and_then(|v| usize::try_from(v).ok()) else {
         return false;
     };
     if 4usize.checked_add(pkt_len) != Some(buf.len()) {

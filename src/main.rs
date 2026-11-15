@@ -14,7 +14,7 @@
 use clap::builder::PathBufValueParser;
 use clap::builder::styling::{AnsiColor, Effects, Styles};
 use clap::{Arg, ArgAction, Command, ValueHint};
-use frameassembly::backend::{compile_program, generate_pcap};
+use frameassembly::backend::compile_program;
 use frameassembly::parser::parse_program;
 use frameassembly::reverse::reverse_pcap_file;
 use miette::{IntoDiagnostic, NamedSource, Result};
@@ -36,7 +36,36 @@ const CLI_STYLES: Styles = Styles::styled()
     .context(AnsiColor::BrightBlack.on_default())
     .context_value(AnsiColor::Cyan.on_default());
 
-/// Canonical top-level subcommands exposed by FrameAssembly 3.0.
+/// Detects whether the current process owns a standalone console created by Windows Explorer
+/// (double-click or drag-and-drop onto `frameassembly.exe`) rather than an interactive shell.
+#[cfg(windows)]
+fn is_standalone_windows_console() -> bool {
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn GetConsoleProcessList(lpdw_list: *mut u32, dw_process_count: u32) -> u32;
+    }
+    let mut pids = [0u32; 2];
+    // SAFETY: `pids` points to a valid stack-allocated array of 2 `u32` values matching `dw_process_count = 2`.
+    let count = unsafe { GetConsoleProcessList(pids.as_mut_ptr(), 2) };
+    count == 1
+}
+
+/// Non-Windows targets never run inside a transient Windows Explorer console window.
+#[cfg(not(windows))]
+const fn is_standalone_windows_console() -> bool {
+    false
+}
+
+/// Prompts the user to press Enter before closing a standalone Windows Explorer console window.
+#[cfg(windows)]
+fn pause_windows_console() {
+    use std::io::{BufRead, Write};
+    let _ = write!(std::io::stdout(), "\nPress Enter to close this window...");
+    let _ = std::io::stdout().flush();
+    let mut line = String::new();
+    let _ = std::io::stdin().lock().read_line(&mut line);
+}
+/// Canonical list of top-level CLI subcommands.
 const SUBCOMMANDS: [&str; 4] = ["show", "reverse", "version", "help"];
 
 /// Derives the default output path from `input` by replacing its extension with `default_ext`,
@@ -491,7 +520,7 @@ fn summarize_l4(proto: u8, l4: &[u8], tag_prefix: &str) -> (String, String) {
             let dport = u16::from_be_bytes([l4[2], l4[3]]);
             let seq = u32::from_be_bytes([l4[4], l4[5], l4[6], l4[7]]);
             let ack = u32::from_be_bytes([l4[8], l4[9], l4[10], l4[11]]);
-            let hdr_len = ((l4[12] >> 4) as usize) * 4;
+            let hdr_len = (((l4[12] >> 4) as usize) * 4).max(20);
             let flags = l4[13];
             let payload_len = l4.len().saturating_sub(hdr_len);
 
@@ -616,18 +645,22 @@ fn summarize_l4(proto: u8, l4: &[u8], tag_prefix: &str) -> (String, String) {
 }
 
 /// Formats a terminal packet ladder table for `frameassembly show`.
-fn format_packet_ladder(frames: &[(Vec<u8>, u64)]) -> String {
+fn format_packet_ladder(frames: &[(Vec<u8>, u64)], ast_protocols: &[frameassembly::ast::Protocol]) -> String {
     let mut out = String::new();
     let _ = writeln!(
         out,
         "{:<5}  {:<10}  {:<39}  {:<10}  {:<5}  Summary",
-        "#", "Time (ms)", "Source -> Destination", "Proto", "Bytes"
+        "#", "Time (ms)", "Source -> Destination", "Protocol", "Bytes"
     );
     let _ = writeln!(out, "{}", "-".repeat(110));
     let base_ts = frames.first().map(|(_, ts)| *ts).unwrap_or(0);
     for (idx, (data, timestamp_ns)) in frames.iter().enumerate() {
         let time_ms = timestamp_ns.saturating_sub(base_ts) as f64 / 1_000_000.0;
-        let (endpoints, proto, summary) = summarize_frame(data);
+        let (endpoints, detected_proto, summary) = summarize_frame(data);
+        let proto = ast_protocols
+            .get(idx)
+            .map(|p| p.display_label().to_string())
+            .unwrap_or(detected_proto);
         let _ = writeln!(
             out,
             "{:<5}  {:<10.3}  {:<39}  {:<10}  {:<5}  {}",
@@ -642,13 +675,8 @@ fn format_packet_ladder(frames: &[(Vec<u8>, u64)]) -> String {
     out
 }
 
-/// Entry point for the `frameassembly` CLI binary.
-///
-/// # Errors
-/// Returns a [`miette::Result`] error if legacy 1.x flags are supplied, the input file cannot
-/// be read, parsing/validation/decompilation fails, or writing the output file fails.
-fn main() -> Result<()> {
-    let raw_args: Vec<OsString> = std::env::args_os().collect();
+/// Executes the parsed CLI invocation for `raw_args`.
+fn run_cli(raw_args: Vec<OsString>) -> Result<()> {
     if let Err(hint) = check_legacy_cli_args(&raw_args) {
         return Err(miette::miette!("{hint}"));
     }
@@ -668,14 +696,14 @@ fn main() -> Result<()> {
                     .remove_one::<PathBuf>("output")
                     .unwrap_or_else(|| derive_default_output_path(&input_path, "frasm"));
                 let res = reverse_pcap_file(&input_path)
-                    .map_err(|e| miette::miette!("Reverse decompilation error: {}", e))?;
+                    .map_err(|e| miette::miette!("reverse error: {}", e))?;
                 fs::write(&output_path, &res.fasm).into_diagnostic()?;
                 println!(
-                    "Successfully reversed {} into {} ({} hosts, {} packets)",
-                    input_path.display(),
+                    "Wrote {} ({} host(s), {} packet(s) reversed from {})",
                     output_path.display(),
                     res.host_count,
-                    res.packet_count
+                    res.packet_count,
+                    input_path.display(),
                 );
                 Ok(())
             }
@@ -689,9 +717,13 @@ fn main() -> Result<()> {
                     miette::Report::new(e)
                         .with_source_code(NamedSource::new(file_display, code.clone()))
                 })?;
+                let ast_protocols = program.emitted_protocols();
                 let frames = compile_program(&program)
-                    .map_err(|e| miette::miette!("Backend error: {}", e))?;
-                print!("{}", format_packet_ladder(&frames));
+                    .map_err(|e| miette::miette!("compile error: {}", e))?;
+                if frames.is_empty() {
+                    eprintln!("Warning: 0 packets emitted — check that 'compile {{ ... }}' invokes a flow or packet statement.");
+                }
+                print!("{}", format_packet_ladder(&frames, &ast_protocols));
                 Ok(())
             }
             _ => unreachable!("clap enforces known subcommands"),
@@ -721,7 +753,7 @@ fn main() -> Result<()> {
                     .with_source_code(NamedSource::new(file_display, code.clone()))
             })?;
             let frames =
-                compile_program(&program).map_err(|e| miette::miette!("Backend error: {}", e))?;
+                compile_program(&program).map_err(|e| miette::miette!("compile error: {}", e))?;
 
             if program.flows.is_empty() {
                 println!("Successfully parsed {} hosts", program.hosts.len());
@@ -733,28 +765,85 @@ fn main() -> Result<()> {
                 );
             }
 
-            let total_bytes: usize = frames.iter().map(|(data, _)| data.len()).sum();
-            let first_ts = frames.first().map(|(_, ts)| *ts).unwrap_or(0);
-            let duration_ms = frames
-                .last()
-                .map(|(_, ts_ns)| ts_ns.saturating_sub(first_ts) as f64 / 1_000_000.0)
-                .unwrap_or(0.0);
+            if frames.is_empty() {
+                eprintln!("Warning: 0 packets emitted — capture contains header only.");
+            }
 
             let output_pcap_str = output_pcap.to_string_lossy();
-            println!("Starting PCAP compilation...");
-            generate_pcap(&program, &output_pcap_str)
-                .map_err(|e| miette::miette!("Backend error: {}", e))?;
+            let fmt_label = if output_pcap_str.len() >= 5
+                && output_pcap_str.as_bytes()[output_pcap_str.len() - 5..]
+                    .eq_ignore_ascii_case(b".pcap")
+            {
+                "classic pcap"
+            } else {
+                "pcapng"
+            };
+            frameassembly::pcap::write_capture_file(&frames, &output_pcap_str)
+                .map_err(|e| miette::miette!("compile error: {}", e))?;
 
             println!(
-                "Successfully generated {} ({} frames, {} bytes, duration {:.3} ms)",
+                "Wrote {} ({} packet(s), {})",
                 output_pcap_str,
                 frames.len(),
-                total_bytes,
-                duration_ms
+                fmt_label
             );
             Ok(())
         }
     }
+}
+
+/// Entry point for the `frameassembly` CLI binary.
+///
+/// # Errors
+/// Returns a [`miette::Result`] error if legacy 1.x flags are supplied, the input file cannot
+/// be read, parsing/validation/decompilation fails, or writing the output file fails.
+fn main() -> Result<()> {
+    let raw_args: Vec<OsString> = std::env::args_os().collect();
+    #[cfg(windows)]
+    if is_standalone_windows_console() {
+        if raw_args.len() <= 1 {
+            println!(
+                "FrameAssembly {} — Packets as Code (.frasm <-> .pcap / .pcapng)\n\n\
+                 Quickstart (PowerShell / Command Prompt):\n  \
+                   frameassembly demo.frasm              Compile .frasm code to demo.pcap\n  \
+                   frameassembly show demo.frasm         Inspect the packet ladder table\n  \
+                   frameassembly reverse capture.pcap    Reverse a .pcap/.pcapng to capture.frasm\n\n\
+                 Drag-and-drop tip:\n  \
+                   Drag any .frasm file onto frameassembly.exe to compile <name>.pcap,\n  \
+                   or drag any .pcap / .pcapng file onto frameassembly.exe to reverse <name>.frasm.",
+                env!("CARGO_PKG_VERSION")
+            );
+            pause_windows_console();
+            return Ok(());
+        }
+        let result = if raw_args.len() == 2 {
+            let arg1 = raw_args[1].to_string_lossy().to_ascii_lowercase();
+            if arg1.ends_with(".pcap") || arg1.ends_with(".pcapng") {
+                run_cli(vec![
+                    raw_args[0].clone(),
+                    OsString::from("reverse"),
+                    raw_args[1].clone(),
+                ])
+            } else {
+                run_cli(raw_args)
+            }
+        } else {
+            run_cli(raw_args)
+        };
+        match result {
+            Ok(()) => {
+                pause_windows_console();
+                return Ok(());
+            }
+            Err(err) => {
+                eprintln!("{err:?}");
+                pause_windows_console();
+                std::process::exit(1);
+            }
+        }
+    }
+    let _ = is_standalone_windows_console();
+    run_cli(raw_args)
 }
 
 /// Unit tests for FrameAssembly 3.0 default root compilation and four subcommands
@@ -807,7 +896,7 @@ mod tests {
     #[test]
     fn test_cli_default_compile_four_subcommands_and_hidden_flags() {
         let mut cmd = build_cli();
-        assert_eq!(cmd.get_version(), Some("3.0.0"));
+        assert_eq!(cmd.get_version(), Some("3.1.0"));
         let help_text = cmd.render_help().to_string();
         assert!(
             help_text.contains("<INPUT.frasm>") && help_text.contains("[OUTPUT.pcap]"),
@@ -992,14 +1081,16 @@ mod tests {
         assert!(check_legacy_cli_args(["frameassembly", "--version"]).is_ok());
     }
 
-    /// Verifies packet ladder rendering on strict-lowercase FrameAssembly 3.0 `.frasm` code.
+    /// Verifies packet ladder rendering on strict-lowercase FrameAssembly 3.1 `.frasm` code.
     #[test]
     fn test_packet_ladder_strict_lowercase_frasm() {
-        let sample = "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\nflow f(c, s) {\n    c -> s tcp srcport 50000 dstport 443 syn\n    c <- s tcp syn ack wait 5ms\n}\ncompile { f(a, b) }";
+        let sample = "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\nflow f(c, s) {\n    c -> s tcp srcport 50000 dstport 443 syn wait 5ms\n    c <- s tcp syn ack wait 5ms\n}\ncompile { f(a, b) }";
         let program = parse_program(sample).expect("sample should parse");
         let frames = compile_program(&program).expect("sample should compile");
-        let ladder = format_packet_ladder(&frames);
+        let ladder = format_packet_ladder(&frames, &program.emitted_protocols());
         assert!(ladder.contains("Source -> Destination"));
+        assert!(ladder.contains("Protocol"));
+        assert!(ladder.contains("TCP"));
         assert!(ladder.contains("0.000"));
         assert!(ladder.contains("5.000"));
     }

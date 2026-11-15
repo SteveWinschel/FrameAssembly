@@ -1,18 +1,19 @@
-// PROMPT: IGMP report joining Source-Specific Multicast (SSM) distribution group in 232.0.0.0/8 range.
-// TOKENS: host, ip, flow, igmp, report, group, compile
+// IGMP report joining Source-Specific Multicast (SSM) distribution group in
+// 232.0.0.0/8 range.
+// This capture carries group 232.10.20.30.
+// Wireshark: igmp
 
-// INSTRUCTION: Define financial trading workstation.
 host trading_terminal { ip 10.88.1.15 }
 
-// INSTRUCTION: Define financial market ticker SSM multicast group.
 host ssm_ticker_group { ip 232.10.20.30 }
 
-// INSTRUCTION: Define SSM IGMP membership report subscription flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow igmp_ssm_join_flow(term, grp) {
     term -> grp igmp report group 232.10.20.30
 }
 
-// INSTRUCTION: Compile block executing SSM IGMP join.
+// Run igmp_ssm_join_flow(trading_terminal, ssm_ticker_group) to generate the
+// capture.
 compile {
     igmp_ssm_join_flow(trading_terminal, ssm_ticker_group)
 }

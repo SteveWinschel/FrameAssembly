@@ -1,25 +1,26 @@
-// PROMPT: Generate a DNS TXT lookup retrieving a DKIM RSA public key record under selector._domainkey on VLAN 53.
-// TOKENS: host, ip, mac, flow, s, dns, query, txid, qname, qtype, vlan, pcp, wait, ms, response, rcode, rdata, ansttl, compile
+// DNS TXT lookup retrieving a DKIM RSA public key record under
+// selector._domainkey on VLAN 53.
+// Wireshark: dns
 
-// INSTRUCTION: Define the DNS stub resolver client endpoint.
+// DNS stub resolver client endpoint.
 host dns_client {
     ip 192.168.53.15
     mac 00:1b:21:53:01:0a
 }
 
-// INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
+// Authoritative or recursive DNS server endpoint.
 host dns_server {
     ip 192.168.53.2
     mac 00:1b:21:53:01:35
 }
 
-// INSTRUCTION: Execute the DNS query and authoritative response transaction.
+// Encapsulation and QoS markings: 802.1Q VLAN 53. DNS wire details: record
+// types TXT; rcode 0 (NOERROR).
 flow dns_scenario_flow(c, s) {
     c -> s dns query txid 2103 qname "s2026._domainkey.mail.example.net" qtype "txt" vlan 53 pcp 2 wait 3ms
     c <- s dns response txid 2103 rcode 0 qname "s2026._domainkey.mail.example.net" qtype "txt" rdata "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A" ansttl 7200 vlan 53 pcp 2
 }
 
-// INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
 compile {
     dns_scenario_flow(dns_client, dns_server)
 }

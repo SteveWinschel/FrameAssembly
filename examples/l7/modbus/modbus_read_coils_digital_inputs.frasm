@@ -1,18 +1,18 @@
-// PROMPT: Modbus TCP function code 1 reading digital output coil statuses from remote PLC.
-// TOKENS: host, ip, flow, modbus, func, addr, count, unitid, compile
+// Modbus TCP function code 1 reading digital output coil statuses from remote
+// PLC.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define industrial SCADA supervisory station.
+// Industrial SCADA supervisory station.
 host scada_station { ip 192.168.10.10 }
 
-// INSTRUCTION: Define programmable logic controller (PLC).
+// Programmable logic controller (PLC).
 host field_plc { ip 192.168.10.200 }
 
-// INSTRUCTION: Define read coils operation flow.
+// Read coils operation flow. Modbus functions: FC 1 Read Coils.
 flow read_coils_flow(scada, plc) {
     scada -> plc modbus func "readcoils" addr 0 count 16 unitid 1
 }
 
-// INSTRUCTION: Compile Modbus read coils scenario.
 compile {
     read_coils_flow(scada_station, field_plc)
 }

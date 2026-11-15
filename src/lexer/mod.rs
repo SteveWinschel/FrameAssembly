@@ -22,8 +22,9 @@ use logos::Logos;
 /// let token = Token::Host;
 /// assert_eq!(token, Token::Host);
 /// ```
+#[allow(clippy::duplicated_attributes)]
 #[derive(Logos, Debug, PartialEq, Clone)]
-#[logos(skip r"[ \t\r\n\f]+")]
+#[logos(skip r"[ \t\r\n\f\u{feff}]+")]
 #[logos(skip r"//[^\r\n]*")]
 pub enum Token<'a> {
   /// `host`
@@ -1371,7 +1372,7 @@ pub enum Token<'a> {
   Number(&'a str),
 }
 
-/// Expands a single-byte lexer failure span for multi-character constructs (`/24`, `/*`, `'...'`).
+/// Expands a single-byte lexer failure span for multi-character constructs (`/24`, `/path`, `/*`, `'...'`, `“...”`).
 fn expand_lex_error_span(input: &str, span: std::ops::Range<usize>) -> (usize, usize) {
     let start = span.start.min(input.len());
     let rest = &input[start..];
@@ -1380,12 +1381,36 @@ fn expand_lex_error_span(input: &str, span: std::ops::Range<usize>) -> (usize, u
         2
     } else if bytes.first() == Some(&b'/') && bytes.get(1).is_some_and(|b| b.is_ascii_digit()) {
         1 + bytes[1..].iter().take_while(|b| b.is_ascii_digit()).count()
+    } else if bytes.first() == Some(&b'/')
+        && bytes
+            .get(1)
+            .is_some_and(|b| b.is_ascii_graphic() && !matches!(b, b'*' | b'/' | b'}' | b')'))
+    {
+        bytes
+            .iter()
+            .take_while(|b| b.is_ascii_graphic() && !matches!(b, b'{' | b'}' | b'(' | b')' | b','))
+            .count()
     } else if bytes.first() == Some(&b'\'') {
         let line_rest = rest.lines().next().unwrap_or(rest);
         if let Some(close_idx) = line_rest.get(1..).and_then(|s| s.find('\'')) {
             close_idx + 2
         } else {
             span.end.saturating_sub(span.start).max(1)
+        }
+    } else if let Some(first_ch) = rest.chars().next() {
+        let line_rest = rest.lines().next().unwrap_or(rest);
+        let after_first = &line_rest[first_ch.len_utf8()..];
+        let close_quote = match first_ch {
+            '\u{201c}' => Some('\u{201d}'),
+            '\u{2018}' => Some('\u{2019}'),
+            _ => None,
+        };
+        if let Some(cq) = close_quote
+            && let Some(close_idx) = after_first.find(cq)
+        {
+            first_ch.len_utf8() + close_idx + cq.len_utf8()
+        } else {
+            span.end.saturating_sub(span.start).max(first_ch.len_utf8())
         }
     } else {
         span.end.saturating_sub(span.start).max(1)

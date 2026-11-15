@@ -1,13 +1,13 @@
-// PROMPT: IMAP APPEND saving an outgoing draft message to the Drafts folder and COPY to Sent.
-// TOKENS: host, ip, flow, s, imap, tag, cmd, arg, payload, compile
+// IMAP APPEND saving an outgoing draft message to the Drafts folder and COPY
+// to Sent.
+// Wireshark: imap
 
-// INSTRUCTION: Define desktop email client saving a draft.
+// Desktop email client saving a draft.
 host draft_client { ip 10.143.1.20 }
 
-// INSTRUCTION: Define IMAP mail server.
 host imap_srv { ip 10.143.1.1 }
 
-// INSTRUCTION: Append draft message literal and copy UID 10 to Sent mailbox.
+// Append draft message literal and copy UID 10 to Sent mailbox.
 flow imap_append_and_copy(c, s) {
     c -> s imap tag "E01" cmd "APPEND" arg "Drafts (\\Draft) {28}" payload "Subject: Q4 Budget\r\n\r\nDraft."
     c <- s imap tag "E01" cmd "OK" arg "[APPENDUID 100 10] APPEND completed"
@@ -15,7 +15,6 @@ flow imap_append_and_copy(c, s) {
     c <- s imap tag "E02" cmd "OK" arg "COPY completed"
 }
 
-// INSTRUCTION: Compile the IMAP APPEND and COPY scenario.
 compile {
     imap_append_and_copy(draft_client, imap_srv)
 }

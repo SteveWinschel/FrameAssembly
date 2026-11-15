@@ -1,25 +1,28 @@
-// PROMPT: RFC 3107 / RFC 8277 BGP Labeled Unicast (BGP-LU) Inter-AS Option C session over MPLS transport.
-// TOKENS: host, ip, mac, flow, bgp, update, asn, prefix, nexthop, mpls, exp, bos, mplsttl, dscp, ttl, payload, wait, ms, compile
+// RFC 3107 / RFC 8277 BGP Labeled Unicast (BGP-LU) Inter-AS Option C session
+// over MPLS transport.
+// This capture wraps frames in MPLS label 29901/29902, sets DSCP 48, TTL 1,
+// carries ASN 65001/65002, and uses post-packet wait gaps (5ms) between
+// frames.
+// Wireshark: bgp && mpls
 
-// INSTRUCTION: Define ASBR-1 in AS 65001 advertising MPLS-labeled loopbacks to peer ASBR.
 host asbr1_opt_c {
     ip 10.31.7.1
     mac 00:19:e8:31:07:01
 }
 
-// INSTRUCTION: Define ASBR-2 in AS 65002 exchanging BGP-LU SAFI 4 routes.
 host asbr2_opt_c {
     ip 10.31.7.2
     mac 00:19:e8:31:07:02
 }
 
-// INSTRUCTION: Define BGP-LU UPDATE exchange with MPLS label stack and DSCP CS6.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow bgp_labeled_unicast_opt_c(asbr1, asbr2) {
     asbr1 -> asbr2 bgp update asn 65001 prefix "10.255.1.1/32" nexthop 10.31.7.1 mpls 29901 exp 6 bos 1 mplsttl 64 dscp 48 ttl 1 payload "BGPLU_SAFI4_LABEL_29901" wait 5ms
     asbr1 <- asbr2 bgp update asn 65002 prefix "10.255.2.1/32" nexthop 10.31.7.2 mpls 29902 exp 6 bos 1 mplsttl 64 dscp 48 ttl 1 payload "BGPLU_SAFI4_LABEL_29902"
 }
 
-// INSTRUCTION: Compile the Inter-AS Option C BGP Labeled Unicast peering flow.
+// Run bgp_labeled_unicast_opt_c(asbr1_opt_c, asbr2_opt_c) to generate the
+// capture.
 compile {
     bgp_labeled_unicast_opt_c(asbr1_opt_c, asbr2_opt_c)
 }

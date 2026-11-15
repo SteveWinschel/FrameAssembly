@@ -1,19 +1,20 @@
-// PROMPT: Domain logon script retrieval from the NETLOGON share over VLAN 604 with DSCP AF21.
-// TOKENS: host, ip, mac, flow, s, smb, command, sessionid, msgid, share, vlan, dscp, status, treeid, wait, ms, filename, payload, compile
+// Domain logon script retrieval from the NETLOGON share over VLAN 604 with
+// DSCP AF21.
+// Encapsulation and QoS markings: 802.1Q VLAN 604, DSCP 18 (AF21).
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: smb2 && vlan.id == 604
 
-// INSTRUCTION: Define the user workstation logging into the domain.
 host logon_ws {
     ip 10.60.44.50
     mac 00:1a:2b:60:44:50
 }
 
-// INSTRUCTION: Define the local branch Read-Only Domain Controller.
 host rodc_srv {
     ip 10.60.44.2
     mac 00:1a:2b:60:44:02
 }
 
-// INSTRUCTION: Mount NETLOGON share and read the startup PowerShell logon script.
 flow smb_netlogon_read(c, s) {
     c -> s smb command "treeconnect" sessionid 6200 msgid 10 share "\\branch.corp\NETLOGON" vlan 604 dscp 18
     c <- s smb command "treeconnect" status 0 treeid 5 sessionid 6200 msgid 10 vlan 604 dscp 18 wait 2ms
@@ -21,7 +22,6 @@ flow smb_netlogon_read(c, s) {
     c <- s smb command "read" status 0 treeid 5 sessionid 6200 msgid 12 vlan 604 dscp 18 payload "New-PSDrive -Name Z -PSProvider FileSystem"
 }
 
-// INSTRUCTION: Compile the NETLOGON script retrieval flow.
 compile {
     smb_netlogon_read(logon_ws, rodc_srv)
 }

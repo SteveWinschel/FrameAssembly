@@ -1,19 +1,19 @@
-// PROMPT: Dual-stack anonymous FTP login and PWD working directory check over IPv4 and IPv6.
-// TOKENS: host, ip, flow, s, ftp, cmd, arg, code, reply, compile
+// Dual-stack anonymous FTP login and PWD working directory check over IPv4
+// and IPv6.
+// Wireshark: ftp
 
-// INSTRUCTION: Define IPv4 anonymous FTP client.
 host anon_v4 { ip 10.100.21.10 }
 
-// INSTRUCTION: Define IPv4 public FTP mirror.
+// IPv4 public FTP mirror.
 host pub_ftp_v4 { ip 10.100.21.1 }
 
-// INSTRUCTION: Define IPv6 anonymous FTP client.
 host anon_v6 { ip 2001:db8:21::10 }
 
-// INSTRUCTION: Define IPv6 public FTP mirror.
+// IPv6 public FTP mirror.
 host pub_ftp_v6 { ip 2001:db8:21::1 }
 
-// INSTRUCTION: Authenticate anonymously and query current working directory (PWD).
+// Authenticate anonymously and query current working directory (PWD). Runs
+// the same flow definition over both IPv4 and IPv6 host pairs.
 flow ftp_anon_pwd(c, s) {
     c -> s ftp cmd "USER" arg "anonymous"
     c <- s ftp code 331 reply "Anonymous login ok, send email"
@@ -23,7 +23,6 @@ flow ftp_anon_pwd(c, s) {
     c <- s ftp code 257 reply "\"/\" is the current directory"
 }
 
-// INSTRUCTION: Execute the anonymous FTP flow over both IPv4 and IPv6 endpoints.
 compile {
     ftp_anon_pwd(anon_v4, pub_ftp_v4)
     ftp_anon_pwd(anon_v6, pub_ftp_v6)

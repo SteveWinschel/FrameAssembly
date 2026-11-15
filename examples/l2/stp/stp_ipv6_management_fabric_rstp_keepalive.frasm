@@ -1,25 +1,23 @@
-// PROMPT: Dual-stack IPv6 management switches exchanging periodic RSTP Configuration BPDUs on out-of-band network.
-// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, maxage, hellotime, forwarddelay, flags, wait, ms, compile
+// Dual-stack IPv6 management switches exchanging periodic RSTP Configuration
+// BPDUs on out-of-band network.
+// Wire profile: 2 frames; 2 IPv6 hosts; STP; waits 10ms.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define IPv6 out-of-band management root switch.
 host oob_mgmt_root_v6 {
     ip 2001:db8:999::1
     mac 00:25:90:99:09:01
 }
 
-// INSTRUCTION: Define IPv6 rack management switch receiving RSTP Hello BPDUs.
 host oob_rack_sw_v6 {
     ip 2001:db8:999::10
     mac 00:25:90:99:09:0a
 }
 
-// INSTRUCTION: Send periodic RSTP Forwarding Designated Port (Flags 60) BPDUs between IPv6 management switches.
 flow stp_ipv6_oob_keepalive(root, rack) {
     root -> rack stp rstp rootid "4096:00:25:90:99:09:01" bridgeid "4096:00:25:90:99:09:01" cost 0 portid 32775 maxage 20 hellotime 2 forwarddelay 15 flags 60 wait 10ms
     root -> rack stp rstp rootid "4096:00:25:90:99:09:01" bridgeid "4096:00:25:90:99:09:01" cost 0 portid 32775 maxage 20 hellotime 2 forwarddelay 15 flags 60
 }
 
-// INSTRUCTION: Compile the IPv6 out-of-band management RSTP keepalive trace.
 compile {
     stp_ipv6_oob_keepalive(oob_mgmt_root_v6, oob_rack_sw_v6)
 }

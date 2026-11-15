@@ -1,17 +1,16 @@
-// PROMPT: RTSP SET_PARAMETER request for unsupported analytics overlay rejected with 451 Parameter Not Understood.
-// TOKENS: host, ip, flow, s, rtsp, method, uri, cseq, session, payload, wait, ms, status, compile
+// RTSP SET_PARAMETER request for unsupported analytics overlay rejected with
+// 451 Parameter Not Understood.
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: rtsp
 
-// INSTRUCTION: Define VMS analytics controller client.
 host vms_ctrl {
     ip 192.168.140.15
 }
 
-// INSTRUCTION: Define fixed-lens RTSP camera rejecting unknown parameter.
 host fixed_cam {
     ip 192.168.140.80
 }
 
-// INSTRUCTION: Define SET_PARAMETER rejected with 451 followed by valid GET_PARAMETER heartbeat.
 flow rtsp_451_param_err(c, s) {
     c -> s rtsp method "SET_PARAMETER" uri "rtsp://192.168.140.80/live" cseq 15 session "cam_80_sess" payload "thermal_palette: ironbow" wait 4ms
     c <- s rtsp status 451 cseq 15 session "cam_80_sess" wait 4ms
@@ -19,7 +18,6 @@ flow rtsp_451_param_err(c, s) {
     c <- s rtsp status 200 cseq 16 session "cam_80_sess"
 }
 
-// INSTRUCTION: Compile the RTSP 451 parameter error scenario.
 compile {
     rtsp_451_param_err(vms_ctrl, fixed_cam)
 }

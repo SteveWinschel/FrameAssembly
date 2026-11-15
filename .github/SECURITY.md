@@ -2,7 +2,7 @@
 
 ## Execution & Threat Model
 
-**FrameAssembly** (`frameassembly` v3.0.0) runs **100% offline** in unprivileged user space across the CLI, WebAssembly module (`frameassembly-wasm`), browser playground ([`https://frameassembly.ai.studio/`](https://frameassembly.ai.studio/)), and VS Code Packet Studio (`frameassembly-vscode`):
+**FrameAssembly** (`frameassembly` v3.1.0) runs **100% offline** in unprivileged user space across the CLI, WebAssembly module (`frameassembly-wasm`), browser playground ([`https://frameassembly.ai.studio/`](https://frameassembly.ai.studio/)), and VS Code extension (`frameassembly-vscode`):
 
 - **Zero raw sockets or packet injection**: FrameAssembly never opens raw sockets, never binds network interfaces, and never transmits packets onto the wire. Generated `.pcap` and `.pcapng` files are written only to local disk paths you specify.
 - **Zero kernel drivers or `libpcap` runtime bindings**: Compilation and reverse decompilation require no root/Administrator privileges, Npcap, WinPcap, or `libpcap` installation.
@@ -16,8 +16,8 @@ Security fixes are released for the current major release line:
 
 | Version | Supported |
 | :--- | :--- |
-| `3.0.x` | Yes |
-| `< 3.0.0` | No (upgrade to `3.0.0`) |
+| `3.1.x` | Yes |
+| `< 3.1.0` | No (upgrade to `3.1.0`) |
 
 ## Reporting a Vulnerability
 

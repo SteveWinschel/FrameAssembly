@@ -1,18 +1,18 @@
-// PROMPT: RFC 5424 structured event logging over IPv6 with custom facility, severity, and application tags.
-// TOKENS: host, ip, flow, src, dst, syslog, facility, severity, app, msg, compile
+// RFC 5424 structured event logging over IPv6 with custom facility, severity,
+// and application tags.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// RFC 5424 over UDP 514; facility 1 (user) + severity 5 (notice) yields PRI
+// <13>.
+// Wireshark: syslog
 
-// INSTRUCTION: Define logging agent on IPv6.
 host syslog_sender { ip 2001:db8:514::1 }
 
-// INSTRUCTION: Define central syslog collector server.
 host syslog_collector { ip 2001:db8:514::2 }
 
-// INSTRUCTION: Define event notification logging flow.
 flow syslog_flow(src, dst) {
     src -> dst syslog facility 1 severity 5 app "kernel" msg "System boot complete"
 }
 
-// INSTRUCTION: Compile block executing syslog event transmission.
 compile {
     syslog_flow(syslog_sender, syslog_collector)
 }

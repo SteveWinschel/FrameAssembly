@@ -1,19 +1,19 @@
-// PROMPT: RFC 4165 SIGTRAN M2PA (MTP2 User Peer-to-Peer Adaptation Layer, PPID 5) link alignment and data transfer on SCTP port 3565.
-// TOKENS: host, ip, mac, flow, dscp, sctp, chunk, data, vtag, stream, ssn, ppid, srcport, dstport, payload, wait, ms, sack, compile
+// RFC 4165 SIGTRAN M2PA (MTP2 User Peer-to-Peer Adaptation Layer, PPID 5) link
+// alignment and data transfer on SCTP port 3565.
+// Wire profile: 4 frames; 2 IPv4 hosts; SCTP; SCTP DATA/SACK; PPID 5; dstport
+// 3565; DSCP 48; waits 2ms.
+// Wireshark: sctp && sctp.data_ppid == 5
 
-// INSTRUCTION: Define SS7 Signaling Transfer Point A (STP-A) M2PA interface.
 host stp_node_alpha {
     ip 172.18.35.1
     mac 00:1c:73:12:23:01
 }
 
-// INSTRUCTION: Define SS7 Signaling Transfer Point B (STP-B) M2PA interface.
 host stp_node_beta {
     ip 172.18.35.2
     mac 00:1c:73:12:23:02
 }
 
-// INSTRUCTION: Send M2PA Link Status Alignment on Stream 0 (PPID 5) and MSU signaling data on Stream 1 (PPID 5).
 flow sctp_m2pa_ss7_link(stp_a, stp_b) {
     stp_a -> stp_b dscp 48 sctp chunk data vtag 356501 stream 0 ssn 0 ppid 5 srcport 3565 dstport 3565 payload "M2PA_V1_CLASS11_TYPE2_LINK_STATUS_PROVING" wait 2ms
     stp_a <- stp_b dscp 48 sctp chunk data vtag 356501 stream 0 ssn 0 ppid 5 srcport 3565 dstport 3565 payload "M2PA_V1_CLASS11_TYPE2_LINK_STATUS_READY" wait 2ms
@@ -21,7 +21,6 @@ flow sctp_m2pa_ss7_link(stp_a, stp_b) {
     stp_a <- stp_b dscp 48 sctp chunk sack vtag 356501 srcport 3565 dstport 3565
 }
 
-// INSTRUCTION: Compile the RFC 4165 SIGTRAN M2PA SS7 link alignment SCTP trace.
 compile {
     sctp_m2pa_ss7_link(stp_node_alpha, stp_node_beta)
 }

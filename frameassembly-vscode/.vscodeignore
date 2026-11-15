@@ -2,6 +2,7 @@
 .vscode-test/**
 .gitignore
 wasm/.gitignore
+wasm/*.d.ts
 vsc-extension-quickstart.md
 *.pcap
 *.pcapng

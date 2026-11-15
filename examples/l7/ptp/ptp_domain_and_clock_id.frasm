@@ -1,18 +1,19 @@
-// PROMPT: IEEE 1588 PTP Announce message with custom clock ID and non-default domain over IPv6.
-// TOKENS: host, ip, flow, s, ptp, announce, domain, clockid, compile
+// IEEE 1588 PTP Announce message with custom clock ID and non-default domain
+// over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// IEEE 1588v2 PTP (messages: announce; domain 1). UDP 319 handles Event
+// messages (sync, delayreq) and UDP 320 carries General messages (announce,
+// followup, delayresp).
+// Wireshark: ptp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip fe80::2 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip fe80::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow ptp_announce(c, s) {
     c <- s ptp announce domain 1 clockid "00:11:22:ff:fe:33:44:55"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ptp_announce(client, server)
 }

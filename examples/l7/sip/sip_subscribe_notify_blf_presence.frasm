@@ -1,17 +1,16 @@
-// PROMPT: SIP SUBSCRIBE and NOTIFY (RFC 6665) busy lamp field (BLF) presence monitoring exchange.
-// TOKENS: host, ip, flow, s, sip, method, uri, from, to, callid, cseq, contact, wait, ms, status, reason, contenttype, body, compile
+// SIP SUBSCRIBE and NOTIFY (RFC 6665) busy lamp field (BLF) presence
+// monitoring exchange.
+// Timing: pauses 4ms after each marked packet before sending the next frame.
+// Wireshark: sip
 
-// INSTRUCTION: Define executive assistant IP phone monitoring BLF line keys.
 host blf_phone {
     ip 10.60.20.45
 }
 
-// INSTRUCTION: Define SIP presence and dialog state server.
 host presence_srv {
     ip 10.60.20.1
 }
 
-// INSTRUCTION: Define SIP SUBSCRIBE for dialog event package and XML presence NOTIFY push.
 flow sip_blf_presence(c, s) {
     c -> s sip method "SUBSCRIBE" uri "sip:director@10.60.20.1" from "sip:asst@10.60.20.45" to "sip:director@10.60.20.1" callid "blf-9001" cseq 1 contact "sip:asst@10.60.20.45" wait 4ms
     c <- s sip status 200 reason "OK" callid "blf-9001" cseq 1 wait 4ms
@@ -19,7 +18,6 @@ flow sip_blf_presence(c, s) {
     c -> s sip status 200 reason "OK" callid "blf-9001" cseq 2
 }
 
-// INSTRUCTION: Compile the SIP BLF presence SUBSCRIBE/NOTIFY flow.
 compile {
     sip_blf_presence(blf_phone, presence_srv)
 }

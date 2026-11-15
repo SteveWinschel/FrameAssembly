@@ -1,23 +1,22 @@
-// PROMPT: RFC 2198 RTP Redundant Audio Data (RED payload type 97) protecting VoIP against packet loss.
-// TOKENS: host, ip, flow, rtp, pt, seq, timestamp, ssrc, marker, hexpayload, wait, ms, compile
+// RFC 2198 RTP Redundant Audio Data (RED payload type 97) protecting VoIP
+// against packet loss.
+// RTP media on UDP 5004 carrying PT 97 (dynamic RTP payload (97)).
+// Timing: pauses 20ms after each marked packet before sending the next frame.
+// Wireshark: rtp || udp.port == 5004
 
-// INSTRUCTION: Define loss-resilient softphone client sending RED packets.
 host red_sender {
     ip 192.168.42.15
 }
 
-// INSTRUCTION: Define remote VoIP peer decoding primary and redundant blocks.
 host red_receiver {
     ip 192.168.42.25
 }
 
-// INSTRUCTION: Define RFC 2198 RED packets (PT 97) bundling previous and current G.711 frames.
 flow rtp_red_audio(a, b) {
     a -> b rtp pt 97 seq 300 timestamp 48000 ssrc 0x21980001 marker 0 hexpayload "8000a000d5d5d5d5" wait 20ms
     a -> b rtp pt 97 seq 301 timestamp 48160 ssrc 0x21980001 marker 0 hexpayload "8000a0005d5d5d5d"
 }
 
-// INSTRUCTION: Compile the RFC 2198 redundant audio RTP flow.
 compile {
     rtp_red_audio(red_sender, red_receiver)
 }

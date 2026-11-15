@@ -1,20 +1,21 @@
-// PROMPT: Cisco ERSPAN Type II remote port mirroring using GRE_PROTO 0x88BE and GRE_SEQ sequence numbers.
-// TOKENS: host, ip, flow, gre, greseq, greproto, payload, wait, ms, compile
+// Cisco ERSPAN Type II remote port mirroring using GRE protocol type 0x88BE
+// and greseq sequence numbers.
+// This capture uses post-packet wait gaps (5ms) between frames.
+// Wireshark: gre
 
-// INSTRUCTION: Define core switch exporting mirrored SPAN traffic.
 host erspan_source_sw { ip 172.20.99.1 }
 
-// INSTRUCTION: Define network packet broker receiving ERSPAN stream.
 host erspan_collector_npb { ip 172.20.99.100 }
 
-// INSTRUCTION: Define unidirectional ERSPAN GRE stream with protocol 0x88BE (35006).
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow erspan_mirror_stream(sw, npb) {
-    sw -> npb gre greseq 1001 greproto 0x88BE payload "MIRRORED_FRAME_SPAN_SESSION_1"
+    sw -> npb gre greseq 1001 greproto 0x88BE payload "MIRRORED_FRAME_SPAN_SESSION_1" wait 5ms
     sw -> npb gre greseq 1002 greproto 0x88BE payload "MIRRORED_FRAME_SPAN_SESSION_2" wait 5ms
-    sw -> npb gre greseq 1003 greproto 0x88BE payload "MIRRORED_FRAME_SPAN_SESSION_3" wait 5ms
+    sw -> npb gre greseq 1003 greproto 0x88BE payload "MIRRORED_FRAME_SPAN_SESSION_3"
 }
 
-// INSTRUCTION: Compile the ERSPAN remote port mirroring GRE flow.
+// Run erspan_mirror_stream(erspan_source_sw, erspan_collector_npb) to
+// generate the capture.
 compile {
     erspan_mirror_stream(erspan_source_sw, erspan_collector_npb)
 }

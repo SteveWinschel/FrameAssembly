@@ -1,18 +1,18 @@
-// PROMPT: IPsec security gateway exchanging protected traffic across IPv6 endpoints.
-// TOKENS: host, ip, flow, ipsec, spi, seq, compile
+// IPsec security gateway exchanging protected traffic across IPv6 endpoints.
+// This capture targets IPv6 endpoints and carries SPI 16384.
+// Wireshark: esp && ipv6
 
-// INSTRUCTION: Define IPv6 site A security gateway.
 host ipsec_v6_site_a { ip 2001:db8:8000::1 }
 
-// INSTRUCTION: Define IPv6 site B security gateway.
 host ipsec_v6_site_b { ip 2001:db8:8000::2 }
 
-// INSTRUCTION: Define IPsec protected transport flow over IPv6.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow ipsec_v6_flow(a, b) {
     a -> b ipsec spi 16384 seq 1
 }
 
-// INSTRUCTION: Compile block executing IPv6 IPsec gateway transmission.
+// Run ipsec_v6_flow(ipsec_v6_site_a, ipsec_v6_site_b) to generate the
+// capture.
 compile {
     ipsec_v6_flow(ipsec_v6_site_a, ipsec_v6_site_b)
 }

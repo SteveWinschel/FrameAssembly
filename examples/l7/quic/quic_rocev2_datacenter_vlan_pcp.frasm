@@ -1,25 +1,25 @@
-// PROMPT: Datacenter internal RPC over QUIC using VLAN 400 priority tagging (PCP 5) and low TTL.
-// TOKENS: host, ip, mac, flow, s, quic, short, dcid, pktnum, vlan, pcp, ttl, df, payload, wait, ms, compile
+// Datacenter internal RPC over QUIC using VLAN 400 priority tagging (PCP 5)
+// and low TTL.
+// Encapsulation and QoS markings: 802.1Q VLAN 400, 802.1p priority 5.
+// QUIC UDP 443 packet types: short.
+// Timing: pauses 1ms after each marked packet before sending the next frame.
+// Wireshark: quic && vlan.id == 400
 
-// INSTRUCTION: Define compute blade RPC caller with MAC address.
 host compute_blade {
     ip 10.40.0.101
     mac 00:25:90:40:00:65
 }
 
-// INSTRUCTION: Define distributed storage target RPC server with MAC address.
 host storage_target {
     ip 10.40.0.201
     mac 00:25:90:40:00:c9
 }
 
-// INSTRUCTION: Define priority-tagged VLAN 400 QUIC Short header storage read/response.
 flow quic_dc_rpc(c, s) {
     c -> s quic short dcid 0xdead0001dead0001 pktnum 500 vlan 400 pcp 5 ttl 16 df payload "NVME_READ_LBA_4096" wait 1ms
     c <- s quic short dcid 0xbeef0002beef0002 pktnum 800 vlan 400 pcp 5 ttl 16 df payload "NVME_DATA_BLOCK_4K"
 }
 
-// INSTRUCTION: Compile the datacenter VLAN-prioritized QUIC RPC flow.
 compile {
     quic_dc_rpc(compute_blade, storage_target)
 }

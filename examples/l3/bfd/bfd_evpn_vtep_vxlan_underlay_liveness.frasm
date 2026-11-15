@@ -1,25 +1,27 @@
-// PROMPT: RFC 8971 / RFC 5883 multihop BFD monitoring underlay reachability between EVPN VXLAN VTEP loopbacks.
-// TOKENS: host, ip, mac, flow, bfd, state, diag, mydisc, yourdisc, mintx, minrx, mult, srcport, dstport, dscp, ttl, wait, ms, compile
+// RFC 8971 / RFC 5883 multihop BFD monitoring underlay reachability between
+// EVPN VXLAN VTEP loopbacks.
+// This capture sets DSCP 48, TTL 62, carries BFD state 3, diag 0, destination
+// port 4784, and uses post-packet wait gaps (50ms) between frames.
+// Wireshark: bfd && udp.port == 4784
 
-// INSTRUCTION: Define Leaf-1 VTEP loopback endpoint in Pod A.
 host vtep_leaf1_lo {
     ip 10.255.0.11
     mac 00:1c:73:aa:00:0b
 }
 
-// INSTRUCTION: Define Leaf-2 VTEP loopback endpoint in Pod B.
 host vtep_leaf2_lo {
     ip 10.255.0.22
     mac 00:1c:73:aa:00:16
 }
 
-// INSTRUCTION: Define multihop BFD over UDP port 4784 monitoring EVPN VTEP tunnel endpoints.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow bfd_vtep_underlay_check(vtep1, vtep2) {
     vtep1 -> vtep2 bfd state 3 diag 0 mydisc 89711 yourdisc 89712 mintx 50000 minrx 50000 mult 3 srcport 50100 dstport 4784 dscp 48 ttl 62 wait 50ms
     vtep1 <- vtep2 bfd state 3 diag 0 mydisc 89712 yourdisc 89711 mintx 50000 minrx 50000 mult 3 srcport 50101 dstport 4784 dscp 48 ttl 62
 }
 
-// INSTRUCTION: Compile the EVPN VTEP multihop BFD liveness flow.
+// Run bfd_vtep_underlay_check(vtep_leaf1_lo, vtep_leaf2_lo) to generate the
+// capture.
 compile {
     bfd_vtep_underlay_check(vtep_leaf1_lo, vtep_leaf2_lo)
 }

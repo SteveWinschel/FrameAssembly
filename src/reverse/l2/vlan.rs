@@ -32,14 +32,9 @@ pub(crate) fn peel_vlan_or_qinq(
             l2.qinq = Some(QinqSpec {
                 outer_vid: tci1 & 0x0FFF,
                 inner_vid: Some(tci2 & 0x0FFF),
+                pcp: (qp != 0).then_some(qp),
+                dei: (qd != 0).then_some(qd),
             });
-            if qp != 0 || qd != 0 {
-                l2.vlan = Some(VlanSpec {
-                    vid: 1,
-                    pcp: (qp != 0).then_some(qp),
-                    dei: (qd != 0).then_some(qd),
-                });
-            }
         } else if *et == 0x88A8 {
             *off += 4;
             *et = et1;
@@ -47,14 +42,9 @@ pub(crate) fn peel_vlan_or_qinq(
             l2.qinq = Some(QinqSpec {
                 outer_vid: tci1 & 0x0FFF,
                 inner_vid: None,
+                pcp: (qp != 0).then_some(qp),
+                dei: (qd != 0).then_some(qd),
             });
-            if qp != 0 || qd != 0 {
-                l2.vlan = Some(VlanSpec {
-                    vid: 1,
-                    pcp: (qp != 0).then_some(qp),
-                    dei: (qd != 0).then_some(qd),
-                });
-            }
         } else {
             *off += 4;
             *et = et1;

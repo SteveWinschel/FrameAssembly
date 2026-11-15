@@ -1,18 +1,20 @@
-// PROMPT: IPv4 SSDP UPnP discovery multicast transmission to 239.255.255.250 deriving RFC 1112 MAC 01:00:5e:7f:ff:fa.
-// TOKENS: host, ip, flow, src, dst, ssdp, msearch, compile
+// IPv4 SSDP UPnP discovery multicast transmission to 239.255.255.250 deriving RFC
+// 1112 MAC 01:00:5e:7f:ff:fa.
+// Wire profile: 1 frame; 2 IPv4 hosts; SSDP.
+// Verify packet timing and headers with `frameassembly show
+// ipv4_multicast_mac_ssdp.frasm` or write `ipv4_multicast_mac_ssdp.pcap` via
+// `frameassembly ipv4_multicast_mac_ssdp.frasm` before replaying on a lab
+// interface or opening in Wireshark.
+// Wireshark: ssdp
 
-// INSTRUCTION: Define SSDP client initiating discovery.
 host ssdp_device { ip 192.168.1.75 }
 
-// INSTRUCTION: Define SSDP administrative multicast target.
 host ssdp_mcast { ip 239.255.255.250 }
 
-// INSTRUCTION: Define SSDP M-SEARCH discovery flow.
 flow ssdp_search_flow(src, dst) {
     src -> dst ssdp msearch
 }
 
-// INSTRUCTION: Compile block executing SSDP search.
 compile {
     ssdp_search_flow(ssdp_device, ssdp_mcast)
 }

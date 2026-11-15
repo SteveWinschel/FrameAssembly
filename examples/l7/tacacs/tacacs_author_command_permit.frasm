@@ -1,19 +1,16 @@
-// PROMPT: Command authorization verifying permission to run show running-config.
-// TOKENS: host, ip, flow, s, tacacs, type, author, user, sessionid, compile
+// Command authorization verifying permission to run show running-config.
+// TACACS+ on TCP 49 (author).
+// Wireshark: tacplus
 
-// INSTRUCTION: Define datacenter switch NAS.
 host dc_switch { ip 10.150.1.20 }
 
-// INSTRUCTION: Define authorization engine.
 host author_engine { ip 10.150.1.1 }
 
-// INSTRUCTION: Define permitted command authorization flow.
 flow tacacs_permit_flow(c, s) {
     c -> s tacacs type author user "auditor" sessionid 8040
     c <- s tacacs type author user "auditor" sessionid 8040
 }
 
-// INSTRUCTION: Compile block executing command authorization.
 compile {
     tacacs_permit_flow(dc_switch, author_engine)
 }

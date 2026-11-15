@@ -1,26 +1,25 @@
-// PROMPT: SMB2 CREATE request failing with NT_STATUS_SHARING_VIOLATION (3221225539) due to an exclusive file lock.
-// TOKENS: host, ip, mac, flow, s, smb, command, treeid, sessionid, msgid, filename, status, wait, ms, compile
+// SMB2 CREATE request failing with NT_STATUS_SHARING_VIOLATION (3221225539)
+// due to an exclusive file lock.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 3221225539.
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: smb2
 
-// INSTRUCTION: Define the secondary workstation attempting concurrent write access.
 host second_user {
     ip 10.60.20.33
     mac 00:1a:2b:60:20:33
 }
 
-// INSTRUCTION: Define the shared CAD repository server.
 host cad_server {
     ip 10.60.20.5
     mac 00:1a:2b:60:20:05
 }
 
-// INSTRUCTION: Attempt to open a locked CAD assembly drawing and receive sharing violation status.
 flow smb_sharing_violation(c, s) {
     c -> s smb command "create" treeid 7 sessionid 8100 msgid 19 filename "turbine_housing_v4.dwg"
     c <- s smb command "create" status 3221225539 treeid 7 sessionid 8100 msgid 19 wait 2ms
     c -> s smb command "close" treeid 7 sessionid 8100 msgid 20
 }
 
-// INSTRUCTION: Compile the SMB2 sharing violation flow.
 compile {
     smb_sharing_violation(second_user, cad_server)
 }

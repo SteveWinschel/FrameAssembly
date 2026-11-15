@@ -1,20 +1,20 @@
-// PROMPT: Demonstrate implicit default TRAP PDU encoding in SNMP1, SNMP2, and SNMP3 statements when the PDU type keyword is omitted.
-// TOKENS: host, ip, mac, flow, snmp1, community, oid, sysuptime, varbind, string, wait, ms, snmp2, snmp3, user, compile
+// Demonstrate implicit default TRAP PDU encoding in SNMP1, SNMP2, and SNMP3
+// statements when the PDU type keyword is omitted.
+// MIB objects / traps: 1.3.6.1.6.3.1.1.5.1 (coldStart), 1.3.6.1.2.1.1.5.0
+// (sysName.0), 1.3.6.1.6.3.1.1.5.3 (linkDown), 1.3.6.1.6.3.1.1.5.4 (linkUp).
+// Timing: pauses 10ms after each marked packet before sending the next frame.
+// Wireshark: snmp
 
-// INSTRUCTION: Define a multi-version SNMP agent host with IP 10.137.0.5.
 host default_pdu_agent { ip 10.137.0.5 mac 00:1a:2b:37:00:05 }
 
-// INSTRUCTION: Define a unified trap receiver host with IP 10.137.0.100.
 host unified_trapd { ip 10.137.0.100 mac 00:1a:2b:37:00:64 }
 
-// INSTRUCTION: Define a flow omitting the explicit TRAP keyword to verify default Trap PDU generation on port 162 across SNMP1, SNMP2, and SNMP3.
 flow implicit_trap_pdu_flow(agent, trapd) {
     agent -> trapd snmp1 community "public" oid 1.3.6.1.6.3.1.1.5.1 sysuptime 1000 varbind 1.3.6.1.2.1.1.5.0 string "v1-default-trap" wait 10ms
     agent -> trapd snmp2 community "public" oid 1.3.6.1.6.3.1.1.5.3 sysuptime 2000 varbind 1.3.6.1.2.1.1.5.0 string "v2c-default-trap" wait 10ms
     agent -> trapd snmp3 user "trap_user" oid 1.3.6.1.6.3.1.1.5.4 sysuptime 3000 varbind 1.3.6.1.2.1.1.5.0 string "v3-default-trap" wait 10ms
 }
 
-// INSTRUCTION: Compile block to execute the implicit default trap PDU flow.
 compile {
     implicit_trap_pdu_flow(default_pdu_agent, unified_trapd)
 }

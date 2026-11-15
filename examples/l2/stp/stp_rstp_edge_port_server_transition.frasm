@@ -1,24 +1,22 @@
-// PROMPT: Data center Top-of-Rack switch transmitting RSTP Edge Port BPDU before transitioning server port to forwarding.
-// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, hellotime, maxage, forwarddelay, flags, compile
+// Data center Top-of-Rack switch transmitting RSTP Edge Port BPDU before
+// transitioning server port to forwarding.
+// Wire profile: 1 frame; 2 IPv4 hosts; STP.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define Top-of-Rack leaf switch port configured with RSTP edge port fast transition.
 host tor_edge_port {
     ip 10.84.1.1
     mac 00:1c:73:84:01:01
 }
 
-// INSTRUCTION: Define bare-metal compute server NIC receiving initial RSTP edge BPDU.
 host baremetal_srv_nic {
     ip 10.84.1.50
     mac 3c:fd:fe:84:01:32
 }
 
-// INSTRUCTION: Define RSTP BPDU emitted on edge port with Forwarding + Learning + Designated flags (60).
 flow rstp_edge_port_bpdu(tor, srv) {
     tor -> srv stp rstp rootid "4096:00:1c:73:84:01:01" bridgeid "4096:00:1c:73:84:01:01" cost 2000 portid 32818 hellotime 2 maxage 20 forwarddelay 15 flags 60
 }
 
-// INSTRUCTION: Compile block executing RSTP edge port BPDU emission.
 compile {
     rstp_edge_port_bpdu(tor_edge_port, baremetal_srv_nic)
 }

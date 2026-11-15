@@ -1,19 +1,21 @@
-// PROMPT: WireGuard VPN Noise handshake initiation and response with sender and receiver indices on UDP 51820.
-// TOKENS: host, ip, mac, flow, wireguard, type, initiation, sender, response, receiver, compile
+// WireGuard VPN Noise handshake initiation and response with sender and
+// receiver indices on UDP 51820.
+// This capture models UDP port 51820 WireGuard handshake and transport
+// frames.
+// Wireshark: wg
 
-// INSTRUCTION: Define a roaming laptop VPN peer with IP 198.51.100.42.
 host wg_roaming_peer { ip 198.51.100.42 mac a4:83:e7:11:22:33 }
 
-// INSTRUCTION: Define a corporate WireGuard concentrator with IP 203.0.113.1.
 host wg_concentrator { ip 203.0.113.1 mac a4:83:e7:99:88:77 }
 
-// INSTRUCTION: Define a flow exchanging WireGuard Initiation and Response packets with sender and receiver index mapping.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow wireguard_tunnel_setup(initiator, responder) {
     initiator -> responder wireguard type initiation sender 287454020
     initiator <- responder wireguard type response sender 57005 receiver 287454020
 }
 
-// INSTRUCTION: Compile block to execute the WireGuard VPN handshake flow.
+// Run wireguard_tunnel_setup(wg_roaming_peer, wg_concentrator) to generate
+// the capture.
 compile {
     wireguard_tunnel_setup(wg_roaming_peer, wg_concentrator)
 }

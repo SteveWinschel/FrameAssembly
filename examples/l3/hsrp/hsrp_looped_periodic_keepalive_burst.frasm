@@ -1,18 +1,19 @@
-// PROMPT: Repetitive HSRP hello heartbeats generated via COMPILE LOOP to test holdtime tracking.
-// TOKENS: host, ip, flow, dst, hsrp, group, priority, state, vip, wait, ms, compile
+// Repetitive HSRP hello heartbeats repeated across multiple cycles in compile
+// to test holdtime tracking.
+// This capture carries group 99, HSRP state 16, executes 4 cycles in compile,
+// and uses post-packet wait gaps (50ms) between frames.
+// Wireshark: hsrp
 
-// INSTRUCTION: Define active cluster firewall node.
 host fw_active_node { ip 192.168.99.1 }
 
-// INSTRUCTION: Define HSRP multicast target.
 host fw_hsrp_group { ip 224.0.0.2 }
 
-// INSTRUCTION: Define periodic HSRP heartbeat flow with 50ms inter-packet pause.
+// Packet sequence (1 frame); wait pauses after a packet before the next.
 flow hsrp_burst_flow(fw, dst) {
     fw -> dst hsrp group 99 priority 120 state 16 vip 192.168.99.254 wait 50ms
 }
 
-// INSTRUCTION: Compile loop executing 4 consecutive HSRP hello transmissions.
+// Emit 4 sequential cycles of hsrp_burst_flow.
 compile {
     hsrp_burst_flow(fw_active_node, fw_hsrp_group) // cycle 1
     hsrp_burst_flow(fw_active_node, fw_hsrp_group) // cycle 2

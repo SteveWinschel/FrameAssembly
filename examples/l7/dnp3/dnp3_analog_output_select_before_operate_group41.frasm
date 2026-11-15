@@ -1,19 +1,21 @@
-// PROMPT: DNP3 two-step Select-Before-Operate (SELECT then OPERATE) on Analog Output Block (Group 41 Variation 1).
-// TOKENS: host, ip, mac, flow, m, dnp3, func, src, dst, group, variation, hexpayload, wait, ms, compile
+// DNP3 two-step Select-Before-Operate (SELECT then OPERATE) on Analog Output
+// Block (Group 41 Variation 1).
+// Wireshark: dnp3
 
-// INSTRUCTION: Define the AGC (Automatic Generation Control) dispatch master.
+// AGC (Automatic Generation Control) dispatch master.
 host agc_master {
     ip 10.125.60.1
     mac 00:1a:2b:7d:60:01
 }
 
-// INSTRUCTION: Define the battery energy storage system (BESS) plant controller outstation.
+// Battery energy storage system (BESS) plant controller outstation.
 host bess_rtu {
     ip 10.125.60.60
     mac 00:1a:2b:7d:60:60
 }
 
-// INSTRUCTION: Execute SELECT followed by OPERATE on Group 41 Variation 1 to command MW output setpoint.
+// SELECT followed by OPERATE on Group 41 Variation 1 to command MW output
+// setpoint. DNP3 data groups: Group 41 (Analog Output Block).
 flow dnp3_bess_sbo(m, b) {
     m -> b dnp3 func "select" src 1 dst 60 group 41 variation 1 hexpayload "0000c409000000"
     m <- b dnp3 func "response" src 60 dst 1 group 41 variation 1 hexpayload "0000c409000000" wait 2ms
@@ -21,7 +23,6 @@ flow dnp3_bess_sbo(m, b) {
     m <- b dnp3 func "response" src 60 dst 1 group 41 variation 1 hexpayload "0000c409000000"
 }
 
-// INSTRUCTION: Compile the DNP3 Analog Output Select-Before-Operate flow.
 compile {
     dnp3_bess_sbo(agc_master, bess_rtu)
 }

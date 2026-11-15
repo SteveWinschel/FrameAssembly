@@ -1,0 +1,11 @@
+// Minimal 2-block TLS starter sending a default ClientHello record on TCP port 443.
+// Builds valid TLS record and handshake length fields automatically with zero flow wrapper.
+// Compile to test port 443 inspection rules or TLS dissector pipelines.
+// Wireshark: tls
+
+host browser_client { ip 192.168.1.50  mac 00:1a:2b:43:00:32 }
+host web_server     { ip 93.184.216.34 mac 00:1a:2b:43:00:22 }
+
+compile {
+    browser_client -> web_server tls
+}

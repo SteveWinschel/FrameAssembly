@@ -1,25 +1,28 @@
-// PROMPT: Generate an mDNS reverse IPv4 address lookup for 50.1.168.192.in-addr.arpa.local returning a PTR hostname record.
-// TOKENS: host, ip, mac, flow, s, mdns, query, txid, qname, qtype, wait, ms, response, rdata, ansttl, compile
+// MDNS reverse IPv4 address lookup for 50.1.168.192.in-addr.arpa.local
+// returning a PTR hostname record.
+// Wireshark: mdns
 
-// INSTRUCTION: Define the network scanner resolving an IPv4 address to its .local hostname via mDNS PTR.
+// Network scanner resolving an IPv4 address to its .local hostname via mDNS
+// PTR.
 host net_scanner {
     ip 192.168.1.10
     mac 00:1b:63:01:00:10
 }
 
-// INSTRUCTION: Define the target NAS appliance answering for its own reverse PTR record.
+// Target NAS appliance answering for its own reverse PTR record.
 host nas_appliance {
     ip 192.168.1.50
     mac 00:11:32:01:00:50
 }
 
-// INSTRUCTION: Query 50.1.168.192.in-addr.arpa PTR and receive synology-nas.local in response.
+// Query 50.1.168.192.in-addr.arpa PTR and receive synology-nas.local in
+// response. DNS wire details: record types PTR; multicast 224.0.0.251 /
+// ff02::fb UDP 5353 (TTL 255).
 flow reverse_ptr_mdns(c, s) {
     c -> s mdns query txid 0 qname "50.1.168.192.in-addr.arpa" qtype "ptr" wait 3ms
     c <- s mdns response txid 0 qname "50.1.168.192.in-addr.arpa" qtype "ptr" rdata "synology-nas.local" ansttl 120
 }
 
-// INSTRUCTION: Compile the reverse PTR mDNS lookup into a PCAP file.
 compile {
     reverse_ptr_mdns(net_scanner, nas_appliance)
 }

@@ -1,24 +1,22 @@
-// PROMPT: sFlow v5 telemetry from a Metro Ethernet G.8032 ring node encapsulated in QinQ service provider tags.
-// TOKENS: host, ip, mac, flow, sflow, agentip, subagentid, uptime, samples, qinq, innervlan, compile
+// sFlow v5 telemetry from a Metro Ethernet G.8032 ring node encapsulated in
+// QinQ service provider tags.
+// Encapsulation and QoS markings: 802.1ad QinQ outer 400 / inner 50.
+// Wireshark: sflow && vlan
 
-// INSTRUCTION: Define Metro Ethernet ring aggregation switch.
 host metro_ring_sw {
     ip 172.18.50.1
     mac 00:15:17:12:32:01
 }
 
-// INSTRUCTION: Define carrier operations center sFlow collector.
 host carrier_col {
     ip 172.18.50.250
     mac 00:15:17:12:32:fa
 }
 
-// INSTRUCTION: Export sFlow datagram with outer S-VLAN 400 and inner C-VLAN 50.
 flow sflow_metro_ring(sw, col) {
     sw -> col sflow agentip 172.18.50.1 subagentid 7 uptime 25920000 samples 14 qinq 400 innervlan 50
 }
 
-// INSTRUCTION: Compile the Metro Ethernet QinQ sFlow telemetry scenario.
 compile {
     sflow_metro_ring(metro_ring_sw, carrier_col)
 }

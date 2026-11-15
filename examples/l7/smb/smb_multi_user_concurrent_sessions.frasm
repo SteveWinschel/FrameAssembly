@@ -1,28 +1,25 @@
-// PROMPT: Multi-client concurrent SMB2 session setups to clustered enterprise file cluster.
-// TOKENS: host, ip, flow, s, smb, command, sessionid, msgid, status, compile
+// Multi-client concurrent SMB2 session setups to clustered enterprise file
+// cluster.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Executes 2 sequential flow runs inside the compile block.
+// Wireshark: smb2
 
-// INSTRUCTION: Define workstation alpha in engineering department.
 host ws_alpha { ip 10.12.0.11 }
 
-// INSTRUCTION: Define workstation bravo in finance department.
 host ws_bravo { ip 10.12.0.12 }
 
-// INSTRUCTION: Define clustered NAS file server.
 host nas_cluster { ip 10.12.0.2 }
 
-// INSTRUCTION: Define SMB2 session setup flow for client alpha.
 flow smb_client_alpha(c, s) {
     c -> s smb command "negotiate" sessionid 0x1001 msgid 1
     c <- s smb command "negotiate" status 0 sessionid 0x1001 msgid 1
 }
 
-// INSTRUCTION: Define SMB2 session setup flow for client bravo.
 flow smb_client_bravo(c, s) {
     c -> s smb command "negotiate" sessionid 0x1002 msgid 1
     c <- s smb command "negotiate" status 0 sessionid 0x1002 msgid 1
 }
 
-// INSTRUCTION: Compile concurrent multi-client SMB session flows.
 compile {
     smb_client_alpha(ws_alpha, nas_cluster)
     smb_client_bravo(ws_bravo, nas_cluster)

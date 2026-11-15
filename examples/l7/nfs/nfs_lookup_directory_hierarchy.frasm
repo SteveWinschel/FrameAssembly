@@ -1,18 +1,17 @@
-// PROMPT: NFS RPC LOOKUP procedure navigating deep enterprise storage directory paths.
-// TOKENS: host, ip, flow, nfs, vers, proc, path, compile
+// NFS RPC LOOKUP procedure navigating deep enterprise storage directory
+// paths.
+// Wireshark: nfs
 
-// INSTRUCTION: Define file browser workstation.
+// File browser workstation.
 host workstation_user { ip 172.16.8.40 }
 
-// INSTRUCTION: Define departmental NFS file server.
 host nfs_dept_server { ip 172.16.8.1 }
 
-// INSTRUCTION: Define directory lookup request flow.
+// Directory lookup request flow.
 flow nfs_lookup_dir_flow(ws, srv) {
     ws -> srv nfs vers 4 proc "lookup" path "/shared/engineering/projects/firmware"
 }
 
-// INSTRUCTION: Compile NFS LOOKUP hierarchy scenario.
 compile {
     nfs_lookup_dir_flow(workstation_user, nfs_dept_server)
 }

@@ -1,25 +1,25 @@
-// PROMPT: Build an IPv6 OpenFlow spine-leaf fabric provisioning flow using IPv6 Flow Labels and distinct Datapath IDs
-// TOKENS: host, ip, mac, flow, openflow, featuresreq, version, xid, flowlabel, ttl, wait, ms, featuresreply, dpid, flowmod, tableid, priority, compile
+// Build an IPv6 OpenFlow spine-leaf fabric provisioning flow using IPv6 Flow
+// Labels and distinct Datapath IDs.
+// This capture targets IPv6 endpoints, sets TTL 64, IPv6 Flow Label, and uses
+// post-packet wait gaps (8ms, 10ms, 5ms) between frames.
+// Wireshark: (openflow_v4 || openflow_v1) && ipv6
 
-// INSTRUCTION: Define the IPv6 fabric SDN controller
 host v6_fabric_ctrl {
     ip 2001:db8:f00::1
     mac 00:0f:53:ec:0f:01
 }
 
-// INSTRUCTION: Define the IPv6 OpenFlow spine switch
 host v6_spine_sw {
     ip 2001:db8:f00::10
     mac 00:0f:53:ec:0f:10
 }
 
-// INSTRUCTION: Define the IPv6 OpenFlow leaf switch
 host v6_leaf_sw {
     ip 2001:db8:f00::20
     mac 00:0f:53:ec:0f:20
 }
 
-// INSTRUCTION: Discover spine and leaf DPIDs and program ECMP fabric rules with IPv6 Flow Labels
+// Packet sequence (6 frames); wait pauses after a packet before the next.
 flow openflow_v6_fabric_provision(ctrl, spine, leaf) {
     ctrl -> spine openflow featuresreq version 4 xid 1101 flowlabel 786432 ttl 64 wait 8ms
     spine -> ctrl openflow featuresreply version 4 xid 1101 dpid 100001 flowlabel 786432 ttl 64 wait 8ms
@@ -29,7 +29,8 @@ flow openflow_v6_fabric_provision(ctrl, spine, leaf) {
     ctrl -> leaf openflow flowmod version 4 xid 1104 tableid 0 priority 40000 flowlabel 786433 ttl 64
 }
 
-// INSTRUCTION: Compile the IPv6 spine-leaf OpenFlow fabric provisioning trace
+// Run openflow_v6_fabric_provision(v6_fabric_ctrl, v6_spine_sw, v6_leaf_sw)
+// to generate the capture.
 compile {
     openflow_v6_fabric_provision(v6_fabric_ctrl, v6_spine_sw, v6_leaf_sw)
 }

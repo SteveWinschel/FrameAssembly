@@ -2,15 +2,22 @@
 
 [← Main README](../README.md) • [Docs Index](README.md) • [Use-Case Cookbook](02_use_cases.md)
 
-[**PLC Polling vs. Writes**](#1-plc-read-polling-vs-blocked-register-writes-modbus-s7comm) • [**Substation SBO**](#2-substation-select-before-operate-without-hand-computed-crcs-dnp3) • [**BMS, CIP & IDMZ**](#3-building-automation-cip-cells-and-idmz-historians-bacnet-ethernetip-opcua)
+[**PLC Polling vs. Writes**](#1-plc-read-polling-vs-blocked-register-writes-modbus-s7comm) • [**Substation SBO**](#2-substation-select-before-operate-without-hand-computed-crcs-dnp3) •
+[**BMS, CIP & IDMZ**](#3-building-automation-cip-cells-and-idmz-historians-bacnet-ethernetip-opcua)
 
-Testing IT firewall rules is forgiving: fat-finger a rule and someone complains that Jira is slow. Testing OT/ICS firewall policies and NDR sensors on a live plant floor is a different sport. Fire a `writesingleregister` at a running line, or an S7 `plccontrol` stop at a running S7-1500, just to confirm your new conduit ACL works, and people in hardhats will walk over to your desk. Buying €20,000 worth of DIN-rail PLCs to test on instead usually gets vetoed by finance.
+Testing IT firewall rules is forgiving: fat-finger a rule and someone complains that Jira is slow. Testing OT/ICS firewall policies and NDR sensors on a live plant floor is a different
+sport. Fire a `writesingleregister` at a running line, or an S7 `plccontrol` stop at a running S7-1500, just to confirm your new conduit ACL works, and people in hardhats will walk over
+to your desk. Buying €20,000 worth of DIN-rail PLCs to test on instead usually gets vetoed by finance.
 
-FrameAssembly compiles **`modbus`**, **`dnp3`**, **`s7comm`**, **`bacnet`**, **`ethernetip`**, and **`opcua`** traffic into `.pcap` / `.pcapng` files, with automatic TCP `SEQ`/`ACK` tracking, IEEE 1815 DNP3 per-chunk CRCs, and 802.1Q `vlan` / `pcp` priority tags. Feed the output to **Suricata**, **Zeek**, **Wireshark** / **`tshark`**, **Claroty** / **Nozomi** / **Dragos** sensors, or **`tcpreplay`**. The factory keeps running, and nobody has to explain an unplanned shutdown to the plant manager.
+FrameAssembly compiles **`modbus`**, **`dnp3`**, **`s7comm`**, **`bacnet`**, **`ethernetip`**, and **`opcua`** traffic into `.pcap` / `.pcapng` files, with automatic TCP `SEQ`
+/`ACK` tracking, IEEE 1815 DNP3 per-chunk CRCs, and 802.1Q `vlan` / `pcp` priority tags. Feed the output to **Suricata**, **Zeek**, **Wireshark** / **`tshark`**, **Claroty** /
+**Nozomi** / **Dragos** sensors, or **`tcpreplay`**. The factory keeps running, and nobody has to explain an unplanned shutdown to the plant manager.
 
 ## 1. PLC Read Polling vs. Blocked Register Writes (`modbus`, `s7comm`)
 
-Most IEC 62443 zone conduits let an HMI or historian poll registers (`readholdingregisters`, S7 `readvar`) while blocking register writes (`writesingleregister`, `writevar`) and CPU run-state changes (`plccontrol`) from engineering or IT subnets. Industrial DPI firewalls also drop mid-stream packets that lack a valid three-way handshake, so the TCP sequence math is tracked for you.
+Most IEC 62443 zone conduits let an HMI or historian poll registers (`readholdingregisters`, S7 `readvar`) while blocking register writes (`writesingleregister`, `writevar`) and CPU
+run-state changes (`plccontrol`) from engineering or IT subnets. Industrial DPI firewalls also drop mid-stream packets that lack a valid three-way handshake, so the TCP sequence math is
+tracked for you.
 
 The Modbus baseline, followed by the write the firewall is supposed to refuse:
 
@@ -59,12 +66,16 @@ $ frameassembly plc_dpi.frasm plc_dpi.pcap && suricata -r plc_dpi.pcap -k none
 
 | Keyword | Port & override | Modifiers | Defaults & wire behavior |
 | :--- | :--- | :--- | :--- |
-| **`modbus`** (Modbus/TCP) | TCP `502`; `transport udp` for UDP `502` | `readcoils` \| `readdiscreteinputs` \| `readholdingregisters` \| `readinputregisters` \| `writesinglecoil` \| `writesingleregister` \| `writemultipleregisters` \| `func "<name>"`, `txid <u16>`, `protoid <u16>`, `unitid <u8>`, `addr <u16>`, `count <u16>`, `value <u16>`, `isresponse`, `transport udp` | 7-byte MBAP header plus function code `0x01..0x06` or `0x10`. Defaults to `readholdingregisters` (`0x03`), `txid 1`, `protoid 0`, `unitid 1`, `addr 0`, `count 1`, `value 0`. Add `isresponse` on `<-` PLC replies to switch from the 4-byte `[addr, count]` request layout to a byte-counted `[byte_count, register_values...]` response. |
-| **`s7comm`** (Siemens S7) | TCP `102` only (ISO-on-TCP, RFC 1006) | `setupcomm` \| `readvar` \| `writevar` \| `plccontrol` \| `func "<name>"`, `rosctr "<job\|ack\|ackdata\|userdata>"`, `pduref <u16>`, `area <u8\|"<db\|mk\|pe\|pa\|ct\|tm>">`, `dbnum <u16>`, `offset <u32>`, `count <u16>` | 4-byte TPKT v3, 3-byte COTP DT Data (`0x02f080`), then a `0x32` S7 header. Defaults to `rosctr "job"` (`0x01`), `setupcomm` (`0xF0`), `pduref 1`. On `"ack"` (`0x02`) and `"ackdata"` (`0x03`) the 10-byte S7 header grows to 12 bytes with `error_class` and `error_code`. On `readvar` / `writevar`, `area` takes symbolic names (`"db"` / `0x84` Data Blocks, `"mk"` / `"m"` `0x83` Merkers, `"pe"` / `"i"` `0x81` Inputs, `"pa"` / `"q"` `0x82` Outputs, `"ct"` / `"c"` `0x1C` Counters, `"tm"` / `"t"` `0x1D` Timers), and `offset << 3` is bit-shifted into the 10-byte `S7ANY` pointer for you. |
+| **`modbus`** | TCP/UDP `502` | `readcoils`, `readdiscreteinputs`, `readholdingregisters`, `readinputregisters`, `writesinglecoil`, `writesingleregister`, `writemultipleregisters` | 7B MBAP |
+| **`modbus`** *(fields)* | `func`, `transport udp` | `txid`, `protoid`, `unitid`, `addr`, `count`, `value`, `isresponse` | Default `readholdingregisters`; add `isresponse` on PLC replies |
+| **`s7comm`** | TCP `102` (ISO-on-TCP) | `setupcomm`, `readvar`, `writevar`, `plccontrol`, `func`, `rosctr "<job\|ack\|ackdata\|userdata>"`, `pduref <u16>` | TPKT v3 + COTP + `0x32` S7 hdr |
+| **`s7comm`** *(fields)* | `dbnum`, `offset`, `count` | `area`: `"db"` (`0x84`), `"mk"` (`0x83`), `"pe"` (`0x81`), `"pa"` (`0x82`), `"ct"` (`0x1C`), `"tm"` (`0x1D`) | `offset << 3` in `S7ANY` |
 
 ## 2. Substation Select-Before-Operate Without Hand-Computed CRCs (`dnp3`)
 
-Crafting IEEE 1815 `dnp3` frames in a hex editor is pure misery. DNP3 wants a reflected `0xA653` 16-bit CRC, little-endian, on the 10-byte Data Link header **and** after every 16 bytes of transport/application data. Get one bit wrong and Wireshark, or your substation firewall, quietly discards the frame and tells you nothing. FrameAssembly computes every header and chunk CRC, and still lets you pass `crc 0xdead` when you *want* to test malformed-frame drops.
+Crafting IEEE 1815 `dnp3` frames in a hex editor is pure misery. DNP3 wants a reflected `0xA653` 16-bit CRC, little-endian, on the 10-byte Data Link header **and** after every 16 bytes
+of transport/application data. Get one bit wrong and Wireshark, or your substation firewall, quietly discards the frame and tells you nothing. FrameAssembly computes every header and
+chunk CRC, and still lets you pass `crc 0xdead` when you *want* to test malformed-frame drops.
 
 A class poll, then a breaker control sequence (Select-Before-Operate on a CROB, Group 12 Variation 1):
 
@@ -106,11 +117,13 @@ $ frameassembly substation.frasm substation.pcap && tshark -r substation.pcap -Y
 
 | Keyword | Port & override | Modifiers | Defaults & wire behavior |
 | :--- | :--- | :--- | :--- |
-| **`dnp3`** (IEEE 1815) | TCP `20000`; `transport udp` for UDP `20000` | `confirm` \| `read` \| `write` \| `select` \| `operate` \| `directoperate` \| `unsolicitedresponse` \| `func "<response\|...>"`, `src <u16>`, `dst <u16>`, `group <u8>`, `variation <u8>`, `crc <u16>`, `transport udp` | 10-byte `0x0564` Data Link header, `0xC0` transport byte, application header, and `0xA653` CRC-16 after every 16-byte chunk. Defaults to `read` (function `1`), little-endian Data Link `src 100` and `dst 1`, and object `group 60` / `variation 1` (qualifier `0x06`) when group or variation is given. Outstation responses (function `129`) are written `func "response"`. Omit `crc` for valid frames, or set `crc <u16>` to corrupt the Data Link header CRC on purpose. |
+| **`dnp3`** | TCP `20000`; `transport udp` | `confirm`, `read`, `write`, `select`, `operate`, `directoperate`, `unsolicitedresponse`, `func "<response\|...>"` | 10B `0x0564` hdr + `0xA653` CRC-16 |
+| **`dnp3`** *(fields)* | `src <u16>`, `dst <u16>` | `group <u8>`, `variation <u8>`, `crc <u16>`, `transport udp` | Default `read`, `src 100`, `dst 1`; set `crc` to corrupt CRC |
 
 ## 3. Building Automation, CIP Cells, and IDMZ Historians (`bacnet`, `ethernetip`, `opcua`)
 
-Modern facilities mix UDP-broadcast building controls (`bacnet`), Rockwell/ODVA CIP explicit messaging (`ethernetip`), and cross-zone historian conduits (`opcua`). Each gets its own small capture, so a failing VLAN or IDMZ rule points at exactly one protocol.
+Modern facilities mix UDP-broadcast building controls (`bacnet`), Rockwell/ODVA CIP explicit messaging (`ethernetip`), and cross-zone historian conduits (`opcua`). Each gets its own
+small capture, so a failing VLAN or IDMZ rule points at exactly one protocol.
 
 BACnet discovery, a property read, and a setpoint write against the HVAC controller. No TCP flags here: `bacnet` is UDP all the way down.
 
@@ -173,6 +186,7 @@ $ frameassembly reverse ot_conduit.pcap ot_conduit_reversed.frasm
 
 | Keyword | Port & override | Modifiers | Defaults & wire behavior |
 | :--- | :--- | :--- | :--- |
-| **`bacnet`** (BACnet/IP) | UDP `47808` (`0xBAC0`) | `whois` \| `iam` \| `readproperty` \| `writeproperty`, `invokeid <u8>`, `objecttype <u16>`, `objectinstance <u32>`, `propertyid <u32>`, `value <u32>` | 4-byte BVLC (`0x81`), 2-byte NPDU, packed 32-bit ObjectIdentifier APDU. Defaults to `whois` with BVLC function `0x0B` (Original-Broadcast-NPDU). `iam`, `readproperty` (`0x0C`), and `writeproperty` (`0x0F`) switch BVLC to `0x0A` (Original-Unicast-NPDU). `objecttype` defaults to `8` (Device; `0` Analog Input, `1` Analog Output, `2` Analog Value), `objectinstance` to `1234`, `propertyid` to `85` (Present_Value). Do not attach TCP flags to `bacnet` statements. |
-| **`ethernetip`** (ODVA EtherNet/IP) | TCP `44818`; `transport udp` (combine with `dstport 2222` for implicit I/O) | `nop` \| `listidentity` \| `listservices` \| `listinterfaces` \| `registersession` \| `unregistersession` \| `sendrrdata` \| `sendunitdata` \| `cmd "<nop\|...>"`, `sessionhandle <u32>`, `status <u32>`, `context <u64>`, `cipservice <u8>`, `cipclass <u16>`, `cipinstance <u16>`, `cipattr <u16>`, `transport udp` | 24-byte little-endian Encapsulation Header, CPF items (`0x0000`, `0x00B2`), CIP EPATH segments. Defaults to `listidentity` (`0x0063`). Any of `cipservice` (default `0x0E`, Get_Attribute_Single), `cipclass` (default `1`, Identity Object), `cipinstance` (default `1`), or `cipattr` upgrades it to `sendrrdata` (`0x006F`) with CPF Unconnected Data (`0x00B2`). |
-| **`opcua`** (OPC UA Binary) | TCP `4840` only (UACP) | `msgtype "<hel\|ack\|opn\|clo\|msg\|err>"`, `chunktype "<f\|c\|a>"`, `securechannelid <u32>`, `tokenid <u32>`, `seqnum <u32>`, `reqid <u32>`, `endpointurl "<url>"`, `nodeid "<id>"` | 8-byte little-endian UACP header (`HEL` / `ACK` / `OPN` / `CLO` / `MSG` / `ERR`). Defaults to `msgtype "hel"` (or `"msg"` when `nodeid` is given without `endpointurl`) and `chunktype "f"` (Final). `"hel"` and `"ack"` fill the 64 KB receive/send buffer negotiation fields. `"opn"`, `"clo"`, `"msg"`, and `"err"` encode little-endian `securechannelid`, `tokenid`, `seqnum`, `reqid`, and a namespace-0 String `NodeId`. |
+| **`bacnet`** | UDP `47808` (`0xBAC0`) | `whois`, `iam`, `readproperty`, `writeproperty`, `invokeid`, `objecttype`, `objectinstance`, `propertyid`, `value` | BVLC `0x81` (`0x0B`/`0x0A`) |
+| **`ethernetip`** | TCP/UDP `44818` | `nop`, `listidentity`, `listservices`, `listinterfaces`, `registersession`, `unregistersession`, `sendrrdata`, `sendunitdata`, `cmd` | 24B Encap hdr |
+| **`ethernetip`** *(CIP)* | `dstport 2222` (I/O) | `sessionhandle`, `status`, `context`, `cipservice`, `cipclass`, `cipinstance`, `cipattr`, `transport udp` | CIP EPATH (`0x00B2`) |
+| **`opcua`** | TCP `4840` (UACP) | `msgtype "<hel\|ack\|opn\|clo\|msg\|err>"`, `chunktype "<f\|c\|a>"`, `securechannelid`, `tokenid`, `seqnum`, `reqid`, `endpointurl`, `nodeid` | 8B LE UACP hdr |

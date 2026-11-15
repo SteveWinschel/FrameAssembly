@@ -1,25 +1,27 @@
-// PROMPT: BGP EVPN Symmetric IRB inter-subnet routing using RFC 8926 GENEVE with a dedicated L3VNI (VNI 50000).
-// TOKENS: host, ip, mac, flow, geneve, vni, optclass, opttype, protocoltype, srcport, dstport, df, dscp, ttl, payload, wait, ms, compile
+// BGP EVPN Symmetric IRB inter-subnet routing using RFC 8926 GENEVE with a
+// dedicated L3VNI (VNI 50000).
+// This capture sets DSCP 26, TTL 62, DF bit set, carries VNI 50000,
+// destination port 6081, and uses post-packet wait gaps (4ms) between frames.
+// Wireshark: geneve && geneve.vni == 50000
 
-// INSTRUCTION: Define EVPN VTEP/NVE Leaf-A routing from Tenant VLAN 10 to Tenant VLAN 20 via L3VNI 50000.
 host irb_nve_leaf_a {
     ip 10.250.60.11
     mac 00:1c:73:fa:3c:0b
 }
 
-// INSTRUCTION: Define EVPN VTEP/NVE Leaf-B decapsulating L3VNI 50000 and routing to destination host.
 host irb_nve_leaf_b {
     ip 10.250.60.22
     mac 00:1c:73:fa:3c:16
 }
 
-// INSTRUCTION: Define GENEVE Symmetric IRB exchange over L3VNI 50000 with Router MAC rewrite.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow geneve_evpn_symmetric_irb(leaf_a, leaf_b) {
     leaf_a -> leaf_b geneve vni 50000 optclass 258 opttype 1 protocoltype 25944 srcport 50011 dstport 6081 df dscp 26 ttl 62 payload "EVPN_TYPE5_L3VNI_50000_SUBNET_A_TO_B" wait 4ms
     leaf_a <- leaf_b geneve vni 50000 optclass 258 opttype 1 protocoltype 25944 srcport 50022 dstport 6081 df dscp 26 ttl 62 payload "EVPN_TYPE5_L3VNI_50000_SUBNET_B_TO_A"
 }
 
-// INSTRUCTION: Compile the EVPN Symmetric IRB L3VNI GENEVE routing flow.
+// Run geneve_evpn_symmetric_irb(irb_nve_leaf_a, irb_nve_leaf_b) to generate
+// the capture.
 compile {
     geneve_evpn_symmetric_irb(irb_nve_leaf_a, irb_nve_leaf_b)
 }

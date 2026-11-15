@@ -1,19 +1,17 @@
-// PROMPT: OPC UA Binary protocol HEL message negotiating buffer limits and ACK response.
-// TOKENS: host, ip, flow, s, opcua, msgtype, chunktype, endpointurl, compile
+// OPC UA Binary protocol HEL message negotiating buffer limits and ACK
+// response.
+// Wireshark: opcua
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
+// OPC UA message sequence: HEL -> ACK on TCP port 4840.
 flow opcua_hel(c, s) {
     c -> s opcua msgtype "hel" chunktype "f" endpointurl "opc.tcp://192.168.1.1:4840"
     c <- s opcua msgtype "ack" chunktype "f"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     opcua_hel(client, server)
 }

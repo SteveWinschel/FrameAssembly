@@ -1,24 +1,19 @@
-// PROMPT: Generate a minimal default mDNS frame with default protocol parameters between a workstation and multicast responder.
-// TOKENS: host, ip, mac, flow, m, mdns, compile
+// Multicast DNS (mDNS) starter query on UDP port 5353 using built-in
+// defaults. Omitting extra keywords emits a multicast A query for example.com
+// to 224.0.0.251.
+// Wireshark: mdns
 
-// INSTRUCTION: Define the local LAN workstation sending an mDNS packet.
 host lan_host {
     ip 192.168.1.40
     mac 00:1a:2b:01:00:40
 }
 
-// INSTRUCTION: Define the IPv4 mDNS link-local multicast group endpoint 224.0.0.251.
 host mdns_multicast {
     ip 224.0.0.251
     mac 01:00:5e:00:00:fb
 }
 
-// INSTRUCTION: Emit a default mDNS protocol frame using built-in defaults.
-flow default_mdns_flow(c, m) {
-    c -> m mdns
-}
-
-// INSTRUCTION: Compile the default mDNS packet into a PCAP file.
+// Send the frame directly in compile without needing a reusable flow block.
 compile {
-    default_mdns_flow(lan_host, mdns_multicast)
+    lan_host -> mdns_multicast mdns
 }

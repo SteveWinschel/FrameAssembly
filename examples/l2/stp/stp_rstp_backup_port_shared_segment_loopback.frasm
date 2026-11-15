@@ -1,25 +1,23 @@
-// PROMPT: RSTP switch detecting a shared media loopback between two local ports and placing the higher PORT_ID into Backup role.
-// TOKENS: host, ip, mac, flow, stp, rstp, rootid, bridgeid, cost, portid, maxage, hellotime, forwarddelay, flags, wait, ms, compile
+// RSTP switch detecting a shared media loopback between two local ports and
+// placing the higher portid into Backup role.
+// Wire profile: 2 frames; 2 IPv4 hosts; STP; waits 5ms.
+// Wireshark: stp.version == 2
 
-// INSTRUCTION: Define switch port 5 (PORT_ID 32773) elected as Designated Port on shared segment.
 host sw_local_port5 {
     ip 10.5.5.5
     mac 00:1c:73:05:05:05
 }
 
-// INSTRUCTION: Define switch port 6 (PORT_ID 32774) placed into RSTP Backup Port role on the same bridge.
 host sw_local_port6 {
     ip 10.5.5.6
     mac 00:1c:73:05:05:06
 }
 
-// INSTRUCTION: Compare identical BRIDGE_ID BPDUs where port 32773 wins over port 32774.
 flow stp_rstp_backup_port(p5, p6) {
     p5 -> p6 stp rstp rootid "32768:00:1c:73:05:05:00" bridgeid "32768:00:1c:73:05:05:00" cost 2000 portid 32773 maxage 20 hellotime 2 forwarddelay 15 flags 60 wait 5ms
     p6 -> p5 stp rstp rootid "32768:00:1c:73:05:05:00" bridgeid "32768:00:1c:73:05:05:00" cost 2000 portid 32774 maxage 20 hellotime 2 forwarddelay 15 flags 4
 }
 
-// INSTRUCTION: Compile the RSTP Backup Port shared-segment tiebreaker trace.
 compile {
     stp_rstp_backup_port(sw_local_port5, sw_local_port6)
 }

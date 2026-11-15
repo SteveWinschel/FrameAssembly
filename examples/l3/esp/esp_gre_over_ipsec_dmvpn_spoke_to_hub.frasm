@@ -1,25 +1,27 @@
-// PROMPT: Cisco DMVPN / mGRE over IPsec ESP (Next Header 47 GRE) spoke-to-hub encrypted routing exchange.
-// TOKENS: host, ip, mac, flow, esp, spi, seq, iv, icv, nextheader, df, dscp, ttl, payload, wait, ms, compile
+// Cisco DMVPN / mGRE over IPsec ESP (Next Header 47 GRE) spoke-to-hub
+// encrypted routing exchange.
+// This capture sets DSCP 48, TTL 60, DF bit set, carries SPI 475001/475002,
+// and uses post-packet wait gaps (5ms) between frames.
+// Wireshark: esp
 
-// INSTRUCTION: Define DMVPN Spoke router encapsulating mGRE inside IPsec ESP transport mode.
 host dmvpn_spoke_12 {
     ip 198.51.100.112
     mac 00:1d:71:50:00:70
 }
 
-// INSTRUCTION: Define DMVPN Hub NHS router terminating ESP (Next Header 47 GRE).
 host dmvpn_hub_nhs {
     ip 198.51.100.1
     mac 00:1d:71:50:00:01
 }
 
-// INSTRUCTION: Define GRE-over-ESP packets with NEXT_HEADER 47 and explicit IV/ICV digests.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow esp_gre_dmvpn_flow(spoke, hub) {
     spoke -> hub esp spi 475001 seq 12 iv "4700000147000002" icv "deadc0dedeadc0de12345678" nextheader 47 df dscp 48 ttl 60 payload "ENCRYPTED_MGRE_NHRP_REGISTRATION" wait 5ms
     spoke <- hub esp spi 475002 seq 12 iv "4700000247000001" icv "87654321ed0cdaeded0cdaed" nextheader 47 df dscp 48 ttl 60 payload "ENCRYPTED_MGRE_NHRP_REG_REPLY"
 }
 
-// INSTRUCTION: Compile the GRE-over-IPsec ESP DMVPN spoke-to-hub flow.
+// Run esp_gre_dmvpn_flow(dmvpn_spoke_12, dmvpn_hub_nhs) to generate the
+// capture.
 compile {
     esp_gre_dmvpn_flow(dmvpn_spoke_12, dmvpn_hub_nhs)
 }

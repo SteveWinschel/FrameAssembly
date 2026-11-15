@@ -1,0 +1,39 @@
+// Carrier Ethernet 802.1ad QinQ trunk carrying dual-stack customer VLANs inside S-VLAN 2500.
+// Emits 4 frames across IPv4 HTTPS (C-VLAN 100, PCP 4, DSCP 34) and IPv6 DNS
+// (C-VLAN 200, PCP 6, DSCP 48) with 2ms post-packet spacing to verify PE Q-in-Q mapping.
+// Wireshark: eth.type == 0x88a8 || vlan.id == 100 || vlan.id == 200
+
+host pe_west_v4 {
+    ip 10.100.10.1
+    mac 00:1c:73:25:00:01
+}
+
+host pe_east_v4 {
+    ip 10.100.10.2
+    mac 00:1c:73:25:00:02
+}
+
+host pe_west_v6 {
+    ip 2001:db8:2500:10::1
+    mac 00:1c:73:25:00:11
+}
+
+host pe_east_v6 {
+    ip 2001:db8:2500:10::2
+    mac 00:1c:73:25:00:12
+}
+
+flow carrier_qinq_handoff(west, east) {
+    west -> east qinq 2500 innervlan 100 pcp 4 dscp 34 tcp syn srcport 51443 dstport 443 wait 2ms
+    west <- east qinq 2500 innervlan 100 pcp 4 dscp 34 tcp syn ack wait 2ms
+}
+
+flow carrier_qinq_dns(west, east) {
+    west -> east qinq 2500 innervlan 200 pcp 6 dscp 48 dns qname "peering.carrier.net" qtype "AAAA" wait 2ms
+    west <- east qinq 2500 innervlan 200 pcp 6 dscp 48 dns qname "peering.carrier.net" qtype "AAAA" rcode 0 isresponse rdata "2001:db8:2500:10::2"
+}
+
+compile {
+    carrier_qinq_handoff(pe_west_v4, pe_east_v4)
+    carrier_qinq_dns(pe_west_v6, pe_east_v6)
+}

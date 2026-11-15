@@ -21,9 +21,14 @@ impl<'a> FrameBuilder<'a> {
     pub(crate) fn apply_l7_field(&mut self, f: &ParsedField<'a>) {
         match f {
             ParsedField::L7StringField(key, val, span) => {
-                self.record_mod(key, *span);
+                let mod_key = if *key == "EIP_NOP" { "CMD" } else { *key };
+                self.record_mod(mod_key, *span);
                 self.stmt_end_offset = self.stmt_end_offset.max(span.0 + span.1);
                 match *key {
+                    "EIP_NOP" => {
+                        self.ethernetip_spec.cmd = Some(*val);
+                        self.raw_nop_span = Some(*span);
+                    }
                     "QNAME" => self.dns_spec.qname = Some(*val),
                     "QTYPE" => self.dns_spec.qtype = Some(*val),
                     "RDATA" => self.dns_spec.rdata = Some(*val),
@@ -261,6 +266,27 @@ impl<'a> FrameBuilder<'a> {
                 self.record_mod(key, *span);
                 self.stmt_end_offset = self.stmt_end_offset.max(span.0 + span.1);
                 match *key {
+                    "TACACS_SEQ" => self.check_bound("tacacs seq", *val as u64, 0, 255, *span),
+                    "FACILITY" => self.check_bound("Syslog facility", *val as u64, 0, 23, *span),
+                    "SEVERITY" => self.check_bound("Syslog severity", *val as u64, 0, 7, *span),
+                    "ICMP_TYPE" | "DOMAIN" | "RCODE" | "LI" | "VN" | "MODE" | "STRATUM"
+                    | "POLL" | "PRI" | "PROTO" | "MSG_CODE" | "WILL" | "WONT" | "DO" | "DONT"
+                    | "OPTION" | "FIN_BIT" | "PT" | "MARKER" | "OPCODE" | "QOS" | "RETURN_CODE"
+                    | "MX" | "UNITID" | "INVOKE_ID" | "GROUP" | "VARIATION" | "AREA"
+                    | "CIP_SERVICE" => self.check_bound(key, *val as u64, 0, 255, *span),
+                    "SEQ_ID" | "BLOCK" | "ERRCODE" | "RECORD_VERSION" | "HANDSHAKE_VERSION"
+                    | "CIPHERSUITE" | "PKT_ID" | "KEEPALIVE" | "CONTENT_FORMAT" | "CHANNEL"
+                    | "PROTO_ID" | "ADDR" | "COUNT" | "OBJECT_TYPE" | "SRC" | "DST" | "CRC"
+                    | "PDU_REF" | "DB_NUM" | "CIP_CLASS" | "CIP_INSTANCE" | "CIP_ATTR" => {
+                        self.check_bound(key, *val as u64, 0, 65535, *span);
+                    }
+                    "TXID" | "CODE" | "MSGID" | "STATUS" | "FLAGS" | "VALUE" => {
+                        self.deferred_u32_fields.push((*key, *val, *span));
+                    }
+                    _ => {}
+                }
+                match *key {
+                    "TACACS_SEQ" => self.tacacs_spec.seq = Some(*val as u8),
                     "TXID" => {
                         self.dns_spec.txid = Some(*val as u16);
                         self.modbus_spec.txid = Some(*val as u16);
@@ -367,7 +393,10 @@ impl<'a> FrameBuilder<'a> {
                     "PROTO_ID" => self.modbus_spec.proto_id = Some(*val as u16),
                     "UNITID" => self.modbus_spec.unitid = Some(*val as u8),
                     "ADDR" => self.modbus_spec.addr = Some(*val as u16),
-                    "COUNT" => self.modbus_spec.count = Some(*val as u16),
+                    "COUNT" => {
+                        self.modbus_spec.count = Some(*val as u16);
+                        self.s7comm_spec.count = Some(*val as u16);
+                    }
                     "VALUE" => {
                         self.modbus_spec.value = Some(*val as u16);
                         self.bacnet_spec.value = Some(*val);

@@ -1,26 +1,25 @@
-// PROMPT: Polymorphic dual-stack IPv4 and IPv6 IETF RSerPool ENRP/ASAP high-availability server pool registration over SCTP.
-// TOKENS: host, ip, flow, ttl, dscp, flowlabel, sctp, chunk, data, vtag, stream, ssn, ppid, srcport, dstport, payload, sack, wait, ms, compile
+// Shared dual-stack IPv4 and IPv6 IETF RSerPool ENRP/ASAP high-availability
+// server pool registration over SCTP.
+// Wire profile: 6 frames; 4 dual-stack IPv4/IPv6 hosts; SCTP; SCTP DATA/SACK;
+// PPID 11; dstport 3863; DSCP 32; waits 1ms.
+// Wireshark: sctp && sctp.data_ppid == 11
 
-// INSTRUCTION: Define IPv4 Pool Element server registering with Pool Registrar.
 host pool_elem_v4 { ip 10.89.1.10 }
 
-// INSTRUCTION: Define IPv4 Pool Registrar server.
 host pool_reg_v4 { ip 10.89.1.1 }
 
-// INSTRUCTION: Define IPv6 Pool Element server registering with Pool Registrar.
 host pool_elem_v6 { ip 2001:db8:89:1::10 }
 
-// INSTRUCTION: Define IPv6 Pool Registrar server.
 host pool_reg_v6 { ip 2001:db8:89:1::1 }
 
-// INSTRUCTION: Define polymorphic RSerPool ASAP Registration (PPID 11, Port 3863) over SCTP.
 flow rserpool_asap_sctp(pe, pr) {
     pe -> pr ttl 64 dscp 32 flowlabel 0x89001 sctp chunk data vtag 386300 stream 0 ssn 0 ppid 11 srcport 3863 dstport 3863 payload "asap_registration_pool_handle_db_ha"
+        wait 1ms
     pe <- pr ttl 64 dscp 32 flowlabel 0x89002 sctp chunk sack vtag 386300 srcport 3863 dstport 3863 wait 1ms
-    pe <- pr ttl 64 dscp 32 flowlabel 0x89002 sctp chunk data vtag 386300 stream 0 ssn 0 ppid 11 srcport 3863 dstport 3863 payload "asap_registration_response_accepted" wait 1ms
+    pe <- pr ttl 64 dscp 32 flowlabel 0x89002 sctp chunk data vtag 386300 stream 0 ssn 0 ppid 11 srcport 3863 dstport 3863 payload "asap_registration_response_accepted"
+        wait 1ms
 }
 
-// INSTRUCTION: Compile block executing polymorphic dual-stack SCTP RSerPool registration.
 compile {
     rserpool_asap_sctp(pool_elem_v4, pool_reg_v4)
     rserpool_asap_sctp(pool_elem_v6, pool_reg_v6)

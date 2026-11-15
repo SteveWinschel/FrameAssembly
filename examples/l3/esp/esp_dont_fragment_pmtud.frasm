@@ -1,19 +1,20 @@
-// PROMPT: IPv4 ESP tunnel packets enforcing Don't Fragment (DF) for Path MTU Discovery.
-// TOKENS: host, ip, flow, esp, spi, seq, ipid, df, payload, compile
+// IPv4 ESP tunnel packets enforcing Don't Fragment (DF) for Path MTU
+// Discovery.
+// This capture sets DF bit set and carries SPI 12300.
+// Wireshark: esp
 
-// INSTRUCTION: Define IPsec tunnel ingress gateway.
 host esp_mtu_ingress { ip 10.14.0.1 }
 
-// INSTRUCTION: Define IPsec tunnel egress gateway.
 host esp_mtu_egress { ip 10.14.0.2 }
 
-// INSTRUCTION: Define DF-marked ESP packets with explicit IPv4 Identification values.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow esp_pmtud_df_flow(ing, egr) {
     ing -> egr esp spi 12300 seq 1 ipid 4001 df payload "ESP_MTU_PROBE_BLOCK_A"
     ing -> egr esp spi 12300 seq 2 ipid 4002 df payload "ESP_MTU_PROBE_BLOCK_B"
 }
 
-// INSTRUCTION: Compile the DF-asserted ESP Path MTU Discovery flow.
+// Run esp_pmtud_df_flow(esp_mtu_ingress, esp_mtu_egress) to generate the
+// capture.
 compile {
     esp_pmtud_df_flow(esp_mtu_ingress, esp_mtu_egress)
 }

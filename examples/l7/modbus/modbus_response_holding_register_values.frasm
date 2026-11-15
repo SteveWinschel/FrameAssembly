@@ -1,18 +1,17 @@
-// PROMPT: Modbus TCP response frame returning holding register integer values to SCADA master.
-// TOKENS: host, ip, flow, modbus, isresponse, txid, protoid, unitid, count, value, compile
+// Modbus TCP response frame returning holding register integer values to
+// SCADA master.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define SCADA master client.
 host scada_client { ip 10.50.1.10 }
 
-// INSTRUCTION: Define responding field RTU node.
+// Responding field RTU node.
 host field_rtu_node { ip 10.50.1.25 }
 
-// INSTRUCTION: Define Modbus response packet flow.
+// Modbus response packet flow.
 flow modbus_response_flow(mst, rtu) {
     mst <- rtu modbus isresponse txid 101 protoid 0 unitid 1 count 2 value 1234
 }
 
-// INSTRUCTION: Compile Modbus register response scenario.
 compile {
     modbus_response_flow(scada_client, field_rtu_node)
 }

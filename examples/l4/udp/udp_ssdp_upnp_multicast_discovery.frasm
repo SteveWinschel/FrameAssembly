@@ -1,22 +1,19 @@
-// PROMPT: Simulate UPnP Simple Service Discovery Protocol (SSDP) M-SEARCH multicast discovery on UDP port 1900 and unicast device response.
-// TOKENS: host, ip, mac, flow, udp, srcport, dstport, payload, wait, ms, compile
+// Simulate UPnP Simple Service Discovery Protocol (SSDP) M-SEARCH multicast
+// discovery on UDP port 1900 and unicast device response.
+// Wire profile: 2 frames; 3 IPv4 hosts; UDP; dstport 1900,51900; waits 10ms.
+// Wireshark: udp.port == 1900 || udp.port == 51900
 
-// INSTRUCTION: Define a smart home controller host with IP 192.168.1.20.
 host smart_controller { ip 192.168.1.20 mac dc:a6:32:00:01:20 }
 
-// INSTRUCTION: Define the SSDP IPv4 multicast group endpoint 239.255.255.250 with Ethernet multicast MAC 01:00:5e:7f:ff:fa.
 host ssdp_multicast { ip 239.255.255.250 mac 01:00:5e:7f:ff:fa }
 
-// INSTRUCTION: Define a UPnP smart TV responder with IP 192.168.1.85.
 host smart_tv_device { ip 192.168.1.85 mac dc:a6:32:00:01:85 }
 
-// INSTRUCTION: Define a 3-host flow sending an SSDP multicast M-SEARCH and receiving a unicast HTTP/1.1 200 OK UDP response.
 flow ssdp_discovery(controller, mcast, device) {
     controller -> mcast udp srcport 51900 dstport 1900 payload "M-SEARCH * HTTP/1.1 ST:ssdp:all" wait 10ms
-    controller <- device udp srcport 1900 dstport 51900 payload "HTTP/1.1 200 OK LOCATION:http://192.168.1.85/desc.xml" wait 10ms
+    controller <- device udp srcport 1900 dstport 51900 payload "HTTP/1.1 200 OK LOCATION:http://192.168.1.85/desc.xml"
 }
 
-// INSTRUCTION: Compile block to run the SSDP discovery flow.
 compile {
     ssdp_discovery(smart_controller, ssdp_multicast, smart_tv_device)
 }

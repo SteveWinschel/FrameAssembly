@@ -1,19 +1,21 @@
-// PROMPT: RFC 2890 full-featured GRE header combining Checksum, Key, Sequence, and Protocol Type overrides.
-// TOKENS: host, ip, flow, gre, grekey, greseq, greproto, checksum, payload, compile
+// RFC 2890 full-featured GRE header combining Checksum, Key, Sequence, and
+// Protocol Type overrides.
+// This capture encapsulates passenger traffic inside IP protocol 47 GRE
+// headers.
+// Wireshark: gre
 
-// INSTRUCTION: Define enterprise core router A.
 host gre_full_rtr_a { ip 172.16.47.10 }
 
-// INSTRUCTION: Define enterprise core router B.
 host gre_full_rtr_b { ip 172.16.47.20 }
 
-// INSTRUCTION: Define bidirectional GRE exchange enabling all RFC 2890 optional header words.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow gre_rfc2890_full(a, b) {
     a -> b gre grekey 305419896 greseq 100 greproto 0x86DD checksum payload "IPV6_OVER_IPV4_GRE_PKT_1"
     a <- b gre grekey 305419896 greseq 101 greproto 0x86DD checksum payload "IPV6_OVER_IPV4_GRE_PKT_2"
 }
 
-// INSTRUCTION: Compile the full RFC 2890 GRE header flow.
+// Run gre_rfc2890_full(gre_full_rtr_a, gre_full_rtr_b) to generate the
+// capture.
 compile {
     gre_rfc2890_full(gre_full_rtr_a, gre_full_rtr_b)
 }

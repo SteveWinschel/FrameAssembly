@@ -12,7 +12,9 @@ use alloc::vec::Vec;
 use core::fmt::Write as _;
 
 use crate::ast::Protocol;
-use crate::reverse::{ProtocolDissection, be_u16, escape_fasm_string, push_if, sd};
+use crate::reverse::{
+    ProtocolDissection, be_u16, escape_fasm_string, is_valid_raw_string_body, push_if, sd,
+};
 
 /// Decompiles an IEEE 802.1X `eapol` frame (`0x888E`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_eapol(b: &[u8]) -> ProtocolDissection {
@@ -36,11 +38,7 @@ pub(crate) fn dissect_eapol(b: &[u8]) -> ProtocolDissection {
             if eap_method == 1
                 && let Ok(id_str) = core::str::from_utf8(&body[5..])
             {
-                let esc = if !id_str.contains('"')
-                    && !id_str.ends_with('\\')
-                    && !id_str.contains('\n')
-                    && !id_str.contains('\r')
-                {
+                let esc = if is_valid_raw_string_body(id_str) {
                     id_str.to_string()
                 } else {
                     escape_fasm_string(id_str)

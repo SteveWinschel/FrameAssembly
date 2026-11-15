@@ -1,20 +1,19 @@
-// PROMPT: IPsec AH authentication session advancing sequence numbers between hosts.
-// TOKENS: host, ip, flow, s, ah, spi, seq, compile
+// IPsec AH authentication session advancing sequence numbers between hosts.
+// This capture carries SPI 12000.
+// Wireshark: ah
 
-// INSTRUCTION: Define client node communicating with authenticated header.
 host ah_client { ip 10.0.5.10 }
 
-// INSTRUCTION: Define server node verifying integrity.
 host ah_server { ip 10.0.5.20 }
 
-// INSTRUCTION: Define bidirectional AH session flow with SPI 12000.
+// Packet sequence (3 frames) with default 10ms post-packet spacing.
 flow ah_session_flow(c, s) {
     c -> s ah spi 12000 seq 1
     c <- s ah spi 12000 seq 1
     c -> s ah spi 12000 seq 2
 }
 
-// INSTRUCTION: Compile block executing AH authenticated exchange.
+// Run ah_session_flow(ah_client, ah_server) to generate the capture.
 compile {
     ah_session_flow(ah_client, ah_server)
 }

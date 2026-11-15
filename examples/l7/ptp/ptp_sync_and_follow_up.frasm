@@ -1,19 +1,18 @@
-// PROMPT: IEEE 1588 Precision Time Protocol master clock Sync and Follow_Up messages.
-// TOKENS: host, ip, flow, s, ptp, sync, seqid, domain, followup, compile
+// IEEE 1588 Precision Time Protocol master clock Sync and Follow_Up messages.
+// IEEE 1588v2 PTP (messages: sync, followup; domain 0). UDP 319 handles Event
+// messages (sync, delayreq) and UDP 320 carries General messages (announce,
+// followup, delayresp).
+// Wireshark: ptp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.0.0.2 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow ptp_master(c, s) {
     c <- s ptp sync seqid 100 domain 0
     c <- s ptp followup seqid 100 domain 0
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ptp_master(client, server)
 }

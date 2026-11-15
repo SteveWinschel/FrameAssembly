@@ -1,32 +1,31 @@
-// PROMPT: Multi-Chassis Link Aggregation (MLAG / vPC) LACP negotiation using shared virtual system MAC across dual leaf switches.
-// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, compile
+// Multi-Chassis Link Aggregation (MLAG / vPC) LACP negotiation using shared
+// virtual system MAC across dual leaf switches.
+// Wire profile: 3 frames; 3 IPv4 hosts; LACP; waits 2ms.
+// Wireshark: lacp
 
-// INSTRUCTION: Define hypervisor host NIC 1 connected to MLAG peer A.
 host hypervisor_nic1 {
     ip 172.18.40.10
     mac 3c:fd:fe:18:40:0a
 }
 
-// INSTRUCTION: Define MLAG leaf switch A advertising shared virtual system MAC 02:00:00:aa:bb:cc.
 host mlag_leaf_a {
     ip 172.18.40.1
     mac 00:1c:73:18:40:01
 }
 
-// INSTRUCTION: Define MLAG leaf switch B advertising identical shared virtual system MAC 02:00:00:aa:bb:cc.
 host mlag_leaf_b {
     ip 172.18.40.2
     mac 00:1c:73:18:40:02
 }
 
-// INSTRUCTION: Define MLAG dual-homed LACP negotiation with shared ACTOR_SYS virtual MAC.
 flow mlag_vpc_lacp(host, leaf1, leaf2) {
     leaf1 -> host lacp actorsys 02:00:00:aa:bb:cc actorkey 400 actorport 101 actorstate 63 partnersys 3c:fd:fe:18:40:0a partnerkey 400 partnerport 1 partnerstate 63
-    leaf2 -> host lacp actorsys 02:00:00:aa:bb:cc actorkey 400 actorport 201 actorstate 63 partnersys 3c:fd:fe:18:40:0a partnerkey 400 partnerport 2 partnerstate 63 wait 2ms
-    host -> leaf1 lacp actorsys 3c:fd:fe:18:40:0a actorkey 400 actorport 1 actorstate 63 partnersys 02:00:00:aa:bb:cc partnerkey 400 partnerport 101 partnerstate 63 wait 2ms
+        wait 2ms
+    leaf2 -> host lacp actorsys 02:00:00:aa:bb:cc actorkey 400 actorport 201 actorstate 63 partnersys 3c:fd:fe:18:40:0a partnerkey 400 partnerport 2 partnerstate 63
+        wait 2ms
+    host -> leaf1 lacp actorsys 3c:fd:fe:18:40:0a actorkey 400 actorport 1 actorstate 63 partnersys 02:00:00:aa:bb:cc partnerkey 400 partnerport 101 partnerstate 63
 }
 
-// INSTRUCTION: Compile block executing MLAG shared system MAC LACP exchange.
 compile {
     mlag_vpc_lacp(hypervisor_nic1, mlag_leaf_a, mlag_leaf_b)
 }

@@ -1,18 +1,18 @@
-// PROMPT: 802.1Q tagged MLD query on subscriber multicast delivery VLAN 200.
-// TOKENS: host, ip, flow, mld, query, vlan, pcp, dei, maxrespdelay, compile
+// 802.1Q tagged MLD query on subscriber multicast delivery VLAN 200.
+// This capture targets IPv6 endpoints and wraps frames in 802.1Q VLAN 200.
+// Wireshark: icmpv6.mld && vlan.id == 200
 
-// INSTRUCTION: Define broadband access BNG gateway.
 host bng_access_gw { ip fe80::b00:1 }
 
-// INSTRUCTION: Define subscriber broadcast listener.
 host sub_listener { ip ff02::1 }
 
-// INSTRUCTION: Define VLAN 200 tagged MLD query with high PCP priority.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow mld_vlan_query_flow(bng, sub) {
     bng -> sub mld query vlan 200 pcp 6 dei 0 maxrespdelay 5000
 }
 
-// INSTRUCTION: Compile block executing tagged MLD query.
+// Run mld_vlan_query_flow(bng_access_gw, sub_listener) to generate the
+// capture.
 compile {
     mld_vlan_query_flow(bng_access_gw, sub_listener)
 }

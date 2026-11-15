@@ -1,18 +1,17 @@
-// PROMPT: WHOIS server response returning registrar details.
-// TOKENS: host, ip, flow, s, whois, response, domain, registrar, compile
+// WHOIS server response returning registrar details.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (WHOIS (RFC
+// 3912), TCP 43).
+// Wireshark: whois
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.0.47.59 }
 
-// INSTRUCTION: Define application traffic flow.
 flow whois_resp(c, s) {
     c <- s whois response domain "example.com" registrar "IANA Registrar"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     whois_resp(client, server)
 }

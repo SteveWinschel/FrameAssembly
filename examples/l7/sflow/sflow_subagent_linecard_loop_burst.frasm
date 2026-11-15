@@ -1,24 +1,22 @@
-// PROMPT: Iterative COMPILE LOOP simulating sFlow v5 burst exports from a linecard sub-agent under load.
-// TOKENS: host, ip, mac, flow, vip, sflow, agentip, subagentid, uptime, samples, wait, ms, compile
+// Iterative repeated flow calls simulating sFlow v5 burst exports from a
+// linecard sub-agent under load.
+// Timing: runs 4 cycles in compile using post-packet waits (5ms).
+// Wireshark: sflow
 
-// INSTRUCTION: Define chassis linecard 4 sFlow exporter host.
 host linecard_4 {
     ip 10.88.4.1
     mac 00:1c:73:58:04:01
 }
 
-// INSTRUCTION: Define high-throughput sFlow collector cluster VIP.
 host sflow_vip {
     ip 10.88.0.100
     mac 00:1c:73:58:00:64
 }
 
-// INSTRUCTION: Define single linecard sFlow burst export with 5ms pacing.
 flow sflow_linecard_burst(lc, vip) {
     lc -> vip sflow agentip 10.88.4.1 subagentid 400 uptime 1234560 samples 25 wait 5ms
 }
 
-// INSTRUCTION: Execute 4 consecutive burst exports in a COMPILE repeated flow calls.
 compile {
     sflow_linecard_burst(linecard_4, sflow_vip) // cycle 1
     sflow_linecard_burst(linecard_4, sflow_vip) // cycle 2

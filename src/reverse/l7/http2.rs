@@ -49,5 +49,13 @@ pub(crate) fn dissect_http2(payload: &[u8]) -> Option<ProtocolDissection> {
     if stream_id != 0 {
         let _ = write!(tokens, " streamid {stream_id}");
     }
-    Some(sd(Protocol::Http2, tokens, payload.get(9..)?.to_vec()))
+    let body = payload.get(9..)?;
+    let residual = if (matches!(type_kw, "ping" | "goaway") && body == [0u8; 8])
+        || (type_kw == "windowupdate" && body == [0, 0, 0, 1])
+    {
+        alloc::vec::Vec::new()
+    } else {
+        body.to_vec()
+    };
+    Some(sd(Protocol::Http2, tokens, residual))
 }

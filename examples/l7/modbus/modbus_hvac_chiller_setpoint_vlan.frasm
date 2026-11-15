@@ -1,19 +1,23 @@
-// PROMPT: Model a Building Management System writing chiller water temperature setpoints via Modbus TCP on VLAN 302.
-// TOKENS: host, ip, mac, flow, s, modbus, txid, unitid, func, addr, count, vlan, pcp, wait, ms, isresponse, value, compile
+// Building Management System writing chiller water temperature setpoints via
+// Modbus TCP on VLAN 302.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define the central building management supervisory server.
+// Central building management supervisory server.
 host bms_server {
     ip 172.20.32.5
     mac 00:15:5d:14:20:05
 }
 
-// INSTRUCTION: Define the centrifugal chiller Modbus TCP gateway on VLAN 302.
+// Centrifugal chiller Modbus TCP gateway on VLAN 302.
 host chiller_gw {
     ip 172.20.32.40
     mac 00:15:5d:14:20:28
 }
 
-// INSTRUCTION: Read current evaporator leaving water temperature and write a new setpoint (44.0 F = 440) on VLAN 302.
+// Read current evaporator leaving water temperature and write a new setpoint
+// (44.0 F = 440) on VLAN 302. Encapsulation and QoS markings: 802.1Q VLAN
+// 302. Modbus functions: FC 4 Read Input Registers, FC 6 Write Single
+// Register.
 flow modbus_chiller_setpoint(c, s) {
     c -> s modbus txid 310 unitid 2 func "readinputregisters" addr 100 count 2 vlan 302 pcp 4 wait 4ms
     c <- s modbus txid 310 unitid 2 func "readinputregisters" isresponse value 455 vlan 302 pcp 4 wait 5ms
@@ -21,7 +25,6 @@ flow modbus_chiller_setpoint(c, s) {
     c <- s modbus txid 311 unitid 2 func "writesingleregister" isresponse addr 200 value 440 vlan 302 pcp 4
 }
 
-// INSTRUCTION: Compile the VLAN-tagged Modbus HVAC chiller setpoint flow.
 compile {
     modbus_chiller_setpoint(bms_server, chiller_gw)
 }

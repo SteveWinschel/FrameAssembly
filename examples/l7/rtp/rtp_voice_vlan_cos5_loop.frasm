@@ -1,19 +1,20 @@
-// PROMPT: Enterprise Voice VLAN 500 RTP stream with 802.1p CoS PCP 5 and 20ms pacing loop.
-// TOKENS: host, ip, mac, flow, rtp, pt, timestamp, ssrc, marker, vlan, pcp, dei, dscp, wait, ms, compile
+// Enterprise Voice VLAN 500 RTP stream with 802.1p CoS PCP 5 and 20ms pacing
+// loop.
+// Encapsulation and QoS markings: 802.1Q VLAN 500, 802.1p priority 5, DSCP 46
+// (EF).
+// RTP media on UDP 5004 carrying PT 8 (G.711 PCMA).
+// Timing: runs 5 cycles in compile using post-packet waits (20ms).
+// Wireshark: (rtp || udp.port == 5004) && vlan.id == 500
 
-// INSTRUCTION: Define IP phone on Voice VLAN 500.
 host voice_phone { ip 192.168.250.25 mac 00:21:55:fa:00:19 }
 
-// INSTRUCTION: Define Session Border Controller (SBC) on Voice VLAN 500.
 host voice_sbc { ip 192.168.250.1 mac 00:21:55:fa:00:01 }
 
-// INSTRUCTION: Define 20ms G.711 A-law (PT 8) voice exchange on VLAN 500.
 flow rtp_voice_vlan_tick(phone, sbc) {
     phone -> sbc rtp pt 8 timestamp 160 ssrc 0x08080001 marker 0 vlan 500 pcp 5 dei 0 dscp 46 wait 20ms
     phone <- sbc rtp pt 8 timestamp 160 ssrc 0x08080002 marker 0 vlan 500 pcp 5 dei 0 dscp 46 wait 20ms
 }
 
-// INSTRUCTION: Execute 5 consecutive 20ms voice intervals in COMPILE LOOP.
 compile {
     rtp_voice_vlan_tick(voice_phone, voice_sbc) // cycle 1
     rtp_voice_vlan_tick(voice_phone, voice_sbc) // cycle 2

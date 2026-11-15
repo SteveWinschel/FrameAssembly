@@ -1,25 +1,24 @@
-// PROMPT: Create a brand-protection domain monitoring WHOIS query executed in a 2-iteration loop.
-// TOKENS: host, ip, mac, flow, s, whois, query, domain, wait, ms, response, registrar, compile
+// Create a brand-protection domain monitoring WHOIS query executed in a
+// 2-iteration loop.
+// Timing: runs 2 cycles in compile using post-packet waits (4ms, 15ms).
+// Wireshark: whois
 
-// INSTRUCTION: Define the WHOIS client workstation or security enrichment node.
 host whois_client {
     ip 10.43.99.50
     mac 00:1b:21:00:43:0a
 }
 
-// INSTRUCTION: Define the authoritative RIR or TLD WHOIS directory server on TCP port 43.
 host whois_server {
     ip 192.0.2.143
     mac 00:1b:21:00:43:01
 }
 
-// INSTRUCTION: Execute the RFC 3912 WHOIS domain or prefix lookup transaction.
 flow whois_scenario_flow(c, s) {
     c -> s whois query domain "brand-example-global.com" wait 4ms
     c <- s whois response domain "brand-example-global.com" registrar "MarkMonitor Inc. Corporate Domain Protection" wait 15ms
 }
 
-// INSTRUCTION: Compile the WHOIS registry query flow into a PCAP trace.
 compile {
-    whois_scenario_flow(whois_client, whois_server)
+    whois_scenario_flow(whois_client, whois_server) // cycle 1
+    whois_scenario_flow(whois_client, whois_server) // cycle 2
 }

@@ -1,19 +1,19 @@
-// PROMPT: Reading and writing Siemens CONT_C (FB41) PID instance data block DB41 SP_INT and LMN parameters.
-// TOKENS: host, ip, mac, flow, s7comm, rosctr, pduref, func, area, dbnum, offset, count, hexpayload, wait, ms, compile
+// Reading and writing Siemens CONT_C (FB41) PID instance data block DB41
+// SP_INT and LMN parameters.
+// Siemens S7comm over TPKT/COTP ISO-on-TCP port 102 targeting DB (0x84).
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: s7comm
 
-// INSTRUCTION: Define the extrusion barrel temperature HMI panel.
 host extruder_hmi {
     ip 10.130.90.30
     mac 00:1a:2b:82:90:30
 }
 
-// INSTRUCTION: Define the plastics extruder S7-1500 controller.
 host extruder_plc {
     ip 10.130.90.1
     mac 00:1a:2b:82:90:01
 }
 
-// INSTRUCTION: Write internal setpoint SP_INT (offset 48 bits = 6 bytes) in DB41 and read manipulated value LMN (offset 576 bits = 72 bytes).
 flow s7_fb41_pid(h, p) {
     h -> p s7comm rosctr "job" pduref 901 func "writevar" area 132 dbnum 41 offset 48 count 4 hexpayload "435c0000"
     h <- p s7comm rosctr "ackdata" pduref 901 func "writevar" wait 2ms
@@ -21,7 +21,6 @@ flow s7_fb41_pid(h, p) {
     h <- p s7comm rosctr "ackdata" pduref 902 func "readvar" hexpayload "ff04002042820000"
 }
 
-// INSTRUCTION: Compile the S7 FB41 PID instance Data Block flow.
 compile {
     s7_fb41_pid(extruder_hmi, extruder_plc)
 }

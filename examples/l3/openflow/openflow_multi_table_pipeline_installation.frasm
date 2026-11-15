@@ -1,18 +1,19 @@
-// PROMPT: OpenFlow controller configuring table 1 pipeline flow rule with high priority (65535).
-// TOKENS: host, ip, flow, openflow, type, flowmod, xid, tableid, priority, compile
+// OpenFlow controller configuring table 1 pipeline flow rule with high
+// priority (65535).
+// This capture sends OpenFlow SDN control messages over TCP port 6653.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define security enforcement SDN controller.
 host security_sdn_ctrl { ip 10.180.1.1 }
 
-// INSTRUCTION: Define core pipeline switch.
 host pipeline_core_sw { ip 10.180.1.2 }
 
-// INSTRUCTION: Define high priority flow table installation flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow of_pipeline_flow_mod(ctrl, sw) {
     ctrl -> sw openflow type flowmod xid 7007 tableid 1 priority 65535
 }
 
-// INSTRUCTION: Compile block executing pipeline flow table rule installation.
+// Run of_pipeline_flow_mod(security_sdn_ctrl, pipeline_core_sw) to generate
+// the capture.
 compile {
     of_pipeline_flow_mod(security_sdn_ctrl, pipeline_core_sw)
 }

@@ -1,23 +1,21 @@
-// PROMPT: Multi-backend QUIC load balancer distributing connections to two origin servers.
-// TOKENS: host, ip, mac, flow, quic, initial, dcid, scid, pktnum, wait, ms, handshake, short, compile
+// Multi-backend QUIC load balancer distributing connections to two origin
+// servers.
+// QUIC UDP 443 packet types: initial, handshake, short.
+// Timing: runs 2 cycles in compile using post-packet waits (2ms).
+// Wireshark: quic
 
-// INSTRUCTION: Define anycast QUIC load balancer ingress.
 host anycast_lb { ip 10.210.0.1 mac 00:1b:63:d2:00:01 }
 
-// INSTRUCTION: Define backend QUIC origin pool server 1.
 host origin_pool_1 { ip 10.210.0.101 mac 00:1b:63:d2:00:65 }
 
-// INSTRUCTION: Define backend QUIC origin pool server 2.
 host origin_pool_2 { ip 10.210.0.102 mac 00:1b:63:d2:00:66 }
 
-// INSTRUCTION: Define QUIC backend connection flow.
 flow quic_lb_dispatch(lb, backend) {
     lb -> backend quic initial dcid 0x90000001 scid 0x90000002 pktnum 1 wait 2ms
     lb <- backend quic handshake dcid 0x90000002 scid 0x90000001 pktnum 1 wait 2ms
     lb -> backend quic short dcid 0x90000001 pktnum 2
 }
 
-// INSTRUCTION: Compile QUIC dispatch across both origin servers.
 compile {
     quic_lb_dispatch(anycast_lb, origin_pool_1)
     quic_lb_dispatch(anycast_lb, origin_pool_2)

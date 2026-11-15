@@ -1,32 +1,33 @@
-// PROMPT: Generate an IPv6 MLD General Query from a link-local multicast router followed by listener reports
-// TOKENS: host, ip, mac, flow, mld, query, multicastaddr, maxrespdelay, ttl, wait, ms, report, compile
+// Generate an IPv6 MLD General Query from a link-local multicast router
+// followed by listener reports.
+// This capture targets IPv6 endpoints, sets TTL 1, and uses post-packet wait
+// gaps (40ms, 25ms) between frames.
+// Wireshark: icmpv6.mld
 
-// INSTRUCTION: Define the IPv6 multicast querier router with a link-local address
 host mld_querier {
     ip fe80::1
     mac 00:1b:21:c0:01:01
 }
 
-// INSTRUCTION: Define the first IPv6 multicast listener host
 host listener_alpha {
     ip fe80::101
     mac 00:1b:21:c0:01:11
 }
 
-// INSTRUCTION: Define the second IPv6 multicast listener host
 host listener_beta {
     ip fe80::102
     mac 00:1b:21:c0:01:12
 }
 
-// INSTRUCTION: Broadcast an MLD General Query and collect listener reports from active hosts
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow mld_general_query_cycle(querier, host_a, host_b) {
     querier -> host_a mld query multicastaddr :: maxrespdelay 10000 ttl 1 wait 40ms
     host_a -> querier mld report multicastaddr ff38:20:2001:db8::100 maxrespdelay 0 ttl 1 wait 25ms
     host_b -> querier mld report multicastaddr ff38:20:2001:db8::200 maxrespdelay 0 ttl 1
 }
 
-// INSTRUCTION: Compile the link-local MLD general query and report sequence
+// Run mld_general_query_cycle(mld_querier, listener_alpha, listener_beta) to
+// generate the capture.
 compile {
     mld_general_query_cycle(mld_querier, listener_alpha, listener_beta)
 }

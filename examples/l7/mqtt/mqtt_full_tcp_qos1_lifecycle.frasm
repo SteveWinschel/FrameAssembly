@@ -1,19 +1,22 @@
-// PROMPT: Create a full TCP-connected MQTT session with CONNECT, CONNACK, QoS 1 PUBLISH, PUBACK, and TCP FIN teardown.
-// TOKENS: host, ip, mac, flow, s, tcp, dstport, syn, seq, wait, ms, ack, acknum, mqtt, connect, clientid, connack, returncode, publish, topic, qos, pktid, payload, puback, fin, compile
+// Full TCP-connected MQTT session with CONNECT, CONNACK, QoS 1 PUBLISH,
+// PUBACK, and TCP FIN teardown.
+// Wireshark: tcp || mqtt
 
-// INSTRUCTION: Define the smart meter gateway publishing hourly kWh readings.
+// Smart meter gateway publishing hourly kWh readings.
 host meter_gateway {
     ip 10.40.20.55
     mac 00:50:56:40:20:55
 }
 
-// INSTRUCTION: Define the EMQX broker listening on TCP port 1883.
+// EMQX broker listening on TCP port 1883.
 host emqx_broker {
     ip 10.40.20.10
     mac 00:50:56:40:20:10
 }
 
-// INSTRUCTION: Complete a TCP handshake, connect to the broker, publish a QoS 1 message with PUBACK, and close the connection.
+// Complete a TCP handshake, connect to the broker, publish a QoS 1 message
+// with PUBACK, and close the connection. MQTT control session on TCP 1883
+// (QoS 1, CONNACK codes 0).
 flow full_mqtt_tcp_lifecycle(c, s) {
     c -> s tcp dstport 1883 syn seq 100000 wait 1ms
     c <- s tcp syn ack seq 200000 acknum 100001 wait 1ms
@@ -27,7 +30,6 @@ flow full_mqtt_tcp_lifecycle(c, s) {
     c -> s tcp dstport 1883 ack seq 100079 acknum 200010
 }
 
-// INSTRUCTION: Compile the full TCP and MQTT QoS 1 session into a PCAP file.
 compile {
     full_mqtt_tcp_lifecycle(meter_gateway, emqx_broker)
 }

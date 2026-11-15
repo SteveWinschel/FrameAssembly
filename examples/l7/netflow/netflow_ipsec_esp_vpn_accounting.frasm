@@ -1,24 +1,25 @@
-// PROMPT: NetFlow v5 flow export tracking IPsec ESP protocol 50 encrypted site-to-site VPN throughput.
-// TOKENS: host, ip, mac, flow, netflow, srcip, dstip, srcport, dstport, proto, packets, octets, ttl, compile
+// NetFlow v5 flow export tracking IPsec ESP protocol 50 encrypted
+// site-to-site VPN throughput.
+// Wireshark: cflow || udp.port == 2055
 
-// INSTRUCTION: Define enterprise VPN concentrator exporting encrypted tunnel metrics.
+// Enterprise VPN concentrator exporting encrypted tunnel metrics.
 host vpn_concentrator {
     ip 10.210.1.1
     mac 00:50:56:88:11:01
 }
 
-// INSTRUCTION: Define security analytics flow collector.
+// Security analytics flow collector.
 host sec_collector {
     ip 10.210.1.80
     mac 00:50:56:88:11:50
 }
 
-// INSTRUCTION: Export NetFlow record for IP protocol 50 ESP traffic between VPN gateways.
+// Export NetFlow record for IP protocol 50 ESP traffic between VPN gateways.
+// Reports IP protocol 50 (ESP) flow records to UDP 2055.
 flow netflow_esp_vpn(vpn, col) {
     vpn -> col netflow srcip 192.0.2.10 dstip 198.51.100.25 srcport 0 dstport 0 proto 50 packets 24000 octets 33600000 ttl 64
 }
 
-// INSTRUCTION: Compile the IPsec ESP VPN NetFlow accounting scenario.
 compile {
     netflow_esp_vpn(vpn_concentrator, sec_collector)
 }

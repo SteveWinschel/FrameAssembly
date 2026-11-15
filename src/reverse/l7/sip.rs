@@ -72,6 +72,9 @@ pub(crate) fn dissect_sip<'a>(payload: &'a [u8], is_tcp: bool) -> Option<Protoco
         }
     }
 
+    if via_opt.is_none() || from_opt.is_none() || to_opt.is_none() || call_id_opt.is_none() || cseq_opt.is_none() {
+        return None;
+    }
     if is_response {
         if let Some((_, cseq_m)) = cseq_opt
             && cseq_m != "INVITE"
@@ -90,18 +93,18 @@ pub(crate) fn dissect_sip<'a>(payload: &'a [u8], is_tcp: bool) -> Option<Protoco
         push_str_mod(&mut tokens, "via", via);
     }
     if let Some(f) = from_opt {
-        let f = if is_response {
-            f
-        } else {
-            trim_angle(f, ">;tag=1")
-        };
-        if is_response || f != "sip:alice@pbx" {
+        let f = trim_angle(f, ">;tag=1");
+        if f != "sip:alice@pbx" {
             push_str_mod(&mut tokens, "from", f);
         }
     }
     if let Some(t) = to_opt {
-        let t = if is_response { t } else { trim_angle(t, ">") };
-        if is_response || t != "sip:bob@pbx" {
+        let t = if is_response {
+            trim_angle(t, ">;tag=2")
+        } else {
+            trim_angle(t, ">")
+        };
+        if t != "sip:bob@pbx" {
             push_str_mod(&mut tokens, "to", t);
         }
     }

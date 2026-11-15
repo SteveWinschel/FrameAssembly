@@ -1,24 +1,25 @@
-// PROMPT: Next-generation BGP over QUIC (BoQ) core router peering session on UDP port 179 with DSCP CS6.
-// TOKENS: host, ip, flow, quic, initial, version, dcid, scid, srcport, dstport, dscp, ttl, pktnum, wait, ms, handshake, short, payload, compile
+// Next-generation BGP over QUIC (BoQ) core router peering session on UDP port
+// 179 with DSCP CS6.
+// Encapsulation and QoS markings: DSCP 48.
+// QUIC UDP 443 (v1) packet types: initial, handshake, short.
+// Overrides destination port to 179.
+// Timing: pauses 3ms after each marked packet before sending the next frame.
+// Wireshark: quic || udp.port == 179
 
-// INSTRUCTION: Define Autonomous System 65001 border router.
 host as65001_rtr {
     ip 192.0.2.101
 }
 
-// INSTRUCTION: Define Autonomous System 65002 peer router.
 host as65002_rtr {
     ip 192.0.2.102
 }
 
-// INSTRUCTION: Define BGP over QUIC session establishment and OPEN message exchange with DSCP 48 (CS6).
 flow quic_bgp_peering(r1, r2) {
     r1 -> r2 quic initial version 1 dcid 0x65001001 scid 0x65002001 srcport 50179 dstport 179 dscp 48 ttl 255 pktnum 1 wait 3ms
     r1 <- r2 quic handshake version 1 dcid 0x65002001 scid 0x65001001 srcport 179 dstport 50179 dscp 48 ttl 255 pktnum 1 wait 3ms
     r1 -> r2 quic short dcid 0x65001001 srcport 50179 dstport 179 dscp 48 ttl 255 pktnum 2 payload "BGP_OPEN_AS65001"
 }
 
-// INSTRUCTION: Compile the BGP over QUIC core peering scenario.
 compile {
     quic_bgp_peering(as65001_rtr, as65002_rtr)
 }

@@ -1,24 +1,19 @@
-// PROMPT: BACnet/IP default frame emission over UDP port 47808 using smart protocol defaults.
-// TOKENS: host, ip, mac, flow, bacnet, compile
+// BACnet/IP starter packet on UDP port 47808 using built-in defaults.
+// Omitting extra keywords emits a ReadProperty request for Device:1234
+// Present_Value (85).
+// Wireshark: bacapp || udp.port == 47808
 
-// INSTRUCTION: Define the BACnet operator workstation.
 host bacnet_ws {
     ip 192.168.100.10
     mac 00:50:56:a1:01:01
 }
 
-// INSTRUCTION: Define the BACnet field controller.
 host bacnet_plc {
     ip 192.168.100.20
     mac 00:50:56:a1:01:02
 }
 
-// INSTRUCTION: Emit a default BACnet/IP frame with zero optional overrides.
-flow bacnet_default(ws, plc) {
-    ws -> plc bacnet
-}
-
-// INSTRUCTION: Compile the default BACnet/IP scenario.
+// Send the frame directly in compile without needing a reusable flow block.
 compile {
-    bacnet_default(bacnet_ws, bacnet_plc)
+    bacnet_ws -> bacnet_plc bacnet
 }

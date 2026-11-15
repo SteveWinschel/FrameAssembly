@@ -1,18 +1,19 @@
-// PROMPT: GENEVE tunnel encapsulating a raw hex-encoded inner Ethernet frame with custom MACs.
-// TOKENS: host, ip, flow, geneve, vni, optclass, opttype, protocoltype, srcmac, dstmac, hexpayload, compile
+// GENEVE tunnel encapsulating a raw hex-encoded inner Ethernet frame with
+// custom MACs.
+// This capture carries VNI 65535.
+// Wireshark: geneve && geneve.vni == 65535
 
-// INSTRUCTION: Define bare-metal gateway NVE.
 host bm_geneve_gw { ip 10.70.70.1 }
 
-// INSTRUCTION: Define virtualized cluster NVE.
 host vm_geneve_gw { ip 10.70.70.2 }
 
-// INSTRUCTION: Define GENEVE packet with explicit outer MACs and binary inner frame HEXPAYLOAD.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow geneve_hex_inner_flow(bm, vm) {
     bm -> vm geneve vni 65535 optclass 258 opttype 129 protocoltype 0x6558 srcmac 00:16:3e:aa:bb:01 dstmac 00:16:3e:aa:bb:02 hexpayload "ffffffffffff00163e00000108060001"
 }
 
-// INSTRUCTION: Compile the binary inner frame GENEVE encapsulation flow.
+// Run geneve_hex_inner_flow(bm_geneve_gw, vm_geneve_gw) to generate the
+// capture.
 compile {
     geneve_hex_inner_flow(bm_geneve_gw, vm_geneve_gw)
 }

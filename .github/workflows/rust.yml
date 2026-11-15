@@ -18,12 +18,12 @@ jobs:
       run: cargo build --verbose
     - name: Verify CLI commands
       run: |
-        printf 'host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b icmp echorequest }\n' > /tmp/ci_smoke.fasm
+        printf 'host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b icmp echorequest }\n' > /tmp/ci_smoke.frasm
         ./target/debug/frameassembly version
-        ./target/debug/frameassembly /tmp/ci_smoke.fasm /tmp/ci_smoke.pcap
-        ./target/debug/frameassembly show /tmp/ci_smoke.fasm
-        ./target/debug/frameassembly reverse /tmp/ci_smoke.pcap /tmp/ci_smoke_rev.fasm
-        rm -f /tmp/ci_smoke.fasm /tmp/ci_smoke.pcap /tmp/ci_smoke_rev.fasm
+        ./target/debug/frameassembly /tmp/ci_smoke.frasm /tmp/ci_smoke.pcap
+        ./target/debug/frameassembly show /tmp/ci_smoke.frasm
+        ./target/debug/frameassembly reverse /tmp/ci_smoke.pcap /tmp/ci_smoke_rev.frasm
+        rm -f /tmp/ci_smoke.frasm /tmp/ci_smoke.pcap /tmp/ci_smoke_rev.frasm
     - name: Run tests
       run: cargo test --verbose
     - name: Run clippy

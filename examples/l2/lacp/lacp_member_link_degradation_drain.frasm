@@ -1,26 +1,24 @@
-// PROMPT: LACP member link degradation and graceful removal clearing Collecting (0x10) and Distributing (0x20) flags.
-// TOKENS: host, ip, mac, flow, lacp, actorsys, actorkey, actorport, actorstate, partnersys, partnerkey, partnerport, partnerstate, wait, ms, compile
+// LACP member link degradation and graceful removal clearing Collecting (0x10)
+// and Distributing (0x20) flags.
+// Wire profile: 3 frames; 2 IPv4 hosts; LACP; waits 5ms.
+// Wireshark: lacp
 
-// INSTRUCTION: Define switch port experiencing optical transceiver RX power warning.
 host degraded_lag_port {
     ip 172.25.10.1
     mac 00:1c:73:25:10:01
 }
 
-// INSTRUCTION: Define peer switch port removing degraded member from active hash table.
 host peer_lag_port {
     ip 172.25.10.2
     mac 00:1c:73:25:10:02
 }
 
-// INSTRUCTION: Define LACP transition from Collecting/Distributing (61) to Out-of-Sync Standby (5).
 flow lacp_member_graceful_drain(deg, peer) {
-    deg -> peer lacp actorsys 00:1c:73:25:10:01 actorkey 25 actorport 3 actorstate 13 partnersys 00:1c:73:25:10:02 partnerkey 25 partnerport 3 partnerstate 61
+    deg -> peer lacp actorsys 00:1c:73:25:10:01 actorkey 25 actorport 3 actorstate 13 partnersys 00:1c:73:25:10:02 partnerkey 25 partnerport 3 partnerstate 61 wait 5ms
     deg <- peer lacp actorsys 00:1c:73:25:10:02 actorkey 25 actorport 3 actorstate 13 partnersys 00:1c:73:25:10:01 partnerkey 25 partnerport 3 partnerstate 13 wait 5ms
-    deg -> peer lacp actorsys 00:1c:73:25:10:01 actorkey 25 actorport 3 actorstate 5 partnersys 00:1c:73:25:10:02 partnerkey 25 partnerport 3 partnerstate 13 wait 5ms
+    deg -> peer lacp actorsys 00:1c:73:25:10:01 actorkey 25 actorport 3 actorstate 5 partnersys 00:1c:73:25:10:02 partnerkey 25 partnerport 3 partnerstate 13
 }
 
-// INSTRUCTION: Compile block executing LACP member graceful drain.
 compile {
     lacp_member_graceful_drain(degraded_lag_port, peer_lag_port)
 }

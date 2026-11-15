@@ -1,19 +1,21 @@
-// PROMPT: GraphQL over HTTP/2 multiplexing a query on Stream 19 and a live subscription stream on Stream 21.
-// TOKENS: host, ip, mac, flow, http2, headers, streamid, data, payload, compile
+// GraphQL over HTTP/2 multiplexing a query on Stream 19 and a live
+// subscription stream on Stream 21.
+// Wireshark: http2
 
-// INSTRUCTION: Define web frontend client communicating with a GraphQL gateway.
+// Web frontend client communicating with a GraphQL gateway.
 host graphql_client {
     ip 10.64.20.15
     mac 00:1b:63:40:14:0f
 }
 
-// INSTRUCTION: Define GraphQL federation gateway speaking HTTP/2.
+// GraphQL federation gateway speaking HTTP/2.
 host graphql_gateway {
     ip 10.64.20.1
     mac 00:1b:63:40:14:01
 }
 
-// INSTRUCTION: Execute a unary GraphQL query on Stream 19 while receiving live subscription DATA on Stream 21.
+// Unary GraphQL query on Stream 19 while receiving live subscription DATA on
+// Stream 21.
 flow http2_graphql_mux(c, gw) {
     c -> gw http2 headers streamid 19
     c -> gw http2 data streamid 19 payload "{'query':'{viewer{id}}'}"
@@ -24,7 +26,6 @@ flow http2_graphql_mux(c, gw) {
     c <- gw http2 data streamid 21 payload "{'data':{'orderUpdated':'SHIPPED'}}"
 }
 
-// INSTRUCTION: Compile the GraphQL over HTTP/2 multiplexed query and subscription scenario.
 compile {
     http2_graphql_mux(graphql_client, graphql_gateway)
 }

@@ -1,19 +1,19 @@
-// PROMPT: RFC 3868 SIGTRAN SUA (SCCP-User Adaptation Layer, PPID 4) carrying mobile roaming MAP UpdateLocation over SCTP port 14001.
-// TOKENS: host, ip, mac, flow, dscp, sctp, chunk, data, vtag, stream, ssn, ppid, srcport, dstport, payload, wait, ms, sack, compile
+// RFC 3868 SIGTRAN SUA (SCCP-User Adaptation Layer, PPID 4) carrying mobile
+// roaming MAP UpdateLocation over SCTP port 14001.
+// Wire profile: 4 frames; 2 IPv4 hosts; SCTP; SCTP DATA/SACK; PPID 4; dstport
+// 14001; DSCP 46; waits 5ms, 2ms.
+// Wireshark: sctp && sctp.data_ppid == 4
 
-// INSTRUCTION: Define Visited MSC/VLR signaling gateway initiating international roaming lookup.
 host visited_vlr_sua {
     ip 10.140.1.10
     mac 00:1c:73:8c:01:0a
 }
 
-// INSTRUCTION: Define Home HLR international STP gateway on SCTP port 14001.
 host home_hlr_sua {
     ip 10.140.1.1
     mac 00:1c:73:8c:01:01
 }
 
-// INSTRUCTION: Exchange SUA CLDT (Connectionless Data Transfer, PPID 4) messages carrying TCAP/MAP roaming dialog.
 flow sctp_sua_tcap_roaming(vlr, hlr) {
     vlr -> hlr dscp 46 sctp chunk data vtag 140010 stream 2 ssn 10 ppid 4 srcport 14001 dstport 14001 payload "SUA_CLDT_GT_E214_MAP_UPDATE_LOCATION_REQ" wait 5ms
     vlr <- hlr dscp 46 sctp chunk sack vtag 140010 srcport 14001 dstport 14001 wait 5ms
@@ -21,7 +21,6 @@ flow sctp_sua_tcap_roaming(vlr, hlr) {
     vlr -> hlr dscp 46 sctp chunk sack vtag 140010 srcport 14001 dstport 14001
 }
 
-// INSTRUCTION: Compile the RFC 3868 SIGTRAN SUA roaming SCTP trace.
 compile {
     sctp_sua_tcap_roaming(visited_vlr_sua, home_hlr_sua)
 }

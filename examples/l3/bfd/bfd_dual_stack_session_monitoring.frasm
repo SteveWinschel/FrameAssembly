@@ -1,25 +1,24 @@
-// PROMPT: Polymorphic dual-stack BFD liveliness monitoring across IPv4 and IPv6 forwarding planes.
-// TOKENS: host, ip, flow, bfd, state, mydisc, yourdisc, mintx, minrx, mult, ttl, flowlabel, compile
+// Dual-stack BFD liveliness monitoring across IPv4 and IPv6 forwarding
+// planes.
+// This capture runs the same exchange over both IPv4 and IPv6 host pairs,
+// sets TTL 255, IPv6 Flow Label, and carries BFD state 3.
+// Wireshark: bfd
 
-// INSTRUCTION: Define IPv4 border router 1.
 host bfd_v4_r1 { ip 198.51.100.41 }
 
-// INSTRUCTION: Define IPv4 border router 2.
 host bfd_v4_r2 { ip 198.51.100.42 }
 
-// INSTRUCTION: Define IPv6 border router 1.
 host bfd_v6_r1 { ip 2001:db8:3784::1 }
 
-// INSTRUCTION: Define IPv6 border router 2.
 host bfd_v6_r2 { ip 2001:db8:3784::2 }
 
-// INSTRUCTION: Define polymorphic BFD control exchange with GTSM TTL 255.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow dual_stack_bfd_monitor(r1, r2) {
     r1 -> r2 bfd state 3 mydisc 50001 yourdisc 50002 mintx 15000 minrx 15000 mult 3 ttl 255 flowlabel 37840
     r1 <- r2 bfd state 3 mydisc 50002 yourdisc 50001 mintx 15000 minrx 15000 mult 3 ttl 255 flowlabel 37841
 }
 
-// INSTRUCTION: Compile the polymorphic BFD flow for both IPv4 and IPv6 peers.
+// Run the flow across both the IPv4 and IPv6 host pairs.
 compile {
     dual_stack_bfd_monitor(bfd_v4_r1, bfd_v4_r2)
     dual_stack_bfd_monitor(bfd_v6_r1, bfd_v6_r2)

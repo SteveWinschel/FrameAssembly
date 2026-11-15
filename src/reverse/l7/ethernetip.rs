@@ -46,7 +46,8 @@ pub(crate) fn dissect_ethernetip(
     ]);
     let options = u32::from_le_bytes([payload[20], payload[21], payload[22], payload[23]]);
 
-    if options != 0 || 24 + body_len != payload.len() {
+    let total_len = 24usize.checked_add(body_len)?;
+    if options != 0 || total_len != payload.len() {
         return None;
     }
     let body = &payload[24..];

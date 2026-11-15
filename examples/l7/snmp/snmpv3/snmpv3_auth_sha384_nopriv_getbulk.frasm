@@ -1,13 +1,14 @@
-// PROMPT: Simulate an RFC 7860 SNMPv3 authNoPriv GETBULK request and RESPONSE authenticated with HMAC-SHA-384 (AUTH SHA384).
-// TOKENS: host, ip, mac, flow, snmp3, getbulk, user, engineid, engineboots, enginetime, auth, sha384, reqid, nonrepeaters, maxrepetitions, varbind, nullval, wait, ms, response, string, compile
+// Simulate an RFC 7860 SNMPv3 authNoPriv GETBULK request and RESPONSE
+// authenticated with HMAC-SHA-384 (auth SHA384).
+// SNMPv3 USM security uses auth sha384 with localized engineid keys.
+// Uses SNMPv3 getbulk, response PDUs on UDP 161/162.
+// Timing: pauses 10ms after each marked packet before sending the next frame.
+// Wireshark: snmp
 
-// INSTRUCTION: Define a core telemetry poller with IP 10.144.0.10.
 host v3_sha384_poller { ip 10.144.0.10 mac 00:25:90:44:00:10 }
 
-// INSTRUCTION: Define a spine switch agent supporting SHA-384 USM with IP 10.144.0.1.
 host v3_sha384_spine { ip 10.144.0.1 mac 00:25:90:44:00:01 }
 
-// INSTRUCTION: Define a flow executing an SNMPv3 GETBULK request with AUTH SHA384 and receiving a 64-bit counter RESPONSE.
 flow snmpv3_sha384_getbulk(poller, spine) {
     poller -> spine snmp3 getbulk user "sha384_poller" engineid "80001f880430313233" engineboots 2 enginetime 7200
         auth sha384 "sha384_integrity_secret" reqid 9201 nonrepeaters 0
@@ -22,7 +23,6 @@ flow snmpv3_sha384_getbulk(poller, spine) {
         wait 10ms
 }
 
-// INSTRUCTION: Compile block to execute the SHA-384 authenticated SNMPv3 GETBULK flow.
 compile {
     snmpv3_sha384_getbulk(v3_sha384_poller, v3_sha384_spine)
 }

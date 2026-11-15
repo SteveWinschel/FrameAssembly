@@ -1,13 +1,11 @@
-// PROMPT: Redis atomic transaction block using WATCH, MULTI, INCR, and EXEC.
-// TOKENS: host, ip, flow, s, redis, cmd, args, wait, ms, compile
+// Redis atomic transaction block using WATCH, MULTI, INCR, and EXEC.
+// Timing: uses post-packet wait delays (1ms, 2ms) between frames.
+// Wireshark: resp
 
-// INSTRUCTION: Define rate-limiter microservice client.
 host ratelimiter { ip 10.83.1.15 }
 
-// INSTRUCTION: Define Redis counter node.
 host counter_redis { ip 10.83.1.1 }
 
-// INSTRUCTION: Define optimistic locking WATCH and MULTI/EXEC block.
 flow redis_multi_exec(c, s) {
     c -> s redis cmd "WATCH" args "quota:api_key_99" wait 1ms
     c -> s redis cmd "MULTI" wait 1ms
@@ -17,7 +15,6 @@ flow redis_multi_exec(c, s) {
     c <- s redis cmd "ARRAY" args "42"
 }
 
-// INSTRUCTION: Compile Redis MULTI/EXEC transaction flow.
 compile {
     redis_multi_exec(ratelimiter, counter_redis)
 }

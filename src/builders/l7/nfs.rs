@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 
 /// Builds an ONC RPC / NFS file system protocol packet payload.
 pub fn build_nfs_payload(
-    _ctx: &WireContext,
+    ctx: &WireContext,
     spec: &NfsSpec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
@@ -64,6 +64,10 @@ pub fn build_nfs_payload(
 
     if !payload_bytes.is_empty() {
         rpc_call.extend_from_slice(payload_bytes);
+    }
+
+    if ctx.transport == Some(TransportProto::Udp) {
+        return rpc_call;
     }
 
     // ONC RPC Record Marking header for TCP (4 bytes: 0x80000000 | length)

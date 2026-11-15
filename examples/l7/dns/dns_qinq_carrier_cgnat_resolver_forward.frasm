@@ -1,25 +1,26 @@
-// PROMPT: Create a carrier-grade NAT subscriber DNS lookup encapsulated in QinQ S-VLAN 500 and C-VLAN 53.
-// TOKENS: host, ip, mac, flow, s, dns, query, txid, qname, qtype, qinq, innervlan, wait, ms, response, rcode, rdata, ansttl, compile
+// Carrier-grade NAT subscriber DNS lookup encapsulated in QinQ S-VLAN 500 and
+// C-VLAN 53.
+// Wireshark: dns
 
-// INSTRUCTION: Define the DNS stub resolver client endpoint.
+// DNS stub resolver client endpoint.
 host dns_client {
     ip 100.64.53.14
     mac 00:1b:21:53:01:0a
 }
 
-// INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
+// Authoritative or recursive DNS server endpoint.
 host dns_server {
     ip 100.64.0.53
     mac 00:1b:21:53:01:35
 }
 
-// INSTRUCTION: Execute the DNS query and authoritative response transaction.
+// Encapsulation and QoS markings: 802.1ad QinQ S-VLAN 500 / C-VLAN 53. DNS
+// wire details: record types A; rcode 0 (NOERROR).
 flow dns_scenario_flow(c, s) {
     c -> s dns query txid 2113 qname "api.streaming.example.net" qtype "a" qinq 500 innervlan 53 wait 4ms
     c <- s dns response txid 2113 rcode 0 qname "api.streaming.example.net" qtype "a" rdata "198.51.100.240" ansttl 120 qinq 500 innervlan 53
 }
 
-// INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
 compile {
     dns_scenario_flow(dns_client, dns_server)
 }

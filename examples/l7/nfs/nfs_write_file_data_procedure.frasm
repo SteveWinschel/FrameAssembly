@@ -1,18 +1,16 @@
-// PROMPT: NFS RPC WRITE procedure request appending log entries to remote filestore.
-// TOKENS: host, ip, flow, nfs, vers, proc, path, compile
+// NFS RPC WRITE procedure request appending log entries to remote filestore.
+// Wireshark: nfs
 
-// INSTRUCTION: Define central logging daemon.
+// Central logging daemon.
 host logging_daemon { ip 192.168.10.88 }
 
-// INSTRUCTION: Define archive NFS file server.
 host nfs_archive_srv { ip 192.168.10.2 }
 
-// INSTRUCTION: Define NFS WRITE procedure flow.
+// NFS WRITE procedure flow.
 flow nfs_write_log_flow(log, srv) {
     log -> srv nfs vers 4 proc "write" path "/exports/logs/system.log"
 }
 
-// INSTRUCTION: Compile NFS WRITE procedure scenario.
 compile {
     nfs_write_log_flow(logging_daemon, nfs_archive_srv)
 }

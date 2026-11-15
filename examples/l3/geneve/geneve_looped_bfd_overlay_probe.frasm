@@ -1,19 +1,20 @@
-// PROMPT: RFC 8926 GENEVE tunnel keepalive health probes executed inside a COMPILE repeated flow calls.
-// TOKENS: host, ip, flow, s, geneve, vni, optclass, opttype, wait, ms, compile
+// RFC 8926 GENEVE tunnel keepalive health probes repeated across multiple
+// cycles in compile.
+// This capture carries VNI 1000, executes 4 cycles in compile, and uses
+// post-packet wait gaps (15ms) between frames.
+// Wireshark: geneve && geneve.vni == 1000
 
-// INSTRUCTION: Define primary network virtualization edge.
 host primary_nve_node { ip 10.111.1.1 }
 
-// INSTRUCTION: Define standby network virtualization edge.
 host standby_nve_node { ip 10.111.1.2 }
 
-// INSTRUCTION: Define bidirectional GENEVE tunnel health probe.
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow geneve_health_probe(p, s) {
     p -> s geneve vni 1000 optclass 258 opttype 254 wait 15ms
     p <- s geneve vni 1000 optclass 258 opttype 254 wait 15ms
 }
 
-// INSTRUCTION: Compile 4 iterations of the GENEVE tunnel health probe.
+// Emit 4 sequential cycles of geneve_health_probe.
 compile {
     geneve_health_probe(primary_nve_node, standby_nve_node) // cycle 1
     geneve_health_probe(primary_nve_node, standby_nve_node) // cycle 2

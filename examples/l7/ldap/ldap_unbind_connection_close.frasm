@@ -1,18 +1,16 @@
-// PROMPT: LDAP unbind request gracefully terminating directory session over IPv6.
-// TOKENS: host, ip, flow, s, ldap, unbindreq, msgid, compile
+// LDAP unbind request gracefully terminating directory session over IPv6.
+// Wireshark: ldap
+// Automatic Ethernet MAC addresses and TCP port 389 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::50 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow ldap_unbind(c, s) {
     c -> s ldap unbindreq msgid 3
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ldap_unbind(client, server)
 }

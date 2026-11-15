@@ -1,18 +1,16 @@
-// PROMPT: DHCPv4 ACK frame delivering configuration options including DNS server, router gateway, and lease time.
-// TOKENS: host, ip, flow, s, dhcp, ack, chaddr, yiaddr, dnsserver, router, leasetime, compile
+// DHCPv4 ACK frame delivering configuration options including DNS server,
+// router gateway, and lease time.
+// Wireshark: dhcp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.150 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
+// DHCPv4 BOOTP exchange over UDP ports 68 (client) and 67 (server).
 flow dhcp_ack(c, s) {
     c <- s dhcp ack chaddr 00:11:22:33:44:55 yiaddr 192.168.1.150 dnsserver 8.8.8.8 router 192.168.1.1 leasetime 86400
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     dhcp_ack(client, server)
 }

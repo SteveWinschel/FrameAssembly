@@ -1,13 +1,13 @@
-// PROMPT: FTP atomic file rename sequence using RNFR (Rename From) and RNTO (Rename To).
-// TOKENS: host, ip, flow, ftp, cmd, arg, code, reply, compile
+// FTP atomic file rename sequence using RNFR (Rename From) and RNTO (Rename
+// To).
+// Wireshark: ftp
 
-// INSTRUCTION: Define ETL batch uploader host.
 host etl_uploader { ip 172.18.21.12 }
 
-// INSTRUCTION: Define data warehouse FTP dropzone.
+// Data warehouse FTP dropzone.
 host dw_ftp { ip 172.18.21.2 }
 
-// INSTRUCTION: Rename temporary upload file .part to final .csv using RNFR and RNTO.
+// Rename temporary upload file .part to final .csv using RNFR and RNTO.
 flow ftp_atomic_rename(u, d) {
     u -> d ftp cmd "RNFR" arg "daily_sales.csv.part"
     u <- d ftp code 350 reply "Ready for RNTO"
@@ -15,7 +15,6 @@ flow ftp_atomic_rename(u, d) {
     u <- d ftp code 250 reply "Rename successful"
 }
 
-// INSTRUCTION: Compile the FTP RNFR/RNTO file rename flow.
 compile {
     ftp_atomic_rename(etl_uploader, dw_ftp)
 }

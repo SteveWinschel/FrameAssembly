@@ -1,0 +1,13 @@
+// Minimal two-block IEEE 802.1Q VLAN tagged frame starter using MAC-only ports.
+// Adds an 802.1Q tag (TPID 0x8100, default VLAN ID 1, PCP 0, DEI 0) directly in
+// compile without needing a reusable flow block or manual IP header setup.
+// Check tag decoding with `frameassembly show vlan_default_frame.frasm` or write
+// a capture using `frameassembly vlan_default_frame.frasm`.
+// Wireshark: vlan.id == 1
+
+host access_port_a { mac 00:19:56:10:20:01 }
+host access_port_b { mac 00:19:56:10:20:02 }
+
+compile {
+    access_port_a -> access_port_b vlan
+}

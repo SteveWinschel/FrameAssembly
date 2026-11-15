@@ -1,19 +1,17 @@
-// PROMPT: Authentication, Authorization, and Accounting signaling with RADIUS Access-Request and TACACS+ Authen.
-// TOKENS: host, ip, flow, s, radius, accessrequest, user, tacacs, authen, compile
+// Authentication, Authorization, and Accounting signaling with RADIUS
+// Access-Request and TACACS+ Authen.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting (accessrequest).
+// Wireshark: radius || tacplus
 
-// INSTRUCTION: Define network access server.
 host nas_client { ip 172.16.10.1 }
 
-// INSTRUCTION: Define centralized AAA authentication server.
 host aaa_server { ip 172.16.10.2 }
 
-// INSTRUCTION: Define RADIUS and TACACS authentication flow.
 flow aaa_flow(c, s) {
     c -> s radius accessrequest user "operator"
     c -> s tacacs authen user "admin"
 }
 
-// INSTRUCTION: Compile block executing AAA security requests.
 compile {
     aaa_flow(nas_client, aaa_server)
 }

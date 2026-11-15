@@ -1,18 +1,18 @@
-// PROMPT: IPsec tunnel mode security encapsulation using SPI and sequence number.
-// TOKENS: host, ip, flow, ipsec, spi, seq, compile
+// IPsec tunnel mode security encapsulation using SPI and sequence number.
+// This capture carries SPI 4096.
+// Wireshark: esp
 
-// INSTRUCTION: Define primary VPN gateway.
 host vpn_gw_primary { ip 198.51.100.1 }
 
-// INSTRUCTION: Define secondary VPN gateway.
 host vpn_gw_secondary { ip 198.51.100.2 }
 
-// INSTRUCTION: Define IPsec security encapsulation flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow ipsec_tunnel_flow(gw1, gw2) {
     gw1 -> gw2 ipsec spi 4096 seq 1
 }
 
-// INSTRUCTION: Compile block executing IPsec encapsulation.
+// Run ipsec_tunnel_flow(vpn_gw_primary, vpn_gw_secondary) to generate the
+// capture.
 compile {
     ipsec_tunnel_flow(vpn_gw_primary, vpn_gw_secondary)
 }

@@ -1,19 +1,22 @@
-// PROMPT: Simulate a Kerberos v5 PKINIT smartcard pre-authentication AS_REQ and AS_REP exchange using AES256-CTS-HMAC-SHA1-96.
-// TOKENS: host, ip, mac, flow, kerberos, asreq, realm, cname, sname, etype, hexpayload, dscp, wait, ms, asrep, compile
+// Kerberos v5 PKINIT smartcard pre-authentication AS-REQ and AS-REP exchange
+// using AES256-CTS-HMAC-SHA1-96.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define the smartcard-enabled federal workstation.
+// Smartcard-enabled federal workstation.
 host piv_workstation {
     ip 10.140.12.50
     mac 00:1b:21:8c:0c:32
 }
 
-// INSTRUCTION: Define the realm Key Distribution Center validating X.509 client certificates.
+// Realm Key Distribution Center validating X.509 client certificates.
 host pkinit_kdc {
     ip 10.140.12.1
     mac 00:1b:21:8c:0c:01
 }
 
-// INSTRUCTION: Send an AS_REQ with PA-PK-AS-REQ in HEXPAYLOAD and receive an AES-256 AS_REP ticket.
+// Send an AS-REQ with PA-PK-AS-REQ in HEXPAYLOAD and receive an AES-256
+// AS-REP ticket. Encapsulation and QoS markings: DSCP 32. Kerberos encryption
+// types: 18 (AES256-CTS).
 flow krb5_pkinit_smartcard(c, k) {
     c -> k kerberos asreq realm "FED.EXAMPLE.GOV" cname "piv_operator" sname "krbtgt/FED.EXAMPLE.GOV" etype 18
         hexpayload "3014a103020110a20d040b30098007706b696e6974" dscp 32 wait 5ms
@@ -21,7 +24,6 @@ flow krb5_pkinit_smartcard(c, k) {
         dscp 32
 }
 
-// INSTRUCTION: Compile the Kerberos PKINIT smartcard authentication flow.
 compile {
     krb5_pkinit_smartcard(piv_workstation, pkinit_kdc)
 }

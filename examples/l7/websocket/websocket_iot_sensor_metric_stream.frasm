@@ -1,13 +1,12 @@
-// PROMPT: Industrial sensor streaming continuous metrics via WebSocket frames.
-// TOKENS: host, ip, flow, s, websocket, opcode, finbit, maskkey, compile
+// Industrial sensor streaming continuous metrics via WebSocket frames.
+// RFC 6455 WebSocket on TCP 80; client frames apply the 32-bit maskkey XOR
+// mask.
+// Wireshark: websocket || tcp.port == 80
 
-// INSTRUCTION: Define manufacturing line vibration sensor.
 host vibration_sensor { ip 10.70.3.14 }
 
-// INSTRUCTION: Define factory floor telemetry receiver.
 host floor_receiver { ip 10.70.3.1 }
 
-// INSTRUCTION: Define telemetry metric transmission flow.
 flow ws_sensor_metric_flow(c, s) {
     c -> s websocket
         opcode "binary"
@@ -15,7 +14,6 @@ flow ws_sensor_metric_flow(c, s) {
         maskkey 2468135790
 }
 
-// INSTRUCTION: Compile block executing sensor metric streaming.
 compile {
     ws_sensor_metric_flow(vibration_sensor, floor_receiver)
 }

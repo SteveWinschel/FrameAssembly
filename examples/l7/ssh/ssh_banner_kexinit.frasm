@@ -1,13 +1,12 @@
-// PROMPT: Secure Shell version banner exchange and key exchange initialization on TCP 22.
-// TOKENS: host, ip, flow, s, ssh, banner, kexinit, compile
+// Secure Shell version banner exchange and key exchange initialization on TCP
+// 22.
+// SSH RFC 4253 framing on TCP 22.
+// Wireshark: ssh
 
-// INSTRUCTION: Define SSH client endpoint.
 host ssh_client { ip 10.0.0.50 }
 
-// INSTRUCTION: Define SSH server endpoint.
 host ssh_server { ip 10.0.0.1 }
 
-// INSTRUCTION: Define SSH banner and key exchange flow.
 flow ssh_session(c, s) {
     c -> s ssh banner "SSH-2.0-OpenSSH_9.0"
     c <- s ssh banner "SSH-2.0-OpenSSH_8.9"
@@ -15,7 +14,6 @@ flow ssh_session(c, s) {
     c <- s ssh kexinit
 }
 
-// INSTRUCTION: Compile block executing SSH session.
 compile {
     ssh_session(ssh_client, ssh_server)
 }

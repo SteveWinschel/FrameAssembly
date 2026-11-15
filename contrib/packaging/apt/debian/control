@@ -1,9 +1,9 @@
 Package: frameassembly
-Version: 3.0.0-1
+Version: 3.1.0
 Section: net
 Priority: optional
 Architecture: amd64 arm64
-Maintainer: Steve Winschel <https://github.com/SteveWinschel/FrameAssembly>
+Maintainer: Steve Winschel <steve.winschel@users.noreply.github.com>
 Homepage: https://github.com/SteveWinschel/FrameAssembly
 Description: Compile .frasm network traffic code to .pcap/.pcapng and reverse captures
  FrameAssembly compiles .frasm network traffic code into nanosecond-precision

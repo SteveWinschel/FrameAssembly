@@ -1,18 +1,15 @@
-// PROMPT: Modbus TCP function code 3 reading holding registers from PLC.
-// TOKENS: host, ip, flow, s, modbus, func, addr, count, unitid, compile
+// Modbus TCP function code 3 reading holding registers from PLC.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.100 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.20 }
 
-// INSTRUCTION: Define application traffic flow.
+// Modbus functions: FC 3 Read Holding Registers.
 flow modbus_read(c, s) {
     c -> s modbus func "readholdingregisters" addr 100 count 10 unitid 1
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     modbus_read(client, server)
 }

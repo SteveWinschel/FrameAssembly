@@ -1,19 +1,18 @@
-// PROMPT: Factory floor PLC authenticating its IEEE 802.1AR Initial Device Identifier (IDevID) TPM certificate via EAP-TLS on VLAN 60.
-// TOKENS: host, ip, mac, flow, vlan, pcp, eapol, version, type, start, wait, ms, eappacket, eapcode, eapid, eapmethod, identity, payload, compile
+// Factory floor PLC authenticating its IEEE 802.1AR Initial Device Identifier
+// (IDevID) TPM certificate via EAP-TLS on VLAN 60.
+// Wire profile: 6 frames; 2 IPv4 hosts; VLAN 60; PCP 6; EAPOL; waits 2ms, 5ms.
+// Wireshark: eapol || eap
 
-// INSTRUCTION: Define factory robotics controller PLC with embedded TPM 2.0 IDevID certificate.
 host robotics_plc_tpm {
     ip 192.168.60.15
     mac 00:0e:8c:3c:00:0f
 }
 
-// INSTRUCTION: Define industrial DIN-rail switch enforcing IEEE 802.1X on automation VLAN 60.
 host dinrail_ind_sw {
     ip 192.168.60.1
     mac 00:0e:8c:3c:00:01
 }
 
-// INSTRUCTION: Complete VLAN 60 tagged EAP-TLS (Method 13) IDevID hardware certificate verification.
 flow eapol_idevid_plc_auth(plc, sw) {
     plc -> sw vlan 60 pcp 6 eapol version 2 type start wait 2ms
     plc <- sw vlan 60 pcp 6 eapol version 2 type eappacket eapcode 1 eapid 7 eapmethod 1 wait 2ms
@@ -23,7 +22,6 @@ flow eapol_idevid_plc_auth(plc, sw) {
     plc <- sw vlan 60 pcp 6 eapol version 2 type eappacket eapcode 3 eapid 8 eapmethod 13
 }
 
-// INSTRUCTION: Compile the IEEE 802.1AR IDevID PLC EAP-TLS authentication trace.
 compile {
     eapol_idevid_plc_auth(robotics_plc_tpm, dinrail_ind_sw)
 }

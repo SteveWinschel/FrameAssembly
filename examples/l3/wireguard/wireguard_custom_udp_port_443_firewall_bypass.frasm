@@ -1,26 +1,28 @@
-// PROMPT: WireGuard tunnel operating over custom UDP port 443 to traverse restrictive guest Wi-Fi firewalls.
-// TOKENS: host, ip, mac, flow, wireguard, initiation, sender, srcport, dstport, df, ttl, wait, ms, type, response, receiver, data, counter, payload, compile
+// WireGuard tunnel operating over custom UDP port 443 to traverse restrictive
+// guest Wi-Fi firewalls.
+// This capture sets TTL 64, DF bit set, carries destination port 443/54321,
+// and uses post-packet wait gaps (5ms) between frames.
+// Wireshark: wg && udp.port == 443
 
-// INSTRUCTION: Define laptop WireGuard client binding to ephemeral source port and targeting UDP 443.
 host wg_roaming_laptop {
     ip 172.16.88.45
     mac 00:1c:b3:88:45:01
 }
 
-// INSTRUCTION: Define enterprise WireGuard gateway listening on UDP port 443.
 host wg_port443_gateway {
     ip 198.51.100.43
     mac 00:1c:b3:64:2b:02
 }
 
-// INSTRUCTION: Define WireGuard handshake and DATA over custom DSTPORT 443.
+// Packet sequence (3 frames); wait pauses after a packet before the next.
 flow wg_custom_port_443_flow(laptop, gw) {
     laptop -> gw wireguard initiation sender 44301 srcport 54321 dstport 443 df ttl 64 wait 5ms
     laptop <- gw wireguard type response sender 44302 receiver 44301 srcport 443 dstport 54321 df ttl 64 wait 5ms
     laptop -> gw wireguard data receiver 44302 counter 0 srcport 54321 dstport 443 df ttl 64 payload "SSH_SESSION_OVER_WG_PORT_443"
 }
 
-// INSTRUCTION: Compile the WireGuard custom UDP port 443 traversal flow.
+// Run wg_custom_port_443_flow(wg_roaming_laptop, wg_port443_gateway) to
+// generate the capture.
 compile {
     wg_custom_port_443_flow(wg_roaming_laptop, wg_port443_gateway)
 }

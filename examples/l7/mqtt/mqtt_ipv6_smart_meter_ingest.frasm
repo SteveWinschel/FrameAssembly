@@ -1,18 +1,18 @@
-// PROMPT: Smart utility meter publishing electrical telemetry to cloud MQTT broker over IPv6.
-// TOKENS: host, ip, flow, mqtt, publish, topic, clientid, compile
+// Smart utility meter publishing electrical telemetry to cloud MQTT broker
+// over IPv6.
+// Wireshark: mqtt
 
-// INSTRUCTION: Define IPv6 smart electric meter.
+// IPv6 smart electric meter.
 host v6_smart_meter { ip 2001:db8:beef::45 }
 
-// INSTRUCTION: Define utility IPv6 MQTT broker.
+// Utility IPv6 MQTT broker.
 host v6_utility_broker { ip 2001:db8:beef::1 }
 
-// INSTRUCTION: Define IPv6 telemetry publishing flow.
+// IPv6 telemetry publishing flow.
 flow v6_meter_publish(meter, brk) {
     meter -> brk mqtt publish topic "smartgrid/v6/meter45/voltage" clientid "meter-v6-45"
 }
 
-// INSTRUCTION: Compile IPv6 smart meter ingest scenario.
 compile {
     v6_meter_publish(v6_smart_meter, v6_utility_broker)
 }

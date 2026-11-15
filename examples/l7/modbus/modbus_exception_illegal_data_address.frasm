@@ -1,19 +1,23 @@
-// PROMPT: Simulate a Modbus exception response (Exception Code 02 Illegal Data Address) when an HMI polls an unmapped register block.
-// TOKENS: host, ip, mac, flow, s, modbus, txid, unitid, func, addr, count, wait, ms, isresponse, value, hexpayload, compile
+// Modbus exception response (Exception Code 02 Illegal Data Address) when an
+// HMI polls an unmapped register block.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define the engineering diagnostic laptop probing high register addresses.
+// Engineering diagnostic laptop probing high register addresses.
 host diag_laptop {
     ip 192.168.10.220
     mac 00:50:56:0a:00:dc
 }
 
-// INSTRUCTION: Define the VFD motor drive responding with an Illegal Data Address exception (0x83 0x02).
+// VFD motor drive responding with an Illegal Data Address exception (0x83
+// 0x02).
 host vfd_drive {
     ip 192.168.10.15
     mac 00:50:56:0a:00:0f
 }
 
-// INSTRUCTION: Query unmapped holding register 9999 (FC 03) to trigger exception 0x83 02, then query valid register 100.
+// Query unmapped holding register 9999 (FC 03) to trigger exception 0x83 02,
+// then query valid register 100. Modbus functions: FC 3 Read Holding
+// Registers.
 flow illegal_address_exception(c, s) {
     c -> s modbus txid 401 unitid 5 func "readholdingregisters" addr 9999 count 2 wait 3ms
     c <- s modbus txid 401 unitid 5 func "exception" isresponse value 2 hexpayload "8302" wait 15ms
@@ -21,7 +25,6 @@ flow illegal_address_exception(c, s) {
     c <- s modbus txid 402 unitid 5 func "readholdingregisters" isresponse value 1785
 }
 
-// INSTRUCTION: Compile the Modbus Illegal Data Address exception and recovery trace into a PCAP file.
 compile {
     illegal_address_exception(diag_laptop, vfd_drive)
 }

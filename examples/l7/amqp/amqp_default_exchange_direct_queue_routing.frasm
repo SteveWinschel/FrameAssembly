@@ -1,19 +1,21 @@
-// PROMPT: AMQP publication to the nameless default exchange ("") routing directly to queue billing_invoices.
-// TOKENS: host, ip, mac, flow, amqp, channelopen, channel, wait, ms, basicpublish, exchange, routingkey, payload, basicdeliver, compile
+// AMQP publication to the nameless default exchange ("") routing directly to
+// queue billing_invoices.
+// Wireshark: amqp
 
-// INSTRUCTION: Define the invoice PDF generator service.
+// Invoice PDF generator service.
 host pdf_service {
     ip 10.115.80.25
     mac 00:1a:2b:73:80:25
 }
 
-// INSTRUCTION: Define the internal RabbitMQ broker.
+// Internal RabbitMQ broker.
 host internal_rmq {
     ip 10.115.80.1
     mac 00:1a:2b:73:80:01
 }
 
-// INSTRUCTION: Publish directly to queue billing_invoices via the empty default exchange name.
+// Publish directly to queue billing_invoices via the empty default exchange
+// name.
 flow amqp_nameless_exchange(c, b) {
     c -> b amqp channelopen channel 1
     c <- b amqp channelopen channel 1 wait 1ms
@@ -21,7 +23,6 @@ flow amqp_nameless_exchange(c, b) {
     c <- b amqp basicdeliver channel 1 exchange "" routingkey "billing_invoices" payload "{'invoice_no':'INV-2026-8841'}"
 }
 
-// INSTRUCTION: Compile the AMQP default nameless exchange routing flow.
 compile {
     amqp_nameless_exchange(pdf_service, internal_rmq)
 }

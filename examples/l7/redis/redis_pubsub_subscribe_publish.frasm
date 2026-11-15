@@ -1,28 +1,24 @@
-// PROMPT: Redis Pub/Sub real-time event streaming using SUBSCRIBE and PUBLISH commands.
-// TOKENS: host, ip, flow, redis, cmd, args, wait, ms, compile
+// Redis Pub/Sub real-time event streaming using SUBSCRIBE and PUBLISH
+// commands.
+// Timing: runs 2 cycles in compile using post-packet waits (2ms).
+// Wireshark: resp
 
-// INSTRUCTION: Define notification subscriber service.
 host notif_sub { ip 10.71.0.21 }
 
-// INSTRUCTION: Define notification publisher service.
 host notif_pub { ip 10.71.0.22 }
 
-// INSTRUCTION: Define central Redis Pub/Sub broker.
 host pubsub_redis { ip 10.71.0.1 }
 
-// INSTRUCTION: Define SUBSCRIBE registration flow.
 flow redis_subscribe_chan(sub, brk) {
     sub -> brk redis cmd "SUBSCRIBE" args "alerts:security" wait 2ms
     sub <- brk redis cmd "SUBSCRIBED" args "alerts:security"
 }
 
-// INSTRUCTION: Define PUBLISH broadcast flow.
 flow redis_publish_event(pub_node, brk) {
     pub_node -> brk redis cmd "PUBLISH" args "alerts:security intrusion_detected" wait 2ms
     pub_node <- brk redis cmd "INTEGER" args "1"
 }
 
-// INSTRUCTION: Compile SUBSCRIBE followed by PUBLISH.
 compile {
     redis_subscribe_chan(notif_sub, pubsub_redis)
     redis_publish_event(notif_pub, pubsub_redis)

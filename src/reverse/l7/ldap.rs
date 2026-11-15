@@ -41,10 +41,11 @@ fn parse_ber_tlv(input: &[u8]) -> Option<(u8, &[u8], &[u8])> {
         }
         (l, 2 + num_octets)
     };
-    if input.len() < hdr_len + len {
+    let end = hdr_len.checked_add(len)?;
+    if input.len() < end {
         return None;
     }
-    Some((tag, &input[hdr_len..hdr_len + len], &input[hdr_len + len..]))
+    Some((tag, &input[hdr_len..end], &input[end..]))
 }
 
 /// Parses a signed ASN.1 BER/DER INTEGER body into an `i64`.
@@ -188,6 +189,10 @@ pub(crate) fn dissect_ldap(
         protocol: Protocol::Ldap,
         tokens,
         residual_payload: residual.to_vec(),
-        explicit_transport: None,
+        explicit_transport: if matches!(transport, TransportProto::Udp) {
+            Some(TransportProto::Udp)
+        } else {
+            None
+        },
     })
 }

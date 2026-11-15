@@ -1,18 +1,15 @@
-// PROMPT: IPFIX export datagram specifying observation domain ID for flow tracking.
-// TOKENS: host, ip, flow, s, ipfix, domainid, srcip, dstip, proto, compile
+// IPFIX export datagram specifying observation domain ID for flow tracking.
+// Wireshark: cflow || udp.port == 4739
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 10.1.1.1 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 10.1.1.200 }
 
-// INSTRUCTION: Define application traffic flow.
+// Reports IP protocol 17 (UDP) flow records to UDP 4739.
 flow ipfix_domain(c, s) {
     c -> s ipfix domainid 100 srcip 10.10.1.5 dstip 10.10.2.5 proto 17
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     ipfix_domain(client, server)
 }

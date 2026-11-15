@@ -1,20 +1,22 @@
-// PROMPT: Explicit MSG_TYPE keyword overrides testing SYNC, FOLLOW_UP, and ANNOUNCE over MPLS.
-// TOKENS: host, ip, flow, ptp, msgtype, domain, seqid, clockid, mpls, exp, bos, mplsttl, wait, ms, compile
+// Explicit MSG_TYPE keyword overrides testing SYNC, FOLLOW_UP, and ANNOUNCE
+// over MPLS.
+// Encapsulation and QoS markings: MPLS label 31900.
+// IEEE 1588v2 PTP (domain 44). UDP 319 handles Event messages (sync,
+// delayreq) and UDP 320 carries General messages (announce, followup,
+// delayresp).
+// Timing: uses post-packet wait delays (2ms, 1ms) between frames.
+// Wireshark: ptp && mpls
 
-// INSTRUCTION: Define core network timing hub.
 host core_timing { ip 10.200.158.1 }
 
-// INSTRUCTION: Define edge aggregation switch clock.
 host edge_clock { ip 10.200.158.50 }
 
-// INSTRUCTION: Define PTP frames using explicit MSG_TYPE strings and MPLS EXP 7.
 flow ptp_msg_type_mpls(hub, edge) {
     hub -> edge ptp msgtype "announce" domain 44 seqid 1 clockid "COREHUB1" mpls 31900 exp 7 bos 1 mplsttl 64 wait 2ms
     hub -> edge ptp msgtype "sync" domain 44 seqid 1 clockid "COREHUB1" mpls 31900 exp 7 bos 1 mplsttl 64 wait 1ms
     hub -> edge ptp msgtype "followup" domain 44 seqid 1 clockid "COREHUB1" mpls 31900 exp 7 bos 1 mplsttl 64
 }
 
-// INSTRUCTION: Compile MPLS-encapsulated PTP MSG_TYPE flow.
 compile {
     ptp_msg_type_mpls(core_timing, edge_clock)
 }

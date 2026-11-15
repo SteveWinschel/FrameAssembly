@@ -1,19 +1,19 @@
-// PROMPT: SMB2 RPC over named pipe spoolss for network print job submission over IPC$ share.
-// TOKENS: host, ip, mac, flow, s, smb, command, treeid, sessionid, msgid, filename, status, wait, ms, payload, compile
+// SMB2 RPC over named pipe spoolss for network print job submission over IPC$
+// share.
+// SMB2 over NetBIOS TCP 445 with NT status code(s): 0 (STATUS_SUCCESS).
+// Timing: pauses 2ms after each marked packet before sending the next frame.
+// Wireshark: smb2
 
-// INSTRUCTION: Define the office workstation spooling a print document.
 host print_client {
     ip 10.60.30.80
     mac 00:1a:2b:60:30:80
 }
 
-// INSTRUCTION: Define the Windows print spooler server.
 host print_server {
     ip 10.60.30.12
     mac 00:1a:2b:60:30:12
 }
 
-// INSTRUCTION: Open the spoolss pipe on IPC$, write RPC print data, and close the pipe handle.
 flow smb_print_spool(c, s) {
     c -> s smb command "create" treeid 3 sessionid 4010 msgid 10 filename "spoolss"
     c <- s smb command "create" status 0 treeid 3 sessionid 4010 msgid 10 wait 2ms
@@ -23,7 +23,6 @@ flow smb_print_spool(c, s) {
     c <- s smb command "close" status 0 treeid 3 sessionid 4010 msgid 12
 }
 
-// INSTRUCTION: Compile the SMB2 print spooler named pipe flow.
 compile {
     smb_print_spool(print_client, print_server)
 }

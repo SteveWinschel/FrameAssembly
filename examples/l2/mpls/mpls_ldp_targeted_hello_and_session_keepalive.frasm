@@ -1,26 +1,25 @@
-// PROMPT: RFC 5036 Label Distribution Protocol (LDP) targeted UDP discovery (port 646) and TCP session keepalive over MPLS core.
-// TOKENS: host, ip, mac, flow, dscp, udp, srcport, dstport, hexpayload, wait, ms, mpls, exp, bos, mplsttl, tcp, psh, ack, seq, acknum, win, compile
+// RFC 5036 Label Distribution Protocol (LDP) targeted UDP discovery (port 646)
+// and TCP session keepalive over MPLS core.
+// Wire profile: 3 frames; 2 IPv4 hosts; MPLS label 16006; TCP, UDP; TCP flags
+// ACK/PSH; dstport 646; DSCP 48; waits 5ms.
+// Wireshark: mpls.label == 16006
 
-// INSTRUCTION: Define LSR A initiating targeted LDP discovery and session maintenance on port 646.
 host ldp_lsr_alpha {
     ip 10.64.6.1
     mac 00:1c:73:40:06:01
 }
 
-// INSTRUCTION: Define remote LSR B responding to targeted LDP Hello and TCP 646 KeepAlive.
 host ldp_lsr_beta {
     ip 10.64.6.2
     mac 00:1c:73:40:06:02
 }
 
-// INSTRUCTION: Exchange targeted LDP Hello over UDP 646 and LDP KeepAlive over TCP 646 with MPLS label 16006.
 flow mpls_ldp_session_sync(a, b) {
     a -> b dscp 48 udp srcport 646 dstport 646 hexpayload "0001001c010000140000000104000004000f8000" wait 5ms
     a <- b dscp 48 udp srcport 646 dstport 646 hexpayload "0001001c010000140000000204000004000f8000" wait 5ms
     a -> b mpls 16006 exp 6 bos 1 mplsttl 64 dscp 48 tcp psh ack srcport 51646 dstport 646 seq 1 acknum 1 win 16384 hexpayload "0001000a0201000400000001"
 }
 
-// INSTRUCTION: Compile the RFC 5036 LDP discovery and session keepalive trace.
 compile {
     mpls_ldp_session_sync(ldp_lsr_alpha, ldp_lsr_beta)
 }

@@ -28,7 +28,7 @@ pub fn build_syslog_payload(
     } else {
         let facility = spec.facility.unwrap_or(1); // default 1: user-level
         let severity = spec.severity.unwrap_or(6); // default 6: informational
-        (facility * 8) + severity
+        ((u16::from(facility) * 8) + u16::from(severity)).min(191) as u8
     };
 
     let hostname = spec.hostname.map(|s| s.to_string()).unwrap_or_else(|| ctx.src_ip.to_string());

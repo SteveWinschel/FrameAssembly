@@ -1,18 +1,16 @@
-// PROMPT: Constrained Application Protocol RESTful request over UDP 5683 with confirmable GET message.
-// TOKENS: host, ip, flow, s, coap, con, get, uripath, compile
+// Constrained Application Protocol RESTful request over UDP 5683 with
+// confirmable GET message.
+// Wireshark: coap
 
-// INSTRUCTION: Define low-power CoAP client node.
 host coap_node { ip 2001:db8:5683::1 }
 
-// INSTRUCTION: Define CoAP edge gateway server.
 host coap_server { ip 2001:db8:5683::2 }
 
-// INSTRUCTION: Define CoAP confirmable telemetry GET flow.
+// CoAP confirmable telemetry GET flow.
 flow coap_flow(c, s) {
     c -> s coap con get uripath "/telemetry"
 }
 
-// INSTRUCTION: Compile block executing CoAP request.
 compile {
     coap_flow(coap_node, coap_server)
 }

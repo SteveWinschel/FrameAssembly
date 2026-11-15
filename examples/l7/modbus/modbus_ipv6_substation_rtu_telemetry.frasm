@@ -1,18 +1,18 @@
-// PROMPT: Modern electrical substation RTU communication running Modbus TCP over IPv6.
-// TOKENS: host, ip, flow, modbus, func, addr, count, unitid, compile
+// Modern electrical substation RTU communication running Modbus TCP over
+// IPv6.
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define electrical grid control center.
+// Electrical grid control center.
 host grid_control { ip 2001:db8:5ca0::10 }
 
-// INSTRUCTION: Define smart grid feeder RTU.
+// Smart grid feeder RTU.
 host feeder_rtu { ip 2001:db8:5ca0::200 }
 
-// INSTRUCTION: Define IPv6 Modbus telemetry flow.
+// IPv6 Modbus telemetry flow. Modbus functions: FC 3 Read Holding Registers.
 flow v6_substation_poll(ctrl, rtu) {
     ctrl -> rtu modbus func "readholdingregisters" addr 1000 count 8 unitid 5
 }
 
-// INSTRUCTION: Compile IPv6 substation telemetry scenario.
 compile {
     v6_substation_poll(grid_control, feeder_rtu)
 }

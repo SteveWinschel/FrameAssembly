@@ -1,18 +1,15 @@
-// PROMPT: RTSP 200 OK status response confirming media control over IPv6.
-// TOKENS: host, ip, flow, s, rtsp, cseq, status, session, compile
+// RTSP 200 OK status response confirming media control over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Wireshark: rtsp
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::15 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow rtsp_resp(c, s) {
     c <- s rtsp cseq 3 status 200 session "Q192837465"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     rtsp_resp(client, server)
 }

@@ -1,13 +1,13 @@
-// PROMPT: DNS TXT record query verifying SPF and DMARC email authentication policies.
-// TOKENS: host, ip, flow, dns, query, txid, qname, qtype, response, rdata, ansttl, compile
+// DNS TXT record query verifying SPF and DMARC email authentication policies.
+// Wireshark: dns
 
-// INSTRUCTION: Define email security gateway verifying sender SPF policy.
+// Email security gateway verifying sender SPF policy.
 host mail_filter { ip 10.50.10.12 }
 
-// INSTRUCTION: Define recursive DNS cache server.
 host dns_cache { ip 10.50.10.1 }
 
-// INSTRUCTION: Query SPF and DMARC TXT records in sequence.
+// Query SPF and DMARC TXT records in sequence. DNS wire details: record types
+// TXT.
 flow dns_txt_spf_dmarc(f, d) {
     f -> d dns query txid 0x3101 qname "example.com" qtype "txt"
     f <- d dns response txid 0x3101 qname "example.com" qtype "txt" rdata "v=spf1 include:_spf.example.com -all" ansttl 1800
@@ -15,7 +15,6 @@ flow dns_txt_spf_dmarc(f, d) {
     f <- d dns response txid 0x3102 qname "_dmarc.example.com" qtype "txt" rdata "v=DMARC1; p=reject;" ansttl 1800
 }
 
-// INSTRUCTION: Compile the DNS TXT SPF and DMARC verification flow.
 compile {
     dns_txt_spf_dmarc(mail_filter, dns_cache)
 }

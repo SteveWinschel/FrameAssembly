@@ -1,19 +1,22 @@
-// PROMPT: Model an SSH session on a custom non-standard port 2222 for a Git server container over VLAN 220.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, vlan, ack, ssh, banner, kexinit, payload, compile
+// Model an SSH session on a custom non-standard port 2222 for a Git server
+// container over VLAN 220.
+// Encapsulation and QoS markings: 802.1Q VLAN 220.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// SSH RFC 4253 framing on TCP 22.
+// Overrides destination port to 2222, 56222.
+// Wireshark: (ssh || tcp.port == 2222 || tcp.port == 56222) && vlan.id == 220
 
-// INSTRUCTION: Define host endpoint git_client.
 host git_client {
     mac 00:0c:29:22:22:01
     ip 10.220.0.15
 }
 
-// INSTRUCTION: Define host endpoint gitea_srv.
 host gitea_srv {
     mac 00:0c:29:22:22:99
     ip 10.220.0.99
 }
 
-// INSTRUCTION: Connect to custom TCP port 2222 on VLAN 220 and exchange SSH-2.0 banners and KEXINIT.
 flow ssh_custom_port_2222_git(git_client, gitea_srv) {
     git_client -> gitea_srv tcp syn srcport 56222 dstport 2222 vlan 220
     gitea_srv -> git_client tcp syn ack vlan 220
@@ -24,7 +27,6 @@ flow ssh_custom_port_2222_git(git_client, gitea_srv) {
     gitea_srv -> git_client dstport 56222 srcport 2222 ssh kexinit payload "100f0e0d0c0b0a090807060504030201" vlan 220
 }
 
-// INSTRUCTION: Compile the custom port 2222 Git SSH flow.
 compile {
     ssh_custom_port_2222_git(git_client, gitea_srv)
 }

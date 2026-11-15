@@ -1,26 +1,25 @@
-// PROMPT: RFC 8029 MPLS LSP Ping and Traceroute using MPLS TTL 1 expiry and UDP port 3503 echo request.
-// TOKENS: host, ip, mac, flow, lsr, mpls, exp, bos, mplsttl, udp, srcport, dstport, payload, icmp, timeexceeded, code, wait, ms, compile
+// RFC 8029 MPLS LSP Ping and Traceroute using MPLS TTL 1 expiry and UDP port 3503
+// echo request.
+// Wire profile: 3 frames; 2 IPv4 hosts; MPLS label 16001; ICMP, UDP; dstport
+// 3503; waits 2ms.
+// Wireshark: mpls.label == 16001
 
-// INSTRUCTION: Define headend ingress LER initiating MPLS LSP traceroute.
 host headend_ler {
     ip 10.200.1.1
     mac 00:05:85:c8:01:01
 }
 
-// INSTRUCTION: Define transit LSR hop 1 where MPLS_TTL 1 expires.
 host transit_lsr_hop1 {
     ip 10.200.1.2
     mac 00:05:85:c8:01:02
 }
 
-// INSTRUCTION: Define MPLS LSP Ping probe on UDP port 3503 with MPLS_TTL 1 and ICMP Time Exceeded response.
 flow mpls_lsp_traceroute(ler, lsr) {
-    ler -> lsr mpls 16001 exp 6 bos 1 mplsttl 1 udp srcport 49152 dstport 3503 payload "rfc8029_mpls_echo_req_fec_10_200_1_99"
+    ler -> lsr mpls 16001 exp 6 bos 1 mplsttl 1 udp srcport 49152 dstport 3503 payload "rfc8029_mpls_echo_req_fec_10_200_1_99" wait 2ms
     ler <- lsr icmp timeexceeded code 0 wait 2ms
-    ler -> lsr mpls 16001 exp 6 bos 1 mplsttl 2 udp srcport 49152 dstport 3503 payload "rfc8029_mpls_echo_req_hop2" wait 2ms
+    ler -> lsr mpls 16001 exp 6 bos 1 mplsttl 2 udp srcport 49152 dstport 3503 payload "rfc8029_mpls_echo_req_hop2"
 }
 
-// INSTRUCTION: Compile block executing MPLS LSP Ping and TTL expiry traceroute.
 compile {
     mpls_lsp_traceroute(headend_ler, transit_lsr_hop1)
 }

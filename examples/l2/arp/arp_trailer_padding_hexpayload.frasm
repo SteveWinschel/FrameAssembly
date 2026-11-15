@@ -1,25 +1,23 @@
-// PROMPT: Industrial Ethernet ARP resolution with trailing diagnostic trailer payload for switch padding inspection.
-// TOKENS: host, ip, mac, flow, arp, request, hexpayload, reply, wait, ms, compile
+// Industrial Ethernet ARP resolution with trailing diagnostic trailer payload for
+// switch padding inspection.
+// Wire profile: 2 frames; 2 IPv4 hosts; ARP; waits 2ms.
+// Wireshark: arp
 
-// INSTRUCTION: Define industrial PLC controller on plant floor subnet.
 host plc_master {
     ip 192.168.250.10
     mac 00:0e:8c:fa:00:0a
 }
 
-// INSTRUCTION: Define remote I/O island coupler on plant floor subnet.
 host rio_coupler {
     ip 192.168.250.20
     mac 00:0e:8c:fa:00:14
 }
 
-// INSTRUCTION: Define ARP request and reply with explicit Ethernet trailer padding bytes.
 flow industrial_padded_arp(plc, rio) {
-    plc -> rio arp request hexpayload "000000000000000000000000000000000000"
-    plc <- rio arp reply hexpayload "a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5" wait 2ms
+    plc -> rio arp request hexpayload "000000000000000000000000000000000000" wait 2ms
+    plc <- rio arp reply hexpayload "a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5"
 }
 
-// INSTRUCTION: Compile block executing padded ARP frame exchange.
 compile {
     industrial_padded_arp(plc_master, rio_coupler)
 }

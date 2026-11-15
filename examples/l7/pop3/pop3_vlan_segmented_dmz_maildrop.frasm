@@ -1,19 +1,19 @@
-// PROMPT: Simulate a POP3 mail retrieval session across DMZ VLAN 210 with IEEE 802.1p priority tagging.
-// TOKENS: host, ip, mac, flow, s, pop3, cmd, arg, vlan, pcp, wait, ms, ok, response, payload, compile
+// Simulate a POP3 mail retrieval session across DMZ VLAN 210 with IEEE 802.1p
+// priority tagging.
+// Encapsulation and QoS markings: 802.1Q VLAN 210, 802.1p priority 3.
+// Timing: uses post-packet wait delays (2ms, 3ms) between frames.
+// Wireshark: pop && vlan.id == 210
 
-// INSTRUCTION: Define the internal mail collector on DMZ VLAN 210.
 host dmz_collector {
     ip 172.16.210.20
     mac 00:1b:21:d2:00:14
 }
 
-// INSTRUCTION: Define the DMZ POP3 bastion server on VLAN 210.
 host dmz_pop3_srv {
     ip 172.16.210.5
     mac 00:1b:21:d2:00:05
 }
 
-// INSTRUCTION: Authenticate, retrieve message 1, and close session over VLAN 210 PCP 3.
 flow pop3_dmz_vlan_session(c, s) {
     c -> s pop3 cmd "USER" arg "dmz_ingest" vlan 210 pcp 3 wait 2ms
     c <- s pop3 ok response "User accepted" vlan 210 pcp 3 wait 2ms
@@ -27,7 +27,6 @@ ISA*00*
 " vlan 210 pcp 3
 }
 
-// INSTRUCTION: Compile the DMZ VLAN 210 POP3 retrieval flow.
 compile {
     pop3_dmz_vlan_session(dmz_collector, dmz_pop3_srv)
 }

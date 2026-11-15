@@ -1,31 +1,28 @@
-// PROMPT: Smart home Matter/UPnP local discovery and automation topology combining mDNS, SSDP M-SEARCH, TLS 1.3, and WebSocket event push.
-// TOKENS: host, ip, flow, app, mdns, qname, rdata, wait, ms, ssdp, msearch, st, notify, nt, location, tls, clienthello, serverhello, websocket, opcode, finbit, payload, compile
+// Smart home Matter/UPnP local discovery and automation topology combining mDNS,
+// SSDP M-SEARCH, TLS 1.3, and WebSocket event push.
+// Wire profile: 8 frames; 4 IPv4 hosts; mDNS, WebSocket, TLS, SSDP; waits 2ms,
+// 1ms.
+// Wireshark: mdns || websocket || tls || ssdp
 
-// INSTRUCTION: Define mobile smart home controller app on local Wi-Fi.
 host mobile_home_app { ip 192.168.1.50 }
 
-// INSTRUCTION: Define smart home Matter/Zigbee bridge hub.
 host smart_matter_hub { ip 192.168.1.10 }
 
-// INSTRUCTION: Define mDNS multicast group 224.0.0.251.
 host mdns_mcast_grp { ip 224.0.0.251 }
 
-// INSTRUCTION: Define SSDP UPnP multicast group 239.255.255.250.
 host ssdp_mcast_grp { ip 239.255.255.250 }
 
-// INSTRUCTION: Define mDNS and SSDP local discovery followed by direct TLS and WebSocket state subscription to the hub.
 flow smart_home_discovery_and_control(app, hub, mdns_grp, ssdp_grp) {
-    app -> mdns_grp mdns qname "_matter._tcp.local"
+    app -> mdns_grp mdns qname "_matter._tcp.local" wait 2ms
     hub -> mdns_grp mdns qname "_matter._tcp.local" rdata "192.168.1.10" wait 2ms
     app -> ssdp_grp ssdp msearch st "urn:schemas-upnp-org:device:Basic:1" wait 2ms
     hub -> app ssdp notify nt "urn:schemas-upnp-org:device:Basic:1" location "http://192.168.1.10:8080/desc.xml" wait 2ms
-    app -> hub tls clienthello wait 2ms
-    app <- hub tls serverhello wait 1ms
+    app -> hub tls clienthello wait 1ms
+    app <- hub tls serverhello wait 2ms
     app -> hub websocket opcode "text" finbit 1 payload "{\"cmd\":\"set_scene\",\"scene\":\"evening_warm\"}" wait 2ms
-    app <- hub websocket opcode "text" finbit 1 payload "{\"event\":\"scene_active\",\"lights_on\":6}" wait 2ms
+    app <- hub websocket opcode "text" finbit 1 payload "{\"event\":\"scene_active\",\"lights_on\":6}"
 }
 
-// INSTRUCTION: Compile block executing smart home mDNS, SSDP, TLS, and WebSocket topology.
 compile {
     smart_home_discovery_and_control(mobile_home_app, smart_matter_hub, mdns_mcast_grp, ssdp_mcast_grp)
 }

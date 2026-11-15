@@ -1,18 +1,19 @@
-// PROMPT: QinQ dual-tagged ICMP Fragmentation Needed notification across service provider bridge.
-// TOKENS: host, ip, flow, icmp, destunreach, code, qinq, innervlan, compile
+// QinQ dual-tagged ICMP Fragmentation Needed notification across service
+// provider bridge.
+// This capture wraps frames in QinQ S-VLAN 1000 / C-VLAN 50.
+// Wireshark: icmp
 
-// INSTRUCTION: Define carrier Ethernet PE router.
 host carrier_pe_rtr { ip 10.77.0.1 }
 
-// INSTRUCTION: Define customer edge router receiving PMTU alert.
 host customer_ce_rtr { ip 10.77.0.2 }
 
-// INSTRUCTION: Define QinQ encapsulated ICMP Fragmentation Needed notification flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow icmp_qinq_pmtu_flow(pe, ce) {
     pe -> ce icmp destunreach code 4 qinq 1000 innervlan 50
 }
 
-// INSTRUCTION: Compile block executing QinQ encapsulated ICMP error.
+// Run icmp_qinq_pmtu_flow(carrier_pe_rtr, customer_ce_rtr) to generate the
+// capture.
 compile {
     icmp_qinq_pmtu_flow(carrier_pe_rtr, customer_ce_rtr)
 }

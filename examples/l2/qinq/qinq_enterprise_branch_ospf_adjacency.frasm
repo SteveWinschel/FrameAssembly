@@ -1,28 +1,27 @@
-// PROMPT: Enterprise branch OSPFv2 adjacency and LSDB synchronization tunneled across a QinQ L2VPN.
-// TOKENS: host, ip, mac, flow, qinq, innervlan, ospf, hello, routerid, areaid, wait, ms, dbd, lsu, lsack, compile
+// Enterprise branch OSPFv2 adjacency and LSDB synchronization tunneled across a
+// QinQ L2VPN.
+// Wire profile: 5 frames; 2 IPv4 hosts; QinQ S-VLAN 850 / C-VLAN 12; OSPF; waits
+// 2ms, 3ms, 1ms.
+// Wireshark: vlan.id == 850 && vlan.id == 12
 
-// INSTRUCTION: Define enterprise core router at regional hub.
 host hub_ospf_rtr {
     ip 10.99.1.1
     mac 00:1e:be:99:01:01
 }
 
-// INSTRUCTION: Define enterprise branch router connected via carrier QinQ L2VPN.
 host branch_ospf_rtr {
     ip 10.99.1.2
     mac 00:1e:be:99:01:02
 }
 
-// INSTRUCTION: Define OSPFv2 Hello, Database Description, and Link State Update over QinQ S-Tag 850 C-Tag 12.
 flow qinq_ospf_adjacency(hub, branch) {
-    hub -> branch qinq 850 innervlan 12 ospf hello routerid 10.99.1.1 areaid 0
-    hub <- branch qinq 850 innervlan 12 ospf hello routerid 10.99.1.2 areaid 0 wait 2ms
+    hub -> branch qinq 850 innervlan 12 ospf hello routerid 10.99.1.1 areaid 0 wait 2ms
+    hub <- branch qinq 850 innervlan 12 ospf hello routerid 10.99.1.2 areaid 0 wait 3ms
     hub -> branch qinq 850 innervlan 12 ospf dbd routerid 10.99.1.1 areaid 0 wait 3ms
-    hub <- branch qinq 850 innervlan 12 ospf lsu routerid 10.99.1.2 areaid 0 wait 3ms
-    hub -> branch qinq 850 innervlan 12 ospf lsack routerid 10.99.1.1 areaid 0 wait 1ms
+    hub <- branch qinq 850 innervlan 12 ospf lsu routerid 10.99.1.2 areaid 0 wait 1ms
+    hub -> branch qinq 850 innervlan 12 ospf lsack routerid 10.99.1.1 areaid 0
 }
 
-// INSTRUCTION: Compile block executing OSPF adjacency over QinQ L2VPN.
 compile {
     qinq_ospf_adjacency(hub_ospf_rtr, branch_ospf_rtr)
 }

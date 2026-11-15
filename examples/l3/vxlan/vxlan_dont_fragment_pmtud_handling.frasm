@@ -1,18 +1,19 @@
-// PROMPT: VXLAN underlay packet with Don't Fragment (DF) flag set for Path MTU Discovery.
-// TOKENS: host, ip, flow, vxlan, vni, df, ttl, compile
+// VXLAN underlay packet with Don't Fragment (DF) flag set for Path MTU
+// Discovery.
+// This capture sets TTL 64, DF bit set and carries VNI 30303.
+// Wireshark: vxlan && vxlan.vni == 30303
 
-// INSTRUCTION: Define PMTUD probing VTEP gateway.
 host pmtud_vtep_gw { ip 172.17.0.1 }
 
-// INSTRUCTION: Define remote VTEP terminating endpoint.
 host pmtud_remote_vtep { ip 172.17.0.2 }
 
-// INSTRUCTION: Define DF flag enabled VXLAN underlay transmission flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow vxlan_pmtud_flow(gw, rem) {
     gw -> rem vxlan vni 30303 df ttl 64
 }
 
-// INSTRUCTION: Compile block executing PMTUD enabled VXLAN encapsulation.
+// Run vxlan_pmtud_flow(pmtud_vtep_gw, pmtud_remote_vtep) to generate the
+// capture.
 compile {
     vxlan_pmtud_flow(pmtud_vtep_gw, pmtud_remote_vtep)
 }

@@ -1,18 +1,19 @@
-// PROMPT: 802.1Q tagged OpenFlow control channel running on out-of-band management VLAN 99.
-// TOKENS: host, ip, flow, openflow, type, hello, vlan, pcp, dei, compile
+// 802.1Q tagged OpenFlow control channel running on out-of-band management
+// VLAN 99.
+// This capture wraps frames in 802.1Q VLAN 99.
+// Wireshark: (openflow_v4 || openflow_v1) && vlan.id == 99
 
-// INSTRUCTION: Define out-of-band network controller.
 host oob_sdn_controller { ip 192.168.99.1 }
 
-// INSTRUCTION: Define remote rack switch management interface.
 host rack_mgmt_switch { ip 192.168.99.20 }
 
-// INSTRUCTION: Define VLAN 99 tagged OpenFlow HELLO flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow of_vlan_control_flow(ctrl, sw) {
     ctrl -> sw openflow type hello vlan 99 pcp 5 dei 0
 }
 
-// INSTRUCTION: Compile block executing VLAN tagged OpenFlow session setup.
+// Run of_vlan_control_flow(oob_sdn_controller, rack_mgmt_switch) to generate
+// the capture.
 compile {
     of_vlan_control_flow(oob_sdn_controller, rack_mgmt_switch)
 }

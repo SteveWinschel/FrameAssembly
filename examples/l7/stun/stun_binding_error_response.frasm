@@ -1,18 +1,18 @@
-// PROMPT: STUN Binding Error Response indicating unauthenticated request over IPv6.
-// TOKENS: host, ip, flow, s, stun, bindingerror, software, compile
+// STUN Binding Error Response indicating unauthenticated request over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Compile with 'frameassembly <file>.frasm' or inspect timestamps and ports
+// before writing a capture with 'frameassembly show <file>.frasm' (STUN (RFC
+// 8489), UDP 3478).
+// Wireshark: stun
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::100 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow stun_err(c, s) {
     c <- s stun bindingerror software "coturn-server"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     stun_err(client, server)
 }

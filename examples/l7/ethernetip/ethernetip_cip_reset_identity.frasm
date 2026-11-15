@@ -1,19 +1,20 @@
-// PROMPT: EtherNet/IPCIP Reset service (Service 5) targeting Identity Object to reboot a faulted adapter.
-// TOKENS: host, ip, flow, m, ethernetip, cmd, sessionhandle, cipservice, cipclass, cipinstance, cipattr, df, ttl, status, compile
+// EtherNet/IPCIP Reset service (Service 5) targeting Identity Object to
+// reboot a faulted adapter.
+// Wireshark: enip || cip
 
-// INSTRUCTION: Define maintenance engineering station.
+// Maintenance engineering station.
 host maint_station { ip 192.168.99.5 }
 
-// INSTRUCTION: Define faulted ArmorBlock I/O module.
+// Faulted ArmorBlock I/O module.
 host armor_block { ip 192.168.99.88 }
 
-// INSTRUCTION: Send CIP Reset Service (5) to Identity Object (Class 1, Instance 1) with DF bit set.
+// Send CIP Reset Service (5) to Identity Object (Class 1, Instance 1) with DF
+// bit set.
 flow enip_cip_reset_device(m, a) {
     m -> a ethernetip cmd "sendrrdata" sessionhandle 999 cipservice 5 cipclass 1 cipinstance 1 cipattr 0 df ttl 64
     m <- a ethernetip cmd "sendrrdata" sessionhandle 999 status 0 df ttl 64
 }
 
-// INSTRUCTION: Compile the EtherNet/IP CIP device reset flow.
 compile {
     enip_cip_reset_device(maint_station, armor_block)
 }

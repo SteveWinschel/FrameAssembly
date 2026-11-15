@@ -9,7 +9,7 @@
 use alloc::string::String;
 
 use crate::ast::Protocol;
-use crate::reverse::{ProtocolDissection, be_u16, be_u32, ipv4_at};
+use crate::reverse::{ProtocolDissection, be_u16, be_u32, ipv4_at, push_if};
 
 use super::{append_flow_record_tokens, ok_dissect};
 
@@ -34,5 +34,7 @@ pub(crate) fn dissect_netflow(payload: &[u8], sp: u16, dp: u16) -> Option<Protoc
         be_u32(payload, 40),
         be_u32(payload, 44),
     );
+    push_if(&mut tokens, "srcport", be_u16(payload, 56), 0);
+    push_if(&mut tokens, "dstport", be_u16(payload, 58), 0);
     ok_dissect(Protocol::Netflow, tokens, payload[72..].to_vec())
 }

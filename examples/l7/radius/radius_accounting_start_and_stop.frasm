@@ -1,19 +1,19 @@
-// PROMPT: RADIUS session accounting request with Service-Type attribute over IPv6.
-// TOKENS: host, ip, flow, s, radius, accountingrequest, user, servicetype, accountingresponse, compile
+// RADIUS session accounting request with Service-Type attribute over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting
+// (accountingrequest, accountingresponse) with Service-Type 2 (Framed
+// (802.1X)).
+// Wireshark: radius
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow radius_acct(c, s) {
     c -> s radius accountingrequest user "bob" servicetype 2
     c <- s radius accountingresponse
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     radius_acct(client, server)
 }

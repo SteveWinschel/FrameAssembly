@@ -1,19 +1,20 @@
-// PROMPT: Model an SMTP BDAT CHUNKING (RFC 3030) transaction transmitting message data without dot-stuffing.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, ack, smtp, code, reply, ehlo, mailfrom, param, rcptto, cmd, quit, compile
+// Model an SMTP BDAT CHUNKING (RFC 3030) transaction transmitting message
+// data without dot-stuffing.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Overrides destination port to 25.
+// Wireshark: smtp
 
-// INSTRUCTION: Define the Exchange connector client and receiving ESMTP server.
 host exch_client {
     mac 00:15:5d:25:30:01
     ip 10.65.1.15
 }
 
-// INSTRUCTION: Define the esmtp_srv mail endpoint.
 host esmtp_srv {
     mac 00:15:5d:25:30:02
     ip 10.65.1.2
 }
 
-// INSTRUCTION: Negotiate CHUNKING via EHLO and transmit a message chunk using BDAT 64 LAST.
 flow smtp_bdat_chunking_flow(exch_client, esmtp_srv) {
     exch_client -> esmtp_srv tcp syn srcport 61025 dstport 25
     esmtp_srv -> exch_client tcp syn ack
@@ -31,7 +32,6 @@ flow smtp_bdat_chunking_flow(exch_client, esmtp_srv) {
     esmtp_srv -> exch_client smtp code 221 reply "2.0.0 Service closing transmission channel"
 }
 
-// INSTRUCTION: Compile the SMTP BDAT CHUNKING flow.
 compile {
     smtp_bdat_chunking_flow(exch_client, esmtp_srv)
 }

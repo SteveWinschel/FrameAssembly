@@ -1,18 +1,16 @@
-// PROMPT: Network WAN transport over single MPLS label stack with experimental bits and TTL.
-// TOKENS: host, ip, flow, mpls, exp, bos, mplsttl, udp, payload, compile
+// Network WAN transport over single MPLS label stack with experimental bits and
+// TTL.
+// Wire profile: 1 frame; 2 IPv4 hosts; MPLS label 100; UDP.
+// Wireshark: mpls.label == 100
 
-// INSTRUCTION: Define customer edge router CE1.
 host ce_router_1 { ip 10.10.0.1 }
 
-// INSTRUCTION: Define provider edge router PE1.
 host pe_router_1 { ip 10.10.0.2 }
 
-// INSTRUCTION: Define MPLS single label transport flow.
 flow mpls_single_label_flow(ce, pe) {
     ce -> pe mpls 100 exp 3 bos 1 mplsttl 64 udp payload "mpls_single_label_data"
 }
 
-// INSTRUCTION: Compile block executing MPLS transport.
 compile {
     mpls_single_label_flow(ce_router_1, pe_router_1)
 }

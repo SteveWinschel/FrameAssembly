@@ -29,7 +29,7 @@ pub enum IkeExchange {
 
 /// Internet Key Exchange v2 (RFC 7296) specification over UDP port `500`.
 ///
-/// Syntax mapping: `ikev2 [exchange <sainit|auth|createchildsa|informational>] [initiatorspi <u64>] [responderspi <u64>] [msgid <u32>] [flags <u8>] [nextheader <u8>]`
+/// Syntax mapping: `ikev2 [exchange <sainit|auth|createchildsa|informational>] [initiatorspi <u64>] [responderspi <u64>] [msgid <u32>] [flags <u8>] [nextpayload <u8> | nextheader <u8>]`
 #[doc(alias = "ikev2")]
 #[doc(alias = "IKEv2")]
 #[doc(alias = "RFC 7296")]
@@ -45,6 +45,7 @@ pub enum IkeExchange {
 #[doc(alias = "responderspi")]
 #[doc(alias = "msgid")]
 #[doc(alias = "flags")]
+#[doc(alias = "nextpayload")]
 #[doc(alias = "nextheader")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Ikev2Spec<'a> {

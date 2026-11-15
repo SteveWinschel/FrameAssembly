@@ -1,22 +1,21 @@
-// PROMPT: Eduroam-style federated RADIUS proxy forwarding roaming authentication to home institution.
-// TOKENS: host, ip, mac, flow, src, dst, radius, accessrequest, user, nasip, servicetype, wait, ms, accessaccept, framedip, compile
+// Eduroam-style federated RADIUS proxy forwarding roaming authentication to
+// home institution.
+// RADIUS uses UDP 1812 for auth and UDP 1813 for accounting (accessrequest,
+// accessaccept) with Service-Type 2 (Framed (802.1X)).
+// Timing: runs 2 cycles in compile using post-packet waits (6ms).
+// Wireshark: radius
 
-// INSTRUCTION: Define visited university wireless controller.
 host visited_wlc { ip 172.30.1.10 mac 00:1a:a1:30:01:0a }
 
-// INSTRUCTION: Define regional RADIUS proxy server.
 host fed_proxy { ip 172.30.1.1 mac 00:1a:a1:30:01:01 }
 
-// INSTRUCTION: Define home university RADIUS server.
 host home_idp { ip 172.30.2.1 mac 00:1a:a1:30:02:01 }
 
-// INSTRUCTION: Define RADIUS hop flow from client NAS to upstream server.
 flow radius_proxy_hop(src, dst) {
     src -> dst radius accessrequest user "researcher@uni-home.edu" nasip 172.30.1.10 servicetype 2 wait 6ms
     src <- dst radius accessaccept user "researcher@uni-home.edu" framedip 172.30.99.15 servicetype 2
 }
 
-// INSTRUCTION: Compile two-hop federated RADIUS proxy chain.
 compile {
     radius_proxy_hop(visited_wlc, fed_proxy)
     radius_proxy_hop(fed_proxy, home_idp)

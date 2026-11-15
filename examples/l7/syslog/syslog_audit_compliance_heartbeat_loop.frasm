@@ -1,20 +1,18 @@
-// PROMPT: Periodic compliance logging loop transmitting SIEM heartbeat events.
-// TOKENS: host, ip, flow, s, syslog, pri, hostname, app, msg, compile
+// Periodic compliance logging loop transmitting SIEM heartbeat events.
+// RFC 5424 over UDP 514 with PRI <134> (local0.info).
+// Executes 3 sequential flow runs inside the compile block.
+// Wireshark: syslog
 
-// INSTRUCTION: Define security audit agent.
 host audit_agent { ip 10.5.15.20 }
 
-// INSTRUCTION: Define SOC receiver.
 host soc_receiver { ip 10.5.15.1 }
 
-// INSTRUCTION: Define periodic heartbeat event flow.
 flow syslog_heartbeat_flow(c, s) {
     c -> s syslog pri 134
         hostname "audit-probe-01" app "watchdog"
         msg "HEARTBEAT: Service operational, all intrusion sensors active."
 }
 
-// INSTRUCTION: Compile block transmitting 3 periodic heartbeat events.
 compile {
     syslog_heartbeat_flow(audit_agent, soc_receiver) // cycle 1
     syslog_heartbeat_flow(audit_agent, soc_receiver) // cycle 2

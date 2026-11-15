@@ -1,19 +1,22 @@
-// PROMPT: Generate a Telnet Terminal Speed (Option 32) and Remote Flow Control (Option 33) negotiation over VLAN 23.
-// TOKENS: host, mac, ip, flow, tcp, syn, srcport, dstport, vlan, ack, telnet, do, will, payload, compile
+// Generate a Telnet Terminal Speed (Option 32) and Remote Flow Control
+// (Option 33) negotiation over VLAN 23.
+// Encapsulation and QoS markings: 802.1Q VLAN 23.
+// Starts with a TCP 3-way handshake; the compiler tracks seq/ack numbers into
+// the session.
+// Telnet on TCP 23 negotiating option(s): 32, 33.
+// Overrides destination port to 23.
+// Wireshark: telnet && vlan.id == 23
 
-// INSTRUCTION: Define host endpoint serial_client.
 host serial_client {
     mac 00:0c:29:00:23:20
     ip 172.16.23.20
 }
 
-// INSTRUCTION: Define host endpoint fep_host.
 host fep_host {
     mac 00:0c:29:00:23:01
     ip 172.16.23.1
 }
 
-// INSTRUCTION: Negotiate Terminal Speed (32) and Remote Flow Control (33) on VLAN 23.
 flow telnet_speed_and_flow_control(serial_client, fep_host) {
     serial_client -> fep_host tcp syn srcport 54023 dstport 23 vlan 23
     fep_host -> serial_client tcp syn ack vlan 23
@@ -25,7 +28,6 @@ flow telnet_speed_and_flow_control(serial_client, fep_host) {
     serial_client -> fep_host telnet payload "38400,38400" vlan 23
 }
 
-// INSTRUCTION: Compile the Telnet speed and flow control negotiation flow.
 compile {
     telnet_speed_and_flow_control(serial_client, fep_host)
 }

@@ -1,26 +1,27 @@
-// PROMPT: EtherNet/IP CIP Connection Manager (Class 6) Service 0x4E (78 = Forward_Close) tearing down an I/O connection.
-// TOKENS: host, ip, mac, flow, ethernetip, cmd, sessionhandle, context, cipservice, cipclass, cipinstance, cipattr, status, wait, ms, compile
+// EtherNet/IP CIP Connection Manager (Class 6) Service 0x4E (78 =
+// Forward_Close) tearing down an I/O connection.
+// Wireshark: enip || cip
 
-// INSTRUCTION: Define the primary ControlLogix PLC closing an explicit connection.
+// Primary ControlLogix PLC closing an explicit connection.
 host clx_primary {
     ip 10.135.50.1
     mac 00:1a:2b:87:50:01
 }
 
-// INSTRUCTION: Define the POINT I/O 1734-AENTR adapter.
+// POINT I/O 1734-AENTR adapter.
 host point_io {
     ip 10.135.50.30
     mac 00:1a:2b:87:50:30
 }
 
-// INSTRUCTION: Invoke CIP Service 78 (Forward_Close) on Class 6 Instance 1 and then UnregisterSession.
+// Invoke CIP Service 78 (Forward_Close) on Class 6 Instance 1 and then
+// UnregisterSession.
 flow enip_forward_close(c, p) {
     c -> p ethernetip cmd "sendrrdata" sessionhandle 5500 context 901 cipservice 78 cipclass 6 cipinstance 1 cipattr 0
     c <- p ethernetip cmd "sendrrdata" status 0 sessionhandle 5500 context 901 cipservice 206 cipclass 6 cipinstance 1 wait 1ms
     c -> p ethernetip cmd "unregistersession" sessionhandle 5500 context 902
 }
 
-// INSTRUCTION: Compile the CIP Forward_Close and session teardown flow.
 compile {
     enip_forward_close(clx_primary, point_io)
 }

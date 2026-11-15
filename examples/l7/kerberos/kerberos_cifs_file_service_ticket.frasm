@@ -1,18 +1,16 @@
-// PROMPT: Kerberos TGS-REQ service ticket request for enterprise CIFS/SMB storage cluster.
-// TOKENS: host, ip, flow, kerberos, tgsreq, realm, sname, etype, compile
+// Kerberos TGS-REQ service ticket request for enterprise CIFS/SMB storage
+// cluster.
+// Wireshark: kerberos
 
-// INSTRUCTION: Define file transfer client workstation.
 host storage_client { ip 10.50.2.100 }
 
-// INSTRUCTION: Define enterprise KDC server.
 host file_kdc { ip 10.50.2.1 }
 
-// INSTRUCTION: Define CIFS ticket acquisition flow.
+// CIFS ticket acquisition flow. Kerberos encryption types: 18 (AES256-CTS).
 flow cifs_ticket_flow(cli, kdc) {
     cli -> kdc kerberos tgsreq realm "STORAGE.CORP" sname "cifs/nas01.storage.corp" etype 18
 }
 
-// INSTRUCTION: Compile CIFS file service ticket scenario.
 compile {
     cifs_ticket_flow(storage_client, file_kdc)
 }

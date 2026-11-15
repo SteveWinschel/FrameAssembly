@@ -1,18 +1,19 @@
-// PROMPT: Dual-tagged QinQ OpenFlow session across carrier transport with DSCP EF marking.
-// TOKENS: host, ip, flow, openflow, type, hello, qinq, innervlan, dscp, compile
+// Dual-tagged QinQ OpenFlow session across carrier transport with DSCP EF
+// marking.
+// This capture wraps frames in QinQ S-VLAN 200 / C-VLAN 50 and sets DSCP 46.
+// Wireshark: openflow_v4 || openflow_v1
 
-// INSTRUCTION: Define regional WAN SDN controller.
 host wan_sdn_controller { ip 10.240.0.1 }
 
-// INSTRUCTION: Define customer edge SDN gateway switch.
 host ce_sdn_gateway { ip 10.240.0.50 }
 
-// INSTRUCTION: Define QinQ encapsulated OpenFlow session flow.
+// Single-frame sequence using default 10ms post-packet spacing across cycles.
 flow of_qinq_carrier_flow(ctrl, ce) {
     ctrl -> ce openflow type hello qinq 200 innervlan 50 dscp 46
 }
 
-// INSTRUCTION: Compile block executing carrier QinQ OpenFlow connection.
+// Run of_qinq_carrier_flow(wan_sdn_controller, ce_sdn_gateway) to generate
+// the capture.
 compile {
     of_qinq_carrier_flow(wan_sdn_controller, ce_sdn_gateway)
 }

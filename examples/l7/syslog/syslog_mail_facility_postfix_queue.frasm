@@ -1,19 +1,19 @@
-// PROMPT: Simulate a Postfix mail transfer agent logging message queue and relay delivery under Syslog Facility 2 (mail).
-// TOKENS: host, mac, ip, flow, syslog, facility, severity, hostname, app, procid, msg, compile
+// Simulate a Postfix mail transfer agent logging message queue and relay
+// delivery under Syslog Facility 2 (mail).
+// RFC 5424 over UDP 514; facility 2 (mail) + severity 6 (info) yields PRI
+// <22>.
+// Wireshark: syslog
 
-// INSTRUCTION: Define host endpoint postfix_mta.
 host postfix_mta {
     mac 00:1c:42:51:40:25
     ip 10.25.1.15
 }
 
-// INSTRUCTION: Define host endpoint log_aggregator.
 host log_aggregator {
     mac 00:1c:42:51:40:01
     ip 10.25.1.1
 }
 
-// INSTRUCTION: Log queue assignment and 250 2.0.0 delivery confirmation under Facility 2 (mail), Severity 6 (info).
 flow syslog_mail_postfix_delivery(postfix_mta, log_aggregator) {
     postfix_mta -> log_aggregator syslog facility 2 severity 6 hostname "mx01.corp.local" app "postfix/qmgr" procid "1920"
         msg "4V9K8L2M1Z: from=<alerts@corp.local>, size=1842, nrcpt=1 (queue active)"
@@ -21,7 +21,6 @@ flow syslog_mail_postfix_delivery(postfix_mta, log_aggregator) {
         msg "4V9K8L2M1Z: to=<noc@corp.local>, relay=10.25.1.50[10.25.1.50]:25, status=sent (250 2.0.0 Ok)"
 }
 
-// INSTRUCTION: Compile the Postfix mail facility syslog flow.
 compile {
     syslog_mail_postfix_delivery(postfix_mta, log_aggregator)
 }

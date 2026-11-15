@@ -1,25 +1,27 @@
-// PROMPT: Generate an IPv6 Neighbor Solicitation and Advertisement sequence with explicit IPv6 Flow Labels
-// TOKENS: host, ip, mac, flow, ndp, neighborsolicit, target, slla, flowlabel, ttl, wait, ms, neighboradvert, tlla, compile
+// Generate an IPv6 Neighbor Solicitation and Advertisement sequence with
+// explicit IPv6 Flow Labels.
+// This capture targets IPv6 endpoints, sets TTL 255, IPv6 Flow Label, and
+// uses post-packet wait gaps (10ms) between frames.
+// Wireshark: icmpv6.nd
 
-// INSTRUCTION: Define the primary IPv6 storage node
 host storage_v6_a {
     ip 2001:db8:810::10
     mac 00:25:90:d8:08:10
 }
 
-// INSTRUCTION: Define the secondary IPv6 storage node
 host storage_v6_b {
     ip 2001:db8:810::20
     mac 00:25:90:d8:08:20
 }
 
-// INSTRUCTION: Exchange Neighbor Discovery messages carrying non-zero IPv6 Flow Labels
+// Packet sequence (2 frames); wait pauses after a packet before the next.
 flow ndp_flowlabel_resolution(node_a, node_b) {
     node_a -> node_b ndp neighborsolicit target 2001:db8:810::20 slla 00:25:90:d8:08:10 flowlabel 65535 ttl 255 wait 10ms
     node_b -> node_a ndp neighboradvert target 2001:db8:810::20 tlla 00:25:90:d8:08:20 flowlabel 65535 ttl 255
 }
 
-// INSTRUCTION: Compile the Flow Label NDP neighbor resolution flow
+// Run ndp_flowlabel_resolution(storage_v6_a, storage_v6_b) to generate the
+// capture.
 compile {
     ndp_flowlabel_resolution(storage_v6_a, storage_v6_b)
 }

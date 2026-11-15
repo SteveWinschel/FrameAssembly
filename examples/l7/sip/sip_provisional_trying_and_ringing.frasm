@@ -1,20 +1,18 @@
-// PROMPT: SIP call establishment with 100 Trying and 180 Ringing provisional status responses.
-// TOKENS: host, ip, flow, s, sip, invite, from, to, callid, cseq, wait, ms, status, reason, compile
+// SIP call establishment with 100 Trying and 180 Ringing provisional status
+// responses.
+// Timing: uses post-packet wait delays (2ms, 5ms) between frames.
+// Wireshark: sip
 
-// INSTRUCTION: Define outbound caller user agent.
 host caller_ua { ip 10.22.4.15 }
 
-// INSTRUCTION: Define telephony gateway.
 host telco_gw { ip 10.22.4.1 }
 
-// INSTRUCTION: Define INVITE with 100 Trying and 180 Ringing provisional responses.
 flow sip_call_progress(c, s) {
     c -> s sip invite from "sip:carol@voice.net" to "sip:dave@voice.net" callid "call-88190-bx2" cseq 101 wait 2ms
     c <- s sip status 100 reason "Trying" callid "call-88190-bx2" cseq 101 wait 5ms
     c <- s sip status 180 reason "Ringing" callid "call-88190-bx2" cseq 101
 }
 
-// INSTRUCTION: Compile SIP call progress flow.
 compile {
     sip_call_progress(caller_ua, telco_gw)
 }

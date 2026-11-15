@@ -1,19 +1,19 @@
-// PROMPT: Provider Edge (PE) and Customer Edge (CE) exchanging RIP routes across MPLS VPN.
-// TOKENS: host, ip, flow, rip, request, mpls, response, prefix, metric, compile
+// Provider Edge (PE) and Customer Edge (CE) exchanging RIP routes across MPLS
+// VPN.
+// This capture wraps frames in MPLS label 100.
+// Wireshark: rip && mpls
 
-// INSTRUCTION: Define Customer Edge (CE) router.
 host cust_edge_rtr { ip 10.10.10.2 }
 
-// INSTRUCTION: Define Provider Edge (PE) router.
 host prov_edge_rtr { ip 10.10.10.1 }
 
-// INSTRUCTION: Define MPLS VPN PE-CE RIP routing exchange flow.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow rip_mpls_pe_ce(ce, pe) {
     ce -> pe rip request mpls 100
     ce <- pe rip response prefix 10.0.0.0 metric 1 mpls 100
 }
 
-// INSTRUCTION: Compile block executing MPLS PE-CE RIP exchange.
+// Run rip_mpls_pe_ce(cust_edge_rtr, prov_edge_rtr) to generate the capture.
 compile {
     rip_mpls_pe_ce(cust_edge_rtr, prov_edge_rtr)
 }

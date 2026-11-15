@@ -379,15 +379,11 @@ pub(crate) fn is_printable_ascii_str(bytes: &[u8]) -> Option<&str> {
 
 /// Formats `s` for `parse_raw_string_lit`, escaping only when raw syntax would mis-tokenize.
 pub(crate) fn quote_raw_str(s: &str) -> String {
-    let mut it = s.chars();
-    while let Some(c) = it.next() {
-        if matches!(c, '\0' | '\r' | '\n' | '"')
-            || (c == '\\' && it.next().is_none_or(|n| matches!(n, '\0' | '\r' | '\n')))
-        {
-            return escape_fasm_string(s);
-        }
+    if crate::reverse::is_valid_raw_string_body(s) {
+        s.to_string()
+    } else {
+        escape_fasm_string(s)
     }
-    s.to_string()
 }
 
 /// Appends ` <kw> "<quoted>"` to `out` when `val != default`.

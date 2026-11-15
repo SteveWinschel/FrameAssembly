@@ -1,19 +1,21 @@
-// PROMPT: PTP Grandmaster ANNOUNCE broadcast advertising clock quality in telecom domain 24.
-// TOKENS: host, ip, mac, flow, ptp, announce, domain, seqid, clockid, wait, ms, compile
+// PTP Grandmaster ANNOUNCE broadcast advertising clock quality in telecom
+// domain 24.
+// IEEE 1588v2 PTP (messages: announce; domain 24). UDP 319 handles Event
+// messages (sync, delayreq) and UDP 320 carries General messages (announce,
+// followup, delayresp).
+// Timing: pauses 125ms after each marked packet before sending the next
+// frame.
+// Wireshark: ptp
 
-// INSTRUCTION: Define primary GNSS grandmaster clock.
 host gnss_gm { ip 192.168.158.1 mac 00:80:ea:15:80:01 }
 
-// INSTRUCTION: Define 5G gNodeB radio unit slave clock.
 host gnodeb_ru { ip 192.168.158.10 mac 00:80:ea:15:80:0a }
 
-// INSTRUCTION: Define sequential PTP ANNOUNCE messages on UDP port 320.
 flow ptp_announce_telecom(gm, ru) {
     gm -> ru ptp announce domain 24 seqid 501 clockid "GNSSGM01" wait 125ms
     gm -> ru ptp announce domain 24 seqid 502 clockid "GNSSGM01"
 }
 
-// INSTRUCTION: Compile telecom PTP ANNOUNCE flow.
 compile {
     ptp_announce_telecom(gnss_gm, gnodeb_ru)
 }

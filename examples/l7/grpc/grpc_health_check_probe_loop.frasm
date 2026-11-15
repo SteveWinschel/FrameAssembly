@@ -1,19 +1,22 @@
-// PROMPT: gRPC Health Checking Protocol (grpc.health.v1.Health/Check) periodic liveness probe loop.
-// TOKENS: host, ip, flow, grpc, service, method, wait, s, grpcstatus, compile
+// gRPC Health Checking Protocol (grpc.health.v1.Health/Check) periodic
+// liveness probe loop.
+// Wireshark: grpc || http2
 
-// INSTRUCTION: Define Kubernetes kubelet probe agent.
+// Kubernetes kubelet probe agent.
 host kubelet_agent { ip 10.244.0.1 }
 
-// INSTRUCTION: Define containerized gRPC service pod.
+// Containerized gRPC service pod.
 host app_pod { ip 10.244.0.45 }
 
-// INSTRUCTION: Execute grpc.health.v1.Health/Check and receive GRPC_STATUS 0 every 5 seconds.
+// Grpc.health.v1.Health/Check and receive grpcstatus 0 every 5 seconds. gRPC
+// status codes observed: 0 (OK) on TCP port 50051. Repeats 3 times; each wait
+// value pauses after sending its packet.
 flow grpc_health_probe(k, p) {
     k -> p grpc service "grpc.health.v1.Health" method "Check" wait 5s
     k <- p grpc service "grpc.health.v1.Health" method "Check" grpcstatus 0
 }
 
-// INSTRUCTION: Run 3 consecutive gRPC health check probes.
+// Run 3 consecutive gRPC health check probes.
 compile {
     grpc_health_probe(kubelet_agent, app_pod) // cycle 1
     grpc_health_probe(kubelet_agent, app_pod) // cycle 2

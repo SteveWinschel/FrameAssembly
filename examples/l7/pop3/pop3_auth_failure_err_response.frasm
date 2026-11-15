@@ -1,13 +1,11 @@
-// PROMPT: POP3 invalid password authentication rejection returning -ERR response.
-// TOKENS: host, ip, flow, s, pop3, ok, wait, ms, cmd, arg, err, compile
+// POP3 invalid password authentication rejection returning -ERR response.
+// Timing: uses post-packet wait delays (5ms, 10ms) between frames.
+// Wireshark: pop
 
-// INSTRUCTION: Define mail client attempting login.
 host client_host { ip 10.10.5.40 }
 
-// INSTRUCTION: Define POP3 mail server.
 host mail_host { ip 10.10.5.10 }
 
-// INSTRUCTION: Define POP3 login attempt where PASS fails with -ERR.
 flow pop3_auth_fail(c, s) {
     c <- s pop3 ok wait 5ms
     c -> s pop3 cmd "USER" arg "jdoe@corp.example" wait 5ms
@@ -16,7 +14,6 @@ flow pop3_auth_fail(c, s) {
     c <- s pop3 err
 }
 
-// INSTRUCTION: Compile failed POP3 login scenario.
 compile {
     pop3_auth_fail(client_host, mail_host)
 }

@@ -1,25 +1,25 @@
-// PROMPT: Model a secondary nameserver polling the primary authoritative server for the zone SOA record serial number.
-// TOKENS: host, ip, mac, flow, s, dns, query, txid, qname, qtype, wait, ms, response, rcode, rdata, ansttl, compile
+// Secondary nameserver polling the primary authoritative server for the zone
+// SOA record serial number.
+// Wireshark: dns
 
-// INSTRUCTION: Define the DNS stub resolver client endpoint.
+// DNS stub resolver client endpoint.
 host dns_client {
     ip 198.51.100.53
     mac 00:1b:21:53:01:0a
 }
 
-// INSTRUCTION: Define the authoritative or recursive DNS server endpoint.
+// Authoritative or recursive DNS server endpoint.
 host dns_server {
     ip 198.51.100.1
     mac 00:1b:21:53:01:35
 }
 
-// INSTRUCTION: Execute the DNS query and authoritative response transaction.
+// DNS wire details: record types SOA; rcode 0 (NOERROR).
 flow dns_scenario_flow(c, s) {
     c -> s dns query txid 2105 qname "prod.internal.example" qtype "soa" wait 2ms
     c <- s dns response txid 2105 rcode 0 qname "prod.internal.example" qtype "soa" rdata "ns1.prod.internal.example hostmaster.prod.internal.example 2026102501" ansttl 86400
 }
 
-// INSTRUCTION: Compile the DNS resolution flow into a PCAP trace.
 compile {
     dns_scenario_flow(dns_client, dns_server)
 }

@@ -1,19 +1,19 @@
-// PROMPT: IKEv2 Dead Peer Detection (DPD) INFORMATIONAL keepalive request and response.
-// TOKENS: host, ip, flow, ikev2, initiatorspi, responderspi, informational, msgid, compile
+// IKEv2 Dead Peer Detection (DPD) INFORMATIONAL keepalive request and
+// response.
+// This capture models UDP port 500/4500 IKEv2 key-exchange messages.
+// Wireshark: isakmp
 
-// INSTRUCTION: Define primary IPsec tunnel peer.
 host dpd_peer_alpha { ip 172.16.50.1 }
 
-// INSTRUCTION: Define secondary IPsec tunnel peer.
 host dpd_peer_bravo { ip 172.16.50.2 }
 
-// INSTRUCTION: Define DPD keepalive exchange flow with established SPIs and incremented MSGID 15.
+// Packet sequence (2 frames) with default 10ms post-packet spacing.
 flow ikev2_dpd_flow(p1, p2) {
     p1 -> p2 ikev2 initiatorspi 1111222233334444 responderspi 5555666677778888 informational msgid 15
     p1 <- p2 ikev2 initiatorspi 1111222233334444 responderspi 5555666677778888 informational msgid 15
 }
 
-// INSTRUCTION: Compile block executing DPD liveness check.
+// Run ikev2_dpd_flow(dpd_peer_alpha, dpd_peer_bravo) to generate the capture.
 compile {
     ikev2_dpd_flow(dpd_peer_alpha, dpd_peer_bravo)
 }

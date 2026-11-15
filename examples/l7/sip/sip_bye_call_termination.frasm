@@ -1,18 +1,15 @@
-// PROMPT: SIP BYE message gracefully terminating active call dialog over IPv6.
-// TOKENS: host, ip, flow, s, sip, bye, from, to, callid, compile
+// SIP BYE message gracefully terminating active call dialog over IPv6.
+// Uses IPv6 endpoints and derives RFC 2464 multicast MACs when needed.
+// Wireshark: sip
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 2001:db8::10 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 2001:db8::1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow sip_bye(c, s) {
     c -> s sip bye from "sip:alice@pbx.corp" to "sip:bob@pbx.corp" callid "call-994827"
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     sip_bye(client, server)
 }

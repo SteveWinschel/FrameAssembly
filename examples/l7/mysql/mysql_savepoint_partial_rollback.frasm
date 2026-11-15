@@ -1,19 +1,20 @@
-// PROMPT: MySQL transaction using SAVEPOINT and ROLLBACK TO SAVEPOINT for partial batch error recovery.
-// TOKENS: host, ip, mac, flow, s, mysql, sql, ok, wait, ms, err, errcode, payload, compile
+// MySQL transaction using SAVEPOINT and ROLLBACK TO SAVEPOINT for partial
+// batch error recovery.
+// Wireshark: mysql
 
-// INSTRUCTION: Define the billing batch processor host.
 host billing_batch {
     ip 10.90.30.55
     mac 00:1a:2b:90:30:55
 }
 
-// INSTRUCTION: Define the financial ledger MySQL database.
+// Financial ledger MySQL database.
 host finance_mysql {
     ip 10.90.30.1
     mac 00:1a:2b:90:30:01
 }
 
-// INSTRUCTION: Create savepoint sp_item2, roll back to savepoint after error 1264, and commit.
+// Savepoint sp_item2, roll back to savepoint after error 1264, and commit.
+// MySQL error codes: 1264 (ERR) on TCP 3306.
 flow mysql_savepoint_flow(c, s) {
     c -> s mysql sql "SAVEPOINT sp_item2"
     c <- s mysql ok wait 1ms
@@ -25,7 +26,6 @@ flow mysql_savepoint_flow(c, s) {
     c <- s mysql ok
 }
 
-// INSTRUCTION: Compile the MySQL savepoint partial rollback flow.
 compile {
     mysql_savepoint_flow(billing_batch, finance_mysql)
 }

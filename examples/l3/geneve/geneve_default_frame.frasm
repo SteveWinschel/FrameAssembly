@@ -1,0 +1,20 @@
+// Minimal GENEVE (RFC 8926) overlay packet sent over UDP port 6081 using
+// built-in defaults (VNI 4096 and Transparent Ethernet Bridging 0x6558).
+// Ideal for smoke-testing GENEVE cloud firewall policies and overlay
+// dissectors.
+// Wireshark: geneve
+
+host endpoint_a {
+    ip 10.60.81.1
+    mac 02:00:60:81:00:01
+}
+
+host endpoint_b {
+    ip 10.60.81.2
+    mac 02:00:60:81:00:02
+}
+
+// Transmit one default GENEVE overlay frame directly inside compile.
+compile {
+    endpoint_a -> endpoint_b geneve
+}

@@ -1,25 +1,23 @@
-// PROMPT: sFlow v5 export from an SD-WAN branch appliance sampling SaaS breakout traffic over broadband links.
-// TOKENS: host, ip, mac, flow, sflow, agentip, subagentid, uptime, samples, wait, ms, compile
+// sFlow v5 export from an SD-WAN branch appliance sampling SaaS breakout
+// traffic over broadband links.
+// Timing: pauses 20ms after each marked packet before sending the next frame.
+// Wireshark: sflow
 
-// INSTRUCTION: Define SD-WAN branch edge appliance.
 host sdwan_branch {
     ip 10.132.15.1
     mac 00:18:0a:84:0f:01
 }
 
-// INSTRUCTION: Define SD-WAN orchestrator analytics sFlow collector.
 host sdwan_analytics {
     ip 10.132.0.50
     mac 00:18:0a:84:00:32
 }
 
-// INSTRUCTION: Export periodic SD-WAN application breakout sFlow samples.
 flow sflow_sdwan_edge(edge, ana) {
     edge -> ana sflow agentip 10.132.15.1 subagentid 1 uptime 288000 samples 6 wait 20ms
     edge -> ana sflow agentip 10.132.15.1 subagentid 1 uptime 288020 samples 9
 }
 
-// INSTRUCTION: Compile the SD-WAN branch edge sFlow sampling scenario.
 compile {
     sflow_sdwan_edge(sdwan_branch, sdwan_analytics)
 }

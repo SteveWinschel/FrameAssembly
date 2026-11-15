@@ -1,18 +1,16 @@
-// PROMPT: NTP server response signaling upcoming leap second insertion with leap indicator 1.
-// TOKENS: host, ip, flow, ntp, li, vn, mode, stratum, refid, compile
+// NTP server response signaling upcoming leap second insertion with leap
+// indicator 1.
+// Wireshark: ntp
 
-// INSTRUCTION: Define reference clock client listener.
 host clock_listener { ip 172.24.1.45 }
 
-// INSTRUCTION: Define national time laboratory server.
 host nist_time_server { ip 172.24.1.1 }
 
-// INSTRUCTION: Define leap second warning response flow.
+// Leap second warning response flow. NTPv4 modes on UDP 123: 4 (Server).
 flow leap_warning_response(cli, srv) {
     cli <- srv ntp li 1 vn 4 mode 4 stratum 1 refid "ACTS"
 }
 
-// INSTRUCTION: Compile leap indicator warning scenario.
 compile {
     leap_warning_response(clock_listener, nist_time_server)
 }

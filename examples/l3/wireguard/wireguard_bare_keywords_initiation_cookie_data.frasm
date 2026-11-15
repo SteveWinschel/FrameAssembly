@@ -1,19 +1,20 @@
-// PROMPT: WireGuard packet sequence exercising bare INITIATION, COOKIE, and DATA keywords alongside explicit TYPE RESPONSE.
-// TOKENS: host, ip, mac, flow, wireguard, initiation, sender, df, ttl, wait, ms, cookie, receiver, type, response, data, counter, payload, compile
+// WireGuard packet sequence exercising bare INITIATION, COOKIE, and DATA
+// keywords alongside explicit Handshake Response.
+// This capture sets TTL 64, DF bit set and uses post-packet wait gaps (3ms)
+// between frames.
+// Wireshark: wg
 
-// INSTRUCTION: Define WireGuard edge client using bare INITIATION and DATA keywords.
 host wg_bare_kw_cli {
     ip 10.51.99.1
     mac 00:50:56:51:99:01
 }
 
-// INSTRUCTION: Define WireGuard server using bare COOKIE and TYPE RESPONSE keywords.
 host wg_bare_kw_srv {
     ip 10.51.99.2
     mac 00:50:56:51:99:02
 }
 
-// INSTRUCTION: Define complete sequence exercising bare INITIATION, COOKIE, TYPE RESPONSE, and bare DATA.
+// Packet sequence (5 frames); wait pauses after a packet before the next.
 flow wg_bare_keyword_sequence(cli, srv) {
     cli -> srv wireguard initiation sender 9901 df ttl 64 wait 3ms
     cli <- srv wireguard cookie receiver 9901 df ttl 64 wait 3ms
@@ -22,7 +23,8 @@ flow wg_bare_keyword_sequence(cli, srv) {
     cli -> srv wireguard data receiver 9903 counter 1 df ttl 64 payload "BARE_KEYWORD_DATA_VERIFIED"
 }
 
-// INSTRUCTION: Compile the WireGuard bare keyword syntax verification flow.
+// Run wg_bare_keyword_sequence(wg_bare_kw_cli, wg_bare_kw_srv) to generate
+// the capture.
 compile {
     wg_bare_keyword_sequence(wg_bare_kw_cli, wg_bare_kw_srv)
 }

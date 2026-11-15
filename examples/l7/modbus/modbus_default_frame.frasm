@@ -1,24 +1,19 @@
-// PROMPT: Generate a minimal default Modbus TCP frame with default protocol parameters between an HMI master and PLC slave.
-// TOKENS: host, ip, mac, flow, s, modbus, compile
+// Modbus TCP starter request on TCP port 502 using built-in defaults.
+// Omitting extra keywords emits a 12-byte FC 3 Read Holding Registers query
+// (unit 1).
+// Wireshark: mbtcp || modbus
 
-// INSTRUCTION: Define the SCADA HMI master station.
 host hmi_master {
     ip 192.168.100.10
     mac 00:1a:2b:64:00:10
 }
 
-// INSTRUCTION: Define the programmable logic controller (PLC) listening on TCP port 502.
 host plc_slave {
     ip 192.168.100.50
     mac 00:1a:2b:64:00:50
 }
 
-// INSTRUCTION: Emit a default Modbus TCP frame using built-in defaults.
-flow default_modbus_flow(c, s) {
-    c -> s modbus
-}
-
-// INSTRUCTION: Compile the default Modbus packet into a PCAP file.
+// Send the frame directly in compile without needing a reusable flow block.
 compile {
-    default_modbus_flow(hmi_master, plc_slave)
+    hmi_master -> plc_slave modbus
 }

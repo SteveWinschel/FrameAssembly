@@ -1,21 +1,22 @@
-// PROMPT: RFC 2236 IGMP VERSION 2 Membership Report and explicit Leave Group sequence.
-// TOKENS: host, ip, flow, igmp, report, group, version, ttl, query, maxresp, wait, ms, leave, compile
+// RFC 2236 IGMP version 2 Membership Report and explicit Leave Group
+// sequence.
+// This capture sets TTL 1, carries group 0.0.0.0/239.40.1.10, and uses
+// post-packet wait gaps (20ms, 10ms, 30ms) between frames.
+// Wireshark: igmp
 
-// INSTRUCTION: Define IGMPv2 multicast router.
 host igmpv2_rtr { ip 172.16.40.1 }
 
-// INSTRUCTION: Define IGMPv2 multimedia client workstation.
 host igmpv2_client { ip 172.16.40.80 }
 
-// INSTRUCTION: Define IGMPv2 Join Report, General Query, and Leave Group exchange.
+// Packet sequence (4 frames); wait pauses after a packet before the next.
 flow igmp_v2_lifecycle(rtr, cli) {
-    rtr <- cli igmp report group 239.40.1.10 version 2 ttl 1
-    rtr -> cli igmp query group 0.0.0.0 maxresp 100 version 2 ttl 1 wait 20ms
-    rtr <- cli igmp report group 239.40.1.10 version 2 ttl 1 wait 10ms
-    rtr <- cli igmp leave group 239.40.1.10 version 2 ttl 1 wait 30ms
+    rtr <- cli igmp report group 239.40.1.10 version 2 ttl 1 wait 20ms
+    rtr -> cli igmp query group 0.0.0.0 maxresp 100 version 2 ttl 1 wait 10ms
+    rtr <- cli igmp report group 239.40.1.10 version 2 ttl 1 wait 30ms
+    rtr <- cli igmp leave group 239.40.1.10 version 2 ttl 1
 }
 
-// INSTRUCTION: Compile the IGMPv2 membership lifecycle flow.
+// Run igmp_v2_lifecycle(igmpv2_rtr, igmpv2_client) to generate the capture.
 compile {
     igmp_v2_lifecycle(igmpv2_rtr, igmpv2_client)
 }

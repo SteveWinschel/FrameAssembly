@@ -1,27 +1,27 @@
-// PROMPT: Dual-stack TLS 1.3 termination at CDN edge serving both IPv4 and IPv6 client populations.
-// TOKENS: host, ip, flow, s, tls, clienthello, sni, alpn, wait, ms, serverhello, ciphersuite, finished, appdata, compile
+// Dual-stack TLS 1.3 termination at CDN edge serving both IPv4 and IPv6
+// client populations.
+// Runs the same flow definition across both IPv4 and IPv6 host pairs.
+// Cipher suite(s): 0x1301 (TLS_AES_128_GCM_SHA256).
+// TLS extensions: SNI assets.cdn.example.net; ALPN h2.
+// Timing: runs 2 cycles in compile using post-packet waits (3ms).
+// Wireshark: tls
 
-// INSTRUCTION: Define IPv4 broadband client host.
 host client_v4 {
     ip 192.0.2.45
 }
 
-// INSTRUCTION: Define IPv4 CDN anycast VIP host.
 host cdn_v4 {
     ip 192.0.2.1
 }
 
-// INSTRUCTION: Define IPv6 fiber client host.
 host client_v6 {
     ip 2001:db8:2::45
 }
 
-// INSTRUCTION: Define IPv6 CDN anycast VIP host.
 host cdn_v6 {
     ip 2001:db8:2::1
 }
 
-// INSTRUCTION: Define reusable TLS handshake and application data exchange.
 flow tls_cdn_handshake(c, s) {
     c -> s tls clienthello sni "assets.cdn.example.net" alpn "h2" wait 3ms
     c <- s tls serverhello ciphersuite 0x1301 alpn "h2" wait 3ms
@@ -29,7 +29,6 @@ flow tls_cdn_handshake(c, s) {
     c <- s tls appdata
 }
 
-// INSTRUCTION: Compile dual-stack IPv4 and IPv6 TLS CDN flows.
 compile {
     tls_cdn_handshake(client_v4, cdn_v4)
     tls_cdn_handshake(client_v6, cdn_v6)

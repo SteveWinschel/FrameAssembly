@@ -1,25 +1,23 @@
-// PROMPT: Enterprise DHCP server issuing ARP Request probe before leasing candidate IPv4 address 10.50.12.100 to verify absence of static conflicts.
-// TOKENS: host, ip, mac, flow, dhcp, vlan, arp, request, sendermac, senderip, targetmac, targetip, wait, ms, reply, compile
+// Enterprise DHCP server issuing ARP Request probe before leasing candidate IPv4
+// address 10.50.12.100 to verify absence of static conflicts.
+// Wire profile: 2 frames; 2 IPv4 hosts; VLAN 50; DHCP, ARP; waits 5ms.
+// Wireshark: vlan.id == 50 && (arp)
 
-// INSTRUCTION: Define enterprise DHCP server checking whether 10.50.12.100 is already in use on the subnet.
 host enterprise_dhcp_srv {
     ip 10.50.12.5
     mac 00:50:56:32:0c:05
 }
 
-// INSTRUCTION: Define misconfigured static printer already occupying 10.50.12.100 on the same VLAN.
 host static_ip_printer {
     ip 10.50.12.100
     mac 00:17:c8:32:0c:64
 }
 
-// INSTRUCTION: Probe candidate lease IP 10.50.12.100 via ARP Request and detect conflict via ARP Reply from static printer.
 flow arp_dhcp_lease_check(dhcp, prn) {
     dhcp -> prn vlan 50 arp request sendermac 00:50:56:32:0c:05 senderip 10.50.12.5 targetmac 00:00:00:00:00:00 targetip 10.50.12.100 wait 5ms
     dhcp <- prn vlan 50 arp reply sendermac 00:17:c8:32:0c:64 senderip 10.50.12.100 targetmac 00:50:56:32:0c:05 targetip 10.50.12.5
 }
 
-// INSTRUCTION: Compile the DHCP pre-allocation ARP conflict check scenario.
 compile {
     arp_dhcp_lease_check(enterprise_dhcp_srv, static_ip_printer)
 }

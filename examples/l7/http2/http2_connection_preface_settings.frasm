@@ -1,20 +1,18 @@
-// PROMPT: HTTP/2 client connection preface and initial SETTINGS frame exchange.
-// TOKENS: host, ip, flow, s, http2, preface, settings, compile
+// HTTP/2 client connection preface and initial SETTINGS frame exchange.
+// Wireshark: http2
+// Automatic Ethernet MAC addresses and TCP port 443 defaults apply whenever
+// endpoint hardware addresses or ports are left unspecified.
 
-// INSTRUCTION: Define client endpoint.
 host client { ip 192.168.1.100 }
 
-// INSTRUCTION: Define server endpoint.
 host server { ip 192.168.1.1 }
 
-// INSTRUCTION: Define application traffic flow.
 flow http2_init(c, s) {
     c -> s http2 preface
     c -> s http2 settings
     c <- s http2 settings
 }
 
-// INSTRUCTION: Compile block executing the flow scenario.
 compile {
     http2_init(client, server)
 }

@@ -1,13 +1,14 @@
-// PROMPT: HTTP PATCH partial JSON document update and HTTP HEAD metadata check with custom HEADER pairs.
-// TOKENS: host, ip, flow, s, http, method, uri, hosthdr, header, status, reason, contenttype, body, compile
+// HTTP PATCH partial JSON document update and HTTP HEAD metadata check with
+// custom HEADER pairs.
+// Wireshark: http
 
-// INSTRUCTION: Define frontend SPA client.
 host spa_client { ip 10.25.0.50 }
 
-// INSTRUCTION: Define backend API gateway.
+// Backend API gateway.
 host api_gw { ip 10.25.0.1 }
 
-// INSTRUCTION: Send HEAD check with If-None-Match header followed by PATCH partial update with Authorization.
+// Send HEAD check with If-None-Match header followed by PATCH partial update
+// with Authorization.
 flow http_head_and_patch(c, s) {
     c -> s http method "HEAD" uri "/v2/profile" hosthdr "app.example.io" header "If-None-Match" "\"etag-101\""
     c <- s http status 200 reason "OK" header "ETag" "\"etag-102\""
@@ -15,7 +16,6 @@ flow http_head_and_patch(c, s) {
     c <- s http status 200 reason "OK"
 }
 
-// INSTRUCTION: Compile the HTTP HEAD and PATCH custom headers flow.
 compile {
     http_head_and_patch(spa_client, api_gw)
 }

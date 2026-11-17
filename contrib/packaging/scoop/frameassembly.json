@@ -6,12 +6,12 @@
   "architecture": {
     "64bit": {
       "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.1/frameassembly-windows-x64.zip",
-      "hash": "3bb4a284c34131bf864ef9b5d71507d5a5157161399514ac13f78d0de80deaff",
+      "hash": "124b08e154a2856687e68a607d6ca0d8078d041830ca3e0b84622eff93ee0a34",
       "extract_dir": "frameassembly-windows-x64"
     },
     "arm64": {
       "url": "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.1/frameassembly-windows-arm64.zip",
-      "hash": "e13b84e9663cf3eb799f2c36dffd9ed48f34e5bbc698b1de7e9bd54121938a9e",
+      "hash": "243599ed335c6e14911579eb582bf107160dab6463e3374d112effd0a326c37f",
       "extract_dir": "frameassembly-windows-arm64"
     }
   },

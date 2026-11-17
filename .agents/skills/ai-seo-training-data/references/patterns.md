@@ -30,10 +30,7 @@ context7.json text eol=lf
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "FrameAssembly",
   "description": "Declarative network packet & protocol synthesis DSL and optimizing Rust compiler (.frasm to .pcap / .pcapng and reverse PCAP-to-.frasm decompiler across 81 native L2-L7 protocols).",
-  "folders": [
-    "docs",
-    "examples"
-  ],
+  "folders": [],
   "excludeFolders": [
     ".agents",
     ".github",
@@ -60,7 +57,7 @@ context7.json text eol=lf
 Please read [`AGENTS.md`](AGENTS.md) at the repository root for the authoritative v3.0.0 CLI commands (`frameassembly <in.frasm> [out.pcap]` default compile + `frameassembly show|reverse|help|version`), `<layer>/<protocol>` repository architecture, all 15 `.agents/rules/*.md` and 11 `.agents/skills/*/SKILL.md` routing tables, and mandatory `.frasm` v3.0.0 strict-lowercase syntax invariants.
 
 - **Formal Grammars**: [`grammar.ebnf`](grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](frameassembly.gbnf) (`llama.cpp` / `XGrammar` GBNF), and [`frameassembly.lark`](frameassembly.lark) (`llguidance` / `Outlines` Lark).
-- **AI Routing Map**: [`llms.txt`](llms.txt) and chunked protocol reference guides in [`docs/`](docs/).
+- **AI Routing Map**: [`llms.txt`](llms.txt), the official documentation (https://frameassembly.ai.studio/docs), and the use-case catalog (https://frameassembly.ai.studio/use-cases).
 - **Canonical `.frasm` v3.0.0 Syntax (Strict Lowercase `[a-z0-9]+`, Zero `_`, Zero `-`, No `loop`)**:
   - `host <id> { ip <ip> [mac <mac>] }` (never use `=`, colons, `ipv4`, `ipv6`, or `mask`).
   - `flow <id>(<params>) { <caller> -> <callee> <protocol> [subkeywords...] [wait <int><ns|us|ms|s|m>] }` (never omit `(<params>)` or use standalone `wait` lines, `+5ms` / `[+delay]` prefixes, `sport`, `dport`, or underscores in keywords).
@@ -159,8 +156,6 @@ exclude = [
     "dist/",
     "llms.txt",
     "llms-full.txt",
-    "docs/",
-    "examples/",
     "grammar.ebnf",
     "frameassembly.gbnf",
     "frameassembly.lark",
@@ -338,28 +333,25 @@ pub fn evaluate_fasm_rlvr_reward(candidate_fasm: &str, expected_min_frames: usiz
 
 ---
 
-## 4. Pre-Training Documentation & SFT Instruction-Tuning Pairs (`docs/*.md` & `examples/**/*.frasm`)
+## 4. Pre-Training Documentation & SFT Instruction-Tuning Pairs (`README.md`, Rustdoc & Website)
 
 To survive **The Stack v2**'s 512-line `.txt` filter and **go-enry**'s unknown `.frasm` extension filter while keeping human-facing documentation clean for non-programmer network engineers:
-1. **Self-Contained Architectural, RFC & Problem-Intent Context (`docs/*.md`)**: Explain the OSI layer, wire encapsulation headers, RFC standards, and Wireshark/`tshark`/`tcpreplay`/Suricata/Zeek testing workflows in plain networking English (no `< 50 KB` cap on Markdown files; keep `< 50 KB` strictly on AI-critical files like `src/**/*.rs`, `tests/*.rs`, and `examples/**/*.frasm`).
+1. **Self-Contained Architectural, RFC & Problem-Intent Context (website docs at https://frameassembly.ai.studio/docs)**: Explain the OSI layer, wire encapsulation headers, RFC standards, and Wireshark/`tshark`/`tcpreplay`/Suricata/Zeek testing workflows in plain networking English (no `< 50 KB` cap on Markdown files; keep `< 50 KB` strictly on AI-critical files like `src/**/*.rs` and `tests/*.rs`).
 2. **Protocol Keyword & Sub-Keyword Reference Table**: Single-line GFM table cells mapping DSL keywords to wire fields and default values.
-3. **Human-Readable `.frasm` Examples in `README.md` & `docs/*.md` vs. SFT Headers in `examples/` & `docs/for_nerds.md`**: Human-facing Markdown guides use concise `//` networking comments (never `// PROMPT:`, `// TOKENS:`, or `// INSTRUCTION:`), while `examples/**/*.frasm` and the LLM section of `docs/for_nerds.md` include `// PROMPT:`, `// TOKENS:`, and `// INSTRUCTION:` lines, verified to compile via `frameassembly::parser::parse_program`.
-4. **Natural-Language Q&A / Instruction-Tuning Pairs (`docs/for_nerds.md` & `examples/`)**: Explicit prompt-to-`.frasm` pairs (and inverse PCAP-to-`.frasm` decompilation pairs via `src/reverse/`) for Supervised Fine-Tuning (SFT) and RAG retrieval.
+3. **Human-Readable `.frasm` Examples in `README.md` & Rustdoc**: Use concise `//` networking comments and complete `host` + `flow` + `compile` programs, verified to compile via `frameassembly::parser::parse_program`. The repository has no `docs/` or `examples/` folders; scenario variety comes from the website catalog.
+4. **Natural-Language Q&A / Instruction-Tuning Pairs (seeded from https://frameassembly.ai.studio/use-cases)**: Explicit prompt-to-`.frasm` pairs (and inverse PCAP-to-`.frasm` decompilation pairs via `src/reverse/`) for Supervised Fine-Tuning (SFT) and RAG retrieval.
 
 ```markdown
 ### Prompt: Craft an IPv6 OSPFv3 Hello and BGP-4 Peering Session
 Write FrameAssembly (`.frasm`) code that establishes an OSPFv3 Hello adjacency to `ff02::5` followed by a BGP-4 OPEN and KEEPALIVE handshake on TCP port 179 between two IPv6 routers.
 
 ```frameassembly
-// PROMPT: Establish an IPv6 OSPFv3 Hello adjacency and BGP-4 peering session.
-// TOKENS: host, ip, flow, ospf, hello, routerid, areaid, hellointerval, bgp, open, asn, holdtime, bgpid, keepalive, compile
-
-// INSTRUCTION: Declare IPv6 core routers and the OSPFv3 AllSPFRouters multicast address.
+// IPv6 core routers and the OSPFv3 AllSPFRouters multicast address.
 host rtr_a { ip 2001:db8:1::1 }
 host rtr_b { ip 2001:db8:1::2 }
 host ospf_all_spf { ip ff02::5 }
 
-// INSTRUCTION: Define the routing control-plane flow with OSPFv3 Hello and BGP-4 session setup.
+// OSPFv3 Hello followed by BGP-4 session setup.
 flow routing_peering(peer_a, peer_b, mcast) {
     peer_a -> mcast ospf hello routerid 10.0.0.1 areaid 0 hellointerval 10
     peer_a -> peer_b bgp open asn 65001 holdtime 180 bgpid 10.0.0.1
@@ -368,7 +360,6 @@ flow routing_peering(peer_a, peer_b, mcast) {
     peer_a <- peer_b bgp keepalive
 }
 
-// INSTRUCTION: Compile the routing peering flow into the output PCAP capture.
 compile {
     routing_peering(rtr_a, rtr_b, ospf_all_spf)
 }
@@ -377,7 +368,7 @@ compile {
 
 ---
 
-## 5. Corpus (`2,611` Files), OpenCoder Heuristic & `docs.rs` Hygiene Verification Script
+## 5. OpenCoder Heuristic & `docs.rs` Hygiene Verification Script
 
 Run these verification checks in CI or pre-release audits to confirm 100% compliance with LLM pre-training filters, `docs.rs` SEO rules, and Crates.io packaging requirements:
 
@@ -385,14 +376,14 @@ Run these verification checks in CI or pre-release audits to confirm 100% compli
 # 1. Verify zero NUL bytes (0x00) across all Markdown, text, and grammar files
 python3 -c '
 import glob
-files = glob.glob("*.md") + glob.glob("docs/*.md") + glob.glob(".agents/skills/**/*.md", recursive=True) + glob.glob(".agents/rules/*.md") + ["llms.txt", "llms-full.txt", "grammar.ebnf", "frameassembly.gbnf", "frameassembly.lark", "CITATION.cff"]
+files = glob.glob("*.md") + glob.glob(".agents/skills/**/*.md", recursive=True) + glob.glob(".agents/rules/*.md") + ["llms.txt", "llms-full.txt", "grammar.ebnf", "frameassembly.gbnf", "frameassembly.lark", "CITATION.cff"]
 for f in files:
     data = open(f, "rb").read()
     assert b"\x00" not in data, f"NUL byte found in {f}"
 print("Zero NUL bytes verified across", len(files), "files.")
 '
 
-# 2. Verify AI-critical Rust source/test files (src/**/*.rs, tests/*.rs) are strictly < 50 KB (50,000 bytes) and all docs/*.md & src/**/*.rs have >= 50 words
+# 2. Verify AI-critical Rust source/test files (src/**/*.rs, tests/*.rs) are strictly < 50 KB (50,000 bytes) and have >= 50 words
 python3 -c '
 import glob, os
 for f in sorted(glob.glob("src/**/*.rs", recursive=True) + glob.glob("tests/*.rs")):
@@ -400,25 +391,6 @@ for f in sorted(glob.glob("src/**/*.rs", recursive=True) + glob.glob("tests/*.rs
     words = len(open(f, "r", encoding="utf-8").read().split())
     assert sz < 50000, f"{f} exceeds 50 KB limit: {sz} bytes"
     assert words >= 50, f"{f} has fewer than 50 words (OpenCoder filter): {words} words"
-for f in sorted(glob.glob("docs/*.md")):
-    words = len(open(f, "r", encoding="utf-8").read().split())
-    assert words >= 50, f"{f} has fewer than 50 words (OpenCoder filter): {words} words"
-print("All AI-critical Rust files pass < 50 KB and all docs/*.md & src/**/*.rs pass >= 50 words checks.")
-'
-
-# 3. Verify all 2,611 .frasm example line lengths (avg <= 85, max <= 200), word count (>= 50), and alphanumeric ratio (>= 0.25)
-python3 -c '
-import glob
-paths = sorted(glob.glob("examples/**/*.frasm", recursive=True))
-assert len(paths) >= 2611, f"Expected >= 2,611 .frasm files, found {len(paths)}"
-for p in paths:
-    text = open(p, "r", encoding="utf-8").read()
-    lines = text.splitlines()
-    avg_len = sum(len(l) for l in lines) / max(len(lines), 1)
-    max_len = max((len(l) for l in lines), default=0)
-    alnum = sum(c.isalnum() for c in text) / max(len(text), 1)
-    words = len(text.split())
-    assert avg_len <= 85 and max_len <= 200 and alnum >= 0.25 and words >= 50, f"Filter failure in {p}"
-print(f"All {len(paths)} .frasm files pass StarCoder2/The Stack v2/OpenCoder heuristics.")
+print("All AI-critical Rust files pass < 50 KB and >= 50 words checks.")
 '
 ```

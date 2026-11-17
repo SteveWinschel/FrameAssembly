@@ -2,7 +2,7 @@
 # $File: frameassembly,v 3.0 2026/11/13 18:00:00 steve Exp $
 # FrameAssembly network packet specification (.frasm)
 # URL: https://github.com/SteveWinschel/FrameAssembly
-# Reference: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
+# Reference: https://frameassembly.ai.studio/docs
 #
 # Upstream Submission Guide for file(1) / libmagic (https://github.com/file/file):
 #   1. Clone https://github.com/file/file (official read-only Git mirror)

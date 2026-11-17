@@ -6,7 +6,7 @@ This directory contains the language definitions, disambiguation heuristics, and
 2. **[`sharkdp/bat`](https://github.com/sharkdp/bat)** (`assets/syntaxes/` TextMate `.tmLanguage.json` integration)
 3. **[`alecthomas/chroma`](https://github.com/alecthomas/chroma)** & **Pygments** CLI and static-site syntax highlighters
 
-For the normative technical specification and media type registration, see [`docs/12_frasm_specification.md`](../../docs/12_frasm_specification.md), [`contrib/iana/text-vnd.frameassembly.md`](../iana/text-vnd.frameassembly.md), and the official website & browser playground at [`frameassembly.ai.studio`](https://frameassembly.ai.studio/). For Freedesktop desktop MIME integration, see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml).
+For the normative technical specification and media type registration, see the [official documentation](https://frameassembly.ai.studio/docs), [`contrib/iana/text-vnd.frameassembly.md`](../iana/text-vnd.frameassembly.md), and the official website & browser playground at [`frameassembly.ai.studio`](https://frameassembly.ai.studio/). For Freedesktop desktop MIME integration, see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml).
 
 ---
 
@@ -122,7 +122,7 @@ https://github.com/SteveWinschel/FrameAssembly (frameassembly-vscode/syntaxes/fr
 License: MIT
 
 ### URL of Documentation for the Language
-https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
+https://frameassembly.ai.studio/docs
 
 ### GitHub Search Query URL Demonstrating File Volume
 https://github.com/search?q=path%3A*.frasm+NOT+fork%3Atrue&type=code

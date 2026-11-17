@@ -1,6 +1,6 @@
 [package]
 name = "frameassembly"
-version = "3.1.0"
+version = "3.1.1"
 edition = "2024"
 rust-version = "1.88"
 description = "A language to create or edit .pcap and .pcapng packet captures across 81 network protocols for Wireshark, tcpreplay, firewall, SNMP, and IDS testing."
@@ -29,8 +29,6 @@ exclude = [
     "dist/",
     "llms.txt",
     "llms-full.txt",
-    "docs/",
-    "examples/",
     "grammar.ebnf",
     "frameassembly.gbnf",
     "frameassembly.lark",

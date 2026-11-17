@@ -1,6 +1,6 @@
 # Contributing to FrameAssembly
 
-Thanks for helping improve **FrameAssembly** (`frameassembly` v3.1.0, browser playground: [`https://frameassembly.ai.studio/`](https://frameassembly.ai.studio/))! Whether you are fixing a protocol field, improving `.pcap` / `.pcapng` reverse decompilation, or adding new Layer 2–7 protocols, this guide walks through how the codebase is organized and verified.
+Thanks for helping improve **FrameAssembly** (`frameassembly` v3.1.1, browser playground: [`https://frameassembly.ai.studio/`](https://frameassembly.ai.studio/))! Whether you are fixing a protocol field, improving `.pcap` / `.pcapng` reverse decompilation, or adding new Layer 2–7 protocols, this guide walks through how the codebase is organized and verified.
 
 ## Ways to Contribute
 
@@ -12,15 +12,14 @@ Thanks for helping improve **FrameAssembly** (`frameassembly` v3.1.0, browser pl
 
 ## Repository Layout & Symmetry
 
-FrameAssembly enforces strict `<layer>/<protocol>` symmetry across its compiler, reverse decompiler, corpus, and docs:
+FrameAssembly enforces strict `<layer>/<protocol>` symmetry across its compiler, AST, parser, wire builders, and reverse decompiler:
 
 - `src/lexer/mod.rs` — Zero-copy `logos` tokenizer. All built-in keywords, protocol names, modifiers, and time units (`ns`, `us`, `ms`, `s`, `m`) are strictly lowercase alphanumeric (`[a-z0-9]+`) with zero `_` and zero `-`.
 - `src/ast/{l2,l3,l4,l7}/<protocol>.rs` — Strongly typed AST definitions (`*Spec` structs) with `/// Syntax mapping:` docstrings.
 - `src/parser/{l2,l3,l4,l7}/<protocol>.rs` — `winnow` token-slice combinators, protocol-scoped field dispatch, and semantic validation (`src/parser/validation.rs`).
 - `src/builders/{l2,l3,l4,l7}/<protocol>.rs` — Inner-outward wire encoders and checksum engines.
 - `src/reverse/{l2,l3,l4,l7}/<protocol>.rs` — PCAP/PCAPNG-to-`.frasm` dissectors and forward-compiler oracle checks.
-- `examples/{l2,l3,l4,l7,topologies}/` — Verified `.frasm` scenarios across all 81 protocols and multi-host topologies.
-- `docs/` — User and protocol reference guides ([`docs/README.md`](../docs/README.md), [`docs/12_frasm_specification.md`](../docs/12_frasm_specification.md)).
+- User documentation, protocol references, and the `.frasm` specification live at [frameassembly.ai.studio/docs](https://frameassembly.ai.studio/docs); ready-to-run `.frasm` scenarios live at [frameassembly.ai.studio/use-cases](https://frameassembly.ai.studio/use-cases).
 - `frameassembly-wasm/` & `frameassembly-vscode/` — WebAssembly compiler/decompiler bindings and VS Code syntax highlighting, live diagnostics, and Quick Fix extension.
 
 ## Lockstep & Coding Standards
@@ -30,7 +29,7 @@ FrameAssembly enforces strict `<layer>/<protocol>` symmetry across its compiler,
    - Every `src/**/*.rs` file must begin with an inner `//!` module docstring (`>= 50` words) and stay under `50,000` bytes.
    - Document all public and private functions, structs, enums, and fields; never combine outer `///` comments on `pub mod` with inner `//!` docs.
    - Never introduce literal NUL bytes (`0x00`) into `.md`, `.txt`, or grammar files.
-3. **Compilable Examples & Docs**: Every ````frameassembly` fenced block in docs and every `.frasm` file under `examples/` must compile cleanly under FrameAssembly 3.1 syntax.
+3. **Compilable Examples & Docs**: Every ````frameassembly` / ````frasm` fenced block in the repository (README, rustdoc, contrib samples) must compile cleanly under FrameAssembly 3.1 syntax.
 4. **Versioning**: Do not bump `version` fields in `Cargo.toml` or package manifests inside feature/bugfix PRs unless part of a coordinated release.
 
 ## Local Verification Checklist
@@ -42,7 +41,7 @@ Before opening a pull request, verify your changes locally:
 cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
 
-# Run full unit, integration, docs, and corpus verification tests
+# Run full unit, integration, and documentation verification tests
 cargo test
 
 # Validate shell scripts if modified

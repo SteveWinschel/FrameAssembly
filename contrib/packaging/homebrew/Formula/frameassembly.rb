@@ -1,25 +1,25 @@
 class Frameassembly < Formula
   desc "Compile .frasm network traffic code to .pcap/.pcapng and reverse captures"
   homepage "https://github.com/SteveWinschel/FrameAssembly"
-  version "3.1.0"
+  version "3.1.1"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.0/frameassembly-macos-arm64.tar.gz"
+      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.1/frameassembly-macos-arm64.tar.gz"
       sha256 "792371294b70b7ff92592d7a5d700073d06c9219f7fb42a0aa6bd102cb37d159"
     else
-      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.0/frameassembly-macos-x64.tar.gz"
+      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.1/frameassembly-macos-x64.tar.gz"
       sha256 "726bac788bfb8814ec42f8cfb705d655a768c788e109c56b1f0262f471713966"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.0/frameassembly-linux-arm64.tar.gz"
+      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.1/frameassembly-linux-arm64.tar.gz"
       sha256 "eea7aa38941346fcaded614e864e8cae588ce7551bc4c8e6e809c5eab93edba8"
     else
-      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.0/frameassembly-linux-x64.tar.gz"
+      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.1/frameassembly-linux-x64.tar.gz"
       sha256 "852ce4145f1b9a19f19debf0763012cfa2881917e2dcb9d87922b242ed6530ad"
     end
   end
@@ -27,9 +27,7 @@ class Frameassembly < Formula
   def install
     bin.install "frameassembly"
     doc.install "README.md" if File.exist?("README.md")
-    doc.install Dir["docs/*"] if Dir.exist?("docs")
     pkgshare.install "quickstart.frasm" if File.exist?("quickstart.frasm")
-    pkgshare.install "examples" if Dir.exist?("examples")
     if Dir.exist?("completions")
       bash_completion.install "completions/frameassembly.bash" => "frameassembly" if File.exist?("completions/frameassembly.bash")
       zsh_completion.install "completions/_frameassembly" => "_frameassembly" if File.exist?("completions/_frameassembly")
@@ -38,6 +36,6 @@ class Frameassembly < Formula
   end
 
   test do
-    assert_match "frameassembly 3.1.0", shell_output("#{bin}/frameassembly version")
+    assert_match "frameassembly 3.1.1", shell_output("#{bin}/frameassembly version")
   end
 end

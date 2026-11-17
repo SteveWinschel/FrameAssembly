@@ -82,7 +82,7 @@ Use this skill when designing, implementing, extending, testing, or auditing the
 
 Whenever adding or modifying a protocol, keyword, or builder, verify the full end-to-end checklist:
 1. **Stage 1 — 6-Way Grammar, Lexer, IDE & WASM Lockstep**:
-   - Every strict-lowercase `[a-z0-9]+` `#[token("...")]` in `src/lexer/mod.rs` (zero `_`, zero `-`, no `ignore(ascii_case)`) is wired into `src/parser/`, `parse_spanned_ident` (`src/parser/ident.rs`), `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`, and synchronized with `frameassembly-wasm`, `docs/frasm-specification.md`, `llms.txt`, `llms-full.txt`, and `contrib/mime/text-vnd.frameassembly.xml`.
+   - Every strict-lowercase `[a-z0-9]+` `#[token("...")]` in `src/lexer/mod.rs` (zero `_`, zero `-`, no `ignore(ascii_case)`) is wired into `src/parser/`, `parse_spanned_ident` (`src/parser/ident.rs`), `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`, and synchronized with `frameassembly-wasm`, `llms.txt`, `llms-full.txt`, and `contrib/mime/text-vnd.frameassembly.xml`.
 2. **Stage 2 — Two-Phase Parsing & Semantic Validation (`parse_program` $\rightarrow$ `validate_semantics(&prog, &src)`)**:
    - `parse_program(&src)` constructs `Program<'a>` and invokes `validate_semantics(&prog, &src)` to verify host IP family homogeneity (no IPv4 $\leftrightarrow$ IPv6 mixing), `protocol_requires_ip` L2 MAC-only vs L3+ IP rules, `vlan`/`dscp`/`ecn`/`ttl`/`flowlabel`/HSRP `hellotime <= 255` numeric bounds, and zero duplicate modifiers.
 3. **Stage 3 — AST `*Spec` Field Completeness & `l7_dispatch.rs` Return Tuples (`compile_program(&prog)`)**:
@@ -91,8 +91,8 @@ Whenever adding or modifying a protocol, keyword, or builder, verify the full en
 4. **Stage 4 — Wire & Wireshark (`tshark`) Dissector Verification**:
    - Checksums & TTLs: `gre` `checksum` (`0x8000`) computed at `gre[4..6]`; `vrrp` v3 IPv4/IPv6 pseudo-header (`112`) + TTL/Hop Limit `255`; `ndp` Hop Limit `255`; `udp` `0x0000 -> 0xFFFF`; `sctp` little-endian CRC32c at `8..12`.
    - Inner Frames & Lengths: `geneve` `0x6558` encapsulates a 14B Ethernet + 20B IPv4 frame; `wireguard` Type `4` (`data`) appends a 16B Poly1305 AEAD tag ($\ge 32$B); `quic` Long Header encodes a 2B varint (`0x4000 | len`); `ipfix` `total_len`/`set_len` include payload; `sflow` Flow Sample has 8 `u32`s (32B); `ldap` `SearchRequest` has all 8 RFC 4511 elements; `kerberos` `KDC-REQ-BODY` includes `[7] till` and `[8] nonce`.
-5. **Stage 5 — Corpus & Markdown Block Gate (`tests/corpus_verification_tests.rs`)**:
-   - All `2,611` `.frasm` files in `examples/` and all ````frameassembly` / ````frasm` blocks in `README.md`, `docs/*.md`, `src/**/*.rs`, and `.agents/skills/**/*.md` compile cleanly under v3.0.0 strict-lowercase syntax into valid PCAPNG captures.
+5. **Stage 5 — Markdown & Rustdoc Block Gate (`tests/corpus_verification_tests.rs`)**:
+   - All ````frameassembly` / ````frasm` blocks in `README.md`, `src/**/*.rs`, and `.agents/skills/**/*.md` compile cleanly under v3.0.0 strict-lowercase syntax into valid PCAPNG captures (docs and scenarios live at https://frameassembly.ai.studio/docs and https://frameassembly.ai.studio/use-cases, not in the repository).
 
 ---
 

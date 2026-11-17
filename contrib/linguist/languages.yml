@@ -1,6 +1,6 @@
 # GitHub Linguist languages.yml definition for FrameAssembly (.frasm) v3.0.0
 # Upstream target: lib/linguist/languages.yml in https://github.com/github-linguist/linguist
-# Specification: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
+# Specification: https://frameassembly.ai.studio/docs
 
 FrameAssembly:
   type: programming

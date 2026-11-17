@@ -1,13 +1,10 @@
 {
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "FrameAssembly",
-  "description": "Rootless Packets-as-Code DSL & Rust compiler (v3.1.0, MIT, https://frameassembly.ai.studio/) for .pcap/.pcapng compilation and reversal across 81 L2-L7 protocols.",
-  "version": "3.1.0",
+  "description": "Rootless Packets-as-Code DSL & Rust compiler (v3.1.1, MIT, https://frameassembly.ai.studio/) for .pcap/.pcapng compilation and reversal across 81 L2-L7 protocols.",
+  "version": "3.1.1",
   "repository": "https://github.com/SteveWinschel/FrameAssembly",
-  "folders": [
-    "docs",
-    "examples"
-  ],
+  "folders": [],
   "excludeFolders": [
     ".agents",
     ".github",
@@ -23,22 +20,7 @@
     "README.md",
     "AGENTS.md",
     "CLAUDE.md",
-    "llms.txt",
-    "docs/README.md",
-    "docs/01_getting_started.md",
-    "docs/02_use_cases.md",
-    "docs/03_l2_protocols.md",
-    "docs/04_l3_protocols.md",
-    "docs/05_l4_transports.md",
-    "docs/06_l7_snmp.md",
-    "docs/07_l7_infra_and_telemetry.md",
-    "docs/08_l7_web_and_cloud.md",
-    "docs/09_l7_mail_auth_storage_db.md",
-    "docs/10_l7_industrial_ot.md",
-    "docs/11_topologies_and_dual_stack.md",
-    "docs/12_frasm_specification.md",
-    "docs/13_for_nerds.md",
-    "examples/README.md"
+    "llms.txt"
   ],
   "grammars": [
     "grammar.ebnf",
@@ -46,11 +28,7 @@
     "frameassembly.lark"
   ],
   "examples": [
-    "examples/l2",
-    "examples/l3",
-    "examples/l4",
-    "examples/l7",
-    "examples/topologies"
+    "contrib/linguist/samples"
   ],
   "exclude": [
     "target/**",
@@ -59,6 +37,7 @@
     "*.vsix"
   ],
   "rules": [
+    "Official documentation: https://frameassembly.ai.studio/docs; use cases and example .frasm captures: https://frameassembly.ai.studio/use-cases.",
     "Start simple .frasm captures with 2 blocks: host <id> { [ip <ip>] [mac <mac>] } and compile { <a> -> <b> <proto> ... }; add flow <id>(<params>) { ... } for reusable flows.",
     "Built-in keywords, protocols, modifiers, and time units (ns, us, ms, s, m) are strict lowercase [a-z0-9]+ with zero '_' or '-'; user host/flow/param names allow '_', '-', A-Z.",
     "Inline wait <u32><ns|us|ms|s|m> is post-packet: frame 1 starts at 0ns and wait pauses after that packet before the next packet (10ms default gap); never write loop or +5ms.",

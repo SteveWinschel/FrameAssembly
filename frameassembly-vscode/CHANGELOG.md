@@ -2,6 +2,10 @@
 
 All notable changes to the `frameassembly-vscode` extension are documented in this file.
 
+## [3.1.1] - 2026-11-17
+- Moved the documentation and examples to the official website: guides at https://frameassembly.ai.studio/docs and use cases at https://frameassembly.ai.studio/use-cases.
+- Synchronized the extension version with FrameAssembly 3.1.1.
+
 ## [3.1.0] - 2026-11-15
 - Streamlined the extension into a fast, read-only **Syntax Highlighting + Live WebAssembly Linter** (with 1-click Quick Fix support for lowercase keywords and common modifier typos), removing editor commands, Webview panels, startup popups, snippets, and custom autocomplete bloat.
 - Declared explicit `capabilities.untrustedWorkspaces` and `capabilities.virtualWorkspaces` support so syntax highlighting and live linting remain active inside VS Code Restricted Mode and browser editors (`vscode.dev`, `github.dev`).

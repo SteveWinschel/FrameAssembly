@@ -37,8 +37,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$ReleaseVersion = '3.1.0'
-$VsixVersion = '3.1.0'
+$ReleaseVersion = '3.1.1'
+$VsixVersion = '3.1.1'
 $GitHubReleaseBase = "https://github.com/SteveWinschel/FrameAssembly/releases/download/v$ReleaseVersion"
 $VsixReleaseUrl = "$GitHubReleaseBase/frameassembly-vscode.vsix"
 $VsixRawUrl = "https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-$VsixVersion.vsix"
@@ -478,12 +478,6 @@ try {
         $assetPath = Join-Path $bundleRoot $asset
         if (Test-Path $assetPath) {
             Copy-Item -Path $assetPath -Destination (Join-Path $installDir $asset) -Force
-        }
-    }
-    foreach ($folder in @('docs', 'examples')) {
-        $folderPath = Join-Path $bundleRoot $folder
-        if (Test-Path $folderPath) {
-            Copy-Item -Path $folderPath -Destination (Join-Path $installDir $folder) -Recurse -Force
         }
     }
 

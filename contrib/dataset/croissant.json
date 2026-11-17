@@ -46,10 +46,10 @@
   },
   "@type": "sc:Dataset",
   "name": "FrameAssembly-frasm-corpus",
-  "alternateName": "FrameAssembly Packets-as-Code Corpus (v3.1.0)",
-  "description": "Compiler-verified corpus of 2,690 MIT-licensed FrameAssembly (.frasm) packet-capture files across 81 L2-L7 protocols with EBNF, GBNF, and Lark grammars.",
+  "alternateName": "FrameAssembly Packets-as-Code Samples (v3.1.1)",
+  "description": "Compiler-verified, MIT-licensed FrameAssembly (.frasm) sample files with EBNF, GBNF, and Lark grammars covering 81 L2-L7 protocols. More use-case examples: https://frameassembly.ai.studio/use-cases. Documentation: https://frameassembly.ai.studio/docs.",
   "conformsTo": "http://mlcommons.org/croissant/1.0",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "license": "https://spdx.org/licenses/MIT.html",
   "url": "https://github.com/SteveWinschel/FrameAssembly",
   "sameAs": "https://frameassembly.ai.studio/",
@@ -60,7 +60,7 @@
     "name": "Steve Winschel",
     "url": "https://github.com/SteveWinschel"
   },
-  "citeAs": "@software{winschel_frameassembly_2026, author={Winschel, Steve}, title={FrameAssembly}, version={3.1.0}, year={2026}, url={https://github.com/SteveWinschel/FrameAssembly}}",
+  "citeAs": "@software{winschel_frameassembly_2026, author={Winschel, Steve}, title={FrameAssembly}, version={3.1.1}, year={2026}, url={https://github.com/SteveWinschel/FrameAssembly}}",
   "keywords": [
     "FrameAssembly",
     "frasm",
@@ -79,7 +79,7 @@
       "@type": "cr:FileObject",
       "@id": "github-repo-archive",
       "name": "github-repo-archive",
-      "description": "FrameAssembly v3.1.0 GitHub source archive containing examples/, formal grammars, and Rust compiler/decompiler.",
+      "description": "FrameAssembly v3.1.1 GitHub source archive containing .frasm samples, formal grammars, and the Rust compiler/decompiler.",
       "contentUrl": "https://github.com/SteveWinschel/FrameAssembly/archive/refs/heads/main.tar.gz",
       "encodingFormat": "application/x-gzip"
     },
@@ -87,18 +87,18 @@
       "@type": "cr:FileSet",
       "@id": "frasm-corpus-files",
       "name": "frasm-corpus-files",
-      "description": "All 2,690 verified .frasm scenario files across examples/l2, examples/l3, examples/l4, examples/l7, and examples/topologies.",
+      "description": "Verified .frasm sample files under contrib/linguist/samples/.",
       "containedIn": {
         "@id": "github-repo-archive"
       },
       "encodingFormat": "text/vnd.frameassembly",
-      "includes": "*/examples/**/*.frasm"
+      "includes": "*/contrib/linguist/samples/*.frasm"
     },
     {
       "@type": "cr:FileObject",
       "@id": "ebnf-grammar",
       "name": "grammar.ebnf",
-      "description": "Formal ISO/IEC 14977 EBNF grammar for FrameAssembly v3.1.0.",
+      "description": "Formal ISO/IEC 14977 EBNF grammar for FrameAssembly v3.1.1.",
       "containedIn": {
         "@id": "github-repo-archive"
       },
@@ -131,7 +131,7 @@
       "@type": "cr:FileObject",
       "@id": "llms-full-context",
       "name": "llms-full.txt",
-      "description": "Self-contained v3.1.0 LLM reference covering all 81 protocols, compilable examples, and EBNF grammar.",
+      "description": "Self-contained v3.1.1 LLM reference covering all 81 protocols, compilable examples, and EBNF grammar.",
       "containedIn": {
         "@id": "github-repo-archive"
       },
@@ -153,7 +153,7 @@
           "@type": "cr:Field",
           "@id": "frasm-examples/file_path",
           "name": "file_path",
-          "description": "Relative repository path under examples/<layer>/<protocol>/<scenario>.frasm.",
+          "description": "Relative repository path of the .frasm sample file.",
           "dataType": "sc:Text",
           "source": {
             "fileSet": {
@@ -161,24 +161,6 @@
             },
             "extract": {
               "fileProperty": "fullpath"
-            }
-          }
-        },
-        {
-          "@type": "cr:Field",
-          "@id": "frasm-examples/layer",
-          "name": "layer",
-          "description": "OSI/TCP-IP directory category (l2, l3, l4, l7, or topologies).",
-          "dataType": "sc:Text",
-          "source": {
-            "fileSet": {
-              "@id": "frasm-corpus-files"
-            },
-            "extract": {
-              "fileProperty": "fullpath"
-            },
-            "transform": {
-              "regex": "examples/(l2|l3|l4|l7|topologies)/"
             }
           }
         },
@@ -186,7 +168,7 @@
           "@type": "cr:Field",
           "@id": "frasm-examples/frasm_source",
           "name": "frasm_source",
-          "description": "UTF-8 FrameAssembly v3.1.0 .frasm code verified by the forward compiler and reverse PCAP decompiler.",
+          "description": "UTF-8 FrameAssembly v3.1.1 .frasm code verified by the forward compiler and reverse PCAP decompiler.",
           "dataType": "sc:Text",
           "source": {
             "fileSet": {

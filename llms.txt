@@ -1,6 +1,6 @@
 # FrameAssembly
 
-> FrameAssembly (`frameassembly` v3.1.0, MIT, https://frameassembly.ai.studio/) is a rootless,
+> FrameAssembly (`frameassembly` v3.1.1, MIT, https://frameassembly.ai.studio/) is a rootless,
 > offline "Packets as Code" Rust compiler and PCAP/PCAPNG-to-`.frasm` decompiler. Write
 > strict-lowercase `.frasm` (`text/vnd.frameassembly`) code to compile `.pcap` and `.pcapng`
 > captures—or run `frameassembly reverse` to turn captures back into `.frasm` code—across 81
@@ -68,7 +68,7 @@ compile {
 }
 ```
 
-- **Key `v3.1.0` Language & CLI Rules**:
+- **Key `v3.1.1` Language & CLI Rules**:
   - **Strict-Lowercase Keywords (`[a-z0-9]+`)**: Built-in keywords have zero `_` or `-`
     (`echorequest`, `innervlan`, `clienthello`, `hosthdr`, `transporthdr`, `sackperm`,
     `readholdingregisters`); user `host`, `flow`, and parameter names allow uppercase, `_`,
@@ -82,7 +82,7 @@ compile {
     - `frameassembly <input.frasm> [output.pcap|output.pcapng]` — Compile `.frasm` code.
     - `frameassembly show <input.frasm>` — Print relative-timestamp packet table without disk I/O.
     - `frameassembly reverse <input.pcap> [output.frasm]` — Decompile `.pcap`/`.pcapng` to `.frasm`.
-    - `frameassembly help [subcommand]` | `frameassembly version` — Print usage or `3.1.0`.
+    - `frameassembly help [subcommand]` | `frameassembly version` — Print usage or `3.1.1`.
 - **All 81 Native Protocols**:
   - **L2 (8)**: `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`.
   - **L3 (20)**: `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`,
@@ -102,46 +102,22 @@ compile {
 
 ## Prompt Injection Context & Formal Grammars
 
-- [Full LLM Context](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Self-contained `v3.1.0` prompt reference for all 81 protocols, examples, and EBNF.
-- [ISO/IEC 14977 EBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Formal ISO/IEC 14977 `.frasm` `v3.1.0` grammar.
+- [Full LLM Context](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Self-contained `v3.1.1` prompt reference for all 81 protocols, examples, and EBNF.
+- [ISO/IEC 14977 EBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Formal ISO/IEC 14977 `.frasm` `v3.1.1` grammar.
 - [GGML BNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.gbnf): `llama.cpp` and `XGrammar` constrained decoding grammar.
 - [Lark CFG Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.lark): Priority-disambiguated Earley/LALR grammar for Outlines, vLLM, and llguidance.
 
-## Getting Started & Practical Cookbooks
+## Documentation & Use Cases
 
 - [Repository README](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Overview, `cargo install frameassembly` quickstart, use cases, and CLI reference.
-- [Documentation Index](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/README.md): Problem-triage table and searchable 81-protocol lookup index.
-- [Getting Started Guide](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/01_getting_started.md): First 2-block `.frasm` capture, flows, `wait`, Wireshark, and `reverse`.
-- [Use-Case Cookbook](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/02_use_cases.md): Recipes for SNMPv3 traps, firewall ACLs, VLAN/QinQ, SIEM/IDS, and OT/SCADA.
-
-## Layer 2–7 Protocol & Topology Guides
-
-- [Layer 2 Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/03_l2_protocols.md): `arp`, `vlan`, 2-tag `qinq`, `lldp`, `stp`, `lacp`, `eapol`, and `mpls`.
-- [Layer 3 Protocols](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/04_l3_protocols.md): `icmp`, `ndp`, overlays, IPsec/IKEv2/WireGuard, OSPF, BGP, FHRP, and BFD.
-- [Layer 4 Transports](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/05_l4_transports.md): Stateful `tcp`, `udp`, `sctp` CRC-32c, and `transport tcp|udp` overrides.
-- [SNMPv1, SNMPv2c & SNMPv3](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/06_l7_snmp.md): USM auth/privacy, `report` PDUs, SMI `varbind` types, and Wireshark setup.
-- [Infra, Time, AAA & Telemetry](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/07_l7_infra_and_telemetry.md): `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, AAA, `syslog`, and flows.
-- [Web, Cloud, TLS & VoIP](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/08_l7_web_and_cloud.md): `http`, `http2`, `grpc`, `tls`, `quic`, `ssh`, `sip`, `rtp`, and `stun`.
-- [Mail, Auth, Storage & DBs](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/09_l7_mail_auth_storage_db.md): Mail, `kerberos`, `ldap`, `smb`, `nfs`, DBs, and brokers.
-- [Industrial OT & SCADA](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/10_l7_industrial_ot.md): `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, and `opcua`.
-- [Topologies & Dual-Stack](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/11_topologies_and_dual_stack.md): EVPN-VXLAN, 802.1X NAC, MPLS/IPsec, OT, and IPv4/IPv6 reuse.
-- [`.frasm` Format Specification](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/12_frasm_specification.md): RFC 6838 `text/vnd.frameassembly` spec and `.fasm` disambiguation.
-- [Compiler Internals (`for_nerds`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/docs/13_for_nerds.md): Compiler/decompiler pipeline, Rust crate API, and formal grammars.
-
-## Verified Example Corpus
-
-- [Corpus Overview](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/README.md): Index of 2,690 `.frasm` scenarios and 81 `<proto>_default_frame.frasm` starters.
-- [Layer 2 Examples](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/l2/README.md): Switching, VLAN/QinQ, MPLS, 802.1X, LACP, LLDP, STP, and ARP scenarios.
-- [Layer 3 Examples](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/l3/README.md): Routing, VXLAN/GENEVE/GRE, IPsec/IKEv2/WireGuard, FHRP, and ICMP/NDP.
-- [Layer 4 Examples](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/l4/README.md): TCP handshakes/scans/options, UDP baselines, and multi-chunk SCTP.
-- [Layer 7 Examples](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/l7/README.md): SNMPv1/v2c/v3, DNS/DHCP/AAA, web/TLS/QUIC, mail/DB/storage, and ICS/OT.
-- [Topology Examples](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/examples/topologies/README.md): Multi-host enterprise, data-center, cloud, and industrial topologies.
+- [Official Documentation](https://frameassembly.ai.studio/docs): Getting started, Layer 2–7 protocol references, topologies & dual-stack, `.frasm` specification, and compiler internals.
+- [Use Cases & Examples](https://frameassembly.ai.studio/use-cases): Ready-to-run `.frasm` recipes for SNMPv3 traps, firewall ACLs, VLAN/QinQ, SIEM/IDS, OT/SCADA, and topologies.
 
 ## Interactive Tools, Rust Crate & WebAssembly
 
 - [Browser Playground](https://frameassembly.ai.studio/): Compile `.frasm` code to `.pcap`/`.pcapng` or reverse captures directly in the browser.
 - [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode): Syntax highlighting (`source.frameassembly`), live WASM diagnostics, and Quick Fixes.
-- [Crates.io (`frameassembly`)](https://crates.io/crates/frameassembly): Official Rust CLI and library crate (`3.1.0`, MIT).
+- [Crates.io (`frameassembly`)](https://crates.io/crates/frameassembly): Official Rust CLI and library crate (`3.1.1`, MIT).
 - [Docs.rs API Reference](https://docs.rs/frameassembly): Rust library documentation (`lexer`, `parser`, `backend`, `reverse`, `pcap`).
 - [NPM (`frameassembly-wasm`)](https://www.npmjs.com/package/frameassembly-wasm): WebAssembly bindings (`compile_frasm_to_pcap`, `compile_frasm_to_pcapng`, `validate_frasm`, `reverse_pcap`).
 - [Crate Root (`src/lib.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lib.rs): Public Rust API and compiler pipeline entrypoints.
@@ -149,12 +125,11 @@ compile {
 
 ## Optional
 
-- [Croissant 1.0 Dataset Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/dataset/croissant.json): MLCommons Croissant JSON-LD descriptor for the `.frasm` corpus.
 - [IANA Media Type Registration](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/iana/text-vnd.frameassembly.md): RFC 6838 `text/vnd.frameassembly` and Wikidata mappings.
 - [Freedesktop Shared MIME Info](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/mime/text-vnd.frameassembly.xml): MIME XML `*.frasm` glob and `<magic>` rules.
 - [GitHub Linguist Rules](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/linguist/README.md): Linguist language and heuristic disambiguation.
 - [Shell Completions](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/completions/README.md): Static Tab completions for Bash, Zsh, Fish, and PowerShell.
 - [Unix Install Script](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Cross-platform macOS and Linux installer.
 - [Windows Install Script](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1): Zero-Admin Windows PowerShell installer.
-- [Citation Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 academic citation file (`v3.1.0`).
-- [CodeMeta Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/codemeta.json): CodeMeta 3.0 software metadata (`v3.1.0`).
+- [Citation Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 academic citation file (`v3.1.1`).
+- [CodeMeta Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/codemeta.json): CodeMeta 3.0 software metadata (`v3.1.1`).

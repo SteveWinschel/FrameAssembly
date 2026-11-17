@@ -1,7 +1,6 @@
 # FrameAssembly Custom Domain-Specific Language (.frasm — text/vnd.frameassembly)
 # Keeps Rust as primary repository language while indexing .frasm cleanly for GitHub Linguist & AI crawlers
 *.frasm linguist-language=FrameAssembly linguist-detectable=true linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
-examples/**/*.frasm linguist-language=FrameAssembly linguist-detectable=false linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
 contrib/linguist/samples/*.frasm linguist-language=FrameAssembly linguist-detectable=true linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
 
 # Formal Grammars (ISO/IEC 14977 EBNF, GGML GBNF, Lark CFG)
@@ -11,8 +10,6 @@ contrib/linguist/samples/*.frasm linguist-language=FrameAssembly linguist-detect
 
 # Documentation, Dataset Metadata, Standards Registration & Citation Files
 *.md text eol=lf
-docs/*.md linguist-documentation=true text eol=lf
-examples/**/README.md linguist-documentation=true text eol=lf
 contrib/**/*.md linguist-documentation=true text eol=lf
 contrib/**/*.json text eol=lf
 contrib/**/*.xml text eol=lf

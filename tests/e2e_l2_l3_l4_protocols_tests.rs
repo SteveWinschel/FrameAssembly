@@ -10,7 +10,7 @@
 //!   contextual identifiers, and 4-tuple TCP sequence/port state tracking).
 //! - Tier 3: Cross-feature combinations (dual-stack polymorphism, stacked VLANs, RFC 1112 / RFC 2464
 //!   multicast MAC derivation, RFC 7323 TCP options, `wait` timing units, and repeated flow calls).
-//! - CLI & Corpus Backwards Compatibility: default and custom output paths plus corpus compilation.
+//! - CLI Output Paths: default and custom PCAPNG output path handling via `generate_pcap`.
 
 use std::fs;
 use std::path::Path;
@@ -759,7 +759,7 @@ pub mod tier3_cross_feature_combinations {
     }
 }
 
-/// CLI output path handling and `.frasm` corpus backwards compatibility verification.
+/// CLI output path handling verification for default and custom PCAPNG destinations.
 pub mod cli_and_backwards_compatibility {
     use super::*;
 
@@ -797,38 +797,5 @@ pub mod cli_and_backwards_compatibility {
         let gen_res = frameassembly::backend::generate_pcap(&prog, custom_out.to_str().unwrap());
         assert!(gen_res.is_ok() && fs::metadata(&custom_out).unwrap().len() > 0);
         let _ = fs::remove_file(&custom_out);
-    }
-
-    /// Recursively traverses an `examples/` directory tree and compiles a sample of `.frasm` files.
-    fn visit_examples_dir(dir: &Path, count: &mut usize, temp_dir: &Path) {
-        if let Ok(entries) = fs::read_dir(dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_dir() {
-                    visit_examples_dir(&path, count, temp_dir);
-                } else if path.extension().and_then(|s| s.to_str()) == Some("frasm") {
-                    *count += 1;
-                    let filename = path.file_name().unwrap().to_str().unwrap();
-                    let content = fs::read_to_string(&path)
-                        .unwrap_or_else(|e| panic!("Failed to read {}: {}", filename, e));
-                    let prog = frameassembly::parser::parse_program(&content)
-                        .unwrap_or_else(|e| panic!("Parse error in {}: {:?}", filename, e));
-                    let out_pcap = temp_dir.join(format!("legacy_verify_{}_{}.pcap", std::process::id(), *count));
-                    let res = frameassembly::backend::generate_pcap(&prog, out_pcap.to_str().unwrap());
-                    assert!(res.is_ok(), "Compile error in {}: {:?}", filename, res.err());
-                    assert!(out_pcap.exists() && fs::metadata(&out_pcap).unwrap().len() > 0);
-                    let _ = fs::remove_file(&out_pcap);
-                }
-            }
-        }
-    }
-
-    /// Tests backwards compatibility: verified `.frasm` examples across layer directories compile.
-    #[test]
-    pub fn test_legacy_examples_01_to_105_backwards_compatibility() {
-        let mut compiled_total = 0;
-        let scratch_dir = std::env::temp_dir();
-        visit_examples_dir(Path::new("examples"), &mut compiled_total, &scratch_dir);
-        assert!(compiled_total >= 105, "All corpus examples must compile cleanly, found {}", compiled_total);
     }
 }

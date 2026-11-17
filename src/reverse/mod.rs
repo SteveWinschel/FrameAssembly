@@ -459,79 +459,111 @@ mod tests {
         buf
     }
 
-    /// Recursively collects `.frasm` files under `dir`.
-    fn collect_frasm_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
-        if let Ok(entries) = std::fs::read_dir(dir) {
-            let mut paths: Vec<_> = entries.filter_map(|e| e.ok().map(|e| e.path())).collect();
-            paths.sort();
-            for p in paths {
-                if p.is_dir() {
-                    collect_frasm_files(&p, out);
-                } else if p.extension().and_then(|s| s.to_str()) == Some("frasm") {
-                    out.push(p);
-                }
+    /// MAC-only host pair used by the pure Layer 2 roundtrip fixtures.
+    const MAC_HOSTS: &str = "host a { mac 02:00:00:00:00:01 }\nhost b { mac 02:00:00:00:00:02 }\n";
+
+    /// IPv4 host pair (with explicit MACs) used by the IPv4 L2/L3/L4 roundtrip fixtures.
+    const V4_HOSTS: &str = "host a { ip 10.0.0.1 mac 02:00:00:00:00:01 }\n\
+                            host b { ip 10.0.0.2 mac 02:00:00:00:00:02 }\n";
+
+    /// IPv6 host pair (with explicit MACs) used by the IPv6-only `ndp` and `mld` fixtures.
+    const V6_HOSTS: &str = "host a { ip 2001:db8::1 mac 02:00:00:00:00:01 }\n\
+                            host b { ip 2001:db8::2 mac 02:00:00:00:00:02 }\n";
+
+    /// Inline L2/L3/L4 roundtrip fixtures as `(protocol, host_block, flow_body)` triples.
+    ///
+    /// Every one of the 31 L2 (8), L3 (20), and L4 (3) protocols appears exactly once. Each
+    /// `flow_body` holds minimal v3.0.0 strict-lowercase statements for a `flow f(x, y)` whose
+    /// second statement carries a `wait` so relative timestamps are exercised by the oracle.
+    const L2_L3_L4_FIXTURES: [(&str, &str, &str); 31] = [
+        ("arp", V4_HOSTS, "x -> y arp\n    y -> x arp wait 5ms"),
+        ("vlan", MAC_HOSTS, "x -> y vlan 100\n    y -> x vlan 100 wait 5ms"),
+        ("qinq", MAC_HOSTS, "x -> y qinq 100 innervlan 200 payload \"QinQ-Body\"\n    y -> x qinq wait 5ms"),
+        ("lldp", MAC_HOSTS, "x -> y lldp\n    y -> x lldp wait 30s"),
+        ("stp", MAC_HOSTS, "x -> y stp\n    x -> y stp wait 2s"),
+        ("lacp", MAC_HOSTS, "x -> y lacp\n    y -> x lacp wait 1s"),
+        ("eapol", MAC_HOSTS, "x -> y eapol\n    y -> x eapol wait 10ms"),
+        ("mpls", MAC_HOSTS, "x -> y mpls\n    y -> x mpls wait 1ms"),
+        ("icmp", V4_HOSTS, "x -> y icmp\n    y -> x icmp wait 2ms"),
+        ("ndp", V6_HOSTS, "x -> y ndp\n    y -> x ndp wait 2ms"),
+        ("igmp", V4_HOSTS, "x -> y igmp\n    x -> y igmp wait 1s"),
+        ("mld", V6_HOSTS, "x -> y mld\n    x -> y mld wait 1s"),
+        ("gre", V4_HOSTS, "x -> y gre\n    y -> x gre wait 1ms"),
+        ("vxlan", V4_HOSTS, "x -> y vxlan\n    y -> x vxlan wait 1ms"),
+        ("geneve", V4_HOSTS, "x -> y geneve\n    y -> x geneve wait 1ms"),
+        ("ipsec", V4_HOSTS, "x -> y ipsec\n    y -> x ipsec wait 1ms"),
+        ("esp", V4_HOSTS, "x -> y esp\n    y -> x esp wait 1ms"),
+        ("ah", V4_HOSTS, "x -> y ah\n    y -> x ah wait 1ms"),
+        ("ikev2", V4_HOSTS, "x -> y ikev2\n    y -> x ikev2 wait 20ms"),
+        ("wireguard", V4_HOSTS, "x -> y wireguard\n    y -> x wireguard wait 20ms"),
+        ("ospf", V4_HOSTS, "x -> y ospf\n    y -> x ospf wait 10s"),
+        ("bgp", V4_HOSTS, "x -> y bgp\n    y -> x bgp wait 50ms"),
+        ("rip", V4_HOSTS, "x -> y rip\n    y -> x rip wait 30s"),
+        ("vrrp", V4_HOSTS, "x -> y vrrp\n    y -> x vrrp wait 1s"),
+        ("hsrp", V4_HOSTS, "x -> y hsrp\n    y -> x hsrp wait 3s"),
+        ("pim", V4_HOSTS, "x -> y pim\n    y -> x pim wait 30s"),
+        ("bfd", V4_HOSTS, "x -> y bfd\n    y -> x bfd wait 300ms"),
+        ("openflow", V4_HOSTS, "x -> y openflow\n    y -> x openflow wait 5ms"),
+        ("tcp", V4_HOSTS, "x -> y tcp dstport 443 syn mss 1460 sackperm\n    y -> x tcp syn ack wait 1ms\n    x -> y tcp ack wait 1ms"),
+        ("udp", V4_HOSTS, "x -> y udp dstport 5000 payload \"ping\"\n    y -> x udp payload \"pong\" wait 2ms"),
+        ("sctp", V4_HOSTS, "x -> y sctp srcport 2905 dstport 2905 vtag 0x12345678\n    y -> x sctp shutdownack wait 3ms"),
+    ];
+
+    /// Runs one inline fixture through the roundtrip oracle (parse -> compile -> PCAPNG ->
+    /// `reverse_pcap_bytes` -> re-parse -> re-compile), returning a protocol-tagged error message
+    /// on fallback comments, frame-count drift, or relative-timestamp drift.
+    fn roundtrip_fixture(proto: &str, hosts: &str, body: &str) -> Result<(), String> {
+        let src = alloc::format!("{hosts}flow f(x, y) {{\n    {body}\n}}\ncompile {{ f(a, b) }}\n");
+        let prog = parse_program(&src).map_err(|e| alloc::format!("{proto}: parse original failed: {e}"))?;
+        let orig_frames = compile_program(&prog)
+            .map_err(|e| alloc::format!("{proto}: compile original failed: {e}"))?;
+        let pcap_bytes = frames_to_pcapng(&orig_frames);
+
+        let out = reverse_pcap_bytes(&pcap_bytes)
+            .map_err(|e| alloc::format!("{proto}: reverse failed: {e}"))?;
+        if out.fasm.contains("// [") {
+            return Err(alloc::format!("{proto}: unexpected fallback comment:\n{}", out.fasm));
+        }
+        let reprog = parse_program(&out.fasm).map_err(|e| {
+            alloc::format!("{proto}: re-parse failed: {e}\n--- FRASM ---\n{}", out.fasm)
+        })?;
+        let reframes = compile_program(&reprog)
+            .map_err(|e| alloc::format!("{proto}: re-compile failed: {e}"))?;
+        if orig_frames.len() != reframes.len() {
+            return Err(alloc::format!(
+                "{proto}: frame count mismatch ({} vs {})",
+                orig_frames.len(),
+                reframes.len()
+            ));
+        }
+        let orig_base = orig_frames.first().map_or(0, |(_, ts)| *ts);
+        let re_base = reframes.first().map_or(0, |(_, ts)| *ts);
+        for (idx, ((_, orig_ts), (_, re_ts))) in orig_frames.iter().zip(reframes.iter()).enumerate() {
+            let (o, r) = (orig_ts.saturating_sub(orig_base), re_ts.saturating_sub(re_base));
+            if o != r {
+                return Err(alloc::format!(
+                    "{proto}: relative timestamp mismatch on frame #{} ({o} vs {r})",
+                    idx + 1
+                ));
             }
         }
+        Ok(())
     }
 
-    /// Verifies round-trip PCAPNG decompilation and recompilation across all `examples/{l2,l3,l4}` corpus files.
+    /// Verifies round-trip PCAPNG decompilation and recompilation across inline fixtures covering
+    /// all 31 L2/L3/L4 protocols, reporting every failing protocol by name.
     #[test]
-    fn test_l2_l3_l4_corpus_roundtrip_oracle() {
-        let mut files = Vec::new();
-        for sub in ["examples/l2", "examples/l3", "examples/l4"] {
-            collect_frasm_files(std::path::Path::new(sub), &mut files);
-        }
-        assert!(!files.is_empty(), "expected L2/L3/L4 corpus files");
-
-        for path in &files {
-            let Ok(src) = std::fs::read_to_string(path) else {
-                panic!("read corpus file");
-            };
-            let Ok(prog) = parse_program(&src) else {
-                panic!("parse original corpus file");
-            };
-            let Ok(orig_frames) = compile_program(&prog) else {
-                panic!("compile original corpus file");
-            };
-            let pcap_bytes = frames_to_pcapng(&orig_frames);
-
-            let out = reverse_pcap_bytes(&pcap_bytes)
-                .unwrap_or_else(|e| panic!("reverse failed on {}: {e}", path.display()));
-            assert!(
-                !out.fasm.contains("// ["),
-                "unexpected fallback comment in {}:\n{}",
-                path.display(),
-                out.fasm
-            );
-            let reprog = parse_program(&out.fasm).unwrap_or_else(|e| {
-                panic!(
-                    "re-parse failed on {}: {e}\n--- FRASM ---\n{}",
-                    path.display(),
-                    out.fasm
-                )
-            });
-            let reframes = compile_program(&reprog)
-                .unwrap_or_else(|e| panic!("re-compile failed on {}: {e}", path.display()));
-            assert_eq!(
-                orig_frames.len(),
-                reframes.len(),
-                "frame count mismatch on {}",
-                path.display()
-            );
-            let orig_base = orig_frames.first().map_or(0, |(_, ts)| *ts);
-            let re_base = reframes.first().map_or(0, |(_, ts)| *ts);
-            for (idx, ((_orig_b, orig_ts), (_re_b, re_ts))) in
-                orig_frames.iter().zip(reframes.iter()).enumerate()
-            {
-                assert_eq!(
-                    orig_ts.saturating_sub(orig_base),
-                    re_ts.saturating_sub(re_base),
-                    "relative timestamp mismatch on {} frame #{}",
-                    path.display(),
-                    idx + 1
-                );
-            }
-        }
+    fn test_l2_l3_l4_inline_roundtrip_oracle() {
+        let failures: Vec<String> = L2_L3_L4_FIXTURES
+            .iter()
+            .filter_map(|(proto, hosts, body)| roundtrip_fixture(proto, hosts, body).err())
+            .collect();
+        assert!(
+            failures.is_empty(),
+            "L2/L3/L4 roundtrip oracle failed for {} protocol(s):\n{}",
+            failures.len(),
+            failures.join("\n")
+        );
     }
 
     /// Verifies v3.0.0 strict-lowercase PCAPNG decompilation (`host1`/`host2`, zero `loop`,

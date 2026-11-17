@@ -1,6 +1,6 @@
-# Modern Rust (Edition 2024, Rust 1.85–1.99.1) QA, Corpus Verification & Testing Reference Patterns
+# Modern Rust (Edition 2024, Rust 1.85–1.99.1) QA, Verification Gates & Testing Reference Patterns
 
-This reference document provides production-ready, compile-verified, and idiomatic Rust code templates covering the 4-tier testing taxonomy (with Rust 1.96+ `assert_matches!` and Rust 1.89+ `File::lock`), the 6-gate corpus/lexer-bijection/Markdown-block/AST-wiring verification engine (`2,611` scenarios), automated 6-way grammar/IDE/WASM lockstep and non-terminal resolution, `proptest` round-trip synthesis (`proptest-regressions/`), external `tshark` dissector validation, `cargo-mutants --in-diff`, and `.agents/scripts/file_lock.sh` parallel multi-agent coordination.
+This reference document provides production-ready, compile-verified, and idiomatic Rust code templates covering the 4-tier testing taxonomy (with Rust 1.96+ `assert_matches!` and Rust 1.89+ `File::lock`), the Markdown-block/source-hygiene/AST-wiring verification gates (the repository has no `docs/` or `examples/` folders; scenarios live at https://frameassembly.ai.studio/use-cases), automated 6-way grammar/IDE/WASM lockstep and non-terminal resolution, `proptest` round-trip synthesis (`proptest-regressions/`), external `tshark` dissector validation, `cargo-mutants --in-diff`, and `.agents/scripts/file_lock.sh` parallel multi-agent coordination.
 
 ---
 
@@ -25,16 +25,11 @@ use frameassembly::parser::{parse_program, validate_semantics};
 #[test]
 fn test_tier1_ipv4_udp_dns_wire_encoding() {
     let source = r#"
-// PROMPT: Verify standard IPv4 UDP DNS A-record query wire encoding.
-// TOKENS: host, ip, mac, flow, dns, qname, qtype, compile
-// INSTRUCTION: Declare client and DNS resolver endpoints.
 host client { ip 192.168.1.10 mac 00:11:22:33:44:55 }
 host resolver { ip 192.168.1.1 mac 00:aa:bb:cc:dd:ee }
-// INSTRUCTION: Emit a DNS query for example.com.
 flow dns_lookup(c, s) {
     c -> s dns qname "example.com" qtype "a"
 }
-// INSTRUCTION: Compile the DNS lookup flow.
 compile {
     dns_lookup(client, resolver)
 }
@@ -153,62 +148,20 @@ compile {
 
 ---
 
-## 2. Six-Gate Corpus (`2,611` Files), Lexer Bijection, Markdown Block & AST `*Spec`-to-Builder Wiring Engine (`tests/corpus_verification_tests.rs`)
+## 2. Markdown Block, Source Hygiene & AST `*Spec`-to-Builder Wiring Gates (`tests/corpus_verification_tests.rs`)
 
-Automates deep structural, lexical bijection, Markdown fenced-block compilation, OpenCoder/chunk-size verification, and Gate 6 AST `*Spec` field-to-builder wiring checks across the repository.
+Automates Markdown fenced-block compilation, OpenCoder/chunk-size verification, and AST `*Spec` field-to-builder wiring checks across the repository. Gates are referred to by name; never add gates that read the removed `docs/` or `examples/` folders.
 
 ```rust
-//! Six-gate verification suite for FrameAssembly examples (2,611 scenarios), documentation,
+//! Verification gates for FrameAssembly Markdown/Rustdoc `.frasm` blocks, source hygiene,
 //! and AST-to-builder wire completeness.
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use logos::Logos;
 use frameassembly::backend::compile_program;
-use frameassembly::lexer::Token;
 use frameassembly::parser::{parse_program, validate_semantics};
 
-/// Gate 2: Verifies that every keyword token listed in `// TOKENS:` on Line 2
-/// is a valid lexer token present in the `.frasm` file body.
-pub fn verify_tokens_header_bijection(path: &Path, content: &str) -> Result<(), String> {
-    let lines: Vec<&str> = content.lines().collect();
-    if lines.len() < 2 || !lines[1].starts_with("// TOKENS: ") {
-        return Err(format!("{}: Missing '// TOKENS: ' on line 2", path.display()));
-    }
-
-    let header_tokens: Vec<&str> = lines[1]
-        .trim_start_matches("// TOKENS: ")
-        .split(',')
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .collect();
-
-    for raw_tok in &header_tokens {
-        let mut lex = Token::lexer(raw_tok);
-        match lex.next() {
-            Some(Ok(Token::Ident(id))) => {
-                return Err(format!(
-                    "{}: Hallucinated non-keyword token '{}' in // TOKENS: header (lexed as Ident({:?}))",
-                    path.display(),
-                    raw_tok,
-                    id
-                ));
-            }
-            Some(Ok(_)) => {}
-            _ => {
-                return Err(format!(
-                    "{}: Invalid token '{}' in // TOKENS: header",
-                    path.display(),
-                    raw_tok
-                ));
-            }
-        }
-    }
-
-    Ok(())
-}
-
-/// Gate 3: Extracts all ```frameassembly and ```frasm fenced code blocks from a Markdown
+/// Markdown & Rustdoc block gate: extracts all ```frameassembly and ```frasm fenced code blocks from a Markdown
 /// or Rust source file and verifies that every complete program compiles cleanly.
 pub fn verify_markdown_fasm_blocks_compile(path: &Path) -> Result<usize, String> {
     let content = fs::read_to_string(path)
@@ -256,8 +209,8 @@ pub fn verify_markdown_fasm_blocks_compile(path: &Path) -> Result<usize, String>
     Ok(compiled_blocks)
 }
 
-/// Gate 5: Verifies that every AI-critical Rust source/test file (`src/**/*.rs`, `tests/*.rs`)
-/// and `.frasm` corpus file is strictly < 50 KB (Markdown documentation has no 50 KB cap)
+/// Source hygiene gate: verifies that every AI-critical Rust source/test file (`src/**/*.rs`,
+/// `tests/*.rs`) is strictly < 50 KB (Markdown READMEs have no 50 KB cap)
 /// and has at least 50 words (OpenCoder opc_data_filtering minimum word count).
 pub fn verify_file_chunk_size_and_word_bounds(path: &Path) -> Result<(), String> {
     let content = fs::read_to_string(path)
@@ -282,7 +235,7 @@ pub fn verify_file_chunk_size_and_word_bounds(path: &Path) -> Result<(), String>
     Ok(())
 }
 
-/// Gate 6: Verifies that every `pub` field on every protocol `*Spec` struct (plus `TcpOptions`
+/// AST wiring gate: verifies that every `pub` field on every protocol `*Spec` struct (plus `TcpOptions`
 /// and `SctpParams`) in `src/ast/{l2,l3,l4,l7}/*.rs` is wired into and referenced by the
 /// corresponding wire builder, `src/packet.rs`, or `src/backend/`.
 pub fn verify_ast_spec_fields_wired(ast_path: &Path, builder_sources: &str) -> Vec<String> {

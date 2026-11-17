@@ -6,7 +6,7 @@ This document contains:
 3. The **Wikidata Entity & Property Mapping Specification** (`P31`, `P1195`, `P1163`, `P973`, `P856`, `P1324`, `P275`, `P306`, `P277`) and ready-to-run QuickStatements batch script.
 4. The **`file-extensions.org` Submission Web Form Template** and instructions.
 
-For the normative technical specification referenced by all submissions, see [`docs/12_frasm_specification.md`](../../docs/12_frasm_specification.md). For Freedesktop desktop MIME integration, see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml). For GitHub Linguist integration, see [`contrib/linguist/README.md`](../linguist/README.md).
+For the normative technical specification referenced by all submissions, see the [official documentation](https://frameassembly.ai.studio/docs). For Freedesktop desktop MIME integration, see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml). For GitHub Linguist integration, see [`contrib/linguist/README.md`](../linguist/README.md).
 
 ---
 
@@ -81,7 +81,7 @@ For the normative technical specification referenced by all submissions, see [`d
 
 * **Published specification:**
   ```text
-  https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
+  https://frameassembly.ai.studio/docs
   https://github.com/SteveWinschel/FrameAssembly/blob/main/grammar.ebnf
   ```
 
@@ -143,7 +143,7 @@ Registration in the RFC 6838 Vendor Tree proceeds according to the **Designated 
      - Character set specifications adhering to RFC 6657 (explicit default of UTF-8, no BOM).
      - Accurate fragment identifier addressing (RFC 5147).
 3. **Expert Feedback & Dialogue**:
-   - The project owner responds directly to any questions on the `media-types@ietf.org` thread, referencing the normative technical specification at [`docs/12_frasm_specification.md`](../../docs/12_frasm_specification.md).
+   - The project owner responds directly to any questions on the `media-types@ietf.org` thread, referencing the normative technical specification in the [official documentation](https://frameassembly.ai.studio/docs).
 4. **Approval & Registry Publication**:
    - Upon Designated Expert consensus, IANA notifies the applicant and updates the official IANA Media Types Registry at [`https://www.iana.org/assignments/media-types/media-types.xhtml`](https://www.iana.org/assignments/media-types/media-types.xhtml) under the `text` category.
 
@@ -157,10 +157,10 @@ Registering the FrameAssembly file format in **Wikidata** populates structured f
 
 | Wikidata Property | Property Name | Value | Qualifier / Reference URL (`S854`) |
 | :--- | :--- | :--- | :--- |
-| **`P31`** | instance of | `Q235557` (file format)<br>`Q1262091` (domain-specific language)<br>`Q9143` (programming language) | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` |
-| **`P1195`** | file extension | `"frasm"` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` |
-| **`P1163`** | media type | `"text/vnd.frameassembly"` | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` |
-| **`P973`** | described at URL | `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` | Language of work (`P407`): `Q1860` (English) |
+| **`P31`** | instance of | `Q235557` (file format)<br>`Q1262091` (domain-specific language)<br>`Q9143` (programming language) | `https://frameassembly.ai.studio/docs` |
+| **`P1195`** | file extension | `"frasm"` | `https://frameassembly.ai.studio/docs` |
+| **`P1163`** | media type | `"text/vnd.frameassembly"` | `https://frameassembly.ai.studio/docs` |
+| **`P973`** | described at URL | `https://frameassembly.ai.studio/docs` | Language of work (`P407`): `Q1860` (English) |
 | **`P856`** | official website | `https://frameassembly.ai.studio/` | — |
 | **`P1324`** | source code repository | `https://github.com/SteveWinschel/FrameAssembly` | Version control system (`P8423`): `Q186055` (Git) |
 | **`P275`** | copyright license | `Q334661` (MIT License) | [`https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE`](../../LICENSE) |
@@ -178,10 +178,10 @@ Because QuickStatements requires an autoconfirmed Wikidata account ($\ge 4$ days
    - **Description:** `declarative domain-specific language and file format for generating deterministic .pcap and .pcapng network packet captures`
    - **Aliases (pipe-separated):** `frasm|.frasm|text/vnd.frameassembly|FrameAssembly packet specification`
 3. On the newly created item page (`Q...`), click **+ add statement** for each of the 9 properties in [Section 3.1](#31-comprehensive-wikidata-property-table):
-   - **`instance of` (`P31`)**: add `file format` (`Q235557`), `domain-specific language` (`Q1262091`), and `programming language` (`Q9143`), each with reference `reference URL` (`P854`) = `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md`.
+   - **`instance of` (`P31`)**: add `file format` (`Q235557`), `domain-specific language` (`Q1262091`), and `programming language` (`Q9143`), each with reference `reference URL` (`P854`) = `https://frameassembly.ai.studio/docs`.
    - **`file extension` (`P1195`)**: `frasm` (with reference URL `P854` above).
    - **`media type` (`P1163`)**: `text/vnd.frameassembly` (with reference URL `P854` above).
-   - **`described at URL` (`P973`)**: `https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md` (qualifier `language of work or name` `P407` = `English` `Q1860`).
+   - **`described at URL` (`P973`)**: `https://frameassembly.ai.studio/docs` (qualifier `language of work or name` `P407` = `English` `Q1860`).
    - **`official website` (`P856`)**: `https://frameassembly.ai.studio/`.
    - **`source code repository` (`P1324`)**: `https://github.com/SteveWinschel/FrameAssembly` (qualifier `version control system` `P8423` = `Git` `Q186055`).
    - **`copyright license` (`P275`)**: `MIT License` (`Q334661`).
@@ -205,12 +205,12 @@ LAST|Aen|"frasm"
 LAST|Aen|".frasm"
 LAST|Aen|"text/vnd.frameassembly"
 LAST|Aen|"FrameAssembly packet specification"
-LAST|P31|Q235557|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
-LAST|P31|Q1262091|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
-LAST|P31|Q9143|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
-LAST|P1195|"frasm"|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
-LAST|P1163|"text/vnd.frameassembly"|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
-LAST|P973|"https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"|P407|Q1860
+LAST|P31|Q235557|S854|"https://frameassembly.ai.studio/docs"
+LAST|P31|Q1262091|S854|"https://frameassembly.ai.studio/docs"
+LAST|P31|Q9143|S854|"https://frameassembly.ai.studio/docs"
+LAST|P1195|"frasm"|S854|"https://frameassembly.ai.studio/docs"
+LAST|P1163|"text/vnd.frameassembly"|S854|"https://frameassembly.ai.studio/docs"
+LAST|P973|"https://frameassembly.ai.studio/docs"|P407|Q1860
 LAST|P856|"https://frameassembly.ai.studio/"
 LAST|P1324|"https://github.com/SteveWinschel/FrameAssembly"|P8423|Q186055
 LAST|P275|Q334661|S854|"https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE"
@@ -345,7 +345,7 @@ Format Type: Text (Source Code) / Network Data Specification
 Disclosure: Full (Open Source, MIT License, RFC 6838 Vendor Tree Candidate)
 Developer / Organisation: Steve Winschel (steve.winschel@gmail.com) / FrameAssembly Project
 Official URL: https://frameassembly.ai.studio/
-Specification Document: https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md
+Specification Document: https://frameassembly.ai.studio/docs
 
 File Extension: frasm
 Internet Media Type: text/vnd.frameassembly
@@ -374,7 +374,7 @@ Declarative DSL allowing network engineers and archivists to define reproducible
     "compressible": true,
     "extensions": ["frasm"],
     "sources": [
-      "https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md"
+      "https://frameassembly.ai.studio/docs"
     ]
   }
 ```

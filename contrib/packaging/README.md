@@ -1,6 +1,6 @@
 # FrameAssembly Multi-Platform Packaging & Release Maintainer Guide
 
-This directory contains official packaging recipes, manifests, formulas, and distribution templates for **FrameAssembly** (`frameassembly` v3.1.0, official website & browser playground: [`https://frameassembly.ai.studio/`](https://frameassembly.ai.studio/), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) across supported operating systems and package managers:
+This directory contains official packaging recipes, manifests, formulas, and distribution templates for **FrameAssembly** (`frameassembly` v3.1.1, official website & browser playground: [`https://frameassembly.ai.studio/`](https://frameassembly.ai.studio/), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) across supported operating systems and package managers:
 
 - **Crates.io (`cargo install frameassembly` — Recommended CLI Install)**: Native source build from [`crates.io/crates/frameassembly`](https://crates.io/crates/frameassembly) across Linux, macOS, Windows, and BSD (`Rust 1.88+`)
 - **Debian / Ubuntu (`APT`)**: Standalone `.deb` package builder and control templates (`contrib/packaging/apt/`), bundling MIME (`postinst`/`postrm` `update-mime-database`), file magic, and Bash/Zsh/Fish Tab completions
@@ -19,7 +19,7 @@ When Rust (`1.88+`) is installed, `cargo install frameassembly` is the recommend
 cargo install frameassembly
 ```
 
-Pre-built static binary bundles (`frameassembly-{windows,macos,linux}-{x64,arm64}.{zip,tar.gz}`) on GitHub Releases include the `frameassembly` binary, `quickstart.frasm`, offline protocol reference guides (`docs/*.md`), curated starter `.frasm` examples (`examples/`), shell Tab completions (`completions/`), and `install.sh` / `install.ps1` for air-gapped labs.
+Pre-built static binary bundles (`frameassembly-{windows,macos,linux}-{x64,arm64}.{zip,tar.gz}`) on GitHub Releases include the `frameassembly` binary, `quickstart.frasm`, shell Tab completions (`completions/`), and `install.sh` / `install.ps1` for air-gapped labs. Documentation lives at [https://frameassembly.ai.studio/docs](https://frameassembly.ai.studio/docs) and use cases at [https://frameassembly.ai.studio/use-cases](https://frameassembly.ai.studio/use-cases).
 
 ---
 
@@ -28,7 +28,7 @@ Pre-built static binary bundles (`frameassembly-{windows,macos,linux}-{x64,arm64
 | Package Manager | Target Platform | Architecture | Upstream Registry / Repository | Package Identifier |
 | :--- | :--- | :--- | :--- | :--- |
 | **Crates.io (Recommended)** | Linux, macOS, Windows, BSD | Source / native | `crates.io/crates/frameassembly` | `frameassembly` |
-| **APT** | Debian 11+, Ubuntu 20.04+ | `amd64`, `arm64` | GitHub Releases (`frameassembly_{amd64,arm64}.deb` & `frameassembly_3.1.0_{amd64,arm64}.deb`) | `frameassembly` |
+| **APT** | Debian 11+, Ubuntu 20.04+ | `amd64`, `arm64` | GitHub Releases (`frameassembly_{amd64,arm64}.deb` & `frameassembly_3.1.1_{amd64,arm64}.deb`) | `frameassembly` |
 | **Homebrew** | macOS (Apple Silicon / Intel), Linux | `arm64`, `x64` | `SteveWinschel/homebrew-tap-FrameAssembly` | `frameassembly` |
 | **Scoop** | Windows 10/11, Windows Server | `64bit`, `arm64` | `SteveWinschel/homebrew-tap-FrameAssembly` | `frameassembly` |
 | **NPM (WASM)** | Web browsers, Web Workers, Node.js | Universal (`wasm32`) | `npmjs.com/package/frameassembly-wasm` | `frameassembly-wasm` |
@@ -71,10 +71,10 @@ Every external registry upload is guarded by optional GitHub Actions secrets or 
 
 ```bash
 # Stamp checksums from a published GitHub Release tag
-./contrib/packaging/update-checksums.sh v3.1.0
+./contrib/packaging/update-checksums.sh v3.1.1
 
 # Offline or local dry-run with a local SHA256SUMS.txt file
-./contrib/packaging/update-checksums.sh --sums-file path/to/SHA256SUMS.txt 3.1.0
+./contrib/packaging/update-checksums.sh --sums-file path/to/SHA256SUMS.txt 3.1.1
 ```
 
 ---
@@ -83,15 +83,15 @@ Every external registry upload is guarded by optional GitHub Actions secrets or 
 
 #### Local Build & Verification
 ```bash
-# Build amd64 deb package (emits both frameassembly_3.1.0_amd64.deb and frameassembly_amd64.deb)
-contrib/packaging/apt/build-deb.sh 3.1.0 target/release/frameassembly amd64 dist/
+# Build amd64 deb package (emits both frameassembly_3.1.1_amd64.deb and frameassembly_amd64.deb)
+contrib/packaging/apt/build-deb.sh 3.1.1 target/release/frameassembly amd64 dist/
 
 # Build arm64 deb package
-contrib/packaging/apt/build-deb.sh 3.1.0 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist/
+contrib/packaging/apt/build-deb.sh 3.1.1 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist/
 
 # Verify generated package metadata and bundled completions
-dpkg-deb --info dist/frameassembly_3.1.0_amd64.deb
-dpkg-deb --contents dist/frameassembly_3.1.0_amd64.deb
+dpkg-deb --info dist/frameassembly_3.1.1_amd64.deb
+dpkg-deb --contents dist/frameassembly_3.1.1_amd64.deb
 ```
 
 #### End-User Installation Command
@@ -104,8 +104,8 @@ curl -fsSLo ./frameassembly_amd64.deb https://github.com/SteveWinschel/FrameAsse
 # Latest stable Debian/Ubuntu package (arm64 / aarch64)
 curl -fsSLo ./frameassembly_arm64.deb https://github.com/SteveWinschel/FrameAssembly/releases/latest/download/frameassembly_arm64.deb && sudo apt install -y ./frameassembly_arm64.deb && rm -f ./frameassembly_arm64.deb
 
-# Pinned versioned asset (v3.1.0)
-curl -fsSLo ./frameassembly_3.1.0_amd64.deb https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.0/frameassembly_3.1.0_amd64.deb && sudo apt install -y ./frameassembly_3.1.0_amd64.deb && rm -f ./frameassembly_3.1.0_amd64.deb
+# Pinned versioned asset (v3.1.1)
+curl -fsSLo ./frameassembly_3.1.1_amd64.deb https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.1.1/frameassembly_3.1.1_amd64.deb && sudo apt install -y ./frameassembly_3.1.1_amd64.deb && rm -f ./frameassembly_3.1.1_amd64.deb
 ```
 
 ---
@@ -121,7 +121,7 @@ cd homebrew-tap-FrameAssembly
 mkdir -p Formula
 cp /path/to/frameassembly/contrib/packaging/homebrew/Formula/frameassembly.rb Formula/
 git add Formula/frameassembly.rb
-git commit -m "frameassembly 3.1.0"
+git commit -m "frameassembly 3.1.1"
 git push origin main
 ```
 
@@ -158,7 +158,7 @@ On Windows File Explorer, extracting `frameassembly-windows-x64.zip` also works 
 
 ### 3.4 Air-Gapped & Offline Lab Archives (`.zip` / `.tar.gz`)
 
-Every OS `.tar.gz` and `.zip` release bundle carries offline `docs/*.md` protocol references, starter `.frasm` files under `examples/`, `quickstart.frasm`, and `completions/`. Copy the archive (plus `SHA256SUMS.txt` and optional `frameassembly-vscode.vsix`) onto a jump-host:
+Every OS `.tar.gz` and `.zip` release bundle carries `quickstart.frasm` and `completions/`. Copy the archive (plus `SHA256SUMS.txt` and optional `frameassembly-vscode.vsix`) onto a jump-host:
 
 ```bash
 # Linux / macOS offline install (verifies SHA256SUMS.txt in the same folder; pass --skip-checksum if omitted)
@@ -185,8 +185,8 @@ cp frameassembly-wasm/pkg/frameassembly_wasm.js \
    frameassembly-vscode/wasm/
 
 cd frameassembly-vscode
-npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o frameassembly-vscode-3.1.0.vsix
-npx @vscode/vsce publish -p "$VSCE_PAT" --packagePath frameassembly-vscode-3.1.0.vsix
+npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o frameassembly-vscode-3.1.1.vsix
+npx @vscode/vsce publish -p "$VSCE_PAT" --packagePath frameassembly-vscode-3.1.1.vsix
 ```
 
 #### End-User Installation Command
@@ -209,6 +209,6 @@ bash -n install.sh
 jq . contrib/packaging/scoop/frameassembly.json
 
 # 3. Debian package assembly test
-contrib/packaging/apt/build-deb.sh 3.1.0 target/debug/frameassembly amd64 temp/
-rm -rf temp/frameassembly_3.1.0_amd64.deb temp/frameassembly_amd64.deb
+contrib/packaging/apt/build-deb.sh 3.1.1 target/debug/frameassembly amd64 temp/
+rm -rf temp/frameassembly_3.1.1_amd64.deb temp/frameassembly_amd64.deb
 ```

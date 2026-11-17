@@ -632,8 +632,8 @@ compile {
             .expect("run frameassembly version query");
         assert!(ver_out.status.success(), "version query '{ver_arg}' failed");
         assert!(
-            String::from_utf8_lossy(&ver_out.stdout).contains("3.1.0"),
-            "version query '{ver_arg}' missing 3.1.0"
+            String::from_utf8_lossy(&ver_out.stdout).contains("3.1.1"),
+            "version query '{ver_arg}' missing 3.1.1"
         );
     }
 

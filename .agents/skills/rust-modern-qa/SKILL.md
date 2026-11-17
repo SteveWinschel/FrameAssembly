@@ -1,11 +1,11 @@
 ---
 name: rust-modern-qa
-description: Comprehensive guide, multi-tier testing architecture, 6-gate corpus & AST-to-builder wiring verification, proptest AST synthesis with proptest-regressions VCS pinning, cargo-mutants (--in-diff) mutation testing, cargo-nextest / cargo-llvm-cov (--doctests) / cargo-semver-checks gates, 6-way grammar/IDE/WASM lockstep, external tshark dissector validation, Rust 1.89-1.99.1 QA features (assert_matches!, File::lock, build.warnings), and parallel multi-agent file locking (.agents/scripts/file_lock.sh).
+description: Comprehensive guide, multi-tier testing architecture, grammar-lockstep & AST-to-builder wiring gates, inline L2/L3/L4 reverse roundtrip fixtures, proptest AST synthesis with proptest-regressions VCS pinning, cargo-mutants (--in-diff) mutation testing, cargo-nextest / cargo-llvm-cov (--doctests) / cargo-semver-checks gates, 6-way grammar/IDE/WASM lockstep, external tshark dissector validation, Rust 1.89-1.99.1 QA features (assert_matches!, File::lock, build.warnings), and parallel multi-agent file locking (.agents/scripts/file_lock.sh).
 ---
 
-# Modern Rust (Edition 2024, Rust 1.85–1.99.1) QA, Corpus Verification & Compiler/Wire Testing Skill
+# Modern Rust (Edition 2024, Rust 1.85–1.99.1) QA, Verification Gates & Compiler/Wire Testing Skill
 
-Use this skill when architecting, implementing, debugging, optimizing, or auditing automated test suites, `.frasm` corpus verification frameworks (`2,611` scenarios / `13,055` synthetic multi-task instances), Markdown/rustdoc code-block compilers, property-based testing (`proptest`), mutation testing (`cargo-mutants`), 6-way grammar/IDE/WASM lockstep checks, AST `*Spec`-to-builder field wiring verification, external Wireshark (`tshark`) dissector verification, and parallel multi-agent CI/CD quality gates in modern Rust 1.85–1.99.1 (Edition 2024) projects.
+Use this skill when architecting, implementing, debugging, optimizing, or auditing automated test suites, `.frasm` verification gates and inline roundtrip fixtures, Markdown/rustdoc code-block compilers, property-based testing (`proptest`), mutation testing (`cargo-mutants`), 6-way grammar/IDE/WASM lockstep checks, AST `*Spec`-to-builder field wiring verification, external Wireshark (`tshark`) dissector verification, and parallel multi-agent CI/CD quality gates in modern Rust 1.85–1.99.1 (Edition 2024) projects.
 
 ---
 
@@ -17,11 +17,10 @@ Use this skill when architecting, implementing, debugging, optimizing, or auditi
 | **Pattern & Diagnostic Variant Assertions (Rust 1.96+)** | `std::assert_matches::assert_matches!` and `debug_assert_matches!` on `CompilerError::ParseError { .. }` / `SemanticError { .. }` | Verbose `if let Err(CompilerError::SemanticError { .. }) = res {} else { panic!() }` |
 | **Zero-Warning CI Enforcement (Rust 1.97+)** | Cargo `build.warnings = "deny"` in `.cargo/config.toml` or `CARGO_BUILD_WARNINGS=deny` alongside workspace `[lints]` | Ad-hoc `RUSTFLAGS="-D warnings"` that breaks third-party path/git dependencies or misses Cargo-level warnings |
 | **Cross-Process Test File Locking (Rust 1.89+)** | `std::fs::File::lock()` / `lock_shared()` / `try_lock()` for cross-process test synchronization + `AtomicU64` + PID temp paths | Fixed temp file names (`/tmp/out.pcap`) or external `fs2`/`fd-lock` crates for simple advisory file locks |
-| **100% Zero-Skip DSL Corpus Verification** | 6-Gate automated verifier (`tests/corpus_verification_tests.rs`) validating all `2,611` `.frasm` files (`13,055` multi-task instances) with zero skipped errors | Wrapping `parse_program` in `if let Ok(...)` or asserting `compiled_count >= 800` |
-| **`// TOKENS:` Lexer Stream Bijection** | Verify every token listed on Line 2 (`// TOKENS:`) matches actual strict-lowercase `[a-z0-9]+` `Token` variants emitted by `lexer::Token::lexer` | Substring matching (`t in body`) that passes when hallucinated tokens appear in both header and body |
-| **Markdown & Rustdoc DSL Block Gate** | Extract and compile every ````frameassembly` and ````frasm` fence in `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, `docs/*.md`, `.agents/skills/**/*.md`, and `src/**/*.rs` via `parse_program` + `validate_semantics` + `compile_program` | Leaving uncompilable or drifted `.frasm` examples (e.g., `http ... host` instead of `hosthdr`, uppercase/underscore v1.x keywords, or removed `loop` blocks) inside Markdown guides |
+| **Zero-Skip Inline Roundtrip Fixtures** | One embedded `.frasm` snippet per L2/L3/L4 protocol inside `src/reverse/mod.rs` tests, compiled, decompiled, and recompiled with zero skipped errors | Wrapping `parse_program` in `if let Ok(...)`, asserting `compiled_count >= N`, or reading fixtures from a deleted `examples/` folder |
+| **Markdown & Rustdoc DSL Block Gate** | Extract and compile every ````frameassembly` and ````frasm` fence in `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, `.agents/skills/**/*.md`, and `src/**/*.rs` via `parse_program` + `validate_semantics` + `compile_program` | Leaving uncompilable or drifted `.frasm` examples (e.g., `http ... host` instead of `hosthdr`, uppercase/underscore v1.x keywords, or removed `loop` blocks) inside Markdown guides |
 | **6-Way Grammar, IDE & WASM Lockstep** | Verify every strict-lowercase `[a-z0-9]+` keyword token in `src/lexer/mod.rs` (zero `_`, zero `-`, no `ignore(ascii_case)`, no `loop`) is wired into `src/parser/`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, `frameassembly.tmLanguage.json`, and `frameassembly-wasm`, and assert zero undefined RHS non-terminals | Adding tokens to `lexer` without matching grammar/TextMate rules, or leaving undefined rules like `string_char` in `grammar.ebnf` |
-| **AST `*Spec`-to-Builder Field Wiring (Gate 6)** | Scan every `pub` field on all 81 AST `*Spec` structs (`src/ast/{l2,l3,l4,l7}/*.rs`) and assert it is referenced in `src/builders/`, `src/packet.rs`, or `src/backend/` | Parsing a `.frasm` modifier into an AST `*Spec` struct field that the wire builder silently ignores |
+| **AST `*Spec`-to-Builder Field Wiring Gate** | Scan every `pub` field on all 81 AST `*Spec` structs (`src/ast/{l2,l3,l4,l7}/*.rs`) and assert it is referenced in `src/builders/`, `src/packet.rs`, or `src/backend/` | Parsing a `.frasm` modifier into an AST `*Spec` struct field that the wire builder silently ignores |
 | **Property-Based Compiler Testing (`proptest`)** | Generate arbitrary valid `.frasm` programs and ASTs via `proptest` strategies and commit `proptest-regressions/` to VCS | Only testing hardcoded static strings or git-ignoring `proptest-regressions/` seed files |
 | **Mutation Testing (`cargo-mutants`)** | Run `cargo mutants -f src/packet.rs -f src/builders/` and `cargo mutants --in-diff git.diff` on parsers/crypto/validators; use `#[mutants::skip]` only on display helpers | Assuming 90% line coverage guarantees bit-level RFC wire encoding or cryptographic correctness |
 | **Nextest, Doctest Coverage & Semver Gates** | `cargo nextest run`, `cargo llvm-cov --all-targets --doctests --fail-under-lines 90`, and `cargo semver-checks check-release` | Omitting `--doctests` from coverage or shipping public AST/builder API breaking changes without semver checks |
@@ -51,23 +50,21 @@ To guarantee zero regressions across complex parsers, state machines, and binary
 
 ---
 
-### 2.2 Six-Gate Corpus, Grammar & AST Wiring Verification Architecture (`tests/corpus_verification_tests.rs`)
-In projects maintaining extensive example corpora (`2,611` `.frasm` files across 81 protocols + 100 topologies, yielding `13,055` synthetic multi-task training instances) and AI documentation (`docs/*.md`, `llms.txt`, `llms-full.txt`), `tests/corpus_verification_tests.rs` enforces six strict verification gates (plus Gate 7 release artifact & `llms-full.txt` bundle synchronization):
+### 2.2 Verification Gates & Inline Roundtrip Fixtures (`tests/corpus_verification_tests.rs`, `src/reverse/mod.rs`)
+The repository has no `docs/` or `examples/` folders (documentation: https://frameassembly.ai.studio/docs, scenarios: https://frameassembly.ai.studio/use-cases), so never add gates that read them. `tests/corpus_verification_tests.rs` enforces these named gates (refer to them by name, not number):
 
-1. **Gate 1 — 100% Zero-Skip `.frasm` Corpus Compilation (`2,611` Scenarios)**:
-   - Every `.frasm` file in `examples/**/*.frasm` must have `// PROMPT:` on Line 1, `// TOKENS:` on Line 2, and `// INSTRUCTION:` before every `host`, `flow`, and `compile` block (`words >= 50`, `avg_line_length <= 85`, `max_line_length <= 200`, `< 50,000` bytes).
-   - Every file must pass `frameassembly::parser::parse_program(&content)`, `frameassembly::parser::validate_semantics(&program, &content)`, and `frameassembly::backend::generate_pcap(&program, path)` with **zero ignored errors**, emitting a PCAPNG file (`>= 28` bytes) starting with Section Header Block magic `0x0A0D0D0A`.
-2. **Gate 2 — Strict `// TOKENS:` Lexer Stream Bijection**:
-   - Tokenize the body of each `.frasm` file using `logos::Logos` (`frameassembly::lexer::Token::lexer`) and verify that every keyword token listed in `// TOKENS:` on Line 2 corresponds to a real strict-lowercase `[a-z0-9]+` keyword `Token` emitted by `src/lexer/mod.rs` (immediately catching hallucinated or legacy keywords like `ipv4`, `ipv6`, `send`, `sport`, `dport`, `req_id`, `loop`, or uppercase tokens).
-3. **Gate 3 — Markdown & Rustdoc Fenced-Block Compilation**:
-   - Scan `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, `llms.txt`, `docs/*.md`, `contrib/**/*.md`, `.agents/skills/**/*.md`, and `src/**/*.rs` for all ```` ```frameassembly ```` and ```` ```frasm ```` code blocks.
-   - Every block must be a complete v3.0.0 program (`host` + `flow` + `compile`, strict lowercase keywords without `_` or `-`, and zero `loop` blocks) that passes `parse_program(snippet)`, `validate_semantics(&prog, snippet)`, and `compile_program(&prog)`.
-4. **Gate 4 — Six-Way Grammar, IDE & WASM Lockstep + Non-Terminal Resolution**:
-   - Verify that every strict-lowercase `[a-z0-9]+` keyword `#[token("...")]` in `src/lexer/mod.rs` (`>= 640` keywords, zero `_`, zero `-`, no `ignore(ascii_case)`, no `Token::Loop`) is present in `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`, that `frameassembly-wasm` exposes current compiler diagnostics/PCAPNG bytes, that every referenced non-terminal on the RHS of `grammar.ebnf` and `frameassembly.gbnf` is defined on the LHS, and that `frameassembly.lark` includes contextual lowercase keywords in `str_or_ident`.
-5. **Gate 5 — Link, Orphan, `//!` Word-Count & `< 50 KB` Rust Source Hygiene**:
-   - Assert every relative link `[...](path)` resolves on disk, `docs/` contains the exact 13 canonical guides with zero orphans, zero `0x00` NUL bytes exist, every file in `src/**/*.rs`, `tests/*.rs`, and `examples/**/*.frasm` satisfies `size < 50,000` bytes, and every file in `docs/*.md`, `src/**/*.rs`, and `tests/*.rs` (`//!` module header) satisfies `words >= 50` (OpenCoder `opc_data_filtering`).
-6. **Gate 6 — AST `*Spec` Fields Wired to Wire Builders**:
-   - Inspect every `pub` field on every protocol `*Spec` struct (plus `TcpOptions` and `SctpParams`, `>= 75` structs and `>= 500` fields) in `src/ast/{l2,l3,l4,l7}/*.rs` and verify that each field is referenced by its corresponding wire builder (`src/builders/{l2,l3,l4,l7}/*.rs`), `src/packet.rs`, or `src/backend/`, preventing dead AST fields.
+- **Markdown & Rustdoc Fenced-Block Compilation Gate**:
+  - Scan `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, `llms.txt`, `contrib/**/*.md`, `.agents/skills/**/*.md`, and `src/**/*.rs` for all ```` ```frameassembly ```` and ```` ```frasm ```` code blocks.
+  - Every block must be a complete v3.0.0 program (`host` + `flow` + `compile`, strict lowercase keywords without `_` or `-`, and zero `loop` blocks) that passes `parse_program(snippet)`, `validate_semantics(&prog, snippet)`, and `compile_program(&prog)`.
+- **Six-Way Grammar, IDE & WASM Lockstep + Non-Terminal Resolution Gate**:
+  - Verify that every strict-lowercase `[a-z0-9]+` keyword `#[token("...")]` in `src/lexer/mod.rs` (`>= 640` keywords, zero `_`, zero `-`, no `ignore(ascii_case)`, no `Token::Loop`) is present in `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, and `frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`, that `frameassembly-wasm` exposes current compiler diagnostics/PCAPNG bytes, that every referenced non-terminal on the RHS of `grammar.ebnf` and `frameassembly.gbnf` is defined on the LHS, and that `frameassembly.lark` includes contextual lowercase keywords in `str_or_ident`.
+- **Source Hygiene Gate**: zero `0x00` NUL bytes, every relative link `[...](path)` resolves on disk, every file in `src/**/*.rs` and `tests/*.rs` satisfies `size < 50,000` bytes and starts with a `//!` module header of `words >= 50` (OpenCoder `opc_data_filtering`).
+- **AST `*Spec` Fields Wired to Wire Builders Gate**:
+  - Inspect every `pub` field on every protocol `*Spec` struct (plus `TcpOptions` and `SctpParams`, `>= 75` structs and `>= 500` fields) in `src/ast/{l2,l3,l4,l7}/*.rs` and verify that each field is referenced by its corresponding wire builder (`src/builders/{l2,l3,l4,l7}/*.rs`), `src/packet.rs`, or `src/backend/`, preventing dead AST fields.
+- **Reverse Decompiler Per-Protocol File Symmetry Gate**: every protocol in `src/ast/{l2,l3,l4,l7}/` has a matching `src/reverse/{l2,l3,l4,l7}/<protocol>.rs` dissector (81 total, 1-to-1).
+- **Release Packaging & `llms` Sync Gate**: release artifacts, packaging manifests, and the scripted `llms-full.txt` bundle stay synchronized with the crate version and protocol list.
+
+**Inline L2/L3/L4 Roundtrip Fixtures (`src/reverse/mod.rs`)**: `#[cfg(test)]` tests embed one `.frasm` snippet per L2/L3/L4 protocol; each must compile to PCAPNG, decompile via `reverse_pcap_bytes`, and recompile cleanly (oracle-verified) with zero ignored errors. Add a fixture there (never a new corpus folder) when adding or changing a protocol.
 
 ---
 
@@ -132,8 +129,8 @@ When executing repository-wide QA or parallel multi-agent edits across FrameAsse
    - To prevent Cargo `target/` directory lock contention when multiple agents need to run `cargo check` or `cargo test`, either defer `cargo test` to the lead orchestrator after all workers release their locks or wrap Cargo invocations in `.agents/scripts/file_lock.sh exec cargo-target -- cargo test`.
 2. **Disjoint Wave Partitioning**:
    - **Wave 1 (Compiler & 81 Builders)**: Partition across parallel subagents with strictly disjoint file ownership (`1A`: Core/Lexer/Parser/CLI/SNMP; `1B`: Backend & L2/L3/L4; `1C`: L7 Infra/Telemetry/Mail/Auth; `1D`: L7 Web/Cloud/Security/VoIP; `1E`: L7 Storage/DB/Messaging/OT).
-   - **Wave 2 (6-Way Grammars, IDE/WASM, Rustdoc & Docs)**: Partition across parallel subagents for (a) 6-way grammars (`grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, `frameassembly.tmLanguage.json`, `frameassembly-wasm`), (b) AST `/// Syntax mapping:` docstrings, and (c) `docs/*.md` + `README.md` + metadata files.
-   - **Wave 3 (Test Chunking `< 50 KB`, Wire Regressions, Gates 1–6 & `llms-full.txt`)**: Partition across parallel subagents for test splitting, wire regression assertions, `corpus_verification_tests.rs` Gates 1–6, and scripted `llms-full.txt` synchronization.
+   - **Wave 2 (6-Way Grammars, IDE/WASM, Rustdoc & Docs)**: Partition across parallel subagents for (a) 6-way grammars (`grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, `frameassembly.tmLanguage.json`, `frameassembly-wasm`), (b) AST `/// Syntax mapping:` docstrings, and (c) `README.md` + metadata files.
+   - **Wave 3 (Test Chunking `< 50 KB`, Wire Regressions, Verification Gates & `llms-full.txt`)**: Partition across parallel subagents for test splitting, wire regression assertions, `corpus_verification_tests.rs` gates, inline `src/reverse/mod.rs` roundtrip fixtures, and scripted `llms-full.txt` synchronization.
 3. **Compact Return Summaries & `/compact` State Persistence**: Require subagents to return concise bulleted summaries (`<= 60` lines) and record wave completion in a persistent checkpoint artifact.
 
 ---
@@ -142,7 +139,7 @@ When executing repository-wide QA or parallel multi-agent edits across FrameAsse
 
 Read [references/patterns.md](references/patterns.md) for complete, copy-pasteable production implementations:
 1. **Multi-Tier Test Architecture Implementation (Tiers 1–4 with Rust 1.96+ `assert_matches!` & Rust 1.89+ `File::lock`)**
-2. **Six-Gate Corpus (`2,611` Files), Lexer Bijection, Markdown Block & AST `*Spec`-to-Builder Wiring Engine (`tests/corpus_verification_tests.rs`)**
+2. **Markdown Block, Source Hygiene & AST `*Spec`-to-Builder Wiring Gates (`tests/corpus_verification_tests.rs`)**
 3. **Automated 6-Way Grammar Lockstep & Non-Terminal Resolution Test Template (`EBNF`, `GBNF`, `Lark`, `TextMate`)**
 4. **Property-Based Compiler Round-Trip Testing (`proptest` + `proptest-regressions/`) & External Wireshark (`tshark`) Dissector Gate**
 5. **Mutation Testing (`cargo-mutants --in-diff`), Doctest Coverage (`cargo-llvm-cov --doctests`), Semver (`cargo-semver-checks`) & `.agents/scripts/file_lock.sh` Workflow**

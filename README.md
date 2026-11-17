@@ -1,9 +1,9 @@
 # FrameAssembly — Packets as Code
 
 [![Try in Browser](https://img.shields.io/badge/Try%20in%20Browser-frameassembly.ai.studio-0ea5e9.svg)](https://frameassembly.ai.studio/)
-[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension%20v3.1.0-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension%20v3.1.1-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
 [![Download for Windows, macOS and Linux](https://img.shields.io/badge/Download-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-16a34a.svg)](https://github.com/SteveWinschel/FrameAssembly/releases/latest)
-[![81 Protocols and User Docs](https://img.shields.io/badge/81%20Protocols-User%20Docs-8b5cf6.svg)](docs/README.md)
+[![81 Protocols and User Docs](https://img.shields.io/badge/81%20Protocols-User%20Docs-8b5cf6.svg)](https://frameassembly.ai.studio/docs)
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
 
 [**Try in Browser**][nav-try] • [**Quick Download**][nav-dl] • [**Use Cases**][nav-uc] • [**How It Works**][nav-how] • [**Comparison**][nav-cmp] • [**81 Protocols & Docs**][nav-docs]
@@ -18,8 +18,6 @@ Well, here you have it and it's fun and free to use (even commercially) -> as lo
 
 **Compilation works in both directions** -> Compile FrameAssembly `.frasm` code into `.pcap` or `.pcapng` captures across **81 protocols**, or reverse captured `.pcap` / `.pcapng` traces back
 into `.frasm` code for anonymizing, editing, inspecting, and replaying with **`tcpreplay`**, **Wireshark** / **`tshark`**, or **Suricata** / **Zeek**.
-
-![FrameAssembly workflow: write .frasm code, compile to .pcap/.pcapng, inspect in Wireshark, replay with tcpreplay, or test Suricata.](docs/assets/workflow-overview.svg)
 
 A complete TCP handshake plus an HTTP request, in a few lines:
 
@@ -78,7 +76,7 @@ Pick the fastest route. Every option runs offline and writes standard `.pcap` (c
    ```
 
 6. **Offline Archives & `.deb` Packages** from [**GitHub Releases**](https://github.com/SteveWinschel/FrameAssembly/releases/latest) (each `.zip` / `.tar.gz` includes `frameassembly`,
-   offline `docs/`, and starter `examples/`; on Windows you can also drag a `.frasm` or `.pcap` file directly onto `frameassembly.exe` in Explorer):
+   a `quickstart.frasm` starter file, and shell completions; on Windows you can also drag a `.frasm` or `.pcap` file directly onto `frameassembly.exe` in Explorer):
 
    | System | Download |
    | :--- | :--- |
@@ -108,7 +106,7 @@ npm install frameassembly-wasm
 
 [![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
 
-Rust 1.88+ library API reference: [**docs.rs/frameassembly**](https://docs.rs/frameassembly) • Compiler internals: [`docs/13_for_nerds.md`](docs/13_for_nerds.md)
+Rust 1.88+ library API reference: [**docs.rs/frameassembly**](https://docs.rs/frameassembly) • Compiler internals: [**frameassembly.ai.studio/docs**](https://frameassembly.ai.studio/docs)
 
 </details>
 
@@ -242,6 +240,8 @@ compile {
 $ frameassembly sanitized_ticket.frasm sanitized_ticket.pcap
 ```
 
+More recipes are collected at [**frameassembly.ai.studio/use-cases**](https://frameassembly.ai.studio/use-cases).
+
 ## How FrameAssembly Works
 
 Most `.frasm` files need only `host` declarations and a `compile { ... }` block (add an optional `flow` block when reusing sequences across host pairs). Built-in keywords are lowercase with
@@ -291,8 +291,6 @@ existing replay and analysis tools.
 Install the VS Code extension (`SteveWinschel.frameassembly-vscode`) for `.frasm` syntax highlighting, live inline error checking powered by the bundled WebAssembly compiler, and 1-click Quick
 Fixes when muscle memory types `sport` instead of `srcport` or `ECHO_REQUEST` instead of `echorequest`.
 
-![FrameAssembly VS Code extension showing .frasm syntax highlighting, inline compiler diagnostics, and 1-click typo Quick Fix.](docs/assets/packet-studio-preview.svg)
-
 ## Quick CLI Usage
 
 ```bash
@@ -314,36 +312,21 @@ frameassembly help
 
 ## Supported Protocols and Documentation
 
-FrameAssembly natively compiles and decompiles **81 protocols across Layers 2–7**. Start at the [**Docs Index**](docs/README.md) (pick your role, or search all 81 protocols by name) or
-use the guides below:
+FrameAssembly compiles and decompiles **81 protocols across Layers 2–7**. The full guides live on the website:
 
-* [**Docs Index (`docs/README.md`)**](docs/README.md) — Role-based starting points and a searchable table of all 81 protocols with one-line examples.
-* [**Scenario Index (`examples/README.md`)**](examples/README.md) — Curated `.frasm` scenarios for SNMPv3 monitoring, firewalls and VLANs, IDS and Shadow IT, routing and EVPN, and OT/SCADA.
-* [**Getting Started (`docs/01_getting_started.md`)**](docs/01_getting_started.md) — Minimal `host` + `compile` syntax, reusable `flow` blocks, AI copy-paste prompt, reverse PCAP
-  conversion, and your first capture.
-* [**Real-World Use Cases (`docs/02_use_cases.md`)**](docs/02_use_cases.md) — Copy-paste recipes for Checkmk/Zabbix SNMPv3 traps, Shadow IT & NDR detection, firewall/VLAN verification,
-  and PCAP anonymization.
-* [**Topologies & Dual-Stack (`docs/11_topologies_and_dual_stack.md`)**](docs/11_topologies_and_dual_stack.md) — Multi-hop gateways, VLAN/QinQ trunks, and IPv4/IPv6 dual-stack flows.
-* [**`.frasm` Media Type Specification (`docs/12_frasm_specification.md`)**](docs/12_frasm_specification.md) — Formal `text/vnd.frameassembly` format rules and how `.frasm` differs from
-  the unrelated `.fasm` formats.
-* [**Compiler Architecture (`docs/13_for_nerds.md`)**](docs/13_for_nerds.md) — Lexing, parsing, semantic validation, and binary emission internals for curious engineers.
+* [**Documentation**](https://frameassembly.ai.studio/docs) — Getting started with `host`, `flow`, and `compile`, field references for every protocol, multi-hop and dual-stack topologies, the `.frasm` media type specification (`text/vnd.frameassembly`), and compiler internals.
+* [**Use Cases & Examples**](https://frameassembly.ai.studio/use-cases) — Copy-paste `.frasm` recipes for Checkmk/Zabbix SNMPv3 traps, Shadow IT & NDR detection, firewall and VLAN verification, IDS/IPS testing, OT/SCADA, and PCAP anonymization.
 
-### Layer 2–7 Protocol Reference
-
-* [**Layer 2 — Switching & Data Link (`docs/03_l2_protocols.md`)**](docs/03_l2_protocols.md) — Ethernet II, IEEE 802.1Q `vlan`, 802.1ad `qinq`, `arp`, `stp` / `rstp`, `lldp`,
-  `lacp`, `mpls`, and `eapol` (802.1X).
-* [**Layer 3 — Network, Routing & Tunnels (`docs/04_l3_protocols.md`)**](docs/04_l3_protocols.md) — `IPv4`, `IPv6`, `icmp`, `ndp`, `igmp`, `mld`, `gre`, `ipsec` (`esp` / `ah`),
-  `ikev2`, `vxlan`, `geneve`, `ospf`, `bgp`, `rip`, `pim`, `vrrp`, `hsrp`, `bfd`, `openflow`, and `wireguard`.
-* [**Layer 4 — Transports (`docs/05_l4_transports.md`)**](docs/05_l4_transports.md) — Stateful `tcp` (flags, window, `mss`, options, automatic `SEQ`/`ACK`), `udp`, and `sctp`.
-* [**Layer 7 — SNMPv1 / v2c / v3 (`docs/06_l7_snmp.md`)**](docs/06_l7_snmp.md) — `get`, `getnext`, `getbulk`, `set`, `response`, `trap`, `inform`, `report`, and encrypted
-  `snmp3` USM (`SHA-256` auth + `AES-128` priv).
-* [**Layer 7 — Infrastructure & Telemetry (`docs/07_l7_infra_and_telemetry.md`)**](docs/07_l7_infra_and_telemetry.md) — `dns`, `mdns`, `dhcp` / `DHCPv6`, `ntp`, `ptp`, `radius`,
-  `tacacs`, `syslog`, `netflow`, `ipfix`, and `sflow`.
-* [**Layer 7 — Web, Cloud, Security & VoIP (`docs/08_l7_web_and_cloud.md`)**](docs/08_l7_web_and_cloud.md) — `http`, `http2`, `grpc`, `websocket`, `tls` (`clienthello`, `sni`,
-  `alpn`, `alert`), `quic`, `ssh`, `telnet`, `ftp`, `tftp`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, and `ssdp`.
-* [**Layer 7 — Mail, Auth, Storage, Databases & Brokers (`docs/09_l7_mail_auth_storage_db.md`)**](docs/09_l7_mail_auth_storage_db.md) — `smtp`, `imap`, `pop3`, `kerberos`, `ldap`,
-  `smb`, `nfs`, `postgres`, `mysql`, `redis`, `memcached`, `mqtt`, `coap`, and `amqp`.
-* [**Layer 7 — Industrial OT & ICS (`docs/10_l7_industrial_ot.md`)**](docs/10_l7_industrial_ot.md) — `modbus`, `dnp3`, `s7comm`, `opcua`, `bacnet`, and `ethernetip`.
+| Layer | Protocols |
+| :--- | :--- |
+| **Layer 2** | `arp`, `vlan`, `qinq`, `lldp`, `stp` / `rstp`, `lacp`, `eapol` (802.1X), `mpls` |
+| **Layer 3** | `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, `openflow` |
+| **Layer 4** | `tcp` (automatic `SEQ`/`ACK`), `udp`, `sctp` |
+| **SNMP** | `snmp1`, `snmp2`, `snmp3` (USM auth + `DES`/`AES` privacy) |
+| **Infrastructure & Telemetry** | `dns`, `mdns`, `dhcp` / `DHCPv6`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, `sflow` |
+| **Web, Cloud, Security & VoIP** | `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `ssh`, `telnet`, `ftp`, `tftp`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, `ssdp` |
+| **Mail, Auth, Storage, Databases & Brokers** | `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `postgres`, `mysql`, `redis`, `memcached`, `mqtt`, `coap`, `amqp` |
+| **Industrial OT & ICS** | `modbus`, `dnp3`, `s7comm`, `opcua`, `bacnet`, `ethernetip` |
 
 ## License
 

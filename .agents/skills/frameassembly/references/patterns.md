@@ -275,7 +275,7 @@ pub(crate) fn dispatch_protocol_field<'i, 'a>(
 
 Complete, copy-pasteable scenarios using strictly canonical FrameAssembly v3.0.0 lowercase syntax (zero `_` or `-` in keywords, flexible user-defined host/flow identifiers, and direct flow invocations in `compile`).
 
-### Scenario 1: Enterprise SNMPv3 USM Encrypted Telemetry over IPv6 (`examples/l7/snmp/snmpv3/`)
+### Scenario 1: Enterprise SNMPv3 USM Encrypted Telemetry over IPv6
 
 ```frameassembly
 // PROMPT: Synthesize an SNMPv3 USM GetRequest and Response exchange with SHA-256 authentication and AES-128 privacy encryption over IPv6.

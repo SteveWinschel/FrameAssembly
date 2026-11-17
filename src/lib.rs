@@ -1,10 +1,10 @@
-//! **FrameAssembly** (`frameassembly` v3.1.0) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
+//! **FrameAssembly** (`frameassembly` v3.1.1) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
 //!
 //! * **Official Website & Browser Playground:** [frameassembly.ai.studio](https://frameassembly.ai.studio/) (compile `.frasm` <-> `.pcap`/`.pcapng` and inspect packets in the browser with zero install)
 //! * **Canonical Repository & CLI:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
 //! * **Crates.io Package:** [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly)
 //! * **API Documentation:** [docs.rs/frameassembly](https://docs.rs/frameassembly)
-//! * **`.frasm` Format Specification (`text/vnd.frameassembly`):** [`docs/12_frasm_specification.md`](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md)
+//! * **`.frasm` Format Specification (`text/vnd.frameassembly`):** [frameassembly.ai.studio/docs](https://frameassembly.ai.studio/docs)
 //!
 //! Whether you are testing firewall ACLs, simulating SNMPv3 traps, validating Suricata/Zeek IDS
 //! rules, or verifying VLAN/QinQ/MPLS QoS markings, generating custom network traffic manually is
@@ -160,7 +160,7 @@
 //!
 //! `.frasm` is the canonical file extension for FrameAssembly network packet specifications
 //! (IANA vendor media type `text/vnd.frameassembly`, specified in
-//! [`docs/12_frasm_specification.md`](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md)).
+//! [frameassembly.ai.studio/docs](https://frameassembly.ai.studio/docs)).
 //! FrameAssembly `.frasm` files (`host`, `flow`, `compile`, `->`, `<-`, `//` comments) are completely
 //! distinct from x86 Flat Assembler `.fasm` source files (`; ` comments, `format PE`/`ELF`, x86
 //! mnemonics) and SymbiFlow/F4PGA FPGA `.fasm` bitstream assembly files (`#` comments, hardware tile bit paths).
@@ -208,21 +208,10 @@
 //! | **Layer 7 (Mail, Auth, Storage, DB, Brokers)** | 14 | `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, `amqp` |
 //! | **Layer 7 (Industrial ICS / SCADA / OT)** | 6 | `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, `opcua` |
 //!
-//! ## Canonical Documentation Guides (`docs/`)
+//! ## Documentation & Use Cases
 //!
-//! * [Getting Started Guide](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/01_getting_started.md) — Step-by-step tutorial to writing `.frasm` code, defaults vs. overrides, automatic TCP `SEQ`/`ACK` & reply ports, and Wireshark/`tshark` + `tcpreplay` workflows.
-//! * [Practical Use-Case Cookbook](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/02_use_cases.md) — Ready-to-run recipes for SNMPv1/v2c/v3 traps, firewall ACL verification, VLAN/QinQ/MPLS QoS tagging, IDS/IPS validation, and OT/SCADA testing.
-//! * [Layer 2 Switching & Data-Link Protocols](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/03_l2_protocols.md) — `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, and `mpls`.
-//! * [Layer 3 Control, Tunneling, VPN & Routing](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/04_l3_protocols.md) — `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, and `openflow`.
-//! * [Layer 4 Transports (`tcp`, `udp`, `sctp`)](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/05_l4_transports.md) — 4-tuple state tracking, RFC 7323 TCP options, and SCTP multi-chunk signaling.
-//! * [Layer 7 SNMPv1, SNMPv2c & SNMPv3 USM](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/06_l7_snmp.md) — USM authentication (`md5`/`sha`/`sha256`/`sha384`/`sha512`), privacy (`des`/`aes`), and all 9 SMI `varbind` types.
-//! * [Layer 7 Infrastructure, Time, AAA & Telemetry](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/07_l7_infra_and_telemetry.md) — `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, and `sflow`.
-//! * [Layer 7 Web, Cloud, Security, VoIP & Remote Access](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/08_l7_web_and_cloud.md) — `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `tftp`, `ftp`, `ssh`, `telnet`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, and `ssdp`.
-//! * [Layer 7 Mail, Auth, Storage, Databases & Brokers](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/09_l7_mail_auth_storage_db.md) — `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, and `amqp`.
-//! * [Layer 7 Industrial Control Systems (ICS) & SCADA/OT](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/10_l7_industrial_ot.md) — `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, and `opcua`.
-//! * [Multi-Host Topologies & Dual-Stack IPv4/IPv6 Reuse](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/11_topologies_and_dual_stack.md) — Enterprise WAN, EVPN-VXLAN data center, and Zero-Trust 802.1X NAC architectures.
-//! * [`.frasm` File Format & Media Type Specification (`text/vnd.frameassembly`)](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/12_frasm_specification.md) — Normative RFC 6838 media type specification, UTF-8 encoding, lexical magic rules, `.frasm` extension disambiguation, and Wikidata/IANA mappings.
-//! * [For Nerds: Compiler Internals, Rust API & Formal Grammars](https://github.com/SteveWinschel/FrameAssembly/blob/main/docs/13_for_nerds.md) — Deep dive into the 6-stage zero-copy compiler, public Rust library API, EBNF/GBNF/Lark constrained decoding, and RLVR/SFT corpus design.
+//! * [Official Documentation](https://frameassembly.ai.studio/docs) — Getting started with `.frasm` code, defaults vs. overrides, automatic TCP `SEQ`/`ACK` & reply ports, per-layer protocol references (L2, L3, L4, SNMP, infrastructure & telemetry, web & cloud, mail/auth/storage/databases, industrial OT), multi-host dual-stack topologies, the `.frasm` media type specification (`text/vnd.frameassembly`), and compiler internals (Rust API, EBNF/GBNF/Lark grammars).
+//! * [Use Cases & Examples](https://frameassembly.ai.studio/use-cases) — Ready-to-run `.frasm` recipes for SNMPv1/v2c/v3 traps, firewall ACL verification, VLAN/QinQ/MPLS QoS tagging, IDS/IPS validation, OT/SCADA testing, and `.pcap` reversal.
 //!
 //! ## FrameAssembly DSL Syntax Example
 //!

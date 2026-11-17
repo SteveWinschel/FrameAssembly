@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing git tag to build and publish (e.g. v3.1.0)'
+        description: 'Existing git tag to build and publish (e.g. v3.1.1)'
         required: false
         type: string
 
@@ -155,7 +155,7 @@ jobs:
           fi
           cargo build --release $LOCKED_FLAG --bin frameassembly --target "${{ matrix.target }}"
 
-      - name: Stage release bundle (with offline docs & starter examples)
+      - name: Stage release bundle (binary, quickstart & completions)
         id: stage
         run: |
           STAGE="${{ matrix.bundle_name }}"
@@ -185,36 +185,6 @@ jobs:
               client <- server http status 200 reason "OK" body "ok"
           }
           EOF
-
-          # Bundle offline Markdown protocol guides for air-gapped labs
-          mkdir -p "$STAGE/docs"
-          for md in docs/*.md; do
-            cp "$md" "$STAGE/docs/"
-          done
-
-          # Bundle curated starter .frasm examples across L2, L3, L4, L7, and Topologies
-          mkdir -p "$STAGE/examples"
-          [ -f examples/README.md ] && cp examples/README.md "$STAGE/examples/"
-          for sample in \
-            examples/l2/vlan/vlan_basic_access_tag.frasm \
-            examples/l2/lldp/lldp_default_frame.frasm \
-            examples/l3/icmp/icmp_default_frame.frasm \
-            examples/l3/bgp/bgp_blackhole_community_rtbh_trigger.frasm \
-            examples/l4/tcp/tcp_3_way_handshake.frasm \
-            examples/l4/tcp/tcp_closed_port_rst_ack_rejection.frasm \
-            examples/l7/dns/dns_default_frame.frasm \
-            examples/l7/http/http_default_frame.frasm \
-            examples/l7/tls/tls_client_hello_sni_alpn.frasm \
-            examples/l7/snmp/snmpv3/snmpv3_auth_sha256_priv_aes_trap.frasm \
-            examples/l7/syslog/syslog_all_eight_severity_levels.frasm \
-            examples/l7/modbus/modbus_default_frame.frasm \
-            examples/topologies/topology_dmz_firewall_intrusion_alert.frasm; do
-            if [ -f "$sample" ]; then
-              rel_dir="$(dirname "$sample")"
-              mkdir -p "$STAGE/$rel_dir"
-              cp "$sample" "$STAGE/$rel_dir/"
-            fi
-          done
 
           if [ "${{ runner.os }}" = "Windows" ]; then
             [ -f install.ps1 ] && cp install.ps1 "$STAGE/"
@@ -554,7 +524,7 @@ jobs:
             | **Linux (Static `musl`)** | `x64` / `arm64` | [`frameassembly-linux-x64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-linux-x64.tar.gz) · [`frameassembly-linux-arm64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-linux-arm64.tar.gz) | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` |
             | **VS Code / Cursor / VSCodium** | Universal | [`frameassembly-vscode.vsix`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-vscode.vsix) | `code --install-extension SteveWinschel.frameassembly-vscode` |
 
-            Every OS `.zip` and `.tar.gz` bundle includes offline `docs/*.md` protocol guides and starter `.frasm` examples. Verify downloads against [`SHA256SUMS.txt`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/SHA256SUMS.txt), or run FrameAssembly directly in your browser at [`frameassembly.ai.studio`](https://frameassembly.ai.studio/).
+            Every OS `.zip` and `.tar.gz` bundle includes a `quickstart.frasm` starter file and shell completions. Documentation lives at [`frameassembly.ai.studio/docs`](https://frameassembly.ai.studio/docs) and ready-to-run examples at [`frameassembly.ai.studio/use-cases`](https://frameassembly.ai.studio/use-cases). Verify downloads against [`SHA256SUMS.txt`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/SHA256SUMS.txt), or run FrameAssembly directly in your browser at [`frameassembly.ai.studio`](https://frameassembly.ai.studio/).
           files: |
             dist/*.tar.gz
             dist/*.zip

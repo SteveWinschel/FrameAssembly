@@ -21,7 +21,7 @@ Usage:
   ./contrib/packaging/update-checksums.sh [OPTIONS] [VERSION|TAG]
 
 Arguments:
-  VERSION | TAG            Release version (e.g. '3.1.0' or 'v3.1.0').
+  VERSION | TAG            Release version (e.g. '3.1.1' or 'v3.1.1').
                            If omitted, auto-detected from Cargo.toml.
 
 Options:
@@ -87,7 +87,7 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 if [[ -z "$VERSION" ]]; then
-    echo "Error: Version could not be determined. Please specify VERSION (e.g. 3.1.0 or v3.1.0)." >&2
+    echo "Error: Version could not be determined. Please specify VERSION (e.g. 3.1.1 or v3.1.1)." >&2
     exit 1
 fi
 

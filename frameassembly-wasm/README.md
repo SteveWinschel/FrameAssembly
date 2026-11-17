@@ -1,4 +1,4 @@
-# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v3.1.0)
+# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v3.1.1)
 
 [![Website & Playground](https://img.shields.io/badge/web%20app-frameassembly.ai.studio-0ea5e9.svg)](https://frameassembly.ai.studio/)
 [![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
@@ -6,7 +6,7 @@
 
 [**Try in Browser (`frameassembly.ai.studio`)**](https://frameassembly.ai.studio/) • [**Installation**](#installation) • [**Vite, React & Next.js**](#initialization-vite-react-nextjs--google-ai-studio) • [**API Reference**](#api-reference)
 
-WebAssembly compiler, `.pcap`/`.pcapng`-to-`.frasm` decompiler, packet ladder inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.frasm` v3.1.0)** — compiling `.frasm` code into classic `.pcap` and `.pcapng` packet captures and decompiling existing captures back into `.frasm` code across 81 L2–L7 protocols in browser applications, VS Code Desktop & Web extensions, web cyber ranges, and Node.js test suites. Powers the official FrameAssembly interactive browser playground at [**frameassembly.ai.studio**](https://frameassembly.ai.studio/) and the official VS Code extension (`SteveWinschel.frameassembly-vscode`). *(Note: FrameAssembly is a network packet specification compiler, not x86 Flat Assembler).*
+WebAssembly compiler, `.pcap`/`.pcapng`-to-`.frasm` decompiler, packet ladder inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.frasm` v3.1.1)** — compiling `.frasm` code into classic `.pcap` and `.pcapng` packet captures and decompiling existing captures back into `.frasm` code across 81 L2–L7 protocols in browser applications, VS Code Desktop & Web extensions, web cyber ranges, and Node.js test suites. Powers the official FrameAssembly interactive browser playground at [**frameassembly.ai.studio**](https://frameassembly.ai.studio/) and the official VS Code extension (`SteveWinschel.frameassembly-vscode`). *(Note: FrameAssembly is a network packet specification compiler, not x86 Flat Assembler).*
 
 ---
 
@@ -90,10 +90,10 @@ npm install frameassembly-wasm
     inspect_fasm,
     compile_fasm_to_pcapng,
     reversePcap,
-  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@3.1.0/frameassembly_wasm.js";
+  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@3.1.1/frameassembly_wasm.js";
 
   await init();
-  console.log("FrameAssembly WebAssembly engine v3.1.0 loaded successfully.");
+  console.log("FrameAssembly WebAssembly engine v3.1.1 loaded successfully.");
 </script>
 ```
 
@@ -226,4 +226,4 @@ export async function importCaptureFile(file: File): Promise<string> {
 
 **FrameAssembly** (`.frasm`, media type `text/vnd.frameassembly`) is a network packet specification compiler for generating and decompiling `.pcap` and `.pcapng` packet captures. It is completely unrelated to x86 Flat Assembler (`fasm.net`, which uses `.asm`/`.fasm` files) and SymbiFlow / F4PGA FPGA bitstream FASM tools.
 
-Full documentation, interactive browser playground ([https://frameassembly.ai.studio/](https://frameassembly.ai.studio/)), grammar specifications, and 2,611 verified examples: https://github.com/SteveWinschel/FrameAssembly
+Interactive browser playground: [https://frameassembly.ai.studio/](https://frameassembly.ai.studio/) • Documentation: [https://frameassembly.ai.studio/docs](https://frameassembly.ai.studio/docs) • Use cases and examples: [https://frameassembly.ai.studio/use-cases](https://frameassembly.ai.studio/use-cases) • Source code and formal grammars: https://github.com/SteveWinschel/FrameAssembly

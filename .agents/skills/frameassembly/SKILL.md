@@ -92,7 +92,7 @@ Whenever adding or modifying a protocol, keyword, or builder, verify the full en
    - Checksums & TTLs: `gre` `checksum` (`0x8000`) computed at `gre[4..6]`; `vrrp` v3 IPv4/IPv6 pseudo-header (`112`) + TTL/Hop Limit `255`; `ndp` Hop Limit `255`; `udp` `0x0000 -> 0xFFFF`; `sctp` little-endian CRC32c at `8..12`.
    - Inner Frames & Lengths: `geneve` `0x6558` encapsulates a 14B Ethernet + 20B IPv4 frame; `wireguard` Type `4` (`data`) appends a 16B Poly1305 AEAD tag ($\ge 32$B); `quic` Long Header encodes a 2B varint (`0x4000 | len`); `ipfix` `total_len`/`set_len` include payload; `sflow` Flow Sample has 8 `u32`s (32B); `ldap` `SearchRequest` has all 8 RFC 4511 elements; `kerberos` `KDC-REQ-BODY` includes `[7] till` and `[8] nonce`.
 5. **Stage 5 — Markdown & Rustdoc Block Gate (`tests/corpus_verification_tests.rs`)**:
-   - All ````frameassembly` / ````frasm` blocks in `README.md`, `src/**/*.rs`, and `.agents/skills/**/*.md` compile cleanly under v3.0.0 strict-lowercase syntax into valid PCAPNG captures (docs and scenarios live at https://frameassembly.ai.studio/docs and https://frameassembly.ai.studio/use-cases, not in the repository).
+   - All ````frameassembly` / ````frasm` blocks in `README.md`, `src/**/*.rs`, and `.agents/skills/**/*.md` compile cleanly under v3.0.0 strict-lowercase syntax into valid PCAPNG captures (docs and scenarios live at https://frameassembly-lang.dev/docs and https://frameassembly-lang.dev/use-cases, not in the repository).
 
 ---
 

@@ -21,7 +21,7 @@ fi
 # Extract target file Path and conversationId without requiring external jq if python3 or sed is available
 target_path=""
 conv_id=""
-if command -v python3 >/dev/null 2>&1; then
+if command -v python3 >/dev/null 2>&1 && python3 -c 'pass' >/dev/null 2>&1; then
     eval "$(python3 -c '
 import json, sys, shlex
 try:

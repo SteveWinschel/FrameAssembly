@@ -1,10 +1,10 @@
-//! **FrameAssembly** (`frameassembly` v3.1.1) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
+//! **FrameAssembly** (`frameassembly` v3.1.2) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
 //!
-//! * **Official Website & Browser Playground:** [frameassembly.ai.studio](https://frameassembly.ai.studio/) (compile `.frasm` <-> `.pcap`/`.pcapng` and inspect packets in the browser with zero install)
+//! * **Official Website & Browser Playground:** [frameassembly-lang.dev](https://frameassembly-lang.dev/) (compile `.frasm` <-> `.pcap`/`.pcapng` and inspect packets in the browser with zero install)
 //! * **Canonical Repository & CLI:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
 //! * **Crates.io Package:** [crates.io/crates/frameassembly](https://crates.io/crates/frameassembly)
 //! * **API Documentation:** [docs.rs/frameassembly](https://docs.rs/frameassembly)
-//! * **`.frasm` Format Specification (`text/vnd.frameassembly`):** [frameassembly.ai.studio/docs](https://frameassembly.ai.studio/docs)
+//! * **`.frasm` Format Specification (`text/vnd.frameassembly`):** [frameassembly-lang.dev/docs](https://frameassembly-lang.dev/docs)
 //!
 //! Whether you are testing firewall ACLs, simulating SNMPv3 traps, validating Suricata/Zeek IDS
 //! rules, or verifying VLAN/QinQ/MPLS QoS markings, generating custom network traffic manually is
@@ -160,7 +160,7 @@
 //!
 //! `.frasm` is the canonical file extension for FrameAssembly network packet specifications
 //! (IANA vendor media type `text/vnd.frameassembly`, specified in
-//! [frameassembly.ai.studio/docs](https://frameassembly.ai.studio/docs)).
+//! [frameassembly-lang.dev/docs](https://frameassembly-lang.dev/docs)).
 //! FrameAssembly `.frasm` files (`host`, `flow`, `compile`, `->`, `<-`, `//` comments) are completely
 //! distinct from x86 Flat Assembler `.fasm` source files (`; ` comments, `format PE`/`ELF`, x86
 //! mnemonics) and SymbiFlow/F4PGA FPGA `.fasm` bitstream assembly files (`#` comments, hardware tile bit paths).
@@ -210,8 +210,8 @@
 //!
 //! ## Documentation & Use Cases
 //!
-//! * [Official Documentation](https://frameassembly.ai.studio/docs) — Getting started with `.frasm` code, defaults vs. overrides, automatic TCP `SEQ`/`ACK` & reply ports, per-layer protocol references (L2, L3, L4, SNMP, infrastructure & telemetry, web & cloud, mail/auth/storage/databases, industrial OT), multi-host dual-stack topologies, the `.frasm` media type specification (`text/vnd.frameassembly`), and compiler internals (Rust API, EBNF/GBNF/Lark grammars).
-//! * [Use Cases & Examples](https://frameassembly.ai.studio/use-cases) — Ready-to-run `.frasm` recipes for SNMPv1/v2c/v3 traps, firewall ACL verification, VLAN/QinQ/MPLS QoS tagging, IDS/IPS validation, OT/SCADA testing, and `.pcap` reversal.
+//! * [Official Documentation](https://frameassembly-lang.dev/docs) — Getting started with `.frasm` code, defaults vs. overrides, automatic TCP `SEQ`/`ACK` & reply ports, per-layer protocol references (L2, L3, L4, SNMP, infrastructure & telemetry, web & cloud, mail/auth/storage/databases, industrial OT), multi-host dual-stack topologies, the `.frasm` media type specification (`text/vnd.frameassembly`), and compiler internals (Rust API, EBNF/GBNF/Lark grammars).
+//! * [Use Cases & Examples](https://frameassembly-lang.dev/use-cases) — Ready-to-run `.frasm` recipes for SNMPv1/v2c/v3 traps, firewall ACL verification, VLAN/QinQ/MPLS QoS tagging, IDS/IPS validation, OT/SCADA testing, and `.pcap` reversal.
 //!
 //! ## FrameAssembly DSL Syntax Example
 //!

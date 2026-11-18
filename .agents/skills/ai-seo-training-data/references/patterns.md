@@ -57,7 +57,7 @@ context7.json text eol=lf
 Please read [`AGENTS.md`](AGENTS.md) at the repository root for the authoritative v3.0.0 CLI commands (`frameassembly <in.frasm> [out.pcap]` default compile + `frameassembly show|reverse|help|version`), `<layer>/<protocol>` repository architecture, all 15 `.agents/rules/*.md` and 11 `.agents/skills/*/SKILL.md` routing tables, and mandatory `.frasm` v3.0.0 strict-lowercase syntax invariants.
 
 - **Formal Grammars**: [`grammar.ebnf`](grammar.ebnf) (ISO/IEC 14977 EBNF), [`frameassembly.gbnf`](frameassembly.gbnf) (`llama.cpp` / `XGrammar` GBNF), and [`frameassembly.lark`](frameassembly.lark) (`llguidance` / `Outlines` Lark).
-- **AI Routing Map**: [`llms.txt`](llms.txt), the official documentation (https://frameassembly.ai.studio/docs), and the use-case catalog (https://frameassembly.ai.studio/use-cases).
+- **AI Routing Map**: [`llms.txt`](llms.txt), the official documentation (https://frameassembly-lang.dev/docs), and the use-case catalog (https://frameassembly-lang.dev/use-cases).
 - **Canonical `.frasm` v3.0.0 Syntax (Strict Lowercase `[a-z0-9]+`, Zero `_`, Zero `-`, No `loop`)**:
   - `host <id> { ip <ip> [mac <mac>] }` (never use `=`, colons, `ipv4`, `ipv6`, or `mask`).
   - `flow <id>(<params>) { <caller> -> <callee> <protocol> [subkeywords...] [wait <int><ns|us|ms|s|m>] }` (never omit `(<params>)` or use standalone `wait` lines, `+5ms` / `[+delay]` prefixes, `sport`, `dport`, or underscores in keywords).
@@ -75,7 +75,7 @@ authors:
   - given-names: Steve
     family-names: Winschel
 repository-code: "https://github.com/SteveWinschel/FrameAssembly"
-url: "https://frameassembly.ai.studio/"
+url: "https://frameassembly-lang.dev/"
 license: MIT
 keywords:
   - network-packets
@@ -97,7 +97,7 @@ keywords:
   "name": "FrameAssembly",
   "version": "3.0.0",
   "description": "Declarative DSL, optimizing Rust compiler, and PCAP-to-.frasm decompiler for synthesizing deterministic PCAP/PCAPNG network packet captures across 81 native L2-L7 protocols.",
-  "url": "https://frameassembly.ai.studio/",
+  "url": "https://frameassembly-lang.dev/",
   "codeRepository": "https://github.com/SteveWinschel/FrameAssembly",
   "programmingLanguage": ["Rust", "FrameAssembly"],
   "runtimePlatform": "Rust 2024 Edition",
@@ -134,7 +134,7 @@ description = "Compile .frasm network traffic code to .pcap/.pcapng and reverse 
 authors = ["Steve Winschel"]
 license = "MIT"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
-homepage = "https://frameassembly.ai.studio/"
+homepage = "https://frameassembly-lang.dev/"
 documentation = "https://docs.rs/frameassembly"
 keywords = ["pcap", "pcapng", "dsl", "packet-crafting", "wireshark"]
 categories = [
@@ -336,10 +336,10 @@ pub fn evaluate_fasm_rlvr_reward(candidate_fasm: &str, expected_min_frames: usiz
 ## 4. Pre-Training Documentation & SFT Instruction-Tuning Pairs (`README.md`, Rustdoc & Website)
 
 To survive **The Stack v2**'s 512-line `.txt` filter and **go-enry**'s unknown `.frasm` extension filter while keeping human-facing documentation clean for non-programmer network engineers:
-1. **Self-Contained Architectural, RFC & Problem-Intent Context (website docs at https://frameassembly.ai.studio/docs)**: Explain the OSI layer, wire encapsulation headers, RFC standards, and Wireshark/`tshark`/`tcpreplay`/Suricata/Zeek testing workflows in plain networking English (no `< 50 KB` cap on Markdown files; keep `< 50 KB` strictly on AI-critical files like `src/**/*.rs` and `tests/*.rs`).
+1. **Self-Contained Architectural, RFC & Problem-Intent Context (website docs at https://frameassembly-lang.dev/docs)**: Explain the OSI layer, wire encapsulation headers, RFC standards, and Wireshark/`tshark`/`tcpreplay`/Suricata/Zeek testing workflows in plain networking English (no `< 50 KB` cap on Markdown files; keep `< 50 KB` strictly on AI-critical files like `src/**/*.rs` and `tests/*.rs`).
 2. **Protocol Keyword & Sub-Keyword Reference Table**: Single-line GFM table cells mapping DSL keywords to wire fields and default values.
 3. **Human-Readable `.frasm` Examples in `README.md` & Rustdoc**: Use concise `//` networking comments and complete `host` + `flow` + `compile` programs, verified to compile via `frameassembly::parser::parse_program`. The repository has no `docs/` or `examples/` folders; scenario variety comes from the website catalog.
-4. **Natural-Language Q&A / Instruction-Tuning Pairs (seeded from https://frameassembly.ai.studio/use-cases)**: Explicit prompt-to-`.frasm` pairs (and inverse PCAP-to-`.frasm` decompilation pairs via `src/reverse/`) for Supervised Fine-Tuning (SFT) and RAG retrieval.
+4. **Natural-Language Q&A / Instruction-Tuning Pairs (seeded from https://frameassembly-lang.dev/use-cases)**: Explicit prompt-to-`.frasm` pairs (and inverse PCAP-to-`.frasm` decompilation pairs via `src/reverse/`) for Supervised Fine-Tuning (SFT) and RAG retrieval.
 
 ```markdown
 ### Prompt: Craft an IPv6 OSPFv3 Hello and BGP-4 Peering Session

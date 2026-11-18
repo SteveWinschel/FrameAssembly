@@ -1,9 +1,9 @@
 # FrameAssembly — Packets as Code
 
-[![Try in Browser](https://img.shields.io/badge/Try%20in%20Browser-frameassembly.ai.studio-0ea5e9.svg)](https://frameassembly.ai.studio/)
-[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension%20v3.1.1-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
+[![Try in Browser](https://img.shields.io/badge/Try%20in%20Browser-frameassembly--lang.dev-0ea5e9.svg)](https://frameassembly-lang.dev/)
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension%20v3.1.2-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
 [![Download for Windows, macOS and Linux](https://img.shields.io/badge/Download-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-16a34a.svg)](https://github.com/SteveWinschel/FrameAssembly/releases/latest)
-[![81 Protocols and User Docs](https://img.shields.io/badge/81%20Protocols-User%20Docs-8b5cf6.svg)](https://frameassembly.ai.studio/docs)
+[![81 Protocols and User Docs](https://img.shields.io/badge/81%20Protocols-User%20Docs-8b5cf6.svg)](https://frameassembly-lang.dev/docs)
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
 
 [**Try in Browser**][nav-try] • [**Quick Download**][nav-dl] • [**Use Cases**][nav-uc] • [**How It Works**][nav-how] • [**Comparison**][nav-cmp] • [**81 Protocols & Docs**][nav-docs]
@@ -58,7 +58,7 @@ Pick the fastest route. Every option runs offline and writes standard `.pcap` (c
    ```
    [![Crates.io](https://img.shields.io/crates/v/frameassembly.svg)](https://crates.io/crates/frameassembly) [![Docs.rs](https://docs.rs/frameassembly/badge.svg)](https://docs.rs/frameassembly)
 
-2. **Browser Playground** — nothing to install: [**frameassembly.ai.studio**](https://frameassembly.ai.studio/)
+2. **Browser Playground** — nothing to install: [**frameassembly-lang.dev**](https://frameassembly-lang.dev/)
 
 3. **Windows** (PowerShell, no Administrator rights):
    ```powershell
@@ -106,7 +106,7 @@ npm install frameassembly-wasm
 
 [![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
 
-Rust 1.88+ library API reference: [**docs.rs/frameassembly**](https://docs.rs/frameassembly) • Compiler internals: [**frameassembly.ai.studio/docs**](https://frameassembly.ai.studio/docs)
+Rust 1.88+ library API reference: [**docs.rs/frameassembly**](https://docs.rs/frameassembly) • Compiler internals: [**frameassembly-lang.dev/docs**](https://frameassembly-lang.dev/docs)
 
 </details>
 
@@ -240,7 +240,7 @@ compile {
 $ frameassembly sanitized_ticket.frasm sanitized_ticket.pcap
 ```
 
-More recipes are collected at [**frameassembly.ai.studio/use-cases**](https://frameassembly.ai.studio/use-cases).
+More recipes are collected at [**frameassembly-lang.dev/use-cases**](https://frameassembly-lang.dev/use-cases).
 
 ## How FrameAssembly Works
 
@@ -314,8 +314,8 @@ frameassembly help
 
 FrameAssembly compiles and decompiles **81 protocols across Layers 2–7**. The full guides live on the website:
 
-* [**Documentation**](https://frameassembly.ai.studio/docs) — Getting started with `host`, `flow`, and `compile`, field references for every protocol, multi-hop and dual-stack topologies, the `.frasm` media type specification (`text/vnd.frameassembly`), and compiler internals.
-* [**Use Cases & Examples**](https://frameassembly.ai.studio/use-cases) — Copy-paste `.frasm` recipes for Checkmk/Zabbix SNMPv3 traps, Shadow IT & NDR detection, firewall and VLAN verification, IDS/IPS testing, OT/SCADA, and PCAP anonymization.
+* [**Documentation**](https://frameassembly-lang.dev/docs) — Getting started with `host`, `flow`, and `compile`, field references for every protocol, multi-hop and dual-stack topologies, the `.frasm` media type specification (`text/vnd.frameassembly`), and compiler internals.
+* [**Use Cases & Examples**](https://frameassembly-lang.dev/use-cases) — Copy-paste `.frasm` recipes for Checkmk/Zabbix SNMPv3 traps, Shadow IT & NDR detection, firewall and VLAN verification, IDS/IPS testing, OT/SCADA, and PCAP anonymization.
 
 | Layer | Protocols |
 | :--- | :--- |
@@ -332,7 +332,7 @@ FrameAssembly compiles and decompiles **81 protocols across Layers 2–7**. The 
 
 Released under the [MIT License](LICENSE). Free for personal, academic, and commercial use.
 
-[nav-try]: https://frameassembly.ai.studio/
+[nav-try]: https://frameassembly-lang.dev/
 [nav-dl]: #quick-download--try-now
 [nav-uc]: #network-and-security-testing-use-cases
 [nav-how]: #how-frameassembly-works

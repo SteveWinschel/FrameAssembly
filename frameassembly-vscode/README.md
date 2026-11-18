@@ -1,8 +1,8 @@
-# FrameAssembly (`.frasm` v3.1.1) — Syntax Highlighting & Live Linter
+# FrameAssembly (`.frasm` v3.1.2) — Syntax Highlighting & Live Linter
 
-[**CLI & Releases (`GitHub`)**](https://github.com/SteveWinschel/FrameAssembly) • [**Crates.io (`cargo install frameassembly`)**](https://crates.io/crates/frameassembly) • [**Documentation**](https://frameassembly.ai.studio/docs) • [**Use Cases**](https://frameassembly.ai.studio/use-cases)
+[**CLI & Releases (`GitHub`)**](https://github.com/SteveWinschel/FrameAssembly) • [**Crates.io (`cargo install frameassembly`)**](https://crates.io/crates/frameassembly) • [**Documentation**](https://frameassembly-lang.dev/docs) • [**Use Cases**](https://frameassembly-lang.dev/use-cases)
 
-Official syntax highlighting and live error linting for [**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) (`.frasm` v3.1.1) **Packets as Code** files across all 81 Layer 2 through Layer 7 network protocols.
+Official syntax highlighting and live error linting for [**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) (`.frasm` v3.1.2) **Packets as Code** files across all 81 Layer 2 through Layer 7 network protocols.
 
 Built for network engineers, firewall administrators, SOC/NDR analysts, pentesters, and OT/SCADA integrators writing `.frasm` traffic scenarios for **Wireshark**, **`tshark`**, **`tcpreplay`**, **Suricata**, **Zeek**, **Checkmk**, and **Zabbix**.
 

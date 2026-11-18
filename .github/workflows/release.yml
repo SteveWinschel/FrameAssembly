@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing git tag to build and publish (e.g. v3.1.1)'
+        description: 'Existing git tag to build and publish (e.g. v3.1.2)'
         required: false
         type: string
 
@@ -524,7 +524,7 @@ jobs:
             | **Linux (Static `musl`)** | `x64` / `arm64` | [`frameassembly-linux-x64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-linux-x64.tar.gz) · [`frameassembly-linux-arm64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-linux-arm64.tar.gz) | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` |
             | **VS Code / Cursor / VSCodium** | Universal | [`frameassembly-vscode.vsix`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-vscode.vsix) | `code --install-extension SteveWinschel.frameassembly-vscode` |
 
-            Every OS `.zip` and `.tar.gz` bundle includes a `quickstart.frasm` starter file and shell completions. Documentation lives at [`frameassembly.ai.studio/docs`](https://frameassembly.ai.studio/docs) and ready-to-run examples at [`frameassembly.ai.studio/use-cases`](https://frameassembly.ai.studio/use-cases). Verify downloads against [`SHA256SUMS.txt`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/SHA256SUMS.txt), or run FrameAssembly directly in your browser at [`frameassembly.ai.studio`](https://frameassembly.ai.studio/).
+            Every OS `.zip` and `.tar.gz` bundle includes a `quickstart.frasm` starter file and shell completions. Documentation lives at [`frameassembly-lang.dev/docs`](https://frameassembly-lang.dev/docs) and ready-to-run examples at [`frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases). Verify downloads against [`SHA256SUMS.txt`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/SHA256SUMS.txt), or run FrameAssembly directly in your browser at [`frameassembly-lang.dev`](https://frameassembly-lang.dev/).
           files: |
             dist/*.tar.gz
             dist/*.zip

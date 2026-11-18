@@ -217,7 +217,7 @@ fn lex_error_help(src: &str, span: (usize, usize)) -> String {
     } else if rest.starts_with('+') {
         "Put 'wait <duration>' at the end of the packet statement instead (for example: c -> s tcp syn ack wait 5ms).".to_string()
     } else {
-        "Check for unsupported punctuation or typos. See https://frameassembly.ai.studio/docs for valid .frasm syntax and https://frameassembly.ai.studio/use-cases for examples.".to_string()
+        "Check for unsupported punctuation or typos. See https://frameassembly-lang.dev/docs for valid .frasm syntax and https://frameassembly-lang.dev/use-cases for examples.".to_string()
     }
 }
 
@@ -301,7 +301,7 @@ fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
     } else if message.contains("outside a flow block") {
         "Move packet statements ('a -> b ...') inside a flow name(a, b) { ... } block (then call name(host1, host2) inside compile { ... }) or place inline packet statements directly inside compile { ... }.".to_string()
     } else {
-        "Ensure the syntax matches the expected grammar. See https://frameassembly.ai.studio/use-cases for ready-to-use .frasm examples.".to_string()
+        "Ensure the syntax matches the expected grammar. See https://frameassembly-lang.dev/use-cases for ready-to-use .frasm examples.".to_string()
     }
 }
 

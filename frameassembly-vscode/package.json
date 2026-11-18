@@ -2,7 +2,7 @@
   "name": "frameassembly-vscode",
   "displayName": "FrameAssembly (.frasm)",
   "description": "Syntax highlighting and live error linting for FrameAssembly (.frasm) packet capture code.",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "publisher": "SteveWinschel",
   "icon": "icon.png",
   "galleryBanner": {
@@ -10,7 +10,7 @@
     "theme": "dark"
   },
   "license": "MIT",
-  "homepage": "https://frameassembly.ai.studio/",
+  "homepage": "https://frameassembly-lang.dev/",
   "bugs": {
     "url": "https://github.com/SteveWinschel/FrameAssembly/issues"
   },

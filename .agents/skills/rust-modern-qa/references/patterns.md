@@ -1,6 +1,6 @@
 # Modern Rust (Edition 2024, Rust 1.85–1.99.1) QA, Verification Gates & Testing Reference Patterns
 
-This reference document provides production-ready, compile-verified, and idiomatic Rust code templates covering the 4-tier testing taxonomy (with Rust 1.96+ `assert_matches!` and Rust 1.89+ `File::lock`), the Markdown-block/source-hygiene/AST-wiring verification gates (the repository has no `docs/` or `examples/` folders; scenarios live at https://frameassembly.ai.studio/use-cases), automated 6-way grammar/IDE/WASM lockstep and non-terminal resolution, `proptest` round-trip synthesis (`proptest-regressions/`), external `tshark` dissector validation, `cargo-mutants --in-diff`, and `.agents/scripts/file_lock.sh` parallel multi-agent coordination.
+This reference document provides production-ready, compile-verified, and idiomatic Rust code templates covering the 4-tier testing taxonomy (with Rust 1.96+ `assert_matches!` and Rust 1.89+ `File::lock`), the Markdown-block/source-hygiene/AST-wiring verification gates (the repository has no `docs/` or `examples/` folders; scenarios live at https://frameassembly-lang.dev/use-cases), automated 6-way grammar/IDE/WASM lockstep and non-terminal resolution, `proptest` round-trip synthesis (`proptest-regressions/`), external `tshark` dissector validation, `cargo-mutants --in-diff`, and `.agents/scripts/file_lock.sh` parallel multi-agent coordination.
 
 ---
 

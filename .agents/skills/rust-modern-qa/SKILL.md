@@ -51,7 +51,7 @@ To guarantee zero regressions across complex parsers, state machines, and binary
 ---
 
 ### 2.2 Verification Gates & Inline Roundtrip Fixtures (`tests/corpus_verification_tests.rs`, `src/reverse/mod.rs`)
-The repository has no `docs/` or `examples/` folders (documentation: https://frameassembly.ai.studio/docs, scenarios: https://frameassembly.ai.studio/use-cases), so never add gates that read them. `tests/corpus_verification_tests.rs` enforces these named gates (refer to them by name, not number):
+The repository has no `docs/` or `examples/` folders (documentation: https://frameassembly-lang.dev/docs, scenarios: https://frameassembly-lang.dev/use-cases), so never add gates that read them. `tests/corpus_verification_tests.rs` enforces these named gates (refer to them by name, not number):
 
 - **Markdown & Rustdoc Fenced-Block Compilation Gate**:
   - Scan `README.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, `llms.txt`, `contrib/**/*.md`, `.agents/skills/**/*.md`, and `src/**/*.rs` for all ```` ```frameassembly ```` and ```` ```frasm ```` code blocks.

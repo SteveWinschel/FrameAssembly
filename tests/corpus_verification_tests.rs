@@ -1,7 +1,7 @@
 //! Corpus-free lexer-bijection, Markdown/Rustdoc block compilation, six-way grammar/parser
 //! lockstep, file-size hygiene, AST-to-builder field wiring, and reverse PCAP decompiler
-//! symmetry suite for FrameAssembly v3.1.1 (the scenario corpus now lives on the website at
-//! https://frameassembly.ai.studio/use-cases, so no in-repo `examples/` folder is scanned):
+//! symmetry suite for FrameAssembly v3.1.2 (the scenario corpus now lives on the website at
+//! https://frameassembly-lang.dev/use-cases, so no in-repo `examples/` folder is scanned):
 //! 1. **Gate 3**: All ````frameassembly` and ````frasm` blocks across READMEs, agent guides, `contrib/`, skills, and `src/**/*.rs` compile.
 //! 2. **Gate 4**: Six-way lockstep (`src/lexer/mod.rs`, `src/parser/`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, TextMate).
 //! 3. **Gate 5**: `< 50 KB` Rust ceiling, `//!` docstrings (`>= 50` words), and zero NUL bytes.
@@ -657,11 +657,11 @@ fn test_reverse_decompiler_per_protocol_file_symmetry() {
     }
 }
 
-/// Gate 7: Verifies v3.1.1 release packaging hygiene (no stray `output.pcap` or legacy `.vsix`
-/// files), verifies `frameassembly-vscode/frameassembly-vscode-3.1.1.vsix` bundles the WASM-powered
+/// Gate 7: Verifies v3.1.2 release packaging hygiene (no stray `output.pcap` or legacy `.vsix`
+/// files), verifies `frameassembly-vscode/frameassembly-vscode-3.1.2.vsix` bundles the WASM-powered
 /// live diagnostics extension assets without overwriting it, checks `llms.txt` (`< 512` lines, `< 25 KB`),
 /// and verifies the prompt-injection context in `llms-full.txt` (`60–250 KB`, zero NULs, all
-/// v3.1.1 markers/grammars, and zero contributor-internal leaks).
+/// v3.1.2 markers/grammars, and zero contributor-internal leaks).
 #[test]
 fn test_gate7_release_packaging_and_llms_bundle_sync() {
     for stray in [
@@ -676,22 +676,25 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
         "frameassembly-vscode/frameassembly-vscode-2.0.0.vsix",
         "frameassembly-vscode/frameassembly-vscode-3.0.0.vsix",
         "frameassembly-vscode/frameassembly-vscode-3.1.0.vsix",
+        "frameassembly-vscode/frameassembly-vscode-3.1.1.vsix",
     ] {
         assert!(
             !Path::new(stray).exists(),
-            "Stray or legacy artifact {} must not exist in v3.1.1",
+            "Stray or legacy artifact {} must not exist in v3.1.2",
             stray
         );
     }
 
-    let vsix_v31 = Path::new("frameassembly-vscode/frameassembly-vscode-3.1.1.vsix");
+    let vsix_v31 = Path::new("frameassembly-vscode/frameassembly-vscode-3.1.2.vsix");
     assert!(
         vsix_v31.exists(),
-        "Bundled frameassembly-vscode/frameassembly-vscode-3.1.1.vsix must exist"
+        "Bundled frameassembly-vscode/frameassembly-vscode-3.1.2.vsix must exist"
     );
-    let py_check_vsix = r#"
+    #[cfg(unix)]
+    {
+        let py_check_vsix = r#"
 import zipfile
-with zipfile.ZipFile("frameassembly-vscode/frameassembly-vscode-3.1.1.vsix", "r") as zf:
+with zipfile.ZipFile("frameassembly-vscode/frameassembly-vscode-3.1.2.vsix", "r") as zf:
     names = set(zf.namelist())
 for req in [
     "extension/package.json",
@@ -701,20 +704,48 @@ for req in [
     "extension/readme.md",
     "extension/icon.png",
 ]:
-    assert req in names, f"Missing {req} in frameassembly-vscode-3.1.1.vsix"
+    assert req in names, f"Missing {req} in frameassembly-vscode-3.1.2.vsix"
 "#;
-    let status = std::process::Command::new("python3")
-        .arg("-c")
-        .arg(py_check_vsix)
-        .status()
-        .expect("Failed to execute python3 for read-only VSIX verification");
-    assert!(status.success(), "Read-only VSIX v3.1.1 inspection failed");
+        let status = std::process::Command::new("python3")
+            .arg("-c")
+            .arg(py_check_vsix)
+            .status()
+            .expect("Failed to execute python3 for read-only VSIX verification");
+        assert!(status.success(), "Read-only VSIX v3.1.2 inspection failed");
+    }
+    #[cfg(windows)]
+    {
+        let ps_check_vsix = r#"
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zip = [System.IO.Compression.ZipFile]::OpenRead("frameassembly-vscode/frameassembly-vscode-3.1.2.vsix")
+try {
+    $names = @($zip.Entries | ForEach-Object { $_.FullName })
+    foreach ($req in @(
+        "extension/package.json",
+        "extension/extension.js",
+        "extension/syntaxes/frameassembly.tmLanguage.json",
+        "extension/wasm/frameassembly_wasm_bg.wasm",
+        "extension/readme.md",
+        "extension/icon.png"
+    )) {
+        if ($names -notcontains $req) { throw "Missing $req in frameassembly-vscode-3.1.2.vsix" }
+    }
+} finally {
+    $zip.Dispose()
+}
+"#;
+        let status = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-Command", ps_check_vsix])
+            .status()
+            .expect("Failed to execute powershell for read-only VSIX verification");
+        assert!(status.success(), "Read-only VSIX v3.1.2 inspection failed");
+    }
 
     let llms_txt = fs::read_to_string("llms.txt").expect("Missing llms.txt");
     let llms_lines = llms_txt.lines().count();
     assert!(
-        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("3.1.1"),
-        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 3.1.1 (got {} lines, {} bytes)",
+        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("3.1.2"),
+        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 3.1.2 (got {} lines, {} bytes)",
         llms_lines,
         llms_txt.len()
     );
@@ -736,7 +767,7 @@ for req in [
         "llms-full.txt missing default root CLI invocation (`frameassembly <input.frasm>`)"
     );
     for required_marker in [
-        "3.1.1",
+        "3.1.2",
         "frameassembly show",
         "frameassembly reverse",
         "README.md",
@@ -746,7 +777,7 @@ for req in [
     ] {
         assert!(
             full_txt.contains(required_marker),
-            "llms-full.txt missing required v3.1.1 marker `{required_marker}`"
+            "llms-full.txt missing required v3.1.2 marker `{required_marker}`"
         );
     }
     for leaked_internal in ["file_lock.sh", "PreToolUse", "// PROMPT:"] {

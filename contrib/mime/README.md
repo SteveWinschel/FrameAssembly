@@ -4,7 +4,7 @@ This directory contains the Freedesktop.org `shared-mime-info` XML database defi
 
 The definition provides desktop-wide MIME classification, content-sniffing magic rules, file-manager icons, and default editor associations across Linux, BSD, and Unix desktop environments (GNOME, KDE Plasma, XFCE, Sway, and Wayland/X11 compositors).
 
-For the normative language specification, see the [official documentation](https://frameassembly.ai.studio/docs). For the IANA registration application, see [`contrib/iana/text-vnd.frameassembly.md`](../iana/text-vnd.frameassembly.md). For GitHub Linguist integration, see [`contrib/linguist/README.md`](../linguist/README.md).
+For the normative language specification, see the [official documentation](https://frameassembly-lang.dev/docs). For the IANA registration application, see [`contrib/iana/text-vnd.frameassembly.md`](../iana/text-vnd.frameassembly.md). For GitHub Linguist integration, see [`contrib/linguist/README.md`](../linguist/README.md).
 
 ---
 
@@ -229,7 +229,7 @@ Adds the `text/vnd.frameassembly` MIME type for FrameAssembly (`.frasm`) network
 FrameAssembly is a declarative domain-specific language for synthesizing deterministic `.pcap` / `.pcapng` packet capture fixtures across 81 Layer 2–7 protocols.
 
 ### Specifications & Registrations
-- Published Specification: https://frameassembly.ai.studio/docs
+- Published Specification: https://frameassembly-lang.dev/docs
 - IANA Vendor Tree Application: https://github.com/SteveWinschel/FrameAssembly/blob/main/contrib/iana/text-vnd.frameassembly.md
 - Reference Compiler: https://github.com/SteveWinschel/FrameAssembly
 

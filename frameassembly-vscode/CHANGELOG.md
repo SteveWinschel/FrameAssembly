@@ -2,8 +2,12 @@
 
 All notable changes to the `frameassembly-vscode` extension are documented in this file.
 
+## [3.1.2] - 2026-11-18
+- Updated official website, documentation, and use-case links to https://frameassembly-lang.dev/.
+- Synchronized the extension version with FrameAssembly 3.1.2.
+
 ## [3.1.1] - 2026-11-17
-- Moved the documentation and examples to the official website: guides at https://frameassembly.ai.studio/docs and use cases at https://frameassembly.ai.studio/use-cases.
+- Moved the documentation and examples to the official website: guides at https://frameassembly-lang.dev/docs and use cases at https://frameassembly-lang.dev/use-cases.
 - Synchronized the extension version with FrameAssembly 3.1.1.
 
 ## [3.1.0] - 2026-11-15

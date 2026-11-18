@@ -2,7 +2,7 @@
 # ==============================================================================
 # FrameAssembly (frameassembly) — Cross-Platform Bootstrap Installer
 # https://github.com/SteveWinschel/FrameAssembly
-# https://frameassembly.ai.studio/
+# https://frameassembly-lang.dev/
 # https://crates.io/crates/frameassembly
 #
 # Installs the prebuilt FrameAssembly release binary to ~/.cargo/bin (when Rust
@@ -37,8 +37,8 @@ CALLER_PATH="${PATH:-}"
 REQUIRED_RUST_MAJOR=1
 REQUIRED_RUST_MINOR=88
 CRATE_NAME="frameassembly"
-VSIX_VERSION="3.1.1"
-RELEASE_VERSION="3.1.1"
+VSIX_VERSION="3.1.2"
+RELEASE_VERSION="3.1.2"
 VSIX_RAW_URL="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-${VSIX_VERSION}.vsix"
 COMPLETIONS_RAW_BASE="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/completions"
 GITHUB_RELEASE_BASE="https://github.com/SteveWinschel/FrameAssembly/releases/download/v${RELEASE_VERSION}"

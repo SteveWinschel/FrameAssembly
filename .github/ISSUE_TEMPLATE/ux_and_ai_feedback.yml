@@ -16,7 +16,7 @@ body:
         - CLI (`frameassembly <in.frasm>`, `show`, `reverse`, Tab completions, `install.sh`, `install.ps1`)
         - Compiler Diagnostic or Self-Healing Hint
         - VS Code / Cursor / Windsurf Extension (`frameassembly-vscode`)
-        - Browser Playground (`frameassembly.ai.studio`)
+        - Browser Playground (`frameassembly-lang.dev`)
         - AI Assistant Code Generation (ChatGPT, Claude, Copilot, Gemini)
         - Documentation, Examples, or `llms.txt`
     validations:

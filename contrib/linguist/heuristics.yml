@@ -1,6 +1,6 @@
 # GitHub Linguist heuristics.yml disambiguation rules for .frasm (v3.0.0)
 # Upstream target: lib/linguist/heuristics.yml in https://github.com/github-linguist/linguist
-# Specification: https://frameassembly.ai.studio/docs
+# Specification: https://frameassembly-lang.dev/docs
 
 disambiguations:
   - extensions: ['.frasm']

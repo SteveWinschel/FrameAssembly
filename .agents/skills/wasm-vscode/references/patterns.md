@@ -19,7 +19,7 @@ description = "Compile .frasm network traffic code to .pcapng and decompile .pca
 license = "MIT"
 documentation = "https://docs.rs/frameassembly-wasm"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
-homepage = "https://frameassembly.ai.studio/"
+homepage = "https://frameassembly-lang.dev/"
 readme = "README.md"
 keywords = ["frameassembly", "pcap", "pcapng", "packet-generator", "wasm"]
 
@@ -389,7 +389,7 @@ Configures `"main": "./extension.js"` and `"browser": "./extension.js"`, 30 Mark
     "theme": "dark"
   },
   "license": "MIT",
-  "homepage": "https://frameassembly.ai.studio/",
+  "homepage": "https://frameassembly-lang.dev/",
   "bugs": {
     "url": "https://github.com/SteveWinschel/FrameAssembly/issues"
   },

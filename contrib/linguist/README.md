@@ -6,7 +6,7 @@ This directory contains the language definitions, disambiguation heuristics, and
 2. **[`sharkdp/bat`](https://github.com/sharkdp/bat)** (`assets/syntaxes/` TextMate `.tmLanguage.json` integration)
 3. **[`alecthomas/chroma`](https://github.com/alecthomas/chroma)** & **Pygments** CLI and static-site syntax highlighters
 
-For the normative technical specification and media type registration, see the [official documentation](https://frameassembly.ai.studio/docs), [`contrib/iana/text-vnd.frameassembly.md`](../iana/text-vnd.frameassembly.md), and the official website & browser playground at [`frameassembly.ai.studio`](https://frameassembly.ai.studio/). For Freedesktop desktop MIME integration, see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml).
+For the normative technical specification and media type registration, see the [official documentation](https://frameassembly-lang.dev/docs), [`contrib/iana/text-vnd.frameassembly.md`](../iana/text-vnd.frameassembly.md), and the official website & browser playground at [`frameassembly-lang.dev`](https://frameassembly-lang.dev/). For Freedesktop desktop MIME integration, see [`contrib/mime/text-vnd.frameassembly.xml`](../mime/text-vnd.frameassembly.xml).
 
 ---
 
@@ -115,14 +115,14 @@ When submitting the upstream pull request to `github-linguist/linguist`, copy an
 FrameAssembly
 
 ### URL of the Language's Official Homepage / Repository
-https://frameassembly.ai.studio/ (Repository: https://github.com/SteveWinschel/FrameAssembly)
+https://frameassembly-lang.dev/ (Repository: https://github.com/SteveWinschel/FrameAssembly)
 
 ### URL of the TextMate Grammar Repository
 https://github.com/SteveWinschel/FrameAssembly (frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json)
 License: MIT
 
 ### URL of Documentation for the Language
-https://frameassembly.ai.studio/docs
+https://frameassembly-lang.dev/docs
 
 ### GitHub Search Query URL Demonstrating File Volume
 https://github.com/search?q=path%3A*.frasm+NOT+fork%3Atrue&type=code

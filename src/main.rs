@@ -896,7 +896,7 @@ mod tests {
     #[test]
     fn test_cli_default_compile_four_subcommands_and_hidden_flags() {
         let mut cmd = build_cli();
-        assert_eq!(cmd.get_version(), Some("3.1.1"));
+        assert_eq!(cmd.get_version(), Some("3.1.2"));
         let help_text = cmd.render_help().to_string();
         assert!(
             help_text.contains("<INPUT.frasm>") && help_text.contains("[OUTPUT.pcap]"),

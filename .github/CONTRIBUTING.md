@@ -1,6 +1,6 @@
 # Contributing to FrameAssembly
 
-Thanks for helping improve **FrameAssembly** (`frameassembly` v3.1.1, browser playground: [`https://frameassembly.ai.studio/`](https://frameassembly.ai.studio/))! Whether you are fixing a protocol field, improving `.pcap` / `.pcapng` reverse decompilation, or adding new Layer 2–7 protocols, this guide walks through how the codebase is organized and verified.
+Thanks for helping improve **FrameAssembly** (`frameassembly` v3.1.2, browser playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/))! Whether you are fixing a protocol field, improving `.pcap` / `.pcapng` reverse decompilation, or adding new Layer 2–7 protocols, this guide walks through how the codebase is organized and verified.
 
 ## Ways to Contribute
 
@@ -19,7 +19,7 @@ FrameAssembly enforces strict `<layer>/<protocol>` symmetry across its compiler,
 - `src/parser/{l2,l3,l4,l7}/<protocol>.rs` — `winnow` token-slice combinators, protocol-scoped field dispatch, and semantic validation (`src/parser/validation.rs`).
 - `src/builders/{l2,l3,l4,l7}/<protocol>.rs` — Inner-outward wire encoders and checksum engines.
 - `src/reverse/{l2,l3,l4,l7}/<protocol>.rs` — PCAP/PCAPNG-to-`.frasm` dissectors and forward-compiler oracle checks.
-- User documentation, protocol references, and the `.frasm` specification live at [frameassembly.ai.studio/docs](https://frameassembly.ai.studio/docs); ready-to-run `.frasm` scenarios live at [frameassembly.ai.studio/use-cases](https://frameassembly.ai.studio/use-cases).
+- User documentation, protocol references, and the `.frasm` specification live at [frameassembly-lang.dev/docs](https://frameassembly-lang.dev/docs); ready-to-run `.frasm` scenarios live at [frameassembly-lang.dev/use-cases](https://frameassembly-lang.dev/use-cases).
 - `frameassembly-wasm/` & `frameassembly-vscode/` — WebAssembly compiler/decompiler bindings and VS Code syntax highlighting, live diagnostics, and Quick Fix extension.
 
 ## Lockstep & Coding Standards

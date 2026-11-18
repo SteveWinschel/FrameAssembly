@@ -1,7 +1,7 @@
-﻿# ==============================================================================
+# ==============================================================================
 # FrameAssembly (frameassembly) — Windows PowerShell Zero-Admin Bootstrap Installer
 # https://github.com/SteveWinschel/FrameAssembly
-# https://frameassembly.ai.studio/
+# https://frameassembly-lang.dev/
 #
 # Installs the prebuilt FrameAssembly release binary to
 # $env:LOCALAPPDATA\Programs\FrameAssembly without administrator privileges,
@@ -37,8 +37,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$ReleaseVersion = '3.1.1'
-$VsixVersion = '3.1.1'
+$ReleaseVersion = '3.1.2'
+$VsixVersion = '3.1.2'
 $GitHubReleaseBase = "https://github.com/SteveWinschel/FrameAssembly/releases/download/v$ReleaseVersion"
 $VsixReleaseUrl = "$GitHubReleaseBase/frameassembly-vscode.vsix"
 $VsixRawUrl = "https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-$VsixVersion.vsix"
@@ -497,7 +497,7 @@ try {
   @('host client { ip 10.0.0.10 }', 'host server { ip 10.0.0.20 }', 'compile {', '  client -> server http get uri "/healthz" hosthdr "api.example.com" wait 2ms', '  client <- server http status 200 reason "OK" body "ok"', '}') | Set-Content -Encoding Ascii quickstart.frasm; frameassembly show quickstart.frasm; frameassembly quickstart.frasm quickstart.pcap
 '@ | Write-Host -ForegroundColor White
     Write-Host ''
-    Write-Info 'Browser Playground: https://frameassembly.ai.studio/'
+    Write-Info 'Browser Playground: https://frameassembly-lang.dev/'
 } finally {
     Remove-Item -Path $workDir -Recurse -Force -ErrorAction SilentlyContinue
 }

@@ -1,6 +1,6 @@
 [package]
 name = "frameassembly-wasm"
-version = "3.1.1"
+version = "3.1.2"
 edition = "2024"
 rust-version = "1.88"
 authors = ["Steve Winschel"]
@@ -8,7 +8,7 @@ description = "Compile .frasm network traffic code to .pcapng and decompile .pca
 license = "MIT"
 documentation = "https://docs.rs/frameassembly-wasm"
 repository = "https://github.com/SteveWinschel/FrameAssembly"
-homepage = "https://frameassembly.ai.studio/"
+homepage = "https://frameassembly-lang.dev/"
 readme = "README.md"
 keywords = ["frameassembly", "pcap", "pcapng", "packet-generator", "wasm"]
 categories = [
@@ -23,7 +23,7 @@ categories = [
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-frameassembly = { path = "..", version = "3.1.1" }
+frameassembly = { path = "..", version = "3.1.2" }
 miette = { version = "7.6.0", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"

@@ -7,20 +7,20 @@ class Frameassembly < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.2.0/frameassembly-macos-arm64.tar.gz"
-      sha256 "a8b9c3c9b28536d9b79a2265c997e249c503a557861c0ac71613da01ec423d6e"
+      sha256 "6a9a79c3a8973f347927aaddec04fa5155a8b1ccfa6f6c3b75657c5bccfdfcc7"
     else
       url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.2.0/frameassembly-macos-x64.tar.gz"
-      sha256 "7648b56d7eef96863626e0ed2263e5d45bdc35a6a31e6664ff1556712e526c20"
+      sha256 "4097fee5f589f076a5dda222f1ba0fb93779fd03ab99c003fa99d46f4447b3ed"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
       url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.2.0/frameassembly-linux-arm64.tar.gz"
-      sha256 "fe8bf7e69315dec66911184448f2de4d99bde79563c01d029d386fa2098ce866"
+      sha256 "a029d6726d2e74d349fa78d5a27d6a55262bf49392d2a45c073d57935b16ba09"
     else
       url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.2.0/frameassembly-linux-x64.tar.gz"
-      sha256 "60cbda68e5f879e9459e25893a359fa3614903344fda6a95f890e2210e00d272"
+      sha256 "ee6c2a9e71654ca9b4a397a47231f3264d09e1a1cc275e1a0f11c32f2c44c0ef"
     end
   end
 

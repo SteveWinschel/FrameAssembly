@@ -1,8 +1,8 @@
 {
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "FrameAssembly",
-  "description": "Rootless Packets-as-Code DSL & Rust compiler (v3.2.0, MIT, https://frameassembly-lang.dev/) for .pcap/.pcapng compilation and reversal across 81 L2-L7 protocols.",
-  "version": "3.2.0",
+  "description": "Rootless Packets-as-Code DSL & Rust compiler (v3.2.1, MIT, https://frameassembly-lang.dev/) for .pcap/.pcapng compilation and reversal across 81 L2-L7 protocols.",
+  "version": "3.2.1",
   "repository": "https://github.com/SteveWinschel/FrameAssembly",
   "folders": [],
   "excludeFolders": [

@@ -14,7 +14,7 @@
 //! 3. **Optional-`ip` Layer 2 Host Declarations**: Verifies that MAC-only `host` blocks compile
 //!    across all eight Layer 2 protocols (`stp`, `lldp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`,
 //!    `arp`) while rejecting empty `host` blocks and MAC-only endpoints on IP-requiring protocols.
-//! 4. **v3.2.0 Default-Compile & 5-Subcommand CLI Contract**: Exercises default root compilation
+//! 4. **v3.2.1 Default-Compile & 5-Subcommand CLI Contract**: Exercises default root compilation
 //!    (`frameassembly <input.frasm> [output.pcap]`), `show`, `reverse`, `update`, `version`, `help`,
 //!    hidden `-h`/`--help` and `-V`/`--version`, collision protection, and migration safety guards.
 
@@ -540,7 +540,7 @@ fn test_mac_only_host_rejected_for_l3_l4_l7_ip_requiring_protocols() {
 }
 
 // ============================================================================
-// 4. v3.2.0 Default-Compile + 5-Subcommand CLI Contract & Safety Guard Tests
+// 4. v3.2.1 Default-Compile + 5-Subcommand CLI Contract & Safety Guard Tests
 // ============================================================================
 
 /// Returns the path to the compiled `frameassembly` binary under test.
@@ -632,8 +632,8 @@ compile {
             .expect("run frameassembly version query");
         assert!(ver_out.status.success(), "version query '{ver_arg}' failed");
         assert!(
-            String::from_utf8_lossy(&ver_out.stdout).contains("3.2.0"),
-            "version query '{ver_arg}' missing 3.2.0"
+            String::from_utf8_lossy(&ver_out.stdout).contains("3.2.1"),
+            "version query '{ver_arg}' missing 3.2.1"
         );
     }
 

@@ -1,6 +1,6 @@
 # ============================================================================
 # FrameAssembly GBNF Constrained Decoding Grammar (llama.cpp / XGrammar)
-# Version: 3.2.0 — Strict-lowercase [a-z0-9]+ built-in keywords, optional
+# Version: 3.2.1 — Strict-lowercase [a-z0-9]+ built-in keywords, optional
 # flow blocks (2-block host + compile or reusable flow templates), and all
 # 81 native Layer 2 through Layer 7 protocols, modifiers, and literals.
 # Usage: llama-server -m model.gguf --grammar-file frameassembly.gbnf

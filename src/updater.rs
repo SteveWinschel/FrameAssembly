@@ -175,10 +175,10 @@ pub(crate) fn run_update() -> Result<()> {
     let current = SemVer::parse(CURRENT_VERSION_STR)
         .ok_or_else(|| miette::miette!("Invalid package version '{CURRENT_VERSION_STR}'"))?;
 
-    println!("Checking for FrameAssembly updates (current: v{current})...");
+    println!("Checking for FrameAssembly updates (currently: v{current})...");
     let latest = check_latest_version()?;
     if current >= latest {
-        println!("frameassembly {current} is already up to date.");
+        println!("FrameAssembly {current} is already up to date.");
         return Ok(());
     }
 

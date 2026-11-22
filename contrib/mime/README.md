@@ -1,6 +1,6 @@
 # Freedesktop `shared-mime-info` Package & Upstream Merge Guide for FrameAssembly (`.frasm`)
 
-This directory contains the Freedesktop.org `shared-mime-info` XML database definition and upstream contribution assets for **FrameAssembly** (v3.2.0, `.frasm`, media type `text/vnd.frameassembly`).
+This directory contains the Freedesktop.org `shared-mime-info` XML database definition and upstream contribution assets for **FrameAssembly** (v3.2.1, `.frasm`, media type `text/vnd.frameassembly`).
 
 The definition provides desktop-wide MIME classification, content-sniffing magic rules, file-manager icons, and default editor associations across Linux, BSD, and Unix desktop environments (GNOME, KDE Plasma, XFCE, Sway, and Wayland/X11 compositors).
 
@@ -41,7 +41,7 @@ The XML definition file [`text-vnd.frameassembly.xml`](text-vnd.frameassembly.xm
 
 ## 2. Magic Content-Sniffing Rules Documentation
 
-While FrameAssembly (v3.0.0+, active v3.2.0) uses the dedicated `.frasm` extension (distinct from `.fasm` used by Flat Assembler and SymbiFlow / F4PGA FPGA FASM), content sniffing remains essential for deterministic classification when files lack extensions.
+While FrameAssembly (v3.0.0+, active v3.2.1) uses the dedicated `.frasm` extension (distinct from `.fasm` used by Flat Assembler and SymbiFlow / F4PGA FPGA FASM), content sniffing remains essential for deterministic classification when files lack extensions.
 
 [`text-vnd.frameassembly.xml`](text-vnd.frameassembly.xml) implements two multi-level, nested conjunction (`AND`) magic rules:
 

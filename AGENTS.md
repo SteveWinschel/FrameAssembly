@@ -1,6 +1,6 @@
 # AGENTS.md — FrameAssembly AI Agent & LLM Onboarding Guide
 
-**FrameAssembly** (`frameassembly` v3.2.0, official website & interactive browser playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.frasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols** (scenarios: [`https://frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases)).
+**FrameAssembly** (`frameassembly` v3.2.1, official website & interactive browser playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.frasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols** (scenarios: [`https://frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases)).
 
 ---
 

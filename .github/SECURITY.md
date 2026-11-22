@@ -2,11 +2,11 @@
 
 ## Execution & Threat Model
 
-**FrameAssembly** (`frameassembly` v3.1.2) runs **100% offline** in unprivileged user space across the CLI, WebAssembly module (`frameassembly-wasm`), browser playground ([`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/)), and VS Code extension (`frameassembly-vscode`):
+**FrameAssembly** (`frameassembly` v3.2.0) compiles and decompiles **100% offline** in unprivileged user space across the CLI, WebAssembly module (`frameassembly-wasm`), browser playground ([`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/)), and VS Code extension (`frameassembly-vscode`):
 
 - **Zero raw sockets or packet injection**: FrameAssembly never opens raw sockets, never binds network interfaces, and never transmits packets onto the wire. Generated `.pcap` and `.pcapng` files are written only to local disk paths you specify.
 - **Zero kernel drivers or `libpcap` runtime bindings**: Compilation and reverse decompilation require no root/Administrator privileges, Npcap, WinPcap, or `libpcap` installation.
-- **Zero network telemetry**: Neither the CLI, WebAssembly build, nor VS Code extension makes outbound network connections or sends crash/usage telemetry.
+- **Zero background telemetry or unrequested network connections**: Compilation, `show`, `reverse`, the WebAssembly build, and the VS Code extension make zero outbound network connections or crash/usage telemetry calls. The `frameassembly update` command initiates outbound HTTPS requests (GitHub Releases, Crates.io, or `rustup`) only when explicitly invoked by the user, and verifies downloaded release archives fail-closed against `SHA256SUMS.txt`.
 - **Encrypted payload handling**: When reversing `.pcap` or `.pcapng` captures, encrypted application traffic (such as TLS application data, SSH, IPsec ESP, or SNMPv3 `authPriv` PDUs) is preserved without attempting decryption.
 - **Artifact verification**: Every official release publishes [`SHA256SUMS.txt`](https://github.com/SteveWinschel/FrameAssembly/releases/latest) alongside GitHub SLSA build provenance attestations (`gh attestation verify`).
 
@@ -16,8 +16,8 @@ Security fixes are released for the current major release line:
 
 | Version | Supported |
 | :--- | :--- |
-| `3.1.x` | Yes |
-| `< 3.1.0` | No (upgrade to `3.1.2`) |
+| `3.2.x` | Yes |
+| `< 3.2.0` | No (upgrade to `3.2.0`) |
 
 ## Reporting a Vulnerability
 

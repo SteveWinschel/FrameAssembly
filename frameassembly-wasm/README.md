@@ -1,12 +1,11 @@
-# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v3.1.2)
+# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v3.2.0)
 
 [![Website & Playground](https://img.shields.io/badge/web%20app-frameassembly--lang.dev-0ea5e9.svg)](https://frameassembly-lang.dev/)
-[![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
 
-[**Try in Browser (`frameassembly-lang.dev`)**](https://frameassembly-lang.dev/) • [**Installation**](#installation) • [**Vite, React & Next.js**](#initialization-vite-react-nextjs--google-ai-studio) • [**API Reference**](#api-reference)
+[**Try in Browser (`frameassembly-lang.dev`)**](https://frameassembly-lang.dev/) • [**Building Locally**](#building-locally) • [**Vite, React & Next.js**](#initialization-vite-react-nextjs--browser-apps) • [**API Reference**](#api-reference)
 
-WebAssembly compiler, `.pcap`/`.pcapng`-to-`.frasm` decompiler, packet ladder inspector, and UTF-16 IDE diagnostics for **FrameAssembly (`.frasm` v3.1.2)** — compiling `.frasm` code into classic `.pcap` and `.pcapng` packet captures and decompiling existing captures back into `.frasm` code across 81 L2–L7 protocols in browser applications, VS Code Desktop & Web extensions, web cyber ranges, and Node.js test suites. Powers the official FrameAssembly interactive browser playground at [**frameassembly-lang.dev**](https://frameassembly-lang.dev/) and the official VS Code extension (`SteveWinschel.frameassembly-vscode`). *(Note: FrameAssembly is a network packet specification compiler, not x86 Flat Assembler).*
+`frameassembly-wasm` (`v3.2.0`) is the **internal WebAssembly compiler, `.pcap`/`.pcapng`-to-`.frasm` decompiler, packet ladder inspector, and UTF-16 diagnostic engine** powering [**`frameassembly-lang.dev`**](https://frameassembly-lang.dev/) and the official VS Code extension (`SteveWinschel.frameassembly-vscode`). It compiles `.frasm` code into classic `.pcap` and `.pcapng` packet captures and decompiles existing captures back into `.frasm` code across 81 L2–L7 protocols directly inside browser applications and VS Code Desktop/Web Extension Hosts. *(CLI users should install the native binary via `cargo install frameassembly` and update with `frameassembly update`. FrameAssembly is a network packet specification compiler, not x86 Flat Assembler.)*
 
 ---
 
@@ -34,7 +33,7 @@ import init, {
   validate_fasm,
   inspect_fasm,
   reversePcap,
-} from "frameassembly-wasm";
+} from "./pkg/frameassembly_wasm.js";
 
 // Initialize WASM module once at startup
 await init();
@@ -69,39 +68,23 @@ if (diagnostics.length === 0) {
 }
 ```
 
+---
+
+## Building Locally
+
+`frameassembly-wasm` is an internal workspace crate powering [`frameassembly-lang.dev`](https://frameassembly-lang.dev/) and `frameassembly-vscode` rather than a standalone user CLI package. Build the WebAssembly bundle directly from the repository root using `wasm-pack`:
+
 ```bash
-npm install frameassembly-wasm
+wasm-pack build frameassembly-wasm --release --target web
 ```
+
+This generates `frameassembly-wasm/pkg/{frameassembly_wasm.js,frameassembly_wasm_bg.wasm,frameassembly_wasm.d.ts,package.json}` for bundling into [`frameassembly-lang.dev`](https://frameassembly-lang.dev/) or `frameassembly-vscode/wasm/`. For command-line `.frasm` compilation and `.pcap` decompilation, install `cargo install frameassembly` and update with `frameassembly update`.
 
 ---
 
-## Installation
+## Initialization (Vite, React, Next.js & Browser Apps)
 
-```bash
-npm install frameassembly-wasm
-```
-
-### Browser CDN Usage (No Bundler)
-
-```html
-<script type="module">
-  import init, {
-    validate_fasm,
-    inspect_fasm,
-    compile_fasm_to_pcapng,
-    reversePcap,
-  } from "https://cdn.jsdelivr.net/npm/frameassembly-wasm@3.1.2/frameassembly_wasm.js";
-
-  await init();
-  console.log("FrameAssembly WebAssembly engine v3.1.2 loaded successfully.");
-</script>
-```
-
----
-
-## Initialization (Vite, React, Next.js & Google AI Studio)
-
-Import the WebAssembly binary URL explicitly with `?url` so Vite, Webpack 5, and Next.js serve the `.wasm` asset cleanly in both development and production builds:
+Import the generated WebAssembly binary URL explicitly with `?url` so Vite, Webpack 5, and Next.js serve the `.wasm` asset cleanly in both development and production builds:
 
 ```ts
 import init, {
@@ -112,8 +95,8 @@ import init, {
   type IdeDiagnostic,
   type PacketPreview,
   type ReversePcapResult,
-} from "frameassembly-wasm";
-import wasmUrl from "frameassembly-wasm/frameassembly_wasm_bg.wasm?url";
+} from "./pkg/frameassembly_wasm.js";
+import wasmUrl from "./pkg/frameassembly_wasm_bg.wasm?url";
 
 // Call once at application startup (idempotent)
 await init({ module_or_path: wasmUrl });
@@ -180,7 +163,7 @@ type ReverseJsResult = ReversePcapResult;
 ## Complete Browser Playground & Download Example
 
 ```ts
-import init, { compile_fasm_to_pcapng, reversePcap, validate_fasm } from "frameassembly-wasm";
+import init, { compile_fasm_to_pcapng, reversePcap, validate_fasm } from "./pkg/frameassembly_wasm.js";
 
 export async function downloadCapture(frasmCode: string, filename = "capture.pcapng") {
   await init();

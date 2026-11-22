@@ -1,6 +1,6 @@
-# FrameAssembly v3.1.2 — Complete LLM Prompt-Injection Reference (`llms-full.txt`)
+# FrameAssembly v3.2.0 — Complete LLM Prompt-Injection Reference (`llms-full.txt`)
 
-> **FrameAssembly** (`frameassembly` v3.1.2, MIT License, official website & browser playground:
+> **FrameAssembly** (`frameassembly` v3.2.0, MIT License, official website & browser playground:
 > `https://frameassembly-lang.dev/`, repository: `https://github.com/SteveWinschel/FrameAssembly`)
 > is a rootless, offline "Packets as Code" Rust compiler and PCAP/PCAPNG-to-`.frasm` decompiler.
 > It compiles `.frasm` (`text/vnd.frameassembly`) code into classic `.pcap` or nanosecond `.pcapng`
@@ -10,11 +10,11 @@
 This file is engineered specifically to be attached or pasted directly into an LLM prompt window so
 the model can write, review, debug, or refactor any `.frasm` specification with **zero keyword
 guessing**. Every syntax rule, field modifier, shorthand flag, `<str>` enum value, default port,
-validation rule, and compilable example below matches the `frameassembly 3.1.2` compiler 1-to-1.
+validation rule, and compilable example below matches the `frameassembly 3.2.0` compiler 1-to-1.
 
 ---
 
-## 1. Core `.frasm` v3.1.2 Language Architecture & Invariants
+## 1. Core `.frasm` v3.2.0 Language Architecture & Invariants
 
 ### 1.1 Two-Block Minimal Program Structure (`host` + `compile`) & Optional `flow`
 
@@ -202,14 +202,13 @@ restricted below). Out-of-range values fail semantic validation at compile time:
 ### 1.6 CLI, Installation, Output Formats (`.pcap` vs `.pcapng`) & Library APIs
 
 - **Recommended Installation**:
-  - Rust / Cargo (**Recommended**): `cargo install frameassembly` (Rust `1.88+`, Edition 2024, MIT).
+  - Rust / Cargo (**Recommended**): `cargo install frameassembly` (Rust `1.89+`, Edition 2024, MIT).
   - Browser Playground: `https://frameassembly-lang.dev/`
   - macOS / Linux script: `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
   - Windows PowerShell: `irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 | iex`
-  - Package managers & IDE: `brew install SteveWinschel/tap-FrameAssembly/frameassembly`, Scoop
-    (`frameassembly`), Debian/Ubuntu `.deb` on GitHub Releases, VS Code extension
-    `SteveWinschel.frameassembly-vscode`, and `npm install frameassembly-wasm`.
-- **CLI Commands (`v3.1.2` — default root compile + 4 subcommands; no `-o`/`--output` or `compile`)**:
+  - Releases & IDE: Pre-built `.zip`/`.tar.gz` archives and Debian/Ubuntu `.deb` packages on
+    GitHub Releases, plus VS Code extension `SteveWinschel.frameassembly-vscode`.
+- **CLI Commands (`v3.2.0` — default root compile + 5 subcommands; no `-o`/`--output` or `compile`)**:
   - `frameassembly demo.frasm` — Compiles `demo.frasm` to `demo.pcap` (classic libpcap `0xa1b2c3d4`).
   - `frameassembly demo.frasm out.pcap` — Compiles to classic libpcap `.pcap` (microsecond/classic
     header compatible with every legacy parser, `tcpdump`, `tcpreplay`, Suricata, and Wireshark).
@@ -219,14 +218,13 @@ restricted below). Out-of-range values fail semantic validation at compile time:
     packet table to stdout without writing disk files.
   - `frameassembly reverse capture.pcap [reversed.frasm]` — Decompiles `.pcap` or `.pcapng` back
     into strict-lowercase `.frasm` code (`host1`, `host2`, ..., verified by self-check oracle).
-  - `frameassembly help [subcommand]` | `frameassembly version` — Displays usage or `3.1.2`.
-- **Rust & WebAssembly Entrypoints**:
-  - Rust (`frameassembly` crate): `lexer::lex`, `parser::parse_program`,
-    `parser::validation::validate_semantics`, `backend::compile_program`, `backend::generate_pcap`,
+  - `frameassembly update` — Strictly zero-flag self-updater (Cargo/`rustup`-first with
+    `rustc >= 1.89` & linker preflight, falling back to SHA-256-verified GitHub Release binaries).
+  - `frameassembly help [subcommand]` | `frameassembly version` — Displays usage or `3.2.0`.
+- **Rust Library Entrypoints (`frameassembly` crate)**:
+  - `lexer::lex`, `parser::parse_program`, `parser::validation::validate_semantics`,
+    `backend::compile_program`, `backend::generate_pcap`,
     `reverse::{reverse_pcap_bytes, reverse_pcap_file, reverse_pcap_reader}`.
-  - WebAssembly (`frameassembly-wasm`): `compile_frasm_to_pcap(src)`,
-    `compile_frasm_to_pcapng(src)`, `validate_frasm(src)`, `inspect_frasm(src)`,
-    `reverse_pcap(bytes)`.
 - **Documentation, Use Cases & Grammar Files**:
   - Documentation: https://frameassembly-lang.dev/docs (getting started, Layer 2–7 protocol
     references, topologies & dual-stack, `.frasm` specification, and compiler internals).
@@ -237,7 +235,7 @@ restricted below). Out-of-range values fail semantic validation at compile time:
 
 ### 1.7 Anti-Hallucination Guardrail Table (Never Emit Left Column!)
 
-| Invalid / Hallucinated Syntax | Valid FrameAssembly `v3.1.2` Syntax |
+| Invalid / Hallucinated Syntax | Valid FrameAssembly `v3.2.0` Syntax |
 | :--- | :--- |
 | `HOST a { ip = "10.0.0.1/24", mac: ... }` | `host a { ip 10.0.0.1 mac 00:11:22:33:44:55 }` |
 | `flow ping { from a to b icmp }` | `flow ping(a, b) { a -> b icmp }` (or 2-block `compile`) |
@@ -251,6 +249,7 @@ restricted below). Out-of-range values fail semantic validation at compile time:
 | `varbind 1.3.6.1.2.1.1.5.0 str "core1"` | `varbind 1.3.6.1.2.1.1.5.0 string "core1"` (`string`, `oidval`) |
 | `snmp2 trap trapoid 1.3.6.1.6.3.1.1.5.3` | `snmp2 trap varbind 1.3.6.1.6.3.1.1.4.1.0 oidval 1.3.6.1.6.3.1.1.5.3` |
 | `frameassembly compile a.frasm -o a.pcap` | `frameassembly a.frasm a.pcap` (default root compile) |
+| `frameassembly update --check / --force` | `frameassembly update` (strictly zero flags) |
 
 ---
 
@@ -1082,7 +1081,7 @@ opcua [msgtype <str>] [chunktype <str>] [securechannelid <u32>] [tokenid <u32>]
 
 ## 3. Compiler-Verified `.frasm` Code Library Covering All 81 Protocols
 
-Every ````frameassembly` block below compiles with zero errors under `frameassembly 3.1.2` and
+Every ````frameassembly` block below compiles with zero errors under `frameassembly 3.2.0` and
 collectively exercises **all 81 native protocols**.
 
 ### 3.1 Layer 2 Switching, VLAN/QinQ, MPLS & Port Security (`arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`)
@@ -1329,7 +1328,7 @@ compile {
 ```ebnf
 (* ========================================================================= *)
 (* FrameAssembly Formal Grammar Specification (ISO/IEC 14977 EBNF)           *)
-(* Version: 3.1.2 — Strict-lowercase [a-z0-9]+ built-in keywords, optional   *)
+(* Version: 3.2.0 — Strict-lowercase [a-z0-9]+ built-in keywords, optional   *)
 (* flow blocks (2-block host + compile or reusable flow templates), and all  *)
 (* 81 native Layer 2 through Layer 7 protocols, modifiers, and literals.     *)
 (* Synchronized 1:1 with src/lexer/mod.rs and src/parser/.                   *)

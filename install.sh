@@ -8,7 +8,7 @@
 # Installs the prebuilt FrameAssembly release binary to ~/.cargo/bin (when Rust
 # is present) or ~/.local/bin (on systems without Rust), verifies SHA-256
 # checksums fail-closed against SHA256SUMS.txt, falls back (after interactive
-# TTY prompt) to building from crates.io via rustup (>= 1.88) + cargo install if
+# TTY prompt) to building from crates.io via rustup (>= 1.89) + cargo install if
 # no prebuilt archive is available, installs Bash/Zsh/Fish Tab completion
 # scripts, installs the VS Code / Cursor / Windsurf / VSCodium / Antigravity
 # extension (.vsix), and supports air-gapped --offline <archive.tar.gz> installs.
@@ -35,10 +35,10 @@ set -eu
 
 CALLER_PATH="${PATH:-}"
 REQUIRED_RUST_MAJOR=1
-REQUIRED_RUST_MINOR=88
+REQUIRED_RUST_MINOR=89
 CRATE_NAME="frameassembly"
-VSIX_VERSION="3.1.2"
-RELEASE_VERSION="3.1.2"
+VSIX_VERSION="3.2.0"
+RELEASE_VERSION="3.2.0"
 VSIX_RAW_URL="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-${VSIX_VERSION}.vsix"
 COMPLETIONS_RAW_BASE="https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/completions"
 GITHUB_RELEASE_BASE="https://github.com/SteveWinschel/FrameAssembly/releases/download/v${RELEASE_VERSION}"
@@ -457,8 +457,13 @@ extract_and_stage_tarball() {
         return 1
     fi
 
-    cp -f "$extracted_bin" "${bin_dir}/${CRATE_NAME}"
-    chmod +x "${bin_dir}/${CRATE_NAME}"
+    staged_bin="${bin_dir}/.${CRATE_NAME}.install.$$.tmp"
+    if ! cp -f "$extracted_bin" "$staged_bin" || ! chmod 0755 "$staged_bin" || ! mv -f "$staged_bin" "${bin_dir}/${CRATE_NAME}"; then
+        rm -f -- "$staged_bin"
+        rm -rf -- "$tmp_extract"
+        log_err "Failed to install ${CRATE_NAME} into ${bin_dir}/${CRATE_NAME}."
+        return 1
+    fi
     EXTRACTED_BUNDLE_DIR="$tmp_extract"
     INSTALLED_BIN_DIR="$bin_dir"
     prepend_to_path_if_dir "$bin_dir"

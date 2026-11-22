@@ -7,6 +7,7 @@ Register-ArgumentCompleter -Native -CommandName frameassembly -ScriptBlock {
     $subcommands = @(
         @{ Name = 'show';    Description = 'Validate a .frasm file and print its packet ladder table' }
         @{ Name = 'reverse'; Description = 'Reverse a .pcap or .pcapng capture into .frasm code' }
+        @{ Name = 'update';  Description = 'Update frameassembly to the newest release' }
         @{ Name = 'version'; Description = 'Print the FrameAssembly version' }
         @{ Name = 'help';    Description = 'Print help for FrameAssembly or a subcommand' }
     )
@@ -86,6 +87,8 @@ Register-ArgumentCompleter -Native -CommandName frameassembly -ScriptBlock {
                     }
                 }
             }
+        }
+        'update' {
         }
         'version' {
         }

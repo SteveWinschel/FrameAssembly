@@ -1,4 +1,4 @@
-//! **FrameAssembly** (`frameassembly` v3.1.2) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
+//! **FrameAssembly** (`frameassembly` v3.2.0) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
 //!
 //! * **Official Website & Browser Playground:** [frameassembly-lang.dev](https://frameassembly-lang.dev/) (compile `.frasm` <-> `.pcap`/`.pcapng` and inspect packets in the browser with zero install)
 //! * **Canonical Repository & CLI:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
@@ -20,13 +20,15 @@
 //! FrameAssembly is the **upstream packet-crafting compiler** in your network testing and analysis
 //! pipeline—never a competitor to packet analyzers or live wire injectors:
 //!
-//! 1. **Compile, Inspect & Decompile (`frameassembly` / `frameassembly show` / `frameassembly reverse`)**: Turn a declarative `.frasm`
+//! 1. **Compile, Inspect, Decompile & Update (`frameassembly` / `show` / `reverse` / `update`)**: Turn a declarative `.frasm`
 //!    ("Packets as Code") specification into a deterministic `.pcap` / `.pcapng` file with automatic
 //!    RFC defaults, 4-tuple TCP `SEQ`/`ACK` progression, bidirectional port inheritance across
 //!    `->` and `<-`, IPv4/IPv6 dual-stack flow reuse, and full SNMPv3 USM (`MD5`/`SHA-1`/`SHA-2` +
 //!    `DES`/`AES`) cryptography (`frameassembly demo.frasm output.pcap`)—preview the packet
-//!    ladder in the terminal with `frameassembly show demo.frasm`, or decompile an existing `.pcap` /
-//!    `.pcapng` capture back into canonical `.frasm` code with `frameassembly reverse capture.pcap`.
+//!    ladder in the terminal with `frameassembly show demo.frasm`, decompile an existing `.pcap` /
+//!    `.pcapng` capture back into canonical `.frasm` code with `frameassembly reverse capture.pcap`,
+//!    or keep the CLI current with `frameassembly update` (part of the 5 CLI subcommands: `show`,
+//!    `reverse`, `update`, `help`, and `version`).
 //! 2. **Inspect & Dissect (`Wireshark` / `tshark`)**: Open the generated `.pcap` in Wireshark or
 //!    assert protocol fields in automated CI pipelines with `tshark -r output.pcap -V`.
 //! 3. **Replay & Validate (`tcpreplay` / `Suricata` / `Zeek`)**: Inject the synthesized `.pcap`

@@ -1,8 +1,8 @@
 [package]
 name = "frameassembly"
-version = "3.1.2"
+version = "3.2.0"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.89"
 description = "A language to create or edit .pcap and .pcapng packet captures across 81 network protocols for Wireshark, tcpreplay, firewall, SNMP, and IDS testing."
 authors = ["Steve Winschel"]
 license = "MIT"
@@ -21,6 +21,7 @@ readme = "README.md"
 exclude = [
     "frameassembly-vscode/",
     "frameassembly-wasm/",
+    "assets/",
     "contrib/",
     "*.vsix",
     "*.pcap",
@@ -61,7 +62,7 @@ etherparse = { version = "0.21.0", default-features = false, features = ["std"] 
 hmac = "0.13.0"
 logos = "0.14.4"
 md-5 = "0.11.0"
-miette = { version = "7.6.0", features = ["fancy"] }
+miette = { version = "7.6.0", default-features = false }
 pcap-file = "2.0.0"
 rasn = "0.28.15"
 rasn-smi = "0.28.15"
@@ -69,6 +70,9 @@ rasn-snmp = "0.28.15"
 sha1 = "0.11.0"
 sha2 = "0.11.0"
 winnow = { version = "1.0.5", features = ["simd"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+miette = { version = "7.6.0", features = ["fancy-no-backtrace"] }
 
 [profile.dev]
 opt-level = 0

@@ -1,6 +1,6 @@
 # Contributing to FrameAssembly
 
-Thanks for helping improve **FrameAssembly** (`frameassembly` v3.1.2, browser playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/))! Whether you are fixing a protocol field, improving `.pcap` / `.pcapng` reverse decompilation, or adding new Layer 2–7 protocols, this guide walks through how the codebase is organized and verified.
+Thanks for helping improve **FrameAssembly** (`frameassembly` v3.2.0, browser playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/))! Whether you are fixing a protocol field, improving `.pcap` / `.pcapng` reverse decompilation, or adding new Layer 2–7 protocols, this guide walks through how the codebase is organized and verified.
 
 ## Ways to Contribute
 
@@ -20,7 +20,7 @@ FrameAssembly enforces strict `<layer>/<protocol>` symmetry across its compiler,
 - `src/builders/{l2,l3,l4,l7}/<protocol>.rs` — Inner-outward wire encoders and checksum engines.
 - `src/reverse/{l2,l3,l4,l7}/<protocol>.rs` — PCAP/PCAPNG-to-`.frasm` dissectors and forward-compiler oracle checks.
 - User documentation, protocol references, and the `.frasm` specification live at [frameassembly-lang.dev/docs](https://frameassembly-lang.dev/docs); ready-to-run `.frasm` scenarios live at [frameassembly-lang.dev/use-cases](https://frameassembly-lang.dev/use-cases).
-- `frameassembly-wasm/` & `frameassembly-vscode/` — WebAssembly compiler/decompiler bindings and VS Code syntax highlighting, live diagnostics, and Quick Fix extension.
+- `frameassembly-wasm/` & `frameassembly-vscode/` — Internal WebAssembly compiler/decompiler engine (powering `frameassembly-lang.dev` and the extension) and VS Code syntax highlighting, live diagnostics, and Quick Fix extension.
 
 ## Lockstep & Coding Standards
 
@@ -29,7 +29,7 @@ FrameAssembly enforces strict `<layer>/<protocol>` symmetry across its compiler,
    - Every `src/**/*.rs` file must begin with an inner `//!` module docstring (`>= 50` words) and stay under `50,000` bytes.
    - Document all public and private functions, structs, enums, and fields; never combine outer `///` comments on `pub mod` with inner `//!` docs.
    - Never introduce literal NUL bytes (`0x00`) into `.md`, `.txt`, or grammar files.
-3. **Compilable Examples & Docs**: Every ````frameassembly` / ````frasm` fenced block in the repository (README, rustdoc, contrib samples) must compile cleanly under FrameAssembly 3.1 syntax.
+3. **Compilable Examples & Docs**: Every ````frameassembly` / ````frasm` fenced block in the repository (README, rustdoc, contrib samples) must compile cleanly under FrameAssembly 3.2 syntax.
 4. **Versioning**: Do not bump `version` fields in `Cargo.toml` or package manifests inside feature/bugfix PRs unless part of a coordinated release.
 
 ## Local Verification Checklist

@@ -42,7 +42,7 @@ body:
     id: proposed_syntax
     attributes:
       label: Proposed .frasm Code Example
-      description: Sketch how you would expect to write a packet statement in FrameAssembly 3.1 lowercase syntax (optional).
+      description: Sketch how you would expect to write a packet statement in FrameAssembly 3.2 lowercase syntax (optional).
       render: text
       placeholder: |
         host sgw { ip 10.10.0.1 }

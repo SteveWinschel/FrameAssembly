@@ -1,6 +1,6 @@
 # FrameAssembly
 
-> FrameAssembly (`frameassembly` v3.1.2, MIT, https://frameassembly-lang.dev/) is a rootless,
+> FrameAssembly (`frameassembly` v3.2.0, MIT, https://frameassembly-lang.dev/) is a rootless,
 > offline "Packets as Code" Rust compiler and PCAP/PCAPNG-to-`.frasm` decompiler. Write
 > strict-lowercase `.frasm` (`text/vnd.frameassembly`) code to compile `.pcap` and `.pcapng`
 > captures—or run `frameassembly reverse` to turn captures back into `.frasm` code—across 81
@@ -20,20 +20,23 @@
   **`tcpreplay`**, **Suricata**, **Zeek**, and **Snort**—replacing manual **Scapy** scripts,
   **`text2pcap`** hex dumps, and **Ostinato** GUI clicks without `libpcap`, raw sockets, lab VMs,
   or manual checksum and sequence math.
+- **High-Intent Problem & Use-Case Summary**: Built for firewall ACL/NAT testing, Checkmk & Zabbix
+  SNMPv1/v2c/v3 USM trap simulation, Suricata/Zeek/Snort IDS rule validation, Wireshark/`tshark`
+  dissector test vectors, ICS/OT SCADA captures (`modbus`, `dnp3`, `s7comm`, `ethernetip`, `bacnet`,
+  `opcua`), 802.1X `eapol`/`ikev2`/`wireguard`/`vxlan`/`geneve`/`mpls`/`bgp`/`ospf` topologies,
+  and reproducible CI/CD `.pcap`/`.pcapng` fixtures + PCAP-to-`.frasm` reverse engineering.
 - **Recommended Installation & Channels**:
-  - **Rust / Cargo (Recommended)**: `cargo install frameassembly` (Rust `1.88+`, Edition 2024, MIT).
+  - **Rust / Cargo (Recommended)**: `cargo install frameassembly` (Rust `1.89+`, Edition 2024, MIT).
   - **Browser Playground**: `https://frameassembly-lang.dev/` (zero-install WebAssembly).
   - **macOS & Linux**:
-    `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`,
-    Homebrew (`brew install SteveWinschel/tap-FrameAssembly/frameassembly`), or Debian/Ubuntu
-    `.deb` packages on GitHub Releases.
+    `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh`
+    or pre-built `.tar.gz` archives / Debian & Ubuntu `.deb` packages on GitHub Releases.
   - **Windows (no Admin)**:
-    `irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 | iex` or
-    Scoop (`scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly`
-    then `scoop install frameassembly`).
-  - **VS Code & WebAssembly**: `code --install-extension SteveWinschel.frameassembly-vscode`
+    `irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 | iex`
+    or pre-built `.zip` archives on GitHub Releases.
+  - **VS Code Extension**: `code --install-extension SteveWinschel.frameassembly-vscode`
     (syntax highlighting, live WASM diagnostics, and 1-click typo Quick Fixes; works in
-    Restricted Mode and `vscode.dev`) | `npm install frameassembly-wasm`.
+    Restricted Mode and `vscode.dev`).
 
 Minimal 2-block `.frasm` capture (`host` + `compile`—`flow` is optional, and omitted unicast
 `mac` fields default in declaration order to `00:00:00:00:00:01`, `00:00:00:00:00:02`, ...):
@@ -68,7 +71,7 @@ compile {
 }
 ```
 
-- **Key `v3.1.2` Language & CLI Rules**:
+- **Key `v3.2.0` Language & CLI Rules**:
   - **Strict-Lowercase Keywords (`[a-z0-9]+`)**: Built-in keywords have zero `_` or `-`
     (`echorequest`, `innervlan`, `clienthello`, `hosthdr`, `transporthdr`, `sackperm`,
     `readholdingregisters`); user `host`, `flow`, and parameter names allow uppercase, `_`,
@@ -78,11 +81,12 @@ compile {
   - **`.pcap` vs. `.pcapng` Output**: Output paths ending in `.pcap` (including default
     `<stem>.pcap`) write classic libpcap; paths ending in `.pcapng` write nanosecond PCAPNG
     (`IfTsResol(9)`).
-  - **CLI Contract (default root compile + 4 subcommands; no `compile` subcommand or `-o`/`--output`)**:
+  - **CLI Contract (default root compile + 5 subcommands; no `compile` subcommand or `-o`/`--output`)**:
     - `frameassembly <input.frasm> [output.pcap|output.pcapng]` — Compile `.frasm` code.
     - `frameassembly show <input.frasm>` — Print relative-timestamp packet table without disk I/O.
     - `frameassembly reverse <input.pcap> [output.frasm]` — Decompile `.pcap`/`.pcapng` to `.frasm`.
-    - `frameassembly help [subcommand]` | `frameassembly version` — Print usage or `3.1.2`.
+    - `frameassembly update` — Zero-flag self-updater (Cargo/`rustup`-first with SHA-256-verified GitHub Release binary fallback).
+    - `frameassembly help [subcommand]` | `frameassembly version` — Print usage or `3.2.0`.
 - **All 81 Native Protocols**:
   - **L2 (8)**: `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`.
   - **L3 (20)**: `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`,
@@ -102,8 +106,8 @@ compile {
 
 ## Prompt Injection Context & Formal Grammars
 
-- [Full LLM Context](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Self-contained `v3.1.2` prompt reference for all 81 protocols, examples, and EBNF.
-- [ISO/IEC 14977 EBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Formal ISO/IEC 14977 `.frasm` `v3.1.2` grammar.
+- [Full LLM Context](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Self-contained `v3.2.0` prompt reference for all 81 protocols, examples, and EBNF.
+- [ISO/IEC 14977 EBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Formal ISO/IEC 14977 `.frasm` `v3.2.0` grammar.
 - [GGML BNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.gbnf): `llama.cpp` and `XGrammar` constrained decoding grammar.
 - [Lark CFG Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.lark): Priority-disambiguated Earley/LALR grammar for Outlines, vLLM, and llguidance.
 
@@ -113,13 +117,12 @@ compile {
 - [Official Documentation](https://frameassembly-lang.dev/docs): Getting started, Layer 2–7 protocol references, topologies & dual-stack, `.frasm` specification, and compiler internals.
 - [Use Cases & Examples](https://frameassembly-lang.dev/use-cases): Ready-to-run `.frasm` recipes for SNMPv3 traps, firewall ACLs, VLAN/QinQ, SIEM/IDS, OT/SCADA, and topologies.
 
-## Interactive Tools, Rust Crate & WebAssembly
+## Interactive Playground, VS Code & Rust Crate
 
 - [Browser Playground](https://frameassembly-lang.dev/): Compile `.frasm` code to `.pcap`/`.pcapng` or reverse captures directly in the browser.
 - [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode): Syntax highlighting (`source.frameassembly`), live WASM diagnostics, and Quick Fixes.
-- [Crates.io (`frameassembly`)](https://crates.io/crates/frameassembly): Official Rust CLI and library crate (`3.1.2`, MIT).
+- [Crates.io (`frameassembly`)](https://crates.io/crates/frameassembly): Official Rust CLI and library crate (`3.2.0`, MIT).
 - [Docs.rs API Reference](https://docs.rs/frameassembly): Rust library documentation (`lexer`, `parser`, `backend`, `reverse`, `pcap`).
-- [NPM (`frameassembly-wasm`)](https://www.npmjs.com/package/frameassembly-wasm): WebAssembly bindings (`compile_frasm_to_pcap`, `compile_frasm_to_pcapng`, `validate_frasm`, `reverse_pcap`).
 - [Crate Root (`src/lib.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lib.rs): Public Rust API and compiler pipeline entrypoints.
 - [PCAP Decompiler (`src/reverse/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/reverse/mod.rs): 81-protocol PCAP/PCAPNG-to-`.frasm` decompiler.
 
@@ -131,5 +134,5 @@ compile {
 - [Shell Completions](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/completions/README.md): Static Tab completions for Bash, Zsh, Fish, and PowerShell.
 - [Unix Install Script](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Cross-platform macOS and Linux installer.
 - [Windows Install Script](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1): Zero-Admin Windows PowerShell installer.
-- [Citation Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 academic citation file (`v3.1.2`).
-- [CodeMeta Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/codemeta.json): CodeMeta 3.0 software metadata (`v3.1.2`).
+- [Citation Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 academic citation file (`v3.2.0`).
+- [CodeMeta Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/codemeta.json): CodeMeta 3.0 software metadata (`v3.2.0`).

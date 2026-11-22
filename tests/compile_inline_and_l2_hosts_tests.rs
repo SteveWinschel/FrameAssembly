@@ -1,5 +1,5 @@
 //! Integration test suite for FrameAssembly v3.0.0 strict-lowercase grammar, self-healing
-//! diagnostics, inline compilation, Layer 2 MAC-only hosts, and default-compile + 4-subcommand CLI.
+//! diagnostics, inline compilation, Layer 2 MAC-only hosts, and default-compile + 5-subcommand CLI.
 //!
 //! This test module validates four core capabilities across the parser, semantic analyzer,
 //! wire builder backend, reverse PCAP/PCAPNG decompiler, and `frameassembly` CLI binary:
@@ -14,9 +14,9 @@
 //! 3. **Optional-`ip` Layer 2 Host Declarations**: Verifies that MAC-only `host` blocks compile
 //!    across all eight Layer 2 protocols (`stp`, `lldp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`,
 //!    `arp`) while rejecting empty `host` blocks and MAC-only endpoints on IP-requiring protocols.
-//! 4. **v3.0.0 Default-Compile & 4-Subcommand CLI Contract**: Exercises default root compilation
-//!    (`frameassembly <input.frasm> [output.pcap]`), `show`, `reverse`, `version`, `help`, hidden
-//!    `-h`/`--help` and `-V`/`--version`, collision protection, and migration safety guards.
+//! 4. **v3.2.0 Default-Compile & 5-Subcommand CLI Contract**: Exercises default root compilation
+//!    (`frameassembly <input.frasm> [output.pcap]`), `show`, `reverse`, `update`, `version`, `help`,
+//!    hidden `-h`/`--help` and `-V`/`--version`, collision protection, and migration safety guards.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -540,7 +540,7 @@ fn test_mac_only_host_rejected_for_l3_l4_l7_ip_requiring_protocols() {
 }
 
 // ============================================================================
-// 4. v3.0.0 Default-Compile + 4-Subcommand CLI Contract & Safety Guard Tests
+// 4. v3.2.0 Default-Compile + 5-Subcommand CLI Contract & Safety Guard Tests
 // ============================================================================
 
 /// Returns the path to the compiled `frameassembly` binary under test.
@@ -549,8 +549,8 @@ fn cli_binary_path() -> &'static str {
 }
 
 /// Verifies `frameassembly <example.frasm>` (default `<example>.pcap`),
-/// `frameassembly <other.frasm> <custom.pcap>` (positional output), the 4 subcommands (`show`,
-/// `reverse`, `help`, `version`), hidden `-h`/`--help` and `-V`/`--version`, and helpful error
+/// `frameassembly <other.frasm> <custom.pcap>` (positional output), the 5 subcommands (`show`,
+/// `reverse`, `update`, `help`, `version`), hidden `-h`/`--help` and `-V`/`--version`, and helpful error
 /// hints on `-o`, bare `.pcap`, an accidental `compile` subcommand token, and `.frasm` output paths.
 #[test]
 fn test_cli_default_compile_subcommands_hidden_flags_and_safety_guards() {
@@ -632,12 +632,12 @@ compile {
             .expect("run frameassembly version query");
         assert!(ver_out.status.success(), "version query '{ver_arg}' failed");
         assert!(
-            String::from_utf8_lossy(&ver_out.stdout).contains("3.1.2"),
-            "version query '{ver_arg}' missing 3.1.2"
+            String::from_utf8_lossy(&ver_out.stdout).contains("3.2.0"),
+            "version query '{ver_arg}' missing 3.2.0"
         );
     }
 
-    // 4. `help` subcommand + hidden `-h` and `--help` (4 subcommands: show, reverse, help, version)
+    // 4. `help` subcommand + hidden `-h` and `--help` (5 subcommands: show, reverse, update, help, version)
     for help_arg in ["help", "-h", "--help"] {
         let help_out = Command::new(cli_binary_path())
             .arg(help_arg)
@@ -645,7 +645,7 @@ compile {
             .expect("run frameassembly help query");
         assert!(help_out.status.success(), "help query '{help_arg}' failed");
         let help_stdout = String::from_utf8_lossy(&help_out.stdout);
-        for sub in ["show", "reverse", "help", "version"] {
+        for sub in ["show", "reverse", "update", "help", "version"] {
             assert!(
                 help_stdout.contains(sub),
                 "help output for '{help_arg}' missing subcommand '{sub}'"

@@ -1,8 +1,8 @@
-# FrameAssembly (`.frasm` v3.1.2) — Syntax Highlighting & Live Linter
+# FrameAssembly (`.frasm` v3.2.0) — Syntax Highlighting & Live Linter
 
 [**CLI & Releases (`GitHub`)**](https://github.com/SteveWinschel/FrameAssembly) • [**Crates.io (`cargo install frameassembly`)**](https://crates.io/crates/frameassembly) • [**Documentation**](https://frameassembly-lang.dev/docs) • [**Use Cases**](https://frameassembly-lang.dev/use-cases)
 
-Official syntax highlighting and live error linting for [**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) (`.frasm` v3.1.2) **Packets as Code** files across all 81 Layer 2 through Layer 7 network protocols.
+Official syntax highlighting and live error linting for [**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) (`.frasm` v3.2.0) **Packets as Code** files across all 81 Layer 2 through Layer 7 network protocols.
 
 Built for network engineers, firewall administrators, SOC/NDR analysts, pentesters, and OT/SCADA integrators writing `.frasm` traffic scenarios for **Wireshark**, **`tshark`**, **`tcpreplay`**, **Suricata**, **Zeek**, **Checkmk**, and **Zabbix**.
 
@@ -16,6 +16,7 @@ This extension stays out of your way—no toolbar buttons, side panels, or start
    * Highlights `host`, `flow`, and `compile` blocks, all 81 protocol keywords, protocol modifiers, IPv4/IPv6 addresses, IEEE/Cisco MAC formats (`00:1a:2b:3c:4d:5e`, `00-1A-2B-3C-4D-5E`, `001a.2b3c.4d5e`), SNMP OIDs, hex values, and post-packet `wait` durations (`ns`, `us`, `ms`, `s`, `m`) using the dedicated `source.frameassembly` (`text/vnd.frameassembly`) grammar so x86 Flat Assembler (`;` comments) and FPGA bitstream (`#` comments) extensions never collide with your packet files.
    * Highlights fenced ```` ```frameassembly ```` and ```` ```frasm ```` code blocks inside Markdown documentation and incident runbooks (`markdown.frameassembly.codeblock`).
    * Configures `//` line-comment toggling (`Ctrl+/` / `Cmd+/`) and safe `{...}`, `(...)`, and `"..."` auto-closing pairs without inserting unsupported `'single quotes'` or `[brackets]`.
+   * Displays the `.frasm` Explorer and editor-tab language file icon (`icons/frasm.svg`) alongside the `256x256` rounded-square FrameAssembly brand icon (`icon.png`).
 
 2. **Live In-Editor Linting & 1-Click Typo Quick Fixes:**
    * Validates `.frasm` code in memory as you type using the embedded WebAssembly validator—flagging unknown keywords, out-of-range ports or VLAN IDs, mixed IPv4/IPv6 endpoints, invalid transport modifiers, and missing host declarations with red squiggles in the Problems panel.
@@ -39,7 +40,7 @@ To compile `.frasm` code into `.pcap` or `.pcapng` packet captures, inspect the 
 cargo install frameassembly
 ```
 
-Prebuilt standalone archives, Debian/Ubuntu `.deb` packages, Homebrew, and Windows Scoop packages are also available on [**GitHub Releases**](https://github.com/SteveWinschel/FrameAssembly/releases/latest).
+Prebuilt standalone archives, Debian/Ubuntu `.deb` packages, and `install.sh` / `install.ps1` installer scripts are also available on [**GitHub Releases**](https://github.com/SteveWinschel/FrameAssembly/releases/latest).
 
 Once installed, run `frameassembly` from your terminal:
 
@@ -53,6 +54,12 @@ frameassembly show demo.frasm
 
 # Reverse an existing .pcap or .pcapng capture into .frasm code
 frameassembly reverse capture.pcap
+
+# Self-update frameassembly with zero flags (Cargo/rustup-first, or SHA-256-verified GitHub Release binary fallback)
+# All 5 subcommands: show, reverse, update, help, version
+frameassembly update
+frameassembly help
+frameassembly version
 ```
 
 ---
@@ -127,7 +134,7 @@ compile { ot_conduit_audit(scada_hmi, field_plc) }
 
 ## Protocol Coverage (81 Native Protocols)
 
-All built-in keywords, protocols, modifiers, and duration units (`ns`, `us`, `ms`, `s`, `m`) in FrameAssembly 3.1 use lowercase without `_` or `-` (`echorequest`, `innervlan`, `clienthello`, `readholdingregisters`):
+All built-in keywords, protocols, modifiers, and duration units (`ns`, `us`, `ms`, `s`, `m`) in FrameAssembly 3.2.0 use lowercase without `_` or `-` (`echorequest`, `innervlan`, `clienthello`, `readholdingregisters`):
 
 | OSI Layer | Count | Native Protocol Keywords |
 | :--- | :---: | :--- |

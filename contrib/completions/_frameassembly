@@ -8,6 +8,7 @@ _frameassembly() {
     subcommands=(
         'show:Validate a .frasm file and print its packet ladder table'
         'reverse:Reverse a .pcap or .pcapng capture file into .frasm code'
+        'update:Update frameassembly to the newest release'
         'version:Print the FrameAssembly version'
         'help:Print help for FrameAssembly or a subcommand'
     )
@@ -35,7 +36,7 @@ _frameassembly() {
                 _describe -t commands 'subcommand' subcommands
             fi
             ;;
-        version|-*)
+        update|version|-*)
             ;;
         *)
             if (( CURRENT == 3 )); then

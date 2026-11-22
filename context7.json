@@ -1,8 +1,8 @@
 {
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "FrameAssembly",
-  "description": "Rootless Packets-as-Code DSL & Rust compiler (v3.1.2, MIT, https://frameassembly-lang.dev/) for .pcap/.pcapng compilation and reversal across 81 L2-L7 protocols.",
-  "version": "3.1.2",
+  "description": "Rootless Packets-as-Code DSL & Rust compiler (v3.2.0, MIT, https://frameassembly-lang.dev/) for .pcap/.pcapng compilation and reversal across 81 L2-L7 protocols.",
+  "version": "3.2.0",
   "repository": "https://github.com/SteveWinschel/FrameAssembly",
   "folders": [],
   "excludeFolders": [
@@ -43,7 +43,7 @@
     "Inline wait <u32><ns|us|ms|s|m> is post-packet: frame 1 starts at 0ns and wait pauses after that packet before the next packet (10ms default gap); never write loop or +5ms.",
     "Omitted unicast host MACs default in declaration order to 00:00:00:00:00:01, 00:00:00:00:00:02, ...; never mix IPv4 and IPv6 endpoints in the same frame statement.",
     "Use srcport, dstport, seq, acknum, ttl, hosthdr, transporthdr, sackperm, varbind <oid> oidval <oid>, snmp2/snmp3 report, and ikev2 exchange <sainit|auth|createchildsa|informational>.",
-    "Recommended install: cargo install frameassembly. CLI: frameassembly <in.frasm> [out.pcap|out.pcapng] (.pcap=classic libpcap, .pcapng=PCAPNG), show, reverse, help, version.",
+    "Recommended install: cargo install frameassembly. CLI: frameassembly <in.frasm> [out.pcap|out.pcapng] (.pcap=classic libpcap, .pcapng=PCAPNG), show, reverse, update, help, version.",
     "Use // for .frasm comments with practical networking context and Wireshark filters (never # or ;, and never // PROMPT:, // TOKENS:, or // INSTRUCTION:)."
   ]
 }

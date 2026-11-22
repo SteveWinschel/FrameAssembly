@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # FrameAssembly (frameassembly) — Windows PowerShell Zero-Admin Bootstrap Installer
 # https://github.com/SteveWinschel/FrameAssembly
 # https://frameassembly-lang.dev/
@@ -37,8 +37,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$ReleaseVersion = '3.1.2'
-$VsixVersion = '3.1.2'
+$ReleaseVersion = '3.2.0'
+$VsixVersion = '3.2.0'
 $GitHubReleaseBase = "https://github.com/SteveWinschel/FrameAssembly/releases/download/v$ReleaseVersion"
 $VsixReleaseUrl = "$GitHubReleaseBase/frameassembly-vscode.vsix"
 $VsixRawUrl = "https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-$VsixVersion.vsix"
@@ -470,7 +470,36 @@ try {
     }
 
     New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-    Copy-Item -Path $exeSource.FullName -Destination $exeDest -Force
+    $exeOld = Join-Path $installDir 'frameassembly.exe.old'
+    if (Test-Path $exeOld) {
+        Remove-Item -Path $exeOld -Force -ErrorAction SilentlyContinue
+    }
+    $exeStage = Join-Path $installDir (".frameassembly.install." + $PID + ".tmp")
+    Copy-Item -Path $exeSource.FullName -Destination $exeStage -Force
+    Unblock-File -Path $exeStage -ErrorAction SilentlyContinue
+    try {
+        Move-Item -Path $exeStage -Destination $exeDest -Force
+    } catch {
+        if (Test-Path $exeDest) {
+            if (Test-Path $exeOld) {
+                Remove-Item -Path $exeOld -Force -ErrorAction SilentlyContinue
+            }
+            Move-Item -Path $exeDest -Destination $exeOld -Force
+            try {
+                Move-Item -Path $exeStage -Destination $exeDest -Force
+            } catch {
+                Move-Item -Path $exeOld -Destination $exeDest -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path $exeStage -Force -ErrorAction SilentlyContinue
+                throw
+            }
+        } else {
+            Remove-Item -Path $exeStage -Force -ErrorAction SilentlyContinue
+            throw
+        }
+    }
+    if (Test-Path $exeOld) {
+        Remove-Item -Path $exeOld -Force -ErrorAction SilentlyContinue
+    }
     Unblock-File -Path $exeDest -ErrorAction SilentlyContinue
 
     $bundleRoot = Split-Path -Parent $exeSource.FullName

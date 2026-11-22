@@ -1,5 +1,5 @@
 //! WebAssembly bindings, PCAP/PCAPNG-to-`.frasm` decompiler, frame inspector, and UTF-16 IDE
-//! diagnostics for the FrameAssembly (`.frasm` v3.1.2) network packet synthesis compiler.
+//! diagnostics for the FrameAssembly (`.frasm` v3.2.0) network packet synthesis compiler.
 //!
 //! This crate exposes `validate_frasm` (`validateFrasm`), `inspect_frasm` (`inspectFrasm`),
 //! `compile_frasm_to_pcap` (`compileFrasmToPcap`), `compile_frasm_to_pcapng` (`compileFrasm`), and

@@ -2,6 +2,11 @@
 
 All notable changes to the `frameassembly-vscode` extension are documented in this file.
 
+## [3.2.0] - 2026-11-22
+- Added the rounded-square FrameAssembly brand icon (`icon.png`), updated the Marketplace `galleryBanner` background color to `#000000`, and registered the `.frasm` language file icon (`./icons/frasm.svg`).
+- Rebuilt the bundled `frameassembly-wasm` validator for `3.2.0` with updated `https://frameassembly-lang.dev/` links.
+- Synchronized extension documentation and version with FrameAssembly `3.2.0` (including the `frameassembly update` CLI subcommand).
+
 ## [3.1.2] - 2026-11-18
 - Updated official website, documentation, and use-case links to https://frameassembly-lang.dev/.
 - Synchronized the extension version with FrameAssembly 3.1.2.

@@ -46,10 +46,10 @@
   },
   "@type": "sc:Dataset",
   "name": "FrameAssembly-frasm-corpus",
-  "alternateName": "FrameAssembly Packets-as-Code Samples (v3.1.2)",
+  "alternateName": "FrameAssembly Packets-as-Code Samples (v3.2.0)",
   "description": "Compiler-verified, MIT-licensed FrameAssembly (.frasm) sample files with EBNF, GBNF, and Lark grammars covering 81 L2-L7 protocols. More use-case examples: https://frameassembly-lang.dev/use-cases. Documentation: https://frameassembly-lang.dev/docs.",
   "conformsTo": "http://mlcommons.org/croissant/1.0",
-  "version": "3.1.2",
+  "version": "3.2.0",
   "license": "https://spdx.org/licenses/MIT.html",
   "url": "https://github.com/SteveWinschel/FrameAssembly",
   "sameAs": "https://frameassembly-lang.dev/",
@@ -60,7 +60,7 @@
     "name": "Steve Winschel",
     "url": "https://github.com/SteveWinschel"
   },
-  "citeAs": "@software{winschel_frameassembly_2026, author={Winschel, Steve}, title={FrameAssembly}, version={3.1.2}, year={2026}, url={https://github.com/SteveWinschel/FrameAssembly}}",
+  "citeAs": "@software{winschel_frameassembly_2026, author={Winschel, Steve}, title={FrameAssembly}, version={3.2.0}, year={2026}, url={https://github.com/SteveWinschel/FrameAssembly}}",
   "keywords": [
     "FrameAssembly",
     "frasm",
@@ -79,7 +79,7 @@
       "@type": "cr:FileObject",
       "@id": "github-repo-archive",
       "name": "github-repo-archive",
-      "description": "FrameAssembly v3.1.2 GitHub source archive containing .frasm samples, formal grammars, and the Rust compiler/decompiler.",
+      "description": "FrameAssembly v3.2.0 GitHub source archive containing .frasm samples, formal grammars, and the Rust compiler/decompiler.",
       "contentUrl": "https://github.com/SteveWinschel/FrameAssembly/archive/refs/heads/main.tar.gz",
       "encodingFormat": "application/x-gzip"
     },
@@ -98,7 +98,7 @@
       "@type": "cr:FileObject",
       "@id": "ebnf-grammar",
       "name": "grammar.ebnf",
-      "description": "Formal ISO/IEC 14977 EBNF grammar for FrameAssembly v3.1.2.",
+      "description": "Formal ISO/IEC 14977 EBNF grammar for FrameAssembly v3.2.0.",
       "containedIn": {
         "@id": "github-repo-archive"
       },
@@ -131,7 +131,7 @@
       "@type": "cr:FileObject",
       "@id": "llms-full-context",
       "name": "llms-full.txt",
-      "description": "Self-contained v3.1.2 LLM reference covering all 81 protocols, compilable examples, and EBNF grammar.",
+      "description": "Self-contained v3.2.0 LLM reference covering all 81 protocols, compilable examples, and EBNF grammar.",
       "containedIn": {
         "@id": "github-repo-archive"
       },
@@ -168,7 +168,7 @@
           "@type": "cr:Field",
           "@id": "frasm-examples/frasm_source",
           "name": "frasm_source",
-          "description": "UTF-8 FrameAssembly v3.1.2 .frasm code verified by the forward compiler and reverse PCAP decompiler.",
+          "description": "UTF-8 FrameAssembly v3.2.0 .frasm code verified by the forward compiler and reverse PCAP decompiler.",
           "dataType": "sc:Text",
           "source": {
             "fileSet": {

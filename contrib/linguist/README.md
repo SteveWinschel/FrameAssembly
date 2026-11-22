@@ -1,6 +1,6 @@
 # GitHub Linguist, `bat` & `Chroma` Syntax Registration Package for FrameAssembly (`.frasm`)
 
-This directory contains the language definitions, disambiguation heuristics, and verified sample corpus required to register **FrameAssembly** (`.frasm`, media type `text/vnd.frameassembly`) in:
+This directory contains the language definitions, disambiguation heuristics, and verified sample corpus required to register **FrameAssembly** (v3.2.0, `.frasm`, media type `text/vnd.frameassembly`) in:
 
 1. **[GitHub Linguist](https://github.com/github-linguist/linguist)** (`languages.yml`, `heuristics.yml`, TextMate grammar, and `samples/FrameAssembly/`)
 2. **[`sharkdp/bat`](https://github.com/sharkdp/bat)** (`assets/syntaxes/` TextMate `.tmLanguage.json` integration)
@@ -64,12 +64,12 @@ The assets organized in this directory map directly to upstream targets in the [
 
 ## 4. Disambiguation Rules: FrameAssembly (`.frasm`) vs x86 Flat Assembler & FPGA FASM (`.fasm`)
 
-FrameAssembly v3.0.0 uses the dedicated `.frasm` extension (`text/vnd.frameassembly`) to eliminate extension collisions with two legacy `.fasm` formats across software and hardware engineering:
+FrameAssembly (v3.0.0–v3.2.0) uses the dedicated `.frasm` extension (`text/vnd.frameassembly`) to eliminate extension collisions with two legacy `.fasm` formats across software and hardware engineering:
 
 1. **FrameAssembly (`.frasm`, `text/vnd.frameassembly`)**:
    - *Domain*: Network packet capture specification ("Packets as Code").
    - *Comments*: Single-line `//` comments only.
-   - *Top-Level Structure*: `host <id> { ip|mac ... }`, `flow <id>(...) { ... }`, and `compile { ... }`.
+   - *Top-Level Structure*: `host <id> { ip|mac ... }`, optional `flow <id>(...) { ... }` templates, and `compile { ... }` (minimal programs use 2-block `host + compile`).
    - *Operators & Protocols*: Directional arrows `->` and `<-` paired with strict-lowercase Layer 2 through Layer 7 protocol tokens (`tcp`, `http`, `snmp3`, `modbus`, `dns`, `vlan`, `mpls`).
 2. **Flat Assembler (`.asm`, `.fasm`, `text/x-asm`)**:
    - *Domain*: Low-level x86/x86-64 machine assembly.
@@ -188,6 +188,11 @@ Every sample under `contrib/linguist/samples/` is a complete, compilable `.frasm
 # Preview the packet ladder in the terminal without writing a .pcap file
 frameassembly show contrib/linguist/samples/enterprise_snmpv3_and_tls.frasm
 frameassembly show contrib/linguist/samples/industrial_ot_modbus_dnp3.frasm
+
+# Compile a sample to .pcap, decompile back to .frasm, or self-update the CLI
+frameassembly contrib/linguist/samples/enterprise_snmpv3_and_tls.frasm
+frameassembly reverse enterprise_snmpv3_and_tls.pcap
+frameassembly update
 ```
 
 ```frameassembly

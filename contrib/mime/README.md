@@ -1,6 +1,6 @@
 # Freedesktop `shared-mime-info` Package & Upstream Merge Guide for FrameAssembly (`.frasm`)
 
-This directory contains the Freedesktop.org `shared-mime-info` XML database definition and upstream contribution assets for **FrameAssembly** (`.frasm`, media type `text/vnd.frameassembly`).
+This directory contains the Freedesktop.org `shared-mime-info` XML database definition and upstream contribution assets for **FrameAssembly** (v3.2.0, `.frasm`, media type `text/vnd.frameassembly`).
 
 The definition provides desktop-wide MIME classification, content-sniffing magic rules, file-manager icons, and default editor associations across Linux, BSD, and Unix desktop environments (GNOME, KDE Plasma, XFCE, Sway, and Wayland/X11 compositors).
 
@@ -41,7 +41,7 @@ The XML definition file [`text-vnd.frameassembly.xml`](text-vnd.frameassembly.xm
 
 ## 2. Magic Content-Sniffing Rules Documentation
 
-While FrameAssembly v3.0.0 uses the dedicated `.frasm` extension (distinct from `.fasm` used by Flat Assembler and SymbiFlow / F4PGA FPGA FASM), content sniffing remains essential for deterministic classification when files lack extensions.
+While FrameAssembly (v3.0.0+, active v3.2.0) uses the dedicated `.frasm` extension (distinct from `.fasm` used by Flat Assembler and SymbiFlow / F4PGA FPGA FASM), content sniffing remains essential for deterministic classification when files lack extensions.
 
 [`text-vnd.frameassembly.xml`](text-vnd.frameassembly.xml) implements two multi-level, nested conjunction (`AND`) magic rules:
 
@@ -62,7 +62,7 @@ While FrameAssembly v3.0.0 uses the dedicated `.frasm` extension (distinct from 
 
 - **Offset `0:1024` for `host `**: Scans the first 1,024 bytes for the top-level strict-lowercase keyword `host` followed by a space or horizontal tab (`host&#x09;`). This offset window accommodates leading license banners and file comments.
 - **Nested Offset `0:1536` for `ip ` or `mac `**: Requires either the `ip` or MAC-only `mac` endpoint configuration keyword within 1,536 bytes of file start, confirming that the block is a Layer 2 or Layer 3 network host declaration.
-- **Nested Offset `0:8192` for `compile`**: Requires the compilation target block within the initial 8,192 bytes, ensuring the file is an end-to-end FrameAssembly specification rather than an arbitrary text document mentioning hosts.
+- **Nested Offset `0:8192` for `compile`**: Requires the compilation target block within the initial 8,192 bytes, matching minimal 2-block `host` + `compile` `.frasm` files even when optional `flow` blocks are omitted rather than arbitrary text documents mentioning hosts.
 
 ### Conjunction Rule 2: `flow ... compile`
 
@@ -76,7 +76,7 @@ While FrameAssembly v3.0.0 uses the dedicated `.frasm` extension (distinct from 
 - **Nested Offset `0:8192` for `compile`**: Confirms that the flow is scheduled inside a `compile { ... }` block.
 - **Priority `60`**: Overrides generic text and flat assembly heuristics (which look for `;` or `format PE`), ensuring zero false positives.
 
-Neither Flat Assembler (which contains `format PE`, `section`, `use32`, and x86 mnemonics) nor FPGA FASM (which contains `#` and dot-separated hardware tile paths) contains `host`, `flow`, and `compile` blocks.
+Neither Flat Assembler (which contains `format PE`, `section`, `use32`, and x86 mnemonics) nor FPGA FASM (which contains `#` and dot-separated hardware tile paths) contains `host` + `compile` (or optional `flow`) blocks.
 
 ---
 
@@ -256,6 +256,11 @@ text/vnd.frameassembly=code.desktop;org.gnome.TextEditor.desktop;
 ---
 
 ## 6. Verifying MIME Compilation with the Compiler
+
+```bash
+frameassembly show demo.frasm
+frameassembly demo.frasm
+```
 
 ```frameassembly
 host edge_router { ip 192.168.1.1 mac 00:11:22:33:44:01 }

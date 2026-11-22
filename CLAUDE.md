@@ -1,13 +1,13 @@
 # CLAUDE.md — FrameAssembly Project Instructions for Claude Code & AI Agents
 
-**FrameAssembly** (`frameassembly` v3.1.2, official website & interactive browser playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/), documentation: [`https://frameassembly-lang.dev/docs`](https://frameassembly-lang.dev/docs), use cases & examples: [`https://frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.frasm` network packet specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
+**FrameAssembly** (`frameassembly` v3.2.0, official website & interactive browser playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/), documentation: [`https://frameassembly-lang.dev/docs`](https://frameassembly-lang.dev/docs), use cases & examples: [`https://frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles declarative `.frasm` network packet specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
 
 ---
 
 ## 1. Essential Build, Test & Verification Commands
 
 ```bash
-# Cross-platform bootstrap install (prebuilt release binary fast-path or curl + C linker + rustup >= 1.85 + cargo install)
+# Cross-platform bootstrap install (prebuilt release binary fast-path or curl + C linker + rustup >= 1.89 + cargo install)
 curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh | sh
 # Windows (PowerShell, no Administrator rights): irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 | iex
 
@@ -26,7 +26,10 @@ cargo run -- show demo.frasm
 # Decompile a .pcap / .pcapng capture into canonical .frasm code (optional 2nd positional path defaults to <input_stem>.frasm)
 cargo run -- reverse output.pcap reversed.frasm
 
-# Display CLI usage or active compiler version (default root compile + 4 subcommands: show, reverse, help, version — no -o/--output flags)
+# Self-update the CLI via Cargo/rustup or verified GitHub Release assets
+cargo run -- update
+
+# Display CLI usage or active compiler version (default root compile + 5 subcommands: show, reverse, update, help, version — no -o/--output flags)
 cargo run -- help
 cargo run -- version
 ```
@@ -61,6 +64,7 @@ cargo run -- version
   - [`src/ast/`](src/ast/mod.rs) — Layer-organized AST specifications (`l2/`, `l3/`, `l4/`, `l7/`, `RunStatement::{Invocation, Frame}`).
   - [`src/parser/`](src/parser/mod.rs) — `winnow 1.0.5` combinator parser (`parse_program`), protocol-first `whois` disambiguation, self-healing `replace '<raw>' with '<kw>'` diagnostics, and 2-arg semantic validator (`validate_semantics(&program, &source)`).
   - [`src/builders/`](src/builders/mod.rs) — Wire-level protocol encoders (`l2/`, `l3/`, `l4/`, `l7/`, including RFC 3414/3826/7860 `l7/snmp/`).
+  - [`src/main.rs`](src/main.rs), [`src/update.rs`](src/update.rs) — CLI router (default root compile + 5 subcommands `show`, `reverse`, `update`, `help`, `version`; `src/update.rs` is a binary-private self-updater).
   - [`src/backend/mod.rs`](src/backend/mod.rs), [`src/packet.rs`](src/packet.rs), [`src/pcap.rs`](src/pcap.rs) — Stateful 4-tuple TCP sequence progression, Ethernet/IPv4/IPv6 encapsulation, and nanosecond PCAPNG writer.
   - [`src/reverse/`](src/reverse/mod.rs) — Five-stage PCAP/PCAPNG-to-`.frasm` decompiler (`reverse_pcap_reader`, `reverse_pcap_bytes`, `reverse_pcap_file`) organized into `l2/`, `l3/` (including `src/reverse/l3/{ip,ipv6,icmpv6}.rs` alongside the 20 L3 protocol dissectors), `l4/`, and `l7/<protocol>.rs` (including `src/reverse/l7/{snmp1,snmp2,snmp3}.rs` across all 50 L7 protocol dissectors) plus `container.rs`, `topology.rs`, `oracle.rs`, and `shadow_emit.rs` (emitting `host1`, `host2` without `_`, strict lowercase, and zero `loop`).
 - **Official Documentation & Use Cases (website)**:
@@ -74,42 +78,6 @@ cargo run -- version
   - **Audience Architecture & Calling `.frasm` Code (Zero Developer Jargon & Zero Prompt Leaking)**: (1) `llms.txt` (`< 512` lines, `< 25 KB`) is for search engines and AIs with web search, and `llms-full.txt` (`60–250 KB`) is a dedicated context file for purposeful injection inside prompts (never dumping `AGENTS.md` contributor rules, human docs banter, or raw Rust `src/ast/` code); (2) the official documentation (https://frameassembly-lang.dev/docs) is written for networking and cybersecurity professionals in a natural, direct human voice with practical tool examples (`Checkmk`, `Zabbix`, `Wireshark`, `Suricata`, `tcpreplay`); (3) READMEs (`README.md`, `frameassembly-vscode/README.md`, `frameassembly-wasm/README.md`) are tailored to their target audiences, with root `README.md` kept minimalistic—interesting and informative without being overwhelming—focused on the problems solved (preventing manual device/daemon configuration work, avoiding manual fault triggering on hardware, skipping lab VM setup, and avoiding manual checksum/TCP sequence math), use cases (pentesting, testing firewalls, simulating SNMP traps, testing monitoring/cybersecurity solutions), and advantages over other solutions. Never spam filler AI adjectives (`"readable"`, `"clean"`, `"editable"`, `"canonical"`, `"repeatable"`), never parrot repetitive slogans across paragraphs, never use compiler/PL jargon (`"DSL"`, `"Domain-Specific Language"`, `"declarative"`, `"polymorphic"`, `"deterministic"`) in `README.md` or user-facing documentation (except compiler-internals material), and never leak or quote informal prompt phrasing into documentation. Always call `.frasm` **code** (`Packets as Code`), never `"plain text"`.
   - Always write `FrameAssembly` as one unspaced CamelCase word (`frameassembly` for crate/CLI/URLs/identifiers); never split `Frame` and `Assembly` into two words or claim zero external crate dependencies (use `"rootless"`, `"offline"`, `"deterministic"`, `"no libpcap or raw sockets required"`).
   - Disambiguate FrameAssembly `.frasm` (`text/vnd.frameassembly`) network packet definitions from x86 Flat Assembler and SymbiFlow/F4PGA FPGA FASM files; position FrameAssembly as the upstream companion compiler to `tcpreplay`, `Wireshark`, `tshark`, `Suricata`, and `Zeek` (compare only against `Scapy`, `text2pcap`, and `Ostinato`), and keep `frameassembly-wasm`, `frameassembly-vscode`, `README.md`, `src/lib.rs`, `llms.txt`, `llms-full.txt`, and `contrib/mime/text-vnd.frameassembly.xml` synchronized whenever lexer tokens or supported protocols change.
-  - **Supported Release Channels Only**: GitHub Releases + Debian/Ubuntu `.deb`, Crates.io (`frameassembly`), NPM (`frameassembly-wasm`), VS Code Marketplace (`frameassembly-vscode`), and `SteveWinschel/homebrew-tap-FrameAssembly` (`Homebrew` & `Scoop`)—do not reference or add workflows for any other third-party package or extension registries.
+  - **User-Facing CLI Channels & Internal WASM Engine**: User-facing CLI channels are Crates.io (`cargo install frameassembly`, primary recommended, Rust `1.89+`) and GitHub Releases (pre-built OS archives + Debian/Ubuntu `.deb`), alongside VS Code Marketplace (`frameassembly-vscode`). `frameassembly-wasm` is internal for `frameassembly-lang.dev` and `frameassembly-vscode`—never advertise `npm install frameassembly-wasm`, `Homebrew`, or `Scoop` in root `README.md`, and never add third-party registry workflows beyond `.github/workflows/release.yml`. `.agents/` is local-only (gitignored) and must never be linked in tracked docs or CI tests.
   - **Private User Context Confidentiality**: Never include private background context shared by the user in prompts (such as employer names or employment/apprenticeship status) anywhere in code, comments, examples, documentation, or metadata.
   - Never bump `version` in manifests or run `git commit`, `git push`, or `git tag` unless explicitly instructed by the user.
-
----
-
-## 4. Workspace Rules (`.agents/rules/*.md`) & Domain Skills (`.agents/skills/*/SKILL.md`)
-
-### 4.1 All 15 Workspace Rules (`4` `always_on` + `11` `glob`-Scoped)
-- **Always-On Rules (`trigger: always_on`)**:
-  1. [`.agents/rules/frameassembly-dsl.md`](.agents/rules/frameassembly-dsl.md) — Core v3.0.0 strict-lowercase `.frasm` language syntax, 6-stage forward compiler + reverse PCAP decompiler invariants, 81-protocol rules, confidentiality, and anti-hallucination guardrails.
-  2. [`.agents/rules/versioning_and_git.md`](.agents/rules/versioning_and_git.md) — Enforces 4-way ecosystem version synchronization across supported release channels on explicit request and prohibits unrequested version bumps or `git commit`/`push`/`tag`.
-  3. [`.agents/rules/temporary_files.md`](.agents/rules/temporary_files.md) — Workspace `temp/` directory and thread-safe RAII cleanup guards for scratch packet captures.
-  4. [`.agents/rules/token-and-context-efficiency.md`](.agents/rules/token-and-context-efficiency.md) — 20k-token rules budget discipline, 3-layer parallel multi-agent file locking (`.agents/scripts/file_lock.sh` + `.agents/hooks.json`), subagent context isolation, `/compact` checkpoint persistence, and grounded clarification questions.
-- **Glob-Scoped Domain Rules (`trigger: glob`)**:
-  5. [`.agents/rules/rust-2024-best-practices.md`](.agents/rules/rust-2024-best-practices.md) — Rust 2024 Edition and `rustc 1.85–1.99.1` standards, `< 50 KB` module ceiling, and error handling (`Cargo.toml`, `src/**/*.rs`, `tests/**/*.rs`, `frameassembly-wasm/**/*.rs`).
-  6. [`.agents/rules/publishing_and_docs.md`](.agents/rules/publishing_and_docs.md) — Zero NUL bytes, Rustdoc/`docs.rs` lint gates, Cargo `build.warnings` (Rust 1.97+), `//!` module docstrings, and Crates.io packaging.
-  7. [`.agents/rules/ai-seo-best-practices.md`](.agents/rules/ai-seo-best-practices.md) — Pre-training dataset filters, 4-stage RLVR compiler & PCAP-to-`.frasm` decompilation rewards, 6-way grammar/IDE/WASM lockstep, and SEO.
-  8. [`.agents/rules/clap-best-practices.md`](.agents/rules/clap-best-practices.md) — `clap 4.6.7+`, `anstyle 1.0.14`, and `anstream 1.0.0` v3.0.0 default-compile + 4-subcommand CLI (`<input.frasm> [output.pcap]`, `show`, `reverse`, `help`, `version`) and shell Tab completions (`src/main.rs`).
-  9. [`.agents/rules/logos-miette-best-practices.md`](.agents/rules/logos-miette-best-practices.md) — `logos 0.14.4` / `0.16.1` strict-lowercase lexing (no `ignore(ascii_case)`), 6-tier priority ladder, self-healing keyword suggestions, and `miette 7.6.0` diagnostics (`src/lexer/`, `src/error.rs`).
-  10. [`.agents/rules/networking-pcap-best-practices.md`](.agents/rules/networking-pcap-best-practices.md) — L2–L7 RFC wire framing, checksums, 4-tuple state constants, and `pcap-file 2.0.0` PCAPNG output.
-  11. [`.agents/rules/pcap-decompilation-best-practices.md`](.agents/rules/pcap-decompilation-best-practices.md) — 5-stage PCAP/PCAPNG-to-`.frasm` decompilation pipeline (`host1`/`host2`, strict lowercase, zero `loop`), `etherparse 0.21.0` `link_exts` zero-copy slicing, container normalization, fuzz safety, and self-checking compiler oracle (`src/reverse/**`).
-  12. [`.agents/rules/rasn-snmp-best-practices.md`](.agents/rules/rasn-snmp-best-practices.md) — `rasn`, `rasn-smi`, and `rasn-snmp 0.28.15` ASN.1 BER/DER encoding & decompilation, and SNMPv1/v2c/v3 / LDAP / Kerberos PDUs.
-  13. [`.agents/rules/rustcrypto-best-practices.md`](.agents/rules/rustcrypto-best-practices.md) — RustCrypto SNMPv3 USM RFC 3414/3826/7860 authentication and privacy (`src/builders/l7/snmp/crypto.rs`).
-  14. [`.agents/rules/wasm-vscode-best-practices.md`](.agents/rules/wasm-vscode-best-practices.md) — WebAssembly (`wasm-bindgen 0.2.130`, `serde-wasm-bindgen 0.6.5`, `wasm-pack 0.15.1`), UTF-16 IDE span mapping + Quick Fixes, VS Code Packet Studio (`@vscode/vsce 4.1.0`), and OIDC Trusted Publishing (`frameassembly-wasm/**`, `frameassembly-vscode/**`).
-  15. [`.agents/rules/winnow-best-practices.md`](.agents/rules/winnow-best-practices.md) — `winnow 1.0.5+` and `memchr 2.8.3` `Stream<'i, 'a>` combinator parsers (`src/parser/`).
-
-### 4.2 All 11 Specialized Skills
-1. **`frameassembly`**: [`.agents/skills/frameassembly/SKILL.md`](.agents/skills/frameassembly/SKILL.md) — v3.0.0 strict-lowercase DSL syntax, AST `*Spec` design, parser dispatch, backend state tracking, and forward/reverse pipeline stages.
-2. **`networking-pcap`**: [`.agents/skills/networking-pcap/SKILL.md`](.agents/skills/networking-pcap/SKILL.md) — L2–L7 wire builders, RFC checksum engines, and `pcap-file 2.0.0` PCAPNG serialization.
-3. **`pcap-decompilation`**: [`.agents/skills/pcap-decompilation/SKILL.md`](.agents/skills/pcap-decompilation/SKILL.md) — 5-stage PCAP/PCAPNG-to-`.frasm` decompilation, `etherparse 0.21.0` slicing, container linktype normalization, and self-checking compiler oracle.
-4. **`winnow-parser`**: [`.agents/skills/winnow-parser/SKILL.md`](.agents/skills/winnow-parser/SKILL.md) — Two-phase `logos` + `winnow 1.0.5+` / `memchr 2.8.3` token-slice parsing and `StrContext` diagnostics.
-5. **`logos-miette-diagnostics`**: [`.agents/skills/logos-miette-diagnostics/SKILL.md`](.agents/skills/logos-miette-diagnostics/SKILL.md) — Zero-copy `logos 0.14.4` / `0.16.1` strict-lowercase tokenizers, self-healing keyword diagnostics, and `miette 7.6.0` error reporting.
-6. **`rasn-snmp-codec`**: [`.agents/skills/rasn-snmp-codec/SKILL.md`](.agents/skills/rasn-snmp-codec/SKILL.md) — `rasn 0.28.15` ASN.1 BER/DER encoding, decoding, and SMIv1/SMIv2/SNMP wire builders.
-7. **`rustcrypto-engineering`**: [`.agents/skills/rustcrypto-engineering/SKILL.md`](.agents/skills/rustcrypto-engineering/SKILL.md) — SNMPv3 USM RFC 3414/3826/7860 cryptography with RustCrypto.
-8. **`clap-cli`**: [`.agents/skills/clap-cli/SKILL.md`](.agents/skills/clap-cli/SKILL.md) — Modern `clap 4.6.7+`, `anstyle 1.0.14`, and `anstream 1.0.0` default-compile + 4-subcommand CLI engineering.
-9. **`rust-modern-qa`**: [`.agents/skills/rust-modern-qa/SKILL.md`](.agents/skills/rust-modern-qa/SKILL.md) — Multi-tier testing, 6-gate corpus & AST-to-builder verification, `proptest`, `cargo-mutants`, `tshark` gates, and `.agents/scripts/file_lock.sh`.
-10. **`ai-seo-training-data`**: [`.agents/skills/ai-seo-training-data/SKILL.md`](.agents/skills/ai-seo-training-data/SKILL.md) — LLM pre-training filters, 4-stage RLVR compiler/decompiler rewards, 6-way grammar/IDE/WASM lockstep, and `docs.rs` SEO.
-11. **`wasm-vscode`**: [`.agents/skills/wasm-vscode/SKILL.md`](.agents/skills/wasm-vscode/SKILL.md) — WebAssembly (`wasm-bindgen 0.2.130`), UTF-16 IDE diagnostics + Quick Fixes, VS Code Packet Studio (`@vscode/vsce 4.1.0`), and OIDC Trusted Publishing.

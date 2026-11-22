@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing git tag to build and publish (e.g. v3.1.2)'
+        description: 'Existing git tag to build and publish (e.g. v3.2.0)'
         required: false
         type: string
 
@@ -170,7 +170,7 @@ jobs:
           done
 
           cat <<'EOF' > "$STAGE/quickstart.frasm"
-          // FrameAssembly 3.1 Quickstart
+          // FrameAssembly 3.2 Quickstart
           // Preview ladder: frameassembly show quickstart.frasm
           // Compile PCAP:   frameassembly quickstart.frasm quickstart.pcap
 
@@ -517,8 +517,8 @@ jobs:
             | Operating System | Architecture | Direct Download | Quick Install |
             | :--- | :--- | :--- | :--- |
             | **Windows** | x64 (`x86_64`) | [`frameassembly-windows-x64.zip`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-windows-x64.zip) | `irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 \| iex` |
-            | **Windows** | ARM64 | [`frameassembly-windows-arm64.zip`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-windows-arm64.zip) | `scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly && scoop install frameassembly` |
-            | **macOS** | Apple Silicon (`arm64`) | [`frameassembly-macos-arm64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-macos-arm64.tar.gz) | `brew install SteveWinschel/tap-FrameAssembly/frameassembly` |
+            | **Windows** | ARM64 | [`frameassembly-windows-arm64.zip`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-windows-arm64.zip) | `irm https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1 \| iex` |
+            | **macOS** | Apple Silicon (`arm64`) | [`frameassembly-macos-arm64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-macos-arm64.tar.gz) | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` |
             | **macOS** | Intel (`x64`) | [`frameassembly-macos-x64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-macos-x64.tar.gz) | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` |
             | **Linux (Debian / Ubuntu)** | `amd64` / `arm64` | [`frameassembly_amd64.deb`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly_amd64.deb) · [`frameassembly_${{ needs.prepare.outputs.version }}_amd64.deb`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly_${{ needs.prepare.outputs.version }}_amd64.deb) · [`frameassembly_arm64.deb`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly_arm64.deb) | `curl -fsSLo ./frameassembly_amd64.deb https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly_amd64.deb && sudo apt install -y ./frameassembly_amd64.deb && rm -f ./frameassembly_amd64.deb` |
             | **Linux (Static `musl`)** | `x64` / `arm64` | [`frameassembly-linux-x64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-linux-x64.tar.gz) · [`frameassembly-linux-arm64.tar.gz`](https://github.com/SteveWinschel/FrameAssembly/releases/download/${{ needs.prepare.outputs.tag }}/frameassembly-linux-arm64.tar.gz) | `curl -fsSL https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh \| sh` |

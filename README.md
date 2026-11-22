@@ -1,7 +1,7 @@
 # FrameAssembly — Packets as Code
 
 [![Try in Browser](https://img.shields.io/badge/Try%20in%20Browser-frameassembly--lang.dev-0ea5e9.svg)](https://frameassembly-lang.dev/)
-[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension%20v3.1.2-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension%20v3.2.0-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
 [![Download for Windows, macOS and Linux](https://img.shields.io/badge/Download-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-16a34a.svg)](https://github.com/SteveWinschel/FrameAssembly/releases/latest)
 [![81 Protocols and User Docs](https://img.shields.io/badge/81%20Protocols-User%20Docs-8b5cf6.svg)](https://frameassembly-lang.dev/docs)
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
@@ -56,6 +56,8 @@ Pick the fastest route. Every option runs offline and writes standard `.pcap` (c
    ```bash
    cargo install frameassembly
    ```
+   Run `frameassembly update` anytime to update an installed CLI to the newest release.
+
    [![Crates.io](https://img.shields.io/crates/v/frameassembly.svg)](https://crates.io/crates/frameassembly) [![Docs.rs](https://docs.rs/frameassembly/badge.svg)](https://docs.rs/frameassembly)
 
 2. **Browser Playground** — nothing to install: [**frameassembly-lang.dev**](https://frameassembly-lang.dev/)
@@ -87,28 +89,7 @@ Pick the fastest route. Every option runs offline and writes standard `.pcap` (c
 
    Other builds (Windows ARM64, macOS Intel, Linux ARM64, `.deb` for ARM64) and `SHA256SUMS.txt` are on the same page.
 
-7. **Homebrew & Scoop:**
-   ```bash
-   # Homebrew (macOS & Linux)
-   brew install SteveWinschel/tap-FrameAssembly/frameassembly
-
-   # Scoop (Windows)
-   scoop bucket add frameassembly https://github.com/SteveWinschel/homebrew-tap-FrameAssembly && scoop install frameassembly
-   ```
-
-<details>
-<summary><strong>Rust Library & WebAssembly (`docs.rs`, `npm`)</strong></summary>
-
-```bash
-# Browser and Node.js WebAssembly package
-npm install frameassembly-wasm
-```
-
-[![NPM](https://img.shields.io/npm/v/frameassembly-wasm.svg)](https://www.npmjs.com/package/frameassembly-wasm)
-
-Rust 1.88+ library API reference: [**docs.rs/frameassembly**](https://docs.rs/frameassembly) • Compiler internals: [**frameassembly-lang.dev/docs**](https://frameassembly-lang.dev/docs)
-
-</details>
+Rust 1.89+ library API: [**docs.rs/frameassembly**](https://docs.rs/frameassembly) • Compiler internals: [**frameassembly-lang.dev/docs**](https://frameassembly-lang.dev/docs)
 
 First capture in one minute:
 
@@ -126,6 +107,7 @@ frameassembly show demo.frasm            # packet ladder in the terminal
 frameassembly demo.frasm                 # writes classic libpcap demo.pcap (double-click in Wireshark)
 frameassembly demo.frasm demo.pcapng     # writes nanosecond PCAPNG demo.pcapng
 frameassembly reverse demo.pcap          # writes demo.frasm from any .pcap or .pcapng
+frameassembly update                     # update frameassembly to the newest release
 ```
 
 ## Network and Security Testing Use Cases
@@ -305,7 +287,10 @@ frameassembly demo.frasm custom.pcapng
 frameassembly reverse trace.pcap
 frameassembly reverse trace.pcap sanitized.frasm
 
-# Print CLI version and command help
+# Update FrameAssembly to the newest release
+frameassembly update
+
+# Print CLI version and command help (5 subcommands: show, reverse, update, help, version)
 frameassembly version
 frameassembly help
 ```

@@ -1,15 +1,18 @@
 //! Command-line interface entry point for the FrameAssembly network packet compiler.
 //!
 //! Compiling `.frasm` network traffic code to `.pcap` / `.pcapng` is the default root command,
-//! paired with four subcommands across 81 Layer 2 through Layer 7 protocols:
+//! paired with five subcommands across 81 Layer 2 through Layer 7 protocols:
 //! - `frameassembly <input.frasm> [output.pcap]` validates `.frasm` code and writes a
 //!   nanosecond-precision `.pcapng` capture file (defaulting to `<input_stem>.pcap`).
 //! - `frameassembly show <input.frasm>` validates `.frasm` code and prints a relative-timestamp
 //!   packet ladder table to standard output without writing a capture file to disk.
 //! - `frameassembly reverse <input.pcap> [output.frasm]` reverses a `.pcap` or `.pcapng` capture
 //!   file into `.frasm` code (defaulting to `<input_stem>.frasm`).
+//! - `frameassembly update` checks for a newer release and updates the installed binary.
 //! - `frameassembly version` prints the active `frameassembly` binary version.
 //! - `frameassembly help [subcommand]` displays command usage and subcommand reference text.
+
+mod updater;
 
 use clap::builder::PathBufValueParser;
 use clap::builder::styling::{AnsiColor, Effects, Styles};
@@ -66,7 +69,7 @@ fn pause_windows_console() {
     let _ = std::io::stdin().lock().read_line(&mut line);
 }
 /// Canonical list of top-level CLI subcommands.
-const SUBCOMMANDS: [&str; 4] = ["show", "reverse", "version", "help"];
+const SUBCOMMANDS: [&str; 5] = ["show", "reverse", "update", "version", "help"];
 
 /// Derives the default output path from `input` by replacing its extension with `default_ext`,
 /// or appending `.default_ext` when `input` already ends with `default_ext` so the input file
@@ -291,6 +294,11 @@ fn build_cli() -> Command {
                         .value_hint(ValueHint::FilePath)
                         .value_parser(PathBufValueParser::new()),
                 ),
+        )
+        .subcommand(
+            Command::new("update")
+                .about("Update frameassembly to the newest release")
+                .disable_help_flag(true),
         )
         .subcommand(
             Command::new("version")
@@ -645,7 +653,10 @@ fn summarize_l4(proto: u8, l4: &[u8], tag_prefix: &str) -> (String, String) {
 }
 
 /// Formats a terminal packet ladder table for `frameassembly show`.
-fn format_packet_ladder(frames: &[(Vec<u8>, u64)], ast_protocols: &[frameassembly::ast::Protocol]) -> String {
+fn format_packet_ladder(
+    frames: &[(Vec<u8>, u64)],
+    ast_protocols: &[frameassembly::ast::Protocol],
+) -> String {
     let mut out = String::new();
     let _ = writeln!(
         out,
@@ -684,6 +695,7 @@ fn run_cli(raw_args: Vec<OsString>) -> Result<()> {
     let mut matches = build_cli().get_matches_from(raw_args);
     match matches.remove_subcommand() {
         Some((sub_name, mut sub_matches)) => match sub_name.as_str() {
+            "update" => updater::run_update(),
             "version" => {
                 println!("frameassembly {}", env!("CARGO_PKG_VERSION"));
                 Ok(())
@@ -721,7 +733,9 @@ fn run_cli(raw_args: Vec<OsString>) -> Result<()> {
                 let frames = compile_program(&program)
                     .map_err(|e| miette::miette!("compile error: {}", e))?;
                 if frames.is_empty() {
-                    eprintln!("Warning: 0 packets emitted — check that 'compile {{ ... }}' invokes a flow or packet statement.");
+                    eprintln!(
+                        "Warning: 0 packets emitted — check that 'compile {{ ... }}' invokes a flow or packet statement."
+                    );
                 }
                 print!("{}", format_packet_ladder(&frames, &ast_protocols));
                 Ok(())
@@ -798,6 +812,7 @@ fn run_cli(raw_args: Vec<OsString>) -> Result<()> {
 /// Returns a [`miette::Result`] error if legacy 1.x flags are supplied, the input file cannot
 /// be read, parsing/validation/decompilation fails, or writing the output file fails.
 fn main() -> Result<()> {
+    updater::cleanup_stale_windows_old_exe();
     let raw_args: Vec<OsString> = std::env::args_os().collect();
     #[cfg(windows)]
     if is_standalone_windows_console() {
@@ -846,9 +861,9 @@ fn main() -> Result<()> {
     run_cli(raw_args)
 }
 
-/// Unit tests for FrameAssembly 3.0 default root compilation and four subcommands
-/// (`show`, `reverse`, `version`, `help`), hidden script compatibility flags, legacy migration
-/// hints, safety guards, and packet ladder formatting.
+/// Unit tests for FrameAssembly 3.2 default root compilation and five subcommands
+/// (`show`, `reverse`, `update`, `version`, `help`), hidden script compatibility flags, legacy
+/// migration hints, safety guards, and packet ladder formatting.
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -889,14 +904,14 @@ mod tests {
         );
     }
 
-    /// Verifies that default root `.frasm` compilation and the four subcommands (`show`,
-    /// `reverse`, `version`, `help`) parse positional arguments cleanly and hide `-h`/`--help`
-    /// and `-V`/`--version` from rendered help text while keeping `--help` and `--version`
-    /// functional for scripts.
+    /// Verifies that default root `.frasm` compilation and the five subcommands (`show`,
+    /// `reverse`, `update`, `version`, `help`) parse positional arguments cleanly and hide
+    /// `-h`/`--help` and `-V`/`--version` from rendered help text while keeping `--help` and
+    /// `--version` functional for scripts.
     #[test]
     fn test_cli_default_compile_four_subcommands_and_hidden_flags() {
         let mut cmd = build_cli();
-        assert_eq!(cmd.get_version(), Some("3.1.2"));
+        assert_eq!(cmd.get_version(), Some("3.2.0"));
         let help_text = cmd.render_help().to_string();
         assert!(
             help_text.contains("<INPUT.frasm>") && help_text.contains("[OUTPUT.pcap]"),
@@ -923,7 +938,7 @@ mod tests {
         }
         assert!(help_text.contains("https://github.com/SteveWinschel/FrameAssembly/issues"));
 
-        for sub_name in ["show", "reverse", "version"] {
+        for sub_name in ["show", "reverse", "update", "version"] {
             let sub_help = cmd
                 .find_subcommand_mut(sub_name)
                 .expect("subcommand exists")
@@ -1007,6 +1022,11 @@ mod tests {
             Some(&PathBuf::from("traces/cap.frasm"))
         );
 
+        let upd_sub = build_cli()
+            .try_get_matches_from(["frameassembly", "update"])
+            .expect("update subcommand should parse");
+        assert!(upd_sub.subcommand_matches("update").is_some());
+
         let ver_sub = build_cli()
             .try_get_matches_from(["frameassembly", "version"])
             .expect("version subcommand should parse");
@@ -1055,11 +1075,9 @@ mod tests {
 
         let legacy_fasm_show = check_legacy_cli_args(["frameassembly", "show", "dir/demo.fasm"])
             .expect_err("legacy .fasm show input should return v3.0 .frasm rename hint");
-        assert!(
-            legacy_fasm_show.contains(
-                "FrameAssembly 3.0 uses '.frasm'; rename 'dir/demo.fasm' to 'dir/demo.frasm'"
-            )
-        );
+        assert!(legacy_fasm_show.contains(
+            "FrameAssembly 3.0 uses '.frasm'; rename 'dir/demo.fasm' to 'dir/demo.frasm'"
+        ));
         assert!(legacy_fasm_show.contains("frameassembly show dir/demo.frasm"));
 
         let legacy_fasm_rev =

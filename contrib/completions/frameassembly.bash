@@ -39,7 +39,7 @@ _frameassembly() {
     if [ "$COMP_CWORD" -eq 1 ]; then
         _frameassembly_complete_files "$cur" "frasm"
         # shellcheck disable=SC2207
-        COMPREPLY+=($(compgen -W "show reverse version help" -- "$cur"))
+        COMPREPLY+=($(compgen -W "show reverse update version help" -- "$cur"))
         return 0
     fi
 
@@ -60,10 +60,10 @@ _frameassembly() {
             if [ "$COMP_CWORD" -eq 2 ]; then
                 compopt +o filenames 2>/dev/null || true
                 # shellcheck disable=SC2207
-                COMPREPLY=($(compgen -W "show reverse version help" -- "$cur"))
+                COMPREPLY=($(compgen -W "show reverse update version help" -- "$cur"))
             fi
             ;;
-        version|-*)
+        update|version|-*)
             COMPREPLY=()
             ;;
         *)

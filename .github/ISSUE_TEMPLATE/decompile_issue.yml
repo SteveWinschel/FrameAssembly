@@ -14,7 +14,7 @@ body:
     attributes:
       label: FrameAssembly Version
       description: Output of `frameassembly version` (or VS Code extension / playground version).
-      placeholder: "frameassembly 3.2.1"
+      placeholder: "frameassembly 3.2.2"
     validations:
       required: true
 

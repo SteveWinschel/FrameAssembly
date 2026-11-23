@@ -1,4 +1,4 @@
-//! **FrameAssembly** (`frameassembly` v3.2.1) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
+//! **FrameAssembly** (`frameassembly` v3.2.2) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
 //!
 //! * **Official Website & Browser Playground:** [frameassembly-lang.dev](https://frameassembly-lang.dev/) (compile `.frasm` <-> `.pcap`/`.pcapng` and inspect packets in the browser with zero install)
 //! * **Canonical Repository & CLI:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)

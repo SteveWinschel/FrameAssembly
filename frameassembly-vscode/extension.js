@@ -142,6 +142,7 @@ function activate(context) {
         provideCodeActions(document, _range, actionContext) {
           const actions = [];
           for (const diagnostic of actionContext.diagnostics) {
+            if (diagnostic.source !== 'FrameAssembly') continue;
             const match = replaceRe.exec(diagnostic.message);
             if (!match) continue;
             const [, oldToken, newToken] = match;

@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing git tag to build and publish (e.g. v3.2.1)'
+        description: 'Existing git tag to build and publish (e.g. v3.2.2)'
         required: false
         type: string
 

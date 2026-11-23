@@ -1,7 +1,7 @@
 # FrameAssembly — Packets as Code
 
 [![Try in Browser](https://img.shields.io/badge/Try%20in%20Browser-frameassembly--lang.dev-0ea5e9.svg)](https://frameassembly-lang.dev/)
-[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension%20v3.2.1-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension%20v3.2.2-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode)
 [![Download for Windows, macOS and Linux](https://img.shields.io/badge/Download-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-16a34a.svg)](https://github.com/SteveWinschel/FrameAssembly/releases/latest)
 [![81 Protocols and User Docs](https://img.shields.io/badge/81%20Protocols-User%20Docs-8b5cf6.svg)](https://frameassembly-lang.dev/docs)
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)

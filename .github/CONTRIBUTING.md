@@ -1,6 +1,6 @@
 # Contributing to FrameAssembly
 
-Thanks for helping improve **FrameAssembly** (`frameassembly` v3.2.1, browser playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/))! Whether you are fixing a protocol field, improving `.pcap` / `.pcapng` reverse decompilation, or adding new Layer 2–7 protocols, this guide walks through how the codebase is organized and verified.
+Thanks for helping improve **FrameAssembly** (`frameassembly` v3.2.2, browser playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/))! Whether you are fixing a protocol field, improving `.pcap` / `.pcapng` reverse decompilation, or adding new Layer 2–7 protocols, this guide walks through how the codebase is organized and verified.
 
 ## Ways to Contribute
 

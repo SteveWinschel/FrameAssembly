@@ -1,6 +1,6 @@
 (* ========================================================================= *)
 (* FrameAssembly Formal Grammar Specification (ISO/IEC 14977 EBNF)           *)
-(* Version: 3.2.1 — Strict-lowercase [a-z0-9]+ built-in keywords, optional   *)
+(* Version: 3.2.2 — Strict-lowercase [a-z0-9]+ built-in keywords, optional   *)
 (* flow blocks (2-block host + compile or reusable flow templates), and all  *)
 (* 81 native Layer 2 through Layer 7 protocols, modifiers, and literals.     *)
 (* Synchronized 1:1 with src/lexer/mod.rs and src/parser/.                   *)

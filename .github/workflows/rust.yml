@@ -19,10 +19,10 @@ jobs:
     - name: Verify CLI commands
       run: |
         printf 'host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\ncompile { a -> b icmp echorequest }\n' > /tmp/ci_smoke.frasm
-        ./target/debug/frameassembly version
-        ./target/debug/frameassembly /tmp/ci_smoke.frasm /tmp/ci_smoke.pcap
-        ./target/debug/frameassembly show /tmp/ci_smoke.frasm
-        ./target/debug/frameassembly reverse /tmp/ci_smoke.pcap /tmp/ci_smoke_rev.frasm
+        cargo run --quiet -- version
+        cargo run --quiet -- /tmp/ci_smoke.frasm /tmp/ci_smoke.pcap
+        cargo run --quiet -- show /tmp/ci_smoke.frasm
+        cargo run --quiet -- reverse /tmp/ci_smoke.pcap /tmp/ci_smoke_rev.frasm
         rm -f /tmp/ci_smoke.frasm /tmp/ci_smoke.pcap /tmp/ci_smoke_rev.frasm
     - name: Run tests
       run: cargo test --verbose

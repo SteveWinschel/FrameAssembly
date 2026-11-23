@@ -1,6 +1,6 @@
 # GitHub Linguist, `bat` & `Chroma` Syntax Registration Package for FrameAssembly (`.frasm`)
 
-This directory contains the language definitions, disambiguation heuristics, and verified sample corpus required to register **FrameAssembly** (v3.2.1, `.frasm`, media type `text/vnd.frameassembly`) in:
+This directory contains the language definitions, disambiguation heuristics, and verified sample corpus required to register **FrameAssembly** (v3.2.2, `.frasm`, media type `text/vnd.frameassembly`) in:
 
 1. **[GitHub Linguist](https://github.com/github-linguist/linguist)** (`languages.yml`, `heuristics.yml`, TextMate grammar, and `samples/FrameAssembly/`)
 2. **[`sharkdp/bat`](https://github.com/sharkdp/bat)** (`assets/syntaxes/` TextMate `.tmLanguage.json` integration)
@@ -64,7 +64,7 @@ The assets organized in this directory map directly to upstream targets in the [
 
 ## 4. Disambiguation Rules: FrameAssembly (`.frasm`) vs x86 Flat Assembler & FPGA FASM (`.fasm`)
 
-FrameAssembly (v3.0.0–v3.2.1) uses the dedicated `.frasm` extension (`text/vnd.frameassembly`) to eliminate extension collisions with two legacy `.fasm` formats across software and hardware engineering:
+FrameAssembly (v3.0.0–v3.2.2) uses the dedicated `.frasm` extension (`text/vnd.frameassembly`) to eliminate extension collisions with two legacy `.fasm` formats across software and hardware engineering:
 
 1. **FrameAssembly (`.frasm`, `text/vnd.frameassembly`)**:
    - *Domain*: Network packet capture specification ("Packets as Code").

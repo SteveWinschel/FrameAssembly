@@ -2,6 +2,10 @@
 
 All notable changes to the `frameassembly-vscode` extension are documented in this file.
 
+## [3.2.2] - 2026-11-23
+- Scoped the Quick Fix code action provider to `FrameAssembly` diagnostics (`diagnostic.source === 'FrameAssembly'`) so external linters are left untouched.
+- Synchronized bundled `frameassembly-wasm` (`3.2.2`) with SNMPv3 RFC 7860 SHA-2 truncated MAC lengths and default documentation fixes, and bumped extension version to `3.2.2`.
+
 ## [3.2.1] - 2026-11-22
 - Rebuilt the bundled `frameassembly-wasm` validator and synchronized the extension version with FrameAssembly `3.2.1`.
 

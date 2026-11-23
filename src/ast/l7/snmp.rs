@@ -53,11 +53,11 @@ pub enum SnmpAuthType {
     Md5,
     /// HMAC-SHA-96 authentication (`auth sha <pass>`, RFC 3414).
     Sha,
-    /// HMAC-SHA-256-128 authentication (`auth sha256 <pass>`, RFC 7860).
+    /// HMAC-SHA-256-192 authentication (`auth sha256 <pass>`, 24-byte MAC, RFC 7860).
     Sha256,
-    /// HMAC-SHA-384-192 authentication (`auth sha384 <pass>`, RFC 7860).
+    /// HMAC-SHA-384-256 authentication (`auth sha384 <pass>`, 32-byte MAC, RFC 7860).
     Sha384,
-    /// HMAC-SHA-512-256 authentication (`auth sha512 <pass>`, RFC 7860).
+    /// HMAC-SHA-512-384 authentication (`auth sha512 <pass>`, 48-byte MAC, RFC 7860).
     Sha512,
 }
 
@@ -234,9 +234,9 @@ pub struct Snmp3Spec<'a> {
     pub user: Option<&'a str>,
     /// Hex-encoded `msgAuthoritativeEngineID` (`engineid <hex>`).
     pub engine_id: Option<&'a str>,
-    /// `msgAuthoritativeEngineBoots` counter (`engineboots <u32>`, default `1`).
+    /// `msgAuthoritativeEngineBoots` counter (`engineboots <u32>`, default `0`).
     pub engine_boots: Option<u32>,
-    /// `msgAuthoritativeEngineTime` in seconds (`enginetime <u32>`, default `100`).
+    /// `msgAuthoritativeEngineTime` in seconds (`enginetime <u32>`, default `0`).
     pub engine_time: Option<u32>,
     /// ScopedPDU `contextName` (`contextname <str>`, default `""`).
     pub context_name: Option<&'a str>,

@@ -7,10 +7,10 @@
 //! 1. **No training metadata in human docs**: the corpus-only `// PROMPT:`, `// TOKENS:`, and
 //!    `// INSTRUCTION:` header comments never appear in `README.md`.
 //! 2. **MIME, Linguist & SEO hygiene**: the `.frasm` MIME XML, GitHub Linguist samples, and
-//!    `Cargo.toml` metadata stay consistent with FrameAssembly v3.2.1 strict-lowercase syntax.
-//! 3. **Four-Way Ecosystem Version Lockstep (`3.2.1`)**: `Cargo.toml`, `src/lib.rs`, `llms.txt`,
+//!    `Cargo.toml` metadata stay consistent with FrameAssembly v3.2.2 strict-lowercase syntax.
+//! 3. **Four-Way Ecosystem Version Lockstep (`3.2.2`)**: `Cargo.toml`, `src/lib.rs`, `llms.txt`,
 //!    `llms-full.txt`, `frameassembly-wasm`, `frameassembly-vscode`, `install.sh`, `install.ps1`,
-//!    `CITATION.cff`, and `codemeta.json` remain synchronized on `3.2.1`.
+//!    `CITATION.cff`, and `codemeta.json` remain synchronized on `3.2.2`.
 
 use std::fs;
 use std::path::PathBuf;
@@ -150,7 +150,7 @@ assert classify("; host ip comment in x86 fasm\nformat ELF64 executable\nmacro c
                 );
                 assert!(
                     !matches!(lexed[0].0, frameassembly::lexer::Token::Ident(_)),
-                    "MIME magic value {token_str:?} must be a built-in v3.2.1 keyword, not Ident"
+                    "MIME magic value {token_str:?} must be a built-in v3.2.2 keyword, not Ident"
                 );
                 matched_tokens += 1;
             }
@@ -255,103 +255,103 @@ fn test_cargo_toml_seo_and_brand_terminology_invariants() {
 
 /// Verifies that all four ecosystem publishing and metadata surfaces (`Cargo.toml`, `src/lib.rs`,
 /// `frameassembly-wasm`, `frameassembly-vscode`, `install.sh`, `install.ps1`, `CITATION.cff`,
-/// `codemeta.json`, `llms.txt`, and `llms-full.txt`) are synchronized at version `3.2.1`, keep
+/// `codemeta.json`, `llms.txt`, and `llms-full.txt`) are synchronized at version `3.2.2`, keep
 /// `cargo install frameassembly` featured, respect the `AGENTS.md <= 24,000`-byte cap, and omit
 /// removed or internal-only distribution channels from user-facing `README.md`.
 #[test]
-fn test_ecosystem_v3_2_1_version_and_metadata_lockstep() {
+fn test_ecosystem_v3_2_2_version_and_metadata_lockstep() {
     let cargo_toml = fs::read_to_string("Cargo.toml").expect("Missing Cargo.toml");
     assert!(
-        cargo_toml.contains("version = \"3.2.1\"")
+        cargo_toml.contains("version = \"3.2.2\"")
             && cargo_toml.contains("homepage = \"https://frameassembly-lang.dev/\""),
-        "Cargo.toml must declare version = \"3.2.1\" and homepage = \"https://frameassembly-lang.dev/\""
+        "Cargo.toml must declare version = \"3.2.2\" and homepage = \"https://frameassembly-lang.dev/\""
     );
 
     let lib_rs = fs::read_to_string("src/lib.rs").expect("Missing src/lib.rs");
     assert!(
-        lib_rs.contains("3.2.1") && lib_rs.contains("https://frameassembly-lang.dev/"),
-        "src/lib.rs must reference version 3.2.1 and https://frameassembly-lang.dev/"
+        lib_rs.contains("3.2.2") && lib_rs.contains("https://frameassembly-lang.dev/"),
+        "src/lib.rs must reference version 3.2.2 and https://frameassembly-lang.dev/"
     );
 
     let wasm_cargo = fs::read_to_string("frameassembly-wasm/Cargo.toml")
         .expect("Missing frameassembly-wasm/Cargo.toml");
     assert!(
-        wasm_cargo.contains("version = \"3.2.1\"")
-            && wasm_cargo.contains("frameassembly = { path = \"..\", version = \"3.2.1\" }")
+        wasm_cargo.contains("version = \"3.2.2\"")
+            && wasm_cargo.contains("frameassembly = { path = \"..\", version = \"3.2.2\" }")
             && wasm_cargo.contains("homepage = \"https://frameassembly-lang.dev/\""),
-        "frameassembly-wasm/Cargo.toml must declare version 3.2.1, pin frameassembly 3.2.1, and set homepage"
+        "frameassembly-wasm/Cargo.toml must declare version 3.2.2, pin frameassembly 3.2.2, and set homepage"
     );
 
     let wasm_pkg = fs::read_to_string("frameassembly-wasm/package.json")
         .expect("Missing frameassembly-wasm/package.json");
     assert!(
-        wasm_pkg.contains("\"version\": \"3.2.1\"")
+        wasm_pkg.contains("\"version\": \"3.2.2\"")
             && wasm_pkg.contains("\"homepage\": \"https://frameassembly-lang.dev/\""),
-        "frameassembly-wasm/package.json must declare version 3.2.1 and homepage"
+        "frameassembly-wasm/package.json must declare version 3.2.2 and homepage"
     );
 
     let vscode_pkg = fs::read_to_string("frameassembly-vscode/package.json")
         .expect("Missing frameassembly-vscode/package.json");
     assert!(
-        vscode_pkg.contains("\"version\": \"3.2.1\"")
+        vscode_pkg.contains("\"version\": \"3.2.2\"")
             && vscode_pkg.contains("\"homepage\": \"https://frameassembly-lang.dev/\""),
-        "frameassembly-vscode/package.json must declare version 3.2.1 and homepage"
+        "frameassembly-vscode/package.json must declare version 3.2.2 and homepage"
     );
 
     let install_sh = fs::read_to_string("install.sh").expect("Missing install.sh");
     assert!(
-        install_sh.contains("VSIX_VERSION=\"3.2.1\"")
-            && install_sh.contains("RELEASE_VERSION=\"3.2.1\""),
-        "install.sh must declare VSIX_VERSION=\"3.2.1\" and RELEASE_VERSION=\"3.2.1\""
+        install_sh.contains("VSIX_VERSION=\"3.2.2\"")
+            && install_sh.contains("RELEASE_VERSION=\"3.2.2\""),
+        "install.sh must declare VSIX_VERSION=\"3.2.2\" and RELEASE_VERSION=\"3.2.2\""
     );
 
     let install_ps1 = fs::read_to_string("install.ps1").expect("Missing install.ps1");
     assert!(
-        (install_ps1.contains("$ReleaseVersion = '3.2.1'")
-            || install_ps1.contains("$ReleaseVersion = \"3.2.1\""))
-            && (install_ps1.contains("$VsixVersion = '3.2.1'")
-                || install_ps1.contains("$VsixVersion = \"3.2.1\"")),
-        "install.ps1 must declare $ReleaseVersion = '3.2.1' and $VsixVersion = '3.2.1'"
+        (install_ps1.contains("$ReleaseVersion = '3.2.2'")
+            || install_ps1.contains("$ReleaseVersion = \"3.2.2\""))
+            && (install_ps1.contains("$VsixVersion = '3.2.2'")
+                || install_ps1.contains("$VsixVersion = \"3.2.2\"")),
+        "install.ps1 must declare $ReleaseVersion = '3.2.2' and $VsixVersion = '3.2.2'"
     );
 
     let citation_cff = fs::read_to_string("CITATION.cff").expect("Missing CITATION.cff");
     assert!(
-        (citation_cff.contains("version: 3.2.1") || citation_cff.contains("version: \"3.2.1\""))
+        (citation_cff.contains("version: 3.2.2") || citation_cff.contains("version: \"3.2.2\""))
             && citation_cff.contains("url: \"https://frameassembly-lang.dev/\""),
-        "CITATION.cff must declare version 3.2.1 and url https://frameassembly-lang.dev/"
+        "CITATION.cff must declare version 3.2.2 and url https://frameassembly-lang.dev/"
     );
 
     let codemeta_json = fs::read_to_string("codemeta.json").expect("Missing codemeta.json");
     assert!(
-        codemeta_json.contains("\"version\": \"3.2.1\"")
+        codemeta_json.contains("\"version\": \"3.2.2\"")
             && codemeta_json.contains("\"url\": \"https://frameassembly-lang.dev/\""),
-        "codemeta.json must declare version 3.2.1 and url https://frameassembly-lang.dev/"
+        "codemeta.json must declare version 3.2.2 and url https://frameassembly-lang.dev/"
     );
 
     let llms_txt = fs::read_to_string("llms.txt").expect("Missing llms.txt");
     assert!(
-        llms_txt.contains("3.2.1")
+        llms_txt.contains("3.2.2")
             && llms_txt.contains("https://frameassembly-lang.dev/")
             && llms_txt.contains("cargo install frameassembly")
             && llms_txt.lines().count() < 512
             && llms_txt.len() < 25_000,
-        "llms.txt must reference 3.2.1, cargo install, and https://frameassembly-lang.dev/ (< 512 lines, < 25 KB)"
+        "llms.txt must reference 3.2.2, cargo install, and https://frameassembly-lang.dev/ (< 512 lines, < 25 KB)"
     );
 
     let llms_full = fs::read_to_string("llms-full.txt").expect("Missing llms-full.txt");
     assert!(
-        llms_full.contains("3.2.1")
+        llms_full.contains("3.2.2")
             && llms_full.contains("https://frameassembly-lang.dev/")
             && llms_full.len() < 1_500_000
             && !llms_full.as_bytes().contains(&0),
-        "llms-full.txt must reference 3.2.1, remain < 1,500,000 bytes, and contain zero NUL bytes"
+        "llms-full.txt must reference 3.2.2, remain < 1,500,000 bytes, and contain zero NUL bytes"
     );
 
     let context7 = fs::read_to_string("context7.json").expect("Missing context7.json");
     assert!(
-        context7.contains("\"version\": \"3.2.1\"")
+        context7.contains("\"version\": \"3.2.2\"")
             && context7.contains("https://frameassembly-lang.dev/"),
-        "context7.json must declare version 3.2.1 and https://frameassembly-lang.dev/"
+        "context7.json must declare version 3.2.2 and https://frameassembly-lang.dev/"
     );
 
     let agents_md = fs::read_to_string("AGENTS.md").expect("Missing AGENTS.md");
